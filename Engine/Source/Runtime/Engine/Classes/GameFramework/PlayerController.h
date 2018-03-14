@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -25,13 +25,17 @@
 #include "PlayerController.generated.h"
 
 class ACameraActor;
+class AHUD;
 class APawn;
+class APlayerCameraManager;
 class ASpectatorPawn;
 class FDebugDisplayInfo;
 class UActorChannel;
+class UCheatManager;
 class UGameViewportClient;
 class UInterpTrackInstDirector;
 class ULocalMessage;
+class UNetConnection;
 class UPlayer;
 class UPrimitiveComponent;
 struct FActiveHapticFeedbackEffect;
@@ -112,10 +116,6 @@ struct ENGINE_API FInputModeUIOnly : public FInputModeDataBase
 	/** Widget to focus */
 	FInputModeUIOnly& SetWidgetToFocus(TSharedPtr<SWidget> InWidgetToFocus) { WidgetToFocus = InWidgetToFocus; return *this; }
 
-	/** Whether to lock the mouse to the viewport */
-	DEPRECATED(4.13, "Mouse locking behavior is now controlled by an enum. Please use SetLockMouseToViewportBehavior(...) instead.")
-	FInputModeUIOnly& SetLockMouseToViewport(bool InLockMouseToViewport) { return SetLockMouseToViewportBehavior( InLockMouseToViewport ? EMouseLockMode::LockOnCapture : EMouseLockMode::DoNotLock ); }
-
 	/** Sets the mouse locking behavior of the viewport */
 	FInputModeUIOnly& SetLockMouseToViewportBehavior(EMouseLockMode InMouseLockMode) { MouseLockMode = InMouseLockMode; return *this; }
 
@@ -131,15 +131,53 @@ protected:
 	virtual void ApplyInputMode(FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const override;
 };
 
+/** This structure is used to pass arguments to ClientUpdateMultipleLevelsStreamingStatus() client RPC function */
+USTRUCT()
+struct ENGINE_API FUpdateLevelStreamingLevelStatus
+{
+	GENERATED_BODY();
+
+	/** Name of the level package name used for loading. */
+	UPROPERTY()
+	FName PackageName;
+
+	/** Current LOD index for a streaming level */
+	UPROPERTY()
+	int32 LODIndex;
+
+	/** Whether the level should be loaded */
+	UPROPERTY()
+	uint32 bNewShouldBeLoaded : 1;
+	
+	/** Whether the level should be visible if it is loaded */
+	UPROPERTY()
+	uint32 bNewShouldBeVisible : 1;
+	
+	/** Whether we want to force a blocking load */
+	UPROPERTY()
+	uint32 bNewShouldBlockOnLoad : 1;
+};
+
+/** This structure is used to pass arguments to ServerUpdateMultipleLevelsVisibility() server RPC function */
+USTRUCT()
+struct ENGINE_API FUpdateLevelVisibilityLevelInfo
+{
+	GENERATED_BODY();
+
+	/** The name of the package for the level whose status changed */
+	UPROPERTY()
+	FName PackageName;
+
+	/** The new visibility state for this level */
+	UPROPERTY()
+	uint32 bIsVisible : 1;
+};
+
 /** Data structure used to setup an input mode that allows the UI to respond to user input, and if the UI doesn't handle it player input / player controller gets a chance. */
 struct ENGINE_API FInputModeGameAndUI : public FInputModeDataBase
 {
 	/** Widget to focus */
 	FInputModeGameAndUI& SetWidgetToFocus(TSharedPtr<SWidget> InWidgetToFocus) { WidgetToFocus = InWidgetToFocus; return *this; }
-
-	/** Whether to lock the mouse to the viewport */
-	DEPRECATED(4.13, "Mouse locking behavior is now controlled by an enum. Please use SetLockMouseToViewportBehavior(...) instead.")
-	FInputModeGameAndUI& SetLockMouseToViewport(bool InLockMouseToViewport) { return SetLockMouseToViewportBehavior( InLockMouseToViewport ? EMouseLockMode::LockOnCapture : EMouseLockMode::DoNotLock ); }
 
 	/** Sets the mouse locking behavior of the viewport */
 	FInputModeGameAndUI& SetLockMouseToViewportBehavior(EMouseLockMode InMouseLockMode) { MouseLockMode = InMouseLockMode; return *this; }
@@ -179,7 +217,6 @@ protected:
 };
 
 
-//~=============================================================================
 /**
  * PlayerControllers are used by human players to control Pawns.
  *
@@ -192,47 +229,41 @@ protected:
  *
  * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Controller/PlayerController/
  */
-
 UCLASS(config=Game, BlueprintType, Blueprintable, meta=(ShortTooltip="A Player Controller is an actor responsible for controlling a Pawn used by the player."))
 class ENGINE_API APlayerController : public AController
 {
-	GENERATED_UCLASS_BODY()
-	
+	GENERATED_BODY()
+
+public:
+	/** Default Constructor */
+	APlayerController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
 	/** UPlayer associated with this PlayerController.  Could be a local player or a net connection. */
 	UPROPERTY()
-	class UPlayer* Player;
-
-	/** when true, reduces connect timeout from InitialConnectionTimeOut to ConnectionTimeout.  
-		Set once initial level load is complete (client may be unresponsive during level loading). */
-	uint32 bShortConnectTimeOut:1;
+	UPlayer* Player;
 
 	/** Used in net games so client can acknowledge it possessed a specific pawn. */
 	UPROPERTY()
-	class APawn* AcknowledgedPawn;
+	APawn* AcknowledgedPawn;
 
 	/** Director track that's currently possessing this player controller, or none if not possessed. */
-	UPROPERTY(transient)
-	class UInterpTrackInstDirector* ControllingDirTrackInst;
-
-	/** last used FOV based multiplier to distance to an object when determining if it exceeds the object's cull distance
-	 * @note: only valid for local player
-	 */
-	float LocalPlayerCachedLODDistanceFactor;
+	UPROPERTY(Transient)
+	UInterpTrackInstDirector* ControllingDirTrackInst;
 
 	/** Heads up display associated with this PlayerController. */
 	UPROPERTY()
-	class AHUD* MyHUD;
+	AHUD* MyHUD;
 
 	// ******************************************************************************
 	// Camera/view related variables
 
 	/** Camera manager associated with this Player Controller. */
 	UPROPERTY(BlueprintReadOnly, Category=PlayerController)
-	class APlayerCameraManager* PlayerCameraManager;
+	APlayerCameraManager* PlayerCameraManager;
 
 	/** PlayerCamera class should be set for each game, otherwise Engine.PlayerCameraManager is used */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=PlayerController)
-	TSubclassOf<class APlayerCameraManager> PlayerCameraManagerClass;
+	TSubclassOf<APlayerCameraManager> PlayerCameraManagerClass;
 
 	/** 
 	 * True to allow this player controller to manage the camera target for you,
@@ -246,12 +277,18 @@ class ENGINE_API APlayerController : public AController
 	UPROPERTY(replicated)
 	FRotator TargetViewRotation; 
 
-	/**  Smoothed version of TargetViewRotation to remove jerkiness from intermittent replication updates. */
+	/** Smoothed version of TargetViewRotation to remove jerkiness from intermittent replication updates. */
 	FRotator BlendedTargetViewRotation;
 
 	/** Interp speed for blending remote view rotation for smoother client updates */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PlayerController)
 	float SmoothTargetViewRotationSpeed;
+
+	/**
+	 * Last used FOV based multiplier to distance to an object when determining if it exceeds the object's cull distance
+	 * @note: only valid for local player
+	 */
+	float LocalPlayerCachedLODDistanceFactor;
 
 	/** The actors which the camera shouldn't see - e.g. used to hide actors which the camera penetrates */
 	UPROPERTY()
@@ -281,25 +318,26 @@ class ENGINE_API APlayerController : public AController
 	int32 ClientCap;
 	
 	/** Object that manages "cheat" commands.  Not instantiated in shipping builds. */
-	UPROPERTY(transient, BlueprintReadOnly, Category="Cheat Manager")
-	class UCheatManager* CheatManager;
+	UPROPERTY(Transient, BlueprintReadOnly, Category="Cheat Manager")
+	UCheatManager* CheatManager;
 	
 	/** Class of my CheatManager.  The Cheat Manager is not created in shipping builds */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Cheat Manager")
-	TSubclassOf<class UCheatManager> CheatClass;
+	TSubclassOf<UCheatManager> CheatClass;
 
 	/** Object that manages player input. */
-	UPROPERTY(transient)
+	UPROPERTY(Transient)
 	class UPlayerInput* PlayerInput;    
 	
-	UPROPERTY(transient)
+	UPROPERTY(Transient)
 	TArray<FActiveForceFeedbackEffect> ActiveForceFeedbackEffects;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	/** For debbugging, shows the last force feeback effects that played */
+	/** For debugging, shows the last force feeback effects that played */
 	TArray<FForceFeedbackEffectHistoryEntry> ForceFeedbackEffectHistoryEntries;
 #endif
 
+	/** Map of active force feedback effects */
 	TMap<int32, FDynamicForceFeedbackDetails> DynamicForceFeedbacks;
 
 	/** Currently playing haptic effects for both the left and right hand */
@@ -307,8 +345,17 @@ class ENGINE_API APlayerController : public AController
 	TSharedPtr<struct FActiveHapticFeedbackEffect> ActiveHapticEffect_Right;
 	TSharedPtr<struct FActiveHapticFeedbackEffect> ActiveHapticEffect_Gun;
 
-	/** list of names of levels the server is in the middle of sending us for a PrepareMapChange() call */
+	/** Currently active force feedback weights */
+	FForceFeedbackValues ForceFeedbackValues;
+
+	/** List of names of levels the server is in the middle of sending us for a PrepareMapChange() call */
 	TArray<FName> PendingMapChangeLevelNames;
+
+	/**
+	 * When true, reduces connect timeout from InitialConnectionTimeOut to ConnectionTimeout.  
+	 * Set once initial level load is complete (client may be unresponsive during level loading).
+	 */
+	uint32 bShortConnectTimeOut:1;
 
 	/** Is this player currently in cinematic mode?  Prevents rotation/movement/firing/etc */
 	uint32 bCinematicMode:1;
@@ -331,7 +378,8 @@ class ENGINE_API APlayerController : public AController
 	UFUNCTION(client, reliable, Category=PlayerController)
 	void ClientSetSpectatorWaiting(bool bWaiting);
 
-	/** index identifying players using the same base connection (splitscreen clients)
+	/**
+	 * Index identifying players using the same base connection (splitscreen clients)
 	 * Used by netcode to match replicated PlayerControllers to the correct splitscreen viewport and child connection
 	 * replicated via special internal code, not through normal variable replication
 	 */
@@ -341,19 +389,20 @@ class ENGINE_API APlayerController : public AController
 	/** List of muted players in various categories */
 	FPlayerMuteList MuteList;
 
-	/** this is set on the OLD PlayerController when performing a swap over a network connection
+	/**
+	 * This is set on the OLD PlayerController when performing a swap over a network connection
 	 * so we know what connection we're waiting on acknowledgment from to finish destroying this PC
 	 * (or when the connection is closed)
 	 * @see GameModeBase::SwapPlayerControllers()
 	 */
 	UPROPERTY(DuplicateTransient)
-	class UNetConnection* PendingSwapConnection;
+	UNetConnection* PendingSwapConnection;
 
-	/** The net connection this controller is communicating on, NULL for local players on server */
+	/** The net connection this controller is communicating on, nullptr for local players on server */
 	UPROPERTY(DuplicateTransient)
-	class UNetConnection* NetConnection;
+	UNetConnection* NetConnection;
 
-	// Input axes values, accumulated each tick.
+	/** Input axes values, accumulated each tick. */
 	FRotator RotationInput;
 
 	/** Yaw input speed scaling */
@@ -395,12 +444,15 @@ class ENGINE_API APlayerController : public AController
 	UPROPERTY(config)
 	float ForceFeedbackScale;
 
+	/** List of keys that will cause click events to be forwarded, default to left click */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MouseInterface, meta=(EditCondition="bEnableClickEvents"))
 	TArray<FKey> ClickEventKeys;
 
+	/** Type of mouse cursor to show by default */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MouseInterface)
 	TEnumAsByte<EMouseCursor::Type> DefaultMouseCursor;
 
+	/** Currently visible mouse cursor */
 	UPROPERTY(BlueprintReadWrite, Category=MouseInterface)
 	TEnumAsByte<EMouseCursor::Type> CurrentMouseCursor;
 
@@ -412,13 +464,20 @@ class ENGINE_API APlayerController : public AController
 	UPROPERTY(BlueprintReadWrite, Category=MouseInterface)
 	TEnumAsByte<ECollisionChannel> CurrentClickTraceChannel;
 
+	/** Distance to trace when computing click events */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MouseInterface, meta=(DisplayName="Trace Distance"))
 	float HitResultTraceDistance;
 
-	FForceFeedbackValues ForceFeedbackValues;
+	/** Counter for this players seamless travels (used along with the below value, to restrict ServerNotifyLoadedWorld) */
+	UPROPERTY()
+	uint16 SeamlessTravelCount;
+
+	/** The value of SeamlessTravelCount, upon the last call to GameModeBase::HandleSeamlessTravelPlayer; used to detect seamless travel */
+	UPROPERTY()
+	uint16 LastCompletedSeamlessTravelCount;
 
 public:
-	/**  Enables cheats within the game */
+	/** Enables cheats within the game */
 	UFUNCTION(exec)
 	virtual void EnableCheats();
 
@@ -441,8 +500,13 @@ public:
 	virtual void LocalTravel(const FString& URL);
 
 	/** Return the client to the main menu gracefully */
+	DEPRECATED(4.19, "As an FString, the ReturnReason parameter is not easily localized. Please use ClientReturnToMainMenuWithTextReason instead.")
 	UFUNCTION(Reliable, Client)
 	virtual void ClientReturnToMainMenu(const FString& ReturnReason);
+
+	/** Return the client to the main menu gracefully */
+	UFUNCTION(Reliable, Client)
+	virtual void ClientReturnToMainMenuWithTextReason(const FText& ReturnReason);
 
 	/** Development RPC for testing object reference replication */
 	UFUNCTION(Reliable, Client)
@@ -458,7 +522,7 @@ public:
 	UFUNCTION(exec)
 	virtual void Pause();
 
-	/** Trys to set the player's name to the given name. */
+	/** Tries to set the player's name to the given name. */
 	UFUNCTION(exec)
 	virtual void SetName(const FString& S);
 
@@ -467,7 +531,7 @@ public:
 	virtual void SwitchLevel(const FString& URL);
 
 	/** 
-	 * called to notify the server when the client has loaded a new world via seamless traveling
+	 * Called to notify the server when the client has loaded a new world via seamless traveling
 	 * @param WorldPackageName the name of the world package that was loaded
 	 * @param bFinalDest whether this world is the destination map for the travel (i.e. not the transition level)
 	 */
@@ -495,6 +559,7 @@ public:
 	/** Reset move and look input ignore flags to defaults */
 	virtual void ResetIgnoreInputFlags() override;
 
+	/** Returns hit results from doing a collision query at a certain location on the screen */
 	bool GetHitResultAtScreenPosition(const FVector2D ScreenPosition, const ECollisionChannel TraceChannel, const FCollisionQueryParams& CollisionQueryParams, FHitResult& HitResult) const;
 	bool GetHitResultAtScreenPosition(const FVector2D ScreenPosition, const ECollisionChannel TraceChannel, bool bTraceComplex, FHitResult& HitResult) const;
 	bool GetHitResultAtScreenPosition(const FVector2D ScreenPosition, const ETraceTypeQuery TraceChannel, bool bTraceComplex, FHitResult& HitResult) const;
@@ -503,34 +568,38 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Game|Player", meta=(DeprecatedFunction, DeprecationMessage = "Use new GetHitResultUnderCursorByChannel or GetHitResultUnderCursorForObject", TraceChannel=ECC_Visibility, bTraceComplex=true))
 	bool GetHitResultUnderCursor(ECollisionChannel TraceChannel, bool bTraceComplex, FHitResult& HitResult) const;
 
+	/** Performs a collision query under the mouse cursor, looking on a trace channel */
 	UFUNCTION(BlueprintCallable, Category="Game|Player", meta=(bTraceComplex=true))
 	bool GetHitResultUnderCursorByChannel(ETraceTypeQuery TraceChannel, bool bTraceComplex, FHitResult& HitResult) const;
 
+	/** Performs a collision query under the mouse cursor, looking for object types */
 	UFUNCTION(BlueprintCallable, Category="Game|Player", meta=(bTraceComplex=true))
 	bool GetHitResultUnderCursorForObjects(const TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, FHitResult& HitResult) const;
 
 	UFUNCTION(BlueprintCallable, Category="Game|Player", meta=(DeprecatedFunction, DeprecationMessage = "Use new GetHitResultUnderFingerByChannel or GetHitResultUnderFingerForObject", TraceChannel=ECC_Visibility, bTraceComplex=true))
 	bool GetHitResultUnderFinger(ETouchIndex::Type FingerIndex, ECollisionChannel TraceChannel, bool bTraceComplex, FHitResult& HitResult) const;
 
+	/** Performs a collision query under the finger, looking on a trace channel */
 	UFUNCTION(BlueprintCallable, Category="Game|Player", meta=(bTraceComplex=true))
 	bool GetHitResultUnderFingerByChannel(ETouchIndex::Type FingerIndex, ETraceTypeQuery TraceChannel, bool bTraceComplex, FHitResult& HitResult) const;
 
+	/** Performs a collision query under the finger, looking for object types */
 	UFUNCTION(BlueprintCallable, Category="Game|Player", meta=(bTraceComplex=true))
 	bool GetHitResultUnderFingerForObjects(ETouchIndex::Type FingerIndex, const  TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, FHitResult& HitResult) const;
 
 	/** Convert current mouse 2D position to World Space 3D position and direction. Returns false if unable to determine value. **/
-	UFUNCTION(BlueprintCallable, Category = "Game|Player", meta = (DisplayName = "ConvertMouseLocationToWorldSpace", Keywords = "deproject"))
+	UFUNCTION(BlueprintCallable, Category="Game|Player", meta = (DisplayName = "ConvertMouseLocationToWorldSpace", Keywords = "deproject"))
 	bool DeprojectMousePositionToWorld(FVector& WorldLocation, FVector& WorldDirection) const;
 
 	/** Convert 2D screen position to World Space 3D position and direction. Returns false if unable to determine value. **/
-	UFUNCTION(BlueprintCallable, Category = "Game|Player", meta = (DisplayName = "ConvertScreenLocationToWorldSpace", Keywords = "deproject"))
+	UFUNCTION(BlueprintCallable, Category="Game|Player", meta = (DisplayName = "ConvertScreenLocationToWorldSpace", Keywords = "deproject"))
 	bool DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector& WorldLocation, FVector& WorldDirection) const;
 
 	/**
 	 * Convert a World Space 3D position into a 2D Screen Space position.
 	 * @return true if the world coordinate was successfully projected to the screen.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Game|Player", meta = (DisplayName = "ConvertWorldLocationToScreenLocation", Keywords = "project"))
+	UFUNCTION(BlueprintCallable, Category="Game|Player", meta = (DisplayName = "ConvertWorldLocationToScreenLocation", Keywords = "project"))
 	bool ProjectWorldLocationToScreen(FVector WorldLocation, FVector2D& ScreenLocation, bool bPlayerViewportRelative = false) const;
 
 	/**
@@ -539,23 +608,30 @@ public:
 	 */
 	bool ProjectWorldLocationToScreenWithDistance(FVector WorldLocation, FVector& ScreenLocation, bool bPlayerViewportRelative = false) const;
 	
+	/**
+	 * After successful world to screen projection, allows custom post-processing of the resulting ScreenLocation.
+	 * @return Whether projected location remains valid.
+	 */
+	virtual bool PostProcessWorldToScreen(FVector WorldLocation, FVector2D& ScreenLocation, bool bPlayerViewportRelative) const;
+
 	/** Positions the mouse cursor in screen space, in pixels. */
 	UFUNCTION( BlueprintCallable, Category="Game|Player", meta = (DisplayName = "SetMousePosition", Keywords = "mouse" ))
 	void SetMouseLocation( const int X, const int Y );
+
 	/**
-	  * Updates the rotation of player, based on ControlRotation after RotationInput has been applied.
-	  * This may then be modified by the PlayerCamera, and is passed to Pawn->FaceRotation().
-	  */
+	 * Updates the rotation of player, based on ControlRotation after RotationInput has been applied.
+	 * This may then be modified by the PlayerCamera, and is passed to Pawn->FaceRotation().
+	 */
 	virtual void UpdateRotation(float DeltaTime);
 
 protected:
 	/** Pawn has been possessed, so changing state to NAME_Playing. Start it walking and begin playing with it. */
 	virtual void BeginPlayingState();
 
-	// Leave playing state. */ 
+	/** Leave playing state. */ 
 	virtual void EndPlayingState();
 
-	/** overridden to return that player controllers are capable of RPCs */
+	/** Overridden to return that player controllers are capable of RPCs */
 	virtual bool HasNetOwner() const override;
 
 public:
@@ -566,10 +642,11 @@ public:
 	/** Notify player of change to level */
 	void LevelStreamingStatusChanged(class ULevelStreaming* LevelObject, bool bNewShouldBeLoaded, bool bNewShouldBeVisible, bool bNewShouldBlockOnLoad, int32 LODIndex);
 
-	/** used to wait until a map change can be prepared when one was already in progress */
+	/** Used to wait until a map change can be prepared when one was already in progress */
 	virtual void DelayedPrepareMapChange();
 
-	/** Called on client during seamless level transitions to get the list of Actors that should be moved into the new level
+	/**
+	 * Called on client during seamless level transitions to get the list of Actors that should be moved into the new level
 	 * PlayerControllers, Role < ROLE_Authority Actors, and any non-Actors that are inside an Actor that is in the list
 	 * (i.e. Object.Outer == Actor in the list)
 	 * are all automatically moved regardless of whether they're included here
@@ -581,13 +658,15 @@ public:
 	 */
 	virtual void GetSeamlessTravelActorList(bool bToEntry, TArray<class AActor*>& ActorList);
 
-	/** Called when seamless traveling and we are being replaced by the specified PC
+	/**
+	 * Called when seamless traveling and we are being replaced by the specified PC
 	 * clean up any persistent state (post process chains on LocalPlayers, for example)
 	 * (not called if PlayerController is the same for the from and to GameModes)
 	 */
 	virtual void SeamlessTravelTo(class APlayerController* NewPC);
 
-	/** Called when seamless traveling and the specified PC is being replaced by this one
+	/**
+	 * Called when seamless traveling and the specified PC is being replaced by this one
 	 * copy over data that should persist
 	 * (not called if PlayerController is the same for the from and to GameModes)
 	 */
@@ -672,6 +751,13 @@ public:
 	void GameplayUnmutePlayer(const FUniqueNetIdRepl& PlayerNetId);
 
 	/**
+	* Get a remote player controller on the server for muting
+	*
+	* @param PlayerNetId the remote player to find
+	*/
+	virtual class APlayerController* GetPlayerControllerForMuting(const FUniqueNetIdRepl& PlayerNetId);
+
+	/**
 	 * Is the specified player muted by this controlling player
 	 * for any reason (gameplay, system, etc), check voice interface IsMuted() for system mutes
 	 *
@@ -707,7 +793,8 @@ public:
 	UFUNCTION(Reliable, Client)	
 	void ClientCommitMapChange();
 
-	/** Tells the client to block until all pending level streaming actions are complete
+	/**
+	 * Tells the client to block until all pending level streaming actions are complete
 	 * happens at the end of the tick
 	 * primarily used to force update the client ASAP at join time
 	 */
@@ -733,11 +820,11 @@ public:
 	UFUNCTION(Reliable, Client)
 	void ClientGotoState(FName NewState);
 
-	/** calls IgnoreLookInput on client */
+	/** Calls IgnoreLookInput on client */
 	UFUNCTION(Reliable, Client)
 	void ClientIgnoreLookInput(bool bIgnore);
 
-	/** calls IgnoreMoveInput on client */
+	/** Calls IgnoreMoveInput on client */
 	UFUNCTION(Reliable, Client)
 	void ClientIgnoreMoveInput(bool bIgnore);
 
@@ -761,7 +848,7 @@ public:
 	 * @param Space - Animation play area
 	 * @param CustomPlaySpace - Matrix used when Space = CAPS_UserDefined
 	 */
-	UFUNCTION(unreliable, client, BlueprintCallable, Category = "Game|Feedback")
+	UFUNCTION(unreliable, client, BlueprintCallable, Category="Game|Feedback")
 	void ClientPlayCameraAnim(class UCameraAnim* AnimToPlay, float Scale=1.f, float Rate=1.f, float BlendInTime=0.f, float BlendOutTime=0.f, bool bLoop=false, bool bRandomStartTime=false, ECameraAnimPlaySpace::Type Space=ECameraAnimPlaySpace::CameraLocal, FRotator CustomPlaySpace=FRotator::ZeroRotator);
 
 	/** 
@@ -828,7 +915,8 @@ public:
 	UFUNCTION(Reliable, Client)
 	void ClientSetBlockOnAsyncLoading();
 
-	/** Tell client to fade camera
+	/**
+	 * Tell client to fade camera
 	 * @Param bEnableFading - true if we should apply FadeColor/FadeAmount to the screen
 	 * @Param FadeColor - Color to fade to
 	 * @Param FadeAlpha - Amount of fading to apply
@@ -862,7 +950,7 @@ public:
 
 	/** Set the client's class of HUD and spawns a new instance of it. If there was already a HUD active, it is destroyed. */
 	UFUNCTION(BlueprintCallable, Category="HUD", Reliable, Client)
-	void ClientSetHUD(TSubclassOf<class AHUD> NewHUDClass);
+	void ClientSetHUD(TSubclassOf<AHUD> NewHUDClass);
 
 	/** Helper to get the size of the HUD canvas for this player controller.  Returns 0 if there is no HUD */
 	UFUNCTION(BlueprintCallable, Category="HUD")
@@ -870,14 +958,14 @@ public:
 
 	/** Gets the HUD currently being used by this player controller */
 	UFUNCTION(BlueprintCallable, Category="HUD")
-	class AHUD* GetHUD() const;
+	AHUD* GetHUD() const;
 
 	/**
 	 * Sets the Widget for the Mouse Cursor to display 
 	 * @param Cursor - the cursor to set the widget for
 	 * @param CursorWidget - the widget to set the cursor to
 	 */
-	UFUNCTION(BlueprintCallable, Category = "UI")
+	UFUNCTION(BlueprintCallable, Category="UI")
 	void SetMouseCursorWidget(EMouseCursor::Type Cursor, class UUserWidget* CursorWidget);
 
 	/** Set the view target
@@ -943,38 +1031,38 @@ public:
 	void PlayDynamicForceFeedback(float Intensity, float Duration, bool bAffectsLeftLarge, bool bAffectsLeftSmall, bool bAffectsRightLarge, bool bAffectsRightSmall, TEnumAsByte<EDynamicForceFeedbackAction::Type> Action, FLatentActionInfo LatentInfo);
 
 	/**
-	* Play a haptic feedback curve on the player's controller
-	* @param	HapticEffect			The haptic effect to play
-	* @param	Hand					Which hand to play the effect on
-	* @param	Scale					Scale between 0.0 and 1.0 on the intensity of playback
-	*/
-	UFUNCTION(BlueprintCallable, Category = "Game|Feedback")
+	 * Play a haptic feedback curve on the player's controller
+	 * @param	HapticEffect			The haptic effect to play
+	 * @param	Hand					Which hand to play the effect on
+	 * @param	Scale					Scale between 0.0 and 1.0 on the intensity of playback
+	 */
+	UFUNCTION(BlueprintCallable, Category="Game|Feedback")
 	void PlayHapticEffect(class UHapticFeedbackEffect_Base* HapticEffect, EControllerHand Hand, float Scale = 1.f,  bool bLoop = false);
 
 	/**
-	* Stops a playing haptic feedback curve
-	* @param	HapticEffect			The haptic effect to stop
-	* @param	Hand					Which hand to stop the effect for
-	*/
-	UFUNCTION(BlueprintCallable, Category = "Game|Feedback")
+	 * Stops a playing haptic feedback curve
+	 * @param	HapticEffect			The haptic effect to stop
+	 * @param	Hand					Which hand to stop the effect for
+	 */
+	UFUNCTION(BlueprintCallable, Category="Game|Feedback")
 	void StopHapticEffect(EControllerHand Hand);
 
 	/**
-	* Sets the value of the haptics for the specified hand directly, using frequency and amplitude.  NOTE:  If a curve is already
-	* playing for this hand, it will be cancelled in favour of the specified values.
-	*
-	* @param	Frequency				The normalized frequency [0.0, 1.0] to play through the haptics system
-	* @param	Amplitude				The normalized amplitude [0.0, 1.0] to set the haptic feedback to
-	* @param	Hand					Which hand to play the effect on
-	*/
-	UFUNCTION(BlueprintCallable, Category = "Game|Feedback")
+	 * Sets the value of the haptics for the specified hand directly, using frequency and amplitude.  NOTE:  If a curve is already
+	 * playing for this hand, it will be cancelled in favour of the specified values.
+	 *
+	 * @param	Frequency				The normalized frequency [0.0, 1.0] to play through the haptics system
+	 * @param	Amplitude				The normalized amplitude [0.0, 1.0] to set the haptic feedback to
+	 * @param	Hand					Which hand to play the effect on
+	 */
+	UFUNCTION(BlueprintCallable, Category="Game|Feedback")
 	void SetHapticsByValue(const float Frequency, const float Amplitude, EControllerHand Hand);
 	
 	/**
-	* Sets the light color of the player's controller
-	* @param	Color					The color for the light to be
-	*/
-	UFUNCTION(BlueprintCallable, Category = "Game|Feedback")
+	 * Sets the light color of the player's controller
+	 * @param	Color					The color for the light to be
+	 */
+	UFUNCTION(BlueprintCallable, Category="Game|Feedback")
 	void SetControllerLightColor(FColor Color);
 
 	/**
@@ -1015,6 +1103,13 @@ public:
 	UFUNCTION(Reliable, Client)
 	void ClientUpdateLevelStreamingStatus(FName PackageName, bool bNewShouldBeLoaded, bool bNewShouldBeVisible, bool bNewShouldBlockOnLoad, int32 LODIndex);
 
+	/**
+	 * Replicated Update streaming status.  This version allows for the streaming state of many levels to be sent in a single RPC.
+	 * @param LevelStatuses	The list of levels the client should have either streamed in or not, depending on state.
+	 */
+	UFUNCTION(Reliable, Client)
+	void ClientUpdateMultipleLevelsStreamingStatus(const TArray<FUpdateLevelStreamingLevelStatus>& LevelStatuses);
+
 	/** Notify client they were kicked from the server */
 	UFUNCTION(Reliable, Client)
 	void ClientWasKicked(const FText& KickReason);
@@ -1036,7 +1131,7 @@ public:
 
 	/** send client localized message id */
 	UFUNCTION(Reliable, Client)
-	void ClientReceiveLocalizedMessage(TSubclassOf<ULocalMessage> Message, int32 Switch = 0, class APlayerState* RelatedPlayerState_1 = NULL, class APlayerState* RelatedPlayerState_2 = NULL, class UObject* OptionalObject = NULL);
+	void ClientReceiveLocalizedMessage(TSubclassOf<ULocalMessage> Message, int32 Switch = 0, class APlayerState* RelatedPlayerState_1 = nullptr, class APlayerState* RelatedPlayerState_2 = nullptr, class UObject* OptionalObject = nullptr);
 
 	/** acknowledge possession of pawn */
 	UFUNCTION(reliable, server, WithValidation)
@@ -1100,6 +1195,15 @@ public:
 	 */
 	UFUNCTION(reliable, server, WithValidation, SealedEvent)
 	void ServerUpdateLevelVisibility(FName PackageName, bool bIsVisible);
+
+	/** 
+	 * Called when the client adds/removes a streamed level.  This version of the function allows you to pass the state of 
+	 * multiple levels at once, to reduce the number of RPC events that will be sent.
+	 *
+	 * @param	LevelVisibilities	Visibility state for each level whose state has changed
+	 */
+	UFUNCTION(reliable, server, WithValidation, SealedEvent)
+	void ServerUpdateMultipleLevelsVisibility( const TArray<FUpdateLevelVisibilityLevelInfo>& LevelVisibilities );
 
 	/** Used by client to request server to confirm current viewtarget (server will respond with ClientSetViewTarget() ). */
 	UFUNCTION(reliable, server, WithValidation)
@@ -1195,15 +1299,12 @@ public:
 	virtual void ActivateTouchInterface(class UTouchInterface* NewTouchInterface);
 
 	/** Set the virtual joystick visibility. */
-	UFUNCTION(BlueprintCallable, Category = "Game|Player")
+	UFUNCTION(BlueprintCallable, Category="Game|Player")
 	virtual void SetVirtualJoystickVisibility(bool bVisible);
-
-public:
 
 	/** Setup an input mode. */
 	virtual void SetInputMode(const FInputModeDataBase& InData);
 
-public:
 	/**
 	 * Change Camera mode
 	 * @param	New camera mode to set
@@ -1211,7 +1312,8 @@ public:
 	UFUNCTION(exec)
 	virtual void Camera(FName NewMode);
 
-	/** Set the view target blending with variable control
+	/**
+	 * Set the view target blending with variable control
 	 * @param NewViewTarget - new actor to set as view target
 	 * @param BlendTime - time taken to blend
 	 * @param BlendFunc - Cubic, Linear etc functions for blending
@@ -1245,15 +1347,15 @@ protected:
 	uint32 bCinemaDisableInputMove:1;
 	uint32 bCinemaDisableInputLook:1;
 
+	/** Whether we fully tick when the game is paused, if our tick function is allowed to do so. If false, we do a minimal update during the tick. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PlayerController)
+	uint32 bShouldPerformFullTickWhenPaused : 1;
+
 private:
 	/* Whether the PlayerController's input handling is enabled. */
 	uint32 bInputEnabled:1;
 
 protected:
-
-	/** Whether we fully tick when the game is paused, if our tick function is allowed to do so. If false, we do a minimal update during the tick. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PlayerController)
-	uint32 bShouldPerformFullTickWhenPaused:1;
 
 	/** The virtual touch interface */
 	TSharedPtr<class SVirtualJoystick> VirtualJoystick;
@@ -1279,11 +1381,19 @@ public:
 	/** Removes given inputcomponent from the input stack (regardless of if it's the top, actually). */
 	bool PopInputComponent(UInputComponent* Input);
 
+	/** Flushes the current key state. */
 	virtual void FlushPressedKeys();
 
+	/** Handles a key press */
 	virtual bool InputKey(FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad);
+
+	/** Handles a touch screen action */
 	virtual bool InputTouch(uint32 Handle, ETouchType::Type Type, const FVector2D& TouchLocation, FDateTime DeviceTimestamp, uint32 TouchpadIndex);
+
+	/** Handles a controller axis input */
 	virtual bool InputAxis(FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad);
+
+	/** Handles motion control */
 	virtual bool InputMotion(const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration);
 
 	/** Associate a new UPlayer with this PlayerController. */
@@ -1309,6 +1419,7 @@ public:
 
 	//~ Begin UObject Interface
 	virtual void PostLoad() override;
+	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 	//~ End UObject Interface
 
 	//~ Begin AActor Interface
@@ -1342,7 +1453,7 @@ protected:
 
 public:
 	//~ Begin AController Interface
-	virtual void GameHasEnded(class AActor* EndGameFocus = NULL, bool bIsWinner = false) override;
+	virtual void GameHasEnded(class AActor* EndGameFocus = nullptr, bool bIsWinner = false) override;
 	virtual bool IsLocalController() const override;
 	virtual void GetPlayerViewPoint(FVector& out_Location, FRotator& out_Rotation) const override;
 	virtual void SetInitialLocationAndRotation(const FVector& NewLocation, const FRotator& NewRotation) override;
@@ -1354,9 +1465,8 @@ public:
 	virtual void SetPawn(APawn* InPawn) override;
 	//~ End AController Interface
 
-	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
-
-	/** called on the server when the client sends a message indicating it was unable to initialize an Actor channel,
+	/**
+	 * Called on the server when the client sends a message indicating it was unable to initialize an Actor channel,
 	 * most commonly because the desired Actor's archetype couldn't be serialized
 	 * the default is to do nothing (Actor simply won't exist on the client), but this function gives the game code
 	 * an opportunity to try to correct the problem
@@ -1386,12 +1496,12 @@ public:
 
 	/**
 	 * Sets the Matinee director track instance that's currently possessing this player controller
-	 * @param   NewControllingDirector    The director track instance that's now controlling this player controller (or NULL for none)
-	 * @param	bClientSimulatingViewTarget	True to allow clients to simulate their own camera cuts (ignored if NewControllingDirector is NULL).
+	 * @param   NewControllingDirector    The director track instance that's now controlling this player controller (or nullptr for none)
+	 * @param	bClientSimulatingViewTarget	True to allow clients to simulate their own camera cuts (ignored if NewControllingDirector is nullptr).
 	 */
 	void SetControllingDirector(UInterpTrackInstDirector* NewControllingDirector, bool bClientSimulatingViewTarget);
 
-	/** Returns the Matinee director track that's currently possessing this player controller, or NULL for none */
+	/** Returns the Matinee director track that's currently possessing this player controller, or nullptr for none */
 	UInterpTrackInstDirector* GetControllingDirector();
 
 	/** spawn cameras for servers and owning players */
@@ -1413,7 +1523,7 @@ public:
 	/**
 	 * Clear any overrides that have been applied to audio listener
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Game|Audio")
+	UFUNCTION(BlueprintCallable, Category="Game|Audio")
 	void ClearAudioListenerOverride();
 
 protected:
@@ -1426,15 +1536,14 @@ protected:
 	/** Currently overridden rotation of audio listener */
 	FRotator AudioListenerRotationOverride;
 
-protected:
 	/** Internal. */
 	void TickPlayerInput(const float DeltaSeconds, const bool bGamePaused);
 	virtual void ProcessPlayerInput(const float DeltaTime, const bool bGamePaused);
 	virtual void BuildInputStack(TArray<UInputComponent*>& InputStack);
 	void ProcessForceFeedbackAndHaptics(const float DeltaTime, const bool bGamePaused);
 	virtual bool IsInViewportClient(UGameViewportClient* ViewportClient) const;
-
 	virtual int32 GetInputIndex() const;
+	virtual ACameraActor* GetAutoActivateCameraForPlayer() const;
 
 	/** Allows the PlayerController to set up custom input bindings. */
 	virtual void SetupInputComponent();
@@ -1517,7 +1626,7 @@ public:
 	 * @param	OutSplitscreenPlayerIndex	receives the index [into the player's local GamePlayers array] for this player, if playing splitscreen.
 	 * @return	true if this player is playing splitscreen.
 	 */
-	bool IsSplitscreenPlayer(int32* OutSplitscreenPlayerIndex = NULL) const;
+	bool IsSplitscreenPlayer(int32* OutSplitscreenPlayerIndex = nullptr) const;
 
 	/**
 	 * Wrapper for determining whether this player is the first player on their console.
@@ -1542,7 +1651,6 @@ public:
 	/** Update the camera manager; this is called after all actors have been ticked.	 */ 
 	virtual void UpdateCameraManager(float DeltaSeconds);
 
-public:
 	/**
 	 * This function will be called to notify the player controller that the world has received its game class. In the case of a client
 	 * we need to initialize the Input System here.
@@ -1598,34 +1706,31 @@ public:
 	UFUNCTION(Reliable, Client)
 	void OnServerStartedVisualLogger(bool bIsLogging);
 
-protected:
-
-	virtual ACameraActor* GetAutoActivateCameraForPlayer() const;
-
-public:
-
+	/** Returns true if the mouse cursor should be shown */
 	virtual bool ShouldShowMouseCursor() const;
+
+	/** Returns the current mouse cursor, or None */
 	virtual EMouseCursor::Type GetMouseCursor() const;
 
-public:
 	// Spectating
 
-	/** Get the Pawn used when spectating. NULL when not spectating. */
-	UFUNCTION(BlueprintCallable, Category = "Pawn")
-	class ASpectatorPawn* GetSpectatorPawn() const { return SpectatorPawn; }
+	/** Get the Pawn used when spectating. nullptr when not spectating. */
+	UFUNCTION(BlueprintCallable, Category=Pawn)
+	ASpectatorPawn* GetSpectatorPawn() const { return SpectatorPawn; }
 
-	/** Returns the first of GetPawn() or GetSpectatorPawn() that is not NULL, or NULL otherwise. */
-	class APawn* GetPawnOrSpectator() const;
+	/** Returns the first of GetPawn() or GetSpectatorPawn() that is not nullptr, or nullptr otherwise. */
+	APawn* GetPawnOrSpectator() const;
 
 	/** Called to notify the controller that the spectator class has been received. */
-	virtual void ReceivedSpectatorClass(TSubclassOf<class ASpectatorPawn> SpectatorClass);
+	virtual void ReceivedSpectatorClass(TSubclassOf<ASpectatorPawn> SpectatorClass);
 
-	/** Returns the location the PlayerController is focused on.
+	/**
+	 * Returns the location the PlayerController is focused on.
 	 *  If there is a possessed Pawn, returns the Pawn's location.
 	 *  If there is a spectator Pawn, returns that Pawn's location.
 	 *  Otherwise, returns the PlayerController's spawn location (usually the last known Pawn location after it has died).
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Pawn")
+	UFUNCTION(BlueprintCallable, Category=Pawn)
 	virtual FVector GetFocalLocation() const;
 
 protected:
@@ -1636,18 +1741,25 @@ protected:
 	virtual void EndSpectatingState();
 
 	/** Set the spectator pawn. Will also call AttachToPawn() using the new spectator. */
-	virtual void SetSpectatorPawn(class ASpectatorPawn* NewSpectatorPawn);
+	virtual void SetSpectatorPawn(ASpectatorPawn* NewSpectatorPawn);
 
 	/** Spawn a SpectatorPawn to use as a spectator and initialize it. By default it is spawned at the PC's current location and rotation. */
 	virtual ASpectatorPawn* SpawnSpectatorPawn();
 
-	/** Destroys the SpectatorPawn and sets it to NULL. */
+	/** Destroys the SpectatorPawn and sets it to nullptr. */
 	virtual void DestroySpectatorPawn();
 
 private:
-	/** The pawn used when spectating (NULL if not spectating). */
+	/** The pawn used when spectating (nullptr if not spectating). */
 	UPROPERTY()
-	class ASpectatorPawn* SpectatorPawn;
+	ASpectatorPawn* SpectatorPawn;
+
+	/** Used to delay calling ClientRestart() again when it hasn't been appropriately acknowledged. */
+	float		LastRetryPlayerTime;
+
+	/** Set during SpawnActor once and never again to indicate the intent of this controller instance (SERVER ONLY) */
+	UPROPERTY()
+	mutable bool bIsLocalPlayerController;
 
 protected:
 	/** The location used internally when there is no pawn or spectator, to know where to spawn the spectator or focus the camera on death. */
@@ -1658,11 +1770,9 @@ protected:
 	virtual void SetSpawnLocation(const FVector& NewLocation);
 
 public:
-
-	// Get the location used when initially created, or when changing states when there is no pawn or spectator.
+	/** Get the location used when initially created, or when changing states when there is no pawn or spectator. */
 	FVector GetSpawnLocation() const { return SpawnLocation; }
 
-public:
 	/** Called after this PlayerController's viewport/net connection is associated with this player controller. */
 	virtual void ReceivedPlayer();
 
@@ -1697,22 +1807,4 @@ public:
 	 * Designate this player controller as local (public for GameModeBase to use, not expected to be called anywhere else)
 	 */
 	void SetAsLocalPlayerController() { bIsLocalPlayerController = true; }
-
-private:
-	/** Used to delay calling ClientRestart() again when it hasn't been appropriately acknowledged. */
-	float		LastRetryPlayerTime;
-
-	/** Set during SpawnActor once and never again to indicate the intent of this controller instance (SERVER ONLY) */
-	UPROPERTY()
-	mutable bool bIsLocalPlayerController;
-
-public:
-	/** Counter for this players seamless travels (used along with the below value, to restrict ServerNotifyLoadedWorld) */
-	UPROPERTY()
-	uint16		SeamlessTravelCount;
-
-	/** The value of SeamlessTravelCount, upon the last call to GameModeBase::HandleSeamlessTravelPlayer; used to detect seamless travel */
-	UPROPERTY()
-	uint16		LastCompletedSeamlessTravelCount;
-
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PackageUtilities.cpp: Commandlets for viewing information about package files
@@ -51,6 +51,7 @@
 #include "Animation/AnimationSettings.h"
 
 #include "EngineUtils.h"
+#include "Materials/Material.h"
 
 DEFINE_LOG_CATEGORY(LogPackageHelperFunctions);
 DEFINE_LOG_CATEGORY_STATIC(LogPackageUtilities, Log, All);
@@ -215,11 +216,34 @@ bool NormalizePackageNames( TArray<FString> PackageNames, TArray<FString>& Packa
 		for ( int32 PackageIndex = 0; PackageIndex < PackagePathNames.Num(); PackageIndex++ )
 		{
 			// (otherwise, attempting to run a commandlet on e.g. Engine.xxx will always return results for Engine.u instead)
-			const FString& PackageName = PackagePathNames[PackageIndex];
+			FString PackageName;
+			if (!FPackageName::TryConvertFilenameToLongPackageName(PackagePathNames[PackageIndex], PackageName))
+			{
+				PackageName = PackagePathNames[PackageIndex];
+			}
 			UPackage* ExistingPackage = FindObject<UPackage>(NULL, *PackageName, true);
 			if ( ExistingPackage != NULL )
 			{
-				ResetLoaders(ExistingPackage);
+				// skip resetting loaders on default materials since they are expected to be post-loaded at that point
+				bool bContainsDefaultMaterial = false;
+				ForEachObjectWithOuter(ExistingPackage,
+					[&bContainsDefaultMaterial](UObject* Obj)
+					{
+						if (!bContainsDefaultMaterial)
+						{
+							UMaterial* Material = Cast<UMaterial>(Obj);
+							if (Material && Material->IsDefaultMaterial())
+							{
+								bContainsDefaultMaterial = true;
+							}
+						}
+					}
+				);
+
+				if (!bContainsDefaultMaterial)
+				{
+					ResetLoaders(ExistingPackage);
+				}
 			}
 		}
 	}
@@ -2075,9 +2099,7 @@ struct CompressAnimationsFunctor
 			SIZE_T OldSize;
 			SIZE_T NewSize;
 
-			{
-				OldSize = AnimSeq->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
-			}
+			OldSize = AnimSeq->GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal);
 
 			// Clear bDoNotOverrideCompression flag
 			if( bClearNoCompressionOverride && AnimSeq->bDoNotOverrideCompression )
@@ -2131,9 +2153,7 @@ struct CompressAnimationsFunctor
 				bDirtyPackage = true;
 			}
 
-			{
-				NewSize = AnimSeq->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
-			}
+			NewSize = AnimSeq->GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal);
 
 			// Only save package if size has changed.
 			const int64 DeltaSize = NewSize - OldSize;

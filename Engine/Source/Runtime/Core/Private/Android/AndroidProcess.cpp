@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidProcess.cpp: Android implementations of Process functions
@@ -151,7 +151,7 @@ static void ApplyDefaultThreadAffinity(IConsoleVariable* Var)
 		{
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&AndroidSetAffinityOnThread),
-				TStatId(), NULL, ENamedThreads::RenderThread);
+				TStatId(), NULL, ENamedThreads::GetRenderThread());
 
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&AndroidSetAffinityOnThread),

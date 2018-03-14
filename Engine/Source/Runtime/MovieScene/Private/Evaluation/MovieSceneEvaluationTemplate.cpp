@@ -1,98 +1,22 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Evaluation/MovieSceneEvaluationTemplate.h"
 #include "MovieSceneSequence.h"
+#include "Sections/MovieSceneSubSection.h"
 
-FMovieSceneSequenceCachedSignature::FMovieSceneSequenceCachedSignature(UMovieSceneSequence& InSequence)
-	: Sequence(&InSequence)
-	, CachedSignature(InSequence.GetSignature())
+FMovieSceneSubSectionData::FMovieSceneSubSectionData(UMovieSceneSubSection& InSubSection, const FGuid& InObjectBindingId, ESectionEvaluationFlags InFlags)
+	: Section(&InSubSection), ObjectBindingId(InObjectBindingId), Flags(InFlags)
+{}
+
+FMovieSceneTrackIdentifier FMovieSceneTemplateGenerationLedger::FindTrack(const FGuid& InSignature) const
 {
-}
-
-#if WITH_EDITORONLY_DATA
-
-void FCachedMovieSceneEvaluationTemplate::Initialize(UMovieSceneSequence& InSequence, FMovieSceneSequenceTemplateStore* InOrigin)
-{
-	SourceSequence = &InSequence;
-	Origin = InOrigin;
-}
-
-void FCachedMovieSceneEvaluationTemplate::Regenerate()
-{
-	Regenerate(CachedCompilationParams);
-}
-
-void FCachedMovieSceneEvaluationTemplate::Regenerate(const FMovieSceneTrackCompilationParams& Params)
-{
-	if (IsOutOfDate(Params))
-	{
-		RegenerateImpl(Params);
-	}
-}
-
-void FCachedMovieSceneEvaluationTemplate::ForceRegenerate(const FMovieSceneTrackCompilationParams& Params)
-{
-	ResetGeneratedData();
-	RegenerateImpl(Params);
-}
-
-void FCachedMovieSceneEvaluationTemplate::RegenerateImpl(const FMovieSceneTrackCompilationParams& Params)
-{
-	if (Params.bDuringBlueprintCompile != CachedCompilationParams.bDuringBlueprintCompile)
-	{
-		ResetGeneratedData();
-	}
-
-	CachedSignatures.Reset();
-	CachedCompilationParams = Params;
-
-	if (UMovieSceneSequence* Sequence = SourceSequence.Get())
-	{
-		FMovieSceneSequenceTemplateStore DefaultStore;
-		Sequence->GenerateEvaluationTemplate(*this, Params, Origin ? *Origin : DefaultStore);
-
-		CachedSignatures.Add(FMovieSceneSequenceCachedSignature(*Sequence));
-		for (auto& Pair : Hierarchy.AllSubSequenceData())
-		{
-			if (UMovieSceneSequence* SubSequence = Pair.Value.Sequence)
-			{
-				CachedSignatures.Add(FMovieSceneSequenceCachedSignature(*SubSequence));
-			}
-		}
-	}
-}
-
-bool FCachedMovieSceneEvaluationTemplate::IsOutOfDate(const FMovieSceneTrackCompilationParams& Params) const
-{
-	if (Params != CachedCompilationParams || CachedSignatures.Num() == 0)
-	{
-		return true;
-	}
-
-	// out of date if the cached signautres contains any out of date sigs
-	return CachedSignatures.ContainsByPredicate(
-		[](const FMovieSceneSequenceCachedSignature& Sig){
-			UMovieSceneSequence* Sequence = Sig.Sequence.Get();
-			return !Sequence || Sequence->GetSignature() != Sig.CachedSignature;
-		}
-	);
-}
-
-#endif // WITH_EDITORONLY_DATA
-
-TArrayView<const FMovieSceneTrackIdentifier> FMovieSceneTemplateGenerationLedger::FindTracks(const FGuid& InSignature) const
-{
-	if (auto* Tracks = TrackSignatureToTrackIdentifier.Find(InSignature))
-	{
-		return Tracks->Data;
-	}
-	return TArrayView<FMovieSceneTrackIdentifier>();
+	return TrackSignatureToTrackIdentifier.FindRef(InSignature);
 }
 
 void FMovieSceneTemplateGenerationLedger::AddTrack(const FGuid& InSignature, FMovieSceneTrackIdentifier Identifier)
 {
-	TrackSignatureToTrackIdentifier.FindOrAdd(InSignature).Data.Add(Identifier);
-	++TrackReferenceCounts.FindOrAdd(Identifier);
+	ensure(!TrackSignatureToTrackIdentifier.Contains(InSignature));
+	TrackSignatureToTrackIdentifier.Add(InSignature, Identifier);
 }
 
 void FMovieSceneEvaluationTemplate::PostSerialize(const FArchive& Ar)
@@ -101,76 +25,190 @@ void FMovieSceneEvaluationTemplate::PostSerialize(const FArchive& Ar)
 	{
 		for (auto& Pair : Tracks)
 		{
-			if (TemplateLedger.LastTrackIdentifier == FMovieSceneTrackIdentifier::Invalid() || TemplateLedger.LastTrackIdentifier.Value < Pair.Key)
+			if (TemplateLedger.LastTrackIdentifier == FMovieSceneTrackIdentifier::Invalid() || TemplateLedger.LastTrackIdentifier.Value < Pair.Key.Value)
 			{
 				// Reset previously serialized, invalid data
-				ResetGeneratedData();
+				*this = FMovieSceneEvaluationTemplate();
 				break;
 			}
 		}
 	}
 }
 
-void FMovieSceneEvaluationTemplate::ResetGeneratedData()
+void FMovieSceneEvaluationTemplate::ResetFieldData()
 {
-	TemplateLedger.TrackSignatureToTrackIdentifier.Reset();
-	TemplateLedger.TrackReferenceCounts.Reset();
+	TrackFieldData.Field.Reset();
+	SubSectionFieldData.Field.Reset();
+}
 
-	Tracks.Reset();
-	StaleTracks.Reset();
-	EvaluationField = FMovieSceneEvaluationField();
-	Hierarchy = FMovieSceneSequenceHierarchy();
-	bHasLegacyTrackInstances = false;
+const TMovieSceneEvaluationTree<FMovieSceneTrackIdentifier>& FMovieSceneEvaluationTemplate::GetTrackField() const
+{
+	return TrackFieldData.Field;
+}
+
+const TMovieSceneEvaluationTree<FMovieSceneSubSectionData>& FMovieSceneEvaluationTemplate::GetSubSectionField() const
+{
+	return SubSectionFieldData.Field;
+}
+
+void FMovieSceneEvaluationTemplate::AddSubSectionRange(UMovieSceneSubSection& InSubSection, const FGuid& InObjectBindingId, const TRange<float>& InRange, ESectionEvaluationFlags InFlags)
+{
+	if (!ensure(!InSubSection.IsInfinite()))
+	{
+		// @todo: Infinite sub sections??
+		return;
+	}
+
+	// Add the sub section to the field, but we don't invalidate the evaluation field unless we know the section has actually changed
+	SubSectionFieldData.Field.Add(InRange, FMovieSceneSubSectionData(InSubSection, InObjectBindingId, InFlags));
+
+	// Don't need to do anything else if the section was already generated
+	if (!TemplateLedger.ContainsSubSection(InSubSection.GetSignature()))
+	{
+		if (InSubSection.GetSequence())
+		{
+			FMovieSceneSequenceID SubSequenceID = InSubSection.GetSequenceID();
+			FSubSequenceInstanceDataParams InstanceParams{ SubSequenceID, FMovieSceneEvaluationOperand(MovieSceneSequenceID::Root, InObjectBindingId) };
+
+			FMovieSceneSubSequenceData NewSubData = InSubSection.GenerateSubSequenceData(InstanceParams);
+
+			Hierarchy.Add(NewSubData, SubSequenceID, MovieSceneSequenceID::Root);
+		}
+
+		TRange<float> EntireSectionRange(InSubSection.GetStartTime() - InSubSection.GetPreRollTime(), TRangeBound<float>::Inclusive(InSubSection.GetEndTime() + InSubSection.GetPostRollTime()));
+
+		// Add the section to the ledger
+		TemplateLedger.SubSectionRanges.Add(InSubSection.GetSignature(), EntireSectionRange);
+
+		// Invalidate the overlapping field
+		EvaluationField.Invalidate(EntireSectionRange);
+	}
 }
 
 FMovieSceneTrackIdentifier FMovieSceneEvaluationTemplate::AddTrack(const FGuid& InSignature, FMovieSceneEvaluationTrack&& InTrack)
 {
 	FMovieSceneTrackIdentifier NewIdentifier = ++TemplateLedger.LastTrackIdentifier;
-	
+
 	InTrack.SetupOverrides();
-	Tracks.Add(NewIdentifier.Value, MoveTemp(InTrack));
+	Tracks.Add(NewIdentifier, MoveTemp(InTrack));
 	TemplateLedger.AddTrack(InSignature, NewIdentifier);
+
+	// Add this track's segments to the unsorted track field, invalidating anything in the compiled evaluation field
+	DefineTrackStructure(NewIdentifier, true);
 
 	return NewIdentifier;
 }
 
-void FMovieSceneEvaluationTemplate::RemoveTrack(const FGuid& InSignature)
+void FMovieSceneEvaluationTemplate::DefineTrackStructure(FMovieSceneTrackIdentifier TrackIdentifier, bool bInvalidateEvaluationField)
 {
-	for (FMovieSceneTrackIdentifier TrackIdentifier : TemplateLedger.FindTracks(InSignature))
+	const FMovieSceneEvaluationTrack* Track = FindTrack(TrackIdentifier);
+	if (!ensure(Track))
 	{
-		int32* RefCount = TemplateLedger.TrackReferenceCounts.Find(TrackIdentifier);
-		if (ensure(RefCount) && --(*RefCount) == 0)
+		return;
+	}
+
+	FMovieSceneTrackSegmentBlenderPtr TrackBlender = Track->GetSourceTrack()->GetTrackSegmentBlender();
+	const bool bAddEmptySpace = TrackBlender.IsValid() && TrackBlender->CanFillEmptySpace();
+
+	if (bAddEmptySpace && bInvalidateEvaluationField)
+	{
+		// Optimization - when tracks can add empty space, we just invalidate the entire field once
+		EvaluationField.Invalidate(TRange<float>::All());
+		bInvalidateEvaluationField = false;
+	}
+
+	// Add each range
+	for (FMovieSceneEvaluationTreeRangeIterator It(Track->Iterate()); It; ++It)
+	{
+		const bool bShouldAddEntry = bAddEmptySpace || Track->GetData(It.Node());
+		if (!bShouldAddEntry)
 		{
-			if (bKeepStaleTracks)
-			{
-				if (FMovieSceneEvaluationTrack* Track = Tracks.Find(TrackIdentifier.Value))
-				{
-					StaleTracks.Add(TrackIdentifier.Value, MoveTemp(*Track));
-				}
-			}
-			
-			Tracks.Remove(TrackIdentifier.Value);
-			TemplateLedger.TrackReferenceCounts.Remove(TrackIdentifier);
+			continue;
+		}
+
+		TrackFieldData.Field.Add(It.Range(), TrackIdentifier);
+
+		if (bInvalidateEvaluationField)
+		{
+			EvaluationField.Invalidate(It.Range());
 		}
 	}
+}
+
+void FMovieSceneEvaluationTemplate::RemoveTrack(const FGuid& InSignature)
+{
+	FMovieSceneTrackIdentifier TrackIdentifier = TemplateLedger.FindTrack(InSignature);
+	if (TrackIdentifier == FMovieSceneTrackIdentifier::Invalid())
+	{
+		return;
+	}
+
+	FMovieSceneEvaluationTrack* Track = Tracks.Find(TrackIdentifier);
+	if (Track)
+	{
+		// Invalidate any ranges occupied by this track
+		for (FMovieSceneEvaluationTreeRangeIterator It = Track->Iterate(); It; ++It)
+		{
+			if (Track->GetData(It.Node()))
+			{
+				EvaluationField.Invalidate(It.Range());
+			}
+		}
+
+		StaleTracks.Add(TrackIdentifier, MoveTemp(*Track));
+	}
+
+	Tracks.Remove(TrackIdentifier);
 	TemplateLedger.TrackSignatureToTrackIdentifier.Remove(InSignature);
+}
+
+void FMovieSceneEvaluationTemplate::RemoveStaleData(const TSet<FGuid>& ActiveSignatures)
+{
+	{
+		TArray<FGuid> SignaturesToRemove;
+
+		// Go through the template ledger, and remove anything that is no longer referenced
+		for (auto& Pair : TemplateLedger.TrackSignatureToTrackIdentifier)
+		{
+			if (!ActiveSignatures.Contains(Pair.Key))
+			{
+				SignaturesToRemove.Add(Pair.Key);
+			}
+		}
+
+		// Remove the signatures, updating entries in the evaluation field as we go
+		for (const FGuid& Signature : SignaturesToRemove)
+		{
+			RemoveTrack(Signature);
+		}
+	}
+
+	// Remove stale sub sections
+	{
+		TArray<TTuple<FGuid, FFloatRange>> SubSectionsToRemove;
+
+		for (const TTuple<FGuid, FFloatRange>& Pair : TemplateLedger.SubSectionRanges)
+		{
+			if (!ActiveSignatures.Contains(Pair.Key))
+			{
+				SubSectionsToRemove.Add(Pair);
+			}
+		}
+
+		for (const TTuple<FGuid, FFloatRange>& Pair : SubSectionsToRemove)
+		{
+			TemplateLedger.SubSectionRanges.Remove(Pair.Key);
+			EvaluationField.Invalidate(Pair.Value);
+		}
+	}
 }
 
 const TMap<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack>& FMovieSceneEvaluationTemplate::GetTracks() const
 {
-	// Reinterpret the uint32 as FMovieSceneTrackIdentifier
-	static_assert(sizeof(FMovieSceneTrackIdentifier) == sizeof(uint32), "FMovieSceneTrackIdentifier is not convertible directly to/from uint32.");
-	return *reinterpret_cast<const TMap<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack>*>(&Tracks);
+	return Tracks;
 }
 
 TMap<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack>& FMovieSceneEvaluationTemplate::GetTracks()
 {
-	// Reinterpret the uint32 as FMovieSceneTrackIdentifier
-	static_assert(sizeof(FMovieSceneTrackIdentifier) == sizeof(uint32), "FMovieSceneTrackIdentifier is not convertible directly to/from uint32.");
-	return *reinterpret_cast<TMap<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack>*>(&Tracks);
-}
-
-TArrayView<const FMovieSceneTrackIdentifier> FMovieSceneEvaluationTemplate::FindTracks(const FGuid& InSignature) const
-{
-	return TemplateLedger.FindTracks(InSignature);
+	return Tracks;
 }

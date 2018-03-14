@@ -95,10 +95,10 @@ void FOSVRHMD::GetEyeRenderParams_RenderThread(const struct FRenderingCompositeP
 	}
 }
 
-void FOSVRHMD::BeginRendering_RenderThread(const FTransform& NewRelativeTransform, FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily)
+void FOSVRHMD::OnBeginRendering_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily)
 {
 	check(IsInRenderingThread());
-	FHeadMountedDisplayBase::BeginRendering_RenderThread(NewRelativeTransform, RHICmdList, ViewFamily);
+	UpdatePoses(); // Refresh poses before late update processing
 	if (mCustomPresent && !mCustomPresent->IsInitialized())
 	{
 		mCustomPresent->Initialize();

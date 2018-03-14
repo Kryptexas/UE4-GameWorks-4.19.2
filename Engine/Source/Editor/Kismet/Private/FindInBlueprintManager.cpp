@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "FindInBlueprintManager.h"
 #include "Misc/MessageDialog.h"
@@ -628,14 +628,14 @@ namespace BlueprintSearchMetaDataHelpers
 	{
 		// Only save strings that are not empty
 
-		if(!InPinType.PinCategory.IsEmpty())
+		if(!InPinType.PinCategory.IsNone())
 		{
-			InWriter->WriteValue(FFindInBlueprintSearchTags::FiB_PinCategory, InPinType.PinCategory);
+			InWriter->WriteValue(FFindInBlueprintSearchTags::FiB_PinCategory, InPinType.PinCategory.ToString());
 		}
 
-		if(!InPinType.PinSubCategory.IsEmpty())
+		if(!InPinType.PinSubCategory.IsNone())
 		{
-			InWriter->WriteValue(FFindInBlueprintSearchTags::FiB_PinSubCategory, InPinType.PinSubCategory);
+			InWriter->WriteValue(FFindInBlueprintSearchTags::FiB_PinSubCategory, InPinType.PinSubCategory.ToString());
 		}
 
 		if(InPinType.PinSubCategoryObject.IsValid())
@@ -979,7 +979,7 @@ namespace BlueprintSearchMetaDataHelpers
 								InWriter->WriteObjectStart();
 								{
 									InWriter->WriteValue(FFindInBlueprintSearchTags::FiB_Name, Pin->GetSchema()->GetPinDisplayName(Pin));
-									InWriter->WriteValue(FFindInBlueprintSearchTags::FiB_DefaultValue, FText::FromString(Pin->GetDefaultAsString()));
+									InWriter->WriteValue(FFindInBlueprintSearchTags::FiB_DefaultValue, Pin->GetDefaultAsText());
 								}
 								SavePinTypeToJson(InWriter, Pin->PinType);
 								InWriter->WriteObjectEnd();
@@ -1172,7 +1172,6 @@ public:
 	/** Enables the caching process */
 	void Start() { bIsStarted = true; }
 
-	/** FTickableEditorObject interface */
 	EActiveTimerReturnType Tick(double InCurrentTime, float InDeltaTime)
 	{
 		// Protect against Slate recursion if a modal dialog appears from loading/resaving an asset

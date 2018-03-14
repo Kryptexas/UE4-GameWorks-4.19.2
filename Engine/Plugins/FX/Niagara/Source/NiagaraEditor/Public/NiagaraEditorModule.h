@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,6 +16,7 @@ class INiagaraEditorTypeUtilities;
 class UNiagaraSettings;
 class USequencerSettings;
 class UNiagaraStackViewModel;
+class FNiagaraScriptMergeManager;
 
 DECLARE_STATS_GROUP(TEXT("Niagara Editor"), STATGROUP_NiagaraEditor, STATCAT_Advanced);
 
@@ -57,6 +58,7 @@ public:
 	FDelegateHandle NIAGARAEDITOR_API SetOnCreateStackWidget(FOnCreateStackWidget InOnCreateStackWidget);
 	void NIAGARAEDITOR_API ResetOnCreateStackWidget(FDelegateHandle DelegateHandle);
 
+	TSharedRef<FNiagaraScriptMergeManager> GetScriptMergeManager() const;
 
 	/** Niagara Editor app identifier string */
 	static const FName NiagaraEditorAppIdentifier;
@@ -80,6 +82,7 @@ private:
 	TArray< TSharedPtr<IAssetTypeActions> > CreatedAssetTypeActions;
 
 	TMap<FNiagaraTypeDefinition, TSharedRef<INiagaraEditorTypeUtilities>> TypeToEditorUtilitiesMap;
+	TSharedPtr<INiagaraEditorTypeUtilities> EnumTypeUtilities;
 
 	static EAssetTypeCategories::Type NiagaraAssetCategory;
 
@@ -87,9 +90,12 @@ private:
 	FDelegateHandle CreateSystemTrackEditorHandle;
 	FDelegateHandle CreateFloatParameterTrackEditorHandle;
 	FDelegateHandle CreateBoolParameterTrackEditorHandle;
+	FDelegateHandle MergeEmitterHandle;
 
 	USequencerSettings* SequencerSettings;
 	FOnCreateStackWidget OnCreateStackWidget;
+
+	TSharedPtr<FNiagaraScriptMergeManager> ScriptMergeManager;
 };
 
 

@@ -1,44 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:라이팅 퀵스타트 가이드
 Crumbs:%ROOT%, GettingStarted
 Description:이 가이드에서는 다양한 라이팅 기법을 사용하여 작은 아파트에 조명 설치 작업을 해 보겠습니다.
 SkillLevel: Beginner
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Rendering\LightingAndShadows\QuickStart:title%](Engine\Rendering\LightingAndShadows\QuickStart\LQS_Topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Rendering\LightingAndShadows\QuickStart:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Rendering\LightingAndShadows\QuickStart]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Rendering\LightingAndShadows\QuickStart:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Rendering\LightingAndShadows\QuickStart:title%](Engine\Rendering\LightingAndShadows\QuickStart\LQS_Topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Rendering\LightingAndShadows\QuickStart:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Rendering\LightingAndShadows\QuickStart]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Rendering\LightingAndShadows\QuickStart:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:LQS_Topic.png
 
 
 ![](Engine\Rendering\LightingAndShadows\QuickStart\5\litRoom.png)(w:940)
@@ -48,25 +15,17 @@ Version: 4.9
 이 가이드에서 각 단계를 진행하는 데 필요한 작업을 다루기는 할 테지만, 기존에 언리얼 에디터 작업을 한 경험이 없다면 먼저 **[언리얼 에디터 퀵 스타트](Engine/QuickStart/)** 가이드를 통해 일반적인 에디터 사용법, 용어, 프로세스에 대한 이해도를 높일 수 있습니다.
 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		단계
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine\Rendering\LightingAndShadows\QuickStart\1 "%Engine\Rendering\LightingAndShadows\QuickStart\1:description%")
-	* [](Engine\Rendering\LightingAndShadows\QuickStart\2 "%Engine\Rendering\LightingAndShadows\QuickStart\2:description%")
-	* [](Engine\Rendering\LightingAndShadows\QuickStart\3 "%Engine\Rendering\LightingAndShadows\QuickStart\3:description%")
-	* [](Engine\Rendering\LightingAndShadows\QuickStart\4 "%Engine\Rendering\LightingAndShadows\QuickStart\4:description%")
-	* [](Engine\Rendering\LightingAndShadows\QuickStart\5 "%Engine\Rendering\LightingAndShadows\QuickStart\5:description%")
-	* [](Engine\Rendering\LightingAndShadows\QuickStart\6 "%Engine\Rendering\LightingAndShadows\QuickStart\6:description%")
-	* [](Engine\Rendering\LightingAndShadows\QuickStart\7 "%Engine\Rendering\LightingAndShadows\QuickStart\7:description%")
-	[/PARAM]
-[/OBJECT]
+## 단계
+
+[REGION:buttonlist]
+* [](Engine\Rendering\LightingAndShadows\QuickStart\1 "%Engine\Rendering\LightingAndShadows\QuickStart\1:description%")
+* [](Engine\Rendering\LightingAndShadows\QuickStart\2 "%Engine\Rendering\LightingAndShadows\QuickStart\2:description%")
+* [](Engine\Rendering\LightingAndShadows\QuickStart\3 "%Engine\Rendering\LightingAndShadows\QuickStart\3:description%")
+* [](Engine\Rendering\LightingAndShadows\QuickStart\4 "%Engine\Rendering\LightingAndShadows\QuickStart\4:description%")
+* [](Engine\Rendering\LightingAndShadows\QuickStart\5 "%Engine\Rendering\LightingAndShadows\QuickStart\5:description%")
+* [](Engine\Rendering\LightingAndShadows\QuickStart\6 "%Engine\Rendering\LightingAndShadows\QuickStart\6:description%")
+* [](Engine\Rendering\LightingAndShadows\QuickStart\7 "%Engine\Rendering\LightingAndShadows\QuickStart\7:description%")
+[/REGION]
 
 
 

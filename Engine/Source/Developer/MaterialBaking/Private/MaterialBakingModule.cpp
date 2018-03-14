@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MaterialBakingModule.h"
 #include "MaterialRenderItem.h"
@@ -127,7 +127,7 @@ void FMaterialBakingModule::BakeMaterials(const TArray<FMaterialData*>& Material
 				.SetWorldTimes(0.0f, 0.0f, 0.0f)
 				.SetGammaCorrection(RenderTarget->GameThread_GetRenderTargetResource()->GetDisplayGamma()));
 
-			TargetsViewFamilyPairs.Add(TPair<UTextureRenderTarget2D*, FSceneViewFamily>(RenderTarget, ViewFamily));
+			TargetsViewFamilyPairs.Add(TPair<UTextureRenderTarget2D*, FSceneViewFamily>(RenderTarget, Forward<FSceneViewFamily>(ViewFamily)));
 			MaterialRenderProxies.Add(Proxy);
 			MaterialPropertiesToBakeOut.Add(Property);
 		}
@@ -196,8 +196,7 @@ void FMaterialBakingModule::BakeMaterials(const TArray<FMaterialData*>& Material
 						TrimmedPropertyName.RemoveFromStart(TEXT("MP_"));
 
 						const FString DirectoryPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectIntermediateDir() + TEXT("MaterialBaking/"));
-						FString FilenameString = FString::Printf(*(DirectoryPath + TEXT("%s-%d-%s.bmp")),
-							*CurrentMaterialSettings->Material->GetName(), MaterialIndex, *TrimmedPropertyName);
+						FString FilenameString = FString::Printf(TEXT("%s%s-%d-%s.bmp"), *DirectoryPath, *CurrentMaterialSettings->Material->GetName(), MaterialIndex, *TrimmedPropertyName);
 						FFileHelper::CreateBitmap(*FilenameString, CurrentOutput.PropertySizes[Property].X, CurrentOutput.PropertySizes[Property].Y, CurrentOutput.PropertyData[Property].GetData());
 					}
 				}

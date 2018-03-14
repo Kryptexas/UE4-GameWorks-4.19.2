@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -94,7 +94,15 @@ public:
 		return EHMDTrackingOrigin::Eye;
 	}
 
-protected:
+	/**
+	 * Returns the system's latest known tracking-to-world transform.
+	 */
+	virtual FTransform GetTrackingToWorldTransform() const override;
+
+	/**
+	 * Refreshes the system's known tracking-to-world transform.
+	 */
+	virtual void UpdateTrackingToWorldTransform(const FTransform& TrackingToWorldOverride) override;
 
 	/**
 	 * This method should return the world to meters scale for the current frame.
@@ -103,7 +111,20 @@ protected:
 	 */
 	virtual float GetWorldToMetersScale() const =0;
 
+protected:
+
+	/**
+	 * Computes the project's tracking-to-world transform based off how the user 
+	 * has set up their camera system (assumes the camera is parented to the XR 
+	 * origin, and in turn uses that transform).
+	 *
+	 * Intended to be called from OnStartGameFrame()
+	 */
+	FTransform RefreshTrackingToWorldTransform(FWorldContext& WorldContext);
+	FTransform ComputeTrackingToWorldTransform(FWorldContext& WorldContext) const;
 	
 	TSharedPtr< class FDefaultXRCamera, ESPMode::ThreadSafe > XRCamera;
+
+	FTransform CachedTrackingToWorld;
 };
 

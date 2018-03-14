@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -279,6 +279,7 @@ private:
 	FString Url;
 	/** Protocols to use with this connection */
 	TArray<FString> Protocols;
+	/** The upgrade header(s) to send with the upgrade request */
 	FString UpgradeHeader;
 
 	/**

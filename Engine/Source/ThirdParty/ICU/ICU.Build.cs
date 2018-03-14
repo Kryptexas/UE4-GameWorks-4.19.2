@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 using System;
 using System.IO;
@@ -78,7 +78,7 @@ public class ICU : ModuleRules
 					foreach(string Stem in LibraryNameStems)
 					{
 						string LibraryName = BinariesDir + String.Format("icu{0}{1}53.dll", Stem, LibraryNamePostfix);
-						RuntimeDependencies.Add(new RuntimeDependency(LibraryName));
+						RuntimeDependencies.Add(LibraryName);
 					}
 				}
 
@@ -152,8 +152,8 @@ public class ICU : ModuleRules
 							PublicAdditionalLibraries.Add(LibraryName);
 
 							// add runtime dependencies (for staging)
-							RuntimeDependencies.Add(new RuntimeDependency(PathToBinary + "lib" + LibraryName + ".so"));
-							RuntimeDependencies.Add(new RuntimeDependency(PathToBinary + "lib" + LibraryName + ".so.53"));  // version-dependent
+							RuntimeDependencies.Add(PathToBinary + "lib" + LibraryName + ".so");
+							RuntimeDependencies.Add(PathToBinary + "lib" + LibraryName + ".so.53");  // version-dependent
 						}
 					}
 					break;
@@ -198,7 +198,7 @@ public class ICU : ModuleRules
 
 							PublicDelayLoadDLLs.Add(LibraryPath);
 							PublicAdditionalShadowFiles.Add(LibraryPath);
-							RuntimeDependencies.Add(new RuntimeDependency(LibraryPath));
+							RuntimeDependencies.Add(LibraryPath);
 						}
 					}
 
@@ -329,28 +329,28 @@ public class ICU : ModuleRules
 			)
 		{
 			// Definitions
-			Definitions.Add("U_USING_ICU_NAMESPACE=0"); // Disables a using declaration for namespace "icu".
-			Definitions.Add("U_STATIC_IMPLEMENTATION"); // Necessary for linking to ICU statically.
-			Definitions.Add("U_NO_DEFAULT_INCLUDE_UTF_HEADERS=1"); // Disables unnecessary inclusion of headers - inclusions are for ease of use.
-			Definitions.Add("UNISTR_FROM_CHAR_EXPLICIT=explicit"); // Makes UnicodeString constructors for ICU character types explicit.
-			Definitions.Add("UNISTR_FROM_STRING_EXPLICIT=explicit"); // Makes UnicodeString constructors for "char"/ICU string types explicit.
-			Definitions.Add("UCONFIG_NO_TRANSLITERATION=1"); // Disables declarations and compilation of unused ICU transliteration functionality.
+			PublicDefinitions.Add("U_USING_ICU_NAMESPACE=0"); // Disables a using declaration for namespace "icu".
+			PublicDefinitions.Add("U_STATIC_IMPLEMENTATION"); // Necessary for linking to ICU statically.
+			PublicDefinitions.Add("U_NO_DEFAULT_INCLUDE_UTF_HEADERS=1"); // Disables unnecessary inclusion of headers - inclusions are for ease of use.
+			PublicDefinitions.Add("UNISTR_FROM_CHAR_EXPLICIT=explicit"); // Makes UnicodeString constructors for ICU character types explicit.
+			PublicDefinitions.Add("UNISTR_FROM_STRING_EXPLICIT=explicit"); // Makes UnicodeString constructors for "char"/ICU string types explicit.
+			PublicDefinitions.Add("UCONFIG_NO_TRANSLITERATION=1"); // Disables declarations and compilation of unused ICU transliteration functionality.
 		}
 
 		if (Target.Platform == UnrealTargetPlatform.PS4)
 		{
 			// Definitions
-			Definitions.Add("ICU_NO_USER_DATA_OVERRIDE=1");
-			Definitions.Add("U_PLATFORM=U_PF_ORBIS");
+			PublicDefinitions.Add("ICU_NO_USER_DATA_OVERRIDE=1");
+			PublicDefinitions.Add("U_PLATFORM=U_PF_ORBIS");
 		}
 
 		if (Target.Platform == UnrealTargetPlatform.XboxOne)
 		{
 			// Definitions
-			Definitions.Add("ICU_NO_USER_DATA_OVERRIDE=1");
-			Definitions.Add("U_PLATFORM=U_PF_DURANGO");
+			PublicDefinitions.Add("ICU_NO_USER_DATA_OVERRIDE=1");
+			PublicDefinitions.Add("U_PLATFORM=U_PF_DURANGO");
 		}
 
-		Definitions.Add("NEEDS_ICU_DLLS=" + (bNeedsDlls ? "1" : "0"));
+		PublicDefinitions.Add("NEEDS_ICU_DLLS=" + (bNeedsDlls ? "1" : "0"));
 	}
 }

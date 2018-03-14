@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Tests/TestVoice.h"
 #include "Components/AudioComponent.h"
@@ -24,9 +24,9 @@ FTestVoice::FTestVoice() :
 	VoiceCapture(nullptr),
 	VoiceEncoder(nullptr),
 	VoiceDecoder(nullptr),
-	EncodeHint(EAudioEncodeHint::VoiceEncode_Voice),
-	InputSampleRate(DEFAULT_VOICE_SAMPLE_RATE),
-	OutputSampleRate(DEFAULT_VOICE_SAMPLE_RATE),
+	EncodeHint(UVOIPStatics::GetAudioEncodingHint()),
+	InputSampleRate(UVOIPStatics::GetVoiceSampleRate()),
+	OutputSampleRate(UVOIPStatics::GetVoiceSampleRate()),
 	NumInChannels(DEFAULT_NUM_VOICE_CHANNELS),
 	NumOutChannels(DEFAULT_NUM_VOICE_CHANNELS),
 	bLastWasPlaying(false),
@@ -38,6 +38,7 @@ FTestVoice::FTestVoice() :
 	MaxUncompressedDataQueueSize(0),
 	MaxRemainderSize(0),
 	LastRemainderSize(0),
+	CachedSampleCount(0),
 	bUseTestSample(false),
 	bZeroInput(false),
 	bUseDecompressed(true),
@@ -276,8 +277,17 @@ bool FTestVoice::Tick(float DeltaTime)
 					}
 
 					// Add new data at the beginning of the last frame
-					MicState = VoiceCapture->GetVoiceData(RawCaptureData.GetData() + LastRemainderSize, NewVoiceDataBytes, NewVoiceDataBytes);
+					uint64 SampleCount;
+					MicState = VoiceCapture->GetVoiceData(RawCaptureData.GetData() + LastRemainderSize, NewVoiceDataBytes, NewVoiceDataBytes, SampleCount);
 					TotalVoiceBytes = NewVoiceDataBytes + LastRemainderSize;
+
+					// Check to make sure this buffer has a valid, chronological buffer count.
+					if (SampleCount <= CachedSampleCount)
+					{
+						UE_LOG(LogVoice, Log, TEXT("Out of order or ambiguous sample count detected! This sample count: %lu Previous sample count: %lu"), SampleCount, CachedSampleCount);
+					}
+
+					CachedSampleCount = SampleCount;
 
 					VOICE_BUFFER_CHECK(RawCaptureData, TotalVoiceBytes);
 					bDoWork = (MicState == EVoiceCaptureState::Ok);

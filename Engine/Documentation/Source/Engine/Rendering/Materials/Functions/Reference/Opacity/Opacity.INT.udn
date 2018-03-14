@@ -30,4 +30,4 @@ The **SoftOpacity** function takes in an Opacity value and then runs a variety o
 | **OutputNoDepthBias** | This output causes the object to fade completely away as it reaches the camera, meaning there is no offset. This output is 12 instructions less expensive than *OutputUsesDepthBias*.|
 
 
-![Soft Opacity](SoftOpacity_Demo.png)(w:940 h:360)
+![Soft Opacity](SoftOpacity_Demo.png)(w:940)

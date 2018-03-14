@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysAnim.cpp: Code for supporting animation/physics blending
@@ -15,8 +15,9 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimStats.h"
 #include "SkeletalRenderPublic.h"
-#include "SkeletalMeshTypes.h"
 #include "Components/LineBatchComponent.h"
+#include "PhysicsPublic.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 #if WITH_PHYSX
 	#include "PhysXPublic.h"
 #endif // WITH_PHYSX
@@ -405,34 +406,52 @@ void USkeletalMeshComponent::BlendInPhysics(FTickFunction& ThisTickFunction)
 			check(!IsValidRef(ParallelBlendPhysicsCompletionTask));
 			ParallelBlendPhysicsCompletionTask = TGraphTask<FParallelBlendPhysicsCompletionTask>::CreateTask(&Prerequistes).ConstructAndDispatchWhenReady(this);
 
+			ThisTickFunction.GetCompletionHandle()->SetGatherThreadForDontCompleteUntil(ENamedThreads::GameThread);
 			ThisTickFunction.GetCompletionHandle()->DontCompleteUntil(ParallelBlendPhysicsCompletionTask);
 		}
 		else
 		{
 			PerformBlendPhysicsBones(RequiredBones, BoneSpaceTransforms);
-			PostBlendPhysics();
+			FinalizeAnimationUpdate();
 		}
 	}
 }
 
-void USkeletalMeshComponent::PostBlendPhysics()
+DECLARE_CYCLE_STAT(TEXT("STAT_FinalizeAnimationUpdate_UpdateChildTransforms"), STAT_FinalizeAnimationUpdate_UpdateChildTransforms, STATGROUP_Anim);
+DECLARE_CYCLE_STAT(TEXT("STAT_FinalizeAnimationUpdate_UpdateOverlaps"), STAT_FinalizeAnimationUpdate_UpdateOverlaps, STATGROUP_Anim);
+DECLARE_CYCLE_STAT(TEXT("STAT_FinalizeAnimationUpdate_UpdateBounds"), STAT_FinalizeAnimationUpdate_UpdateBounds, STATGROUP_Anim);
+
+void USkeletalMeshComponent::FinalizeAnimationUpdate()
 {
-	SCOPE_CYCLE_COUNTER(STAT_UpdateLocalToWorldAndOverlaps);
+	SCOPE_CYCLE_COUNTER(STAT_FinalizeAnimationUpdate);
 	
 	// Flip bone buffer and send 'post anim' notification
 	FinalizeBoneTransform();
 
-	// Update Child Transform - The above function changes bone transform, so will need to update child transform
-	UpdateChildTransforms();
+	{
+		SCOPE_CYCLE_COUNTER(STAT_FinalizeAnimationUpdate_UpdateChildTransforms);
 
-	// animation often change overlap. 
-	UpdateOverlaps();
+		// Update Child Transform - The above function changes bone transform, so will need to update child transform
+		// But only children attached to us via a socket.
+		UpdateChildTransforms(EUpdateTransformFlags::OnlyUpdateIfUsingSocket);
+	}
+
+	{
+		SCOPE_CYCLE_COUNTER(STAT_FinalizeAnimationUpdate_UpdateOverlaps);
+
+		// animation often change overlap. 
+		UpdateOverlaps();
+	}
 
 	// Cached local bounds are now out of date
 	InvalidateCachedBounds();
 
-	// update bounds
-	UpdateBounds();
+	{
+		SCOPE_CYCLE_COUNTER(STAT_FinalizeAnimationUpdate_UpdateBounds);
+
+		// update bounds
+		UpdateBounds();
+	}
 
 	// Need to send new bounds to 
 	MarkRenderTransformDirty();
@@ -445,7 +464,7 @@ void USkeletalMeshComponent::CompleteParallelBlendPhysics()
 {
 	Exchange(AnimEvaluationContext.BoneSpaceTransforms, AnimEvaluationContext.bDoInterpolation ? CachedBoneSpaceTransforms : BoneSpaceTransforms);
 		
-	PostBlendPhysics();
+	FinalizeAnimationUpdate();
 
 	ParallelAnimationEvaluationTask.SafeRelease();
 	ParallelBlendPhysicsCompletionTask.SafeRelease();
@@ -552,7 +571,6 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 			const uint32 SceneType = GetPhysicsSceneType(*PhysicsAsset, *PhysScene, UseAsyncScene);
 			// Lock the scenes we need (flags set in InitArticulated)
 			SCOPED_SCENE_WRITE_LOCK(PhysScene->GetPhysXScene(SceneType));
-#endif
 
 			// Iterate over each body
 			for (int32 i = 0; i < NumBodies; i++)
@@ -572,7 +590,6 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 					}
 					else
 					{
-#if WITH_PHYSX
 						// update bone transform to world
 						const FTransform BoneTransform = InSpaceBases[BoneIndex] * CurrentLocalToWorld;
 						if(!BoneTransform.IsValid())
@@ -596,9 +613,9 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 							ensure(PNewPose.isValid());
 							RigidActor->setGlobalPose(PNewPose);
 						}
-#endif
 
-
+						if (!PhysicsAsset->SkeletalBodySetups[i]->bSkipScaleFromAnimation)
+						{
 						// now update scale
 						// if uniform, we'll use BoneTranform
 						if (MeshScale3D.IsUniform())
@@ -617,6 +634,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 						}
 					}
 				}
+				}
 				else
 				{
 					//make sure you have physics weight or blendphysics on, otherwise, you'll have inconsistent representation of bodies
@@ -630,6 +648,9 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 					}
 				}
 			}
+
+#endif // WITH_PHYSX
+
 		}
 	}
 	else
@@ -639,21 +660,24 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 		{
 			if (bNeedsSkinning)
 			{
-				const FStaticLODModel& Model = MeshObject->GetSkeletalMeshResource().LODModels[0];
+					const FSkeletalMeshLODRenderData& LODData = MeshObject->GetSkeletalMeshRenderData().LODRenderData[0];
+				FSkinWeightVertexBuffer& SkinWeightBuffer = *GetSkinWeightBuffer(0);
+				TArray<FMatrix> RefToLocals;
 				TArray<FVector> NewPositions;
 				if (true)
 				{
 					SCOPE_CYCLE_COUNTER(STAT_SkinPerPolyVertices);
-					ComputeSkinnedPositions(NewPositions);
+					CacheRefToLocalMatrices(RefToLocals);
+					ComputeSkinnedPositions(this, NewPositions, RefToLocals, LODData, SkinWeightBuffer);
 				}
 				else	//keep old way around for now - useful for comparing performance
 				{
-					NewPositions.AddUninitialized(Model.NumVertices);
+					NewPositions.AddUninitialized(LODData.GetNumVertices());
 					{
 						SCOPE_CYCLE_COUNTER(STAT_SkinPerPolyVertices);
-						for (uint32 VertIndex = 0; VertIndex < Model.NumVertices; ++VertIndex)
+						for (uint32 VertIndex = 0; VertIndex < LODData.GetNumVertices(); ++VertIndex)
 						{
-							NewPositions[VertIndex] = GetSkinnedVertexPosition(VertIndex);
+							NewPositions[VertIndex] = GetSkinnedVertexPosition(this, VertIndex, LODData, SkinWeightBuffer);
 						}
 					}
 				}

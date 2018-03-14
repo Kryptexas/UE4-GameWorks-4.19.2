@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -25,7 +25,7 @@ class FArrangedChildren;
 class FExtender;
 class FPaintArgs;
 class FSlateWindowElementList;
-class FTextBlockLayout;
+class FSlateTextBlockLayout;
 class FUICommandList;
 class IBreakIterator;
 class SWindow;
@@ -480,7 +480,7 @@ private:
 	TSharedPtr<FSlateTextLayout> TextLayout;
 
 	/** In control of the layout and wrapping of the HintText */
-	TUniquePtr<FTextBlockLayout> HintTextLayout;
+	TUniquePtr<FSlateTextBlockLayout> HintTextLayout;
 
 	/** Default style used by the TextLayout */
 	FTextBlockStyle TextStyle;

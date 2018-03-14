@@ -1,43 +1,11 @@
-﻿INTSourceChangelist:3403470
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:엔진 기능 예제
 Crumbs:%ROOT%, Resources
 Description:특정 기능 또는 난제에 대한 접근법 데모가 되는 씬입니다.
 Version: 4.9
+topic-image:Resources/Showcases/Reflections/Reflections_Topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/Showcases:title%](Resources/Showcases/Reflections/Reflections_Topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/Showcases:title%](Resources/Showcases/Reflections/Reflections_Topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [EXCERPT:Showcases]
 [REGION:fullwidth]
@@ -50,23 +18,11 @@ Version: 4.9
 
 [/EXCERPT:Showcases]
 
-[REGION:topics third]
 %Resources/Showcases/PhotorealisticCharacter:topiccompact%
 %Resources/Showcases/SequencerSubway:topiccompact%
 %Resources/Showcases/Infiltrator:topiccompact%
 %Resources/ContentExamples:TopicCompact%
 %Engine/OpenWorldTools:TopicCompact%
-%watertopic%
-%featurestopic%
-%Resources/Showcases/MatineeFightScene:topiccompact%
-%Resources/Showcases/Reflections:TopicCompact%
-%Resources/Showcases/RealisticRendering:TopicCompact%
-%Resources/Showcases/Effects:TopicCompact%
-%Resources/Showcases/BlueprintExamples:TopicCompact%
-%Resources/Showcases/Stylized:TopicCompact%
-[/REGION]
-
-[VAR:watertopic]
 [OBJECT:TopicCompactVideo]
 	[PARAMLITERAL:title]
 	물 표면
@@ -81,9 +37,6 @@ Version: 4.9
 	![](WaterPlanes_Featured.png)
 	[/PARAM]
 [/OBJECT]
-[/VAR]
-
-[VAR:featurestopic]
 [OBJECT:TopicCompactVideo]
 	[PARAMLITERAL:title]
 	2014 기능 안내
@@ -98,5 +51,10 @@ Version: 4.9
 	![](store_GDC2014_screenshot_2.png)
 	[/PARAM]
 [/OBJECT]
-[/VAR]
+%Resources/Showcases/MatineeFightScene:topiccompact%
+%Resources/Showcases/Reflections:TopicCompact%
+%Resources/Showcases/RealisticRendering:TopicCompact%
+%Resources/Showcases/Effects:TopicCompact%
+%Resources/Showcases/BlueprintExamples:TopicCompact%
+%Resources/Showcases/Stylized:TopicCompact%
 

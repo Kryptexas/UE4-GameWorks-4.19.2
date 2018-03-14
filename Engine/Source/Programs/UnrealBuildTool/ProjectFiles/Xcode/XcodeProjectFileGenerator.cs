@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -138,6 +138,7 @@ namespace UnrealBuildTool
 			System.Action< List<MasterProjectFolder> /* Folders */, string /* Ident */ > AddProjectsFunction = null;
 			AddProjectsFunction = (FolderList, Ident) =>
 				{
+					int SchemeIndex = 0;
 					foreach (XcodeProjectFolder CurFolder in FolderList)
 					{
 						WorkspaceDataContent.Append(Ident + "   <Group" + ProjectFileGenerator.NewLine);
@@ -145,7 +146,10 @@ namespace UnrealBuildTool
 
 						AddProjectsFunction(CurFolder.SubFolders, Ident + "   ");
 
-						foreach (ProjectFile CurProject in CurFolder.ChildProjects)
+						List<ProjectFile> ChildProjects = new List<ProjectFile>(CurFolder.ChildProjects);
+						ChildProjects.Sort((ProjectFile A, ProjectFile B) => { return A.ProjectFilePath.GetFileName().CompareTo(B.ProjectFilePath.GetFileName()); });
+
+						foreach (ProjectFile CurProject in ChildProjects)
 						{
 							XcodeProjectFile XcodeProject = CurProject as XcodeProjectFile;
 							if (XcodeProject != null)
@@ -153,6 +157,16 @@ namespace UnrealBuildTool
 								WorkspaceDataContent.Append(Ident + "      <FileRef" + ProjectFileGenerator.NewLine);
 								WorkspaceDataContent.Append(Ident + "         location = \"group:" + XcodeProject.ProjectFilePath.MakeRelativeTo(ProjectFileGenerator.MasterProjectPath) + "\">" + ProjectFileGenerator.NewLine);
 								WorkspaceDataContent.Append(Ident + "      </FileRef>" + ProjectFileGenerator.NewLine);
+
+								// Also, update project's schemes index so that the schemes list order match projects order in the navigator
+								FileReference SchemeManagementFile = XcodeProject.ProjectFilePath + "/xcuserdata/" + Environment.UserName + ".xcuserdatad/xcschemes/xcschememanagement.plist";
+								if (FileReference.Exists(SchemeManagementFile))
+								{
+									string SchemeManagementContent = FileReference.ReadAllText(SchemeManagementFile);
+									SchemeManagementContent = SchemeManagementContent.Replace("<key>orderHint</key>\n\t\t\t<integer>1</integer>", "<key>orderHint</key>\n\t\t\t<integer>" + SchemeIndex.ToString() + "</integer>");
+									FileReference.WriteAllText(SchemeManagementFile, SchemeManagementContent);
+									SchemeIndex++;
+								}
 							}
 						}
 

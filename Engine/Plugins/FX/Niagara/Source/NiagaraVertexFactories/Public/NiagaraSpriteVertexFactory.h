@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleVertexFactory.h: Particle vertex factory definitions.
@@ -19,6 +19,8 @@ class FMaterial;
  * Uniform buffer for particle sprite vertex factories.
  */
 BEGIN_UNIFORM_BUFFER_STRUCT( FNiagaraSpriteUniformParameters, NIAGARAVERTEXFACTORIES_API)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX( FMatrix, LocalToWorld, EShaderPrecisionModifier::Half)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX( FMatrix, LocalToWorldInverseTransposed, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX( FVector, CustomFacingVectorMask, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX( FVector4, TangentSelector, EShaderPrecisionModifier::Half )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX( FVector4, NormalsSphereCenter, EShaderPrecisionModifier::Half )
@@ -38,8 +40,13 @@ BEGIN_UNIFORM_BUFFER_STRUCT( FNiagaraSpriteUniformParameters, NIAGARAVERTEXFACTO
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, SizeDataOffset)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, SubimageDataOffset)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, ColorDataOffset)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, MaterialParamDataOffset)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, FacingOffset)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, AlignmentOffset)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, SubImageBlendMode)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, CameraOffsetOffset)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, UVScaleOffset)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, ParticleRandomOffset)
 	END_UNIFORM_BUFFER_STRUCT(FNiagaraSpriteUniformParameters)
 
 typedef TUniformBufferRef<FNiagaraSpriteUniformParameters> FNiagaraSpriteUniformBufferRef;
@@ -59,7 +66,8 @@ public:
 		NumVertsInInstanceBuffer(0),
 		NumCutoutVerticesPerFrame(0),
 		CutoutGeometrySRV(nullptr),
-		bCustomAlignment(false)
+		AlignmentMode(0),
+		FacingMode(0)
 	{}
 
 	FNiagaraSpriteVertexFactory()
@@ -67,7 +75,8 @@ public:
 		NumVertsInInstanceBuffer(0),
 		NumCutoutVerticesPerFrame(0),
 		CutoutGeometrySRV(nullptr),
-		bCustomAlignment(false)
+		AlignmentMode(0),
+		FacingMode(0)
 	{}
 
 	// FRenderResource interface.
@@ -78,7 +87,7 @@ public:
 	/**
 	 * Should we cache the material's shadertype on this platform with this vertex factory? 
 	 */
-	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType);
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType);
 
 	/**
 	 * Can be overridden by FVertexFactory subclasses to modify their compile environment just before compilation occurs.
@@ -96,12 +105,7 @@ public:
 	{
 		NumVertsInInstanceBuffer = InNumVertsInInstanceBuffer;
 	}
-
-	/**
-	 * Set the source vertex buffer that contains particle dynamic parameter data.
-	 */
-	void SetDynamicParameterBuffer(const FVertexBuffer* InDynamicParameterBuffer, uint32 StreamOffset, uint32 Stride, bool bInstanced);
-
+	
 	/**
 	 * Set the uniform buffer for this vertex factory.
 	 */
@@ -135,49 +139,40 @@ public:
 	inline FShaderResourceViewRHIParamRef GetFloatDataSRV() const 
 	{ 
 		check(!IsInGameThread());
-		return DataSet->PrevDataRender().GetGPUBufferFloat()->SRV; 
+		return DataSet->GetRenderDataFloatSRV();
 	}
 	inline FShaderResourceViewRHIParamRef GetIntDataSRV() const 
 	{ 
 		check(!IsInGameThread());
-		return DataSet->PrevDataRender().GetGPUBufferInt()->SRV;
+		return DataSet->GetRenderDataInt32SRV();
 	}
 
 	uint32 GetComponentBufferSize() 
 	{ 
 		check(!IsInGameThread());
-		return DataSet->PrevDataRender().GetFloatStride() / sizeof(float);
+		return DataSet->CurrDataRender().GetFloatStride() / sizeof(float);
 	}
 
-	void SetCustomAlignment(bool bAlign)
+	void SetFacingMode(uint32 InMode)
 	{
-		bCustomAlignment = bAlign;
+		FacingMode = InMode;
 	}
 
-	void SetVectorAligned(bool bAlign)
+	uint32 GetFacingMode()
 	{
-		bVectorAligned = bAlign;
+		return FacingMode;
 	}
 
-	bool GetCustomAlignment()
+	void SetAlignmentMode(uint32 InMode)
 	{
-		return bCustomAlignment;
+		AlignmentMode = InMode;
 	}
 
-	bool GetVectorAligned()
+	uint32 GetAlignmentMode()
 	{
-		return bVectorAligned;
+		return AlignmentMode;
 	}
 
-	void SetCameraPlaneFacing(bool inFacing)
-	{
-		bCameraPlaneFacing = inFacing;
-	}
-
-	bool GetCameraPlaneFacing()
-	{
-		return bCameraPlaneFacing;
-	}
 
 	/**
 	 * Construct shader parameters for this type of vertex factory.
@@ -192,13 +187,12 @@ private:
 
 	int32 NumVertsInInstanceBuffer;
 
-	/** Uniform buffer with sprite paramters. */
+	/** Uniform buffer with sprite parameters. */
 	FUniformBufferRHIParamRef SpriteUniformBuffer;
 
 	int32 NumCutoutVerticesPerFrame;
 	FShaderResourceViewRHIParamRef CutoutGeometrySRV;
 	const FNiagaraDataSet *DataSet;
-	bool bCustomAlignment;	// uses a custom alignment vector from particle data
-	bool bVectorAligned;	// is either velocity or custom vector aligned (not aligned to camera up and right)
-	bool bCameraPlaneFacing;
+	uint32 AlignmentMode;
+	uint32 FacingMode;
 };

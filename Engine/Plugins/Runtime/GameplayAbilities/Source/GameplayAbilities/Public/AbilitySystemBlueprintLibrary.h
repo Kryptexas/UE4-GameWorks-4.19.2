@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,7 +20,7 @@ class UAbilitySystemComponent;
 class UGameplayEffect;
 
 // meta =(RestrictedToClasses="GameplayAbility")
-UCLASS()
+UCLASS(meta=(ScriptName="AbilitySystemLibrary"))
 class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

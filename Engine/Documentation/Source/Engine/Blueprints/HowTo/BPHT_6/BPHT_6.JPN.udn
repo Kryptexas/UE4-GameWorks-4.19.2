@@ -22,7 +22,7 @@ tags:Blueprints
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 このステップでは、Character ブループリントと通信して、その中に保存された Pull、Shot、Score の値を取得し、HUD Widget ブループリント上に表示する値を更新します。**Cast** を使ってプレイヤーの Character ブループリントにアクセスして、Character ブループリントにある値を HUD のプロパティにバインドすることにより、これらの値が Character ブループリントで更新されると自動的に更新されるようになります。 
 
@@ -107,7 +107,8 @@ tags:Blueprints
 
 
 
-<!-- Old
+[COMMENT:none]
+ Old
 
 本ガイドおよびエディタ全般に渡り取り扱ったトピックスに関しては、アンリアル エディタのマニュアル](Engine) をご覧ください。
 
@@ -123,9 +124,10 @@ tags:Blueprints
 
 * **Unreal Motion Graphics** (UMG) での HUD エレメントの作成については、[UMG UI デザイナ](Engine/UMG) をご覧ください。
 
--->
 
-%Steps%
+[/COMMENT]
+
+
 
 
 

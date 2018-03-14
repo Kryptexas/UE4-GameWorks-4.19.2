@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Serialization/ArchiveUObject.h"
 #include "UObject/UObjectGlobals.h"
@@ -20,20 +20,19 @@ DEFINE_LOG_CATEGORY_STATIC(LogArchiveUObject, Log, All);
  * don't need to bother serializing lazy object pointers.  However, serialization is required if you
  * want to load and save your object.
  */
-FArchive& FArchiveUObject::operator<<(FLazyObjectPtr& Value)
+FArchive& FArchiveUObject::SerializeLazyObjectPtr(FArchive& Ar, FLazyObjectPtr& Value)
 {
-	FArchive& Ar = *this;
 	// We never serialize our reference while the garbage collector is harvesting references
 	// to objects, because we don't want weak object pointers to keep objects from being garbage
 	// collected.  That would defeat the whole purpose of a weak object pointer!
 	// However, when modifying both kinds of references we want to serialize and writeback the updated value.
 	// We only want to write the modified value during reference fixup if the data is loaded
-	if (!IsObjectReferenceCollector() || IsModifyingWeakAndStrongReferences())
+	if (!Ar.IsObjectReferenceCollector() || Ar.IsModifyingWeakAndStrongReferences())
 	{
 #if WITH_EDITORONLY_DATA
 		// When transacting, just serialize as a guid since the object may
 		// not be in memory and you don't want to save a nullptr in this case.
-		if (IsTransacting())
+		if (Ar.IsTransacting())
 		{
 			if (Ar.IsLoading())
 			{
@@ -49,32 +48,32 @@ FArchive& FArchiveUObject::operator<<(FLazyObjectPtr& Value)
 
 			Ar << Object;
 
-			if (IsLoading() || (Object && IsModifyingWeakAndStrongReferences()))
+			if (Ar.IsLoading() || (Object && Ar.IsModifyingWeakAndStrongReferences()))
 			{
 				Value = Object;
 			}
 		}
 	}
+
 	return Ar;
 }
 
-FArchive& FArchiveUObject::operator<<(FSoftObjectPtr& Value)
+FArchive& FArchiveUObject::SerializeSoftObjectPtr(FArchive& Ar, FSoftObjectPtr& Value)
 {
-	FArchive& Ar = *this;
 	if (Ar.IsSaving() || Ar.IsLoading())
 	{
 		// Reset before serializing to clear the internal weak pointer. 
 		Value.ResetWeakPtr();
 		Ar << Value.GetUniqueID();
 	}
-	else if (!IsObjectReferenceCollector() || IsModifyingWeakAndStrongReferences())
+	else if (!Ar.IsObjectReferenceCollector() || Ar.IsModifyingWeakAndStrongReferences())
 	{
 		// Treat this like a weak pointer object, as we are doing something like replacing references in memory
 		UObject* Object = Value.Get();
 
 		Ar << Object;
 
-		if (IsLoading() || (Object && IsModifyingWeakAndStrongReferences()))
+		if (Ar.IsLoading() || (Object && Ar.IsModifyingWeakAndStrongReferences()))
 		{
 			Value = Object;
 		}
@@ -83,16 +82,16 @@ FArchive& FArchiveUObject::operator<<(FSoftObjectPtr& Value)
 	return Ar;
 }
 
-FArchive& FArchiveUObject::operator<<(FSoftObjectPath& Value)
+FArchive& FArchiveUObject::SerializeSoftObjectPath(FArchive& Ar, FSoftObjectPath& Value)
 {
-	Value.SerializePath(*this);
-	return *this;
+	Value.SerializePath(Ar);
+	return Ar;
 }
 
-FArchive& FArchiveUObject::operator<<(FWeakObjectPtr& Value)
+FArchive& FArchiveUObject::SerializeWeakObjectPtr(FArchive& Ar, FWeakObjectPtr& Value)
 {
-	Value.Serialize(*this);
-	return *this;
+	Value.Serialize(Ar);
+	return Ar;
 }
 
 /*----------------------------------------------------------------------------

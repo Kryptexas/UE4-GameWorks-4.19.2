@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreTypes.h"
@@ -65,7 +65,7 @@ public:
 	/** Begin measuring heartbeat */
 	void Start();
 	/** Called from a thread once per frame to update the heartbeat time */
-	void HeartBeat();
+	void HeartBeat(bool bReadConfig = false);
 	/** Called by a supervising thread to check the threads' health */
 	uint32 CheckHeartBeat();
 	/** Called by a thread when it's no longer expecting to be ticked */
@@ -96,10 +96,62 @@ struct FSlowHeartBeatScope
 {
 	FORCEINLINE FSlowHeartBeatScope()
 	{
-		FThreadHeartBeat::Get().SuspendHeartBeat();
+		if (FThreadHeartBeat* HB = FThreadHeartBeat::GetNoInit())
+		{
+			HB->SuspendHeartBeat();
+		}
 	}
 	FORCEINLINE ~FSlowHeartBeatScope()
 	{
-		FThreadHeartBeat::Get().ResumeHeartBeat();
+		if (FThreadHeartBeat* HB = FThreadHeartBeat::GetNoInit())
+		{
+			HB->ResumeHeartBeat();
+		}
 	}
+};
+
+
+
+class CORE_API FGameThreadHitchHeartBeat : public FRunnable
+{
+	/** Thread to run the worker FRunnable on */
+	FRunnableThread* Thread;
+	/** Stops this thread */
+	FThreadSafeCounter StopTaskCounter;
+	/** Synch object for the heartbeat */
+	FCriticalSection HeartBeatCritical;
+	/** Max time the game thread is allowed to not send the heartbeat*/
+	float HangDuration;
+
+	double FirstStartTime;
+	double FrameStartTime;
+	double LastReportTime;
+
+
+	FGameThreadHitchHeartBeat();
+	virtual ~FGameThreadHitchHeartBeat();
+
+public:
+
+	enum EConstants
+	{
+		/** Invalid thread Id used by CheckHeartBeat */
+		InvalidThreadId = (uint32)-1
+	};
+
+	/** Gets the heartbeat singleton */
+	static FGameThreadHitchHeartBeat& Get();
+
+	/**
+	* Called at the start of a frame to register the time we are looking to detect a hitch
+	*/
+	void FrameStart(bool bSkipThisFrame = false);
+
+	double GetFrameStartTime();
+
+	//~ Begin FRunnable Interface.
+	virtual bool Init();
+	virtual uint32 Run();
+	virtual void Stop();
+	//~ End FRunnable Interface
 };

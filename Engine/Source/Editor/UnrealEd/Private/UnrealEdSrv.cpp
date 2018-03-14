@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "CoreMinimal.h"
@@ -76,6 +76,8 @@
 #include "ScriptDisassembler.h"
 #include "IAssetTools.h"
 #include "AssetToolsModule.h"
+#include "IContentBrowserSingleton.h"
+#include "ContentBrowserModule.h"
 #include "Editor/GeometryMode/Public/GeometryEdMode.h"
 #include "AssetRegistryModule.h"
 #include "Matinee/MatineeActor.h"
@@ -510,6 +512,28 @@ bool UUnrealEdEngine::HandleModalTestCommand( const TCHAR* Str, FOutputDevice& A
 	return true;
 }
 
+bool UUnrealEdEngine::HandleDisallowExportCommand(const TCHAR* Str, FOutputDevice& Ar)
+{
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+
+	TArray<FAssetData> SelectedAssets;
+	ContentBrowserModule.Get().GetSelectedAssets(SelectedAssets);
+
+	for (const FAssetData& AssetData : SelectedAssets)
+	{
+		UObject* Object = AssetData.GetAsset();
+		if (Object)
+		{
+			UPackage* Package = Object->GetOutermost();
+			Package->SetPackageFlags(EPackageFlags::PKG_DisallowExport);
+			Package->MarkPackageDirty();
+			UE_LOG(LogUnrealEdSrv, Log, TEXT("Marked '%s' as not exportable"), *Object->GetName());
+		}
+	}
+
+	return true;
+}
+
 bool UUnrealEdEngine::HandleDumpBPClassesCommand( const TCHAR* Str, FOutputDevice& Ar )
 {
 	UE_LOG(LogUnrealEdSrv, Log, TEXT("--- Listing all blueprint generated classes ---"));
@@ -696,6 +720,12 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 	if( FParse::Command(&Str, TEXT("ModalTest") ) )
 	{
 		HandleModalTestCommand( Str, Ar );
+		return true;
+	}
+
+	if (FParse::Command(&Str, TEXT("DisallowExport")))
+	{
+		HandleDisallowExportCommand(Str, Ar);
 		return true;
 	}
 
@@ -1002,7 +1032,7 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 					{
 						Mesh->Modify();
 
-						GWarn->StatusUpdate(MeshIndex + 1, SelectedMeshes.Num(), FText::Format(NSLOCTEXT("UnrealEd", "ScalingStaticMeshes_Value", "Static Mesh: %s"), FText::FromString(Mesh->GetName())));
+						GWarn->StatusUpdate(MeshIndex + 1, SelectedMeshes.Num(), FText::Format(NSLOCTEXT("UnrealEd", "ScalingStaticMeshes_Value", "Static Mesh: {0}"), FText::FromString(Mesh->GetName())));
 
 						FStaticMeshSourceModel& Model = Mesh->SourceModels[0];
 
@@ -1132,6 +1162,11 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 			FString ReplaceStr;
 			FParse::Value(Str, TEXT("Replace="), ReplaceStr );
 
+			FString AutoCheckOutStr;
+			FParse::Value(Str, TEXT("AutoCheckOut="), AutoCheckOutStr);
+			AutoCheckOutStr = AutoCheckOutStr.ToLower();
+			bool bAutoCheckOut = (AutoCheckOutStr == "yes" || AutoCheckOutStr == "true" || AutoCheckOutStr == "1");
+
 			GWarn->BeginSlowTask(NSLOCTEXT("UnrealEd", "RenamingAssets", "Renaming Assets"), true, true);
 
 			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
@@ -1178,7 +1213,7 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 
 			if( AssetsToRename.Num() > 0 )
 			{
-				AssetTools.RenameAssets( AssetsToRename );
+				AssetTools.RenameAssetsWithDialog( AssetsToRename, bAutoCheckOut );
 			}
 
 			GWarn->EndSlowTask();
@@ -1804,7 +1839,7 @@ TArray<FPoly*> GetSelectedPolygons()
 						int32 NumTriangles = MeshLodZero.GetNumTriangles();
 						int32 NumVertices = MeshLodZero.GetNumVertices();
 			
-						const FPositionVertexBuffer& PositionVertexBuffer = MeshLodZero.PositionVertexBuffer;
+						const FPositionVertexBuffer& PositionVertexBuffer = MeshLodZero.VertexBuffers.PositionVertexBuffer;
 						FIndexArrayView Indices = MeshLodZero.DepthOnlyIndexBuffer.GetArrayView();
 
 						for ( int32 TriangleIndex = 0; TriangleIndex < NumTriangles; TriangleIndex++ )

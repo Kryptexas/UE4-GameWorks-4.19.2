@@ -105,7 +105,8 @@ tags:Unreal Build System
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windowscompile]
 
 Make sure that Microsoft Visual Studio 2015 is installed prior to building Unreal Engine from source. Also, depending on your system's specifications, it may take between 10 and 40 minutes to compile the engine.
@@ -171,9 +172,11 @@ Depending on your system's specifications, it may take anywhere from ten minutes
 the source code on a machine that has at least eight (8) gigabytes of RAM with a multi-core processor having at least eight (8) cores (including hyperthreading).
 
 [/EXCERPT:linuxcompile]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:windowsrun]
 
 1.	Set your startup project to **UE4**.
@@ -221,7 +224,8 @@ If you're unable to create an OpenGL context as you're working through these ste
 
 	![](CompiledEditor_Linux.png)
 [/EXCERPT:linuxrun]
--->
+
+[/COMMENT]
 
 ## Getting Started with Unreal Engine
 

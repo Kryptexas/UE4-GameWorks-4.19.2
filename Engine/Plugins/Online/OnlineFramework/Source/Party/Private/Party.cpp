@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Party.h"
 #include "TimerManager.h"
@@ -165,9 +165,7 @@ void UParty::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 	UParty* This = CastChecked<UParty>(InThis);
 	check(This);
 
-	TArray<UPartyGameState*> Parties;
-	This->JoinedParties.GenerateValueArray(Parties);
-	Collector.AddReferencedObjects(Parties);
+	Collector.AddReferencedObjects(This->JoinedParties);
 }
 
 void UParty::RegisterIdentityDelegates()
@@ -1234,7 +1232,7 @@ void UParty::OnJoinPersistentPartyComplete(const FUniqueNetId& LocalUserId, EJoi
 	}
 
 	const FString PartyIdDebugString = PersistentPartyId.IsValid() ? PersistentPartyId->ToDebugString() : TEXT("Invalid");
-	UE_LOG(LogParty, Display, TEXT("OnJoinPersistentPartyComplete() %s %s %d"), *PartyIdDebugString, ToString(Result), DeniedResultCode);
+	UE_LOG(LogParty, Display, TEXT("OnJoinPersistentPartyComplete() PartyId=[%s] Result=[%s] DeniedResultCode=[%d]"), *PartyIdDebugString, ToString(Result), DeniedResultCode);
 
 	const int32 OutDeniedResultCode = (Result == EJoinPartyCompletionResult::NotApproved) ? DeniedResultCode : 0;
 	CompletionDelegate.ExecuteIfBound(LocalUserId, Result, OutDeniedResultCode);

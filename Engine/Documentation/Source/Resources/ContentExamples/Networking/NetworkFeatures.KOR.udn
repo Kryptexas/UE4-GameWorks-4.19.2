@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:네트워킹 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -9,41 +9,13 @@ Related: Gameplay/Networking/Actors
 Related: Gameplay/Networking/Actors/RPCs
 Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 Version: 4.9
+topic-image:Blueprint_Networking_Compact.png
+
 
 [REGION:banner]
 ![](NetworkFeatures_Header.png)(convert:false)
 [/REGION]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Networking:title%](Blueprint_Networking_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Networking:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Networking:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Networking]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Networking:title%](Blueprint_Networking_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Networking:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Networking]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:3)]
 

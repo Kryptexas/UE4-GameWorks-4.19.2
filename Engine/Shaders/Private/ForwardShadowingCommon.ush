@@ -1,0 +1,103 @@
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	ForwardShadowingCommon.ush
+=============================================================================*/
+
+#include "ShadowFilteringCommon.ush"
+
+float ComputeDirectionalLightStaticShadowing(float3 WorldPosition)
+{
+	float ShadowFactor = 1;
+#if ALLOW_STATIC_LIGHTING
+	BRANCH
+	if (ForwardGlobalLightData.DirectionalLightUseStaticShadowing > 0)
+	{
+		// Transform the world position into shadowmap space
+		float4 HomogeneousShadowPosition = mul(float4(WorldPosition, 1), ForwardGlobalLightData.DirectionalLightWorldToStaticShadow);
+		float2 ShadowUVs = HomogeneousShadowPosition.xy / HomogeneousShadowPosition.w;
+
+		// Treat as unshadowed if the voxel is outside of the shadow map
+		if (all(ShadowUVs >= 0 && ShadowUVs <= 1))
+		{
+			#define FILTER_STATIC_SHADOWING 0
+			#if FILTER_STATIC_SHADOWING
+				FPCFSamplerSettings Settings;
+				Settings.ShadowDepthTexture = ForwardGlobalLightData.DirectionalLightStaticShadowmap;
+				Settings.ShadowDepthTextureSampler = ForwardGlobalLightData.StaticShadowmapSampler;
+				Settings.ShadowBufferSize = ForwardGlobalLightData.DirectionalLightStaticShadowBufferSize;
+				Settings.SceneDepth = HomogeneousShadowPosition.z;
+				Settings.TransitionScale = 40;
+				Settings.bSubsurface = false;
+				// We can sample outside of the static shadowmap, which is centered around the lightmass importance volume.  These 'infinite' depth values should not cause occlusion.
+				Settings.bTreatMaxDepthUnshadowed = true;
+				Settings.DensityMulConstant = 0;
+				Settings.ProjectionDepthBiasParameters = float2(0, 0);
+
+				ShadowFactor = Manual1x1PCF(ShadowUVs, Settings);
+			#else
+				// Sample the shadowmap depth and determine if this voxel is shadowed
+				float ShadowDepth = Texture2DSampleLevel(ForwardGlobalLightData.DirectionalLightStaticShadowmap, ForwardGlobalLightData.StaticShadowmapSampler, ShadowUVs, 0).x;
+				ShadowFactor = HomogeneousShadowPosition.z < ShadowDepth || ShadowDepth > .99f;
+			#endif
+		}
+	}
+#endif
+	return ShadowFactor;
+}
+
+#ifndef FILTER_DIRECTIONAL_LIGHT_SHADOWING
+#define FILTER_DIRECTIONAL_LIGHT_SHADOWING 0
+#endif
+
+float ComputeDirectionalLightDynamicShadowing(float3 WorldPosition, float SceneDepth)
+{
+	float ShadowFactor = 1;
+
+	if (ForwardGlobalLightData.NumDirectionalLightCascades > 0)
+	{
+		uint CascadeIndex = ForwardGlobalLightData.NumDirectionalLightCascades;
+
+		for (uint TestCascadeIndex = 0; TestCascadeIndex < ForwardGlobalLightData.NumDirectionalLightCascades; TestCascadeIndex++)
+		{
+			if (SceneDepth < ForwardGlobalLightData.CascadeEndDepths[TestCascadeIndex])
+			{
+				CascadeIndex = TestCascadeIndex;
+				break;
+			}
+		}
+
+		if (CascadeIndex < ForwardGlobalLightData.NumDirectionalLightCascades)
+		{
+			// Transform the world position into shadowmap space
+			float4 HomogeneousShadowPosition = mul(float4(WorldPosition, 1), ForwardGlobalLightData.DirectionalLightWorldToShadowMatrix[CascadeIndex]);
+			float2 ShadowUVs = HomogeneousShadowPosition.xy / HomogeneousShadowPosition.w;
+			float4 ShadowmapMinMax = ForwardGlobalLightData.DirectionalLightShadowmapMinMax[CascadeIndex];
+
+			// Treat as unshadowed if the voxel is outside of the shadow map
+			if (all(ShadowUVs >= ShadowmapMinMax.xy && ShadowUVs <= ShadowmapMinMax.zw))
+			{
+			#if FILTER_DIRECTIONAL_LIGHT_SHADOWING
+				FPCFSamplerSettings Settings;
+				Settings.ShadowDepthTexture = ForwardGlobalLightData.DirectionalLightShadowmapAtlas;
+				Settings.ShadowDepthTextureSampler = ForwardGlobalLightData.ShadowmapSampler;
+				Settings.ShadowBufferSize = ForwardGlobalLightData.DirectionalLightShadowmapAtlasBufferSize;
+				Settings.SceneDepth = HomogeneousShadowPosition.z;
+				Settings.TransitionScale = 4000;
+				Settings.bSubsurface = false;
+				Settings.bTreatMaxDepthUnshadowed = false;
+				Settings.DensityMulConstant = 0;
+				Settings.ProjectionDepthBiasParameters = float2(0, 0);
+
+				ShadowFactor = Manual1x1PCF(ShadowUVs, Settings);
+			#else
+				// Sample the shadowmap depth and determine if this voxel is shadowed
+				float ShadowDepth = Texture2DSampleLevel(ForwardGlobalLightData.DirectionalLightShadowmapAtlas, ForwardGlobalLightData.ShadowmapSampler, ShadowUVs, 0).x;
+				ShadowFactor = HomogeneousShadowPosition.z < ShadowDepth - ForwardGlobalLightData.DirectionalLightDepthBias.x;
+			#endif
+			}
+		}
+	}
+
+	return ShadowFactor;
+}

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PerforceSourceControlState.h"
 #include "PerforceSourceControlRevision.h"
@@ -289,6 +289,12 @@ bool FPerforceSourceControlState::CanAdd() const
 bool FPerforceSourceControlState::IsConflicted() const
 {
 	return PendingResolveRevNumber != INVALID_REVISION;
+}
+
+bool FPerforceSourceControlState::CanRevert() const
+{
+	// Note that this is not entirely true, as for instance conflicted files can technically be reverted by perforce
+	return CanCheckIn();
 }
 
 #undef LOCTEXT_NAMESPACE

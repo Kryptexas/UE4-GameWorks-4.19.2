@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Factories/FbxSceneImportFactory.h"
 #include "Misc/MessageDialog.h"
@@ -39,6 +39,7 @@
 #include "FileHelpers.h"
 #include "CineCameraComponent.h"
 #include "SkelImport.h"
+#include "Rendering/SkeletalMeshModel.h"
 
 #include "AssetSelection.h"
 
@@ -1848,6 +1849,7 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 	//TODO support bBakePivotInVertex
 	bool Old_bBakePivotInVertex = GlobalImportSettings->bBakePivotInVertex;
 	GlobalImportSettings->bBakePivotInVertex = false;
+	GlobalImportSettings->bImportBoneTracks = true;
 	//if (GlobalImportSettings->bBakePivotInVertex && RootNodeInfo->AttributeInfo->PivotNodeUid == INVALID_UNIQUE_ID)
 	//{
 		//GlobalImportSettings->bBakePivotInVertex = false;
@@ -1867,7 +1869,7 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 			}
 		}
 	}
-	MaxLODLevel = FMath::Min(MAX_SKELETAL_MESH_LODS, MaxLODLevel);
+
 	int32 LODIndex;
 	for (LODIndex = 0; LODIndex < MaxLODLevel; LODIndex++)
 	{
@@ -1983,11 +1985,7 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 
 			USkeletalMesh *LODObject = FbxImporter->ImportSkeletalMesh(ImportSkeletalMeshArgs);
 			bool bImportSucceeded = FbxImporter->ImportSkeletalMeshLOD(LODObject, BaseSkeletalMesh, LODIndex);
-			if (bImportSucceeded)
-			{
-				BaseSkeletalMesh->LODInfo[LODIndex].ScreenSize = 1.0f / (MaxLODLevel * LODIndex);
-			}
-			else
+			if (!bImportSucceeded)
 			{
 				FbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("FailedToImport_SkeletalMeshLOD", "Failed to import Skeletal mesh LOD.")), FFbxErrors::SkeletalMesh_LOD_FailedToImport);
 			}
@@ -2003,24 +2001,24 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 			if ((GlobalImportSettings->bImportSkeletalMeshLODs || LODIndex == 0) &&
 				GlobalImportSettings->bImportMorph &&
 				NewSkelMesh &&
-				NewSkelMesh->GetImportedResource() &&
-				NewSkelMesh->GetImportedResource()->LODModels.IsValidIndex(LODIndex))
+				NewSkelMesh->GetImportedModel() &&
+				NewSkelMesh->GetImportedModel()->LODModels.IsValidIndex(LODIndex))
 			{
 				// TODO: Disable material importing when importing morph targets
 				FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, NewSkelMesh, Pkg, LODIndex, OutData);
 			}
 		}
 	}
-
-	USkeletalMesh *ImportedSkelMesh = Cast<USkeletalMesh>(NewObject);
+	
+	USkeletalMesh* ImportedSkelMesh = Cast<USkeletalMesh>(NewObject);
 	//If we have import some morph target we have to rebuild the render resources since morph target are now using GPU
-	if (ImportedSkelMesh->MorphTargets.Num() > 0)
+	if (ImportedSkelMesh && ImportedSkelMesh->MorphTargets.Num() > 0)
 	{
 		ImportedSkelMesh->ReleaseResources();
 		//Rebuild the resources with a post edit change since we have added some morph targets
 		ImportedSkelMesh->PostEditChange();
 	}
-
+	
 	//Put back the options
 	GlobalImportSettings->bBakePivotInVertex = Old_bBakePivotInVertex;
 	return NewObject;

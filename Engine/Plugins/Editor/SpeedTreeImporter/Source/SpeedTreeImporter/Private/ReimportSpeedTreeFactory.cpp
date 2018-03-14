@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ReimportSpeedTreeFactory.h"
 #include "Misc/Paths.h"
@@ -18,6 +18,7 @@ UReimportSpeedTreeFactory::UReimportSpeedTreeFactory(const FObjectInitializer& O
 	#if WITH_SPEEDTREE
 		SupportedClass = UStaticMesh::StaticClass();
 		Formats.Add(TEXT("srt;SpeedTree"));
+		Formats.Add(TEXT("st;SpeedTree v8"));
 	#endif
 
 	bCreateNew = false;
@@ -30,7 +31,11 @@ bool UReimportSpeedTreeFactory::CanReimport(UObject* Obj, TArray<FString>& OutFi
 	UStaticMesh* Mesh = Cast<UStaticMesh>(Obj);
 	if (Mesh && Mesh->AssetImportData)
 	{
-		if (FPaths::GetExtension(Mesh->AssetImportData->GetFirstFilename()) == TEXT("srt"))
+		const FString FileExtension = FPaths::GetExtension(Mesh->AssetImportData->GetFirstFilename());
+		const bool bIsSpeedTree = (FCString::Stricmp(*FileExtension, TEXT("SRT")) == 0) ||
+									(FCString::Stricmp(*FileExtension, TEXT("ST")) == 0);
+
+		if (bIsSpeedTree)
 		{
 			// SpeedTrees file extension matches with filepath			
 			Mesh->AssetImportData->ExtractFilenames(OutFilenames);
@@ -63,9 +68,10 @@ EReimportResult::Type UReimportSpeedTreeFactory::Reimport(UObject* Obj)
 
 	const FString Filename = Mesh->AssetImportData->GetFirstFilename();
 	const FString FileExtension = FPaths::GetExtension(Filename);
-	const bool bIsSRT = FCString::Stricmp(*FileExtension, TEXT("SRT")) == 0;
+	const bool bIsSpeedTree = (FCString::Stricmp(*FileExtension, TEXT("SRT")) == 0) ||
+								(FCString::Stricmp(*FileExtension, TEXT("ST")) == 0);
 
-	if (!bIsSRT)
+	if (!bIsSpeedTree)
 	{
 		return EReimportResult::Failed;
 	}

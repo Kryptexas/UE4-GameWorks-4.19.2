@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
  
 #pragma once
 
@@ -105,6 +105,7 @@ public:
 		, _SelectionMode(ESelectionMode::Multi)
 		, _ClearSelectionOnClick(true)
 		, _ExternalScrollbar()
+		, _ScrollbarDragFocusCause(EFocusCause::Mouse)
 		, _ConsumeMouseWheel( EConsumeMouseWheel::WhenScrollingPossible )
 		, _AllowOverscroll(EAllowOverscroll::Yes)
 		, _WheelScrollMultiplier(GetGlobalScrollAmount())
@@ -150,6 +151,8 @@ public:
 		SLATE_ARGUMENT ( bool, ClearSelectionOnClick )
 
 		SLATE_ARGUMENT( TSharedPtr<SScrollBar>, ExternalScrollbar )
+
+		SLATE_ARGUMENT( EFocusCause, ScrollbarDragFocusCause )
 
 		SLATE_ARGUMENT( EConsumeMouseWheel, ConsumeMouseWheel );
 		
@@ -242,6 +245,10 @@ public:
 		{
 			// Make the TableView
 			this->ConstructChildren( 0, InArgs._ItemHeight, EListItemAlignment::LeftAligned, InArgs._HeaderRow, InArgs._ExternalScrollbar, InArgs._OnTreeViewScrolled );
+			if (this->ScrollBar.IsValid())
+			{
+				this->ScrollBar->SetDragFocusCause(InArgs._ScrollbarDragFocusCause);
+			}
 		}
 	}
 

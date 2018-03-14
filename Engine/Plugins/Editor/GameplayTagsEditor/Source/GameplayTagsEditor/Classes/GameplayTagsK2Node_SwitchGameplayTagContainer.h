@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -44,11 +44,11 @@ class UGameplayTagsK2Node_SwitchGameplayTagContainer : public UK2Node_Switch
 	// UK2Node_Switch Interface
 	virtual void AddPinToSwitchNode() override;
 	virtual FEdGraphPinType GetInnerCaseType() const override;
-	virtual FString GetUniquePinName() override;
+	virtual FName GetUniquePinName() override;
 	virtual FEdGraphPinType GetPinType() const override;
 	// End of UK2Node_Switch Interface
 
-	virtual FString GetPinNameGivenIndex(int32 Index) override;
+	virtual FName GetPinNameGivenIndex(int32 Index) const override;
 
 protected:
 	virtual void CreateFunctionPin() override;

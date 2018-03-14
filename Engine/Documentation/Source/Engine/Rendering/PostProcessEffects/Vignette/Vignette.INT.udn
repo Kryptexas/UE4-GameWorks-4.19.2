@@ -26,7 +26,8 @@ Topic-image:Vignette_topic.png
 | -------- | ----------- |
 | **Vignette Intensity** | Allows for darkening of the screen corners. Does not affect bloom (performance reasons but possible to change). Possible uses: simulate camera imperfections. [INCLUDE:#Intensity] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Intensity]
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -37,4 +38,5 @@ Topic-image:Vignette_topic.png
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:Intensity]
--->
+
+[/COMMENT]

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GroupedSpriteSceneProxy.h"
 #include "PaperGroupedSpriteComponent.h"
@@ -31,9 +31,15 @@ FSpriteRenderSection& FGroupedSpriteSceneProxy::FindOrAddSection(FSpriteDrawCall
 	NewSection.Material = InMaterial;
 	NewSection.BaseTexture = InBatch.BaseTexture;
 	NewSection.AdditionalTextures = InBatch.AdditionalTextures;
-	NewSection.VertexOffset = VertexBuffer.Vertices.Num();
+	NewSection.VertexOffset = Vertices.Num();
 
 	return NewSection;
+}
+
+SIZE_T FGroupedSpriteSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
 }
 
 FGroupedSpriteSceneProxy::FGroupedSpriteSceneProxy(UPaperGroupedSpriteComponent* InComponent)
@@ -80,7 +86,7 @@ FGroupedSpriteSceneProxy::FGroupedSpriteSceneProxy(UPaperGroupedSpriteComponent*
 				const FVector ComponentSpacePos = InstanceData.Transform.TransformPosition(LocalPos);
 				const FVector2D UV(SourceVert.Z, SourceVert.W);
 
-				new (VertexBuffer.Vertices) FPaperSpriteVertex(ComponentSpacePos, UV, VertColor, TangentX, TangentZ);
+				new (Vertices) FDynamicMeshVertex(ComponentSpacePos, TangentX, TangentZ, UV, VertColor);
 			}
 
 			BodySetup = SourceSprite->BodySetup;
@@ -91,16 +97,6 @@ FGroupedSpriteSceneProxy::FGroupedSpriteSceneProxy(UPaperGroupedSpriteComponent*
 			BodySetupTransforms.Add(InstanceData.Transform);
 			BodySetups.Add(BodySetup);
 		}
-	}
-	
-	if (VertexBuffer.Vertices.Num() > 0)
-	{
-		// Init the vertex factory
-		MyVertexFactory.Init(&VertexBuffer);
-
-		// Enqueue initialization of render resources
-		BeginInitResource(&VertexBuffer);
-		BeginInitResource(&MyVertexFactory);
 	}
 }
 

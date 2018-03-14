@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetTools.h"
 #include "Factories/Factory.h"
@@ -65,6 +65,7 @@
 #include "AssetTypeActions/AssetTypeActions_LandscapeGrassType.h"
 #include "AssetTypeActions/AssetTypeActions_Material.h"
 #include "AssetTypeActions/AssetTypeActions_MaterialFunction.h"
+#include "AssetTypeActions/AssetTypeActions_MaterialFunctionInstance.h"
 #include "AssetTypeActions/AssetTypeActions_MaterialInstanceConstant.h"
 #include "AssetTypeActions/AssetTypeActions_MaterialParameterCollection.h"
 #include "AssetTypeActions/AssetTypeActions_ObjectLibrary.h"
@@ -178,6 +179,11 @@ UAssetToolsImpl::UAssetToolsImpl(const FObjectInitializer& ObjectInitializer)
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_LandscapeGrassType));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_Material(BlendablesCategoryBit)));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialFunction));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialFunctionLayer));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialFunctionLayerInstance));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialFunctionLayerBlend));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialFunctionLayerBlendInstance));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialFunctionInstance));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialInstanceConstant(BlendablesCategoryBit)));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialInterface));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialParameterCollection));
@@ -248,6 +254,24 @@ TWeakPtr<IAssetTypeActions> UAssetToolsImpl::GetAssetTypeActionsForClass( UClass
 	}
 
 	return MostDerivedAssetTypeActions;
+}
+
+TArray<TWeakPtr<IAssetTypeActions>> UAssetToolsImpl::GetAssetTypeActionsListForClass(UClass* Class) const
+{
+	TArray<TWeakPtr<IAssetTypeActions>> ResultAssetTypeActionsList;
+
+	for (int32 TypeActionsIdx = 0; TypeActionsIdx < AssetTypeActionsList.Num(); ++TypeActionsIdx)
+	{
+		TSharedRef<IAssetTypeActions> TypeActions = AssetTypeActionsList[TypeActionsIdx];
+		UClass* SupportedClass = TypeActions->GetSupportedClass();
+
+		if (Class->IsChildOf(SupportedClass))
+		{
+			ResultAssetTypeActionsList.Add(TypeActions);
+		}
+	}
+
+	return ResultAssetTypeActionsList;
 }
 
 EAssetTypeCategories::Type UAssetToolsImpl::RegisterAdvancedAssetCategory(FName CategoryKey, FText CategoryDisplayName)
@@ -528,13 +552,18 @@ UObject* UAssetToolsImpl::DuplicateAssetWithDialog(const FString& AssetName, con
 		const FString SaveAssetName = FPaths::GetBaseFilename(SavePackageName);
 		FEditorDirectories::Get().SetLastDirectory(ELastDirectory::NEW_ASSET, PackagePath);
 
-		return DuplicateAsset(SaveAssetName, SavePackagePath, OriginalObject);
+		return PerformDuplicateAsset(SaveAssetName, SavePackagePath, OriginalObject, true);
 	}
 
 	return nullptr;
 }
 
 UObject* UAssetToolsImpl::DuplicateAsset(const FString& AssetName, const FString& PackagePath, UObject* OriginalObject)
+{
+	return PerformDuplicateAsset(AssetName, PackagePath, OriginalObject, false);
+}
+
+UObject* UAssetToolsImpl::PerformDuplicateAsset(const FString& AssetName, const FString& PackagePath, UObject* OriginalObject, bool bWithDialog)
 {
 	// Verify the source object
 	if ( !OriginalObject )
@@ -557,7 +586,8 @@ UObject* UAssetToolsImpl::DuplicateAsset(const FString& AssetName, const FString
 	PGN.ObjectName = AssetName;
 
 	TSet<UPackage*> ObjectsUserRefusedToFullyLoad;
-	UObject* NewObject = ObjectTools::DuplicateSingleObject(OriginalObject, PGN, ObjectsUserRefusedToFullyLoad);
+	bool bPromtToOverwrite = bWithDialog;
+	UObject* NewObject = ObjectTools::DuplicateSingleObject(OriginalObject, PGN, ObjectsUserRefusedToFullyLoad, bPromtToOverwrite);
 	if(NewObject != nullptr)
 	{
 		if ( ISourceControlModule::Get().IsEnabled() )
@@ -581,9 +611,14 @@ UObject* UAssetToolsImpl::DuplicateAsset(const FString& AssetName, const FString
 	return NewObject;
 }
 
-void UAssetToolsImpl::RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const
+bool UAssetToolsImpl::RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const
 {
-	AssetRenameManager->RenameAssets(AssetsAndNames);
+	return AssetRenameManager->RenameAssets(AssetsAndNames);
+}
+
+void UAssetToolsImpl::RenameAssetsWithDialog(const TArray<FAssetRenameData>& AssetsAndNames, bool bAutoCheckout) const
+{
+	AssetRenameManager->RenameAssetsWithDialog(AssetsAndNames, bAutoCheckout);
 }
 
 void UAssetToolsImpl::FindSoftReferencesToObject(FSoftObjectPath TargetObject, TArray<UObject*>& ReferencingObjects) const
@@ -1298,8 +1333,12 @@ TArray<UObject*> UAssetToolsImpl::ImportAssetsInternal(const TArray<FString>& Fi
 	// Now iterate over the input files and use the same factory object for each file with the same extension
 	for(int32 FileIdx = 0; FileIdx < FilesAndDestinations.Num(); ++FileIdx)
 	{
+		// Filename and DestinationPath will need to get santized before we create an asset out of them as they
+		// can be created out of sources that contain spaces and other invalid characters. Filename cannot be sanitized
+		// until other checks are done that rely on looking at the actual source file so sanitation is delayed.
 		const FString& Filename = FilesAndDestinations[FileIdx].Key;
-		const FString& DestinationPath = FilesAndDestinations[FileIdx].Value;
+		const FString DestinationPath = ObjectTools::SanitizeObjectPath(FilesAndDestinations[FileIdx].Value);
+
 
 		SlowTask.EnterProgressFrame(1, FText::Format(LOCTEXT("Import_ImportingFile", "Importing \"{0}\"..."), FText::FromString(FPaths::GetBaseFilename(Filename))));
 
@@ -1648,6 +1687,11 @@ void UAssetToolsImpl::ExportAssetsInternal(const TArray<UObject*>& ObjectsToExpo
 
 		UObject* ObjectToExport = ObjectsToExport[Index];
 		if (!ObjectToExport)
+		{
+			continue;
+		}
+
+		if (ObjectToExport->GetOutermost()->HasAnyPackageFlags(PKG_DisallowExport))
 		{
 			continue;
 		}
@@ -2008,10 +2052,11 @@ bool UAssetToolsImpl::CanCreateAsset(const FString& AssetName, const FString& Pa
 		// to replace the object.
 		bool bWantReplace =
 			EAppReturnType::Yes == FMessageDialog::Open(
-			EAppMsgType::YesNo,
-			FText::Format(
-				NSLOCTEXT("UnrealEd", "ReplaceExistingObjectInPackage_F", "An object [{0}] of class [{1}] already exists in file [{2}].  Do you want to replace the existing object?  If you click 'Yes', the existing object will be deleted.  Otherwise, click 'No' and choose a unique name for your new object." ),
-				FText::FromString(AssetName), FText::FromString(ExistingObject->GetClass()->GetName()), FText::FromString(PackageName) ) );
+				EAppMsgType::YesNo,
+				EAppReturnType::No,
+				FText::Format(
+					NSLOCTEXT("UnrealEd", "ReplaceExistingObjectInPackage_F", "An object [{0}] of class [{1}] already exists in file [{2}].  Do you want to replace the existing object?  If you click 'Yes', the existing object will be deleted.  Otherwise, click 'No' and choose a unique name for your new object." ),
+					FText::FromString(AssetName), FText::FromString(ExistingObject->GetClass()->GetName()), FText::FromString(PackageName) ) );
 
 		if( bWantReplace )
 		{
@@ -2182,36 +2227,48 @@ void UAssetToolsImpl::MigratePackages_ReportConfirmed(TArray<FString> ConfirmedP
 			}
 			else
 			{
-				const FString DestFilename = SrcFilename.Replace(*FPaths::ProjectContentDir(), *DestinationFolder);
-
 				bool bFileOKToCopy = true;
-				if ( IFileManager::Get().FileSize(*DestFilename) > 0 )
-				{
-					// The destination file already exists! Ask the user what to do.
-					EAppReturnType::Type Response;
-					if ( LastResponse == EAppReturnType::YesAll || LastResponse == EAppReturnType::NoAll )
-					{
-						Response = LastResponse;
-					}
-					else
-					{
-						const FText Message = FText::Format( LOCTEXT("MigratePackages_AlreadyExists", "An asset already exists at location {0} would you like to overwrite it?"), FText::FromString(DestFilename) );
-						Response = FMessageDialog::Open( EAppMsgType::YesNoYesAllNoAllCancel, Message );
-						if ( Response == EAppReturnType::Cancel )
-						{
-							// The user chose to cancel mid-operation. Break out.
-							bUserCanceled = true;
-							break;
-						}
-						LastResponse = Response;
-					}
 
-					const bool bWantOverwrite = Response == EAppReturnType::Yes || Response == EAppReturnType::YesAll;
-					if( !bWantOverwrite )
+				FString DestFilename = DestinationFolder;
+
+				FString SubFolder;
+				if ( SrcFilename.Split( TEXT("/Content/"), nullptr, &SubFolder ) )
+				{
+					DestFilename += *SubFolder;
+
+					if ( IFileManager::Get().FileSize(*DestFilename) > 0 )
 					{
-						// User chose not to replace the package
-						bFileOKToCopy = false;
+						// The destination file already exists! Ask the user what to do.
+						EAppReturnType::Type Response;
+						if ( LastResponse == EAppReturnType::YesAll || LastResponse == EAppReturnType::NoAll )
+						{
+							Response = LastResponse;
+						}
+						else
+						{
+							const FText Message = FText::Format( LOCTEXT("MigratePackages_AlreadyExists", "An asset already exists at location {0} would you like to overwrite it?"), FText::FromString(DestFilename) );
+							Response = FMessageDialog::Open( EAppMsgType::YesNoYesAllNoAllCancel, Message );
+							if ( Response == EAppReturnType::Cancel )
+							{
+								// The user chose to cancel mid-operation. Break out.
+								bUserCanceled = true;
+								break;
+							}
+							LastResponse = Response;
+						}
+
+						const bool bWantOverwrite = Response == EAppReturnType::Yes || Response == EAppReturnType::YesAll;
+						if( !bWantOverwrite )
+						{
+							// User chose not to replace the package
+							bFileOKToCopy = false;
+						}
 					}
+				}
+				else
+				{
+					// Couldn't find Content folder in source path
+					bFileOKToCopy = false;
 				}
 
 				if ( bFileOKToCopy )

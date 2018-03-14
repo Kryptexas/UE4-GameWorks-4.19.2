@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -155,9 +155,7 @@ class FSceneViewFamily;
 class FSceneViewStateInterface;
 class FSceneViewport;
 class FShadowMapData2D;
-class FSkeletalMeshResource;
 class FSoundSource;
-class FStaticLODModel;
 class FStaticMeshRenderData;
 class FStaticPrimitiveDrawInterface;
 class FStreamingTextureLevelContext;
@@ -171,7 +169,7 @@ class HHitProxy;
 class INavLinkCustomInterface;
 
 enum class ECacheApplyPhase;
-enum class ETeleportType;
+enum class ETeleportType : uint8;
 
 struct FActiveSound;
 struct FActorComponentTickFunction;
@@ -232,7 +230,6 @@ struct FPrimitiveViewRelevance;
 struct FReferenceSkeleton;
 struct FRichCurve;
 struct FRichCurveKey;
-struct FSkelMeshSection;
 struct FSmartNameMapping;
 struct FSoundParseParameters;
 struct FStaticMeshLODResources;

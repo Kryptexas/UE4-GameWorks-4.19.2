@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // Implementation of Memory Allocation Strategies
 
@@ -119,7 +119,7 @@ void FD3D12BuddyAllocator::Initialize()
 			LLM_PLATFORM_SCOPE(ELLMTag::GraphicsPlatform);
 
 			// we are tracking allocations ourselves, so don't let XMemAlloc track these as well
-			LLM_SCOPED_PAUSE_TRACKING_FOR_TRACKER(ELLMTracker::Default);
+			LLM_SCOPED_PAUSE_TRACKING_FOR_TRACKER(ELLMTracker::Default, ELLMAllocType::System);
 			VERIFYD3D12RESULT(Adapter->GetD3DDevice()->CreateHeap(&Desc, IID_PPV_ARGS(&Heap)));
 		}
 		SetName(Heap, L"Placed Resource Allocator Backing Heap");
@@ -136,7 +136,7 @@ void FD3D12BuddyAllocator::Initialize()
 	else
 	{
 		{
-			LLM_SCOPED_PAUSE_TRACKING_FOR_TRACKER(ELLMTracker::Default);
+			LLM_SCOPED_PAUSE_TRACKING_FOR_TRACKER(ELLMTracker::Default, ELLMAllocType::System);
 			VERIFYD3D12RESULT(Adapter->CreateBuffer(HeapType, GetNodeMask(), GetVisibilityMask(), MaxBlockSize, BackingResource.GetInitReference(), ResourceFlags));
 		}
 		SetName(BackingResource, L"Resource Allocator Underlying Buffer");
@@ -296,7 +296,15 @@ void FD3D12BuddyAllocator::Allocate(uint32 SizeInBytes, uint32 Alignment, FD3D12
 #endif
 
 	// track the allocation
+#if !PLATFORM_WINDOWS
 	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, (void*)ResourceLocation.GetGPUVirtualAddress(), SizeInBytes));
+	// Note: Disabling this LLM hook for Windows is due to a work-around in the way that d3d12 buffers are tracked
+	// by LLM. LLM tracks buffer data in the UpdateBufferStats function because that is the easiest place to ensure that LLM
+	// can be updated whenever a buffer is created or released. Unfortunately, some buffers allocate from this allocator
+	// which means that the memory would be counted twice. Because of this the tracking had to be disabled here.
+	// This does mean that non-buffer memory that goes through this allocator won't be tracked, so this does need a better solution.
+	// see UpdateBufferStats for a more detailed explanation.
+#endif
 }
 
 bool FD3D12BuddyAllocator::TryAllocate(uint32 SizeInBytes, uint32 Alignment, FD3D12ResourceLocation& ResourceLocation)
@@ -348,7 +356,15 @@ void FD3D12BuddyAllocator::Deallocate(FD3D12ResourceLocation& ResourceLocation)
 #endif
 
 	// track the allocation
-	LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, (void*)ResourceLocation.GetGPUVirtualAddress(), 0));
+#if !PLATFORM_WINDOWS
+	// Note: Disabling this LLM hook for Windows is due to a work-around in the way that d3d12 buffers are tracked
+	// by LLM. LLM tracks buffer data in the UpdateBufferStats function because that is the easiest place to ensure that LLM
+	// can be updated whenever a buffer is created or released. Unfortunately, some buffers allocate from this allocator
+	// which means that the memory would be counted twice. Because of this the tracking had to be disabled here.
+	// This does mean that non-buffer memory that goes through this allocator won't be tracked, so this does need a better solution.
+	// see UpdateBufferStats for a more detailed explanation.
+	LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, (void*)ResourceLocation.GetGPUVirtualAddress()));
+#endif
 }
 
 void FD3D12BuddyAllocator::DeallocateInternal(RetiredBlock& Block)
@@ -403,7 +419,7 @@ void FD3D12BuddyAllocator::CleanUpAllocations()
 
 void FD3D12BuddyAllocator::ReleaseAllResources()
 {
-	LLM_SCOPED_PAUSE_TRACKING_FOR_TRACKER(ELLMTracker::Default);
+	LLM_SCOPED_PAUSE_TRACKING_FOR_TRACKER(ELLMTracker::Default, ELLMAllocType::System);
 
 	for (RetiredBlock& Block : DeferredDeletionQueue)
 	{

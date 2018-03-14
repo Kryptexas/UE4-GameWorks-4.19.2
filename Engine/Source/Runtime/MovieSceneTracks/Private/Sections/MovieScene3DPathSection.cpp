@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Sections/MovieScene3DPathSection.h"
 #include "Components/SplineComponent.h"
@@ -145,11 +145,11 @@ void UMovieScene3DPathSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TR
 }
 
 
-void UMovieScene3DPathSection::AddPath( float Time, float SequenceEndTime, const FGuid& InPathId )
+void UMovieScene3DPathSection::AddPath( float Time, float SequenceEndTime, const FMovieSceneObjectBindingID& InPathBindingID )
 {
 	if (TryModify())
 	{
-		ConstraintId = InPathId;
+		ConstraintBindingID = InPathBindingID;
 
 		TimingCurve.UpdateOrAddKey(Time, 0);
 		TimingCurve.UpdateOrAddKey(SequenceEndTime, 1);

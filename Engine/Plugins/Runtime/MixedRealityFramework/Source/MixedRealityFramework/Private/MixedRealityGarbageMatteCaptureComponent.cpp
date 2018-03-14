@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MixedRealityGarbageMatteCaptureComponent.h"
 #include "Engine/TextureRenderTarget2D.h"
@@ -88,7 +88,7 @@ void UMixedRealityGarbageMatteCaptureComponent::ApplyConfiguration(const UMixedR
 	// GarbageMatteCaptureComponent
 	if (ExternalGarbageMatteActor == nullptr)
 	{
-		FOVAngle = SaveGameInstance.AlignmentData.FOV;
+		FOVAngle = SaveGameInstance.LensData.FOV;
 		ShowOnlyActors.Empty();
 		ShowOnlyActors.Push(GarbageMatteActor);
 	}

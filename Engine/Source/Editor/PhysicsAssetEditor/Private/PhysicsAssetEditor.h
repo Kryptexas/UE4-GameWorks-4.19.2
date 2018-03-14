@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,6 +19,7 @@
 #include "Editor/PhysicsAssetEditor/Private/PhysicsAssetEditorSharedData.h"
 #include "PhysicsEngine/BodySetupEnums.h"
 #include "ArrayView.h"
+#include "GraphEditor.h"
 
 struct FAssetData;
 class FPhysicsAssetEditorTreeInfo;
@@ -37,6 +38,7 @@ class ISkeletonTreeItem;
 class IPersonaToolkit;
 class FPhysicsAssetEditorSkeletonTreeBuilder;
 class USkeletalMesh;
+class FUICommandList_Pinnable;
 
 namespace PhysicsAssetEditorModes
 {
@@ -84,7 +86,7 @@ public:
 	void BuildMenuWidgetConstraint(FMenuBuilder& InMenuBuilder);
 	void BuildMenuWidgetSelection(FMenuBuilder& InMenuBuilder);
 	void BuildMenuWidgetNewConstraint(FMenuBuilder& InMenuBuilder);
-	void BuildMenuWidgetNewConstraintForBody(FMenuBuilder& InMenuBuilder, int32 InSourceBodyIndex);
+	TSharedRef<ISkeletonTree> BuildMenuWidgetNewConstraintForBody(FMenuBuilder& InMenuBuilder, int32 InSourceBodyIndex, SGraphEditor::FActionMenuClosed InOnActionMenuClosed = SGraphEditor::FActionMenuClosed());
 	void BuildMenuWidgetBone(FMenuBuilder& InMenuBuilder);
 	TSharedRef<SWidget> BuildStaticMeshAssetPicker();
 
@@ -105,7 +107,7 @@ public:
 
 	//~ Begin FTickableEditorObject Interface
 	virtual void Tick(float DeltaTime) override;
-	virtual bool IsTickable() const override { return true; }
+	virtual ETickableTickType GetTickableTickType() const override { return ETickableTickType::Always; }
 	virtual TStatId GetStatId() const override;
 	//~ End FTickableEditorObject Interface
 
@@ -128,6 +130,15 @@ public:
 
 	/** Check whether we are out of simulation mode */
 	bool IsNotSimulation() const;
+
+	/** Get the command list used for viewport commands */
+	TSharedPtr<FUICommandList_Pinnable> GetViewportCommandList() const { return ViewportCommandList; }
+
+	/** Make the constraint scale widget */
+	TSharedRef<SWidget> MakeConstraintScaleWidget();
+
+	/** Make the collision opacity widget */
+	TSharedRef<SWidget> MakeCollisionOpacityWidget();
 
 public:
 	/** Delegate fired on undo/redo */
@@ -207,6 +218,8 @@ private:
 	bool IsConstraintRenderingMode(EPhysicsAssetEditorConstraintViewMode Mode, bool bSimulation) const;
 	void ToggleDrawConstraintsAsPoints();
 	bool IsDrawingConstraintsAsPoints() const;
+	void ToggleRenderOnlySelectedConstraints();
+	bool IsRenderingOnlySelectedConstraints() const;
 	void ToggleRenderOnlySelectedSolid();
 	bool IsRenderingOnlySelectedSolid() const;
 	void OnToggleMassProperties();
@@ -251,6 +264,7 @@ private:
 	//menu commands
 	void OnSelectAllBodies();
 	void OnSelectAllConstraints();
+	void OnToggleSelectionType();
 	void OnDeselectAll();
 
 	FText GetRepeatLastSimulationToolTip() const;
@@ -312,6 +326,12 @@ private:
 
 	/** The current physics asset graph, if any */
 	TWeakPtr<SPhysicsAssetGraph> PhysicsAssetGraph;
+
+	/** Command list for skeleton tree operations */
+	TSharedPtr<FUICommandList_Pinnable> SkeletonTreeCommandList;
+
+	/** Command list for viewport operations */
+	TSharedPtr<FUICommandList_Pinnable> ViewportCommandList;
 
 	void FixPhysicsState();
 	void ImpToggleSimulation();

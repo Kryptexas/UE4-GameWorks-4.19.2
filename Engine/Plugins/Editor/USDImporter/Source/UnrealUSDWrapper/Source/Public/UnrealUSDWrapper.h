@@ -1,3 +1,5 @@
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
 #include <string>
@@ -247,10 +249,11 @@ public:
 	virtual const char* GetPrimPath() const = 0;
 	virtual const char* GetUnrealPropertyPath() const = 0;
 	virtual const char* GetKind() const = 0;
-	virtual bool IsKindChildOf(const std::string& InKind) const = 0;
+	virtual bool IsKindChildOf(const std::string& InBaseKind) const = 0;
 	virtual bool IsGroup() const = 0;
 	virtual bool IsModel() const = 0;
 	virtual bool IsUnrealProperty() const = 0;
+	virtual bool IsProxyOrGuide() const = 0;
 	virtual bool HasTransform() const = 0;
 	virtual FUsdMatrixData GetLocalToWorldTransform(double Time = UnrealUSDWrapper::GetDefaultTimeCode()) const = 0;
 	virtual FUsdMatrixData GetLocalToParentTransform(double Time = UnrealUSDWrapper::GetDefaultTimeCode()) const = 0;
@@ -262,13 +265,13 @@ public:
 	virtual const char* GetUnrealActorClass() const = 0;
 
 	virtual bool HasGeometryData() const = 0;
-	/** Returns geometry data at the default USD time */
-	virtual const FUsdGeomData* GetGeometryData() = 0;
+	virtual bool HasGeometryDataOrLODVariants() const = 0;
+
 
 	/** Returns usd geometry data at a given time.  Note that it will reuse internal structures so  */
-	virtual const FUsdGeomData* GetGeometryData(double Time) = 0;
+	virtual const FUsdGeomData* GetGeometryData(double Time = UnrealUSDWrapper::GetDefaultTimeCode()) = 0;
 	virtual int GetNumLODs() const = 0;
-	virtual IUsdPrim* GetLODChild(int LODIndex) = 0;
+	virtual bool SetActiveLODIndex(int LODIndex) = 0;
 
 	virtual const std::vector<FUsdAttribute>& GetAttributes() const = 0;
 

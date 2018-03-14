@@ -1,4 +1,4 @@
-Availability: Docs 
+Availability:Public 
 Crumbs: %ROOT%
 Title: Creating a New Global Shader in a Plugin - Code Setup
 Description: Setting up the plugin and code for the Gloabl Shader plugin
@@ -68,7 +68,7 @@ Before you can start creating a new Plugin for Unreal Engine 4 (UE4) you will fi
     Make sure that you change the file extension to **.USF** or UE4 will not understand that this is a shader file.
     [/REGION]
 
-        // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+        // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
         /*=============================================================================
             LensDistortionUVGeneration.usf: Generate lens distortion and undistortion
@@ -260,7 +260,7 @@ Before you can start creating a new Plugin for Unreal Engine 4 (UE4) you will fi
     You should replace FLensDistortionCameraModel with FFooCameraModel **four** times in this file.
     [/region]
 
-            // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+            // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
             #pragma once
 
@@ -367,7 +367,7 @@ Before you can start creating a new Plugin for Unreal Engine 4 (UE4) you will fi
     You should replace FLensDistortionCameraModel with FFooCameraModel **six** times in this file.
     [/region]
 
-        // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+        // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
         #pragma once
 
@@ -440,7 +440,7 @@ Before you can start creating a new Plugin for Unreal Engine 4 (UE4) you will fi
     You should replace FLensDistortionCameraModel with FFooCameraModel **two** times and ULensDistortionBlueprintLibrary with UFooBlueprintLibrary **four** times.
     [/region]
 
-            // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+            // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
             #include "LensDistortionBlueprintLibrary.h"
 
@@ -481,7 +481,7 @@ Before you can start creating a new Plugin for Unreal Engine 4 (UE4) you will fi
     [region:note]
     You should replace FLensDistortionCameraModel with FFooCameraModel **six** times in this file.
     [/region]
-            // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+            // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
             #include "LensDistortionAPI.h"
             #include "Classes/Engine/TextureRenderTarget2D.h"
@@ -868,7 +868,7 @@ Before you can start creating a new Plugin for Unreal Engine 4 (UE4) you will fi
 
 1. Then, in the **PrivateDependencyModuleNames.AddRange** section of **Foo.Build.cs** remove **Slate** and **SlateCore** and when completed your Foo.Build.cs file should look like this:
 
-        // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+        // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
         using UnrealBuildTool;
 

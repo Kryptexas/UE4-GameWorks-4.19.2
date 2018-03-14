@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemGooglePlayModule.h"
 #include "OnlineSubsystemGooglePlay.h"
@@ -37,7 +37,7 @@ public:
 	{
 		if (!GooglePlaySingleton.IsValid())
 		{
-			GooglePlaySingleton = MakeShareable(new FOnlineSubsystemGooglePlay(InstanceName));
+			GooglePlaySingleton = MakeShared<FOnlineSubsystemGooglePlay, ESPMode::ThreadSafe>(InstanceName);
 			if (GooglePlaySingleton->IsEnabled())
 			{
 				if(!GooglePlaySingleton->Init())

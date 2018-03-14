@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:플로우 콘트롤
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
@@ -7,44 +7,8 @@ version: 4.9
 Parent:Engine/Blueprints/Scripting
 tags:Execution Flow
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\FlowControl:title%](Engine\Blueprints\UserGuide\FlowControl.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\FlowControl:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\FlowControl:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\FlowControl]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\FlowControl:title%](Engine\Blueprints\UserGuide\FlowControl.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\FlowControl:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\FlowControl:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\FlowControl]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+tags:Special Nodes
+topic-image:FlowControl.png
 
 
 [TOC (start:2 end:3)]

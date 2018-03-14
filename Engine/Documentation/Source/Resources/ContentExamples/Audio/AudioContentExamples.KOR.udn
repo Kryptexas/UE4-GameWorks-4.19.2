@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:오디오 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -7,46 +7,11 @@ Related: Engine/Audio/Overview
 Related: Engine/Audio
 Related: Engine/Audio/SoundCues/Editor
 Related: Engine/Audio/DistanceModelAttenuation
+topic-image:audio_compact.png
 
 [REGION:banner]
 ![](Audio_Header.png)(convert:false)
 [/REGION]
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Audio:title%](audio_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Audio:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Audio:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Audio]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Audio:title%](audio_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Audio:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Audio]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-<!---
-[TOC(start:2 end:2)]
---->
 
 
 
@@ -57,9 +22,11 @@ Related: Engine/Audio/DistanceModelAttenuation
 
 ![](contentExamplesStarterMap.png)(w:640)
 
-<!---
+[COMMENT:none]
+-
 오디오 맵은 언리얼 엔진 4 에서 오디오를 사용함에 있어서의 핵심적인 개념을 알려드립니다. 이 맵에서는 다양한 유형의 오디오 애셋과, 필요에 따라 다양한 이펙트를 만들기 위한 조작법 등, 여러가지 주제를 다루고 있습니다. 언리얼 엔진 4 의 시스템이 처음이거나 재교육이 필요하신 분들께 이 맵은 뛰어난 기초가 될 것입니다.
---->
+-
+[/COMMENT]
 | 예제 | 데모 내용 |
 | ------- | ------------ |
 | **1.1 AmbientSound Actor** | 앰비언트 사운드 액터 - 일회성 이벤트로 재생되는 오디오입니다. |
@@ -73,7 +40,8 @@ Related: Engine/Audio/DistanceModelAttenuation
 | **1.9 Audio Volume** | 오디오 볼륨 - **Audio Volume** 에 영향받은 오디오는 플레이어가 그 볼륨 안에 있을 때만 그 이펙트가 들리게 됩니다 (예: 볼륨 안에 있을 때는 대화 소리가 강당에 있는 것처럼 들리다가, 밖에 나오면 정상적으로 재생됩니다). |
 | **1.10 Audio Volume using Ambient Zone** | 앰비언트 존을 사용하는 오디오 볼륨 - **앰비언트 존** 의 영향을 받는 두 개의 사운드가, 하나는 **Audio Volume** 안에, 다른 하나는 밖에 있습니다. 안쪽 사운드는 **Audio Volume** 밖에 있을 때는 조용하다가 안에 들어가면 커지는 반면, 바깥의 사운드는 **Audio Volume** 안에 있을 때는 조용하다가 그 밖에 서 있으면 커집니다 (예: 야간에 실내에서 야외 환경으로 이동할 때의 오디오). |
 
-<!--
+[COMMENT:none]
+
 ### Sound Cue Node Usage
 The **Sound Cue Node Usage** section covers more in-depth usage of the **Sound Cue Editor** including: combining multiple **Sound Waves**, selective **Attenuation**, **Random** and **Delayed** playback of **Sound Waves**, and **Modulation**. 
 
@@ -128,7 +96,7 @@ The **Blueprint Sound Node Usage** section covers many topics including how to p
 | **1.6 Set Pitch Multiplier** | Showcases, through **Blueprints**, how to change the pitch of a sound that is currently playing. |
 | **1.7 Set Sound** | Showcases, through **Blueprints**, how to change the sound asset assigned to an audio component. |
 | **1.8 Is Playing** | Showcases, through **Blueprints**, how to have an audio component return it's current **Playing** or **Not Playing** condition. |
-| **1.9 Activate/Deactivate Reverb Effect** | Showcases, through **Blueprints**, how to activate **Reverb Effects** without using a **Audio Volume**. |
+| **1.9 Activate/Deactivate Reverb Effect** | Showcases, through **Blueprints**, how to activate **Reverb Effects** without using an **Audio Volume**. |
 
 ### Advanced Sound Cue Node Usage
 The **Advanced Sound Cue Node Usage** demos are setup using **Blueprints** and covers examples on how to have a sound adjust its volume or pitch over time, more advanced cross-fading techniques, using float values to drive effects, using Booleans inside of **Sound Cues**, and **Doppler** effects. 
@@ -211,4 +179,5 @@ The **Audio_Speaker_Test** map demonstrates how to setup audio for multichannel 
 In this map, you can test out playing music from the Left Front, Center, Right Front, Left Rear, and Right Rear Speakers as well as from a Subwoofer. 
 You can play them individually or in any combination to hear the different effects. 
 
--->
+
+[/COMMENT]

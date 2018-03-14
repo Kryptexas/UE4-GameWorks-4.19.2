@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3335256
+﻿INTSourceChangelist:3683933
 Availability:Public
 Title:Camera Rig Crane から撮影する
 Crumbs:
@@ -11,6 +11,7 @@ checkpoint: editorqs
 Related:Engine/Sequencer/Overview
 Related:Engine/Sequencer/ReferenceEditor
 tags:Sequencer
+type:how-to
 
 滑らかなスイープ ショットを生み出すために現実の映像制作で使われる方法として、カメラをクレーンに取り付けて、クレーンの動きによってショットを制御するというものがあります。
 シーケンサーで **Camera Rig Crane** アクタとアタッチされた **カメラ** を使って同様のショットを作成することができます。クレーンのピッチ (上下動)、ヨー (左右回転)、クレーン アームの長さをキーフレーム化したり、 

@@ -15,17 +15,10 @@ The Oculus How To's contain step-by-step guides that will walk you through how t
 
 The Oculus Rift Beginner How - To's will walk you through setting up your UE4 project to work with the Rift HMD, Touch Controllers and the Guardian system.
 
-[DIR(end:"1" output:"topic" type:"how-to" tags:"Basics" parent:"Platforms/Oculus")]
+[DIR(output:"fancy" type:"how-to" skilllevel:"Beginner" parent:"Platforms/Oculus" org:"flat")]
 
 ## Intermediate
 
 The Oculus Rift Intermediate How - To's will walk you through adjusting the color of the Guardian System, using Touch Controllers to pick objects up and also how to use Stereo Layers to display information to the user.
 
-[DIR(end:"1" output:"topic" type:"how-to" tags:"Oculus" parent:"Platforms/Oculus")]
-
-## Advanced
-
-The Oculus Rift Advanced How - To's will walk you through detecting if the users has activated the Guardian system and how to setup and use loading Splash Screens. 
-
-[DIR(end:"1" output:"topic" type:"how-to" tags:"VR" parent:"Platforms/Oculus")]
-
+[DIR(output:"fancy" type:"how-to" skilllevel:"Intermediate" parent:"Platforms/Oculus" org:"flat")]

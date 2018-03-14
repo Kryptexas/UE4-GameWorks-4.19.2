@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraVectorTypeEditorUtilities.h"
 #include "SNiagaraParameterEditor.h"
@@ -143,7 +143,7 @@ private:
 	FVector2D VectorValue;
 };
 
-TSharedPtr<SNiagaraParameterEditor> FNiagaraEditorVector2TypeUtilities::CreateParameterEditor() const
+TSharedPtr<SNiagaraParameterEditor> FNiagaraEditorVector2TypeUtilities::CreateParameterEditor(const FNiagaraTypeDefinition& ParameterType) const
 {
 	return SNew(SNiagaraVector2ParameterEditor);
 }
@@ -153,19 +153,21 @@ bool FNiagaraEditorVector2TypeUtilities::CanHandlePinDefaults() const
 	return true;
 }
 
-FString FNiagaraEditorVector2TypeUtilities::GetPinDefaultStringFromValue(const FNiagaraVariable& Variable) const
+FString FNiagaraEditorVector2TypeUtilities::GetPinDefaultStringFromValue(const FNiagaraVariable& AllocatedVariable) const
 {
-	if (Variable.IsDataAllocated())
-	{
-		return Variable.GetValue<FVector2D>()->ToString();
-	}
-	return FVector2D(0.0f, 0.0f).ToString();
+	checkf(AllocatedVariable.IsDataAllocated(), TEXT("Can not generate a default value string for an unallocated variable."));
+	return AllocatedVariable.GetValue<FVector2D>().ToString();
 }
 
-void FNiagaraEditorVector2TypeUtilities::SetValueFromPinDefaultString(const FString& StringValue, FNiagaraVariable& Variable) const
+bool FNiagaraEditorVector2TypeUtilities::SetValueFromPinDefaultString(const FString& StringValue, FNiagaraVariable& Variable) const
 {
-	Variable.AllocateData();
-	Variable.GetValue<FVector2D>()->InitFromString(StringValue);
+	FVector2D VectorValue;
+	if (VectorValue.InitFromString(StringValue))
+	{
+		Variable.SetValue<FVector2D>(VectorValue);
+		return true;
+	}
+	return false;
 }
 
 class SNiagaraVector3ParameterEditor : public SNiagaraVectorParameterEditorBase
@@ -208,7 +210,7 @@ private:
 	FVector VectorValue;
 };
 
-TSharedPtr<SNiagaraParameterEditor> FNiagaraEditorVector3TypeUtilities::CreateParameterEditor() const
+TSharedPtr<SNiagaraParameterEditor> FNiagaraEditorVector3TypeUtilities::CreateParameterEditor(const FNiagaraTypeDefinition& ParameterType) const
 {
 	return SNew(SNiagaraVector3ParameterEditor);
 }
@@ -218,27 +220,25 @@ bool FNiagaraEditorVector3TypeUtilities::CanHandlePinDefaults() const
 	return true;
 }
 
-FString FNiagaraEditorVector3TypeUtilities::GetPinDefaultStringFromValue(const FNiagaraVariable& Variable) const
+FString FNiagaraEditorVector3TypeUtilities::GetPinDefaultStringFromValue(const FNiagaraVariable& AllocatedVariable) const
 {
+	checkf(AllocatedVariable.IsDataAllocated(), TEXT("Can not generate a default value string for an unallocated variable."));
+
 	// NOTE: We can not use ToString() here since the vector pin control doesn't use the standard 'X=0,Y=0,Z=0' syntax.
-	FVector Value(0.0f, 0.0f, 0.0f);
-	if (Variable.IsDataAllocated())
-	{
-		Value = *Variable.GetValue<FVector>();
-	}
+	FVector Value = AllocatedVariable.GetValue<FVector>();
 	return FString::Printf(TEXT("%3.3f,%3.3f,%3.3f"), Value.X, Value.Y, Value.Z);
 }
 
-void FNiagaraEditorVector3TypeUtilities::SetValueFromPinDefaultString(const FString& StringValue, FNiagaraVariable& Variable) const
+bool FNiagaraEditorVector3TypeUtilities::SetValueFromPinDefaultString(const FString& StringValue, FNiagaraVariable& Variable) const
 {
 	// NOTE: We can not use InitFromString() here since the vector pin control doesn't use the standard 'X=0,Y=0,Z=0' syntax.
 	FVector Value;
-	if (FDefaultValueHelper::ParseVector(StringValue, Value) == false)
+	if (FDefaultValueHelper::ParseVector(StringValue, Value))
 	{
-		Value = FVector(0.0f, 0.0f, 0.0f);
+		Variable.SetValue<FVector>(Value);
+		return true;
 	}
-	Variable.AllocateData();
-	*Variable.GetValue<FVector>() = Value;
+	return false;
 }
 
 class SNiagaraVector4ParameterEditor : public SNiagaraVectorParameterEditorBase
@@ -281,7 +281,7 @@ private:
 	FVector4 VectorValue;
 };
 
-TSharedPtr<SNiagaraParameterEditor> FNiagaraEditorVector4TypeUtilities::CreateParameterEditor() const
+TSharedPtr<SNiagaraParameterEditor> FNiagaraEditorVector4TypeUtilities::CreateParameterEditor(const FNiagaraTypeDefinition& ParameterType) const
 {
 	return SNew(SNiagaraVector4ParameterEditor);
 }
@@ -291,42 +291,22 @@ bool FNiagaraEditorVector4TypeUtilities::CanHandlePinDefaults() const
 	return true;
 }
 
-FString FNiagaraEditorVector4TypeUtilities::GetPinDefaultStringFromValue(const FNiagaraVariable& Variable) const
+FString FNiagaraEditorVector4TypeUtilities::GetPinDefaultStringFromValue(const FNiagaraVariable& AllocatedVariable) const
 {
+	checkf(AllocatedVariable.IsDataAllocated(), TEXT("Can not generate a default value string for an unallocated variable."));
 	// NOTE: We can not use ToString() here since the vector pin control doesn't use the standard 'X=0,Y=0,Z=0,W=0' syntax.
-	FVector4 Value(0.0f, 0.0f, 0.0f, 0.0f);
-	if (Variable.IsDataAllocated())
-	{
-		// FVector4 is aligned, so casting a pointer to it won't work
-		const uint8 *VarData = Variable.GetData();
-		FPlatformMemory::Memcpy(&Value, VarData, sizeof(FVector4));
-		//Value = *Variable.GetValue<FVector4>();
-	}
+	FVector4 Value = AllocatedVariable.GetValue<FVector4>();
 	return FString::Printf(TEXT("%3.3f,%3.3f,%3.3f,%3.3f"), Value.X, Value.Y, Value.Z, Value.W);
 }
 
-void FNiagaraEditorVector4TypeUtilities::SetValueFromPinDefaultString(const FString& StringValue, FNiagaraVariable& Variable) const
+bool FNiagaraEditorVector4TypeUtilities::SetValueFromPinDefaultString(const FString& StringValue, FNiagaraVariable& Variable) const
 {
 	// NOTE: We can not use InitFromString() here since the vector pin control doesn't use the standard 'X=0,Y=0,Z=0,W=0' syntax.
 	FVector4 Value;
-	if (FDefaultValueHelper::ParseVector4(StringValue, Value) == false)
+	if (FDefaultValueHelper::ParseVector4(StringValue, Value))
 	{
-		Value = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
+		Variable.SetValue<FVector4>(Value);
+		return true;
 	}
-
-	// FVector4 requires aligned memory, which cannot be safely guaranteed by the AllocateData call. Therefore, we cannot 
-	// write it as a FVector4. Instead, we must write component by component.
-	Variable.AllocateData();
-	void* ValueWrite = Variable.GetValue<FVector4>();
-	if (nullptr != ValueWrite)
-	{
-		((float*)ValueWrite)[0] = Value.X;
-		((float*)ValueWrite)[1] = Value.Y;
-		((float*)ValueWrite)[2] = Value.Z;
-		((float*)ValueWrite)[3] = Value.W;
-	}
-	else
-	{
-		check(!"UNKNOWNW");
-	}
+	return false;
 }

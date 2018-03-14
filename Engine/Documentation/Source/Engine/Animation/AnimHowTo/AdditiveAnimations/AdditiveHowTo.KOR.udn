@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3255885
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:레이어 애니메이션 사용하기
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -27,7 +27,8 @@ WxYiLbnbQ_A
 
 여기서는 위 비디오와 비슷한 캐릭터를 구성해볼 테지만, 이 방법을 자신만의 캐릭터에 적용하여 레이어 애니메이션을 만들 수도 있습니다.
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Intro]
 [REGION:note]
 이 안내서에서는 **시작용 콘텐츠** 포함 **블루프린트 삼인칭** 템플릿을 사용하여 새 프로젝트를 만들었습니다.
@@ -39,24 +40,17 @@ WxYiLbnbQ_A
 다운로드한 이후, 런처의 **프로젝트에 추가** 버튼을 통해 Animation Starter Pack 을 프로젝트에 추가시킬 수 있습니다.
 [/REGION]
 [/EXCERPT:Intro]
--->
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		단계
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine\Animation\AnimHowTo\AdditiveAnimations\01_BlendSetup "%Engine\Animation\AnimHowTo\AdditiveAnimations\01_BlendSetup:description%")
-	* [](Engine\Animation\AnimHowTo\AdditiveAnimations\02_CharacterBlueprintSetup "%Engine\Animation\AnimHowTo\AdditiveAnimations\02_CharacterBlueprintSetup:description%")
-	* [](Engine\Animation\AnimHowTo\AdditiveAnimations\03_AnimGraphSetup "%Engine\Animation\AnimHowTo\AdditiveAnimations\03_AnimGraphSetup:description%")
-	* [](Engine\Animation\AnimHowTo\AdditiveAnimations\04_BlendSettings "%Engine\Animation\AnimHowTo\AdditiveAnimations\04_BlendSettings:description%")
-	[/PARAM]
-[/OBJECT]
+[/COMMENT]
+
+## 단계
+
+[DIR(output:"checkpoint" parent:"Engine/Animation/AnimHowTo/AdditiveAnimations")]
+
+[REGION:call_to_action]
+	[클릭하면 시작합니다.](Engine/Animation/AnimHowTo/AdditiveAnimations/01_BlendSetup "%Engine/Animation/AnimHowTo/AdditiveAnimations/01_BlendSetup:title%")
+[/REGION]
+
 
 
 

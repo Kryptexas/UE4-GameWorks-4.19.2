@@ -145,7 +145,8 @@ version: 4.9
 | **Hierarchy Local Axes** | 显示或隐藏骨骼的本地坐标轴（全部，当前选中骨骼及依赖骨骼，或者 无）。 |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ShowBones]
 [REGION:imagetable]
 | ![](viewport_wire.png)(h:256 convert:false) | ![](viewport_wire_show_bones.png)(h:256) |
@@ -165,7 +166,8 @@ version: 4.9
 [EXCERPT:Wireframe]
 ![](viewport_wire.png)(h:256)
 [/EXCERPT:Wireframe]
--->
+
+[/COMMENT]
 
 ### 预览 LOD
 
@@ -175,7 +177,8 @@ version: 4.9
 | ------ | ----------- |
 | **LOD Auto** | 自动选择细节等级（Level Of Detail，LOD）（此设置为默认设置）。 |
 | **LOD 0** | 选用 LOD 0 为 LOD。 |
-<!--| **Level of Detail Settings** | Opens a dialog box in where you can adjust LOD Settings (pictured below). |
+[COMMENT:none]
+| **Level of Detail Settings** | Opens a dialog box in where you can adjust LOD Settings (pictured below). |
 
 ![](LODSettingsMenu.png)
 
@@ -188,7 +191,8 @@ When an LOD is applied, either through the **Import LOD** option or through the 
 ![](LODAdded.png)
 
 _The added LOD(s) can either be removed or an FBX asset can be imported for the LOD._
--->
+
+[/COMMENT]
 
 ### 回放速度
 
@@ -250,7 +254,8 @@ _The added LOD(s) can either be removed or an FBX asset can be imported for the 
 
 [/EXCERPT:PreviewControls]
 
-<!--
+[COMMENT:none]
+
 ## 显示标志
 
 该视口包含一个具有各种选项的菜单，用于指定视口的行为。
@@ -286,4 +291,5 @@ _The added LOD(s) can either be removed or an FBX asset can be imported for the 
 在预览视口中使用的预览网格物体，请在列表中选中该网格物体并点击 **用作为预览网格物体** 。
 要想删除预览视口中当前正在使用的网格物体，那么请点击 **Clear preview（清除预览）** 按钮。您可以使用骨架网格物体列表上方的文本框过滤 
 该列表。
--->
+
+[/COMMENT]

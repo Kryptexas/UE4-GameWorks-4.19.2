@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /** 
  * This is a set of AnimSequences
@@ -118,7 +118,6 @@ public:
 
 	//~ Begin UObject Interface
 	virtual void PostLoad() override;
-	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	//~ End UObject Interface
 	
 	//~ Begin UAnimSet Interface

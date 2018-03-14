@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 StaticTextureInstanceManager.h: Definitions of classes used for texture streaming.
@@ -21,6 +21,7 @@ public:
 
 	/** Contructor. */
 	FStaticTextureInstanceManager(TextureInstanceTask::FDoWorkTask& AsyncTask);
+	~FStaticTextureInstanceManager() { StateSync.Sync(); }
 
 	/** Normalize lightmap texel factors, this is ran on an async tasks. */
 	void NormalizeLightmapTexelFactor();
@@ -28,6 +29,8 @@ public:
 	FORCEINLINE int32 CompileElements() { return StateSync.SyncAndGetState()->CompileElements(); }
 	FORCEINLINE int32 CheckRegistrationAndUnpackBounds(TArray<const UPrimitiveComponent*>& RemovedComponents) { return StateSync.SyncAndGetState()->CheckRegistrationAndUnpackBounds(RemovedComponents); }
 	FORCEINLINE FTextureInstanceState::FTextureIterator GetTextureIterator( ) {  return StateSync.SyncAndGetState()->GetTextureIterator(); }
+
+	FORCEINLINE bool HasTextureReferences() const { return StateSync.GetState()->NumBounds() > 0; }
 
 	/*-----------------------------------
 	------ ITextureInstanceManager ------
@@ -46,10 +49,10 @@ public:
 	void Refresh(float Percentage) final override;
 
 	/** Add a component streaming data, the LevelContext gives support for precompiled data. */
-	 bool Add(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext) final override;
+	EAddComponentResult Add(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext, float MaxAllowedUIDensity) final override;
 
 	/** Remove a component, the RemoveTextures is the list of textures not referred anymore. */
-	 void Remove(const UPrimitiveComponent* Component, FRemovedTextureArray& RemovedTextures) final override;
+	 void Remove(const UPrimitiveComponent* Component, FRemovedTextureArray* RemovedTextures) final override;
 
 	/** Notify the manager that an async view will be requested on the next frame. */
 	FORCEINLINE void PrepareAsyncView() final override {}

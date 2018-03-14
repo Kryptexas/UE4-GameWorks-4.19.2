@@ -130,4 +130,6 @@ in the group is set for destruction, this can result in large clusters of object
 clusters, in code, for special cases like assets with large numbers of referenced objects that are not shared by other objects, can improve performance by unifying cleanup of the subobjects and decreasing the 
 individual number of entries and dependencies the garbage collector must maintain and check during the game.
 
+
 [![](AdvancedGC.png)](AdvancedGC.png)
+[REGION:caption]Cluster-merging options for Garbage Collection within the Project Settings menu.[/REGION]

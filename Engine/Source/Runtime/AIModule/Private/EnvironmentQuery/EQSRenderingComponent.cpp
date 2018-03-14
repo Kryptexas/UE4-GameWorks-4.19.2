@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "EnvironmentQuery/EQSRenderingComponent.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_VectorBase.h"
@@ -25,6 +25,12 @@ namespace FEQSRenderingHelper
 // FEQSSceneProxy
 //----------------------------------------------------------------------//
 const FVector FEQSSceneProxy::ItemDrawRadius(30,30,30);
+
+SIZE_T FEQSSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
+}
 
 FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent& InComponent, const FString& InViewFlagName, const TArray<FSphere>& InSpheres, const TArray<FText3d>& InTexts)
 	: FDebugRenderSceneProxy(&InComponent)

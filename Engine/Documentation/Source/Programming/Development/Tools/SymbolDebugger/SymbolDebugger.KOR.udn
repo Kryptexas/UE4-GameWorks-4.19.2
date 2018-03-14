@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3426963
+﻿INTSourceChangelist:3782314
 Availability:NoPublish
 Title: 심볼 디버거
 Crumbs: %ROOT%
@@ -111,7 +111,11 @@ Visual Studio 준비 최종 단계는 P4.exe 가 믿을 수 있는 명령이라 
 	p4.exe=c:\Program Files\Perforce\p4.EXE
 
 
-<!---## ToDo List--->
+[COMMENT:none]
+-## ToDo List-
+[/COMMENT]
 
-<!---* Thread the syncing of pdb files to prevent the appearance of locking up--->
+[COMMENT:none]
+-* Thread the syncing of pdb files to prevent the appearance of locking up-
+[/COMMENT]
 

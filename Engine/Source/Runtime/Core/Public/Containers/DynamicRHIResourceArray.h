@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -40,44 +40,12 @@ public:
 	{
 	}
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-
 	TResourceArray(TResourceArray&&) = default;
 	TResourceArray(const TResourceArray&) = default;
 	TResourceArray& operator=(TResourceArray&&) = default;
 	TResourceArray& operator=(const TResourceArray&) = default;
 
-#else
-
-	FORCEINLINE TResourceArray(TResourceArray&& Other)
-		: Super          ((Super&&)Other)
-		, bNeedsCPUAccess(Other.bNeedsCPUAccess)
-	{
-	}
-
-	FORCEINLINE TResourceArray(const TResourceArray& Other)
-		: Super          ((const Super&)Other)
-		, bNeedsCPUAccess(Other.bNeedsCPUAccess)
-	{
-	}
-
-	FORCEINLINE TResourceArray& operator=(TResourceArray&& Other)
-	{
-		(Super&)*this   = (Super&&)Other;
-		bNeedsCPUAccess = Other.bNeedsCPUAccess;
-		return *this;
-	}
-
-	FORCEINLINE TResourceArray& operator=(const TResourceArray& Other)
-	{
-		(Super&)*this   = (const Super&)Other;
-		bNeedsCPUAccess = Other.bNeedsCPUAccess;
-		return *this;
-	}
-
-#endif
-
-	virtual ~TResourceArray() { }
+	virtual ~TResourceArray() = default;
 
 
 	// FResourceArrayInterface

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Logging/LogMacros.h"
 #include "CoreGlobals.h"
@@ -14,7 +14,7 @@ static FCriticalSection					MsgLogfStaticBufferGuard;
 /** Increased from 4096 to fix crashes in the renderthread without autoreporter. */
 static TCHAR							MsgLogfStaticBuffer[8192];
 
-VARARG_BODY(void, FMsg::Logf, const TCHAR*, VARARG_EXTRA(const ANSICHAR* File) VARARG_EXTRA(int32 Line) VARARG_EXTRA(const class FName& Category) VARARG_EXTRA(ELogVerbosity::Type Verbosity))
+void FMsg::LogfImpl(const ANSICHAR* File, int32 Line, const FName& Category, ELogVerbosity::Type Verbosity, const TCHAR* Fmt, ...)
 {
 #if !NO_LOGGING
 	if (Verbosity != ELogVerbosity::Fatal)
@@ -63,7 +63,7 @@ VARARG_BODY(void, FMsg::Logf, const TCHAR*, VARARG_EXTRA(const ANSICHAR* File) V
 #endif
 }
 
-VARARG_BODY(void, FMsg::Logf_Internal, const TCHAR*, VARARG_EXTRA(const ANSICHAR* File) VARARG_EXTRA(int32 Line) VARARG_EXTRA(const class FName& Category) VARARG_EXTRA(ELogVerbosity::Type Verbosity))
+void FMsg::Logf_InternalImpl(const ANSICHAR* File, int32 Line, const FName& Category, ELogVerbosity::Type Verbosity, const TCHAR* Fmt, ...)
 {
 #if !NO_LOGGING
 	if (Verbosity != ELogVerbosity::Fatal)
@@ -112,7 +112,7 @@ VARARG_BODY(void, FMsg::Logf_Internal, const TCHAR*, VARARG_EXTRA(const ANSICHAR
 }
 
 /** Sends a formatted message to a remote tool. */
-void VARARGS FMsg::SendNotificationStringf( const TCHAR *Fmt, ... )
+void VARARGS FMsg::SendNotificationStringfImpl( const TCHAR *Fmt, ... )
 {
 	GROWABLE_LOGF(SendNotificationString(Buffer));
 }

@@ -150,7 +150,8 @@ UE4 支持实时平面反射，它比屏幕空间反射（SSR）更加精确，�
 
 精灵遗迹地图中的平面反射渲染时间为 1.67 ms，而风筝 Demo 中的渲染时间为 23.07 ms。造成此差异的原因是静态网格体和材质的构建方式。精灵遗迹地图及其内容针对移动设备设计，每个资源使用的三角形和材质指令数量均有严格限制。因此在该地图中启用平面反射时开销较低，因为这里使用的资源复杂度和规模均低于风筝 Demo。
 
-<!--  
+[COMMENT:none]
+  
 [EXCERPT:KitePlanarReflection]
 [REGION:imagetable lightbox caption]
 |[![](GPU_Profile_PR_Off_00.png)(w:400 h:200)](GPU_Profile_PR_Off_00.png)|[![](GPU_Profile_PR_On_00.png)(w:400 h:200)](GPU_Profile_PR_On_00.png) | 
@@ -159,9 +160,11 @@ UE4 支持实时平面反射，它比屏幕空间反射（SSR）更加精确，�
 |点击查看全图 |点击查看全图|
 [/REGION] 
 [/EXCERPT:KitePlanarReflection]
--->
 
-<!--  
+[/COMMENT]
+
+[COMMENT:none]
+  
 [EXCERPT:ElvenRuinsReflection]
 [REGION:imagetable lightbox caption]
 |[![](GPU_Profile_PR_Off_01.png)(w:400 h:200)](GPU_Profile_PR_Off_01.png)|[![](GPU_Profile_PR_On_01.png)(w:400 h:200)](GPU_Profile_PR_On_01.png) | 
@@ -170,6 +173,7 @@ UE4 支持实时平面反射，它比屏幕空间反射（SSR）更加精确，�
 |点击查看全图 |点击查看全图|
 [/REGION] 
 [/EXCERPT:ElvenRuinsReflection]
--->
+
+[/COMMENT]
 
 

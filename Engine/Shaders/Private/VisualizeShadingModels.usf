@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessVisualizeShadingModels.usf: PostProcessing shader to visualize ShadingModels
@@ -6,7 +6,6 @@
 
 #include "Common.ush"
 #include "PostProcessCommon.ush"
-#include "PostProcessHistogramCommon.ush"
 #include "DeferredShadingCommon.ush"		// GBufferData
 
 // only the red channel is used, 1.0f for the bit to be on, 0..1 to get fade

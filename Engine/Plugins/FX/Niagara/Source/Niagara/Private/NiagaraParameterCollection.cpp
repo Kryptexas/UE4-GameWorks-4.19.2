@@ -1,7 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraParameterCollection.h"
 #include "NiagaraDataInterface.h"
+#if WITH_EDITORONLY_DATA
+	#include "IAssetTools.h"
+#endif
+#include "AssetRegistryModule.h"
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -206,21 +210,19 @@ void UNiagaraParameterCollectionInstance::SetColorParameter(const FString& InVar
 UNiagaraParameterCollection::UNiagaraParameterCollection(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	Namespace = *GetName();
 	DefaultInstance = ObjectInitializer.CreateDefaultSubobject<UNiagaraParameterCollectionInstance>(this, TEXT("Default Instance"));
 	DefaultInstance->SetParent(this);
 }
 
-void UNiagaraParameterCollection::PostInitProperties()
+#if WITH_EDITORONLY_DATA
+void UNiagaraParameterCollection::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
-	Super::PostInitProperties();
-	//Unique name is cached off just in case the hash function changes or our name does.
-	UniqueName = GetName() + LexicalConversion::ToString(GetTypeHash(GetFullName()));
-}
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-void UNiagaraParameterCollection::PostLoad()
-{
-	Super::PostLoad();
+	MakeNamespaceNameUnique();
 }
+#endif
 
 int32 UNiagaraParameterCollection::IndexOfParameter(const FNiagaraVariable& Var)
 {
@@ -263,11 +265,10 @@ void UNiagaraParameterCollection::RenameParameter(FNiagaraVariable& Parameter, F
 	DefaultInstance->RenameParameter(Parameter, NewName);
 }
 
-FString UNiagaraParameterCollection::GetUniqueName()const
+FString UNiagaraParameterCollection::GetFullNamespace()const
 {
-	return UniqueName;
+	return TEXT("NPC.") + Namespace.ToString() + TEXT(".");
 }
-
 FNiagaraVariable UNiagaraParameterCollection::CollectionParameterFromFriendlyParameter(const FNiagaraVariable& FriendlyParameter)const
 {
 	return FNiagaraVariable(FriendlyParameter.GetType(), *ParameterNameFromFriendlyName(FriendlyParameter.GetName().ToString()));
@@ -280,10 +281,47 @@ FNiagaraVariable UNiagaraParameterCollection::FriendlyParameterFromCollectionPar
 
 FString UNiagaraParameterCollection::FriendlyNameFromParameterName(FString ParameterName)const
 {
-	return ParameterName.Replace(*(GetUniqueName() + TEXT("_")), TEXT(""), ESearchCase::CaseSensitive);
+	ParameterName.RemoveFromStart(GetFullNamespace());
+	return ParameterName;
 }
 
-FString UNiagaraParameterCollection::ParameterNameFromFriendlyName(FString FriendlyName)const
+FString UNiagaraParameterCollection::ParameterNameFromFriendlyName(const FString& FriendlyName)const
 {
-	return GetUniqueName() + TEXT("_") + FriendlyName;
+	return FString::Printf(TEXT("%s_%s"), *GetFullNamespace(), *FriendlyName);
+}
+
+void UNiagaraParameterCollection::MakeNamespaceNameUnique()
+{
+ 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+ 	TArray<FAssetData> CollectionAssets;
+ 	AssetRegistryModule.Get().GetAssetsByClass(UNiagaraParameterCollection::StaticClass()->GetFName(), CollectionAssets);
+	TArray<FName> ExistingNames;
+ 	for (FAssetData& CollectionAsset : CollectionAssets)
+ 	{
+		if (CollectionAsset.GetFullName() != GetFullName())
+		{
+			ExistingNames.Add(CollectionAsset.GetTagValueRef<FName>(GET_MEMBER_NAME_CHECKED(UNiagaraParameterCollection, Namespace)));
+		}
+	}
+
+	if (ExistingNames.Contains(Namespace))
+	{
+		FString CandidateNameString = Namespace.ToString();
+		FString BaseNameString = CandidateNameString;
+		if (CandidateNameString.Len() >= 3 && CandidateNameString.Right(3).IsNumeric())
+		{
+			BaseNameString = CandidateNameString.Left(CandidateNameString.Len() - 3);
+		}
+
+		FName UniqueName = FName(*BaseNameString);
+		int32 NameIndex = 1;
+		while (ExistingNames.Contains(UniqueName))
+		{
+			UniqueName = FName(*FString::Printf(TEXT("%s%03i"), *BaseNameString, NameIndex));
+			NameIndex++;
+		}
+
+		UE_LOG(LogNiagara, Warning, TEXT("Parameter collection namespace conflict found. \"%s\" is already in use!"), *Namespace.ToString());
+		Namespace = UniqueName;
+	}
 }

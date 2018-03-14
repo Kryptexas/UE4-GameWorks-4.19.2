@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -100,28 +100,8 @@ public:
 		return *this;
 	}
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-
 	TChunkedArray(const TChunkedArray&) = default;
 	TChunkedArray& operator=(const TChunkedArray&) = default;
-
-#else
-
-	FORCEINLINE TChunkedArray(const TChunkedArray& Other)
-		: Chunks     (Other.Chunks)
-		, NumElements(Other.NumElements)
-	{
-	}
-
-	FORCEINLINE TChunkedArray& operator=(const TChunkedArray& Other)
-	{
-		Chunks      = Other.Chunks;
-		NumElements = Other.NumElements;
-
-		return *this;
-	}
-
-#endif
 
 	// Accessors.
 	ElementType& operator()(int32 ElementIndex)

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LinuxPlatformApplicationMisc.h"
 #include "LinuxApplication.h"
@@ -419,6 +419,11 @@ void FLinuxPlatformApplicationMisc::PumpMessages( bool bFromMainLoop )
 				// noop
 			}
 		}
+
+		bool bHasFocus = FApp::UseVRFocus() ? FApp::HasVRFocus() : FLinuxPlatformApplicationMisc::IsThisApplicationForeground();
+
+		// if its our window, allow sound, otherwise apply multiplier
+		FApp::SetVolumeMultiplier( bHasFocus ? 1.0f : FApp::GetUnfocusedVolumeMultiplier() );
 	}
 }
 
@@ -450,7 +455,7 @@ namespace LinuxPlatformApplicationMisc
 
 float FLinuxPlatformApplicationMisc::GetDPIScaleFactorAtPoint(float X, float Y)
 {
-	if ((GIsEditor || IS_PROGRAM) && !FParse::Param(FCommandLine::Get(), TEXT("nohighdpi")))
+	if ((GIsEditor || IS_PROGRAM) && IsHighDPIAwarenessEnabled())
 	{
 		FDisplayMetrics DisplayMetrics;
 		FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);

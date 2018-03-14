@@ -22,7 +22,7 @@ Version:4.11
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 检测到发射物的碰撞交互后，即可决定对这些碰撞作出何种响应。在这步中，我们将对碰撞事件作出响应的 `FPSProjectile` 添加一个 `OnHit` 函数。
 
@@ -207,4 +207,4 @@ Version:4.11
 
 1.	按下 Esc 键或点击关卡编辑器中的 **Stop** 按钮即可退出 Play in Editor（PIE）模式。
 
-%Steps%
+

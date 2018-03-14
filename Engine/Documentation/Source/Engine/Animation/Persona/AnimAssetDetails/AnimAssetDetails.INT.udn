@@ -8,26 +8,6 @@ related: Engine/Animation/blendspaces
 related: Engine/Animation/animmontage
 related: Engine/Animation/Persona\AssetBrowser
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Persona/AnimAssetDetails:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Persona/AnimAssetDetails:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Persona/AnimAssetDetails:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Persona/AnimAssetDetails]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 
 ![](AnimAssetDetails.png)(w:520)
 

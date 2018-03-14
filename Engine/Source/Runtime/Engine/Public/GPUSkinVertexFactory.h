@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GPUSkinVertexFactory.h: GPU skinning vertex factory definitions.
@@ -16,9 +16,6 @@
 #include "VertexFactory.h"
 #include "LocalVertexFactory.h"
 #include "ResourcePool.h"
-#include "SkeletalMeshTypes.h"
-
-class FSkeletalMeshVertexBuffer;
 
 template <class T> class TConsoleVariableData;
 
@@ -83,10 +80,8 @@ public:
 	static const FUniformBufferStruct* GetStruct() { return NULL; }
 };
 
-// Uniform buffer for APEX cloth (for now) buffer limitation is up to 64kb
+// Uniform buffer for APEX cloth
 BEGIN_UNIFORM_BUFFER_STRUCT(FAPEXClothUniformShaderParameters,)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector,Positions,[MAX_APEXCLOTH_VERTICES_FOR_UB])
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector,Normals,[MAX_APEXCLOTH_VERTICES_FOR_UB])
 END_UNIFORM_BUFFER_STRUCT(FAPEXClothUniformShaderParameters)
 
 enum
@@ -223,22 +218,17 @@ public:
 	{
 		FShaderDataType()
 			: CurrentBuffer(0)
-			, PreviousFrameNumber(0)
-			, CurrentFrameNumber(0)
+			, PreviousRevisionNumber(0)
+			, CurrentRevisionNumber(0)
 		{
 			// BoneDataOffset and BoneTextureSize are not set as they are only valid if IsValidRef(BoneTexture)
 			MaxGPUSkinBones = GetMaxGPUSkinBones();
 			check(MaxGPUSkinBones <= GHardwareMaxGPUSkinBones);
 		}
 
-		/** Mesh origin and Mesh Extension for Mesh compressions **/
-		/** This value will be (0, 0, 0), (1, 1, 1) relatively for non compressed meshes **/
-		FVector MeshOrigin;
-		FVector MeshExtension;
-
 		// @param FrameTime from GFrameTime
 		bool UpdateBoneData(FRHICommandListImmediate& RHICmdList, const TArray<FMatrix>& ReferenceToLocalMatrices,
-			const TArray<FBoneIndexType>& BoneMap, uint32 FrameNumber, ERHIFeatureLevel::Type FeatureLevel, bool bUseSkinCache);
+			const TArray<FBoneIndexType>& BoneMap, uint32 RevisionNumber, bool bPrevious, ERHIFeatureLevel::Type FeatureLevel, bool bUseSkinCache);
 
 		void ReleaseBoneData()
 		{
@@ -263,10 +253,9 @@ public:
 		}
 		
 		// @param bPrevious true:previous, false:current
-		// @param FrameNumber usually from View.Family->FrameNumber
-		const FVertexBufferAndSRV& GetBoneBufferForReading(bool bPrevious, uint32 FrameNumber) const
+		const FVertexBufferAndSRV& GetBoneBufferForReading(bool bPrevious) const
 		{
-			const FVertexBufferAndSRV* RetPtr = &GetBoneBufferInternal(bPrevious, FrameNumber);
+			const FVertexBufferAndSRV* RetPtr = &GetBoneBufferInternal(bPrevious);
 
 			if(!RetPtr->VertexBufferRHI.IsValid())
 			{
@@ -274,7 +263,7 @@ public:
 				check(bPrevious);
 
 				// if we don't have any old data we use the current one
-				RetPtr = &GetBoneBufferInternal(false, FrameNumber);
+				RetPtr = &GetBoneBufferInternal(false);
 
 				// at least the current one needs to be valid when reading
 				check(RetPtr->VertexBufferRHI.IsValid());
@@ -284,14 +273,19 @@ public:
 		}
 
 		// @param bPrevious true:previous, false:current
-		// @param FrameNumber usually from View.Family->FrameNumber
 		// @return IsValid() can fail, then you have to create the buffers first (or if the size changes)
-		FVertexBufferAndSRV& GetBoneBufferForWriting(uint32 FrameNumber)
+		FVertexBufferAndSRV& GetBoneBufferForWriting(bool bPrevious)
 		{
 			const FShaderDataType* This = (const FShaderDataType*)this;
-
 			// non const version maps to const version
-			return (FVertexBufferAndSRV&)This->GetBoneBufferInternal(false, FrameNumber);
+			return (FVertexBufferAndSRV&)This->GetBoneBufferInternal(bPrevious);
+		}
+
+		// @param bPrevious true:previous, false:current
+		// @return returns revision number 
+		uint32 GetRevisionNumber(bool bPrevious)
+		{
+			return (bPrevious) ? PreviousRevisionNumber : CurrentRevisionNumber;
 		}
 
 	private:
@@ -299,31 +293,38 @@ public:
 		FVertexBufferAndSRV BoneBuffer[2];
 		// 0 / 1 to index into BoneBuffer
 		uint32 CurrentBuffer;
-		// from GFrameNumber, to detect pause and old data when an object was not rendered for some time
-		uint32 PreviousFrameNumber;
-		uint32 CurrentFrameNumber;
+		// RevisionNumber Tracker
+		uint32 PreviousRevisionNumber;
+		uint32 CurrentRevisionNumber;
 		// if FeatureLevel < ERHIFeatureLevel::ES3_1
 		FUniformBufferRHIRef UniformBuffer;
 		
 		static TConsoleVariableData<int32>* MaxBonesVar;
 		static uint32 MaxGPUSkinBones;
-
-		void GoToNextFrame(uint32 FrameNumber);
-
+		
+		// @param RevisionNumber - updated last revision number
+		// This flips revision number to previous if this is new
+		// otherwise, it keeps current version
+		void SetCurrentRevisionNumber(uint32 RevisionNumber)
+		{
+			if (CurrentRevisionNumber != RevisionNumber)
+			{
+				PreviousRevisionNumber = CurrentRevisionNumber;
+				CurrentRevisionNumber = RevisionNumber;
+				CurrentBuffer = 1 - CurrentBuffer;
+			}
+		}
 		// to support GetBoneBufferForWriting() and GetBoneBufferForReading()
 		// @param bPrevious true:previous, false:current
-		// @param FrameNumber usually from View.Family->FrameNumber
 		// @return might not pass the IsValid() 
-		const FVertexBufferAndSRV& GetBoneBufferInternal(bool bPrevious, uint32 FrameNumber) const
+		const FVertexBufferAndSRV& GetBoneBufferInternal(bool bPrevious) const
 		{
 			check(IsInParallelRenderingThread());
 
-			// This test prevents skeletal meshes keeping velocity when we pause (e.g. simulate pause)
-			// CurrentFrameNumber <= FrameNumber which means non-sequential frames are also skipped 
-			if ((FrameNumber - PreviousFrameNumber) > 1)
-			{				
+			if ((CurrentRevisionNumber - PreviousRevisionNumber) > 1)
+			{
 				bPrevious = false;
-			}			
+			}
 
 			uint32 BufferIndex = CurrentBuffer ^ (uint32)bPrevious;
 
@@ -332,10 +333,13 @@ public:
 		}
 	};
 
-	FGPUBaseSkinVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
+	FGPUBaseSkinVertexFactory(ERHIFeatureLevel::Type InFeatureLevel, uint32 InNumVertices)
 		: FVertexFactory(InFeatureLevel)
+		, NumVertices(InNumVertices)
 	{
 	}
+
+	virtual ~FGPUBaseSkinVertexFactory() {}
 
 	/** accessor */
 	FORCEINLINE FShaderDataType& GetShaderData()
@@ -352,23 +356,29 @@ public:
 
 	static bool SupportsTessellationShaders() { return true; }
 
-	const FSkeletalMeshVertexBuffer* GetSkinVertexBuffer() const
+	uint32 GetNumVertices() const
 	{
-		return (FSkeletalMeshVertexBuffer*)(Streams[0].VertexBuffer);
+		return NumVertices;
 	}
 
 	ENGINE_API static int32 GetMaxGPUSkinBones();
 
 	static const uint32 GHardwareMaxGPUSkinBones = 256;	
 	
+	virtual const FShaderResourceViewRHIRef GetPositionsSRV() const = 0;
+	virtual const FShaderResourceViewRHIRef GetTangentsSRV() const = 0;
+	virtual const FShaderResourceViewRHIRef GetTextureCoordinatesSRV() const = 0;
+	virtual const FShaderResourceViewRHIRef GetColorComponentsSRV() const = 0;
+	virtual const uint32 GetColorIndexMask() const = 0;
+
 protected:
-
-	
-
 	/** dynamic data need for setting the shader */ 
 	FShaderDataType ShaderData;
 	/** Pool of buffers for bone matrices. */
 	static TGlobalResource<FBoneBufferPool> BoneBufferPool;
+
+private:
+	uint32 NumVertices;
 };
 
 /** Vertex factory with vertex stream components for GPU skinned vertices */
@@ -384,20 +394,8 @@ public:
 		HasExtraBoneInfluences = bExtraBoneInfluencesT,
 	};
 
-	struct FDataType
+	struct FDataType : public FStaticMeshDataType
 	{
-		/** The stream to read the vertex position from. */
-		FVertexStreamComponent PositionComponent;
-
-		/** The streams to read the tangent basis from. */
-		FVertexStreamComponent TangentBasisComponents[2];
-
-		/** The streams to read the texture coordinates from. */
-		TArray<FVertexStreamComponent,TFixedAllocator<MAX_TEXCOORDS> > TextureCoordinates;
-
-		/** The stream to read the vertex color from. */
-		FVertexStreamComponent ColorComponent;
-
 		/** The stream to read the bone indices from */
 		FVertexStreamComponent BoneIndices;
 
@@ -416,8 +414,8 @@ public:
 	 *
 	 * @param	InBoneMatrices	Reference to shared bone matrices array.
 	 */
-	TGPUSkinVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
-		: FGPUBaseSkinVertexFactory(InFeatureLevel)
+	TGPUSkinVertexFactory(ERHIFeatureLevel::Type InFeatureLevel, uint32 InNumVertices)
+		: FGPUBaseSkinVertexFactory(InFeatureLevel, InNumVertices)
 	{}
 
 	virtual bool UsesExtraBoneInfluences() const override
@@ -426,7 +424,7 @@ public:
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const class FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
-	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const FShaderType* ShaderType);
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const FShaderType* ShaderType);
 	
 	/**
 	* An implementation of the interface used by TSynchronizedResource to 
@@ -447,6 +445,31 @@ public:
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
 
 	void CopyDataTypeForPassthroughFactory(class FGPUSkinPassthroughVertexFactory* PassthroughVertexFactory);
+
+	const FShaderResourceViewRHIRef GetPositionsSRV() const override
+	{
+		return Data.PositionComponentSRV;
+	}
+
+	const FShaderResourceViewRHIRef GetTangentsSRV() const override
+	{
+		return Data.TangentsSRV;
+	}
+
+	const FShaderResourceViewRHIRef GetTextureCoordinatesSRV() const override
+	{
+		return Data.TextureCoordinatesSRV;
+	}
+
+	const FShaderResourceViewRHIRef GetColorComponentsSRV() const override
+	{
+		return Data.ColorComponentsSRV;
+	}
+
+	const uint32 GetColorIndexMask() const override
+	{
+		return Data.ColorIndexMask;
+	}
 
 protected:
 	/**
@@ -473,36 +496,48 @@ class FGPUSkinPassthroughVertexFactory : public FLocalVertexFactory
 	typedef FLocalVertexFactory Super;
 
 public:
-	FGPUSkinPassthroughVertexFactory()
-		: StreamIndex(-1)
-	{}
+	FGPUSkinPassthroughVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
+		: FLocalVertexFactory(InFeatureLevel, "FGPUSkinPassthroughVertexFactory"), PositionStreamIndex(-1), TangentStreamIndex(-1)
+	{
+		bSupportsManualVertexFetch = false;
+	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const class FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
-	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const FShaderType* ShaderType);
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const FShaderType* ShaderType);
 
-	inline void UpdateVertexDeclaration(FGPUBaseSkinVertexFactory* SourceVertexFactory, struct FRWBuffer* RWBuffer)
+	inline void UpdateVertexDeclaration(FGPUBaseSkinVertexFactory* SourceVertexFactory, struct FRWBuffer* PositionRWBuffer, struct FRWBuffer* TangentRWBuffer)
 	{
-		if (StreamIndex == -1)
+		if (PositionStreamIndex == -1)
 		{
-			InternalUpdateVertexDeclaration(SourceVertexFactory, RWBuffer);
+			InternalUpdateVertexDeclaration(SourceVertexFactory, PositionRWBuffer, TangentRWBuffer);
 		}
 	}
 
-	inline int32 GetStreamIndex() const
+	inline int32 GetPositionStreamIndex() const
 	{
-		check(StreamIndex != -1);
-		return (uint32)StreamIndex;
+		check(PositionStreamIndex > -1);
+		return PositionStreamIndex;
+	}
+
+	inline int32 GetTangentStreamIndex() const
+	{
+		return TangentStreamIndex;
 	}
 
 	// FRenderResource interface.
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
 
+	//TODO should be supported
+	bool SupportsPositionOnlyStream() const override { return false; }
+
 protected:
 	// Vertex buffer required for creating the Vertex Declaration
-	FVertexBuffer VBAlias;
-	int32 StreamIndex;
+	FVertexBuffer PositionVBAlias;
+	FVertexBuffer TangentVBAlias;
+	int32 PositionStreamIndex;
+	int32 TangentStreamIndex;
 
-	void InternalUpdateVertexDeclaration(FGPUBaseSkinVertexFactory* SourceVertexFactory, struct FRWBuffer* RWBuffer);
+	void InternalUpdateVertexDeclaration(FGPUBaseSkinVertexFactory* SourceVertexFactory, struct FRWBuffer* PositionRWBuffer, struct FRWBuffer* TangentRWBuffer);
 };
 
 /** Vertex factory with vertex stream components for GPU-skinned and morph target streams */
@@ -527,12 +562,12 @@ public:
 	 *
 	 * @param	InBoneMatrices	Reference to shared bone matrices array.
 	 */
-	TGPUSkinMorphVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
-	: TGPUSkinVertexFactory<bExtraBoneInfluencesT>(InFeatureLevel)
+	TGPUSkinMorphVertexFactory(ERHIFeatureLevel::Type InFeatureLevel, uint32 InNumVertices)
+	: TGPUSkinVertexFactory<bExtraBoneInfluencesT>(InFeatureLevel, InNumVertices)
 	{}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const class FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
-	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const FShaderType* ShaderType);
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const FShaderType* ShaderType);
 	
 	/**
 	* An implementation of the interface used by TSynchronizedResource to 
@@ -554,6 +589,31 @@ public:
 	virtual void InitRHI() override;
 
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
+
+	const FShaderResourceViewRHIRef GetPositionsSRV() const override
+	{
+		return MorphData.PositionComponentSRV;
+	}
+
+	const FShaderResourceViewRHIRef GetTangentsSRV() const override
+	{
+		return MorphData.TangentsSRV;
+	}
+
+	const FShaderResourceViewRHIRef GetTextureCoordinatesSRV() const override
+	{
+		return MorphData.TextureCoordinatesSRV;
+	}
+
+	const FShaderResourceViewRHIRef GetColorComponentsSRV() const override
+	{
+		return MorphData.ColorComponentsSRV;
+	}
+
+	const uint32 GetColorIndexMask() const override
+	{
+		return MorphData.ColorIndexMask;
+	}
 
 protected:
 	/**
@@ -581,9 +641,7 @@ public:
 			Reset();
 		}
 
-		void UpdateClothUniformBuffer(const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals);
-
-		bool UpdateClothSimulData(FRHICommandListImmediate& RHICmdList, const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals, uint32 FrameNumber, ERHIFeatureLevel::Type FeatureLevel);
+		bool UpdateClothSimulData(FRHICommandListImmediate& RHICmdList, const TArray<FVector>& InSimulPositions, const TArray<FVector>& InSimulNormals, uint32 FrameNumber, ERHIFeatureLevel::Type FeatureLevel);
 
 		void ReleaseClothSimulData()
 		{
@@ -637,6 +695,11 @@ public:
 			check(ClothSimulPositionNormalBuffer[Index].VertexBufferRHI.IsValid());
 			return ClothSimulPositionNormalBuffer[Index];
 		}
+
+		/**
+		* Matrix to apply to positions/normals
+		*/
+		FMatrix ClothLocalToWorld;
 		
 		/**
 		 * weight to blend between simulated positions and key-framed poses
@@ -796,12 +859,12 @@ public:
 	 *
 	 * @param	InBoneMatrices	Reference to shared bone matrices array.
 	 */
-	TGPUSkinAPEXClothVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
-		: TGPUSkinVertexFactory<bExtraBoneInfluencesT>(InFeatureLevel)
+	TGPUSkinAPEXClothVertexFactory(ERHIFeatureLevel::Type InFeatureLevel, uint32 InNumVertices)
+		: TGPUSkinVertexFactory<bExtraBoneInfluencesT>(InFeatureLevel, InNumVertices)
 	{}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const class FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
-	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const FShaderType* ShaderType);
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const FShaderType* ShaderType);
 
 	/**
 	* An implementation of the interface used by TSynchronizedResource to 
@@ -810,6 +873,7 @@ public:
 	*/
 	void SetData(const FDataType& InData)
 	{
+        Super::SetData(InData);
 		MeshMappingData = InData;
 		FGPUBaseSkinVertexFactory::UpdateRHI();
 	}

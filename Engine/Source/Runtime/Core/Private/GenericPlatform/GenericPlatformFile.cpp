@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GenericPlatform/GenericPlatformFile.h"
 #include "HAL/FileManager.h"
@@ -70,7 +70,7 @@ public:
 
 	virtual void PerformRequest() = 0;
 
-	virtual void WaitCompletionImpl(float TimeLimitSeconds) override
+	virtual void WaitCompletionImpl(float TimeLimitSeconds) override TSAN_SAFE
 	{
 		if (Task)
 		{

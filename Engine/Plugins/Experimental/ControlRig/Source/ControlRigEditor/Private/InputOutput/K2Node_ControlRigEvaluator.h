@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -18,7 +18,7 @@ class UK2Node_ControlRigEvaluator : public UK2Node_ControlRig
 {
 	GENERATED_UCLASS_BODY()
 
-	static FString ControlRigPinName;
+	static const FName ControlRigPinName;
 
 public:
 	/** The type of the ControlRig we want to evaluate */

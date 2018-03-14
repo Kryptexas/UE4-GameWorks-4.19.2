@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -35,6 +35,12 @@ public:
 
 	/** Gets FoliageEditMode. Used by the cluster details to notify changes */
 	class FEdModeFoliage* GetFoliageEditMode() const { return FoliageEditMode; }
+
+	/** Will return the status of editing mode */
+	bool IsFoliageEditorEnabled() const;
+	
+	/** Get the error message for this editing mode */
+	FText GetFoliageEditorErrorText() const;
 
 private:
 	/** Creates the toolbar. */
@@ -198,6 +204,9 @@ private:	// SELECTION
 private:
 	/** Palette of available foliage types */
 	TSharedPtr<class SFoliagePalette> FoliagePalette;
+	
+	/** Current error message */	
+	TSharedPtr<class SErrorText> ErrorText;
 
 	/** Pointer to the foliage edit mode. */
 	FEdModeFoliage*					FoliageEditMode;

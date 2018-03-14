@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GameMode.cpp: AGameMode c++ code.
@@ -41,6 +41,7 @@ AGameMode::AGameMode(const FObjectInitializer& ObjectInitializer)
 	GameStateClass = AGameState::StaticClass();
 	MinRespawnDelay = 1.0f;
 	InactivePlayerStateLifeSpan = 300.f;
+	MaxInactivePlayers = 16;
 }
 
 FString AGameMode::GetDefaultGameClassPath(const FString& MapName, const FString& Options, const FString& Portal) const
@@ -414,7 +415,17 @@ void AGameMode::HandleSeamlessTravelPlayer(AController*& C)
 		if (PC->Player != nullptr)
 		{
 			// we need to spawn a new PlayerController to replace the old one
-			APlayerController* NewPC = SpawnPlayerController(PC->IsLocalPlayerController() ? ROLE_SimulatedProxy : ROLE_AutonomousProxy, PC->GetFocalLocation(), PC->GetControlRotation());
+			APlayerController* NewPC = nullptr;
+			if (PC->PlayerState && PC->PlayerState->bOnlySpectator && ReplaySpectatorPlayerControllerClass != nullptr)
+			{
+				NewPC = SpawnReplayPlayerController(PC->IsLocalPlayerController() ? ROLE_SimulatedProxy : ROLE_AutonomousProxy, PC->GetFocalLocation(), PC->GetControlRotation());
+			}
+			else
+			{
+				// We need to spawn a new PlayerController to replace the old one
+				NewPC = SpawnPlayerController(PC->IsLocalPlayerController() ? ROLE_SimulatedProxy : ROLE_AutonomousProxy, PC->GetFocalLocation(), PC->GetControlRotation());
+			}
+
 			if (NewPC == nullptr)
 			{
 				UE_LOG(LogGameMode, Warning, TEXT("Failed to spawn new PlayerController for %s (old class %s)"), *PC->GetHumanReadableName(), *PC->GetClass()->GetName());
@@ -654,10 +665,10 @@ void AGameMode::AddInactivePlayer(APlayerState* PlayerState, APlayerController* 
 			}
 			InactivePlayerArray.Add(NewPlayerState);
 
-			// cap at 16 saved PlayerStates
-			if ( InactivePlayerArray.Num() > 16 )
+			// make sure we dont go over the maximum number of inactive players allowed
+			if ( InactivePlayerArray.Num() > MaxInactivePlayers )
 			{
-				int32 const NumToRemove = InactivePlayerArray.Num() - 16;
+				int32 const NumToRemove = InactivePlayerArray.Num() - MaxInactivePlayers;
 
 				// destroy the extra inactive players
 				for (int Idx = 0; Idx < NumToRemove; ++Idx)
@@ -694,7 +705,7 @@ bool AGameMode::FindInactivePlayer(APlayerController* PC)
 	const bool bUseUniqueIdCheck = bIsConsole || bHasValidUniqueId;
 
 	const FString NewNetworkAddress = PC->PlayerState->SavedNetworkAddress;
-	const FString NewName = PC->PlayerState->PlayerName;
+	const FString NewName = PC->PlayerState->GetPlayerName();
 	for (int32 i=0; i < InactivePlayerArray.Num(); i++)
 	{
 		APlayerState* CurrentPlayerState = InactivePlayerArray[i];
@@ -704,7 +715,7 @@ bool AGameMode::FindInactivePlayer(APlayerController* PC)
 			i--;
 		}
 		else if ((bUseUniqueIdCheck && (CurrentPlayerState->UniqueId == PC->PlayerState->UniqueId)) ||
-				 (!bUseUniqueIdCheck && bHasValidNetworkAddress && (FCString::Stricmp(*CurrentPlayerState->SavedNetworkAddress, *NewNetworkAddress) == 0) && (FCString::Stricmp(*CurrentPlayerState->PlayerName, *NewName) == 0)))
+				 (!bUseUniqueIdCheck && bHasValidNetworkAddress && (FCString::Stricmp(*CurrentPlayerState->SavedNetworkAddress, *NewNetworkAddress) == 0) && (FCString::Stricmp(*CurrentPlayerState->GetPlayerName(), *NewName) == 0)))
 		{
 			// found it!
 			APlayerState* OldPlayerState = PC->PlayerState;
@@ -814,7 +825,7 @@ void AGameMode::PreCommitMapChange(const FString& PreviousMapName, const FString
 
 void AGameMode::PostCommitMapChange() {}
 
-void AGameMode::NotifyPendingConnectionLost() {}
+void AGameMode::NotifyPendingConnectionLost(const FUniqueNetIdRepl& ConnectionUniqueId) {}
 
 void AGameMode::HandleDisconnect(UWorld* InWorld, UNetDriver* NetDriver)
 {

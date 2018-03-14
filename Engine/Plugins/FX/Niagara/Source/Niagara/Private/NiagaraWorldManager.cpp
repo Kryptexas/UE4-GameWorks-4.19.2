@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraWorldManager.h"
 #include "NiagaraModule.h"
@@ -10,6 +10,7 @@
 #include "NiagaraSystemInstance.h"
 #include "Scalability.h"
 #include "ConfigCacheIni.h"
+#include "NiagaraDataInterfaceSkeletalMesh.h"
 
 
 FNiagaraWorldManager* FNiagaraWorldManager::Get(UWorld* World)
@@ -25,11 +26,21 @@ void FNiagaraWorldManager::AddReferencedObjects(FReferenceCollector& Collector)
 
 UNiagaraParameterCollectionInstance* FNiagaraWorldManager::GetParameterCollection(UNiagaraParameterCollection* Collection)
 {
+	if (!Collection)
+	{
+		return nullptr;
+	}
+
 	UNiagaraParameterCollectionInstance** OverrideInst = ParameterCollections.Find(Collection);
 	if (!OverrideInst)
 	{
+		UNiagaraParameterCollectionInstance* DefaultInstance = Collection->GetDefaultInstance();
 		OverrideInst = &ParameterCollections.Add(Collection);
-		*OverrideInst = CastChecked<UNiagaraParameterCollectionInstance>(StaticDuplicateObject(Collection->GetDefaultInstance(), World));
+		*OverrideInst = CastChecked<UNiagaraParameterCollectionInstance>(StaticDuplicateObject(DefaultInstance, World));
+#if WITH_EDITORONLY_DATA
+		//Bind to the default instance so that changes to the collection propagate through.
+		DefaultInstance->GetParameterStore().Bind(&(*OverrideInst)->GetParameterStore());
+#endif
 	}
 
 	check(OverrideInst && *OverrideInst);
@@ -51,11 +62,17 @@ void FNiagaraWorldManager::SetParameterCollection(UNiagaraParameterCollectionIns
 		{
 			if (*OverrideInst && NewInstance)
 			{
+				UNiagaraParameterCollectionInstance* DefaultInstance = Collection->GetDefaultInstance();
 				//Need to transfer existing bindings from old instance to new one.
 				FNiagaraParameterStore& ExistingStore = (*OverrideInst)->GetParameterStore();
 				FNiagaraParameterStore& NewStore = NewInstance->GetParameterStore();
 
 				ExistingStore.TransferBindings(NewStore);
+
+#if WITH_EDITOR
+				//If the existing store was this world's duplicate of the default then we must be sure it's unbound.
+				DefaultInstance->GetParameterStore().Unbind(&ExistingStore);
+#endif
 			}
 		}
 
@@ -63,27 +80,53 @@ void FNiagaraWorldManager::SetParameterCollection(UNiagaraParameterCollectionIns
 	}
 }
 
-FNiagaraSystemSimulation* FNiagaraWorldManager::GetSystemSimulation(UNiagaraSystem* System)
+void FNiagaraWorldManager::CleanupParameterCollections()
 {
-	FNiagaraSystemSimulation* Sim = SystemSimulations.Find(System);
-	if (Sim)
+#if WITH_EDITOR
+	for (TPair<UNiagaraParameterCollection*, UNiagaraParameterCollectionInstance*> CollectionInstPair : ParameterCollections)
 	{
-		return Sim;
+		UNiagaraParameterCollection* Collection = CollectionInstPair.Key;
+		UNiagaraParameterCollectionInstance* CollectionInst = CollectionInstPair.Value;
+		//Ensure that the default instance is not bound to the override.
+		UNiagaraParameterCollectionInstance* DefaultInst = Collection->GetDefaultInstance();
+		DefaultInst->GetParameterStore().Unbind(&CollectionInst->GetParameterStore());
+	}
+#endif
+	ParameterCollections.Empty();
+}
+
+TSharedRef<FNiagaraSystemSimulation, ESPMode::ThreadSafe> FNiagaraWorldManager::GetSystemSimulation(UNiagaraSystem* System)
+{
+	TSharedRef<FNiagaraSystemSimulation, ESPMode::ThreadSafe>* SimPtr = SystemSimulations.Find(System);
+	if (SimPtr != nullptr)
+	{
+		return *SimPtr;
 	}
 	
-	Sim = &SystemSimulations.Add(System);
+	TSharedRef<FNiagaraSystemSimulation, ESPMode::ThreadSafe> Sim = MakeShared<FNiagaraSystemSimulation, ESPMode::ThreadSafe>();
+	SystemSimulations.Add(System, Sim);
 	Sim->Init(System, World);
 	return Sim;
 }
 
 void FNiagaraWorldManager::DestroySystemSimulation(UNiagaraSystem* System)
 {
-	FNiagaraSystemSimulation* Sim = SystemSimulations.Find(System);
+	TSharedRef<FNiagaraSystemSimulation, ESPMode::ThreadSafe>* Sim = SystemSimulations.Find(System);
 	if (Sim)
 	{
-		Sim->Destroy();
+		(*Sim)->Destroy();
 		SystemSimulations.Remove(System);
 	}	
+}
+
+void FNiagaraWorldManager::OnWorldCleanup(bool bSessionEnded, bool bCleanupResources)
+{
+	for (TPair<UNiagaraSystem*, TSharedRef<FNiagaraSystemSimulation, ESPMode::ThreadSafe>>& SimPair : SystemSimulations)
+	{
+		SimPair.Value->Destroy();
+	}
+	SystemSimulations.Empty();
+	CleanupParameterCollections();
 }
 
 void FNiagaraWorldManager::Tick(float DeltaSeconds)
@@ -112,6 +155,7 @@ Going off this idea tbh
 		}
 	}
 */
+	SkeletalMeshGeneratedData.TickGeneratedData(DeltaSeconds);
 
 	//Tick our collections to push any changes to bound stores.
 	for (TPair<UNiagaraParameterCollection*, UNiagaraParameterCollectionInstance*> CollectionInstPair : ParameterCollections)
@@ -121,8 +165,17 @@ Going off this idea tbh
 	}
 
 	//Now tick all system instances. 
-	for (TPair<UNiagaraSystem*, FNiagaraSystemSimulation>& SystemSim : SystemSimulations)
+	TArray<UNiagaraSystem*> DeadSystems;
+	for (TPair<UNiagaraSystem*, TSharedRef<FNiagaraSystemSimulation, ESPMode::ThreadSafe>>& SystemSim : SystemSimulations)
 	{
-		SystemSim.Value.Tick(DeltaSeconds);
+		if (SystemSim.Value->Tick(DeltaSeconds) == false)
+		{
+			DeadSystems.Add(SystemSim.Key);
+		}
+	}
+
+	for (UNiagaraSystem* DeadSystem : DeadSystems)
+	{
+		SystemSimulations.Remove(DeadSystem);
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeGraphNode_SimpleParallel.h"
 #include "BehaviorTreeEditorTypes.h"
@@ -11,10 +11,10 @@ UBehaviorTreeGraphNode_SimpleParallel::UBehaviorTreeGraphNode_SimpleParallel(con
 
 void UBehaviorTreeGraphNode_SimpleParallel::AllocateDefaultPins()
 {
-	CreatePin(EGPD_Input, UBehaviorTreeEditorTypes::PinCategory_MultipleNodes, FString(), nullptr, TEXT("In"));
+	CreatePin(EGPD_Input, UBehaviorTreeEditorTypes::PinCategory_MultipleNodes, TEXT("In"));
 	
-	CreatePin(EGPD_Output, UBehaviorTreeEditorTypes::PinCategory_SingleTask, FString(), nullptr, TEXT("Task"));
-	CreatePin(EGPD_Output, UBehaviorTreeEditorTypes::PinCategory_SingleNode, FString(), nullptr, TEXT("Out"));
+	CreatePin(EGPD_Output, UBehaviorTreeEditorTypes::PinCategory_SingleTask, TEXT("Task"));
+	CreatePin(EGPD_Output, UBehaviorTreeEditorTypes::PinCategory_SingleNode, TEXT("Out"));
 }
 
 void UBehaviorTreeGraphNode_SimpleParallel::GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const

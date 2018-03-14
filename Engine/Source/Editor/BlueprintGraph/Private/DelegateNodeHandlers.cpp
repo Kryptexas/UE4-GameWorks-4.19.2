@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DelegateNodeHandlers.h"
 #include "EdGraphSchema_K2.h"
@@ -192,7 +192,7 @@ void FKCHandler_AddRemoveDelegate::Compile(FKismetFunctionContext& Context, UEdG
 		AddStatement.RHS.Add(*DelegateInputTerm);
 	}
 
-	GenerateSimpleThenGoto(Context, *DelegateNode, DelegateNode->FindPin(CompilerContext.GetSchema()->PN_Then));
+	GenerateSimpleThenGoto(Context, *DelegateNode, DelegateNode->FindPin(UEdGraphSchema_K2::PN_Then));
 	FNodeHandlingFunctor::Compile(Context, DelegateNode);
 }
 
@@ -229,7 +229,7 @@ void FKCHandler_CreateDelegate::RegisterNets(FKismetFunctionContext& Context, UE
 			{
 				InputObjTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
 				InputObjTerm->Name = Context.NetNameMap->MakeValidName(Net);
-				InputObjTerm->Type.PinSubCategory = CompilerContext.GetSchema()->PN_Self;
+				InputObjTerm->Type.PinSubCategory = UEdGraphSchema_K2::PN_Self;
 			}
 			else
 			{
@@ -289,7 +289,7 @@ void FKCHandler_CreateDelegate::Compile(FKismetFunctionContext& Context, UEdGrap
 
 	{
 		FBPTerminal* DelegateNameTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
-		DelegateNameTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Name;
+		DelegateNameTerm->Type.PinCategory = UEdGraphSchema_K2::PC_Name;
 		DelegateNameTerm->Name = DelegateNode->GetFunctionName().ToString();
 		DelegateNameTerm->bIsLiteral = true;
 		Statement.RHS.Add(DelegateNameTerm);
@@ -339,7 +339,7 @@ void FKCHandler_ClearDelegate::Compile(FKismetFunctionContext& Context, UEdGraph
 		AddStatement.LHS = *VarDelegate;
 	}
 
-	GenerateSimpleThenGoto(Context, *DelegateNode, DelegateNode->FindPin(CompilerContext.GetSchema()->PN_Then));
+	GenerateSimpleThenGoto(Context, *DelegateNode, DelegateNode->FindPin(UEdGraphSchema_K2::PN_Then));
 	FNodeHandlingFunctor::Compile(Context, DelegateNode);
 }
 
@@ -372,30 +372,36 @@ void FKCHandler_CallDelegate::Compile(FKismetFunctionContext& Context, UEdGraphN
 	if(SignatureFunction->HasMetaData(FBlueprintMetadata::MD_DefaultToSelf))
 	{
 		CompilerContext.MessageLog.Error(
-			*FString::Printf(
-				*LOCTEXT("CallDelegateWrongMeta_Error", "Signature function should not have %s metadata. @@").ToString(), 
-				*FBlueprintMetadata::MD_DefaultToSelf.ToString()), 
-			Node);
+			*FText::Format(
+				LOCTEXT("CallDelegateWrongMeta_ErrorFmt", "Signature function should not have {0} metadata. @@"),
+				FText::FromString(FBlueprintMetadata::MD_DefaultToSelf.ToString())
+			).ToString(),
+			Node
+		);
 		return;
 	}
 
 	if(SignatureFunction->HasMetaData(FBlueprintMetadata::MD_WorldContext))
 	{
 		CompilerContext.MessageLog.Error(
-			*FString::Printf(
-				*LOCTEXT("CallDelegateWrongMeta_Error", "Signature function should not have %s metadata. @@").ToString(), 
-				*FBlueprintMetadata::MD_WorldContext.ToString()), 
-			Node);
+			*FText::Format(
+				LOCTEXT("CallDelegateWrongMeta_ErrorFmt", "Signature function should not have {0} metadata. @@"),
+				FText::FromString(FBlueprintMetadata::MD_WorldContext.ToString())
+			).ToString(),
+			Node
+		);
 		return;
 	}
 
 	if(SignatureFunction->HasMetaData(FBlueprintMetadata::MD_AutoCreateRefTerm))
 	{
 		CompilerContext.MessageLog.Error(
-			*FString::Printf(
-				*LOCTEXT("CallDelegateWrongMeta_Error", "Signature function should not have %s metadata. @@").ToString(), 
-				*FBlueprintMetadata::MD_AutoCreateRefTerm.ToString()), 
-			Node);
+			*FText::Format(
+				LOCTEXT("CallDelegateWrongMeta_ErrorFmt", "Signature function should not have {0} metadata. @@"),
+				FText::FromString(FBlueprintMetadata::MD_AutoCreateRefTerm.ToString())
+			).ToString(),
+			Node
+		);
 		return;
 	}
 

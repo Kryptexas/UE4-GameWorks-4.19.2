@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -141,6 +141,12 @@ private:
 		/** The width of the column, either sized by the user, or auto-sized */
 		float CurrentWidth;
 	};
+
+	/** UI for the "Data Table" tab */
+	TSharedPtr<SWidget> DataTableTabWidget;
+
+	/** UI for the "Row Editor" tab */
+	TSharedPtr<SWidget> RowEditorTabWidget;
 
 	/** Array of the columns that are available for editing */
 	TArray<FDataTableEditorColumnHeaderDataPtr> AvailableColumns;

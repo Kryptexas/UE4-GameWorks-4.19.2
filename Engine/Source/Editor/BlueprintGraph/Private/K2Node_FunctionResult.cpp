@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_FunctionResult.h"
 #include "Misc/CoreMisc.h"
@@ -18,7 +18,7 @@ private:
 	{
 		if(K2Schema && Pin)
 		{
-			const bool bValuePin = (Pin->PinType.PinCategory != K2Schema->PC_Exec);
+			const bool bValuePin = (Pin->PinType.PinCategory != UEdGraphSchema_K2::PC_Exec);
 			const bool bNotConnected = (Pin->Direction == EEdGraphPinDirection::EGPD_Input) && (0 == Pin->LinkedTo.Num());
 			const bool bNeedToResetDefaultValue = (Pin->DefaultValue.IsEmpty() && Pin->DefaultObject == nullptr && Pin->DefaultTextValue.IsEmpty()) || !(K2Schema->IsPinDefaultValid(Pin, Pin->DefaultValue, Pin->DefaultObject, Pin->DefaultTextValue).IsEmpty());
 			if (bValuePin && bNotConnected && bNeedToResetDefaultValue)
@@ -70,16 +70,17 @@ public:
 		// Do not register as a default any Pin that comes from being Split
 		if (Net->ParentPin == nullptr)
 		{
-			for (auto& ResultTerm : Context.Results)
+			FString NetPinName = Net->PinName.ToString();
+			for (FBPTerminal& ResultTerm : Context.Results)
 			{
-				if ((ResultTerm.Name == Net->PinName) && (ResultTerm.Type == Net->PinType))
+				if ((ResultTerm.Name == NetPinName) && (ResultTerm.Type == Net->PinType))
 				{
 					Context.NetMap.Add(Net, &ResultTerm);
 					return;
 				}
 			}
 			FBPTerminal* Term = new (Context.Results) FBPTerminal();
-			Term->CopyFromPin(Net, Net->PinName);
+			Term->CopyFromPin(Net, MoveTemp(NetPinName));
 			Context.NetMap.Add(Net, Term);
 		}
 	}
@@ -132,11 +133,9 @@ FText UK2Node_FunctionResult::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 void UK2Node_FunctionResult::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Execute);
 
-	UFunction* Function = FindField<UFunction>(SignatureClass, SignatureName);
-	if (Function != NULL)
+	if (UFunction* const Function = FunctionReference.ResolveMember<UFunction>(GetBlueprintClassFromNode()))
 	{
 		CreatePinsForFunctionEntryExit(Function, /*bIsFunctionEntry=*/ false);
 	}
@@ -266,13 +265,11 @@ void UK2Node_FunctionResult::SyncWithEntryNode()
 		{
 			if (UK2Node_FunctionEntry* EntryNode = Cast<UK2Node_FunctionEntry>(Node))
 			{
-				bWasSignatureMismatched = (EntryNode->SignatureClass != SignatureClass) || 
-					(EntryNode->SignatureName != SignatureName) || (!EntryNode->bIsEditable && UserDefinedPins.Num() > 0);
+				bWasSignatureMismatched = !EntryNode->FunctionReference.IsSameReference(FunctionReference) || (!EntryNode->bIsEditable && UserDefinedPins.Num() > 0);
 
 				// If the entry is editable, so is the result
-				bIsEditable    = EntryNode->bIsEditable;
-				SignatureClass = EntryNode->SignatureClass;
-				SignatureName  = EntryNode->SignatureName;
+				bIsEditable = EntryNode->bIsEditable;
+				FunctionReference = EntryNode->FunctionReference;
 				break;
 			}
 		}
@@ -311,8 +308,7 @@ void UK2Node_FunctionResult::SyncWithPrimaryResultNode()
 
 	if (PrimaryNode)
 	{
-		SignatureClass = PrimaryNode->SignatureClass;
-		SignatureName = PrimaryNode->SignatureName;
+		FunctionReference = PrimaryNode->FunctionReference;
 		bIsEditable = PrimaryNode->bIsEditable;
 
 		// Temporary array that will contain our list of Old Pins that are no longer part of the return signature
@@ -401,7 +397,7 @@ void UK2Node_FunctionResult::PromoteFromInterfaceOverride(bool bIsPrimaryTermina
 	}
 	else
 	{
-		SignatureClass = nullptr;
+		FunctionReference.SetSelfMember(FunctionReference.GetMemberName());
 		SyncWithPrimaryResultNode();
 		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 		Schema->ReconstructNode(*this, true);

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,10 +6,18 @@
 #include "Misc/Guid.h"
 #include "Misc/Attribute.h"
 #include "Widgets/SWidget.h"
+#include "Curves/RichCurve.h"
+#include "Math/InterpCurvePoint.h"
+#include "MovieSceneObjectBindingID.h"
+#include "MovieSceneObjectBindingIDPicker.h"
+#include "ISequencer.h"
 
 class ISequencer;
 class UMovieScene;
 class UMovieSceneSection;
+class UInterpTrackMoveAxis;
+struct FMovieSceneObjectBindingID;
+class UMovieSceneTrack;
 
 DECLARE_DELEGATE_TwoParams(FOnEnumSelectionChanged, int32 /*Selection*/, ESelectInfo::Type /*SelectionType*/);
 
@@ -93,6 +101,15 @@ public:
 	static UObject* GetTake(const UMovieSceneSection* Section, uint32 TakeNumber);
 
 	/**
+	 * Get the next available row index for the section so that it doesn't overlap any other sections in time.
+	 *
+	 * @param InTrack The track to find the next available row on
+	 * @param InSection The section
+	 * @return The next available row index
+	 */
+	static int32 FindAvailableRowIndex(UMovieSceneTrack* InTrack, UMovieSceneSection* InSection);
+
+	/**
 	 * Generate a combobox for editing enum values
 	 *
 	 * @param Enum The enum to make the combobox from
@@ -132,4 +149,56 @@ public:
 	 * @return Whether the import was successful
 	 */
 	static bool ImportFBX(UMovieScene* InMovieScene, ISequencer& InSequencer, const TMap<FGuid, FString>& InObjectBindingNameMap);
+
+	/*
+	 * Rich curve interpolation to matinee interpolation
+	 *
+	 * @param InterpMode The rich curve interpolation to convert
+	 * @return The converted matinee interpolation
+	 */
+	static EInterpCurveMode RichCurveInterpolationToMatineeInterpolation( ERichCurveInterpMode InterpMode );
+
+	/*
+	 * Copy rich curve to move axis
+	 *
+	 * @param RichCurve The rich curve to copy from
+	 * @param MoveAxis The move axis to copy to
+	 */
+	static void CopyRichCurveToMoveAxis(const FRichCurve& RichCurve, UInterpTrackMoveAxis* MoveAxis);
+
+	/*
+	 * Export the object binding to a camera anim
+	 *
+	 * @param InMovieScene The movie scene to export the object binding from
+	 * @param InObjectBinding The object binding to export
+	 * @return The exported camera anim asset
+	 */
+	static UObject* ExportToCameraAnim(UMovieScene* InMovieScene, FGuid& InObjectBinding);
 };
+
+class FTrackEditorBindingIDPicker : public FMovieSceneObjectBindingIDPicker
+{
+public:
+	FTrackEditorBindingIDPicker(FMovieSceneSequenceID InLocalSequenceID, TWeakPtr<ISequencer> InSequencer)
+		: FMovieSceneObjectBindingIDPicker(InLocalSequenceID, InSequencer)
+	{
+		Initialize();
+	}
+
+	DECLARE_EVENT_OneParam(FTrackEditorBindingIDPicker, FOnBindingPicked, FMovieSceneObjectBindingID)
+	FOnBindingPicked& OnBindingPicked()
+	{
+		return OnBindingPickedEvent;
+	}
+
+	using FMovieSceneObjectBindingIDPicker::GetPickerMenu;
+
+private:
+
+	virtual UMovieSceneSequence* GetSequence() const override { return WeakSequencer.Pin()->GetFocusedMovieSceneSequence(); }
+	virtual void SetCurrentValue(const FMovieSceneObjectBindingID& InBindingId) override { OnBindingPickedEvent.Broadcast(InBindingId); }
+	virtual FMovieSceneObjectBindingID GetCurrentValue() const override { return FMovieSceneObjectBindingID(); }
+
+	FOnBindingPicked OnBindingPickedEvent;
+};
+

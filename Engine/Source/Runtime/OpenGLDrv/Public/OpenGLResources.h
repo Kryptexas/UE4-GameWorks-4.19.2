@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLResources.h: OpenGL resource RHI definitions.
@@ -706,6 +706,7 @@ struct FOpenGLVertexElement
 	GLuint Offset;
 	GLuint Size;
 	GLuint Divisor;
+	GLuint HashStride;
 	uint8 bNormalized;
 	uint8 AttributeIndex;
 	uint8 bShouldConvertToFloat;
@@ -848,6 +849,7 @@ public:
 	, SRVResource( 0 )
 	, MemorySize( 0 )
 	, bIsPowerOfTwo(false)
+	, bIsAliased(false)
 	{}
 
 	int32 GetMemorySize() const
@@ -870,6 +872,16 @@ public:
 		return bIsPowerOfTwo != 0;
 	}
 
+	void SetAliased(const bool bInAliased)
+	{
+		bIsAliased = bInAliased ? 1 : 0;
+	}
+
+	bool IsAliased() const
+	{
+		return bIsAliased != 0;
+	}
+
 #if PLATFORM_ANDROIDESDEFERRED // Flithy hack to workaround radr://16011763
 	GLuint GetOpenGLFramebuffer(uint32 ArrayIndices, uint32 MipmapLevels);
 #endif
@@ -880,11 +892,13 @@ public:
 	{
 		Resource = Texture->Resource;
 		SRVResource = Texture->SRVResource;
+		bIsAliased = 1;
 	}
 
 private:
 	uint32 MemorySize		: 31;
 	uint32 bIsPowerOfTwo	: 1;
+	uint32 bIsAliased : 1;
 };
 
 // Textures.
@@ -1012,10 +1026,13 @@ public:
 #endif
 					{
 						InvalidateTextureResourceInCache();
-						FOpenGL::DeleteTextures(1, &Resource);
-						if (SRVResource)
+						if (!IsAliased())
 						{
-							FOpenGL::DeleteTextures(1, &SRVResource);
+							FOpenGL::DeleteTextures(1, &Resource);
+							if (SRVResource)
+							{
+								FOpenGL::DeleteTextures(1, &SRVResource);
+							}
 						}
 						break;
 					}

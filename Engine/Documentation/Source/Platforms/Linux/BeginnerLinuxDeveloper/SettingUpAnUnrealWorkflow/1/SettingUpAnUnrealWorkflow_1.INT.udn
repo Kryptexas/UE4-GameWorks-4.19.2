@@ -24,7 +24,7 @@ SkillLevel:Beginner
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Currently, we don't supply a binary installer of UE4 for Linux users. The good news is that you can compile a binary of Unreal Engine from the same source
 code that we use to develop the engine. If you want to access our source code, you'll have to register for an Epic Games account, sign up for a GitHub account, 
@@ -58,4 +58,3 @@ Now that you've registered for an Epic Games account, you're ready to work throu
 By now, you've registered for an Epic Games account and linked it with your GitHub username. Also, you've installed Git and you're ready for the next step,
 where you'll fork and clone the UE4 source code from the Unreal Engine GitHub repository.
 
-%Steps%

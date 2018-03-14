@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameMenuPage.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
@@ -50,7 +50,7 @@ bool FGameMenuPage::InitialiseRootMenu(APlayerController* InPCOwner, const FStri
 		SAssignNew(RootMenuPageWidget, SGameMenuPageWidget)
 			.MenuStyle(&FGameMenuBuilderStyle::Get().GetWidgetStyle<FGameMenuStyle>(*InStyleName))
 			.Cursor(EMouseCursor::Default)
-			.PCOwner(TWeakObjectPtr<APlayerController>(InPCOwner));
+			.PCOwner(MakeWeakObjectPtr(InPCOwner));
 
 		InGameViewport->AddViewportWidgetContent(
 			SNew(SWeakWidget)

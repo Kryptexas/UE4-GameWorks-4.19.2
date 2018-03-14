@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,6 +27,9 @@ private:
 	FString& ExportedText;
 };
 
+#endif // WITH_EDITOR
+
+
 class FDataTableImporterCSV
 {
 public:
@@ -42,4 +45,3 @@ private:
 	TArray<FString>& ImportProblems;
 };
 
-#endif // WITH_EDITOR

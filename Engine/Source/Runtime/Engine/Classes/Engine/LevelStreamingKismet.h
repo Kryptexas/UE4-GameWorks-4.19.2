@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /**
  * LevelStreamingKismet
@@ -41,8 +41,11 @@ class ULevelStreamingKismet : public ULevelStreaming
 	* @param bOutSuccess - Whether operation was successful (map was found and added to the sub-levels list)
  	* @return Streaming level object for a level instance
  	*/ 
- 	UFUNCTION(BlueprintCallable, Category = LevelStreaming,meta=(WorldContext="WorldContextObject"))
- 	static ENGINE_API ULevelStreamingKismet* LoadLevelInstance(UObject* WorldContextObject, const FString& LevelName, const FVector& Location, const FRotator& Rotation, bool& bOutSuccess);
+ 	UFUNCTION(BlueprintCallable, Category = LevelStreaming, meta=(WorldContext="WorldContextObject"))
+ 	static ENGINE_API ULevelStreamingKismet* LoadLevelInstance(UObject* WorldContextObject, FString LevelName, FVector Location, FRotator Rotation, bool& bOutSuccess);
+
+ 	UFUNCTION(BlueprintCallable, Category = LevelStreaming, meta=(DisplayName = "Load Level Instance", WorldContext="WorldContextObject"))
+ 	static ENGINE_API ULevelStreamingKismet* LoadLevelInstanceBySoftObjectPtr(UObject* WorldContextObject, TSoftObjectPtr<UWorld> Level, FVector Location, FRotator Rotation, bool& bOutSuccess);
  	
 	//~ Begin UObject Interface
 	virtual void PostLoad() override;
@@ -55,5 +58,8 @@ class ULevelStreamingKismet : public ULevelStreaming
 private:
 	// Counter used by LoadLevelInstance to create unique level names
 	static int32 UniqueLevelInstanceId;
+
+ 	static ENGINE_API ULevelStreamingKismet* LoadLevelInstance_Internal(UWorld* World, const FString& LongPackageName, FVector Location, FRotator Rotation, bool& bOutSuccess);
+
 };
 

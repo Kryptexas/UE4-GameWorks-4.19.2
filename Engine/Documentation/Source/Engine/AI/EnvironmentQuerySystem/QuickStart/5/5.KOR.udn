@@ -1,27 +1,15 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3717042
 Availability:Public
 Title: 5. 캐릭터 블루프린트
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description: AI 의 캐릭터 블루프린트를 구성합니다.
 version: 4.9
+parent:Engine/AI/EnvironmentQuerySystem/QuickStart
+type:quick start
+type:multi-step
+order:5
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Engine/AI/EnvironmentQuerySystem/QuickStart/4 "%Engine/AI/EnvironmentQuerySystem/QuickStart/4:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[퀵스타트 홈](Engine/AI/EnvironmentQuerySystem/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Engine/AI/EnvironmentQuerySystem/QuickStart/6 "%Engine/AI/EnvironmentQuerySystem/QuickStart/6:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 이미 **캐릭터** 가 포함된 프로젝트를 만들었기에 인간형 **스켈레탈 메시** 와 그 **애니메이션 블루프린트** 에 접근할 수 있습니다. 이 튜토리얼에서는 이것들을 사용하겠습니다만, 갖고 계신 아무거나 사용하셔도 됩니다.
 
@@ -72,4 +60,4 @@ version: 4.9
 1. ![](Engine\AI\BehaviorTrees\QuickStart\4\compile_button.png) 컴파일하고 ![](Engine\AI\BehaviorTrees\QuickStart\4\save_button.png) 저장합니다.
 
 
-%Steps%
+[NAV]

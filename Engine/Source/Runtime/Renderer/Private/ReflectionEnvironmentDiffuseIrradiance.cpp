@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Functionality for computing SH diffuse irradiance from a cubemap
@@ -39,7 +39,7 @@ class FCopyDiffuseIrradiancePS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FCopyDiffuseIrradiancePS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -114,7 +114,7 @@ class FAccumulateDiffuseIrradiancePS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FAccumulateDiffuseIrradiancePS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -130,11 +130,6 @@ public:
 		Sample23.Bind(Initializer.ParameterMap,TEXT("Sample23"));
 	}
 	FAccumulateDiffuseIrradiancePS() {}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-	}
 
 	void SetParameters(FRHICommandList& RHICmdList, int32 CubeFaceValue, int32 NumMips, int32 SourceMipIndexValue, int32 CoefficientIndex, FTextureRHIRef& SourceTextureValue)
 	{
@@ -186,7 +181,7 @@ class FAccumulateCubeFacesPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FAccumulateCubeFacesPS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}

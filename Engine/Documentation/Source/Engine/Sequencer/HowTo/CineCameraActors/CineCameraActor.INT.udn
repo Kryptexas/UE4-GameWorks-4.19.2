@@ -10,6 +10,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 The **Cine Camera Actor** is a specialized [**Camera Actor**](Engine/Actors/CameraActors/) with additional camera settings that are found in most real-world cameras today. 
 The ability to adjust **Filmback**, **Lens**, or **Focus** settings gives content creators more tools than the standard Camera Actor in producing more cinematic looking shots. 

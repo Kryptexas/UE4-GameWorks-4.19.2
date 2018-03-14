@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -77,7 +77,7 @@ namespace Lightmass
 
 	static const int32 LM_TEXTUREMAPPING_VERSION		= 1;
 	static const int32 LM_VOLUMESAMPLES_VERSION			= 1;
-	static const int32 LM_VOLUMETRICLIGHTMAP_VERSION		= 1;
+	static const int32 LM_VOLUMETRICLIGHTMAP_VERSION		= 2;
 	static const int32 LM_PRECOMPUTEDVISIBILITY_VERSION	= 1;
 	static const int32 LM_VOLUMEDEBUGOUTPUT_VERSION		= 1;
 	static const int32 LM_DOMINANTSHADOW_VERSION		= 1;

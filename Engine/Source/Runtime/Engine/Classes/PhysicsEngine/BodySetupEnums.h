@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -40,4 +40,13 @@ namespace EBodyCollisionResponse
 		BodyCollision_Disabled UMETA(DisplayName="Disabled")//, 
 		//BodyCollision_Custom UMETA(DisplayName="Custom")
 	};
+}
+
+
+/** Helpers to convert enum to string */
+namespace Lex
+{
+	ENGINE_API const TCHAR* ToString(ECollisionTraceFlag Enum);
+	ENGINE_API const TCHAR* ToString(EPhysicsType Enum);
+	ENGINE_API const TCHAR* ToString(EBodyCollisionResponse::Type Enum);
 }

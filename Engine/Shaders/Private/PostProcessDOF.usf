@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessDOF.usf: PostProcessing Depth of Field
@@ -75,14 +75,19 @@ float4 ReadFullResAndDepth(float2 UV, in out float Depth)
 
 // pixel shader entry point
 void SetupPS(
-	noperspective float4 UVAndScreenPos : TEXCOORD0
+	noperspective float4 unused : TEXCOORD0,
+	float4 SvPosition : SV_POSITION
 	, out float4 OutColor0 : SV_Target0
 #if MRT_COUNT > 1
 	, out float4 OutColor1 : SV_Target1
 #endif
 	)
 {
-	float2 UV = UVAndScreenPos.xy;
+	// Manually compute UV and ScreenSpacePos from SvPosition to avoid south east shiting of the pixel in bottom right corner
+	// caused by the DestRect.Size() + 1 viewport size done for odd view rect resolution.
+	float2 ViewportUV = min(SvPositionToViewportUV(SvPosition * 2), 1 - View.ViewSizeAndInvSize.zw * 0.5);
+	float2 UV = ViewportUVToBufferUV(ViewportUV);
+	float2 ScreenSpacePos = 2 * float2(ViewportUV.x, 1 - ViewportUV.y) - 1;
 
 	float2 Offset = 0.5f * PostprocessInput0Size.zw;
 
@@ -100,9 +105,6 @@ void SetupPS(
 	// we compute the mask (front of back layer)
 	// and put into MRT0 or MRT1
 	
-	// screen position in [-1, 1] screen space
-	float2 ScreenSpacePos = UVAndScreenPos.zw;
-
 	// can be optimized, needed to not blur the skybox
 	float3 ScreenVector = normalize(mul(float4(ScreenSpacePos, 1, 0), View.ScreenToWorld).xyz);
 	float SkyWithoutHorizonMask = saturate(ScreenVector.z * 3.0f);
@@ -166,7 +168,7 @@ float4 DepthOfFieldUVLimit;
 
 // pixel shader to combine the full res scene and the blurred images behind and in front of the the focal plane
 void MainRecombinePS(
-	noperspective in float4 UVAndScreenPos : TEXCOORD0,
+	noperspective float4 unused : TEXCOORD0,
 	float4 SvPosition : SV_POSITION,
 	out float4 OutColor : SV_Target0
 	)
@@ -177,9 +179,7 @@ void MainRecombinePS(
 	float2 FullResUV = PixelPosCenter * PostprocessInput0Size.zw;
 
 	// DOF in half res
-//	float2 ViewportUV = FullResUV * float2(1, DepthOfFieldParams[1].z);// - 0.5 * PostprocessInput1Size.zw;
-//	float2 ViewportUV = (PixelPos * 0.5f + 0.5f) * PostprocessInput1Size.zw;
-	float2 ViewportUV = UVAndScreenPos.xy;
+	float2 ViewportUV = SvPositionToBufferUV(SvPosition);
 
 	// Clamp UV to avoid pulling bad data.
 	ViewportUV.x = clamp(ViewportUV.x, DepthOfFieldUVLimit.x, DepthOfFieldUVLimit.z);

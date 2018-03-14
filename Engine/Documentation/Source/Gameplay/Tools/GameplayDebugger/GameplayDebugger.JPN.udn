@@ -51,7 +51,7 @@ Gameplay Debugger は C++ コードでのみ拡張することができます。
 
 GDTComponent.h
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 	#pragma once
 	#include "GameplayDebuggingComponent.h"
 	#include "GDTComponent.generated.h"
@@ -69,7 +69,7 @@ GDTComponent.h
 
 GDTComponent.cpp
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 	#include "MyGameProject.h"
 	#include "GameplayDebuggingComponent.h"
 	#include "GDTComponent.h"
@@ -97,7 +97,7 @@ GDTComponent.cpp
 
 GDTHUDComponent.h
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 	#pragma once
 
 	#include "GameplayDebuggingHUDComponent.h"
@@ -113,7 +113,7 @@ GDTHUDComponent.h
 
 GDTHUDComponent.cpp
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 	#include "MyGameProject.h"
 	#include "GDTComponent.h"
 	#include "GDTHUDComponent.h"
@@ -152,7 +152,7 @@ GDTComponent クラスを拡張しましょう。
 
 GDTComponent.h
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 	#pragma once
 	#include "GameplayDebuggingComponent.h"
 	#include "GDTComponent.generated.h"
@@ -172,7 +172,7 @@ GDTComponent.h
 
 GDTComponent.cpp
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 	#include "MyGameProject.h"
 	#include "GameplayDebuggingComponent.h"
 	#include "GDTComponent.h"
@@ -215,7 +215,7 @@ HUD コンポーネントを拡張し、新しいビューにデータを表示�
 
 GDTHUDComponent.h
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 	#pragma once
 
 	#include "GameplayDebuggingHUDComponent.h"
@@ -233,7 +233,7 @@ GDTHUDComponent.h
 
 GDTHUDComponent.cpp
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 	#include "MyGameProject.h"
 	#include "GDTComponent.h"
 	#include "GDTHUDComponent.h"

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_PlayMontage.h"
 #include "PlayMontageCallbackProxy.h"
@@ -32,16 +32,15 @@ void UK2Node_PlayMontage::GetPinHoverText(const UEdGraphPin& Pin, FString& Hover
 {
 	Super::GetPinHoverText(Pin, HoverTextOut);
 
-	static FName NAME_OnNotifyBegin = FName(TEXT("OnNotifyBegin"));
-	static FName NAME_OnNotifyEnd = FName(TEXT("OnNotifyEnd"));
+	static const FName NAME_OnNotifyBegin = FName(TEXT("OnNotifyBegin"));
+	static const FName NAME_OnNotifyEnd = FName(TEXT("OnNotifyEnd"));
 
-	const FName PinName = FName(*Pin.PinName);
-	if (PinName == NAME_OnNotifyBegin)
+	if (Pin.PinName == NAME_OnNotifyBegin)
 	{
 		FText ToolTipText = LOCTEXT("K2Node_PlayMontage_OnNotifyBegin_Tooltip", "Event called when using a PlayMontageNotify or PlayMontageNotifyWindow Notify in a Montage.");
 		HoverTextOut = FString::Printf(TEXT("%s\n%s"), *ToolTipText.ToString(), *HoverTextOut);
 	}
-	else if (PinName == NAME_OnNotifyEnd)
+	else if (Pin.PinName == NAME_OnNotifyEnd)
 	{
 		FText ToolTipText = LOCTEXT("K2Node_PlayMontage_OnNotifyEnd_Tooltip", "Event called when using a PlayMontageNotifyWindow Notify in a Montage.");
 		HoverTextOut = FString::Printf(TEXT("%s\n%s"), *ToolTipText.ToString(), *HoverTextOut);

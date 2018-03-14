@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessEyeAdaptation.usf: PostProcessing eye adaptation
@@ -11,7 +11,6 @@
 // prior frame's eye adaptation exposure scale
 Texture2D EyeAdaptationTexture;
 uint4 EyeAdaptionSrcRect;
-
 
 // Compute the average alpha stored in a 2D texture.
 // in uint4 ROI:  region of interest.  (min, min, max, max).
@@ -69,10 +68,11 @@ float ComputeEyeAdaptation(float OldExposure, float TargetExposure, float FrameT
 float2 MainEyeAdaptationCommon()
 {
 	float2 OutColor = 0;
+
 	float ExposureOffsetMultipler = EyeAdaptationParams[1].x;
-	
 	float TargetExposure = ComputeEyeAdaptationExposure(PostprocessInput0);
-	float OldExposureScale = PostprocessInput0.Load(int3(0, 1, 0)).r;
+	
+	float OldExposureScale = PostprocessInput0.Load(int3(0, 1, 0)).x;
 	float OldExposure = ExposureOffsetMultipler / ( OldExposureScale != 0 ? OldExposureScale : 1.0f );
 	float FrameTime = EyeAdaptationParams[1].y;
 
@@ -82,8 +82,9 @@ float2 MainEyeAdaptationCommon()
 	float SmoothedExposureScale = 1.0f / max(0.0001f, SmoothedExposure);
 	float TargetExposureScale =   1.0f / max(0.0001f, TargetExposure);
 
-	OutColor.r = ExposureOffsetMultipler * SmoothedExposureScale;
-	OutColor.g = ExposureOffsetMultipler * TargetExposureScale;
+	OutColor.x = ExposureOffsetMultipler * SmoothedExposureScale;
+	OutColor.y = ExposureOffsetMultipler * TargetExposureScale;
+
 
 	return OutColor;
 }
@@ -121,7 +122,6 @@ void MainBasicEyeAdaptationSetupPS(
 
 	// Store log intensity in the alpha channel: scale to 0,1 range.
 	OutColor.w = EyeAdaptationParams[2].x * log2(Intensity) + EyeAdaptationParams[2].y; 
-	
 }
 
 
@@ -153,7 +153,13 @@ void MainLogLuminance2ExposureScalePS(
 	)
 {
 	float2 UV = UVAndScreenPos.xy;
-	
+
+#if USE_PREEXPOSURE
+	const float OneOverPreExposure = View.OneOverPreExposure;
+#else
+	const float OneOverPreExposure = 1.f;
+#endif
+
 	// Weighting is a triangle function focused at the center of the screen
 	// with the product of linear decay in x and y.  
 	// WeightSlope: 0 is uniform weighting.
@@ -168,7 +174,7 @@ void MainLogLuminance2ExposureScalePS(
 	LogLumAve = (LogLumAve - EyeAdaptationParams[2].y) / EyeAdaptationParams[2].x;
 	
 	// Convert LogLuminanceAverage to Average Intensity
-	float LumAve = exp2(LogLumAve) / 0.16f;;
+	float LumAve = OneOverPreExposure * exp2(LogLumAve) * AverageLuminanceScale;
 
 	float ClampedLumAve = clamp(LumAve, EyeAdaptationParams[0].z, EyeAdaptationParams[0].w );
 	
@@ -176,7 +182,7 @@ void MainLogLuminance2ExposureScalePS(
 	float ExposureOffsetMultipler = EyeAdaptationParams[1].x;
 
 	// The Exposure Scale (and thus intensity) used in the previous frame
-	float ExposureScaleOld = EyeAdaptationTexture.Load(int3(0, 0, 0)).r;
+	float ExposureScaleOld = EyeAdaptationTexture.Load(int3(0, 0, 0)).x;
 	float LuminanceAveOld = ExposureOffsetMultipler / (ExposureScaleOld != 0 ? ExposureScaleOld : 1.0f);
 
 	// Time-based expoential blend of the intensity to allow the eye adaptation to ramp up over a few frames.
@@ -188,7 +194,7 @@ void MainLogLuminance2ExposureScalePS(
 	float TargetExposureScale   = 1.0f / max(0.0001f, ClampedLumAve);
 	
 	// Output the number that will rescale the image intensity
-	OutColor.r = ExposureOffsetMultipler * SmoothedExposureScale;
+	OutColor.x = ExposureOffsetMultipler * SmoothedExposureScale;
 	// Output the target value
-	OutColor.g = ExposureOffsetMultipler * TargetExposureScale;
+	OutColor.y = ExposureOffsetMultipler * TargetExposureScale;
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/GameInstance.h"
 #include "Misc/MessageDialog.h"
@@ -404,18 +404,20 @@ void UGameInstance::StartGameInstance()
 	
 	const TCHAR* Tmp = FCommandLine::Get();
 
-#if UE_BUILD_SHIPPING && !UE_SERVER && !UE_ALLOW_MAP_OVERRIDE_IN_SHIPPING
-	// In shipping don't allow a map override unless on server
+#if UE_BUILD_SHIPPING && !UE_SERVER && !UE_ALLOW_MAP_OVERRIDE_IN_SHIPPING && !ENABLE_PGO_PROFILE
+	// In shipping don't allow a map override unless on server, or running PGO profiling
 	Tmp = TEXT("");
-#endif // UE_BUILD_SHIPPING && !UE_SERVER
+#endif // UE_BUILD_SHIPPING && !UE_SERVER && !UE_ALLOW_MAP_OVERRIDE_IN_SHIPPING && !ENABLE_PGO_PROFILE
 
 #if !UE_SERVER
 	// Parse replay name if specified on cmdline
 	FString ReplayCommand;
 	if ( FParse::Value( Tmp, TEXT( "-REPLAY=" ), ReplayCommand ) )
 	{
-		PlayReplay( ReplayCommand );
-		return;
+		if(PlayReplay( ReplayCommand ))
+		{
+			return;
+		}
 	}
 #endif // !UE_SERVER
 
@@ -835,12 +837,6 @@ void UGameInstance::StartRecordingReplay(const FString& Name, const FString& Fri
 		return;
 	}
 
-	if ( CurrentWorld->WorldType == EWorldType::PIE )
-	{
-		UE_LOG(LogDemo, Warning, TEXT("UGameInstance::StartRecordingReplay: Function called while running a PIE instance, this is disabled."));
-		return;
-	}
-
 	if ( CurrentWorld->DemoNetDriver && CurrentWorld->DemoNetDriver->IsPlaying() )
 	{
 		UE_LOG(LogDemo, Warning, TEXT("UGameInstance::StartRecordingReplay: A replay is already playing, cannot begin recording another one."));
@@ -935,20 +931,14 @@ void UGameInstance::StopRecordingReplay()
 	}
 }
 
-void UGameInstance::PlayReplay(const FString& Name, UWorld* WorldOverride, const TArray<FString>& AdditionalOptions)
+bool UGameInstance::PlayReplay(const FString& Name, UWorld* WorldOverride, const TArray<FString>& AdditionalOptions)
 {
 	UWorld* CurrentWorld = WorldOverride != nullptr ? WorldOverride : GetWorld();
 
 	if ( CurrentWorld == nullptr )
 	{
 		UE_LOG( LogDemo, Warning, TEXT( "UGameInstance::PlayReplay: GetWorld() is null" ) );
-		return;
-	}
-
-	if ( CurrentWorld->WorldType == EWorldType::PIE )
-	{
-		UE_LOG( LogDemo, Warning, TEXT( "UGameInstance::PlayReplay: Function called while running a PIE instance, this is disabled." ) );
-		return;
+		return false;
 	}
 
 	CurrentWorld->DestroyDemoNetDriver();
@@ -968,7 +958,7 @@ void UGameInstance::PlayReplay(const FString& Name, UWorld* WorldOverride, const
 	if ( !GEngine->CreateNamedNetDriver( CurrentWorld, NAME_DemoNetDriver, NAME_DemoNetDriver ) )
 	{
 		UE_LOG(LogDemo, Warning, TEXT( "PlayReplay: failed to create demo net driver!" ) );
-		return;
+		return false;
 	}
 
 	CurrentWorld->DemoNetDriver = Cast< UDemoNetDriver >( GEngine->FindNamedNetDriver( CurrentWorld, NAME_DemoNetDriver ) );
@@ -988,6 +978,8 @@ void UGameInstance::PlayReplay(const FString& Name, UWorld* WorldOverride, const
 	{
 		FCoreUObjectDelegates::PostDemoPlay.Broadcast();
 	}
+
+	return true;
 }
 
 void UGameInstance::AddUserToReplay(const FString& UserString)
@@ -1064,6 +1056,23 @@ bool UGameInstance::ClientTravelToSession(int32 ControllerId, FName InSessionNam
 void UGameInstance::NotifyPreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel)
 {
 	OnNotifyPreClientTravel().Broadcast(PendingURL, TravelType, bIsSeamlessTravel);
+}
+
+void UGameInstance::ReturnToMainMenu()
+{
+	UWorld* const World = GetWorld();
+	
+	if (ensureMsgf(World != nullptr, TEXT("UGameInstance::ReturnToMainMenu requires a valid world.")))
+	{
+		if (UOnlineSession* const LocalOnlineSession = GetOnlineSession())
+		{
+			LocalOnlineSession->HandleDisconnect(World, World->GetNetDriver());
+		}
+		else
+		{
+			GetEngine()->HandleDisconnect(World, World->GetNetDriver());
+		}
+	}
 }
 
 void UGameInstance::PreloadContentForURL(FURL InURL)

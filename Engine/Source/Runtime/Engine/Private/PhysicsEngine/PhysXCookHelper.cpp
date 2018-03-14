@@ -1,11 +1,13 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
 
 #include "PhysXCookHelper.h"
 #include "PhysXSupport.h"
 #include "IPhysXCookingModule.h"
-#include "IPhysXCooking.h"
 
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+#if WITH_PHYSX
+
+#include "IPhysXCooking.h"
 
 FPhysXCookHelper::FPhysXCookHelper(IPhysXCookingModule* InPhysXCookingModule)
 	: PhysXCookingModule(InPhysXCookingModule)
@@ -67,3 +69,5 @@ void FPhysXCookHelper::CreateConvexElements_Concurrent(const TArray<TArray<FVect
 		}
 	}
 }
+
+#endif //WITH_PHYSX

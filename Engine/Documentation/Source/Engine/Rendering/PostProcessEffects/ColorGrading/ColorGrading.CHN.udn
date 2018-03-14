@@ -29,7 +29,8 @@ Description:调整场景颜色所需的色调映射和颜色校正效果
 | **Scene Color Tint** （场景着色）| 被应用为HDR场景颜色的过滤器颜色（乘积）。 [INCLUDE:#SceneColorTint] |
 | **Tonemapper Toe Factor** （色调映射器末端因数）| 启用对色调映射器中暗色的修改。 该值的范围是[0.0, 1.0]。 [INCLUDE:#TonemapperToeFactor] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SceneColorTint]
 [REGION:imagetable]
 | ![Scene Color Tint - (1.0, 1.0, 1.0)](scene_tint_full_small.png)(w:390) | ![Scene Color Tint - (0.25, 0.25, 0.25)](scene_tint_quarter_small.png)(w:390)
@@ -45,7 +46,8 @@ Description:调整场景颜色所需的色调映射和颜色校正效果
 | 0.0 | 1.0 |
 [/REGION]
 [/EXCERPT:TonemapperToeFactor]
--->
+
+[/COMMENT]
 
 ## 颜色校正
 
@@ -76,7 +78,8 @@ Description:调整场景颜色所需的色调映射和颜色校正效果
 | **Color Grading Intensity** (颜色分级强度)| 控制颜色校正效果的缩放因数。 |
 | **Color Grading LUT** （颜色分级查找表）| 用于颜色校正查找表的LUT贴图。 [INCLUDE:Engine/Rendering/PostProcessEffects/ColorGrading#ColorGradingLUT] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ColorGradingLUT]
 [REGION:imagetable]
 | ![Natural Scene](lut_none.png)(w:265) | ![Greenish Scene](lut_green.png)(w:265) | ![Reddish Scene](lut_red.png)(w:265) |
@@ -84,7 +87,8 @@ Description:调整场景颜色所需的色调映射和颜色校正效果
 | ![Neutral LUT](RGBTable16x1.png) | ![Greenish LUT](LUT_Greenish.png) | ![Reddish LUT](LUT_Reddish.png) |
 [/REGION:imagetable]
 [/EXCERPT:ColorGradingLUT]
--->
+
+[/COMMENT]
 
 ### LUT贴图创建
 

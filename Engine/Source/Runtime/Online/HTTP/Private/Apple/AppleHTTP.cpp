@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "AppleHTTP.h"
@@ -439,8 +439,7 @@ float FAppleHttpRequest::GetElapsedTime()
 	self.Response = (NSHTTPURLResponse*)response;
 	
 	// presize the payload container if possible
-	Payload.Empty();
-	Payload.Reserve([response expectedContentLength] != NSURLResponseUnknownLength ? [response expectedContentLength] : 0);
+	Payload.Empty([response expectedContentLength] != NSURLResponseUnknownLength ? [response expectedContentLength] : 0);
 	UE_LOG(LogHttp, Verbose, TEXT("didReceiveResponse: expectedContentLength = %d. Length = %d: %p"), [response expectedContentLength], Payload.Max(), self);
 }
 

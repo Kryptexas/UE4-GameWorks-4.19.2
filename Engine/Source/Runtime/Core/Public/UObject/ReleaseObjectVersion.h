@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreTypes.h"
@@ -42,6 +42,15 @@ struct CORE_API FReleaseObjectVersion
 
 		// rename bNoTwist to bAllowTwist
 		RenameNoTwistToAllowTwistInTwoBoneIK,
+
+		// Material layers serialization refactor
+		MaterialLayersParameterSerializationRefactor,
+
+		// Added disable flag to skeletal mesh data
+		AddSkeletalMeshSectionDisable,
+
+		// Removed objects that were serialized as part of this material feature
+		RemovedMaterialSharedInputCollection,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

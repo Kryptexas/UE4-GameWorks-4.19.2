@@ -24,7 +24,7 @@ tags:Aim Offset
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在最终部分中，我们将更新角色蓝图，变更控制器旋转的处理方式，并在进行测试前修复一些小问题。 
 
@@ -79,7 +79,7 @@ CEIeNE9lKxI
 
 可进行更深入的操作：使角色瞄准一个方向，并在这个方向播放射击动画；和（或）使角色在朝一个方向移动或通过现有动画上的 [分层动画](Engine\Animation\AnimHowTo\AdditiveAnimations) 进行蹲伏时播放射击动画。或者可查看 [骨架网格体套接字](Engine\Content\Types\SkeletalMeshes\Sockets) 范例，了解如何将武器附加到角色的手上，使其进行瞄准。 
 
-%Steps%
+
 
 
 

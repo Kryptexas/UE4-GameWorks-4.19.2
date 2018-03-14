@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectBase.h: Unreal UObject base class
@@ -30,6 +30,9 @@ class COREUOBJECT_API UObjectBase
 protected:
 	UObjectBase() :
 		 NamePrivate(NoInit)  // screwy, but the name was already set and we don't want to set it again
+#if ENABLE_STATNAMEDEVENTS
+		, StatIDStringStorage(nullptr)
+#endif
 	{
 	}
 	/**
@@ -140,7 +143,13 @@ public:
 			}
 			return StatID;
 		}
-#endif
+#elif ENABLE_STATNAMEDEVENTS
+		if (!StatID.IsValidStat() && (bForDeferredUse || GCycleStatsShouldEmitNamedEvents))
+		{
+			CreateStatID();
+		}
+		return StatID;
+#endif // STATS
 		return TStatId(); // not doing stats at the moment, or ever
 	}
 
@@ -150,7 +159,7 @@ private:
 	/** 
 	 * Creates this stat ID for the object...and handle a null this pointer
 	**/
-#if STATS
+#if STATS || ENABLE_STATNAMEDEVENTS
 	void CreateStatID() const;
 #endif
 
@@ -229,8 +238,14 @@ private:
 	UObject*						OuterPrivate;
 
 
+#if STATS || ENABLE_STATNAMEDEVENTS
 	/** Stat id of this object, 0 if nobody asked for it yet */
-	STAT(mutable TStatId				StatID;)
+	mutable TStatId				StatID;
+
+#if ENABLE_STATNAMEDEVENTS
+	mutable PROFILER_CHAR* StatIDStringStorage;
+#endif
+#endif // STATS || ENABLE_STATNAMEDEVENTS
 
 	// This is used by the reinstancer to re-class and re-archetype the current instances of a class before recompiling
 	friend class FBlueprintCompileReinstancer;

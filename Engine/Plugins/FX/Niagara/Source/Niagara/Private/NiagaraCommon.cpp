@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraCommon.h"
 #include "NiagaraDataSet.h"
@@ -65,6 +65,12 @@ FString FNiagaraTypeHelper::ToString(const uint8* ValueData, const UScriptStruct
 
 FNiagaraSystemUpdateContext::~FNiagaraSystemUpdateContext()
 {
+	INiagaraModule& NiagaraModule = FModuleManager::LoadModuleChecked<INiagaraModule>("Niagara");
+	for (UNiagaraSystem* Sys : SystemSimsToDestroy)
+	{
+		NiagaraModule.DestroyAllSystemSimulations(Sys);
+	}
+
 	for (UNiagaraComponent* Comp : ComponentsToReInit)
 	{
 		Comp->ReinitializeSystem();
@@ -72,6 +78,16 @@ FNiagaraSystemUpdateContext::~FNiagaraSystemUpdateContext()
 	for (UNiagaraComponent* Comp : ComponentsToReset)
 	{
 		Comp->ResetSystem();
+	}
+}
+
+void FNiagaraSystemUpdateContext::AddAll(bool bReInit)
+{
+	for (TObjectIterator<UNiagaraComponent> It; It; ++It)
+	{
+		UNiagaraComponent* Comp = *It;
+		check(Comp);
+		AddInternal(Comp, bReInit);
 	}
 }
 
@@ -109,8 +125,8 @@ void FNiagaraSystemUpdateContext::Add(const UNiagaraScript* Script, bool bReInit
 	{
 		UNiagaraComponent* Comp = *It;
 		check(Comp);
-		FNiagaraSystemInstance* SystemInst = Comp->GetSystemInstance();
-		if (SystemInst && SystemInst->UsesScript(Script))
+		UNiagaraSystem* System = Comp->GetAsset();
+		if (System && System->UsesScript(Script))
 		{
 			AddInternal(Comp, bReInit);
 		}
@@ -153,9 +169,35 @@ void FNiagaraSystemUpdateContext::AddInternal(UNiagaraComponent* Comp, bool bReI
 	if (bReInit)
 	{
 		ComponentsToReInit.AddUnique(Comp);
+		SystemSimsToDestroy.AddUnique(Comp->GetAsset());
 	}
 	else
 	{
 		ComponentsToReset.AddUnique(Comp);
 	}
+}
+
+FName NIAGARA_API FNiagaraUtilities::GetUniqueName(FName CandidateName, const TSet<FName>& ExistingNames)
+{
+	if (ExistingNames.Contains(CandidateName) == false)
+	{
+		return CandidateName;
+	}
+
+	FString CandidateNameString = CandidateName.ToString();
+	FString BaseNameString = CandidateNameString;
+	if (CandidateNameString.Len() >= 3 && CandidateNameString.Right(3).IsNumeric())
+	{
+		BaseNameString = CandidateNameString.Left(CandidateNameString.Len() - 3);
+	}
+
+	FName UniqueName = FName(*BaseNameString);
+	int32 NameIndex = 1;
+	while (ExistingNames.Contains(UniqueName))
+	{
+		UniqueName = FName(*FString::Printf(TEXT("%s%03i"), *BaseNameString, NameIndex));
+		NameIndex++;
+	}
+
+	return UniqueName;
 }

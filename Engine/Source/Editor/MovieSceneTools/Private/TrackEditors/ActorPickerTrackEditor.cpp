@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "TrackEditors/ActorPickerTrackEditor.h"
 #include "Widgets/SBoxPanel.h"
@@ -21,6 +21,8 @@
 #include "SceneOutlinerModule.h"
 #include "Private/SSocketChooser.h"
 #include "LevelEditor.h"
+#include "MovieSceneObjectBindingIDPicker.h"
+#include "MovieSceneToolHelpers.h"
 
 #define LOCTEXT_NAMESPACE "FActorPickerTrackEditor"
 
@@ -56,68 +58,105 @@ void FActorPickerTrackEditor::ShowActorSubMenu(FMenuBuilder& MenuBuilder, FGuid 
 		}
 	};
 
-	using namespace SceneOutliner;
-
-	SceneOutliner::FInitializationOptions InitOptions;
+	auto CreateNewBinding = 
+		[this, ObjectBinding, Section](FMenuBuilder& SubMenuBuilder)
 	{
-		InitOptions.Mode = ESceneOutlinerMode::ActorPicker;			
-		InitOptions.bShowHeaderRow = false;
-		InitOptions.bFocusSearchBoxWhenOpened = true;
-		InitOptions.bShowTransient = true;
-		InitOptions.bShowCreateNewFolder = false;
-		// Only want the actor label column
-		InitOptions.ColumnMap.Add(FBuiltInColumnTypes::Label(), FColumnInfo(EColumnVisibility::Visible, 0));
+		using namespace SceneOutliner;
 
-		// Only display Actors that we can attach too
-		InitOptions.Filters->AddFilterPredicate( SceneOutliner::FActorFilterPredicate::CreateSP(this, &FActorPickerTrackEditor::IsActorPickable, ObjectBinding, Section) );
-	}		
+		SceneOutliner::FInitializationOptions InitOptions;
+		{
+			InitOptions.Mode = ESceneOutlinerMode::ActorPicker;			
+			InitOptions.bShowHeaderRow = false;
+			InitOptions.bFocusSearchBoxWhenOpened = true;
+			InitOptions.bShowTransient = true;
+			InitOptions.bShowCreateNewFolder = false;
+			// Only want the actor label column
+			InitOptions.ColumnMap.Add(FBuiltInColumnTypes::Label(), FColumnInfo(EColumnVisibility::Visible, 0));
 
-	// Actor selector to allow the user to choose a parent actor
-	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>( "SceneOutliner" );
+			// Only display Actors that we can attach too
+			InitOptions.Filters->AddFilterPredicate( SceneOutliner::FActorFilterPredicate::CreateSP(this, &FActorPickerTrackEditor::IsActorPickable, ObjectBinding, Section) );
+		}		
 
-	TSharedRef< SWidget > MenuWidget = 
-		SNew(SHorizontalBox)
+		// Actor selector to allow the user to choose a parent actor
+		FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>( "SceneOutliner" );
 
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		[
-			SNew(SBox)
-			.MaxDesiredHeight(400.0f)
-			.WidthOverride(300.0f)
+		TSharedRef< SWidget > MenuWidget = 
+			SNew(SHorizontalBox)
+
+			+SHorizontalBox::Slot()
+			.AutoWidth()
 			[
-				SceneOutlinerModule.CreateSceneOutliner(
-					InitOptions,
-					FOnActorPicked::CreateSP(this, &FActorPickerTrackEditor::ActorPicked, ObjectBinding, Section )
-					)
-			]
-		]
-	
-		+SHorizontalBox::Slot()
-		.VAlign(VAlign_Top)
-		.AutoWidth()
-		[
-			SNew(SVerticalBox)
-
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(4.0f, 0.0f, 0.0f, 0.0f)
-			[
-				SNew(SButton)
-				.ToolTipText( LOCTEXT( "PickButtonLabel", "Pick a parent actor to attach to") )
-				.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
-				.OnClicked(FOnClicked::CreateStatic(&Local::OnInteractiveActorPickerClicked, this, ObjectBinding, Section))
-				.ContentPadding(4.0f)
-				.ForegroundColor(FSlateColor::UseForeground())
-				.IsFocusable(false)
+				SNew(SBox)
+				.MaxDesiredHeight(400.0f)
+				.WidthOverride(300.0f)
 				[
-					SNew(SImage)
-					.Image(FEditorStyle::GetBrush("PropertyWindow.Button_PickActorInteractive"))
-					.ColorAndOpacity(FSlateColor::UseForeground())
+					SceneOutlinerModule.CreateSceneOutliner(
+						InitOptions,
+						FOnActorPicked::CreateSP(this, &FActorPickerTrackEditor::ActorPicked, ObjectBinding, Section )
+						)
 				]
 			]
-		];
+	
+			+SHorizontalBox::Slot()
+			.VAlign(VAlign_Top)
+			.AutoWidth()
+			[
+				SNew(SVerticalBox)
 
-	MenuBuilder.AddWidget(MenuWidget, FText::GetEmpty(), false);
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+				[
+					SNew(SButton)
+					.ToolTipText( LOCTEXT( "PickButtonLabel", "Pick a parent actor to attach to") )
+					.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+					.OnClicked(FOnClicked::CreateStatic(&Local::OnInteractiveActorPickerClicked, this, ObjectBinding, Section))
+					.ContentPadding(4.0f)
+					.ForegroundColor(FSlateColor::UseForeground())
+					.IsFocusable(false)
+					[
+						SNew(SImage)
+						.Image(FEditorStyle::GetBrush("PropertyWindow.Button_PickActorInteractive"))
+						.ColorAndOpacity(FSlateColor::UseForeground())
+					]
+				]
+			];
+
+		SubMenuBuilder.AddWidget(MenuWidget, FText::GetEmpty(), false);
+	};
+
+	TSharedPtr<ISequencer> SequencerPtr = GetSequencer();
+
+	// Always recreate the binding picker to ensure we have the correct sequence ID
+	BindingIDPicker = MakeShared<FTrackEditorBindingIDPicker>(SequencerPtr->GetFocusedTemplateID(), SequencerPtr);
+	BindingIDPicker->OnBindingPicked().AddRaw(this, &FActorPickerTrackEditor::ExistingBindingPicked, ObjectBinding);
+
+	FText ExistingBindingText = LOCTEXT("ExistingBinding", "Existing Binding");
+	FText NewBindingText = LOCTEXT("NewBinding", "New Binding");
+
+	const bool bHasExistingBindings = !BindingIDPicker->IsEmpty();
+	if (bHasExistingBindings)
+	{
+		MenuBuilder.AddSubMenu(
+			NewBindingText,
+			LOCTEXT("NewBinding_Tip", "Add a new section by creating a new binding to an object in the world."),
+			FNewMenuDelegate::CreateLambda(CreateNewBinding)
+		);
+
+		MenuBuilder.BeginSection(NAME_None, ExistingBindingText);
+		{
+			BindingIDPicker->GetPickerMenu(MenuBuilder);
+		}
+		MenuBuilder.EndSection();
+	}
+	else
+	{
+		MenuBuilder.BeginSection(NAME_None, NewBindingText);
+		{
+			CreateNewBinding(MenuBuilder);
+		}
+		MenuBuilder.EndSection();
+	}
 }
 
 class SComponentChooserPopup : public SCompoundWidget
@@ -217,10 +256,38 @@ public:
 
 void FActorPickerTrackEditor::ActorPicked(AActor* ParentActor, FGuid ObjectGuid, UMovieSceneSection* Section)
 {
-	TArray<USceneComponent*> ComponentsWithSockets;
-	if (ParentActor != NULL)
+	ActorPickerIDPicked(FActorPickerID(ParentActor, FMovieSceneObjectBindingID()), ObjectGuid, Section);
+}
+
+
+void FActorPickerTrackEditor::ExistingBindingPicked(FMovieSceneObjectBindingID ExistingBindingID, FGuid ObjectBinding)
+{
+	TSharedPtr<ISequencer> SequencerPtr = GetSequencer();
+
+	TArrayView<TWeakObjectPtr<UObject>> RuntimeObjects = SequencerPtr->FindBoundObjects(ExistingBindingID.GetGuid(), ExistingBindingID.GetSequenceID());
+	for (auto RuntimeObject : RuntimeObjects)
 	{
-		TInlineComponentArray<USceneComponent*> Components(ParentActor);
+		if (RuntimeObject.IsValid())
+		{
+			AActor* Actor = Cast<AActor>(RuntimeObject.Get());
+			if (Actor)
+			{
+				ActorPickerIDPicked(FActorPickerID(Actor, ExistingBindingID), ObjectBinding, nullptr);
+				return;
+			}
+		}
+	}
+
+	ActorPickerIDPicked(FActorPickerID(nullptr, ExistingBindingID), ObjectBinding, nullptr);
+}
+
+
+void FActorPickerTrackEditor::ActorPickerIDPicked(FActorPickerID ActorPickerID, FGuid ObjectGuid, UMovieSceneSection* Section)
+{
+	TArray<USceneComponent*> ComponentsWithSockets;
+	if (ActorPickerID.ActorPicked.IsValid())
+	{
+		TInlineComponentArray<USceneComponent*> Components(ActorPickerID.ActorPicked.Get());
 
 		for(USceneComponent* Component : Components)
 		{
@@ -234,7 +301,7 @@ void FActorPickerTrackEditor::ActorPicked(AActor* ParentActor, FGuid ObjectGuid,
 	if (ComponentsWithSockets.Num() == 0)
 	{
 		FSlateApplication::Get().DismissAllMenus();
-		ActorSocketPicked( NAME_None, nullptr, ParentActor, ObjectGuid, Section );
+		ActorSocketPicked( NAME_None, nullptr, ActorPickerID, ObjectGuid, Section );
 		return;
 	}
 
@@ -247,8 +314,8 @@ void FActorPickerTrackEditor::ActorPicked(AActor* ParentActor, FGuid ObjectGuid,
 	{			
 		MenuWidget = 
 			SNew(SComponentChooserPopup)
-			.Actor(ParentActor)
-			.OnComponentChosen(this, &FActorPickerTrackEditor::ActorComponentPicked, ParentActor, ObjectGuid, Section);		
+			.Actor(ActorPickerID.ActorPicked.Get())
+			.OnComponentChosen(this, &FActorPickerTrackEditor::ActorComponentPicked, ActorPickerID, ObjectGuid, Section);		
 
 		// Create as context menu
 		FSlateApplication::Get().PushMenu(
@@ -261,22 +328,25 @@ void FActorPickerTrackEditor::ActorPicked(AActor* ParentActor, FGuid ObjectGuid,
 	}
 	else
 	{
-		ActorComponentPicked(ComponentsWithSockets[0]->GetName(), ParentActor, ObjectGuid, Section);
+		ActorComponentPicked(ComponentsWithSockets[0]->GetName(), ActorPickerID, ObjectGuid, Section);
 	}
 }
 
 
-void FActorPickerTrackEditor::ActorComponentPicked(FString ComponentName, AActor* ParentActor, FGuid ObjectGuid, UMovieSceneSection* Section)
+void FActorPickerTrackEditor::ActorComponentPicked(FString ComponentName, FActorPickerID ActorPickerID, FGuid ObjectGuid, UMovieSceneSection* Section)
 {
 	USceneComponent* ComponentWithSockets = nullptr;
-	TInlineComponentArray<USceneComponent*> Components(ParentActor);
-
-	for(USceneComponent* Component : Components)
+	if (ActorPickerID.ActorPicked.IsValid())
 	{
-		if (Component->GetName() == ComponentName)
+		TInlineComponentArray<USceneComponent*> Components(ActorPickerID.ActorPicked.Get());
+	
+		for(USceneComponent* Component : Components)
 		{
-			ComponentWithSockets = Component;
-			break;
+			if (Component->GetName() == ComponentName)
+			{
+				ComponentWithSockets = Component;
+				break;
+			}
 		}
 	}
 
@@ -293,7 +363,7 @@ void FActorPickerTrackEditor::ActorComponentPicked(FString ComponentName, AActor
 	MenuWidget = 
 		SNew(SSocketChooserPopup)
 		.SceneComponent(ComponentWithSockets)
-		.OnSocketChosen(this, &FActorPickerTrackEditor::ActorSocketPicked, ComponentWithSockets, ParentActor, ObjectGuid, Section);		
+		.OnSocketChosen(this, &FActorPickerTrackEditor::ActorSocketPicked, ComponentWithSockets, ActorPickerID, ObjectGuid, Section);		
 
 	// Create as context menu
 	FSlateApplication::Get().PushMenu(

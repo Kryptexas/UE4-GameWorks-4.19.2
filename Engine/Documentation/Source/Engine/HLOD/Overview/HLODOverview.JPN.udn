@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3189773
+﻿INTSourceChangelist:3801260
 title:HLOD （Hierarchical Level of Detail）の概要
 Description:UE4 の HLOD システムの概要のページです。
 crumbs:%ROOT%
@@ -71,11 +71,8 @@ HLOD アウトライナーで **LODActor** を右クリックし、**Select Cont
 
 ![image alt text](image_24.png)(h:237 w:270 convert:false)
 
-[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+[COMMENT:none]
 
-[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
-
-<!--
 
 We should have a doc that covers the "Simplygon" features of HLOD
 
@@ -83,4 +80,5 @@ We should have a doc that covers the "Simplygon" features of HLOD
 
 HLODMesh カリング ボリュームを HLOD クラスタに追加して、HLOD メッシュを生成する前にソース メッシュからトライアングルを取り除くことができます。
 
--->
+
+[/COMMENT]

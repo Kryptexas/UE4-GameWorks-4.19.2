@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,6 +12,8 @@
  **/
 struct ENGINE_API FEditorSupportDelegates
 {
+	/** delegate type for when the editor is about to cleanse an object that *must* be purged ( Params: UObject* Object ) */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FPrepareToCleanseEditorObject, UObject*);
 	/** delegate type for force property window rebuild events ( Params: UObject* Object ) */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnForcePropertyWindowRebuild, UObject*); 
 	/** delegate type for material texture setting change events ( Params: UMaterialIterface* Material ) */
@@ -27,6 +29,8 @@ struct ENGINE_API FEditorSupportDelegates
 
 	/** Called when all viewports need to be redrawn */
 	static FSimpleMulticastDelegate RedrawAllViewports;
+	/** Called when the editor is about to cleanse an object that *must* be purged (such as when changing the active map or level) */
+	static FPrepareToCleanseEditorObject PrepareToCleanseEditorObject;
 	/** Called when the editor is cleansing of transient references before a map change event */
 	static FSimpleMulticastDelegate CleanseEditor;
 	/** Called when the world is modified */

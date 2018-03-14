@@ -214,7 +214,8 @@ Example measured Materials. Top: Charcoal, fresh concrete, worn asphalt. Bottom:
 
 
 
-<!-------------
+[COMMENT:none]
+-----------
 
 * **Base Color** - The color of your object. Similar to Diffuse in other Material systems, including UE3.
 * **Metallic** - Literally, this controls how metal-like your surface will be. For pure surfaces, such as pure metal, pure stone, pure plastic, etc. this will be 0 _or_ 1, not anything in between. When creating surfaces like corroded or rusty metals, you may find that you need some value _between_ 0 and 1.
@@ -389,4 +390,5 @@ Example measured Materials. Top: Charcoal, fresh concrete, worn asphalt. Bottom:
 [/OBJECT]
 [/EXCERPT:SpecularSlider]
 
--->
+
+[/COMMENT]

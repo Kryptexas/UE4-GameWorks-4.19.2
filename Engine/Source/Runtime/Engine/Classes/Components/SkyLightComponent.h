@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -221,6 +221,9 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	 */
 	UFUNCTION(BlueprintCallable, Category="SkyLight")
 	void SetCubemapBlend(UTextureCube* SourceCubemap, UTextureCube* DestinationCubemap, float InBlendFraction);
+
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|SkyLight")
+	void SetLowerHemisphereColor(const FLinearColor& InLowerHemisphereColor);
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|SkyLight")
 	void SetOcclusionTint(const FColor& InTint);

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BlendSpaceBase.cpp: Base class for blend space objects
@@ -353,11 +353,11 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 
 			// generate notifies and sets time
 			{
-				TArray<const FAnimNotifyEvent*> Notifies;
+				TArray<FAnimNotifyEventReference> Notifies;
 
 				const float ClampedNormalizedPreviousTime = FMath::Clamp<float>(NormalizedPreviousTime, 0.f, 1.f);
 				const float ClampedNormalizedCurrentTime = FMath::Clamp<float>(NormalizedCurrentTime, 0.f, 1.f);
-				const bool bGenerateNotifies = Context.ShouldGenerateNotifies() && (NormalizedCurrentTime != NormalizedPreviousTime) && NotifyTriggerMode != ENotifyTriggerMode::None;
+				const bool bGenerateNotifies = (NormalizedCurrentTime != NormalizedPreviousTime) && NotifyTriggerMode != ENotifyTriggerMode::None;
 				
 				// Get the index of the highest weight, assuming that the first is the highest until we find otherwise
 				const bool bTriggerNotifyHighestWeightedAnim = NotifyTriggerMode == ENotifyTriggerMode::HighestWeightedAnimation && SampleDataList.Num() > 0;
@@ -420,7 +420,7 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 
 				if (bGenerateNotifies && Notifies.Num() > 0)
 				{
-					NotifyQueue.AddAnimNotifies(Notifies, Instance.EffectiveBlendWeight);
+					NotifyQueue.AddAnimNotifies(Context.ShouldGenerateNotifies(), Notifies, Instance.EffectiveBlendWeight);
 				}
 			}
 		}

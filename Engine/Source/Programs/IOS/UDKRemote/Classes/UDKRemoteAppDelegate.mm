@@ -1,5 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
+//  Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 //
 //  UDKRemoteAppDelegate.m
 //  UDKRemote
@@ -9,24 +8,23 @@
 
 #import "UDKRemoteAppDelegate.h"
 #import "MainViewController.h"
-#include "IPhoneObjCWrapper.h"
-#include "IPhoneHome.h"
 
 @implementation UDKRemoteAppDelegate
 
-/** Port to send to */
-#define DEFAULT_PORT_NUMBER 41765
+/** Default Ports to send to */
+#define DEFAULT_PIP_PORT_NUMBER 41765
+#define DEFAULT_PIE_PORT_NUMBER 41766
 
 
 @synthesize window;
 @synthesize mainViewController;
 @synthesize PCAddress;
-@synthesize Port;
 @synthesize bShouldIgnoreTilt;
 @synthesize bShouldIgnoreTouch;
 @synthesize bLockOrientation;
 @synthesize LockedOrientation;
 @synthesize RecentComputers;
+@synthesize Ports;
 
 extern time_t GAppInvokeTime;
 
@@ -42,13 +40,16 @@ extern time_t GAppInvokeTime;
 	self.bLockOrientation = [Defaults boolForKey:@"bLockOrientation"];
 	self.LockedOrientation = (UIInterfaceOrientation)[Defaults integerForKey:@"LockedOrientation"];
 	
-	// load port setting
-	self.Port = [Defaults integerForKey:@"Port"];
-	if (self.Port == 0)
-	{
-		self.Port = DEFAULT_PORT_NUMBER;
-	}
 	self.RecentComputers = [NSMutableArray arrayWithArray:[Defaults stringArrayForKey:@"RecentComputers"]];
+	self.Ports = [NSMutableArray arrayWithArray:[Defaults stringArrayForKey:@"Ports"]];
+	if( [self.Ports count] == 0 )
+	{
+		//If default ports list was empty, add 2 default ports...
+		NSString* DefaultPIEPort = [NSString stringWithFormat:@"%d", DEFAULT_PIE_PORT_NUMBER];
+		[self.Ports addObject:DefaultPIEPort];
+		NSString* DefaultPIPPort = [NSString stringWithFormat:@"%d", DEFAULT_PIP_PORT_NUMBER];
+		[self.Ports addObject:DefaultPIPPort];
+	}
 
 	// load either iphone or ipad interface
 	MainViewController *aController;
@@ -63,6 +64,7 @@ extern time_t GAppInvokeTime;
 
 	// set the mainviewcontroller to the one loaded from a .nib
 	self.mainViewController = aController;
+	self.window.rootViewController = aController;
 	[aController release];
 	
     mainViewController.view.frame = [UIScreen mainScreen].applicationFrame;
@@ -71,41 +73,26 @@ extern time_t GAppInvokeTime;
 
 	if (self.PCAddress == nil || [self.PCAddress compare:@""] == NSOrderedSame)
 	{
-		[aController showInfo];
+		[aController FlipController:NO sender:aController.InfoButton];
 	}
-	
-	// Try to phone home (the code inside is self-throttling)
-	[IPhoneHome queueRequest];
 	
 	return YES;
 }
 
 - (void)applicationDidReceiveMemoryWarning:(UIApplication *)application
 {
-	IPhoneIncrementUserSettingU64("IPhoneHome::NumMemoryWarnings");
 }
 
 - (void)applicationDidBecomeActive:(UIApplication *)application
 {
-	IPhoneIncrementUserSettingU64("IPhoneHome::NumInvocations");
-	IPhoneSaveUserSettingU64("IPhoneHome::LastRunCrashed", 1);
-
-	// Try to phone home (the code inside is self-throttling)
-	[IPhoneHome queueRequest];
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application
 {
-	// Accumulate the active time and clear the 'crashed' flag, since unloading while not active is fine
-	time_t Now = time(NULL);
-	IPhoneIncrementUserSettingU64("IPhoneHome::AppPlaytimeSecs", (uint64_t)(Now - GAppInvokeTime));
-	IPhoneSaveUserSettingU64("IPhoneHome::LastRunCrashed", 0);
 }
 
 - (void)applicationWillTerminate:(UIApplication *)application
 {
-	// Not a crash, so clear the crash flag
-	IPhoneSaveUserSettingU64("IPhoneHome::LastRunCrashed", 0);
 }
 
 - (void)applicationWillEnterForeground:(UIApplication *)application

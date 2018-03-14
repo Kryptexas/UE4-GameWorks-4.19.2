@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -474,7 +474,8 @@ protected:
 		if (MainNode)
 		{
 			FXmlNode* CategoryNode = MainNode->FindChildNode( SecondCategory );
-			const FString EscapedValue = FGenericCrashContext::EscapeXMLString( NewValue );
+			FString EscapedValue;
+			FGenericCrashContext::AppendEscapedXMLString(EscapedValue, *NewValue);
 			if (CategoryNode)
 			{
 				CategoryNode->SetContent( EscapedValue );

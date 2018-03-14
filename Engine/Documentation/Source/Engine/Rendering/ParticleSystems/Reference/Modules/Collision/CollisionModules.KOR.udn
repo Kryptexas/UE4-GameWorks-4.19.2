@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:Collision 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -94,7 +94,8 @@ Particle Collision (파티클 콜리전) 모듈을 **iOS** 모바일 디바이�
 최소 선호 프레임 속도를 변경하고 디테일 드롭 박스 체크를 해제하고나면,
 다시 쿠킹하고 iOS 모바일 디바이스에 프로젝트를 다시 디플로이하여 파티클 콜리전이 정상 작동하는지 확인합니다.
 
-<!-----------
+[COMMENT:none]
+---------
 
 #### Includes
 
@@ -119,4 +120,5 @@ Particle Collision (파티클 콜리전) 모듈을 **iOS** 모바일 디바이�
 [/EXCERPT:CollisionCompletionOption]
 
 
-------->
+-----
+[/COMMENT]

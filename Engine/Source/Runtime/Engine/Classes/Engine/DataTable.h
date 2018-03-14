@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -64,17 +64,24 @@ class UDataTable
 	/** Map of name of row to row data structure. */
 	TMap<FName, uint8*>		RowMap;
 
+	/** Set to true to not cook this data table into client builds. Useful for sensitive tables that only servers should know about. */
+	UPROPERTY(EditAnywhere, Category=DataTable)
+	bool bStripFromClientBuilds;
+
 	//~ Begin UObject Interface.
 	ENGINE_API virtual void FinishDestroy() override;
 	ENGINE_API virtual void Serialize(FArchive& Ar) override;
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	ENGINE_API virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps) override;
 	ENGINE_API virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
+	virtual bool NeedsLoadForClient() const override { return bStripFromClientBuilds ? false : Super::NeedsLoadForClient(); }
+	virtual bool NeedsLoadForEditorGame() const override { return bStripFromClientBuilds ? false : Super::NeedsLoadForEditorGame(); }
 #if WITH_EDITORONLY_DATA
 	ENGINE_API FName GetRowStructName() const;
 	ENGINE_API virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	ENGINE_API virtual void PostInitProperties() override;
 	ENGINE_API virtual void PostLoad() override;
+	//~ End UObject Interface
 
 	UPROPERTY(VisibleAnywhere, Instanced, Category=ImportSettings)
 	class UAssetImportData* AssetImportData;
@@ -86,9 +93,17 @@ class UDataTable
 	/** The name of the RowStruct we were using when we were last saved */
 	UPROPERTY()
 	FName RowStructName;
-#endif	// WITH_EDITORONLY_DATA
 
-	//~ End  UObject Interface
+private:
+	/** When RowStruct is being modified, row data is stored serialized with tags */
+	UPROPERTY(Transient)
+	TArray<uint8> RowsSerializedWithTags;
+
+	UPROPERTY(Transient)
+	TSet<UObject*> TemporarilyReferencedObjects;
+
+public:
+#endif	// WITH_EDITORONLY_DATA
 
 	//~ Begin UDataTable Interface
 
@@ -151,6 +166,28 @@ class UDataTable
 		return reinterpret_cast<T*>(RowData);
 	}
 
+	/** Perform some operation for every row. */
+	template <class T>
+	void ForeachRow(const FString& ContextString, TFunctionRef<void (const FName& Key, const T& Value)> Predicate) const
+	{
+		if (RowStruct == nullptr)
+		{
+			UE_LOG(LogDataTable, Error, TEXT("UDataTable::FindRow : DataTable '%s' has no RowStruct specified (%s)."), *GetPathName(), *ContextString);
+		}
+		else if (!RowStruct->IsChildOf(T::StaticStruct()))
+		{
+			UE_LOG(LogDataTable, Error, TEXT("UDataTable::FindRow : Incorrect type specified for DataTable '%s' (%s)."), *GetPathName(), *ContextString);
+		}
+		else
+		{
+			for (TMap<FName, uint8*>::TConstIterator RowMapIter(RowMap.CreateConstIterator()); RowMapIter; ++RowMapIter)
+			{
+				T* Entry = reinterpret_cast<T*>(RowMapIter.Value());
+				Predicate(RowMapIter.Key(), *Entry);
+			}
+		}
+	}
+
 	/** Returns the column property where PropertyName matches the name of the column property. Returns nullptr if no match is found or the match is not a supported table property */
 	ENGINE_API UProperty* FindTableProperty(const FName& PropertyName) const;
 
@@ -193,15 +230,6 @@ class UDataTable
 	ENGINE_API void AddRow(FName RowName, const FTableRowBase& RowData);
 
 #if WITH_EDITOR
-
-private:
-
-	//when RowStruct is being modified, row data is stored serialized with tags
-	TArray<uint8> RowsSerializedWithTags;
-	TSet<UObject*> TemporarilyReferencedObjects;
-
-public:
-
 	ENGINE_API void CleanBeforeStructChange();
 	ENGINE_API void RestoreAfterStructChange();
 
@@ -217,9 +245,12 @@ public:
 	/** Output entire contents of table as JSON */
 	ENGINE_API bool WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter, const EDataTableExportFlags InDTExportFlags = EDataTableExportFlags::None) const;
 
+	/** Output entire contents of table as a JSON Object*/
+	ENGINE_API bool WriteTableAsJSONObject(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter, const EDataTableExportFlags InDTExportFlags = EDataTableExportFlags::None) const;
+
 	/** Output the fields from a particular row (use RowMap to get RowData) to an existing JsonWriter */
 	ENGINE_API bool WriteRowAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter, const void* RowData, const EDataTableExportFlags InDTExportFlags = EDataTableExportFlags::None) const;
-
+#endif
 	/** 
 	 *	Create table from CSV style comma-separated string. 
 	 *	RowStruct must be defined before calling this function. 
@@ -234,13 +265,20 @@ public:
 	*/
 	ENGINE_API TArray<FString> CreateTableFromJSONString(const FString& InString);
 
+	TArray<UProperty*> GetTablePropertyArray(const TArray<const TCHAR*>& Cells, UStruct* RowStruct, TArray<FString>& OutProblems);
+	
+	/** 
+	 *	Create table from another Data Table
+	 *	@return	Set of problems encountered while processing input
+	 */
+	ENGINE_API TArray<FString> CreateTableFromOtherTable(const UDataTable* InTable);
+
+#if WITH_EDITOR
 	/** Get an array of all the column titles, using the friendly display name from the property */
 	ENGINE_API TArray<FString> GetColumnTitles() const;
 
 	/** Get an array of all the column titles, using the unique name from the property */
 	ENGINE_API TArray<FString> GetUniqueColumnTitles() const;
-
-	TArray<UProperty*> GetTablePropertyArray(const TArray<const TCHAR*>& Cells, UStruct* RowStruct, TArray<FString>& OutProblems);
 
 	/** Get array for each row in the table. The first row is the titles*/
 	ENGINE_API TArray< TArray<FString> > GetTableData(const EDataTableExportFlags InDTExportFlags = EDataTableExportFlags::None) const;

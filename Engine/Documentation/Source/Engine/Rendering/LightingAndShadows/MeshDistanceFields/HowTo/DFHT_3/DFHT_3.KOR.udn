@@ -1,0 +1,120 @@
+﻿INTSourceChangelist:3716175
+Availability: Public
+Crumbs: %ROOT%
+Title: 디스턴스 필드에 파티클 콜리전 모드 사용
+Description: 파티클 시스템을 켜고 씬 콜리전에 디스턴스 필드를 사용하는 방법 안내입니다.
+Type: how-to
+SkillLevel:Intermediate
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference
+Related:Engine/Rendering/ParticleSystems
+Order:1
+Tags:Lighting
+Topic-image:DFParticleCollision_Topic.png
+Social-image:ParticleDF_Topic.png
+
+
+[REGION:fullwidth raw]
+![](DFParticleBanner.png)
+[/REGION]
+
+
+게임에 파티클 콜리전은 씬 뎁스에 의존할 때는 제한될 수 있는데, 카메라 뷰에 있는 것만 사용할 수 있기 때문입니다. 수명이 매우 길거나 넓은 범위에 사용되는 파티클은 
+특정 각도에서 콜리전이 그리 정확하지 않습니다. 프로젝트에서 [메시 디스턴스 필드](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 를 사용하는 경우, 
+파티클의 **Collision Mode** (콜리전 모드)에서 씬 뎁스가 아닌 전체 씬 콜리전을 사용할 수 있습니다.
+
+**Distance Fields** (디스턴스 필드) 콜리전 모드는 Scene Depth (씬 뎁스)보다 안정적인 콜리전을 제공합니다. 하지만 [글로벌 디스턴스 필드](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 는 전체 씬 저해상도 표현에 사용되므로, 
+디스턴스 필드 콜리전 모드를 사용하면 얇은 오브젝트나 라운딩 처리된 코너를 파티클이 통과해 지나가는 것이 보일 것입니다.
+저해상도 대신 디스턴스 필드 콜리전 실행은 매우 효율적입니다. 퍼포먼스 미용은 씬 뎁스 콜리전과 거의 같지만 카메라 뷰 제한 없이 작동합니다.
+디스턴스 필드 콜리전 모드는 셰이더 모델 5 (SM5) 기능입니다. SM5 를 지원하지 않는 하드웨어에서 파티클 콜리전은 자동으로 씬 뎁스 콜리전을 사용하도록 예비 전환됩니다.
+
+여기서는 파티클 시스템에서 콜리전 모드에 디스턴스 필드를 켜는 방법을 살펴보겠습니다.
+
+## 단계
+
+[REGION:note]
+이 기능은 **프로젝트 세팅** 의 **Rendering** 섹션에서 **Generate Mesh Distance Fields** 옵션을 켜야 합니다. 자세한 방법은 [](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 
+문서를 참고하세요.
+[/REGION]
+
+1. **콘텐츠 브라우저** 에서 **파티클 시스템** 을 찾아 열거나, 없는 경우 새로 만듭니다.
+	
+	![](ContentBrowser.png)(w:350)
+
+	[REGION:tip]
+	[콘텐츠 예제](Resources/ContentExamples) 중 **P_GPU_particles_collision2** 애셋이면 최소한의 구성으로 시작해 보기 좋은 예제입니다.
+	[/REGION]	
+
+1. 선택된 파티클 시스템을 더블클릭하여 [캐스케이드 파티클 에디터](Engine/Rendering/ParticleSystems) 를 엽니다.
+	
+	![](Cascade.png)(w:900)
+
+	
+1. 캐스케이드 파티클 에디터가 열리면, 빈 공간에 우클릭하고 모듈 목록에서 **Type Data** > **New GPU Sprites** 를 선택합니다.
+	
+	[REGION:raw]
+	![](AddGPUmodule.png)(w:700)
+	[/REGION]
+	
+1. 다시 빈 공간에 우클릭하고 모듈 목록에서 **Collision** > **Collision(Scene Depth)** 를 선택합니다. 
+
+	[REGION:raw]
+	![](AddCollisionModule.png)(w:700)
+	[/REGION]
+	
+1. **Collision (Scene Depth)** 모듈을 선택합니다. **디테일** 패널로 이동하여 **Collision Mode** 옆 드롭다운으로 **Distance Field** 를 선택합니다.
+	
+	![](DetailsPanelCollisionMode.png)(w:350)
+	
+
+
+## 최종 결과
+
+파티클 시스템을 켜고 콜리전 모드에 디스턴스 필드를 켰으니, 파티클이 씬 뎁스에 의존하지 않고도 전체 씬과 충돌할 수 있을 것입니다. 
+이를 통해 만들 수 있는 이펙트의 유형과 수명에 대한 유연성이 높아져, 넓은 지역부터 좁은 국소 지역까지 커버할 수 있습니다.
+
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	r_G5AX1uUZ8
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	75
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	73.5
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+이 예제에서, 파티클 콜리전에 **디스턴스 필드** 콜리전이 사용되었습니다. 파티클은 표면에 디스턴스 필드가 생성되어 있으면 카메라 뷰 안에 보이든 말든 항상 막힙니다.
+카메라가 나무 아래로 이동하면서, (카메라 뷰에서 벗어난) 나무 꼭대기 표면의 파티클 콜리전이 계속 파티클에 영향을 주고 있습니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	v3-BijTrwSQ
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	75
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	73.5
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+파티클 콜리전에 **씬 뎁스** 콜리전이 사용되면, 카티클은 카메라 뷰에서 씬 뎁스 버프를 사용하여 보이는 것에만 막힙니다. 그래서 카메라가 나무 아래로 이동하면, 
+(카메라 뷰에서 벗어난) 나무 꼭대기 표면의 파티클이 더이상 파티클에 영향을 주지 못하고 막혀야 함에도 카메라 앞 땅으로 떨어져 내립니다.
+

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GenericPlatform/GenericApplication.h"
 #include "HAL/IConsoleManager.h"
@@ -163,14 +163,14 @@ void FDisplayMetrics::ApplyDefaultSafeZones()
 	if (SafeZoneRatio < 1.0f)
 	{
 		const float HalfUnsafeRatio = (1.0f - SafeZoneRatio) * 0.5f;
-		TitleSafePaddingSize = FVector2D(PrimaryDisplayWidth * HalfUnsafeRatio, PrimaryDisplayHeight * HalfUnsafeRatio);
+		TitleSafePaddingSize = FVector4(PrimaryDisplayWidth * HalfUnsafeRatio, PrimaryDisplayHeight * HalfUnsafeRatio, PrimaryDisplayWidth * HalfUnsafeRatio, PrimaryDisplayHeight * HalfUnsafeRatio);
 	}
 
 	const float ActionSafeZoneRatio = GetDebugActionSafeZoneRatio();
 	if (ActionSafeZoneRatio < 1.0f)
 	{
 		const float HalfUnsafeRatio = (1.0f - ActionSafeZoneRatio) * 0.5f;
-		ActionSafePaddingSize = FVector2D(PrimaryDisplayWidth * HalfUnsafeRatio, PrimaryDisplayHeight * HalfUnsafeRatio);
+		ActionSafePaddingSize = FVector4(PrimaryDisplayWidth * HalfUnsafeRatio, PrimaryDisplayHeight * HalfUnsafeRatio, PrimaryDisplayWidth * HalfUnsafeRatio, PrimaryDisplayHeight * HalfUnsafeRatio);
 	}
 }
 

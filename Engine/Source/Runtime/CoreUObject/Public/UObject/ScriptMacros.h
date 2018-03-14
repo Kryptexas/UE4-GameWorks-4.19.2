@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScriptMacros.h: Kismet VM execution engine.
@@ -81,6 +81,9 @@ enum {MAX_VARIABLE_SIZE = 0x0FFF };
 #define P_GET_SOFTOBJECT(ObjectType,ParamName)		PARAM_PASSED_BY_VAL(ParamName, USoftObjectProperty, ObjectType)
 #define P_GET_SOFTOBJECT_REF(ObjectType,ParamName)	PARAM_PASSED_BY_REF(ParamName, USoftObjectProperty, ObjectType)
 
+#define P_GET_SOFTCLASS(ObjectType,ParamName)		PARAM_PASSED_BY_VAL(ParamName, USoftClassProperty, ObjectType)
+#define P_GET_SOFTCLASS_REF(ObjectType,ParamName)	PARAM_PASSED_BY_REF(ParamName, USoftClassProperty, ObjectType)
+
 #define P_GET_ARRAY(ElementType,ParamName)			ElementType ParamName[(MAX_VARIABLE_SIZE/sizeof(ElementType))+1];		Stack.StepCompiledIn<UProperty>(ParamName);
 #define P_GET_ARRAY_REF(ElementType,ParamName)		ElementType ParamName##Temp[(MAX_VARIABLE_SIZE/sizeof(ElementType))+1]; ElementType* ParamName = Stack.StepCompiledInRef<UProperty, ElementType*>(ParamName##Temp);
 
@@ -88,6 +91,10 @@ enum {MAX_VARIABLE_SIZE = 0x0FFF };
 #define P_GET_ENUM_REF(EnumType,ParamName)			PARAM_PASSED_BY_REF_ZEROED(ParamName, UEnumProperty, EnumType)
 
 #define P_FINISH									Stack.Code += !!Stack.Code; /* increment the code ptr unless it is null */
+
+#define P_THIS_OBJECT								(Context)
+#define P_THIS_CAST(ClassType)						((ClassType*)P_THIS_OBJECT)
+#define P_THIS										P_THIS_CAST(ThisClass)
 
 #define P_NATIVE_BEGIN { SCOPED_SCRIPT_NATIVE_TIMER(ScopedNativeCallTimer);
 #define P_NATIVE_END   }

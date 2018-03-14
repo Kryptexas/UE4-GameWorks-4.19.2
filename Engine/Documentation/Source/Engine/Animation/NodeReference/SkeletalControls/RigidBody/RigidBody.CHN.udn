@@ -1,28 +1,26 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3574749
 Availability:Docs
 Crumbs: %ROOT%
-Title:Rigid Body
-Description:Describes the Rigid Body node and how it can be used as a lightweight physics simulation inside Animation Blueprints. 
+Title:刚体
+Description:解释刚体（Rigid Body）节点，以及如何在动画蓝图中将其用作轻量级的物理模拟。 
 Type:reference
-Version: 4.16
+Version:4.16
 Parent:Engine/Animation/NodeReference/SkeletalControls
 Order:1
 tags:Animation
 tags:Animation Blueprint
 tags:Skeletal Controls
 topic-image:RigidBodyNode.png
-Related: Engine/Physics/PhAT
-Related: Engine/Physics/PhAT/Reference
-Related: Engine/Animation/AnimBlueprints/AnimGraph
-Related: Engine/Animation/NodeReference/Blend
+Related:Engine/Physics/PhAT
+Related:Engine/Physics/PhAT/Reference
+Related:Engine/Animation/AnimBlueprints/AnimGraph
+Related:Engine/Animation/NodeReference/Blend
 
-The **Rigid Body** Skeletal Control node can be used to create large amounts of physically-simulated characters using the high-performance **Immediate Mode** PhysX API. 
-The Rigid Body node (pictued below) can be added to the **AnimGraph** of your [](Engine/Animation/AnimBlueprints) and can even be used with any [](Engine/Animation/NodeReference/Blend/), enabling you to switch from a pose into a simulated physics state.
-Characters using this simulation can also generate collision with static geometry in the world. 
+**刚体（Rigid Body）** 骨架控制节点可利用高性能 [Immediate Mode PhysX API](https://www.geforce.com/hardware/technology/physx) 创建大量物理模拟的角色。Rigid Body 节点（下图所示）可被添加到 [](Engine/Animation/AnimBlueprints) 的 **AnimGraph**，还可与任意 [](Engine/Animation/NodeReference/Blend) 共用，便于从一个动作切换到模拟物理状态。使用此模拟的角色也可与世界场景中的静态几何体产生碰撞。 
 
 ![](RigidBodyNode.png)
 
-Using this node, several simulated characters below are able to respond to an impulse and switch from an idle into a physics simulated state. 
+使用此节点后，以下的数个模拟角色便可产生行为响应，从待机状态切换到物理模拟状态。 
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -42,36 +40,37 @@ Using this node, several simulated characters below are able to respond to an im
 	[/PARAMLITERAL]
 [/OBJECT]
 
-## Setup
+## 设置
 
-Before using this node, inside your [Physics Asset](Engine/Physics/PhAT) set the [](Engine/Physics/PhysicsBodies/) you want to simulate to **Simulated**. 
+使用此节点前，需要在 [物理资源（Physics Asset）](Engine/Physics/PhAT) 中将需要模拟的 [](Engine/Physics/PhysicsBodies) 设为 **Simulated**。 
 
 ![](RigidBody_02.png)
 
 [REGION:caption]
-Above we **Right-clicked** on our character's **Pelvis** bone and set all bodies below it to **Simulated** so our character fully simulates physics. 
+点击上图中角色的 **Pelvis** 骨骼并将其下方的所有形体设为 **Simulated**，使角色完全模拟物理。 
 [/REGION]
 
-With your Physics Asset set up, inside the AnimGraph of your Animation Blueprint, add the Rigid Body node and the necessary logic to define when to use it. 
+物理资源设置完成后，在动画蓝图的 AnimGraph 中添加 Rigid Body 节点，以及定义何时使用的必要逻辑。 
 
 ![](RigidBody_11.png)
 
 [REGION:caption]
-Above the Rigid Body node is connected to a blend node that we switch to when the characters are affected by our impulse, causing them to simulate physics. 
+Rigid Body 上方连接的是一个混合节点，角色受到影响时则会切换到此节点，使其模拟物理。 
 [/REGION]
 
-With the Rigid Body node selected, you can change properites that define how the node is used from the **Details** panel. 
+选中 Rigid Body 节点后即可在 **Details** 面板中修改定义节点使用方式的属性。 
 
 ![](RigidBody_12.png)
 
-| Property | Description |
+| 属性 | 描述 |
 | -------- | ----------- |
-| **Override Physics Asset** | Physics asset to use. If empty, the Skeletal Mesh's default Physics Asset will be used. |
-| **Override World Gravity** | Enables specification of a vector value to override gravity for this body. |
-| **Overlap Channel** | The channel used to find static geometry to collide with. |
-| **Component Space Simulation** | When true, simulation is done in component space. This means velocity is only inherited by animated bodies.|
-| **Cached Bounds Scale** | Scale of cached bounds (versus actual bounds). Increasing this may improve performance, but overlaps may not work as well. A value of 1.0 effectively disables cached bounds. |
-| **(As Pin) Alpha** | Shows the Alpha property as a pin on the node or in the Details panel. |
-| **Alpha Scale Bias** | Set the Minimal and Maximal Influence values for the Alpha property. |
+| **Override Physics Asset** | 使用的物理资源。如为空，则将使用骨架网格体的默认物理资源。|
+| **Override World Gravity** | 启用矢量值的规格来覆盖此形体的重力。|
+| **Overlap Channel** | 用于寻找碰撞静态几何体的通道。|
+| **Component Space Simulation** | 为 true 时，模拟在组件空间中进行。这意味着速度只会被动画形体所继承。|
+| **Cached Bounds Scale** | 缓存边界的大小（相对于实际边界的大小）。升高此项数值可能会提升性能，但重叠可能无法使用。数值设为 1.0 则会禁用缓存边界。|
+| **(As Pin) Alpha** | 在节点上或在 Details 面板中将 Alpha 属性显示为一个引脚。|
+| **Alpha Scale Bias** | 设置 Alpha 属性的最小和最大影响值。|
+
 
 [INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]

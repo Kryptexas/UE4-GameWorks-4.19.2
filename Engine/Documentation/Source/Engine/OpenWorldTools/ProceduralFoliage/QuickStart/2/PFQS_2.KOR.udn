@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 2. 스포너에 스폰시킬 것 알려주기
 Crumbs:
@@ -23,7 +23,7 @@ Version: 4.8
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 다음 섹션에서는 프로시저럴 폴리지 스포너와 정상 작동하게끔 **폴리지 타입** 액터를 구성하는 법을 다뤄보겠습니다.
 예전 단계에서 만들었던 **PFT_00** 레벨 작업을 이어가겠습니다.
 
@@ -60,4 +60,4 @@ Version: 4.8
 	![](T_Final_Results.png)
 
 
-%Steps%
+

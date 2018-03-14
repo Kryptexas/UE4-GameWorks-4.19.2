@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // This code is modified from that in the Mesa3D Graphics library available at
 // http://mesa3d.org/
@@ -222,7 +222,7 @@ ir_call::clone(void *mem_ctx, struct hash_table *ht) const
 ir_expression *
 ir_expression::clone(void *mem_ctx, struct hash_table *ht) const
 {
-	ir_rvalue *op[Elements(this->operands)] = {NULL, };
+	ir_rvalue *op[GetNumArrayElements(this->operands)] = {NULL, };
 	unsigned int i;
 
 	for (i = 0; i < get_num_operands(); i++)

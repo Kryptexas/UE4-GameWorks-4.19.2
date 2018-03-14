@@ -6,7 +6,8 @@ Description:Defaults モードにすると、ブループリント内のすべ�
 
 [INCLUDE:Globals#bpmodesremoved]
 
-<!--
+[COMMENT:none]
+
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
@@ -78,7 +79,8 @@ Description:Defaults モードにすると、ブループリント内のすべ�
 [EXCERPT:Invisible]
 * [Find Results](Engine/Blueprints/Editor\UIComponents\FindResults)
 [/EXCERPT:Invisible]
-------------->
+-----------
+[/COMMENT]
 
 [REGION:note]
 **Components** モードまたは **Graph** モードからも **Defaults** にアクセスできます。これは、 **[Window]** メニューを開き **[Class Defaults]** を選択して行います。または、以下のようにして **Class Defaults** にアクセスできます。

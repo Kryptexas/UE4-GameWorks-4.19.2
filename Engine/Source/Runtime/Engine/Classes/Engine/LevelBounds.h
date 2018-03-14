@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -13,7 +13,7 @@
  */
 class FEditorTickableLevelBounds 
 #if WITH_EDITOR
-	: FTickableGameObject
+	: public FTickableGameObject
 #endif
 {
 };
@@ -68,6 +68,7 @@ private:
 	virtual void Tick(float DeltaTime) override;
 	virtual UWorld* GetTickableGameObjectWorld() const override { return GetWorld(); }
 	virtual TStatId GetStatId() const override;
+	virtual ETickableTickType GetTickableTickType() const override;
 	virtual bool IsTickable() const override;
 	virtual bool IsTickableInEditor() const override;
 	

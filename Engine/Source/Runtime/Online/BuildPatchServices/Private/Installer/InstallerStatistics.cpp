@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Installer/InstallerStatistics.h"
 #include "Installer/MemoryChunkStore.h"
@@ -23,80 +23,7 @@ DEFINE_LOG_CATEGORY(LogInstallerStatistics);
 
 namespace BuildPatchServices
 {
-#if !PLATFORM_HAS_64BIT_ATOMICS
-	class FThreadSafeInt64
-	{
-	public:
-		FThreadSafeInt64();
-
-		int64 Increment();
-		int64 Add(int64 Amount);
-		int64 Decrement();
-		int64 Subtract(int64 Amount);
-		int64 Set(int64 Value);
-		int64 Reset();
-		int64 GetValue() const;
-
-	private:
-		mutable FCriticalSection CounterCs;
-		int64 Counter;
-	};
-
-	FThreadSafeInt64::FThreadSafeInt64()
-		: CounterCs()
-		, Counter(0)
-	{
-	}
-
-	int64 FThreadSafeInt64::Increment()
-	{
-		FScopeLock ScopeLock(&CounterCs);
-		return ++Counter;
-	}
-
-	int64 FThreadSafeInt64::Add(int64 Amount)
-	{
-		FScopeLock ScopeLock(&CounterCs);
-		int64 OldValue = Counter;
-		Counter += Amount;
-		return OldValue;
-	}
-
-	int64 FThreadSafeInt64::Decrement()
-	{
-		FScopeLock ScopeLock(&CounterCs);
-		return --Counter;
-	}
-
-	int64 FThreadSafeInt64::Subtract(int64 Amount)
-	{
-		FScopeLock ScopeLock(&CounterCs);
-		int64 OldValue = Counter;
-		Counter -= Amount;
-		return OldValue;
-	}
-
-	int64 FThreadSafeInt64::Set(int64 Value)
-	{
-		FScopeLock ScopeLock(&CounterCs);
-		int64 OldValue = Counter;
-		Counter = Value;
-		return OldValue;
-	}
-
-	int64 FThreadSafeInt64::Reset()
-	{
-		return Set(0);
-	}
-
-	int64 FThreadSafeInt64::GetValue() const
-	{
-		FScopeLock ScopeLock(&CounterCs);
-		return Counter;
-	}
-#else
 	typedef FThreadSafeCounter64 FThreadSafeInt64;
-#endif
 
 	class FMemoryChunkStoreStat
 		: public IMemoryChunkStoreStat

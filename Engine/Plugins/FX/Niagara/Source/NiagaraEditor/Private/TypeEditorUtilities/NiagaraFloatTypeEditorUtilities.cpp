@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraFloatTypeEditorUtilities.h"
 #include "SNiagaraParameterEditor.h"
@@ -85,7 +85,7 @@ private:
 	float FloatValue;
 };
 
-TSharedPtr<SNiagaraParameterEditor> FNiagaraEditorFloatTypeUtilities::CreateParameterEditor() const
+TSharedPtr<SNiagaraParameterEditor> FNiagaraEditorFloatTypeUtilities::CreateParameterEditor(const FNiagaraTypeDefinition& ParameterType) const
 {
 	return SNew(SNiagaraFloatParameterEditor);
 }
@@ -95,18 +95,19 @@ bool FNiagaraEditorFloatTypeUtilities::CanHandlePinDefaults() const
 	return true;
 }
 
-FString FNiagaraEditorFloatTypeUtilities::GetPinDefaultStringFromValue(const FNiagaraVariable& Variable) const
+FString FNiagaraEditorFloatTypeUtilities::GetPinDefaultStringFromValue(const FNiagaraVariable& AllocatedVariable) const
 {
-	float Value = 0.0f;
-	if (Variable.IsDataAllocated())
-	{
-		Value = Variable.GetValue<FNiagaraFloat>()->Value;
-	}
-	return FString::Printf(TEXT("%3.3f"), Value);
+	checkf(AllocatedVariable.IsDataAllocated(), TEXT("Can not generate a default value string for an unallocated variable."));
+	return Lex::ToString(AllocatedVariable.GetValue<FNiagaraFloat>().Value);
 }
 
-void FNiagaraEditorFloatTypeUtilities::SetValueFromPinDefaultString(const FString& StringValue, FNiagaraVariable& Variable) const
+bool FNiagaraEditorFloatTypeUtilities::SetValueFromPinDefaultString(const FString& StringValue, FNiagaraVariable& Variable) const
 {
-	Variable.AllocateData();
-	Variable.GetValue<FNiagaraFloat>()->Value = FCString::Atof(*StringValue);
+	FNiagaraFloat FloatValue;
+	if (Lex::TryParseString(FloatValue.Value, *StringValue))
+	{
+		Variable.SetValue<FNiagaraFloat>(FloatValue);
+		return true;
+	}
+	return false;
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphNode_AimOffsetLookAt.h"
 #include "GraphEditorActions.h"
@@ -91,7 +91,7 @@ void UAnimGraphNode_AimOffsetLookAt::GetMenuActions(FBlueprintActionDatabaseRegi
 				NodeSpawner = UBlueprintNodeSpawner::Create(NodeClass);
 				check(NodeSpawner != nullptr);
 
-				TWeakObjectPtr<UBlendSpaceBase> BlendSpacePtr = BlendSpace;
+				TWeakObjectPtr<UBlendSpaceBase> BlendSpacePtr = MakeWeakObjectPtr(const_cast<UBlendSpaceBase*>(BlendSpace));
 				NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(GetMenuActions_Utils::SetNodeBlendSpace, BlendSpacePtr);
 			}
 			return NodeSpawner;

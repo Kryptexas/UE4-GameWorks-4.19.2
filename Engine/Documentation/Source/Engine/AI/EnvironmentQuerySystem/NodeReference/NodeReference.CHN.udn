@@ -5,44 +5,6 @@ Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
 Description:场景查询系统编辑器中诸多可用节点的描述和详解。
 version:4.9
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/AI/EnvironmentQuerySystem/NodeReference:title%](AI_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/AI/EnvironmentQuerySystem/NodeReference:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/AI/EnvironmentQuerySystem/NodeReference:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/AI/EnvironmentQuerySystem/NodeReference]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/AI/EnvironmentQuerySystem/NodeReference:title%](AI_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/AI/EnvironmentQuerySystem/NodeReference:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/AI/EnvironmentQuerySystem/NodeReference:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/AI/EnvironmentQuerySystem/NodeReference]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [toc]
 
@@ -178,7 +140,8 @@ version:4.9
 | **Scoring Factor** || 此测试在所有测试中的权重。|
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:dotLine]
 模式设为 Rotation：
 
@@ -193,7 +156,8 @@ version:4.9
 | Line From | 使用此 context 的位置作为矢量定义旋转的第一个点。|
 | Line To | 使用此 context 的位置作为矢量定义旋转的最后一个点。|
 [/EXCERPT:dotLine]
--->
+
+[/COMMENT]
  
 ### Gameplay Tags
 
@@ -237,14 +201,16 @@ version:4.9
 | **Scoring Factor** || 此测试在所有测试中的权重。|
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:path1]
 | --- | --- | :--- |
 | **Path Exist** || 确定现有路径通往（或来自）Context。|
 | **Path Cost** || 通往（或来自）Context 路径的开销。|
 | **Path Length** || 通往（或来自）Context 路径的长度。|
 [/EXCERPT:path1]
--->
+
+[/COMMENT]
 
 
 ### Random

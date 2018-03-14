@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Model.cpp: Unreal model functions
@@ -12,6 +12,7 @@
 #include "Containers/TransArray.h"
 #include "EngineUtils.h"
 #include "Engine/Polys.h"
+#include "DynamicMeshBuilder.h"
 
 float UModel::BSPTexelScale = 100.0f;
 
@@ -711,8 +712,8 @@ void UModel::BeginReleaseResources()
 	}
 
 	// Release the vertex buffer and factory.
-	BeginReleaseResource(&VertexBuffer);
-	BeginReleaseResource(&VertexFactory);
+	BeginReleaseResource(&VertexBuffer.Buffers.PositionVertexBuffer);
+	BeginReleaseResource(&VertexBuffer.Buffers.StaticMeshVertexBuffer);
 
 	// Use a fence to keep track of the release progress.
 	ReleaseResourcesFence.BeginFence();
@@ -728,7 +729,7 @@ void UModel::UpdateVertices()
 	{
 #if WITH_EDITOR
 		// rebuild vertex buffer if the resource array is not static 
-		if( GIsEditor && !FApp::IsGame() && !VertexBuffer.Vertices.IsStatic() )
+		if( GIsEditor && !FApp::IsGame() )
 		{	
 			int32 NumVertices = 0;
 
@@ -740,30 +741,16 @@ void UModel::UpdateVertices()
 			check(NumVertices == VertexBuffer.Vertices.Num());	
 		}
 #endif
-		BeginInitResource(&VertexBuffer);
-		if( GIsEditor && !FApp::IsGame() )
+		VertexBuffer.Buffers.InitModelBuffers(VertexBuffer.Vertices);
+		
+		//  Empty this if we have cooked data and thus won't need it later to generate collision
+		// data etc
+		if (FApp::IsGame() && FPlatformProperties::RequiresCookedData())
 		{
-			// needed since we may call UpdateVertices twice and the first time
-			// NumVertices might be 0. 
-			BeginUpdateResourceRHI(&VertexBuffer);
+			VertexBuffer.Vertices.Empty();
 		}
 
-		// Set up the vertex factory.
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			InitModelVertexFactory,
-			FLocalVertexFactory*,VertexFactory,&VertexFactory,
-			FVertexBuffer*,VertexBuffer,&VertexBuffer,
-			{
-				FLocalVertexFactory::FDataType Data;
-				Data.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FModelVertex,Position,VET_Float3);
-				Data.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FModelVertex,TangentX,VET_PackedNormal);
-				Data.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FModelVertex,TangentZ,VET_PackedNormal);
-				Data.TextureCoordinates.Empty();
-				Data.TextureCoordinates.Add(STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FModelVertex,TexCoord,VET_Float2));
-				Data.LightMapCoordinateComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FModelVertex,ShadowTexCoord,VET_Float2);
-				VertexFactory->SetData(Data);
-			});
-		BeginInitResource(&VertexFactory);
+		ReleaseResourcesFence.BeginFence();
 	}
 }
 
@@ -888,15 +875,4 @@ void UModel::ClearLocalMaterialIndexBuffersData()
 	{
 		MaterialIterator->Value->Indices.Empty();
 	}
-}
-
-void UModel::ReleaseVertices()
-{
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		ReleaseModelVertices,
-		FModelVertexBuffer*,VertexBuffer,&VertexBuffer,
-	{
-		VertexBuffer->Vertices.SetAllowCPUAccess(false);
-		VertexBuffer->Vertices.Discard();
-	});
 }

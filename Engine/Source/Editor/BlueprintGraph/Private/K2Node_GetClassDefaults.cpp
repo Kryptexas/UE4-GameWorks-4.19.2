@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_GetClassDefaults.h"
 #include "UObject/UnrealType.h"
@@ -16,7 +16,7 @@
 
 #define LOCTEXT_NAMESPACE "UK2Node_GetClassDefaults"
 
-FString UK2Node_GetClassDefaults::ClassPinName(TEXT("Class"));
+FName UK2Node_GetClassDefaults::ClassPinName(TEXT("Class"));
 
 namespace
 {
@@ -148,10 +148,10 @@ namespace
 								UEdGraphPin* Pin = Node->Pins[PinIndex];
 								if(Pin != nullptr && Pin->Direction == EGPD_Output)
 								{
-									UProperty* BoundProperty = FindField<UProperty>(ClassType, *(Pin->PinName));
+									UProperty* BoundProperty = FindField<UProperty>(ClassType, Pin->PinName);
 									if(BoundProperty != nullptr)
 									{
-										FBPTerminal* OutputTerm = Context.CreateLocalTerminalFromPinAutoChooseScope(Pin, Pin->PinName);
+										FBPTerminal* OutputTerm = Context.CreateLocalTerminalFromPinAutoChooseScope(Pin, Pin->PinName.ToString());
 										check(OutputTerm != nullptr);
 
 										// Set as a variable within the class context
@@ -223,7 +223,7 @@ void UK2Node_GetClassDefaults::AllocateDefaultPins()
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 	// Create the class input type selector pin
-	UEdGraphPin* ClassPin = CreatePin(EGPD_Input, K2Schema->PC_Class, FString(), UObject::StaticClass(), ClassPinName);
+	UEdGraphPin* ClassPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Class, UObject::StaticClass(), ClassPinName);
 	K2Schema->ConstructBasicPinTooltip(*ClassPin, LOCTEXT("ClassPinDescription", "The class from which to access one or more default values."), ClassPin->PinToolTip);
 }
 
@@ -278,7 +278,7 @@ void UK2Node_GetClassDefaults::ValidateNodeDuringCompilation(class FCompilerResu
 			{
 				// Even though container property defaults are copied, the copy could still contain a reference to a non-class object that belongs to the CDO, which would potentially be unsafe to modify.
 				bool bEmitWarning = false;
-				const UProperty* TestProperty = SourceClass->FindPropertyByName(FName(*Pin->PinName));
+				const UProperty* TestProperty = SourceClass->FindPropertyByName(Pin->PinName);
 				if (const UArrayProperty* ArrayProperty = Cast<UArrayProperty>(TestProperty))
 				{
 					bEmitWarning = ArrayProperty->Inner && ArrayProperty->Inner->IsA<UObjectProperty>() && !ArrayProperty->Inner->IsA<UClassProperty>();
@@ -347,7 +347,7 @@ void UK2Node_GetClassDefaults::ExpandNode(class FKismetCompilerContext& Compiler
 	{
 		if(OutputPin != nullptr && OutputPin->Direction == EGPD_Output && OutputPin->LinkedTo.Num() > 0)
 		{
-			UProperty* BoundProperty = FindField<UProperty>(ClassType, *(OutputPin->PinName));
+			UProperty* BoundProperty = FindField<UProperty>(ClassType, OutputPin->PinName);
 			if(BoundProperty != nullptr && (BoundProperty->IsA<UArrayProperty>() || BoundProperty->IsA<USetProperty>() || BoundProperty->IsA<UMapProperty>()))
 			{
 				UK2Node_TemporaryVariable* LocalVariable = CompilerContext.SpawnIntermediateNode<UK2Node_TemporaryVariable>(this, SourceGraph);
@@ -357,6 +357,7 @@ void UK2Node_GetClassDefaults::ExpandNode(class FKismetCompilerContext& Compiler
 
 				UK2Node_PureAssignmentStatement* CopyDefaultValue = CompilerContext.SpawnIntermediateNode<UK2Node_PureAssignmentStatement>(this, SourceGraph);
 				CopyDefaultValue->AllocateDefaultPins();
+				CopyDefaultValue->GetVariablePin()->PinType = OutputPin->PinType;
 				CompilerContext.GetSchema()->TryCreateConnection(LocalVariable->GetVariablePin(), CopyDefaultValue->GetVariablePin());
 
 				// Note: This must be done AFTER connecting the variable input, which sets the pin type.

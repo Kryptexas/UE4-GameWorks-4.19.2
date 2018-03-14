@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Property.cpp: UProperty implementation
@@ -250,6 +250,7 @@ struct TStructOpsTypeTraits<FDateTime> : public TStructOpsTypeTraitsBase2<FDateT
 		WithExportTextItem = true,
 		WithImportTextItem = true,
 		WithSerializer = true,
+		WithNetSerializer = true,
 		WithZeroConstructor = true,
 		WithIdenticalViaEquality = true,
 	};

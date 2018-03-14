@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,6 +7,9 @@
 #include "MovieSceneFwd.h"
 #include "Evaluation/MovieSceneEvaluationKey.h"
 #include "Evaluation/MovieSceneEvaluationOperand.h"
+#include "Evaluation/MovieSceneSequenceInstanceData.h"
+
+class IMovieScenePlayer;
 
 /**
  * Unique identifier for shared persistent data entries (see FSharedPersistentDataKey)
@@ -84,10 +87,7 @@ struct FPersistentEvaluationData
 	/**
 	 * Proxy constructor from 2 externally owned maps for entity, and shared data
 	 */
-	FPersistentEvaluationData(TMap<FMovieSceneEvaluationKey, TUniquePtr<IPersistentEvaluationData>>& InEntityData, TMap<FSharedPersistentDataKey, TUniquePtr<IPersistentEvaluationData>>& InSharedData)
-		: EntityData(InEntityData)
-		, SharedData(InSharedData)
-	{}
+	MOVIESCENE_API FPersistentEvaluationData(IMovieScenePlayer& InPlayer);
 
 	FPersistentEvaluationData(const FPersistentEvaluationData&) = delete;
 	FPersistentEvaluationData& operator=(const FPersistentEvaluationData&) = delete;
@@ -114,6 +114,24 @@ public:
 	template<typename T>	   T& 	GetSectionData() const	{ return Get<T>(SectionKey); }
 	template<typename T>	   T*	FindSectionData() const	{ return Find<T>(SectionKey); }
 	void 							ResetSectionData()		{ Reset(SectionKey); }
+
+	/**
+	 * Get the raw instance data for the current sequence
+	 */
+	MOVIESCENE_API const FMovieSceneSequenceInstanceData* GetInstanceData() const;
+
+	/**
+	 * Find the current sequence's instance data as the templated type, provided its type matches
+	 */
+	template<typename T> const T*   FindInstanceData() const
+	{
+		const FMovieSceneSequenceInstanceData* InstanceData = GetInstanceData();
+		if (InstanceData && (&InstanceData->GetScriptStruct() == T::StaticStruct()))
+		{
+			return static_cast<const T*>(InstanceData);
+		}
+		return nullptr;
+	}
 
 public:
 	
@@ -285,6 +303,9 @@ private:
 
 private:
 	
+	/** The movie scene player */
+	IMovieScenePlayer& Player;
+
 	/** Persistent data that's associated with a template entity (such as a track or a section) */
 	TMap<FMovieSceneEvaluationKey, TUniquePtr<IPersistentEvaluationData>>& EntityData;
 

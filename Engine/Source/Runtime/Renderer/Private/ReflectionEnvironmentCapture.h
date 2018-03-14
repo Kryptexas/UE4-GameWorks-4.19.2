@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Functionality for capturing the scene into reflection capture cubemaps, and prefiltering
@@ -19,7 +19,7 @@ class FCubeFilterPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FCubeFilterPS, Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -58,9 +58,9 @@ class TCubeFilterPS : public FCubeFilterPS
 {
 	DECLARE_SHADER_TYPE(TCubeFilterPS, Global);
 public:
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FCubeFilterPS::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FCubeFilterPS::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("NORMALIZE"), bNormalize);
 	}
 

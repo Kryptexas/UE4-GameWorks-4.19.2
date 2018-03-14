@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -25,7 +25,7 @@ namespace PixelInspector
 		PixelInspectorResult()
 		{
 			ViewUniqueId = -1;
-			ScreenPosition = FIntPoint(-1, -1);
+			ViewportUV = FVector2D(-1, -1);
 
 			Depth = 0.0f;
 			WorldPosition = FVector(0.0f);
@@ -57,7 +57,7 @@ namespace PixelInspector
 		}
 		// Data Identification
 		int32 ViewUniqueId;
-		FIntPoint ScreenPosition;
+		FVector2D ViewportUV;
 
 		//////////////////////////////////////////////////////////////////////////
 		// Final color 3x3 grid

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -201,6 +201,9 @@ struct GAMEPLAYABILITIES_API FGameplayCueTranslationManager
 	/** Used by the GC editor to enumerate possible translation tags. Never called at runtime. */
 	bool GetTranslatedTags(const FName& ParentTag, TArray<FGameplayCueTranslationEditorInfo>& Children);
 	const TArray<FNameSwapData>& GetNameSwapData() const { return AllNameSwaps; }
+
+	/** Searches, slowly, to see if the passed in tag can be translated from something else. Don't call this at runtime. */
+	FGameplayTag SearchSlowForTranslationParent(FGameplayTag Tag);
 #endif
 
 private:

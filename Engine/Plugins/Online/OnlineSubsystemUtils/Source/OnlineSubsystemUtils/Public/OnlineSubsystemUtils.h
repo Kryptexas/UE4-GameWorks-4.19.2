@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,11 +10,18 @@
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "Online.h"
 #include "EngineGlobals.h"
+#include "VoipListenerSynthComponent.h"
 
 #ifdef ONLINESUBSYSTEMUTILS_API
 
 /** @return an initialized audio component specifically for use with VoIP */
 ONLINESUBSYSTEMUTILS_API class UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate, int32 NumChannels);
+
+/** @return an initialized Synth component specifically for use with VoIP */
+ONLINESUBSYSTEMUTILS_API UVoipListenerSynthComponent* CreateVoiceSynthComponent(uint32 SampleRate);
+
+/** Updates InSynthComponent based on InSettings. */
+ONLINESUBSYSTEMUTILS_API void ApplyVoiceSettings(UVoipListenerSynthComponent* InSynthComponent, const FVoiceSettings& InSettings);
 
 /** @return the world associated with a named online subsystem instance */
 ONLINESUBSYSTEMUTILS_API UWorld* GetWorldForOnline(FName InstanceName);
@@ -27,6 +34,8 @@ ONLINESUBSYSTEMUTILS_API UWorld* GetWorldForOnline(FName InstanceName);
  * @return the port number currently associated with the GAME net driver
  */
 ONLINESUBSYSTEMUTILS_API int32 GetPortFromNetDriver(FName InstanceName);
+
+ONLINESUBSYSTEMUTILS_API int32 GetClientPeerIp(FName InstanceName, const FUniqueNetId& UserId);
 
 #endif
 

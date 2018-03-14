@@ -10,7 +10,9 @@ that class.
 
 ![](code_view.png)
 
-<!---This is especially---> **Double-clicking** on any of the functions will open the corresponding `.cpp` file in Visual Studio 
+[COMMENT:none]
+-This is especially-
+[/COMMENT] **Double-clicking** on any of the functions will open the corresponding `.cpp` file in Visual Studio 
 focused to the implementation of the function.
 
 ![](code_view_goto.png)

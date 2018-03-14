@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3376720
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:2.Widget ブループリントの設定
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -23,7 +23,7 @@ Order:2
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 このステップでは、インタラクティブな UI Widget のレイアウトを作成し、ボタンをクリックすると何が起こるかをスクリプティングします。 
 
@@ -94,6 +94,6 @@ Order:2
 Widget ブループリントがキーパッドとキーパッドのディスプレイを表示するように設定されました。次に、これらを Widget コンポーネントとして Actor ブループリントに追加し、レベル内で表示させます。 
 次のステップの終わりまで到達すると、システムをテストし、ゲームプレイ中に両方のエレメントとインタラクションできるようになります。 
 
-%Steps%
+
 
 

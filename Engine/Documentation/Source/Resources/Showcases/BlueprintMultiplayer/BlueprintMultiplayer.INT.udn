@@ -9,47 +9,8 @@ Related: Programming/Online/Steam
 Related: Gameplay/Networking/Actors
 Related: Resources/ContentExamples/Networking
 Version: 4.9
+topic-image:MultiplayerShootout_Featured-476x246-c51d69c862538ea6fb72a13f7a0034e0.png
 
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](MultiplayerShootout_Featured-476x246-c51d69c862538ea6fb72a13f7a0034e0.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/online_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources\Showcases\BlueprintMultiplayer:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources\Showcases\BlueprintMultiplayer:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources\Showcases\BlueprintMultiplayer]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](MultiplayerShootout_Featured-476x246-c51d69c862538ea6fb72a13f7a0034e0.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/online_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources\Showcases\BlueprintMultiplayer:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources\Showcases\BlueprintMultiplayer:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources\Showcases\BlueprintMultiplayer]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:raw]
 ![](MultiplayerExample_Header.png)

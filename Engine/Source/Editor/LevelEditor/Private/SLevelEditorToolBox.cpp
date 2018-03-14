@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SLevelEditorToolBox.h"
 #include "Framework/MultiBox/MultiBoxDefs.h"
@@ -18,7 +18,10 @@
 
 SLevelEditorToolBox::~SLevelEditorToolBox()
 {
-	GetMutableDefault<UEditorPerProjectUserSettings>()->OnUserSettingChanged().RemoveAll( this );
+	if (UObjectInitialized())
+	{
+		GetMutableDefault<UEditorPerProjectUserSettings>()->OnUserSettingChanged().RemoveAll(this);
+	}
 }
 
 void SLevelEditorToolBox::Construct( const FArguments& InArgs, const TSharedRef< class ILevelEditor >& OwningLevelEditor )

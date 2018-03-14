@@ -3,26 +3,7 @@ Title:Lit Translucency
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:Explanation of how translucent surfaces are lit and cast shadows including self-shadows.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-	![%Engine/Rendering/LightingAndShadows/LitTranslucency:title%](%ROOT%/Engine/Rendering/LightingAndShadows/LitTranslucency/translucent_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	![](%ROOT%/ue4_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	%Engine/Rendering/LightingAndShadows/LitTranslucency:title%
-	[/PARAM]
-	[PARAM:description]
-	%Engine/Rendering/LightingAndShadows/LitTranslucency:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Engine/Rendering/LightingAndShadows/LitTranslucency]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:translucent_topic.png
 
 [TOC(start:2)]
 

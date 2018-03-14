@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 그래스 툴 퀵스타트
 Crumbs:
@@ -43,23 +43,15 @@ Version: 4.8
 
 	![](Engine\OpenWorldTools\T_OWT_ATP.png)
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		단계
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine\OpenWorldTools\Grass\QuickStart\1)
-	* [](Engine\OpenWorldTools\Grass\QuickStart\2)
-	* [](Engine\OpenWorldTools\Grass\QuickStart\3)
-	* [](Engine\OpenWorldTools\Grass\QuickStart\4)
-	* [](Engine\OpenWorldTools\Grass\QuickStart\5)
-	[/PARAM]
-[/OBJECT]
+## 단계
+
+[REGION:buttonlist]
+* [](Engine\OpenWorldTools\Grass\QuickStart\1)
+* [](Engine\OpenWorldTools\Grass\QuickStart\2)
+* [](Engine\OpenWorldTools\Grass\QuickStart\3)
+* [](Engine\OpenWorldTools\Grass\QuickStart\4)
+* [](Engine\OpenWorldTools\Grass\QuickStart\5)
+[/REGION]
 
 
 

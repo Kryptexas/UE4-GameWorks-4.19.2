@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -76,8 +76,9 @@ private:
 	USkeletalMesh& SkeletalMesh;
 
 	// Computed from inputs
-	FStaticLODModel& StaticLODModel;
-	const FSkeletalMeshVertexBuffer& VertexBuffer;
+	class FSkeletalMeshModel& StaticLODModel;
+	class FSkeletalMeshRenderData& RenderData;
+	const class FPositionVertexBuffer& VertexBuffer;
 
 	/**
 	* EVW_AnyWeight:		Any vertex influenced by the bone is included in the set.

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LocalizationDashboard.h"
 #include "Misc/Paths.h"
@@ -188,7 +188,7 @@ void SLocalizationDashboard::Construct(const FArguments& InArgs, const TSharedPt
 TWeakPtr<SDockTab> SLocalizationDashboard::ShowTargetEditor(ULocalizationTarget* const LocalizationTarget)
 {
 	// Create tab if not existent.
-	TWeakPtr<SDockTab>& TargetEditorDockTab = TargetToTabMap.FindOrAdd(TWeakObjectPtr<ULocalizationTarget>(LocalizationTarget));
+	TWeakPtr<SDockTab>& TargetEditorDockTab = TargetToTabMap.FindOrAdd(MakeWeakObjectPtr(LocalizationTarget));
 
 	if (!TargetEditorDockTab.IsValid())
 	{

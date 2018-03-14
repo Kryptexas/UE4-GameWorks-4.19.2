@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -76,6 +76,9 @@ public:
 
 	/** Attempt to select by property path */
 	void SetNodeSelectionByPropertyPath(const TArray<FString>& InPropertyPaths);
+
+	/** Get the node name from the property path */
+	FName GetNodeFromPropertyPath(const FString& PropertyPath) const;
 
 	/** 
 	 * Lets the edit mode know that an object has just been spawned. 

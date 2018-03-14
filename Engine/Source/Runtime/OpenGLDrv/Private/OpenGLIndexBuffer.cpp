@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLIndexBuffer.cpp: OpenGL Index buffer RHI implementation.
@@ -22,6 +22,12 @@ FIndexBufferRHIRef FOpenGLDynamicRHI::RHICreateIndexBuffer(uint32 Stride,uint32 
 	}
 
 	TRefCountPtr<FOpenGLIndexBuffer> IndexBuffer = new FOpenGLIndexBuffer(Stride, Size, InUsage, Data);
+	
+	if (CreateInfo.ResourceArray)
+	{
+		CreateInfo.ResourceArray->Discard();
+	}
+
 	return IndexBuffer.GetReference();
 }
 

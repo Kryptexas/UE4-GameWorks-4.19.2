@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "UnitTestManager.h"
 
@@ -9,9 +9,12 @@
 #include "Misc/App.h"
 #include "Misc/FeedbackContext.h"
 #include "UObject/Package.h"
+#include "Engine/GameEngine.h"
+#include "Engine/GameViewportClient.h"
 #include "Engine/NetConnection.h"
 #include "UI/LogWindowManager.h"
 #include "Widgets/SWindow.h"
+#include "TimerManager.h"
 
 #include "NetcodeUnitTest.h"
 #include "UnitTestEnvironment.h"
@@ -33,17 +36,16 @@
 // @todo #JohnBFeature: Add an overall-timer, and then start debugging the memory management in more detail
 
 
-UUnitTestManager* GUnitTestManager = NULL;
-
-UUnitTestBase* GActiveLogUnitTest = NULL;
-UUnitTestBase* GActiveLogEngineEvent = NULL;
-UWorld* GActiveLogWorld = NULL;
+UUnitTestManager* GUnitTestManager = nullptr;
 
 
 // @todo JohnB: If you need the main unit test manager, to add more logs to the final summary, replace below with a generalized solution
 
 /** Stores a list of log messages for 'unsupported' unit tests, for printout in the final summary */
 static TMap<FString, FString> UnsupportedUnitTests;
+
+
+IMPLEMENT_GET_PRIVATE_VAR(FTimerManager, CurrentlyExecutingTimer, FTimerData);
 
 
 
@@ -295,13 +297,13 @@ bool UUnitTestManager::QueueUnitTest(UClass* UnitTestClass, bool bRequeued/*=fal
 	bool bValidUnitTestClass = UnitTestClass->IsChildOf(UUnitTest::StaticClass()) && UnitTestClass != UUnitTest::StaticClass() &&
 								UnitTestClass != UClientUnitTest::StaticClass() && UnitTestClass != UProcessUnitTest::StaticClass();
 
-	UUnitTest* UnitTestDefault = (bValidUnitTestClass ? Cast<UUnitTest>(UnitTestClass->GetDefaultObject()) : NULL);
+	UUnitTest* UnitTestDefault = (bValidUnitTestClass ? Cast<UUnitTest>(UnitTestClass->GetDefaultObject()) : nullptr);
 	bool bSupportsAllGames = (bValidUnitTestClass ? UnitTestDefault->GetSupportedGames().Contains("NullUnitEnv") : false); //-V595
 
-	bValidUnitTestClass = UnitTestDefault != NULL;
+	bValidUnitTestClass = UnitTestDefault != nullptr;
 
 
-	if (bValidUnitTestClass && (UUnitTest::UnitEnv != NULL || bSupportsAllGames))
+	if (bValidUnitTestClass && (UUnitTest::UnitEnv != nullptr || bSupportsAllGames))
 	{
 		FString UnitTestName = UnitTestDefault->GetUnitTestName();
 		bool bCurrentGameSupported = bSupportsAllGames || UnitTestDefault->GetSupportedGames().Contains(FApp::GetProjectName());
@@ -318,8 +320,18 @@ bool UUnitTestManager::QueueUnitTest(UClass* UnitTestClass, bool bRequeued/*=fal
 
 			if (!bActiveOrQueued)
 			{
+				if (UUnitTest::UnitEnv != nullptr)
+				{
+					UUnitTest::UnitEnv->UnitTest = UnitTestDefault;
+				}
+
 				// Ensure the CDO has its environment settings setup
 				UnitTestDefault->InitializeEnvironmentSettings();
+
+				if (UUnitTest::UnitEnv != nullptr)
+				{
+					UUnitTest::UnitEnv->UnitTest = nullptr;
+				}
 
 				// Now validate the unit test settings, using the CDO, prior to queueing
 				if (UnitTestDefault->ValidateUnitTestSettings(true))
@@ -366,9 +378,9 @@ bool UUnitTestManager::QueueUnitTest(UClass* UnitTestClass, bool bRequeued/*=fal
 	else if (!bValidUnitTestClass)
 	{
 		STATUS_LOG(ELogType::StatusError | ELogType::StyleBold, TEXT("Class '%s' is not a valid unit test class"),
-						(UnitTestClass != NULL ? *UnitTestClass->GetName() : TEXT("")));
+						(UnitTestClass != nullptr ? *UnitTestClass->GetName() : TEXT("")));
 	}
-	else if (UUnitTest::UnitEnv == NULL)
+	else if (UUnitTest::UnitEnv == nullptr)
 	{
 		ELogType StatusType = ELogType::StyleBold;
 
@@ -880,6 +892,12 @@ void UUnitTestManager::DumpStatus(bool bForce/*=false*/)
 	}
 }
 
+// @todo #JohnB: This static analysis warning can't be removed with check(InUnitTest != nullptr),
+//					because STATUS_LOG_OBJ has InUnitTest != nullptr checks, which confuse the static analysis.
+#if USING_CODE_ANALYSIS
+	MSVC_PRAGMA(warning(push))
+	MSVC_PRAGMA(warning(disable : 6011))
+#endif
 void UUnitTestManager::PrintUnitTestResult(UUnitTest* InUnitTest, bool bFinalSummary/*=false*/, bool bUnfinished/*=false*/)
 {
 	static const UEnum* VerificationStateEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EUnitTestVerification"));
@@ -1020,6 +1038,9 @@ void UUnitTestManager::PrintUnitTestResult(UUnitTest* InUnitTest, bool bFinalSum
 		}
 	}
 }
+#if USING_CODE_ANALYSIS
+	MSVC_PRAGMA(warning(pop))
+#endif
 
 void UUnitTestManager::PrintFinalSummary()
 {
@@ -1281,11 +1302,7 @@ void UUnitTestManager::Tick(float DeltaTime)
 
 					CurUnitTest->UnitTick(DeltaTime);
 
-					UClientUnitTest* CurClientUnitTest = Cast<UClientUnitTest>(CurUnitTest);
-
-					// @todo #JohnB: Move NetTick to UClientUnitTest?
-					if ((CurTime - CurUnitTest->LastNetTick) > NetTickInterval && CurClientUnitTest != nullptr &&
-						CurClientUnitTest->MinClient != nullptr)
+					if ((CurTime - CurUnitTest->LastNetTick) > NetTickInterval)
 					{
 						CurUnitTest->NetTick();
 						CurUnitTest->LastNetTick = CurTime;
@@ -1454,9 +1471,9 @@ bool UUnitTestManager::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar
 {
 	bool bReturnVal = true;
 
-	// @todo #JohnBBug: Detecting the originating unit test, by World, no longer works due to delayed fake client launches;
+	// @todo #JohnBBug: Detecting the originating unit test, by World, no longer works due to delayed minimal client launches;
 	//				either find another way of determining the originating unit test, or give all unit tests a unique World early on,
-	//				before the fake client launch
+	//				before the minimal client launch
 
 	FString UnitTestName = FParse::Token(Cmd, false);
 	bool bValidUnitTestName = false;
@@ -1565,9 +1582,9 @@ bool UUnitTestManager::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar
 
 		// Alternatively, if a unit test has not launched started connecting to a server, its world may not be setup,
 		// so can detect by checking the active log unit test too
-		if (TargetUnitTest == nullptr && GActiveLogUnitTest != nullptr)
+		if (TargetUnitTest == nullptr && GActiveLogInterface != nullptr)
 		{
-			TargetUnitTest = Cast<UClientUnitTest>(GActiveLogUnitTest);
+			TargetUnitTest = Cast<UClientUnitTest>(GActiveLogInterface->GetUnitTest());
 		}
 
 		if (TargetUnitTest != nullptr)
@@ -1766,13 +1783,18 @@ void UUnitTestManager::Serialize(const TCHAR* Data, ELogVerbosity::Type Verbosit
 
 
 				FString* LogLine = nullptr;
-				UUnitTest* CurLogUnitTest = Cast<UUnitTest>(GActiveLogUnitTest);
+				UUnitTest* CurLogUnitTest = nullptr;
+
+				if (GActiveLogInterface != nullptr)
+				{
+					// Store the log within the unit test
+					GActiveLogInterface->NotifyStatusLog(CurLogType, Data);
+
+					CurLogUnitTest = GActiveLogInterface->GetUnitTest();
+				}
 
 				if (CurLogUnitTest != nullptr)
 				{
-					// Store the log within the unit test
-					CurLogUnitTest->StatusLogSummary.Add(MakeShareable(new FUnitStatusLog(CurLogType, FString(Data))));
-
 					LogLine = new FString(FString::Printf(TEXT("%s: %s"), *CurLogUnitTest->GetUnitTestName(), Data));
 				}
 				else
@@ -1805,59 +1827,116 @@ void UUnitTestManager::Serialize(const TCHAR* Data, ELogVerbosity::Type Verbosit
 
 
 			ELogType CurLogType = ELogType::Local | GActiveLogTypeFlags;
-			UUnitTest* SourceUnitTest = nullptr;
+			FUnitLogInterface* SourceInterface = nullptr;
 
 			// If this log was triggered, while a unit test net connection was processing a packet, find and notify the unit test
 			if (GActiveReceiveUnitConnection != nullptr)
 			{
 				CurLogType |= ELogType::OriginNet;
 
-				for (auto CurUnitTest : ActiveUnitTests)
+				if (SourceInterface == nullptr)
 				{
-					UClientUnitTest* CurClientUnitTest = Cast<UClientUnitTest>(CurUnitTest);
-					UNetConnection* UnitConn = (CurClientUnitTest != nullptr && CurClientUnitTest->MinClient != nullptr ?
-												CurClientUnitTest->MinClient->GetConn() : nullptr);
-
-					if (UnitConn != nullptr && UnitConn == GActiveReceiveUnitConnection)
+					for (auto CurUnitTest : ActiveUnitTests)
 					{
-						SourceUnitTest = CurUnitTest;
-						break;
+						if (CurUnitTest->IsConnectionLogSource(GActiveReceiveUnitConnection))
+						{
+							SourceInterface = CurUnitTest;
+							break;
+						}
 					}
 				}
 			}
+
 			// If it was triggered from within a unit test log, also notify
-			else if (GActiveLogUnitTest != nullptr)
+			if (GActiveLogInterface != nullptr)
 			{
 				CurLogType |= ELogType::OriginUnitTest;
-				SourceUnitTest = Cast<UUnitTest>(GActiveLogUnitTest);
-			}
-			// If it was triggered within an engine event, within a unit test, again notify
-			else if (GActiveLogEngineEvent != nullptr)
-			{
-				CurLogType |= ELogType::OriginEngine;
-				SourceUnitTest = Cast<UUnitTest>(GActiveLogEngineEvent);
-			}
-			// If it was triggered during UWorld::Tick, for the world assigned to a unit test, again find and notify
-			else if (GActiveLogWorld != nullptr)
-			{
-				CurLogType |= ELogType::OriginEngine;
 
-				for (auto CurUnitTest : ActiveUnitTests)
+				if (SourceInterface == nullptr)
 				{
-					UClientUnitTest* CurClientUnitTest = Cast<UClientUnitTest>(CurUnitTest);
-					UMinimalClient* CurMinClient = (CurClientUnitTest != nullptr ? CurClientUnitTest->MinClient : nullptr);
+					SourceInterface = GActiveLogInterface;
+				}
+			}
 
-					if (CurMinClient != nullptr && CurMinClient->GetUnitWorld() == GActiveLogWorld)
+			// If it was triggered within an engine event, within a unit test, again notify
+			if (GActiveLogEngineEvent != nullptr)
+			{
+				CurLogType |= ELogType::OriginEngine;
+
+				if (SourceInterface == nullptr)
+				{
+					SourceInterface = GActiveLogEngineEvent;
+				}
+			}
+
+			// If it was triggered during UWorld::Tick, for the world assigned to a unit test, again find and notify
+			if (GActiveLogWorld != nullptr)
+			{
+				CurLogType |= ELogType::OriginEngine;
+
+				if (SourceInterface == nullptr)
+				{
+					for (auto CurUnitTest : ActiveUnitTests)
 					{
-						SourceUnitTest = CurUnitTest;
-						break;
+						UClientUnitTest* CurClientUnitTest = Cast<UClientUnitTest>(CurUnitTest);
+						UMinimalClient* CurMinClient = (CurClientUnitTest != nullptr ? CurClientUnitTest->MinClient : nullptr);
+
+						if (CurMinClient != nullptr && CurMinClient->GetUnitWorld() == GActiveLogWorld)
+						{
+							SourceInterface = CurUnitTest;
+							break;
+						}
 					}
 				}
 			}
 
-			if (SourceUnitTest != nullptr && (CurLogType & ELogType::OriginMask) != ELogType::None)
+			// If it was triggered during an FTimerManager tick, linked to a unit test, again find and notify
+			// @todo #JohnB: This is probably incredibly slow - maybe a better way...
+			if (SourceInterface == nullptr)
 			{
-				SourceUnitTest->NotifyLocalLog(CurLogType, Data, Verbosity, Category);
+				// @todo #JohnB: This chain of getting the desired world is very messy...but it's hard to get the correct world.
+				UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
+				UGameInstance* GameInstance = GameEngine != nullptr ? GameEngine->GameInstance : nullptr;
+				UGameViewportClient* GameViewport = GameInstance != nullptr ? GameInstance->GetGameViewportClient() : nullptr;
+				UWorld* BaseWorld = GameViewport != nullptr ? GameViewport->GetWorld() : nullptr;
+
+				if (BaseWorld != nullptr)
+				{
+					FTimerManager& TimerMan = BaseWorld->GetTimerManager();
+					FTimerData& TimerData = GET_PRIVATE_REF(FTimerManager, &TimerMan, CurrentlyExecutingTimer);
+
+					// @todo #JohnB: Abort this, as the calls you want to catch are lambda's, so there's no standard/nice way of hooking
+					//					(there is still a way though...raw memory-scanning lambda objects...very nasty, but possible)
+					//					NOTE: The use-case for this, is UFortMCPTask's online logging, happening through timer manager
+
+					if (TimerData.TimerDelegate.IsBound())
+					{
+						UObject* TimerObj = TimerData.TimerDelegate.FuncDelegate.GetUObject();
+
+						if (TimerObj == nullptr)
+						{
+							TimerObj = TimerData.TimerDelegate.FuncDynDelegate.GetUObject();
+						}
+
+						if (TimerObj != nullptr)
+						{
+							for (auto CurUnitTest : ActiveUnitTests)
+							{
+								if (CurUnitTest->IsTimerLogSource(TimerObj))
+								{
+									SourceInterface = CurUnitTest;
+									break;
+								}
+							}
+						}
+					}
+				}
+			}
+
+
+			if (SourceInterface != nullptr && (CurLogType & ELogType::OriginMask) != ELogType::None)
+			{
+				SourceInterface->NotifyLocalLog(CurLogType, Data, Verbosity, Category);
 			}
 
 

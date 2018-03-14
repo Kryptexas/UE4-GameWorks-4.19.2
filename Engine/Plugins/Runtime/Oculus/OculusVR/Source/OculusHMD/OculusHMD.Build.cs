@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.IO;
@@ -75,6 +75,7 @@ namespace UnrealBuildTool.Rules
 					AddEngineThirdPartyPrivateStaticDependencies(Target, "NVAPI");
 					AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11Audio");
 					AddEngineThirdPartyPrivateStaticDependencies(Target, "DirectSound");
+					AddEngineThirdPartyPrivateStaticDependencies(Target, "NVAftermath");
 				}
 
 				// Vulkan
@@ -117,7 +118,7 @@ namespace UnrealBuildTool.Rules
 				// OVRPlugin
 				{
 					PublicDelayLoadDLLs.Add("OVRPlugin.dll");
-					RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Oculus/OVRPlugin/OVRPlugin/" + Target.Platform.ToString() + "/OVRPlugin.dll"));
+					RuntimeDependencies.Add("$(EngineDir)/Binaries/ThirdParty/Oculus/OVRPlugin/OVRPlugin/" + Target.Platform.ToString() + "/OVRPlugin.dll");
 				}
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Android)
@@ -153,7 +154,7 @@ namespace UnrealBuildTool.Rules
 				// AndroidPlugin
 				{
 					string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
-					AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "GearVR_APL.xml")));
+					AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(PluginPath, "GearVR_APL.xml"));
 				}
 			}
 		}

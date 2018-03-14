@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3454520
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:座標空間の用語
 Crumbs:%ROOT%, Programming, Programming/Rendering
@@ -22,7 +22,8 @@ order:23
 | **Viewport** | **ViewportCoordinates**, **WindowCoordinates** | [INCLUDE:#Viewport] |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:TranslatedWorld]
 [REGION:simpletable]
 | ------ | ------ |
@@ -49,7 +50,8 @@ order:23
 | top/bottom | 0, height-1 |
 [/REGION]
 [/EXCERPT:Viewport]
--->
+
+[/COMMENT]
 
 ##空間の変換
 

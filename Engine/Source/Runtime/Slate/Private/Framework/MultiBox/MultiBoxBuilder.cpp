@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
@@ -536,3 +536,4 @@ void FButtonRowBuilder::AddButton( const FText& InLabel, const FText& InToolTip,
 
 	MultiBox->AddMultiBlock( NewButtonRowBlock );
 }
+

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Modules/ModuleManager.h"
 #include "Misc/DateTime.h"
@@ -71,7 +71,7 @@ FModuleManager& FModuleManager::Get()
 			//temp workaround for IPlatformFile being used for FPaths::DirectoryExists before main() sets up the commandline.
 #if PLATFORM_DESKTOP
 		// Ensure that dependency dlls can be found in restricted sub directories
-			const TCHAR* RestrictedFolderNames[] = { TEXT("NoRedist"), TEXT("NotForLicensees"), TEXT("CarefullyRedist") };
+			const TCHAR* RestrictedFolderNames[] = { TEXT("NoRedist"), TEXT("NotForLicensees"), TEXT("CarefullyRedist"), TEXT("Switch") };
 			FString ModuleDir = FPlatformProcess::GetModulesDirectory();
 			for (const TCHAR* RestrictedFolderName : RestrictedFolderNames)
 			{
@@ -329,13 +329,13 @@ void FModuleManager::AddModule(const FName InModuleName)
 }
 
 
-IModuleInterface* FModuleManager::LoadModule( const FName InModuleName, bool bWasReloaded )
+IModuleInterface* FModuleManager::LoadModule( const FName InModuleName )
 {
 	// FModuleManager is not thread-safe
 	ensure(IsInGameThread());
 
 	EModuleLoadResult FailureReason;
-	IModuleInterface* Result = LoadModuleWithFailureReason(InModuleName, FailureReason, bWasReloaded );
+	IModuleInterface* Result = LoadModuleWithFailureReason(InModuleName, FailureReason );
 
 	// This should return a valid pointer only if and only if the module is loaded
 	check((Result != nullptr) == IsModuleLoaded(InModuleName));
@@ -344,16 +344,16 @@ IModuleInterface* FModuleManager::LoadModule( const FName InModuleName, bool bWa
 }
 
 
-IModuleInterface& FModuleManager::LoadModuleChecked( const FName InModuleName, const bool bWasReloaded )
+IModuleInterface& FModuleManager::LoadModuleChecked( const FName InModuleName )
 {
-	IModuleInterface* Module = LoadModule(InModuleName, bWasReloaded);
-	checkf(Module, *InModuleName.ToString());
+	IModuleInterface* Module = LoadModule(InModuleName);
+	checkf(Module, TEXT("%s"), *InModuleName.ToString());
 
 	return *Module;
 }
 
 
-IModuleInterface* FModuleManager::LoadModuleWithFailureReason(const FName InModuleName, EModuleLoadResult& OutFailureReason, bool bWasReloaded /*=false*/)
+IModuleInterface* FModuleManager::LoadModuleWithFailureReason(const FName InModuleName, EModuleLoadResult& OutFailureReason)
 {
 #if 0
 	ensureMsgf(IsInGameThread(), TEXT("ModuleManager: Attempting to load '%s' outside the main thread.  Please call LoadModule on the main/game thread only.  You can use GetModule or GetModuleChecked instead, those are safe to call outside the game thread."), *InModuleName.ToString());
@@ -1104,19 +1104,15 @@ void FModuleManager::AbandonModuleWithCallback(const FName InModuleName)
 
 bool FModuleManager::LoadModuleWithCallback( const FName InModuleName, FOutputDevice &Ar )
 {
-	IModuleInterface* LoadedModule = LoadModule( InModuleName, true );
-	bool bWasSuccessful = IsModuleLoaded( InModuleName );
-
-	if (bWasSuccessful && (LoadedModule != nullptr))
-	{
-		LoadedModule->PostLoadCallback();
-	}
-	else
+	IModuleInterface* LoadedModule = LoadModule( InModuleName );
+	if (!LoadedModule)
 	{
 		Ar.Logf(TEXT("Module couldn't be loaded."));
+		return false;
 	}
 
-	return bWasSuccessful;
+	LoadedModule->PostLoadCallback();
+	return true;
 }
 
 

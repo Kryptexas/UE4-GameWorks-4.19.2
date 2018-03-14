@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================
@@ -301,7 +301,31 @@ struct FAndroidESDeferredOpenGL : public FOpenGLESDeferred
 
 	static FORCEINLINE bool TexStorage2D(GLenum Target, GLint Levels, GLint InternalFormat, GLsizei Width, GLsizei Height, GLenum Format, GLenum Type, uint32 Flags)
 	{
-		if( glTexStorage2D != NULL )
+		// glTexStorage2D accepts only sized internal formats and thus we reject base formats
+		// also GL_BGRA8_EXT seems to be unsupported
+		bool bValidFormat = true;
+		switch (InternalFormat)
+		{
+			case GL_DEPTH_COMPONENT:
+			case GL_DEPTH_STENCIL:
+			case GL_RED:
+			case GL_RG:
+			case GL_RGB:
+			case GL_RGBA:
+			case GL_BGRA_EXT:
+			case GL_BGRA8_EXT:
+			case GL_LUMINANCE:
+			case GL_LUMINANCE_ALPHA:
+			case GL_ALPHA:
+			case GL_RED_INTEGER:
+			case GL_RG_INTEGER:
+			case GL_RGB_INTEGER:
+			case GL_RGBA_INTEGER:
+				bValidFormat = false;
+			break;
+		}
+
+		if( glTexStorage2D != NULL && bValidFormat )
 		{
 			glTexStorage2D(Target, Levels, InternalFormat, Width, Height);
 			return true;

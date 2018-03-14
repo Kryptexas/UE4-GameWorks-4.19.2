@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,9 +22,9 @@ public:
 protected:
 	/** FTickableEditorObject interface */
 	virtual void Tick(float DeltaTime);
-	virtual bool IsTickable() const
+	virtual ETickableTickType GetTickableTickType() const
 	{
-		return true;
+		return ETickableTickType::Always;
 	}
 	virtual TStatId GetStatId() const override;
 

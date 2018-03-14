@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SSkeletonWidget.h"
 #include "Modules/ModuleManager.h"
@@ -23,6 +23,7 @@
 #include "AssetRegistryModule.h"
 #include "AnimationRuntime.h"
 #include "Settings/SkeletalMeshEditorSettings.h"
+#include "Styling/CoreStyle.h"
 
 #define LOCTEXT_NAMESPACE "SkeletonWidget"
 
@@ -154,7 +155,7 @@ void SSkeletonCompareWidget::Construct(const FArguments& InArgs)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("CurrentlySelectedSkeletonLabel_SelectSkeleton", "Select Skeleton"))
-						.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 16))
+						.Font(FCoreStyle::GetDefaultFontStyle("Regular", 16))
 						.ToolTip(SkeletonTooltip)
 					]
 					+SHorizontalBox::Slot()
@@ -683,7 +684,7 @@ void SAnimationRemapSkeleton::Construct( const FArguments& InArgs )
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("CurrentlySelectedSkeletonLabel_SelectSkeleton", "Select Skeleton"))
-						.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 16))
+						.Font(FCoreStyle::GetDefaultFontStyle("Regular", 16))
 						.ToolTip(SkeletonTooltip)
 					]
 					+SHorizontalBox::Slot()
@@ -1176,7 +1177,7 @@ void SSkeletonBoneRemoval::Construct( const FArguments& InArgs )
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("BoneRemovalLabel", "Bone Removal"))
-				.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 16))
+				.Font(FCoreStyle::GetDefaultFontStyle("Regular", 16))
 			]
 		]
 
@@ -1195,7 +1196,7 @@ void SSkeletonBoneRemoval::Construct( const FArguments& InArgs )
 		[
 			SNew(STextBlock)
 			.WrapTextAt(400.f)
-			.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 ) )
+			.Font( FCoreStyle::GetDefaultFontStyle("Regular", 10) )
 			.Text( InArgs._WarningMessage )
 		]
 
@@ -1488,7 +1489,7 @@ void SSelectFolderDlg::Construct(const FArguments& InArgs)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("SelectPath", "Select Path"))
-						.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 14))
+						.Font(FCoreStyle::GetDefaultFontStyle("Regular", 14))
 					]
 
 					+SVerticalBox::Slot()

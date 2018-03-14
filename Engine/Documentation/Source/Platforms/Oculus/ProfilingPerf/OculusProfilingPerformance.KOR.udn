@@ -1,0 +1,21 @@
+﻿INTSourceChangelist:3769397
+Title:오큘러스 프로파일링 & 퍼포먼스
+Availability:Public
+Crumbs:%ROOT%, Platforms
+Description:UE4 리프트 프로젝트의 퍼포먼스 프로파일링 관련 정보입니다.
+Navigation:platform
+Platform:Oculus
+Version: 4.16
+type:overview
+Skilllevel:Advanced
+parent:Platforms/Oculus
+order:2
+tags:Performance and Profiling
+type:overview
+topic-image:Oculus_ProPref_Topic_Image.png
+
+## 오큘러스 PerfHud
+
+![](Oculus_Perf_HUD.png)
+
+[Include:Platforms\VR\Profiling\Tools\#OculusPerfHud]

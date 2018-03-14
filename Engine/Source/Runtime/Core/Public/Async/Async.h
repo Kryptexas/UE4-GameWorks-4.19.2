@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,7 +27,7 @@ enum class EAsyncExecution
 	/** Execute in separate thread (for long running tasks). */
 	Thread,
 
-	/** Execute in queued thread pool. */
+	/** Execute in global queued thread pool. */
 	ThreadPool
 };
 
@@ -262,7 +262,7 @@ struct FAsyncThreadIndex
 
 
 /**
- * Executes a given function asynchronously.
+ * Execute a given function asynchronously.
  *
  * While we still support VS2012, we need to help the compiler deduce the ResultType
  * template argument for Async<T>(), which can be accomplished in two ways:
@@ -344,7 +344,29 @@ TFuture<ResultType> Async(EAsyncExecution Execution, TFunction<ResultType()> Fun
 
 
 /**
- * Executes a given function asynchronously using a separate thread.
+ * Execute a given function asynchronously on the specified thread pool.
+ *
+ * @param ResultType The type of the function's return value.
+ * @param ThreadPool The thread pool to execute on.
+ * @param Function The function to execute.
+ * @param CompletionCallback An optional callback function that is executed when the function completed execution.
+ * @result A TFuture object that will receive the return value from the function.
+ */
+template<typename ResultType>
+TFuture<ResultType> AsyncPool(FQueuedThreadPool& ThreadPool, TFunction<ResultType()> Function, TFunction<void()> CompletionCallback = TFunction<void()>())
+{
+	TPromise<ResultType> Promise(MoveTemp(CompletionCallback));
+	TFuture<ResultType> Future = Promise.GetFuture();
+
+	ThreadPool.AddQueuedWork(new TAsyncQueuedWork<ResultType>(MoveTemp(Function), MoveTemp(Promise)));
+
+	return MoveTemp(Future);
+}
+
+
+/**
+ * Execute a given function asynchronously using a separate thread.
+ *
  * @param ResultType The type of the function's return value.
  * @param Function The function to execute.
  * @param StackSize stack space to allocate for the new thread

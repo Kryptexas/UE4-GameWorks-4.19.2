@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineHotfixManager.h"
 #include "GenericPlatform/GenericPlatformFile.h"
@@ -12,6 +12,8 @@
 #include "Misc/PackageName.h"
 #include "OnlineSubsystemUtils.h"
 #include "Logging/LogSuppressionInterface.h"
+#include "Engine/CurveTable.h"
+#include "Engine/DataTable.h"
 
 DEFINE_LOG_CATEGORY(LogHotfixManager);
 
@@ -516,6 +518,11 @@ void UOnlineHotfixManager::ApplyHotfix()
 
 void UOnlineHotfixManager::TriggerHotfixComplete(EHotfixResult HotfixResult)
 {
+	if( HotfixResult != EHotfixResult::Failed )
+	{
+		PatchAssetsFromIniFiles();
+	}
+
 	TriggerOnHotfixCompleteDelegates(HotfixResult);
 	if (HotfixResult == EHotfixResult::Failed)
 	{
@@ -594,6 +601,10 @@ FString UOnlineHotfixManager::GetStrippedConfigFileName(const FString& IniName)
 	{
 		StrippedIniName = IniName.Right(StrippedIniName.Len() - PlatformPrefix.Len());
 	}
+	else if (StrippedIniName.StartsWith(ServerPrefix))
+	{
+		StrippedIniName = IniName.Right(StrippedIniName.Len() - ServerPrefix.Len());
+	}
 	else if (StrippedIniName.StartsWith(DefaultPrefix))
 	{
 		StrippedIniName = IniName.Right(StrippedIniName.Len() - DefaultPrefix.Len());
@@ -661,6 +672,14 @@ bool UOnlineHotfixManager::HotfixIniFile(const FString& FileName, const FString&
 			if (EndIndex > StartIndex)
 			{
 				int32 PerObjectNameIndex = IniData.Find(TEXT(" "), ESearchCase::IgnoreCase, ESearchDir::FromStart, StartIndex);
+
+				const TCHAR* AssetHotfixIniHACK = TEXT("[AssetHotfix]");
+				if (FCString::Strnicmp(*IniData + StartIndex, AssetHotfixIniHACK, FCString::Strlen(AssetHotfixIniHACK)) == 0)
+				{
+					// HACK - Make AssetHotfix the last element in the ini file so that this parsing isn't affected by it for now
+					break;
+				}
+
 				// Per object config entries will have a space in the name, but classes won't
 				if (PerObjectNameIndex == -1 || PerObjectNameIndex > EndIndex)
 				{
@@ -1039,6 +1058,149 @@ void UOnlineHotfixManager::RestoreBackupIniFiles()
 	UE_LOG(LogHotfixManager, Log, TEXT("Restoring config for %d changed classes took %f seconds reloading %d objects"),
 		ClassesToRestore.Num(), FPlatformTime::Seconds() - StartTime, NumObjectsReloaded);
 }
+
+
+void UOnlineHotfixManager::PatchAssetsFromIniFiles()
+{
+	UE_LOG( LogHotfixManager, Display, TEXT( "Checking for assets to be patched using data from 'AssetHotfix' section in the Game .ini file" ) );
+
+	int32 TotalPatchableAssets = 0;
+	AssetsHotfixedFromIniFiles.Reset();
+
+	// Everything should be under the 'AssetHotfix' section in Game.ini
+	FConfigSection* AssetHotfixConfigSection = GConfig->GetSectionPrivate( TEXT( "AssetHotfix" ), false, true, GGameIni );
+	if( AssetHotfixConfigSection != nullptr )
+	{
+		for( FConfigSection::TIterator It( *AssetHotfixConfigSection ); It; ++It )
+		{
+			++TotalPatchableAssets;
+
+			TArray<UClass*> PatchableAssetClasses;
+			{
+				// These are the asset types we support patching right now
+				PatchableAssetClasses.Add( UCurveTable::StaticClass() );
+				PatchableAssetClasses.Add( UDataTable::StaticClass() );
+			}
+
+			// Make sure the entry has a valid class name that we supprt
+			UClass* AssetClass = nullptr;
+			for( UClass* PatchableAssetClass : PatchableAssetClasses )
+			{
+				if( PatchableAssetClass && (It.Key() == PatchableAssetClass->GetFName()) )
+				{
+					AssetClass = PatchableAssetClass;
+					break;
+				}
+			}
+
+			if( AssetClass != nullptr )
+			{
+				const TCHAR* ValueChars = *It.Value().GetValue();
+
+				// Expecting an opening paren from the config system
+				if( ValueChars != nullptr && *( ValueChars++ ) == L'(' )
+				{
+					FString AssetPath;
+					int32 NumCharsRead = 0;
+					if( FParse::QuotedString( ValueChars, /* Out */ AssetPath, /* Out */ &NumCharsRead ) && !AssetPath.IsEmpty() )
+					{
+						// Skip past what we read out of the buffer
+						ValueChars += NumCharsRead;
+
+						// Find or load the asset
+						UObject* Asset = StaticLoadObject( AssetClass, nullptr, *AssetPath );
+						if( Asset != nullptr )
+						{
+							TArray<FString> ProblemStrings;
+
+							// Expecting a comma from config system
+							FParse::Next( &ValueChars );	// Skip whitespace
+							if( *( ValueChars++ ) == L',' )
+							{
+								FString JsonData;
+								if( FParse::QuotedString( ValueChars, /* Out */ JsonData, /* Out */ &NumCharsRead ) && !JsonData.IsEmpty() )
+								{
+									// Skip past what we read out of the buffer
+									ValueChars += NumCharsRead;
+
+									// OK, here we go!  Let's import over the object in place.
+									UCurveTable* CurveTable = Cast<UCurveTable>( Asset );
+									UDataTable* DataTable = Cast<UDataTable>( Asset );
+									if( CurveTable != nullptr )
+									{
+										ProblemStrings.Append( CurveTable->CreateTableFromJSONString( JsonData ) );
+									}
+									else if( DataTable != nullptr )
+									{
+										ProblemStrings.Append( DataTable->CreateTableFromJSONString( JsonData ) );
+									}
+									else
+									{
+										// A supported asset type was added but no handling code for patching the asset was included
+										check( 0 );
+									}
+								}
+								else
+								{
+									ProblemStrings.Add( TEXT( "Couldn't parse a quoted Json string with the asset's new content." ) );
+								}
+							}
+							else
+							{
+								ProblemStrings.Add( TEXT( "Was expecting a ',' before the quoted Json data." ) );
+							}
+
+							if( ProblemStrings.Num() > 0 )
+							{
+								for( const FString& ProblemString : ProblemStrings )
+								{
+									UE_LOG( LogHotfixManager, Error, TEXT( "%s: %s" ), *Asset->GetPathName(), *ProblemString );
+								}
+							}
+							else
+							{
+								// We'll keep a reference to the successfully patched asset.  We want to make sure our changes survive throughout
+								// this session, so we reference it to prevent it from being evicted from memory.  It's OK if we end up re-patching
+								// the same asset multiple times per session.
+								AssetsHotfixedFromIniFiles.Add( Asset );
+							}
+						}
+						else
+						{
+							UE_LOG( LogHotfixManager, Error, TEXT( "Couldn't find or load asset '%s' (class '%s').  This asset will not be patched.  Double check that your asset type and path string is correct." ), *AssetPath, *AssetClass->GetPathName() );
+						}
+					}
+					else
+					{
+						UE_LOG( LogHotfixManager, Error, TEXT( "Entry for asset type '%s' was missing an 'Asset=' field.  This entry was skipped." ), *AssetClass->GetPathName() );
+					}
+				}
+				else
+				{
+					UE_LOG( LogHotfixManager, Error, TEXT( "Malformed string when reading entry for asset type '%s'.  This entry was skipped." ), *It.Key().ToString() );
+				}
+			}
+			else
+			{
+				UE_LOG( LogHotfixManager, Error, TEXT( "Couldn't recognize the asset type name '%s' for entry.  This entry was skipped." ), *It.Key().ToString() );
+			}
+		}
+	}
+
+	if( TotalPatchableAssets == 0 )
+	{
+		UE_LOG( LogHotfixManager, Display, TEXT( "No assets were found in the 'AssetHotfix' section in the Game .ini file.  No patching needed." ) );
+	}
+	else if( TotalPatchableAssets == AssetsHotfixedFromIniFiles.Num() )
+	{
+		UE_LOG( LogHotfixManager, Display, TEXT( "Successfully patched all %i assets from the 'AssetHotfix' section in the Game .ini file.  These assets will be forced to remain loaded." ), AssetsHotfixedFromIniFiles.Num() );
+	}
+	else
+	{
+		UE_LOG( LogHotfixManager, Error, TEXT( "Only %i of %i assets were successfully patched from 'AssetHotfix' section in the Game .ini file.  The patched assets will be forced to remain loaded.  Any assets that failed to patch may be left in an invalid state!" ), AssetsHotfixedFromIniFiles.Num(), TotalPatchableAssets );
+	}
+}
+
 
 struct FHotfixManagerExec :
 	public FSelfRegisteringExec

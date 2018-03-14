@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1.4 - 커스텀 스포트라이트
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
@@ -28,7 +28,7 @@ Version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]

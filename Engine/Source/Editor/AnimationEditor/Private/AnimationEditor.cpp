@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimationEditor.h"
 #include "Misc/MessageDialog.h"
@@ -117,6 +117,7 @@ void FAnimationEditor::InitAnimationEditor(const EToolkitMode::Type Mode, const 
 	FSkeletonTreeArgs SkeletonTreeArgs;
 	SkeletonTreeArgs.OnSelectionChanged = FOnSkeletonTreeSelectionChanged::CreateSP(this, &FAnimationEditor::HandleSelectionChanged);
 	SkeletonTreeArgs.PreviewScene = PersonaToolkit->GetPreviewScene();
+	SkeletonTreeArgs.ContextName = GetToolkitFName();
 
 	ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::GetModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
 	SkeletonTree = SkeletonEditorModule.CreateSkeletonTree(PersonaToolkit->GetSkeleton(), SkeletonTreeArgs);
@@ -208,6 +209,10 @@ void FAnimationEditor::BindCommands()
 		FExecuteAction::CreateSP(this, &FAnimationEditor::OnAddLoopingInterpolation),
 		FCanExecuteAction::CreateSP(this, &FAnimationEditor::HasValidAnimationSequence));
 
+	ToolkitCommands->MapAction(FAnimationEditorCommands::Get().RemoveBoneTracks,
+		FExecuteAction::CreateSP(this, &FAnimationEditor::OnRemoveBoneTrack),
+		FCanExecuteAction::CreateSP(this, &FAnimationEditor::HasValidAnimationSequence));
+
 	ToolkitCommands->MapAction(FPersonaCommonCommands::Get().TogglePlay,
 		FExecuteAction::CreateRaw(&GetPersonaToolkit()->GetPreviewScene().Get(), &IPersonaPreviewScene::TogglePlayback));
 }
@@ -245,6 +250,12 @@ void FAnimationEditor::ExtendToolbar()
 		GetToolkitCommands(),
 		FToolBarExtensionDelegate::CreateLambda([this](FToolBarBuilder& ToolbarBuilder)
 		{
+			FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
+			FPersonaModule::FCommonToolbarExtensionArgs Args;
+			Args.bPreviewAnimation = false;
+			Args.bReferencePose = false;
+			PersonaModule.AddCommonToolbarExtensions(ToolbarBuilder, PersonaToolkit.ToSharedRef(), Args);
+
 			ToolbarBuilder.BeginSection("Animation");
 			{
 				// create button
@@ -280,9 +291,6 @@ void FAnimationEditor::ExtendToolbar()
 			}
 			ToolbarBuilder.EndSection();
 
-			FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
-			PersonaModule.AddCommonToolbarExtensions(ToolbarBuilder, PersonaToolkit.ToSharedRef());
-
 			TSharedRef<class IAssetFamily> AssetFamily = PersonaModule.CreatePersonaAssetFamily(AnimationAsset);
 			AddToolbarWidget(PersonaModule.CreateAssetFamilyShortcutWidget(SharedThis(this), AssetFamily));
 		}	
@@ -310,6 +318,7 @@ void FAnimationEditor::ExtendMenu()
 				);
 
 				MenuBuilder.AddMenuEntry(FAnimationEditorCommands::Get().AddLoopingInterpolation);
+				MenuBuilder.AddMenuEntry(FAnimationEditorCommands::Get().RemoveBoneTracks);
 
 				MenuBuilder.AddSubMenu(
 					LOCTEXT("CopyCurvesToSoundWave", "Copy Curves To SoundWave"),
@@ -567,7 +576,6 @@ void FAnimationEditor::OnExportToFBX(const EPoseSourceOption Option)
 	{
 		TArray<TWeakObjectPtr<UObject>> Skeletons;
 		Skeletons.Add(PersonaToolkit->GetSkeleton());
-
 		AnimationEditorUtils::CreateAnimationAssets(Skeletons, UAnimSequence::StaticClass(), FString("_PreviewMesh"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::ExportToFBX, true), AnimationAsset, true);
 	}
 	else
@@ -576,8 +584,9 @@ void FAnimationEditor::OnExportToFBX(const EPoseSourceOption Option)
 	}
 }
 
-void FAnimationEditor::ExportToFBX(const TArray<UObject*> AssetsToExport, bool bRecordAnimation)
+bool FAnimationEditor::ExportToFBX(const TArray<UObject*> AssetsToExport, bool bRecordAnimation)
 {
+	bool AnimSequenceExportResult = false;
 	TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
 	if (AssetsToExport.Num() > 0)
 	{
@@ -597,8 +606,11 @@ void FAnimationEditor::ExportToFBX(const TArray<UObject*> AssetsToExport, bool b
 	if (AnimSequences.Num() > 0)
 	{
 		FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>("Persona");
-		PersonaModule.ExportToFBX(AnimSequences, GetPersonaToolkit()->GetPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh);
+		
+		
+		AnimSequenceExportResult = PersonaModule.ExportToFBX(AnimSequences, GetPersonaToolkit()->GetPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh);
 	}
+	return AnimSequenceExportResult;
 }
 
 void FAnimationEditor::OnAddLoopingInterpolation()
@@ -610,6 +622,21 @@ void FAnimationEditor::OnAddLoopingInterpolation()
 		AnimSequences.Add(AnimSequence);
 		FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>("Persona");
 		PersonaModule.AddLoopingInterpolation(AnimSequences);
+	}
+}
+
+void FAnimationEditor::OnRemoveBoneTrack()
+{
+	if ( FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("WarningOnRemovingBoneTracks", "This will clear all bone transform of the animation, source data, and edited layer information. This doesn't remove notifies, and curves. Do you want to continue?")) == EAppReturnType::Yes)
+	{
+		FScopedTransaction ScopedTransaction(LOCTEXT("RemoveAnimation", "Remove Track"));
+
+		UAnimSequence* AnimSequence = Cast<UAnimSequence>(AnimationAsset);
+		if (AnimSequence)
+		{
+			AnimSequence->Modify();
+			AnimSequence->RemoveAllTracks();
+		}
 	}
 }
 
@@ -892,7 +919,12 @@ void FAnimationEditor::FillCopyToSoundWaveMenu(FMenuBuilder& MenuBuilder) const
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
 
 	MenuBuilder.AddWidget(
-		ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig),
+		SNew(SBox)
+		.WidthOverride(300.0f)
+		.HeightOverride(300.0f)
+		[
+			ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
+		],
 		LOCTEXT("Select_Label", "")
 	);
 
@@ -940,16 +972,17 @@ void FAnimationEditor::CopyCurveToSoundWave(const FAssetData& SoundWaveAssetData
 	}
 
 	// If no internal table, create one now
-	if (!SoundWave->InternalCurves)
+	if (!SoundWave->GetInternalCurveData())
 	{
 		static const FName InternalCurveTableName("InternalCurveTable");
-		SoundWave->Curves = NewObject<UCurveTable>(SoundWave, InternalCurveTableName);
-		SoundWave->Curves->ClearFlags(RF_Public);
-		SoundWave->Curves->SetFlags(SoundWave->Curves->GetFlags() | RF_Standalone | RF_Transactional);
-		SoundWave->InternalCurves = SoundWave->Curves;
+		UCurveTable* NewCurves = NewObject<UCurveTable>(SoundWave, InternalCurveTableName);
+		NewCurves->ClearFlags(RF_Public);
+		NewCurves->SetFlags(NewCurves->GetFlags() | RF_Standalone | RF_Transactional);
+		SoundWave->SetCurveData(NewCurves);
+		SoundWave->SetInternalCurveData(NewCurves);
 	}
 
-	UCurveTable* CurveTable = SoundWave->InternalCurves;
+	UCurveTable* CurveTable = SoundWave->GetInternalCurveData();
 
 	// iterate over curves in anim data
 	const int32 NumCurves = Sequence->RawCurveData.FloatCurves.Num();
@@ -978,7 +1011,7 @@ void FAnimationEditor::CopyCurveToSoundWave(const FAssetData& SoundWaveAssetData
 	FSlateApplication::Get().DismissAllMenus();
 }
 
-void FAnimationEditor::CreateAnimation(const TArray<UObject*> NewAssets, const EPoseSourceOption Option)
+bool FAnimationEditor::CreateAnimation(const TArray<UObject*> NewAssets, const EPoseSourceOption Option)
 {
 	bool bResult = true;
 	if (NewAssets.Num() > 0)
@@ -1027,9 +1060,10 @@ void FAnimationEditor::CreateAnimation(const TArray<UObject*> NewAssets, const E
 			}
 		}
 	}
+	return true;
 }
 
-void FAnimationEditor::CreatePoseAsset(const TArray<UObject*> NewAssets, const EPoseSourceOption Option)
+bool FAnimationEditor::CreatePoseAsset(const TArray<UObject*> NewAssets, const EPoseSourceOption Option)
 {
 	bool bResult = false;
 	if (NewAssets.Num() > 0)
@@ -1077,9 +1111,10 @@ void FAnimationEditor::CreatePoseAsset(const TArray<UObject*> NewAssets, const E
 			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("FailedToCreateAsset", "Failed to create asset"));
 		}
 	}
+	return true;
 }
 
-void FAnimationEditor::HandleAssetCreated(const TArray<UObject*> NewAssets)
+bool FAnimationEditor::HandleAssetCreated(const TArray<UObject*> NewAssets)
 {
 	if (NewAssets.Num() > 0)
 	{
@@ -1101,6 +1136,7 @@ void FAnimationEditor::HandleAssetCreated(const TArray<UObject*> NewAssets)
 			}
 		}
 	}
+	return true;
 }
 
 void FAnimationEditor::ConditionalRefreshEditor(UObject* InObject)

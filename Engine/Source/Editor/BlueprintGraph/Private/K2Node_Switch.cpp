@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "K2Node_Switch.h"
@@ -15,8 +15,8 @@
 
 namespace 
 {
-	static FString DefaultPinName(TEXT("Default"));
-	static FString SelectionPinName(TEXT("Selection"));
+	static FName DefaultPinName(TEXT("Default"));
+	static FName SelectionPinName(TEXT("Selection"));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -42,7 +42,7 @@ public:
 		// Create a term to determine if the compare was successful or not
 		//@TODO: Ideally we just create one ever, not one per switch
 		FBPTerminal* BoolTerm = Context.CreateLocalTerminal();
-		BoolTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Boolean;
+		BoolTerm->Type.PinCategory = UEdGraphSchema_K2::PC_Boolean;
 		BoolTerm->Source = Node;
 		BoolTerm->Name = Context.NetNameMap->MakeValidName(Node) + TEXT("_CmpSuccess");
 		BoolTermMap.Add(Node, BoolTerm);
@@ -59,7 +59,7 @@ public:
 		UEdGraphPin* ExecTriggeringPin = Context.FindRequiredPinByName(SwitchNode, UEdGraphSchema_K2::PN_Execute, EGPD_Input);
 		if ((ExecTriggeringPin == NULL) || !Context.ValidatePinType(ExecTriggeringPin, ExpectedExecPinType))
 		{
-			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("NoValidExecutionPinForSwitch_Error", "@@ must have a valid execution pin @@").ToString()), SwitchNode, ExecTriggeringPin);
+			CompilerContext.MessageLog.Error(*LOCTEXT("NoValidExecutionPinForSwitch_Error", "@@ must have a valid execution pin @@").ToString(), SwitchNode, ExecTriggeringPin);
 			return;
 		}
 
@@ -67,7 +67,7 @@ public:
 		UEdGraphPin* SelectionPin = SwitchNode->GetSelectionPin();
 		if ((SelectionPin == NULL) || !Context.ValidatePinType(SelectionPin, SwitchNode->GetPinType()))
 		{
-			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("NoValidSelectionPinForSwitch_Error", "@@ must have a valid execution pin @@").ToString()), SwitchNode, SelectionPin);
+			CompilerContext.MessageLog.Error(*LOCTEXT("NoValidSelectionPinForSwitch_Error", "@@ must have a valid execution pin @@").ToString(), SwitchNode, SelectionPin);
 			return;
 		}
 
@@ -87,7 +87,7 @@ public:
 
 			// Pull out function to use
 			UClass* FuncClass = Cast<UClass>(FuncPin->PinType.PinSubCategoryObject.Get());
-			UFunction* FunctionPtr = FindField<UFunction>(FuncClass, *FuncPin->PinName);
+			UFunction* FunctionPtr = FindField<UFunction>(FuncClass, FuncPin->PinName);
 			check(FunctionPtr);
 
 			// Run thru all the output pins except for the default label
@@ -99,7 +99,7 @@ public:
 				{
 					// Create a term for the switch case value
 					FBPTerminal* CaseValueTerm = new (Context.Literals) FBPTerminal();
-					CaseValueTerm->Name = Pin->PinName;
+					CaseValueTerm->Name = Pin->PinName.ToString();
 					CaseValueTerm->Type = SwitchNode->GetInnerCaseType();
 					CaseValueTerm->SourcePin = Pin;
 					CaseValueTerm->bIsLiteral = true;
@@ -172,23 +172,21 @@ void UK2Node_Switch::PostEditChangeProperty(struct FPropertyChangedEvent& Proper
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
-FString UK2Node_Switch::GetSelectionPinName()
+FName UK2Node_Switch::GetSelectionPinName()
 {
 	return SelectionPinName;
 }
 
 void UK2Node_Switch::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 	// Add default pin
 	if (bHasDefaultPin)
 	{
-		CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, DefaultPinName);
+		CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, DefaultPinName);
 	}
 
 	// Add exec input pin
-	CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Execute);
 
 	// Create selection pin based on type
 	CreateSelectionPin();
@@ -211,7 +209,7 @@ UK2Node::ERedirectType UK2Node_Switch::DoPinsMatchForReconstruction(const UEdGra
 			return ERedirectType_Name;
 		}
 	}
-	else if (FCString::Strcmp(*(NewPin->PinName), *(OldPin->PinName)) == 0)
+	else if (NewPin->PinName == OldPin->PinName)
 	{
 		// Compare the names, case-sensitively
 		return ERedirectType_Name;
@@ -233,11 +231,10 @@ FSlateIcon UK2Node_Switch::GetIconAndTint(FLinearColor& OutColor) const
 
 void UK2Node_Switch::AddPinToSwitchNode()
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	FString NewPinName = GetUniquePinName();
-	if (NewPinName.Len() > 0)
+	const FName NewPinName = GetUniquePinName();
+	if (!NewPinName.IsNone())
 	{
-		CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, NewPinName);
+		CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, NewPinName);
 	}
 }
 
@@ -284,17 +281,15 @@ bool UK2Node_Switch::CanRemoveExecutionPin(UEdGraphPin* TargetPin) const
 }
 
 // Returns the exec output pin name for a given 0-based index
-FString UK2Node_Switch::GetPinNameGivenIndex(int32 Index)
+FName UK2Node_Switch::GetPinNameGivenIndex(int32 Index) const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	return FString::Printf(TEXT("%d"), Index);
+	return *FString::Printf(TEXT("%d"), Index);
 }
 
 void UK2Node_Switch::CreateFunctionPin()
 {
 	// Set properties on the function pin
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	UEdGraphPin* FunctionPin = CreatePin(EGPD_Input, K2Schema->PC_Object, FString(), FunctionClass, FunctionName.ToString());
+	UEdGraphPin* FunctionPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, FunctionClass, FunctionName);
 	FunctionPin->bDefaultValueIsReadOnly = true;
 	FunctionPin->bNotConnectable = true;
 	FunctionPin->bHidden = true;
@@ -318,7 +313,7 @@ void UK2Node_Switch::CreateFunctionPin()
 UEdGraphPin* UK2Node_Switch::GetFunctionPin() const
 {
 	//@TODO: Should probably use a specific index, though FindPin starts at 0, so this won't *currently* conflict with user created pins
-	return FindPin(FunctionName.ToString());
+	return FindPin(FunctionName);
 }
 
 UEdGraphPin* UK2Node_Switch::GetSelectionPin() const

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NUTUtil.h"
 
@@ -43,13 +43,11 @@ void NUTUtil::GetUnitTestClassDefList(TArray<UUnitTest*>& OutUnitTestClassDefaul
 {
 	for (TObjectIterator<UClass> It; It; ++It)
 	{
-		// @todo #JohnBRefactor: Move all 'abstract class' checks to a central location, as you do this in multiple locations
-		if (It->IsChildOf(UUnitTest::StaticClass()) && *It != UUnitTest::StaticClass() && *It != UClientUnitTest::StaticClass() &&
-			*It != UProcessUnitTest::StaticClass())
+		if (It->IsChildOf(UUnitTest::StaticClass()) && !It->HasAnyClassFlags(CLASS_Abstract))
 		{
 			UUnitTest* CurDefault = Cast<UUnitTest>(It->GetDefaultObject());
 
-			if (CurDefault != NULL)
+			if (CurDefault != nullptr)
 			{
 				OutUnitTestClassDefaults.Add(CurDefault);
 			}

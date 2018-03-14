@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ActorRecording.h"
 #include "Misc/ScopedSlowTask.h"
@@ -23,6 +23,7 @@ static const FName MovieSceneSectionRecorderFactoryName("MovieSceneSectionRecord
 UActorRecording::UActorRecording(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bActive = true;
 	bWasSpawnedPostRecord = false;
 	Guid.Invalidate();
 	bNewComponentAddedWhileRecording = false;
@@ -61,6 +62,11 @@ bool UActorRecording::IsRelevantForRecording(AActor* Actor)
 
 bool UActorRecording::StartRecording(ULevelSequence* CurrentSequence, float CurrentSequenceTime)
 {
+	if (!bActive)
+	{
+		return false;
+	}
+
 	bNewComponentAddedWhileRecording = false;
 	DuplicatedDynamicComponents.Reset();
 
@@ -221,7 +227,7 @@ bool UActorRecording::ValidComponent(USceneComponent* SceneComponent) const
 		const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
 		for (const FPropertiesToRecordForClass& PropertiesToRecordForClass : Settings->ClassesAndPropertiesToRecord)
 		{			
-			if (PropertiesToRecordForClass.Class != nullptr && SceneComponent->IsA(PropertiesToRecordForClass.Class))
+			if (PropertiesToRecordForClass.Class != nullptr && SceneComponent->IsA(PropertiesToRecordForClass.Class) && !SceneComponent->bIsEditorOnly)
 			{
 				return true;
 			}

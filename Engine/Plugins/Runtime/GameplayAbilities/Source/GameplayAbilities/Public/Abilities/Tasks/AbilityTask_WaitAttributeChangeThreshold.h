@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -29,7 +29,7 @@ class GAMEPLAYABILITIES_API UAbilityTask_WaitAttributeChangeThreshold : public U
 
 	/** Wait on attribute change meeting a comparison threshold. */
 	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "TRUE"))
-	static UAbilityTask_WaitAttributeChangeThreshold* WaitForAttributeChangeThreshold(UGameplayAbility* OwningAbility, FGameplayAttribute Attribute, TEnumAsByte<EWaitAttributeChangeComparison::Type> ComparisonType, float ComparisonValue, bool bTriggerOnce);
+	static UAbilityTask_WaitAttributeChangeThreshold* WaitForAttributeChangeThreshold(UGameplayAbility* OwningAbility, FGameplayAttribute Attribute, TEnumAsByte<EWaitAttributeChangeComparison::Type> ComparisonType, float ComparisonValue, bool bTriggerOnce, AActor* OptionalExternalOwner = nullptr);
 
 	FGameplayAttribute Attribute;
 	TEnumAsByte<EWaitAttributeChangeComparison::Type> ComparisonType;
@@ -40,6 +40,11 @@ class GAMEPLAYABILITIES_API UAbilityTask_WaitAttributeChangeThreshold : public U
 protected:
 
 	bool bMatchedComparisonLastAttributeChange;
+
+	UPROPERTY()
+	UAbilitySystemComponent* ExternalOwner;
+
+	UAbilitySystemComponent* GetFocusedASC();
 
 	virtual void OnDestroy(bool AbilityEnded) override;
 

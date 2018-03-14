@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LightmassScene.h"
 #include "Importer.h"
@@ -45,6 +45,7 @@ FSceneFileHeader::FSceneFileHeader(const FSceneFileHeader& Other)
 
 	NumImportanceVolumes = Other.NumImportanceVolumes;
 	NumCharacterIndirectDetailVolumes = Other.NumCharacterIndirectDetailVolumes;
+	NumVolumetricLightmapDensityVolumes = Other.NumVolumetricLightmapDensityVolumes;
 	NumDirectionalLights = Other.NumDirectionalLights;
 	NumPointLights = Other.NumPointLights;
 	NumSpotLights = Other.NumSpotLights;
@@ -58,6 +59,7 @@ FSceneFileHeader::FSceneFileHeader(const FSceneFileHeader& Other)
 	NumFluidSurfaceTextureMappings = Other.NumFluidSurfaceTextureMappings;
 	NumLandscapeTextureMappings = Other.NumLandscapeTextureMappings;
 	NumSpeedTreeMappings = Other.NumSpeedTreeMappings;
+	NumVolumeMappings = Other.NumVolumeMappings;
 	NumPortals = Other.NumPortals;
 }
 
@@ -179,6 +181,20 @@ void FScene::Import( FLightmassImporter& Importer )
 	Importer.ImportData(&NumCameraTrackPositions);
 	Importer.ImportArray(CameraTrackPositions, NumCameraTrackPositions);
 
+	for (int32 VolumeIndex = 0; VolumeIndex < NumVolumetricLightmapDensityVolumes; VolumeIndex++)
+	{
+		FVolumetricLightmapDensityVolumeData LMVolumeData;
+		Importer.ImportData(&LMVolumeData);
+		static_assert(sizeof(LMVolumeData) == 40, "Update member copy");
+
+		FVolumetricLightmapDensityVolume LMVolume;
+		LMVolume.Bounds = LMVolumeData.Bounds;
+		LMVolume.AllowedMipLevelRange = LMVolumeData.AllowedMipLevelRange;
+		LMVolume.NumPlanes = LMVolumeData.NumPlanes;
+		Importer.ImportArray(LMVolume.Planes, LMVolume.NumPlanes);
+		VolumetricLightmapDensityVolumes.Add(LMVolume);
+	}
+
 	Importer.ImportArray(VolumetricLightmapTaskGuids, NumVolumetricLightmapTasks);
 
 	Importer.ImportObjectArray( DirectionalLights, NumDirectionalLights, Importer.GetLights() );
@@ -193,11 +209,14 @@ void FScene::Import( FLightmassImporter& Importer )
 	Importer.ImportObjectArray( TextureLightingMappings, NumStaticMeshTextureMappings, Importer.GetTextureMappings() );
 	Importer.ImportObjectArray( FluidMappings, NumFluidSurfaceTextureMappings, Importer.GetFluidMappings() );
 	Importer.ImportObjectArray( LandscapeMappings, NumLandscapeTextureMappings, Importer.GetLandscapeMappings() );
-
+	Importer.ImportObjectArray( VolumeMappings, NumVolumeMappings, Importer.GetVolumeMappings() );
 
 	DebugMapping = FindMappingByGuid(DebugInput.MappingGuid);
 	if (DebugMapping)
 	{
+#if !ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
+		checkf(false, TEXT("Texel Debugging active, but Lightmass was compiled with ALLOW_LIGHTMAP_SAMPLE_DEBUGGING == 0"));
+#endif
 		const FStaticLightingTextureMapping* TextureMapping = DebugMapping->GetTextureMapping();
 
 		// Verify debug input is valid, otherwise there will be an access violation later
@@ -353,6 +372,14 @@ const FStaticLightingMapping* FScene::FindMappingByGuid(FGuid FindGuid) const
 		}
 	}
 
+	for (int32 i = 0; i < VolumeMappings.Num(); i++)
+	{
+		if (VolumeMappings[i].Guid == FindGuid)
+		{
+			return &VolumeMappings[i];
+		}
+	}
+
 	return NULL;
 }
 
@@ -445,6 +472,33 @@ FBox FScene::GetVisibilityVolumeBounds() const
 	}
 }
 
+bool FScene::GetVolumetricLightmapAllowedMipRange(const FVector4& Position, FIntPoint& OutRange) const
+{
+	FIntPoint Range(INT_MAX, INT_MAX);
+
+	bool bVolumeFound = false;
+
+	for (int32 VolumeIndex = 0; VolumeIndex < VolumetricLightmapDensityVolumes.Num(); VolumeIndex++)
+	{
+		const FVolumetricLightmapDensityVolume& Volume = VolumetricLightmapDensityVolumes[VolumeIndex];
+		bool bInsideAllPlanes = true;
+		for (int32 PlaneIndex = 0; PlaneIndex < Volume.Planes.Num() && bInsideAllPlanes; PlaneIndex++)
+		{
+			const FPlane& Plane = Volume.Planes[PlaneIndex];
+			bInsideAllPlanes = bInsideAllPlanes && Plane.PlaneDot(Position) < 0.0f;
+		}
+		if (bInsideAllPlanes)
+		{
+			bVolumeFound = true;
+			Range.X = FMath::Min(Range.X, Volume.AllowedMipLevelRange.X);
+			Range.Y = FMath::Min(Range.Y, Volume.AllowedMipLevelRange.Y);
+		}
+	}
+
+	OutRange = Range;
+	return bVolumeFound;
+}
+
 /** Applies GeneralSettings.StaticLightingLevelScale to all scale dependent settings. */
 void FScene::ApplyStaticLightingScale()
 {
@@ -490,6 +544,7 @@ void FScene::ApplyStaticLightingScale()
 void FLight::Import( FLightmassImporter& Importer )
 {
 	Importer.ImportData( (FLightData*)this );
+	Importer.ImportArray( LightTextureProfileData, FLightData::LightProfileTextureDataSize );
 
 	// The read above stomps on CachedLightSurfaceSamples since that memory is padding in FLightData
 	FMemory::Memzero(&CachedLightSurfaceSamples, sizeof(CachedLightSurfaceSamples));
@@ -522,9 +577,7 @@ FLinearColor FLight::GetDirectIntensity(const FVector4& Point, bool bCalculateFo
 	// light profile (IES)
 	float LightProfileAttenuation;
 	{
-		FVector4 NegLightVector = (Position - Point).GetSafeNormal();
-
-		LightProfileAttenuation = ComputeLightProfileMultiplier(Dot3(NegLightVector, Direction));
+		LightProfileAttenuation = ComputeLightProfileMultiplier(LightTextureProfileData, Point, Position, Direction, GetLightTangent());
 	}
 
 	if (bCalculateForIndirectLighting)
@@ -990,9 +1043,6 @@ FLinearColor FPointLight::GetDirectIntensity(const FVector4& Point, bool bCalcul
 			DistanceAttenuation = 1.0f / ( DistanceSqr + 1.0f );
 		}
 
-		// lumens
-		DistanceAttenuation *= 16.0f;
-
 		float LightRadiusMask = FMath::Square(FMath::Max(0.0f, 1.0f - FMath::Square(DistanceSqr / (Radius * Radius))));
 		DistanceAttenuation *= LightRadiusMask;
 
@@ -1007,7 +1057,7 @@ FLinearColor FPointLight::GetDirectIntensity(const FVector4& Point, bool bCalcul
 }
 
 /** Returns an intensity scale based on the receiving point. */
-float FPointLight::CustomAttenuation(const FVector4& Point, FLMRandomStream& RandomStream) const
+float FPointLight::CustomAttenuation(const FVector4& Point, FLMRandomStream& RandomStream, bool bMaintainEvenDensity) const
 {
 	// Remove the physical attenuation, then attenuation using Unreal point light radial falloff
 	const float PointDistanceSquared = (Position - Point).SizeSquared3();
@@ -1017,7 +1067,7 @@ float FPointLight::CustomAttenuation(const FVector4& Point, FLMRandomStream& Ran
 	if( LightFlags & GI_LIGHT_INVERSE_SQUARED )
 	{
 		const float LightRadiusMask = FMath::Square( FMath::Max( 0.0f, 1.0f - FMath::Square( PointDistanceSquared / (Radius * Radius) ) ) );
-		UnrealAttenuation = 16.0f * PhysicalAttenuation * LightRadiusMask;
+		UnrealAttenuation = PhysicalAttenuation * LightRadiusMask;
 	}
 	else
 	{
@@ -1026,9 +1076,7 @@ float FPointLight::CustomAttenuation(const FVector4& Point, FLMRandomStream& Ran
 
 	// light profile (IES)
 	{
-		FVector4 NegLightVector = (Position - Point).GetSafeNormal();
-
-		UnrealAttenuation *= ComputeLightProfileMultiplier(Dot3(NegLightVector, Direction));
+		UnrealAttenuation *= ComputeLightProfileMultiplier(LightTextureProfileData, Point, Position, Direction, GetLightTangent());
 	}
 
 	// Thin out photons near the light source.
@@ -1037,7 +1085,9 @@ float FPointLight::CustomAttenuation(const FVector4& Point, FLMRandomStream& Ran
 	// If the photon map has a high density of low power photons near light sources,
 	// Combined with sparse, high power photons from other light sources (directional lights for example), the result will be very splotchy.
 	const float FullProbabilityDistance = .5f * Radius;
-	const float DepositProbability =  FMath::Clamp(PointDistanceSquared / (FullProbabilityDistance * FullProbabilityDistance), 0.0f, 1.0f);
+	const float DepositProbability = bMaintainEvenDensity ?
+		FMath::Clamp(PointDistanceSquared / (FullProbabilityDistance * FullProbabilityDistance), 0.0f, 1.0f) : 
+		1.0f;
 
 	if (RandomStream.GetFraction() < DepositProbability)
 	{
@@ -1051,7 +1101,7 @@ float FPointLight::CustomAttenuation(const FVector4& Point, FLMRandomStream& Ran
 }
 
 // Fudge factor to get point light photon intensities to match direct lighting more closely.
-static const float PointLightIntensityScale = 1.5f; 
+static const float PointLightIntensityScale = 1.0f; 
 
 /** Generates a direction sample from the light's domain */
 void FPointLight::SampleDirection(FLMRandomStream& RandomStream, FLightRay& SampleRay, FVector4& LightSourceNormal, FVector2D& LightSurfacePosition, float& RayPDF, FLinearColor& Power) const
@@ -1179,7 +1229,7 @@ float FPointLight::Power() const
 
 	if (LightFlags & GI_LIGHT_INVERSE_SQUARED)
 	{
-		IncidentPower = IncidentPower * 16 / (DistanceToEvaluate * DistanceToEvaluate);
+		IncidentPower = IncidentPower / (DistanceToEvaluate * DistanceToEvaluate);
 	}
 	else
 	{
@@ -1260,8 +1310,7 @@ FVector4 FPointLight::GetDirectLightingDirection(const FVector4& Point, const FV
 
 FVector FPointLight::GetLightTangent() const
 {
-	// For point lights, light tangent is not provided, however it doesn't matter much since point lights are omni-directional
-	return Direction;
+	return LightTangent;
 }
 
 /** Generates a sample on the light's surface. */
@@ -1426,9 +1475,6 @@ FLinearColor FSpotLight::GetDirectIntensity(const FVector4& Point, bool bCalcula
 			DistanceAttenuation = 1.0f / ( DistanceSqr + 1.0f );
 		}
 
-		// lumens
-		DistanceAttenuation *= 16.0f;
-
 		float LightRadiusMask = FMath::Square( FMath::Max( 0.0f, 1.0f - FMath::Square( DistanceSqr / (Radius * Radius) ) ) );
 		DistanceAttenuation *= LightRadiusMask;
 
@@ -1479,9 +1525,17 @@ void FSpotLight::SampleDirection(FLMRandomStream& RandomStream, FLightRay& Sampl
 	Power = IndirectColor * Brightness * PointLightIntensityScale;
 }
 
-FVector FSpotLight::GetLightTangent() const
+/** Generates a direction sample from the light based on the given rays */
+void FSpotLight::SampleDirection(
+	const TArray<FIndirectPathRay>& IndirectPathRays, 
+	FLMRandomStream& RandomStream, 
+	FLightRay& SampleRay, 
+	float& RayPDF, 
+	FLinearColor& Power) const
 {
-	return LightTangent;
+	FVector4 Unused;
+	FVector2D Unused2;
+	FSpotLight::SampleDirection(RandomStream, SampleRay, Unused, Unused2, RayPDF, Power);
 }
 
 //----------------------------------------------------------------------------
@@ -1994,7 +2048,7 @@ FLinearColor FMeshAreaLight::GetDirectIntensity(const FVector4& Point, bool bCal
 }
 
 /** Returns an intensity scale based on the receiving point. */
-float FMeshAreaLight::CustomAttenuation(const FVector4& Point, FLMRandomStream& RandomStream) const
+float FMeshAreaLight::CustomAttenuation(const FVector4& Point, FLMRandomStream& RandomStream, bool bMaintainEvenDensity) const
 {
 	const float FullProbabilityDistance = .5f * InfluenceRadius;
 	float PowerWeightedAttenuation = 0.0f;
@@ -2023,6 +2077,12 @@ float FMeshAreaLight::CustomAttenuation(const FVector4& Point, FLMRandomStream& 
 	}
 
 	DepositProbability = FMath::Clamp(DepositProbability, 0.0f, 1.0f);
+
+	if (!bMaintainEvenDensity)
+	{
+		DepositProbability = 1.0f;
+	}
+
 	// Thin out photons near the light source.
 	// This is partly an optimization since the photon density near light sources doesn't need to be high, and the natural 1 / R^2 density is overkill, 
 	// But this also improves quality since we are doing a nearest N photon neighbor search when calculating irradiance.  

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SBehaviorTreeBlackboardView.h"
 #include "SBehaviorTreeBlackboardEditor.h"
@@ -23,6 +23,7 @@
 #include "SGraphPalette.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "Styling/SlateIconFinder.h"
+#include "Styling/CoreStyle.h"
 #include "ScopedTransaction.h"
 #include "BehaviorTreeEditorCommands.h"
 #include "Widgets/Text/SInlineEditableTextBlock.h"
@@ -85,7 +86,7 @@ class SBehaviorTreeBlackboardItem : public SGraphPaletteItem
 		OnGetDisplayCurrentState = InArgs._OnGetDisplayCurrentState;
 		OnBlackboardKeyChanged = InArgs._OnBlackboardKeyChanged;
 
-		const FSlateFontInfo NameFont = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10);
+		const FSlateFontInfo NameFont = FCoreStyle::GetDefaultFontStyle("Regular", 10);
 
 		check(InCreateData);
 		check(InCreateData->Action.IsValid());

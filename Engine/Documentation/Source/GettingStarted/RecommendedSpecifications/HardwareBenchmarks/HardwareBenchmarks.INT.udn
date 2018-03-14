@@ -1,0 +1,369 @@
+Availability: Licensee
+Crumbs: %ROOT%
+Title: Hardware Benchmarks (Mid 2017)
+Description: This page contains hardware benchmark analyses, helping developers choose ideal hardware configurations for your projects.
+Type: Reference
+Version: 4.15
+Parent: GettingStarted/RecommendedSpecifications
+Order: 
+Tags: Specifications
+
+[TOC(start:2 end:2)]
+
+[REGION:warning]
+In the following analysis, price estimates and opinions of probable cost (current as of Mid 2017) are for informational purposes only.
+[/REGION]
+
+These hardware benchmark tests were performed in a private P4V stream with a fixed snapshot of code taken from `//UE4/Main` at Changelist (CL) 3477826. For the purposes of automating and aggregating results efficiently, the jobs were run through a build system with timing data (excluding syncs, waits, etc.). For the purposes of this study, the following machine configurations were used for testing purposes:
+
+| **Machine Name**        | **Type**| **CPU**                            | **Cores/Threads** | **RAM**  |
+| ----------------------- | ------- | ---------------------------------- | ----------------- | -------- |
+| **Dell T7910**          | Desktop | Xeon E5-2667 v3 @ 3.2 GHz (Dual)   | 8C/16T x 2        | 96GB     |
+| **Dell T7810**          | Desktop | Xeon E5-2643 v3 @ 3.4 GHz (Single) | 6C/12T            | 64GB     |
+| **Lenovo P710**         | Desktop | Xeon E5-2637 v4 @ 3.5 GHz (Dual)   | 4C/8T x 2         | 96GB     |
+| **Lenovo P510**         | Desktop | Xeon E5-1650 v3 @ 3.5 GHz (Single) | 6C/12T            | 64GB     |
+| **Current Builder**     | Server  | Xeon E5-2680 v2 @ 2.8 GHz (Dual)   | 10C/20H x 2       | 64GB     |
+| **Cisco C220-01 (S)\*** | Server  | Xeon E5-2637 v4 @ 3.5 GHz (Single) | 4C/8H             | 64GB     |
+| **Cisco C220-01 (D)**   | Server  | Xeon E5-2637 v4 @ 3.5 GHz (Dual)   | 4C/8H x 2         | 64GB     |
+| **Cisco C220-02 (S)\*** | Server  | Xeon E5-2698 v4 @ 2.2 GHz (Single) | 20C/40H           | 64GB     |
+| **Cisco C220-02 (D)**   | Server  | Xeon E5-2698 v4 @ 2.2 GHz (Dual)   | 20C/40H x 2       | 64GB     |
+| **Cisco C220-03 (S)\*** | Server  | Xeon E5-2640 v4 @ 2.4 GHz (Single) | 10C/20H           | 64GB     |
+| **Cisco C220-03 (D)**   | Server  | Xeon E5-2640 v4 @ 2.4 GHz (Dual)   | 10C/20H x 2       | 64GB     | 
+_*These are the same machines as the (D) variant, but with one CPU removed._
+
+During the tests, desktop machines were running [Windows 10](https://www.microsoft.com/en-us/windows/get-windows-10?step=Win10Question1) and server machines were running [Windows Server 2012 R2](https://www.microsoft.com/en-us/evalcenter/evaluate-windows-server-2012-r2). 
+Also, all machines had a [Samsung 850 PRO](http://www.samsung.com/semiconductor/minisite/ssd/product/consumer/850pro.html) data drive and a gigabit ethernet connection.
+
+##Compiling with XGE
+
+[REGION:note]
+Only desktop machines were considered for these tests. The standard [Incredibuild-XGE](https://www.incredibuild.com/incredibuild-xge-product-overview.html) (XGE) coordinator and pool of agents were used in our headquarters. 
+[/REGION]
+
+All of the machines performed similarly, though the **T7910** tended to perform a bit slower than the others. Although the **T7910** has the lowest clock speed, we didn't isolate the reason for this machine's slower performance.
+
+|                                 | **T7910** | **T7810** | **P710** | **P510** |
+| ------------------------------- | --------- | --------- | -------- | -------- |
+| **Compile UE4Editor Win64**     | 0:07:03   | 0:06:28   | 0:06:35  | 0:06:29  |
+| **Compile ParagonEditor Win64**   | 0:06:22   | 0:05:42   | 0:06:03  | 0:05:48  |
+| **Compile FortniteEditor Win64** | 0:05:24   | 0:05:08   | 0:04:57  | 0:05:00  |
+
+Compile times with XGE were fairly erratic, so it should be safe to ignore small differences. Typically, it took five to eight minutes to compile the **Editor**.
+
+[REGION:raw]
+![](HB_1.png)
+[/REGION]
+
+We ran separate tests at different times of the day (12am, 6am, 12pm, and 6pm) to determine whether load on the agent farm was a significant bottleneck.
+
+[REGION:raw]
+![](HB_2.png)
+[/REGION]
+
+Morning compile times seem to be erratic and it seems likely that it correlates with the default scheduled sync time of 6am in [UnrealGameSync](https://github.com/EpicGames/UnrealEngine/blob/release/Engine/Source/Programs/UnrealGameSync/Deployment.txt), which many developers have enabled.
+
+###Memory
+
+The extra RAM installed in the **P710** and **P9710** didn't appear to improve performance.
+
+###I/O
+
+All of these tests were performed on a [Samsung 850 PRO](http://www.samsung.com/semiconductor/minisite/ssd/product/consumer/850pro.html) data drive. The **P710** was supplied with a dual [RAID-0](https://en.wikipedia.org/wiki/RAID) **PCIe m.2** system drive, which has significantly higher read/write performance (as follows):
+
+[REGION:imagetable]
+| ![HB_3.png](HB_3.png)(w:330) | ![HB_4.png](HB_4.png)(w:330) |
+| --- | --- |
+| RAID-0 PCIe m.2 | Samsung 850 PRO |
+[/REGION]
+
+Given the erratic timing of XGE compilation, compiling on this drive didn't show a substantial increase in performance.
+
+|                                  | **P710 - Samsung 850 PRO** | **P710 - 2 x PCIe m.2** | **Change** |
+| -------------------------------- | -------------------------- | ----------------------- | ---------- |
+| **Compile UE4Editor Win64**      | 0:06:35                    | 0:05:33                 | -15.74%    |
+| **Compile FortniteEditor Win64** | 0:04:57                    | 0:05:16                 | 6.37%      | 
+
+##Compiling without XGE
+
+As shown in the yellow line (below), there is a slight degradation in the performance of **T7910**. Although we couldn't find the reason for the drop off in performance for **T7910**, we found that compile times are stable for different CPU configurations when running these tests on all machines.
+
+[REGION:raw]
+![](HB_5.png)
+[/REGION]
+
+Looking at compile times for the **Editor**, build times are fairly linear with respect to physical core count, with single-CPU configurations being slightly faster than dual-CPU configurations for the same number of cores.
+
+[REGION:raw]
+![](HB_6.png)
+[/REGION]
+
+Since the [IWYU (Include-What-You-Use)](Programming/UnrealBuildSystem/IWYUReferenceGuide) refactor, we found that **Editor** compilation is highly parallel, having few PCH (Precompiled Header) bottlenecks, so seeing the correlation shown above is expected.
+
+###Memory
+
+The build process spawns one compiler instance for each logical core, presenting a limiting factor for **C220-02 (D)**, which has more cores (**40C/80H**) than any other machine in our test. To address this limiting factor for **C220-02 (D)**, we doubled the RAM to 128GB, and as you can see below, we saw good improvements.
+
+|                                  | **C220-02 (D) - 64GB** | **C220-02 (D) - 128GB** | **Change** |
+| -------------------------------- | ---------------------- | ----------------------- | ---------- |
+| **Compile UE4Editor Win64**      | 0:10:06                | 0:06:43                 | -33.50%    | 
+| **Compile ParagonEditor Win64**  | 0:08:12                | 0:05:29                 | -33.13%    | 
+| **Compile FortniteEditor Win64** | 0:06:08                | 0:04:12                 | -31.52%    | 
+
+After doubling the RAM for the **C220-03 (D)** machine (**20C/40H**), we observed performance improvements of around ten-percent (see below).
+
+|                                  | **C220-03 (D) - 64GB** | **C220-03 (D) - 128GB** | **Change** |
+| -------------------------------- | ---------------------- | ----------------------- | ---------- |
+| **Compile UE4Editor Win64**      | 0:12:33                | 0:10:40                 | -14.92%    | 
+| **Compile ParagonEditor Win64**  | 0:10:03                | 0:09:03                 | -10.01%    | 
+| **Compile FortniteEditor Win64** | 0:07:08                | 0:06:37                 | -7.24%     | 
+
+For machines with lower core counts, our expectation is for this to tail-off quickly because fewer compiler processes would use less memory.
+
+###I/O
+
+**Editor** compilation on the dual **RAID-0 PCIe m.2** (available on the **P710**) machine didn't make a significant performance improvement. This machine had a fairly low core count (**2 x 4C/8T**), so it probably wasn't a limiting factor.
+
+|                                     | **P710 - Samsung 850 PRO** | **P710 - 2 x PCIe m.2** | **Change** |
+| ----------------------------------- | -------------------------- | ----------------------- | ---------- |
+| **Compile UE4Editor Win64 - NoXGE** | 0:21:11                    | 0:20:59                 | -0.94%     |
+
+After increasing the available RAM, I/O is likely the remaining bottleneck for the **C220-02 (D)** machine (we didn't have faster hard drive options for this machine). At the time of this writing, the high CPU cost (appropriximately $3,500 USD per CPU = $7,000 USD total) will likely preclude it as a viable option for wide deployment anyway.
+
+##Cooking Content
+
+During a [Cook](Engine/Deployment/Cooking), **Task Manager** typically showed one or two threads being active. Thanks to a populated (or "hot") [DDC](Engine/Basics/DerivedDataCache) (**Derived Data Cache**), package serialization was most likely the bottleneck.
+
+[REGION:imagetable]
+| [INCLUDE:#DesktopCook] | [INCLUDE:#BuilderCook] |
+| ---------------------- | ---------------------- |
+| Desktop                | Builder                |
+[/REGION]
+
+[COMMENT:none]
+
+[EXCERPT:DesktopCook]
+|                    | **T7910** | **T7810** | **P710** | **P510** |
+| -------------------| --------- | --------- | -------- | -------- |
+| **Paragon Win64**    | 0:38:00   | 0:35:04   | 0:37:18  | 0:35:15  |
+| **Fortnite Win64** | 0:59:59   | 0:55:49   | 1:01:41  | 0:55:47  |
+[/EXCERPT:DesktopCook]
+
+[EXCERPT:BuilderCook]
+|                    | **Current** | **C220-01 (D)** | **C220-02 (D)** | **C220-03 (D)** |
+| -------------------| ----------- | --------------- | --------------- | --------------- |
+| **Paragon Win64**    | 0:32:05     | 0:29:38         | 0:32:19         | 0:34:13         |
+| **Fortnite Win64** | 1:03:59     | 0:51:32         | 0:55:47         | 0:58:32         |
+[/EXCERPT:BuilderCook]
+
+[/COMMENT]
+
+Results from testing **C220** machines in single-core configurations were invalidated and discarded because we discovered that the default **Windows Server** power configuration results in poor CPU performance for serial tasks (such as Cooking Content).
+
+###Memory
+
+Cooking [Fortnite](https://www.epicgames.com/fortnite/en-US/buy-now/battle-royale) tended to peak RAM usage at around 55GB and the increased amount of available RAM didn't make any real difference to Cook times. 
+Additionally, [garbage collection](Programming/UnrealArchitecture/Objects/Optimizations) was disabled to avoid reloading packages, which means that 64GB of RAM seems to be enough to cover the entirety of the working set. This high-water mark will likely increase as the game continues to grow.
+
+|                         | **C220-03 (D) - 64MB** | **C220-03 (D) - 128MB** | **Change** |
+| ----------------------- | ---------------------- | ----------------------- | ---------- |
+| **Cook Paragon Win64**    | 0:34:13                | 0:32:10                 | -6.01%     |
+| **Cook Fortnite Win64** | 0:58:32                | 0:57:09                 | -2.35%     |
+
+|                         | **C220-02 (D) - 64MB** | **C220-02 (D) - 128MB** | **Change** |
+| ----------------------- | ---------------------- | ----------------------- | ---------- |
+| **Cook Paragon Win64**    | 0:32:19                | 0:33:33                 | 3.83%      |
+| **Cook Fortnite Win64** | 0:55:47                | 0:55:58                 | 0.34%      |
+
+###I/O
+
+To see the impact of I/O performance, we cooked Fortnite on the dual **RAID-0 PCIe m.2** system drive supplied with the **P710**. Surprisingly, there was little difference in performance.
+
+|                         | **P710 - Samsung 850 PRO** | **P710 - 2 x PCIe m.2** | **Change** |
+| ----------------------- | -------------------------- | ----------------------- | ---------- |
+| **Cook Fortnite Win64** | 1:01:41                    | 1:01:02                 | -1.04%     |
+
+###Local DDC
+
+Build machines don't keep a local DDC for legacy reasons; managing disk space when running Cooks from several branches is a bit tricky, and previous attempts to periodically clean-up this space has resulted in more time spent back-filling the local cache rather than using it. 
+
+| Machine Name    |            |
+| --------------- | ---------- |
+| **Current**     | [INCLUDE:#LocDDCCurrent]   | 
+| **C220-01 (D)** | [INCLUDE:#LocDDCC22001D]    | 
+| **C220-02 (D)** | [INCLUDE:#LocDDCC22002D]    | 
+| **C220-03 (D)** | [INCLUDE:#LocDDCC22003D]    | 
+[COMMENT:none]
+
+[EXCERPT:LocDDCCurrent]
+|  |Shared DDC Only| Local and Shared DDC | Change |
+|--|--|--|--|
+|**Cook Paragon**|0:32:05|0:31:55|-0.52%|
+|**Cook Fortnite**|1:03:59|1:02:19|-2.60%|
+[/EXCERPT:LocDDCCurrent]
+
+[EXCERPT:LocDDCC22001D]
+|  |Shared DDC Only| Local and Shared DDC | Change |
+|--|--|--|--|
+|**Cook Paragon**|0:29:38|0:20:43|-30.09%|
+|**Cook Fortnite**|0:51:32|0:48:24|-6.08%|
+[/EXCERPT:LocDDCC22001D]
+
+[EXCERPT:LocDDCC22002D]
+|  |Shared DDC Only| Local and Shared DDC | Change |
+|--|--|--|--|
+|**Cook Paragon**|0:32:19|0:23:36|-26.97%|
+|**Cook Fortnite**|0:55:47|0:52:37|-5.68%|
+[/EXCERPT:LocDDCC22002D]
+
+[EXCERPT:LocDDCC22003D]
+|  |Shared DDC Only| Local and Shared DDC | Change |
+|--|--|--|--|
+|**Cook Paragon**|0:34:13|0:24:35|-28.15%|
+|**Cook Fortnite**|0:58:32|0:54:23|-7.09%|
+[/EXCERPT:LocDDCC22003D]
+
+[/COMMENT]
+
+###Shared DDC
+
+To measure the effect of network performance (and network share performance) on Cooking, we ran tests with a fully populated local DDC where the shared DDC was disabled. Writes to the shared DDC are done asynchronously, so cook times are unaffected by disabling the shared DDC when the local DDC is coherent.
+
+| Machine Name    |            |
+| --------------- | ---------- |
+| **Current**     | [INCLUDE:#SharedDDCCurrent]   | 
+| **C220-01 (D)** | [INCLUDE:#SharedDDCC22001D]    | 
+| **C220-02 (D)** | [INCLUDE:#SharedDDCC22002D]    | 
+| **C220-03 (D)** | [INCLUDE:#SharedDDCC22003D]    | 
+
+[COMMENT:none]
+
+[EXCERPT:SharedDDCCurrent]
+|  |Shared DDC Only| Local and Shared DDC | Change |
+|--|--|--|--|
+|**Cook Paragon**|0:31:55|0:30:36|-4.13%|
+|**Cook Fortnite**|1:02:19|1:02:57|1.02%|
+[/EXCERPT:SharedDDCCurrent]
+
+[EXCERPT:SharedDDCC22001D]
+|  |Shared DDC Only| Local and Shared DDC | Change |
+|--|--|--|--|
+|**Cook Paragon**|0:20:43|0:20:40|-0.24%|
+|**Cook Fortnite**|0:48:24|0:48:13|-0.38%|
+[/EXCERPT:SharedDDCC22001D]
+
+[EXCERPT:SharedDDCC22002D]
+|  |Shared DDC Only| Local and Shared DDC | Change |
+|--|--|--|--|
+|**Cook Paragon**|0:23:36|0:23:16|-1.41%|
+|**Cook Fortnite**|0:52:37|0:52:08|-0.92%|
+[/EXCERPT:SharedDDCC22002D]
+
+[EXCERPT:SharedDDCC22003D]
+|  |Shared DDC Only| Local and Shared DDC | Change |
+|--|--|--|--|
+|**Cook Paragon**|0:24:35|0:24:08|-1.83%|
+|**Cook Fortnite**|0:54:23|0:54:50|0.83%|
+[/EXCERPT:SharedDDCC22003D]
+
+[/COMMENT]
+
+###Invalidating DDC
+
+The Cooker's time is primarily spent on serializing in (and out) packages, which doesn't take advantage of additional CPU cores. It does; however, run in parallel when generating derived data for compressing animation data, compiling shaders, platform-specific textures, and so on. 
+
+The DDC does a good job masking the Cooker for most asset types. Texture compression can be especially slow, but the compressor rarely changes (if ever), so the cost is only incurred once for each isolated texture change. 
+
+The most frequent trigger for DDC data being invalidated is when the Engine shader version changes. The effects of these changes can be significant to users working off-site, so we measured times for a Cook with a new shader version. 
+
+[REGION:Note]
+To avoid cached data from one machine being used by another, these tests were performed with the Shared DDC being disabled.
+[/REGION]
+
+| Machine Name    |            | **Old Shaders** | **New Shaders** | **Change** |
+| --------------- | ---------- | --------------- | --------------- | ---------- |
+| **Current**     | Cook Paragon | 0:30:36         | 7:53:40         | 1,447.93%  |
+| **C220-01 (D)** | Cook Paragon | 0:20:40         | 15:04:22        | 4,275.97%  |
+| **C220-02 (D)** | Cook Paragon | 0:23:16         | 7:55:22         | 1,943.12%  |
+| **C220-03 (D)** | Cook Paragon | 0:24:08         | 9:08:44         | 2,173.76%  |
+
+It was surprising to observe that the current build machines (**2 x 10C/20H**) perform similarly to the **C220-02 (D)** (**2 x 20C/40H**), rather than the **C220-03 (D)** (also **2 x 10C/20H**); however, the test was only run once. If the test was run a few more times, we might see slightly different results. 
+
+An interesting observation is that, for other games, building shaders for Paragon only brought Cook times back to a more reasonable range (with the majority of their shaders already being in the local DDC).
+
+| Machine Name    |                                   |
+| --------------- | --------------------------------- |
+| **Current**     | [INCLUDE:#InvalidatingDDCCurrent] | 
+| **C220-01 (D)** | [INCLUDE:#InvalidatingDDCC22001D] | 
+| **C220-02 (D)** | [INCLUDE:#InvalidatingDDCC22002D] | 
+| **C220-03 (D)** | [INCLUDE:#InvalidatingDDCC22003D] |
+
+[REGION:Note]
+After the Editor compiled and Paragon Cooked, there was a job timeout in the embedded controller (EC) for **C220-01 (D)**, precluding it from finishing during these tests. 
+[/REGION]
+
+[COMMENT:none]
+
+[EXCERPT:InvalidatingDDCCurrent]
+|  | Old Shaders | New Shaders | Change |
+|--|--|--|--|
+|**Cook Fortnite**|1:02:57|1:49:16|73.58%|
+[/EXCERPT:InvalidatingDDCCurrent]
+
+[EXCERPT:InvalidatingDDCC22001D]
+|  | Old Shaders | New Shaders | Change |
+|--|--|--|--|
+|**Cook Fortnite**|0:48:13|Didn't Finish|None Applicable|
+[/EXCERPT:InvalidatingDDCC22001D]
+
+[EXCERPT:InvalidatingDDCC22002D]
+|  | Old Shaders | New Shaders | Change |
+|--|--|--|--|
+|**Cook Fortnite**|0:52:08|2:08:57|147.35%|
+[/EXCERPT:InvalidatingDDCC22002D]
+
+[EXCERPT:InvalidatingDDCC22003D]
+|  | Old Shaders | New Shaders | Change |
+|--|--|--|--|
+|**Cook Fortnite**|0:54:50|2:20:54|156.05%|
+[/EXCERPT:InvalidatingDDCC22003D]
+
+[/COMMENT]
+
+##Recommendations for On-Site Developers
+
+If you're working onsite, using XGE is a great alternative to having a CPU with a high-core count (though performance may be erratic). 
+The only standalone machine that came close to matching it was the **2 x 20C/40T** builder with 128GB of RAM. 
+With the **T7810** outperforming the newer **T7910**, the differences were minor, but faster processor machines seem preferable.  
+
+64GB of RAM seems adequate for a baseline configuration, though future-proofing with 96-128GB of RAM (or planning for future expansion) is a wise choice.  
+
+**Samsung 850 PRO** SSDs seem to be working well, and having a separate system/data drive is a reasonable policy for ensuring system stability when space is running low; however, a frequent complaint is that the standard 256GB drive is not enough for the tools that we need. 
+To prevent loss in performance due to SSD write amplification, there should be free space reserved for expansion of the system pagefile. Doubling to 512GB seems like a reasonable choice.  
+
+##Recommendations for Off-Site Developers
+
+Developers without access to a shared DDC or XGE farm definitely benefit from a larger number of cores. The **2 x 10C/20H** configuration (approximately $1,000 USD each) seems like a good choice because the **2 x 20C/40H** configuration at approximately $3,500 USD each seems to be a bit overpriced for the expected returns.
+
+Finally, it may be worthwhile to install 128GB of RAM for the ten percent increase in performance (while compiling).
+
+##Setting up a Build Farm
+
+For offsite developers, build machines are typically specified to be consistent with our internal build farm specifications. Unlike "regular" developers, past experience has taught us that builders have a fairly constant load and using XGE increases contention and volatility, rather than spreading out the workload during downtime. 
+The primary driver for performance in the absence of XGE is CPU core count.
+
+Analyzing jobs being run on the build farm gives us an idea of the proportion of time spent Cooking versus compiling, enabling us to use this information to estimate how cost effective different CPU configurations would be at processing the same workload. Usage of the current farm is split close to 50/50; approximately 418 builder hours are spent compiling each day, and approximately 423 builder hours are spent cooking or performing other (primarily) serial tasks. 
+
+Assuming a $5,000 USD base machine price and individual CPU prices taken from Amazon, we can estimate a normalized machine price based on how quickly it performs an average unit of work. This gives a metric of whether it is better to spend $100,000 USD on high-end machines, or $100,000 USD on twice the number of low end machines. 
+
+| Machine Name    | **CPU**                            | **Relative Work Done** | **CPU Price** | **Normalized Machine Price** | **Price per Work Done** |
+| --------------- | ---------------------------------- | ---------------------- | ------------- | ---------------------------- |------------------------ |
+| **C220-01 (S)** | E5-2637 v4 - 4C/8H 3.5GHz          | 1.395                  | $996.00       | $5,996.00                    | $8,367.12               |
+| **C220-01 (D)** | E5-2637 v4 - 4C/8H 3.5GHz (dual)   | 1.276                  | $1,992.00     | $6,992.00                    | $8,922.15               |
+| **C220-02 (S)** | E5-2698 v4 - 20C/40H 2.2GHz        | 0.931                  | $3,226.00     | $8,226.00                    | $7,662.22               |
+| **C220-02 (D)** | E5-2698 v4 - 20C/40H 2.2GHz (dual) | 0.851                  | $6,452.00     | $11,452.00                   | $9,744.96               |
+| **C220-03 (S)** | E5-2640 v4 - 10C/20H 2.4GHz        | 1.268                  | $939.00       | $5,939.00                    | $7,531.10               |
+| **C220-03 (D)** | E5-2640 v4 - 10C/20H 2.4GHz (dual) | 1.006                  | $1,878.00     | $6,878.00                    | $6,921.82               | 
+
+[REGION:Note]
+The dual **10C/20H** configuration comes out on top, matching the dual **E5-2680v2 10C/20H** configuration that we have in the current farm.
+[/REGION]

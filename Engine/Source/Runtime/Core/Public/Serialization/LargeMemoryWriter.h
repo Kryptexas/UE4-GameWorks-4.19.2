@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,7 +14,7 @@ class CORE_API FLargeMemoryWriter : public FMemoryArchive
 {
 public:
 	
-	FLargeMemoryWriter(const int64 PreAllocateBytes = 0, bool bIsPersistent = false, const FName InArchiveName = NAME_None);
+	FLargeMemoryWriter(const int64 PreAllocateBytes = 0, bool bIsPersistent = false, const TCHAR* InFilename = nullptr);
 
 	virtual void Serialize(void* InData, int64 Num) override;
 
@@ -65,6 +65,6 @@ private:
 	void GrowBuffer(const int64 DesiredBytes);
 
 	/** Archive name, used for debugging, by default set to NAME_None. */
-	const FName ArchiveName;
+	const FString ArchiveName;
 };
 

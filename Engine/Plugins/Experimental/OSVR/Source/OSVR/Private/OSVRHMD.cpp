@@ -102,11 +102,6 @@ void FOSVRHMD::EnableHMD(bool bEnable)
     EnableStereo(bHmdEnabled);
 }
 
-EHMDDeviceType::Type FOSVRHMD::GetHMDDeviceType() const
-{
-    return EHMDDeviceType::DT_ES2GenericStereoMesh;
-}
-
 /**
 * This is more of a temporary workaround to an issue with getting the render target
 * size from the RenderManager. On the game thread, we can't get the render target sizes
@@ -184,7 +179,7 @@ bool FOSVRHMD::GetHMDMonitorInfo(MonitorInfo& MonitorDesc)
     return false;
 }
 
-void FOSVRHMD::RefreshPoses()
+void FOSVRHMD::UpdatePoses()
 {
     OSVR_Pose3 pose;
     OSVR_ReturnCode returnCode;
@@ -232,7 +227,8 @@ bool FOSVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 	{
 		WorldToMetersScale = GWorld->GetWorldSettings()->WorldToMeters;
 	}
-	RefreshPoses();
+	UpdatePoses();
+	RefreshTrackingToWorldTransform(WorldContext);
     return true;
 }
 
@@ -541,9 +537,9 @@ FMatrix FOSVRHMD::GetStereoProjectionMatrix(const enum EStereoscopicPass StereoP
 //---------------------------------------------------
 
 
-bool FOSVRHMD::GetHMDDistortionEnabled() const
+bool FOSVRHMD::GetHMDDistortionEnabled(EShadingPath ShadingPath) const
 {
-	return false;
+	return false; // TODO: ShadingPath == EShadingPath::Mobile?
 }
 
 FOSVRHMD::FOSVRHMD(TSharedPtr<class OSVREntryPoint, ESPMode::ThreadSafe> entryPoint) :

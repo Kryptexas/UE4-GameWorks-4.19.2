@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraScriptInputCollectionViewModel.h"
 #include "NiagaraScript.h"
@@ -330,7 +330,7 @@ void FNiagaraScriptInputCollectionViewModel::RefreshParameterViewModels()
 			}
 			else
 			{
-				UNiagaraDataInterface* EmitterDataInterface = InputNode->DataInterface;
+				UNiagaraDataInterface* EmitterDataInterface = InputNode->GetDataInterface();
 				UNiagaraScript* Script = nullptr;
 				for (TWeakObjectPtr<UNiagaraScript> ScriptWeakPtr : Scripts)
 				{
@@ -403,7 +403,7 @@ void FNiagaraScriptInputCollectionViewModel::OnParameterNameChanged(FName OldNam
 	TSet<FName> SystemConstantNames = FNiagaraEditorUtilities::GetSystemConstantNames();
 
 	// Rename the nodes and notify the graph that they've changed.
-	FName UniqueNewName = FNiagaraEditorUtilities::GetUniqueName(ParameterVariable->GetName(), CurrentNames.Union(SystemConstantNames));
+	FName UniqueNewName = FNiagaraUtilities::GetUniqueName(ParameterVariable->GetName(), CurrentNames.Union(SystemConstantNames));
 	if (ParameterVariable->GetName() != UniqueNewName)
 	{
 		ParameterVariable->SetName(UniqueNewName);
@@ -495,7 +495,7 @@ void FNiagaraScriptInputCollectionViewModel::OnParameterTypeChanged(FNiagaraVari
 			UNiagaraNodeInput* InputNodeToUpdate = InputNodesToUpdate[i];
 			InputNodeToUpdate->Modify();
 			InputNodeToUpdate->Input = FirstNodeToUpdate->Input;
-			InputNodeToUpdate->DataInterface = FirstNodeToUpdate->DataInterface;
+			InputNodeToUpdate->SetDataInterface(FirstNodeToUpdate->GetDataInterface());
 			InputNodeToUpdate->NotifyInputTypeChanged();
 		}
 	}
@@ -573,7 +573,7 @@ void FNiagaraScriptInputCollectionViewModel::OnParameterValueChangedInternal(TSh
 				TSet<UNiagaraDataInterface*> DataInterfacesToUpdate;
 				for (UNiagaraNodeInput* InputNodeToUpdate : InputNodesToUpdate)
 				{
-					DataInterfacesToUpdate.Add(InputNodeToUpdate->DataInterface);
+					DataInterfacesToUpdate.Add(InputNodeToUpdate->GetDataInterface());
 				}
 
 				for (UNiagaraDataInterface* DataInterfaceToUpdate : DataInterfacesToUpdate)

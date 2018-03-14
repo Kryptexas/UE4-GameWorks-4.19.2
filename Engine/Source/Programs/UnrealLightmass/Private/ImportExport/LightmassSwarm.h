@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,6 +11,9 @@
 #include "LMThreading.h"
 #include "Editor/SwarmInterface/Public/SwarmDefines.h"
 #include "Editor/SwarmInterface/Public/SwarmInterface.h"
+#include "Templates/IsValidVariadicFunctionArg.h"
+#include "Templates/AndOrNot.h"
+#include "Templates/IsArrayOrRefOfType.h"
 
 namespace Lightmass
 {
@@ -227,7 +230,18 @@ public:
 	/**
 	 * Sends text information to Swarm, using printf-like parameters.
 	 */
-	VARARG_DECL( void, void, {}, SendTextMessage, VARARG_NONE, const TCHAR*, VARARG_NONE, VARARG_NONE );
+	template <typename FmtType, typename... Types>
+	void SendTextMessage(const FmtType& Fmt, Types... Args)
+	{
+		static_assert(TIsArrayOrRefOfType<FmtType, TCHAR>::Value, "Formatting string must be a TCHAR array.");
+		static_assert(TAnd<TIsValidVariadicFunctionArg<Types>...>::Value, "Invalid argument(s) passed to FString::Printf");
+
+		SendTextMessageImpl(Fmt, Args...);
+	}
+
+private:
+	void VARARGS SendTextMessageImpl(const TCHAR* Fmt, ...);
+public:
 
 	/**
 	 * Report to Swarm by sending back a file.

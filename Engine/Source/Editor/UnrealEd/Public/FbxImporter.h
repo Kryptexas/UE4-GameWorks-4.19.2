@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,6 +11,7 @@
 #include "Factories/FbxStaticMeshImportData.h"
 #include "Factories/FbxTextureImportData.h"
 #include "Factories/FbxSceneImportFactory.h"
+#include "MeshBuild.h"
 
 class AActor;
 class ACameraActor;
@@ -159,7 +160,7 @@ struct FBXImportOptions
 	bool bImportRigidMesh;
 	bool bUseT0AsRefPose;
 	bool bPreserveSmoothingGroups;
-	bool bKeepOverlappingVertices;
+	FOverlappingThresholds OverlappingThresholds;
 	bool bImportMeshesInBoneHierarchy;
 	bool bCreatePhysicsAsset;
 	UPhysicsAsset *PhysicsAsset;
@@ -172,6 +173,7 @@ struct FBXImportOptions
 	bool	bPreserveLocalTransform;
 	bool	bDeleteExistingMorphTargetCurves;
 	bool	bImportCustomAttribute;
+	bool	bImportBoneTracks;
 	bool	bSetMaterialDriveParameterOnCustomAttribute;
 	bool	bRemoveRedundantKeys;
 	bool	bDoNotImportCurveWithZero;
@@ -475,7 +477,7 @@ private:
 };
 
 FBXImportOptions* GetImportOptions( class FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, bool bIsAutomated, const FString& FullPath, bool& OutOperationCanceled, bool& OutImportAll, bool bIsObjFormat, bool bForceImportType = false, EFBXImportType ImportType = FBXIT_StaticMesh, UObject* ReimportObject = nullptr);
-void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOutImportOptions);
+UNREALED_API void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOutImportOptions);
 
 struct FImportedMaterialData
 {
@@ -511,6 +513,19 @@ public:
 
 	static FFbxImporter* GetPreviewInstance();
 	static void DeletePreviewInstance();
+
+	/**
+	* Clear all data that need to be clear when we start importing a fbx file.
+	*/
+	void ClearAllCaches()
+	{
+		//Clear the mesh name cache use to ensure unique mesh name and avoid name clash
+		MeshNamesCache.Reset();
+		
+		//this cache is use to prevent a node to be transform twice. it has to be reset everytime we
+		//read a new fbx file
+		TransformSettingsToFbxApply.Reset();
+	}
 
 	/**
 	 * Detect if the FBX file has skeletal mesh model. If there is deformer definition, then there is skeletal mesh.
@@ -638,7 +653,7 @@ public:
 	* 1. Build the staticmesh render data
 	* 2. Reorder the material array to follow the fbx file material order
 	*/
-	UNREALED_API void PostImportStaticMesh(UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray);
+	UNREALED_API void PostImportStaticMesh(UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray, int32 LODIndex = 0);
     
 	static void UpdateStaticMeshImportData(UStaticMesh *StaticMesh, UFbxStaticMeshImportData* StaticMeshImportData);
 	static void UpdateSkeletalMeshImportData(USkeletalMesh *SkeletalMesh, UFbxSkeletalMeshImportData* SkeletalMeshImportData, int32 SpecificLod, TArray<FName> *ImportMaterialOriginalNameData, TArray<FImportMeshLodSectionsData> *ImportMeshLodData);
@@ -781,7 +796,7 @@ public:
 	 * @param BaseSkelMesh - base Skeletal Mesh
 	 * @param LODIndex - LOD index
 	 */
-	void ImportFbxMorphTarget(TArray<FbxNode*> &SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject* Parent, int32 LODIndex, const FSkeletalMeshImportData &BaseSkeletalMeshImportData);
+	UNREALED_API void ImportFbxMorphTarget(TArray<FbxNode*> &SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject* Parent, int32 LODIndex, const FSkeletalMeshImportData &BaseSkeletalMeshImportData);
 
 	/**
 	 * Import LOD object for skeletal mesh
@@ -793,7 +808,7 @@ public:
 									But you can set this to false when in the first loading before rendering this mesh for a performance issue 
 	   @param ReregisterAssociatedComponents - if NULL, just re-registers all SkinnedMeshComponents but if you set the specific components, will only re-registers those components
 	 */
-	bool ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, USkeletalMesh* BaseSkeletalMesh, int32 DesiredLOD, bool bNeedToReregister = true, TArray<UActorComponent*>* ReregisterAssociatedComponents = NULL, UFbxSkeletalMeshImportData* TemplateImportData = nullptr);
+	UNREALED_API bool ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, USkeletalMesh* BaseSkeletalMesh, int32 DesiredLOD, bool bNeedToReregister = true, TArray<UActorComponent*>* ReregisterAssociatedComponents = NULL, UFbxSkeletalMeshImportData* TemplateImportData = nullptr);
 
 	/**
 	 * Empties the FBX scene, releasing its memory.

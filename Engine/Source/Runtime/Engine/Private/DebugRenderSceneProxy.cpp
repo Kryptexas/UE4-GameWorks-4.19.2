@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DebugRenderSceneProxy.h: Useful scene proxy for rendering non performance-critical information.
@@ -95,6 +95,12 @@ void FDebugDrawDelegateHelper::DrawDebugLabels(UCanvas* Canvas, APlayerControlle
 	Canvas->SetDrawColor(OldDrawColor);
 }
 
+SIZE_T FDebugRenderSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
+}
+
 void FDebugRenderSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const 
 {
 	QUICK_SCOPE_CYCLE_COUNTER( STAT_DebugRenderSceneProxy_GetDynamicMeshElements );
@@ -107,7 +113,7 @@ void FDebugRenderSceneProxy::GetDynamicMeshElements(const TArray<const FSceneVie
 		FMaterialRenderProxy* operator[](FLinearColor Color)
 		{
 			FMaterialRenderProxy* MeshColor = NULL;
-			const uint32 HashKey = GetTypeHash(Color);
+			const uint32 HashKey = ::GetTypeHash(Color);
 			if (MeshColorInstances.Contains(HashKey))
 			{
 				MeshColor = *MeshColorInstances.Find(HashKey);
@@ -261,7 +267,7 @@ void FDebugRenderSceneProxy::GetDynamicMeshElements(const TArray<const FSceneVie
 
 			for (const auto& Mesh : Meshes)
 			{
-				FDynamicMeshBuilder MeshBuilder;
+				FDynamicMeshBuilder MeshBuilder(View->GetFeatureLevel());
 				MeshBuilder.AddVertices(Mesh.Vertices);
 				MeshBuilder.AddTriangles(Mesh.Indices);
 

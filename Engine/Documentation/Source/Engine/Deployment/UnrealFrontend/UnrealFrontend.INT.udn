@@ -24,7 +24,8 @@ UFE provides the following features:
 | **Profiling** | [INCLUDE:#Profiling] |
 | **Device Management** | [INCLUDE:#DeviceManagement] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Launcher]
 Build, cook, deploy and launch your game. UFE allows you to simultaneously deploy to multiple target devices 
 running different target platforms, either locally connected or anywhere on the network. You will be able to 
@@ -62,7 +63,8 @@ a target device has to be connected to the local PC, either physically or throug
 be able to detect locally connected and networked devices and share them with others. Windows and Mac computers 
 are now also able to act as target devices for deployment, launching, and automation.
 [/EXCERPT:DeviceManagement]
--->
+
+[/COMMENT]
 
 ## Getting Started
 
@@ -129,7 +131,8 @@ Once a profile is created, a number of settings categories will be shown:
 |  |  |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BuildPanel]
 | Setting | Description |
 | ------- | ----------- |
@@ -158,7 +161,8 @@ Once a profile is created, a number of settings categories will be shown:
 | [REGION:tablesection]**Launch**[/REGION] ||
 | **Launch** | Options for deploying to the target device. Deployment can happen by either copying all required files to the device prior to launching the game, or by using a file server that will copy files on demand while the game is running. The preferred workflow for development is the use of a file server. To launch the game, leave **_Using default role_** in the Launch section, as it is the only supported mode right now. |
 [/EXCERPT:LaunchPanel]
--->
+
+[/COMMENT]
 
 ## Device Browser
 

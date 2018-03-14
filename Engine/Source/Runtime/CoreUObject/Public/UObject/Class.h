@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Class.h: UClass definition.
@@ -66,6 +66,8 @@ class COREUOBJECT_API UField : public UObject
 	// UObject interface.
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void PostLoad() override;
+	virtual bool NeedsLoadForClient() const override;
+	virtual bool NeedsLoadForServer() const override;
 
 	// UField interface.
 	virtual void AddCppProperty( UProperty* Property );
@@ -494,11 +496,14 @@ enum EStructFlags
 	/** If set, this struct will be serialized using the CPP net delta serializer */
 	STRUCT_NetDeltaSerializeNative = 0x00100000,
 
+	/** If set, this struct will be have PostScriptConstruct called on it after a temporary object is constructed in a running blueprint */
+	STRUCT_PostScriptConstruct     = 0x00200000,
+
 	/** Struct flags that are automatically inherited */
 	STRUCT_Inherit				= STRUCT_HasInstancedReference|STRUCT_Atomic,
 
 	/** Flags that are always computed, never loaded or done with code generation */
-	STRUCT_ComputedFlags		= STRUCT_NetDeltaSerializeNative | STRUCT_NetSerializeNative | STRUCT_SerializeNative | STRUCT_PostSerializeNative | STRUCT_CopyNative | STRUCT_IsPlainOldData | STRUCT_NoDestructor | STRUCT_ZeroConstructor | STRUCT_IdenticalNative | STRUCT_AddStructReferencedObjects | STRUCT_ExportTextItemNative | STRUCT_ImportTextItemNative | STRUCT_SerializeFromMismatchedTag
+	STRUCT_ComputedFlags		= STRUCT_NetDeltaSerializeNative | STRUCT_NetSerializeNative | STRUCT_SerializeNative | STRUCT_PostSerializeNative | STRUCT_CopyNative | STRUCT_IsPlainOldData | STRUCT_NoDestructor | STRUCT_ZeroConstructor | STRUCT_IdenticalNative | STRUCT_AddStructReferencedObjects | STRUCT_ExportTextItemNative | STRUCT_ImportTextItemNative | STRUCT_SerializeFromMismatchedTag | STRUCT_PostScriptConstruct
 };
 
 
@@ -522,6 +527,7 @@ struct TStructOpsTypeTraitsBase2
 		WithNetSerializer              = false,                         // struct has a NetSerialize function for serializing its state to an FArchive used for network replication.
 		WithNetDeltaSerializer         = false,                         // struct has a NetDeltaSerialize function for serializing differences in state from a previous NetSerialize operation.
 		WithSerializeFromMismatchedTag = false,                         // struct has a SerializeFromMismatchedTag function for converting from other property tags.
+		WithPostScriptConstruct        = false,							// struct has a PostScriptConstruct function which is called after it is constructed in blueprints
 	};
 };
 
@@ -629,6 +635,21 @@ template<class CPPSTRUCT>
 FORCEINLINE typename TEnableIf<TStructOpsTypeTraits<CPPSTRUCT>::WithNetDeltaSerializer, bool>::Type NetDeltaSerializeOrNot(FNetDeltaSerializeInfo & DeltaParms, CPPSTRUCT *Data)
 {
 	return Data->NetDeltaSerialize(DeltaParms);
+}
+
+
+/**
+ * Selection of PostScriptConstruct call.
+ */
+template<class CPPSTRUCT>
+FORCEINLINE typename TEnableIf<!TStructOpsTypeTraits<CPPSTRUCT>::WithPostScriptConstruct>::Type PostScriptConstructOrNot(CPPSTRUCT *Data)
+{
+}
+
+template<class CPPSTRUCT>
+FORCEINLINE typename TEnableIf<TStructOpsTypeTraits<CPPSTRUCT>::WithPostScriptConstruct>::Type PostScriptConstructOrNot(CPPSTRUCT *Data)
+{
+	Data->PostScriptConstruct();
 }
 
 
@@ -813,7 +834,7 @@ public:
 
 		/** return true if this class implements a post serialize call **/
 		virtual bool HasPostSerialize() = 0;
-		/** Call PostLoad on this structure */
+		/** Call PostSerialize on this structure */
 		virtual void PostSerialize(const FArchive& Ar, void *Data) = 0;
 
 		/** return true if this struct can net serialize **/
@@ -831,6 +852,11 @@ public:
 		 * @return true if the struct was serialized, otherwise it will fall back to ordinary script struct net delta serialization
 		 */
 		virtual bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms, void *Data) = 0;
+
+		/** return true if this class implements a post script construct call **/
+		virtual bool HasPostScriptConstruct() = 0;
+		/** Call PostScriptConstruct on this structure */
+		virtual void PostScriptConstruct(void *Data) = 0;
 
 		/** return true if this struct should be memcopied **/
 		virtual bool IsPlainOldData() = 0;
@@ -972,6 +998,15 @@ public:
 		{
 			return NetDeltaSerializeOrNot(DeltaParms, (CPPSTRUCT*)Data);
 		}
+		virtual bool HasPostScriptConstruct() override
+		{
+			return TTraits::WithPostScriptConstruct;
+		}
+		virtual void PostScriptConstruct(void *Data) override
+		{
+			check(TTraits::WithPostScriptConstruct); // don't call this if we have indicated it is not necessary
+			PostScriptConstructOrNot((CPPSTRUCT*)Data);
+		}
 		virtual bool IsPlainOldData() override
 		{
 			return TIsPODType<CPPSTRUCT>::Value;
@@ -1090,7 +1125,6 @@ public:
 
 	// UObject Interface
 	virtual COREUOBJECT_API void Serialize( FArchive& Ar ) override;
-	virtual COREUOBJECT_API void PostLoad() override;
 
 	// UStruct interface.
 	virtual COREUOBJECT_API void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
@@ -1246,13 +1280,11 @@ public:
 	/** Returns the (native, c++) name of the struct */
 	virtual COREUOBJECT_API FString GetStructCPPName() const;
 
-#if WITH_EDITOR
 	/**
 	 * Initializes this structure to its default values
 	 * @param InStructData		The memory location to initialize
 	 */
 	virtual COREUOBJECT_API void InitializeDefaultValue(uint8* InStructData) const;
-#endif // WITH_EDITOR
 };
 
 /*-----------------------------------------------------------------------------
@@ -1298,7 +1330,7 @@ public:
 
 private:
 	/** C++ function this is bound to */
-	Native Func;
+	FNativeFuncPtr Func;
 
 public:
 	/**
@@ -1306,7 +1338,7 @@ public:
 	 *
 	 * @return The native function pointer.
 	 */
-	FORCEINLINE Native GetNativeFunc() const
+	FORCEINLINE FNativeFuncPtr GetNativeFunc() const
 	{
 		return Func;
 	}
@@ -1316,7 +1348,7 @@ public:
 	 *
 	 * @param InFunc - The new function pointer.
 	 */
-	FORCEINLINE void SetNativeFunc(Native InFunc)
+	FORCEINLINE void SetNativeFunc(FNativeFuncPtr InFunc)
 	{
 		Func = InFunc;
 	}
@@ -1620,6 +1652,13 @@ public:
 	static int64 ParseEnum(const TCHAR*& Str);
 
 	/**
+	 * Tests if the enum contains a MAX value
+	 *
+	 * @return	true if the enum contains a MAX enum, false otherwise.
+	 */
+	bool ContainsExistingMax() const;
+
+	/**
 	 * Sets the array of enums.
 	 *
 	 * @param InNames List of enum names.
@@ -1921,9 +1960,9 @@ struct COREUOBJECT_API FImplementedInterface
 struct FNativeFunctionLookup
 {
 	FName Name;
-	Native Pointer;
+	FNativeFuncPtr Pointer;
 
-	FNativeFunctionLookup(FName InName,Native InPointer)
+	FNativeFunctionLookup(FName InName, FNativeFuncPtr InPointer)
 		:	Name(InName)
 		,	Pointer(InPointer)
 	{}
@@ -2180,7 +2219,7 @@ public:
 	*											because dispatch is shared, so the C++ remap table does not work in this case, and this should be false
 	* @return	true if the function was found and replaced, false if it was not
 	*/
-	bool ReplaceNativeFunction(FName InName, Native InPointer, bool bAddToFunctionRemapTable);
+	bool ReplaceNativeFunction(FName InName, FNativeFuncPtr InPointer, bool bAddToFunctionRemapTable);
 #endif
 
 	/**
@@ -2199,7 +2238,7 @@ public:
 	 * @param	InName							name of the function
 	 * @param	InPointer						pointer to the function
 	 */
-	void AddNativeFunction(const ANSICHAR* InName, Native InPointer);
+	void AddNativeFunction(const ANSICHAR* InName, FNativeFuncPtr InPointer);
 
 	/**
 	 * Add a native function to the internal native function table, but with a unicode name. Used when generating code from blueprints, 
@@ -2207,7 +2246,7 @@ public:
 	 * @param	InName							name of the function
 	 * @param	InPointer						pointer to the function
 	 */
-	void AddNativeFunction(const WIDECHAR* InName, Native InPointer);
+	void AddNativeFunction(const WIDECHAR* InName, FNativeFuncPtr InPointer);
 
 	/** Add a function to the function map */
 	void AddFunctionToFunctionMap(UFunction* Function, FName FuncName)
@@ -2315,6 +2354,11 @@ public:
 
 		return ClassDefaultObject;
 	}
+
+	/**
+	 * Called after PostInitProperties during object construction to allow class specific initialization of an object instance.
+	 */
+	virtual void PostInitInstance(UObject* InObj) {}
 
 	/**
 	 * Helper method to assist with initializing object properties from an explicit list.
@@ -2572,6 +2616,14 @@ public:
 	 * @param  DependenciesOut	Will be filled with a list of dependencies that need to be created before this class is recreated (on load).
 	 */
 	virtual void GetRequiredPreloadDependencies(TArray<UObject*>& DependenciesOut) {}
+
+	/**
+	 * Initializes the ClassReps and NetFields arrays used by replication.
+	 * For classes that are loaded, this needs to happen in PostLoad to
+	 * ensure all replicated UFunctions have been serialized. For native classes,
+	 * this should happen in Link. Also needs to happen after blueprint compiliation.
+	 */
+	void SetUpRuntimeReplicationData();
 
 private:
 	#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
@@ -3010,9 +3062,18 @@ struct FStructUtils
 
 template< class T > struct TBaseStructure
 {
+	static UScriptStruct* Get()
+	{
+		return T::StaticStruct();
+	}
 };
 
 template<> struct TBaseStructure<FRotator>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
+template<> struct TBaseStructure<FQuat>
 {
 	COREUOBJECT_API static UScriptStruct* Get();
 };
@@ -3032,12 +3093,22 @@ template<> struct TBaseStructure<FColor>
 	COREUOBJECT_API static UScriptStruct* Get();
 };
 
+template<> struct  TBaseStructure<FPlane>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
 template<> struct  TBaseStructure<FVector>
 {
 	COREUOBJECT_API static UScriptStruct* Get();
 };
 
 template<> struct TBaseStructure<FVector2D>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
+template<> struct TBaseStructure<FVector4>
 {
 	COREUOBJECT_API static UScriptStruct* Get();
 };

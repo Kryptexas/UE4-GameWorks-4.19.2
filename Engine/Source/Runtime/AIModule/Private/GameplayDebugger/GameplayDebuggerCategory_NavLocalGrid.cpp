@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayDebuggerCategory_NavLocalGrid.h"
 
@@ -15,9 +15,15 @@
 //////////////////////////////////////////////////////////////////////////
 // Scene proxy
 
-class FNavLocalGridSceneProxy : public FDebugRenderSceneProxy
+class FNavLocalGridSceneProxy final : public FDebugRenderSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
+
 	FNavLocalGridSceneProxy(const UPrimitiveComponent* InComponent,
 		const FGameplayDebuggerCategory_NavLocalGrid::FRepData& RepData,
 		const FGameplayDebuggerCategory_NavLocalGrid::FRepAgentData& AgentData) 
@@ -81,7 +87,7 @@ public:
 				if (FreeCellMeshVerts.Num() > 0)
 				{
 					const FColoredMaterialRenderProxy* MeshColorInstance = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), FLinearColor(FreeCellColor));
-					FDynamicMeshBuilder	MeshBuilder;
+					FDynamicMeshBuilder	MeshBuilder(View->GetFeatureLevel());
 					MeshBuilder.AddVertices(FreeCellMeshVerts);
 					MeshBuilder.AddTriangles(FreeCellMeshIndices);
 					MeshBuilder.GetMesh(FMatrix::Identity, MeshColorInstance, GetDepthPriorityGroup(View), false, false, ViewIndex, Collector);
@@ -90,7 +96,7 @@ public:
 				if (MarkedCellMeshVerts.Num() > 0)
 				{
 					const FColoredMaterialRenderProxy* MeshColorInstance = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), FLinearColor(MarkedCellColor));
-					FDynamicMeshBuilder	MeshBuilder;
+					FDynamicMeshBuilder	MeshBuilder(View->GetFeatureLevel());
 					MeshBuilder.AddVertices(MarkedCellMeshVerts);
 					MeshBuilder.AddTriangles(MarkedCellMeshIndices);
 					MeshBuilder.GetMesh(FMatrix::Identity, MeshColorInstance, GetDepthPriorityGroup(View), false, false, ViewIndex, Collector);
@@ -99,7 +105,7 @@ public:
 				if (BoundsMeshVerts.Num() > 0)
 				{
 					const FColoredMaterialRenderProxy* MeshColorInstance = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), FLinearColor(BoundsColor));
-					FDynamicMeshBuilder	MeshBuilder;
+					FDynamicMeshBuilder	MeshBuilder(View->GetFeatureLevel());
 					MeshBuilder.AddVertices(BoundsMeshVerts);
 					MeshBuilder.AddTriangles(BoundsMeshIndices);
 					MeshBuilder.GetMesh(FMatrix::Identity, MeshColorInstance, GetDepthPriorityGroup(View), false, false, ViewIndex, Collector);
@@ -108,7 +114,7 @@ public:
 				if (PathMeshVerts.Num() > 0)
 				{
 					const FColoredMaterialRenderProxy* MeshColorInstance = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), FLinearColor(PathColor));
-					FDynamicMeshBuilder	MeshBuilder;
+					FDynamicMeshBuilder	MeshBuilder(View->GetFeatureLevel());
 					MeshBuilder.AddVertices(PathMeshVerts);
 					MeshBuilder.AddTriangles(PathMeshIndices);
 					MeshBuilder.GetMesh(FMatrix::Identity, MeshColorInstance, GetDepthPriorityGroup(View), false, false, ViewIndex, Collector);
@@ -119,20 +125,20 @@ public:
 
 protected:
 
-	inline void StoreTriIndices(int32 V0, int32 V1, int32 V2, int32 FirstVertIndex, TArray<int32>& Indices)
+	inline void StoreTriIndices(int32 V0, int32 V1, int32 V2, int32 FirstVertIndex, TArray<uint32>& Indices)
 	{
 		Indices.Add(FirstVertIndex + V0);
 		Indices.Add(FirstVertIndex + V1);
 		Indices.Add(FirstVertIndex + V2);
 	}
 
-	inline void StoreQuadIndices(int32 V0, int32 V1, int32 V2, int32 V3, int32 FirstVertIndex, TArray<int32>& Indices)
+	inline void StoreQuadIndices(int32 V0, int32 V1, int32 V2, int32 V3, int32 FirstVertIndex, TArray<uint32>& Indices)
 	{
 		StoreTriIndices(V0, V1, V2, FirstVertIndex, Indices);
 		StoreTriIndices(V0, V2, V3, FirstVertIndex, Indices);
 	}
 
-	void StoreGridConnector(const FBox& GridBounds, const FIntPoint& P0, const FIntPoint& P1, const float CellSize, TArray<FDynamicMeshVertex>& Verts, TArray<int32>& Indices)
+	void StoreGridConnector(const FBox& GridBounds, const FIntPoint& P0, const FIntPoint& P1, const float CellSize, TArray<FDynamicMeshVertex>& Verts, TArray<uint32>& Indices)
 	{
 		const float Width = 5.0f;
 
@@ -151,7 +157,7 @@ protected:
 		StoreQuadIndices(0, 1, 3, 2, FirstVertIdx, Indices);
 	}
 
-	void StoreGridCellLayer(const FBox& GridBounds, const FIntPoint& CellIdx, const float CellSize, TArray<FDynamicMeshVertex>& Verts, TArray<int32>& Indices)
+	void StoreGridCellLayer(const FBox& GridBounds, const FIntPoint& CellIdx, const float CellSize, TArray<FDynamicMeshVertex>& Verts, TArray<uint32>& Indices)
 	{
 		const float CellGapSize = 5.0f;
 		
@@ -170,7 +176,7 @@ protected:
 		StoreQuadIndices(0, 1, 3, 2, FirstVertIdx, Indices);
 	}
 
-	void StoreGridCellFull(const FBox& GridBounds, const FIntPoint& CellIdx, const float CellSize, TArray<FDynamicMeshVertex>& Verts, TArray<int32>& Indices)
+	void StoreGridCellFull(const FBox& GridBounds, const FIntPoint& CellIdx, const float CellSize, TArray<FDynamicMeshVertex>& Verts, TArray<uint32>& Indices)
 	{
 		const float CellGapSize = 5.0f;
 
@@ -199,7 +205,7 @@ protected:
 		StoreQuadIndices(2, 6, 7, 3, FirstVertIdx, Indices);
 	}
 
-	void StoreGridBounds(const FBox& GridBounds, TArray<FDynamicMeshVertex>& Verts, TArray<int32>& Indices)
+	void StoreGridBounds(const FBox& GridBounds, TArray<FDynamicMeshVertex>& Verts, TArray<uint32>& Indices)
 	{
 		const float FaceWidth = 5.0f;
 
@@ -304,13 +310,13 @@ protected:
 
 private:
 	TArray<FDynamicMeshVertex> FreeCellMeshVerts;
-	TArray<int32> FreeCellMeshIndices;
+	TArray<uint32> FreeCellMeshIndices;
 	TArray<FDynamicMeshVertex> MarkedCellMeshVerts;
-	TArray<int32> MarkedCellMeshIndices;
+	TArray<uint32> MarkedCellMeshIndices;
 	TArray<FDynamicMeshVertex> BoundsMeshVerts;
-	TArray<int32> BoundsMeshIndices;
+	TArray<uint32> BoundsMeshIndices;
 	TArray<FDynamicMeshVertex> PathMeshVerts;
-	TArray<int32> PathMeshIndices;
+	TArray<uint32> PathMeshIndices;
 };
 
 

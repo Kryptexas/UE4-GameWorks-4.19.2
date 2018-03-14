@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -34,6 +34,14 @@ public:
 	/** Maximum size of the look-ahead cache (in GB; default = 1 GB). */
 	UPROPERTY(config, EditAnywhere, Category=Caching, meta=(ClampMin=0))
 	float CacheSizeGB;
+
+	/** Maximum number of image caching threads to use (0 = number of cores, default = 8). */
+	UPROPERTY(config, EditAnywhere, Category=Caching, meta=(ClampMin=0))
+	int32 CacheThreads;
+
+	/** Size of the stack for each caching thread (in kB; default = 128). */
+	UPROPERTY(config, EditAnywhere, Category=Caching, meta=(ClampMin=128), AdvancedDisplay)
+	int32 CacheThreadStackSizeKB;
 
 public:
 

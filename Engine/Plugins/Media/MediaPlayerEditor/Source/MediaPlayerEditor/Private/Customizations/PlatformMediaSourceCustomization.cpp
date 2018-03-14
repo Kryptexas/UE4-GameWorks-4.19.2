@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Customizations/PlatformMediaSourceCustomization.h"
 #include "MediaSource.h"
@@ -77,6 +77,11 @@ TSharedRef<SWidget> FPlatformMediaSourceCustomization::MakePlatformMediaSourcesV
 	{
 		if (PlatformInfo.IsVanilla() && (PlatformInfo.PlatformType == PlatformInfo::EPlatformType::Game) && (PlatformInfo.PlatformInfoName != TEXT("AllDesktop")))
 		{
+			if (PlatformInfo.PlatformInfoName == TEXT("TVOS"))
+			{
+				continue; // tvOS is just iOS for now
+			}
+
 			AvailablePlatforms.Add(&PlatformInfo);
 		}
 	}

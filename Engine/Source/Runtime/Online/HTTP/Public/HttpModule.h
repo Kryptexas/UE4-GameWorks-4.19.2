@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -100,17 +100,17 @@ public:
 	/**
 	 * @return timeout in seconds to send a request on the connection
 	 */
-	inline float GetHttpMaxConnectionsPerServer() const
+	inline float GetHttpSendTimeout() const
 	{
-		return HttpMaxConnectionsPerServer;
+		return HttpSendTimeout;
 	}
 
 	/**
 	 * @return max number of simultaneous connections to a specific server
 	 */
-	inline float GetHttpSendTimeout() const
+	inline int32 GetHttpMaxConnectionsPerServer() const
 	{
-		return HttpSendTimeout;
+		return HttpMaxConnectionsPerServer;
 	}
 
 	/**

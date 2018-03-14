@@ -77,18 +77,12 @@ tags:GearVR
 进入下一章节之前，须确保“Gear VR 必备条件”章节中列出的所有操作均已完成。 
 如有操作未执行，可能导致项目和 Gear VR 头戴设备不兼容。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/vr_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Gear VR 开发
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## Gear VR 开发
+
+[REGION:buttonlist]
+
 		* [](Platforms/GearVR/QuickStart "%Platforms/GearVR/QuickStart:description%")
 		* [](Platforms/GearVR/BestPractices "%Platforms/GearVR/BestPractices:description%")
 		* [](Platforms/GearVR/Debugging "%Platforms/GearVR/BestPractices:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]

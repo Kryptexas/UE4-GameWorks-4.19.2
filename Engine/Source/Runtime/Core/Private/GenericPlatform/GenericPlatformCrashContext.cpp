@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GenericPlatform/GenericPlatformCrashContext.h"
 #include "HAL/PlatformTime.h"
@@ -90,6 +90,7 @@ namespace NCachedCrashContextProperties
 	static FString CommandLine;
 	static int32 LanguageLCID;
 	static FString CrashReportClientRichText;
+	static FString GameStateName;
 	static TArray<FString> EnabledPluginsList;
 
 }
@@ -176,9 +177,21 @@ void FGenericCrashContext::Initialize()
 		NCachedCrashContextProperties::GameSessionID = InGameSessionID;
 	});
 
+	FCoreDelegates::GameStateClassChanged.AddLambda([](const FString& InGameStateName)
+	{
+		NCachedCrashContextProperties::GameStateName = InGameStateName;
+	});
+
 	FCoreDelegates::CrashOverrideParamsChanged.AddLambda([](const FCrashOverrideParameters& InParams)
 	{
-		NCachedCrashContextProperties::CrashReportClientRichText = InParams.CrashReportClientMessageText;
+		if (InParams.bSetCrashReportClientMessageText)
+		{
+			NCachedCrashContextProperties::CrashReportClientRichText = InParams.CrashReportClientMessageText;
+		}
+		if (InParams.bSetGameNameSuffix)
+		{
+			NCachedCrashContextProperties::GameName = FString(TEXT("UE4-")) + FApp::GetProjectName() + InParams.GameNameSuffix;
+		}
 	});
 
 	FCoreDelegates::IsVanillaProductChanged.AddLambda([](bool bIsVanilla)
@@ -223,7 +236,7 @@ FGenericCrashContext::FGenericCrashContext()
 	CrashContextIndex = StaticCrashContextIndex++;
 }
 
-void FGenericCrashContext::SerializeContentToBuffer()
+void FGenericCrashContext::SerializeContentToBuffer() const
 {
 	TCHAR CrashGUID[CrashGUIDLength];
 	GetUniqueCrashName(CrashGUID, CrashGUIDLength);
@@ -240,8 +253,8 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty( TEXT( "IsPerforceBuild" ), NCachedCrashContextProperties::bIsPerforceBuild );
 	AddCrashProperty( TEXT( "IsSourceDistribution" ), NCachedCrashContextProperties::bIsSourceDistribution );
 	AddCrashProperty( TEXT( "IsEnsure" ), bIsEnsure );
-	AddCrashProperty( TEXT( "IsAssert" ), FDebug::bHasAsserted );
-	AddCrashProperty( TEXT( "CrashType" ), GetCrashTypeString(bIsEnsure, FDebug::bHasAsserted, GIsGPUCrashed) );
+	AddCrashProperty( TEXT( "IsAssert" ), FDebug::HasAsserted() );
+	AddCrashProperty( TEXT( "CrashType" ), GetCrashTypeString(bIsEnsure, FDebug::HasAsserted(), GIsGPUCrashed) );
 
 	AddCrashProperty( TEXT( "SecondsSinceStart" ), NCachedCrashContextProperties::SecondsSinceStart );
 
@@ -295,6 +308,7 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty( TEXT( "Misc.OSVersionMajor" ), *NCachedCrashContextProperties::OsVersion );
 	AddCrashProperty( TEXT( "Misc.OSVersionMinor" ), *NCachedCrashContextProperties::OsSubVersion );
 
+	AddCrashProperty(TEXT("GameStateName"), *NCachedCrashContextProperties::GameStateName);
 
 	// #CrashReport: 2015-07-21 Move to the crash report client.
 	/*{
@@ -367,21 +381,21 @@ const bool FGenericCrashContext::IsFullCrashDumpOnEnsure() const
 	return (NCachedCrashContextProperties::CrashDumpMode == (int32)ECrashDumpMode::FullDumpAlways);
 }
 
-void FGenericCrashContext::SerializeAsXML( const TCHAR* Filename )
+void FGenericCrashContext::SerializeAsXML( const TCHAR* Filename ) const
 {
 	SerializeContentToBuffer();
 	// Use OS build-in functionality instead.
 	FFileHelper::SaveStringToFile( CommonBuffer, Filename, FFileHelper::EEncodingOptions::AutoDetect );
 }
 
-void FGenericCrashContext::AddCrashProperty( const TCHAR* PropertyName, const TCHAR* PropertyValue )
+void FGenericCrashContext::AddCrashProperty( const TCHAR* PropertyName, const TCHAR* PropertyValue ) const
 {
 	CommonBuffer += TEXT( "<" );
 	CommonBuffer += PropertyName;
 	CommonBuffer += TEXT( ">" );
 
 
-	CommonBuffer += EscapeXMLString( PropertyValue );
+	AppendEscapedXMLString(CommonBuffer, PropertyValue );
 
 	CommonBuffer += TEXT( "</" );
 	CommonBuffer += PropertyName;
@@ -389,24 +403,24 @@ void FGenericCrashContext::AddCrashProperty( const TCHAR* PropertyName, const TC
 	CommonBuffer += LINE_TERMINATOR;
 }
 
-void FGenericCrashContext::AddPlatformSpecificProperties()
+void FGenericCrashContext::AddPlatformSpecificProperties() const
 {
 	// Nothing really to do here. Can be overridden by the platform code.
 	// @see FWindowsPlatformCrashContext::AddPlatformSpecificProperties
 }
 
-void FGenericCrashContext::AddHeader()
+void FGenericCrashContext::AddHeader() const
 {
 	CommonBuffer += TEXT( "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" ) LINE_TERMINATOR;
 	BeginSection( TEXT("FGenericCrashContext") );
 }
 
-void FGenericCrashContext::AddFooter()
+void FGenericCrashContext::AddFooter() const
 {
 	EndSection( TEXT( "FGenericCrashContext" ) );
 }
 
-void FGenericCrashContext::BeginSection( const TCHAR* SectionName )
+void FGenericCrashContext::BeginSection( const TCHAR* SectionName ) const
 {
 	CommonBuffer += TEXT( "<" );
 	CommonBuffer += SectionName;
@@ -414,7 +428,7 @@ void FGenericCrashContext::BeginSection( const TCHAR* SectionName )
 	CommonBuffer += LINE_TERMINATOR;
 }
 
-void FGenericCrashContext::EndSection( const TCHAR* SectionName )
+void FGenericCrashContext::EndSection( const TCHAR* SectionName ) const
 {
 	CommonBuffer += TEXT( "</" );
 	CommonBuffer += SectionName;
@@ -422,15 +436,40 @@ void FGenericCrashContext::EndSection( const TCHAR* SectionName )
 	CommonBuffer += LINE_TERMINATOR;
 }
 
-FString FGenericCrashContext::EscapeXMLString( const FString& Text )
+void FGenericCrashContext::AppendEscapedXMLString(FString& OutBuffer, const TCHAR* Text)
 {
-	return Text
-		.Replace(TEXT("&"), TEXT("&amp;"))
-		.Replace(TEXT("\""), TEXT("&quot;"))
-		.Replace(TEXT("'"), TEXT("&apos;"))
-		.Replace(TEXT("<"), TEXT("&lt;"))
-		.Replace(TEXT(">"), TEXT("&gt;"))
-		.Replace( TEXT( "\r" ), TEXT("") );
+	if (!Text)
+	{
+		return;
+	}
+
+	while (*Text)
+	{
+		switch (*Text)
+		{
+		case TCHAR('&'):
+			OutBuffer += TEXT("&amp;");
+			break;
+		case TCHAR('"'):
+			OutBuffer += TEXT("&quot;");
+			break;
+		case TCHAR('\''):
+			OutBuffer += TEXT("&apos;");
+			break;
+		case TCHAR('<'):
+			OutBuffer += TEXT("&lt;");
+			break;
+		case TCHAR('>'):
+			OutBuffer += TEXT("&gt;");
+			break;
+		case TCHAR('\r'):
+			break;
+		default:
+			OutBuffer += *Text;
+		};
+
+		Text++;
+	}
 }
 
 FString FGenericCrashContext::UnescapeXMLString( const FString& Text )
@@ -441,6 +480,11 @@ FString FGenericCrashContext::UnescapeXMLString( const FString& Text )
 		.Replace(TEXT("&apos;"), TEXT("'"))
 		.Replace(TEXT("&lt;"), TEXT("<"))
 		.Replace(TEXT("&gt;"), TEXT(">"));
+}
+
+FString FGenericCrashContext::GetCrashGameName()
+{
+	return NCachedCrashContextProperties::GameName;
 }
 
 const TCHAR* FGenericCrashContext::GetCrashTypeString(bool InIsEnsure, bool InIsAssert, bool bIsGPUCrashed)

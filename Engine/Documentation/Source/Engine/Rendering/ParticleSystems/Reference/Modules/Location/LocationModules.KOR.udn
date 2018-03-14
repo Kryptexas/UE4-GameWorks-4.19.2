@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:Location 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -86,7 +86,8 @@ Bone/Socket Location(본/소켓 위치)는 스켈레탈 메시의 본이나 소�
 
 
 
-<!-------------Bone/Socket Location Includes----------------
+[COMMENT:none]
+-----------Bone/Socket Location Includes----------------
 
 
 [EXCERPT:BoneSelMethod]
@@ -123,7 +124,8 @@ Bone/Socket Location(본/소켓 위치)는 스켈레탈 메시의 본이나 소�
 
 
 
--------------End Bone/Socket Location Includes--------------->
+-------------End Bone/Socket Location Includes-------------
+[/COMMENT]
 
 ## Direct Location
 
@@ -155,7 +157,8 @@ Emitter InitLoc (이미터 초기위치)는 파티클의 초기 위치를 (동�
 
 
 
-<!-------------Emitter Init Loc Includes----------------
+[COMMENT:none]
+-----------Emitter Init Loc Includes----------------
 #### Includes
 
 [EXCERPT:InitLocSelMethod]
@@ -167,7 +170,8 @@ Emitter InitLoc (이미터 초기위치)는 파티클의 초기 위치를 (동�
 [/REGION]
 [/EXCERPT:InitLocSelMethod]
 
--------------End Emitter Init Loc Includes--------------->
+-------------End Emitter Init Loc Includes-------------
+[/COMMENT]
 
 
 ## Emitter Direct Loc
@@ -214,7 +218,8 @@ Cylinder(실린더)는 원통형 모양 내에서 파티클의 초기 위치를 
 
 
 
-<!-------------Cylinder Includes----------------
+[COMMENT:none]
+-----------Cylinder Includes----------------
 #### Includes
 
 [EXCERPT:CylinderHeightAxis]
@@ -227,7 +232,8 @@ Cylinder(실린더)는 원통형 모양 내에서 파티클의 초기 위치를 
 [/REGION]
 [/EXCERPT:CylinderHeightAxis]
 
--------------End Cylinder Includes--------------->
+-------------End Cylinder Includes-------------
+[/COMMENT]
 
 ## Cylinder (Seeded)
 
@@ -339,7 +345,8 @@ Skel Vert/Surf Loc (스켈레탈 메시 버텍스 / 표면 위치)는 스켈레�
 |**Valid Material Indices** | 가용 머티리얼 인덱스 - 파티클을 내뿜도록 할 수 있는 스켈레탈 메시에 적용할 머티리얼 목록입니다. 특정 머티리얼만 파티클을 내뿜도록 해야 하는 경우 좋습니다. 빈 칸으로 놔두면 어느 머티리얼도 내뿜을 수 있습니다. |
 
 
-<!-------------Vert/Surf Location Includes----------------
+[COMMENT:none]
+-----------Vert/Surf Location Includes----------------
 #### Includes
 
 
@@ -361,7 +368,8 @@ Skel Vert/Surf Loc (스켈레탈 메시 버텍스 / 표면 위치)는 스켈레�
 [/REGION]
 [/EXCERPT:VertSourceType]
 
--------------End Vert/Surf Location Includes--------------->
+-------------End Vert/Surf Location Includes-------------
+[/COMMENT]
 
 
 

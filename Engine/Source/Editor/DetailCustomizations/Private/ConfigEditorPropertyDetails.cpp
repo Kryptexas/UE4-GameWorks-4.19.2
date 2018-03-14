@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ConfigEditorPropertyDetails.h"
 #include "Misc/ConfigCacheIni.h"
@@ -32,8 +32,9 @@ void FConfigPropertyHelperDetails::CustomizeDetails(IDetailLayoutBuilder& Detail
 	PropertyHandle->GetValue(PropValue);
 	OriginalProperty = CastChecked<UProperty>(PropValue);
 
-	// Create a runtime UClass with the provided property as the only member. We will use this in the details view for the config hierarchy.
-	ConfigEditorPropertyViewClass = NewObject<UClass>(GetTransientPackage(), TEXT("TempConfigEditorUClass"), RF_Public|RF_Standalone);
+	// Create a unique runtime UClass with the provided property as the only member. We will use this in the details view for the config hierarchy.
+	FName TempClassName = *(FString(TEXT("TempConfigEditorUClass_")) + OriginalProperty->GetOuter()->GetName() + OriginalProperty->GetName());
+	ConfigEditorPropertyViewClass = NewObject<UClass>(GetTransientPackage(), TempClassName, RF_Standalone);
 
 	// Keep a record of the UProperty we are looking to update
 	ConfigEditorCopyOfEditProperty = DuplicateObject<UProperty>(OriginalProperty, ConfigEditorPropertyViewClass, PropValue->GetFName());
@@ -120,12 +121,12 @@ void FConfigPropertyHelperDetails::AddEditablePropertyForConfig(IDetailLayoutBui
 	// Add the properties to a property table so we can edit these.
 	IDetailCategoryBuilder& TempCategory = DetailBuilder.EditCategory("TempCategory");
 
-	UObject* ConfigEntryObject = StaticDuplicateObject(ConfigEditorPropertyViewCDO, GetTransientPackage(), *(ConfigFilePropertyRowObj->ConfigFileName + TEXT("_cdoDupe")));
+	UObject* ConfigEntryObject = StaticDuplicateObject(ConfigEditorPropertyViewCDO, GetTransientPackage(), *(ConfigFilePropertyRowObj->ConfigFileName + TEXT("_cdoDupe_") + ConfigEditorPropertyViewCDO->GetName()));
 	ConfigEntryObject->AddToRoot();
 
 	FString ExistingConfigEntryValue;
-	static FString SectionName = OriginalProperty->GetOwnerClass()->GetPathName();
-	static FString PropertyName = ConfigEditorCopyOfEditProperty->GetName();
+	FString SectionName = OriginalProperty->GetOwnerClass()->GetPathName();
+	FString PropertyName = ConfigEditorCopyOfEditProperty->GetName();
 	if (GConfig->GetString(*SectionName, *PropertyName, ExistingConfigEntryValue, ConfigFilePropertyRowObj->ConfigFileName))
 	{
 		ConfigEditorCopyOfEditProperty->ImportText(*ExistingConfigEntryValue, ConfigEditorCopyOfEditProperty->ContainerPtrToValuePtr<uint8>(ConfigEntryObject), 0, nullptr);

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -21,6 +21,7 @@ public:
 	virtual void AllocateDefaultPins() override;
 	virtual TSharedPtr<SGraphNode> CreateVisualWidget() override;
 
+	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
 	virtual bool IsPinNameEditable(const UEdGraphPin* GraphPinObj) const override;
 	virtual bool IsPinNameEditableUponCreation(const UEdGraphPin* GraphPinObj) const override;
 	virtual bool VerifyEditablePinName(const FText& InName, FText& OutErrorMessage, const UEdGraphPin* InGraphPinObj) const override;
@@ -39,7 +40,7 @@ public:
 
 protected:
 	virtual void OnNewTypedPinAdded(UEdGraphPin* NewPin) override;
-	virtual void OnPinRenamed(UEdGraphPin* RenamedPin) override;
+	virtual void OnPinRenamed(UEdGraphPin* RenamedPin, const FString& OldName) override;
 
 	/** Synchronize the removal of the output pin with its default.*/
 	virtual void RemoveDynamicPin(UEdGraphPin* Pin) override;

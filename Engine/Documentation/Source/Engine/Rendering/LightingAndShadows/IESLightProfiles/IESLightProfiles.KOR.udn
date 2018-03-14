@@ -1,49 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: IES 라이트 프로파일
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:언리얼 엔진 4 에서 라이트 프로파일 사용하기 입니다.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/IESLightProfiles:title%](%ROOT%/Engine/Rendering/LightingAndShadows/IESLightProfiles/IES_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/IESLightProfiles:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/IESLightProfiles:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/IESLightProfiles]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/IESLightProfiles:title%](%ROOT%/Engine/Rendering/LightingAndShadows/IESLightProfiles/IES_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/IESLightProfiles:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/IESLightProfiles:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/IESLightProfiles]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:IES_topic.png
 
 [REGION:banner]
 ![](IES_fullwidth.png)

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -1274,6 +1274,7 @@ private:
 template<typename ElementType, typename KeyFuncs, typename Allocator>
 struct TContainerTraits<TSet<ElementType, KeyFuncs, Allocator> > : public TContainerTraitsBase<TSet<ElementType, KeyFuncs, Allocator> >
 {
+	static_assert(TAllocatorTraits<typename Allocator::HashAllocator>::SupportsMove, "TSet no longer supports move-unaware allocators");
 	enum { MoveWillEmptyContainer =
 		TContainerTraits<typename TSet<ElementType, KeyFuncs, Allocator>::ElementArrayType>::MoveWillEmptyContainer &&
 		TAllocatorTraits<typename Allocator::HashAllocator>::SupportsMove };

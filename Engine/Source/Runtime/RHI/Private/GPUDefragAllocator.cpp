@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GPUDefragAllocator.h"
 #include "HAL/FileManager.h"
@@ -357,7 +357,7 @@ void FGPUDefragAllocator::Free(void* Pointer)
 #if ENABLE_LOW_LEVEL_MEM_TRACKER
 	if (Pointer)
 	{
-		FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, Pointer, 0);
+		FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, Pointer);
 	}
 #endif
 

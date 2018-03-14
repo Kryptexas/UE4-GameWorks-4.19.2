@@ -308,7 +308,8 @@ Below are the properties for Physics Constraints separated by major category.
 
 
 
-<!--
+[COMMENT:none]
+
 ![](PhysCon_JointPresets.png)(convert:false) 
 
 [INCLUDE:#presetTable]
@@ -322,7 +323,8 @@ Below are the properties for Physics Constraints separated by major category.
 | **Prismatic(棱柱式)** | _锁定_  **摇动**, _锁定_ **角扭动**, _锁定_ **线性Y运动** 和 **线性Z 运动**, 并设置 **Linear ZMotion（线性Z运动）** 为 _自由_ 。比如水利活塞。|
 | **Ball and Socket（球窝式）** | _锁定_ 所有 **线性运动** ，设置 **摇动** 和 **扭动** 为 _自由_ 。完全自由地旋转，和沙袋或破碎球。|
 [/EXCERPT:presetTable]
--->
+
+[/COMMENT]
 
 ### 蓝图约束
 
@@ -409,7 +411,8 @@ Below are the properties for Physics Constraints separated by major category.
 | **Angular Drive Spring（角驱动弹簧）** | %doxygen:FConstraintInstance::AngularDriveSpring% |
 | **Angular Drive Damping（角驱动阻尼）** | %doxygen:FConstraintInstance::AngularDriveDamping% |
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:linearMotionEnum]
 | **类型** | **描述** |
@@ -427,7 +430,8 @@ Below are the properties for Physics Constraints separated by major category.
 | **ACM_Free** | 沿着该坐标轴没有约束。|
 [/EXCERPT:angularMotionEnum]
 
--->
+
+[/COMMENT]
 
 ## 补充信息
 
@@ -457,7 +461,9 @@ _从左到右: 铰链式、棱柱式及球窝式图标。_
 
 _从左到右(物理约束放大4倍): 线性运动限制到15个单位，线性运动设置为自由。_
 
-<!-- 关于线性自由度和限制的所有属性的信息，请参照: [%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference -->
+[COMMENT:none]
+ 关于线性自由度和限制的所有属性的信息，请参照: [%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference 
+[/COMMENT]
 
 ### 角自由度和限制
 
@@ -479,7 +485,9 @@ _从左到右: 摇动1 限制为45度，摇动2设置为45度，扭动限制为1
 [![](PhysCon_AngPos1.png)(h:312)](PhysCon_AngPos1.png) [![](PhysCon_AngPos2.png)(h:312)](PhysCon_AngPos2.png) 
 [/REGION]
 
-<!-- 关于角自由度和限制的所有属性的信息，请参照: [%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference -->
+[COMMENT:none]
+ 关于角自由度和限制的所有属性的信息，请参照: [%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference 
+[/COMMENT]
 
 ### 方向
 
@@ -497,7 +505,9 @@ _从左到右: 摇动1 限制为45度，摇动2设置为45度，扭动限制为1
 [![](PhysCon_SimFlat.png)(w:453)](PhysCon_SimFlat.png) [![](PhysCon_SimAngled.png)(w:453)](PhysCon_SimAngled.png)
 [/REGION]
 
-当使用角限制时，则假设扭动轴(正X轴)将沿着指向蓝色受约束Actor(受约束的Actor 2)的方向对齐。<!---这非常重要，因为 ---> 
+当使用角限制时，则假设扭动轴(正X轴)将沿着指向蓝色受约束Actor(受约束的Actor 2)的方向对齐。[COMMENT:none]
+-这非常重要，因为 -
+[/COMMENT] 
 
 [REGION:lightbox]
 [![](PhysCon_Angular.png)(w:453)](PhysCon_Angular.png) [![](PhysCon_AngularSim.png)(w:453)](PhysCon_AngularSim.png)
@@ -507,7 +517,8 @@ _从左到右: 摇动1 限制为45度，摇动2设置为45度，扭动限制为1
 
 ![](PhysCon_AngularCone_2.png)(h:300 convert:false) ![](PhysCon_Arc.png)(h:300 convert:false)
 
-<!--
+[COMMENT:none]
+
 
 ### 球窝型
 球窝关节是一种简单的关节，它的所有线性部分被锁定且所有角度部分都是自由的。
@@ -528,7 +539,8 @@ Prismatic（棱柱）关节3个线性自由度中有2个被锁定，且其所有
 ### 沙袋
 您可以模拟出类似于Punchbag（沙袋）的东西(它是一个挂在垂直杆上的球状物，可以被敲打)。首先创建一个球窝关节，然后打开swing（摆动）位置驱动并调节 **AngularDriveSpring** 与 **AngularDriveDamping**，直到被推动时顺利地绕着垂直位置摆动为止。您可以设置摆动限制，以确保它不会过度弯曲。
 
--->
+
+[/COMMENT]
 -->
 
 

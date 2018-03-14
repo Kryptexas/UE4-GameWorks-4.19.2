@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
  
 #include "Widgets/Layout/SScrollBar.h"
 #include "Widgets/Layout/SScrollBarTrack.h"
@@ -12,6 +12,7 @@ void SScrollBar::Construct(const FArguments& InArgs)
 {
 	OnUserScrolled = InArgs._OnUserScrolled;
 	Orientation = InArgs._Orientation;
+	DragFocusCause = InArgs._DragFocusCause;
 	UserVisibility = InArgs._Visibility;
 
 	check(InArgs._Style);
@@ -131,7 +132,7 @@ FReply SScrollBar::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 
 	if( bDraggingThumb )
 	{
-		return FReply::Handled().CaptureMouse(AsShared()).SetUserFocus(AsShared(), EFocusCause::Mouse);
+		return FReply::Handled().CaptureMouse(AsShared()).SetUserFocus(AsShared(), DragFocusCause);
 	}
 	else
 	{
@@ -237,8 +238,8 @@ FLinearColor SScrollBar::GetThumbOpacity() const
 		{
 			const double LastInteractionDelta = bIsScrolling ? 0 : ( FSlateApplication::Get().GetCurrentTime() - LastInteractionTime );
 
-			float Opacity = FMath::Lerp(1.0f, 0.0f, FMath::Clamp((float)( ( LastInteractionDelta - 0.2 ) / 0.2 ), 0.0f, 1.0f));
-			return FLinearColor(1, 1, 1, Opacity);
+			float ThumbOpacity = FMath::Lerp(1.0f, 0.0f, FMath::Clamp((float)( ( LastInteractionDelta - 0.2 ) / 0.2 ), 0.0f, 1.0f));
+			return FLinearColor(1, 1, 1, ThumbOpacity);
 		}
 		else
 		{
@@ -328,6 +329,11 @@ void SScrollBar::SetStyle(const FScrollBarStyle* InStyle)
 		TopBrush = &Style->HorizontalTopSlotImage;
 		BottomBrush = &Style->HorizontalBottomSlotImage;
 	}
+}
+
+void SScrollBar::SetDragFocusCause(EFocusCause InDragFocusCause)
+{
+	DragFocusCause = InDragFocusCause;
 }
 
 void SScrollBar::SetThickness(TAttribute<FVector2D> InThickness)

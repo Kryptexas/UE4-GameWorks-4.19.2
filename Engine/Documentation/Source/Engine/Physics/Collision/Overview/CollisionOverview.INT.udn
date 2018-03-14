@@ -3,26 +3,6 @@ Title:Collision Overview
 Crumbs: %ROOT%, Engine, Engine/Physics
 Description:An overview of how Collision and Collision Responses operate in Unreal Engine 4.
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/Collision:title%](physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/Collision:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/Collision:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Collision]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 [TOC(start:2 end:3)]
 
 **Collision Responses** and **Trace Responses** form the basis for how Unreal Engine 4 handles collision and ray casting during run time. Every object that can collide gets an **Object Type** and a series of responses that define how it interacts will all other object types. When a collision or overlap event occurs, both (or all) objects involved can be set to affect or be affected by blocking, overlapping, or ignoring each other.
@@ -40,7 +20,9 @@ There are a few rules to keep in mind with how collisions are handled:
 * Overlap events **can** be generated even if an object **Blocks** another, especially if traveling at high speeds.
 	* It is not recommended for an object to have both collision and overlap events. Though possible, there is much that needs manual handling.
 * If one object is set to ignore and the other is set to overlap, no overlap events will be fired.
-<!--* The **Object Responses** listed are just the defaults and have no actual bearing on what an object _is_. See below for more information on setting up custom [Object Types and Trace Channels](#customobjectchannelsandtracechannels).-->
+[COMMENT:none]
+* The **Object Responses** listed are just the defaults and have no actual bearing on what an object _is_. See below for more information on setting up custom [Object Types and Trace Channels](#customobjectchannelsandtracechannels).
+[/COMMENT]
 
 For purposes of testing levels and looking around your worlds:
 
@@ -61,8 +43,6 @@ For the following section, this will be the setup used to explain what is happen
 The sphere is a **PhysicsBody** and the box is **WorldDynamic**, and by changing their collision settings we can get a number of behaviors.
 
 ### Collision
-
-[VAR:spacer]![](%ROOT%/spacer.png)[/VAR]
 
 By setting both of their collision settings to block each other, you get a collision, great for having objects interact with each other:
 

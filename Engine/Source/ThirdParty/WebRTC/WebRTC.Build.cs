@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -38,7 +38,7 @@ public class WebRTC : ModuleRules
 
 			if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
 			{
-				Definitions.Add("WEBRTC_WIN=1");
+				PublicDefinitions.Add("WEBRTC_WIN=1");
 
 				string VisualStudioVersionFolder = "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 
@@ -55,8 +55,8 @@ public class WebRTC : ModuleRules
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Mac)
 			{
-				Definitions.Add("WEBRTC_MAC=1");
-				Definitions.Add("WEBRTC_POSIX=1");
+				PublicDefinitions.Add("WEBRTC_MAC=1");
+				PublicDefinitions.Add("WEBRTC_POSIX=1");
 
 				string IncludePath = Path.Combine(VS2013Friendly_WebRtcSdkPath, "include", PlatformSubdir);
 				PublicSystemIncludePaths.Add(IncludePath);
@@ -71,8 +71,8 @@ public class WebRTC : ModuleRules
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Linux)
 			{
-				Definitions.Add("WEBRTC_LINUX=1");
-				Definitions.Add("WEBRTC_POSIX=1");
+				PublicDefinitions.Add("WEBRTC_LINUX=1");
+				PublicDefinitions.Add("WEBRTC_POSIX=1");
 
 				string IncludePath = Path.Combine(LinuxTrunk_WebRtcSdkPath, "include");
 				PublicSystemIncludePaths.Add(IncludePath);
@@ -88,10 +88,10 @@ public class WebRTC : ModuleRules
 			}
 			else if (Target.Platform == UnrealTargetPlatform.PS4)
 			{
-				Definitions.Add("WEBRTC_ORBIS");
-				Definitions.Add("FEATURE_ENABLE_SSL");
-				Definitions.Add("SSL_USE_OPENSSL");
-				Definitions.Add("EXPAT_RELATIVE_PATH");
+				PublicDefinitions.Add("WEBRTC_ORBIS");
+				PublicDefinitions.Add("FEATURE_ENABLE_SSL");
+				PublicDefinitions.Add("SSL_USE_OPENSSL");
+				PublicDefinitions.Add("EXPAT_RELATIVE_PATH");
 
 				string IncludePath = Path.Combine(VS2013Friendly_WebRtcSdkPath, "include", PlatformSubdir);
 				PublicSystemIncludePaths.Add(IncludePath);

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BrushComponent.cpp: Unreal brush component implementation
@@ -27,71 +27,12 @@
 #include "ActorEditorUtils.h"
 #include "SceneManagement.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "StaticMeshResources.h"
+#include "DynamicMeshBuilder.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBrushComponent, Log, All);
 
 #if WITH_EDITORONLY_DATA
-struct FModelWireVertex
-{
-	FVector Position;
-	FPackedNormal TangentX;
-	FPackedNormal TangentZ;
-	FVector2D UV;
-};
-
-class FModelWireVertexBuffer : public FVertexBuffer
-{
-public:
-
-	/** Initialization constructor. */
-	FModelWireVertexBuffer(UModel* InModel):
-		NumVertices(0)
-	{
-#if WITH_EDITOR
-		Polys.Append(InModel->Polys->Element);
-		for(int32 PolyIndex = 0;PolyIndex < InModel->Polys->Element.Num();PolyIndex++)
-		{
-			NumVertices += InModel->Polys->Element[PolyIndex].Vertices.Num();
-		}
-#endif
-	}
-
-	// FRenderResource interface.
-	virtual void InitRHI() override
-	{
-		if(NumVertices)
-		{
-			FRHIResourceCreateInfo CreateInfo;
-			VertexBufferRHI = RHICreateVertexBuffer(NumVertices * sizeof(FModelWireVertex),BUF_Static, CreateInfo);
-
-			FModelWireVertex* DestVertex = (FModelWireVertex*)RHILockVertexBuffer(VertexBufferRHI,0,NumVertices * sizeof(FModelWireVertex),RLM_WriteOnly);
-			for(int32 PolyIndex = 0;PolyIndex < Polys.Num();PolyIndex++)
-			{
-				FPoly& Poly = Polys[PolyIndex];
-				for(int32 VertexIndex = 0;VertexIndex < Poly.Vertices.Num();VertexIndex++)
-				{
-					DestVertex->Position = Poly.Vertices[VertexIndex];
-					DestVertex->TangentX = FVector(1,0,0);
-					DestVertex->TangentZ = FVector(0,0,1);
-					// TangentZ.w contains the sign of the tangent basis determinant. Assume +1
-					DestVertex->TangentZ.Vector.W = 255;
-					DestVertex->UV.X	 = 0.0f;
-					DestVertex->UV.Y	 = 0.0f;
-					DestVertex++;
-				}
-			}
-			RHIUnlockVertexBuffer(VertexBufferRHI);
-		}
-	}
-
-	// Accessors.
-	uint32 GetNumVertices() const { return NumVertices; }
-
-private:
-	TArray<FPoly> Polys;
-	uint32 NumVertices;
-};
-
 class FModelWireIndexBuffer : public FIndexBuffer
 {
 public:
@@ -142,14 +83,20 @@ private:
 };
 #endif // WITH_EDITORONLY_DATA
 
-class FBrushSceneProxy : public FPrimitiveSceneProxy
+class FBrushSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
+
 	FBrushSceneProxy(UBrushComponent* Component, ABrush* Owner):
 		FPrimitiveSceneProxy(Component),
 #if WITH_EDITORONLY_DATA
+		VertexFactory(GetScene().GetFeatureLevel(), "FBrushSceneProxy"),
 		WireIndexBuffer(Component->Brush),
-		WireVertexBuffer(Component->Brush),
 #endif
 		bVolume(false),
 		bBuilder(false),
@@ -202,18 +149,29 @@ public:
 		PropertyColor = NewPropertyColor;
 
 #if WITH_EDITORONLY_DATA
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			InitBrushVertexFactory,
-			FLocalVertexFactory*,VertexFactory,&VertexFactory,
-			FVertexBuffer*,WireVertexBuffer,&WireVertexBuffer,
+		TArray<FPoly> Polys;
+		Polys.Append(Component->Brush->Polys->Element);
+
+		TArray<FDynamicMeshVertex> OutVerts;
+
+		for (int32 PolyIndex = 0; PolyIndex < Polys.Num(); PolyIndex++)
+		{
+			FPoly& Poly = Polys[PolyIndex];
+			for (int32 VertexIndex = 0; VertexIndex < Poly.Vertices.Num(); VertexIndex++)
 			{
-				FLocalVertexFactory::FDataType Data;
-				Data.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(WireVertexBuffer,FModelWireVertex,Position,VET_Float3);
-				Data.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(WireVertexBuffer,FModelWireVertex,TangentX,VET_PackedNormal);
-				Data.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(WireVertexBuffer,FModelWireVertex,TangentZ,VET_PackedNormal);
-				Data.TextureCoordinates.Add( STRUCTMEMBER_VERTEXSTREAMCOMPONENT(WireVertexBuffer,FModelWireVertex,UV,VET_Float2) );
-				VertexFactory->SetData(Data);
-			});
+				FDynamicMeshVertex Vertex;
+				Vertex.Position = Poly.Vertices[VertexIndex];
+				Vertex.TangentX = FVector(1, 0, 0);
+				Vertex.TangentZ = FVector(0, 0, 1);
+				// TangentZ.w contains the sign of the tangent basis determinant. Assume +1
+				Vertex.TangentZ.Vector.W = 255;
+				Vertex.TextureCoordinate[0].X = 0.0f;
+				Vertex.TextureCoordinate[0].Y = 0.0f;
+				OutVerts.Push(Vertex);
+			}
+		}
+
+		VertexBuffers.InitFromDynamicVertex(&VertexFactory, OutVerts);
 #endif
 	}
 
@@ -222,7 +180,9 @@ public:
 #if WITH_EDITORONLY_DATA
 		VertexFactory.ReleaseResource();
 		WireIndexBuffer.ReleaseResource();
-		WireVertexBuffer.ReleaseResource();
+		VertexBuffers.PositionVertexBuffer.ReleaseResource();
+		VertexBuffers.StaticMeshVertexBuffer.ReleaseResource();
+		VertexBuffers.ColorVertexBuffer.ReleaseResource();
 #endif
 
 	}
@@ -301,7 +261,7 @@ public:
 					{
 						// If we have the editor data (Wire Buffers) use those for wireframe
 #if WITH_EDITOR
-						if(WireIndexBuffer.GetNumEdges() && WireVertexBuffer.GetNumVertices())
+						if(WireIndexBuffer.GetNumEdges() && VertexBuffers.PositionVertexBuffer.GetNumVertices())
 						{
 							auto WireframeMaterial = new FColoredMaterialRenderProxy(
 								GEngine->LevelColorationUnlitMaterial->GetRenderProxy(IsSelected(), IsHovered()),
@@ -319,7 +279,7 @@ public:
 							BatchElement.FirstIndex = 0;
 							BatchElement.NumPrimitives = WireIndexBuffer.GetNumEdges();
 							BatchElement.MinVertexIndex = 0;
-							BatchElement.MaxVertexIndex = WireVertexBuffer.GetNumVertices() - 1;
+							BatchElement.MaxVertexIndex = VertexBuffers.PositionVertexBuffer.GetNumVertices() - 1;
 							Mesh.CastShadow = false;
 							Mesh.Type = PT_LineList;
 							Mesh.DepthPriorityGroup = IsSelected() ? SDPG_Foreground : SDPG_World;
@@ -431,9 +391,7 @@ public:
 	virtual void CreateRenderThreadResources() override
 	{
 #if WITH_EDITORONLY_DATA
-		VertexFactory.InitResource();
 		WireIndexBuffer.InitResource();
-		WireVertexBuffer.InitResource();
 #endif
 
 	}
@@ -445,7 +403,7 @@ private:
 #if WITH_EDITORONLY_DATA
 	FLocalVertexFactory VertexFactory;
 	FModelWireIndexBuffer WireIndexBuffer;
-	FModelWireVertexBuffer WireVertexBuffer;
+	FStaticMeshVertexBuffers VertexBuffers;
 #endif
 
 	uint32 bVolume : 1;
@@ -568,17 +526,6 @@ void UBrushComponent::PostLoad()
 		PrePivot_DEPRECATED = FVector::ZeroVector;
 	}
 #endif
-}
-
-void UBrushComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
-{
-	Super::GetResourceSizeEx(CumulativeResourceSize);
-
-	// Count the bodysetup we own as well for 'inclusive' stats
-	if((CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive) && (BrushBodySetup != NULL))
-	{
-		BrushBodySetup->GetResourceSizeEx(CumulativeResourceSize);
-	}
 }
 
 uint8 UBrushComponent::GetStaticDepthPriorityGroup() const

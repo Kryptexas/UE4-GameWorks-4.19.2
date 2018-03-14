@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LinuxTargetPlatform.h: Declares the FLinuxTargetPlatform class.
@@ -57,6 +57,18 @@ public:
 		StaticMeshLODSettings.Initialize(EngineSettings);
 
 		InitDevicesFromConfig();
+
+		// Get the Target RHIs for this platform, we do not always want all those that are supported.
+		TArray<FName> TargetedShaderFormats;
+		GetAllTargetedShaderFormats(TargetedShaderFormats);
+
+		// If we are targeting ES 2.0/3.1, we also must cook encoded HDR reflection captures
+		static FName NAME_SF_VULKAN_ES31(TEXT("SF_VULKAN_ES31"));
+		static FName NAME_OPENGL_150_ES2(TEXT("GLSL_150_ES2"));
+		static FName NAME_OPENGL_150_ES3_1(TEXT("GLSL_150_ES31"));
+		bRequiresEncodedHDRReflectionCaptures = TargetedShaderFormats.Contains(NAME_SF_VULKAN_ES31)
+			|| TargetedShaderFormats.Contains(NAME_OPENGL_150_ES2)
+			|| TargetedShaderFormats.Contains(NAME_OPENGL_150_ES3_1);
 #endif // WITH_ENGINE
 	}
 
@@ -220,6 +232,16 @@ public:
 
 
 #if WITH_ENGINE
+	virtual void GetReflectionCaptureFormats(TArray<FName>& OutFormats) const override
+	{
+		if (bRequiresEncodedHDRReflectionCaptures)
+		{
+			OutFormats.Add(FName(TEXT("EncodedHDR")));
+		}
+
+		OutFormats.Add(FName(TEXT("FullHDR")));
+	}
+
 	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const override
 	{
 		// no shaders needed for dedicated server target
@@ -476,6 +498,8 @@ private:
 	// Holds static mesh LOD settings.
 	FStaticMeshLODSettings StaticMeshLODSettings;
 
+	// True if the project requires encoded HDR reflection captures
+	bool bRequiresEncodedHDRReflectionCaptures;
 #endif // WITH_ENGINE
 
 private:

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TickTaskManager.cpp: Manager for ticking tasks
@@ -9,6 +9,7 @@
 #include "Misc/CoreDelegates.h"
 #include "Engine/World.h"
 #include "UnrealEngine.h"
+#include "TimeGuard.h"
 
 DECLARE_CYCLE_STAT(TEXT("SetTimer"), STAT_SetTimer, STATGROUP_Engine);
 DECLARE_CYCLE_STAT(TEXT("ClearTimer"), STAT_ClearTimer, STATGROUP_Engine);
@@ -525,6 +526,22 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("TimerManager Heap Size"),STAT_NumHeapEntries,ST
 
 void FTimerManager::Tick(float DeltaTime)
 {
+#if DO_TIMEGUARD && 0
+	TArray<FTimerUnifiedDelegate> RunTimerDelegates;
+	FTimerNameDelegate NameFunction = FTimerNameDelegate::CreateLambda([&] {
+			FString ActiveDelegates;
+			for ( const FTimerUnifiedDelegate& Descriptor : RunTimerDelegates )
+			{
+				ActiveDelegates += FString::Printf(TEXT("Delegate %s, "), *Descriptor.ToString() );
+			}
+			return FString::Printf(TEXT("UWorld::Tick - TimerManager, %s"), *ActiveDelegates);
+		});
+
+
+	// no delegate should take longer then 5ms to run 
+	SCOPE_TIME_GUARD_DELEGATE_MS(NameFunction, 5);
+#endif	
+
 	// @todo, might need to handle long-running case
 	// (e.g. every X seconds, renormalize to InternalTime = 0)
 
@@ -568,6 +585,18 @@ void FTimerManager::Tick(float DeltaTime)
 			// Now call the function
 			for (int32 CallIdx=0; CallIdx<CallCount; ++CallIdx)
 			{ 
+#if DO_TIMEGUARD && 0
+				FTimerNameDelegate NameFunction = FTimerNameDelegate::CreateLambda([&] { 
+						return FString::Printf(TEXT("FTimerManager slowtick from delegate %s "), *CurrentlyExecutingTimer.TimerDelegate.ToString());
+					});
+				// no delegate should take longer then 2ms to run 
+				SCOPE_TIME_GUARD_DELEGATE_MS(NameFunction, 2);
+#endif
+#if DO_TIMEGUARD && 0
+				RunTimerDelegates.Add(CurrentlyExecutingTimer.TimerDelegate);
+#endif
+
+
 				CurrentlyExecutingTimer.TimerDelegate.Execute();
 
 				// If timer was cleared in the delegate execution, don't execute further 

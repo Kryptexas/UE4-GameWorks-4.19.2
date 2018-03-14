@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 배열 콘트롤
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/Details
@@ -29,7 +29,8 @@ Version:4.9
 | **삭제** | 현재 요소를 제거합니다. [INCLUDE:#ArrayDelete] |
 | **복제** | 현재 요소 뒤에 현재 요소의 사본을 복사해 넣습니다. [INCLUDE:#ArrayDuplicate] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ArrayInsert]
 [REGION:imagetable]
 | ![](array.png) | ![Array with inserted element](array_insert.png) |
@@ -53,4 +54,5 @@ Version:4.9
 | 전 | 후 |
 [/REGION]
 [/EXCERPT:ArrayDuplicate]
--->
+
+[/COMMENT]

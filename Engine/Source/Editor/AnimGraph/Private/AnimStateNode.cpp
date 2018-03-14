@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimStateNode.cpp
@@ -26,8 +26,8 @@ UAnimStateNode::UAnimStateNode(const FObjectInitializer& ObjectInitializer)
 
 void UAnimStateNode::AllocateDefaultPins()
 {
-	UEdGraphPin* Inputs = CreatePin(EGPD_Input, TEXT("Transition"), FString(), nullptr, TEXT("In"));
-	UEdGraphPin* Outputs = CreatePin(EGPD_Output, TEXT("Transition"), FString(), nullptr, TEXT("Out"));
+	UEdGraphPin* Inputs = CreatePin(EGPD_Input, TEXT("Transition"), TEXT("In"));
+	UEdGraphPin* Outputs = CreatePin(EGPD_Output, TEXT("Transition"), TEXT("Out"));
 }
 
 void UAnimStateNode::AutowireNewNode(UEdGraphPin* FromPin)
@@ -139,6 +139,13 @@ void UAnimStateNode::PostPasteNode()
 	// Find an interesting name, but try to keep the same if possible
 	TSharedPtr<INameValidatorInterface> NameValidator = FNameValidatorFactory::MakeValidator(this);
 	FBlueprintEditorUtils::RenameGraphWithSuggestion(BoundGraph, NameValidator, GetStateName());
+
+	for (UEdGraphNode* GraphNode : BoundGraph->Nodes)
+	{
+		GraphNode->CreateNewGuid();
+		GraphNode->PostPasteNode();
+	}
+
 	Super::PostPasteNode();
 }
 

@@ -22,7 +22,7 @@ Version:4.11
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在这步中，我们将实现鼠标控制角色四处查看的功能。
 
@@ -108,4 +108,4 @@ Version:4.11
 
 1.	按下 Esc 键或点击关卡编辑器中的 **Stop** 按钮即可退出 Play in Editor（PIE）模式。
 
-%Steps%
+

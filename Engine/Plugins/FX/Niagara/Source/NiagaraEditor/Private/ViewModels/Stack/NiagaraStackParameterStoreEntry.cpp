@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraStackParameterStoreEntry.h"
 #include "NiagaraScriptSource.h"
@@ -21,8 +21,8 @@
 
 #define LOCTEXT_NAMESPACE "UNiagaraStackParameterStoreEntry"
 UNiagaraStackParameterStoreEntry::UNiagaraStackParameterStoreEntry()
-	: ValueObjectEntry(nullptr)
-	, ItemIndentLevel(0)
+	: ItemIndentLevel(0)
+	, ValueObjectEntry(nullptr)
 {
 }
 
@@ -207,7 +207,7 @@ void UNiagaraStackParameterStoreEntry::RenameInput(FString NewName)
 
 		FNiagaraParameterHandle TargetHandle(OwningAssignmentNode->AssignmentTarget.GetName().ToString());
 		FNiagaraParameterHandle RenamedTargetHandle(TargetHandle.GetNamespace(), NewName);
-		OwningAssignmentNode->AssignmentTarget.SetName(*RenamedTargetHandle.GetParameterHandleString());
+		OwningAssignmentNode->AssignmentTarget.SetName(RenamedTargetHandle.GetParameterHandleString());
 		OwningAssignmentNode->RefreshFromExternalChanges();
 
 		InputParameterHandle = FNiagaraParameterHandle(InputParameterHandle.GetNamespace(), NewName);

@@ -38,19 +38,9 @@ Related:Programming/UnrealArchitecture/TSet
 * Blueprint Set に含まれているアイテムのクエリおよび表示方法 
 * Blueprint Set の基本的な操作方法 (Intersection と Union を含む)
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	[DIR(output:"checkpoint" parent:"Engine/Blueprints/BP_HowTo/WorkingWithSets" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+## ステップ
+
+[DIR(output:"checkpoint" parent:"Engine/Blueprints/BP_HowTo/WorkingWithSets" org:"hierarchy")]
 
 [REGION:call_to_action]
 	[クリックして開始](Engine/Blueprints/BP_HowTo/WorkingWithSets/1 "%Engine/Blueprints/BP_HowTo/WorkingWithSets/1:title%")

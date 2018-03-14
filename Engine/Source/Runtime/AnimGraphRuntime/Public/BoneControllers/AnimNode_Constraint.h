@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -47,6 +47,9 @@ struct FConstraint
 	/** Per axis filter options - applied in their local space not in world space */
 	UPROPERTY(EditAnywhere, Category = FConstraint)
 	FFilterOptionPerAxis PerAxis;
+	
+	/** transient constraint data index */
+	int32 ConstraintDataIndex;
 
 	void Initialize(const FBoneContainer& RequiredBones)
 	{
@@ -61,6 +64,7 @@ struct FConstraint
 	FConstraint()
 		: OffsetOption(EConstraintOffsetOption::Offset_RefPose)
 		, TransformType(ETransformConstraintType::Translation)
+		, ConstraintDataIndex(INDEX_NONE)
 	{}
 };
 /**

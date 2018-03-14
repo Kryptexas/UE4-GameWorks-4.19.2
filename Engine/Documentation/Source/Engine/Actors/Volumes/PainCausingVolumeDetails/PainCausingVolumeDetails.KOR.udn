@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3379420
+﻿INTSourceChangelist:3750352
 Availability: Docs
 Title:볼륨 개요
 Crumbs:%ROOT%, Engine, Engine/Actors, Engine/Actors/Volumes
@@ -10,8 +10,6 @@ type:reference
 ### Pain-Causing Volume
 
 Physics Volume 에서 할당 가능한 프로퍼티 이외에 Pain Causing Volume 에도 다음과 같은 프로퍼티 세트가 있습니다.
-
-![](paincausingvolume.png)
 
 |프로퍼티| 설명 |
 | ------- | ------------ |

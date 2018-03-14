@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3452142
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:드래그 앤 드롭 UI 제작
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -42,23 +42,15 @@ UMG 에서 **DragAndDropOperation** 노드로 이러한 상호작용 유형을 �
 
 _이 가이드를 마칠 즈음엔 뷰포트 안에서 드래그하여 새 위치에 드롭할 수 있는 UI 위젯이 생길 것입니다._
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		단계
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine\UMG\HowTo\DragAndDrop\ProjectSetup)
-	* [](Engine\UMG\HowTo\DragAndDrop\WidgetSetup)
-	* [](Engine\UMG\HowTo\DragAndDrop\OnDragDetected)
-	* [](Engine\UMG\HowTo\DragAndDrop\OnDrop)
-	* [](Engine\UMG\HowTo\DragAndDrop\FinishingUp)
-	[/PARAM]
-[/OBJECT]
+## 단계
+
+[REGION:buttonlist]
+* [](Engine\UMG\HowTo\DragAndDrop\ProjectSetup)
+* [](Engine\UMG\HowTo\DragAndDrop\WidgetSetup)
+* [](Engine\UMG\HowTo\DragAndDrop\OnDragDetected)
+* [](Engine\UMG\HowTo\DragAndDrop\OnDrop)
+* [](Engine\UMG\HowTo\DragAndDrop\FinishingUp)
+[/REGION]
 
 [REGION:call_to_action]
 	[클릭하면 시작합니다.](Engine\UMG\HowTo\DragAndDrop\ProjectSetup "%Engine\UMG\HowTo\DragAndDrop\ProjectSetup:title%")

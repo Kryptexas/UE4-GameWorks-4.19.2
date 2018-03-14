@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -811,73 +811,15 @@ public:
 	/** Holds the net id for a player */
 	FString UniqueNetIdStr;
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	// Define these to increase visibility to public (from parent's protected)
 	FUniqueNetIdString() = default;
-	virtual ~FUniqueNetIdString() = default;
-	FUniqueNetIdString(const FUniqueNetIdString&) = default;
+
 	FUniqueNetIdString(FUniqueNetIdString&&) = default;
-	FUniqueNetIdString& operator=(const FUniqueNetIdString&) = default;
+	FUniqueNetIdString(const FUniqueNetIdString&) = default;
 	FUniqueNetIdString& operator=(FUniqueNetIdString&&) = default;
-#else
-	/** Default constructor */
-	FUniqueNetIdString()
-	{
-	}
+	FUniqueNetIdString& operator=(const FUniqueNetIdString&) = default;
 
-	/** Destructor */
-	virtual ~FUniqueNetIdString()
-	{
-	}
-
-	/**
-	 * Copy Constructor
-	 *
-	 * @param Src the id to copy
-	 */
-	FUniqueNetIdString(const FUniqueNetIdString& Src)
-		: UniqueNetIdStr(Src.UniqueNetIdStr)
-	{
-	}
-
-	/**
-	 * Move Constructor
-	 *
-	 * @param Src the id to copy
-	 */
-	FUniqueNetIdString(FUniqueNetIdString&& Src)
-		: UniqueNetIdStr(MoveTemp(Src.UniqueNetIdStr))
-	{
-	}
-
-	/**
-	 * Copy Assignment Operator
-	 *
-	 * @param Src the id to copy
-	 */
-	FUniqueNetIdString& operator=(const FUniqueNetIdString& Src)
-	{
-		if (this != &Src)
-		{
-			UniqueNetIdStr = Src.UniqueNetIdStr;
-		}
-		return *this;
-	}
-
-	/**
-	 * Move Assignment Operator
-	 *
-	 * @param Src the id to copy
-	 */
-	FUniqueNetIdString& operator=(FUniqueNetIdString&& Src)
-	{
-		if (this != &Src)
-		{
-			UniqueNetIdStr = MoveTemp(Src.UniqueNetIdStr);
-		}
-		return *this;
-	}
-#endif
+	virtual ~FUniqueNetIdString() = default;
 
 	/**
 	 * Constructs this object with the specified net id

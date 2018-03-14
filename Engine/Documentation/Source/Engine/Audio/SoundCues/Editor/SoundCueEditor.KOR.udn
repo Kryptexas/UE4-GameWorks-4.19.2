@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429236
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:사운드큐 에디터
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -7,45 +7,8 @@ version: 4.9
 parent:Engine/Audio
 type:overview
 order:5
+topic-image:soundcue_editor_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Audio/SoundCues/Editor:title%](Engine/Audio/SoundCues/Editor/soundcue_editor_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Audio/SoundCues/Editor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Audio/SoundCues/Editor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Audio/SoundCues/Editor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Audio/SoundCues/Editor:title%](Engine/Audio/SoundCues/Editor/soundcue_editor_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Audio/SoundCues/Editor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Audio/SoundCues/Editor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Audio/SoundCues/Editor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 ![](SoundCueEditor_plain.png)(w:900)
 

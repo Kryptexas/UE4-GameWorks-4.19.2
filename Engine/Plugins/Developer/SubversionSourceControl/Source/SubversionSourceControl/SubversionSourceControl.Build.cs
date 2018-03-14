@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -23,7 +23,7 @@ public class SubversionSourceControl : ModuleRules
 			// Add contents of binaries directory as runtime dependencies
 			foreach (string FilePath in Directory.EnumerateFiles(Target.UEThirdPartyBinariesDirectory + "svn/" + Target.Platform.ToString() + "/", "*", SearchOption.AllDirectories))
 			{
-				RuntimeDependencies.Add(new RuntimeDependency(FilePath));
+				RuntimeDependencies.Add(FilePath);
 			}
 		}
 	}

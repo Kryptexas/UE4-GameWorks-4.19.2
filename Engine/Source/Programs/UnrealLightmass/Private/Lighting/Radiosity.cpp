@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #include "CoreMinimal.h"
 #include "Raster.h"
 #include "LightingSystem.h"
@@ -230,7 +230,7 @@ void FStaticLightingSystem::RadiositySetupThreadLoop(int32 ThreadIndex, bool bIs
 void FStaticLightingSystem::RadiositySetupTextureMapping(FStaticLightingTextureMapping* TextureMapping)
 {
 	checkSlow(TextureMapping);
-	FStaticLightingMappingContext MappingContext(TextureMapping->Mesh,*this);
+	FStaticLightingMappingContext MappingContext(TextureMapping->Mesh,*this,&StartupDebugOutput);
 	LIGHTINGSTAT(FScopedRDTSCTimer CachingTime(MappingContext.Stats.RadiositySetupThreadTime));
 	const FBoxSphereBounds ImportanceBounds = Scene.GetImportanceBounds();
 
@@ -392,19 +392,38 @@ void FStaticLightingSystem::RadiositySetupTextureMapping(FStaticLightingTextureM
 					InfluencingRecords.Ranges[SurfaceCacheIndex] = FArrayRange(InfluencingRecords.Data.Num());
 				}
 
-				FFinalGatherSample SkyLighting;
+				FLinearColor IncidentLighting = FLinearColor::Black;
+				FLinearColor IncidentLightingForRadiosity = FLinearColor::Black;
 
 				if (GeneralSettings.NumSkyLightingBounces > 0)
 				{
+					FFinalGatherSample SkyLighting;
 					FFinalGatherSample UnusedSecondLighting;
 					RadiosityCache.InterpolateLighting(CurrentVertex, false, false, IrradianceCachingSettings.SkyOcclusionSmoothnessReduction, SkyLighting, UnusedSecondLighting, MappingContext.DebugCacheRecords, RecordCollectorPtr);
-				}
 
-				if (GeneralSettings.ViewSingleBounceNumber < 0 || GeneralSettings.ViewSingleBounceNumber == 1)
-				{
-					TextureMapping->SurfaceCacheLighting[SurfaceCacheIndex] = SkyLighting.IncidentLighting + SkyLighting.StationarySkyLighting.IncidentLighting;
+					if (GeneralSettings.ViewSingleBounceNumber < 0 || GeneralSettings.ViewSingleBounceNumber == 1)
+					{
+						IncidentLighting += SkyLighting.IncidentLighting + SkyLighting.StationarySkyLighting.IncidentLighting;
+					}
+
+					IncidentLightingForRadiosity += SkyLighting.IncidentLighting + SkyLighting.StationarySkyLighting.IncidentLighting;
 				}
-				TextureMapping->RadiositySurfaceCache[0][SurfaceCacheIndex] = SkyLighting.IncidentLighting + SkyLighting.StationarySkyLighting.IncidentLighting;
+				
+				if (ImportanceTracingSettings.bUseRadiositySolverForLightMultibounce)
+				{
+					FGatheredLightSample DirectLighting;
+					FGatheredLightSample Unused;
+					float Unused2;
+					TArray<FVector, TInlineAllocator<1>> VertexOffsets;
+					VertexOffsets.Add(FVector(0, 0, 0));
+
+					CalculateApproximateDirectLighting(CurrentVertex, TexelToVertex.TexelRadius, VertexOffsets, .1f, true, true, bDebugThisTexel, MappingContext, DirectLighting, Unused, Unused2);
+
+					IncidentLightingForRadiosity += DirectLighting.IncidentLighting;
+				}
+				
+				TextureMapping->SurfaceCacheLighting[SurfaceCacheIndex] = IncidentLighting;
+				TextureMapping->RadiositySurfaceCache[0][SurfaceCacheIndex] = IncidentLightingForRadiosity;
 			}
 		}
 	}
@@ -523,7 +542,7 @@ void FStaticLightingSystem::RadiosityIterationThreadLoop(int32 ThreadIndex, bool
 void FStaticLightingSystem::RadiosityIterationTextureMapping(FStaticLightingTextureMapping* TextureMapping, int32 PassIndex)
 {
 	checkSlow(TextureMapping);
-	FStaticLightingMappingContext MappingContext(TextureMapping->Mesh,*this);
+	FStaticLightingMappingContext MappingContext(TextureMapping->Mesh,*this,&StartupDebugOutput);
 	LIGHTINGSTAT(FScopedRDTSCTimer CachingTime(MappingContext.Stats.RadiosityIterationThreadTime));
 	const FBoxSphereBounds ImportanceBounds = Scene.GetImportanceBounds();
 
@@ -589,6 +608,7 @@ void FStaticLightingSystem::RadiosityIterationTextureMapping(FStaticLightingText
 					if (!RadiosityCache.InterpolateLighting(Vertex, true, false, 1.0f, SkyLighting, UnusedSecondLighting, MappingContext.DebugCacheRecords))
 					{
 						FFinalGatherSample UniformSampledIncomingRadiance;
+						//@todo - find and pass in photons from the appropriate bounce number to improve bUseRadiositySolverForLightMultibounce quality
 						TArray<FVector4> ImportancePhotonDirections;
 						FLightingCacheGatherInfo GatherInfo;
 

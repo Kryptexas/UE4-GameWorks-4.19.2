@@ -1,0 +1,125 @@
+Availability: Public
+Crumbs: %ROOT%
+Title: Using Profiles for Bodies and Constraints
+Description: How to use profiles for bodies and constraints in the Physics Asset Editor.
+Type: how-to
+SkillLevel:Beginner
+Version:4.18
+Parent:Engine/Physics/PhAT/HowTo
+Related:Engine/Physics/PhAT/PhysicsAssetEditor
+Related:Engine/Physics/PhAT/ToolsAndProfiles
+Related:Engine/Physics/Constraints/ConstraintsReference
+Related:Engine/Physics/PhysicsBodies
+Order:4
+Tags:Physics
+Topic-image:Engine/Physics/physics_topic.png
+Social-image:
+
+
+[TOC(start:2 end:2)]
+
+
+The [Physics Asset Editor](Engine/Physics/PhAT/PhysicsAssetEditor) enables you to create your own [Profiles](Engine/Physics/PhAT/ToolsAndProfiles) that can be used to assign Physical Animation settings to [Bodies](Engine/Physics/PhysicsBodies)
+and Constraint settings to [Constraints](Engine/Physics/Constraints/ConstraintsReference). 
+
+![](Engine\Physics\PhAT\ToolsAndProfiles\Profiles.png)
+
+Use the sections below to learn how to create, delete, create and unassign your own profiles:
+
+
+## Create and Assign a Profile
+
+To **create and assign** a profile, follow these steps:
+
+1. Select a **body** or **constraint** from the Skeleton Tree. 
+	
+	[REGION:lightbox]
+	[![](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_01.png)(w:300)](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_01.png)
+	[/REGION]
+	[REGION:caption] Click image for full size. [/REGION]
+
+1. In the **Profiles** tab, click the **New** button next to the type of profile you want to create; **Physical Animation** or **Constraint**. Then under the **Current Profile** in the text box, 
+give your profile a name to reference it later.
+	
+	[REGION:lightbox]
+	[![](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_02.png)(w:500)](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_02.png)
+	[/REGION]
+	[REGION:caption] Click image for full size. [/REGION]
+
+	[REGION:note]
+	When profiles are created, they are initialized "empty" meaning they use default settings.
+	[/REGION]
+
+1. Use the **Graph** or **Skeleton Tree** to select the bodies or constraints you want to assign to a profile.
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_03.png)
+	[REGION:caption] The Graph for the selected body. [/REGION]
+
+	Then in the **Profiles** tab, set the **Current Profile** to the one you want to use and click **Assign**. The selected nodes will change from shaded to their fill color.
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_03a.png)
+
+	The selected nodes will change to use their fill color indicating they are assigned this profile, while the other Body node (shaded) is not.
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_03b.png)
+
+1. In the **Details** panel for the selected body, the currently assigned profile will be indicated, and you can adjust the properties for the type of profile you're creating.
+	
+	![](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_04.png)
+	[REGION:caption]
+	A Physical Animation profile is assigned to this selected Body.
+	[/REGION]
+
+
+## Unassigning a Profile
+
+To **Unassign** a body or constraint from a profile, follow these steps:
+
+1. Select a **body** or **constraint** from the Skeleton Tree that you want to edit.
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_01.png)
+
+1. In the **Profiles** tab, set the **Current Profile** to the one you want to edit. Use the **arrow** drop-down to select the assigned profile, if needed.  
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/Unassign_02.png)
+
+	In the **Graph**, the nodes assigned to the selected profile will have their fill color and not be shaded.
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_03b.png)
+
+1. With the nodes selected that you want to disassociate from a profile, click the **Unassign** button in the **Profiles** tab.
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/Unassign_03.png)
+
+	After doing so, the selected nodes will become shaded for the currently selected profile since none in the graph are using it.
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/CreateAssign_03.png)
+
+## Deleting a Profile
+
+To **Delete** a profile, follow these steps:
+
+1. In the **Profiles** tab, use the **arrow** drop-down to select the **Current Profile** to the one you want to remove.
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/DeleteProfiles_01.png)
+	[REGION:caption]
+	The bottom part of the drop-down lists all created profiles.
+	[/REGION]
+
+1. Click the **Delete** button to remove it from the list of available profiles.
+
+	![](Engine/Physics/PhAT/ToolsAndProfiles/DeleteProfile_02.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/SMediaPlayerEditorViewport.h"
 
@@ -32,6 +32,8 @@ void SMediaPlayerEditorViewport::Construct(const FArguments& InArgs, UMediaPlaye
 {
 	MediaPlayer = &InMediaPlayer;
 	Style = InStyle;
+
+	const auto OverlayFont = Style->GetFontStyle("MediaPlayerEditor.ViewportFont");
 
 	ChildSlot
 	[
@@ -69,74 +71,88 @@ void SMediaPlayerEditorViewport::Construct(const FArguments& InArgs, UMediaPlaye
 		+ SOverlay::Slot()
 			.Padding(FMargin(12.0f, 8.0f))
 			[
-				// top info overlays
-				SNew(SHorizontalBox)
+				// info overlays
+				SNew(SVerticalBox)
 					.Visibility_Lambda([this]() -> EVisibility {
 						return (IsHovered() || HasMouseCapture()) ? EVisibility::Visible : EVisibility::Hidden;
 					})
 
-				+ SHorizontalBox::Slot()
-					.HAlign(HAlign_Left)
+				+ SVerticalBox::Slot()
 					.VAlign(VAlign_Top)
 					[
-						// media source name
-						SNew(STextBlock)
-							.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-							.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18))
-							.ShadowOffset(FVector2D(1.f, 1.f))
-							.Text(this, &SMediaPlayerEditorViewport::HandleMediaSourceNameText)
-							.ToolTipText(LOCTEXT("OverlaySourceNameTooltip", "Name of the currently opened media source"))
+						SNew(SHorizontalBox)
+
+						+ SHorizontalBox::Slot()
+							.HAlign(HAlign_Left)
+							.VAlign(VAlign_Top)
+							[
+								// media source name
+								SNew(STextBlock)
+									.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+									.Font(OverlayFont)
+									.ShadowOffset(FVector2D(1.f, 1.f))
+									.Text(this, &SMediaPlayerEditorViewport::HandleMediaSourceNameText)
+									.ToolTipText(LOCTEXT("OverlaySourceNameTooltip", "Name of the currently opened media source"))
+							]
+
+						+ SHorizontalBox::Slot()
+							.HAlign(HAlign_Right)
+							.VAlign(VAlign_Top)
+							[
+								// player name
+								SNew(STextBlock)
+									.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+									.Font(OverlayFont)
+									.ShadowOffset(FVector2D(1.f, 1.f))
+									.Text(this, &SMediaPlayerEditorViewport::HandleMediaPlayerNameText)
+									.ToolTipText(LOCTEXT("OverlayPlayerNameTooltip", "Name of the currently used media player plug-in"))
+							]
 					]
 
-				+ SHorizontalBox::Slot()
-					.HAlign(HAlign_Right)
-					.VAlign(VAlign_Top)
+				+ SVerticalBox::Slot()
+					.VAlign(VAlign_Bottom)
 					[
-						// player name
-						SNew(STextBlock)
-							.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-							.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18))
-							.ShadowOffset(FVector2D(1.f, 1.f))
-							.Text(this, &SMediaPlayerEditorViewport::HandleMediaPlayerNameText)
-							.ToolTipText(LOCTEXT("OverlayPlayerNameTooltip", "Name of the currently used media player plug-in"))
+						SNew(SHorizontalBox)
+
+						+ SHorizontalBox::Slot()
+							.HAlign(HAlign_Left)
+							.VAlign(VAlign_Bottom)
+							[
+								// playback state
+								SNew(STextBlock)
+									.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+									.Font(OverlayFont)
+									.ShadowOffset(FVector2D(1.f, 1.f))
+									.Text(this, &SMediaPlayerEditorViewport::HandleMediaPlayerStateText)
+									.ToolTipText(LOCTEXT("OverlayPlayerStateTooltip", "The media player's current state"))
+							]
+
+						+ SHorizontalBox::Slot()
+							.HAlign(HAlign_Right)
+							.VAlign(VAlign_Bottom)
+							[
+								// view settings
+								SNew(STextBlock)
+									.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+									.Font(OverlayFont)
+									.ShadowOffset(FVector2D(1.f, 1.f))
+									.Text(this, &SMediaPlayerEditorViewport::HandleViewSettingsText)
+									.ToolTipText(LOCTEXT("OverlayViewSettingsTooltip", "The current view settings"))
+							]
 					]
 			]
 
 		+ SOverlay::Slot()
 			.Padding(FMargin(12.0f, 8.0f))
-			.VAlign(VAlign_Bottom)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
 			[
-				// bottom info overlays
-				SNew(SHorizontalBox)
-					.Visibility_Lambda([this]() -> EVisibility {
-						return (IsHovered() || HasMouseCapture()) ? EVisibility::Visible : EVisibility::Hidden;
-					})
-
-				+ SHorizontalBox::Slot()
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Bottom)
-					[
-						// playback state
-						SNew(STextBlock)
-							.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-							.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18))
-							.ShadowOffset(FVector2D(1.f, 1.f))
-							.Text(this, &SMediaPlayerEditorViewport::HandleMediaPlayerStateText)
-							.ToolTipText(LOCTEXT("OverlayPlayerStateTooltip", "The media player's current state"))
-					]
-
-				+ SHorizontalBox::Slot()
-					.HAlign(HAlign_Right)
-					.VAlign(VAlign_Bottom)
-					[
-						// view settings
-						SNew(STextBlock)
-							.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-							.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18))
-							.ShadowOffset(FVector2D(1.f, 1.f))
-							.Text(this, &SMediaPlayerEditorViewport::HandleViewSettingsText)
-							.ToolTipText(LOCTEXT("OverlayViewSettingsTooltip", "The current view settings"))
-					]
+				// notification overlay
+				SNew(STextBlock)
+					.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+					.Font(OverlayFont)
+					.ShadowOffset(FVector2D(1.f, 1.f))
+					.Text(this, &SMediaPlayerEditorViewport::HandleNotificationText)
 			]
 	];
 }
@@ -294,6 +310,37 @@ FText SMediaPlayerEditorViewport::HandleMediaSourceNameText() const
 	}
 
 	return MediaName;
+}
+
+
+FText SMediaPlayerEditorViewport::HandleNotificationText() const
+{
+	if (MediaPlayer->IsPlaying())
+	{
+		if (MediaPlayer->GetNumTracks(EMediaPlayerTrack::Video) == 0)
+		{
+			return LOCTEXT("NoVideoTrackAvailable", "No video track available");
+		}
+
+		const int32 SelectedVideoTrack = MediaPlayer->GetSelectedTrack(EMediaPlayerTrack::Video);
+
+		if (SelectedVideoTrack == INDEX_NONE)
+		{
+			return LOCTEXT("NoVideoTrackSelected", "No video track selected");
+		}
+
+		if (MediaPlayer->GetNumTrackFormats(EMediaPlayerTrack::Video, SelectedVideoTrack) == 0)
+		{
+			return LOCTEXT("NoVideoFormatsAvailable", "No video formats available");
+		}
+
+		if (MediaPlayer->GetTrackFormat(EMediaPlayerTrack::Video, SelectedVideoTrack) == INDEX_NONE)
+		{
+			return LOCTEXT("NoVideoFormatSelected", "No video format selected");
+		}
+	}
+
+	return FText::GetEmpty();
 }
 
 

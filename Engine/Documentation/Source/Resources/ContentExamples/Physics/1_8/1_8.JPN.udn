@@ -26,7 +26,7 @@ Version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -70,7 +70,9 @@ Version:4.9
 
 
 <div align="center">
-	![](physics_1_8_002.png)(w:960) <!---![](physics_1_8_001.png)(w:450)--->
+	![](physics_1_8_002.png)(w:960) [COMMENT:none]
+-![](physics_1_8_001.png)(w:450)-
+[/COMMENT]
 </div>
 
 

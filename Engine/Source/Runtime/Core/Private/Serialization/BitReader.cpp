@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Serialization/BitReader.h"
 #include "Math/UnrealMathUtility.h"
@@ -122,6 +122,9 @@ FBitReader::FBitReader(uint8* Src, int64 CountBits)
 	Buffer.AddUninitialized((CountBits + 7) >> 3);
 
 	ArIsPersistent = ArIsLoading = 1;
+
+	// This class is exclusively used by the netcode
+	ArIsNetArchive = true;
 
 	if (Src != nullptr)
 	{

@@ -21,7 +21,7 @@ version:4.14
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 
 1. **コンテンツブラウザ** で以前に作成済みの "NewGameMenu" アセットを検索して開きます。このメニューには、名前を入力する **テキストボックス**、名前を入力するまでクリックできないゲームプレイ用の **ボタン**、メインメニューに戻るボタンがあります。
@@ -84,7 +84,7 @@ version:4.14
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -112,7 +112,7 @@ version:4.14
 			}
 
 		**HowTo_UMGGameMode.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -147,7 +147,7 @@ version:4.14
 			};
 
 		**HowTo_UMGGameMode.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGGameMode.h"
@@ -175,7 +175,7 @@ version:4.14
 				}
 			}
 			**HowTo_UMGPlayerController.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -195,7 +195,7 @@ version:4.14
 			};
 
 		**HowTo_UMGPlayerController.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGPlayerController.h"
@@ -209,4 +209,4 @@ version:4.14
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

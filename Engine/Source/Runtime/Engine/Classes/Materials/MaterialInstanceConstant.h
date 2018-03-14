@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -32,10 +32,22 @@ class UMaterialInstanceConstant : public UMaterialInstance
 	/** For editing MICs. */
 	friend class UMaterialEditorInstanceConstant;
 
-#if WITH_EDITOR
 	virtual ENGINE_API void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
+	/** Get the scalar (float) parameter value from an MIC */
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetScalarParameterValue", Keywords = "GetFloatParameterValue"), Category="Rendering|Material")
+	float K2_GetScalarParameterValue(FName ParameterName);
+
+	/** Get the MIC texture parameter value */
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetTextureParameterValue"), Category="Rendering|Material")
+	class UTexture* K2_GetTextureParameterValue(FName ParameterName);
+
+	/** Get the MIC vector parameter value */
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetVectorParameterValue", Keywords = "GetColorParameterValue"), Category="Rendering|Material")
+	FLinearColor K2_GetVectorParameterValue(FName ParameterName);
+
+#if WITH_EDITOR
 	/**
 	 * Set the parent of this material instance. This function may only be called in the Editor!
 	 *   WARNING: You MUST call PostEditChange afterwards to propagate changes to other materials in the chain!
@@ -49,10 +61,10 @@ class UMaterialInstanceConstant : public UMaterialInstance
 	 * @param ParameterName - The parameter's name.
 	 * @param Value - The value to set.
 	 */
-	ENGINE_API void SetVectorParameterValueEditorOnly(FName ParameterName, FLinearColor Value);
-	ENGINE_API void SetScalarParameterValueEditorOnly(FName ParameterName, float Value);
-	ENGINE_API void SetTextureParameterValueEditorOnly(FName ParameterName, class UTexture* Value);
-	ENGINE_API void SetFontParameterValueEditorOnly(FName ParameterName, class UFont* FontValue, int32 FontPage);
+	ENGINE_API void SetVectorParameterValueEditorOnly(const FMaterialParameterInfo& ParameterInfo, FLinearColor Value);
+	ENGINE_API void SetScalarParameterValueEditorOnly(const FMaterialParameterInfo& ParameterInfo, float Value);
+	ENGINE_API void SetTextureParameterValueEditorOnly(const FMaterialParameterInfo& ParameterInfo, class UTexture* Value);
+	ENGINE_API void SetFontParameterValueEditorOnly(const FMaterialParameterInfo& ParameterInfo, class UFont* FontValue, int32 FontPage);
 
 	/**
 	 * Clear all parameter overrides on this material instance. This function

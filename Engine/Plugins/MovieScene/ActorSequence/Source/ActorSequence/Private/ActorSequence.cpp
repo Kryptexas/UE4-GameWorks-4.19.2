@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ActorSequence.h"
 #include "MovieScene.h"
@@ -84,6 +84,11 @@ void UActorSequence::BindPossessableObject(const FGuid& ObjectId, UObject& Posse
 
 bool UActorSequence::CanPossessObject(UObject& Object, UObject* InPlaybackContext) const
 {
+	if (InPlaybackContext == nullptr)
+	{
+		return false;
+	}
+
 	AActor* ActorContext = CastChecked<AActor>(InPlaybackContext);
 
 	if (AActor* Actor = Cast<AActor>(&Object))

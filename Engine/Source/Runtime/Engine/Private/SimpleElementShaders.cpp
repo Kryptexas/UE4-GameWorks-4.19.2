@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	SimpleElementShaders.h: Definitions for simple element shaders.
@@ -32,10 +32,10 @@ bool FSimpleElementVS::Serialize(FArchive& Ar)
 	return bShaderHasOutdatedParameters;
 }
 
-void FSimpleElementVS::ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+void FSimpleElementVS::ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 {
-	FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-	OutEnvironment.SetDefine(TEXT("ALLOW_SWITCH_VERTICALAXIS"), (Platform != SP_METAL));
+	FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
+	OutEnvironment.SetDefine(TEXT("ALLOW_SWITCH_VERTICALAXIS"), (Parameters.Platform != SP_METAL));
 }
 
 /*------------------------------------------------------------------------------
@@ -49,40 +49,19 @@ FSimpleElementPS::FSimpleElementPS(const ShaderMetaType::CompiledShaderInitializ
 	InTextureSampler.Bind(Initializer.ParameterMap,TEXT("InTextureSampler"));
 	TextureComponentReplicate.Bind(Initializer.ParameterMap,TEXT("TextureComponentReplicate"));
 	TextureComponentReplicateAlpha.Bind(Initializer.ParameterMap,TEXT("TextureComponentReplicateAlpha"));
-	SceneDepthTextureNonMS.Bind(Initializer.ParameterMap,TEXT("SceneDepthTextureNonMS"));
-	EditorCompositeDepthTestParameter.Bind(Initializer.ParameterMap,TEXT("bEnableEditorPrimitiveDepthTest"));
-	ScreenToPixel.Bind(Initializer.ParameterMap,TEXT("ScreenToPixel"));
 }
 
-void FSimpleElementPS::SetEditorCompositingParameters(FRHICommandList& RHICmdList, const FSceneView* View, FTexture2DRHIRef DepthTexture )
+void FSimpleElementPS::SetEditorCompositingParameters(FRHICommandList& RHICmdList, const FSceneView* View)
 {
 	if( View )
 	{
 		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, GetPixelShader(), View->ViewUniformBuffer );
-
-		FIntRect DestRect = View->ViewRect;
-		FIntPoint ViewportOffset = DestRect.Min;
-		FIntPoint ViewportExtent = DestRect.Size();
-
-		FVector4 ScreenPosToPixelValue(
-			ViewportExtent.X * 0.5f,
-			-ViewportExtent.Y * 0.5f, 
-			ViewportExtent.X * 0.5f - 0.5f + ViewportOffset.X,
-			ViewportExtent.Y * 0.5f - 0.5f + ViewportOffset.Y);
-
-		SetShaderValue(RHICmdList, GetPixelShader(), ScreenToPixel, ScreenPosToPixelValue);
-
-		SetShaderValue(RHICmdList, GetPixelShader(),EditorCompositeDepthTestParameter,IsValidRef(DepthTexture) );
 	}
 	else
 	{
 		// Unset the view uniform buffers since we don't have a view
 		SetUniformBufferParameter(RHICmdList, GetPixelShader(), GetUniformBufferParameter<FViewUniformShaderParameters>(), NULL);
-		SetShaderValue(RHICmdList, GetPixelShader(),EditorCompositeDepthTestParameter,false );
 	}
-
-	// Bind the zbuffer as a texture if depth textures are supported
-	SetTextureParameter(RHICmdList, GetPixelShader(), SceneDepthTextureNonMS, IsValidRef(DepthTexture) ? (FTextureRHIRef)DepthTexture : GWhiteTexture->TextureRHI);
 }
 
 void FSimpleElementPS::SetParameters(FRHICommandList& RHICmdList, const FTexture* TextureValue)
@@ -213,7 +192,7 @@ void FSimpleElementDistanceFieldGammaPS::SetParameters(
 	}
 
 	// This shader does not use editor compositing
-	SetEditorCompositingParameters(RHICmdList, NULL, FTexture2DRHIRef() );
+	SetEditorCompositingParameters(RHICmdList, NULL);
 }
 
 /**

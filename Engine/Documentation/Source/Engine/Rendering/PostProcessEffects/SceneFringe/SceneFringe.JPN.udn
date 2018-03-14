@@ -26,7 +26,8 @@ Version:4.9
 | **Fringe Intensity** | 変化の度合いを制御するスケーリング係数です。[INCLUDE:#Intensity] |
 | **Fringe Saturation** | 変化させた色の彩度を制御するスケーリング係数です。小さい値はよりぼやけた結果となり、高い値は色の移り変わりがより顕著になります。|
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Intensity]
 [REGION:imagetable]
 | ![Scene Fringe Intensity - 0](scenefringe_0.png)(w:240) | ![Scene Fringe Intensity - 1](scenefringe_1.png)(w:240) | ![Scene Fringe Intensity - 5](scenefringe_2.png)(w:240)
@@ -34,4 +35,5 @@ Version:4.9
 | 0.0 | 1.0 | 5.0 |
 [/REGION]
 [/EXCERPT:Intensity]
--->
+
+[/COMMENT]

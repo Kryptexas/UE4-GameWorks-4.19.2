@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -144,6 +144,10 @@ public:
 	int32 OnPaintSectionView( const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bEnabled, const FPaintSectionAreaViewArgs& Args ) const;
 
 private:
+	// forward declared as class members to prevent name collision with similar types defined in other units
+	struct FDrawTickArgs;
+	struct FScrubRangeToScreen;
+
 	/**
 	 * Call this method when the user's interaction has changed the scrub position
 	 *
@@ -159,7 +163,7 @@ private:
 	 * @param RangeToScreen		Time range to screen space converter
 	 * @param InArgs			Parameters for drawing the tick lines
 	 */
-	void DrawTicks( FSlateWindowElementList& OutDrawElements, const struct FScrubRangeToScreen& RangeToScreen, struct FDrawTickArgs& InArgs ) const;
+	void DrawTicks( FSlateWindowElementList& OutDrawElements, const FScrubRangeToScreen& RangeToScreen, FDrawTickArgs& InArgs ) const;
 
 	/**
 	 * Draw the selection range.

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	NiagaraShared.cpp: Shared Niagara compute shader implementation.
@@ -21,6 +21,15 @@
 	NIAGARASHADER_API FNiagaraCompilationQueue* FNiagaraCompilationQueue::Singleton = nullptr;
 #endif
 
+FNiagaraScript::~FNiagaraScript()
+{
+#if WITH_EDITOR
+	if (IsInGameThread())
+	{
+		FNiagaraCompilationQueue::Get()->RemovePending(this);
+	}
+#endif
+}
 
 /** Populates OutEnvironment with defines needed to compile shaders for this script. */
 void FNiagaraScript::SetupShaderCompilationEnvironment(
@@ -36,6 +45,39 @@ NIAGARASHADER_API bool FNiagaraScript::ShouldCache(EShaderPlatform Platform, con
 {
 	check(ShaderType->GetNiagaraShaderType() )
 	return true;
+}
+
+NIAGARASHADER_API void FNiagaraScript::NotifyCompilationFinished()
+{
+	OnCompilationCompleteDelegate.Broadcast();
+}
+
+NIAGARASHADER_API void FNiagaraScript::CancelCompilation()
+{
+#if WITH_EDITOR
+	if (IsInGameThread())
+	{
+		FNiagaraShaderMap::RemovePendingScript(this);
+		FNiagaraCompilationQueue::Get()->RemovePending(this);
+
+		//UE_LOG(LogShaders, Error, TEXT("CancelCompilation %p."), this);
+		OutstandingCompileShaderMapIds.Empty();
+	}
+#endif
+}
+
+NIAGARASHADER_API void FNiagaraScript::RemoveOutstandingCompileId(const int32 OldOutstandingCompileShaderMapId)
+{
+	if (0 < OutstandingCompileShaderMapIds.Remove(OldOutstandingCompileShaderMapId))
+	{
+		//UE_LOG(LogShaders, Error, TEXT("RemoveOutstandingCompileId %p %d"), this, OldOutstandingCompileShaderMapId);
+	}
+}
+
+NIAGARASHADER_API void FNiagaraScript::Invalidate()
+{
+	CancelCompilation();
+	ReleaseShaderMap();
 }
 
 
@@ -179,6 +221,16 @@ NIAGARASHADER_API  void FNiagaraScript::SetRenderingThreadShaderMap(FNiagaraShad
 	RenderingThreadShaderMap = InShaderMap;
 }
 
+NIAGARASHADER_API  bool FNiagaraScript::IsCompilationFinished() const
+{
+	bool bRet = GameThreadShaderMap && GameThreadShaderMap.IsValid() && GameThreadShaderMap->IsCompilationFinalized();
+	if (OutstandingCompileShaderMapIds.Num() == 0)
+	{
+		return true;
+	}
+	return bRet;
+}
+
 /**
 * Cache the script's shaders
 */
@@ -229,6 +281,8 @@ bool FNiagaraScript::CacheShaders(const FNiagaraShaderMapId& ShaderMapId, EShade
 		UE_LOG(LogTemp, Display, TEXT("Found existing compiling shader for Niagara script %s, linking to other GameThreadShaderMap 0x%08X%08X"), *GetFriendlyName(), (int)((int64)(GameThreadShaderMap.GetReference()) >> 32), (int)((int64)(GameThreadShaderMap.GetReference())));
 #endif
 		OutstandingCompileShaderMapIds.AddUnique(GameThreadShaderMap->GetCompilingId());
+		//UE_LOG(LogShaders, Error, TEXT("AddUniqueExisting %p %d"), this, GameThreadShaderMap->GetCompilingId());
+
 		// Reset the shader map so we fall back to CPU sim until the compile finishes.
 		GameThreadShaderMap = nullptr;
 		bSucceeded = true;
@@ -300,7 +354,12 @@ NIAGARASHADER_API  FNiagaraShader* FNiagaraScript::GetShader() const
 
 NIAGARASHADER_API  FNiagaraShader* FNiagaraScript::GetShaderGameThread() const
 {
-	return GameThreadShaderMap->GetShader<FNiagaraShader>();
+	if (GameThreadShaderMap)
+	{
+		return GameThreadShaderMap->GetShader<FNiagaraShader>();
+	}
+
+	return nullptr;
 };
 
 
@@ -344,7 +403,9 @@ bool FNiagaraScript::BeginCompileShaderMap(
 
 	// Queue hlsl generation and shader compilation - Unlike materials, we queue this here, and compilation happens from the editor module
 	TRefCountPtr<FNiagaraShaderMap> NewShaderMap = new FNiagaraShaderMap();
-	OutstandingCompileShaderMapIds.AddUnique(NewShaderMap->GetCompilingId());
+	OutstandingCompileShaderMapIds.AddUnique(NewShaderMap->GetCompilingId());		
+	//UE_LOG(LogShaders, Error, TEXT("AddUnique %p %d"), this, NewShaderMap->GetCompilingId());
+
 	FNiagaraCompilationQueue::Get()->Queue(this, NewShaderMap, ShaderMapId, Platform, bApplyCompletedShaderMapForRendering);
 	if (bSynchronous)
 	{

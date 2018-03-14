@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,9 +10,9 @@
 class AActor;
 class ISequenceAudioRecorder;
 
-DECLARE_DELEGATE_OneParam(FOnRecordingStarted, class UMovieSceneSequence* /*Sequence*/);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnRecordingStarted, class UMovieSceneSequence* /*Sequence*/);
 
-DECLARE_DELEGATE_OneParam(FOnRecordingFinished, class UMovieSceneSequence* /*Sequence*/);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnRecordingFinished, class UMovieSceneSequence* /*Sequence*/);
 
 class ISequenceRecorder : public IModuleInterface
 {
@@ -37,26 +37,22 @@ public:
 	/**
 	 * Start a recording, possibly with some delay (specified by the sequence recording settings).
 	 * @param	ActorsToRecord		Actors to record.
-	 * @param	OnRecordingStarted	Delegate fired when recording has commenced.
-	 * @param	OnRecordingFinished	Delegate fired when recording has finished.
 	 * @param	PathToRecordTo		Optional path to a sequence to record to. If none is specified we use the defaults in the settings.
 	 * @param	SequenceName		Optional name of a sequence to record to. If none is specified we use the defaults in the settings.
 	 * @return true if recording was successfully started
 	*/
-	virtual bool StartRecording(TArrayView<AActor* const> ActorsToRecord, const FOnRecordingStarted& OnRecordingStarted, const FOnRecordingFinished& OnRecordingFinished, const FString& PathToRecordTo = FString(), const FString& SequenceName = FString()) = 0;
+	virtual bool StartRecording(TArrayView<AActor* const> ActorsToRecord, const FString& PathToRecordTo = FString(), const FString& SequenceName = FString()) = 0;
 
 	/**
 	 * Start a recording, possibly with some delay (specified by the sequence recording settings).
 	 * @param	ActorToRecord		Actor to record.
-	 * @param	OnRecordingStarted	Delegate fired when recording has commenced.
-	 * @param	OnRecordingFinished	Delegate fired when recording has finished.
 	 * @param	PathToRecordTo		Optional path to a sequence to record to. If none is specified we use the defaults in the settings.
 	 * @param	SequenceName		Optional name of a sequence to record to. If none is specified we use the defaults in the settings.
 	 * @return true if recording was successfully started
 	*/
-	bool StartRecording(AActor* ActorToRecord, const FOnRecordingStarted& OnRecordingStarted, const FOnRecordingFinished& OnRecordingFinished, const FString& PathToRecordTo = FString(), const FString& SequenceName = FString())
+	bool StartRecording(AActor* ActorToRecord, const FString& PathToRecordTo = FString(), const FString& SequenceName = FString())
 	{
-		return StartRecording(MakeArrayView(&ActorToRecord, 1), OnRecordingStarted, OnRecordingFinished, PathToRecordTo, SequenceName);
+		return StartRecording(MakeArrayView(&ActorToRecord, 1), PathToRecordTo, SequenceName);
 	}
 
 	/**
@@ -105,4 +101,10 @@ public:
 	 * @return A valid ptr to an audio recorder or null
 	 */
 	virtual TUniquePtr<ISequenceAudioRecorder> CreateAudioRecorder() const = 0;
+
+	/** Get the sequence recorder started delegate */
+	virtual FOnRecordingStarted& OnRecordingStarted() = 0;
+
+	/** Get the sequence recorder finished delegate */
+	virtual FOnRecordingFinished& OnRecordingFinished() = 0;
 };

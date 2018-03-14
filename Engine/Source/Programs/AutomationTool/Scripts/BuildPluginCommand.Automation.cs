@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -130,7 +130,7 @@ class BuildPlugin : BuildCommand
 			{
 				if (Plugin.bCanBeUsedWithUnrealHeaderTool)
 				{
-					CompilePluginWithUBT(null, HostProjectPluginFile, Plugin, "UnrealHeaderTool", TargetType.Program, HostPlatform, UnrealTargetConfiguration.Development, ReceiptFileNames, String.Format("{0} -plugin {1}", AdditionalArgs, CommandUtils.MakePathSafeToUseWithCommandLine(HostProjectPluginFile.FullName)));
+					CompilePluginWithUBT(null, HostProjectPluginFile, Plugin, "UnrealHeaderTool", TargetType.Program, HostPlatform, UnrealTargetConfiguration.Development, ReceiptFileNames, String.Format("{0} -plugin={1}", AdditionalArgs, CommandUtils.MakePathSafeToUseWithCommandLine(HostProjectPluginFile.FullName)));
 				}
 				CompilePluginWithUBT(HostProjectFile, HostProjectPluginFile, Plugin, "UE4Editor", TargetType.Editor, HostPlatform, UnrealTargetConfiguration.Development, ReceiptFileNames, AdditionalArgs);
 			}
@@ -173,16 +173,16 @@ class BuildPlugin : BuildCommand
 		// Add these modules to the build agenda
 		if(ModuleNames.Count > 0)
 		{
-			string Arguments = "-iwyu";// String.Format("-plugin {0}", CommandUtils.MakePathSafeToUseWithCommandLine(PluginFile.FullName));
+			string Arguments = "-iwyu";// String.Format("-plugin={0}", CommandUtils.MakePathSafeToUseWithCommandLine(PluginFile.FullName));
 			foreach(string ModuleName in ModuleNames)
 			{
-				Arguments += String.Format(" -module {0}", ModuleName);
+				Arguments += String.Format(" -module={0}", ModuleName);
 			}
 
 			string Architecture = PlatformExports.GetDefaultArchitecture(Platform, HostProjectFile);
 
 			FileReference ReceiptFileName = TargetReceipt.GetDefaultPath(HostProjectPluginFile.Directory, TargetName, Platform, Configuration, Architecture);
-			Arguments += String.Format(" -receipt {0}", CommandUtils.MakePathSafeToUseWithCommandLine(ReceiptFileName.FullName));
+			Arguments += String.Format(" -receipt={0}", CommandUtils.MakePathSafeToUseWithCommandLine(ReceiptFileName.FullName));
 			ReceiptFileNames.Add(ReceiptFileName);
 			
 			if(!String.IsNullOrEmpty(InAdditionalArgs))

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Stats/StatsData.h"
 #include "Templates/Greater.h"
@@ -333,7 +333,7 @@ void FRawStatStackNode::DebugPrint(TCHAR const* Filter, int32 InMaxDepth, int32 
 		if (!Filter || !*Filter)
 		{
 			FString TmpDebugStr = FStatsUtils::DebugPrint(Meta);
-			UE_LOG(LogStats, Log, TEXT("%s%s"), FCString::Spc(Depth*2), *TmpDebugStr);
+			UE_LOG(LogStats, Log, TEXT("%s%s"), FCString::Spc(FMath::Min(TCStringSpcHelper<TCHAR>::MAX_SPACES, Depth*2)), *TmpDebugStr);
 		}
 
 		static int64 MinPrint = -1;

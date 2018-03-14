@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "TP_TopDownCharacter.h"
 #include "UObject/ConstructorHelpers.h"
@@ -10,6 +10,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "Materials/Material.h"
+#include "Engine/World.h"
 
 ATP_TopDownCharacter::ATP_TopDownCharacter()
 {

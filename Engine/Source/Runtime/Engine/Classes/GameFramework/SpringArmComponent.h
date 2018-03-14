@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -118,6 +118,18 @@ class ENGINE_API USpringArmComponent : public USceneComponent
 	 */
 	UFUNCTION(BlueprintCallable, Category=SpringArm)
 	FRotator GetTargetRotation() const;
+
+	/** Get the position where the camera should be without applying the Collision Test displacement */
+	UFUNCTION(BlueprintCallable, Category=CameraCollision)
+	FVector GetUnfixedCameraPosition() const;
+
+	/** Is the Collision Test displacement being applied? */
+	UFUNCTION(BlueprintCallable, Category = CameraCollision)
+	bool IsCollisionFixApplied() const;
+
+	/** Temporary variables when applying Collision Test displacement to notify if its being applied and by how much */
+	bool bIsCameraFixed = false;
+	FVector UnfixedCameraPosition;
 
 	/** Temporary variables when using camera lag, to record previous camera position */
 	FVector PreviousDesiredLoc;

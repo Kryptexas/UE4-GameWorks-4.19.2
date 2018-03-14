@@ -28,6 +28,25 @@ there are some rendering features that UE4 can not perform while using the Gear 
 Many of the restrictions that you will encounter are similar to limitations for [mobile devices](Platforms/Mobile/Performance), and
 in the following sections, we will cover what these requirements are and how they can affect your Gear VR project. 
 
+## Mobile Multi-View & Multi-View Direct Rendering
+If your UE4 GearVR project is CPU-bound enabling either **Mobile Multi-View** or **Mobile Multi-View Direct** could help improve performance.  To enable this you will need to go to your **ProjectSettings** > **Rendering** > **VR** and then click on Mobile Multi-View to enable it. 
+
+![](MobileMultiView.png)(w:900)
+
+* **Mobile Multi-View**: When Mobile Multi-View is enabled, objects are rendered once to the left eye buffer, then duplicated to the right buffer automatically with appropriate modifications for vertex position and view-dependent variables such as reflection.
+
+* **Mobile Multi-View Direct** :An enhanced version of Mobile Multi-View that reduces the number of full-screen copies that must be rendered. In most cases, it provides a substantial reduction in GPU overhead.
+
+[region:note]
+Note that you can only enable Mobile Multi-View Direct when Mobile Multi-View has been enabled. To learn more about [Mobile Multi-View](https://developer.oculus.com/documentation/unreal/latest/concepts/unreal-multi-view/) check out the [Oculus Developer site](https://developer.oculus.com/documentation/unreal/latest/concepts/unreal-multi-view/).
+[/region]
+
+## Monoscopic Far Field
+**Monoscopic Far Field** Rendering (or, more accurately, Hybrid Monoscopic Rendering) is an advanced rendering feature for VR Mobile applications being built in Unreal Engine 4 (UE4). Generally, Monoscopic Far Field Rendering improves  the performance of levels containing a significant amount of distant content. The reason that Monoscopic Far Field Rendering improves the performance of levels having a lot of distant content is that distant objects are rendered only once for both eyes. At Epic, we've observed that rendering distant objects this way yields significant performance improvements for VR Mobile applications. To read more about how to enable and use Monoscopic Far Field check out the following documentation page.
+
+* [**Monoscopic Far Field**](Platforms\VR\MonoFarFieldRendering) 
+
+
 ### Mobile HDR
 Gear VR projects do not support Mobile HDR, and it should not be enabled. 
 

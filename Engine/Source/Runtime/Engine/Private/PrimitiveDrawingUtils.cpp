@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Math/RandomStream.h"
@@ -9,13 +9,12 @@
 #include "Materials/Material.h"
 #include "CanvasItem.h"
 #include "CanvasTypes.h"
-#include "SkeletalMeshTypes.h"
 #include "SceneUtils.h"
 #include "UnrealEngine.h"
 #include "DynamicMeshBuilder.h"
 #include "StaticMeshResources.h"
 #include "Engine/LightMapTexture2D.h"
-#include "SkeletalMeshTypes.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 
 /** Emits draw events for a given FMeshBatch and the FPrimitiveSceneProxy corresponding to that mesh element. */
 #if WANTS_DRAW_MESH_EVENTS
@@ -64,7 +63,7 @@ void DrawPlane10x10(class FPrimitiveDrawInterface* PDI,const FMatrix& ObjectToWo
 	// -> TileCount * TileCount * 2 triangles
 	const uint32 TileCount = 10;
 
-	FDynamicMeshBuilder MeshBuilder;
+	FDynamicMeshBuilder MeshBuilder(PDI->View->GetFeatureLevel());
 
 	// todo: reserve or better cache the mesh
 
@@ -113,7 +112,7 @@ void DrawTriangle(class FPrimitiveDrawInterface* PDI, const FVector& A, const FV
 		FVector2D(1,0),
 	};
 
-	FDynamicMeshBuilder MeshBuilder;
+	FDynamicMeshBuilder MeshBuilder(PDI->View->GetFeatureLevel());
 
 	FVector Normal = FVector(0, 0, 1);
 	FVector Tangent = FVector(1, 0, 0);	
@@ -159,7 +158,7 @@ void GetBoxMesh(const FMatrix& BoxToWorld,const FVector& Radii,const FMaterialRe
 	FaceRotations[4] = FRotator(0,		0,	-90.f);
 	FaceRotations[5] = FRotator(180.f,	0,	0);
 
-	FDynamicMeshBuilder MeshBuilder;
+	FDynamicMeshBuilder MeshBuilder(Collector.GetFeatureLevel());
 
 	for(int32 f=0; f<6; f++)
 	{
@@ -212,7 +211,7 @@ void DrawBox(FPrimitiveDrawInterface* PDI,const FMatrix& BoxToWorld,const FVecto
 	FaceRotations[4] = FRotator(0,		0,	-90.f);
 	FaceRotations[5] = FRotator(180.f,	0,	0);
 
-	FDynamicMeshBuilder MeshBuilder;
+	FDynamicMeshBuilder MeshBuilder(PDI->View->GetFeatureLevel());
 
 	for(int32 f=0; f<6; f++)
 	{
@@ -242,7 +241,7 @@ void GetOrientedHalfSphereMesh(const FVector& Center, const FRotator& Orientatio
 	bool bDisableBackfaceCulling, int32 ViewIndex, FMeshElementCollector& Collector, bool bUseSelectionOutline, HHitProxy* HitProxy)
 {
 	// Use a mesh builder to draw the sphere.
-	FDynamicMeshBuilder MeshBuilder;
+	FDynamicMeshBuilder MeshBuilder(Collector.GetFeatureLevel());
 	{
 		// The first/last arc are on top of each other.
 		int32 NumVerts = (NumSides + 1) * (NumRings + 1);
@@ -268,8 +267,8 @@ void GetOrientedHalfSphereMesh(const FVector& Center, const FRotator& Orientatio
 				ArcVert->Position
 				);
 
-			ArcVert->TextureCoordinate.X = 0.0f;
-			ArcVert->TextureCoordinate.Y = ((float)i / NumRings);
+			ArcVert->TextureCoordinate[0].X = 0.0f;
+			ArcVert->TextureCoordinate[0].Y = ((float)i / NumRings);
 		}
 
 		// Then rotate this arc NumSides+1 times.
@@ -291,8 +290,8 @@ void GetOrientedHalfSphereMesh(const FVector& Center, const FRotator& Orientatio
 					ArcRot.TransformVector(ArcVerts[v].TangentZ)
 					);
 
-				Verts[VIx].TextureCoordinate.X = XTexCoord;
-				Verts[VIx].TextureCoordinate.Y = ArcVerts[v].TextureCoordinate.Y;
+				Verts[VIx].TextureCoordinate[0].X = XTexCoord;
+				Verts[VIx].TextureCoordinate[0].Y = ArcVerts[v].TextureCoordinate[0].Y;
 			}
 		}
 
@@ -343,7 +342,7 @@ extern ENGINE_API void GetSphereMesh(const FVector& Center, const FVector& Radii
 void DrawSphere(FPrimitiveDrawInterface* PDI,const FVector& Center,const FRotator& Orientation,const FVector& Radii,int32 NumSides,int32 NumRings,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriority,bool bDisableBackfaceCulling)
 {
 	// Use a mesh builder to draw the sphere.
-	FDynamicMeshBuilder MeshBuilder;
+	FDynamicMeshBuilder MeshBuilder(PDI->View->GetFeatureLevel());
 	{
 		// The first/last arc are on top of each other.
 		int32 NumVerts = (NumSides+1) * (NumRings+1);
@@ -369,8 +368,8 @@ void DrawSphere(FPrimitiveDrawInterface* PDI,const FVector& Center,const FRotato
 				ArcVert->Position
 				);
 
-			ArcVert->TextureCoordinate.X = 0.0f;
-			ArcVert->TextureCoordinate.Y = ((float)i/NumRings);
+			ArcVert->TextureCoordinate[0].X = 0.0f;
+			ArcVert->TextureCoordinate[0].Y = ((float)i/NumRings);
 		}
 
 		// Then rotate this arc NumSides+1 times.
@@ -392,8 +391,8 @@ void DrawSphere(FPrimitiveDrawInterface* PDI,const FVector& Center,const FRotato
 					ArcRot.TransformVector( ArcVerts[v].TangentZ )
 					);
 
-				Verts[VIx].TextureCoordinate.X = XTexCoord;
-				Verts[VIx].TextureCoordinate.Y = ArcVerts[v].TextureCoordinate.Y;
+				Verts[VIx].TextureCoordinate[0].X = XTexCoord;
+				Verts[VIx].TextureCoordinate[0].Y = ArcVerts[v].TextureCoordinate[0].Y;
 			}
 		}
 
@@ -461,19 +460,19 @@ FVector CalcConeVert(float Angle1, float Angle2, float AzimuthAngle)
 	return ConeVert;
 }
 
-void BuildConeVerts(float Angle1, float Angle2, float Scale, float XOffset, int32 NumSides, TArray<FDynamicMeshVertex>& OutVerts, TArray<int32>& OutIndices)
+void BuildConeVerts(float Angle1, float Angle2, float Scale, float XOffset, uint32 NumSides, TArray<FDynamicMeshVertex>& OutVerts, TArray<uint32>& OutIndices)
 {
 	TArray<FVector> ConeVerts;
 	ConeVerts.AddUninitialized(NumSides);
 
-	for (int32 i = 0; i < NumSides; i++)
+	for (uint32 i = 0; i < NumSides; i++)
 	{
 		float Fraction = (float)i / (float)(NumSides);
 		float Azi = 2.f*PI*Fraction;
 		ConeVerts[i] = (CalcConeVert(Angle1, Angle2, Azi) * Scale) + FVector(XOffset,0,0);
 	}
 
-	for (int32 i = 0; i < NumSides; i++)
+	for (uint32 i = 0; i < NumSides; i++)
 	{
 		// Normal of the current face 
 		FVector TriTangentZ = ConeVerts[(i + 1) % NumSides] ^ ConeVerts[i]; // aka triangle normal
@@ -484,21 +483,21 @@ void BuildConeVerts(float Angle1, float Angle2, float Scale, float XOffset, int3
 		FDynamicMeshVertex V0, V1, V2;
 
 		V0.Position = FVector(0) + FVector(XOffset,0,0);
-		V0.TextureCoordinate.X = 0.0f;
-		V0.TextureCoordinate.Y = (float)i / NumSides;
+		V0.TextureCoordinate[0].X = 0.0f;
+		V0.TextureCoordinate[0].Y = (float)i / NumSides;
 		V0.SetTangents(TriTangentX, TriTangentY, FVector(-1, 0, 0));
 		int32 I0 = OutVerts.Add(V0);
 
 		V1.Position = ConeVerts[i];
-		V1.TextureCoordinate.X = 1.0f;
-		V1.TextureCoordinate.Y = (float)i / NumSides;
+		V1.TextureCoordinate[0].X = 1.0f;
+		V1.TextureCoordinate[0].Y = (float)i / NumSides;
 		FVector TriTangentZPrev = ConeVerts[i] ^ ConeVerts[i == 0 ? NumSides - 1 : i - 1]; // Normal of the previous face connected to this face
 		V1.SetTangents(TriTangentX, TriTangentY, (TriTangentZPrev + TriTangentZ).GetSafeNormal());
 		int32 I1 = OutVerts.Add(V1);
 
 		V2.Position = ConeVerts[(i + 1) % NumSides];
-		V2.TextureCoordinate.X = 1.0f;
-		V2.TextureCoordinate.Y = (float)((i + 1) % NumSides) / NumSides;
+		V2.TextureCoordinate[0].X = 1.0f;
+		V2.TextureCoordinate[0].Y = (float)((i + 1) % NumSides) / NumSides;
 		FVector TriTangentZNext = ConeVerts[(i + 2) % NumSides] ^ ConeVerts[(i + 1) % NumSides]; // Normal of the next face connected to this face
 		V2.SetTangents(TriTangentX, TriTangentY, (TriTangentZNext + TriTangentZ).GetSafeNormal());
 		int32 I2 = OutVerts.Add(V2);
@@ -519,13 +518,13 @@ void BuildConeVerts(float Angle1, float Angle2, float Scale, float XOffset, int3
 	}
 }
 
-void DrawCone(FPrimitiveDrawInterface* PDI,const FMatrix& ConeToWorld, float Angle1, float Angle2, int32 NumSides, bool bDrawSideLines, const FLinearColor& SideLineColor, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority)
+void DrawCone(FPrimitiveDrawInterface* PDI,const FMatrix& ConeToWorld, float Angle1, float Angle2, uint32 NumSides, bool bDrawSideLines, const FLinearColor& SideLineColor, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority)
 {
 	TArray<FDynamicMeshVertex> MeshVerts;
-	TArray<int32> MeshIndices;
+	TArray<uint32> MeshIndices;
 	BuildConeVerts(Angle1, Angle2, 1.f, 0.f, NumSides, MeshVerts, MeshIndices);
 
-	FDynamicMeshBuilder MeshBuilder;
+	FDynamicMeshBuilder MeshBuilder(PDI->View->GetFeatureLevel());
 	MeshBuilder.AddVertices(MeshVerts);
 	MeshBuilder.AddTriangles(MeshIndices);
 	MeshBuilder.Draw(PDI, ConeToWorld, MaterialRenderProxy, DepthPriority, 0.f);
@@ -547,7 +546,7 @@ void DrawCone(FPrimitiveDrawInterface* PDI,const FMatrix& ConeToWorld, float Ang
 }
 
 
-void BuildCylinderVerts(const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis, float Radius, float HalfHeight, int32 Sides, TArray<FDynamicMeshVertex>& OutVerts, TArray<int32>& OutIndices)
+void BuildCylinderVerts(const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis, float Radius, float HalfHeight, uint32 Sides, TArray<FDynamicMeshVertex>& OutVerts, TArray<uint32>& OutIndices)
 {
 	const float	AngleDelta = 2.0f * PI / Sides;
 	FVector	LastVertex = Base + XAxis * Radius;
@@ -560,7 +559,7 @@ void BuildCylinderVerts(const FVector& Base, const FVector& XAxis, const FVector
 	int32 BaseVertIndex = OutVerts.Num();
 
 	//Compute vertices for base circle.
-	for (int32 SideIndex = 0; SideIndex < Sides; SideIndex++)
+	for (uint32 SideIndex = 0; SideIndex < Sides; SideIndex++)
 	{
 		const FVector Vertex = Base + (XAxis * FMath::Cos(AngleDelta * (SideIndex + 1)) + YAxis * FMath::Sin(AngleDelta * (SideIndex + 1))) * Radius;
 		FVector Normal = Vertex - Base;
@@ -569,7 +568,7 @@ void BuildCylinderVerts(const FVector& Base, const FVector& XAxis, const FVector
 		FDynamicMeshVertex MeshVertex;
 
 		MeshVertex.Position = Vertex - TopOffset;
-		MeshVertex.TextureCoordinate = TC;
+		MeshVertex.TextureCoordinate[0] = TC;
 
 		MeshVertex.SetTangents(
 			-ZAxis,
@@ -587,7 +586,7 @@ void BuildCylinderVerts(const FVector& Base, const FVector& XAxis, const FVector
 	TC = FVector2D(0.0f, 1.0f);
 
 	//Compute vertices for the top circle
-	for (int32 SideIndex = 0; SideIndex < Sides; SideIndex++)
+	for (uint32 SideIndex = 0; SideIndex < Sides; SideIndex++)
 	{
 		const FVector Vertex = Base + (XAxis * FMath::Cos(AngleDelta * (SideIndex + 1)) + YAxis * FMath::Sin(AngleDelta * (SideIndex + 1))) * Radius;
 		FVector Normal = Vertex - Base;
@@ -596,7 +595,7 @@ void BuildCylinderVerts(const FVector& Base, const FVector& XAxis, const FVector
 		FDynamicMeshVertex MeshVertex;
 
 		MeshVertex.Position = Vertex + TopOffset;
-		MeshVertex.TextureCoordinate = TC;
+		MeshVertex.TextureCoordinate[0] = TC;
 
 		MeshVertex.SetTangents(
 			-ZAxis,
@@ -613,7 +612,7 @@ void BuildCylinderVerts(const FVector& Base, const FVector& XAxis, const FVector
 	//Add top/bottom triangles, in the style of a fan.
 	//Note if we wanted nice rendering of the caps then we need to duplicate the vertices and modify
 	//texture/tangent coordinates.
-	for (int32 SideIndex = 1; SideIndex < Sides; SideIndex++)
+	for (uint32 SideIndex = 1; SideIndex < Sides; SideIndex++)
 	{
 		int32 V0 = BaseVertIndex;
 		int32 V1 = BaseVertIndex + SideIndex;
@@ -632,7 +631,7 @@ void BuildCylinderVerts(const FVector& Base, const FVector& XAxis, const FVector
 
 	//Add sides.
 
-	for (int32 SideIndex = 0; SideIndex < Sides; SideIndex++)
+	for (uint32 SideIndex = 0; SideIndex < Sides; SideIndex++)
 	{
 		int32 V0 = BaseVertIndex + SideIndex;
 		int32 V1 = BaseVertIndex + ((SideIndex + 1) % Sides);
@@ -672,26 +671,26 @@ void GetCylinderMesh(const FVector& Base, const FVector& XAxis, const FVector& Y
 	GetCylinderMesh( FMatrix::Identity, Base, XAxis, YAxis, ZAxis, Radius, HalfHeight, Sides, MaterialRenderProxy, DepthPriority, ViewIndex, Collector );
 }
 
-void GetCylinderMesh(const FMatrix& CylToWorld, const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis, float Radius, float HalfHeight, int32 Sides, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority, int32 ViewIndex, FMeshElementCollector& Collector)
+void GetCylinderMesh(const FMatrix& CylToWorld, const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis, float Radius, float HalfHeight, uint32 Sides, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority, int32 ViewIndex, FMeshElementCollector& Collector)
 {
 	TArray<FDynamicMeshVertex> MeshVerts;
-	TArray<int32> MeshIndices;
+	TArray<uint32> MeshIndices;
 	BuildCylinderVerts(Base, XAxis, YAxis, ZAxis, Radius, HalfHeight, Sides, MeshVerts, MeshIndices);
 
 
-	FDynamicMeshBuilder MeshBuilder;
+	FDynamicMeshBuilder MeshBuilder(Collector.GetFeatureLevel());
 	MeshBuilder.AddVertices(MeshVerts);
 	MeshBuilder.AddTriangles(MeshIndices);
 
 	MeshBuilder.GetMesh(CylToWorld, MaterialRenderProxy, DepthPriority, false, false, ViewIndex, Collector);
 }
 
-void GetConeMesh(const FMatrix& LocalToWorld, float AngleWidth, float AngleHeight, int32 NumSides, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority, int32 ViewIndex, FMeshElementCollector& Collector)
+void GetConeMesh(const FMatrix& LocalToWorld, float AngleWidth, float AngleHeight, uint32 NumSides, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority, int32 ViewIndex, FMeshElementCollector& Collector)
 {
 	TArray<FDynamicMeshVertex> MeshVerts;
-	TArray<int32> MeshIndices;
+	TArray<uint32> MeshIndices;
 	BuildConeVerts(AngleWidth * PI / 180, AngleHeight * PI / 180, 1.f, 0.f, NumSides, MeshVerts, MeshIndices);
-	FDynamicMeshBuilder MeshBuilder;
+	FDynamicMeshBuilder MeshBuilder(Collector.GetFeatureLevel());
 	MeshBuilder.AddVertices(MeshVerts);
 	MeshBuilder.AddTriangles(MeshIndices);
 	MeshBuilder.GetMesh(LocalToWorld, MaterialRenderProxy, DepthPriority, false, false, ViewIndex, Collector);
@@ -712,19 +711,19 @@ void GetCapsuleMesh(const FVector& Origin, const FVector& XAxis, const FVector& 
 
 
 void DrawCylinder(FPrimitiveDrawInterface* PDI,const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis,
-	float Radius, float HalfHeight, int32 Sides, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority)
+	float Radius, float HalfHeight, uint32 Sides, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority)
 {
 	DrawCylinder( PDI, FMatrix::Identity, Base, XAxis, YAxis, ZAxis, Radius, HalfHeight, Sides, MaterialRenderProxy, DepthPriority );
 }
 
-void DrawCylinder(FPrimitiveDrawInterface* PDI, const FMatrix& CylToWorld, const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis, float Radius, float HalfHeight, int32 Sides, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority)
+void DrawCylinder(FPrimitiveDrawInterface* PDI, const FMatrix& CylToWorld, const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis, float Radius, float HalfHeight, uint32 Sides, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority)
 {
 	TArray<FDynamicMeshVertex> MeshVerts;
-	TArray<int32> MeshIndices;
+	TArray<uint32> MeshIndices;
 	BuildCylinderVerts(Base, XAxis, YAxis, ZAxis, Radius, HalfHeight, Sides, MeshVerts, MeshIndices);
 
 
-	FDynamicMeshBuilder MeshBuilder;
+	FDynamicMeshBuilder MeshBuilder(PDI->View->GetFeatureLevel());
 	MeshBuilder.AddVertices(MeshVerts);
 	MeshBuilder.AddTriangles(MeshIndices);
 
@@ -758,7 +757,7 @@ void DrawDisc(class FPrimitiveDrawInterface* PDI,const FVector& Base,const FVect
 	
 	FVector ZAxis = (XAxis) ^ YAxis;
 
-	FDynamicMeshBuilder MeshBuilder;
+	FDynamicMeshBuilder MeshBuilder(PDI->View->GetFeatureLevel());
 
 	//Compute vertices for base circle.
 	for(int32 SideIndex = 0;SideIndex < NumSides;SideIndex++)
@@ -770,8 +769,8 @@ void DrawDisc(class FPrimitiveDrawInterface* PDI,const FVector& Base,const FVect
 		FDynamicMeshVertex MeshVertex;
 		MeshVertex.Position = Vertex;
 		MeshVertex.Color = Color;
-		MeshVertex.TextureCoordinate = TC;
-		MeshVertex.TextureCoordinate.X += TCStep * SideIndex;
+		MeshVertex.TextureCoordinate[0] = TC;
+		MeshVertex.TextureCoordinate[0].X += TCStep * SideIndex;
 
 		MeshVertex.SetTangents(
 			-ZAxis,
@@ -832,7 +831,7 @@ void DrawFlatArrow(class FPrimitiveDrawInterface* PDI,const FVector& Base,const 
 
 	}
 
-	FDynamicMeshBuilder MeshBuilder;
+	FDynamicMeshBuilder MeshBuilder(PDI->View->GetFeatureLevel());
 
 	//Compute vertices for base circle.
 	for(int32 i = 0; i< 7; ++i)
@@ -840,7 +839,7 @@ void DrawFlatArrow(class FPrimitiveDrawInterface* PDI,const FVector& Base,const 
 		FDynamicMeshVertex MeshVertex;
 		MeshVertex.Position = ArrowPoints[i];
 		MeshVertex.Color = Color;
-		MeshVertex.TextureCoordinate = FVector2D(0.0f, 0.0f);;
+		MeshVertex.TextureCoordinate[0] = FVector2D(0.0f, 0.0f);;
 		MeshVertex.SetTangents(XAxis^YAxis, YAxis, XAxis);
 		MeshBuilder.AddVertex(MeshVertex); //Add bottom vertex
 	}
@@ -1729,18 +1728,18 @@ void DrawUVsInternal(FViewport* InViewport, FCanvas* InCanvas, int32 InTextYPos,
 	}
 }
 
-void DrawUVs(FViewport* InViewport, FCanvas* InCanvas, int32 InTextYPos, const int32 LODLevel, int32 UVChannel, TArray<FVector2D> SelectedEdgeTexCoords, FStaticMeshRenderData* StaticMeshRenderData, FStaticLODModel* SkeletalMeshRenderData )
+void DrawUVs(FViewport* InViewport, FCanvas* InCanvas, int32 InTextYPos, const int32 LODLevel, int32 UVChannel, TArray<FVector2D> SelectedEdgeTexCoords, FStaticMeshRenderData* StaticMeshRenderData, FSkeletalMeshLODRenderData* SkeletalMeshRenderData )
 {
 	if(StaticMeshRenderData)
 	{
 		FIndexArrayView IndexBuffer = StaticMeshRenderData->LODResources[LODLevel].IndexBuffer.GetArrayView();
-		DrawUVsInternal(InViewport, InCanvas, InTextYPos, LODLevel, UVChannel, SelectedEdgeTexCoords, StaticMeshRenderData->LODResources[LODLevel].VertexBuffer, IndexBuffer);
+		DrawUVsInternal(InViewport, InCanvas, InTextYPos, LODLevel, UVChannel, SelectedEdgeTexCoords, StaticMeshRenderData->LODResources[LODLevel].VertexBuffers.StaticMeshVertexBuffer, IndexBuffer);
 	}
 	else if(SkeletalMeshRenderData)
 	{
 		TArray<uint32> IndexBuffer;
 		SkeletalMeshRenderData->MultiSizeIndexContainer.GetIndexBuffer(IndexBuffer);
-		DrawUVsInternal(InViewport, InCanvas, InTextYPos, LODLevel, UVChannel, SelectedEdgeTexCoords, SkeletalMeshRenderData->VertexBufferGPUSkin, IndexBuffer);
+		DrawUVsInternal(InViewport, InCanvas, InTextYPos, LODLevel, UVChannel, SelectedEdgeTexCoords, SkeletalMeshRenderData->StaticVertexBuffers.StaticMeshVertexBuffer, IndexBuffer);
 	}
 	else
 	{

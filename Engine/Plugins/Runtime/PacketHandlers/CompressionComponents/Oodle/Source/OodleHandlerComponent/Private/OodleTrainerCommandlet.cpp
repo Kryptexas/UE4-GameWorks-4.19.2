@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OodleTrainerCommandlet.h"
 #include "GenericPlatform/GenericPlatformFile.h"
@@ -880,9 +880,7 @@ void FOodleDictionaryGenerator::ReadPackets(const TArray<FString>& InputCaptureF
 
 bool FOodleDictionaryGenerator::GenerateAndWriteDictionary()
 {
-#if PLATFORM_PS4 || PLATFORM_XBOXONE
-	return false;
-#else
+#if PLATFORM_WINDOWS || PLATFORM_MAC || PLATFORM_LINUX
 	bool bSuccess = false;
 	uint8* NewDictionaryData = new uint8[DictionarySize];
 
@@ -890,14 +888,14 @@ bool FOodleDictionaryGenerator::GenerateAndWriteDictionary()
 	UE_LOG(OodleHandlerComponentLog, Log, TEXT("Beginning dictionary generation..."));
 
 	UE_LOG(OodleHandlerComponentLog, Log, TEXT("- DictionaryPackets: %i, Size: %i (~%iMB)"),
-			DictionaryPackets.Num(), DictionaryPacketBytes, (DictionaryPacketBytes / (1024 * 1024)));
+		DictionaryPackets.Num(), DictionaryPacketBytes, (DictionaryPacketBytes / (1024 * 1024)));
 
 	UE_LOG(OodleHandlerComponentLog, Log, TEXT("- DictionaryTestPackets: %i, Size: %i (~%iMB), Overflowed: %s"),
-			DictionaryTestPackets.Num(), DictionaryTestPacketBytes, (DictionaryTestPacketBytes / (1024 * 1024)),
-			(bDictionaryTestOverflow ? TEXT("Yes") : TEXT("No")));
+		DictionaryTestPackets.Num(), DictionaryTestPacketBytes, (DictionaryTestPacketBytes / (1024 * 1024)),
+		(bDictionaryTestOverflow ? TEXT("Yes") : TEXT("No")));
 
 	UE_LOG(OodleHandlerComponentLog, Log, TEXT("- TrainerPackets: %i, Size: %i (~%iMB)"),
-			TrainerPackets.Num(), TrainerPacketBytes, (TrainerPacketBytes / (1024 * 1024)));
+		TrainerPackets.Num(), TrainerPacketBytes, (TrainerPacketBytes / (1024 * 1024)));
 
 	UE_LOG(OodleHandlerComponentLog, Log, TEXT("Dictionary generation may take a very long time (up to 7 mins for 1GB of packets)."));
 
@@ -953,7 +951,7 @@ bool FOodleDictionaryGenerator::GenerateAndWriteDictionary()
 		bSuccess = bSuccess && OutputFile.SerializeOodleCompressData(OutputFile.Header.DictionaryData, NewDictionaryData, DictionarySize);
 
 		bSuccess = bSuccess && OutputFile.SerializeOodleCompressData(OutputFile.Header.CompressorData, (uint8*)CompactCompressorState,
-																		CompactCompressorStateBytes);
+			CompactCompressorStateBytes);
 
 
 		if (bSuccess)
@@ -984,7 +982,7 @@ bool FOodleDictionaryGenerator::GenerateAndWriteDictionary()
 		uint64 TotalUncompressed = 0;
 		uint64 TotalCompressed = 0;
 
-		for (int32 CurPacketIdx=0; CurPacketIdx<CompressionTestPackets.Num(); CurPacketIdx++)
+		for (int32 CurPacketIdx = 0; CurPacketIdx < CompressionTestPackets.Num(); CurPacketIdx++)
 		{
 			uint8* CurPacket = CompressionTestPackets[CurPacketIdx];
 			int32 CurPacketSize = CompressionTestPacketSizes[CurPacketIdx];
@@ -992,9 +990,9 @@ bool FOodleDictionaryGenerator::GenerateAndWriteDictionary()
 			check(OodleLZ_GetCompressedBufferSizeNeeded(CurPacketSize) <= MAX_OODLE_BUFFER);
 
 			SINTa CompressedLengthSINT = 0;
-			
+
 			CompressedLengthSINT = OodleNetwork1UDP_Encode(CompressorState, SharedDictionary, CurPacket, CurPacketSize,
-																	CompressedData);
+				CompressedData);
 
 			check(CompressedLengthSINT <= CurPacketSize);
 
@@ -1005,13 +1003,13 @@ bool FOodleDictionaryGenerator::GenerateAndWriteDictionary()
 		UE_LOG(OodleHandlerComponentLog, Log, TEXT("Compression test results:"));
 
 		UE_LOG(OodleHandlerComponentLog, Log, TEXT("- CompressionTestPackets: %i, Size: %i (~%iMB)"),
-				CompressionTestPackets.Num(), CompressionTestPacketBytes, (CompressionTestPacketBytes / (1024 * 1024)));
+			CompressionTestPackets.Num(), CompressionTestPacketBytes, (CompressionTestPacketBytes / (1024 * 1024)));
 
 		UE_LOG(OodleHandlerComponentLog, Log, TEXT("- Uncompressed: %i (~%iMB), Compressed: %i (~%iMB)"), TotalUncompressed,
-				(TotalUncompressed / (1024 * 1024)), TotalCompressed, (TotalCompressed / (1024 * 1024)));
+			(TotalUncompressed / (1024 * 1024)), TotalCompressed, (TotalCompressed / (1024 * 1024)));
 
 		UE_LOG(OodleHandlerComponentLog, Log, TEXT("- Total Savings: %f%"),
-				((float)(TotalUncompressed - TotalCompressed) * 100.f) / (float)TotalUncompressed);
+			((float)(TotalUncompressed - TotalCompressed) * 100.f) / (float)TotalUncompressed);
 
 
 		delete[] CompressedData;
@@ -1048,6 +1046,8 @@ bool FOodleDictionaryGenerator::GenerateAndWriteDictionary()
 
 
 	return bSuccess;
+#else
+	return false;
 #endif
 }
 

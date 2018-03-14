@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388665
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:1.2 - Visual Studio でプロジェクトを開く
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
@@ -22,7 +22,7 @@ Version:4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 前のステップで **Basic Code** プロジェクトをセットアップし、**ゲーム モード** を作成しました。ゲーム モードでは、ゲームのルールと勝敗条件を定義します。また、デフォルト クラスも設定します。これは、ポーン、プレイヤー コントローラー、HUD を含む一部の基本的なゲームプレイ フレームワークのタイプに使用されます。このステップではエディタを使って Visual Studio でソリューションを開き、プロジェクトの Game Mode クラスを見ることができるようにします。 
 
@@ -56,4 +56,3 @@ Version:4.15
 		};
 
 1.	C++ プロジェクトを Visual Studio で開いたので、プロジェクトにコードを追加することができます。 
-		%Steps%

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /**
  *	Abstract base class for a skeletal controller.
@@ -77,6 +77,12 @@ public:
 
 		return FTransform::Identity;
 	}
+
+	void InvalidateCachedBoneIndex()
+	{
+		CachedSocketMeshBoneIndex = INDEX_NONE;
+		CachedSocketCompactBoneIndex = FCompactPoseBoneIndex(INDEX_NONE);
+	}
 };
 
 USTRUCT()
@@ -112,10 +118,12 @@ struct FBoneSocketTarget
 		if (bUseSocket)
 		{
 			SocketReference.InitialzeCompactBoneIndex(RequiredBones);
+			BoneReference.InvalidateCachedBoneIndex();
 		}
 		else
 		{
 			BoneReference.Initialize(RequiredBones);
+			SocketReference.InvalidateCachedBoneIndex();
 		}
 	}
 
@@ -216,7 +224,8 @@ struct FBoneSocketTarget
 		// if valid data is available
 		else if (BoneReference.HasValidSetup())
 		{
-			if (BoneReference.IsValidToEvaluate())
+			if (BoneReference.IsValidToEvaluate() && 
+				ensureMsgf(InPose.GetPose().IsValidIndex(BoneReference.CachedCompactPoseIndex), TEXT("Invalid Cached Pose : Name %s(Bone Index (%d), Cached (%d))"), *BoneReference.BoneName.ToString(), BoneReference.BoneIndex, BoneReference.CachedCompactPoseIndex))
 			{
 				OutTargetTransform = InPose.GetComponentSpaceTransform(BoneReference.CachedCompactPoseIndex);
 				FVector CSTargetOffset = OutTargetTransform.TransformPosition(TargetOffset);
@@ -262,7 +271,8 @@ struct FBoneSocketTarget
 		// if valid data is available
 		else if (BoneReference.HasValidSetup())
 		{
-			if (BoneReference.IsValidToEvaluate())
+			if (BoneReference.IsValidToEvaluate() && 
+				ensureMsgf(InPose.GetPose().IsValidIndex(BoneReference.CachedCompactPoseIndex), TEXT("Invalid Cached Pose : Name %s(Bone Index (%d), Cached (%d))"), *BoneReference.BoneName.ToString(), BoneReference.BoneIndex, BoneReference.CachedCompactPoseIndex))
 			{
 				OutTargetTransform = TargetOffset * InPose.GetComponentSpaceTransform(BoneReference.CachedCompactPoseIndex);
 			}
@@ -334,6 +344,13 @@ protected:
 	// Interface for derived skeletal controls to implement
 	// use this function to update for skeletal control base
 	virtual void UpdateInternal(const FAnimationUpdateContext& Context);
+
+	// Update incoming component pose.
+	virtual void UpdateComponentPose_AnyThread(const FAnimationUpdateContext& Context);
+
+	// Evaluate incoming component pose.
+	virtual void EvaluateComponentPose_AnyThread(FComponentSpacePoseContext& Output);
+
 	// use this function to evaluate for skeletal control base
 	virtual void EvaluateComponentSpaceInternal(FComponentSpacePoseContext& Context);
 	DEPRECATED(4.16, "Please use EvaluateSkeletalControl_AnyThread.")

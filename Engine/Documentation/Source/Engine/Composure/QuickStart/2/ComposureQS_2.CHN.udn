@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3587677
 Availability:Docs
-Title:2 - Composure Actor Setup
+Title:2 - Composure Actor 设置
 Crumbs:%ROOT%
-Description:In this step, we will set up the needed Blueprints, and Actors Composure requires. 
+Description:在这步中，我们将对必需的蓝图和 Actor 进行设置。 
 SkillLevel:Beginner
 Version:4.17
 checkpoint:ComposureQS
@@ -13,21 +13,21 @@ tags:Composure
 
 [NAV]
 
-In the last section, we added the needed assets to help us visualize what is going on and also light the scene. In this section, we will add the needed Actors and Blueprints so that we can start to use Composure.
+上一部分中我们添加了需要的灯光资源，以照亮场景便于观察。在这部分中，我们将添加必需的 Actor 和蓝图，以便使用 Composure。
 
-## Steps
+## 步骤
 
-1. From the **Modes** panel, locate the  **Cine Camera Actor** and drag it into the level, position it at 0,0,0 in the world.
+1. 在 **Modes** 面板中找到 **Cine Camera Actor** 并将其拖入关卡，放置在世界场景中 0,0,0 的坐标位置。
 
     [REGION:lightbox]
     [![](ComposureQS_S2_1.png)(w:568)](ComposureQS_S2_1.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-1. Go to the **Blueprints** folder in the Content Browser and add the following Blueprints to the level, making sure to position each Blueprint at 0,0,0 in the level.
+1. 前往 Content Browser 中的 **Blueprints** 文件夹并将以下蓝图添加至关卡中，必须将每个蓝图放置在关卡中 0,0,0 的坐标位置。
 
     * **BP_AdvancedCompositing**
     * **BP_AdvancedCompositingSkeletalMesh**
@@ -37,31 +37,31 @@ In the last section, we added the needed assets to help us visualize what is goi
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-1. Select the **BP_AdvancedCompositing** and in the **Config** section set the **Sequencer Camera** to the Cine Camera Actor that was added to the level.
+1. 选择 **BP_AdvancedCompositing**，在 **Config** 部分将 **Sequencer Camera** 设为添加到关卡中的摄像机 Actor。
 
     [REGION:lightbox]
     [![](ComposureQS_S2_3.png)(w:256)](ComposureQS_S2_3.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-1. Then select the **BP_AdvancedCompositingSkeletalMesh** and under the **Mesh** section, set the **Skeletal Mesh** to **SK_Mannequin**.
+1. 然后选择 **BP_AdvancedCompositingSkeletalMesh**，并在 **Mesh** 部分将 **Skeletal Mesh** 设为 **SK_Mannequin**。
 
     [REGION:lightbox]
     [![](ComposureQS_S2_4.png)(w:256)](ComposureQS_S2_4.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-## End Result
+## 最终结果
 
-With the needed, Blueprints and Actors added to the level, in the next section of this Quick Start we will take a look at setting up Sequencer to work with Composure.
+必需的蓝图和 Actor 放置到关卡中后，下一部分我们将进行设置，使 Sequencer 能够与 Composure 共用。
 
 [NAV]

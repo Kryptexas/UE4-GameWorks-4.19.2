@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/LevelBounds.h"
 #include "Engine/CollisionProfile.h"
@@ -137,9 +137,14 @@ TStatId ALevelBounds::GetStatId() const
 	RETURN_QUICK_DECLARE_CYCLE_STAT(ALevelBounds, STATGROUP_Tickables);
 }
 
+ETickableTickType ALevelBounds::GetTickableTickType() const
+{
+	return ((GIsEditor && !IsTemplate()) ? ETickableTickType::Conditional : ETickableTickType::Never);
+}
+
 bool ALevelBounds::IsTickable() const
 {
-	if (GIsEditor && bAutoUpdateBounds && !IsTemplate())
+	if (bAutoUpdateBounds)
 	{
 		UWorld* World = GetWorld();
 		return (World && World->WorldType == EWorldType::Editor);

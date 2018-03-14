@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealEngine.h: Unreal engine helper definitions.
@@ -15,6 +15,8 @@
 class FViewportClient;
 class UFont;
 class ULocalPlayer;
+
+extern ENGINE_API int32 GShowMaterialDrawEventTypes;
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
 //
@@ -340,15 +342,6 @@ public:
  * @return Name of the startup map without an extension (so can be used as a package name)
  */
 ENGINE_API FString appGetStartupMap(const TCHAR* CommandLine);
-
-/**
- * Get a list of all packages that may be needed at startup, and could be
- * loaded async in the background when doing seek free loading
- *
- * @param PackageNames The output list of package names
- * @param EngineConfigFilename Optional engine config filename to use to lookup the package settings
- */
-ENGINE_API void appGetAllPotentialStartupPackageNames(TArray<FString>& PackageNames, const FString& EngineConfigFilename, bool bIsCreatingHashes);
 
 // Calculate the average frame time by using the stats system.
 inline void CalculateFPSTimings()

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ImmediatePhysicsSimulation.h"
 #include "ImmediatePhysicsActorHandle.h"
@@ -14,14 +14,17 @@ FSimulation::FSimulation()
 	NumSimulatedBodies = 0;
 	NumKinematicBodies = 0;
 	NumSimulatedShapesWithCollision = 0;
+	NumPositionIterations = 1;
+	NumVelocityIterations = 1;
+	bRecreateIterationCache = false;
+	SimCount = 0;
+
+#if WITH_PHYSX
 	NumContactHeaders = 0;
 	NumJointHeaders = 0;
 	NumActiveJoints = 0;
-	NumPositionIterations = 1;
-	NumVelocityIterations = 1;
 	bDirtyJointData = false;
-	bRecreateIterationCache = false;
-	SimCount = 0;
+#endif // WITH_PHYSX
 }
 
 FSimulation::~FSimulation()
@@ -37,7 +40,10 @@ FSimulation::~FSimulation()
 void FSimulation::SetNumActiveBodies(uint32 InNumActiveBodies)
 {
 	NumActiveSimulatedBodies = InNumActiveBodies;
+
+#if WITH_PHYSX
 	bDirtyJointData = true;
+#endif // WITH_PHYSX
 }
 
 #if WITH_PHYSX
@@ -210,6 +216,7 @@ FActorHandle* FSimulation::CreateStaticActor(PxRigidActor* RigidActor, const FTr
 
 void FSimulation::SwapActorData(uint32 Actor1DataIdx, uint32 Actor2DataIdx)
 {
+#if WITH_PHYSX
 	check(Actors.IsValidIndex(Actor1DataIdx));
 	check(Actors.IsValidIndex(Actor2DataIdx));
 
@@ -224,11 +231,14 @@ void FSimulation::SwapActorData(uint32 Actor1DataIdx, uint32 Actor2DataIdx)
 	ActorHandles[Actor1DataIdx]->ActorDataIndex = Actor1DataIdx;
 	ActorHandles[Actor2DataIdx]->ActorDataIndex = Actor2DataIdx;
 	bDirtyJointData = true;	//reordering of bodies could lead to stale joint data
+#endif // WITH_PHYSX
+
 	bRecreateIterationCache = true;	//reordering of bodies so we need to change iteration order potentially
 }
 
 void FSimulation::SwapJointData(uint32 Joint1Idx, uint32 Joint2Idx)
 {
+#if WITH_PHYSX
 	check(JointData.IsValidIndex(Joint1Idx));
 	check(JointData.IsValidIndex(Joint2Idx));
 
@@ -240,6 +250,7 @@ void FSimulation::SwapJointData(uint32 Joint1Idx, uint32 Joint2Idx)
 	JointHandles[Joint1Idx]->JointDataIndex = Joint1Idx;
 	JointHandles[Joint2Idx]->JointDataIndex = Joint2Idx;
 	bDirtyJointData = true;	//reordering of joints could lead to stale joint data
+#endif // WITH_PHYSX
 }
 
 void FSimulation::ValidateArrays() const

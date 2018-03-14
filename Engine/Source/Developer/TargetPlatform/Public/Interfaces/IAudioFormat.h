@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -102,9 +102,10 @@ public:
 	 *
 	 * @param SrcBuffer Pre-compressed data as an array of bytes.
 	 * @param OutBuffers Array of buffers that contain the chunks the original data was split into.
+	 * @param MaxChunkSize The maximum chunk size for each chunk. The chunks will be zero-padded to match this chunk size in the bulk data serialization.
 	 * @return Whether bulk data could be split for streaming.
 	 */
-	virtual bool SplitDataForStreaming(const TArray<uint8>& SrcBuffer, TArray<TArray<uint8>>& OutBuffers) const {return false;}
+	virtual bool SplitDataForStreaming(const TArray<uint8>& SrcBuffer, TArray<TArray<uint8>>& OutBuffers, const int32 MaxChunkSize) const {return false;}
 
 public:
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VolumetricFogLightFunction.cpp
@@ -25,7 +25,7 @@ class FVolumetricFogLightFunctionPS : public FMaterialShader
 	DECLARE_SHADER_TYPE(FVolumetricFogLightFunctionPS,Material);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
 		return Material->IsLightFunction() && DoesPlatformSupportVolumetricFog(Platform);
 	}

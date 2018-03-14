@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LocalVertexFactory.cpp: Local vertex factory implementation
@@ -33,21 +33,68 @@ void FLocalVertexFactoryShaderParameters::Bind(const FShaderParameterMap& Parame
 {
 	LODParameter.Bind(ParameterMap, TEXT("SpeedTreeLODInfo"));
 	bAnySpeedTreeParamIsBound = LODParameter.IsBound() || ParameterMap.ContainsParameterAllocation(TEXT("SpeedTreeData"));
+
+	VertexFetch_VertexFetchParameters.Bind(ParameterMap, TEXT("VertexFetch_Parameters"));
+	VertexFetch_PositionBufferParameter.Bind(ParameterMap, TEXT("VertexFetch_PositionBuffer"));
+	VertexFetch_TexCoordBufferParameter.Bind(ParameterMap, TEXT("VertexFetch_TexCoordBuffer"));
+	VertexFetch_PackedTangentsBufferParameter.Bind(ParameterMap, TEXT("VertexFetch_PackedTangentsBuffer"));
+	VertexFetch_ColorComponentsBufferParameter.Bind(ParameterMap, TEXT("VertexFetch_ColorComponentsBuffer"));
 }
 
 void FLocalVertexFactoryShaderParameters::Serialize(FArchive& Ar)
 {
-	Ar << LODParameter << bAnySpeedTreeParamIsBound;
+	Ar << bAnySpeedTreeParamIsBound;
+	Ar << LODParameter;
+	Ar << VertexFetch_VertexFetchParameters;
+	Ar << VertexFetch_PositionBufferParameter;
+	Ar << VertexFetch_TexCoordBufferParameter;
+	Ar << VertexFetch_PackedTangentsBufferParameter;
+	Ar << VertexFetch_ColorComponentsBufferParameter;
 }
 
 void FLocalVertexFactoryShaderParameters::SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const
 {
+	const auto* LocalVertexFactory = static_cast<const FLocalVertexFactory*>(VertexFactory);
+	
+	FVertexShaderRHIParamRef VS = Shader->GetVertexShader();
+	if (LocalVertexFactory->SupportsManualVertexFetch(View.GetShaderPlatform()))
+	{
+		SetSRVParameter(RHICmdList, VS, VertexFetch_PositionBufferParameter, LocalVertexFactory->GetPositionsSRV());
+		SetSRVParameter(RHICmdList, VS, VertexFetch_PackedTangentsBufferParameter, LocalVertexFactory->GetTangentsSRV());
+		SetSRVParameter(RHICmdList, VS, VertexFetch_TexCoordBufferParameter, LocalVertexFactory->GetTextureCoordinatesSRV());
+
+		int ColorIndexMask = 0;
+		if (BatchElement.bUserDataIsColorVertexBuffer)
+		{
+			FColorVertexBuffer* OverrideColorVertexBuffer = (FColorVertexBuffer*)BatchElement.UserData;
+			check(OverrideColorVertexBuffer);
+
+			SetSRVParameter(RHICmdList, VS, VertexFetch_ColorComponentsBufferParameter, OverrideColorVertexBuffer->GetColorComponentsSRV());
+			ColorIndexMask = OverrideColorVertexBuffer->GetNumVertices() > 1 ? ~0 : 0;
+		}
+		else
+		{
+			SetSRVParameter(RHICmdList, VS, VertexFetch_ColorComponentsBufferParameter, LocalVertexFactory->GetColorComponentsSRV());
+			ColorIndexMask = (int)LocalVertexFactory->GetColorIndexMask();
+		}
+
+		const int NumTexCoords = LocalVertexFactory->GetNumTexcoords();
+		const int LightMapCoordinateIndex = LocalVertexFactory->GetLightMapCoordinateIndex();
+		FIntVector Parameters = { ColorIndexMask, NumTexCoords, LightMapCoordinateIndex };
+		SetShaderValue(RHICmdList, VS, VertexFetch_VertexFetchParameters, Parameters);
+	}
+
 	if (BatchElement.bUserDataIsColorVertexBuffer)
 	{
 		FColorVertexBuffer* OverrideColorVertexBuffer = (FColorVertexBuffer*)BatchElement.UserData;
 		check(OverrideColorVertexBuffer);
-		static_cast<const FLocalVertexFactory*>(VertexFactory)->SetColorOverrideStream(RHICmdList, OverrideColorVertexBuffer);
+
+		if (!LocalVertexFactory->SupportsManualVertexFetch(View.GetShaderPlatform()))
+		{
+			LocalVertexFactory->SetColorOverrideStream(RHICmdList, OverrideColorVertexBuffer);
+		}	
 	}
+
 	if (bAnySpeedTreeParamIsBound && View.Family != NULL && View.Family->Scene != NULL)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FLocalVertexFactoryShaderParameters_SetMesh_SpeedTree);
@@ -58,12 +105,12 @@ void FLocalVertexFactoryShaderParameters::SetMesh(FRHICommandList& RHICmdList, F
 		}
 		check(SpeedTreeUniformBuffer != NULL);
 
-		SetUniformBufferParameter(RHICmdList, Shader->GetVertexShader(), Shader->GetUniformBufferParameter<FSpeedTreeUniformParameters>(), SpeedTreeUniformBuffer);
+		SetUniformBufferParameter(RHICmdList, VS, Shader->GetUniformBufferParameter<FSpeedTreeUniformParameters>(), SpeedTreeUniformBuffer);
 
 		if (LODParameter.IsBound())
 		{
 			FVector LODData(BatchElement.MinScreenSize, BatchElement.MaxScreenSize, BatchElement.MaxScreenSize - BatchElement.MinScreenSize);
-			SetShaderValue(RHICmdList, Shader->GetVertexShader(), LODParameter, LODData);
+			SetShaderValue(RHICmdList, VS, LODParameter, LODData);
 		}
 	}
 }
@@ -71,7 +118,7 @@ void FLocalVertexFactoryShaderParameters::SetMesh(FRHICommandList& RHICmdList, F
 /**
  * Should we cache the material's shadertype on this platform with this vertex factory? 
  */
-bool FLocalVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+bool FLocalVertexFactory::ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
 	return true; 
 }
@@ -79,6 +126,17 @@ bool FLocalVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMat
 void FLocalVertexFactory::SetData(const FDataType& InData)
 {
 	check(IsInRenderingThread());
+
+	{
+		//const int NumTexCoords = InData.NumTexCoords;
+		//const int LightMapCoordinateIndex = InData.LightMapCoordinateIndex;
+		//check(NumTexCoords > 0);
+		//check(LightMapCoordinateIndex < NumTexCoords && LightMapCoordinateIndex >= 0);
+		//check(InData.PositionComponentSRV);
+		//check(InData.TangentsSRV);
+		//check(InData.TextureCoordinatesSRV);
+		//check(InData.ColorComponentsSRV);
+	}
 
 	// The shader code makes assumptions that the color component is a FColor, performing swizzles on ES2 and Metal platforms as necessary
 	// If the color is sent down as anything other than VET_Color then you'll get an undesired swizzle on those platforms
@@ -131,18 +189,26 @@ void FLocalVertexFactory::InitRHI()
 		}
 	}
 
+	if (Data.ColorComponentsSRV == nullptr)
+	{
+		Data.ColorComponentsSRV = GNullColorVertexBuffer.VertexBufferSRV;
+		Data.ColorIndexMask = 0;
+	}
+
+	ColorStreamIndex = -1;
 	if(Data.ColorComponent.VertexBuffer)
 	{
 		Elements.Add(AccessStreamComponent(Data.ColorComponent,3));
+		ColorStreamIndex = Elements.Last().StreamIndex;
 	}
 	else
 	{
 		//If the mesh has no color component, set the null color buffer on a new stream with a stride of 0.
 		//This wastes 4 bytes of bandwidth per vertex, but prevents having to compile out twice the number of vertex factories.
-		FVertexStreamComponent NullColorComponent(&GNullColorVertexBuffer, 0, 0, VET_Color);
-		Elements.Add(AccessStreamComponent(NullColorComponent,3));
+		FVertexStreamComponent NullColorComponent(&GNullColorVertexBuffer, 0, 0, VET_Color, EVertexStreamUsage::ManualFetch);
+		Elements.Add(AccessStreamComponent(NullColorComponent, 3));
+		ColorStreamIndex = Elements.Last().StreamIndex;
 	}
-	ColorStreamIndex = Elements.Last().StreamIndex;
 
 	if(Data.TextureCoordinates.Num())
 	{

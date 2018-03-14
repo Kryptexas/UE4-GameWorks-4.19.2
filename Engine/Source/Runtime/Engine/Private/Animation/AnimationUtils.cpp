@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimationUtils.cpp: Skeletal mesh animation utilities.
@@ -1318,21 +1318,6 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 
 						TotalNoWinnerRounds++;
 					}
-
-					// Update the memory stats
-#if STATS
-					if( IsRunningGame() )
-					{
-						if (SizeDecrease > 0)
-						{
-							DEC_DWORD_STAT_BY( STAT_AnimationMemory, SizeDecrease );
-						}
-						else
-						{
-							INC_DWORD_STAT_BY( STAT_AnimationMemory, -SizeDecrease );
-						}
-					}
-#endif
 				}
 
 				// Make sure we got that right.

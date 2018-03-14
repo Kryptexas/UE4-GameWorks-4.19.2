@@ -1,48 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:디렉셔널 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
 Description:디렉셔널 라이트에 대한 기초입니다.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightTypes/Directional:title%](DirectionalLight_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightTypes/Directional:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightTypes/Directional:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightTypes/Directional]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightTypes/Directional:title%](DirectionalLight_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightTypes/Directional:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightTypes/Directional:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightTypes/Directional]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:DirectionalLight_Topic.png
 
 [REGION:fullwidth raw]
 ![](Directional_LightHeader.png)
@@ -55,26 +17,11 @@ Version: 4.9
 [EXCERPT:Intro]
 **Directional Light** (디렉셔널 라이트)는 무한히 먼 거리에 있는 광원에서 오는 빛을 흉내내는 것입니다. 즉 이 라이트로 인해 드리워지는 모든 그림자는 평행이 되며, 태양광 시뮬레이션에 이상적입니다. **디렉셔널 라이트** 를 배치하면 세 가지 **모빌리티** 세팅 중 하나로 설정 가능합니다:
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](Directional_LightStationary.png)(w:150 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	**스태틱** - (왼쪽 그림) 라이트를 게임에서 변경할 수 없다는 뜻입니다. 렌더링에 가장 빠른 방법이며, 라이팅을 미리 굽는 것이 가능합니다.
+* **스태틱** - (왼쪽 그림) 라이트를 게임에서 변경할 수 없다는 뜻입니다. 렌더링에 가장 빠른 방법이며, 라이팅을 미리 굽는 것이 가능합니다.
+* **스테이셔너리** - (역시 왼쪽 그림) 라이트가 스태틱 지오메트리의 그림자와 반사광만 **라이트매스** 로 굽고, 다른 모든 라이팅은 다이내믹이 됩니다. 이 세팅으로 게임에서 라이트의 색과 세기를 변경하는 것이 가능하지만, 이동이나 라이팅을 일부만 굽는 것은 불가능합니다.
+* **무버블** - (왼쪽 그림) 라이트가 완전히 동적이어서 다이내믹 섀도잉이 가능합니다. 렌더링 측면에서는 가장 느리지만 게임플레이 도중 유연성은 가장 뛰어납니다.
 
-	**스테이셔너리** - (역시 왼쪽 그림) 라이트가 스태틱 지오메트리의 그림자와 반사광만 **라이트매스** 로 굽고, 다른 모든 라이팅은 다이내믹이 됩니다. 이 세팅으로 게임에서 라이트의 색과 세기를 변경하는 것이 가능하지만, 이동이나 라이팅을 일부만 굽는 것은 불가능합니다.
-	[/PARAM]
-[/OBJECT]
 [/EXCERPT:Intro]
-
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](Directional_LightMove.png)(w:150 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	**무버블** - (왼쪽 그림) 라이트가 완전히 동적이어서 다이내믹 섀도잉이 가능합니다. 렌더링 측면에서는 가장 느리지만 게임플레이 도중 유연성은 가장 뛰어납니다.
-	[/PARAM]
-[/OBJECT]
 
 아래는 지붕의 틈을 통해 태양빛이 내리쬐는 것에 대한 표현입니다.
 
@@ -87,23 +34,17 @@ Version: 4.9
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [REGION:lightbox]
 [![](directional_001.png)(w:450)](directional_001.png) [![](directional_002.png)(w:450)](directional_002.png)
 [/REGION]
--->
+
+[/COMMENT]
 
 _천정의 구멍을 통해 방을 비추는 디렉셔널 라이트입니다. 왼쪽에는 라이트만, 오른쪽에는 투명한 그림자 드리우개에 **섀도 프러스텀** 을 켜 둬서 디렉셔널 라이트가 평행 광선을 드리우고 있음을 확인할 수 있습니다.
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](Light_Direction.png)(w:100 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	**라이트 방향** (왼쪽 그림) 은 빛을 내뿜는 방향을 가리키는 화살표로 표시되어, 필요에 따라 라이트의 배치와 방향을 잡는 데 좋습니다.
-	[/PARAM]
-[/OBJECT]
-
+**라이트 방향** (왼쪽 그림) 은 빛을 내뿜는 방향을 가리키는 화살표로 표시되어, 필요에 따라 라이트의 배치와 방향을 잡는 데 좋습니다.
 
 ## 디렉셔널 라이트 프로퍼티
 

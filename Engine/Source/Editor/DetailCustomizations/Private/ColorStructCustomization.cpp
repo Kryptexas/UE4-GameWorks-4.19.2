@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ColorStructCustomization.h"
 #include "UObject/UnrealType.h"
@@ -213,7 +213,7 @@ void FColorStructCustomization::CreateColorPicker(bool bUseAlpha)
 		PickerArgs.OnInteractivePickEnd = FSimpleDelegate::CreateSP(this, &FColorStructCustomization::OnColorPickerInteractiveEnd);
 		PickerArgs.InitialColorOverride = InitialColor;
 		PickerArgs.ParentWidget = ColorPickerParentWidget;
-
+		PickerArgs.OptionalOwningDetailsView = ColorPickerParentWidget;
 		FWidgetPath ParentWidgetPath;
 		if (FSlateApplication::Get().FindPathToWidget(ColorPickerParentWidget.ToSharedRef(), ParentWidgetPath))
 		{

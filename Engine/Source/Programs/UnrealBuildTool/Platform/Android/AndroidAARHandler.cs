@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -137,7 +137,6 @@ namespace UnrealBuildTool
 
 			return null;
 		}
-		
 		private bool HasAnyVersionCharacters(string InValue)
 		{
 			for (int Index = 0; Index < InValue.Length; Index++)

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ModelRender.cpp: Unreal model rendering
@@ -29,6 +29,8 @@
 #include "HModel.h"
 #include "Components/ModelComponent.h"
 #include "Engine/Brush.h"
+#include "RenderingObjectVersion.h"
+#include "Components/ModelComponent.h"
 
 namespace
 {
@@ -52,22 +54,8 @@ FModelVertexBuffer
 -----------------------------------------------------------------------------*/
 
 FModelVertexBuffer::FModelVertexBuffer(UModel* InModel)
-:	Vertices(true)
-,	Model(InModel)
+:	Model(InModel)
 {}
-
-void FModelVertexBuffer::InitRHI()
-{
-	// Calculate the buffer size.
-	NumVerticesRHI = Vertices.Num();
-	uint32 Size = Vertices.GetResourceDataSize();
-	if( Size > 0 )
-	{
-		// Create the buffer.
-		FRHIResourceCreateInfo CreateInfo(&Vertices);
-		VertexBufferRHI = RHICreateVertexBuffer(Size, BUF_Static, CreateInfo);
-	}
-}
 
 /**
 * Serializer for this class
@@ -76,7 +64,20 @@ void FModelVertexBuffer::InitRHI()
 */
 FArchive& operator<<(FArchive& Ar,FModelVertexBuffer& B)
 {
-	B.Vertices.BulkSerialize(Ar);
+	if (Ar.IsLoading() && Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::ModelVertexBufferSerialization)
+	{
+		TResourceArray<FModelVertex, VERTEXBUFFER_ALIGNMENT> DepricatedVertices;
+		DepricatedVertices.BulkSerialize(Ar);
+		B.Vertices.Reset(DepricatedVertices.Num());
+		for (const FModelVertex& ModelVertex : DepricatedVertices)
+		{
+			B.Vertices.Add(ModelVertex);
+		}
+	}
+	else
+	{
+		B.Vertices.BulkSerialize(Ar);
+	}
 	return Ar;
 }
 
@@ -89,7 +90,7 @@ void UModelComponent::BuildRenderData()
 {
 	UModel* TheModel = GetModel();
 
-#ifdef WITH_EDITOR
+#if WITH_EDITOR
 	const ULevel* Level = CastChecked<ULevel>(GetOuter());
 	const bool bIsGameWorld = !Level || !Level->OwningWorld || Level->OwningWorld->IsGameWorld();
 #endif
@@ -152,27 +153,40 @@ void UModelComponent::BuildRenderData()
 						}
 						Element.MinVertexIndex = FMath::Min(Node.iVertexIndex + Node.NumVertices * BackFace, Element.MinVertexIndex);
 						Element.MaxVertexIndex = FMath::Max(Node.iVertexIndex + Node.NumVertices * BackFace + Node.NumVertices - 1, Element.MaxVertexIndex);
+
+						if (Element.MaxVertexIndex > (uint32)TheModel->VertexBuffer.Vertices.Num())
+						{
+							UE_LOG(LogModelComponent, Log, TEXT("Model %s has elements that reference missing vertices. MaxVertex=%d, NumVertices=%d"),
+								*GetPathName(), Element.MaxVertexIndex, TheModel->VertexBuffer.Vertices.Num());
+						}
 					}
 				}
 			}
 		}
 
 		IndexBuffer->Indices.Shrink();
-#if !DISALLOW_32BIT_INDICES
 		IndexBuffer->ComputeIndexWidth();
-#endif
 	}
 }
 
 /**
  * A model component scene proxy.
  */
-class FModelSceneProxy : public FPrimitiveSceneProxy
+class FModelSceneProxy final : public FPrimitiveSceneProxy
 {
+	/** The vertex factory which is used to access VertexBuffer. */
+	FLocalVertexFactory VertexFactory;
+
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
 
 	FModelSceneProxy(UModelComponent* InComponent):
 		FPrimitiveSceneProxy(InComponent),
+		VertexFactory(GetScene().GetFeatureLevel(), "FModelSceneProxy"),
 		Component(InComponent),
 		CollisionResponse(InComponent->GetCollisionResponseToChannels())
 #if WITH_EDITOR
@@ -182,6 +196,30 @@ public:
 			FColor(157,149,223,255))
 #endif
 	{
+		ENQUEUE_RENDER_COMMAND(InitOrUpdateVertexBufferCmd)([VertexBuffer = &InComponent->GetModel()->VertexBuffer](FRHICommandList&)
+		{
+			if (!VertexBuffer->Buffers.PositionVertexBuffer.IsInitialized())
+			{
+				VertexBuffer->Buffers.PositionVertexBuffer.InitResource();
+			}
+			else if (VertexBuffer->RefCount == 0)
+			{
+				// Only allow update when no other FModelSceneProxy's is using the vertex buffer
+				// otherwise their resources will become invalid
+				VertexBuffer->Buffers.PositionVertexBuffer.UpdateRHI();
+			}
+
+			if (!VertexBuffer->Buffers.StaticMeshVertexBuffer.IsInitialized())
+			{
+				VertexBuffer->Buffers.StaticMeshVertexBuffer.InitResource();
+			}
+			else if (VertexBuffer->RefCount == 0)
+			{
+				VertexBuffer->Buffers.StaticMeshVertexBuffer.UpdateRHI();
+			}
+		});
+		InComponent->GetModel()->VertexBuffer.Buffers.InitModelVF(&VertexFactory);
+
 		OverrideOwnerName(NAME_BSP);
 		const TIndirectArray<FModelElement>& SourceElements = Component->GetElements();
 
@@ -189,7 +227,7 @@ public:
 		for(int32 ElementIndex = 0;ElementIndex < SourceElements.Num();ElementIndex++)
 		{
 			const FModelElement& SourceElement = SourceElements[ElementIndex];
-			FElementInfo* Element = new(Elements) FElementInfo(SourceElement);
+			FElementInfo* Element = new(Elements) FElementInfo(SourceElement, VertexFactory.GetType());
 			MaterialRelevance |= Element->GetMaterial()->GetRelevance(GetScene().GetFeatureLevel());
 		}
 
@@ -211,6 +249,11 @@ public:
 		FColor NewPropertyColor;
 		GEngine->GetPropertyColorationColor( (UObject*)InComponent, NewPropertyColor );
 		PropertyColor = NewPropertyColor;
+	}
+
+	~FModelSceneProxy()
+	{
+		VertexFactory.ReleaseResource();
 	}
 
 	bool IsCollisionView(const FSceneView* View, bool & bDrawCollision) const
@@ -379,7 +422,7 @@ public:
 												FMeshBatch& MeshElement = Collector.AllocateMesh();
 												FMeshBatchElement& BatchElement = MeshElement.Elements[0];
 												BatchElement.IndexBuffer = IndexAllocation.IndexBuffer;
-												MeshElement.VertexFactory = &Component->GetModel()->VertexFactory;
+												MeshElement.VertexFactory = &VertexFactory;
 												MeshElement.MaterialRenderProxy = (MatProxyOverride != nullptr) ? MatProxyOverride : ProxyElementInfo.GetMaterial()->GetRenderProxy(bOnlySelectedSurfaces, bOnlyHoveredSurfaces);
 												MeshElement.LCI = &ProxyElementInfo;
 												BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
@@ -415,7 +458,7 @@ public:
 								FMeshBatch& MeshElement = Collector.AllocateMesh();
 								FMeshBatchElement& BatchElement = MeshElement.Elements[0];
 								BatchElement.IndexBuffer = ModelElement.IndexBuffer;
-								MeshElement.VertexFactory = &Component->GetModel()->VertexFactory;
+								MeshElement.VertexFactory = &VertexFactory;
 								MeshElement.MaterialRenderProxy = (MatProxyOverride != nullptr) ? MatProxyOverride : Elements[ElementIndex].GetMaterial()->GetRenderProxy(false);
 								MeshElement.LCI = &Elements[ElementIndex];
 								BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
@@ -456,7 +499,7 @@ public:
 					FMeshBatch MeshElement;
 					FMeshBatchElement& BatchElement = MeshElement.Elements[0];
 					BatchElement.IndexBuffer = ModelElement.IndexBuffer;
-					MeshElement.VertexFactory = &Component->GetModel()->VertexFactory;
+					MeshElement.VertexFactory = &VertexFactory;
 					MeshElement.MaterialRenderProxy = Elements[ElementIndex].GetMaterial()->GetRenderProxy(false);
 					MeshElement.LCI = &Elements[ElementIndex];
 					BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
@@ -598,7 +641,7 @@ private:
 	public:
 
 		/** Initialization constructor. */
-		FElementInfo(const FModelElement& InModelElement)
+		FElementInfo(const FModelElement& InModelElement, const FVertexFactoryType* VertexFactoryType)
 			: FLightCacheInterface(NULL, NULL)
 			, Bounds(InModelElement.BoundingBox)
 		{
@@ -616,7 +659,7 @@ private:
 			// Determine the material applied to the model element.
 			Material = InModelElement.Material;
 
-			if (RequiresAdjacencyInformation(Material, InModelElement.Component->GetModel()->VertexFactory.GetType(), InModelElement.Component->GetScene()->GetFeatureLevel()))
+			if (RequiresAdjacencyInformation(Material, VertexFactoryType, InModelElement.Component->GetScene()->GetFeatureLevel()))
 			{
 				UE_LOG(LogModelComponent, Warning, TEXT("Material %s requires adjacency information because of Crack Free Displacement or PN Triangle Tesselation, which is not supported with model components. Falling back to DefaultMaterial."), *Material->GetName());
 				Material = nullptr;
@@ -724,10 +767,28 @@ public:
 			LCIs.Push(LCI);
 		}
 	}
-
-
 	friend class UModelComponent;
 };
+
+void UModelComponent::CreateRenderState_Concurrent()
+{
+	if (GetModel())
+	{
+		++GetModel()->VertexBuffer.RefCount;
+	}
+
+	Super::CreateRenderState_Concurrent();
+}
+
+void UModelComponent::DestroyRenderState_Concurrent()
+{
+	if (GetModel())
+	{
+		--GetModel()->VertexBuffer.RefCount;
+	}
+
+	Super::DestroyRenderState_Concurrent();
+}
 
 FPrimitiveSceneProxy* UModelComponent::CreateSceneProxy()
 {

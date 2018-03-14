@@ -47,7 +47,8 @@ Description:关卡蓝图编辑器接口的概述。
 
 
 
-<!----------
+[COMMENT:none]
+--------
 [EXCERPT:Visible]
 1. [菜单](Engine/Blueprints/Editor\UIComponents\Menu)
 1. [工具条](Engine/Blueprints/Editor\UIComponents\Toolbar)
@@ -64,7 +65,8 @@ Description:关卡蓝图编辑器接口的概述。
 * [面板](Engine/Blueprints/Editor\UIComponents\Palette)
 * [视口](Engine/Blueprints/Editor\UIComponents\Viewport)
 [/EXCERPT:Invisible]
-------------->
+-----------
+[/COMMENT]
 
 
 

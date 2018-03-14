@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SimpleElementPixelShader.hlsl: Pixel shader for drawing simple elements.
@@ -24,9 +24,6 @@ void ReplicateChannelSimpleElementShader(inout float4 BaseColor)
 	ReplicateChannel(BaseColor, TextureComponentReplicate, TextureComponentReplicateAlpha);
 }
 
-bool bEnableEditorPrimitiveDepthTest;
-float4 ScreenToPixel;
-
 MaterialFloat4 ColourTexture2DSample(Texture2D Tex, SamplerState Sampler, float2 UV)
 {
 	MaterialFloat4 Sample = Tex.Sample(Sampler, UV);
@@ -35,31 +32,6 @@ MaterialFloat4 ColourTexture2DSample(Texture2D Tex, SamplerState Sampler, float2
 #endif
 	return Sample;
 }
-
-#if ENABLE_EDITOR_COMPOSITING
-
-void PerformEditorCompositingDepthTest(float4 SvPosition)
-{
-	// depth test manually if compositing editor primitives
-	FLATTEN
-	if (bEnableEditorPrimitiveDepthTest)
-	{
-		bool bIsPerspective = (View.ViewToClip._m33 < 1.0f);
-		// Using SV_Position because manual interpolation fails in precision for the editor grid.
-		float SceneDepthDeviceZ = SceneDepthTextureNonMS.Load(int3(SvPosition.xy, 0)).r;
-
-		float InterpolatedDeviceZ = SvPosition.z;
-
-		// This is for a reversed Z depth buffer.
-#if HAS_INVERTED_Z_BUFFER
-		clip(InterpolatedDeviceZ - SceneDepthDeviceZ);
-#else
-		clip(SceneDepthDeviceZ - InterpolatedDeviceZ);
-#endif
-	}
-}
-
-#endif
 
 float3 SimpleElementFrameBufferBlendOp(float4 Source)
 {
@@ -115,10 +87,6 @@ void Main(
 #endif
 	)
 {
-#if ENABLE_EDITOR_COMPOSITING
-	PerformEditorCompositingDepthTest(SvPosition);
-#endif
-	 
 	float4 BaseColor = ColourTexture2DSample(InTexture, InTextureSampler,TextureCoordinate);
 
 	ReplicateChannelSimpleElementShader(BaseColor);
@@ -145,10 +113,6 @@ void AlphaOnlyMain(
 #endif
 	)
 {
-#if ENABLE_EDITOR_COMPOSITING
-	PerformEditorCompositingDepthTest(SvPosition);
-#endif
-	
 	float4 TmpColor = Color;
 	TmpColor.a *= Texture2DSample_A8(InTexture, InTextureSampler, TextureCoordinate);
 	OutColor = RETURN_COLOR(TmpColor);
@@ -176,10 +140,6 @@ void GammaMain(
 #endif
 	)
 {
-#if ENABLE_EDITOR_COMPOSITING
-	PerformEditorCompositingDepthTest(SvPosition);
-#endif
-
 	float4 BaseColor = ColourTexture2DSample(InTexture, InTextureSampler,TextureCoordinate);
 	ReplicateChannelSimpleElementShader(BaseColor);
 	OutColor = BaseColor * Color;
@@ -211,10 +171,6 @@ void GammaAlphaOnlyMain(
 #endif
 	)
 {
-#if ENABLE_EDITOR_COMPOSITING
-	PerformEditorCompositingDepthTest(SvPosition);
-#endif
-
 	float4 TmpColor = Color;
 	TmpColor.a *= Texture2DSample_A8(InTexture, InTextureSampler, TextureCoordinate);
 	if( Gamma != 1.0 )
@@ -246,10 +202,6 @@ void GammaMaskedMain(
 #endif
 	)
 {
-#if ENABLE_EDITOR_COMPOSITING
-	PerformEditorCompositingDepthTest(SvPosition);
-#endif
-
 	float4 BaseColor = ColourTexture2DSample(InTexture, InTextureSampler,TextureCoordinate);
 	ReplicateChannelSimpleElementShader(BaseColor);
 	clip(BaseColor.a - ClipRef);
@@ -464,7 +416,7 @@ void IESLightProfileMain(
 
 	float3 LightPos = float3(0, -0.25f, 0.85f);
 
-	float LightProfileMultiplier = ComputeLightProfileMultiplier(Position, LightPos, float3(0, -1, 0));
+	float LightProfileMultiplier = ComputeLightProfileMultiplier(Position, LightPos, float3(0, 1, 0), float3(0, 0, 1));
 
 	// Inverse square falloff
 	float Attenuation = 0.01f / max( 0.01f, length(Position - LightPos));

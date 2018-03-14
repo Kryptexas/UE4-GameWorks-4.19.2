@@ -1,0 +1,92 @@
+Availability: Public
+Title:2. Animation and Character Blueprint Setup
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:In this step we set up our Character and Animation Blueprints to determine how we blend from gameplay to our Slot animation in Sequencer.
+Version: 4.17
+SkillLevel: Advanced
+parent:Engine/Sequencer/HowTo/GameplayAnimBlending
+order:2
+checkpoint: editorqs
+tags:Sequencer
+tags:Animation
+type:how-to
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous](Engine\Sequencer\HowTo\GameplayAnimBlending\01_SequenceSetup)
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Gameplay Animation Blending - Home ](Engine\Sequencer\HowTo\GameplayAnimBlending)
+	[/PARAM]
+	[PARAM:next]
+		[Next](Engine\Sequencer\HowTo\GameplayAnimBlending\03_LevelSetup)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[COMMENT:none]
+
+
+
+[/COMMENT]
+
+[nav]
+
+In this step we will set up our Animation Blueprint so that we can take our gameplay pose and blend to a Slot animation defined by our Level Sequence. 
+
+1.	In the **Content Browser**, locate and open the **UE4ASP_HeroTPP_AnimBlueprint** then double-click on the **AnimGraph** in the **My Blueprint** window. 
+
+	![](GameBlend_04.png)
+
+1.	In the **AnimGraph** off the existing **Locomotion** State  Machine, create a **New Save Cached Pose** and call it **lococache**. 
+
+	![](GameBlend_05.png)
+
+1.	Use the **lococache** twice and connect one to the **A** pin of a **Blend** node which feeds the **Final Animation Pose**. 
+	
+	![](GameBlend_06.png)
+
+1.	Off the other **lococache**, use a **Slot** node and connect it to the **B** pin of the **Blend**, then right-click on **Alpha** and **Promote to Variable** and call it **Blend Interp**. 
+
+	![](GameBlend_07.png)
+
+1.	In the **Content Browser** open the **Ue4ASP_Character** Blueprint and replace the **Crouching** section with the graph below. 
+
+	![](GameBlend_08.png)
+
+	Above we are replacing the **InputAction Crouch** node with the **C** keyboard event and a **Flip Flop** node to toggle our crouching states. 
+	
+	[REGION:note]
+	This Blueprint was originally created for another project which included an input binding for crouch which our template project does not have. By replacing the InputAction Crouch with a standard C keyboard event, we will eliminate the Blueprint warning messages as well as enable us to press the C key to toggle between crouching and non-crouching states. 
+	[/REGION]
+
+1.	Create a new **Float** variable called **DefaultSlotInterp** and set **Instance Editable** and **Expose to Cinematics** to **True**. 
+
+	![](GameBlend_09.png)
+
+	We will use this variable inside Sequencer to blend and pass the value over to the Animation Blueprint variable **Blend Interp** which handles the actual blend. 
+
+1.	Create a new function called **SetDefaultSlotInterp** and add an **Input** called **Interp** of the **Float** type in the **Details** panel. 
+
+	![](GameBlend_10.png)
+
+	By creating a function called **Set (Property Value Name)** we have created a **Proxy** function that will be called by Sequencer whenever the associated property value changes.
+	This function is only called when the propery value changes and is more efficent than using **Event Tick** or a **Custom Event** and **Timeline** to reflect changes in the **DefaultSlotInterp** property value. 
+	
+1.	From the **Components** window, drag in the **Mesh** and use **Get Anim Instance** and **Cast to UE4ASP_HeroTPP_AnimBlueprint**. 
+
+	![](GameBlend_11.png)
+
+1.	Off **As UE4ASP Hero TPP Anim Blueprint**, use **Set Blend Interp** and pass in the **Interp** value to the **Blend Interp** in. 
+
+	![](GameBlend_12.png)
+
+	Whenever our **DefaultSlotInterp** value is changed through Sequencer, the **SetDefaultSlotInterp** proxy function is called and the float value is passed through to the Animation Blueprint's **Blend Interp** value which affects the blending of our poses. 
+
+In the next step we will add the **Default Slot Interp** property to our Level Sequence so that we can control the **Blend Interp** in our Animation Blueprint. 
+We'll also add a Trigger Box to the level so that we can activite our Level Sequence and play it when the player enters the Trigger Box volume. 
+	
+[nav]

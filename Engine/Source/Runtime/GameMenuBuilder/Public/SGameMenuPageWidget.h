@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -106,7 +106,7 @@ public:
 	SLATE_END_ARGS()
 		
 	/** Delegate to call when in-game menu should be hidden using controller buttons - 
-	it's workaround as when joystick is captured, even when sending FReply::Unhandled, binding does not recieve input :( */
+	it's workaround as when joystick is captured, even when sending FReply::Unhandled, binding does not receive input :( */
 	DECLARE_DELEGATE(FOnToggleMenu);
 	
 	/** Delegate for selection changing. Passes old and new selection. */

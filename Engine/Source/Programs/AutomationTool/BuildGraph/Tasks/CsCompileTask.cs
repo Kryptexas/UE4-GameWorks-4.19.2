@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -282,6 +282,10 @@ namespace AutomationTool.Tasks
 				FileToProjectInfo.Add(File, ProjectInfo);
 				foreach(FileReference ProjectReference in ProjectInfo.ProjectReferences.Keys)
 				{
+					if(!FileReference.Exists(ProjectReference))
+					{
+						throw new AutomationException("Unable to find project '{0}' referenced by '{1}'", ProjectReference, File);
+					}
 					ReadProjectsRecursively(ProjectReference, InitialProperties, FileToProjectInfo);
 				}
 			}

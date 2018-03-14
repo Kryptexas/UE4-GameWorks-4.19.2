@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -23,19 +23,9 @@ public:
 	typedef TArray<void*, Allocator> InternalArrayType;
 
 	/** Default constructors. */
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-
 	TIndirectArray() = default;
 	TIndirectArray(TIndirectArray&&) = default;
 	TIndirectArray& operator=(TIndirectArray&&) = default;
-
-#else
-
-	            TIndirectArray() {}
-	FORCEINLINE TIndirectArray(TIndirectArray&& Other) : Array(MoveTemp(Other.Array)) {}
-	FORCEINLINE TIndirectArray& operator=(TIndirectArray&& Other) { Array = MoveTemp(Other.Array); return *this; }
-
-#endif
 
 	/**
 	 * Copy constructor.

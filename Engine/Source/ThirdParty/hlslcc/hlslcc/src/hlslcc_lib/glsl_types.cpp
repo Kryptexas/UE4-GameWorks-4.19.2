@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // This code is modified from that in the Mesa3D Graphics library available at
 // http://mesa3d.org/
@@ -233,10 +233,10 @@ bool glsl_type::contains_sampler() const
 void glsl_type::generate_100ES_types(glsl_symbol_table *symtab)
 {
 	add_types_to_symbol_table(symtab, builtin_core_types,
-		Elements(builtin_core_types),
+		GetNumArrayElements(builtin_core_types),
 		false);
 	add_types_to_symbol_table(symtab, builtin_structure_types,
-		Elements(builtin_structure_types),
+		GetNumArrayElements(builtin_structure_types),
 		false);
 	add_types_to_symbol_table(symtab, void_type, 1, false);
 }
@@ -246,13 +246,13 @@ void glsl_type::generate_110_types(glsl_symbol_table *symtab, bool add_deprecate
 	generate_100ES_types(symtab);
 
 	//   add_types_to_symbol_table(symtab, builtin_110_types,
-	//			     Elements(builtin_110_types),
+	//			     GetNumArrayElements(builtin_110_types),
 	//			     false);
 	//   add_types_to_symbol_table(symtab, &_sampler3D_type, 1, false);
 	if (add_deprecated)
 	{
 		add_types_to_symbol_table(symtab, builtin_110_deprecated_structure_types,
-			Elements(builtin_110_deprecated_structure_types),
+			GetNumArrayElements(builtin_110_deprecated_structure_types),
 			false);
 	}
 }
@@ -263,7 +263,7 @@ void glsl_type::generate_120_types(glsl_symbol_table *symtab, bool add_deprecate
 	generate_110_types(symtab, add_deprecated);
 
 	add_types_to_symbol_table(symtab, builtin_120_types,
-		Elements(builtin_120_types), false);
+		GetNumArrayElements(builtin_120_types), false);
 }
 
 
@@ -272,7 +272,7 @@ void glsl_type::generate_130_types(glsl_symbol_table *symtab, bool add_deprecate
 	generate_120_types(symtab, add_deprecated);
 
 	add_types_to_symbol_table(symtab, builtin_130_types,
-		Elements(builtin_130_types), false);
+		GetNumArrayElements(builtin_130_types), false);
 }
 
 
@@ -731,6 +731,26 @@ const glsl_type * glsl_type::get_templated_instance(const glsl_type *base, const
 	}
 
 	return actual_type;
+}
+
+const glsl_type* glsl_type::GetByteAddressBufferInstance(const char* TypeName)
+{
+	if (!StructuredBufferTypes)
+	{
+		StructuredBufferTypes = hash_table_ctor(64, hash_table_string_hash, hash_table_string_compare);
+	}
+	
+	const glsl_type* FoundType = (glsl_type *)hash_table_find(StructuredBufferTypes, TypeName);
+	if (!FoundType)
+	{
+		FoundType = new glsl_type(glsl_base_type::GLSL_TYPE_IMAGE, 1, 1, ralloc_strdup(mem_ctx, TypeName), ralloc_strdup(mem_ctx, TypeName));
+		((glsl_type*)FoundType)->inner_type = glsl_type::uint_type;
+		((glsl_type*)FoundType)->sampler_buffer = 1;
+		
+		hash_table_insert(StructuredBufferTypes, (void*)FoundType, ralloc_strdup(mem_ctx, TypeName));
+	}
+	
+	return FoundType;
 }
 
 const glsl_type* glsl_type::GetStructuredBufferInstance(const char* TypeName, const glsl_type* InnerType)

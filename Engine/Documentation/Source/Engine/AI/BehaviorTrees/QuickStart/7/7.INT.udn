@@ -3,24 +3,12 @@ Title: 7. AI Controller Blueprint: Initial Blackboard Values
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 7. AI Controller Blueprint: Initial Blackboard Values
 version: 4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:7
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Engine/AI/BehaviorTrees/QuickStart/6 "%Engine/AI/BehaviorTrees/QuickStart/6:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine/AI/BehaviorTrees/QuickStart/8 "%Engine/AI/BehaviorTrees/QuickStart/8:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 [REGION:lightbox]
 [![](fullEG.png)(w:940 convert:false)](fullEG.png)
@@ -74,9 +62,4 @@ Now we need to set the "HomeLocation" key on the **Blackboard**. This is a more 
 
 In the next step we'll continue editing this graphs and add to this graph to make the AI Controller run the desired Behavior Tree.
 
-%Steps%
-
-
-
-
-
+[NAV]

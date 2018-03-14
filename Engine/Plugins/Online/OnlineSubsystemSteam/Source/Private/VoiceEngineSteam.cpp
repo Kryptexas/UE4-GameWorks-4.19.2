@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "VoiceEngineSteam.h"
 #include "Misc/ConfigCacheIni.h"
@@ -24,6 +24,8 @@ FVoiceEngineSteam::FVoiceEngineSteam(FOnlineSubsystemSteam* InSteamSubsystem) :
 {
 	SteamUserPtr = SteamUser();
 	SteamFriendsPtr = SteamFriends();
+
+	FCoreUObjectDelegates::PostLoadMapWithWorld.AddRaw(this, &FVoiceEngineSteam::OnPostLoadMap);
 }
 
 FVoiceEngineSteam::~FVoiceEngineSteam()
@@ -33,7 +35,14 @@ FVoiceEngineSteam::~FVoiceEngineSteam()
 		SteamUserPtr->StopVoiceRecording();
 		SteamFriendsPtr->SetInGameVoiceSpeaking(SteamUserPtr->GetSteamID(), false);
 	}
-	delete SerializeHelper;
+
+	if (SerializeHelper != nullptr)
+	{
+		delete SerializeHelper;
+		SerializeHelper = nullptr;
+	}
+
+	FCoreUObjectDelegates::PostLoadMapWithWorld.RemoveAll(this);
 }
 
 void FVoiceEngineSteam::VoiceCaptureUpdate() const
@@ -377,6 +386,18 @@ void FVoiceEngineSteam::OnAudioFinished(UAudioComponent* AC)
 		}
 	}
 	UE_LOG(LogVoiceEngine, Verbose, TEXT("Audio Finished"));
+}
+
+void FVoiceEngineSteam::OnPostLoadMap(UWorld*)
+{
+	for (FRemoteTalkerData::TIterator It(RemoteTalkerBuffers); It; ++It)
+	{
+		FRemoteTalkerDataSteam& RemoteData = It.Value();
+		if (RemoteData.AudioComponent)
+		{
+			RemoteData.AudioComponent->Play();
+		}
+	}
 }
 
 FString FVoiceEngineSteam::GetVoiceDebugState() const 

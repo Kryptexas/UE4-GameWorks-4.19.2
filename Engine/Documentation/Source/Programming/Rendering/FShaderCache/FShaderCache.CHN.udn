@@ -24,14 +24,16 @@ FShaderCache 提供的机制可减少游戏中着色器的卡顿。它支持 Ope
 | `r.AccelTargetPrecompileFrameTime [Time in (ms)]` | 处于非互动模式中（如加载画面）时加速异步预编译的选项。选择 0 使用 r.TargetPrecompileFrameTime。|
 | `r.InitialShaderLoadTime [Time in (ms)]`| 启动时进入异步预编译前着色器加载所消耗的时间最大量。使用 -1 进行同步加载） |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:UseShaderCaching]
 [REGION:plainlist]
 * 着色器反序列化中早提交，不为请求式。
 * 追踪束缚着色器态，使它们在早提交中被预束缚。
 [/REGION]
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 
 ## 使用

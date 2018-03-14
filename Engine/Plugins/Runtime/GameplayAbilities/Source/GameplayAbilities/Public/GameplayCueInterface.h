@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -99,15 +99,14 @@ struct FActiveGameplayCue : public FFastArraySerializerItem
 };
 
 USTRUCT(BlueprintType)
-struct FActiveGameplayCueContainer : public FFastArraySerializer
+struct GAMEPLAYABILITIES_API FActiveGameplayCueContainer : public FFastArraySerializer
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	TArray< FActiveGameplayCue >	GameplayCues;
 
-	UPROPERTY()
-	class UAbilitySystemComponent*	Owner;
+	void SetOwner(UAbilitySystemComponent* InOwner);
 
 	/** Should this container only replicate in minimal replication mode */
 	bool bMinimalReplication;
@@ -125,9 +124,17 @@ struct FActiveGameplayCueContainer : public FFastArraySerializer
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms);
 
+	// Will broadcast the OnRemove event for all currently active cues
+	void RemoveAllCues();
+
 private:
 
 	int32 GetGameStateTime(const UWorld* World) const;
+
+	UPROPERTY()
+	class UAbilitySystemComponent*	Owner;
+	
+	friend struct FActiveGameplayCue;
 };
 
 template<>

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	MeshPaintRendering.cpp: Mesh texture paint brush rendering
@@ -27,9 +27,9 @@ namespace MeshPaintRendering
 
 	public:
 
-		static bool ShouldCache( EShaderPlatform Platform )
+		static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 		{
-			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && !IsConsolePlatform(Platform);
+			return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4) && !IsConsolePlatform(Parameters.Platform);
 		}
 
 		/** Default constructor. */
@@ -71,9 +71,9 @@ namespace MeshPaintRendering
 
 	public:
 
-		static bool ShouldCache(EShaderPlatform Platform)
+		static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 		{
-			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && !IsConsolePlatform(Platform);
+			return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4) && !IsConsolePlatform(Parameters.Platform);
 		}
 
 		/** Default constructor. */
@@ -190,9 +190,9 @@ namespace MeshPaintRendering
 
 	public:
 
-		static bool ShouldCache( EShaderPlatform Platform )
+		static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 		{
-			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && !IsConsolePlatform(Platform);
+			return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4) && !IsConsolePlatform(Parameters.Platform);
 		}
 
 		/** Default constructor. */
@@ -234,9 +234,9 @@ namespace MeshPaintRendering
 
 	public:
 
-		static bool ShouldCache(EShaderPlatform Platform)
+		static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 		{
-			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && !IsConsolePlatform(Platform);
+			return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4) && !IsConsolePlatform(Parameters.Platform);
 		}
 
 		/** Default constructor. */

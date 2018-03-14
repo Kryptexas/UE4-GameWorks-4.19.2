@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreTypes.h"
@@ -103,9 +103,18 @@ struct CORE_API FFrameworkObjectVersion
 		// Stopped serializing UField_Next so that UFunctions could be serialized in dependently of a UClass
 		// in order to allow us to do all UFunction loading in a single pass (after classes and CDOs are created):
 		RemoveUField_Next,
-
+		
 		// Fix User Defined structs so that all members are correct flagged blueprint visible 
 		UserDefinedStructsBlueprintVisible,
+
+		// FMaterialInput and FEdGraphPin store their name as FName instead of FString
+		PinsStoreFName,
+
+		// User defined structs store their default instance, which is used for initializing instances
+		UserDefinedStructsStoreDefaultInstance,
+
+		// Function terminator nodes serialize an FMemberReference rather than a name/class pair
+		FunctionTerminatorNodesUseMemberReference,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

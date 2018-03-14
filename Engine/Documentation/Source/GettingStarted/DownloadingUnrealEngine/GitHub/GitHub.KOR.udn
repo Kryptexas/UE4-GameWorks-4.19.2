@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3426963
+﻿INTSourceChangelist:3782314
 Availability:NoPublish
 Title:GitHub 에서 언리얼 엔진 Fork 및 Clone
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
@@ -112,7 +112,8 @@ GitHub 에서 소스 코드를 Fork 및 Clone 하는 것으로 언리얼 작업�
 
 언리얼 엔진을 다운로드하고 구성했으니 이제 [소스에서 엔진을 빌드](Programming/Development/BuildingUnrealEngine) 하면 됩니다.
 
-<!--
+[COMMENT:none]
+
 
 GitHub 에서 언리얼 엔진 소스 코드를 받을 수 있는 방법은 두 가지입니다:
 
@@ -194,8 +195,10 @@ release 에 대한 소스 코드 아카이브를 내려받을 수 있습니다.
 ## 다음 단계
 
 이제 [엔진을 빌드](Programming/Development/BuildingUnrealEngine) 하면 됩니다.
--->
-<!-- This section is deprecated per UE 4.8
+
+[/COMMENT]
+[COMMENT:none]
+ This section is deprecated per UE 4.8
 ## 종속성 설치하기
 
 엔진을 컴파일하고 실행하기 위해서는 소스 코드 이외에 추가적으로 설치해야 하는 종속성이 있습니다.
@@ -210,4 +213,5 @@ release 에 대한 소스 코드 아카이브를 내려받을 수 있습니다.
 ## 다음 단계
 
 종속성 설치 이후에는 [엔진 빌드](Programming/Development/BuildingUnrealEngine) 를 하면 됩니다.
--->
+
+[/COMMENT]

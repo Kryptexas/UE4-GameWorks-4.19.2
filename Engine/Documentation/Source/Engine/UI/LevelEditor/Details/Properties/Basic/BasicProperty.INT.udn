@@ -14,7 +14,8 @@ Unreal Editor has many simple control types you are familiar with for editing nu
 | **Checkbox** | Used for editing simple toggle properties such as `Bools`. [INCLUDE:#TypeBool] |
 | **Dropdown** | Used for editing `Enums` and other properties that provide a list of available values. [INCLUDE:#TypeEnum] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:TypeString]
 [REGION:none]
 **Example:**  
@@ -49,4 +50,5 @@ Unreal Editor has many simple control types you are familiar with for editing nu
 ![Dropdown control](enum.png)
 [/REGION]
 [/EXCERPT:TypeEnum]
--->
+
+[/COMMENT]

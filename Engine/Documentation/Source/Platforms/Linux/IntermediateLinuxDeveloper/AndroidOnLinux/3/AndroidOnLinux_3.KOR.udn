@@ -3,7 +3,7 @@ Availability: Public
 Title: 3 - Creating your Project
 Crumbs:%ROOT%
 Description:Learn how to create an Android mobile game project in UE4.
-Version: 4.14
+Version: 4.17
 type:quick start
 parent:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux
 order: 3

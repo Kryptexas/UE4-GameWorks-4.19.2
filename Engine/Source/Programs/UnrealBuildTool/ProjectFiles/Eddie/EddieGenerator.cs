@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -73,14 +73,15 @@ namespace UnrealBuildTool
 			WorksetDataContent.Append("# @Eddie Workset@" + ProjectFileGenerator.NewLine);
 			WorksetDataContent.Append("AddWorkset \"" + MasterProjectName + ".wkst\" \"" + MasterProjectPath + "\"" + ProjectFileGenerator.NewLine);
 			
-			System.Action< List<MasterProjectFolder> /* Folders */> AddProjectsFunction = null;
-			AddProjectsFunction = (FolderList) =>
+			System.Action< String /*Path*/, List<MasterProjectFolder> /* Folders */> AddProjectsFunction = null;
+			AddProjectsFunction = (Path, FolderList) =>
 				{
 					foreach (EddieProjectFolder CurFolder in FolderList)
 					{
-						WorksetDataContent.Append("AddFileGroup \"" + CurFolder.FolderName + "\" \"" + CurFolder.FolderName + "\"" + ProjectFileGenerator.NewLine);
+						String NewPath = Path + "/" + CurFolder.FolderName;
+						WorksetDataContent.Append("AddFileGroup \"" + NewPath + "\" \"" + CurFolder.FolderName + "\"" + ProjectFileGenerator.NewLine);
 
-						AddProjectsFunction(CurFolder.SubFolders);
+						AddProjectsFunction(NewPath, CurFolder.SubFolders);
 
 						foreach (ProjectFile CurProject in CurFolder.ChildProjects)
 						{
@@ -91,13 +92,14 @@ namespace UnrealBuildTool
 							}
 						}
 
-						WorksetDataContent.Append("EndFileGroup \"" + CurFolder.FolderName + "\"" + ProjectFileGenerator.NewLine);
+						WorksetDataContent.Append("EndFileGroup \"" + NewPath + "\"" + ProjectFileGenerator.NewLine);
 					}
 				};
-			AddProjectsFunction(RootFolder.SubFolders);
+			AddProjectsFunction(MasterProjectName, RootFolder.SubFolders);
 			
 			string ProjectName = MasterProjectName;
 			var FilePath = MasterProjectPath + "/" + ProjectName + ".wkst";
+			
 			bSuccess = WriteFileIfChanged(FilePath, WorksetDataContent.ToString(), new UTF8Encoding());
 			
 			return bSuccess;

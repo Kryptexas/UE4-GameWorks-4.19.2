@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Controller.cpp: 
@@ -508,11 +508,12 @@ void AController::InitPlayerState()
 			PlayerState = World->SpawnActor<APlayerState>(GameMode->PlayerStateClass, SpawnInfo );
 	
 			// force a default player name if necessary
-			if (PlayerState && PlayerState->PlayerName.IsEmpty())
+			if (PlayerState && PlayerState->GetPlayerName().IsEmpty())
 			{
 				// don't call SetPlayerName() as that will broadcast entry messages but the GameMode hasn't had a chance
 				// to potentially apply a player/bot name yet
-				PlayerState->PlayerName = GameMode->DefaultPlayerName.ToString();
+				
+				PlayerState->SetPlayerNameInternal(GameMode->DefaultPlayerName.ToString());
 			}
 		}
 	}
@@ -564,7 +565,7 @@ void AController::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDi
 
 FString AController::GetHumanReadableName() const
 {
-	return PlayerState ? PlayerState->PlayerName : *GetName();
+	return PlayerState ? PlayerState->GetPlayerName() : *GetName();
 }
 
 void AController::CurrentLevelUnloaded() {}

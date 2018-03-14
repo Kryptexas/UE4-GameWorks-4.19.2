@@ -11,66 +11,8 @@ Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Actors/DecalActor
 Version: 4.9
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Example](Resources/ContentExamples/MaterialInstances/1_1 "%Resources/ContentExamples/MaterialInstances/1_1:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Content Examples Home](Resources/ContentExamples)
-	[/PARAM]
-	[PARAM:next]
-		[Next Example](Resources/ContentExamples/MaterialInstances/1_3 "%Resources/ContentExamples/MaterialInstances/1_3:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
-%Steps%
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/MaterialInstances/1_2:title%](Resources\ContentExamples\MaterialInstances\rendering_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MaterialInstances/1_2:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MaterialInstances/1_2:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/MaterialInstances/1_2]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/MaterialInstances/1_2:title%](Resources\ContentExamples\MaterialInstances\rendering_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MaterialInstances/1_2:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MaterialInstances/1_2:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/MaterialInstances/1_2]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-<div align="center">
 ![](MI_1_2_001.png)(w:900)
-</div>
 
 A **Material Instance** is a child of Material, meaning it has everything the **Parent Material** has, but every **Parameter** can be changed individually on the Material Instance.
 

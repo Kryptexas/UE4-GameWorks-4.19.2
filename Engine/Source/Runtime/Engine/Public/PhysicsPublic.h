@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysicsPublic.h
@@ -16,6 +16,7 @@
 #include "PhysicsEngine/BodyInstance.h"
 #include "LocalVertexFactory.h"
 #include "DynamicMeshBuilder.h"
+#include "StaticMeshResources.h"
 
 class AActor;
 class ULineBatchComponent;
@@ -188,7 +189,6 @@ namespace PhysCommand
 	};
 }
 
-
 /** Container used for physics tasks that need to be deferred from GameThread. This is not safe for general purpose multi-therading*/
 class FPhysCommandHandler
 {
@@ -210,7 +210,7 @@ public:
 	void ENGINE_API DeferredDeleteSimEventCallback(physx::PxSimulationEventCallback * SimEventCallback);
 	void ENGINE_API DeferredDeleteCPUDispathcer(physx::PxCpuDispatcher * CPUDispatcher);
 #endif
-
+	
 private:
 
 	/** Command to execute when physics simulation is done */
@@ -295,9 +295,11 @@ public:
 	/** Stores the number of valid scenes we are working with. This will be PST_MAX or PST_Async, 
 		depending on whether the async scene is enabled or not*/
 	uint32							NumPhysScenes;
-	
+
+#if WITH_PHYSX
 	/** Gets the array of collision notifications, pending execution at the end of the physics engine run. */
-	TArray<FCollisionNotifyInfo>& GetPendingCollisionNotifies(int32 SceneType){ return PendingCollisionData[SceneType].PendingCollisionNotifies; }
+	TArray<FCollisionNotifyInfo>& GetPendingCollisionNotifies(int32 SceneType) { return PendingCollisionData[SceneType].PendingCollisionNotifies; }
+#endif	// WITH_PHYSX
 
 
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnPhysScenePreTick, FPhysScene*, uint32 /*SceneType*/, float /*DeltaSeconds*/);
@@ -443,7 +445,6 @@ private:
 	class PxCpuDispatcher*			CPUDispatcher[PST_MAX];
 	/** Simulation event callback object */
 	physx::PxSimulationEventCallback*			SimEventCallback[PST_MAX];
-#endif	//
 
 	struct FPendingCollisionData
 	{
@@ -460,7 +461,9 @@ private:
 	};
 
 	FPendingConstraintData PendingConstraintData[PST_MAX];
-	
+
+#endif	// WITH_PHYSX
+
 public:
 #if WITH_PHYSX
 	/** Static factory used to override the simulation event callback from other modules.
@@ -471,7 +474,7 @@ public:
 	/** Utility for looking up the PxScene of the given EPhysicsSceneType associated with this FPhysScene.  SceneType must be in the range [0,PST_MAX). */
 	ENGINE_API physx::PxScene*					GetPhysXScene(uint32 SceneType) const;
 
-#endif
+#endif	// WITH_PHYSX
 
 #if WITH_APEX
 	/** Utility for looking up the ApexScene of the given EPhysicsSceneType associated with this FPhysScene.  SceneType must be in the range [0,PST_MAX). */
@@ -571,12 +574,6 @@ public:
 	/** Adds to queue of skelmesh we want to remove from collision disable table */
 	ENGINE_API void DeferredRemoveCollisionDisableTable(uint32 SkelMeshCompID);
 
-	/** Marks actor as being deleted to ensure it is not updated as an actor actor. This should only be called by very advanced code that is using physx actors directly (not recommended!) */
-	void RemoveActiveRigidActor(uint32 SceneType, physx::PxRigidActor* ActiveRigidActor)
-	{
-		IgnoreActiveActors[SceneType].Add(ActiveRigidActor);
-	}
-
 	/** Add this SkeletalMeshComponent to the list needing kinematic bodies updated before simulating physics */
 	void MarkForPreSimKinematicUpdate(USkeletalMeshComponent* InSkelComp, ETeleportType InTeleport, bool bNeedsSkinning);
 
@@ -615,7 +612,6 @@ private:
 	/** User data wrapper passed to physx */
 	struct FPhysxUserData PhysxUserData;
 
-	TArray<physx::PxRigidActor*> IgnoreActiveActors[PST_MAX];	//Active actors that have been deleted after fetchResults but before EndFrame and must be ignored
 	void RemoveActiveBody_AssumesLocked(FBodyInstance* BodyInstance, uint32 SceneType);
 #endif
 
@@ -727,60 +723,25 @@ struct FKCachedPerTriData
 	}
 };
 
-
-
-class FConvexCollisionVertexBuffer : public FVertexBuffer 
-{
-public:
-	TArray<FDynamicMeshVertex> Vertices;
-
-	virtual void InitRHI() override;
-};
-
-class FConvexCollisionIndexBuffer : public FIndexBuffer 
-{
-public:
-	TArray<int32> Indices;
-
-	virtual void InitRHI() override;
-};
-
-class FConvexCollisionVertexFactory : public FLocalVertexFactory
-{
-public:
-
-	FConvexCollisionVertexFactory()
-	{}
-
-	/** Initialization constructor. */
-	FConvexCollisionVertexFactory(const FConvexCollisionVertexBuffer* VertexBuffer)
-	{
-		InitConvexVertexFactory(VertexBuffer);
-	}
-
-
-	void InitConvexVertexFactory(const FConvexCollisionVertexBuffer* VertexBuffer);
-};
-
 class FKConvexGeomRenderInfo
 {
 public:
-	FConvexCollisionVertexBuffer* VertexBuffer;
-	FConvexCollisionIndexBuffer* IndexBuffer;
-	FConvexCollisionVertexFactory* CollisionVertexFactory;
+	FStaticMeshVertexBuffers* VertexBuffers;
+	FDynamicMeshIndexBuffer32* IndexBuffer;
+	FLocalVertexFactory* CollisionVertexFactory;
 
 	FKConvexGeomRenderInfo()
-	: VertexBuffer(NULL)
-	, IndexBuffer(NULL)
-	, CollisionVertexFactory(NULL)
+	: VertexBuffers(nullptr)
+	, IndexBuffer(nullptr)
+	, CollisionVertexFactory(nullptr)
 	{}
 
 	/** Util to see if this render info has some valid geometry to render. */
 	bool HasValidGeometry()
 	{
 		return 
-			(VertexBuffer != NULL) && 
-			(VertexBuffer->Vertices.Num() > 0) && 
+			(VertexBuffers != NULL) && 
+			(VertexBuffers->PositionVertexBuffer.GetNumVertices() > 0) && 
 			(IndexBuffer != NULL) &&
 			(IndexBuffer->Indices.Num() > 0);
 	}
@@ -808,8 +769,10 @@ void UnloadPhysXModules();
 ENGINE_API void	InitGamePhys();
 ENGINE_API void	TermGamePhys();
 
-
 bool	ExecPhysCommands(const TCHAR* Cmd, FOutputDevice* Ar, UWorld* InWorld);
+
+/** Perform any deferred cleanup of resources (GPhysXPendingKillConvex etc) */
+ENGINE_API void DeferredPhysResourceCleanup();
 
 /** Util to list to log all currently awake rigid bodies */
 void	ListAwakeRigidBodies(bool bIncludeKinematic, UWorld* world);
@@ -838,4 +801,6 @@ public:
 	static FOnPhysDispatchNotifications OnPhysDispatchNotifications;
 };
 
+#if WITH_PHYSX
 extern ENGINE_API class IPhysXCookingModule* GetPhysXCookingModule(bool bForceLoad = true);
+#endif //WITH_PHYSX

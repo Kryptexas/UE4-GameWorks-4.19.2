@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3242329
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:머티리얼 프로퍼티
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/IntroductionToMaterials
@@ -16,15 +16,18 @@ tags:Materials
 
 이 문서는 머티리얼에서 사용할 수 있는 프로퍼티에 대한 분석집입니다. 이 프로퍼티는 머티리얼 에디터에서 메인 머티리얼을 선택하여서 접근할 수 있습니다.
 
-<!---, 
+[COMMENT:none]
+-, 
 또는 **콘텐츠 브라우저** 에서 머티리얼에 **우클릭** 한 다음 **애셋 액션** 을 선택하고 [**프로퍼티 매트릭스**](Engine/UI/PropertyMatrix) 를 선택해도 됩니다.
---->
+-
+[/COMMENT]
 
 * 머티리얼 안의 프로퍼티:
 
 ![](PropertiesPanelMaterialEditor_Mat.png)(h:445) 
 
-<!---
+[COMMENT:none]
+-
 * 프로퍼티 매트릭스 접근하기:
 
 ![](PropertiesContextMenu_Mat.png)(h:445) 
@@ -32,7 +35,8 @@ tags:Materials
 * 프로퍼티 매트릭스:
 
 ![](PropertyMatrix.png)(h:445)
---->
+-
+[/COMMENT]
 
 
 베이스 머티리얼 노드에는 머티리얼의 작동방식에 영향을 끼치는 프로퍼티가 다수 있습니다. 그 프로퍼티에 대해서는, 각각의 카테고리별 문서 섹션으로 나누어서 아래 설명되어 있으며, 프로퍼티 패널에 보이는 순서대로 나타납니다.
@@ -80,7 +84,9 @@ tags:Materials
 | **Enable Responsive AA (Antialiasing)** | 반응형 AA (안티앨리어싱) 활성화 - 작은 이동 오브젝트, 특히나 파티클은 가끔 안티앨리어싱으로 인해 지워질 수가 있습니다. 이 프로퍼티를 _True_ 로 설정하면 별도의 AA 알고리즘이 사용되어 추가적인 정의가 가능합니다. 다른 말로, 눈보라나 그 비슷한 파티클 시스템을 만들었는데 흩날리는 눈발이 거의 안보인다고 느껴질 때, 이 옵션을 켜면 도움이 될 것입니다. 그러나 이 옵션은 배경에 앨리어싱 부작용이 생기니 작은 이동 오브젝트에만 사용해야 합니다. |
 | **Translucency Lighting Mode** | 반투명 라이팅 모드 - [INCLUDE:#TransLightingMode] [](Engine/Rendering/LightingAndShadows/LitTranslucency) 참고.|
 | **Translucency Directional Lighting Intensity** | 반투명 직사광 강도 - 반투명에 대한 라이팅 결과에서 노멀의 영향력을 인공적으로 높일 때 좋습니다. 값이 1 보다 크면 노멀에 대한 영향력을 높이고, 작으면 라이팅을 보다 은은하게 만듭니다. |
-| **Disable Depth Test** |  깊이 테스트 끄기 - 머티리얼에 깊이 테스트를 끄는 것으로, 반투명 블렌드 모드에만 의미가 있습니다. 깊이 테스트를 끄면 가려진 픽셀이 Z-컬링되지 않기에 렌더링이 현저히 느려집니다. |
+| **Disable Depth Test** |  깊이 테스트 끄기 - 머티리얼에 깊이 테스트를 끄는 것으로, 반투명 블렌드 모드에만 의미가 있습니다. 깊이 테스트를 끄면 가려진 픽셀이 Z-컬링되지 않기에 렌더링이 현저히 느려집니다.[COMMENT:none]
+- In short, you'll be able to-
+[/COMMENT]  |
 | **Use Translucency Vertex Fog** | 반투명 버텍스 포그 사용 - _True_ 면 반투명 머티리얼은 포그가 적용됩니다. 기본값은 _True_ 입니다. |
 
 
@@ -192,7 +198,8 @@ tags:Materials
 | **Orbit Zoom**     | 애셋에서 경계 구체 거리로부터의 오프셋입니다. |
 
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:ShadingModels]
 셰이딩 모델은 (이미시브, 디퓨즈, 스페큘러, 노멀 등의) 머티리얼 입력을 어떻게 합쳐 최종색을 낼 것인지를 결정합니다.
@@ -289,4 +296,5 @@ tags:Materials
 
 [/EXCERPT:TessellationMode]
 
--->
+
+[/COMMENT]

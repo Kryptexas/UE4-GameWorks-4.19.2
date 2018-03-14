@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // This file is used by Code Analysis to maintain SuppressMessage
 // attributes that are applied to this project. Project-level

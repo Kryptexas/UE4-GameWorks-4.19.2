@@ -1,9 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "STimeline.h"
 #include "Misc/Paths.h"
 #include "Fonts/SlateFontInfo.h"
 #include "Fonts/FontMeasure.h"
+#include "Styling/CoreStyle.h"
 #include "Rendering/DrawElements.h"
 #include "Framework/Application/SlateApplication.h"
 #include "TaskGraphStyle.h"
@@ -38,7 +39,7 @@ int32 STimeline::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 	const float OffsetX = DrawingOffsetX; // BorderPadding.X
 	const float Width = DrawingGeometry.Size.X; // AllottedGeometry.Size.X - - 2.0f * BorderPadding.X
 
-	FSlateFontInfo MyFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 );
+	FSlateFontInfo MyFont = FCoreStyle::GetDefaultFontStyle("Regular", 10);
 
 	// Create line points
 	const float RoundedMax = FMath::CeilToInt( MaxValue );

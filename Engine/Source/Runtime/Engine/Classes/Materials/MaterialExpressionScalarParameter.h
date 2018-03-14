@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -39,9 +39,11 @@ class UMaterialExpressionScalarParameter : public UMaterialExpressionParameter
 	//~ End UMaterialExpression Interface
 
 	/** Return whether this is the named parameter, and fill in its value */
-	bool IsNamedParameter(FName InParameterName, float& OutValue) const;
+	bool IsNamedParameter(const FMaterialParameterInfo& ParameterInfo, float& OutValue) const;
 
 #if WITH_EDITOR
+	bool SetParameterValue(FName InParameterName, float InValue);
+
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 };

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:다이내믹 씬 섀도
 Crumbs:%ROOT%, Resources
@@ -8,49 +8,8 @@ Related: Engine/Rendering/LightingAndShadows/LightTypes/Directional
 Related: Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights
 Related: Engine/Rendering/LightingAndShadows/Shadows
 Version: 4.9
+topic-image:DynamicSceneShadow_TopicCompact.png
 
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/DynamicSceneShadows:title%](DynamicSceneShadow_TopicCompact.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/DynamicSceneShadows:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/DynamicSceneShadows:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/DynamicSceneShadows]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/DynamicSceneShadows:title%](DynamicSceneShadow_TopicCompact.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/DynamicSceneShadows:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/DynamicSceneShadows:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/DynamicSceneShadows]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-<!--   Insert path when done [RELATIVE:Resources/ContentExamples/DynamicSceneShadows]--->
 
 [REGION:banner]
 ![](CascadedShadowMapsBanner.png)
@@ -60,6 +19,7 @@ Version: 4.9
 
 [TOC(start:2 end:2)]
 
+[/REGION]
 
 **Dynamic Scene Shadows** 콘텐츠 예제 맵에서는 **디렉셔널 라이트 액터** 전용 섀도잉 메소드인 **Cascading Shadow Mapping** (캐스케이드 섀도 매핑)을 통해 구워진 라이팅으로 동적인 섀도잉 효과를 내는 법을 확인할 수 있습니다.
 미리 구워둔 그림자에 비할 때, 바람에 나부끼는 잎사귀 풍성한 나무같은 다이내믹 오브젝트에도 그림자를 드리워 훨씬 사실적인 씬을 만들 수 있다는 장점이 있습니다.
@@ -91,4 +51,3 @@ Dynamic Shadow Distance (다이내믹 섀도 디스턴스) 프로퍼티의 범�
 | **Shadow Distance Fadeout Fraction** | 섀도 디스턴스 페이드아웃 비율 - 캐스케이드 섀도 맵으로의 전체적인 전환을 부드럽게 만듭니다. 0 은 딱딱한, 0 은 완전히 부드러운 전환입니다. 보통 0.1 이 좋습니다. 퍼포먼스 비용과 관계 없는 값입니다. |
 | **Use Inset Shadows for Movable Objects** | 무버블 오브젝트에 삽입 그림자 사용 - 스테이셔너리 라이트를 받은 무버블 오브젝트에 삽입 그림자를 사용할 수 있도록 합니다. 무버블 오브젝트가 다이내믹 섀도 디스턴스 범위 밖으로 움직일 때, 특히 다이내믹 섀도 디스턴스 값이 낮게 설정되어 있을 때 좋습니다. 다이내믹 섀도 디스턴스가 (현재 8000 이상으로) 매우 클 경우, 이 옵션은 강제로 꺼집니다. |
 
-[/REGION]

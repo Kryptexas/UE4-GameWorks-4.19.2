@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -89,6 +89,7 @@ Ugly VarArgs type checking (debug builds only).
 	template<class T> const T*	CheckVA(const T* p) { return p; }
 
 	#define VARARG_DECL( FuncRet, StaticFuncRet, Return, FuncName, Pure, FmtType, ExtraDecl, ExtraCall )	\
+		DEPRECATED_MACRO(4.19, "VARARG_DECL has been deprecated - please use a variadic template instead (see FString::Printf as an example)") \
 		FuncRet FuncName##__VA( ExtraDecl FmtType Fmt, ... ) Pure;  \
 		StaticFuncRet FuncName(ExtraDecl FmtType Fmt) {Return FuncName##__VA(ExtraCall (Fmt));} \
 		template<class T1> \
@@ -145,14 +146,17 @@ Ugly VarArgs type checking (debug builds only).
 		StaticFuncRet FuncName(ExtraDecl FmtType Fmt,T1 V1,T2 V2,T3 V3,T4 V4,T5 V5,T6 V6,T7 V7,T8 V8,T9 V9,T10 V10,T11 V11,T12 V12,T13 V13,T14 V14,T15 V15,T16 V16,T17 V17,T18 V18,T19 V19,T20 V20, T21 V21, T22 V22, T23 V23, T24 V24, T25 V25, T26 V26) {T1 v1=CheckVA(V1);T2 v2=CheckVA(V2);T3 v3=CheckVA(V3);T4 v4=CheckVA(V4);T5 v5=CheckVA(V5);T6 v6=CheckVA(V6);T7 v7=CheckVA(V7);T8 v8=CheckVA(V8);T9 v9=CheckVA(V9);T10 v10=CheckVA(V10);T11 v11=CheckVA(V11);T12 v12=CheckVA(V12);T13 v13=CheckVA(V13);T14 v14=CheckVA(V14);T15 v15=CheckVA(V15);T16 v16=CheckVA(V16);T17 v17=CheckVA(V17);T18 v18=CheckVA(V18);T19 v19=CheckVA(V19);T20 v20=CheckVA(V20);T21 v21=CheckVA(V21);T22 v22=CheckVA(V22);T23 v23=CheckVA(V23);T24 v24=CheckVA(V24);T25 v25=CheckVA(V25);T26 v26=CheckVA(V26);Return FuncName##__VA(ExtraCall (Fmt),(v1),(v2),(v3),(v4),(v5),(v6),(v7),(v8),(v9),(v10),(v11),(v12),(v13),(v14),(v15),(v16),(v17),(v18),(v19),(v20),(v21),(v22),(v23),(v24),(v25),(v26));}
 
 	#define VARARG_BODY( FuncRet, FuncName, FmtType, ExtraDecl )		\
+		DEPRECATED_MACRO(4.19, "VARARG_BODY has been deprecated - please use a variadic template instead (see FString::PrintfImpl as an example)") \
 		FuncRet FuncName##__VA( ExtraDecl  FmtType Fmt, ... )
 
 #else  // !PLATFORM_WINDOWS
 
 	#define VARARG_DECL( FuncRet, StaticFuncRet, Return, FuncName, Pure, FmtType, ExtraDecl, ExtraCall )	\
+		DEPRECATED_MACRO(4.19, "VARARG_DECL has been deprecated - please use a variadic template instead (see FString::Printf as an example)") \
 		FuncRet FuncName( ExtraDecl FmtType Fmt, ... ) Pure
 
 	#define VARARG_BODY( FuncRet, FuncName, FmtType, ExtraDecl )		\
+		DEPRECATED_MACRO(4.19, "VARARG_BODY has been deprecated - please use a variadic template instead (see FString::PrintfImpl as an example)") \
 		FuncRet FuncName( ExtraDecl FmtType Fmt, ... )
 
 #endif // PLATFORM_WINDOWS

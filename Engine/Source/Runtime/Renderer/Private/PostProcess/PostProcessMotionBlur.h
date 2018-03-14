@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessMotionBlur.h: Post process MotionBlur implementation.
@@ -82,7 +82,7 @@ public:
 
 private:
 	template <typename TRHICmdList>
-	void DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, const FIntRect& DestRect, FUnorderedAccessViewRHIParamRef DestUAV, float Scale);
+	void DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, const FIntPoint& DestSize, const FIntRect& DestRect, FUnorderedAccessViewRHIParamRef DestUAV, float Scale, uint32 InnerLoopConfig);
 	
 	FComputeFenceRHIRef AsyncEndFence;
 };

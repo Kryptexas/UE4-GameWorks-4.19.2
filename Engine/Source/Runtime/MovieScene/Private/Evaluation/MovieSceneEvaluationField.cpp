@@ -1,7 +1,12 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Evaluation/MovieSceneEvaluationField.h"
+#include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
+#include "Evaluation/MovieSceneSequenceTemplateStore.h"
+#include "MovieSceneCommonHelpers.h"
 #include "Algo/Sort.h"
+
+#include "MovieSceneSequence.h"
 
 int32 FMovieSceneEvaluationField::GetSegmentFromTime(float Time) const
 {
@@ -40,20 +45,63 @@ TRange<int32> FMovieSceneEvaluationField::OverlapRange(TRange<float> Range) cons
 	return Num != 0 ? TRange<int32>(StartIndex, StartIndex + Num) : TRange<int32>::Empty();
 }
 
-void FMovieSceneEvaluationMetaData::RemapSequenceIDsForRoot(FMovieSceneSequenceID OverrideRootID)
+void FMovieSceneEvaluationField::Invalidate(TRange<float> Range)
 {
-	if (OverrideRootID == MovieSceneSequenceID::Root)
+	TRange<int32> OverlappingRange = OverlapRange(Range);
+	if (!OverlappingRange.IsEmpty())
 	{
-		return;
+		Ranges.RemoveAt(OverlappingRange.GetLowerBoundValue(), OverlappingRange.Size<int32>(), false);
+		Groups.RemoveAt(OverlappingRange.GetLowerBoundValue(), OverlappingRange.Size<int32>(), false);
+		MetaData.RemoveAt(OverlappingRange.GetLowerBoundValue(), OverlappingRange.Size<int32>(), false);
+
+		Signature = FGuid::NewGuid();
+	}
+}
+
+int32 FMovieSceneEvaluationField::Insert(float InsertTime, TRange<float> InRange, FMovieSceneEvaluationGroup&& InGroup, FMovieSceneEvaluationMetaData&& InMetaData)
+{
+	const int32 InsertIndex = Algo::UpperBoundBy(Ranges, TRangeBound<float>(InsertTime), &TRange<float>::GetLowerBound, MovieSceneHelpers::SortLowerBounds);
+
+	// Intersect the supplied range with the allowable space between adjacent existing ranges
+	TRange<float> InsertSpace(
+		Ranges.IsValidIndex(InsertIndex-1) ? TRangeBound<float>::FlipInclusion(Ranges[InsertIndex-1].GetUpperBound()) : TRangeBound<float>::Open(),
+		Ranges.IsValidIndex(InsertIndex  ) ? TRangeBound<float>::FlipInclusion(Ranges[InsertIndex  ].GetLowerBound()) : TRangeBound<float>::Open()
+		);
+
+	InRange = TRange<float>::Intersection(InRange, InsertSpace);
+
+	if (!ensure(!InRange.IsEmpty()))
+	{
+		return INDEX_NONE;
 	}
 
-	for (FMovieSceneSequenceID& SequenceID : ActiveSequences)
+	const bool bOverlapping = 
+		(Ranges.IsValidIndex(InsertIndex  ) && Ranges[InsertIndex  ].Overlaps(InRange)) ||
+		(Ranges.IsValidIndex(InsertIndex-1) && Ranges[InsertIndex-1].Overlaps(InRange));
+
+	if (!ensureAlwaysMsgf(!bOverlapping, TEXT("Attempting to insert an overlapping range into the evaluation field.")))
 	{
-		SequenceID = SequenceID.AccumulateParentID(OverrideRootID);
+		return INDEX_NONE;
 	}
-	for (FMovieSceneOrderedEvaluationKey& OrderedKey : ActiveEntities)
+
+	Ranges.Insert(InRange, InsertIndex);
+	MetaData.Insert(MoveTemp(InMetaData), InsertIndex);
+	Groups.Insert(MoveTemp(InGroup), InsertIndex);
+
+	Signature = FGuid::NewGuid();
+
+	return InsertIndex;
+}
+
+void FMovieSceneEvaluationField::Add(TRange<float> InRange, FMovieSceneEvaluationGroup&& InGroup, FMovieSceneEvaluationMetaData&& InMetaData)
+{
+	if (ensureAlwaysMsgf(!Ranges.Num() || !Ranges.Last().Overlaps(InRange), TEXT("Attempting to add overlapping ranges to sequence evaluation field.")))
 	{
-		OrderedKey.Key.SequenceID = OrderedKey.Key.SequenceID.AccumulateParentID(OverrideRootID);
+		Ranges.Add(InRange);
+		MetaData.Add(MoveTemp(InMetaData));
+		Groups.Add(MoveTemp(InGroup));
+
+		Signature = FGuid::NewGuid();
 	}
 }
 
@@ -184,4 +232,36 @@ void FMovieSceneEvaluationMetaData::DiffEntities(const FMovieSceneEvaluationMeta
 
 		Algo::SortBy(*NewKeys, &FMovieSceneOrderedEvaluationKey::EvaluationIndex);
 	}
+}
+
+bool FMovieSceneEvaluationMetaData::IsDirty(UMovieSceneSequence& RootSequence, const FMovieSceneSequenceHierarchy& RootHierarchy, IMovieSceneSequenceTemplateStore& TemplateStore, TRange<float>* OutSubRangeToInvalidate) const
+{
+	bool bDirty = false;
+
+	for (const TTuple<FMovieSceneSequenceID, FGuid>& Pair : SubSequenceSignatures)
+	{
+		// Sequence IDs at this point are relative to the root override template
+		const FMovieSceneSubSequenceData* SubData = RootHierarchy.FindSubData(Pair.Key);
+		UMovieSceneSequence* SubSequence = SubData ? SubData->GetSequence() : nullptr;
+
+		bool bThisSequenceIsDirty = true;
+		if (SubSequence)
+		{
+			FGuid SequenceSignature = SubSequence->GetSignature();
+			bThisSequenceIsDirty = SequenceSignature != Pair.Value || TemplateStore.AccessTemplate(*SubSequence).SequenceSignature != SequenceSignature;
+		}
+
+		if (bThisSequenceIsDirty)
+		{
+			bDirty = true;
+
+			if (OutSubRangeToInvalidate)
+			{
+				TRange<float> DirtyRange = SubData ? TRange<float>::Hull(TRange<float>::Hull(SubData->PreRollRange, SubData->PlayRange), SubData->PostRollRange) * SubData->RootToSequenceTransform.Inverse() : TRange<float>::All();
+				*OutSubRangeToInvalidate = TRange<float>::Hull(*OutSubRangeToInvalidate, DirtyRange);
+			}
+		}
+	}
+
+	return bDirty;
 }

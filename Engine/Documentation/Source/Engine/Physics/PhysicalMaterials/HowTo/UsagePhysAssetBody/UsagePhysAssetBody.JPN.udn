@@ -62,7 +62,8 @@ SkillLevel:Intermediate
 
 1. ![](Shared\Icons\icon_SaveAsset_40x.png) を **クリックして保存** します。
 
-<!--
+[COMMENT:none]
+
 スケルタルメッシュを割り当てた物理的インタラクションは、デフォルト動作では関連する物理アセットのみと相互作用します。 
 そのため、スケルタルメッシュのマテリアルの物理マテリアルは使用しません。
 
@@ -70,7 +71,8 @@ SkillLevel:Intermediate
 物理アセットを Simple Collision Physical Material 設定で使用するかもしれませんが、物理アセットをトレースする場合、 
 ヒットした物理ボディの Simple Collision Physical Material プロパティにリスト表示される物理マテリアルを返す複雑なトレースにしなくてはいけません。
 [/REGION]
--->
+
+[/COMMENT]
 
 
 

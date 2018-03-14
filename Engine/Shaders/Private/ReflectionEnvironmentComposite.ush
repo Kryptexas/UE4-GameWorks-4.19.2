@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ReflectionEnvironmentComposite
@@ -34,6 +34,7 @@ float3 CompositeReflectionCapturesAndSkylight(
 	float4 ImageBasedReflections = float4(0, 0, 0, CompositeAlpha);
 	float2 CompositedAverageBrightness = float2(0.0f, 1.0f);
 
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 #if REFLECTION_COMPOSITE_USE_BLENDED_REFLECTION_CAPTURES
 	// Accumulate reflections from captures affecting this tile, applying largest captures first so that the smallest ones display on top
 	LOOP
@@ -100,11 +101,7 @@ float3 CompositeReflectionCapturesAndSkylight(
 			float CaptureArrayIndex = CaptureProperties.g;
 
 			{
-			#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 				float4 Sample = ReflectionCubemap.SampleLevel(ReflectionCubemapSampler, float4(ProjectedCaptureVector, CaptureArrayIndex), Mip);
-			#else
-				float4 Sample = ReflectionCubemap.SampleLevel(ReflectionCubemapSampler, ProjectedCaptureVector, Mip);
-			#endif
 
 				Sample.rgb *= CaptureProperties.r;
 				Sample *= DistanceAlpha;
@@ -119,13 +116,6 @@ float3 CompositeReflectionCapturesAndSkylight(
 			}
 		}
 	}
-
-#if FEATURE_LEVEL == FEATURE_LEVEL_SM4 && ( REFLECTION_COMPOSITE_HAS_BOX_CAPTURES || REFLECTION_COMPOSITE_HAS_SPHERE_CAPTURES )
-	Roughness = 1;
-	ImageBasedReflections.rgb += ImageBasedReflections.a * IndirectSpecularOcclusion;
-	ImageBasedReflections.a = 0.0;
-	CompositedAverageBrightness = float2(1,0);
-#endif
 
 #else
 
@@ -146,17 +136,22 @@ float3 CompositeReflectionCapturesAndSkylight(
 		ProjectedCaptureVector = lerp(RayDirection, normalize(ProjectedCaptureVector), DistanceAlpha);
 	#endif
 
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	float4 Sample = TextureCubeArraySampleLevel(ReflectionCubemap, ReflectionCubemapSampler, ProjectedCaptureVector, SingleCubemapArrayIndex, Mip);
-#else
-	float4 Sample = TextureCubeSampleLevel(ReflectionCubemap, ReflectionCubemapSampler, ProjectedCaptureVector, Mip);
-#endif
+
 	Sample.rgb *= SingleCaptureBrightness;
 	ImageBasedReflections = float4(Sample.rgb, 1 - Sample.a);
 
 	float AverageBrightness = SingleCaptureOffsetAndAverageBrightness.w;
 	CompositedAverageBrightness.x += AverageBrightness * CompositedAverageBrightness.y;
 	CompositedAverageBrightness.y = 0;
+#endif
+
+#elif FEATURE_LEVEL == FEATURE_LEVEL_SM4 && (REFLECTION_COMPOSITE_HAS_BOX_CAPTURES || REFLECTION_COMPOSITE_HAS_SPHERE_CAPTURES)
+	// Reflection captures not supported in SM4, force fully rough
+	Roughness = 1;
+	ImageBasedReflections.rgb += ImageBasedReflections.a * IndirectSpecularOcclusion;
+	ImageBasedReflections.a = 0.0;
+	CompositedAverageBrightness = float2(1,0);
 #endif
 
 	// Apply indirect lighting scale while we have only accumulated reflection captures

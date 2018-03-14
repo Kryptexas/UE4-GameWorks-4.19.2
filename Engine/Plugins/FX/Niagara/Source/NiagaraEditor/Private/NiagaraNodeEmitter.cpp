@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraNodeEmitter.h"
 #include "NiagaraSystem.h"
@@ -17,8 +17,13 @@
 #include "NiagaraNodeOutput.h"
 #include "NiagaraHlslTranslator.h"
 #include "MultiBoxBuilder.h"
+#include "Stats.h"
+#include "NiagaraEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraNodeEmitter"
+
+DECLARE_CYCLE_STAT(TEXT("Niagara - Module - NiagaraNodeEmitter_Compile"), STAT_NiagaraEditor_Module_NiagaraNodeEmitter_Compile, STATGROUP_NiagaraEditor);
+
 
 void UNiagaraNodeEmitter::PostInitProperties()
 {
@@ -101,7 +106,6 @@ void UNiagaraNodeEmitter::AllocateDefaultPins()
 		const UEdGraphSchema_Niagara* NiagaraSchema = Cast<UEdGraphSchema_Niagara>(GetSchema());
 		CreatePin(EGPD_Input, NiagaraSchema->TypeDefinitionToPinType(FNiagaraTypeDefinition::GetParameterMapDef()), TEXT("InputMap"));
 		CreatePin(EGPD_Output, NiagaraSchema->TypeDefinitionToPinType(FNiagaraTypeDefinition::GetParameterMapDef()), TEXT("OutputMap"));
-		CachedEmitterChangeId = Emitter->ChangeId;
 	}
 }
 
@@ -212,27 +216,8 @@ UNiagaraGraph* UNiagaraNodeEmitter::GetCalledGraph() const
 
 bool UNiagaraNodeEmitter::RefreshFromExternalChanges()
 {
-	// First get the emitter that we're referencing..
-	UNiagaraEmitter* Emitter = nullptr;
-	if (OwnerSystem)
-	{
-		for (int32 i = 0; i < OwnerSystem->GetNumEmitters(); ++i)
-		{
-			if (OwnerSystem->GetEmitterHandle(i).GetId() == EmitterHandleId)
-			{
-				Emitter = OwnerSystem->GetEmitterHandle(i).GetInstance();
-			}
-		}
-	}
-
-	if (Emitter && Emitter->ChangeId != CachedEmitterChangeId)
-	{
-		// TODO - Leverage code in reallocate pins to determine if any pins have changed...
-		ReallocatePins();
-		DisplayName = GetNameFromEmitter();
-		return true;
-	}
-	return false;
+	DisplayName = GetNameFromEmitter();
+	return true;
 }
 
 FText UNiagaraNodeEmitter::GetNameFromEmitter()
@@ -253,6 +238,12 @@ FText UNiagaraNodeEmitter::GetNameFromEmitter()
 void UNiagaraNodeEmitter::BuildParameterMapHistory(FNiagaraParameterMapHistoryBuilder& OutHistory, bool bRecursive)
 {
 	Super::BuildParameterMapHistory(OutHistory, bRecursive);
+
+	if (!IsNodeEnabled() && OutHistory.GetIgnoreDisabled())
+	{
+		RouteParameterMapAroundMe(OutHistory, bRecursive);
+		return;
+	}
 
 	const UEdGraphSchema_Niagara* Schema = GetDefault<UEdGraphSchema_Niagara>();
 	TArray<UEdGraphPin*> InputPins;
@@ -314,6 +305,7 @@ void UNiagaraNodeEmitter::BuildParameterMapHistory(FNiagaraParameterMapHistoryBu
 					if (ExistingIdx == INDEX_NONE)
 					{
 						ExistingIdx = OutHistory.Histories[ParamMapIdx].Variables.Add(Var);
+						OutHistory.Histories[ParamMapIdx].VariablesWithOriginalAliasesIntact.Add(History.VariablesWithOriginalAliasesIntact[SrcVarIdx]);
 						OutHistory.Histories[ParamMapIdx].PerVariableReadHistory.AddDefaulted(1);
 						OutHistory.Histories[ParamMapIdx].PerVariableWriteHistory.AddDefaulted(1);
 						OutHistory.Histories[ParamMapIdx].PerVariableWarnings.AddDefaulted(1);
@@ -325,6 +317,9 @@ void UNiagaraNodeEmitter::BuildParameterMapHistory(FNiagaraParameterMapHistoryBu
 					OutHistory.Histories[ParamMapIdx].PerVariableWriteHistory[ExistingIdx].Append(History.PerVariableWriteHistory[SrcVarIdx]);
 					OutHistory.Histories[ParamMapIdx].PerVariableWarnings[ExistingIdx].Append(History.PerVariableWarnings[SrcVarIdx]);	
 				}
+				OutHistory.Histories[ParamMapIdx].ParameterCollections.Append(History.ParameterCollections);
+				OutHistory.Histories[ParamMapIdx].ParameterCollectionNamespaces.Append(History.ParameterCollectionNamespaces);
+				OutHistory.Histories[ParamMapIdx].ParameterCollectionVariables.Append(History.ParameterCollectionVariables);
 			}
 		}
 
@@ -343,6 +338,7 @@ void UNiagaraNodeEmitter::BuildParameterMapHistory(FNiagaraParameterMapHistoryBu
 
 void UNiagaraNodeEmitter::Compile(FHlslNiagaraTranslator *Translator, TArray<int32>& Outputs)
 {
+	SCOPE_CYCLE_COUNTER(STAT_NiagaraEditor_Module_NiagaraNodeEmitter_Compile);
 	TArray<UEdGraphPin*> InputPins;
 	GetInputPins(InputPins);
 	InputPins.RemoveAll([](UEdGraphPin* InputPin) { return (InputPin->PinType.PinCategory != UEdGraphSchema_Niagara::PinCategoryType) && (InputPin->PinType.PinCategory != UEdGraphSchema_Niagara::PinCategoryEnum); });

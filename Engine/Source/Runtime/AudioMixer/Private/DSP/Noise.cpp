@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DSP/Noise.h"
 
@@ -19,7 +19,7 @@ namespace Audio
 
 	float FWhiteNoise::Generate()
 	{
-		return Add + Scale * FMath::FRandRange(-1.0f, 1.0f);
+		return Add + Scale * FMath::SRand() * 2 - 1.0f;
 	}
 
 	FPinkNoise::FPinkNoise(const float InScale, const float InAdd)

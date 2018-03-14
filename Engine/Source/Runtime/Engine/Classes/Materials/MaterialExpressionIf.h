@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -45,6 +45,7 @@ class UMaterialExpressionIf : public UMaterialExpression
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 	virtual uint32 GetInputType(int32 InputIndex) override;
 	virtual uint32 GetOutputType(int32 InputIndex) override {return MCT_Unknown;}
+	virtual bool IsResultMaterialAttributes(int32 OutputIndex) override;
 #endif
 	//~ End UMaterialExpression Interface
 };

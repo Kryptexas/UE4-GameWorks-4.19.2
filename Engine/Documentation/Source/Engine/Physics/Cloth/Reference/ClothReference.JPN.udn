@@ -1,12 +1,11 @@
-﻿INTSourceChangelist:3590438
+﻿INTSourceChangelist:3717037
 Availability:Public
 Crumbs:%ROOT%
 Title:クロス ツールのプロパティ リファレンス
 Description:クロス ツールで利用可能なプロパティのリファレンス ページ
 Type:reference
 Version:4.17
-Parent:Engine/Physics/Cloth
-Related:Engine/Physics/Cloth/Overview
+Parent:Engine/Physics/Cloth/Overview
 Order:2
 Tags:Physics
 Tags:Cloth
@@ -19,19 +18,19 @@ Tags:Cloth
 
 [TOC(start:2 end:2)]
 
-**Cloth Paint Tools (クロスのペイント ツール)** には、特定のクロス シミュレーションを可能にする多くのオプションとプロパティがあります。以下では、クロス アセット作成時に使用するメニュー オプションと、 
+**Cloth Paint Tools (クロスのペイント ツール)** には、特定のクロス シミュレーションを可能にする多くのオプションとプロパティがあります。以下では、Cloth アセット作成時に使用するメニュー オプションと、 
 レンダリング メッシュにクロスの値をペイントする様々なペイント ツールの選択時に使う [Cloth Paint (クロス ペイント)] パネルの詳細
 について説明します。
 
 
-## クロス アセットの作成メニュー
+## Cloth アセットの作成メニュー
 
 このセクションでは、Cloth アセットをレンダリング メッシュの作成および適用に使用可能なプロパティと設定の詳細について説明します。
 
 ### セクション選択
 
 **Section Selection (セクション選択)** では、レンダリング メッシュの様々なマテリアル エレメントを選択して Cloth アセットを作成し、適用することができます。このメニューでは、選択したメッシュの LOD とマテリアル セクションを特定し、レンダリング メッシュの Cloth アセットを作成し、 
-そのクロス アセットを選択したセクションに適用し、後で必要に応じて取り除くことができます。 
+その Cloth アセットを選択したセクションに適用し、後で必要に応じて取り除くことができます。 
 
 ![](SectionSelection.png)
 
@@ -47,21 +46,29 @@ Tags:Cloth
 
 
 
-<!---
+[COMMENT:none]
+-
 
 [EXCERPT:createclothsection]
 ![](CreateClothSection.png)(w:350)
 | --- | --- | --- |
 | [REGION:tablesection] Basic [/REGION] |||
-| **Asset Name** || クロス セクション アセットに入力した名前。 |
+| **Asset Name** || クロス セクションのアセットに入力した名前。 |
 | **Remove from Mesh** || このセクションを残すかどうかです (メッシュそのものを操作する場合)。これを有効にすると、高ポリゴン メッシュを低ポリゴン メッシュで操作します。 |
 | [REGION:tablesection] Collision [/REGION] |||
 | **Physics Asset** || コリジョンを抽出する Physics アセットです。これは Sphere と Sphylls をエクスポートしますが、最高 32 の 凸 面 (または 5 つのボックス) をサポートします。 |
 || %spacer4% |||
-<!---| [REGION:tablesection] Auto Fix [/REGION] |||--->
-<!---| **Try Auto Fix** ||  |--->
-<!---| **Auto Fix Threshold** ||  |--->
-<!---| **Simulated Particle Max Distance** ||  |--->
+<!---| [REGION:tablesection] Auto Fix [/REGION] |||-
+[/COMMENT]
+[COMMENT:none]
+-| **Try Auto Fix** ||  |-
+[/COMMENT]
+[COMMENT:none]
+-| **Auto Fix Threshold** ||  |-
+[/COMMENT]
+[COMMENT:none]
+-| **Simulated Particle Max Distance** ||  |-
+[/COMMENT]
 [/EXCERPT:createclothsection]
 
 [EXCERPT:createclothsectionLOD]
@@ -117,20 +124,21 @@ Tags:Cloth
 [REGION:raw]
 | プロパティ | %spacer% | 説明 |
 | --- | --- | --- |
-| **Name** || このパラメータ セットに対するターゲット設定と共にマスクに与えられる名前。 [INCLUDE:#masksettings]  |
+| **Name** || パラメータ セットに対するターゲット設定と共にマスクに与えられる名前。 [INCLUDE:#masksettings]  |
 | **Add Mask** || 新規マスクを利用可能なマスク パラメータのリストに追加します。 |
 [/REGION]
 
 
 
-<!---
+[COMMENT:none]
+-
 [INCLUDE:#masksettings]
 
 [EXCERPT:masksettings]
 | --- | --- | --- |
 | [REGION:tablesection] 右クリックのメニュー設定 [/REGION] |||
 | [REGION:tablesection] 設定ターゲット [/REGION] |||
-| **None** || このパラメータ セットに対してターゲットは設定されていません。 |
+| **None** || パラメータ セットに対してターゲットは設定されていません。 |
 | **Max Distance** || クロスのシミュレーション パーティクルがアニメートされた位置から移動できる最長距離です。 |
 | **Backstop Distance** || クロスのシミュレーション パーティクルの動きを制限するために使われる Max Distance からの距離のオフセットです。 |
 | **Backstop Radius** || Max Distance と交差する場合に、クロスのシミュレーション パーティクルがそのエリアに入るのを防ぐ半径です。 |
@@ -141,7 +149,8 @@ Tags:Cloth
 | **Apply** || マスクを物理メッシュに適用します。 |
 [/EXCERPT:masksettings]
 
---->
+-
+[/COMMENT]
 
 
 ### Config
@@ -183,7 +192,8 @@ Tags:Cloth
 
 
 
-<!---
+[COMMENT:none]
+-
 [INCLUDE:#constraintgconfig]
 
 [EXCERPT:constraintgconfig]
@@ -197,7 +207,8 @@ Tags:Cloth
 [EXCERPT:windmethod]
 | --- | --- | --- |
 | **Legacy** || 抗力や揚力を考慮せずにシミュレーションによって直接加速が変更される場合、Legacy の風のモードを使用します。 |
-<!--- | **Accurate** ||  | --->
+<!--- | **Accurate** ||  | -
+[/COMMENT]
 [/EXCERPT:windmethod]
 
 --->
@@ -246,7 +257,7 @@ Tags:Cloth
 | [REGION:tablesection] View [/REGION] |||
 | **View Min** || float/1D 値をペイントする場合、これはペイントされた値に対してゼロまたはブラックのポイントとみなされます。 |
 | **View Max** || float/1D 値をペイントする場合、これはペイントされた値に対して 1 またはホワイトのポイントとみなされます。  |
-| [REGION:tablesection] 詳細を展開[/REGION] | | |
+| [REGION:tablesection] Advanced Rollout [/REGION] | | |
 | **Flip Normal** || メッシュのプレビューで法線をフリップするかどうかです。 |
 | **Cull Backface** || メッシュのプレビューをレンダリングする場合に、裏面のトライアングルをカリングするかどうかです。 |
 | **Opacity** || メッシュ プレビューのオパシティ値です。これでメッシュが透けて見えます。 |
@@ -272,7 +283,7 @@ Tags:Cloth
 | [REGION:tablesection] View [/REGION] |||
 | **View Min** || float/1D 値をペイントする場合、これはペイントされた値に対してゼロまたはブラックのポイントとみなされます。 |
 | **View Max** || float/1D 値をペイントする場合、これはペイントされた値に対して 1 またはホワイトのポイントとみなされます。 |
-| [REGION:tablesection] 詳細を展開[/REGION] | | |
+| [REGION:tablesection] Advanced Rollout [/REGION] | | |
 | **Flip Normal** || メッシュのプレビューで法線をフリップするかどうかです。 |
 | **Cull Backface** || メッシュのプレビューをレンダリングする場合に、裏面のトライアングルをカリングするかどうかです。 |
 | **Opacity** || メッシュ プレビューのオパシティ値です。これでメッシュが透けて見えます。 |
@@ -301,7 +312,7 @@ Tags:Cloth
 | [REGION:tablesection] View [/REGION] |||
 | **View Min** || float/1D 値をペイントする場合、これはペイントされた値に対してゼロまたはブラックのポイントとみなされます。 |
 | **View Max** || float/1D 値をペイントする場合、これはペイントされた値に対して 1 またはホワイトのポイントとみなされます。 |
-| [REGION:tablesection] 詳細を展開[/REGION] | | |
+| [REGION:tablesection] Advanced Rollout [/REGION] | | |
 | **Flip Normal** || メッシュのプレビューで法線をフリップするかどうかです。 |
 | **Cull Backface** || メッシュのプレビューをレンダリングする場合に、裏面のトライアングルをカリングするかどうかです。 |
 | **Opacity** || メッシュ プレビューのオパシティ値です。これでメッシュが透けて見えます。 |
@@ -328,7 +339,7 @@ Tags:Cloth
 | [REGION:tablesection] View [/REGION] |||
 | **View Min** || float/1D 値をペイントする場合、これはペイントされた値に対してゼロまたはブラックのポイントとみなされます。 |
 | **View Max** || float/1D 値をペイントする場合、これはペイントされた値に対して 1 またはホワイトのポイントとみなされます。 |
-| [REGION:tablesection] 詳細を展開[/REGION] | | |
+| [REGION:tablesection] Advanced Rollout [/REGION] | | |
 | **Flip Normal** || メッシュのプレビューで法線をフリップするかどうかです。 |
 | **Cull Backface** || メッシュのプレビューをレンダリングする場合に、裏面のトライアングルをカリングするかどうかです。 |
 | **Opacity** || メッシュ プレビューのオパシティ値です。これでメッシュが透けて見えます。 |

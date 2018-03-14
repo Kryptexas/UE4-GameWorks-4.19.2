@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Misc/Paths.h"
@@ -48,7 +48,7 @@ public:
 	{
 		if (!SteamSingleton.IsValid())
 		{
-			SteamSingleton = MakeShareable(new FOnlineSubsystemSteam(InstanceName));
+			SteamSingleton = MakeShared<FOnlineSubsystemSteam, ESPMode::ThreadSafe>(InstanceName);
 			if (SteamSingleton->IsEnabled())
 			{
 				if(!SteamSingleton->Init())

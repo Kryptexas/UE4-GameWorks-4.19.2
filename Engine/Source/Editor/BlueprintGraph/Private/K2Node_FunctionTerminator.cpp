@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "K2Node_FunctionTerminator.h"
 #include "UObject/UnrealType.h"
+#include "UObject/FrameworkObjectVersion.h"
 #include "GraphEditorSettings.h"
 #include "EdGraphSchema_K2.h"
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -15,21 +16,36 @@ UK2Node_FunctionTerminator::UK2Node_FunctionTerminator(const FObjectInitializer&
 {
 }
 
+void UK2Node_FunctionTerminator::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
+	if (Ar.IsLoading())
+	{
+		if (Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::FunctionTerminatorNodesUseMemberReference)
+		{
+			FunctionReference.SetExternalMember(SignatureName_DEPRECATED, SignatureClass_DEPRECATED);
+		}
+	}
+}
+
 FLinearColor UK2Node_FunctionTerminator::GetNodeTitleColor() const
 {
 	return GetDefault<UGraphEditorSettings>()->FunctionTerminatorNodeTitleColor;
 }
 
-FString UK2Node_FunctionTerminator::CreateUniquePinName(FString InSourcePinName) const
+FName UK2Node_FunctionTerminator::CreateUniquePinName(FName InSourcePinName) const
 {
 	const UFunction* FoundFunction = FFunctionFromNodeHelper::FunctionFromNode(this);
 
-	FString ResultName = InSourcePinName;
+	FName ResultName = InSourcePinName;
 	int UniqueNum = 0;
 	// Prevent the unique name from being the same as another of the UFunction's properties
-	while(FindPin(ResultName) || FindField<const UProperty>(FoundFunction, *ResultName) != NULL)
+	while(FindPin(ResultName) || FindField<const UProperty>(FoundFunction, ResultName) != nullptr)
 	{
-		ResultName = FString::Printf(TEXT("%s%d"), *InSourcePinName, ++UniqueNum);
+		ResultName = *FString::Printf(TEXT("%s%d"), *InSourcePinName.ToString(), ++UniqueNum);
 	}
 	return ResultName;
 }
@@ -39,8 +55,7 @@ bool UK2Node_FunctionTerminator::CanCreateUserDefinedPin(const FEdGraphPinType& 
 	const bool bIsNodeEditable = IsEditable();
 
 	// Make sure that if this is an exec node we are allowed one.
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-	if (bIsNodeEditable && InPinType.PinCategory == Schema->PC_Exec && !CanModifyExecutionWires())
+	if (bIsNodeEditable && InPinType.PinCategory == UEdGraphSchema_K2::PC_Exec && !CanModifyExecutionWires())
 	{
 		OutErrorMessage = LOCTEXT("MultipleExecPinError", "Cannot support more exec pins!");
 		return false;
@@ -57,7 +72,7 @@ bool UK2Node_FunctionTerminator::HasExternalDependencies(TArray<class UStruct*>*
 {
 	const UBlueprint* SourceBlueprint = GetBlueprint();
 
-	UClass* SourceClass = *SignatureClass;
+	UClass* SourceClass = FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode());
 	bool bResult = (SourceClass != nullptr) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
 	if (bResult && OptionalOutput)
 	{
@@ -93,7 +108,7 @@ bool UK2Node_FunctionTerminator::HasExternalDependencies(TArray<class UStruct*>*
 void UK2Node_FunctionTerminator::PromoteFromInterfaceOverride(bool bIsPrimaryTerminator)
 {
 	// Remove the signature class, that is not relevant.
-	SignatureClass = nullptr;
+	FunctionReference.SetSelfMember(FunctionReference.GetMemberName());
 	TArray<UEdGraphPin*> OriginalPins = Pins;
 	for (const UEdGraphPin* Pin : OriginalPins)
 	{
@@ -114,9 +129,10 @@ void UK2Node_FunctionTerminator::ValidateNodeDuringCompilation(FCompilerResultsL
 	{
 		if (Pin && Pin->PinType.bIsWeakPointer && !Pin->PinType.IsContainer())
 		{
-			const FString ErrorString = FString::Printf(
-				*LOCTEXT("WeakPtrNotSupportedError", "Weak prointer is not supported as function parameter. Pin '%s' @@").ToString(), 
-				*Pin->GetName());
+			const FString ErrorString = FText::Format(
+				LOCTEXT("WeakPtrNotSupportedErrorFmt", "Weak prointer is not supported as function parameter. Pin '{0}' @@"),
+				FText::FromString(Pin->GetName())
+			).ToString();
 			MessageLog.Error(*ErrorString, this);
 		}
 	}

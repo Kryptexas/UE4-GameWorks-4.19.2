@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -1019,6 +1019,7 @@ class FElementBatchMap
 {
 public:
 	FElementBatchMap()
+		: ResourceVersion(0)
 	{
 		Reset();
 	}
@@ -1101,6 +1102,26 @@ public:
 		}
 	}
 
+	FORCEINLINE_DEBUGGABLE void UpdateResourceVersion(uint32 NewResourceVersion)
+	{
+		if (ResourceVersion != NewResourceVersion)
+		{
+			OverflowLayers.Empty();
+
+			// Since the resource version changed, clean out all cached data in the element batch arrays
+			for (int32 LayerIdx = 0; LayerIdx < Layers.Num(); ++LayerIdx)
+			{
+				Layers[LayerIdx]->Empty();
+			}
+
+			MinLayer = UINT_MAX;
+			MaxLayer = 0;
+			ActiveLayers.Init(false, Layers.Num());
+
+			ResourceVersion = NewResourceVersion;
+		}
+	}
+
 	FORCEINLINE_DEBUGGABLE void Reset()
 	{
 		MinLayer = UINT_MAX;
@@ -1115,6 +1136,7 @@ private:
 	TMap<uint32, TUniqueObj<FElementBatchArray>> OverflowLayers;
 	uint32 MinLayer;
 	uint32 MaxLayer;
+	uint32 ResourceVersion;
 };
 
 #if STATS
@@ -1133,6 +1155,19 @@ public:
 			: AllocatedSize(0)
 		{
 
+		}
+
+		/**
+		 * Moves the state of another allocator into this one.
+		 * Assumes that the allocator is currently empty, i.e. memory may be allocated but any existing elements have already been destructed (if necessary).
+		 * @param Other - The allocator to move the state from.  This allocator should be left in a valid empty state.
+		 */
+		FORCEINLINE void MoveToEmpty(ForAnyElementType& Other)
+		{
+			Super::MoveToEmpty(Other);
+
+			AllocatedSize = Other.AllocatedSize;
+			Other.AllocatedSize = 0;
 		}
 
 		/** Destructor. */
@@ -1161,6 +1196,13 @@ public:
 	};
 };
 
+template <>
+struct TAllocatorTraits<FSlateStatTrackingMemoryAllocator> : TAllocatorTraitsBase<FSlateStatTrackingMemoryAllocator>
+{
+	enum { SupportsMove    = TAllocatorTraits<FDefaultAllocator>::SupportsMove    };
+	enum { IsZeroConstruct = TAllocatorTraits<FDefaultAllocator>::IsZeroConstruct };
+};
+
 typedef TArray<FSlateVertex, FSlateStatTrackingMemoryAllocator> FSlateVertexArray;
 typedef TArray<SlateIndex, FSlateStatTrackingMemoryAllocator> FSlateIndexArray;
 
@@ -1176,8 +1218,7 @@ class FSlateBatchData
 {
 public:
 	FSlateBatchData()
-		: DynamicOffset(0, 0)
-		, NumBatchedVertices(0)
+		: NumBatchedVertices(0)
 		, NumBatchedIndices(0)
 		, NumLayers(0)
 	{}
@@ -1289,9 +1330,6 @@ private:
 	TArray<FSlateClippingState> RenderClipStates;
 
 	/**  */
-	FVector2D DynamicOffset;
-
-	/**  */
 	int32 NumBatchedVertices;
 
 	/**  */
@@ -1351,19 +1389,13 @@ public:
 	 * @param InPaintWindow		The window that owns the widgets being painted.  This is almost most always the same window that is being rendered to
 	 * @param InRenderWindow	The window that we will be rendering to.
 	 */
-	explicit FSlateWindowElementList( TSharedPtr<SWindow> InPaintWindow = nullptr )
-		: PaintWindow(InPaintWindow)
-		, RenderTargetWindow(nullptr)
-		, bNeedsDeferredResolve( false )
-		, ResolveToDeferredIndex()
-		, MemManager(0)
-	{
-		DrawStack.Push(&RootDrawLayer);
-	}
+	SLATECORE_API explicit FSlateWindowElementList(TSharedPtr<SWindow> InPaintWindow = nullptr);
 
 	/** @return Get the window that we will be painting */
 	FORCEINLINE TSharedPtr<SWindow> GetWindow() const
 	{
+		// check that we are in game thread or are in slate/movie loading thread
+		check(IsInGameThread() || IsInSlateThread())
 		return PaintWindow.Pin();
 	}
 
@@ -1395,6 +1427,18 @@ public:
 	{
 		TArray<FSlateDrawElement>& ActiveDrawElements = DrawStack.Last()->DrawElements;
 		ActiveDrawElements.Add(InDrawElement);
+	}
+	
+	FORCEINLINE void AppendItems(const TArray<FSlateDrawElement>& InDrawElements)
+	{
+		TArray<FSlateDrawElement>& ActiveDrawElements = DrawStack.Last()->DrawElements;
+		ActiveDrawElements.Append(InDrawElements);
+	}
+
+	/** @return Get the window size that we will be painting */
+	FORCEINLINE FVector2D GetWindowSize() const
+	{
+		return WindowSize;
 	}
 
 	/**
@@ -1490,6 +1534,7 @@ public:
 	SLATECORE_API void QueueVolatilePainting( const FVolatilePaint& InVolatilePaint );
 
 	SLATECORE_API int32 PaintVolatile(FSlateWindowElementList& OutElementList, double InCurrentTime, float InDeltaTime, const FVector2D& InDynamicOffset);
+	SLATECORE_API int32 PaintVolatileRootLayer(FSlateWindowElementList& OutElementList, double InCurrentTime, float InDeltaTime, const FVector2D& InDynamicOffset);
 
 	SLATECORE_API void BeginLogicalLayer(const TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe>& LayerHandle);
 	SLATECORE_API void EndLogicalLayer();
@@ -1611,4 +1656,7 @@ private:
 
 	// Mem stack for temp allocations
 	FMemStackBase MemManager; 
+
+	/** Store the size of the window being used to paint */
+	FVector2D WindowSize;
 };

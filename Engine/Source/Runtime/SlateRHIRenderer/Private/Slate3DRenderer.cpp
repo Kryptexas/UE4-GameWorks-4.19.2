@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Slate3DRenderer.h"
 #include "Fonts/FontCache.h"
@@ -7,7 +7,7 @@
 #include "SlateRHIRenderer.h"
 #include "Rendering/ElementBatcher.h"
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Slate 3D"), Slate3D, STATGROUP_GPU);
+DECLARE_GPU_STAT_NAMED(Slate3D, TEXT("Slate 3D"));
 
 FSlate3DRenderer::FSlate3DRenderer( TSharedRef<FSlateFontServices> InSlateFontServices, TSharedRef<FSlateRHIResourceManager> InResourceManager, bool bUseGammaCorrection )
 	: SlateFontServices( InSlateFontServices )
@@ -108,7 +108,7 @@ void FSlate3DRenderer::DrawWindow_GameThread(FSlateDrawBuffer& DrawBuffer)
 }
 
 template<typename TKeepAliveType>
-struct TKeepAliveCommand : public FRHICommand < TKeepAliveCommand<TKeepAliveType> >
+struct TKeepAliveCommand final : public FRHICommand < TKeepAliveCommand<TKeepAliveType> >
 {
 	TKeepAliveType Value;
 	

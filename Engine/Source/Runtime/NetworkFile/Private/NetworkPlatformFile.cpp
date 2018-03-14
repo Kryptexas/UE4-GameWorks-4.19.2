@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NetworkPlatformFile.h"
 #include "Templates/ScopedPointer.h"
@@ -869,9 +869,12 @@ bool FNetworkPlatformFile::SendMessageToServer(const TCHAR* Message, IPlatformFi
 		Handler->FillPayload(Payload);
 
 		FArrayReader Response;
-		if (!SendPayloadAndReceiveResponse(Payload, Response))
 		{
-			return false;
+			FScopeLock ScopeLock(&SynchronizationObject);
+			if (!SendPayloadAndReceiveResponse(Payload, Response))
+			{
+				return false;
+			}
 		}
 
 		// locally delete any files that were modified on the server, so that any read will recache the file
@@ -1165,7 +1168,6 @@ void FNetworkPlatformFile::EnsureFileIsLocal(const FString& Filename)
 
 	// even if an error occurs later, we still want to remember not to try again
 	CachedLocalFiles.Add(Filename);
-	UE_LOG(LogNetworkPlatformFile, Warning, TEXT("Cached file %s"), *Filename)
 	StartTime = FPlatformTime::Seconds();
 
 	// no need to read it if it already exists 
@@ -1219,6 +1221,8 @@ void FNetworkPlatformFile::EnsureFileIsLocal(const FString& Filename)
 	// send the filename over (cast away const here because we know this << will not modify the string)
 	FNetworkFileArchive Payload(NFS_Messages::SyncFile);
 	Payload << (FString&)Filename;
+
+	UE_LOG(LogNetworkPlatformFile, Log, TEXT("Requesting file %s"), *Filename);
 
 	StartTime = FPlatformTime::Seconds();
 
@@ -1340,9 +1344,12 @@ void FNetworkPlatformFile::PerformHeartbeat()
 
 	// send the filename over
 	FArrayReader Response;
-	if (!SendPayloadAndReceiveResponse(Payload, Response))
 	{
-		return;
+		FScopeLock ScopeLock(&SynchronizationObject);
+		if (!SendPayloadAndReceiveResponse(Payload, Response))
+		{
+			return;
+		}
 	}
 
 	// get any files that have been modified on the server - 

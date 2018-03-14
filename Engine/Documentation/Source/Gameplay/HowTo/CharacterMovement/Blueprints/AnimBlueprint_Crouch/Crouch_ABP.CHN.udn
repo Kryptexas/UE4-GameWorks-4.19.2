@@ -22,7 +22,7 @@ SkillLevel:Advanced
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在本节中，我们继续研究**Animation Blueprint**和专注于**Crouch**状态的**State Machine**。 
 
@@ -97,4 +97,4 @@ SkillLevel:Advanced
 
 1.	**Compile**并**Save**动画蓝图。 
 
-%Steps%
+

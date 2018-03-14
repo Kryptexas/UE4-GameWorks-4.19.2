@@ -97,7 +97,7 @@ In this image, ParticlePositionWS is being fed into emissive color to visualize 
 The **ParticleRadius** expression outputs the radius in Unreal units of each particle individually. This allows, for example, for changes to be made to a material once the radius has reached a certain point.
 
 [REGION:fullwidth]
-![ParticleRadiusExample.png](ParticleRadiusExample.png)(w:1000 h:448)
+![ParticleRadiusExample.png](ParticleRadiusExample.png)(w:1000)
 [/REGION]
 
 In this image, the particles are shifting from green to red as their radius exceeds 7 units.
@@ -143,7 +143,7 @@ In the example above, Particle Size is being multiplied into Particle Color. Not
 **ParticleSpeed** outputs the current speed each particle is traveling, measured in Unreal units per second.
 
 [REGION:fullwidth]
-![ParticleSpeedExample.png](ParticleSpeedExample.png)(w:1000 h:448)
+![ParticleSpeedExample.png](ParticleSpeedExample.png)(w:1000)
 [/REGION]
 
 In this example, particle speed is feeding the color of the particles, which is then divided by 10 provide more meaningful results. The particles become black as they slow down.
@@ -173,13 +173,15 @@ The **SphericalParticleOpacity** expression creates a procedural opacity map to 
 [INCLUDE:#SPO]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SPO]
 [REGION:lightbox]
 [![](SPO_Network.png)(w:305)](SPO_Network.png)
 [/REGION]
 [/EXCERPT:SPO]
--->
+
+[/COMMENT]
 
 
 [EXCERPT:ParticleSubUV]

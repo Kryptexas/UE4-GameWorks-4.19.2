@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "AudioDecompress.h"
@@ -149,7 +149,7 @@ bool IStreamedCompressedInfo::StreamCompressedInfo(USoundWave* Wave, struct FSou
 
 	if (FirstChunk)
 	{
-		return ReadCompressedInfo(FirstChunk, Wave->RunningPlatformData->Chunks[0].DataSize, QualityInfo);
+		return ReadCompressedInfo(FirstChunk, Wave->RunningPlatformData->Chunks[0].AudioDataSize, QualityInfo);
 	}
 
 	return false;
@@ -174,7 +174,7 @@ bool IStreamedCompressedInfo::StreamCompressedData(uint8* Destination, bool bLoo
 		if (SrcBufferData)
 		{
 			bPrintChunkFailMessage = true;
-			SrcBufferDataSize = StreamingSoundWave->RunningPlatformData->Chunks[CurrentChunkIndex].DataSize;
+			SrcBufferDataSize = StreamingSoundWave->RunningPlatformData->Chunks[CurrentChunkIndex].AudioDataSize;
 			SrcBufferOffset = CurrentChunkIndex == 0 ? AudioDataOffset : 0;
 		}
 		else
@@ -259,7 +259,7 @@ bool IStreamedCompressedInfo::StreamCompressedData(uint8* Destination, bool bLoo
 				if (SrcBufferData)
 				{
 					UE_LOG(LogAudio, Log, TEXT("Incremented current chunk from SoundWave'%s' - Chunk %d, Offset %d"), *StreamingSoundWave->GetName(), CurrentChunkIndex, SrcBufferOffset);
-					SrcBufferDataSize = StreamingSoundWave->RunningPlatformData->Chunks[CurrentChunkIndex].DataSize;					
+					SrcBufferDataSize = StreamingSoundWave->RunningPlatformData->Chunks[CurrentChunkIndex].AudioDataSize;
 				}
 				else
 				{
@@ -654,9 +654,22 @@ void FAsyncAudioDecompressWorker::DoWork()
 			{
 #if PLATFORM_NUM_AUDIODECOMPRESSION_PRECACHE_BUFFERS > 0
 				const uint32 PCMBufferSize = MONO_PCM_BUFFER_SIZE * Wave->NumChannels * PLATFORM_NUM_AUDIODECOMPRESSION_PRECACHE_BUFFERS;
-				check(Wave->CachedRealtimeFirstBuffer == nullptr);
-				Wave->CachedRealtimeFirstBuffer = (uint8*)FMemory::Malloc(PCMBufferSize);
-				AudioInfo->ReadCompressedData(Wave->CachedRealtimeFirstBuffer, Wave->bLooping, PCMBufferSize);
+				if (Wave->CachedRealtimeFirstBuffer == nullptr)
+				{
+					Wave->CachedRealtimeFirstBuffer = (uint8*)FMemory::Malloc(PCMBufferSize);
+					AudioInfo->ReadCompressedData(Wave->CachedRealtimeFirstBuffer, Wave->bLooping, PCMBufferSize);
+				}
+				else
+				{
+					if (Wave->bIsPrecacheDone)
+					{
+						UE_LOG(LogAudio, Warning, TEXT("Attempted to precache decoded audio multiple times."));
+					}
+					else
+					{
+						UE_LOG(LogAudio, Warning, TEXT("CachedRealtimeFirstBuffer potentially contains invalid data."));
+					}
+				}
 #endif
 			}
 			else
@@ -697,5 +710,16 @@ void FAsyncAudioDecompressWorker::DoWork()
 		Wave->bIsPrecacheDone = true;
 	}
 }
+
+static TAutoConsoleVariable<int32> CVarShouldUseBackgroundPoolFor_FAsyncRealtimeAudioTask(
+	TEXT("AudioThread.UseBackgroundThreadPool"),
+	1,
+	TEXT("If true, use the background thread pool for realtime audio decompression."));
+
+bool ShouldUseBackgroundPoolFor_FAsyncRealtimeAudioTask()
+{
+	return !!CVarShouldUseBackgroundPoolFor_FAsyncRealtimeAudioTask.GetValueOnAnyThread();
+}
+
 
 // end

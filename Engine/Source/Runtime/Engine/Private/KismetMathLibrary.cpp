@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Kismet/KismetMathLibrary.h"
 #include "EngineGlobals.h"
@@ -241,7 +241,14 @@ float UKismetMathLibrary::NormalizeToRange(float Value, float RangeMin, float Ra
 {
 	if (RangeMin == RangeMax)
 	{
-		return RangeMin;
+		if (Value < RangeMin)
+		{
+			return 0.f;
+		}
+		else
+		{
+			return 1.f;
+		}
 	}
 
 	if (RangeMin > RangeMax)
@@ -303,21 +310,7 @@ void UKismetMathLibrary::MinOfByteArray(const TArray<uint8>& ByteArray, int32& I
 
 float UKismetMathLibrary::InverseLerp(float A, float B, float Value)
 {
-	if (FMath::IsNearlyEqual(A, B))
-	{
-		if (Value < A)
-		{
-			return 0;
-		}
-		else
-		{
-			return 1;
-		}
-	}
-	else
-	{
-		return ((Value - A) / (B - A));
-	}
+	return NormalizeToRange(Value, A, B);
 }
 
 float UKismetMathLibrary::Ease(float A, float B, float Alpha, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp, int32 Steps)

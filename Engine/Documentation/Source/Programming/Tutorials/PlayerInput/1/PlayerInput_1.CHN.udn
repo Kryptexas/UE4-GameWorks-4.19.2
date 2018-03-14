@@ -19,7 +19,7 @@ Description:对Pawns的介绍
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:tip]如果您刚使用 **虚幻引擎4** ，建议您先读一下[%Programming\QuickStart:title% tutorial](Programming\QuickStart) 。 对这篇教程来说，我们假设您已经了解了如何创建项目，如何添加C++代码到项目中，以及如何编译您的代码。[/REGION]
 
@@ -71,7 +71,7 @@ Description:对Pawns的介绍
     [/PARAM]
     [PARAM:content]
 		**MyPawn.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -101,7 +101,7 @@ Description:对Pawns的介绍
 			};
 
 		**MyPawn.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_PlayerInput.h"
 			#include "MyPawn.h"
@@ -151,4 +151,4 @@ Description:对Pawns的介绍
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

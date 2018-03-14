@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Misc/CoreDelegates.h"
@@ -768,8 +768,8 @@ void AActor::CheckForDeprecated()
 			->AddToken(FTextToken::Create(FText::Format(LOCTEXT( "MapCheck_Message_ActorIsObselete_Deprecated", "{ActorName} : Obsolete and must be removed! (Class is deprecated)" ), Arguments) ))
 			->AddToken(FMapErrorToken::Create(FMapErrors::ActorIsObselete));
 	}
-
-	if ( GetClass()->HasAnyClassFlags(CLASS_Abstract) )
+	// don't check to see if this is an abstract class if this is the CDO
+	if ( !(GetFlags() & RF_ClassDefaultObject) && GetClass()->HasAnyClassFlags(CLASS_Abstract) )
 	{
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
@@ -782,24 +782,10 @@ void AActor::CheckForDeprecated()
 
 void AActor::CheckForErrors()
 {
-	if ( GetClass()->HasAnyClassFlags(CLASS_Deprecated) )
+	int32 OldNumWarnings = FMessageLog("MapCheck").NumMessages(EMessageSeverity::Warning);
+	CheckForDeprecated();
+	if (OldNumWarnings < FMessageLog("MapCheck").NumMessages(EMessageSeverity::Warning))
 	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
-		FMessageLog("MapCheck").Warning()
-			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(FText::Format(LOCTEXT( "MapCheck_Message_ActorIsObselete_Deprecated", "{ActorName} : Obsolete and must be removed! (Class is deprecated)" ), Arguments) ))
-			->AddToken(FMapErrorToken::Create(FMapErrors::ActorIsObselete));
-		return;
-	}
-	if ( GetClass()->HasAnyClassFlags(CLASS_Abstract) )
-	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
-		FMessageLog("MapCheck").Warning()
-			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(FText::Format(LOCTEXT( "MapCheck_Message_ActorIsObselete_Abstract", "{ActorName} : Obsolete and must be removed! (Class is abstract)" ), Arguments) ))
-			->AddToken(FMapErrorToken::Create(FMapErrors::ActorIsObselete));
 		return;
 	}
 
@@ -864,6 +850,25 @@ void AActor::SetLODParent(UPrimitiveComponent* InLODParent, float InParentDrawDi
 		// parent primitive will be null if no LOD parent is selected
 		Component->SetLODParentPrimitive(InLODParent);
 	}
+}
+
+EDataValidationResult AActor::IsDataValid(TArray<FText>& ValidationErrors)
+{
+	bool bSuccess = CheckDefaultSubobjectsInternal();
+
+	int32 OldNumMapWarningsAndErrors = FMessageLog("MapCheck").NumMessages(EMessageSeverity::Warning);
+	CheckForErrors();
+	int32 NewNumMapWarningsAndErrors = FMessageLog("MapCheck").NumMessages(EMessageSeverity::Warning);
+	if (NewNumMapWarningsAndErrors != OldNumMapWarningsAndErrors)
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
+		FText ErrorMsg = FText::Format(LOCTEXT("IsDataValid_Failed_CheckForErrors", "{ActorName} is not valid. See the MapCheck log messages for details."), Arguments);
+		ValidationErrors.Add(ErrorMsg);
+		bSuccess = false;
+	}
+
+	return bSuccess ? EDataValidationResult::Valid : EDataValidationResult::Invalid;
 }
 #undef LOCTEXT_NAMESPACE
 

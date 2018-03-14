@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "FoliageEditUtility.h"
 #include "FoliageType.h"
@@ -63,7 +63,12 @@ UFoliageType* FFoliageEditUtility::SaveFoliageTypeObject(UFoliageType* InFoliage
 		PackagesToSave.Add(TypeToSave->GetOutermost());
 		const bool bCheckDirty = false;
 		const bool bPromptToSave = false;
-		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirty, bPromptToSave);
+		FEditorFileUtils::EPromptReturnCode ReturnValue = FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirty, bPromptToSave);
+
+		if (ReturnValue != FEditorFileUtils::PR_Success)
+		{
+			TypeToSave = nullptr;
+		}
 	}
 
 	return TypeToSave;
@@ -92,6 +97,11 @@ void FFoliageEditUtility::ReplaceFoliageTypeObject(UWorld* InWorld, UFoliageType
 				// Old component needs to go
 				if (OldMeshInfo->Component != nullptr)
 				{
+					if (OldMeshInfo->Component->GetStaticMesh() != nullptr)
+					{
+						OldMeshInfo->Component->GetStaticMesh()->GetOnExtendedBoundsChanged().RemoveAll(&(*OldMeshInfo));
+					}
+
 					OldMeshInfo->Component->ClearInstances();
 					OldMeshInfo->Component->SetFlags(RF_Transactional);
 					OldMeshInfo->Component->Modify();

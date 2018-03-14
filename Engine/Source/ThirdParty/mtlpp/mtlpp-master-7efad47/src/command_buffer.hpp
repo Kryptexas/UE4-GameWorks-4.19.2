@@ -2,13 +2,17 @@
  * Copyright 2016-2017 Nikolay Aleksiev. All rights reserved.
  * License: https://github.com/naleksiev/mtlpp/blob/master/LICENSE
  */
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+#include "imp_CommandBuffer.hpp"
 #include "ns.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -21,6 +25,7 @@ namespace mtlpp
     class CommandQueue;
     class Drawable;
     class RenderPassDescriptor;
+	class CommandBuffer;
 
     enum class CommandBufferStatus
     {
@@ -43,16 +48,18 @@ namespace mtlpp
         NotPermitted                              = 7,
         OutOfMemory                               = 8,
         InvalidResource                           = 9,
-        Memoryless      MTLPP_AVAILABLE_IOS(10_0) = 10,
+        Memoryless      MTLPP_AVAILABLE_AX(10_0)  = 10,
 		DeviceRemoved  MTLPP_AVAILABLE_MAC(10_13) = 11,
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class CommandBuffer : public ns::Object
+	typedef std::function<void(const CommandBuffer&)> CommandBufferHandler;
+	
+    class CommandBuffer : public ns::Object<ns::Protocol<id<MTLCommandBuffer>>::type>
     {
     public:
         CommandBuffer() { }
-        CommandBuffer(const ns::Handle& handle) : ns::Object(handle) { }
+        CommandBuffer(ns::Protocol<id<MTLCommandBuffer>>::type handle, ITable* table = nullptr) : ns::Object<ns::Protocol<id<MTLCommandBuffer>>::type>(handle, true, table) { }
 
         Device              GetDevice() const;
         CommandQueue        GetCommandQueue() const;
@@ -60,20 +67,20 @@ namespace mtlpp
         ns::String          GetLabel() const;
         CommandBufferStatus GetStatus() const;
         ns::Error           GetError() const;
-        double              GetKernelStartTime() const MTLPP_AVAILABLE_IOS(10_3);
-        double              GetKernelEndTime() const MTLPP_AVAILABLE_IOS(10_3);
-        double              GetGpuStartTime() const MTLPP_AVAILABLE_IOS(10_3);
-        double              GetGpuEndTime() const MTLPP_AVAILABLE_IOS(10_3);
+        double              GetKernelStartTime() const MTLPP_AVAILABLE(10_13, 10_3);
+        double              GetKernelEndTime() const MTLPP_AVAILABLE(10_13, 10_3);
+        double              GetGpuStartTime() const MTLPP_AVAILABLE(10_13, 10_3);
+        double              GetGpuEndTime() const MTLPP_AVAILABLE(10_13, 10_3);
 
         void SetLabel(const ns::String& label);
 
         void Enqueue();
         void Commit();
-        void AddScheduledHandler(std::function<void(const CommandBuffer&)> handler);
-        void AddCompletedHandler(std::function<void(const CommandBuffer&)> handler);
+        void AddScheduledHandler(CommandBufferHandler handler);
+        void AddCompletedHandler(CommandBufferHandler handler);
         void Present(const Drawable& drawable);
         void PresentAtTime(const Drawable& drawable, double presentationTime);
-        void PresentAfterMinimumDuration(const Drawable& drawable, double duration) MTLPP_AVAILABLE_IOS(10_3);
+        void PresentAfterMinimumDuration(const Drawable& drawable, double duration) MTLPP_AVAILABLE_AX(10_3);
         void WaitUntilScheduled();
         void WaitUntilCompleted();
         BlitCommandEncoder BlitCommandEncoder();
@@ -86,3 +93,5 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 }
+
+MTLPP_END

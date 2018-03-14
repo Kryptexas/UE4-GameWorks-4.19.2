@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneRenderTargets.h: Scene render target definitions.
@@ -179,9 +179,8 @@ protected:
 		bScreenSpaceAOIsValid(false),
 		bCustomDepthIsValid(false),
 		GBufferRefCount(0),
-		LargestDesiredSizeThisFrame( 0, 0 ),
-		LargestDesiredSizeLastFrame( 0, 0 ),
 		ThisFrameNumber( 0 ),
+		CurrentDesiredSizeIndex ( 0 ),
 		bVelocityPass(false),
 		bSeparateTranslucencyPass(false),
 		BufferSize(0, 0),
@@ -209,6 +208,7 @@ protected:
 		QuadOverdrawIndex(INDEX_NONE),
 		bHMDAllocatedDepthTarget(false)
 		{
+			FMemory::Memset(LargestDesiredSizes, 0);
 		}
 	/** Constructor that creates snapshot */
 	FSceneRenderTargets(const FViewInfo& InView, const FSceneRenderTargets& SnapshotSource);
@@ -218,7 +218,7 @@ public:
 	 * Checks that scene render targets are ready for rendering a view family of the given dimensions.
 	 * If the allocated render targets are too small, they are reallocated.
 	 */
-	void Allocate(FRHICommandListImmediate& RHICmdList, const FSceneViewFamily& ViewFamily);
+	void Allocate(FRHICommandListImmediate& RHICmdList, const FSceneRenderer* SceneRenderer);
 
 	/**
 	 *
@@ -525,7 +525,7 @@ public:
 
 	void AllocLightAttenuation(FRHICommandList& RHICmdList);
 
-	void AllocSceneMonoRenderTargets(FRHICommandList& RHICmdList, const FSceneView& MonoView);
+	void AllocSceneMonoRenderTargets(FRHICommandList& RHICmdList, const FViewInfo& MonoView);
 
 	void AllocateReflectionTargets(FRHICommandList& RHICmdList, int32 TargetSize);
 
@@ -637,10 +637,12 @@ private:
 	int32 GBufferRefCount;
 
 	/** as we might get multiple BufferSize requests each frame for SceneCaptures and we want to avoid reallocations we can only go as low as the largest request */
-	FIntPoint LargestDesiredSizeThisFrame;
-	FIntPoint LargestDesiredSizeLastFrame;
+	static const uint32 FrameSizeHistoryCount = 3;
+	FIntPoint LargestDesiredSizes[FrameSizeHistoryCount];
+	
 	/** to detect when LargestDesiredSizeThisFrame is outdated */
 	uint32 ThisFrameNumber;
+	uint32 CurrentDesiredSizeIndex;
 
 	bool bVelocityPass;
 	bool bSeparateTranslucencyPass;
@@ -715,7 +717,7 @@ private:
 		{
 			return ESceneColorFormatType::Mobile;
 		}
-		else if (CurrentShadingPath == EShadingPath::Deferred && (bRequireSceneColorAlpha || CurrentSceneColorFormat == PF_FloatRGBA))
+		else if (CurrentShadingPath == EShadingPath::Deferred && (bRequireSceneColorAlpha || GetSceneColorFormat() == PF_FloatRGBA))
 		{
 			return ESceneColorFormatType::HighEndWithAlpha;
 		}

@@ -1,49 +1,11 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:매크로
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:다른 그래프에서 실행 또는 호출할 수 있는 접힌 노드 망입니다.
 version: 4.9
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Macros:title%](Engine\Blueprints\UserGuide\macro_topic_2.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Macros:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Macros:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Macros]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Macros:title%](Engine\Blueprints\UserGuide\macro_topic_2.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Macros:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Macros:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Macros]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:Engine/Blueprints/UserGuide/macro_topic_2.png
 
 
 [EXCERPT:Intro]
@@ -63,7 +25,7 @@ _블루프린트 매크로_ 는 _블루프린트 클래스_ 또는 _레벨 블�
 
 _블루프린트 클래스_, _레벨 블루프린트_, 또는 _블루프린트 매크로 라이브러리_ 안에서 _블루프린트 매크로_ 를 만들려면:
 
-1. **내 블루프린트** 탭에서 ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\myblueprint_macro.png) 매크로 목록 제목줄의 ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\plus_Button.png)  **추가 버튼** 을 클릭하여 새 매크로를 만듭니다.
+1. **내 블루프린트** 탭에서 ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/myblueprint_macro.png) 매크로 목록 제목줄의 ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/plus_Button.png)  **추가 버튼** 을 클릭하여 새 매크로를 만듭니다.
 
 1. _블루프린트 매크로  의 이름을 입력합니다.
 

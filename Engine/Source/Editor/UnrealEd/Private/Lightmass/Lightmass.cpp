@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Lightmass.h: lightmass import/export implementation.
@@ -50,6 +50,7 @@
 #include "Engine/LevelStreaming.h"
 #include "UnrealEngine.h"
 #include "ComponentRecreateRenderStateContext.h"
+#include "EditorLevelUtils.h"
 #include "MessageDialog.h"
 
 extern FSwarmDebugOptions GSwarmDebugOptions;
@@ -210,8 +211,19 @@ void Copy( const ULightComponent* In, Lightmass::FLightData& Out )
 	{
 		Out.Color *= FLinearColor::MakeFromColorTemperature(In->Temperature);
 	}
+}
 
-	FMemory::Memset(Out.LightProfileTextureData, 0xff, sizeof(Out.LightProfileTextureData));
+void CopyLightProfile( const ULightComponentBase* In, Lightmass::FLightData& Out, TArray< uint8 >& OutLightProfileTextureData )
+{
+	OutLightProfileTextureData.Empty( Lightmass::FLightData::LightProfileTextureDataSize );
+	OutLightProfileTextureData.AddUninitialized( Lightmass::FLightData::LightProfileTextureDataSize );
+
+	FMemory::Memset(OutLightProfileTextureData.GetData(), 0xff, OutLightProfileTextureData.Num() * OutLightProfileTextureData.GetTypeSize());
+}
+
+void CopyLightProfile( const ULightComponent* In, Lightmass::FLightData& Out, TArray< uint8 >& OutLightProfileTextureData )
+{
+	CopyLightProfile( (const ULightComponentBase*)In, Out, OutLightProfileTextureData );
 
 	if(In->IESTexture)
 	{
@@ -220,24 +232,34 @@ void Copy( const ULightComponent* In, Lightmass::FLightData& Out )
 		// The current IES importer only uses this input format
 		// even if we change the actual texture format this shouldn't change
 		if( Source.GetFormat() == TSF_RGBA16F &&
-			Source.GetSizeX() == sizeof(Out.LightProfileTextureData) &&
-			Source.GetSizeY() == 1)
+			Source.GetSizeX() * Source.GetSizeY() <= Lightmass::FLightData::LightProfileTextureDataSize )
 		{
 			Out.LightFlags |= Lightmass::GI_LIGHT_USE_LIGHTPROFILE;
 
 			TArray<uint8> MipData;
 
 			Source.GetMipData(MipData, 0);
-			
-			for(uint32 x = 0; x < sizeof(Out.LightProfileTextureData); ++x)
+
+			const uint32 Width = FMath::Sqrt( Lightmass::FLightData::LightProfileTextureDataSize );
+			const uint32 Height = Lightmass::FLightData::LightProfileTextureDataSize / Width;
+
+			for(uint32 y = 0; y < Height; ++y)
 			{
-				FFloat16 HalfValue = *(FFloat16*)&MipData[x * 8];
-				float Value = HalfValue;
-				Out.LightProfileTextureData[x] = (uint8)(Value * 255.9999f);
+				uint32 SourceY = FMath::Min( y, (uint32)Source.GetSizeY() - 1 ); // We'll repeat the data if the source is smaller than the destination (we used to have 1D textures for IES files)
+
+				for(uint32 x = 0; x < Width; ++x)
+				{
+					uint32 SourceX = FMath::Min( x, (uint32)Source.GetSizeX() - 1 );
+
+					FFloat16 HalfValue = *(FFloat16*)&MipData[ (SourceY * (uint32)Source.GetSizeX() * 8) + (SourceX * 8) ];
+					float Value = HalfValue;
+					OutLightProfileTextureData[y * Width + x] = (uint8)(Value * 255.9999f);
+				}
 			}
 		}
 	}
 }
+
 FORCEINLINE void Copy( const FSplineMeshParams& In, Lightmass::FSplineMeshParams& Out )
 {
 	Out.StartPos = In.StartPos;
@@ -548,6 +570,15 @@ const FStaticLightingMapping* FLightmassExporter::FindMappingByGuid(FGuid FindGu
 		}
 	}
 
+	for( int32 MappingIdx=0; MappingIdx < VolumeMappings.Num(); MappingIdx++ )
+	{
+		const FStaticLightingMapping* CurrentMapping = VolumeMappings[MappingIdx];
+		if (CurrentMapping->GetLightingGuid() == FindGuid)
+		{
+			return CurrentMapping;
+		}
+	}
+
 	return NULL;
 }
 
@@ -566,7 +597,7 @@ void FLightmassExporter::WriteToChannel( FLightmassStatistics& Stats, FGuid& Deb
 			TotalProgress = 
 				DirectionalLights.Num() + PointLights.Num() + SpotLights.Num() + SkyLights.Num() + 
 				StaticMeshes.Num() + StaticMeshLightingMeshes.Num() + StaticMeshTextureMappings.Num() + 
-				BSPSurfaceMappings.Num() + Materials.Num() + 
+				BSPSurfaceMappings.Num() + VolumeMappings.Num() + Materials.Num() + 
 				+ LandscapeLightingMeshes.Num() + LandscapeTextureMappings.Num();
 
 			CurrentProgress = 0;
@@ -591,6 +622,7 @@ void FLightmassExporter::WriteToChannel( FLightmassStatistics& Stats, FGuid& Deb
 
 			Scene.NumImportanceVolumes = ImportanceVolumes.Num();
 			Scene.NumCharacterIndirectDetailVolumes = CharacterIndirectDetailVolumes.Num();
+			Scene.NumVolumetricLightmapDensityVolumes = VolumetricLightmapDensityVolumes.Num();
 			Scene.NumPortals = Portals.Num();
 			Scene.NumDirectionalLights = DirectionalLights.Num();
 			Scene.NumPointLights = PointLights.Num();
@@ -605,6 +637,7 @@ void FLightmassExporter::WriteToChannel( FLightmassStatistics& Stats, FGuid& Deb
 			Scene.NumFluidSurfaceTextureMappings = 0;
 			Scene.NumLandscapeTextureMappings = LandscapeTextureMappings.Num();
 			Scene.NumSpeedTreeMappings = 0;
+			Scene.NumVolumeMappings = VolumeMappings.Num();
 			Scene.NumPrecomputedVisibilityBuckets = VisibilityBucketGuids.Num();
 			Scene.NumVolumetricLightmapTasks = VolumetricLightmapTaskGuids.Num();
 			Swarm.WriteChannel( Channel, &Scene, sizeof(Scene) );
@@ -968,6 +1001,23 @@ void FLightmassExporter::WriteVisibilityData( int32 Channel )
 
 void FLightmassExporter::WriteVolumetricLightmapData( int32 Channel )
 {
+	for (int32 VolumeIndex = 0; VolumeIndex < VolumetricLightmapDensityVolumes.Num(); VolumeIndex++)
+	{
+		AVolumetricLightmapDensityVolume* DetailVolume = VolumetricLightmapDensityVolumes[VolumeIndex];
+
+		Lightmass::FVolumetricLightmapDensityVolumeData VolumeData;
+		VolumeData.Bounds = DetailVolume->GetComponentsBoundingBox(true);
+		VolumeData.AllowedMipLevelRange = FIntPoint(DetailVolume->AllowedMipLevelRange.Min, DetailVolume->AllowedMipLevelRange.Max);
+
+		TArray<FPlane> Planes;
+		DetailVolume->Brush->GetSurfacePlanes(DetailVolume, Planes);
+		const int32 NumPlanes = Planes.Num();
+		VolumeData.NumPlanes = NumPlanes;
+
+		Swarm.WriteChannel( Channel, &VolumeData, sizeof(VolumeData) );
+		Swarm.WriteChannel( Channel, Planes.GetData(), Planes.Num() * Planes.GetTypeSize() );
+	}
+
 	TArray<FGuid> VolumetricLightmapTaskGuidsArray;
 	VolumetricLightmapTaskGuids.GenerateKeyArray(VolumetricLightmapTaskGuidsArray);
 	Swarm.WriteChannel( Channel, VolumetricLightmapTaskGuidsArray.GetData(), VolumetricLightmapTaskGuidsArray.Num() * VolumetricLightmapTaskGuidsArray.GetTypeSize() );
@@ -987,8 +1037,13 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		LightData.ShadowResolutionScale = Light->ShadowResolutionScale;
 		LightData.LightSourceRadius = 0;
 		LightData.LightSourceLength = 0;
+
+		TArray< uint8 > LightProfileTextureData;
+		CopyLightProfile( Light, LightData, LightProfileTextureData );
+
 		DirectionalData.LightSourceAngle = Light->LightmassSettings.LightSourceAngle * (float)PI / 180.0f;
 		Swarm.WriteChannel( Channel, &LightData, sizeof(LightData) );
+		Swarm.WriteChannel( Channel, LightProfileTextureData.GetData(), LightProfileTextureData.Num() * LightProfileTextureData.GetTypeSize() );
 		Swarm.WriteChannel( Channel, &DirectionalData, sizeof(DirectionalData) );
 		UpdateExportProgress();
 	}
@@ -1005,9 +1060,15 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		LightData.ShadowResolutionScale = Light->ShadowResolutionScale;
 		LightData.LightSourceRadius = Light->SourceRadius;
 		LightData.LightSourceLength = Light->SourceLength;
+
+		TArray< uint8 > LightProfileTextureData;
+		CopyLightProfile( Light, LightData, LightProfileTextureData );
+
 		PointData.Radius = Light->AttenuationRadius;
 		PointData.FalloffExponent = Light->LightFalloffExponent;
+		PointData.LightTangent = Light->GetComponentTransform().GetUnitAxis(EAxis::Z);
 		Swarm.WriteChannel( Channel, &LightData, sizeof(LightData) );
+		Swarm.WriteChannel( Channel, LightProfileTextureData.GetData(), LightProfileTextureData.Num() * LightProfileTextureData.GetTypeSize() );
 		Swarm.WriteChannel( Channel, &PointData, sizeof(PointData) );
 		UpdateExportProgress();
 	}
@@ -1025,12 +1086,17 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		LightData.ShadowResolutionScale = Light->ShadowResolutionScale;
 		LightData.LightSourceRadius = Light->SourceRadius;
 		LightData.LightSourceLength = Light->SourceLength;
+
+		TArray< uint8 > LightProfileTextureData;
+		CopyLightProfile( Light, LightData, LightProfileTextureData );
+
 		PointData.Radius = Light->AttenuationRadius;
 		PointData.FalloffExponent = Light->LightFalloffExponent;
+		PointData.LightTangent = Light->GetComponentTransform().GetUnitAxis(EAxis::Z);
 		SpotData.InnerConeAngle = Light->InnerConeAngle; 
 		SpotData.OuterConeAngle = Light->OuterConeAngle;
-		SpotData.LightTangent = Light->GetComponentTransform().GetUnitAxis(EAxis::Z);
 		Swarm.WriteChannel( Channel, &LightData, sizeof(LightData) );
+		Swarm.WriteChannel( Channel, LightProfileTextureData.GetData(), LightProfileTextureData.Num() * LightProfileTextureData.GetTypeSize() );
 		Swarm.WriteChannel( Channel, &PointData, sizeof(PointData) );
 		Swarm.WriteChannel( Channel, &SpotData, sizeof(SpotData) );
 		UpdateExportProgress();
@@ -1045,14 +1111,19 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		Lightmass::FSkyLightData SkyData;
 		Copy( Light, LightData ); 
 
+		TArray< uint8 > LightProfileTextureData;
+		CopyLightProfile( Light, LightData, LightProfileTextureData );
+
 		TArray<FFloat16Color> RadianceMap;
 
 		// Capture the scene's emissive and send it to lightmass
+		// Note: FLightmassProcessor::InitiateExport hid all but the current lighting scenario
 		Light->CaptureEmissiveRadianceEnvironmentCubeMap(SkyData.IrradianceEnvironmentMap, RadianceMap);
 
 		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bUseFilteredCubemapForSkylight"), SkyData.bUseFilteredCubemap, GLightmassIni));
 		SkyData.RadianceEnvironmentMapDataSize = RadianceMap.Num();
 		Swarm.WriteChannel( Channel, &LightData, sizeof(LightData) );
+		Swarm.WriteChannel( Channel, LightProfileTextureData.GetData(), LightProfileTextureData.Num() * LightProfileTextureData.GetTypeSize() );
 		Swarm.WriteChannel( Channel, &SkyData, sizeof(SkyData) );
 		Swarm.WriteChannel( Channel, RadianceMap.GetData(), RadianceMap.Num() * RadianceMap.GetTypeSize() );
 		UpdateExportProgress();
@@ -1092,7 +1163,7 @@ void FLightmassExporter::WriteStaticMeshes()
 			&& StaticMesh->RenderData->LODResources.Num() > 0 )
 		{
 			const FStaticMeshLODResources& RenderData = StaticMesh->RenderData->LODResources[0];
-			if( StaticMesh->LightMapCoordinateIndex >= (int32)RenderData.VertexBuffer.GetNumTexCoords() )
+			if( StaticMesh->LightMapCoordinateIndex >= (int32)RenderData.VertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords() )
 			{
 				FMessageLog("LightingResults").Warning()
 					->AddToken(FUObjectToken::Create(const_cast<UStaticMesh*>(StaticMesh)))
@@ -1126,7 +1197,7 @@ void FLightmassExporter::WriteStaticMeshes()
 					SMLODData.NumTriangles = RenderData.GetNumTriangles();
 					SMLODData.NumIndices = Indices.Num();
 					// the vertex buffer could have double vertices for shadow buffer data, so we use what the render data thinks it has, not what is actually there
-					SMLODData.NumVertices = RenderData.VertexBuffer.GetNumVertices();
+					SMLODData.NumVertices = RenderData.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices();
 					Swarm.WriteChannel( Channel, &SMLODData, sizeof(SMLODData) );
 
 					int32 NumSections = RenderData.Sections.Num();
@@ -1157,15 +1228,15 @@ void FLightmassExporter::WriteStaticMeshes()
 						for (int32 VertexIndex = 0; VertexIndex < VertexCount; VertexIndex++)
 						{
 							Lightmass::FStaticMeshVertex& Vertex = LMVertices[VertexIndex];
-							Vertex.Position = FVector4(RenderData.PositionVertexBuffer.VertexPosition(VertexIndex), 1.0f);
-							Vertex.TangentX = FVector(RenderData.VertexBuffer.VertexTangentX(VertexIndex));
-							Vertex.TangentY = RenderData.VertexBuffer.VertexTangentY(VertexIndex);
-							Vertex.TangentZ = RenderData.VertexBuffer.VertexTangentZ(VertexIndex);
-							int32 UVCount = FMath::Clamp<int32>(RenderData.VertexBuffer.GetNumTexCoords(), 0, MAX_TEXCOORDS);
+							Vertex.Position = FVector4(RenderData.VertexBuffers.PositionVertexBuffer.VertexPosition(VertexIndex), 1.0f);
+							Vertex.TangentX = FVector(RenderData.VertexBuffers.StaticMeshVertexBuffer.VertexTangentX(VertexIndex));
+							Vertex.TangentY = RenderData.VertexBuffers.StaticMeshVertexBuffer.VertexTangentY(VertexIndex);
+							Vertex.TangentZ = RenderData.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(VertexIndex);
+							int32 UVCount = FMath::Clamp<int32>(RenderData.VertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords(), 0, MAX_TEXCOORDS);
 							int32 UVIndex;
 							for (UVIndex = 0; UVIndex < UVCount; UVIndex++)
 							{
-								Vertex.UVs[UVIndex] = RenderData.VertexBuffer.GetVertexUV(VertexIndex, UVIndex);
+								Vertex.UVs[UVIndex] = RenderData.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(VertexIndex, UVIndex);
 							}
 							FVector2D ZeroUV(0.0f, 0.0f);
 							for (; UVIndex < MAX_TEXCOORDS; UVIndex++)
@@ -1365,7 +1436,7 @@ void FLightmassExporter::WriteBaseMeshInstanceData( int32 Channel, int32 MeshInd
 	AActor* ComponentOwner = Mesh->Component->GetOwner();
 	if (ComponentOwner && ComponentOwner->GetLevel())
 	{
-		const ULevel* MeshLevel = Mesh->Component->GetOwner()->GetLevel();
+		ULevel* MeshLevel = Mesh->Component->GetOwner()->GetLevel();
 		MeshInstanceData.LevelGuid = *LevelGuids.FindKey(MeshLevel);
 		bFoundLevel = true;
 	}
@@ -1646,7 +1717,7 @@ void FLightmassExporter::WriteLandscapeInstances( int32 Channel )
 		const ULandscapeComponent* LandscapeComp = LandscapeLightingMesh->LandscapeComponent;
 		if (LandscapeComp && LandscapeComp->GetLandscapeProxy())
 		{
-			UMaterialInterface* Material = LandscapeComp->MaterialInstances[0];
+			UMaterialInterface* Material = LandscapeComp->GetMaterialInstance(0, false);
 			if (!Material)
 			{
 				Material = UMaterial::GetDefaultMaterial(MD_Surface);
@@ -1828,6 +1899,13 @@ void FLightmassExporter::WriteMappings( int32 Channel )
 		WriteLandscapeMapping(Channel, LandscapeMapping);
 		UpdateExportProgress();
 	}
+
+	for (int32 MappingIdx = 0; MappingIdx < VolumeMappings.Num(); MappingIdx++)
+	{
+		const FStaticLightingGlobalVolumeMapping* VolumeMapping = VolumeMappings[MappingIdx];
+		WriteBaseTextureMappingData( Channel, VolumeMapping );
+		UpdateExportProgress();
+	}
 }
 
 /** Finds the GUID of the mapping that is being debugged. */
@@ -1888,19 +1966,26 @@ void FLightmassExporter::SetVolumetricLightmapSettings(Lightmass::FVolumetricLig
 
 	VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.VolumetricLightmaps"), TEXT("BrickSize"), OutSettings.BrickSize, GLightmassIni));
 	VERIFYLIGHTMASSINI(GConfig->GetInt(TEXT("DevOptions.VolumetricLightmaps"), TEXT("MaxRefinementLevels"), OutSettings.MaxRefinementLevels, GLightmassIni));
-	VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("VoxelizationCellExpansionForGeometry"), OutSettings.VoxelizationCellExpansionForGeometry, GLightmassIni));
+	VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("VoxelizationCellExpansionForSurfaceGeometry"), OutSettings.VoxelizationCellExpansionForSurfaceGeometry, GLightmassIni));
+	VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("VoxelizationCellExpansionForVolumeGeometry"), OutSettings.VoxelizationCellExpansionForVolumeGeometry, GLightmassIni));
 	VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("VoxelizationCellExpansionForLights"), OutSettings.VoxelizationCellExpansionForLights, GLightmassIni));
 	VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("MinBrickError"), OutSettings.MinBrickError, GLightmassIni));
 	VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("SurfaceLightmapMinTexelsPerVoxelAxis"), OutSettings.SurfaceLightmapMinTexelsPerVoxelAxis, GLightmassIni));
 	VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.VolumetricLightmaps"), TEXT("bCullBricksBelowLandscape"), OutSettings.bCullBricksBelowLandscape, GLightmassIni));
 	VERIFYLIGHTMASSINI(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("LightBrightnessSubdivideThreshold"), OutSettings.LightBrightnessSubdivideThreshold, GLightmassIni));
 
+	const FLightmassWorldInfoSettings& WorldInfoSettings = World->GetWorldSettings()->LightmassSettings;
+
+	float Smoothing = FMath::Clamp(WorldInfoSettings.VolumetricLightmapSphericalHarmonicSmoothing, SMALL_NUMBER, 1000.0f);
+	OutSettings.WindowingTargetLaplacian = 1.0f / Smoothing;
+
 	OutSettings.BrickSize = FMath::RoundUpToPowerOfTwo(OutSettings.BrickSize);
 	OutSettings.MaxRefinementLevels = FMath::Clamp(OutSettings.MaxRefinementLevels, 1, 6);
-	OutSettings.VoxelizationCellExpansionForGeometry = FMath::Max(OutSettings.VoxelizationCellExpansionForGeometry, 0.0f);
+	OutSettings.VoxelizationCellExpansionForSurfaceGeometry = FMath::Max(OutSettings.VoxelizationCellExpansionForSurfaceGeometry, 0.0f);
+	OutSettings.VoxelizationCellExpansionForVolumeGeometry = FMath::Max(OutSettings.VoxelizationCellExpansionForVolumeGeometry, 0.0f);
 	OutSettings.VoxelizationCellExpansionForLights = FMath::Max(OutSettings.VoxelizationCellExpansionForLights, 0.0f);
 
-	const float TargetDetailCellSize = World->GetWorldSettings()->LightmassSettings.VolumetricLightmapDetailCellSize;
+	const float TargetDetailCellSize = WorldInfoSettings.VolumetricLightmapDetailCellSize;
 
 	const FIntVector FullGridSize(
 		FMath::TruncToInt(RequiredVolumeSize.X / TargetDetailCellSize) + 1,
@@ -2101,7 +2186,7 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 			TEXT(""), 
 			TEXT("DevOptions.PrecomputedVisibilityModeratelyAggressive"), 
 			TEXT("DevOptions.PrecomputedVisibilityMostAggressive")};
-		const TCHAR* ActiveSection = AggressivenessSectionNames[World->GetWorldSettings()->VisibilityAggressiveness];
+		const TCHAR* ActiveSection = AggressivenessSectionNames[FMath::Clamp((int32)World->GetWorldSettings()->VisibilityAggressiveness, 0, VIS_Max - 1)];
 		VERIFYLIGHTMASSINI(GConfig->GetFloat(ActiveSection, TEXT("MeshBoundsScale"), Scene.PrecomputedVisibilitySettings.MeshBoundsScale, GLightmassIni));
 	}
 	{
@@ -2148,6 +2233,7 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 
 		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.ImportanceTracing"), TEXT("bUseRadiositySolverForSkylightMultibounce"), Scene.ImportanceTracingSettings.bUseRadiositySolverForSkylightMultibounce, GLightmassIni));
 		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.ImportanceTracing"), TEXT("bCacheFinalGatherHitPointsForRadiosity"), Scene.ImportanceTracingSettings.bCacheFinalGatherHitPointsForRadiosity, GLightmassIni));
+		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.ImportanceTracing"), TEXT("bUseRadiositySolverForLightMultibounce"), Scene.ImportanceTracingSettings.bUseRadiositySolverForLightMultibounce, GLightmassIni));
 	}
 	{
 		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bUsePhotonMapping"), bConfigBool, GLightmassIni));
@@ -2609,7 +2695,25 @@ void FLightmassProcessor::InitiateExport()
 		}
 	}
 
+	TArray<ULevel*> LevelsToRestore;
+
+	// Hide all other lighting scenarios before we export skylights, which capture the rendered scene
+	for (ULevel* Level : System.GetWorld()->GetLevels())
+	{
+		if (Level->bIsVisible && !System.ShouldOperateOnLevel(Level))
+		{
+			LevelsToRestore.Add(Level);
+			EditorLevelUtils::SetLevelVisibilityTemporarily(Level, false);
+		}
+	}
+
 	Exporter->WriteToChannel(Statistics, DebugMappingGuid);
+
+	// Restore level state
+	for (ULevel* Level : LevelsToRestore)
+	{
+		EditorLevelUtils::SetLevelVisibilityTemporarily(Level, true);
+	}
 }
 
 bool FLightmassProcessor::ExecuteAmortizedMaterialExport()
@@ -2835,7 +2939,7 @@ bool FLightmassProcessor::BeginRun()
 		JobSpecification32.AddDependencies( RequiredDependencyPaths32, RequiredDependencyPaths32Count, OptionalDependencyPaths32, OptionalDependencyPaths32Count );
 		JobSpecification32.AddDescription( DescriptionKeys, DescriptionValues, ARRAY_COUNT(DescriptionKeys) );
 	}
-	if ( bUse64bitProcess )
+	else
 	{
 		JobSpecification64 = NSwarm::FJobSpecification( LightmassExecutable64, *CommandLineParameters, ( NSwarm::TJobTaskFlags )JobFlags );
 		JobSpecification64.AddDependencies( RequiredDependencyPaths64, RequiredDependencyPaths64Count, OptionalDependencyPaths64, OptionalDependencyPaths64Count );
@@ -3427,7 +3531,7 @@ void FLightmassProcessor::ApplyPrecomputedVisibility()
 			TEXT("DevOptions.PrecomputedVisibility"), 
 			TEXT("DevOptions.PrecomputedVisibilityModeratelyAggressive"), 
 			TEXT("DevOptions.PrecomputedVisibilityMostAggressive")};
-		const TCHAR* ActiveSection = AggressivenessSectionNames[System.GetWorld()->GetWorldSettings()->VisibilityAggressiveness];
+		const TCHAR* ActiveSection = AggressivenessSectionNames[FMath::Clamp((int32)System.GetWorld()->GetWorldSettings()->VisibilityAggressiveness, 0, VIS_Max - 1)];
 		VERIFYLIGHTMASSINI(GConfig->GetInt(ActiveSection, TEXT("VisibilitySpreadingIterations"), VisibilitySpreadingIterations, GLightmassIni));
 		bool bCompressVisibilityData;
 		VERIFYLIGHTMASSINI(GConfig->GetBool(TEXT("DevOptions.PrecomputedVisibility"), TEXT("bCompressVisibilityData"), bCompressVisibilityData, GLightmassIni));
@@ -3797,12 +3901,6 @@ void FLightmassProcessor::ImportStaticLightingTextureMapping( const FGuid& Mappi
 			{
 				//UE_LOG(LogLightmassSolver, Log, TEXT("Importing %32s %s"), *(TextureMapping->GetDescription()), *(TextureMapping->GetLightingGuid().ToString()));
 
-				// If we are importing the debug mapping, first read in the debug output channel
-				if (NextMappingGuid == DebugMappingGuid)
-				{
-					ImportDebugOutput();
-				}
-
 				FTextureMappingImportHelper* ImportData = new FTextureMappingImportHelper();
 				ImportData->TextureMapping = TextureMapping;
 				ImportData->MappingGuid = NextMappingGuid;
@@ -3930,6 +4028,8 @@ void FLightmassProcessor::ImportStaticShadowDepthMap(ULightComponent* Light)
 
 		ReadArray(Channel, CurrentLightData.DepthMap.DepthSamples);
 		Swarm.CloseChannel(Channel);
+
+		CurrentLightData.FinalizeLoad();
 	}
 	else
 	{
@@ -4063,8 +4163,7 @@ void FLightmassProcessor::ProcessAvailableMappings()
 	}
 }
 
-/** Fills out GDebugStaticLightingInfo with the output from Lightmass */
-void FLightmassProcessor::ImportDebugOutput()
+void FLightmassProcessor::ImportDebugOutputStruct(int32 Channel)
 {
 	static_assert(sizeof(FDebugStaticLightingRay) == sizeof(Lightmass::FDebugStaticLightingRay), "Debug type sizes must match for FDebugStaticLightingRay.");
 	static_assert(sizeof(FDebugStaticLightingVertex) == sizeof(Lightmass::FDebugStaticLightingVertex), "Debug type sizes must match for FDebugStaticLightingVertex.");
@@ -4074,11 +4173,17 @@ void FLightmassProcessor::ImportDebugOutput()
 	static_assert(sizeof(FDebugOctreeNode) == sizeof(Lightmass::FDebugOctreeNode), "Debug type sizes must match for FDebugOctreeNode.");
 	static_assert(NumTexelCorners == Lightmass::NumTexelCorners, "Debug type sizes must match for NumTexelCorners.");
 
-	const FString ChannelName = Lightmass::CreateChannelName(Lightmass::DebugOutputGuid, Lightmass::LM_DEBUGOUTPUT_VERSION, Lightmass::LM_DEBUGOUTPUT_EXTENSION);
-	const int32 Channel = Swarm.OpenChannel( *ChannelName, LM_DEBUGOUTPUT_CHANNEL_FLAGS );
-	if (Channel >= 0)
+	bool bDebugInfoValid = false;
+	Swarm.ReadChannel(Channel, &bDebugInfoValid, sizeof(bDebugInfoValid));
+
+	if (bDebugInfoValid)
 	{
-		Swarm.ReadChannel(Channel, &GDebugStaticLightingInfo.bValid, sizeof(GDebugStaticLightingInfo.bValid));
+		if (GDebugStaticLightingInfo.bValid)
+		{
+			UE_LOG(LogLightmassSolver, Log, TEXT("Error, importing valid debug info, but GDebugStaticLightingInfo was already valid (multiple sources of debug info from Lightmass)"));
+		}
+
+		GDebugStaticLightingInfo.bValid = true;
 		ReadArray(Channel, GDebugStaticLightingInfo.PathRays);
 		ReadArray(Channel, GDebugStaticLightingInfo.ShadowRays);
 		ReadArray(Channel, GDebugStaticLightingInfo.IndirectPhotonPaths);
@@ -4096,12 +4201,6 @@ void FLightmassProcessor::ImportDebugOutput()
 		Swarm.ReadChannel(Channel, &GDebugStaticLightingInfo.TexelCorners, sizeof(GDebugStaticLightingInfo.TexelCorners));
 		Swarm.ReadChannel(Channel, &GDebugStaticLightingInfo.bCornerValid, sizeof(GDebugStaticLightingInfo.bCornerValid));
 		Swarm.ReadChannel(Channel, &GDebugStaticLightingInfo.SampleRadius, sizeof(GDebugStaticLightingInfo.SampleRadius));
-
-		Swarm.CloseChannel(Channel);
-	}
-	else
-	{
-		UE_LOG(LogLightmassSolver, Log,  TEXT("Error, OpenChannel failed to open %s with error code %d"), *ChannelName, Channel );
 	}
 }
 
@@ -4353,6 +4452,8 @@ bool FLightmassProcessor::ImportTextureMapping(int32 Channel, FTextureMappingImp
 	{
 		bResult = false;
 	}
+
+	ImportDebugOutputStruct(Channel);
 
 	// Update the LightingBuildInfo list
 	UObject* MappedObject = TMImport.TextureMapping->GetMappedObject();

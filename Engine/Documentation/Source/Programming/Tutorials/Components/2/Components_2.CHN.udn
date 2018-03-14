@@ -19,7 +19,7 @@ Description:设置输入并构建自定义Pawn移动组件来定义Pawn如何移
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. 返回 **Unreal Editor（虚幻编辑器）** ，现在我们可以配置项目的输入设置了。 您可以在 **Edit（编辑）** 下拉菜单的 **Project Settings（项目设置）** 中找到这些设置。
 
@@ -72,7 +72,7 @@ Description:设置输入并构建自定义Pawn移动组件来定义Pawn如何移
     [/PARAM]
     [PARAM:content]
 		**CollidingPawn.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -101,7 +101,7 @@ Description:设置输入并构建自定义Pawn移动组件来定义Pawn如何移
 			};
 
 		**CollidingPawn.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawn.h"
@@ -181,4 +181,4 @@ Description:设置输入并构建自定义Pawn移动组件来定义Pawn如何移
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

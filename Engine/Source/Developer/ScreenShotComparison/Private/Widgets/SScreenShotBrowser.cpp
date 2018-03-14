@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SScreenShotBrowser.cpp: Implements the SScreenShotBrowser class.
@@ -16,6 +16,10 @@
 #include "Modules/ModuleManager.h"
 #include "DirectoryWatcherModule.h"
 #include "IDirectoryWatcher.h"
+#include "ISourceControlModule.h"
+#include "ISourceControlOperation.h"
+#include "SourceControlOperations.h"
+#include "ISourceControlProvider.h"
 
 #define LOCTEXT_NAMESPACE "ScreenshotComparison"
 
@@ -29,7 +33,7 @@ void SScreenShotBrowser::Construct( const FArguments& InArgs,  IScreenShotManage
 
 	ChildSlot
 	[
-		SNew( SVerticalBox )
+		SNew(SVerticalBox)
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		.Padding(2.0f)
@@ -48,22 +52,105 @@ void SScreenShotBrowser::Construct( const FArguments& InArgs,  IScreenShotManage
 			.FillWidth(1.0f)
 			.HAlign(HAlign_Right)
 			[
-				SNew(SButton)
-				.HAlign(HAlign_Center)
-				.Text(LOCTEXT("DeleteAllReports", "Delete All Reports"))
-				.ToolTipText(LOCTEXT("DeleteAllReportsTooltip", "Deletes all the current reports.  Reports are not removed unless the user resolves them, \nso if you just want to reset the state of the reports, clear them here and then re-run the tests."))
-				.ButtonStyle(FEditorStyle::Get(), "FlatButton.Danger")
-				.TextStyle(FEditorStyle::Get(), "FlatButton.DefaultTextStyle")
-				.OnClicked_Lambda([this]()
-				{
-					while ( ComparisonList.Num() > 0 )
-					{
-						TSharedPtr<FScreenComparisonModel> Model = ComparisonList.Pop();
-						Model->Complete();
-					}
+				SNew(SHorizontalBox)
 
-					return FReply::Handled();
-				})
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(2.f, 0.f)
+				[
+					SNew(SButton)
+					.HAlign(HAlign_Center)
+					.Text(LOCTEXT("AddAllNewReports", "Add All New Reports"))
+					.ToolTipText(LOCTEXT("AddAllNewReportsTooltip", "Adds all new screenshots contained in the reports."))
+					.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
+					.TextStyle(FEditorStyle::Get(), "FlatButton.DefaultTextStyle")
+					.IsEnabled_Lambda([this]() -> bool
+					{
+						return ComparisonList.Num() > 0 && ISourceControlModule::Get().IsEnabled();
+					})
+					.OnClicked_Lambda([this]()
+					{
+						for (int Entry = ComparisonList.Num()-1; Entry >= 0; --Entry)
+						{
+							TSharedPtr<FScreenComparisonModel> Model = ComparisonList[Entry];
+							const FImageComparisonResult& Comparison = Model->Report.Comparison;
+						
+							if (CanAddNewReportResult(Comparison))
+							{
+								ComparisonList.RemoveAt(Entry);
+								Model->AddNew(ScreenShotManager);
+
+								// Avoid thrashing P4
+								const float SleepBetweenOperations = 0.005f;
+								FPlatformProcess::Sleep(SleepBetweenOperations);
+							}	
+						}
+
+						return FReply::Handled();
+					})
+				]
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(2.f, 0.f)
+				[
+					SNew(SButton)
+					.HAlign(HAlign_Center)
+					.Text(LOCTEXT("ReplaceAllReports", "Replace All Reports"))
+					.ToolTipText(LOCTEXT("ReplaceAllReportsTooltip", "Replaces all screenshots containing a different result in the reports."))
+					.ButtonStyle(FEditorStyle::Get(), "FlatButton.Warning")
+					.TextStyle(FEditorStyle::Get(), "FlatButton.DefaultTextStyle")
+					.IsEnabled_Lambda([this]() -> bool
+					{
+						return ComparisonList.Num() > 0 && ISourceControlModule::Get().IsEnabled();
+					})
+					.OnClicked_Lambda([this]()
+					{
+						for (int Entry = ComparisonList.Num()-1; Entry >= 0; --Entry)
+						{
+							TSharedPtr<FScreenComparisonModel> Model = ComparisonList[Entry];
+							const FImageComparisonResult& Comparison = Model->Report.Comparison;
+						
+							if (!CanAddNewReportResult(Comparison))
+							{
+								ComparisonList.RemoveAt(Entry);
+								Model->Replace(ScreenShotManager);
+
+								// Avoid thrashing P4
+								const float SleepBetweenOperations = 0.005f;
+								FPlatformProcess::Sleep(SleepBetweenOperations);
+							}
+						}
+
+						return FReply::Handled();
+					})
+				]
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(2.f, 0.f)
+				[
+					SNew(SButton)
+					.HAlign(HAlign_Center)
+					.Text(LOCTEXT("DeleteAllReports", "Delete All Reports"))
+					.ToolTipText(LOCTEXT("DeleteAllReportsTooltip", "Deletes all the current reports.  Reports are not removed unless the user resolves them, \nso if you just want to reset the state of the reports, clear them here and then re-run the tests."))
+					.ButtonStyle(FEditorStyle::Get(), "FlatButton.Danger")
+					.TextStyle(FEditorStyle::Get(), "FlatButton.DefaultTextStyle")
+					.IsEnabled_Lambda([this]() -> bool
+					{
+						return ComparisonList.Num() > 0;
+					})
+					.OnClicked_Lambda([this]()
+					{
+						while ( ComparisonList.Num() > 0 )
+						{
+							TSharedPtr<FScreenComparisonModel> Model = ComparisonList.Pop();
+							Model->Complete();
+						}
+
+						return FReply::Handled();
+					})
+				]
 			]
 		]
 		
@@ -178,6 +265,16 @@ void SScreenShotBrowser::RebuildTree()
 	}
 
 	ComparisonView->RequestListRefresh();
+}
+
+bool SScreenShotBrowser::CanAddNewReportResult(const FImageComparisonResult& Comparison)
+{
+	bool bHasApprovedFile = !Comparison.ApprovedFile.IsEmpty();
+	FString ApprovedPath = FPaths::GetPath(Comparison.ApprovedFile);
+	FString IncomingPath = FPaths::GetPath(Comparison.IncomingFile);
+	bool bIsComparingAgainstPlatformFallback = bHasApprovedFile && ApprovedPath != IncomingPath;
+
+	return Comparison.IsNew() || bIsComparingAgainstPlatformFallback;
 }
 
 #undef LOCTEXT_NAMESPACE

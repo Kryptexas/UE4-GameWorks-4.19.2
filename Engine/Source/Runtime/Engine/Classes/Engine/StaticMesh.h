@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -416,6 +416,9 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 #if WITH_EDITOR
 	/** Notification when bounds changed */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnExtendedBoundsChanged, const FBoxSphereBounds&);
+
+	/** Notification when anything changed */
+	DECLARE_MULTICAST_DELEGATE(FOnMeshChanged);
 #endif
 
 	/** Pointer to the data used to render this static mesh. */
@@ -613,6 +616,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 
 #if WITH_EDITOR
 	FOnExtendedBoundsChanged OnExtendedBoundsChanged;
+	FOnMeshChanged OnMeshChanged;
 #endif
 
 protected:
@@ -646,6 +650,7 @@ public:
 	ENGINE_API void BroadcastNavCollisionChange();
 
 	FOnExtendedBoundsChanged& GetOnExtendedBoundsChanged() { return OnExtendedBoundsChanged; }
+	FOnMeshChanged& GetOnMeshChanged() { return OnMeshChanged; }
 #endif // WITH_EDITOR
 
 	ENGINE_API virtual void Serialize(FArchive& Ar) override;

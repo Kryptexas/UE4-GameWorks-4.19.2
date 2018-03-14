@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3782314
 Title: iOS 에서 iAd 게임내 광고 사용법
 Description:iOS 에서 iAd 게임내 광고 시스템 사용법입니다.
 Crumbs:
@@ -6,40 +6,7 @@ Availability:Public
 Parent:Platforms/iOS
 order:3
 type:how-to
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Platforms/Mobile/Ads:title%](Platforms/Mobile/Ads/ads_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Mobile/Ads:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Mobile/Ads:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Mobile/Ads]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Platforms/Mobile/Ads:title%](Platforms/Mobile/Ads/ads_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Mobile/Ads:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Mobile/Ads:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Mobile/Ads]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:ads_topic.pn
 
 ![](Platforms/Mobile/Ads/iAd.png)(w:240)
 

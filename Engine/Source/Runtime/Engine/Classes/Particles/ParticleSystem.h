@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -417,6 +417,11 @@ public:
 	 *	Editor helper function for setting the LOD validity flags used in Cascade.
 	 */
 	ENGINE_API void SetupLODValidity();
+
+	/**
+	 * Set the time to delay spawning the particle system
+	 */
+	ENGINE_API void SetDelay(float InDelay);
 
 #if WITH_EDITOR
 	/**

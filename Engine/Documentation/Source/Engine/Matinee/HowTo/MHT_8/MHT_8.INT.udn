@@ -5,19 +5,13 @@ Description:Using Events and Visibility, how to create a rock that explodes afte
 Version: 4.9
 SkillLevel: Intermediate
 
----
 In the following steps, we will create a rock that explodes after a timer count down and spawn effects using **Matinee Events** and **Visibility** tracks.
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Add the Matinee Actor and Props
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will add our **Matinee Actor** and assets that we will use in the scene.
-	[/PARAM]
-[/OBJECT]
+## Add the Matinee Actor and Props
+
+In this step, we will add our **Matinee Actor** and assets that we will use in the scene.
 
 1. From the **Toolbar** menu, select **Matinee** and click the **Add Matinee** button. 
 
@@ -95,14 +89,9 @@ In the following steps, we will create a rock that explodes after a timer count 
 
 	_We will control the visibility of the Actors through Matinee and what them hidden by default._
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Adding the Assets to Matinee and Setting the Tracks
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will add all of our assets to our **Matinee** and define the tracks that will be used to drive the sequence. 
-	[/PARAM]
-[/OBJECT]
+## Adding the Assets to Matinee and Setting the Tracks
+
+In this step, we will add all of our assets to our **Matinee** and define the tracks that will be used to drive the sequence. 
 
 1.  **Select** the Matinee in the **World Outliner** or viewport, then in the Details panel **select Open Matinee** and minimize it when it opens. 
 
@@ -152,15 +141,9 @@ In the following steps, we will create a rock that explodes after a timer count 
 
 	![](MHT8_MatineeFinished.png)
 
+## Using the Matinee Actor in Blueprints
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Using the Matinee Actor in Blueprints
-	[/PARAM]
-	[PARAM:description]
-	In this step, we wll trigger an event when the **Explode** event is called in our **Matinee** sequence and activate the particle effect when the **Matinee** is complete.
-	[/PARAM]
-[/OBJECT]
+In this step, we wll trigger an event when the **Explode** event is called in our **Matinee** sequence and activate the particle effect when the **Matinee** is complete.
 
 1.	Select the **MatineeActor** in the level viewport or World Outliner then click the **Blueprints** button from the main tool bar and select **Open Level Blueprint**. 
 
@@ -225,41 +208,4 @@ In the following steps, we will create a rock that explodes after a timer count 
 	[/OBJECT]
 
 	_You should see the text countdown and the rock explode with a particle and sound effect, after which fire can be seen in the location where the rock was._
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

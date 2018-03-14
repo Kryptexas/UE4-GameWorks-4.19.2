@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:3275202
-Availability:Public
+﻿Availability:Public
 Title:ワールド アウトライナー
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:選択やアタッチメントなどに利用する現行レベル内の全アクタの階層ツリービュー
@@ -14,7 +13,7 @@ Version:4.9
 
 ![Scene Outliner Panel](scene_outliner.png)
 
-[ワールド アウトライナー の UI](Engine/UI/LevelEditor\SceneOutliner) の詳細は、そのドキュメントを参照してください。
+ワールド アウトライナーの UI の詳細は、[ワールド アウトライナー UI](Engine/UI/LevelEditor\SceneOutliner\Interface) のドキュメントを参照してください。
 
 ## ワールド アウトライナーの操作
 

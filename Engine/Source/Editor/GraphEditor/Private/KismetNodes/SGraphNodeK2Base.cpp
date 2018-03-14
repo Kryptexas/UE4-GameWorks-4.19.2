@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "KismetNodes/SGraphNodeK2Base.h"
@@ -15,8 +15,6 @@
 #include "SGraphPin.h"
 #include "EdGraphSchema_K2.h"
 #include "K2Node.h"
-#include "K2Node_Composite.h"
-#include "K2Node_MacroInstance.h"
 #include "K2Node_Timeline.h"
 #include "Engine/Breakpoint.h"
 #include "Kismet2/KismetDebugUtilities.h"
@@ -361,28 +359,13 @@ void SGraphNodeK2Base::GetOverlayBrushes(bool bSelected, const FVector2D WidgetS
 	{
 		FOverlayBrushInfo BreakpointOverlayInfo;
 
-		if (Breakpoint->GetLocation()->IsA<UK2Node_Composite>()
-			|| Breakpoint->GetLocation()->IsA<UK2Node_MacroInstance>())
+		if (Breakpoint->IsEnabledByUser())
 		{
-			if (Breakpoint->IsEnabledByUser())
-			{
-				BreakpointOverlayInfo.Brush = FEditorStyle::GetBrush(FKismetDebugUtilities::IsBreakpointValid(Breakpoint) ? TEXT("Kismet.DebuggerOverlay.Breakpoint.EnabledAndValidCollapsed") : TEXT("Kismet.DebuggerOverlay.Breakpoint.EnabledAndInvalidCollapsed"));
-			}
-			else
-			{
-				BreakpointOverlayInfo.Brush = FEditorStyle::GetBrush(TEXT("Kismet.DebuggerOverlay.Breakpoint.DisabledCollapsed"));
-			}
+			BreakpointOverlayInfo.Brush = FEditorStyle::GetBrush(FKismetDebugUtilities::IsBreakpointValid(Breakpoint) ? TEXT("Kismet.DebuggerOverlay.Breakpoint.EnabledAndValid") : TEXT("Kismet.DebuggerOverlay.Breakpoint.EnabledAndInvalid"));
 		}
 		else
 		{
-			if (Breakpoint->IsEnabledByUser())
-			{
-				BreakpointOverlayInfo.Brush = FEditorStyle::GetBrush(FKismetDebugUtilities::IsBreakpointValid(Breakpoint) ? TEXT("Kismet.DebuggerOverlay.Breakpoint.EnabledAndValid") : TEXT("Kismet.DebuggerOverlay.Breakpoint.EnabledAndInvalid"));
-			}
-			else
-			{
-				BreakpointOverlayInfo.Brush = FEditorStyle::GetBrush(TEXT("Kismet.DebuggerOverlay.Breakpoint.Disabled"));
-			}
+			BreakpointOverlayInfo.Brush = FEditorStyle::GetBrush(TEXT("Kismet.DebuggerOverlay.Breakpoint.Disabled"));
 		}
 
 		if(BreakpointOverlayInfo.Brush != NULL)
@@ -526,20 +509,20 @@ void SGraphNodeK2Base::GetNodeInfoPopups(FNodeInfoContext* Context, TArray<FGrap
 					switch (WatchStatus)
 					{
 					case FKismetDebugUtilities::EWTR_Valid:
-						PinnedWatchText += FString::Printf(*LOCTEXT("WatchingAndValid", "Watching %s\n\t%s").ToString(), *PinName, *WatchText);//@TODO: Print out object being debugged name?
+						PinnedWatchText += FText::Format(LOCTEXT("WatchingAndValidFmt", "Watching {0}\n\t{1}"), FText::FromString(PinName), FText::FromString(WatchText)).ToString();//@TODO: Print out object being debugged name?
 						break;
 
 					case FKismetDebugUtilities::EWTR_NotInScope:
-						PinnedWatchText += FString::Printf(*LOCTEXT("WatchingWhenNotInScope", "Watching %s\n\t(not in scope)").ToString(), *PinName);
+						PinnedWatchText += FText::Format(LOCTEXT("WatchingWhenNotInScopeFmt", "Watching {0}\n\t(not in scope)"), FText::FromString(PinName)).ToString();
 						break;
 
 					case FKismetDebugUtilities::EWTR_NoProperty:
-						PinnedWatchText += FString::Printf(*LOCTEXT("WatchingUnknownProperty", "Watching %s\n\t(no debug data)").ToString(), *PinName);
+						PinnedWatchText += FText::Format(LOCTEXT("WatchingUnknownPropertyFmt", "Watching {0}\n\t(no debug data)"), FText::FromString(PinName)).ToString();
 						break;
 
 					default:
 					case FKismetDebugUtilities::EWTR_NoDebugObject:
-						PinnedWatchText += FString::Printf(*LOCTEXT("WatchingNoDebugObject", "Watching %s").ToString(), *PinName);
+						PinnedWatchText += FText::Format(LOCTEXT("WatchingNoDebugObjectFmt", "Watching {0}"), FText::FromString(PinName)).ToString();
 						break;
 					}
 

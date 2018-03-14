@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ModuleDescriptor.h"
 #include "Misc/ScopedSlowTask.h"
@@ -377,10 +377,18 @@ bool FModuleDescriptor::IsCompiledInCurrentConfiguration() const
 		break;
 
 	case EHostType::ServerOnly:
+#if IS_PROGRAM
+		return false;
+#else
 		return !FPlatformProperties::IsClientOnly();
+#endif
 
 	case EHostType::ClientOnly:
+#if IS_PROGRAM
+		return false;
+#else
 		return !FPlatformProperties::IsServerOnly();
+#endif
 
 	}
 
@@ -485,13 +493,14 @@ void FModuleDescriptor::LoadModulesForPhase(ELoadingPhase::Type LoadingPhase, co
 
 bool FModuleDescriptor::CheckModuleCompatibility(const TArray<FModuleDescriptor>& Modules, bool bGameModules, TArray<FString>& OutIncompatibleFiles)
 {
+	FModuleManager& ModuleManager = FModuleManager::Get();
+
 	bool bResult = true;
-	for(int Idx = 0; Idx < Modules.Num(); Idx++)
+	for (const FModuleDescriptor& Module : Modules)
 	{
-		const FModuleDescriptor &Module = Modules[Idx];
-		if (Module.IsCompiledInCurrentConfiguration() && !FModuleManager::Get().IsModuleUpToDate(Module.Name))
+		if (Module.IsCompiledInCurrentConfiguration() && !ModuleManager.IsModuleUpToDate(Module.Name))
 		{
-			OutIncompatibleFiles.Add(FModuleManager::GetCleanModuleFilename(Module.Name, bGameModules));
+			OutIncompatibleFiles.Add(ModuleManager.GetCleanModuleFilename(Module.Name, bGameModules));
 			bResult = false;
 		}
 	}

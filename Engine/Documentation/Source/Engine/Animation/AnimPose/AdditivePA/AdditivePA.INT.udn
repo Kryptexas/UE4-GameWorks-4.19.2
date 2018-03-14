@@ -2,6 +2,7 @@ Availability:Public
 Title: Additive vs. Full Body
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Describes how the Additive and Full Body settings affect a Pose Asset. 
+Parent: Engine/Animation/AnimPose
 Related: Engine\Animation\AnimHowTo\CreatePoseAsset
 Related: Engine\Animation\AnimHowTo\CurveDrivenAnimation
 Related: Engine\Animation\AnimPose\AnimBPPoseNodes

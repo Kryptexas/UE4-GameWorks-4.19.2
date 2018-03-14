@@ -1,40 +1,36 @@
-Title: Oculus Rift Development
+Title: Developing for Oculus Rift
 Availability: Public
 Crumbs: %ROOT%, Platforms
 Description: Information on getting UE4 to work with the Oculus Rift HMD.
 Navigation: platform
 Platform: Oculus
-Version: 4.16
+Version: 4.17
 type: landing
-parent: Platforms/Oculus
+parent: Platforms/VR
 order:2
+tags:VR
+Tags: Desktop VR
 tags: Oculus Rift
 tags: Platform
-topic-image: Platforms/VR/DesktopVR/Oculus_Topic_Image.png
+topic-image: OculusRiftDevelopment_topic.png
 
-## Prerequisites 
+![](Rift_Touch_Tracker.png)(w:1000)
 
-[DIR(end:"1" output:"topic" type:"reference" tags:"Oculus Rift" parent:"Platforms/Oculus")]
+## Starting Out 
 
-## Quick Start
+[DIR(end:"1" output:"topic" type:"quick start" parent:"Platforms/Oculus")]
 
-[DIR(end:"1" output:"topic" type:"quick start" tags:" VR" parent:"Platforms/Oculus")]
+## Samsung Gear VR Development
 
-## Best Practices
+[DIR(end:"1" output:"topic" type:"reference,overview" parent:"Platforms/Oculus")]
 
-[DIR(end:"1" output:"topic" type:"overview" tags:" VR" parent:"Platforms/Oculus")]
+## Guides
 
-## Oculus How To
+[DIR(output:"fancy" type:"how-to" skilllevel:"Beginner" parent:"Platforms/Oculus" org:"flat")]
+[DIR(output:"fancy" type:"how-to" skilllevel:"Intermediate" parent:"Platforms/Oculus" org:"flat")]
+[DIR(output:"fancy" type:"how-to" skilllevel:"Advanced" parent:"Platforms/Oculus" org:"flat")]
+[DIR(output:"fancy" type:"how-to" skilllevel:"Expert" parent:"Platforms/Oculus" org:"flat")]
 
-[DIR(end:"1" output:"topic" type:"how-to" tags:"Oculus" tags:"VR" parent:"Platforms/Oculus")]
-
-## Oculus Command Reference
-
-[DIR(end:"1" output:"topic" type:"reference" tags:"VR" parent:"Platforms/Oculus")]
-
-## Oculus Profiling & Performance
-
-[DIR(end:"1" output:"topic" type:"overview" tags:"Performance and Profiling" parent:"Platforms/Oculus")]
 
 
 

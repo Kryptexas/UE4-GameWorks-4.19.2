@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimStateConduitNode.h"
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -22,8 +22,8 @@ UAnimStateConduitNode::UAnimStateConduitNode(const FObjectInitializer& ObjectIni
 
 void UAnimStateConduitNode::AllocateDefaultPins()
 {
-	CreatePin(EGPD_Input, TEXT("Transition"), FString(), nullptr, TEXT("In"));
-	CreatePin(EGPD_Output, TEXT("Transition"), FString(), nullptr, TEXT("Out"));
+	CreatePin(EGPD_Input, TEXT("Transition"), TEXT("In"));
+	CreatePin(EGPD_Output, TEXT("Transition"), TEXT("Out"));
 }
 
 void UAnimStateConduitNode::AutowireNewNode(UEdGraphPin* FromPin)

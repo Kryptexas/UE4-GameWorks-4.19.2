@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "KismetNodes/SGraphNodeK2Timeline.h"
 #include "Editor/EditorEngine.h"
@@ -27,7 +27,7 @@ void SGraphNodeK2Timeline::GetNodeInfoPopups(FNodeInfoContext* Context, TArray<F
 			UClass* ContainingClass = TimelineProperty->GetTypedOuter<UClass>();
 			if (!ActiveObject->IsA(ContainingClass))
 			{
-				const FString ErrorText = FString::Printf(*LOCTEXT("StaleDebugData", "Stale debug data\nProperty is on %s\nDebugging a %s").ToString(), *ContainingClass->GetName(), *ActiveObject->GetClass()->GetName());
+				const FString ErrorText = FText::Format(LOCTEXT("StaleDebugDataFmt", "Stale debug data\nProperty is on {0}\nDebugging a {1}"), FText::FromString(ContainingClass->GetName()), FText::FromString(ActiveObject->GetClass()->GetName())).ToString();
 				new (Popups) FGraphInformationPopupInfo(NULL, TimelineBubbleColor, ErrorText);
 			}
 			else if (UTimelineComponent* Timeline = Cast<UTimelineComponent>(TimelineProperty->GetObjectPropertyValue(TimelineProperty->ContainerPtrToValuePtr<void>(ActiveObject))))

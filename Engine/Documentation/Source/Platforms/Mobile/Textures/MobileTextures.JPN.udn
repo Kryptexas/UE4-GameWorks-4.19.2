@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3482294
 Availability:Public
 Title:モバイル プラットフォーム向けのテクスチャ ガイドライン
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
@@ -17,18 +17,20 @@ tags:mobile
 いくつか制約があります：
 
 * ディメンションの最大サイズはすべて 2048 です。これは、 PVR コンプレッサの最大許容サイズです。
-* ディメンションは両方とも 2 のべき乗 (2 、 4 、 8 、 16 、 32 、 64 、 128 、 256 、 512 、 1024 、 2048 など) です。
-* メモリを効率よく使用する正方テクスチャを可能な限り使用すべきです。 <!-- 非正方テクスチャは伸ばして正方形にします (?)  -->
+* ディメンションは両方とも 2 のべき乗 (2、4、8、16、32、64、128、256、512、1024、2048 など) です。
+* メモリを効率よく使用する正方テクスチャを可能な限り使用すべきです。 [COMMENT:none]
+ 非正方テクスチャは伸ばして正方形にします (?)  
+[/COMMENT]
 
 さらに、テクスチャの設定値をモバイル プラットフォーム上で動作するように正しく設定しなければなりません。
 
-* **[Compression Settings (圧縮設定)]** の **[TC_Default]** もしくは **[TC_NormalMap]** のみを使用することを推奨します。他の設定を使用すると、ターゲット デバイス上でのメモリ消費が大きくなってしまいます。
+* **[Compression Settings (圧縮設定)]** の **[TC_Default]** もしくは **[TC_NormalMap]** のみを使用することを推奨します。他の設定を使用すると、ターゲット デバイス上でのメモリ使用が増えます。
 * **sRGB** プロパティは有効にしてください。
  
 ## マテリアルでのテクスチャの使用方法
 
 ほとんどの不透明なマテリアルは、テクスチャからくるために BaseColor、Roughness、Normal のみ必要です。スペキュラは指定しませんが、 
-メタリックは定数となｒます。Material プロパティの基本セットがあれば、レイヤーが 1 つだけのマテリアルの場合は、 
+メタリックは定数となります。Material プロパティの基本セットがあれば、レイヤーが 1 つだけのマテリアルの場合は、 
 2 つのテクスチャのみを必要とする以下のセットアップを使用する場合がほとんどです。
 
 * **Texture 1**
@@ -48,15 +50,67 @@ tags:mobile
 
 1. メイン ツールバーの **[Devices Profiles (デバイス プロファイル)]** マネージャを開き、**[Windows]** > **[Developer Tools (開発ツール)]**、**[Device Profiles (デバイス プロファイル)]** をクリックします。
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](T_Device_Profiles_Manager.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](T_Device_Profiles_Manager_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. **[Device Profiles]** オプションをクリックすると、以下のメニューが表示されます。
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](T_DPM.png)
+	[/PARAM]
+	[/OBJECT]
 
-1. このメニューから編集したいデバイスを選択して、デバイス名の横にある 3 つの点をクリックして、そのデバイス プロファイルを開きます。
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](T_Device_Profiles_Manager_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
-1. 調節したいプロパティをクリックして、好きな設定を入力して、変更します。
+1. このメニューから編集したいデバイスを選択します。デバイス名の横の 3 つの点をクリックして、デバイス プロファイルを開きます。
+
+1. 調節したいプロパティをクリックして、好きな設定を入力して変更します。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalShaderResources.h: Metal shader resource RHI definitions.
@@ -17,6 +17,85 @@ enum
 	METAL_FIRST_UNIFORM_BUFFER = 0,			// @todo-mobile: Remove me
 	METAL_MAX_COMPUTE_STAGE_UAV_UNITS = 8,	// @todo-mobile: Remove me
 	METAL_UAV_NOT_SUPPORTED_FOR_GRAPHICS_UNIT = -1, // for now, only CS supports UAVs/ images
+	METAL_MAX_BUFFERS = 31,
+};
+
+/**
+* Buffer data-types for MetalRHI & MetalSL
+*/
+enum EMetalBufferFormat
+{
+	Unknown					=0,
+	
+	R8Sint					=1,
+	R8Uint					=2,
+	R8Snorm					=3,
+	R8Unorm					=4,
+	
+	R16Sint					=5,
+	R16Uint					=6,
+	R16Snorm				=7,
+	R16Unorm				=8,
+	R16Half					=9,
+	
+	R32Sint					=10,
+	R32Uint					=11,
+	R32Float				=12,
+	
+	RG8Sint					=13,
+	RG8Uint					=14,
+	RG8Snorm				=15,
+	RG8Unorm				=16,
+	
+	RG16Sint				=17,
+	RG16Uint				=18,
+	RG16Snorm				=19,
+	RG16Unorm				=20,
+	RG16Half				=21,
+	
+	RG32Sint				=22,
+	RG32Uint				=23,
+	RG32Float				=24,
+	
+	RGB8Sint				=25,
+	RGB8Uint				=26,
+	RGB8Snorm				=27,
+	RGB8Unorm				=28,
+	
+	RGB16Sint				=29,
+	RGB16Uint				=30,
+	RGB16Snorm				=31,
+	RGB16Unorm				=32,
+	RGB16Half				=33,
+	
+	RGB32Sint				=34,
+	RGB32Uint				=35,
+	RGB32Float				=36,
+	
+	RGBA8Sint				=37,
+	RGBA8Uint				=38,
+	RGBA8Snorm				=39,
+	RGBA8Unorm				=40,
+	
+	BGRA8Unorm				=41,
+	
+	RGBA16Sint				=42,
+	RGBA16Uint				=43,
+	RGBA16Snorm				=44,
+	RGBA16Unorm				=45,
+	RGBA16Half				=46,
+	
+	RGBA32Sint				=47,
+	RGBA32Uint				=48,
+	RGBA32Float				=49,
+	
+	RGB10A2Unorm			=50,
+	
+	RG11B10Half 			=51,
+	
+	R5G6B5Unorm         	=52,
+	
+	Max						=53
 };
 
 struct FMetalShaderResourceTable : public FBaseShaderResourceTable
@@ -48,79 +127,34 @@ inline FArchive& operator<<(FArchive& Ar, FMetalShaderResourceTable& SRT)
 	return Ar;
 }
 
-
 struct FMetalShaderBindings
 {
 	TArray<TArray<CrossCompiler::FPackedArrayInfo>>	PackedUniformBuffers;
 	TArray<CrossCompiler::FPackedArrayInfo>			PackedGlobalArrays;
 	FMetalShaderResourceTable				ShaderResourceTable;
+	TArray<uint8> 							TypedBufferFormats;
 
+    uint32  LinearBuffer;
+	uint32	TypedBuffers;
+	uint32 	InvariantBuffers;
 	uint16	InOutMask;
 	uint8	NumSamplers;
 	uint8	NumUniformBuffers;
 	uint8	NumUAVs;
-	uint8	AtomicUAVs;
 	bool	bHasRegularUniformBuffers;
+	bool	bDiscards;
 
 	FMetalShaderBindings() :
+		LinearBuffer(0),
+        TypedBuffers(0),
+		InvariantBuffers(0),
 		InOutMask(0),
 		NumSamplers(0),
 		NumUniformBuffers(0),
 		NumUAVs(0),
-		AtomicUAVs(0),
-		bHasRegularUniformBuffers(false)
+		bHasRegularUniformBuffers(false),
+		bDiscards(false)
 	{
-	}
-
-	friend bool operator==(const FMetalShaderBindings &A, const FMetalShaderBindings &B)
-	{
-		bool bEqual = true;
-
-		bEqual &= A.InOutMask == B.InOutMask;
-		bEqual &= A.NumSamplers == B.NumSamplers;
-		bEqual &= A.NumUniformBuffers == B.NumUniformBuffers;
-		bEqual &= A.NumUAVs == B.NumUAVs;
-		bEqual &= A.AtomicUAVs == B.AtomicUAVs;
-		bEqual &= A.bHasRegularUniformBuffers == B.bHasRegularUniformBuffers;
-		bEqual &= A.PackedGlobalArrays.Num() == B.PackedGlobalArrays.Num();
-		bEqual &= A.PackedUniformBuffers.Num() == B.PackedUniformBuffers.Num();
-		bEqual &= A.ShaderResourceTable == B.ShaderResourceTable;
-
-		if (!bEqual)
-		{
-			return bEqual;
-		}
-
-		bEqual &= FMemory::Memcmp(A.PackedGlobalArrays.GetData(), B.PackedGlobalArrays.GetData(), A.PackedGlobalArrays.GetTypeSize()*A.PackedGlobalArrays.Num()) == 0;
-
-		for (int32 Item = 0; Item < A.PackedUniformBuffers.Num(); Item++)
-		{
-			const TArray<CrossCompiler::FPackedArrayInfo> &ArrayA = A.PackedUniformBuffers[Item];
-			const TArray<CrossCompiler::FPackedArrayInfo> &ArrayB = B.PackedUniformBuffers[Item];
-
-			bEqual &= FMemory::Memcmp(ArrayA.GetData(), ArrayB.GetData(), ArrayA.GetTypeSize()*ArrayA.Num()) == 0;
-		}
-
-		return bEqual;
-	}
-
-	friend uint32 GetTypeHash(const FMetalShaderBindings &Binding)
-	{
-		uint32 Hash = 0;
-		Hash = Binding.InOutMask;
-		Hash |= Binding.NumSamplers << 16;
-		Hash |= Binding.NumUniformBuffers << 24;
-		Hash ^= Binding.NumUAVs;
-		Hash ^= Binding.AtomicUAVs;
-		Hash ^= Binding.bHasRegularUniformBuffers << 8;
-		Hash ^= FCrc::MemCrc_DEPRECATED(Binding.PackedGlobalArrays.GetData(), Binding.PackedGlobalArrays.GetTypeSize()*Binding.PackedGlobalArrays.Num());
-
-		for (int32 Item = 0; Item < Binding.PackedUniformBuffers.Num(); Item++)
-		{
-			const TArray<CrossCompiler::FPackedArrayInfo> &Array = Binding.PackedUniformBuffers[Item];
-			Hash ^= FCrc::MemCrc_DEPRECATED(Array.GetData(), Array.GetTypeSize()* Array.Num());
-		}
-		return Hash;
 	}
 };
 
@@ -129,12 +163,16 @@ inline FArchive& operator<<(FArchive& Ar, FMetalShaderBindings& Bindings)
 	Ar << Bindings.PackedUniformBuffers;
 	Ar << Bindings.PackedGlobalArrays;
 	Ar << Bindings.ShaderResourceTable;
+	Ar << Bindings.TypedBufferFormats;
+    Ar << Bindings.LinearBuffer;
+    Ar << Bindings.TypedBuffers;
+	Ar << Bindings.InvariantBuffers;
 	Ar << Bindings.InOutMask;
 	Ar << Bindings.NumSamplers;
 	Ar << Bindings.NumUniformBuffers;
 	Ar << Bindings.NumUAVs;
-	Ar << Bindings.AtomicUAVs;
 	Ar << Bindings.bHasRegularUniformBuffers;
+	Ar << Bindings.bDiscards;
 	return Ar;
 }
 
@@ -227,9 +265,9 @@ struct FMetalCodeHeader
 	
 	uint16 CompileFlags;
 	
-	uint8 NumThreadsX;
-	uint8 NumThreadsY;
-	uint8 NumThreadsZ;
+	uint32 NumThreadsX;
+	uint32 NumThreadsY;
+	uint32 NumThreadsZ;
 	
 	uint8 Version;
 	int8 SideTable;
@@ -237,7 +275,8 @@ struct FMetalCodeHeader
 	EMetalOutputWindingMode TessellationOutputWinding;
 	EMetalPartitionMode TessellationPartitioning;
 	
-	bool bFunctionConstants;
+	bool bTessFunctionConstants;
+	bool bDeviceFunctionConstants;
 };
 
 inline FArchive& operator<<(FArchive& Ar, FMetalCodeHeader& Header)
@@ -299,7 +338,8 @@ inline FArchive& operator<<(FArchive& Ar, FMetalCodeHeader& Header)
 	
 	Ar << Header.TessellationOutputWinding;
 	Ar << Header.TessellationPartitioning;
-	Ar << Header.bFunctionConstants;
+	Ar << Header.bTessFunctionConstants;
+	Ar << Header.bDeviceFunctionConstants;
 
     return Ar;
 }

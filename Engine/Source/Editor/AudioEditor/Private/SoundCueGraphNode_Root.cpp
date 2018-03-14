@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SoundCueGraphNode_Root.cpp
@@ -36,7 +36,7 @@ FText USoundCueGraphNode_Root::GetTooltipText() const
 
 void USoundCueGraphNode_Root::CreateInputPins()
 {
-	CreatePin(EGPD_Input, TEXT("SoundNode"), TEXT("Root"), nullptr, FString());
+	CreatePin(EGPD_Input, TEXT("SoundNode"), TEXT("Root"), NAME_None);
 }
 
 void USoundCueGraphNode_Root::GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const

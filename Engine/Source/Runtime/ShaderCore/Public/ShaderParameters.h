@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShaderParameters.h: Shader parameter definitions.
@@ -154,7 +154,7 @@ private:
 };
 
 /** Creates a shader code declaration of this struct for the given shader platform. */
-extern SHADERCORE_API FString CreateUniformBufferShaderDeclaration(const TCHAR* Name,const FUniformBufferStruct& UniformBufferStruct,EShaderPlatform Platform);
+extern SHADERCORE_API void CreateUniformBufferShaderDeclaration(const TCHAR* Name,const FUniformBufferStruct& UniformBufferStruct,EShaderPlatform Platform, FString& OutDeclaration);
 
 class FShaderUniformBufferParameter
 {

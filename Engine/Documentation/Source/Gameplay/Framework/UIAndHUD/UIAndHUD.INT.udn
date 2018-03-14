@@ -8,25 +8,17 @@ parent:Gameplay/Framework
 order:6
 type:overview
 
-<!--
+[COMMENT:none]
+
 [REGION:header_img]
 ![hud.jpg](hud.jpg)
 [/REGION]
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		UI & HUD
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Programming/Slate) - %Programming/Slate:Description%
-	[/PARAM]
-[/OBJECT]
--->
+## UI & HUD
+
+* [](Programming/Slate) - %Programming/Slate:Description%
+
+[/COMMENT]
 
 The way in which the game communicates and interacts with the player is extremely important. **User Interfaces** (UIs) and **Heads-up Displays** (HUDs) are the games' way of providing information about the game to the player and in some cases allowing the player to interact with the game.
 

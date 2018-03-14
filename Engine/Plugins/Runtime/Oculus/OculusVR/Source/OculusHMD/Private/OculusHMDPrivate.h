@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "IOculusHMDModule.h"
@@ -35,10 +35,6 @@
 #endif
 
 #include "OVR_Plugin.h"
-
-#if PLATFORM_ANDROID
-#include "VRAPI/VrApi.h"
-#endif
 
 #if PLATFORM_WINDOWS
 #include "HideWindowsPlatformTypes.h"
@@ -194,6 +190,49 @@ namespace OculusHMD
 		}
 		return Destination;
 	}
+
+	FORCEINLINE int32 ToExternalDeviceId(const ovrpNode Source)
+	{
+		int32 ExternalDeviceId = INDEX_NONE;
+		switch (Source)
+		{
+		case ovrpNode_Head:
+			// required to be zero (see IXRTrackingSystem::HMDDeviceId)
+			ExternalDeviceId = 0;
+			break;
+		case ovrpNode_None:
+		case ovrpNode_Count:
+		case ovrpNode_EnumSize:
+			// ExternalDeviceId = INDEX_NONE;
+			break;
+		default:
+			// add one, in case the enum value is zero (conflicting with the HMD)
+			ExternalDeviceId = 1 + (int32)Source;
+			break;
+		}
+		return ExternalDeviceId;
+	}
+
+	FORCEINLINE ovrpNode ToOvrpNode(const int32 ExternalDeviceId)
+	{
+		ovrpNode Destination = ovrpNode_None;
+		switch (ExternalDeviceId)
+		{
+		case 0:
+			// zero implies HMD (see ToExternalDeviceId/IXRTrackingSystem::HMDDeviceId)
+			Destination = ovrpNode_Head;
+			break;
+		case -1:
+			// Destination = ovrpNode_None;
+			break;
+		default:
+			// we added one to avoid collision with the HMD's ID (see ToExternalDeviceId)
+			Destination = ovrpNode(ExternalDeviceId - 1);
+			break;
+		}
+		return Destination;
+	}
+
 #endif // OCULUS_HMD_SUPPORTED_PLATFORMS
 
 

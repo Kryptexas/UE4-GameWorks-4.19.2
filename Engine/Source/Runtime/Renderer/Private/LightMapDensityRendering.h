@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightMapDensityRendering.h: Definitions for rendering lightmap density.
@@ -31,10 +31,10 @@ class TLightMapDensityVS : public FMeshMaterialShader, public LightMapPolicyType
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		return (Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialMayModifyMeshPosition())
-				&& LightMapPolicyType::ShouldCache(Platform,Material,VertexFactoryType)
+				&& LightMapPolicyType::ShouldCompilePermutation(Platform,Material,VertexFactoryType)
 				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
@@ -84,10 +84,10 @@ class TLightMapDensityHS : public FBaseHS
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return FBaseHS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& TLightMapDensityVS<LightMapPolicyType>::ShouldCache(Platform, Material, VertexFactoryType);
+		return FBaseHS::ShouldCompilePermutation(Platform, Material, VertexFactoryType)
+			&& TLightMapDensityVS<LightMapPolicyType>::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -114,10 +114,10 @@ class TLightMapDensityDS : public FBaseDS
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return FBaseDS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& TLightMapDensityVS<LightMapPolicyType>::ShouldCache(Platform, Material, VertexFactoryType);		
+		return FBaseDS::ShouldCompilePermutation(Platform, Material, VertexFactoryType)
+			&& TLightMapDensityVS<LightMapPolicyType>::ShouldCompilePermutation(Platform, Material, VertexFactoryType);		
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -145,10 +145,10 @@ class TLightMapDensityPS : public FMeshMaterialShader, public LightMapPolicyType
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		return (Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialMayModifyMeshPosition())
-				&& LightMapPolicyType::ShouldCache(Platform,Material,VertexFactoryType)
+				&& LightMapPolicyType::ShouldCompilePermutation(Platform,Material,VertexFactoryType)
 				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
@@ -299,13 +299,14 @@ public:
 
 		VertexShader = MaterialResource->GetShader<TLightMapDensityVS<LightMapPolicyType> >(InVertexFactory->GetType());
 		PixelShader = MaterialResource->GetShader<TLightMapDensityPS<LightMapPolicyType> >(InVertexFactory->GetType());
+		BaseVertexShader = VertexShader;
 	}
 
 	// FMeshDrawingPolicy interface.
-	FDrawingPolicyMatchResult Matches(const TLightMapDensityDrawingPolicy& Other) const
+	FDrawingPolicyMatchResult Matches(const TLightMapDensityDrawingPolicy& Other, bool bForReals = false) const
 	{
 		DRAWING_POLICY_MATCH_BEGIN
-			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
+			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other, bForReals)) &&
 			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
 			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader) &&
 			DRAWING_POLICY_MATCH(HullShader == Other.HullShader) &&

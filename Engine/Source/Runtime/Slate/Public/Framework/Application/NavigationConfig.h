@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -30,9 +30,14 @@ public:
 	bool bTabNavigation;
 	bool bKeyNavigation;
 	bool bAnalogNavigation;
-	float AnalogNavigationThreshold;
 
-	/**  */
+	float AnalogNavigationHorizontalThreshold;
+	float AnalogNavigationVerticalThreshold;
+
+	FKey AnalogHorizontalKey;
+	FKey AnalogVerticalKey;
+
+	/** Digital key navigation rules. */
 	TMap<FKey, EUINavigation> KeyEventRules;
 
 protected:

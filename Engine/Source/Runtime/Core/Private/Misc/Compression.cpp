@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Misc/Compression.h"
 #include "Misc/AssertionMacros.h"
@@ -190,12 +190,12 @@ bool appUncompressMemoryZLIB( void* UncompressedBuffer, int32 UncompressedSize, 
 	return bOperationSucceeded;
 }
 
-/** Time spent compressing data in seconds. */
-double FCompression::CompressorTime		= 0;
+/** Time spent compressing data in cycles. */
+TAtomic<uint64> FCompression::CompressorTimeCycles(0);
 /** Number of bytes before compression.		*/
-uint64 FCompression::CompressorSrcBytes	= 0;
+TAtomic<uint64> FCompression::CompressorSrcBytes(0);
 /** Nubmer of bytes after compression.		*/
-uint64 FCompression::CompressorDstBytes	= 0;
+TAtomic<uint64> FCompression::CompressorDstBytes(0);
 
 static ECompressionFlags CheckGlobalCompressionFlags(ECompressionFlags Flags)
 {
@@ -290,7 +290,7 @@ int32 FCompression::CompressMemoryBound( ECompressionFlags Flags, int32 Uncompre
  */
 bool FCompression::CompressMemory( ECompressionFlags Flags, void* CompressedBuffer, int32& CompressedSize, const void* UncompressedBuffer, int32 UncompressedSize, int32 BitWindow )
 {
-	double CompressorStartTime = FPlatformTime::Seconds();
+	uint64 CompressorStartTime = FPlatformTime::Cycles64();
 
 	// make sure a valid compression scheme was provided
 	check(Flags & COMPRESS_ZLIB || Flags & COMPRESS_GZIP);
@@ -307,7 +307,7 @@ bool FCompression::CompressMemory( ECompressionFlags Flags, void* CompressedBuff
 		if (bCompressSucceeded)
 		{
 			// Keep track of compression time and stats.
-			CompressorTime += FPlatformTime::Seconds() - CompressorStartTime;
+			CompressorTimeCycles += FPlatformTime::Cycles64() - CompressorStartTime;
 			if (bCompressSucceeded)
 			{
 				CompressorSrcBytes += UncompressedSize;
@@ -333,7 +333,7 @@ bool FCompression::CompressMemory( ECompressionFlags Flags, void* CompressedBuff
 	}
 
 	// Keep track of compression time and stats.
-	CompressorTime += FPlatformTime::Seconds() - CompressorStartTime;
+	CompressorTimeCycles += FPlatformTime::Cycles64() - CompressorStartTime;
 	if( bCompressSucceeded )
 	{
 		CompressorSrcBytes += UncompressedSize;

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneNiagaraEmitterTrack.h"
 #include "NiagaraEmitterHandle.h"
@@ -14,12 +14,13 @@ UMovieSceneNiagaraEmitterTrack::UMovieSceneNiagaraEmitterTrack(const FObjectInit
 
 TSharedPtr<FNiagaraEmitterHandleViewModel> UMovieSceneNiagaraEmitterTrack::GetEmitterHandle()
 {
-	return EmitterHandleViewModel;
+	return EmitterHandleViewModel.Pin();
 }
 
 void UMovieSceneNiagaraEmitterTrack::SetEmitterHandle(TSharedRef<FNiagaraEmitterHandleViewModel> InEmitterHandleViewModel)
 {
 	EmitterHandleViewModel = InEmitterHandleViewModel;
+	EmitterHandleId = InEmitterHandleViewModel->GetId();
 
 	if (Sections.Num() == 0)
 	{
@@ -56,8 +57,14 @@ TRange<float> UMovieSceneNiagaraEmitterTrack::GetSectionBoundaries() const
 
 FName UMovieSceneNiagaraEmitterTrack::GetTrackName() const
 {
-	return EmitterHandleViewModel.IsValid()
-		? EmitterHandleViewModel->GetName()
+	TSharedPtr<FNiagaraEmitterHandleViewModel> EmitterHandleViewModelPinned = EmitterHandleViewModel.Pin();
+	return EmitterHandleViewModelPinned.IsValid()
+		? EmitterHandleViewModelPinned->GetName()
 		: NAME_None;
+}
+
+FGuid UMovieSceneNiagaraEmitterTrack::GetEmitterHandleId() const
+{
+	return EmitterHandleId;
 }
 

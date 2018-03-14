@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DestructibleMesh.cpp: UDestructibleMesh methods.
@@ -9,11 +9,11 @@
 #include "DestructibleFractureSettings.h"
 #include "GPUSkinVertexFactory.h"
 #include "FrameworkObjectVersion.h"
-#include "SkeletalMeshTypes.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "StaticMeshResources.h"
 #include "PhysXPublic.h"
 #include "Engine/StaticMesh.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 #include "ApexDestructionModule.h"
 
 #if WITH_EDITOR
@@ -45,25 +45,25 @@ void UDestructibleMesh::PostLoad()
 	// since this might not work well if outside of editor
 	// you'll have to save re-chunked asset here, but I don't have a good way to let user
 	// know here since PostLoad invalidate any dirty package mark. 
-	FSkeletalMeshResource* ImportedMeshResource = GetImportedResource();
+	FSkeletalMeshRenderData* MeshResource = GetResourceForRendering();
 	const uint32 MaxGPUSkinBones = FGPUBaseSkinVertexFactory::GetMaxGPUSkinBones();
 	check(MaxGPUSkinBones <= FGPUBaseSkinVertexFactory::GHardwareMaxGPUSkinBones);
 	// if this doesn't have the right MAX GPU Bone count, recreate it. 
 	for(int32 LodIndex=0; LodIndex<LODInfo.Num(); LodIndex++)
 	{
 		FSkeletalMeshLODInfo& ThisLODInfo = LODInfo[LodIndex];
-		FStaticLODModel& ThisLODModel = ImportedMeshResource->LODModels[LodIndex];
+		FSkeletalMeshLODRenderData& ThisLODData = MeshResource->LODRenderData[LodIndex];
 
 		// Check that we list the root bone as an active bone.
-		if(!ThisLODModel.ActiveBoneIndices.Contains(0))
+		if(!ThisLODData.ActiveBoneIndices.Contains(0))
 		{
-			ThisLODModel.ActiveBoneIndices.Add(0);
-			ThisLODModel.ActiveBoneIndices.Sort();
+			ThisLODData.ActiveBoneIndices.Add(0);
+			ThisLODData.ActiveBoneIndices.Sort();
 		}
 
-		for (int32 SectionIndex = 0; SectionIndex < ThisLODModel.Sections.Num(); ++SectionIndex)
+		for (int32 SectionIndex = 0; SectionIndex < ThisLODData.RenderSections.Num(); ++SectionIndex)
 		{
-			if (ThisLODModel.Sections[SectionIndex].BoneMap.Num() > (int)MaxGPUSkinBones)
+			if (ThisLODData.RenderSections[SectionIndex].BoneMap.Num() > (int)MaxGPUSkinBones)
 			{
 #if WITH_EDITOR
 				// re create destructible asset if it exceeds
@@ -555,16 +555,16 @@ void UDestructibleMesh::CreateFractureSettings()
 
 #if WITH_APEX && WITH_EDITORONLY_DATA
 
-bool CreateSubmeshFromSMSection(const FStaticMeshLODResources& RenderMesh, int32 SubmeshIdx, const FStaticMeshSection& Section, nvidia::apex::ExplicitSubmeshData& SubmeshData, TArray<nvidia::apex::ExplicitRenderTriangle>& Triangles)
+bool CreateSubmeshFromSMSection(const FStaticMeshLODResources& RenderMesh, int32 SubmeshIdx, const FStaticMeshSection& Section, nvidia::apex::ExplicitSubmeshData& SubmeshData, TArray<nvidia::apex::ExplicitRenderTriangle>& Triangles, const int32 SectionMaterialIndex)
 {
 	// Create submesh descriptor, just a material name and a vertex format
-	FCStringAnsi::Strncpy(SubmeshData.mMaterialName, TCHAR_TO_ANSI(*FString::Printf(TEXT("Material%d"),Section.MaterialIndex)), nvidia::apex::ExplicitSubmeshData::MaterialNameBufferSize);
+	FCStringAnsi::Strncpy(SubmeshData.mMaterialName, TCHAR_TO_ANSI(*FString::Printf(TEXT("Material%d"), SectionMaterialIndex)), nvidia::apex::ExplicitSubmeshData::MaterialNameBufferSize);
 	SubmeshData.mVertexFormat.mHasStaticPositions = SubmeshData.mVertexFormat.mHasStaticNormals = SubmeshData.mVertexFormat.mHasStaticTangents = true;
 	SubmeshData.mVertexFormat.mHasStaticBinormals = true;
 	SubmeshData.mVertexFormat.mBonesPerVertex = 1;
-	SubmeshData.mVertexFormat.mUVCount =  FMath::Min((physx::PxU32)RenderMesh.VertexBuffer.GetNumTexCoords(), (physx::PxU32)apex::VertexFormat::MAX_UV_COUNT);
+	SubmeshData.mVertexFormat.mUVCount =  FMath::Min((physx::PxU32)RenderMesh.VertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords(), (physx::PxU32)apex::VertexFormat::MAX_UV_COUNT);
 
-	const uint32 NumVertexColors = RenderMesh.ColorVertexBuffer.GetNumVertices();
+	const uint32 NumVertexColors = RenderMesh.VertexBuffers.ColorVertexBuffer.GetNumVertices();
 
 	FIndexArrayView StaticMeshIndices = RenderMesh.IndexBuffer.GetArrayView();
 
@@ -577,19 +577,19 @@ bool CreateSubmeshFromSMSection(const FStaticMeshLODResources& RenderMesh, int32
 		{
 			apex::Vertex& Vertex = Triangle.vertices[PointIndex];
 			const uint32 UnrealVertIndex = StaticMeshIndices[Section.FirstIndex + ((TriangleIndex * 3) + PointIndex)];
-			Vertex.position = U2PVector(RenderMesh.PositionVertexBuffer.VertexPosition(UnrealVertIndex));	Vertex.position.y *= -1;
-			Vertex.normal = U2PVector((FVector)RenderMesh.VertexBuffer.VertexTangentZ(UnrealVertIndex));	Vertex.normal.y *= -1;
-			Vertex.tangent = U2PVector((FVector)RenderMesh.VertexBuffer.VertexTangentX(UnrealVertIndex));	Vertex.tangent.y *= -1;
-			Vertex.binormal = U2PVector((FVector)RenderMesh.VertexBuffer.VertexTangentY(UnrealVertIndex));	Vertex.binormal.y *= -1;
+			Vertex.position = U2PVector(RenderMesh.VertexBuffers.PositionVertexBuffer.VertexPosition(UnrealVertIndex));	Vertex.position.y *= -1;
+			Vertex.normal = U2PVector((FVector)RenderMesh.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(UnrealVertIndex));	Vertex.normal.y *= -1;
+			Vertex.tangent = U2PVector((FVector)RenderMesh.VertexBuffers.StaticMeshVertexBuffer.VertexTangentX(UnrealVertIndex));	Vertex.tangent.y *= -1;
+			Vertex.binormal = U2PVector((FVector)RenderMesh.VertexBuffers.StaticMeshVertexBuffer.VertexTangentY(UnrealVertIndex));	Vertex.binormal.y *= -1;
 			for (int32 TexCoordSourceIndex = 0; TexCoordSourceIndex < (int32)SubmeshData.mVertexFormat.mUVCount; ++TexCoordSourceIndex)
 			{
-				const FVector2D& TexCoord = RenderMesh.VertexBuffer.GetVertexUV(UnrealVertIndex, TexCoordSourceIndex);
+				const FVector2D& TexCoord = RenderMesh.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(UnrealVertIndex, TexCoordSourceIndex);
 				Vertex.uv[TexCoordSourceIndex].set(TexCoord.X, -TexCoord.Y + 1.0);
 			}
 			FLinearColor VertColor(1.0f, 1.0f, 1.0f);
 			if (UnrealVertIndex < NumVertexColors)
 			{
-				VertColor = RenderMesh.ColorVertexBuffer.VertexColor(UnrealVertIndex).ReinterpretAsLinear();
+				VertColor = RenderMesh.VertexBuffers.ColorVertexBuffer.VertexColor(UnrealVertIndex).ReinterpretAsLinear();
 			}
 			
 			Vertex.color.set(VertColor.R, VertColor.G, VertColor.B, VertColor.A);
@@ -674,9 +674,21 @@ bool UDestructibleMesh::BuildFractureSettingsFromStaticMesh(UStaticMesh* StaticM
 			apex::ExplicitSubmeshData& SubmeshData = Submeshes[SubmeshIndexCounter];
 
 			// Parallel materials array
-			MeshMaterials.Add(CurrentStaticMesh->GetMaterial(Section.MaterialIndex));
+			int32 SectionMaterialIndex = INDEX_NONE;
+			for (int32 MaterialIndex = 0; MaterialIndex < MeshMaterials.Num(); ++MaterialIndex)
+			{
+				if (MeshMaterials[MaterialIndex]->GetFName() == CurrentStaticMesh->GetMaterial(Section.MaterialIndex)->GetFName())
+				{
+					SectionMaterialIndex = MaterialIndex;
+					break;
+				}
+			}
+			if (SectionMaterialIndex == INDEX_NONE)
+			{
+				SectionMaterialIndex = MeshMaterials.Add(CurrentStaticMesh->GetMaterial(Section.MaterialIndex));
+			}
 
-			CreateSubmeshFromSMSection(RenderMesh, SubmeshIndexCounter, Section, SubmeshData, Triangles);
+			CreateSubmeshFromSMSection(RenderMesh, SubmeshIndexCounter, Section, SubmeshData, Triangles, SectionMaterialIndex);
 		}
 
 		//if (MeshIdx > 0)

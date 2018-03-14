@@ -1,38 +1,38 @@
-﻿INTSourceChangelist:2755897
+﻿INTSourceChangelist:3108692
 Availability:Public
-Title:Behavior Tree ノードのリファレンス:Tasks
+Title:Behavior Tree ノードのリファレンス：Task
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:Behavior Tree Task ノードの説明です。
 version:4.9
 
 [TOC(start:2 end:2)]
 
-ビヘイビアツリー エディタで利用可能な **Task ノード** について説明します。Tasks ノードは、AI を移動するなどのように何かを "実行する"、あるいは Blackboard 値を調整するノードです。[Decorators](Engine/AI/BehaviorTrees/NodeReference/Decorators) をアタッチすることができます。
+ビヘイビアツリー エディタで利用可能な **Task ノード** について説明します。Task ノードは、AI を移動するなどのように何かを "実行する"、あるいは Blackboard 値を調整するノードです。[デコレーター](Engine/AI/BehaviorTrees/NodeReference/Decorators) をアタッチすることができます。
 
 ## Make Noise
 
 ![](MakeNoise.png)
 
-制御されたポーンに **PawnNoiseEmitter** コンポーネントがある場合、 Make Noise タスクに、 **PawnSensing** コンポーネントのある別のポーンが聞こえる (メッセージを受信できる) ような「音を作成」 (メッセージを送付) させます。
+制御されるポーンが **PawnNoiseEmitter** コンポーネントを持つ場合、 Make Noise タスクが、 **PawnSensing** コンポーネントを持つ別のポーンが聞こえる (メッセージを受信できる) ような「音を生成」 (メッセージを送付) します。
 
 | プロパティ | 説明 |
 | -------- | ----------- |
-| **Loudness** | 作成される音の音量です。 |
-| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
+| **Loudness** | 生成される音の音量です。 |
+| **Node Name** | Behavior Tree グラフで表示されるノード名です。 |
 
 ## Move To
 
 ![](MoveTo.png)
 
-**Move To** ノードは Character Movement コンポーネントのあるポーンを NavMesh を使ってベクター ブラックボード キーへ移動させます。
+**Move To** ノードは Character Movement コンポーネントを持つポーンを NavMesh を使ってベクター ブラックボード キーへ移動させます。
 
 | プロパティ | 説明 |
 | -------- | ----------- |
-| **Acceptable Radius** | Move To Task の成功に必要なポーンとターゲットの接近距離です。 |
-| **Filter Class** | 使用するナビゲーション データを設定します。None に設定されていると、デフォルトのナビゲーション データが使用されます。 |
+| **Acceptable Radius** | Move To Task を成功させるためにポーンがターゲットに接近する必要がある距離です。 |
+| **Filter Class** | 使用するナビゲーション データを設定します。None に設定すると、デフォルトのナビゲーション データが使用されます。 |
 | **Allow Strafe** | ポーンに攻撃を許可するかどうかを設定します。 |
 | **Blackboard Key** | 移動先の位置 (Vector3) です。 |
-| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
+| **Node Name** | Behavior Tree グラフで表示されるノード名です。 |
 
 ## Play Sound
 
@@ -43,7 +43,7 @@ version:4.9
 | プロパティ | 説明 |
 | -------- | ----------- |
 | **Sound to Play** | 再生する Sound Cue アセットです。 |
-| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
+| **Node Name** | Behavior Tree グラフで表示されるノード名です。 |
 
 ## Run Behavior
 
@@ -54,7 +54,7 @@ version:4.9
 | プロパティ | 説明 |
 | -------- | ----------- |
 | **Behavior Asset** | 実行する Behavior Tree アセットです。 |
-| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
+| **Node Name** | Behavior Tree グラフで表示されるノード名です。 |
 
 
 ## Run EQS Query
@@ -65,10 +65,10 @@ version:4.9
 
 | プロパティ | 説明 |
 | -------- | ----------- |
-| **Query Template** | (コンテンツ ブラウザで作成した) この EQS Query に使用する Environment Query です。 |
-| **Query Params** | マテリアルがパラメータを持つやり方と同じように、Environment Query は Generator と Tests にプロパティをパラメータとして設定することができます。従って、これらのパラメータ名を入力し、その値をここで設定することにより、1 つの Environment Query で広範囲のシナリオに対応できるようになります。 |
+| **Query Template** | (コンテンツ ブラウザで作成した) EQS Query に使用する Environment Query です。 |
+| **Query Params** | マテリアルがパラメータを持つのと同じように、Environment Query は Generator と Tests にプロパティをパラメータとして設定することができます。従って、これらのパラメータ名を入力し、値をここで設定することにより、1 つの Environment Query で広範囲のシナリオに対応できるようになります。 |
 | **Blackboard Key**| ベクター |
-| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
+| **Node Name** | Behavior Tree グラフで表示されるノード名です。 |
 
 
 ## Wait
@@ -80,7 +80,7 @@ version:4.9
 | プロパティ | 説明 |
 | -------- | ----------- |
 | **Wait Time** | 秒単位の待ち時間です。 |
-| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
+| **Node Name** | Behavior Tree グラフで表示されるノード名です。 |
 
 ## Wait Blackboard Time
 
@@ -91,7 +91,7 @@ version:4.9
 | プロパティ | 説明 |
 | -------- | ----------- |
 | **Blackboard Key**| 待ち時間の長さを参照するための float 型の Blackboard Key です。 |
-| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
+| **Node Name** | Behavior Tree グラフで表示されるノード名です。 |
 
 
 

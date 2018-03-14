@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -47,9 +47,9 @@ public:
 	 *
 	 * @param Time The location in time where the path should be added.
 	 * @param SequenceEndTime The time at the end of the sequence, by default the path is set to end at this time.
-	 * @param InPathId The id to the path.
+	 * @param InPathBindingID The object binding id to the path.
 	 */
-	void AddPath(float Time, float SequenceEndTime, const FGuid& InPathId);
+	void AddPath(float Time, float SequenceEndTime, const FMovieSceneObjectBindingID& InPathBindingID);
 
 	/** 
 	 * Returns the timing curve.

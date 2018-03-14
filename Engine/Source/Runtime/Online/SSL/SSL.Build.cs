@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -6,7 +6,7 @@ public class SSL : ModuleRules
 {
     public SSL(ReadOnlyTargetRules Target) : base(Target)
     {
-        Definitions.Add("SSL_PACKAGE=1");
+        PublicDefinitions.Add("SSL_PACKAGE=1");
 
 		bool bShouldUseModule =
 			Target.Platform == UnrealTargetPlatform.Mac ||
@@ -23,7 +23,7 @@ public class SSL : ModuleRules
 
 		if (bShouldUseModule)
 		{
-			Definitions.Add("WITH_SSL=1");
+			PublicDefinitions.Add("WITH_SSL=1");
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
@@ -35,7 +35,7 @@ public class SSL : ModuleRules
 		}
 		else
 		{
-			Definitions.Add("WITH_SSL=0");
+			PublicDefinitions.Add("WITH_SSL=0");
 		}
     }
 }

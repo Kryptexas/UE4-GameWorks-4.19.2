@@ -9,10 +9,16 @@ type:overview
 parent:Platforms/SteamVR
 tags:VR
 tags:SteamVR
+Skilllevel:Beginner
+Order:
+Topic-image:SteamVRTopicImage.png
+social-images:SteamVRTopicImage.png
 
-![](Platforms\SteamVR\T_Vive_HMD.png)
+![](Platforms\SteamVR\T_Vive_HMD.png)(w:866)
 
-The SteamVR SDK is unlike other Unreal Engine 4 (UE4) Virtual Reality SDK as it is not bound to be used with a particular Head Mounted Display (HMD). Because of this UE4 projects that are developed for SteamVR can be used with any HMD that supports SteamVR. The following guide will help to highlight some information that you need to know about when developing content for SteamVR and UE4.
+[TOC(start:1 end:2)]
+
+The SteamVR SDK is unlike other Unreal Engine 4 (UE4) Virtual Reality SDKs as it is not bound to be used with a particular Head Mounted Display (HMD). Because of this UE4 projects that are developed for SteamVR can be used with any HMD that supports SteamVR. The following guide will help to highlight some information that you need to know about when developing content for SteamVR and UE4.
 
 ## SteamVR Beta
 
@@ -26,8 +32,8 @@ Below you will find the frame rate that your UE4 project must meet when using St
 
 | HMD Device  | Target Frame Rate |
 | --- | --- |
-| HTC Vive      | 90 FPS|
-| Oculus Rift | 90 FPS|
+| **HTC Vive**      | 90 FPS|
+| **Oculus Rift**   | 90 FPS|
 
 
 ## SteamVR Sanity Check
@@ -42,46 +48,48 @@ Unreal Engine will automatically use SteamVR if a supported HMD is plugged in an
 Click for full image.
 [/REGION]
 
-## Checking Your Work With SteamVR 
+## Checking Work With SteamVR 
 
-SteamVR will not work with any of the UE4 Editor viewports or the default Play In Editor(PIE) session. To view your project with SteamVR, you will need to use the **VR Preview** option. To access the VR Preview option, you will need to do the following inside the UE4 Editor. 
+SteamVR will not work with any of the UE4 Editor viewports or the default Play In Editor (PIE) session. To view your project with SteamVR, you will need to use the **VR Preview** option. To access the VR Preview option, you will need to do the following inside the UE4 Editor: 
 
 1. On the main Toolbar in the **Play** section, click on the small white triangle that is next to the Play button. 
 
     ![](Platforms\Oculus\BestPractices\Rift_Preview_00.png)
 
-1. From the dropdown menu, select the **VR Preview** option and then put your Rift on to view your project in VR.
+1. From the drop-down menu, select the **VR Preview** option and then put your Rift on to view your project in VR.
 
     ![](Platforms\Oculus\BestPractices\Rift_Preview_01.png)
 
     [region:note]
-    Once you have changed the play mode to the VR Preview option your project will always launch in VR, even when using shortcuts like **ALT + P**.  
+    Once you have changed the play mode to the VR Preview option, your project will always launch in VR, even when using shortcuts like **ALT + P**.  
     [/region]
 
 ## SteamVR Mirror Mode
 
-The SteamVR Headset Mirror allows you to see what the user sees in the HMD. Enabling this mode is particularly useful if you need to record what you are seeing in your UE4 project and the SteamVR compositor. To enable the mirror, you will need to do the following:
+The SteamVR Headset Mirror enables you to see what the user sees in the HMD. Enabling this mode is particularly useful if you need to record what you are seeing in your UE4 project and the SteamVR compositor. To enable the mirror, you will need to do the following:
 
-1. First, locate the SteamVR Tools and then right - click on them to display the menu and select the **Display Mirror** option.
-
+1. First, locate the SteamVR Tools and then right-click on them to display the menu and select the **Display Mirror** option.
+	
+	[REGION:raw]
     ![](SteamVRBP_02.png)
+	[/REGION]
 
-1. The mirror will then be displayed in a new window called **HeadSetMirror** like in the image below.
+1. The mirror will then be displayed in a new window called **Headset Mirror**, like in the image below.
 
     [REGION:lightbox]
     [![](SteamVRBP_03.png)(w:540)](SteamVRBP_03.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    The above image shows exactly what the user would be seeing inside their HMD.
     [/REGION]
 
 
 ## SteamVR Developer Links
 
-The following is a collection of links that will provide useful information on items such as hardware or software issue with SteamVR.
+The following is a collection of links that will provide useful information on items such as hardware or software issues with SteamVR.
 
-* [**SteamVR Developer Support**](https://support.steampowered.com/kb_article.php?ref=1131-WSFG-3320)
-* [**HTC Vive Developer Support**](https://developer.viveport.com/us/develop_portal/)
+* [SteamVR Developer Support](https://support.steampowered.com/kb_article.php?ref=1131-WSFG-3320)
+* [HTC Vive Developer Support](https://developer.viveport.com/us/develop_portal/)
 
 

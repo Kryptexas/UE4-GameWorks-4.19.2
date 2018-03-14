@@ -1,48 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 인바이언먼트 쿼리 시스템 노드 참고서
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
 Description:인바이언먼트 쿼리 시스템 에디터에서 사용할 수 있는 여러가지 노드에 대한 분석 및 설명입니다.
 version: 4.9
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/AI/EnvironmentQuerySystem/NodeReference:title%](AI_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/AI/EnvironmentQuerySystem/NodeReference:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/AI/EnvironmentQuerySystem/NodeReference:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/AI/EnvironmentQuerySystem/NodeReference]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/AI/EnvironmentQuerySystem/NodeReference:title%](AI_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/AI/EnvironmentQuerySystem/NodeReference:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/AI/EnvironmentQuerySystem/NodeReference:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/AI/EnvironmentQuerySystem/NodeReference]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [toc]
 
@@ -178,7 +140,8 @@ version: 4.9
 | **Scoring Factor** || 스코어 인수 - 모든 테스트를 기준으로 이 테스트가 갖는 가중치입니다. 음수가 될 수 있습니다. |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:dotLine]
 **Mode** 가 Rotation 으로 설정된 경우:
 
@@ -193,7 +156,8 @@ version: 4.9
 | Line From | 이 컨텍스트의 위치를 벡터가 로테이션을 정의하는 첫 지점으로 사용합니다. |
 | Line To | 이 컨텍스트의 위치를 벡터가 로테이션을 정의하는 끝 지점으로 사용합니다. |
 [/EXCERPT:dotLine]
--->
+
+[/COMMENT]
  
 ### Gameplay Tags
 
@@ -237,14 +201,16 @@ version: 4.9
 | **Scoring Factor** || 스코어 인수 - 모든 테스트를 기준으로 이 테스트가 갖는 가중치입니다. 음수가 될 수 있습니다. |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:path1]
 | --- | --- | :--- |
 | **Path Exist** || 경로 존재 - 컨텍스트 로/에서의 경로가 존재하는지 입니다. |
 | **Path Cost** || 경로 비용 - 컨텍스트 로/에서의 경로가 얼마나 비싼지 입니다.|
 | **Path Length** || 경로 길이 - 컨텍스트 로/에서의 경로가 얼마나 긴지 입니다. |
 [/EXCERPT:path1]
--->
+
+[/COMMENT]
 
 
 ### Random

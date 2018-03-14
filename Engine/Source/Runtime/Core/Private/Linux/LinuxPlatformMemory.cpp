@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LinuxPlatformMemory.cpp: Linux platform memory functions
@@ -193,7 +193,11 @@ namespace LinuxMemoryPool
 {
 	enum
 	{
+	#if UE_SERVER
+		LargestPoolSize = 65536,
+	#else
 		LargestPoolSize = 32 * 1024 * 1024,
+	#endif // UE_SERVER
 
 		RequiredAlignment = 65536,	// should match BinnedPageSize
 		ExtraSizeToAllocate = 60 * 1024,	// BinnedPageSize - SystemPageSize (4KB on most platforms)
@@ -208,6 +212,10 @@ namespace LinuxMemoryPool
 	 */
 	int32 PoolTable[] =
 	{
+	#if UE_SERVER
+		// 1GB of 64K blocks
+		65536, 16384,
+	#else
 		// 512 MB of 64K blocks
 		65536, 8192,
 		// 256 MB of 256K blocks
@@ -218,6 +226,7 @@ namespace LinuxMemoryPool
 		8 * 1024 * 1024, 24,
 		// 192 MB of 32MB blocks
 		LinuxMemoryPool::LargestPoolSize, 6,
+	#endif // UE_SERVER
 		-1
 	};
 

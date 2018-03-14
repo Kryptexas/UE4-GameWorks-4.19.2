@@ -1,10 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc.All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "UnrealClient.h"
-#include "SceneView.h"
+#include "SceneRendering.h"
 
 /*=============================================================================
 RenderTargetTemp.h : Helper for canvas rendering
@@ -29,19 +29,19 @@ public:
 	, SizeXY(InSizeXY)
 	{}
 
-	FRenderTargetTemp(const FSceneView& InView, const FTexture2DRHIRef InTexture) 
+	FRenderTargetTemp(const FViewInfo& InView, const FTexture2DRHIRef InTexture) 
 	: Texture(InTexture)
 	, SizeXY(InView.ViewRect.Size()) 
 	{}
 
-	FRenderTargetTemp(const FSceneView& InView)
+	FRenderTargetTemp(const FViewInfo& InView)
 	: Texture(InView.Family->RenderTarget->GetRenderTargetTexture())
 	, SizeXY(InView.ViewRect.Size())
 	{}
 
-	virtual FIntPoint GetSizeXY() const { return SizeXY; }
+	virtual FIntPoint GetSizeXY() const override { return SizeXY; }
 
-	virtual const FTexture2DRHIRef& GetRenderTargetTexture() const
+	virtual const FTexture2DRHIRef& GetRenderTargetTexture() const override
 	{
 		return Texture;
 	}

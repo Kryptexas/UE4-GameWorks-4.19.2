@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Static mesh creation from FBX data.
@@ -46,7 +46,6 @@
 
 //Skeletal mesh includes
 #include "SkelImport.h"
-#include "SkeletalMeshTypes.h"
 #include "Animation/Skeleton.h"
 #include "Engine/SkeletalMesh.h"
 #include "Components/SkinnedMeshComponent.h"
@@ -57,6 +56,7 @@
 #include "Assets/ClothingAsset.h"
 #include "Factories/FbxSkeletalMeshImportData.h"
 #include "FbxCompareWindow.h"
+#include "Rendering/SkeletalMeshModel.h"
 
 
 
@@ -81,11 +81,11 @@ void CreateCompFromSkeletalMesh(USkeletalMesh* SkeletalMesh, FCompMesh &CurrentD
 	}
 		
 	//Fill the section topology
-	if (SkeletalMesh->GetResourceForRendering())
+	if (SkeletalMesh->GetImportedModel())
 	{
-		CurrentData.CompLods.AddZeroed(SkeletalMesh->GetResourceForRendering()->LODModels.Num());
+		CurrentData.CompLods.AddZeroed(SkeletalMesh->GetImportedModel()->LODModels.Num());
 		//Fill sections data
-		for (int32 LodIndex = 0; LodIndex < SkeletalMesh->GetResourceForRendering()->LODModels.Num(); ++LodIndex)
+		for (int32 LodIndex = 0; LodIndex < SkeletalMesh->GetImportedModel()->LODModels.Num(); ++LodIndex)
 		{
 			//Find the LodMaterialMap, which must be use for all LOD except the base
 			TArray<int32> LODMaterialMap;
@@ -95,7 +95,7 @@ void CreateCompFromSkeletalMesh(USkeletalMesh* SkeletalMesh, FCompMesh &CurrentD
 				LODMaterialMap = SkeletalMeshLODInfo.LODMaterialMap;
 			}
 
-			const FStaticLODModel &StaticLodModel = SkeletalMesh->GetResourceForRendering()->LODModels[LodIndex];
+			const FSkeletalMeshLODModel &StaticLodModel = SkeletalMesh->GetImportedModel()->LODModels[LodIndex];
 			CurrentData.CompLods[LodIndex].Sections.AddZeroed(StaticLodModel.Sections.Num());
 			for (int32 SectionIndex = 0; SectionIndex < StaticLodModel.Sections.Num(); ++SectionIndex)
 			{

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 ShaderCacheTypes.h: Shader Cache Types
@@ -594,20 +594,6 @@ class TIndexedSet
 	TArray<Type> Data;
 	
 public:
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-	TIndexedSet() = default;
-	TIndexedSet(TIndexedSet&&) = default;
-	TIndexedSet(const TIndexedSet&) = default;
-	TIndexedSet& operator=(TIndexedSet&&) = default;
-	TIndexedSet& operator=(const TIndexedSet&) = default;
-#else
-	FORCEINLINE TIndexedSet() {}
-	FORCEINLINE TIndexedSet(      TIndexedSet&& Other) : Map(MoveTemp(Other.Map)), Data(MoveTemp(Other.Data)) {}
-	FORCEINLINE TIndexedSet(const TIndexedSet&  Other) : Map( Other.Map ), Data( Other.Data ) {}
-	FORCEINLINE TIndexedSet& operator=(      TIndexedSet&& Other) { Map = MoveTemp(Other.Map); Data = MoveTemp(Other.Data); return *this; }
-	FORCEINLINE TIndexedSet& operator=(const TIndexedSet&  Other) { Map = Other.Map; Data = Other.Data; return *this; }
-#endif
-	
 	int32 Add(Type const& Object)
 	{
 		int32* Index = Map.Find(Object);

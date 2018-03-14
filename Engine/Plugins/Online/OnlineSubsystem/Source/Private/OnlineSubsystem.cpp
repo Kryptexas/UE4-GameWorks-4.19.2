@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystem.h"
 #include "Misc/CommandLine.h"
@@ -7,6 +7,7 @@
 #include "NboSerializer.h"
 #include "Online.h"
 #include "Misc/NetworkVersion.h"
+#include "Logging/LogMacros.h"
 
 DEFINE_LOG_CATEGORY(LogOnline);
 DEFINE_LOG_CATEGORY(LogOnlineGame);
@@ -42,10 +43,13 @@ TSharedPtr<const FUniqueNetId> GetFirstSignedInUser(IOnlineIdentityPtr IdentityI
 int32 GetBuildUniqueId()
 {
 	static bool bStaticCheck = false;
+	static int32 BuildId = 0;
 	static bool bUseBuildIdOverride = false;
 	static int32 BuildIdOverride = 0;
+
 	if (!bStaticCheck)
 	{
+		bStaticCheck = true;
 		if (FParse::Value(FCommandLine::Get(), TEXT("BuildIdOverride="), BuildIdOverride) && BuildIdOverride != 0)
 		{
 			bUseBuildIdOverride = true;
@@ -63,32 +67,28 @@ int32 GetBuildUniqueId()
 			}
 		}
 
-		bStaticCheck = true;
-	}
+		const uint32 NetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
+		if (bUseBuildIdOverride == false)
+		{
+			/** Engine package CRC doesn't change, can't be used as the version - BZ */
+			FNboSerializeToBuffer Buffer(64);
+			// Serialize to a NBO buffer for consistent CRCs across platforms
+			Buffer << NetworkVersion;
+			// Now calculate the CRC
+			uint32 Crc = FCrc::MemCrc32((uint8*)Buffer, Buffer.GetByteCount());
 
-	const uint32 NetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
-
-	int32 BuildId = 0;
-	if (bUseBuildIdOverride == false)
-	{
-		/** Engine package CRC doesn't change, can't be used as the version - BZ */
-		FNboSerializeToBuffer Buffer(64);
-		// Serialize to a NBO buffer for consistent CRCs across platforms
-		Buffer << NetworkVersion;
-		// Now calculate the CRC
-		uint32 Crc = FCrc::MemCrc32((uint8*)Buffer, Buffer.GetByteCount());
-
-		// make sure it's positive when it's cast back to an int
-		BuildId = static_cast<int32>(Crc & 0x7fffffff);
-	}
-	else
-	{
-		BuildId = BuildIdOverride;
+			// make sure it's positive when it's cast back to an int
+			BuildId = static_cast<int32>(Crc & 0x7fffffff);
+		}
+		else
+		{
+			BuildId = BuildIdOverride;
+		}
 	}
 
 	UE_LOG_ONLINE(VeryVerbose, TEXT("GetBuildUniqueId: Network CL %u LocalNetworkVersion %u bUseBuildIdOverride %d BuildIdOverride %d BuildId %d"),
 		FNetworkVersion::GetNetworkCompatibleChangelist(),
-		NetworkVersion,
+		FNetworkVersion::GetLocalNetworkVersion(),
 		bUseBuildIdOverride,
 		BuildIdOverride,
 		BuildId);
@@ -160,3 +160,23 @@ FAutoConsoleCommand CmdResetAchievements(
 	);
 
 #endif
+
+bool IOnlineSubsystem::IsEnabled(const FName& SubsystemName)
+{
+	bool bIsDisabledByCommandLine = false;
+#if !UE_BUILD_SHIPPING && !UE_BUILD_SHIPPING_WITH_EDITOR
+	// In non-shipping builds, check for a command line override to disable the OSS
+	bIsDisabledByCommandLine = FParse::Param(FCommandLine::Get(), *FString::Printf(TEXT("no%s"), *SubsystemName.ToString()));
+#endif
+	
+	if (!bIsDisabledByCommandLine)
+	{
+		bool bIsEnabledByConfig = false;
+		const FString ConfigSection(FString::Printf(TEXT("OnlineSubsystem%s"), *SubsystemName.ToString()));
+		const bool bConfigOptionExists = GConfig->GetBool(*ConfigSection, TEXT("bEnabled"), bIsEnabledByConfig, GEngineIni);
+		UE_CLOG_ONLINE(!bConfigOptionExists, Verbose, TEXT("[%s].bEnabled is not set, defaulting to true"), *ConfigSection);
+	
+		return !bConfigOptionExists || bIsEnabledByConfig;
+	}
+	return false;
+}

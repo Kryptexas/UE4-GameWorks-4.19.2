@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,6 +8,7 @@
 #include "Animation/AnimCurveTypes.h"
 #include "Animation/AnimationRecordingSettings.h"
 #include "Components/SkinnedMeshComponent.h"
+#include "Animation/AnimNotifyQueue.h"
 
 class UAnimNotify;
 class UAnimNotifyState;
@@ -85,7 +86,7 @@ public:
 private:
 	void Record(USkeletalMeshComponent* Component, FTransform const& ComponentToWorld, const TArray<FTransform>& SpacesBases, const FBlendedHeapCurve& AnimationCurves, int32 FrameToAdd);
 
-	void RecordNotifies(USkeletalMeshComponent* Component, const TArray<const struct FAnimNotifyEvent*>& AnimNotifies, float DeltaTime, float RecordTime);
+	void RecordNotifies(USkeletalMeshComponent* Component, const TArray<FAnimNotifyEventReference>& AnimNotifies, float DeltaTime, float RecordTime);
 
 	void FixupNotifies();
 

@@ -23,7 +23,7 @@ tags:Animation
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在此步骤中，我们将变更默认玩家角色，并为需要放置在运动动画上的动画创建 AnimMontage。 
 
@@ -75,4 +75,4 @@ tags:Animation
 
 在下一部分中，我们将变更默认玩家角色并进行一些调整，确定武器是否正在开火。 
 
-%Steps%
+

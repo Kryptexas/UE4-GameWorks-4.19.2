@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/SplineMeshComponent.h"
 #include "Serialization/MemoryWriter.h"
@@ -124,138 +124,45 @@ void FSplineMeshSceneProxy::InitVertexFactory(USplineMeshComponent* InComponent,
 		return;
 	}
 
-	uint32 TangentXOffset = 0;
-	uint32 TangetnZOffset = 0;
-	uint32 UVsBaseOffset = 0;
+	FStaticMeshLODResources* RenderData2 = &InComponent->GetStaticMesh()->RenderData->LODResources[InLODIndex];
+	FStaticMeshVertexFactories* VertexFactories = &InComponent->GetStaticMesh()->RenderData->LODVertexFactories[InLODIndex];
 
-	FStaticMeshLODResources& RD = InComponent->GetStaticMesh()->RenderData->LODResources[InLODIndex];
-	SELECT_STATIC_MESH_VERTEX_TYPE(
-		RD.VertexBuffer.GetUseHighPrecisionTangentBasis(),
-		RD.VertexBuffer.GetUseFullPrecisionUVs(),
-		RD.VertexBuffer.GetNumTexCoords(),
-		{
-			TangentXOffset = STRUCT_OFFSET(VertexType, TangentX);
-			TangetnZOffset = STRUCT_OFFSET(VertexType, TangentZ);
-			UVsBaseOffset = STRUCT_OFFSET(VertexType, UVs);
-		});
+	UStaticMesh* Parent = InComponent->GetStaticMesh();
+	bool bOverrideColorVertexBuffer = !!InOverrideColorVertexBuffer;
+	ERHIFeatureLevel::Type FeatureLevel = GetScene().GetFeatureLevel();
 
 	// Initialize the static mesh's vertex factory.
-	ENQUEUE_UNIQUE_RENDER_COMMAND_SIXPARAMETER(
-		InitSplineMeshVertexFactory,
-		FStaticMeshLODResources*, RenderData, &InComponent->GetStaticMesh()->RenderData->LODResources[InLODIndex],
-		UStaticMesh*, Parent, InComponent->GetStaticMesh(),
-		bool, bOverrideColorVertexBuffer, !!InOverrideColorVertexBuffer,
-		uint32, TangentXOffset, TangentXOffset,
-		uint32, TangetnZOffset, TangetnZOffset,
-		uint32, UVsBaseOffset, UVsBaseOffset,
+	ENQUEUE_RENDER_COMMAND(InitSplineMeshVertexFactory)(
+		[VertexFactories,RenderData2, Parent, bOverrideColorVertexBuffer, FeatureLevel](FRHICommandListImmediate& RHICmdList)
 		{
 
-		if ((RenderData->SplineVertexFactory && !bOverrideColorVertexBuffer) || (RenderData->SplineVertexFactoryOverrideColorVertexBuffer && bOverrideColorVertexBuffer))
+		if ((VertexFactories->SplineVertexFactory && !bOverrideColorVertexBuffer) || (VertexFactories->SplineVertexFactoryOverrideColorVertexBuffer && bOverrideColorVertexBuffer))
 		{
 			// we already have it
 			return;
 		}
-		FSplineMeshVertexFactory* VertexFactory = new FSplineMeshVertexFactory;
+		FSplineMeshVertexFactory* VertexFactory = new FSplineMeshVertexFactory(FeatureLevel);
 		if (bOverrideColorVertexBuffer)
 		{
-			RenderData->SplineVertexFactoryOverrideColorVertexBuffer = VertexFactory;
+			VertexFactories->SplineVertexFactoryOverrideColorVertexBuffer = VertexFactory;
 		}
 		else
 		{
-			RenderData->SplineVertexFactory = VertexFactory;
+			VertexFactories->SplineVertexFactory = VertexFactory;
 		}
 		FLocalVertexFactory::FDataType Data;
 
-		Data.PositionComponent = FVertexStreamComponent(
-			&RenderData->PositionVertexBuffer,
-			STRUCT_OFFSET(FPositionVertex, Position),
-			RenderData->PositionVertexBuffer.GetStride(),
-			VET_Float3
-			);
-
-		Data.TangentBasisComponents[0] = FVertexStreamComponent(
-			&RenderData->VertexBuffer,
-			TangentXOffset,
-			RenderData->VertexBuffer.GetStride(),
-			RenderData->VertexBuffer.GetUseHighPrecisionTangentBasis() ?
-				TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::VertexElementType : 
-				TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>::VertexElementType
-			);
-
-		Data.TangentBasisComponents[1] = FVertexStreamComponent(
-			&RenderData->VertexBuffer,
-			TangetnZOffset,
-			RenderData->VertexBuffer.GetStride(),
-			RenderData->VertexBuffer.GetUseHighPrecisionTangentBasis() ?
-				TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::VertexElementType : 
-				TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>::VertexElementType
-			);
-
-		if (bOverrideColorVertexBuffer)
-		{
-			Data.ColorComponent = FVertexStreamComponent(
-				&GNullColorVertexBuffer,
-				0,	// Struct offset to color
-				sizeof(FColor), //asserted elsewhere
-				VET_Color,
-				false, // not instanced
-				true // set in SetMesh
-				);
+		RenderData2->VertexBuffers.PositionVertexBuffer.BindPositionVertexBuffer(VertexFactory, Data);
+		RenderData2->VertexBuffers.StaticMeshVertexBuffer.BindTangentVertexBuffer(VertexFactory, Data);
+		RenderData2->VertexBuffers.StaticMeshVertexBuffer.BindPackedTexCoordVertexBuffer(VertexFactory, Data);
+		RenderData2->VertexBuffers.StaticMeshVertexBuffer.BindLightMapVertexBuffer(VertexFactory, Data, Parent->LightMapCoordinateIndex);
+		if(bOverrideColorVertexBuffer)
+		{ 
+			FColorVertexBuffer::BindDefaultColorVertexBuffer(VertexFactory, Data, FColorVertexBuffer::NullBindStride::FColorSizeForComponentOverride);
 		}
 		else
 		{
-			FColorVertexBuffer* LODColorVertexBuffer = &RenderData->ColorVertexBuffer;
-			if (LODColorVertexBuffer->GetNumVertices() > 0)
-			{
-				Data.ColorComponent = FVertexStreamComponent(
-					LODColorVertexBuffer,
-					0,	// Struct offset to color
-					LODColorVertexBuffer->GetStride(),
-					VET_Color
-					);
-			}
-		}
-
-		Data.TextureCoordinates.Empty();
-
-		uint32 UVSizeInBytes = RenderData->VertexBuffer.GetUseFullPrecisionUVs() ?
-			sizeof(TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::HighPrecision>::UVsTypeT) : sizeof(TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::Default>::UVsTypeT);
-
-		EVertexElementType UVDoubleWideVertexElementType = RenderData->VertexBuffer.GetUseFullPrecisionUVs() ?
-			VET_Float4 : VET_Half4;
-
-		EVertexElementType UVVertexElementType = RenderData->VertexBuffer.GetUseFullPrecisionUVs() ?
-			VET_Float2 : VET_Half2;
-
-		int32 UVIndex;
-		for (UVIndex = 0; UVIndex < (int32)RenderData->VertexBuffer.GetNumTexCoords() - 1; UVIndex += 2)
-		{
-			Data.TextureCoordinates.Add(FVertexStreamComponent(
-				&RenderData->VertexBuffer,
-				UVsBaseOffset + UVSizeInBytes * UVIndex,
-				RenderData->VertexBuffer.GetStride(),
-				UVDoubleWideVertexElementType
-				));
-		}
-		// possible last UV channel if we have an odd number
-		if (UVIndex < (int32)RenderData->VertexBuffer.GetNumTexCoords())
-		{
-			Data.TextureCoordinates.Add(FVertexStreamComponent(
-				&RenderData->VertexBuffer,
-				UVsBaseOffset + UVSizeInBytes * UVIndex,
-				RenderData->VertexBuffer.GetStride(),
-				UVVertexElementType
-				));
-		}
-
-		if (Parent->LightMapCoordinateIndex >= 0 && (uint32)Parent->LightMapCoordinateIndex < RenderData->VertexBuffer.GetNumTexCoords())
-		{
-			Data.LightMapCoordinateComponent = FVertexStreamComponent(
-				&RenderData->VertexBuffer,
-				UVsBaseOffset + UVSizeInBytes * Parent->LightMapCoordinateIndex,
-				RenderData->VertexBuffer.GetStride(),
-				UVVertexElementType
-				);
+			RenderData2->VertexBuffers.ColorVertexBuffer.BindColorVertexBuffer(VertexFactory, Data);
 		}
 
 		VertexFactory->SetData(Data);
@@ -1016,12 +923,14 @@ void USplineMeshComponent::OnCreatePhysicsState()
 
 UBodySetup* USplineMeshComponent::GetBodySetup()
 {
+#if WITH_PHYSX
 	// Don't return a body setup that has no collision, it means we are interactively moving the spline and don't want to build collision.
 	// Instead we explicitly build collision with USplineMeshComponent::RecreateCollision()
 	if (BodySetup != NULL && (BodySetup->TriMeshes.Num() || BodySetup->AggGeom.GetElementCount() > 0))
 	{
 		return BodySetup;
 	}
+#endif // WITH_PHYSX
 	return NULL;
 }
 

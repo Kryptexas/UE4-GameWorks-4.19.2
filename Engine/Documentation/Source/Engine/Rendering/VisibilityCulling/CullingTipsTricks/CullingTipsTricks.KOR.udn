@@ -1,50 +1,9 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:0
 Availability: Docs
 Title: Visibility Culling Tips & Tricks
 Crumbs: %ROOT%, Engine, 
 Description: Tips & Tricks you can use to troubleshoot your scenes.
 Version: 4.13
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/VisibilityCulling:title%]()
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/VisibilityCulling:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/VisibilityCulling:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/VisibilityCulling]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/VisibilityCulling:title%]()
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/VisibilityCulling:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/VisibilityCulling:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/VisibilityCulling]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
 
 The following are some Tips & Tricks you can use to help you troubleshoot and test your scene when you suspect problems with visibility or occlusion culling.
 
@@ -104,21 +63,3 @@ This is helpful when you do not want to PIE or launch a game but need to check w
 and [Precomputed Visibility Volumes](Engine\Rendering\VisibilityCulling\PrecomputedVisibilityVolume) since these do not work unless you are in game or using the Game View.
 
 For more information on the [Game View](Engine\UI\LevelEditor\Viewports\Basics) mode, you can read about it in this page.
-
-
-<!---
-[OBJECT:TopicButtonList]
- [PARAM:icon]
-  ![](%ROOT%/related_icon.png)(convert:false)
- [/PARAM]
- [PARAM:title]
-  Related Links
- [/PARAM]
- [PARAM:description]
- [/PARAM]
- [PARAM:links]
-  * [](1_TimH\2_IN_PROGRESS\VisibilityCulling\PrecomputedVisibilityVolume)
-  * [](1_TimH\2_IN_PROGRESS\VisibilityCulling\CullDistanceVolume)
- [/PARAM]
-[/OBJECT]
---->

@@ -21,7 +21,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 At the end of the previous step, the default camera was positioned inside the mesh's neck. During this step, we're going to set-up an FPS camera that we can use to adjust the camera's properties (such as location and field of view).
 
@@ -207,4 +207,3 @@ It's now time to compile and test your newly implemented camera code.
 
 1.	Press the Escape key or click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
-%Steps%

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Physics/PhysicsFiltering.h"
 
@@ -28,4 +28,6 @@ FPhysicsFilterBuilder::FPhysicsFilterBuilder(TEnumAsByte<enum ECollisionChannel>
 	Word3 = CreateChannelAndFilter(InObjectType, MaskFilter);
 }
 
+#if WITH_PHYSX
 PxSimulationFilterShader GSimulationFilterShader = nullptr;
+#endif // WITH_PHYSX

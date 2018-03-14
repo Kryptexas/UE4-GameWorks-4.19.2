@@ -30,19 +30,13 @@ Checkpoint:shaderqs
 
 このクイックスタートでは、グローバル シェーダーをプラグインとして作成および使用する方法を体験します。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## ステップ
+
+[REGION:buttonlist]
+
 	[DIR(output:"checkpoint" parent:"Programming\Rendering\ShaderInPlugin\QuickStart" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 [REGION:call_to_action]

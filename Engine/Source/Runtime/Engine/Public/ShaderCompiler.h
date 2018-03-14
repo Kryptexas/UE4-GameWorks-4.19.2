@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShaderCompiler.h: Platform independent shader compilation definitions.
@@ -14,6 +14,7 @@
 #include "Shader.h"
 #include "HAL/RunnableThread.h"
 #include "HAL/Runnable.h"
+#include "Templates/Atomic.h"
 #include "UniquePtr.h"
 
 class FShaderCompileJob;
@@ -48,6 +49,8 @@ public:
 	{
 	}
 
+	virtual ~FShaderCommonCompileJob() {}
+
 	virtual FShaderCompileJob* GetSingleShaderJob() { return nullptr; }
 	virtual const FShaderCompileJob* GetSingleShaderJob() const { return nullptr; }
 	virtual FShaderPipelineCompileJob* GetShaderPipelineJob() { return nullptr; }
@@ -63,6 +66,8 @@ public:
 	FVertexFactoryType* VFType;
 	/** Shader type that this shader belongs to, must be valid */
 	FShaderType* ShaderType;
+	/** Unique permutation identifier of the global shader type. */
+	int32 PermutationId;
 	/** Input for the shader compile */
 	FShaderCompilerInput Input;
 	FShaderCompilerOutput Output;
@@ -70,10 +75,11 @@ public:
 	// List of pipelines that are sharing this job.
 	TMap<const FVertexFactoryType*, TArray<const FShaderPipelineType*>> SharingPipelines;
 
-	FShaderCompileJob(uint32 InId, FVertexFactoryType* InVFType, FShaderType* InShaderType) :
+	FShaderCompileJob(uint32 InId, FVertexFactoryType* InVFType, FShaderType* InShaderType, int32 InPermutationId) :
 		FShaderCommonCompileJob(InId),
 		VFType(InVFType),
-		ShaderType(InShaderType)
+		ShaderType(InShaderType),
+		PermutationId(InPermutationId)
 	{
 	}
 
@@ -119,7 +125,7 @@ public:
 	/**
 	* Enqueues compilation of a shader of this type.
 	*/
-	ENGINE_API static class FShaderCompileJob* BeginCompileShader(FGlobalShaderType* ShaderType, EShaderPlatform Platform, const FShaderPipelineType* ShaderPipeline, TArray<FShaderCommonCompileJob*>& NewJobs);
+	ENGINE_API static class FShaderCompileJob* BeginCompileShader(FGlobalShaderType* ShaderType, int32 PermutationId, EShaderPlatform Platform, const FShaderPipelineType* ShaderPipeline, TArray<FShaderCommonCompileJob*>& NewJobs);
 
 	/**
 	* Enqueues compilation of a shader pipeline of this type.
@@ -145,7 +151,7 @@ protected:
 	/** true if the thread has been terminated by an unhandled exception. */
 	bool bTerminatedByError;
 
-	volatile bool bForceFinish;
+	TAtomic<bool> bForceFinish;
 
 public:
 	FShaderCompileThreadRunnableBase(class FShaderCompilingManager* InManager);
@@ -392,6 +398,9 @@ private:
 	/** Number of jobs currently being compiled.  This includes CompileQueue and any jobs that have been assigned to workers but aren't complete yet. */
 	int32 NumOutstandingJobs;
 
+	/** Number of jobs currently being compiled.  This includes CompileQueue and any jobs that have been assigned to workers but aren't complete yet. */
+	int32 NumExternalJobs;
+
 	/** Critical section used to gain access to the variables above that are shared by both the main thread and the FShaderCompileThreadRunnable. */
 	FCriticalSection CompileQueueSection;
 
@@ -479,7 +488,7 @@ public:
 	bool ShouldDisplayCompilingNotification() const 
 	{ 
 		// Heuristic based on the number of jobs outstanding
-		return NumOutstandingJobs > 80; 
+		return NumOutstandingJobs > 80 || CompileQueue.Num() > 80 || NumExternalJobs > 10;
 	}
 
 	bool AllowAsynchronousShaderCompiling() const 
@@ -493,7 +502,7 @@ public:
 	 */
 	bool IsCompiling() const
 	{
-		return NumOutstandingJobs > 0 || PendingFinalizeShaderMaps.Num() > 0;
+		return NumOutstandingJobs > 0 || PendingFinalizeShaderMaps.Num() > 0 || CompileQueue.Num() > 0 || NumExternalJobs > 0;
 	}
 
 	/**
@@ -512,7 +521,12 @@ public:
 	 */
 	int32 GetNumRemainingJobs() const
 	{
-		return NumOutstandingJobs;
+		return NumOutstandingJobs + NumExternalJobs;
+	}
+
+	void SetExternalJobs(int32 NumJobs)
+	{
+		NumExternalJobs = NumJobs;
 	}
 
 	const FString& GetAbsoluteShaderDebugInfoDirectory() const

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,27 +9,8 @@
 #include "NiagaraDataSet.h"
 #include "NiagaraEmitterInstance.h"
 #include "NiagaraEmitterHandle.h"
+#include "NiagaraParameterCollection.h"
 #include "NiagaraSystem.generated.h"
-
-//TODO:
-/** Defines a number of values and defaults shared among all Niagara Systems that use this category. */
-// UCLASS()
-// class NIAGARA_API UNiagaraSystemCategory : public UObject
-// {
-// 	GENERATED_UCLASS_BODY()
-// 
-// 	/** Name of this System Category. */
-// 	UPROPERTY(EditAnywhere, Category=Category)
-// 	FName Name;
-// 
-// 	/** Category specific to the global instance of a particular Niagara Parameter Collection. */
-// 	UPROPERTY(EditAnywhere, Category=Category)
-// 	TArray<UNiagaraParameterCollectionInstance*> ParameterCollectionOverrides;
-// 
-// 	/** TODO: How to do an icon? */
-// 	//UPROPERTY(EditAnywhere, Category = Category)
-// 	//UTexture2D* Icon
-// };
 
 USTRUCT()
 struct FNiagaraEmitterSpawnAttributes
@@ -41,7 +22,7 @@ struct FNiagaraEmitterSpawnAttributes
 };
 
 /** Container for multiple emitters that combine together to create a particle system effect.*/
-UCLASS()
+UCLASS(BlueprintType)
 class NIAGARA_API UNiagaraSystem : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -51,9 +32,13 @@ public:
 	void PostInitProperties();
 	void Serialize(FArchive& Ar)override;
 	virtual void PostLoad() override;
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 
 	/** Gets an array of the emitter handles. */
 	const TArray<FNiagaraEmitterHandle>& GetEmitterHandles();
+	const TArray<FNiagaraEmitterHandle>& GetEmitterHandles()const;
 
 	/** Returns true if this system is valid and can be instanced. False otherwise. */
 	bool IsValid()const;
@@ -61,7 +46,7 @@ public:
 #if WITH_EDITORONLY_DATA
 	/** Adds a new emitter handle to this System.  The new handle exposes an Instance value which is a copy of the
 		original asset. */
-	FNiagaraEmitterHandle AddEmitterHandle(const UNiagaraEmitter& SourceEmitter, FName EmitterName);
+	FNiagaraEmitterHandle AddEmitterHandle(UNiagaraEmitter& SourceEmitter, FName EmitterName);
 
 	/** Adds a new emitter handle to this System.  The new handle will not copy the emitter and any changes made to it's
 		Instance value will modify the original asset.  This should only be used in the emitter toolkit for simulation
@@ -71,13 +56,14 @@ public:
 	/** Duplicates an existing emitter handle and adds it to the System.  The new handle will reference the same source asset,
 		but will have a copy of the duplicated Instance value. */
 	FNiagaraEmitterHandle DuplicateEmitterHandle(const FNiagaraEmitterHandle& EmitterHandleToDuplicate, FName EmitterName);
-#endif
 
 	/** Removes the provided emitter handle. */
 	void RemoveEmitterHandle(const FNiagaraEmitterHandle& EmitterHandleToDelete);
 
 	/** Removes the emitter handles which have an Id in the supplied set. */
 	void RemoveEmitterHandlesById(const TSet<FGuid>& HandlesToRemove);
+#endif
+
 
 	FNiagaraEmitterHandle& GetEmitterHandle(int Idx)
 	{
@@ -105,26 +91,26 @@ public:
 	UNiagaraScript* GetSystemSpawnScript(bool bSolo=false);
 	UNiagaraScript* GetSystemUpdateScript(bool bSolo=false);
 
-#if WITH_EDITORONLY_DATA
-	/** Get whether or not we auto-import applied changes. See bAutoImportChangedEmitters member documentation for details.*/
-	bool GetAutoImportChangedEmitters() const;
-	/** Set whether or not we auto-import applied changes. See bAutoImportChangedEmitters member documentation for details.*/
-	void SetAutoImportChangedEmitters(bool bShouldImport);
-		
-	/** Called to query whether or not this emitter is referenced as the source to any emitter handles for this System.*/
-	bool ReferencesSourceEmitter(UNiagaraEmitter* Emitter);
+	bool IsReadyToRun() const;
 
-	/** Goes through all handles on the System and compares them to the latest on their source. Refreshes from source if needed. Returns true if any were refreshed.*/
-	bool ResynchronizeAllHandles();
+#if WITH_EDITORONLY_DATA
+	/** Called to query whether or not this emitter is referenced as the source to any emitter handles for this System.*/
+	bool ReferencesSourceEmitter(UNiagaraEmitter& Emitter);
+
+	/** Updates all handles which use this emitter as their source. */
+	void UpdateFromEmitterChanges(UNiagaraEmitter& ChangedSourceEmitter);
+
+	/** Updates the system's rapid iteration parameters from a specific emitter. */
+	void RefreshSystemParametersFromEmitter(const FNiagaraEmitterHandle& EmitterHandle);
+
+	/** Removes the system's rapid iteration parameters for a specific emitter. */
+	void RemoveSystemParametersForEmitter(const FNiagaraEmitterHandle& EmitterHandle);
 
 	/** Recompile all emitters and the System script associated with this System.*/
-	void Compile();
+	void Compile(bool bForce);
 
 	/** Compile just the System script associated with this System.*/
-	void CompileScripts(TArray<ENiagaraScriptCompileStatus>& OutScriptStatuses, TArray<FString>& OutGraphLevelErrorMessages, TArray<FString>& PathNames, TArray<UNiagaraScript*>& Scripts);
-
-	/** Uses whether or not the GetAutoImportChangedEmitters is set to ResynchronizeAllHandles.*/
-	bool CheckForUpdates();
+	void CompileScripts(TArray<ENiagaraScriptCompileStatus>& OutScriptStatuses, TArray<FString>& OutGraphLevelErrorMessages, TArray<FString>& PathNames, TArray<UNiagaraScript*>& Scripts, bool bForce);
 
 	/** Gets editor specific data stored with this system. */
 	UObject* GetEditorData();
@@ -135,14 +121,53 @@ public:
 	/** Sets editor specific data stored with this system. */
 	void SetEditorData(UObject* InEditorData);
 
+	/** Internal: The thumbnail image.*/
+	UPROPERTY()
+	class UTexture2D* ThumbnailImage;
+
+	/** Internal: Indicates the thumbnail image is out of date.*/
+	UPROPERTY()
+	uint32 ThumbnailImageOutOfDate : 1;
+
+	bool GetIsolateEnabled() const;
+	void SetIsolateEnabled(bool bIsolate);
 #endif
+
+	bool ShouldAutoDeactivate() const { return bAutoDeactivate; }
+	bool IsLooping() const;
 
 	const TArray<FNiagaraEmitterSpawnAttributes>& GetEmitterSpawnAttributes()const {	return EmitterSpawnAttributes;	};
 
+	bool UsesCollection(const UNiagaraParameterCollection* Collection)const;
+#if WITH_EDITORONLY_DATA
+	bool UsesScript(const UNiagaraScript* Script)const;
+#endif
+
+	FORCEINLINE UNiagaraParameterCollectionInstance* GetParameterCollectionOverride(UNiagaraParameterCollection* Collection)
+	{
+		UNiagaraParameterCollectionInstance** Found = ParameterCollectionOverrides.FindByPredicate(
+			[&](const UNiagaraParameterCollectionInstance* CheckInst)
+		{
+			return CheckInst && Collection == CheckInst->Collection;
+		});
+
+		return Found ? *Found : nullptr;
+	}
+
+
+private:
+#if WITH_EDITORONLY_DATA
+	INiagaraModule::FMergeEmitterResults MergeChangesForEmitterHandle(FNiagaraEmitterHandle& EmitterHandle);
+#endif
+
 protected:
+
 	/** Handles to the emitter this System will simulate. */
 	UPROPERTY(VisibleAnywhere, Category = "Emitters")
 	TArray<FNiagaraEmitterHandle> EmitterHandles;
+
+	UPROPERTY(EditAnywhere, Category="System")
+	TArray<UNiagaraParameterCollectionInstance*> ParameterCollectionOverrides;
 
 // 	/** Category of this system. */
 // 	UPROPERTY(EditAnywhere, Category = System)
@@ -174,17 +199,17 @@ protected:
 	UPROPERTY()
 	FNiagaraParameterStore ExposedParameters;
 
-#if WITH_EDITORONLY_DATA
-	/** Systems are the final step in the process of creating a Niagara system. Artists may wish to lock an System so that it only uses
-	the handle's cached version of the scripts, rather than the external assets that may be subject to changes. If this flag is set, we will only update
-	the emitters if told to do so explicitly by the user.*/
-	UPROPERTY()
-	uint32 bAutoImportChangedEmitters : 1;	
+#if WITH_EDITORONLY_DATA	
 
 	/** Data used by the editor to maintain UI state etc.. */
 	UPROPERTY()
 	UObject* EditorData;
+
+	bool bIsolateEnabled;
 #endif
+
+	UPROPERTY(EditAnywhere, Category = Performance, meta = (ToolTip = "Auto-deactivate system if all emitters are determined to not spawn particles again, regardless of lifetime."))
+	bool bAutoDeactivate;
 
 	void InitEmitterSpawnAttributes();
 };

@@ -20,7 +20,8 @@ Description:由于摄像机镜头的缺陷而模拟明亮对象上的散射光
 | **Bokeh Shape** （散景形状）| 用来定义镜头眩光形状的贴图。 [INCLUDE:#BokehShape] |
 | **Lens Flare Tints 1/2/3/4/5/6/7/8** |（镜头眩光着色）对每个单独的镜头眩光着色。 |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Tint]
 [REGION:imagetable]
 | ![Lens Flare Tint - (1.0, 1.0, 1.0)](lens_flare_tint_off_small.png)(w:385) | ![Lens Flare Tint - (0.25, 1.0, 1.0)](lens_flare_tint_on_small.png)(w:385)
@@ -52,4 +53,5 @@ Description:由于摄像机镜头的缺陷而模拟明亮对象上的散射光
 | 散景形状- 默认| 散景形状- 正方形 |
 [/REGION]
 [/EXCERPT:BokehShape]
--->
+
+[/COMMENT]

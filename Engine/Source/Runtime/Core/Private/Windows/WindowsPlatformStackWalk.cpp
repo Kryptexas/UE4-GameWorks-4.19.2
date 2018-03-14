@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Windows/WindowsPlatformStackWalk.h"
 #include "HAL/PlatformMemory.h"
@@ -61,6 +61,26 @@ static TFGetModuleBaseName		FGetModuleBaseName;
 static TFGetModuleFileNameEx	FGetModuleFileNameEx;
 static TFGetModuleInformation	FGetModuleInformation;
 
+struct FWindowsThreadContextWrapper
+{
+	enum 
+	{
+		MAGIC_VAL = 0x5397fe56
+	};
+
+	int32 Magic;
+	CONTEXT	Context;
+	HANDLE ThreadHandle;
+
+	FWindowsThreadContextWrapper()
+		: Magic(MAGIC_VAL)
+	{
+	}
+	void CheckOk()
+	{
+		check(Magic == MAGIC_VAL);
+	}
+};
 /**
  * Helper function performing the actual stack walk. This code relies on the symbols being loaded for best results
  * walking the stack albeit at a significant performance penalty.
@@ -72,16 +92,20 @@ static TFGetModuleInformation	FGetModuleInformation;
  * @param	Context				Thread context information
  * @return	EXCEPTION_EXECUTE_HANDLER
  */
-static int32 CaptureStackTraceHelper( uint64 *BackTrace, uint32 MaxDepth, CONTEXT* Context )
+
+static int32 CaptureStackTraceHelper(uint64 *BackTrace, uint32 MaxDepth, FWindowsThreadContextWrapper* ContextWapper, uint32* Depth)
 {
 	STACKFRAME64		StackFrame64;
 	HANDLE				ProcessHandle;
-	HANDLE				ThreadHandle;
 	unsigned long		LastError;
 	bool				bStackWalkSucceeded	= true;
 	uint32				CurrentDepth		= 0;
 	uint32				MachineType			= IMAGE_FILE_MACHINE_I386;
-	CONTEXT				ContextCopy = *Context;
+	ContextWapper->CheckOk();
+	HANDLE				ThreadHandle = ContextWapper->ThreadHandle;
+	CONTEXT				ContextCopy = ContextWapper->Context;
+
+	*Depth = 0;
 
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED
 	__try
@@ -89,7 +113,6 @@ static int32 CaptureStackTraceHelper( uint64 *BackTrace, uint32 MaxDepth, CONTEX
 	{
 		// Get context, process and thread information.
 		ProcessHandle	= GetCurrentProcess();
-		ThreadHandle	= GetCurrentThread();
 
 		// Zero out stack frame.
 		FMemory::Memzero( StackFrame64 );
@@ -99,14 +122,14 @@ static int32 CaptureStackTraceHelper( uint64 *BackTrace, uint32 MaxDepth, CONTEX
 		StackFrame64.AddrStack.Mode      = AddrModeFlat;
 		StackFrame64.AddrFrame.Mode      = AddrModeFlat;
 #if PLATFORM_64BITS
-		StackFrame64.AddrPC.Offset       = Context->Rip;
-		StackFrame64.AddrStack.Offset    = Context->Rsp;
-		StackFrame64.AddrFrame.Offset    = Context->Rbp;
+		StackFrame64.AddrPC.Offset = ContextWapper->Context.Rip;
+		StackFrame64.AddrStack.Offset = ContextWapper->Context.Rsp;
+		StackFrame64.AddrFrame.Offset = ContextWapper->Context.Rbp;
 		MachineType                      = IMAGE_FILE_MACHINE_AMD64;
 #else	//PLATFORM_64BITS
-		StackFrame64.AddrPC.Offset       = Context->Eip;
-		StackFrame64.AddrStack.Offset    = Context->Esp;
-		StackFrame64.AddrFrame.Offset    = Context->Ebp;
+		StackFrame64.AddrPC.Offset       = ContextWapper->Context.Eip;
+		StackFrame64.AddrStack.Offset    = ContextWapper->Context.Esp;
+		StackFrame64.AddrFrame.Offset    = ContextWapper->Context.Ebp;
 #endif	//PLATFORM_64BITS
 
 		// Walk the stack one frame at a time.
@@ -123,6 +146,7 @@ static int32 CaptureStackTraceHelper( uint64 *BackTrace, uint32 MaxDepth, CONTEX
 												NULL );
 
 			BackTrace[CurrentDepth++] = StackFrame64.AddrPC.Offset;
+			*Depth = CurrentDepth;
 
 			if( !bStackWalkSucceeded  )
 			{
@@ -158,6 +182,16 @@ static int32 CaptureStackTraceHelper( uint64 *BackTrace, uint32 MaxDepth, CONTEX
 }
 
 PRAGMA_DISABLE_OPTIMIZATION // Work around "flow in or out of inline asm code suppresses global optimization" warning C4740.
+
+static int32 CaptureStackTraceHelper(uint64 *BackTrace, uint32 MaxDepth, CONTEXT* Context)
+{
+	FWindowsThreadContextWrapper HelperContext;
+	HelperContext.ThreadHandle = GetCurrentThread();
+	HelperContext.Context = *Context;
+	uint32 Depth = 0;
+
+	return CaptureStackTraceHelper(BackTrace, MaxDepth, &HelperContext, &Depth);
+}
 
 #if USE_FAST_STACKTRACE
 NTSYSAPI uint16 NTAPI RtlCaptureStackBackTrace(
@@ -215,11 +249,12 @@ void FWindowsPlatformStackWalk::ThreadStackWalkAndDump(ANSICHAR* HumanReadableSt
 		SuspendThread(ThreadHandle);
 		// Give task scheduler some time to actually suspend the thread
 		FPlatformProcess::Sleep(0.01f);
-		CONTEXT ThreadContext;
-		ThreadContext.ContextFlags = CONTEXT_CONTROL;
-		if (GetThreadContext(ThreadHandle, &ThreadContext))
+		FWindowsThreadContextWrapper ContextWapper;
+		ContextWapper.Context.ContextFlags = CONTEXT_CONTROL;
+		ContextWapper.ThreadHandle = ThreadHandle;
+		if (GetThreadContext(ThreadHandle, &ContextWapper.Context))
 		{
-			FGenericPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount, &ThreadContext);
+			FGenericPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount, &ContextWapper);
 		}
 		ResumeThread(ThreadHandle);
 	}
@@ -233,34 +268,36 @@ void FWindowsPlatformStackWalk::ThreadStackWalkAndDump(ANSICHAR* HumanReadableSt
  * @param	MaxDepth			Entries in BackTrace array
  * @param	Context				Optional thread context information
  */
-void FWindowsPlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32 MaxDepth, void* Context )
+uint32 FWindowsPlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32 MaxDepth, void* Context )
 {
 	// Make sure we have place to store the information before we go through the process of raising
 	// an exception and handling it.
 	if (BackTrace == NULL || MaxDepth == 0)
 	{
-		return;
+		return 0;
 	}
 
+	uint32 Depth = 0;
 	if (Context)
 	{
-		CaptureStackTraceHelper(BackTrace, MaxDepth, (CONTEXT*)Context);
+		CaptureStackTraceHelper(BackTrace, MaxDepth, (FWindowsThreadContextWrapper*)Context, &Depth);
 	}
 	else
 	{
 #if USE_FAST_STACKTRACE
 		if (!GMaxCallstackDepthInitialized)
-		{
-			DetermineMaxCallstackDepth();
-		}
-		PVOID WinBackTrace[MAX_CALLSTACK_DEPTH];
+			{
+				DetermineMaxCallstackDepth();
+			}
+			PVOID WinBackTrace[MAX_CALLSTACK_DEPTH];
 		uint16 NumFrames = RtlCaptureStackBackTrace(0, FMath::Min<ULONG>(GMaxCallstackDepth, MaxDepth), WinBackTrace, NULL);
+		Depth = NumFrames;
 		for (uint16 FrameIndex = 0; FrameIndex < NumFrames; ++FrameIndex)
-		{
+			{
 			BackTrace[FrameIndex] = (uint64)WinBackTrace[FrameIndex];
-		}
+			}
 		while (NumFrames < MaxDepth)
-		{
+			{
 			BackTrace[NumFrames++] = 0;
 		}		
 #elif USE_SLOW_STACKTRACE
@@ -275,18 +312,18 @@ void FWindowsPlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32
 		RtlCaptureContext(&HelperContext);
 
 		// Capture the back trace.
-		CaptureStackTraceHelper(BackTrace, MaxDepth, &HelperContext);		
+		CaptureStackTraceHelper(BackTrace, MaxDepth, &HelperContext, &Depth);		
 #elif PLATFORM_64BITS
 		// Raise an exception so CaptureStackBackTraceHelper has access to context record.
 		__try
 		{
 			RaiseException(0,			// Application-defined exception code.
-				0,			// Zero indicates continuable exception.
-				0,			// Number of arguments in args array (ignored if args is NULL)
+							0,			// Zero indicates continuable exception.
+							0,			// Number of arguments in args array (ignored if args is NULL)
 				NULL);		// Array of arguments
-		}
+			}
 		// Capture the back trace.
-		__except (CaptureStackTraceHelper(BackTrace, MaxDepth, (GetExceptionInformation())->ContextRecord))
+		__except (CaptureStackTraceHelper(BackTrace, MaxDepth, (GetExceptionInformation())->ContextRecord, &Depth))
 		{
 		}
 #else
@@ -302,15 +339,16 @@ void FWindowsPlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32
 			call FakeFunctionCall
 			FakeFunctionCall :
 			pop eax
-				mov HelperContext.Eip, eax
-				mov HelperContext.Ebp, ebp
-				mov HelperContext.Esp, esp
+			mov HelperContext.Eip, eax
+			mov HelperContext.Ebp, ebp
+			mov HelperContext.Esp, esp
 		}
 
 		// Capture the back trace.
-		CaptureStackTraceHelper(BackTrace, MaxDepth, &HelperContext);
+		CaptureStackTraceHelper(BackTrace, MaxDepth, &HelperContext, &Depth);
 #endif
 	}	
+	return Depth;
 }
 
 PRAGMA_ENABLE_OPTIMIZATION
@@ -590,7 +628,7 @@ static void LoadProcessModules(const FString &RemoteStorage)
 			if ( ErrorCode != ERROR_SUCCESS )
 			{
 				UE_LOG(LogWindows, Warning, TEXT("SymLoadModuleExW. Error: %d"), ErrorCode);
-			}
+		}
 		}
 #else
 		SymSetSearchPath(ProcessHandle, TCHAR_TO_ANSI(*SearchPathList));
@@ -718,6 +756,19 @@ FString FWindowsPlatformStackWalk::GetDownstreamStorage()
 	}
 	FPaths::MakePlatformFilename(DownstreamStorage);
 	return DownstreamStorage;
+}
+
+void* FWindowsPlatformStackWalk::MakeThreadContextWrapper(void* Context, void* ThreadHandle)
+{
+	FWindowsThreadContextWrapper* ContextWrapper = new FWindowsThreadContextWrapper();
+	ContextWrapper->Context = *((PCONTEXT)Context);
+	ContextWrapper->ThreadHandle = (HANDLE)ThreadHandle;
+	return ContextWrapper;
+}
+
+void FWindowsPlatformStackWalk::ReleaseThreadContextWrapper(void* ThreadContext)
+{
+	delete (FWindowsThreadContextWrapper*)ThreadContext;
 }
 
 /**

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -363,9 +363,66 @@ FORCEINLINE void StatsMasterEnableSubtract(int32 Value = 1)
 	FThreadStats::MasterEnableSubtract(Value);
 }
 
-#else
+#else	//STATS
+#if ENABLE_STATNAMEDEVENTS
 
-struct TStatId{};
+struct FStatStringWrapper
+{
+	
+};
+
+#if	PLATFORM_USES_ANSI_STRING_FOR_EXTERNAL_PROFILING
+typedef ANSICHAR PROFILER_CHAR;
+#else
+typedef WIDECHAR PROFILER_CHAR;
+#endif // PLATFORM_USES_ANSI_STRING_FOR_EXTERNAL_PROFILING
+
+struct TStatId
+{
+	const PROFILER_CHAR* StatString;
+
+	FORCEINLINE TStatId()
+	: StatString(nullptr)
+	{
+	}
+
+	FORCEINLINE TStatId(const PROFILER_CHAR* InString)
+	: StatString(InString)
+	{
+	}
+	
+	FORCEINLINE bool IsValidStat() const
+	{
+		return StatString != nullptr;
+	}
+};
+
+class FScopeCycleCounter
+{
+public:
+	FORCEINLINE FScopeCycleCounter(TStatId InStatId, bool bAlways = false)
+		: bPop(false)
+	{
+		if (GCycleStatsShouldEmitNamedEvents && InStatId.IsValidStat())
+		{
+			bPop = true;
+			FPlatformMisc::BeginNamedEvent(FColor(0), InStatId.StatString);
+		}
+	}
+
+	FORCEINLINE ~FScopeCycleCounter()
+	{
+		if (bPop)
+		{
+			FPlatformMisc::EndNamedEvent();
+		}
+	}
+private:
+	bool bPop;
+};
+
+#else	//ENABLE_STATNAMEDEVENTS
+struct TStatId {};
 
 class FScopeCycleCounter
 {
@@ -374,6 +431,7 @@ public:
 	{
 	}
 };
+#endif
 
 FORCEINLINE void StatsMasterEnableAdd(int32 Value = 1)
 {
@@ -384,13 +442,86 @@ FORCEINLINE void StatsMasterEnableSubtract(int32 Value = 1)
 
 // Remove all the macros
 
-#define DEFINE_STAT(Stat)
+#ifndef USE_LIGHTWEIGHT_STATS_FOR_HITCH_DETECTION
+#define USE_LIGHTWEIGHT_STATS_FOR_HITCH_DETECTION 1
+#endif
+
+#if ENABLE_STATNAMEDEVENTS
+
+#if PLATFORM_USES_ANSI_STRING_FOR_EXTERNAL_PROFILING
+#define ANSI_TO_PROFILING(x) x
+#else
+#define ANSI_TO_PROFILING(x) TEXT(x)
+#endif
+
+
+#define DECLARE_SCOPE_CYCLE_COUNTER(CounterName,Stat,GroupId) \
+	FScopeCycleCounter StatNamedEventsScope_##Stat(TStatId(ANSI_TO_PROFILING(#Stat)));
+
+#define QUICK_SCOPE_CYCLE_COUNTER(Stat) \
+	FScopeCycleCounter StatNamedEventsScope_##Stat(TStatId(ANSI_TO_PROFILING(#Stat)));
+
+#define SCOPE_CYCLE_COUNTER(Stat) \
+	FScopeCycleCounter StatNamedEventsScope_##Stat(TStatId(ANSI_TO_PROFILING(#Stat)));
+
+#define CONDITIONAL_SCOPE_CYCLE_COUNTER(Stat,bCondition) \
+	FScopeCycleCounter StatNamedEventsScope_##Stat(bCondition ? ANSI_TO_PROFILING(#Stat) : nullptr);
+
+#define RETURN_QUICK_DECLARE_CYCLE_STAT(StatId,GroupId) return TStatId(ANSI_TO_PROFILING(#StatId));
+
+#define GET_STATID(Stat) (TStatId(ANSI_TO_PROFILING(#Stat)))
+
+
+#elif USE_LIGHTWEIGHT_STATS_FOR_HITCH_DETECTION && USE_HITCH_DETECTION
+extern CORE_API bool GHitchDetected;
+
+class FLightweightStatScope
+{
+	const TCHAR* StatString;
+public:
+	FORCEINLINE FLightweightStatScope(const TCHAR* InStat)
+	{
+		StatString = GHitchDetected ? nullptr : InStat;
+	}
+
+	FORCEINLINE ~FLightweightStatScope()
+	{
+		if (GHitchDetected && StatString && IsInGameThread())
+		{
+			ReportHitch();
+		}
+	}
+
+	CORE_API void ReportHitch();
+};
+
+#define DECLARE_SCOPE_CYCLE_COUNTER(CounterName,Stat,GroupId) \
+	FLightweightStatScope LightweightStatScope_##Stat(TEXT(#Stat));
+
+#define QUICK_SCOPE_CYCLE_COUNTER(Stat) \
+	FLightweightStatScope LightweightStatScope_##Stat(TEXT(#Stat));
+
+#define SCOPE_CYCLE_COUNTER(Stat) \
+	FLightweightStatScope LightweightStatScope_##Stat(TEXT(#Stat));
+
+#define CONDITIONAL_SCOPE_CYCLE_COUNTER(Stat,bCondition) \
+	FLightweightStatScope LightweightStatScope_##Stat(bCondition ? TEXT(#Stat) : nullptr);
+
+#define RETURN_QUICK_DECLARE_CYCLE_STAT(StatId,GroupId) return TStatId();
+#define GET_STATID(Stat) (TStatId())
+
+#else
 #define SCOPE_CYCLE_COUNTER(Stat)
-#define SCOPE_SECONDS_ACCUMULATOR(Stat)
 #define QUICK_SCOPE_CYCLE_COUNTER(Stat)
 #define DECLARE_SCOPE_CYCLE_COUNTER(CounterName,StatId,GroupId)
 #define CONDITIONAL_SCOPE_CYCLE_COUNTER(Stat,bCondition)
 #define RETURN_QUICK_DECLARE_CYCLE_STAT(StatId,GroupId) return TStatId();
+#define GET_STATID(Stat) (TStatId())
+
+#endif
+
+#define SCOPE_SECONDS_ACCUMULATOR(Stat)
+#define DEFINE_STAT(Stat)
 #define QUICK_USE_CYCLE_STAT(StatId,GroupId) TStatId()
 #define DECLARE_CYCLE_STAT(CounterName,StatId,GroupId)
 #define DECLARE_FLOAT_COUNTER_STAT(CounterName,StatId,GroupId)
@@ -445,7 +576,6 @@ FORCEINLINE void StatsMasterEnableSubtract(int32 Value = 1)
 #define SET_DWORD_STAT_FName(Stat,Value)
 #define SET_FLOAT_STAT_FName(Stat,Value)
 
-#define GET_STATID(Stat) (TStatId())
 #define GET_STATFNAME(Stat) (FName())
 #define GET_STATDESCRIPTION(Stat) (nullptr)
 

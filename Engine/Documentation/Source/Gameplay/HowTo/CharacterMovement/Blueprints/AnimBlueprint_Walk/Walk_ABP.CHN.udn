@@ -22,7 +22,7 @@ SkillLevel:Advanced
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
  
 在本节中，我们将设置基于玩家在游戏中所采取行动决定播放什么动画的**Animation Blueprint**。然后，我们将设置**State Machine**，并创建**Idle**和**Walk**状态，并且设置各状态间的过渡。 
 
@@ -109,4 +109,4 @@ SkillLevel:Advanced
 1. 	**Compile**并**Save**动画蓝图。 
 
 
-%Steps%
+

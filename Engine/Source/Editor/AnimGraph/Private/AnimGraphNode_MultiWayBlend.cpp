@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphNode_MultiWayBlend.h"
 #include "BlueprintEditorUtils.h"
@@ -118,7 +118,7 @@ void UAnimGraphNode_MultiWayBlend::ReallocatePinsDuringReconstruction(TArray<UEd
 void UAnimGraphNode_MultiWayBlend::RemovePinsFromOldPins(TArray<UEdGraphPin*>& OldPins, int32 RemovedArrayIndex)
 {
 	TArray<FString> RemovedPropertyNames;
-	TArray<FString> NewPinNames;
+	TArray<FName> NewPinNames;
 
 	// Store new pin names to compare with old pin names
 	for (int32 NewPinIndx = 0; NewPinIndx < Pins.Num(); NewPinIndx++)
@@ -129,14 +129,15 @@ void UAnimGraphNode_MultiWayBlend::RemovePinsFromOldPins(TArray<UEdGraphPin*>& O
 	// don't know which pins are removed yet so find removed pins comparing NewPins and OldPins
 	for (int32 OldPinIdx = 0; OldPinIdx < OldPins.Num(); OldPinIdx++)
 	{
-		FString& OldPinName = OldPins[OldPinIdx]->PinName;
+		const FName OldPinName = OldPins[OldPinIdx]->PinName;
 		if (!NewPinNames.Contains(OldPinName))
 		{
-			int32 UnderscoreIndex = OldPinName.Find(TEXT("_"));
+			const FString OldPinNameStr = OldPinName.ToString();
+			const int32 UnderscoreIndex = OldPinNameStr.Find(TEXT("_"), ESearchCase::CaseSensitive);
 			if (UnderscoreIndex != INDEX_NONE)
 			{
-				FString PropertyName = OldPinName.Left(UnderscoreIndex);
-				RemovedPropertyNames.Add(PropertyName);
+				FString PropertyName = OldPinNameStr.Left(UnderscoreIndex);
+				RemovedPropertyNames.Add(MoveTemp(PropertyName));
 			}
 		}
 	}
@@ -144,18 +145,16 @@ void UAnimGraphNode_MultiWayBlend::RemovePinsFromOldPins(TArray<UEdGraphPin*>& O
 	for (int32 PinIdx = 0; PinIdx < OldPins.Num(); PinIdx++)
 	{
 		// Separate the pin name into property name and index
-		FString PropertyName;
-		int32 ArrayIndex = -1;
-		FString& OldPinName = OldPins[PinIdx]->PinName;
+		const FString OldPinNameStr = OldPins[PinIdx]->PinName.ToString();
 
-		int32 UnderscoreIndex = OldPinName.Find(TEXT("_"));
+		const int32 UnderscoreIndex = OldPinNameStr.Find(TEXT("_"), ESearchCase::CaseSensitive);
 		if (UnderscoreIndex != INDEX_NONE)
 		{
-			PropertyName = OldPinName.Left(UnderscoreIndex);
-			ArrayIndex = FCString::Atoi(*(OldPinName.Mid(UnderscoreIndex + 1)));
+			const FString PropertyName = OldPinNameStr.Left(UnderscoreIndex);
 
 			if (RemovedPropertyNames.Contains(PropertyName))
 			{
+				const int32 ArrayIndex = FCString::Atoi(*(OldPinNameStr.Mid(UnderscoreIndex + 1)));
 				// if array index is matched, removes pins 
 				// and if array index is greater than removed index, decrease index
 				if (ArrayIndex == RemovedArrayIndex)
@@ -164,11 +163,10 @@ void UAnimGraphNode_MultiWayBlend::RemovePinsFromOldPins(TArray<UEdGraphPin*>& O
 					OldPins.RemoveAt(PinIdx);
 					--PinIdx;
 				}
-				else
-					if (ArrayIndex > RemovedArrayIndex)
-					{
-						OldPinName = FString::Printf(TEXT("%s_%d"), *PropertyName, ArrayIndex - 1);
-					}
+				else if (ArrayIndex > RemovedArrayIndex)
+				{
+					OldPins[PinIdx]->PinName = *FString::Printf(TEXT("%s_%d"), *PropertyName, ArrayIndex - 1);
+				}
 			}
 		}
 	}

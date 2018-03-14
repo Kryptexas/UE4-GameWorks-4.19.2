@@ -144,9 +144,11 @@ Landsape Gizmos(景观小工具)仅是在编辑器中使用的工具，类似于
 	[REGION:note]
 	如果使用 *Region Selection(区域选择)* 工具选中了某个区域并启用了 *Use Region as Mask(使用区域作为蒙板)* 功能，那么将会根据蒙板区域应用粘帖的数据。
 	[/REGION]
-<!----
+[COMMENT:none]
+--
     ![pastemask_region.jpg](pastemask_region.jpg)(w:667 h:363) ![pastemask_partial.jpg](pastemask_partial.jpg)(w:667 h:363)
----->
+--
+[/COMMENT]
 
 
 
@@ -191,7 +193,8 @@ Landsape Gizmos(景观小工具)仅是在编辑器中使用的工具，类似于
     ![export_layerfile.jpg](export_layerfile.jpg)(w:625 h:436)
 
 
-<!--
+[COMMENT:none]
+
 ## Gizmo列表
 
 ![gizmolist.jpg](gizmolist.jpg)(w:267 h:60)
@@ -206,5 +209,6 @@ Gizmo List (Gizmo列表)显示了一系列已保存的Gizmo，以便稍后可以
 | ![gizmolist_remove.jpg](gizmolist_remove.jpg)| 删除列表中当前选中的Gizmo 。|
 | ![gizmolist_goto.jpg](gizmolist_goto.jpg)| 设置gizmo的位置、尺寸和旋转度为列表中当前选中的gizmo的位置、尺寸和旋转度。|
 
--->
+
+[/COMMENT]
 

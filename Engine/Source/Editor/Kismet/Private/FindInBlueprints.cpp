@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #include "FindInBlueprints.h"
 #include "Layout/WidgetPath.h"
 #include "Framework/Application/MenuStack.h"
@@ -65,14 +65,14 @@ bool FindInBlueprintsHelpers::IsTextEqualToString(const FText& InText, const FSt
 
 FString FindInBlueprintsHelpers::GetPinTypeAsString(const FEdGraphPinType& InPinType)
 {
-	FString Result = InPinType.PinCategory;
+	FString Result = InPinType.PinCategory.ToString();
 	if(UObject* SubCategoryObject = InPinType.PinSubCategoryObject.Get()) 
 	{
 		Result += FString(" '") + SubCategoryObject->GetName() + "'";
 	}
 	else
 	{
-		Result += FString(" '") + InPinType.PinSubCategory + "'";
+		Result += FString(" '") + InPinType.PinSubCategory.ToString() + "'";
 	}
 
 	return Result;
@@ -84,15 +84,15 @@ bool FindInBlueprintsHelpers::ParsePinType(FText InKey, FText InValue, FEdGraphP
 
 	if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_PinCategory) == 0)
 	{
-		InOutPinType.PinCategory = InValue.ToString();
+		InOutPinType.PinCategory = *InValue.ToString();
 	}
 	else if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_PinSubCategory) == 0)
 	{
-		InOutPinType.PinSubCategory = InValue.ToString();
+		InOutPinType.PinSubCategory = *InValue.ToString();
 	}
 	else if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_ObjectClass) == 0)
 	{
-		InOutPinType.PinSubCategory = InValue.ToString();
+		InOutPinType.PinSubCategory = *InValue.ToString();
 	}
 	else if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_IsArray) == 0)
 	{
@@ -375,17 +375,17 @@ FText FFindInBlueprintsPin::GetCategory() const
 
 void FFindInBlueprintsPin::FinalizeSearchData()
 {
-	if(!PinType.PinSubCategory.IsEmpty())
+	if(!PinType.PinSubCategory.IsNone())
 	{
-		PinType.PinSubCategoryObject = FindObject<UClass>(ANY_PACKAGE, *PinType.PinSubCategory, true);
+		PinType.PinSubCategoryObject = FindObject<UClass>(ANY_PACKAGE, *PinType.PinSubCategory.ToString(), true);
 		if(!PinType.PinSubCategoryObject.IsValid())
 		{
-			PinType.PinSubCategoryObject = FindObject<UScriptStruct>(UObject::StaticClass(), *PinType.PinSubCategory);
+			PinType.PinSubCategoryObject = FindObject<UScriptStruct>(UObject::StaticClass(), *PinType.PinSubCategory.ToString());
 		}
 
 		if (PinType.PinSubCategoryObject.IsValid())
 		{
-			PinType.PinSubCategory.Empty();
+			PinType.PinSubCategory = NAME_None;
 		}
 	}
 
@@ -494,17 +494,17 @@ FText FFindInBlueprintsProperty::GetCategory() const
 
 void FFindInBlueprintsProperty::FinalizeSearchData()
 {
-	if(!PinType.PinSubCategory.IsEmpty())
+	if(!PinType.PinSubCategory.IsNone())
 	{
-		PinType.PinSubCategoryObject = FindObject<UClass>(ANY_PACKAGE, *PinType.PinSubCategory, true);
+		PinType.PinSubCategoryObject = FindObject<UClass>(ANY_PACKAGE, *PinType.PinSubCategory.ToString(), true);
 		if(!PinType.PinSubCategoryObject.IsValid())
 		{
-			PinType.PinSubCategoryObject = FindObject<UScriptStruct>(UObject::StaticClass(), *PinType.PinSubCategory);
+			PinType.PinSubCategoryObject = FindObject<UScriptStruct>(UObject::StaticClass(), *PinType.PinSubCategory.ToString());
 		}
 
 		if (PinType.PinSubCategoryObject.IsValid())
 		{
-			PinType.PinSubCategory.Empty();
+			PinType.PinSubCategory = NAME_None;
 		}
 	}
 }

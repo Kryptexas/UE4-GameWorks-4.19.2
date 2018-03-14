@@ -22,7 +22,7 @@ Version:4.11
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在这步中，我们将添加状态机，以便使用新制作的变量。
 
@@ -44,4 +44,4 @@ Version:4.11
 
 1.	双击“Arms State Machine”节点打开其图表进行编辑。
 
-%Steps%
+

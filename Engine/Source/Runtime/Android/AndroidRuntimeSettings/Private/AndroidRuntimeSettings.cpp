@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AndroidRuntimeSettings.h"
 #include "Modules/ModuleManager.h"
@@ -25,12 +25,14 @@ UAndroidRuntimeSettings::UAndroidRuntimeSettings(const FObjectInitializer& Objec
 	, AudioCallbackBufferFrameSize(1024)
 	, AudioNumBuffersToEnqueue(4)
 	, bMultiTargetFormat_ETC1(true)
+	, bMultiTargetFormat_ETC1a(true)
 	, bMultiTargetFormat_ETC2(true)
 	, bMultiTargetFormat_DXT(true)
 	, bMultiTargetFormat_PVRTC(true)
 	, bMultiTargetFormat_ATC(true)
 	, bMultiTargetFormat_ASTC(true)
 	, TextureFormatPriority_ETC1(0.1f)
+	, TextureFormatPriority_ETC1a(0.18f)
 	, TextureFormatPriority_ETC2(0.2f)
 	, TextureFormatPriority_DXT(0.6f)
 	, TextureFormatPriority_PVRTC(0.8f)
@@ -68,6 +70,12 @@ static void InvalidateAllAndroidPlatforms()
 	}
 
 	Module = FModuleManager::GetModulePtr<IAndroid_MultiTargetPlatformModule>("Android_ETC1TargetPlatform");
+	if (Module != nullptr)
+	{
+		FCoreDelegates::OnTargetPlatformChangedSupportedFormats.Broadcast(Module->GetTargetPlatform());
+	}
+
+	Module = FModuleManager::GetModulePtr<IAndroid_MultiTargetPlatformModule>("Android_ETC1aTargetPlatform");
 	if (Module != nullptr)
 	{
 		FCoreDelegates::OnTargetPlatformChangedSupportedFormats.Broadcast(Module->GetTargetPlatform());
@@ -121,7 +129,7 @@ void UAndroidRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEven
 		UpdateSinglePropertyInConfigFile(PropertyChangedEvent.Property, GetDefaultConfigFilename());
 
 		// Ensure we have at least one format for Android_Multi
-		if (!bMultiTargetFormat_ETC1 && !bMultiTargetFormat_ETC2 && !bMultiTargetFormat_DXT && !bMultiTargetFormat_PVRTC && !bMultiTargetFormat_ATC && !bMultiTargetFormat_ASTC)
+		if (!bMultiTargetFormat_ETC1 && !bMultiTargetFormat_ETC1a && !bMultiTargetFormat_ETC2 && !bMultiTargetFormat_DXT && !bMultiTargetFormat_PVRTC && !bMultiTargetFormat_ATC && !bMultiTargetFormat_ASTC)
 		{
 			bMultiTargetFormat_ETC1 = true;
 			UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bMultiTargetFormat_ETC1)), GetDefaultConfigFilename());

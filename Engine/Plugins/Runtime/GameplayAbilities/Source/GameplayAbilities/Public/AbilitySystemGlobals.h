@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -162,6 +162,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	// Global Tags
 
 	UPROPERTY()
+	FGameplayTag ActivateFailIsDeadTag; // TryActivate failed due to being dead
+	UPROPERTY(config)
+	FName ActivateFailIsDeadName;
+
+	UPROPERTY()
 	FGameplayTag ActivateFailCooldownTag; // TryActivate failed due to being on cooldown
 	UPROPERTY(config)
 	FName ActivateFailCooldownName;
@@ -192,6 +197,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 
 	virtual void InitGlobalTags()
 	{
+		if (ActivateFailIsDeadName != NAME_None)
+		{
+			ActivateFailIsDeadTag = FGameplayTag::RequestGameplayTag(ActivateFailIsDeadName);
+		}
+
 		if (ActivateFailCooldownName != NAME_None)
 		{
 			ActivateFailCooldownTag = FGameplayTag::RequestGameplayTag(ActivateFailCooldownName);

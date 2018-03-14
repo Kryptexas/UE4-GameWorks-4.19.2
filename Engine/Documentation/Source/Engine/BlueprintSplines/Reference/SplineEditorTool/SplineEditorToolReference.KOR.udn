@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3149199
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:블루프린트 스플라인 에디터 툴 참고서
 Crumbs: %ROOT%, Engine
@@ -14,49 +14,7 @@ reference-image:MoveTangent.gif
 reference-image:RotatePoint.gif
 reference-image:ScalePoint.gif
 tags:Splines
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/BlueprintSplines/Reference/SplineEditorTool:title%](Engine/BlueprintSplines/Splines_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/BlueprintSplines/Reference/SplineEditorTool:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/BlueprintSplines/Reference/SplineEditorTool:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/BlueprintSplines/Reference/SplineEditorTool]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/BlueprintSplines/Reference/SplineEditorTool:title%](Engine/BlueprintSplines/Splines_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/BlueprintSplines/Reference/SplineEditorTool:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/BlueprintSplines/Reference/SplineEditorTool:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/BlueprintSplines/Reference/SplineEditorTool]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
-
-[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+topic-image:Engine/BlueprintSplines/Splines_topic.png
 
 레벨 에디터에서 **Blueprint Spline Components** (블루프린트 스플라인 컴포넌트) 및 **Blueprint Spline Mesh Components** (블루프린트 스플라인 메시 컴포넌트) 편집을 위한 툴과 절차에 대한 정보가 들어있는 글입니다. 4.13 부로 **블루프린트 스플라인 컴포넌트** 역시 **블루프린트 에디터 뷰포트** 에서 아래와 같은 툴과 절차를 전부 사용하여 편집할 수 있습니다.
 
@@ -94,7 +52,8 @@ tags:Splines
 | **Allow Discontinous Splines** | 비연속 스플라인 허용 - 시각화에서 **Arrive** (도착) 및 **Leave** (출발) 탄젠트의 별도 설정 여부를 결정합니다. |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SplinePointType]
 
 선택된 스플라인 포인트에 대한 보간 유형을 변경합니다. 스플라인 커브 포인트에 연관된 스플라인 커브는 (기본) 빨강으로 표시됩니다. 이 값을 변경할 때 영향받는 커브가 됩니다. 기본 **포인트 유형** 은 **커브** 입니다. 아래는 다양한 유형의 모습입니다:
@@ -121,7 +80,8 @@ tags:Splines
 | **Clamped Tangent** | 클램프 적용 탄젠트 - 선택된 **커브 포인트** 의 탄젠트를 **Clamped Tangent** (클램프 적용 탄젠트) 값으로 리셋시킵니다. |
 [/REGION]
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 ### 스플라인 커브에 우클릭
 

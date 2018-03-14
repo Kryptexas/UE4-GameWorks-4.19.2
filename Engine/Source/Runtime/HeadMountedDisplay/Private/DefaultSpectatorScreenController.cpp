@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DefaultSpectatorScreenController.h"
 #include "HeadMountedDisplayTypes.h"
@@ -70,7 +70,7 @@ FSpectatorScreenRenderDelegate* FDefaultSpectatorScreenController::GetSpectatorS
 }
 
 
-struct FRHISetSpectatorScreenTexture : public FRHICommand<FRHISetSpectatorScreenTexture>
+struct FRHISetSpectatorScreenTexture final : public FRHICommand<FRHISetSpectatorScreenTexture>
 {
 	FDefaultSpectatorScreenController* SpectatorScreenController;
 	FTexture2DRHIRef Texture;
@@ -126,7 +126,7 @@ void FDefaultSpectatorScreenController::SetSpectatorScreenTexture_RenderThread(F
 }
 
 
-struct FRHISetSpectatorScreenModeTexturePlusEyeLayout : public FRHICommand<FRHISetSpectatorScreenModeTexturePlusEyeLayout>
+struct FRHISetSpectatorScreenModeTexturePlusEyeLayout final : public FRHICommand<FRHISetSpectatorScreenModeTexturePlusEyeLayout>
 {
 	FDefaultSpectatorScreenController* SpectatorScreenController;
 	FSpectatorScreenModeTexturePlusEyeLayout Layout;
@@ -230,7 +230,7 @@ void FDefaultSpectatorScreenController::UpdateSpectatorScreenMode_RenderThread()
 
 void FDefaultSpectatorScreenController::RenderSpectatorScreen_RenderThread(FRHICommandListImmediate& RHICmdList, FRHITexture2D* BackBuffer, FTexture2DRHIRef SrcTexture, FVector2D WindowSize) const
 {
-	FScopedNamedEvent NamedEvent(FColor::Magenta, "RenderSocialScreen_RenderThread()");
+	SCOPED_NAMED_EVENT_TEXT("RenderSocialScreen_RenderThread()", FColor::Magenta);
 
 	check(IsInRenderingThread());
 

@@ -14,9 +14,6 @@ Tags:Mobile
 Topic-image:MobilePreview_topic.png
 Social-Image:T_Rendering_Level_Examples.png
 
-[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
-[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
-
 [TOC(start:2 end:2)]
 
 ![](T_Rendering_Level_Examples.png)
@@ -138,17 +135,17 @@ For any of these changes to take effect, be sure to click the **Update Preview S
 When you select your Preview Rendering Level, you will have a few options select from. Use the table below to select the option that best fits your target device. 
 
 [REGION:raw]
-| Device Target | %spacer% | Description |
-| --- | --- | --- |
-| [REGION:tablesection] High-End Mobile / Metal [/REGION] |||
-| **Default High-End Mobile** || This will emulate the default high-end mobile material quality settings without using any material quality overrides specified in the Project Settings. |
-| **Android GLES 3.1** || Provides a preview emulation of supported Android OpenGL ES3.1 quality settings. The Material Quality settings can be set in the **Project Settings** > **Android Material Quality - ES31** section.  |
-| **Android Vulkan** || Provides a preview emulation of supported Android Vulkan quality settings. The Material Quality settings can be set in the **Project Settings** > **Android Material Quality - Vulkan** section. |
-| **iOS Metal** || Provides a preview emulation of supported iOS Metal quality settings. The Material Quality settings can be set in the **Project Settings** > **iOS Material Quality - Metal** section. |
-| [REGION:tablesection] Mobile / HTML5 [/REGION] |||
-| **Default Mobile / HTML5** || This will emulate the default mobile material quality settings without using any material quality overrides specified in the **Project Settings**. |
-| **Android** || Provides a preview emulation of supported Android OpenGL ES2 quality settings. The Material Quality settings can be set in the **Project Settings** > **Android Material Quality - ES2** section. |
-| **iOS ES2** || Provides a preview emulation of supported iOS OpenGL ES2 quality settings. The Material Quality settings can be set in the **Project Settings** > **iOS Material Quality - ES2** section. |
+| Device Target | Description |
+| --- | --- |
+| [REGION:tablesection] High-End Mobile / Metal [/REGION] ||
+| **Default High-End Mobile** | This will emulate the default high-end mobile material quality settings without using any material quality overrides specified in the Project Settings. |
+| **Android GLES 3.1** | Provides a preview emulation of supported Android OpenGL ES3.1 quality settings. The Material Quality settings can be set in the **Project Settings** > **Android Material Quality - ES31** section.  |
+| **Android Vulkan** | Provides a preview emulation of supported Android Vulkan quality settings. The Material Quality settings can be set in the **Project Settings** > **Android Material Quality - Vulkan** section. |
+| **iOS Metal** | Provides a preview emulation of supported iOS Metal quality settings. The Material Quality settings can be set in the **Project Settings** > **iOS Material Quality - Metal** section. |
+| [REGION:tablesection] Mobile / HTML5 [/REGION] ||
+| **Default Mobile / HTML5** | This will emulate the default mobile material quality settings without using any material quality overrides specified in the **Project Settings**. |
+| **Android** | Provides a preview emulation of supported Android OpenGL ES2 quality settings. The Material Quality settings can be set in the **Project Settings** > **Android Material Quality - ES2** section. |
+| **iOS ES2** | Provides a preview emulation of supported iOS OpenGL ES2 quality settings. The Material Quality settings can be set in the **Project Settings** > **iOS Material Quality - ES2** section. |
 [/REGION]
 
 [REGION:note]

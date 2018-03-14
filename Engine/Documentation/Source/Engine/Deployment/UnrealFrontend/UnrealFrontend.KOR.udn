@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:언리얼 프론트엔드
 Crumbs:%ROOT%, Engine, Engine/Deployment
@@ -25,7 +25,8 @@ UFE 는 다음과 같은 특징이 있습니다:
 | **Profiling** | 프로파일링 - [INCLUDE:#Profiling] |
 | **Device Management** | 디바이스 관리 - [INCLUDE:#DeviceManagement] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Launcher]
 게임을 빌드, 쿠킹, 설치, 실행합니다. UFE 로, 로컬이든 네트워크든, 각기 다른 타겟 플랫폼이 실행중인 다수의 타겟 
 디바이스에 동시에 설치 가능합니다. 싱글 게임이나 멀티플레이 크로스 플랫폼 게임 테스트를 위한 작업 속도를 
@@ -63,7 +64,8 @@ UFE 에서도 가능했으나, UE4 에서는 훨씬 강력해 집니다. 타겟 
 로컬 및 네트워크 연결된 디바이스를 감지하여 다른 이와 공유할 수 있게 될 것입니다. 윈도우와 맥 컴퓨터 
 역시도 이제는 설치, 실행, 자동화 대상 디바이스처럼 작동 가능합니다.
 [/EXCERPT:DeviceManagement]
--->
+
+[/COMMENT]
 
 ## 시작하기
 
@@ -130,7 +132,8 @@ QA 종사자나 프로그래머 분들은 가벼운 독립형 어플리케이션
 |  |  |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BuildPanel]
 | 세팅 | 설명 |
 | ---- | ---- |
@@ -159,7 +162,8 @@ QA 종사자나 프로그래머 분들은 가벼운 독립형 어플리케이션
 | [REGION:tablesection]**Launch 실행**[/REGION] ||
 | **실행** | 타겟 디바이스로의 설치를 위한 옵션입니다. 설치는 실제 게임 실행 전 디바이스에 필요한 파일을 전부 복사하는 식, 또는 파일 서버를 사용하여 게임 실행 도중 요청받은 파일을 복사해 주는 식으로도 가능합니다. 개발에 적합한 방식은 파일 서버 방식입니다. 게임을 실행하려면 **실행** 부분을 **_기본 규칙을 사용해서_** 로 놔두세요 (현재 유일하게 지원되는 모드입니다). |
 [/EXCERPT:LaunchPanel]
--->
+
+[/COMMENT]
 
 ## 디바이스 브라우저
 

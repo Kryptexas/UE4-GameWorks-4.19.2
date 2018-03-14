@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Factories/SoundFactory.h"
 #include "AssetRegistryModule.h"
@@ -100,7 +100,7 @@ USoundFactory::USoundFactory(const FObjectInitializer& ObjectInitializer)
 	CueVolume = 0.75f;
 	CuePackageSuffix = TEXT("_Cue");
 	bEditorImport = true;
-}
+} 
 
 UObject* USoundFactory::FactoryCreateBinary
 (
@@ -190,6 +190,15 @@ UObject* USoundFactory::FactoryCreateBinary
 			}
 		}
 
+		// See if this may be an ambisonics import by checking ambisonics naming convention (ambix)
+		FString RootName = Name.GetPlainNameString();
+		FString AmbiXTag = RootName.Right(6).ToLower();
+		FString FuMaTag = RootName.Right(5).ToLower();
+
+		// check for AmbiX or FuMa tag for the file
+		bool bIsAmbiX = (AmbiXTag == TEXT("_ambix"));
+		bool bIsFuMa = (FuMaTag == TEXT("_fuma"));
+
 		// Reset the flag back to false so subsequent imports are not suppressed unless the code explicitly suppresses it
 		bSoundFactorySuppressImportOverwriteDialog = false;
 
@@ -203,18 +212,18 @@ UObject* USoundFactory::FactoryCreateBinary
 		FString ErrorMessage;
 		if (WaveInfo.ReadWaveInfo(RawWaveData.GetData(), RawWaveData.Num(), &ErrorMessage))
 		{
-			if (*WaveInfo.pBitsPerSample != 16)
+			// Validate if somebody has used the ambiX or FuMa tag that the ChannelCount is 4 channels
+			if ((bIsAmbiX || bIsFuMa) && (int32)*WaveInfo.pChannels != 4)
 			{
-				WaveInfo.ReportImportFailure();
-				Warn->Logf(ELogVerbosity::Error, TEXT("Currently, only 16 bit WAV files are supported (%s)."), *Name.ToString());
+				Warn->Logf(ELogVerbosity::Error, TEXT("Tried to import ambisonics format file but requires exactly 4 channels: '%s'"), *Name.ToString());
 				FEditorDelegates::OnAssetPostImport.Broadcast(this, nullptr);
 				return nullptr;
 			}
 
-			if (*WaveInfo.pChannels != 1 && *WaveInfo.pChannels != 2)
+			if (*WaveInfo.pBitsPerSample != 16)
 			{
 				WaveInfo.ReportImportFailure();
-				Warn->Logf(ELogVerbosity::Error, TEXT("Currently, only mono or stereo WAV files are supported (%s)."), *Name.ToString());
+				Warn->Logf(ELogVerbosity::Error, TEXT("Currently, only 16 bit WAV files are supported (%s)."), *Name.ToString());
 				FEditorDelegates::OnAssetPostImport.Broadcast(this, nullptr);
 				return nullptr;
 			}
@@ -225,6 +234,7 @@ UObject* USoundFactory::FactoryCreateBinary
 			FEditorDelegates::OnAssetPostImport.Broadcast(this, nullptr);
 			return nullptr;
 		}
+
 
 		// Use pre-existing sound if it exists and we want to keep settings,
 		// otherwise create new sound and import raw data.
@@ -241,25 +251,141 @@ UObject* USoundFactory::FactoryCreateBinary
 
 		// Compressed data is now out of date.
 		Sound->InvalidateCompressedData();
+		 
+		// If we're a multi-channel file, we're going to spoof the behavior of the SoundSurroundFactory
+		int32 ChannelCount = (int32)*WaveInfo.pChannels;
+		check(ChannelCount >0);
 
-		Sound->RawData.Lock(LOCK_READ_WRITE);
-		void* LockedData = Sound->RawData.Realloc(BufferEnd - Buffer);
-		FMemory::Memcpy(LockedData, Buffer, BufferEnd - Buffer);
-		Sound->RawData.Unlock();
+		int32 NumSamples = WaveInfo.SampleDataSize / sizeof(int16);
+		int32 NumFrames = NumSamples / ChannelCount;
 
-		// Calculate duration.
-		int32 DurationDiv = *WaveInfo.pChannels * *WaveInfo.pBitsPerSample * *WaveInfo.pSamplesPerSec;
-		if (DurationDiv)
+		if (ChannelCount > 2)
 		{
-			Sound->Duration = *WaveInfo.pWaveDataSize * 8.0f / DurationDiv;
+			// We need to deinterleave the raw PCM data in the multi-channel file reuse a scratch buffer
+			TArray<int16> DeinterleavedAudioScratchBuffer;
+
+			// Store the array of raw .wav files we're going to create from the deinterleaved int16 data
+			TArray<uint8> RawChannelWaveData[SPEAKER_Count];
+
+			// Ptr to the pcm data of the imported sound wave
+			int16* SampleDataBuffer = (int16*)WaveInfo.SampleDataStart;
+
+			int32 TotalSize = 0;
+
+			Sound->ChannelOffsets.Empty(SPEAKER_Count);
+			Sound->ChannelOffsets.AddZeroed(SPEAKER_Count);
+
+			Sound->ChannelSizes.Empty(SPEAKER_Count);
+			Sound->ChannelSizes.AddZeroed(SPEAKER_Count);
+
+			TArray<int32> ChannelIndices;
+			if (ChannelCount == 4)
+			{
+				ChannelIndices = { 
+					SPEAKER_FrontLeft, 
+					SPEAKER_FrontRight, 
+					SPEAKER_LeftSurround, 
+					SPEAKER_RightSurround 
+				};
+			}
+			else if (ChannelCount == 6)
+			{
+				ChannelIndices = { 
+					SPEAKER_FrontLeft, 
+					SPEAKER_FrontRight, 
+					SPEAKER_FrontCenter, 
+					SPEAKER_LeftSurround, 
+					SPEAKER_LowFrequency, 
+					SPEAKER_LeftSurround, 
+					SPEAKER_RightSurround 
+				};
+			}
+			else if (ChannelCount == 8)
+			{
+				ChannelIndices = { 
+					SPEAKER_FrontLeft, 
+					SPEAKER_FrontRight, 
+					SPEAKER_FrontCenter, 
+					SPEAKER_LeftSurround, 
+					SPEAKER_LowFrequency, 
+					SPEAKER_LeftSurround, 
+					SPEAKER_RightSurround,
+					SPEAKER_LeftBack,
+					SPEAKER_RightBack
+				};
+			}
+			else
+			{
+				Warn->Logf(ELogVerbosity::Error, TEXT("Wave file '%s' has unsupported number of channels %d"), *Name.ToString(), ChannelCount);
+				FEditorDelegates::OnAssetPostImport.Broadcast(this, nullptr);
+				return nullptr;
+			}
+
+			// Make some new sound waves
+			for (int32 Chan = 0; Chan < ChannelCount; ++Chan)
+			{
+				// Build the deinterleaved buffer for the channel
+				DeinterleavedAudioScratchBuffer.Empty(NumFrames);
+				for (int32 Frame = 0; Frame < NumFrames; ++Frame)
+				{
+					const int32 SampleIndex = Frame * ChannelCount + Chan;
+					DeinterleavedAudioScratchBuffer.Add(SampleDataBuffer[SampleIndex]);
+				}
+
+				// Now create a sound wave asset
+				SerializeWaveFile(RawChannelWaveData[Chan], (uint8*)DeinterleavedAudioScratchBuffer.GetData(), NumFrames * sizeof(int16), 1, *WaveInfo.pSamplesPerSec);
+
+				// The current TotalSize is the "offset" into the bulk data for this sound wave
+				Sound->ChannelOffsets[ChannelIndices[Chan]] = TotalSize;
+
+				// "ChannelSize" is the size of the .wav file representing this channel of data
+				const int32 ChannelSize = RawChannelWaveData[Chan].Num();
+
+				// Store it in the sound wave
+				Sound->ChannelSizes[ChannelIndices[Chan]] = ChannelSize;
+
+				// TotalSize is the sum of all ChannelSizes
+				TotalSize += ChannelSize;
+			}
+
+			// Now we have an array of mono .wav files in the format that the SoundSurroundFactory expects
+			// copy the data into the bulk byte data
+
+			// Get the raw data bulk byte pointer and copy over the .wav files we generated
+			Sound->RawData.Lock(LOCK_READ_WRITE);
+
+			uint8* LockedData = (uint8*)Sound->RawData.Realloc(TotalSize);
+			int32 RawDataOffset = 0;
+
+
+			if (bIsAmbiX || bIsFuMa)
+			{
+				check(ChannelCount == 4);
+
+				// Flag that this is an ambisonics file
+				Sound->bIsAmbisonics = true;
+			}
+			for (int32 Chan = 0; Chan < ChannelCount; ++Chan)
+			{
+				const int32 ChannelSize = RawChannelWaveData[Chan].Num();
+				FMemory::Memcpy(LockedData + RawDataOffset, RawChannelWaveData[Chan].GetData(), ChannelSize);
+				RawDataOffset += ChannelSize;
+			}
+
+			Sound->RawData.Unlock();
 		}
 		else
 		{
-			Sound->Duration = 0.0f;
+			// For mono and stereo assets, just copy the data into the buffer
+			Sound->RawData.Lock(LOCK_READ_WRITE);
+			void* LockedData = Sound->RawData.Realloc(BufferEnd - Buffer);
+			FMemory::Memcpy(LockedData, Buffer, BufferEnd - Buffer);
+			Sound->RawData.Unlock();
 		}
 
+		Sound->Duration = (float)NumFrames / *WaveInfo.pSamplesPerSec;
 		Sound->SampleRate = *WaveInfo.pSamplesPerSec;
-		Sound->NumChannels = *WaveInfo.pChannels;
+		Sound->NumChannels = ChannelCount;
 
 		FEditorDelegates::OnAssetPostImport.Broadcast(this, Sound);
 

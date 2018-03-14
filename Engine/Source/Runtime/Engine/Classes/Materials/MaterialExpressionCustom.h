@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -27,7 +27,7 @@ struct FCustomInput
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category=CustomInput)
-	FString InputName;
+	FName InputName;
 
 	UPROPERTY()
 	FExpressionInput Input;
@@ -66,7 +66,7 @@ class UMaterialExpressionCustom : public UMaterialExpression
 #endif
 	virtual const TArray<FExpressionInput*> GetInputs() override;
 	virtual FExpressionInput* GetInput(int32 InputIndex) override;
-	virtual FString GetInputName(int32 InputIndex) const override;
+	virtual FName GetInputName(int32 InputIndex) const override;
 #if WITH_EDITOR
 	virtual uint32 GetInputType(int32 InputIndex) override {return MCT_Unknown;}
 	virtual uint32 GetOutputType(int32 OutputIndex) override;

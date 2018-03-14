@@ -1,56 +1,35 @@
-﻿INTSourceChangelist:2994308
+﻿INTSourceChangelist:3717042
 Availability:Public
 Title:14.これから先のこと
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description:EQS クイックスタート終了後に行うことを提案します。
 version:4.9
+parent:Engine/AI/EnvironmentQuerySystem/QuickStart
+type:quick start
+type:multi-step
+order:14
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Engine/AI/EnvironmentQuerySystem/QuickStart/13 "%Engine/AI/EnvironmentQuerySystem/QuickStart/13:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine/AI/EnvironmentQuerySystem/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
+ここまでで Environment Query System の基礎を学びました。このページでは、さらに改善のためのアイデアについて説明します。
 
-これまで Environment Query System の基礎を学んだので、このページでは、多くの改善のアイデアについて説明します。
+## アイデア
 
-## 改善のアイデア
-
-* TopDownCharacter は特殊すぎるため、よりフレキシブルなシステムに、すべてを更新します。
-* ビヘイビア ツリー は、こうしたシステムを以下のようにセットアップするひとつの方法を示します。
-	* Cooldown デコレータの代わりに Wait ノードを使ってみてください。これは Bool ブラックボードのエントリと AI コントローラでいくつかの追加作業が必要になります。
-	* 一定時間経過後、AI が移動し始める第 2 のビヘイビアを追加します。
-	* Bonus - プレイヤーの最後にわかっている位置を格納し、それを Environment Query で使用して、より良い隠れ場所を見つけます。
+* TopDownCharacter は特殊すぎるため、より柔軟性があるシステムに、すべてを更新します
+* ビヘイビア ツリーでは、こうしたシステムをセットアップする以下のような方法があります。
+	* Cooldown デコレータの代わりに Wait ノードを使ってみてください。ただし Bool ブラックボードのエントリと AI コントローラで追加作業が必要になります。
+	* 一定時間経過後に AI が移動し始める第 2 のビヘイビアを追加します。
+	* Bonus - プレイヤーが最後にいた位置を格納し、それを Environment Query で使用して、より良い隠れ場所を見つけます。
 	* Double Bonus - プレイヤーの前方ビューの円弧に入ることなく、AI をプレイヤーの背後から近づかせます。
 * ブループリントで、独自の Generator を作成できることをご存じでしたか？ AI が隠れるポイント候補を見つけるには、もっと良い方法があるかもしれません。
-* [REGION:raw] [ ' ] キー(シングル クォーテーション) は、多くの Gameplay Debugging ツールをオンにします。**Editor Preferences(エディタの環境設定)** %arrow% **Gameplay Debugger(ゲームプレイ デバッガ)** で利用可能なすべてのオプションを確認してください。[/REGION]
+* [REGION:raw] [ ' ] キー(シングル クォーテーション) は、多くの Gameplay Debugging ツールをオンにします。**[Editor Preferences(エディタの環境設定)]** > **[Gameplay Debugger(ゲームプレイ デバッガ)]** で利用可能なすべてのオプションを確認してください。[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/docs_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		AI
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/AI/EnvironmentQuerySystem/EQSPawn "%Engine/AI/EnvironmentQuerySystem/EQSPawn:description%")
-	* [](Engine/AI/EnvironmentQuerySystem/NodeReference "%Engine/AI/EnvironmentQuerySystem/NodeReference:description%")
-	* [](Engine/AI/EnvironmentQuerySystem/UserGuide "%Engine/AI/EnvironmentQuerySystem/UserGuide:description%")
-	* [ビヘイビアツリー](Engine/AI/BehaviorTrees "%Engine/AI/BehaviorTrees:description%")
-	[/PARAM]
-[/OBJECT]
+## AI
+
+* [](Engine/AI/EnvironmentQuerySystem/EQSPawn "%Engine/AI/EnvironmentQuerySystem/EQSPawn:description%")
+* [](Engine/AI/EnvironmentQuerySystem/NodeReference "%Engine/AI/EnvironmentQuerySystem/NodeReference:description%")
+* [](Engine/AI/EnvironmentQuerySystem/UserGuide "%Engine/AI/EnvironmentQuerySystem/UserGuide:description%")
+* [ビヘイビアツリー](Engine/AI/BehaviorTrees "%Engine/AI/BehaviorTrees:description%")
 
 
-%Steps%
-
-[VAR:arrow]![](Engine\AI\EnvironmentQuerySystem\QuickStart\arrow_button.png)[/VAR]
+[NAV]

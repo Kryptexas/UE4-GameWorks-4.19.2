@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -40,6 +40,9 @@ class ENGINE_API APlayerState : public AInfo
 {
 	GENERATED_UCLASS_BODY()
 
+	// destructor for handling property deprecation, please remove after all deprecated properties are gone
+	virtual ~APlayerState();
+
 	/** Player's current score. */
 	UPROPERTY(replicatedUsing=OnRep_Score, BlueprintReadOnly, Category=PlayerState)
 	float Score;
@@ -49,14 +52,16 @@ class ENGINE_API APlayerState : public AInfo
 	uint8 Ping;
 
 	/** Player name, or blank if none. */
-	UPROPERTY(replicatedUsing=OnRep_PlayerName, BlueprintReadOnly, Category=PlayerState)
+	DEPRECATED(4.19, "This property is now deprecated, please use GetPlayerName and SetPlayerName/SetPlayerNameInternal functions instead.")
+	UPROPERTY(BlueprintReadOnly, Category = PlayerState)
 	FString PlayerName;
 
 	/** Previous player name.  Saved on client-side to detect player name changes. */
+	DEPRECATED(4.19, "This property is now deprecated, please use GetOldPlayerName() function instead.")
 	FString OldName;
 
 	/** Unique net id number. Actual value varies based on current online subsystem, use it only as a guaranteed unique number per player. */
-	UPROPERTY(replicated, BlueprintReadOnly, Category=PlayerState)
+	UPROPERTY(replicatedUsing=OnRep_PlayerId, BlueprintReadOnly, Category=PlayerState)
 	int32 PlayerId;
 
 	/** Whether this player is currently a spectator */
@@ -84,6 +89,9 @@ class ENGINE_API APlayerState : public AInfo
 	 */
 	UPROPERTY(replicated)
 	uint32 bFromPreviousLevel:1;
+
+	/** if set, GetPlayerName() will call virtual GetPlayerNameCustom() to allow custom access */
+	uint32 bUseCustomPlayerNames : 1;
 
 	/** Elapsed time on server when this PlayerState was first created.  */
 	UPROPERTY(replicated)
@@ -124,6 +132,22 @@ private:
 	/** The timestamp for when the current PingBucket began filling */
 	float			CurPingBucketTimestamp;
 
+	/** Player name, or blank if none. */
+	UPROPERTY(replicatedUsing = OnRep_PlayerName)
+	FString PlayerNamePrivate;
+
+	/** Previous player name.  Saved on client-side to detect player name changes. */
+	FString OldNamePrivate;
+
+	/**
+	 * Whether or not this player's replicated Ping value is updated automatically.
+	 * Since player states are always relevant by default, in cases where there are many players replicating,
+	 * replicating the ping value can cause additional unnecessary overhead on servers if the value isn't
+	 * needed on clients.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category=PlayerState)
+	bool bShouldUpdateReplicatedPing;
+
 public:
 	/** Replication Notification Callbacks */
 	UFUNCTION()
@@ -134,6 +158,9 @@ public:
 
 	UFUNCTION()
 	virtual void OnRep_bIsInactive();
+
+	UFUNCTION()
+	virtual void OnRep_PlayerId();
 
 	UFUNCTION()
 	virtual void OnRep_UniqueId();
@@ -166,6 +193,22 @@ public:
 
 	/** set the player name to S */
 	virtual void SetPlayerName(const FString& S);
+
+	/** set the player name to S locally, does not trigger net updates */
+	virtual void SetPlayerNameInternal(const FString& S);
+
+	/** returns current player name */
+	UFUNCTION(BlueprintPure, Category = PlayerState)
+	FString GetPlayerName() const;
+
+	/** custom access to player name, called only when bUseCustomPlayerNames is set */
+	virtual FString GetPlayerNameCustom() const;
+
+	/** returns previous player name */
+	virtual FString GetOldPlayerName() const;
+
+	/** set the player name to S */
+	virtual void SetOldPlayerName(const FString& S);
 
 	/** 
 	 * Associate an online unique id with this player
@@ -227,10 +270,13 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = PlayerState, meta = (DisplayName = "CopyProperties"))
 	void ReceiveCopyProperties(APlayerState* NewPlayerState);
 
+	/** Sets whether or not the replicated ping value is updated automatically. */
+	void SetShouldUpdateReplicatedPing(bool bInShouldUpdateReplicatedPing) { bShouldUpdateReplicatedPing = bInShouldUpdateReplicatedPing; }
+
+	/** called after receiving player name */
+	virtual void HandleWelcomeMessage();
+
 private:
 	// Hidden functions that don't make sense to use on this class.
 	HIDE_ACTOR_TRANSFORM_FUNCTIONS();
 };
-
-
-

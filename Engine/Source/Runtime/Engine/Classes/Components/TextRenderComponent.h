@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -104,14 +104,14 @@ class ENGINE_API UTextRenderComponent : public UPrimitiveComponent
 	 * The FString variant is deprecated in favor of the FText variant
 	 */
 	DEPRECATED(4.8, "Passing text as FString is deprecated, please use FText instead (likely via a LOCTEXT).")
-	UFUNCTION(BlueprintCallable, Category="Rendering|Components|TextRender", meta=(DisplayName="Set Text (String)", DeprecatedFunction, DeprecationMessage="Use the SetText function taking an FText instead."))
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|TextRender", meta=(DisplayName="Set Text (String)", ScriptNoExport, DeprecatedFunction, DeprecationMessage="Use the SetText function taking an FText instead."))
 	void SetText(const FString& Value);
 
 	/** Change the text value and signal the primitives to be rebuilt */
 	void SetText(const FText& Value);
 
 	/** Change the text value and signal the primitives to be rebuilt */
-	UFUNCTION(BlueprintCallable, Category="Rendering|Components|TextRender", meta=(DisplayName="Set Text"))
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|TextRender", meta=(DisplayName="Set Text", ScriptName="SetText"))
 	void K2_SetText(const FText& Value);
 
 	/** Change the text material and signal the primitives to be rebuilt */

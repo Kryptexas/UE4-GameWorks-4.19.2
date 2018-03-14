@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:Beam 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -32,7 +32,8 @@ Beam Modifier (빔 모디파이어) 모듈은 빔의 소스나 타겟의 변경�
 
 
 
-<!-----------------Beam Modifier Includes--------------
+[COMMENT:none]
+---------------Beam Modifier Includes--------------
 ####Includes
 
 [EXCERPT:ModifierType]
@@ -78,7 +79,8 @@ Beam Modifier (빔 모디파이어) 모듈은 빔의 소스나 타겟의 변경�
 
 
 
---------------------End Beam Modifier Includes------------>
+--------------------End Beam Modifier Includes----------
+[/COMMENT]
 
 
 
@@ -123,7 +125,8 @@ TfgyUi-QAAg
 
 
 
-<!----------------------Beam Noise Includes-----------------
+[COMMENT:none]
+--------------------Beam Noise Includes-----------------
 #### Includes
 [EXCERPT:LowFreqNote]
 [REGION:note]
@@ -131,7 +134,8 @@ TfgyUi-QAAg
 [/REGION]
 [/EXCERPT:LowFreqNote]
 
------------------------End Beam Noise Includes------------->
+-----------------------End Beam Noise Includes-----------
+[/COMMENT]
 
 ## Source
 
@@ -154,7 +158,8 @@ Beam Source 모듈은 빔 이미터에 대한 하나의 소스를 구현합니�
 
 
 
-<!----------------------Beam Source Includes-----------------
+[COMMENT:none]
+--------------------Beam Source Includes-----------------
 #### Includes
 [EXCERPT:SourceMethod]
 [REGION:simpletable]
@@ -180,7 +185,8 @@ Beam Source 모듈은 빔 이미터에 대한 하나의 소스를 구현합니�
 [/REGION]
 [/EXCERPT:SourceTangentMethod]
 
------------------------End Beam Source Includes------------->
+-----------------------End Beam Source Includes-----------
+[/COMMENT]
 
 
 ## Target
@@ -205,7 +211,8 @@ Beam Target 모듈은 빔 이미터의 단일 타겟을 구현합니다. (빔 �
 
 
 
-<!----------------------Beam Target Includes-----------------
+[COMMENT:none]
+--------------------Beam Target Includes-----------------
 #### Includes
 [EXCERPT:SourceMethodTarget]
 [REGION:simpletable]
@@ -234,6 +241,7 @@ Beam Target 모듈은 빔 이미터의 단일 타겟을 구현합니다. (빔 �
 [/REGION]
 [/EXCERPT:SourceTangentMethodTarget]
 
------------------------End Beam Target Includes------------->
+-----------------------End Beam Target Includes-----------
+[/COMMENT]
 
 

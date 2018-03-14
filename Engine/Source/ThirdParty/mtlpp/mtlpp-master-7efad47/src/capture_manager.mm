@@ -1,20 +1,22 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-#include "capture_manager.hpp"
-#include "capture_scope.hpp"
-#include "device.hpp"
-#include "command_queue.hpp"
 #include <Metal/MTLCaptureManager.h>
 #include <Metal/MTLCaptureScope.h>
 #include <Metal/MTLDevice.h>
 #include <Metal/MTLCommandQueue.h>
+#include "capture_manager.hpp"
+#include "capture_scope.hpp"
+#include "device.hpp"
+#include "command_queue.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
 	CaptureManager& CaptureManager::SharedCaptureManager()
 	{
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		static CaptureManager CaptureMan(ns::Handle{ [MTLCaptureManager sharedCaptureManager] });
+		static CaptureManager CaptureMan([MTLCaptureManager sharedCaptureManager]);
 #else
 		static CaptureManager;
 #endif
@@ -25,7 +27,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return ns::Handle{ [(MTLCaptureManager*) m_ptr newCaptureScopeWithDevice:(id<MTLDevice>)Device.GetPtr()] };
+		return m_table->newCaptureScopeWithDevice(m_ptr, Device.GetPtr());
 #else
 		return CaptureScope();
 #endif
@@ -35,7 +37,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return ns::Handle{ [(MTLCaptureManager*) m_ptr newCaptureScopeWithCommandQueue:(id<MTLCommandQueue>)Queue.GetPtr()] };
+		return m_table->newCaptureScopeWithCommandQueue(m_ptr, Queue.GetPtr());
 #else
 		return CaptureScope();
 #endif
@@ -45,7 +47,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		[(MTLCaptureManager*) m_ptr startCaptureWithDevice:(id<MTLDevice>)device.GetPtr()];
+		m_table->startCaptureWithDevice(m_ptr, device.GetPtr());
 #endif
 	}
 	
@@ -53,7 +55,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		[(MTLCaptureManager*) m_ptr startCaptureWithCommandQueue:(id<MTLCommandQueue>)queue.GetPtr()];
+		m_table->startCaptureWithCommandQueue(m_ptr, queue.GetPtr());
 #endif
 	}
 	
@@ -61,7 +63,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		[(MTLCaptureManager*) m_ptr startCaptureWithScope:(id<MTLCaptureScope>)scope.GetPtr()];
+		m_table->startCaptureWithScope(m_ptr, scope.GetPtr());
 #endif
 	}
 	
@@ -69,7 +71,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		[(MTLCaptureManager*) m_ptr stopCapture];
+		m_table->stopCapture(m_ptr);
 #endif
 	}
 	
@@ -77,7 +79,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return ns::Handle{ [(MTLCaptureManager*) m_ptr defaultCaptureScope] };
+		return m_table->defaultCaptureScope(m_ptr);
 #else
 		return CaptureScope();
 #endif
@@ -87,7 +89,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		[(MTLCaptureManager*) m_ptr setDefaultCaptureScope: (id<MTLCaptureScope>)scope.GetPtr()];
+		m_table->SetdefaultCaptureScope(m_ptr, scope.GetPtr());
 #endif
 	}
 	
@@ -95,10 +97,12 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return [(MTLCaptureManager*) m_ptr isCapturing];
+		return m_table->isCapturing(m_ptr);
 #else
 		return false;
 #endif
 	}
 }
+
+MTLPP_END
 

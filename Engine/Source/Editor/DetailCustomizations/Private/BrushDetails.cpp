@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BrushDetails.h"
 #include "Layout/Visibility.h"
@@ -30,6 +30,7 @@
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
 #include "ScopedTransaction.h"
+#include "IPropertyUtilities.h"
 
 #define LOCTEXT_NAMESPACE "BrushDetails"
 
@@ -46,7 +47,7 @@ FBrushDetails::~FBrushDetails()
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FBrushDetails::CustomizeDetails( IDetailLayoutBuilder& InDetailLayout )
 {
-	DetailLayout = &InDetailLayout;
+	PropertyUtils = InDetailLayout.GetPropertyUtilities();
 
 	// Get level editor commands for our menus
 	FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
@@ -278,6 +279,7 @@ void FBrushDetails::OnClassPicked(UClass* InChosenClass)
 	TArray<FNewBrushBuilder> NewBuilders;
 	TArray<FString> NewObjectPaths;
 
+	if(BrushBuilderHandle->IsValidHandle() && OuterObjects.Num() > 0)
 	{
 		const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "BrushSet", "Brush Set"));
 		for (UObject* OuterObject : OuterObjects)
@@ -301,9 +303,12 @@ void FBrushDetails::OnClassPicked(UClass* InChosenClass)
 		}
 
 		GEditor->RebuildAlteredBSP();
-	}
 
-	DetailLayout->ForceRefreshDetails();
+		if (PropertyUtils.IsValid())
+		{
+			PropertyUtils.Pin()->ForceRefresh();
+		}
+	}
 }
 
 FText FBrushDetails::GetBuilderText() const

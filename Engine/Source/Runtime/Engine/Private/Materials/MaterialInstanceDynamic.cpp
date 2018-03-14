@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	MaterialInstanceDynamic.cpp: MaterialInstanceDynamic implementation.
@@ -33,28 +33,32 @@ UMaterialInstanceDynamic* UMaterialInstanceDynamic::Create(UMaterialInterface* P
 
 void UMaterialInstanceDynamic::SetVectorParameterValue(FName ParameterName, FLinearColor Value)
 {
-	SetVectorParameterValueInternal(ParameterName,Value);
+	FMaterialParameterInfo ParameterInfo(ParameterName); // @TODO: This will only work for non-layered parameters
+	SetVectorParameterValueInternal(ParameterInfo,Value);
 }
 
 FLinearColor UMaterialInstanceDynamic::K2_GetVectorParameterValue(FName ParameterName)
 {
 	FLinearColor Result(0,0,0);
-	Super::GetVectorParameterValue(ParameterName, Result);
+	FMaterialParameterInfo ParameterInfo(ParameterName); // @TODO: This will only work for non-layered parameters
+	Super::GetVectorParameterValue(ParameterInfo, Result);
 	return Result;
 }
 
 void UMaterialInstanceDynamic::SetScalarParameterValue(FName ParameterName, float Value)
 {
-	SetScalarParameterValueInternal(ParameterName,Value);
+	FMaterialParameterInfo ParameterInfo(ParameterName); // @TODO: This will only work for non-layered parameters
+	SetScalarParameterValueInternal(ParameterInfo,Value);
 }
 
 bool UMaterialInstanceDynamic::InitializeScalarParameterAndGetIndex(const FName& ParameterName, float Value, int32& OutParameterIndex)
 {
 	OutParameterIndex = INDEX_NONE;
 
-	SetScalarParameterValueInternal(ParameterName, Value);
+	FMaterialParameterInfo ParameterInfo(ParameterName); // @TODO: This will only work for non-layered parameters
+	SetScalarParameterValueInternal(ParameterInfo, Value);
 
-	OutParameterIndex = GameThread_FindParameterIndexByName(ScalarParameterValues, ParameterName);
+	OutParameterIndex = GameThread_FindParameterIndexByName(ScalarParameterValues, ParameterInfo);
 
 	return (OutParameterIndex != INDEX_NONE);
 }
@@ -67,9 +71,11 @@ bool UMaterialInstanceDynamic::SetScalarParameterByIndex(int32 ParameterIndex, f
 bool UMaterialInstanceDynamic::InitializeVectorParameterAndGetIndex(const FName& ParameterName, const FLinearColor& Value, int32& OutParameterIndex)
 {
 	OutParameterIndex = INDEX_NONE;
-	SetVectorParameterValueInternal(ParameterName, Value);
 
-	OutParameterIndex = GameThread_FindParameterIndexByName(VectorParameterValues, ParameterName);
+	FMaterialParameterInfo ParameterInfo(ParameterName); // @TODO: This will only work for non-layered parameters
+	SetVectorParameterValueInternal(ParameterInfo, Value);
+
+	OutParameterIndex = GameThread_FindParameterIndexByName(VectorParameterValues, ParameterInfo);
 
 	return (OutParameterIndex != INDEX_NONE);
 }
@@ -82,7 +88,8 @@ bool UMaterialInstanceDynamic::SetVectorParameterByIndex(int32 ParameterIndex, c
 float UMaterialInstanceDynamic::K2_GetScalarParameterValue(FName ParameterName)
 {
 	float Result = 0.f;
-	Super::GetScalarParameterValue(ParameterName, Result);
+	FMaterialParameterInfo ParameterInfo(ParameterName); // @TODO: This will only work for non-layered parameters
+	Super::GetScalarParameterValue(ParameterInfo, Result);
 	return Result;
 }
 
@@ -90,25 +97,29 @@ void UMaterialInstanceDynamic::SetTextureParameterValue(FName ParameterName, UTe
 {
 	// Save the texture renaming as it will be useful to remap the texture streaming data.
 	UTexture* RenamedTexture = NULL;
-	Super::GetTextureParameterValue(ParameterName, RenamedTexture);
+
+	FMaterialParameterInfo ParameterInfo(ParameterName); // @TODO: This will only work for non-layered parameters
+	Super::GetTextureParameterValue(ParameterInfo, RenamedTexture);
+
 	if (Value && RenamedTexture && Value->GetFName() != RenamedTexture->GetFName())
 	{
 		RenamedTextures.FindOrAdd(Value->GetFName()).AddUnique(RenamedTexture->GetFName());
 	}
 
-	SetTextureParameterValueInternal(ParameterName,Value);
+	SetTextureParameterValueInternal(ParameterInfo,Value);
 }
 
 UTexture* UMaterialInstanceDynamic::K2_GetTextureParameterValue(FName ParameterName)
 {
 	UTexture* Result = NULL;
-	Super::GetTextureParameterValue(ParameterName, Result);
+	FMaterialParameterInfo ParameterInfo(ParameterName); // @TODO: This will only work for non-layered parameters
+	Super::GetTextureParameterValue(ParameterInfo, Result);
 	return Result;
 }
 
-void UMaterialInstanceDynamic::SetFontParameterValue(FName ParameterName,class UFont* FontValue,int32 FontPage)
+void UMaterialInstanceDynamic::SetFontParameterValue(const FMaterialParameterInfo& ParameterInfo,class UFont* FontValue,int32 FontPage)
 {
-	SetFontParameterValueInternal(ParameterName,FontValue,FontPage);
+	SetFontParameterValueInternal(ParameterInfo,FontValue,FontPage);
 }
 
 void UMaterialInstanceDynamic::ClearParameterValues()
@@ -124,7 +135,7 @@ void GameThread_FindAllScalarParameterNames(UMaterialInstance* MaterialInstance,
 	{
 		for(int32 i = 0, Num = MaterialInstance->ScalarParameterValues.Num(); i < Num; ++i)
 		{
-			InOutNames.AddUnique(MaterialInstance->ScalarParameterValues[i].ParameterName);
+			InOutNames.AddUnique(MaterialInstance->ScalarParameterValues[i].ParameterInfo.Name);
 		}
 
 		MaterialInstance = Cast<UMaterialInstance>(MaterialInstance->Parent);
@@ -138,7 +149,7 @@ void GameThread_FindAllVectorParameterNames(UMaterialInstance* MaterialInstance,
 	{
 		for(int32 i = 0, Num = MaterialInstance->VectorParameterValues.Num(); i < Num; ++i)
 		{
-			InOutNames.AddUnique(MaterialInstance->VectorParameterValues[i].ParameterName);
+			InOutNames.AddUnique(MaterialInstance->VectorParameterValues[i].ParameterInfo.Name);
 		}
 
 		MaterialInstance = Cast<UMaterialInstance>(MaterialInstance->Parent);
@@ -149,10 +160,11 @@ void GameThread_FindAllVectorParameterNames(UMaterialInstance* MaterialInstance,
 FScalarParameterValue* GameThread_GetScalarParameterValue(UMaterialInstance* MaterialInstance, FName Name)
 {
 	UMaterialInterface* It = 0;
+	FMaterialParameterInfo ParameterInfo(Name); // @TODO: This will only work for non-layered parameters
 
 	while(MaterialInstance)
 	{
-		if(FScalarParameterValue* Ret = GameThread_FindParameterByName(MaterialInstance->ScalarParameterValues, Name))
+		if(FScalarParameterValue* Ret = GameThread_FindParameterByName(MaterialInstance->ScalarParameterValues, ParameterInfo))
 		{
 			return Ret;
 		}
@@ -168,10 +180,11 @@ FScalarParameterValue* GameThread_GetScalarParameterValue(UMaterialInstance* Mat
 FVectorParameterValue* GameThread_GetVectorParameterValue(UMaterialInstance* MaterialInstance, FName Name)
 {
 	UMaterialInterface* It = 0;
+	FMaterialParameterInfo ParameterInfo(Name); // @TODO: This will only work for non-layered parameters
 
 	while(MaterialInstance)
 	{
-		if(FVectorParameterValue* Ret = GameThread_FindParameterByName(MaterialInstance->VectorParameterValues, Name))
+		if(FVectorParameterValue* Ret = GameThread_FindParameterByName(MaterialInstance->VectorParameterValues, ParameterInfo))
 		{
 			return Ret;
 		}
@@ -274,22 +287,22 @@ void UMaterialInstanceDynamic::CopyInterpParameters(UMaterialInstance* Source)
 
 		for (auto& it : Source->ScalarParameterValues)
 		{
-			SetScalarParameterValue(it.ParameterName, it.ParameterValue);
+			SetScalarParameterValue(it.ParameterInfo.Name, it.ParameterValue);
 		}
 
 		for (auto& it : Source->VectorParameterValues)
 		{
-			SetVectorParameterValue(it.ParameterName, it.ParameterValue);
+			SetVectorParameterValue(it.ParameterInfo.Name, it.ParameterValue);
 		}
 
 		for (auto& it : Source->TextureParameterValues)
 		{
-			SetTextureParameterValue(it.ParameterName, it.ParameterValue);
+			SetTextureParameterValue(it.ParameterInfo.Name, it.ParameterValue);
 		}
 
 		for (auto& it : Source->FontParameterValues)
 		{
-			SetFontParameterValue(it.ParameterName, it.FontValue, it.FontPage);
+			SetFontParameterValue(it.ParameterInfo.Name, it.FontValue, it.FontPage);
 		}
 	}
 }

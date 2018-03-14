@@ -1,49 +1,11 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Timeline 노드
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Timelines
 Description: 블루프린트 타임라인의 특정 함수성 처리에 사용되는 노드입니다.
 version: 4.9
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Timelines\TimelineNodes:title%](Engine\Blueprints\UserGuide\Timelines.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Timelines\TimelineNodes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Timelines\TimelineNodes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Timelines\TimelineNodes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Timelines\TimelineNodes:title%](Engine\Blueprints\UserGuide\Timelines.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Timelines\TimelineNodes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Timelines\TimelineNodes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Timelines\TimelineNodes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:Engine/Blueprints/UserGuide/Timelines.png
 
 
 ## Get Play Rate

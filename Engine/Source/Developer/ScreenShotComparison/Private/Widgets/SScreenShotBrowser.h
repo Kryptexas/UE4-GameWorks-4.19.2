@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SScreenShotBrowser.h: Declares the SScreenShotBrowser class.
@@ -55,6 +55,8 @@ private:
 	 * Regenerate the widgets when the filter changes
 	 */
 	void RebuildTree();
+
+	bool CanAddNewReportResult(const FImageComparisonResult& Comparison);
 
 private:
 

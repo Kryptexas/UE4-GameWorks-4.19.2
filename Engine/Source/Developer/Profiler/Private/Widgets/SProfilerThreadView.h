@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,6 +12,7 @@
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
 #include "Fonts/FontMeasure.h"
+#include "Styling/CoreStyle.h"
 #include "Framework/Application/SlateApplication.h"
 #include "ProfilerStream.h"
 
@@ -90,7 +91,7 @@ class SProfilerThreadView
 			, LayerId( InLayerId )
 			, DrawEffects( InDrawEffects )
 			, FontMeasureService( FSlateApplication::Get().GetRenderer()->GetFontMeasureService() )
-			, SummaryFont8( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 8 )
+			, SummaryFont8( FCoreStyle::GetDefaultFontStyle("Regular", 8) )
 			, SummaryFont8Height( FontMeasureService->Measure( TEXT( "!" ), SummaryFont8 ).Y )
 		{}
 

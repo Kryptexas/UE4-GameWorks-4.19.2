@@ -30,7 +30,10 @@
 /// Extract the payload from the message handle with ::ovr_Message_GetRoomInviteNotificationArray().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Notification_GetNextRoomInviteNotificationArrayPage(ovrRoomInviteNotificationArrayHandle handle);
 
-/// Retrieve a list of all pending room invites for your application.
+/// Retrieve a list of all pending room invites for your application (for
+/// example, notifications that may have been sent before the user launched
+/// your game). You can also get push notifications with
+/// ovrNotification_Room_InviteReceived.
 ///
 /// A message with type ::ovrMessage_Notification_GetRoomInvites will be generated in response.
 ///

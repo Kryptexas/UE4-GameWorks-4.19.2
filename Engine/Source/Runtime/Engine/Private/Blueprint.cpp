@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/Blueprint.h"
 #include "Misc/CoreMisc.h"
@@ -616,6 +616,8 @@ extern COREUOBJECT_API bool GBlueprintUseCompilationManager;
 
 UClass* UBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded)
 {
+	LoadModulesRequiredForCompilation();
+
 	if(GBlueprintUseCompilationManager)
 	{
 		// ensure that we have UProperties for any properties declared in the blueprint:
@@ -655,6 +657,8 @@ UClass* UBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* Previous
 		FBlueprintCompilationManager::NotifyBlueprintLoaded( this ); 
 		
 		FBlueprintEditorUtils::PreloadBlueprintSpecificData( this );
+
+		FBlueprintEditorUtils::UpdateOutOfDateAnimBlueprints(this);
 
 		// clear this now that we're not in a re-entrrant context - bHasBeenRegenerated will guard against 'real' 
 		// double regeneration calls:
@@ -776,9 +780,6 @@ void UBlueprint::PostLoad()
 	{
 		FBlueprintEditorUtils::ConformAllowDeletionFlag(this);
 	}
-
-	// Update old Anim Blueprints
-	FBlueprintEditorUtils::UpdateOutOfDateAnimBlueprints(this);
 
 #if WITH_EDITORONLY_DATA
 	// Ensure all the pin watches we have point to something useful
@@ -1766,6 +1767,11 @@ void UBlueprint::ReplaceDeprecatedNodes()
 	}
 }
 
+void UBlueprint::ClearEditorReferences()
+{
+	FKismetEditorUtilities::OnBlueprintUnloaded.Broadcast(this);
+}
+
 UInheritableComponentHandler* UBlueprint::GetInheritableComponentHandler(bool bCreateIfNecessary)
 {
 	static const FBoolConfigValueHelper EnableInheritableComponents(TEXT("Kismet"), TEXT("bEnableInheritableComponents"), GEngineIni);
@@ -1783,9 +1789,12 @@ UInheritableComponentHandler* UBlueprint::GetInheritableComponentHandler(bool bC
 	return InheritableComponentHandler;
 }
 
-#endif
 
-#if WITH_EDITOR
+EDataValidationResult UBlueprint::IsDataValid(TArray<FText>& ValidationErrors)
+{
+	return GeneratedClass ? GeneratedClass->GetDefaultObject()->IsDataValid(ValidationErrors) : EDataValidationResult::Invalid;
+}
+
 FName UBlueprint::GetFunctionNameFromClassByGuid(const UClass* InClass, const FGuid FunctionGuid)
 {
 	return FBlueprintEditorUtils::GetFunctionNameFromClassByGuid(InClass, FunctionGuid);
@@ -1824,3 +1833,12 @@ UEdGraph* UBlueprint::GetLastEditedUberGraph() const
 }
 
 #endif //WITH_EDITOR
+
+#if WITH_EDITORONLY_DATA
+void UBlueprint::LoadModulesRequiredForCompilation()
+{
+	static const FName ModuleName(TEXT("KismetCompiler"));
+	FModuleManager::Get().LoadModule(ModuleName);
+}
+#endif //WITH_EDITORONLY_DATA
+

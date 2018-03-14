@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -69,6 +69,11 @@ class UNREALED_API UFbxAnimSequenceImportData : public UFbxAssetImportData
 	/** Import if custom attribute as a curve within the animation */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = ImportSettings)
 	bool bImportCustomAttribute;
+	
+	/** Import bone transform tracks. If false, this will discard any bone transform tracks. (useful for curves only animations)*/
+
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = ImportSettings)
+	bool bImportBoneTracks;
 
 	/** Set Material Curve Type for all custom attributes that exists */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = ImportSettings, meta = (EditCondition = "bImportCustomAttribute", DisplayName="Set Material Curve Type"))

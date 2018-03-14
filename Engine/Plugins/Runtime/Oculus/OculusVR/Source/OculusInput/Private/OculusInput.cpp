@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OculusInput.h"
 
@@ -447,7 +447,7 @@ void FOculusInput::SendControllerEvents()
 								}
 								case EOculusTouchCapacitiveAxes::Thumbstick:
 								{
-									const uint32 mask = (bIsLeft) ? ovrpTouch_LThumb : ovrpTouch_RThumb;
+									const uint32 mask = bIsMalibuTracked ? ((bIsLeft) ? ovrpTouch_LTouchpad : ovrpTouch_RTouchpad) : ((bIsLeft) ? ovrpTouch_LThumb : ovrpTouch_RThumb);
 									CurrentAxisVal = (OvrpControllerState.Touches & mask) != 0 ? 1.f : 0.f;
 									break;
 								}
@@ -655,7 +655,7 @@ bool FOculusInput::GetControllerOrientationAndPosition( const int32 ControllerIn
 									OutOrientation = OutPose.Orientation.Rotator();
 								}
 
-								OutPosition = OutPose.Position;
+									OutPosition = OutPose.Position;
 
 								return true;
 							}

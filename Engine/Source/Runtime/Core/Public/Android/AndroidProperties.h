@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	AndroidProperties.h - Basic static properties of a platform 
@@ -84,7 +84,7 @@ struct FAndroidPlatformProperties
 
 	static FORCEINLINE bool SupportsTextureStreaming()
 	{
-		return false;
+		return true;
 	}
 
 	static FORCEINLINE bool SupportsMinimize()
@@ -155,6 +155,14 @@ struct FAndroid_ETC2PlatformProperties : public FAndroidPlatformProperties
 	static FORCEINLINE const char* PlatformName()
 	{
 		return "Android_ETC2";
+	}
+};
+
+struct FAndroid_ETC1aPlatformProperties : public FAndroidPlatformProperties
+{
+	static FORCEINLINE const char* PlatformName()
+	{
+		return "Android_ETC1a";
 	}
 };
 

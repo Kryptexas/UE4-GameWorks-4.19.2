@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -20,7 +20,7 @@ UCLASS(MinimalAPI)
 class UK2Node_Event : public UK2Node_EditablePinBase
 {
 	GENERATED_UCLASS_BODY()
-	BLUEPRINTGRAPH_API static const FString DelegateOutputName;
+	BLUEPRINTGRAPH_API static const FName DelegateOutputName;
 
 	/** Name of function signature that this event implements */
 	UPROPERTY()

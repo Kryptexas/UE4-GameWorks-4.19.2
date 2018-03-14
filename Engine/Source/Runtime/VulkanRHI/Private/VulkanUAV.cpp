@@ -1,15 +1,18 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "VulkanRHIPrivate.h"
 #include "VulkanContext.h"
 
-FVulkanShaderResourceView::FVulkanShaderResourceView(FVulkanDevice* Device, FVulkanResourceMultiBuffer* InSourceBuffer, uint32 InSize, EPixelFormat InFormat)
+FVulkanShaderResourceView::FVulkanShaderResourceView(FVulkanDevice* Device, FRHIResource* InRHIBuffer, FVulkanResourceMultiBuffer* InSourceBuffer, uint32 InSize, EPixelFormat InFormat)
 	: VulkanRHI::FDeviceChild(Device)
 	, BufferViewFormat(InFormat)
+	, SourceTexture(nullptr)
+	, SourceStructuredBuffer(nullptr)
 	, MipLevel(0)
 	, NumMips(-1)
 	, Size(InSize)
 	, SourceBuffer(InSourceBuffer)
+	, SourceRHIBuffer(InRHIBuffer)
 	, VolatileLockCounter(MAX_uint32)
 {
 	int32 NumBuffers = SourceBuffer->IsVolatile() ? 1 : SourceBuffer->GetNumBuffers();
@@ -205,7 +208,7 @@ FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FStruct
 FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FVertexBufferRHIParamRef VertexBufferRHI, uint32 Stride, uint8 Format)
 {	
 	FVulkanVertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
-	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device, VertexBuffer, VertexBuffer->GetSize(), (EPixelFormat)Format);
+	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device, VertexBufferRHI, VertexBuffer, VertexBuffer->GetSize(), (EPixelFormat)Format);
 	return SRV;
 }
 
@@ -244,7 +247,7 @@ FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FIndexB
 	FVulkanIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
 	check(IndexBufferRHI->GetStride() == 2 || IndexBufferRHI->GetStride() == 4);
 	EPixelFormat Format = (IndexBufferRHI->GetStride() == 4) ? PF_R32_UINT : PF_R16_UINT;
-	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device, IndexBuffer, IndexBuffer->GetSize(), Format);
+	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device, IndexBufferRHI, IndexBuffer, IndexBuffer->GetSize(), Format);
 	return SRV;
 }
 

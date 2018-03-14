@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,7 +16,7 @@ enum EMetalPipelineHashBits
 
 	NumBits_BlendState = 5, //(x8=40),
 	NumBits_PrimitiveTopology = 2, //(x1=2)
-	NumBits_IndexType = 2,
+	NumBits_IndexType = 2, //(x1=2)
 };
 
 enum EMetalPipelineHashOffsets

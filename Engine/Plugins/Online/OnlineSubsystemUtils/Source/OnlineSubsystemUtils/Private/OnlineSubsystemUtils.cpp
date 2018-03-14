@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtils.h"
 #include "Logging/LogScopedVerbosityOverride.h"
@@ -11,8 +11,6 @@
 #include "Engine/NetDriver.h"
 #include "OnlineSubsystemImpl.h"
 #include "OnlineSubsystemBPCallHelper.h"
-
-
 
 #include "VoiceModule.h"
 #include "AudioDevice.h"
@@ -34,6 +32,7 @@
 #include "Tests/TestMessageInterface.h"
 #include "Tests/TestVoice.h"
 #include "Tests/TestExternalUIInterface.h"
+#include "Tests/TestPresenceInterface.h"
 
 UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate, int32 NumChannels)
 {
@@ -48,6 +47,18 @@ UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate, int32 NumChannels)
 			SoundStreaming->Duration = INDEFINITELY_LOOPING_DURATION;
 			SoundStreaming->SoundGroup = SOUNDGROUP_Voice;
 			SoundStreaming->bLooping = false;
+
+			// Turn off async generation in old audio engine on mac.
+			#if PLATFORM_MAC
+			if (!AudioDevice->IsAudioMixerEnabled())
+			{
+				SoundStreaming->bCanProcessAsync = false;
+			}
+			else
+			#endif // #if PLATFORM_MAC
+			{
+				SoundStreaming->bCanProcessAsync = true;
+			}
 
 			AudioComponent = AudioDevice->CreateComponent(SoundStreaming);
 			if (AudioComponent)
@@ -70,6 +81,77 @@ UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate, int32 NumChannels)
 	}
 
 	return AudioComponent;
+}
+
+UVoipListenerSynthComponent* CreateVoiceSynthComponent(uint32 SampleRate)
+{
+	UVoipListenerSynthComponent* SynthComponentPtr = nullptr;
+	if (FAudioDevice* AudioDevice = GEngine->GetMainAudioDevice())
+	{
+		SynthComponentPtr = NewObject<UVoipListenerSynthComponent>();
+		if (SynthComponentPtr)
+		{
+			const FSoftObjectPath VoiPSoundClassName = GetDefault<UAudioSettings>()->VoiPSoundClass;
+			if (VoiPSoundClassName.IsValid())
+			{
+				SynthComponentPtr->SoundClass = LoadObject<USoundClass>(nullptr, *VoiPSoundClassName.ToString());
+			}
+
+			SynthComponentPtr->Initialize(SampleRate);
+		}
+		else
+		{
+			UE_LOG(LogVoiceDecode, Warning, TEXT("Unable to create voice synth component!"));
+		}
+	}
+
+	return SynthComponentPtr;
+}
+
+void ApplyVoiceSettings(UVoipListenerSynthComponent* InSynthComponent, const FVoiceSettings& InSettings)
+{
+	InSynthComponent->CreateAudioComponent();
+
+	InSynthComponent->bAllowSpatialization = true;
+	UAudioComponent* AudioComponent = InSynthComponent->GetAudioComponent();
+
+	check(AudioComponent != nullptr);
+
+	if (InSettings.ComponentToAttachTo)
+	{
+		//If this component is simulating physics, it won't correctly attach to the parent.
+		check(AudioComponent->IsSimulatingPhysics() == false);
+
+		if (AudioComponent->GetAttachParent() == nullptr)
+		{
+			AudioComponent->SetupAttachment(InSettings.ComponentToAttachTo);
+		}
+		else
+		{
+			AudioComponent->AttachToComponent(InSettings.ComponentToAttachTo, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+		}
+
+		// Since the Synth Component's internal audio component was created as a subobject when this
+		// SynthComponent did not have an owning world, we need to register it independently.
+		if (!AudioComponent->IsRegistered())
+		{
+			AudioComponent->RegisterComponentWithWorld(InSettings.ComponentToAttachTo->GetWorld());
+
+			// By ensuring that this Audio Component's device handle is INDEX_NONE, we ensure that we will revert to
+			// using the audio device associated with the World we just registered this audio component on.
+			AudioComponent->AudioDeviceHandle = INDEX_NONE;
+		}
+	}
+
+	if (InSettings.AttenuationSettings != nullptr)
+	{
+		InSynthComponent->AttenuationSettings = InSettings.AttenuationSettings;
+	}
+
+	if (InSettings.SourceEffectChain != nullptr)
+	{
+		InSynthComponent->SourceEffectChain = InSettings.SourceEffectChain;
+	}
 }
 
 UWorld* GetWorldForOnline(FName InstanceName)
@@ -116,6 +198,31 @@ int32 GetPortFromNetDriver(FName InstanceName)
 	}
 #endif
 	return Port;
+}
+
+int32 GetClientPeerIp(FName InstanceName, const FUniqueNetId& UserId)
+{
+	int32 PeerIp = 0;
+#if WITH_ENGINE
+	if (GEngine)
+	{
+		UWorld* World = GetWorldForOnline(InstanceName);
+		UNetDriver* NetDriver = World ? GEngine->FindNamedNetDriver(World, NAME_GameNetDriver) : NULL;
+		if (NetDriver && NetDriver->GetNetMode() < NM_Client)
+		{
+			for (UNetConnection* ClientConnection : NetDriver->ClientConnections)
+			{
+				if (ClientConnection && 
+					ClientConnection->PlayerId.ToString() == UserId.ToString())
+				{
+					PeerIp = ClientConnection->GetAddrAsInt();
+					break;
+				}
+			}
+		}
+	}
+#endif
+	return PeerIp;
 }
 
 bool HandleSessionCommands(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
@@ -360,6 +467,13 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 					{
 						// This class deletes itself once done
 						(new FTestLeaderboardInterface(SubName))->Test(InWorld);
+						bWasHandled = true;
+					}
+					else if (FParse::Command(&Cmd, TEXT("PRESENCE")))
+					{
+						// Takes a user id/name of a non-friend user for the sole usage of querying out
+						// Pass nothing if the platform doesn't support it
+						(new FTestPresenceInterface(SubName))->Test(InWorld, FParse::Token(Cmd, false));
 						bWasHandled = true;
 					}
 					else if (FParse::Command(&Cmd, TEXT("VOICE")))

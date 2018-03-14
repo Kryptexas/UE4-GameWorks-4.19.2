@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/Layout/SScaleBox.h"
 #include "Layout/LayoutUtils.h"
@@ -115,7 +115,15 @@ void SScaleBox::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedC
 					break;
 				}
 
-				LastFinalScale = FinalScale;
+				// Force full layout calculations when the previously calculated final scale is zero
+				if (!FMath::IsNearlyZero(FinalScale) || !bSingleLayoutPass)
+				{
+					LastFinalScale = FinalScale;
+				}
+				else
+				{
+					LastFinalScale.Reset();
+				}
 			}
 			else
 			{
@@ -325,8 +333,11 @@ void SScaleBox::RefreshSafeZoneScale()
 
 				// Safe zones are uniform, so the axis we check is irrelevant
 #if PLATFORM_IOS
-				// Hack: This is a temp solution to support iPhoneX safeArea.
-				ScaleDownBy = (Metrics.TitleSafePaddingSize.X + Metrics.TitleSafePaddingSize.Y) / (float)ViewportSize.X;
+				// FVector4(X,Y,Z,W) being used like FMargin(left, top, right, bottom)
+				// Consequence: Left and Right safe zones are represented by X and Z.
+				const float LeftSafeZone = Metrics.TitleSafePaddingSize.X;
+				const float RightSafeZone = Metrics.TitleSafePaddingSize.Z;
+				ScaleDownBy = (LeftSafeZone + RightSafeZone) / (float)ViewportSize.X;
 #else
 				ScaleDownBy = (Metrics.TitleSafePaddingSize.X * 2.f) / (float)ViewportSize.X;
 #endif

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleVertexFactory.h: Particle vertex factory definitions.
@@ -11,7 +11,8 @@
 #include "UniformBuffer.h"
 #include "NiagaraVertexFactory.h"
 #include "SceneView.h"
-
+#include "NiagaraDataSet.h"
+#
 class FMaterial;
 
 
@@ -21,27 +22,28 @@ struct FNiagaraRibbonVertex
 {
 	/** The position of the particle. */
 	FVector Position;
-	/** The relative time of the particle. */
-	float RelativeTime;
-	/** The previous position of the particle. */
-	FVector	OldPosition;
-	/** Value that remains constant over the lifetime of a particle. */
-	float ParticleId;
+	/** The direction of the particle. */
+	FVector Direction;
 	/** The size of the particle. */
-	FVector2D Size;
-	/** The rotation of the particle. */
-	float Rotation;
-	/** The sub-image index for the particle. */
-	float SubImageIndex;
+	float Size;
 	/** The color of the particle. */
 	FLinearColor Color;
 
+	/** The second UV set for the particle				*/
 	float			Tex_U;
 	float			Tex_V;
-
-	/** The second UV set for the particle				*/
 	float			Tex_U2;
 	float			Tex_V2;
+
+
+	/** The rotation of the particle. */
+	float Rotation;
+
+	/** The relative time of the particle. */
+	FVector CustomFacingVector;
+
+	/** The relative time of the particle. */
+	//float NormalizedAge;
 };
 
 
@@ -59,7 +61,13 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FNiagaraRibbonUniformParameters, NIAGARAVERTEXFACTOR
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, CameraRight)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, CameraUp)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, ScreenAlignment)
-END_UNIFORM_BUFFER_STRUCT(FNiagaraRibbonUniformParameters)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, PositionDataOffset)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, WidthDataOffset)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, TwistDataOffset)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, ColorDataOffset)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, MaterialParamDataOffset)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(bool, UseCustomFacing)
+	END_UNIFORM_BUFFER_STRUCT(FNiagaraRibbonUniformParameters)
 typedef TUniformBufferRef<FNiagaraRibbonUniformParameters> FNiagaraRibbonUniformBufferRef;
 
 /**
@@ -77,6 +85,7 @@ public:
 		, IndexBuffer(nullptr)
 		, FirstIndex(0)
 		, OutTriangleCount(0)
+		, DataSet(0)
 	{}
 
 	FNiagaraRibbonVertexFactory()
@@ -84,12 +93,13 @@ public:
 		, IndexBuffer(nullptr)
 		, FirstIndex(0)
 		, OutTriangleCount(0)
+		, DataSet(0)
 	{}
 
 	/**
 	* Should we cache the material's shadertype on this platform with this vertex factory?
 	*/
-	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType);
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType);
 
 	/**
 	* Can be overridden by FVertexFactory subclasses to modify their compile environment just before compilation occurs.
@@ -126,6 +136,32 @@ public:
 	void SetDynamicParameterBuffer(const FVertexBuffer* InDynamicParameterBuffer, uint32 StreamOffset, uint32 Stride);
 
 
+	void SetParticleData(const FNiagaraDataSet *InDataSet)
+	{
+		DataSet = InDataSet;
+	}
+
+
+	inline FShaderResourceViewRHIParamRef GetFloatDataSRV() const
+	{
+		check(!IsInGameThread());
+		return DataSet->GetRenderDataFloat().SRV;
+	}
+	inline FShaderResourceViewRHIParamRef GetIntDataSRV() const
+	{
+		check(!IsInGameThread());
+		return DataSet->GetRenderDataInt32().SRV;
+	}
+
+	uint32 GetComponentBufferSize()
+	{
+		check(!IsInGameThread());
+		return DataSet->CurrDataRender().GetFloatStride() / sizeof(float);
+	}
+
+
+
+
 	/**
 	* Construct shader parameters for this type of vertex factory.
 	*/
@@ -155,4 +191,6 @@ private:
 	FIndexBuffer* IndexBuffer;
 	uint32 FirstIndex;
 	int32 OutTriangleCount;
+
+	const FNiagaraDataSet *DataSet;
 };

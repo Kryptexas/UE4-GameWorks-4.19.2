@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3339965
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1. 새 피스톨 모드 생성
 Crumbs:%ROOT%
@@ -12,11 +12,15 @@ topic-image:Modding/RoboRecall/RoboRecall_Topic.png
 social-image:Modding/RoboRecall/RoboRecall_Social.png
 checkpoint:mod_extend
 
-<!-- Location: Modding/RoboRecall/Quickstarts/WeaponMod/1 -->
+[COMMENT:none]
+ Location: Modding/RoboRecall/Quickstarts/WeaponMod/1 
+[/COMMENT]
 
 [NAV]
 
-<!-- Title Image if Needed Here -->
+[COMMENT:none]
+ Title Image if Needed Here 
+[/COMMENT]
 
 개요 텍스트
 

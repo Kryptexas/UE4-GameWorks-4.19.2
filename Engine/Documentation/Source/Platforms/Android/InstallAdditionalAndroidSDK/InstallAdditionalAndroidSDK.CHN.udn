@@ -1,0 +1,62 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Crumbs: %ROOT%
+Title: Installing Additional Android SDK
+Description: Showing you how to install additinal Android SDK's
+Type: how-to
+SkillLevel: advanced
+Version: 4.17
+parent:Platforms/Android
+Order: 1
+Tags: Android
+
+Depending on which type of Android device you are developing for you may need to install additional Android SDK's so that your Unreal Engine 4 (UE4) project will run and in the following document we will take a look at how to go about installing additional Android SDK's. 
+
+
+## Steps
+
+To install additional Android SDK's you will need to first open the **Android SDK Manager** by doing the following.
+
+1. First, locate your **NVPACK** install location.
+
+	![](AddSDK_01.png)
+
+1. While holding the **Shift** key, right-click in the NVPACK folder and from the displayed menu select the **
+ Open command_window here** 
+
+ 	![](AddSDK_02.png)
+
+1. Inside of the command window, input **android.bat** and then press the **Enter** key to launch the **Android SDK Manager**.
+
+ 	![](AddSDK_03.png)
+
+1. Once the **Android SDK Manager** loads, press the **Deselect All** option to make sure that you do not uninstall any SDK's that you might need.
+
+ 	![](AddSDK_04.png)
+
+1. Next, locate the Android API version you want to instal and exampnd the available options. For this example we will use **Android 7.1.1 (API 25)** so make sure to click the checkmark box next the the **SDK Platform** under the Android 7.1.1 (API 25) section.
+
+ 	![](AddSDK_05.png)
+
+1. Finally press the **Install 1 package** button to start the downlaod and install process. 
+
+ 	![](AddSDK_06.png)
+
+
+## End Result
+
+When completed the **Status** will change to a folder icon with a checkmark on it indicating this is installed. 
+
+![](AddSDK_07.png)
+
+
+
+
+
+
+
+
+
+
+
+

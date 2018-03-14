@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,12 +11,16 @@
 #include "ISequencerSection.h"
 #include "ISequencerTrackEditor.h"
 #include "MovieSceneTrackEditor.h"
+#include "MovieSceneToolHelpers.h"
 
 class AActor;
 class FMenuBuilder;
 class FTrackEditorThumbnailPool;
 class UFactory;
 class UMovieSceneCameraCutTrack;
+class FCameraCutTrackEditor;
+class FTrackEditorBindingIDPicker;
+struct FMovieSceneObjectBindingID;
 
 /**
  * Tools for camera cut tracks.
@@ -87,6 +91,9 @@ private:
 	/** Callback for executing a menu entry in the "Add Camera Cut" combo button. */
 	void HandleAddCameraCutComboButtonMenuEntryExecute(AActor* Camera);
 
+	/** Called to create a new section for the specified binding ID. */
+	void CreateNewSectionFromBinding(FMovieSceneObjectBindingID InBindingID);
+
 	/** Delegate for camera button lock state */
 	ECheckBoxState IsCameraLocked() const; 
 
@@ -103,4 +110,7 @@ private:
 
 	/** The Thumbnail pool which draws all the viewport thumbnails for the camera cut track. */
 	TSharedPtr<FTrackEditorThumbnailPool> ThumbnailPool;
+
+	/** A binding ID picker that allows us to create a new section from an existing binding */
+	TSharedPtr<FTrackEditorBindingIDPicker> BindingIDPicker;
 };

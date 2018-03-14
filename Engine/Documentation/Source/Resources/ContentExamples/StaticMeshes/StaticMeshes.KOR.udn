@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:스태틱 메시 콘텐츠 예제
 Crumbs: %ROOT%, Resources, Resources/ContentExamples
@@ -9,43 +9,13 @@ Related: Engine/Content/Types/StaticMeshes/Editor
 Related: Engine/Actors/StaticMeshActor
 Related: Engine/Content/FBX/BestPractices
 Version: 4.9
-
+topic-image:StaticMeshes_Compact.png
 
 
 [REGION:banner]
 ![](StaticMeshes_Header.png)(convert:false)
 [/REGION]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/StaticMeshes:title%](StaticMeshes_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/StaticMeshes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/StaticMeshes:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/StaticMeshes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/StaticMeshes:title%](StaticMeshes_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/StaticMeshes:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/StaticMeshes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 **StaticMeshes** 콘텐츠 예제 맵 안에 있는 **스태틱 메시** 를 사용한 필수 예제에서는, **모빌리티** 설정법, **UV** 할당법, **콜리전** 세팅 추가 및 조정법을 확인할 수 있습니다. 다른 예제로는 **머티리얼 엘리먼트** 로 **스태틱 메시** 커스터마이징하는 (**스태틱 메시** 특정 부분에 **머티리얼** 을 적용할 수 있는) 방법은 물론, **메시 페인트 툴** 을 사용하여 **스태틱 메시** 에 직접 칠하는 법도 살펴봅니다.
 마지막으로 플레이어와의 거리에 따라 메시의 퀄리티를 낮춰 퍼포먼스를 향상시키는 **LOD** 사용법도 확인할 수 있습니다.

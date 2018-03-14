@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 LandscapeRenderMobile.cpp: Landscape Rendering without using vertex texture fetch
@@ -8,6 +8,7 @@ LandscapeRenderMobile.cpp: Landscape Rendering without using vertex texture fetc
 #include "ShaderParameterUtils.h"
 #include "Serialization/BufferArchive.h"
 #include "Serialization/MemoryReader.h"
+#include "PrimitiveSceneInfo.h"
 
 void FLandscapeVertexFactoryMobile::InitRHI()
 {
@@ -62,7 +63,7 @@ public:
 	*/
 	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* VertexShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const override
 	{
-		SCOPE_CYCLE_COUNTER(STAT_LandscapeVFDrawTime);
+		SCOPE_CYCLE_COUNTER(STAT_LandscapeVFDrawTimeVS);
 
 		const FLandscapeBatchElementParams* BatchElementParams = (const FLandscapeBatchElementParams*)BatchElement.UserData;
 		check(BatchElementParams);
@@ -70,61 +71,77 @@ public:
 		const FLandscapeComponentSceneProxyMobile* SceneProxy = (const FLandscapeComponentSceneProxyMobile*)BatchElementParams->SceneProxy;
 		SetUniformBufferParameter(RHICmdList, VertexShader->GetVertexShader(),VertexShader->GetUniformBufferParameter<FLandscapeUniformShaderParameters>(),*BatchElementParams->LandscapeUniformShaderParametersResource);
 
-		FVector CameraLocalPos3D = SceneProxy->WorldToLocal.TransformPosition(View.ViewMatrices.GetViewOrigin()); 
-		FVector2D CameraLocalPos = FVector2D(CameraLocalPos3D.X, CameraLocalPos3D.Y);
-
-		if( LodBiasParameter.IsBound() )
-		{
-			FVector4 LodBias(
-				0.0f, // unused
-				0.0f, // unused
-				CameraLocalPos3D.X + SceneProxy->SectionBase.X,
-				CameraLocalPos3D.Y + SceneProxy->SectionBase.Y 
-				);
-			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), LodBiasParameter, LodBias);
-		}
-
-		// Calculate LOD params
-		FVector4 fCurrentLODs;
-		FVector4 CurrentNeighborLODs[4];
-
-		if( BatchElementParams->SubX == -1 )
-		{
-			for( int32 SubY = 0; SubY < SceneProxy->NumSubsections; SubY++ )
-			{
-				for( int32 SubX = 0; SubX < SceneProxy->NumSubsections; SubX++ )
-				{
-					int32 SubIndex = SubX + 2 * SubY;
-					SceneProxy->CalcLODParamsForSubsection(View, CameraLocalPos, SubX, SubY, BatchElementParams->CurrentLOD, fCurrentLODs[SubIndex], CurrentNeighborLODs[SubIndex]);
-				}
-			}
-		}
-		else
-		{
-			int32 SubIndex = BatchElementParams->SubX + 2 * BatchElementParams->SubY;
-			SceneProxy->CalcLODParamsForSubsection(View, CameraLocalPos, BatchElementParams->SubX, BatchElementParams->SubY, BatchElementParams->CurrentLOD, fCurrentLODs[SubIndex], CurrentNeighborLODs[SubIndex]);
-		}
-
-		if( SectionLodsParameter.IsBound() )
-		{
-			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), SectionLodsParameter, fCurrentLODs);
-		}
-
-		if( NeighborSectionLodParameter.IsBound() )
-		{
-			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), NeighborSectionLodParameter, CurrentNeighborLODs);
-		}
-
-		if( LodValuesParameter.IsBound() )
+		if (LodValuesParameter.IsBound())
 		{
 			FVector4 LodValues(
 				0.0f, // this is the mesh's LOD, ES2 always uses the LOD0 mesh
 				0.0f, // unused
 				(float)SceneProxy->SubsectionSizeQuads,
-				1.f / (float)SceneProxy->SubsectionSizeQuads );
+				1.f / (float)SceneProxy->SubsectionSizeQuads);
 
-			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(),LodValuesParameter,LodValues);
+			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), LodValuesParameter, LodValues);
 		}
+
+		if (LodBiasParameter.IsBound())
+		{
+			FVector CameraLocalPos3D = SceneProxy->WorldToLocal.TransformPosition(View.ViewMatrices.GetViewOrigin());
+
+			FVector4 LodBias(
+				0.0f, // unused
+				0.0f, // unused
+				CameraLocalPos3D.X + SceneProxy->SectionBase.X,
+				CameraLocalPos3D.Y + SceneProxy->SectionBase.Y
+			);
+			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), LodBiasParameter, LodBias);
+		}
+
+		FLandscapeComponentSceneProxy::FViewCustomDataLOD* LODData = (FLandscapeComponentSceneProxy::FViewCustomDataLOD*)View.GetCustomData(SceneProxy->GetPrimitiveSceneInfo()->GetIndex());
+		int32 SubSectionIndex = BatchElementParams->SubX + BatchElementParams->SubY * SceneProxy->NumSubsections;
+
+		if (LODData != nullptr)
+		{
+			if (SectionLodsParameter.IsBound())
+			{
+				if (LODData->UseCombinedMeshBatch)
+				{
+					SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), SectionLodsParameter, LODData->ShaderCurrentLOD);
+				}
+				else // in non combined, only the one representing us as we'll be called 4 times (once per sub section)
+				{
+					check(SubSectionIndex >= 0);
+					FVector4 ShaderCurrentLOD(ForceInitToZero);
+					ShaderCurrentLOD.Component(SubSectionIndex) = LODData->ShaderCurrentLOD.Component(SubSectionIndex);
+
+					SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), SectionLodsParameter, ShaderCurrentLOD);
+				}
+			}
+
+			if (NeighborSectionLodParameter.IsBound())
+			{
+				FVector4 ShaderCurrentNeighborLOD[FLandscapeComponentSceneProxy::NEIGHBOR_COUNT] = { FVector4(ForceInitToZero), FVector4(ForceInitToZero), FVector4(ForceInitToZero), FVector4(ForceInitToZero) };
+
+				if (LODData->UseCombinedMeshBatch)
+				{
+					int32 SubSectionCount = SceneProxy->NumSubsections == 1 ? 1 : FLandscapeComponentSceneProxy::MAX_SUBSECTION_COUNT;
+
+					for (int32 NeighborSubSectionIndex = 0; NeighborSubSectionIndex < SubSectionCount; ++NeighborSubSectionIndex)
+					{
+						ShaderCurrentNeighborLOD[NeighborSubSectionIndex] = LODData->SubSections[NeighborSubSectionIndex].ShaderCurrentNeighborLOD;
+						check(ShaderCurrentNeighborLOD[NeighborSubSectionIndex].X != -1.0f); // they should all match so only check the 1st one for simplicity
+					}
+
+					SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), NeighborSectionLodParameter, ShaderCurrentNeighborLOD);
+				}
+				else // in non combined, only the one representing us as we'll be called 4 times (once per sub section)
+				{
+					check(SubSectionIndex >= 0);
+					ShaderCurrentNeighborLOD[SubSectionIndex] = LODData->SubSections[SubSectionIndex].ShaderCurrentNeighborLOD;
+					check(ShaderCurrentNeighborLOD[SubSectionIndex].X != -1.0f); // they should all match so only check the 1st one for simplicity
+
+					SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), NeighborSectionLodParameter, ShaderCurrentNeighborLOD);
+				}
+			}
+		}	
 	}
 protected:
 	FShaderParameter LodValuesParameter;
@@ -162,12 +179,13 @@ public:
 	*/
 	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* PixelShader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const override
 	{
-		SCOPE_CYCLE_COUNTER(STAT_LandscapeVFDrawTime);
+		SCOPE_CYCLE_COUNTER(STAT_LandscapeVFDrawTimePS);
 
 		FLandscapeVertexFactoryPixelShaderParameters::SetMesh(RHICmdList, PixelShader, VertexFactory, View, BatchElement, DataFlags);
 
 		const FLandscapeBatchElementParams* BatchElementParams = (const FLandscapeBatchElementParams*)BatchElement.UserData;
 		check(BatchElementParams);
+
 		const FLandscapeComponentSceneProxyMobile* SceneProxy = (const FLandscapeComponentSceneProxyMobile*)BatchElementParams->SceneProxy;
 
 		if (BlendableLayerMaskParameter.IsBound())
@@ -250,7 +268,7 @@ struct FLandscapeMobileRenderData
 };
 
 FLandscapeComponentSceneProxyMobile::FLandscapeComponentSceneProxyMobile(ULandscapeComponent* InComponent)
-	: FLandscapeComponentSceneProxy(InComponent, {InComponent->MobileMaterialInterface})
+	: FLandscapeComponentSceneProxy(InComponent)
 	, MobileRenderData(InComponent->PlatformData.GetRenderData())
 {
 	check(InComponent);
@@ -274,8 +292,20 @@ FLandscapeComponentSceneProxyMobile::~FLandscapeComponentSceneProxyMobile()
 	}
 }
 
+SIZE_T FLandscapeComponentSceneProxyMobile::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
+}
+
 void FLandscapeComponentSceneProxyMobile::CreateRenderThreadResources()
 {
+	if (IsComponentLevelVisible())
+	{
+		RegisterNeighbors();
+	}
+	
+	auto FeatureLevel = GetScene().GetFeatureLevel();
 	// Use only Index buffers
 	SharedBuffers = FLandscapeComponentSceneProxy::SharedBuffersMap.FindRef(SharedBuffersKey);
 	if (SharedBuffers == nullptr)
@@ -293,7 +323,7 @@ void FLandscapeComponentSceneProxyMobile::CreateRenderThreadResources()
 	check(MobileRenderData->VertexBuffer);
 	MobileRenderData->VertexBuffer->InitResource();
 
-	FLandscapeVertexFactoryMobile* LandscapeVertexFactory = new FLandscapeVertexFactoryMobile();
+	FLandscapeVertexFactoryMobile* LandscapeVertexFactory = new FLandscapeVertexFactoryMobile(FeatureLevel);
 	LandscapeVertexFactory->MobileData.PositionComponent = FVertexStreamComponent(MobileRenderData->VertexBuffer, STRUCT_OFFSET(FLandscapeMobileVertex,Position), sizeof(FLandscapeMobileVertex), VET_UByte4N);
 	for( uint32 Index = 0; Index < LANDSCAPE_MAX_ES_LOD_COMP; ++Index )
 	{

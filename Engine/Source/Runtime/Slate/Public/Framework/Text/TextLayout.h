@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -209,8 +209,8 @@ public:
 		FTextRange TrimmedRange;
 		/** Measured size inclusive of trailing whitespace, as used to visually display and interact with the text */
 		FVector2D ActualSize;
-		/** Measured size exclusive of trailing whitespace, as used to perform wrapping on a word boundary */
-		FVector2D TrimmedSize;
+		/** Measured width exclusive of trailing whitespace, as used to perform wrapping on a word boundary */
+		float TrimmedWidth;
 		/** If this break candidate has trailing whitespace, this is the width of the first character of the trailing whitespace */
 		float FirstTrailingWhitespaceCharWidth;
 
@@ -298,7 +298,7 @@ public:
 	{
 		/** Offset in X for this highlight, relative to the FLineView::Offset that contains it */
 		float OffsetX;
-		/** Width for this highlight, the height will be either FLineView::Size.Y or FLineView::TextSize.Y depending on whether you want to highlight the entire line, or just the text within the line */
+		/** Width for this highlight, the height will be either FLineView::Size.Y or FLineView::TextHeight depending on whether you want to highlight the entire line, or just the text within the line */
 		float Width;
 		/** Custom highlighter implementation used to do the painting */
 		TSharedPtr< ILineHighlighter > Highlighter;
@@ -311,7 +311,8 @@ public:
 		TArray< FLineViewHighlight > OverlayHighlights;
 		FVector2D Offset;
 		FVector2D Size;
-		FVector2D TextSize;
+		float TextHeight;
+		float JustificationWidth;
 		FTextRange Range;
 		TextBiDi::ETextDirection TextBaseDirection;
 		int32 ModelIndex;
@@ -356,9 +357,29 @@ public:
 	FORCEINLINE const TArray< FTextLayout::FLineView >& GetLineViews() const { return LineViews; }
 	FORCEINLINE const TArray< FTextLayout::FLineModel >& GetLineModels() const { return LineModels; }
 
+	/**
+	 * Get the size of the text layout, including any lines which extend beyond the wrapping boundaries (eg, lines with lots of trailing whitespace, or lines with no break candidates)
+	 * @note This value is unscaled
+	 */
 	FVector2D GetSize() const;
+
+	/**
+	 * Get the size of the text layout, including any lines which extend beyond the wrapping boundaries (eg, lines with lots of trailing whitespace, or lines with no break candidates)
+	 * @note This value is scaled
+	 */
 	FVector2D GetDrawSize() const;
+
+	/**
+	 * Get the size of the text layout after the text has been wrapped, and including the first piece of trailing whitespace for any given soft-wrapped line
+	 * @note This value is unscaled
+	 */
 	FVector2D GetWrappedSize() const;
+
+	/**
+	 * Get the size of the text layout after the text has been wrapped, and including the first piece of trailing whitespace for any given soft-wrapped line
+	 * @note This value is scaled
+	 */
+	FVector2D GetWrappedDrawSize() const;
 
 	FORCEINLINE float GetWrappingWidth() const { return WrappingWidth; }
 	void SetWrappingWidth( float Value );
@@ -371,6 +392,9 @@ public:
 
 	FORCEINLINE ETextJustify::Type GetJustification() const { return Justification; }
 	void SetJustification( ETextJustify::Type Value );
+
+	/** Get the visual justification for this document (based on the visual justification used by the first line of text) */
+	ETextJustify::Type GetVisualJustification() const;
 
 	FORCEINLINE float GetScale() const { return Scale; }
 	void SetScale( float Value );
@@ -598,7 +622,7 @@ private:
 
 	void JustifyLayout();
 
-	void CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIndex, const float WrappedLineWidth, int32& OutRunIndex, int32& OutRendererIndex, int32& OutPreviousBlockEnd, TArray< TSharedRef< ILayoutBlock > >& OutSoftLine );
+	void CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIndex, const float WrappedLineWidth, const TOptional<float>& JustificationWidth, int32& OutRunIndex, int32& OutRendererIndex, int32& OutPreviousBlockEnd, TArray< TSharedRef< ILayoutBlock > >& OutSoftLine );
 
 	FBreakCandidate CreateBreakCandidate( int32& OutRunIndex, FLineModel& Line, int32 PreviousBreak, int32 CurrentBreak );
 

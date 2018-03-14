@@ -39,9 +39,11 @@ version:4.9
 如需了解地形工具操作范例，请查阅 [](Resources\ContentExamples\Landscapes) 内容范例。
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 如需了解关卡编辑器面板自定义的更多信息，请查阅 [关卡编辑器界面总览](Engine/UI/InterfaceOverview)。
--->
+
+[/COMMENT]
 
 ## 打开地形工具
 

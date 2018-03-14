@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -113,8 +113,11 @@ public:
 	/** Returns the most recent hit breakpoint; if a PIE/SIE session is started but paused; otherwise NULL */
 	static class UEdGraphNode* GetMostRecentBreakpointHit();
 
-	/** Request an attempt to single-step to the next node, with parameter to control step into sub graphs */
-	static void RequestSingleStepping(bool bInAllowStepIn);
+	/** Request an attempt to single-step to the next node */
+	static void RequestSingleStepIn();
+	
+	/** Request an attempt to step over to the next node in this graph or the calling graph */
+	static void RequestStepOver();
 
 	/** Request an attempt to step out of the current graph */
 	static void RequestStepOut();
@@ -130,9 +133,6 @@ public:
 
 	// Find the node that resulted in code at the specified location in the Object, or NULL if there was a problem (e.g., no debugging information was generated)
 	static class UEdGraphNode* FindSourceNodeForCodeLocation(const UObject* Object, UFunction* Function, int32 DebugOpcodeOffset, bool bAllowImpreciseHit = false);
-
-	// Find the macro node that resulted in code at the specified location in the Object, or NULL if there was a problem (e.g., no debugging information was generated)
-	static class UEdGraphNode* FindMacroSourceNodeForCodeLocation(const UObject* Object, UFunction* Function, int32 DebugOpcodeOffset);
 
 	// Return proper class for breakpoint
 	static UClass* FindClassForNode(const UObject* Object, UFunction* Function);
@@ -223,7 +223,7 @@ public:
 	// This doesn't work properly if there is more than one blueprint editor open at once either (one will consume it, the others will be left in the cold)
 	static FText GetAndClearLastExceptionMessage();
 protected:
-	static void CheckBreakConditions(UEdGraphNode* NodeStoppedAt, bool& InOutBreakExecution);
+	static void CheckBreakConditions(UEdGraphNode* NodeStoppedAt, bool bHitBreakpoint, int32 BreakpointOffset, bool& InOutBreakExecution);
 	static void AttemptToBreakExecution(UBlueprint* BlueprintObj, const UObject* ActiveObject, const FFrame& StackFrame, const FBlueprintExceptionInfo& Info, UEdGraphNode* NodeStoppedAt, int32 DebugOpcodeOffset);
 
 private:

@@ -14,6 +14,14 @@
 
 #include "LPVWriteCommon.ush"
 
+#define LIST_APPEND_UAV_COUNTER 0
+#define LIST_APPEND_HEAD_BUFFER 1
+
+#if LPV_STORE_INDEX_IN_HEAD_BUFFER
+  #define LIST_APPEND_METHOD LIST_APPEND_HEAD_BUFFER
+#else
+  #define LIST_APPEND_METHOD LIST_APPEND_UAV_COUNTER
+#endif
 //-------------------------------------------------------------------------------------------------
 
 // Bind UAVs to specific indices for materials with the following flags to ensure the UAVs set match
@@ -43,10 +51,18 @@ int AddToVplList( float3 worldPos, float3 flux, float3 direction, const bool emi
 	if ( gridIndex >= 0 )
 	{
 		// Allocate a new list entry 
-		uint newHeadIndex = RWVplListBuffer.IncrementCounter();
 		uint oldHeadIndex;
+		uint newHeadIndex;
+#if LIST_APPEND_METHOD == LIST_APPEND_UAV_COUNTER
+		newHeadIndex = RWVplListBuffer.IncrementCounter();
 		// Note: we add one to the list index to make the list 0-terminated and prevent infinite recursion
 		RWVplListHeadBuffer.InterlockedExchange( gridIndex*4, newHeadIndex+1, oldHeadIndex );
+#else
+		RWVplListHeadBuffer.InterlockedAdd(0,1,newHeadIndex);
+		// Note: we add one to the list index to make the list 0-terminated and prevent infinite recursion
+		const uint StoreIndexOffset = LPV_HEAD_BUFFER_START_OFFSET;
+		RWVplListHeadBuffer.InterlockedExchange( (StoreIndexOffset+gridIndex)*4, newHeadIndex+1, oldHeadIndex );
+#endif
 
 		if ( emissiveInjection )
 		{
@@ -75,16 +91,27 @@ int AddToGvList( float3 worldPos, float3 flux, float3 direction )
 	// Gv is offset by half 
 	float3 offset = ( LpvWrite.LpvScale * 0.5f ).xxx;
 	int gridIndex = GetGridIndex( worldPos + offset ); 
+
+	// Note: we add one to the list index to make the list 0-terminated and prevent infinite recursion
+	uint newHeadIndex = 0;
+
 	[branch]
 	if ( gridIndex >= 0 )
 	{
-		// Allocate a new list entry 
-		uint newHeadIndex = RWGvListBuffer.IncrementCounter();
 		uint oldHeadIndex;
-		// Note: we add one to the list index to make the list 0-terminated and prevent infinite recursion
+#if LIST_APPEND_METHOD == LIST_APPEND_UAV_COUNTER
+		// Allocate a new list entry 
+		newHeadIndex = RWGvListBuffer.IncrementCounter();
 		RWGvListHeadBuffer.InterlockedExchange( gridIndex*4, newHeadIndex+1, oldHeadIndex );
-
-		// Fill in the new list node 
+#else
+ #if LIST_APPEND_METHOD == LIST_APPEND_HEAD_BUFFER
+		RWGvListHeadBuffer.InterlockedAdd(0,1,newHeadIndex);
+ #endif
+		// Note: we add one to the list index to make the list 0-terminated and prevent infinite recursion
+		const uint StoreIndexOffset = LPV_HEAD_BUFFER_START_OFFSET;
+		RWGvListHeadBuffer.InterlockedExchange( (StoreIndexOffset+gridIndex)*4, newHeadIndex+1, oldHeadIndex );
+#endif
+		// Fill in the new list node
 		Vpl vpl;
 		vpl.normal = direction;
 		vpl.flux = flux;

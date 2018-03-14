@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "VoicePacketImpl.h"
 #include "OnlineSubsystem.h"
@@ -9,6 +9,7 @@ FVoicePacketImpl::FVoicePacketImpl(const FVoicePacketImpl& Other) :
 {
 	Sender = Other.Sender;
 	Length = Other.Length;
+	SampleCount = Other.SampleCount;
 
 	// Copy the contents of the voice packet
 	Buffer.Empty(Other.Length);
@@ -50,10 +51,11 @@ void FVoicePacketImpl::Serialize(class FArchive& Ar)
 		{
 			Sender = IdentityInt->CreateUniquePlayerId(SenderStr);
 		}
-
+		
 		Ar << Length;
+		Ar << SampleCount;
 		// Verify the packet is a valid size
-		if (Length <= MAX_VOICE_DATA_SIZE)
+		if (Length <= UVOIPStatics::GetMaxVoiceDataSize())
 		{
 			Buffer.Empty(Length);
 			Buffer.AddUninitialized(Length);
@@ -79,7 +81,9 @@ void FVoicePacketImpl::Serialize(class FArchive& Ar)
 		check(Sender.IsValid());
 		FString SenderStr = Sender->ToString();
 		Ar << SenderStr;
+		
 		Ar << Length;
+		Ar << SampleCount;
 
 		// Always safe to save the data as the voice code prevents overwrites
 		Ar.Serialize(Buffer.GetData(), Length);

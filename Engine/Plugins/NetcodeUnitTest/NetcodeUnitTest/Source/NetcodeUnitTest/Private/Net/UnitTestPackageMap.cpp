@@ -1,10 +1,12 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Net/UnitTestPackageMap.h"
 
 #include "GameFramework/Actor.h"
 
 #include "MinimalClient.h"
+#include "NUTUtilDebug.h"
+#include "UnitLogging.h"
 
 
 /**
@@ -16,6 +18,7 @@ UUnitTestPackageMap::UUnitTestPackageMap(const FObjectInitializer& ObjectInitial
 	, bWithinSerializeNewActor(false)
 	, bPendingArchetypeSpawn(false)
 	, ReplaceObjects()
+	, OnSerializeName()
 {
 }
 
@@ -59,15 +62,9 @@ bool UUnitTestPackageMap::SerializeObject(FArchive& Ar, UClass* InClass, UObject
 		{
 			bool bBlockActor = true;
 
-			if (MinClient == nullptr)
-			{
-				MinClient = UMinimalClient::GetMinClientFromConn(GActiveReceiveUnitConnection);
-			}
+			check(MinClient != nullptr);
 
-			if (MinClient != nullptr)
-			{
-				MinClient->RepActorSpawnDel.ExecuteIfBound(Obj->GetClass(), GIsInitializingActorChan, bBlockActor);
-			}
+			MinClient->RepActorSpawnDel.ExecuteIfBound(Obj->GetClass(), GIsInitializingActorChan, bBlockActor);
 
 			if (bBlockActor)
 			{
@@ -86,6 +83,23 @@ bool UUnitTestPackageMap::SerializeObject(FArchive& Ar, UClass* InClass, UObject
 	return bReturnVal;
 }
 
+bool UUnitTestPackageMap::SerializeName(FArchive& Ar, FName& InName)
+{
+	bool bSerialized = false;
+	FName SaveName = InName;
+
+	OnSerializeName.Broadcast(true, bSerialized, Ar, (Ar.IsSaving() ? SaveName : InName));
+
+	if (!bSerialized)
+	{
+		Super::SerializeName(Ar, (Ar.IsSaving() ? SaveName : InName));
+	}
+
+	OnSerializeName.Broadcast(false, bSerialized, Ar, (Ar.IsSaving() ? SaveName : InName));
+
+	return true;
+}
+
 bool UUnitTestPackageMap::SerializeNewActor(FArchive& Ar, class UActorChannel* Channel, class AActor*& Actor)
 {
 	bool bReturnVal = false;
@@ -93,7 +107,12 @@ bool UUnitTestPackageMap::SerializeNewActor(FArchive& Ar, class UActorChannel* C
 	bWithinSerializeNewActor = true;
 	bPendingArchetypeSpawn = false;
 
-	bReturnVal = Super::SerializeNewActor(Ar, Channel, Actor);
+	{
+		// Disable PackageMap error logs during this call, since we may be deliberately causing an error to block serialization
+		FScopedLogSuppress Suppress(TEXT("LogNetPackageMap"));
+
+		bReturnVal = Super::SerializeNewActor(Ar, Channel, Actor);
+	}
 
 	bPendingArchetypeSpawn = false;
 	bWithinSerializeNewActor = false;

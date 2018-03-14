@@ -53,28 +53,20 @@ order:3
 
 [INCLUDE:Engine/Animation/Overview#Intro]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		必备知识
-	[/PARAM]
-	[PARAM:links]
+## 必备知识
+
+[REGION:buttonlist]
+
 		* [](Engine/Animation/Overview "%Engine/Animation/Overview:description%")
 		* [](Engine/Animation/Persona "%Engine/Animation/Persona:description%")
 		* [](Engine\Animation\AnimHowTo "%Engine\Animation\AnimHowTo:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		动画资源
-	[/PARAM]
-	[PARAM:links]
+## 动画资源
+
+[REGION:buttonlist]
+
 		* [](Engine/Animation/Skeleton "%Engine/Animation/Skeleton:description%")
 		* [](Engine/Animation/Sequences "%Engine/Animation/Sequences:description%")
 			* [](Engine/Animation/Sequences/Notifies "%Engine/Animation/Sequences/Notifies:description%")
@@ -90,17 +82,13 @@ order:3
 		* [](Engine/Animation/AnimationComposite "%Engine/Animation/AnimationComposite:description%")
 		* [](Engine/Animation/AnimMontage "%Engine/Animation/AnimMontage:description%")
 		* [](Engine/Animation/AimOffset "%Engine/Animation/AimOffset:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false) 
-	[/PARAM]
-	[PARAM:title]
-		功能
-	[/PARAM]
-	[PARAM:links]
+## 功能
+
+[REGION:buttonlist]
+
 		* [](Engine/Animation/Persona/BoneManipulation "%Engine/Animation/Persona/BoneManipulation:description%")
 		* [](Engine/Animation/AnimationBlending "%Engine/Animation/AnimationBlending:description%")
 		* [](Engine/Animation/AnimationRetargeting "%Engine/Animation/AnimationRetargeting:description%")
@@ -109,29 +97,21 @@ order:3
 		* [](Engine/Animation/RootMotion "%Engine/Animation/RootMotion:description%")
 		* [](Engine/Animation/NonUniformScale "%Engine/Animation/NonUniformScale:description%")
 		* [](Engine\Animation\NonLinearBlends "%Engine\Animation\NonLinearBlends:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false) 
-	[/PARAM]
-	[PARAM:title]
-		工具
-	[/PARAM]
-	[PARAM:links]
+## 工具
+
+[REGION:buttonlist]
+
 		* [](Engine\Animation\Tools\VertexAnimationTool "%Engine\Animation\Tools\VertexAnimationTool:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/related_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		相关链接
-	[/PARAM]
-	[PARAM:links]
+## 相关链接
+
+[REGION:buttonlist]
+
 		* [](Engine/Content/Types/SkeletalMeshes "%Engine/Content/Types/SkeletalMeshes:description%")
 		* [](Engine/Content/FBX/SkeletalMeshes "%Engine/Content/FBX/SkeletalMeshes:description%")
 		* [](Engine/Content/FBX/Animations "%Engine/Content/FBX/Animations:description%")
@@ -142,8 +122,8 @@ order:3
 			* [](Engine/Animation/CharacterSetupOverview "%Engine/Animation/CharacterSetupOverview:description%")
 			* [](Engine/Animation/IKSetups "%Engine/Animation/IKSetups:description%")
 			* [](Engine/Animation/UsingMixamoContent "%Engine/Animation/UsingMixamoContent:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

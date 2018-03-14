@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,6 +6,8 @@
 
 #include "WebBrowser.generated.h"
 
+
+class UMaterial;
 /**
  * 
  */
@@ -16,6 +18,7 @@ class WEBBROWSERWIDGET_API UWebBrowser : public UWidget
 
 public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUrlChanged, const FText&, Text);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBeforePopup, FString, URL, FString, Frame);
 
 	/**
 	 * Load the specified URL
@@ -60,6 +63,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Web Browser|Event")
 	FOnUrlChanged OnUrlChanged;
 
+	/** Called when a popup is about to spawn. */
+	UPROPERTY(BlueprintAssignable, Category = "Web Browser|Event")
+	FOnBeforePopup OnBeforePopup;
+
 public:
 
 	//~ Begin UWidget interface
@@ -72,6 +79,7 @@ public:
 	virtual const FText GetPaletteCategory() override;
 #endif
 
+	UMaterial* GetDefaultMaterial() const;
 protected:
 	/** URL that the browser will initially navigate to. The URL should include the protocol, eg http:// */
 	UPROPERTY(EditAnywhere, Category=Appearance)
@@ -90,4 +98,8 @@ protected:
 	// End of UWidget interface
 
 	void HandleOnUrlChanged(const FText& Text);
+	bool HandleOnBeforePopup(FString URL, FString Frame);
+
+private:
+	UMaterial* DefaultMaterial;
 };

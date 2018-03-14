@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraEditorUtilities.h"
 #include "NiagaraEditorModule.h"
@@ -28,30 +28,7 @@
 
 #define LOCTEXT_NAMESPACE "FNiagaraEditorUtilities"
 
-FName FNiagaraEditorUtilities::GetUniqueName(FName CandidateName, const TSet<FName>& ExistingNames)
-{
-	if (ExistingNames.Contains(CandidateName) == false)
-	{
-		return CandidateName;
-	}
 
-	FString CandidateNameString = CandidateName.ToString();
-	FString BaseNameString = CandidateNameString;
-	if (CandidateNameString.Len() >= 3 && CandidateNameString.Right(3).IsNumeric())
-	{
-		BaseNameString = CandidateNameString.Left(CandidateNameString.Len() - 3);
-	}
-
-	FName UniqueName = FName(*BaseNameString);
-	int32 NameIndex = 1;
-	while (ExistingNames.Contains(UniqueName))
-	{
-		UniqueName = FName(*FString::Printf(TEXT("%s%03i"), *BaseNameString, NameIndex));
-		NameIndex++;
-	}
-
-	return UniqueName;
-}
 
 TSet<FName> FNiagaraEditorUtilities::GetSystemConstantNames()
 {
@@ -67,22 +44,11 @@ void FNiagaraEditorUtilities::GetTypeDefaultValue(const FNiagaraTypeDefinition& 
 {
 	if (const UScriptStruct* ScriptStruct = Type.GetScriptStruct())
 	{
-		int32 TypeSize = Type.GetSize();
-		DefaultData.SetNumUninitialized(TypeSize);
+		FNiagaraVariable DefaultVariable(Type, NAME_None);
+		ResetVariableToDefaultValue(DefaultVariable);
 
-		FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::GetModuleChecked<FNiagaraEditorModule>("NiagaraEditor");
-		TSharedPtr<INiagaraEditorTypeUtilities> TypeEditorUtilities = NiagaraEditorModule.GetTypeUtilities(Type);
-		if (TypeEditorUtilities.IsValid() && TypeEditorUtilities->CanProvideDefaultValue())
-		{
-			TSharedRef<FStructOnScope> Struct = MakeShareable(new FStructOnScope(ScriptStruct));
-			TypeEditorUtilities->UpdateStructWithDefaultValue(Struct);	
-			FMemory::Memcpy(DefaultData.GetData(), Struct->GetStructMemory(), TypeSize);
-			
-		}
-		else
-		{
-			ScriptStruct->InitializeDefaultValue(DefaultData.GetData());
-		}
+		DefaultData.SetNumUninitialized(Type.GetSize());
+		DefaultVariable.CopyTo(DefaultData.GetData());
 	}
 }
 
@@ -94,9 +60,7 @@ void FNiagaraEditorUtilities::ResetVariableToDefaultValue(FNiagaraVariable& Vari
 		TSharedPtr<INiagaraEditorTypeUtilities> TypeEditorUtilities = NiagaraEditorModule.GetTypeUtilities(Variable.GetType());
 		if (TypeEditorUtilities.IsValid() && TypeEditorUtilities->CanProvideDefaultValue())
 		{
-			TSharedRef<FStructOnScope> Struct = MakeShareable(new FStructOnScope(ScriptStruct));
-			TypeEditorUtilities->UpdateStructWithDefaultValue(Struct);
-			Variable.SetData(Struct->GetStructMemory());
+			TypeEditorUtilities->UpdateVariableWithDefaultValue(Variable);
 		}
 		else
 		{
@@ -120,12 +84,12 @@ void FNiagaraEditorUtilities::InitializeParameterInputNode(UNiagaraNodeInput& In
 	if (Type.GetScriptStruct() != nullptr)
 	{
 		ResetVariableToDefaultValue(InputNode.Input);
-		InputNode.DataInterface = nullptr;
+		InputNode.SetDataInterface(nullptr);
 	}
 	else
 	{
 		InputNode.Input.AllocateData(); // Frees previously used memory if we're switching from a struct to a class type.
-		InputNode.DataInterface = NewObject<UNiagaraDataInterface>(&InputNode, const_cast<UClass*>(Type.GetClass()), NAME_None, RF_Transactional);
+		InputNode.SetDataInterface(NewObject<UNiagaraDataInterface>(&InputNode, const_cast<UClass*>(Type.GetClass()), NAME_None, RF_Transactional));
 	}
 }
 
@@ -182,11 +146,11 @@ bool FNiagaraEditorUtilities::ConvertToMergedGraph(UNiagaraEmitter* InEmitter)
 			GraphsToConvert.Add(CastChecked<UNiagaraScriptSource>(InEmitter->UpdateScriptProps.Script->GetSource())->NodeGraph);
 			GraphUsages.Add(ENiagaraScriptUsage::ParticleUpdateScript);
 
-			for (int32 i = 0; i < InEmitter->EventHandlerScriptProps.Num(); i++)
+			for (int32 i = 0; i < InEmitter->GetEventHandlers().Num(); i++)
 			{
-				if (InEmitter->EventHandlerScriptProps[i].Script != nullptr)
+				if (InEmitter->GetEventHandlers()[i].Script != nullptr)
 				{
-					GraphsToConvert.Add(CastChecked<UNiagaraScriptSource>(InEmitter->EventHandlerScriptProps[i].Script->GetSource())->NodeGraph);
+					GraphsToConvert.Add(CastChecked<UNiagaraScriptSource>(InEmitter->GetEventHandlers()[i].Script->GetSource())->NodeGraph);
 					GraphUsages.Add(ENiagaraScriptUsage::ParticleEventScript);
 				}
 			}
@@ -254,11 +218,11 @@ bool FNiagaraEditorUtilities::ConvertToMergedGraph(UNiagaraEmitter* InEmitter)
 			InEmitter->GraphSource = Source;
 			InEmitter->SpawnScriptProps.Script->SetSource(Source);
 			InEmitter->UpdateScriptProps.Script->SetSource(Source);
-			for (int32 i = 0; i < InEmitter->EventHandlerScriptProps.Num(); i++)
+			for (int32 i = 0; i < InEmitter->GetEventHandlers().Num(); i++)
 			{
-				if (InEmitter->EventHandlerScriptProps[i].Script != nullptr)
+				if (InEmitter->GetEventHandlers()[i].Script != nullptr)
 				{
-					InEmitter->EventHandlerScriptProps[i].Script->SetSource(Source);
+					InEmitter->GetEventHandlers()[i].Script->SetSource(Source);
 				}
 			}
 
@@ -281,7 +245,6 @@ bool FNiagaraEditorUtilities::ConvertToMergedGraph(UNiagaraEmitter* InEmitter)
 			
 			// Now make sure that anyone referencing these graphs knows that they are out-of-date.
 			Source->MarkNotSynchronized();
-			InEmitter->ChangeId = FGuid::NewGuid();
 
 			//FString ErrorMessages;
 			//FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::Get().LoadModuleChecked<FNiagaraEditorModule>(TEXT("NiagaraEditor"));
@@ -380,7 +343,7 @@ void FNiagaraEditorUtilities::FixUpPastedInputNodes(UEdGraph* Graph, TSet<UEdGra
 			}
 			if (ExistingNames.Contains(PastedInput.GetName()))
 			{
-				FName UniqueName = FNiagaraEditorUtilities::GetUniqueName(PastedInput.GetName(), ExistingNames.Union(FNiagaraEditorUtilities::GetSystemConstantNames()));
+				FName UniqueName = FNiagaraUtilities::GetUniqueName(PastedInput.GetName(), ExistingNames.Union(FNiagaraEditorUtilities::GetSystemConstantNames()));
 				for (UNiagaraNodeInput* PastedNodeForInput : PastedNodesForInput)
 				{
 					PastedNodeForInput->Input.SetName(UniqueName);
@@ -466,15 +429,24 @@ bool FNiagaraEditorUtilities::DataMatches(const FNiagaraVariable& Variable, cons
 		return false;
 	}
 
-	const uint8* VariableMemory = Variable.GetData();
-	const uint8* StructOnScopeMemory = StructOnScope.GetStructMemory();
-	int32 Size = Variable.GetSizeInBytes();
-	for (int32 i = 0; i < Size; i++)
+	return FMemory::Memcmp(Variable.GetData(), StructOnScope.GetStructMemory(), Variable.GetSizeInBytes()) == 0;
+}
+
+bool FNiagaraEditorUtilities::DataMatches(const FNiagaraVariable& VariableA, const FNiagaraVariable& VariableB)
+{
+	if (VariableA.GetType() != VariableB.GetType())
 	{
-		if (VariableMemory[i] != StructOnScopeMemory[i])
-		{
-			return false;
-		}
+		return false;
+	}
+
+	if (VariableA.IsDataAllocated() != VariableB.IsDataAllocated())
+	{
+		return false;
+	}
+
+	if (VariableA.IsDataAllocated())
+	{
+		return FMemory::Memcmp(VariableA.GetData(), VariableB.GetData(), VariableA.GetSizeInBytes()) == 0;
 	}
 
 	return true;
@@ -487,18 +459,7 @@ bool FNiagaraEditorUtilities::DataMatches(const FStructOnScope& StructOnScopeA, 
 		return false;
 	}
 
-	const uint8* StructOnScopeAMemory = StructOnScopeA.GetStructMemory();
-	const uint8* StructOnScopeBMemory = StructOnScopeB.GetStructMemory();
-	int32 Size = StructOnScopeA.GetStruct()->GetStructureSize();
-	for (int32 i = 0; i < Size; i++)
-	{
-		if (StructOnScopeAMemory[i] != StructOnScopeBMemory[i])
-		{
-			return false;
-		}
-	}
-
-	return true;
+	return FMemory::Memcmp(StructOnScopeA.GetStructMemory(), StructOnScopeB.GetStructMemory(), StructOnScopeA.GetStruct()->GetStructureSize()) == 0;
 }
 
 TSharedPtr<SWidget> FNiagaraEditorUtilities::CreateInlineErrorText(TAttribute<FText> ErrorMessage, TAttribute<FText> ErrorTooltip)
@@ -533,50 +494,55 @@ TSharedPtr<SWidget> FNiagaraEditorUtilities::CreateInlineErrorText(TAttribute<FT
 				];
 }
 
-void FNiagaraEditorUtilities::UpdateExistingEmitters(const TArray<UNiagaraEmitter*>& AffectedEmitters)
+void FNiagaraEditorUtilities::CompileExistingEmitters(const TArray<UNiagaraEmitter*>& AffectedEmitters)
 {
-	// Compile the existing emitters. Also determine which Systems need to be properly updated.
-	TArray<UNiagaraSystem*> AffectedSystemSystems;
+	TSet<UNiagaraEmitter*> CompiledEmitters;
 	for (UNiagaraEmitter* Emitter : AffectedEmitters)
 	{
-		if (Emitter->IsPendingKillOrUnreachable())
+		// If we've already compiled this emitter, or it's invalid skip it.
+		if (CompiledEmitters.Contains(Emitter) || Emitter->IsPendingKillOrUnreachable())
 		{
 			continue;
 		}
 
-		TSharedPtr<FNiagaraEmitterViewModel> EmitterViewModel = FNiagaraEmitterViewModel::GetExistingViewModelForObject(Emitter);
-		if (!EmitterViewModel.IsValid())
+		// We only need to compile emitters referenced directly by systems since emitters can now only be used in the context 
+		// of a system.
+		for (TObjectIterator<UNiagaraSystem> SystemIterator; SystemIterator; ++SystemIterator)
 		{
-			EmitterViewModel = MakeShareable(new FNiagaraEmitterViewModel(Emitter, nullptr));
-		}
-		EmitterViewModel->CompileScripts();
-
-		for (TObjectIterator<UNiagaraSystem> It; It; ++It)
-		{
-			if (It->GetAutoImportChangedEmitters() && It->ReferencesSourceEmitter(Emitter))
+			if (SystemIterator->ReferencesSourceEmitter(*Emitter))
 			{
-				AffectedSystemSystems.AddUnique(*It);
+				SystemIterator->Compile(false);
+
+				TArray<TSharedPtr<FNiagaraSystemViewModel>> ExistingSystemViewModels;
+				FNiagaraSystemViewModel::GetAllViewModelsForObject(*SystemIterator, ExistingSystemViewModels);
+				for (TSharedPtr<FNiagaraSystemViewModel> SystemViewModel : ExistingSystemViewModels)
+				{
+					SystemViewModel->RefreshAll();
+				}
+
+				for (const FNiagaraEmitterHandle& EmitterHandle : SystemIterator->GetEmitterHandles())
+				{
+					CompiledEmitters.Add(EmitterHandle.GetInstance());
+				}
 			}
 		}
 	}
-
-	// Now iterate over the affected Systems.
-	for (UNiagaraSystem* System : AffectedSystemSystems)
-	{
-		TSharedPtr<FNiagaraSystemViewModel> SystemViewModel = FNiagaraSystemViewModel::GetExistingViewModelForObject(System);
-		if (!SystemViewModel.IsValid())
-		{
-			FNiagaraSystemViewModelOptions Options;
-			Options.bCanRemoveEmittersFromTimeline = false;
-			Options.bCanRenameEmittersFromTimeline = false;
-			Options.bCanAddEmittersFromTimeline = false;
-			Options.bUseSystemExecStateForTimelineReset = false;
-			SystemViewModel = MakeShareable(new FNiagaraSystemViewModel(*System, Options));
-		}
-
-		SystemViewModel->ResynchronizeAllHandles();
-	}
 }
 
+bool FNiagaraEditorUtilities::TryGetEventDisplayName(UNiagaraEmitter* Emitter, FGuid EventUsageId, FText& OutEventDisplayName)
+{
+	if (Emitter != nullptr)
+	{
+		for (const FNiagaraEventScriptProperties& EventScriptProperties : Emitter->GetEventHandlers())
+		{
+			if (EventScriptProperties.Script->GetUsageId() == EventUsageId)
+			{
+				OutEventDisplayName = FText::FromName(EventScriptProperties.SourceEventName);
+				return true;
+			}
+		}
+	}
+	return false;
+}
 
 #undef LOCTEXT_NAMESPACE

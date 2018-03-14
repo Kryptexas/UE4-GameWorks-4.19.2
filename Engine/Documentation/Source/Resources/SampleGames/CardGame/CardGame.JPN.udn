@@ -122,7 +122,8 @@ SpectatorPawn のプロパティはゲームプレイ中ずっとカメラをフ
 ![](CardGameEndMenu.png)
 [/REGION:fullwidth]
 
-<!--
+[COMMENT:none]
+
 ## 概要
 
 ShooterGame のサンプルは PC 向けのマルチプレイ FPS ゲームです。このサンプルには、簡単なフロントメニュー システムに沿った、 
@@ -294,4 +295,5 @@ ShooterGame のサンプルは PC 向けのマルチプレイ FPS ゲームで�
 
 * オプションメニューの設定は `GameUserSettings.ini` に保存されて、起動時に自動的に読み込まれます。
 
--->
+
+[/COMMENT]

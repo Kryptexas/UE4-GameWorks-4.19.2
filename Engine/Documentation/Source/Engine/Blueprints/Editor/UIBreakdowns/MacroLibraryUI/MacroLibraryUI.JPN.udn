@@ -45,7 +45,8 @@ version:4.9
 
 
 
-<!----------
+[COMMENT:none]
+--------
 [EXCERPT:Visible]
 1. [メニュー](Engine/Blueprints/Editor\UIComponents\Menu)
 1. [ツールバー](Engine/Blueprints/Editor\UIComponents\Toolbar)
@@ -59,4 +60,5 @@ version:4.9
 * [Find Results](Engine/Blueprints/Editor\UIComponents\FindResults)
 * [パレット](Engine/Blueprints/Editor\UIComponents\Palette)
 [/EXCERPT:Invisible]
-------------->
+-----------
+[/COMMENT]

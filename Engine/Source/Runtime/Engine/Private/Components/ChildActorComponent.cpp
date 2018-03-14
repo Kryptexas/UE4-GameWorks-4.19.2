@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/ChildActorComponent.h"
 #include "Engine/World.h"
@@ -378,7 +378,7 @@ void UChildActorComponent::ApplyComponentInstanceData(FChildActorComponentInstan
 			const FString ChildActorNameString = ChildActorName.ToString();
 			if (ChildActor->Rename(*ChildActorNameString, nullptr, REN_Test))
 			{
-				ChildActor->Rename(*ChildActorNameString, nullptr, REN_DoNotDirty | (IsLoading() ? REN_ForceNoResetLoaders : REN_None));
+				ChildActor->Rename(*ChildActorNameString, nullptr, REN_DoNotDirty | REN_ForceNoResetLoaders);
 			}
 		}
 
@@ -425,7 +425,9 @@ void UChildActorComponent::SetChildActorClass(TSubclassOf<AActor> Class)
 				if (ChildActorTemplate)
 				{
 					UEngine::CopyPropertiesForUnrelatedObjects(ChildActorTemplate, NewChildActorTemplate);
-
+#if WITH_EDITOR
+					NewChildActorTemplate->ClearActorLabel();
+#endif
 					ChildActorTemplate->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
 				}
 
@@ -532,8 +534,9 @@ void UChildActorComponent::CreateChildActor()
 				{
 					Params.ObjectFlags &= ~RF_Transactional;
 				}
-				if (HasAllFlags(RF_Transient))
+				if (HasAllFlags(RF_Transient) || IsEditorOnly())
 				{
+					// If we are either transient or editor only, set our created actor to transient. We can't programatically set editor only on an actor so this is the best option
 					Params.ObjectFlags |= RF_Transient;
 				}
 
@@ -623,15 +626,14 @@ void UChildActorComponent::DestroyChildActor()
 
 				// We would like to make certain that our name is not going to accidentally get taken from us while we're destroyed
 				// so we increment ClassUnique beyond our index to be certain of it.  This is ... a bit hacky.
-				int32& ClassUnique = ChildActor->GetOutermost()->ClassUniqueNameIndexMap.FindOrAdd(ChildClass->GetFName());
+				int32& ClassUnique = ChildActor->GetOutermost()->GetClassUniqueNameIndexMap().FindOrAdd(ChildClass->GetFName());
 				ClassUnique = FMath::Max(ClassUnique, ChildActor->GetFName().GetNumber());
 
 				// If we are getting here due to garbage collection we can't rename, so we'll have to abandon this child actor name and pick up a new one
 				if (!IsGarbageCollecting())
 				{
 					const FString ObjectBaseName = FString::Printf(TEXT("DESTROYED_%s_CHILDACTOR"), *ChildClass->GetName());
-					const ERenameFlags RenameFlags = ((GetWorld()->IsGameWorld() || IsLoading()) ? REN_DoNotDirty | REN_ForceNoResetLoaders : REN_DoNotDirty);
-					ChildActor->Rename(*MakeUniqueObjectName(ChildActor->GetOuter(), ChildClass, *ObjectBaseName).ToString(), nullptr, RenameFlags);
+					ChildActor->Rename(*MakeUniqueObjectName(ChildActor->GetOuter(), ChildClass, *ObjectBaseName).ToString(), nullptr, REN_DoNotDirty | REN_ForceNoResetLoaders);
 				}
 				else
 				{

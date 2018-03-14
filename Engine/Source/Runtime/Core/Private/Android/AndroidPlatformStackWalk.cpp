@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidPlatformStackWalk.cpp: Android implementations of stack walk functions
@@ -89,12 +89,12 @@ namespace AndroidStackWalkHelpers
 
 extern int32 unwind_backtrace_signal(void* sigcontext, uint64* Backtrace, int32 MaxDepth);
 
-void FAndroidPlatformStackWalk::CaptureStackBackTrace(uint64* BackTrace, uint32 MaxDepth, void* Context)
+uint32 FAndroidPlatformStackWalk::CaptureStackBackTrace(uint64* BackTrace, uint32 MaxDepth, void* Context)
 {
 	// Make sure we have place to store the information
 	if (BackTrace == NULL || MaxDepth == 0)
 	{
-		return;
+		return 0;
 	}
 
 	// zero results
@@ -107,8 +107,7 @@ void FAndroidPlatformStackWalk::CaptureStackBackTrace(uint64* BackTrace, uint32 
 		// _Unwind_Backtrace does not use signal context and will produce wrong callstack in this case
 		// We use code from libcorkscrew to unwind backtrace using actual signal context
 		// Code taken from https://android.googlesource.com/platform/system/core/+/jb-dev/libcorkscrew/arch-arm/backtrace-arm.c
-		unwind_backtrace_signal(Context, BackTrace, MaxDepth);
-		return;
+		return unwind_backtrace_signal(Context, BackTrace, MaxDepth);
 	}
 #endif //PLATFORM_ANDROID_ARM
 	
@@ -116,4 +115,5 @@ void FAndroidPlatformStackWalk::CaptureStackBackTrace(uint64* BackTrace, uint32 
 	AndroidStackWalkHelpers::MaxDepth = MaxDepth;
 	uint32 Depth = 0;
 	_Unwind_Backtrace(AndroidStackWalkHelpers::BacktraceCallback, &Depth);
+	return Depth;
 }

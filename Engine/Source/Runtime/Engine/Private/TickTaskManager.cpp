@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TickTaskManager.cpp: Manager for ticking tasks
@@ -82,7 +82,7 @@ FAutoConsoleTaskPriority CPrio_CleanupTaskPriority(
 	TEXT("TaskGraph.TaskPriorities.TickCleanupTaskPriority"),
 	TEXT("Task and thread priority for tick cleanup."),
 	ENamedThreads::BackgroundThreadPriority, // if we have background priority task threads, then use them...
-	ENamedThreads::NormalTaskPriority, // .. at normal task priority
+	ENamedThreads::HighTaskPriority, // .. at high task priority
 	ENamedThreads::NormalTaskPriority // if we don't have background threads, then use normal priority threads at normal task priority instead
 	);
 
@@ -807,17 +807,12 @@ public:
 		bool bDeferredRemove;
 	};
 
-	void RemoveAndRescheduleForInterval(FTickFunction* TickFunction)
-	{
-		verify(AllEnabledTickFunctions.Remove(TickFunction) == 1);
-		TickFunctionsToReschedule.Add(FTickScheduleDetails(TickFunction, TickFunction->TickInterval));
-	}
 	void RescheduleForIntervalParallel(FTickFunction* TickFunction)
 	{
 		// note we do the remove later!
 		TickFunctionsToReschedule.AddThreadsafe(FTickScheduleDetails(TickFunction, TickFunction->TickInterval, true));
 	}
-	/* Puts a TickFunction in to the cooldown state*/
+	/* Helper to presize reschedule array */
 	void ReserveTickFunctionCooldowns(int32 NumToReserve)
 	{
 		TickFunctionsToReschedule.Reserve(NumToReserve);
@@ -972,7 +967,7 @@ public:
 	/**
 	 * If there is infinite recursive spawning, log that and discard them
 	 */
-	void LogAndDisardRunawayNewlySpawned(ETickingGroup CurrentTickGroup)
+	void LogAndDiscardRunawayNewlySpawned(ETickingGroup CurrentTickGroup)
 	{
 		Context.TickGroup = CurrentTickGroup;
 		FTickTaskSequencer& TTS = FTickTaskSequencer::Get();
@@ -1480,7 +1475,7 @@ public:
 				// this is runaway recursive spawning.
 				for( int32 LevelIndex = 0; LevelIndex < LevelList.Num(); LevelIndex++ )
 				{
-					LevelList[LevelIndex]->LogAndDisardRunawayNewlySpawned(Context.TickGroup);
+					LevelList[LevelIndex]->LogAndDiscardRunawayNewlySpawned(Context.TickGroup);
 				}
 			}
 		}
@@ -1639,7 +1634,8 @@ void FTickFunction::RegisterTickFunction(ULevel* Level)
 	if (!bRegistered)
 	{
 		// Only allow registration of tick if we are are allowed on dedicated server, or we are not a dedicated server
-		if(bAllowTickOnDedicatedServer || !IsRunningDedicatedServer())
+		const UWorld* World = Level ? Level->GetWorld() : nullptr;
+		if(bAllowTickOnDedicatedServer || !(World && World->IsNetMode(NM_DedicatedServer)))
 		{
 			FTickTaskManager::Get().AddTickFunction(Level, this);
 			bRegistered = true;

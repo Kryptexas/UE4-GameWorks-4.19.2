@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLVertexBuffer.cpp: OpenGL vertex buffer RHI implementation.
@@ -185,6 +185,12 @@ FVertexBufferRHIRef FOpenGLDynamicRHI::RHICreateVertexBuffer(uint32 Size, uint32
 	}
 
 	TRefCountPtr<FOpenGLVertexBuffer> VertexBuffer = new FOpenGLVertexBuffer(0, Size, InUsage, Data);
+	
+	if (CreateInfo.ResourceArray)
+	{
+		CreateInfo.ResourceArray->Discard();
+	}
+	
 	return VertexBuffer.GetReference();
 }
 

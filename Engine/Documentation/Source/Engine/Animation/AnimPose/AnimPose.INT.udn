@@ -2,6 +2,7 @@ Availability:Public
 Title: Animation Pose Assets
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Describes the Animation Pose Asset which can be used to drive animation through weighted curve data. 
+Parent: Engine/Animation
 Related: Engine\Animation\Persona\AnimCurves
 Related: Engine\Animation\AnimBlueprints
 Related: Engine\Animation\AnimHowTo\CurveDrivenAnimation
@@ -41,41 +42,41 @@ Using these weighted values, we could create a new motion that blends between Po
 For example, below we have created a motion where the character appears to be walking driven through curve data. 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:videoid]
-7PRGvePzB2g
-[/PARAMLITERAL]
-[PARAMLITERAL:width]
-100
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-56.25
-[/PARAMLITERAL]
-[PARAMLITERAL:units]
-%
-[/PARAMLITERAL]
-[PARAMLITERAL:type]
-simple
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	7PRGvePzB2g
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
 We can also use this process for creating facial animation as seen in the video below. 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:videoid]
-UdmU7zMN4tE
-[/PARAMLITERAL]
-[PARAMLITERAL:width]
-100
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-56.25
-[/PARAMLITERAL]
-[PARAMLITERAL:units]
-%
-[/PARAMLITERAL]
-[PARAMLITERAL:type]
-simple
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	UdmU7zMN4tE
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
 Above, we have an Animation Sequence that contains curve data for various poses. 
@@ -84,89 +85,10 @@ Above, we have an Animation Sequence that contains curve data for various poses.
 The above examples uses the experimental **Facial Animation Bulk Importer** plugin which imports facial animation curve tables (from FBX) into sound waves.
 [/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Essentials
-	[/PARAM]
-	[PARAM:links]
-		[REGION:topics fourth]
-		[INCLUDE:#topics]
-		[/REGION]
-	[/PARAM]
-[/OBJECT]
+## Topics
 
-<!--
-[EXCERPT:Topics]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](topic_create.png)(w:291 h:120)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/AnimHowTo/CreatePoseAsset:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/AnimHowTo/CreatePoseAsset:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/AnimHowTo/CreatePoseAsset]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](topic_additive.png)(w:291 h:120)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\AnimPose\AdditivePA:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\AnimPose\AdditivePA:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\AnimPose\AdditivePA]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](Engine\Animation\AnimPose\PoseBlenderNode\PoseNodeTopic.png)(w:291 h:120)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\AnimPose\PoseBlenderNode:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\AnimPose\PoseBlenderNode:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\AnimPose\PoseBlenderNode]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](Engine\Animation\AnimPose\PoseDriverNode\PoseDriveTopic.png)(w:291 h:120)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\AnimPose\PoseDriverNode:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\AnimPose\PoseDriverNode:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\AnimPose\PoseDriverNode]
-	[/PARAM]
-[/OBJECT]
-[/EXCERPT:Topics]
--->
+[DIR(output:"topic" parent:"Engine/Animation/AnimPose")]
+
+## Guides
+
+[DIR(output:"fancy" parent:"Engine/Animation/AnimHowTo" tags:"Pose Assets")]

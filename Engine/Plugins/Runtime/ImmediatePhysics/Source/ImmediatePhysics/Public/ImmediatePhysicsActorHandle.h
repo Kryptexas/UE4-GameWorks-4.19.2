@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -113,7 +113,7 @@ public:
 #if WITH_PHYSX
 		return OwningSimulation.GetLowLevelBody(ActorDataIndex).linearDamping;
 #else
-		return 0.f
+		return 0.f;
 #endif
 	}
 
@@ -131,7 +131,7 @@ public:
 #if WITH_PHYSX
 		return OwningSimulation.GetLowLevelBody(ActorDataIndex).angularDamping;
 #else
-		return 0.f
+		return 0.f;
 #endif
 	}
 
@@ -149,7 +149,7 @@ public:
 #if WITH_PHYSX
 		return OwningSimulation.GetLowLevelBody(ActorDataIndex).maxLinearVelocitySq;
 #else
-		return 0.f
+		return 0.f;
 #endif
 	}
 
@@ -167,7 +167,7 @@ public:
 #if WITH_PHYSX
 		return OwningSimulation.GetLowLevelBody(ActorDataIndex).maxAngularVelocitySq;
 #else
-		return 0.f
+		return 0.f;
 #endif
 	}
 
@@ -185,7 +185,7 @@ public:
 #if WITH_PHYSX
 		return OwningSimulation.GetLowLevelBody(ActorDataIndex).invMass;
 #else
-		return 0.f
+		return 0.f;
 #endif
 	}
 
@@ -203,7 +203,7 @@ public:
 #if WITH_PHYSX
 		return P2UVector(OwningSimulation.GetLowLevelBody(ActorDataIndex).invInertia);
 #else
-		return 0.f
+		return FVector(0.f);
 #endif
 	}
 
@@ -221,7 +221,7 @@ public:
 #if WITH_PHYSX
 		return OwningSimulation.GetLowLevelBody(ActorDataIndex).maxDepenetrationVelocity;
 #else
-		return 0.f
+		return 0.f;
 #endif
 	}
 
@@ -239,7 +239,7 @@ public:
 #if WITH_PHYSX
 		return OwningSimulation.GetLowLevelBody(ActorDataIndex).maxContactImpulse;
 #else
-		return 0.f
+		return 0.f;
 #endif
 	}
 

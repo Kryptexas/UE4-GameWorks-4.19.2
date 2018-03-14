@@ -1,28 +1,37 @@
-﻿INTSourceChangelist:1996588
+﻿INTSourceChangelist:3680928
 Title:関数指定子
 Crumbs:%ROOT%, Programming/UnrealArchitecture/Reference,  Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Functions
-Description:エンジンおよびエディタの各種特性での関数の動作を指定する、ゲームプレイ関数の宣言時に使用するキーワード
+Description:エンジンおよびエディタの様々な部分での関数の動作を指定する、ゲームプレイ関数の宣言時に使用するキーワード
 Availability:Public
 
 [EXCERPT:main]
 
-関数を宣言する場合に、各種アスペクトでの関数がどのように動作するのか制御する指定子を宣言に追加することができます。 
+関数を宣言する場合に、エンジンおよびエディタの様々な部分で関数がどのように動作するのかを制御する指定子を宣言に追加することができます。
 
-
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/BlueprintAuthorityOnly)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/BlueprintCallable)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/BlueprintCosmetic)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/BlueprintImplementableEvent)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/BlueprintNativeEvent)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/BlueprintPure)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/Category)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/Client)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/CustomThunk)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/Exec)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/NetMulticast)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/Reliable)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/Server)
-* [](Programming/UnrealArchitecture/Reference/Functions/Specifiers/Unreliable)
+| 関数指定子 | 効果 |
+| --- | --- |
+| `BlueprintAuthorityOnly` | ネットワーク権限を持つマシン上で (サーバー、Dedicated サーバー、シングル プレイヤー ゲーム) 実行されている場合、この関数はブループリントのコードからのみ実行されます。 |
+| `BlueprintCallable` | この関数は **ブループリント** あるいは **Level ブループリント** グラフで実行可能です。 |
+| `BlueprintCosmetic` | この関数は表面上のもので、Dedicated サーバー上では実行されません。 |
+| `BlueprintGetter` | この関数はブループリントで公開されたプロパティのアクセサとして使用されます。この指定子は、`BlueprintPure` および `BlueprintCallable` であることを意味します。
+| `BlueprintImplementableEvent` | この関数は **ブループリント** あるいは **Level ブループリント** グラフで実行可能です。 |
+| `BlueprintInternalUseOnly` | 関数をエンド ユーザーに公開すべきではないことを示します。 |
+| `BlueprintNativeEvent` | この関数は **ブループリント** によってオーバーライドされる設計となっていますが、デフォルトのネイティブの実装もあります。メインの関数と同じ名前の関数を追加で宣言しますが、最後に `_Implementation` が付加されます。これは、どこにコードが書き込まれるかを示しています。自動生成されたコードは、ブループリントのオーバーライドが見つからなければ、"_Implementation" メソッドを呼び出します。 |
+| `BlueprintPure` | この関数は所有するオブジェクトに決して影響することはなく、**ブループリント** あるいは **Level ブループリント** グラフで実行可能です。 |
+| `BlueprintSetter` | この関数はブループリントに公開されたプロパティのミューテータとして使用されます。この指定子は、`BlueprintCallable` であることを意味します。 |
+| `CallInEditor` | この関数は、 [Details(詳細)] パネルのボタンを使ってエディタで選択したインスタンス上で呼び出すことができます。 |
+| `Category = TopCategory|SubCategory|Etc` | ブループリントの編集ツールで表示される場合に、関数のカテゴリを指定します。 `|` 演算子を使ってネスティングするカテゴリを定義します。 |
+| `Client` | この関数は、関数が呼び出されるオブジェクトを所有するクライアント上でのみ実行されます。メインの関数と同じ名前の関数を追加で宣言しますが、最後に `_Implementation` が付加されます。自動生成されたコードは、必要に応じて、"_Implementation" メソッドを呼び出します。 |
+| `CustomThunk` | **UnrealHeaderTool** のコード ジェネレーターはこの関数に対してサンクを生成しません。必要な場合は、コードを記述してください。|
+| `Exec` | この関数は、インゲームのコンソールから実行することができます。特定クラス内で宣言される場合のみ、実行コマンドが機能します。 |
+| `NetMulticast` | この関数は、アクタの `NetOwner` に関わらず、サーバー上でローカルで実行、および全てのクライアントにレプリケートされます。
+| `Reliable` | この関数はネットワーク上でレプリケートされ、帯域幅やネットワーク エラーに関係なく届くことが保証されます。`Client` または `Server` と併用時のみ有効です。 |
+| `SealedEvent` | この関数はサブクラスでオーバーライドできません。`SealedEvent` キーワードはイベントでのみ使用可能です。イベントではない関数では、 `static` または `final` と宣言してシールします。 |
+| `ServiceRequest` | この関数は RPC サービス要求です。 |
+| `ServiceResponse` | この関数は RPC サービス応答です。 |
+| `Server` | この関数はサーバー上でのみ実行されます。メインの関数と同じ名前の関数を追加で宣言しますが、最後に `_Implementation` が付加されます。これは、どこにコードが書き込まれるかを示しています。自動生成されたコードは、必要に応じて、"_Implementation" メソッドを呼び出します。 |
+| `Unreliable` | この関数はネットワーク上でレプリケートされますが、帯域幅の制約やネットワーク エラーが原因で失敗することがあります。`Client` または `Server` と併用時のみ有効です。 |
+| `WithValidation` | メインの関数と同じ名前の関数を追加で宣言しますが、最後に `_Validation` が付加されます。この関数は同じパラメータを取り、`bool`を戻して、メイン関数への呼び出しを続行するかどうかを示します。|
 
 ## メタデータ指定子
 [INCLUDE:Programming/UnrealArchitecture/Reference/Metadata#MetadataUsage]

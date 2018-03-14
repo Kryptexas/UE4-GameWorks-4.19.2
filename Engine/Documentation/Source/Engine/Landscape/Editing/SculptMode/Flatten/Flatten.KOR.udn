@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3482403
+﻿INTSourceChangelist:3782314
 Availability: Public
 Crumbs: %ROOT%
 Title: 평탄화
@@ -75,7 +75,8 @@ Topic-image:Flatten_topic.png
 | [REGION:tablesection] 고급 [/REGION] ||
 | **Show Preview Grid** | 프리뷰 그리드 표시 - Flatten Target 옵션이 켜지면, 이 옵션을 켜서 평탄화 목표 높이에 프리뷰 그리드를 표시할 수 있습니다. |
 
-<!--- Excerpts
+[COMMENT:none]
+- Excerpts
 
 [EXCERPT:flattenmode]
 |선택 | 설명 |
@@ -85,6 +86,7 @@ Topic-image:Flatten_topic.png
 | **Lower** | 낮추기 - 마우스를 클릭했을 때 현재 선택된 높이보다 높은 값을 낮추기만 합니다. 클릭한 지점보다 낮은 값은 변경되지 않습니다. |
 [/EXCERPT:flattenmode]
 
---->
+-
+[/COMMENT]
 
 

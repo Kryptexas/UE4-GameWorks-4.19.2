@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GenericPlatform/GenericPlatformStackWalk.h"
 #include "HAL/PlatformStackWalk.h"
@@ -104,7 +104,7 @@ bool FGenericPlatformStackWalk::SymbolInfoToHumanReadableString( const FProgramC
 		}
 		else
 		{
-			FCStringAnsi::Strcat(StackLine, " []");
+			FCStringAnsi::Strncat(StackLine, " []", MAX_SPRINTF);
 		}
 
 		// Append the stack line.
@@ -151,9 +151,9 @@ bool FGenericPlatformStackWalk::SymbolInfoToHumanReadableStringEx( const FProgra
 }
 
 
-void FGenericPlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32 MaxDepth, void* Context )
+uint32 FGenericPlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32 MaxDepth, void* Context )
 {
-
+	return 0;
 }
 
 void FGenericPlatformStackWalk::StackWalkAndDump( ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, int32 IgnoreCount, void* Context )
@@ -164,13 +164,11 @@ void FGenericPlatformStackWalk::StackWalkAndDump( ANSICHAR* HumanReadableString,
 	FMemory::Memzero( StackTrace );
 
 	// Capture stack backtrace.
-	FPlatformStackWalk::CaptureStackBackTrace( StackTrace, MAX_DEPTH, Context );
+	uint32 Depth = FPlatformStackWalk::CaptureStackBackTrace( StackTrace, MAX_DEPTH, Context );
 
 	// Skip the first two entries as they are inside the stack walking code.
-	int32 CurrentDepth = IgnoreCount;
-	// Allow the first entry to be NULL as the crash could have been caused by a call to a NULL function pointer,
-	// which would mean the top of the callstack is NULL.
-	while( CurrentDepth < ARRAY_COUNT( StackTrace ) && ( StackTrace[CurrentDepth] || ( CurrentDepth == IgnoreCount ) ) )
+	uint32 CurrentDepth = IgnoreCount;
+	while( CurrentDepth < Depth )
 	{
 		FPlatformStackWalk::ProgramCounterToHumanReadableString( CurrentDepth, StackTrace[CurrentDepth], HumanReadableString, HumanReadableStringSize, reinterpret_cast< FGenericCrashContext* >( Context ) );
 		FCStringAnsi::Strncat(HumanReadableString, LINE_TERMINATOR_ANSI, HumanReadableStringSize);
@@ -199,13 +197,11 @@ TArray<FProgramCounterSymbolInfo> FGenericPlatformStackWalk::GetStack(int32 Igno
 	MaxDepth = FMath::Min(MAX_DEPTH, IgnoreCount + MaxDepth);
 
 	// Capture stack backtrace.
-	FPlatformStackWalk::CaptureStackBackTrace(StackTrace, MaxDepth, Context);
+	uint32 Depth = FPlatformStackWalk::CaptureStackBackTrace(StackTrace, MaxDepth, Context);
 
 	// Skip the first two entries as they are inside the stack walking code.
-	int32 CurrentDepth = IgnoreCount;
-	// Allow the first entry to be NULL as the crash could have been caused by a call to a NULL function pointer,
-	// which would mean the top of the callstack is NULL.
-	while ( CurrentDepth < MaxDepth && ( StackTrace[CurrentDepth] || ( CurrentDepth == IgnoreCount ) ) )
+	uint32 CurrentDepth = IgnoreCount;
+	while ( CurrentDepth < Depth )
 	{
 		int32 NewIndex = Stack.AddDefaulted();
 		FPlatformStackWalk::ProgramCounterToSymbolInfo(StackTrace[CurrentDepth], Stack[NewIndex]);

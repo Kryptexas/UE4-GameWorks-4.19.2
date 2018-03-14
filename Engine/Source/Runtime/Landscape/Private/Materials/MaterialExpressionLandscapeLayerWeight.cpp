@@ -1,9 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Materials/MaterialExpressionLandscapeLayerWeight.h"
 #include "Engine/Engine.h"
 #include "EngineGlobals.h"
 #include "MaterialCompiler.h"
+#include "Materials/Material.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
@@ -105,12 +106,13 @@ void UMaterialExpressionLandscapeLayerWeight::GetCaption(TArray<FString>& OutCap
 }
 #endif // WITH_EDITOR
 
-void UMaterialExpressionLandscapeLayerWeight::GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
+void UMaterialExpressionLandscapeLayerWeight::GetAllParameterInfo(TArray<FMaterialParameterInfo> &OutParameterInfo, TArray<FGuid> &OutParameterIds, const FMaterialParameterInfo& InBaseParameterInfo) const
 {
-	int32 CurrentSize = OutParameterNames.Num();
-	OutParameterNames.AddUnique(ParameterName);
+	int32 CurrentSize = OutParameterInfo.Num();
+	FMaterialParameterInfo NewParameter(ParameterName, InBaseParameterInfo.Association, InBaseParameterInfo.Index);
+	OutParameterInfo.AddUnique(NewParameter);
 
-	if (CurrentSize != OutParameterNames.Num())
+	if (CurrentSize != OutParameterInfo.Num())
 	{
 		OutParameterIds.Add(ExpressionGUID);
 	}

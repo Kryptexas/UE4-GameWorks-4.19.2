@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraStackAddScriptModuleItem.h"
 #include "NiagaraNodeOutput.h"
@@ -12,10 +12,20 @@
 
 #define LOCTEXT_NAMESPACE "NiagaraStackViewModel"
 
-void UNiagaraStackAddScriptModuleItem::Initialize(TSharedRef<FNiagaraSystemViewModel> InSystemViewModel, TSharedRef<FNiagaraEmitterViewModel> InEmitterViewModel, UNiagaraStackEditorData& InStackEditorData, UNiagaraNodeOutput& InOutputNode)
+void UNiagaraStackAddScriptModuleItem::Initialize(TSharedRef<FNiagaraSystemViewModel> InSystemViewModel, TSharedRef<FNiagaraEmitterViewModel> InEmitterViewModel, UNiagaraStackEditorData& InStackEditorData, UNiagaraNodeOutput& InOutputNode, int32 InTargetIndex)
 {
 	Super::Initialize(InSystemViewModel, InEmitterViewModel, InStackEditorData);
 	OutputNode = &InOutputNode;
+	TargetIndex = InTargetIndex;
+}
+
+UNiagaraStackAddModuleItem::EDisplayMode UNiagaraStackAddScriptModuleItem::GetDisplayMode() const
+{
+	if (TargetIndex != INDEX_NONE)
+	{
+		return EDisplayMode::Compact;
+	}
+	return EDisplayMode::Standard;
 }
 
 void UNiagaraStackAddScriptModuleItem::GetAvailableParameters(TArray<FNiagaraVariable>& OutAvailableParameterVariables) const
@@ -53,7 +63,7 @@ void UNiagaraStackAddScriptModuleItem::GetNewParameterAvailableTypes(TArray<FNia
 	}
 }
 
-TOptional<FString> UNiagaraStackAddScriptModuleItem::GetNewParameterNamespace() const
+TOptional<FName> UNiagaraStackAddScriptModuleItem::GetNewParameterNamespace() const
 {
 	switch (GetOutputUsage())
 	{
@@ -67,7 +77,7 @@ TOptional<FString> UNiagaraStackAddScriptModuleItem::GetNewParameterNamespace() 
 	case ENiagaraScriptUsage::SystemUpdateScript:
 		return FNiagaraParameterHandle::SystemNamespace;
 	default:
-		return TOptional<FString>();
+		return TOptional<FName>();
 	}
 }
 
@@ -79,6 +89,23 @@ ENiagaraScriptUsage UNiagaraStackAddScriptModuleItem::GetOutputUsage() const
 UNiagaraNodeOutput* UNiagaraStackAddScriptModuleItem::GetOrCreateOutputNode()
 {
 	return OutputNode.Get();
+}
+
+int32 UNiagaraStackAddScriptModuleItem::GetTargetIndex() const
+{
+	return TargetIndex;
+}
+
+FName UNiagaraStackAddScriptModuleItem::GetItemBackgroundName() const
+{
+	if (GetDisplayMode() == UNiagaraStackAddModuleItem::EDisplayMode::Compact)
+	{
+		return "NiagaraEditor.Stack.Group.BackgroundColor";
+	}
+	else
+	{
+		return Super::GetItemBackgroundName();
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

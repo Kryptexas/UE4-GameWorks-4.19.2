@@ -20,7 +20,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 
 1. 在 **Content Browser（内容浏览器）** 中，搜寻并打开我们之前创建的NewGameMenu资源。 这个菜单包含了一个名称条目 **Text Box（文本框）** ，只有在输入名称后才能通过按下 **Button（按钮）** 来游玩游戏，还有一个可供点击以返回主菜单的Button（按钮）。
@@ -78,7 +78,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -106,7 +106,7 @@ version:4.9
 			}
 
 		**HowTo_UMGGameMode.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -141,7 +141,7 @@ version:4.9
 			};
 
 		**HowTo_UMGGameMode.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGGameMode.h"
@@ -171,4 +171,4 @@ version:4.9
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

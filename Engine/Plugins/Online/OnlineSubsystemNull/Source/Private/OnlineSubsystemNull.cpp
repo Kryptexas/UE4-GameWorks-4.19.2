@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemNull.h"
 #include "HAL/RunnableThread.h"
@@ -240,13 +240,8 @@ bool FOnlineSubsystemNull::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice
 	}
 	return false;
 }
-
 FText FOnlineSubsystemNull::GetOnlineServiceName() const
 {
 	return NSLOCTEXT("OnlineSubsystemNull", "OnlineServiceName", "Null");
 }
 
-bool FOnlineSubsystemNull::IsEnabled()
-{
-	return true;
-}

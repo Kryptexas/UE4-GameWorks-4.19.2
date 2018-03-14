@@ -22,7 +22,7 @@ Version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Now that we have some basic level lighting, we will add a **Point Light** inside our little apartment's bathroom. 
 
@@ -69,7 +69,7 @@ See [](Engine/Rendering/LightingAndShadows/LightTypes/Point) for more informatio
 We've added a **Point Light** in the bathroom, in the **Next Step** we will add a **Spot Light** to our little apartment. 
 
 
-%Steps%
+
 
 
 

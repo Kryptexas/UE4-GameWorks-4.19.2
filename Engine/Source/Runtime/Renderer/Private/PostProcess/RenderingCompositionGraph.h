@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RenderingCompositionGraph.h: Scene pass order and dependency system.
@@ -11,6 +11,9 @@
 #include "GlobalShader.h"
 #include "PostProcessParameters.h"
 #include "Async/Future.h"
+#include "RHIDefinitions.h"
+#include "../ScenePrivate.h"
+
 
 class FSceneViewState;
 class FViewInfo;
@@ -89,7 +92,14 @@ struct FRenderingCompositePassContext
 
 	// call this only once after all nodes have been registered and connected (SetInput() or SetDependency())
 	// @param GraphDebugName must not be 0
-	void Process(FRenderingCompositePass* Root, const TCHAR *GraphDebugName);
+	void Process(const TArray<FRenderingCompositePass*>& TargetedRoots, const TCHAR *GraphDebugName);
+
+	void Process(FRenderingCompositePass* Root, const TCHAR *GraphDebugName)
+	{
+		TArray<FRenderingCompositePass*> TargetedRoots;
+		TargetedRoots.Add(Root);
+		Process(TargetedRoots, GraphDebugName);
+	}
 
 	// call this method instead of RHISetViewport() so we can cache the values and use them to map beteen ScreenPos and pixels
 	void SetViewportAndCallRHI(FIntRect InViewPortRect, float InMinZ = 0.0f, float InMaxZ = 1.0f)
@@ -136,12 +146,57 @@ struct FRenderingCompositePassContext
 		return bHasHmdMesh;
 	}
 
+	/** Returns whether this render target is view family's output render target. */
+	bool IsViewFamilyRenderTarget(const FSceneRenderTargetItem& DestRenderTarget) const;
+
+	/** Returns the rectangle where the scene color must be drawn. */
+	FIntRect GetSceneColorDestRect(const FSceneRenderTargetItem& DestRenderTarget) const
+	{
+		if (IsViewFamilyRenderTarget(DestRenderTarget))
+		{
+			if (View.PrimaryScreenPercentageMethod == EPrimaryScreenPercentageMethod::RawOutput)
+			{
+				return View.ViewRect;
+			}
+			else
+			{
+				return View.UnscaledViewRect;
+			}
+		}
+		return SceneColorViewRect;
+	}
+
+	/** Returns the LoadAction that should be use for a given render target. */
+	ERenderTargetLoadAction GetLoadActionForRenderTarget(const FSceneRenderTargetItem& DestRenderTarget) const
+	{
+		ERenderTargetLoadAction LoadAction = ERenderTargetLoadAction::ENoAction;
+		
+		if (IsViewFamilyRenderTarget(DestRenderTarget))
+		{
+			// If rendering the final view family's render target, must clear first view, and load subsequent views.
+			LoadAction = (&View != View.Family->Views[0]) ? ERenderTargetLoadAction::ELoad : ERenderTargetLoadAction::EClear;
+		}
+		else if (HasHmdMesh())
+		{
+			// Clears render target because going to have unrendered pixels inside view rect.
+			LoadAction = ERenderTargetLoadAction::EClear;
+		}
+
+		return LoadAction;
+	}
+
 	ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel; }
 	EShaderPlatform GetShaderPlatform() const { return GShaderPlatformForFeatureLevel[FeatureLevel]; }
 	TShaderMap<FGlobalShaderType>* GetShaderMap() const { check(ShaderMap); return ShaderMap; }
 
 	//
 	const FViewInfo& View;
+
+	// ViewRect of the scene color that may be different than View.ViewRect when TAA upsampling.
+	FIntRect SceneColorViewRect;
+
+	FIntPoint ReferenceBufferSize;
+
 	//
 	FSceneViewState* ViewState;
 	// is updated before each Pass->Process() call

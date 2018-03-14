@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -32,6 +32,24 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAudioPlaybackPercent, const clas
 
 /** shadow delegate declaration for above */
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAudioPlaybackPercentNative, const class UAudioComponent*, const class USoundWave*, const float);
+
+/** 
+* Called while a sound plays and returns the sound's envelope value (using an envelope follower in the audio renderer).
+* This only works in the audio mixer.
+*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAudioSingleEnvelopeValue, const class USoundWave*, PlayingSoundWave, const float, EnvelopeValue);
+
+/** shadow delegate declaration for above */
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAudioSingleEnvelopeValueNative, const class UAudioComponent*, const class USoundWave*, const float);
+
+/**
+* Called while a sound plays and returns the sound's average and max envelope value (using an envelope follower in the audio renderer per wave instance).
+* This only works in the audio mixer.
+*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioMultiEnvelopeValue, const float, AverageEnvelopeValue, const float, MaxEnvelope, const int32, NumWaveInstances);
+
+/** shadow delegate declaration for above */
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnAudioMultiEnvelopeValueNative, const class UAudioComponent*, const float, const float, const int32);
 
 /**
  *	Struct used for storing one per-instance named parameter for this AudioComponent.
@@ -196,6 +214,14 @@ class ENGINE_API UAudioComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Sound)
 	float VolumeMultiplier;
 
+	/** The attack time in milliseconds for the envelope follower. Delegate callbacks can be registered to get the envelope value of sounds played with this audio component. Only used in audio mixer. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound, meta = (ClampMin = "0", UIMin = "0"))
+	int32 EnvelopeFollowerAttackTime;
+
+	/** The release time in milliseconds for the envelope follower. Delegate callbacks can be registered to get the envelope value of sounds played with this audio component. Only used in audio mixer. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound, meta = (ClampMin = "0", UIMin = "0"))
+	int32 EnvelopeFollowerReleaseTime;
+
 	/** A priority value that is used for sounds that play on this component that scales against final output volume. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound, meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bOverridePriority"))
 	float Priority;
@@ -249,6 +275,18 @@ class ENGINE_API UAudioComponent : public USceneComponent
 
 	/** shadow delegate for non UObject subscribers */
 	FOnAudioPlaybackPercentNative OnAudioPlaybackPercentNative;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnAudioSingleEnvelopeValue OnAudioSingleEnvelopeValue;
+
+	/** shadow delegate for non UObject subscribers */
+	FOnAudioSingleEnvelopeValueNative OnAudioSingleEnvelopeValueNative;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnAudioMultiEnvelopeValue OnAudioMultiEnvelopeValue;
+
+	/** shadow delegate for non UObject subscribers */
+	FOnAudioMultiEnvelopeValueNative OnAudioMultiEnvelopeValueNative;
 
 	/** Called when subtitles are sent to the SubtitleManager.  Set this delegate if you want to hijack the subtitles for other purposes */
 	UPROPERTY()
@@ -375,9 +413,7 @@ public:
 	//~ End USceneComponent Interface
 
 	//~ Begin ActorComponent Interface.
-#if WITH_EDITORONLY_DATA
 	virtual void OnRegister() override;
-#endif
 	virtual void OnUnregister() override;
 	virtual const UObject* AdditionalStatObject() const override;
 	virtual bool IsReadyForOwnerToAutoDestroy() const override;
@@ -386,7 +422,7 @@ public:
 	/** Returns a pointer to the attenuation settings to be used (if any) for this audio component dependent on the SoundAttenuation asset or overrides set. */
 	const FSoundAttenuationSettings* GetAttenuationSettingsToApply() const;
 
-	UFUNCTION(BlueprintCallable, Category = "Audio|Components|Audio", meta = (DisplayName = "Get Attenuation Settings To Apply"))
+	UFUNCTION(BlueprintCallable, Category = "Audio|Components|Audio", meta = (DisplayName = "Get Attenuation Settings To Apply", ScriptName="GetAttenuationSettingsToApply"))
 	bool BP_GetAttenuationSettingsToApply(FSoundAttenuationSettings& OutAttenuationSettings);
 
 	/** Collects the various attenuation shapes that may be applied to the sound played by the audio component for visualization in the editor or via the in game debug visualization. */
@@ -402,6 +438,68 @@ public:
 	static UAudioComponent* GetAudioComponentFromID(uint64 AudioComponentID);
 
 	void UpdateInteriorSettings(bool bFullUpdate);
+
+public:
+
+	/**
+	 * True if we should automatically attach to AutoAttachParent when Played, and detach from our parent when playback is completed.
+	 * This overrides any current attachment that may be present at the time of activation (deferring initial attachment until activation, if AutoAttachParent is null).
+	 * If enabled, this AudioComponent's WorldLocation will no longer be reliable when not currently playing audio, and any attach children will also be detached/attached along with it.
+	 * When enabled, detachment occurs regardless of whether AutoAttachParent is assigned, and the relative transform from the time of activation is restored.
+	 * This also disables attachment on dedicated servers, where we don't actually activate even if bAutoActivate is true.
+	 * @see AutoAttachParent, AutoAttachSocketName, AutoAttachLocationType
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Attachment)
+	uint8 bAutoManageAttachment:1;
+
+	/**
+	 * Component we automatically attach to when activated, if bAutoManageAttachment is true.
+	 * If null during registration, we assign the existing AttachParent and defer attachment until we activate.
+	 * @see bAutoManageAttachment
+	 */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Attachment, meta=(EditCondition="bAutoManageAttachment"))
+	TWeakObjectPtr<USceneComponent> AutoAttachParent;
+
+	/**
+	 * Socket we automatically attach to on the AutoAttachParent, if bAutoManageAttachment is true.
+	 * @see bAutoManageAttachment
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attachment, meta=(EditCondition="bAutoManageAttachment"))
+	FName AutoAttachSocketName;
+
+	/**
+	 * Options for how we handle our location when we attach to the AutoAttachParent, if bAutoManageAttachment is true.
+	 * @see bAutoManageAttachment, EAttachmentRule
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attachment, meta = (EditCondition = "bAutoManageAttachment"))
+	EAttachmentRule AutoAttachLocationRule;
+
+	/**
+	 * Options for how we handle our rotation when we attach to the AutoAttachParent, if bAutoManageAttachment is true.
+	 * @see bAutoManageAttachment, EAttachmentRule
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attachment, meta = (EditCondition = "bAutoManageAttachment"))
+	EAttachmentRule AutoAttachRotationRule;
+
+	/**
+	 * Options for how we handle our scale when we attach to the AutoAttachParent, if bAutoManageAttachment is true.
+	 * @see bAutoManageAttachment, EAttachmentRule
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attachment, meta = (EditCondition = "bAutoManageAttachment"))
+	EAttachmentRule AutoAttachScaleRule;
+
+private:
+
+	/** Saved relative transform before auto attachement. Used during detachment to restore the transform if we had automatically attached. */
+	FVector SavedAutoAttachRelativeLocation;
+	FRotator SavedAutoAttachRelativeRotation;
+	FVector SavedAutoAttachRelativeScale3D;
+
+	/** Did we auto attach during activation? Used to determine if we should restore the relative transform during detachment. */
+	uint8 bDidAutoAttach : 1;
+
+	/** Restore relative transform from auto attachment and optionally detach from parent (regardless of whether it was an auto attachment). */
+	void CancelAutoAttachment(bool bDetachFromParent);
 
 protected:
 	/** Utility function called by Play and FadeIn to start a sound playing. */

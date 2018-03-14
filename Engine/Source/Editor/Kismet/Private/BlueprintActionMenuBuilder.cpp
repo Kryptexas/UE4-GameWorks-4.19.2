@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintActionMenuBuilder.h"
 #include "UObject/UnrealType.h"
@@ -359,7 +359,7 @@ void FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::AddBoundMenuItems(
 		if (DatabaseAction->IsBindingCompatible(BindingObj))
 		{
 			// add bindings before filtering (in case tests accept/reject based off of this)
-			CompatibleBindings.Add(BindingObj);
+			CompatibleBindings.Add(MakeWeakObjectPtr(const_cast<UObject*>(BindingObj)));
 		}
 
 		// if BoundAction is now "full" (meaning it can take any more 

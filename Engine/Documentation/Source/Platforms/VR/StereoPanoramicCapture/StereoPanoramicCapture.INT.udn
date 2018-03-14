@@ -6,6 +6,7 @@ Navigation:platform
 Version: 4.13
 parent:Platforms/VR
 type:landing
+type:overview
 SEO-Title:StereoPanoramicCaptureTool
 Topic-Image:SPE_Topic_Image_00.png
 tags:VR
@@ -33,25 +34,4 @@ Please note that the Stereo Panoramic Movie Capture plugin is still in an experi
 
 ## Reference
 
-[DIR(end:"1" output:"listbutton" parent:"Platforms/VR/StereoPanoramicCapture" type:"!quick start")]
-
-<!--
-## Starting Out
-
-The Stereo Panoramic Capture Quick Start guide will walk you through getting your UE4 project setup to be able to capture and view stereo images.
-
-[DIR(end:"1" output:"listbutton" type:"quick start" parent:"Platforms/VR/StereoPanoramicCapture")]
-
-## Stereo Panoramic Capture Reference 
-
-The Stereo Panoramic Capture Reference will go over the available options, and settings the Stereo Panoramic Capture plugin has and the effect those options have on the rendered images.
-
-[DIR(end:"1" output:"listbutton" type:"reference" parent:"Platforms/VR/StereoPanoramicCapture")]
-
-## Stereo Panoramic Capture Tips & Tricks
-
-The Stereo Panoramic Capture Tips & Tricks section will go over several tips and tricks so that you can ensure the best possible results when using the Stereo Panoramic Capture plugin.
-
-[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/VR/StereoPanoramicCapture")]
-
--->
+[DIR(end:"1" output:"listbutton" parent:"Platforms/VR/StereoPanoramicCapture" type:"landing,overview,reference,how-to")]

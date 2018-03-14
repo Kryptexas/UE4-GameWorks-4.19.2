@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "K2Node_MakeSet.h"
@@ -20,7 +20,7 @@
 
 namespace MakeSetLiterals
 {
-	static const FString OutputPinName = FString(TEXT("Set"));
+	static const FName OutputPinName(TEXT("Set"));
 };
 
 #define LOCTEXT_NAMESPACE "MakeSetNode"
@@ -56,7 +56,7 @@ FText UK2Node_MakeSet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return LOCTEXT("NodeTitle", "Make Set");
 }
 
-FString UK2Node_MakeSet::GetOutputPinName() const
+FName UK2Node_MakeSet::GetOutputPinName() const
 {
 	return MakeSetLiterals::OutputPinName;
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DesktopPlatformWindows.h"
 #include "DesktopPlatformPrivate.h"
@@ -241,16 +241,21 @@ bool FDesktopPlatformWindows::FileDialogShared(bool bSave, const void* ParentWin
 						FString SaveFilePath = pFilePath;
 						if (FileDialogFilters.IsValidIndex(OutFilterIndex))
 						{
+							// May have multiple semi-colon separated extensions in the pattern
+							const FString ExtensionPattern = FileDialogFilters[OutFilterIndex].pszSpec;
+							TArray<FString> SaveExtensions;
+							ExtensionPattern.ParseIntoArray(SaveExtensions, TEXT(";"));
+
 							// Build a "clean" version of the selected extension (without the wildcard)
-							FString CleanExtension = FileDialogFilters[OutFilterIndex].pszSpec;
+							FString CleanExtension = SaveExtensions[0];
 							if (CleanExtension == TEXT("*.*"))
 							{
 								CleanExtension.Reset();
 							}
 							else
 							{
-								const int32 WildCardIndex = CleanExtension.Find(TEXT("*"));
-								if (WildCardIndex != INDEX_NONE)
+								int32 WildCardIndex = INDEX_NONE;
+								if (CleanExtension.FindChar(TEXT('*'), WildCardIndex))
 								{
 									CleanExtension = CleanExtension.RightChop(WildCardIndex + 1);
 								}
@@ -388,11 +393,15 @@ void FDesktopPlatformWindows::EnumerateEngineInstallations(TMap<FString, FString
 
 bool FDesktopPlatformWindows::IsSourceDistribution(const FString &RootDir)
 {
-	// Check for the existence of a GenerateProjectFiles.bat file. This allows compatibility with the GitHub 4.0 release.
-	FString GenerateProjectFilesPath = RootDir / TEXT("GenerateProjectFiles.bat");
-	if (IFileManager::Get().FileSize(*GenerateProjectFilesPath) >= 0)
+	// Check for the existence of a GenerateProjectFiles.bat file. This allows compatibility with the GitHub 4.0 release. Guard it against a check for Build.version to skip it in newer engine versions.
+	FString BuildVersionPath = RootDir / TEXT("Engine/Build/Build.version");
+	if (!IFileManager::Get().FileExists(*BuildVersionPath))
 	{
-		return true;
+		FString GenerateProjectFilesPath = RootDir / TEXT("GenerateProjectFiles.bat");
+		if (IFileManager::Get().FileSize(*GenerateProjectFilesPath) >= 0)
+		{
+			return true;
+		}
 	}
 
 	// Otherwise use the default test

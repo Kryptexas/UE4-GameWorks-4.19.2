@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:Destructibles 콘텐츠 예제
 Crumbs: %ROOT%, Resources
@@ -8,45 +8,11 @@ Related: Engine/Physics/Apex
 Related: Engine/Physics/Collision
 Related: Engine/Performance/SystemSettings
 Related: 
+topic-image:Destructibles_Compact.png
 
 [REGION:banner]
 ![](Destructibles_Header.png)(convert:false)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Destructables:title%](Destructibles_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Destructables:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Destructables:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Destructables]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Destructables:title%](Destructibles_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Destructables:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Destructables]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-<!---[TOC(start:2 end:2)]--->
-
-
 
 
 **Destructibles** 맵 안에 제공되는 콘텐츠 예제는 언리얼 엔진 4 에서 디스트럭터블(파괴가능) 메시를 만들고 사용하는 법을 보여줍니다. 이 맵에서는 자동생성 / 커스텀 임포트된 디스트럭터블, **Support** (지지대) 및 **Destruction Depth** (파괴 심도) 수준을 통한 파괴방식 제어, 파괴시 파티클 스폰이나 사운드 재생과 같은 이벤트 발동 등에 대한 데모를 확인할 수 있습니다.

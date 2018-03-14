@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -52,7 +52,7 @@ class UPhysicsHandleComponent : public UActorComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=PhysicsHandle, meta = (EditCondition = "bSoftConstraint"))
 	float LinearStiffness;
 
-	/** Angular stiffness of the handle spring */
+	/** Angular damping of the handle spring */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=PhysicsHandle, meta = (EditCondition = "bSoftConstraint"))
 	float AngularDamping;
 

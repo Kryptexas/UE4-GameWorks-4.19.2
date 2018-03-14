@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -93,15 +93,6 @@ namespace UnrealGameSync
 
 	class Workspace : IDisposable
 	{
-		readonly string[] DefaultBuildTargets =
-		{
-			"UnrealHeaderTool Win64 Development, 0.1",
-			"$(EditorTarget) Win64 $(EditorConfiguration), 0.7",
-			"ShaderCompileWorker Win64 Development, 0.8",
-			"UnrealLightmass Win64 Development, 0.9",
-			"CrashReportClient Win64 Shipping, 1.0",
-		};
-
 		readonly WorkspaceSyncCategory[] DefaultSyncCategories =
 		{
 			new WorkspaceSyncCategory(new Guid("{6703E989-D912-451D-93AD-B48DE748D282}"), "Content", "*.uasset"),
@@ -451,7 +442,7 @@ namespace UnrealGameSync
 
 						// Find the last code change before this changelist. For consistency in versioning between local builds and precompiled binaries, we need to use the last submitted code changelist as our version number.
 						List<PerforceChangeSummary> CodeChanges;
-						if(!Perforce.FindChanges(new string[]{ ".cs", ".h", ".cpp", ".usf", ".ush" }.SelectMany(x => SyncPaths.Select(y => String.Format("{0}{1}@<={2}", y, x, PendingChangeNumber))), 1, out CodeChanges, Log))
+						if(!Perforce.FindChanges(new string[]{ ".cs", ".h", ".cpp", ".usf", ".ush", ".uproject", ".uplugin" }.SelectMany(x => SyncPaths.Select(y => String.Format("{0}{1}@<={2}", y, x, PendingChangeNumber))), 1, out CodeChanges, Log))
 						{
 							StatusMessage = String.Format("Couldn't determine last code changelist before CL {0}.", PendingChangeNumber);
 							return WorkspaceUpdateResult.FailedToSync;

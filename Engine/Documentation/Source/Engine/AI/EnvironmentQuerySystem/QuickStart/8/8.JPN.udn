@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2654525
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:8.AI キャラクターを配置する
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description:Runner AI キャラクターをレベルに配置し、プレイヤーおよび背景とインタラクションできるようにします。
-バージョン：4.9
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -21,8 +21,8 @@ Description:Runner AI キャラクターをレベルに配置し、プレイヤ�
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [INCLUDE:Engine/AI/BehaviorTrees/QuickStart/9#s9]
 
-%Steps%
+

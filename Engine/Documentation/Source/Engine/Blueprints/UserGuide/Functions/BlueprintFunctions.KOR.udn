@@ -1,49 +1,11 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:함수
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:다른 그래프에서 실행, 호출할 수 있는 노드 그래프입니다.
 version: 4.9
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Functions:title%](Engine\Blueprints\UserGuide\Functions\function_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Functions:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Functions:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Functions]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Functions:title%](Engine\Blueprints\UserGuide\Functions\function_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Functions:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Functions:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Functions]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:Engine/Blueprints/UserGuide/Functions/function_topic.png
 
 
 [EXCERPT:Intro]
@@ -103,7 +65,7 @@ tags:Blueprints
 
 _블루프린트 클래스_ 또는 _레벨 블루프린트_ 안에서 함수를 만들려면:
 
-1. **내 블루프린트** 탭에서 ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\myblueprint_function.png) 함수 목록 제목줄의 ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\plus_Button.png) **추가 버튼** 을 클릭하여 새 함수를 만들 수 있습니다.
+1. **내 블루프린트** 탭에서 ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/myblueprint_function.png) 함수 목록 제목줄의 ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/plus_Button.png) **추가 버튼** 을 클릭하여 새 함수를 만들 수 있습니다.
 
 1. 새 함수의 이름을 지어줍니다.
 
@@ -124,7 +86,7 @@ _블루프린트 인터페이스_ 에서 생성된 _함수_ 는 _블루프린트
 
 _블루프린트 인터페이스_ 안에서 함수를 만들려면:
 
-1. **내 블루프린트** 탭에서 ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\myblueprint_function.png) 함수 목록 제목줄의 ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\plus_Button.png) **추가 버튼** 을 클릭하여 새 함수를 만들 수 있습니다.
+1. **내 블루프린트** 탭에서 ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/myblueprint_function.png) 함수 목록 제목줄의 ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/plus_Button.png) **추가 버튼** 을 클릭하여 새 함수를 만들 수 있습니다.
 
 1. 새 함수의 이름을 지어줍니다.
 

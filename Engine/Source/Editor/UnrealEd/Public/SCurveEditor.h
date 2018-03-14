@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -281,6 +281,11 @@ public:
 	UNREALED_API void ZoomToFitHorizontal(const bool bZoomToFitAll = false);
 	UNREALED_API void ZoomToFitVertical(const bool bZoomToFitAll = false);
 	UNREALED_API void ZoomToFit(const bool bZoomToFitAll = false);
+
+	/* Set flag that allows scrolling up/down over the widget from the outside without it handling the scroll wheel event */
+	UNREALED_API void SetRequireFocusToZoom(bool bInRequireFocusToZoom);
+
+	UNREALED_API virtual TOptional<bool> OnQueryShowFocus(const EFocusCause InFocusCause) const override;
 
 private:
 	/** Used to track a key and the curve that owns it */
@@ -720,6 +725,9 @@ private:
 
 	/** Flag to allow auto framing */
 	bool bAllowAutoFrame;
+
+	/** Flag to allow scrolling up/down over the widget from the outside without it handling the scroll wheel event */
+	bool bRequireFocusToZoom;
 
 protected:
 	/** Minimum input of view range  */

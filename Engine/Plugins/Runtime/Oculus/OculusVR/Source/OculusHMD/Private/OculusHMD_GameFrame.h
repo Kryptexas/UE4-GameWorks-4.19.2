@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "OculusHMDPrivate.h"
@@ -27,6 +27,10 @@ public:
 	FVector PlayerLocation;			// (CalculateStereoViewOffset)
 	float NearClippingPlane;		// (GetStereoProjectionMatrix)
 
+	ETiledMultiResLevel MultiResLevel; // OnStartGameFrame
+
+	FIntRect FinalViewRect[3]; // SetFinalViewRect
+
 	union
 	{
 		struct
@@ -35,6 +39,8 @@ public:
 			uint64			bSplashIsShown : 1;
 			/** True, if spectator screen is active */
 			uint64			bSpectatorScreenActive : 1;
+			/** True if the frame uses dynamic resolution */
+			uint64			bPixelDensityAdaptive : 1;
 		};
 		uint64 Raw;
 	} Flags;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,6 +10,7 @@
 #include "Sections/MovieSceneMultiPropertyRecorder.h"
 
 class APlayerController;
+class ALevelSequenceActor;
 class ISequenceAudioRecorder;
 class UCanvas;
 class UTexture;
@@ -29,7 +30,7 @@ public:
 	void Shutdown();
 
 	/** Starts recording a sequence. */
-	bool StartRecording(const FOnRecordingStarted& OnRecordingStarted = FOnRecordingStarted(), const FOnRecordingFinished& OnRecordingFinished = FOnRecordingFinished(), const FString& InPathToRecordTo = FString(), const FString& InSequenceName = FString());
+	bool StartRecording(const FString& InPathToRecordTo = FString(), const FString& InSequenceName = FString());
 
 	/** Starts recording a sequence for the specified world. */
 	bool StartRecordingForReplay(UWorld* World, const struct FSequenceRecorderActorFilter& ActorFilter);
@@ -58,6 +59,8 @@ public:
 
 	void StopRecordingDeadAnimations();
 
+	void AddNewQueuedRecordingsForSelectedActors();
+
 	class UActorRecording* AddNewQueuedRecording(AActor* Actor = nullptr, UAnimSequence* AnimSequence = nullptr, float Length = 0.0f);
 
 	void RemoveQueuedRecording(AActor* Actor);
@@ -80,7 +83,7 @@ public:
 	void DrawDebug(UCanvas* InCanvas, APlayerController* InPlayerController);
 
 	/** Handle actors being spawned */
-	static void HandleActorSpawned(AActor* Actor);
+	void HandleActorSpawned(AActor* Actor);
 
 	/** Handle actors being de-spawned */
 	void HandleActorDespawned(AActor* Actor);
@@ -102,6 +105,12 @@ public:
 
 	/** Refresh the name of the next sequence we will be recording */
 	void RefreshNextSequence();
+
+	/** Multicast delegate fired when recording is started */
+	FOnRecordingStarted OnRecordingStartedDelegate;
+
+	/** Multicast delegate fired when recording has finished */
+	FOnRecordingFinished OnRecordingFinishedDelegate;
 
 private:
 	/** Starts recording a sequence, possibly delayed */
@@ -130,8 +139,6 @@ private:
 
 	TArray<class UActorRecording*> DeadRecordings;
 
-	TArray<TWeakObjectPtr<AActor>> QueuedSpawnedActors;
-
 	bool bQueuedRecordingsDirty;
 
 	bool bWasImmersive;
@@ -150,12 +157,6 @@ private:
 
 	/** Texture we use for the recording indicator */
 	TWeakObjectPtr<UTexture> RecordingIndicatorTexture;
-
-	/** Delegate fired when recording is started */
-	FOnRecordingStarted OnRecordingStartedDelegate;
-
-	/** Delegate fired when recording has finished */
-	FOnRecordingFinished OnRecordingFinishedDelegate;
 
 	/** Cached sequence name to record to */
 	FString SequenceName;
@@ -177,4 +178,7 @@ private:
 
 	/** Built in multi-property recorder */
 	FMovieSceneMultiPropertyRecorderFactory MultiPropertySectionRecorder;
+
+	/** Duplicated level sequence actors to trigger, to be stopped at the end of recording */
+	TArray<TWeakObjectPtr<ALevelSequenceActor>> DupActorsToTrigger;
 };

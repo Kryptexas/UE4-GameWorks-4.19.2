@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ImportVolumetricLightmap.h
@@ -19,6 +19,8 @@
 #define LOCTEXT_NAMESPACE "ImportVolumetricLightmap"
 
 DEFINE_LOG_CATEGORY_STATIC(LogVolumetricLightmapImport, Log, All);
+
+FVector GDebugVoxelPosition = FVector::ZeroVector;
 
 void CopyBrickToAtlasVolumeTexture(int32 FormatSize, FIntVector AtlasSize, FIntVector BrickMin, FIntVector BrickSize, const uint8* SourceData, uint8* DestData)
 {
@@ -53,6 +55,8 @@ struct FImportedVolumetricLightmapBrick
 	float AverageClosestGeometryDistance;
 	TArray<FFloat3Packed> AmbientVector;
 	TArray<FColor> SHCoefficients[6];
+	TArray<FFloat3Packed> LQLightColor;
+	TArray<FColor> LQLightDirection;
 	TArray<FColor> SkyBentNormal;
 	TArray<uint8> DirectionalLightShadowing;
 	TArray<Lightmass::FIrradianceVoxelImportProcessingData> TaskVoxelImportProcessingData;
@@ -110,6 +114,9 @@ bool CopyFromBrickmapTexel(
 			*(FColor*)&BrickData.SHCoefficients[i].Data[LinearDestCellIndex * sizeof(FColor)] = FilteredVolumeLookupReconverted<FColor>(BrickTextureCoordinate, CurrentLevelData.BrickDataDimensions, (const FColor*)BrickData.SHCoefficients[i].Data.GetData());
 		}
 
+		*(FFloat3Packed*)&BrickData.LQLightColor.Data[LinearDestCellIndex * sizeof(FFloat3Packed)] = FilteredVolumeLookupReconverted<FFloat3Packed>(BrickTextureCoordinate, CurrentLevelData.BrickDataDimensions, (const FFloat3Packed*)BrickData.LQLightColor.Data.GetData());
+		*(FColor*)&BrickData.LQLightDirection.Data[LinearDestCellIndex * sizeof(FColor)] = FilteredVolumeLookupReconverted<FColor>(BrickTextureCoordinate, CurrentLevelData.BrickDataDimensions, (const FColor*)BrickData.LQLightDirection.Data.GetData());
+
 		if (BrickData.SkyBentNormal.Data.Num() > 0)
 		{
 			*(FColor*)&BrickData.SkyBentNormal.Data[LinearDestCellIndex * sizeof(FColor)] = FilteredVolumeLookupReconverted<FColor>(BrickTextureCoordinate, CurrentLevelData.BrickDataDimensions, (const FColor*)BrickData.SkyBentNormal.Data.GetData());
@@ -143,7 +150,6 @@ void FLightmassProcessor::ImportIrradianceTasks(bool& bGenerateSkyShadowing, TAr
 
 			int32 NumBricks;
 			Swarm.ReadChannel(Channel, &NumBricks, sizeof(NumBricks));
-
 			NewTaskData.Bricks.Empty(NumBricks);
 
 			for (int32 BrickIndex = 0; BrickIndex < NumBricks; BrickIndex++)
@@ -159,7 +165,10 @@ void FLightmassProcessor::ImportIrradianceTasks(bool& bGenerateSkyShadowing, TAr
 				{
 					ReadArray(Channel, NewBrick.SHCoefficients[i]);
 				}
-				
+
+				ReadArray(Channel, NewBrick.LQLightColor);
+				ReadArray(Channel, NewBrick.LQLightDirection);
+
 				ReadArray(Channel, NewBrick.SkyBentNormal);
 				ReadArray(Channel, NewBrick.DirectionalLightShadowing);
 
@@ -167,6 +176,8 @@ void FLightmassProcessor::ImportIrradianceTasks(bool& bGenerateSkyShadowing, TAr
 
 				ReadArray(Channel, NewBrick.TaskVoxelImportProcessingData);
 			}
+
+			ImportDebugOutputStruct(Channel);
 
 			Swarm.CloseChannel(Channel);
 		}
@@ -180,33 +191,33 @@ void FLightmassProcessor::ImportIrradianceTasks(bool& bGenerateSkyShadowing, TAr
 	}
 }
 
-// For debugging
-bool bOverwriteVoxelsInsideGeometryWithNeighbors = true;
-// Introduces artifacts especially with bright static spot lights
-bool bFilterWithNeighbors = false;
+// One pass needed to cover the trilinear filtering footprint, another pass needed to cover exterior voxels which see backfaces due to the large ray start bias.
+int32 NumDilateOverEmbeddedVoxelsPasses = 2;
 
 struct FFilteredBrickData
 {
 	FFloat3Packed AmbientVector;
 	FColor SHCoefficients[ARRAY_COUNT(FImportedVolumetricLightmapBrick::SHCoefficients)];
+	uint8 DirectionalLightShadowing;
 };
 
 void FilterWithNeighbors(
 	const TArray<const FImportedVolumetricLightmapBrick*>& BricksAtCurrentDepth,
 	int32 BrickStartAllocation,
-	const TArray<Lightmass::FIrradianceVoxelImportProcessingData>& VoxelImportProcessingData,
-	FVector DetailCellSize,
 	int32 CurrentDepth,
 	FIntVector BrickLayoutDimensions,
 	const Lightmass::FVolumetricLightmapSettings& VolumetricLightmapSettings,
-	const FVolumetricLightmapBrickData& InputBrickData,
-	FPrecomputedVolumetricLightmapData& CurrentLevelData)
+	FPrecomputedVolumetricLightmapData& CurrentLevelData,
+	const TArray<Lightmass::FIrradianceVoxelImportProcessingData>& VoxelImportProcessingData,
+	TArray<Lightmass::FIrradianceVoxelImportProcessingData>& NewVoxelImportProcessingData)
 {
 	int32 BrickSize = VolumetricLightmapSettings.BrickSize;
 	int32 PaddedBrickSize = BrickSize + 1;
 	const int32 BrickSizeLog2 = FMath::FloorLog2(BrickSize);
 	const float InvBrickSize = 1.0f / BrickSize;
-	const float FilterWithNeighborsDistanceToSurfaceThreshold = DetailCellSize.GetMax() * 1;
+
+	const FBox VolumeBox(VolumetricLightmapSettings.VolumeMin, VolumetricLightmapSettings.VolumeMin + VolumetricLightmapSettings.VolumeSize);
+	const FVector DebugPositionIndirectionCoordinate = ComputeIndirectionCoordinate(GDebugVoxelPosition, VolumeBox, CurrentLevelData.IndirectionTextureDimensions);
 
 	TArray<FFilteredBrickData> FilteredBrickData;
 	TArray<bool> FilteredBrickDataValid;
@@ -226,10 +237,10 @@ void FilterWithNeighbors(
 
 		checkSlow(Brick.TreeDepth == CurrentDepth);
 
-		const FIntVector BrickLayoutPosition = ComputeBrickLayoutPosition(BrickStartAllocation + BrickIndex, BrickLayoutDimensions) * PaddedBrickSize;
 		const int32 DetailCellsPerCurrentLevelBrick = 1 << ((VolumetricLightmapSettings.MaxRefinementLevels - Brick.TreeDepth) * BrickSizeLog2);
 		const int32 NumBottomLevelBricks = DetailCellsPerCurrentLevelBrick / BrickSize;
 		const FVector IndirectionTexturePosition = FVector(Brick.IndirectionTexturePosition);
+		const FIntVector BrickLayoutPosition = ComputeBrickLayoutPosition(BrickStartAllocation + BrickIndex, BrickLayoutDimensions) * PaddedBrickSize;
 
 		for (int32 Z = 0; Z < BrickSize; Z++)
 		{
@@ -238,17 +249,29 @@ void FilterWithNeighbors(
 				for (int32 X = 0; X < BrickSize; X++)
 				{
 					FIntVector VoxelCoordinate(X, Y, Z);
-					const int32 LinearVoxelIndex = ComputeLinearVoxelIndex(VoxelCoordinate, FIntVector(BrickSize, BrickSize, BrickSize));
-					Lightmass::FIrradianceVoxelImportProcessingData VoxelImportData = Brick.TaskVoxelImportProcessingData[LinearVoxelIndex];
 
-					if (((VoxelImportData.bInsideGeometry && bOverwriteVoxelsInsideGeometryWithNeighbors)
-						|| (VoxelImportData.ClosestGeometryDistance > FilterWithNeighborsDistanceToSurfaceThreshold && bFilterWithNeighbors))
+					const int32 LinearDestCellIndex = ComputeLinearVoxelIndex(VoxelCoordinate + BrickLayoutPosition, CurrentLevelData.BrickDataDimensions);
+					Lightmass::FIrradianceVoxelImportProcessingData VoxelImportData = VoxelImportProcessingData[LinearDestCellIndex];
+
+					if (GDebugVoxelPosition != FVector::ZeroVector)
+					{
+						const FVector CellIndirectionTexturePosition = IndirectionTexturePosition + FVector(X, Y, Z) * InvBrickSize * NumBottomLevelBricks;
+						const FBox CellIndirectionTextureBounds(CellIndirectionTexturePosition, CellIndirectionTexturePosition + InvBrickSize * NumBottomLevelBricks);
+
+						if (CellIndirectionTextureBounds.IsInside(DebugPositionIndirectionCoordinate))
+						{
+							int32 DebugBreakpoint = 0;
+						}
+					}
+
+					if (VoxelImportData.bInsideGeometry
 						// Don't modify border voxels
 						&& !VoxelImportData.bBorderVoxel)
 					{
 						//@todo - filter SkyBentNormal from neighbors too
 						FLinearColor AmbientVector = FLinearColor(0, 0, 0, 0);
 						FLinearColor SHCoefficients[ARRAY_COUNT(Brick.SHCoefficients)];
+						FLinearColor DirectionalLightShadowing = FLinearColor(0, 0, 0, 0);
 
 						for (int32 i = 0; i < ARRAY_COUNT(SHCoefficients); i++)
 						{
@@ -266,7 +289,7 @@ void FilterWithNeighbors(
 									const FVector NeighborIndirectionDataSourceCoordinate = IndirectionTexturePosition + FVector(X + NeighborX, Y + NeighborY, Z + NeighborZ) * InvBrickSize * NumBottomLevelBricks;
 									const FIntVector NeighborVoxelCoordinate(X + NeighborX, Y + NeighborY, Z + NeighborZ);
 
-									if ((NeighborVoxelCoordinate != VoxelCoordinate || !VoxelImportData.bInsideGeometry)
+									if (NeighborVoxelCoordinate != VoxelCoordinate
 										&& NeighborIndirectionDataSourceCoordinate.X >= 0.0f 
 										&& NeighborIndirectionDataSourceCoordinate.Y >= 0.0f 
 										&& NeighborIndirectionDataSourceCoordinate.Z >= 0.0f
@@ -290,7 +313,7 @@ void FilterWithNeighbors(
 											if (!NeighborVoxelImportData.bInsideGeometry && !NeighborVoxelImportData.bBorderVoxel)
 											{
 												const float Weight = 1.0f / FMath::Max<float>(FMath::Abs(NeighborX) + FMath::Abs(NeighborY) + FMath::Abs(NeighborZ), .5f);
-												FLinearColor NeighborAmbientVector = FilteredVolumeLookup<FFloat3Packed>(BrickTextureCoordinate, CurrentLevelData.BrickDataDimensions, (const FFloat3Packed*)InputBrickData.AmbientVector.Data.GetData());
+												FLinearColor NeighborAmbientVector = FilteredVolumeLookup<FFloat3Packed>(BrickTextureCoordinate, CurrentLevelData.BrickDataDimensions, (const FFloat3Packed*)CurrentLevelData.BrickData.AmbientVector.Data.GetData());
 												AmbientVector += NeighborAmbientVector * Weight;
 
 												for (int32 i = 0; i < ARRAY_COUNT(SHCoefficients); i++)
@@ -299,8 +322,12 @@ void FilterWithNeighbors(
 
 													// Weight by ambient before filtering, normalized SH coefficients don't filter properly
 													float AmbientCoefficient = NeighborAmbientVector.Component(i / 2);
-													SHCoefficients[i] += AmbientCoefficient * Weight * FilteredVolumeLookup<FColor>(BrickTextureCoordinate, CurrentLevelData.BrickDataDimensions, (const FColor*)InputBrickData.SHCoefficients[i].Data.GetData());
+													SHCoefficients[i] += AmbientCoefficient * Weight * FilteredVolumeLookup<FColor>(BrickTextureCoordinate, CurrentLevelData.BrickDataDimensions, (const FColor*)CurrentLevelData.BrickData.SHCoefficients[i].Data.GetData());
 												}
+
+												FLinearColor NeighborDirectionalLightShadowing = FilteredVolumeLookup<uint8>(BrickTextureCoordinate, CurrentLevelData.BrickDataDimensions, (const uint8*)CurrentLevelData.BrickData.DirectionalLightShadowing.Data.GetData());
+												DirectionalLightShadowing += NeighborDirectionalLightShadowing * Weight;
+
 												TotalWeight += Weight;
 											}
 										}
@@ -311,6 +338,8 @@ void FilterWithNeighbors(
 
 						if (TotalWeight > 0.0f)
 						{
+							const int32 LinearVoxelIndex = ComputeLinearVoxelIndex(VoxelCoordinate, FIntVector(BrickSize, BrickSize, BrickSize));
+
 							// Store filtered output to temporary brick data to avoid order dependent results between voxels
 							// This still produces order dependent filtering between neighboring bricks
 							FilteredBrickDataValid[LinearVoxelIndex] = true;
@@ -328,6 +357,8 @@ void FilterWithNeighbors(
 
 								FilteredBrickData[LinearVoxelIndex].SHCoefficients[i] = ConvertFromLinearColor<FColor>(SHCoefficients[i] * InvTotalWeight / AmbientCoefficient);
 							}
+
+							FilteredBrickData[LinearVoxelIndex].DirectionalLightShadowing = ConvertFromLinearColor<uint8>(DirectionalLightShadowing * InvTotalWeight);
 						}
 					}
 				}
@@ -346,16 +377,22 @@ void FilterWithNeighbors(
 					// Write filtered voxel data back to the original
 					if (FilteredBrickDataValid[LinearVoxelIndex])
 					{
-						const int32 LinearDestCellIndex = ComputeLinearVoxelIndex(VoxelCoordinate + BrickLayoutPosition, CurrentLevelData.BrickDataDimensions);
+						const int32 LinearBrickLayoutCellIndex = ComputeLinearVoxelIndex(VoxelCoordinate + BrickLayoutPosition, CurrentLevelData.BrickDataDimensions);
 
-						FFloat3Packed* DestAmbientVector = (FFloat3Packed*)&CurrentLevelData.BrickData.AmbientVector.Data[LinearDestCellIndex * sizeof(FFloat3Packed)];
+						// Mark as valid for future passes now that we've overwritten with filtered neighbors
+						NewVoxelImportProcessingData[LinearBrickLayoutCellIndex].bInsideGeometry = false;
+
+						FFloat3Packed* DestAmbientVector = (FFloat3Packed*)&CurrentLevelData.BrickData.AmbientVector.Data[LinearBrickLayoutCellIndex * sizeof(FFloat3Packed)];
 						*DestAmbientVector = FilteredBrickData[LinearVoxelIndex].AmbientVector;
 
 						for (int32 i = 0; i < ARRAY_COUNT(FilteredBrickData[LinearVoxelIndex].SHCoefficients); i++)
 						{
-							FColor* DestCoefficients = (FColor*)&CurrentLevelData.BrickData.SHCoefficients[i].Data[LinearDestCellIndex * sizeof(FColor)];
+							FColor* DestCoefficients = (FColor*)&CurrentLevelData.BrickData.SHCoefficients[i].Data[LinearBrickLayoutCellIndex * sizeof(FColor)];
 							*DestCoefficients = FilteredBrickData[LinearVoxelIndex].SHCoefficients[i];
 						}
+
+						uint8* DestDirectionalLightShadowing = (uint8*)&CurrentLevelData.BrickData.DirectionalLightShadowing.Data[LinearBrickLayoutCellIndex * sizeof(uint8)];
+						*DestDirectionalLightShadowing = FilteredBrickData[LinearVoxelIndex].DirectionalLightShadowing;
 					}
 				}
 			}
@@ -727,7 +764,83 @@ void CopyVolumeBorderFromInterior(
 	}
 }
 
-int32 TrimBricks(
+int32 TrimBricksByInterpolationError(
+	TArray<TArray<const FImportedVolumetricLightmapBrick*>>& BricksByDepth,
+	const Lightmass::FVolumetricLightmapSettings& VolumetricLightmapSettings)
+{
+	int32 NumBricksRemoved = 0;
+
+	if (VolumetricLightmapSettings.MaxRefinementLevels > 1)
+	{
+		TArray<const FImportedVolumetricLightmapBrick*>& HighestDensityBricks = BricksByDepth[VolumetricLightmapSettings.MaxRefinementLevels - 1];
+		const int32 ParentLevel = VolumetricLightmapSettings.MaxRefinementLevels - 2;
+		TArray<const FImportedVolumetricLightmapBrick*>& ParentLevelBricks = BricksByDepth[ParentLevel];
+
+		const int32 BrickSize = VolumetricLightmapSettings.BrickSize;
+		const float InvTotalBrickSize = 1.0f / (BrickSize * BrickSize * BrickSize);
+		const int32 BrickSizeLog2 = FMath::FloorLog2(BrickSize);
+		const int32 DetailCellsPerParentLevelBrick = 1 << ((VolumetricLightmapSettings.MaxRefinementLevels - ParentLevel) * BrickSizeLog2);
+		const int32 NumParentBottomLevelBricks = DetailCellsPerParentLevelBrick / BrickSize;
+
+		for (int32 BrickIndex = 0; BrickIndex < HighestDensityBricks.Num(); BrickIndex++)
+		{
+			const FImportedVolumetricLightmapBrick& Brick = *HighestDensityBricks[BrickIndex];
+			const FImportedVolumetricLightmapBrick* ParentBrick = NULL;
+
+			for (int32 ParentBrickIndex = 0; ParentBrickIndex < ParentLevelBricks.Num(); ParentBrickIndex++)
+			{
+				const FImportedVolumetricLightmapBrick& ParentLevelBrick = *ParentLevelBricks[ParentBrickIndex];
+
+				if (Brick.IndirectionTexturePosition.X >= ParentLevelBrick.IndirectionTexturePosition.X
+					&& Brick.IndirectionTexturePosition.Y >= ParentLevelBrick.IndirectionTexturePosition.Y
+					&& Brick.IndirectionTexturePosition.Z >= ParentLevelBrick.IndirectionTexturePosition.Z
+					&& Brick.IndirectionTexturePosition.X < ParentLevelBrick.IndirectionTexturePosition.X + NumParentBottomLevelBricks
+					&& Brick.IndirectionTexturePosition.Y < ParentLevelBrick.IndirectionTexturePosition.Y + NumParentBottomLevelBricks
+					&& Brick.IndirectionTexturePosition.Z < ParentLevelBrick.IndirectionTexturePosition.Z + NumParentBottomLevelBricks)
+				{
+					ParentBrick = &ParentLevelBrick;
+					break;
+				}
+			}
+
+			check(ParentBrick);
+
+			FVector ErrorSquared(0, 0, 0);
+			const FVector ChildOffset = FVector(Brick.IndirectionTexturePosition - ParentBrick->IndirectionTexturePosition);
+
+			for (int32 Z = 0; Z < BrickSize; Z++)
+			{
+				for (int32 Y = 0; Y < BrickSize; Y++)
+				{
+					for (int32 X = 0; X < BrickSize; X++)
+					{
+						const FIntVector VoxelCoordinate(X, Y, Z);
+						const int32 LinearVoxelIndex = ComputeLinearVoxelIndex(VoxelCoordinate, FIntVector(BrickSize, BrickSize, BrickSize));
+						const FVector AmbientVector = FVector(Brick.AmbientVector[LinearVoxelIndex].ToLinearColor());
+
+						const FVector ParentCoordinate = FVector(VoxelCoordinate) / (float)BrickSize + ChildOffset;
+						const FVector ParentAmbientVector = FVector(FilteredVolumeLookup(ParentCoordinate, FIntVector(BrickSize, BrickSize, BrickSize), ParentBrick->AmbientVector.GetData()));
+						ErrorSquared += (AmbientVector - ParentAmbientVector) * (AmbientVector - ParentAmbientVector);
+					}
+				}
+			}
+
+			const float RMSE = FMath::Sqrt((ErrorSquared * InvTotalBrickSize).GetMax());
+			const bool bCullBrick = RMSE < VolumetricLightmapSettings.MinBrickError;
+
+			if (bCullBrick)
+			{
+				HighestDensityBricks.RemoveAt(BrickIndex);
+				BrickIndex--;
+				NumBricksRemoved++;
+			}
+		}
+	}
+
+	return NumBricksRemoved;
+}
+
+int32 TrimBricksForMemoryLimit(
 	TArray<TArray<const FImportedVolumetricLightmapBrick*>>& BricksByDepth,
 	const Lightmass::FVolumetricLightmapSettings& VolumetricLightmapSettings,
 	int32 VoxelSizeBytes,
@@ -872,10 +985,15 @@ void FLightmassProcessor::ImportVolumetricLightmap()
 		{
 			CurrentLevelData.BrickData.SHCoefficients[i].Format = PF_B8G8R8A8;
 		}
+
+		CurrentLevelData.BrickData.LQLightColor.Format = PF_FloatR11G11B10;
+		CurrentLevelData.BrickData.LQLightDirection.Format = PF_B8G8R8A8;
 	}
 
+	const int32 NumBottomLevelBricksTrimmedByInterpolationError = TrimBricksByInterpolationError(BricksByDepth, VolumetricLightmapSettings);
+
 	const float MaximumBrickMemoryMb = System.GetWorld()->GetWorldSettings()->LightmassSettings.VolumetricLightmapMaximumBrickMemoryMb;
-	const int32 NumBottomLevelBricksTrimmed = TrimBricks(BricksByDepth, VolumetricLightmapSettings, CurrentLevelData.BrickData.GetMinimumVoxelSize(), MaximumBrickMemoryMb);
+	const int32 NumBottomLevelBricksTrimmedForMemoryLimit = TrimBricksForMemoryLimit(BricksByDepth, VolumetricLightmapSettings, CurrentLevelData.BrickData.GetMinimumVoxelSize(), MaximumBrickMemoryMb);
 
 	int32 BrickTextureLinearAllocator = 0;
 
@@ -929,6 +1047,12 @@ void FLightmassProcessor::ImportVolumetricLightmap()
 			CurrentLevelData.BrickData.SHCoefficients[i].Resize(TotalBrickDataSize * Stride);
 		}
 
+		CurrentLevelData.BrickData.LQLightColor.Data.Empty(TotalBrickDataSize * GPixelFormats[CurrentLevelData.BrickData.LQLightColor.Format].BlockBytes);
+		CurrentLevelData.BrickData.LQLightColor.Data.AddZeroed(TotalBrickDataSize * GPixelFormats[CurrentLevelData.BrickData.LQLightColor.Format].BlockBytes);
+
+		CurrentLevelData.BrickData.LQLightDirection.Data.Empty(TotalBrickDataSize * GPixelFormats[CurrentLevelData.BrickData.LQLightDirection.Format].BlockBytes);
+		CurrentLevelData.BrickData.LQLightDirection.Data.AddZeroed(TotalBrickDataSize * GPixelFormats[CurrentLevelData.BrickData.LQLightDirection.Format].BlockBytes);
+
 		VoxelImportProcessingData.Empty(TotalBrickDataSize);
 		VoxelImportProcessingData.AddZeroed(TotalBrickDataSize);
 	}
@@ -962,6 +1086,22 @@ void FLightmassProcessor::ImportVolumetricLightmap()
 					(const uint8*)Brick.SHCoefficients[i].GetData(),
 					CurrentLevelData.BrickData.SHCoefficients[i].Data.GetData());
 			}
+
+			CopyBrickToAtlasVolumeTexture(
+				GPixelFormats[CurrentLevelData.BrickData.LQLightColor.Format].BlockBytes,
+				CurrentLevelData.BrickDataDimensions,
+				BrickLayoutPosition,
+				FIntVector(BrickSize),
+				(const uint8*)Brick.LQLightColor.GetData(),
+				CurrentLevelData.BrickData.LQLightColor.Data.GetData());
+
+			CopyBrickToAtlasVolumeTexture(
+				GPixelFormats[CurrentLevelData.BrickData.LQLightDirection.Format].BlockBytes,
+				CurrentLevelData.BrickDataDimensions,
+				BrickLayoutPosition,
+				FIntVector(BrickSize),
+				(const uint8*)Brick.LQLightDirection.GetData(),
+				CurrentLevelData.BrickData.LQLightDirection.Data.GetData());
 
 			if (bGenerateSkyShadowing)
 			{
@@ -997,10 +1137,11 @@ void FLightmassProcessor::ImportVolumetricLightmap()
 	const float InvBrickSize = 1.0f / BrickSize;
 	const FVector DetailCellSize = VolumetricLightmapSettings.VolumeSize / FVector(VolumetricLightmapSettings.TopLevelGridSize * DetailCellsPerTopLevelBrick);
 
-	if (bOverwriteVoxelsInsideGeometryWithNeighbors || bFilterWithNeighbors)
+	for (int32 DilatePassIndex = 0; DilatePassIndex < NumDilateOverEmbeddedVoxelsPasses; DilatePassIndex++)
 	{
 		BrickStartAllocation = 0;
 
+		// Compute the allocation start for the highest density level bricks
 		for (int32 CurrentDepth = 0; CurrentDepth < VolumetricLightmapSettings.MaxRefinementLevels - 1; CurrentDepth++)
 		{
 			BrickStartAllocation += BricksByDepth[CurrentDepth].Num();
@@ -1008,18 +1149,22 @@ void FLightmassProcessor::ImportVolumetricLightmap()
 
 		TArray<const FImportedVolumetricLightmapBrick*>& HighestDensityBricks = BricksByDepth[VolumetricLightmapSettings.MaxRefinementLevels - 1];
 
+		// Need to double buffer bInsideGeometry as it is both read and written
+		TArray<Lightmass::FIrradianceVoxelImportProcessingData> NewVoxelImportProcessingData = VoxelImportProcessingData;
+
 		// Reads from unique data of any density bricks, writes to unique data
-		// This is doing a filter in-place which causes extra blurring
+		// This is doing a filter in-place, which is only reliable because source and dest voxels are mutually exclusive
 		FilterWithNeighbors(
 			HighestDensityBricks,
 			BrickStartAllocation,
-			VoxelImportProcessingData,
-			DetailCellSize,
 			VolumetricLightmapSettings.MaxRefinementLevels - 1,
 			BrickLayoutDimensions,
 			VolumetricLightmapSettings,
-			CurrentLevelData.BrickData,
-			CurrentLevelData);
+			CurrentLevelData,
+			VoxelImportProcessingData,
+			NewVoxelImportProcessingData);
+
+		VoxelImportProcessingData = MoveTemp(NewVoxelImportProcessingData);
 	}
 
 	BrickStartAllocation = 0;
@@ -1081,7 +1226,8 @@ void FLightmassProcessor::ImportVolumetricLightmap()
 		CurrentLevelData.IndirectionTextureDimensions.Z,
 		CurrentLevelData.IndirectionTexture.Data.Num() / 1024.0f / 1024.0f);
 
-	int32 BrickDataSize = CurrentLevelData.BrickData.AmbientVector.Data.Num() + CurrentLevelData.BrickData.SkyBentNormal.Data.Num() + CurrentLevelData.BrickData.DirectionalLightShadowing.Data.Num();
+	int32 BrickDataSize = CurrentLevelData.BrickData.AmbientVector.Data.Num() + CurrentLevelData.BrickData.SkyBentNormal.Data.Num() + CurrentLevelData.BrickData.DirectionalLightShadowing.Data.Num()
+			+ CurrentLevelData.BrickData.LQLightColor.Data.Num() + CurrentLevelData.BrickData.LQLightColor.Data.Num();
 
 	for (int32 i = 0; i < ARRAY_COUNT(CurrentLevelData.BrickData.SHCoefficients); i++)
 	{
@@ -1100,10 +1246,17 @@ void FLightmassProcessor::ImportVolumetricLightmap()
 
 	FString TrimmedString;
 	
-	if (NumBottomLevelBricksTrimmed > 0)
+	if (NumBottomLevelBricksTrimmedByInterpolationError > 0)
 	{
-		TrimmedString = FString::Printf(TEXT(" (trimmed %.1fMb due to %.1fMb MaximumBrickMemoryMb)"),
-			NumBottomLevelBricksTrimmed * ActualBrickSizeBytes / 1024.0f / 1024.0f,
+		TrimmedString += FString::Printf(TEXT(" (trimmed %.1fMb due to %f MinBrickError)"),
+			NumBottomLevelBricksTrimmedByInterpolationError * ActualBrickSizeBytes / 1024.0f / 1024.0f,
+			VolumetricLightmapSettings.MinBrickError);
+	}
+
+	if (NumBottomLevelBricksTrimmedForMemoryLimit > 0)
+	{
+		TrimmedString += FString::Printf(TEXT(" (trimmed %.1fMb due to %.1fMb MaximumBrickMemoryMb)"),
+			NumBottomLevelBricksTrimmedForMemoryLimit * ActualBrickSizeBytes / 1024.0f / 1024.0f,
 			MaximumBrickMemoryMb);
 	}
 

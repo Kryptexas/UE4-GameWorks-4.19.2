@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Sound/SoundBase.h"
 #include "Sound/SoundSubmix.h"
@@ -46,6 +46,16 @@ bool USoundBase::IsPlayable() const
 	return false;
 }
 
+bool USoundBase::IsAllowedVirtual() const
+{ 
+	return false; 
+}
+
+bool USoundBase::HasAttenuationNode() const
+{
+	return false;
+}
+
 const FSoundAttenuationSettings* USoundBase::GetAttenuationSettingsToApply() const
 {
 	if (AttenuationSettings)
@@ -80,7 +90,7 @@ bool USoundBase::IsLooping()
 	return (GetDuration() >= INDEFINITELY_LOOPING_DURATION); 
 }
 
-bool USoundBase::ShouldApplyInteriorVolumes() const
+bool USoundBase::ShouldApplyInteriorVolumes()
 {
 	return (SoundClassObject && SoundClassObject->Properties.bApplyAmbientVolumes);
 }
@@ -100,9 +110,16 @@ void USoundBase::GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) con
 	OutSends = SoundSubmixSends;
 }
 
-void USoundBase::GetSoundSourceBusSends(TArray<FSoundSourceBusSendInfo>& OutSends) const
+void USoundBase::GetSoundSourceBusSends(EBusSendType BusSendType, TArray<FSoundSourceBusSendInfo>& OutSends) const
 {
-	OutSends = BusSends;
+	if (BusSendType == EBusSendType::PreEffect)
+	{
+		OutSends = PreEffectBusSends;
+	}
+	else
+	{
+		OutSends = BusSends;
+	}
 }
 
 const FSoundConcurrencySettings* USoundBase::GetSoundConcurrencySettingsToApply()

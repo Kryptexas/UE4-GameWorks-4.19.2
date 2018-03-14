@@ -6,15 +6,11 @@ Description:サーフェスがライトとどのように相互作用するか�
 Version:4.9
 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		既存のモデル
-	[/PARAM]
-	[PARAM:links]
+## 既存のモデル
+
+[REGION:buttonlist]
+
 		* [](Engine/Rendering/Materials/LightingModels/SubSurface "%Engine/Rendering/Materials/LightingModels/SubSurface:description%")
 		* [](Engine/Rendering/Materials/LightingModels/SubSurfaceProfile "%Engine/Rendering/Materials/LightingModels/SubSurfaceProfile:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]

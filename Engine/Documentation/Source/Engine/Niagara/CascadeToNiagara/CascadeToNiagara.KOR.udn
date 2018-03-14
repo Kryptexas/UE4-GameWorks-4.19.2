@@ -1,0 +1,66 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Crumbs: %ROOT%
+Title: Cascade To Niagara
+Description: Showing the differences and similarities between Cascade and Niagara
+Type: Overview
+SkillLevel: Beginner
+Version: 4.18
+Parent: Engine/Niagara
+Order: 1
+Tags: Cascade
+Tags: Getting Started
+topic-image:NiagaraToCascadeTopicImage.png
+
+[TOC(start:1 end:3)]
+
+While both **Cascade** and **Niagara** can be used to make visual effects (VFX) inside of Unreal Engine 4 (UE4), the manner in which you use Cascade to create and adjust visual effects is vastly different from how you use Niagara to achieve the same ends. In the following document, we will take a look at how to transition from Cascade to Niagara to make all of your visual effects. The reason for creating this new tool is to put more power into the hands of the artist to create additional functionality without the help of a programmer. We take some inspiration from movie FX tools and try to make the system as adaptable and flexible as possible while keeping usability high and accommodating the 90% use cases.
+
+## Niagara Overview
+
+Niagara is Unreal Engine's next-generation visual effects system. It's a complete replacement for Cascade, with which it will coexist until Niagara functionally is deemed to fully supersede that of Cascade.
+
+## Why is Niagara Better Than Cascade?
+
+The fundamental power of Niagara lies predominantly in the ability to share arbitrary particle data in whatever way the user sees fit. This helps to enable users to script their own behaviors rather than requiring code intervention to create new hard-coded features. In Cascade, particle simulations are controlled by hard-coded modules, each providing a specific set of functionality to modify particle attributes. In contrast, Niagara simulation is controlled by node graphs that artists can create and edit.
+
+[OBJECT:ComparisonSlider]
+    [PARAM:before]
+    ![Cascade](Cascade.png)(w:1000)
+    [/PARAM]
+    [PARAM:after]
+    ![Niagara](Ninagra.png)
+    [/PARAM]
+[/OBJECT]
+
+One of the other reasons Niagara is superior to Cascade is that Niagara's node graphs are compiled to bytecode that runs in a very low-overhead interpreter, resulting in very high performance even on CPU simulations. GPU simulations are planned, and switching between the two is expected to be transparent - with a few caveats, any emitter should be able to be simulated on CPU or GPU, based on user choice.
+
+## Cascade & Niagara UI 
+
+When you first open up Niagara, the User Interface (UI) will look completely different than Cascade. However, if you take a close look, you will begin to notice that the Niagara interface does share some of the following similarities to Cascade:
+
+* Realtime 3D viewport to visualize effects while they are being created.
+
+* Curves Editor for adjusting R, G, B and Alpha values.
+
+* Details Panel for adjusting various properties.
+
+[OBJECT:ComparisonSlider]
+    [PARAM:before]
+    ![Cascade](CTN_Cas_VFX.png)(w:1000)
+    [/PARAM]
+    [PARAM:after]
+    ![Niagara](CTN_Nia_VFX.png)
+    [/PARAM]
+[/OBJECT]
+
+## Niagara Emitters & Systems
+
+One of the biggest differences between Cascade and Niagara is how you build emitters. When using Cascade, emitters are built as a self-contained unit. While this made the emitters easy to place and spawn, it also made it hard to share behavior between different emitter or make updates as everything had to be done manually.  Niagara changes all of this by giving visual effect artist the ability to control, add, or modify any part of a visual effects behavior right down to the pixel level. To accomplish this, Niagara particle systems have been broken up into the following two parts:
+
+* **Niagara Emitters:** This is a single visual effect that will be combined with other Niagara Emitters to make a Niagara System. If we are making a fire effect, the Niagara Emitters would be each of the different elements that make up the fire effect like the smoke, fire, distortion, and embers.
+ 
+    ![](CTN_NiagaraEmitters.png)
+* **Niagara Systems:** This contains everything needed to make up a single effect. Continuing with our fire example, this would be the completed fire effect that contains the Niagara Emitters for the smoke, fire, distortion, and embers.
+ 
+    ![](CTN_NiagaraSystem.png)

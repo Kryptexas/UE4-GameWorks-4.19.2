@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,6 +13,7 @@ class IDetailsViewPrivate;
 class ITableRow;
 class STableViewBase;
 class FDetailWidgetRow;
+class FPropertyNode;
 struct FDetailColumnSizeData;
 struct FDetailFilter;
 
@@ -121,5 +122,12 @@ public:
 	 * @return TAttribute indicating whether editing is enabled or whether the property is readonly:
 	 */
 	virtual TAttribute<bool> IsPropertyEditingEnabled() const { return false; }
+
+	/** 
+	 * Gets the property node associated with this node.  Not all nodes have properties so this will fail for anything other than a property row or for property rows that have complex customizations that ignore the property
+	 */
+	virtual TSharedPtr<FPropertyNode> GetPropertyNode() const { return nullptr; }
+
+	virtual TSharedPtr<class IDetailPropertyRow> GetRow() const override { return nullptr; }
 };
 

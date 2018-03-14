@@ -1,11 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/SWidgetReflectorTreeWidgetItem.h"
 #include "SlateOptMacros.h"
 #include "Widgets/Colors/SColorBlock.h"
 #include "Widgets/Input/SHyperlink.h"
 #include "HAL/PlatformApplicationMisc.h"
-#include "EditorStyleSet.h"
 #include "SCheckBox.h"
 
 
@@ -15,6 +14,7 @@
 FName SReflectorTreeWidgetItem::NAME_WidgetName(TEXT("WidgetName"));
 FName SReflectorTreeWidgetItem::NAME_WidgetInfo(TEXT("WidgetInfo"));
 FName SReflectorTreeWidgetItem::NAME_Visibility(TEXT("Visibility"));
+FName SReflectorTreeWidgetItem::NAME_Focusable(TEXT("Focusable"));
 FName SReflectorTreeWidgetItem::NAME_Clipping(TEXT("Clipping"));
 FName SReflectorTreeWidgetItem::NAME_ForegroundColor(TEXT("ForegroundColor"));
 FName SReflectorTreeWidgetItem::NAME_Address(TEXT("Address"));
@@ -67,7 +67,7 @@ TSharedRef<SWidget> SReflectorTreeWidgetItem::GenerateWidgetForColumn(const FNam
 					.Justification(ETextJustify::Center)
 			];
 	}
-	else if (ColumnName == "Focusable")
+	else if (ColumnName == NAME_Focusable)
 	{
 		return SNew(SBox)
 			.HAlign(HAlign_Center)
@@ -75,7 +75,7 @@ TSharedRef<SWidget> SReflectorTreeWidgetItem::GenerateWidgetForColumn(const FNam
 			.Padding(FMargin(2.0f, 0.0f))
 			[
 				SNew(SCheckBox)
-				.Style(&FEditorStyle::Get().GetWidgetStyle<FCheckBoxStyle>("Toolbar.Check"))
+				.Style(FCoreStyle::Get(), TEXT("WidgetReflector.FocusableCheck"))
 				.IsChecked(this, &SReflectorTreeWidgetItem::GetFocusableAsCheckBoxState)
 			];
 	}

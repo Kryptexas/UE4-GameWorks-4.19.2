@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // Implementation of D3D12 Pipelinestate related functions
 
@@ -280,7 +280,7 @@ protected:
 	TPipelineCache<FD3D12LowLevelGraphicsPipelineStateDesc> LowLevelGraphicsPipelineStateCache;
 	TPipelineCache<FD3D12ComputePipelineStateDesc> ComputePipelineStateCache;
 
-	FCriticalSection CS;
+	FRWLock CS;
 	FDiskCacheInterface DiskCaches[NUM_PSO_CACHE_TYPES];
 
 #if UE_BUILD_DEBUG

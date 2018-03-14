@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLQuery.cpp: OpenGL query RHI implementation.
@@ -91,6 +91,13 @@ void FOpenGLDynamicRHI::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 		}
 		else if(Query->QueryType == RQT_AbsoluteTime)
 		{
+			if (!Query->bInvalidResource && !PlatformContextIsCurrent(Query->ResourceContext))
+			{
+				PlatformReleaseRenderQuery(Query->Resource, Query->ResourceContext);
+				Query->Resource = 0;
+				Query->bInvalidResource = true;
+			}
+
 			// query can be silently invalidated in GetRenderQueryResult
 			if (Query->bInvalidResource)
 			{

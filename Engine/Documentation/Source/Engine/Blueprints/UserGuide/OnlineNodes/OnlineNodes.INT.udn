@@ -10,45 +10,7 @@ version: 4.9
 Parent:Engine/Blueprints
 type:overview
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\OnlineNodes:title%](Engine\Blueprints\UserGuide\OnlineNodesTopic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\OnlineNodes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\OnlineNodes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\OnlineNodes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\OnlineNodes:title%](Engine\Blueprints\UserGuide\OnlineNodesTopic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\OnlineNodes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\OnlineNodes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\OnlineNodes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:Engine/Blueprints/UserGuide/OnlineNodesTopic.png
 
 
 [TOC (start:2 end:2)]

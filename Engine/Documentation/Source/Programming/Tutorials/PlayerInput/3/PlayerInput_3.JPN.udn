@@ -21,7 +21,7 @@ Description:入力と C++ コードのバインド
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. **Visual Studio** で「MyPawn.h」を開いて MyPawn のクラス定義の下部に以下のコードを追加します:
 
@@ -118,7 +118,7 @@ Description:入力と C++ コードのバインド
     [/PARAM]
     [PARAM:content]
 		**MyPawn.h**
-			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc.All Rights Reserved.
 
 			#pragma once
 
@@ -158,7 +158,7 @@ Description:入力と C++ コードのバインド
 			};
 
 		**MyPawn.cpp**
-			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc.All Rights Reserved.
 
 			#include "HowTo_PlayerInput.h"
 			#include "MyPawn.h"
@@ -264,4 +264,4 @@ Description:入力と C++ コードのバインド
 	[/PARAM]
 [/OBJECT]
 
-%Steps%
+

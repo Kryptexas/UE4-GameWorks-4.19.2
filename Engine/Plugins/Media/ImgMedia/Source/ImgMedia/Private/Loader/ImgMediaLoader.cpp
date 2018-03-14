@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ImgMediaLoader.h"
 #include "ImgMediaPrivate.h"
 
+#include "Algo/Reverse.h"
 #include "HAL/FileManager.h"
 #include "HAL/PlatformProcess.h"
 #include "Misc/Paths.h"
@@ -15,6 +16,7 @@
 #include "GenericImgMediaReader.h"
 #include "IImgMediaReader.h"
 #include "ImgMediaLoaderWork.h"
+#include "ImgMediaScheduler.h"
 #include "ImgMediaTextureSample.h"
 
 #if IMGMEDIA_EXR_SUPPORTED_PLATFORM
@@ -22,15 +24,23 @@
 #endif
 
 
+/** Time spent loading a new image sequence. */
+DECLARE_CYCLE_STAT(TEXT("ImgMedia Loader Load Sequence"), STAT_ImgMedia_LoaderLoadSequence, STATGROUP_Media);
+
+/** Time spent releasing cache in image loader destructor. */
+DECLARE_CYCLE_STAT(TEXT("ImgMedia Loader Release Cache"), STAT_ImgMedia_LoaderReleaseCache, STATGROUP_Media);
+
+
 /* FImgMediaLoader structors
  *****************************************************************************/
 
-FImgMediaLoader::FImgMediaLoader()
+FImgMediaLoader::FImgMediaLoader(const TSharedRef<FImgMediaScheduler, ESPMode::ThreadSafe>& InScheduler)
 	: Frames(1)
 	, ImageWrapperModule(FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper"))
 	, Initialized(false)
 	, NumLoadAhead(0)
 	, NumLoadBehind(0)
+	, Scheduler(InScheduler)
 	, SequenceDim(FIntPoint::ZeroValue)
 	, SequenceDuration(FTimespan::Zero())
 	, SequenceFps(0.0f)
@@ -40,36 +50,21 @@ FImgMediaLoader::FImgMediaLoader()
 
 FImgMediaLoader::~FImgMediaLoader()
 {
-	FScopeLock Lock(&CriticalSection);
-
-	// clear pending frames
-	PendingFrameNumbers.Empty();
-
-	// abandon queued work items
-	for (auto WorkPair : QueuedWorks)
-	{
-		auto QueuedWork = WorkPair.Value;
-		check(!WorkPool.Contains(QueuedWork));
-
-		if (GThreadPool->RetractQueuedWork(QueuedWork))
-		{
-			delete QueuedWork;
-		}
-		else
-		{
-			QueuedWork->DeleteWhenDone();
-		}
-	}
-
-	QueuedWorks.Empty();
-
-	// release work item pool
+	// clean up work item pool
 	for (auto Work : WorkPool)
 	{
 		delete Work;
 	}
 
 	WorkPool.Empty();
+
+	// release cache
+	{
+		SCOPE_CYCLE_COUNTER(STAT_ImgMedia_LoaderReleaseCache);
+
+		Frames.Empty();
+		PendingFrameNumbers.Empty();
+	}
 }
 
 
@@ -139,9 +134,75 @@ void FImgMediaLoader::GetPendingTimeRanges(TRangeSet<FTimespan>& OutRangeSet) co
 }
 
 
-void FImgMediaLoader::Initialize(const FString& SequencePath, const float FpsOverride)
+IQueuedWork* FImgMediaLoader::GetWork()
+{
+	FScopeLock Lock(&CriticalSection);
+
+	if (PendingFrameNumbers.Num() == 0)
+	{
+		return nullptr;
+	}
+
+	int32 FrameNumber = PendingFrameNumbers.Pop(false);
+	FImgMediaLoaderWork* Work = (WorkPool.Num() > 0) ? WorkPool.Pop() : new FImgMediaLoaderWork(AsShared(), Reader.ToSharedRef());
+	
+	Work->Initialize(FrameNumber, ImagePaths[FrameNumber]);
+	QueuedFrameNumbers.Add(FrameNumber);
+
+	return Work;
+}
+
+
+void FImgMediaLoader::Initialize(const FString& SequencePath, const float FpsOverride, bool Loop)
 {
 	check(!Initialized); // reinitialization not allowed for now
+
+	LoadSequence(SequencePath, FpsOverride, Loop);
+	FPlatformMisc::MemoryBarrier();
+
+	Initialized = true;
+}
+
+
+bool FImgMediaLoader::RequestFrame(FTimespan Time, float PlayRate, bool Loop)
+{
+	const int32 FrameIndex = TimeToFrame(Time);
+
+	if ((FrameIndex == INDEX_NONE) || (FrameIndex == LastRequestedFrame))
+	{
+		return false;
+	}
+
+	Update(FrameIndex, PlayRate, Loop);
+	LastRequestedFrame = FrameIndex;
+
+	return true;
+}
+
+
+/* FImgMediaLoader implementation
+ *****************************************************************************/
+
+void FImgMediaLoader::FrameNumbersToTimeRanges(const TArray<int32>& FrameNumbers, TRangeSet<FTimespan>& OutRangeSet) const
+{
+	if (SequenceFps <= 0.0f)
+	{
+		return;
+	}
+
+	const FTimespan FrameDuration = FTimespan::FromSeconds(1.0 / SequenceFps);
+
+	for (const auto Frame : FrameNumbers)
+	{
+		const FTimespan StartTime = FTimespan::FromSeconds(Frame / SequenceFps);
+		OutRangeSet.Add(TRange<FTimespan>(StartTime, StartTime + FrameDuration));
+	}
+}
+
+
+void FImgMediaLoader::LoadSequence(const FString& SequencePath, const float FpsOverride, bool Loop)
+{
+	SCOPE_CYCLE_COUNTER(STAT_ImgMedia_LoaderLoadSequence);
 
 	if (SequencePath.IsEmpty())
 	{
@@ -235,7 +296,7 @@ void FImgMediaLoader::Initialize(const FString& SequencePath, const float FpsOve
 	NumLoadAhead = NumFramesToLoad - NumLoadBehind;
 
 	Frames.Empty(NumFramesToLoad);
-	Update(0, 0.0f);
+	Update(0, 0.0f, Loop);
 
 	// update info
 	Info = TEXT("Image Sequence\n");
@@ -244,46 +305,6 @@ void FImgMediaLoader::Initialize(const FString& SequencePath, const float FpsOve
 	Info += FString::Printf(TEXT("    Compression: %s\n"), *FirstFrameInfo.CompressionName);
 	Info += FString::Printf(TEXT("    Frames: %i\n"), ImagePaths.Num());
 	Info += FString::Printf(TEXT("    FPS: %f\n"), SequenceFps);
-
-	FPlatformMisc::MemoryBarrier();
-
-	Initialized = true;
-}
-
-
-bool FImgMediaLoader::RequestFrame(FTimespan Time, float PlayRate)
-{
-	const int32 FrameIndex = TimeToFrame(Time);
-
-	if ((FrameIndex == INDEX_NONE) || (FrameIndex == LastRequestedFrame))
-	{
-		return false;
-	}
-
-	Update(FrameIndex, PlayRate);
-	LastRequestedFrame = FrameIndex;
-
-	return true;
-}
-
-
-/* FImgMediaLoader implementation
- *****************************************************************************/
-
-void FImgMediaLoader::FrameNumbersToTimeRanges(const TArray<int32>& FrameNumbers, TRangeSet<FTimespan>& OutRangeSet) const
-{
-	if (SequenceFps <= 0.0f)
-	{
-		return;
-	}
-
-	const FTimespan FrameDuration = FTimespan::FromSeconds(1.0 / SequenceFps);
-
-	for (const auto Frame : FrameNumbers)
-	{
-		const FTimespan StartTime = FTimespan::FromSeconds(Frame / SequenceFps);
-		OutRangeSet.Add(TRange<FTimespan>(StartTime, StartTime + FrameDuration));
-	}
 }
 
 
@@ -298,14 +319,16 @@ uint32 FImgMediaLoader::TimeToFrame(FTimespan Time) const
 }
 
 
-void FImgMediaLoader::Update(int32 PlayHeadFrame, float PlayRate)
+void FImgMediaLoader::Update(int32 PlayHeadFrame, float PlayRate, bool Loop)
 {
-	// @todo ImgMedia: take PlayRate and DeltaTime into account when determining frames to load
+	// @todo gmp: ImgMedia: take PlayRate and DeltaTime into account when determining frames to load
 	
 	// determine frame numbers to be loaded
-	TArray<int32> FramesToQueue;
+	TArray<int32> FramesToLoad;
 	{
-		FramesToQueue.Empty(NumLoadAhead + NumLoadBehind);
+		const int32 NumImagePaths = ImagePaths.Num();
+
+		FramesToLoad.Empty(NumLoadAhead + NumLoadBehind);
 
 		int32 FrameOffset = (PlayRate >= 0.0f) ? 1 : -1;
 
@@ -315,98 +338,104 @@ void FImgMediaLoader::Update(int32 PlayHeadFrame, float PlayRate)
 		int32 LoadBehindCount = NumLoadBehind;
 		int32 LoadBehindIndex = PlayHeadFrame - FrameOffset;
 
+		// alternate between look ahead and look behind
 		while ((LoadAheadCount > 0) || (LoadBehindCount > 0))
 		{
-			if (LoadAheadCount-- > 0)
+			if (LoadAheadCount > 0)
 			{
 				if (LoadAheadIndex < 0)
 				{
-					LoadAheadIndex += ImagePaths.Num();
+					if (Loop)
+					{
+						LoadAheadIndex += NumImagePaths;
+					}
+					else
+					{
+						LoadAheadCount = 0;
+					}
 				}
-				else if (LoadAheadIndex >= ImagePaths.Num())
+				else if (LoadAheadIndex >= NumImagePaths)
 				{
-					LoadAheadIndex -= ImagePaths.Num();
+					if (Loop)
+					{
+						LoadAheadIndex -= NumImagePaths;
+					}
+					else
+					{
+						LoadAheadCount = 0;
+					}
 				}
 
-				FramesToQueue.Add(LoadAheadIndex);
+				if (LoadAheadCount > 0)
+				{
+					FramesToLoad.Add(LoadAheadIndex);
+				}
+
 				LoadAheadIndex += FrameOffset;
+				--LoadAheadCount;
 			}
 
-			if (LoadBehindCount-- > 0)
+			if (LoadBehindCount > 0)
 			{
 				if (LoadBehindIndex < 0)
 				{
-					LoadBehindIndex += ImagePaths.Num();
+					if (Loop)
+					{
+						LoadBehindIndex += NumImagePaths;
+					}
+					else
+					{
+						LoadBehindCount = 0;
+					}
 				}
-				else if (LoadBehindIndex >= ImagePaths.Num())
+				else if (LoadBehindIndex >= NumImagePaths)
 				{
-					LoadBehindIndex -= ImagePaths.Num();
+					if (Loop)
+					{
+						LoadBehindIndex -= NumImagePaths;
+					}
+					else
+					{
+						LoadBehindCount = 0;
+					}
 				}
 
-				FramesToQueue.Add(LoadBehindIndex);
+				if (LoadBehindCount > 0)
+				{
+					FramesToLoad.Add(LoadBehindIndex);
+				}
+
 				LoadBehindIndex -= FrameOffset;
+				--LoadBehindCount;
 			}
 		}
 	}
 
-	// create new work items
-	TArray<FImgMediaLoaderWork*> NewWorks;
+	FScopeLock ScopeLock(&CriticalSection);
+
+	// determine queued frame numbers that can be discarded
+	for (int32 Idx = QueuedFrameNumbers.Num() - 1; Idx >= 0; --Idx)
 	{
-		FScopeLock ScopeLock(&CriticalSection);
+		const int32 FrameNumber = QueuedFrameNumbers[Idx];
 
-		// queue up new pending frames
-		PendingFrameNumbers.Empty();
-
-		for (int32 Idx = FramesToQueue.Num() - 1; Idx >= 0; --Idx)
+		if (!FramesToLoad.Contains(FrameNumber))
 		{
-			PendingFrameNumbers.Push(FramesToQueue[Idx]);
-		}
-
-		// try to abandon prior queued work if obsolete
-		for (int32 Index = QueuedFrameNumbers.Num() - 1; Index >= 0; --Index)
-		{
-			int32 FrameNumber = QueuedFrameNumbers[Index];
-
-			if (!PendingFrameNumbers.Contains(FrameNumber))
-			{
-				FImgMediaLoaderWork*& ObsoleteWork = QueuedWorks.FindChecked(FrameNumber);
-
-				if (GThreadPool->RetractQueuedWork(ObsoleteWork))
-				{
-					QueuedWorks.Remove(FrameNumber);
-					WorkPool.Push(ObsoleteWork);
-				}
-
-				QueuedFrameNumbers.RemoveAtSwap(Index);
-			}
-		}
-
-		// create or reuse work items
-		int32 NewWorkCount = GThreadPool->GetNumThreads() - QueuedWorks.Num();
-
-		while ((NewWorkCount > 0) && (PendingFrameNumbers.Num() > 0))
-		{
-			const int32 PendingFrameNumber = PendingFrameNumbers.Pop(false);
-
-			if ((Frames.FindAndTouch(PendingFrameNumber) == nullptr) && !QueuedWorks.Contains(PendingFrameNumber))
-			{
-				FImgMediaLoaderWork* NewWork = (WorkPool.Num() > 0) ? WorkPool.Pop() : new FImgMediaLoaderWork(*this, Reader.ToSharedRef());
-				NewWork->Initialize(PendingFrameNumber, ImagePaths[PendingFrameNumber]);
-				NewWorks.Add(NewWork);
-
-				QueuedFrameNumbers.Add(PendingFrameNumber);
-				QueuedWorks.Add(PendingFrameNumber, NewWork);
-				
-				--NewWorkCount;
-			}
+			QueuedFrameNumbers.RemoveAtSwap(Idx);
 		}
 	}
 
-	// enqueue new work
-	for (auto& NewWork : NewWorks)
+	// determine frame numbers that need to be cached
+	PendingFrameNumbers.Empty();
+
+	for (int32 FrameNumber : FramesToLoad)
 	{
-		GThreadPool->AddQueuedWork(NewWork);
+		if ((Frames.FindAndTouch(FrameNumber) == nullptr) && !QueuedFrameNumbers.Contains(FrameNumber))
+		{
+			PendingFrameNumbers.Add(FrameNumber);
+		}
 	}
+
+	Algo::Reverse(PendingFrameNumbers);
 }
 
 
@@ -415,50 +444,16 @@ void FImgMediaLoader::Update(int32 PlayHeadFrame, float PlayRate)
 
 void FImgMediaLoader::NotifyWorkComplete(FImgMediaLoaderWork& CompletedWork, int32 FrameNumber, const TSharedPtr<FImgMediaFrame, ESPMode::ThreadSafe>& Frame)
 {
-	FImgMediaLoaderWork* NewWork = nullptr;
+	FScopeLock Lock(&CriticalSection);
 
-	// process completed work item
+	// if frame is still needed, add it to the cache
+	if (QueuedFrameNumbers.Remove(FrameNumber) > 0)
 	{
-		FScopeLock Lock(&CriticalSection);
-
-		check(QueuedWorks.FindChecked(FrameNumber) == &CompletedWork);
-		QueuedWorks.Remove(FrameNumber);
-
-		// if frame is still needed, add it to the cache
-		if (QueuedFrameNumbers.Remove(FrameNumber) > 0)
+		if (Frame.IsValid())
 		{
-			if (Frame.IsValid())
-			{
-				Frames.Add(FrameNumber, Frame);
-			}
-		}
-
-		// reuse work for next frame, or return it to pool
-		while (PendingFrameNumbers.Num() > 0)
-		{
-			int32 PendingFrameNumber = PendingFrameNumbers.Pop(false);
-
-			if ((Frames.FindAndTouch(PendingFrameNumber) == nullptr) && !QueuedWorks.Contains(PendingFrameNumber))
-			{
-				NewWork = &CompletedWork;
-				NewWork->Initialize(PendingFrameNumber, ImagePaths[PendingFrameNumber]);
-				
-				QueuedFrameNumbers.Add(PendingFrameNumber);
-				QueuedWorks.Add(PendingFrameNumber, NewWork);
-
-				break;
-			}
-		}
-
-		if (NewWork == nullptr)
-		{
-			WorkPool.Push(&CompletedWork);
+			Frames.Add(FrameNumber, Frame);
 		}
 	}
 
-	// queue new work
-	if (NewWork != nullptr)
-	{
-		GThreadPool->AddQueuedWork(NewWork);
-	}
+	WorkPool.Push(&CompletedWork);
 }

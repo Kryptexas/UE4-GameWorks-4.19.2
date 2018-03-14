@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "OVR_Audio.h"
 #include "CoreMinimal.h"
@@ -13,16 +13,17 @@ static const TCHAR* GetOculusErrorString(ovrResult Result)
 	switch (Result)
 	{
 		default:
-		case ovrError_AudioUnknown:			return TEXT("Unknown Error");
-		case ovrError_AudioInvalidParam:	return TEXT("Invalid Param");
-		case ovrError_AudioBadSampleRate:	return TEXT("Bad Samplerate");
-		case ovrError_AudioMissingDLL:		return TEXT("Missing DLL");
-		case ovrError_AudioBadAlignment:	return TEXT("Pointers did not meet 16 byte alignment requirements");
-		case ovrError_AudioUninitialized:	return TEXT("Function called before initialization");
-		case ovrError_AudioHRTFInitFailure: return TEXT("HRTF Profider initialization failed");
-		case ovrError_AudioBadVersion:		return TEXT("Bad audio version");
-		case ovrError_AudioSRBegin:			return TEXT("Sample rate begin");
-		case ovrError_AudioSREnd:			return TEXT("Sample rate end");
+		case ovrError_AudioUnknown:			                return TEXT("Unknown Error");
+		case ovrError_AudioInvalidParam:	                return TEXT("Invalid Param");
+		case ovrError_AudioBadSampleRate:	                return TEXT("Bad Samplerate");
+		case ovrError_AudioMissingDLL:		                return TEXT("Missing DLL");
+		case ovrError_AudioBadAlignment:	                return TEXT("Pointers did not meet 16 byte alignment requirements");
+		case ovrError_AudioUninitialized:	                return TEXT("Function called before initialization");
+		case ovrError_AudioHRTFInitFailure:                 return TEXT("HRTF Profider initialization failed");
+		case ovrError_AudioBadVersion:		                return TEXT("Bad audio version");
+        case ovrError_AudioSymbolNotFound:	                return TEXT("DLL symbol not found");
+        case ovrError_SharedReverbDisabled:	                return TEXT("Shared reverb disabled");
+        case ovrError_AudioNoAvailableAmbisonicInstance:	return TEXT("No available Ambisonic");\
 	}
 }
 

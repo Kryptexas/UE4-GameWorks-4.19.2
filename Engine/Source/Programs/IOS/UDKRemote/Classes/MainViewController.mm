@@ -1,5 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
+//  Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 //
 //  MainViewController.m
 //  UDKRemote
@@ -10,8 +9,6 @@
 #import "MainViewController.h"
 #import "UDKRemoteAppDelegate.h"
 //#import <MediaPlayer/MediaPlayer.h>
-#import "Engine.h"
-#import "IPhoneAsyncTask.h"
 #include <netdb.h>          // getaddrinfo, struct addrinfo, AI_NUMERICHOST
 
 
@@ -73,6 +70,7 @@ struct FMessageQueue
 @synthesize ResolvedNameLabel;
 @synthesize HelpLabel;
 @synthesize NavController;
+@synthesize InfoButton;
 @synthesize MotionManager;
 @synthesize ReferenceAttitude;
 @synthesize MotionTimer;
@@ -80,6 +78,7 @@ struct FMessageQueue
 @synthesize ResolvedAddrString;
 @synthesize ReceiveData;
 @synthesize Background;
+@synthesize FlipsidePopoverController;
 
 
 
@@ -88,12 +87,78 @@ static FMessage GRingBuffer[RING_BUFFER_NUM_ELEMENTS];
 
 static void SocketDataCallback(CFSocketRef Socket, CFSocketCallBackType CallbackType, CFDataRef Addr, const void* Data, void* UserInfo);
 
-- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil 
+/**
+ * Helper function to get the formatted port string
+ */
+-(NSString*) GetPortsString
+{
+	NSString* OutPortsString = [[NSString alloc]initWithString:@""];
+	for( int i = 0; i < [AppDelegate.Ports count]; i++ )
+	{
+		OutPortsString = [NSString stringWithFormat:@"%@%@", OutPortsString, [AppDelegate.Ports objectAtIndex:i]];
+		if( i < [AppDelegate.Ports count]-1 )
+		{
+			OutPortsString = [NSString stringWithFormat:@"%@%@", OutPortsString, @", "];
+		}
+	}
+	return OutPortsString;
+}
+
+- (void)SpinUpThreads
+{
+	// create the send socket
+	if (PushSocket != NULL)
+	{
+		CFSocketInvalidate(PushSocket);
+		CFRelease(PushSocket);
+	}
+	PushSocket = CFSocketCreate(NULL, 0, SOCK_DGRAM, 0, kCFSocketNoCallBack, NULL, NULL);
+	
+	// make it so when a socket dies on device sleep, we get an error when using it instead of a SIGPIPE exception
+	int NoSigPipe = 1;
+	setsockopt(CFSocketGetNative(PushSocket), SOL_SOCKET, SO_NOSIGPIPE, &NoSigPipe, sizeof(NoSigPipe));
+	
+	// create the listen socket
+	if (ReplySocket != NULL)
+	{
+		CFSocketInvalidate(ReplySocket);
+		CFRelease(ReplySocket);
+	}
+	CFSocketContext Context = { 0, (__bridge void*)self, NULL, NULL, NULL };
+	ReplySocket = CFSocketCreate(NULL, 0, SOCK_DGRAM, 0, kCFSocketDataCallBack, SocketDataCallback, &Context);
+	
+	
+	// bind to the port
+	sockaddr_in ServerAddress;
+	memset(&ServerAddress, 0, sizeof(ServerAddress));
+	ServerAddress.sin_len = sizeof(ServerAddress);
+	ServerAddress.sin_family = AF_INET;
+	// @todo: we should use port 0 and let it choose a port, then send it to the PC every second or something (using CFSocketCopyAddress to get the address that contains the port)
+	ServerAddress.sin_port = htons(41764);
+	ServerAddress.sin_addr.s_addr = htonl(INADDR_ANY);
+	NSData *AddressData = [NSData dataWithBytes:&ServerAddress length:sizeof(ServerAddress)];
+	if (CFSocketSetAddress(ReplySocket, (__bridge CFDataRef)AddressData) != kCFSocketSuccess)
+	{
+		NSLog(@"Failed to set addr");
+	}
+	
+	// hook uip RunLoop source for our callbacks, etc
+	CFRunLoopRef RunLoop = CFRunLoopGetCurrent();
+	if (ReplySource != NULL)
+	{
+		CFRunLoopRemoveSource(RunLoop, ReplySource, kCFRunLoopCommonModes);
+		CFRelease(ReplySource);
+	}
+	ReplySource = CFSocketCreateRunLoopSource(kCFAllocatorDefault, ReplySocket, 0);
+	CFRunLoopAddSource(RunLoop, ReplySource, kCFRunLoopCommonModes);
+}
+
+- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
 {
     if ((self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil])) 
 	{
 		// initialization
-		SocketAddrData = NULL;
+		SocketAddrData[0] = SocketAddrData[1] = SocketAddrData[2] = SocketAddrData[3] = SocketAddrData[4] = NULL;
 		AppDelegate = ((UDKRemoteAppDelegate*)[UIApplication sharedApplication].delegate);
 		
 		// make sure arrays are NULLed out
@@ -111,73 +176,26 @@ static void SocketDataCallback(CFSocketRef Socket, CFSocketCallBackType Callback
 			TouchImageViews[Index].hidden = YES;
 		}
 
-		// create the send socket
-        PushSocket = CFSocketCreate(NULL, 0, SOCK_DGRAM, 0, kCFSocketNoCallBack, NULL, NULL);
-		
-		// create the listen socket
-		CFSocketContext Context = { 0, self, NULL, NULL, NULL };	
-        ReplySocket = CFSocketCreate(NULL, 0, SOCK_DGRAM, 0, kCFSocketDataCallBack, SocketDataCallback, &Context);
-		
-		// bind to the port
-		sockaddr_in ServerAddress;
-		memset(&ServerAddress, 0, sizeof(ServerAddress));
-		ServerAddress.sin_len = sizeof(ServerAddress);
-		ServerAddress.sin_family = AF_INET;
-		// @todo: we should use port 0 and let it choose a port, then send it to the PC every second or something (using CFSocketCopyAddress to get the address that contains the port)
-		ServerAddress.sin_port = htons(41764); 
-		ServerAddress.sin_addr.s_addr = htonl(INADDR_ANY);
-		NSData *AddressData = [NSData dataWithBytes:&ServerAddress length:sizeof(ServerAddress)];
-		if (CFSocketSetAddress(ReplySocket, (CFDataRef)AddressData) != kCFSocketSuccess)
-		{
-			NSLog(@"Failed to set addr");
-		}
-
-		// hook uip RunLoop source for our callbacks, etc
-		CFRunLoopRef RunLoop = CFRunLoopGetCurrent();
-		CFRunLoopSourceRef Source = CFSocketCreateRunLoopSource(kCFAllocatorDefault, ReplySocket, 0);
-		CFRunLoopAddSource(RunLoop, Source, kCFRunLoopCommonModes);
-		CFRelease(Source);
+		PushSocket = ReplySocket = NULL;
+		ReplySource = NULL;
+		[self SpinUpThreads];
 
 		// start up a timer to ping other end
-		self.MotionTimer = [NSTimer scheduledTimerWithTimeInterval:3.0f target:self selector:@selector(OnPingTimer:) userInfo:nil repeats:YES];		
+		self.PingTimer = [NSTimer scheduledTimerWithTimeInterval:3.0f target:self selector:@selector(OnPingTimer:) userInfo:nil repeats:YES];		
 
-		// start up CoreMotion if possible
-		float DeviceVersion = [[[UIDevice currentDevice] systemVersion] floatValue];
-		if (DeviceVersion >= 4.0f)
+		// gyro is now a required capability, so just use it
+//		assert(MotionManager.deviceMotionAvailable);
+		MotionManager.deviceMotionUpdateInterval = 1.0 / 30.0;
+		[MotionManager startDeviceMotionUpdates];
+
+		// turn on the gyro if it's there
+		if (MotionManager.gyroAvailable)
 		{
-			// create the motion manager and retain it in a propert
-			self.MotionManager = [[CMMotionManager alloc] init];
-			[self.MotionManager release];
-			
-			// see if the hardware has what it needs for Motion, otherwise, just go back to the accelerometer as pre-4.0
-			if (MotionManager.deviceMotionAvailable)
-			{
-				MotionManager.deviceMotionUpdateInterval = 1.0 / 30.0;
-				[MotionManager startDeviceMotionUpdates];
-			
-				// turn on the gyro if it's there
-				if (MotionManager.gyroAvailable)
-				{
-					[MotionManager startGyroUpdates];
-				}
-				
-				// start up a timer to pull CM data from
-				self.MotionTimer = [NSTimer scheduledTimerWithTimeInterval:MotionManager.deviceMotionUpdateInterval target:self selector:@selector(OnMotionTimer:) userInfo:nil repeats:YES];
-			}
-			else 
-			{
-				// if there's no Motion available, toss the MotionManager and use the acceleration callbacks
-				self.MotionManager = nil;
-			}
+			[MotionManager startGyroUpdates];
 		}
 
-		// register for accelerometer messages if not using accelerometer
-		if (self.MotionManager == nil)
-		{
-			// @todo: Make this and CMMotion rate be configurable
-			[[UIAccelerometer sharedAccelerometer] setUpdateInterval:1.0 / 30.0];
-			[[UIAccelerometer sharedAccelerometer] setDelegate:self];			
-		}
+		// start up a timer to pull CM data from
+		self.MotionTimer = [NSTimer scheduledTimerWithTimeInterval:MotionManager.deviceMotionUpdateInterval target:self selector:@selector(OnMotionTimer:) userInfo:nil repeats:YES];
     }
 	
     return self;
@@ -194,7 +212,17 @@ static void SocketDataCallback(CFSocketRef Socket, CFSocketCallBackType Callback
 
 - (void)flipsideViewControllerDidFinish:(FlipsideViewController *)controller 
 {
-	[self dismissModalViewControllerAnimated:YES];
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) 
+	{
+        [self dismissViewControllerAnimated:YES completion:nil];
+    }
+	else
+	{
+        [self.FlipsidePopoverController dismissPopoverAnimated:YES];
+    }
+
+	// resolve any new addresses
+	[self UpdateSocketAddr];
 }
 
 - (void)viewWillAppear:(BOOL)animated
@@ -206,20 +234,53 @@ static void SocketDataCallback(CFSocketRef Socket, CFSocketCallBackType Callback
 }
 
 
-- (IBAction)showInfo
+-(void)FlipController:(BOOL)bIsAnimated sender:(id)sender
 {
-/*
-	NSURL* URL = [NSURL URLWithString:@"http://qthttp.akamai.com.edgesuite.net/iphone_demo/Video_Content/discovery/B02C36_12682301401197_Surrounded_By_Storms/hd/B02C36_12682301401197_Surrounded_By_Storms.mov"];
-	MPMoviePlayerController* MoviePlayer = [[MPMoviePlayerController alloc] initWithContentURL:URL];
-	MoviePlayer.fullscreen = YES;
-	[[MoviePlayer view] setFrame:self.view.frame]; 
-	[self.view addSubview:[MoviePlayer view]];
-	[MoviePlayer play];
-*/	
-	[self presentModalViewController:self.NavController animated:YES];
+	/*
+	 NSURL* URL = [NSURL URLWithString:@"http://qthttp.akamai.com.edgesuite.net/iphone_demo/Video_Content/discovery/B02C36_12682301401197_Surrounded_By_Storms/hd/B02C36_12682301401197_Surrounded_By_Storms.mov"];
+	 MPMoviePlayerController* MoviePlayer = [[MPMoviePlayerController alloc] initWithContentURL:URL];
+	 MoviePlayer.fullscreen = YES;
+	 [[MoviePlayer view] setFrame:self.view.frame];
+	 [self.view addSubview:[MoviePlayer view]];
+	 [MoviePlayer play];
+	 */
+	
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone)
+	{
+		[self presentViewController:self.NavController animated:bIsAnimated completion:nil];
+		//        UIViewController *controller = [[UIViewController alloc] initWithNibName:@"UIViewController" bundle:nil];
+		//        [self presentModalViewController:controller animated:YES];
+    }
+	else
+	{
+        if (!self.FlipsidePopoverController)
+		{
+			//            UIViewController *controller = [[UIViewController alloc] initWithNibName:@"Flipside" bundle:nil];
+			//            self.flipsidePopoverController = [[UIPopoverController alloc] initWithContentViewController:controller];
+            
+            self.FlipsidePopoverController = [[UIPopoverController alloc] initWithContentViewController:self.NavController];
+			self.FlipsidePopoverController.delegate = (FlipsideViewController*)self.NavController;
+        }
+		
+        if ([self.FlipsidePopoverController isPopoverVisible])
+		{
+            [self.FlipsidePopoverController dismissPopoverAnimated:bIsAnimated];
+        }
+		else
+		{
+            [self.FlipsidePopoverController presentPopoverFromRect:[sender frame] inView:self.view permittedArrowDirections:UIPopoverArrowDirectionAny animated:bIsAnimated];
+        }
+    }
+	
+	
+	//	[self presentModalViewController:self.NavController animated:YES];
+
 }
 
-
+- (IBAction)showInfo:(id)sender
+{
+	[self FlipController:YES sender:sender];
+}
 - (void)didReceiveMemoryWarning 
 {
 	// Releases the view if it doesn't have a superview.
@@ -275,7 +336,7 @@ static void SocketDataCallback(CFSocketRef Socket, CFSocketCallBackType Callback
 		CFArrayRef Addresses = CFHostGetAddressing(ResolvingHost, &bWasResolved);
 		if (bWasResolved)
 		{
-			int NumAddresses = CFArrayGetCount(Addresses);
+			int NumAddresses = (int)CFArrayGetCount(Addresses);
 			
 			// look for the first IPv4 address
 			for (int AddressIndex = 0; AddressIndex < NumAddresses; AddressIndex++)
@@ -292,20 +353,34 @@ static void SocketDataCallback(CFSocketRef Socket, CFSocketCallBackType Callback
 				{
 					sockaddr_in ResolvedAddrWithPort;
 					memcpy(&ResolvedAddrWithPort, ResolvedSockAddr, ResolvedSockAddr->sa_len);
-					ResolvedAddrWithPort.sin_port = htons(AppDelegate.Port);
 					
-					// make a CFData object usable by CFSocket to send to
-					SocketAddrData = CFDataCreate(NULL, (UInt8*)&ResolvedAddrWithPort, ResolvedAddrWithPort.sin_len);
-
+					UInt8 PortCount = [AppDelegate.Ports count];
+					if( PortCount > 0 )
+					{
+						for( int i = 0; i < [AppDelegate.Ports count]; i++ )
+						{
+							short Port = [[AppDelegate.Ports objectAtIndex:i] intValue];
+							ResolvedAddrWithPort.sin_port = htons(Port);
+					
+							// make a CFData object usable by CFSocket to send to
+							SocketAddrData[i] = CFDataCreate(NULL, (UInt8*)&ResolvedAddrWithPort, ResolvedAddrWithPort.sin_len);
+						}							
+					}
+					
 					// turn it into a string
 					char AddressBuffer[128];
 					getnameinfo((sockaddr*)&ResolvedAddrWithPort, ResolvedAddrWithPort.sin_len, AddressBuffer, 128, NULL, 0, NI_NUMERICHOST);
 					
 					self.ResolvedAddrString = [NSString stringWithFormat:@"%s", AddressBuffer];
+
 								
 					// put string into the label
 					self.ResolvedNameLabel.textColor = [UIColor yellowColor];
-					self.ResolvedNameLabel.text = [NSString stringWithFormat:@"%@:%d [Waiting for connection...]", self.ResolvedAddrString, AppDelegate.Port];
+					
+					NSString* PortsString = [self GetPortsString];//[[NSString alloc] initWithString: @""];
+					
+
+					self.ResolvedNameLabel.text = [NSString stringWithFormat:@"%@:%@ [Waiting for connection...]", self.ResolvedAddrString, PortsString];
 					self.HelpLabel.textColor = [UIColor cyanColor];
 					if (AppDelegate.bShouldIgnoreTilt && !AppDelegate.bShouldIgnoreTouch)
 					{
@@ -352,7 +427,7 @@ static void SocketDataCallback(CFSocketRef Socket, CFSocketCallBackType Callback
  */
 static void MyCFHostClientCallBack(CFHostRef Host, CFHostInfoType TypeInfo, const CFStreamError *Error, void *UserInfo)
 {
-	MainViewController* Controller = (MainViewController*)UserInfo;
+	MainViewController* Controller = (__bridge MainViewController*)UserInfo;
 	[Controller OnResolveComplete:Error];
 }
 
@@ -370,10 +445,9 @@ static void MyCFHostClientCallBack(CFHostRef Host, CFHostInfoType TypeInfo, cons
 	}
 	
 	// kill the old data
-	if (SocketAddrData)
+	for (int i = 0; i < ARRAY_COUNT( SocketAddrData ); i++ )
 	{
-		CFRelease(SocketAddrData);
-		SocketAddrData = NULL;
+		SocketAddrData[i] = NULL;
 	}
 
 	// update the ip addr from the other view
@@ -402,10 +476,10 @@ static void MyCFHostClientCallBack(CFHostRef Host, CFHostInfoType TypeInfo, cons
 	self.HelpLabel.textColor = [UIColor yellowColor];
 	
 	// make a new host object to resolve
-	ResolvingHost = CFHostCreateWithName(NULL, (CFStringRef)HostName);
+	ResolvingHost = CFHostCreateWithName(NULL, (__bridge CFStringRef)HostName);
 	
 	// set up async resolution callback
-    CFHostClientContext Context = { 0, self, CFRetain, CFRelease, NULL };	
+    CFHostClientContext Context = { 0, (__bridge void*)self, CFRetain, CFRelease, NULL };
 	if (!CFHostSetClient(ResolvingHost, MyCFHostClientCallBack, &Context))
 	{
 		self.ResolvedNameLabel.text = @"Failed to setup resolution...";
@@ -447,11 +521,13 @@ static void MyCFHostClientCallBack(CFHostRef Host, CFHostInfoType TypeInfo, cons
 	if ([NetData length] == 5)
 	{
 		char AddressBuffer[128];
-		getnameinfo((sockaddr*)[Addr bytes], [Addr length], AddressBuffer, 128, NULL, 0, NI_NUMERICHOST);
+		getnameinfo((sockaddr*)[Addr bytes], (int)[Addr length], AddressBuffer, 128, NULL, 0, NI_NUMERICHOST);
 		
 		// put string into the label
 		self.ResolvedNameLabel.textColor = [UIColor cyanColor];
-		self.ResolvedNameLabel.text = [NSString stringWithFormat:@"Connected to %s:%d", AddressBuffer, AppDelegate.Port];		
+		NSString* PortsString = [self GetPortsString];
+		
+		self.ResolvedNameLabel.text = [NSString stringWithFormat:@"Connected to %s:%@", AddressBuffer, PortsString];		
 		
 		return;
 	}
@@ -490,8 +566,8 @@ static void MyCFHostClientCallBack(CFHostRef Host, CFHostInfoType TypeInfo, cons
  */
 static void SocketDataCallback(CFSocketRef Socket, CFSocketCallBackType CallbackType, CFDataRef Addr, const void* Data, void* UserInfo)
 {
-	MainViewController* Controller = (MainViewController*)UserInfo;
-	[Controller OnReceivedData:(NSData*)Data FromAddr:(NSData*)Addr];
+	MainViewController* Controller = (__bridge MainViewController*)UserInfo;
+	[Controller OnReceivedData:(__bridge NSData*)Data FromAddr:(__bridge NSData*)Addr];
 }
 
 /**
@@ -505,7 +581,10 @@ static void SocketDataCallback(CFSocketRef Socket, CFSocketCallBackType Callback
 	{
 		bIsConnected = NO;
 		self.ResolvedNameLabel.textColor = [UIColor yellowColor];
-		self.ResolvedNameLabel.text = [NSString stringWithFormat:@"%@:%d [Waiting for connection...]", self.ResolvedAddrString, AppDelegate.Port];
+		
+		NSString* PortsString = [self GetPortsString];
+		
+		self.ResolvedNameLabel.text = [NSString stringWithFormat:@"%@:%@ [Waiting for connection...]", self.ResolvedAddrString, PortsString];
 	}
 	
 	// send a ping to PC
@@ -549,7 +628,7 @@ static void SocketDataCallback(CFSocketRef Socket, CFSocketCallBackType Callback
 	Message.DataType = DataType;
 	Message.Handle = Handle;
 	Message.DeviceOrientation = (unsigned char)[[UIDevice currentDevice] orientation];
-	Message.UIOrientation = (unsigned char)self.interfaceOrientation;
+	Message.UIOrientation = (unsigned char)[UIApplication sharedApplication].statusBarOrientation;
 	if (Data && DataSize)
 	{
 		memcpy(Message.Data, Data, DataSize);		
@@ -579,7 +658,14 @@ static void SocketDataCallback(CFSocketRef Socket, CFSocketCallBackType Callback
 	// send as many times as we want
 	for (int SendIndex = 0; SendIndex < NumTimesToSend; SendIndex++)
 	{
-		CFSocketSendData(PushSocket, SocketAddrData, (CFDataRef)PushData, 0);				
+		for( int i = 0; i < ARRAY_COUNT( SocketAddrData ) && SocketAddrData[i] != NULL; i++ )
+		{
+			// in the case that the socket was killed (from sleep), this will return -1, so try to recreate it
+			if (CFSocketSendData(PushSocket, (CFDataRef)SocketAddrData[i], (__bridge CFDataRef)PushData, 0) == -1)
+			{
+				[self SpinUpThreads];
+			}
+		}
 	}
 }
 
@@ -688,81 +774,10 @@ static void SocketDataCallback(CFSocketRef Socket, CFSocketCallBackType Callback
 	{
 		bRecenterPitchAndRoll = YES;
 	}
-
-}
-
-// UIAccelerometerDelegate method, called when the device accelerates.
--(void)accelerometer:(UIAccelerometer *)accelerometer didAccelerate:(UIAcceleration *)acceleration
-{
-	// Update any pending threads
-	[IPhoneAsyncTask TickAsyncTasks];
-
-	if (!AppDelegate.bShouldIgnoreTilt)
-	{
-		// mimic the UE3 iPhone acceleration code
-		
-		// how much to filter this acceleration
-		float VectorFilter = bHasInitializedFilter ? 0.85f : 0.0f;
-		bHasInitializedFilter = YES;
-		
-		FilteredAccelerometer[0] = VectorFilter * FilteredAccelerometer[0] + (1.0f - VectorFilter) * acceleration.x;
-		FilteredAccelerometer[1] = VectorFilter * FilteredAccelerometer[1] + (1.0f - VectorFilter) * acceleration.y;
-		FilteredAccelerometer[2] = VectorFilter * FilteredAccelerometer[2] + (1.0f - VectorFilter) * acceleration.z;
-		
-		float Vector[3];
-		Vector[0] = -FilteredAccelerometer[0];
-		Vector[1] = -FilteredAccelerometer[1];
-		Vector[2] = -FilteredAccelerometer[2];
-		
-		float SquareSum = Vector[0] * Vector[0] + Vector[1] * Vector[1] + Vector[2] * Vector[2];
-		if (SquareSum > (1.e-8))
-		{
-			float InvSqrt = 1.0f / sqrt(SquareSum);
-			Vector[0] *= InvSqrt;
-			Vector[1] *= InvSqrt;
-			Vector[2] *= InvSqrt;
-		}
-		
-		// calculate pitch and roll
-		float Data[5];
-		Data[0] = acceleration.x;
-		Data[1] = acceleration.y;
-		Data[2] = acceleration.z;
-		
-		float CurrentPitch = atan2(Vector[1], Vector[2]);
-		float CurrentRoll = -atan2(Vector[0], Vector[2]);
-
-		if (bRecenterPitchAndRoll)
-		{
-			CenterPitch = CurrentPitch;
-			CenterRoll = CurrentRoll;
-			bRecenterPitchAndRoll = NO;
-		}
-		
-		Data[3] = CurrentPitch - CenterPitch;
-		Data[4] = CurrentRoll - CenterRoll;
-		
-		
-		// send it over
-		[self PushData:DT_Tilt Data:Data DataSize:sizeof(Data) UniqueTouchHandle:0];
-	}
-	
-/*
-    // Update the accelerometer graph view
-    if(!isPaused)
-    {
-        [filter addAcceleration:acceleration];
-        [unfiltered addX:acceleration.x y:acceleration.y z:acceleration.z];
-        [filtered addX:filter.x y:filter.y z:filter.z];
-    }
- */
 }
 
 - (void)OnMotionTimer:(NSTimer*)Timer
 {
-	// Update any pending threads
-	[IPhoneAsyncTask TickAsyncTasks];
-
 	if (!AppDelegate.bShouldIgnoreTilt)
 	{
 		// get the CMMotion data
@@ -819,6 +834,7 @@ static void SocketDataCallback(CFSocketRef Socket, CFSocketCallBackType Callback
 	self.HostNameLabel = nil;
 	self.ResolvedNameLabel = nil;
 	self.HelpLabel = nil;
+	self.FlipsidePopoverController = nil;
 }
 
 
@@ -835,5 +851,9 @@ static void SocketDataCallback(CFSocketRef Socket, CFSocketCallBackType Callback
 	CFRelease(PushSocket);
 }
 
+- (BOOL)prefersStatusBarHidden
+{
+	return YES;
+}
 
 @end

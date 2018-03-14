@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IpConnection.cpp: Unreal IP network connection.
@@ -196,10 +196,11 @@ FString UIpConnection::LowLevelDescribe()
 	Socket->GetAddress(*LocalAddr);
 	return FString::Printf
 	(
-		TEXT("url=%s remote=%s local=%s state: %s"),
+		TEXT("url=%s remote=%s local=%s uniqueid=%s state: %s"),
 		*URL.Host,
 		*RemoteAddr->ToString(true),
 		*LocalAddr->ToString(true),
+		*PlayerId->ToDebugString(),
 			State==USOCK_Pending	?	TEXT("Pending")
 		:	State==USOCK_Open		?	TEXT("Open")
 		:	State==USOCK_Closed		?	TEXT("Closed")

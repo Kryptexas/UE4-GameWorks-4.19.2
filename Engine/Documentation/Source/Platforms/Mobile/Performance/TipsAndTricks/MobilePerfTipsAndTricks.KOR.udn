@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Title: 모바일 퍼포먼스 팁과 정보
 Description:Unreal Match 3 게임에서 지원되는 모바일 디바이스에 최적의 퍼포먼스를 내기 위해 활용했던 최적화 기법입니다.
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
@@ -9,40 +9,7 @@ parent:Platforms/Mobile
 order:6
 type:overview
 tags:mobile
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Platforms/Mobile/Performance/TipsAndTricks:title%](Platforms/Mobile/Performance/TipsAndTricks/perf_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Mobile/Performance/TipsAndTricks:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Mobile/Performance/TipsAndTricks:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Mobile/Performance/TipsAndTricks]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Platforms/Mobile/Ads:title%](Platforms/Mobile/Performance/TipsAndTricks/perf_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Mobile/Performance/TipsAndTricks:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Mobile/Performance/TipsAndTricks:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Mobile/Performance/TipsAndTricks]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:perf_topic.png
 
 이 글에는 Unreal Match 3 (언리얼 매치 3) 게임에서 지원되는 모바일 디바이스에서 플레이할 때 가능한 한 최상의 퍼포먼스를 내도록 하기 위해 활용된 최적화 기법을 담고 있습니다.
 
@@ -140,13 +107,15 @@ iPhone 6 가 iPhone 4 보다 강력하기 때문에 6 에서는 다수의 세팅
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [REGION:imagetable]
 | ![](PLOD_Base_00.png) | ![](PLOD_LOD_00.png) |
 | --- | --- |
 | Base | LOD 1 |
 [/REGION]
--->
+
+[/COMMENT]
 
 위 그림은 저사양 디바이스에서 현재 선택된 보석을 표시할 때 **P_Selected_Title** 파티클 이펙트를 어떻게 최적화시켰는지 보여줍니다. 왼쪽 이미지는 원본 **P_Selected_Title** 파티클 이펙트로, 고사양 디바이스 용입니다. 이 그림을 자세히 보시면 파티클 이펙트에 작은 흰색 사각형이 몇몇 보일 것입니다. 이제 오른편 이미지를 보시면 **P_Selected_Title** 라는 이펙트는 같지만 이번에는 작은 흰색 사각형이 없습니다. 언리얼 매치 3 가 저사양 디바이스에서 더욱 잘 실행될 수 있도록 이펙트에서 완전히 제거해 버렸기 때문입니다. 자 이제 절반의 작업이 끝났습니다. 다음에는 어떤 모바일 디바이스에서 원본 파티클 이펙트를 사용하고, 어떤 모바일 디바이스에서는 그 원본을 기반으로 한 여러가지 LOD 를 사용할 것인지 정의해야 합니다. 그러기 위해 먼저 DefaultDeviceProfile.ini 를 텍스트 에디터에서 열고 **Android_Low DeviceProfile** 항목을 찾아봅니다. 아래 그림과 같습니다.
 
@@ -187,10 +156,12 @@ Android Device Profile 섹션의 중저사양 디바이스 항목을 살펴보�
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [REGION:imagetable]
 | ![](Lighting_Default_Theme.png)(w:320) | ![](Lighting_Night_Theme.png)(w:320) |
 | --- | --- |
 | 기본 테마 | 밤 테마 |
 [/REGION]
--->
+
+[/COMMENT]

@@ -1,4 +1,4 @@
-Availability:Public
+﻿Availability:Public
 TItle:NVIDIA Ansel Plugin Overview
 Description:Overview of the Unreal Engine 4 integration of NVIDIA's Ansel in-game photography tool that enables capturing and sharing enhanced images from games.
 Crumbs:
@@ -114,6 +114,3 @@ Some filters, such as the **Custom** filter, have additional settings that can
 
 The default Ansel plugin configuration is meant to provide a sane out-of-the-box experience for typical projects but for the best player experience it should be configured for your game's needs and potentially integrated with your game logic. See the [](Engine/Plugins/Ansel/Reference/ConsoleVariables) and [](Engine/Plugins/Ansel/Reference/BlueprintAPI) for information on the available options and logic hooks.
 
-## Publishing your game with Ansel photography
-
-Studios, please contact the [NVIDIA Ansel team](mailto:ansel@nvidia.com) to arrange for your title's Ansel support to be universally whitelisted for all players.

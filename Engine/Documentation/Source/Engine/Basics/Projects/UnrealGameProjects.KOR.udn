@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3454520
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:언리얼 게임 프로젝트
 Crumbs: %ROOT%, Engine
@@ -6,45 +6,10 @@ Description:게임 프로젝트에 대한 개요 및 그 작업을 위한 지침
 version: 4.9
 parent:Engine/Editor
 order:8
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Basics/Projects:title%](Engine/Basics/Projects/project_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Basics/Projects:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Basics/Projects:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Basics/Projects]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Basics/Projects:title%](Engine/Basics/Projects/project_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Basics/Projects:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Basics/Projects:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Basics/Projects]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:project_topic.png
+related:Engine/Basics/Projects/CreatingTemplates
+related:Programming/Development/CompilingProjects
+related:Programming/Development/ManagingGameCode
 
 [EXCERPT:Main]
 [EXCERPT:Intro]
@@ -53,8 +18,6 @@ order:8
 
 [/EXCERPT:Intro]
 
-
-[REGION:topics half]
 %Engine/Basics/Projects/Browser:topic%
 [OBJECT:Topic]
 	[PARAM:image]
@@ -70,25 +33,10 @@ order:8
 		[RELATIVE:Engine/Basics/Projects/Packaging]
 	[/PARAM]
 [/OBJECT]
-[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/related_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		관련 글타래
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/Basics/Projects/CreatingTemplates "%Engine/Basics/Projects/CreatingTemplates:description%")
-	* [](Programming/Development/CompilingProjects "%Programming/Development/CompilingProjects:description%")
-	* [](Programming/Development/ManagingGameCode "%Programming/Development/ManagingGameCode:description%")
-	[/PARAM]
-[/OBJECT]
 
-<!--
+[COMMENT:none]
+
 프로젝트의 유형은 둘 중 하나입니다:
 
 * **콘텐츠 전용** - 모든 개발이 에디터에서 맵, 아트 애셋, 블루프린트 등과 같은 콘텐츠 애셋을 사용하여 이루어지는 프로젝트입니다.
@@ -99,6 +47,7 @@ order:8
 [/REGION]
 
 
--->
+
+[/COMMENT]
 
 [/EXCERPT:Main]

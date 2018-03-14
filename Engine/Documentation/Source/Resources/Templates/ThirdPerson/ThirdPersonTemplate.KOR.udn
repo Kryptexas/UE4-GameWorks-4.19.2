@@ -1,50 +1,11 @@
-﻿INTSourceChangelist:3112291
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:삼인칭
 Crumbs:%ROOT%
 Description:여러가지 예제 씬, 샘플 게임, 튜토리얼에 대한 링크입니다.
 Navigation:topic
 Version: 4.9
-
-
-[VAR:Params]
-[PARAM:image]
-	![](TP_ThirdPersonBP_Preview.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/tutorial_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Resources/Templates/ThirdPerson:title%
-[/PARAM]
-[PARAM:description]
-	%Resources/Templates/ThirdPerson:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Resources/Templates/ThirdPerson]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:Role]
-[OBJECT:Role]
-%params%
-[PARAMLITERAL:id]
-resources
-[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
+topic-image:TP_ThirdPersonBP_Preview.png
 
 ![](templateMore.PNG)(convert:false)
 
@@ -73,9 +34,4 @@ resources
 	* 프로시저럴 콘텐츠
 	* 커버 시스템
 
-<!--
 
-* Create a [particle effect](Engine/Rendering/ParticleSystems), using the [Cascade Particle Editor](Engine/Rendering/ParticleSystems/Cascade), that represents a muzzle flash! Then using a [Particle System Component](Engine/Components/Rendering#particlesystemcomponent), add it to the **FirstPersonCharacter** Blueprint, and Activate the component in the **InputAction Fire** Event.
-	* Bonus: Add a Particle System Component to the **FirstPersonProjectile** to make it look like it trails smoke behind it. Look for the **Use Local Space** property [here](Engine/Rendering/ParticleSystems/Reference/Modules/Required).
-
--->

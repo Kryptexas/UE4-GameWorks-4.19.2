@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AndroidWebBrowserWidget.h"
 #include "AndroidWebBrowserWindow.h"
@@ -9,6 +9,14 @@
 #include "AndroidJava.h"
 #include "Async.h"
 #include "ScopeLock.h"
+#include "RHICommandList.h"
+#include "RenderingThread.h"
+#include "ExternalTexture.h"
+#include "SlateTextures.h"
+#include "SlateMaterialBrush.h"
+#include "SharedPointer.h"
+#include "Materials/MaterialExpressionTextureSample.h"
+#include "WebBrowserTextureSample.h"
 
 // For UrlDecode
 #include "Http.h"
@@ -34,6 +42,56 @@ TSharedPtr<SAndroidWebBrowserWidget> SAndroidWebBrowserWidget::GetWidgetPtr(JNIE
 
 SAndroidWebBrowserWidget::~SAndroidWebBrowserWidget()
 {
+	if (JavaWebBrowser.IsValid())
+	{
+		if (GSupportsImageExternal && !FAndroidMisc::ShouldUseVulkan())
+		{
+			// Unregister the external texture on render thread
+			FTextureRHIRef VideoTexture = JavaWebBrowser->GetVideoTexture();
+
+			JavaWebBrowser->SetVideoTexture(nullptr);
+			JavaWebBrowser->Release();
+
+			struct FReleaseVideoResourcesParams
+			{
+				FTextureRHIRef VideoTexture;
+				FGuid PlayerGuid;
+			};
+
+			FReleaseVideoResourcesParams ReleaseVideoResourcesParams = { VideoTexture, WebBrowserTexture->GetExternalTextureGuid() };
+
+			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(AndroidWebBrowserWriteVideoSample,
+				FReleaseVideoResourcesParams, Params, ReleaseVideoResourcesParams,
+				{
+					FExternalTextureRegistry::Get().UnregisterExternalTexture(Params.PlayerGuid);
+					// @todo: this causes a crash
+					//					Params.VideoTexture->Release();
+				});
+		}
+		else
+		{
+			JavaWebBrowser->SetVideoTexture(nullptr);
+			JavaWebBrowser->Release();
+		}
+
+	}
+	delete TextureSamplePool;
+	TextureSamplePool = nullptr;
+	
+	WebBrowserTextureSamplesQueue->RequestFlush();
+
+	if (WebBrowserMaterial != nullptr)
+	{
+		WebBrowserMaterial->RemoveFromRoot();
+		WebBrowserMaterial = nullptr;
+	}
+
+	if (WebBrowserTexture != nullptr)
+	{
+		WebBrowserTexture->RemoveFromRoot();
+		WebBrowserTexture = nullptr;
+	}
+
 	FScopeLock L(&WebControlsCS);
 	AllWebControls.Remove(reinterpret_cast<jlong>(this));
 }
@@ -45,24 +103,77 @@ void SAndroidWebBrowserWidget::Construct(const FArguments& Args)
 		AllWebControls.Add(reinterpret_cast<jlong>(this), StaticCastSharedRef<SAndroidWebBrowserWidget>(AsShared()));
 	}
 
+	IsAndroid3DBrowser = true;
 	WebBrowserWindowPtr = Args._WebBrowserWindow;
 	HistorySize = 0;
 	HistoryPosition = 0;
+	
+	FIntPoint viewportSize = WebBrowserWindowPtr.Pin()->GetViewportSize();
+	JavaWebBrowser = MakeShared<FJavaAndroidWebBrowser, ESPMode::ThreadSafe>(false, FAndroidMisc::ShouldUseVulkan(), viewportSize.X, viewportSize.Y,
+		reinterpret_cast<jlong>(this), !(UE_BUILD_SHIPPING || UE_BUILD_TEST), Args._UseTransparency);
 
-	JWebView.Emplace("com/epicgames/ue4/WebViewControl", "(JZZ)V", reinterpret_cast<jlong>(this), !(UE_BUILD_SHIPPING || UE_BUILD_TEST), Args._UseTransparency);
-	JWebView_Update = JWebView->GetClassMethod("Update", "(IIII)V");
-	JWebView_ExecuteJavascript = JWebView->GetClassMethod("ExecuteJavascript", "(Ljava/lang/String;)V");
-	JWebView_LoadURL = JWebView->GetClassMethod("LoadURL", "(Ljava/lang/String;)V");
-	JWebView_LoadString = JWebView->GetClassMethod("LoadString", "(Ljava/lang/String;Ljava/lang/String;)V");
-	JWebView_StopLoad = JWebView->GetClassMethod("StopLoad", "()V");
-	JWebView_Reload = JWebView->GetClassMethod("Reload", "()V");
-	JWebView_Close = JWebView->GetClassMethod("Close", "()V");
-	JWebView_GoBackOrForward = JWebView->GetClassMethod("GoBackOrForward", "(I)V");
-	JWebView->CallMethod<void>(JWebView_LoadURL.GetValue(), FJavaClassObject::GetJString(Args._InitialURL));
+	TextureSamplePool = new FWebBrowserTextureSamplePool();
+	WebBrowserTextureSamplesQueue = MakeShared<FWebBrowserTextureSampleQueue, ESPMode::ThreadSafe>();
+	WebBrowserTexture = nullptr;
+	WebBrowserMaterial = nullptr;
+	WebBrowserBrush = nullptr;
+
+	// create external texture
+	WebBrowserTexture = NewObject<UWebBrowserTexture>((UObject*)GetTransientPackage(), NAME_None, RF_Transient | RF_Public);
+
+	if (WebBrowserTexture != nullptr)
+	{
+		WebBrowserTexture->UpdateResource();
+		WebBrowserTexture->AddToRoot();
+	}
+
+	// create wrapper material
+	UMaterial* Material = LoadObject<UMaterial>(nullptr, TEXT("/WebBrowserWidget/WebTexture_M"), nullptr, LOAD_None, nullptr);
+	if (Material)
+	{
+		// create wrapper material
+		WebBrowserMaterial = UMaterialInstanceDynamic::Create(Material, nullptr);
+
+		if (WebBrowserMaterial)
+		{
+			WebBrowserMaterial->SetTextureParameterValue("SlateUI", WebBrowserTexture);
+			WebBrowserMaterial->AddToRoot();
+
+			// create Slate brush
+			WebBrowserBrush = MakeShareable(new FSlateBrush());
+			{
+				WebBrowserBrush->SetResourceObject(WebBrowserMaterial);
+			}
+		}
+	}
+	
+	check(JavaWebBrowser.IsValid());
+
+	JavaWebBrowser->LoadURL(Args._InitialURL);
 }
 
-int32 SAndroidWebBrowserWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+void SAndroidWebBrowserWidget::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
+	if (WebBrowserWindowPtr.IsValid() && WebBrowserWindowPtr.Pin()->GetParentWindow().IsValid())
+	{
+		bool ShouldSetAndroid3DBrowser = WebBrowserWindowPtr.Pin()->GetParentWindow().Get()->IsVirtualWindow();
+		if(IsAndroid3DBrowser != ShouldSetAndroid3DBrowser)
+		{
+			IsAndroid3DBrowser = ShouldSetAndroid3DBrowser;
+			JavaWebBrowser->SetAndroid3DBrowser(IsAndroid3DBrowser);
+		}
+	}
+
+	if (!JavaWebBrowser.IsValid())
+	{	
+		return;
+	}
+	// deal with resolution changes (usually from streams)
+	if (JavaWebBrowser->DidResolutionChange())
+	{
+		JavaWebBrowser->SetVideoTextureValid(false);
+	}
+
 	// Calculate UIScale, which can vary frame-to-frame thanks to device rotation
 	// UI Scale is calculated relative to vertical axis of 1280x720 / 720x1280
 	float UIScale;
@@ -86,8 +197,197 @@ int32 SAndroidWebBrowserWidget::OnPaint(const FPaintArgs& Args, const FGeometry&
 	// Convert size to integer taking the rounding of position into account to avoid double round-down or double round-up causing a noticeable error.
 	FIntPoint IntSize = FIntPoint(FMath::RoundToInt(Position.X + Size.X), FMath::RoundToInt(Size.Y + Position.Y)) - IntPos;
 
-	JWebView->CallMethod<void>(JWebView_Update.GetValue(), IntPos.X, IntPos.Y, IntSize.X, IntSize.Y);
+	JavaWebBrowser->Update(IntPos.X, IntPos.Y, IntSize.X, IntSize.Y);
 
+
+	if (IsAndroid3DBrowser)
+	{
+		if (WebBrowserTexture)
+		{
+			TSharedPtr<FWebBrowserTextureSample, ESPMode::ThreadSafe> WebBrowserTextureSample;
+			WebBrowserTextureSamplesQueue->Peek(WebBrowserTextureSample);
+
+			WebBrowserTexture->TickResource(WebBrowserTextureSample);
+		}
+
+		if (FAndroidMisc::ShouldUseVulkan())
+		{
+			// create new video sample
+			auto NewTextureSample = TextureSamplePool->AcquireShared();
+
+			FIntPoint viewportSize = WebBrowserWindowPtr.Pin()->GetViewportSize();
+
+			if (!NewTextureSample->Initialize(viewportSize))
+			{
+				return;
+			}
+
+			struct FWriteWebBrowserParams
+			{
+				TWeakPtr<FJavaAndroidWebBrowser, ESPMode::ThreadSafe> JavaWebBrowserPtr;
+				TWeakPtr<FWebBrowserTextureSampleQueue, ESPMode::ThreadSafe> WebBrowserTextureSampleQueuePtr;
+				TSharedRef<FWebBrowserTextureSample, ESPMode::ThreadSafe> NewTextureSamplePtr;
+				int32 SampleCount;
+			}
+			WriteWebBrowserParams = { JavaWebBrowser, WebBrowserTextureSamplesQueue, NewTextureSample, (int32)(viewportSize.X * viewportSize.Y * sizeof(int32)) };
+
+			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(WriteAndroidWebBrowser, FWriteWebBrowserParams, Params, WriteWebBrowserParams,
+			{
+				auto PinnedJavaWebBrowser = Params.JavaWebBrowserPtr.Pin();
+				auto PinnedSamples = Params.WebBrowserTextureSampleQueuePtr.Pin();
+
+				if (!PinnedJavaWebBrowser.IsValid() || !PinnedSamples.IsValid())
+				{
+					return;
+				}
+
+				bool bRegionChanged = false;
+
+				// write frame into buffer
+				void* Buffer = nullptr;
+				int64 SampleCount = 0;
+
+				if (!PinnedJavaWebBrowser->GetVideoLastFrameData(Buffer, SampleCount, &bRegionChanged))
+				{
+					FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Fetch RT: ShouldUseVulkan couldn't get texture buffer"));
+					return;
+				}
+
+				if (SampleCount != Params.SampleCount)
+				{
+					FPlatformMisc::LowLevelOutputDebugStringf(TEXT("SAndroidWebBrowserWidget::Fetch: Sample count mismatch (Buffer=%llu, Available=%llu"), Params.SampleCount, SampleCount);
+				}
+				check(Params.SampleCount <= SampleCount);
+
+				// must make a copy (buffer is owned by Java, not us!)
+				Params.NewTextureSamplePtr->InitializeBuffer(Buffer, true);
+
+				PinnedSamples->RequestFlush();
+				PinnedSamples->Enqueue(Params.NewTextureSamplePtr);
+			});
+		}
+		else if (GSupportsImageExternal && WebBrowserTexture != nullptr)
+		{
+			struct FWriteWebBrowserParams
+			{
+				TWeakPtr<FJavaAndroidWebBrowser, ESPMode::ThreadSafe> JavaWebBrowserPtr;
+				FGuid PlayerGuid;
+				FIntPoint Size;
+			};
+
+			FIntPoint viewportSize = WebBrowserWindowPtr.Pin()->GetViewportSize();
+
+			FWriteWebBrowserParams WriteWebBrowserParams = { JavaWebBrowser, WebBrowserTexture->GetExternalTextureGuid(), viewportSize };
+			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(WriteAndroidWebBrowser, FWriteWebBrowserParams, Params, WriteWebBrowserParams,
+			{
+				auto PinnedJavaWebBrowser = Params.JavaWebBrowserPtr.Pin();
+
+				if (!PinnedJavaWebBrowser.IsValid())
+				{
+					return;
+				}
+
+				FTextureRHIRef VideoTexture = PinnedJavaWebBrowser->GetVideoTexture();
+				if (VideoTexture == nullptr)
+				{
+					FRHIResourceCreateInfo CreateInfo;
+					FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+					FIntPoint Size = Params.Size;
+					VideoTexture = RHICmdList.CreateTextureExternal2D(Size.X, Size.Y, PF_R8G8B8A8, 1, 1, 0, CreateInfo);
+					PinnedJavaWebBrowser->SetVideoTexture(VideoTexture);
+
+					if (VideoTexture == nullptr)
+					{
+						UE_LOG(LogAndroid, Warning, TEXT("CreateTextureExternal2D failed!"));
+						return;
+					}
+
+					PinnedJavaWebBrowser->SetVideoTextureValid(false);
+					FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Fetch RT: Created VideoTexture: %d - %s (%d, %d)"), *reinterpret_cast<int32*>(VideoTexture->GetNativeResource()), *Params.PlayerGuid.ToString(), Size.X, Size.Y);
+				}
+
+				int32 TextureId = *reinterpret_cast<int32*>(VideoTexture->GetNativeResource());
+				bool bRegionChanged = false;
+				if (PinnedJavaWebBrowser->UpdateVideoFrame(TextureId, &bRegionChanged))
+				{
+					// if region changed, need to reregister UV scale/offset
+					FPlatformMisc::LowLevelOutputDebugStringf(TEXT("UpdateVideoFrame RT: %s"), *Params.PlayerGuid.ToString());
+					if (bRegionChanged)
+					{
+						PinnedJavaWebBrowser->SetVideoTextureValid(false);
+						FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Fetch RT: %s"), *Params.PlayerGuid.ToString());
+					}
+				}
+
+				if (!PinnedJavaWebBrowser->IsVideoTextureValid())
+				{
+					FSamplerStateInitializerRHI SamplerStateInitializer(SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp);
+					FSamplerStateRHIRef SamplerStateRHI = RHICreateSamplerState(SamplerStateInitializer);
+					FExternalTextureRegistry::Get().RegisterExternalTexture(Params.PlayerGuid, VideoTexture, SamplerStateRHI);
+					FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Fetch RT: Register Guid: %s"), *Params.PlayerGuid.ToString());
+
+					PinnedJavaWebBrowser->SetVideoTextureValid(true);
+				}
+			});
+		}
+		else
+		{
+			// create new video sample
+			auto NewTextureSample = TextureSamplePool->AcquireShared();
+
+			FIntPoint viewportSize = WebBrowserWindowPtr.Pin()->GetViewportSize();
+
+			if (!NewTextureSample->Initialize(viewportSize))
+			{
+				return;
+			}
+
+			// populate & add sample (on render thread)
+			struct FWriteWebBrowserParams
+			{
+				TWeakPtr<FJavaAndroidWebBrowser, ESPMode::ThreadSafe> JavaWebBrowserPtr;
+				TWeakPtr<FWebBrowserTextureSampleQueue, ESPMode::ThreadSafe> WebBrowserTextureSampleQueuePtr;
+				TSharedRef<FWebBrowserTextureSample, ESPMode::ThreadSafe> NewTextureSamplePtr;
+				int32 SampleCount;
+			}
+			WriteWebBrowserParams = { JavaWebBrowser, WebBrowserTextureSamplesQueue, NewTextureSample, (int32)(viewportSize.X * viewportSize.Y * sizeof(int32)) };
+
+			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(WriteAndroidWebBrowser, FWriteWebBrowserParams, Params, WriteWebBrowserParams,
+			{
+				auto PinnedJavaWebBrowser = Params.JavaWebBrowserPtr.Pin();
+				auto PinnedSamples = Params.WebBrowserTextureSampleQueuePtr.Pin();
+
+				if (!PinnedJavaWebBrowser.IsValid() || !PinnedSamples.IsValid())
+				{
+					return;
+				}
+
+				// write frame into texture
+				FRHITexture2D* Texture = Params.NewTextureSamplePtr->InitializeTexture();
+
+				if (Texture != nullptr)
+				{
+					int32 Resource = *reinterpret_cast<int32*>(Texture->GetNativeResource());
+					if (!PinnedJavaWebBrowser->GetVideoLastFrame(Resource))
+					{
+						return;
+					}
+				}
+
+				PinnedSamples->RequestFlush();
+				PinnedSamples->Enqueue(Params.NewTextureSamplePtr);
+			});
+		}
+	}
+}
+
+
+int32 SAndroidWebBrowserWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+{
+	if (IsAndroid3DBrowser && WebBrowserBrush.IsValid())
+	{
+		FSlateDrawElement::MakeBox(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), WebBrowserBrush.Get(), ESlateDrawEffect::None);
+	}
 	return LayerId;
 }
 
@@ -98,44 +398,45 @@ FVector2D SAndroidWebBrowserWidget::ComputeDesiredSize(float LayoutScaleMultipli
 
 void SAndroidWebBrowserWidget::ExecuteJavascript(const FString& Script)
 {
-	JWebView->CallMethod<void>(JWebView_ExecuteJavascript.GetValue(), FJavaClassObject::GetJString(Script));
+	JavaWebBrowser->ExecuteJavascript(Script);
 }
 
 void SAndroidWebBrowserWidget::LoadURL(const FString& NewURL)
 {
-	JWebView->CallMethod<void>(JWebView_LoadURL.GetValue(), FJavaClassObject::GetJString(NewURL));
+	JavaWebBrowser->LoadURL(NewURL);
 }
 
 void SAndroidWebBrowserWidget::LoadString(const FString& Contents, const FString& BaseUrl)
 {
-	JWebView->CallMethod<void>(JWebView_LoadString.GetValue(), FJavaClassObject::GetJString(Contents), FJavaClassObject::GetJString(BaseUrl));
+	JavaWebBrowser->LoadString(Contents, BaseUrl);
 }
 
 void SAndroidWebBrowserWidget::StopLoad()
 {
-	JWebView->CallMethod<void>(JWebView_StopLoad.GetValue());
+	JavaWebBrowser->StopLoad();
 }
 
 void SAndroidWebBrowserWidget::Reload()
 {
-	JWebView->CallMethod<void>(JWebView_Reload.GetValue());
+	JavaWebBrowser->Reload();
 }
 
 void SAndroidWebBrowserWidget::Close()
 {
-	JWebView->CallMethod<void>(JWebView_Close.GetValue());
+	JavaWebBrowser->Release();
 	WebBrowserWindowPtr.Reset();
 }
 
 void SAndroidWebBrowserWidget::GoBack()
 {
-	JWebView->CallMethod<void>(JWebView_GoBackOrForward.GetValue(), -1);
+	JavaWebBrowser->GoBack();
 }
 
 void SAndroidWebBrowserWidget::GoForward()
 {
-	JWebView->CallMethod<void>(JWebView_GoBackOrForward.GetValue(), 1);
+	JavaWebBrowser->GoForward();
 }
+
 
 bool SAndroidWebBrowserWidget::CanGoBack()
 {
@@ -302,7 +603,6 @@ void SAndroidWebBrowserWidget::HandlePageLoad(jstring JUrl, bool bIsLoading, int
 	const char* JUrlChars = JEnv->GetStringUTFChars(JUrl, 0);
 	FString Url = UTF8_TO_TCHAR(JUrlChars);
 	JEnv->ReleaseStringUTFChars(JUrl, JUrlChars);
-
 	if (WebBrowserWindowPtr.IsValid())
 	{
 		TSharedPtr<FAndroidWebBrowserWindow> BrowserWindow = WebBrowserWindowPtr.Pin();
@@ -320,7 +620,6 @@ void SAndroidWebBrowserWidget::HandleReceivedError(jint ErrorCode, jstring /* ig
 	const char* JUrlChars = JEnv->GetStringUTFChars(JUrl, 0);
 	FString Url = UTF8_TO_TCHAR(JUrlChars);
 	JEnv->ReleaseStringUTFChars(JUrl, JUrlChars);
-
 	if (WebBrowserWindowPtr.IsValid())
 	{
 		TSharedPtr<FAndroidWebBrowserWindow> BrowserWindow = WebBrowserWindowPtr.Pin();

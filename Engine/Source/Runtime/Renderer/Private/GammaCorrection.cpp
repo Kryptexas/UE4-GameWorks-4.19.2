@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GammaCorrection.cpp
@@ -22,7 +22,7 @@ class FGammaCorrectionPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FGammaCorrectionPS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -64,7 +64,7 @@ class FGammaCorrectionVS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FGammaCorrectionVS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}

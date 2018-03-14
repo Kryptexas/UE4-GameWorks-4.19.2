@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ScreenshotFunctionalTest.h"
 
@@ -10,11 +10,27 @@
 #include "Engine/Engine.h"
 #include "EngineGlobals.h"
 #include "Misc/AutomationTest.h"
+#include "HighResScreenshot.h"
+#include "UnrealClient.h"
+#include "Slate/SceneViewport.h"
+#include "UObject/AutomationObjectVersion.h"
 
 AScreenshotFunctionalTest::AScreenshotFunctionalTest( const FObjectInitializer& ObjectInitializer )
 	: AScreenshotFunctionalTestBase(ObjectInitializer)
-	, bCameraCutOnScreenshotPrep(false)
+	, bCameraCutOnScreenshotPrep(true)
 {
+}
+
+void AScreenshotFunctionalTest::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FAutomationObjectVersion::GUID);
+
+	if (Ar.CustomVer(FAutomationObjectVersion::GUID) < FAutomationObjectVersion::DefaultToScreenshotCameraCutAndFixedTonemapping)
+	{
+		bCameraCutOnScreenshotPrep = true;
+	}
 }
 
 void AScreenshotFunctionalTest::PrepareTest()
@@ -43,15 +59,30 @@ void AScreenshotFunctionalTest::RequestScreenshot()
 {
 	Super::RequestScreenshot();
 
-	// Screenshots in UE4 work in this way:
-	// 1. Call FScreenshotRequest::RequestScreenshot to ask the system to take a screenshot. The screenshot
-	//    will have the same resolution as the current viewport;
-	// 2. Register a callback to UGameViewportClient::OnScreenshotCaptured() delegate. The call back will be
-	//    called with screenshot pixel data when the shot is taken;
-	// 3. Wait till the next frame or call FSceneViewport::Invalidate to force a redraw. Screenshot is not
-	//    taken until next draw where UGameViewportClient::ProcessScreenshots or
-	//    FEditorViewportClient::ProcessScreenshots is called to read pixels back from the viewport. It also
-	//    trigger the callback function registered in step 2.
-	bool bShowUI = false;
-	FScreenshotRequest::RequestScreenshot(bShowUI);
+	if(IsMobilePlatform(GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel]))
+	{
+		// For mobile, use the high res screenshot API to ensure a fixed resolution screenshot is produced.
+		// This means screenshot comparisons can compare with the output from any device.
+		FHighResScreenshotConfig& Config = GetHighResScreenshotConfig();
+		FIntPoint ScreenshotViewportSize = UAutomationBlueprintFunctionLibrary::GetAutomationScreenshotSize(ScreenshotOptions);
+		if (Config.SetResolution(ScreenshotViewportSize.X, ScreenshotViewportSize.Y, 1.0f))
+		{
+			GEngine->GameViewport->GetGameViewport()->TakeHighResScreenShot();
+		}
+	}
+	else
+	{
+		// Screenshots in UE4 work in this way:
+		// 1. Call FScreenshotRequest::RequestScreenshot to ask the system to take a screenshot. The screenshot
+		//    will have the same resolution as the current viewport;
+		// 2. Register a callback to UGameViewportClient::OnScreenshotCaptured() delegate. The call back will be
+		//    called with screenshot pixel data when the shot is taken;
+		// 3. Wait till the next frame or call FSceneViewport::Invalidate to force a redraw. Screenshot is not
+		//    taken until next draw where UGameViewportClient::ProcessScreenshots or
+		//    FEditorViewportClient::ProcessScreenshots is called to read pixels back from the viewport. It also
+		//    trigger the callback function registered in step 2.
+
+		bool bShowUI = false;
+		FScreenshotRequest::RequestScreenshot(bShowUI);
+	}
 }

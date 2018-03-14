@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3339965
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:함수 기능 덮어쓰기 및 확장
 Crumbs:%ROOT%
@@ -13,7 +13,9 @@ social-image:RoboRecallModding_Guns_Social.png
 skilllevel:Intermediate
 checkpoint:mod_extend
 
-<!-- Location: Modding/RoboRecall/Quickstarts/WeaponMod-->
+[COMMENT:none]
+ Location: Modding/RoboRecall/Quickstarts/WeaponMod
+[/COMMENT]
 
 ![](RoboRecallModding_Guns.png)
 

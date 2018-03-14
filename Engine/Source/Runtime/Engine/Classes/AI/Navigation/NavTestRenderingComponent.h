@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,11 +16,12 @@ class UCanvas;
 class UNavTestRenderingComponent;
 struct FNodeDebugData;
 
-class FNavTestSceneProxy : public FDebugRenderSceneProxy
+class FNavTestSceneProxy final : public FDebugRenderSceneProxy
 {
 	friend class FNavTestDebugDrawDelegateHelper;
 
 public:
+	SIZE_T GetTypeHash() const override;
 
 	struct FNodeDebugData
 	{
@@ -73,9 +74,9 @@ private:
 	TArray<FString> PathPointFlags;
 
 	TArray<FDynamicMeshVertex> OpenSetVerts;
-	TArray<int32> OpenSetIndices;
+	TArray<uint32> OpenSetIndices;
 	TArray<FDynamicMeshVertex> ClosedSetVerts;
-	TArray<int32> ClosedSetIndices;
+	TArray<uint32> ClosedSetIndices;
 	TSet<FNodeDebugData> NodeDebug;
 	FSetElementId BestNodeId;
 

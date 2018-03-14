@@ -1,51 +1,11 @@
-﻿INTSourceChangelist:3480676
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:ビューポートの基本
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
 Description:エディタのビューポートの基本概念と機能
 Version:4.9
 SkillLevel:Beginner
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](viewport_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor/Viewports/Basics:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor/Viewports/Basics:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor/Viewports/Basics]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](viewport_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor/Viewports/Basics:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor/Viewports/Basics:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor/Viewports/Basics]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:viewport_topic.png
 
 [TOC(start:2 end:3)]
 
@@ -82,7 +42,8 @@ SkillLevel:Beginner
 ビューポートは、![Minimize Viewport](button_minimize.png) や ![Maximize Viewport](button_maximize.png) を使用して最小化、最大化できます。 
 こうしたボタンは各ビューポートの右上隅にあります。
 
-<!--
+[COMMENT:none]
+
 [REGION:fullwidth]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -105,7 +66,8 @@ SkillLevel:Beginner
 	[/PARAM]
 [/OBJECT]
 [/REGION]
--->
+
+[/COMMENT]
 
 ## ビュー モード
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
 #include "Widgets/SBoxPanel.h"
@@ -99,7 +99,9 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 					.Marshaller( InArgs._Marshaller )
 					.Font( this, &SMultiLineEditableTextBox::DetermineFont )
 					.IsReadOnly( InArgs._IsReadOnly )
+					.AllowMultiLine( InArgs._AllowMultiLine )
 					.OnContextMenuOpening( InArgs._OnContextMenuOpening )
+					.OnIsTypedCharValid( InArgs._OnIsTypedCharValid )
 					.OnTextChanged( InArgs._OnTextChanged )
 					.OnTextCommitted( InArgs._OnTextCommitted )
 					.OnCursorMoved( InArgs._OnCursorMoved )
@@ -119,7 +121,8 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 					.VScrollBar(VScrollBar)
 					.OnHScrollBarUserScrolled(InArgs._OnHScrollBarUserScrolled)
 					.OnVScrollBarUserScrolled(InArgs._OnVScrollBarUserScrolled)
-					.OnKeyDownHandler( InArgs._OnKeyDownHandler)
+					.OnKeyCharHandler(InArgs._OnKeyCharHandler)
+					.OnKeyDownHandler(InArgs._OnKeyDownHandler)
 					.ModiferKeyForNewLine(InArgs._ModiferKeyForNewLine)
 					.VirtualKeyboardTrigger( InArgs._VirtualKeyboardTrigger )
 					.VirtualKeyboardDismissAction( InArgs._VirtualKeyboardDismissAction )
@@ -297,6 +300,11 @@ void SMultiLineEditableTextBox::SetAllowContextMenu(const TAttribute< bool >& In
 	EditableText->SetAllowContextMenu(InAllowContextMenu);
 }
 
+void SMultiLineEditableTextBox::SetVirtualKeyboardDismissAction(TAttribute<EVirtualKeyboardDismissAction> InVirtualKeyboardDismissAction)
+{
+	EditableText->SetVirtualKeyboardDismissAction(InVirtualKeyboardDismissAction);
+}
+
 void SMultiLineEditableTextBox::SetIsReadOnly(const TAttribute<bool>& InIsReadOnly)
 {
 	EditableText->SetIsReadOnly(InIsReadOnly);
@@ -460,9 +468,19 @@ void SMultiLineEditableTextBox::Refresh()
 	return EditableText->Refresh();
 }
 
+void SMultiLineEditableTextBox::SetOnKeyCharHandler(FOnKeyChar InOnKeyCharHandler)
+{
+	EditableText->SetOnKeyCharHandler(InOnKeyCharHandler);
+}
+
 void SMultiLineEditableTextBox::SetOnKeyDownHandler(FOnKeyDown InOnKeyDownHandler)
 {
 	EditableText->SetOnKeyDownHandler(InOnKeyDownHandler);
+}
+
+void SMultiLineEditableTextBox::ForceScroll(int32 UserIndex, float ScrollAxisMagnitude)
+{
+	EditableText->ForceScroll(UserIndex, ScrollAxisMagnitude);
 }
 
 #endif //WITH_FANCY_TEXT

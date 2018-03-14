@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Customizations/WidgetNavigationCustomization.h"
 #include "Widgets/Text/STextBlock.h"
@@ -82,6 +82,9 @@ FText FWidgetNavigationCustomization::GetNavigationText(TWeakPtr<IPropertyHandle
 	case EUINavigationRule::Invalid:
 		return LOCTEXT("NavigationMultipleValues", "Multiple Values");
 	case EUINavigationRule::Custom:
+		return LOCTEXT("NavigationCustom", "Custom");
+	case EUINavigationRule::CustomBoundary:
+		return LOCTEXT("NavigationCustomBoundary", "Custom Boundary");
 		break;
 	}
 
@@ -149,7 +152,14 @@ void FWidgetNavigationCustomization::OnCommitExplictWidgetText(const FText& Item
 EVisibility FWidgetNavigationCustomization::GetExplictWidgetFieldVisibility(TWeakPtr<IPropertyHandle> PropertyHandle, EUINavigation Nav) const
 {
 	EUINavigationRule Rule = GetNavigationRule(PropertyHandle, Nav);
-	return Rule == EUINavigationRule::Explicit ? EVisibility::Visible : EVisibility::Collapsed;
+	switch (Rule)
+	{
+		case EUINavigationRule::Explicit:
+		case EUINavigationRule::Custom:
+			return EVisibility::Visible;
+	}
+
+	return EVisibility::Collapsed;
 }
 
 void FWidgetNavigationCustomization::MakeNavRow(TWeakPtr<IPropertyHandle> PropertyHandle, IDetailChildrenBuilder& ChildBuilder, EUINavigation Nav, FText NavName)
@@ -214,8 +224,8 @@ TSharedRef<class SWidget> FWidgetNavigationCustomization::MakeNavMenu(TWeakPtr<I
 		FUIAction ExplicitAction(FExecuteAction::CreateSP(this, &FWidgetNavigationCustomization::HandleNavMenuEntryClicked, PropertyHandle, Nav, EUINavigationRule::Explicit));
 		MenuBuilder.AddMenuEntry(LOCTEXT("NavigationRuleExplicit", "Explicit"), LOCTEXT("NavigationRuleExplicitHint", "Navigation will go to a specified widget."), FSlateIcon(), ExplicitAction);
 
-		//FUIAction CustomAction(FExecuteAction::CreateSP(this, &FWidgetNavigationCustomization::HandleNavMenuEntryClicked, PropertyHandle, Nav, EUINavigationRule::Custom));
-		//MenuBuilder.AddMenuEntry(LOCTEXT("NavigationRuleCustom", "Custom"), LOCTEXT("NavigationRuleCustomHint", "Custom function can determine what widget is navigated to."), FSlateIcon(), CustomAction);
+		FUIAction CustomAction(FExecuteAction::CreateSP(this, &FWidgetNavigationCustomization::HandleNavMenuEntryClicked, PropertyHandle, Nav, EUINavigationRule::Custom));
+		MenuBuilder.AddMenuEntry(LOCTEXT("NavigationRuleCustom", "Custom"), LOCTEXT("NavigationRuleCustomHint", "Custom function can determine what widget is navigated to."), FSlateIcon(), CustomAction);
 	}
 
 	return MenuBuilder.MakeWidget();

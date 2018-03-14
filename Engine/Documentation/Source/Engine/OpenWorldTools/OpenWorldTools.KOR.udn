@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3178047
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 오픈 월드 툴
 Crumbs:
@@ -8,6 +8,8 @@ SkillLevel:Intermediate
 Version: 4.8
 parent:Engine
 order:9
+topic-image:Engine\OpenWorldTools\Overview\T_Kite_Demo_00.png
+
 
 ![](T_OWT_Header_00.png)
 
@@ -18,46 +20,6 @@ order:9
 참고로 오픈 월드 툴은 아직 실험단계 상태이므로, 툴 사용 도중 버그나 안전성 문제가 생길 수 있습니다.
 [/region]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-	![](Engine\OpenWorldTools\Overview\T_Kite_Demo_00.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/OpenWorldTools:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/OpenWorldTools:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/OpenWorldTools]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-	![](Engine\OpenWorldTools\Overview\T_Kite_Demo_00.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/OpenWorldTools:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/OpenWorldTools:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/OpenWorldTools]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[REGION:topics third]
 [OBJECT:Topic]
 	[PARAM:image]
 		![Engine/OpenWorldTools/Overview:title%](Engine\OpenWorldTools\Overview\T_Kite_Demo_00.png)
@@ -148,7 +110,6 @@ order:9
 	[/PARAM]
 [/OBJECT]
 
-[/REGION]
 
 
 

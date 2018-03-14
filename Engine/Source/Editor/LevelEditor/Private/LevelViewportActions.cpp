@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelViewportActions.h"
 #include "ShowFlags.h"
@@ -52,7 +52,7 @@ void FLevelViewportCommands::RegisterCommands()
 	UI_COMMAND( ViewportConfig_FourPanesBottom, "Layout Four Panes (one bottom, three top)", "Changes the viewport arrangement to four panes, one on the bottom, three on the top", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	UI_COMMAND( ViewportConfig_FourPanes2x2, "Layout Four Panes (2x2)", "Changes the viewport arrangement to four panes, in a 2x2 grid", EUserInterfaceActionType::ToggleButton, FInputChord() );
 
-	UI_COMMAND( SetDefaultViewportType, "Default Viewport", "Reconfigures this viewport to the default arrangement", EUserInterfaceActionType::RadioButton, FInputChord(EModifierKey::Shift, EKeys::D) );
+	UI_COMMAND( SetDefaultViewportType, "Default Viewport", "Reconfigures this viewport to the default arrangement", EUserInterfaceActionType::RadioButton, FInputChord() );
 
 	UI_COMMAND( ToggleViewportToolbar, "Show Toolbar", "Defines whether a toolbar should be displayed on this viewport", EUserInterfaceActionType::ToggleButton, FInputChord(EModifierKey::Control | EModifierKey::Shift, EKeys::T) );
 
@@ -62,79 +62,6 @@ void FLevelViewportCommands::RegisterCommands()
 
 	UI_COMMAND( FindInLevelScriptBlueprint, "Find In Level Script", "Finds references of a selected actor in the level script blueprint", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control, EKeys::K) );
 	UI_COMMAND( AdvancedSettings, "Advanced Settings...", "Opens the advanced viewport settings", EUserInterfaceActionType::Button, FInputChord());
-
-	// Generate a command for each buffer visualization mode
-	{
-		struct FMaterialIterator
-		{
-			const TSharedRef<class FBindingContext> Parent;
-			FLevelViewportCommands::TBufferVisualizationModeCommandMap& CommandMap;
-
-			FMaterialIterator(const TSharedRef<class FBindingContext> InParent, FLevelViewportCommands::TBufferVisualizationModeCommandMap& InCommandMap)
-				: Parent(InParent)
-				, CommandMap(InCommandMap)
-			{
-			}
-
-			void ProcessValue(const FString& InMaterialName, const UMaterial* InMaterial, const FText& InDisplayName)
-			{
-				FName ViewportCommandName = *(FString(TEXT("BufferVisualizationMenu")) + InMaterialName);
-
-				FBufferVisualizationRecord& Record = CommandMap.Add(ViewportCommandName, FBufferVisualizationRecord());
-				Record.Name = *InMaterialName;
-				const FText MaterialNameText = FText::FromString( InMaterialName );
-				Record.Command = FUICommandInfoDecl( Parent, ViewportCommandName, MaterialNameText, MaterialNameText )
-					.UserInterfaceType( EUserInterfaceActionType::RadioButton )
-					.DefaultChord( FInputChord() );
-			}
-		};
-
-
-		BufferVisualizationModeCommands.Empty();
-		FName ViewportCommandName = *(FString(TEXT("BufferVisualizationOverview")));
-		FBufferVisualizationRecord& OverviewRecord = BufferVisualizationModeCommands.Add(ViewportCommandName, FBufferVisualizationRecord());
-		OverviewRecord.Name = NAME_None;
-		OverviewRecord.Command = FUICommandInfoDecl( this->AsShared(), ViewportCommandName, LOCTEXT("BufferVisualization", "Overview"), LOCTEXT("BufferVisualization", "Overview") )
-			.UserInterfaceType( EUserInterfaceActionType::RadioButton )
-			.DefaultChord( FInputChord() );
-
-		FMaterialIterator It(this->AsShared(), BufferVisualizationModeCommands);
-		GetBufferVisualizationData().IterateOverAvailableMaterials(It);
-	}
-
-	const TArray<FShowFlagData>& ShowFlagData = GetShowFlagMenuItems();
-
-	// Generate a command for each show flag
-	for( int32 ShowFlag = 0; ShowFlag < ShowFlagData.Num(); ++ShowFlag )
-	{
-		const FShowFlagData& SFData = ShowFlagData[ShowFlag];
-
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("ShowFlagName"), SFData.DisplayName );
-		FText LocalizedName;
-		switch( SFData.Group )
-		{
-		case SFG_Visualize:
-			LocalizedName = FText::Format( LOCTEXT("VisualizeFlagLabel", "Visualize {ShowFlagName}"), Args );
-			break;
-		default:
-			LocalizedName = FText::Format( LOCTEXT("ShowFlagLabel", "Show {ShowFlagName}"), Args );
-			break;
-		}
-
-		//@todo Slate: The show flags system does not support descriptions currently
-		const FText ShowFlagDesc;
-
-		TSharedPtr<FUICommandInfo> ShowFlagCommand 
-			= FUICommandInfoDecl( this->AsShared(), SFData.ShowFlagName, LocalizedName, ShowFlagDesc )
-			.UserInterfaceType( EUserInterfaceActionType::ToggleButton )
-			.DefaultChord( SFData.InputChord )
-			.Icon(SFData.Group == EShowFlagGroup::SFG_Normal ?
-						FSlateIcon(FEditorStyle::GetStyleSetName(), FEditorStyle::Join( GetContextName(), TCHAR_TO_ANSI( *FString::Printf( TEXT(".%s"), *SFData.ShowFlagName.ToString() ) ) ) ) :
-						FSlateIcon());
-
-		ShowFlagCommands.Add( FLevelViewportCommands::FShowMenuCommand( ShowFlagCommand, SFData.DisplayName ) );
-	}
 
 	// Generate a command for each volume class
 	{
@@ -152,29 +79,6 @@ void FLevelViewportCommands::RegisterCommands()
 	{
 		UI_COMMAND( ShowAllSprites, "Show All Sprites", "Shows all sprites", EUserInterfaceActionType::Button, FInputChord() );
 		UI_COMMAND( HideAllSprites, "Hide All Sprites", "Hides all sprites", EUserInterfaceActionType::Button, FInputChord() );
-
-		// get all the known layers
-		// Get a fresh list as GUnrealEd->SortedSpriteInfo may not yet be built.
-		TArray<FSpriteCategoryInfo> SortedSpriteInfo;
-		UUnrealEdEngine::MakeSortedSpriteInfo(SortedSpriteInfo);
-
-		FString SpritePrefix = TEXT("ShowSprite_");
-		for( int32 InfoIndex = 0; InfoIndex < SortedSpriteInfo.Num(); ++InfoIndex )
-		{
-			const FSpriteCategoryInfo& SpriteInfo = SortedSpriteInfo[InfoIndex];
-
-			const FName CommandName = FName( *(SpritePrefix + SpriteInfo.Category.ToString()) );
-
-			FFormatNamedArguments Args;
-			Args.Add( TEXT("SpriteName"), SpriteInfo.DisplayName );
-			const FText LocalizedName = FText::Format( NSLOCTEXT("UICommands", "SpriteShowFlagName", "Show {SpriteName} Sprites"), Args );
-
-			TSharedPtr<FUICommandInfo> ShowSpriteCommand 
-				= FUICommandInfoDecl( this->AsShared(), CommandName, LocalizedName, SpriteInfo.Description )
-				.UserInterfaceType( EUserInterfaceActionType::ToggleButton );
-
-			ShowSpriteCommands.Add( FLevelViewportCommands::FShowMenuCommand( ShowSpriteCommand, SpriteInfo.DisplayName ) );
-		}
 	}
 
 	// Generate a command for each Stat category
@@ -354,6 +258,36 @@ void FLevelViewportCommands::RegisterShowVolumeCommands()
 				.UserInterfaceType(EUserInterfaceActionType::ToggleButton);
 
 			ShowVolumeCommands.Add(FLevelViewportCommands::FShowMenuCommand(ShowVolumeCommand, DisplayName));
+		}
+	}
+}
+
+void FLevelViewportCommands::RegisterShowSpriteCommands()
+{
+	// get all the known layers
+	// Get a fresh list as GUnrealEd->SortedSpriteInfo may not yet be built.
+	TArray<FSpriteCategoryInfo> SortedSpriteInfo;
+	UUnrealEdEngine::MakeSortedSpriteInfo(SortedSpriteInfo);
+
+	FString SpritePrefix = TEXT("ShowSprite_");
+	for (int32 InfoIndex = 0; InfoIndex < SortedSpriteInfo.Num(); ++InfoIndex)
+	{
+		const FSpriteCategoryInfo& SpriteInfo = SortedSpriteInfo[InfoIndex];
+		const FName CommandName = FName(*(SpritePrefix + SpriteInfo.Category.ToString()));
+
+		// Only add a command if there is none already for this sprite class.
+		TSharedPtr<FUICommandInfo> FoundSpriteCommand = FInputBindingManager::Get().FindCommandInContext(this->AsShared()->GetContextName(), CommandName);
+		if (!FoundSpriteCommand.IsValid())
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("SpriteName"), SpriteInfo.DisplayName);
+			const FText LocalizedName = FText::Format(NSLOCTEXT("UICommands", "SpriteShowFlagName", "Show {SpriteName} Sprites"), Args);
+
+			TSharedPtr<FUICommandInfo> ShowSpriteCommand
+				= FUICommandInfoDecl(this->AsShared(), CommandName, LocalizedName, SpriteInfo.Description)
+				.UserInterfaceType(EUserInterfaceActionType::ToggleButton);
+
+			ShowSpriteCommands.Add(FLevelViewportCommands::FShowMenuCommand(ShowSpriteCommand, SpriteInfo.DisplayName));
 		}
 	}
 }

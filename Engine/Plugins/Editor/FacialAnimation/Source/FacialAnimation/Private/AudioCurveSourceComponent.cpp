@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AudioCurveSourceComponent.h"
 #include "Sound/SoundWave.h"
@@ -38,23 +38,20 @@ void UAudioCurveSourceComponent::CacheCurveData()
 	// we only support preroll with sound waves (and derived classes) as these are the
 	// only types where we can properly determine correct sound waves up-front (sound 
 	// cues etc. can be randomized etc.)
-	if (USoundWave* SoundWave = Cast<USoundWave>(Sound))
+	if (UCurveTable* CurveData = Sound ? Sound->GetCurveData() : nullptr)
 	{
-		if (SoundWave->Curves != nullptr)
-		{
-			CachedCurveTable = SoundWave->Curves;
+		CachedCurveTable = CurveData;
 
-			// cache audio sync curve
-			static const FName AudioSyncCurve(TEXT("Audio"));
-			FRichCurve** RichCurvePtr = SoundWave->Curves->RowMap.Find(AudioSyncCurve);
-			if (RichCurvePtr != nullptr && *RichCurvePtr != nullptr)
-			{
-				CachedSyncPreRoll = (*RichCurvePtr)->GetFirstKey().Time;
-			}
+		// cache audio sync curve
+		static const FName AudioSyncCurve(TEXT("Audio"));
+		FRichCurve** RichCurvePtr = CurveData->RowMap.Find(AudioSyncCurve);
+		if (RichCurvePtr != nullptr && *RichCurvePtr != nullptr)
+		{
+			CachedSyncPreRoll = (*RichCurvePtr)->GetFirstKey().Time;
 		}
 
-		CachedDuration = SoundWave->Duration;
-		bCachedLooping = SoundWave->IsLooping();
+		CachedDuration = Sound->Duration;
+		bCachedLooping = Sound->IsLooping();
 	}
 }
 
@@ -143,7 +140,7 @@ void UAudioCurveSourceComponent::TickComponent(float DeltaTime, enum ELevelTick 
 
 void UAudioCurveSourceComponent::HandlePlaybackPercent(const UAudioComponent* InComponent, const USoundWave* InSoundWave, const float InPlaybackPercentage)
 {
-	CachedCurveTable = InSoundWave->Curves;
+	CachedCurveTable = InSoundWave->GetCurveData();
 	CachedDuration = InSoundWave->Duration;
 	CachedCurveEvalTime = CurveSyncOffset + Delay + (InPlaybackPercentage * InSoundWave->Duration);
 	bCachedLooping = const_cast<USoundWave*>(InSoundWave)->IsLooping();

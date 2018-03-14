@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "HierarchicalLODProxyProcessor.h"
 #include "Misc/ScopeLock.h"
@@ -47,6 +47,7 @@ bool FHierarchicalLODProxyProcessor::Tick(float DeltaTime)
 				check(StaticMesh != nullptr);
 				MainMesh = StaticMesh;
 			}
+			AssetObject->RemoveFromRoot();
 		}
 		check(MainMesh != nullptr);
 
@@ -120,7 +121,7 @@ void FHierarchicalLODProxyProcessor::ProcessProxy(const FGuid InGuid, TArray<UOb
 		// If so push the job onto the processing queue
 		FProcessData* Data = *DataPtr;
 		JobActorMap.Remove(InGuid);
-		if (Data && Data->LODActor)
+		if (Data && Data->LODActor && InAssetsToSync.Num())
 		{
 			Data->AssetObjects = InAssetsToSync;
 			ToProcessJobs.Push(Data);
@@ -137,6 +138,11 @@ FCreateProxyDelegate& FHierarchicalLODProxyProcessor::GetCallbackDelegate()
 	}
 
 	return CallbackDelegate;
+}
+
+bool FHierarchicalLODProxyProcessor::IsProxyGenerationRunning() const
+{
+	return JobActorMap.Num() > 0 || ToProcessJobs.Num() > 0;
 }
 
 void FHierarchicalLODProxyProcessor::OnMapChange(uint32 MapFlags)

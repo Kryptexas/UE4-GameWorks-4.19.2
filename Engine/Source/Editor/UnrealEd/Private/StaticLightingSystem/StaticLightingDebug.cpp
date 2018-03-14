@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticLightingDebug.cpp: Code for debugging static lighting
@@ -202,7 +202,7 @@ void SetDebugLightmapSample(TArray<UActorComponent*>* Components, UModel* Model,
 
 				if (LightmapSizeX > 0 && LightmapSizeY > 0 
 					&& StaticMesh->LightMapCoordinateIndex >= 0 
-					&& (uint32)StaticMesh->LightMapCoordinateIndex < LODModel.VertexBuffer.GetNumTexCoords()
+					&& (uint32)StaticMesh->LightMapCoordinateIndex < LODModel.VertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords()
 					)
 				{
 					bUseTextureMap = true;
@@ -226,9 +226,9 @@ void SetDebugLightmapSample(TArray<UActorComponent*>* Components, UModel* Model,
 						uint32 Index2 = Indices[TriangleIndex + 2];
 
 						// Transform positions to world space
-						FVector Position0 = SMComponent->GetComponentTransform().TransformPosition(LODModel.PositionVertexBuffer.VertexPosition(Index0));
-						FVector Position1 = SMComponent->GetComponentTransform().TransformPosition(LODModel.PositionVertexBuffer.VertexPosition(Index1));
-						FVector Position2 = SMComponent->GetComponentTransform().TransformPosition(LODModel.PositionVertexBuffer.VertexPosition(Index2));
+						FVector Position0 = SMComponent->GetComponentTransform().TransformPosition(LODModel.VertexBuffers.PositionVertexBuffer.VertexPosition(Index0));
+						FVector Position1 = SMComponent->GetComponentTransform().TransformPosition(LODModel.VertexBuffers.PositionVertexBuffer.VertexPosition(Index1));
+						FVector Position2 = SMComponent->GetComponentTransform().TransformPosition(LODModel.VertexBuffers.PositionVertexBuffer.VertexPosition(Index2));
 
 						float PlaneDistance;
 						FVector BaryCentricWeights;
@@ -251,9 +251,9 @@ void SetDebugLightmapSample(TArray<UActorComponent*>* Components, UModel* Model,
 						uint32 Index2 = Indices[ClosestPlaneTriangleIndex + 2];
 
 						// Fetch lightmap UV's
-						FVector2D LightmapUV0 = LODModel.VertexBuffer.GetVertexUV(Index0, StaticMesh->LightMapCoordinateIndex);
-						FVector2D LightmapUV1 = LODModel.VertexBuffer.GetVertexUV(Index1, StaticMesh->LightMapCoordinateIndex);
-						FVector2D LightmapUV2 = LODModel.VertexBuffer.GetVertexUV(Index2, StaticMesh->LightMapCoordinateIndex);
+						FVector2D LightmapUV0 = LODModel.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(Index0, StaticMesh->LightMapCoordinateIndex);
+						FVector2D LightmapUV1 = LODModel.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(Index1, StaticMesh->LightMapCoordinateIndex);
+						FVector2D LightmapUV2 = LODModel.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(Index2, StaticMesh->LightMapCoordinateIndex);
 						// Interpolate lightmap UV's to the click location
 						FVector2D InterpolatedUV = LightmapUV0 * ClosestPlaneBaryCentricWeights.X + LightmapUV1 * ClosestPlaneBaryCentricWeights.Y + LightmapUV2 * ClosestPlaneBaryCentricWeights.Z;
 
@@ -292,9 +292,9 @@ void SetDebugLightmapSample(TArray<UActorComponent*>* Components, UModel* Model,
 					uint32 Index1 = Indices[SelectedTriangle + 1];
 					uint32 Index2 = Indices[SelectedTriangle + 2];
 
-					FVector2D LightmapUV0 = LODModel.VertexBuffer.GetVertexUV(Index0, StaticMesh->LightMapCoordinateIndex);
-					FVector2D LightmapUV1 = LODModel.VertexBuffer.GetVertexUV(Index1, StaticMesh->LightMapCoordinateIndex);
-					FVector2D LightmapUV2 = LODModel.VertexBuffer.GetVertexUV(Index2, StaticMesh->LightMapCoordinateIndex);
+					FVector2D LightmapUV0 = LODModel.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(Index0, StaticMesh->LightMapCoordinateIndex);
+					FVector2D LightmapUV1 = LODModel.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(Index1, StaticMesh->LightMapCoordinateIndex);
+					FVector2D LightmapUV2 = LODModel.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(Index2, StaticMesh->LightMapCoordinateIndex);
 
 					FVector BaryCentricWeights;
 					BaryCentricWeights.X = FMath::FRandRange(0, 1);

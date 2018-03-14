@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -95,6 +95,13 @@ public:
 	* @return Plugins directory.
 	*/
 	static FString EnterprisePluginsDir();
+
+	/**
+	* Returns the enterprise FeaturePack directory
+	*
+	* @return FeaturePack directory.
+	*/
+	static FString EnterpriseFeaturePackDir();
 
 	/**
 	 * Returns the root directory of the engine directory tree
@@ -563,4 +570,9 @@ private:
 		static FCriticalSection Lock;
 		return &Lock; 
 	}
+
+#if WITH_EDITOR
+	/** RootPrefix used by IsRelative(). Static to minimise string allocations. */
+	static FString RootPrefix;
+#endif // WITH_EDITOR
 };

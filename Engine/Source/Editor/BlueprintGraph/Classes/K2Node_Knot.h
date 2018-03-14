@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -54,8 +54,7 @@ public:
 
 private:
 	void PropagatePinType();
-	void PropagatePinTypeFromInput();
-	void PropagatePinTypeFromOutput();
+	void PropagatePinTypeFromDirection(bool bFromInput);
 
 	/** Recursion guard boolean to prevent PropagatePinType from infinitely recursing if you manage to create a loop of knots */
 	bool bRecursionGuard;

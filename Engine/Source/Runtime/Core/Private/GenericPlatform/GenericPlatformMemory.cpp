@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GenericPlatform/GenericPlatformMemory.h"
 #include "HAL/PlatformMemory.h"
@@ -156,7 +156,7 @@ void FGenericPlatformMemory::OnOutOfMemory(uint64 Size, uint32 Alignment)
 	{
 		FPlatformMemory::BinnedFreeToOS(BackupOOMMemoryPool, FPlatformMemory::GetBackMemoryPoolSize());
 		UE_LOG(LogMemory, Warning, TEXT("Freeing %d bytes from backup pool to handle out of memory."), FPlatformMemory::GetBackMemoryPoolSize());
-		LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, BackupOOMMemoryPool, FPlatformMemory::GetBackMemoryPoolSize()));
+		LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, BackupOOMMemoryPool));
 	}
 
 	UE_LOG(LogMemory, Warning, TEXT("MemoryStats:")\
@@ -231,7 +231,7 @@ bool FGenericPlatformMemory::PageProtect(void* const Ptr, const SIZE_T Size, con
 	return false;
 }
 
-/** This structure is stored in the page before each OS allocation and checks that its properties are valid on Free. Should be less than the page size (4096 on all platforms we support) */
+/** This structure is stored in the page after each OS allocation and checks that its properties are valid on Free. Should be less than the page size (4096 on all platforms we support) */
 struct FOSAllocationDescriptor
 {
 	enum class MagicType : uint64
@@ -271,10 +271,10 @@ void* FGenericPlatformMemory::BinnedAllocFromOS( SIZE_T Size )
 
 	SIZE_T ActualSizeMapped = SizeInWholePages + ExpectedAlignment;
 
-	// allocate with the descriptor, if any
-	SIZE_T SizeWeMMaped = ActualSizeMapped + DescriptorSize;
-	void* PointerWeGotFromMMap = mmap(nullptr, SizeWeMMaped, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
-	// store these values, since in UE4_PLATFORM_REDUCE_NUMBER_OF_MAPS we cannot rely on passed pointer and size and have to maintain our own bookkeeping info
+	// the remainder of the map will be used for the descriptor, if any.
+	// we always allocate at least one page more than needed
+	void* PointerWeGotFromMMap = mmap(nullptr, ActualSizeMapped, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+	// store these values, to unmap later
 
 	Pointer = PointerWeGotFromMMap;
 	if (Pointer == MAP_FAILED)
@@ -288,51 +288,44 @@ void* FGenericPlatformMemory::BinnedAllocFromOS( SIZE_T Size )
 
 	SIZE_T Offset = (reinterpret_cast<SIZE_T>(Pointer) % ExpectedAlignment);
 
-	// See if we need to unmap anything in the front. If the pointer happened to be aligned and we are not using the descriptor, we don't need to unmap anything.
-	// If we're using a descriptor, we're fine if the pointer happened to be aligned on a offset that will allow us to get the expected alignment after accounting for the descriptor.
-	bool bHasFrontPartToUnmap = (DescriptorSize != 0) ? (Offset != ExpectedAlignment - DescriptorSize) : (Offset != 0);
-
-	if (LIKELY(bHasFrontPartToUnmap))
+	// See if we need to unmap anything in the front. If the pointer happened to be aligned, we don't need to unmap anything.
+	if (LIKELY(Offset != 0))
 	{
-		// figure out how much to unmap before the alignment. We won't unmap just enough to hold the descriptor, but this is accounted for later.
+		// figure out how much to unmap before the alignment.
 		SIZE_T SizeToNextAlignedPointer = ExpectedAlignment - Offset;
-		checkf(SizeToNextAlignedPointer >= DescriptorSize, TEXT("Internal logic error in BinnedAllocFromOS, did not leave space for the allocation descriptor"));
 		void* AlignedPointer = reinterpret_cast<void*>(reinterpret_cast<SIZE_T>(Pointer) + SizeToNextAlignedPointer);
 
 		// do not unmap if we're trying to reduce the number of distinct maps, since holes prevent the Linux kernel from coalescing two adjoining mmap()s into a single VMA
 		if (!UE4_PLATFORM_REDUCE_NUMBER_OF_MAPS)
 		{
-			// unmap the part before, but leave the space for the descriptor, if any
-			if (munmap(Pointer, SizeToNextAlignedPointer - DescriptorSize) != 0)
+			// unmap the part before
+			if (munmap(Pointer, SizeToNextAlignedPointer) != 0)
 			{
 				const int ErrNo = errno;
-				UE_LOG(LogHAL, Fatal, TEXT("munmap(addr=%p, len=%llu) failed with errno = %d (%s)"), Pointer, (uint64)(SizeToNextAlignedPointer - DescriptorSize),
+				UE_LOG(LogHAL, Fatal, TEXT("munmap(addr=%p, len=%llu) failed with errno = %d (%s)"), Pointer, (uint64)(SizeToNextAlignedPointer),
 					ErrNo, StringCast< TCHAR >(strerror(ErrNo)).Get());
 				// unreachable
 				return nullptr;
 			}
+
+			// account for reduced mmaped size
+			ActualSizeMapped -= SizeToNextAlignedPointer;
 		}
 
 		// now, make it appear as if we initially got the allocation right
 		Pointer = AlignedPointer;
-		ActualSizeMapped -= SizeToNextAlignedPointer;
-	}
-	else
-	{
-		// we still need to advance the pointer to account for the descriptor, if any
-		Pointer = reinterpret_cast<void*>(reinterpret_cast<SIZE_T>(Pointer) + DescriptorSize);
 	}
 
-	// at this point, Pointer is aligned at the expected alignment (and there's a descriptor right before it) - either we lucked out on the initial allocation
+	// at this point, Pointer is aligned at the expected alignment - either we lucked out on the initial allocation
 	// or we already got rid of the extra memory that was allocated in the front.
 	checkf((reinterpret_cast<SIZE_T>(Pointer) % ExpectedAlignment) == 0, TEXT("BinnedAllocFromOS(): Internal error: did not align the pointer as expected."));
 
 	// do not unmap if we're trying to reduce the number of distinct maps, since holes prevent the Linux kernel from coalescing two adjoining mmap()s into a single VMA
 	if (!UE4_PLATFORM_REDUCE_NUMBER_OF_MAPS)
 	{
-		// Now unmap the tail only, if any. Presence or absence of the descriptor makes no difference here since neither ActualSizeMapper nor SizeInWholePages do not account for it.
-		void* TailPtr = reinterpret_cast<void*>(reinterpret_cast<SIZE_T>(Pointer) + SizeInWholePages);
-		SIZE_T TailSize = ActualSizeMapped - SizeInWholePages;
+		// Now unmap the tail only, if any, but leave just enough space for the descriptor
+		void* TailPtr = reinterpret_cast<void*>(reinterpret_cast<SIZE_T>(Pointer) + SizeInWholePages + DescriptorSize);
+		SIZE_T TailSize = ActualSizeMapped - SizeInWholePages - DescriptorSize;
 	
 		if (LIKELY(TailSize > 0))
 		{
@@ -350,17 +343,17 @@ void* FGenericPlatformMemory::BinnedAllocFromOS( SIZE_T Size )
 	// we're done with this allocation, fill in the descriptor with the info
 	if (LIKELY(DescriptorSize > 0))
 	{
-		FOSAllocationDescriptor* AllocDescriptor = reinterpret_cast<FOSAllocationDescriptor*>(reinterpret_cast<SIZE_T>(Pointer) - DescriptorSize);
+		FOSAllocationDescriptor* AllocDescriptor = reinterpret_cast<FOSAllocationDescriptor*>(reinterpret_cast<SIZE_T>(Pointer) + Size);
 		AllocDescriptor->Magic = FOSAllocationDescriptor::MagicType::Marker;
 		if (!UE4_PLATFORM_REDUCE_NUMBER_OF_MAPS)
 		{
-			AllocDescriptor->PointerToUnmap = AllocDescriptor;
+			AllocDescriptor->PointerToUnmap = Pointer;
 			AllocDescriptor->SizeToUnmap = SizeInWholePages + DescriptorSize;
 		}
 		else
 		{
 			AllocDescriptor->PointerToUnmap = PointerWeGotFromMMap;
-			AllocDescriptor->SizeToUnmap = SizeWeMMaped;
+			AllocDescriptor->SizeToUnmap = ActualSizeMapped;
 		}
 		AllocDescriptor->OriginalSizeAsPassed = Size;
 	}
@@ -383,7 +376,7 @@ void FGenericPlatformMemory::BinnedFreeToOS( void* Ptr, SIZE_T Size )
 	{
 		const SIZE_T DescriptorSize = OSPageSize;
 
-		FOSAllocationDescriptor* AllocDescriptor = reinterpret_cast<FOSAllocationDescriptor*>(reinterpret_cast<SIZE_T>(Ptr) - DescriptorSize);
+		FOSAllocationDescriptor* AllocDescriptor = reinterpret_cast<FOSAllocationDescriptor*>(reinterpret_cast<SIZE_T>(Ptr) + Size);
 		if (UNLIKELY(AllocDescriptor->Magic != FOSAllocationDescriptor::MagicType::Marker))
 		{
 			UE_LOG(LogHAL, Fatal, TEXT("BinnedFreeToOS() has been passed an address %p (size %llu) not allocated through it."), Ptr, (uint64)Size);
@@ -400,7 +393,7 @@ void FGenericPlatformMemory::BinnedFreeToOS( void* Ptr, SIZE_T Size )
 			// this check only makes sense when we're not reducing number of maps, since the pointer will have to be different.
 			if (UE4_PLATFORM_REDUCE_NUMBER_OF_MAPS == 0)
 			{
-				if (UNLIKELY(PointerToUnmap != AllocDescriptor || SizeToUnmap != SizeInWholePages + DescriptorSize))
+				if (UNLIKELY(PointerToUnmap != Ptr || SizeToUnmap != SizeInWholePages + DescriptorSize))
 				{
 					UE_LOG(LogHAL, Fatal, TEXT("BinnedFreeToOS(): info mismatch: descriptor ptr: %p, size %llu, but our pointer is %p and size %llu."), PointerToUnmap, SizeToUnmap, AllocDescriptor, (uint64)(SizeInWholePages + DescriptorSize));
 					// unreachable
@@ -555,7 +548,7 @@ void FGenericPlatformMemory::InternalUpdateStats( const FPlatformMemoryStats& Me
 	// Generic method is empty. Implement at platform level.
 }
 
-bool FGenericPlatformMemory::IsDebugMemoryEnabled()
+bool FGenericPlatformMemory::IsExtraDevelopmentMemoryAvailable()
 {
 	return false;
 }

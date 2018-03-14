@@ -1,7 +1,8 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "UI/SLogWidget.h"
 #include "Fonts/FontMeasure.h"
+#include "Styling/CoreStyle.h"
 #include "Framework/Commands/UICommandList.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Widgets/Layout/SSpacer.h"
@@ -32,6 +33,10 @@
 
 
 // @todo #JohnBUI: Change the opacity, of background highlight for selected log entries - really ugly at the moment
+//					(unfortunately, this requires creating a new FTableRowStyle, which is a bit non-trivial)
+
+// @todo #JohnBUI: The 'failed to find text' message does not fade out properly, and hijacking ComputeVolatility does not help.
+//					Find a way to fix this, eventually.
 
 
 // Enable access to the private SEditableTextBox.EditableText variable, using the GET_PRIVATE macro
@@ -39,6 +44,9 @@ IMPLEMENT_GET_PRIVATE_VAR(SEditableTextBox, EditableText, TSharedPtr<SEditableTe
 
 // Enable access to SButton.Style
 IMPLEMENT_GET_PRIVATE_VAR(SButton, Style, const FButtonStyle*);
+
+// Enable reading SBorder.BorderBackgroundColor
+IMPLEMENT_GET_PRIVATE_VAR(SBorder, BorderBackgroundColor, TAttribute<FSlateColor>);
 
 // Enable access to SDockTab::GetCurrentStyle, using the CALL_PROTECTED macro
 IMPLEMENT_GET_PROTECTED_FUNC_CONST(SDockTab, GetCurrentStyle, const FDockTabStyle&, void,, const);
@@ -695,35 +703,29 @@ TSharedRef<SDockTab> SLogWidget::SpawnLogTab(const FSpawnTabArgs& InSpawnTabArgs
 						.OnGenerateRow_Lambda(
 							[](TSharedRef<FLogLine> Item, const TSharedRef<STableViewBase>& OwnerTable)
 							{
-								// Various types of special font formatting
-								FString FontPath;
 								ELogType CurLogType = Item->LogType;
 
+								// Various types of special font formatting
+								const int32 FontSize = 9;
+								FSlateFontInfo RenderFont = FCoreStyle::GetDefaultFontStyle("Regular", FontSize);
 								if (!!(CurLogType & ELogType::StyleMonospace))
 								{
-									FontPath = FPaths::EngineContentDir() / TEXT("Slate/Fonts/DroidSansMono.ttf");
+									RenderFont = FCoreStyle::GetDefaultFontStyle("Mono", FontSize);
 								}
 								else if (!!(CurLogType & ELogType::StyleBold) && !!(CurLogType & ELogType::StyleItalic))
 								{
-									FontPath = FPaths::EngineContentDir() / TEXT("Editor/Slate/Fonts/Roboto-BoldCondensedItalic.ttf");
+									RenderFont = FCoreStyle::GetDefaultFontStyle("BoldCondensedItalic", FontSize);
 								}
 								else if (!!(CurLogType & ELogType::StyleBold))
 								{
-									FontPath = FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf");
+									RenderFont = FCoreStyle::GetDefaultFontStyle("Bold", FontSize);
 								}
 								else if (!!(CurLogType & ELogType::StyleItalic))
 								{
-									FontPath = FPaths::EngineContentDir() / TEXT("Editor/Slate/Fonts/Roboto-Italic.ttf");
-								}
-								else
-								{
-									FontPath = FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf");
+									RenderFont = FCoreStyle::GetDefaultFontStyle("Italic", FontSize);
 								}
 
-
-								FSlateFontInfo RenderFont(FontPath, 9);
 								FString RenderText = *Item->LogLine;
-
 
 								// Pseudo-underline; just adds newline, and then underlines with lots of ----
 								if (!!(CurLogType & ELogType::StyleUnderline) && RenderText.Len() > 0)
@@ -759,6 +761,10 @@ TSharedRef<SDockTab> SLogWidget::SpawnLogTab(const FSpawnTabArgs& InSpawnTabArgs
 										[
 											SNew(STextBlock)
 												.Text(FText::FromString(RenderText))
+												.HighlightText(Item->LogHighlight.Len() > 0 ?
+													FText::FromString(Item->LogHighlight) :
+													TAttribute<FText>())
+												.HighlightColor(FLinearColor(0.f, 1.f, 0.f, 0.25f))
 												.Font(RenderFont)
 												.ColorAndOpacity(Item->LogColor)
 												.ToolTip(
@@ -822,9 +828,9 @@ TSharedRef<SDockTab> SLogWidget::SpawnLogTab(const FSpawnTabArgs& InSpawnTabArgs
 									.OnClicked_Lambda(
 										[&]()
 										{
-											auto ActiveTab = GetActiveTabInfo();
+											TSharedPtr<FLogTabInfo> ActiveTab = GetActiveTabInfo();
 
-											for (auto CurWidget : ActiveTab->FindWidgets)
+											for (TSharedPtr<SWidget>& CurWidget : ActiveTab->FindWidgets)
 											{
 												CurWidget->SetVisibility(EVisibility::Collapsed);
 											}
@@ -832,6 +838,15 @@ TSharedRef<SDockTab> SLogWidget::SpawnLogTab(const FSpawnTabArgs& InSpawnTabArgs
 											if (bAutoScroll)
 											{
 												ScrollToEnd(ActiveTab.ToSharedRef());
+											}
+
+											if (ActiveTab->bHighlightFind)
+											{
+												UpdateFindHighlight(ActiveTab, false);
+											}
+											else
+											{
+												ActiveTab->LogListView->RequestListRefresh();
 											}
 
 											return FReply::Handled();
@@ -903,6 +918,40 @@ TSharedRef<SDockTab> SLogWidget::SpawnLogTab(const FSpawnTabArgs& InSpawnTabArgs
 										})
 								]
 
+							/**
+							 * Highlight checkbox
+							 */
+							+SHorizontalBox::Slot()
+								.HAlign(HAlign_Left)
+								.VAlign(VAlign_Center)
+								.Padding(2.f, 2.f)
+								.AutoWidth()
+								[
+									SAssignNew(ArrayAddNew(CurTabInfo->FindWidgets), STextBlock)
+									.Visibility(EVisibility::Collapsed)
+									.Text(FText::FromString(FString(TEXT("Highlight:"))))
+								]
+							+SHorizontalBox::Slot()
+								.HAlign(HAlign_Left)
+								.VAlign(VAlign_Center)
+								.Padding(2.f, 2.f)
+								.AutoWidth()
+								[
+									SAssignNew(ArrayAddNew(CurTabInfo->FindWidgets), SCheckBox)
+									.Visibility(EVisibility::Collapsed)
+									.IsChecked((CurTabInfo->bHighlightFind ? ECheckBoxState::Checked : ECheckBoxState::Unchecked))
+									.OnCheckStateChanged_Lambda(
+									[&](ECheckBoxState NewHighlightState)
+									{
+										TSharedPtr<FLogTabInfo> ActiveTab = GetActiveTabInfo();
+										bool bHighlight = (NewHighlightState == ECheckBoxState::Checked);
+
+										ActiveTab->bHighlightFind = bHighlight;
+
+										UpdateFindHighlight(ActiveTab, bHighlight, ActiveTab->LastFind);
+									})
+								]
+
 							+SHorizontalBox::Slot()
 								.HAlign(HAlign_Left)
 								.VAlign(VAlign_Center)
@@ -913,35 +962,67 @@ TSharedRef<SDockTab> SLogWidget::SpawnLogTab(const FSpawnTabArgs& InSpawnTabArgs
 									.Visibility(EVisibility::Collapsed)
 								]
 
-							/**
-							 * Find edit box
-							 */
 							 +SHorizontalBox::Slot()
 								.HAlign(HAlign_Fill)
 								.VAlign(VAlign_Center)
 								.Padding(2.0f, 0.0f)
 								[
-									SAssignNew(CurTabInfo->FindBox, SEditableTextBox)
-									.Visibility(EVisibility::Collapsed)
-									.HintText(FText::FromString(TEXT("Find")))
-									.ToolTipText(FText::FromString(TEXT("Finds the specified text, within the current log tab.")))
-									.ClearKeyboardFocusOnCommit(false)
-									.OnTextCommitted_Lambda(
-										[&](const FText& InText, ETextCommit::Type InCommitType)
-										{
-											if (InCommitType == ETextCommit::OnEnter)
+
+									SNew(SOverlay)
+									/**
+									 * Find edit box
+									 */
+									+SOverlay::Slot()
+									[
+										SAssignNew(CurTabInfo->FindBox, SEditableTextBox)
+										.Visibility(EVisibility::Collapsed)
+										.HintText(FText::FromString(TEXT("Find")))
+										.ToolTipText(FText::FromString(TEXT("Finds the specified text, within the current log tab.")))
+										.ClearKeyboardFocusOnCommit(false)
+										.OnTextCommitted_Lambda(
+											[&](const FText& InText, ETextCommit::Type InCommitType)
 											{
-												auto ActiveTabInfo = GetActiveTabInfo();
-												ScrollToText(ActiveTabInfo.ToSharedRef(), InText.ToString(),
-																ActiveTabInfo->bLastFindWasUp);
-											}
-										})
+												if (InCommitType == ETextCommit::OnEnter)
+												{
+													auto ActiveTabInfo = GetActiveTabInfo();
+													ScrollToText(ActiveTabInfo.ToSharedRef(), InText.ToString(),
+																	ActiveTabInfo->bLastFindWasUp);
+												}
+											})
+									]
+
+									/**
+									 * Find error label
+									 */
+									+SOverlay::Slot()
+									.HAlign(HAlign_Right)
+									[
+										SNew(SHorizontalBox)
+										+SHorizontalBox::Slot()
+											.HAlign(HAlign_Right)
+											.VAlign(VAlign_Center)
+											.Padding(2.f, 2.f)
+											.AutoWidth()
+										[
+											SAssignNew(CurTabInfo->FindErrorLabel, SBorder)
+											.Visibility(EVisibility::Collapsed)
+											.Padding(TabStyle->TabPadding)
+											.BorderImage(&TabStyle->ForegroundBrush)
+											.BorderBackgroundColor(FLinearColor(1.f, 1.f, 1.f, 1.f))
+											[
+												SAssignNew(CurTabInfo->FindErrorText, STextBlock)
+												.ColorAndOpacity(FLinearColor(1.f, 0.5f, 0.f, 1.f))
+											]
+										]
+									]
 								]
 						]
 					]
 			];
 
 	CurTabInfo->FindWidgets.Add(CurTabInfo->FindBox);
+	CurTabInfo->FindWidgets.Add(CurTabInfo->FindErrorLabel);
+	CurTabInfo->FindWidgets.Add(CurTabInfo->FindErrorText);
 	CurTabInfo->TabWidget = ReturnVal;
 
 	// Disable the close button on the tab - a bit hacky, as need to 'manually' find the button (here it's identified by its style)
@@ -1009,10 +1090,10 @@ void SLogWidget::AddLine(ELogType InLogType, TSharedRef<FString> LogLine, FSlate
 		};
 
 	bool bLineInTabFocus = ActiveTab.IsValid() && MatchesTabFilter(ActiveTab);
-	TSharedPtr<FLogTabInfo> FocusTab = NULL;
+	TSharedPtr<FLogTabInfo> FocusTab = nullptr;
 
 	// Then add it to each log tab, if it passes that tabs filter
-	for (auto CurTabInfo : LogTabs)
+	for (TSharedRef<FLogTabInfo>& CurTabInfo : LogTabs)
 	{
 		if (MatchesTabFilter(CurTabInfo))
 		{
@@ -1047,7 +1128,17 @@ void SLogWidget::AddLine(ELogType InLogType, TSharedRef<FString> LogLine, FSlate
 				CurLogListView->RequestScrollIntoView(CurLogEntry);
 			}
 
-			CurLogListView->RequestListRefresh();
+			FString HighlightFindStr = (CurTabInfo->bHighlightFind && CurTabInfo->FindBox->GetVisibility() != EVisibility::Collapsed) ?
+										CurTabInfo->LastFind : TEXT("");
+
+			if (HighlightFindStr.Len() > 0 && LogLine->Contains(HighlightFindStr))
+			{
+				UpdateFindHighlight(CurTabInfo, true, CurTabInfo->LastFind);
+			}
+			else
+			{
+				CurLogListView->RequestListRefresh();
+			}
 		}
 	}
 
@@ -1150,6 +1241,21 @@ void SLogWidget::OnFind()
 				CurFindWidget->SetVisibility(EVisibility::Visible);
 			}
 		}
+
+		// Hide the search wrap-around label, by default
+		if (ActiveTabInfo->FindErrorLabel->GetVisibility() != EVisibility::Collapsed)
+		{
+			ActiveTabInfo->FindErrorLabel->SetVisibility(EVisibility::Collapsed);
+		}
+
+		FString HighlightFindStr = ActiveTabInfo->bHighlightFind ? ActiveTabInfo->LastFind : TEXT("");
+
+		if (HighlightFindStr.Len() > 0)
+		{
+			UpdateFindHighlight(ActiveTabInfo, true, ActiveTabInfo->LastFind);
+		}
+
+		FSlateApplication::Get().SetKeyboardFocus(ActiveTabInfo->FindBox);
 	}
 }
 
@@ -1179,6 +1285,8 @@ void SLogWidget::ScrollToText(TSharedRef<FLogTabInfo> InTab, FString FindText, b
 	auto CurLogListView = InTab->LogListView;
 	auto& CurTabLogLines = InTab->TabLogLines;
 
+	InTab->LastFind = FindText;
+
 	if (CurLogListView.IsValid() && CurTabLogLines.Num() > 0)
 	{
 		int32 FindStartIdx = INDEX_NONE;
@@ -1200,6 +1308,7 @@ void SLogWidget::ScrollToText(TSharedRef<FLogTabInfo> InTab, FString FindText, b
 
 		int32 SearchDir = (bSearchUp ? -1 : 1);
 		int32 FoundIdx = INDEX_NONE;
+		bool bSearchWrapped = false;
 
 		for (int32 i=FindStartIdx + SearchDir; true; i += SearchDir)
 		{
@@ -1207,6 +1316,7 @@ void SLogWidget::ScrollToText(TSharedRef<FLogTabInfo> InTab, FString FindText, b
 			if (i < 0 || i >= CurTabLogLines.Num())
 			{
 				i = (bSearchUp ? CurTabLogLines.Num()-1 : 0);
+				bSearchWrapped = true;
 			}
 
 			// Moved out of 'for' condition, and into the loop, to avoid infinite recursion in rare circumstances
@@ -1226,10 +1336,48 @@ void SLogWidget::ScrollToText(TSharedRef<FLogTabInfo> InTab, FString FindText, b
 		{
 			CurLogListView->SetSelection(CurTabLogLines[FoundIdx], ESelectInfo::OnKeyPress);
 			CurLogListView->RequestScrollIntoView(CurTabLogLines[FoundIdx]);
-			CurLogListView->RequestListRefresh();
+
+			if (!InTab->bHighlightFind)
+			{
+				CurLogListView->RequestListRefresh();
+			}
 		}
 
-		// @todo #JohnBUI: Find some way of indicating a failed search
+		if (InTab->bHighlightFind)
+		{
+			UpdateFindHighlight(InTab, true, FindText);
+		}
+
+
+		// If the search wrapped-around or failed, displaying the error label briefly
+		TSharedPtr<SBorder> ErrorLabel = InTab->FindErrorLabel;
+
+		if (FoundIdx == INDEX_NONE || bSearchWrapped)
+		{
+			TSharedPtr<STextBlock> ErrorText = InTab->FindErrorText;
+
+			if (FoundIdx == INDEX_NONE)
+			{
+				ErrorText->SetText(FText::FromString(TEXT("Failed to find text.")));
+			}
+			else if (bSearchUp)
+			{
+				ErrorText->SetText(FText::FromString(TEXT("Searched past top of list. Starting again from bottom.")));
+			}
+			else
+			{
+				ErrorText->SetText(FText::FromString(TEXT("Searched past bottom of list. Starting again from top.")));
+			}
+
+			ErrorLabel->SetBorderBackgroundColor(FLinearColor(1.f, 1.f, 1.f, 1.f));
+			ErrorLabel->SetColorAndOpacity(FLinearColor(1.f, 1.f, 1.f, 1.f));
+			ErrorLabel->SetVisibility(EVisibility::HitTestInvisible);
+		}
+		// Otherwise, hide the label
+		else
+		{
+			ErrorLabel->SetVisibility(EVisibility::Collapsed);
+		}
 
 		InTab->bLastFindWasUp = bSearchUp;
 	}
@@ -1249,6 +1397,64 @@ bool SLogWidget::CanAutoScroll(TSharedPtr<FLogTabInfo> InTab)
 	}
 
 	return bReturnVal;
+}
+
+void SLogWidget::UpdateFindHighlight(TSharedPtr<FLogTabInfo> InTab, bool bHighlight, FString HighlightText/*=TEXT("")*/)
+{
+	if (!bHighlight || HighlightText.Len() == 0)
+	{
+		for (TSharedRef<FLogLine>& CurLine : InTab->TabLogLines)
+		{
+			CurLine->LogHighlight.Empty();
+		}
+	}
+	else
+	{
+		for (TSharedRef<FLogLine>& CurLine : InTab->TabLogLines)
+		{
+			if (CurLine->LogLine->Contains(HighlightText))
+			{
+				CurLine->LogHighlight = HighlightText;
+			}
+			else
+			{
+				CurLine->LogHighlight.Empty();
+			}
+		}
+	}
+
+	InTab->LogListView->RebuildList();
+	InTab->LogListView->Invalidate(EInvalidateWidget::Layout);
+}
+
+void SLogWidget::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	TSharedPtr<FLogTabInfo> CurActiveTab = GetActiveTabInfo();
+
+	if (CurActiveTab.IsValid())
+	{
+		TSharedPtr<SBorder> ActiveFindLabel = CurActiveTab->FindErrorLabel;
+
+		if (ActiveFindLabel.IsValid() && ActiveFindLabel->GetVisibility() != EVisibility::Collapsed)
+		{
+			const float FadeDuration = 2.f;
+			FLinearColor CurColor = (GET_PRIVATE(SBorder, ActiveFindLabel, BorderBackgroundColor)).Get().GetSpecifiedColor();
+
+			CurColor.A -= (InDeltaTime / FadeDuration);
+
+			if (CurColor.A > 0.1f)
+			{
+				ActiveFindLabel->SetBorderBackgroundColor(CurColor);
+				ActiveFindLabel->SetColorAndOpacity(CurColor);
+			}
+			else
+			{
+				ActiveFindLabel->SetVisibility(EVisibility::Collapsed);
+			}
+		}
+	}
 }
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -11,7 +11,7 @@ public class Simplygon : ModuleRules
 
 		bOutputPubliclyDistributable = true;
 
-        Definitions.Add("SGDEPRECATED_OFF=1");
+        PublicDefinitions.Add("SGDEPRECATED_OFF=1");
 
         //@third party code BEGIN SIMPLYGON
         //Change the path to make it easier to update Simplygon
@@ -42,11 +42,11 @@ public class Simplygon : ModuleRules
             string EngineDir = Path.GetFullPath(Target.RelativeEnginePath);
             if (Target.Platform == UnrealTargetPlatform.Win32)
             {
-                RuntimeDependencies.Add(new RuntimeDependency(EngineDir + "Binaries/ThirdParty/Windows/DirectX/x86/d3dcompiler_47.dll"));
+                RuntimeDependencies.Add(EngineDir + "Binaries/ThirdParty/Windows/DirectX/x86/d3dcompiler_47.dll");
             }
             else if (Target.Platform == UnrealTargetPlatform.Win64)
             {
-                RuntimeDependencies.Add(new RuntimeDependency(EngineDir + "Binaries/ThirdParty/Windows/DirectX/x64/d3dcompiler_47.dll"));
+                RuntimeDependencies.Add(EngineDir + "Binaries/ThirdParty/Windows/DirectX/x64/d3dcompiler_47.dll");
             }
 
         }

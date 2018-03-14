@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneRenderTargetParameters.h: Shader base classes
@@ -20,8 +20,7 @@ namespace ESceneRenderTargetsMode
 		//scene textures are valid, and materials may bind them.  attempt to bind.
 		SetTextures,
 		//we know based on the kind of the material that the scenetextures will not attempt to bind.  this is an optimization
-		DontSet, 
-		DontSetIgnoreBoundByEditorCompositing,
+		DontSet,
 		//we are in a context where the scenetargets are not valid, but materials will want to bind them.  set some defaults.  
 		//required for safe FRendererModule::DrawTileMesh rendering of materials which bind scene texture
 		InvalidScene,

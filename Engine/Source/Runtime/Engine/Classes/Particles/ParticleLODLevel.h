@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /**
  *	ParticleLODLevel
@@ -14,6 +14,7 @@
 
 class UInterpCurveEdSetup;
 class UParticleModule;
+class UMaterialInterface;
 
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
 class UParticleLODLevel : public UObject
@@ -132,6 +133,14 @@ class UParticleLODLevel : public UObject
 	 * @param EmitterBuildInfo - Where to store emitter information.
 	 */
 	void CompileModules( struct FParticleEmitterBuildInfo& EmitterBuildInfo );
+
+	/**
+	 * Append all used materials to the material list.
+	 * @param OutMaterials - the material list.
+	 * @param Slots - the material slot names
+ 	 * @param EmitterMaterials - the material slot materials.
+	 */
+	void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials, const TArray<struct FNamedEmitterMaterial>& NamedMaterialSlots, const TArray<UMaterialInterface*>& EmitterMaterials) const;
 };
 
 

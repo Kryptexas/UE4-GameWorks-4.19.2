@@ -180,7 +180,8 @@ Description:每个材质函数的参考页面，按分类来划分。
 [/EXCERPT:Categories]
 
 
-<!--
+[COMMENT:none]
+
 [OBJECT:TopicCompact]
 	[PARAM:image]
 		![%Engine/Rendering/Materials/Functions/Reference/ComplexMotion:title%](ComplexMotion.png)
@@ -192,4 +193,5 @@ Description:每个材质函数的参考页面，按分类来划分。
 		[RELATIVE:Engine/Rendering/Materials/Functions/Reference/ComplexMotion]
 	[/PARAM]
 [/OBJECT]
--->
+
+[/COMMENT]

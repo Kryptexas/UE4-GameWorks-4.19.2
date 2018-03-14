@@ -29,7 +29,7 @@ reference-image:image_64.gif
 reference-image:image_65.gif
 reference-image:image_86.gif
 
-![image alt text](image_0.png)(h:304 w:936 convert:false)
+![image alt text](image_0.png)(w:936 convert:false)
 
 # What's New
 
@@ -51,13 +51,13 @@ Adam Moss (adamnv), Alan Edwardes (alanedwardes), Andreas Axelsson (judgeaxl), A
 
 The new forward shading renderer combines high-quality UE4 lighting features with Multisample Anti-Aliasing (MSAA) support!  MSAA and the option to enable per-material optimizations make the forward renderer well suited for VR.
 
-![image alt text](image_1.png)(w:929 h:664 convert:false)
+![image alt text](image_1.png)(w:929 convert:false)
 
 The forward renderer works by culling lights and reflection captures to a frustum-space grid. Each pixel in the forward pass then iterates over the lights and reflection captures affecting it, shading the material with them. Dynamic shadows for stationary lights are computed beforehand and packed into channels of a screen-space shadow mask allowing multiple shadowing features to be used efficiently.
 
 Enable 'Forward Shading' in the Rendering Project settings and restart the editor to use the forward renderer.
 
-![image alt text](image_2.png)(w:240 h:24 convert:false)
+![image alt text](image_2.png)(w:240 convert:false)
 
 Supported **forward rendering features** include:
 
@@ -93,7 +93,7 @@ Some features are **not yet supported** with Forward Shading:
 
 * MSAA on D-Buffer decals, motion blur, dynamic shadows and capsule shadows
 
-![image alt text](image_3.png)(w:929 h:664 convert:false)
+![image alt text](image_3.png)(w:929 convert:false)
 
 The forward renderer supports both multi sample anti-aliasing (MSAA) and temporal anti-aliasing (TAA). In most cases TAA is preferable because it removes both geometric aliasing and specular aliasing. In VR, the constant sub-pixel movement introduced by head tracking introduces unwanted blurriness, making MSAA a better choice.
 
@@ -103,7 +103,7 @@ In our tests, using MSAA instead of TAA increases GPU frame time by about 25%. A
 
 To use MSAA, set the default Anti-Aliasing Method in the Rendering project settings:
 
-![image alt text](image_4.png)(w:336 h:53 convert:false)
+![image alt text](image_4.png)(w:336 convert:false)
 
 The console variable 'r.MSAACount' controls how many MSAA samples are computed for every pixel. 'r.MSAACount 1' has special meaning and falls back to Temporal AA, which allows for convenient toggling between anti-aliasing methods.  
 
@@ -111,7 +111,7 @@ The console variable 'r.MSAACount' controls how many MSAA samples are computed f
 
 The forward renderer can be faster than the deferred renderer for some content. Most of the performance improvement comes from features that can be disabled per material. By default, only the nearest reflection capture will be applied without parallax correction unless the material opts-in to High Quality Reflections, height fog is computed per-vertex, and planar reflections are only applied to materials that enable it.
 
-![image alt text](image_5.png)(w:228 h:73 convert:false)
+![image alt text](image_5.png)(w:228 convert:false)
 
 Leveraging these options in Epic's new VR game, Robo Recall, the forward renderer is about 22% faster than the deferred renderer on an NVIDIA 970 GTX.
 
@@ -120,25 +120,25 @@ Leveraging these options in Epic's new VR game, Robo Recall, the forward rendere
 Contact shadows allow for highly detailed dynamic shadows on objects.
 
 [REGION:asyncgif]
-![image alt text](image_6.gif)(w:929 h:522)
+![image alt text](image_6.gif)(w:929)
 [/REGION]
 
 The ivy below is only a few flat cards but is able to self-shadow in a very convincing way due to outputting Pixel Depth Offset in the material.
 
 [REGION:asyncgif]
-![image alt text](image_7.gif)(w:929 h:606)
+![image alt text](image_7.gif)(w:929)
 [/REGION]
 
 The Contact Shadows feature adds a short ray cast in screen space against the depth buffer to know whether a pixel is occluded from a given light or not. This helps provide sharp detailed shadows at the contact point of geometry. There are a number of reasons why shadows through other algorithms may have missing or blurry contacts. Typically it is due to lack of resolution or a depth bias. Regardless of the reason, the new Contact Shadows feature can fill in the gap very well for a small cost.
 
 Contact shadows can be used by setting the Contact Shadow Length property on your light. This controls the length of the ray cast in screen space where 1 is all the way across the screen. Large values can degrade quality and performance so try and keep the length to the minimum that achieves your desired look.
 
-![image alt text](image_8.png)(w:434 h:118 convert:false)
+![image alt text](image_8.png)(w:434 convert:false)
 
 Another use case of contact shadows is to get self-shadowing from the parallax occlusion mapping from arbitrary lights. This requires outputting pixel depth offset in the material. This animation shows a parallax occlusion mapped surface with contact shadow length set to 0.1.
 
 [REGION:asyncgif]
-![image alt text](image_9.gif)(w:752 h:344)
+![image alt text](image_9.gif)(w:752)
 [/REGION]
 
 ## New: Automatic LOD Generation
@@ -146,7 +146,7 @@ Another use case of contact shadows is to get self-shadowing from the parallax o
 Unreal Engine now automatically reduces the polygon count of your static meshes to create LODs!
 
 [REGION:asyncgif]
-![image alt text](image_10.gif)(w:768 h:628)
+![image alt text](image_10.gif)(w:768)
 [/REGION]
 
 The above animation shows five LODs that were generated automatically. Each is half the number of triangles as the previous.
@@ -157,7 +157,7 @@ This mesh simplifier maintains UVs including generated lightmap UVs, normals, ta
 
 The high level settings for controlling the generated LODs are in the static mesh viewer under LOD Settings.
 
-![image alt text](image_11.png)(w:425 h:184 convert:false)
+![image alt text](image_11.png)(w:425 convert:false)
 
 "LOD Group" provides a list of presets. These can be changed per project in BaseEngine.ini under [StaticMeshLODSettings]. We encourage you to set up good categories for your project and mostly use LOD groups instead of controlling the details of every LOD.
 
@@ -169,13 +169,13 @@ If you wish to muck with the details of auto generation for each LOD they can be
 
 We now support precomputing lighting for multiple lighting setups with the same geometry! This is especially important for use cases such as VR and architectural visualization where you need the highest possible quality at the fastest possible performance.
 
-![image alt text](image_12.png)(w:929 h:540 convert:false)
+![image alt text](image_12.png)(w:929 convert:false)
 
-![image alt text](image_13.png)(w:929 h:541 convert:false)
+![image alt text](image_13.png)(w:929 convert:false)
 
 In the above example the directional light, sky light and skybox have been placed in a Lighting Scenario level called DayScenario.  The streetlights have been placed in NightScenario.
 
-![image alt text](image_14.png)(w:260 h:164 convert:false)
+![image alt text](image_14.png)(w:260 convert:false)
 
 To use Lighting Scenarios:
 
@@ -187,7 +187,7 @@ To use Lighting Scenarios:
 
 * In the BeginPlay of your persistent level's Level Blueprint, execute a Load Stream Level on the Lighting Scenario level that you want active.
 
-![image alt text](image_15.png)(w:552 h:196 convert:false)
+![image alt text](image_15.png)(w:552 convert:false)
 
 Limitations:
 
@@ -202,20 +202,20 @@ Limitations:
 In the deferred renderer, the new forward shading functionality can now be used on translucent surfaces to get specular highlights from multiple lights and image-based reflections from parallax-corrected reflection captures!
 
 [REGION:asyncgif]
-![image alt text](image_16.gif)(w:664 h:401)
+![image alt text](image_16.gif)(w:664)
 [/REGION]
 
-![image alt text](image_17.jpg)(w:329 h:118 convert:false)
+![image alt text](image_17.jpg)(w:329 convert:false)
 
 ## New: Full Resolution Skin Shading
 
 UE4 now supports full resolution skin shading for the Subsurface Profile shading model. This provides high-fidelity lighting for surface details such as pores and wrinkles. 
 
-![image alt text](image_18.png)(w:312 h:334 convert:false) ![image alt text](image_19.png)(w:312 h:334 convert:false)
+![image alt text](image_18.png)(w:312 convert:false) ![image alt text](image_19.png)(w:312 convert:false)
 
 *Checkerboard rendered skin (left), Full resolution skin (right)  *(Note: 3D head model by Lee Perry-Smith)
 
-![image alt text](image_20.png)(w:320 h:320 convert:false) ![image alt text](image_21.png)(w:321 h:321 convert:false)
+![image alt text](image_20.png)(w:320 convert:false) ![image alt text](image_21.png)(w:321 convert:false)
 
 *Surface detail - checkerboard (left), full resolution (right)*
 
@@ -257,7 +257,7 @@ If your title has a 64-bit scene color format then full resolution subsurface li
 
 When you use Reflection Captures, the engine mixes the indirect specular from the Reflection Capture with indirect diffuse from lightmaps.  This helps to reduce leaking, since the reflection cubemap was only captured at one point in space, but the lightmaps were computed on all the receiver surfaces and contain local shadowing.
 
-![image alt text](image_22.png)(w:757 h:436 convert:false)
+![image alt text](image_22.png)(w:757 convert:false)
 
 *(**With lightmap mixing on the left, without on the right**)*
 
@@ -268,29 +268,29 @@ Mixing works well for rough surfaces, but for smooth surfaces the reflections fr
 The below shot shows mirror surface reflections before and after.  Note the difference in the reflection of the wall between SSR and reflection captures.  The artifact is especially noticeable in motion, because it will move with your camera due to SSR limitations.
 
 [REGION:asyncgif]
-![image alt text](image_23.gif)(w:762 h:440)
+![image alt text](image_23.gif)(w:762)
 [/REGION]
 
 **This affects existing content - in cases where you had reflection leaking on smooth surfaces, that leaking will be much more apparent.** To solve this, place additional reflection probes to reduce the leaking. Levels should have one large spherical capture at a minimum. You can also revert to the old lightmap mixing behavior with a rendering project setting:
 
-![image alt text](image_24.png)(w:356 h:53 convert:false)
+![image alt text](image_24.png)(w:356 convert:false)
 
 ## New: Visual Studio "15" Support
 
 Unreal Engine 4.14 now the upcoming Visual Studio "15" out of the box.  Visual Studio 2015 is still supported as well.  Visual Studio "15" is currently available in "Preview" from [Microsoft's Visual Studio web site](https://www.visualstudio.com/en-us/news/releasenotes/vs15-relnotes).
 
-![image alt text](image_25.png)(w:929 h:558 convert:false)
+![image alt text](image_25.png)(w:929 convert:false)
 
 If you have multiple versions of Visual Studio installed, you can select which to use through the 'Source Code' section in 'Editor Preferences.'
 
-![image alt text](image_26.png)(w:670 h:132 convert:false)
+![image alt text](image_26.png)(w:670 convert:false)
 
 ## New: Create Static Mesh from Actors
 
 You can now right-click actor(s) in the level viewport and convert their current state to a new Static Mesh asset. This even works with skeletal meshes, so you can capture a mesh from posed characters.
 
 [REGION:asyncgif]
-![image alt text](image_27.gif)(w:929 h:598)
+![image alt text](image_27.gif)(w:929)
 [/REGION]
 
 ## New: NVIDIA Ansel Support
@@ -299,12 +299,12 @@ UE4 4.14 adds support for NVIDIA Ansel Photography!
 
 Ansel is a new tool from NVIDIA that enables players to take in-game screenshots. While in Ansel mode the game will pause and players will have camera control to compose shots and apply various screen effects. It can also capture a variety of screenshots, from HDR to 360 stereo. See NVIDIA's website for more details: [http://www.geforce.com/hardware/technology/ansel](http://www.geforce.com/hardware/technology/ansel)
 
-![image alt text](image_28.jpg)(w:929 h:598 convert:false)
+![image alt text](image_28.jpg)(w:929 convert:false)
 
 Ansel support is now exposed as a new UE4 plugin.  After enabling the plugin in your project, you can access Ansel in a standalone game session. 
 
 [REGION:asyncgif]
-![image alt text](image_29.gif)(w:928 h:425)
+![image alt text](image_29.gif)(w:928)
 [/REGION]
 
 *(Viewing an Ansel 360 capture in a web browser)*
@@ -318,7 +318,7 @@ To get started using this feature, check out the [Ansel plugin documentation](En
 The Cable Component plugin has been updated with new features, including collision support and sockets for attaching objects or effects.
 
 [REGION:asyncgif]
-![image alt text](image_30.gif)(w:781 h:496)
+![image alt text](image_30.gif)(w:781)
 [/REGION]
 
 Cable Component now includes these new features:
@@ -335,16 +335,16 @@ Cable Component now includes these new features:
 
 Fonts for UMG and Slate now have an optional outline that can be applied to them.  
 
-![image alt text](image_31.png)(w:929 h:534 convert:false)
+![image alt text](image_31.png)(w:929 convert:false)
 
 Any widget that specifies a font can change the outline setting, color, or material to be used with the outline.
 
-![image alt text](image_32.png)(w:397 h:148 convert:false)
+![image alt text](image_32.png)(w:397 convert:false)
 
 A font material on an outline can be used in the same way that any other font material is used except that a material specified for an outline only applies to the outline.  Font materials can be used on the outline to create lots of different effects.
 
 [REGION:asyncgif]
-![image alt text](image_33.gif)(w:645 h:194)
+![image alt text](image_33.gif)(w:645)
 [/REGION]
 
 ## New: Editable Map and Set Properties
@@ -353,11 +353,11 @@ We now support editing **Map and Set properties** from within the Details Panel!
 
 **Sets **are similar to Arrays, but you can never have the same element in a set twice and the order of elements is not guaranteed.  However, it's extremely quick to lookup into a set to see whether it contains an element.
 
-![image alt text](image_34.png)(w:401 h:185 convert:false)
+![image alt text](image_34.png)(w:401 convert:false)
 
 **Maps **will have a key and a value and you can edit both within the details panel.  Like Sets, all keys must be unique, and the order of elements is not guaranteed to persist.  However, it's very quick to lookup an element's value as long as you know it's key.
 
-![image alt text](image_35.png)(w:401 h:254 convert:false) 
+![image alt text](image_35.png)(w:401 convert:false) 
 
 ## New: Vector Noise in Materials
 
@@ -385,22 +385,22 @@ The new functions are:
 
 Below is a simple stone bed material using the distance component of the Vector Noise / Voronoi to modulate some surface bumps and blend in moss in the cracks, and the seed position together with Vector Noise / Cellnoise to change the color and bump height per rock.
 
-![image alt text](image_36.png)(w:626 h:304 convert:false)
+![image alt text](image_36.png)(w:626 convert:false)
 
 Perlin Curl and Perlin Gradient can be added together in octaves, just as regular Perlin noise can. For more complex expressions, it is necessary to compute the gradient of the result of the expression. To help with this, place the expression to compute into a material function and use it with the helper nodes **Prepare3DDeriv**, **Compute3DDeriv**, and either **GradFrom3DDeriv** or **CurlFrom3DDeriv**. These use four evaluations of the base expression spaced in a tetrahedral pattern to approximate these derivative-based operations. For example, this network uses the gradient to compute bump normals from a bump height function.
 
-![image alt text](image_37.png)(w:929 h:241 convert:false)
+![image alt text](image_37.png)(w:929 convert:false)
 
 ## New: PhysX 3.4 Upgrade
 
 Unreal Engine now uses the latest version of NVIDIA PhysX, which is 3.4. This brings improved performance and memory usage for rigid bodies and scene queries (especially multi-core performance.) 
 
-![image alt text](image_38.png)(w:441 h:197 convert:false)
+![image alt text](image_38.png)(w:441 convert:false)
 
 This version of PhysX allows for **Continuous Collision Detection **(CCD) on **kinematic objects**, which allows for accurate collisions between very fast moving rigid bodies!  In the animation below from a Robo Recall test level, a player is swiping a weapon to impact an oncoming bullet!
 
 [REGION:asyncgif]
-![image alt text](image_39.gif)(w:674 h:378)
+![image alt text](image_39.gif)(w:674)
 [/REGION]
 
 New features available to use in UE4 right away:
@@ -417,7 +417,7 @@ In future releases, we'll expose more new physics features available in the late
 
 Animation-related tools have been split into separate asset editors rather than using one editor with multiple modes.
 
-![image alt text](image_40.jpg)(w:929 h:560 convert:false)
+![image alt text](image_40.jpg)(w:929 convert:false)
 
 Many other improvements have been made as well. Functionality that is common to each of the editors is now generally found in the viewport and the improved Skeleton Tree.
 
@@ -430,24 +430,24 @@ Many other improvements have been made as well. Functionality that is common to 
 * The Animation Blueprint editor has had its layout tweaked to more closely follow that of the standard Blueprint editor. The Anim Preview Editor can now optionally apply changes that are made to the preview's properties to the class defaults.
 
 [REGION:asyncgif]
-![image alt text](image_41.gif)(w:409 h:552)
+![image alt text](image_41.gif)(w:409)
 [/REGION]
 
 ### Asset Shortcut Bar
 
-![image alt text](image_42.png)(w:460 h:60 convert:false)
+![image alt text](image_42.png)(w:460 convert:false)
 
 You can jump between related animation assets that share a skeleton using the improved Asset Shortcut Bar.
 
 ### Recording Moved to Transport Controls
 
-![image alt text](image_43.png)(w:252 h:68 convert:false)
+![image alt text](image_43.png)(w:252 convert:false)
 
 Recording used to be performed via a button in the toolbar. Now it has been moved to a recording button in the transport controls, similar to Sequencer.
 
 ### Preview Scene Setup
 
-![image alt text](image_44.png)(w:605 h:378 convert:false)
+![image alt text](image_44.png)(w:605 convert:false)
 
 The objects in the scene and their animation can be modified in each of the editors via the "Scene Setup" menu. This allows preview animations to be applied, different preview meshes to be set (this is either specified for the skeleton or for individual animations) and additional meshes to be attached. Additional meshes are now specified as separate editor-only assets that define a set of skeletal meshes that are driven as slaves of the main mesh.
 
@@ -456,7 +456,7 @@ The objects in the scene and their animation can be modified in each of the edit
 You can now easily tweak Animation Curves using the new dedicated window for this in the Animation Editor.  Curves are previewed live as you edit them.
 
 [REGION:asyncgif]
-![image alt text](image_45.gif)(w:761 h:537)
+![image alt text](image_45.gif)(w:761)
 [/REGION]
 
 Previously you could only configure curves on the animation assets themselves, but now you'll set these for the skeleton instead.
@@ -465,7 +465,7 @@ Previously you could only configure curves on the animation assets themselves, b
 
 Child Actor Components added to a Blueprint can have their properties customized via Child Actor Templates.
 
-![image alt text](image_46.png)( w:929 h:658convert:false)
+![image alt text](image_46.png)( w:929)
 
 Once you add a Child Actor Component, you will see an expandable template in the Details panel of the owning Actor's Blueprint Editor. From here, you can access all the properties of the Child Actor, including public variables. 
 
@@ -481,10 +481,10 @@ This allows for dynamics, controllers, IK or any other anim Blueprint feature to
 
 'Post process' animation Blueprints also have their own native and Blueprint update step so parameters can be read or calculated for use in the animation graph.
 
-![image alt text](image_47.png)(w:356 h:69 convert:false)
+![image alt text](image_47.png)(w:356 convert:false)
 
 [REGION:asyncgif]
-![image alt text](image_48.gif)(w:740 h:441)
+![image alt text](image_48.gif)(w:740)
 [/REGION]
 
 ## New: Landscape Editing in VR
@@ -492,7 +492,7 @@ This allows for dynamics, controllers, IK or any other anim Blueprint feature to
 You can now create and sculpt terrain and paint landscape materials using motion controllers in VR!  
 
 [REGION:asyncgif]
-![image alt text](image_49.gif)(w:620 h:336)
+![image alt text](image_49.gif)(w:620)
 [/REGION]
 
 You can summon the Landscape Editing tools from the "Modes" panel on your Quick Menu.  Then choose a brush from the UI and start painting!  If you hold the "Modifier" button on the motion controller, you can erase instead of painting.
@@ -502,7 +502,7 @@ You can summon the Landscape Editing tools from the "Modes" panel on your Quick 
 We've changed where tire forces are applied.  Previously, tire forces were applied at the vehicle's center of mass. We now apply force at the **tire's center of mass** which makes it easier to achieve load sway in cars. 
 
 [REGION:asyncgif]
-![image alt text](image_50.gif)(w:736 h:372)
+![image alt text](image_50.gif)(w:736)
 [/REGION]
 
 We've also added **Simple Wheeled Vehicle Movement Component** which provides wheel suspension and tire friction without the complexities of engine and drivetrain simulation.  This component allows you to easily apply **torque to individual tires**. All components inheriting from Wheeled Vehicle Movement Component can now be used on arbitrary components, and you no longer have to rely on the Wheeled Vehicle actor.
@@ -514,7 +514,7 @@ Existing content will automatically have **Deprecated Spring Offset Mode** set t
 Unreal Engine 4.14 is ready for shipping games with Vulkan support!
 
 [REGION:raw]
-![image alt text](image_51.png)( w:837 h:409 convert:false)
+![image alt text](image_51.png)( w:837 convert:false)
 [/REGION]
 
 * UE4 supports Android 7 (Nougat) devices with Vulkan drivers as well as the Samsung Galaxy S7 running a recent OTA update.
@@ -530,7 +530,7 @@ Unreal Engine 4.14 is ready for shipping games with Vulkan support!
 Custom Depth is now supported in the mobile rendering path. Custom post-process materials can now sample from Scene Depth, Custom Depth as well as Scene Color. 
 
 [REGION:raw]
-![image alt text](image_52.png)(w:804 h:394 convert:false)
+![image alt text](image_52.png)(w:804 convert:false)
 [/REGION]
 
 As it requires post-processing, Mobile HDR must be enabled, and the feature does not currently work while Mobile MSAA is enabled.
@@ -540,7 +540,7 @@ As it requires post-processing, Mobile HDR must be enabled, and the feature does
 When rendering scene captures, the Scene Capture Source settings that output Inverse Opacity and Depth values are now supported on mobile. 
 
 [REGION:raw]
-![image alt text](image_53.png)(w:760 h:373 convert:false)
+![image alt text](image_53.png)(w:760 convert:false)
 [/REGION]
 
 * The "SceneColor (HDR) in RGB, Inv Opacity in A" option can be used to render objects with translucency into a texture which can then be alpha-blended over a scene or widget blueprint. 
@@ -557,7 +557,7 @@ We have added the ability to calculate our own mesh-to-mesh skinning data for cl
 
 This brings a few benefits. Normals could previously appear incorrect (see image below) and you were previously restricted to one UV channel. Both of these issues are solved with the new skinning system.
 
-![image alt text](image_54.jpg)(w:510 h:585 convert:false)
+![image alt text](image_54.jpg)(w:510 convert:false)
 
 ## New: Material Attribute Nodes
 
@@ -571,13 +571,13 @@ Working with material attributes is now easier to read and less error prone as p
 
 The main improvement for the Get and Set nodes is that pins are optionally added unlike the Break and Make nodes which expose all attributes by default. This allows graphs to avoid the old workflow that required manually connecting every attribute pin. Selecting a node shows the list of current pins in the details panel which can be expanded or removed. For an example, the material function below takes a set of attributes then blends the Base Color and Roughness to a shiny, red surface.
 
-![image alt text](image_55.png)(w:841 h:226 convert:false)
+![image alt text](image_55.png)(w:841 convert:false)
 
 As well as reducing clutter in the graphs, these nodes take advantage of many backend changes to be forward-compatible with any custom material attributes that a project may need to add. Sharing materials between projects is more viable as missing attributes are automatically  detected and users given a chance to handle the errors. Any attribute not explicitly listed on a node is passed through with the main Material Attributes pin, including any that are added after the material graph is created. With the Make and Break nodes a new pin would be added and all graphs would need manually updating.
 
 The new Blend node is intended to allow blending of multiple sets of attributes using a mask, a common operation when working with detailed layers of materials. The example below evenly blends Red and Green materials (defined as functions) then has a node that applies a clear-coat to the result:
 
-![image alt text](image_56.png)(w:929 h:249 convert:false)
+![image alt text](image_56.png)(w:929 convert:false)
 
 By default the Blend node performs a linear interpolation (lerp) for all material attributes using the Alpha input. The node has checkboxes to opt-out of blending on a per-vertex/pixel level to allow easier control when using vertex-only or pixel-only mask data. Similarly to the new Get and Set nodes above, the Blend node will automatically handle new attributes being added or removed and allows programmers to specify custom blending behavior when registering attributes.
 
@@ -585,18 +585,18 @@ By default the Blend node performs a linear interpolation (lerp) for all materia
 
 Materials now have access to a skeletal mesh's reference pose position for use in per-vertex outputs. This allows localized effects on an animated character. The node can be shared for static meshes also for which it returns the standard local position. The example graph below creates a grid pattern in local-space which remains relative to the skeletal mesh during animation:
 
-[REGION:asyncgif]![image alt text](image_57.gif)(w:346 h:369)[/REGION] ![image alt text](image_58.png)(w:500 h:369 convert:false)
+[REGION:asyncgif]![image alt text](image_57.gif)(w:346)[/REGION] ![image alt text](image_58.png)(w:500 convert:false)
 
 ## New: Improved Sequencer Shot Import/Export
 
-Movie recording with frame handles per shot.  Master sequences can now be rendered with extra frames at the start and end of each shot.  These extra frames are cut into and out of by an Edit Decision List (EDL), which can be used in an external video editing package to adjust the cuts between shots.![image alt text](image_59.gif)(h:233 w:929 convert:false)
+Movie recording with frame handles per shot.  Master sequences can now be rendered with extra frames at the start and end of each shot.  These extra frames are cut into and out of by an Edit Decision List (EDL), which can be used in an external video editing package to adjust the cuts between shots.![image alt text](image_59.gif)(w:929 convert:false)
 
 ## New: Improved Camera Rig Crane
 
 We've tweaked the camera rig crane behavior so that it mimics the movement of a physical crane.
 
 [REGION:asyncgif]
-![image alt text](image_60.gif)(w:773 h:457)
+![image alt text](image_60.gif)(w:773)
 [/REGION]
 
 * Roll and yaw of the camera crane mount is 0.
@@ -605,14 +605,14 @@ We've tweaked the camera rig crane behavior so that it mimics the movement of a 
 
 ## New: Sequencer Audio Recording
 
-You can now record audio from a microphone while recording into a sequence.![image alt text](image_61.jpg)(h:288 w:929 convert:false)
+You can now record audio from a microphone while recording into a sequence.![image alt text](image_61.jpg)(w:929 convert:false)
 
 ## New: Pose Driver Improvements
 
 The Pose Driver node allows a bone to drive other aspects of animation, based on a set of 'example poses'. In this release, it can now drive bone transforms as well as morph targets, for example driving a shoulder pad bone based on arm rotation. We have also added an option to use the translation of the driving bone instead of its orientation. Debug drawing has been improved to show each 'target' pose and how close the bone is currently considered to it.
 
 [REGION:asyncgif]
-![image alt text](image_62.gif)(w:449 h:390)
+![image alt text](image_62.gif)(w:449)
 [/REGION]
 
 ## New: Virtual Bones
@@ -620,7 +620,7 @@ The Pose Driver node allows a bone to drive other aspects of animation, based on
 We've added the ability to add 'virtual bones' to a skeleton. Virtual bones are not skinnable, but constrained between two existing bones on the skeleton and automatically have data generated for them for each animation on the skeleton. For example, you could add a joint that is a child of a hand, but constrained to a palm joint.  Unlike socket, then this joint can be used in Animation Blueprint as a target - i.e. IK target or look at target - or you could modify them in AnimBP for later use. 
 
 [REGION:asyncgif]
-![image alt text](image_63.gif)(w:489 h:330)
+![image alt text](image_63.gif)(w:489)
 [/REGION]
 
 This helps to improve character iteration time. Previously, if you change your target joint hierarchy for IK or aim, you have to do this in outside of engine, DCC, and import back all the animations to fix the animation data with that new joint included, but this virtual bone will allow you to skip that and do all of work in engine. However this will require recompressing of the animation data to include that joint back to the animation data. 
@@ -632,7 +632,7 @@ To see more practical usage of virtual bones, see "Animation Techniques used in 
 The new Morph Target View Mode makes it easy to see which vertices are affected by each morph target.
 
 [REGION:asyncgif]
-![image alt text](image_64.gif)(w:545 h:396)
+![image alt text](image_64.gif)(w:545)
 [/REGION]
 
 ## New: Child Animation Montages
@@ -640,7 +640,7 @@ The new Morph Target View Mode makes it easy to see which vertices are affected 
 Create a Child Montage based on a parent Montage, allowing you to replace animation clips, whilst maintaining overall timing. Useful for adding variations to a move whilst guaranteeing it won't affect gameplay.
 
 [REGION:asyncgif]
-![image alt text](image_65.gif)(w:566 h:624)
+![image alt text](image_65.gif)(w:566)
 [/REGION]
 
 ## New: MIDI Device Plugin 
@@ -667,13 +667,13 @@ In Blueprints, here's how to use it:
 
 The landscape mirror tool can now flip the reflected geometry parallel to the mirror plane, to create diagonally-opposed multiplayer maps.
 
-![image alt text](image_67.jpg)(w:721 h:453 convert:false)
+![image alt text](image_67.jpg)(w:721 convert:false)
 
 ## New: Improved Mesh Material Slot Importing 
 
 The material workflow has been changed in order to give more control and information on how every material is used static and skeletal meshes and to improve material ordering inconsistencies when reimporting meshes.
 
-![image alt text](image_68.jpg)(w:461 h:354 convert:false)
+![image alt text](image_68.jpg)(w:461 convert:false)
 
 Each element in the list is a material slot with the following information
 
@@ -693,7 +693,7 @@ In Blueprints and C++ it is now possible to use the material slot name instead o
 
 In every release, we update the engine to support the latest SDK releases from platform partners.
 
-![image alt text](image_69.png)(w:929 h:397 convert:false)
+![image alt text](image_69.png)(w:929 convert:false)
 
 * Xbox One:  Upgraded to August 2016 QFE 2
 
@@ -709,7 +709,7 @@ In every release, we update the engine to support the latest SDK releases from p
 
 The new **Mobile Patch Utilities Blueprint library** contains all the functionality required to allow a mobile game to **download and install game contents and patches** from a cloud website instead of being distributed as part of the initial download from the App Store.
 
-![image alt text](image_70.png)(w:929 h:486 convert:false)
+![image alt text](image_70.png)(w:929 convert:false)
 
 There is functionality to determine if updated game content is available, initiate the download, track progress, handle any errors and finally install the content paks that are downloaded successfully. Functionality to check for sufficient storage space and WiFi connectivity is also available, so the blueprint can warn the user in such cases. Both Android and iOS are supported.
 
@@ -717,17 +717,17 @@ There is functionality to determine if updated game content is available, initia
 
 A new Online Subsystem GameCircle plugin is now included! 
 
-![image alt text](image_71.jpg)(w:929 h:293 convert:false)
+![image alt text](image_71.jpg)(w:929 convert:false)
 
 GameCircle Achievements, Leaderboards, and Friends is supports as well as Amazon In-App Purchases. Enabling the plugin will provide access to a new Amazon GameCircle project settings panel under the Plugins category. Changes to the AndroidManifest.xml for Fire TV may be enabled here.
 
-![image alt text](image_72.jpg)(w:929 h:334 convert:false)
+![image alt text](image_72.jpg)(w:929 convert:false)
 
 ## New: Live GPU Profiler
 
 UE 4.14 includes a real-time GPU profiler which provides per-frame stats for the major rendering categories. To use it, enter the console command 'stat gpu*.*'* *You can also bring these up in the editor via the 'Stat' submenu in the Viewport Options dropdown.
 
-![image alt text](image_73.png)(w:929 h:293 convert:false)
+![image alt text](image_73.png)(w:929 convert:false)
 
 The stats are cumulative and non-hierarchical, so you can see the major categories without having to dig down through a tree of events. For example, shadow projection is the sum of all the shadow projections for all lights (across all the views). 
 
@@ -735,7 +735,7 @@ The on-screen GPU stats provide a simple visual breakdown of the GPU load when y
 
 The GPU stats can be recorded to a file when the title is running for analysis later. As with existing stats, you can use the console commands 'stat startfile'* *and 'stat stopfile' to record the stats to a ue4stats file, and then visualize them by opening the file in the Unreal Frontend tool.
 
-![image alt text](image_74.png)(w:929 h:402 convert:false)
+![image alt text](image_74.png)(w:929 convert:false)
 
 *Profiling the GPU with UnrealFrontend. Total, postprocessing and basepass times are shown*
 
@@ -755,7 +755,7 @@ Certain CPU-bound cases the GPU timings can be affected by CPU bottlenecks (bubb
 
 We've improved how **texture space is utilized** when merging actors together and combining materials, by introducing a new option to generate a **weighted (binned) atlas texture**, instead of having a atlas-texture in which each material is equally weighted. 
 
-![image alt text](image_75.png)(w:286 h:286 convert:false)![image alt text](image_76.png)(w:286 h:286 convert:false)
+![image alt text](image_75.png)(w:286 convert:false)![image alt text](image_76.png)(w:286 convert:false)
 
 *(Left: Equal-weighted materials.  Right: Binned method)*
 
@@ -769,11 +769,11 @@ Thanks to pull requests from the community we now have Android support for Linux
 
 You can now drag and drop files from your computer into the Media Player's viewport, thus allowing you to preview video files without having to create a FileMediaSource asset first
 
-![image alt text](image_77.jpg)(w:664 h:561 convert:false)
+![image alt text](image_77.jpg)(w:664 convert:false)
 
 *  A tab for decoder performance statistics has been added. The output depends on the player plug-in being used for playback
 
-	![image alt text](image_78.png)(w:313 h:365 convert:false)
+	![image alt text](image_78.png)(w:313 convert:false)
 
 ## New: VR Multiview Support for Mobile
 
@@ -783,7 +783,7 @@ To use this feature, enable it in your Project Settings, under the VR section.  
 
 This feature is still considered experimental as we verify compatibility with more features and devices.
 
-![image alt text](image_79.jpg)(w:929 h:84 convert:false)
+![image alt text](image_79.jpg)(w:929 convert:false)
 
 Enable Mobile Multiview in your Project Settings menu as seen above, then restart your editor for the changes to take effect.
 
@@ -801,7 +801,7 @@ To use the splash screen, you can set a texture using the "Set Splash Screen" no
 
 We now support native 90Hz to 90Hz reprojection and 120Hz to 120Hz reprojection on the PSVR!  This means you can opt in to running at a higher framerate to minimize latency and reprojection artifacts.  The engine will limit your framerate to your selected option, but it's still your responsibility to make sure you consistently maintain that framerate!
 
-![image alt text](image_80.jpg)(w:929 h:158 convert:false)
+![image alt text](image_80.jpg)(w:929 convert:false)
 
 ## New: Multitouch Support in Windows
 
@@ -815,7 +815,7 @@ The Event Driven Loader comes with an unified code path for loading assets. This
 
 EDL is currently an experimental feature and disabled by default, but can easily be enabled through Project Settings.
 
-![image alt text](image_81.jpg)(w:929 h:318 convert:false)
+![image alt text](image_81.jpg)(w:929 convert:false)
 
 ## New: Simplified Game Mode and Game State Classes
 
@@ -1831,7 +1831,7 @@ This has shown to have an increase internally by as much as 40%. We have more wo
 
 * New: You can now disable VR Editor Tutorial in **Editor Preferences > Experimental > VR**.
 
-	![image alt text](image_82.png)(w:544 h:116 convert:false)
+	![image alt text](image_82.png)(w:544 convert:false)
 
 * Bugfix: Fixed an issue with blurry toolbar icon when "Use Small Toolbar Icons" was enabled in the Editor Preferences. 
 

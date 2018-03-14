@@ -12,12 +12,7 @@ Tags:Post Process
 Topic-image:ColorGrading_Overview.png
 Social-image:ColorGrading_Overview.png
 
-[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
-[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
-[VAR:spacer3]![](%ROOT%/spacer.png)(w:0 convert:false)[/VAR]
-
-
-[TOC(start:2 end:2)]
+[TOC(start:2 end:3)]
 
 ![](ColorGrading_Overview.png)
 [REGION:caption] The Color Grading tools enable you to change the look and tone of your scene, like with this example that is showing the scene using different Scene Colors. [/REGION]
@@ -92,18 +87,13 @@ In this example, there are a variety of colors and material types with varying r
 	[/PARAM]
 [/OBJECT]
 
-In this comparison, the Exposure Bias has been increased to a value of 3 so really show the response of the Filmic tone mapper compared to the "old" tone mapper implementation. Also, a value of three means
-that the processed image will be eight times brighter than the default value of 0 shown in the previous example above.
+In this comparison, the Exposure Bias has been increased to a value of 3 so really show the response of the Filmic tone mapper compared to the "old" tone mapper implementation. Also, a value of three means that the processed image will be eight times brighter than the default value of 0 shown in the previous example above.
 
-As the exposure level is increased, the difference between the filmic and the "old" tone mapper will become more apparent. The spheres in the filmic example will continue to have shape to their color
-and shading, even as they appear to look brighter. The sphere using the "old" tone mapper will start to have their colors blend with the shading. The spheres become really bright as a solid color, but 
-you can't necessarily tell that they have a high exposure value, whereas the filmic tone mapper takes this into account. The filmic response looks like a natural camera effect if you were to increase its
-exposure.
+As the exposure level is increased, the difference between the filmic and the "old" tone mapper will become more apparent. The spheres in the filmic example will continue to have shape to their color and shading, even as they appear to look brighter. The sphere using the "old" tone mapper will start to have their colors blend with the shading. The spheres become really bright as a solid color, but you can't necessarily tell that they have a high exposure value, whereas the filmic tone mapper takes this into account. The filmic response looks like a natural camera effect if you were to increase its exposure.
 
-### Settings
+### Tonemapper Settings
 
-In the **Tone Mapper** section of the Post Process Volume, you'll find the properties that match the ACES standardized film stock. You can adjust these tone mapper controls to emulate other types of 
-film stock for your project. 
+In the **Tone Mapper** section of the Post Process Volume, you'll find the properties that match the ACES standardized film stock. You can adjust these tone mapper controls to emulate other types of film stock for your project. 
 
 [REGION:note]
 It is recommended that changes to these properties be used project-wide for a specific look and not changed dynamically or on a shot-by-shot basis. Instead, you should use the 
@@ -113,14 +103,14 @@ It is recommended that changes to these properties be used project-wide for a sp
 ![](ToneMapperProperties.png)(w:500)
 
 [REGION:raw]
-| Property | %spacer3% | Description |
-| -------- | -------- | ----------- |
-| [REGION:tablesection] Tonemapper [/REGION] |||
-| **Slope** || This will adjust the steepness of the S-curve used for the tone mapper, where larger values will make the slope steeper (darker) and lower values will make the slope less steep (lighter). Value is in the range of [0.0, 1.0]. [0.0, 1.0]. [INCLUDE:#slopetable]  |
-| **Toe** || This will adjust the dark color in the tone mapper. Value is in the range of [0.0, 1.0]. [0.0, 1.0]. [INCLUDE:#toetable] |
-| **Shoulder** || This will adjust the bright color in the tone mapper. Value is in the range of [0.0, 1.0] [INCLUDE:#shouldertable] |
-| **Black Clip** || This will set where the crossover happens where black's start to cut off their value. In general, this value should **NOT** be adjusted. Value is in the range of [0.0, 1.0] [INCLUDE:#blackcliptable] |
-| **White Clip** || This will set where the crossover happens where white's start to cut off their values. This will appear as a subtle change in most cases. Value is in the range of [0.0, 1.0] [INCLUDE:#whitecliptable] |
+| Property | Description |
+| -------- | ----------- |
+| [REGION:tablesection] Tonemapper [/REGION] ||
+| **Slope** | This will adjust the steepness of the S-curve used for the tone mapper, where larger values will make the slope steeper (darker) and lower values will make the slope less steep (lighter). Value is in the range of [0.0, 1.0]. [0.0, 1.0]. [INCLUDE:#slopetable]  |
+| **Toe** | This will adjust the dark color in the tone mapper. Value is in the range of [0.0, 1.0]. [0.0, 1.0]. [INCLUDE:#toetable] |
+| **Shoulder** | This will adjust the bright color in the tone mapper. Value is in the range of [0.0, 1.0] [INCLUDE:#shouldertable] |
+| **Black Clip** | This will set where the crossover happens where black's start to cut off their value. In general, this value should **NOT** be adjusted. Value is in the range of [0.0, 1.0] [INCLUDE:#blackcliptable] |
+| **White Clip** | This will set where the crossover happens where white's start to cut off their values. This will appear as a subtle change in most cases. Value is in the range of [0.0, 1.0] [INCLUDE:#whitecliptable] |
 [/REGION]
 
 [REGION:note]
@@ -128,37 +118,38 @@ If you'd like to test different tone mapper values in a real-time grpah like the
 [/REGION]
 
 
-<!--- Tone Mapper Properties Excerpts ---
+[COMMENT:none]
+- Tone Mapper Properties Excerpts ---
 
 
 [EXCERPT:slopetable]
 | [INCLUDE:#slopegraph] | [INCLUDE:#slopeimage] |
 | --- | --- |
-|||
+||
 [/EXCERPT:slopetable]
 
 [EXCERPT:toetable]
 | [INCLUDE:#toegraph] | [INCLUDE:#toeimage] |
 | --- | --- |
-|||
+||
 [/EXCERPT:toetable]
 
 [EXCERPT:shouldertable]
 | [INCLUDE:#shouldergraph] | [INCLUDE:#shoulderimage] |
 | --- | --- |
-|||
+||
 [/EXCERPT:shouldertable]
 
 [EXCERPT:blackcliptable]
 | [INCLUDE:#blackclipgraph] | [INCLUDE:#blackclipimage] |
 | --- | --- |
-|||
+||
 [/EXCERPT:blackcliptable]
 
 [EXCERPT:whitecliptable]
 | [INCLUDE:#whiteclipgraph] | [INCLUDE:#whiteclipimage] |
 | --- | --- |
-|||
+||
 [/EXCERPT:whitecliptable]
 
 ---------------------------------
@@ -281,7 +272,8 @@ If you'd like to test different tone mapper values in a real-time grpah like the
 [/OBJECT]
 [/EXCERPT:whiteclipimage]
 
---- End Tone Mapper Properties Excerpts --->
+--- End Tone Mapper Properties Excerpts -
+[/COMMENT]
 
 
 ## Color Correction
@@ -291,7 +283,7 @@ before it's processed is very important. It ensures that the color will be prope
 
 In the past, the color correction would have been implemented through [Lookup Tables (LUTs)](Engine/Rendering/PostProcessEffects/UsingLUTs), which happens in LDR and on the final color that was output 
 to the monitor in sRGB color space. This presents a problem when working with HDR displays because the LUT is just a snapshot in time of the currently supported display it is
-being adjusted for and cannot be used to the same effect on an HDR display. To solve these types of issues, the [color correction controls](#colorcorrectioncontrols) do their work in Scene Referred Linear Space, 
+being adjusted for and cannot be used to the same effect on an HDR display. To solve these types of issues, the [color correction controls](#colorcorrectionproperties) do their work in Scene Referred Linear Space, 
 which means all colors are captured before they are tone mapped. This makes it possible to only adjust your colors on one HDR display for any color correction to look correct on all displays the image is being 
 outputted to, whether they are HDR or LDR.
 
@@ -323,40 +315,40 @@ For more precise control over the slider values, you can hold the **Shift** key 
 ![](ColorGradingProperties.png)(w:500)
 
 [REGION:raw]
-| Property | %spacer2% | Description |
-| -------- | -------- | ----------- |
-| [REGION:tablesection] White Balance [/REGION] || The properties in this section are used to adjust the colors in the scene so that whites appear truly white. This allows for other colors in the scene to be correctly lit under the given lighting in the scene. |
-| **Temp** || This will adjust the white balance in relation to the temperature of the light in the scene. When the light temperature and this one match the light will appear white. When a value is used that is higher than the light in the scene it will yield a "warm" or yellow color, and, conversely, if the value is lower, it would yield a "cool" or blue color. |
-| **Tint** || This will adjust the white balance temperature tint for the scene by adjusting the cyan and magenta color ranges. Ideally, this setting should be used once you've adjusted the white balance **Temp**  property to get accurate colors. Under some light temperatures, the colors may appear to be more yellow or blue. This can be used to balance the resulting color to look more natural.  |
-| [REGION:tablesection] Global [/REGION] || The properties in this section are a global set of color corrections you can use for your scene. |
-| **Saturation** || This will adjust the intensity (purity) of the colors (hue) that are being represented. A higher saturation intensity will result in colors appearing more like their purest forms (red, green, blue) and when saturation is lowered colors will appear more gray or washed-out. |
-| **Contrast** || This will adjust the tonal range of light and dark color values in your scene. Lowering the intensity will remove highlights and lighten the image resulting in a washed-out appearance, whereas a higher intensity will tighten the highlights and darken the overall image. |
-| **Gamma** || This will adjust the luminance intensity of the image's mid-tones to accurately reproduce colors. Lowering or raising this value will result in the image being washed-out or too dark. |
-| **Gain** || This will adjust the luminance intensity of the image's whites (highlights) to accurately reproduce colors. Raising or lowering this value will result in the image highlights being washed-out or too dark. |
-| **Offset** || This will adjust the luminance intensity of the image's blacks (shadows) to accurately reproduce colors. Raising or lowering this value will result in the image shadows being washed-out or too dark. |
-| **Scene Color Tint** || This is a multiplier for color that is a filter color applied to the HDR scene color. |
-| **Color Grading LUT Intensity** || A scaling factor that controls the effect of the color correction. |
-| **Color Grading LUT** || The LUT texture to use as a lookup table for color correction. [INCLUDE:Engine/Rendering/PostProcessEffects/ColorGrading#ColorGradingLUT] |
-| [REGION:tablesection] Shadows [/REGION] || The properties in this section are used to adjust the color correction values for shadows in the scene. |
-| **Saturation** || This will adjust the intensity (purity) of the colors (hue) that are being represented. A higher saturation intensity will result in colors appearing more like their purest forms (red, green, blue) and when saturation is lowered colors will appear more gray or washed-out. |
-| **Contrast** || This will adjust the tonal range of light and dark color values in your scene. Lowering the intensity will remove highlights and lighten the image resulting in a washed-out appearance, whereas a higher intensity will tighten the highlights and darken the overall image. |
-| **Gamma** || This will adjust the luminance intensity of the image to accurately reproduce colors. Raising or lowering this value will result in the image mid-tones being washed-out or too dark. |
-| **Gain** || This will adjust the luminance intensity of the image's whites (highlights) to accurately reproduce colors. Raising or lowering this value will result in the image highlights being washed-out or too dark. |
-| **Offset** || This will adjust the luminance intensity of the image's blacks (shadows) to accurately reproduce colors. Raising or lowering this value will result in the image shadows being washed-out or too dark. |
-| **Shadows Max** || This is a multiplier of the properties that affect the color correction properties that have been adjusted in the **Shadows** section. |
-| [REGION:tablesection] Mid-tones [/REGION] || The properties in this section are used to adjust the color correction values for mid-tones in the scene. |
-| **Saturation** || This will adjust the intensity (purity) of the colors (hue) that are being represented. A higher saturation intensity will result in colors appearing more like their purest forms (red, green, blue) and when saturation is lowered colors will appear more gray or washed-out. |
-| **Contrast** || This will adjust the tonal range of light and dark color values in your scene. Lowering the intensity will remove highlights and lighten the image resulting in a washed-out appearance, whereas a higher intensity will tighten the highlights and darken the overall image. |
-| **Gamma** || This will adjust the luminance intensity of the image to accurately reproduce colors. Raising or lowering this value will result in the image mid-tones being washed-out or too dark. |
-| **Gain** || This will adjust the luminance intensity of the image's whites (highlights) to accurately reproduce colors. Raising or lowering this value will result in the image highlights being washed-out or too dark. |
-| **Offset** || This will adjust the luminance intensity of the image's blacks (shadows) to accurately reproduce colors. Raising or lowering this value will result in the image shadows being washed-out or too dark. |
-| [REGION:tablesection] Highlights [/REGION] || The properties in this section are used to adjust the color correction values for Highlights in the scene. |
-| **Saturation** || This will adjust the intensity (purity) of the colors (hue) that are being represented. A higher saturation intensity will result in colors appearing more like their purest forms (red, green, blue) and when saturation is lowered colors will appear more gray or washed-out. |
-| **Contrast** || This will adjust the tonal range of light and dark color values in your scene. Lowering the intensity will remove highlights and lighten the image resulting in a washed-out appearance, whereas a higher intensity will tighten the highlights and darken the overall image. |
-| **Gamma** || This will adjust the luminance intensity of the image to accurately reproduce colors. Raising or lowering this value will result in the image mid-tones being washed-out or too dark. |
-| **Gain** || This will adjust the luminance intensity of the image's whites (highlights) to accurately reproduce colors. Raising or lowering this value will result in the image highlights being washed-out or too dark. |
-| **Offset** || This will adjust the luminance intensity of the image's blacks (shadows) to accurately reproduce colors. Raising or lowering this value will result in the image shadows being washed-out or too dark. |
-| **HighLights Min** || This is a multiplier of the properties that affect the color correction properties that have been adjusted in the **Highlights** section.  |
+| Property | Description |
+| -------- | ----------- |
+| [REGION:tablesection] White Balance [/REGION] | The properties in this section are used to adjust the colors in the scene so that whites appear truly white. This allows for other colors in the scene to be correctly lit under the given lighting in the scene. |
+| **Temp** | This will adjust the white balance in relation to the temperature of the light in the scene. When the light temperature and this one match the light will appear white. When a value is used that is higher than the light in the scene it will yield a "warm" or yellow color, and, conversely, if the value is lower, it would yield a "cool" or blue color. |
+| **Tint** | This will adjust the white balance temperature tint for the scene by adjusting the cyan and magenta color ranges. Ideally, this setting should be used once you've adjusted the white balance **Temp**  property to get accurate colors. Under some light temperatures, the colors may appear to be more yellow or blue. This can be used to balance the resulting color to look more natural.  |
+| [REGION:tablesection] Global [/REGION] | The properties in this section are a global set of color corrections you can use for your scene. |
+| **Saturation** | This will adjust the intensity (purity) of the colors (hue) that are being represented. A higher saturation intensity will result in colors appearing more like their purest forms (red, green, blue) and when saturation is lowered colors will appear more gray or washed-out. |
+| **Contrast** | This will adjust the tonal range of light and dark color values in your scene. Lowering the intensity will remove highlights and lighten the image resulting in a washed-out appearance, whereas a higher intensity will tighten the highlights and darken the overall image. |
+| **Gamma** | This will adjust the luminance intensity of the image's mid-tones to accurately reproduce colors. Lowering or raising this value will result in the image being washed-out or too dark. |
+| **Gain** | This will adjust the luminance intensity of the image's whites (highlights) to accurately reproduce colors. Raising or lowering this value will result in the image highlights being washed-out or too dark. |
+| **Offset** | This will adjust the luminance intensity of the image's blacks (shadows) to accurately reproduce colors. Raising or lowering this value will result in the image shadows being washed-out or too dark. |
+| **Scene Color Tint** | This is a multiplier for color that is a filter color applied to the HDR scene color. |
+| **Color Grading LUT Intensity** | A scaling factor that controls the effect of the color correction. |
+| **Color Grading LUT** | The LUT texture to use as a lookup table for color correction. [INCLUDE:Engine/Rendering/PostProcessEffects/ColorGrading#ColorGradingLUT] |
+| [REGION:tablesection] Shadows [/REGION] | The properties in this section are used to adjust the color correction values for shadows in the scene. |
+| **Saturation** | This will adjust the intensity (purity) of the colors (hue) that are being represented. A higher saturation intensity will result in colors appearing more like their purest forms (red, green, blue) and when saturation is lowered colors will appear more gray or washed-out. |
+| **Contrast** | This will adjust the tonal range of light and dark color values in your scene. Lowering the intensity will remove highlights and lighten the image resulting in a washed-out appearance, whereas a higher intensity will tighten the highlights and darken the overall image. |
+| **Gamma** | This will adjust the luminance intensity of the image to accurately reproduce colors. Raising or lowering this value will result in the image mid-tones being washed-out or too dark. |
+| **Gain** | This will adjust the luminance intensity of the image's whites (highlights) to accurately reproduce colors. Raising or lowering this value will result in the image highlights being washed-out or too dark. |
+| **Offset** | This will adjust the luminance intensity of the image's blacks (shadows) to accurately reproduce colors. Raising or lowering this value will result in the image shadows being washed-out or too dark. |
+| **Shadows Max** | This is a multiplier of the properties that affect the color correction properties that have been adjusted in the **Shadows** section. |
+| [REGION:tablesection] Mid-tones [/REGION] | The properties in this section are used to adjust the color correction values for mid-tones in the scene. |
+| **Saturation** | This will adjust the intensity (purity) of the colors (hue) that are being represented. A higher saturation intensity will result in colors appearing more like their purest forms (red, green, blue) and when saturation is lowered colors will appear more gray or washed-out. |
+| **Contrast** | This will adjust the tonal range of light and dark color values in your scene. Lowering the intensity will remove highlights and lighten the image resulting in a washed-out appearance, whereas a higher intensity will tighten the highlights and darken the overall image. |
+| **Gamma** | This will adjust the luminance intensity of the image to accurately reproduce colors. Raising or lowering this value will result in the image mid-tones being washed-out or too dark. |
+| **Gain** | This will adjust the luminance intensity of the image's whites (highlights) to accurately reproduce colors. Raising or lowering this value will result in the image highlights being washed-out or too dark. |
+| **Offset** | This will adjust the luminance intensity of the image's blacks (shadows) to accurately reproduce colors. Raising or lowering this value will result in the image shadows being washed-out or too dark. |
+| [REGION:tablesection] Highlights [/REGION] | The properties in this section are used to adjust the color correction values for Highlights in the scene. |
+| **Saturation** | This will adjust the intensity (purity) of the colors (hue) that are being represented. A higher saturation intensity will result in colors appearing more like their purest forms (red, green, blue) and when saturation is lowered colors will appear more gray or washed-out. |
+| **Contrast** | This will adjust the tonal range of light and dark color values in your scene. Lowering the intensity will remove highlights and lighten the image resulting in a washed-out appearance, whereas a higher intensity will tighten the highlights and darken the overall image. |
+| **Gamma** | This will adjust the luminance intensity of the image to accurately reproduce colors. Raising or lowering this value will result in the image mid-tones being washed-out or too dark. |
+| **Gain** | This will adjust the luminance intensity of the image's whites (highlights) to accurately reproduce colors. Raising or lowering this value will result in the image highlights being washed-out or too dark. |
+| **Offset** | This will adjust the luminance intensity of the image's blacks (shadows) to accurately reproduce colors. Raising or lowering this value will result in the image shadows being washed-out or too dark. |
+| **HighLights Min** | This is a multiplier of the properties that affect the color correction properties that have been adjusted in the **Highlights** section.  |
 [/REGION]
 
 
@@ -405,7 +397,8 @@ color correction to get a similar look.
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ColorGradingLUT]
 [REGION:imagetable]
 | [INCLUDE:#colorgradingnone] | [INCLUDE:#colorgradinggreen] | [INCLUDE:#colorgradingred] |
@@ -434,4 +427,5 @@ color correction to get a similar look.
 [/REGION]
 [REGION:caption]Click image for full size view.[/REGION]
 [/EXCERPT:colorgradingred]
--->
+
+[/COMMENT]

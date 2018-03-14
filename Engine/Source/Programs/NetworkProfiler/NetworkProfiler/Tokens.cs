@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 using System;
@@ -53,9 +53,6 @@ namespace NetworkProfiler
 	{
 		/** Type of token. */
 		public ETokenTypes TokenType = ETokenTypes.MaxAndInvalid;
-
-		/** Network stream this token belongs to. */
-		protected NetworkStream NetworkStream = null;
 
 		/** Connection this token belongs to */
 		public int ConnectionIndex = 0;
@@ -140,7 +137,6 @@ namespace NetworkProfiler
 			}
 
 			TokenTypeStats[(int)TokenType]++;
-			SerializedToken.NetworkStream = InNetworkStream;
 			SerializedToken.TokenType = TokenType;
 
 			SerializedToken.ConnectionIndex = InNetworkStream.CurrentConnectionIndex;
@@ -232,9 +228,9 @@ namespace NetworkProfiler
 		{
 			TreeNode Child = TokenHelper.AddNode( Tree, "Socket SendTo" );
 
-			Child = Child.Nodes.Add( "Destination : " + NetworkStream.GetIpString( ConnectionIndex ) );
+			Child = Child.Nodes.Add( "Destination : " + StreamParser.NetworkStream.GetIpString( ConnectionIndex ) );
 
-			Child.Nodes.Add( "SocketName          : " + NetworkStream.GetName( SocketNameIndex ) );
+			Child.Nodes.Add( "SocketName          : " + StreamParser.NetworkStream.GetName( SocketNameIndex ) );
 			Child.Nodes.Add( "DesiredBytesSent    : " + ( NumPacketIdBits + NumBunchBits + NumAckBits + NumPaddingBits ) / 8.0f );
 			Child.Nodes.Add( "   NumPacketIdBits  : " + NumPacketIdBits );
 			Child.Nodes.Add( "   NumBunchBits     : " + NumBunchBits );
@@ -331,9 +327,9 @@ namespace NetworkProfiler
 		{
 			TreeNode Child = TokenHelper.AddNode( Tree, "RPCs" );
 
-			Child = Child.Nodes.Add( NetworkStream.GetName( FunctionNameIndex ) );
+			Child = Child.Nodes.Add(StreamParser.NetworkStream.GetName( FunctionNameIndex ) );
 
-			Child.Nodes.Add( "Actor               : " + NetworkStream.GetName( ActorNameIndex ) );
+			Child.Nodes.Add( "Actor               : " + StreamParser.NetworkStream.GetName( ActorNameIndex ) );
 			Child.Nodes.Add( "NumTotalBits        : " + GetNumTotalBits() );
 			Child.Nodes.Add( "   NumHeaderBits    : " + NumHeaderBits );
 			Child.Nodes.Add( "   NumParameterBits : " + NumParameterBits );
@@ -352,8 +348,8 @@ namespace NetworkProfiler
 		 */
 		public override bool MatchesFilters( FilterValues InFilterValues )
 		{
-			return base.MatchesFilters( InFilterValues ) && ( InFilterValues.ActorFilter.Length == 0 || NetworkStream.GetName( ActorNameIndex ).ToUpperInvariant().Contains( InFilterValues.ActorFilter.ToUpperInvariant() ) )
-			&& ( InFilterValues.RPCFilter.Length == 0 || NetworkStream.GetName( FunctionNameIndex ).ToUpperInvariant().Contains( InFilterValues.RPCFilter.ToUpperInvariant() ) );
+			return base.MatchesFilters( InFilterValues ) && ( InFilterValues.ActorFilter.Length == 0 || StreamParser.NetworkStream.GetName( ActorNameIndex ).ToUpperInvariant().Contains( InFilterValues.ActorFilter.ToUpperInvariant() ) )
+			&& ( InFilterValues.RPCFilter.Length == 0 || StreamParser.NetworkStream.GetName( FunctionNameIndex ).ToUpperInvariant().Contains( InFilterValues.RPCFilter.ToUpperInvariant() ) );
 		}
 	}
 
@@ -364,12 +360,14 @@ namespace NetworkProfiler
 	 */ 
 	class TokenReplicateActor : TokenBase
 	{
-		/** Whether bNetDirty was set on Actor. */
-		public bool bNetDirty;
-		/** Whether bNetInitial was set on Actor. */
-		public bool bNetInitial;
-		/** Whether bNetOwner was set on Actor. */
-		public bool bNetOwner;
+        public enum ENetFlags
+        {
+            Dirty = 1,
+            Initial = 2,
+            Owner = 4
+        }
+        /** Whether bNetDirty, bnetInitial, or bNetOwner was set on Actor. */
+        public byte NetFlags;
 		/** Name table index of actor name */
 		public int ActorNameIndex;
 		/** Time in ms to replicate this actor */
@@ -384,10 +382,7 @@ namespace NetworkProfiler
 		/** Constructor, serializing members from passed in stream. */
 		public TokenReplicateActor(BinaryReader BinaryStream)
 		{
-			byte NetFlags = BinaryStream.ReadByte();
-			bNetDirty = (NetFlags & 1) == 1;
-			bNetInitial = (NetFlags & 2) == 2;
-			bNetOwner = (NetFlags & 4) == 4;
+			NetFlags = BinaryStream.ReadByte();
 			ActorNameIndex = TokenHelper.LoadPackedInt( BinaryStream );
             TimeInMS = BinaryStream.ReadSingle();
 			Properties = new List<TokenReplicateProperty>();
@@ -437,8 +432,8 @@ namespace NetworkProfiler
 
 			int NumReplicatedBits = GetNumReplicatedBits( InFilterValues );
 
-			string Flags = ( bNetDirty ? "bNetDirty " : "" ) + ( bNetInitial ? "bNetInitial" : "" ) + ( bNetOwner ? "bNetOwner" : "" );
-			Child = Child.Nodes.Add( string.Format( "{0,-32} : {1:0.00} ({2:000}) ", NetworkStream.GetName( ActorNameIndex ), TimeInMS, NumReplicatedBits / 8 ) + Flags );
+			string Flags = ((NetFlags & (byte)ENetFlags.Dirty) == 1 ? "bNetDirty " : "" ) + ((NetFlags & (byte)ENetFlags.Initial) == 1 ? "bNetInitial" : "" ) + ((NetFlags & (byte)ENetFlags.Owner) == 1 ? "bNetOwner" : "" );
+			Child = Child.Nodes.Add( string.Format( "{0,-32} : {1:0.00} ({2:000}) ", StreamParser.NetworkStream.GetName( ActorNameIndex ), TimeInMS, NumReplicatedBits / 8 ) + Flags );
 
 			if ( Properties.Count > 0 )
 			{
@@ -447,7 +442,7 @@ namespace NetworkProfiler
 				{
 					if ( Property.MatchesFilters( InFilterValues ) )
 					{
-						NewChild.Nodes.Add( string.Format( "{0,-25} : {1:000}", NetworkStream.GetName( Property.PropertyNameIndex ), Property.NumBits / 8.0f ) );
+						NewChild.Nodes.Add( string.Format( "{0,-25} : {1:000}", StreamParser.NetworkStream.GetName( Property.PropertyNameIndex ), Property.NumBits / 8.0f ) );
 					}
 				}
 			}
@@ -459,7 +454,7 @@ namespace NetworkProfiler
 				{
 					if ( PropertyHeader.MatchesFilters( InFilterValues ) )
 					{
-						NewChild.Nodes.Add( string.Format( "{0,-25} : {1:000}", NetworkStream.GetName( PropertyHeader.PropertyNameIndex ), PropertyHeader.NumBits / 8.0f ) );
+						NewChild.Nodes.Add( string.Format( "{0,-25} : {1:000}", StreamParser.NetworkStream.GetName( PropertyHeader.PropertyNameIndex ), PropertyHeader.NumBits / 8.0f ) );
 					}
 				}
 			}
@@ -485,12 +480,12 @@ namespace NetworkProfiler
 					break;
 				}
 			}
-			return base.MatchesFilters( InFilterValues ) && ( InFilterValues.ActorFilter.Length == 0 || NetworkStream.GetName( ActorNameIndex ).ToUpperInvariant().Contains( InFilterValues.ActorFilter.ToUpperInvariant() ) ) && ContainsMatchingProperty;
+			return base.MatchesFilters( InFilterValues ) && ( InFilterValues.ActorFilter.Length == 0 || StreamParser.NetworkStream.GetName( ActorNameIndex ).ToUpperInvariant().Contains( InFilterValues.ActorFilter.ToUpperInvariant() ) ) && ContainsMatchingProperty;
 		}
 
 		public int GetClassNameIndex()
 		{
-			return NetworkStream.GetClassNameIndex( ActorNameIndex );
+			return StreamParser.NetworkStream.GetClassNameIndex( ActorNameIndex );
 		}	
 	}
 
@@ -522,7 +517,7 @@ namespace NetworkProfiler
 		 */
 		public override bool MatchesFilters( FilterValues InFilterValues )
 		{
-			return base.MatchesFilters( InFilterValues ) && ( InFilterValues.PropertyFilter.Length == 0 || NetworkStream.GetName( PropertyNameIndex ).ToUpperInvariant().Contains( InFilterValues.PropertyFilter.ToUpperInvariant() ) );
+			return base.MatchesFilters( InFilterValues ) && ( InFilterValues.PropertyFilter.Length == 0 || StreamParser.NetworkStream.GetName( PropertyNameIndex ).ToUpperInvariant().Contains( InFilterValues.PropertyFilter.ToUpperInvariant() ) );
 		}
 	}			
 
@@ -554,7 +549,7 @@ namespace NetworkProfiler
 		 */
 		public override bool MatchesFilters( FilterValues InFilterValues )
 		{
-			return base.MatchesFilters( InFilterValues ) && ( InFilterValues.PropertyFilter.Length == 0 || NetworkStream.GetName( PropertyNameIndex ).ToUpperInvariant().Contains( InFilterValues.PropertyFilter.ToUpperInvariant() ) );
+			return base.MatchesFilters( InFilterValues ) && ( InFilterValues.PropertyFilter.Length == 0 || StreamParser.NetworkStream.GetName( PropertyNameIndex ).ToUpperInvariant().Contains( InFilterValues.PropertyFilter.ToUpperInvariant() ) );
 		}
 	}
 
@@ -635,7 +630,7 @@ namespace NetworkProfiler
 		 */
 		public override bool MatchesFilters( FilterValues InFilterValues )
 		{
-			return base.MatchesFilters( InFilterValues ) && ( InFilterValues.ActorFilter.Length == 0 || NetworkStream.GetName( ObjectNameIndex ).ToUpperInvariant().Contains( InFilterValues.ActorFilter.ToUpperInvariant() ) );
+			return base.MatchesFilters( InFilterValues ) && ( InFilterValues.ActorFilter.Length == 0 || StreamParser.NetworkStream.GetName( ObjectNameIndex ).ToUpperInvariant().Contains( InFilterValues.ActorFilter.ToUpperInvariant() ) );
 		}
 	}
 
@@ -667,7 +662,7 @@ namespace NetworkProfiler
 		 */
 		public override bool MatchesFilters( FilterValues InFilterValues )
 		{
-			return base.MatchesFilters( InFilterValues ) && ( InFilterValues.ActorFilter.Length == 0 || NetworkStream.GetName( ObjectNameIndex ).ToUpperInvariant().Contains( InFilterValues.ActorFilter.ToUpperInvariant() ) );
+			return base.MatchesFilters( InFilterValues ) && ( InFilterValues.ActorFilter.Length == 0 || StreamParser.NetworkStream.GetName( ObjectNameIndex ).ToUpperInvariant().Contains( InFilterValues.ActorFilter.ToUpperInvariant() ) );
 		}
 	}
 
@@ -761,8 +756,8 @@ namespace NetworkProfiler
 		{
 			TreeNode Child = TokenHelper.AddNode( Tree, "Events" );
 
-			Child.Nodes.Add( "Type          : " + NetworkStream.GetName( EventNameNameIndex ) );
-			Child.Nodes.Add( "Description   : " + NetworkStream.GetName( EventDescriptionNameIndex ) );
+			Child.Nodes.Add( "Type          : " + StreamParser.NetworkStream.GetName( EventNameNameIndex ) );
+			Child.Nodes.Add( "Description   : " + StreamParser.NetworkStream.GetName( EventDescriptionNameIndex ) );
 		}
 	}
 

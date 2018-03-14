@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScreenRendering.h: Screen rendering definitions.
@@ -55,7 +55,7 @@ class FScreenPS : public FGlobalShader
 	DECLARE_EXPORTED_SHADER_TYPE(FScreenPS,Global,ENGINE_API);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return true; }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return true; }
 
 	FScreenPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FGlobalShader(Initializer)
@@ -93,7 +93,7 @@ class FScreenPS_OSE : public FGlobalShader
     DECLARE_EXPORTED_SHADER_TYPE(FScreenPS_OSE,Global,ENGINE_API);
 public:
 
-    static bool ShouldCache(EShaderPlatform Platform) { return true; }
+    static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return true; }
 
     FScreenPS_OSE(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
         FGlobalShader(Initializer)
@@ -135,7 +135,7 @@ class FScreenVS : public FGlobalShader
 	DECLARE_EXPORTED_SHADER_TYPE(FScreenVS,Global,ENGINE_API);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return true; }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return true; }
 
 	FScreenVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FGlobalShader(Initializer)
@@ -162,9 +162,9 @@ class TScreenVSForGS : public FScreenVS
 	DECLARE_EXPORTED_SHADER_TYPE(TScreenVSForGS,Global,ENGINE_API);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && (!bUsingVertexLayers || RHISupportsVertexShaderLayer(Platform));
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4) && (!bUsingVertexLayers || RHISupportsVertexShaderLayer(Parameters.Platform));
 	}
 
 	TScreenVSForGS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
@@ -173,9 +173,9 @@ public:
 	  }
 	TScreenVSForGS() {}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FScreenVS::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FScreenVS::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USING_LAYERS"), (uint32)(bUsingVertexLayers ? 1 : 0));
 		if (!bUsingVertexLayers)
 		{

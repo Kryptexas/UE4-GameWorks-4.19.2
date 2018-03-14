@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PaperSpriteSceneProxy.h"
 #include "Materials/Material.h"
@@ -31,6 +31,12 @@ FPaperSpriteSceneProxy::FPaperSpriteSceneProxy(UPaperSpriteComponent* InComponen
 
 	MaterialSplitIndex = INDEX_NONE;
 	MaterialRelevance = InComponent->GetMaterialRelevance(GetScene().GetFeatureLevel());
+}
+
+SIZE_T FPaperSpriteSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
 }
 
 void FPaperSpriteSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -64,9 +64,6 @@ public:
 	
 	/** The preview primitive we are using. */
 	EThumbnailPrimType PreviewPrimType;
-	
-	/** If true, render background object in the preview scene. */
-	bool bShowBackground;
 
 	/** If true, render grid the preview scene. */
 	bool bShowGrid;
@@ -102,6 +99,9 @@ protected:
 	virtual void BindCommands() override;
 	virtual void OnFocusViewportToSelection() override;
 private:
+
+	void OnPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
+
 	/** The parent tab where this viewport resides */
 	TWeakPtr<SDockTab> ParentTab;
 
@@ -115,6 +115,15 @@ private:
 
 	/** Preview Scene - uses advanced preview settings */
 	TSharedPtr<class FAdvancedPreviewScene> AdvancedPreviewScene;
+
+	/** Post process volume actor. */
+	class APostProcessVolume* PostProcessVolumeActor;
+
+	/** Property changed delegate. */
+	FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
+
+	/** Handle to the registered OnPropertyChangedHandle delegate. */
+	FDelegateHandle OnPropertyChangedHandleDelegateHandle;
 };
 
 /**

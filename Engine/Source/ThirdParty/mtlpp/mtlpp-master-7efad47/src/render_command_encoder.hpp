@@ -2,17 +2,26 @@
  * Copyright 2016-2017 Nikolay Aleksiev. All rights reserved.
  * License: https://github.com/naleksiev/mtlpp/blob/master/LICENSE
  */
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+#include "imp_RenderCommandEncoder.hpp"
 #include "command_encoder.hpp"
 #include "command_buffer.hpp"
 #include "render_pass.hpp"
 #include "fence.hpp"
+#include "buffer.hpp"
+#include "heap.hpp"
+#include "resource.hpp"
+#include "sampler.hpp"
+#include "texture.hpp"
 #include "stage_input_output_descriptor.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -34,22 +43,12 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    struct ScissorRect
+	struct ScissorRect : public MTLPPScissorRect
     {
-        uint32_t X;
-        uint32_t Y;
-        uint32_t Width;
-        uint32_t Height;
     };
 
-    struct Viewport
+    struct Viewport : public MTLPPViewport
     {
-        double OriginX;
-        double OriginY;
-        double Width;
-        double Height;
-        double ZNear;
-        double ZFar;
     };
 
     enum class CullMode
@@ -127,75 +126,105 @@ namespace mtlpp
 
 	class Heap;
 	
-    class RenderCommandEncoder : public CommandEncoder
+	class RenderCommandEncoder : public CommandEncoder<ns::Protocol<id<MTLRenderCommandEncoder>>::type>
     {
     public:
         RenderCommandEncoder() { }
-        RenderCommandEncoder(const ns::Handle& handle) : CommandEncoder(handle) { }
+        RenderCommandEncoder(ns::Protocol<id<MTLRenderCommandEncoder>>::type handle) : CommandEncoder<ns::Protocol<id<MTLRenderCommandEncoder>>::type>(handle) { }
 
         void SetRenderPipelineState(const RenderPipelineState& pipelineState);
-        void SetVertexData(const void* bytes, uint32_t length, uint32_t index) MTLPP_AVAILABLE(10_11, 8_3);
-        void SetVertexBuffer(const Buffer& buffer, uint32_t offset, uint32_t index);
-        void SetVertexBufferOffset(uint32_t offset, uint32_t index) MTLPP_AVAILABLE(10_11, 8_3);
-        void SetVertexBuffers(const Buffer* buffers, const uint32_t* offsets, const ns::Range& range);
-        void SetVertexTexture(const Texture& texture, uint32_t index);
-        void SetVertexTextures(const Texture* textures, const ns::Range& range);
-        void SetVertexSamplerState(const SamplerState& sampler, uint32_t index);
-        void SetVertexSamplerStates(const SamplerState* samplers, const ns::Range& range);
-        void SetVertexSamplerState(const SamplerState& sampler, float lodMinClamp, float lodMaxClamp, uint32_t index);
-        void SetVertexSamplerStates(const SamplerState* samplers, const float* lodMinClamps, const float* lodMaxClamps, const ns::Range& range);
+        void SetVertexData(const void* bytes, NSUInteger length, NSUInteger index) MTLPP_AVAILABLE(10_11, 8_3);
+        void SetVertexBuffer(const Buffer& buffer, NSUInteger offset, NSUInteger index);
+        void SetVertexBufferOffset(NSUInteger offset, NSUInteger index) MTLPP_AVAILABLE(10_11, 8_3);
+        void SetVertexBuffers(const Buffer::Type* buffers, const uint64_t* offsets, const ns::Range& range);
+        void SetVertexTexture(const Texture& texture, NSUInteger index);
+        void SetVertexTextures(const Texture::Type* textures, const ns::Range& range);
+        void SetVertexSamplerState(const SamplerState& sampler, NSUInteger index);
+        void SetVertexSamplerStates(const SamplerState::Type* samplers, const ns::Range& range);
+        void SetVertexSamplerState(const SamplerState& sampler, float lodMinClamp, float lodMaxClamp, NSUInteger index);
+		void SetVertexSamplerStates(const SamplerState::Type* samplers, const float* lodMinClamps, const float* lodMaxClamps, const ns::Range& range);
         void SetViewport(const Viewport& viewport);
-		void SetViewports(const Viewport* viewports, uint32_t count) MTLPP_AVAILABLE_MAC(10_13);
+		void SetViewports(const Viewport* viewports, NSUInteger count) MTLPP_AVAILABLE_MAC(10_13);
         void SetFrontFacingWinding(Winding frontFacingWinding);
         void SetCullMode(CullMode cullMode);
-        void SetDepthClipMode(DepthClipMode depthClipMode) MTLPP_AVAILABLE(10_11, NA);
+        void SetDepthClipMode(DepthClipMode depthClipMode) MTLPP_AVAILABLE(10_11, 11_0);
         void SetDepthBias(float depthBias, float slopeScale, float clamp);
         void SetScissorRect(const ScissorRect& rect);
-		void SetScissorRects(const ScissorRect* rect, uint32_t count) MTLPP_AVAILABLE_MAC(10_13);
+		void SetScissorRects(const ScissorRect* rect, NSUInteger count) MTLPP_AVAILABLE_MAC(10_13);
         void SetTriangleFillMode(TriangleFillMode fillMode);
-        void SetFragmentData(const void* bytes, uint32_t length, uint32_t index);
-        void SetFragmentBuffer(const Buffer& buffer, uint32_t offset, uint32_t index);
-        void SetFragmentBufferOffset(uint32_t offset, uint32_t index) MTLPP_AVAILABLE(10_11, 8_3);
-        void SetFragmentBuffers(const Buffer* buffers, const uint32_t* offsets, const ns::Range& range);
-        void SetFragmentTexture(const Texture& texture, uint32_t index);
-        void SetFragmentTextures(const Texture* textures, const ns::Range& range);
-        void SetFragmentSamplerState(const SamplerState& sampler, uint32_t index);
-        void SetFragmentSamplerStates(const SamplerState* samplers, const ns::Range& range);
-        void SetFragmentSamplerState(const SamplerState& sampler, float lodMinClamp, float lodMaxClamp, uint32_t index);
-        void SetFragmentSamplerStates(const SamplerState* samplers, const float* lodMinClamps, const float* lodMaxClamps, const ns::Range& range);
+        void SetFragmentData(const void* bytes, NSUInteger length, NSUInteger index);
+        void SetFragmentBuffer(const Buffer& buffer, NSUInteger offset, NSUInteger index);
+        void SetFragmentBufferOffset(NSUInteger offset, NSUInteger index) MTLPP_AVAILABLE(10_11, 8_3);
+        void SetFragmentBuffers(const Buffer::Type* buffers, const uint64_t* offsets, const ns::Range& range);
+        void SetFragmentTexture(const Texture& texture, NSUInteger index);
+        void SetFragmentTextures(const Texture::Type* textures, const ns::Range& range);
+        void SetFragmentSamplerState(const SamplerState& sampler, NSUInteger index);
+        void SetFragmentSamplerStates(const SamplerState::Type* samplers, const ns::Range& range);
+        void SetFragmentSamplerState(const SamplerState& sampler, float lodMinClamp, float lodMaxClamp, NSUInteger index);
+        void SetFragmentSamplerStates(const SamplerState::Type* samplers, const float* lodMinClamps, const float* lodMaxClamps, const ns::Range& range);
         void SetBlendColor(float red, float green, float blue, float alpha);
         void SetDepthStencilState(const DepthStencilState& depthStencilState);
         void SetStencilReferenceValue(uint32_t referenceValue);
         void SetStencilReferenceValue(uint32_t frontReferenceValue, uint32_t backReferenceValue) MTLPP_AVAILABLE(10_11, 9_0);
-        void SetVisibilityResultMode(VisibilityResultMode mode, uint32_t offset);
-        void SetColorStoreAction(StoreAction storeAction, uint32_t colorAttachmentIndex) MTLPP_AVAILABLE(10_12, 10_0);
+        void SetVisibilityResultMode(VisibilityResultMode mode, NSUInteger offset);
+        void SetColorStoreAction(StoreAction storeAction, NSUInteger colorAttachmentIndex) MTLPP_AVAILABLE(10_12, 10_0);
         void SetDepthStoreAction(StoreAction storeAction) MTLPP_AVAILABLE(10_12, 10_0);
         void SetStencilStoreAction(StoreAction storeAction) MTLPP_AVAILABLE(10_12, 10_0);
-		void SetColorStoreActionOptions(StoreActionOptions storeAction, uint32_t colorAttachmentIndex) MTLPP_AVAILABLE(10_13, 11_0);
+		void SetColorStoreActionOptions(StoreActionOptions storeAction, NSUInteger colorAttachmentIndex) MTLPP_AVAILABLE(10_13, 11_0);
 		void SetDepthStoreActionOptions(StoreActionOptions storeAction) MTLPP_AVAILABLE(10_13, 11_0);
 		void SetStencilStoreActionOptions(StoreActionOptions storeAction) MTLPP_AVAILABLE(10_13, 11_0);
-        void Draw(PrimitiveType primitiveType, uint32_t vertexStart, uint32_t vertexCount);
-        void Draw(PrimitiveType primitiveType, uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount) MTLPP_AVAILABLE(10_11, 9_0);
-        void Draw(PrimitiveType primitiveType, uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance) MTLPP_AVAILABLE(10_11, 9_0);
-        void Draw(PrimitiveType primitiveType, Buffer indirectBuffer, uint32_t indirectBufferOffset) MTLPP_AVAILABLE(10_11, 9_0);
-        void DrawIndexed(PrimitiveType primitiveType, uint32_t indexCount, IndexType indexType, const Buffer& indexBuffer, uint32_t indexBufferOffset);
-        void DrawIndexed(PrimitiveType primitiveType, uint32_t indexCount, IndexType indexType, const Buffer& indexBuffer, uint32_t indexBufferOffset, uint32_t instanceCount) MTLPP_AVAILABLE(10_11, 9_0);
-        void DrawIndexed(PrimitiveType primitiveType, uint32_t indexCount, IndexType indexType, const Buffer& indexBuffer, uint32_t indexBufferOffset, uint32_t instanceCount, uint32_t baseVertex, uint32_t baseInstance) MTLPP_AVAILABLE(10_11, 9_0);
-        void DrawIndexed(PrimitiveType primitiveType, IndexType indexType, const Buffer& indexBuffer, uint32_t indexBufferOffset, const Buffer& indirectBuffer, uint32_t indirectBufferOffset) MTLPP_AVAILABLE(10_11, 9_0);
+        void Draw(PrimitiveType primitiveType, NSUInteger vertexStart, NSUInteger vertexCount);
+        void Draw(PrimitiveType primitiveType, NSUInteger vertexStart, NSUInteger vertexCount, NSUInteger instanceCount) MTLPP_AVAILABLE(10_11, 9_0);
+        void Draw(PrimitiveType primitiveType, NSUInteger vertexStart, NSUInteger vertexCount, NSUInteger instanceCount, NSUInteger baseInstance) MTLPP_AVAILABLE(10_11, 9_0);
+        void Draw(PrimitiveType primitiveType, Buffer indirectBuffer, NSUInteger indirectBufferOffset) MTLPP_AVAILABLE(10_11, 9_0);
+        void DrawIndexed(PrimitiveType primitiveType, NSUInteger indexCount, IndexType indexType, const Buffer& indexBuffer, NSUInteger indexBufferOffset);
+        void DrawIndexed(PrimitiveType primitiveType, NSUInteger indexCount, IndexType indexType, const Buffer& indexBuffer, NSUInteger indexBufferOffset, NSUInteger instanceCount) MTLPP_AVAILABLE(10_11, 9_0);
+        void DrawIndexed(PrimitiveType primitiveType, NSUInteger indexCount, IndexType indexType, const Buffer& indexBuffer, NSUInteger indexBufferOffset, NSUInteger instanceCount, NSUInteger baseVertex, NSUInteger baseInstance) MTLPP_AVAILABLE(10_11, 9_0);
+        void DrawIndexed(PrimitiveType primitiveType, IndexType indexType, const Buffer& indexBuffer, NSUInteger indexBufferOffset, const Buffer& indirectBuffer, NSUInteger indirectBufferOffset) MTLPP_AVAILABLE(10_11, 9_0);
         void TextureBarrier() MTLPP_AVAILABLE_MAC(10_11);
         void UpdateFence(const Fence& fence, RenderStages afterStages) MTLPP_AVAILABLE(10_13, 10_0);
         void WaitForFence(const Fence& fence, RenderStages beforeStages) MTLPP_AVAILABLE(10_13, 10_0);
-        void SetTessellationFactorBuffer(const Buffer& buffer, uint32_t offset, uint32_t instanceStride) MTLPP_AVAILABLE(10_12, 10_0);
+        void SetTessellationFactorBuffer(const Buffer& buffer, NSUInteger offset, NSUInteger instanceStride) MTLPP_AVAILABLE(10_12, 10_0);
         void SetTessellationFactorScale(float scale) MTLPP_AVAILABLE(10_12, 10_0);
-        void DrawPatches(uint32_t numberOfPatchControlPoints, uint32_t patchStart, uint32_t patchCount, const Buffer& patchIndexBuffer, uint32_t patchIndexBufferOffset, uint32_t instanceCount, uint32_t baseInstance) MTLPP_AVAILABLE(10_12, 10_0);
-        void DrawPatches(uint32_t numberOfPatchControlPoints, const Buffer& patchIndexBuffer, uint32_t patchIndexBufferOffset, const Buffer& indirectBuffer, uint32_t indirectBufferOffset) MTLPP_AVAILABLE(10_12, NA);
-        void DrawIndexedPatches(uint32_t numberOfPatchControlPoints, uint32_t patchStart, uint32_t patchCount, const Buffer& patchIndexBuffer, uint32_t patchIndexBufferOffset, const Buffer& controlPointIndexBuffer, uint32_t controlPointIndexBufferOffset, uint32_t instanceCount, uint32_t baseInstance) MTLPP_AVAILABLE(10_12, 10_0);
-        void DrawIndexedPatches(uint32_t numberOfPatchControlPoints, const Buffer& patchIndexBuffer, uint32_t patchIndexBufferOffset, const Buffer& controlPointIndexBuffer, uint32_t controlPointIndexBufferOffset, const Buffer& indirectBuffer, uint32_t indirectBufferOffset) MTLPP_AVAILABLE(10_12, NA);
+        void DrawPatches(NSUInteger numberOfPatchControlPoints, NSUInteger patchStart, NSUInteger patchCount, const Buffer& patchIndexBuffer, NSUInteger patchIndexBufferOffset, NSUInteger instanceCount, NSUInteger baseInstance) MTLPP_AVAILABLE(10_12, 10_0);
+        void DrawPatches(NSUInteger numberOfPatchControlPoints, const Buffer& patchIndexBuffer, NSUInteger patchIndexBufferOffset, const Buffer& indirectBuffer, NSUInteger indirectBufferOffset) MTLPP_AVAILABLE(10_12, NA);
+        void DrawIndexedPatches(NSUInteger numberOfPatchControlPoints, NSUInteger patchStart, NSUInteger patchCount, const Buffer& patchIndexBuffer, NSUInteger patchIndexBufferOffset, const Buffer& controlPointIndexBuffer, NSUInteger controlPointIndexBufferOffset, NSUInteger instanceCount, NSUInteger baseInstance) MTLPP_AVAILABLE(10_12, 10_0);
+        void DrawIndexedPatches(NSUInteger numberOfPatchControlPoints, const Buffer& patchIndexBuffer, NSUInteger patchIndexBufferOffset, const Buffer& controlPointIndexBuffer, NSUInteger controlPointIndexBufferOffset, const Buffer& indirectBuffer, NSUInteger indirectBufferOffset) MTLPP_AVAILABLE(10_12, NA);
 		void UseResource(Resource const& resource, ResourceUsage usage) MTLPP_AVAILABLE(10_13, 11_0);
-		void UseResources(Resource const* resources, uint32_t count, ResourceUsage usage) MTLPP_AVAILABLE(10_13, 11_0);
+		void UseResources(Resource::Type const* resources, NSUInteger count, ResourceUsage usage) MTLPP_AVAILABLE(10_13, 11_0);
 		void UseHeap(Heap const& heap) MTLPP_AVAILABLE(10_13, 11_0);
-		void UseHeaps(Heap const* heaps, uint32_t count) MTLPP_AVAILABLE(10_13, 11_0);
+		void UseHeaps(Heap::Type const* heaps, NSUInteger count) MTLPP_AVAILABLE(10_13, 11_0);
+		
+		NSUInteger GetTileWidth() MTLPP_AVAILABLE_IOS(11_0);
+		
+		NSUInteger GetTileHeight() MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetTileData(const void* bytes, NSUInteger length, NSUInteger index) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetTileBuffer(const Buffer& buffer, NSUInteger offset, NSUInteger index) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetTileBufferOffset(NSUInteger offset, NSUInteger index) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetTileBuffers(const Buffer::Type* buffers, const uint64_t* offsets, const ns::Range& range) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetTileTexture(const Texture& texture, NSUInteger index) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetTileTextures(const Texture::Type* textures, const ns::Range& range) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetTileSamplerState(const SamplerState& sampler, NSUInteger index) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetTileSamplerStates(const SamplerState::Type* samplers, const ns::Range& range) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetTileSamplerState(const SamplerState& sampler, float lodMinClamp, float lodMaxClamp, NSUInteger index) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetTileSamplerStates(const SamplerState::Type* samplers, const float* lodMinClamps, const float* lodMaxClamps, const ns::Range& range) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void DispatchThreadsPerTile(Size const& threadsPerTile) MTLPP_AVAILABLE_IOS(11_0);
+		
+		void SetThreadgroupMemoryLength(NSUInteger length, NSUInteger offset, NSUInteger index) MTLPP_AVAILABLE_IOS(11_0);
+
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 }
 
+MTLPP_END

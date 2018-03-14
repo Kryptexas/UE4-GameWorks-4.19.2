@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreTypes.h"
@@ -6,6 +6,7 @@
 #include "UObject/NameTypes.h"
 #include "Logging/LogMacros.h"
 #include "HAL/PlatformTLS.h"
+#include "Templates/Atomic.h"
 
 class Error;
 class FConfigCacheIni;
@@ -94,6 +95,8 @@ extern CORE_API bool GIsReinstancing;
 
 /** Helper function to flush resource streaming. */
 extern CORE_API void(*GFlushStreamingFunc)(void);
+
+extern CORE_API bool GIsRunningUnattendedScript;
 
 #if WITH_ENGINE
 extern CORE_API bool PRIVATE_GIsRunningCommandlet;
@@ -344,9 +347,6 @@ extern CORE_API uint32 GAudioThreadId;
 /** Has GGameThreadId been set yet? */
 extern CORE_API bool GIsGameThreadIdInitialized;
 
-/** Whether to emit begin/ end draw events. */
-extern CORE_API bool GEmitDrawEvents;
-
 /** Whether we want the rendering thread to be suspended, used e.g. for tracing. */
 extern CORE_API bool GShouldSuspendRenderingThread;
 
@@ -358,6 +358,11 @@ extern CORE_API ELogTimes::Type GPrintLogTimes;
 
 /** How to print the category in log output. */
 extern CORE_API bool GPrintLogCategory;
+
+#if USE_HITCH_DETECTION
+/** Used by the lightweight stats and FGameThreadHitchHeartBeat to print a stat stack for hitches in shipping builds. */
+extern CORE_API bool GHitchDetected;
+#endif
 
 /** Whether stats should emit named events for e.g. PIX. */
 extern CORE_API int32 GCycleStatsShouldEmitNamedEvents;
@@ -427,7 +432,7 @@ extern CORE_API bool (*IsInAsyncLoadingThread)();
 extern CORE_API FRunnableThread* GRenderingThread;
 
 /** Whether the rendering thread is suspended (not even processing the tickables) */
-extern CORE_API int32 GIsRenderingThreadSuspended;
+extern CORE_API TAtomic<int32> GIsRenderingThreadSuspended;
 
 /** @return True if called from the RHI thread, or if called from ANY thread during single threaded rendering */
 extern CORE_API bool IsInRHIThread();
@@ -467,6 +472,11 @@ struct FScopedLoadingState
 #endif
 
 
+bool CORE_API GetEmitDrawEvents();
+
+void CORE_API SetEmitDrawEvents(bool EmitDrawEvents);
+
+void CORE_API EnableEmitDrawEventsOnlyOnCommandlist();
 
 /** Array to help visualize weak pointers in the debugger */
 class FFixedUObjectArray;

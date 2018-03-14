@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CameraRig_Rail.h"
 #include "UObject/ConstructorHelpers.h"
@@ -111,9 +111,10 @@ void ACameraRig_Rail::UpdatePreviewMeshes()
 
 			for (int PtIdx = 0; PtIdx < NumSplinePoints - 1; ++PtIdx)
 			{
-				FVector StartLoc, StartTangent, EndLoc, EndTangent;
-				RailSplineComponent->GetLocationAndTangentAtSplinePoint(PtIdx, StartLoc, StartTangent, ESplineCoordinateSpace::Local);
-				RailSplineComponent->GetLocationAndTangentAtSplinePoint(PtIdx + 1, EndLoc, EndTangent, ESplineCoordinateSpace::Local);
+				FVector StartLoc = RailSplineComponent->GetLocationAtSplinePoint(PtIdx, ESplineCoordinateSpace::Local);
+				FVector StartTangent = RailSplineComponent->GetLeaveTangentAtSplinePoint(PtIdx, ESplineCoordinateSpace::Local);
+				FVector EndTangent = RailSplineComponent->GetArriveTangentAtSplinePoint(PtIdx + 1,ESplineCoordinateSpace::Local);
+				FVector EndLoc = RailSplineComponent->GetLocationAtSplinePoint(PtIdx + 1, ESplineCoordinateSpace::Local);
 
 				USplineMeshComponent* const SplineMeshComp = PreviewRailMeshSegments[PtIdx];
 				if (SplineMeshComp)

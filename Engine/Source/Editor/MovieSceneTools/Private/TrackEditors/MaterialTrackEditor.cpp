@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "TrackEditors/MaterialTrackEditor.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
@@ -68,7 +68,7 @@ TSharedRef<SWidget> FMaterialTrackEditor::OnGetAddParameterMenuContent( FGuid Ob
 		UMaterialInterface* MaterialInterface = GetMaterialInterfaceForTrack(ObjectBinding, MaterialTrack);
 		
 		UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>( MaterialInterface );	
-		TArray<FGuid> VisibleExpressions;
+		TArray<FMaterialParameterInfo> VisibleExpressions;
 
 		IMaterialEditorModule* MaterialEditorModule = &FModuleManager::LoadModuleChecked<IMaterialEditorModule>( "MaterialEditor" );
 		bool bCollectedVisibleParameters = false;
@@ -81,14 +81,14 @@ TSharedRef<SWidget> FMaterialTrackEditor::OnGetAddParameterMenuContent( FGuid Ob
 		TArray<FParameterNameAndAction> ParameterNamesAndActions;
 
 		// Collect scalar parameters.
-		TArray<FName> ScalarParameterNames;
-		TArray<FGuid> ScalarParmeterGuids;
-		Material->GetAllScalarParameterNames( ScalarParameterNames, ScalarParmeterGuids );
-		for (int32 ScalarParameterIndex = 0; ScalarParameterIndex < ScalarParameterNames.Num(); ++ScalarParameterIndex)
+		TArray<FMaterialParameterInfo> ScalarParameterInfo;
+		TArray<FGuid> ScalarParameterGuids;
+		Material->GetAllScalarParameterInfo(ScalarParameterInfo, ScalarParameterGuids );
+		for (int32 ScalarParameterIndex = 0; ScalarParameterIndex < ScalarParameterInfo.Num(); ++ScalarParameterIndex)
 		{
-			if (!bCollectedVisibleParameters || VisibleExpressions.Contains(ScalarParmeterGuids[ScalarParameterIndex]))
+			if (!bCollectedVisibleParameters || VisibleExpressions.Contains(ScalarParameterInfo[ScalarParameterIndex].Name))
 			{
-				FName ScalarParameterName = ScalarParameterNames[ScalarParameterIndex];
+				FName ScalarParameterName = ScalarParameterInfo[ScalarParameterIndex].Name;
 				FUIAction AddParameterMenuAction( FExecuteAction::CreateSP( this, &FMaterialTrackEditor::AddScalarParameter, ObjectBinding, MaterialTrack, ScalarParameterName ) );
 				FParameterNameAndAction NameAndAction( ScalarParameterName, AddParameterMenuAction );
 				ParameterNamesAndActions.Add(NameAndAction);
@@ -96,14 +96,14 @@ TSharedRef<SWidget> FMaterialTrackEditor::OnGetAddParameterMenuContent( FGuid Ob
 		}
 
 		// Collect color parameters.
-		TArray<FName> ColorParameterNames;
-		TArray<FGuid> ColorParmeterGuids;
-		Material->GetAllVectorParameterNames( ColorParameterNames, ColorParmeterGuids );
-		for (int32 ColorParameterIndex = 0; ColorParameterIndex < ColorParameterNames.Num(); ++ColorParameterIndex)
+		TArray<FMaterialParameterInfo> ColorParameterInfo;
+		TArray<FGuid> ColorParameterGuids;
+		Material->GetAllVectorParameterInfo( ColorParameterInfo, ColorParameterGuids );
+		for (int32 ColorParameterIndex = 0; ColorParameterIndex < ColorParameterInfo.Num(); ++ColorParameterIndex)
 		{
-			if (!bCollectedVisibleParameters || VisibleExpressions.Contains(ColorParmeterGuids[ColorParameterIndex]))
+			if (!bCollectedVisibleParameters || VisibleExpressions.Contains(ColorParameterInfo[ColorParameterIndex].Name))
 			{
-				FName ColorParameterName = ColorParameterNames[ColorParameterIndex];
+				FName ColorParameterName = ColorParameterInfo[ColorParameterIndex].Name;
 				FUIAction AddParameterMenuAction( FExecuteAction::CreateSP( this, &FMaterialTrackEditor::AddColorParameter, ObjectBinding, MaterialTrack, ColorParameterName ) );
 				FParameterNameAndAction NameAndAction( ColorParameterName, AddParameterMenuAction );
 				ParameterNamesAndActions.Add( NameAndAction );
@@ -194,6 +194,11 @@ TSharedRef<ISequencerTrackEditor> FComponentMaterialTrackEditor::CreateTrackEdit
 bool FComponentMaterialTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
 {
 	return Type == UMovieSceneComponentMaterialTrack::StaticClass();
+}
+
+bool FComponentMaterialTrackEditor::GetDefaultExpansionState(UMovieSceneTrack* InTrack) const
+{
+	return true;
 }
 
 

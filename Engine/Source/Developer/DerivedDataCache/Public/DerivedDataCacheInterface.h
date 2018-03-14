@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -206,6 +206,11 @@ public:
 	 */
 	virtual void GetDirectories(TArray<FString>& OutResults) = 0;
 
+	/**
+	* Retrieve whether a Shared DDC is being used
+	*/
+	virtual bool GetUsingSharedDDC() const = 0;
+
 	//--------------------
 	// UsageStats Interface
 	//--------------------
@@ -214,6 +219,25 @@ public:
 	 * Retrieve usage stats by the DDC
 	 */
 	virtual void GatherUsageStats(TMap<FString, FDerivedDataCacheUsageStats>& UsageStats) = 0;
+
+	//-----------------------
+	// Notification Interface
+	//-----------------------
+
+	enum EDDCNotification
+	{
+		// DDC performance notification generated when not using a shared cache
+		SharedDDCPerformanceNotification
+	};
+
+
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnDDCNotification, EDDCNotification);
+
+	/**
+	* Retrieve the event delegate for cache put notifications
+	*/
+	virtual FOnDDCNotification& GetDDCNotificationEvent() = 0;
+
 };
 
 /**

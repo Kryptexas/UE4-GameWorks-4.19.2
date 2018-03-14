@@ -1,12 +1,17 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "VectorVM.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/Class.h"
 #include "UObject/Package.h"
 #include "VectorVMPrivate.h"
+#include "Stats.h"
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, VectorVM);
+
+
+DECLARE_STATS_GROUP(TEXT("VectorVM"), STATGROUP_VectorVM, STATCAT_Advanced);
+DECLARE_CYCLE_STAT(TEXT("Execution"), STAT_VVMExec, STATGROUP_VectorVM);
 
 DEFINE_LOG_CATEGORY_STATIC(LogVectorVM, All, All);
 
@@ -26,6 +31,72 @@ DEFINE_LOG_CATEGORY_STATIC(LogVectorVM, All, All);
 #define SRCOP_CRC (OP2_CONST | OP_REGISTER | OP0_CONST)
 #define SRCOP_CCR (OP2_CONST | OP1_CONST | OP_REGISTER)
 #define SRCOP_CCC (OP2_CONST | OP1_CONST | OP0_CONST)
+
+//////////////////////////////////////////////////////////////////////////
+
+FVectorVMContext::FVectorVMContext()
+	: Code(nullptr)
+	, ConstantTable(nullptr)
+	, DataSetIndexTable(nullptr)
+	, DataSetOffsetTable(nullptr)
+	, NumSecondaryDataSets(0)
+	, ExternalFunctionTable(nullptr)
+	, UserPtrTable(nullptr)
+	, NumInstances(0)
+	, StartInstance(0)
+#if STATS
+	, StatScopes(nullptr)
+#endif
+{
+	uint32 TempRegisterSize = Align((VectorVM::InstancesPerChunk) * VectorVM::MaxInstanceSizeBytes, VECTOR_WIDTH_BYTES) + VECTOR_WIDTH_BYTES;
+	TempRegTable.SetNumUninitialized(TempRegisterSize * VectorVM::NumTempRegisters);
+	// Map temporary registers.
+	for (int32 i = 0; i < VectorVM::NumTempRegisters; ++i)
+	{
+		RegisterTable[i] = TempRegTable.GetData() + TempRegisterSize * i;
+	}
+}
+
+void FVectorVMContext::PrepareForExec(
+	uint8*RESTRICT*RESTRICT InputRegisters,
+	uint8*RESTRICT*RESTRICT OutputRegisters,
+	int32 NumInputRegisters,
+	int32 NumOutputRegisters,
+	const uint8* InConstantTable,
+	int32 *InDataSetIndexTable,
+	int32 *InDataSetOffsetTable,
+	int32 InNumSecondaryDatasets,
+	FVMExternalFunction* InExternalFunctionTable,
+	void** InUserPtrTable
+#if STATS
+	, const TArray<TStatId>* InStatScopes
+#endif
+)
+{
+	ConstantTable = InConstantTable;
+	DataSetIndexTable = InDataSetIndexTable;
+	DataSetOffsetTable = InDataSetOffsetTable;
+	NumSecondaryDataSets = InNumSecondaryDatasets;
+	ExternalFunctionTable = InExternalFunctionTable;
+	UserPtrTable = InUserPtrTable;
+#if STATS
+	check(InStatScopes);
+	StatScopes = InStatScopes;
+	StatCounterStack.Reserve(StatScopes->Num());
+#endif
+
+	//Map IO Registers
+	for (int32 i = 0; i < NumInputRegisters; ++i)
+	{
+		RegisterTable[VectorVM::NumTempRegisters + i] = InputRegisters[i];
+	}
+	for (int32 i = 0; i < NumOutputRegisters; ++i)
+	{
+		RegisterTable[VectorVM::NumTempRegisters + VectorVM::MaxInputRegisters + i] = OutputRegisters[i];
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
 
 uint8 VectorVM::CreateSrcOperandMask(EVectorVMOperandLocation Type0, EVectorVMOperandLocation Type1, EVectorVMOperandLocation Type2)
 {
@@ -514,10 +585,10 @@ struct FVectorKernelEnterStatScope
 {
 	static VM_FORCEINLINE void Exec(FVectorVMContext& Context)
 	{
+		FConstantHandler<int32> ScopeIdx(Context);
 #if STATS
-		FConstantHandler<int32> ScopeIdx(Context);		
 		int32 CounterIdx = Context.StatCounterStack.AddDefaulted(1);
-		Context.StatCounterStack[CounterIdx].Start(Context.StatScopes[ScopeIdx.Get()]);
+		Context.StatCounterStack[CounterIdx].Start((*Context.StatScopes)[ScopeIdx.Get()]);
 #endif
 	}
 };
@@ -528,7 +599,7 @@ struct FVectorKernelExitStatScope
 	{
 #if STATS
 		Context.StatCounterStack.Last().Stop();
-		Context.StatCounterStack.Pop();
+		Context.StatCounterStack.Pop(false);
 #endif
 	}
 };
@@ -732,7 +803,7 @@ namespace VectorVMNoise
 	static void Noise2D(FVectorVMContext& Context) { FScalarKernelNoise2D_iNoise::Exec(Context); }
 	static void Noise3D(FVectorVMContext& Context)
 	{
-		//Basic scalar implementation of perlin's improved noise until I can spend some quality time exploring vectorized implementations of Marc O's noise from Random.usf.
+		//Basic scalar implementation of perlin's improved noise until I can spend some quality time exploring vectorized implementations of Marc O's noise from Random.ush.
 		//http://mrl.nyu.edu/~perlin/noise/
 		FScalarKernelNoise3D_iNoise::Exec(Context);
 	}
@@ -1073,7 +1144,7 @@ struct FScalarIntKernelRandom : public TUnaryScalarIntKernel<FScalarIntKernelRan
 	{
 		const float rm = RAND_MAX;
 		//EEK!. Improve this. Implement GPU style seeded rand instead of this.
-		*Dst = FMath::Rand() % (Src0 + 1);
+		*Dst = static_cast<int32>((FMath::Rand() / rm) * Src0);
 	}
 };
 
@@ -1364,39 +1435,14 @@ void VectorVM::Exec(
 #endif
 	)
 {
-	uint32 TempRegisterSize = Align((InstancesPerChunk) * MaxInstanceSizeBytes, VECTOR_WIDTH_BYTES) + VECTOR_WIDTH_BYTES;
-	//TODO: Refactor this so VMs are a persistent object with growing buffers. Once spun up, there are no allocs.
-	//Can be pooled and used for threading and branching.
-	TArray<uint8,TAlignedHeapAllocator<VECTOR_WIDTH_BYTES>> TempRegTable;
-	TempRegTable.SetNumUninitialized(TempRegisterSize * NumTempRegisters);
-	uint8* RegisterTable[MaxRegisters] = {0};
-
-
-	// Map temporary registers.
-	for (int32 i = 0; i < NumTempRegisters; ++i)
-	{
-		RegisterTable[i] = TempRegTable.GetData() + TempRegisterSize * i;
-	}
-
-	// Map input and output registers.
-	//Input and output registers are indexed absolutely directly in their kernels.
-	//TODO: No need for these to be in the same table now.
-	//TODO: Also no need for the i/o size table as the ops will deal with that now.
- 	for (int32 i = 0; i < NumInputRegisters; ++i)
- 	{
- 		RegisterTable[NumTempRegisters + i] = InputRegisters[i];
- 	}
- 	for (int32 i = 0; i < NumOutputRegisters; ++i)
- 	{
- 		RegisterTable[NumTempRegisters + MaxInputRegisters + i] = OutputRegisters[i];
- 	}
+	SCOPE_CYCLE_COUNTER(STAT_VVMExec);
 
 	// table of index counters, one for each data set
-	TArray<int32> DataSetIndexTable;
+	TArray<int32, TInlineAllocator<16>> DataSetIndexTable;
+	TArray<int32, TInlineAllocator<16>> DataSetOffsetTable;
 
 	// map secondary data sets and fill in the offset table into the register table
 	//
-	TArray<int32> DataSetOffsetTable;
 	for (int32 Idx = 0; Idx < DataSetMetaTable.Num(); Idx++)
 	{
 		uint32 DataSetOffset = DataSetMetaTable[Idx].NumVariables;
@@ -1404,7 +1450,13 @@ void VectorVM::Exec(
 		DataSetIndexTable.Add(DataSetMetaTable[Idx].DataSetAccessIndex);	// prime counter index table with the data set offset; will be incremented with every write for each instance
 	}
 
-
+	FVectorVMContext& Context = FVectorVMContext::Get();
+	Context.PrepareForExec(InputRegisters, OutputRegisters, NumInputRegisters, NumOutputRegisters, ConstantTable, DataSetIndexTable.GetData(), DataSetOffsetTable.GetData(), DataSetOffsetTable.Num(),
+		ExternalFunctionTable, UserPtrTable
+#if STATS
+		, &StatScopes
+#endif
+	);
 
 	// Process one chunk at a time.
 	int32 InstancesLeft = NumInstances;
@@ -1412,13 +1464,8 @@ void VectorVM::Exec(
 	while (InstancesLeft > 0)
 	{
 		// Setup execution context.
-		FVectorVMContext Context(Code, RegisterTable, ConstantTable, DataSetIndexTable.GetData(), DataSetOffsetTable.GetData(), 
-			ExternalFunctionTable, UserPtrTable, FMath::Min(InstancesLeft, (int32)InstancesPerChunk), InstancesPerChunk * ChunkIdx
-#if STATS
-			, StatScopes
-#endif
-		);
-		Context.NumSecondaryDataSets = DataSetOffsetTable.Num();
+		Context.PrepareForChunk(Code, FMath::Min(InstancesLeft, (int32)InstancesPerChunk), InstancesPerChunk * ChunkIdx);
+
 		EVectorVMOp Op = EVectorVMOp::done;
 
 		// Execute VM on all vectors in this chunk.
@@ -1524,7 +1571,7 @@ void VectorVM::Exec(
 
 			// Opcode not recognized / implemented.
 			default:
-				UE_LOG(LogVectorVM, Error, TEXT("Unknown op code 0x%02x"), (uint32)Op);
+				UE_LOG(LogVectorVM, Fatal, TEXT("Unknown op code 0x%02x"), (uint32)Op);
 				return;//BAIL
 			}
 		} while (Op != EVectorVMOp::done);

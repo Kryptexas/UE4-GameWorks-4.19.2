@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeGraphNode_CompositeDecorator.h"
 #include "BehaviorTree/BTNode.h"
@@ -94,6 +94,23 @@ void UBehaviorTreeGraphNode_CompositeDecorator::PostCopyNode()
 			if (Node)
 			{
 				Node->PostCopyNode();
+			}
+		}
+	}
+}
+
+void UBehaviorTreeGraphNode_CompositeDecorator::ResetNodeOwner()
+{
+	Super::ResetNodeOwner();
+
+	if (BoundGraph)
+	{
+		for (int32 i = 0; i < BoundGraph->Nodes.Num(); i++)
+		{
+			UBehaviorTreeDecoratorGraphNode_Decorator* Node = Cast<UBehaviorTreeDecoratorGraphNode_Decorator>(BoundGraph->Nodes[i]);
+			if (Node)
+			{
+				Node->ResetNodeOwner();
 			}
 		}
 	}

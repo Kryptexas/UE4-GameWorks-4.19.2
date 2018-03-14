@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraStackScriptItemGroup.h"
 #include "NiagaraStackModuleItem.h"
@@ -17,25 +17,19 @@
 
 #define LOCTEXT_NAMESPACE "UNiagaraStackScriptItemGroup"
 
-UNiagaraStackScriptItemGroup::UNiagaraStackScriptItemGroup()
-	: AddModuleItem(nullptr)
-	, BottomSpacer(nullptr)
-{
-}
-
 void UNiagaraStackScriptItemGroup::Initialize(
 	TSharedRef<FNiagaraSystemViewModel> InSystemViewModel,
 	TSharedRef<FNiagaraEmitterViewModel> InEmitterViewModel,
 	UNiagaraStackEditorData& InStackEditorData,
 	TSharedRef<FNiagaraScriptViewModel> InScriptViewModel,
 	ENiagaraScriptUsage InScriptUsage,
-	int32 InScriptOccurrence)
+	FGuid InScriptUsageId)
 {
 	checkf(ScriptViewModel.IsValid() == false, TEXT("Can not set the script view model more than once."));
 	Super::Initialize(InSystemViewModel, InEmitterViewModel, InStackEditorData);
 	ScriptViewModel = InScriptViewModel;
 	ScriptUsage = InScriptUsage;
-	ScriptOccurrence = InScriptOccurrence;
+	ScriptUsageId = InScriptUsageId;
 }
 
 FText UNiagaraStackScriptItemGroup::GetDisplayName() const
@@ -50,9 +44,12 @@ void UNiagaraStackScriptItemGroup::SetDisplayName(FText InDisplayName)
 
 void UNiagaraStackScriptItemGroup::RefreshChildrenInternal(const TArray<UNiagaraStackEntry*>& CurrentChildren, TArray<UNiagaraStackEntry*>& NewChildren)
 {
-	UNiagaraGraph* Graph = ScriptViewModel->GetGraphViewModel()->GetGraph();
+	TSharedPtr<FNiagaraScriptViewModel> ScriptViewModelPinned = ScriptViewModel.Pin();
+	checkf(ScriptViewModelPinned.IsValid(), TEXT("Can not refresh children when the script view model has been deleted."));
+
+	UNiagaraGraph* Graph = ScriptViewModelPinned->GetGraphViewModel()->GetGraph();
 	FText ErrorMessage;
-	if (FNiagaraStackGraphUtilities::ValidateGraphForOutput(*Graph, ScriptUsage, ScriptOccurrence, ErrorMessage) == false)
+	if (FNiagaraStackGraphUtilities::ValidateGraphForOutput(*Graph, ScriptUsage, ScriptUsageId, ErrorMessage) == false)
 	{
 		UE_LOG(LogNiagaraEditor, Error, TEXT("Failed to Create Stack.  Message: %s"), *ErrorMessage.ToString());
 		Error = MakeShared<FError>();
@@ -61,17 +58,28 @@ void UNiagaraStackScriptItemGroup::RefreshChildrenInternal(const TArray<UNiagara
 		Error->Fix.BindLambda([=]()
 		{
 			FScopedTransaction ScopedTransaction(LOCTEXT("FixStackGraph", "Fix invalid stack graph"));
-			FNiagaraStackGraphUtilities::ResetGraphForOutput(*Graph, ScriptUsage, ScriptOccurrence);
+			FNiagaraStackGraphUtilities::ResetGraphForOutput(*Graph, ScriptUsage, ScriptUsageId);
+			FNiagaraStackGraphUtilities::RelayoutGraph(*Graph);
 		});
 	}
 	else
 	{
-		UNiagaraNodeOutput* MatchingOutputNode = Graph->FindOutputNode(ScriptUsage, ScriptOccurrence);
+		UNiagaraNodeOutput* MatchingOutputNode = Graph->FindOutputNode(ScriptUsage, ScriptUsageId);
 		TArray<UNiagaraNodeFunctionCall*> ModuleNodes;
 		FNiagaraStackGraphUtilities::GetOrderedModuleNodes(*MatchingOutputNode, ModuleNodes);
 		int32 ModuleIndex = 0;
 		for (UNiagaraNodeFunctionCall* ModuleNode : ModuleNodes)
 		{
+			UNiagaraStackAddScriptModuleItem* AddModuleAtIndexItem = FindCurrentChildOfTypeByPredicate<UNiagaraStackAddScriptModuleItem>(CurrentChildren,
+				[=](UNiagaraStackAddScriptModuleItem* CurrentAddModuleItem) { return CurrentAddModuleItem->GetTargetIndex() == ModuleIndex; });
+
+			if (AddModuleAtIndexItem == nullptr)
+			{
+				AddModuleAtIndexItem = NewObject<UNiagaraStackAddScriptModuleItem>(this);
+				AddModuleAtIndexItem->Initialize(GetSystemViewModel(), GetEmitterViewModel(), GetStackEditorData(), *MatchingOutputNode, ModuleIndex);
+				AddModuleAtIndexItem->SetOnItemAdded(UNiagaraStackAddModuleItem::FOnItemAdded::CreateUObject(this, &UNiagaraStackScriptItemGroup::ItemAdded));
+			}
+
 			UNiagaraStackModuleItem* ModuleItem = FindCurrentChildOfTypeByPredicate<UNiagaraStackModuleItem>(CurrentChildren, 
 				[=](UNiagaraStackModuleItem* CurrentModuleItem) { return &CurrentModuleItem->GetModuleNode() == ModuleNode; });
 
@@ -82,27 +90,58 @@ void UNiagaraStackScriptItemGroup::RefreshChildrenInternal(const TArray<UNiagara
 				ModuleItem->SetOnModifiedGroupItems(UNiagaraStackModuleItem::FOnModifiedGroupItems::CreateUObject(this, &UNiagaraStackScriptItemGroup::ChildModifiedGroupItems));
 			}
 
-			FName ModuleSpacerKey = *FString::Printf(TEXT("Module%i"), ModuleIndex);
-			UNiagaraStackSpacer* ModuleSpacer = FindCurrentChildOfTypeByPredicate<UNiagaraStackSpacer>(CurrentChildren,
-				[=](UNiagaraStackSpacer* CurrentModuleSpacer) { return CurrentModuleSpacer->GetSpacerKey() == ModuleSpacerKey; });
-
-			if (ModuleSpacer == nullptr)
-			{
-				ModuleSpacer = NewObject<UNiagaraStackSpacer>(this);
-				ModuleSpacer->Initialize(GetSystemViewModel(), GetEmitterViewModel(), ModuleSpacerKey);
-			}
-
+			NewChildren.Add(AddModuleAtIndexItem);
 			NewChildren.Add(ModuleItem);
-			NewChildren.Add(ModuleSpacer);
 			ModuleIndex++;
 		}
+
+		bool bForcedError = false;
+		if (ScriptUsage == ENiagaraScriptUsage::SystemUpdateScript)
+		{
+			// We need to make sure that System Update Scripts have the SystemLifecycle script for now.
+			// The factor ensures this, but older assets may not have it or it may have been removed accidentally.
+			// For now, treat this as an error and allow them to resolve.
+			FString ModulePath = TEXT("/Niagara/Modules/System/SystemLifeCycle.SystemLifeCycle");
+			FStringAssetReference SystemUpdateScriptRef(ModulePath);
+			FAssetData ModuleScriptAsset;
+			ModuleScriptAsset.ObjectPath = SystemUpdateScriptRef.GetAssetPathName();
+
+			TArray<UNiagaraNodeFunctionCall*> FoundCalls;
+			if (!FNiagaraStackGraphUtilities::FindScriptModulesInStack(ModuleScriptAsset, *MatchingOutputNode, FoundCalls))
+			{
+				bForcedError = true;
+				Error = MakeShared<FError>();
+				Error->ErrorText = LOCTEXT("SystemLifeCycleWarning", "The stack needs a SystemLifeCycle module.");;
+				Error->ErrorSummaryText = LOCTEXT("MissingRequiredMode", "Missing required module.");
+				Error->Fix.BindLambda([=]()
+				{
+					FScopedTransaction ScopedTransaction(LOCTEXT("AddingSystemLifecycleModule", "Adding System Lifecycle Module."));
+					FNiagaraStackGraphUtilities::AddScriptModuleToStack(ModuleScriptAsset, *MatchingOutputNode);
+				});
+			}
+		}
+
+		UNiagaraStackSpacer* AddButtonSpacer = FindCurrentChildOfTypeByPredicate<UNiagaraStackSpacer>(CurrentChildren,
+			[=](UNiagaraStackSpacer* CurrentSpacer) { return CurrentSpacer->GetSpacerKey() == "AddButton"; });
+
+		if (AddButtonSpacer == nullptr)
+		{
+			AddButtonSpacer = NewObject<UNiagaraStackSpacer>(this);
+			AddButtonSpacer->Initialize(GetSystemViewModel(), GetEmitterViewModel(), "AddButton");
+		}
+
+		UNiagaraStackAddScriptModuleItem* AddModuleItem = FindCurrentChildOfTypeByPredicate<UNiagaraStackAddScriptModuleItem>(CurrentChildren,
+			[=](UNiagaraStackAddScriptModuleItem* CurrentAddModuleItem) { return CurrentAddModuleItem->GetTargetIndex() == INDEX_NONE; });
 
 		if (AddModuleItem == nullptr)
 		{
 			AddModuleItem = NewObject<UNiagaraStackAddScriptModuleItem>(this);
-			AddModuleItem->Initialize(GetSystemViewModel(), GetEmitterViewModel(), GetStackEditorData(), *MatchingOutputNode);
+			AddModuleItem->Initialize(GetSystemViewModel(), GetEmitterViewModel(), GetStackEditorData(), *MatchingOutputNode, INDEX_NONE);
 			AddModuleItem->SetOnItemAdded(UNiagaraStackAddModuleItem::FOnItemAdded::CreateUObject(this, &UNiagaraStackScriptItemGroup::ItemAdded));
 		}
+
+		UNiagaraStackSpacer* BottomSpacer = FindCurrentChildOfTypeByPredicate<UNiagaraStackSpacer>(CurrentChildren,
+			[=](UNiagaraStackSpacer* CurrentSpacer) { return CurrentSpacer->GetSpacerKey() == "ScriptStackBottom"; });
 
 		if (BottomSpacer == nullptr)
 		{
@@ -110,19 +149,23 @@ void UNiagaraStackScriptItemGroup::RefreshChildrenInternal(const TArray<UNiagara
 			BottomSpacer->Initialize(GetSystemViewModel(), GetEmitterViewModel(), "ScriptStackBottom");
 		}
 
+		NewChildren.Add(AddButtonSpacer);
 		NewChildren.Add(AddModuleItem);
 		NewChildren.Add(BottomSpacer);
 
-		ENiagaraScriptCompileStatus Status = ScriptViewModel->GetScriptCompileStatus(GetScriptUsage(), GetScriptOccurrence());
-		if (Status == ENiagaraScriptCompileStatus::NCS_Error)
+		ENiagaraScriptCompileStatus Status = ScriptViewModelPinned->GetScriptCompileStatus(GetScriptUsage(), GetScriptUsageId());
+		if (!bForcedError)
 		{
-			Error = MakeShared<FError>();
-			Error->ErrorText = ScriptViewModel->GetScriptErrors(GetScriptUsage(), GetScriptOccurrence());
-			Error->ErrorSummaryText = LOCTEXT("ConpileErrorSummary", "The stack has compile errors.");
-		}
-		else
-		{
-			Error.Reset();
+			if (Status == ENiagaraScriptCompileStatus::NCS_Error)
+			{
+				Error = MakeShared<FError>();
+				Error->ErrorText = ScriptViewModelPinned->GetScriptErrors(GetScriptUsage(), GetScriptUsageId());
+				Error->ErrorSummaryText = LOCTEXT("ConpileErrorSummary", "The stack has compile errors.");
+			}
+			else
+			{
+				Error.Reset();
+			}
 		}
 	}
 }
@@ -159,12 +202,26 @@ bool UNiagaraStackScriptItemGroup::TryFixError(int32 ErrorIdx)
 
 FText UNiagaraStackScriptItemGroup::GetErrorText(int32 ErrorIdx) const
 {
-	return Error->ErrorText;
+	if (Error.IsValid())
+	{
+		return Error->ErrorText;
+	}
+	else
+	{
+		return FText::GetEmpty();
+	}
 }
 
 FText UNiagaraStackScriptItemGroup::GetErrorSummaryText(int32 ErrorIdx) const
 {
-	return Error->ErrorSummaryText;
+	if (Error.IsValid())
+	{
+		return Error->ErrorSummaryText;
+	}
+	else
+	{
+		return FText::GetEmpty();
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

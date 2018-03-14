@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
@@ -489,6 +489,8 @@ private:
 	void GetSoundClassInfo(TMap<FName, FAudioClassInfo>& AudioClassInfos);
 #endif
 
+	void UpdateAudioPluginSettingsObjectCache();
+
 public:
 
 	/**
@@ -622,6 +624,11 @@ public:
 	void SetListener(UWorld* World, int32 InListenerIndex, const FTransform& ListenerTransform, float InDeltaSeconds);
 
 	const TArray<FListener>& GetListeners() const { check(IsInAudioThread()); return Listeners; }
+
+	/**
+	 * Get ambisonics mixer, if one is available
+	 */
+	TAmbisonicsMixerPtr GetAmbisonicsMixer() { return AmbisonicsMixer; };
 
 	/** 
 	 * Returns the currently applied reverb effect if there is one.
@@ -1418,15 +1425,16 @@ public:
 	/** 3rd party occlusion interface. */
 	TAudioOcclusionPtr OcclusionInterface;
 
+	/* This devices ambisonics pointer, if one exists */
+	TAmbisonicsMixerPtr AmbisonicsMixer;
+
 	/** 3rd party listener observers registered to this audio device. */
 	TArray<TAudioPluginListenerPtr> PluginListeners;
 
-private:
-	// Audio thread representation of listeners
-	TArray<FListener> Listeners;
-
 	// Game thread cache of listener transforms
 	TArray<FTransform> ListenerTransforms;
+
+private:
 
 	uint64 CurrentTick;
 
@@ -1454,6 +1462,8 @@ private:
 
 	/** Set of sources used to play sounds (platform will subclass these) */
 protected:
+	// Audio thread representation of listeners
+	TArray<FListener> Listeners;
 	TArray<FSoundSource*> Sources;
 	TArray<FSoundSource*> FreeSources;
 
@@ -1474,6 +1484,9 @@ private:
 
 	/** Map of sound mix sound class overrides. Will override any sound class effects for any sound mixes */
 	TMap<USoundMix*, FSoundMixClassOverrideMap> SoundMixClassEffectOverrides;
+
+	/** Cached array of plugin settings objects currently loaded. This is stored so we can add it in AddReferencedObjects. */
+	TArray<UObject*> PluginSettingsObjects;
 
 protected:
 	/** Interface to audio effects processing */

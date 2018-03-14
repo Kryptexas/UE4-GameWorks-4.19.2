@@ -1,56 +1,20 @@
-﻿INTSourceChangelist:3213117
+﻿INTSourceChangelist:3736212
 Availability:Public
 Title:무버블 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows,Engine/Rendering/LightingAndShadows/LightMobility
 Description:무버블, 이동가능한 라이트에 대한 일반적인 정보입니다.
 Version: 4.9
+parent:Engine/Rendering/LightingAndShadows/LightMobility
+order:3
+type:overview
+topic-image:PL_Topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights:title%](PL_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights:title%](PL_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:fullwidth raw]
 ![](Engine/Rendering/LightingAndShadows/lighting_overview_banner_001.png)(convert:false)
 [/REGION]
 
 [TOC(start:2 end:3)]
-
-
 
 [EXCERPT:Movable001]
 

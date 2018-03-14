@@ -3,26 +3,7 @@ Title:Ambient Cubemaps
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:Cubemap texture applied to scene lighting for high quality lighting environments.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/AmbientCubemap:title%](cubemap2.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/AmbientCubemap:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/AmbientCubemap:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/AmbientCubemap]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:cubemap2.png
 
 [excerpt:AmbientCubemap]
 [EXCERPT:AmbientCubemap_Desc]

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3482403
+﻿INTSourceChangelist:3782314
 Availability: Public
 Crumbs: %ROOT%
 Title: 리전 복사 및 붙여넣기
@@ -84,7 +84,8 @@ Topic-image:CopyPaste_Topic.png
 
 
 
-<!---
+[COMMENT:none]
+-
 [INCLUDE:#importexport]
 [EXCERPT:pastemode]
 | 선택 | 설명 |
@@ -104,4 +105,5 @@ Topic-image:CopyPaste_Topic.png
 | **Layer Name** | 레이어 이름 - 임포트된 하이트맵 레이어의 이름을 설정합니다. |
 [/EXCERPT:importexport]
 
---->
+-
+[/COMMENT]

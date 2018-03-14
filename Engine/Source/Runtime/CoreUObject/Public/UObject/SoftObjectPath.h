@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -144,7 +144,7 @@ struct COREUOBJECT_API FSoftObjectPath
 	bool SerializeFromMismatchedTag(struct FPropertyTag const& Tag, FArchive& Ar);
 
 	/** Serializes the internal path and also handles save/PIE fixups. Call this from the archiver overrides */
-	void SerializePath(FArchive& Ar, bool bSkipSerializeIfArchiveHasSize = false);
+	void SerializePath(FArchive& Ar);
 
 	/** Fixes up string asset reference for saving, call if saving with a method that skips SerializePath. This can modify the path, it will return true if it was modified */
 	bool PreSavePath();
@@ -263,7 +263,7 @@ typedef FSoftObjectPath FStringAssetReference;
 //DEPRECATED(4.18, "FStringClassReference was renamed to FSoftClassPath")
 typedef FSoftClassPath FStringClassReference;
 
-/** OPtions for how to set soft object path collection */
+/** Options for how to set soft object path collection */
 enum class ESoftObjectPathCollectType : uint8
 {
 	/** References is not tracked in any situation, transient reference */
@@ -272,6 +272,17 @@ enum class ESoftObjectPathCollectType : uint8
 	EditorOnlyCollect,
 	/** Game reference, this is gathered for both redirector fixup and cooking */
 	AlwaysCollect,
+};
+
+/** Rules for actually serializing the internals of soft object paths */
+enum class ESoftObjectPathSerializeType : uint8
+{
+	/** Never serialize the raw names */
+	NeverSerialize,
+	/** Only serialize if the archive has no size */
+	SkipSerializeIfArchiveHasSize,
+	/** Always serialize the soft object path internals */
+	AlwaysSerialize,
 };
 
 class COREUOBJECT_API FSoftObjectPathThreadContext : public TThreadSingleton<FSoftObjectPathThreadContext>
@@ -286,9 +297,10 @@ class COREUOBJECT_API FSoftObjectPathThreadContext : public TThreadSingleton<FSo
 		FName PackageName;
 		FName PropertyName;
 		ESoftObjectPathCollectType CollectType;
+		ESoftObjectPathSerializeType SerializeType;
 
 		FSerializationOptions() : CollectType(ESoftObjectPathCollectType::AlwaysCollect) {}
-		FSerializationOptions(FName InPackageName, FName InPropertyName, ESoftObjectPathCollectType InCollectType) : PackageName(InPackageName), PropertyName(InPropertyName), CollectType(InCollectType) {}
+		FSerializationOptions(FName InPackageName, FName InPropertyName, ESoftObjectPathCollectType InCollectType, ESoftObjectPathSerializeType InSerializeType) : PackageName(InPackageName), PropertyName(InPropertyName), CollectType(InCollectType), SerializeType(InSerializeType) {}
 	};
 
 	TArray<FSerializationOptions> OptionStack;
@@ -300,7 +312,7 @@ public:
 	 * @param OutPropertyName Property that this string asset reference belongs to
 	 * @param OutCollectType Type of collecting that should be done
 	 */
-	bool GetSerializationOptions(FName& OutPackageName, FName& OutPropertyName, ESoftObjectPathCollectType& OutCollectType) const;
+	bool GetSerializationOptions(FName& OutPackageName, FName& OutPropertyName, ESoftObjectPathCollectType& OutCollectType, ESoftObjectPathSerializeType& OutSerializeType) const;
 };
 
 /** Helper class to set and restore serialization options for string asset references */
@@ -313,9 +325,9 @@ struct FSoftObjectPathSerializationScope
 	 * @param SerializingPropertyName Property that this string asset reference belongs to
 	 * @param CollectType Set type of collecting that should be done, can be used to disable tracking entirely
 	 */
-	FSoftObjectPathSerializationScope(FName SerializingPackageName, FName SerializingPropertyName, ESoftObjectPathCollectType CollectType)
+	FSoftObjectPathSerializationScope(FName SerializingPackageName, FName SerializingPropertyName, ESoftObjectPathCollectType CollectType, ESoftObjectPathSerializeType SerializeType)
 	{
-		FSoftObjectPathThreadContext::Get().OptionStack.Emplace(SerializingPackageName, SerializingPropertyName, CollectType);
+		FSoftObjectPathThreadContext::Get().OptionStack.Emplace(SerializingPackageName, SerializingPropertyName, CollectType, SerializeType);
 	}
 
 	~FSoftObjectPathSerializationScope()

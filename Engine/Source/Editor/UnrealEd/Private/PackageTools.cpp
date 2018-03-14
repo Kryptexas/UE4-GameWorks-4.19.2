@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PackageTools.h"
@@ -36,6 +36,7 @@
 #include "UObject/UObjectIterator.h"
 #include "ComponentReregisterContext.h"
 #include "Engine/Selection.h"
+#include "Engine/LevelStreaming.h"
 
 #include "ShaderCompiler.h"
 #include "DistanceFieldAtlas.h"
@@ -157,7 +158,7 @@ namespace PackageTools
 			if( !TopLevelPackage->IsFullyLoaded() )
 			{	
 				// Ask user to fully load or suppress the message and just fully load
-				if(bSuppress || EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, FText::Format(
+				if(bSuppress || EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, EAppReturnType::Yes, FText::Format(
 					NSLOCTEXT("UnrealEd", "NeedsToFullyLoadPackageF", "Package {0} is not fully loaded. Do you want to fully load it? Not doing so will abort the '{1}' operation."),
 					FText::FromString(TopLevelPackage->GetName()), OperationText ) ) )
 				{
@@ -552,6 +553,19 @@ namespace PackageTools
 		TMap<FName, const UMapBuildDataRegistry*> LevelsToMapBuildData;
 		if (!WorldNameToReload.IsNone())
 		{
+			// Creating a new map will unload all streaming levels for the current editor world too, so we need to make sure we're not about to try and reload those later
+			if (UWorld* EditorWorld = GEditor->GetEditorWorldContext().World())
+			{
+				for (ULevelStreaming* EditorStreamingLevel : EditorWorld->StreamingLevels)
+				{
+					if (EditorStreamingLevel->IsLevelLoaded())
+					{
+						UPackage* EditorStreamingLevelPackage = EditorStreamingLevel->GetLoadedLevel()->GetOutermost();
+						PackagesToReload.Remove(EditorStreamingLevelPackage);
+					}
+				}
+			}
+
 			GEditor->CreateNewMapForEditing();
 		}
 		// Cache the current map build data for the levels of the current world so we can see if they change due to a reload (we skip this if reloading the current world).
@@ -583,7 +597,6 @@ namespace PackageTools
 			PackagesToReloadData.Reserve(PackagesToReload.Num());
 			for (UPackage* PackageToReload : PackagesToReload)
 			{
-				check(PackageToReload);
 				bScriptPackageWasReloaded |= PackageToReload->HasAnyPackageFlags(PKG_ContainsScript);
 				PackagesToReloadData.Emplace(PackageToReload, LOAD_None);
 			}
@@ -712,7 +725,7 @@ namespace PackageTools
 			TArray<UObject*>& ObjectsToExport = FilteredClasses ? FilteredObjects : ObjectsInPackages;
 
 			// Prompt the user about how many objects will be exported before proceeding.
-			const bool bProceed = EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, FText::Format(
+			const bool bProceed = EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, EAppReturnType::Yes, FText::Format(
 				NSLOCTEXT("UnrealEd", "Prompt_AboutToBulkExportNItems_F", "About to bulk export {0} items.  Proceed?"), FText::AsNumber(ObjectsToExport.Num()) ) );
 			if ( bProceed )
 			{

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShadowProjectionCommon.usf: Contains functions that uniformly filter a depth buffer.
@@ -225,8 +225,8 @@ Texture2D TranslucencyShadowTransmission0;
 Texture2D TranslucencyShadowTransmission1;
 
 #if SUPPORTS_INDEPENDENT_SAMPLERS
-	#define TranslucencyShadowTransmission0Sampler View.SharedBilinearClampSampler
-	#define TranslucencyShadowTransmission1Sampler View.SharedBilinearClampSampler
+	#define TranslucencyShadowTransmission0Sampler View.SharedBilinearClampedSampler
+	#define TranslucencyShadowTransmission1Sampler View.SharedBilinearClampedSampler
 #else
 	SamplerState TranslucencyShadowTransmission0Sampler;
 	SamplerState TranslucencyShadowTransmission1Sampler;

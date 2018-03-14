@@ -70,7 +70,8 @@ In this example, the refraction amount is adjusted between a value of 1.0, which
 
 
 
-<!---
+[COMMENT:none]
+-
 
 [EXCERPT:IORWithoutNormals]
 [REGION:lightbox]
@@ -96,4 +97,5 @@ In this example, the refraction amount is adjusted between a value of 1.0, which
 [/REGION]
 [/EXCERPT:PNOWithNormals]
 
---->
+-
+[/COMMENT]

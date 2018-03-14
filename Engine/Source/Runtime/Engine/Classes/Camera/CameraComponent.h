@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -173,6 +173,8 @@ public:
 	void AddAdditiveOffset(FTransform const& Transform, float FOV);
 	/** Removes any additive offset. */
 	void ClearAdditiveOffset();
+	/** Get the additive offset */
+	void GetAdditiveOffset(FTransform& OutAdditiveOffset, float& OutAdditiveFOVOffset) const;
 
 	/** Stores a given PP and weight to be later applied when the final PP is computed. Used for things like in-editor camera animation preview. */
 	void AddExtraPostProcessBlend(FPostProcessSettings const& PPSettings, float PPBlendWeight);

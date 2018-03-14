@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialGraphNode_Root.cpp
@@ -48,11 +48,10 @@ void UMaterialGraphNode_Root::PostPlacedNewNode()
 void UMaterialGraphNode_Root::CreateInputPins()
 {
 	UMaterialGraph* MaterialGraph = CastChecked<UMaterialGraph>(GetGraph());
-	const UMaterialGraphSchema* Schema = CastChecked<UMaterialGraphSchema>(GetSchema());
 
 	for (const FMaterialInputInfo& MaterialInput : MaterialGraph->MaterialInputs)
 	{
-		UEdGraphPin* InputPin = CreatePin(EGPD_Input, Schema->PC_MaterialInput, FString::Printf(TEXT("%d"), (int32)MaterialInput.GetProperty()), nullptr, MaterialInput.GetName().ToString());
+		UEdGraphPin* InputPin = CreatePin(EGPD_Input, UMaterialGraphSchema::PC_MaterialInput, *FString::Printf(TEXT("%d"), (int32)MaterialInput.GetProperty()), *MaterialInput.GetName().ToString());
 	}
 
 }

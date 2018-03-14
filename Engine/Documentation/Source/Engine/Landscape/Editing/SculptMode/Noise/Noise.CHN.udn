@@ -73,7 +73,8 @@ Topic-image:Noise_topic.png
 
 笔刷强度决定使用 Noise 工具时升高或降低的量。
 
-<!--- Excerpts
+[COMMENT:none]
+- Excerpts
 
 [EXCERPT:noise]
 |选项 | 描述 |
@@ -84,4 +85,5 @@ Topic-image:Noise_topic.png
 [/EXCERPT:noise]
 
 
---->
+-
+[/COMMENT]

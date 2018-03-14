@@ -1,10 +1,14 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:하드웨어 & 소프트웨어 사양
 SEO-Title:하드웨어 & 소프트웨어 사양
 Crumbs: %ROOT%, GettingStarted
 Description:언리얼 엔진으로 개발하는 데 있어 최소/추천 하드웨어 사양과 필수 소프트웨어 입니다.
-version: 4.9
+version: 4.18
+Type:reference
+Parent:GettingStarted
+Order:
+Tags:Specifications
 
 %Globals:OSSelect_Linux%
 
@@ -58,7 +62,8 @@ version: 4.9
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsMinHardware]
 |||
 | -------- | --- |
@@ -70,10 +75,10 @@ version: 4.9
 [EXCERPT:MacOSMinHardware]
 |||
 | -------- | --- |
-| **운영 체제** | Mac OS X 10.10.5 |
+| **운영 체제** | macOS 10.13 High Sierra  |
 | **프로세서** | 쿼드코어 인텔 2.5 GHz 이상|
 | **메모리** | 8 GB 램 |
-| **비디오 카드** | OpenGL 4.1 호환 그래픽 카드 |
+| **비디오 카드** | Metal 1.2 호환 그래픽 카드 |
 [/EXCERPT:MacOSMinHardware]
 [EXCERPT:LinuxMinHardware]
 |||
@@ -83,7 +88,8 @@ version: 4.9
 | **메모리** | 16 GB 램 |
 | **비디오 카드** | 	NVIDIA GeForce 470 GTX 이상에 최신 NVIDIA 바이너리 드라이버 |
 [/EXCERPT:LinuxMinHardware]
--->
+
+[/COMMENT]
 
 
 [PUBLISH:Licensee]
@@ -145,7 +151,8 @@ version: 4.9
 [/REGION]
 [/PUBLISH:Licensee]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsMinSoftware]
 | 엔진 실행 ||
 | -------- | --- |
@@ -157,7 +164,7 @@ version: 4.9
 [EXCERPT:MacOSMinSoftware]
 | 엔진 실행 ||
 | -------- | --- |
-| **운영체제** | Mac OS X 10.10.5  |
+| **운영 체제** | macOS 10.12.6 Sierra  |
 [/EXCERPT:MacOSMinSoftware]
 
 [EXCERPT:LinuxMinSoftware]
@@ -178,7 +185,8 @@ UE4 의 크래시 리포트 기능은 원래 기본으로 켜있는 **Windows Er
 [Visual Studio C++ 2015 Redist](https://www.microsoft.com/en-us/download/details.aspx?id=48145)
 [/EXCERPT:VCRuntime]
 
--->
+
+[/COMMENT]
 
 
 엔진으로 개발하는 프로그래머용 필수 소프트웨어는 아래와 같습니다.
@@ -224,7 +232,8 @@ UE4 의 크래시 리포트 기능은 원래 기본으로 켜있는 **Windows Er
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsMinDevelopment]
 | 엔진으로 개발 ||
 | -------- | --- |
@@ -236,7 +245,7 @@ UE4 의 크래시 리포트 기능은 원래 기본으로 켜있는 **Windows Er
 [EXCERPT:MacOSMinDevelopment]
 | 엔진으로 개발 ||
 | -------- | --- |
-| **Xcode 버전** | 7.2.1 |
+| **Xcode 버전** | 9.0 [REGION:note]제대로 된 Xcode 버전을 실행중인지 검증하는 터미널 명령은 다음과 같습니다: `sudo xcode-select -s /Applications/Xcode-beta.app/Contents/Developer`[/REGION] |
 [/EXCERPT:MacOSMinDevelopment]
 [EXCERPT:LinuxMinDevelopment]
 | 엔진으로 개발 ||
@@ -247,9 +256,11 @@ UE4 의 크래시 리포트 기능은 원래 기본으로 켜있는 **Windows Er
 | **IDE** | QtCreator 3.1 또는 KDevelop 4.6|
 | **빌드 시스템** | CMake 2.8 |
 [/EXCERPT:LinuxMinDevelopment]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:VS]
 Visual Studio 2015 Professional 또는 Visual Studio 2015 Community:
 
@@ -257,7 +268,8 @@ Visual Studio 2015 Professional 또는 Visual Studio 2015 Community:
 * [Community](https://www.visualstudio.com/en-us/products/visual-studio-community-vs.aspx)
 
 [/EXCERPT:VS]
--->
+
+[/COMMENT]
 
 [PUBLISH:Licensee]
 ## 그래픽 카드 드라이버

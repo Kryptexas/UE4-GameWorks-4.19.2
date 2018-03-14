@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "GenericPlatform/GenericPlatformStackWalk.h"
@@ -42,7 +42,7 @@
 #include "EngineUtils.h"
 #include "Engine/Engine.h"
 #include "Materials/MaterialInstanceConstant.h"
-#if WITH_EDITOR
+#if WITH_EDITOR && WITH_PHYSX
 	#include "IPhysXCooking.h"
 #endif
 
@@ -1441,7 +1441,7 @@ void ULandscapeHeightfieldCollisionComponent::Serialize(FArchive& Ar)
 	}
 	else
 	{
-		bool bCooked = Ar.IsCooking();
+		bool bCooked = Ar.IsCooking() || (FPlatformProperties::RequiresCookedData() && Ar.IsSaving());
 		Ar << bCooked;
 
 		if (FPlatformProperties::RequiresCookedData() && !bCooked && Ar.IsLoading())
@@ -1698,7 +1698,7 @@ void ULandscapeHeightfieldCollisionComponent::PreSave(const class ITargetPlatfor
 			{
 				if (!RenderComponent->CanRenderGrassMap())
 				{
-					RenderComponent->MaterialInstances[0]->GetMaterialResource(GetWorld()->FeatureLevel)->FinishCompilation();
+					RenderComponent->GetMaterialInstance(0, false)->GetMaterialResource(GetWorld()->FeatureLevel)->FinishCompilation();
 				}
 				RenderComponent->RenderGrassMap();
 			}

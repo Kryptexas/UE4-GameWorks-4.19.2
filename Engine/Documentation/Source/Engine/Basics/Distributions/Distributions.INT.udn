@@ -177,11 +177,13 @@ In code, the programmer would write something like:
 |DPM_Abs|Use the absolute value of the input value before remapping.  |
 |DPM_Direct|Use the input value directly (no remapping).|
 
-<!--
+[COMMENT:none]
+
 ### DistributionFloatSoundParameter
 
 This type is similar to DistributionFloatParticleParam, but for SoundCues.  It is used to modify properties of a SoundCue from code. For example, if you wanted an engine noise that raised in pitch as you drive, you would create a SoundCue for that noise and add a SoundNodeModulatorContinuous node. Then, for the PitchModulation property you would use a DistributionFloatSoundParameter.
--->
+
+[/COMMENT]
 
 ## Vector Distributions
 

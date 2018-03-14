@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FilterPixelShader.usf: Filter pixel shader source.
@@ -18,6 +18,8 @@
 #define UNPACKED_UVS		(ES2_PROFILE || ES3_1_PROFILE)
 
 // main input texture
+float4 FilteredBufferUVMinMax;
+float4 AdditiveBufferUVMinMax;
 SamplerState FilterTextureSampler;
 Texture2D FilterTexture;
 
@@ -44,6 +46,16 @@ void Combine(inout MaterialFloat4 Dest, MaterialFloat4 Src, float4 Weight)
 #endif
 }
 
+
+float4 SampleFilteredTexture(float2 BufferUV)
+{
+	#if MANUALLY_CLAMP_UV
+		BufferUV = clamp(BufferUV, FilteredBufferUVMinMax.xy, FilteredBufferUVMinMax.zw);
+	#endif
+	return Texture2DSampleLevel(FilterTexture, FilterTextureSampler, BufferUV, 0);
+}
+
+
 #if DYNAMIC_NUM_SAMPLES
 float4 SampleOffsets[(MAX_NUM_SAMPLES + 1) / 2];
 float4 SampleWeights[MAX_NUM_SAMPLES];
@@ -60,18 +72,22 @@ void Main(
 	LOOP for (SampleIndex = 0; SampleIndex < SampleCount - 1; SampleIndex += 2)
 	{
 		float4 UVUV = InUV.xyxy + SampleOffsets[SampleIndex / 2];
-		Combine(Dest, Texture2DSampleLevel(FilterTexture, FilterTextureSampler, UVUV.xy, 0), SampleWeights[SampleIndex + 0]);
-		Combine(Dest, Texture2DSampleLevel(FilterTexture, FilterTextureSampler, UVUV.zw, 0), SampleWeights[SampleIndex + 1]);
+		Combine(Dest, SampleFilteredTexture(UVUV.xy), SampleWeights[SampleIndex + 0]);
+		Combine(Dest, SampleFilteredTexture(UVUV.zw), SampleWeights[SampleIndex + 1]);
 	}
 
 	BRANCH if (SampleIndex < SampleCount)
 	{
 		float2 UV = InUV + SampleOffsets[SampleIndex / 2].xy;
-		Combine(Dest, Texture2DSampleLevel(FilterTexture, FilterTextureSampler, UV, 0), SampleWeights[SampleIndex + 0]);
+		Combine(Dest, SampleFilteredTexture(UV), SampleWeights[SampleIndex + 0]);
 	}
 
 #if COMBINE_ADDITIVE
-	Dest += Texture2DSampleLevel(AdditiveTexture, AdditiveTextureSampler, InUV, 0);
+	float2 AdditiveBufferUV = InUV;
+	#if MANUALLY_CLAMP_UV
+		AdditiveBufferUV = clamp(AdditiveBufferUV, AdditiveBufferUVMinMax.xy, AdditiveBufferUVMinMax.zw);
+	#endif
+	Dest += Texture2DSampleLevel(AdditiveTexture, AdditiveTextureSampler, AdditiveBufferUV, 0);
 #endif
 
 	OutColor = Dest;
@@ -96,26 +112,30 @@ void Main(
 #if UNPACKED_UVS
 	UNROLL for (int i = 0; i < NUM_SAMPLES; ++i)
 	{
-		Combine(Dest, Texture2DSampleLevel(FilterTexture, FilterTextureSampler, InOffsetUVs[i], 0), SampleWeights[i]);
+		Combine(Dest, SampleFilteredTexture(InOffsetUVs[i]), SampleWeights[i]);
 	}
 #else
 	int SampleIndex = 0;
 	UNROLL for (; SampleIndex < NUM_SAMPLES - 1; SampleIndex += 2)
 	{
 		float4 UVUV = InOffsetUVs[SampleIndex / 2];	
-		Combine(Dest, Texture2DSampleLevel(FilterTexture, FilterTextureSampler, UVUV.xy, 0), SampleWeights[SampleIndex + 0]);
-		Combine(Dest, Texture2DSampleLevel(FilterTexture, FilterTextureSampler, UVUV.zw, 0), SampleWeights[SampleIndex + 1]);
+		Combine(Dest, SampleFilteredTexture(UVUV.xy), SampleWeights[SampleIndex + 0]);
+		Combine(Dest, SampleFilteredTexture(UVUV.zw), SampleWeights[SampleIndex + 1]);
 	}
 
 	FLATTEN if (SampleIndex < NUM_SAMPLES)
 	{
 		float2 UV = InOffsetUVs[SampleIndex / 2].xy;
-		Combine(Dest, Texture2DSampleLevel(FilterTexture, FilterTextureSampler, UV, 0), SampleWeights[SampleIndex + 0]);
+		Combine(Dest, SampleFilteredTexture(UV), SampleWeights[SampleIndex + 0]);
 	}
 #endif
 
 #if COMBINE_ADDITIVE
-	Dest += Texture2DSampleLevel(AdditiveTexture, AdditiveTextureSampler, InUV, 0);
+	float2 AdditiveBufferUV = InUV;
+	#if MANUALLY_CLAMP_UV
+		AdditiveBufferUV = clamp(AdditiveBufferUV, AdditiveBufferUVMinMax.xy, AdditiveBufferUVMinMax.zw );
+	#endif
+	Dest += Texture2DSampleLevel(AdditiveTexture, AdditiveTextureSampler, AdditiveBufferUV, 0);
 #endif
 
 	OutColor = Dest;
@@ -148,8 +168,8 @@ void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
 #endif
 	{
 		float4 UVUV = BaseUV.xyxy + SampleOffsets[SampleIndex / 2];
-		Combine(OutColor, Texture2DSampleLevel(FilterTexture, FilterTextureSampler, UVUV.xy, 0), SampleWeights[SampleIndex + 0]);
-		Combine(OutColor, Texture2DSampleLevel(FilterTexture, FilterTextureSampler, UVUV.zw, 0), SampleWeights[SampleIndex + 1]);
+		Combine(OutColor, SampleFilteredTexture(UVUV.xy), SampleWeights[SampleIndex + 0]);
+		Combine(OutColor, SampleFilteredTexture(UVUV.zw), SampleWeights[SampleIndex + 1]);
 	}
 
 #if DYNAMIC_NUM_SAMPLES
@@ -159,7 +179,7 @@ void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
 #endif
 	{
 		float2 UV = BaseUV + SampleOffsets[SampleIndex / 2].xy;
-		Combine(OutColor, Texture2DSampleLevel(FilterTexture, FilterTextureSampler, UV, 0), SampleWeights[SampleIndex + 0]);
+		Combine(OutColor, SampleFilteredTexture(UV), SampleWeights[SampleIndex + 0]);
 	}
 
 #if COMBINE_ADDITIVE

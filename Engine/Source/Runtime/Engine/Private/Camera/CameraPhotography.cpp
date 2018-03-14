@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Camera/CameraPhotography.h"
 
@@ -53,11 +53,6 @@ static TAutoConsoleVariable<int32> CVarPhotographyAutoPause(
 	TEXT("r.Photography.AutoPause"),
 	1,
 	TEXT("If 1, the photography system will attempt to ensure that the level is paused while in photography mode.  Set to 0 to manage pausing and unpausing manually from the PlayerCameraManager Blueprint callbacks.    Note: Blueprint callbacks will be called regardless of AutoPause value.  (Default: auto-pause (1)"));
-
-static TAutoConsoleVariable<int32> CVarPhotographyPersistEffects(
-	TEXT("r.Photography.PersistEffects"),
-	0,
-	TEXT("If 1, custom postprocessing effects enabled in photography mode are permitted to persist in the game after a photography session has ended.  Changes to this value might not be applied until the next photography session starts.  (Default: Disable (0)"));
 
 FCameraPhotographyManager::FCameraPhotographyManager()
 	: ActiveImpl(nullptr)

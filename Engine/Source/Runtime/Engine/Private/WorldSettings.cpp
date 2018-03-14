@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameFramework/WorldSettings.h"
 #include "Misc/MessageDialog.h"
@@ -25,6 +25,7 @@
 
 #if WITH_EDITOR
 #include "Editor.h"
+#include "HierarchicalLOD.h"
 #endif 
 
 #define LOCTEXT_NAMESPACE "ErrorChecking"
@@ -58,6 +59,7 @@ AWorldSettings::AWorldSettings(const FObjectInitializer& ObjectInitializer)
  	FHierarchicalSimplification LODBaseSetup;
 	HierarchicalLODSetup.Add(LODBaseSetup);
 	NumHLODLevels = HierarchicalLODSetup.Num();
+	bGenerateSingleClusterForLevel = false;
 #endif
 
 	KillZ = -HALF_WORLD_MAX1;
@@ -269,6 +271,58 @@ UAssetUserData* AWorldSettings::GetAssetUserDataOfClass(TSubclassOf<UAssetUserDa
 	}
 	return NULL;
 }
+#if WITH_EDITOR
+const TArray<FHierarchicalSimplification>& AWorldSettings::GetHierarchicalLODSetup() const
+{
+	const UHierarchicalLODSettings* HLODSettings = GetDefault<UHierarchicalLODSettings>();
+
+	// If we have a HLOD asset set use this
+	if (HLODSetupAsset.LoadSynchronous())
+	{
+		return HLODSetupAsset->GetDefaultObject<UHierarchicalLODSetup>()->HierarchicalLODSetup;
+	}
+	else if (HLODSettings->bForceSettingsInAllMaps && HLODSettings->DefaultSetup.IsValid())
+	{
+		return HLODSettings->DefaultSetup->GetDefaultObject<UHierarchicalLODSetup>()->HierarchicalLODSetup;
+	}
+	
+	return HierarchicalLODSetup;
+}
+
+TArray<FHierarchicalSimplification>& AWorldSettings::GetHierarchicalLODSetup()
+{
+	UHierarchicalLODSettings* HLODSettings = GetMutableDefault<UHierarchicalLODSettings>();
+	
+	// If we have a HLOD asset set use this
+	if (HLODSetupAsset.LoadSynchronous())
+	{
+		return HLODSetupAsset->GetDefaultObject<UHierarchicalLODSetup>()->HierarchicalLODSetup;
+	}
+	else if (HLODSettings->bForceSettingsInAllMaps && HLODSettings->DefaultSetup.LoadSynchronous())
+	{
+		return HLODSettings->DefaultSetup->GetDefaultObject<UHierarchicalLODSetup>()->HierarchicalLODSetup;
+	}
+
+	return HierarchicalLODSetup;
+}
+
+int32 AWorldSettings::GetNumHierarchicalLODLevels() const
+{
+	const UHierarchicalLODSettings* HLODSettings = GetDefault<UHierarchicalLODSettings>();
+
+	// If we have a HLOD asset set use this
+	if (HLODSetupAsset.LoadSynchronous())
+	{
+		return HLODSetupAsset->GetDefaultObject<UHierarchicalLODSetup>()->HierarchicalLODSetup.Num();
+	}
+	else if (HLODSettings->bForceSettingsInAllMaps && HLODSettings->DefaultSetup.IsValid())
+	{
+		return HLODSettings->DefaultSetup->GetDefaultObject<UHierarchicalLODSetup>()->HierarchicalLODSetup.Num();
+	}
+
+	return  HierarchicalLODSetup.Num();
+}
+#endif // WITH_EDITOR
 
 void AWorldSettings::RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass)
 {
@@ -356,7 +410,8 @@ bool AWorldSettings::CanEditChange(const UProperty* InProperty) const
 			}
 
 			if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FLightmassWorldInfoSettings, VolumetricLightmapDetailCellSize)
-				|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FLightmassWorldInfoSettings, VolumetricLightmapMaximumBrickMemoryMb))
+				|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FLightmassWorldInfoSettings, VolumetricLightmapMaximumBrickMemoryMb)
+				|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FLightmassWorldInfoSettings, VolumetricLightmapSphericalHarmonicSmoothing))
 			{
 				return LightmassSettings.VolumeLightingMethod == VLM_VolumetricLightmap;
 			}

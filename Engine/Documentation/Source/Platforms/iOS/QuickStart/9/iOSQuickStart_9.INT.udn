@@ -2,8 +2,10 @@ Title:9. Additional Resources
 Crumbs:%ROOT%, Platforms, Platforms/iOS, Platforms/iOS/QuickStart
 Description:Read more about iOS development with Unreal Engine.
 Availability:Public
-Version: 4.9
+Version: 4.18
 SkillLevel:Intermediate
+checkpoint:iOSQS
+order:9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -21,7 +23,7 @@ SkillLevel:Intermediate
 [/VAR]
 
 
-%Steps%
+
 
 For more information about device compatibility and performance:
 * [](Platforms\iOS\DeviceCompatibility)
@@ -38,4 +40,4 @@ For more information about designing game content and levels for mobile devices:
 You can also preview your mobile game without deploying to a device by using the [](Platforms\Mobile\Previewer).
 
 
-%Steps%
+

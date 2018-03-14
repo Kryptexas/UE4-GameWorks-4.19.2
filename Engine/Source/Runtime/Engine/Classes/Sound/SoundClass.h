@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -46,73 +46,73 @@ struct FSoundClassEditorData
 /**
  * Structure containing configurable properties of a sound class.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FSoundClassProperties
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** Volume multiplier. */
-	UPROPERTY(EditAnywhere, Category=SoundClassProperties)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SoundClassProperties)
 	float Volume;
 
 	/** Pitch multiplier. */
-	UPROPERTY(EditAnywhere, Category=SoundClassProperties)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SoundClassProperties)
 	float Pitch;
 
 	/** The amount of stereo sounds to bleed to the rear speakers */
-	UPROPERTY(EditAnywhere, Category=SoundClassProperties)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SoundClassProperties)
 	float StereoBleed;
 
 	/** The amount of a sound to bleed to the LFE channel */
-	UPROPERTY(EditAnywhere, Category=SoundClassProperties)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SoundClassProperties)
 	float LFEBleed;
 
 	/** Voice center channel volume - Not a multiplier (no propagation)	*/
-	UPROPERTY(EditAnywhere, Category=SoundClassProperties)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SoundClassProperties)
 	float VoiceCenterChannelVolume;
 
 	/** Volume of the radio filter effect */
-	UPROPERTY(EditAnywhere, Category=SoundClassProperties)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SoundClassProperties)
 	float RadioFilterVolume;
 
 	/** Volume at which the radio filter kicks in */
-	UPROPERTY(EditAnywhere, Category=SoundClassProperties)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SoundClassProperties)
 	float RadioFilterVolumeThreshold;
 
 	/** Sound mix voice - whether to apply audio effects */
-	UPROPERTY(EditAnywhere, Category=SoundClassProperties)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SoundClassProperties)
 	uint32 bApplyEffects:1;
 
 	/** Whether to artificially prioritise the component to play */
-	UPROPERTY(EditAnywhere, Category=SoundClassProperties)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SoundClassProperties)
 	uint32 bAlwaysPlay:1;
 
 	/** Whether or not this sound plays when the game is paused in the UI */
-	UPROPERTY(EditAnywhere, Category=SoundClassProperties)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SoundClassProperties)
 	uint32 bIsUISound:1;
 
 	/** Whether or not this is music (propagates only if parent is true) */
-	UPROPERTY(EditAnywhere, Category=SoundClassProperties)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SoundClassProperties)
 	uint32 bIsMusic:1;
 
 	/** Whether or not this sound class has reverb applied */
-	UPROPERTY(EditAnywhere, Category=SoundClassProperties)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SoundClassProperties)
 	uint32 bReverb:1;
 
 	/** Amount of audio to send to master reverb effect for 2D sounds played with this sound class. */
-	UPROPERTY(EditAnywhere, Category = SoundClassProperties)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SoundClassProperties)
 	float Default2DReverbSendAmount;
 
 	/** Whether or not this sound class forces sounds to the center channel */
-	UPROPERTY(EditAnywhere, Category=SoundClassProperties)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SoundClassProperties)
 	uint32 bCenterChannelOnly:1;
 
 	/** Whether the Interior/Exterior volume and LPF modifiers should be applied */
-	UPROPERTY(EditAnywhere, Category=SoundClassProperties)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SoundClassProperties)
 	uint32 bApplyAmbientVolumes:1;
 
 	/** Which output target the sound should be played through */
-	UPROPERTY(EditAnywhere, Category=SoundClassProperties)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SoundClassProperties)
 	TEnumAsByte<EAudioOutputTarget::Type> OutputTarget;
 
 	FSoundClassProperties()
@@ -140,21 +140,21 @@ struct FSoundClassProperties
 /**
  * Structure containing information on a SoundMix to activate passively.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FPassiveSoundMixModifier
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** The SoundMix to activate */
-	UPROPERTY(EditAnywhere, Category=PassiveSoundMixModifier)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=PassiveSoundMixModifier)
 	class USoundMix* SoundMix;
 
 	/** Minimum volume level required to activate SoundMix. Below this value the SoundMix will not be active. */
-	UPROPERTY(EditAnywhere, Category=PassiveSoundMixModifier)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=PassiveSoundMixModifier)
 	float MinVolumeThreshold;
 
 	/** Maximum volume level required to activate SoundMix. Above this value the SoundMix will not be active. */
-	UPROPERTY(EditAnywhere, Category=PassiveSoundMixModifier)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=PassiveSoundMixModifier)
 	float MaxVolumeThreshold;
 
 	FPassiveSoundMixModifier()
@@ -180,20 +180,21 @@ public:
 };
 #endif
 
-UCLASS(hidecategories=object, MinimalAPI)
-class USoundClass : public UObject
+
+UCLASS(config = Engine, hidecategories = Object, editinlinenew, BlueprintType)
+class ENGINE_API USoundClass : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
 	/** Configurable properties like volume and priority. */
-	UPROPERTY(EditAnywhere, Category=SoundClass)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SoundClass)
 	struct FSoundClassProperties Properties;
 
-	UPROPERTY(EditAnywhere, Category=SoundClass)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SoundClass)
 	TArray<USoundClass*> ChildClasses;
 
 	/** SoundMix Modifiers to activate automatically when a sound of this class is playing. */
-	UPROPERTY(EditAnywhere, Category=SoundClass)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SoundClass)
 	TArray<struct FPassiveSoundMixModifier> PassiveSoundMixModifiers;
 
 public:
@@ -229,14 +230,14 @@ public:
 	/** 
 	 * @return true if the child sound class exists in the tree 
 	 */
-	ENGINE_API bool RecurseCheckChild( USoundClass* ChildSoundClass );
+	bool RecurseCheckChild( USoundClass* ChildSoundClass );
 
 	/**
 	 * Set the parent class of this SoundClass, removing it as a child from its previous owner
 	 *
 	 * @param	InParentClass	The New Parent Class of this
 	 */
-	ENGINE_API void SetParentClass( USoundClass* InParentClass );
+	void SetParentClass( USoundClass* InParentClass );
 
 	/**
 	 * Add Referenced objects
@@ -251,18 +252,18 @@ public:
 	 *
 	 * @param	bIgnoreThis	Whether to ignore this SoundClass if it's already up to date
 	 */
-	ENGINE_API void RefreshAllGraphs(bool bIgnoreThis);
+	void RefreshAllGraphs(bool bIgnoreThis);
 
 	/** Sets the sound cue graph editor implementation.* */
-	static ENGINE_API void SetSoundClassAudioEditor(TSharedPtr<ISoundClassAudioEditor> InSoundClassAudioEditor);
+	static void SetSoundClassAudioEditor(TSharedPtr<ISoundClassAudioEditor> InSoundClassAudioEditor);
 
 	/** Gets the sound cue graph editor implementation. */
-	static TSharedPtr<ISoundClassAudioEditor> ENGINE_API GetSoundClassAudioEditor();
+	static TSharedPtr<ISoundClassAudioEditor> GetSoundClassAudioEditor();
 
 private:
 
 	/** Ptr to interface to sound class editor operations. */
-	static ENGINE_API TSharedPtr<ISoundClassAudioEditor> SoundClassAudioEditor;
+	static TSharedPtr<ISoundClassAudioEditor> SoundClassAudioEditor;
 
 #endif
 

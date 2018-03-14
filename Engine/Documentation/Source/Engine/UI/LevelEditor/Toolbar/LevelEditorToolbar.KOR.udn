@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3467293
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:레벨 에디터 툴바
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
@@ -25,11 +25,13 @@ topic-image:LevelEditorToolbar_topic.png
 | ![](button_Toolbar_PlayIn.png) | [INCLUDE:#playin] |
 | ![](button_Toolbar_launch.png) | 현재 맵을 지원되는 플랫폼에서 실행시킵니다. 연결된 디바이스는 화살표를 클릭하면 나타나는 메뉴에 나열됩니다. |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:simulate]
 게임을 시뮬레이션 모드로 시작합니다. 자세한 정보는 [에디터에서 시뮬레이트](Engine/UI/LevelEditor/InEditorTesting#에디터에서시뮬레이트) 부분을 참고해 주시기 바랍니다.
 [/EXCERPT:simulate]
 [EXCERPT:playin]
 게임을 보통 플레이 모드로 시작합니다. 화살표를 클릭하면 **플레이 옵션** 메뉴가 표시됩니다. 자세한 정보는 [에디터에서 플레이](Engine/UI/LevelEditor/InEditorTesting#에디터에서플레이) 부분을 참고해 주시기 바랍니다.
 [/EXCERPT:playin]
--->
+
+[/COMMENT]

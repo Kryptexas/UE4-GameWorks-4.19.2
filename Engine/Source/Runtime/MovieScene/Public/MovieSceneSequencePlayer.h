@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -29,6 +29,8 @@ struct FMovieSceneSequencePlaybackSettings
 		, bDisableLookAtInput(false)
 		, bHidePlayer(false)
 		, bHideHud(false)
+		, bDisableCameraCuts(false)
+		, InstanceData(nullptr)
 	{ }
 
 	GENERATED_BODY()
@@ -68,6 +70,14 @@ struct FMovieSceneSequencePlaybackSettings
 	/** Hide HUD during play */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Cinematic")
 	bool bHideHud;
+
+	/** Disable camera cuts */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Cinematic")
+	bool bDisableCameraCuts;
+
+	/** An object that can implement specific instance overrides for the sequence */
+	UPROPERTY(BlueprintReadWrite, Category="Cinematic")
+	UObject* InstanceData;
 
 	/** Interface that defines overridden bindings for this sequence */
 	UPROPERTY()
@@ -194,6 +204,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	float GetPlaybackEnd() const { return EndTime; }
 	
+	/** Set whether to disable camera cuts */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	void SetDisableCameraCuts(bool bInDisableCameraCuts) { PlaybackSettings.bDisableCameraCuts = bInDisableCameraCuts; }
+
+	/** Set whether to disable camera cuts */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	bool GetDisableCameraCuts() { return PlaybackSettings.bDisableCameraCuts; }
+
 	/** An event that is broadcast each time this level sequence player is updated */
 	DECLARE_EVENT_ThreeParams( UMovieSceneSequencePlayer, FOnMovieSceneSequencePlayerUpdated, const UMovieSceneSequencePlayer&, float /*current time*/, float /*previous time*/ );
 	FOnMovieSceneSequencePlayerUpdated& OnSequenceUpdated() const { return OnMovieSceneSequencePlayerUpdate; }
@@ -266,9 +284,11 @@ protected:
 	virtual void SetPlaybackStatus(EMovieScenePlayerStatus::Type InPlaybackStatus) override {}
 	virtual void SetViewportSettings(const TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) override {}
 	virtual void GetViewportSettings(TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) const override {}
+	virtual bool CanUpdateCameraCut() const override { return !PlaybackSettings.bDisableCameraCuts; }
 	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut) override {}
 	virtual void ResolveBoundObjects(const FGuid& InBindingId, FMovieSceneSequenceID SequenceID, UMovieSceneSequence& Sequence, UObject* ResolutionContext, TArray<UObject*, TInlineAllocator<1>>& OutObjects) const override;
 	virtual const IMovieSceneBindingOverridesInterface* GetBindingOverrides() const override { return PlaybackSettings.BindingOverrides ? &*PlaybackSettings.BindingOverrides : nullptr; }
+	virtual const UObject* GetInstanceData() const override { return PlaybackSettings.InstanceData; }
 
 	//~ UObject interface
 	virtual void BeginDestroy() override;
@@ -325,7 +345,7 @@ protected:
 
 	enum class ELatentAction
 	{
-		Stop, Pause
+		Stop, Pause, SetPlaybackPosition
 	};
 
 	/** Set of latent actions that are to be performed when the sequence has finished evaluating this frame */
@@ -350,4 +370,7 @@ private:
 
 	/** The maximum tick rate prior to playing (used for overriding delta time during playback). */
 	TOptional<double> OldMaxTickRate;
+
+	/** Playback position to use when invoking latent SetPlaybackPosition */
+	float LatentPlaybackPosition;
 };

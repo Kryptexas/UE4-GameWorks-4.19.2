@@ -12,7 +12,8 @@ Version:4.8
 ![](T_Kite_Demo_00.png)
 
 
-<!--## 先决条件
+[COMMENT:none]
+## 先决条件
 
 先将程序化植物（Procedural Foliage）工具启用后方可在项目中进行使用，步骤为：前往 **主工具栏**，然后前往 **Edit** > **Editor Preferences** > **Experimental**。 
 在 Experimental 部分点击 **Procedural Foliage** 旁的勾选框，将 Procedural Foliage 选项启用。 
@@ -23,7 +24,8 @@ Version:4.8
 
 按“快速入门”进行操作，Open World Demo Collection 下载完成后将其添加至使用中的项目 - 首先在 UE4 启动程序的 **Vault** 部分找到 Open World Demo Collection，然后点击 **Add to Project** 按钮。之后将显示可添加合集的项目列表。按“快速入门”进行操作，选择正在使用的项目，然后按下 **Add to Project** 键添加内容。重新打开项目后，将看到一个名为 **Kite Demo** 的文件夹，此文件夹中有您需要的内容。
 
--->!
+
+[/COMMENT]!
 
 ## 工具类型 
 虚幻引擎 4 中的开放世界场景工具使用电脑算法决定静态网格体的放置，以替代手动放置。 
@@ -61,7 +63,8 @@ Version:4.8
 [/OBJECT]
 [/region]
 
-<!--
+[COMMENT:none]
+
 #### 植物类 Actors
 程序化植物工具使用称为 **植物类** 的 Actor。 
 利用植物类可定义植物拥有的多种属性，如使用的静态网格体，或生成的静态网格体尺寸。
@@ -75,7 +78,8 @@ Version:4.8
 |**Placement**| 在 Placement 中，可对静态网格体（在 Mesh 部分指定）在整个关卡中物体上的放置方式进行调整。|
 |**Growth**| 在 Growth 部分，可定义模拟开始时树木的大小，以及模拟结束时树木“生长”后的大小。|
 |**Instance Settings**| Instance Settings 用于调整用作植物的静态网格体在关卡中的显示方式。|
--->!
+
+[/COMMENT]!
 
 ### 草地工具
 [region:note]
@@ -106,7 +110,8 @@ Version:4.8
 [/OBJECT]
 [/region]
 
-<!--
+[COMMENT:none]
+
 #### 草地类 Actors
 草地工具使用的 Actors 称为 **地形草地类**。
 利用地形草地类可对草地的多项属性进行定义，如用于草地的静态网格体类型、生成的静态网格体数量。
@@ -117,7 +122,8 @@ Version:4.8
 | 属性名称 | 描述 |
 | ------------ | ----------- |
 |**Grass Varieties**| 在 Grass Varieties 中，可指定用于草地的静态网格体类型、以及草地密度和消隐距离设置。|
--->!
+
+[/COMMENT]!
 
 
 

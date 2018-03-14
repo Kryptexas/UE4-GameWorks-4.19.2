@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ShaderFormatsPropertyDetails.h"
 #include "Misc/Paths.h"
@@ -63,25 +63,25 @@ static FText GetFriendlyNameFromRHIName(const FString& InRHIName)
 			FriendlyRHIName = LOCTEXT("OpenGLES31", "OpenGLES 3.1 (Mobile)");
 			break;
 		case SP_METAL:
-			FriendlyRHIName = LOCTEXT("Metal", "iOS/tvOS Metal 1.0 (ES 3.1)");
+			FriendlyRHIName = LOCTEXT("Metal", "iOS/tvOS Metal Mobile Renderer (ES3.1, Metal 1.1+, iOS/tvOS 9.0 or later)");
 			break;
 		case SP_METAL_MRT:
-			FriendlyRHIName = LOCTEXT("MetalMRT", "iOS/tvOS Metal 1.1+ (SM5, iOS/tvOS 9.0 or later)");
+			FriendlyRHIName = LOCTEXT("MetalMRT", "iOS/tvOS Metal Desktop Renderer (SM5, Metal 1.2+, iOS/tvOS 10.0 or later)");
 			break;
-		case SP_METAL_SM4:
-			FriendlyRHIName = LOCTEXT("MetalSM4", "Mac Metal 1.0 (SM4, OS X El Capitan 10.11.4 or later)");
+		case SP_METAL_SM5_NOTESS:
+			FriendlyRHIName = LOCTEXT("MetalSM5_NOTESS", "Mac Metal Desktop Renderer without Tessellation (SM5, Metal 1.2+, macOS Sierra 10.12.6 or later)");
 			break;
 		case SP_METAL_SM5:
-			FriendlyRHIName = LOCTEXT("MetalSM5", "Mac Metal 1.1+ (SM5, OS X El Capitan 10.11.5 or later)");
+			FriendlyRHIName = LOCTEXT("MetalSM5", "Mac Metal Desktop Renderer with Tessellation (SM5, Metal 1.2+, macOS Sierra 10.12.6 or later)");
 			break;
 		case SP_METAL_MACES3_1:
-			FriendlyRHIName = LOCTEXT("MetalES3.1", "Mac Metal (ES3.1, Mobile Preview)");
+			FriendlyRHIName = LOCTEXT("MetalES3.1", "Mac Metal High-End Mobile Preview (ES3.1)");
 			break;
 		case SP_METAL_MACES2:
-			FriendlyRHIName = LOCTEXT("MetalES2", "Mac Metal (ES2, Mobile Preview)");
+		FriendlyRHIName = LOCTEXT("MetalES2", "Mac Metal Low-End Mobile Preview (ES2)");
 			break;
 		case SP_METAL_MRT_MAC:
-			FriendlyRHIName = LOCTEXT("MetalMRTMac", "Mac Metal 1.1+ (SM5 MRT Preview, OS X El Capitan 10.11.5 or later)");
+			FriendlyRHIName = LOCTEXT("MetalMRTMac", "Mac Metal iOS/tvOS Desktop Renderer Preview (SM5)");
 			break;
 		case SP_VULKAN_SM4:
 			FriendlyRHIName = LOCTEXT("VulkanSM4", "Vulkan (SM4)");

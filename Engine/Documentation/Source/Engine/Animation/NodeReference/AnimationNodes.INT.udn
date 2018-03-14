@@ -12,37 +12,24 @@ of animation nodes provided in the engine including events, blend nodes, skeleta
 space nodes, and conversion nodes.
 [/EXCERPT:Intro]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-	EventGraph Nodes
-	[/PARAM]
-	[PARAM:description]
-	Nodes in this graph are used to process incoming data that in turn is used to drive the pose data in the **AnimGraph**. 
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/Animation/NodeReference/Events "%Engine/Animation/NodeReference/Events:description%")
-	[/PARAM]
-[/OBJECT]
+## EventGraph Nodes
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-	AnimGraph Nodes
-	[/PARAM]
-	[PARAM:description]
-	Using data from the **EventGraph**, nodes in this graph determine the actual frame-by-frame pose to use for the character. 
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/Animation/NodeReference/Blend "%Engine/Animation/NodeReference/Blend:description%")
-	* [](Engine/Animation/NodeReference/SkeletalControls "%Engine/Animation/NodeReference/SkeletalControls:description%")
-	* [](Engine/Animation/NodeReference/SpaceConversion "%Engine/Animation/NodeReference/SpaceConversion:description%")
-	* [](Engine/Animation/NodeReference/Fabrik "%Engine/Animation/NodeReference/Fabrik:description%")
-	[/PARAM]
-[/OBJECT]
+Nodes in this graph are used to process incoming data that in turn is used to drive the pose data in the **AnimGraph**. 
 
+[REGION:buttonlist]
+* [](Engine/Animation/NodeReference/Events "%Engine/Animation/NodeReference/Events:description%")
+[/REGION]
+
+## AnimGraph Nodes
+
+Using data from the **EventGraph**, nodes in this graph determine the actual frame-by-frame pose to use for the character. 
+
+[REGION:buttonlist]
+* [](Engine/Animation/NodeReference/Blend "%Engine/Animation/NodeReference/Blend:description%")
+* [](Engine/Animation/NodeReference/SkeletalControls "%Engine/Animation/NodeReference/SkeletalControls:description%")
+* [](Engine/Animation/NodeReference/SpaceConversion "%Engine/Animation/NodeReference/SpaceConversion:description%")
+* [](Engine/Animation/NodeReference/Fabrik "%Engine/Animation/NodeReference/Fabrik:description%")
+[/REGION]
 
 ## Pins and Properties
 
@@ -71,15 +58,15 @@ You can also have multiple Pose Watches active at once allowing you to compare p
 To enable this, inside your **AnimGraph**, **Right-click** on on a node that contains pose data and select **Toggle Pose Watch**. 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-nabapYAeE7c
-[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	nabapYAeE7c
+	[/PARAMLITERAL]
 [/OBJECT]
 
 You can also specify different colors for each of your watched poses by clicking the icon in the upper left corner of the node. 

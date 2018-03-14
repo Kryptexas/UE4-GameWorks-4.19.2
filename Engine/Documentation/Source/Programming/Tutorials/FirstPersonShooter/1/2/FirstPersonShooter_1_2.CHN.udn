@@ -22,7 +22,7 @@ Version:4.11
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在上一步中设置 **基础代码（Basic Code）** 时，虚幻引擎创建了一个 **游戏模式（Game Mode）**。Game Mode 定义游戏的规则和胜利条件。Game Mode 还将设置用于部分基础游戏性框架类型（包括 Pawn、玩家控制器和 HUD）的默认类。此步骤中我们将使用编辑器在 Visual Studio 中打开解决方案，以便查看项目的 Game Mode 类。 
 
@@ -57,4 +57,4 @@ Version:4.11
 
 1.	在 Visual Studio 中打开 C++ 项目后，即可开始在项目中添加代码。 
 		
-%Steps%
+

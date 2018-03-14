@@ -1,12 +1,12 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "XRTrackingSystemBase.h"
 #include "AppleARKitConfiguration.h"
-#include "ARHitTestingSupport.h"
-#include "ARTrackingQuality.h"
+#include "ARSystem.h"
 #include "AppleARKitHitTestResult.h"
+#include "AppleARKitLiveLinkSourceFactory.h"
 #include "Kismet/BlueprintPlatformLibrary.h"
 
 // ARKit
@@ -15,54 +15,70 @@
 #include "AppleARKitSessionDelegate.h"
 #endif // ARKIT_SUPPORT
 
+
+DECLARE_STATS_GROUP(TEXT("AppleARKit"), STATGROUP_APPLEARKIT, STATCAT_Advanced);
+
 //
 //  FAppleARKitSystem
 //
 
 struct FAppleARKitFrame;
+struct FAppleARKitAnchorData;
 
-class FAppleARKitSystem : public FXRTrackingSystemBase, public IARHitTestingSupport, public IARTrackingQuality, public TSharedFromThis<FAppleARKitSystem, ESPMode::ThreadSafe>
+class FAppleARKitSystem : public FARSystemBase
 {
 	friend class FAppleARKitXRCamera;
 	
+	
 public:
 	FAppleARKitSystem();
-	void Initialize();
 	~FAppleARKitSystem();
-	
-	/** Thread safe anchor map getter */
-	TMap< FGuid, UAppleARKitAnchor* > GetAnchors() const;
 	
 	//~ IXRTrackingSystem
 	FName GetSystemName() const override;
 	bool GetCurrentPose(int32 DeviceId, FQuat& OutOrientation, FVector& OutPosition) override;
 	FString GetVersionString() const override;
 	bool EnumerateTrackedDevices(TArray<int32>& OutDevices, EXRTrackedDeviceType Type) override;
-	void RefreshPoses() override;
 	void ResetOrientationAndPosition(float Yaw) override;
 	bool IsHeadTrackingAllowed() const override;
 	TSharedPtr<class IXRCamera, ESPMode::ThreadSafe> GetXRCamera(int32 DeviceId) override;
 	float GetWorldToMetersScale() const override;
+	void OnBeginRendering_GameThread() override;
+	bool OnStartGameFrame(FWorldContext& WorldContext) override;
 	//~ IXRTrackingSystem
-	
-	//~ IARHitTestingSupport
-	//virtual bool ARLineTraceFromScreenPoint(const FVector2D ScreenPosition, TArray<FARHitTestResult>& OutHitResults) override;
-	//~ IARHitTestingSupport
-	
-	//~ IARTrackingQuality
-	virtual EARTrackingQuality ARGetTrackingQuality() const;
-	//~ IARTrackingQuality
 	
 	// @todo arkit : this is for the blueprint library only; try to get rid of this method
 	bool GetCurrentFrame(FAppleARKitFrame& OutCurrentFrame) const;
+private:
+	//~ FGCObject
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
+	//~ FGCObject
+protected:
+	//~IARSystemSupport
+	virtual void OnARSystemInitialized() override;
+	virtual EARTrackingQuality OnGetTrackingQuality() const override;
+	virtual void OnStartARSession(UARSessionConfig* SessionConfig) override;
+	virtual void OnPauseARSession() override;
+	virtual void OnStopARSession() override;
+	virtual FARSessionStatus OnGetARSessionStatus() const override;
+	virtual void OnSetAlignmentTransform(const FTransform& InAlignmentTransform) override;
+	virtual TArray<FARTraceResult> OnLineTraceTrackedObjects( const FVector2D ScreenCoord, EARLineTraceChannels TraceChannels ) override;
+	virtual TArray<UARTrackedGeometry*> OnGetAllTrackedGeometries() const override;
+	virtual TArray<UARPin*> OnGetAllPins() const override;
+	virtual bool OnIsTrackingTypeSupported(EARSessionType SessionType) const override;
+	virtual UARLightEstimate* OnGetCurrentLightEstimate() const override;
+	virtual UARPin* OnPinComponent(USceneComponent* ComponentToPin, const FTransform& PinToWorldTransform, UARTrackedGeometry* TrackedGeometry = nullptr, const FName DebugName = NAME_None) override;
+	virtual void OnRemovePin(UARPin* PinToRemove) override;
+	//~IARSystemSupport
 
 private:
-	void Run();
-	bool RunWithConfiguration(const FAppleARKitConfiguration& InConfiguration);
+	bool Run(UARSessionConfig* SessionConfig);
 	bool IsRunning() const;
 	bool Pause();
 	void OrientationChanged(const int32 NewOrientation);
-	
+	void UpdatePoses();
+	void UpdateFrame();
+
 public:
 	// Session delegate callbacks
 	void SessionDidUpdateFrame_DelegateThread( TSharedPtr< FAppleARKitFrame, ESPMode::ThreadSafe > Frame );
@@ -71,7 +87,12 @@ public:
 	void SessionDidAddAnchors_DelegateThread( NSArray<ARAnchor*>* anchors );
 	void SessionDidUpdateAnchors_DelegateThread( NSArray<ARAnchor*>* anchors );
 	void SessionDidRemoveAnchors_DelegateThread( NSArray<ARAnchor*>* anchors );
+private:
+	void SessionDidAddAnchors_Internal( TSharedRef<FAppleARKitAnchorData> AnchorData );
+	void SessionDidUpdateAnchors_Internal( TSharedRef<FAppleARKitAnchorData> AnchorData );
+	void SessionDidRemoveAnchors_Internal( FGuid AnchorGuid );
 #endif // ARKIT_SUPPORT
+	void SessionDidUpdateFrame_Internal( TSharedRef< FAppleARKitFrame, ESPMode::ThreadSafe > Frame );
 
 	
 public:
@@ -114,15 +135,31 @@ private:
 	CVMetalTextureCacheRef MetalTextureCache = nullptr;
 	
 #endif // ARKIT_SUPPORT
+
+	//
+	// PROPERTIES REPORTED TO FGCObject
+	// ...
+	TMap< FGuid, UARTrackedGeometry* > TrackedGeometries;
+	TArray<UARPin*> Pins;
+	UARLightEstimate* LightEstimate;
+	// ...
+	// PROPERTIES REPORTED TO FGCObject
+	//
 	
-	// Internal list of current known anchors
-	mutable FCriticalSection AnchorsLock;
-	UPROPERTY( Transient )
-	TMap< FGuid, UAppleARKitAnchor* > Anchors;
-	
-	
-	// The frame number when LastReceivedFrame was last updated
+
+	/** The ar frame number when LastReceivedFrame was last updated */
 	uint32 GameThreadFrameNumber;
+	/** The ar timestamp of when the LastReceivedFrame was last updated */
+	double GameThreadTimestamp;
+
+	/** If requested, publishes face ar updates to LiveLink for the animation system to use */
+	TSharedPtr<ILiveLinkSourceARKit> LiveLinkSource;
+	/** Copied from the UARSessionConfig project settings object */
+	FName FaceTrackingLiveLinkSubjectName;
+	
+	
+	// An int counter that provides a human-readable debug number for Tracked Geometries.
+	uint32 LastTrackedGeometry_DebugId;
 
 	//'threadsafe' sharedptrs merely guaranteee atomicity when adding/removing refs.  You can still have a race
 	//with destruction and copying sharedptrs.

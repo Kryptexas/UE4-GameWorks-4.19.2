@@ -34,13 +34,15 @@ Tags:Vehicles
 	[/PARAM]
 [/OBJECT]
 
-<!---
+[COMMENT:none]
+-
 [REGION:imagetable]
 | ![Understeer](Understeering.png)(w:450) | ![Oversteer](Oversteering.png)(w:450) |
 | --- | --- |
 | Understeer | Oversteer |
 [/REGION]
---->
+-
+[/COMMENT]
 
 重心をどこに置くかを検討する場合、ビークルが宙に浮いたときの処理に影響を及ぼすことを覚えておいてください。この例では重心は低くなっていて車の後部に近くなっています。地面から低いため、簡単に高速になり、重心が後部の低い場所にあるということは車を安定させます。特にジャンプの場合はそうです。
 
@@ -50,7 +52,8 @@ Tags:Vehicles
 | 重心:X:0, Y:0, Z:0 | 重心:X: -25, Y:0, Z: -10 |
 [/REGION]
 
-<!--- 
+[COMMENT:none]
+- 
 
 [EXCERPT:originalCoM]
 [OBJECT:EmbeddedVideo]
@@ -79,7 +82,8 @@ Tags:Vehicles
 	[/PARAMLITERAL]
 [/OBJECT]
 [/EXCERPT:adjustedCoM]
---->
+-
+[/COMMENT]
 
 ## 重心のデバッグ
 

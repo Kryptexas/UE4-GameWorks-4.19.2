@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimInstance.cpp: Anim Instance implementation
@@ -22,6 +22,9 @@
 #include "Animation/AnimNodeBase.h"
 #include "Animation/AnimInstanceProxy.h"
 #include "Animation/AnimNode_StateMachine.h"
+#include "SkeletalRenderPublic.h"
+#include "Rendering/SkeletalMeshRenderData.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 /** Anim stats */
 
@@ -32,7 +35,7 @@ DEFINE_STAT(STAT_SkelCompUpdateTransform);
 //                         -->  Physics Engine here <--
 DEFINE_STAT(STAT_UpdateRBBones);
 DEFINE_STAT(STAT_UpdateRBJoints);
-DEFINE_STAT(STAT_UpdateLocalToWorldAndOverlaps);
+DEFINE_STAT(STAT_FinalizeAnimationUpdate);
 DEFINE_STAT(STAT_GetAnimationPose);
 DEFINE_STAT(STAT_AnimTriggerAnimNotifies);
 DEFINE_STAT(STAT_RefreshBoneTransforms);
@@ -48,9 +51,6 @@ DEFINE_STAT(STAT_BlueprintPostEvaluateAnimation);
 DEFINE_STAT(STAT_NativeUpdateAnimation);
 DEFINE_STAT(STAT_Montage_Advance);
 DEFINE_STAT(STAT_Montage_UpdateWeight);
-DEFINE_STAT(STAT_AnimMontageInstance_Advance);
-DEFINE_STAT(STAT_AnimMontageInstance_TickBranchPoints);
-DEFINE_STAT(STAT_AnimMontageInstance_Advance_Iteration);
 DEFINE_STAT(STAT_UpdateCurves);
 DEFINE_STAT(STAT_LocalBlendCSBoneTransforms);
 
@@ -346,13 +346,12 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMoti
 	{
 		/**
 			If we're set to OnlyTickMontagesWhenNotRendered and we haven't been recently rendered,
-			then only update montages and skip everything else.
+			then only update montages and skip everything else. 
 		*/
-		if ((SkelMeshComp->MeshComponentUpdateFlag == EMeshComponentUpdateFlag::OnlyTickMontagesWhenNotRendered)
-			&& !SkelMeshComp->bRecentlyRendered)
+		if (SkelMeshComp->ShouldOnlyTickMontages(DeltaSeconds))
 		{
 			/**
-				Clear NotifyQueue prior to ticking montages. 
+				Clear NotifyQueue prior to ticking montages.
 				This is typically done in 'PreUpdate', but we're skipping this here since we're not updating the graph.
 				A side effect of this, is that we're stopping all state notifies in the graph, until ticking resumes.
 				This should be fine. But if it is ever a problem, we should keep two versions of them. One for montages and one for the graph.
@@ -368,9 +367,17 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMoti
 			UpdateMontage(DeltaSeconds);
 
 			/**
-				We intentionally skip UpdateMontageSyncGroup(), since SyncGroup update is skipped along with AnimGraph update
-				when EMeshComponentUpdateFlag::OnlyTickMontagesWhenNotRendered.
+				We intentionally skip UpdateMontageSyncGroup(), since SyncGroup update is skipped along with AnimGraph update.
+				We do need to reset tick records since the montage will appear to have "jumped" if normal ticking resumes.
+			*/
+			for (FAnimMontageInstance* MontageInstance : MontageInstances)
+			{
+				MontageInstance->bDidUseMarkerSyncThisTick = false;
+				MontageInstance->MarkerTickRecord.Reset();
+				MontageInstance->MarkersPassedThisTick.Reset();
+			};
 
+			/**
 				We also intentionally do not call UpdateMontageEvaluationData after the call to UpdateMontage.
 				As we would have to call 'UpdateAnimation' on the graph as well, so weights could be in sync with this new data.
 				The problem lies in the fact that 'Evaluation' can be called without a call to 'Update' prior.
@@ -479,8 +486,13 @@ void UAnimInstance::PostUpdateAnimation()
 
 	Proxy.PostUpdate(this);
 
-	ExtractedRootMotion.Accumulate(Proxy.GetExtractedRootMotion());
-	Proxy.GetExtractedRootMotion().Clear();
+	if(Proxy.GetExtractedRootMotion().bHasRootMotion)
+	{
+		FTransform ProxyTransform = Proxy.GetExtractedRootMotion().GetRootMotionTransform();
+		ProxyTransform.NormalizeRotation();
+		ExtractedRootMotion.Accumulate(ProxyTransform);
+		Proxy.GetExtractedRootMotion().Clear();
+	}
 
 	// blend in any montage-blended root motion that we now have correct weights for
 	for(const FQueuedRootMotionBlend& RootMotionBlend : RootMotionBlendQueue)
@@ -556,15 +568,11 @@ void UAnimInstance::ParallelUpdateAnimation()
 
 bool UAnimInstance::NeedsImmediateUpdate(float DeltaSeconds) const
 {
-	// If Evaluation Phase is skipped, PostUpdateAnimation() will not get called, so we can't use ParallelUpdateAnimation then.
-	USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent();
-	const bool bEvaluationPhaseSkipped = SkelMeshComp && !SkelMeshComp->bRecentlyRendered && (SkelMeshComp->MeshComponentUpdateFlag > EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones);
-
 	const bool bUseParallelUpdateAnimation = (GetDefault<UEngine>()->bAllowMultiThreadedAnimationUpdate && bUseMultiThreadedAnimationUpdate) || (CVarForceUseParallelAnimUpdate.GetValueOnGameThread() != 0);
 
 	return
+		!CanRunParallelWork() ||
 		GIntraFrameDebuggingGameThread ||
-		bEvaluationPhaseSkipped || 
 		CVarUseParallelAnimUpdate.GetValueOnGameThread() == 0 ||
 		CVarUseParallelAnimationEvaluation.GetValueOnGameThread() == 0 ||
 		!bUseParallelUpdateAnimation ||
@@ -623,7 +631,7 @@ void UAnimInstance::PostEvaluateAnimation()
 		BlueprintPostEvaluateAnimation();
 	}
 
-	GetProxyOnGameThread<FAnimInstanceProxy>().ClearObjects();
+	GetProxyOnGameThread<FAnimInstanceProxy>().PostEvaluate(this);
 }
 
 void UAnimInstance::NativeInitializeAnimation()
@@ -644,6 +652,11 @@ void UAnimInstance::NativePostEvaluateAnimation()
 
 void UAnimInstance::NativeUninitializeAnimation()
 {
+}
+
+void UAnimInstance::NativeBeginPlay()
+{
+
 }
 
 void UAnimInstance::AddNativeTransitionBinding(const FName& MachineName, const FName& PrevStateName, const FName& NextStateName, const FCanTakeTransition& NativeTransitionDelegate, const FName& TransitionName)
@@ -696,20 +709,27 @@ void OutputTickRecords(const TArray<FAnimTickRecord>& Records, UCanvas* Canvas, 
 
 		DisplayDebugManager.SetLinearDrawColor((PlayerIndex == HighlightIndex) ? HighlightColor : TextColor);
 
-		FString PlayerEntry;
+		FString PlayerEntry = FString::Printf(TEXT("%i) %s (%s) W(%.f%%)"), 
+			PlayerIndex, *Player.SourceAsset->GetName(), *Player.SourceAsset->GetClass()->GetName(), Player.EffectiveBlendWeight*100.f);
+
+		// See if we have access to SequenceLength
+		if (UAnimSequenceBase* AnimSeqBase = Cast<UAnimSequenceBase>(Player.SourceAsset))
+		{
+			PlayerEntry += FString::Printf(TEXT(" P(%.2f/%.2f)"), 
+				Player.TimeAccumulator != nullptr ? *Player.TimeAccumulator : 0.f, AnimSeqBase->SequenceLength);
+		}
+		else
+		{
+			PlayerEntry += FString::Printf(TEXT(" P(%.2f)"),
+				Player.TimeAccumulator != nullptr ? *Player.TimeAccumulator : 0.f);
+		}
 
 		// Part of a sync group
 		if (HighlightIndex != INDEX_NONE)
 		{
-			PlayerEntry = FString::Printf(TEXT("%i) %s (%s) W:%.1f%% P:%.2f, Prev(i:%d, t:%.3f) Next(i:%d, t:%.3f)"),
-				PlayerIndex, *Player.SourceAsset->GetName(), *Player.SourceAsset->GetClass()->GetName(), Player.EffectiveBlendWeight*100.f, Player.TimeAccumulator != nullptr ? *Player.TimeAccumulator : 0.f
-				, Player.MarkerTickRecord->PreviousMarker.MarkerIndex, Player.MarkerTickRecord->PreviousMarker.TimeToMarker, Player.MarkerTickRecord->NextMarker.MarkerIndex, Player.MarkerTickRecord->NextMarker.TimeToMarker);
-		}
-		// not part of a sync group
-		else
-		{
-			PlayerEntry = FString::Printf(TEXT("%i) %s (%s) W:%.1f%% P:%.2f"),
-				PlayerIndex, *Player.SourceAsset->GetName(), *Player.SourceAsset->GetClass()->GetName(), Player.EffectiveBlendWeight*100.f, Player.TimeAccumulator != nullptr ? *Player.TimeAccumulator : 0.f);
+			PlayerEntry += FString::Printf(TEXT(" Prev(i:%d, t:%.3f) Next(i:%d, t:%.3f)"),
+				Player.MarkerTickRecord->PreviousMarker.MarkerIndex, Player.MarkerTickRecord->PreviousMarker.TimeToMarker, 
+				Player.MarkerTickRecord->NextMarker.MarkerIndex, Player.MarkerTickRecord->NextMarker.TimeToMarker);
 		}
 
 		DisplayDebugManager.DrawString(PlayerEntry, Indent);
@@ -760,6 +780,35 @@ void OutputTickRecords(const TArray<FAnimTickRecord>& Records, UCanvas* Canvas, 
 	}
 }
 
+void UAnimInstance::DisplayDebugInstance(FDisplayDebugManager& DisplayDebugManager, float& Indent)
+{
+	DisplayDebugManager.SetLinearDrawColor(FLinearColor::Green);
+
+	if (USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent())
+	{
+		const int32 MaxLODIndex = SkelMeshComp->MeshObject ? (SkelMeshComp->MeshObject->GetSkeletalMeshRenderData().LODRenderData.Num() - 1) : INDEX_NONE;
+		FAnimInstanceProxy& Proxy = GetProxyOnGameThread<FAnimInstanceProxy>();
+
+		FString DebugText = FString::Printf(TEXT("LOD(%d/%d) UpdateCounter(%d) EvalCounter(%d) CacheBoneCounter(%d) InitCounter(%d) DeltaSeconds(%.3f)"),
+			SkelMeshComp->PredictedLODLevel, MaxLODIndex, Proxy.GetUpdateCounter().Get(), Proxy.GetEvaluationCounter().Get(),
+			Proxy.GetCachedBonesCounter().Get(), Proxy.GetInitializationCounter().Get(), Proxy.GetDeltaSeconds());
+
+		DisplayDebugManager.DrawString(DebugText, Indent);
+
+		if (SkelMeshComp->ShouldUseUpdateRateOptimizations())
+		{
+			if (FAnimUpdateRateParameters* UROParams = SkelMeshComp->AnimUpdateRateParams)
+			{
+				DebugText = FString::Printf(TEXT("URO Rate(%d) SkipUpdate(%d) SkipEval(%d) Interp(%d)"),
+					UROParams->UpdateRate, UROParams->ShouldSkipUpdate(), UROParams->ShouldSkipEvaluation(),
+					UROParams->ShouldInterpolateSkippedFrames());
+
+				DisplayDebugManager.DrawString(DebugText, Indent);
+			}
+		}
+	}
+}
+
 void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 #if ENABLE_DRAW_DEBUG
@@ -795,6 +844,11 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 
 	FString Heading = FString::Printf(TEXT("Animation: %s"), *GetName());
 	DisplayDebugManager.DrawString(Heading, Indent);
+
+	{
+		FIndenter CustomDebugIndent(Indent);
+		DisplayDebugInstance(DisplayDebugManager, Indent);
+	}
 
 	if (bShowGraph && Proxy.HasRootNode())
 	{
@@ -1140,15 +1194,33 @@ void UAnimInstance::UpdateCurvesToComponents(USkeletalMeshComponent* Component /
 	}
 }
 
-void UAnimInstance::GetAnimationCurveList(EAnimCurveType Type, TMap<FName, float>& OutCurveList) const
+void UAnimInstance::AppendAnimationCurveList(EAnimCurveType Type, TMap<FName, float>& InOutCurveList) const
 {
-	uint8 ArrayIndex = (uint8)Type;
+	const uint8 ArrayIndex = (uint8)Type;
 
 	if (ArrayIndex < (uint8)EAnimCurveType::MaxAnimCurveType)
 	{
-		// add unique only
-		OutCurveList.Append(AnimationCurves[ArrayIndex]);
+		InOutCurveList.Append(AnimationCurves[ArrayIndex]);
 	}
+}
+
+void UAnimInstance::GetAnimationCurveList(EAnimCurveType Type, TMap<FName, float>& InOutCurveList) const
+{
+	AppendAnimationCurveList(Type, InOutCurveList);
+}
+
+const TMap<FName, float>& UAnimInstance::GetAnimationCurveList(EAnimCurveType Type) const
+{
+	const uint8 ArrayIndex = (uint8)Type;
+	if (ArrayIndex < (uint8)EAnimCurveType::MaxAnimCurveType)
+	{
+		return AnimationCurves[ArrayIndex];
+	}
+
+	ensureMsgf(ArrayIndex < (uint8)EAnimCurveType::MaxAnimCurveType, TEXT("Unrecognized  EAnimCurveType value: %i"), ArrayIndex);
+
+	static TMap<FName, float> DummyMap;
+	return DummyMap;
 }
 
 void UAnimInstance::RefreshCurves(USkeletalMeshComponent* Component)
@@ -1232,22 +1304,23 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 
 	for (int32 Index=0; Index<NotifyQueue.AnimNotifies.Num(); Index++)
 	{
-		const FAnimNotifyEvent* AnimNotifyEvent = NotifyQueue.AnimNotifies[Index];
-
-		// AnimNotifyState
-		if( AnimNotifyEvent->NotifyStateClass )
+		if(const FAnimNotifyEvent* AnimNotifyEvent = NotifyQueue.AnimNotifies[Index].GetNotify())
 		{
-			if( !ActiveAnimNotifyState.RemoveSingleSwap(*AnimNotifyEvent) )
+			// AnimNotifyState
+			if (AnimNotifyEvent->NotifyStateClass)
 			{
-				// Queue up calls to 'NotifyBegin', so they happen after 'NotifyEnd'.
-				NotifyStateBeginEvent.Add(AnimNotifyEvent);
+				if (!ActiveAnimNotifyState.RemoveSingleSwap(*AnimNotifyEvent))
+				{
+					// Queue up calls to 'NotifyBegin', so they happen after 'NotifyEnd'.
+					NotifyStateBeginEvent.Add(AnimNotifyEvent);
+				}
+				NewActiveAnimNotifyState.Add(*AnimNotifyEvent);
+				continue;
 			}
-			NewActiveAnimNotifyState.Add(*AnimNotifyEvent);
-			continue;
-		}
 
-		// Trigger non 'state' AnimNotifies
-		TriggerSingleAnimNotify(AnimNotifyEvent);
+			// Trigger non 'state' AnimNotifies
+			TriggerSingleAnimNotify(AnimNotifyEvent);
+		}
 	}
 
 	// Send end notification to AnimNotifyState not active anymore.
@@ -1608,65 +1681,20 @@ float UAnimInstance::PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeN
 
 UAnimMontage* UAnimInstance::PlaySlotAnimationAsDynamicMontage(UAnimSequenceBase* Asset, FName SlotNodeName, float BlendInTime, float BlendOutTime, float InPlayRate, int32 LoopCount, float BlendOutTriggerTime, float InTimeToStartMontageAt)
 {
-	// create temporary montage and play
-	bool bValidAsset = Asset && !Asset->IsA(UAnimMontage::StaticClass());
-	if (!bValidAsset)
+	if (Asset && CurrentSkeleton->IsCompatible(Asset->GetSkeleton()))
 	{
-		// user warning
-		UE_LOG(LogAnimMontage, Warning, TEXT("PlaySlotAnimationAsDynamicMontage: Invalid input asset(%s). If Montage, please use Montage_Play"), *GetNameSafe(Asset));
-		return nullptr;
+		// create asset using the information
+		UAnimMontage* NewMontage = UAnimMontage::CreateSlotAnimationAsDynamicMontage(Asset, SlotNodeName, BlendInTime, BlendOutTime, InPlayRate, LoopCount, BlendOutTriggerTime, InTimeToStartMontageAt);
+
+		if (NewMontage)
+		{
+			// if playing is successful, return the montage to allow more control if needed
+			float PlayTime = Montage_Play(NewMontage, InPlayRate, EMontagePlayReturnType::MontageLength, InTimeToStartMontageAt);
+			return PlayTime > 0.0f ? NewMontage : nullptr;
+		}
 	}
 
-	if (SlotNodeName == NAME_None)
-	{
-		// user warning
-		UE_LOG(LogAnimMontage, Warning, TEXT("SlotNode Name is required. Make sure to add Slot Node in your anim graph and name it."));
-		return nullptr;
-	}
-
-	USkeleton* AssetSkeleton = Asset->GetSkeleton();
-	if (!CurrentSkeleton->IsCompatible(AssetSkeleton))
-	{
-		UE_LOG(LogAnimMontage, Warning, TEXT("The Skeleton '%s' isn't compatible with '%s' in AnimSequence '%s'!"), *GetPathNameSafe(AssetSkeleton), *GetPathNameSafe(CurrentSkeleton), *Asset->GetName());
-		return nullptr;
-	}
-
-	if (!Asset->CanBeUsedInMontage())
-	{
-		UE_LOG(LogAnimMontage, Warning, TEXT("This animation isn't supported to play as montage"));
-		return nullptr;
-	}
-
-	// now play
-	UAnimMontage* NewMontage = NewObject<UAnimMontage>();
-	NewMontage->SetSkeleton(AssetSkeleton);
-
-	// add new track
-	FSlotAnimationTrack& NewTrack = NewMontage->SlotAnimTracks[0];
-	NewTrack.SlotName = SlotNodeName;
-	FAnimSegment NewSegment;
-	NewSegment.AnimReference = Asset;
-	NewSegment.AnimStartTime = 0.f;
-	NewSegment.AnimEndTime = Asset->SequenceLength;
-	NewSegment.AnimPlayRate = 1.f;
-	NewSegment.StartPos = 0.f;
-	NewSegment.LoopingCount = LoopCount;
-	NewMontage->SequenceLength = NewSegment.GetLength();
-	NewTrack.AnimTrack.AnimSegments.Add(NewSegment);
-
-	FCompositeSection NewSection;
-	NewSection.SectionName = TEXT("Default");
-	NewSection.SetTime(0.0f);
-
-	// add new section
-	NewMontage->CompositeSections.Add(NewSection);
-	NewMontage->BlendIn.SetBlendTime(BlendInTime);
-	NewMontage->BlendOut.SetBlendTime(BlendOutTime);
-	NewMontage->BlendOutTriggerTime = BlendOutTriggerTime;
-
-	// if playing is successful, return the montage to allow more control if needed
-	float PlayTime = Montage_Play(NewMontage, InPlayRate, EMontagePlayReturnType::MontageLength, InTimeToStartMontageAt);
-	return PlayTime > 0.0f ? NewMontage : NULL;
+	return nullptr;
 }
 
 void UAnimInstance::StopSlotAnimation(float InBlendOutTime, FName SlotNodeName)
@@ -1739,15 +1767,18 @@ bool UAnimInstance::IsPlayingSlotAnimation(const UAnimSequenceBase* Asset, FName
 }
 
 /** Play a Montage. Returns Length of Montage in seconds. Returns 0.f if failed to play. */
-float UAnimInstance::Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate/*= 1.f*/, EMontagePlayReturnType ReturnValueType, float InTimeToStartMontageAt)
+float UAnimInstance::Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate/*= 1.f*/, EMontagePlayReturnType ReturnValueType, float InTimeToStartMontageAt, bool bStopAllMontages /*= true*/)
 {
 	if (MontageToPlay && (MontageToPlay->SequenceLength > 0.f) && MontageToPlay->HasValidSlotSetup())
 	{
 		if (CurrentSkeleton && CurrentSkeleton->IsCompatible(MontageToPlay->GetSkeleton()))
 		{
-			// Enforce 'a single montage at once per group' rule
-			FName NewMontageGroupName = MontageToPlay->GetGroupName();
-			StopAllMontagesByGroupName(NewMontageGroupName, MontageToPlay->BlendIn);
+			if (bStopAllMontages)
+			{
+				// Enforce 'a single montage at once per group' rule
+				FName NewMontageGroupName = MontageToPlay->GetGroupName();
+				StopAllMontagesByGroupName(NewMontageGroupName, MontageToPlay->BlendIn);
+			}
 
 			// Enforce 'a single root motion montage at once' rule.
 			if (MontageToPlay->bEnableRootMotionTranslation || MontageToPlay->bEnableRootMotionRotation)
@@ -1779,9 +1810,9 @@ float UAnimInstance::Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate/
 			OnMontageStarted.Broadcast(MontageToPlay);
 
 			UE_LOG(LogAnimMontage, Verbose, TEXT("Montage_Play: AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
-						*NewInstance->Montage->GetName(), NewInstance->GetDesiredWeight(), NewInstance->GetWeight());
-			
-			return (ReturnValueType == EMontagePlayReturnType::MontageLength) ? MontageLength : (MontageLength/(InPlayRate*MontageToPlay->RateScale));
+				*NewInstance->Montage->GetName(), NewInstance->GetDesiredWeight(), NewInstance->GetWeight());
+
+			return (ReturnValueType == EMontagePlayReturnType::MontageLength) ? MontageLength : (MontageLength / (InPlayRate*MontageToPlay->RateScale));
 		}
 		else
 		{
@@ -2454,17 +2485,31 @@ float UAnimInstance::CalculateDirection(const FVector& Velocity, const FRotator&
 void UAnimInstance::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	UAnimInstance* This = CastChecked<UAnimInstance>(InThis);
-	if (This)
+
+	// go through all montage instances, and update them
+	// and make sure their weight is updated properly
+	for (int32 I=0; I<This->MontageInstances.Num(); ++I)
 	{
-		// go through all montage instances, and update them
-		// and make sure their weight is updated properly
-		for (int32 I=0; I<This->MontageInstances.Num(); ++I)
+		if( This->MontageInstances[I] )
 		{
-			if( This->MontageInstances[I] )
-			{
-				This->MontageInstances[I]->AddReferencedObjects(Collector);
-			}
+			This->MontageInstances[I]->AddReferencedObjects(Collector);
 		}
+	}
+
+	// the queued montage events also reference montage, and we want to keep those montages around if they are queued to trigger 
+	for (int32 I = 0; I < This->QueuedMontageBlendingOutEvents.Num(); ++I)
+	{
+		Collector.AddReferencedObject(This->QueuedMontageBlendingOutEvents[I].Montage);
+	}
+
+	for (int32 I = 0; I < This->QueuedMontageEndedEvents.Num(); ++I)
+	{
+		Collector.AddReferencedObject(This->QueuedMontageEndedEvents[I].Montage);
+	}
+
+	if (This->AnimInstanceProxy)
+	{
+		This->AnimInstanceProxy->AddReferencedObjects(This, Collector);
 	}
 
 	Super::AddReferencedObjects(This, Collector);
@@ -2694,6 +2739,28 @@ const FBoneContainer& UAnimInstance::GetRequiredBones() const
 void UAnimInstance::QueueRootMotionBlend(const FTransform& RootTransform, const FName& SlotName, float Weight)
 {
 	RootMotionBlendQueue.Add(FQueuedRootMotionBlend(RootTransform, SlotName, Weight));
+}
+
+void UAnimInstance::PreInitializeRootNode()
+{
+	// This function should only be called on the CDO
+	check(HasAnyFlags(RF_ClassDefaultObject));
+
+	IAnimClassInterface* AnimClassInterface = IAnimClassInterface::GetFromClass(GetClass());
+	if(AnimClassInterface)
+	{
+		for(UStructProperty* Property : AnimClassInterface->GetAnimNodeProperties())
+		{
+			if (Property->Struct->IsChildOf(FAnimNode_Base::StaticStruct()))
+			{
+				FAnimNode_Base* AnimNode = Property->ContainerPtrToValuePtr<FAnimNode_Base>(this);
+				if (AnimNode)
+				{
+					AnimNode->EvaluateGraphExposedInputs.Initialize(AnimNode, this);
+				}
+			}
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE 

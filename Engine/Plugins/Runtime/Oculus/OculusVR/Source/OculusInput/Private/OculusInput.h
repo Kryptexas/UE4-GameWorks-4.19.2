@@ -1,11 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "IOculusInputModule.h"
 
 #if OCULUS_INPUT_SUPPORTED_PLATFORMS
 #include "IInputInterface.h"
-#include "IMotionController.h"
+#include "XRMotionControllerBase.h"
 #include "IHapticDevice.h"
 #include "OculusInputState.h"
 
@@ -29,7 +29,7 @@ namespace OculusInput
 // FOculusInput
 //-------------------------------------------------------------------------------------------------
 
-class FOculusInput : public IInputDevice, public IMotionController, public IHapticDevice
+class FOculusInput : public IInputDevice, public FXRMotionControllerBase, public IHapticDevice
 {
 
 public:

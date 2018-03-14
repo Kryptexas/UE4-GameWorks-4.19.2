@@ -1,10 +1,13 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Beam 타입 데이터
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
-Description:전기 에너지 빔과 같은 이펙트를 내기 좋은 Beam Type Data 모듈입니다.
+Description:Beam 타입 데이터 모듈은 빔을 내뿜는 이미터를 말합니다. 파티클을 연결하여 소스 지점에서 타겟 지점까지의 스트림을 형성할 수 있습니다.
 Version: 4.9
 tags:Particles
+tags:TypeData
+order:1
+topic-image:psys_beam.gif
 
 
 [EXCERPT:Intro]
@@ -52,8 +55,11 @@ coXs-CmI_v8
 | **Render Tessellation** | 테셀레이션 렌더 - _True_ 면 소스와 타겟 사이 테셀레이션 패스로 렌더링됩니다. 캐스케이드에서의 버그잡이에 사용됩니다. |
 
 
-<!-- Begin Beam Includes -->
-<!--
+[COMMENT:none]
+ Begin Beam Includes 
+[/COMMENT]
+[COMMENT:none]
+
 [EXCERPT:BeamMethod]
 [REGION:simpletable]
 | 메소드 | 설명 |
@@ -90,8 +96,11 @@ coXs-CmI_v8
 [/REGION:simpletable]
 [/EXCERPT:TaperMethod]
 
--->
-<!-- End Beam Includes -->
+
+[/COMMENT]
+[COMMENT:none]
+ End Beam Includes 
+[/COMMENT]
 
 
 

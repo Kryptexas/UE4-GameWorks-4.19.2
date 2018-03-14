@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Engine.cpp: Unreal engine package.
@@ -41,6 +41,8 @@ int32 EngineLinkerHelper;
  -----------------------------------------------------------------------------*/
 /** Called when all viewports need to be redrawn */
 FSimpleMulticastDelegate FEditorSupportDelegates::RedrawAllViewports;
+/** Called when the editor is about to cleanse an object that *must* be purged (such as when changing the active map or level) */
+FEditorSupportDelegates::FPrepareToCleanseEditorObject FEditorSupportDelegates::PrepareToCleanseEditorObject;
 /** Called when the editor is cleansing of transient references before a map change event */
 FSimpleMulticastDelegate FEditorSupportDelegates::CleanseEditor;
 /** Called when the world is modified */

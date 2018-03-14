@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SimpleHMD.h"
 #include "Misc/App.h"
@@ -57,11 +57,6 @@ void FSimpleHMD::EnableHMD(bool enable)
 {
 }
 
-EHMDDeviceType::Type FSimpleHMD::GetHMDDeviceType() const
-{
-	return EHMDDeviceType::DT_ES2GenericStereoMesh;
-}
-
 bool FSimpleHMD::GetHMDMonitorInfo(MonitorInfo& MonitorDesc)
 {
 	MonitorDesc.MonitorName = "";
@@ -74,10 +69,6 @@ void FSimpleHMD::GetFieldOfView(float& OutHFOVInDegrees, float& OutVFOVInDegrees
 {
 	OutHFOVInDegrees = 0.0f;
 	OutVFOVInDegrees = 0.0f;
-}
-
-void FSimpleHMD::RefreshPoses()
-{
 }
 
 bool FSimpleHMD::EnumerateTrackedDevices(TArray<int32>& OutDevices, EXRTrackedDeviceType Type)
@@ -183,8 +174,8 @@ void FSimpleHMD::DrawDistortionMesh_RenderThread(struct FRenderingCompositePassC
 	float ClipSpaceQuadZ = 0.0f;
 	FMatrix QuadTexTransform = FMatrix::Identity;
 	FMatrix QuadPosTransform = FMatrix::Identity;
-	const FSceneView& View = Context.View;
-	const FIntRect SrcRect = View.ViewRect;
+	const FViewInfo& View = Context.View;
+	const FIntRect SrcRect = View.UnscaledViewRect;
 
 	FRHICommandListImmediate& RHICmdList = Context.RHICmdList;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
@@ -275,7 +266,6 @@ void FSimpleHMD::SetupViewFamily(FSceneViewFamily& InViewFamily)
 {
 	InViewFamily.EngineShowFlags.MotionBlur = 0;
 	InViewFamily.EngineShowFlags.HMDDistortion = true;
-	InViewFamily.EngineShowFlags.SetScreenPercentage(true);
 	InViewFamily.EngineShowFlags.StereoRendering = IsStereoEnabled();
 }
 
@@ -283,7 +273,6 @@ void FSimpleHMD::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView)
 {
 	InView.BaseHmdOrientation = FQuat(FRotator(0.0f,0.0f,0.0f));
 	InView.BaseHmdLocation = FVector(0.f);
-	InViewFamily.bUseSeparateRenderTarget = false;
 }
 
 void FSimpleHMD::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView)

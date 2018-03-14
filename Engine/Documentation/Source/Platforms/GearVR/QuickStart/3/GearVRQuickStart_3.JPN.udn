@@ -1,59 +1,90 @@
-﻿INTSourceChangelist:3451711
+﻿INTSourceChangelist:3769005
 Availability:Public
-Title:3.Gear VR プロジェクトのパッケージング化とデプロイ
+Title:3.Gear VR プロジェクトのパッケージング化とデプロイ方法
 Crumbs:%ROOT%, Platforms/GearVR
 Description:UE4 プロジェクトを Samsung Gear VR ヘッドセットに対応するようにデプロイする方法
 Version:4.16
 Skilllevel:Intermediate
 tags:VR
-tags:GearVR
+tags:Gear VR
 type:multi-step
 parent:Platforms/GearVR/QuickStart
 order:3
 Checkpoint:GearVRQS
-Related:Platforms\GearVR\Prerequisites
-Related:Platforms\GearVR\BestPractices
-Related:Platforms\GearVR\Debugging
+prereq:Platforms\GearVR\Prerequisites\
 
 [nav]
+
+このセクションでは、Gear VR HMD で見えるように UE4 のプロジェクトを起動する方法を説明します。
 
 ## ステップ
 
-1. 最初に Samsung Galaxy Note 4 スマートフォンと USB コードを接続して、このコードが開発に使用している PC の USB ポートに差し込まれていることを確認してください。
-
-1. 次に **メイン ツールバー** から **[File]** > **[Package Project]** > **[Android]** > **[Android ETC 2]** を選択してパッケージング処理を開始します。
-
-	![](GVR_Deploy_To_Android.png)
-
-1. **[Android ETC 2]** オプションをクリックすると、Windows のダイアログボックスが表示されます。このダイアログ ボックスでパッケージしたプロジェクトを保存するためのフォルダを選択、もしくは作成します。**[OK]** ボタンを押してパッケージング処理を開始します。
-
-	![](GVR_Save_Project.png)
-
-1. プロジェクト サイズによって、パッケージング処理は数分から数時間かかります。 
-	処理が完了すると、ビルドを保存するために選択 / 作成したフォルダ内部に以下の画像のようなファイルが 3 つ作成されています。 
-
-	![](GVR_Deployed_Files.png)
-
-1. 次にビルドをパッケージ処理したフォルダ内にある **.BAT** ファイルを **マウスの左ボタン** で **ダブルクリック** して実行します。
-	.BAT ファイルを実行すると、スマートフォンへのデプロイの進捗状況を示すコマンドライン ウィンドウが表示されます。
-	スマートフォンへ正常にプロジェクトがデプロイされると、コマンドライン ウィンドウは自動的に閉じます。
-
-	![](GVR_Run_Bat_File.png)
-
-1. .BAT ファイルを実行すると、デプロイの進捗状況および発生する可能性のあるエラーがコマンドライン ウィンドウに表示されます。 
-
-	![](GVR_Deployment_Window.png)
+1. まず、Samsung Galaxy スマートフォンが UBS ケーブルで開発 PC に接続されており、**ADB** コマンド **ADB Devices** を使って PC 側でデバイスが表示されることを確認してください。
 
 	[region:note]
-	.BAT ファイルの実行時に表示されるコマンドライン ウィンドウは、終了時に自動的に閉じます。コマンドライン ウィンドウを手動で閉じると、デプロイに問題が生じる要因となるため、ウィンドウを手動で閉じないでください。 
+	方法が分からない場合は [アンリアル エンジンのソースコードをダウンロードする](GettingStarted/DownloadingUnrealEngine) を参照の上、今一度ご確認ください。 
 	[/region]
 
-1. コマンドライン ウィンドウが閉じたら、新規に作成したアプリケーションをスマートフォンでチェックします。このアプリケーション名は、作成元の UE4 C++ プロジェクトに使用した名前と一致しなくてはいけません。
-	アプリケーションを起動して、スマートフォンを Gear VR ヘッドセットにセットします。
 
-	![](GVR_On_Phone.png)
+1. メイン ツールバーの **[Launch]** アイコンの横の小さな白い三角印をクリックして、**[Options for Launching on a Device]** を開きます。
 
-[nav]
+    [REGION:lightbox]
+    [![](GVR_Deploy_To_Android.png)(w:550)](GVR_Deploy_To_Android.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. メイン ツールバーの **[Launch]** アイコンの横の小さな白い三角印をクリックして、**[Options for Launching on a Device]** を開きます。
+
+    [REGION:lightbox]
+    [![](GVR_Deployed_Files.png)(w:550)](GVR_Deployed_Files.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+    [region:note]
+    保存を促されたら、たとえ保存したばかりであっても、デバイス上のコンテンツが最新になっていることを確認してください。
+    [/region]
+
+1. UE4 エディタの下の隅にチェックを入れると、パッケージ処理の状況を表すプログレス ウィンドウが表示されます。プロジェクトのパッケージ処理が初めての場合は、プロジェクト サイズによって数分から数時間かかります。 
+
+    [REGION:lightbox]
+    [![](GVR_Deployment_Window.png)(w:550)](GVR_Deployment_Window.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+    [region:note]
+    パッケージ処理の進捗詳細を知りたい場合は、プログレス ウィンドウの **[Show Output Log (出力ログを表示)]** リンクをクリックします。
+    [/region]
+
+1. パッケージ化およびインストール処理が完了すると、通知が表示されサウンドがプレイされたら Gear VR HMD にデバイスを置きます。以下の動画のように見えるはずです。
+
+    [OBJECT:EmbeddedVideo]
+        [PARAMLITERAL:videoid]
+        Bq3Ov32Bwy8
+        [/PARAMLITERAL]
+        [PARAMLITERAL:width]
+        100
+        [/PARAMLITERAL]
+        [PARAMLITERAL:height]
+        56.25
+        [/PARAMLITERAL]
+        [PARAMLITERAL:units]
+        %
+        [/PARAMLITERAL]
+        [PARAMLITERAL:type]
+        simple
+        [/PARAMLITERAL]
+    [/OBJECT]
 
 ## 結果
 完了すると、Samsung Galaxy スマートフォンと Gear VR HMD を使ってプロジェクトの起動と表示が可能になります。
+
+[nav]

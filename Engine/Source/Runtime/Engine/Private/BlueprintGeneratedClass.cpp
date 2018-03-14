@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Misc/CoreMisc.h"
@@ -58,6 +58,11 @@ void UBlueprintGeneratedClass::PostInitProperties()
 void UBlueprintGeneratedClass::PostLoad()
 {
 	Super::PostLoad();
+
+	if(GetAuthoritativeClass()!= this)
+	{
+		return;
+	}
 
 	UObject* ClassCDO = ClassDefaultObject;
 
@@ -649,7 +654,11 @@ UInheritableComponentHandler* UBlueprintGeneratedClass::GetInheritableComponentH
 	
 	if (InheritableComponentHandler)
 	{
-		InheritableComponentHandler->PreloadAll();
+		if (!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
+		{
+			// This preload will not succeed in EDL
+			InheritableComponentHandler->PreloadAll();
+		}	
 	}
 
 	if (!InheritableComponentHandler && bCreateIfNecessary)
@@ -763,6 +772,14 @@ UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const F
 				if (ComponentKey.IsValid())
 				{
 					Archetype = ICH->GetOverridenComponentTemplate(ComponentKey);
+
+					if (GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
+					{
+						if (Archetype && Archetype->HasAnyFlags(RF_NeedLoad))
+						{
+							UE_LOG(LogClass, Fatal, TEXT("%s had RF_NeedLoad when searching for an archetype of %s named %s"), *GetFullNameSafe(Archetype), *GetFullNameSafe(ArchetypeClass), *ArchetypeName.ToString());
+						}
+					}
 				}
 			}
 
@@ -787,7 +804,7 @@ UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const F
 		}
 	}
 
-
+	ensure(!Archetype || ArchetypeClass->IsChildOf(Archetype->GetClass()));
 	return Archetype;
 }
 
@@ -1164,9 +1181,6 @@ void UBlueprintGeneratedClass::CheckAndApplyComponentTemplateOverrides(AActor* A
 									NativizedComponentSubobjectInstance->Serialize(OverrideDataLoader);
 								}
 							}
-
-							// There can only be a single match, so we can stop searching now.
-							break;
 						}
 					}
 				}
@@ -1305,6 +1319,16 @@ void UBlueprintGeneratedClass::GetPreloadDependencies(TArray<UObject*>& OutDeps)
 			}
 		});
 	}
+
+	if (InheritableComponentHandler)
+	{
+		OutDeps.Add(InheritableComponentHandler);
+	}
+
+	if (SimpleConstructionScript)
+	{
+		OutDeps.Add(SimpleConstructionScript);
+	}
 }
 
 bool UBlueprintGeneratedClass::NeedsLoadForServer() const
@@ -1421,7 +1445,13 @@ void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InT
 				if (PointerToUberGraphFrame->RawPointer)
 				{
 					checkSlow(BPGC->UberGraphFunction);
-					BPGC->UberGraphFunction->SerializeBin(Collector.GetInternalPersisnentFrameReferenceCollectorArchive(), PointerToUberGraphFrame->RawPointer);
+					FVerySlowReferenceCollectorArchiveScope CollectorScope(
+						Collector.GetInternalPersistentFrameReferenceCollectorArchive(),
+						BPGC->UberGraphFunction,
+						BPGC->UberGraphFramePointerProperty,
+						InThis,
+						PointerToUberGraphFrame->RawPointer);
+					BPGC->UberGraphFunction->SerializeBin(CollectorScope.GetArchive(), PointerToUberGraphFrame->RawPointer);
 				}
 			}
 		}

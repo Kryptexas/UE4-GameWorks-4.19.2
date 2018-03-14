@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // Simple numeric print functions. 
 //   Text size and placement is entirely determined by the scale and origin of the coordinates passed in

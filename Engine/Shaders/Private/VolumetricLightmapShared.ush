@@ -1,15 +1,15 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #if SUPPORTS_INDEPENDENT_SAMPLERS
-	#define PIVSharedAmbientSampler View.SharedBilinearClampSampler
-	#define PIVSharedSampler0 View.SharedBilinearClampSampler
-	#define PIVSharedSampler1 View.SharedBilinearClampSampler
-	#define PIVSharedSampler2 View.SharedBilinearClampSampler
-	#define PIVSharedSampler3 View.SharedBilinearClampSampler
-	#define PIVSharedSampler4 View.SharedBilinearClampSampler
-	#define PIVSharedSampler5 View.SharedBilinearClampSampler
-	#define VLDirectionalLightShadowingSampler View.SharedBilinearClampSampler
-	#define VLSkyBentNormalSharedSampler View.SharedBilinearClampSampler
+	#define PIVSharedAmbientSampler View.SharedBilinearClampedSampler
+	#define PIVSharedSampler0 View.SharedBilinearClampedSampler
+	#define PIVSharedSampler1 View.SharedBilinearClampedSampler
+	#define PIVSharedSampler2 View.SharedBilinearClampedSampler
+	#define PIVSharedSampler3 View.SharedBilinearClampedSampler
+	#define PIVSharedSampler4 View.SharedBilinearClampedSampler
+	#define PIVSharedSampler5 View.SharedBilinearClampedSampler
+	#define VLDirectionalLightShadowingSampler View.SharedBilinearClampedSampler
+	#define VLSkyBentNormalSharedSampler View.SharedBilinearClampedSampler
 #else
 	#define PIVSharedAmbientSampler View.VolumetricLightmapBrickAmbientVectorSampler
 	#define PIVSharedSampler0 View.VolumetricLightmapTextureSampler0

@@ -21,7 +21,7 @@ Platform:SteamVR
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 以下章节将讲述如何对 SteamVR 进行设置，使其可结合虚幻引擎 4（UE4）使用。
 
@@ -62,4 +62,4 @@ Valve 在 SteamVR 开发套件中提供了正确设置的 [详细说明](http://
 
 	![](T_Steam_VR_App.png)
 
-%Steps%
+

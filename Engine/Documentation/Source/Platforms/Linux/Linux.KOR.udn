@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3467293
+﻿INTSourceChangelist:3719888
 Availability: Public
 Title: 리눅스 게임 개발
-Crumbs:
+Crumbs:%ROOT%
 Description:리눅스 플랫폼용 게임 개발 관련 문서입니다.
 Platform:Linux
 Navigation:platform
@@ -20,7 +20,7 @@ Topic-image:LinuxDevelopment_topic.png
 ## 시작하기
 
 %Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow:topic%
-%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE:topic%
+%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpQtCreator:topic%
 %Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux:topic%
 
 ## 고급 토픽

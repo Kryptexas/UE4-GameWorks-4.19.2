@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MacConsoleOutputDevice.h"
 #include "Misc/App.h"
@@ -216,18 +216,14 @@ void FMacConsoleOutputDevice::Serialize( const TCHAR* Data, ELogVerbosity::Type 
 			{
 				SCOPED_AUTORELEASE_POOL;
 				
-				TCHAR OutputString[MAX_SPRINTF]=TEXT(""); //@warning: this is safe as FCString::Sprintf only use 1024 characters max
-				FCString::Sprintf(OutputString,TEXT("%s%s"),*FOutputDeviceHelper::FormatLogLine(Verbosity, Category, Data, GPrintLogTimes),LINE_TERMINATOR);
+				FString OutputString = FString::Printf(TEXT("%s%s"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, Data, GPrintLogTimes), LINE_TERMINATOR);
 
-				CFStringRef CocoaText = FPlatformString::TCHARToCFString(OutputString);
-				
 				OutstandingTasks++;
 				MainThreadCall(^{
-					NSAttributedString *AttributedString = [[NSAttributedString alloc] initWithString:(NSString*)CocoaText attributes:TextViewTextColor];
+					NSAttributedString *AttributedString = [[NSAttributedString alloc] initWithString:OutputString.GetNSString() attributes:TextViewTextColor];
 					[[TextView textStorage] appendAttributedString:AttributedString];
 					[TextView scrollRangeToVisible:NSMakeRange([[TextView string] length], 0)];
 					[AttributedString release];
-					CFRelease(CocoaText);
 					OutstandingTasks--;
 				}, NSDefaultRunLoopMode, false);
 				

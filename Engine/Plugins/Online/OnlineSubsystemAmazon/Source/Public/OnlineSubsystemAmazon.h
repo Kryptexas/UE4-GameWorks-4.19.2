@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -64,6 +64,7 @@ public:
 	virtual FString GetAppId() const override;
 	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 	virtual FText GetOnlineServiceName() const override;
+	virtual bool IsEnabled() const override;
 
 	// FTickerBaseObject
 
@@ -75,11 +76,6 @@ public:
 	 * Destructor
 	 */
 	virtual ~FOnlineSubsystemAmazon();
-
-	/**
-	 * @return whether this subsystem is enabled or not
-	 */
-	bool IsEnabled();
 };
 
 typedef TSharedPtr<FOnlineSubsystemAmazon, ESPMode::ThreadSafe> FOnlineSubsystemAmazonPtr;

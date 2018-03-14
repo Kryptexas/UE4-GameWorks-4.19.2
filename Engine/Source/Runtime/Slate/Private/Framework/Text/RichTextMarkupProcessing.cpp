@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Framework/Text/RichTextMarkupProcessing.h"
 
@@ -266,10 +266,10 @@ void FDefaultRichTextMarkupWriter::Write(const TArray<FRichTextLine>& InLines, F
 	{
 		const FRichTextLine& Line = InLines[LineIndex];
 
-		// Append \n to the end of the previous line
+		// Append line terminator to the end of the previous line
 		if(LineIndex > 0)
 		{
-			Output.AppendChar('\n');
+			Output += LINE_TERMINATOR;
 		}
 
 		for (const FRichTextRun& Run : Line.Runs)

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraEmitterViewModel.h"
 #include "NiagaraEmitter.h"
@@ -18,7 +18,7 @@
 
 template<> TMap<UNiagaraEmitter*, TArray<FNiagaraEmitterViewModel*>> TNiagaraViewModelManager<UNiagaraEmitter, FNiagaraEmitterViewModel>::ObjectsToViewModels{};
 
-const FText FNiagaraEmitterViewModel::StatsFormat = NSLOCTEXT("NiagaraEmitterViewModel", "StatsFormat", "{0} Particles | {1} ms | {2} MB");
+const FText FNiagaraEmitterViewModel::StatsFormat = NSLOCTEXT("NiagaraEmitterViewModel", "StatsFormat", "{0} Particles | {1} ms | {2} MB | {3}");
 const float Megabyte = 1024.0f * 1024.0f;
 
 FNiagaraEmitterViewModel::FNiagaraEmitterViewModel(UNiagaraEmitter* InEmitter, TWeakPtr<FNiagaraEmitterInstance> InSimulation)
@@ -27,9 +27,10 @@ FNiagaraEmitterViewModel::FNiagaraEmitterViewModel(UNiagaraEmitter* InEmitter, T
 	, SharedScriptViewModel(MakeShareable(new FNiagaraScriptViewModel(InEmitter, LOCTEXT("SharedDisplayName", "Graph"), ENiagaraParameterEditMode::EditAll)))
 	, bUpdatingSelectionInternally(false)
 	, LastEventScriptStatus(ENiagaraScriptCompileStatus::NCS_Unknown)
-	, bEmitterDirty(false)
 {
-	if (Emitter.IsValid() && Emitter->EventHandlerScriptProps.Num() != 0 && Emitter->EventHandlerScriptProps[0].Script && Emitter->EventHandlerScriptProps[0].Script->ByteCode.Num() != 0)
+	ExecutionStateEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ENiagaraExecutionState")); 
+
+	if (Emitter.IsValid() && Emitter->GetEventHandlers().Num() != 0 && Emitter->GetEventHandlers()[0].Script && Emitter->GetEventHandlers()[0].Script->GetByteCode().Num() != 0)
 	{
 		LastEventScriptStatus = ENiagaraScriptCompileStatus::NCS_UpToDate;
 	}
@@ -115,33 +116,56 @@ FText FNiagaraEmitterViewModel::GetStatsText() const
 	if (Simulation.IsValid())
 	{
 		TSharedPtr<FNiagaraEmitterInstance> SimInstance = Simulation.Pin();
-		check(SimInstance.IsValid());
-		return FText::Format(StatsFormat,
-			FText::AsNumber(SimInstance->GetNumParticles()),
-			FText::AsNumber(SimInstance->GetTotalCPUTime()),
-			FText::AsNumber(SimInstance->GetTotalBytesUsed() / Megabyte));
+		if (SimInstance.IsValid())
+		{
+			if (!SimInstance->IsReadyToRun())
+			{
+				return LOCTEXT("PendingCompile", "Compilation in progress...");
+			}
+
+			const FNiagaraEmitterHandle& Handle = SimInstance->GetEmitterHandle();
+			if (Handle.GetInstance())
+			{
+				if (Handle.IsValid() == false)
+				{
+					return LOCTEXT("InvalidHandle", "Invalid handle");
+				}
+
+				UNiagaraEmitter* HandleEmitter = Handle.GetInstance();
+				if (HandleEmitter == nullptr)
+				{
+					return LOCTEXT("NullInstance", "Invalid instance");
+				}
+
+				if (!HandleEmitter->IsValid())
+				{
+					return LOCTEXT("InvalidInstance", "Invalid Emitter! May have compile errors.");
+				}
+
+				if (Handle.GetIsEnabled() == false)
+				{
+					return LOCTEXT("DisabledSimulation", "Simulation is not enabled.");
+				}
+
+				return FText::Format(StatsFormat,
+					FText::AsNumber(SimInstance->GetNumParticles()),
+					FText::AsNumber(SimInstance->GetTotalCPUTime()),
+					FText::AsNumber(SimInstance->GetTotalBytesUsed() / Megabyte),
+					ExecutionStateEnum->GetDisplayNameTextByValue((int32)SimInstance->GetExecutionState()));
+			}
+		}
 	}
-	else
+	else if(!Emitter->IsReadyToRun())
 	{
-		return LOCTEXT("InvalidSimulation", "Simulation is invalid.");
+		return LOCTEXT("SimulationNotReady", "Preparing simulation...");
 	}
+	
+	return LOCTEXT("InvalidSimulation", "Simulation is invalid.");
 }
 
 TSharedRef<FNiagaraScriptViewModel> FNiagaraEmitterViewModel::GetSharedScriptViewModel()
 {
 	return SharedScriptViewModel;
-}
-
-bool FNiagaraEmitterViewModel::GetDirty() const
-{
-	bool bDirty = SharedScriptViewModel->GetScriptDirty() || bEmitterDirty;
-	return bDirty;
-}
-
-void FNiagaraEmitterViewModel::SetDirty(bool bDirty)
-{
-	SharedScriptViewModel->SetScriptDirty(bDirty);
-	bEmitterDirty = bDirty;
 }
 
 const UNiagaraEmitterEditorData& FNiagaraEmitterViewModel::GetEditorData() const
@@ -169,7 +193,7 @@ UNiagaraEmitterEditorData& FNiagaraEmitterViewModel::GetOrCreateEditorData()
 	return *EditorData;
 }
 
-void FNiagaraEmitterViewModel::CompileScripts()
+void FNiagaraEmitterViewModel::CompileScripts(bool bForce)
 {
 	if (Emitter.IsValid())
 	{
@@ -178,7 +202,7 @@ void FNiagaraEmitterViewModel::CompileScripts()
 		TArray<FString> CompilePaths;
 		TArray<UNiagaraScript*> Scripts;
 		TArray<TPair<ENiagaraScriptUsage, int32> > Usages;
-		Emitter->CompileScripts(CompileStatuses, CompileErrors, CompilePaths, Scripts);
+		Emitter->CompileScripts(CompileStatuses, CompileErrors, CompilePaths, Scripts, bForce);
 
 		ENiagaraScriptCompileStatus AggregateStatus = ENiagaraScriptCompileStatus::NCS_UpToDate;
 		FString AggregateErrors;

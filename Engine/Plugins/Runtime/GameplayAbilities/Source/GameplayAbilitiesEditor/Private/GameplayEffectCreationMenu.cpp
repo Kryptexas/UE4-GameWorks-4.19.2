@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayEffectCreationMenu.h"
 #include "GameplayAbilitiesEditor.h"
@@ -148,7 +148,7 @@ void UGameplayEffectCreationMenu::AddMenuExtensions() const
 #if 1
 	TSharedPtr<FUICommandList> CommandBindings = MakeShareable(new FUICommandList());
 
-	FContentBrowserModule& ContentBrowserModule = FModuleManager::GetModuleChecked<FContentBrowserModule>( TEXT("ContentBrowser") );
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>( TEXT("ContentBrowser") );
 	ContentBrowserModule.GetAllAssetContextMenuExtenders().Add(FContentBrowserMenuExtender_SelectedPaths::CreateLambda([=](const TArray<FString>& SelectedPaths)
 	{
 		TSharedRef<FExtender> Extender = MakeShared<FExtender>();

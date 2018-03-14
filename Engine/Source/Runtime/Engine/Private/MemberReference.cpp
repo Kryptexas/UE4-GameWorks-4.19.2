@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/MemberReference.h"
 #include "Misc/ConfigCacheIni.h"
@@ -50,7 +50,7 @@ void FMemberReference::SetExternalDelegateMember(FName InMemberName)
 void FMemberReference::SetSelfMember(FName InMemberName)
 {
 	MemberName = InMemberName;
-	MemberParent = NULL;
+	MemberParent = nullptr;
 	MemberScope.Empty();
 	bSelfContext = true;
 	bWasDeprecated = false;
@@ -86,7 +86,7 @@ void FMemberReference::SetGivenSelfScope(const FName InMemberName, const FGuid I
 
 	if (bSelfContext)
 	{
-		MemberParent = NULL;
+		MemberParent = nullptr;
 	}
 }
 
@@ -107,7 +107,7 @@ void FMemberReference::InvalidateScope()
 {
 	if( IsSelfContext() )
 	{
-		MemberParent = NULL;
+		MemberParent = nullptr;
 	}
 	else if(IsLocalScope())
 	{

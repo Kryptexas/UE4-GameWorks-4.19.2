@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #if !UE_ENABLE_ICU
@@ -17,6 +17,8 @@ public:
 		FDecimalNumberFormattingRules DecimalNumberFormattingRules;
 		DecimalNumberFormattingRules.NaNString = TEXT("NaN");
 		DecimalNumberFormattingRules.NegativePrefixString = TEXT("-");
+		DecimalNumberFormattingRules.PlusString = TEXT("+");
+		DecimalNumberFormattingRules.MinusString = TEXT("-");
 		DecimalNumberFormattingRules.GroupingSeparatorCharacter = ',';
 		DecimalNumberFormattingRules.DecimalSeparatorCharacter = '.';
 		DecimalNumberFormattingRules.PrimaryGroupingSize = 3;
@@ -27,6 +29,8 @@ public:
 		PercentFormattingRules.NegativePrefixString = TEXT("-");
 		PercentFormattingRules.NegativeSuffixString = TEXT("%");
 		PercentFormattingRules.PositiveSuffixString = TEXT("%");
+		PercentFormattingRules.PlusString = TEXT("+");
+		PercentFormattingRules.MinusString = TEXT("-");
 		PercentFormattingRules.GroupingSeparatorCharacter = ',';
 		PercentFormattingRules.DecimalSeparatorCharacter = '.';
 		PercentFormattingRules.PrimaryGroupingSize = 3;
@@ -36,6 +40,8 @@ public:
 		BaseCurrencyFormattingRules.NaNString = TEXT("NaN");
 		BaseCurrencyFormattingRules.NegativePrefixString = TEXT("-$");
 		BaseCurrencyFormattingRules.PositivePrefixString = TEXT("$");
+		BaseCurrencyFormattingRules.PlusString = TEXT("+");
+		BaseCurrencyFormattingRules.MinusString = TEXT("-");
 		BaseCurrencyFormattingRules.GroupingSeparatorCharacter = ',';
 		BaseCurrencyFormattingRules.DecimalSeparatorCharacter = '.';
 		BaseCurrencyFormattingRules.PrimaryGroupingSize = 3;

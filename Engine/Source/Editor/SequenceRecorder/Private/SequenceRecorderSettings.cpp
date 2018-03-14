@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SequenceRecorderSettings.h"
 #include "Components/StaticMeshComponent.h"
@@ -20,7 +20,6 @@ USequenceRecorderSettings::USequenceRecorderSettings(const FObjectInitializer& O
 	AnimationSubDirectory = TEXT("Animations");
 	AudioSubDirectory = TEXT("Audio");
 	AudioGain = 0.0f;
-	AudioInputBufferSize = 4048;
 	SequenceRecordingBasePath.Path = TEXT("/Game/Cinematics/Sequences");
 	bRecordNearbySpawnedActors = true;
 	NearbyActorRecordingProximity = 5000.0f;

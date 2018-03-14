@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -182,6 +182,16 @@ public:
 	 */
 	virtual void UpdateFullscreenState( const TSharedRef<SWindow> InWindow, uint32 OverrideResX = 0, uint32 OverrideResY = 0 ) = 0;
 
+
+	/**
+	 * Set the resolution cached by the engine
+	 *
+	 * @param	Width			Width of the system resolution
+	 * @param	Height			Height of the system resolution
+	 */
+	virtual void SetSystemResolution(uint32 Width, uint32 Height) = 0;
+	
+	
 	/**
 	 * Restore the given window to the resolution settings currently cached by the engine
 	 * 

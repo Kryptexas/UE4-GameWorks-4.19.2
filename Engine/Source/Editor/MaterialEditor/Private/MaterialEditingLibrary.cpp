@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MaterialEditingLibrary.h"
 #include "Editor.h"
@@ -9,6 +9,7 @@
 #include "Materials/MaterialInstance.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInstanceConstant.h"
+#include "Materials/MaterialFunctionInstance.h"
 #include "Materials/MaterialExpressionTextureBase.h"
 #include "Materials/MaterialExpressionCollectionParameter.h"
 #include "Materials/MaterialExpressionFunctionInput.h"
@@ -28,7 +29,7 @@
 DEFINE_LOG_CATEGORY_STATIC(LogMaterialEditingLibrary, Warning, All);
 
 /** Util to find expression  */
-static FExpressionInput* GetExpressionInputByName(UMaterialExpression* Expression, const FString& InputName)
+static FExpressionInput* GetExpressionInputByName(UMaterialExpression* Expression, const FName InputName)
 {
 	check(Expression);
 	FExpressionInput* Result = nullptr;
@@ -36,7 +37,7 @@ static FExpressionInput* GetExpressionInputByName(UMaterialExpression* Expressio
 	TArray<FExpressionInput*> Inputs = Expression->GetInputs();
 
 	// Return first input if no name specified
-	if (InputName.IsEmpty())
+	if (InputName.IsNone())
 	{
 		if (Inputs.Num() > 0)
 		{
@@ -49,7 +50,7 @@ static FExpressionInput* GetExpressionInputByName(UMaterialExpression* Expressio
 		// Get name of each input, see if its the one we want
 		for (int InputIdx = 0; InputIdx < Inputs.Num(); InputIdx++)
 		{
-			FString TestName;
+			FName TestName;
 			if (UMaterialExpressionMaterialFunctionCall* FuncCall = Cast<UMaterialExpressionMaterialFunctionCall>(Expression))
 			{
 				// If a function call, don't want to compare string with type postfix
@@ -57,8 +58,8 @@ static FExpressionInput* GetExpressionInputByName(UMaterialExpression* Expressio
 			}
 			else
 			{
-				TestName = Expression->GetInputName(InputIdx);
-				TestName = UMaterialGraphNode::GetShortenPinName(TestName);
+				const FName ExpressionInputName = Expression->GetInputName(InputIdx);
+				TestName = UMaterialGraphNode::GetShortenPinName(ExpressionInputName);
 			}
 
 			if (TestName == InputName)
@@ -72,7 +73,7 @@ static FExpressionInput* GetExpressionInputByName(UMaterialExpression* Expressio
 	return Result;
 }
 
-static int32 GetExpressionOutputIndexByName(UMaterialExpression* Expression, const FString& OutputName)
+static int32 GetExpressionOutputIndexByName(UMaterialExpression* Expression, const FName OutputName)
 {
 	check(Expression);
 	
@@ -83,7 +84,7 @@ static int32 GetExpressionOutputIndexByName(UMaterialExpression* Expression, con
 		// leave as INDEX_NONE
 	}
 	// Return first output if no name specified
-	else if (OutputName.IsEmpty())
+	else if (OutputName.IsNone())
 	{
 		Result = 0;
 	}
@@ -96,7 +97,7 @@ static int32 GetExpressionOutputIndexByName(UMaterialExpression* Expression, con
 
 			FExpressionOutput& Output = Expression->Outputs[OutIdx];
 			// If output name is no empty - see if it matches
-			if(!Output.OutputName.IsEmpty())
+			if(!Output.OutputName.IsNone())
 			{
 				if (OutputName == Output.OutputName)
 				{
@@ -106,19 +107,19 @@ static int32 GetExpressionOutputIndexByName(UMaterialExpression* Expression, con
 			// if it is empty we look for R/G/B/A
 			else
 			{
-				if (OutputName == TEXT("R") && Output.MaskR && !Output.MaskG && !Output.MaskB && !Output.MaskA)
+				if (Output.MaskR && !Output.MaskG && !Output.MaskB && !Output.MaskA && OutputName == TEXT("R"))
 				{
 					bFoundMatch = true;
 				}
-				else if (OutputName == TEXT("G") && !Output.MaskR && Output.MaskG && !Output.MaskB && !Output.MaskA)
+				else if (!Output.MaskR && Output.MaskG && !Output.MaskB && !Output.MaskA && OutputName == TEXT("G"))
 				{
 					bFoundMatch = true;
 				}
-				else if (OutputName == TEXT("B") && !Output.MaskR && !Output.MaskG && Output.MaskB && !Output.MaskA)
+				else if (!Output.MaskR && !Output.MaskG && Output.MaskB && !Output.MaskA && OutputName == TEXT("B"))
 				{
 					bFoundMatch = true;
 				}
-				else if (OutputName == TEXT("A") && !Output.MaskR && !Output.MaskG && !Output.MaskB && Output.MaskA)
+				else if (!Output.MaskR && !Output.MaskG && !Output.MaskB && Output.MaskA && OutputName == TEXT("A"))
 				{
 					bFoundMatch = true;
 				}
@@ -161,7 +162,7 @@ void UMaterialEditingLibrary::RebuildMaterialInstanceEditors(UMaterial* BaseMate
 		// Ensure the material instance is valid and not a UMaterialInstanceDynamic, as that doesn't use FMaterialInstanceEditor as its editor
 		if (SourceInstance != nullptr && !SourceInstance->IsA(UMaterialInstanceDynamic::StaticClass()))
 		{
-			UMaterial * MICOriginalMaterial = SourceInstance->GetMaterial();
+			UMaterial* MICOriginalMaterial = SourceInstance->GetMaterial();
 			if (MICOriginalMaterial == BaseMaterial)
 			{
 				IAssetEditorInstance* EditorInstance = AssetEditorManager.FindEditorForAsset(EditedAsset, false);
@@ -169,6 +170,63 @@ void UMaterialEditingLibrary::RebuildMaterialInstanceEditors(UMaterial* BaseMate
 				{
 					FMaterialInstanceEditor* OtherEditor = static_cast<FMaterialInstanceEditor*>(EditorInstance);
 					OtherEditor->RebuildMaterialInstanceEditor();
+				}
+			}
+		}
+	}
+}
+
+void UMaterialEditingLibrary::RebuildMaterialInstanceEditors(UMaterialFunction* BaseFunction)
+{
+	FAssetEditorManager& AssetEditorManager = FAssetEditorManager::Get();
+	TArray<UObject*> EditedAssets = AssetEditorManager.GetAllEditedAssets();
+
+	for (int32 AssetIdx = 0; AssetIdx < EditedAssets.Num(); AssetIdx++)
+	{
+		UObject* EditedAsset = EditedAssets[AssetIdx];
+
+		UMaterialFunctionInstance* FunctionInstance = Cast<UMaterialFunctionInstance>(EditedAsset);	
+		UMaterialInstance* SourceInstance = Cast<UMaterialInstance>(EditedAsset);
+	
+		if (FunctionInstance)
+		{
+			// Update function instances that are children of this material function	
+			if (BaseFunction && BaseFunction == FunctionInstance->GetBaseFunction())
+			{
+				IAssetEditorInstance* EditorInstance = AssetEditorManager.FindEditorForAsset(EditedAsset, false);
+				if (EditorInstance)
+				{
+					FMaterialInstanceEditor* OtherEditor = static_cast<FMaterialInstanceEditor*>(EditorInstance);
+					OtherEditor->RebuildMaterialInstanceEditor();
+				}
+			}
+		}
+		else
+		{
+			if (!SourceInstance)
+			{
+				// Check to see if the EditedAssets are from material instance editor
+				UMaterialEditorInstanceConstant* EditorInstance = Cast<UMaterialEditorInstanceConstant>(EditedAsset);
+				if (EditorInstance && EditorInstance->SourceInstance)
+				{
+					SourceInstance = EditorInstance->SourceInstance;
+				}
+			}
+
+			// Ensure the material instance is valid and not a UMaterialInstanceDynamic, as that doesn't use FMaterialInstanceEditor as its editor
+			if (SourceInstance != nullptr && !SourceInstance->IsA(UMaterialInstanceDynamic::StaticClass()))
+			{
+				TArray<UMaterialFunctionInterface*> DependentFunctions;
+				SourceInstance->GetDependentFunctions(DependentFunctions);
+
+				if (DependentFunctions.Contains(BaseFunction) || DependentFunctions.Contains(BaseFunction->ParentFunction))
+				{
+					IAssetEditorInstance* EditorInstance = AssetEditorManager.FindEditorForAsset(EditedAsset, false);
+					if (EditorInstance != nullptr)
+					{
+						FMaterialInstanceEditor* OtherEditor = static_cast<FMaterialInstanceEditor*>(EditorInstance);
+						OtherEditor->RebuildMaterialInstanceEditor();
+					}
 				}
 			}
 		}
@@ -398,7 +456,7 @@ bool UMaterialEditingLibrary::ConnectMaterialProperty(UMaterialExpression* FromE
 		if (Material)
 		{
 			FExpressionInput* Input = Material->GetExpressionInputForProperty(Property);
-			int32 FromIndex = GetExpressionOutputIndexByName(FromExpression, FromOutputName);
+			int32 FromIndex = GetExpressionOutputIndexByName(FromExpression, *FromOutputName);
 			if (Input && FromIndex != INDEX_NONE)
 			{
 				Input->Connect(FromIndex, FromExpression);
@@ -414,8 +472,8 @@ bool UMaterialEditingLibrary::ConnectMaterialExpressions(UMaterialExpression* Fr
 	bool bResult = false;
 	if (FromExpression && ToExpression)
 	{
-		FExpressionInput* Input = GetExpressionInputByName(ToExpression, ToInputName);
-		int32 FromIndex = GetExpressionOutputIndexByName(FromExpression, FromOutputName);
+		FExpressionInput* Input = GetExpressionInputByName(ToExpression, *ToInputName);
+		int32 FromIndex = GetExpressionOutputIndexByName(FromExpression, *FromOutputName);
 		if (Input && FromIndex != INDEX_NONE)
 		{
 			Input->Connect(FromIndex, FromExpression);
@@ -509,19 +567,32 @@ void UMaterialEditingLibrary::DeleteMaterialExpressionInFunction(UMaterialFuncti
 }
 
 
-void UMaterialEditingLibrary::UpdateMaterialFunction(UMaterialFunction* MaterialFunction, UMaterial* PreviewMaterial)
+void UMaterialEditingLibrary::UpdateMaterialFunction(UMaterialFunctionInterface* MaterialFunction, UMaterial* PreviewMaterial)
 {
 	if (MaterialFunction)
 	{
 		// mark the function as changed
 		MaterialFunction->PreEditChange(nullptr);
 		MaterialFunction->PostEditChange();
-
 		MaterialFunction->MarkPackageDirty();
 
 		// Create a material update context so we can safely update materials using this function.
 		{
 			FMaterialUpdateContext UpdateContext;
+
+			// Go through all function instances in memory and update them if they are children
+			for (TObjectIterator<UMaterialFunctionInstance> It; It; ++It)
+			{
+				UMaterialFunctionInstance* FunctionInstance = *It;
+
+				TArray<UMaterialFunctionInterface*> Functions;
+				FunctionInstance->GetDependentFunctions(Functions);
+				if (Functions.Contains(MaterialFunction))
+				{
+					FunctionInstance->UpdateParameterSet();
+					FunctionInstance->MarkPackageDirty();
+				}
+			}
 
 			// Go through all materials in memory and recompile them if they use this material function
 			for (TObjectIterator<UMaterial> It; It; ++It)
@@ -540,13 +611,11 @@ void UMaterialEditingLibrary::UpdateMaterialFunction(UMaterialFunction* Material
 					}
 					else
 					{
-						for (int32 FunctionIndex = 0; FunctionIndex < CurrentMaterial->MaterialFunctionInfos.Num(); FunctionIndex++)
+						TArray<UMaterialFunctionInterface*> Functions;
+						CurrentMaterial->GetDependentFunctions(Functions);
+						if (Functions.Contains(MaterialFunction))
 						{
-							if (CurrentMaterial->MaterialFunctionInfos[FunctionIndex].Function == MaterialFunction)
-							{
-								bRecompile = true;
-								break;
-							}
+							bRecompile = true;
 						}
 					}
 
@@ -566,9 +635,31 @@ void UMaterialEditingLibrary::UpdateMaterialFunction(UMaterialFunction* Material
 					}
 				}
 			}
+
+			// Go through all material instances in memory and recompile them if they use this material function
+			for (TObjectIterator<UMaterialInstance> It; It; ++It)
+			{
+				UMaterialInstance* CurrentInstance = *It;
+				if (CurrentInstance->GetBaseMaterial())
+				{
+					TArray<UMaterialFunctionInterface*> Functions;
+					CurrentInstance->GetDependentFunctions(Functions);
+					if (Functions.Contains(MaterialFunction))
+					{
+						UpdateContext.AddMaterialInstance(CurrentInstance);
+						CurrentInstance->PreEditChange(nullptr);
+						CurrentInstance->PostEditChange();
+						break;
+					}
+				}
+			}
 		}
 
-		// update the world's viewports
+		// update the world's viewports	
+		UMaterialFunctionInstance* FunctionAsInstance = Cast<UMaterialFunctionInstance>(MaterialFunction);
+		UMaterialFunction* BaseFunction = Cast<UMaterialFunction>(FunctionAsInstance ? FunctionAsInstance->GetBaseFunction() : MaterialFunction);
+
+		UMaterialEditingLibrary::RebuildMaterialInstanceEditors(BaseFunction);
 		FEditorDelegates::RefreshEditor.Broadcast();
 		FEditorSupportDelegates::RedrawAllViewports.Broadcast();
 	}

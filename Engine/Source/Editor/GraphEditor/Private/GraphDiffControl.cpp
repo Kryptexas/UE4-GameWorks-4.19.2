@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GraphDiffControl.h"
 #include "EdGraph/EdGraphNode.h"
@@ -103,7 +103,7 @@ static void DiffR_NodeMoved(const FGraphDiffControl::FNodeDiffContext& DiffConte
 }
 
 /** Diff result when a pin type was changed */
-static void DiffR_PinTypeChanged(FDiffResults& Results, class UEdGraphPin* Pin2, class UEdGraphPin* Pin1)
+static void DiffR_PinTypeChanged(FDiffResults& Results, UEdGraphPin* Pin2, UEdGraphPin* Pin1)
 {
 	FEdGraphPinType Type1 = Pin1->PinType;
 	FEdGraphPinType Type2 = Pin2->PinType;
@@ -120,9 +120,9 @@ static void DiffR_PinTypeChanged(FDiffResults& Results, class UEdGraphPin* Pin2,
 		// Only bother setting up the display data if we're storing the result
 		if(Results.CanStoreResults())
 		{
-			Diff.ToolTip = FText::Format(LOCTEXT("DIF_PinCategoryToolTipFmt", "Pin '{0}' Category was '{1}', but is now '{2}"), FText::FromString(Pin2->PinName), FText::FromString(Pin1->PinType.PinCategory), FText::FromString(Pin2->PinType.PinCategory));
+			Diff.ToolTip = FText::Format(LOCTEXT("DIF_PinCategoryToolTipFmt", "Pin '{0}' Category was '{1}', but is now '{2}"), FText::FromName(Pin2->PinName), FText::FromName(Pin1->PinType.PinCategory), FText::FromName(Pin2->PinType.PinCategory));
 			Diff.DisplayColor = FLinearColor(0.15f,0.53f,0.15f);
-			Diff.DisplayString = FText::Format(LOCTEXT("DIF_PinCategoryFmt", "Pin Category '{0}' ['{1}' -> '{2}']"), FText::FromString(Pin2->PinName), FText::FromString(Pin1->PinType.PinCategory), FText::FromString(Pin2->PinType.PinCategory));
+			Diff.DisplayString = FText::Format(LOCTEXT("DIF_PinCategoryFmt", "Pin Category '{0}' ['{1}' -> '{2}']"), FText::FromName(Pin2->PinName), FText::FromName(Pin1->PinType.PinCategory), FText::FromName(Pin2->PinType.PinCategory));
 		}
 	}
 	else if(Type1.PinSubCategory != Type2.PinSubCategory)
@@ -132,9 +132,9 @@ static void DiffR_PinTypeChanged(FDiffResults& Results, class UEdGraphPin* Pin2,
 		// Only bother setting up the display data if we're storing the result
 		if(Results.CanStoreResults())
 		{
-			Diff.ToolTip = FText::Format(LOCTEXT("DIF_PinSubCategoryToolTipFmt", "Pin '{0}' SubCategory was '{1}', but is now '{2}"), FText::FromString(Pin2->PinName), FText::FromString(Pin1->PinType.PinSubCategory), FText::FromString(Pin2->PinType.PinSubCategory));
+			Diff.ToolTip = FText::Format(LOCTEXT("DIF_PinSubCategoryToolTipFmt", "Pin '{0}' SubCategory was '{1}', but is now '{2}"), FText::FromName(Pin2->PinName), FText::FromName(Pin1->PinType.PinSubCategory), FText::FromName(Pin2->PinType.PinSubCategory));
 			Diff.DisplayColor = FLinearColor(0.45f,0.53f,0.65f);
-			Diff.DisplayString = FText::Format(LOCTEXT("DIF_PinSubCategoryFmt", "Pin SubCategory '{0}'  ['{1}' -> '{2}']"), FText::FromString(Pin2->PinName), FText::FromString(Pin1->PinType.PinSubCategory), FText::FromString(Pin2->PinType.PinSubCategory));
+			Diff.DisplayString = FText::Format(LOCTEXT("DIF_PinSubCategoryFmt", "Pin SubCategory '{0}'  ['{1}' -> '{2}']"), FText::FromName(Pin2->PinName), FText::FromName(Pin1->PinType.PinSubCategory), FText::FromName(Pin2->PinType.PinSubCategory));
 		}
 	}
 	else if(T1Obj != T2Obj && (T1Obj && T2Obj ) &&
@@ -145,12 +145,12 @@ static void DiffR_PinTypeChanged(FDiffResults& Results, class UEdGraphPin* Pin2,
 		// Only bother setting up the display data if we're storing the result
 		if(Results.CanStoreResults())
 		{
-			FString Obj1 = T1Obj->GetFName().ToString();
-			FString Obj2 = T2Obj->GetFName().ToString();
+			const FName Obj1 = T1Obj->GetFName();
+			const FName Obj2 = T2Obj->GetFName();
 
-			Diff.ToolTip = FText::Format(LOCTEXT("DIF_PinSubCategorObjToolTipFmt", "Pin '{0}' was SubCategoryObject '{1}', but is now '{2}"), FText::FromString(Pin2->PinName), FText::FromString(Obj1), FText::FromString(Obj2));
+			Diff.ToolTip = FText::Format(LOCTEXT("DIF_PinSubCategorObjToolTipFmt", "Pin '{0}' was SubCategoryObject '{1}', but is now '{2}"), FText::FromName(Pin2->PinName), FText::FromName(Obj1), FText::FromName(Obj2));
 			Diff.DisplayColor = FLinearColor(0.45f,0.13f,0.25f);
-			Diff.DisplayString = FText::Format(LOCTEXT("DIF_PinSubCategoryObjFmt", "Pin SubCategoryObject '{0}' ['{1}' -> '{2}']"), FText::FromString(Pin2->PinName), FText::FromString(Obj1), FText::FromString(Obj2));
+			Diff.DisplayString = FText::Format(LOCTEXT("DIF_PinSubCategoryObjFmt", "Pin SubCategoryObject '{0}' ['{1}' -> '{2}']"), FText::FromName(Pin2->PinName), FText::FromName(Obj1), FText::FromName(Obj2));
 		}
 	}
 	else if(Type1.ContainerType != Type2.ContainerType)
@@ -164,8 +164,8 @@ static void DiffR_PinTypeChanged(FDiffResults& Results, class UEdGraphPin* Pin2,
 			FText IsArray1 = Pin1->PinType.IsArray() ? LOCTEXT("true", "true") : LOCTEXT("false", "false");
 			FText IsArray2 = Pin2->PinType.IsArray() ? LOCTEXT("true", "true") : LOCTEXT("false", "false");
 
-			Diff.ToolTip = FText::Format(LOCTEXT("DIF_PinIsArrayToolTipFmt", "PinType IsArray for '{0}' modified. Was '{1}', but is now '{2}"), FText::FromString(Pin2->PinName), IsArray1, IsArray2);
-			Diff.DisplayString = FText::Format(LOCTEXT("DIF_PinIsArrayFmt", "Pin IsArray '{0}' ['{1}' -> '{2}']"), FText::FromString(Pin2->PinName), IsArray1, IsArray2);
+			Diff.ToolTip = FText::Format(LOCTEXT("DIF_PinIsArrayToolTipFmt", "PinType IsArray for '{0}' modified. Was '{1}', but is now '{2}"), FText::FromName(Pin2->PinName), IsArray1, IsArray2);
+			Diff.DisplayString = FText::Format(LOCTEXT("DIF_PinIsArrayFmt", "Pin IsArray '{0}' ['{1}' -> '{2}']"), FText::FromName(Pin2->PinName), IsArray1, IsArray2);
 			Diff.DisplayColor = FLinearColor(0.45f,0.33f,0.35f);
 		}
 	}
@@ -179,9 +179,9 @@ static void DiffR_PinTypeChanged(FDiffResults& Results, class UEdGraphPin* Pin2,
 			FText IsRef1 = Pin1->PinType.bIsReference ? LOCTEXT("true", "true") : LOCTEXT("false", "false");
 			FText IsRef2 = Pin2->PinType.bIsReference ? LOCTEXT("true", "true") : LOCTEXT("false", "false");
 
-			Diff.ToolTip = FText::Format(LOCTEXT("DIF_PinIsRefToolTipFmt", "PinType IsReference for '{0}' modified. Was '{1}', but is now '{2}"), FText::FromString(Pin2->PinName), IsRef1, IsRef2);
+			Diff.ToolTip = FText::Format(LOCTEXT("DIF_PinIsRefToolTipFmt", "PinType IsReference for '{0}' modified. Was '{1}', but is now '{2}"), FText::FromName(Pin2->PinName), IsRef1, IsRef2);
 			Diff.DisplayColor = FLinearColor(0.25f,0.43f,0.35f);
-			Diff.DisplayString = FText::Format(LOCTEXT("DIF_PinIsRefFmt", "Pin IsReference '{0}' ['{1}' -> '{2}']"), FText::FromString(Pin2->PinName), IsRef1, IsRef2);
+			Diff.DisplayString = FText::Format(LOCTEXT("DIF_PinIsRefFmt", "Pin IsReference '{0}' ['{1}' -> '{2}']"), FText::FromName(Pin2->PinName), IsRef1, IsRef2);
 		}
 	}
 
@@ -191,7 +191,7 @@ static void DiffR_PinTypeChanged(FDiffResults& Results, class UEdGraphPin* Pin2,
 }
 
 /** Diff result when the # of links to a pin was changed */
-static void DiffR_PinLinkCountChanged(FDiffResults& Results, class UEdGraphPin* Pin2, class UEdGraphPin* Pin1)
+static void DiffR_PinLinkCountChanged(FDiffResults& Results, UEdGraphPin* Pin2, UEdGraphPin* Pin1)
 {
 	FDiffSingleResult Diff;
 	Diff.Diff = Pin2->LinkedTo.Num() > Pin1->LinkedTo.Num()  ?  EDiffType::PIN_LINKEDTO_NUM_INC : EDiffType::PIN_LINKEDTO_NUM_DEC;
@@ -203,15 +203,15 @@ static void DiffR_PinLinkCountChanged(FDiffResults& Results, class UEdGraphPin* 
 	{
 		if(Diff.Diff == EDiffType::PIN_LINKEDTO_NUM_INC)
 		{
-			Diff.ToolTip = FText::Format(LOCTEXT("DIF_PinLinkCountIncToolTipFmt", "Pin '{0}' has more links (was {1} now {2})"), FText::FromString(Pin1->PinName), FText::AsNumber(Pin1->LinkedTo.Num()), FText::AsNumber(Pin2->LinkedTo.Num()));
+			Diff.ToolTip = FText::Format(LOCTEXT("DIF_PinLinkCountIncToolTipFmt", "Pin '{0}' has more links (was {1} now {2})"), FText::FromName(Pin1->PinName), FText::AsNumber(Pin1->LinkedTo.Num()), FText::AsNumber(Pin2->LinkedTo.Num()));
 			Diff.DisplayColor = FLinearColor(0.5f,0.3f,0.85f);
-			Diff.DisplayString = FText::Format(LOCTEXT("DIF_PinLinkCountIncFmt", "Added Link to '{0}'"), FText::FromString(Pin1->PinName));
+			Diff.DisplayString = FText::Format(LOCTEXT("DIF_PinLinkCountIncFmt", "Added Link to '{0}'"), FText::FromName(Pin1->PinName));
 		}
 		else
 		{
-			Diff.ToolTip = FText::Format(LOCTEXT("DIF_PinLinkCountDecToolTipFmt", "Pin '{0}' has fewer links (was {1} now {2})"), FText::FromString(Pin1->PinName), FText::AsNumber(Pin1->LinkedTo.Num()), FText::AsNumber(Pin2->LinkedTo.Num()));
+			Diff.ToolTip = FText::Format(LOCTEXT("DIF_PinLinkCountDecToolTipFmt", "Pin '{0}' has fewer links (was {1} now {2})"), FText::FromName(Pin1->PinName), FText::AsNumber(Pin1->LinkedTo.Num()), FText::AsNumber(Pin2->LinkedTo.Num()));
 			Diff.DisplayColor = FLinearColor(0.5f,0.3f,0.85f);
-			Diff.DisplayString = FText::Format(LOCTEXT("DIF_PinLinkCountDecFmt", "Removed Link to '{0}'"), FText::FromString(Pin1->PinName));
+			Diff.DisplayString = FText::Format(LOCTEXT("DIF_PinLinkCountDecFmt", "Removed Link to '{0}'"), FText::FromName(Pin1->PinName));
 		}
 	}
 
@@ -219,7 +219,7 @@ static void DiffR_PinLinkCountChanged(FDiffResults& Results, class UEdGraphPin* 
 }
 
 /** Diff result when a pin to relinked to a different node */
-static void DiffR_LinkedToNode(FDiffResults& Results, class UEdGraphPin* Pin1, class UEdGraphPin* Pin2,  class UEdGraphNode* Node1, class UEdGraphNode* Node2)
+static void DiffR_LinkedToNode(FDiffResults& Results, UEdGraphPin* Pin1, UEdGraphPin* Pin2,  UEdGraphNode* Node1, UEdGraphNode* Node2)
 {
 	FDiffSingleResult Diff;
 	Diff.Diff = EDiffType::PIN_LINKEDTO_NODE;
@@ -235,7 +235,7 @@ static void DiffR_LinkedToNode(FDiffResults& Results, class UEdGraphPin* Pin1, c
 		FText Node2Name = Node2->GetNodeTitle(ENodeTitleType::ListView);
 
 		FFormatNamedArguments Args;
-		Args.Add(TEXT("PinNameForNode1"), FText::FromString(Pin1->PinName));
+		Args.Add(TEXT("PinNameForNode1"), FText::FromName(Pin1->PinName));
 		Args.Add(TEXT("NodeName1"), Node1Name);
 		Args.Add(TEXT("NodeName2"), Node2Name);
 		Diff.ToolTip = FText::Format(LOCTEXT("DIF_PinLinkMovedToolTip", "Pin '{PinNameForNode1}' was linked to Node '{NodeName1}', but is now linked to Node '{NodeName2}'"), Args);
@@ -248,7 +248,7 @@ static void DiffR_LinkedToNode(FDiffResults& Results, class UEdGraphPin* Pin1, c
 }
 
 /** Diff result when a pin default value was changed, and is in use*/
-static void DiffR_PinDefaultValueChanged(FDiffResults& Results, class UEdGraphPin* Pin2, class UEdGraphPin* Pin1)
+static void DiffR_PinDefaultValueChanged(FDiffResults& Results, UEdGraphPin* Pin2, UEdGraphPin* Pin1)
 {
 	FDiffSingleResult Diff;
 	Diff.Diff = EDiffType::PIN_DEFAULT_VALUE;
@@ -259,7 +259,7 @@ static void DiffR_PinDefaultValueChanged(FDiffResults& Results, class UEdGraphPi
 	if(Results.CanStoreResults())
 	{
 		FFormatNamedArguments Args;
-		Args.Add(TEXT("PinNameForValue1"), FText::FromString(Pin2->PinName));
+		Args.Add(TEXT("PinNameForValue1"), FText::FromName(Pin2->PinName));
 		Args.Add(TEXT("PinValue1"), FText::FromString(Pin1->GetDefaultAsString()));
 		Args.Add(TEXT("PinValue2"), FText::FromString(Pin2->GetDefaultAsString()));
 		Diff.ToolTip = FText::Format(LOCTEXT("DIF_PinDefaultValueToolTip", "Pin '{PinNameForValue1}' Default Value was '{PinValue1}', but is now '{PinValue2}"), Args);
@@ -279,7 +279,7 @@ static void DiffR_PinDefaultValueChanged(FDiffResults& Results, class UEdGraphPi
  * @param	Pins1	Array of relevant pins on Node 1.
  * @param	Pins2	Array of relevant pins on Node 2.
  */
-static void DiffR_NodePinCount(FDiffResults& Results, class UEdGraphNode* Node, class UEdGraphNode* Node2, const TArray<class UEdGraphPin*> &Pins1, const TArray<class UEdGraphPin*> &Pins2)
+static void DiffR_NodePinCount(FDiffResults& Results, UEdGraphNode* Node, UEdGraphNode* Node2, const TArray<UEdGraphPin*> &Pins1, const TArray<UEdGraphPin*> &Pins2)
 {
 	FText NodeName = Node->GetNodeTitle(ENodeTitleType::ListView);
 	int32 OriginalCount = Pins2.Num();
@@ -300,12 +300,12 @@ static void DiffR_NodePinCount(FDiffResults& Results, class UEdGraphNode* Node, 
 
 		struct FMatchName
 		{
-			FMatchName(const FString& InPinName)
+			FMatchName(const FName InPinName)
 				: PinName(InPinName)
 			{
 			}
 
-			const FString& PinName;
+			const FName PinName;
 
 			bool operator()(const UEdGraphPin* Entry )
 			{
@@ -315,7 +315,7 @@ static void DiffR_NodePinCount(FDiffResults& Results, class UEdGraphNode* Node, 
 
 		FText ListOfPins;
 		TArray< FText > RemovedPins;
-		for (auto OldPin : Pins1)
+		for (UEdGraphPin* OldPin : Pins1)
 		{
 			const UEdGraphPin* const* FoundPin = Pins2.FindByPredicate(FMatchName(OldPin->PinName));
 			if (FoundPin == nullptr)
@@ -325,7 +325,7 @@ static void DiffR_NodePinCount(FDiffResults& Results, class UEdGraphNode* Node, 
 		}
 
 		TArray< FText > AddedPins;
-		for (auto OldPin : Pins2)
+		for (UEdGraphPin* OldPin : Pins2)
 		{
 			const UEdGraphPin* const* FoundPin = Pins1.FindByPredicate(FMatchName(OldPin->PinName));
 			if (FoundPin == nullptr)
@@ -366,7 +366,7 @@ static void DiffR_NodePinCount(FDiffResults& Results, class UEdGraphNode* Node, 
 		if (AddedPins.Num() > 0)
 		{
 			Builder.AppendLine(LOCTEXT("DIF_PinsAddedList", "Pins Added:"));
-			for (const auto& Added : AddedPins)
+			for (const FText& Added : AddedPins)
 			{
 				Builder.AppendLine(Added);
 			}
@@ -375,7 +375,7 @@ static void DiffR_NodePinCount(FDiffResults& Results, class UEdGraphNode* Node, 
 		if (RemovedPins.Num() > 0)
 		{
 			Builder.AppendLine(LOCTEXT("DIF_PinsRemovedList", "Pins Removed:"));
-			for (const auto& Removed : RemovedPins)
+			for (const FText& Removed : RemovedPins)
 			{
 				Builder.AppendLine(Removed);
 			}
@@ -392,7 +392,7 @@ static void DiffR_NodePinCount(FDiffResults& Results, class UEdGraphNode* Node, 
  * @param	InPins			Pins
  * @param	OutRelevanPins	Output of Relevant pins
  */
-static void BuildArrayOfRelevantPins(const TArray<class UEdGraphPin*>& InPins, TArray< UEdGraphPin* >& OutRelevantPins)
+static void BuildArrayOfRelevantPins(const TArray<UEdGraphPin*>& InPins, TArray< UEdGraphPin* >& OutRelevantPins)
 {
 	for(int32 i = 0;i<InPins.Num();++i)
 	{
@@ -425,13 +425,12 @@ static bool IsPinTypeDifferent(const FEdGraphPinType& T1, const FEdGraphPinType&
 }
 
 /** Find Pin in array that matches pin */
-static class UEdGraphPin* FindOtherLink(TArray<class UEdGraphPin*>& Links2, int32 OriginalIndex, class UEdGraphPin* PinToFind)
+static UEdGraphPin* FindOtherLink(TArray<UEdGraphPin*>& Links2, int32 OriginalIndex, UEdGraphPin* PinToFind)
 {
 	//sometimes the order of the pins is different between revisions, although the pins themselves are unchanged, so we have to look at all of them
 	UEdGraphNode* Node1 = PinToFind->GetOwningNode();
-	for(auto It(Links2.CreateIterator());It;++It)
+	for (UEdGraphPin* Other : Links2)
 	{
-		UEdGraphPin* Other = *It;
 		UEdGraphNode* Node2 = Other->GetOwningNode();
 		if(FGraphDiffControl::IsNodeMatch(Node1, Node2))
 		{
@@ -442,7 +441,7 @@ static class UEdGraphPin* FindOtherLink(TArray<class UEdGraphPin*>& Links2, int3
 }
 
 /** Determine if the LinkedTo pins are the same */
-static bool LinkedToDifferent(class UEdGraphPin* OriginalPin1, class UEdGraphPin* OriginalPin2, const TArray<class UEdGraphPin*>& Links1, TArray<class UEdGraphPin*>& Links2, FDiffResults& Results)
+static bool LinkedToDifferent(UEdGraphPin* OriginalPin1, UEdGraphPin* OriginalPin2, const TArray<UEdGraphPin*>& Links1, TArray<UEdGraphPin*>& Links2, FDiffResults& Results)
 {
 	const int32 Size = Links1.Num();
 	bool bHasResult = false;
@@ -471,7 +470,7 @@ static bool LinkedToDifferent(class UEdGraphPin* OriginalPin1, class UEdGraphPin
  * 
  * returns true if any pins are different and populates the Results array
  */
-static bool ArePinsDifferent(const TArray<class UEdGraphPin*>& Pins1, TArray<class UEdGraphPin*>& Pins2, FDiffResults& Results)
+static bool ArePinsDifferent(const TArray<UEdGraphPin*>& Pins1, TArray<UEdGraphPin*>& Pins2, FDiffResults& Results)
 {
 	const int32 Size = Pins1.Num();
 	bool bHasResult = false;
@@ -598,22 +597,16 @@ FGraphDiffControl::FNodeMatch FGraphDiffControl::FindNodeMatch(class UEdGraph* G
 	FNodeMatch Match;
 	Match.NewNode = Node;
 
-	if (Graph != NULL)
+	if (Graph)
 	{
 		// attempt to find a node matching 'Node'
-		for (auto NodeIt(Graph->Nodes.CreateIterator()); NodeIt; ++NodeIt) 
+		for (UEdGraphNode* GraphNode : Graph->Nodes) 
 		{
-			UEdGraphNode* GraphNode = *NodeIt;
-			if (GraphNode == NULL)
-			{
-				continue;
-			}
-
-			if (IsNodeMatch(Node, GraphNode, &PriorMatches))
+			if (GraphNode && IsNodeMatch(Node, GraphNode, &PriorMatches))
 			{
 				Match.OldNode = GraphNode;
 				break;
-			}		
+			}
 		}
 	}	
 
@@ -642,12 +635,11 @@ bool FGraphDiffControl::IsNodeMatch(class UEdGraphNode* Node1, class UEdGraphNod
 		return (Node1->GetFName() == Node2->GetFName());
 	}
 
-	if (Exclusions != NULL)
+	if (Exclusions)
 	{
 		// have to see if this node has already been matched with another
-		for (auto MatchIt(Exclusions->CreateConstIterator()); MatchIt; ++MatchIt)
+		for (const FGraphDiffControl::FNodeMatch& PriorMatch : *Exclusions)
 		{
-			FGraphDiffControl::FNodeMatch const& PriorMatch = *MatchIt;
 			if (!PriorMatch.IsValid())
 			{
 				continue;
@@ -676,7 +668,7 @@ bool FGraphDiffControl::DiffGraphs(UEdGraph* const LhsGraph, UEdGraph* const Rhs
 {
 	bool bFoundDifferences = false;
 
-	if ((LhsGraph != NULL) && (RhsGraph != NULL))
+	if (LhsGraph && RhsGraph)
 	{
 		TArray<FGraphDiffControl::FNodeMatch> NodeMatches;
 		TSet<UEdGraphNode const*> MatchedRhsNodes;
@@ -685,24 +677,21 @@ bool FGraphDiffControl::DiffGraphs(UEdGraph* const LhsGraph, UEdGraph* const Rhs
 		AdditiveDiffContext.NodeTypeDisplayName = LOCTEXT("NodeDiffDisplayName", "Node");
 
 		// march through the all the nodes in the rhs graph and look for matches 
-		for (auto NodeIt(RhsGraph->Nodes.CreateConstIterator()); NodeIt; ++NodeIt)
+		for (UEdGraphNode* const RhsNode : RhsGraph->Nodes)
 		{
-			UEdGraphNode* const RhsNode = *NodeIt;
-			if (RhsNode == NULL)
+			if (RhsNode)
 			{
-				continue;
-			}
+				FGraphDiffControl::FNodeMatch NodeMatch = FGraphDiffControl::FindNodeMatch(LhsGraph, RhsNode, NodeMatches);
+				// if we found a corresponding node in the lhs graph, track it (so we
+				// can prevent future matches with the same nodes)
+				if (NodeMatch.IsValid())
+				{
+					NodeMatches.Add(NodeMatch);
+					MatchedRhsNodes.Add(NodeMatch.OldNode);
+				}
 
-			FGraphDiffControl::FNodeMatch NodeMatch = FGraphDiffControl::FindNodeMatch(LhsGraph, RhsNode, NodeMatches);
-			// if we found a corresponding node in the lhs graph, track it (so we
-			// can prevent future matches with the same nodes)
-			if (NodeMatch.IsValid())
-			{
-				NodeMatches.Add(NodeMatch);
-				MatchedRhsNodes.Add(NodeMatch.OldNode);
+				bFoundDifferences |= NodeMatch.Diff(AdditiveDiffContext, &DiffsOut);
 			}
-
-			bFoundDifferences |= NodeMatch.Diff(AdditiveDiffContext, &DiffsOut);
 		}
 
 		FGraphDiffControl::FNodeDiffContext SubtractiveDiffContext = AdditiveDiffContext;
@@ -710,11 +699,10 @@ bool FGraphDiffControl::DiffGraphs(UEdGraph* const LhsGraph, UEdGraph* const Rhs
 		SubtractiveDiffContext.DiffFlags = EDiffFlags::NodeExistance;
 
 		// go through the lhs nodes to catch ones that may have been missing from the rhs graph
-		for (auto NodeIt(LhsGraph->Nodes.CreateConstIterator()); NodeIt; ++NodeIt)
+		for (UEdGraphNode* const LhsNode : LhsGraph->Nodes)
 		{
-			UEdGraphNode* const LhsNode = *NodeIt;
 			// if this node has already been matched, move on
-			if ((LhsNode == NULL) || MatchedRhsNodes.Find(LhsNode))
+			if ((LhsNode == nullptr) || MatchedRhsNodes.Find(LhsNode))
 			{
 				continue;
 			}
@@ -725,8 +713,8 @@ bool FGraphDiffControl::DiffGraphs(UEdGraph* const LhsGraph, UEdGraph* const Rhs
 	}
 
 	// storing the graph name for all diff entries:
-	FName GraphName = LhsGraph ? LhsGraph->GetFName() : RhsGraph->GetFName();
-	for( auto& Entry : DiffsOut )
+	const FName GraphName = LhsGraph ? LhsGraph->GetFName() : RhsGraph->GetFName();
+	for( FDiffSingleResult& Entry : DiffsOut )
 	{
 		Entry.OwningGraph = GraphName;
 	}

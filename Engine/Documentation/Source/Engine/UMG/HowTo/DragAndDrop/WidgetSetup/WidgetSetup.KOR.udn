@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3478014
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:2. 위젯 셋업
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -31,7 +31,7 @@ type:how-to
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 이번 단계에서는 왼쪽 마우스 버튼이 언제 눌렸는지 알아내어 눌린 스크린 스페이스 위치를 저장합니다.
 또한 **DetectDragIfPressed** 를 사용하여 플레이어가 지정된 키로 드래그를 하고 있는지 알아냅니다.
@@ -83,4 +83,5 @@ type:how-to
 
 플레이어가 제자리 드래그중인지 감지하는 기능이 생겼으니, 다음에는 드래그가 감지되면 어떤 일이 벌어질 것인지 마무리하도록 하겠습니다.
 
-%Steps%
+
+

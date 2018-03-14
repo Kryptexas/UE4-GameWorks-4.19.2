@@ -1,10 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineAsyncTaskManagerSteam.h"
 #include "SocketSubsystem.h"
 #include "OnlineSubsystemSteam.h"
 #include "OnlineSubsystemSteamTypes.h"
 #include "OnlineSessionInterfaceSteam.h"
+#include "OnlinePresenceInterfaceSteam.h"
 #include "OnlineSessionAsyncLobbySteam.h"
 #include "OnlineSessionAsyncServerSteam.h"
 #include "OnlineLeaderboardInterfaceSteam.h"
@@ -1052,4 +1053,83 @@ void FOnlineAsyncTaskManagerSteam::OnSteamShutdown(SteamShutdown_t* CallbackData
 	FOnlineAsyncEventSteamShutdown* NewEvent = new FOnlineAsyncEventSteamShutdown(SteamSubsystem);
 	UE_LOG_ONLINE(Verbose, TEXT("%s"), *NewEvent->ToString());
 	AddToOutQueue(NewEvent);
+}
+
+/**
+ * Notification event from Steam that rich presence has updated
+ */
+class FOnlineAsyncEventSteamRichPresenceUpdate : public FOnlineAsyncEvent<FOnlineSubsystemSteam>
+{
+	FOnlineAsyncEventSteamRichPresenceUpdate() :
+		FOnlineAsyncEvent(NULL)
+	{
+	}
+
+	FUniqueNetIdSteam TargetSteamId;
+
+public:
+
+	FOnlineAsyncEventSteamRichPresenceUpdate(FOnlineSubsystemSteam* InSubsystem, CSteamID InSteamId) :
+		FOnlineAsyncEvent(InSubsystem),
+		TargetSteamId(InSteamId)
+	{
+	}
+
+	FOnlineAsyncEventSteamRichPresenceUpdate(FOnlineSubsystemSteam* InSubsystem, uint64 InSteamId) :
+		FOnlineAsyncEvent(InSubsystem),
+		TargetSteamId(InSteamId)
+	{
+	}
+
+	/**
+	 * Get a human readable description of task
+	 */
+	virtual FString ToString() const override
+	{
+		return FString::Printf(TEXT("FOnlineAsyncEventSteamRichPresenceUpdate got new information about user %s"), *TargetSteamId.ToString());
+	}
+
+	/**
+	 * Give the async task a chance to marshal its data back to the game thread
+	 * Can only be called on the game thread by the async task manager
+	 */
+	virtual void Finalize() override
+	{
+		FOnlinePresenceSteamPtr PresenceInterface = StaticCastSharedPtr<FOnlinePresenceSteam>(Subsystem->GetPresenceInterface());
+		if (PresenceInterface.IsValid())
+		{
+			PresenceInterface->UpdatePresenceForUser(TargetSteamId);
+		}
+	}
+};
+
+/**
+ * Delegate registered with Steam to trigger when Steam gets updates about user rich presence
+ *
+ * @param CallbackData - Steam struct containing user that got their data updated
+ */
+void FOnlineAsyncTaskManagerSteam::OnRichPresenceUpdate(FriendRichPresenceUpdate_t* CallbackData)
+{
+	FOnlineAsyncEventSteamRichPresenceUpdate* NewEvent = new FOnlineAsyncEventSteamRichPresenceUpdate(SteamSubsystem, CallbackData->m_steamIDFriend);
+	UE_LOG_ONLINE(Verbose, TEXT("%s"), *NewEvent->ToString());
+	AddToOutQueue(NewEvent);
+}
+
+/**
+ * Delegate registered with Steam to trigger when Steam gets updates about user rich presence
+ *
+ * @param CallbackData - Steam struct containing user that got their data updated
+ */
+void FOnlineAsyncTaskManagerSteam::OnFriendStatusUpdate(PersonaStateChange_t* CallbackData)
+{
+	int ChangedData = CallbackData->m_nChangeFlags;
+	// Licensees can feel free to expand on this by adding their own watch events as well.
+	int RichPresenceWatchedEvents = (k_EPersonaChangeGameServer | k_EPersonaChangeGamePlayed | k_EPersonaChangeStatus | k_EPersonaChangeGoneOffline | k_EPersonaChangeComeOnline);
+	
+	if (ChangedData & RichPresenceWatchedEvents)
+	{
+		FOnlineAsyncEventSteamRichPresenceUpdate* NewEvent = new FOnlineAsyncEventSteamRichPresenceUpdate(SteamSubsystem, CallbackData->m_ulSteamID);
+		UE_LOG_ONLINE(Verbose, TEXT("%s"), *NewEvent->ToString());
+		AddToOutQueue(NewEvent);
+	}
 }

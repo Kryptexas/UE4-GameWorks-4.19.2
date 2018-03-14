@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CompositionLighting.cpp: The center for all deferred lighting activities.
@@ -19,10 +19,10 @@
 /** The global center for all deferred lighting activities. */
 FCompositionLighting GCompositionLighting;
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Composition BeforeBasePass"), Stat_GPU_CompositionBeforeBasePass, STATGROUP_GPU);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Composition PreLighting"), Stat_GPU_CompositionPreLighting, STATGROUP_GPU);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Composition LpvIndirect"), Stat_GPU_CompositionLpvIndirect, STATGROUP_GPU);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Composition PostLighting"), Stat_GPU_CompositionPostLighting, STATGROUP_GPU);
+DECLARE_GPU_STAT_NAMED(CompositionBeforeBasePass, TEXT("Composition BeforeBasePass") );
+DECLARE_GPU_STAT_NAMED(CompositionPreLighting, TEXT("Composition PreLighting") );
+DECLARE_GPU_STAT_NAMED(CompositionLpvIndirect, TEXT("Composition LpvIndirect") );
+DECLARE_GPU_STAT_NAMED(CompositionPostLighting, TEXT("Composition PostLighting") );
 
 // -------------------------------------------------------
 
@@ -287,7 +287,7 @@ void FCompositionLighting::ProcessBeforeBasePass(FRHICommandListImmediate& RHICm
 		// The graph setup should be finished before this line ----------------------------------------
 
 		SCOPED_DRAW_EVENT(RHICmdList, CompositionBeforeBasePass);
-		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CompositionBeforeBasePass);
+		SCOPED_GPU_STAT(RHICmdList, CompositionBeforeBasePass);
 
 		CompositeContext.Process(Context.FinalOutput.GetPass(), TEXT("Composition_BeforeBasePass"));
 	}
@@ -367,7 +367,7 @@ void FCompositionLighting::ProcessAfterBasePass(FRHICommandListImmediate& RHICmd
 		// The graph setup should be finished before this line ----------------------------------------
 
 		SCOPED_DRAW_EVENT(RHICmdList, LightCompositionTasks_PreLighting);
-		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CompositionPreLighting);
+		SCOPED_GPU_STAT(RHICmdList, CompositionPreLighting);
 
 		TRefCountPtr<IPooledRenderTarget>& SceneColor = SceneContext.GetSceneColor();
 
@@ -402,7 +402,7 @@ void FCompositionLighting::ProcessLpvIndirect(FRHICommandListImmediate& RHICmdLi
 	// The graph setup should be finished before this line ----------------------------------------
 
 	SCOPED_DRAW_EVENT(RHICmdList, CompositionLpvIndirect);
-	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CompositionLpvIndirect);
+	SCOPED_GPU_STAT(RHICmdList, CompositionLpvIndirect);
 
 	// we don't replace the final element with the scenecolor because this is what those passes should do by themself
 
@@ -466,7 +466,7 @@ void FCompositionLighting::ProcessAfterLighting(FRHICommandListImmediate& RHICmd
 		// The graph setup should be finished before this line ----------------------------------------
 
 		SCOPED_DRAW_EVENT(RHICmdList, CompositionAfterLighting);
-		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CompositionPostLighting);
+		SCOPED_GPU_STAT(RHICmdList, CompositionPostLighting);
 
 		// we don't replace the final element with the scenecolor because this is what those passes should do by themself
 

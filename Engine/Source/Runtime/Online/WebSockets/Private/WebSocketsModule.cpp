@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "WebSocketsModule.h"
 #include "WebSocketsLog.h"
@@ -58,7 +58,7 @@ FWebSocketsModule& FWebSocketsModule::Get()
 TSharedRef<IWebSocket> FWebSocketsModule::CreateWebSocket(const FString& Url, const TArray<FString>& Protocols, const TMap<FString, FString>& UpgradeHeaders)
 {
 	check(WebSocketsManager);
-	return WebSocketsManager->CreateWebSocket(Url, Protocols, BuildUpgradeHeader(UpgradeHeaders));
+	return WebSocketsManager->CreateWebSocket(Url, Protocols, UpgradeHeaders);
 }
 
 TSharedRef<IWebSocket> FWebSocketsModule::CreateWebSocket(const FString& Url, const FString& Protocol, const TMap<FString, FString>& UpgradeHeaders)
@@ -67,6 +67,6 @@ TSharedRef<IWebSocket> FWebSocketsModule::CreateWebSocket(const FString& Url, co
 
 	TArray<FString> Protocols;
 	Protocols.Add(Protocol);
-	return WebSocketsManager->CreateWebSocket(Url, Protocols, BuildUpgradeHeader(UpgradeHeaders));
+	return WebSocketsManager->CreateWebSocket(Url, Protocols, UpgradeHeaders);
 }
 #endif // #if WITH_WEBSOCKETS

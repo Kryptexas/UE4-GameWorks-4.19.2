@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ControlRigField.h"
 #include "KismetCompiler.h"
@@ -41,7 +41,7 @@ void FControlRigProperty::ExpandPin(UClass* Class, FKismetCompilerContext& InCom
 				
 				CallAccessorFunction->AllocateDefaultPins();
 
-				FString VariableName = FString(TEXT("In")) + InPin->GetName();
+				const FString VariableName = FString(TEXT("In")) + InPin->GetName();
 
 				UEdGraphPin* AccessorVariablePin = CallAccessorFunction->FindPin(VariableName, EGPD_Input);
 				UEdGraphPin* AccessorSelfPin = CallAccessorFunction->FindPin(UEdGraphSchema_K2::PN_Self, EGPD_Input);
@@ -88,15 +88,15 @@ void FControlRigProperty::ExpandPin(UClass* Class, FKismetCompilerContext& InCom
 				UK2Node_VariableSet* VariableSet = InCompilerContext.SpawnIntermediateNode<UK2Node_VariableSet>(InSourceNode, InSourceGraph);
 				if (InSelfPin)
 				{
-					VariableSet->VariableReference.SetExternalMember(*InPin->GetName(), Class);
+					VariableSet->VariableReference.SetExternalMember(InPin->GetFName(), Class);
 				}
 				else
 				{
-					VariableSet->VariableReference.SetSelfMember(*InPin->GetName());
+					VariableSet->VariableReference.SetSelfMember(InPin->GetFName());
 				}
 				VariableSet->AllocateDefaultPins();
 
-				UEdGraphPin* VariableSetVariablePin = VariableSet->FindPinChecked(InPin->GetName(), EGPD_Input);
+				UEdGraphPin* VariableSetVariablePin = VariableSet->FindPinChecked(InPin->GetFName(), EGPD_Input);
 				UEdGraphPin* VariableSetSelfPin = VariableSet->FindPinChecked(UEdGraphSchema_K2::PN_Self, EGPD_Input);
 				UEdGraphPin* VariableSetExecPin = VariableSet->FindPinChecked(UEdGraphSchema_K2::PN_Execute, EGPD_Input);
 				UEdGraphPin* VariableSetThenPin = VariableSet->FindPinChecked(UEdGraphSchema_K2::PN_Then, EGPD_Output);
@@ -143,16 +143,16 @@ void FControlRigProperty::ExpandPin(UClass* Class, FKismetCompilerContext& InCom
 				UK2Node_VariableGet* VariableGet = InCompilerContext.SpawnIntermediateNode<UK2Node_VariableGet>(InSourceNode, InSourceGraph);
 				if (InSelfPin)
 				{
-					VariableGet->VariableReference.SetExternalMember(*InPin->GetName(), Class);
+					VariableGet->VariableReference.SetExternalMember(InPin->GetFName(), Class);
 				}
 				else
 				{
-					VariableGet->VariableReference.SetSelfMember(*InPin->GetName());
+					VariableGet->VariableReference.SetSelfMember(InPin->GetFName());
 				}
 				
 				VariableGet->AllocateDefaultPins();
 
-				UEdGraphPin* VariableGetVariablePin = VariableGet->FindPinChecked(InPin->GetName(), EGPD_Output);
+				UEdGraphPin* VariableGetVariablePin = VariableGet->FindPinChecked(InPin->GetFName(), EGPD_Output);
 				UEdGraphPin* VariableGetSelfPin = VariableGet->FindPinChecked(UEdGraphSchema_K2::PN_Self, EGPD_Input);
 
 				// hook self up
@@ -217,8 +217,8 @@ void FControlRigFunction_Name::ExpandPin(UClass* Class, FKismetCompilerContext& 
 
 			CallSetterFunction->AllocateDefaultPins();
 
-			UEdGraphPin* SetterNamePin = CallSetterFunction->FindPin(NameProperty->GetName(), EGPD_Input);
-			UEdGraphPin* SetterVariablePin = CallSetterFunction->FindPin(ValueProperty->GetName(), EGPD_Input);
+			UEdGraphPin* SetterNamePin = CallSetterFunction->FindPin(NameProperty->GetFName(), EGPD_Input);
+			UEdGraphPin* SetterVariablePin = CallSetterFunction->FindPin(ValueProperty->GetFName(), EGPD_Input);
 			UEdGraphPin* SetterSelfPin = CallSetterFunction->FindPin(UEdGraphSchema_K2::PN_Self, EGPD_Input);
 			UEdGraphPin* SetterExecPin = CallSetterFunction->FindPin(UEdGraphSchema_K2::PN_Execute, EGPD_Input);
 			UEdGraphPin* SetterThenPin = CallSetterFunction->FindPin(UEdGraphSchema_K2::PN_Then, EGPD_Output);
@@ -266,8 +266,8 @@ void FControlRigFunction_Name::ExpandPin(UClass* Class, FKismetCompilerContext& 
 
 			CallGetterFunction->AllocateDefaultPins();
 
-			UEdGraphPin* GetterNamePin = CallGetterFunction->FindPin(NameProperty->GetName(), EGPD_Input);
-			UEdGraphPin* GetterVariablePin = CallGetterFunction->FindPin(ValueProperty->GetName(), EGPD_Output);
+			UEdGraphPin* GetterNamePin = CallGetterFunction->FindPin(NameProperty->GetFName(), EGPD_Input);
+			UEdGraphPin* GetterVariablePin = CallGetterFunction->FindPin(ValueProperty->GetFName(), EGPD_Output);
 			UEdGraphPin* GetterSelfPin = CallGetterFunction->FindPin(UEdGraphSchema_K2::PN_Self, EGPD_Input);
 			if (GetterNamePin && GetterVariablePin && K2Schema->ArePinTypesCompatible(GetterVariablePin->PinType, InPin->PinType) && GetterSelfPin)
 			{

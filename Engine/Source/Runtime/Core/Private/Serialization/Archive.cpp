@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnArchive.cpp: Core archive classes.
@@ -123,6 +123,7 @@ void FArchive::Reset()
 	ArIsLoading							= false;
 	ArIsSaving							= false;
 	ArIsTransacting						= false;
+	ArIsTextFormat						= false;
 	ArWantBinaryPropertySerialization	= false;
 	ArForceUnicode						= false;
 	ArIsPersistent						= false;
@@ -147,6 +148,7 @@ void FArchive::Reset()
 	ArMaxSerializeSize					= 0;
 	ArIsFilterEditorOnly				= false;
 	ArIsSaveGame						= false;
+	ArIsNetArchive						= false;
 	ArCustomPropertyList				= nullptr;
 	ArUseCustomPropertyList				= false;
 	CookingTargetPlatform = nullptr;
@@ -174,6 +176,7 @@ void FArchive::CopyTrivialFArchiveStatusMembers(const FArchive& ArchiveToCopy)
 	ArIsLoading                          = ArchiveToCopy.ArIsLoading;
 	ArIsSaving                           = ArchiveToCopy.ArIsSaving;
 	ArIsTransacting                      = ArchiveToCopy.ArIsTransacting;
+	ArIsTextFormat                       = ArchiveToCopy.ArIsTextFormat;
 	ArWantBinaryPropertySerialization    = ArchiveToCopy.ArWantBinaryPropertySerialization;
 	ArForceUnicode                       = ArchiveToCopy.ArForceUnicode;
 	ArIsPersistent                       = ArchiveToCopy.ArIsPersistent;
@@ -198,6 +201,7 @@ void FArchive::CopyTrivialFArchiveStatusMembers(const FArchive& ArchiveToCopy)
 	ArMaxSerializeSize                   = ArchiveToCopy.ArMaxSerializeSize;
 	ArIsFilterEditorOnly                 = ArchiveToCopy.ArIsFilterEditorOnly;
 	ArIsSaveGame                         = ArchiveToCopy.ArIsSaveGame;
+	ArIsNetArchive                       = ArchiveToCopy.ArIsNetArchive;
 	ArCustomPropertyList				 = ArchiveToCopy.ArCustomPropertyList;
 	ArUseCustomPropertyList				 = ArchiveToCopy.ArUseCustomPropertyList;
 	CookingTargetPlatform                = ArchiveToCopy.CookingTargetPlatform;
@@ -758,6 +762,11 @@ void FArchive::SerializeCompressed( void* V, int64 Length, ECompressionFlags Fla
 					bNeedToWaitForAsyncTask = true;
 				}
 			}
+			// Wait for the oldest task to finish instead of spinning
+			if (NumChunksLeftToKickOff == 0)
+			{
+				bNeedToWaitForAsyncTask = true;
+			}
 
 			// Index of oldest chunk, needed as we need to serialize in order.
 			int32 OldestAsyncChunkIndex = INDEX_NONE;
@@ -952,7 +961,7 @@ void FArchive::SerializeIntPacked(uint32& Value)
 	}
 	else
 	{
-		TArray<uint8> PackedBytes;
+		TArray<uint8, TInlineAllocator<6>> PackedBytes;
 		uint32 Remaining = Value;
 		while(true)
 		{
@@ -974,7 +983,7 @@ void FArchive::SerializeIntPacked(uint32& Value)
 	}
 }
 
-VARARG_BODY( void, FArchive::Logf, const TCHAR*, VARARG_NONE )
+void FArchive::LogfImpl(const TCHAR* Fmt, ...)
 {
 	// We need to use malloc here directly as GMalloc might not be safe, e.g. if called from within GMalloc!
 	int32		BufferSize	= 1024;
@@ -1007,6 +1016,3 @@ VARARG_BODY( void, FArchive::Logf, const TCHAR*, VARARG_NONE )
 	// Free temporary buffers.
 	FMemory::SystemFree( Buffer );
 }
-
-
-

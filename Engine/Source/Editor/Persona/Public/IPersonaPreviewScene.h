@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,6 +11,7 @@ class USkeletalMesh;
 struct FSelectedSocketInfo;
 struct HActor;
 struct FViewportClick;
+class FEditorCameraController;
 
 
 // called when animation asset has been changed
@@ -84,8 +85,8 @@ public:
 	/** Get the preview mesh for this scene (does go via skeleton/asset) */
 	virtual USkeletalMesh* GetPreviewMesh() const = 0;
 
-	/** Show the reference pose of the displayed skeletal mesh. Otherwise display the default. */
-	virtual void ShowReferencePose(bool bReferencePose) = 0;
+	/** Show the reference pose of the displayed skeletal mesh. Otherwise display the default. Optionally reset bone transforms, if any. */
+	virtual void ShowReferencePose(bool bResetBoneTransforms = false) = 0;
 
 	/* Are we currently displaying the ref pose */
 	virtual bool IsShowReferencePoseEnabled() const = 0;
@@ -210,4 +211,31 @@ public:
 	virtual void UnRegisterOnSelectedLODChanged(void* Thing) = 0;
 	/** Broadcast select LOD changed */
 	virtual void BroadcastOnSelectedLODChanged() = 0;
+
+	/** Register callback for when the camera override is changed */
+	virtual void RegisterOnCameraOverrideChanged(const FSimpleDelegate& Delegate) = 0;
+
+	/** Unregister callback for when the camera override is changed */
+	virtual void UnregisterOnCameraOverrideChanged(void* Thing) = 0;
+
+	/** Function to override the editor camera for this scene */
+	virtual void SetCameraOverride(TSharedPtr<FEditorCameraController> NewCamera) = 0;
+
+	/** Get the current camera override */
+	virtual TSharedPtr<FEditorCameraController> GetCurrentCameraOverride() const = 0;
+
+	/** Register a callback for just before the preview scene is ticked */
+	virtual void RegisterOnPreTick(const FSimpleDelegate& Delegate) = 0;
+
+	/** Unregister a callback for just before the preview scene is ticked */
+	virtual void UnregisterOnPreTick(void* Thing) = 0;
+
+	/** Register a callback for just after the preview scene is ticked */
+	virtual void RegisterOnPostTick(const FSimpleDelegate& Delegate) = 0;
+
+	/** Unregister a callback for just after the preview scene is ticked */
+	virtual void UnregisterOnPostTick(void* Thing) = 0;
+
+	/** Let the preview scene know that it should tick (because it is visible) */
+	virtual void FlagTickable() = 0;
 };

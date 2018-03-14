@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraSystemToolkit.h"
 #include "NiagaraEditorModule.h"
@@ -21,6 +21,8 @@
 #include "NiagaraEditorStyle.h"
 #include "NiagaraEditorSettings.h"
 #include "NiagaraSystemFactoryNew.h"
+#include "NiagaraEmitter.h"
+#include "NiagaraComponent.h"
 
 #include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
@@ -40,8 +42,13 @@
 #include "Editor.h"
 #include "Engine/Selection.h"
 #include "Misc/MessageDialog.h"
+#include "Modules/ModuleManager.h"
+#include "AssetRegistryModule.h"
+#include "IAssetRegistry.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraSystemEditor"
+
+DECLARE_CYCLE_STAT(TEXT("Niagara - SystemToolkit - OnApply"), STAT_NiagaraEditor_SystemToolkit_OnApply, STATGROUP_NiagaraEditor);
 
 const FName FNiagaraSystemToolkit::ViewportTabID(TEXT("NiagaraSystemEditor_Viewport"));
 const FName FNiagaraSystemToolkit::CurveEditorTabID(TEXT("NiagaraSystemEditor_CurveEditor"));
@@ -163,19 +170,11 @@ void FNiagaraSystemToolkit::InitializeWithSystem(const EToolkitMode::Type Mode, 
 		}
 	}
 
-	if (bConverted)
-	{
-		System->ResynchronizeAllHandles();
-	}
-
 	FNiagaraSystemViewModelOptions SystemOptions;
-	SystemOptions.bCanRemoveEmittersFromTimeline = true;
-	SystemOptions.bCanRenameEmittersFromTimeline = true;
-	SystemOptions.bCanAddEmittersFromTimeline = true;
+	SystemOptions.bCanModifyEmittersFromTimeline = true;
 	SystemOptions.bUseSystemExecStateForTimelineReset = true;
+	SystemOptions.EditMode = ENiagaraSystemViewModelEditMode::SystemAsset;
 	SystemOptions.OnGetSequencerAddMenuContent.BindSP(this, &FNiagaraSystemToolkit::GetSequencerAddMenuContent);
-
-	System->CheckForUpdates();
 
 	SystemViewModel = MakeShareable(new FNiagaraSystemViewModel(*System, SystemOptions));
 	SystemToolkitMode = ESystemToolkitMode::System;
@@ -194,7 +193,7 @@ void FNiagaraSystemToolkit::InitializeWithEmitter(const EToolkitMode::Type Mode,
 	}
 
 	System = NewObject<UNiagaraSystem>(GetTransientPackage(), NAME_None, RF_Transient);
-	UNiagaraSystemFactoryNew::InitializeSystem(System);
+	UNiagaraSystemFactoryNew::InitializeSystem(System, true);
 
 	Emitter = &InEmitter;
 
@@ -205,13 +204,13 @@ void FNiagaraSystemToolkit::InitializeWithEmitter(const EToolkitMode::Type Mode,
 	System->AddEmitterHandleWithoutCopying(*EditableEmitter);
 
 	FNiagaraSystemViewModelOptions SystemOptions;
-	SystemOptions.bCanRemoveEmittersFromTimeline = false;
-	SystemOptions.bCanRenameEmittersFromTimeline = false;
-	SystemOptions.bCanAddEmittersFromTimeline = false;
+	SystemOptions.bCanModifyEmittersFromTimeline = false;
 	SystemOptions.bUseSystemExecStateForTimelineReset = false;
+	SystemOptions.EditMode = ENiagaraSystemViewModelEditMode::EmitterAsset;
 
 	SystemViewModel = MakeShareable(new FNiagaraSystemViewModel(*System, SystemOptions));
 	SystemViewModel->GetSystemScriptViewModel()->RebuildEmitterNodes();
+	SystemViewModel->GetSystemScriptViewModel()->CompileSystem(false);
 	SystemToolkitMode = ESystemToolkitMode::Emitter;
 	InitializeInternal(Mode, InitToolkitHost);
 }
@@ -514,16 +513,38 @@ TSharedRef<SDockTab> FNiagaraSystemToolkit::SpawnTab_GeneratedCode(const FSpawnT
 void FNiagaraSystemToolkit::SetupCommands()
 {
 	GetToolkitCommands()->MapAction(
-		FNiagaraEditorCommands::Get().ToggleUnlockToChanges,
-		FExecuteAction::CreateSP(this, &FNiagaraSystemToolkit::ToggleUnlockToChanges),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FNiagaraSystemToolkit::IsToggleUnlockToChangesChecked));
-	GetToolkitCommands()->MapAction(
 		FNiagaraEditorCommands::Get().Compile,
-		FExecuteAction::CreateRaw(this, &FNiagaraSystemToolkit::CompileSystem));
+		FExecuteAction::CreateRaw(this, &FNiagaraSystemToolkit::CompileSystem, true));
 	GetToolkitCommands()->MapAction(
 		FNiagaraEditorCommands::Get().ResetSimulation,
 		FExecuteAction::CreateRaw(this, &FNiagaraSystemToolkit::ResetSimulation));
+
+	GetToolkitCommands()->MapAction(
+		FNiagaraEditorCommands::Get().ToggleBounds,
+		FExecuteAction::CreateSP(this, &FNiagaraSystemToolkit::OnToggleBounds),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FNiagaraSystemToolkit::IsToggleBoundsChecked));
+
+	GetToolkitCommands()->MapAction(
+		FNiagaraEditorCommands::Get().ToggleBounds_SetFixedBounds,
+		FExecuteAction::CreateSP(this, &FNiagaraSystemToolkit::OnToggleBoundsSetFixedBounds));
+
+	GetToolkitCommands()->MapAction(
+		FNiagaraEditorCommands::Get().SaveThumbnailImage,
+		FExecuteAction::CreateSP(this, &FNiagaraSystemToolkit::OnSaveThumbnailImage));
+
+	GetToolkitCommands()->MapAction(
+		FNiagaraEditorCommands::Get().Apply,
+		FExecuteAction::CreateSP(this, &FNiagaraSystemToolkit::OnApply),
+		FCanExecuteAction::CreateSP(this, &FNiagaraSystemToolkit::OnApplyEnabled));
+}
+
+void FNiagaraSystemToolkit::OnSaveThumbnailImage()
+{
+	if (Viewport.IsValid() && Viewport->GetViewportClient().IsValid())
+	{
+		Viewport->CreateThumbnail();
+	}
 }
 
 void FNiagaraSystemToolkit::ResetSimulation()
@@ -537,6 +558,17 @@ void FNiagaraSystemToolkit::ExtendToolbar()
 	{
 		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, FNiagaraSystemToolkit* Toolkit)
 		{
+			if (Toolkit->Emitter != nullptr)
+			{
+				ToolbarBuilder.BeginSection("Apply");
+				{
+					ToolbarBuilder.AddToolBarButton(FNiagaraEditorCommands::Get().Apply,
+						NAME_None, TAttribute<FText>(), TAttribute<FText>(),
+						FSlateIcon(FNiagaraEditorStyle::GetStyleSetName(), "NiagaraEditor.Apply"),
+						FName(TEXT("ApplyNiagaraEmitter")));
+				}
+				ToolbarBuilder.EndSection();
+			}
 			ToolbarBuilder.BeginSection("Compile");
 			{
 				ToolbarBuilder.AddToolBarButton(FNiagaraEditorCommands::Get().Compile,
@@ -555,12 +587,29 @@ void FNiagaraSystemToolkit::ExtendToolbar()
 			}
 			ToolbarBuilder.EndSection();
 
-			ToolbarBuilder.BeginSection("LockEmitters");
+			ToolbarBuilder.BeginSection("NiagaraThumbnail");
 			{
-				ToolbarBuilder.AddToolBarButton(FNiagaraEditorCommands::Get().ToggleUnlockToChanges, NAME_None,
-					TAttribute<FText>(Toolkit, &FNiagaraSystemToolkit::GetEmitterLockToChangesLabel),
-					TAttribute<FText>(Toolkit, &FNiagaraSystemToolkit::GetEmitterLockToChangesLabelTooltip),
-					TAttribute<FSlateIcon>(Toolkit, &FNiagaraSystemToolkit::GetEmitterLockToChangesIcon));
+				ToolbarBuilder.AddToolBarButton(FNiagaraEditorCommands::Get().SaveThumbnailImage, NAME_None,
+					LOCTEXT("GenerateThumbnail", "Thumbnail"),
+					LOCTEXT("GenerateThumbnailTooltip","Generate a thumbnail image."),
+					FSlateIcon(FEditorStyle::GetStyleSetName(), "Cascade.SaveThumbnailImage"));
+			}
+			ToolbarBuilder.EndSection();
+
+			ToolbarBuilder.BeginSection("NiagaraPreviewOptions");
+			{
+				ToolbarBuilder.AddToolBarButton(FNiagaraEditorCommands::Get().ToggleBounds, NAME_None,
+					LOCTEXT("ShowBounds", "Bounds"),
+					LOCTEXT("ShowBoundsTooltip", "Show the bounds for the scene."),
+					FSlateIcon(FEditorStyle::GetStyleSetName(), "Cascade.ToggleBounds"));
+				ToolbarBuilder.AddComboButton(
+					FUIAction(),
+					FOnGetContent::CreateRaw(Toolkit, &FNiagaraSystemToolkit::GenerateBoundsMenuContent, Toolkit->GetToolkitCommands()),
+					LOCTEXT("BoundsMenuCombo_Label", "Bounds Options"),
+					LOCTEXT("BoundsMenuCombo_ToolTip", "Bounds options"),
+					FSlateIcon(FEditorStyle::GetStyleSetName(), "Cascade.ToggleBounds"),
+					true
+				);
 			}
 			ToolbarBuilder.EndSection();
 		}
@@ -579,6 +628,16 @@ void FNiagaraSystemToolkit::ExtendToolbar()
 
 	FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::LoadModuleChecked<FNiagaraEditorModule>("NiagaraEditor");
 	AddToolbarExtender(NiagaraEditorModule.GetToolBarExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
+}
+
+TSharedRef<SWidget> FNiagaraSystemToolkit::GenerateBoundsMenuContent(TSharedRef<FUICommandList> InCommandList)
+{
+	const bool bShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, InCommandList);
+
+	MenuBuilder.AddMenuEntry(FNiagaraEditorCommands::Get().ToggleBounds_SetFixedBounds);
+
+	return MenuBuilder.MakeWidget();
 }
 
 void FNiagaraSystemToolkit::GetSequencerAddMenuContent(FMenuBuilder& MenuBuilder, TSharedRef<ISequencer> Sequencer)
@@ -653,9 +712,72 @@ FText FNiagaraSystemToolkit::GetCompileStatusTooltip() const
 }
 
 
-void FNiagaraSystemToolkit::CompileSystem()
+void FNiagaraSystemToolkit::CompileSystem(bool bForce)
 {
-	SystemViewModel->CompileSystem();
+	SystemViewModel->CompileSystem(bForce);
+}
+
+void FNiagaraSystemToolkit::OnToggleBounds()
+{
+	ToggleDrawOption(SNiagaraSystemViewport::Bounds);
+}
+
+bool FNiagaraSystemToolkit::IsToggleBoundsChecked() const
+{
+	return IsDrawOptionEnabled(SNiagaraSystemViewport::Bounds);
+}
+
+void FNiagaraSystemToolkit::ToggleDrawOption(int32 Element)
+{
+	if (Viewport.IsValid() && Viewport->GetViewportClient().IsValid())
+	{
+		Viewport->ToggleDrawElement((SNiagaraSystemViewport::EDrawElements)Element);
+		Viewport->RefreshViewport();
+	}
+}
+
+bool FNiagaraSystemToolkit::IsDrawOptionEnabled(int32 Element) const
+{
+	if (Viewport.IsValid() && Viewport->GetViewportClient().IsValid())
+	{
+		return Viewport->GetDrawElement((SNiagaraSystemViewport::EDrawElements)Element);
+	}
+	else
+	{
+		return false;
+	}
+}
+
+void FNiagaraSystemToolkit::OnToggleBoundsSetFixedBounds()
+{
+	FScopedTransaction Transaction(LOCTEXT("SetFixedBounds", "Set Fixed Bounds"));
+
+	SystemViewModel->UpdateEmitterFixedBounds();
+
+	/*
+	// Force the component to update its bounds.
+	ParticleSystemComponent->ForceUpdateBounds();
+
+	// Grab the current bounds of the PSysComp & set it on the PSystem itself
+	ParticleSystem->Modify();
+	ParticleSystem->FixedRelativeBoundingBox.Min = ParticleSystemComponent->Bounds.GetBoxExtrema(0);
+	ParticleSystem->FixedRelativeBoundingBox.Max = ParticleSystemComponent->Bounds.GetBoxExtrema(1);
+	ParticleSystem->FixedRelativeBoundingBox.IsValid = true;
+	ParticleSystem->bUseFixedRelativeBoundingBox = true;
+
+	ParticleSystem->MarkPackageDirty();
+
+	EndTransaction(Transaction);
+
+	if ((SelectedModule == NULL) && (SelectedEmitter == NULL))
+	{
+		TArray<UObject*> NewSelection;
+		NewSelection.Add(ParticleSystem);
+		SetSelection(NewSelection);
+	}
+
+	ReassociateParticleSystem();
+	*/
 }
 
 void FNiagaraSystemToolkit::UpdateOriginalEmitter()
@@ -683,59 +805,48 @@ void FNiagaraSystemToolkit::UpdateOriginalEmitter()
 		RF_AllFlags,
 		Emitter->GetClass());
 
-	// Restore RF_Standalone on the original material, as it had been removed from the preview material so that it could be GC'd.
+	// Restore RF_Standalone on the original emitter, as it had been removed from the preview emitter so that it could be GC'd.
 	Emitter->SetFlags(RF_Standalone);
+
 
 	TArray<UNiagaraEmitter*> AffectedEmitters;
 	AffectedEmitters.Add(Emitter);
-	UpdateExistingEmitters(AffectedEmitters);
+	UpdateExistingEmitters();
 
 	GWarn->EndSlowTask();
-	EditableEmitterViewModel->SetDirty(false);
 }
 
-void FNiagaraSystemToolkit::UpdateExistingEmitters(TArray<UNiagaraEmitter*> AffectedEmitters)
+void FNiagaraSystemToolkit::UpdateExistingEmitters()
 {
-	// Compile the existing emitters. Also determine which Systems need to be properly updated.
-	TArray<UNiagaraSystem*> AffectedSystemSystems;
-	for (UNiagaraEmitter* AffectedEmitter : AffectedEmitters)
+	for (TObjectIterator<UNiagaraSystem> SystemIterator; SystemIterator; ++SystemIterator)
 	{
-		if (AffectedEmitter->IsPendingKillOrUnreachable())
+		UNiagaraSystem* LoadedSystem = *SystemIterator;
+		if (LoadedSystem->IsPendingKill() == false && 
+			LoadedSystem->HasAnyFlags(RF_ClassDefaultObject) == false &&
+			LoadedSystem->ReferencesSourceEmitter(*Emitter))
 		{
-			continue;
-		}
+			LoadedSystem->UpdateFromEmitterChanges(*Emitter);
+			TArray<TSharedPtr<FNiagaraSystemViewModel>> ReferencingSystemViewModels;
+			FNiagaraSystemViewModel::GetAllViewModelsForObject(LoadedSystem, ReferencingSystemViewModels);
 
-		TSharedPtr<FNiagaraEmitterViewModel> EmitterViewModel = FNiagaraEmitterViewModel::GetExistingViewModelForObject(AffectedEmitter);
-		if (!EmitterViewModel.IsValid())
-		{
-			EmitterViewModel = MakeShareable(new FNiagaraEmitterViewModel(AffectedEmitter, nullptr));
-		}
-		EmitterViewModel->CompileScripts();
-
-		for (TObjectIterator<UNiagaraSystem> It; It; ++It)
-		{
-			if (It->GetAutoImportChangedEmitters() && It->ReferencesSourceEmitter(AffectedEmitter))
+			for (TSharedPtr<FNiagaraSystemViewModel> ReferencingSystemViewModel : ReferencingSystemViewModels)
 			{
-				AffectedSystemSystems.AddUnique(*It);
+				ReferencingSystemViewModel->RefreshAll();
+			}
+
+			if (ReferencingSystemViewModels.Num() == 0)
+			{
+				for (TObjectIterator<UNiagaraComponent> ComponentIterator; ComponentIterator; ++ComponentIterator)
+				{
+					UNiagaraComponent* Component = *ComponentIterator;
+					if (Component->GetAsset() == LoadedSystem)
+					{
+						Component->SynchronizeWithSourceSystem();
+						Component->ReinitializeSystem();
+					}
+				}
 			}
 		}
-	}
-
-	// Now iterate over the affected Systems.
-	for (UNiagaraSystem* System : AffectedSystemSystems)
-	{
-		TSharedPtr<FNiagaraSystemViewModel> SystemViewModel = FNiagaraSystemViewModel::GetExistingViewModelForObject(System);
-		if (!SystemViewModel.IsValid())
-		{
-			FNiagaraSystemViewModelOptions Options;
-			Options.bCanRemoveEmittersFromTimeline = false;
-			Options.bCanRenameEmittersFromTimeline = false;
-			Options.bCanAddEmittersFromTimeline = false;
-			Options.bUseSystemExecStateForTimelineReset = false;
-			SystemViewModel = MakeShareable(new FNiagaraSystemViewModel(*System, Options));
-		}
-
-		SystemViewModel->ResynchronizeAllHandles();
 	}
 }
 
@@ -778,7 +889,7 @@ bool FNiagaraSystemToolkit::OnRequestClose()
 	if (SystemToolkitMode == ESystemToolkitMode::Emitter)
 	{
 		TSharedPtr<FNiagaraEmitterViewModel> EmitterViewModel = SystemViewModel->GetEmitterHandleViewModels()[0]->GetEmitterViewModel();
-		if (EmitterViewModel->GetDirty())
+		if (EmitterViewModel->GetEmitter()->GetChangeId() != Emitter->GetChangeId())
 		{
 			// find out the user wants to do with this dirty NiagaraScript
 			EAppReturnType::Type YesNoCancelReply = FMessageDialog::Open(EAppMsgType::YesNoCancel,
@@ -816,60 +927,6 @@ void FNiagaraSystemToolkit::EmitterAssetSelected(const FAssetData& AssetData)
 	SystemViewModel->AddEmitterFromAssetData(AssetData);
 }
 
-void FNiagaraSystemToolkit::ToggleUnlockToChanges()
-{
-	const FScopedTransaction ToggleUnlockToChangesTransaction(LOCTEXT("ToggleUnlockToChanges", "Toggle System Unlock To Changes"));
-	System->Modify();
-
-	System->SetAutoImportChangedEmitters(!System->GetAutoImportChangedEmitters());
-
-	if (System->GetAutoImportChangedEmitters())
-	{
-		SystemViewModel->ResynchronizeAllHandles();
-	}
-}
-
-bool FNiagaraSystemToolkit::IsToggleUnlockToChangesChecked()
-{
-	return System->GetAutoImportChangedEmitters();
-}
-
-FText FNiagaraSystemToolkit::GetEmitterLockToChangesLabel() const
-{
-	if (System->GetAutoImportChangedEmitters())
-	{
-		return LOCTEXT("EmitterUnlockToChangesLabel", "Changes Unlocked");
-	}
-	else
-	{
-		return LOCTEXT("EmitterLockToChangesLabel", "Changes Locked");
-	}
-}
-
-FText FNiagaraSystemToolkit::GetEmitterLockToChangesLabelTooltip() const
-{
-	if (System->GetAutoImportChangedEmitters())
-	{
-		return LOCTEXT("EmitterUnlockToChangesLabelTooltip", "If a source emitter changes, the changes will be imported into this System automatically.");
-	}
-	else
-	{
-		return LOCTEXT("EmitterLockToChangesLabelTooltip", "If a source emitter changes, the changes will NOT be imported into this System automatically.");
-	}
-}
-
-FSlateIcon FNiagaraSystemToolkit::GetEmitterLockToChangesIcon() const
-{
-	if (System->GetAutoImportChangedEmitters())
-	{
-		return FSlateIcon(FNiagaraEditorStyle::GetStyleSetName(), "NiagaraEditor.UnlockToChanges");
-	}
-	else
-	{
-		return FSlateIcon(FNiagaraEditorStyle::GetStyleSetName(), "NiagaraEditor.LockToChanges");
-	}
-}
-
 void FNiagaraSystemToolkit::ToggleCompileEnabled()
 {
 	UNiagaraEditorSettings* Settings = GetMutableDefault<UNiagaraEditorSettings>();
@@ -879,6 +936,22 @@ void FNiagaraSystemToolkit::ToggleCompileEnabled()
 bool FNiagaraSystemToolkit::IsAutoCompileEnabled()
 {
 	return GetDefault<UNiagaraEditorSettings>()->bAutoCompile;
+}
+
+void FNiagaraSystemToolkit::OnApply()
+{
+	SCOPE_CYCLE_COUNTER(STAT_NiagaraEditor_SystemToolkit_OnApply);
+	UpdateOriginalEmitter();
+}
+
+bool FNiagaraSystemToolkit::OnApplyEnabled() const
+{
+	if (Emitter != nullptr)
+	{
+		TSharedPtr<FNiagaraEmitterViewModel> EmitterViewModel = SystemViewModel->GetEmitterHandleViewModels()[0]->GetEmitterViewModel();
+		return EmitterViewModel->GetEmitter()->GetChangeId() != Emitter->GetChangeId();
+	}
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

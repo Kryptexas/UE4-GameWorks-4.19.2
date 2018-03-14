@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -73,7 +73,7 @@ class ENGINE_API UActorChannel
 	 */
 	uint32 bClearRecentActorRefs:1;
 	
-	FObjectReplicator * ActorReplicator;
+	FObjectReplicator* ActorReplicator;
 
 	TMap< TWeakObjectPtr< UObject >, TSharedRef< FObjectReplicator > > ReplicationMap;
 
@@ -82,7 +82,8 @@ class ENGINE_API UActorChannel
 	double								QueuedBunchStartTime;	// Time when since queued bunches was last empty
 	TSet< FNetworkGUID >				PendingGuidResolves;	// These guids are waiting for their resolves, we need to queue up bunches until these are resolved
 
-	TArray< TWeakObjectPtr< UObject > >	CreateSubObjects;		// Any sub-object we created on this channel
+	UPROPERTY()
+	TArray< UObject* >					CreateSubObjects;		// Any sub-object we created on this channel
 
 	TArray< FNetworkGUID >				QueuedMustBeMappedGuidsInLastBunch;		// Array of guids that will async load on client. This list is used for queued RPC's.
 
@@ -281,8 +282,8 @@ public:
 
 protected:
 	
-	TSharedRef< FObjectReplicator > & FindOrCreateReplicator(UObject *Obj);
-	bool ObjectHasReplicator(UObject *Obj);	// returns whether we have already created a replicator for this object or not
+	TSharedRef< FObjectReplicator > & FindOrCreateReplicator( const TWeakObjectPtr<UObject>& Obj);
+	bool ObjectHasReplicator(const TWeakObjectPtr<UObject>& Obj);	// returns whether we have already created a replicator for this object or not
 
 	/** Unmap all references to this object, so that if later we receive this object again, we can remap the original references */
 	void MoveMappedObjectToUnmapped( const UObject* Object );

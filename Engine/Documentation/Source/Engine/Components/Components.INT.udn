@@ -26,7 +26,7 @@ Four Wheel Components would be created as sub-objects in the default properties 
 If this were not the case, when one Car in the world moved, the wheels of all Cars would turn; which is clearly not the desired behavior. Instancing of Components by default simplifies the process of quickly adding unique sub-objects to Actors.
 
 [REGION:note]
-Without Component instancing, all Component variables would need to be declared using the [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Instanced) property specifier. 
+Without Component instancing, all Component variables would need to be declared using the `Instanced` [property specifier](Programming/UnrealArchitecture/Reference/Properties/Specifiers). 
 [/REGION]
 
 ## Component Types

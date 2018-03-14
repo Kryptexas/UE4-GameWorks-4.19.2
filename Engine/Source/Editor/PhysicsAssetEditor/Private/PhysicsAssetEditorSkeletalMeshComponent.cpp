@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PhysicsAssetEditorSkeletalMeshComponent.h"
 #include "Materials/MaterialInterface.h"
@@ -25,16 +25,16 @@ namespace
 
 UPhysicsAssetEditorSkeletalMeshComponent::UPhysicsAssetEditorSkeletalMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, BoneUnselectedColor(170,155,225)
+	, BoneUnselectedColor(170, 155, 225)
 	, NoCollisionColor(200, 200, 200)
-	, FixedColor(125,125,0)
-	, ConstraintBone1Color(255,166,0)
-	, ConstraintBone2Color(0,150,150)
+	, FixedColor(125, 125, 0)
+	, ConstraintBone1Color(255, 166, 0)
+	, ConstraintBone2Color(0, 150, 150)
 	, HierarchyDrawColor(220, 255, 220)
 	, AnimSkelDrawColor(255, 64, 64)
 	, COMRenderSize(5.0f)
 	, InfluenceLineLength(2.0f)
-	, InfluenceLineColor(0,255,0)
+	, InfluenceLineColor(0, 255, 0)
 {
 
 	// Body materials
@@ -73,8 +73,8 @@ void UPhysicsAssetEditorSkeletalMeshComponent::RenderAssetTools(const FSceneView
 	check(SharedData);
 
 	UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
-	
-	if(!PhysicsAsset)
+
+	if (!PhysicsAsset)
 	{
 		// Nothing to draw without an asset, this can happen if the preview scene has no skeletal mesh
 		return;
@@ -96,7 +96,7 @@ void UPhysicsAssetEditorSkeletalMeshComponent::RenderAssetTools(const FSceneView
 
 	static FName SelectionColorName(TEXT("SelectionColor"));
 	const FSlateColor SelectionColor = FEditorStyle::GetSlateColor(SelectionColorName);
-	const FLinearColor LinearSelectionColor( SelectionColor.IsColorSpecified() ? SelectionColor.GetSpecifiedColor() : FLinearColor::White );
+	const FLinearColor LinearSelectionColor(SelectionColor.IsColorSpecified() ? SelectionColor.GetSpecifiedColor() : FLinearColor::White);
 
 	ElemSelectedMaterial->SetVectorParameterValue(SelectionColorName, LinearSelectionColor);
 	BoneSelectedMaterial->SetVectorParameterValue(SelectionColorName, LinearSelectionColor);
@@ -125,7 +125,7 @@ void UPhysicsAssetEditorSkeletalMeshComponent::RenderAssetTools(const FSceneView
 
 
 				//solids are drawn if it's the ViewMode and we're not doing a hit, or if it's hitAndBodyMode
-				if(CollisionViewMode == EPhysicsAssetEditorRenderMode::Solid)
+				if (CollisionViewMode == EPhysicsAssetEditorRenderMode::Solid)
 				{
 					UMaterialInterface*	PrimMaterial = GetPrimitiveMaterial(i, EAggCollisionShape::Sphere, j);
 					AggGeom->SphereElems[j].DrawElemSolid(PDI, ElemTM, VectorScale, PrimMaterial->GetRenderProxy(0));
@@ -155,7 +155,7 @@ void UPhysicsAssetEditorSkeletalMeshComponent::RenderAssetTools(const FSceneView
 				{
 					AggGeom->BoxElems[j].DrawElemWire(PDI, ElemTM, VectorScale, GetPrimitiveColor(i, EAggCollisionShape::Box, j));
 				}
-				
+
 				PDI->SetHitProxy(NULL);
 			}
 
@@ -175,7 +175,7 @@ void UPhysicsAssetEditorSkeletalMeshComponent::RenderAssetTools(const FSceneView
 				{
 					AggGeom->SphylElems[j].DrawElemWire(PDI, ElemTM, VectorScale, GetPrimitiveColor(i, EAggCollisionShape::Sphyl, j));
 				}
-					
+
 				PDI->SetHitProxy(NULL);
 			}
 
@@ -190,7 +190,7 @@ void UPhysicsAssetEditorSkeletalMeshComponent::RenderAssetTools(const FSceneView
 				{
 					AggGeom->ConvexElems[j].DrawElemWire(PDI, ElemTM, Scale, GetPrimitiveColor(i, EAggCollisionShape::Convex, j));
 				}
-				
+
 				PDI->SetHitProxy(NULL);
 			}
 
@@ -207,16 +207,19 @@ void UPhysicsAssetEditorSkeletalMeshComponent::RenderAssetTools(const FSceneView
 	{
 		for (int32 i = 0; i <PhysicsAsset->ConstraintSetup.Num(); ++i)
 		{
-			int32 BoneIndex1 = GetBoneIndex(PhysicsAsset->ConstraintSetup[i]->DefaultInstance.ConstraintBone1);
-			int32 BoneIndex2 = GetBoneIndex(PhysicsAsset->ConstraintSetup[i]->DefaultInstance.ConstraintBone2);
-			// if bone doesn't exist, do not draw it. It crashes in random points when we try to manipulate. 
-			if (BoneIndex1 != INDEX_NONE && BoneIndex2 != INDEX_NONE)
+			if(!SharedData->EditorOptions->bRenderOnlySelectedConstraints || (SharedData->EditorOptions->bRenderOnlySelectedConstraints && SharedData->IsConstraintSelected(i)))
 			{
-				PDI->SetHitProxy(new HPhysicsAssetEditorEdConstraintProxy(i));
+				int32 BoneIndex1 = GetBoneIndex(PhysicsAsset->ConstraintSetup[i]->DefaultInstance.ConstraintBone1);
+				int32 BoneIndex2 = GetBoneIndex(PhysicsAsset->ConstraintSetup[i]->DefaultInstance.ConstraintBone2);
+				// if bone doesn't exist, do not draw it. It crashes in random points when we try to manipulate. 
+				if (BoneIndex1 != INDEX_NONE && BoneIndex2 != INDEX_NONE)
+				{
+					PDI->SetHitProxy(new HPhysicsAssetEditorEdConstraintProxy(i));
 
-				DrawConstraint(i, View, PDI, SharedData->EditorOptions->bShowConstraintsAsPoints);
+					DrawConstraint(i, View, PDI, SharedData->EditorOptions->bShowConstraintsAsPoints);
 
-				PDI->SetHitProxy(NULL);
+					PDI->SetHitProxy(NULL);
+				}
 			}
 		}
 	}
@@ -241,10 +244,10 @@ FPrimitiveSceneProxy* UPhysicsAssetEditorSkeletalMeshComponent::CreateSceneProxy
 
 bool ConstraintInSelected(int32 Index, const TArray<FPhysicsAssetEditorSharedData::FSelection> & Constraints)
 {
-	for(int32 i=0; i<Constraints.Num(); ++i)
+	for (int32 i = 0; i<Constraints.Num(); ++i)
 	{
 
-		if(Constraints[i].Index == Index)
+		if (Constraints[i].Index == Index)
 		{
 			return true;
 		}
@@ -286,10 +289,10 @@ FTransform UPhysicsAssetEditorSkeletalMeshComponent::GetPrimitiveTransform(FTran
 
 	FTransform ManTM = FTransform::Identity;
 
-	if(SharedData->bManipulating && !SharedData->bRunningSimulation)
+	if (SharedData->bManipulating && !SharedData->bRunningSimulation)
 	{
 		FPhysicsAssetEditorSharedData::FSelection Body(BodyIndex, PrimType, PrimIndex);
-		for(int32 i=0; i<SharedData->SelectedBodies.Num(); ++i)
+		for (int32 i = 0; i<SharedData->SelectedBodies.Num(); ++i)
 		{
 			if (Body == SharedData->SelectedBodies[i])
 			{
@@ -333,11 +336,11 @@ FTransform UPhysicsAssetEditorSkeletalMeshComponent::GetPrimitiveTransform(FTran
 
 FColor UPhysicsAssetEditorSkeletalMeshComponent::GetPrimitiveColor(int32 BodyIndex, EAggCollisionShape::Type PrimitiveType, int32 PrimitiveIndex)
 {
-	UBodySetup* SharedBodySetup = SharedData->PhysicsAsset->SkeletalBodySetups[ BodyIndex ];
+	UBodySetup* SharedBodySetup = SharedData->PhysicsAsset->SkeletalBodySetups[BodyIndex];
 
 	if (!SharedData->bRunningSimulation && SharedData->GetSelectedConstraint())
 	{
-		UPhysicsConstraintTemplate* cs = SharedData->PhysicsAsset->ConstraintSetup[ SharedData->GetSelectedConstraint()->Index ];
+		UPhysicsConstraintTemplate* cs = SharedData->PhysicsAsset->ConstraintSetup[SharedData->GetSelectedConstraint()->Index];
 
 		if (cs->DefaultInstance.ConstraintBone1 == SharedBodySetup->BoneName)
 		{
@@ -358,9 +361,9 @@ FColor UPhysicsAssetEditorSkeletalMeshComponent::GetPrimitiveColor(int32 BodyInd
 	const FColor ElemSelectedBodyColor = (SelectionColorLinear* 0.5f).ToFColor(true);
 
 	bool bInBody = false;
-	for(int32 i=0; i<SharedData->SelectedBodies.Num(); ++i)
+	for (int32 i = 0; i<SharedData->SelectedBodies.Num(); ++i)
 	{
-		if(BodyIndex == SharedData->SelectedBodies[i].Index)
+		if (BodyIndex == SharedData->SelectedBodies[i].Index)
 		{
 			bInBody = true;
 		}
@@ -371,11 +374,11 @@ FColor UPhysicsAssetEditorSkeletalMeshComponent::GetPrimitiveColor(int32 BodyInd
 		}
 	}
 
-	if(bInBody && !SharedData->bRunningSimulation)	//this primitive is in a body that's currently selected, but this primitive itself isn't selected
+	if (bInBody && !SharedData->bRunningSimulation)	//this primitive is in a body that's currently selected, but this primitive itself isn't selected
 	{
 		return ElemSelectedBodyColor;
 	}
-	
+
 	if (SharedData->bRunningSimulation)
 	{
 		const bool bIsSimulatedAtAll = SharedBodySetup->PhysicsType == PhysType_Simulated || (SharedBodySetup->PhysicsType == PhysType_Default && SharedData->EditorOptions->PhysicsBlend > 0.f);
@@ -408,7 +411,7 @@ UMaterialInterface* UPhysicsAssetEditorSkeletalMeshComponent::GetPrimitiveMateri
 
 	FPhysicsAssetEditorSharedData::FSelection Body(BodyIndex, PrimitiveType, PrimitiveIndex);
 
-	for(int32 i=0; i< SharedData->SelectedBodies.Num(); ++i)
+	for (int32 i = 0; i< SharedData->SelectedBodies.Num(); ++i)
 	{
 		if (Body == SharedData->SelectedBodies[i] && !SharedData->bRunningSimulation)
 		{
@@ -434,7 +437,7 @@ void UPhysicsAssetEditorSkeletalMeshComponent::RefreshBoneTransforms(FActorCompo
 
 	// Horrible kludge, but we need to flip the buffer back here as we need to wait on the physics tick group.
 	// However UDebugSkelMeshComponent passes NULL to force non-threaded work, which assumes a flip is needed straight away
-	if(ShouldBlendPhysicsBones())
+	if (ShouldBlendPhysicsBones())
 	{
 		bNeedToFlipSpaceBaseBuffers = true;
 		FinalizeBoneTransform();

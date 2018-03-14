@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -31,13 +31,6 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FMovementModeChangedSignature, cl
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FCharacterMovementUpdatedSignature, float, DeltaSeconds, FVector, OldLocation, FVector, OldVelocity);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FCharacterReachedApexSignature);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLandedSignature, const FHitResult&, Hit);
-
-//
-// Forward declarations
-//
-class UAnimMontage;
-class UPrimitiveComponent;
-struct FAnimMontageInstance;
 
 /** Replicated data when playing a root motion montage. */
 USTRUCT()
@@ -97,14 +90,14 @@ struct FRepRootMotionMontage
 	void Clear()
 	{
 		bIsActive = false;
-		AnimMontage = NULL;
+		AnimMontage = nullptr;
 		AuthoritativeRootMotion.Clear();
 	}
 
 	/** Is Valid - animation root motion only */
 	bool HasRootMotion() const
 	{
-		return (AnimMontage != NULL);
+		return (AnimMontage != nullptr);
 	}
 };
 
@@ -147,7 +140,7 @@ namespace MovementBaseUtility
 	/** Get the tangential velocity at WorldLocation for the given component. */
 	ENGINE_API FVector GetMovementBaseTangentialVelocity(const UPrimitiveComponent* MovementBase, const FName BoneName, const FVector& WorldLocation);
 
-	/** Get the transforms for the given MovementBase, optionally at the location of a bone. Returns false if MovementBase is NULL, or if BoneName is not a valid bone. */
+	/** Get the transforms for the given MovementBase, optionally at the location of a bone. Returns false if MovementBase is nullptr, or if BoneName is not a valid bone. */
 	ENGINE_API bool GetMovementBaseTransform(const UPrimitiveComponent* MovementBase, const FName BoneName, FVector& OutLocation, FQuat& OutQuat);
 }
 
@@ -200,7 +193,7 @@ struct FBasedMovementInfo
 	/** Return true if the client should have MovementBase, but it hasn't replicated (possibly component has not streamed in). */
 	FORCEINLINE bool IsBaseUnresolved() const
 	{
-		return (MovementBase == NULL) && bServerHasBaseComponent;
+		return (MovementBase == nullptr) && bServerHasBaseComponent;
 	}
 };
 
@@ -213,47 +206,134 @@ struct FBasedMovementInfo
  * @see APawn, UCharacterMovementComponent
  * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Pawn/Character/
  */ 
-
 UCLASS(config=Game, BlueprintType, meta=(ShortTooltip="A character is a type of Pawn that includes the ability to walk around."))
 class ENGINE_API ACharacter : public APawn
 {
 	GENERATED_BODY()
 public:
-	/**
-	 * Default UObject constructor.
-	 */
+	/** Default UObject constructor. */
 	ACharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 private:
 	/** The main skeletal mesh associated with this Character (optional sub-object). */
-	UPROPERTY(Category = Character, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class USkeletalMeshComponent* Mesh;
-
-#if WITH_EDITORONLY_DATA
-	UPROPERTY()
-	class UArrowComponent* ArrowComponent;
-#endif
+	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
+	USkeletalMeshComponent* Mesh;
 
 	/** Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement. */
-	UPROPERTY(Category = Character, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class UCharacterMovementComponent* CharacterMovement;
+	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
+	UCharacterMovementComponent* CharacterMovement;
 
 	/** The CapsuleComponent being used for movement collision (by CharacterMovement). Always treated as being vertically aligned in simple collision check functions. */
-	UPROPERTY(Category = Character, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class UCapsuleComponent* CapsuleComponent;
+	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
+	UCapsuleComponent* CapsuleComponent;
+
+#if WITH_EDITORONLY_DATA
+	/** Component shown in the editor only to indicate character facing */
+	UPROPERTY()
+	UArrowComponent* ArrowComponent;
+#endif
 
 public:
+
+	//////////////////////////////////////////////////////////////////////////
+	// Server RPCs that pass through to CharacterMovement (avoids RPC overhead for components).
+	// The base RPC function (eg 'ServerMove') is auto-generated for clients to trigger the call to the server function,
+	// eventually going to the _Implementation function (which we just pass to the CharacterMovementComponent).
+	//////////////////////////////////////////////////////////////////////////
+
+	/** Replicated function sent by client to server - contains client movement and view info. */
+	UFUNCTION(unreliable, server, WithValidation)
+	void ServerMove(float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
+	void ServerMove_Implementation(float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
+	bool ServerMove_Validate(float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
+
+	/**
+	 * Replicated function sent by client to server. Saves bandwidth over ServerMove() by implying that ClientMovementBase and ClientBaseBoneName are null.
+	 * Passes through to CharacterMovement->ServerMove_Implementation() with null base params.
+	 */
+	UFUNCTION(unreliable, server, WithValidation)
+	void ServerMoveNoBase(float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, uint8 ClientMovementMode);
+	void ServerMoveNoBase_Implementation(float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, uint8 ClientMovementMode);
+	bool ServerMoveNoBase_Validate(float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, uint8 ClientMovementMode);
+
+	/** Replicated function sent by client to server - contains client movement and view info for two moves. */
+	UFUNCTION(unreliable, server, WithValidation)
+	void ServerMoveDual(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
+	void ServerMoveDual_Implementation(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
+	bool ServerMoveDual_Validate(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
+
+	/** Replicated function sent by client to server - contains client movement and view info for two moves. */
+	UFUNCTION(unreliable, server, WithValidation)
+	void ServerMoveDualNoBase(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, uint8 ClientMovementMode);
+	void ServerMoveDualNoBase_Implementation(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, uint8 ClientMovementMode);
+	bool ServerMoveDualNoBase_Validate(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, uint8 ClientMovementMode);
+
+	/** Replicated function sent by client to server - contains client movement and view info for two moves. First move is non root motion, second is root motion. */
+	UFUNCTION(unreliable, server, WithValidation)
+	void ServerMoveDualHybridRootMotion(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
+	void ServerMoveDualHybridRootMotion_Implementation(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
+	bool ServerMoveDualHybridRootMotion_Validate(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
+
+	/* Resending an (important) old move. Process it if not already processed. */
+	UFUNCTION(unreliable, server, WithValidation)
+	void ServerMoveOld(float OldTimeStamp, FVector_NetQuantize10 OldAccel, uint8 OldMoveFlags);
+	void ServerMoveOld_Implementation(float OldTimeStamp, FVector_NetQuantize10 OldAccel, uint8 OldMoveFlags);
+	bool ServerMoveOld_Validate(float OldTimeStamp, FVector_NetQuantize10 OldAccel, uint8 OldMoveFlags);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Client RPCS that pass through to CharacterMovement (avoids RPC overhead for components).
+	//////////////////////////////////////////////////////////////////////////
+
+	/** If no client adjustment is needed after processing received ServerMove(), ack the good move so client can remove it from SavedMoves */
+	UFUNCTION(unreliable, client)
+	void ClientAckGoodMove(float TimeStamp);
+	void ClientAckGoodMove_Implementation(float TimeStamp);
+
+	/** Replicate position correction to client, associated with a timestamped servermove.  Client will replay subsequent moves after applying adjustment.  */
+	UFUNCTION(unreliable, client)
+	void ClientAdjustPosition(float TimeStamp, FVector NewLoc, FVector NewVel, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+	void ClientAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, FVector NewVel, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+
+	/* Bandwidth saving version, when velocity is zeroed */
+	UFUNCTION(unreliable, client)
+	void ClientVeryShortAdjustPosition(float TimeStamp, FVector NewLoc, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+	void ClientVeryShortAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+
+	/** Replicate position correction to client when using root motion for movement. (animation root motion specific) */
+	UFUNCTION(unreliable, client)
+	void ClientAdjustRootMotionPosition(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+	void ClientAdjustRootMotionPosition_Implementation(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+
+	/** Replicate root motion source correction to client when using root motion for movement. */
+	UFUNCTION(unreliable, client)
+	void ClientAdjustRootMotionSourcePosition(float TimeStamp, FRootMotionSourceGroup ServerRootMotion, bool bHasAnimRootMotion, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+	void ClientAdjustRootMotionSourcePosition_Implementation(float TimeStamp, FRootMotionSourceGroup ServerRootMotion, bool bHasAnimRootMotion, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+
+public:
+	/** Returns Mesh subobject **/
+	class USkeletalMeshComponent* GetMesh() const { return Mesh; }
 
 	/** Name of the MeshComponent. Use this name if you want to prevent creation of the component (with ObjectInitializer.DoNotCreateDefaultSubobject). */
 	static FName MeshComponentName;
 
+	/** Returns CharacterMovement subobject **/
+	class UCharacterMovementComponent* GetCharacterMovement() const { return CharacterMovement; }
+
 	/** Name of the CharacterMovement component. Use this name if you want to use a different class (with ObjectInitializer.SetDefaultSubobjectClass). */
 	static FName CharacterMovementComponentName;
 
+	/** Returns CapsuleComponent subobject **/
+	class UCapsuleComponent* GetCapsuleComponent() const { return CapsuleComponent; }
+
 	/** Name of the CapsuleComponent. */
 	static FName CapsuleComponentName;
+
+#if WITH_EDITORONLY_DATA
+	/** Returns ArrowComponent subobject **/
+	class UArrowComponent* GetArrowComponent() const { return ArrowComponent; }
+#endif
 
 	/** Sets the component the Character is walking on, used by CharacterMovement walking movement to be able to follow dynamic objects. */
 	virtual void SetBase(UPrimitiveComponent* NewBase, const FName BoneName = NAME_None, bool bNotifyActor=true);
@@ -263,11 +343,10 @@ public:
 	 * This is automatically called during initialization; call this at runtime if you intend to change the default mesh offset from the capsule.
 	 * @see GetBaseTranslationOffset(), GetBaseRotationOffset()
 	 */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
+	UFUNCTION(BlueprintCallable, Category=Character)
 	virtual void CacheInitialMeshOffset(FVector MeshRelativeLocation, FRotator MeshRelativeRotation);
 
 protected:
-
 	/** Info about our current movement base (object we are standing on). */
 	UPROPERTY()
 	struct FBasedMovementInfo BasedMovement;
@@ -286,7 +365,7 @@ public:
 	virtual void OnRep_ReplicatedBasedMovement();
 
 	/** Set whether this actor's movement replicates to network clients. */
-	UFUNCTION(BlueprintCallable, Category = "Replication")
+	UFUNCTION(BlueprintCallable, Category=Replication)
 	virtual void SetReplicateMovement(bool bInReplicateMovement) override;
 
 protected:
@@ -313,8 +392,7 @@ protected:
 	UPROPERTY()
 	bool bInBaseReplication;
 
-public:	
-
+public:
 	/** Accessor for ReplicatedServerLastTransformUpdateTimeStamp. */
 	FORCEINLINE float GetReplicatedServerLastTransformUpdateTimeStamp() const { return ReplicatedServerLastTransformUpdateTimeStamp; }
 
@@ -331,19 +409,15 @@ public:
 	uint8 GetReplicatedMovementMode() const { return ReplicatedMovementMode; }
 
 	/** Get the saved translation offset of mesh. This is how much extra offset is applied from the center of the capsule. */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
+	UFUNCTION(BlueprintCallable, Category=Character)
 	FVector GetBaseTranslationOffset() const { return BaseTranslationOffset; }
 
 	/** Get the saved rotation offset of mesh. This is how much extra rotation is applied from the capsule rotation. */
 	virtual FQuat GetBaseRotationOffset() const { return BaseRotationOffset; }
 
 	/** Get the saved rotation offset of mesh. This is how much extra rotation is applied from the capsule rotation. */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Character", meta=(DisplayName="GetBaseRotationOffset"))
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(DisplayName="GetBaseRotationOffset", ScriptName="GetBaseRotationOffset"))
 	FRotator GetBaseRotationOffsetRotator() const { return GetBaseRotationOffset().Rotator(); }
-
-	//~ Begin INavAgentInterface Interface
-	virtual FVector GetNavAgentLocation() const override;
-	//~ End INavAgentInterface Interface
 
 	/** Default crouched eye height */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)
@@ -358,7 +432,7 @@ public:
 	virtual void OnRep_IsCrouched();
 
 	/** When true, player wants to jump */
-	UPROPERTY(BlueprintReadOnly, Category="Pawn|Character")
+	UPROPERTY(BlueprintReadOnly, Category=Character)
 	uint32 bPressedJump:1;
 
 	/** When true, applying updates to network client (replaying saved moves for a locally controlled character) */
@@ -387,6 +461,10 @@ public:
 	/** Disable root motion on the server. When receiving a DualServerMove, where the first move is not root motion and the second is. */
 	UPROPERTY(Transient)
 	uint32 bServerMoveIgnoreRootMotion:1;
+
+	/** Tracks whether or not the character was already jumping last frame. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category=Character)
+	uint32 bWasJumping : 1;
 
 	/** 
 	 * Jump key Held Time.
@@ -419,15 +497,8 @@ public:
      * When providing overrides for these methods, it's recommended to either manually
      * increment / reset this value, or call the Super:: method.
      */
-    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Character")
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=Character)
     int32 JumpCurrentCount;
-
-	DEPRECATED(4.14, "This value is no longer used.")
-	uint32 bJumpMaxCountExceeded:1;
-
-	// Tracks whether or not the character was already jumping last frame.
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category="Character")
-	uint32 bWasJumping:1;
 
 	//~ Begin AActor Interface.
 	virtual void BeginPlay() override;
@@ -446,6 +517,10 @@ public:
 	{
 		return AActor::FindComponentByClass<T>();
 	}
+
+	//~ Begin INavAgentInterface Interface
+	virtual FVector GetNavAgentLocation() const override;
+	//~ End INavAgentInterface Interface
 
 	//~ Begin APawn Interface.
 	virtual void PostInitializeComponents() override;
@@ -474,7 +549,7 @@ public:
 	 * as on a button up event), otherwise the character will carry on receiving the 
 	 * velocity until JumpKeyHoldTime is reached.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
+	UFUNCTION(BlueprintCallable, Category=Character)
 	virtual void Jump();
 
 	/** 
@@ -483,7 +558,7 @@ public:
 	 * jump Z-velocity. If this is not called, then jump z-velocity will be applied
 	 * until JumpMaxHoldTime is reached.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
+	UFUNCTION(BlueprintCallable, Category=Character)
 	virtual void StopJumping();
 
 	/**
@@ -493,11 +568,10 @@ public:
 	 * 
 	 * @Return Whether the character can jump in the current state. 
 	 */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
+	UFUNCTION(BlueprintCallable, Category=Character)
 	bool CanJump() const;
 
 protected:
-
 	/**
 	 * Customizable event to check if the character can jump in the current state.
 	 * Default implementation returns true if the character is on the ground and not crouching,
@@ -509,49 +583,42 @@ protected:
 	 *
 	 * @Return Whether the character can jump in the current state. 
 	 */
-
-	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character", meta=(DisplayName="CanJump"))
+	UFUNCTION(BlueprintNativeEvent, Category=Character, meta=(DisplayName="CanJump"))
 	bool CanJumpInternal() const;
 	virtual bool CanJumpInternal_Implementation() const;
 
-	DEPRECATED(4.14, "This function is deprecated. Please use ResetJumpState instead.")
-	void CheckResetJumpCount()
-	{
-		ResetJumpState();
-	}
-
-	void ResetJumpState();
-
 public:
+
+	/** Marks character as not trying to jump */
+	void ResetJumpState();
 
 	/**
 	 * True if jump is actively providing a force, such as when the jump key is held and the time it has been held is less than JumpMaxHoldTime.
 	 * @see CharacterMovement->IsFalling
 	 */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
+	UFUNCTION(BlueprintCallable, Category=Character)
 	virtual bool IsJumpProvidingForce() const;
 
 	/** Play Animation Montage on the character mesh **/
 	UFUNCTION(BlueprintCallable, Category=Animation)
 	virtual float PlayAnimMontage(class UAnimMontage* AnimMontage, float InPlayRate = 1.f, FName StartSectionName = NAME_None);
 
-	/** Stop Animation Montage. If NULL, it will stop what's currently active. The Blend Out Time is taken from the montage asset that is being stopped. **/
+	/** Stop Animation Montage. If nullptr, it will stop what's currently active. The Blend Out Time is taken from the montage asset that is being stopped. **/
 	UFUNCTION(BlueprintCallable, Category=Animation)
-	virtual void StopAnimMontage(class UAnimMontage* AnimMontage = NULL);
+	virtual void StopAnimMontage(class UAnimMontage* AnimMontage = nullptr);
 
 	/** Return current playing Montage **/
 	UFUNCTION(BlueprintCallable, Category=Animation)
 	class UAnimMontage* GetCurrentMontage();
 
-public:
-
-	/** Set a pending launch velocity on the Character. This velocity will be processed on the next CharacterMovementComponent tick,
-	  * and will set it to the "falling" state. Triggers the OnLaunched event.
-	  * @PARAM LaunchVelocity is the velocity to impart to the Character
-	  * @PARAM bXYOverride if true replace the XY part of the Character's velocity instead of adding to it.
-	  * @PARAM bZOverride if true replace the Z component of the Character's velocity instead of adding to it.
-	  */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
+	/**
+	 * Set a pending launch velocity on the Character. This velocity will be processed on the next CharacterMovementComponent tick,
+	 * and will set it to the "falling" state. Triggers the OnLaunched event.
+	 * @PARAM LaunchVelocity is the velocity to impart to the Character
+	 * @PARAM bXYOverride if true replace the XY part of the Character's velocity instead of adding to it.
+	 * @PARAM bZOverride if true replace the Z component of the Character's velocity instead of adding to it.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character)
 	virtual void LaunchCharacter(FVector LaunchVelocity, bool bXYOverride, bool bZOverride);
 
 	/** Let blueprint know that we were launched */
@@ -559,7 +626,7 @@ public:
 	void OnLaunched(FVector LaunchVelocity, bool bXYOverride, bool bZOverride);
 
 	/** Event fired when the character has just started jumping */
-	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character")
+	UFUNCTION(BlueprintNativeEvent, Category=Character)
 	void OnJumped();
 	virtual void OnJumped_Implementation();
 
@@ -570,7 +637,7 @@ public:
 	virtual void NotifyJumpApex();
 
 	/** Broadcast when Character's jump reaches its apex. Needs CharacterMovement->bNotifyApex = true */
-	UPROPERTY(BlueprintAssignable, Category="Pawn|Character")
+	UPROPERTY(BlueprintAssignable, Category=Character)
 	FCharacterReachedApexSignature OnReachedJumpApex;
 
 	/**
@@ -584,23 +651,23 @@ public:
 	virtual void Landed(const FHitResult& Hit);
 
 	/**
-	* Called upon landing when falling, to perform actions based on the Hit result.
-	* Note that movement mode is still "Falling" during this event. Current Velocity value is the velocity at the time of landing.
-	* Consider OnMovementModeChanged() as well, as that can be used once the movement mode changes to the new mode (most likely Walking).
-	*
-	* @param Hit Result describing the landing that resulted in a valid landing spot.
-	* @see OnMovementModeChanged()
-	*/
+	 * Called upon landing when falling, to perform actions based on the Hit result.
+	 * Note that movement mode is still "Falling" during this event. Current Velocity value is the velocity at the time of landing.
+	 * Consider OnMovementModeChanged() as well, as that can be used once the movement mode changes to the new mode (most likely Walking).
+	 *
+	 * @param Hit Result describing the landing that resulted in a valid landing spot.
+	 * @see OnMovementModeChanged()
+	 */
 	FLandedSignature LandedDelegate;
 
 	/**
-	* Called upon landing when falling, to perform actions based on the Hit result.
-	* Note that movement mode is still "Falling" during this event. Current Velocity value is the velocity at the time of landing.
-	* Consider OnMovementModeChanged() as well, as that can be used once the movement mode changes to the new mode (most likely Walking).
-	*
-	* @param Hit Result describing the landing that resulted in a valid landing spot.
-	* @see OnMovementModeChanged()
-	*/
+	 * Called upon landing when falling, to perform actions based on the Hit result.
+	 * Note that movement mode is still "Falling" during this event. Current Velocity value is the velocity at the time of landing.
+	 * Consider OnMovementModeChanged() as well, as that can be used once the movement mode changes to the new mode (most likely Walking).
+	 *
+	 * @param Hit Result describing the landing that resulted in a valid landing spot.
+	 * @see OnMovementModeChanged()
+	 */
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnLanded(const FHitResult& Hit);
 
@@ -614,12 +681,14 @@ public:
 	 * @param  PreviousLocation	Previous character location before movement off the ledge.
 	 * @param  TimeTick	Time delta of movement update resulting in moving off the ledge.
 	 */
-	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character")
+	UFUNCTION(BlueprintNativeEvent, Category=Character)
 	void OnWalkingOffLedge(const FVector& PreviousFloorImpactNormal, const FVector& PreviousFloorContactNormal, const FVector& PreviousLocation, float TimeDelta);
 	virtual void OnWalkingOffLedge_Implementation(const FVector& PreviousFloorImpactNormal, const FVector& PreviousFloorContactNormal, const FVector& PreviousLocation, float TimeDelta);
 
-	/** Called when pawn's movement is blocked
-		@PARAM Impact describes the blocking hit. */
+	/**
+	 * Called when pawn's movement is blocked
+	 * @param Impact describes the blocking hit.
+	 */
 	virtual void MoveBlockedBy(const FHitResult& Impact) {};
 
 	/**
@@ -628,7 +697,7 @@ public:
 	 * @see IsCrouched
 	 * @see CharacterMovement->WantsToCrouch
 	 */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Character", meta=(HidePin="bClientSimulation"))
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
 	virtual void Crouch(bool bClientSimulation = false);
 
 	/**
@@ -637,7 +706,7 @@ public:
 	 * @see IsCrouched
 	 * @see CharacterMovement->WantsToCrouch
 	 */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Character", meta=(HidePin="bClientSimulation"))
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
 	virtual void UnCrouch(bool bClientSimulation = false);
 
 	/** @return true if this character is currently able to crouch (and is not currently crouched) */
@@ -655,7 +724,7 @@ public:
 	 * @param	HalfHeightAdjust		difference between default collision half-height, and actual crouched capsule half-height.
 	 * @param	ScaledHalfHeightAdjust	difference after component scale is taken in to account.
 	 */
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "OnEndCrouch"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnEndCrouch", ScriptName="OnEndCrouch"))
 	void K2_OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
 
 	/**
@@ -670,7 +739,7 @@ public:
 	 * @param	HalfHeightAdjust		difference between default collision half-height, and actual crouched capsule half-height.
 	 * @param	ScaledHalfHeightAdjust	difference after component scale is taken in to account.
 	 */
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "OnStartCrouch"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnStartCrouch", ScriptName="OnStartCrouch"))
 	void K2_OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
 
 	/**
@@ -681,7 +750,7 @@ public:
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode = 0);
 
 	/** Multicast delegate for MovementMode changing. */
-	UPROPERTY(BlueprintAssignable, Category="Pawn|Character")
+	UPROPERTY(BlueprintAssignable, Category=Character)
 	FMovementModeChangedSignature MovementModeChangedDelegate;
 
 	/**
@@ -691,7 +760,7 @@ public:
 	 * @param	PrevCustomMode		Custom mode before the change (applicable if PrevMovementMode is Custom)
 	 * @param	NewCustomMode		New custom mode (applicable if NewMovementMode is Custom)
 	 */
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "OnMovementModeChanged"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnMovementModeChanged", ScriptName="OnMovementModeChanged"))
 	void K2_OnMovementModeChanged(EMovementMode PrevMovementMode, EMovementMode NewMovementMode, uint8 PrevCustomMode, uint8 NewCustomMode);
 
 	/**
@@ -699,7 +768,7 @@ public:
 	 * @note C++ code should override UCharacterMovementComponent::PhysCustom() instead.
 	 * @see UCharacterMovementComponent::PhysCustom()
 	 */
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "UpdateCustomMovement"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="UpdateCustomMovement", ScriptName="UpdateCustomMovement"))
 	void K2_UpdateCustomMovement(float DeltaTime);
 
 	/**
@@ -712,12 +781,10 @@ public:
 	 * @param	InitialLocation		Location at the start of the update. May be different than the current location if movement occurred.
 	 * @param	InitialVelocity		Velocity at the start of the update. May be different than the current velocity.
 	 */
-	UPROPERTY(BlueprintAssignable, Category="Pawn|Character")
+	UPROPERTY(BlueprintAssignable, Category=Character)
 	FCharacterMovementUpdatedSignature OnCharacterMovementUpdated;
 
-	/** 
-	 * Returns true if the Landed() event should be called. Used by CharacterMovement to prevent notifications while playing back network moves.
-	 */
+	/** Returns true if the Landed() event should be called. Used by CharacterMovement to prevent notifications while playing back network moves. */
 	virtual bool ShouldNotifyLanded(const struct FHitResult& Hit);
 
 	/** Trigger jump if jump button has been pressed. */
@@ -736,33 +803,31 @@ public:
 	 */
 	virtual float GetJumpMaxHoldTime() const;
 
-public:
-
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientCheatWalk();
 	virtual void ClientCheatWalk_Implementation();
 
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientCheatFly();
 	virtual void ClientCheatFly_Implementation();
 
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientCheatGhost();
 	virtual void ClientCheatGhost_Implementation();
 
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void RootMotionDebugClientPrintOnScreen(const FString& InString);
 	virtual void RootMotionDebugClientPrintOnScreen_Implementation(const FString& InString);
 
 	// Root Motion
-public:
+
 	/** 
-	 *  For LocallyControlled Autonomous clients. 
-	 *  During a PerformMovement() after root motion is prepared, we save it off into this and
-	 *  then record it into our SavedMoves.
-	 *  During SavedMove playback we use it as our "Previous Move" SavedRootMotion which includes
-	 *  last received root motion from the Server
-	 **/
+	 * For LocallyControlled Autonomous clients. 
+	 * During a PerformMovement() after root motion is prepared, we save it off into this and
+	 * then record it into our SavedMoves.
+	 * During SavedMove playback we use it as our "Previous Move" SavedRootMotion which includes
+	 * last received root motion from the Server
+	 */
 	UPROPERTY(Transient)
 	FRootMotionSourceGroup SavedRootMotion;
 
@@ -776,18 +841,16 @@ public:
 	
 	/** Find usable root motion replicated move from our buffer.
 	 * Goes through the buffer back in time, to find the first move that clears 'CanUseRootMotionRepMove' below.
-	 * Returns index of that move or INDEX_NONE otherwise. */
+	 * Returns index of that move or INDEX_NONE otherwise.
+	 */
 	int32 FindRootMotionRepMove(const FAnimMontageInstance& ClientMontageInstance) const;
 
-	/** true if buffered move is usable to teleport client back to. */
+	/** True if buffered move is usable to teleport client back to. */
 	bool CanUseRootMotionRepMove(const FSimulatedRootMotionReplicatedMove& RootMotionRepMove, const FAnimMontageInstance& ClientMontageInstance) const;
 
 	/** Restore actor to an old buffered move. */
 	bool RestoreReplicatedMove(const FSimulatedRootMotionReplicatedMove& RootMotionRepMove);
 	
-	DEPRECATED(4.11, "UpdateSimulatedPosition() is deprecated and is not used by engine code. Use OnUpdateSimulatedPosition() instead.")
-	virtual void UpdateSimulatedPosition(const FVector& Location, const FRotator& NewRotation);
-
 	/**
 	 * Called on client after position update is received to respond to the new location and rotation.
 	 * Actual change in location is expected to occur in CharacterMovement->SmoothCorrection(), after which this occurs.
@@ -809,54 +872,33 @@ public:
 	/** Get FAnimMontageInstance playing RootMotion */
 	FAnimMontageInstance * GetRootMotionAnimMontageInstance() const;
 
-	/** true if we are playing Root Motion right now */
+	/** True if we are playing Root Motion right now */
 	UFUNCTION(BlueprintCallable, Category=Animation)
 	bool IsPlayingRootMotion() const;
 
-	/** true if we are playing Root Motion right now, through a Montage with RootMotionMode == ERootMotionMode::RootMotionFromMontagesOnly.
-	 * This means code path for networked root motion is enabled. */
-	UFUNCTION(BlueprintCallable, Category = Animation)
+	/**
+	 * True if we are playing Root Motion right now, through a Montage with RootMotionMode == ERootMotionMode::RootMotionFromMontagesOnly.
+	 * This means code path for networked root motion is enabled.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Animation)
 	bool IsPlayingNetworkedRootMotionMontage() const;
 
 	/** Sets scale to apply to root motion translation on this Character */
 	void SetAnimRootMotionTranslationScale(float InAnimRootMotionTranslationScale = 1.f);
 
 	/** Returns current value of AnimRootMotionScale */
-	UFUNCTION(BlueprintCallable, Category = Animation)
+	UFUNCTION(BlueprintCallable, Category=Animation)
 	float GetAnimRootMotionTranslationScale() const;
 
-	/** Called on the actor right before replication occurs.
-	* Only called on Server, and for autonomous proxies if recording a Client Replay. */
+	/**
+	 * Called on the actor right before replication occurs.
+	 * Only called on Server, and for autonomous proxies if recording a Client Replay.
+	 */
 	virtual void PreReplication(IRepChangedPropertyTracker & ChangedPropertyTracker) override;
 
-	/** Called on the actor right before replication occurs.
-	* Called for everyone when recording a Client Replay, including Simulated Proxies. */
+	/**
+	 * Called on the actor right before replication occurs.
+	 * Called for everyone when recording a Client Replay, including Simulated Proxies.
+	 */
 	virtual void PreReplicationForReplay(IRepChangedPropertyTracker & ChangedPropertyTracker) override;
-
-public:
-	/** Returns Mesh subobject **/
-	class USkeletalMeshComponent* GetMesh() const;
-#if WITH_EDITORONLY_DATA
-	/** Returns ArrowComponent subobject **/
-	class UArrowComponent* GetArrowComponent() const;
-#endif
-	/** Returns CharacterMovement subobject **/
-	class UCharacterMovementComponent* GetCharacterMovement() const;
-	/** Returns CapsuleComponent subobject **/
-	class UCapsuleComponent* GetCapsuleComponent() const;
 };
-
-
-//////////////////////////////////////////////////////////////////////////
-// Character inlines
-
-/** Returns Mesh subobject **/
-FORCEINLINE USkeletalMeshComponent* ACharacter::GetMesh() const { return Mesh; }
-#if WITH_EDITORONLY_DATA
-/** Returns ArrowComponent subobject **/
-FORCEINLINE UArrowComponent* ACharacter::GetArrowComponent() const { return ArrowComponent; }
-#endif
-/** Returns CharacterMovement subobject **/
-FORCEINLINE UCharacterMovementComponent* ACharacter::GetCharacterMovement() const { return CharacterMovement; }
-/** Returns CapsuleComponent subobject **/
-FORCEINLINE UCapsuleComponent* ACharacter::GetCapsuleComponent() const { return CapsuleComponent; }

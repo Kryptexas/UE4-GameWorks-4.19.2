@@ -1,0 +1,67 @@
+﻿INTSourceChangelist:3782314
+Availability: Public
+Title:게임플레이 및 시퀀서 애니메이션
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:게임플레이에서의 애니메이션을 레벨 시퀀스 기반 애니메이션으로 부드럽게 블렌딩하는 방법을 설명합니다.
+Version: 4.17
+SkillLevel: Advanced
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+tags:Sequencer
+tags:Animation
+type:how-to
+
+시네마틱 시퀀스를 만들 때, 기존 게임플레이 애니메이션과 레벨 시퀀스 안에 포함된 애니메이션을 블렌딩하고 싶을 때가 있습니다.
+예를 들어, 플레이가능 캐릭터가 게임플레이 도중 문으로 걸어가면 시퀀서에서 캐릭터 애니메이션을 주고 문을 여는 것이지요.
+또는 삼인칭 슈팅 게임에서 캐릭터를 조종하는 플레이어가 막다른 골목에 다다르면 시네마틱 사망 시퀀스로 블렌드 인 할 수도 있습니다.
+시퀀서, 블루프린트, 애니메이션 블루프린트를 조합하면 캐릭터의 게임플레이 포즈가 무엇이든 시퀀서에 **슬롯** 애니메이션으로 정의된 것과 블렌딩할 수 있습니다.
+
+이 예제에서는, 캐릭터가 트리거 볼륨에 들어설 때의 게임플레이 포즈를 가지고 시퀀서 안에서 사망 애니메이션과 블렌딩하도록 하겠습니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	ZQX4CB0s9b0
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+## 단계
+
+[DIR(output:"checkpoint" parent:"/Engine/Sequencer/HowTo/GameplayAnimBlending" org:"hierarchy")]
+
+[REGION:call_to_action]
+	[클릭하면 시작합니다.](Engine/Sequencer/HowTo/GameplayAnimBlending/01_SequenceSetup "%Engine/Sequencer/HowTo/GameplayAnimBlending/01_SequenceSetup:title%")
+[/REGION]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

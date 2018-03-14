@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -46,7 +46,10 @@ public:
 	virtual FString GetAllCountersAsJson() override;
 	virtual void ResetStatsForNextPeriod() override;
 	virtual TPerformanceHistogramMap& PerformanceHistograms() override { return PerformanceHistogramMap; }
-	virtual bool StartMachineLoadTracking();
+	// Legacy load tracking, which is raw frame time, not overshoot.
+	virtual bool StartMachineLoadTracking() override;
+	// If OvershootBuckets is empty, will use legacy load tracking values, which is raw frame time, not overshoot.
+	virtual bool StartMachineLoadTracking(double TickRate, const TArray<double>& FrameTimeHistogramBucketsMs) override;
 	virtual bool StopMachineLoadTracking();
 	virtual bool ReportUnplayableCondition(const FString& ConditionDescription);
 	//~ Begin IPerfCounters Interface end

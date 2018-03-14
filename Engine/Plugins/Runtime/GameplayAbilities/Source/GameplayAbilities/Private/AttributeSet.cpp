@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AttributeSet.h"
 #include "Stats/StatsMisc.h"
@@ -402,8 +402,6 @@ void UAttributeSet::PostNetReceive()
 	FScopedAggregatorOnDirtyBatch::EndNetReceiveLock();
 }
 
-int32 FScalableFloat::GlobalCachedCurveID = 1;
-
 FAttributeMetaData::FAttributeMetaData()
 	: MinValue(0.f)
 	, MaxValue(1.f)
@@ -417,6 +415,7 @@ float FScalableFloat::GetValueAtLevel(float Level, const FString* ContextString)
 	{
 		// This is a simple mechanism for invalidating our cached curve. If someone calls FScalableFloat::InvalidateAllCachedCurves (static method)
 		// all cached curve tables are invalidated and will be updated the next time they are accessed
+		const int32 GlobalCachedCurveID = UCurveTable::GetGlobalCachedCurveID();
 		if (LocalCachedCurveID != GlobalCachedCurveID)
 		{
 			FinalCurve = nullptr;
@@ -521,12 +520,6 @@ void FScalableFloat::operator=(const FScalableFloat& Src)
 	LocalCachedCurveID = Src.LocalCachedCurveID;
 	FinalCurve = Src.FinalCurve;
 }
-
-void FScalableFloat::InvalidateAllCachedCurves()
-{
-	GlobalCachedCurveID++;
-}
-
 
 // ------------------------------------------------------------------------------------
 //

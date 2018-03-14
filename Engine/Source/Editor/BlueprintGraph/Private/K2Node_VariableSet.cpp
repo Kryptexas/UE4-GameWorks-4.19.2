@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "K2Node_VariableSet.h"
@@ -81,8 +81,8 @@ UK2Node_VariableSet::UK2Node_VariableSet(const FObjectInitializer& ObjectInitial
 
 void UK2Node_VariableSet::AllocateDefaultPins()
 {
-	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, FString(), nullptr, UEdGraphSchema_K2::PN_Execute);
-	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, FString(), nullptr, UEdGraphSchema_K2::PN_Then);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Execute);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Then);
 
 	if (GetVarName() != NAME_None)
 	{
@@ -102,8 +102,8 @@ void UK2Node_VariableSet::AllocateDefaultPins()
 
 void UK2Node_VariableSet::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
 {
-	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, FString(), nullptr, UEdGraphSchema_K2::PN_Execute);
-	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, FString(), nullptr, UEdGraphSchema_K2::PN_Then);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Execute);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Then);
 
 	if (GetVarName() != NAME_None)
 	{
@@ -247,7 +247,7 @@ FText UK2Node_VariableSet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 	// If there is only one variable being written (one non-meta input pin), the title can be made the variable name
-	FString InputPinName;
+	FName InputPinName;
 	int32 NumInputsFound = 0;
 
 	for (int32 PinIndex = 0; PinIndex < Pins.Num(); ++PinIndex)
@@ -270,7 +270,7 @@ FText UK2Node_VariableSet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	else if (CachedNodeTitle.IsOutOfDate(this))
 	{
 		FFormatNamedArguments Args;
-		Args.Add(TEXT("PinName"), FText::FromString(InputPinName));
+		Args.Add(TEXT("PinName"), FText::FromName(InputPinName));
 
 		// FText::Format() is slow, so we cache this to save on performance
 		if (HasLocalRepNotify())
@@ -324,7 +324,7 @@ FNodeHandlingFunctor* UK2Node_VariableSet::CreateNodeHandler(FKismetCompilerCont
 	return new FKCHandler_VariableSet(CompilerContext);
 }
 
-FString UK2Node_VariableSet::GetVariableOutputPinName() const
+FName UK2Node_VariableSet::GetVariableOutputPinName() const
 {
 	return TEXT("Output_Get");
 }
@@ -344,7 +344,7 @@ FText UK2Node_VariableSet::GetPinNameOverride(const UEdGraphPin& Pin) const
 		return FText::GetEmpty();
 	}
 
-	return !Pin.PinFriendlyName.IsEmpty() ? Pin.PinFriendlyName : FText::FromString(Pin.PinName);
+	return !Pin.PinFriendlyName.IsEmpty() ? Pin.PinFriendlyName : FText::FromName(Pin.PinName);
 }
 
 void UK2Node_VariableSet::ValidateNodeDuringCompilation(FCompilerResultsLog& MessageLog) const
@@ -408,7 +408,7 @@ void UK2Node_VariableSet::ExpandNode(class FKismetCompilerContext& CompilerConte
 					VariableGetNode->VariableReference = VariableReference;
 					VariableGetNode->AllocateDefaultPins();
 					CompilerContext.MessageLog.NotifyIntermediateObjectCreation(VariableGetNode, this);
-					CompilerContext.MovePinLinksToIntermediate(*VariableGetPin, *VariableGetNode->FindPin(GetVarNameString()));
+					CompilerContext.MovePinLinksToIntermediate(*VariableGetPin, *VariableGetNode->FindPin(GetVarName()));
 
 					// Duplicate the connection to the self pin.
 					UEdGraphPin* SetSelfPin = K2Schema->FindSelfPin(*this, EGPD_Input);
@@ -462,7 +462,7 @@ void UK2Node_VariableSet::ExpandNode(class FKismetCompilerContext& CompilerConte
 				}
 				check(SetFunctionValuePin);
 
-				CompilerContext.MovePinLinksToIntermediate(*FindPin(GetVarNameString(), EGPD_Input), *SetFunctionValuePin);
+				CompilerContext.MovePinLinksToIntermediate(*FindPin(GetVarName(), EGPD_Input), *SetFunctionValuePin);
 			}
 		}
 	}

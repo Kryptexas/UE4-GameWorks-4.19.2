@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Internationalization/Internationalization.h"
 #include "GenericPlatform/GenericPlatformFile.h"
@@ -487,10 +487,10 @@ void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FS
 		}
 	}
 
-	// Remove any cultures that were explicitly disabled
+	// Remove any cultures that were explicitly disallowed
 	OutAvailableCultures.RemoveAll([&](const FCultureRef& InCulture) -> bool
 	{
-		return Implementation->IsCultureDisabled(InCulture->GetName());
+		return !Implementation->IsCultureAllowed(InCulture->GetName());
 	});
 }
 

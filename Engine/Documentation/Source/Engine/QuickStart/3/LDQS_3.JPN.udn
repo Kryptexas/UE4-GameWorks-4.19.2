@@ -25,7 +25,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 次にゲームの背景を作成するために必要な [レベル](Engine/Levels) を作成します。 
 レベルを新規作成する方法は何通りかありますが、ここでは最もよく使われる [コンテンツ ブラウザ](Engine/Content/Browser) による方法でアンリアル エディタ内に異なるアセットの種類を作成していきます。 
@@ -54,7 +54,7 @@ checkpoint: editorqs
 
 次のステップでは、アセットを追加し、背景をビルドしていきます。 
 
-%Steps%	
+	
 
 
 

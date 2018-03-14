@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -19,7 +19,7 @@ public class PerforceSourceControl : ModuleRules
 		);
 
 		AddEngineThirdPartyPrivateStaticDependencies(Target, "Perforce");
-		Definitions.Add("USE_P4_API=1");
+		PublicDefinitions.Add("USE_P4_API=1");
 
 		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Mac)
 		{

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System;
@@ -75,7 +75,7 @@ public class PhysXVehicleLib : ModuleRules
         PhysXLibraryMode LibraryMode = GetPhysXLibraryMode(Target.Configuration);
         string LibrarySuffix = GetPhysXLibrarySuffix(LibraryMode);
 
-        string PhysXLibDir = Target.UEThirdPartySourceDirectory + "PhysX/Lib/";
+        string PhysXLibDir = Target.UEThirdPartySourceDirectory + "PhysX3/Lib/";
 
         // Libraries and DLLs for windows platform
         if (Target.Platform == UnrealTargetPlatform.Win64)

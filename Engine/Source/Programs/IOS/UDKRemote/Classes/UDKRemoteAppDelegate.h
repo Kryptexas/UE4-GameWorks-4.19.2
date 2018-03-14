@@ -1,5 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
+//  Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 //
 //  UDKRemoteAppDelegate.h
 //  UDKRemote
@@ -22,12 +21,12 @@
 
 /** Properties set in the settings view */
 @property (retain) NSString* PCAddress;
-@property int Port;
 @property BOOL bShouldIgnoreTilt;
 @property BOOL bShouldIgnoreTouch;
 @property BOOL bLockOrientation;
 @property UIInterfaceOrientation LockedOrientation;
 @property (retain) NSMutableArray* RecentComputers;
+@property (retain) NSMutableArray* Ports;
 
 
 @end

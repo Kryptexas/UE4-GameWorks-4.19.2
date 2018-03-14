@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -47,6 +47,9 @@ enum class EShadingPath
 class FSceneInterface
 {
 public:
+	FSceneInterface(ERHIFeatureLevel::Type InFeatureLevel)
+		: FeatureLevel(InFeatureLevel)
+	{}
 
 	// FSceneInterface interface
 
@@ -72,6 +75,10 @@ public:
 	virtual void UpdatePrimitiveTransform(UPrimitiveComponent* Primitive) = 0;
 	/** Updates primitive attachment state. */
 	virtual void UpdatePrimitiveAttachment(UPrimitiveComponent* Primitive) = 0;
+	/**
+	 * Updates distance field scene data (transforms, uv scale, self-shadow bias, etc.) but doesn't change allocation in the atlas
+	 */
+	virtual void UpdatePrimitiveDistanceFieldSceneData_GameThread(UPrimitiveComponent* Primitive) {}
 	/** Finds the  primitive with the associated component id. */
 	virtual FPrimitiveSceneInfo* GetPrimitiveSceneInfo(int32 PrimitiveIndex) = 0;
 	/** 
@@ -120,7 +127,7 @@ public:
 	virtual void RemoveReflectionCapture(class UReflectionCaptureComponent* Component) {}
 
 	/** Reads back reflection capture data from the GPU.  Very slow operation that blocks the GPU and rendering thread many times. */
-	virtual void GetReflectionCaptureData(UReflectionCaptureComponent* Component, class FReflectionCaptureFullHDR& OutDerivedData) {}
+	virtual void GetReflectionCaptureData(UReflectionCaptureComponent* Component, class FReflectionCaptureData& OutCaptureData) {}
 
 	/** Updates a reflection capture's transform, and then re-captures the scene. */
 	virtual void UpdateReflectionCaptureTransform(class UReflectionCaptureComponent* Component) {}
@@ -129,7 +136,7 @@ public:
 	 * Allocates reflection captures in the scene's reflection cubemap array and updates them by recapturing the scene.
 	 * Existing captures will only be updated.  Must be called from the game thread.
 	 */
-	virtual void AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent*>& NewCaptures) {}
+	virtual void AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent*>& NewCaptures, const TCHAR* CaptureReason, bool bVerifyOnlyCapturing) {}
 	virtual void ReleaseReflectionCubemap(UReflectionCaptureComponent* CaptureComponent) {}
 
 	/** 
@@ -367,7 +374,8 @@ public:
 
 	virtual bool IsEditorScene() const { return false; }
 
-	virtual ERHIFeatureLevel::Type GetFeatureLevel() const { return GMaxRHIFeatureLevel; }
+	ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel; }
+
 	EShaderPlatform GetShaderPlatform() const { return GShaderPlatformForFeatureLevel[GetFeatureLevel()]; }
 
 	static EShadingPath GetShadingPath(ERHIFeatureLevel::Type InFeatureLevel)
@@ -417,4 +425,7 @@ public:
 
 protected:
 	virtual ~FSceneInterface() {}
+
+	/** This scene's feature level */
+	ERHIFeatureLevel::Type FeatureLevel;
 };

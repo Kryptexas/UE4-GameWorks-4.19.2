@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -24,6 +24,8 @@ class GRAPHEDITOR_API FGraphEditorDragDropAction : public FDragDropOperation
 {
 public:
 	DRAG_DROP_OPERATOR_TYPE(FGraphEditorDragDropAction, FDragDropOperation)
+
+	FGraphEditorDragDropAction();
 
 	void SetHoveredPin(UEdGraphPin* InPin);
 	void SetHoveredNode(const TSharedPtr<SGraphNode>& InNode);

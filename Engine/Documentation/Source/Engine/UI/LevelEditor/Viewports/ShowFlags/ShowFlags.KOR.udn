@@ -1,50 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:뷰포트 표시 플래그
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
 Description:뷰포트에 사용할 수 있는 표시 플래그 전부에 대한 설명입니다.
 Version: 4.9
+topic-image:ShowFlags_Topic.png
 
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](ShowFlags_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor/Viewports/ShowFlags:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor/Viewports/ShowFlags:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor/Viewports/ShowFlags]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](ShowFlags_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor/Viewports/ShowFlags:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor/Viewports/ShowFlags:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor/Viewports/ShowFlags]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:fullwidth]
 ![](ShowFlagHeader.png)

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "K2Node_ClassDynamicCast.h"
@@ -10,16 +10,13 @@
 
 struct FClassDynamicCastHelper
 {
-	static const FString CastSuccessPinName;
-
-	static const FString& GetClassToCastName()
-	{
-		static FString ClassToCastName(TEXT("Class"));
-		return ClassToCastName;
-	}
+	static const FName CastSuccessPinName;
+	static const FName ClassToCastName;;
 };
 
-const FString FClassDynamicCastHelper::CastSuccessPinName = TEXT("bSuccess");
+const FName FClassDynamicCastHelper::CastSuccessPinName(TEXT("bSuccess"));
+const FName FClassDynamicCastHelper::ClassToCastName(TEXT("Class"));
+
 
 UK2Node_ClassDynamicCast::UK2Node_ClassDynamicCast(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -30,7 +27,7 @@ void UK2Node_ClassDynamicCast::AllocateDefaultPins()
 {
 	// Check to track down possible BP comms corruption
 	//@TODO: Move this somewhere more sensible
-	ensure((TargetType == NULL) || (!TargetType->HasAnyClassFlags(CLASS_NewerVersionExists)));
+	ensure((TargetType == nullptr) || (!TargetType->HasAnyClassFlags(CLASS_NewerVersionExists)));
 
 	const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(GetSchema());
 	check(K2Schema != nullptr);
@@ -42,24 +39,24 @@ void UK2Node_ClassDynamicCast::AllocateDefaultPins()
 	if (!bIsPureCast)
 	{
 		// Input - Execution Pin
-		CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
+		CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Execute);
 
 		// Output - Execution Pins
-		CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_CastSucceeded);
-		CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_CastFailed);
+		CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_CastSucceeded);
+		CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_CastFailed);
 	}
 
 	// Input - Source type Pin
-	CreatePin(EGPD_Input, K2Schema->PC_Class, FString(), UObject::StaticClass(), FClassDynamicCastHelper::GetClassToCastName());
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Class, UObject::StaticClass(), FClassDynamicCastHelper::ClassToCastName);
 
 	// Output - Data Pin
-	if (TargetType != NULL)
+	if (TargetType)
 	{
-		const FString CastResultPinName = K2Schema->PN_CastedValuePrefix + TargetType->GetDisplayNameText().ToString();
-		CreatePin(EGPD_Output, K2Schema->PC_Class, FString(), *TargetType, CastResultPinName);
+		const FString CastResultPinName = UEdGraphSchema_K2::PN_CastedValuePrefix + TargetType->GetDisplayNameText().ToString();
+		CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Class, *TargetType, *CastResultPinName);
 	}
 
-	UEdGraphPin* BoolSuccessPin = CreatePin(EGPD_Output, K2Schema->PC_Boolean, FString(), nullptr, FClassDynamicCastHelper::CastSuccessPinName);
+	UEdGraphPin* BoolSuccessPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Boolean, FClassDynamicCastHelper::CastSuccessPinName);
 	BoolSuccessPin->bHidden = !bIsPureCast;
 
 	UK2Node::AllocateDefaultPins();
@@ -81,7 +78,7 @@ FText UK2Node_ClassDynamicCast::GetNodeTitle(ENodeTitleType::Type TitleType) con
 
 UEdGraphPin* UK2Node_ClassDynamicCast::GetCastSourcePin() const
 {
-	UEdGraphPin* Pin = FindPinChecked(FClassDynamicCastHelper::GetClassToCastName());
+	UEdGraphPin* Pin = FindPinChecked(FClassDynamicCastHelper::ClassToCastName);
 	check(Pin->Direction == EGPD_Input);
 	return Pin;
 }

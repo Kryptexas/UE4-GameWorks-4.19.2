@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Character.cpp: ACharacter implementation
@@ -130,7 +130,7 @@ void ACharacter::PostInitializeComponents()
 			CharacterMovement->UpdateNavAgent(*CapsuleComponent);
 		}
 
-		if (Controller == NULL && GetNetMode() != NM_Client)
+		if (Controller == nullptr && GetNetMode() != NM_Client)
 		{
 			if (CharacterMovement && CharacterMovement->bRunPhysicsWithNoController)
 			{
@@ -432,7 +432,7 @@ void ACharacter::ApplyDamageMomentum(float DamageTaken, FDamageEvent const& Dama
 	UDamageType const* const DmgTypeCDO = DamageEvent.DamageTypeClass->GetDefaultObject<UDamageType>();
 	float const ImpulseScale = DmgTypeCDO->DamageImpulse;
 
-	if ( (ImpulseScale > 3.f) && (CharacterMovement != NULL) )
+	if ( (ImpulseScale > 3.f) && (CharacterMovement != nullptr) )
 	{
 		FHitResult HitInfo;
 		FVector ImpulseDir;
@@ -461,9 +461,9 @@ void ACharacter::ApplyDamageMomentum(float DamageTaken, FDamageEvent const& Dama
 
 void ACharacter::ClearCrossLevelReferences()
 {
-	if( BasedMovement.MovementBase != NULL && GetOutermost() != BasedMovement.MovementBase->GetOutermost() )
+	if( BasedMovement.MovementBase != nullptr && GetOutermost() != BasedMovement.MovementBase->GetOutermost() )
 	{
-		SetBase( NULL );
+		SetBase( nullptr );
 	}
 
 	Super::ClearCrossLevelReferences();
@@ -631,7 +631,7 @@ namespace MovementBaseUtility
 			return true;
 		}
 
-		// NULL MovementBase
+		// nullptr MovementBase
 		OutLocation = FVector::ZeroVector;
 		OutQuat = FQuat::Identity;
 		return false;
@@ -642,7 +642,7 @@ namespace MovementBaseUtility
 /**	Change the Pawn's base. */
 void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, const FName InBoneName, bool bNotifyPawn )
 {
-	// If NewBaseComponent is null, ignore bone name.
+	// If NewBaseComponent is nullptr, ignore bone name.
 	const FName BoneName = (NewBaseComponent ? InBoneName : NAME_None);
 
 	// See what changed.
@@ -652,7 +652,7 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, const FName InB
 	if (bBaseChanged || bBoneChanged)
 	{
 		// Verify no recursion.
-		APawn* Loop = (NewBaseComponent ? Cast<APawn>(NewBaseComponent->GetOwner()) : NULL);
+		APawn* Loop = (NewBaseComponent ? Cast<APawn>(NewBaseComponent->GetOwner()) : nullptr);
 		while (Loop)
 		{
 			if (Loop == this)
@@ -711,7 +711,7 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, const FName InB
 
 			if (Role == ROLE_Authority || Role == ROLE_AutonomousProxy)
 			{
-				BasedMovement.bServerHasBaseComponent = (BasedMovement.MovementBase != NULL); // Also set on proxies for nicer debugging.
+				BasedMovement.bServerHasBaseComponent = (BasedMovement.MovementBase != nullptr); // Also set on proxies for nicer debugging.
 				UE_LOG(LogCharacter, Verbose, TEXT("Setting base on %s for '%s' to '%s'"), Role == ROLE_Authority ? TEXT("Server") : TEXT("AutoProxy"), *GetName(), *GetFullNameSafe(NewBaseComponent));
 			}
 			else
@@ -757,13 +757,13 @@ FVector ACharacter::GetNavAgentLocation() const
 
 void ACharacter::TurnOff()
 {
-	if (CharacterMovement != NULL)
+	if (CharacterMovement != nullptr)
 	{
 		CharacterMovement->StopMovementImmediately();
 		CharacterMovement->DisableMovement();
 	}
 
-	if (GetNetMode() != NM_DedicatedServer && Mesh != NULL)
+	if (GetNetMode() != NM_DedicatedServer && Mesh != nullptr)
 	{
 		Mesh->bPauseAnims = true;
 		if (Mesh->IsSimulatingPhysics())
@@ -794,7 +794,7 @@ void ACharacter::Restart()
 
 void ACharacter::PawnClientRestart()
 {
-	if (CharacterMovement != NULL)
+	if (CharacterMovement != nullptr)
 	{
 		CharacterMovement->StopMovementImmediately();
 		CharacterMovement->ResetPredictionData_Client();
@@ -855,7 +855,7 @@ void ACharacter::BaseChange()
 	if (CharacterMovement && CharacterMovement->MovementMode != MOVE_None)
 	{
 		AActor* ActualMovementBase = GetMovementBaseActor(this);
-		if ((ActualMovementBase != NULL) && !ActualMovementBase->CanBeBaseForCharacter(this))
+		if ((ActualMovementBase != nullptr) && !ActualMovementBase->CanBeBaseForCharacter(this))
 		{
 			CharacterMovement->JumpOff(ActualMovementBase);
 		}
@@ -874,7 +874,7 @@ void ACharacter::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDis
 		FIndenter PhysicsIndent(Indent);
 
 		FString BaseString;
-		if ( CharacterMovement == NULL || BasedMovement.MovementBase == NULL )
+		if ( CharacterMovement == nullptr || BasedMovement.MovementBase == nullptr )
 		{
 			BaseString = "Not Based";
 		}
@@ -887,7 +887,7 @@ void ACharacter::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDis
 		FDisplayDebugManager& DisplayDebugManager = Canvas->DisplayDebugManager;
 		DisplayDebugManager.DrawString(FString::Printf(TEXT("RelativeLoc: %s Rot: %s %s"), *BasedMovement.Location.ToCompactString(), *BasedMovement.Rotation.ToCompactString(), *BaseString), Indent);
 
-		if ( CharacterMovement != NULL )
+		if ( CharacterMovement != nullptr )
 		{
 			CharacterMovement->DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 		}
@@ -1093,7 +1093,7 @@ void ACharacter::OnRep_ReplicatedBasedMovement()
 		}
 
 		// When position or base changes, movement mode will need to be updated. This assumes rotation changes don't affect that.
-		CharacterMovement->bJustTeleported |= (bBaseChanged || GetActorLocation() != OldLocation);
+		CharacterMovement->bJustTeleported |= (bBaseChanged || NewLocation != OldLocation);
 		CharacterMovement->bNetworkSmoothingComplete = false;
 		CharacterMovement->SmoothCorrection(OldLocation, OldRotation, NewLocation, NewRotation.Quaternion());
 		OnUpdateSimulatedPosition(OldLocation, OldRotation);
@@ -1308,12 +1308,13 @@ void ACharacter::OnUpdateSimulatedPosition(const FVector& OldLocation, const FQu
 	SCOPE_CYCLE_COUNTER(STAT_CharacterOnNetUpdateSimulatedPosition);
 
 	bSimGravityDisabled = false;
+	const bool bLocationChanged = (OldLocation != GetActorLocation());
 	if (bClientCheckEncroachmentOnNetUpdate)
 	{	
 		// Only need to check for encroachment when teleported without any velocity.
 		// Normal movement pops the character out of geometry anyway, no use doing it before and after (with different rules).
 		// Always consider Location as changed if we were spawned this tick as in that case our replicated Location was set as part of spawning, before PreNetReceive()
-		if (CharacterMovement->Velocity.IsZero() && (OldLocation != GetActorLocation() || CreationTime == GetWorld()->TimeSeconds))
+		if (CharacterMovement->Velocity.IsZero() && (bLocationChanged || CreationTime == GetWorld()->TimeSeconds))
 		{
 			if (GetWorld()->EncroachingBlockingGeometry(this, GetActorLocation(), GetActorRotation()))
 			{
@@ -1321,36 +1322,7 @@ void ACharacter::OnUpdateSimulatedPosition(const FVector& OldLocation, const FQu
 			}
 		}
 	}
-	CharacterMovement->bJustTeleported = true;
-}
-
-// Deprecated, remove
-void ACharacter::UpdateSimulatedPosition(const FVector& NewLocation, const FRotator& NewRotation)
-{
-	// Always consider Location as changed if we were spawned this tick as in that case our replicated Location was set as part of spawning, before PreNetReceive()
-	if( (NewLocation != GetActorLocation()) || (CreationTime == GetWorld()->TimeSeconds) )
-	{
-		FVector FinalLocation = NewLocation;
-
-		// Only need to check for encroachment when teleported without any velocity.
-		// Normal movement pops the character out of geometry anyway, no use doing it before and after (with different rules).
-		bSimGravityDisabled = false;
-		if (CharacterMovement->Velocity.IsZero())
-		{
-			if (GetWorld()->EncroachingBlockingGeometry(this, NewLocation, NewRotation))
-			{
-				bSimGravityDisabled = true;
-			}
-		}
-		
-		// Don't use TeleportTo(), that clears our base.
-		SetActorLocationAndRotation(FinalLocation, NewRotation, false);
-		CharacterMovement->bJustTeleported = true;
-	}
-	else if( NewRotation != GetActorRotation() )
-	{
-		GetRootComponent()->MoveComponent(FVector::ZeroVector, NewRotation, false);
-	}
+	CharacterMovement->bJustTeleported |= bLocationChanged;
 }
 
 void ACharacter::PostNetReceiveLocationAndRotation()
@@ -1511,7 +1483,7 @@ float ACharacter::GetAnimRootMotionTranslationScale() const
 
 float ACharacter::PlayAnimMontage(class UAnimMontage* AnimMontage, float InPlayRate, FName StartSectionName)
 {
-	UAnimInstance * AnimInstance = (Mesh)? Mesh->GetAnimInstance() : NULL; 
+	UAnimInstance * AnimInstance = (Mesh)? Mesh->GetAnimInstance() : nullptr; 
 	if( AnimMontage && AnimInstance )
 	{
 		float const Duration = AnimInstance->Montage_Play(AnimMontage, InPlayRate);
@@ -1533,7 +1505,7 @@ float ACharacter::PlayAnimMontage(class UAnimMontage* AnimMontage, float InPlayR
 
 void ACharacter::StopAnimMontage(class UAnimMontage* AnimMontage)
 {
-	UAnimInstance * AnimInstance = (Mesh)? Mesh->GetAnimInstance() : NULL; 
+	UAnimInstance * AnimInstance = (Mesh)? Mesh->GetAnimInstance() : nullptr; 
 	UAnimMontage * MontageToStop = (AnimMontage)? AnimMontage : GetCurrentMontage();
 	bool bShouldStopMontage =  AnimInstance && MontageToStop && !AnimInstance->Montage_GetIsStopped(MontageToStop);
 
@@ -1545,13 +1517,13 @@ void ACharacter::StopAnimMontage(class UAnimMontage* AnimMontage)
 
 class UAnimMontage * ACharacter::GetCurrentMontage()
 {
-	UAnimInstance * AnimInstance = (Mesh)? Mesh->GetAnimInstance() : NULL; 
+	UAnimInstance * AnimInstance = (Mesh)? Mesh->GetAnimInstance() : nullptr; 
 	if ( AnimInstance )
 	{
 		return AnimInstance->GetCurrentActiveMontage();
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void ACharacter::ClientCheatWalk_Implementation()
@@ -1595,4 +1567,101 @@ void ACharacter::RootMotionDebugClientPrintOnScreen_Implementation(const FString
 #if ROOT_MOTION_DEBUG
 	RootMotionSourceDebug::PrintOnScreenServerMsg(InString);
 #endif
+}
+
+
+// ServerMove
+void ACharacter::ServerMove_Implementation(float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
+{
+	GetCharacterMovement()->ServerMove_Implementation(TimeStamp, InAccel, ClientLoc, CompressedMoveFlags, ClientRoll, View, ClientMovementBase, ClientBaseBoneName, ClientMovementMode);
+}
+
+bool ACharacter::ServerMove_Validate(float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
+{
+	return GetCharacterMovement()->ServerMove_Validate(TimeStamp, InAccel, ClientLoc, CompressedMoveFlags, ClientRoll, View, ClientMovementBase, ClientBaseBoneName, ClientMovementMode);
+}
+
+// ServerMoveNoBase
+void ACharacter::ServerMoveNoBase_Implementation(float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, uint8 ClientMovementMode)
+{
+	GetCharacterMovement()->ServerMove_Implementation(TimeStamp, InAccel, ClientLoc, CompressedMoveFlags, ClientRoll, View, /*ClientMovementBase=*/ nullptr, /*ClientBaseBoneName=*/ NAME_None, ClientMovementMode);
+}
+
+bool ACharacter::ServerMoveNoBase_Validate(float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, uint8 ClientMovementMode)
+{
+	return GetCharacterMovement()->ServerMove_Validate(TimeStamp, InAccel, ClientLoc, CompressedMoveFlags, ClientRoll, View, /*ClientMovementBase=*/ nullptr, /*ClientBaseBoneName=*/ NAME_None, ClientMovementMode);
+}
+
+// ServerMoveDual
+void ACharacter::ServerMoveDual_Implementation(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
+{
+	GetCharacterMovement()->ServerMoveDual_Implementation(TimeStamp0, InAccel0, PendingFlags, View0, TimeStamp, InAccel, ClientLoc, NewFlags, ClientRoll, View, ClientMovementBase, ClientBaseBoneName, ClientMovementMode);
+}
+
+bool ACharacter::ServerMoveDual_Validate(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
+{
+	return GetCharacterMovement()->ServerMoveDual_Validate(TimeStamp0, InAccel0, PendingFlags, View0, TimeStamp, InAccel, ClientLoc, NewFlags, ClientRoll, View, ClientMovementBase, ClientBaseBoneName, ClientMovementMode);
+}
+
+// ServerMoveDualNoBase
+void ACharacter::ServerMoveDualNoBase_Implementation(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, uint8 ClientMovementMode)
+{
+	GetCharacterMovement()->ServerMoveDual_Implementation(TimeStamp0, InAccel0, PendingFlags, View0, TimeStamp, InAccel, ClientLoc, NewFlags, ClientRoll, View, /*ClientMovementBase=*/ nullptr, /*ClientBaseBoneName=*/ NAME_None, ClientMovementMode);
+}
+
+bool ACharacter::ServerMoveDualNoBase_Validate(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, uint8 ClientMovementMode)
+{
+	return GetCharacterMovement()->ServerMoveDual_Validate(TimeStamp0, InAccel0, PendingFlags, View0, TimeStamp, InAccel, ClientLoc, NewFlags, ClientRoll, View, /*ClientMovementBase=*/ nullptr, /*ClientBaseBoneName=*/ NAME_None, ClientMovementMode);
+}
+
+// ServerMoveDualHybridRootMotion
+void ACharacter::ServerMoveDualHybridRootMotion_Implementation(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
+{
+	GetCharacterMovement()->ServerMoveDualHybridRootMotion_Implementation(TimeStamp0, InAccel0, PendingFlags, View0, TimeStamp, InAccel, ClientLoc, NewFlags, ClientRoll, View, ClientMovementBase, ClientBaseBoneName, ClientMovementMode);
+}
+
+bool ACharacter::ServerMoveDualHybridRootMotion_Validate(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
+{
+	return GetCharacterMovement()->ServerMoveDualHybridRootMotion_Validate(TimeStamp0, InAccel0, PendingFlags, View0, TimeStamp, InAccel, ClientLoc, NewFlags, ClientRoll, View, ClientMovementBase, ClientBaseBoneName, ClientMovementMode);
+}
+
+// ServerMoveOld
+void ACharacter::ServerMoveOld_Implementation(float OldTimeStamp, FVector_NetQuantize10 OldAccel, uint8 OldMoveFlags)
+{
+	GetCharacterMovement()->ServerMoveOld_Implementation(OldTimeStamp, OldAccel, OldMoveFlags);
+}
+
+bool ACharacter::ServerMoveOld_Validate(float OldTimeStamp, FVector_NetQuantize10 OldAccel, uint8 OldMoveFlags)
+{
+	return GetCharacterMovement()->ServerMoveOld_Validate(OldTimeStamp, OldAccel, OldMoveFlags);
+}
+
+// ClientAckGoodMove
+void ACharacter::ClientAckGoodMove_Implementation(float TimeStamp)
+{
+	GetCharacterMovement()->ClientAckGoodMove_Implementation(TimeStamp);
+}
+
+// ClientAdjustPosition
+void ACharacter::ClientAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, FVector NewVel, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode)
+{
+	GetCharacterMovement()->ClientAdjustPosition_Implementation(TimeStamp, NewLoc, NewVel, NewBase, NewBaseBoneName, bHasBase, bBaseRelativePosition, ServerMovementMode);
+}
+
+// ClientVeryShortAdjustPosition
+void ACharacter::ClientVeryShortAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode)
+{
+	GetCharacterMovement()->ClientVeryShortAdjustPosition_Implementation(TimeStamp, NewLoc, NewBase, NewBaseBoneName, bHasBase, bBaseRelativePosition, ServerMovementMode);
+}
+
+// ClientAdjustRootMotionPosition
+void ACharacter::ClientAdjustRootMotionPosition_Implementation(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode)
+{
+	GetCharacterMovement()->ClientAdjustRootMotionPosition_Implementation(TimeStamp, ServerMontageTrackPosition, ServerLoc, ServerRotation, ServerVelZ, ServerBase, ServerBoneName, bHasBase, bBaseRelativePosition, ServerMovementMode);
+}
+
+// ClientAdjustRootMotionSourcePosition
+void ACharacter::ClientAdjustRootMotionSourcePosition_Implementation(float TimeStamp, FRootMotionSourceGroup ServerRootMotion, bool bHasAnimRootMotion, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode)
+{
+	GetCharacterMovement()->ClientAdjustRootMotionSourcePosition_Implementation(TimeStamp, ServerRootMotion, bHasAnimRootMotion, ServerMontageTrackPosition, ServerLoc, ServerRotation, ServerVelZ, ServerBase, ServerBoneName, bHasBase, bBaseRelativePosition, ServerMovementMode);
 }

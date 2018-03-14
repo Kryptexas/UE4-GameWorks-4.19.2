@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreTypes.h"
 #include "Misc/AssertionMacros.h"
@@ -183,7 +183,7 @@ void DebugLeakTest()
 	FStats2
 -----------------------------------------------------------------------------*/
 
-int32 FStats::GameThreadStatsFrame = 1;
+TAtomic<int32> FStats::GameThreadStatsFrame(1);
 
 void FStats::AdvanceFrame( bool bDiscardCallstack, const FOnAdvanceRenderingThreadStats& AdvanceRenderingThreadStatsDelegate /*= FOnAdvanceRenderingThreadStats()*/ )
 {
@@ -191,9 +191,8 @@ void FStats::AdvanceFrame( bool bDiscardCallstack, const FOnAdvanceRenderingThre
 	LLM_SCOPE(ELLMTag::Stats);
 	check( IsInGameThread() );
 	static int32 MasterDisableChangeTagStartFrame = -1;
-	FPlatformAtomics::InterlockedIncrement(&GameThreadStatsFrame);
+	int64 Frame = ++GameThreadStatsFrame;
 
-	int64 Frame = GameThreadStatsFrame;
 	if( bDiscardCallstack )
 	{
 		FThreadStats::FrameDataIsIncomplete(); // we won't collect call stack stats this frame
@@ -204,7 +203,7 @@ void FStats::AdvanceFrame( bool bDiscardCallstack, const FOnAdvanceRenderingThre
 	}
 	if( !FThreadStats::IsCollectingData() || MasterDisableChangeTagStartFrame != FThreadStats::MasterDisableChangeTag() )
 	{
-		Frame = -GameThreadStatsFrame; // mark this as a bad frame
+		Frame = -Frame; // mark this as a bad frame
 	}
 
 	// Update the seconds per cycle.
@@ -214,7 +213,7 @@ void FStats::AdvanceFrame( bool bDiscardCallstack, const FOnAdvanceRenderingThre
 
 	if( AdvanceRenderingThreadStatsDelegate.IsBound() )
 	{
-		AdvanceRenderingThreadStatsDelegate.Execute( bDiscardCallstack, GameThreadStatsFrame, MasterDisableChangeTagStartFrame );
+		AdvanceRenderingThreadStatsDelegate.Execute( bDiscardCallstack, Frame, MasterDisableChangeTagStartFrame );
 	}
 	else
 	{
@@ -344,7 +343,7 @@ FStartupMessages& FStartupMessages::Get()
 	FThreadSafeStaticStatBase
 -----------------------------------------------------------------------------*/
 
-void FThreadSafeStaticStatBase::DoSetup(const char* InStatName, const TCHAR* InStatDesc, const char* InGroupName, const char* InGroupCategory, const TCHAR* InGroupDesc, bool bDefaultEnable, bool bShouldClearEveryFrame, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion) const
+const TStatIdData* FThreadSafeStaticStatBase::DoSetup(const char* InStatName, const TCHAR* InStatDesc, const char* InGroupName, const char* InGroupCategory, const TCHAR* InGroupDesc, bool bDefaultEnable, bool bShouldClearEveryFrame, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion) const
 {
 	FName TempName(InStatName);
 
@@ -352,8 +351,10 @@ void FThreadSafeStaticStatBase::DoSetup(const char* InStatName, const TCHAR* InS
 	FStartupMessages::Get().AddMetadata(TempName, InStatDesc, InGroupName, InGroupCategory, InGroupDesc, bShouldClearEveryFrame, InStatType, bCycleStat, InMemoryRegion);
 
 	TStatIdData const* LocalHighPerformanceEnable(IStatGroupEnableManager::Get().GetHighPerformanceEnableForStat(FName(InStatName), InGroupName, InGroupCategory, bDefaultEnable, bShouldClearEveryFrame, InStatType, InStatDesc, bCycleStat, InMemoryRegion).GetRawPointer());
-	TStatIdData const* OldHighPerformanceEnable = (TStatIdData const*)FPlatformAtomics::InterlockedCompareExchangePointer((void**)&HighPerformanceEnable, (void*)LocalHighPerformanceEnable, NULL);
-	check(!OldHighPerformanceEnable || HighPerformanceEnable == OldHighPerformanceEnable); // we are assigned two different groups?
+	TStatIdData const* OldHighPerformanceEnable = HighPerformanceEnable.Exchange(LocalHighPerformanceEnable);
+	check(!OldHighPerformanceEnable || LocalHighPerformanceEnable == OldHighPerformanceEnable); // we are assigned two different groups?
+
+	return LocalHighPerformanceEnable;
 }
 
 /*-----------------------------------------------------------------------------
@@ -406,25 +407,12 @@ class FStatGroupEnableManager : public IStatGroupEnableManager
 
 	void EnableStat(FName StatName, TStatIdData* DisablePtr)
 	{
-		// This is all complicated to ensure an atomic 8 byte write
-		static_assert(sizeof(FMinimalName) == sizeof(uint64), "FMinimalName should have the same size of uint64.");
-		check(UPTRINT(&DisablePtr->Name) % sizeof(FMinimalName) == 0);
-		MS_ALIGN(8) struct FAligner
-		{
-			FMinimalName Temp;
-		} GCC_ALIGN(8);
-		FAligner Align;
-		check(UPTRINT(&Align.Temp) % sizeof(FMinimalName) == 0);
-
-		Align.Temp = NameToMinimalName(StatName);
-		FPlatformAtomics::InterlockedExchange((int64*)&DisablePtr->Name, (*(int64 const*)&Align.Temp));
+		DisablePtr->Name = NameToMinimalName(StatName);
 	}
 
 	void DisableStat(TStatIdData* DisablePtr)
 	{
-		static_assert(sizeof( FMinimalName ) == sizeof( uint64 ), "FMinimalName should have the same size of uint64.");
-        check( UPTRINT( &DisablePtr->Name ) % sizeof( FMinimalName ) == 0 );
-        FPlatformAtomics::InterlockedExchange((int64*)&DisablePtr->Name, (*(int64 const*)TStatId::GetStatNone()));
+		DisablePtr->Name = TStatId::GetStatNone().Name.Load();
 	}
 
 public:
@@ -984,9 +972,19 @@ public:
 	/** Start a stats runnable thread. */
 	void Start()
 	{
-		FRunnableThread* Thread = FRunnableThread::Create(this, TEXT("StatsThread"), 512 * 1024, TPri_BelowNormal, FPlatformAffinity::GetStatsThreadMask());
-		check(Thread != NULL);
+		Thread = FRunnableThread::Create(this, TEXT("StatsThread"), 512 * 1024, TPri_BelowNormal, FPlatformAffinity::GetStatsThreadMask());
+		check(Thread);
 	}
+
+	/** Ends the stats runnable thread. */
+	void End()
+	{
+		delete Thread;
+		Thread = nullptr;
+	}
+
+private:
+	FRunnableThread* Thread;
 };
 
 /*-----------------------------------------------------------------------------
@@ -1059,7 +1057,7 @@ bool FThreadStats::bMasterDisableForever = false;
 bool FThreadStats::bIsRawStatsActive = false;
 
 FThreadStats::FThreadStats():
-	CurrentGameFrame(FStats::GameThreadStatsFrame),
+	CurrentGameFrame(FStats::GameThreadStatsFrame.Load(EMemoryOrder::Relaxed)),
 	ScopeCount(0),
 	bWaitForExplicitFlush(0),
 	MemoryMessageScope(0),
@@ -1374,6 +1372,8 @@ void FThreadStats::StopThread()
 		}
 		FGraphEventRef QuitTask = TGraphTask<FReturnGraphTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(FPlatformProcess::SupportsMultithreading() ? ENamedThreads::StatsThread : ENamedThreads::GameThread);
 		FTaskGraphInterface::Get().WaitUntilTaskCompletes(QuitTask, ENamedThreads::GameThread_Local);
+
+		FStatsThread::Get().End();
 	}
 }
 

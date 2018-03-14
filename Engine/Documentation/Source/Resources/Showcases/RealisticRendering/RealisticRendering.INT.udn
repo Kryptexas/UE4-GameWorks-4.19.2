@@ -11,49 +11,7 @@ Related: Engine/Rendering/Materials
 Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Engine/Rendering/Materials/LayeredMaterials
 Version: 4.9
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/Showcases/RealisticRendering:title%](RealisticRendering_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/RealisticRendering:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/RealisticRendering:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/RealisticRendering]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/Showcases/RealisticRendering:title%](RealisticRendering_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/RealisticRendering:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/RealisticRendering:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/RealisticRendering]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:RealisticRendering_Topic.png
 
 [REGION:fullwidth]
 ![](RealisticRenderingHeader.png)
@@ -227,7 +185,8 @@ The Materials involved with the carpet include:
 
 
 
-<!--Inclusions-----
+[COMMENT:none]
+Inclusions-----
 [EXCERPT:BaseColor]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -389,4 +348,5 @@ For more information, please see the [Stationary Lights](Engine/Rendering/Lighti
 
 [/EXCERPT:InverseSquared]
 
-------------------->
+-----------------
+[/COMMENT]

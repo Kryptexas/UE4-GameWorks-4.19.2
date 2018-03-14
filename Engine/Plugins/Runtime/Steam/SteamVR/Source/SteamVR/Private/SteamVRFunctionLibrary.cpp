@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 //
 #include "Classes/SteamVRFunctionLibrary.h"
 #include "SteamVRPrivate.h"
 #include "SteamVRHMD.h"
+#include "XRMotionControllerBase.h"
 
 USteamVRFunctionLibrary::USteamVRFunctionLibrary(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
@@ -12,8 +13,7 @@ USteamVRFunctionLibrary::USteamVRFunctionLibrary(const FObjectInitializer& Objec
 #if STEAMVR_SUPPORTED_PLATFORMS
 FSteamVRHMD* GetSteamVRHMD()
 {
-	static FName SystemName(TEXT("SteamVR"));
-	if (GEngine->XRSystem.IsValid() && (GEngine->XRSystem->GetSystemName() == SystemName))
+	if (GEngine->XRSystem.IsValid() && (GEngine->XRSystem->GetSystemName() == FSteamVRHMD::SteamSystemName))
 	{
 		return static_cast<FSteamVRHMD*>(GEngine->XRSystem.Get());
 	}
@@ -95,7 +95,7 @@ bool USteamVRFunctionLibrary::GetHandPositionAndOrientation(int32 ControllerInde
 	if (SteamMotionController)
 	{
 		// Note: the steam motion controller ignores the WorldToMeters scale argument.
-		RetVal = SteamMotionController->GetControllerOrientationAndPosition(ControllerIndex, Hand, OutOrientation, OutPosition, -1.0f);
+		RetVal = static_cast<FXRMotionControllerBase*>(SteamMotionController)->GetControllerOrientationAndPosition(ControllerIndex, Hand, OutOrientation, OutPosition, -1.0f);
 	}
 #endif // STEAMVR_SUPPORTED_PLATFORMS
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,7 +26,6 @@ struct FPreviewSceneProfile
 		bShowFloor = true;
 		bShowEnvironment = true;
 		bRotateLightingRig = false;
-		EnvironmentCubeMap = nullptr;
 		DirectionalLightIntensity = 1.0f;
 		DirectionalLightColor = FLinearColor::White;
 		SkyLightIntensity = 1.0f;

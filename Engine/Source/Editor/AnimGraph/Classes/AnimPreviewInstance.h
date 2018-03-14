@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -53,6 +53,7 @@ public:
 	virtual void Update(float DeltaSeconds) override;
 	virtual bool Evaluate(FPoseContext& Output) override;
 	virtual void PreUpdate(UAnimInstance* InAnimInstance, float DeltaSeconds) override;
+	virtual void SetAnimationAsset(UAnimationAsset* NewAsset, USkeletalMeshComponent* MeshComponent, bool bIsLooping, float InPlayRate) override;
 
 	void ResetModifiedBone(bool bCurveController = false);
 
@@ -195,6 +196,7 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 	//~ Begin UAnimInstance Interface
 	virtual void NativeInitializeAnimation() override;
 	virtual FAnimInstanceProxy* CreateAnimInstanceProxy() override;
+	virtual bool CanRunParallelWork() const { return false; }
 protected:
 	virtual void Montage_Advance(float DeltaTime) override;
 	//~ End UAnimInstance Interface

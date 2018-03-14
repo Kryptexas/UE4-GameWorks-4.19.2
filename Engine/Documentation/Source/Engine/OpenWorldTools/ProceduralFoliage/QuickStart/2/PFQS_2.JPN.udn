@@ -22,7 +22,7 @@ Version:4.8
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 次のセクションでは、Procedural Foliage Spawnerで作業するために **Foliage Type アクタ** を設定する方法を説明します。 
 前のステップで作成した **PFT_00** レベルを引き続き使用します。
 
@@ -59,4 +59,4 @@ Version:4.8
 	![](T_Final_Results.png)
 
 
-%Steps%
+

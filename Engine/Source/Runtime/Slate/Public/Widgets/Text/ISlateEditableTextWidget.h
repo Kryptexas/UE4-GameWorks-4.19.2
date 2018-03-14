@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -58,7 +58,8 @@ enum class EVirtualKeyboardTrigger
 	OnAllFocusEvents,
 };
 
-enum class EVirtualKeyboardDismissAction
+UENUM(BlueprintType)
+enum class EVirtualKeyboardDismissAction : uint8
 {
 	/** Sends a text changed message when the virtual keyboard is dismissed by the user. */
 	TextChangeOnDismiss,

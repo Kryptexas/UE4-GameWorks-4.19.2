@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -98,6 +98,9 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 
 	/** Send out any pending cues */
 	virtual void FlushPendingCues();
+
+	/** Broadcasted when ::FlushPendingCues runs: useful for custom batching/gameplay cue handling */
+	FSimpleMulticastDelegate	OnFlushPendingCues;
 
 	virtual void OnCreated();
 
@@ -207,8 +210,8 @@ protected:
 	/** Refreshes the existing, already initialized, object libraries. */
 	void RefreshObjectLibraries();
 
-	/** Internal function to actually init the FGameplayCueObjectLibrary */
-	void InitObjectLibrary(FGameplayCueObjectLibrary& Library);
+	/** Internal function to actually init the FGameplayCueObjectLibrary.  Returns StreamableHandle when asset async loading is requested. */
+	TSharedPtr<FStreamableHandle> InitObjectLibrary(FGameplayCueObjectLibrary& Library);
 
 	virtual TArray<FString> GetAlwaysLoadedGameplayCuePaths();
 
@@ -221,7 +224,9 @@ protected:
 	UPROPERTY(transient)
 	FGameplayCueObjectLibrary EditorGameplayCueObjectLibrary;
 
-	/** Handle to maintain ownership of gameplay cue assets. */
+	/** Handle to maintain ownership of gameplay cue assets.  
+      Note:	Only the latest handle to async load request is cached.
+			If projects require multiple concurrent asynchronous loads, handles returned from InitObjectLibrary should be cached as needed. */
 	TSharedPtr<FStreamableHandle> GameplayCueAssetHandle;
 
 public:		

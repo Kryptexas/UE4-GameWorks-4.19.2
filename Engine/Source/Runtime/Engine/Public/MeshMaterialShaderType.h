@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MeshMaterialShader.h: Mesh material shader definitions.
@@ -15,6 +15,25 @@ class FShaderCommonCompileJob;
 class FShaderCompileJob;
 class FUniformExpressionSet;
 class FVertexFactoryType;
+
+struct FMeshMaterialShaderPermutationParameters
+{
+	// Shader platform to compile to.
+	const EShaderPlatform Platform;
+
+	// Material to compile.
+	const FMaterial* Material;
+
+	// Type of vertex factory to compile.
+	const FVertexFactoryType* VertexFactoryType;
+
+	FMeshMaterialShaderPermutationParameters(EShaderPlatform InPlatform, const FMaterial* InMaterial, const FVertexFactoryType* InVertexFactoryType)
+		: Platform(InPlatform)
+		, Material(InMaterial)
+		, VertexFactoryType(InVertexFactoryType)
+	{
+	}
+};
 
 /**
  * A shader meta type for material-linked shaders which use a vertex factory.
@@ -40,7 +59,7 @@ public:
 		{}
 	};
 	typedef FShader* (*ConstructCompiledType)(const CompiledShaderInitializerType&);
-	typedef bool (*ShouldCacheType)(EShaderPlatform,const FMaterial*,const FVertexFactoryType* VertexFactoryType);
+	typedef bool (*ShouldCompilePermutationType)(EShaderPlatform,const FMaterial*,const FVertexFactoryType* VertexFactoryType);
 	typedef void (*ModifyCompilationEnvironmentType)(EShaderPlatform, const FMaterial*, FShaderCompilerEnvironment&);
 
 	FMeshMaterialShaderType(
@@ -48,20 +67,22 @@ public:
 		const TCHAR* InSourceFilename,
 		const TCHAR* InFunctionName,
 		uint32 InFrequency,
+		int32 InTotalPermutationCount,
 		ConstructSerializedType InConstructSerializedRef,
 		ConstructCompiledType InConstructCompiledRef,
 		ModifyCompilationEnvironmentType InModifyCompilationEnvironmentRef,
-		ShouldCacheType InShouldCacheRef,
+		ShouldCompilePermutationType InShouldCompilePermutationRef,
 		GetStreamOutElementsType InGetStreamOutElementsRef
 		):
-		FShaderType(EShaderTypeForDynamicCast::MeshMaterial, InName,InSourceFilename,InFunctionName,InFrequency,InConstructSerializedRef,InGetStreamOutElementsRef),
+		FShaderType(EShaderTypeForDynamicCast::MeshMaterial, InName,InSourceFilename,InFunctionName,InFrequency,InTotalPermutationCount,InConstructSerializedRef,InGetStreamOutElementsRef),
 		ConstructCompiledRef(InConstructCompiledRef),
-		ShouldCacheRef(InShouldCacheRef),
+		ShouldCompilePermutationRef(InShouldCompilePermutationRef),
 		ModifyCompilationEnvironmentRef(InModifyCompilationEnvironmentRef)
 	{
 		checkf(FPaths::GetExtension(InSourceFilename) == TEXT("usf"),
 			TEXT("Incorrect virtual shader path extension for mesh material shader '%s': Only .usf files should be compiled."),
 			InSourceFilename);
+		check(InTotalPermutationCount == 1);
 	}
 
 	/**
@@ -113,7 +134,7 @@ public:
 	 */
 	bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType) const
 	{
-		return (*ShouldCacheRef)(Platform,Material,VertexFactoryType);
+		return (*ShouldCompilePermutationRef)(Platform,Material,VertexFactoryType);
 	}
 
 protected:
@@ -131,7 +152,7 @@ protected:
 
 private:
 	ConstructCompiledType ConstructCompiledRef;
-	ShouldCacheType ShouldCacheRef;
+	ShouldCompilePermutationType ShouldCompilePermutationRef;
 	ModifyCompilationEnvironmentType ModifyCompilationEnvironmentRef;
 };
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -107,7 +107,7 @@ public:
 	FJsonValueNumber(double InNumber) : Value(InNumber) {Type = EJson::Number;}
 	virtual bool TryGetNumber(double& OutNumber) const override		{ OutNumber = Value; return true; }
 	virtual bool TryGetBool(bool& OutBool) const override			{ OutBool = (Value != 0.0); return true; }
-	virtual bool TryGetString(FString& OutString) const override	{ OutString = FString::SanitizeFloat(Value); return true; }
+	virtual bool TryGetString(FString& OutString) const override	{ OutString = FString::SanitizeFloat(Value, 0); return true; }
 	
 protected:
 	double Value;

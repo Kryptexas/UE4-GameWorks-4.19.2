@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VolumeRendering.h: Volume rendering definitions.
@@ -48,14 +48,14 @@ class FWriteToSliceVS : public FGlobalShader
 	DECLARE_EXPORTED_SHADER_TYPE(FWriteToSliceVS,Global,ENGINE_API);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) 
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) 
 	{ 
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); 
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4); 
 	}
 
-	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment )
 	{
-		FGlobalShader::ModifyCompilationEnvironment( Platform, OutEnvironment );
+		FGlobalShader::ModifyCompilationEnvironment( Parameters, OutEnvironment );
 		OutEnvironment.CompilerFlags.Add( CFLAG_VertexToGeometryShader );
 	}
 
@@ -100,9 +100,9 @@ class FWriteToSliceGS : public FGlobalShader
 	DECLARE_EXPORTED_SHADER_TYPE(FWriteToSliceGS,Global,ENGINE_API);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) 
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) 
 	{ 
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && RHISupportsGeometryShaders(Platform); 
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4) && RHISupportsGeometryShaders(Parameters.Platform); 
 	}
 
 	FWriteToSliceGS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):

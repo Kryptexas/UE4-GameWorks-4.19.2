@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MobileTranslucentRendering.cpp: translucent rendering implementation.
@@ -36,7 +36,7 @@ class FMobileCopySceneAlphaPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FMobileCopySceneAlphaPS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return true; }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return true; }
 
 	FMobileCopySceneAlphaPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FGlobalShader(Initializer)
@@ -68,7 +68,7 @@ void FMobileSceneRenderer::CopySceneAlpha(FRHICommandListImmediate& RHICmdList, 
 	SCOPED_DRAW_EVENTF(RHICmdList, EventCopy, TEXT("CopySceneAlpha"));
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
-	RHICmdList.CopyToResolveTarget(SceneContext.GetSceneColorSurface(), SceneContext.GetSceneColorTexture(), true, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+	RHICmdList.CopyToResolveTarget(SceneContext.GetSceneColorSurface(), SceneContext.GetSceneColorTexture(), true, FResolveRect(0, 0, FamilySize.X, FamilySize.Y));
 
 	SceneContext.BeginRenderingSceneAlphaCopy(RHICmdList);
 
@@ -150,7 +150,7 @@ public:
 		return true;
 	}
 
-	bool CanReceiveStaticAndCSM(const FLightSceneInfo* LightSceneInfo, const FPrimitiveSceneProxy* PrimitiveSceneProxy) const { return false; }
+	bool CanReceiveCSM(const FLightSceneInfo* LightSceneInfo, const FPrimitiveSceneProxy* PrimitiveSceneProxy) const { return false; }
 
 	const FScene* GetScene() const
 	{ 
@@ -195,7 +195,7 @@ public:
 		for (int32 BatchElementIndex = 0; BatchElementIndex<Parameters.Mesh.Elements.Num(); BatchElementIndex++)
 		{
 			TDrawEvent<FRHICommandList> MeshEvent;
-			BeginMeshDrawEvent(RHICmdList, Parameters.PrimitiveSceneProxy, Parameters.Mesh, MeshEvent);
+			BeginMeshDrawEvent(RHICmdList, Parameters.PrimitiveSceneProxy, Parameters.Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::MobileTranslucent));
 
 			DrawingPolicy.SetMeshRenderState(
 				RHICmdList, 
@@ -207,7 +207,7 @@ public:
 				typename TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, NumDynamicPointLights>::ElementDataType(LightMapElementData),
 				typename TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, NumDynamicPointLights>::ContextDataType()
 				);
-			DrawingPolicy.DrawMesh(RHICmdList, Parameters.Mesh, BatchElementIndex);
+			DrawingPolicy.DrawMesh(RHICmdList, View, Parameters.Mesh, BatchElementIndex);
 		}
 	}
 };
@@ -251,7 +251,6 @@ bool FMobileTranslucencyDrawingPolicyFactory::DrawDynamicMesh(
 				Material,
 				PrimitiveSceneProxy,
 				true,
-				false,
 				DrawingContext.TextureMode,
 				FeatureLevel, 
 				false, // ISR disabled for mobile
@@ -357,7 +356,7 @@ void FMobileSceneRenderer::RenderTranslucency(FRHICommandListImmediate& RHICmdLi
 			FMobileTranslucencyDrawingPolicyFactory::ContextType DrawingContext(ESceneRenderTargetsMode::SetTextures, TranslucencyPass);
 			View.TranslucentPrimSet.DrawPrimitivesForMobile<FMobileTranslucencyDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, DrawingContext);
 			
-			View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, FTexture2DRHIRef(), EBlendModeFilter::Translucent);
+			View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, EBlendModeFilter::Translucent);
 			
 			// Editor and debug rendering
 			DrawViewElements<FMobileTranslucencyDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, DrawingContext, SDPG_World, false);
@@ -387,7 +386,7 @@ protected:
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
 	{
 		return IsTranslucentBlendMode(Material->GetBlendMode()) && IsMobilePlatform(Platform);
 	}
@@ -429,7 +428,7 @@ class FOpacityOnlyPS : public FMeshMaterialShader
 	DECLARE_SHADER_TYPE(FOpacityOnlyPS, MeshMaterial);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
 	{
 		return IsTranslucentBlendMode(Material->GetBlendMode()) && IsMobilePlatform(Platform);
 	}
@@ -499,13 +498,14 @@ public:
 			VertexShader = InMaterialResource.GetShader<FOpacityOnlyVS >(VertexFactory->GetType());
 			PixelShader = InMaterialResource.GetShader<FOpacityOnlyPS>(InVertexFactory->GetType());
 		}
+		BaseVertexShader = VertexShader;
 	}
 
 	// FMeshDrawingPolicy interface.
-	FDrawingPolicyMatchResult Matches(const FMobileOpacityDrawingPolicy& Other) const
+	FDrawingPolicyMatchResult Matches(const FMobileOpacityDrawingPolicy& Other, bool bForReals = false) const
 	{
 		DRAWING_POLICY_MATCH_BEGIN
-			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
+			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other, bForReals)) &&
 			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
 			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader);
 		DRAWING_POLICY_MATCH_END
@@ -650,10 +650,10 @@ private:
 				{
 					const bool bIsInstancedMesh = Mesh.Elements[BatchElementIndex].bIsInstancedMesh;
 					TDrawEvent<FRHICommandList> MeshEvent;
-					BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent);
+					BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::MobileTranslucentOpacity));
 
 					DrawingPolicy.SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, DrawRenderStateLocal, FMeshDrawingPolicy::ElementDataType(), FMobileOpacityDrawingPolicy::ContextDataType());
-					DrawingPolicy.DrawMesh(RHICmdList, Mesh, BatchElementIndex);
+					DrawingPolicy.DrawMesh(RHICmdList, View, Mesh, BatchElementIndex);
 				}
 				Mask >>= 1;
 				BatchElementIndex++;

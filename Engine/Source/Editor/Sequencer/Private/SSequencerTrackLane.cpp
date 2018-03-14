@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SSequencerTrackLane.h"
 #include "Rendering/DrawElements.h"
@@ -105,7 +105,7 @@ void SSequencerTrackLane::Construct(const FArguments& InArgs, const TSharedRef<F
 }
 
 
-void DrawLaneRecursive(const TSharedRef<FSequencerDisplayNode>& DisplayNode, const FGeometry& AllottedGeometry, float& YOffs, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle)
+void DrawLane(const TSharedRef<FSequencerDisplayNode>& DisplayNode, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle)
 {
 	static const FName BorderName("Sequencer.AnimationOutliner.DefaultBorder");
 	static const FName SelectionColorName("SelectionColor");
@@ -128,7 +128,7 @@ void DrawLaneRecursive(const TSharedRef<FSequencerDisplayNode>& DisplayNode, con
 			OutDrawElements,
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(
-				FVector2D(0, YOffs),
+				FVector2D(0, 0),
 				FVector2D(AllottedGeometry.GetLocalSize().X, TotalNodeHeight)
 			),
 			FEditorStyle::GetBrush(BorderName),
@@ -159,7 +159,7 @@ void DrawLaneRecursive(const TSharedRef<FSequencerDisplayNode>& DisplayNode, con
 				OutDrawElements,
 				LayerId,
 				AllottedGeometry.ToPaintGeometry(
-					FVector2D(0, YOffs),
+					FVector2D(0, 0),
 					FVector2D(AllottedGeometry.GetLocalSize().X, TotalNodeHeight)
 				),
 				FEditorStyle::GetBrush(BorderName),
@@ -168,22 +168,11 @@ void DrawLaneRecursive(const TSharedRef<FSequencerDisplayNode>& DisplayNode, con
 			);
 		}
 	}
-
-	YOffs += TotalNodeHeight;
-
-	if (DisplayNode->IsExpanded())
-	{
-		for (const auto& ChildNode : DisplayNode->GetChildNodes())
-		{
-			DrawLaneRecursive(ChildNode, AllottedGeometry, YOffs, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle);
-		}
-	}
 }
 
 int32 SSequencerTrackLane::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	float YOffs = 0;
-	DrawLaneRecursive(DisplayNode.ToSharedRef(), AllottedGeometry, YOffs, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle);
+	DrawLane(DisplayNode.ToSharedRef(), AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle);
 
 	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId + 1, InWidgetStyle, bParentEnabled);
 }

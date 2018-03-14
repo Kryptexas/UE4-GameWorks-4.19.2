@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -300,6 +300,7 @@ public:
 		FScopeLock Lock(&LiveRequestsCritical);
 		check(!LiveRequests.Num()); // must delete all requests before you delete the handle
 #endif
+		CloseHandle(FileHandle);
 	}
 	void RemoveRequest(FWindowsReadRequest* Req)
 	{

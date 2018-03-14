@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:카메라 이펙트 사용
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
@@ -6,19 +6,13 @@ Description:페이드 인/아웃, 다중 FOV 앵글, 포스트 프로세스 이�
 Version: 4.9
 SkillLevel: Intermediate
 
----
 이번 비법에서는 다양한 FOV (필드 오브 뷰), 뎁스 오브 필드, 기타 포스트 프로세싱 이펙트가 적용된 다중 카메라 앵글을 사용하는 짧은 시퀀스를 만들어 보겠습니다.
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		마티네, 카메라, 소품 추가하기
-	[/PARAM]
-	[PARAM:description]
-	여기서는 **마티네 액터**, **카메라** 및 샷의 주체가 될 약간의 소품을 추가하도록 하겠습니다.
-	[/PARAM]
-[/OBJECT]
+## 마티네, 카메라, 소품 추가하기
+
+여기서는 **마티네 액터**, **카메라** 및 샷의 주체가 될 약간의 소품을 추가하도록 하겠습니다.
 
 1. **툴바** 메뉴에서 **마티네** 를 선택한 다음 **마티네 추가** 버튼을 누릅니다.
 
@@ -62,15 +56,9 @@ SkillLevel: Intermediate
 
 	![](MHT4_C2_CameraSettings.png)
 
+## 마티네에 카메라를 추가하고 트랙 추가하기
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		마티네에 카메라를 추가하고 트랙 추가하기
-	[/PARAM]
-	[PARAM:description]
-	여기서는 **마티네** 에 **카메라** 를 추가한 다음 씬에서 조작할 포스트 프로세싱 트랙을 셋업하도록 하겠습니다.
-	[/PARAM]
-[/OBJECT]
+여기서는 **마티네** 에 **카메라** 를 추가한 다음 씬에서 조작할 포스트 프로세싱 트랙을 셋업하도록 하겠습니다.
 
 1. **월드 아웃라이너** 에서 **마티네** 를 선택한 다음, **디테일** 패널에서 **마티네 열기** 옵션을 선택합니다.
 
@@ -118,15 +106,9 @@ SkillLevel: Intermediate
 
 	![](MHT4_CameraGroupsComplete.png)
 
+## 카메라 1, 샷 1 - 이동 및 포스트 프로세싱 이펙트
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		카메라 1, 샷 1 - 이동 및 포스트 프로세싱 이펙트
-	[/PARAM]
-	[PARAM:description]
-	이번 단계에서는 첫 번째 샷이 될 첫 번째 카메라에 이동 및 포스트 프로세싱 이펙트를 추가하겠습니다.
-	[/PARAM]
-[/OBJECT]
+이번 단계에서는 첫 번째 샷이 될 첫 번째 카메라에 이동 및 포스트 프로세싱 이펙트를 추가하겠습니다.
 
 1. **마티네 에디터** 안에서 **Camera1** 그룹의 **FOVAngle** 트랙을 선택한 다음 **Enter** 키를 쳐 **0.00** 위치에 키프레임을 추가합니다.
 
@@ -178,17 +160,9 @@ SkillLevel: Intermediate
 
 	_그러면 배경에 초점을 잡은 다음 전경의 브러시로 초점을 맞추면서 흐릿하게 블렌딩합니다_
 
+## 카메라 2, 샷 2 - 이동 및 포스트 프로세싱 이펙트
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		카메라 2, 샷 2 - 이동 및 포스트 프로세싱 이펙트
-	[/PARAM]
-	[PARAM:description]
-	여기서는 두 번째 샷에 사용되는 2 번 카메라에 이동 및 포스트 프로세싱 이펙트를 추가하겠습니다.
-	[/PARAM]
-[/OBJECT]
-
-
+여기서는 두 번째 샷에 사용되는 2 번 카메라에 이동 및 포스트 프로세싱 이펙트를 추가하겠습니다.
 
 1. **Camera2** 의 **Movement** 트랙에서,, **타임 바** 를 **5.00** 으로 옮긴 다음 **Enter** 키를 쳐 키프레임을 추가한 뒤, **0.00** 에 있는 키프레임을 삭제합니다.
 
@@ -239,14 +213,9 @@ SkillLevel: Intermediate
 	_그러면 바위에 초점이 잡힌 상태에서는 배경이 뿌옇다가 구름으로 패닝하면서 초점이 잡힙니다._
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		카메라 1, 샷 3 - 필름 이펙트 추가하기
-	[/PARAM]
-	[PARAM:description]
-	여기서는 시퀀스 세 번째 샷에 카메라 1 로 다시 전환한 다음, 필름 포스트 프로세싱 이펙트를 추가하겠습니다.
-	[/PARAM]
-[/OBJECT]
+## 카메라 1, 샷 3 - 필름 이펙트 추가하기
+
+여기서는 시퀀스 세 번째 샷에 카메라 1 로 다시 전환한 다음, 필름 포스트 프로세싱 이펙트를 추가하겠습니다.
 
 1. **마티네 에디터** 안에서 **Camera1** 의 **Movement** 트랙 **5.00** 위치에 키프레임을 선택한 다음 복사합니다.
 
@@ -300,15 +269,9 @@ SkillLevel: Intermediate
 
 	_세팅이 **마티네** 를 통해 업데이트되므로 기본값으로 놔둡니다._
 
+## 카메라 2, 샷 4 - 씬 컬러 이펙트 추가하기
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		카메라 2, 샷 4 - 씬 컬러 이펙트 추가하기
-	[/PARAM]
-	[PARAM:description]
-	여기서는 최종 샷을 위해 카메라 2 로 다시 전환한 다음 씬에 노이즈 필터 이펙트를 추가하겠습니다.
-	[/PARAM]
-[/OBJECT]
+여기서는 최종 샷을 위해 카메라 2 로 다시 전환한 다음 씬에 노이즈 필터 이펙트를 추가하겠습니다.
 
 1. **마티네 에디터** 안에서 **타임 바** 를 **15.50** 으로 옮깁니다.
 
@@ -334,15 +297,9 @@ SkillLevel: Intermediate
 
 	_세팅은 **마티네** 를 통해 업데이트할 것이므로, 기본값으로 놔둡니다._
 
+## Director 그룹 - 카메라 컷과 페이딩 추가하기
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Director 그룹 - 카메라 컷과 페이딩 추가하기
-	[/PARAM]
-	[PARAM:description]
-	여기서는, **Director** 그룹을 통해 카메라 컷을 추가하고 페이드를 적용하여 씬을 마무리하겠습니다.
-	[/PARAM]
-[/OBJECT]
+여기서는, **Director** 그룹을 통해 카메라 컷을 추가하고 페이드를 적용하여 씬을 마무리하겠습니다.
 
 1. **마티네 에디터** 에서 **Camera2** 의 마지막 트랙 아래 빈 공간에 **우클릭** 한 다음 맥락 메뉴에서 **새 Director 그룹 추가** 를 선택합니다.
 

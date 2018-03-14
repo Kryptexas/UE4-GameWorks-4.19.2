@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintEditorModule.h"
@@ -30,6 +30,8 @@
 #include "EdGraphUtilities.h"
 #include "BlueprintGraphPanelPinFactory.h"
 #include "Widgets/Docking/SDockTab.h"
+#include "KismetCompiler.h"
+#include "CallStackViewer.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 
@@ -200,6 +202,8 @@ void FBlueprintEditorModule::StartupModule()
 		.SetTooltipText( NSLOCTEXT("BlueprintDebugger", "TooltipText", "Open the Blueprint Debugger tab.") )
 		.SetGroup( MenuStructure.GetDeveloperToolsDebugCategory() )
 		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "BlueprintDebugger.TabIcon"));
+
+	CallStackViewer::RegisterTabSpawner();
 
 	// Have to check GIsEditor because right now editor modules can be loaded by the game
 	// Once LoadModule is guaranteed to return NULL for editor modules in game, this can be removed

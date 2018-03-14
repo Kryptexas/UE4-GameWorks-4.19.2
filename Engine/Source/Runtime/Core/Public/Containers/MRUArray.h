@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -35,60 +35,11 @@ public:
 		MaxItems = 0;
 	}
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-
 	TMRUArray(TMRUArray&&) = default;
 	TMRUArray(const TMRUArray&) = default;
 	TMRUArray& operator=(TMRUArray&&) = default;
 	TMRUArray& operator=(const TMRUArray&) = default;
 
-#else
-
-	/**
-	 * Copy constructor.
-	 *
-	 * @param Other Other array to copy.
-	 */
-	FORCEINLINE TMRUArray(const TMRUArray& Other)
-		: Super((const Super&)Other)
-	{
-	}
-
-	/**
-	 * Assign operator.
-	 *
-	 * @param Other Other array to assign with.
-	 * @returns Reference to this object.
-	 */
-	FORCEINLINE TMRUArray& operator=(const TMRUArray& Other)
-	{
-		(Super&)*this = (const Super&)Other;
-		return *this;
-	}
-
-	/**
-	 * Move constructor.
-	 *
-	 * @param Other Other array to move.
-	 */
-	FORCEINLINE TMRUArray(TMRUArray&& Other)
-		: Super((TMRUArray&&)Other)
-	{
-	}
-
-	/**
-	 * Move assign operator.
-	 *
-	 * @param Other Other array to assign with.
-	 * @returns Reference to this object.
-	 */
-	FORCEINLINE TMRUArray& operator=(TMRUArray&& Other)
-	{
-		(Super&)*this = (Super&&)Other;
-		return *this;
-	}
-
-#endif
 	/**
 	 * Adds item to the array. Makes sure that we don't add more than the
 	 * limit.

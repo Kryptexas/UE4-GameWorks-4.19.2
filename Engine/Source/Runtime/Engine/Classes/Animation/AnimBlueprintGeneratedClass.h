@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -33,7 +33,7 @@ public:
 	TMap<TWeakObjectPtr<UEdGraphNode>, int32> NodeToTransitionIndex;
 
 	// The animation node that leads into this state machine (A3 only)
-	TWeakObjectPtr<class UAnimGraphNode_StateMachineBase> MachineInstanceNode;
+	TWeakObjectPtr<UAnimGraphNode_StateMachineBase> MachineInstanceNode;
 
 	// Index of this machine in the StateMachines array
 	int32 MachineIndex;
@@ -87,19 +87,19 @@ struct ENGINE_API FAnimBlueprintDebugData
 #if WITH_EDITORONLY_DATA
 public:
 	// Map from state machine graphs to their corresponding debug data
-	TMap<TWeakObjectPtr<UEdGraph>, FStateMachineDebugData> StateMachineDebugData;
+	TMap<TWeakObjectPtr<const UEdGraph>, FStateMachineDebugData> StateMachineDebugData;
 
 	// Map from state graphs to their node
-	TMap<TWeakObjectPtr<UEdGraph>, TWeakObjectPtr<class UAnimStateNode> > StateGraphToNodeMap;
+	TMap<TWeakObjectPtr<const UEdGraph>, TWeakObjectPtr<UAnimStateNode> > StateGraphToNodeMap;
 
 	// Map from transition graphs to their node
-	TMap<TWeakObjectPtr<UEdGraph>, TWeakObjectPtr<class UAnimStateTransitionNode> > TransitionGraphToNodeMap;
+	TMap<TWeakObjectPtr<const UEdGraph>, TWeakObjectPtr<UAnimStateTransitionNode> > TransitionGraphToNodeMap;
 
 	// Map from custom transition blend graphs to their node
-	TMap<TWeakObjectPtr<UEdGraph>, TWeakObjectPtr<class UAnimStateTransitionNode> > TransitionBlendGraphToNodeMap;
+	TMap<TWeakObjectPtr<const UEdGraph>, TWeakObjectPtr<UAnimStateTransitionNode> > TransitionBlendGraphToNodeMap;
 
 	// Map from animation node to their property index
-	TMap<TWeakObjectPtr<class UAnimGraphNode_Base>, int32> NodePropertyToIndexMap;
+	TMap<TWeakObjectPtr<const UAnimGraphNode_Base>, int32> NodePropertyToIndexMap;
 
 	// Map from animation node GUID to property index
 	TMap<FGuid, int32> NodeGuidToIndexMap;
@@ -183,7 +183,7 @@ class ENGINE_API UAnimBlueprintGeneratedClass : public UBlueprintGeneratedClass,
 
 	/** Target skeleton for this blueprint class */
 	UPROPERTY()
-	class USkeleton* TargetSkeleton;
+	USkeleton* TargetSkeleton;
 
 	/** A list of anim notifies that state machines (or anything else) may reference */
 	UPROPERTY()
@@ -235,7 +235,7 @@ public:
 	}
 
 	template<typename StructType>
-	const int32* GetNodePropertyIndexFromHierarchy(class UAnimGraphNode_Base* Node)
+	const int32* GetNodePropertyIndexFromHierarchy(UAnimGraphNode_Base* Node)
 	{
 		TArray<const UBlueprintGeneratedClass*> BlueprintHierarchy;
 		GetGeneratedClassesHierarchy(this, BlueprintHierarchy);
@@ -256,13 +256,13 @@ public:
 	}
 
 	template<typename StructType>
-	const int32* GetNodePropertyIndex(class UAnimGraphNode_Base* Node, EPropertySearchMode::Type SearchMode = EPropertySearchMode::OnlyThis)
+	const int32* GetNodePropertyIndex(UAnimGraphNode_Base* Node, EPropertySearchMode::Type SearchMode = EPropertySearchMode::OnlyThis)
 	{
 		return (SearchMode == EPropertySearchMode::OnlyThis) ? AnimBlueprintDebugData.NodePropertyToIndexMap.Find(Node) : GetNodePropertyIndexFromHierarchy<StructType>(Node);
 	}
 
 	template<typename StructType>
-	int32 GetLinkIDForNode(class UAnimGraphNode_Base* Node, EPropertySearchMode::Type SearchMode = EPropertySearchMode::OnlyThis)
+	int32 GetLinkIDForNode(UAnimGraphNode_Base* Node, EPropertySearchMode::Type SearchMode = EPropertySearchMode::OnlyThis)
 	{
 		const int32* pIndex = GetNodePropertyIndex<StructType>(Node, SearchMode);
 		if (pIndex)
@@ -273,7 +273,7 @@ public:
 	}
 
 	template<typename StructType>
-	UStructProperty* GetPropertyForNode(class UAnimGraphNode_Base* Node, EPropertySearchMode::Type SearchMode = EPropertySearchMode::OnlyThis)
+	UStructProperty* GetPropertyForNode(UAnimGraphNode_Base* Node, EPropertySearchMode::Type SearchMode = EPropertySearchMode::OnlyThis)
 	{
 		const int32* pIndex = GetNodePropertyIndex<StructType>(Node, SearchMode);
 		if (pIndex)
@@ -291,7 +291,7 @@ public:
 	}
 
 	template<typename StructType>
-	StructType* GetPropertyInstance(UObject* Object, class UAnimGraphNode_Base* Node, EPropertySearchMode::Type SearchMode = EPropertySearchMode::OnlyThis)
+	StructType* GetPropertyInstance(UObject* Object, UAnimGraphNode_Base* Node, EPropertySearchMode::Type SearchMode = EPropertySearchMode::OnlyThis)
 	{
 		UStructProperty* AnimationProperty = GetPropertyForNode<StructType>(Node);
 		if (AnimationProperty)
@@ -321,7 +321,7 @@ public:
 	}
 
 	template<typename StructType>
-	StructType& GetPropertyInstanceChecked(UObject* Object, class UAnimGraphNode_Base* Node, EPropertySearchMode::Type SearchMode = EPropertySearchMode::OnlyThis)
+	StructType& GetPropertyInstanceChecked(UObject* Object, UAnimGraphNode_Base* Node, EPropertySearchMode::Type SearchMode = EPropertySearchMode::OnlyThis)
 	{
 		const int32 Index = AnimBlueprintDebugData.NodePropertyToIndexMap.FindChecked(Node);
 		UStructProperty* AnimationProperty = AnimNodeProperties[AnimNodeProperties.Num() - 1 - Index];
@@ -341,6 +341,7 @@ public:
 	// UClass interface
 	virtual void PurgeClass(bool bRecompilingOnLoad) override;
 	virtual uint8* GetPersistentUberGraphFrame(UObject* Obj, UFunction* FuncToCheck) const override;
+	virtual void PostLoadDefaultObject(UObject* Object) override;
 	// End of UClass interface
 };
 

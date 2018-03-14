@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineEngineInterfaceImpl.h"
 #include "OnlineSubsystem.h"
@@ -360,7 +360,12 @@ TSharedPtr<FVoicePacket> UOnlineEngineInterfaceImpl::SerializeRemotePacket(UWorl
 	FName VoiceSubsystemName = VoiceSubsystemNameOverride;
 	if (RemoteConnection && RemoteConnection->Driver && RemoteConnection->Driver->GetNetMode() == NM_DedicatedServer)
 	{
-		VoiceSubsystemName = GetDedicatedServerSubsystemNameForSubsystem(RemoteConnection->GetPlayerOnlinePlatformName());
+		FName DedicatedVoiceSubsystemName = GetDedicatedServerSubsystemNameForSubsystem(RemoteConnection->GetPlayerOnlinePlatformName());
+
+		if (DedicatedVoiceSubsystemName != NAME_None)
+		{
+			VoiceSubsystemName = DedicatedVoiceSubsystemName;
+		}
 	}
 
 	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World, VoiceSubsystemName);

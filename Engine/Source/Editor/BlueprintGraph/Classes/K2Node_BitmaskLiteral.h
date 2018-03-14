@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -42,7 +42,7 @@ class UK2Node_BitmaskLiteral : public UK2Node, public INodeDependingOnEnumInterf
 	virtual bool ShouldBeReconstructedAfterEnumChanged() const override { return true; }
 	//~ End INodeDependingOnEnumInterface
 
-	BLUEPRINTGRAPH_API static const FString& GetBitmaskInputPinName();
+	BLUEPRINTGRAPH_API static const FName& GetBitmaskInputPinName();
 
 protected:
 	/** Internal helper method used to validate the current enum type */

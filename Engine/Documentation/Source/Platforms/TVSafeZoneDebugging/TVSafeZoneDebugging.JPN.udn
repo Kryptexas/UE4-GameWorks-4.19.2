@@ -134,7 +134,8 @@ TV セーフティ ゾーン コマンドをプロジェクトの **[SystemSetti
 
 
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:SZ]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -163,9 +164,11 @@ TV セーフティ ゾーン コマンドをプロジェクトの **[SystemSetti
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:SZ]
--->
 
-<!-----
+[/COMMENT]
+
+[COMMENT:none]
+---
 [EXCERPT:SZA]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -194,4 +197,5 @@ TV セーフティ ゾーン コマンドをプロジェクトの **[SystemSetti
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:SZA]
--->
+
+[/COMMENT]

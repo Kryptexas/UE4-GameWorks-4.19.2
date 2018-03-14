@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,6 +6,7 @@
 #include "Widgets/SCompoundWidget.h"
 #include "SListView.h"
 #include "SComboBox.h"
+#include "EditorUndoClient.h"
 
 class USkeletalMesh;
 class UClothingAsset;
@@ -24,6 +25,7 @@ struct FClothingMaskListItem
 	{}
 
 	FClothParameterMask_PhysMesh* GetMask();
+	USkeletalMesh* GetOwningMesh();
 
 	TWeakObjectPtr<UClothingAsset> ClothingAsset;
 	int32 LodIndex;
@@ -35,7 +37,7 @@ typedef SListView<TSharedPtr<FClothingMaskListItem>> SMaskList;
 
 DECLARE_DELEGATE_ThreeParams(FOnClothAssetSelectionChanged, TWeakObjectPtr<UClothingAsset>, int32, int32);
 
-class SClothAssetSelector : public SCompoundWidget
+class SClothAssetSelector : public SCompoundWidget, public FEditorUndoClient
 {
 public:
 
@@ -50,6 +52,10 @@ public:
 	TWeakObjectPtr<UClothingAsset> GetSelectedAsset() const;
 	int32 GetSelectedLod() const;
 	int32 GetSelectedMask() const;
+
+	/** FEditorUndoClient interface */
+	virtual void PostUndo(bool bSuccess) override;
+	/** End FEditorUndoClient interface */
 
 protected:
 

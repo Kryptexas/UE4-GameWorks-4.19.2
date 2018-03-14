@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -62,6 +62,7 @@ class ENGINE_API UAnimNotify : public UObject
 #if WITH_EDITOR
 	virtual void OnAnimNotifyCreatedInEditor(FAnimNotifyEvent& ContainingAnimNotifyEvent) {};
 	virtual bool CanBePlaced(UAnimSequenceBase* Animation) const { return true; }
+	virtual void ValidateAssociatedAssets() {}
 #endif
 
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation);
@@ -94,10 +95,14 @@ class ENGINE_API UAnimNotify : public UObject
 
 	/** UObject Interface */
 	virtual void PostLoad() override;
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	/** End UObject Interface */
 
 	/** This notify is always a branching point when used on Montages. */
 	bool bIsNativeBranchingPoint;
+
+protected:
+	UObject* GetContainingAsset() const;
 
 private:
 	/* The mesh we're currently triggering a UAnimNotify for (so we can retrieve per instance information) */

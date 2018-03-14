@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -341,12 +341,14 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	FGameplayEffectContext()
 	: AbilityLevel(1)
 	, bHasWorldOrigin(false)
+	, bReplicateSourceObject(false)
 	{
 	}
 
 	FGameplayEffectContext(AActor* InInstigator, AActor* InEffectCauser)
 	: AbilityLevel(1)
 	, bHasWorldOrigin(false)
+	, bReplicateSourceObject(false)
 	{
 		AddInstigator(InInstigator, InEffectCauser);
 	}
@@ -412,7 +414,8 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	/** Sets the object this effect was created from. */
 	virtual void AddSourceObject(const UObject* NewSourceObject)
 	{
-		SourceObject = NewSourceObject;
+		SourceObject = MakeWeakObjectPtr(const_cast<UObject*>(NewSourceObject));
+		bReplicateSourceObject = NewSourceObject && NewSourceObject->IsSupportedForNetworking();
 	}
 
 	/** Returns the object this effect was created from. */
@@ -432,11 +435,12 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 
 	virtual const FHitResult* GetHitResult() const
 	{
-		if (HitResult.IsValid())
-		{
-			return HitResult.Get();
-		}
-		return NULL;
+		return const_cast<FGameplayEffectContext*>(this)->GetHitResult();
+	}
+
+	virtual FHitResult* GetHitResult()
+	{
+		return HitResult.Get();
 	}
 
 	virtual void AddOrigin(FVector InOrigin);
@@ -521,7 +525,11 @@ protected:
 	FVector	WorldOrigin;
 
 	UPROPERTY()
-	bool bHasWorldOrigin;
+	uint8 bHasWorldOrigin:1;
+
+	/** True if the SourceObject can be replicated. This bool is not replicated itself. */
+	UPROPERTY()
+	uint8 bReplicateSourceObject:1;
 };
 
 template<>
@@ -982,16 +990,22 @@ namespace EGameplayCueEvent
 DECLARE_DELEGATE_OneParam(FOnGameplayAttributeEffectExecuted, struct FGameplayModifierEvaluatedData&);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayEffectTagCountChanged, const FGameplayTag, int32);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnGivenActiveGameplayEffectRemoved, const FActiveGameplayEffect&);
 
 DECLARE_MULTICAST_DELEGATE(FOnActiveGameplayEffectRemoved);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnActiveGameplayEffectRemoved_Info, const FGameplayEffectRemovalInfo&);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnActiveGameplayEffectStackChange, FActiveGameplayEffectHandle, int32 /*NewStackCount*/, int32 /*PreviousStackCount*/);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnActiveGameplayEffectTimeChange, FActiveGameplayEffectHandle, float /*NewStartTime*/, float /*NewDuration*/);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnActiveGameplayEffectInhibitionChanged, FActiveGameplayEffectHandle, bool /*bIsInhibited*/);
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnGivenActiveGameplayEffectRemoved, const FActiveGameplayEffect&);
-
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnActiveGameplayEffectStackChange, FActiveGameplayEffectHandle, int32, int32);
-
-/** FActiveGameplayEffectHandle that is being effect, the start time, duration of the effect */
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnActiveGameplayEffectTimeChange, FActiveGameplayEffectHandle, float, float);
+struct FActiveGameplayEffectEvents
+{
+	FOnActiveGameplayEffectRemoved DEPRECATED_OnEffectRemoved;
+	FOnActiveGameplayEffectRemoved_Info OnEffectRemoved;
+	FOnActiveGameplayEffectStackChange OnStackChanged;
+	FOnActiveGameplayEffectTimeChange OnTimeChanged;
+	FOnActiveGameplayEffectInhibitionChanged OnInhibitionChanged;
+};
 
 // This is deprecated, use FOnGameplayAttributeValueChange
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayAttributeChange, float, const FGameplayEffectModCallbackData*);

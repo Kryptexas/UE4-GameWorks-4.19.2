@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388665
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 1.2 - Visual Studio 에서 프로젝트 열기
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
@@ -22,7 +22,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 예전 단계에서 **Basic Code** 프로젝트를 구성할 때, 언리얼 엔진이 **Game Mode** 를 대신 만들어 줬습니다. Game Mode 는 게임의 규칙과 승리 조건을 정의합니다. 우리 Game Mode 는 기본 게임플레이 프레임워크 유형에 사용될 기본 클래스를, Pawn, PlayerController, HUD 를 포함해서 설정합니다. 이 글에서는 에디터를 사용하여 Visual Studio 에서 솔루션을 열어 프로젝트의 Game Mode 클래스를 확인할 수 있도록 하겠습니다.
 
@@ -57,4 +57,3 @@ Version: 4.15
 
 1.	Visual Studio 에서 C++ 프로젝트를 열었으니, 이제 프로젝트에 코드 추가를 시작할 준비가 되었습니다.
 		
-%Steps%

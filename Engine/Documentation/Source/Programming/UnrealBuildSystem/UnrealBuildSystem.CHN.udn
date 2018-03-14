@@ -51,33 +51,21 @@ UE4 被划分为多个模块。每个模块都拥有控制其编译方式的 .bu
 
 这些模块被默认编译为 DLL 文件，可通过单一可执行文件进行加载。可选择在 BuildConfiguration.cs 文件中编译一个单块可执行文件。
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		概要
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 概要
+
+[REGION:buttonlist]
+
 		* [](Programming/UnrealBuildSystem/ProjectFileGenerator "%Programming/UnrealBuildSystem/ProjectFileGenerator:description%")
 		* [](Programming/Development/BuildingUnrealEngine "%Programming/Development/BuildingUnrealEngine:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/profile_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		设置和配置
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 设置和配置
+
+[REGION:buttonlist]
+
 		* [](Programming/UnrealBuildSystem/Configuration "%Programming/UnrealBuildSystem/Configuration:description%")
 		* [](Programming/UnrealBuildSystem/TargetFiles "%Programming/UnrealBuildSystem/TargetFiles:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 

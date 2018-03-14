@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -51,4 +51,6 @@ public:
 
 	/** Whether or not this widget has a valid property */	
 	virtual bool HasValidProperty() const = 0;
+
+	virtual TSharedPtr<class IPropertyHandle> GetPropertyHandle() const = 0;
 };

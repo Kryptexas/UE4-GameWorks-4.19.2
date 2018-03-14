@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "ClassIconFinder.h"
@@ -47,11 +47,11 @@ const FSlateBrush* FClassIconFinder::FindIconForActors(const TArray< TWeakObject
 FSlateIcon FClassIconFinder::FindSlateIconForActor( const TWeakObjectPtr<AActor>& InActor )
 {
 	// Actor specific overrides to normal per-class icons
-	AActor* Actor = InActor.Get();
+	const AActor* Actor = InActor.Get();
 
 	if ( Actor )
 	{
-		ABrush* Brush = Cast< ABrush >( Actor );
+		const ABrush* Brush = Cast< ABrush >( Actor );
 		if ( Brush )
 		{
 			if (Brush_Add == Brush->BrushType)

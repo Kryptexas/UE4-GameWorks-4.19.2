@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Dialogs/SDeleteAssetsDialog.h"
 #include "Framework/Commands/UIAction.h"
@@ -108,7 +108,7 @@ SDeleteAssetsDialog::~SDeleteAssetsDialog()
 {
 	DeleteModel->OnStateChanged().RemoveAll( this );
 	// Release all rendering resources being held onto
-	AssetThumbnailPool->ReleaseResources();
+	AssetThumbnailPool.Reset();
 }
 
 void SDeleteAssetsDialog::Construct( const FArguments& InArgs, TSharedRef<FAssetDeleteModel> InDeleteModel )

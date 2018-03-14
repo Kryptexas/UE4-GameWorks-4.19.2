@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,6 +7,7 @@
 #include "BodyInstanceCustomization.h"
 
 class IDetailLayoutBuilder;
+class IPropertyHandle;
 
 class FBodySetupDetails : public IDetailCustomization
 {
@@ -23,6 +24,7 @@ private:
 private:
 	TSharedPtr<class FBodyInstanceCustomizationHelper> BodyInstanceCustomizationHelper;
 	TArray< TWeakObjectPtr<UObject> > ObjectsCustomized;
+	TSharedPtr<IPropertyHandle> CollisionReponseHandle;
 };
 
 

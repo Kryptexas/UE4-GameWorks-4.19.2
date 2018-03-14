@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTree/Composites/BTComposite_SimpleParallel.h"
 #include "GameFramework/Actor.h"
@@ -12,6 +12,7 @@ UBTComposite_SimpleParallel::UBTComposite_SimpleParallel(const FObjectInitialize
 	bUseChildExecutionNotify = true;
 	bUseNodeDeactivationNotify = true;
 	bUseDecoratorsDeactivationCheck = true;
+	bApplyDecoratorScope = true;
 	OnNextChild.BindUObject(this, &UBTComposite_SimpleParallel::GetNextChildHandler);
 }
 
@@ -120,30 +121,6 @@ void UBTComposite_SimpleParallel::NotifyNodeDeactivation(FBehaviorTreeSearchData
 	if (Children.IsValidIndex(EBTParallelChild::MainTask))
 	{
 		SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(Children[EBTParallelChild::MainTask].ChildTask, ActiveInstanceIdx, EBTNodeUpdateMode::Remove));
-	}
-
-	// remove all active nodes from background tree
-	const FBTNodeIndex FirstBackgroundIndex(ActiveInstanceIdx, GetChildExecutionIndex(EBTParallelChild::BackgroundTree, EBTChildIndex::FirstNode));
-	const FBTNodeIndex LastBackgroundIndex(ActiveInstanceIdx, GetLastExecutionIndex());
-	SearchData.OwnerComp.UnregisterAuxNodesUpTo(FirstBackgroundIndex);
-
-	// remove all pending updates "Add" from background tree 
-	// it doesn't make sense for decorators to reactivate themselves there
-	for (int32 Idx = SearchData.PendingUpdates.Num() - 1; Idx >= 0; Idx--)
-	{
-		const FBehaviorTreeSearchUpdate& UpdateInfo = SearchData.PendingUpdates[Idx];
-		if (UpdateInfo.Mode == EBTNodeUpdateMode::Add)
-		{
-			const uint16 UpdateNodeIdx = UpdateInfo.AuxNode ? UpdateInfo.AuxNode->GetExecutionIndex() : UpdateInfo.TaskNode->GetExecutionIndex();
-			const FBTNodeIndex UpdateIdx(UpdateInfo.InstanceIndex, UpdateNodeIdx);
-			if (FirstBackgroundIndex.TakesPriorityOver(UpdateIdx) && UpdateIdx.TakesPriorityOver(LastBackgroundIndex))
-			{
-				UE_VLOG(SearchData.OwnerComp.GetOwner(), LogBehaviorTree, Verbose, TEXT("Search node update[canceled]: %s"),
-					*UBehaviorTreeTypes::DescribeNodeHelper(UpdateInfo.AuxNode ? (UBTNode*)UpdateInfo.AuxNode : (UBTNode*)UpdateInfo.TaskNode));
-
-				SearchData.PendingUpdates.RemoveAt(Idx);
-			}
-		}
 	}
 }
 

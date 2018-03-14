@@ -123,7 +123,8 @@ Related: Engine/Rendering/LightingAndShadows/LightMobility
 | **[6.1 自投阴影准确度](Resources\ContentExamples\Lighting\6_1)** | 显示对象自投阴影以使其在感觉上更贴近于表面。|
 | **[6.2 阴影滤镜锐化](Resources\ContentExamples\Lighting\6_2)** | 用于对阴影边缘加强锐化的设置。|
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:RadiusNote]
 [REGION:note]
 您必须选择光源以查看其半径或形状指示器。
@@ -143,4 +144,5 @@ Related: Engine/Rendering/LightingAndShadows/LightMobility
 ![](MobilitySetting.png)
 [/EXCERPT:LightMobility]
 
--->
+
+[/COMMENT]

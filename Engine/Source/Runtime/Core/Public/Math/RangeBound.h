@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -35,6 +35,9 @@ class TRangeBound
 {
 public:
 
+	/*~ Typedef used to pass/return small element types by value rather than const& */
+	typedef typename TCallTraits<ElementType>::ParamType ElementValueOrConstRef;
+
 	/**
 	 * Default constructor.
 	 *
@@ -51,7 +54,7 @@ public:
 	 * @param InValue The bound's value.
 	 * @see Exclusive, Inclusive, Open
 	 */
-	TRangeBound(const ElementType& InValue)
+	TRangeBound(ElementValueOrConstRef InValue)
 		: Type(ERangeBoundTypes::Inclusive)
 		, Value(InValue)
 	{ }
@@ -90,7 +93,7 @@ public:
 	 * @return Bound value.
 	 * @see IsOpen
 	 */
-	const ElementType& GetValue() const
+	FORCEINLINE_DEBUGGABLE ElementValueOrConstRef GetValue() const
 	{
 		check(Type != ERangeBoundTypes::Open);
 
@@ -102,7 +105,7 @@ public:
 	 *
 	 * @return true if the bound is closed, false otherwise.
 	 */
-	bool IsClosed() const
+	FORCEINLINE_DEBUGGABLE bool IsClosed() const
 	{
 		return (Type != ERangeBoundTypes::Open);
 	}
@@ -112,7 +115,7 @@ public:
 	 *
 	 * @return true if the bound is exclusive, false otherwise.
 	 */
-	bool IsExclusive() const
+	FORCEINLINE_DEBUGGABLE bool IsExclusive() const
 	{
 		return (Type == ERangeBoundTypes::Exclusive);
 	}
@@ -122,7 +125,7 @@ public:
 	 *
 	 * @return true if the bound is inclusive, false otherwise.
 	 */
-	bool IsInclusive() const
+	FORCEINLINE_DEBUGGABLE bool IsInclusive() const
 	{
 		return (Type == ERangeBoundTypes::Inclusive);
 	}
@@ -132,7 +135,7 @@ public:
 	 *
 	 * @return true if the bound is open, false otherwise.
 	 */
-	bool IsOpen() const
+	FORCEINLINE_DEBUGGABLE bool IsOpen() const
 	{
 		return (Type == ERangeBoundTypes::Open);
 	}
@@ -170,7 +173,7 @@ public:
 	 * @param Value The bound value.
 	 * @return An exclusive closed bound.
 	 */
-	static FORCEINLINE TRangeBound Exclusive(const ElementType& Value)
+	static FORCEINLINE TRangeBound Exclusive(ElementValueOrConstRef Value)
 	{
 		TRangeBound Result;
 
@@ -186,7 +189,7 @@ public:
 	 * @param Value The bound value.
 	 * @return An inclusive closed bound.
 	 */
-	static FORCEINLINE TRangeBound Inclusive(const ElementType& Value)
+	static FORCEINLINE TRangeBound Inclusive(ElementValueOrConstRef Value)
 	{
 		TRangeBound Result;
 
@@ -338,12 +341,12 @@ private:
 			: Super(InValue) \
 		{ } \
 		 \
-		static FORCEINLINE Name Exclusive(const ElementType& Value) \
+		static FORCEINLINE Name Exclusive(ElementValueOrConstRef Value) \
 		{ \
 			return static_cast<const Name&>(Super::Exclusive(Value)); \
 		} \
 		 \
-		static FORCEINLINE Name Inclusive(const ElementType& Value) \
+		static FORCEINLINE Name Inclusive(ElementValueOrConstRef Value) \
 		{ \
 			return static_cast<const Name&>(Super::Inclusive(Value)); \
 		} \

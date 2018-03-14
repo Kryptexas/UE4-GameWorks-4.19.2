@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Pawn.h"
@@ -38,6 +38,8 @@ USpringArmComponent::USpringArmComponent(const FObjectInitializer& ObjectInitial
 	CameraRotationLagSpeed = 10.f;
 	CameraLagMaxTimeStep = 1.f / 60.f;
 	CameraLagMaxDistance = 0.f;
+
+ 	UnfixedCameraPosition = FVector::ZeroVector;
 }
 
 FRotator USpringArmComponent::GetTargetRotation() const
@@ -172,16 +174,26 @@ void USpringArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocati
 	FVector ResultLoc;
 	if (bDoTrace && (TargetArmLength != 0.0f))
 	{
+		bIsCameraFixed = true;
 		FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(SpringArm), false, GetOwner());
 
 		FHitResult Result;
 		GetWorld()->SweepSingleByChannel(Result, ArmOrigin, DesiredLoc, FQuat::Identity, ProbeChannel, FCollisionShape::MakeSphere(ProbeSize), QueryParams);
+		
+		UnfixedCameraPosition = DesiredLoc;
 
 		ResultLoc = BlendLocations(DesiredLoc, Result.Location, Result.bBlockingHit, DeltaTime);
+
+		if (ResultLoc == DesiredLoc) 
+		{	
+			bIsCameraFixed = false;
+		}
 	}
 	else
 	{
 		ResultLoc = DesiredLoc;
+		bIsCameraFixed = false;
+		UnfixedCameraPosition = ResultLoc;
 	}
 
 	// Form a transform for new world transform for camera
@@ -267,4 +279,14 @@ bool USpringArmComponent::HasAnySockets() const
 void USpringArmComponent::QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const
 {
 	new (OutSockets) FComponentSocketDescription(SocketName, EComponentSocketType::Socket);
+}
+
+FVector USpringArmComponent::GetUnfixedCameraPosition() const
+{
+	return UnfixedCameraPosition;
+}
+
+bool USpringArmComponent::IsCollisionFixApplied() const
+{
+	return bIsCameraFixed;
 }

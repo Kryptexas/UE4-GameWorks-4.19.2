@@ -1,0 +1,43 @@
+Availability:Public
+Title:6 - On Your Own!
+Crumbs:%ROOT%
+Description:This step offers some additional things to try with our example and links to more documentation. 
+SkillLevel:Beginner
+Version:4.18
+checkpoint: mediaframeworkqs
+parent:Engine/MediaFramework/QuickStart
+type:quick start
+type:multi-step
+order:6
+tags:Media Framework
+tags:Blueprints
+ 
+[NAV]
+
+Here are some additional things to try with your project using the Media Framework tools: 
+
+* Enable the player to [control playback](Engine/MediaFramework/HowTo/ControllingPlayback) of the TV.
+* Use a [Media Playlist](Engine\MediaFramework\HowTo\MediaPlaylists\) as a Media Source and allow the player to "change the channels" for the TV.
+* Add a third TV Blueprint to the level with its own Media Player, Media Sound, and Media Source Assets. 
+
+Below is an example of expanding on our TV Blueprint, enabling the player to change channels, fast-forward, and rewind, as well as resuming playback after turning the TV off: 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	KebXFsnLPsE
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+[NAV]

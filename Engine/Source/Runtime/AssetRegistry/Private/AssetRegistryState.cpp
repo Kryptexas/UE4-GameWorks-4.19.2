@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetRegistryState.h"
 #include "AssetRegistry.h"
@@ -210,7 +210,7 @@ void FAssetRegistryState::InitializeFromExisting(const TMap<FName, FAssetData*>&
 					FAssetPackageData* NewData = CreateOrGetAssetPackageData(Pair.Key);
 					*NewData = *Pair.Value;
 				}
-				else if (CachedAssetsByPackageName.Find(Pair.Key) || bIsScriptPackage)
+				else if (CachedAssetsByPackageName.Find(Pair.Key))
 				{
 					FAssetPackageData* NewData = CreateOrGetAssetPackageData(Pair.Key);
 					*NewData = *Pair.Value;
@@ -253,7 +253,7 @@ void FAssetRegistryState::PruneAssetData(const TSet<FName>& RequiredPackages, co
 		{
 			RemoveAssetData(AssetData);
 		}
-		else if (bFilterAssetDataWithNoTags && AssetData->TagsAndValues.Num() == 0)
+		else if (bFilterAssetDataWithNoTags && AssetData->TagsAndValues.Num() == 0 && !FPackageName::IsLocalizedPackage(AssetData->PackageName.ToString()))
 		{
 			RemoveAssetData(AssetData);
 		}
@@ -508,7 +508,6 @@ bool FAssetRegistryState::GetReferencers(const FAssetIdentifier& AssetIdentifier
 {
 	const FDependsNode* const* NodePtr = CachedDependsNodes.Find(AssetIdentifier);
 	const FDependsNode* Node = nullptr;
-	bool bShowingAllReferences = InReferenceType == EAssetRegistryDependencyType::All;
 
 	if (NodePtr != nullptr)
 	{
@@ -518,28 +517,11 @@ bool FAssetRegistryState::GetReferencers(const FAssetIdentifier& AssetIdentifier
 	if (Node != nullptr)
 	{
 		TArray<FDependsNode*> DependencyNodes;
-		Node->GetReferencers(DependencyNodes);
+		Node->GetReferencers(DependencyNodes, InReferenceType);
 
 		for (FDependsNode* DependencyNode : DependencyNodes)
 		{
-			if (!bShowingAllReferences)
-			{
-				TArray<FDependsNode*> DependenciesFromReferencer;
-				DependencyNode->GetDependencies(DependenciesFromReferencer, InReferenceType);
-
-				for (FDependsNode* Dependency : DependenciesFromReferencer)
-				{
-					if (Dependency == Node)
-					{
-						OutReferencers.Add(DependencyNode->GetIdentifier());
-						break;
-					}
-				}
-			}
-			else
-			{
-				OutReferencers.Add(DependencyNode->GetIdentifier());
-			}
+			OutReferencers.Add(DependencyNode->GetIdentifier());
 		}
 
 		return true;
@@ -611,7 +593,8 @@ bool FAssetRegistryState::Serialize(FArchive& OriginalAr, FAssetRegistrySerializ
 			DepCounts.Add(EAssetRegistryDependencyType::Hard, 0);
 			DepCounts.Add(EAssetRegistryDependencyType::Soft, 0);
 			DepCounts.Add(EAssetRegistryDependencyType::SearchableName, 0);
-			DepCounts.Add(EAssetRegistryDependencyType::Manage, 0);
+			DepCounts.Add(EAssetRegistryDependencyType::SoftManage, 0);
+			DepCounts.Add(EAssetRegistryDependencyType::HardManage, 0);
 			DepCounts.Add(EAssetRegistryDependencyType::None, 0); // Referencers
 
 			auto DependencyProcessor = [&](FDependsNode* InDependency, EAssetRegistryDependencyType::Type InDependencyType)
@@ -634,7 +617,8 @@ bool FAssetRegistryState::Serialize(FArchive& OriginalAr, FAssetRegistrySerializ
 			}
 			if (Options.bSerializeManageDependencies)
 			{
-				DependentNode->IterateOverDependencies(DependencyProcessor, EAssetRegistryDependencyType::Manage);
+				DependentNode->IterateOverDependencies(DependencyProcessor, EAssetRegistryDependencyType::SoftManage);
+				DependentNode->IterateOverDependencies(DependencyProcessor, EAssetRegistryDependencyType::HardManage);
 			}
 
 			DependentNode->IterateOverReferencers([&](FDependsNode* InReferencer) 
@@ -650,7 +634,8 @@ bool FAssetRegistryState::Serialize(FArchive& OriginalAr, FAssetRegistrySerializ
 			Ar << DepCounts[EAssetRegistryDependencyType::Hard];
 			Ar << DepCounts[EAssetRegistryDependencyType::Soft];
 			Ar << DepCounts[EAssetRegistryDependencyType::SearchableName];
-			Ar << DepCounts[EAssetRegistryDependencyType::Manage];
+			Ar << DepCounts[EAssetRegistryDependencyType::SoftManage];
+			Ar << DepCounts[EAssetRegistryDependencyType::HardManage];
 			Ar << DepCounts[EAssetRegistryDependencyType::None];
 
 			for (FDependsNode* Dependency : ProcessedDependencies)
@@ -734,7 +719,15 @@ bool FAssetRegistryState::Serialize(FArchive& OriginalAr, FAssetRegistrySerializ
 			Ar << DepCounts.FindOrAdd(EAssetRegistryDependencyType::Hard);
 			Ar << DepCounts.FindOrAdd(EAssetRegistryDependencyType::Soft);
 			Ar << DepCounts.FindOrAdd(EAssetRegistryDependencyType::SearchableName);
-			Ar << DepCounts.FindOrAdd(EAssetRegistryDependencyType::Manage);
+			Ar << DepCounts.FindOrAdd(EAssetRegistryDependencyType::SoftManage);
+			if (Version < FAssetRegistryVersion::AddedHardManage)
+			{
+				DepCounts.Add(EAssetRegistryDependencyType::HardManage, 0);
+			}
+			else
+			{
+				Ar << DepCounts.FindOrAdd(EAssetRegistryDependencyType::HardManage);
+			}
 			Ar << DepCounts.FindOrAdd(EAssetRegistryDependencyType::None); // Referencers
 						
 			// Create the node if we're actually saving dependencies, otherwise just fake serialize
@@ -743,7 +736,7 @@ bool FAssetRegistryState::Serialize(FArchive& OriginalAr, FAssetRegistrySerializ
 			if (NewDependsNodeData)
 			{
 				NewDependsNodeData->SetIdentifier(AssetIdentifier);
-				NewDependsNodeData->Reserve(DepCounts[EAssetRegistryDependencyType::Hard], DepCounts[EAssetRegistryDependencyType::Soft], DepCounts[EAssetRegistryDependencyType::SearchableName], DepCounts[EAssetRegistryDependencyType::Manage], DepCounts[EAssetRegistryDependencyType::None]);
+				NewDependsNodeData->Reserve(DepCounts[EAssetRegistryDependencyType::Hard], DepCounts[EAssetRegistryDependencyType::Soft], DepCounts[EAssetRegistryDependencyType::SearchableName], DepCounts[EAssetRegistryDependencyType::SoftManage], DepCounts[EAssetRegistryDependencyType::HardManage], DepCounts[EAssetRegistryDependencyType::None]);
 				CachedDependsNodes.Add(NewDependsNodeData->GetIdentifier(), NewDependsNodeData);
 			}
 
@@ -777,7 +770,8 @@ bool FAssetRegistryState::Serialize(FArchive& OriginalAr, FAssetRegistrySerializ
 			SerializeDependencyType(EAssetRegistryDependencyType::Hard, Options.bSerializeDependencies);
 			SerializeDependencyType(EAssetRegistryDependencyType::Soft, Options.bSerializeDependencies);
 			SerializeDependencyType(EAssetRegistryDependencyType::SearchableName, Options.bSerializeDependencies && Options.bSerializeSearchableNameDependencies);
-			SerializeDependencyType(EAssetRegistryDependencyType::Manage, Options.bSerializeDependencies && Options.bSerializeManageDependencies);
+			SerializeDependencyType(EAssetRegistryDependencyType::SoftManage, Options.bSerializeDependencies && Options.bSerializeManageDependencies);
+			SerializeDependencyType(EAssetRegistryDependencyType::HardManage, Options.bSerializeDependencies && Options.bSerializeManageDependencies);
 			SerializeDependencyType(EAssetRegistryDependencyType::None, Options.bSerializeDependencies);
 		}
 
@@ -1057,17 +1051,23 @@ void FAssetRegistryState::UpdateAssetData(FAssetData* AssetData, const FAssetDat
 		for (auto TagIt = AssetData->TagsAndValues.CreateConstIterator(); TagIt; ++TagIt)
 		{
 			const FName FNameKey = TagIt.Key();
-			TArray<FAssetData*>* OldTagAssets = CachedAssetsByTag.Find(FNameKey);
 
-			OldTagAssets->Remove(AssetData);
+			if (!NewAssetData.TagsAndValues.Contains(FNameKey))
+			{
+				TArray<FAssetData*>* OldTagAssets = CachedAssetsByTag.Find(FNameKey);
+				OldTagAssets->RemoveSingleSwap(AssetData);
+			}
 		}
 
 		for (auto TagIt = NewAssetData.TagsAndValues.CreateConstIterator(); TagIt; ++TagIt)
 		{
 			const FName FNameKey = TagIt.Key();
-			TArray<FAssetData*>& NewTagAssets = CachedAssetsByTag.FindOrAdd(FNameKey);
 
-			NewTagAssets.Add(AssetData);
+			if (!AssetData->TagsAndValues.Contains(FNameKey))
+			{
+				TArray<FAssetData*>& NewTagAssets = CachedAssetsByTag.FindOrAdd(FNameKey);
+				NewTagAssets.Add(AssetData);
+			}
 		}
 	}
 

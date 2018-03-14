@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,6 +15,9 @@ struct FNetworkObjectInfo
 {
 	/** Pointer to the replicated actor. */
 	AActor* Actor;
+
+	/** WeakPtr to actor. This is cached here to prevent constantly constructing one when needed for (things like) keys in TMaps/TSets */
+	TWeakObjectPtr<AActor> WeakActor;
 
 	/** Next time to consider replicating the actor. Based on FPlatformTime::Seconds(). */
 	double NextUpdateTime;
@@ -55,6 +58,7 @@ struct FNetworkObjectInfo
 
 	FNetworkObjectInfo(AActor* InActor)
 		: Actor(InActor)
+		, WeakActor(InActor)
 		, NextUpdateTime(0.0)
 		, LastNetReplicateTime(0.0)
 		, OptimalNetUpdateDelta(0.0f) 
@@ -109,8 +113,33 @@ public:
 	 */
 	void AddInitialObjects(UWorld* const World, const FName NetDriverName);
 
-	/** Adds Actor to the internal list if its NetDriverName matches, or if we're adding to the demo net driver. */
-	TSharedPtr<FNetworkObjectInfo>* Add(AActor* const Actor, const FName NetDriverName);
+	/**
+	 * Attempts to find the Actor's FNetworkObjectInfo.
+	 * If no info is found, then the Actor will be added to the list, and will assumed to be active.
+	 *
+	 * If the Actor is dormant when this is called, it is the responibility of the caller to call
+	 * MarkDormant immediately.
+	 *
+	 * If info cannot be found or created, nullptr will be returned.
+	 */
+	TSharedPtr<FNetworkObjectInfo>* FindOrAdd(AActor* const Actor, const FName NetDriverName);
+
+	/**
+	 * Attempts to find the Actor's FNetworkObjectInfo.
+	 *
+	 * If info is not found (or the Actor is in an invalid state) an invalid TSharedPtr is returned.
+	 */
+	TSharedPtr<FNetworkObjectInfo> Find(AActor* const Actor);
+	const TSharedPtr<FNetworkObjectInfo> Find(const AActor* const Actor) const
+	{
+		return const_cast<FNetworkObjectList*>(this)->Find(const_cast<AActor* const>(Actor));
+	}
+
+	DEPRECATED(4.19, "This method is deprecated. Please use FindOrAdd instead.")
+	TSharedPtr<FNetworkObjectInfo>* Add(AActor* const Actor, const FName NetDriverName)
+	{
+		return FindOrAdd(Actor, NetDriverName);
+	}
 
 	/** Removes actor from the internal list, and any cleanup that is necessary (i.e. resetting dormancy state) */
 	void Remove(AActor* const Actor);
@@ -139,6 +168,9 @@ public:
 
 	/** Returns a const reference to the active set of tracked actors. */
 	const FNetworkObjectSet& GetActiveObjects() const { return ActiveNetworkObjects; }
+
+	/** Returns a const reference to the entire set of dormant actors. */
+	const FNetworkObjectSet& GetDormantObjectsOnAllConnections() const { return ObjectsDormantOnAllConnections; }
 
 	int32 GetNumDormantActorsForConnection( UNetConnection* const Connection ) const;
 

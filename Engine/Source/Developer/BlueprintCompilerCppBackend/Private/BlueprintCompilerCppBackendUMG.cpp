@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
@@ -11,6 +11,7 @@
 #include "Evaluation/MovieSceneSegment.h"
 #include "Evaluation/MovieSceneTrackImplementation.h"
 #include "Evaluation/MovieSceneEvalTemplate.h"
+#include "Compilation/MovieSceneCompiler.h"
 
 void FBackendHelperUMG::WidgetFunctionsInHeader(FEmitterLocalContext& Context)
 {
@@ -44,7 +45,8 @@ void FBackendHelperUMG::CreateClassSubobjects(FEmitterLocalContext& Context, boo
 			ensure(Anim->GetOuter() == Context.GetCurrentlyGeneratedClass());
 
 			// We need the same regeneration like for cooking. See UMovieSceneSequence::Serialize
-			Anim->EvaluationTemplate.Regenerate(Anim->TemplateParameters);
+			FMovieSceneSequencePrecompiledTemplateStore Store;
+			FMovieSceneCompiler::Compile(*Anim, Store);
 
 			FEmitDefaultValueHelper::HandleClassSubobject(Context, Anim, FEmitterLocalContext::EClassSubobjectList::MiscConvertedSubobjects, bCreate, bInitialize);
 		}

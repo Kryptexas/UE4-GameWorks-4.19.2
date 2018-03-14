@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,6 +22,7 @@
 #include "Engine/Engine.h"
 #include "Settings/LevelEditorPlaySettings.h"
 #include "Settings/LevelEditorViewportSettings.h"
+#include "Misc/CompilationResult.h"
 #include "EditorEngine.generated.h"
 
 class AMatineeActor;
@@ -614,6 +615,9 @@ public:
 
 	/** The feature level we should use when loading or creating a new world */
 	ERHIFeatureLevel::Type DefaultWorldFeatureLevel;
+
+	/** Whether or not the editor is currently compiling */
+	bool bIsCompiling;
 
 private:
 
@@ -2180,7 +2184,11 @@ public:
 	/** The editor wrapper for UPackage::Save. Auto-adds files to source control when necessary */
 	FSavePackageResultStruct Save(UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename,
 		FOutputDevice* Error = GError, FLinkerLoad* Conform = NULL, bool bForceByteSwapping = false, bool bWarnOfLongFilename = true,
-		uint32 SaveFlags = SAVE_None, const class ITargetPlatform* TargetPlatform = NULL, const FDateTime& FinalTimeStamp = FDateTime::MinValue(), bool bSlowTask = true);
+		uint32 SaveFlags = SAVE_None, const class ITargetPlatform* TargetPlatform = NULL, const FDateTime& FinalTimeStamp = FDateTime::MinValue(), 
+		bool bSlowTask = true, class FArchiveDiffMap* InOutDiffMap = nullptr);
+
+	virtual bool InitializePhysicsSceneForSaveIfNecessary(UWorld* World);
+	void CleanupPhysicsSceneThatWasInitializedForSave(UWorld* World);
 
 	/** Invoked before a UWorld is saved to update editor systems */
 	virtual void OnPreSaveWorld(uint32 SaveFlags, UWorld* World);
@@ -2315,7 +2323,7 @@ public:
 	/**
 	* Update any outstanding reflection captures
 	*/
-	void UpdateReflectionCaptures(UWorld* World = GWorld);
+	void BuildReflectionCaptures(UWorld* World = GWorld);
 
 	/**
 	 * Convenience method for adding a Slate modal window that is parented to the main frame (if it exists)
@@ -2579,6 +2587,12 @@ private:
 
 	/** Called when all PIE instances have been successfully logged in */
 	virtual void OnLoginPIEAllComplete();
+
+	/** Called when a recompilation of a module is beginning */
+	void OnModuleCompileStarted(bool bIsAsyncCompile);
+
+	/** Called when a recompilation of a module is ending */
+	void OnModuleCompileFinished(const FString& CompilationOutput, ECompilationResult::Type CompilationResult, bool bShowLog);
 
 public:
 	/** Creates a pie world from the default entry map, used by clients that connect to a PIE server */

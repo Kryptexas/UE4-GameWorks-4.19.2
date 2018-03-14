@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,6 +13,12 @@
 
 namespace NvClothSupport
 {
+	namespace Constants
+	{
+		const static float UnitConversionScale = 100.0f;
+		const static float UnitConversionScaleCube = UnitConversionScale * UnitConversionScale * UnitConversionScale;
+	}
+
 	ELogVerbosity::Type PxErrorToLogVerbosity(physx::PxErrorCode::Enum InEnum);
 	FString PxErrorToString(physx::PxErrorCode::Enum InEnum);
 

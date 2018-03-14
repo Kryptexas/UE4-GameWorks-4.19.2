@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -123,7 +123,7 @@ public:
 	virtual ~FGenericCrashContext() { }
 
 	/** Serializes all data to the buffer. */
-	void SerializeContentToBuffer();
+	void SerializeContentToBuffer() const;
 
 	/**
 	 * @return the buffer containing serialized data.
@@ -149,26 +149,29 @@ public:
 	const bool IsFullCrashDumpOnEnsure() const;
 
 	/** Serializes crash's informations to the specified filename. Should be overridden for platforms where using FFileHelper is not safe, all POSIX platforms. */
-	virtual void SerializeAsXML( const TCHAR* Filename );
+	virtual void SerializeAsXML( const TCHAR* Filename ) const;
 
 	/** Writes a common property to the buffer. */
-	void AddCrashProperty( const TCHAR* PropertyName, const TCHAR* PropertyValue );
+	void AddCrashProperty( const TCHAR* PropertyName, const TCHAR* PropertyValue ) const;
 
 	/** Writes a common property to the buffer. */
 	template <typename Type>
-	void AddCrashProperty( const TCHAR* PropertyName, const Type& Value )
+	void AddCrashProperty( const TCHAR* PropertyName, const Type& Value ) const
 	{
 		AddCrashProperty( PropertyName, *TTypeToString<Type>::ToString( Value ) );
 	}
 
-	/** Escapes a specified XML string, naive implementation. */
-	static FString EscapeXMLString( const FString& Text );
+	/** Escapes and appends specified text to XML string */
+	static void AppendEscapedXMLString( FString& OutBuffer, const TCHAR* Text );
 
 	/** Unescapes a specified XML string, naive implementation. */
 	static FString UnescapeXMLString( const FString& Text );
 
 	/** Helper to get the standard string for the crash type based on crash event bool values. */
 	static const TCHAR* GetCrashTypeString(bool InIsEnsure, bool InIsAssert, bool bIsGPUCrashed);
+
+	/** Get the Game Name of the crash */
+	static FString GetCrashGameName();
 
 	/** Gets the "vanilla" status string. */
 	static const TCHAR* EngineModeExString();
@@ -195,16 +198,16 @@ protected:
 
 private:
 	/** Serializes platform specific properties to the buffer. */
-	virtual void AddPlatformSpecificProperties();
+	virtual void AddPlatformSpecificProperties() const;
 
 	/** Writes header information to the buffer. */
-	void AddHeader();
+	void AddHeader() const;
 
 	/** Writes footer to the buffer. */
-	void AddFooter();
+	void AddFooter() const;
 
-	void BeginSection( const TCHAR* SectionName );
-	void EndSection( const TCHAR* SectionName );
+	void BeginSection( const TCHAR* SectionName ) const;
+	void EndSection( const TCHAR* SectionName ) const;
 
 	/** Called once when GConfig is initialized. Opportunity to cache values from config. */
 	static void InitializeFromConfig();
@@ -216,7 +219,7 @@ private:
 	static int32 StaticCrashContextIndex;
 
 	/** The buffer used to store the crash's properties. */
-	FString CommonBuffer;
+	mutable FString CommonBuffer;
 
 	/**	Records which crash context we were using the StaticCrashContextIndex counter */
 	int32 CrashContextIndex;

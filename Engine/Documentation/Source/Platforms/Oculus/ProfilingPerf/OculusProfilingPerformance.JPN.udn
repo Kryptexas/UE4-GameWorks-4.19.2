@@ -1,0 +1,21 @@
+﻿INTSourceChangelist:3769397
+Title:Oculus のプロファイリングとパフォーマンス
+Availability:Public
+Crumbs:%ROOT%, Platforms
+Description:Rift を使った UE4 プロジェクトのパフォーマンス プロファイル方法
+Navigation:platform
+Platform:Oculus
+Version:4.16
+type:overview
+Skilllevel:Advanced
+parent:Platforms/Oculus
+order:2
+tags:Performance and Profiling
+type:overview
+topic-image:Oculus_ProPref_Topic_Image.png
+
+## Oculus PerfHud
+
+![](Oculus_Perf_HUD.png)
+
+[Include:Platforms\VR\Profiling\Tools\#OculusPerfHud]

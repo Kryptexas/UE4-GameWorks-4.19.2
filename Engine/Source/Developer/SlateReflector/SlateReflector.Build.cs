@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -49,7 +49,7 @@ public class SlateReflector : ModuleRules
 		// Editor builds include SessionServices to populate the remote target drop-down for remote widget snapshots
 		if (Target.Type == TargetType.Editor)
 		{
-			Definitions.Add("SLATE_REFLECTOR_HAS_SESSION_SERVICES=1");
+			PublicDefinitions.Add("SLATE_REFLECTOR_HAS_SESSION_SERVICES=1");
 
 			PrivateIncludePathModuleNames.AddRange(
 				new string[] {
@@ -65,7 +65,7 @@ public class SlateReflector : ModuleRules
 		}
 		else
 		{
-			Definitions.Add("SLATE_REFLECTOR_HAS_SESSION_SERVICES=0");
+			PublicDefinitions.Add("SLATE_REFLECTOR_HAS_SESSION_SERVICES=0");
 		}
 
 		// DesktopPlatform is only available for Editor and Program targets (running on a desktop platform)
@@ -75,7 +75,7 @@ public class SlateReflector : ModuleRules
 			|| Target.Platform == UnrealBuildTool.UnrealTargetPlatform.Linux;
 		if (Target.Type == TargetType.Editor || (Target.Type == TargetType.Program && IsDesktopPlatformType))
 		{
-			Definitions.Add("SLATE_REFLECTOR_HAS_DESKTOP_PLATFORM=1");
+			PublicDefinitions.Add("SLATE_REFLECTOR_HAS_DESKTOP_PLATFORM=1");
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
@@ -85,7 +85,7 @@ public class SlateReflector : ModuleRules
 		}
 		else
 		{
-			Definitions.Add("SLATE_REFLECTOR_HAS_DESKTOP_PLATFORM=0");
+			PublicDefinitions.Add("SLATE_REFLECTOR_HAS_DESKTOP_PLATFORM=0");
 		}
 	}
 }

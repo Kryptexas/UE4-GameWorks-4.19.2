@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -95,7 +95,7 @@ protected:
 	
 public:
 	FMemberReference()
-		: MemberParent(NULL)
+		: MemberParent(nullptr)
 		, MemberName(NAME_None)
 		, bSelfContext(false)
 	{
@@ -156,7 +156,7 @@ public:
 	void RefreshGivenNewSelfScope(UClass* SelfScope)
 	{
 		UClass* ParentAsClass = GetMemberParentClass();
-		if ((ParentAsClass != NULL) && (SelfScope != NULL))
+		if ((ParentAsClass != nullptr) && (SelfScope != nullptr))
 		{
 #if WITH_EDITOR
 			UBlueprint::GetGuidFromClassByFieldName<TFieldType>((ParentAsClass), MemberName, MemberGuid);
@@ -200,6 +200,14 @@ public:
 	{
 		return MemberName;
 	}
+
+#if WITH_EDITOR
+	/** Reset the member name only. Intended for use primarily as a helper method for rename operations. */
+	ENGINE_API void SetMemberName(FName NewName)
+	{
+		MemberName = NewName;
+	}
+#endif
 
 	FGuid GetMemberGuid() const
 	{
@@ -304,13 +312,13 @@ public:
 	 *	Will check for redirects and fix itself up if one is found.
 	 */
 	template<class TFieldType>
-	TFieldType* ResolveMember(UClass* SelfScope) const
+	TFieldType* ResolveMember(UClass* SelfScope = nullptr) const
 	{
-		TFieldType* ReturnField = NULL;
+		TFieldType* ReturnField = nullptr;
 
 		bool bUseUpToDateClass = SelfScope && SelfScope->GetAuthoritativeClass() != SelfScope;
 
-		if(bSelfContext && SelfScope == NULL)
+		if(bSelfContext && SelfScope == nullptr)
 		{
 			UE_LOG(LogBlueprint, Warning, TEXT("FMemberReference::ResolveMember (%s) bSelfContext == true, but no scope supplied!"), *MemberName.ToString() );
 		}
@@ -324,7 +332,7 @@ public:
 			ReturnField = FindField<TFieldType>(MemberScopeStruct, MemberName);
 
 #if WITH_EDITOR
-			if(ReturnField == NULL)
+			if(ReturnField == nullptr)
 			{
 				// If the property was not found, refresh the local variable name and try again
 				const FName RenamedMemberName = RefreshLocalVariableName(SelfScope);
@@ -340,12 +348,12 @@ public:
 			// Look for remapped member
 			UClass* TargetScope = bSelfContext ? SelfScope : GetMemberParentClass();
 #if WITH_EDITOR
-			if( TargetScope != NULL &&  !GIsSavingPackage )
+			if( TargetScope != nullptr &&  !GIsSavingPackage )
 			{
 				ReturnField = FindRemappedField<TFieldType>(TargetScope, MemberName, true);
 			}
 
-			if(ReturnField != NULL)
+			if(ReturnField != nullptr)
 			{
 				// Fix up this struct, we found a redirect
 				MemberName = ReturnField->GetFName();
@@ -360,7 +368,8 @@ public:
 					MemberParent  = ParentAsClass;
 
 					// Re-evaluate self-ness against the redirect if we were given a valid SelfScope
-					if (SelfScope != NULL)
+					// For functions we don't want to go from not-self to self as we lose the knowledge of overriding
+					if (SelfScope != nullptr && (bSelfContext || TFieldType::StaticClass() != UFunction::StaticClass()))
 					{
 						SetGivenSelfScope(MemberName, MemberGuid, ParentAsClass, SelfScope);
 					}
@@ -368,7 +377,7 @@ public:
 			}
 			else
 #endif
-			if(TargetScope != NULL)
+			if(TargetScope != nullptr)
 			{
 #if WITH_EDITOR
 				TargetScope = GetClassToUse(TargetScope, bUseUpToDateClass);
@@ -379,7 +388,7 @@ public:
 #if WITH_EDITOR
 
 				// If the reference variable is valid we need to make sure that our GUID matches
-				if (ReturnField != NULL)
+				if (ReturnField != nullptr)
 				{
 					UBlueprint::GetGuidFromClassByFieldName<TFieldType>(TargetScope, MemberName, MemberGuid);
 				}
@@ -501,11 +510,11 @@ public:
 		TempMemberReference.MemberGuid   = Reference.MemberGuid;
 		TempMemberReference.MemberParent = Reference.MemberParent;
 
-		auto Result = TempMemberReference.ResolveMember<TFieldType>((UClass*)nullptr);
+		auto Result = TempMemberReference.ResolveMember<TFieldType>();
 		if (!Result && (Name != Reference.MemberName))
 		{
 			TempMemberReference.MemberName = Reference.MemberName;
-			Result = TempMemberReference.ResolveMember<TFieldType>((UClass*)nullptr);
+			Result = TempMemberReference.ResolveMember<TFieldType>();
 		}
 
 		return Result;

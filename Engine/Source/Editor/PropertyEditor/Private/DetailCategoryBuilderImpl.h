@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -170,6 +170,7 @@ public:
 	virtual void GetDefaultProperties(TArray<TSharedRef<IPropertyHandle> >& OutAllProperties, bool bSimpleProperties = true, bool bAdvancedProperties = true) override;
 	virtual const FText& GetDisplayName() const override { return DisplayName; }
 	virtual void SetCategoryVisibility(bool bIsVisible) override;
+	virtual void SetShowAdvanced(bool bShowAdvanced) override;
 
 	/** FDetailTreeNode interface */
 	virtual IDetailsViewPrivate* GetDetailsView() const override { return DetailLayoutBuilder.Pin()->GetDetailsView(); }
@@ -185,7 +186,7 @@ public:
 	virtual ENodeVisibility GetVisibility() const override;
 	virtual void FilterNode(const FDetailFilter& DetailFilter) override;
 	virtual void Tick(float DeltaTime) override {}
-	virtual bool ShouldShowOnlyChildren() const override { return false; }
+	virtual bool ShouldShowOnlyChildren() const override { return bShowOnlyChildren; }
 	virtual FName GetNodeName() const override { return GetCategoryName(); }
 
 	/**
@@ -419,4 +420,5 @@ private:
 	bool bIsCategoryVisible : 1;
 	/*true if the category is the special favorite category, all property in the layout will be display when we generate the roottree */
 	bool bFavoriteCategory : 1;
+	bool bShowOnlyChildren : 1;
 };

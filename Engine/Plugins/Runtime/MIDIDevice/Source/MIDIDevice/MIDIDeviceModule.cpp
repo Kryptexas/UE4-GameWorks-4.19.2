@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Stats/Stats.h"
@@ -25,9 +25,9 @@ public:
 	// FTickableGameObject interface
 	virtual void Tick( float DeltaTime ) override;
 
-	virtual bool IsTickable() const override
+	virtual ETickableTickType GetTickableTickType() const override
 	{
-		return true;
+		return ETickableTickType::Always;
 	}
 	virtual TStatId GetStatId() const override
 	{

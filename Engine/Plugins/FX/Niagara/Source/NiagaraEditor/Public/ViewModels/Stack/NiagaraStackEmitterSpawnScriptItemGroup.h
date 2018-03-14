@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,15 +18,29 @@ class NIAGARAEDITOR_API UNiagaraStackEmitterPropertiesItem : public UNiagaraStac
 	GENERATED_BODY()
 
 public:
+	void Initialize(TSharedRef<FNiagaraSystemViewModel> InSystemViewModel, TSharedRef<FNiagaraEmitterViewModel> InEmitterViewModel, UNiagaraStackEditorData& InStackEditorData);
+
 	virtual FText GetDisplayName() const override;
 
+	bool CanResetToBase() const;
+
+	void ResetToBase();
+
 protected:
+	virtual void BeginDestroy() override;
+
 	virtual void RefreshChildrenInternal(const TArray<UNiagaraStackEntry*>& CurrentChildren, TArray<UNiagaraStackEntry*>& NewChildren) override;
 
 private:
 	void EmitterExpandedChanged();
 
+	void EmitterPropertiesChanged();
+
 private:
+	mutable TOptional<bool> bCanResetToBase;
+
+	TWeakObjectPtr<UNiagaraEmitter> Emitter;
+
 	UPROPERTY()
 	UNiagaraStackObject* EmitterObject;
 

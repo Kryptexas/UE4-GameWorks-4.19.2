@@ -9,13 +9,17 @@ Slate widgets can be used in-game to create Heads Up Displays (HUDs) or other Us
 as menus. You will generally create one or more container widgets, each of which may be composed of several 
 other types of widgets that are responsible for a particular aspect of the UI. 
 
-<!-- HUD widget w/ menu overlay -->
+[COMMENT:none]
+ HUD widget w/ menu overlay 
+[/COMMENT]
 
 For example, you may have a single overall widget for your game's HUD, as well as widgets for the main menu, 
 options menu, pause menu, scoreboard, etc. Each of these widgets would then probably be made up of a combination of 
 other custom widgets, labels, text boxes, images, and other types of elements.
 
-<!-- container widget breakdown -->
+[COMMENT:none]
+ container widget breakdown 
+[/COMMENT]
 
 Each of these container widgets can then be added or removed depending on the circumstances in the game: 
 

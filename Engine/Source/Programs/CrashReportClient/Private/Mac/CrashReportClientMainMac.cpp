@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashReportClientApp.h"
 #include "ExceptionHandling.h"
@@ -17,6 +17,7 @@ void CrashReporterCrashHandler(const FGenericCrashContext& GenericContext)
 }
 
 static FString GSavedCommandLine;
+static bool GIsUnattended;
 
 @interface UE4AppDelegate : NSObject <NSApplicationDelegate, NSFileManagerDelegate>
 {
@@ -70,7 +71,10 @@ static FString GSavedCommandLine;
     NSAppleEventManager* appleEventManager = [NSAppleEventManager sharedAppleEventManager];
     [appleEventManager setEventHandler:self andSelector:@selector(handleQuitEvent:withReplyEvent:) forEventClass:kCoreEventClass andEventID:kAEQuitApplication];
 	
-	FPlatformApplicationMisc::ActivateApplication();
+	if (!GIsUnattended)
+	{
+		FPlatformApplicationMisc::ActivateApplication();
+	}
 	RunGameThread(self, @selector(runGameThread:));
 }
 
@@ -95,6 +99,10 @@ int main(int argc, char *argv[])
 			{
 				Argument = FString::Printf(TEXT("\"%s\""), *Argument);
 			}
+		}
+		else if (Argument.ToLower() == TEXT("-unattended"))
+		{
+			GIsUnattended = true;
 		}
 		GSavedCommandLine += Argument;
 	}

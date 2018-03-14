@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,6 +9,8 @@
 #include "NiagaraDataSet.h"
 #include "NiagaraScriptExecutionContext.h"
 #include "NiagaraSystemSimulation.h"
+
+#include "NiagaraDataInterfaceSkeletalMesh.h"
 
 class UWorld;
 class UNiagaraParameterCollection;
@@ -34,17 +36,25 @@ public:
 	
 	UNiagaraParameterCollectionInstance* GetParameterCollection(UNiagaraParameterCollection* Collection);
 	void SetParameterCollection(UNiagaraParameterCollectionInstance* NewInstance);
-	FNiagaraSystemSimulation* GetSystemSimulation(UNiagaraSystem* System);
+	void CleanupParameterCollections();
+	TSharedRef<FNiagaraSystemSimulation, ESPMode::ThreadSafe> GetSystemSimulation(UNiagaraSystem* System);
 	void DestroySystemSimulation(UNiagaraSystem* System);
 
 	void Tick(float DeltaSeconds);
+
+	void OnWorldCleanup(bool bSessionEnded, bool bCleanupResources);
+
+	FORCEINLINE FNDI_SkeletalMesh_GeneratedData& GetSkeletalMeshGeneratedData() { return SkeletalMeshGeneratedData; }
 private:
 	UWorld* World;
 
 	TMap<UNiagaraParameterCollection*, UNiagaraParameterCollectionInstance*> ParameterCollections;
 
-	TMap<UNiagaraSystem*, FNiagaraSystemSimulation> SystemSimulations;
+	TMap<UNiagaraSystem*, TSharedRef<FNiagaraSystemSimulation, ESPMode::ThreadSafe>> SystemSimulations;
 
 	int32 CachedEffectsQuality;
+
+	/** Generated data used by data interfaces*/
+	FNDI_SkeletalMesh_GeneratedData SkeletalMeshGeneratedData;
 };
 

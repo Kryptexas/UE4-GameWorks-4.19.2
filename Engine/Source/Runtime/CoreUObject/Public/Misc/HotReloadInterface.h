@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,9 +8,19 @@
 #include "Modules/ModuleManager.h"
 #include "Misc/CompilationResult.h"
 
+enum class EHotReloadFlags : uint8
+{
+	None = 0x00,
+
+	// Should not return until the recompile and reload has completed
+	WaitForCompletion = 0x01
+};
+
+ENUM_CLASS_FLAGS(EHotReloadFlags)
+
 /**
-* HotReload module interface
-*/
+ * HotReload module interface
+ */
 class IHotReloadInterface : public IModuleInterface
 {
 public:
@@ -22,11 +32,6 @@ public:
 		static FName HotReload("HotReload");
 		return FModuleManager::GetModulePtr<IHotReloadInterface>(HotReload);
 	}
-
-	/**
-	 * Module manager ticking is only used to check for asynchronously compiled modules that may need to be reloaded
-	 */
-	virtual void Tick() = 0;
 
 	/**
 	 * Save the current state to disk before quitting.
@@ -62,27 +67,29 @@ public:
 	virtual void RequestStopCompilation() = 0;
 
 	/**
-	* Adds a function to re-map after hot-reload.
-	*/
-	virtual void AddHotReloadFunctionRemap(Native NewFunctionPointer, Native OldFunctionPointer) = 0;
+	 * Adds a function to re-map after hot-reload.
+	 */
+	virtual void AddHotReloadFunctionRemap(FNativeFuncPtr NewFunctionPointer, FNativeFuncPtr OldFunctionPointer) = 0;
 
 	/**
-	* Performs hot reload from the editor of all currently loaded game modules.
-	* @param	bWaitForCompletion	True if RebindPackages should not return until the recompile and reload has completed
-	* @return	If bWaitForCompletion was set to true, this will return the result of the compilation, otherwise will return ECompilationResult::Unknown
-	*/
-	virtual ECompilationResult::Type DoHotReloadFromEditor(const bool bWaitForCompletion) = 0;
+	 * Performs hot reload from the editor of all currently loaded game modules.
+	 *
+	 * @param	Flags	Flags which to control the hot reload.
+	 *
+	 * @return	If Flags & EHotReloadFlags::WaitForCompletion was set, this will return the result of the compilation, otherwise will return ECompilationResult::Unknown
+	 */
+	virtual ECompilationResult::Type DoHotReloadFromEditor(EHotReloadFlags Flags) = 0;
 
 	/**
-	* HotReload: Reloads the DLLs for given packages.
-	* @param	Package				Packages to reload.
-	* @param	DependentModules	Additional modules that don't contain UObjects, but rely on them
-	* @param	bWaitForCompletion	True if RebindPackages should not return until the recompile and reload has completed
-	* @param	Ar					Output device for logging compilation status
-	* 
-	* @return	If bWaitForCompletion was set to true, this will return the result of the compilation, otherwise will return ECompilationResult::Unknown
-	*/
-	virtual ECompilationResult::Type RebindPackages(TArray<UPackage*> Packages, TArray<FName> DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar) = 0;
+	 * HotReload: Reloads the DLLs for given packages.
+	 *
+	 * @param	Package		Packages to reload.
+	 * @param	Flags		Flags which control the hot reload.
+	 * @param	Ar			Output device for logging compilation status
+	 * 
+	 * @return	If bWaitForCompletion was set to true, this will return the result of the compilation, otherwise will return ECompilationResult::Unknown
+	 */
+	virtual ECompilationResult::Type RebindPackages(const TArray<UPackage*>& Packages, EHotReloadFlags Flags, FOutputDevice &Ar) = 0;
 
 	/** Called when a Hot Reload event has completed. 
 	 * 

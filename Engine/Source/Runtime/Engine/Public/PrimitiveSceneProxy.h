@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrimitiveSceneProxy.h: Primitive scene proxy definition.
@@ -127,6 +127,9 @@ public:
 
 	/** Virtual destructor. */
 	ENGINE_API virtual ~FPrimitiveSceneProxy();
+
+	/** Return a type (or subtype) specific hash for sorting purposes */
+	ENGINE_API virtual SIZE_T GetTypeHash() const = 0;
 
 	/**
 	 * Updates selection for the primitive proxy. This simply sends a message to the rendering thread to call SetSelection_RenderThread.
@@ -388,6 +391,8 @@ public:
 	*/
 	void SetCustomDepthStencilValue_RenderThread(const int32 InCustomDepthStencilValue);
 
+	void SetDistanceFieldSelfShadowBias_RenderThread(float NewBias);
+
 	// Accessors.
 	inline FSceneInterface& GetScene() const { return *Scene; }
 	inline FPrimitiveComponentId GetPrimitiveComponentId() const { return PrimitiveComponentId; }
@@ -422,6 +427,7 @@ public:
 		return Mobility == EComponentMobility::Movable || !bGoodCandidateForCachedShadowmap; 
 	}
 
+	inline ELightmapType GetLightmapType() const { return LightmapType; }
 	inline bool IsStatic() const { return Mobility == EComponentMobility::Static; }
 	inline bool IsSelectable() const { return bSelectable; }
 	inline bool IsParentSelected() const { return bParentSelected; }
@@ -461,7 +467,6 @@ public:
 	inline bool CastsInsetShadow() const { return bCastInsetShadow; }
 	inline bool CastsCinematicShadow() const { return bCastCinematicShadow; }
 	inline bool CastsFarShadow() const { return bCastFarShadow; }
-	inline bool LightAsIfStatic() const { return bLightAsIfStatic; }
 	inline bool LightAttachmentsAsGroup() const { return bLightAttachmentsAsGroup; }
 	ENGINE_API bool UseSingleSampleShadowFromStationaryLights() const;
 	inline bool StaticElementsAlwaysUseProxyPrimitiveUniformBuffer() const { return bStaticElementsAlwaysUseProxyPrimitiveUniformBuffer; }
@@ -486,7 +491,7 @@ public:
 	inline bool NeedsLevelAddedToWorldNotification() const { return bNeedsLevelAddedToWorldNotification; }
 	inline bool IsComponentLevelVisible() const { return bIsComponentLevelVisible; }
 	inline bool IsStaticPathAvailable() const { return !bDisableStaticPath; }
-	inline bool ShouldReceiveCombinedCSMAndStaticShadowsFromStationaryLights() const { return bReceiveCombinedCSMAndStaticShadowsFromStationaryLights; }
+	inline bool ShouldReceiveMobileCSMShadows() const { return bReceiveMobileCSMShadows; }
 
 #if WITH_EDITOR
 	inline int32 GetNumUncachedStaticLightingInteractions() { return NumUncachedStaticLightingInteractions; }
@@ -631,6 +636,57 @@ public:
 	* Get the lightmap resolution for this primitive. Used in VMI_LightmapDensity.
 	*/
 	virtual int32 GetLightMapResolution() const { return 0; }
+	
+	/** 
+	 * Called during the visibility and shadow setup for each primitives with either static or dynamic relevancy, so we can store custom data for the frame that can be reused later. 
+	 * Keep in mind this can be called in multihread as it's called during the InitViews()
+	 * This will only be called if bUseCustomViewData is true in the GetViewRelevance()
+	 * @param InView - Current View
+ 	 * @param InViewLODScale - View LOD scale
+  	 * @param InCustomDataMemStack - MemStack to allocate the custom data
+   	 * @param InIsStaticRelevant - Tell us if it was called in a static of dynamic relevancy context
+   	 * @param InVisiblePrimitiveLODMask - Calculated LODMask for visibile primitive in static relevancy
+   	 * @param InMeshScreenSizeSquared - Computed mesh batch screen size, passed to prevent recalculation
+	 */
+	ENGINE_API virtual void* InitViewCustomData(const FSceneView& InView, float InViewLODScale, FMemStackBase& InCustomDataMemStack, bool InIsStaticRelevant = false, const struct FLODMask* InVisiblePrimitiveLODMask = nullptr, float InMeshScreenSizeSquared = -1.0f) { return nullptr; }
+	
+	/**
+	 * Called during post visibility and shadow setup, just before the frame is rendered. It can be used to update custom data that had a dependency between them.
+	 * Keep in mind this can be called in multihread.
+	 * This will only be called on primitive that added view custom data during the InitViewCustomData.
+	 * @param InView - Current View
+ 	 * @param InViewCustomData - Custom data to update
+	 */	
+	ENGINE_API virtual void PostInitViewCustomData(const FSceneView& InView, void* InViewCustomData) { }
+
+	/** Tell us if we should rely on the default LOD computing rules or not.*/
+	ENGINE_API virtual bool IsUsingCustomLODRules() const { return false; }
+	
+	/** 
+	 * Called during the scene visibility phase or shadow phase, if primitive wasn't visible but project visible shadow, on static primitives to override default LOD logic
+	 * but only if IsUsingCustomLODRules() return true.
+  	 * @param InView - Current View
+ 	 * @param InViewLODScale - View LOD scale	 
+  	 * @param InForcedLODLevel - Engine Forced LOD value
+   	 * @param OutScreenSizeSquared - Computed screen size from the function
+	 */
+	ENGINE_API virtual struct FLODMask GetCustomLOD(const FSceneView& InView, float InViewLODScale, int32 InForcedLODLevel, float& OutScreenSizeSquared) const;
+
+	/** Tell us if we should rely on the default shadow LOD computing rules or not for generating whole scene shadow.*/
+	ENGINE_API virtual bool IsUsingCustomWholeSceneShadowLODRules() const { return false; }
+	
+	/** 
+	 * Called during the whole scene shadow phase on static primitives to override default LOD logic but only if IsUsingCustomWholeSceneShadowLODRules() return true.
+  	 * @param InView - Current View
+ 	 * @param InViewLODScale - View LOD scale	 
+  	 * @param InForcedLODLevel - Engine Forced LOD value	 
+   	 * @param InVisibilePrimitiveLODMask - Computed LOD for visible primitive
+   	 * @param InShadowMapTextureResolution - Texture resolution of the shadow map for this cascade
+   	 * @param InShadowMapCascadeSize - Shadow cascade size in world unit for this shadow map
+   	 * @param InShadowCascadeId - Shadow cascade Id
+   	 * @param InHasSelfShadow - Indicate if we have self shadow, as it can impact which LODMask we choose
+	 */
+	ENGINE_API virtual struct FLODMask GetCustomWholeSceneShadowLOD(const FSceneView& InView, float InViewLODScale, int32 InForcedLODLevel, const struct FLODMask& InVisibilePrimitiveLODMask, float InShadowMapTextureResolution, float InShadowMapCascadeSize, int8 InShadowCascadeId, bool InHasSelfShadow) const;
 
 protected:
 
@@ -648,6 +704,7 @@ private:
 	friend class FScene;
 
 	EComponentMobility::Type Mobility;
+	ELightmapType LightmapType;
 
 	uint32 bIsLocalToWorldDeterminantNegative : 1;
 	uint32 DrawInGame : 1;
@@ -762,12 +819,6 @@ protected:
 	uint32 bCastFarShadow : 1;
 
 	/** 
-	 * This has to be known by the rendering thread to avoid marking lighting dirty when new interactions are created,
-	 * Which happens when a movable mesh with bLightAsIfStatic moves into the influence of a light it was not baked against.
-	 */
-	uint32 bLightAsIfStatic : 1;
-
-	/** 
 	 * Whether to light this component and any attachments as a group.  This only has effect on the root component of an attachment tree.
 	 * When enabled, attached component shadowing settings like bCastInsetShadow, bCastVolumetricTranslucentShadow, etc, will be ignored.
 	 * This is useful for improving performance when multiple movable components are attached together.
@@ -824,9 +875,9 @@ private:
 	/** Whether this primitive should be composited onto the scene after post processing (editor only) */
 	uint32 bUseEditorCompositing : 1;
 
-	/** Should this primitive receive dynamic-only CSM shadows */
-	uint32 bReceiveCombinedCSMAndStaticShadowsFromStationaryLights : 1;
-		
+	/** Whether this primitive receive CSM shadows (Mobile) */
+	uint32 bReceiveMobileCSMShadows : 1;
+
 	/** This primitive has bRenderCustomDepth enabled */
 	uint32 bRenderCustomDepth : 1;
 
@@ -934,6 +985,8 @@ private:
 	 * @param InLocalBounds - The local space bounds of the primitive.
 	 */
 	ENGINE_API void SetTransform(const FMatrix& InLocalToWorld, const FBoxSphereBounds& InBounds, const FBoxSphereBounds& InLocalBounds, FVector InActorPosition);
+
+	ENGINE_API bool WouldSetTransformBeRedundant(const FMatrix& InLocalToWorld, const FBoxSphereBounds& InBounds, const FBoxSphereBounds& InLocalBounds, FVector InActorPosition);
 
 	/**
 	 * Either updates the uniform buffer or defers it until it becomes visible depending on a cvar

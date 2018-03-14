@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // This code is modified from that in the Mesa3D Graphics library available at
 // http://mesa3d.org/
@@ -53,28 +53,31 @@
 #include "ir_basic_block.h"
 #include "ir_optimization.h"
 #include "glsl_types.h"
+#include "hash_table.h"
 
 static bool debug = false;
 
-class acp_entry : public exec_node
+class acpe_entry : public exec_node
 {
 public:
-	acp_entry(ir_variable *lhs, ir_variable *rhs, int write_mask, int swizzle[4], bool is_interface_block)
+	acpe_entry(ir_variable *lhs, ir_variable *rhs, int write_mask, int swizzle[4], bool is_interface_block)
 	{
 		this->lhs = lhs;
 		this->rhs = rhs;
 		this->write_mask = write_mask;
 		this->is_interface_block = is_interface_block;
 		memcpy(this->swizzle, swizzle, sizeof(this->swizzle));
+        copy_entry = nullptr;
 	}
 
-	acp_entry(acp_entry *a)
+	acpe_entry(acpe_entry *a)
 	{
 		this->lhs = a->lhs;
 		this->rhs = a->rhs;
 		this->write_mask = a->write_mask;
 		this->is_interface_block = a->is_interface_block;
 		memcpy(this->swizzle, a->swizzle, sizeof(this->swizzle));
+        copy_entry = nullptr;
 	}
 
 	ir_variable *lhs;
@@ -82,8 +85,134 @@ public:
 	unsigned int write_mask;
 	bool is_interface_block;
 	int swizzle[4];
+    acpe_entry* copy_entry = nullptr;
 };
 
+struct acpe_hash_entry : public exec_node
+{
+    acpe_entry* acpe_entry;
+};
+
+unsigned acpe_hash_table_pointer_hash(const void *key)
+{
+    return (unsigned)((uintptr_t)key >> 4);
+}
+
+class acpe_hash_table
+{
+public:
+    acpe_hash_table(void *imem_ctx)
+    : acp(nullptr)
+    , acp_ht(nullptr)
+    , mem_ctx(imem_ctx)
+    {
+        this->acp = new(mem_ctx)exec_list;
+        this->acp_ht = hash_table_ctor(1543, acpe_hash_table_pointer_hash, hash_table_pointer_compare);
+    }
+    
+    ~acpe_hash_table()
+    {
+        hash_table_dtor(acp_ht);
+    }
+    
+    static void copy_function(const void *key, void *data, void *closure)
+    {
+        acpe_hash_table* ht = (acpe_hash_table*)closure;
+        exec_list* list = new(ht->mem_ctx)exec_list;
+        hash_table_insert(ht->acp_ht, list, key);
+        exec_list* src_list = (exec_list*)data;
+        foreach_iter(exec_list_iterator, iter, *src_list)
+        {
+            acpe_hash_entry *entry = (acpe_hash_entry *)iter.get();
+            acpe_entry* a = entry->acpe_entry;
+            if (a->get_next() && a->get_prev())
+            {
+                if(!a->copy_entry)
+                {
+                    a->copy_entry = new(ht->mem_ctx) acpe_entry(*a);
+                    ht->acp->push_tail(a->copy_entry);
+                }
+                acpe_hash_entry *b = new(ht->mem_ctx) acpe_hash_entry;
+                b->acpe_entry = a->copy_entry;
+                list->push_tail(b);
+            }
+        }
+    }
+    
+    void copy(acpe_hash_table const& other)
+    {
+        /* Populate the initial acp with a copy of the original */
+        hash_table_call_foreach(other.acp_ht, &copy_function, this);
+        
+        foreach_iter(exec_list_iterator, iter, *other.acp)
+        {
+            acpe_entry *a = (acpe_entry *)iter.get();
+            a->copy_entry = nullptr;
+        }
+    }
+    
+    void add_acp(acpe_entry* entry)
+    {
+        acp->push_tail(entry);
+        if (entry->lhs)
+        {
+            add_acp_hash(entry->lhs, entry);
+        }
+        if (entry->rhs && entry->lhs != entry->rhs)
+        {
+            add_acp_hash(entry->rhs, entry);
+        }
+    }
+    
+    void add_acp_hash(ir_variable* var, acpe_entry* entry)
+    {
+        acpe_hash_entry* he = new (mem_ctx)acpe_hash_entry;
+        he->acpe_entry = entry;
+        exec_list* entries = (exec_list*)hash_table_find(acp_ht, var);
+        if (!entries)
+        {
+            entries = new (mem_ctx)exec_list;
+            hash_table_insert(acp_ht, entries, var);
+        }
+        bool bFound = false;
+        foreach_iter(exec_list_iterator, iter, *entries)
+        {
+            acpe_hash_entry *old_entry = (acpe_hash_entry *)iter.get();
+            acpe_entry* a = old_entry->acpe_entry;
+            if (entry == a || (entry->lhs == a->lhs && entry->rhs == a->rhs))
+            {
+                bFound = true;
+                break;
+            }
+        }
+        if (!bFound)
+        {
+            entries->push_tail(he);
+        }
+    }
+    
+    exec_list* find_acpe_hash_entry_list(ir_variable* var)
+    {
+        return (exec_list*)hash_table_find(acp_ht, var);
+    }
+    
+    exec_list* find_acpe_entry_list(ir_variable* var)
+    {
+        return acp;//(exec_list*)hash_table_find(acp_ht, var);
+    }
+    
+    void make_empty()
+    {
+        acp->make_empty();
+        hash_table_clear(acp_ht);
+    }
+    
+private:
+    /** List of acpe_entry: The available copies to propagate */
+    exec_list *acp;
+    hash_table* acp_ht;
+    void *mem_ctx;
+};
 
 class kill_entry : public exec_node
 {
@@ -106,12 +235,13 @@ public:
 		this->progress = false;
 		this->mem_ctx = ralloc_context(NULL);
 		this->shader_mem_ctx = NULL;
-		this->acp = new(mem_ctx)exec_list;
+		this->acp = new acpe_hash_table(mem_ctx);
 		this->kills = new(mem_ctx)exec_list;
 		this->killed_all = false;
 	}
 	~ir_copy_propagation_elements_visitor()
 	{
+        delete acp;
 		ralloc_free(mem_ctx);
 	}
 
@@ -128,8 +258,8 @@ public:
 	void kill(kill_entry *k);
 	void handle_if_block(exec_list *instructions);
 
-	/** List of acp_entry: The available copies to propagate */
-	exec_list *acp;
+	/** List of acpe_entry: The available copies to propagate */
+	acpe_hash_table *acp;
 	/**
 	* List of kill_entry: The variables whose values were killed in this
 	* block.
@@ -152,16 +282,18 @@ ir_visitor_status ir_copy_propagation_elements_visitor::visit_enter(ir_function_
 	* block.  Any instructions at global scope will be shuffled into
 	* main() at link time, so they're irrelevant to us.
 	*/
-	exec_list *orig_acp = this->acp;
+	acpe_hash_table *orig_acp = this->acp;
 	exec_list *orig_kills = this->kills;
 	bool orig_killed_all = this->killed_all;
 
-	this->acp = new(mem_ctx)exec_list;
+	this->acp = new acpe_hash_table(mem_ctx);
 	this->kills = new(mem_ctx)exec_list;
 	this->killed_all = false;
 
 	visit_list_elements(this, &ir->body);
 
+    delete acp;
+    
 	this->kills = orig_kills;
 	this->acp = orig_acp;
 	this->killed_all = orig_killed_all;
@@ -258,23 +390,29 @@ void ir_copy_propagation_elements_visitor::handle_rvalue(ir_rvalue **ir)
 	* the same source variable.
 	*/
 	bool interface_block = false;
-	foreach_iter(exec_list_iterator, iter, *this->acp)
-	{
-		acp_entry *entry = (acp_entry *)iter.get();
-
-		if (var == entry->lhs)
-		{
-			for (int c = 0; c < chans; c++)
-			{
-				if (entry->write_mask & (1 << swizzle_chan[c]))
-				{
-					interface_block = entry->is_interface_block;
-					source[c] = entry->rhs;
-					source_chan[c] = entry->swizzle[swizzle_chan[c]];
-				}
-			}
-		}
-	}
+    
+    exec_list* list = acp->find_acpe_hash_entry_list(var);
+    if (list)
+    {
+        foreach_iter(exec_list_iterator, iter, *list)
+        {
+            acpe_hash_entry* e = (acpe_hash_entry*)iter.get();
+            acpe_entry *entry = e->acpe_entry;
+            if (var == entry->lhs)
+            {
+                for (int c = 0; c < chans; c++)
+                {
+                    if (entry->write_mask & (1 << swizzle_chan[c]))
+                    {
+                        interface_block = entry->is_interface_block;
+                        source[c] = entry->rhs;
+                        source_chan[c] = entry->swizzle[swizzle_chan[c]];
+                    }
+                }
+                break;
+            }
+        }
+    }
 
 	/* Make sure all channels are copying from the same source variable. */
 	if (!source[0])
@@ -360,20 +498,16 @@ ir_visitor_status ir_copy_propagation_elements_visitor::visit_enter(ir_call *ir)
 
 void ir_copy_propagation_elements_visitor::handle_if_block(exec_list *instructions)
 {
-	exec_list *orig_acp = this->acp;
+    acpe_hash_table* ht = new acpe_hash_table(mem_ctx);
+    
+	acpe_hash_table *orig_acp = this->acp;
 	exec_list *orig_kills = this->kills;
 	bool orig_killed_all = this->killed_all;
-
-	this->acp = new(mem_ctx)exec_list;
+    
+    /* Populate the initial acp with a copy of the original */
+    this->acp = ht;
 	this->kills = new(mem_ctx)exec_list;
 	this->killed_all = false;
-
-	/* Populate the initial acp with a copy of the original */
-	foreach_iter(exec_list_iterator, iter, *orig_acp)
-	{
-		acp_entry *a = (acp_entry *)iter.get();
-		this->acp->push_tail(new(this->mem_ctx) acp_entry(a));
-	}
 
 	visit_list_elements(this, instructions);
 
@@ -381,7 +515,9 @@ void ir_copy_propagation_elements_visitor::handle_if_block(exec_list *instructio
 	{
 		orig_acp->make_empty();
 	}
-
+    
+    delete ht;
+    
 	exec_list *new_kills = this->kills;
 	this->kills = orig_kills;
 	this->acp = orig_acp;
@@ -410,7 +546,7 @@ ir_visitor_status ir_copy_propagation_elements_visitor::visit_enter(ir_if *ir)
 
 ir_visitor_status ir_copy_propagation_elements_visitor::visit_enter(ir_loop *ir)
 {
-	exec_list *orig_acp = this->acp;
+	acpe_hash_table *orig_acp = this->acp;
 	exec_list *orig_kills = this->kills;
 	bool orig_killed_all = this->killed_all;
 
@@ -418,7 +554,7 @@ ir_visitor_status ir_copy_propagation_elements_visitor::visit_enter(ir_loop *ir)
 	* We could go through once, then go through again with the acp
 	* cloned minus the killed entries after the first run through.
 	*/
-	this->acp = new(mem_ctx)exec_list;
+    this->acp = new acpe_hash_table(mem_ctx);
 	this->kills = new(mem_ctx)exec_list;
 	this->killed_all = false;
 
@@ -428,6 +564,8 @@ ir_visitor_status ir_copy_propagation_elements_visitor::visit_enter(ir_loop *ir)
 	{
 		orig_acp->make_empty();
 	}
+    
+    delete acp;
 
 	exec_list *new_kills = this->kills;
 	this->kills = orig_kills;
@@ -447,24 +585,63 @@ ir_visitor_status ir_copy_propagation_elements_visitor::visit_enter(ir_loop *ir)
 /* Remove any entries currently in the ACP for this kill. */
 void ir_copy_propagation_elements_visitor::kill(kill_entry *k)
 {
-	foreach_list_safe(node, acp)
-	{
-		acp_entry *entry = (acp_entry *)node;
-
-		if (entry->lhs == k->var)
-		{
-			entry->write_mask = entry->write_mask & ~k->write_mask;
-			if (entry->write_mask == 0)
-			{
-				entry->remove();
-				continue;
-			}
-		}
-		if (entry->rhs == k->var)
-		{
-			entry->remove();
-		}
-	}
+    exec_list* list = acp->find_acpe_hash_entry_list(k->var);
+    if (list)
+    {
+        foreach_list_safe(node, list)
+        {
+            acpe_hash_entry* e = (acpe_hash_entry*)node;
+            acpe_entry *entry = (acpe_entry *)e->acpe_entry;
+            if (entry->lhs == k->var)
+            {
+                entry->write_mask = entry->write_mask & ~k->write_mask;
+                if (entry->write_mask == 0)
+                {
+                    e->remove();
+                    
+                    exec_list* ilist = acp->find_acpe_hash_entry_list(entry->rhs);
+                    if(ilist)
+                    {
+                        foreach_list_safe(iter2, ilist)
+                        {
+                            acpe_hash_entry* ientry = (acpe_hash_entry*)iter2;
+                            if(ientry->acpe_entry == entry)
+                            {
+                                ientry->remove();
+                            }
+                        }
+                    }
+                    
+                    if (entry->next && entry->prev)
+                    {
+                        entry->remove();
+                    }
+                    continue;
+                }
+            }
+            if (entry->rhs == k->var)
+            {
+                exec_list* ilist = acp->find_acpe_hash_entry_list(entry->lhs);
+                if(ilist)
+                {
+                    foreach_list_safe(iter2, ilist)
+                    {
+                        acpe_hash_entry* ientry = (acpe_hash_entry*)iter2;
+                        if(ientry->acpe_entry == entry)
+                        {
+                            ientry->remove();
+                        }
+                    }
+                }
+                
+                e->remove();
+                if (entry->next && entry->prev)
+                {
+                    entry->remove();
+                }
+            }
+        }
+    }
 
 	/* If we were on a list, remove ourselves before inserting */
 	if (k->next)
@@ -481,7 +658,7 @@ void ir_copy_propagation_elements_visitor::kill(kill_entry *k)
 */
 void ir_copy_propagation_elements_visitor::add_copy(ir_assignment *ir)
 {
-	acp_entry *entry;
+	acpe_entry *entry;
 	int orig_swizzle[4] = {0, 1, 2, 3};
 	int swizzle[4];
 
@@ -552,9 +729,9 @@ void ir_copy_propagation_elements_visitor::add_copy(ir_assignment *ir)
 		}
 	}
 
-	entry = new(this->mem_ctx) acp_entry(lhs->var, rhs->var, write_mask,
+	entry = new(this->mem_ctx) acpe_entry(lhs->var, rhs->var, write_mask,
 		swizzle, deref_ib != NULL);
-	this->acp->push_tail(entry);
+	this->acp->add_acp(entry);
 }
 
 bool do_copy_propagation_elements(exec_list *instructions)

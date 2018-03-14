@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3574749
-Availability:Docs
+﻿INTSourceChangelist:3735722
+Availability:Public
 Crumbs: %ROOT%
 Title:Rigid Body
 Description:Rigid Body ノードとそれを Animation ブループリント内で軽量物理シミュレーションとして使用する方法を説明します。 
 Type:reference
-Version:4.16
+Version:4.18
 Parent:Engine/Animation/NodeReference/SkeletalControls
 Order:1
 tags:Animation
@@ -16,17 +16,17 @@ Related:Engine/Physics/PhAT/Reference
 Related:Engine/Animation/AnimBlueprints/AnimGraph
 Related:Engine/Animation/NodeReference/Blend
 
-**Rigid Body** スケルタル制御ノードを使うと、高性能な [Immediate Mode PhysX API](https://www.geforce.com/hardware/technology/physx) を用いて物理シミュレーションしたキャラクターを大量に作成することができます。 
-この Rigid Body ノード (以下の図) を [](Engine/Animation/AnimBlueprints) の **AnimGraph** に追加して [](Engine/Animation/NodeReference/Blend/) と合わせて使用することもできます。これにより、あるポーズからシミュレーションした物理ステートに切り替えることができます。
+**Rigid Body** スケルタル制御ノード (以下の図) を使うと、高性能な [Immediate Mode PhysX API.](https://www.geforce.com/hardware/technology/physx) を用いてキャラクターに対して軽量の物理シミュレーションを行うことができます。
+この Rigid Body ノードを [](Engine/Animation/AnimBlueprints) の **AnimGraph** に追加して [](Engine/Animation/NodeReference/Blend/) と合わせて使用することもできます。これにより、あるポーズからシミュレーションした物理ステートに切り替えることができます。
 このシミュレーションを使うキャラクターはワールドで静的ジオメトリとのコリジョンを生成することもできます。 
 
 ![](RigidBodyNode.png)
 
-このノードを使って以下のシミュレートしたいくつかのキャラクターは、推進力に反応し、アイドルから物理シミュレートしたステートに切り替わります。 
+Rigid Body ノードの一般的な用途としては、揺れるもので物理を適用したいポニーテール、チェーン、その他のボーンを持つキャラクターでの使用があります。 
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
-	VaxxVsv0Fak
+	RGTegdhUXWc
 	[/PARAMLITERAL]
 	[PARAMLITERAL:width]
 	100
@@ -42,25 +42,29 @@ Related:Engine/Animation/NodeReference/Blend
 	[/PARAMLITERAL]
 [/OBJECT]
 
+[REGION:caption]
+上の図では、キャラクターの頭部から出ているホースが Physics アセットを持ち、これが Animation ブループリント内で Rigid Body ノードと一緒に使用されます。 
+[/REGION]
+
 ## セットアップ
 
-このノードを使う前に、[物理アセット](Engine/Physics/PhAT) 内で、シミュレートする [](Engine/Physics/PhysicsBodies/) を **[Simulated]** に設定します。 
+このノードを使う前に、[Physics アセット](Engine/Physics/PhAT) 内で、シミュレートする [](Engine/Physics/PhysicsBodies/) を **[Simulated]** に設定します。 
 
 ![](RigidBody_02.png)
 
 [REGION:caption]
-上の図では、キャラクターの **[Pelvis (骨盤)]** ボーン上で右クリックして、その下の全てのボディを **[Simulated]** に設定し、キャラクターが物理を十分にシミュレーションするようにします。 
+上の図では、キャラクターの頭から出ているホースに関連する各ボーンで物理をシミュレーションするように設定しました。 
 [/REGION]
 
-Physics アセットをセットアップしたら、Animation ブループリントの AnimGraph 内で、Rigid Body ノードといつ使用するかを定義する必要なロジックを追加します。 
+**Physics** アセットをセットアップしたら、**Animation ブループリント** の **AnimGraph** 内で、**Rigid Body** ノードといつ使用するかを定義する必要なロジックを追加します。 
 
 ![](RigidBody_11.png)
 
 [REGION:caption]
-上の図では、Rigid Body ノードはブレンド ノードに接続されています。このブレンド ノードは、キャラクターが推進力の影響を受けると切り替わり、物理をシミュレーションさせます。 
+上の図では別の Animation ブループリントからデータを取り込んで、Rigid Body ノードを介してインプットし、Final Animation Pose を終了しています。 
 [/REGION]
 
-Rigid Body ノードを選択すると、**[Details]** パネルでノードがどのように使われるかを定義するプロパティを変更することができます。 
+AnimGraph で Rigid Body ノードを選択した状態で、**[Details]** パネルでノードがどのように使われるかを定義するプロパティを変更することができます。 
 
 ![](RigidBody_12.png)
 
@@ -68,10 +72,12 @@ Rigid Body ノードを選択すると、**[Details]** パネルでノードが�
 | -------- | ----------- |
 | **Override Physics Asset** | 使用する Physics アセットです。空の場合、スケルタルメッシュのデフォルトの Physicsアセットが使用されます。 |
 | **Override World Gravity** | このボディに対する重力をオーバーライドするベクター値の指定を有効にします。 |
+| **External Force** | ワールド空間で均一な外力を適用します。例えば、これによりコンポーネント空間でシミュレーションしながら、簡単に動きの慣性を模倣することができます。 |
 | **Overlap Channel** | このチャンネルは、衝突する静的ジオメトリを見つけるために使用します。 |
-| **Component Space Simulation** | true の場合、シミュレーションはコンポーネント空間で行われます。つまり、アニメートされたボディによってのみベロシティが継承されることを意味します。|
-| **Cached Bounds Scale** | キャッシュされたバウンド (実際のバウンドに対して) のスケールです。これを増やすと、パフォーマンスは向上しますが、オーバーラップは機能しないかもしれません。値 0.1 でキャッシュしたバウンドを効果的に無効にします。 |
+| **Component Space Simulation** | true の場合、シミュレーションはコンポーネント空間で行われます。つまり、アニメートされたボディによってのみベロシティが継承されます。|
+| **Cached Bounds Scale** | キャッシュされた境界 (実際の境界に対して) のスケールです。これを増やすと、パフォーマンスは向上しますが、オーバーラップは機能しないかもしれません。値 0.1 でキャッシュした境界を効果的に無効にします。 |
 | **(As Pin) Alpha** | ノード上のピンとして、または [Details] パネルでアルファ プロパティを表示します。 |
 | **Alpha Scale Bias**| アルファ プロパティの最小および最大の Influence値。 |
 
 [INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
+

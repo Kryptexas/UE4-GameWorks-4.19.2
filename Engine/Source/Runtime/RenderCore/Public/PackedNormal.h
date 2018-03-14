@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -32,6 +32,7 @@ struct FPackedNormal
 	FPackedNormal() { Vector.Packed = 0; }
 	FPackedNormal(uint32 InPacked) { Vector.Packed = InPacked; }
 	FPackedNormal(const FVector& InVector) { *this = InVector; }
+	FPackedNormal(const FVector4& InVector) { *this = InVector; }
 	FPackedNormal(uint8 InX, uint8 InY, uint8 InZ, uint8 InW) { Vector.X = InX; Vector.Y = InY; Vector.Z = InZ; Vector.W = InW; }
 
 	// Conversion operators.

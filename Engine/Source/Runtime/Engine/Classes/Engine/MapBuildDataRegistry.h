@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Registry for built data from a map build
@@ -104,6 +104,10 @@ public:
 
 	ENGINE_API void Empty();
 
+	size_t GetAllocatedSize() const
+	{
+		return DepthSamples.GetAllocatedSize();
+	}
 	friend FArchive& operator<<(FArchive& Ar, FStaticShadowDepthMapData& ShadowMap);
 };
 
@@ -135,6 +139,10 @@ public:
 	FLightComponentMapBuildData() :
 		ShadowMapChannel(INDEX_NONE)
 	{}
+
+	ENGINE_API ~FLightComponentMapBuildData();
+
+	ENGINE_API void FinalizeLoad();
 
 	/** 
 	 * Shadow map channel which is used to match up with the appropriate static shadowing during a deferred shading pass.
@@ -168,6 +176,100 @@ public:
 	}
 };
 
+class FReflectionCaptureData
+{
+public:
+	int32 CubemapSize;
+	float AverageBrightness;
+	/** Needed for EncodedHDRCapturedData cooking. */
+	float Brightness;
+
+	TArray<uint8> FullHDRCapturedData;
+	TArray<uint8> EncodedHDRCapturedData;
+
+	FReflectionCaptureData() :
+		CubemapSize(0),
+		AverageBrightness(0.0f),
+		Brightness(0.0f),
+		bUploadedFinal(false)
+	{}
+
+	bool HasBeenUploadedFinal() const
+	{
+		return bUploadedFinal;
+	}
+
+	void OnDataUploadedToGPUFinal()
+	{
+		check(!bUploadedFinal);
+
+		// In the editor we need this data for serialization
+		if (!GIsEditor)
+		{
+			FullHDRCapturedData.Empty();
+			EncodedHDRCapturedData.Empty();
+			CubemapSize = 0;
+			bUploadedFinal = true;
+		}
+	}
+
+private:
+	bool bUploadedFinal;
+};
+
+class FReflectionCaptureMapBuildData : public FReflectionCaptureData
+{
+public:
+
+	// Stored redundantly to support stats after discarding data
+	size_t AllocatedSize;
+
+	FReflectionCaptureMapBuildData() :
+		AllocatedSize(0)
+	{}
+
+	ENGINE_API ~FReflectionCaptureMapBuildData();
+
+	size_t GetAllocatedSize() const
+	{
+		return AllocatedSize;
+	}
+
+	ENGINE_API void FinalizeLoad();
+
+	/**
+	 * Determine if this annotation is the default
+	 * @return true is this is a default annotation
+	 */
+	FORCEINLINE bool IsDefault()
+	{
+		return CubemapSize == DefaultAnnotation.CubemapSize && FullHDRCapturedData.Num() == DefaultAnnotation.FullHDRCapturedData.Num();
+	}
+
+	/** Serializer. */
+	friend ENGINE_API FArchive& operator<<(FArchive& Ar,FReflectionCaptureMapBuildData& ReflectionCaptureMapBuildData);
+
+	/** Default state for annotations (no flags changed)*/
+	static const FReflectionCaptureMapBuildData DefaultAnnotation;
+};
+
+class FReflectionCaptureMapBuildLegacyData
+{
+public:
+
+	FGuid Id;
+	FReflectionCaptureMapBuildData* MapBuildData;
+
+	/**
+	 * Determine if this annotation is the default
+	 * @return true is this is a default annotation
+	 */
+	FORCEINLINE bool IsDefault()
+	{
+		return Id == FGuid();
+	}
+};
+
 UCLASS(MinimalAPI)
 class UMapBuildDataRegistry : public UObject
 {
@@ -180,6 +282,7 @@ public:
 
 	//~ Begin UObject Interface
 	ENGINE_API virtual void Serialize(FArchive& Ar) override;
+	ENGINE_API virtual void PostLoad() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	ENGINE_API virtual void BeginDestroy() override;
 	ENGINE_API virtual bool IsReadyForFinishDestroy() override;
@@ -220,19 +323,29 @@ public:
 	ENGINE_API const FLightComponentMapBuildData* GetLightBuildData(FGuid LightId) const;
 	ENGINE_API FLightComponentMapBuildData* GetLightBuildData(FGuid LightId);
 
-	ENGINE_API void InvalidateStaticLighting(UWorld* World);
+	/** 
+	 * Allocates a new FMeshMapBuildData from the registry.
+	 * Warning: Further allocations will invalidate the returned reference.
+	 */
+	ENGINE_API FReflectionCaptureMapBuildData& AllocateReflectionCaptureBuildData(const FGuid& CaptureId, bool bMarkDirty);
+	ENGINE_API const FReflectionCaptureMapBuildData* GetReflectionCaptureBuildData(FGuid CaptureId) const;
+	ENGINE_API FReflectionCaptureMapBuildData* GetReflectionCaptureBuildData(FGuid CaptureId);
+
+	ENGINE_API void InvalidateStaticLighting(UWorld* World, const TSet<FGuid>* ResourcesToKeep = nullptr);
+	ENGINE_API void InvalidateReflectionCaptures(const TSet<FGuid>* ResourcesToKeep = nullptr);
 
 	ENGINE_API bool IsLegacyBuildData() const;
 
 private:
 
-	ENGINE_API void ReleaseResources();
-	ENGINE_API void EmptyData();
+	ENGINE_API void ReleaseResources(const TSet<FGuid>* ResourcesToKeep = nullptr);
+	ENGINE_API void EmptyLevelData(const TSet<FGuid>* ResourcesToKeep = nullptr);
 
 	TMap<FGuid, FMeshMapBuildData> MeshBuildData;
 	TMap<FGuid, FPrecomputedLightVolumeData*> LevelPrecomputedLightVolumeBuildData;
 	TMap<FGuid, FPrecomputedVolumetricLightmapData*> LevelPrecomputedVolumetricLightmapBuildData;
 	TMap<FGuid, FLightComponentMapBuildData> LightBuildData;
+	TMap<FGuid, FReflectionCaptureMapBuildData> ReflectionCaptureBuildData;
 
 	FRenderCommandFence DestroyFence;
 };
@@ -240,3 +353,4 @@ private:
 extern ENGINE_API FUObjectAnnotationSparse<FMeshMapBuildLegacyData, true> GComponentsWithLegacyLightmaps;
 extern ENGINE_API FUObjectAnnotationSparse<FLevelLegacyMapBuildData, true> GLevelsWithLegacyBuildData;
 extern ENGINE_API FUObjectAnnotationSparse<FLightComponentLegacyMapBuildData, true> GLightComponentsWithLegacyBuildData;
+extern ENGINE_API FUObjectAnnotationSparse<FReflectionCaptureMapBuildLegacyData, true> GReflectionCapturesWithLegacyBuildData;

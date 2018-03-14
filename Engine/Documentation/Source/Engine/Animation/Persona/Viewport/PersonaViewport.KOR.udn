@@ -1,21 +1,25 @@
-﻿INTSourceChangelist:3219745
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:애니메이션 뷰포트
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:각 애니메이션 툴에 표시되는 뷰포트 개요입니다.
+Parent:Engine/Animation/Persona
 Related: Engine\Animation\Persona\Modes\Skeleton
 Related: Engine\Animation\Persona\Modes\Mesh
 Related: Engine\Animation\Persona\Modes\Animation
 Related: Engine\Animation\Persona\Modes\Graph
-version: 4.14
+version: 4.18
+Order:
 type:reference
 topic-image:viewportsmall.png
 tags:animation
 
 
-<!--
+[COMMENT:none]
+
 [TOC (start:2 end:3)]
--->
+
+[/COMMENT]
 [EXCERPT:Overview]
 각 애니메이션 툴에는 **뷰포트** 창이 있어 애니메이션 애셋을 미리 재생해 볼 수 있습니다.
 [/EXCERPT:Overview]
@@ -37,10 +41,18 @@ tags:animation
 
 | 옵션 | 설명 |
 | ------ | ----------- |
+| [REGION:tablesection] Scene Setup 씬 구성 [/REGION] ||
 | **Preview Scene Settings** | 프리뷰 씬 세팅 - 뷰포트의 라이팅 및 포스트 프로세싱 세팅을 변경할 수 있습니다. |
-| **Scene Setup** | 씬 구성 - 현재 프리뷰 애니메이션과 애니메이션 모드를 변경할 수 있습니다. 현재 프리뷰 메시를 변경하거나 메시를 추가할 수도 있습니다. |
-| **Turn Table** | 턴 테이블 - 프리뷰 메시의 자동 회전 및 회전 속도 설정이 가능합니다. |
-| **Camera Follow** | 카메라 따라가기 - 카메라가 현재 메시 바운드를 따라가도록 할지 말지 여부를 결정할 수 있습니다. |
+| **Floor Height Offset** | 바닥 높이 오프셋 - 바닥 메시의 높이 오프셋입니다. 메시 별로 저장됩니다. |
+| **Auto Align Floor to Mesh** | 바닥을 메시에 자동 정렬 - 바닥 메시를 메시 경계에 자동 정렬합니다. |
+| [REGION:tablesection] Camera 카메라 [/REGION] ||
+| **Camera Follow** | 카메라 따라가기 - 카메라가 메시 경계를 따릅니다. |
+| **Focus Selected** | 선택 포커스 - 카메라를 선택 앞으로 이동시킵니다. |
+| **Field of View** | 필드 오브 뷰 - 뷰포트 시야를 조절합니다. |
+| [REGION:tablesection] Default Camera 기본 카메라 [/REGION] ||
+| **Jump to Default Camera** | 기본 카메라로 점프 - 기본 카메라가 설정된 경우, 그 현재 위치로 점프합니다. |
+| **Save Camera as Default** | 카메라를 기본으로 저장 - 현재 카메라를 이 메시의 기본 카메라로 저장합니다. |
+| **Clear Default Camera** | 기본 카메라 비우기 - 이 메시의 기본 카메라로 저장된 것을 지웁니다. |
 
 ### 원근
 
@@ -84,26 +96,120 @@ tags:animation
 
 | 옵션 | 설명 |
 | ---- | ---- |
-| **Field of View** | 시야 - 뷰포트 시야를 조절합니다. |
+| [REGION:tablesection] General Show Flags 일반 표시 플래그 [/REGION] ||
+| **Grid** | 그리드 - 뷰포트에 그리드 표시 여부를 켜고 끕니다. |
+| [REGION:tablesection] Physics Rendering 피직스 렌더링 [/REGION] ||
+| **Mass Properties** | 질량 프로퍼티 - **Simulate** 옵션이 켜졌을 때 피직스 바디의 질량 프로퍼티를 표시합니다. |
+| **Mesh** | 메시 - 편집 및 시뮬레이트 시 메시를 그릴 방법을 설정합니다. |
+| **Bodies** | 바디 - 피직스 바디 관련 옵션을 표시합니다. [INCLUDE:#bodies] |
+| **Constraints** | 컨스트레인트 - 컨스트레인트 관련 옵션을 표시합니다. [INCLUDE:#constraints] |
+| [REGION:tablesection] Scene Elements 씬 엘리먼트 [/REGION] ||
+| **Mesh** | 메시 - 메시 관련 옵션을 표시합니다. [INCLUDE:#mesh] |
+| **Animation** | 애니메이션 - 애니메이션 관련 옵션을 표시합니다. [INCLUDE:#animation] |
+| **Bones** | 본 - 본 관련 옵션을 표시합니다. [INCLUDE:#bones] |
+| **Clothing** | 클로딩 - 클로딩 관련 옵션을 표시합니다. [INCLUDE:#clothing] |
+| **Advanced** | 고급 - 고급 관련 옵션을 표시합니다. [INCLUDE:#advanced]  |
+| [REGION:tablesection] Other Flags 기타 플래그 [/REGION] ||
 | **Mute Audio** | 오디오 음소거 - 프리뷰의 오디오를 음소거합니다. |
-| **Process Root Motion** | 루트 모션 처리 - 애니메이션의 루트 모션을 기준으로 프리뷰를 이동시킵니다. |
-| **Retarget Base Pose** | 베이스 포즈 리타겟 - 프리뷰 메시에 리타게팅된 베이스 포즈를 표시합니다. |
-| **Bound** | 바운드 - 프리뷰 메시에 바운드 볼륨을 표시합니다. |
-| **In-game Bound** | 인게임 바운드 - 프리뷰 메시에 인게임 바운드 사용 여부를 설정합니다. |
-| **Mesh** | 메시 - 프리뷰 메시를 표시합니다. |
-| **MorphTargets** | 모프 타겟 - 프리뷰 메시에 적용된 모프 타겟 표시 여부입니다. |
+| **Use Audio Attenuation** | 오디오 어테뉴에이션 사용 - 프리뷰로 오디오를 재생할 때 오디오 감쇠를 사용합니다. |
+
+[COMMENT:none]
+-
+[INCLUDE:#advanced]
+
+[EXCERPT:Animation]
+| ------ | ----------- |
+| **Root Motion** | 루트 모션 - 애니메이션의 루트 모션을 기반으로 프리뷰를 움직입니다. |
 | **Uncompressed Animation** | 미압축 애니메이션 - 미압축 애니메이션 데이터로 스켈레톤을 표시합니다. |
-| **NonRetargeted Animation** | 리타게팅되지않은 애니메이션 - 리타게팅되지 않은 애니메이션 데이터로 스켈레톤을 표시합니다.|
+| **NonRetargeted Animation** | 리타게팅되지않은 애니메이션 - 리타게팅되지 않은 애니메이션 데이터로 스켈레톤을 표시합니다. |
 | **Additive Base** | 애디티브 베이스 - 스켈레톤을 애디티브 베이스 포즈로 표시합니다. |
 | **Source Animation** | 소스 애니메이션 - 미압축 애니메이션 데이터로 스켈레톤을 표시합니다. |
 | **Baked Animation** | 구은 애니메이션 - 리타게팅되지 않은 애니메이션 데이터로 스켈레톤을 표시합니다. |
-| **Bones** | 본 - 프리뷰 메시에서 본을 표시 또는 숨기는 데 사용되는 방법입니다. |
+[/EXCERPT:Animation]
+
+[EXCERPT:Bones]
+| ------ | ----------- |
 | **Sockets** | 소켓 - 소켓 히트포인트를 표시합니다. |
 | **Bone Names** | 본 이름 - 뷰포트에 스켈레톤의 본 이름을 표시합니다. |
-| **Mesh Overlay** | 프리뷰 메시에 본 가중치(Weighting) 또는 모프 타겟 버텍스를 표시하는 데 사용됩니다. |
-| **Display Info** | 정보 표시 - 뷰포트에 메시 관련 정보를 표시합니다. |
-| **Scene Setup** | 씬 구성 - 바닥을 메시에 자동 정렬, 그리드 또는 바닥 높이 오프셋 토글과 같은 설정을 정의할 수 있습니다. |
-| **Advanced** | 고급 - UV 시각화, CPU 스키닝, 버텍스 노멀 시각화, 본 축 표시 방법 설정 등이 가능합니다. |
+| **Bone Drawing** | 본 그리기 - 프리뷰 메시에 본 가중치(Weighting) 또는 모프 타겟 버텍스를 표시하는 데 사용됩니다. |
+[/EXCERPT:Bones]
+
+[EXCERPT:Clothing]
+| ------ | ----------- |
+| **Disable Cloth Simulation** | 클로스 시뮬레이션 비활성화 - 클로스 시뮬레이션을 끄고 시뮬레이션 없는 메시를 표시합니다. |
+| **Apply Wind** | 바람 적용 - 클로딩 시뮬레이션에 바람을 적용합니다. |
+| **Wind Strength** | 바람 세기 - **Apply Wind** 옵션이 켜졌을 때 바람 세기를 설정합니다. |
+| **Gravity Scale** | 중력 스케일 - 클로딩 시뮬레이션에 적용할 중력 스케일을 설정합니다. |
+| **Collide with Cloth Children** | 클로스 자식과 충돌 - 프리뷰 씬에서 어태치먼트의 클로딩과 베이스 메시의 콜리전 프리미티브 사이 충돌 감지를 켭니다. |
+| **Pause with Animation** | 애니메이션과 같이 일시정지 - 켜면, 스크럽 패널을 사용하여 애니메이션이 일시정지되면 클로딩 시뮬레이션도 일시정지됩니다. |
+| **Sections Display Mode** | 섹션 표시 모드 - 뷰포트에서 클로딩 표시 방법을 설정합니다. |
+| **Visualizations** | 시각화 - 다양한 클로딩 프로퍼티 시각화를 켭니다. |
+[/EXCERPT:Clothing]
+
+[EXCERPT:Advanced]
+| ------ | ----------- |
+| **UV** | UV - 지정된 채널에 대한 메시의 UV 표시를 켜고 끕니다. |
+| **Skinning** | 스키닝 - 뷰포트의 CPU 스키닝 표시를 켜고 끕니다. |
+| **Vertex Normal Visualization** | 버텍스 노멀 시각화 - 뷰포트의 버텍스 노멀, 탄젠트, 바이노멀의 시각화를 켭니다. |
+| **Hierarchy Local Axes** | 계층구조 로컬 축 - 본에 대한 계층구조 로컬 축 표시 방법을 모두, 선택만, 없음 중에서 설정합니다. |
+[/EXCERPT:Advanced]
+
+[EXCERPT:bodies]
+| ------ | ----------- |
+| **Only Selected Solid** | 선택만 입체 - 선택된 콜리전 바디만 "입체"(solid)로 표시됩니다. |
+| **Collision Opacity** | 콜리전 오파시티 - 콜리전 바디의 투명도를 조절할 수 있도록 합니다. |
+| **Body Drawing** | 바디 그리기 - 뷰포트에서 편집할 때나 시뮬레이션 도중 콜리전 바디를 그릴 방법을 설정합니다. |
+[/EXCERPT:bodies]
+
+[EXCERPT:constraints]
+| ------ | ----------- |
+| **Draw Constraints As Points** | 컨스트레인트를 점으로 그리기 - 켜면, 뷰포트에서 컨스트레인트를 점으로 그립니다. |
+| **Constraint Scale** | 컨스트레인트 스케일 - 뷰포트에서 컨스트레인트 스케일을 조절합니다. |
+| **Constraint Drawing** | 컨스트레인트 그리기 - 뷰포트에서 컨스트레인트를 그릴 방법을 없음, 제한, 위치 중에서 설정합니다. |
+[/EXCERPT:constraints]
+
+[EXCERPT:mesh]
+| ------ | ----------- |
+| **Retarget Base Pose** | 리타겟 베이스 포즈 - 프리뷰 메시에 리타게팅된 베이스 포즈를 표시합니다. |
+| **Bound** | 바운드 - 프리뷰 메시의 경계 볼륨을 표시합니다. |
+| **In-Game Bound** | 게임내 바운드 - 프리뷰 메시에 게임내 경계 사용 여부를 설정합니다. |
+| **Mesh** | 메시 - 프리뷰 메시를 표시합니다. |
+| **MorphTargets** | 모프 타겟 - 프리뷰 메시에 적용된 모프 타겟 표시 여부를 설정합니다. |
+| **Vertex Colors** | 버텍스 컬러 - 프리뷰 메시에 칠해진 버텍스 컬러 표시 여부입니다. |
+| **Mesh Info** | 메시 정보 - 뷰포트에 메시 정보를 표시할 방법입니다. |
+| **Mesh Overlay Drawing** | 메시 오버레이 그리기 - 뷰포트에 있을 때 메시 표시 방법입니다. |
+[/EXCERPT:mesh]
+
+-
+[/COMMENT]
+
+
+### 피직스
+
+**Physics** (피직스) 버튼에 제공되는 옵션은 다음과 같습니다:
+
+![](PhysicsMenu.png)
+
+| 옵션 | 설명 |
+| ------ | ----------- |
+| [REGION:tablesection] Anim 애님 [/REGION] ||
+| **Physics Bend** | 피직스 벤드 - 피직스와 애니메이션을 수동 제어할 수 있도록 해줍니다. |
+| **Update Joint from Animations** | 애니메이션으로부터 조인트 업데이트 - 켜면, 조인트는 시뮬레이션 도중 그 애니메이션으로부터 업데이트됩니다. |
+| **Physics Update Mode** | 피직스 업데이트 모드 - 루트 바디 시뮬레이션이 컴포넌트 트랜스폼도 업데이트하도록 할지 여부를 결정합니다. |
+| **Poke Pause Time** | 찌르기 일시정지 시간 - 래그돌을 찔렀을 때 원래대로 블렌딩해 돌아올 때까지 걸리는 시간입니다. |
+| **Poke Blend Time** | 찌르기 블렌드 시간 - 찔렀을 때 피직스에서 애니메이션으로 블렌딩하는 데 걸리는 시간입니다. |
+| [REGION:tablesection] Simulation 시뮬레이션 [/REGION] ||
+| **Grav Scale** | 중력 스케일 - 시뮬레이션 중 사용할 중력에 대한 스케일 인수입니다. |
+| **Max FPS** | 최대 FPS - 피직스 애셋 에디터에서 시뮬레이션의 최대 초당 프레임 수(FPS) 입니다. 게임과 똑같은 FPS 를 타겟으로 할 때 좋습니다. 값이 -1 이면 최대 FPS 설정을 끕니다. |
+| [REGION:tablesection] Mouse Spring 마우스 스프링 [/REGION] ||
+| **Handle Linear Damping** | 선형 제동 처리 - 마우스 스프링 포스에 대한 선형 제동입니다. |
+| **Handle Linear Stiffness** | 선형 강성 처리 - 마우스 스프링 포스에 대한 선형 강성입니다. |
+| **Handle Angular Damping** | 각형 제동 처리 - 마우스 스프링 포스에 대한 각형 제동입니다. |
+| **Handle Angular Stiffness** | 각형 강성 처리 - 마우스 스프링 포스에 대한 각형 강성입니다. |
+| **Interpolation Speed** | 보간 속도 - 마우스 스프링 포스에 대한 피직스 타겟 트랜스폼 보간이 일어나는 속도입니다. |
+| [REGION:tablesection] Poking 찌르기 [/REGION] ||
+| **Poke Strength** | 찌르기 세기 - 좌클릭으로 찌를 때 가할 힘의 세기입니다. |
+
 
 ### 프리뷰 LOD
 
@@ -159,7 +265,8 @@ tags:animation
 
 ![Viewport Panel](ViewportPanel_Viewport.png)
 
-<!-- No longer contained in the viewport, leaving for now if it is included on another page. 
+[COMMENT:none]
+ No longer contained in the viewport, leaving for now if it is included on another page. 
 ## 타임라인 및 콘트롤 바
 
 [EXCERPT:PreviewControls]
@@ -182,7 +289,8 @@ _블렌드 스페이스_ 또는 _에임 오프셋_ 을 열면, **Preview** 옵�
 
 [/EXCERPT:PreviewControls]
 
--->
+
+[/COMMENT]
 
 
 

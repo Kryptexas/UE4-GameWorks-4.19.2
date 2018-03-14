@@ -1,0 +1,65 @@
+﻿INTSourceChangelist:3729159
+Availability: Public
+Crumbs: %ROOT%, Platforms
+Title:SteamVR Chaperone 구성
+Description:SteamVR Chaperone 시스템을 UE4 에서 구성하는 방법입니다.
+Type: how-to
+Skilllevel:Beginner
+Version:4.17
+Parent:Platforms/SteamVR
+Order: 5
+tags:Basics
+topic-image:Platforms\SteamVR\SteamVRDevelopment_topic.png
+prereq: Platforms\SteamVR\HowTo\StandingCamera
+prereq:Platforms\VR\MotionController
+
+![](SVRChaperone_Hero_Image.png)
+
+SteamVR Chaperone 컴포넌트는 사용자에게 VR 상호작용 영역의 강/약 경계를 표시하는 데 사용됩니다. 여기서는 UE4 VR Pawn 에 SteamVR Chaperone 을 추가하는 법을 살펴보겠습니다.
+
+[REGION:warning]
+UE4 안에서 Chaperone 시스템을 끄는 것은 가능하지도 추천하지도 **않습니다**. 하지만 경계에 사용자가 가까이 갈 때의 UE4 반응을 조절할 수는 있습니다.
+[/REGION]
+
+## 단계
+
+SteamVR Chaperone 시스템을 UE4 플레이어 폰에 추가하는 방법은 다음과 같습니다:
+
+1. 프로젝트의 플레이어 폰 블루프린트를 열고 **컴포넌트** 탭이 보이는지 확인합니다.
+
+1. **컴포넌트 추가** 버튼을 클릭하고 표시되는 리스트에서 **Steam VRChaperone** 컴포넌트를 검색하여 찾은 뒤 클릭하여 컴포넌트 리스트에 추가합니다.
+
+	![](SVRChaperone_00.png)(w:300)
+
+1. 완성된 플레이어 폰은 다음 이미지와 같습니다.
+
+	![](SVRChaperone_01.png)(w:300)
+
+## 최종 결과
+
+이제 프로젝트를 VR 에서 실행한 뒤 Vive HMD 를 쓰고 VR 상호작용 영역 경계에 다가가면 다음 비디오와 같은 것이 보일 것입니다:
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	ibnskPOz1Hw
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+## UE4 프로젝트 다운로드
+
+이 예제를 만드는 데 사용된 UE4 프로젝트를 다운로드할 수 있는 링크입니다.
+
+* [**SteamVR Chaperone Set Up Project**](https://epicgames.box.com/s/f9aw7n5wpjc0nnzjtiom78hticmdl3w1)
+

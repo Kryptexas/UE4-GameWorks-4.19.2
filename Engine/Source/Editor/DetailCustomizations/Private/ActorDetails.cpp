@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ActorDetails.h"
 #include "Engine/EngineBaseTypes.h"
@@ -69,10 +69,13 @@ void FActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
 	// Get the list of hidden categories
 	TArray<FString> HideCategories;
-	FEditorCategoryUtils::GetClassHideCategories(DetailLayout.GetBaseClass(), HideCategories); 
+	if (DetailLayout.GetBaseClass())
+	{
+		FEditorCategoryUtils::GetClassHideCategories(DetailLayout.GetBaseClass(), HideCategories);
+	}
 
 	// These details only apply when adding an instance of the actor in a level
-	if( !DetailLayout.HasClassDefaultObject() && DetailLayout.GetDetailsView()->GetSelectedActorInfo().NumSelected > 0 )
+	if (!DetailLayout.HasClassDefaultObject() && DetailLayout.GetDetailsView()->GetSelectedActorInfo().NumSelected > 0)
 	{
 		// Build up a list of unique blueprints in the selection set (recording the first actor in the set for each one)
 		TMap<UBlueprint*, UObject*> UniqueBlueprints;
@@ -93,7 +96,7 @@ void FActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 				SelectedActors.Add( Actor );
 
 				// Record the level that contains this actor and increment it's actor count
-				ULevel* Level = Actor->GetTypedOuter<ULevel>();
+				ULevel* Level = Actor->GetLevel();
 				if (Level != NULL)
 				{
 					int32& ActorCountForThisLevel = ActorsPerLevelCount.FindOrAdd(Level);

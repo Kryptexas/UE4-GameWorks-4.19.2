@@ -19,7 +19,8 @@
 #include "GoogleARCorePassthroughCameraExternalTextureGuid.h"
 
 FGoogleARCorePassthroughCameraRenderer::FGoogleARCorePassthroughCameraRenderer()
-	: bInitialized(false)
+	: OverlayQuadUVs{ 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f }
+	, bInitialized(false)
 	, VideoTexture(nullptr)
 	, bMaterialInitialized(false)
 	, DefaultOverlayMaterial(nullptr)
@@ -38,6 +39,7 @@ void FGoogleARCorePassthroughCameraRenderer::InitializeOverlayMaterial()
 	if (RenderingOverlayMaterial != nullptr)
 		return;
 
+	SetDefaultCameraOverlayMaterial(GetDefault<UGoogleARCoreCameraOverlayMaterialLoader>()->DefaultCameraOverlayMaterial);
 	ResetOverlayMaterialToDefault();
 }
 
@@ -58,12 +60,6 @@ void FGoogleARCorePassthroughCameraRenderer::SetOverlayMaterialInstance(UMateria
 
 void FGoogleARCorePassthroughCameraRenderer::ResetOverlayMaterialToDefault()
 {
-	if (DefaultOverlayMaterial == nullptr)
-	{
-		DefaultOverlayMaterial = LoadObject<UMaterial>(nullptr, TEXT("/GoogleTango/Tango/TangoCameraMaterial.TangoCameraMaterial"));
-		DefaultOverlayMaterial->AddToRoot();
-	}
-
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
         UseDefaultOverlayMaterial,
         FGoogleARCorePassthroughCameraRenderer*, VideoOverlayRendererRHIPtr, this,
@@ -73,7 +69,7 @@ void FGoogleARCorePassthroughCameraRenderer::ResetOverlayMaterialToDefault()
     );
 }
 
-void FGoogleARCorePassthroughCameraRenderer::InitializeIndexBuffer_RenderThread()
+void FGoogleARCorePassthroughCameraRenderer::InitializeRenderer_RenderThread(FTextureRHIRef ExternalTexture)
 {
 	if (bInitialized)
 		return;
@@ -89,38 +85,20 @@ void FGoogleARCorePassthroughCameraRenderer::InitializeIndexBuffer_RenderThread(
 	// Create index buffer. Fill buffer with initial data upon creation
 	FRHIResourceCreateInfo CreateInfo(&IndexBuffer);
 	OverlayIndexBufferRHI = RHICreateIndexBuffer(sizeof(uint16), IndexBuffer.GetResourceDataSize(), BUF_Static, CreateInfo);
-}
 
-uint32 FGoogleARCorePassthroughCameraRenderer::AllocateVideoTexture_RenderThread()
-{
-#if PLATFORM_ANDROID
-	if (VideoTexture == nullptr)
-	{
-		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
-		FRHIResourceCreateInfo CreateInfo;
+	VideoTexture = ExternalTexture;
 
-		VideoTexture = RHICmdList.CreateTextureExternal2D(1, 1, PF_R8G8B8A8, 1, 1, 0, CreateInfo);
+	FSamplerStateInitializerRHI SamplerStateInitializer(SF_Point, AM_Clamp, AM_Clamp, AM_Clamp);
+	FSamplerStateRHIRef SamplerStateRHI = RHICreateSamplerState(SamplerStateInitializer);
 
-		FSamplerStateInitializerRHI SamplerStateInitializer(SF_Point, AM_Clamp, AM_Clamp, AM_Clamp);
-		FSamplerStateRHIRef SamplerStateRHI = RHICreateSamplerState(SamplerStateInitializer);
+	FExternalTextureRegistry::Get().RegisterExternalTexture(GoogleARCorePassthroughCameraExternalTextureGuid, VideoTexture, SamplerStateRHI);
 
-		FExternalTextureRegistry::Get().RegisterExternalTexture(GoogleARCorePassthroughCameraExternalTextureGuid, VideoTexture, SamplerStateRHI);
-	}
-
-	void* NativeResource = VideoTexture->GetNativeResource();
-	check(NativeResource);
-	uint32 TextureID = *reinterpret_cast<uint32*>(NativeResource);
-
-	return TextureID;
-#endif
-	return 0;
+	bInitialized = true;
 }
 
 void FGoogleARCorePassthroughCameraRenderer::UpdateOverlayUVCoordinate_RenderThread(TArray<float>& InOverlayUVs)
 {
 	check(InOverlayUVs.Num() == 8);
-
-	InitializeIndexBuffer_RenderThread();
 
 	bool bNeedToFlipCameraImage = !RHINeedsToSwitchVerticalAxis(GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel]) || IsMobileHDR();
 
@@ -195,12 +173,12 @@ void FGoogleARCorePassthroughCameraRenderer::UpdateOverlayUVCoordinate_RenderThr
 }
 
 // We use something similar to the PostProcessMaterial to render the color camera overlay.
-class FTangoCameraOverlayVS : public FMaterialShader
+class FGoogleARCoreCameraOverlayVS : public FMaterialShader
 {
-	DECLARE_SHADER_TYPE(FTangoCameraOverlayVS, Material);
+	DECLARE_SHADER_TYPE(FGoogleARCoreCameraOverlayVS, Material);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
 		return Material->GetMaterialDomain() == MD_PostProcess && IsMobilePlatform(Platform);
 	}
@@ -214,8 +192,8 @@ public:
 		OutEnvironment.SetDefine(TEXT("POST_PROCESS_MATERIAL_BEFORE_TONEMAP"), (Material->GetBlendableLocation() != BL_AfterTonemapping) ? 1 : 0);
 	}
 
-	FTangoCameraOverlayVS( )	{ }
-	FTangoCameraOverlayVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+	FGoogleARCoreCameraOverlayVS( )	{ }
+	FGoogleARCoreCameraOverlayVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FMaterialShader(Initializer)
 	{
 	}
@@ -233,14 +211,14 @@ public:
 	}
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FTangoCameraOverlayVS,TEXT("/Engine/Private/PostProcessMaterialShaders.usf"),TEXT("MainVS_ES2"),SF_Vertex);
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FGoogleARCoreCameraOverlayVS,TEXT("/Engine/Private/PostProcessMaterialShaders.usf"),TEXT("MainVS_ES2"),SF_Vertex);
 
-class FTangoCameraOverlayPS : public FMaterialShader
+class FGoogleARCoreCameraOverlayPS : public FMaterialShader
 {
-	DECLARE_SHADER_TYPE(FTangoCameraOverlayPS, Material);
+	DECLARE_SHADER_TYPE(FGoogleARCoreCameraOverlayPS, Material);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
 		return Material->GetMaterialDomain() == MD_PostProcess && IsMobilePlatform(Platform);
 	}
@@ -254,10 +232,15 @@ public:
 		OutEnvironment.SetDefine(TEXT("POST_PROCESS_MATERIAL_BEFORE_TONEMAP"), (Material->GetBlendableLocation() != BL_AfterTonemapping) ? 1 : 0);
 	}
 
-	FTangoCameraOverlayPS() {}
-	FTangoCameraOverlayPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
+	FGoogleARCoreCameraOverlayPS() {}
+	FGoogleARCoreCameraOverlayPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
 		FMaterialShader(Initializer)
 	{
+		for (uint32 InputIter = 0; InputIter < ePId_Input_MAX; ++InputIter)
+		{
+			PostprocessInputParameter[InputIter].Bind(Initializer.ParameterMap, *FString::Printf(TEXT("PostprocessInput%d"), InputIter));
+			PostprocessInputParameterSampler[InputIter].Bind(Initializer.ParameterMap, *FString::Printf(TEXT("PostprocessInput%dSampler"), InputIter));
+		}
 	}
 
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView View, const FMaterialRenderProxy* Material)
@@ -265,6 +248,20 @@ public:
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
 		FMaterialShader::SetParameters(RHICmdList, ShaderRHI, Material, *Material->GetMaterial(View.GetFeatureLevel()), View, View.ViewUniformBuffer, true, ESceneRenderTargetsMode::DontSet);
+
+		for (uint32 InputIter = 0; InputIter < ePId_Input_MAX; ++InputIter)
+		{
+			if (PostprocessInputParameter[InputIter].IsBound())
+			{
+				SetTextureParameter(
+					RHICmdList,
+					ShaderRHI,
+					PostprocessInputParameter[InputIter],
+					PostprocessInputParameterSampler[InputIter],
+					TStaticSamplerState<>::GetRHI(),
+					GBlackTexture->TextureRHI);
+			}
+		}
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -273,9 +270,12 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
+private:
+	FShaderResourceParameter PostprocessInputParameter[ePId_Input_MAX];
+	FShaderResourceParameter PostprocessInputParameterSampler[ePId_Input_MAX];
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FTangoCameraOverlayPS,TEXT("/Engine/Private/PostProcessMaterialShaders.usf"),TEXT("MainPS_ES2"),SF_Pixel);
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FGoogleARCoreCameraOverlayPS,TEXT("/Engine/Private/PostProcessMaterialShaders.usf"),TEXT("MainPS_ES2"),SF_Pixel);
 
 void FGoogleARCorePassthroughCameraRenderer::RenderVideoOverlay_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView)
 {
@@ -293,8 +293,8 @@ void FGoogleARCorePassthroughCameraRenderer::RenderVideoOverlay_RenderThread(FRH
 		const FMaterial* CameraMaterial = RenderingOverlayMaterial->GetRenderProxy(false)->GetMaterial(FeatureLevel);
 		const FMaterialShaderMap* MaterialShaderMap = CameraMaterial->GetRenderingThreadShaderMap();
 
-		FTangoCameraOverlayPS* PixelShader = MaterialShaderMap->GetShader<FTangoCameraOverlayPS>();
-		FTangoCameraOverlayVS* VertexShader = MaterialShaderMap->GetShader<FTangoCameraOverlayVS>();
+		FGoogleARCoreCameraOverlayPS* PixelShader = MaterialShaderMap->GetShader<FGoogleARCoreCameraOverlayPS>();
+		FGoogleARCoreCameraOverlayVS* VertexShader = MaterialShaderMap->GetShader<FGoogleARCoreCameraOverlayVS>();
 
 		FGraphicsPipelineStateInitializer GraphicsPSOInit;
 
@@ -307,12 +307,12 @@ void FGoogleARCorePassthroughCameraRenderer::RenderVideoOverlay_RenderThread(FRH
 		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(PixelShader);
 		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
-		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit, EApplyRendertargetOption::DoNothing);
 
 		VertexShader->SetParameters(RHICmdList, InView);
 		PixelShader->SetParameters(RHICmdList, InView, RenderingOverlayMaterial->GetRenderProxy(false));
 
-		FIntPoint ViewSize = InView.ViewRect.Size();
+		FIntPoint ViewSize = InView.UnscaledViewRect.Size();
 
 		FDrawRectangleParameters Parameters;
 		Parameters.PosScaleBias = FVector4(ViewSize.X, ViewSize.Y, 0, 0);

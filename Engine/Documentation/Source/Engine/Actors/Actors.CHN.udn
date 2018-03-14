@@ -6,54 +6,17 @@ Description: Actor 的定义，及如何在关卡设计中应用它们，包括 
 Navigation:topic
 parent:Engine/Editor
 order:5
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors:title%](Engine/Actors/Placement/actorplacement_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors:title%](Engine/Actors/Placement/actorplacement_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:Engine/Actors/Placement/actorplacement_topic.png
 
 
 [REGION:banner]
 ![](actorBanner.png)
 [/REGION]
 
-<!-- At the most fundamental level, an [**Actor**](Gameplay/UnrealTerminology) is any gameplay Object that you can place, or [spawn/instantiate](Gameplay/HowTo/SpawnAndDestroyActors), in a level. Unreal Engine 4 handles the most commonly used cases automatically, like when you drag an Static Mesh from the **Content Browser** into a level, you will get a **Static Mesh Actor**.
--->
+[COMMENT:none]
+ At the most fundamental level, an [**Actor**](Gameplay/UnrealTerminology) is any gameplay Object that you can place, or [spawn/instantiate](Gameplay/HowTo/SpawnAndDestroyActors), in a level. Unreal Engine 4 handles the most commonly used cases automatically, like when you drag an Static Mesh from the **Content Browser** into a level, you will get a **Static Mesh Actor**.
+
+[/COMMENT]
 
 [INCLUDE:Shared/Glossary/A#glossary_actor]
 
@@ -71,14 +34,10 @@ order:5
 [/REGION]
 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/levels_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	[](Engine/Actors/Types "%Engine/Actors/Types:description%")
-	[/PARAM]
-	[PARAM:links]	
+## [](Engine/Actors/Types "%Engine/Actors/Types:description%")
+
+[REGION:buttonlist]
+	
 	* [静态网格物体](Engine/Actors/StaticMeshActor "%Engine/Actors/StaticMeshActor:description%")
 	* [](Engine/Actors/SkeletalMeshActors "%Engine/Actors/SkeletalMeshActors:description%")
 	* [几何体画刷](Engine/Actors/Brushes "%Engine/Actors/Brushes:description%")
@@ -90,7 +49,7 @@ order:5
 	* [](Engine/Actors/Mobility "%Engine/Actors/Mobility:description%")
 	* [](Engine/Actors/PlayerStart "%Engine/Actors/PlayerStart:description%")
 	* [](Engine/Actors/CameraActors "%Engine/Actors/CameraActors:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 

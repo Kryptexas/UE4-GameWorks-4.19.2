@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Math/RandomStream.h"
@@ -877,11 +877,6 @@ void AActor::FinishAndRegisterComponent(UActorComponent* Component)
 	BlueprintCreatedComponents.Add(Component);
 }
 
-UActorComponent* AActor::CreateComponentFromTemplate(UActorComponent* Template, const FString& InName)
-{
-	return CreateComponentFromTemplate(Template, FName(*InName));
-}
-
 #if !UE_BUILD_SHIPPING
 static TAutoConsoleVariable<int32> CVarLogBlueprintComponentInstanceCalls(
 	TEXT("LogBlueprintComponentInstanceCalls"),
@@ -1087,10 +1082,16 @@ void AActor::CheckComponentInstanceName(const FName InName)
 			// Try and pick a good name
 			FString ConflictingObjectName = ConflictingObject->GetName();
 			int32 CharIndex = ConflictingObjectName.Len() - 1;
-			while (FChar::IsDigit(ConflictingObjectName[CharIndex]))
+			while (CharIndex >= 0 && FChar::IsDigit(ConflictingObjectName[CharIndex]))
 			{
 				--CharIndex;
 			}
+			// Name is only composed of digits not a name conflict resolution
+			if (CharIndex < 0)
+			{
+				return;
+			}
+
 			int32 Counter = 0;
 			if (CharIndex < ConflictingObjectName.Len() - 1)
 			{

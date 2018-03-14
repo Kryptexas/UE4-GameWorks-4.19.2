@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraStackAddModuleItem.h"
 #include "NiagaraNodeOutput.h"
 #include "NiagaraScript.h"
 #include "NiagaraNodeFunctionCall.h"
 #include "NiagaraNodeAssignment.h"
+#include "NiagaraMaterialParameterNode.h"
 #include "ViewModels/NiagaraEmitterViewModel.h"
 #include "NiagaraStackEditorData.h"
 #include "NiagaraStackGraphUtilities.h"
@@ -25,6 +26,11 @@ FText UNiagaraStackAddModuleItem::GetDisplayName() const
 	return FText();
 }
 
+UNiagaraStackAddModuleItem::EDisplayMode UNiagaraStackAddModuleItem::GetDisplayMode() const
+{
+	return EDisplayMode::Standard;
+}
+
 void UNiagaraStackAddModuleItem::GetAvailableParameters(TArray<FNiagaraVariable>& OutAvailableParameterVariables) const
 {
 }
@@ -33,28 +39,19 @@ void UNiagaraStackAddModuleItem::GetNewParameterAvailableTypes(TArray<FNiagaraTy
 {
 }
 
-TOptional<FString> UNiagaraStackAddModuleItem::GetNewParameterNamespace() const
+TOptional<FName> UNiagaraStackAddModuleItem::GetNewParameterNamespace() const
 {
-	return TOptional<FString>();
+	return TOptional<FName>();
+}
+
+int32 UNiagaraStackAddModuleItem::GetTargetIndex() const
+{
+	return INDEX_NONE;
 }
 
 void UNiagaraStackAddModuleItem::SetOnItemAdded(FOnItemAdded InOnItemAdded)
 {
 	ItemAddedDelegate = InOnItemAdded;
-}
-
-void ConnectModuleNode(UNiagaraNode& ModuleNode, UNiagaraNode& OutputNode)
-{
-	TArray<FNiagaraStackGraphUtilities::FStackNodeGroup> StackNodeGroups;
-	FNiagaraStackGraphUtilities::GetStackNodeGroups(OutputNode, StackNodeGroups);
-
-	FNiagaraStackGraphUtilities::FStackNodeGroup ModuleGroup;
-	ModuleGroup.StartNodes.Add(&ModuleNode);
-	ModuleGroup.EndNode = &ModuleNode;
-
-	FNiagaraStackGraphUtilities::FStackNodeGroup& OutputGroup = StackNodeGroups[StackNodeGroups.Num() - 1];
-	FNiagaraStackGraphUtilities::FStackNodeGroup& OutputGroupPrevious = StackNodeGroups[StackNodeGroups.Num() - 2];
-	FNiagaraStackGraphUtilities::ConnectStackNodeGroup(ModuleGroup, OutputGroupPrevious, OutputGroup);
 }
 
 void UNiagaraStackAddModuleItem::AddScriptModule(FAssetData ModuleScriptAsset)
@@ -64,15 +61,7 @@ void UNiagaraStackAddModuleItem::AddScriptModule(FAssetData ModuleScriptAsset)
 	UNiagaraNodeOutput* OutputNode = GetOrCreateOutputNode();
 	if (OutputNode != nullptr)
 	{
-		UEdGraph* Graph = OutputNode->GetGraph();
-		Graph->Modify();
-
-		FGraphNodeCreator<UNiagaraNodeFunctionCall> ModuleNodeCreator(*Graph);
-		UNiagaraNodeFunctionCall* NewModuleNode = ModuleNodeCreator.CreateNode();
-		NewModuleNode->FunctionScriptAssetObjectPath = ModuleScriptAsset.ObjectPath;
-		ModuleNodeCreator.Finalize();
-
-		ConnectModuleNode(*NewModuleNode, *OutputNode);
+		UNiagaraNodeFunctionCall* NewModuleNode = FNiagaraStackGraphUtilities::AddScriptModuleToStack(ModuleScriptAsset, *OutputNode, GetTargetIndex());
 		FNiagaraStackGraphUtilities::InitializeDataInterfaceInputs(GetSystemViewModel(), GetEmitterViewModel(), *StackEditorData, *NewModuleNode, *NewModuleNode);
 		FNiagaraStackGraphUtilities::RelayoutGraph(*OutputNode->GetGraph());
 
@@ -87,15 +76,7 @@ void UNiagaraStackAddModuleItem::AddParameterModule(FNiagaraVariable ParameterVa
 	UNiagaraNodeOutput* OutputNode = GetOrCreateOutputNode();
 	if (OutputNode != nullptr)
 	{
-		UEdGraph* Graph = OutputNode->GetGraph();
-		Graph->Modify();
-
-		FGraphNodeCreator<UNiagaraNodeAssignment> AssignmentNodeCreator(*Graph);
-		UNiagaraNodeAssignment* NewAssignmentNode = AssignmentNodeCreator.CreateNode();
-		NewAssignmentNode->AssignmentTarget = ParameterVariable;
-		AssignmentNodeCreator.Finalize();
-
-		ConnectModuleNode(*NewAssignmentNode, *OutputNode);
+		UNiagaraNodeAssignment* NewAssignmentNode = FNiagaraStackGraphUtilities::AddParameterModuleToStack(ParameterVariable, *OutputNode, GetTargetIndex());
 		FNiagaraStackGraphUtilities::InitializeDataInterfaceInputs(GetSystemViewModel(), GetEmitterViewModel(), *StackEditorData, *NewAssignmentNode, *NewAssignmentNode);
 		FNiagaraStackGraphUtilities::RelayoutGraph(*OutputNode->GetGraph());
 
@@ -112,6 +93,31 @@ void UNiagaraStackAddModuleItem::AddParameterModule(FNiagaraVariable ParameterVa
 			}
 		}
 
+		ItemAddedDelegate.ExecuteIfBound();
+	}
+}
+
+void UNiagaraStackAddModuleItem::AddMaterialParameterModule()
+{
+	FScopedTransaction ScopedTransaction(GetInsertTransactionText());
+
+	UNiagaraNodeOutput* OutputNode = GetOrCreateOutputNode();
+	if (OutputNode != nullptr)
+	{
+		TSharedRef<FNiagaraEmitterViewModel> EmitterViewModelRef = GetEmitterViewModel();
+		UNiagaraMaterialParameterNode* NewModuleNode = FNiagaraStackGraphUtilities::AddMaterialParameterModuleToStack(EmitterViewModelRef, *OutputNode);
+		FNiagaraStackGraphUtilities::InitializeDataInterfaceInputs(GetSystemViewModel(), EmitterViewModelRef, *StackEditorData, *NewModuleNode, *NewModuleNode);
+		FNiagaraStackGraphUtilities::RelayoutGraph(*OutputNode->GetGraph());
+		
+		TArray<const UEdGraphPin*> InputPins;
+		FNiagaraStackGraphUtilities::GetStackFunctionInputPins(*NewModuleNode, InputPins);
+		for (int32 Index = 1; Index < InputPins.Num() - 1; Index += 2)
+		{
+			FString FunctionInputEditorDataKey = FNiagaraStackGraphUtilities::GenerateStackFunctionInputEditorDataKey(*NewModuleNode, InputPins[Index]->PinName);
+			StackEditorData->SetModuleInputIsPinned(FunctionInputEditorDataKey, true);
+		}
+
+		StackEditorData->SetStackEntryIsExpanded(FNiagaraStackGraphUtilities::GenerateStackModuleEditorDataKey(*NewModuleNode), false);
 		ItemAddedDelegate.ExecuteIfBound();
 	}
 }

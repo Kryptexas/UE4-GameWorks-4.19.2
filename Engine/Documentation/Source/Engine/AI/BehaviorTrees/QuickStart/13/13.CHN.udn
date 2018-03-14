@@ -21,7 +21,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 **Decorators** 即为其他行为树系统中的条件语句，附着于一个 [Composite](Engine/AI/BehaviorTrees/NodeReference/Composites) 或 [Task](Engine/AI/BehaviorTrees/NodeReference/Tasks) 节点，并定义树中的一个分支或单个节点是否能被执行。
 
@@ -85,7 +85,7 @@ AI Pawn 接近目标时，**Decorator** 将停止执行行为树中的 Rapid Mov
 
 这可使其正常工作，避免行为树不断循环至 **RapidMoveTo**，导致 AI 反复行动。基本上而言，AI 抓住玩家后便会停止行动。
 
-%Steps%
+
 
 [VAR:bpcode]
 	Begin Object Class=K2Node_FunctionEntry Name="K2Node_FunctionEntry_232"

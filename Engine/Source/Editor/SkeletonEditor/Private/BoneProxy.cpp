@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BoneProxy.h"
 #include "IPersonaPreviewScene.h"
@@ -112,6 +112,8 @@ void UBoneProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 				{
 					FTransform BoneTransform = Component->GetBoneTransform(BoneIndex);
 					FMatrix BoneLocalCoordSystem = Component->GetBoneTransform(BoneIndex).ToMatrixNoScale().RemoveTranslation();
+					Component->PreviewInstance->SetFlags(RF_Transactional);
+					Component->PreviewInstance->Modify();
 					FAnimNode_ModifyBone& ModifyBone = Component->PreviewInstance->ModifyBone(BoneName);
 					FTransform ModifyBoneTransform(ModifyBone.Rotation, ModifyBone.Translation, ModifyBone.Scale);
 					FTransform BaseTransform = BoneTransform.GetRelativeTransformReverse(ModifyBoneTransform);

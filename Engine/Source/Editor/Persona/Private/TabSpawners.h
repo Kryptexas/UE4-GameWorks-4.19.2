@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -50,6 +50,9 @@ struct FPersonaTabs
 	static const FName ScrubberID;
 	// Toolbar
 	static const FName PreviewViewportID;
+	static const FName PreviewViewport1ID;
+	static const FName PreviewViewport2ID;
+	static const FName PreviewViewport3ID;
 	static const FName AssetBrowserID;
 	static const FName MirrorSetupID;
 	static const FName AnimBlueprintDebugHistoryID;
@@ -134,7 +137,8 @@ struct FPersonaModeSharedData : public IPersonaViewportState
 	FVector				OrbitZoom;
 	FVector				LookAtLocation;
 	bool				bCameraLock;
-	bool				bCameraFollow;
+	EAnimationViewportCameraFollowMode CameraFollowMode;
+	FName				CameraFollowBoneName;
 
 	// show flags
 	bool				bShowReferencePose;
@@ -242,8 +246,9 @@ private:
 
 struct FPreviewViewportSummoner : public FWorkflowTabFactory
 {
-	FPreviewViewportSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const FPersonaViewportArgs& InArgs);
+	FPreviewViewportSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const FPersonaViewportArgs& InArgs, int32 InViewportIndex);
 
+	virtual FTabSpawnerEntry& RegisterTabSpawner(TSharedRef<FTabManager> TabManager, const FApplicationMode* CurrentApplicationMode) const;
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
 
 	TWeakPtr<ISkeletonTree> SkeletonTree;
@@ -251,7 +256,10 @@ struct FPreviewViewportSummoner : public FWorkflowTabFactory
 	FSimpleMulticastDelegate& OnPostUndo;
 	TWeakPtr<FBlueprintEditor> BlueprintEditor;
 	FOnViewportCreated OnViewportCreated;
+	FOnGetViewportText OnGetViewportText;
 	TArray<TSharedPtr<FExtender>> Extenders;
+	FName ContextName;
+	int32 ViewportIndex;
 	bool bShowShowMenu;
 	bool bShowLODMenu;
 	bool bShowPlaySpeedMenu;

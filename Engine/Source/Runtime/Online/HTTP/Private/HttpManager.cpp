@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "HttpManager.h"
 #include "HAL/PlatformTime.h"
@@ -7,6 +7,7 @@
 #include "Http.h"
 
 #include "HttpThread.h"
+#include "Misc/ConfigCacheIni.h"
 
 // FHttpManager
 
@@ -41,6 +42,8 @@ FHttpThread* FHttpManager::CreateHttpThread()
 void FHttpManager::Flush(bool bShutdown)
 {
 	FScopeLock ScopeLock(&RequestLock);
+	double MaxFlushTimeSeconds = -1.0; // default to no limit
+	GConfig->GetDouble(TEXT("HTTP"), TEXT("MaxFlushTimeSeconds"), MaxFlushTimeSeconds, GEngineIni);
 
 	if (bShutdown)
 	{
@@ -59,10 +62,21 @@ void FHttpManager::Flush(bool bShutdown)
 	}
 
 	// block until all active requests have completed
-	double LastTime = FPlatformTime::Seconds();
+	double BeginWaitTime = FPlatformTime::Seconds();
+	double LastTime = BeginWaitTime;
 	while (Requests.Num() > 0)
 	{
 		const double AppTime = FPlatformTime::Seconds();
+		//UE_LOG(LogHttp, Display, TEXT("Waiting for %0.2f seconds. Limit:%0.2f seconds"), (AppTime - BeginWaitTime), MaxFlushTimeSeconds);
+		if (bShutdown && MaxFlushTimeSeconds > 0 && (GIsRequestingExit || (AppTime - BeginWaitTime > MaxFlushTimeSeconds)))
+		{
+			UE_LOG(LogHttp, Display, TEXT("Canceling remaining HTTP requests after waiting %0.2f seconds"), (AppTime - BeginWaitTime));
+			for (TArray<TSharedRef<IHttpRequest>>::TIterator It(Requests); It; ++It)
+			{
+				TSharedRef<IHttpRequest> Request = *It;
+				Request->CancelRequest();
+			}
+		}
 		Tick(AppTime - LastTime);
 		LastTime = AppTime;
 		if (Requests.Num() > 0)

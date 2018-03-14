@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -30,6 +30,9 @@ enum EBlendableLocation
 //	BL_AfterFog,
 //	BL_AfterTranslucency,
 //	BL_AfterPostProcessAA,
+
+	/** Input0:former pass color. */
+	BL_SSRInput UMETA(DisplayName = "SSR Input"),
 
 	BL_MAX,
 };

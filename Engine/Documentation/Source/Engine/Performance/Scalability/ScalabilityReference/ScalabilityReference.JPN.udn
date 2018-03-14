@@ -123,9 +123,12 @@ Temporal AA 手法は、高い値を使用すればするほどエフェクト�
 |[INCLUDE:#post3]|[INCLUDE:#post4]|
 [/REGION]
 
-<!-- Each of these settings is covered in the CVAR section below. -->
+[COMMENT:none]
+ Each of these settings is covered in the CVAR section below. 
+[/COMMENT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:post1]
 	r.MotionBlurQuality=0
 	r.BlurGBuffer=0
@@ -190,7 +193,8 @@ Temporal AA 手法は、高い値を使用すればするほどエフェクト�
 	r.Tonemapper.GrainQuantization=1
 [/EXCERPT:post4]
 
--->
+
+[/COMMENT]
 
 
 ## シャドウ - sg.ShadowQuality
@@ -214,9 +218,12 @@ sg.ShadowQuality を、左から右へ 0 から 3 に設定
 |[INCLUDE:#shadow3]|[INCLUDE:#shadow4]|
 [/REGION]
 
-<!-- Each of these settings is covered in the CVAR section below. -->
+[COMMENT:none]
+ Each of these settings is covered in the CVAR section below. 
+[/COMMENT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:shadow1]
 	r.LightFunctionQuality=0
 	r.ShadowQuality=0
@@ -256,7 +263,8 @@ sg.ShadowQuality を、左から右へ 0 から 3 に設定
 	r.Shadow.DistanceScale=1.0
 	r.Shadow.CSM.TransitionScale=1.0
 [/EXCERPT:shadow4]
--->
+
+[/COMMENT]
 
 
 ## テクスチャ - sg.TextureQuality
@@ -275,9 +283,12 @@ sg.ShadowQuality を、左から右へ 0 から 3 に設定
 |[INCLUDE:#texture3]|[INCLUDE:#texture4]|
 [/REGION]
 
-<!-- Each of these settings is covered in the CVAR section below. -->
+[COMMENT:none]
+ Each of these settings is covered in the CVAR section below. 
+[/COMMENT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:texture1]
 	r.Streaming.MipBias=2.5
 	r.MaxAnisotropy=0
@@ -302,7 +313,8 @@ sg.ShadowQuality を、左から右へ 0 から 3 に設定
 	r.Streaming.PoolSize=1000
 [/EXCERPT:texture4]
 
--->
+
+[/COMMENT]
 
 [REGION:note]
 この機能のエフェクトは、ユーザーのゲームおよびハードウェアに大きく依存します。フル解像度のミップマップのロードや利用に、アンリアル エンジン 4 がテクスチャに割り当てた全てのメモリープールを使用しない場合、ユーザーは実際には [High] または [Low] の設定の違いに気付きません ([Anisotropy] 設定の変更を除く)。
@@ -323,9 +335,12 @@ sg.ShadowQuality を、左から右へ 0 から 3 に設定
 |[INCLUDE:#effects3]|[INCLUDE:#effects4]|
 [/REGION]
 
-<!-- Each of these settings is covered in the CVAR section below. -->
+[COMMENT:none]
+ Each of these settings is covered in the CVAR section below. 
+[/COMMENT]
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:effects1]
 	r.TranslucencyLightingVolumeDim=24
@@ -367,7 +382,8 @@ sg.ShadowQuality を、左から右へ 0 から 3 に設定
 	r.MaterialQualityLevel=1
 [/EXCERPT:effects4]
 
--->
+
+[/COMMENT]
 
 ##詳細モード
 
@@ -481,7 +497,8 @@ _上記の **Shader Complexity** モードは、高品質のマテリアルが�
 フォリッジ スタティックメッシュに拡張設定を使うには、**[Enable Density Scaling (密度のスケールを有効にする)]** オプションを有効にする必要があります。設定の詳細は [フォーリッジ インスタンス メッシュ](Engine\Foliage) を参照してください。
 [/region]
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:FGS]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -504,9 +521,11 @@ _上記の **Shader Complexity** モードは、高品質のマテリアルが�
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:FGS]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 
 	[REGION:simpletable]
 	|FoliageQuality 0|FoliageQuality 1|
@@ -542,4 +561,5 @@ _上記の **Shader Complexity** モードは、高品質のマテリアルが�
 	grass.DensityScale=1.0
 [/EXCERPT:FoliageQuality@3]
 
--->
+
+[/COMMENT]

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System.IO;
 
@@ -8,7 +8,7 @@ namespace UnrealBuildTool.Rules
 	{
 		public OnlineSubsystemGameCircle(ReadOnlyTargetRules Target) : base(Target)
         {
-			Definitions.Add("ONLINESUBSYSTEMGAMECIRCLE_PACKAGE=1");
+			PublicDefinitions.Add("ONLINESUBSYSTEMGAMECIRCLE_PACKAGE=1");
 			PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 			PrivateIncludePaths.AddRange(
@@ -38,7 +38,7 @@ namespace UnrealBuildTool.Rules
 			if (Target.Platform == UnrealTargetPlatform.Android)
 			{
 				string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
-				AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "OnlineSubsystemGameCircle_UPL.xml")));
+				AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(PluginPath, "OnlineSubsystemGameCircle_UPL.xml"));
 			}
 		}
 	}

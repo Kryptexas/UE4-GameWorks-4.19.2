@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Misc/LevelSequenceEditorSpawnRegister.h"
 #include "Components/ActorComponent.h"
@@ -92,11 +92,7 @@ void FLevelSequenceEditorSpawnRegister::PreDestroyObject(UObject& Object, const 
 	
 	TSharedPtr<ISequencer> Sequencer = WeakSequencer.Pin();
 
-	// We only save default state for the currently focussed movie scene sequence instance
-	if (Sequencer.IsValid() && Sequencer->GetFocusedTemplateID() == TemplateID)
-	{
-		SaveDefaultSpawnableState(BindingId);
-	}
+	SaveDefaultSpawnableState(BindingId, TemplateID);
 
 	// Cache its selection state
 	AActor* Actor = Cast<AActor>(&Object);
@@ -122,8 +118,7 @@ void FLevelSequenceEditorSpawnRegister::PreDestroyObject(UObject& Object, const 
 
 void FLevelSequenceEditorSpawnRegister::SaveDefaultSpawnableState(FMovieSceneSpawnable& Spawnable, FMovieSceneSequenceIDRef TemplateID, IMovieScenePlayer& Player)
 {
-	const FMovieSceneEvaluationTemplateInstance* Template = Player.GetEvaluationTemplate().GetInstance(TemplateID);
-	UMovieSceneSequence* Sequence = Template ? Template->Sequence.Get() : nullptr;
+	UMovieSceneSequence* Sequence = Player.GetEvaluationTemplate().GetSequence(TemplateID);
 
 	UObject* Object = FindSpawnedObject(Spawnable.GetGuid(), TemplateID);
 	if (!Object || !Sequence)
@@ -152,7 +147,7 @@ void FLevelSequenceEditorSpawnRegister::SaveDefaultSpawnableState(FMovieSceneSpa
 	Spawnable.CopyObjectTemplate(*Object, *Sequence);
 }
 
-void FLevelSequenceEditorSpawnRegister::SaveDefaultSpawnableState(const FGuid& BindingId)
+void FLevelSequenceEditorSpawnRegister::SaveDefaultSpawnableState(const FGuid& BindingId, FMovieSceneSequenceIDRef TemplateID)
 {
 	TSharedPtr<ISequencer> Sequencer = WeakSequencer.Pin();
 	if (!Sequencer.IsValid())
@@ -160,9 +155,17 @@ void FLevelSequenceEditorSpawnRegister::SaveDefaultSpawnableState(const FGuid& B
 		return;
 	}
 
-	UMovieSceneSequence* Sequence = Sequencer->GetFocusedMovieSceneSequence();
+	UMovieSceneSequence* Sequence = Sequencer->GetEvaluationTemplate().GetSequence(TemplateID);
+	if (!Sequence)
+	{
+		return;
+	}
+
 	UMovieScene* MovieScene = Sequence ? Sequence->GetMovieScene() : nullptr;
-	FMovieSceneSequenceID TemplateID = Sequencer->GetFocusedTemplateID();
+	if (!MovieScene)
+	{
+		return;
+	}
 
 	FMovieSceneSpawnable* Spawnable = MovieScene->FindSpawnable(BindingId);
 
@@ -186,7 +189,7 @@ void FLevelSequenceEditorSpawnRegister::OnPreSaveMovieScene(ISequencer& InSequen
 	for (int32 SpawnableIndex = 0; SpawnableIndex < MovieScene->GetSpawnableCount(); ++SpawnableIndex)
 	{
 		FMovieSceneSpawnable& Spawnable = MovieScene->GetSpawnable(SpawnableIndex);
-		SaveDefaultSpawnableState(Spawnable.GetGuid());
+		SaveDefaultSpawnableState(Spawnable.GetGuid(), InSequencer.GetFocusedTemplateID());
 	}
 }
 
@@ -300,11 +303,11 @@ void FLevelSequenceEditorSpawnRegister::OnObjectsReplaced(const TMap<UObject*, U
 
 #if WITH_EDITOR
 
-TValueOrError<FNewSpawnable, FText> FLevelSequenceEditorSpawnRegister::CreateNewSpawnableType(UObject& SourceObject, UMovieScene& OwnerMovieScene)
+TValueOrError<FNewSpawnable, FText> FLevelSequenceEditorSpawnRegister::CreateNewSpawnableType(UObject& SourceObject, UMovieScene& OwnerMovieScene, UActorFactory* ActorFactory)
 {
 	for (TSharedPtr<IMovieSceneObjectSpawner> MovieSceneObjectSpawner : MovieSceneObjectSpawners)
 	{
-		TValueOrError<FNewSpawnable, FText> Result = MovieSceneObjectSpawner->CreateNewSpawnableType(SourceObject, OwnerMovieScene);
+		TValueOrError<FNewSpawnable, FText> Result = MovieSceneObjectSpawner->CreateNewSpawnableType(SourceObject, OwnerMovieScene, ActorFactory);
 		if (Result.IsValid())
 		{
 			return Result;

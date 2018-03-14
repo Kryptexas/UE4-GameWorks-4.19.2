@@ -69,19 +69,9 @@ related:Engine/Audio/SoundCues/NodeReference
 
 
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		步骤
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	[DIR(output:"checkpoint" parent:"Engine/Audio/Dialogue" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+## 步骤
+
+[DIR(output:"checkpoint" parent:"Engine/Audio/Dialogue" org:"hierarchy")]
 
 [REGION:call_to_action]
 	[Click to Start](Engine/Audio/Dialogue/1 "%Engine/Audio/Dialogue/1:title%")

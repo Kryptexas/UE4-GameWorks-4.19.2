@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AudioMixerBuffer.h"
 #include "AudioMixerDevice.h"
@@ -77,10 +77,8 @@ namespace Audio
 		// Mark the procedural sound wave as being ok to be destroyed now
 		if (SoundWaveProcedural)
 		{
-			// This is actually a 'bIsNotReadyForDestroy', but we can't change headers for a hotfix release.
-			// This should be renamed as soon as possible, or a USoundWaveProcedural(FVTableHelper& Helper) constructor
-			// should be added which sets this to true.
-			SoundWaveProcedural->bIsReadyForDestroy = false;
+			SoundWaveProcedural->OnEndGenerate();
+			SoundWaveProcedural->bIsReadyForDestroy = true;
 		}
 	}
 
@@ -311,13 +309,9 @@ namespace Audio
 
 		// Don't allow the procedural sound wave to be destroyed until we're done with it
 		Buffer->SoundWaveProcedural = Cast<USoundWaveProcedural>(InWave);
-
-		// This is actually a 'bIsNotReadyForDestroy', but we can't change headers for a hotfix release.
-		// This should be renamed as soon as possible, or a USoundWaveProcedural(FVTableHelper& Helper) constructor
-		// should be added which sets this to true.
 		if (Buffer->SoundWaveProcedural)
 		{
-			Buffer->SoundWaveProcedural->bIsReadyForDestroy = true;
+			Buffer->SoundWaveProcedural->bIsReadyForDestroy = false;
 		}
 
 		return Buffer;
@@ -420,6 +414,14 @@ namespace Audio
 			RealtimeAsyncHeaderParseTask->EnsureCompletion();
 			delete RealtimeAsyncHeaderParseTask;
 			RealtimeAsyncHeaderParseTask = nullptr;
+		}
+	}
+
+	void FMixerBuffer::OnBeginGenerate()
+	{
+		if (SoundWaveProcedural)
+		{
+			SoundWaveProcedural->OnBeginGenerate();
 		}
 	}
 

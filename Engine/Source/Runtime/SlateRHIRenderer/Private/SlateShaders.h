@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -62,14 +62,12 @@ class FSlateElementVS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FSlateElementVS, Global);
 public:
 	/** Indicates that this shader should be cached */
-	static bool ShouldCache( EShaderPlatform Platform ) { return true; }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return true; }
 
 	/** Constructor.  Binds all parameters used by the shader */
 	FSlateElementVS( const ShaderMetaType::CompiledShaderInitializerType& Initializer );
 
 	FSlateElementVS() {}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment);
 
 	/** 
 	 * Sets the view projection parameter
@@ -109,7 +107,7 @@ class FSlateElementPS : public FGlobalShader
 {	
 public:
 	/** Indicates that this shader should be cached */
-	static bool ShouldCache( EShaderPlatform Platform ) 
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) 
 	{ 
 		return true; 
 	}
@@ -129,7 +127,7 @@ public:
 		InvertAlpha.Bind(Initializer.ParameterMap, TEXT("InvertAlpha"));
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment);
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment);
 
 	/**
 	 * Sets the texture used by this shader 
@@ -216,7 +214,7 @@ public:
 	/**
 	 * Modifies the compilation of this shader
 	 */
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		// Set defines based on what this shader will be used for
 		OutEnvironment.SetDefine(TEXT("SHADER_TYPE"), (uint32)ShaderType);
@@ -225,7 +223,7 @@ public:
 		OutEnvironment.SetDefine(TEXT("COLOR_VISION_DEFICIENCY_TYPE"), GSlateShaderColorVisionDeficiencyType);
 		OutEnvironment.SetDefine(TEXT("USE_MATERIALS"), (uint32)0);
 
-		FSlateElementPS::ModifyCompilationEnvironment( Platform, OutEnvironment );
+		FSlateElementPS::ModifyCompilationEnvironment( Parameters, OutEnvironment );
 	}
 
 	/** Serializes the shader data */
@@ -245,7 +243,7 @@ class FSlateDebugOverdrawPS : public FSlateElementPS
 	DECLARE_SHADER_TYPE( FSlateDebugOverdrawPS, Global );
 public:
 	/** Indicates that this shader should be cached */
-	static bool ShouldCache( EShaderPlatform Platform ) 
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) 
 	{ 
 		return true; 
 	}
@@ -276,7 +274,7 @@ class FSlateDebugBatchingPS : public FSlateElementPS
 	DECLARE_SHADER_TYPE(FSlateDebugBatchingPS, Global );
 public:
 	/** Indicates that this shader should be cached */
-	static bool ShouldCache( EShaderPlatform Platform ) 
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) 
 	{ 
 		return true; 
 	}
@@ -322,7 +320,7 @@ class FSlatePostProcessBlurPS : public FSlateElementPS
 	DECLARE_SHADER_TYPE(FSlatePostProcessBlurPS, Global);
 public:
 	/** Indicates that this shader should be cached */
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -380,7 +378,7 @@ class FSlatePostProcessDownsamplePS : public FSlateElementPS
 	DECLARE_SHADER_TYPE(FSlatePostProcessDownsamplePS, Global);
 public:
 	/** Indicates that this shader should be cached */
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -417,7 +415,7 @@ class FSlateMaskingVS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FSlateMaskingVS, Global);
 public:
 	/** Indicates that this shader should be cached */
-	static bool ShouldCache( EShaderPlatform Platform )
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -456,7 +454,7 @@ class FSlateMaskingPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FSlateMaskingPS, Global);
 public:
 	/** Indicates that this shader should be cached */
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayPrediction.h"
 #include "AbilitySystemComponent.h"
@@ -295,6 +295,7 @@ FScopedPredictionWindow::~FScopedPredictionWindow()
 			if (Owner->ScopedPredictionKey.IsValidKey())
 			{
 				Owner->ReplicatedPredictionKeyMap.ReplicatePredictionKey(Owner->ScopedPredictionKey);
+				Owner->bIsNetDirty = true;
 			}
 		}
 		if (ClearScopedPredictionKey)

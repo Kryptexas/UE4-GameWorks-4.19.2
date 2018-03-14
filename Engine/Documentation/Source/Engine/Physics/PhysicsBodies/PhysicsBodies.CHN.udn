@@ -48,34 +48,28 @@ Description:大多数物理交互 - 物理形体（Physics Body）[BodyInstance]
 
 下列链接中包含物理形体的信息。
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		概要
-	[/PARAM]
-	[PARAM:links]
+## 概要
+
+[REGION:buttonlist]
+
 		[PUBLISH:Docs]
 		* [](Engine/Physics/PhysicsBodies/Overview "%Engine/Physics/PhysicsBodies/Overview:description%")
 		[/PUBLISH:Docs]
-		<!-- * [](Engine/Physics/PhysicsBodies/HowTo "%Engine/Physics/PhysicsBodies/HowTo:description%") -->
+		[COMMENT:none]
+ * [](Engine/Physics/PhysicsBodies/HowTo "%Engine/Physics/PhysicsBodies/HowTo:description%") 
+[/COMMENT]
 		* [](Engine/Physics/PhysicsBodies/Reference "%Engine/Physics/PhysicsBodies/Reference:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		相关页面
-	[/PARAM]
-	[PARAM:links]
+## 相关页面
 
-	[/PARAM]
-[/OBJECT]
+[REGION:buttonlist]
+
+
+	
+[/REGION]
 
 
 

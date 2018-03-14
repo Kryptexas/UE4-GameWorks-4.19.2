@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // .
 
 #include "ShaderCompilerCommon.h"
@@ -242,9 +242,61 @@ static void WholeWordReplaceInline(FString& String, TCHAR* StartPtr, const TCHAR
 	}
 }
 
-
-bool RemoveUniformBuffersFromSource(FString& SourceCode)
+void RemoveParens(FString& SourceCode)
 {
+	// TODO(mlentine): Support nested parens
+	int32 OpenParenPos = SourceCode.Find("(", ESearchCase::CaseSensitive, ESearchDir::FromStart);
+	int32 CloseParenPos;
+	TArray<int32> PrevOpenParenPoss;
+	while (OpenParenPos != INDEX_NONE)
+	{
+		CloseParenPos = SourceCode.Find(")", ESearchCase::CaseSensitive, ESearchDir::FromStart, OpenParenPos + 1);
+		check(CloseParenPos != INDEX_NONE); // Unmatched parens!
+		check(CloseParenPos > OpenParenPos);
+		if (CloseParenPos == SourceCode.Len() - 1)
+		{
+			break;
+		}
+		int32 CommaPos = SourceCode.Find(",", ESearchCase::CaseSensitive, ESearchDir::FromStart, OpenParenPos + 1);
+		int32 SpacePos = SourceCode.Find(" ", ESearchCase::CaseSensitive, ESearchDir::FromStart, OpenParenPos + 1);
+		int32 NextOpenParenPos = SourceCode.Find("(", ESearchCase::CaseSensitive, ESearchDir::FromStart, OpenParenPos + 1);
+		if ((NextOpenParenPos != INDEX_NONE && NextOpenParenPos < CloseParenPos))
+		{
+			PrevOpenParenPoss.Add(OpenParenPos);
+		}
+		bool PrevIsLetter = (OpenParenPos > 0 && (
+			((SourceCode[OpenParenPos - 1] - TCHAR('0')) >= 0 && (SourceCode[OpenParenPos - 1] - TCHAR('0')) < 10) ||
+			((SourceCode[OpenParenPos - 1] - TCHAR('a')) >= 0 && (SourceCode[OpenParenPos - 1] - TCHAR('a')) < 26) ||
+			((SourceCode[OpenParenPos - 1] - TCHAR('A')) >= 0 && (SourceCode[OpenParenPos - 1] - TCHAR('A')) < 26)));
+		if ((SourceCode[CloseParenPos + 1] == TCHAR('.') || SourceCode[CloseParenPos + 1] == TCHAR('[')) && !PrevIsLetter &&
+			(SpacePos == INDEX_NONE || SpacePos > CloseParenPos) && (CommaPos == INDEX_NONE || CommaPos > CloseParenPos) && (NextOpenParenPos == INDEX_NONE || NextOpenParenPos > CloseParenPos))
+		{
+			FString From = FString("") + SourceCode[OpenParenPos - 1] + SourceCode.Mid(OpenParenPos, CloseParenPos - OpenParenPos + 1) + SourceCode[CloseParenPos + 1];
+			FString To = FString("") + SourceCode[OpenParenPos - 1] + SourceCode.Mid(OpenParenPos + 1, CloseParenPos - OpenParenPos - 1) + SourceCode[CloseParenPos + 1];
+			SourceCode = SourceCode.Replace(*From, *To, ESearchCase::CaseSensitive);
+			OpenParenPos = PrevOpenParenPoss.Num() ? PrevOpenParenPoss.Pop() : SourceCode.Find("(", ESearchCase::CaseSensitive, ESearchDir::FromStart, CloseParenPos - 1);
+		}
+		else
+		{
+			OpenParenPos = NextOpenParenPos;
+		}
+	}
+}
+
+bool RemoveUniformBuffersFromSource(FString& SourceCode, bool bWasParsed)
+{
+	if (bWasParsed)
+	{
+		RemoveParens(SourceCode);
+		SourceCode = SourceCode.Replace(TEXT("sce::Gnm:: "), TEXT("sce::Gnm::Sampler "), ESearchCase::CaseSensitive);
+		// Hacks for min16float
+		//SourceCode = SourceCode.Replace(TEXT("asint("), TEXT("asint((half)"), ESearchCase::CaseSensitive);
+		//SourceCode = SourceCode.Replace(TEXT("asint((half)("), TEXT("asint(("), ESearchCase::CaseSensitive);
+		//SourceCode = SourceCode.Replace(TEXT("asuint("), TEXT("asuint((half)"), ESearchCase::CaseSensitive);
+		//SourceCode = SourceCode.Replace(TEXT("asuint((half)("), TEXT("asuint(("), ESearchCase::CaseSensitive);
+		// Hacks for half on console
+		SourceCode = SourceCode.Replace(TEXT("half3 SurfaceDimensions"), TEXT("float3 SurfaceDimensions"), ESearchCase::CaseSensitive);
+	}
 	static const FString StaticStructToken(TEXT("static const struct"));
 	int32 StaticStructTokenPos = SourceCode.Find(StaticStructToken, ESearchCase::CaseSensitive, ESearchDir::FromStart);
 	while (StaticStructTokenPos != INDEX_NONE)
@@ -492,6 +544,7 @@ namespace CrossCompiler
 		CCTCmdLine += ((CCFlags & HLSLCC_PackUniformsIntoUniformBuffers) == HLSLCC_PackUniformsIntoUniformBuffers) ? TEXT(" -packintoubs") : TEXT("");
 		CCTCmdLine += ((CCFlags & HLSLCC_FixAtomicReferences) == HLSLCC_FixAtomicReferences) ? TEXT(" -fixatomics") : TEXT("");
 		CCTCmdLine += ((CCFlags & HLSLCC_UseFullPrecisionInPS) == HLSLCC_UseFullPrecisionInPS) ? TEXT(" -usefullprecision") : TEXT("");
+		CCTCmdLine += ((CCFlags & HLSLCC_UsesExternalTexture) == HLSLCC_UsesExternalTexture) ? TEXT(" -usesexternaltexture") : TEXT("");
 		FString BatchFile;
 		if (PLATFORM_MAC)
 		{

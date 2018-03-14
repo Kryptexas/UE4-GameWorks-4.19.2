@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,6 +10,7 @@
 #include "Editor/EditorEngine.h"
 #include "IPackageAutoSaver.h"
 #include "ISourceControlProvider.h"
+#include "IDDCNotifications.h"
 #include "ComponentVisualizer.h"
 #include "ComponentVisualizerManager.h"
 #include "UnrealEdEngine.generated.h"
@@ -781,11 +782,18 @@ public:
 		return *PackageAutoSaver;
 	}
 
+	/** @return The DDC notifications instance used by the editor */
+	IDDCNotifications& GetDDCNotifications() const
+	{
+		return *DDCNotifications;
+	}
+
 	/**
 	 * Exec command handlers
 	 */
 	bool HandleDumpModelGUIDCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool HandleModalTestCommand( const TCHAR* Str, FOutputDevice& Ar );
+	bool HandleDisallowExportCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool HandleDumpBPClassesCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool HandleFindOutdateInstancesCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool HandleDumpSelectionCommand( const TCHAR* Str, FOutputDevice& Ar );
@@ -812,6 +820,9 @@ protected:
 	
 	/** The package auto-saver instance used by the editor */
 	TUniquePtr<IPackageAutoSaver> PackageAutoSaver;
+
+	/** The DDC notifications instance used by the editor */
+	TUniquePtr<IDDCNotifications> DDCNotifications;
 
 	/**
 	 * The list of visualizers to draw when selection changes

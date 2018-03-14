@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_GetSequenceBinding.h"
 #include "BlueprintEditorUtils.h"
@@ -21,9 +21,10 @@
 #include "SImage.h"
 #include "SComboBox.h"
 #include "Editor.h"
+#include "Compilation/MovieSceneCompiler.h"
 
-static const FString OutputPinName(TEXT("Output"));
-static const FString SequencePinName(TEXT("Sequence"));
+static const FName OutputPinName(TEXT("Output"));
+static const FName SequencePinName(TEXT("Sequence"));
 
 #define LOCTEXT_NAMESPACE "UK2Node_GetSequenceBinding"
 
@@ -116,12 +117,10 @@ void UK2Node_GetSequenceBinding::ValidateNodeDuringCompilation(FCompilerResultsL
 
 void UK2Node_GetSequenceBinding::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	CreatePin(EGPD_Input, K2Schema->PC_Object, FString(), UMovieSceneSequence::StaticClass(), SequencePinName);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, UMovieSceneSequence::StaticClass(), SequencePinName);
 
 	// Result pin
-	UEdGraphPin* ResultPin = CreatePin(EGPD_Output, K2Schema->PC_Struct, FString(), FMovieSceneObjectBindingID::StaticStruct(), K2Schema->PN_ReturnValue);
+	UEdGraphPin* ResultPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Struct, FMovieSceneObjectBindingID::StaticStruct(), UEdGraphSchema_K2::PN_ReturnValue);
 	ResultPin->PinFriendlyName = LOCTEXT("SequenceBindingOutput", "Binding");
 
 	Super::AllocateDefaultPins();
@@ -143,17 +142,54 @@ UMovieScene* UK2Node_GetSequenceBinding::GetObjectMovieScene() const
 		}
 		else
 		{
-			// Ensure the template is up to date
-			FMovieSceneTrackCompilationParams Params = Sequence->TemplateParameters;
-			// Indicate that the template was generated during a blueprint compile so it can be regenerated with the full data when necessary
-			Params.bDuringBlueprintCompile = true;
-			// Regenerate the template
-			Sequence->EvaluationTemplate.Regenerate(Params);
+			bool bHierarchyIsValid = true;
+
+			// Ensure the hierarchy is valid (ie, the user hasn't changed a sub sequence for something else)
+			FMovieSceneSequenceID CurrentSequenceID = SequenceID;
+			while (CurrentSequenceID != MovieSceneSequenceID::Root)
+			{
+				const FMovieSceneSubSequenceData* SubData = SequenceHierarchyCache.FindSubData(CurrentSequenceID);
+				const UMovieSceneSequence* SubSequence = SubData ? SubData->GetSequence() : nullptr;
+
+				if (!SubSequence || SubSequence->GetSignature() != SequenceSignatureCache.FindRef(CurrentSequenceID))
+				{
+					bHierarchyIsValid = false;
+					break;
+				}
+			}
+
+			// If it's not valid, it needs recompiling
+			if (!bHierarchyIsValid)
+			{
+				// Recompile the hierarchy
+				SequenceSignatureCache.Reset();
+				SequenceHierarchyCache = FMovieSceneSequenceHierarchy();
+
+				FMovieSceneCompiler::CompileHierarchy(*Sequence, SequenceHierarchyCache);
+
+				TArray<FMovieSceneSequenceID> AllSequenceIDs;
+				while (AllSequenceIDs.Num())
+				{
+					int32 NumSequenceIDs = AllSequenceIDs.Num();
+					for (int32 Index = 0; Index < NumSequenceIDs; ++Index)
+					{
+						FMovieSceneSequenceID ThisSequenceID = AllSequenceIDs[Index];
+						const FMovieSceneSubSequenceData* SubData = SequenceHierarchyCache.FindSubData(ThisSequenceID);
+						const UMovieSceneSequence* SubSequence = SubData ? SubData->GetSequence() : nullptr;
+						if (ensure(SubSequence))
+						{
+							SequenceSignatureCache.Add(ThisSequenceID, SubSequence->GetSignature());
+						}
+					}
+
+					AllSequenceIDs.RemoveAt(0, NumSequenceIDs);
+				}
+			}
 
 			UMovieScene* MovieScene = nullptr;
-			if (const FMovieSceneSubSequenceData* SubData = Sequence->EvaluationTemplate.Hierarchy.FindSubData(SequenceID))
+			if (const FMovieSceneSubSequenceData* SubData = SequenceHierarchyCache.FindSubData(SequenceID))
 			{
-				UMovieSceneSequence* SubSequence = SubData->Sequence;
+				UMovieSceneSequence* SubSequence = SubData->GetSequence();
 				return SubSequence ? SubSequence->GetMovieScene() : nullptr;
 			}
 		}
@@ -165,6 +201,11 @@ UMovieScene* UK2Node_GetSequenceBinding::GetObjectMovieScene() const
 FNodeHandlingFunctor* UK2Node_GetSequenceBinding::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
 {
 	return new FKCHandler_GetSequenceBinding(CompilerContext);
+}
+
+void UK2Node_GetSequenceBinding::PreloadRequiredAssets()
+{
+	GetSequence();
 }
 
 FText UK2Node_GetSequenceBinding::GetSequenceName() const

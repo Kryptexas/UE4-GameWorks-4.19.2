@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrecomputedLightVolume.cpp: Implementation of a precomputed light volume.
@@ -12,6 +12,8 @@
 #include "UnrealEngine.h"
 #include "Engine/MapBuildDataRegistry.h"
 #include "Interfaces/ITargetPlatform.h"
+
+DECLARE_MEMORY_STAT(TEXT("Precomputed Light Volume"),STAT_PrecomputedLightVolumeBuildData,STATGROUP_MapBuildData);
 
 template<> TVolumeLightingSample<2>::TVolumeLightingSample(const TVolumeLightingSample<2>& Other)
 {
@@ -108,7 +110,7 @@ FPrecomputedLightVolumeData::~FPrecomputedLightVolumeData()
 	if (bInitialized)
 	{
 		const SIZE_T VolumeBytes = GetAllocatedBytes();
-		DEC_DWORD_STAT_BY(STAT_PrecomputedLightVolumeMemory, VolumeBytes);
+		DEC_DWORD_STAT_BY(STAT_PrecomputedLightVolumeBuildData, VolumeBytes);
 	}
 }
 
@@ -323,7 +325,7 @@ void FPrecomputedLightVolumeData::FinalizeSamples()
 	HighQualityLightmapOctree.ShrinkElements();
 	LowQualityLightmapOctree.ShrinkElements();
 	const SIZE_T VolumeBytes = GetAllocatedBytes();
-	INC_DWORD_STAT_BY(STAT_PrecomputedLightVolumeMemory, VolumeBytes);
+	INC_DWORD_STAT_BY(STAT_PrecomputedLightVolumeBuildData, VolumeBytes);
 }
 
 /** Invalidates anything produced by the last lighting build. */
@@ -333,7 +335,7 @@ void FPrecomputedLightVolumeData::InvalidateLightingCache()
 	{
 		// Release existing samples
 		const SIZE_T VolumeBytes = GetAllocatedBytes();
-		DEC_DWORD_STAT_BY(STAT_PrecomputedLightVolumeMemory, VolumeBytes);
+		DEC_DWORD_STAT_BY(STAT_PrecomputedLightVolumeBuildData, VolumeBytes);
 		HighQualityLightmapOctree.Destroy();
 		LowQualityLightmapOctree.Destroy();
 		bInitialized = false;

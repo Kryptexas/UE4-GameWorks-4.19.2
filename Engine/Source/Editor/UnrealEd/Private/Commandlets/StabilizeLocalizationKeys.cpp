@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Commandlets/StabilizeLocalizationKeys.h"
 #include "HAL/FileManager.h"
@@ -98,7 +98,7 @@ public:
 			{
 				for (FStructVariableDescription& StructVariableDesc : UDSEditorData->VariablesDescriptions)
 				{
-					static const FString TextCategory = TEXT("text"); // Must match UEdGraphSchema_K2::PC_Text
+					static const FName TextCategory = TEXT("text"); // Must match UEdGraphSchema_K2::PC_Text
 					if (StructVariableDesc.Category == TextCategory)
 					{
 						FText StructVariableValue;

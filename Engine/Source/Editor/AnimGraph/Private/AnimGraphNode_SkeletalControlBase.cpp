@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphNode_SkeletalControlBase.h"
 #include "UnrealWidget.h"
@@ -72,8 +72,7 @@ FText UAnimGraphNode_SkeletalControlBase::GetTooltipText() const
 
 void UAnimGraphNode_SkeletalControlBase::CreateOutputPins()
 {
-	const UAnimationGraphSchema* Schema = GetDefault<UAnimationGraphSchema>();
-	CreatePin(EGPD_Output, Schema->PC_Struct, FString(), FComponentSpacePoseLink::StaticStruct(), TEXT("Pose"));
+	CreatePin(EGPD_Output, UAnimationGraphSchema::PC_Struct, FComponentSpacePoseLink::StaticStruct(), TEXT("Pose"));
 }
 
 
@@ -289,7 +288,7 @@ FVector UAnimGraphNode_SkeletalControlBase::ConvertWidgetLocation(const USkeleta
 	return WidgetLoc;
 }
 
-void UAnimGraphNode_SkeletalControlBase::GetDefaultValue(const FString& UpdateDefaultValueName, FVector& OutVec)
+void UAnimGraphNode_SkeletalControlBase::GetDefaultValue(const FName UpdateDefaultValueName, FVector& OutVec)
 {
 	for (UEdGraphPin* Pin : Pins)
 	{
@@ -323,7 +322,7 @@ void UAnimGraphNode_SkeletalControlBase::GetDefaultValue(const FString& UpdateDe
 	OutVec = FVector::ZeroVector;
 }
 
-void UAnimGraphNode_SkeletalControlBase::SetDefaultValue(const FString& UpdateDefaultValueName, const FVector& Value)
+void UAnimGraphNode_SkeletalControlBase::SetDefaultValue(const FName UpdateDefaultValueName, const FVector& Value)
 {
 	for (UEdGraphPin* Pin : Pins)
 	{
@@ -334,7 +333,7 @@ void UAnimGraphNode_SkeletalControlBase::SetDefaultValue(const FString& UpdateDe
 				FString Str = FString::Printf(TEXT("%.3f,%.3f,%.3f"), Value.X, Value.Y, Value.Z);
 				if (Pin->DefaultValue != Str)
 				{
-					PreEditChange(NULL);
+					PreEditChange(nullptr);
 					GetSchema()->TrySetDefaultValue(*Pin, Str);
 					PostEditChange();
 					break;
@@ -344,11 +343,11 @@ void UAnimGraphNode_SkeletalControlBase::SetDefaultValue(const FString& UpdateDe
 	}
 }
 
-bool UAnimGraphNode_SkeletalControlBase::IsPinShown(const FString& PinName) const
+bool UAnimGraphNode_SkeletalControlBase::IsPinShown(const FName PinName) const
 {
 	for (const FOptionalPinFromProperty& Pin : ShowPinForProperties)
 	{
-		if (Pin.PropertyName.ToString() == PinName)
+		if (Pin.PropertyName == PinName)
 		{
 			return Pin.bShowPin;
 		}

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429264
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:C++ 의 콘솔 변수
 Crumbs:%ROOT%, Engine, Programming, Programming/Basics
@@ -286,8 +286,13 @@ IConsoleManager.h 를 보면:
 포인터가 데이터에 접근할 때 크래시가 일어나지 않도록 변수를 (unregistered 플래그 설정 상태로) 유지는 시킵니다. 새 변수가 같은 이름으로 등록되면, 
 예전 변수가 복원되며, 새 변수에서 도움말과 옵션을 복사해 옵니다. 이런 식으로 변수 state 조차 그대로 유지하며 DLL 로딩과 언로딩이 가능한 것입니다. 
 참고로 콘솔 변수 레퍼런스에 대해서는 작동하지 않습니다.
-<!--Sentence below deprecated for clarification.-->
-<!--This can be fixed by giving up on one: do not store pointers, do not unregistered or not use references.-->
+[COMMENT:none]
+Sentence below deprecated for clarification.
+[/COMMENT]
+[COMMENT:none]
+This can be fixed by giving up on one: do not store pointers, do not unregistered or not use references.
+[/COMMENT]
+
 
 
 

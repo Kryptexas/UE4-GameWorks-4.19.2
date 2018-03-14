@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Sections/MovieSceneSkeletalAnimationSection.h"
 #include "Animation/AnimSequence.h"
@@ -37,7 +37,10 @@ UMovieSceneSkeletalAnimationSection::UMovieSceneSkeletalAnimationSection( const 
 	SlotName_DEPRECATED = DefaultSlotName;
 
 	BlendType = EMovieSceneBlendType::Absolute;
-	EvalOptions.EnableAndSetCompletionMode(EMovieSceneCompletionMode::RestoreState);
+	EvalOptions.EnableAndSetCompletionMode
+		(GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToProjectDefault ? 
+			EMovieSceneCompletionMode::RestoreState : 
+			EMovieSceneCompletionMode::ProjectDefault);
 
 #if WITH_EDITOR
 	PreviousPlayRate = Params.PlayRate;

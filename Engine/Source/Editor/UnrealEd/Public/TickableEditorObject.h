@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,34 +10,73 @@
  * This class provides common registration for gamethread editor only tickable objects. It is an
  * abstract base class requiring you to implement the GetStatId, IsTickable, and Tick methods.
  */
-class FTickableEditorObject : public FTickableObjectBase
+class UNREALED_API FTickableEditorObject : public FTickableObjectBase
 {
 public:
 
-	static void TickObjects(float DeltaSeconds)
+	static void TickObjects(const float DeltaSeconds)
 	{
-		const TArray<FTickableEditorObject*>& TickableObjects = GetTickableObjects();
+		TArray<FTickableEditorObject*>& PendingTickableObjects = GetPendingTickableObjects();
+		TArray<FTickableObjectEntry>& TickableObjects = GetTickableObjects();
 
-		for (int32 ObjectIndex=0; ObjectIndex < TickableObjects.Num(); ++ObjectIndex)
+		for (FTickableEditorObject* PendingTickable : PendingTickableObjects)
 		{
-			FTickableEditorObject* TickableObject = TickableObjects[ObjectIndex];
-			if (TickableObject->IsTickable())
+			AddTickableObject(TickableObjects, PendingTickable);
+		}
+		PendingTickableObjects.Empty();
+
+		if (TickableObjects.Num() > 0)
+		{
+			check(!bIsTickingObjects);
+			bIsTickingObjects = true;
+
+			bool bNeedsCleanup = false;
+
+			for (const FTickableObjectEntry& TickableEntry : TickableObjects)
 			{
-				TickableObject->Tick(DeltaSeconds);
+				if (FTickableObjectBase* TickableObject = TickableEntry.TickableObject)
+				{
+					if ((TickableEntry.TickType == ETickableTickType::Always) || TickableObject->IsTickable())
+					{
+						TickableObject->Tick(DeltaSeconds);
+					}
+
+					// In case it was removed during tick
+					if (TickableEntry.TickableObject == nullptr)
+					{
+						bNeedsCleanup = true;
+					}
+				}
+				else
+				{
+					bNeedsCleanup = true;
+				}
 			}
+
+			if (bNeedsCleanup)
+			{
+				TickableObjects.RemoveAll([](const FTickableObjectEntry& Entry) { return (Entry.TickableObject == nullptr); });
+			}
+
+			bIsTickingObjects = false;
 		}
 	}
 
 	/** Registers this instance with the static array of tickable objects. */
 	FTickableEditorObject()
 	{
-		GetTickableObjects().Add(this);
+		check(!GetPendingTickableObjects().Contains(this));
+		check(!GetTickableObjects().Contains(this));
+		GetPendingTickableObjects().Add(this);
 	}
 
 	/** Removes this instance from the static array of tickable objects. */
 	virtual ~FTickableEditorObject()
 	{
-		UnregisterTickableObject(this);
+		if (bCollectionIntact && GetPendingTickableObjects().Remove(this) == 0)
+		{
+			RemoveTickableObject(GetTickableObjects(), this, bIsTickingObjects);
+		}
 	}
 
 private:
@@ -48,7 +87,7 @@ private:
 	 * Some tickable objects can outlive the collection
 	 * (global/static destructor order is unpredictable).
 	 */
-	class TTickableObjectsCollection : public TArray<FTickableEditorObject*>
+	class TTickableObjectsCollection : public TArray<FTickableObjectEntry>
 	{
 	public:
 		~TTickableObjectsCollection()
@@ -60,23 +99,19 @@ private:
 	friend class TTickableObjectsCollection;
 
 	/** True if collection of tickable objects is still intact. */
-	UNREALED_API static bool bCollectionIntact;
+	static bool bCollectionIntact;
+	/** True if currently ticking of tickable editor objects. */
+	static bool bIsTickingObjects;
 
-	/** Avoids removal if the object outlived the collection. */
-	UNREALED_API static void UnregisterTickableObject(FTickableEditorObject* Obj)
-	{
-		if (bCollectionIntact)
-		{
-			const int32 Pos = GetTickableObjects().Find(Obj);
-			check(Pos!=INDEX_NONE);
-			GetTickableObjects().RemoveAt(Pos);
-		}
-	}
-
-	/** Returns the array of tickable editor objects */
-	UNREALED_API static TArray<FTickableEditorObject*>& GetTickableObjects()
+	static TArray<FTickableObjectEntry>& GetTickableObjects()
 	{
 		static TTickableObjectsCollection TickableObjects;
 		return TickableObjects;
+	}
+
+	static TArray<FTickableEditorObject*>& GetPendingTickableObjects()
+	{
+		static TArray<FTickableEditorObject*> PendingTickableObjects;
+		return PendingTickableObjects;
 	}
 };

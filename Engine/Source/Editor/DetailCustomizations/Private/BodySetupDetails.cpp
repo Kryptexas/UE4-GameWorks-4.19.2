@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BodySetupDetails.h"
 #include "Widgets/Text/SRichTextBlock.h"
@@ -11,6 +11,7 @@
 #include "ObjectEditorUtils.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicsEngine/PhysicsAsset.h"
+#include "SCheckBox.h"
 
 #define LOCTEXT_NAMESPACE "BodySetupDetails"
 
@@ -23,6 +24,8 @@ void FBodySetupDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
 	// Customize collision section
 	{
+		static const FName CollisionCategoryName(TEXT("Collision"));
+
 		if ( DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UBodySetup, DefaultInstance))->IsValidHandle() )
 		{
 			DetailBuilder.GetObjectsBeingCustomized(ObjectsCustomized);
@@ -48,8 +51,6 @@ void FBodySetupDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 			uint32 NumChildren = 0;
 			BodyInstanceHandler->GetNumChildren(NumChildren);
 
-			static const FName CollisionCategoryName(TEXT("Collision"));
-
 			// add all properties of this now - after adding 
 			for (uint32 ChildIndex=0; ChildIndex < NumChildren; ++ChildIndex)
 			{
@@ -61,6 +62,39 @@ void FBodySetupDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 				}
 			}
 		}
+
+		CollisionReponseHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UBodySetup, CollisionReponse));
+		TWeakPtr<IPropertyHandle> WeakCollisionReponseHandle = CollisionReponseHandle;
+
+		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory(CollisionCategoryName);
+		DetailCategoryBuilder.AddProperty(CollisionReponseHandle)
+		.CustomWidget()
+		.NameContent()
+		[
+			CollisionReponseHandle->CreatePropertyNameWidget()
+		]
+		.ValueContent()
+		[
+			SNew(SCheckBox)
+			.IsChecked_Lambda([WeakCollisionReponseHandle]() 
+			{
+				uint8 Value = 0;
+				if(WeakCollisionReponseHandle.IsValid() && WeakCollisionReponseHandle.Pin()->GetValue(Value) == FPropertyAccess::Success)
+				{
+					return (Value == EBodyCollisionResponse::BodyCollision_Enabled) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+				}
+
+				return ECheckBoxState::Undetermined;
+			})
+			.OnCheckStateChanged_Lambda([WeakCollisionReponseHandle](ECheckBoxState InCheckBoxState)
+			{
+				if(WeakCollisionReponseHandle.IsValid())
+				{
+					uint8 Value = InCheckBoxState == ECheckBoxState::Checked ? EBodyCollisionResponse::BodyCollision_Enabled : EBodyCollisionResponse::BodyCollision_Disabled;
+					WeakCollisionReponseHandle.Pin()->SetValue(Value);
+				}
+			})
+		];
 	}
 }
 
@@ -110,28 +144,45 @@ void FSkeletalBodySetupDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 		return PhysAnimEditable() == true ? EVisibility::Collapsed : EVisibility::Visible;
 	}));
 
-	Cat.AddCustomRow(LOCTEXT("Profile", "Physical Animation Profile"))
-	[
-		SNew(SBorder)
-		.BorderImage(FEditorStyle::Get().GetBrush("ToolPanel.DarkGroupBorder"))
-		.Padding(4.0f)
-		[
-			SNew(SRichTextBlock)
-			.DecoratorStyleSet(&FEditorStyle::Get())
-			.Text_Lambda([ObjectsCustomizedLocal]()
-			{
-				if (ObjectsCustomizedLocal.Num() > 0)
+	IDetailCategoryBuilder& PhysicsCat = DetailBuilder.EditCategory(TEXT("Physics"));
+	PhysicsCat.HeaderContent(
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SRichTextBlock)
+				.DecoratorStyleSet(&FEditorStyle::Get())
+				.Text_Lambda([ObjectsCustomizedLocal]()
 				{
-					if (USkeletalBodySetup* BS = Cast<USkeletalBodySetup>(ObjectsCustomizedLocal[0].Get()))
+					if (ObjectsCustomizedLocal.Num() > 0)
 					{
-						return FText::Format(LOCTEXT("ProfileFormat", "Current Profile: <RichTextBlock.Bold>{0}</>"), FText::FromName(BS->GetCurrentPhysicalAnimationProfileName()));
+						if (USkeletalBodySetup* BS = Cast<USkeletalBodySetup>(ObjectsCustomizedLocal[0].Get()))
+						{
+							FName CurrentProfileName = BS->GetCurrentPhysicalAnimationProfileName();
+							if(CurrentProfileName != NAME_None)
+							{
+								if(BS->FindPhysicalAnimationProfile(CurrentProfileName) != nullptr)
+								{
+									return FText::Format(LOCTEXT("ProfileFormatAssigned", "Assigned to Profile: <RichTextBlock.Bold>{0}</>"), FText::FromName(CurrentProfileName));
+								}
+								else
+								{
+									return FText::Format(LOCTEXT("ProfileFormatNotAssigned", "Not Assigned to Profile: <RichTextBlock.Bold>{0}</>"), FText::FromName(CurrentProfileName));
+								}
+							}
+							else
+							{
+								return LOCTEXT("ProfileFormatNone", "Current Profile: <RichTextBlock.Bold>None</>");
+							}
+						}
 					}
-				}
 
-				return FText();
-			})
-		]
-	];
+					return FText();
+				})
+			]
+		);
 
 	TSharedPtr<IPropertyHandle> PhysicalAnimationProfile = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(USkeletalBodySetup, CurrentPhysicalAnimationProfile));
 	PhysicalAnimationProfile->MarkHiddenByCustomization();

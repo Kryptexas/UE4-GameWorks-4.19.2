@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SDetailsView.h"
@@ -639,12 +639,12 @@ void SDetailsView::SetObjectArrayPrivate(const TArray< TWeakObjectPtr< UObject >
 	}
 	else if(DetailsViewArgs.bAllowMultipleTopLevelObjects)
 	{
-		Title = FString::Printf(*NSLOCTEXT("PropertyView", "MultipleToLevelObjectsSelected", "%i selected").ToString(), GetNumObjects());
+		Title = FText::Format(NSLOCTEXT("PropertyView", "MultipleToLevelObjectsSelectedFmt", "{0} selected"), GetNumObjects()).ToString();
 	}
 	else
 	{
 		FObjectPropertyNode* RootPropertyNode = RootPropertyNodes[0]->AsObjectNode();
-		Title = FString::Printf( *NSLOCTEXT("PropertyView", "MultipleSelected", "%s (%i selected)").ToString(), *RootPropertyNode->GetObjectBaseClass()->GetName(), RootPropertyNode->GetNumObjects() );
+		Title = FText::Format( NSLOCTEXT("PropertyView", "MultipleSelected", "{0} ({1} selected)"), FText::FromString(RootPropertyNode->GetObjectBaseClass()->GetName()), RootPropertyNode->GetNumObjects() ).ToString();
 	}
 
 	OnObjectArrayChanged.ExecuteIfBound(Title, InObjects);
@@ -783,7 +783,14 @@ void SDetailsView::PreSetObject(int32 InNewNumObjects)
 /** Called at the end of SetObjectArray after we change the objects being observed */
 void SDetailsView::PostSetObject()
 {
-	DestroyColorPicker();
+	TSharedPtr<SColorPicker> ExistingColorPicker = GetColorPicker();
+	if (ExistingColorPicker.IsValid()
+		&& (!ExistingColorPicker->GetOptionalOwningDetailsView().IsValid()
+			|| ExistingColorPicker->GetOptionalOwningDetailsView().Get() == this))
+	{
+		DestroyColorPicker();
+	}
+
 	ColorPropertyNode = nullptr;
 
 	// Are we editing PIE objects?  If the bShowHiddenPropertiesWhilePlaying setting is enabled, we may want to

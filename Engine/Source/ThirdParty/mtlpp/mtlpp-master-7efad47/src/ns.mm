@@ -2,154 +2,203 @@
  * Copyright 2016-2017 Nikolay Aleksiev. All rights reserved.
  * License: https://github.com/naleksiev/mtlpp/blob/master/LICENSE
  */
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
 #include "ns.hpp"
-#include <CoreFoundation/CFBase.h>
-#include <Foundation/NSString.h>
-#include <Foundation/NSError.h>
-#include <Foundation/NSArray.h>
-#include <cstring>
+
+MTLPP_BEGIN
 
 namespace ns
 {
-    Object::Object() :
-        m_ptr(nullptr)
+    NSUInteger ArrayBase::GetSize() const
     {
+		ns::Object<NSArray<id<NSObject>>*>::Validate();
+        return NSUInteger([ns::Object<NSArray<id<NSObject>>*>::m_ptr count]);
     }
 
-    Object::Object(const Handle& handle, bool const retain) :
-        m_ptr(handle.ptr)
+    void* ArrayBase::GetItem(NSUInteger index) const
     {
-		if (m_ptr && retain)
-			CFRetain(m_ptr);
-    }
-
-    Object::Object(const Object& rhs) :
-        m_ptr(rhs.m_ptr)
-    {
-        if (m_ptr)
-            CFRetain(m_ptr);
-    }
-
-#if MTLPP_CONFIG_RVALUE_REFERENCES
-    Object::Object(Object&& rhs) :
-        m_ptr(rhs.m_ptr)
-    {
-        rhs.m_ptr = nullptr;
-    }
-#endif
-
-    Object::~Object()
-    {
-        if (m_ptr)
-            CFRelease(m_ptr);
-    }
-
-    Object& Object::operator=(const Object& rhs)
-    {
-        if (rhs.m_ptr == m_ptr)
-            return *this;
-        if (rhs.m_ptr)
-            CFRetain(rhs.m_ptr);
-        if (m_ptr)
-            CFRelease(m_ptr);
-        m_ptr = rhs.m_ptr;
-        return *this;
-    }
-
-#if MTLPP_CONFIG_RVALUE_REFERENCES
-    Object& Object::operator=(Object&& rhs)
-    {
-        if (rhs.m_ptr == m_ptr)
-            return *this;
-        if (m_ptr)
-            CFRelease(m_ptr);
-        m_ptr = rhs.m_ptr;
-        rhs.m_ptr = nullptr;
-        return *this;
-    }
-#endif
-
-    uint32_t ArrayBase::GetSize() const
-    {
-        Validate();
-        return uint32_t([(__bridge NSArray*)m_ptr count]);
-    }
-
-    void* ArrayBase::GetItem(uint32_t index) const
-    {
-        Validate();
-        return (__bridge void*)[(__bridge NSArray*)m_ptr objectAtIndexedSubscript:index];
+        ns::Object<NSArray<id<NSObject>>*>::Validate();
+        return (void*)[ns::Object<NSArray<id<NSObject>>*>::m_ptr objectAtIndexedSubscript:index];
     }
 
     String::String(const char* cstr) :
-        Object(Handle{ (__bridge void*)[NSString stringWithUTF8String:cstr] })
+        Object<NSString*>([NSString stringWithUTF8String:cstr])
     {
     }
 
     const char* String::GetCStr() const
     {
         Validate();
-        return [(__bridge NSString*)m_ptr cStringUsingEncoding:NSUTF8StringEncoding];
+        return [(NSString*)m_ptr cStringUsingEncoding:NSUTF8StringEncoding];
     }
 
-    uint32_t String::GetLength() const
+    NSUInteger String::GetLength() const
     {
         Validate();
-        return uint32_t([(__bridge NSString*)m_ptr length]);
+        return NSUInteger([(NSString*)m_ptr length]);
     }
 
-    Error::Error() :
-        Object(Handle{ (__bridge void*)[[NSError alloc] init] })
+    AutoReleasedError::AutoReleasedError()
     {
-
     }
 
-    String Error::GetDomain() const
+    String AutoReleasedError::GetDomain() const
     {
         Validate();
-        return Handle{ (__bridge void*)[(__bridge NSError*)m_ptr domain] };
+        return [(NSError*)m_ptr domain];
     }
 
-    uint32_t Error::GetCode() const
+    NSUInteger AutoReleasedError::GetCode() const
     {
         Validate();
-        return uint32_t([(__bridge NSError*)m_ptr code]);
+        return NSUInteger([(NSError*)m_ptr code]);
     }
 
     //@property (readonly, copy) NSDictionary *userInfo;
 
-    String Error::GetLocalizedDescription() const
+    String AutoReleasedError::GetLocalizedDescription() const
     {
         Validate();
-        return Handle{ (__bridge void*)[(__bridge NSError*)m_ptr localizedDescription] };
+        return [(NSError*)m_ptr localizedDescription];
     }
 
-    String Error::GetLocalizedFailureReason() const
+    String AutoReleasedError::GetLocalizedFailureReason() const
     {
         Validate();
-        return Handle{ (__bridge void*)[(__bridge NSError*)m_ptr localizedFailureReason] };
+        return [(NSError*)m_ptr localizedFailureReason];
     }
 
-    String Error::GetLocalizedRecoverySuggestion() const
+    String AutoReleasedError::GetLocalizedRecoverySuggestion() const
     {
         Validate();
-        return Handle{ (__bridge void*)[(__bridge NSError*)m_ptr localizedRecoverySuggestion] };
+        return [(NSError*)m_ptr localizedRecoverySuggestion];
     }
 
-    String Error::GetLocalizedRecoveryOptions() const
+    Array<String> AutoReleasedError::GetLocalizedRecoveryOptions() const
     {
         Validate();
-        return Handle{ (__bridge void*)[(__bridge NSError*)m_ptr localizedRecoveryOptions] };
+        return (NSArray<NSString*>*)[(NSError*)m_ptr localizedRecoveryOptions];
     }
 
     //@property (nullable, readonly, strong) id recoveryAttempter;
 
-    String Error::GetHelpAnchor() const
+    String AutoReleasedError::GetHelpAnchor() const
     {
         Validate();
-        return Handle{ (__bridge void*)[(__bridge NSError*)m_ptr helpAnchor] };
+        return [(NSError*)m_ptr helpAnchor];
     }
+	
+	AutoReleasedError& AutoReleasedError::operator=(NSError* const handle)
+	{
+		m_ptr = handle;
+		return *this;
+	}
+
+	
+	Error::Error(const AutoReleasedError& rhs)
+	{
+		operator=(rhs);
+	}
+	
+#if MTLPP_CONFIG_RVALUE_REFERENCES
+	Error::Error(const AutoReleasedError&& rhs)
+	{
+		operator=(rhs);
+	}
+#endif
+	
+	Error& Error::operator=(const AutoReleasedError& rhs)
+	{
+		if (m_ptr != rhs.m_ptr)
+		{
+			if(rhs.m_ptr)
+			{
+				rhs.m_table->Retain(rhs.m_ptr);
+			}
+			if(m_ptr)
+			{
+				m_table->Release(m_ptr);
+			}
+			m_ptr = rhs.m_ptr;
+			m_table = rhs.m_table;
+		}
+		return *this;
+	}
+	
+#if MTLPP_CONFIG_RVALUE_REFERENCES
+	Error& Error::operator=(AutoReleasedError&& rhs)
+	{
+		if (m_ptr != rhs.m_ptr)
+		{
+			if(rhs.m_ptr)
+			{
+				rhs.m_table->Retain(rhs.m_ptr);
+			}
+			if(m_ptr)
+			{
+				m_table->Release(m_ptr);
+			}
+			m_ptr = rhs.m_ptr;
+			m_table = rhs.m_table;
+			rhs.m_ptr = nullptr;
+			rhs.m_table = nullptr;
+		}
+		return *this;
+	}
+#endif
+	
+	Error::Error()
+	{
+		
+	}
+	
+	String Error::GetDomain() const
+	{
+		Validate();
+		return [(NSError*)m_ptr domain];
+	}
+	
+	NSUInteger Error::GetCode() const
+	{
+		Validate();
+		return NSUInteger([(NSError*)m_ptr code]);
+	}
+	
+	//@property (readonly, copy) NSDictionary *userInfo;
+	
+	String Error::GetLocalizedDescription() const
+	{
+		Validate();
+		return [(NSError*)m_ptr localizedDescription];
+	}
+	
+	String Error::GetLocalizedFailureReason() const
+	{
+		Validate();
+		return [(NSError*)m_ptr localizedFailureReason];
+	}
+	
+	String Error::GetLocalizedRecoverySuggestion() const
+	{
+		Validate();
+		return [(NSError*)m_ptr localizedRecoverySuggestion];
+	}
+	
+	Array<String> Error::GetLocalizedRecoveryOptions() const
+	{
+		Validate();
+		return (NSArray<NSString*>*)[(NSError*)m_ptr localizedRecoveryOptions];
+	}
+	
+	//@property (nullable, readonly, strong) id recoveryAttempter;
+	
+	String Error::GetHelpAnchor() const
+	{
+		Validate();
+		return [(NSError*)m_ptr helpAnchor];
+	}
 }
+
+MTLPP_END

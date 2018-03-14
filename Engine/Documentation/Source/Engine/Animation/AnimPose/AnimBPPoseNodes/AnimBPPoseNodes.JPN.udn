@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3505632
+﻿INTSourceChangelist:3782314
 Availability:Docs
 Crumbs: %ROOT%, Engine, Engine/Animation
 Title:AnimGraph Pose ノード
 Description:Pose アセット、Animation ブループリント、および Pose ノードを使って、ランタイムにカーブで操作するアニメーションについて説明します。
 Type:Reference
 Version:4.16
-Parent:Engine/Animation
+Parent:Engine/Animation/AnimPose
 Order:1
 topic-image:PoseNodeTopic.png
 Related:Engine\Animation\AnimHowTo\CreatePoseAsset
@@ -17,7 +17,8 @@ Tags:Animation
 Tags:Animation Blueprint
 Tags:Animation Blending
 
-<!-- Page refactored and split off into two pages, no longer needed
+[COMMENT:none]
+ Page refactored and split off into two pages, no longer needed
 
 [TOC (start:2 end:2)]
 
@@ -126,7 +127,8 @@ Animation ブループリントの AnimGraph 内には、サンプル ポーズ�
 | **Type** | [INCLUDE:Engine\Animation\AnimPose\AnimBPPoseNodes\#typetable] | 
 | **Twist Axis** | **Type** が **SwingOnly** (X、 Y、または Z) に設定されている場合に使用する軸です。 | 
 
-<!--
+[COMMENT]
+
 [EXCERPT:typetable]
 | オプション | 説明 |
 | ----------- |------|
@@ -134,7 +136,8 @@ Animation ブループリントの AnimGraph 内には、サンプル ポーズ�
 | **Swing Only** | 補間に対してスイングのみを考えます。 | 
 | **Translation** | 親に対して相対的に考えます。 | 
 [/EXCERPT:typetable]
--->
+
+[/COMMENT]
 
 以下のアンリアル エンジンのライブストリームのアニメーションのトピックで **Pose Driver** のサンプルをご覧いただくこともできます。
 
@@ -157,7 +160,8 @@ Animation ブループリントの AnimGraph 内には、サンプル ポーズ�
 [/OBJECT]
  
 
- -->
+ 
+[/COMMENT]
 
 
 

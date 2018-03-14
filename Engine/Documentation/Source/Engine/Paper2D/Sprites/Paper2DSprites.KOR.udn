@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Paper2D 스프라이트
 Crumbs: %ROOT%, Engine, Engine/Paper2D
@@ -11,46 +11,7 @@ Related: Engine/Rendering/Materials
 Related: Engine/Content/Types/Textures
 Version: 4.9
 SkillLevel: Intermediate
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Paper2D\Sprites:title%](sprite_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Paper2D\Sprites:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Paper2D\Sprites:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Paper2D\Sprites]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Paper2D\Sprites:title%](sprite_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Paper2D\Sprites:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Paper2D\Sprites:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Paper2D\Sprites]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:sprite_topic.png
 
 [REGION:banner]
 ![](sprite_banner.png)

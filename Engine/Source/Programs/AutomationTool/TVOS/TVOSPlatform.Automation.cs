@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -101,17 +101,8 @@ public class TVOSPlatform : IOSPlatform
 
         // copy the movies from the project
         {
-			DirectoryReference PlatformMovies = DirectoryReference.Combine(SC.ProjectRoot, "Build", "TVOS", "Resources", "Movies");
-			if(DirectoryReference.Exists(PlatformMovies))
-			{
-				SC.StageFiles(StagedFileType.SystemNonUFS, PlatformMovies, StageFilesSearch.TopDirectoryOnly, StagedDirectoryReference.Root);
-			}
-
-			DirectoryReference AllMovies = DirectoryReference.Combine(SC.ProjectRoot, "Content", "Movies");
-			if(DirectoryReference.Exists(AllMovies))
-			{
-				SC.StageFiles(StagedFileType.SystemNonUFS, AllMovies, StageFilesSearch.AllDirectories, StagedDirectoryReference.Root);
-			}
+            StageMovieFiles(DirectoryReference.Combine(SC.EngineRoot, "Content", "Movies"), SC);
+            StageMovieFiles(DirectoryReference.Combine(SC.ProjectRoot, "Content", "Movies"), SC);
         }
     }
 }

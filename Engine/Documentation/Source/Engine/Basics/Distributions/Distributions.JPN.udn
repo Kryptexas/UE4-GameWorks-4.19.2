@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3454520
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Distributions（ディストリビューション）
 Crumbs: %ROOT%, Engine
@@ -178,11 +178,13 @@ ConstantCurve と同様に、この種類のディストリビューションも
 |DPM_Abs| 再マッピングの前に入力値の絶対値を使用します。|
 |DPM_Direct| 入力値を直接使用します (再マッピングなし)。|
 
-<!--
+[COMMENT:none]
+
 ### DistributionFloatSoundParameter
 
 SoundCue 用であること以外は DistributionFloatParticleParam と同じで、SoundCue のプロパティをコードから修正するために使用します。例えば、運転して音が高くなるエンジン ノイズを望む場合は、そのノイズ用に SoundCue を作成し、 SoundNodeModulatorContinuous ノードを追加します。次に、 PitchModulation プロパティに、 DistributionFloatSoundParameter を使用します。
--->
+
+[/COMMENT]
 
 ## Vector ディストリビューション
 

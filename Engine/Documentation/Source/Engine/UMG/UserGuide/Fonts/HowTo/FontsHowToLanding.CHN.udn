@@ -21,7 +21,8 @@ Topic-Image:FontHowTo_Topic.png
 [DIR(output:"fancy" parent:"Engine/UMG/UserGuide/Fonts/HowTo" skill_level:"Beginner")]
 
 
-<!--- For future addition of tutorials in these skill levels ---
+[COMMENT:none]
+- For future addition of tutorials in these skill levels ---
 
 ## 充分利用材质
 
@@ -31,4 +32,5 @@ Topic-Image:FontHowTo_Topic.png
 
 [DIR(output:"fancy" parent:"Engine/UMG/UserGuide/Fonts/HowTo" skill_level:"Advanced")]
 
---->
+-
+[/COMMENT]

@@ -45,7 +45,8 @@ Android Works **will not** work with Unreal Engine 4.8. If you have installed **
 	[/PARAM]
 [/OBJECT]
  
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsSetup]
 
 [REGION:tip]
@@ -209,7 +210,8 @@ TADP installer and Android SDK tools require that both Java 6 and Java 7 are ins
 
 [/EXCERPT:MacOSSetup]
 
--->
+
+[/COMMENT]
 
 
 

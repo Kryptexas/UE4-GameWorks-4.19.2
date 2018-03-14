@@ -24,7 +24,9 @@ the vehicle. If you started with an existing template, some (or all) of these ax
 
 	![](input.png)(w:950)
 	
-1. In the Bindings menu, set up the following controls (if you do not currently have them listed). If you do have them listed, it would be wise to double-check that they are set up like the ones listed here, so that you know your vehicle will work correctly. <!-- TODO, add images for this steps and all of the sub-steps contained herein. -->
+1. In the Bindings menu, set up the following controls (if you do not currently have them listed). If you do have them listed, it would be wise to double-check that they are set up like the ones listed here, so that you know your vehicle will work correctly. [COMMENT:none]
+ TODO, add images for this steps and all of the sub-steps contained herein. 
+[/COMMENT]
 
 	1. First, we'll setup an **Action Mappings** by clicking the **+** sign next to the Action Mappings property.
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "KismetNodes/SGraphNodeSpawnActorFromClass.h"
 #include "Modules/ModuleManager.h"
@@ -8,10 +8,11 @@
 #include "Editor.h"
 #include "EdGraphSchema_K2.h"
 #include "K2Node_SpawnActorFromClass.h"
-#include "SGraphPinObject.h"
+#include "SGraphPinClass.h"
 #include "NodeFactory.h"
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "SGraphPinActorBasedClass"
 
@@ -22,21 +23,8 @@
  * GraphPin can select only actor classes.
  * Instead of asset picker, a class viewer is used.
  */
-class SGraphPinActorBasedClass : public SGraphPinObject
+class SGraphPinActorBasedClass : public SGraphPinClass
 {
-	void OnClassPicked(UClass* InChosenClass)
-	{
-		AssetPickerAnchor->SetIsOpen(false);
-
-		if(GraphPinObj)
-		{
-			if(const UEdGraphSchema* Schema = GraphPinObj->GetSchema())
-			{
-				Schema->TrySetDefaultObject(*GraphPinObj, InChosenClass);
-			}
-		}
-	}
-
 	class FActorBasedClassFilter : public IClassViewerFilter
 	{
 	public:
@@ -65,29 +53,6 @@ class SGraphPinActorBasedClass : public SGraphPinObject
 
 protected:
 
-	virtual FReply OnClickUse() override
-	{
-		if(GraphPinObj && GraphPinObj->GetSchema())
-		{
-			const UClass* PinRequiredParentClass = Cast<const UClass>(GraphPinObj->PinType.PinSubCategoryObject.Get());
-			ensure(PinRequiredParentClass);
-
-			const UClass* SelectedClass = GEditor->GetFirstSelectedClass(PinRequiredParentClass);
-			if(SelectedClass)
-			{
-				GraphPinObj->GetSchema()->TrySetDefaultObject(*GraphPinObj, const_cast<UClass*>(SelectedClass));
-			}
-		}
-		return FReply::Handled();
-	}
-
-	virtual FOnClicked GetOnUseButtonDelegate() override
-	{
-		return FOnClicked::CreateSP( this, &SGraphPinActorBasedClass::OnClickUse );
-	}
-
-	virtual FText GetDefaultComboText() const override { return LOCTEXT( "DefaultComboText", "Select Class" ); }
-
 	virtual TSharedRef<SWidget> GenerateAssetPicker() override
 	{
 		FClassViewerModule& ClassViewerModule = FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer");
@@ -115,7 +80,7 @@ protected:
 					.Padding(4)
 					.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
 					[
-						ClassViewerModule.CreateClassViewer(Options, FOnClassPicked::CreateSP(this, &SGraphPinActorBasedClass::OnClassPicked))
+						ClassViewerModule.CreateClassViewer(Options, FOnClassPicked::CreateSP(this, &SGraphPinActorBasedClass::OnPickedNewClass))
 					]
 				]			
 			];

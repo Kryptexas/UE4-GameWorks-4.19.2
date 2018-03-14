@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintCompilerCppBackendBase.h"
 #include "UObject/UnrealType.h"
@@ -176,8 +176,10 @@ struct FIncludeHeaderHelper
 
 	static void EmitInner(FCodeText& Dst, const TSet<UField*>& Src, const TSet<UField*>& Declarations, const FCompilerNativizationOptions& NativizationOptions, TSet<FString>& AlreadyIncluded)
 	{
-		auto EngineSourceDir = FPaths::EngineSourceDir();
-		auto GameSourceDir = FPaths::GameSourceDir();
+		static const FString EngineSourceDir = FPaths::EngineSourceDir();
+		static const FString EnginePluginsDir = FPaths::EnginePluginsDir();
+		static const FString ProjectSourceDir = FPaths::GameSourceDir();
+		static const FString ProjectPluginsDir = FPaths::ProjectPluginsDir();
 
 		for (UField* Field : Src)
 		{
@@ -212,12 +214,24 @@ struct FIncludeHeaderHelper
 				FString PackPath;
 				if (FSourceCodeNavigation::FindClassHeaderPath(Field, PackPath))
 				{
-					if (!PackPath.RemoveFromStart(EngineSourceDir))
+					// Known header paths are converted to be relative to engine/project source folders. This is currently
+					// necessary because dependencies can be defined in private include paths which are not exposed to UBT,
+					// and it's also an optimization for public headers as it helps the target compiler locate them faster.
+					if (PackPath.StartsWith(EnginePluginsDir))
 					{
-						if (!PackPath.RemoveFromStart(GameSourceDir))
-						{
-							PackPath = FPaths::GetCleanFilename(PackPath);
-						}
+						// Engine plugin header paths are converted to be relative to the engine source directory. This path is added first by UBT.
+						FPaths::MakePathRelativeTo(PackPath, *EngineSourceDir);
+					}
+					else if (PackPath.StartsWith(ProjectPluginsDir))
+					{
+						// Project plugin header paths are converted to be relative to the project source directory. This is the CWD when building with UBT.
+						FPaths::MakePathRelativeTo(PackPath, *ProjectSourceDir);
+					}
+					else if (!PackPath.RemoveFromStart(EngineSourceDir) && !PackPath.RemoveFromStart(ProjectSourceDir))
+					{
+						// Engine and project header files are cropped and left relative to their respective source directories. Any other
+						// header path will get trimmed down to just the filename, and must be located in an include path that's exposed to UBT.
+						PackPath = FPaths::GetCleanFilename(PackPath);
 					}
 					bool bAlreadyIncluded = false;
 					AlreadyIncluded.Add(PackPath, &bAlreadyIncluded);
@@ -821,7 +835,8 @@ FString FBlueprintCompilerCppBackendBase::GenerateArgList(const FEmitterLocalCon
 		}
 		else
 		{
-			if (ArgProperty->HasAnyPropertyFlags(CPF_OutParm))
+			if (ArgProperty->HasAnyPropertyFlags(CPF_OutParm)
+				&& !ArgProperty->HasAnyPropertyFlags(CPF_ConstParm))
 			{
 				ArgListStr += TEXT("/*out*/ ");
 			}
@@ -1000,7 +1015,7 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromStruct(UUserDefinedStruct
 		EmitterContext.Header.AddLine(TEXT("GENERATED_BODY()"));
 		EmitStructProperties(EmitterContext, SourceStruct);
 
-		FEmitDefaultValueHelper::GenerateGetDefaultValue(SourceStruct, EmitterContext);
+		FEmitDefaultValueHelper::GenerateUserStructConstructor(SourceStruct, EmitterContext);
 
 		EmitterContext.Header.AddLine(TEXT("static void __StaticDependenciesAssets(TArray<FBlueprintDependencyData>& AssetsToLoad);"));
 		EmitterContext.Header.AddLine(TEXT("static void __StaticDependencies_DirectlyUsedAssets(TArray<FBlueprintDependencyData>& AssetsToLoad);"));
@@ -1184,7 +1199,7 @@ FString FBlueprintCompilerCppBackendBase::GenerateWrapperForClass(UClass* Source
 			EmitterContext.Header.IncreaseIndent();
 			if (bUseStaticVariables)
 			{
-				EmitterContext.Header.AddLine(TEXT("static TWeakObjectPtr<UProperty> __PropertyPtr{};"));
+				EmitterContext.Header.AddLine(TEXT("static TWeakObjectPtr<const UProperty> __PropertyPtr{};"));
 				EmitterContext.Header.AddLine(TEXT("const UProperty* __Property = __PropertyPtr.Get();"));
 				EmitterContext.Header.AddLine(TEXT("if (nullptr == __Property)"));
 				EmitterContext.Header.AddLine(TEXT("{"));

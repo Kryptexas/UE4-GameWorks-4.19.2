@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -454,6 +454,11 @@ public:
 	 * @return true on success, false otherwise.
 	 */
 	CORE_API bool Serialize(FArchive& Ar);
+
+	/**
+	* Serializes this date and time for network transmission
+	*/
+	CORE_API bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 
 	/**
 	 * Returns the RFC 1123 string representation of the FDateTime.

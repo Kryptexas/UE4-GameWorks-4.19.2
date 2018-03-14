@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SActorDetails.h"
 #include "Widgets/SBoxPanel.h"
@@ -205,7 +205,10 @@ void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifie
 
 SActorDetails::~SActorDetails()
 {
-	GEditor->UnregisterForUndo(this);
+	if (GEditor)
+	{
+		GEditor->UnregisterForUndo(this);
+	}
 	USelection::SelectionChangedEvent.RemoveAll(this);
 	RemoveBPComponentCompileEventDelegate();
 
@@ -249,7 +252,7 @@ void SActorDetails::SetObjects(const TArray<UObject*>& InObjects, bool bForceRef
 			TSharedPtr<SDockTab> Tab = DetailsView->GetHostTabManager()->FindExistingLiveTab(DetailsView->GetIdentifier());
 			if (Tab.IsValid() && !Tab->IsForeground() )
 			{
-				DetailsView->GetHostTabManager()->DrawAttention(Tab.ToSharedRef());
+				Tab->FlashTab();
 			}
 		}
 	}

@@ -1,0 +1,97 @@
+﻿INTSourceChangelist:3739387
+Availability: Public
+Crumbs: %ROOT%, Platforms
+Title: 기어 VR 용 모션 컨트롤러 구성
+Description: 기어 VR 모션 컨트롤러를 UE4 에서 사용할 수 있도록 구성하는 법입니다.
+Type: how-to
+SkillLevel:Beginner
+Version: 4.17
+Parent: Platforms/GearVR
+Order: 2
+Tags: GearVR
+topic-image:Platforms\GearVR\HowTo\GearVR_How_To_Header.png
+prereq: Platforms\GearVR\Prerequisites
+prereq: Platforms\GearVR\QuickStart
+prereq: Platforms\GearVR\HowTo\CameraSetup
+
+기어 VR 의 모션 컨트롤러를 활용하면 전에 없던 수준의 UE4 프로젝트 상호작용이 가능합니다. 사용자가 현실에서처럼 오브젝트를 집어들고 상호작용할 수 있도록 해주기 때문입니다. 여기서는 기어 VR 모션 컨트롤러를 사용할 수 있도록 UE4 프로젝트를 구성하는 방법을 살펴보겠습니다.
+
+## 단계
+
+1. 모션 컨트롤러 지원을 추가하려는 플레이어 폰을 엽니다. 이 예제에서는 **GearVR_Pawn_MotionController** 라는 폰입니다. 그리고 **컴포넌트** 탭에서 **컴포넌트 추가** 버튼을 클릭하고 **Motion Controller** 를 검색합니다.
+
+    ![](HTGearVR_MC_00.png)
+
+1. 새로 추가된 **Motion Controller** 를 끌어 기존의 **VRCameraRoot** 에 놓아 **VRCamera** 처럼 자식 컴포넌트가 되도록 합니다.
+
+    ![](HTGearVR_MC_01.png)
+
+    [region:note]
+    기본적으로, Gear VR Motion Controller 컴포넌트 **위치** 는 폰을 추가할 때 0,0,0 으로 설정되어있을 것입니다. 어떤 이유로든 그렇지 않다면, 위치를 0,0,0 으로 설정해 주세요.
+    [/region]
+
+1. 컴포넌트 추가 버튼을 클릭하고 표시되는 목록에서, **Static Mesh** 옵션을 선택하여 새로운 Static Mesh 컴포넌트를 추가합니다.
+
+	![](HTGearVR_MC_05.png)
+
+1. Static Mesh 컴포넌트를 선택하고 **디테일** 패널의 Static Mesh 섹션에 스태틱 메시를 입력하여 모션 컨트롤러에 시각적 표현물을 지정합니다.
+    
+	[REGION:lightbox]
+    [![](HTGearVR_MC_06.png)(w:660)](HTGearVR_MC_06.png)
+    [/REGION]
+
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
+
+1. 블루프린트를 컴파일 및 저장 후 **콘텐츠 브라우저** 에서 **GearVR_Pawn_MotionController** 폰을 끌어 레벨에 놓습니다.
+
+    [REGION:lightbox]
+    [![](HTGearVR_MC_02.png)(w:660)](HTGearVR_MC_02.png)
+    [/REGION]
+
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
+
+1. 새로 추가된 플레이어 폰을 선택하고 **디테일** 패널에서, **Auto Possess Player** (플레이어 자동 빙의)가 **Player 0** 으로 설정되었는지 확인하여 레벨이 실행되면 이 폰을 사용하도록 합니다.
+
+    ![](HTGearVR_MC_03.png)
+
+1. **실행** 버튼을 눌러 삼성 갤럭시 스마트폰에 이 레벨을 디플로이하고 실행합니다.
+
+    ![](HTGearVR_MC_04.png)
+
+## 최종 결과
+
+프로젝트가 실행되면, 기어 VR 헤드셋에 폰을 넣고 기어 VR 모션 컨트롤러를 집어듭니다. 이제 현실에서 모션 컨트롤러를 움직이면, 다음 비디오처럼 UE4 프로젝트에서도 움직임이 복제되는 것이 보일 것입니다.
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    WCf_N_JsHAQ
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
+
+[region:note]
+Gear VR Motion Controller 메시 위치가 잘못된 것처럼 보이는 경우, 모션 컨트롤러를 전방 밖으로 쥐고 **Home** 버튼을 누르고 있으면 모션 컨트롤러 위치를 재조정할 수 있습니다.
+[/region]
+
+### UE4 프로젝트 다운로드
+
+이 예제를 만드는 데 사용된 UE4 프로젝트를 다운로드할 수 있는 링크입니다.
+
+* [**Gear VR Motion Controller Example Project**](https://epicgames.box.com/s/u9bq98s1w8u7nv45968djx31kyznpuoi)
+
+

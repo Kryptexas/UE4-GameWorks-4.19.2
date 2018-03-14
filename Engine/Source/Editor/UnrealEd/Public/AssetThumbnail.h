@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -169,11 +169,6 @@ public:
 	//~ End FTickableObject Interface
 
 	/**
-	 * Releases all rendering resources held by the pool
-	 */
-	UNREALED_API void ReleaseResources();
-	
-	/**
 	 * Accesses the texture for an object.  If a thumbnail was recently rendered this function simply returns the thumbnail.  If it was not, it requests a new one be generated
 	 * No assumptions should be made about whether or not it was rendered
 	 *
@@ -215,6 +210,12 @@ public:
 	UNREALED_API void RefreshThumbnail( const TSharedPtr<FAssetThumbnail>& ThumbnailToRefresh );
 
 private:
+
+	/**
+	 * Releases all rendering resources held by the pool
+	 */
+	void ReleaseResources();
+
 	/**
 	 * Frees the rendering resources and clears a slot in the pool for an asset thumbnail at the specified width and height
 	 *

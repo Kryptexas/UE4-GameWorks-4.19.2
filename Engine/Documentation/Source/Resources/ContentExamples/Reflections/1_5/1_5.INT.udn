@@ -9,67 +9,13 @@ Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Resources/Showcases/RealisticRendering
 Related: Engine/Rendering/PostProcessEffects
 Version: 4.9
-
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Example](Resources/ContentExamples/Reflections/1_4 "%Resources/ContentExamples/Reflections/1_4:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Reflections Home](Resources/ContentExamples/Reflections)
-	[/PARAM]
-	[PARAM:next]
-		[Next Example](Resources/ContentExamples/Reflections/1_6 "%Resources/ContentExamples/Reflections/1_6:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Reflections/1_5:title%](Reflections_1_5_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Reflections/1_5:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Reflections/1_5:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/Reflections/1_5]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Reflections/1_5:title%](Reflections_1_5_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Reflections/1_5:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Reflections/1_5:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/Reflections/1_5]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Reflections_1_5_Topic.png
 
 [REGION:fullwidth]
 
 ![](Reflections_1_5_Header.png)
+
+[/REGION]
 
 **Screenspace Reflections** are a dynamic post process effect. While it can only reflect what is on screen, thusly creating some odd artifacts on perfectly reflective surfaces. However, by adding a bit of roughness to a Material, these artifacts will be blended away.
 
@@ -77,5 +23,3 @@ Version: 4.9
 To enable **Screenspace Reflections**, use the console command `r.ssr 1` or select in the Viewport **Show > Lighting Features > Screen Space Reflections**.
 [/REGION]
 
-
-[/REGION]

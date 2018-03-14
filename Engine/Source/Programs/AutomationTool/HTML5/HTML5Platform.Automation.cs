@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.IO;
 using System.Net.Http;
@@ -109,13 +109,14 @@ public class HTML5Platform : Platform
 		}
 
 		// copy the "Executable" to the package directory
-		string GameBasename = Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename);
+		string ProjectGameExeFilename = Params.GetProjectExeForPlatform(UnrealTargetPlatform.HTML5).ToString();
+		string GameBasename = Path.GetFileNameWithoutExtension(ProjectGameExeFilename);
 		if (Params.ClientConfigsToBuild[0].ToString() != "Development")
 		{
 			GameBasename += "-HTML5-" + Params.ClientConfigsToBuild[0].ToString();
 		}
 		// no extension
-		string GameBasepath = Path.GetDirectoryName(Params.ProjectGameExeFilename);
+		string GameBasepath = Path.GetDirectoryName(ProjectGameExeFilename);
 		string FullGameBasePath = Path.Combine(GameBasepath, GameBasename);
 		string FullPackageGameBasePath = Path.Combine(PackagePath, GameBasename);
 
@@ -422,7 +423,7 @@ public class HTML5Platform : Platform
 		string ProjectDataName = Params.ShortProjectName + ".data";
 
 		// copy the "Executable" to the archive directory
-		string GameBasename = Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename);
+		string GameBasename = Path.GetFileNameWithoutExtension(Params.GetProjectExeForPlatform(UnrealTargetPlatform.HTML5).ToString());
 		if (Params.ClientConfigsToBuild[0].ToString() != "Development")
 		{
 			GameBasename += "-HTML5-" + Params.ClientConfigsToBuild[0].ToString();
@@ -586,7 +587,7 @@ public class HTML5Platform : Platform
 
 	public override bool IsSupported { get { return true; } }
 
-	public override List<string> GetDebugFileExtentions()
+	public override List<string> GetDebugFileExtensions()
 	{
 		return new List<string> { ".pdb" };
 	}

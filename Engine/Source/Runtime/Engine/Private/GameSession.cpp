@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GameSession.cpp: GameSession code.
@@ -334,8 +334,8 @@ bool AGameSession::BanPlayer(class APlayerController* BannedPlayer, const FText&
 
 void AGameSession::ReturnToMainMenuHost()
 {
-	FString RemoteReturnReason = NSLOCTEXT("NetworkErrors", "HostHasLeft", "Host has left the game.").ToString();
-	FString LocalReturnReason(TEXT(""));
+	const FText RemoteReturnReason = NSLOCTEXT("NetworkErrors", "HostHasLeft", "Host has left the game.");
+	const FText LocalReturnReason = FText::GetEmpty();
 
 	APlayerController* Controller = NULL;
 	FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator();
@@ -345,7 +345,7 @@ void AGameSession::ReturnToMainMenuHost()
 		if (Controller && !Controller->IsLocalPlayerController() && Controller->IsPrimaryPlayer())
 		{
 			// Clients
-			Controller->ClientReturnToMainMenu(RemoteReturnReason);
+			Controller->ClientReturnToMainMenuWithTextReason(RemoteReturnReason);
 		}
 	}
 
@@ -355,7 +355,7 @@ void AGameSession::ReturnToMainMenuHost()
 		Controller = Iterator->Get();
 		if (Controller && Controller->IsLocalPlayerController() && Controller->IsPrimaryPlayer())
 		{
-			Controller->ClientReturnToMainMenu(LocalReturnReason);
+			Controller->ClientReturnToMainMenuWithTextReason(LocalReturnReason);
 			break;
 		}
 	}

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLES2.cpp: OpenGL ES2 implementation.
@@ -145,6 +145,9 @@ bool FOpenGLES2::bNeedsVertexAttribRemap = false;
 /* This hack fixes an issue with SGX540 compiler which can get upset with some operations that mix highp and mediump */
 bool FOpenGLES2::bRequiresTexture2DPrecisionHack = false;
 
+/* This is a hack to add a round() function when not available to a shader compiler */
+bool FOpenGLES2::bRequiresRoundFunctionHack = true;
+
 /* This is to avoid a bug in Adreno drivers that define GL_ARM_shader_framebuffer_fetch_depth_stencil even when device does not support this extension  */
 bool FOpenGLES2::bRequiresARMShaderFramebufferFetchDepthStencilUndef = false;
 
@@ -263,7 +266,7 @@ void FOpenGLES2::ProcessExtensions( const FString& ExtensionsString )
 		// Enable GL debug markers if we're running in Xcode
 		extern int32 GEmitMeshDrawEvent;
 		GEmitMeshDrawEvent = 1;
-		GEmitDrawEvents = true;
+		SetEmitDrawEvents(true);
 	}
 
 	// ES2 requires a color attachment when rendering to depth-only.

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TextureInstanceView.cpp: Implementation of content streaming classes.
@@ -32,25 +32,34 @@ void FTextureInstanceView::FBounds4::Set(int32 Index, const FBoxSphereBounds& Bo
 	LastRenderTime.Component(Index) = InLastRenderTime;
 }
 
-void FTextureInstanceView::FBounds4::UnpackBounds(int32 Index, const FBoxSphereBounds& Bounds)
+void FTextureInstanceView::FBounds4::UnpackBounds(int32 Index, const UPrimitiveComponent* Component)
 {
+	check(Component);
 	check(Index >= 0 && Index < 4);
 
 	if (PackedRelativeBox[Index])
 	{
 		FBoxSphereBounds SubBounds;
-		UnpackRelativeBox(Bounds, PackedRelativeBox[Index], SubBounds);
+		UnpackRelativeBox(Component->Bounds, PackedRelativeBox[Index], SubBounds);
+
+		// Update the visibility range once we have the bounds.
+		float MinDistance = 0, MinRange = 0, MaxRange = FLT_MAX;
+		FTextureInstanceView::GetDistanceAndRange(Component, SubBounds, MinDistance, MinRange, MaxRange);
 
 		OriginX.Component(Index) = SubBounds.Origin.X;
 		OriginY.Component(Index) = SubBounds.Origin.Y;
 		OriginZ.Component(Index) = SubBounds.Origin.Z;
-		RangeOriginX.Component(Index) = SubBounds.Origin.X;
-		RangeOriginY.Component(Index) = SubBounds.Origin.Y;
-		RangeOriginZ.Component(Index) = SubBounds.Origin.Z;
+		RangeOriginX.Component(Index) = Component->Bounds.Origin.X;
+		RangeOriginY.Component(Index) = Component->Bounds.Origin.Y;
+		RangeOriginZ.Component(Index) = Component->Bounds.Origin.Z;
 		ExtentX.Component(Index) = SubBounds.BoxExtent.X;
 		ExtentY.Component(Index) = SubBounds.BoxExtent.Y;
 		ExtentZ.Component(Index) = SubBounds.BoxExtent.Z;
 		Radius.Component(Index) = SubBounds.SphereRadius;
+		PackedRelativeBox[Index] = PackedRelativeBox_Identity;
+		MinDistanceSq.Component(Index) = MinDistance * MinDistance;
+		MinRangeSq.Component(Index) = MinRange * MinRange;
+		MaxRangeSq.Component(Index) = MaxRange != FLT_MAX ? (MaxRange * MaxRange) : FLT_MAX;
 	}
 }
 
@@ -92,7 +101,7 @@ FBoxSphereBounds FTextureInstanceView::FTextureLinkConstIterator::GetBounds() co
 	FBoxSphereBounds Bounds(ForceInitToZero);
 
 	int32 BoundsIndex = State.Elements[CurrElementIndex].BoundsIndex; 
-	if (BoundsIndex != INDEX_NONE)
+	if (State.Bounds4.IsValidIndex(BoundsIndex / 4))
 	{
 		const FBounds4& TheBounds4 = State.Bounds4[BoundsIndex / 4];
 		int32 Index = BoundsIndex % 4;
@@ -195,6 +204,7 @@ TRefCountPtr<const FTextureInstanceView> FTextureInstanceView::CreateView(const 
 	NewView->Bounds4 = RefView->Bounds4;
 	NewView->Elements = RefView->Elements;
 	NewView->TextureMap = RefView->TextureMap;
+	NewView->MaxTexelFactor = RefView->MaxTexelFactor;
 	// NewView->CompiledTextureMap = RefView->CompiledTextureMap;
 
 	return TRefCountPtr<const FTextureInstanceView>(NewView.GetReference());
@@ -207,9 +217,32 @@ TRefCountPtr<FTextureInstanceView> FTextureInstanceView::CreateViewWithUninitial
 	NewView->Bounds4.AddUninitialized(RefView->Bounds4.Num());
 	NewView->Elements = RefView->Elements;
 	NewView->TextureMap = RefView->TextureMap;
+	NewView->MaxTexelFactor = RefView->MaxTexelFactor;
 	// NewView->CompiledTextureMap = RefView->RefView;
 
 	return NewView;
+}
+
+void FTextureInstanceView::GetDistanceAndRange(const UPrimitiveComponent* Component, const FBoxSphereBounds& TextureInstanceBounds, float& MinDistance, float& MinRange, float& MaxRange)
+{
+	check(Component && Component->IsRegistered());
+
+	// In the engine, the MinDistance is computed from the component bound center to the viewpoint.
+	// The streaming computes the distance as the distance from viewpoint to the edge of the texture bound box.
+	// The implementation also handles MinDistance by bounding the distance to it so that if the viewpoint gets closer the screen size will stop increasing at some point.
+	// The fact that the primitive will disappear is not so relevant as this will be handled by the visibility logic, normally streaming one less mip than requested.
+	// The important mater is to control the requested mip by limiting the distance, since at close up, the distance becomes very small and all mips are streamer (even after the 1 mip bias).
+
+	const UPrimitiveComponent* LODParent = Component->GetLODParentPrimitive();
+
+	MinDistance = FMath::Max<float>(0, Component->MinDrawDistance - (TextureInstanceBounds.Origin - Component->Bounds.Origin).Size() - TextureInstanceBounds.SphereRadius);
+	MinRange = FMath::Max<float>(0, Component->MinDrawDistance);
+	// Max distance when HLOD becomes visible.
+	MaxRange = LODParent ? (LODParent->MinDrawDistance + (Component->Bounds.Origin - LODParent->Bounds.Origin).Size()) : FLT_MAX;
+	if (LODParent)
+	{
+		MaxRange = LODParent->MinDrawDistance + (Component->Bounds.Origin - LODParent->Bounds.Origin).Size();
+	}
 }
 
 void FTextureInstanceView::SwapData(FTextureInstanceView* Lfs, FTextureInstanceView* Rhs)
@@ -223,6 +256,7 @@ void FTextureInstanceView::SwapData(FTextureInstanceView* Lfs, FTextureInstanceV
 	FMemory::Memswap(&Lfs->Bounds4 , &Rhs->Bounds4, sizeof(Lfs->Bounds4));
 	FMemory::Memswap(&Lfs->Elements , &Rhs->Elements, sizeof(Lfs->Elements));
 	FMemory::Memswap(&Lfs->TextureMap , &Rhs->TextureMap, sizeof(Lfs->TextureMap));
+	FMemory::Memswap(&Lfs->MaxTexelFactor , &Rhs->MaxTexelFactor, sizeof(Lfs->MaxTexelFactor));
 }
 
 void FTextureInstanceAsyncView::UpdateBoundSizes_Async(const TArray<FStreamingViewInfo>& ViewInfos, float LastUpdateTime, const FTextureStreamingSettings& Settings)
@@ -230,13 +264,15 @@ void FTextureInstanceAsyncView::UpdateBoundSizes_Async(const TArray<FStreamingVi
 	if (!View.IsValid())  return;
 
 	const int32 NumViews = ViewInfos.Num();
-	const VectorRegister One4 = VectorSet(1.f, 1.f, 1.f, 1.f);
 	const int32 NumBounds4 = View->NumBounds4();
 
 	const VectorRegister LastUpdateTime4 = VectorSet(LastUpdateTime, LastUpdateTime, LastUpdateTime, LastUpdateTime);
 
 	BoundsViewInfo.Empty(NumBounds4 * 4);
 	BoundsViewInfo.AddUninitialized(NumBounds4 * 4);
+
+	// Max normalized size from all elements
+	VectorRegister ViewMaxNormalizedSize = VectorZero();
 
 	for (int32 Bounds4Index = 0; Bounds4Index < NumBounds4; ++Bounds4Index)
 	{
@@ -253,11 +289,12 @@ void FTextureInstanceAsyncView::UpdateBoundSizes_Async(const TArray<FStreamingVi
 		const VectorRegister ExtentY = VectorLoadAligned( &CurrentBounds4.ExtentY );
 		const VectorRegister ExtentZ = VectorLoadAligned( &CurrentBounds4.ExtentZ );
 		const VectorRegister Radius = VectorLoadAligned( &CurrentBounds4.Radius );
+		const VectorRegister PackedRelativeBox = VectorLoadAligned( reinterpret_cast<const FVector4*>(&CurrentBounds4.PackedRelativeBox) );
 		const VectorRegister MinDistanceSq = VectorLoadAligned( &CurrentBounds4.MinDistanceSq );
 		const VectorRegister MinRangeSq = VectorLoadAligned( &CurrentBounds4.MinRangeSq );
 		const VectorRegister MaxRangeSq = VectorLoadAligned(&CurrentBounds4.MaxRangeSq);
 		const VectorRegister LastRenderTime = VectorLoadAligned(&CurrentBounds4.LastRenderTime);
-		
+
 		VectorRegister MaxNormalizedSize = VectorZero();
 		VectorRegister MaxNormalizedSize_VisibleOnly = VectorZero();
 
@@ -327,11 +364,15 @@ void FTextureInstanceAsyncView::UpdateBoundSizes_Async(const TArray<FStreamingVi
 				InRangeMask = VectorCompareEQ( RangeDistSq, ClampedRangeDistSq); // If the clamp dist is equal, then it was in range.
 			}
 
-			ClampedDistSq = VectorMax(ClampedDistSq, One4); // Prevents / 0
+			ClampedDistSq = VectorMax(ClampedDistSq, VectorOne()); // Prevents / 0
 			VectorRegister ScreenSizeOverDistance = VectorReciprocalSqrt(ClampedDistSq);
 			ScreenSizeOverDistance = VectorMultiply(ScreenSizeOverDistance, ScreenSize);
 
 			MaxNormalizedSize = VectorMax(ScreenSizeOverDistance, MaxNormalizedSize);
+
+			// Accumulate the view max amongst all. When PackedRelativeBox == 0, the entry is not valid and most not affet the max.
+			const VectorRegister CulledMaxNormalizedSize = VectorSelect(VectorCompareNE(PackedRelativeBox, VectorZero()), MaxNormalizedSize, VectorZero());
+			ViewMaxNormalizedSize = VectorMax(ViewMaxNormalizedSize, CulledMaxNormalizedSize);
 
 			// Now mask to zero if not in range, or not seen recently.
 			ScreenSizeOverDistance = VectorSelect(InRangeMask, ScreenSizeOverDistance, VectorZero());
@@ -348,6 +389,16 @@ void FTextureInstanceAsyncView::UpdateBoundSizes_Async(const TArray<FStreamingVi
 			BoundsVieWInfo[SubIndex].MaxNormalizedSize_VisibleOnly = VectorGetComponent(MaxNormalizedSize_VisibleOnly, SubIndex);
 		}
 	}
+
+	if (Settings.MinLevelTextureScreenSize > 0)
+	{
+		float ViewMaxNormalizedSizeResult = VectorGetComponent(ViewMaxNormalizedSize, 0);
+		for (int32 SubIndex = 1; SubIndex < 4; ++SubIndex)
+		{
+			ViewMaxNormalizedSizeResult = FMath::Max(ViewMaxNormalizedSizeResult, VectorGetComponent(ViewMaxNormalizedSize, SubIndex));
+		}
+		MaxLevelTextureScreenSize = View->GetMaxTexelFactor() * ViewMaxNormalizedSizeResult;
+	}
 }
 
 void FTextureInstanceAsyncView::ProcessElement(const FBoundsViewInfo& BoundsVieWInfo, float TexelFactor, bool bForceLoad, float& MaxSize, float& MaxSize_VisibleOnly) const
@@ -362,7 +413,7 @@ void FTextureInstanceAsyncView::ProcessElement(const FBoundsViewInfo& BoundsVieW
 		MaxSize = FMath::Max(MaxSize, TexelFactor * BoundsVieWInfo.MaxNormalizedSize);
 		MaxSize_VisibleOnly = FMath::Max(MaxSize_VisibleOnly, TexelFactor * BoundsVieWInfo.MaxNormalizedSize_VisibleOnly);
 
-		// Force load will load the immediatly visible part, and later the full texture.
+		// Force load will load the immediately visible part, and later the full texture.
 		if (bForceLoad && (BoundsVieWInfo.MaxNormalizedSize > 0 || BoundsVieWInfo.MaxNormalizedSize_VisibleOnly > 0))
 		{
 			MaxSize = FLT_MAX;
@@ -403,13 +454,16 @@ void FTextureInstanceAsyncView::GetTexelSize(const UTexture2D* InTexture, float&
 				while (CompiledElementIndex < NumCompiledElements && MaxSize_VisibleOnly < MAX_TEXTURE_SIZE)
 				{
 					const FTextureInstanceView::FCompiledElement& CompiledElement = CompiledElementData[CompiledElementIndex];
-					ProcessElement(BoundsViewInfo[CompiledElement.BoundsIndex], CompiledElement.TexelFactor, CompiledElement.bForceLoad, MaxSize, MaxSize_VisibleOnly);
+					if (ensure(BoundsViewInfo.IsValidIndex(CompiledElement.BoundsIndex)))
+					{
+						ProcessElement(BoundsViewInfo[CompiledElement.BoundsIndex], CompiledElement.TexelFactor, CompiledElement.bForceLoad, MaxSize, MaxSize_VisibleOnly);
+					}
 					++CompiledElementIndex;
 				}
 
 				if (MaxSize_VisibleOnly >= MAX_TEXTURE_SIZE && CompiledElementIndex > 1)
 				{
-					// This does not realloc anything but moves the close by element to the first entry, making the next update find it immediately.
+					// This does not realloc anything but moves the closest element at head, making the next update find it immediately and early exit.
 					FTextureInstanceView::FCompiledElement* SwapElementData = const_cast<FTextureInstanceView::FCompiledElement*>(CompiledElementData);
 					Swap<FTextureInstanceView::FCompiledElement>(SwapElementData[0], SwapElementData[CompiledElementIndex - 1]);
 				}
@@ -419,11 +473,15 @@ void FTextureInstanceAsyncView::GetTexelSize(const UTexture2D* InTexture, float&
 		{
 			for (auto It = View->GetElementIterator(InTexture); It && (MaxSize_VisibleOnly < MAX_TEXTURE_SIZE || LogPrefix); ++It)
 			{
-				const FBoundsViewInfo& BoundsVieWInfo = BoundsViewInfo[It.GetBoundsIndex()];
-				ProcessElement(BoundsVieWInfo, It.GetTexelFactor(), It.GetForceLoad(), MaxSize, MaxSize_VisibleOnly);
-				if (LogPrefix)
+				// Only handle elements that are in bounds.
+				if (ensure(BoundsViewInfo.IsValidIndex(It.GetBoundsIndex())))
 				{
-					It.OutputToLog(BoundsVieWInfo.MaxNormalizedSize, BoundsVieWInfo.MaxNormalizedSize_VisibleOnly, LogPrefix);
+					const FBoundsViewInfo& BoundsVieWInfo = BoundsViewInfo[It.GetBoundsIndex()];
+					ProcessElement(BoundsVieWInfo, It.GetTexelFactor(), It.GetForceLoad(), MaxSize, MaxSize_VisibleOnly);
+					if (LogPrefix)
+					{
+						It.OutputToLog(BoundsVieWInfo.MaxNormalizedSize, BoundsVieWInfo.MaxNormalizedSize_VisibleOnly, LogPrefix);
+					}
 				}
 			}
 		}

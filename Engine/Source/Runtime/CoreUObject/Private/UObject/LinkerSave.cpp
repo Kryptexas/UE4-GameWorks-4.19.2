@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "UObject/LinkerSave.h"
 #include "HAL/FileManager.h"
@@ -9,6 +9,8 @@
 #include "UObject/LazyObjectPtr.h"
 #include "UObject/SoftObjectPtr.h"
 #include "Internationalization/TextPackageNamespaceUtil.h"
+#include "UObject/UObjectThreadContext.h"
+#include "UObject/UnrealType.h"
 
 /*----------------------------------------------------------------------------
 	FLinkerSave.
@@ -39,9 +41,15 @@ FLinkerSave::FLinkerSave(UPackage* InParent, const TCHAR* InFilename, bool bForc
 		Summary.CompatibleWithEngineVersion = FEngineVersion::CompatibleWith();
 		Summary.PackageFlags = Package ? (Package->GetPackageFlags() & ~PKG_NewlyCreated) : 0;
 
+#if USE_STABLE_LOCALIZATION_KEYS
+		Summary.LocalizationId = TextNamespaceUtil::GetPackageNamespace(LinkerRoot);
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
 		if (Package)
 		{
+#if WITH_EDITORONLY_DATA
 			Summary.FolderName = Package->GetFolderName().ToString();
+#endif
 			Summary.ChunkIDs = Package->GetChunkIDs();
 		}
 
@@ -53,7 +61,7 @@ FLinkerSave::FLinkerSave(UPackage* InParent, const TCHAR* InFilename, bool bForc
 #if USE_STABLE_LOCALIZATION_KEYS
 		if (GIsEditor)
 		{
-			SetLocalizationNamespace(TextNamespaceUtil::GetPackageNamespace(LinkerRoot));
+			SetLocalizationNamespace(Summary.LocalizationId);
 		}
 #endif // USE_STABLE_LOCALIZATION_KEYS
 	}
@@ -83,9 +91,15 @@ FLinkerSave::FLinkerSave(UPackage* InParent, FArchive *InSaver, bool bForceByteS
 		Summary.CompatibleWithEngineVersion = FEngineVersion::CompatibleWith();
 		Summary.PackageFlags = Package ? (Package->GetPackageFlags() & ~PKG_NewlyCreated) : 0;
 
+#if USE_STABLE_LOCALIZATION_KEYS
+		Summary.LocalizationId = TextNamespaceUtil::GetPackageNamespace(LinkerRoot);
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
 		if (Package)
 		{
+#if WITH_EDITORONLY_DATA
 			Summary.FolderName = Package->GetFolderName().ToString();
+#endif
 			Summary.ChunkIDs = Package->GetChunkIDs();
 		}
 
@@ -97,7 +111,7 @@ FLinkerSave::FLinkerSave(UPackage* InParent, FArchive *InSaver, bool bForceByteS
 #if USE_STABLE_LOCALIZATION_KEYS
 		if (GIsEditor)
 		{
-			SetLocalizationNamespace(TextNamespaceUtil::GetPackageNamespace(LinkerRoot));
+			SetLocalizationNamespace(Summary.LocalizationId);
 		}
 #endif // USE_STABLE_LOCALIZATION_KEYS
 	}
@@ -110,7 +124,7 @@ FLinkerSave::FLinkerSave(UPackage* InParent, bool bForceByteSwapping, bool bInSa
 	if (FPlatformProperties::HasEditorOnlyData())
 	{
 		// Create file saver.
-		Saver = new FLargeMemoryWriter( 0, false, InParent->FileName );
+		Saver = new FLargeMemoryWriter( 0, false, *InParent->FileName.ToString() );
 		check(Saver);
 
 		UPackage* Package = dynamic_cast<UPackage*>(LinkerRoot);
@@ -122,9 +136,15 @@ FLinkerSave::FLinkerSave(UPackage* InParent, bool bForceByteSwapping, bool bInSa
 		Summary.CompatibleWithEngineVersion = FEngineVersion::CompatibleWith();
 		Summary.PackageFlags = Package ? (Package->GetPackageFlags() & ~PKG_NewlyCreated) : 0;
 
+#if USE_STABLE_LOCALIZATION_KEYS
+		Summary.LocalizationId = TextNamespaceUtil::GetPackageNamespace(LinkerRoot);
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
 		if (Package)
 		{
+#if WITH_EDITORONLY_DATA
 			Summary.FolderName = Package->GetFolderName().ToString();
+#endif
 			Summary.ChunkIDs = Package->GetChunkIDs();
 		}
 
@@ -136,7 +156,7 @@ FLinkerSave::FLinkerSave(UPackage* InParent, bool bForceByteSwapping, bool bInSa
 #if USE_STABLE_LOCALIZATION_KEYS
 		if (GIsEditor)
 		{
-			SetLocalizationNamespace(TextNamespaceUtil::GetPackageNamespace(LinkerRoot));
+			SetLocalizationNamespace(Summary.LocalizationId);
 		}
 #endif // USE_STABLE_LOCALIZATION_KEYS
 	}
@@ -232,6 +252,7 @@ void FLinkerSave::Serialize( void* V, int64 Length )
 {
 #if WITH_EDITOR
 	Saver->ArDebugSerializationFlags = ArDebugSerializationFlags;
+	Saver->SetSerializedProperty(GetSerializedProperty());
 #endif
 	Saver->Serialize( V, Length );
 }
@@ -245,7 +266,13 @@ FString FLinkerSave::GetArchiveName() const
 FArchive& FLinkerSave::operator<<( FName& InName )
 {
 	int32 Save = MapName(InName);
-	ensure(Save != INDEX_NONE);
+
+	ensureMsgf(Save != INDEX_NONE, TEXT("Name \"%s\" is not mapped when saving %s (object: %s, property: %s)"), 
+		*InName.ToString(),
+		*GetArchiveName(),
+		*FUObjectThreadContext::Get().SerializedObject->GetFullName(),
+		*GetSerializedProperty()->GetFullName());
+
 	int32 Number = InName.GetNumber();
 	FArchive& Ar = *this;
 	return Ar << Save << Number;
@@ -266,23 +293,4 @@ FArchive& FLinkerSave::operator<<(FLazyObjectPtr& LazyObjectPtr)
 	FUniqueObjectGuid ID;
 	ID = LazyObjectPtr.GetUniqueID();
 	return *this << ID;
-}
-
-FArchive& FLinkerSave::operator<<(FSoftObjectPtr& SoftObjectPtr)
-{
-	FSoftObjectPath ID;
-	UObject *Object = SoftObjectPtr.Get();
-
-	if (Object)
-	{
-		// Use object in case name has changed. 
-		ID = FSoftObjectPath(Object);
-	}
-	else
-	{
-		ID = SoftObjectPtr.GetUniqueID();
-	}
-
-	ID.Serialize(*this);
-	return *this;
 }

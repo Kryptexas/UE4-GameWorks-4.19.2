@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistanceFieldAtlas.cpp
@@ -87,6 +87,7 @@ static TAutoConsoleVariable<int32> CVarDistFieldAtlasResZ(
 	ECVF_ReadOnly);
 
 int32 GDistanceFieldForceAtlasRealloc = 0;
+ 
 FAutoConsoleVariableRef CVarDistFieldForceAtlasRealloc(
 	TEXT("r.DistanceFields.ForceAtlasRealloc"),
 	GDistanceFieldForceAtlasRealloc,
@@ -99,6 +100,12 @@ static TAutoConsoleVariable<int32> CVarLandscapeGI(
 	0,
 	TEXT("Whether to generate a low-resolution base color texture for landscapes for rendering real-time global illumination.\n")
 	TEXT("This feature requires GenerateMeshDistanceFields is also enabled, and will increase mesh build times and memory usage.\n"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarDistFieldForceMaxAtlasSize(
+	TEXT("r.DistanceFields.ForceMaxAtlasSize"),
+	0,
+	TEXT("When enabled, we'll always allocate the largest possible volume texture for the distance field atlas regardless of how many blocks we need.  This is an optimization to avoid re-packing the texture, for projects that are expected to always require the largest amount of space."),
 	ECVF_Default);
 
 TGlobalResource<FDistanceFieldVolumeTextureAtlas> GDistanceFieldVolumeTextureAtlas = TGlobalResource<FDistanceFieldVolumeTextureAtlas>();
@@ -334,10 +341,16 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 
 			FRHIResourceCreateInfo CreateInfo;
 
+			FIntVector VolumeTextureSize( BlockAllocator.GetSizeX(), BlockAllocator.GetSizeY(), BlockAllocator.GetSizeZ() );
+			if( CVarDistFieldForceMaxAtlasSize->GetInt() != 0 )
+			{
+				VolumeTextureSize = FIntVector( BlockAllocator.GetMaxSizeX(), BlockAllocator.GetMaxSizeY(), BlockAllocator.GetMaxSizeZ() );
+			}
+
 			VolumeTextureRHI = RHICreateTexture3D(
-				BlockAllocator.GetSizeX(), 
-				BlockAllocator.GetSizeY(), 
-				BlockAllocator.GetSizeZ(), 
+				VolumeTextureSize.X, 
+				VolumeTextureSize.Y, 
+				VolumeTextureSize.Z, 
 				Format,
 				1,
 				TexCreate_ShaderResource,

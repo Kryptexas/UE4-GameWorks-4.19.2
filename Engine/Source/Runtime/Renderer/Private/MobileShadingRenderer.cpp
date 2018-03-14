@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MobileShadingRenderer.cpp: Scene rendering code for the ES2 feature level.
@@ -113,8 +113,23 @@ void FMobileSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdList)
 	UpdatePrimitivePrecomputedLightingBuffers();
 
 	UpdatePostProcessUsageFlags();
+
+	PostInitViewCustomData();
 	
 	OnStartFrame(RHICmdList);
+}
+
+void FMobileSceneRenderer::PostInitViewCustomData()
+{
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_UpdateViewCustomData);
+
+	for (FViewInfo& ViewInfo : Views)
+	{
+		for (const FPrimitiveSceneInfo* PrimitiveSceneInfo : ViewInfo.PrimitivesWithCustomData)
+		{
+			PrimitiveSceneInfo->Proxy->PostInitViewCustomData(ViewInfo, ViewInfo.GetCustomData(PrimitiveSceneInfo->GetIndex()));
+		}
+	}
 }
 
 /** 
@@ -122,6 +137,8 @@ void FMobileSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdList)
 */
 void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 {
+	PrepareViewRectsForRendering();
+
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FMobileSceneRenderer_Render);
 
 	if(!ViewFamily.EngineShowFlags.Rendering)
@@ -136,7 +153,7 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 	// Allocate the maximum scene render target space for the current view family.
-	SceneContext.Allocate(RHICmdList, ViewFamily);
+	SceneContext.Allocate(RHICmdList, this);
 
 	//make sure all the targets we're going to use will be safely writable.
 	GRenderTargetPool.TransitionTargetsWritable(RHICmdList);
@@ -144,24 +161,16 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	// Find the visible primitives.
 	InitViews(RHICmdList);
 
-	for (int32 ViewExt = 0; ViewExt < ViewFamily.ViewExtensions.Num(); ++ViewExt)
-	{
-		ViewFamily.ViewExtensions[ViewExt]->PostInitViewFamily_RenderThread(RHICmdList, ViewFamily);
-		for (int32 ViewIndex = 0; ViewIndex < ViewFamily.Views.Num(); ++ViewIndex)
-		{
-			ViewFamily.ViewExtensions[ViewExt]->PostInitView_RenderThread(RHICmdList, Views[ViewIndex]);
-		}
-	}
-
 	if (IsRunningRHIInSeparateThread())
 	{
 		// we will probably stall on occlusion queries, so might as well have the RHI thread and GPU work while we wait.
 		// Also when doing RHI thread this is the only spot that will process pending deletes
 		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
-	
-		extern RHI_API void FlushPipelineStateCache();
-		FlushPipelineStateCache();
 	}
+
+	// Dynamic vertex and index buffers need to be committed before rendering.
+	FGlobalDynamicVertexBuffer::Get().Commit();
+	FGlobalDynamicIndexBuffer::Get().Commit();
 
 	// Notify the FX system that the scene is about to be rendered.
 	if (Scene->FXSystem && !Views[0].bIsPlanarReflection && ViewFamily.EngineShowFlags.Particles)
@@ -172,10 +181,6 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	GRenderTargetPool.VisualizeTexture.OnStartFrame(Views[0]);
 
 	RenderShadowDepthMaps(RHICmdList);
-
-	// Dynamic vertex and index buffers need to be committed before rendering.
-	FGlobalDynamicVertexBuffer::Get().Commit();
-	FGlobalDynamicIndexBuffer::Get().Commit();
 
 	// This might eventually be a problem with multiple views.
 	// Using only view 0 to check to do on-chip transform of alpha.
@@ -192,7 +197,7 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 
 	const bool bGammaSpace = !IsMobileHDR();
-	const bool bRequiresUpscale = !ViewFamily.bUseSeparateRenderTarget && ((uint32)ViewFamily.RenderTarget->GetSizeXY().X > ViewFamily.FamilySizeX || (uint32)ViewFamily.RenderTarget->GetSizeXY().Y > ViewFamily.FamilySizeY);
+	const bool bRequiresUpscale = ((int32)ViewFamily.RenderTarget->GetSizeXY().X > FamilySize.X || (int32)ViewFamily.RenderTarget->GetSizeXY().Y > FamilySize.Y);
 	// ES2 requires that the back buffer and depth match dimensions.
 	// For the most part this is not the case when using scene captures. Thus scene captures always render to scene color target.
 	const bool bStereoRenderingAndHMD = View.Family->EngineShowFlags.StereoRendering && View.Family->EngineShowFlags.HMDDistortion;
@@ -229,7 +234,7 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	{
 		for (int32 ViewIndex = 0; ViewIndex < ViewFamily.Views.Num(); ++ViewIndex)
 		{
-			ViewFamily.ViewExtensions[ViewExt]->PostRenderMobileBasePass_RenderThread(RHICmdList, Views[ViewIndex]);
+			ViewFamily.ViewExtensions[ViewExt]->PostRenderBasePass_RenderThread(RHICmdList, Views[ViewIndex]);
 		}
 	}
 
@@ -314,7 +319,7 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	if (!bGammaSpace || bRenderToSceneColor)
 	{
 		// Resolve the scene color for post processing.
-		RHICmdList.CopyToResolveTarget(SceneContext.GetSceneColorSurface(), SceneContext.GetSceneColorTexture(), true, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+		RHICmdList.CopyToResolveTarget(SceneContext.GetSceneColorSurface(), SceneContext.GetSceneColorTexture(), true, FResolveRect(0, 0, FamilySize.X, FamilySize.Y));
 
 		// On PowerVR we see flickering of shadows and depths not updating correctly if targets are discarded.
 		// See CVarMobileForceDepthResolve use in ConditionalResolveSceneDepth.
@@ -369,7 +374,7 @@ void FMobileSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RHICmdList
 	if (bDoUpscale || bBlitRequired)
 	{	// blit from sceneRT to view family target, simple bilinear if upscaling otherwise point filtered.
 		uint32 UpscaleQuality = bDoUpscale ? 1 : 0;
-		FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessUpscale(View, UpscaleQuality));
+		FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessUpscaleES2(View, UpscaleQuality, false));
 
 		Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 		Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.FinalOutput));
@@ -391,14 +396,9 @@ void FMobileSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RHICmdList
 	bool bStereoRenderingAndHMD = View.Family->EngineShowFlags.StereoRendering && View.Family->EngineShowFlags.HMDDistortion;
 	if (bStereoRenderingAndHMD)
 	{
-		FRenderingCompositePass* Node = NULL;
-		const EHMDDeviceType::Type DeviceType = GEngine->XRSystem->GetHMDDevice() ? GEngine->XRSystem->GetHMDDevice()->GetHMDDeviceType() : EHMDDeviceType::DT_ES2GenericStereoMesh;
-		if (DeviceType == EHMDDeviceType::DT_ES2GenericStereoMesh ||
-			DeviceType == EHMDDeviceType::DT_OculusRift ||
-			DeviceType == EHMDDeviceType::DT_GoogleVR) // PC Preview
-		{
-			Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
-		}
+		const IHeadMountedDisplay* HMD =  GEngine->XRSystem->GetHMDDevice();
+		checkf(HMD, TEXT("EngineShowFlags.HMDDistortion can not be true when IXRTrackingSystem::GetHMDDevice returns null"));
+		FRenderingCompositePass* Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
 
 		if (Node)
 		{
@@ -531,6 +531,9 @@ void FMobileSceneRenderer::CreateDirectionalLightUniformBuffers(FSceneView& Scen
 			Params.DirectionalLightColor = Light->Proxy->GetColor() / PI;
 			Params.DirectionalLightDirection = -Light->Proxy->GetDirection();
 
+			const FVector2D FadeParams = Light->Proxy->GetDirectionalLightDistanceFadeParameters(FeatureLevel, Light->IsPrecomputedLightingValid(), SceneView.MaxShadowCascades);
+			Params.DirectionalLightDistanceFadeMAD = FVector2D(FadeParams.Y, -FadeParams.X * FadeParams.Y);
+
 			if (bDynamicShadows && VisibleLightInfos.IsValidIndex(Light->Id) && VisibleLightInfos[Light->Id].AllProjectedShadows.Num() > 0)
 			{
 				const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& DirectionalLightShadowInfos = VisibleLightInfos[Light->Id].AllProjectedShadows;
@@ -564,14 +567,9 @@ class FCopyMobileMultiViewSceneColorPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FCopyMobileMultiViewSceneColorPS, Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;;
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 	}
 
 	FCopyMobileMultiViewSceneColorPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules.cpp: Particle module implementation.
@@ -3177,10 +3177,13 @@ void UParticleModuleLight::UpdateHQLight(UPointLightComponent* PointLightCompone
 	FLinearColor DesiredFinalColor = FVector(Particle.Color) * Particle.Color.A * Payload.ColorScale;
 	if (bUseInverseSquaredFalloff)
 	{
-		//later in light rendering HQ lights are multiplied by 16 in inverse falloff mode to adjust for lumens.  
-		//We want our particle lights to match simple lights as much as possible when toggling so remove that here.
-		const float fLumenAdjust = 1.0f / 16.0f;
-		DesiredFinalColor *= fLumenAdjust;
+		// For compatibility reasons, the default units are ELightUnits::Unitless. If this change, this needs to be updated.
+		ensure(PointLightComponent->IntensityUnits == ELightUnits::Unitless);
+
+		// Non HQ lights are drawn in 0.0001 Candelas units according to the lighting in DeferredLightPixelShaders.usf
+		// the 1/100^2 factor comes from the radial attenuation being computed in cm instead of in meters.
+		static const float ShaderUnitConversion  = UPointLightComponent::GetUnitsConversionFactor(ELightUnits::Candelas, ELightUnits::Unitless) / (100.f * 100.f);
+		DesiredFinalColor *= ShaderUnitConversion;
 	}
 
 	//light color on HQ lights is just a uint32 and our light scalars can be huge.  To preserve the color control and range from the particles we need to normalize

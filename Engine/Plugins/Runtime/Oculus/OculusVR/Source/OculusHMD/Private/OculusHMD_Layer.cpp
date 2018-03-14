@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OculusHMD_Layer.h"
 
@@ -8,6 +8,7 @@
 //#include "ScenePrivate.h"
 //#include "PostProcess/SceneFilterRendering.h"
 #include "PostProcess/SceneRenderTargets.h"
+#include "HeadMountedDisplayTypes.h" // for LogHMD
 
 
 namespace OculusHMD
@@ -109,23 +110,28 @@ TSharedPtr<FLayer, ESPMode::ThreadSafe> FLayer::Clone() const
 }
 
 
-bool FLayer::IsCompatibleLayerDesc(const ovrpLayerDescUnion& OvrpLayerDescA, const ovrpLayerDescUnion& OvrpLayerDescB) const
+bool FLayer::CanReuseResources(const FLayer* InLayer) const
 {
-	if (OvrpLayerDescA.Shape != OvrpLayerDescB.Shape ||
-		OvrpLayerDescA.Layout != OvrpLayerDescB.Layout ||
-		OvrpLayerDescA.TextureSize.w != OvrpLayerDescB.TextureSize.w ||
-		OvrpLayerDescA.TextureSize.h != OvrpLayerDescB.TextureSize.h ||
-		OvrpLayerDescA.MipLevels != OvrpLayerDescB.MipLevels ||
-		OvrpLayerDescA.SampleCount != OvrpLayerDescB.SampleCount ||
-		OvrpLayerDescA.Format != OvrpLayerDescB.Format ||
-		((OvrpLayerDescA.LayerFlags ^ OvrpLayerDescB.LayerFlags) & ovrpLayerFlag_Static))
+	if (!InLayer || !InLayer->OvrpLayer.IsValid())
 	{
 		return false;
 	}
 
-	if (OvrpLayerDescA.Shape == ovrpShape_EyeFov)
+	if (OvrpLayerDesc.Shape != InLayer->OvrpLayerDesc.Shape ||
+		OvrpLayerDesc.Layout != InLayer->OvrpLayerDesc.Layout ||
+		OvrpLayerDesc.TextureSize.w != InLayer->OvrpLayerDesc.TextureSize.w ||
+		OvrpLayerDesc.TextureSize.h != InLayer->OvrpLayerDesc.TextureSize.h ||
+		OvrpLayerDesc.MipLevels != InLayer->OvrpLayerDesc.MipLevels ||
+		OvrpLayerDesc.SampleCount != InLayer->OvrpLayerDesc.SampleCount ||
+		OvrpLayerDesc.Format != InLayer->OvrpLayerDesc.Format ||
+		((OvrpLayerDesc.LayerFlags ^ InLayer->OvrpLayerDesc.LayerFlags) & ovrpLayerFlag_Static))
 	{
-		if (OvrpLayerDescA.EyeFov.DepthFormat != OvrpLayerDescB.EyeFov.DepthFormat)
+		return false;
+	}
+
+	if (OvrpLayerDesc.Shape == ovrpShape_EyeFov)
+	{
+		if (OvrpLayerDesc.EyeFov.DepthFormat != InLayer->OvrpLayerDesc.EyeFov.DepthFormat)
 		{
 			return false;
 		}
@@ -229,7 +235,7 @@ void FLayer::Initialize_RenderThread(FCustomPresent* CustomPresent, FRHICommandL
 	}
 	
 	// Reuse/Create texture set
-	if (InLayer && InLayer->OvrpLayer.IsValid() && IsCompatibleLayerDesc(OvrpLayerDesc, InLayer->OvrpLayerDesc))
+	if (CanReuseResources(InLayer))
 	{
 		OvrpLayerId = InLayer->OvrpLayerId;
 		OvrpLayer = InLayer->OvrpLayer;
@@ -257,11 +263,21 @@ void FLayer::Initialize_RenderThread(FCustomPresent* CustomPresent, FRHICommandL
 				// Left
 				{
 					ColorTextures.SetNum(TextureCount);
-					DepthTextures.SetNum(TextureCount);
+					if (bHasDepth)
+					{
+						DepthTextures.SetNum(TextureCount);
+					}
+					
 
 					for (int32 TextureIndex = 0; TextureIndex < TextureCount; TextureIndex++)
 					{
-						ovrp_GetLayerTexture2(OvrpLayerId, TextureIndex, ovrpEye_Left, &ColorTextures[TextureIndex], &DepthTextures[TextureIndex]);
+						ovrpTextureHandle* DepthTexHdlPtr = bHasDepth ? &DepthTextures[TextureIndex] : nullptr;
+						if (!OVRP_SUCCESS(ovrp_GetLayerTexture2(OvrpLayerId, TextureIndex, ovrpEye_Left, &ColorTextures[TextureIndex], DepthTexHdlPtr)))
+						{
+							UE_LOG(LogHMD, Error, TEXT("Failed to create Oculus layer texture. NOTE: This causes a leak of %d other texture(s), which will go unused."), TextureIndex);
+							// skip setting bLayerCreated and allocating any other textures
+							return;
+						}
 					}
 				}
 
@@ -269,11 +285,20 @@ void FLayer::Initialize_RenderThread(FCustomPresent* CustomPresent, FRHICommandL
 				if(OvrpLayerDesc.Layout == ovrpLayout_Stereo)
 				{
 					RightColorTextures.SetNum(TextureCount);
-					RightDepthTextures.SetNum(TextureCount);
+					if (bHasDepth)
+					{
+						RightDepthTextures.SetNum(TextureCount);
+					}
 
 					for (int32 TextureIndex = 0; TextureIndex < TextureCount; TextureIndex++)
 					{
-						ovrp_GetLayerTexture2(OvrpLayerId, TextureIndex, ovrpEye_Right, &RightColorTextures[TextureIndex], &RightDepthTextures[TextureIndex]);
+						ovrpTextureHandle* DepthTexHdlPtr = bHasDepth ? &RightDepthTextures[TextureIndex] : nullptr;
+						if (!OVRP_SUCCESS(ovrp_GetLayerTexture2(OvrpLayerId, TextureIndex, ovrpEye_Right, &RightColorTextures[TextureIndex], DepthTexHdlPtr)))
+						{
+							UE_LOG(LogHMD, Error, TEXT("Failed to create Oculus layer texture. NOTE: This causes a leak of %d other texture(s), which will go unused."), TextureCount + TextureIndex);
+							// skip setting bLayerCreated and allocating any other textures
+							return;
+						}
 					}
 				}
 
@@ -404,7 +429,6 @@ const ovrpLayerSubmit* FLayer::UpdateLayer_RHIThread(const FSettings* Settings, 
 	OvrpLayerSubmit.LayerId = OvrpLayerId;
 	OvrpLayerSubmit.TextureStage = TextureSetProxy.IsValid() ? TextureSetProxy->GetSwapChainIndex_RHIThread() : 0;
 
-
 	if (Id != 0)
 	{
 		int SizeX = OvrpLayerDesc.TextureSize.w;
@@ -473,6 +497,12 @@ const ovrpLayerSubmit* FLayer::UpdateLayer_RHIThread(const FSettings* Settings, 
 		OvrpLayerSubmit.EyeFov.DepthFar = 0;
 		OvrpLayerSubmit.EyeFov.DepthNear = Frame->NearClippingPlane / 100.f; //physical scale is 100UU/meter
 		OvrpLayerSubmit.LayerSubmitFlags |= ovrpLayerSubmitFlag_ReverseZ;
+
+		if (Frame->Flags.bPixelDensityAdaptive)
+		{
+			OvrpLayerSubmit.ViewportRect[0] = ToOvrpRecti(Frame->FinalViewRect[0]);
+			OvrpLayerSubmit.ViewportRect[1] = ToOvrpRecti(Frame->FinalViewRect[1]);
+		}
 	}
 
 	return &OvrpLayerSubmit.Base;

@@ -63,7 +63,9 @@ The **Group** option is used to create a new group from selected Actors. If none
 
 Grouping is non-destructive in that it never destroys existing selected groups. Any number of Actors or groups can be included in a selection when creating a group. For example, if two Lights and an existing locked group of two Static Meshes are selected and then grouped, a new group will be created with the two Lights and the sub-group of Static Meshes under it. If any selected Actors are in unlocked groups, they will be removed from their old group and placed in the new one.
 
-<!------![Group_Nested.PNG](Group_Nested.PNG)--->
+[COMMENT:none]
+----![Group_Nested.PNG](Group_Nested.PNG)-
+[/COMMENT]
 
 Once a group is formed, green brackets appear around it, and its pivot point is automatically set to the center point of the group.
 
@@ -100,17 +102,6 @@ The **Lock** and **Unlock** options are available when you are working with an e
 * A group's state is visible based on the color of the brackets surrounding the group. Green brackets designate a locked group, and red brackets are used for unlocked groups. 
 
 	![Unlocked Group](LE_GroupBracketsUnlocked.png)
-
-<!------
-
-* For nested groups, locking and unlocking operations are performed in layers.   
-	![NestedGroupLock_1.png](NestedGroupLock_1.png) <br/>   
-For example, if a top level group has 3 levels (a group within a group within a group) that are all locked, selecting **Unlock Groups** will unlock the top-most parented group, peeling back a layer and allowing direct access to the next sub-group. Unlocking that group will have the same effect.  
-	![NestedGroupLock_2.png](NestedGroupLock_2.png)
-
-Locking groups works in the opposite order. Selecting **Lock Groups** on a currently unlocked subgroup will lock that specific group. Selecting **Lock Groups** again on that same group will then lock the parent.
-
------>
 
 
 ### Remove from Group

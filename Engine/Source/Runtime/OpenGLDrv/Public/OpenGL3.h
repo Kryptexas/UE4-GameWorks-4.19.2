@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGL3.h: Public OpenGL 3.2 definitions for non-common functionality
@@ -769,7 +769,7 @@ struct FOpenGL3 : public FOpenGLBase
 			}
 			else if (PreviewFeatureLevel == ERHIFeatureLevel::ES3_1)
 			{
-				return SP_OPENGL_PCES3_1;
+				return bAndroidGLESCompatibilityMode ? SP_OPENGL_ES3_1_ANDROID : SP_OPENGL_PCES3_1;
 			}
 		}
 
@@ -798,6 +798,8 @@ struct FOpenGL3 : public FOpenGLBase
 	
 	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum() { return GL_HALF_FLOAT; }
 
+	static FORCEINLINE bool IsAndroidGLESCompatibilityModeEnabled() { return bAndroidGLESCompatibilityMode; }
+
 protected:
 	static GLsizei NextTextureName;
 	static GLuint TextureNamesCache[OPENGL_NAME_CACHE_SIZE];
@@ -811,4 +813,5 @@ protected:
 	static bool bDebugContext;
 	static bool bSupportsTessellation;
 	static bool bSupportsSeparateShaderObjects;
+	static bool bAndroidGLESCompatibilityMode;
 };

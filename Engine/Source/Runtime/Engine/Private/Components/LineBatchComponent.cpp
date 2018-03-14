@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*-----------------------------------------------------------------------------
 	ULineBatchComponent implementation.
@@ -20,6 +20,12 @@ FLineBatcherSceneProxy::FLineBatcherSceneProxy(const ULineBatchComponent* InComp
 	Points(InComponent->BatchedPoints), Meshes(InComponent->BatchedMeshes)
 {
 	bWillEverBeLit = false;
+}
+
+SIZE_T FLineBatcherSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
 }
 
 void FLineBatcherSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
@@ -52,7 +58,7 @@ void FLineBatcherSceneProxy::GetDynamicMeshElements(const TArray<const FSceneVie
 				FBatchedMesh const& M = Meshes[i];
 
 				// this seems far from optimal in terms of perf, but it's for debugging
-				FDynamicMeshBuilder MeshBuilder;
+				FDynamicMeshBuilder MeshBuilder(View->GetFeatureLevel());
 
 				// set up geometry
 				for (int32 VertIdx=0; VertIdx < M.MeshVerts.Num(); ++VertIdx)

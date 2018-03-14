@@ -4,26 +4,7 @@ Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
 Description:A breakdown of the UI elements of the Blueprint Editor when working on Blueprint Classes where only the class defaults have changed from the parent.
 version: 4.9
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/Editor/UIBreakdowns/DataOnlyUI:title%](Engine/Blueprints\UserGuide\Types\data_blueprint.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Editor/UIBreakdowns/DataOnlyUI:title%
-	[/PARAM]
-	[PARAM:description]
-		%description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Editor/UIBreakdowns/DataOnlyUI]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Blueprints/UserGuide/Types/data_blueprint.png
 
 [INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#datablueprint]
 

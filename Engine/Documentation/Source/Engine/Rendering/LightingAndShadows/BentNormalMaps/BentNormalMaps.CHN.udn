@@ -1,0 +1,93 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Crumbs:%ROOT%
+Title:Bent Normal Maps
+Description: An overview of using Bent normal maps in UE4. 
+Type:Overview
+Version:4.17
+Parent:Engine/Rendering/LightingAndShadows
+Order:
+Tags:Rendering
+Tags:Lighting
+Topic-Image:BentNormalTopic.png
+Social-Image:BentNormalSocial.png
+SkillLevel:Advanced
+
+
+[TOC(start:1 end:2)]
+
+
+[OBJECT:ComparisonSlider]
+    [PARAM:before]
+    ![Non Bent Normal](No_BentNormal_00.png)(w:1100)
+    [/PARAM]
+    [PARAM:after]
+    ![Bent Normal](BentNormal_00.png)
+    [/PARAM]
+[/OBJECT]
+
+Using Bent normals within your Unreal Engine 4 (UE4) Materials can help improve how Materials react to lighting and shading. In the following document, you will find all the information you need to start using Bent normals in your UE4 projects.
+
+## Benefits to Using Bent Normals
+Below you will find some of the benefits to using Bent normals in your UE4 projects.
+
+* One of the biggest impacts Bent normals tends to have is to reduce the amount of light leaking that happens after a light build. 
+* Bent normals can be used with Ambient occlusion (AO) to improve Diffuse indirect lighting by making the Diffuse indirect light closer match Global illumination (GI) by using theBent normals for indirect lighting instead of the Normals.
+* Careful care has also be taken to make sure that any detail Normals do not disappear when using Bent normals.
+
+
+[OBJECT:ComparisonSlider]
+    [PARAM:before]
+    ![Diffuse indirect lighting using AO](BentNormalAoLighting.png)
+    [/PARAM]
+    [PARAM:after]
+    ![Diffuse indirect lighting using Bent normal ](BentNormalLighting.png)
+    [/PARAM]
+[/OBJECT]
+
+## Bent Normal Creation
+
+To get the highest quality Bent normal map and to match UE4's assumptions on how Bent normal maps should be calculated make sure adhere to the following information when creating your Bent normal maps.
+
+* When creating the Bent normal map, make sure to use **Cosine Distribution**. 
+
+* You can use [Substance Designer 6](https://www.allegorithmic.com/blog/substance-designer-6-unleashed-now-scan-processing-and-new-nodes) to generate the Bent normal map just like a Normal or AO map is generated.
+
+* When generating your Bent normal make sure your character is in a T-Pose.
+
+* The Bent normal and the AO should use the same **distance** setup.
+
+* The Bent normal should be in the same space as your Normal map. Consolute the following chart for more information:
+    |World Space Type| Normal Map Type | Bent Normal Type|
+    |-----------------|----------------------------|---------------------------|
+    |World|World | World|
+    |Tangent|Tangent|Tangent|
+
+## Using Bent Normals in UE4
+
+Using Bent normal maps inside UE4 Material is very similar to setting up and using Normal maps.  All you need to do is add the **Bent Normal** custom output node to the Material graph and then connect your Bent normal map to the input like in the following image. Also, make sure that there is an AO map input into the **Ambient Occlusion** input.
+
+[REGION:lightbox]
+[![](BentNormalMaterialSetup.png)(w:349)](BentNormalMaterialSetup.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+## Reflection Occlusion
+
+Bent normal maps are also used in a powerful but less traditional way, and that is for Reflection occlusion / Specular occlusion.  When using an Ambient occlusion (AO) map, you are trying to, occlude Diffuse indirect light. Reflection occlusion is a similar concept, but you are trying to occlude the Specular indirect lighting. Reflection occlusion works by intersecting the Specular lobe with the visible cone or a cone representing the unoccluded part of the hemisphere described by the Bent normal as the cone axis and the AO amount as the cone angle. This results in significantly reduced Specular light leaking especially when Screen Space Reflections (SSR) data is not available.
+
+Finally added support for a multi-bounce approximation for occlusion had been added. This means that instead of AO or Reflection occlusion shadowing the first bounce, we can use an approximation of what many bounces will produce.  Becuase of this multi-bounce approximation bright Materials will become less dark, and colored Materials will be made more saturated. 
+
+[OBJECT:ComparisonSlider]
+    [PARAM:before]
+    ![AO](ReflectionBNAO.png)
+    [/PARAM]
+    [PARAM:after]
+    ![Bent Normal](ReflectionBN.png)
+    [/PARAM]
+[/OBJECT]
+
+

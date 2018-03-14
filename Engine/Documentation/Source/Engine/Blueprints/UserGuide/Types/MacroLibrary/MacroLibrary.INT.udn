@@ -6,44 +6,7 @@ version: 4.9
 Parent:Engine/Blueprints
 type:overview
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints\UserGuide\Types\MacroLibrary:title%](Engine/Blueprints/UserGuide/Types/macro_blueprint.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints\UserGuide\Types\MacroLibrary:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints\UserGuide\Types\MacroLibrary:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints\UserGuide\Types\MacroLibrary]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints\UserGuide\Types\MacroLibrary:title%](Engine/Blueprints/UserGuide/Types/macro_blueprint.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints\UserGuide\Types\MacroLibrary:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints\UserGuide\Types\MacroLibrary:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints\UserGuide\Types\MacroLibrary]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Blueprints/UserGuide/Types/macro_blueprint.png
 
 [TOC(start:2)]
 
@@ -80,7 +43,8 @@ Blueprint Macro Libraries are stored in packages and can be created through the 
 
 	![](unsaved_macro_library.png)
 
-<!--
+[COMMENT:none]
+
 1. To save the Blueprint Macro Library directly from the **Content Browser**, click on **Save...** in the **Content Browser's** Navigation Bar.
 
 	![](save_macrolib_content_browser.png)
@@ -90,7 +54,8 @@ Blueprint Macro Libraries are stored in packages and can be created through the 
 	![](save_selected_macrolib.png)
 
 1. **Double-click** the Blueprint Macro Library's icon to open it in the Blueprint Editor.
--->
+
+[/COMMENT]
 
 There are two other methods by which to access the Blueprint Macro Library Creation menu from the **Content Browser**.
 

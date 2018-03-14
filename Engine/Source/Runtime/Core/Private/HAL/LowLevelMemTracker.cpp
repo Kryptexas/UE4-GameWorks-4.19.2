@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "HAL/LowLevelMemTracker.h"
 #include "ScopeLock.h"
@@ -13,7 +13,7 @@
 
 // There is a little memory and cpu overhead in tracking peak memory but it is generally more useful than current memory.
 // Disable if you need a little more memory or speed
-#define LLM_TRACK_PEAK_MEMORY 0
+#define LLM_TRACK_PEAK_MEMORY 0		// currently disabled because there was a problem with tracking peaks from multiple threads.
 
 #if ENABLE_MEMPRO
 #include "MemPro.hpp"
@@ -34,15 +34,18 @@ DEFINE_STAT(STAT_EngineSummaryLLM);
 /*
  * LLM stats referenced by ELLMTagNames
  */
-DECLARE_LLM_MEMORY_STAT(TEXT("Total"), STAT_LLMPlatformTotal, STATGROUP_LLMPlatform);
-DECLARE_LLM_MEMORY_STAT(TEXT("Untracked"), STAT_LLMPlatformTotalUntracked, STATGROUP_LLMPlatform);
+DECLARE_LLM_MEMORY_STAT(TEXT("Total"), STAT_TotalLLM, STATGROUP_LLMFULL);
+DECLARE_LLM_MEMORY_STAT(TEXT("Untracked"), STAT_UntrackedLLM, STATGROUP_LLMFULL);
+DECLARE_LLM_MEMORY_STAT(TEXT("Total"), STAT_PlatformTotalLLM, STATGROUP_LLMPlatform);
 DECLARE_LLM_MEMORY_STAT(TEXT("Tracked Total"), STAT_TrackedTotalLLM, STATGROUP_LLMFULL);
-DECLARE_LLM_MEMORY_STAT(TEXT("Untagged"), STAT_UntrackedTotalLLM, STATGROUP_LLMFULL);
+DECLARE_LLM_MEMORY_STAT(TEXT("Untagged"), STAT_UntaggedTotalLLM, STATGROUP_LLMFULL);
 DECLARE_LLM_MEMORY_STAT(TEXT("Tracked Total"), STAT_PlatformTrackedTotalLLM, STATGROUP_LLMPlatform);
-DECLARE_LLM_MEMORY_STAT(TEXT("Untagged"), STAT_PlatformUntrackedTotalLLM, STATGROUP_LLMPlatform);
-DECLARE_LLM_MEMORY_STAT(TEXT("SmallBinnedAllocation"), STAT_SmallBinnedAllocationLLM, STATGROUP_LLMPlatform);
-DECLARE_LLM_MEMORY_STAT(TEXT("LargeBinnedAllocation"), STAT_LargeBinnedAllocationLLM, STATGROUP_LLMPlatform);
-DECLARE_LLM_MEMORY_STAT(TEXT("ThreadStack"), STAT_ThreadStackLLM, STATGROUP_LLMPlatform);
+DECLARE_LLM_MEMORY_STAT(TEXT("Untagged"), STAT_PlatformUntaggedTotalLLM, STATGROUP_LLMPlatform);
+DECLARE_LLM_MEMORY_STAT(TEXT("Untracked"), STAT_PlatformUntrackedLLM, STATGROUP_LLMPlatform);
+DECLARE_LLM_MEMORY_STAT(TEXT("FMalloc"), STAT_FMallocLLM, STATGROUP_LLMPlatform);
+DECLARE_LLM_MEMORY_STAT(TEXT("FMalloc Unused"), STAT_FMallocUnusedLLM, STATGROUP_LLMFULL);
+DECLARE_LLM_MEMORY_STAT(TEXT("ThreadStack"), STAT_ThreadStackLLM, STATGROUP_LLMFULL);
+DECLARE_LLM_MEMORY_STAT(TEXT("ThreadStackPlatform"), STAT_ThreadStackPlatformLLM, STATGROUP_LLMPlatform);
 DECLARE_LLM_MEMORY_STAT(TEXT("Program Size"), STAT_ProgramSizePlatformLLM, STATGROUP_LLMPlatform);
 DECLARE_LLM_MEMORY_STAT(TEXT("Program Size"), STAT_ProgramSizeLLM, STATGROUP_LLMFULL);
 DECLARE_LLM_MEMORY_STAT(TEXT("OOM Backup Pool"), STAT_OOMBackupPoolPlatformLLM, STATGROUP_LLMPlatform);
@@ -50,7 +53,7 @@ DECLARE_LLM_MEMORY_STAT(TEXT("OOM Backup Pool"), STAT_OOMBackupPoolLLM, STATGROU
 DECLARE_LLM_MEMORY_STAT(TEXT("GenericPlatformMallocCrash"), STAT_GenericPlatformMallocCrashLLM, STATGROUP_LLMFULL);
 DECLARE_LLM_MEMORY_STAT(TEXT("GenericPlatformMallocCrash"), STAT_GenericPlatformMallocCrashPlatformLLM, STATGROUP_LLMPlatform);
 DECLARE_LLM_MEMORY_STAT(TEXT("Engine Misc"), STAT_EngineMiscLLM, STATGROUP_LLMFULL);
-DECLARE_LLM_MEMORY_STAT(TEXT("TaskGraph Tasks (misc)"), STAT_TaskGraphTasksMiscLLM, STATGROUP_LLMFULL);
+DECLARE_LLM_MEMORY_STAT(TEXT("TaskGraph Misc Tasks"), STAT_TaskGraphTasksMiscLLM, STATGROUP_LLMFULL);
 DECLARE_LLM_MEMORY_STAT(TEXT("Audio"), STAT_AudioLLM, STATGROUP_LLMFULL);
 DECLARE_LLM_MEMORY_STAT(TEXT("FName"), STAT_FNameLLM, STATGROUP_LLMFULL);
 DECLARE_LLM_MEMORY_STAT(TEXT("Networking"), STAT_NetworkingLLM, STATGROUP_LLMFULL);
@@ -60,8 +63,8 @@ DECLARE_LLM_MEMORY_STAT(TEXT("Shaders"), STAT_ShadersLLM, STATGROUP_LLMFULL);
 DECLARE_LLM_MEMORY_STAT(TEXT("Textures"), STAT_TexturesLLM, STATGROUP_LLMFULL);
 DECLARE_LLM_MEMORY_STAT(TEXT("Render Targets"), STAT_RenderTargetsLLM, STATGROUP_LLMFULL);
 DECLARE_LLM_MEMORY_STAT(TEXT("RHIMisc"), STAT_RHIMiscLLM, STATGROUP_LLMFULL);
-DECLARE_LLM_MEMORY_STAT(TEXT("PhysX (TriMesh)"), STAT_PhysXTriMeshLLM, STATGROUP_LLMFULL);
-DECLARE_LLM_MEMORY_STAT(TEXT("PhysX (ConvexMesh)"), STAT_PhysXConvexMeshLLM, STATGROUP_LLMFULL);
+DECLARE_LLM_MEMORY_STAT(TEXT("PhysX TriMesh"), STAT_PhysXTriMeshLLM, STATGROUP_LLMFULL);
+DECLARE_LLM_MEMORY_STAT(TEXT("PhysX ConvexMesh"), STAT_PhysXConvexMeshLLM, STATGROUP_LLMFULL);
 DECLARE_LLM_MEMORY_STAT(TEXT("AsyncLoading"), STAT_AsyncLoadingLLM, STATGROUP_LLMFULL);
 DECLARE_LLM_MEMORY_STAT(TEXT("UObject"), STAT_UObjectLLM, STATGROUP_LLMFULL);
 DECLARE_LLM_MEMORY_STAT(TEXT("Animation"), STAT_AnimationLLM, STATGROUP_LLMFULL);
@@ -94,8 +97,6 @@ DECLARE_LLM_MEMORY_STAT(TEXT("Particles"), STAT_ParticlesSummaryLLM, STATGROUP_L
 DECLARE_LLM_MEMORY_STAT(TEXT("UI"), STAT_UISummaryLLM, STATGROUP_LLM);
 DECLARE_LLM_MEMORY_STAT(TEXT("Textures"), STAT_TexturesSummaryLLM, STATGROUP_LLM);
 
-
-
 struct FLLMTagInfo
 {
 	const TCHAR* Name;
@@ -109,13 +110,18 @@ const FLLMTagInfo ELLMTagNames[] =
 	// CSV name								LLM Stat stat name									LLM Summary stat name							// enum value
 	{ TEXT("Untagged"),						NAME_None,											NAME_None },									// ELLMTag::Untagged
 	{ TEXT("Paused"),						NAME_None,											NAME_None },									// ELLMTag::Paused
+	{ TEXT("Total"),						GET_STATFNAME(STAT_TotalLLM),						GET_STATFNAME(STAT_TrackedTotalSummaryLLM) },	// ELLMTag::Total
+	{ TEXT("Untracked"),					GET_STATFNAME(STAT_UntrackedLLM),					GET_STATFNAME(STAT_TrackedTotalSummaryLLM) },	// ELLMTag::Untracked
+	{ TEXT("Total"),						GET_STATFNAME(STAT_PlatformTotalLLM),				NAME_None },									// ELLMTag::PlatformTotal
 	{ TEXT("Tracked Total"),				GET_STATFNAME(STAT_TrackedTotalLLM),				GET_STATFNAME(STAT_TrackedTotalSummaryLLM) },	// ELLMTag::TrackedTotal
-	{ TEXT("Untagged"),						GET_STATFNAME(STAT_UntrackedTotalLLM),				NAME_None },									// ELLMTag::UntrackedTotal
+	{ TEXT("Untagged"),						GET_STATFNAME(STAT_UntaggedTotalLLM),				NAME_None },									// ELLMTag::UntaggedTotal
 	{ TEXT("Tracked Total"),				GET_STATFNAME(STAT_PlatformTrackedTotalLLM),		NAME_None },									// ELLMTag::PlatformTrackedTotal
-	{ TEXT("Untagged"),						GET_STATFNAME(STAT_PlatformUntrackedTotalLLM),		NAME_None },									// ELLMTag::PlatformUntrackedTotal
-	{ TEXT("SmallBinnedAllocation"),		GET_STATFNAME(STAT_SmallBinnedAllocationLLM),		NAME_None },									// ELLMTag::SmallBinnedAllocation
-	{ TEXT("LargeBinnedAllocation"),		GET_STATFNAME(STAT_LargeBinnedAllocationLLM),		NAME_None },									// ELLMTag::LargeBinnedAllocation
-	{ TEXT("ThreadStack"),					GET_STATFNAME(STAT_ThreadStackLLM),					NAME_None },									// ELLMTag::ThreadStack
+	{ TEXT("Untagged"),						GET_STATFNAME(STAT_PlatformUntaggedTotalLLM),		NAME_None },									// ELLMTag::PlatformUntaggedTotal
+	{ TEXT("Untracked"),					GET_STATFNAME(STAT_PlatformUntrackedLLM),			NAME_None },									// ELLMTag::PlatformUntracked
+	{ TEXT("FMalloc"),						GET_STATFNAME(STAT_FMallocLLM),						NAME_None },									// ELLMTag::FMalloc
+	{ TEXT("FMalloc Unused"),				GET_STATFNAME(STAT_FMallocUnusedLLM),				GET_STATFNAME(STAT_EngineSummaryLLM) },			// ELLMTag::FMallocUnused
+	{ TEXT("ThreadStack"),					GET_STATFNAME(STAT_ThreadStackLLM),					GET_STATFNAME(STAT_EngineSummaryLLM) },			// ELLMTag::ThreadStack
+	{ TEXT("ThreadStack"),					GET_STATFNAME(STAT_ThreadStackPlatformLLM),			NAME_None },									// ELLMTag::ThreadStackPlatform
 	{ TEXT("Program Size"),					GET_STATFNAME(STAT_ProgramSizePlatformLLM),			NAME_None },									// ELLMTag::ProgramSizePlatform
 	{ TEXT("Program Size"),					GET_STATFNAME(STAT_ProgramSizeLLM),					GET_STATFNAME(STAT_EngineSummaryLLM) },			// ELLMTag::ProgramSize
 	{ TEXT("OOM Backup Pool"),				GET_STATFNAME(STAT_OOMBackupPoolPlatformLLM),		NAME_None },									// ELLMTag::BackupOOMMemoryPoolPlatform
@@ -123,7 +129,7 @@ const FLLMTagInfo ELLMTagNames[] =
 	{ TEXT("GenericPlatformMallocCrash"),	GET_STATFNAME(STAT_GenericPlatformMallocCrashLLM),	GET_STATFNAME(STAT_EngineSummaryLLM) },			// ELLMTag::GenericPlatformMallocCrash
 	{ TEXT("GenericPlatformMallocCrash"),	GET_STATFNAME(STAT_GenericPlatformMallocCrashPlatformLLM),	GET_STATFNAME(STAT_EngineSummaryLLM) },	// ELLMTag::GenericPlatformMallocCrashPlatform
 	{ TEXT("Engine Misc"),					GET_STATFNAME(STAT_EngineMiscLLM),					GET_STATFNAME(STAT_EngineSummaryLLM) },			// ELLMTag::EngineMisc
-	{ TEXT("TaskGraph Tasks (misc)"),		GET_STATFNAME(STAT_TaskGraphTasksMiscLLM),			GET_STATFNAME(STAT_EngineSummaryLLM) },			// ELLMTag::TaskGraphTasksMisc
+	{ TEXT("TaskGraph Misc Tasks"),			GET_STATFNAME(STAT_TaskGraphTasksMiscLLM),			GET_STATFNAME(STAT_EngineSummaryLLM) },			// ELLMTag::TaskGraphTasksMisc
 	{ TEXT("Audio"),						GET_STATFNAME(STAT_AudioLLM),						GET_STATFNAME(STAT_AudioSummaryLLM) },			// ELLMTag::Audio
 	{ TEXT("FName"),						GET_STATFNAME(STAT_FNameLLM),						GET_STATFNAME(STAT_EngineSummaryLLM) },			// ELLMTag::FName
 	{ TEXT("Networking"),					GET_STATFNAME(STAT_NetworkingLLM),					GET_STATFNAME(STAT_EngineSummaryLLM) },			// ELLMTag::Networking
@@ -133,8 +139,8 @@ const FLLMTagInfo ELLMTagNames[] =
 	{ TEXT("Textures"),						GET_STATFNAME(STAT_TexturesLLM),					GET_STATFNAME(STAT_TexturesSummaryLLM) },			// ELLMTag::Textures
 	{ TEXT("Render Targets"),				GET_STATFNAME(STAT_RenderTargetsLLM),				GET_STATFNAME(STAT_EngineSummaryLLM) },			// ELLMTag::RenderTargets
 	{ TEXT("RHI Misc"),						GET_STATFNAME(STAT_RHIMiscLLM),						GET_STATFNAME(STAT_EngineSummaryLLM) },			// ELLMTag::RHIMisc
-	{ TEXT("PhysX (TriMesh)"),				GET_STATFNAME(STAT_PhysXTriMeshLLM),				GET_STATFNAME(STAT_PhysXSummaryLLM) },			// ELLMTag::PhysXTriMesh
-	{ TEXT("PhysX (ConvexMesh)"),			GET_STATFNAME(STAT_PhysXConvexMeshLLM),				GET_STATFNAME(STAT_PhysXSummaryLLM) },			// ELLMTag::PhysXConvexMesh
+	{ TEXT("PhysX TriMesh"),				GET_STATFNAME(STAT_PhysXTriMeshLLM),				GET_STATFNAME(STAT_PhysXSummaryLLM) },			// ELLMTag::PhysXTriMesh
+	{ TEXT("PhysX ConvexMesh"),				GET_STATFNAME(STAT_PhysXConvexMeshLLM),				GET_STATFNAME(STAT_PhysXSummaryLLM) },			// ELLMTag::PhysXConvexMesh
 	{ TEXT("AsyncLoading"),					GET_STATFNAME(STAT_AsyncLoadingLLM),				GET_STATFNAME(STAT_EngineSummaryLLM) },			// ELLMTag::AsyncLoading
 	{ TEXT("UObject"),						GET_STATFNAME(STAT_UObjectLLM),						GET_STATFNAME(STAT_UObjectSummaryLLM) },		// ELLMTag::UObject
 	{ TEXT("Animation"),					GET_STATFNAME(STAT_AnimationLLM),					GET_STATFNAME(STAT_AnimationSummaryLLM) },		// ELLMTag::Animation
@@ -241,17 +247,17 @@ public:
 	void PushAssetTag(int64 Tag);
 	void PopAssetTag();
 #endif
-	void TrackAllocation(const void* Ptr, uint64 Size, ELLMTag DefaultTag, ELLMTracker Tracker);
-	void TrackFree(const void* Ptr, uint64 CheckSize, ELLMTracker Tracker);
+	void TrackAllocation(const void* Ptr, uint64 Size, ELLMTag DefaultTag, ELLMTracker Tracker, ELLMAllocType AllocType);
+	void TrackFree(const void* Ptr, ELLMTracker Tracker, ELLMAllocType AllocType);
 	void OnAllocMoved(const void* Dest, const void* Source);
 
 	void TrackMemory(int64 Tag, int64 Amount);
 
 	// This will pause/unpause tracking, and also manually increment a given tag
-	void PauseAndTrackMemory(int64 Tag, int64 Amount);
-	void Pause();
-	void Unpause();
-	bool IsPaused();
+	void PauseAndTrackMemory(int64 Tag, int64 Amount, ELLMAllocType AllocType);
+	void Pause(ELLMAllocType AllocType);
+	void Unpause(ELLMAllocType AllocType);
+	bool IsPaused(ELLMAllocType AllocType);
 	
 	void Clear();
 
@@ -282,11 +288,17 @@ public:
 	}
 
 	void SetTotalTags(ELLMTag Untagged, ELLMTag Tracked);
-	uint64 UpdateFrameAndReturnTotalTrackedMemory(FLLMPlatformTag* PlatformTags);
+	void Update(FLLMPlatformTag* PlatformTags);
+	void UpdateTotals();
+
+	int64 GetTagAmount(ELLMTag Tag) const;
+	void SetTagAmount(ELLMTag Tag, int64 Amount, bool AddToTotal);
+
+	int64 GetAllocTypeAmount(ELLMAllocType AllocType);
 
 protected:
 
-	// per thread state, uses system malloc function to be allocated (like FMalloc*)
+	// per thread state
 	class FLLMThreadState
 	{
 	public:
@@ -304,17 +316,21 @@ protected:
 		void PopAssetTag();
 		int64 GetTopAssetTag();
 #endif
-		void TrackAllocation(const void* Ptr, uint64 Size, ELLMTag DefaultTag, ELLMTracker Tracker);
-		void TrackFree(const void* Ptr, int64 Tag, uint64 Size, bool bTrackedUntagged, ELLMTracker Tracker);
+		void TrackAllocation(const void* Ptr, uint64 Size, ELLMTag DefaultTag, ELLMTracker Tracker, ELLMAllocType AllocType);
+		void TrackFree(const void* Ptr, int64 Tag, uint64 Size, bool bTrackedUntagged, ELLMTracker Tracker, ELLMAllocType AllocType);
 		void IncrTag(int64 Tag, int64 Amount, bool bTrackUntagged);
 
-		void UpdateFrame(
+		void GetFrameStatTotals(
 			ELLMTag InUntaggedTotalTag,
-			FLLMThreadState& InLocalState,
+			FLLMThreadState& InStateCopy,
 			FLLMCsvWriter& CsvWriter,
-			FLLMPlatformTag* PlatformTags);
+			FLLMPlatformTag* PlatformTags,
+			int64* EnumTagAmounts,
+			int64* OutAllocTypeAmounts);
 
 		static void IncMemoryStatByFName(FName Name, int64 Amount);
+
+		void ClearAllocTypeAmounts();
 
 		FLLMAllocator* Allocator;
 
@@ -332,7 +348,9 @@ protected:
 #if LLM_TRACK_PEAK_MEMORY
 		int64 UntaggedAllocsPeak;
 #endif
-		bool bPaused;
+		bool PausedFlags[(int32)ELLMAllocType::Count];
+
+		int64 AllocTypeAmounts[(int32)ELLMAllocType::Count];
 	};
 
 	FLLMThreadState* GetOrCreateState();
@@ -353,11 +371,16 @@ protected:
 	ELLMTag UntaggedTotalTag;
 	ELLMTag TrackedTotalTag;
 
-	FLLMThreadState LocalState;
+	// a temporary used to take a copy of the thread state values in a thread safe way.
+	FLLMThreadState StateCopy;
 
 	FLLMCsvWriter CsvWriter;
 
 	double LastTrimTime;
+
+	int64 EnumTagAmounts[(int32)ELLMTag::PlatformTagEnd];
+
+	int64 AllocTypeAmounts[(int32)ELLMAllocType::Count];
 };
 
 static int64 FNameToTag(FName Name)
@@ -398,7 +421,7 @@ bool FLowLevelMemTracker::IsEnabled()
 
 FLowLevelMemTracker::FLowLevelMemTracker()
 	: bFirstTimeUpdating(true)
-	, bIsDisabled(false)		// must start off enabled because alllocations happen before the command line enables/disables us
+	, bIsDisabled(false)		// must start off enabled because allocations happen before the command line enables/disables us
 	, bCanEnable(true)
 	, bCsvWriterEnabled(false)
 	, bInitialisedTrackers(false)
@@ -464,26 +487,28 @@ void FLowLevelMemTracker::UpdateStatsPerFrame(const TCHAR* LogName)
 	{
 		static_assert((uint8)ELLMTracker::Max == 2, "You added a tracker, without updating FLowLevelMemTracker::UpdateStatsPerFrame (and probably need to update macros)");
 
-		GetTracker(ELLMTracker::Platform)->SetTotalTags(ELLMTag::PlatformUntrackedTotal, ELLMTag::PlatformTrackedTotal);
-		GetTracker(ELLMTracker::Default)->SetTotalTags(ELLMTag::UntrackedTotal, ELLMTag::TrackedTotal);
+		GetTracker(ELLMTracker::Platform)->SetTotalTags(ELLMTag::PlatformUntaggedTotal, ELLMTag::PlatformTrackedTotal);
+		GetTracker(ELLMTracker::Default)->SetTotalTags(ELLMTag::UntaggedTotal, ELLMTag::TrackedTotal);
 
 		bFirstTimeUpdating = false;
 	}
 
-	int64 TrackedProcessMemory = 0;
+	// update the trackers
 	for (int32 TrackerIndex = 0; TrackerIndex < (int32)ELLMTracker::Max; TrackerIndex++)
 	{
-		FLLMTracker* Tracker = GetTracker((ELLMTracker)TrackerIndex);
+		GetTracker((ELLMTracker)TrackerIndex)->Update(PlatformTags);
+	}
 
-		// update stats and also get how much memory is now tracked
-		int64 TrackedMemory = Tracker->UpdateFrameAndReturnTotalTrackedMemory(PlatformTags);
+	// calculate FMalloc unused stat and set it in the Default tracker
+	int32 FMallocAmount = Trackers[(int32)ELLMTracker::Default]->GetAllocTypeAmount(ELLMAllocType::FMalloc);
+	int32 FMallocPlatformAmount = Trackers[(int32)ELLMTracker::Platform]->GetTagAmount(ELLMTag::FMalloc);
+	int32 FMallocUnused = FMallocPlatformAmount - FMallocAmount;
+	Trackers[(int32)ELLMTracker::Default]->SetTagAmount(ELLMTag::FMallocUnused, FMallocUnused, true);
 
-		// the Platform layer is special in that we use it to track untracked memory (it's expected that every other allocation
-		// goes through this level, and if not, there's nothing better we can do)
-		if (TrackerIndex == (int32)ELLMTracker::Platform)
-		{
-			TrackedProcessMemory = TrackedMemory;
-		}
+	// update totals for all trackers
+	for (int32 TrackerIndex = 0; TrackerIndex < (int32)ELLMTracker::Max; TrackerIndex++)
+	{
+		GetTracker((ELLMTracker)TrackerIndex)->UpdateTotals();
 	}
 
 	// set overhead stats
@@ -494,16 +519,19 @@ void FLowLevelMemTracker::UpdateStatsPerFrame(const TCHAR* LogName)
 	// calculate memory the platform thinks we have allocated, compared to what we have tracked, including the program memory
 	FPlatformMemoryStats PlatformStats = FPlatformMemory::GetStats();
 	uint64 PlatformProcessMemory = PlatformStats.TotalPhysical - PlatformStats.AvailablePhysical - Overhead;
-	int64 PlatformTotalUntracked = PlatformProcessMemory - TrackedProcessMemory;
-	SET_MEMORY_STAT(STAT_LLMPlatformTotal, PlatformProcessMemory);
-	SET_MEMORY_STAT(STAT_LLMPlatformTotalUntracked, PlatformTotalUntracked);
+	int64 PlatformTrackedTotal = GetTracker(ELLMTracker::Platform)->GetTagAmount(ELLMTag::PlatformTrackedTotal);
+	int64 PlatformTotalUntracked = PlatformProcessMemory - PlatformTrackedTotal;
+
+	GetTracker(ELLMTracker::Platform)->SetTagAmount(ELLMTag::PlatformTotal, PlatformProcessMemory, false);
+	GetTracker(ELLMTracker::Platform)->SetTagAmount(ELLMTag::PlatformUntracked, PlatformTotalUntracked, false);
+
+	int64 TrackedTotal = GetTracker(ELLMTracker::Default)->GetTagAmount(ELLMTag::TrackedTotal);
+	GetTracker(ELLMTracker::Default)->SetTagAmount(ELLMTag::Total, PlatformProcessMemory, false);
+	GetTracker(ELLMTracker::Default)->SetTagAmount(ELLMTag::Untracked, PlatformProcessMemory - TrackedTotal, false);
 
 	if (bCsvWriterEnabled)
 	{
-		for (int32 TrackerIndex = 0; TrackerIndex < (int32)ELLMTracker::Max; ++TrackerIndex)
-		{
-			GetTracker((ELLMTracker)TrackerIndex)->WriteCsv(PlatformTags);
-		}
+		GetTracker(ELLMTracker::Default)->WriteCsv(PlatformTags);
 	}
 
 	if (LogName != nullptr)
@@ -598,17 +626,17 @@ void FLowLevelMemTracker::ProcessCommandLine(const TCHAR* CmdLine)
 	}
 }
 
-void FLowLevelMemTracker::OnLowLevelAlloc(ELLMTracker Tracker, const void* Ptr, uint64 Size, ELLMTag DefaultTag)
+void FLowLevelMemTracker::OnLowLevelAlloc(ELLMTracker Tracker, const void* Ptr, uint64 Size, ELLMTag DefaultTag, ELLMAllocType AllocType)
 {
 	if (bIsDisabled)
 	{
 		return;
 	}
 
-	GetTracker(Tracker)->TrackAllocation(Ptr, Size, DefaultTag, Tracker);
+	GetTracker(Tracker)->TrackAllocation(Ptr, Size, DefaultTag, Tracker, AllocType);
 }
 
-void FLowLevelMemTracker::OnLowLevelFree(ELLMTracker Tracker, const void* Ptr, uint64 CheckSize)
+void FLowLevelMemTracker::OnLowLevelFree(ELLMTracker Tracker, const void* Ptr, ELLMAllocType AllocType)
 {
 	if (bIsDisabled)
 	{
@@ -617,7 +645,7 @@ void FLowLevelMemTracker::OnLowLevelFree(ELLMTracker Tracker, const void* Ptr, u
 
 	if (Ptr != nullptr)
 	{
-		GetTracker(Tracker)->TrackFree(Ptr, CheckSize, Tracker);
+		GetTracker(Tracker)->TrackFree(Ptr, Tracker, AllocType);
 	}
 }
 
@@ -711,17 +739,17 @@ void FLowLevelMemTracker::RegisterPlatformTag(int32 Tag, const TCHAR* Name, FNam
 
 
 
-FLLMScopedTag::FLLMScopedTag(FName StatIDName, ELLMTagSet Set, ELLMTracker Tracker)
+FLLMScope::FLLMScope(FName StatIDName, ELLMTagSet Set, ELLMTracker Tracker)
 {
 	Init(FNameToTag(StatIDName), Set, Tracker);
 }
 
-FLLMScopedTag::FLLMScopedTag(ELLMTag Tag, ELLMTagSet Set, ELLMTracker Tracker)
+FLLMScope::FLLMScope(ELLMTag Tag, ELLMTagSet Set, ELLMTracker Tracker)
 {
 	Init((int64)Tag, Set, Tracker);
 }
 
-void FLLMScopedTag::Init(int64 Tag, ELLMTagSet Set, ELLMTracker Tracker)
+void FLLMScope::Init(int64 Tag, ELLMTagSet Set, ELLMTracker Tracker)
 {
 	TagSet = Set;
 	TrackerSet = Tracker;
@@ -751,7 +779,7 @@ void FLLMScopedTag::Init(int64 Tag, ELLMTagSet Set, ELLMTracker Tracker)
 	}
 }
 
-FLLMScopedTag::~FLLMScopedTag()
+FLLMScope::~FLLMScope()
 {
 	// early out if tracking is disabled (don't do the singleton call, this is called a lot!)
 	if (!Enabled)
@@ -778,17 +806,21 @@ FLLMScopedTag::~FLLMScopedTag()
 }
 
 
-FLLMScopedPauseTrackingWithAmountToTrack::FLLMScopedPauseTrackingWithAmountToTrack(FName StatIDName, int64 Amount, ELLMTracker TrackerToPause)
+FLLMPauseScope::FLLMPauseScope(FName StatIDName, int64 Amount, ELLMTracker TrackerToPause, ELLMAllocType InAllocType)
+	: PausedTracker(TrackerToPause)
+	, AllocType(InAllocType)
 {
-	Init(FNameToTag(StatIDName), Amount, TrackerToPause);
+	Init(FNameToTag(StatIDName), Amount, TrackerToPause, AllocType);
 }
 
-FLLMScopedPauseTrackingWithAmountToTrack::FLLMScopedPauseTrackingWithAmountToTrack(ELLMTag Tag, int64 Amount, ELLMTracker TrackerToPause)
+FLLMPauseScope::FLLMPauseScope(ELLMTag Tag, int64 Amount, ELLMTracker TrackerToPause, ELLMAllocType InAllocType)
+	: PausedTracker(TrackerToPause)
+	, AllocType(InAllocType)
 {
-	Init((uint64)Tag, Amount, TrackerToPause);
+	Init((uint64)Tag, Amount, TrackerToPause, InAllocType);
 }
 
-void FLLMScopedPauseTrackingWithAmountToTrack::Init(int64 Tag, int64 Amount, ELLMTracker TrackerToPause)
+void FLLMPauseScope::Init(int64 Tag, int64 Amount, ELLMTracker TrackerToPause, ELLMAllocType InAllocType)
 {
 	FLowLevelMemTracker& LLM = FLowLevelMemTracker::Get();
 	if (!LLM.IsTagSetActive(ELLMTagSet::None))
@@ -804,17 +836,17 @@ void FLLMScopedPauseTrackingWithAmountToTrack::Init(int64 Tag, int64 Amount, ELL
 		{
 			if (Amount == 0)
 			{
-				LLM.GetTracker((ELLMTracker)TrackerIndex)->Pause();
+				LLM.GetTracker(Tracker)->Pause(InAllocType);
 			}
 			else
 			{
-				LLM.GetTracker((ELLMTracker)TrackerIndex)->PauseAndTrackMemory(Tag, Amount);
+				LLM.GetTracker(Tracker)->PauseAndTrackMemory(Tag, Amount, InAllocType);
 			}
 		}
 	}
 }
 
-FLLMScopedPauseTrackingWithAmountToTrack::~FLLMScopedPauseTrackingWithAmountToTrack()
+FLLMPauseScope::~FLLMPauseScope()
 {
 	FLowLevelMemTracker& LLM = FLowLevelMemTracker::Get();
 	if (!LLM.IsTagSetActive(ELLMTagSet::None))
@@ -824,7 +856,12 @@ FLLMScopedPauseTrackingWithAmountToTrack::~FLLMScopedPauseTrackingWithAmountToTr
 
 	for (int32 TrackerIndex = 0; TrackerIndex < (int32)ELLMTracker::Max; TrackerIndex++)
 	{
-		LLM.GetTracker((ELLMTracker)TrackerIndex)->Unpause();
+		ELLMTracker Tracker = (ELLMTracker)TrackerIndex;
+
+		if (PausedTracker == ELLMTracker::Max || Tracker == PausedTracker)
+		{
+			LLM.GetTracker(Tracker)->Unpause(AllocType);
+		}
 	}
 }
 
@@ -840,6 +877,16 @@ FLLMTracker::FLLMTracker()
 
 {
 	TlsSlot = FPlatformTLS::AllocTlsSlot();
+
+	for (int32 Index = 0; Index < (int32)ELLMTag::PlatformTagEnd; ++Index)
+	{
+		EnumTagAmounts[Index] = 0;
+	}
+
+	for (int32 Index = 0; Index < (int32)ELLMAllocType::Count; ++Index)
+	{
+		AllocTypeAmounts[Index] = 0;
+	}
 }
 
 FLLMTracker::~FLLMTracker()
@@ -859,7 +906,7 @@ void FLLMTracker::Initialise(
 
 	AllocationMap.SetAllocator(InAllocator);
 
-	LocalState.SetAllocator(InAllocator);
+	StateCopy.SetAllocator(InAllocator);
 
 	CsvWriter.SetAllocator(InAllocator);
 
@@ -926,9 +973,9 @@ void FLLMTracker::PopAssetTag()
 }
 #endif
 
-void FLLMTracker::TrackAllocation(const void* Ptr, uint64 Size, ELLMTag DefaultTag, ELLMTracker Tracker)
+void FLLMTracker::TrackAllocation(const void* Ptr, uint64 Size, ELLMTag DefaultTag, ELLMTracker Tracker, ELLMAllocType AllocType)
 {
-	if (IsPaused())
+	if (IsPaused(AllocType))
 	{
 		return;
 	}
@@ -939,7 +986,7 @@ void FLLMTracker::TrackAllocation(const void* Ptr, uint64 Size, ELLMTag DefaultT
 	FLLMThreadState* State = GetOrCreateState();
 	
 	// track on the thread state, and get the tag
-	State->TrackAllocation(Ptr, Size, DefaultTag, Tracker);
+	State->TrackAllocation(Ptr, Size, DefaultTag, Tracker, AllocType);
 
 	// tracking a nullptr with a Size is allowed, but we don't need to remember it, since we can't free it ever
 	if (Ptr != nullptr)
@@ -965,9 +1012,9 @@ void FLLMTracker::TrackAllocation(const void* Ptr, uint64 Size, ELLMTag DefaultT
 	}
 }
 
-void FLLMTracker::TrackFree(const void* Ptr, uint64 CheckSize, ELLMTracker Tracker)
+void FLLMTracker::TrackFree(const void* Ptr, ELLMTracker Tracker, ELLMAllocType AllocType)
 {
-	if (IsPaused())
+	if (IsPaused(AllocType))
 	{
 		return;
 	}
@@ -983,16 +1030,13 @@ void FLLMTracker::TrackFree(const void* Ptr, uint64 CheckSize, ELLMTracker Track
 	FLLMThreadState* State = GetOrCreateState();
 
 #if LLM_USE_ALLOC_INFO_STRUCT
-	State->TrackFree(Ptr, AllocInfo.Tag, Size, true, Tracker);
+	State->TrackFree(Ptr, AllocInfo.Tag, Size, true, Tracker, AllocType);
 	#if LLM_ALLOW_ASSETS_TAGS
-		State->TrackFree(nullptr, AllocInfo.AssetTag, Size, false, Tracker);
+		State->TrackFree(nullptr, AllocInfo.AssetTag, Size, false, Tracker, AllocType);
 	#endif
 #else
-	State->TrackFree(Ptr, (int64)AllocInfo, Size, true, Tracker);
+	State->TrackFree(Ptr, (int64)AllocInfo, Size, true, Tracker, AllocType);
 #endif
-
-	// CheckSize is just used to verify (at least for now)
-	checkf(CheckSize == 0 || CheckSize == Size, TEXT("Called LLM::OnFree with a Size, but it didn't match what was allocated? [allocated = %lld, passed in = %lld]"), Size, CheckSize);
 }
 
 void FLLMTracker::OnAllocMoved(const void* Dest, const void* Source)
@@ -1009,35 +1053,35 @@ void FLLMTracker::TrackMemory(int64 Tag, int64 Amount)
 }
 
 // This will pause/unpause tracking, and also manually increment a given tag
-void FLLMTracker::PauseAndTrackMemory(int64 Tag, int64 Amount)
+void FLLMTracker::PauseAndTrackMemory(int64 Tag, int64 Amount, ELLMAllocType AllocType)
 {
 	FLLMTracker::FLLMThreadState* State = GetOrCreateState();
-	State->bPaused = true;
+	State->PausedFlags[(int32)AllocType] = true;
 	State->IncrTag(Tag, Amount, true);
 	FPlatformAtomics::InterlockedAdd(&TrackedMemoryOverFrames, Amount);
 }
 
-void FLLMTracker::Pause()
+void FLLMTracker::Pause(ELLMAllocType AllocType)
 {
 	FLLMTracker::FLLMThreadState* State = GetOrCreateState();
-	State->bPaused = true;
+	State->PausedFlags[(int32)AllocType] = true;
 }
 
-void FLLMTracker::Unpause()
+void FLLMTracker::Unpause(ELLMAllocType AllocType)
 {
-	GetOrCreateState()->bPaused = false;
+	GetOrCreateState()->PausedFlags[(int32)AllocType] = false;
 }
 
-bool FLLMTracker::IsPaused()
+bool FLLMTracker::IsPaused(ELLMAllocType AllocType)
 {
 	FLLMTracker::FLLMThreadState* State = GetState();
 	// pause during shutdown, as the massive number of frees is likely to overflow some of the buffers
-	return GIsRequestingExit || (State == nullptr ? false : State->bPaused);
+	return GIsRequestingExit || (State == nullptr ? false : State->PausedFlags[(int32)ELLMAllocType::None] || State->PausedFlags[(int32)AllocType]);
 }
 
 void FLLMTracker::Clear()
 {
-	for (int32 Index = 0; Index < ThreadStates.Num(); ++Index)
+	for (uint32 Index = 0; Index < ThreadStates.Num(); ++Index)
 		ThreadStateAllocator.Delete(ThreadStates[Index]);
 	ThreadStates.Clear(true);
 
@@ -1057,18 +1101,23 @@ void FLLMTracker::SetTotalTags(ELLMTag InUntaggedTotalTag, ELLMTag InTrackedTota
 	TrackedTotalTag = InTrackedTotalTag;
 }
 
-uint64 FLLMTracker::UpdateFrameAndReturnTotalTrackedMemory(FLLMPlatformTag* PlatformTags)
+void FLLMTracker::Update(FLLMPlatformTag* PlatformTags)
 {
 	// protect any accesses to the ThreadStates array
 	FScopeLock Lock(&ThreadArraySection);
 
+	// accumulate the totals for each thread
 	int ThreadStateNum = ThreadStates.Num();
 	for (int32 ThreadIndex = 0; ThreadIndex < ThreadStateNum; ThreadIndex++)
 	{
-		// update stat per thread states
-		ThreadStates[ThreadIndex]->UpdateFrame(UntaggedTotalTag, LocalState, CsvWriter, PlatformTags);
+		ThreadStates[ThreadIndex]->GetFrameStatTotals(UntaggedTotalTag, StateCopy, CsvWriter, PlatformTags, EnumTagAmounts, AllocTypeAmounts);
 	}
 
+	EnumTagAmounts[(int32)TrackedTotalTag] = TrackedMemoryOverFrames;
+}
+
+void FLLMTracker::UpdateTotals()
+{
 	FName StatName = ELLMTagNames[(int32)TrackedTotalTag].StatName;
 	if (StatName != NAME_None)
 	{
@@ -1094,8 +1143,6 @@ uint64 FLLMTracker::UpdateFrameAndReturnTotalTrackedMemory(FLLMPlatformTag* Plat
 		AllocationMap.Trim();
 		LastTrimTime = FPlatformTime::Seconds();
 	}
-
-	return (uint64)TrackedMemoryOverFrames;
 }
 
 void FLLMTracker::WriteCsv(FLLMPlatformTag* PlatformTags)
@@ -1106,8 +1153,13 @@ void FLLMTracker::WriteCsv(FLLMPlatformTag* PlatformTags)
 
 FLLMTracker::FLLMThreadState::FLLMThreadState()
 	: UntaggedAllocs(0)
-	, bPaused(false)
 {
+	for (int32 Index = 0; Index < (int32)ELLMAllocType::Count; ++Index)
+	{
+		PausedFlags[Index] = false;
+	}
+
+	ClearAllocTypeAmounts();
 }
 
 void FLLMTracker::FLLMThreadState::SetAllocator(FLLMAllocator* InAllocator)
@@ -1138,6 +1190,8 @@ void FLLMTracker::FLLMThreadState::Clear()
 	TaggedAllocPeaks.Clear();
 #endif
 	TaggedAllocTags.Clear();
+
+	ClearAllocTypeAmounts();
 }
 
 void FLLMTracker::FLLMThreadState::PushTag(int64 Tag)
@@ -1217,7 +1271,7 @@ void FLLMTracker::FLLMThreadState::IncrTag(int64 Tag, int64 Amount, bool bTrackU
 	else
 	{
 		// look over existing tags on this thread for already tracking this tag
-		for (int32 TagSearch = 0; TagSearch < TaggedAllocTags.Num(); TagSearch++)
+		for (uint32 TagSearch = 0; TagSearch < TaggedAllocTags.Num(); TagSearch++)
 		{
 			if (TaggedAllocTags[TagSearch] == Tag)
 			{
@@ -1242,9 +1296,35 @@ void FLLMTracker::FLLMThreadState::IncrTag(int64 Tag, int64 Amount, bool bTrackU
 	}
 }
 
-void FLLMTracker::FLLMThreadState::TrackAllocation(const void* Ptr, uint64 Size, ELLMTag DefaultTag, ELLMTracker Tracker)
+int64 FLLMTracker::GetTagAmount(ELLMTag Tag) const
+{
+	return EnumTagAmounts[(int32)Tag];
+}
+
+void FLLMTracker::SetTagAmount(ELLMTag Tag, int64 Amount, bool AddToTotal)
+{
+	if (AddToTotal)
+	{
+		FPlatformAtomics::InterlockedAdd(&TrackedMemoryOverFrames, (int64)(Amount - EnumTagAmounts[(int32)Tag]));
+	}
+
+	SET_MEMORY_STAT_FName(ELLMTagNames[(int32)Tag].StatName, Amount);
+
+	EnumTagAmounts[(int32)Tag] = Amount;
+
+	CsvWriter.SetStat((int64)Tag, Amount);
+}
+
+int64 FLLMTracker::GetAllocTypeAmount(ELLMAllocType AllocType)
+{
+	return AllocTypeAmounts[(int32)AllocType];
+}
+
+void FLLMTracker::FLLMThreadState::TrackAllocation(const void* Ptr, uint64 Size, ELLMTag DefaultTag, ELLMTracker Tracker, ELLMAllocType AllocType)
 {
 	FScopeLock Lock(&TagSection);
+
+	AllocTypeAmounts[(int32)AllocType] += Size;
 
 	int64 Tag = GetTopTag();
 	if (Tag == (int64)ELLMTag::Untagged)
@@ -1263,9 +1343,11 @@ void FLLMTracker::FLLMThreadState::TrackAllocation(const void* Ptr, uint64 Size,
 #endif
 }
 
-void FLLMTracker::FLLMThreadState::TrackFree(const void* Ptr, int64 Tag, uint64 Size, bool bTrackedUntagged, ELLMTracker Tracker)
+void FLLMTracker::FLLMThreadState::TrackFree(const void* Ptr, int64 Tag, uint64 Size, bool bTrackedUntagged, ELLMTracker Tracker, ELLMAllocType AllocType)
 {
 	FScopeLock Lock(&TagSection);
+
+	AllocTypeAmounts[(int32)AllocType] -= Size;
 
 	IncrTag(Tag, 0 - Size, bTrackedUntagged);
 
@@ -1277,52 +1359,69 @@ void FLLMTracker::FLLMThreadState::TrackFree(const void* Ptr, int64 Tag, uint64 
 #endif
 }
 
-void FLLMTracker::FLLMThreadState::UpdateFrame(
+/**
+ * Grab totals for the frame and update stats, Tag amounts and csv.
+ * InStateCopy is just passed in as a working copy to avoid having to create/destroy lots of LLMArrays
+ */
+void FLLMTracker::FLLMThreadState::GetFrameStatTotals(
 	ELLMTag InUntaggedTotalTag,
-	FLLMThreadState& InLocalState,
+	FLLMThreadState& InStateCopy,
 	FLLMCsvWriter& InCsvWriter,
-	FLLMPlatformTag* PlatformTags)
+	FLLMPlatformTag* PlatformTags,
+	int64* OutEnumTagAmounts,
+	int64* OutAllocTypeAmounts)
 {
 	// grab the stats in a thread safe way
 	{
 		FScopeLock Lock(&TagSection);
 
-		InLocalState.UntaggedAllocs = UntaggedAllocs;
+		InStateCopy.UntaggedAllocs = UntaggedAllocs;
 
-		InLocalState.TaggedAllocTags = TaggedAllocTags;
-		InLocalState.TaggedAllocs = TaggedAllocs;
+		InStateCopy.TaggedAllocTags = TaggedAllocTags;
+		InStateCopy.TaggedAllocs = TaggedAllocs;
 #if LLM_TRACK_PEAK_MEMORY
-		InLocalState.TaggedAllocPeaks = TaggedAllocPeaks;
+		InStateCopy.TaggedAllocPeaks = TaggedAllocPeaks;
 #endif
+		for (int32 Index = 0; Index < (int32)ELLMAllocType::Count; ++Index)
+		{
+			InStateCopy.AllocTypeAmounts[Index] = AllocTypeAmounts[Index];
+		}
+
 		// restart the tracking now that we've copied out, safely
 		UntaggedAllocs = 0;
 		TaggedAllocTags.Clear();
 		TaggedAllocs.Clear();
+		ClearAllocTypeAmounts();
 #if LLM_TRACK_PEAK_MEMORY
 		TaggedAllocPeaks.Clear();
 		UntaggedAllocsPeak = 0;
 #endif
 	}
 
-	IncMemoryStatByFName(ELLMTagNames[(int32)InUntaggedTotalTag].StatName, InLocalState.UntaggedAllocs);
-	IncMemoryStatByFName(ELLMTagNames[(int32)InUntaggedTotalTag].SummaryStatName, InLocalState.UntaggedAllocs);
+	IncMemoryStatByFName(ELLMTagNames[(int32)InUntaggedTotalTag].StatName, InStateCopy.UntaggedAllocs);
+	IncMemoryStatByFName(ELLMTagNames[(int32)InUntaggedTotalTag].SummaryStatName, InStateCopy.UntaggedAllocs);
 
 #if LLM_TRACK_PEAK_MEMORY
-	InCsvWriter.AddStat(FNameToTag(InUntaggedStatName), InLocalState.UntaggedAllocs, InLocalState.UntaggedAllocsPeak);
+	InCsvWriter.AddStat(FNameToTag(InUntaggedStatName), InStateCopy.UntaggedAllocs, InStateCopy.UntaggedAllocsPeak);
 #else
-	InCsvWriter.AddStat((int64)InUntaggedTotalTag, InLocalState.UntaggedAllocs);
+	InCsvWriter.AddStat((int64)InUntaggedTotalTag, InStateCopy.UntaggedAllocs);
 #endif
 
-	// walk over the tags for this level
-	for (int32 TagIndex = 0; TagIndex < InLocalState.TaggedAllocTags.Num(); TagIndex++)
+	for (int32 Index = 0; Index < (int32)ELLMAllocType::Count; ++Index)
 	{
-		int64 Tag = InLocalState.TaggedAllocTags[TagIndex];
-		int64 Amount = InLocalState.TaggedAllocs[TagIndex];
+		OutAllocTypeAmounts[Index] += InStateCopy.AllocTypeAmounts[Index];
+	}
+
+	// walk over the tags for this level
+	for (uint32 TagIndex = 0; TagIndex < InStateCopy.TaggedAllocTags.Num(); TagIndex++)
+	{
+		int64 Tag = InStateCopy.TaggedAllocTags[TagIndex];
+		int64 Amount = InStateCopy.TaggedAllocs[TagIndex];
 
 		//---------------------
 		// update csv
 #if LLM_TRACK_PEAK_MEMORY
-		int64 Peak = InLocalState.TaggedAllocPeaks[TagIndex];
+		int64 Peak = InStateCopy.TaggedAllocPeaks[TagIndex];
 		InCsvWriter.AddStat(Tag, Amount, Peak);
 #else
 		InCsvWriter.AddStat(Tag, Amount);
@@ -1344,10 +1443,11 @@ void FLLMTracker::FLLMThreadState::UpdateFrame(
 			check(Tag >= 0 && Tag < sizeof(ELLMTagNames) / sizeof(FLLMTagInfo));
 			IncMemoryStatByFName(ELLMTagNames[Tag].StatName, int64(Amount));
 			IncMemoryStatByFName(ELLMTagNames[Tag].SummaryStatName, int64(Amount));
+			OutEnumTagAmounts[Tag] += Amount;
 		}
 	}
 
-	InLocalState.Clear();
+	InStateCopy.Clear();
 }
 
 void FLLMTracker::FLLMThreadState::IncMemoryStatByFName(FName Name, int64 Amount)
@@ -1355,6 +1455,14 @@ void FLLMTracker::FLLMThreadState::IncMemoryStatByFName(FName Name, int64 Amount
 	if (Name != NAME_None)
 	{
 		INC_MEMORY_STAT_BY_FName(Name, Amount);
+	}
+}
+
+void FLLMTracker::FLLMThreadState::ClearAllocTypeAmounts()
+{
+	for (int32 Index = 0; Index < (int32)ELLMAllocType::Count; ++Index)
+	{
+		AllocTypeAmounts[Index] = 0;
 	}
 }
 

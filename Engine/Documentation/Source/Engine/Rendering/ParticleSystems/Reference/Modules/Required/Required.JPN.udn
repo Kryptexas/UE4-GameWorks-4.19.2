@@ -81,8 +81,11 @@ Version:4.9
 
 
 
-<!-- Begin RequiredModule Table Includes -->
-<!--
+[COMMENT:none]
+ Begin RequiredModule Table Includes 
+[/COMMENT]
+[COMMENT:none]
+
 [EXCERPT:ScreenAlign]
 [REGION:simpletable]
 | フラグ | 説明 |
@@ -146,5 +149,8 @@ Version:4.9
 | _ENM_Cylindrical_ | 法線は NormalsCylinderDirection の方向へ NormalsSphereCenter を通過するシリンダーから生成されます。 |
 [/REGION]
 [/EXCERPT:NormalsMode]
--->
-<!-- End RequiredModule Includes -->
+
+[/COMMENT]
+[COMMENT:none]
+ End RequiredModule Includes 
+[/COMMENT]

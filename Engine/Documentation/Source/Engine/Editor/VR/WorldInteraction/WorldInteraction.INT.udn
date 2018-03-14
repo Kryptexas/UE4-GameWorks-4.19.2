@@ -7,9 +7,9 @@ type:how-to
 order: 3
 tags: VR
 tags: Level Editing
-version: 4.15
+version: 4.17
 skilllevel: intermediate
-topic-image:worldinteraction.png
+topic-image:movement_grid.png
 prereq:Engine/Editor/VR/ActivateVRMode
 
 
@@ -19,13 +19,13 @@ prereq:Engine/Editor/VR/ActivateVRMode
 
 ## Moving the World
 
-To move the world around while in the VR Editor you must active the movement mode by pressing and holding either of the two Controller side buttons. When the side buttons are held in, a grid pattern will be overlayed in the world indicating that you have activated movement mode.
+To move the world around while in the VR Mode you must activate the movement mode by pressing and holding either of the two Controller side buttons. When the side buttons are held in, a grid pattern will be overlaid in the world indicating that you have activated movement mode.
 
 ![](movement_grid.png)(w:640)
 
 1. To move the world, squeeze and hold the controller Side Buttons while completely extending your arm in front of you. 
 
-1. Quickly pull your arm towards your chest, releasing your grip on the controller side buttons halfway way through, to pull the world toward you.
+1. Quickly pull your arm towards your chest, releasing your grip on the controller side buttons halfway through to pull the world toward you.
 
 1. Squeeze and hold the controller Side Buttons.
 
@@ -33,19 +33,19 @@ To move the world around while in the VR Editor you must active the movement mod
 
 1. Aim the controller at the Actor in the world you want to teleport to.
 
-	![](teleport_aim.png)(h:320)
+    ![](teleport_aim.png)(h:320)
 
-1. Squeeze in the Trigger on the Controller to teleport to the Actor.
+1. Squeeze in on the Trigger on the Controller to teleport to the Actor.
 
-	![](teleport_move.png)(h:320)
+    ![](teleport_move.png)(h:320)
 
-## Roating the World
+## Rotating the World
 
 1. Squeeze the Side Buttons on both controllers.
 
 1. Move the controllers around each other to rotate the world as if you are grabbing onto it with your hands and rotating it.
 
-	![](rotate_world.png)
+    ![](rotate_world.png)
 
 
 ## Scaling the World

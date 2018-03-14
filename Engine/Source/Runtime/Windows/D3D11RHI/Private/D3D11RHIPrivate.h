@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11RHIPrivate.h: Private D3D RHI definitions.
@@ -31,10 +31,6 @@ DECLARE_LOG_CATEGORY_EXTERN(LogD3D11RHI, Log, All);
 
 #ifndef WITH_DX_PERF
 #define WITH_DX_PERF	1
-#endif
-
-#ifndef NV_AFTERMATH
-#define NV_AFTERMATH	0
 #endif
 
 #if NV_AFTERMATH
@@ -272,14 +268,7 @@ struct FD3DGPUProfiler : public FGPUProfiler
 	/** GPU hitch profile histories */
 	TIndirectArray<FD3D11EventNodeFrame> GPUHitchEventNodeFrames;
 
-	FD3DGPUProfiler(class FD3D11DynamicRHI* InD3DRHI) :
-		FGPUProfiler(),
-		FrameTiming(InD3DRHI, 4),
-		D3D11RHI(InD3DRHI)
-	{
-		// Initialize Buffered timestamp queries 
-		FrameTiming.InitResource();
-	}
+	FD3DGPUProfiler(class FD3D11DynamicRHI* InD3DRHI);
 
 	virtual FGPUProfilerEventNode* CreateEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent) override
 	{
@@ -421,6 +410,7 @@ public:
 	virtual void* RHILockTextureCubeFace(FTextureCubeRHIParamRef Texture, uint32 FaceIndex, uint32 ArrayIndex, uint32 MipIndex, EResourceLockMode LockMode, uint32& DestStride, bool bLockWithinMiptail) final override;
 	virtual void RHIUnlockTextureCubeFace(FTextureCubeRHIParamRef Texture, uint32 FaceIndex, uint32 ArrayIndex, uint32 MipIndex, bool bLockWithinMiptail) final override;
 	virtual void RHIBindDebugLabelName(FTextureRHIParamRef Texture, const TCHAR* Name) final override;
+	virtual void RHIBindDebugLabelName(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const TCHAR* Name) final override;
 	virtual void RHIReadSurfaceData(FTextureRHIParamRef Texture,FIntRect Rect,TArray<FColor>& OutData,FReadSurfaceDataFlags InFlags) final override;
 	virtual void RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRect InRect, TArray<FLinearColor>& OutData, FReadSurfaceDataFlags InFlags) final override;
 	virtual void RHIMapStagingSurface(FTextureRHIParamRef Texture,void*& OutData,int32& OutWidth,int32& OutHeight) final override;
@@ -474,7 +464,6 @@ public:
 	virtual void RHIEndFrame() final override;
 	virtual void RHIBeginScene() final override;
 	virtual void RHIEndScene() final override;
-	virtual void RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint32 Offset) final override;
 	virtual void RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Offset) final override;
 	virtual void RHISetRasterizerState(FRasterizerStateRHIParamRef NewState) final override;
 	virtual void RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ) final override;
@@ -556,6 +545,13 @@ public:
 		return Direct3DDeviceIMContext;
 	}
 
+#if NV_AFTERMATH
+	GFSDK_Aftermath_ContextHandle GetNVAftermathContext()
+	{
+		return NVAftermathIMContextHandle;
+	}
+#endif
+
 	IDXGIFactory1* GetFactory() const
 	{
 		return DXGIFactory1;
@@ -565,6 +561,9 @@ public:
 	{
 		return GPUProfilingData.CheckGpuHeartbeat();
 	}
+
+	bool IsQuadBufferStereoEnabled();
+	void DisableQuadBufferStereo();
 
 private:
 	void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
@@ -638,6 +637,10 @@ protected:
 
 	/** The global D3D device's immediate context */
 	TRefCountPtr<FD3D11DeviceContext> Direct3DDeviceIMContext;
+
+#if NV_AFTERMATH
+	GFSDK_Aftermath_ContextHandle NVAftermathIMContextHandle;
+#endif
 
 	/** The global D3D device's immediate context */
 	TRefCountPtr<FD3D11Device> Direct3DDevice;

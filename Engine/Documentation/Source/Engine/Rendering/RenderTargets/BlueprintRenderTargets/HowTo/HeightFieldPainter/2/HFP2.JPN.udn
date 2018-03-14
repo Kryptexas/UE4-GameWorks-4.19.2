@@ -82,7 +82,8 @@ Height Field Painter ブループリントを作成する前に、UE4 コンテ�
 
 必要なアセットの作成はこれで完了です。次のセクションでは、ハイトマップ ペインターを作成するために、これらのアセットをすべてリンクさせるブループリントの作成方法を説明します。
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:HFP]
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -237,9 +238,11 @@ Height Field Painter ブループリントを作成する前に、UE4 コンテ�
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:HFP]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:ForceSplat]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -521,7 +524,8 @@ Height Field Painter ブループリントを作成する前に、UE4 コンテ�
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:ForceSplat]
--->
+
+[/COMMENT]
 
 
 

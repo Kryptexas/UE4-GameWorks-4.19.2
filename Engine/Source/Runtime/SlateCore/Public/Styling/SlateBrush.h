@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -120,7 +120,7 @@ struct SLATECORE_API FSlateBrush
 
 #if WITH_EDITORONLY_DATA
 	/** Tinting applied to the image. */
-	UPROPERTY()
+	UPROPERTY(NotReplicated)
 	FLinearColor Tint_DEPRECATED;
 #endif
 

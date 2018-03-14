@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ControlRigTrackEditor.h"
 #include "MovieSceneControlRigSection.h"
@@ -207,6 +207,11 @@ FControlRigTrackEditor::FControlRigTrackEditor( TSharedRef<ISequencer> InSequenc
 TSharedRef<ISequencerTrackEditor> FControlRigTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
 	return MakeShareable( new FControlRigTrackEditor( InSequencer ) );
+}
+
+bool FControlRigTrackEditor::SupportsSequence(UMovieSceneSequence* InSequence) const
+{
+	return (InSequence != nullptr) && (InSequence->GetClass()->GetName() == TEXT("ControlRigSequence"));
 }
 
 bool FControlRigTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const

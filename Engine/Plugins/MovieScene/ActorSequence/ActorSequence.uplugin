@@ -19,7 +19,7 @@
 		{
 			"Name" : "ActorSequence",
 			"Type" : "Runtime",
-			"LoadingPhase" : "Default"
+			"LoadingPhase" : "PreDefault"
 		}
 	]
 }

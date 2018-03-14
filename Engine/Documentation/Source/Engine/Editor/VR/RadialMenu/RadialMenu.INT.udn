@@ -6,13 +6,206 @@ parent: Engine/Editor/VR
 type: reference
 order: 3
 tags: VR
-version: 4.15
+version: 4.17
 skilllevel: intermediate
 topic-image:radialmenu.png
 prereq:Engine/Editor/VR/ActivateVRMode
 
-
 [TOC(start:1 end:4)]
+
+The Radial Menu provides an interface that enables the user to quickly reach all functions of VR Mode, including the Modes Panels, Asset Editors, Simulate and Play in VR, consolidating the functionality of the old Radial Menu and the Quick Menu into one intuitive user interface. In the following page, you will find a detailed reference for what each option on the radial menu performs.  
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    UVM1nmnslSY
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
+
+## Editor Windows 
+
+Editor windows are no longer docked to the Controller when opened. Instead, they open slightly offset from the left controller. The Close button is now nested beside the interaction bar underneath each window. When opening a window, if you keep the trigger depressed, you will see a preview of where the window will be placed.
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    JaDHuajGPoI
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
+
+## Context- Sensitive Option
+
+A context-sensitive option has been added to the Radial Main Menu. This menu option offers quick access to additional features available within different tools.
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    fE3rY6dlhNM
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
+
+## Radial Menu Options
+
+Below you will find a breakdown for what each option in the radial menu performs when used in the UE4 editor. 
+
+[REGION:lightbox]
+[![](controllers.png)(w:594)](controllers.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+### Snapping 
+
+![](T_Radial_Snapping.png)(w:128)
+
+Pressing this button will display the following snapping options.
+
+|Icon|Name|Description|
+|------|----|----|
+|![](T_Radial_Translate_Snap.png)(w:64)|**Translate Snap**|Enables or disables snapping objects to a grid when dragging them around.|
+|![](T_Radial_Snapping.png)(w:64)|**Translate Snap Value**|Sets the position snap grid value.|
+|![](T_Radial_Rotate_Snap.png)(w:64)|**Rotate Snap**|Enables or disables snapping objects to a rotation grid.|
+|![](T_Radial_Angle_Num.png)(w:64)|**Rotate Snap Value**|Sets the rotation snap grid value.|
+|![](T_Radial_Translate_Snap.png)(w:64)|**Scale Snap Value**|Enables or disables snapping objects to a scale grid.|
+|![](T_Radial_Scale_Num.png)(w:64)|**Scale Snap Value**|Sets the scale snap grid value.|
+|![](T_Radial_Align_Actors.png)(w:64)|**Smart Snapping**|Smart snapping uses the bounds of your object to align to other actors in the scene, enabling you to exactly fit them together without needing to build modular assets with a grid in mind.|
+|![](T_Radial_Set_Targets.png)(w:64)|**Set Targets**|Set which Actors should be used with Smart Snapping.|
+### Gizmo
+
+![](T_Radial_Universal.png)(w:128)
+
+Pressing this button will display the following Gizmo options.
+
+|Icon|Name|Description|
+|------|----|----|
+|![](T_Radial_Local_Space.png)(w:64)|**Local Space**|Put the transforms gizmos into a Local (object) coordinate system.|
+|![](T_Radial_World_Space.png)(w:64)|**World Space**|Put the transforms gizmos into a World coordinate system.|
+|![](T_Radial_Universal.png)(w:64)|**Universal**|Allows the gizmo to move, rotate and scale the selected Actor.|
+|![](T_Radial_Translate.png)(w:64)|**Translate**|Restricts the gizmo to only move the selected Actor.|
+|![](T_Radial_Gizmo.png)(w:64)|**Rotate**|Restricts the gizmo to only rotate the selected Actor.|
+|![](T_Radial_Scale.png)(w:64)|**Scale**|Restricts the gizmo to only scale the selected Actor.|
+
+### Windows
+
+![](T_Radial_Windows.png)(w:128)
+
+Pressing this button will display the following windows.
+
+|Icon|Name|Description|
+|------|----|----|
+|![](T_Radial_Details.png)(w:64)|**Details Panel**|Opens up the Details panel.|
+|![](T_Radial_Windows.png)(w:64)|**Content Browser**|Opens up the Content Browser.|
+|![](T_Radial_Modes.png)(w:64)|**Modes Panel**|Opens up the Modes Panel.|
+|![](T_Radial_World_Outliner.png)(w:64)|**World Outliner**|Opens up the World Outliner.|
+|![](T_Radial_World_Space.png)(w:64)|**World Settings**|Opens up the World Settings.|
+|![](T_Radial_Sequencer.png)(w:64)|**Create Sequence**|Creates a new sequence.|
+
+### Edit
+
+![](T_Radial_Edit.png)(w:128)
+
+Pressing this button will display the following edit options.
+
+[region:note]
+The options inside of Edit mode will only be available for use if you have an Actor selected.
+[/region]
+
+|Icon|Name|Description|
+|------|----|----|
+|![](T_Radial_Deselect_All.png)(w:64)|**Deselect All**|Deselect all currently selected Actors.|
+|![](T_Radial_Delete.png)(w:64)|**Delete**|Delete currently selected Actor.|
+|![](T_Radial_Cut.png)(w:64)|**Cut**|Cut currently selected Actor.|
+|![](T_Radial_Copy.png)(w:64)|**Copy**|Copy currently selected Actor.|
+|![](T_Radial_Duplicate.png)(w:64)|**Duplicate Selected**|Duplicate currently selected Actor.|
+|![](T_Radial_Paste.png)(w:64)|**Paste**|Paste Actor that was copied.|
+|![](T_Radial_Snaps.png)(w:64)|**Snap To Floor**|Snap current Actor to the floor.|
+
+### Tools
+
+![](T_Radial_Tools.png)(w:128)
+
+Pressing this button will display the following Tools.
+
+|Icon|Name|Description|
+|------|----|----|
+|![](T_Radial_Simulate.png)(w:64)|**Simulate**|Start simulating the game.|
+|![](T_Radial_Save_Actors.png)(w:64)|**Save Actors**|Saves the selected Actors simulated position back to the editor.|
+|![](T_Radial_Pause.png)(w:64)|**Pause**|Pauses the simulation.|
+|![](T_Radial_Resume.png)(w:64)|**Resume**|Resumes the simulation from being paused.|
+|![](T_Radial_Seq_Play.png)(w:64)|**Play**|Starts the simulation.|
+|![](T_Radial_Screenshot.png)(w:64)|**Screenshot**|Takes a screenshot of the current view.|
+|![](T_Radial_Flashlight.png)(w:64)|**Flashlight**|Enables / Disables the flashlight which can be used to illuminate dark screens.|
+
+### Modes
+
+![](T_Radial_Modes.png)(w:128)
+
+
+Actives new menus based on which tool is currently being used.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[COMMENT:none]
 
 The **Radial Menu** provides access to common actions like undo, redo, paste, etc.
 
@@ -20,9 +213,9 @@ The **Radial Menu** provides access to common actions like undo, redo, paste, et
 
 ## Using the Radial Menu
 
-1. Lightly touch the Track Pad with your thumb to display the Radial Menu.
-1. Move your thumb around the Track Pad to highlight an option.
-1. Press the Track Pad down to select the highlighted option.
+1. Lightly touch the TrackPad with your thumb to display the Radial Menu.
+1. Move your thumb around the TrackPad to highlight an option.
+1. Press the TrackPad down to select the highlighted option.
 
 ## Radial Menu Options
 
@@ -39,6 +232,4 @@ These are the available options when you open up the Radial Menu in the VR Edito
 | **Delete** | Deletes the selected Actor(s). |
 | **Cut** | Copies the selected Actor(s) to the clipboard and removes it from the scene. |
 
-
-
-
+[/COMMENT]

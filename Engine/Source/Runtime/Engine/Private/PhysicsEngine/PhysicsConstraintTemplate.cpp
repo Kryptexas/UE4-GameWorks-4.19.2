@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
 #include "PhysicsEngine/PhysicsAsset.h"
@@ -71,6 +71,11 @@ void UPhysicsConstraintTemplate::PostEditChangeChainProperty(FPropertyChangedCha
 void UPhysicsConstraintTemplate::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	//If anything changes, update the profile instance
+	UpdateProfileInstance();
+}
+
+void UPhysicsConstraintTemplate::UpdateProfileInstance()
+{
 	const FName CurrentProfileName = GetCurrentConstraintProfileName();
 	if(CurrentProfileName == NAME_None)
 	{

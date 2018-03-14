@@ -1,9 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Materials/MaterialExpressionLandscapeLayerSample.h"
 #include "Engine/Engine.h"
 #include "EngineGlobals.h"
 #include "MaterialCompiler.h"
+#include "Materials/Material.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
@@ -67,11 +68,14 @@ void UMaterialExpressionLandscapeLayerSample::GetCaption(TArray<FString>& OutCap
 }
 #endif // WITH_EDITOR
 
-void UMaterialExpressionLandscapeLayerSample::GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
+void UMaterialExpressionLandscapeLayerSample::GetAllParameterInfo(TArray<FMaterialParameterInfo> &OutParameterInfo, TArray<FGuid> &OutParameterIds, const FMaterialParameterInfo& InBaseParameterInfo) const
 {
-	if (!OutParameterNames.Contains(ParameterName))
+	int32 CurrentSize = OutParameterInfo.Num();
+	FMaterialParameterInfo NewParameter(ParameterName, InBaseParameterInfo.Association, InBaseParameterInfo.Index);
+	OutParameterInfo.AddUnique(NewParameter);
+
+	if (CurrentSize != OutParameterInfo.Num())
 	{
-		OutParameterNames.Add(ParameterName);
 		OutParameterIds.Add(ExpressionGUID);
 	}
 }

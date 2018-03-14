@@ -14,8 +14,10 @@ track:LevelDesign_Beginner|7
 ![](actorBanner.png)
 [/REGION]
 
-<!-- At the most fundamental level, an [**Actor**](Gameplay/UnrealTerminology) is any gameplay Object that you can place, or [spawn/instantiate](Gameplay/HowTo/SpawnAndDestroyActors), in a level. Unreal Engine 4 handles the most commonly used cases automatically, like when you drag an Static Mesh from the **Content Browser** into a level, you will get a **Static Mesh Actor**.
--->
+[COMMENT:none]
+ At the most fundamental level, an [**Actor**](Gameplay/UnrealTerminology) is any gameplay Object that you can place, or [spawn/instantiate](Gameplay/HowTo/SpawnAndDestroyActors), in a level. Unreal Engine 4 handles the most commonly used cases automatically, like when you drag an Static Mesh from the **Content Browser** into a level, you will get a **Static Mesh Actor**.
+
+[/COMMENT]
 
 [INCLUDE:Shared/Glossary/A#glossary_actor]
 
@@ -27,9 +29,8 @@ properties will be modified to cause them to look or behave appropriately.
 
 ## Working with Actors
 
-[DIR(output:"topic" parent:"Engine/Actors" org:"hierarchy" end:"1" path:"!Engine/Actors/Types")]
+[DIR(output:"topic" parent:"Engine/Actors" org:"hierarchy" end:"1")]
 
 ## Actor Types
 
-%Engine/Actors/Types:topic%
 [DIR(output:"topic" parent:"Engine/Actors/Types")]

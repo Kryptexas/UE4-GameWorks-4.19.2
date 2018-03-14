@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NetworkFileServerHttp.h"
 #include "NetworkFileServerConnection.h"
@@ -253,7 +253,7 @@ void FNetworkFileServerHttp::Process(FArchive& In, TArray<uint8>&Out, FNetworkFi
 		FGuid ClientGuid;
 		In << ClientGuid;
 
-		UE_LOG(LogFileServer, Log, TEXT("Recieved GUID %s"), *ClientGuid.ToString());
+		UE_LOG(LogFileServer, Log, TEXT("Received GUID %s"), *ClientGuid.ToString());
 
 		FNetworkFileServerClientConnectionHTTP* Connection = NULL;
 		if (Server->RequestHandlers.Contains(ClientGuid))

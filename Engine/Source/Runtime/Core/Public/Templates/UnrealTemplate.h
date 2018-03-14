@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -117,6 +117,24 @@ template <typename T>
 CONSTEXPR SIZE_T GetNum(std::initializer_list<T> List)
 {
 	return List.size();
+}
+
+/**
+ * Returns a non-const pointer type as const.
+ */
+template <typename T>
+FORCEINLINE const T* AsConst(T* Ptr)
+{
+	return Ptr;
+}
+
+/**
+ * Returns a non-const reference type as const.
+ */
+template <typename T>
+FORCEINLINE const T& AsConst(T& Ref)
+{
+	return Ref;
 }
 
 /*----------------------------------------------------------------------------
@@ -244,10 +262,10 @@ private:
  * Usage:
  *  	TGuardValue<bool> GuardSomeBool(bSomeBool, false); // Sets bSomeBool to false, and restores it in dtor.
  */
-template <typename Type>
+template <typename RefType, typename AssignedType = RefType>
 struct TGuardValue : private FNoncopyable
 {
-	TGuardValue(Type& ReferenceValue, const Type& NewValue)
+	TGuardValue(RefType& ReferenceValue, const AssignedType& NewValue)
 	: RefValue(ReferenceValue), OldValue(ReferenceValue)
 	{
 		RefValue = NewValue;
@@ -263,14 +281,14 @@ struct TGuardValue : private FNoncopyable
 	 *
 	 * @return	a const reference to the original data value
 	 */
-	FORCEINLINE const Type& operator*() const
+	FORCEINLINE const AssignedType& operator*() const
 	{
 		return OldValue;
 	}
 
 private:
-	Type& RefValue;
-	Type OldValue;
+	RefType& RefValue;
+	AssignedType OldValue;
 };
 
 
@@ -558,9 +576,24 @@ struct TIdentity
 };
 
 /**
- * Equivalent to std::declval.  
+ * Equivalent to std::declval.
  *
  * Note that this function is unimplemented, and is only intended to be used in unevaluated contexts, like sizeof and trait expressions.
  */
 template <typename T>
 T&& DeclVal();
+
+/**
+ * Uses implicit conversion to create an instance of a specific type.
+ * Useful to make things clearer or circumvent unintended type deduction in templates.
+ * Safer than C casts and static_casts, e.g. does not allow down-casts
+ *
+ * @param Obj  The object (usually pointer or reference) to convert.
+ *
+ * @return The object converted to the specified type.
+ */
+template <typename T>
+FORCEINLINE T ImplicitConv(typename TIdentity<T>::Type Obj)
+{
+    return Obj;
+}

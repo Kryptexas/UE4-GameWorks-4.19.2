@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -21,6 +21,8 @@ class UNiagaraGraph : public UEdGraph
 {
 	GENERATED_UCLASS_BODY()
 
+	DECLARE_MULTICAST_DELEGATE(FOnDataInterfaceChanged);
+
 	//~ Begin UObject Interface
 	virtual void PostLoad() override;
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)override;
@@ -33,7 +35,7 @@ class UNiagaraGraph : public UEdGraph
 	bool IsEmpty() const { return Nodes.Num() == 0; }
 			
 	/** Find the first output node bound to the target usage type.*/
-	class UNiagaraNodeOutput* FindOutputNode(ENiagaraScriptUsage TargetUsageType, int32 TargetOccurrence = 0) const;
+	class UNiagaraNodeOutput* FindOutputNode(ENiagaraScriptUsage TargetUsageType, FGuid TargetUsageId = FGuid()) const;
 
 	/** Find all output nodes.*/
 	void FindOutputNodes(TArray<UNiagaraNodeOutput*>& OutputNodes) const;
@@ -50,7 +52,6 @@ class UNiagaraGraph : public UEdGraph
 			, bFilterDuplicates(false)
 			, bFilterByScriptUsage(false)
 			, TargetScriptUsage(ENiagaraScriptUsage::Function)
-			, TargetOccurence(0)
 		{
 		}
 
@@ -68,15 +69,15 @@ class UNiagaraGraph : public UEdGraph
 		bool bFilterByScriptUsage;
 		/** The specified script usage required for an input.*/
 		ENiagaraScriptUsage TargetScriptUsage;
-		/** The specified occurrence within the graph of the script usage*/
-		int32 TargetOccurence;
+		/** The specified id within the graph of the script usage*/
+		FGuid TargetScriptUsageId;
 	};
 
 	/** Finds input nodes in the graph with. */
 	void FindInputNodes(TArray<class UNiagaraNodeInput*>& OutInputNodes, FFindInputNodeOptions Options = FFindInputNodeOptions()) const;
 
 	/** Get an in-order traversal of a graph by the specified target output script usage.*/
-	void BuildTraversal(TArray<class UNiagaraNode*>& OutNodesTraversed, ENiagaraScriptUsage TargetUsage, int32 TargetOccurence = 0) const;
+	void BuildTraversal(TArray<class UNiagaraNode*>& OutNodesTraversed, ENiagaraScriptUsage TargetUsage, FGuid TargetUsageId) const;
 	void BuildTraversal(TArray<class UNiagaraNode*>& OutNodesTraversed, UNiagaraNode* FinalNode) const;
 
 	/** Generates a list of unique input and output parameters for when this script is used as a function. */
@@ -92,8 +93,13 @@ class UNiagaraGraph : public UEdGraph
 
 	bool HasNumericParameters()const;
 
+	bool HasParameterMapParameters()const;
+
 	/** Signal to listeners that the graph has changed */
 	void NotifyGraphNeedsRecompile();
+
+	/** Notifies the graph that a contained data interface has changed. */
+	void NotifyGraphDataInterfaceChanged();
 
 	/** Get all referenced graphs in this specified graph, including this graph. */
 	void GetAllReferencedGraphs(TArray<const UNiagaraGraph*>& Graphs) const;
@@ -107,14 +113,37 @@ class UNiagaraGraph : public UEdGraph
 	/** Identify that this graph has undergone changes that will require synchronization with a compiled script.*/
 	void MarkGraphRequiresSynchronization();
 
+	virtual void NotifyGraphChanged() override;
+
 	FGuid GetChangeID() { return ChangeId; }
 
 	/** Walk through the graph for an ParameterMapGet nodes and see if any of them specify a default for VariableName.*/
-	UEdGraphPin* FindParameterMapDefaultValuePin(const FString& VariableName);
+	UEdGraphPin* FindParameterMapDefaultValuePin(const FName VariableName);
+
+	/** Get the meta-data associated with this variable, if it exists.*/
+	FNiagaraVariableMetaData* GetMetaData(const FNiagaraVariable& InVar);
+	const FNiagaraVariableMetaData* GetMetaData(const FNiagaraVariable& InVar) const;
+
+	/** Return the meta-data associated with this variable. This should only be called on variables defined explicitly for this Graph, otherwise meta-data may leak.*/
+	FNiagaraVariableMetaData& FindOrAddMetaData(const FNiagaraVariable& InVar);
+
+	/** Remove any meta-data that is no longer being referenced within this graph.*/
+	void PurgeUnreferencedMetaData();
+
+	/** Gets a delegate which is called whenever a contained data interfaces changes. */
+	FOnDataInterfaceChanged& OnDataInterfaceChanged();
+
 private:
+	virtual void NotifyGraphChanged(const FEdGraphEditAction& InAction) override;
 	
 	/** The current change identifier for this graph. Used to sync status with UNiagaraScripts.*/
 	UPROPERTY()
 	FGuid ChangeId;
+
+	/** Storage of meta-data for variables defined for use explicitly with this graph.*/
+	UPROPERTY()
+	TMap<FNiagaraVariable,FNiagaraVariableMetaData> VariableToMetaData;
+
+	FOnDataInterfaceChanged OnDataInterfaceChangedDelegate;
 };
 

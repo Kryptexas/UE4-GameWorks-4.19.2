@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PostProcessSettingsCustomization.h"
 #include "UObject/UnrealType.h"
@@ -64,7 +64,7 @@ void FPostProcessSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 	static const auto VarTonemapperFilm = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperFilm"));
 	static const auto VarMobileTonemapperFilm = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.TonemapperFilm"));
 	static const FName LegacyTonemapperName("LegacyTonemapper");
-	static const FName TonemapperCategory("Tonemapper");
+	static const FName TonemapperCategory("Film");
 	static const FName MobileTonemapperCategory("Mobile Tonemapper");
 
 	const bool bDesktopTonemapperFilm = VarTonemapperFilm->GetValueOnGameThread() == 1;

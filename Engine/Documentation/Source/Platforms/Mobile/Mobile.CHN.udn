@@ -15,59 +15,35 @@ type:landing
 ![](mobile_banner.png)
 [/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		开始
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 开始
+
+[REGION:buttonlist]
+
 		[DIR(output:"topiccompact" type:"quickstart" tags:"mobile")]
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		移动平台
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 移动平台
+
+[REGION:buttonlist]
+
 		[DIR(output:"listbutton" type:"landing" parent:"Platforms/Mobile")]
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		移动服务
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 移动服务
+
+[REGION:buttonlist]
+
 		[DIR(end:"1" output:"listbutton" type:"howto" parent:"Platforms/Mobile")]
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		通用移动开发
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 通用移动开发
+
+[REGION:buttonlist]
+
 		[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/Mobile")]
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 

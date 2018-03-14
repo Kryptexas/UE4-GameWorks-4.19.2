@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -50,11 +50,11 @@ public class Launch : ModuleRules
 			(Target.Platform == UnrealTargetPlatform.Mac)))
 		{
 			PrivateDependencyModuleNames.Add("LauncherCheck");
-			Definitions.Add("WITH_LAUNCHERCHECK=1");
+			PublicDefinitions.Add("WITH_LAUNCHERCHECK=1");
 		}
 		else
 		{
-			Definitions.Add("WITH_LAUNCHERCHECK=0");
+			PublicDefinitions.Add("WITH_LAUNCHERCHECK=0");
 		}
 
 		if (Target.Type != TargetType.Server)
@@ -81,7 +81,6 @@ public class Launch : ModuleRules
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Linux)
 			{
-				DynamicallyLoadedModuleNames.Add("ALAudio");
 				DynamicallyLoadedModuleNames.Add("AudioMixerSDL");
 				PrivateDependencyModuleNames.Add("Json");
 			}
@@ -246,6 +245,12 @@ public class Launch : ModuleRules
 					"LinuxCommonStartup"
 				}
 			);
+		}
+
+		if(Target.LinkType == TargetLinkType.Monolithic && !Target.bFormalBuild)
+		{
+			PrivateDefinitions.Add(string.Format("COMPILED_IN_CL={0}", Target.Version.Changelist));
+			PrivateDefinitions.Add(string.Format("COMPILED_IN_COMPATIBLE_CL={0}", Target.Version.EffectiveCompatibleChangelist));
 		}
 	}
 }

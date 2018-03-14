@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ShaderPreprocessor.h"
 #include "Misc/FileHelper.h"
@@ -67,8 +67,11 @@ private:
 
 			if (This->ShaderInput.Environment.IncludeVirtualPathToContentsMap.Contains(VirtualFilePath))
 			{
-				FileContents = FString(UTF8_TO_TCHAR(
-					This->ShaderInput.Environment.IncludeVirtualPathToContentsMap.FindRef(VirtualFilePath).GetData()));
+				FileContents = This->ShaderInput.Environment.IncludeVirtualPathToContentsMap.FindRef(VirtualFilePath);
+			}
+			else if (This->ShaderInput.Environment.IncludeVirtualPathToExternalContentsMap.Contains(VirtualFilePath))
+			{
+				FileContents = *This->ShaderInput.Environment.IncludeVirtualPathToExternalContentsMap.FindRef(VirtualFilePath);
 			}
 			else
 			{

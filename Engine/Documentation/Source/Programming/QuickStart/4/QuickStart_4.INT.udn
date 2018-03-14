@@ -4,24 +4,12 @@ Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:Creating a test object in your level
 SkillLevel: Beginner
 Version: 4.9
+parent:Programming/QuickStart
+order:4
+type:quick start
+type:multi-step
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Programming\QuickStart\3 "%Programming\QuickStart\3:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Programming Quick Start Home](Programming\QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Programming\QuickStart\5 "%Programming\QuickStart\5:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 1. In the **Unreal Editor**, locate the **Content Browser**, and expand the folder called "C++ Classes". Within that folder, there is a "QuickStart" folder that contains our **Actor** class, **FloatingActor**.
 
@@ -43,76 +31,69 @@ Version: 4.9
 
 	[![](MovingCone.png)](MovingCone.png)
 
-[OBJECT:Section]
-    [PARAMLITERAL:id]
-    code
-    [/PARAMLITERAL]
-    [PARAM:heading]
-    Finished Code
-    [/PARAM]
-    [PARAM:content]
-		**FloatingActor.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+## Finished Code
+   
+**FloatingActor.h**
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-			#pragma once
+	#pragma once
 
-			#include "GameFramework/Actor.h"
-			#include "FloatingActor.generated.h"
+	#include "GameFramework/Actor.h"
+	#include "FloatingActor.generated.h"
 
-			UCLASS()
-			class QUICKSTART_API AFloatingActor : public AActor
-			{
-				GENERATED_BODY()
+	UCLASS()
+	class QUICKSTART_API AFloatingActor : public AActor
+	{
+		GENERATED_BODY()
 	
-			public:	
-				// Sets default values for this actor's properties
-				AFloatingActor();
+	public:	
+		// Sets default values for this actor's properties
+		AFloatingActor();
 
-			protected:
-				// Called when the game starts or when spawned
-				virtual void BeginPlay() override;
+	protected:
+		// Called when the game starts or when spawned
+		virtual void BeginPlay() override;
 	
-			public:
-				// Called every frame
-				virtual void Tick( float DeltaSeconds ) override;
+	public:
+		// Called every frame
+		virtual void Tick( float DeltaSeconds ) override;
 	
-				float RunningTime;
-			};
+		float RunningTime;
+	};
 
-		**FloatingActor.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+**FloatingActor.cpp**
 
-			#include "QuickStart.h"
-			#include "FloatingActor.h"
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-			// Sets default values
-			AFloatingActor::AFloatingActor()
-			{
- 				// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-				PrimaryActorTick.bCanEverTick = true;
+	#include "QuickStart.h"
+	#include "FloatingActor.h"
 
-			}
+	// Sets default values
+	AFloatingActor::AFloatingActor()
+	{
+ 		// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+		PrimaryActorTick.bCanEverTick = true;
 
-			// Called when the game starts or when spawned
-			void AFloatingActor::BeginPlay()
-			{
-				Super::BeginPlay();
+	}
+
+	// Called when the game starts or when spawned
+	void AFloatingActor::BeginPlay()
+	{
+		Super::BeginPlay();
 	
-			}
+	}
 
-			// Called every frame
-			void AFloatingActor::Tick( float DeltaTime )
-			{
-				Super::Tick( DeltaTime );
+	// Called every frame
+	void AFloatingActor::Tick( float DeltaTime )
+	{
+		Super::Tick( DeltaTime );
 
-				FVector NewLocation = GetActorLocation();
-				float DeltaHeight = (FMath::Sin(RunningTime + DeltaTime) - FMath::Sin(RunningTime));
-				NewLocation.Z += DeltaHeight * 20.0f;       //Scale our height by a factor of 20
-				RunningTime += DeltaTime;
-				SetActorLocation(NewLocation);
-			}
+		FVector NewLocation = GetActorLocation();
+		float DeltaHeight = (FMath::Sin(RunningTime + DeltaTime) - FMath::Sin(RunningTime));
+		NewLocation.Z += DeltaHeight * 20.0f;       //Scale our height by a factor of 20
+		RunningTime += DeltaTime;
+		SetActorLocation(NewLocation);
+	}
 
-    [/PARAM]
-[/OBJECT]
 
-%Steps%
+[NAV]

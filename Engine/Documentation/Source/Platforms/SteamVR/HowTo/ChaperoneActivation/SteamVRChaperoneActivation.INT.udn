@@ -3,31 +3,29 @@ Crumbs: %ROOT%, Platforms
 Title: Detect SteamVR Chaperone System Activation
 Description: Detecting if the user has activated the SteamVR Chaperone system.
 Type: how-to
-Skilllevel: Intermidate
+Skilllevel:Intermediate
 Version: 4.17
 Parent: Platforms/SteamVR
 Order: 2
 tags: VR
 topic-image:Platforms\SteamVR\SteamVRDevelopment_topic.png
+prereq: Platforms\SteamVR\HowTo\StandingCamera
+prereq:Platforms\VR\MotionController
+prereq:Platforms\SteamVR\HowTo\Chaperone
+
+![](SteamVRChapActivation_Hero_Image.png)
 
 The SteamVR Chaperone system is used to display the boundaries of the VR interaction area. As a tracked device approaches the boundaries, the SteamVR Runtime automatically provides visual cues notifying the user of this. In the following How - To we will take a look at how to display the interaction as well as other visual cues to notify the users that one of their devices is outside or are close to going outside the interaction area.
 
 [REGION:note]
-The following How - To is going to make use of the Standing VR Pawn with added Motion Controller and Chaperone support. If you are not sure how to set this up, the following two How - To's will help you out.
-* [Set Up Standing Cameras for SteamVR](Platforms\SteamVR\HowTo\StandingCamera)
-* [Set Up Motion Controllers](Platforms\VR\MotionController)
-* [Set Up the Chaperone System](Platforms\SteamVR\HowTo\Chaperone)
-[/REGION]
-
-[REGION:note]
-For the Chaperone system to work, you will need to make sure you have set up Room Scale VR using the SteamVR tools. For more information on how to do this, please see the official [HTC Vive](https://www.vive.com/us/support/category_howto/setting-up-room-scale-play-area.html) Setup pages.
+For the Chaperone system to work, you will need to make sure you have set up **Room Scale** VR using the SteamVR tools. For more information on how to do this, please see the official [HTC Vive](https://www.vive.com/us/support/category_howto/setting-up-room-scale-play-area.html) Setup pages.
 [/REGION]
 
 [REGION:warning]
 It is **NOT** possible nor advisable to disable the Chaperone system from inside UE4. You can, however, adjust how UE4 will react to the user getting close to the boundaries.  
 [/REGION]
 
-## Interacting with the SteamVR Chaperone System
+## Steps
 
 1.  To display the SteamVR Chaperone Boundary, we first have to know when one of the user's devices is close to it. To figure this out inside UE4, we can use the **Bind Event to OnRetunToBounds** and **Bind Event to OnLeaveBounds** nodes.  Inside of your player Pawn Blueprint add the following nodes to the **Event Graph**.
 
@@ -39,15 +37,20 @@ It is **NOT** possible nor advisable to disable the Chaperone system from inside
     Click for full image.
     [/REGION]
 
-    * **Bind Event to OnRetunToBounds**
-    * **Bind Event to OnLeaveBounds**
-    * **SteamVRChaperone**
+	[REGION:simpletable]
+    |Node Name| Value |
+    |--------|------------|
+    |**Bind Event to OnReturnToBounds**|N/A|
+    |**Bind Event to OnLeaveBounds**|N/A|
+    |**SteamVRChaperone**|N/A|
+    [/REGION]
+
 
 1. Over in the **Variables** panel, create a new **Boolean** variable called **inBounds** so that we can track when the user leaves and enters the Chaperone bounds. 
 
     ![](SteamVRChapActivation_01.png)
 
-1. Next, we want to make sure that as soon as the level starts, we are checking to see if the user is close to the bounds or not. To do this, we need to connect the Bind Event to OnRetunToBounds and Bind Event to OnLeaveBounds nodes together and then connect the **SteamVRChaperone** Object Reference to the **Target** input on both Bind Event nodes. Finally connecting the input to the Bind Event to OnLeaveBounds node to the output of the Set Tracking Origin node. When completed, your Pawn Blueprint should look like the following image.
+1. Next, we want to make sure that as soon as the level starts, we are checking to see if the user is close to the bounds or not. To do this, we need to connect the Bind Event to OnRetunToBounds and Bind Event to OnLeaveBounds nodes together and then connect the **SteamVRChaperone** Object Reference to the **Target** input on both Bind Event nodes. Finally connecting the input to the Bind Event to OnLeaveBounds node to the output of the Set Tracking Origin node. When completed, your Pawn Blueprint should look like the following image:
 
     [REGION:lightbox]
     [![](SteamVRChapActivation_02.png)(w:833)](SteamVRChapActivation_02.png)
@@ -78,13 +81,19 @@ It is **NOT** possible nor advisable to disable the Chaperone system from inside
     [/REGION]
 
 1. We now need a way to notify the user that they have left or returned to the tracking area. To do this, we can use the **Print String** node and print a message to the screen every Tick that lets the user know if they are in or outside the tracking area. To set this up in your Pawn Blueprint, you will need to add the following nodes to the Event graph.
+	
+	[REGION:simpletable]
+    |Node Name| Value |
+    |--------|------------|
+    |** Event Tick**|N/A|
+    |**Branch**|N/A|
+    |**Print String** x 2|N/A|
+	|**InBounds**|N/A|
+    [/REGION]
 
-    * **Event Tick**
-    * **Branch**
-    * **Print String** x 2 
-    * **InBounds**
+1. Connect the Event Tick output to the input on the Branch node and connect the **InBounds** to the **Condition** input and then connect the Print String nodes to the **True** and **False** outputs on the Branch node. Make sure to input some text in the Print String nodes that describes what is going. For this example the phrase **You have returned to the tracking bounds**  and **You have left the tracking bounds** were used but feel free to use whatever you like.
 
-1. Connect the Event Tick output to the input on the Branch node and connect the **InBounds** to the **Condition** input and then connect the Print String nodes to the **True** and **False** outputs on the Branch node. Make sure to input some text in the Print String nodes that describes what is going. For this example the phrase **You have returned to the tracking bounds**  and **You have left the tracking bounds** where used but feel free to use whatever you like. When completed your Pawn Blueprint should look like the following image.
+	When completed your Pawn Blueprint should look like the following image.
 
     [REGION:lightbox]
     [Include:Platforms\SteamVR\HowTo\ChaperoneActivation\#SVRFinalBP]
@@ -94,32 +103,35 @@ It is **NOT** possible nor advisable to disable the Chaperone system from inside
     Click on image to copy Blueprint code.
     [/REGION]
 
-1. Now, put on your HTC Vive HMD on, pick up your Motion controllers and launch the project using VR Preview. Once the project launches, slowly move one of the Motion controllers to towards the Chaperone boundary, and as soon as you get close the message that is printed to the screen will change like in the following video.
+## End Result
 
-    [OBJECT:EmbeddedVideo]
-        [PARAMLITERAL:videoid]
-            _QyYbsdbQT4
-        [/PARAMLITERAL]
-        [PARAMLITERAL:width]
-        100
-        [/PARAMLITERAL]
-        [PARAMLITERAL:height]
-        56.25
-        [/PARAMLITERAL]
-        [PARAMLITERAL:units]
-        %
-        [/PARAMLITERAL]
-        [PARAMLITERAL:type]
-        simple
-        [/PARAMLITERAL]
-    [/OBJECT]
+Now, put on your HTC Vive HMD, pick up your Motion controllers and launch the project using VR Preview. Once the project launches, slowly move one of the Motion controllers to towards the Chaperone boundary, and as soon as you get close, the message that is printed to the screen will change like in the following video.
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+        _QyYbsdbQT4
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
 
 ## UE4 Project Downloads
 Below you will find a link to where you can download the UE4 project that was used to create this example.
 
-* [**SteamVR Chaperon Activation Example Project**](https://epicgames.box.com/s/zpvbgdudx756l8n6z50fk58pap4ou7u0)
+* [**SteamVR Chaperone Activation Example Project**](https://epicgames.box.com/s/zpvbgdudx756l8n6z50fk58pap4ou7u0)
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SVRFinalBP]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -294,4 +306,5 @@ Below you will find a link to where you can download the UE4 project that was us
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:SVRFinalBP]
--->
+
+[/COMMENT]

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -221,39 +221,8 @@ bool rcErodeWalkableArea(rcContext* ctx, int radius, rcCompactHeightfield& chf)
 	return true;
 }
 
-/// @par 
-/// 
-/// Basically, any spans that are closer to a boundary or obstruction than the specified radius 
-/// are marked as unwalkable.
-///
-/// This method is usually called immediately after the heightfield has been built.
-///
-/// @see rcCompactHeightfield, rcBuildCompactHeightfield, rcConfig::walkableRadius
-bool rcErodeWalkableAndLowAreas(rcContext* ctx, int radius, unsigned int height,
-	unsigned char areaId, rcCompactHeightfield& chf)
+void SeedWalkableAreasErode(int w, int h, int lowSpanHeight, int lowSpanSeed, const rcCompactHeightfield& chf, unsigned char* dist, unsigned char* seed)
 {
-	rcAssert(ctx);
-
-	const int w = chf.width;
-	const int h = chf.height;
-
-	ctx->startTimer(RC_TIMER_ERODE_AREA);
-
-	unsigned char* dist = (unsigned char*)rcAlloc(sizeof(unsigned char)*chf.spanCount, RC_ALLOC_TEMP);
-	unsigned char* seed = (unsigned char*)rcAlloc(sizeof(unsigned char)*chf.spanCount, RC_ALLOC_TEMP);
-	if (!dist || !seed)
-	{
-		ctx->log(RC_LOG_ERROR, "erodeWalkableArea: Out of memory 'dist' (%d).", chf.spanCount);
-		return false;
-	}
-
-	// Init distance.
-	memset(dist, 0xff, sizeof(unsigned char)*chf.spanCount);
-	memset(seed, 0x0, sizeof(unsigned char)*chf.spanCount);
-
-	const unsigned char thr = (unsigned char)(radius * 2);
-
-	// Mark boundary cells.
 	for (int y = 0; y < h; ++y)
 	{
 		for (int x = 0; x < w; ++x)
@@ -265,10 +234,10 @@ bool rcErodeWalkableAndLowAreas(rcContext* ctx, int radius, unsigned int height,
 				{
 					dist[i] = 0;
 				}
-				else if (chf.spans[i].h < height)
+				else if (chf.spans[i].h < lowSpanHeight)
 				{
 					dist[i] = 0;
-					seed[i] = thr + 3;
+					seed[i] = lowSpanSeed;
 				}
 				else
 				{
@@ -294,6 +263,145 @@ bool rcErodeWalkableAndLowAreas(rcContext* ctx, int radius, unsigned int height,
 			}
 		}
 	}
+}
+
+void SeedWalkableAreasErodeFiltered(int w, int h, int lowSpanHeight, int lowSpanSeed, const rcCompactHeightfield& chf, unsigned char* dist, unsigned char* seed)
+{
+	for (int y = 0; y < h; ++y)
+	{
+		for (int x = 0; x < w; ++x)
+		{
+			const rcCompactCell& c = chf.cells[x + y*w];
+
+			// initialize to max height in case it needs to start with a low span
+			int32 NextAllowedLowBase = 0xffff;
+
+			for (int ni = (int)c.index, i = (int)(c.index + c.count) - 1; i >= ni; i--)
+			{
+				const rcCompactSpan& s = chf.spans[i];
+				if (chf.areas[i] == RC_NULL_AREA)
+				{
+					// null area doesn't reset low span Z gate, they are often mixed forming series of small spans (1..10 voxels height)
+					dist[i] = 0;
+				}
+				else if (s.h < lowSpanHeight)
+				{
+					dist[i] = 0;
+
+					if (s.y < NextAllowedLowBase)
+					{
+						seed[i] = lowSpanSeed;
+
+						// next low span is allowed after full agent height (or valid area from condition below)
+						NextAllowedLowBase = rcMax(0, s.y - lowSpanHeight);
+					}
+					else
+					{
+						// mark as unable to receive seed propagation
+						seed[i] = 0xff;
+					}
+				}
+				else
+				{
+					// allow low span under this one
+					NextAllowedLowBase = s.y;
+
+					int nc = 0;
+					for (int dir = 0; dir < 4; ++dir)
+					{
+						if (rcGetCon(s, dir) != RC_NOT_CONNECTED)
+						{
+							const int nx = x + rcGetDirOffsetX(dir);
+							const int ny = y + rcGetDirOffsetY(dir);
+							const int nidx = (int)chf.cells[nx + ny*w].index + rcGetCon(s, dir);
+							if (chf.areas[nidx] != RC_NULL_AREA)
+							{
+								nc++;
+							}
+						}
+					}
+					// At least one missing neighbour.
+					if (nc != 4)
+						dist[i] = 0;
+				}
+			}
+		}
+	}
+}
+
+void FilterLowHeightSpans(int w, int h, int lowSpanHeight, unsigned char areaId, const rcCompactHeightfield& chf)
+{
+	for (int y = 0; y < h; ++y)
+	{
+		for (int x = 0; x < w; ++x)
+		{
+			const rcCompactCell& c = chf.cells[x + y*w];
+
+			// initialize to max height in case it needs to start with a low span
+			int32 NextAllowedLowBase = 0xffff;
+
+			for (int ni = (int)c.index, i = (int)(c.index + c.count) - 1; i >= ni; i--)
+			{
+				const rcCompactSpan& s = chf.spans[i];
+				if (chf.areas[i] == areaId)
+				{
+					if (s.y > NextAllowedLowBase)
+					{
+						chf.areas[i] = RC_NULL_AREA;
+					}
+					else
+					{
+						NextAllowedLowBase = rcMax(0, s.y - lowSpanHeight);
+					}
+				}
+				else if (chf.areas[i] != RC_NULL_AREA)
+				{
+					NextAllowedLowBase = s.y;
+				}
+			}
+		}
+	}
+}
+
+/// @par 
+/// 
+/// Basically, any spans that are closer to a boundary or obstruction than the specified radius 
+/// are marked as unwalkable.
+///
+/// This method is usually called immediately after the heightfield has been built.
+///
+/// @see rcCompactHeightfield, rcBuildCompactHeightfield, rcConfig::walkableRadius
+bool rcErodeWalkableAndLowAreas(rcContext* ctx, int radius, unsigned int height,
+	unsigned char areaId, unsigned char filterFlags, rcCompactHeightfield& chf)
+{
+	rcAssert(ctx);
+
+	const int w = chf.width;
+	const int h = chf.height;
+
+	ctx->startTimer(RC_TIMER_ERODE_AREA);
+
+	unsigned char* dist = (unsigned char*)rcAlloc(sizeof(unsigned char)*chf.spanCount, RC_ALLOC_TEMP);
+	unsigned char* seed = (unsigned char*)rcAlloc(sizeof(unsigned char)*chf.spanCount, RC_ALLOC_TEMP);
+	if (!dist || !seed)
+	{
+		ctx->log(RC_LOG_ERROR, "erodeWalkableArea: Out of memory 'dist' (%d).", chf.spanCount);
+		return false;
+	}
+
+	// Init distance.
+	memset(dist, 0xff, sizeof(unsigned char)*chf.spanCount);
+	memset(seed, 0x0, sizeof(unsigned char)*chf.spanCount);
+
+	const unsigned char thr = (unsigned char)(radius * 2);
+	if (filterFlags & RC_LOW_FILTER_SEED_SPANS)
+	{
+		SeedWalkableAreasErodeFiltered(w, h, height, thr, chf, dist, seed);
+	}
+	else
+	{
+		SeedWalkableAreasErode(w, h, height, thr, chf, dist, seed);
+	}
 
 	unsigned char nd;
 	unsigned char ns;
@@ -307,6 +415,7 @@ bool rcErodeWalkableAndLowAreas(rcContext* ctx, int radius, unsigned int height,
 			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
 			{
 				const rcCompactSpan& s = chf.spans[i];
+				unsigned char updatedSeed = seed[i];
 
 				if (rcGetCon(s, 0) != RC_NOT_CONNECTED)
 				{
@@ -321,10 +430,10 @@ bool rcErodeWalkableAndLowAreas(rcContext* ctx, int radius, unsigned int height,
 						dist[i] = nd;
 					}
 
-					ns = (unsigned char)rcMax((int)seed[ai] - 2, 0);
-					if (ns > seed[i])
+					if (seed[ai] != 0xff)
 					{
-						seed[i] = ns;
+						ns = (unsigned char)rcMax((int)seed[ai] - 2, 0);
+						updatedSeed = rcMax(updatedSeed, ns);
 					}
 
 					// (-1,-1)
@@ -337,10 +446,10 @@ bool rcErodeWalkableAndLowAreas(rcContext* ctx, int radius, unsigned int height,
 						if (nd < dist[i])
 							dist[i] = nd;
 
-						ns = (unsigned char)rcMax((int)seed[aai] - 3, 0);
-						if (ns > seed[i])
+						if (seed[aai] != 0xff)
 						{
-							seed[i] = ns;
+							ns = (unsigned char)rcMax((int)seed[aai] - 3, 0);
+							updatedSeed = rcMax(updatedSeed, ns);
 						}
 					}
 				}
@@ -355,10 +464,10 @@ bool rcErodeWalkableAndLowAreas(rcContext* ctx, int radius, unsigned int height,
 					if (nd < dist[i])
 						dist[i] = nd;
 
-					ns = (unsigned char)rcMax((int)seed[ai] - 2, 0);
-					if (ns > seed[i])
+					if (seed[ai] != 0xff)
 					{
-						seed[i] = ns;
+						ns = (unsigned char)rcMax((int)seed[ai] - 2, 0);
+						updatedSeed = rcMax(updatedSeed, ns);
 					}
 
 					// (1,-1)
@@ -371,12 +480,18 @@ bool rcErodeWalkableAndLowAreas(rcContext* ctx, int radius, unsigned int height,
 						if (nd < dist[i])
 							dist[i] = nd;
 
-						ns = (unsigned char)rcMax((int)seed[aai] - 3, 0);
-						if (ns > seed[i])
+						if (seed[aai] != 0xff)
 						{
-							seed[i] = ns;
+							ns = (unsigned char)rcMax((int)seed[aai] - 3, 0);
+							updatedSeed = rcMax(updatedSeed, ns);
 						}
 					}
+				}
+
+				const bool bCanReceiveSeedPropagation = (seed[i] != 0xff);
+				if (bCanReceiveSeedPropagation)
+				{
+					seed[i] = updatedSeed;
 				}
 			}
 		}
@@ -391,6 +506,7 @@ bool rcErodeWalkableAndLowAreas(rcContext* ctx, int radius, unsigned int height,
 			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
 			{
 				const rcCompactSpan& s = chf.spans[i];
+				unsigned char updatedSeed = seed[i];
 
 				if (rcGetCon(s, 2) != RC_NOT_CONNECTED)
 				{
@@ -403,10 +519,10 @@ bool rcErodeWalkableAndLowAreas(rcContext* ctx, int radius, unsigned int height,
 					if (nd < dist[i])
 						dist[i] = nd;
 
-					ns = (unsigned char)rcMax((int)seed[ai] - 2, 0);
-					if (ns > seed[i])
+					if (seed[ai] != 0xff)
 					{
-						seed[i] = ns;
+						ns = (unsigned char)rcMax((int)seed[ai] - 2, 0);
+						updatedSeed = rcMax(updatedSeed, ns);
 					}
 
 					// (1,1)
@@ -419,10 +535,10 @@ bool rcErodeWalkableAndLowAreas(rcContext* ctx, int radius, unsigned int height,
 						if (nd < dist[i])
 							dist[i] = nd;
 
-						ns = (unsigned char)rcMax((int)seed[aai] - 3, 0);
-						if (ns > seed[i])
+						if (seed[aai] != 0xff)
 						{
-							seed[i] = ns;
+							ns = (unsigned char)rcMax((int)seed[aai] - 3, 0);
+							updatedSeed = rcMax(updatedSeed, ns);
 						}
 					}
 				}
@@ -437,10 +553,10 @@ bool rcErodeWalkableAndLowAreas(rcContext* ctx, int radius, unsigned int height,
 					if (nd < dist[i])
 						dist[i] = nd;
 
-					ns = (unsigned char)rcMax((int)seed[ai] - 2, 0);
-					if (ns > seed[i])
+					if (seed[ai] != 0xff)
 					{
-						seed[i] = ns;
+						ns = (unsigned char)rcMax((int)seed[ai] - 2, 0);
+						updatedSeed = rcMax(updatedSeed, ns);
 					}
 
 					// (-1,1)
@@ -453,12 +569,18 @@ bool rcErodeWalkableAndLowAreas(rcContext* ctx, int radius, unsigned int height,
 						if (nd < dist[i])
 							dist[i] = nd;
 
-						ns = (unsigned char)rcMax((int)seed[aai] - 3, 0);
-						if (ns > seed[i])
+						if (seed[aai] != 0xff)
 						{
-							seed[i] = ns;
+							ns = (unsigned char)rcMax((int)seed[aai] - 3, 0);
+							updatedSeed = rcMax(updatedSeed, ns);
 						}
 					}
+				}
+
+				const bool bCanReceiveSeedPropagation = (seed[i] != 0xff);
+				if (bCanReceiveSeedPropagation)
+				{
+					seed[i] = updatedSeed;
 				}
 			}
 		}
@@ -474,6 +596,12 @@ bool rcErodeWalkableAndLowAreas(rcContext* ctx, int radius, unsigned int height,
 		{
 			chf.areas[i] = RC_NULL_AREA;
 		}
+	}
+
+	if (filterFlags & RC_LOW_FILTER_POST_PROCESS)
+	{
+		// seed propagation will flood a bit and create low spans too close to each other, filter them again 
+		FilterLowHeightSpans(w, h, height, areaId, chf);
 	}
 
 	rcFree(dist);

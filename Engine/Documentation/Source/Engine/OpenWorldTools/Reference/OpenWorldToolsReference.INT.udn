@@ -122,7 +122,8 @@ This page contains a reference listing of properties you will find while working
 |**Foliage Type Object** | The foliage type that will be spawned by the procedural foliage simulation.|
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:NavMesh]
 | Value | Description |
 | --- | --- |
@@ -131,6 +132,7 @@ This page contains a reference listing of properties you will find while working
 | **Even if not Collidable** |DoCustomNavigableGeometryExport() should be called even if the mesh is non-collidable and wouldn't normally affect the navmesh.|
 | **Dont Export**|Don't export navigable geometry even if primitive is relevant for navigation (can still add modifiers).|
 [/EXCERPT:NavMesh]
--->
+
+[/COMMENT]
 
 

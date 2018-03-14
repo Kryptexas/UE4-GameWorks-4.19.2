@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -43,5 +43,6 @@ public:
 	bool GetFrameTimeHistogram(FHistogram& OutHistogram);
 
 	FZeroLoad(double InTickRate);
+	FZeroLoad(double InTickRate, const TArray<double>& FrameTimeHistogramBucketsMs);
 	virtual ~FZeroLoad() { }
 };

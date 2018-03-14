@@ -1,9 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MatineeUtils.h"
 #include "Misc/ConfigCacheIni.h"
 #include "UObject/LinkerLoad.h"
 #include "AnimationUtils.h"
+#include "GameFramework/Actor.h"
 
 /////////////////////////////////////////////////////
 // FInterpPropertyGatherer

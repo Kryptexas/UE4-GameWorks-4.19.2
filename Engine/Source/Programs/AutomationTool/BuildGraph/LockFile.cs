@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.IO;
@@ -62,7 +62,7 @@ namespace AutomationTool
                     }
                     else if ((Iterations % 30) == 0)
                     {
-                        CommandUtils.LogWarning("Still waiting for lock file '{0}' after {1} seconds.", LockFilePath, CurrentTime.Subtract(StartTime).TotalSeconds);
+                        CommandUtils.Log("Still waiting for lock file '{0}' after {1} seconds.", LockFilePath, CurrentTime.Subtract(StartTime).TotalSeconds);
                     }
 
                     // Wait for a while before retrying.

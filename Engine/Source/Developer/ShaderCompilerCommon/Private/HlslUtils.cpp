@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HlslUtils.cpp - Utils for HLSL.
@@ -1398,6 +1398,7 @@ static void ConvertFromFP32ToFP16(const TCHAR*& TypeName, CrossCompiler::FLinear
 {
 	static FString FloatTypes[9] = { "float", "float2", "float3", "float4", "float2x2", "float3x3", "float4x4", "float3x4", "float4x3" };
 	static FString HalfTypes[9] = { "half", "half2", "half3", "half4", "half2x2", "half3x3", "half4x4", "half3x4", "half4x3" };
+	//static FString HalfTypes[9] = { "min16float", "min16float2", "min16float3", "min16float4", "min16float2x2", "min16float3x3", "min16float4x4", "min16float3x4", "min16float4x3" };
 	FString NewType;
 	for (int32 i = 0; i < 9; ++i) 
 	{
@@ -1435,11 +1436,15 @@ static void ConvertFromFP32ToFP16(CrossCompiler::AST::FFunctionDefinition* Node,
 	}
 }
 
+//For these functions we do not convert arrays as no implicit conversion is allowed between half and float for arrays
 static void ConvertFromFP32ToFP16(CrossCompiler::AST::FParameterDeclarator* Node, CrossCompiler::FLinearAllocator* Allocator)
 {
 	if (Node->bIsArray)
 	{
-		return;
+		if (!FString("MRT").Equals(Node->Identifier))
+		{
+			return;
+		}
 	}
 	ConvertFromFP32ToFP16(Node->Type->Specifier, Allocator);
 }
@@ -1450,7 +1455,10 @@ static void ConvertFromFP32ToFP16(CrossCompiler::AST::FDeclaratorList* Node, Cro
 	{
 		if (Elem->AsDeclaration() && Elem->AsDeclaration()->bIsArray)
 		{
-			return;
+			if (!FString("MRT").Equals(Elem->AsDeclaration()->Identifier))
+			{
+				return;
+			}
 		}
 	}
 	ConvertFromFP32ToFP16(Node->Type->Specifier, Allocator);
@@ -1616,16 +1624,32 @@ static void HlslParserCallbackWrapperFP32ToFP16(void* CallbackData, CrossCompile
 {
 	auto* ConvertData = (FConvertFP32ToFP16*)CallbackData;
 	CrossCompiler::AST::FASTWriter writer(ConvertData->GeneratedCode);
+	TMap<FString, bool> GlobalStructures;
+	for (auto Elem : ASTNodes)
+	{
+		// We find all structures that are used for global vars and add them to the list of ones we cannot change
+		if (Elem->AsParameterDeclarator())
+		{
+			GlobalStructures.Add(Elem->AsParameterDeclarator()->Type->Specifier->TypeName);
+		}
+		if (Elem->AsDeclaratorList())
+		{
+			GlobalStructures.Add(Elem->AsDeclaratorList()->Type->Specifier->TypeName);
+		}
+	}
 	for (auto Elem : ASTNodes)
 	{
 		if (Elem->AsFunctionDefinition())
 		{
 			ConvertFromFP32ToFP16(Elem->AsFunctionDefinition(), Allocator);
 		}
-		/*if (Elem->AsDeclaratorList() && Elem->AsDeclaratorList()->Type && Elem->AsDeclaratorList()->Type->Specifier->Structure)
+		if (Elem->AsDeclaratorList() && Elem->AsDeclaratorList()->Type && Elem->AsDeclaratorList()->Type->Specifier->Structure)
 		{
-			ConvertFromFP32ToFP16(Elem->AsDeclaratorList()->Type->Specifier->Structure, Allocator);
-		}*/
+			if (!GlobalStructures.Contains(Elem->AsDeclaratorList()->Type->Specifier->Structure->Name))
+			{
+				ConvertFromFP32ToFP16(Elem->AsDeclaratorList()->Type->Specifier->Structure, Allocator);
+			}
+		}
 		Elem->Write(writer);
 	}
 	ConvertData->bSuccess = true;

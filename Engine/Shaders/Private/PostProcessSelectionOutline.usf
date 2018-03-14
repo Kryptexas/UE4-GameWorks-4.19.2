@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessSelectionOutline.usf: Post processing outline effect.
@@ -208,8 +208,14 @@ float4 PerSample(int2 PixelPos, int SampleID, FPixelInfo CenterPixelInfo, float3
 	return Ret;
 }
 
-void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition : SV_POSITION, out float4 OutColor : SV_Target0)
+void MainPS(
+	noperspective float4 UVAndScreenPos : TEXCOORD0,
+	float4 SvPosition : SV_POSITION,
+	out float4 OutColor : SV_Target0)
 {
+	float2 ViewportUV = (SvPosition.xy - float2(ViewportRect.xy)) * ViewportSize.zw;
+	float2 SceneBufferUV = ViewportUVToBufferUV(ViewportUV);
+
 	float2 UV = UVAndScreenPos.xy;
  	int2 PixelPos = (int2)SvPosition.xy;
 	
@@ -236,17 +242,17 @@ void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition :
 
 	// If this sum is zero, none of our neighbors are selected pixels and we can skip all the heavy processing
 	if (ScoutSum > 0) {
-		float SceneDepth = CalcSceneDepth(UV);
+		float SceneDepth = CalcSceneDepth(SceneBufferUV);
 
 		// This allows to reconstruct depth with a small pixel offset without many tetxure lookups (4xMSAA * 5 neighbors -> 20 samples)
 		// It's an approximation assuming the surface is a plane
 		float3 DeviceZPlane;
-		DeviceZPlane.z = Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, UV, 0).r;
+		DeviceZPlane.z = Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, SceneBufferUV, 0).r;
 
-		float Left = Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, UV + float2(-1, 0) * View.BufferSizeAndInvSize.zw, 0).r;
-		float Right= Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, UV + float2(1, 0) * View.BufferSizeAndInvSize.zw, 0).r;
-		float Top  = Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, UV + float2(0, -1) * View.BufferSizeAndInvSize.zw, 0).r;
-		float Bottom = Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, UV + float2(0, 1) * View.BufferSizeAndInvSize.zw, 0).r;
+		float Left = Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, SceneBufferUV + float2(-1, 0) * View.BufferSizeAndInvSize.zw, 0).r;
+		float Right= Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, SceneBufferUV + float2(1, 0) * View.BufferSizeAndInvSize.zw, 0).r;
+		float Top  = Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, SceneBufferUV + float2(0, -1) * View.BufferSizeAndInvSize.zw, 0).r;
+		float Bottom = Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, SceneBufferUV + float2(0, 1) * View.BufferSizeAndInvSize.zw, 0).r;
 
 		float2 DeviceZMinMax;
 		DeviceZMinMax.x = min(DeviceZPlane.z, min(min(Left, Right), min(Top, Bottom)));

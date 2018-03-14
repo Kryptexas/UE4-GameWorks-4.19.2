@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TaskGraphInterfaces.h: TaskGraph library
@@ -21,6 +21,7 @@
 #include "Templates/RefCounting.h"
 #include "Containers/LockFreeFixedSizeAllocator.h"
 #include "Misc/MemStack.h"
+#include "Templates/Atomic.h"
 
 #if !defined(STATS)
 #error "STATS must be defined as either zero or one."
@@ -106,8 +107,39 @@ namespace ENamedThreads
 		AnyBackgroundThreadNormalTask = AnyThread | BackgroundThreadPriority | NormalTaskPriority,
 		AnyBackgroundHiPriTask = AnyThread | BackgroundThreadPriority | HighTaskPriority,
 	};
-	extern CORE_API Type RenderThread; // this is not an enum, because if there is no render thread, this is just the game thread.
-	extern CORE_API Type RenderThread_Local; // this is not an enum, because if there is no render thread, this is just the game thread.
+
+	struct FRenderThreadStatics
+	{
+	private:
+		// These are private to prevent direct access by anything except the friend functions below
+		static CORE_API TAtomic<Type> RenderThread;
+		static CORE_API TAtomic<Type> RenderThread_Local;
+
+		friend Type GetRenderThread();
+		friend Type GetRenderThread_Local();
+		friend void SetRenderThread(Type Thread);
+		friend void SetRenderThread_Local(Type Thread);
+	};
+
+	FORCEINLINE Type GetRenderThread()
+	{
+		return FRenderThreadStatics::RenderThread.Load(EMemoryOrder::Relaxed);
+	}
+
+	FORCEINLINE Type GetRenderThread_Local()
+	{
+		return FRenderThreadStatics::RenderThread_Local.Load(EMemoryOrder::Relaxed);
+	}
+
+	FORCEINLINE void SetRenderThread(Type Thread)
+	{
+		FRenderThreadStatics::RenderThread.Store(Thread, EMemoryOrder::Relaxed);
+	}
+
+	FORCEINLINE void SetRenderThread_Local(Type Thread)
+	{
+		FRenderThreadStatics::RenderThread_Local.Store(Thread, EMemoryOrder::Relaxed);
+	}
 
 	// these allow external things to make custom decisions based on what sorts of task threads we are running now.
 	// this are bools to allow runtime tuning.
@@ -548,6 +580,17 @@ public:
 	}
 
 	/**
+	*	Sets the thread that you want to execute the null gather task on. This is useful if the thing waiting for this chain to complete is a single, named thread. 
+	*	CAUTION: This is only legal while executing the task associated with this event.
+	*	@param ThreadToDoGatherOn thread and priority to execute null gather task on
+	**/
+	void SetGatherThreadForDontCompleteUntil(ENamedThreads::Type InThreadToDoGatherOn)
+	{
+		checkThreadGraph(!IsComplete()); // it is not legal to add a DontCompleteUntil after the event has been completed. Basically, this is only legal within a task function.
+		ThreadToDoGatherOn = InThreadToDoGatherOn;
+	}
+
+	/**
 	 *	"Complete" the event. This grabs the list of subsequents and atomically closes it. Then for each subsequent it reduces the number of prerequisites outstanding and if that drops to zero, the task is queued.
 	 *	@param CurrentThreadIfKnown if the current thread is known, provide it here. Otherwise it will be determined via TLS if any task ends up being queued.
 	**/
@@ -579,6 +622,7 @@ private:
 	**/
 	friend struct FGraphEventAndSmallTaskStorage;
 	FGraphEvent(bool bInInline = false)
+		: ThreadToDoGatherOn(ENamedThreads::AnyHiPriThreadHiPriTask)
 	{
 	}
 
@@ -619,11 +663,12 @@ public:
 private:
 
 	/** Threadsafe list of subsequents for the event **/
-	TClosableLockFreePointerListUnorderedSingleConsumer<FBaseGraphTask, 0>		SubsequentList;
+	TClosableLockFreePointerListUnorderedSingleConsumer<FBaseGraphTask, 0>	SubsequentList;
 	/** List of events to wait for until firing. This is not thread safe as it is only legal to fill it in within the context of an executing task. **/
 	FGraphEventArray														EventsToWaitFor;
 	/** Number of outstanding references to this graph event **/
 	FThreadSafeCounter														ReferenceCount;
+	ENamedThreads::Type														ThreadToDoGatherOn;
 };
 
 
@@ -783,7 +828,7 @@ private:
 			FScopeCycleCounter Scope(Task.GetStatId(), true); 
 			Task.DoTask(CurrentThread, Subsequents);
 			Task.~TTask();
-			checkThreadGraph(ENamedThreads::GetThreadIndex(CurrentThread) <= ENamedThreads::RenderThread || FMemStack::Get().IsEmpty()); // you must mark and pop memstacks if you use them in tasks! Named threads are excepted.
+			checkThreadGraph(ENamedThreads::GetThreadIndex(CurrentThread) <= ENamedThreads::GetRenderThread() || FMemStack::Get().IsEmpty()); // you must mark and pop memstacks if you use them in tasks! Named threads are excepted.
 		}
 		
 		TaskConstructed = false;
@@ -984,7 +1029,7 @@ public:
 	 */
 	FCustomStatIDGraphTaskBase(const TStatId& StatId)
 	{
-#if STATS
+#if STATS || ENABLE_STATNAMEDEVENTS
 		StatID = StatId;
 #endif
 	}
@@ -996,15 +1041,18 @@ public:
 	 */
 	FORCEINLINE TStatId GetStatId() const
 	{
-#if STATS
+#if STATS|| ENABLE_STATNAMEDEVENTS
 		return StatID;
 #endif
 		return TStatId();
 	}
 
 private:
+#if STATS|| ENABLE_STATNAMEDEVENTS
 	/** Stat id of this object. */
-	STAT(TStatId StatID;)
+	TStatId StatID;
+#endif
+
 };
 
 /** 

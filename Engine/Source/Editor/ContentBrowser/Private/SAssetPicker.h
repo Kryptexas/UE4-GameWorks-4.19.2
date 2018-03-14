@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -74,6 +74,9 @@ private:
 
 	/** Handler for when the "None" button is clicked */
 	FReply OnNoneButtonClicked();
+
+	/** Handle forwarding picking events. We wrap OnAssetSelected here to prevent 'Direct' selections being identified as user actions */
+	void HandleAssetSelectionChanged(const FAssetData& InAssetData, ESelectInfo::Type InSelectInfo);
 
 	/** Handler for when the user double clicks, presses enter, or presses space on an asset */
 	void HandleAssetsActivated(const TArray<FAssetData>& ActivatedAssets, EAssetTypeActivationMethod::Type ActivationMethod);

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,8 +27,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GearVRController", meta = (Keywords = "Gear VR", DeprecatedFunction, DeprecationMessage = "The GearVRController component is superfluous, and will be removed from the codebase in a future release. Please manage your own MotionControllerComponent instead."))
 	UMotionControllerComponent* GetMotionController() const;
 
-	DEPRECATED(4.17, "The GearVRController component is superfluous, and will be removed from the codebase in a future release. Please manage your own StaticMeshComponent instead (the GearVR controller mesh can be found here: /OculusVR/Meshes/GearVRController).")
-	UFUNCTION(BlueprintCallable, Category = "GearVRController", meta = (Keywords = "Gear VR", DeprecatedFunction, DeprecationMessage = "The GearVRController component is superfluous, and will be removed from the codebase in a future release. Please manage your own StaticMeshComponent instead (the GearVR controller mesh can be found here: /OculusVR/Meshes/GearVRController)."))
+	DEPRECATED(4.17, "The GearVRController component is superfluous, and will be removed from the codebase in a future release. Please manage your own StaticMeshComponent instead (the Gear VR controller mesh can be found here: /OculusVR/Meshes/GearVRController).")
+	UFUNCTION(BlueprintCallable, Category = "GearVRController", meta = (Keywords = "Gear VR", DeprecatedFunction, DeprecationMessage = "The GearVRController component is superfluous, and will be removed from the codebase in a future release. Please manage your own StaticMeshComponent instead (the Gear VR controller mesh can be found here: /OculusVR/Meshes/GearVRController)."))
 	UStaticMeshComponent* GetControllerMesh() const;
 
 	virtual void OnRegister() override;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -51,11 +51,14 @@ public:
 protected:
 	/** SPanel Interface */
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	virtual FVector2D ComputeDesiredSize(float) const override;
 	virtual FChildren* GetChildren() override { return &Children; }
 
 protected:
-	
+
+	void RequestRefresh();
+
 	void Refresh();
 
 	FGeometry GetSegmentGeometry(const FGeometry& AllottedGeometry, const SSequencerDebugSlot& Slot, const FTimeToPixel& TimeToPixelConverter) const;
@@ -66,11 +69,9 @@ protected:
 
 	void OnSequenceActivated(FMovieSceneSequenceIDRef);
 
-	const FMovieSceneEvaluationTemplateInstance* GetTemplate() const;
+	const FMovieSceneEvaluationTemplate* GetTemplate() const;
 
 private:
-
-	FMovieSceneSequenceID FocusedSequenceID;
 
 	/** The current view range */
 	TAttribute<TRange<float>> ViewRange;
@@ -79,4 +80,6 @@ private:
 	TSlotlessChildren<SSequencerDebugSlot> Children;
 
 	TWeakPtr<FSequencer> WeakSequencer;
+
+	FGuid CachedSignature;
 };

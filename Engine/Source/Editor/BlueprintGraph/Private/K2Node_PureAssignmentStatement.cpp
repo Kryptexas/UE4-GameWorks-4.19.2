@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "K2Node_PureAssignmentStatement.h"
@@ -65,9 +65,9 @@ public:
 
 // The node is (was originally) needed in expansion step for handling CreateAutoRefTerm parameters in pure functions 
 
-FString UK2Node_PureAssignmentStatement::VariablePinName = FString(TEXT("Variable"));
-FString UK2Node_PureAssignmentStatement::ValuePinName = FString(TEXT("Value"));
-FString UK2Node_PureAssignmentStatement::OutputPinName = FString(TEXT("ReturnValue"));
+FName UK2Node_PureAssignmentStatement::VariablePinName = TEXT("Variable");
+FName UK2Node_PureAssignmentStatement::ValuePinName = TEXT("Value");
+FName UK2Node_PureAssignmentStatement::OutputPinName = TEXT("ReturnValue");
 
 
 UK2Node_PureAssignmentStatement::UK2Node_PureAssignmentStatement(const FObjectInitializer& ObjectInitializer)
@@ -77,11 +77,9 @@ UK2Node_PureAssignmentStatement::UK2Node_PureAssignmentStatement(const FObjectIn
 
 void UK2Node_PureAssignmentStatement::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-
-	CreatePin(EGPD_Input, Schema->PC_Wildcard, FString(), nullptr, VariablePinName);
-	CreatePin(EGPD_Input, Schema->PC_Wildcard, FString(), nullptr, ValuePinName);
-	CreatePin(EGPD_Output, Schema->PC_Wildcard, FString(), nullptr, OutputPinName);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Wildcard, VariablePinName);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Wildcard, ValuePinName);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Wildcard, OutputPinName);
 
 	Super::AllocateDefaultPins();
 }
@@ -92,17 +90,17 @@ void UK2Node_PureAssignmentStatement::NotifyPinConnectionListChanged(UEdGraphPin
 
 	if (Pin->LinkedTo.Num() > 0)
 	{
-		const auto PinType = Pin->LinkedTo[0]->PinType;
+		const FEdGraphPinType PinType = Pin->LinkedTo[0]->PinType;
 
-		auto VariablePin = GetVariablePin();
+		UEdGraphPin* VariablePin = GetVariablePin();
 		VariablePin->PinType = PinType;
 		UEdGraphSchema_K2::ValidateExistingConnections(VariablePin);
 
-		auto OutputPin = GetOutputPin();
+		UEdGraphPin* OutputPin = GetOutputPin();
 		OutputPin->PinType = PinType;
 		UEdGraphSchema_K2::ValidateExistingConnections(OutputPin);
 
-		auto ValuePin = GetValuePin();
+		UEdGraphPin* ValuePin = GetValuePin();
 		ValuePin->PinType = PinType;
 		ValuePin->PinType.bIsReference = false;
 		UEdGraphSchema_K2::ValidateExistingConnections(ValuePin);

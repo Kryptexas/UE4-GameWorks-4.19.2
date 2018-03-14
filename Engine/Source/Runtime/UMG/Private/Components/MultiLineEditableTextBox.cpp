@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/MultiLineEditableTextBox.h"
 #include "UObject/ConstructorHelpers.h"
@@ -23,11 +23,12 @@ UMultiLineEditableTextBox::UMultiLineEditableTextBox(const FObjectInitializer& O
 	WidgetStyle = *Defaults._Style;
 	TextStyle = *Defaults._TextStyle;
 	AllowContextMenu = Defaults._AllowContextMenu.Get();
+	VirtualKeyboardDismissAction = Defaults._VirtualKeyboardDismissAction.Get();
 	AutoWrapText = true;
 
 	if (!IsRunningDedicatedServer())
 	{
-		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
+		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(*UWidget::GetDefaultFontName());
 		Font_DEPRECATED = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
 
 		WidgetStyle.SetFont(Font_DEPRECATED);
@@ -58,6 +59,7 @@ TSharedRef<SWidget> UMultiLineEditableTextBox::RebuildWidget()
 //		.RevertTextOnEscape(RevertTextOnEscape)
 //		.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
 //		.SelectAllTextOnCommit(SelectAllTextOnCommit)
+		.VirtualKeyboardDismissAction(VirtualKeyboardDismissAction)
 		.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
 		.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
 		;
@@ -76,6 +78,7 @@ void UMultiLineEditableTextBox::SynchronizeProperties()
 	MyEditableTextBlock->SetHintText(HintTextBinding);
 	MyEditableTextBlock->SetAllowContextMenu(AllowContextMenu);
 	MyEditableTextBlock->SetIsReadOnly(bIsReadOnly);
+	MyEditableTextBlock->SetVirtualKeyboardDismissAction(VirtualKeyboardDismissAction);
 
 //	MyEditableTextBlock->SetIsPassword(IsPassword);
 //	MyEditableTextBlock->SetColorAndOpacity(ColorAndOpacity);

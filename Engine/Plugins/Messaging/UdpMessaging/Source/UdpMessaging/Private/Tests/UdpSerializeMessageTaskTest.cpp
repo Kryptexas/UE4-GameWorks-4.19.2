@@ -1,7 +1,7 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
-#include "HAL/PlatformProcess.h"
+#include "HAL/Event.h"
 #include "Misc/AutomationTest.h"
 #include "Async/TaskGraphInterfaces.h"
 #include "Transport/UdpSerializedMessage.h"
@@ -16,38 +16,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUdpSerializeMessageTaskTest, "System.Core.Mess
 
 namespace UdpSerializeMessageTaskTest
 {
-	const int32 NumMessages = 100000;
-	const FTimespan MaxWaitTime(0, 0, 5);
-
-	int32 CompletedMessages = 0;
-	int32 FailedMessages = 0;
-	TSharedPtr<FUdpSerializedMessage, ESPMode::ThreadSafe> ReferenceMessage;
-}
-
-
-void HandleSerializedMessageStateChanged(TSharedRef<FUdpSerializedMessage, ESPMode::ThreadSafe> SerializedMessage)
-{
-	using namespace UdpSerializeMessageTaskTest;
-
-	FPlatformAtomics::InterlockedIncrement(&CompletedMessages);
-
-	const TArray<uint8>& ReferenceDataArray = ReferenceMessage->GetDataArray();
-	const TArray<uint8>& SerializedDataArray = SerializedMessage->GetDataArray();
-
-	if (ReferenceDataArray.Num() != SerializedDataArray.Num())
-	{
-		FPlatformAtomics::InterlockedIncrement(&FailedMessages);
-	}
-	else
-	{
-		const void* ReferenceData = ReferenceDataArray.GetData();
-		const void* SerializedData = SerializedDataArray.GetData();
-
-		if (FMemory::Memcmp(ReferenceData, SerializedData, ReferenceDataArray.Num()) != 0)
-		{
-			FPlatformAtomics::InterlockedIncrement(&FailedMessages);
-		}
-	}
+	const FTimespan MaxWaitTime(0, 0, 10);
 }
 
 
@@ -55,40 +24,41 @@ bool FUdpSerializeMessageTaskTest::RunTest(const FString& Parameters)
 {
 	using namespace UdpSerializeMessageTaskTest;
 
-	CompletedMessages = 0;
-	FailedMessages = 0;
-	ReferenceMessage = MakeShareable(new FUdpSerializedMessage);
-
-	TSharedRef<IMessageContext, ESPMode::ThreadSafe> Context = MakeShareable(new FUdpMockMessageContext(new FUdpMockMessage));
+	const auto Context = MakeShared<FUdpMockMessageContext, ESPMode::ThreadSafe>(new FUdpMockMessage);
 
 	// synchronous reference serialization
-	FUdpSerializeMessageTask ReferenceTask(Context, ReferenceMessage.ToSharedRef());
+	const auto Message1 = MakeShared<FUdpSerializedMessage, ESPMode::ThreadSafe>();
+
+	FUdpSerializeMessageTask Task1(Context, Message1, nullptr);
 	{
-		ReferenceTask.DoTask(FTaskGraphInterface::Get().GetCurrentThreadIfKnown(), FGraphEventRef());
+		Task1.DoTask(FTaskGraphInterface::Get().GetCurrentThreadIfKnown(), FGraphEventRef());
 	}
 
-	// stress test
-	for (int32 TestIndex = 0; TestIndex < NumMessages; ++TestIndex)
+	// asynchronous serialization
+	TSharedRef<FEvent, ESPMode::ThreadSafe> CompletionEvent = MakeShareable(FPlatformProcess::GetSynchEventFromPool(), [](FEvent* EventToDelete)
 	{
-		TSharedRef<FUdpSerializedMessage, ESPMode::ThreadSafe> SerializedMessage = MakeShareable(new FUdpSerializedMessage);
-		{
-			SerializedMessage->OnStateChanged().BindStatic(&HandleSerializedMessageStateChanged, SerializedMessage);
-		}
+		FPlatformProcess::ReturnSynchEventToPool(EventToDelete);
+	});
 
-		TGraphTask<FUdpSerializeMessageTask>::CreateTask().ConstructAndDispatchWhenReady(Context, SerializedMessage);
-	}
+	TSharedRef<FUdpSerializedMessage, ESPMode::ThreadSafe> Message2 = MakeShareable(new FUdpSerializedMessage);
+	TGraphTask<FUdpSerializeMessageTask>::CreateTask().ConstructAndDispatchWhenReady(Context, Message2, CompletionEvent);
 
-	FDateTime StartTime = FDateTime::UtcNow();
+	const bool Completed = CompletionEvent->Wait(MaxWaitTime);
 
-	while ((CompletedMessages < NumMessages) && ((FDateTime::UtcNow() - StartTime) < MaxWaitTime))
-	{
-		FPlatformProcess::Sleep(0.0f);
-	}
+	const TArray<uint8>& DataArray1 = Message1->GetDataArray();
+	const TArray<uint8>& DataArray2 = Message2->GetDataArray();
 
-	TestEqual(TEXT("The number of completed messages must equal the total number of messages"), CompletedMessages, NumMessages);
-	TestEqual(TEXT("There must be no failed messages"), FailedMessages, (int32)0);
+	const void* Data1 = DataArray1.GetData();
+	const void* Data2 = DataArray2.GetData();
 
-	return ((CompletedMessages == NumMessages) && (FailedMessages == 0));
+	const bool Equal = (FMemory::Memcmp(Data1, Data2, DataArray1.Num()) == 0);
+
+	TestEqual(TEXT("Synchronous message serialization must succeed"), Message1->GetState(), EUdpSerializedMessageState::Complete);
+	TestTrue(TEXT("Asynchronous message serialization must complete"), Completed);
+	TestEqual(TEXT("Asynchronous message serialization must succeed"), Message2->GetState(), EUdpSerializedMessageState::Complete);
+	TestTrue(TEXT("Synchronous and asynchronous message serialization must yield same results"), Equal);
+
+	return (Completed && Equal);
 }
 
 void EmptyLinkFunctionForStaticInitializationUdpSerializeMessageTaskTest()

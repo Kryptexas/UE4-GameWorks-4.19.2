@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -115,24 +115,11 @@ public:
 	typedef TPair<KeyType, ValueType> ElementType;
 
 protected:
-
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-
 	TMapBase() = default;
 	TMapBase(TMapBase&&) = default;
 	TMapBase(const TMapBase&) = default;
 	TMapBase& operator=(TMapBase&&) = default;
 	TMapBase& operator=(const TMapBase&) = default;
-
-#else
-
-	FORCEINLINE TMapBase() {}
-	FORCEINLINE TMapBase(      TMapBase&& Other) : Pairs(MoveTemp(Other.Pairs)) {}
-	FORCEINLINE TMapBase(const TMapBase&  Other) : Pairs(         Other.Pairs ) {}
-	FORCEINLINE TMapBase& operator=(      TMapBase&& Other) { Pairs = MoveTemp(Other.Pairs); return *this; }
-	FORCEINLINE TMapBase& operator=(const TMapBase&  Other) { Pairs =          Other.Pairs ; return *this; }
-
-#endif
 
 	/** Constructor for moving elements from a TMap with a different SetAllocator */
 	template<typename OtherSetAllocator>
@@ -768,23 +755,11 @@ class TSortableMapBase : public TMapBase<KeyType, ValueType, SetAllocator, KeyFu
 protected:
 	typedef TMapBase<KeyType, ValueType, SetAllocator, KeyFuncs> Super;
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-
 	TSortableMapBase() = default;
 	TSortableMapBase(TSortableMapBase&&) = default;
 	TSortableMapBase(const TSortableMapBase&) = default;
 	TSortableMapBase& operator=(TSortableMapBase&&) = default;
 	TSortableMapBase& operator=(const TSortableMapBase&) = default;
-
-#else
-
-	FORCEINLINE TSortableMapBase() {}
-	FORCEINLINE TSortableMapBase(      TSortableMapBase&& Other) : Super(MoveTemp(Other)) {}
-	FORCEINLINE TSortableMapBase(const TSortableMapBase&  Other) : Super(         Other ) {}
-	FORCEINLINE TSortableMapBase& operator=(      TSortableMapBase&& Other) { Super::operator=(MoveTemp(Other)); return *this; }
-	FORCEINLINE TSortableMapBase& operator=(const TSortableMapBase&  Other) { Super::operator=(         Other ); return *this; }
-
-#endif
 
 	/** Constructor for moving elements from a TMap with a different SetAllocator */
 	template<typename OtherSetAllocator>
@@ -892,23 +867,11 @@ public:
 	typedef typename Super::KeyInitType KeyInitType;
 	typedef typename Super::KeyConstPointerType KeyConstPointerType;
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-
 	TMap() = default;
 	TMap(TMap&&) = default;
 	TMap(const TMap&) = default;
 	TMap& operator=(TMap&&) = default;
 	TMap& operator=(const TMap&) = default;
-
-#else
-
-	FORCEINLINE TMap() {}
-	FORCEINLINE TMap(      TMap&& Other) : Super(MoveTemp(Other)) {}
-	FORCEINLINE TMap(const TMap&  Other) : Super(         Other ) {}
-	FORCEINLINE TMap& operator=(      TMap&& Other) { Super::operator=(MoveTemp(Other)); return *this; }
-	FORCEINLINE TMap& operator=(const TMap&  Other) { Super::operator=(         Other ); return *this; }
-
-#endif
 
 	/** Constructor for moving elements from a TMap with a different SetAllocator */
 	template<typename OtherSetAllocator>
@@ -1029,23 +992,11 @@ public:
 	typedef typename Super::KeyInitType KeyInitType;
 	typedef typename Super::ValueInitType ValueInitType;
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-
 	TMultiMap() = default;
 	TMultiMap(TMultiMap&&) = default;
 	TMultiMap(const TMultiMap&) = default;
 	TMultiMap& operator=(TMultiMap&&) = default;
 	TMultiMap& operator=(const TMultiMap&) = default;
-
-#else
-
-	FORCEINLINE TMultiMap() {}
-	FORCEINLINE TMultiMap(      TMultiMap&& Other) : Super(MoveTemp(Other)) {}
-	FORCEINLINE TMultiMap(const TMultiMap&  Other) : Super(         Other ) {}
-	FORCEINLINE TMultiMap& operator=(      TMultiMap&& Other) { Super::operator=(MoveTemp(Other)); return *this; }
-	FORCEINLINE TMultiMap& operator=(const TMultiMap&  Other) { Super::operator=(         Other ); return *this; }
-
-#endif
 
 	/** Constructor for moving elements from a TMap with a different SetAllocator */
 	template<typename OtherSetAllocator>
@@ -1279,6 +1230,40 @@ public:
 	FORCEINLINE int32 Num() const
 	{
 		return Super::Num();
+	}
+
+	/**
+	 * Move all items from another map into our map (if any keys are in both,
+	 * the value from the other map wins) and empty the other map.
+	 *
+	 * @param OtherMultiMap The other map of items to move the elements from.
+	 */
+	template<typename OtherSetAllocator>
+	void Append(TMultiMap<KeyType, ValueType, OtherSetAllocator, KeyFuncs>&& OtherMultiMap)
+	{
+		this->Reserve(this->Num() + OtherMultiMap.Num());
+		for (auto& Pair : OtherMultiMap)
+		{
+			this->Add(MoveTempIfPossible(Pair.Key), MoveTempIfPossible(Pair.Value));
+		}
+
+		OtherMultiMap.Reset();
+	}
+
+	/**
+	 * Add all items from another map to our map (if any keys are in both,
+	 * the value from the other map wins).
+	 *
+	 * @param OtherMultiMap The other map of items to add.
+	 */
+	template<typename OtherSetAllocator>
+	void Append(const TMultiMap<KeyType, ValueType, OtherSetAllocator, KeyFuncs>& OtherMultiMap)
+	{
+		this->Reserve(this->Num() + OtherMultiMap.Num());
+		for (auto& Pair : OtherMultiMap)
+		{
+			this->Add(Pair.Key, Pair.Value);
+		}
 	}
 };
 

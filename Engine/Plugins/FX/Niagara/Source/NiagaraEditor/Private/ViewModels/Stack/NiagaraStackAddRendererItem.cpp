@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraStackAddRendererItem.h"
 #include "NiagaraNodeOutput.h"
@@ -33,7 +33,7 @@ void UNiagaraStackAddRendererItem::AddRenderer(UClass* InRendererClass)
 	UNiagaraEmitter* Emitter = GetEmitterViewModel()->GetEmitter();
 	Emitter->Modify();
 	UNiagaraRendererProperties* RendererProperties = NewObject<UNiagaraRendererProperties>(Emitter, InRendererClass, NAME_None, RF_Transactional);
-	Emitter->RendererProperties.Add(RendererProperties);
+	Emitter->AddRenderer(RendererProperties);
 
 	bool bVarsAdded = false;
 	TArray<FNiagaraVariable> MissingAttributes = UNiagaraStackRendererItem::GetMissingVariables(RendererProperties, Emitter);

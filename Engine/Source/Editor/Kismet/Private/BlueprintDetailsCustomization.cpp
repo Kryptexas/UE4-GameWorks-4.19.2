@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintDetailsCustomization.h"
 #include "UObject/StructOnScope.h"
@@ -146,7 +146,7 @@ void FBlueprintDetails::AddEventsCategory(IDetailLayoutBuilder& DetailBuilder, U
 							SNew(SButton)
 							.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
 							.HAlign(HAlign_Center)
-							.OnClicked(this, &FBlueprintVarActionDetails::HandleAddOrViewEventForVariable, EventName, PropertyName, TWeakObjectPtr<UClass>(PropertyClass))
+							.OnClicked(this, &FBlueprintVarActionDetails::HandleAddOrViewEventForVariable, EventName, PropertyName, MakeWeakObjectPtr(PropertyClass))
 							.ForegroundColor(FSlateColor::UseForeground())
 							[
 								SNew(SWidgetSwitcher)
@@ -839,16 +839,14 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 				check(EntryNodes.Num() > 0);
 
 				const UStructProperty* PotentialUDSProperty = Cast<const UStructProperty>(VariableProperty);
-				//UDS requires default data even when the LocalVariable value is empty
-				const bool bUDSProperty = PotentialUDSProperty && Cast<const UUserDefinedStruct>(PotentialUDSProperty->Struct);
-
+				
 				UK2Node_FunctionEntry* FuncEntry = EntryNodes[0];
 				for (const FBPVariableDescription& LocalVar : FuncEntry->LocalVariables)
 				{
 					if(LocalVar.VarName == VariableProperty->GetFName()) //Property->GetFName())
 					{
 						// Only set the default value if there is one
-						if(bUDSProperty || !LocalVar.DefaultValue.IsEmpty())
+						if(!LocalVar.DefaultValue.IsEmpty())
 						{
 							FBlueprintEditorUtils::PropertyValueFromString(VariableProperty, LocalVar.DefaultValue, StructData->GetStructMemory());
 						}
@@ -1526,16 +1524,14 @@ FText FBlueprintVarActionDetails::OnGetCategoryText() const
 	FName VarName = CachedVariableName;
 	if (VarName != NAME_None)
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 		if ( UBlueprint* OwnerBlueprint = GetPropertyOwnerBlueprint() )
 		{
 			FText Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(OwnerBlueprint, VarName, GetLocalVariableScope(CachedVariableProperty.Get()));
 
 			// Older blueprints will have their name as the default category and whenever it is the same as the default category, display localized text
-			if ( Category.EqualTo(FText::FromString(OwnerBlueprint->GetName())) || Category.EqualTo(K2Schema->VR_DefaultCategory) )
+			if ( Category.EqualTo(FText::FromString(OwnerBlueprint->GetName())) || Category.EqualTo(UEdGraphSchema_K2::VR_DefaultCategory) )
 			{
-				return K2Schema->VR_DefaultCategory;
+				return UEdGraphSchema_K2::VR_DefaultCategory;
 			}
 			else
 			{
@@ -2865,12 +2861,10 @@ FReply FBlueprintGraphArgumentLayout::OnArgMoveDown()
 
 bool FBlueprintGraphArgumentLayout::ShouldPinBeReadOnly(bool bIsEditingPinType/* = false*/) const
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-
 	if (TargetNode && ParamItemPtr.IsValid())
 	{
 		// Right now, we only care that the user is unable to edit the auto-generated "then" pin
-		if ((ParamItemPtr.Pin()->PinType.PinCategory == Schema->PC_Exec) && (!TargetNode->CanModifyExecutionWires()))
+		if ((ParamItemPtr.Pin()->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec) && (!TargetNode->CanModifyExecutionWires()))
 		{
 			return true;
 		}
@@ -2901,7 +2895,7 @@ FText FBlueprintGraphArgumentLayout::OnGetArgNameText() const
 {
 	if (ParamItemPtr.IsValid())
 	{
-		return FText::FromString(ParamItemPtr.Pin()->PinName);
+		return FText::FromName(ParamItemPtr.Pin()->PinName);
 	}
 	return FText();
 }
@@ -2911,7 +2905,7 @@ FText FBlueprintGraphArgumentLayout::OnGetArgToolTipText() const
 	if (ParamItemPtr.IsValid())
 	{
 		FText PinTypeText = UEdGraphSchema_K2::TypeToText(ParamItemPtr.Pin()->PinType);
-		return FText::Format(LOCTEXT("BlueprintArgToolTipText", "Name: {0}\nType: {1}"), FText::FromString(ParamItemPtr.Pin()->PinName), PinTypeText);
+		return FText::Format(LOCTEXT("BlueprintArgToolTipText", "Name: {0}\nType: {1}"), FText::FromName(ParamItemPtr.Pin()->PinName), PinTypeText);
 	}
 	return FText::GetEmpty();
 }
@@ -2934,8 +2928,7 @@ void FBlueprintGraphArgumentLayout::OnArgNameChange(const FText& InNewText)
 	}
 	else
 	{
-		const FString& OldName = ParamItemPtr.Pin()->PinName;
-		bVerified = GraphActionDetailsPtr.Pin()->OnVerifyPinRename(TargetNode, OldName, InNewText.ToString(), ErrorMessage);
+		bVerified = GraphActionDetailsPtr.Pin()->OnVerifyPinRename(TargetNode, ParamItemPtr.Pin()->PinName, InNewText.ToString(), ErrorMessage);
 	}
 
 	if(!bVerified)
@@ -2952,9 +2945,9 @@ void FBlueprintGraphArgumentLayout::OnArgNameTextCommitted(const FText& NewText,
 {
 	if (!NewText.IsEmpty() && TargetNode && ParamItemPtr.IsValid() && GraphActionDetailsPtr.IsValid() && !ShouldPinBeReadOnly())
 	{
-		const FString OldName = ParamItemPtr.Pin()->PinName;
+		const FName OldName = ParamItemPtr.Pin()->PinName;
 		const FString& NewName = NewText.ToString();
-		if(OldName != NewName)
+		if (OldName.ToString() != NewName)
 		{
 			GraphActionDetailsPtr.Pin()->OnPinRenamed(TargetNode, OldName, NewName);
 		}
@@ -2999,7 +2992,7 @@ void FBlueprintGraphArgumentLayout::PinInfoChanged(const FEdGraphPinType& PinTyp
 {
 	if (ParamItemPtr.IsValid() && FBlueprintEditorUtils::IsPinTypeValid(PinType))
 	{
-		const FString PinName = ParamItemPtr.Pin()->PinName;
+		const FName PinName = ParamItemPtr.Pin()->PinName;
 		TSharedPtr<class FBaseBlueprintGraphActionDetails> GraphActionDetailsPinned = GraphActionDetailsPtr.Pin();
 		if (GraphActionDetailsPinned.IsValid())
 		{
@@ -3783,12 +3776,11 @@ FText FBlueprintDelegateActionDetails::OnGetCategoryText() const
 {
 	if (UMulticastDelegateProperty* DelegateProperty = GetDelegateProperty())
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		FName DelegateName = DelegateProperty->GetFName();
 		FText Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(GetBlueprintObj(), DelegateName, NULL);
 
 		// Older blueprints will have their name as the default category
-		if( Category.EqualTo(FText::FromString(GetBlueprintObj()->GetName())) || Category.EqualTo(K2Schema->VR_DefaultCategory) )
+		if( Category.EqualTo(FText::FromString(GetBlueprintObj()->GetName())) || Category.EqualTo(UEdGraphSchema_K2::VR_DefaultCategory) )
 		{
 			return LOCTEXT("DefaultCategory", "Default");
 		}
@@ -4001,7 +3993,7 @@ void FBlueprintDelegateActionDetails::OnFunctionSelected(TSharedPtr<FString> Fun
 				UProperty* FuncParam = *PropIt;
 				FEdGraphPinType TypeOut;
 				Schema->ConvertPropertyToPinType(FuncParam, TypeOut);
-				UEdGraphPin* EdGraphPin = FunctionEntryNode->CreateUserDefinedPin(FuncParam->GetName(), TypeOut, EGPD_Output);
+				UEdGraphPin* EdGraphPin = FunctionEntryNode->CreateUserDefinedPin(FuncParam->GetFName(), TypeOut, EGPD_Output);
 				ensure(EdGraphPin);
 			}
 
@@ -4056,15 +4048,15 @@ struct FPinRenamedHelper : public FBasePinChangeHelper
 	}
 };
 
-bool FBaseBlueprintGraphActionDetails::OnVerifyPinRename(UK2Node_EditablePinBase* InTargetNode, const FString& InOldName, const FString& InNewName, FText& OutErrorMessage)
+bool FBaseBlueprintGraphActionDetails::OnVerifyPinRename(UK2Node_EditablePinBase* InTargetNode, const FName InOldName, const FString& InNewName, FText& OutErrorMessage)
 {
 	// If the name is unchanged, allow the name
-	if(InOldName == InNewName)
+	if (InOldName.ToString() == InNewName)
 	{
 		return true;
 	}
 
-	if( InNewName.Len() > NAME_SIZE )
+	if (InNewName.Len() > NAME_SIZE)
 	{
 		OutErrorMessage = FText::Format( LOCTEXT("PinNameTooLong", "The name you entered is too long. Names must be less than {0} characters"), FText::AsNumber( NAME_SIZE ) );
 		return false;
@@ -4084,7 +4076,7 @@ bool FBaseBlueprintGraphActionDetails::OnVerifyPinRename(UK2Node_EditablePinBase
 	return true;
 }
 
-bool FBaseBlueprintGraphActionDetails::OnPinRenamed(UK2Node_EditablePinBase* TargetNode, const FString& OldName, const FString& NewName)
+bool FBaseBlueprintGraphActionDetails::OnPinRenamed(UK2Node_EditablePinBase* TargetNode, const FName OldName, const FString& NewName)
 {
 	// Before changing the name, verify the name
 	FText ErrorMessage;
@@ -4117,10 +4109,12 @@ bool FBaseBlueprintGraphActionDetails::OnPinRenamed(UK2Node_EditablePinBase* Tar
 		// GATHER 
 		PinRenamedHelper.Broadcast(GetBlueprintObj(), TargetNode, Graph);
 
+		const FName NewFName = *NewName;
+
 		// TEST
 		for (UK2Node* NodeToRename : PinRenamedHelper.NodesToRename)
 		{
-			if (ERenamePinResult::ERenamePinResult_NameCollision == NodeToRename->RenameUserDefinedPin(OldName, NewName, true))
+			if (ERenamePinResult::ERenamePinResult_NameCollision == NodeToRename->RenameUserDefinedPin(OldName, NewFName, true))
 			{
 				return false;
 			}
@@ -4129,7 +4123,7 @@ bool FBaseBlueprintGraphActionDetails::OnPinRenamed(UK2Node_EditablePinBase* Tar
 		// UPDATE
 		for (UK2Node* NodeToRename : PinRenamedHelper.NodesToRename)
 		{
-			NodeToRename->RenameUserDefinedPin(OldName, NewName, false);
+			NodeToRename->RenameUserDefinedPin(OldName, NewFName, false);
 		}
 
 		for (UK2Node_EditablePinBase* TerminalNode : TerminalNodes)
@@ -4140,7 +4134,7 @@ bool FBaseBlueprintGraphActionDetails::OnPinRenamed(UK2Node_EditablePinBase* Tar
 			});
 			if (UDPinPtr)
 			{
-				(*UDPinPtr)->PinName = NewName;
+				(*UDPinPtr)->PinName = NewFName;
 			}
 		}
 	}
@@ -4150,8 +4144,8 @@ bool FBaseBlueprintGraphActionDetails::OnPinRenamed(UK2Node_EditablePinBase* Tar
 void FBlueprintGraphActionDetails::SetEntryAndResultNodes()
 {
 	// Clear the entry and exit nodes to the graph
-	FunctionEntryNodePtr = NULL;
-	FunctionResultNodePtr = NULL;
+	FunctionEntryNodePtr = nullptr;
+	FunctionResultNodePtr = nullptr;
 
 	if (UEdGraph* NewTargetGraph = GetGraph())
 	{
@@ -4284,8 +4278,7 @@ FText FBlueprintGraphActionDetails::OnGetCategoryText() const
 {
 	if (FKismetUserDeclaredFunctionMetadata* Metadata = GetMetadataBlock())
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		if( Metadata->Category.IsEmpty() || Metadata->Category.EqualTo(K2Schema->VR_DefaultCategory) )
+		if( Metadata->Category.IsEmpty() || Metadata->Category.EqualTo(UEdGraphSchema_K2::VR_DefaultCategory) )
 		{
 			return LOCTEXT("DefaultCategory", "Default");
 		}
@@ -4744,13 +4737,12 @@ FReply FBaseBlueprintGraphActionDetails::OnAddNewInputClicked()
 		FEdGraphPinType PinType = MyBlueprint.Pin()->GetLastFunctionPinTypeUsed();
 
 		// Make sure that if this is an exec node we are allowed one.
-		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-		if ((PinType.PinCategory == Schema->PC_Exec) && (!FunctionEntryNode->CanModifyExecutionWires()))
+		if ((PinType.PinCategory == UEdGraphSchema_K2::PC_Exec) && (!FunctionEntryNode->CanModifyExecutionWires()))
 		{
 			MyBlueprint.Pin()->ResetLastPinType();
 			PinType = MyBlueprint.Pin()->GetLastFunctionPinTypeUsed();
 		}
-		FString NewPinName = TEXT("NewParam");
+		const FName NewPinName = TEXT("NewParam");
 		if (FunctionEntryNode->CreateUserDefinedPin(NewPinName, PinType, EGPD_Output))
 		{
 			OnParamsChanged(FunctionEntryNode, true);
@@ -4819,14 +4811,13 @@ FReply FBlueprintGraphActionDetails::OnAddNewOutputClicked()
 		FEdGraphPinType PinType = MyBlueprint.Pin()->GetLastFunctionPinTypeUsed();
 		PinType.bIsReference = false;
 		// Make sure that if this is an exec node we are allowed one.
-		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-		if ((PinType.PinCategory == Schema->PC_Exec) && (!FunctionResultNode->CanModifyExecutionWires()))
+		if ((PinType.PinCategory == UEdGraphSchema_K2::PC_Exec) && (!FunctionResultNode->CanModifyExecutionWires()))
 		{
 			MyBlueprint.Pin()->ResetLastPinType();
 			PinType = MyBlueprint.Pin()->GetLastFunctionPinTypeUsed();
 		}
 
-		const FString NewPinName = FunctionResultNode->CreateUniquePinName(TEXT("NewParam"));
+		const FName NewPinName = FunctionResultNode->CreateUniquePinName(TEXT("NewParam"));
 		TArray<UK2Node_EditablePinBase*> TargetNodes = GatherAllResultNodes(FunctionResultNode);
 		bool bAllChanged = TargetNodes.Num() > 0;
 		for (UK2Node_EditablePinBase* Node : TargetNodes)
@@ -5679,14 +5670,12 @@ FText FBlueprintComponentDetails::OnGetVariableCategoryText() const
 	FName VarName = CachedNodePtr->GetVariableName();
 	if (VarName != NAME_None)
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 		FText Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(GetBlueprintObj(), VarName, NULL);
 
 		// Older blueprints will have their name as the default category
 		if( Category.EqualTo(FText::FromString(GetBlueprintObj()->GetName())) )
 		{
-			return K2Schema->VR_DefaultCategory;
+			return UEdGraphSchema_K2::VR_DefaultCategory;
 		}
 		else
 		{

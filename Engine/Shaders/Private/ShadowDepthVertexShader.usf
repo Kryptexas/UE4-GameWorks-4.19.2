@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShadowDepthVertexShader.usf: Vertex shader for writing shadow depth.
@@ -49,8 +49,6 @@ float4x4 ShadowViewProjectionMatrices[6];
 /** Flag indicating which faces of the cube map the object is visible to.  This just needs 6 bits, but there's no int parameter type yet. */
 float4 MeshVisibleToFace[6];
 
-#define FPassSpecificVSToGS FShadowDepthVSToPS
-
 struct FShadowDepthGSToPS
 {
 #if INTERPOLATE_VF_ATTRIBUTES
@@ -61,10 +59,24 @@ struct FShadowDepthGSToPS
 	/** Controls which of the cube map faces to rasterize the primitive to, only the value from the first vertex is used. */
 	uint RTIndex : SV_RenderTargetArrayIndex;
 };
- 
+
+bool IsTriangleInFrustum(float4 ClipSpacePositions[3])
+{
+	float4 FrustumTests0 = saturate(ClipSpacePositions[0].xyxy * float4(-1, -1, 1, 1) - ClipSpacePositions[0].w);
+	float4 FrustumTests1 = saturate(ClipSpacePositions[1].xyxy * float4(-1, -1, 1, 1) - ClipSpacePositions[1].w);
+	float4 FrustumTests2 = saturate(ClipSpacePositions[2].xyxy * float4(-1, -1, 1, 1) - ClipSpacePositions[2].w);
+	float4 FrustumTests = FrustumTests0 * FrustumTests1 * FrustumTests2;
+
+	float2 FrustumTestsZ0 = saturate(ClipSpacePositions[0].zz * float2(-1, 1) - ClipSpacePositions[0].w);
+	float2 FrustumTestsZ1 = saturate(ClipSpacePositions[1].zz * float2(-1, 1) - ClipSpacePositions[1].w);
+	float2 FrustumTestsZ2 = saturate(ClipSpacePositions[2].zz * float2(-1, 1) - ClipSpacePositions[2].w);
+	float2 FrustumTestsZ = FrustumTestsZ0 * FrustumTestsZ1 * FrustumTestsZ2;
+	return !( any(FrustumTests != 0) || any(FrustumTestsZ != 0) );
+}
+
 /** Allocate space for cloning to all 6 faces which is the worst case. */
 [maxvertexcount(18)]
-void MainOnePassPointLightGS(triangle FPassSpecificVSToGS Input[3], inout TriangleStream<FShadowDepthGSToPS> OutStream)
+void MainOnePassPointLightGS(triangle FShadowDepthVSToGS Input[3], inout TriangleStream<FShadowDepthGSToPS> OutStream)
 {
 	UNROLL
 	// Clone the triangle to each face
@@ -81,16 +93,10 @@ void MainOnePassPointLightGS(triangle FPassSpecificVSToGS Input[3], inout Triang
 				// Calculate the clip space position for each cube face
 				ClipSpacePositions[VertexIndex] = mul(Input[VertexIndex].GSPosition, ShadowViewProjectionMatrices[CubeFaceIndex]);
 			}
-
-			float4 FrustumTests0 = saturate(ClipSpacePositions[0].xyxy * float4(-1, -1, 1, 1) - ClipSpacePositions[0].w);		
-			float4 FrustumTests1 = saturate(ClipSpacePositions[1].xyxy * float4(-1, -1, 1, 1) - ClipSpacePositions[1].w);		
-			float4 FrustumTests2 = saturate(ClipSpacePositions[2].xyxy * float4(-1, -1, 1, 1) - ClipSpacePositions[2].w);		
-			float4 FrustumTests = FrustumTests0 * FrustumTests1 * FrustumTests2;		
-
-			BRANCH		
 			// Frustum culling, saves GPU time with high poly meshes
-			if (!any(FrustumTests != 0))		
-			{				
+			BRANCH
+			if (IsTriangleInFrustum(ClipSpacePositions))
+			{
 				FShadowDepthGSToPS Output;
 				Output.RTIndex = CubeFaceIndex;
 
@@ -106,7 +112,6 @@ void MainOnePassPointLightGS(triangle FPassSpecificVSToGS Input[3], inout Triang
 
 					#if INTERPOLATE_VF_ATTRIBUTES
 						Output.PSInputs.FactoryInterpolants = Input[VertexIndex].FactoryInterpolants;
-						Output.PSInputs.GSPosition = Output.OutPosition;
 					#endif
 
 #if INTERPOLATE_POSITION
@@ -168,10 +173,10 @@ FShadowDepthDSToPS PassFinalizeTessellationOutput(FShadowDepthVSToDS Interpolant
 
 
 #if ONEPASS_POINTLIGHT_SHADOW
-	O.Position = O.GSPosition = WorldPosition;
+	O.Position = WorldPosition;
 #if USING_VERTEX_SHADER_LAYER
 	O.LayerIndex = Interpolants.LayerIndex;
-	O.Position = O.GSPosition = WorldPosition = mul(WorldPosition, ShadowViewProjectionMatrices[Interpolants.LayerIndex]);
+	O.Position = WorldPosition = mul(WorldPosition, ShadowViewProjectionMatrices[Interpolants.LayerIndex]);
 	O.ClipDistance = Interpolants.ClipDistance;
 #endif
 #else
@@ -203,12 +208,14 @@ void Main(
 	FVertexFactoryInput Input,
 #if USING_TESSELLATION
 	out FShadowDepthVSToDS OutParameters,
-#else
-	out FShadowDepthVSToPS OutParameters,
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
+#elif ONEPASS_POINTLIGHT_SHADOW
+	out FShadowDepthVSToGS OutParameters,
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && USING_VERTEX_SHADER_LAYER
 	out uint LayerIndex : SV_RenderTargetArrayIndex,
 	out float ClipDistance : SV_ClipDistance2,
 #endif
+#else
+	out FShadowDepthVSToPS OutParameters,
 #endif
 	OPTIONAL_VertexID
 	out float4 OutPosition : SV_POSITION
@@ -290,12 +297,14 @@ void MainForGS(
 	FVertexFactoryInput Input,
 #if USING_TESSELLATION
 	out FShadowDepthVSToDS OutParameters,
-#else
-	out FShadowDepthVSToPS OutParameters,
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
+#elif ONEPASS_POINTLIGHT_SHADOW
+	out FShadowDepthVSToGS OutParameters,
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && USING_VERTEX_SHADER_LAYER
 	out uint LayerIndex : SV_RenderTargetArrayIndex,
 	out float ClipDistance : SV_ClipDistance2,
 #endif
+#else
+	out FShadowDepthVSToPS OutParameters,
 #endif
 	OPTIONAL_VertexID
 	out float4 OutPosition : SV_POSITION
@@ -319,7 +328,11 @@ void PositionOnlyMain(
 	out uint LayerIndex : SV_RenderTargetArrayIndex,
 	out float ClipDistance : SV_ClipDistance2,
 #endif
+#if ONEPASS_POINTLIGHT_SHADOW
+	out FShadowDepthVSToGS OutParameters,
+#else
 	out FShadowDepthVSToPS OutParameters,
+#endif
 	out float4 OutPosition : SV_POSITION
 	)
 {
@@ -365,7 +378,11 @@ void PositionOnlyMainForGS(
 	out uint LayerIndex : SV_RenderTargetArrayIndex,
 	out float ClipDistance : SV_ClipDistance2,
 #endif
+#if ONEPASS_POINTLIGHT_SHADOW
+	out FShadowDepthVSToGS OutParameters,
+#else
 	out FShadowDepthVSToPS OutParameters,
+#endif
 	out float4 OutPosition : SV_POSITION
 	)
 {

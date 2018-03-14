@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -58,6 +58,9 @@ struct FBlueprintSupport
 	/** Tells if the specified object is one of the many flavors of FLinkerPlaceholderBase that we have. */
 	COREUOBJECT_API static bool IsDeferredDependencyPlaceholder(UObject* LoadedObj);
 
+	/** Registers any object properties in this struct with the deferred dependency system */
+	COREUOBJECT_API static void RegisterDeferredDependenciesInStruct(const UStruct* Struct, void* StructData);
+
 	/** Not a particularly fast function. Mostly intended for validation in debug builds. */
 	static bool IsInBlueprintPackage(UObject* LoadedObj);
 
@@ -74,6 +77,21 @@ struct FBlueprintSupport
 	/** Function that walks the object graph, ensuring that there are no references to SKEL classes: */
 	COREUOBJECT_API static void ValidateNoExternalRefsToSkeletons();
 #endif
+};
+
+/**
+ * When dealing with user defined structs we don't always have a UObject container
+ * this registers raw addresses for tracking. This is somewhat less safe, make
+ * sure to not register addresses that may change
+ */
+struct COREUOBJECT_API FScopedPlaceholderRawContainerTracker
+{
+public:
+	FScopedPlaceholderRawContainerTracker(void* InData);
+	~FScopedPlaceholderRawContainerTracker();
+
+private:
+	void* Data;
 };
 
 #if WITH_EDITOR
@@ -123,16 +141,6 @@ enum class EReplacementResult
 
 	/** Completely replace the file with generated code */
 	ReplaceCompletely
-};
-
-struct COREUOBJECT_API FScopedPlaceholderRawContainerTracker
-{
-public:
-	FScopedPlaceholderRawContainerTracker(void* InData);
-	~FScopedPlaceholderRawContainerTracker();
-
-private:
-	void* Data;
 };
 
 /**
@@ -297,6 +305,7 @@ struct COREUOBJECT_API FBlueprintDependencyObjectRef
 	FName ObjectName;
 	FName ClassPackageName;
 	FName ClassName;
+	FName OuterName;
 
 	FBlueprintDependencyObjectRef() {}
 
@@ -304,7 +313,8 @@ struct COREUOBJECT_API FBlueprintDependencyObjectRef
 		, const TCHAR* InShortPackageName
 		, const TCHAR* InObjectName
 		, const TCHAR* InClassPackageName
-		, const TCHAR* InClassName);
+		, const TCHAR* InClassName
+		, const TCHAR* InOuterName );
 };
 
 struct COREUOBJECT_API FBlueprintDependencyData
@@ -354,4 +364,5 @@ public:
 	void GetAssets(FName PackageName, TArray<FBlueprintDependencyData>& OutDependencies) const;
 
 	static void FillUsedAssetsInDynamicClass(UDynamicClass* DynamicClass, GetDependenciesNamesFunc GetUsedAssets);
+	static UObject* LoadObjectForStructConstructor(UScriptStruct* ScriptStruct, const TCHAR* ObjectPath);
 };

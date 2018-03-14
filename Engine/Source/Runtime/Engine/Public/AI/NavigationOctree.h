@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -34,6 +34,14 @@ struct ENGINE_API FNavigationOctreeFilter
 struct ENGINE_API FNavigationRelevantData : public TSharedFromThis<FNavigationRelevantData, ESPMode::ThreadSafe>
 {
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FFilterNavDataDelegate, const struct FNavDataConfig*);
+
+	/** CollisionData should always start with this struct for validation purposes */
+	struct FCollisionDataHeader
+	{
+		int32 DataSize;
+		
+		static bool IsValid(const uint8* RawData, int32 RawDataSize);
+	};
 
 	/** exported geometry (used by recast navmesh as FRecastGeometryCache) */
 	TNavStatArray<uint8> CollisionData;
@@ -88,6 +96,19 @@ struct ENGINE_API FNavigationRelevantData : public TSharedFromThis<FNavigationRe
 	bool HasPerInstanceTransforms() const;
 	bool IsMatchingFilter(const FNavigationOctreeFilter& Filter) const;
 	void Shrink();
+	bool IsCollisionDataValid() const;
+
+	void ValidateAndShrink()
+	{
+		if (IsCollisionDataValid())
+		{
+			Shrink();
+		}
+		else
+		{
+			CollisionData.Empty();
+		}
+	}
 
 	FORCEINLINE UObject* GetOwner() const { return SourceObject.Get(); }
 };
@@ -137,6 +158,11 @@ struct ENGINE_API FNavigationOctreeElement
 	FORCEINLINE void Shrink()
 	{
 		Data->Shrink();
+	}
+
+	FORCEINLINE void ValidateAndShrink()
+	{
+		Data->ValidateAndShrink();
 	}
 
 	FORCEINLINE UObject* GetOwner() const { return Data->SourceObject.Get(); }

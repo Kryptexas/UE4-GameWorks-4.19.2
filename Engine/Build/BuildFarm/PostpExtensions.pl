@@ -31,6 +31,15 @@
 	# Some doxygen output can confuse the post-processor, because it lists a symbol containing "Warning::"
 	"doxygen>.*(Warning|Error)::.*",
 	
+	# Arxan	
+	"Warning:.*Source [cC]ode [mM]arkers will be unavailable",
+	"Warning: PDB file .* not found",
+	"Warning: guard '.*__page_permission_service' cannot be installed at specified location",
+	"Warning: The object file name .* in the do_not_analyze section was not found",
+
+	# PVS Studio
+	"warning Renew: Your license will expire in.*viva64\\.com",	
+	
 #	".*ERROR: The process.*not found",
 #	".*ERROR: This operation returned because the timeout period expired.*",
 #	".*Sync.VerifyKnownFileInManifest: ERROR:.*",
@@ -88,6 +97,17 @@ sub backIf($;$)
 	}
 }
 
+my $clang_file_line_pattern = 
+	'('							.
+		'(?:[a-zA-Z]:)?'		.	# optional drive letter
+		'[^:]+'					.	# any non-colon character
+	')'							.
+	'(?:'						.
+		'\s*:[\s\d:,]+:'		.	# clang-style   :123:456:
+		'|'						.
+		'\([\s\d:,]+\):'		. 	# msvc-style    (123,456):
+	')'							;
+	
 # These are patterns we want to process
 # NOTE: order is important because the file is processed line by line 
 # After an error is processed on a line that line is considered processed
@@ -111,24 +131,16 @@ unshift @::gMatchers, (
         pattern =>          q{([^(]+)\([\d,]+\) ?: warning[ :]},
         action =>           q{incValue("warnings"); my ($file_only) = ($1 =~ /([^\\\\]+)$/); diagnostic($file_only || $1, "warning", backIf("[^ ]+\.cpp\$"), forwardWhile("^(    |^([^(]+)\\\\([\\\\d,]+\\\\) ?: note)")) },
     },
-	# Two forms for Clang diagnostics - MSVC formatted (eg. Android) and normal (eg. Mac):
-	#   filename:123:4: error:
-	#   filename(123,4) : error: 
     {
         id =>               "clangError",
-        pattern =>          q{(([a-zA-Z]:)?[^:]+)(?::[\d:,]+:|\([\d:,]+\))\s*:\s*error\s*:},
-        action =>           q{incValue("errors"); diagnostic($1, "error", backWhile(": In (member )?function|In file included from"), forwardWhile("^   ")) },
-    },
+        pattern =>          q{\s*}.$clang_file_line_pattern.q{\s*error\s*:},
+		action =>           q{my $line = logLine($::gCurrentLine); $line =~ /^( *)/; my $indent = ' ' x length($1); incValue("errors"); diagnostic("", "error", backWhile("^(?:$indent).*(?:In (member )?function|In file included from)"), forwardWhile("^($indent |$indent".'}.$clang_file_line_pattern.q{\s*note:| *\$)'))},
+	},
     {
         id =>               "clangWarning",
-        pattern =>          q{(([a-zA-Z]:)?[^:]+)(?::[\d:,]+:|\([\d:,]+\))\s*:\s*warning\s*:},
-        action =>           q{incValue("warnings"); diagnostic($1, "warning", backWhile(": In (member )?function|In file included from"), forwardWhile("^   ")) },
-    },
-    {
-        id =>               "genericDoctoolError",
-        pattern =>          q{Error:},
-        action =>           q{incValue("errors"); diagnostic("", "error")}
-    },
+        pattern =>          q{\s*}.$clang_file_line_pattern.q{\s*warning\s*:},
+		action =>           q{my $line = logLine($::gCurrentLine); $line =~ /^( *)/; my $indent = ' ' x length($1); incValue("warnings"); diagnostic("", "warning", backWhile("^(?:$indent).*(?:In (member )?function|In file included from)"), forwardWhile("^($indent |$indent".'}.$clang_file_line_pattern.q{\s*note:| *\$)'))},
+	},
     {
         id =>               "ubtFailedToProduceItem",
         pattern =>          q{(ERROR: )?UBT ERROR: Failed to produce item: },
@@ -162,38 +174,33 @@ unshift @::gMatchers, (
 	{
 		id =>               "automationException",
 		pattern =>          q{AutomationTool\\.AutomationException: },
-		action =>           q{incValue("errors"); diagnostic("Exception", "error", 0, forwardWhile("^   at "));}
+		action =>           q{incValue("errors"); diagnostic("Exception", "error", 0, forwardWhile("^  at "));}
 	},
 	{
-		id =>               "generalException",
-		pattern =>          q{^ERROR: [a-zA-Z0-9_]+\\.[a-zA-Z0-9_]+Exception: },
-		action =>           q{incValue("errors"); diagnostic("Exception", "error", 0, forwardWhile("^   at "));}
+		id =>				"arxanMissingSymbol",
+		pattern =>			q{^\s*Lookup of.*returns:\s*$},
+		action =>			q{ if(logLine($::gCurrentLine + 1) =~ /^\s*\(empty\)\s*$/) { incValue("errors"); diagnostic("GuardIT", "error", 0, 1); } }
 	},
 	{
 		id =>				"ubtFatal",
 		pattern =>			q{^FATAL:},
 		action =>			q{incValue("errors"); diagnostic("AutomationTool", "error")}
 	},
-	{
-		id =>				"ubtError",
-		pattern =>			q{^ERROR:},
-		action =>			q{incValue("errors"); diagnostic("AutomationTool", "error", 0, forwardWhile("^  "))}
-	},
-	{
-		id =>				"ubtWarning",
-		pattern =>			q{^WARNING:},
-		action =>			q{incValue("warnings"); diagnostic("AutomationTool", "warning", 0, forwardWhile("^  "))}
-	},
     {
         id =>               "genericError",
-        pattern =>          q{^(.*[ :])?(ERROR|[Ee]rror)}.q{( (\([^)]+\)|\[[^\]]+\]))?: },
-        action =>           q{incValue("errors"); diagnostic("", "error", 0, forwardWhile("^   "))}
+        pattern =>          q{(?<!\w)(ERROR|[Ee]rror)}.q{( (\([^)]+\)|\[[^\]]+\]))?: },
+        action =>           q{my $line = logLine($::gCurrentLine); $line =~ /^( *)/; my $indent = ' ' x length($1); incValue("errors"); diagnostic("", "error", 0, forwardWhile("^($indent | *\$)"))},
     },
     {
         id =>               "genericWarning",
-        pattern =>          q{WARNING:|[Ww]arning:},
-        action =>           q{incValue("warnings"); diagnostic("", "warning", 0)},
+        pattern =>          q{(?<!\w)WARNING|[Ww]arning}.q{( (\([^)]+\)|\[[^\]]+\]))?: },
+        action =>           q{my $line = logLine($::gCurrentLine); $line =~ /^( *)/; my $indent = ' ' x length($1); incValue("warnings"); diagnostic("", "warning", 0, forwardWhile("^($indent | *\$)"))},
     },
+	{
+		id =>				"genericMsError",
+        pattern =>          q{[Ee]rror [A-Z]\d+\s:},
+		action =>           q{incValue("errors"); diagnostic("", "error", 0)},
+	}
 );
 
 push @::gMatchers, (

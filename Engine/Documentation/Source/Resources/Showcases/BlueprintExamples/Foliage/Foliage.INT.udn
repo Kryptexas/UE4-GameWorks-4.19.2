@@ -65,7 +65,8 @@ As you might expect, most of the work of this Blueprint is done in the **Constru
 
 
 
-<!-----------------------------------
+[COMMENT:none]
+---------------------------------
 
 [EXCERPT:FoliageCS]
 The _Construction Script_ performs the following tasks:
@@ -77,4 +78,5 @@ The _Construction Script_ performs the following tasks:
 
 
 
------------------------------------->
+----------------------------------
+[/COMMENT]

@@ -1,4 +1,5 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+// .
 
 #include "MetalBackend.h"
 #include "MetalShaderFormat.h"
@@ -362,6 +363,126 @@ class FGenerateMetalVisitor : public ir_visitor
 	{
 		const glsl_type* type;
 	};
+	
+	EMetalBufferFormat GetBufferFormat(const struct glsl_type* const type)
+	{
+		switch(type->base_type)
+		{
+			case GLSL_TYPE_UINT:
+			{
+				switch(type->components())
+				{
+					case 1:
+					{
+						return R32Uint;
+					}
+					case 2:
+					{
+						return RG32Uint;
+					}
+					case 3:
+					{
+						return RGB32Uint;
+					}
+					case 4:
+					{
+						return RGBA32Uint;
+					}
+					default:
+					{
+						check(0);
+						return Unknown;
+					}
+				}
+			}
+			case GLSL_TYPE_INT:
+			{
+				switch(type->components())
+				{
+					case 1:
+					{
+						return R32Sint;
+					}
+					case 2:
+					{
+						return RG32Sint;
+					}
+					case 3:
+					{
+						return RGB32Sint;
+					}
+					case 4:
+					{
+						return RGBA32Sint;
+					}
+					default:
+					{
+						check(0);
+						return Unknown;
+					}
+				}
+			}
+			case GLSL_TYPE_HALF:
+			{
+				switch(type->components())
+				{
+					case 1:
+					{
+						return R16Half;
+					}
+					case 2:
+					{
+						return RG16Half;
+					}
+					case 3:
+					{
+						return RGB16Half;
+					}
+					case 4:
+					{
+						return RGBA16Half;
+					}
+					default:
+					{
+						check(0);
+						return Unknown;
+					}
+				}
+			}
+			case GLSL_TYPE_FLOAT:
+			{
+				switch(type->components())
+				{
+					case 1:
+					{
+						return R32Float;
+					}
+					case 2:
+					{
+						return RG32Float;
+					}
+					case 3:
+					{
+						return RGB32Float;
+					}
+					case 4:
+					{
+						return RGBA32Float;
+					}
+					default:
+					{
+						check(0);
+						return Unknown;
+					}
+				}
+			}
+			default:
+			{
+				check(0);
+				return Unknown;
+			}
+		}
+	}
 
 public:
 	/** External variables. */
@@ -440,16 +561,6 @@ protected:
 
 	// Do we need to add #include <compute_shaders>
 	bool bNeedsComputeInclude;
-	
-	// Do we need to add CubemapTo2DArrayFace functions?
-	bool bCubeArrayHackFloat4;
-	bool bCubeArrayHackFloat3;
-	
-	// Need to inject the Metal <= v1.1 reverse_bits?
-	bool bReverseBitsWAR;
-	
-	// Need to inject the Metal vector array deref helper?
-	bool bVectorDerefHelper;
 	
 	bool bExplicitEarlyFragTests;
 	bool bImplicitEarlyFragTests;
@@ -588,7 +699,7 @@ protected:
 				{
 					if (Backend.bIsDesktop == EMetalGPUSemanticsImmediateDesktop)
 					{
-						ralloc_asprintf_append(buffer, "texturecube_array");
+						ralloc_asprintf_append(buffer, t->sampler_shadow ? "depthcube_array" : "texturecube_array");
 					}
 					else
 					{
@@ -784,21 +895,47 @@ protected:
 				{
 					// Atomic RWBuffer -> buffer
 					bool bIsStructuredBuffer = (var->type->inner_type->is_record() || !strncmp(var->type->name, "RWStructuredBuffer<", 19) || !strncmp(var->type->name, "StructuredBuffer<", 17));
-					bool bIsByteAddressBuffer = (!strncmp(var->type->name, "RWByteAddressBuffer<", 20) || !strncmp(var->type->name, "ByteAddressBuffer<", 18));
-                    if (bIsStructuredBuffer || bIsByteAddressBuffer || Backend.TypedMode != EMetalTypeBufferModeUAV || Buffers.AtomicVariables.find(var) != Buffers.AtomicVariables.end())
+					bool bIsByteAddressBuffer = (!strncmp(var->type->name, "RWByteAddressBuffer", 19) || !strncmp(var->type->name, "ByteAddressBuffer", 17));
+                    bool bIsInvariantType = var->invariant;
+					bool bIsAtomic = Buffers.AtomicVariables.find(var) != Buffers.AtomicVariables.end();
+                    if (bIsStructuredBuffer || bIsByteAddressBuffer || bIsInvariantType || bIsAtomic)
 					{
 						check(BufferIndex <= 30);
+                        
+                        if (Buffers.AtomicVariables.find(var) == Buffers.AtomicVariables.end())
+                        {
+                            uint32 Access = Backend.ImageRW.FindChecked(var);
+                            switch((EMetalAccess)Access)
+                            {
+                                case EMetalAccessRead:
+                                    ralloc_asprintf_append(buffer, "const ");
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                        
 						ralloc_asprintf_append(
 											   buffer,
 											   "device "
 											   );
-						if (Buffers.AtomicVariables.find(var) != Buffers.AtomicVariables.end())
+						if (bIsAtomic)
 						{
 							ralloc_asprintf_append(buffer, "atomic_");
 							check(BufferIndex < 8);
-							Backend.AtomicUAVs |= (1 << BufferIndex);
+							print_type_pre(PtrType->inner_type);
 						}
-						print_type_pre(PtrType->inner_type);
+						else
+						{
+							print_type_pre(PtrType->inner_type);
+							
+							// Record the buffer type for invariant typed-buffers for validation at runtime.
+							if (!bIsStructuredBuffer && !bIsByteAddressBuffer && !bIsAtomic)
+							{
+								Backend.InvariantBuffers |= (1 << BufferIndex);
+								Backend.TypedBufferFormats[BufferIndex] = GetBufferFormat(PtrType->inner_type);
+							}
+						}
 						ralloc_asprintf_append(buffer, " *%s", unique_name(var));
 						print_type_post(PtrType->inner_type);
 						ralloc_asprintf_append(
@@ -806,32 +943,16 @@ protected:
 											   " [[ buffer(%d) ]]", BufferIndex
 											   );
 					}
-					else // RWBuffer -> texture2D
+					else // RWBuffer -> typedBuffer
 					{
-						check(PtrType->inner_type->is_numeric());
-						ralloc_asprintf_append(buffer, "texture2d<");
-						// UAVs require type per channel, not including # of channels
-						print_type_pre(PtrType->inner_type->get_scalar_type());
-						
-						uint32 Access = Backend.ImageRW.FindChecked(var);
-						switch((EMetalAccess)Access)
-						{
-							case EMetalAccessRead:
-								ralloc_asprintf_append(buffer, ", access::read> %s", unique_name(var));
-								break;
-							case EMetalAccessWrite:
-								ralloc_asprintf_append(buffer, ", access::write> %s", unique_name(var));
-								break;
-							case EMetalAccessReadWrite:
-								ralloc_asprintf_append(buffer, ", access::read_write> %s", unique_name(var));
-								break;
-							default:
-								check(false);
-						}
-						ralloc_asprintf_append(
-											   buffer,
-											   " [[ texture(%d) ]]", BufferIndex
-											   );
+                        check(PtrType->inner_type->is_numeric());
+                        check(PtrType->inner_type->components() <= 4);
+                        ralloc_asprintf_append(buffer, "typedBuffer%d_rw(", PtrType->inner_type->components());
+                        print_type_pre(PtrType->inner_type);
+                        ralloc_asprintf_append(buffer, ", %s, %d)", unique_name(var), BufferIndex);
+                        Backend.TypedBufferFormats[BufferIndex] = GetBufferFormat(PtrType->inner_type);
+                        Backend.TypedBuffers |= (1 << BufferIndex);
+                        Backend.TypedUAVs |= (1 << BufferIndex);
 					}
 				}
 				else
@@ -918,8 +1039,10 @@ protected:
 							check(BufferIndex >= 0);
 							
 							bool bIsStructuredBuffer = (var->type->inner_type->is_record() || !strncmp(var->type->name, "RWStructuredBuffer<", 19) || !strncmp(var->type->name, "StructuredBuffer<", 17));
-							bool bIsByteAddressBuffer = (!strncmp(var->type->name, "RWByteAddressBuffer<", 20) || !strncmp(var->type->name, "ByteAddressBuffer<", 18));
-							if (bIsStructuredBuffer || bIsByteAddressBuffer || Backend.TypedMode == EMetalTypeBufferModeNone)
+							bool bIsByteAddressBuffer = (!strncmp(var->type->name, "RWByteAddressBuffer", 19) || !strncmp(var->type->name, "ByteAddressBuffer", 17));
+                            bool bIsInvariantType = var->invariant;
+							bool bIsAtomic = Buffers.AtomicVariables.find(var) != Buffers.AtomicVariables.end();
+							if (bIsStructuredBuffer || bIsByteAddressBuffer || bIsInvariantType || bIsAtomic)
 							{
 								check(BufferIndex >= 0 && BufferIndex <= 30);
 								ralloc_asprintf_append(
@@ -933,37 +1056,21 @@ protected:
 													   buffer,
 													   " [[ buffer(%d) ]]", BufferIndex
 													   );
+								
+								// Record the buffer type for invariant typed-buffers for validation at runtime.
+								if (!bIsStructuredBuffer && !bIsByteAddressBuffer && !bIsAtomic)
+								{
+									Backend.InvariantBuffers |= (1 << BufferIndex);
+									Backend.TypedBufferFormats[BufferIndex] = GetBufferFormat(PtrType->inner_type);
+								}
 							}
 							else
 							{
-								const char* InnerType = "float";
-								if (PtrType->inner_type)
-								{
-									check(!(PtrType->base_type == GLSL_TYPE_SAMPLER && PtrType->sampler_shadow));
-									switch (PtrType->inner_type->base_type)
-									{
-										case GLSL_TYPE_HALF:
-											InnerType = "half";
-											break;
-										case GLSL_TYPE_INT:
-											InnerType = "int";
-											break;
-										case GLSL_TYPE_UINT:
-											InnerType = "uint";
-											break;
-										default:
-											break;
-									}
-								}
-								
-								ralloc_asprintf_append(
-													   buffer,
-													   "texture2d<%s> %s", InnerType, unique_name(var));
-								print_type_post(PtrType);
-								ralloc_asprintf_append(
-													   buffer,
-													   " [[ texture(%u) ]]", BufferIndex
-													   );
+                                ralloc_asprintf_append(buffer, "typedBuffer%d_read(", PtrType->inner_type->components());
+                                print_type_pre(PtrType);
+                                ralloc_asprintf_append(buffer, ", %s, %d)", unique_name(var), BufferIndex);
+                                Backend.TypedBufferFormats[BufferIndex] = GetBufferFormat(PtrType->inner_type);
+                                Backend.TypedBuffers |= (1 << BufferIndex);
 							}
 						}
 						else
@@ -1378,7 +1485,7 @@ protected:
 							EMetalIndexType_UInt16 = 1,
 							EMetalIndexType_UInt32 = 2
 						};*/
-						ralloc_asprintf_append(buffer, "constant uint indexBufferType [[ function_constant(0) ]];\n");
+						ralloc_asprintf_append(buffer, "constant uint indexBufferType [[ function_constant(32) ]];\n");
 						ralloc_asprintf_append(buffer, "#define GET_VERTEX_ID() \\\n");
 						ralloc_asprintf_append(buffer, "	(indexBufferType == 0) ? thread_position_in_grid.x : \\\n");
 						ralloc_asprintf_append(buffer, "	(indexBufferType == 1) ? ((const device ushort *)indexBuffer)[thread_position_in_grid.x] : \\\n");
@@ -1460,11 +1567,6 @@ protected:
 
 		int numOps = expr->get_num_operands();
 		ir_expression_operation op = expr->operation;
-		
-		if (op == ir_unop_bitreverse)
-		{
-			bReverseBitsWAR = true;
-		}
 		
 		if (op == ir_unop_rcp)
 		{
@@ -1690,6 +1792,19 @@ protected:
 				ralloc_asprintf_append(buffer, MetalExpressionTable[op][2]);
 			}
 		}
+		else if (numOps == 2 && op == ir_binop_cross)
+		{
+			// Use a precise fma based cross-product to avoid reassociation errors messing up WPO
+			if(!Backend.bAllowFastIntriniscs && Backend.Version >= 2)
+			{
+				ralloc_asprintf_append(buffer, "accurate::");
+			}
+			ralloc_asprintf_append(buffer, MetalExpressionTable[op][0]);
+			expr->operands[0]->accept(this);
+			ralloc_asprintf_append(buffer, MetalExpressionTable[op][1]);
+			expr->operands[1]->accept(this);
+			ralloc_asprintf_append(buffer, MetalExpressionTable[op][2]);
+		}
 		else if (op == ir_unop_lsb && numOps == 1)
 		{
 			ralloc_asprintf_append(buffer, "ctz(");
@@ -1739,9 +1854,19 @@ protected:
 			ralloc_asprintf_append(buffer, "int2((int)");
 		}
 
+		bool bTexCubeArray = tex->sampler->type->sampler_array && (tex->sampler->type->sampler_dimensionality == GLSL_SAMPLER_DIM_CUBE);
+		
 		if (tex->op != ir_txf)
 		{
-			tex->sampler->accept(this);
+			if (bTexCubeArray)
+			{
+				ralloc_asprintf_append(buffer, tex->sampler->type->sampler_shadow ? "depth_cube_array::" : "texture_cube_array::");
+			}
+			else
+			{
+				tex->sampler->accept(this);
+				ralloc_asprintf_append(buffer, ".");
+			}
 		}
 		switch (tex->op)
 		{
@@ -1750,7 +1875,13 @@ protected:
 		case ir_txb:
 		case ir_txd:
 		{
-			ralloc_asprintf_append(buffer, tex->shadow_comparitor ? ".sample_compare(" : ".sample(");
+			ralloc_asprintf_append(buffer, tex->shadow_comparitor ? "sample_compare(" : "sample(");
+			if (bTexCubeArray)
+			{
+				tex->sampler->accept(this);
+				ralloc_asprintf_append(buffer, ", ");
+			}
+			
 			auto* Texture = tex->sampler->variable_referenced();
 			check(Texture);
 			auto* Entry = ParseState->FindPackedSamplerEntry(Texture->name);
@@ -1786,29 +1917,8 @@ protected:
 					}
 					case GLSL_SAMPLER_DIM_CUBE:
 					{
-						if (Backend.bIsDesktop == EMetalGPUSemanticsImmediateDesktop)
-						{
-							CoordSwizzle = "yz";
-							IndexSwizzle = "w";
-						}
-						else
-						{
-							CoordSwizzle = "y";
-							IndexSwizzle = "z";
-							bLocalCubeArrayHacks = true;
-							
-							switch(tex->coordinate->type->components())
-							{
-								case 3:
-									bCubeArrayHackFloat3 = true;
-									break;
-								case 4:
-									bCubeArrayHackFloat4 = true;
-									break;
-								default:
-									break;
-							}
-						}
+						CoordSwizzle = "yz";
+						IndexSwizzle = "w";
 						break;
 					}
 					case GLSL_SAMPLER_DIM_BUF:
@@ -1820,10 +1930,10 @@ protected:
 					}
 				}
 				
-				ralloc_asprintf_append(buffer, "%s(", bLocalCubeArrayHacks ? "CubemapTo2DArrayFace" : "");
+				ralloc_asprintf_append(buffer, "(");
 				tex->coordinate->accept(this);
 				
-				ralloc_asprintf_append(buffer, ").x%s, (uint)%s(", CoordSwizzle, bLocalCubeArrayHacks ? "CubemapTo2DArrayFace" : "");
+				ralloc_asprintf_append(buffer, ").x%s, (uint)(", CoordSwizzle);
 				tex->coordinate->accept(this);
 				ralloc_asprintf_append(buffer, ").%s", IndexSwizzle);
 			}
@@ -1914,132 +2024,44 @@ protected:
 				ralloc_asprintf_append(buffer, "(");
 				
 				bool bIsStructuredBuffer = (Texture->type->inner_type->is_record() || !strncmp(Texture->type->name, "RWStructuredBuffer<", 19) || !strncmp(Texture->type->name, "StructuredBuffer<", 17));
-				bool bIsByteAddressBuffer = (!strncmp(Texture->type->name, "RWByteAddressBuffer<", 20) || !strncmp(Texture->type->name, "ByteAddressBuffer<", 18));
-				if (Backend.TypedMode != EMetalTypeBufferModeNone && Buffers.AtomicVariables.find(Texture) == Buffers.AtomicVariables.end() && !bIsStructuredBuffer && !bIsByteAddressBuffer)
+				bool bIsByteAddressBuffer = (!strncmp(Texture->type->name, "RWByteAddressBuffer", 19) || !strncmp(Texture->type->name, "ByteAddressBuffer", 17));
+                bool bIsInvariantType = Texture->invariant;
+                bool bIsAtomic = Buffers.AtomicVariables.find(Texture) != Buffers.AtomicVariables.end();
+				if (!bIsStructuredBuffer && !bIsByteAddressBuffer && !bIsInvariantType && !bIsAtomic)
 				{
-					tex->sampler->accept(this);
-					if (Backend.bBoundsChecks)
-					{
-						ralloc_asprintf_append(buffer, ".read(uint2(");
-						tex->coordinate->accept(this);
-						ralloc_asprintf_append(buffer, "%%");
-						tex->sampler->accept(this);
-						ralloc_asprintf_append(buffer, ".get_width(),min(");
-						tex->coordinate->accept(this);
-						ralloc_asprintf_append(buffer, "/");
-						tex->sampler->accept(this);
-						ralloc_asprintf_append(buffer, ".get_width(),");
-						tex->sampler->accept(this);
-						ralloc_asprintf_append(buffer, ".get_height()-1)))");
-						
-						switch(Texture->type->inner_type->vector_elements)
-						{
-							case 1:
-							{
-								ralloc_asprintf_append(buffer, ".x");
-								break;
-							}
-							case 2:
-							{
-								ralloc_asprintf_append(buffer, ".xy");
-								break;
-							}
-							case 3:
-							{
-								ralloc_asprintf_append(buffer, ".xyz");
-								break;
-							}
-							case 4:
-							{
-								break;
-							}
-							default:
-							{
-								check(false);
-								break;
-							}
-						}
-						
-						ralloc_asprintf_append(buffer, " * int(");
-						tex->coordinate->accept(this);
-						ralloc_asprintf_append(buffer, " < (");
-						tex->sampler->accept(this);
-						ralloc_asprintf_append(buffer, ".get_width() * ");
-						tex->sampler->accept(this);
-						ralloc_asprintf_append(buffer, ".get_height()))");
-					}
-					else
-					{
-						ralloc_asprintf_append(buffer, ".read(uint2(");
-						tex->coordinate->accept(this);
-						ralloc_asprintf_append(buffer, "%%");
-						tex->sampler->accept(this);
-						ralloc_asprintf_append(buffer, ".get_width(),");
-						tex->coordinate->accept(this);
-						ralloc_asprintf_append(buffer, "/");
-						tex->sampler->accept(this);
-						ralloc_asprintf_append(buffer, ".get_width()))");
-						
-						switch(Texture->type->inner_type->vector_elements)
-						{
-							case 1:
-							{
-								ralloc_asprintf_append(buffer, ".x");
-								break;
-							}
-							case 2:
-							{
-								ralloc_asprintf_append(buffer, ".xy");
-								break;
-							}
-							case 3:
-							{
-								ralloc_asprintf_append(buffer, ".xyz");
-								break;
-							}
-							case 4:
-							{
-								break;
-							}
-							default:
-							{
-								check(false);
-								break;
-							}
-						}
-					}
-				}
-				else if (!bIsStructuredBuffer && !bIsByteAddressBuffer && Buffers.AtomicVariables.find(Texture) == Buffers.AtomicVariables.end()
-						 && Texture->type->inner_type->is_scalar())
-				{
-					ralloc_asprintf_append(buffer, "LoadRWBuffer(");
+                    ralloc_asprintf_append(buffer, "buffer::load<");
+                    print_type_pre(Texture->type->inner_type);
+                    ralloc_asprintf_append(buffer, ", %d>(", Index);
 					tex->sampler->accept(this);
 					ralloc_asprintf_append(buffer, ", ");
 					tex->coordinate->accept(this);
-					ralloc_asprintf_append(buffer, ", %d, BufferSizes)", Index);
+					ralloc_asprintf_append(buffer, ", GMetalTypedBufferFormat%d, (constant buffer_meta_table*)BufferSizes)", Index);
 				}
 				else if (Backend.bBoundsChecks)
 				{
 					check(Index <= 30);
 					
-					tex->sampler->accept(this);
-					ralloc_asprintf_append(buffer, "[");
-					ralloc_asprintf_append(buffer, "min(");
-					tex->coordinate->accept(this);
-					ralloc_asprintf_append(buffer, ",");
-					
-					ralloc_asprintf_append(buffer, "((BufferSizes[%d] / sizeof(", Index);
-					print_type_pre(Texture->type->inner_type);
-					ralloc_asprintf_append(buffer, ")) - 1))]");
-					
-					if (Buffers.AtomicVariables.find(Texture) == Buffers.AtomicVariables.end())
+                    if (!bIsAtomic && (!bIsStructuredBuffer || !Texture->type->inner_type->is_record()))
 					{
-						ralloc_asprintf_append(buffer, " * int(");
-						tex->coordinate->accept(this);
-						ralloc_asprintf_append(buffer, " < (BufferSizes[%d] / sizeof(", Index);
-						print_type_pre(Texture->type->inner_type);
-						ralloc_asprintf_append(buffer, ")))");
+                        ralloc_asprintf_append(buffer, "buffer::load<");
+                        print_type_pre(Texture->type->inner_type);
+                        ralloc_asprintf_append(buffer, ", %d>(", Index);
+                        tex->sampler->accept(this);
+                        ralloc_asprintf_append(buffer, ", ");
+                        tex->coordinate->accept(this);
+                        ralloc_asprintf_append(buffer, ", (constant buffer_meta_table*)BufferSizes)");
 					}
+                    else
+                    {
+                        tex->sampler->accept(this);
+                        ralloc_asprintf_append(buffer, "[");
+                        ralloc_asprintf_append(buffer, "min(");
+                        tex->coordinate->accept(this);
+                        ralloc_asprintf_append(buffer, ",");
+                        ralloc_asprintf_append(buffer, "((BufferSizes[%d] / sizeof(", Index);
+                        print_type_pre(Texture->type->inner_type);
+                        ralloc_asprintf_append(buffer, "))))]");
+                    }
 				}
 				else
 				{
@@ -2074,12 +2096,18 @@ protected:
 			//Tv gather_compare(sampler s, float2 coord, float compare_value, int2 offset = int2(0)) const
 			if (tex->shadow_comparitor)
 			{
-				ralloc_asprintf_append(buffer, ".gather_compare(");
+				ralloc_asprintf_append(buffer, "gather_compare(");
 			}
 			else
 			{
-				ralloc_asprintf_append(buffer, ".gather(");
+				ralloc_asprintf_append(buffer, "gather(");
 			}
+			if (bTexCubeArray)
+			{
+				tex->sampler->accept(this);
+				ralloc_asprintf_append(buffer, ", ");
+			}
+			
 			// Sampler
 			auto* Texture = tex->sampler->variable_referenced();
 			check(Texture);
@@ -2116,14 +2144,34 @@ protected:
 			//		Temp = textureSize(T{, lod});
 			// Metal
 			//		int2 Temp = int2((int)T.get_width({lod}), (int)T.get_height({lod}));
-			ralloc_asprintf_append(buffer, ".get_width(");
+			ralloc_asprintf_append(buffer, "get_width(");
+			if (bTexCubeArray)
+			{
+				tex->sampler->accept(this);
+				ralloc_asprintf_append(buffer, ", ");
+			}
+
 			if (tex->lod_info.lod)
 			{
 				tex->lod_info.lod->accept(this);
 			}
 			ralloc_asprintf_append(buffer, "), (int)");
-			tex->sampler->accept(this);
-			ralloc_asprintf_append(buffer, ".get_height(");
+			
+			if (bTexCubeArray)
+			{
+				ralloc_asprintf_append(buffer, tex->sampler->type->sampler_shadow ? "depth_cube_array::" : "texture_cube_array::");
+			}
+			{
+				tex->sampler->accept(this);
+				ralloc_asprintf_append(buffer, ".");
+			}
+			ralloc_asprintf_append(buffer, "get_height(");
+			if (bTexCubeArray)
+			{
+				tex->sampler->accept(this);
+				ralloc_asprintf_append(buffer, ", ");
+			}
+
 			if (tex->lod_info.lod)
 			{
 				tex->lod_info.lod->accept(this);
@@ -2140,7 +2188,17 @@ protected:
 			//		T.GetDimensions({lod, }w, h, d);
 			// Metal
 			//		uint2 Temp = T.get_num_mip_levels();
-			ralloc_asprintf_append(buffer, ".get_num_mip_levels()");
+			if (bTexCubeArray)
+			{
+				ralloc_asprintf_append(buffer, "get_num_mip_levels(");
+				tex->sampler->accept(this);
+				ralloc_asprintf_append(buffer, ")");
+			}
+			else
+			{
+				ralloc_asprintf_append(buffer, "get_num_mip_levels()");
+			}
+			bNeedsClosingParenthesis = false;
 		}
 			break;
 
@@ -2273,8 +2331,7 @@ protected:
 		bool bIsVectorArrayIndex = deref->array->type->is_vector() && (Backend.Version < 3 && Backend.bIsDesktop == EMetalGPUSemanticsImmediateDesktop);
 		if (bIsVectorArrayIndex)
 		{
-			bVectorDerefHelper = true;
-			ralloc_asprintf_append(buffer, "VectorDerefHelper(");
+			ralloc_asprintf_append(buffer, "vector_array_deref(");
 		}
 
 		deref->array_index->accept(this);
@@ -2297,8 +2354,8 @@ protected:
 
 	void print_image_op( ir_dereference_image *deref, ir_rvalue *src)
 	{
-		const int dst_elements = deref->type->vector_elements;
-		const int src_elements = (src) ? src->type->vector_elements : 1;
+		const int dst_elements = deref->type->is_record() ? 1 : deref->type->vector_elements;
+		const int src_elements = (src) ? (src->type->is_record() ? 1 : src->type->vector_elements) : 1;
 		
 		check( 1 <= dst_elements && dst_elements <= 4);
 		check( 1 <= src_elements && src_elements <= 4);
@@ -2325,131 +2382,43 @@ protected:
 					ralloc_asprintf_append(buffer, "(");
 					
 					bool bIsStructuredBuffer = (Texture->type->inner_type->is_record() || !strncmp(Texture->type->name, "RWStructuredBuffer<", 19) || !strncmp(Texture->type->name, "StructuredBuffer<", 17));
-					bool bIsByteAddressBuffer = (!strncmp(Texture->type->name, "RWByteAddressBuffer<", 20) || !strncmp(Texture->type->name, "ByteAddressBuffer<", 18));
-					if (Backend.TypedMode == EMetalTypeBufferModeUAV && !(bIsStructuredBuffer || bIsByteAddressBuffer || Buffers.AtomicVariables.find(Texture) != Buffers.AtomicVariables.end()))
+					bool bIsByteAddressBuffer = (!strncmp(Texture->type->name, "RWByteAddressBuffer", 19) || !strncmp(Texture->type->name, "ByteAddressBuffer", 17));
+                    bool bIsInvariantType = Texture->invariant;
+                    bool bIsAtomic = Buffers.AtomicVariables.find(Texture) != Buffers.AtomicVariables.end();
+					if (!bIsStructuredBuffer && !bIsByteAddressBuffer && !bIsInvariantType && !bIsAtomic)
 					{
-						deref->image->accept(this);
-						if (Backend.bBoundsChecks)
-						{
-							ralloc_asprintf_append(buffer, ".read(uint2(");
-							deref->image_index->accept(this);
-							ralloc_asprintf_append(buffer, "%%");
-							deref->image->accept(this);
-							ralloc_asprintf_append(buffer, ".get_width(),min(");
-							deref->image_index->accept(this);
-							ralloc_asprintf_append(buffer, "/");
-							deref->image->accept(this);
-							ralloc_asprintf_append(buffer, ".get_width(),");
-							deref->image->accept(this);
-							ralloc_asprintf_append(buffer, ".get_height()-1)))");
-							
-							switch(Texture->type->inner_type->vector_elements)
-							{
-								case 1:
-								{
-									ralloc_asprintf_append(buffer, ".x");
-									break;
-								}
-								case 2:
-								{
-									ralloc_asprintf_append(buffer, ".xy");
-									break;
-								}
-								case 3:
-								{
-									ralloc_asprintf_append(buffer, ".xyz");
-									break;
-								}
-								case 4:
-								{
-									break;
-								}
-								default:
-								{
-									check(false);
-									break;
-								}
-							}
-							
-							ralloc_asprintf_append(buffer, " * int(");
-							deref->image_index->accept(this);
-							ralloc_asprintf_append(buffer, " < (");
-							deref->image->accept(this);
-							ralloc_asprintf_append(buffer, ".get_width() * ");
-							deref->image->accept(this);
-							ralloc_asprintf_append(buffer, ".get_height()))");
-						}
-						else
-						{
-							ralloc_asprintf_append(buffer, ".read(uint2((");
-							deref->image_index->accept(this);
-							ralloc_asprintf_append(buffer, "%%");
-							deref->image->accept(this);
-							ralloc_asprintf_append(buffer, ".get_width()),(");
-							deref->image_index->accept(this);
-							ralloc_asprintf_append(buffer, "/");
-							deref->image->accept(this);
-							ralloc_asprintf_append(buffer, ".get_width())))");
-							
-							switch(Texture->type->inner_type->vector_elements)
-							{
-								case 1:
-								{
-									ralloc_asprintf_append(buffer, ".x");
-									break;
-								}
-								case 2:
-								{
-									ralloc_asprintf_append(buffer, ".xy");
-									break;
-								}
-								case 3:
-								{
-									ralloc_asprintf_append(buffer, ".xyz");
-									break;
-								}
-								case 4:
-								{
-									break;
-								}
-								default:
-								{
-									check(false);
-									break;
-								}
-							}
-						}
-					}
-					else if (!bIsStructuredBuffer && !bIsByteAddressBuffer && Buffers.AtomicVariables.find(Texture) == Buffers.AtomicVariables.end()
-							 && Texture->type->inner_type->is_scalar())
-					{
-						ralloc_asprintf_append(buffer, "LoadRWBuffer(");
+                        ralloc_asprintf_append(buffer, "buffer::load<");
+                        print_type_pre(Texture->type->inner_type);
+                        ralloc_asprintf_append(buffer, ", %d>(", Index);
 						deref->image->accept(this);
 						ralloc_asprintf_append(buffer, ", ");
 						deref->image_index->accept(this);
-						ralloc_asprintf_append(buffer, ", %d, BufferSizes)", Index);
+						ralloc_asprintf_append(buffer, ", GMetalTypedBufferFormat%d, (constant buffer_meta_table*)BufferSizes)", Index);
 					}
 					else if (Backend.bBoundsChecks)
 					{
-						deref->image->accept(this);
-						ralloc_asprintf_append(buffer, "[");
-						ralloc_asprintf_append(buffer, "min(");
-						deref->image_index->accept(this);
-						ralloc_asprintf_append(buffer, ",");
-						
-						ralloc_asprintf_append(buffer, "((BufferSizes[%d] / sizeof(", Index);
-						print_type_pre(Texture->type->inner_type);
-						ralloc_asprintf_append(buffer, ")) - 1))]"/*.%s, swizzle[dst_elements - 1]*/);
-						
-						// Can't flush to zero for a structured buffer...
-						if (!Texture->type->inner_type->is_record() && Buffers.AtomicVariables.find(Texture) == Buffers.AtomicVariables.end())
-						{
-							ralloc_asprintf_append(buffer, " * int(");
-							deref->image_index->accept(this);
-							ralloc_asprintf_append(buffer, " < (BufferSizes[%d] / sizeof(", Index);
-							print_type_pre(Texture->type->inner_type);
-							ralloc_asprintf_append(buffer, ")))");
-						}
+                        // Can't flush to zero for a structured buffer...
+                        if ((!bIsStructuredBuffer || !Texture->type->inner_type->is_record()) && !bIsAtomic)
+                        {
+                            ralloc_asprintf_append(buffer, "buffer::load<");
+                            print_type_pre(Texture->type->inner_type);
+                            ralloc_asprintf_append(buffer, ", %d>(", Index);
+                            deref->image->accept(this);
+                            ralloc_asprintf_append(buffer, ", ");
+                            deref->image_index->accept(this);
+                            ralloc_asprintf_append(buffer, ", (constant buffer_meta_table*)BufferSizes)");
+                        }
+                        else
+                        {
+                            deref->image->accept(this);
+                            ralloc_asprintf_append(buffer, "[");
+                            ralloc_asprintf_append(buffer, "min(");
+                            deref->image_index->accept(this);
+                            ralloc_asprintf_append(buffer, ",");
+                            ralloc_asprintf_append(buffer, "((BufferSizes[%d] / sizeof(", Index);
+                            print_type_pre(Texture->type->inner_type);
+                            ralloc_asprintf_append(buffer, "))))]");
+                        }
 					}
 					else
 					{
@@ -2566,108 +2535,38 @@ protected:
 				{
 					auto* Texture = deref->image->variable_referenced();
 					bool bIsStructuredBuffer = (Texture->type->inner_type->is_record() || !strncmp(Texture->type->name, "RWStructuredBuffer<", 19) || !strncmp(Texture->type->name, "StructuredBuffer<", 17));
-					bool bIsByteAddressBuffer = (!strncmp(Texture->type->name, "RWByteAddressBuffer<", 20) || !strncmp(Texture->type->name, "ByteAddressBuffer<", 18));
-					if (Backend.TypedMode == EMetalTypeBufferModeUAV && !(bIsStructuredBuffer || bIsByteAddressBuffer || Buffers.AtomicVariables.find(Texture) != Buffers.AtomicVariables.end()))
-					{
-						deref->image->accept(this);
-						ralloc_asprintf_append(buffer, ".write(");
-						// @todo Zebra: Below is a terrible hack - the input to write is always vec<T, 4>,
-						// 				but the type T comes from the texture type.
-						if(src_elements == 1)
-						{
-							switch(deref->type->base_type)
-							{
-									case GLSL_TYPE_UINT:
-									ralloc_asprintf_append(buffer, "uint4(");
-									break;
-									case GLSL_TYPE_INT:
-									ralloc_asprintf_append(buffer, "int4(");
-									break;
-									case GLSL_TYPE_HALF:
-									ralloc_asprintf_append(buffer, "half4(");
-									break;
-									case GLSL_TYPE_FLOAT:
-								default:
-									ralloc_asprintf_append(buffer, "float4(");
-									break;
-							}
-							src->accept(this);
-							ralloc_asprintf_append(buffer, ")");
-						}
-						else
-						{
-							switch(deref->type->base_type)
-							{
-									case GLSL_TYPE_UINT:
-									ralloc_asprintf_append(buffer, "(uint4)(");
-									break;
-									case GLSL_TYPE_INT:
-									ralloc_asprintf_append(buffer, "(int4)(");
-									break;
-									case GLSL_TYPE_HALF:
-									ralloc_asprintf_append(buffer, "(half4)(");
-									break;
-									case GLSL_TYPE_FLOAT:
-								default:
-									ralloc_asprintf_append(buffer, "(float4)(");
-									break;
-							}
-							src->accept(this);
-							switch (src_elements)
-							{
-									case 3:
-									ralloc_asprintf_append(buffer, ").xyzx");
-									break;
-									case 2:
-									ralloc_asprintf_append(buffer, ").xyxy");
-									break;
-								default:
-									ralloc_asprintf_append(buffer, ")");
-									break;
-							}
-						}
-						//#todo-rco: Add language spec to know if indices need to be uint
-						ralloc_asprintf_append(buffer, ",uint2((");
-						deref->image_index->accept(this);
-						ralloc_asprintf_append(buffer, "%%");
-						deref->image->accept(this);
-						ralloc_asprintf_append(buffer, ".get_width()),(");
-						deref->image_index->accept(this);
-						ralloc_asprintf_append(buffer, "/");
-						deref->image->accept(this);
-						ralloc_asprintf_append(buffer, ".get_width())))");
-					}
-					
-					else if (!bIsStructuredBuffer && !bIsByteAddressBuffer && Buffers.AtomicVariables.find(Texture) == Buffers.AtomicVariables.end()
-							 && Texture->type->inner_type->is_scalar())
+					bool bIsByteAddressBuffer = (!strncmp(Texture->type->name, "RWByteAddressBuffer", 19) || !strncmp(Texture->type->name, "ByteAddressBuffer", 17));
+                    bool bIsInvariantType = Texture->invariant;
+                    bool bIsAtomic = Buffers.AtomicVariables.find(Texture) != Buffers.AtomicVariables.end();
+					if (!bIsStructuredBuffer && !bIsByteAddressBuffer && !bIsInvariantType && !bIsAtomic)
 					{
 						int Index = Buffers.GetIndex(Texture);
 						check(Index >= 0 && Index <= 30);
 						
-						ralloc_asprintf_append(buffer, "StoreRWBuffer(");
+                        ralloc_asprintf_append(buffer, "buffer::store<");
+                        print_type_pre(Texture->type->inner_type);
+                        ralloc_asprintf_append(buffer, ", %d>(", Index);
 						deref->image->accept(this);
 						ralloc_asprintf_append(buffer, ", ");
 						deref->image_index->accept(this);
-						ralloc_asprintf_append(buffer, ", %d, BufferSizes, ", Index);
+						ralloc_asprintf_append(buffer, ", GMetalTypedBufferFormat%d, (constant buffer_meta_table*)BufferSizes, ", Index);
 						src->accept(this);
 						ralloc_asprintf_append(buffer, ")");
 					}
 					else if (Backend.bBoundsChecks)
 					{
-						deref->image->accept(this);
-						ralloc_asprintf_append(buffer, "[");
-						ralloc_asprintf_append(buffer, "min(");
-						deref->image_index->accept(this);
-						ralloc_asprintf_append(buffer, ",");
-						
-						int Index = Buffers.GetIndex(Texture);
-						check(Index >= 0 && Index <= 30);
-						
-						ralloc_asprintf_append(buffer, "(BufferSizes[%d] / sizeof(", Index);
-						print_type_pre(Texture->type->inner_type);
-						ralloc_asprintf_append(buffer, ")))] = ");
-						src->accept(this);
-						ralloc_asprintf_append(buffer, ""/*".%s", expand[src_elements - 1]*/);
+                        int Index = Buffers.GetIndex(Texture);
+                        check(Index >= 0 && Index <= 30);
+                        
+                        ralloc_asprintf_append(buffer, "buffer::store<");
+                        print_type_pre(Texture->type->inner_type);
+                        ralloc_asprintf_append(buffer, ", %d>(", Index);
+                        deref->image->accept(this);
+                        ralloc_asprintf_append(buffer, ", ");
+                        deref->image_index->accept(this);
+                        ralloc_asprintf_append(buffer, ", (constant buffer_meta_table*)BufferSizes, ");
+                        src->accept(this);
+                        ralloc_asprintf_append(buffer, ")");
 					}
 					else
 					{
@@ -2959,38 +2858,10 @@ protected:
 			call->return_deref->accept(this);
 			ralloc_asprintf_append(buffer, " = ");
 		}
-		else
-		{
-			//@todo-rco: Fix this properly
-			if (!strcmp(call->callee_name(), SIMDGROUP_MEMORY_BARRIER))
-			{
-				bNeedsComputeInclude = true;
-				ralloc_asprintf_append(buffer, "simdgroup_barrier(mem_flags::mem_threadgroup)");
-				return;
-			}
-			else if (!strcmp(call->callee_name(), GROUP_MEMORY_BARRIER) || !strcmp(call->callee_name(), GROUP_MEMORY_BARRIER_WITH_GROUP_SYNC))
-			{
-				bNeedsComputeInclude = true;
-				ralloc_asprintf_append(buffer, "threadgroup_barrier(mem_flags::mem_threadgroup)");
-				return;
-			}
-			else if (!strcmp(call->callee_name(), DEVICE_MEMORY_BARRIER) || !strcmp(call->callee_name(), DEVICE_MEMORY_BARRIER_WITH_GROUP_SYNC))
-			{
-				bNeedsComputeInclude = true;
-				ralloc_asprintf_append(buffer, "threadgroup_barrier(mem_flags::mem_device)");
-				return;
-			}
-			else if (!strcmp(call->callee_name(), ALL_MEMORY_BARRIER) || !strcmp(call->callee_name(), ALL_MEMORY_BARRIER_WITH_GROUP_SYNC))
-			{
-				bNeedsComputeInclude = true;
-				ralloc_asprintf_append(buffer, "threadgroup_barrier(mem_flags::mem_device_and_threadgroup)");
-				return;
-			}
-		}
 
         if (call->return_deref && call->return_deref->type)
         {
-			if(!Backend.bAllowFastIntriniscs && call->return_deref->type->base_type == GLSL_TYPE_FLOAT && !strcmp(call->callee_name(), "sincos") && Frequency == vertex_shader)
+			if(((!Backend.bAllowFastIntriniscs && Frequency == vertex_shader) || Backend.bForceInvariance) && call->return_deref->type->base_type == GLSL_TYPE_FLOAT && !strcmp(call->callee_name(), "sincos"))
 			{
 				// sincos needs to be "precise" unless we explicitly opt-in to fast-intrinsics because some UE4 shaders expect precise results and correct NAN/INF handling.
 				ralloc_asprintf_append(buffer, "precise::");
@@ -3022,20 +2893,9 @@ protected:
             }
         }
 		
-		if (!strcmp(call->callee_name(), "packHalf2x16"))
+		if (!strcmp(call->callee_name(), "unpackHalf2x16") && call->return_deref && call->return_deref->type && call->return_deref->type->base_type == GLSL_TYPE_HALF)
 		{
-			ralloc_asprintf_append(buffer, "as_type<uint>(half2(");
-		}
-		else if (!strcmp(call->callee_name(), "unpackHalf2x16"))
-		{
-			if(call->return_deref && call->return_deref->type && call->return_deref->type->base_type == GLSL_TYPE_HALF)
-			{
-				ralloc_asprintf_append(buffer, "half2(as_type<half2>(");
-			}
-			else
-			{
-				ralloc_asprintf_append(buffer, "float2(as_type<half2>(");
-			}
+			ralloc_asprintf_append(buffer, "as_type<half2>(");
 		}
 		else
 		{
@@ -3053,11 +2913,6 @@ protected:
 			bPrintComma = true;
 		}
 		ralloc_asprintf_append(buffer, ")");
-		
-		if (!strcmp(call->callee_name(), "packHalf2x16") || !strcmp(call->callee_name(), "unpackHalf2x16"))
-		{
-			ralloc_asprintf_append(buffer, ")");
-		}
 	}
 
 	virtual void visit(ir_return *ret) override
@@ -4066,10 +3921,10 @@ protected:
             }
             ralloc_asprintf_append(buffer, "// @TessellationHSTFOutBuffer: %u\n", (uint32)hstfOutIndex);
             
-            int32 ControlPointBuffer = Buffers.Buffers.Num();
-            for (uint32 i = 0; i < 30u && i < (uint32)Buffers.Buffers.Num(); i++)
+            int32 ControlPointBuffer = UINT_MAX;
+            for (uint32 i = 0; i < 30u; i++)
             {
-                if(!Buffers.Buffers[i])
+                if(i >= (uint32)Buffers.Buffers.Num() || (!Buffers.Buffers[i] && (!Buffers.Textures[i] || !(Buffers.Textures[i]->type->sampler_buffer))))
                 {
                     ControlPointBuffer = i;
                     break;
@@ -4179,10 +4034,6 @@ public:
 		, bStageInEmitted(false)
 		, bUsePacked(false)
 		, bNeedsComputeInclude(false)
-		, bCubeArrayHackFloat4(false)
-		, bCubeArrayHackFloat3(false)
-		, bReverseBitsWAR(false)
-		, bVectorDerefHelper(false)
 		, bExplicitEarlyFragTests(false)
 		, bImplicitEarlyFragTests(InBackend.Version >= 2)
 	{
@@ -4220,14 +4071,39 @@ public:
 		char* decl_buffer = ralloc_asprintf(mem_ctx, "");
 		buffer = &decl_buffer;
 		declare_structs(ParseState);
-		
-        // Use a precise fma based cross-product to avoid reassociation errors messing up WPO
-		if (Backend.Version >= 2)
-		{
-			ralloc_asprintf_append(buffer, "\ntemplate<typename T> static T precise_cross(T x, T y) { float3 fx = float3(x); float3 fy = float3(y); return T(fma(fx[1], fy[2], -fma(fy[1], fx[2], 0.0)), fma(fx[2], fy[0], -fma(fy[2], fx[0], 0.0)), fma(fx[0], fy[1], -fma(fy[0], fx[1], 0.0))); }\n");
-			ralloc_asprintf_append(buffer, "#define cross(x, y) precise_cross(x, y)\n");
-		}
         
+        bool bNeedsDeviceIndex = false;
+        if (Backend.TypedBuffers)
+        {
+            ralloc_asprintf_append(buffer, "\n");
+            for (uint32 i = 0; i < (uint32)Backend.TypedBufferFormats.Num(); i++)
+            {
+                if ((Backend.TypedBuffers & (1 << i)) != 0)
+                {
+                    if ((Backend.TypedUAVs & (1 << i)) != 0)
+                    {
+                        ralloc_asprintf_append(buffer, "#if __METAL_TYPED_BUFFER_RW_IMPL__ == __METAL_TYPED_BUFFER_RAW__\n");
+                        ralloc_asprintf_append(buffer, "constant uint GMetalTypedBufferFormat%d = ue4::Max;\n", i);
+                        ralloc_asprintf_append(buffer, "#elif __METAL_TYPED_BUFFER_RW_IMPL__ == __METAL_TYPED_BUFFER_2D__\n");
+                        ralloc_asprintf_append(buffer, "constant uint GMetalTypedBufferFormat%d = ue4::Unknown;\n", i);
+                        ralloc_asprintf_append(buffer, "#elif __METAL_TYPED_BUFFER_RW_IMPL__ == __METAL_TYPED_BUFFER_TB__\n");
+                        ralloc_asprintf_append(buffer, "constant uint GMetalTypedBufferFormat%d [[ function_constant(%d) ]];\n", i, i);
+                        ralloc_asprintf_append(buffer, "#endif\n");
+                    }
+                    else
+                    {
+                        ralloc_asprintf_append(buffer, "#if __METAL_TYPED_BUFFER_READ_IMPL__ == __METAL_TYPED_BUFFER_RAW__\n");
+                        ralloc_asprintf_append(buffer, "constant uint GMetalTypedBufferFormat%d = ue4::Max;\n", i);
+                        ralloc_asprintf_append(buffer, "#elif __METAL_TYPED_BUFFER_READ_IMPL__ == __METAL_TYPED_BUFFER_2D__\n");
+                        ralloc_asprintf_append(buffer, "constant uint GMetalTypedBufferFormat%d = ue4::Unknown;\n", i);
+                        ralloc_asprintf_append(buffer, "#elif __METAL_TYPED_BUFFER_READ_IMPL__ == __METAL_TYPED_BUFFER_TB__\n");
+                        ralloc_asprintf_append(buffer, "constant uint GMetalTypedBufferFormat%d [[ function_constant(%d) ]];\n", i, i);
+                        ralloc_asprintf_append(buffer, "#endif\n");
+                    }
+                }
+            }
+        }
+		
         if ((bExplicitEarlyFragTests || bImplicitEarlyFragTests) && !Backend.bExplicitDepthWrites && Frequency == fragment_shader && Backend.Version >= 2)
 		{
 			ralloc_asprintf_append(buffer, "\n#define FUNC_ATTRIBS [[early_fragment_tests]]\n\n");
@@ -4281,210 +4157,56 @@ public:
 		{
 			ralloc_asprintf_append(buffer, "#define GET_INTERNAL_PATCH_ID() patch_id\n");
 		}
+        
+        switch(Backend.TypedMode)
+        {
+            case EMetalTypeBufferModeRaw:
+                ralloc_asprintf_append(buffer, "#define __METAL_TYPED_BUFFER_READ_IMPL__ 0\n");
+                ralloc_asprintf_append(buffer, "#define __METAL_TYPED_BUFFER_RW_IMPL__ 0\n");
+                break;
+            case EMetalTypeBufferModeSRV:
+                ralloc_asprintf_append(buffer, "#define __METAL_TYPED_BUFFER_READ_IMPL__ 1\n");
+                ralloc_asprintf_append(buffer, "#define __METAL_TYPED_BUFFER_RW_IMPL__ 2\n");
+                break;
+            case EMetalTypeBufferModeUAV:
+                ralloc_asprintf_append(buffer, "#define __METAL_TYPED_BUFFER_READ_IMPL__ 1\n");
+                ralloc_asprintf_append(buffer, "#define __METAL_TYPED_BUFFER_RW_IMPL__ 1\n");
+                break;
+            case EMetalTypeBufferModeFun:
+                ralloc_asprintf_append(buffer, "#define __METAL_TYPED_BUFFER_READ_IMPL__ 2\n");
+                ralloc_asprintf_append(buffer, "#define __METAL_TYPED_BUFFER_RW_IMPL__ 2\n");
+                break;
+            default:
+                break;
+        }
 
+        if (bNeedsDeviceIndex)
+        {
+            ralloc_asprintf_append(buffer, "#define __METAL_DEVICE_CONSTANT_INDEX__ 1\n");
+        }
+        else
+        {
+            ralloc_asprintf_append(buffer, "#define __METAL_DEVICE_CONSTANT_INDEX__ 0\n");
+        }
+		
+		if (Backend.bIsTessellationVSHS)
+		{
+			ralloc_asprintf_append(buffer, "#define __METAL_MANUAL_TEXTURE_METADATA__ 0\n");
+		}
+		else
+		{
+			ralloc_asprintf_append(buffer, "#define __METAL_MANUAL_TEXTURE_METADATA__ 1\n");
+		}
+        
         buffer = 0;
-		
-		char* reverse_bits = ralloc_asprintf(mem_ctx, "");
-		if (Backend.Version < 2 && bReverseBitsWAR)
-		{
-			buffer = &reverse_bits;
-			ralloc_asprintf_append(buffer, "static uint reverse_bits(uint x)\n");
-			ralloc_asprintf_append(buffer, "{\n");
-			ralloc_asprintf_append(buffer, "	\tx = ((x & uint(0x55555555)) << 1) | ((x & uint(0xAAAAAAAA)) >> 1);\n");
-			ralloc_asprintf_append(buffer, "	\tx = ((x & uint(0x33333333)) << 2) | ((x & uint(0xCCCCCCCC)) >> 2);\n");
-			ralloc_asprintf_append(buffer, "	\tx = ((x & uint(0x0F0F0F0F)) << 4) | ((x & uint(0xF0F0F0F0)) >> 4);\n");
-			ralloc_asprintf_append(buffer, "	\tx = ((x & uint(0x00FF00FF)) << 8) | ((x & uint(0xFF00FF00)) >> 8);\n");
-			ralloc_asprintf_append(buffer, "	\tushort2 t = as_type<ushort2>(x);\n");
-			ralloc_asprintf_append(buffer, "	\tt = ushort2(t.y, t.x);\n");
-			ralloc_asprintf_append(buffer, "	\treturn as_type<uint>(t);\n");
-			ralloc_asprintf_append(buffer, "}\n");
-		}
-		
-		char* VectorDerefHelper = ralloc_asprintf(mem_ctx, "");
-		if (Backend.Version < 3 && bVectorDerefHelper)
-		{
-			buffer = &VectorDerefHelper;
-			
-			ralloc_asprintf_append(buffer, "static uint VectorDerefHelper(uint i)\n");
-			ralloc_asprintf_append(buffer, "{\n");
-			ralloc_asprintf_append(buffer, "	\tuint Indices[4] = {0, 1, 2, 3};\n");
-			ralloc_asprintf_append(buffer, "	\treturn Indices[i];\n");
-			ralloc_asprintf_append(buffer, "}\n");
-		}
-		
-		buffer = 0;
-
-		char* RWBufferLoadStoreHelper = ralloc_asprintf(mem_ctx, "");
-		if (Backend.TypedMode != EMetalTypeBufferModeUAV)
-		{
-			buffer = &RWBufferLoadStoreHelper;
-			
-			ralloc_asprintf_append(buffer, "enum ECastablePixelFormats\n");
-			ralloc_asprintf_append(buffer, "{\n");
-			ralloc_asprintf_append(buffer, "\t	PF_R32_FLOAT\t	=13,\n");
-			ralloc_asprintf_append(buffer, "\t	PF_R16F\t	=21,\n");
-			ralloc_asprintf_append(buffer, "\t	PF_R32_UINT\t	=28,\n");
-			ralloc_asprintf_append(buffer, "\t	PF_R32_SINT\t	=29,\n");
-			ralloc_asprintf_append(buffer, "\t	PF_R16_UINT\t	=32,\n");
-			ralloc_asprintf_append(buffer, "\t	PF_R16_SINT\t	=33,\n");
-			ralloc_asprintf_append(buffer, "\t	PF_R8_UINT\t	=57,\n");
-			ralloc_asprintf_append(buffer, "\t	PF_MAX\t	=59,\n");
-			ralloc_asprintf_append(buffer, "};\n");
-			ralloc_asprintf_append(buffer, "\n");
-			ralloc_asprintf_append(buffer, "template<typename T>\n");
-			ralloc_asprintf_append(buffer, "static T LoadRWBuffer(device T* RWBuffer, uint Coord, uint Index, constant uint* BufferSizes)\n");
-			ralloc_asprintf_append(buffer, "{\n");
-			ralloc_asprintf_append(buffer, "\t	uint Size = BufferSizes[Index];\n");
-			ralloc_asprintf_append(buffer, "\t	uint Type = BufferSizes[Index+31];\n");
-			ralloc_asprintf_append(buffer, "\t	uint NewIndex = Coord;\n");
-			ralloc_asprintf_append(buffer, "\t	switch(Type)\n");
-			ralloc_asprintf_append(buffer, "\t	{\n");
-			ralloc_asprintf_append(buffer, "\t	\t	case PF_R32_FLOAT:\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(float)) - 1);\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	return T(((device float*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(float))));\n");
-			ralloc_asprintf_append(buffer, "\t	\t	case PF_R16F:\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(half)) - 1);\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	return T(((device half*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(half))));\n");
-			ralloc_asprintf_append(buffer, "\t	\t	case PF_R32_UINT:\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(uint)) - 1);\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	return T(((device uint*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(uint))));\n");
-			ralloc_asprintf_append(buffer, "\t	\t	case PF_R32_SINT:\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(int)) - 1);\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	return T(((device int*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(int))));\n");
-			ralloc_asprintf_append(buffer, "\t	\t	case PF_R16_UINT:\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(ushort)) - 1);\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	return T(((device ushort*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(ushort))));\n");
-			ralloc_asprintf_append(buffer, "\t	\t	case PF_R16_SINT:\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(short)) - 1);\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	return T(((device short*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(short))));\n");
-			ralloc_asprintf_append(buffer, "\t	\t	case PF_R8_UINT:\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(uchar)) - 1);\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	return T(((device uchar*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(uchar))));\n");
-			ralloc_asprintf_append(buffer, "\t	\t	default:\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(T)) - 1);\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	return RWBuffer[NewIndex] * int(Coord < (Size / sizeof(T)));\n");
-			ralloc_asprintf_append(buffer, "\t	}\n");
-			ralloc_asprintf_append(buffer, "}\n");
-			ralloc_asprintf_append(buffer, "\n");
-			ralloc_asprintf_append(buffer, "template<typename T>\n");
-			ralloc_asprintf_append(buffer, "static void StoreRWBuffer(device T* RWBuffer, uint Coord, uint Index, constant uint* BufferSizes, T Value)\n");
-			ralloc_asprintf_append(buffer, "{\n");
-			ralloc_asprintf_append(buffer, "\t	uint Size = BufferSizes[Index];\n");
-			ralloc_asprintf_append(buffer, "\t	uint Type = BufferSizes[Index+31];\n");
-			ralloc_asprintf_append(buffer, "\t	uint NewIndex = Coord;\n");
-			ralloc_asprintf_append(buffer, "\t	switch(Type)\n");
-			ralloc_asprintf_append(buffer, "\t	{\n");
-			ralloc_asprintf_append(buffer, "\t	\t	case PF_R32_FLOAT:\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(float)));\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	((device float*)RWBuffer)[NewIndex] = (float)Value;\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	break;\n");
-			ralloc_asprintf_append(buffer, "\t	\t	case PF_R16F:\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(half)));\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	((device half*)RWBuffer)[NewIndex] = (half)Value;\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	break;\n");
-			ralloc_asprintf_append(buffer, "\t	\t	case PF_R32_UINT:\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(uint)));\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	((device uint*)RWBuffer)[NewIndex] = (uint)Value;\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	break;\n");
-			ralloc_asprintf_append(buffer, "\t	\t	case PF_R32_SINT:\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(int)));\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	((device int*)RWBuffer)[NewIndex] = (int)Value;\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	break;\n");
-			ralloc_asprintf_append(buffer, "\t	\t	case PF_R16_UINT:\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(ushort)));\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	((device ushort*)RWBuffer)[NewIndex] = (ushort)Value;\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	break;\n");
-			ralloc_asprintf_append(buffer, "\t	\t	case PF_R16_SINT:\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(short)));\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	((device short*)RWBuffer)[NewIndex] = (short)Value;\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	break;\n");
-			ralloc_asprintf_append(buffer, "\t	\t	case PF_R8_UINT:\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(uchar)));\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	((device uchar*)RWBuffer)[NewIndex] = (uchar)Value;\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	break;\n");
-			ralloc_asprintf_append(buffer, "\t	\t	default:\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(T)));\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	RWBuffer[NewIndex] = Value;\n");
-			ralloc_asprintf_append(buffer, "\t	\t	\t	break;\n");
-			ralloc_asprintf_append(buffer, "\t	}\n");
-			ralloc_asprintf_append(buffer, "}\n\n");
-		}
-		
-		buffer = 0;
-		
-		char* CubemapHack = ralloc_asprintf(mem_ctx, "");
-		// Convert CubeMapArray to 2DArray for iOS/tvOS: x=>x, y=>y, z=>Face
-		if (Backend.bIsDesktop == EMetalGPUSemanticsTBDRDesktop && (bCubeArrayHackFloat4 || bCubeArrayHackFloat3))
-		{
-			buffer = &CubemapHack;
-			if (bCubeArrayHackFloat4)
-			{
-				//CubeFaces as laid out in UE4 as a flat array seem to be
-				// Right (x+), Left(x-), Forward(y+), Back(y-), Up (z+), Down (z-)
-				// Largest vector component of the vector chooses a face, and is used to project the other two
-				// into a 0-1 UV space on that face.
-				ralloc_asprintf_append(buffer, "static float3 CubemapTo2DArrayFace(float4 P)\n");
-				ralloc_asprintf_append(buffer, "{\n");
-				ralloc_asprintf_append(buffer, "	\tfloat ArrayIndex = P.w * 6;\n");
-				//take abs of incoming vector to make face selection simpler
-				ralloc_asprintf_append(buffer, "	\tfloat3 Coords = abs(P.xyz);\n");
-				ralloc_asprintf_append(buffer, "	\tfloat CubeFace = 0;\n");
-				ralloc_asprintf_append(buffer, "	\tfloat ProjectionAxis = 0;\n");
-				ralloc_asprintf_append(buffer, "	\tfloat u = 0;\n");
-				ralloc_asprintf_append(buffer, "	\tfloat v = 0;\n");
-				ralloc_asprintf_append(buffer, "	\tif(Coords.x >= Coords.y && Coords.x >= Coords.z)\n");
-				ralloc_asprintf_append(buffer, "	\t{\n");
-				//here we are +-X face
-				ralloc_asprintf_append(buffer, "	\t	\tCubeFace = P.x >= 0 ? 0 : 1;\n");
-				ralloc_asprintf_append(buffer, "	\t	\tProjectionAxis = Coords.x;\n");
-				ralloc_asprintf_append(buffer, "	\t	\tu = P.x >= 0 ? -P.z : P.z;\n");
-				ralloc_asprintf_append(buffer, "	\t	\tv = -P.y;\n");
-				ralloc_asprintf_append(buffer, "	\t}\n");
-				//here we are +-Y face
-				ralloc_asprintf_append(buffer, "	\telse if(Coords.y >= Coords.x && Coords.y >= Coords.z)\n");
-				ralloc_asprintf_append(buffer, "	\t{\n");
-				ralloc_asprintf_append(buffer, "	\t	\tCubeFace = P.y >= 0 ? 2 : 3;\n");
-				ralloc_asprintf_append(buffer, "	\t	\tProjectionAxis = Coords.y;\n");
-				ralloc_asprintf_append(buffer, "	\t	\tu = P.x;\n");
-				ralloc_asprintf_append(buffer, "	\t	\tv = P.y >= 0 ? P.z : -P.z;\n");
-				ralloc_asprintf_append(buffer, "	\t}\n");
-				//here we are +-Z face
-				ralloc_asprintf_append(buffer, "	\telse\n");
-				ralloc_asprintf_append(buffer, "	\t{\n");
-				ralloc_asprintf_append(buffer, "	\t	\tCubeFace = P.z >= 0 ? 4 : 5;\n");
-				ralloc_asprintf_append(buffer, "	\t	\tProjectionAxis = Coords.z;\n");
-				ralloc_asprintf_append(buffer, "	\t	\tu = P.z >= 0 ? P.x : -P.x;\n");
-				ralloc_asprintf_append(buffer, "	\t	\tv = -P.y;\n");
-				ralloc_asprintf_append(buffer, "	\t}\n");
-				ralloc_asprintf_append(buffer, "	\tu = 0.5 * (u/ProjectionAxis + 1);\n");
-				ralloc_asprintf_append(buffer, "	\tv = 0.5 * (v/ProjectionAxis + 1);\n");
-				ralloc_asprintf_append(buffer, "	\treturn float3(u, v, CubeFace + ArrayIndex);\n");				
-				ralloc_asprintf_append(buffer, "}\n");
-				ralloc_asprintf_append(buffer, "\n");
-			}
-			if (bCubeArrayHackFloat3)
-			{
-				ralloc_asprintf_append(buffer, "static float3 CubemapTo2DArrayFace(float3 P)\n");
-				ralloc_asprintf_append(buffer, "{\n");
-				ralloc_asprintf_append(buffer, "	\tfloat4 Coords = P.xyzx;\n");
-				ralloc_asprintf_append(buffer, "	\tCoords.w = 0;\n");
-				ralloc_asprintf_append(buffer, "	\treturn CubemapTo2DArrayFace(Coords);\n");
-				ralloc_asprintf_append(buffer, "}\n\n");
-			}
-			buffer = 0;
-		}
 
 		char* full_buffer = ralloc_asprintf(
 			ParseState,
-			"// Compiled by HLSLCC\n%s\n%s\n#include <metal_stdlib>\n%s\nusing namespace metal;\n\n%s%s%s%s%s%s",
+			"// Compiled by HLSLCC\n%s\n%s\n#include \"ue4_stdlib.metal\"\n%s\n\nusing namespace metal;\nusing namespace ue4;\n\n%s%s",
 			signature,
 			metal_defines,
-			bNeedsComputeInclude ? "#include <metal_compute>" : "",
-			CubemapHack,
-			reverse_bits,
-			VectorDerefHelper,
-			RWBufferLoadStoreHelper,
-			decl_buffer,
+            bNeedsComputeInclude ? "#include <metal_compute>" : "",
+            decl_buffer,
 			code_buffer
 			);
 		ralloc_free(mem_ctx);
@@ -4581,7 +4303,7 @@ struct FMetalCheckComputeRestrictionsVisitor : public ir_rvalue_visitor
 	virtual void VerifyDeReference(ir_dereference* DeRef, bool bWrite)
 	{
 		auto* Var = DeRef->variable_referenced();
-		if (Var && Var->type && Var->type->is_image() && (!Var->type->sampler_buffer || TypeMode == EMetalTypeBufferModeUAV))
+		if (Var && Var->type && Var->type->is_image())
 		{
 			if (bWrite)
 			{
@@ -4592,7 +4314,7 @@ struct FMetalCheckComputeRestrictionsVisitor : public ir_rvalue_visitor
 				ImageRW[Var] |= EMetalAccessRead;
 			}
 
-			if (ImageRW[Var] == EMetalAccessReadWrite && Version < 2)
+			if (ImageRW[Var] == EMetalAccessReadWrite && Version < 2 && (!Var->type->sampler_buffer || TypeMode == EMetalTypeBufferModeUAV))
 			{
 				_mesa_glsl_error(ParseState, "Metal doesn't allow simultaneous read & write on RWTexture(s) %s%s%s", Var->name ? "(" : "", Var->name ? Var->name : "", Var->name ? ")" : "");
 				bErrors = true;
@@ -6121,10 +5843,12 @@ void FMetalCodeBackend::CallPatchConstantFunction(_mesa_glsl_parse_state* ParseS
 	pv_if->then_instructions.push_tail(thread_if);
 }
 
-FMetalCodeBackend::FMetalCodeBackend(FMetalTessellationOutputs& TessOutputAttribs, unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, uint8 InVersion, EMetalGPUSemantics bInDesktop, EMetalTypeBufferMode InTypedMode, uint32 InMaxUnrollLoops, bool bInZeroInitialise, bool bInBoundsChecks, bool bInAllFastIntriniscs) :
+FMetalCodeBackend::FMetalCodeBackend(FMetalTessellationOutputs& TessOutputAttribs, unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, uint8 InVersion, EMetalGPUSemantics bInDesktop, EMetalTypeBufferMode InTypedMode, uint32 InMaxUnrollLoops, bool bInZeroInitialise, bool bInBoundsChecks, bool bInAllFastIntriniscs, bool bInForceInvariance) :
 	FCodeBackend(InHlslCompileFlags, HCT_FeatureLevelES3_1),
 	TessAttribs(TessOutputAttribs),
-	AtomicUAVs(0),
+	InvariantBuffers(0),
+	TypedBuffers(0),
+    TypedUAVs(0),
 	bExplicitDepthWrites(false)
 {
     Version = InVersion;
@@ -6134,6 +5858,10 @@ FMetalCodeBackend::FMetalCodeBackend(FMetalTessellationOutputs& TessOutputAttrib
 	bZeroInitialise = bInZeroInitialise;
 	bBoundsChecks = bInBoundsChecks;
 	bAllowFastIntriniscs = bInAllFastIntriniscs;
+	bForceInvariance = bInForceInvariance;
+	
+	// For now only 31 typed-buffer slots are supported
+	TypedBufferFormats.SetNumZeroed(31);
 }
 
 void FMetalLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, exec_list* ir)

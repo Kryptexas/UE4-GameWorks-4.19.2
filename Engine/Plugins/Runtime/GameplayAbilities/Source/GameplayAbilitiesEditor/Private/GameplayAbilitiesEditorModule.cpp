@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayAbilitiesEditorModule.h"
 #include "Stats/StatsMisc.h"
@@ -186,7 +186,7 @@ void FGameplayAbilitiesEditorModule::StartupModule()
 	}));
 	
 	// Invalidate all internal cacheing of FRichCurve* in FScalableFlaots when a UCurveTable is reimported
-	FReimportManager::Instance()->OnPostReimport().AddLambda([](UObject* InObject, bool b){ FScalableFloat::InvalidateAllCachedCurves(); });
+	FReimportManager::Instance()->OnPostReimport().AddLambda([](UObject* InObject, bool b){ UCurveTable::InvalidateAllCachedCurves(); });
 }
 
 void FGameplayAbilitiesEditorModule::HandleNotify_OpenAssetInEditor(FString AssetName, int AssetType)
@@ -345,7 +345,7 @@ void RecompileGameplayAbilitiesEditor(const TArray<FString>& Args)
 			PackagesToRebind.Add( Package );
 		}
 
-		HotReload->RebindPackages(PackagesToRebind, TArray<FName>(), true, *GLog);
+		HotReload->RebindPackages(PackagesToRebind, EHotReloadFlags::WaitForCompletion, *GLog);
 	}
 
 	GWarn->EndSlowTask();

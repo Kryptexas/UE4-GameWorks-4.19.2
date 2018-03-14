@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
@@ -13,19 +13,8 @@ public class SymbolDebuggerTarget : TargetRules
 
 		LaunchModuleName = "SymbolDebugger";
         ExtraModuleNames.Add("EditorStyle");
-	}
 
-	//
-	// TargetRules interface.
-	//
-
-	public override void SetupGlobalEnvironment(
-		TargetInfo Target,
-		ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
-		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
-		)
-	{
-		OutCPPEnvironmentConfiguration.Definitions.Add("WITH_DATABASE_SUPPORT=1");
+		GlobalDefinitions.Add("WITH_DATABASE_SUPPORT=1");
 
 		bCompileLeanAndMeanUE = true;
 
@@ -40,6 +29,6 @@ public class SymbolDebuggerTarget : TargetRules
 
 		// SymbolDebugger.exe has no exports, so no need to verify that a .lib and .exp file was emitted by
 		// the linker.
-		OutLinkEnvironmentConfiguration.bHasExports = false;
+		bHasExports = false;
 	}
 }

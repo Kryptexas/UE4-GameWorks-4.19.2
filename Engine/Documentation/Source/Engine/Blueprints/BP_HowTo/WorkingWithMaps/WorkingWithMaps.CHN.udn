@@ -33,19 +33,9 @@ _完成此教程后，您将获得在虚幻引擎4（UE4）中使用 Map 的经�
 * 如何查询并显示蓝图 Map 中包含的项目。
 * 如何在蓝图 Map 上执行基本操作。
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		步骤
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	[DIR(output:"checkpoint" parent:"Engine/Blueprints/BP_HowTo/WorkingWithMaps" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+## 步骤
+
+[DIR(output:"checkpoint" parent:"Engine/Blueprints/BP_HowTo/WorkingWithMaps" org:"hierarchy")]
 
 [REGION:call_to_action]
 	[Click to Start](Engine/Blueprints/BP_HowTo/WorkingWithMaps/1 "%Engine/Blueprints/BP_HowTo/WorkingWithMaps/1:title%")

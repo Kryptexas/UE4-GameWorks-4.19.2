@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
@@ -136,6 +136,7 @@ public:
 		SequencerModule.UnRegisterTrackEditor( FloatPropertyTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor( IntegerPropertyTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor( VectorPropertyTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( TransformPropertyTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor( VisibilityPropertyTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor( ActorReferencePropertyTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor( StringPropertyTrackCreateEditorHandle );
@@ -156,6 +157,7 @@ public:
 		SequencerModule.UnRegisterTrackEditor( ComponentMaterialTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor( FadeTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor( SpawnTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( LevelVisibilityTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor( CameraAnimTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor( CameraShakeTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor( MPCTrackCreateEditorHandle );

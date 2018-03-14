@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FogRendering.cpp: Fog rendering implementation.
@@ -11,7 +11,7 @@
 #include "Engine/TextureCube.h"
 #include "PipelineStateCache.h"
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Fog"), Stat_GPU_Fog, STATGROUP_GPU);
+DECLARE_GPU_STAT(Fog);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<float> CVarFogStartDistance(
@@ -93,9 +93,9 @@ class FHeightFogVS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FHeightFogVS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	FHeightFogVS( )	{ }
@@ -165,12 +165,12 @@ class TExponentialHeightFogPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(TExponentialHeightFogPS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("SUPPORT_FOG_INSCATTERING_TEXTURE"), HeightFogFeature == EHeightFogFeature::InscatteringTexture || HeightFogFeature == EHeightFogFeature::InscatteringTextureAndVolumetricFog);
 		OutEnvironment.SetDefine(TEXT("SUPPORT_FOG_DIRECTIONAL_LIGHT_INSCATTERING"), HeightFogFeature == EHeightFogFeature::DirectionalLightInscattering || HeightFogFeature == EHeightFogFeature::DirectionalLightInscatteringAndVolumetricFog);
@@ -403,7 +403,9 @@ void SetFogShaders(FRHICommandList& RHICmdList, FGraphicsPipelineStateInitialize
 
 bool FDeferredShadingSceneRenderer::RenderFog(FRHICommandListImmediate& RHICmdList, const FLightShaftsOutput& LightShaftsOutput)
 {
-	if (Scene->ExponentialFogs.Num() > 0 && !Scene->ReadOnlyCVARCache.bEnableVertexFoggingForOpaque)
+	if (Scene->ExponentialFogs.Num() > 0 
+		// Fog must be done in the base pass for MSAA to work
+		&& !IsForwardShadingEnabled(FeatureLevel))
 	{
 		static const FVector2D Vertices[4] =
 		{
@@ -429,7 +431,7 @@ bool FDeferredShadingSceneRenderer::RenderFog(FRHICommandListImmediate& RHICmdLi
 			const FViewInfo& View = Views[ViewIndex];
 
 			SCOPED_DRAW_EVENTF(RHICmdList, Fog, TEXT("ExponentialHeightFog %dx%d"), View.ViewRect.Width(), View.ViewRect.Height());
-			SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Fog);
+			SCOPED_GPU_STAT(RHICmdList, Fog);
 
 			if (View.IsPerspectiveProjection() == false)
 			{

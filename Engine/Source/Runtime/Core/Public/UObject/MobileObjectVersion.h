@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreTypes.h"
@@ -12,7 +12,12 @@ struct CORE_API FMobileObjectVersion
 		// Before any version changes were made
 		BeforeCustomVersionWasAdded = 0,
 
+		// Removed LightmapUVBias, ShadowmapUVBias from per-instance data
+		InstancedStaticMeshLightmapSerialization,
 
+		// Added stationary point/spot light direct contribution to volumetric lightmaps. 
+		LQVolumetricLightmapLayers,
+		
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

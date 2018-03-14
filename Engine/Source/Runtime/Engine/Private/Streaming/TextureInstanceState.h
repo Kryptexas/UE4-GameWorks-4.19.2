@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 TextureInstanceState.h: Definitions of classes used for texture streaming.
@@ -9,23 +9,35 @@ TextureInstanceState.h: Definitions of classes used for texture streaming.
 #include "CoreMinimal.h"
 #include "TextureInstanceView.h"
 #include "Streaming/TextureStreamingHelpers.h"
+#include "ArrayView.h"
 
 class FStreamingTextureLevelContext;
 class ULevel;
 class UPrimitiveComponent;
 class UTexture2D;
+struct FStreamingTexturePrimitiveInfo;
+
+enum class EAddComponentResult : uint8
+{
+	Fail,
+	Fail_UIDensityConstraint,
+	Success
+};
 
 // Can be used either for static primitives or dynamic primitives
 class FTextureInstanceState : public FTextureInstanceView
 {
 public:
 
+
 	// Will also remove bounds
-	bool AddComponent(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext);
-	bool AddComponentFast(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext);
+	EAddComponentResult AddComponent(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext, float MaxAllowedUIDensity);
+
+	// Similar to AddComponent, but ignore the streaming data bounds. Used for dynamic components. A faster implementation that does less processing.
+	EAddComponentResult AddComponentIgnoreBounds(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext);
 
 	FORCEINLINE bool HasComponentReferences(const UPrimitiveComponent* Component) const { return ComponentMap.Contains(Component); }
-	void RemoveComponent(const UPrimitiveComponent* Component, FRemovedTextureArray& RemovedTextures);
+	void RemoveComponent(const UPrimitiveComponent* Component, FRemovedTextureArray* RemovedTextures);
 	bool RemoveComponentReferences(const UPrimitiveComponent* Component);
 
 	void GetReferencedComponents(TArray<const UPrimitiveComponent*>& Components) const;
@@ -59,6 +71,8 @@ private:
 	FORCEINLINE int32 AddBounds(const UPrimitiveComponent* Component);
 	void RemoveBounds(int32 Index);
 
+	void AddTextureElements(const UPrimitiveComponent* Component, const TArrayView<FStreamingTexturePrimitiveInfo>& TextureInstanceInfos, int32 BoundsIndex, int32*& ComponentLink);
+
 private:
 
 	/** 
@@ -69,6 +83,13 @@ private:
 
 	TArray<int32> FreeBoundIndices;
 	TArray<int32> FreeElementIndices;
+
+	/** 
+	 * When adding components that are not yet registered, bounds are not yet valid, and must be unpacked after the level becomes visible for the first time.
+	 * We keep a list of bound require such unpacking as it would be risky to figure it out from the data itself. Some component data also shouldn't be unpacked
+	 * if GetStreamingTextureInfo() returned entries with null PackedRelativeBox.
+	 */
+	TArray<int32>  BoundsToUnpack;
 
 	TMap<const UPrimitiveComponent*, int32> ComponentMap;
 

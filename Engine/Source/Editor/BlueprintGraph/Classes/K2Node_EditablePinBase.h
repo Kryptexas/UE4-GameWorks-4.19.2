@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,7 +19,7 @@ struct FUserPinInfo
 
 	/** The name of the pin, as defined by the user */
 	UPROPERTY()
-	FString PinName;
+	FName PinName;
 
 	/** Type info for the pin */
 	UPROPERTY()
@@ -120,7 +120,7 @@ class UK2Node_EditablePinBase : public UK2Node
 	 * @param	InPinType				The type info for the pin to create
 	 * @param	InDesiredDirection		Desired direction of the pin, will auto-correct if the direction is not allowed on the pin.
 	 */
-	BLUEPRINTGRAPH_API UEdGraphPin* CreateUserDefinedPin(const FString& InPinName, const FEdGraphPinType& InPinType, EEdGraphPinDirection InDesiredDirection, bool bUseUniqueName = true);
+	BLUEPRINTGRAPH_API UEdGraphPin* CreateUserDefinedPin(const FName InPinName, const FEdGraphPinType& InPinType, EEdGraphPinDirection InDesiredDirection, bool bUseUniqueName = true);
 
 	/**
 	 * Removes a pin from the user-defined array, and removes the pin with the same name from the Pins array
@@ -134,7 +134,7 @@ class UK2Node_EditablePinBase : public UK2Node
 	 *
 	 * @param	PinName name of pin to remove
 	 */
-	BLUEPRINTGRAPH_API void RemoveUserDefinedPinByName(const FString& PinName);
+	BLUEPRINTGRAPH_API void RemoveUserDefinedPinByName(const FName PinName);
 
 	/**
 	 * Creates a new pin on the node from the specified user pin info.
@@ -142,7 +142,7 @@ class UK2Node_EditablePinBase : public UK2Node
 	 * 
 	 * @param	NewPinInfo		Shared pointer to the struct containing the info for this pin
 	 */
-	virtual UEdGraphPin* CreatePinFromUserDefinition(const TSharedPtr<FUserPinInfo> NewPinInfo) { return NULL; }
+	virtual UEdGraphPin* CreatePinFromUserDefinition(const TSharedPtr<FUserPinInfo> NewPinInfo) { return nullptr; }
 
 	// Modifies the default value of an existing pin on the node.
 	BLUEPRINTGRAPH_API virtual bool ModifyUserDefinedPinDefaultValue(TSharedPtr<FUserPinInfo> PinInfo, const FString& NewDefaultValue);

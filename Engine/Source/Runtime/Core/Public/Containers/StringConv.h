@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // This file contains the classes used when converting strings between
 // standards (ANSI, UNICODE, etc.)
@@ -11,10 +11,9 @@
 #include "Containers/Array.h"
 #include "Misc/CString.h"
 
-
 #define DEFAULT_STRING_CONVERSION_SIZE 128u
-#define UNICODE_BOGUS_CHAR_CODEPOINT   '?'
-
+#define UNICODE_BOGUS_CHAR_CODEPOINT '?'
+static_assert(sizeof(UNICODE_BOGUS_CHAR_CODEPOINT) <= sizeof(ANSICHAR) && (UNICODE_BOGUS_CHAR_CODEPOINT) >= 32 && (UNICODE_BOGUS_CHAR_CODEPOINT) <= 127, "The Unicode Bogus character point is expected to fit in a single ANSICHAR here");
 
 template <typename From, typename To>
 class TStringConvert
@@ -35,32 +34,65 @@ public:
 	}
 };
 
-/**
- * This is a basic ANSICHAR* wrapper which swallows all output written through it.
- */
-struct FNulPointerIterator
+namespace UE4StringConv_Private
 {
-	FNulPointerIterator()
-		: Ptr_(NULL)
+	constexpr const uint16 HIGH_SURROGATE_START_CODEPOINT = 0xD800;
+	constexpr const uint16 HIGH_SURROGATE_END_CODEPOINT   = 0xDBFF;
+	constexpr const uint16 LOW_SURROGATE_START_CODEPOINT  = 0xDC00;
+	constexpr const uint16 LOW_SURROGATE_END_CODEPOINT    = 0xDFFF;
+	constexpr const uint32 ENCODED_SURROGATE_START_CODEPOINT = 0x10000;
+	constexpr const uint32 ENCODED_SURROGATE_END_CODEPOINT   = 0x10FFFF;
+
+	/** Is the provided Codepoint within the range of the high-surrogates? */
+	static FORCEINLINE bool IsHighSurrogate(const uint32 Codepoint)
 	{
+		return Codepoint >= HIGH_SURROGATE_START_CODEPOINT && Codepoint <= HIGH_SURROGATE_END_CODEPOINT;
 	}
 
-	const FNulPointerIterator& operator* () const {         return *this; }
-	const FNulPointerIterator& operator++()       { ++Ptr_; return *this; }
-	const FNulPointerIterator& operator++(int)    { ++Ptr_; return *this; }
-
-	ANSICHAR operator=(ANSICHAR Val) const
+	/** Is the provided Codepoint within the range of the low-surrogates? */
+	static FORCEINLINE bool IsLowSurrogate(const uint32 Codepoint)
 	{
-		return Val;
+		return Codepoint >= LOW_SURROGATE_START_CODEPOINT && Codepoint <= LOW_SURROGATE_END_CODEPOINT;
 	}
 
-	friend int32 operator-(FNulPointerIterator Lhs, FNulPointerIterator Rhs)
+	/** Is the provided Codepoint outside of the range of the basic multilingual plane, but within the valid range of UTF8/16? */
+	static FORCEINLINE bool IsEncodedSurrogate(const uint32 Codepoint)
 	{
-		return Lhs.Ptr_ - Rhs.Ptr_;
+		return Codepoint >= ENCODED_SURROGATE_START_CODEPOINT && Codepoint <= ENCODED_SURROGATE_END_CODEPOINT;
 	}
 
-	ANSICHAR* Ptr_;
-};
+	/**
+	 * This is a basic object which counts how many times it has been incremented
+	 */
+	struct FCountingOutputIterator
+	{
+		FCountingOutputIterator()
+			: Counter(0)
+		{
+		}
+
+		const FCountingOutputIterator& operator* () const { return *this; }
+		const FCountingOutputIterator& operator++() { ++Counter; return *this; }
+		const FCountingOutputIterator& operator++(int) { ++Counter; return *this; }
+		const FCountingOutputIterator& operator+=(const int32 Amount) { Counter += Amount; return *this; }
+
+		template <typename T>
+		T operator=(T Val) const
+		{
+			return Val;
+		}
+
+		friend int32 operator-(FCountingOutputIterator Lhs, FCountingOutputIterator Rhs)
+		{
+			return Lhs.Counter - Rhs.Counter;
+		}
+
+		int32 GetCount() const { return Counter; }
+
+	private:
+		int32 Counter;
+	};
+}
 
 // This should be replaced with Platform stuff when FPlatformString starts to know about UTF-8.
 class FTCHARToUTF8_Convert
@@ -69,95 +101,81 @@ public:
 	typedef TCHAR    FromType;
 	typedef ANSICHAR ToType;
 
-	// I wrote this function for originally for PhysicsFS. --ryan.
-	// !!! FIXME: Maybe this shouldn't be inline...
-	template <typename OutputIterator>
-	static void utf8fromcodepoint(uint32 cp, OutputIterator* _dst, int32 *_len)
+	/**
+	 * Convert Codepoint into UTF-8 characters.
+	 *
+	 * @param Codepoint Codepoint to expand into UTF-8 bytes
+	 * @param OutputIterator Output iterator to write UTF-8 bytes into
+	 * @param OutputIteratorByteSizeRemaining Maximum number of ANSI characters that can be written to OutputIterator
+	 * @return Number of characters written for Codepoint
+	 */
+	template <typename BufferType>
+	static int32 Utf8FromCodepoint(uint32 Codepoint, BufferType OutputIterator, uint32 OutputIteratorByteSizeRemaining)
 	{
-		OutputIterator dst = *_dst;
-		int32          len = *_len;
+		// Ensure we have at least one character in size to write
+		checkSlow(OutputIteratorByteSizeRemaining >= sizeof(ANSICHAR));
 
-		if (len == 0)
-			return;
+		const BufferType OutputIteratorStartPosition = OutputIterator;
 
-		if (cp > 0x10FFFF)   // No Unicode codepoints above 10FFFFh, (for now!)
+		if (Codepoint > 0x10FFFF)   // No Unicode codepoints above 10FFFFh, (for now!)
 		{
-			cp = UNICODE_BOGUS_CHAR_CODEPOINT;
+			Codepoint = UNICODE_BOGUS_CHAR_CODEPOINT;
 		}
-		else if ((cp == 0xFFFE) || (cp == 0xFFFF))  // illegal values.
+		else if ((Codepoint == 0xFFFE) || (Codepoint == 0xFFFF))  // illegal values.
 		{
-			cp = UNICODE_BOGUS_CHAR_CODEPOINT;
+			Codepoint = UNICODE_BOGUS_CHAR_CODEPOINT;
 		}
-		else
+		else if (UE4StringConv_Private::IsHighSurrogate(Codepoint) || UE4StringConv_Private::IsLowSurrogate(Codepoint)) // UTF-8 Characters are not allowed to encode codepoints in the surrogate pair range
 		{
-			// There are seven "UTF-16 surrogates" that are illegal in UTF-8.
-			switch (cp)
-			{
-				case 0xD800:
-				case 0xDB7F:
-				case 0xDB80:
-				case 0xDBFF:
-				case 0xDC00:
-				case 0xDF80:
-				case 0xDFFF:
-					cp = UNICODE_BOGUS_CHAR_CODEPOINT;
-			}
+			Codepoint = UNICODE_BOGUS_CHAR_CODEPOINT;
 		}
 
 		// Do the encoding...
-		if (cp < 0x80)
+		if (Codepoint < 0x80)
 		{
-			*(dst++) = (char) cp;
-			len--;
+			*(OutputIterator++) = (ANSICHAR)Codepoint;
 		}
-
-		else if (cp < 0x800)
+		else if (Codepoint < 0x800)
 		{
-			if (len < 2)
+			if (OutputIteratorByteSizeRemaining >= 2)
 			{
-				len = 0;
+				*(OutputIterator++) = (ANSICHAR)((Codepoint >> 6)         | 128 | 64);
+				*(OutputIterator++) = (ANSICHAR) (Codepoint       & 0x3F) | 128;
 			}
 			else
 			{
-				*(dst++) = (char) ((cp >> 6) | 128 | 64);
-				*(dst++) = (char) (cp & 0x3F) | 128;
-				len -= 2;
+				*(OutputIterator++) = (ANSICHAR)UNICODE_BOGUS_CHAR_CODEPOINT;
 			}
 		}
-
-		else if (cp < 0x10000)
+		else if (Codepoint < 0x10000)
 		{
-			if (len < 3)
+			if (OutputIteratorByteSizeRemaining >= 3)
 			{
-				len = 0;
+				*(OutputIterator++) = (ANSICHAR)((Codepoint >> 12)        | 128 | 64 | 32);
+				*(OutputIterator++) = (ANSICHAR)((Codepoint >> 6) & 0x3F) | 128;
+				*(OutputIterator++) = (ANSICHAR) (Codepoint       & 0x3F) | 128;
 			}
 			else
 			{
-				*(dst++) = (char) ((cp >> 12) | 128 | 64 | 32);
-				*(dst++) = (char) ((cp >> 6) & 0x3F) | 128;
-				*(dst++) = (char) (cp & 0x3F) | 128;
-				len -= 3;
+				*(OutputIterator++) = (ANSICHAR)UNICODE_BOGUS_CHAR_CODEPOINT;
 			}
 		}
-
 		else
 		{
-			if (len < 4)
+			if (OutputIteratorByteSizeRemaining >= 4)
 			{
-				len = 0;
+				*(OutputIterator++) = (ANSICHAR)((Codepoint >> 18)         | 128 | 64 | 32 | 16);
+				*(OutputIterator++) = (ANSICHAR)((Codepoint >> 12) & 0x3F) | 128;
+				*(OutputIterator++) = (ANSICHAR)((Codepoint >> 6 ) & 0x3F) | 128;
+				*(OutputIterator++) = (ANSICHAR) (Codepoint        & 0x3F) | 128;
 			}
 			else
 			{
-				*(dst++) = (char) ((cp >> 18) | 128 | 64 | 32 | 16);
-				*(dst++) = (char) ((cp >> 12) & 0x3F) | 128;
-				*(dst++) = (char) ((cp >> 6) & 0x3F) | 128;
-				*(dst++) = (char) (cp & 0x3F) | 128;
-				len -= 4;
+				*(OutputIterator++) = (ANSICHAR)UNICODE_BOGUS_CHAR_CODEPOINT;
 			}
 		}
 
-		*_dst = dst;
-		*_len = len;
+		return static_cast<int32>(OutputIterator - OutputIteratorStartPosition);
 	}
 
 	/**
@@ -170,15 +188,7 @@ public:
 	 */
 	static FORCEINLINE void Convert(ANSICHAR* Dest, int32 DestLen, const TCHAR* Source, int32 SourceLen)
 	{
-		// Now do the conversion
-		// You have to do this even if !UNICODE, since high-ASCII chars
-		//  become multibyte. If you aren't using UNICODE and aren't using
-		//  a Latin1 charset, you are just screwed, since we don't handle
-		//  codepages, etc.
-		while (SourceLen--)
-		{
-			utf8fromcodepoint((uint32)*Source++, &Dest, &DestLen);
-		}
+		Convert_Impl(Dest, DestLen, Source, SourceLen);
 	}
 
 	/**
@@ -186,263 +196,392 @@ public:
 	 *
 	 * @return The length of the string in UTF-8 code units.
 	 */
-	static int32 ConvertedLength(const TCHAR* Source, int32 SourceLen)
+	static FORCEINLINE int32 ConvertedLength(const TCHAR* Source, int32 SourceLen)
 	{
-		FNulPointerIterator DestStart;
-		FNulPointerIterator Dest;
-		int32               DestLen = SourceLen * 4;
-		while (SourceLen--)
+		UE4StringConv_Private::FCountingOutputIterator Dest;
+		const int32 DestLen = SourceLen * 4;
+		Convert_Impl(Dest, DestLen, Source, SourceLen);
+
+		return Dest.GetCount();
+	}
+
+private:
+	template <typename DestBufferType>
+	static void Convert_Impl(DestBufferType& Dest, int32 DestLen, const TCHAR* Source, const int32 SourceLen)
+	{
+		uint32 HighCodepoint = MAX_uint32;
+
+		for (int32 i = 0; i < SourceLen; ++i)
 		{
-			utf8fromcodepoint((uint32)*Source++, &Dest, &DestLen);
+			const bool bHighSurrogateIsSet = HighCodepoint != MAX_uint32;
+			uint32 Codepoint = static_cast<uint32>(Source[i]);
+
+			// Check if this character is a high-surrogate
+			if (UE4StringConv_Private::IsHighSurrogate(Codepoint))
+			{
+				// Ensure we don't already have a high-surrogate set
+				if (bHighSurrogateIsSet)
+				{
+					// Already have a high-surrogate in this pair
+					// Write our stored value (will be converted into bogus character)
+					if (!WriteCodepointToBuffer(HighCodepoint, Dest, DestLen))
+					{
+						// Could not write data, bail out
+						return;
+					}
+				}
+
+				// Store our code point for our next character
+				HighCodepoint = Codepoint;
+				continue;
+			}
+
+			// If our High Surrogate is set, check if this character is the matching low-surrogate
+			if (bHighSurrogateIsSet)
+			{
+				if (UE4StringConv_Private::IsLowSurrogate(Codepoint))
+				{
+					const uint32 LowCodepoint = Codepoint;
+					// Combine our high and low surrogates together to a single Unicode codepoint
+					Codepoint = ((HighCodepoint - UE4StringConv_Private::HIGH_SURROGATE_START_CODEPOINT) << 10) + (LowCodepoint - UE4StringConv_Private::LOW_SURROGATE_START_CODEPOINT) + 0x10000;
+				}
+				else
+				{
+					// Did not find matching low-surrogate, write out a bogus character for our stored HighCodepoint
+					if (!WriteCodepointToBuffer(HighCodepoint, Dest, DestLen))
+					{
+						// Could not write data, bail out
+						return;
+					}
+				}
+
+				// Reset our high-surrogate now that we've used (or discarded) its value
+				HighCodepoint = MAX_uint32;
+			}
+
+			if (!WriteCodepointToBuffer(Codepoint, Dest, DestLen))
+			{
+				// Could not write data, bail out
+				return;
+			}
 		}
-		return Dest - DestStart;
+	}
+
+	template <typename DestBufferType>
+	static bool WriteCodepointToBuffer(const uint32 Codepoint, DestBufferType& Dest, int32& DestLen)
+	{
+		int32 WrittenChars = Utf8FromCodepoint(Codepoint, Dest, DestLen);
+		if (WrittenChars < 1)
+		{
+			return false;
+		}
+
+		Dest += WrittenChars;
+		DestLen -= WrittenChars;
+		return true;
 	}
 };
 
-// This should be replaced with Platform stuff when FPlatformString starts to know about UTF-8.
-// Also, it's dangerous as it may read past the provided memory buffer if passed a malformed UTF-8 string.
 class FUTF8ToTCHAR_Convert
 {
 public:
 	typedef ANSICHAR FromType;
 	typedef TCHAR    ToType;
 
-	static uint32 utf8codepoint(const ANSICHAR **_str)
-	{
-		const char *str = *_str;
-		uint32 retval = 0;
-		uint32 octet = (uint32) ((uint8) *str);
-		uint32 octet2, octet3, octet4;
-
-		if (octet < 128)  // one octet char: 0 to 127
-		{
-			(*_str)++;  // skip to next possible start of codepoint.
-			return(octet);
-		}
-		else if (octet < 192)  // bad (starts with 10xxxxxx).
-		{
-			// Apparently each of these is supposed to be flagged as a bogus
-			//  char, instead of just resyncing to the next valid codepoint.
-			(*_str)++;  // skip to next possible start of codepoint.
-			return UNICODE_BOGUS_CHAR_CODEPOINT;
-		}
-		else if (octet < 224)  // two octets
-		{
-			octet -= (128+64);
-			octet2 = (uint32) ((uint8) *(++str));
-			if ((octet2 & (128 + 64)) != 128)  // Format isn't 10xxxxxx?
-			{
-				(*_str)++;  // Sequence was not valid UTF-8. Skip the first byte and continue.
-				return UNICODE_BOGUS_CHAR_CODEPOINT;
-			}
-
-			retval = ((octet << 6) | (octet2 - 128));
-			if ((retval >= 0x80) && (retval <= 0x7FF))
-			{
-				*_str += 2;  // skip to next possible start of codepoint.
-				return retval;
-			}
-		}
-		else if (octet < 240)  // three octets
-		{
-			octet -= (128+64+32);
-			octet2 = (uint32) ((uint8) *(++str));
-			if ((octet2 & (128+64)) != 128)  // Format isn't 10xxxxxx?
-			{
-				(*_str)++;  // Sequence was not valid UTF-8. Skip the first byte and continue.
-				return UNICODE_BOGUS_CHAR_CODEPOINT;
-			}
-
-			octet3 = (uint32) ((uint8) *(++str));
-			if ((octet3 & (128+64)) != 128)  // Format isn't 10xxxxxx?
-			{
-				(*_str)++;  // Sequence was not valid UTF-8. Skip the first byte and continue.
-				return UNICODE_BOGUS_CHAR_CODEPOINT;
-			}
-
-			retval = ( ((octet << 12)) | ((octet2-128) << 6) | ((octet3-128)) );
-
-			// There are seven "UTF-16 surrogates" that are illegal in UTF-8.
-			switch (retval)
-			{
-				case 0xD800:
-				case 0xDB7F:
-				case 0xDB80:
-				case 0xDBFF:
-				case 0xDC00:
-				case 0xDF80:
-				case 0xDFFF:
-					(*_str)++;  // Sequence was not valid UTF-8. Skip the first byte and continue.
-					return UNICODE_BOGUS_CHAR_CODEPOINT;
-			}
-
-			// 0xFFFE and 0xFFFF are illegal, too, so we check them at the edge.
-			if ((retval >= 0x800) && (retval <= 0xFFFD))
-			{
-				*_str += 3;  // skip to next possible start of codepoint.
-				return retval;
-			}
-		}
-		else if (octet < 248)  // four octets
-		{
-			octet -= (128+64+32+16);
-			octet2 = (uint32) ((uint8) *(++str));
-			if ((octet2 & (128+64)) != 128)  // Format isn't 10xxxxxx?
-			{
-				(*_str)++;  // Sequence was not valid UTF-8. Skip the first byte and continue.
-				return UNICODE_BOGUS_CHAR_CODEPOINT;
-			}
-
-			octet3 = (uint32) ((uint8) *(++str));
-			if ((octet3 & (128+64)) != 128)  // Format isn't 10xxxxxx?
-			{
-				(*_str)++;  // Sequence was not valid UTF-8. Skip the first byte and continue.
-				return UNICODE_BOGUS_CHAR_CODEPOINT;
-			}
-
-			octet4 = (uint32) ((uint8) *(++str));
-			if ((octet4 & (128+64)) != 128)  // Format isn't 10xxxxxx?
-			{
-				(*_str)++;  // Sequence was not valid UTF-8. Skip the first byte and continue.
-				return UNICODE_BOGUS_CHAR_CODEPOINT;
-			}
-
-			retval = ( ((octet << 18)) | ((octet2 - 128) << 12) |
-						((octet3 - 128) << 6) | ((octet4 - 128)) );
-			if ((retval >= 0x10000) && (retval <= 0x10FFFF))
-			{
-				*_str += 4;  // skip to next possible start of codepoint.
-				return retval;
-			}
-		}
-		// Five and six octet sequences became illegal in rfc3629.
-		//  We throw the codepoint away, but parse them to make sure we move
-		//  ahead the right number of bytes and don't overflow the buffer.
-		else if (octet < 252)  // five octets
-		{
-			octet = (uint32) ((uint8) *(++str));
-			if ((octet & (128+64)) != 128)  // Format isn't 10xxxxxx?
-			{
-				(*_str)++;  // Sequence was not valid UTF-8. Skip the first byte and continue.
-				return UNICODE_BOGUS_CHAR_CODEPOINT;
-			}
-
-			octet = (uint32) ((uint8) *(++str));
-			if ((octet & (128+64)) != 128)  // Format isn't 10xxxxxx?
-			{
-				(*_str)++;  // Sequence was not valid UTF-8. Skip the first byte and continue.
-				return UNICODE_BOGUS_CHAR_CODEPOINT;
-			}
-
-			octet = (uint32) ((uint8) *(++str));
-			if ((octet & (128+64)) != 128)  // Format isn't 10xxxxxx?
-			{
-				(*_str)++;  // Sequence was not valid UTF-8. Skip the first byte and continue.
-				return UNICODE_BOGUS_CHAR_CODEPOINT;
-			}
-
-			octet = (uint32) ((uint8) *(++str));
-			if ((octet & (128+64)) != 128)  // Format isn't 10xxxxxx?
-			{
-				(*_str)++;  // Sequence was not valid UTF-8. Skip the first byte and continue.
-				return UNICODE_BOGUS_CHAR_CODEPOINT;
-			}
-
-			*_str += 5;  // skip to next possible start of codepoint.
-			return UNICODE_BOGUS_CHAR_CODEPOINT;
-		}
-
-		else  // six octets
-		{
-			octet = (uint32) ((uint8) *(++str));
-			if ((octet & (128+64)) != 128)  // Format isn't 10xxxxxx?
-			{
-				(*_str)++;  // Sequence was not valid UTF-8. Skip the first byte and continue.
-				return UNICODE_BOGUS_CHAR_CODEPOINT;
-			}
-
-			octet = (uint32) ((uint8) *(++str));
-			if ((octet & (128+64)) != 128)  // Format isn't 10xxxxxx?
-			{
-				(*_str)++;  // Sequence was not valid UTF-8. Skip the first byte and continue.
-				return UNICODE_BOGUS_CHAR_CODEPOINT;
-			}
-
-			octet = (uint32) ((uint8) *(++str));
-			if ((octet & (128+64)) != 128)  // Format isn't 10xxxxxx?
-			{
-				(*_str)++;  // Sequence was not valid UTF-8. Skip the first byte and continue.
-				return UNICODE_BOGUS_CHAR_CODEPOINT;
-			}
-
-			octet = (uint32) ((uint8) *(++str));
-			if ((octet & (128+64)) != 128)  // Format isn't 10xxxxxx?
-			{
-				(*_str)++;  // Sequence was not valid UTF-8. Skip the first byte and continue.
-				return UNICODE_BOGUS_CHAR_CODEPOINT;
-			}
-
-			octet = (uint32) ((uint8) *(++str));
-			if ((octet & (128+64)) != 128)  // Format isn't 10xxxxxx?
-			{
-				(*_str)++;  // Sequence was not valid UTF-8. Skip the first byte and continue.
-				return UNICODE_BOGUS_CHAR_CODEPOINT;
-			}
-
-			*_str += 6;  // skip to next possible start of codepoint.
-			return UNICODE_BOGUS_CHAR_CODEPOINT;
-		}
-
-		(*_str)++;  // Sequence was not valid UTF-8. Skip the first byte and continue.
-		return UNICODE_BOGUS_CHAR_CODEPOINT;  // catch everything else.
-	}
-
 	/**
-	 * Converts the string to the desired format.
+	 * Converts the UTF-8 string to UTF-16.
 	 *
 	 * @param Dest      The destination buffer of the converted string.
 	 * @param DestLen   The length of the destination buffer.
 	 * @param Source    The source string to convert.
 	 * @param SourceLen The length of the source string.
 	 */
-	static FORCEINLINE void Convert(TCHAR* Dest, int32 DestLen, const ANSICHAR* Source, int32 SourceLen)
+	static FORCEINLINE void Convert(TCHAR* Dest, const int32 DestLen, const ANSICHAR* Source, const int32 SourceLen)
 	{
-		// Now do the conversion
-		// You have to do this even if !UNICODE, since high-ASCII chars
-		//  become multibyte. If you aren't using UNICODE and aren't using
-		//  a Latin1 charset, you are just screwed, since we don't handle
-		//  codepages, etc.
-		const ANSICHAR* SourceEnd = Source + SourceLen;
-		while (Source < SourceEnd)
-		{
-			uint32 cp = utf8codepoint(&Source);
-
-			// Please note that we're truncating this to a UCS-2 Windows TCHAR.
-			//  A UCS-4 Unix wchar_t can hold this, and we're ignoring UTF-16 for now.
-			if (cp > 0xFFFF)
-			{
-				cp = UNICODE_BOGUS_CHAR_CODEPOINT;
-			}
-
-			*Dest++ = cp;
-		}
+		Convert_Impl(Dest, DestLen, Source, SourceLen);
 	}
 
 	/**
 	 * Determines the length of the converted string.
 	 *
-	 * @return The length of the string in UTF-8 code units.
+	 * @param Source string to read and determine amount of TCHARs to represent
+	 * @param SourceLen Length of source string; we will not read past this amount, even if the characters tell us to
+	 * @return The length of the string in UTF-16 characters.
 	 */
-	static int32 ConvertedLength(const ANSICHAR* Source, int32 SourceLen)
+	static int32 ConvertedLength(const ANSICHAR* Source, const int32 SourceLen)
 	{
-		int32           DestLen   = 0;
-		const ANSICHAR* SourceEnd = Source + SourceLen;
-		while (Source < SourceEnd)
+		UE4StringConv_Private::FCountingOutputIterator Dest;
+		Convert_Impl(Dest, MAX_int32, Source, SourceLen);
+
+		return Dest.GetCount();
+	}
+
+private:
+	static uint32 CodepointFromUtf8(const ANSICHAR*& SourceString, const uint32 SourceLengthRemaining)
+	{
+		checkSlow(SourceLengthRemaining > 0)
+
+		const ANSICHAR* OctetPtr = SourceString;
+
+		uint32 Codepoint = 0;
+		uint32 Octet = (uint32) ((uint8) *SourceString);
+		uint32 Octet2, Octet3, Octet4;
+
+		if (Octet < 128)  // one octet char: 0 to 127
 		{
-			utf8codepoint(&Source);
-			++DestLen;
+			++SourceString;  // skip to next possible start of codepoint.
+			return Octet;
 		}
-		return DestLen;
+		else if (Octet < 192)  // bad (starts with 10xxxxxx).
+		{
+			// Apparently each of these is supposed to be flagged as a bogus
+			//  char, instead of just resyncing to the next valid codepoint.
+			++SourceString;  // skip to next possible start of codepoint.
+			return UNICODE_BOGUS_CHAR_CODEPOINT;
+		}
+		else if (Octet < 224)  // two octets
+		{
+			// Ensure our string has enough characters to read from
+			if (SourceLengthRemaining < 2)
+			{
+				// Skip to end and write out a single char (we always have room for at least 1 char)
+				SourceString += SourceLengthRemaining;
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			Octet -= (128+64);
+			Octet2 = (uint32) ((uint8) *(++OctetPtr));
+			if ((Octet2 & (128 + 64)) != 128)  // Format isn't 10xxxxxx?
+			{
+				++SourceString;  // Sequence was not valid UTF-8. Skip the first byte and continue.
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			Codepoint = ((Octet << 6) | (Octet2 - 128));
+			if ((Codepoint >= 0x80) && (Codepoint <= 0x7FF))
+			{
+				SourceString += 2;  // skip to next possible start of codepoint.
+				return Codepoint;
+			}
+		}
+		else if (Octet < 240)  // three octets
+		{
+			// Ensure our string has enough characters to read from
+			if (SourceLengthRemaining < 3)
+			{
+				// Skip to end and write out a single char (we always have room for at least 1 char)
+				SourceString += SourceLengthRemaining;
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			Octet -= (128+64+32);
+			Octet2 = (uint32) ((uint8) *(++OctetPtr));
+			if ((Octet2 & (128+64)) != 128)  // Format isn't 10xxxxxx?
+			{
+				++SourceString;  // Sequence was not valid UTF-8. Skip the first byte and continue.
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			Octet3 = (uint32) ((uint8) *(++OctetPtr));
+			if ((Octet3 & (128+64)) != 128)  // Format isn't 10xxxxxx?
+			{
+				++SourceString;  // Sequence was not valid UTF-8. Skip the first byte and continue.
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			Codepoint = ( ((Octet << 12)) | ((Octet2-128) << 6) | ((Octet3-128)) );
+
+			// UTF-8 characters cannot be in the UTF-16 surrogates range
+			if (UE4StringConv_Private::IsHighSurrogate(Codepoint) || UE4StringConv_Private::IsLowSurrogate(Codepoint))
+			{
+				++SourceString;  // Sequence was not valid UTF-8. Skip the first byte and continue.
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			// 0xFFFE and 0xFFFF are illegal, too, so we check them at the edge.
+			if ((Codepoint >= 0x800) && (Codepoint <= 0xFFFD))
+			{
+				SourceString += 3;  // skip to next possible start of codepoint.
+				return Codepoint;
+			}
+		}
+		else if (Octet < 248)  // four octets
+		{
+			// Ensure our string has enough characters to read from
+			if (SourceLengthRemaining < 4)
+			{
+				// Skip to end and write out a single char (we always have room for at least 1 char)
+				SourceString += SourceLengthRemaining;
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			Octet -= (128+64+32+16);
+			Octet2 = (uint32) ((uint8) *(++OctetPtr));
+			if ((Octet2 & (128+64)) != 128)  // Format isn't 10xxxxxx?
+			{
+				++SourceString;  // Sequence was not valid UTF-8. Skip the first byte and continue.
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			Octet3 = (uint32) ((uint8) *(++OctetPtr));
+			if ((Octet3 & (128+64)) != 128)  // Format isn't 10xxxxxx?
+			{
+				++SourceString;  // Sequence was not valid UTF-8. Skip the first byte and continue.
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			Octet4 = (uint32) ((uint8) *(++OctetPtr));
+			if ((Octet4 & (128+64)) != 128)  // Format isn't 10xxxxxx?
+			{
+				++SourceString;  // Sequence was not valid UTF-8. Skip the first byte and continue.
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			Codepoint = ( ((Octet << 18)) | ((Octet2 - 128) << 12) |
+						((Octet3 - 128) << 6) | ((Octet4 - 128)) );
+			if ((Codepoint >= 0x10000) && (Codepoint <= 0x10FFFF))
+			{
+				SourceString += 4;  // skip to next possible start of codepoint.
+				return Codepoint;
+			}
+		}
+		// Five and six octet sequences became illegal in rfc3629.
+		//  We throw the codepoint away, but parse them to make sure we move
+		//  ahead the right number of bytes and don't overflow the buffer.
+		else if (Octet < 252)  // five octets
+		{
+			// Ensure our string has enough characters to read from
+			if (SourceLengthRemaining < 5)
+			{
+				// Skip to end and write out a single char (we always have room for at least 1 char)
+				SourceString += SourceLengthRemaining;
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			Octet = (uint32) ((uint8) *(++OctetPtr));
+			if ((Octet & (128+64)) != 128)  // Format isn't 10xxxxxx?
+			{
+				++SourceString;  // Sequence was not valid UTF-8. Skip the first byte and continue.
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			Octet = (uint32) ((uint8) *(++OctetPtr));
+			if ((Octet & (128+64)) != 128)  // Format isn't 10xxxxxx?
+			{
+				++SourceString;  // Sequence was not valid UTF-8. Skip the first byte and continue.
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			Octet = (uint32) ((uint8) *(++OctetPtr));
+			if ((Octet & (128+64)) != 128)  // Format isn't 10xxxxxx?
+			{
+				++SourceString;  // Sequence was not valid UTF-8. Skip the first byte and continue.
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			Octet = (uint32) ((uint8) *(++OctetPtr));
+			if ((Octet & (128+64)) != 128)  // Format isn't 10xxxxxx?
+			{
+				++SourceString;  // Sequence was not valid UTF-8. Skip the first byte and continue.
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			SourceString += 5;  // skip to next possible start of codepoint.
+			return UNICODE_BOGUS_CHAR_CODEPOINT;
+		}
+
+		else  // six octets
+		{
+			// Ensure our string has enough characters to read from
+			if (SourceLengthRemaining < 6)
+			{
+				// Skip to end and write out a single char (we always have room for at least 1 char)
+				SourceString += SourceLengthRemaining;
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			Octet = (uint32) ((uint8) *(++OctetPtr));
+			if ((Octet & (128+64)) != 128)  // Format isn't 10xxxxxx?
+			{
+				++SourceString;  // Sequence was not valid UTF-8. Skip the first byte and continue.
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			Octet = (uint32) ((uint8) *(++OctetPtr));
+			if ((Octet & (128+64)) != 128)  // Format isn't 10xxxxxx?
+			{
+				++SourceString;  // Sequence was not valid UTF-8. Skip the first byte and continue.
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			Octet = (uint32) ((uint8) *(++OctetPtr));
+			if ((Octet & (128+64)) != 128)  // Format isn't 10xxxxxx?
+			{
+				++SourceString;  // Sequence was not valid UTF-8. Skip the first byte and continue.
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			Octet = (uint32) ((uint8) *(++OctetPtr));
+			if ((Octet & (128+64)) != 128)  // Format isn't 10xxxxxx?
+			{
+				++SourceString;  // Sequence was not valid UTF-8. Skip the first byte and continue.
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			Octet = (uint32) ((uint8) *(++OctetPtr));
+			if ((Octet & (128+64)) != 128)  // Format isn't 10xxxxxx?
+			{
+				++SourceString;  // Sequence was not valid UTF-8. Skip the first byte and continue.
+				return UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			SourceString += 6;  // skip to next possible start of codepoint.
+			return UNICODE_BOGUS_CHAR_CODEPOINT;
+		}
+
+		++SourceString;  // Sequence was not valid UTF-8. Skip the first byte and continue.
+		return UNICODE_BOGUS_CHAR_CODEPOINT;  // catch everything else.
+	}
+
+	/**
+	 * Read Source string, converting the data from UTF-8 into UTF-16, and placing these in the Destination
+	 */
+	template <typename DestBufferType>
+	static void Convert_Impl(DestBufferType& ConvertedBuffer, int32 DestLen, const ANSICHAR* Source, const int32 SourceLen)
+	{
+		const ANSICHAR* SourceEnd = Source + SourceLen;
+		while (Source < SourceEnd && DestLen > 0)
+		{
+			// Read our codepoint, advancing the source pointer
+			uint32 Codepoint = CodepointFromUtf8(Source, Source - SourceEnd);
+
+			// We want to write out two chars
+			if (UE4StringConv_Private::IsEncodedSurrogate(Codepoint))
+			{
+				// We need two characters to write the surrogate pair
+				if (DestLen >= 2)
+				{
+					Codepoint -= 0x10000;
+					const TCHAR HighSurrogate = (Codepoint >> 10) + UE4StringConv_Private::HIGH_SURROGATE_START_CODEPOINT;
+					const TCHAR LowSurrogate = (Codepoint & 0x3FF) + UE4StringConv_Private::LOW_SURROGATE_START_CODEPOINT;
+					*(ConvertedBuffer++) = HighSurrogate;
+					*(ConvertedBuffer++) = LowSurrogate;
+					DestLen -= 2;
+					continue;
+				}
+
+				// If we don't have space, write a bogus character instead (we should have space for it)
+				Codepoint = UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+			else if (Codepoint > UE4StringConv_Private::ENCODED_SURROGATE_END_CODEPOINT)
+			{
+				// Ignore values higher than the supplementary plane range
+				Codepoint = UNICODE_BOGUS_CHAR_CODEPOINT;
+			}
+
+			*(ConvertedBuffer++) = Codepoint;
+			--DestLen;
+		}
 	}
 };
 

@@ -53,7 +53,8 @@ PhAT物理编辑器可以通过双击任何物理资源或者通过在内容浏�
 
 
 
-<!--
+[COMMENT:none]
+
 
 ## 打开PhAT
 
@@ -414,7 +415,8 @@ Another option is to enable _Blend On Poke_. This will cause the animation to ha
 ![blendpoke.jpg](blendpoke.jpg)
 
  
- -->
+ 
+[/COMMENT]
 
 
 

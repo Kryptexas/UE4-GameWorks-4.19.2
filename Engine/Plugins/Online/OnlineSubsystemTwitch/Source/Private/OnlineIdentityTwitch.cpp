@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemTwitchPrivate.h"
 #include "OnlineIdentityTwitch.h"
@@ -511,9 +511,8 @@ void FOnlineIdentityTwitch::OnTwitchLogoutComplete(const FUniqueNetId& UserId)
 
 		TriggerOnLoginFlowLogoutDelegates(LoginDomains);
 
-		TSharedRef<const FUniqueNetId> UserIdRef(UserId.AsShared());
 		TWeakPtr<FOnlineIdentityTwitch, ESPMode::ThreadSafe> WeakThisPtr(AsShared());
-		Subsystem->ExecuteNextTick([WeakThisPtr, UserIdRef, LocalUserNum]()
+		Subsystem->ExecuteNextTick([WeakThisPtr, LocalUserNum]()
 		{
 			FOnlineIdentityTwitchPtr This(WeakThisPtr.Pin());
 			if (This.IsValid())
@@ -613,9 +612,10 @@ void FOnlineIdentityTwitch::RevokeAuthToken_HttpRequestComplete(FHttpRequestPtr 
 		UE_LOG_ONLINE(Log, TEXT("User %s failed to revoke their auth token with error %s"), *UserId->ToString(), *OnlineError.ErrorCode);
 	}
 	
-	InCompletionDelegate.ExecuteIfBound(*UserId, OnlineError);
 	// Log out the user
 	OnTwitchLogoutComplete(*UserId);
+	// Execute completion delegate
+	InCompletionDelegate.ExecuteIfBound(*UserId, OnlineError);
 }
 
 int32 FOnlineIdentityTwitch::GetLocalUserNumberFromUserId(const FUniqueNetId& UserId) const

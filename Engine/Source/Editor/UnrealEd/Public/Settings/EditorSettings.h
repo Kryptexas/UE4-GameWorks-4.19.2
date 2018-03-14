@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -23,9 +23,13 @@ class UNREALED_API UEditorSettings : public UObject
 	UPROPERTY()
 	bool bEditorAnalyticsEnabled_DEPRECATED;
 
-	/** Sets the path to be used for caching derived data (native textures, compiled shaders, etc...). The editor must be restarted for changes to take effect. */
+	/** Directory to be used for caching derived data locally (native textures, compiled shaders, etc...). The editor must be restarted for changes to take effect. */
 	UPROPERTY(EditAnywhere, config, Category=DerivedData, meta = (ConfigRestartRequired = true))
 	FDirectoryPath LocalDerivedDataCache;
+
+	/** Path to a network share that can be used for sharing derived data (native textures, compiled shaders, etc...) with a team. Will not disabled if this directory cannot be accessed. The editor must be restarted for changes to take effect. */
+	UPROPERTY(EditAnywhere, config, Category=DerivedData, meta = (ConfigRestartRequired = true))
+	FDirectoryPath SharedDerivedDataCache;
 
 	// =====================================================================
 	// The following options are NOT exposed in the preferences Editor

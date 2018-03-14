@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightmassRender.cpp: lightmass rendering-related implementation.
@@ -235,7 +235,7 @@ public:
 			PropertyToCompile = InPropertyToCompile;
 			Usage = InUsage;
 
-			Material->AppendReferencedTextures(ReferencedTextures);
+			MaterialInterface->AppendReferencedTextures(ReferencedTextures);
 
 			FMaterialResource* Resource = InMaterialInterface->GetMaterialResource(GMaxRHIFeatureLevel);
 			if (Resource)
@@ -314,19 +314,19 @@ public:
 		}
 	}
 
-	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetVectorValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override
 	{
-		return MaterialInterface->GetRenderProxy(0)->GetVectorValue(ParameterName, OutValue, Context);
+		return MaterialInterface->GetRenderProxy(0)->GetVectorValue(ParameterInfo, OutValue, Context);
 	}
 
-	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetScalarValue(const FMaterialParameterInfo& ParameterInfo, float* OutValue, const FMaterialRenderContext& Context) const override
 	{
-		return MaterialInterface->GetRenderProxy(0)->GetScalarValue(ParameterName, OutValue, Context);
+		return MaterialInterface->GetRenderProxy(0)->GetScalarValue(ParameterInfo, OutValue, Context);
 	}
 
-	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetTextureValue(const FMaterialParameterInfo& ParameterInfo,const UTexture** OutValue, const FMaterialRenderContext& Context) const override
 	{
-		return MaterialInterface->GetRenderProxy(0)->GetTextureValue(ParameterName,OutValue,Context);
+		return MaterialInterface->GetRenderProxy(0)->GetTextureValue(ParameterInfo,OutValue,Context);
 	}
 
 	// Material properties.
@@ -923,6 +923,7 @@ bool FLightmassMaterialRenderer::GenerateMaterialData(
 	// if transmission/opacity data exists
 	OutMaterialData.bCastShadowAsMasked = MaterialExportEntry.OpacityMaterialProxy
 		&& InMaterial.GetCastShadowAsMasked();
+	OutMaterialData.bSurfaceDomain = BaseMaterial->MaterialDomain == MD_Surface;
 
 	const bool bIsLandscapeMaterial = InMaterial.IsA<ULandscapeMaterialInstanceConstant>();
 

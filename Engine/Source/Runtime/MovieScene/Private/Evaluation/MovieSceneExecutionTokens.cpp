@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Evaluation/MovieSceneExecutionTokens.h"
 #include "IMovieScenePlayer.h"
@@ -17,7 +17,7 @@ void FMovieSceneExecutionTokens::Apply(const FMovieSceneContext& RootContext, IM
 {
 	MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_ApplyExecutionTokens);
 
-	FPersistentEvaluationData PersistentDataProxy(Player.State.PersistentEntityData, Player.State.PersistentSharedData);
+	FPersistentEvaluationData PersistentDataProxy(Player);
 
 	TArray<TInlineValue<IMovieSceneSharedExecutionToken, 32>> SortedSharedTokens;
 	SortedSharedTokens.Reserve(SharedTokens.Num());

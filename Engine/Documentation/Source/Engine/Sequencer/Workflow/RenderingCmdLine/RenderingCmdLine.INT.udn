@@ -1,0 +1,179 @@
+Availability:Public
+Title: Command Line Arguments for Rendering Movies
+Crumbs: %ROOT%, Engine
+Description:Outlines the Sequencer Command Line Arguments that can be used for Rendering Movies
+Navigation:topic
+parent:Engine\Sequencer\Workflow
+order:1
+Version: 4.18
+Type: Reference
+Related: Engine\Sequencer\Overview
+Related: Engine\Sequencer\HowTo\RenderMovies
+Related: Programming/Basics/CommandLineArguments
+Related: GettingStarted/RunningUnrealEngine
+tags:Sequencer
+
+[TOC(start:2 end:2)]
+
+This page outlines the various [Command Line Arguments](Programming/Basics/CommandLineArguments) and [Console Variables](Programming/Development/Tools/ConsoleManager) you can use to determine what settings are used when rendering out your Sequences. 
+
+
+[REGION:note]
+If you have not launched Unreal Engine 4 (UE4) Editor from a command line, see the [](GettingStarted/RunningUnrealEngine) page for more information. 
+[/REGION]
+
+[REGION:tip]
+Please see the [](Engine\Sequencer\HowTo\RenderMovies) page if you would like to learn about rendering out movies within Unreal Engine 4 (UE4). 
+[/REGION]
+
+## Required Commands
+
+These commands are required to render out an image sequence correctly. Include these anytime you are rendering from a command line: 
+
+| Argument | Description |
+| ---- | ----------- |
+| -MovieSceneCaptureType="/Script/MovieSceneCapture.AutomatedLevelSequenceCapture" | Used to define many of the command line arguments listed on this page.  |
+| -LevelSequence="/Game/PathToSequence/SequenceName" | Tells the Editor which sequence to play. |
+| -NoLoadingScreen | The game instance of the Editor will fail to render properly without this. |
+
+## Control Commands
+
+These are some of the recommended command line arguments to give you full control over image quality, rendering parameters, and file naming/type. 
+
+The **Usage** column includes recommendations on when to use the command line argument:
+
+| Argument | Description | Notes | Usage |
+| ---- | ----------- |----------- |----------- |
+| -ResX=#### | Set horizontal resolution for the game window. | Eg: -ResX=1920 | Lower res for previews, Higher for final. |
+| -ResY=#### | Set vertical resolution for the game window. | Eg: -ResY=1080 | Lower res for previews, Higher for final. |
+| -ForceRes | Forces the window to the specified resolution, even when larger than the screen resolution. | | |
+| -VSync | Activate the VSYNC via command line. | High Perf cost, but doesn't hurt us since we aren't rendering in real-time. | Final Renders. |
+| -NoVSync | Deactivate the VSYNC via command line. | See the "Notes" entry in the -VSync row (located above this cell). | Preview Renders. |
+| -MovieFrameRate=30 | Sets the frame rate of the output. | Overrides the default of 30fps. | Depends on the needs of your cinematic (for example: rhythmic movement suffers when using a low FPS. This could be unwanted even in Previews). |
+| -NoTextureStreaming | Disables texture streaming. | Will take longer to render, but worth it for final renders. | Final Renders. |
+| -MovieFolder="PATH" | Destination folder for rendered images. | Defaults to Project/Saved/Screenshots. | Recommended when batch rendering. Otherwise all image files dump into the same folder. |
+| -MovieFormat=ASD | Media format. JPG, BMP, PNG, or Video. | Defaults to PNG. | |
+| -MovieQuality=## | Sets the compression quality. | Expressed in a percentage, defaults to 75. | |
+| -MovieName="Example.{frame}" | Sets the naming format for the output files. | [INCLUDE:Engine\Sequencer\Workflow\RenderingCmdLine#wildcard] | Definitely recommended for batch rendering. Gives the files a unique name corresponding to the map name, render pass, etc. |
+| -MovieCinematicMode=Yes/No | Enables Cinematic Mode. | Hides Player Character and disables Player Character Movement. Also disables the HUD. | Usually a good idea to enable this all the time. |
+| -MovieWarmUpFrames=## | Number of frames to run the scene before playing the sequence. This will not play out in real-time. | Default of 0 frames. This will also run the frames before the beginning of your sequence's play range. | Useful when you have Particle Systems or physics that need to simulate before you begin recording. |
+| -MovieDelayBeforeWarmUp=#  | Number of seconds before the Warm-up Begins. Runs in real-time. |  | If you need to do anything with your Pawn before the sequence starts. |
+| -MovieStartFrame=###  | Overrides the start frame of your sequence. | Defaults to the in and out markers in Sequencer. | |
+| -MovieEndFrame=###  | Overrides the end frame of your sequence. | Defaults to the in and out markers in Sequencer. | |
+| -NoScreenMessages  | Hides on-screen messages like "Rebuild Lighting" or "Print String" outputs. | | |
+
+[COMMENT:none]
+
+[EXCERPT:Wildcard]
+[REGION:simpletable]
+| Wildcard | Description |
+| ----- | ------ |
+| {fps} | The captured framerate. |
+| {frame}| The current frame number (only relevant for image sequences). |
+| {width}| The width of the captured frames. |
+| {height}| The height of the captured frames. |
+| {world}| The name of the current world. |
+| {quality}| The image compression quality setting. |
+| {material}| The material/render pass. |
+[/REGION] 
+[/EXCERPT:Wildcard]
+
+[/COMMENT]
+
+
+## Custom Render Passes
+
+Using these commands requires `-MovieFormat=CustomRenderPasses` and `{material}` in the `-MovieName`.
+
+| Argument | Description | Notes |
+| ---- | ----------- |----------- |
+| -CustomRenderPasses="RenderPassName" | Sets the custom render Pass. | Options are (exclude parenthesis): AmbientOcclusion, BaseColor, CustomDepth, CustomDepthWorldUnits, CustomStencil, FinalImage, MaterialAO (Ambient Occlusion), Metallic, Opacity, PostTonemapHDRColor, Roughness, SceneColor, SceneDepth, SceneDepthWorldUnits, SeparateTranslucencyA (Alpha), SeparateTranslucencyRGB, ShadingModel, Specular, SubsurfaceColor, WorldNormal. |
+| -CaptureFramesInHDR | Renders with HDR in the .exr format. | |
+| -HDRCompressionQuality=## | Compression Quality for HDR Frames (0 for no compression, 1 for default compression which can be slow). This is dependent on -CaptureFramesInHDR. | |
+| -CaptureGamut="HCGM_Name" | The color gamut to use when storing HDR captured data. This is dependent on -CaptureFramesInHDR. | (See Capture Gamut Descriptions below) HCGM_Rec709, HCGM_P3DCI, HCGM_Rec2020, HCGM_ACES, HCGM_ACEScg, HCGM_MAX. |
+| -PostProcessingMaterial="MaterialPath" | The Custom Post Processing Material to use for rendering. | Format looks like: "Material'/Engine/BufferVisualization/SceneDepth.SceneDepth'" An easy way to get that path is to right-click the Material in the Content Browser and select Copy Reference. |
+
+* Capture Gamut Descriptions
+	* HCGM_Rec709 - Rec. 709 / sRGB
+	* HCGM_P3DCI - P3 D65
+	* HCGM_Rec2020 - Rec. 2020
+	* HCGM_ACES - ACES
+	* HCGM_ACEScg - ACEScg
+
+
+## Console Variables
+
+The following console variables can be useful for determining the quality of your renders and can be added your `DefaultEngine.ini` in your **Game/Config** folder of your project. 
+
+[REGION:note]
+The values used below are the recommended values for highest quality. 
+[/REGION]
+
+| Variable | Description |
+| ---- | ----------- |
+| r.ForceLOD=0 | Forces all LODs to 0, whereas -1 turns it off. |
+| r.MotionBlurQuality=4 | Defines the motion blur method (adjust for quality or performance): 0 is off, 1 is low, 2 is medium, 3 is high (default), 4 is very high. |
+| r.MotionBlurSeparable=1 | Adds a second motion blur pass that smooths noise for a higher quality blur. 0 is off, 1 is on. |
+| r.DepthOfFieldQuality=4 | Allows adjusting of the Depth of Field quality. Currently only fully affects BokehDOF. GaussianDOF is either 0 for off, otherwise on. [INCLUDE:Engine\Sequencer\Workflow\RenderingCmdLine#dofquality] |
+| r.HLOD=0 | Single argument: 0 or 1 to Disable/Enable HLOD System. Multiple arguments: force X where X is the HLOD level that should be forced into view. |
+| r.SSR.Quality=4| Whether to use screen space reflections and at what quality setting. Limits the setting in the post process settings which has a different scale. Costs performance, adds more visual realism but the technique has limits.  [INCLUDE:Engine\Sequencer\Workflow\RenderingCmdLine#ssrquality]  |
+| r.ViewDistanceScale=30 | Controls the view distance scale. A primitive's MaxDrawDistance is scaled by this value. Higher values will increase view distance but at a performance cost. |
+| r.MipMapLODBias=-1 | Apply additional mip map bias for all 2D textures, range of -15.0 to 15.0. |
+| r.Shadow.MaxResolution=4096 | Max square dimensions (in texels) allowed for rendering shadow depths. Range 4 to hardware limit. Higher = better quality shadows but at a performance cost. |
+
+[COMMENT:none]
+
+[EXCERPT:DofQuality]
+[REGION:simpletable]
+| Value | Description |
+| ----- | ------ |
+| 0 | Off |
+| 1 | Low |
+| 2 | High Quality (default, adaptive, can be 4x slower) |
+| 3 | Very High Quality, intended for non realtime cutscenes, CircleDOF only (slow) |
+| 4 | Extremely High Quality, intended for non realtime cutscenes, CircleDOF only (very slow) |
+[/REGION] 
+[/EXCERPT:DofQuality]
+
+[/COMMENT]
+
+[COMMENT:none]
+
+[EXCERPT:ssrquality]
+[REGION:simpletable]
+| Value | Description |
+| ----- | ------ |
+| 0 | Off (default) |
+| 1 | Low (no glossy) |
+| 2 | Medium (no glossy) |
+| 3 | High (glossy/using roughness, few samples) |
+| 4 | Very High (likely too slow for real-time) |
+[/REGION] 
+[/EXCERPT:ssrquality]
+
+[/COMMENT]
+
+## Examples
+
+In this section, we provide a few sample command line arguments for different situations. 
+In the examples provided, we consider the following the specifics related to our project. 
+
+* Build Location = C:\Program Files (x86)\Epic Games\4.##\Engine\Binaries\Win64\UE4Editor.exe
+* Project Location = D:\Unreal Projects\SequencerTestBed\SequencerTestBed.uproject
+* Map Name = TestRender_Map.umap
+* Sequence Name = Test_Render_SQ
+
+### Preview Render
+Here is an example for a 16:9 preview render at 30fps with a resolution of 1280x720 in the .jpg file format. 
+
+	"C:\Program Files (x86)\Epic Games\4.##\Engine\Binaries\Win64\UE4Editor.exe" "D:\Unreal Projects\SequencerTestBed\SequencerTestBed.uproject" /Game/TestRender/TestRender_Map -game -MovieSceneCaptureType="/Script/MovieSceneCapture.AutomatedLevelSequenceCapture" -LevelSequence="/Game/Test_Render/Test_Render_SQ" -MovieFrameRate=30 -noloadingscreen -resx=1280 -resy=720 -MovieFormat=JPG -MovieQuality=75
+
+
+### Final Renders
+In this example, we use the following for our final, full quality renders aiming for 16:9 at 30fps, 3840x2160 resolution, in the .bmp file format. 
+	
+	"C:\Program Files (x86)\Epic Games\4.##\Engine\Binaries\Win64\UE4Editor.exe" "D:\Unreal Projects\SequencerTestBed\SequencerTestBed.uproject" /Game/TestRender/TestRender_Map -game -MovieSceneCaptureType="/Script/MovieSceneCapture.AutomatedLevelSequenceCapture" -LevelSequence="/Game/Test_Render/Test_Render_SQ" -MovieFrameRate=30 -noloadingscreen -resx=3840 -resy=2160 -forceres -MovieFormat=BMP -MovieQuality=100 -notexturestreaming -MovieCinematicMode=yes -MovieWarmUpFrames=60
+
+
+
+

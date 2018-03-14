@@ -1,4 +1,4 @@
-Availability:Public
+﻿Availability:Public
 Title:编辑器偏好设置
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:关于配置控件、视口、源码控制等通用编辑器行为的设置。
@@ -132,7 +132,8 @@ Description:关于配置控件、视口、源码控制等通用编辑器行为�
 | **Warning in Seconds（多少秒后出现警告）** | 在自动保存生效前的多少秒内显示警告。 ![](autosave_warning.png) |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:CameraControls]
 [REGION:simpletable]
 | 选项 | 描述|
@@ -184,4 +185,5 @@ Description:关于配置控件、视口、源码控制等通用编辑器行为�
 | **0.2** | **1.0** |
 [/REGION]
 [/EXCERPT:SelectionHighlight]
--->
+
+[/COMMENT]

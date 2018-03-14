@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3223847
+﻿INTSourceChangelist:3782314
 Title:사이트 맵
 Availability:Public
 Crumbs:%ROOT%
@@ -49,6 +49,8 @@ Template:DefaultSiteMap.html
 
 [DIR(output:"listbutton" parent:"%ROOT%" org:"hierarchy" id:"sitemap" itemclass:"link")]
 
-<!--
+[COMMENT:none]
+
 [DIR(output:"listbutton" type:"playlist" org:"hierarchy" id:"videomap" itemclass:"link")]
--->
+
+[/COMMENT]

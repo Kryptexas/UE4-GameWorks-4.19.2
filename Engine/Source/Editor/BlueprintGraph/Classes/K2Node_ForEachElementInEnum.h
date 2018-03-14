@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,8 +20,8 @@ class UK2Node_ForEachElementInEnum : public UK2Node
 	UPROPERTY()
 	UEnum* Enum;
 
-	BLUEPRINTGRAPH_API static const FString InsideLoopPinName;
-	BLUEPRINTGRAPH_API static const FString EnumOuputPinName;
+	BLUEPRINTGRAPH_API static const FName InsideLoopPinName;
+	BLUEPRINTGRAPH_API static const FName EnumOuputPinName;
 
 	//~ Begin UEdGraphNode Interface
 	virtual void AllocateDefaultPins() override;

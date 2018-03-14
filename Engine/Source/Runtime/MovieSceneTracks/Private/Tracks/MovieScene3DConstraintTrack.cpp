@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Tracks/MovieScene3DConstraintTrack.h"
 #include "Sections/MovieScene3DConstraintSection.h"
@@ -20,6 +20,11 @@ UMovieScene3DConstraintTrack::UMovieScene3DConstraintTrack( const FObjectInitial
 const TArray<UMovieSceneSection*>& UMovieScene3DConstraintTrack::GetAllSections() const
 {
 	return ConstraintSections;
+}
+
+void UMovieScene3DConstraintTrack::AddConstraint(float Time, float ConstraintEndTime, const FName SocketName, const FName ComponentName, const FGuid& ConstraintId)
+{
+	AddConstraint(Time, ConstraintEndTime, SocketName, ComponentName, FMovieSceneObjectBindingID(ConstraintId, MovieSceneSequenceID::Root));
 }
 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:코멘트 박스
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -70,7 +70,8 @@ Version: 4.9
 
 
 
-<!----------------
+[COMMENT:none]
+--------------
 [EXCERPT:BoxCL]
 코멘트 박스의 _컴포넌트 리스트_ 구성은 다음과 같습니다:
 
@@ -96,4 +97,5 @@ Version: 4.9
 * 플레이어가 구체 컴포넌트 트리거 볼륨에 들어가면, 박스 컴포넌트의 크기에 맞게 스케일을 조절할 수 있도록 박스 컴포넌트 애니메이션을 준 다음 텍스트를 생성합니다.
 * 매 틱마다 플레이어를 향하도록 블루프린트를 회전시킵니다.
 [/EXCERPT:BoxEG]
------------------->
+----------------
+[/COMMENT]

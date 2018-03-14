@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -85,6 +85,7 @@ private:
 	uint16 TextRevisionCounter;
 
 #if WITH_EDITOR
+	uint8 GameLocalizationPreviewAutoEnableCount;
 	bool bIsGameLocalizationPreviewEnabled;
 	bool bIsLocalizationLocked;
 #endif
@@ -175,6 +176,25 @@ public:
 	 * Is the game localization preview enabled for a non-native language?
 	 */
 	bool IsGameLocalizationPreviewEnabled() const;
+
+	/**
+	 * Notify that the game localization preview should automatically enable itself under certain circumstances 
+	 * (such as changing the preview language via the UI) due to a state change (such as PIE starting).
+	 * @note This must be paired with a call to PopAutoEnableGameLocalizationPreview.
+	 */
+	void PushAutoEnableGameLocalizationPreview();
+
+	/**
+	 * Notify that the game localization preview should no longer automatically enable itself under certain circumstances 
+	 * (such as changing the preview language via the UI) due to a state change (such as PIE ending).
+	 * @note This must be paired with a call to PushAutoEnableGameLocalizationPreview.
+	 */
+	void PopAutoEnableGameLocalizationPreview();
+
+	/**
+	 * Should the game localization preview automatically enable itself under certain circumstances?
+	 */
+	bool ShouldGameLocalizationPreviewAutoEnable() const;
 
 	/**
 	 * Configure the "preview language" setting used for the game localization preview.

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -35,7 +35,7 @@ class SYNTHESIS_API USynthSamplePlayer : public USynthComponent
 	~USynthSamplePlayer();
 
 	// Initialize the synth component
-	virtual void Init(const int32 SampleRate) override;
+	virtual bool Init(int32& SampleRate) override;
 
 	// Called to generate more audio
 	virtual void OnGenerateAudio(float* OutAudio, int32 NumSamples) override;

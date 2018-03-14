@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -448,7 +448,7 @@ public:
 	void IterateOutstandingChanges(TFunctionRef<bool(const FUpdateCacheTransaction&, const FDateTime&)> InPredicate) const;
 
 	/** Get pending changes to the cache. Transactions must be returned to CompleteTransaction to update the cache.
-	 *  Filter predicate recieves a transaction and the time the change was reported. */
+	 *  Filter predicate receives a transaction and the time the change was reported. */
 	TArray<FUpdateCacheTransaction> FilterOutstandingChanges(TFunctionRef<bool(const FUpdateCacheTransaction&, const FDateTime&)> InPredicate);
 	TArray<FUpdateCacheTransaction> GetOutstandingChanges();
 

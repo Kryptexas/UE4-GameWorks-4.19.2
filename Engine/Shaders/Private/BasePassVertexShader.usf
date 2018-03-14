@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BasePassVertexShader.usf: Base pass vertex shader
@@ -159,7 +159,7 @@ void Main(
 	float4 VertexLightingClipSpacePosition = mul(WorldPositionForVertexLightingTranslated, ResolvedView.TranslatedWorldToClip);
 	float2 SvPosition = (VertexLightingClipSpacePosition.xy / VertexLightingClipSpacePosition.w * float2(.5f, -.5f) + .5f) * ResolvedView.ViewSizeAndInvSize.xy;
 	uint GridIndex = ComputeLightGridCellIndex((uint2)SvPosition, VertexLightingClipSpacePosition.w, EyeIndex);
-	Output.BasePassInterpolants.VertexDiffuseLighting = GetForwardDirectLightingForVertexLighting(GridIndex, WorldPositionForVertexLighting, VertexParameters.TangentToWorld[2], EyeIndex);
+	Output.BasePassInterpolants.VertexDiffuseLighting = GetForwardDirectLightingForVertexLighting(GridIndex, WorldPositionForVertexLighting, Output.Position.w, VertexParameters.TangentToWorld[2], EyeIndex);
 
 #endif
 

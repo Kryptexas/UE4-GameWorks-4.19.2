@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "VorbisAudioInfo.h"
@@ -34,6 +34,13 @@
 #define VORBIS_BYTE_ORDER 1
 #endif
 
+// Non-windows platform don't load Dlls
+#if !PLATFORM_WINDOWS
+static FThreadSafeBool bDllLoaded = true;
+#else
+static FThreadSafeBool bDllLoaded;
+#endif
+
 /**
  * Channel order expected for a multi-channel ogg vorbis file.
  * Ordering taken from http://xiph.org/vorbis/doc/Vorbis_I_spec.html#x1-800004.3.9
@@ -67,7 +74,11 @@ struct FVorbisFileWrapper
 	~FVorbisFileWrapper()
 	{
 #if WITH_OGGVORBIS
-		ov_clear( &vf );
+		// Only clear vorbis if the DLL succeeded in loading
+		if (bDllLoaded)
+		{
+			ov_clear(&vf);
+		}
 #endif
 	}
 
@@ -264,6 +275,11 @@ bool FVorbisAudioInfo::GetCompressedInfoCommon(void* Callbacks, FSoundQualityInf
  */
 bool FVorbisAudioInfo::ReadCompressedInfo( const uint8* InSrcBufferData, uint32 InSrcBufferDataSize, FSoundQualityInfo* QualityInfo )
 {
+	if (!bDllLoaded)
+	{
+		return false;
+	}
+
 	bPerformingOperation = true;
 
 	SCOPE_CYCLE_COUNTER( STAT_VorbisPrepareDecompressionTime );
@@ -300,6 +316,11 @@ bool FVorbisAudioInfo::ReadCompressedInfo( const uint8* InSrcBufferData, uint32 
  */
 void FVorbisAudioInfo::ExpandFile( uint8* DstBuffer, FSoundQualityInfo* QualityInfo )
 {
+	if (!bDllLoaded)
+	{
+		return;
+	}
+
 	bPerformingOperation = true;
 
 	uint32		TotalBytesRead, BytesToRead;
@@ -347,6 +368,11 @@ void FVorbisAudioInfo::ExpandFile( uint8* DstBuffer, FSoundQualityInfo* QualityI
  */
 bool FVorbisAudioInfo::ReadCompressedData( uint8* InDestination, bool bLooping, uint32 BufferSize )
 {
+	if (!bDllLoaded)
+	{
+		return true;
+	}
+
 	SCOPED_NAMED_EVENT(FVorbisAudioInfo_ReadCompressedData, FColor::Blue);
 	bPerformingOperation = true;
 
@@ -409,6 +435,11 @@ bool FVorbisAudioInfo::ReadCompressedData( uint8* InDestination, bool bLooping, 
 
 void FVorbisAudioInfo::SeekToTime( const float SeekTime )
 {
+	if (!bDllLoaded)
+	{
+		return;
+	}
+
 	bPerformingOperation = true;
 
 	FScopeLock ScopeLock(&VorbisCriticalSection);
@@ -421,6 +452,10 @@ void FVorbisAudioInfo::SeekToTime( const float SeekTime )
 
 void FVorbisAudioInfo::EnableHalfRate( bool HalfRate )
 {
+	if (!bDllLoaded)
+	{
+		return;
+	}
 
 	bPerformingOperation = true;
 
@@ -551,12 +586,27 @@ void LoadVorbisLibraries()
 		FString RootVorbisPath = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/Vorbis/") / PlatformString / VSVersion;
 
 		FString DLLToLoad = RootOggPath + TEXT("libogg") + DLLNameStub;
-		verifyf(FPlatformProcess::GetDllHandle(*DLLToLoad), TEXT("Failed to load DLL %s"), *DLLToLoad);
+		void* LibOggHandle = FPlatformProcess::GetDllHandle(*DLLToLoad);
+		verifyf(LibOggHandle, TEXT("Failed to load DLL %s"), *DLLToLoad);
 		// Load the Vorbis dlls
 		DLLToLoad = RootVorbisPath + TEXT("libvorbis") + DLLNameStub;
-		verifyf(FPlatformProcess::GetDllHandle(*DLLToLoad), TEXT("Failed to load DLL %s"), *DLLToLoad);
+
+		void* LibVorbisHandle = FPlatformProcess::GetDllHandle(*DLLToLoad);
+		verifyf(LibVorbisHandle, TEXT("Failed to load DLL %s"), *DLLToLoad);
 		DLLToLoad = RootVorbisPath + TEXT("libvorbisfile") + DLLNameStub;
-		verifyf(FPlatformProcess::GetDllHandle(*DLLToLoad), TEXT("Failed to load DLL %s"), *DLLToLoad);
+		
+		void* LibVorbisFileHandle = FPlatformProcess::GetDllHandle(*DLLToLoad);
+		verifyf(LibVorbisFileHandle, TEXT("Failed to load DLL %s"), *DLLToLoad);
+
+		// Set that we successfully loaded everything so we can do nothing if it fails and avoid a crash
+		bDllLoaded = LibOggHandle && LibVorbisHandle && LibVorbisFileHandle;
+
+		if (!bDllLoaded)
+		{
+			UE_LOG(LogAudio, Error, TEXT("Failed to load lib vorbis libraries."));
+		}
+#elif WITH_OGGVORBIS
+		bDllLoaded = true;
 #endif	//PLATFORM_WINDOWS
 	}
 }

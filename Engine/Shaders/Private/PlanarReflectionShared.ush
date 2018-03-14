@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
  PlanarReflectionShared.usf
@@ -28,6 +28,9 @@ float4x4 ProjectionWithExtraFOV[NUM_MAX_PLANAR_REFLECTION_VIEWS];
 
 // Scale and bias to transform NDC into UVs for PlanarReflectionTexture
 float4 PlanarReflectionScreenScaleBias[NUM_MAX_PLANAR_REFLECTION_VIEWS];
+
+// 1 - 2 * 0.5 * PlanarReflectionTexture's texel size.
+float2 PlanarReflectionScreenBound;
 
 // True if we're rendering a stereo planar reflection
 bool bIsStereo;
@@ -78,7 +81,7 @@ float4 ComputePlanarReflections(float3 WorldPosition, float3 WorldNormal, float 
 		}
 #endif
 
-		float2 NDC = clamp(ClipVirtualReflectionSpherePosition.xy / ClipVirtualReflectionSpherePosition.w, -1, 1);
+		float2 NDC = clamp(ClipVirtualReflectionSpherePosition.xy / ClipVirtualReflectionSpherePosition.w, -PlanarReflectionScreenBound, PlanarReflectionScreenBound);
 		float2 ViewportUV = NDC * PlanarReflectionScreenScaleBias[EyeIndex].xy + PlanarReflectionScreenScaleBias[EyeIndex].zw;
 
 		float AngleFade = saturate(dot(ReflectionPlane.xyz, WorldNormal) * PlanarReflectionParameters2.x + PlanarReflectionParameters2.y);

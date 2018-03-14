@@ -3,7 +3,9 @@
 //
 
 #include "SteamAudioModule.h"
+#include "PhononCommon.h"
 #include "Misc/Paths.h"
+#include "Features/IModularFeatures.h"
 
 IMPLEMENT_MODULE(SteamAudio::FSteamAudioModule, SteamAudio)
 
@@ -29,11 +31,17 @@ namespace SteamAudio
 
 		UE_LOG(LogSteamAudio, Log, TEXT("FSteamAudioModule Startup"));
 
+		// Make folder paths globally available
+		BasePath = FPaths::ProjectContentDir() + "SteamAudio/";
+		RuntimePath = BasePath + "Runtime/";
+		EditorOnlyPath = BasePath + "EditorOnly/";
+
 		//Register the Steam Audio plugin factories
 		IModularFeatures::Get().RegisterModularFeature(FSpatializationPluginFactory::GetModularFeatureName(), &SpatializationPluginFactory);
 		IModularFeatures::Get().RegisterModularFeature(FReverbPluginFactory::GetModularFeatureName(), &ReverbPluginFactory);
 		IModularFeatures::Get().RegisterModularFeature(FOcclusionPluginFactory::GetModularFeatureName(), &OcclusionPluginFactory);
 
+#if PLATFORM_WINDOWS
 		if (!FSteamAudioModule::PhononDllHandle)
 		{
 #if PLATFORM_32BITS
@@ -45,6 +53,7 @@ namespace SteamAudio
 			FString DLLToLoad = PathToDll + TEXT("phonon.dll");
 			FSteamAudioModule::PhononDllHandle = LoadDll(DLLToLoad);
 		}
+#endif
 	}
 
 	void FSteamAudioModule::ShutdownModule()
@@ -55,11 +64,13 @@ namespace SteamAudio
 
 		bModuleStartedUp = false;
 
+#if PLATFORM_WINDOWS
 		if (FSteamAudioModule::PhononDllHandle)
 		{
 			FPlatformProcess::FreeDllHandle(FSteamAudioModule::PhononDllHandle);
 			FSteamAudioModule::PhononDllHandle = nullptr;
 		}
+#endif
 	}
 
 	IAudioPluginFactory* FSteamAudioModule::GetPluginFactory(EAudioPlugin PluginType)

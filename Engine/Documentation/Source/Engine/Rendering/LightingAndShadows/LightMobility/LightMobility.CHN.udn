@@ -69,7 +69,8 @@ Version: 4.9
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 
 [REGION:topics third]
 %Engine/Rendering/LightingAndShadows/LightMobility\StaticLights:topiccompact%
@@ -117,7 +118,8 @@ Version: 4.9
 	[/PARAM]
 [/OBJECT]
 
--->
+
+[/COMMENT]
 
 
 

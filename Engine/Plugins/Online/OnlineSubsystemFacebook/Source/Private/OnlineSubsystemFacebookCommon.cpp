@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemFacebookCommon.h"
 #include "OnlineSubsystemFacebookPrivate.h"
@@ -92,18 +92,6 @@ bool FOnlineSubsystemFacebookCommon::Exec(UWorld* InWorld, const TCHAR* Cmd, FOu
 		return true;
 	}
 	return false;
-}
-
-bool FOnlineSubsystemFacebookCommon::IsEnabled() const
-{
-	// Check the ini for disabling Facebook
-	bool bEnableFacebook = false;
-	if (!GConfig->GetBool(TEXT("OnlineSubsystemFacebook"), TEXT("bEnabled"), bEnableFacebook, GEngineIni))
-	{
-		UE_LOG(LogOnline, Warning, TEXT("The [OnlineSubsystemFacebook]:bEnabled flag has not been set."));
-	}
-
-	return bEnableFacebook;
 }
 
 IOnlineSessionPtr FOnlineSubsystemFacebookCommon::GetSessionInterface() const

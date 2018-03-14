@@ -91,8 +91,10 @@ tags:mobile
 如需了解节点的详细内容，请查阅 [隐藏广告横幅](https://docs.unrealengine.com/latest/INT/BlueprintAPI/Utilities/Platform/HideAdBanner/index.html) 文档。
 
 [/EXCERPT:Usage]
-<!--
+[COMMENT:none]
+
 
 ![image alt text](image_1.png)
 
--->
+
+[/COMMENT]

@@ -66,13 +66,15 @@ Material 式ネットワークの主要領域の役割を表示することが�
 
 
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:SlopeDiagram]
 [REGION:raw]
 ![](LandSlopeDiagram.png)
 [/REGION]
 [/EXCERPT:SlopeDiagram]
---->
+-
+[/COMMENT]
 
 
 [VAR:GrassSize]
@@ -113,13 +115,15 @@ h:295
 [/REGION]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:OutlineBlendNetwork]
 [REGION:lightbox]
 [![](OutlineBlend.png)(w:500)](Resources/Showcases/Stylized/Landscape/OutlineBlend.png)
 [/REGION]
 [/EXCERPT:OutlineBlendNetwork]
--->
+
+[/COMMENT]
 
 ###ランドスケープ スプライン
 

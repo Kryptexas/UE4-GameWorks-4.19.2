@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,9 +8,11 @@
 #include "Modules/ModuleManager.h"
 #include "Interfaces/VoiceCapture.h"
 #include "Interfaces/VoiceCodec.h"
+#include "Net/VoiceConfig.h"
 
 /** Name of default capture device */
 #define DEFAULT_DEVICE_NAME TEXT("Default Device")
+
 /** Default voice chat sample rate */
 #define DEFAULT_VOICE_SAMPLE_RATE 16000
 /** Deprecated value, use DEFAULT_VOICE_SAMPLE_RATE */
@@ -74,7 +76,7 @@ public:
 	 *
 	 * @return new voice capture object, possibly NULL
 	 */
-	virtual TSharedPtr<IVoiceCapture> CreateVoiceCapture(const FString& DeviceName = DEFAULT_DEVICE_NAME, int32 SampleRate = DEFAULT_VOICE_SAMPLE_RATE, int32 NumChannels = DEFAULT_NUM_VOICE_CHANNELS);
+	virtual TSharedPtr<IVoiceCapture> CreateVoiceCapture(const FString& DeviceName = DEFAULT_DEVICE_NAME, int32 SampleRate = UVOIPStatics::GetVoiceSampleRate(), int32 NumChannels = DEFAULT_NUM_VOICE_CHANNELS);
 
 	/**
 	 * Instantiates a new voice encoder object
@@ -85,7 +87,7 @@ public:
 	 *
 	 * @return new voice encoder object, possibly NULL
 	 */
-	virtual TSharedPtr<IVoiceEncoder> CreateVoiceEncoder(int32 SampleRate = DEFAULT_VOICE_SAMPLE_RATE, int32 NumChannels = DEFAULT_NUM_VOICE_CHANNELS, EAudioEncodeHint EncodeHint = EAudioEncodeHint::VoiceEncode_Voice);
+	virtual TSharedPtr<IVoiceEncoder> CreateVoiceEncoder(int32 SampleRate = UVOIPStatics::GetVoiceSampleRate(), int32 NumChannels = DEFAULT_NUM_VOICE_CHANNELS, EAudioEncodeHint EncodeHint = UVOIPStatics::GetAudioEncodingHint());
 
 	/**
 	 * Instantiates a new voice decoder object
@@ -95,7 +97,7 @@ public:
 	 *
 	 * @return new voice decoder object, possibly NULL
 	 */
-	virtual TSharedPtr<IVoiceDecoder> CreateVoiceDecoder(int32 SampleRate = DEFAULT_VOICE_SAMPLE_RATE, int32 NumChannels = DEFAULT_NUM_VOICE_CHANNELS);
+	virtual TSharedPtr<IVoiceDecoder> CreateVoiceDecoder(int32 SampleRate = UVOIPStatics::GetVoiceSampleRate(), int32 NumChannels = DEFAULT_NUM_VOICE_CHANNELS);
 
 	/**
 	 * @return true if voice is enabled

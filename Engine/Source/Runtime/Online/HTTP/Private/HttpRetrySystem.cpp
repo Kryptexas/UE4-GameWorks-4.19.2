@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "HttpRetrySystem.h"
 #include "HAL/PlatformTime.h"
@@ -12,13 +12,15 @@ FHttpRetrySystem::FRequest::FRequest(
 	const TSharedRef<IHttpRequest>& HttpRequest, 
 	const FHttpRetrySystem::FRetryLimitCountSetting& InRetryLimitCountOverride,
 	const FHttpRetrySystem::FRetryTimeoutRelativeSecondsSetting& InRetryTimeoutRelativeSecondsOverride,
-	const FHttpRetrySystem::FRetryResponseCodes& InRetryResponseCodes
+	const FHttpRetrySystem::FRetryResponseCodes& InRetryResponseCodes,
+	const FHttpRetrySystem::FRetryVerbs& InRetryVerbs
 	)
     : FHttpRequestAdapterBase(HttpRequest)
     , Status(FHttpRetrySystem::FRequest::EStatus::NotStarted)
     , RetryLimitCountOverride(InRetryLimitCountOverride)
     , RetryTimeoutRelativeSecondsOverride(InRetryTimeoutRelativeSecondsOverride)
 	, RetryResponseCodes(InRetryResponseCodes)
+	, RetryVerbs(InRetryVerbs)
 	, RetryManager(InManager)
 {
     // if the InRetryTimeoutRelativeSecondsOverride override is being used the value cannot be negative
@@ -55,14 +57,16 @@ FHttpRetrySystem::FManager::FManager(const FRetryLimitCountSetting& InRetryLimit
 TSharedRef<FHttpRetrySystem::FRequest> FHttpRetrySystem::FManager::CreateRequest(
 	const FRetryLimitCountSetting& InRetryLimitCountOverride,
 	const FRetryTimeoutRelativeSecondsSetting& InRetryTimeoutRelativeSecondsOverride,
-	const FRetryResponseCodes& InRetryResponseCodes)
+	const FRetryResponseCodes& InRetryResponseCodes,
+	const FRetryVerbs& InRetryVerbs)
 {
 	return MakeShareable(new FRequest(
 		*this,
 		FHttpModule::Get().CreateRequest(),
 		InRetryLimitCountOverride,
 		InRetryTimeoutRelativeSecondsOverride,
-		InRetryResponseCodes
+		InRetryResponseCodes,
+		InRetryVerbs
 		));
 }
 
@@ -82,9 +86,18 @@ bool FHttpRetrySystem::FManager::ShouldRetry(const FHttpRetryRequestEntry& HttpR
 		}
 		else if (Status == EHttpRequestStatus::Failed)
 		{
-			// we will also allow retry for GET and HEAD requests even if they may duplicate on the server
-			FString Verb = HttpRetryRequestEntry.Request->GetVerb();
-			if (Verb == TEXT("GET") || Verb == TEXT("HEAD"))
+			const FName Verb = FName(*HttpRetryRequestEntry.Request->GetVerb());
+
+			// Be default, we will also allow retry for GET and HEAD requests even if they may duplicate on the server
+			static const TSet<FName> DefaultRetryVerbs(TArray<FName>({ FName(TEXT("GET")), FName(TEXT("HEAD")) }));
+
+			const bool bIsRetryVerbsEmpty = HttpRetryRequestEntry.Request->RetryVerbs.Num() == 0;
+			if (bIsRetryVerbsEmpty && DefaultRetryVerbs.Contains(Verb))
+			{
+				bResult = true;
+			}
+			// If retry verbs are specified, only allow retrying the specified list of verbs
+			else if (HttpRetryRequestEntry.Request->RetryVerbs.Contains(Verb))
 			{
 				bResult = true;
 			}

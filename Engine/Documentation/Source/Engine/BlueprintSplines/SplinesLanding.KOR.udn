@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3178047
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:블루프린트 스플라인
 Crumbs: %ROOT%, Engine
@@ -10,45 +10,7 @@ social-image:Engine/BlueprintSplines/Overview/BPSC_1.png
 related: Engine/Landscape/Editing/Splines/
 version:4.13
 tags:Splines
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/BlueprintSplines:title%](Engine/BlueprintSplines/Splines_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/BlueprintSplines:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/BlueprintSplines:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/BlueprintSplines]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/BlueprintSplines:title%](Engine/BlueprintSplines/Splines_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/BlueprintSplines:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/BlueprintSplines:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/BlueprintSplines]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/BlueprintSplines/Splines_topic.png
 
 ![](Engine/BlueprintSplines/Overview/BPSC_1.png)
 
@@ -67,5 +29,6 @@ tags:Splines
 ## 샘플
 
 [DIR(output:"topiccompact" parent:"Resources/ContentExamples" tags:"Splines")]
+
 
 

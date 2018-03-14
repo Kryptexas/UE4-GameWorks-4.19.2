@@ -4,25 +4,12 @@ Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:In this step, we update our player character and create an AnimMontage for the animation we want to layer in on top of our movement animations.
 version: 4.14
 skilllevel: Advanced
+parent:Engine/Animation/AnimHowTo/AdditiveAnimations
 type:how-to
+order:1
 tags:Animation
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Layered Animations - Home ](Engine\Animation\AnimHowTo\AdditiveAnimations)
-	[/PARAM]
-	[PARAM:next]
-		[Next](Engine\Animation\AnimHowTo\AdditiveAnimations\02_CharacterBlueprintSetup)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 In this step, we change our default player character and create an AnimMontage for the animation we want to layer in on top of our movement animations. 
 
@@ -74,4 +61,4 @@ You can download the Animation Starter Pack for free through the **Marketplace**
 
 In the next section, we will change our default player character and make some adjustments to determine when we are firing a weapon. 
 
-%Steps%
+[NAV]

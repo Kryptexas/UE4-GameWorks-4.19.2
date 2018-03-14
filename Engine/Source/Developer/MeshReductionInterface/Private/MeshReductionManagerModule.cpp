@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MeshReductionManagerModule.h"
 #include "IMeshReductionInterfaces.h"
@@ -15,6 +15,13 @@ static FAutoConsoleVariable CVarMeshReductionModule(
 	TEXT("QuadricMeshReduction"),
 	TEXT("Name of what mesh reduction module to choose. If blank it chooses any that exist.\n"),
 	ECVF_ReadOnly);
+
+static FAutoConsoleVariable CVarProxyLODMeshReductionModule(
+	TEXT("r.ProxyLODMeshReductionModule"),
+	TEXT("QuadricMeshProxyLODReduction"),
+	TEXT("Name of the Proxy LOD reduction module to choose. If blank it chooses any that exist.\n"),
+	ECVF_ReadOnly);
+
 
 IMPLEMENT_MODULE(FMeshReductionManagerModule, MeshReductionInterface);
 
@@ -37,6 +44,15 @@ void FMeshReductionManagerModule::StartupModule()
 	GConfig->GetString(TEXT("/Script/Engine.MeshSimplificationSettings"), TEXT("r.MeshReductionModule"), MeshReductionModuleName, GEngineIni);
 	CVarMeshReductionModule->Set(*MeshReductionModuleName);
 
+	FString HLODMeshReductionModuleName;
+	GConfig->GetString(TEXT("/Script/Engine.ProxyLODMeshSimplificationSettings"), TEXT("r.ProxyLODMeshReductionModule"), HLODMeshReductionModuleName, GEngineIni);
+	// If nothing was requested, default to simplygon for mesh merging reduction
+	if (HLODMeshReductionModuleName.IsEmpty())
+	{
+		HLODMeshReductionModuleName = FString("SimplygonMeshReduction");
+	}
+	CVarProxyLODMeshReductionModule->Set(*HLODMeshReductionModuleName);
+
 	// Retrieve reduction interfaces 
 	TArray<FName> ModuleNames;
 	FModuleManager::Get().FindModules(TEXT("*MeshReduction"), ModuleNames);
@@ -52,17 +68,20 @@ void FMeshReductionManagerModule::StartupModule()
 	
 	TArray<IMeshReductionModule*> MeshReductionModules = IModularFeatures::Get().GetModularFeatureImplementations<IMeshReductionModule>(IMeshReductionModule::GetModularFeatureName());
 	
-	const FString UserDefinedModuleName = CVarMeshReductionModule->GetString();
+	const FString UserDefinedMeshReductionModuleName     = CVarMeshReductionModule->GetString();
+	const FString UserDefinedProxyLODReductionModuleName = CVarProxyLODMeshReductionModule->GetString();
 	for (IMeshReductionModule* Module : MeshReductionModules)
 	{
+		// Is this a requested module?
 		const FString ModuleName = Module->GetName();
-		const bool bIsUserDefinedModule = ModuleName.Equals(UserDefinedModuleName);
+		const bool bIsUserDefinedMeshReductionModule     = ModuleName.Equals(UserDefinedMeshReductionModuleName);
+		const bool bIsUserDefinedProxyLODReductionModule = ModuleName.Equals(UserDefinedProxyLODReductionModuleName);
 
 		// Look for MeshReduction interface
 		IMeshReduction* StaticMeshReductionInterface = Module->GetStaticMeshReductionInterface();
 		if (StaticMeshReductionInterface)
 		{
-			if (bIsUserDefinedModule || StaticMeshReduction == nullptr)
+			if (bIsUserDefinedMeshReductionModule || StaticMeshReduction == nullptr)
 			{
 				StaticMeshReduction = StaticMeshReductionInterface;
 				UE_LOG(LogMeshReduction, Log, TEXT("Using %s for automatic static mesh reduction"), *ModuleName);
@@ -73,7 +92,7 @@ void FMeshReductionManagerModule::StartupModule()
 		IMeshReduction* SkeletalMeshReductionInterface = Module->GetSkeletalMeshReductionInterface();
 		if (SkeletalMeshReductionInterface)
 		{
-			if (bIsUserDefinedModule || SkeletalMeshReduction == nullptr)
+			if (bIsUserDefinedMeshReductionModule || SkeletalMeshReduction == nullptr)
 			{
 				SkeletalMeshReduction = SkeletalMeshReductionInterface;
 				UE_LOG(LogMeshReduction, Log, TEXT("Using %s for automatic skeletal mesh reduction"), *ModuleName);
@@ -84,7 +103,7 @@ void FMeshReductionManagerModule::StartupModule()
 		IMeshMerging* MeshMergingInterface = Module->GetMeshMergingInterface();
 		if (MeshMergingInterface)
 		{
-			if (bIsUserDefinedModule || MeshMerging == nullptr)
+			if (bIsUserDefinedProxyLODReductionModule || MeshMerging == nullptr)
 			{
 				MeshMerging = MeshMergingInterface;
 				UE_LOG(LogMeshReduction, Log, TEXT("Using %s for automatic mesh merging"), *ModuleName);
@@ -95,7 +114,7 @@ void FMeshReductionManagerModule::StartupModule()
 		IMeshMerging* DistributedMeshMergingInterface = Module->GetDistributedMeshMergingInterface();
 		if (DistributedMeshMergingInterface)
 		{
-			if (bIsUserDefinedModule || DistributedMeshMerging == nullptr)
+			if (bIsUserDefinedMeshReductionModule || DistributedMeshMerging == nullptr)
 			{
 				DistributedMeshMerging = DistributedMeshMergingInterface;
 				UE_LOG(LogMeshReduction, Log, TEXT("Using %s for distributed automatic mesh merging"), *ModuleName);

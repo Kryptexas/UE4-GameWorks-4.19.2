@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 MeshTexCoordSizeAccuracyRendering.h: Declarations used for the viewmode.
@@ -25,9 +25,9 @@ class FMeshTexCoordSizeAccuracyPS : public FGlobalShader, public IDebugViewModeP
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return AllowDebugViewPS(DVSM_MeshUVDensityAccuracy, Platform);
+		return AllowDebugViewPS(DVSM_MeshUVDensityAccuracy, Parameters.Platform);
 	}
 
 	FMeshTexCoordSizeAccuracyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
@@ -51,7 +51,7 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("UNDEFINED_ACCURACY"), UndefinedStreamingAccuracyIntensity);
 	}

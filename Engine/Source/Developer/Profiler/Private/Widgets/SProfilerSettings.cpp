@@ -1,10 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/SProfilerSettings.h"
 #include "Fonts/SlateFontInfo.h"
 #include "Misc/Paths.h"
 #include "Widgets/SBoxPanel.h"
 #include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
 #include "SlateOptMacros.h"
 #include "Widgets/Layout/SSeparator.h"
 #include "Widgets/Images/SImage.h"
@@ -57,7 +58,7 @@ void SProfilerSettings::AddTitle( const FText& TitleText, const TSharedRef<SGrid
 	.Padding( 2.0f )
 	[
 		SNew(STextBlock)
-		.Font( FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18) )
+		.Font( FCoreStyle::GetDefaultFontStyle("Regular", 18) )
 		.Text( TitleText )	
 	];
 	RowPos++;
@@ -81,7 +82,7 @@ void SProfilerSettings::AddHeader( const FText& HeaderText, const TSharedRef<SGr
 	.Padding( 2.0f )
 	[
 		SNew(STextBlock)
-		.Font( FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 14) )
+		.Font( FCoreStyle::GetDefaultFontStyle("Regular", 14) )
 		.Text( HeaderText )	
 	];
 	RowPos++;

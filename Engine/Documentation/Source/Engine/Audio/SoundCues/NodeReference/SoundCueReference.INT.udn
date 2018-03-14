@@ -109,14 +109,16 @@ Min and Max fields are provided for randomization.
 [/REGION]
 
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:ParamMode]
 The mode with which the parameter is applied: 
 * **MPM_Normal** - Clamps input value to the range (MinInput, MaxInput) then maps to the range (MinOutput, MaxOutput). 
 * **MPM_Abs** - Same as MPM_Normal, except that the input value is treated as an absolute value.
 * **MPM_Direct** - Uses the input value directly, without scaling or reference to Min or Max input or output values.
 [/EXCERPT:ParamMode]
---->
+-
+[/COMMENT]
 
 
 
@@ -247,7 +249,9 @@ The **Group Control** node determines which Sound Wave to play, depending on wha
 | [REGION:tablesection]Sound Node Group Control[/REGION] ||
 | **Group Sizes** | The number of Sound Wave nodes in the group, minus 1 (the first Sound Wave Node is node "0").|
 
-<!-- get more info here -->
+[COMMENT:none]
+ get more info here 
+[/COMMENT]
 
 
 ## Looping Node
@@ -332,7 +336,9 @@ The **Random** node is used to randomly trigger a Sound Wave node from within a 
 | **Preselect at Level Load** | A random Sound Wave node, selected when the level is loaded, that is always used during that play session. Note that this setting does not apply during Play In Editor or Simulate; it applies only in game builds outside the Unreal Editor. |
 | **Randomize Without Replacement** | If true, prevents an input Sound Wave node from being played again until all input Sound Wave nodes have been played. This ensures that all sounds are played before any are repeated. |
 
-<!-- get more info -->
+[COMMENT:none]
+ get more info 
+[/COMMENT]
 
 ## SoundClass Node
 
@@ -346,7 +352,9 @@ The **SoundClass** node allows you to remap which Sound Class asset you are usin
 | **Sound Class Override** | The Sound Class asset that will override the current Sound Class for the Sound Wave input node. |
 
 
-<!-- get more info -->
+[COMMENT:none]
+ get more info 
+[/COMMENT]
 
 
 ## Switch Node
@@ -360,7 +368,9 @@ The **Switch** node selects an input node based on the value of an integer param
 | [REGION:tablesection]Sound Node Switch[/REGION] ||
 | **Int Parameter Name** | The name of the integer parameter used to determine which input is used. |
 
-<!-- get more info -->
+[COMMENT:none]
+ get more info 
+[/COMMENT]
 
 
 
@@ -381,7 +391,9 @@ You can set the parameter either in code or in Blueprints.
 | [REGION:tablesection]Sound Node Wave Param[/REGION] ||
 | **Wave Parameter Name** | The parameter used to determine which Sound Wave to play.  If the parameter does not exist or points at an invalid Sound Wave, then the Sound Wave specified by the tree connected to the input node is evaluated to determine which Sound Wave(s) to play instead. |
 
-<!-- get more info -->
+[COMMENT:none]
+ get more info 
+[/COMMENT]
 
 
 

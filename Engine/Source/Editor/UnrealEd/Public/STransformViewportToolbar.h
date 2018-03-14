@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,6 +6,7 @@
 #include "Layout/Visibility.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SWidget.h"
+#include "Widgets/Input/SSpinBox.h"
 #include "Textures/SlateIcon.h"
 #include "SViewportToolBar.h"
 #include "Settings/LevelEditorViewportSettings.h"
@@ -55,6 +56,19 @@ private:
 	 * @Param	NewValue	Value to set camera speed too
 	 */
 	void OnSetCamSpeed(float NewValue);
+
+	/** Returns the current camera speed scalar setting */
+	float GetCamSpeedScalarBoxValue() const;
+
+	/**
+	* Sets new camera speed scalar
+	*
+	* @Param	NewValue	Value to set for the camera speed scalar
+	*/
+	void OnSetCamSpeedScalarBoxValue(float NewValue);
+
+	/** Camera speed scalar Label callback */
+	FText GetCameraSpeedScalarLabel() const;
 
 	/** Grid snap label callbacks */
 	FText GetLocationGridLabel() const;
@@ -109,6 +123,9 @@ private:
 
 	/** Reference to the camera slider used to display current camera speed */
 	mutable TSharedPtr< SSlider > CamSpeedSlider;
+
+	/** Reference to the camera spinbox used to display current camera speed scalar */
+	mutable TSharedPtr< SSpinBox<float> > CamSpeedScalarBox;
 
 	/** The editor viewport that we are in */
 	TWeakPtr<class SEditorViewport> Viewport;

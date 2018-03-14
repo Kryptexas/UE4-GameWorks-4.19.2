@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "KeyGenerator.h"
 #include "UnrealPak.h"
@@ -260,7 +260,7 @@ void GeneratePrimeNumberTable(int64 MaxValue, const TCHAR* Filename)
 
 	UE_LOG(LogPakFile, Display, TEXT("Generating prime number table <= %lld: %s."), MaxValue, Filename);
 
-	FString PrimeTableString(TEXT("// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.\nTEncryptionInt PrimeTable[] = \n{\n\t2, "));
+	FString PrimeTableString(TEXT("// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.\nTEncryptionInt PrimeTable[] = \n{\n\t2, "));
 	int64 PrimeCount = 1;
 	const double StartTime = FPlatformTime::Seconds();
 	for (int64 SmallNumber = 3; SmallNumber <= MaxValue; SmallNumber += 2)

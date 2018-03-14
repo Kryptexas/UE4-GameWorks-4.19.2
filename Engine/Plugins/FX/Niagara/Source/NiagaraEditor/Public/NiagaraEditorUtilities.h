@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -62,11 +62,7 @@ namespace FNiagaraEditorUtilities
 
 		return true;
 	}
-
-	/** Builds a unique name from a candidate name and a set of existing names.  The candidate name will be made unique 
-		if necessary by adding a 3 digit index to the end. */
-	FName GetUniqueName(FName CandidateName, const TSet<FName>& ExistingNames);
-
+	
 	/** Gets a set of the system constant names. */
 	TSet<FName> GetSystemConstantNames();
 
@@ -110,10 +106,15 @@ namespace FNiagaraEditorUtilities
 	/** Returns whether the data in a niagara variable and a struct on scope match */
 	bool DataMatches(const FNiagaraVariable& Variable, const FStructOnScope& StructOnScope);
 
+	/** Returns whether the data in two niagara variables match. */
+	bool DataMatches(const FNiagaraVariable& VariableA, const FNiagaraVariable& VariableB);
+
 	/** Returns whether the data in two structs on scope matches. */
 	bool DataMatches(const FStructOnScope& StructOnScopeA, const FStructOnScope& StructOnScopeB);
 
 	TSharedPtr<SWidget> CreateInlineErrorText(TAttribute<FText> ErrorMessage, TAttribute<FText> ErrorTooltip);
 
-	void UpdateExistingEmitters(const TArray<UNiagaraEmitter*>& AffectedEmitters);
+	void CompileExistingEmitters(const TArray<UNiagaraEmitter*>& AffectedEmitters);
+	
+	bool TryGetEventDisplayName(UNiagaraEmitter* Emitter, FGuid EventUsageId, FText& OutEventDisplayName);
 }

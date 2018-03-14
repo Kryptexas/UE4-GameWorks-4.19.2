@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "OculusHMDPrivate.h"
@@ -45,20 +45,17 @@ public:
 			/** Allocate an high quality OVR_FORMAT_R11G11B10_FLOAT buffer for Rift */
 			uint64 bHQBuffer : 1;
 
-			/** True, if Far/Mear clipping planes got overriden */
-			uint64	bClippingPlanesOverride : 1;
-
 			/** Rendering should be (could be) paused */
-			uint64	bPauseRendering : 1;
+			uint64				bPauseRendering : 1;
 
 			/** HQ Distortion */
-			uint64	bHQDistortion : 1;
+			uint64				bHQDistortion : 1;
 
 			/* plugin-allocated multiview buffer (GL_TEXTURE_2D_ARRAY) for mobile is required */
-			uint64	bDirectMultiview : 1; 
+			uint64				bDirectMultiview : 1;
 
 			/* eye buffer is currently a multiview buffer */
-			uint64	bIsUsingDirectMultiview : 1;
+			uint64				bIsUsingDirectMultiview : 1;
 
 			/** Send the depth buffer to the compositor */
 			uint64				bCompositeDepth : 1;
@@ -72,11 +69,6 @@ public:
 		};
 		uint64 Raw;
 	} Flags;
-
-	/** Optional far clipping plane for projection matrix */
-	float NearClippingPlane;
-	/** Optional far clipping plane for projection matrix */
-	float FarClippingPlane;
 
 	/** HMD base values, specify forward orientation and zero pos offset */
 	FVector BaseOffset; // base position, in meters, relatively to the sensor //@todo hmd: clients need to stop using oculus space
@@ -100,13 +92,15 @@ public:
 
 	float VsyncToNextVsync;
 
+	ETiledMultiResLevel MultiResLevel;
+
 public:
 	FSettings();
 	virtual ~FSettings() {}
 
 	bool IsStereoEnabled() const { return Flags.bStereoEnabled && Flags.bHMDEnabled; }
 
-	bool UpdatePixelDensityFromScreenPercentage();
+	bool UpdatePixelDensity(const float NewPixelDensity);
 
 	TSharedPtr<FSettings, ESPMode::ThreadSafe> Clone() const;
 };

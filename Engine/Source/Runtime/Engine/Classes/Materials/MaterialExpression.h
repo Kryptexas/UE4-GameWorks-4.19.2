@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -36,7 +36,7 @@ struct FExpressionInput
 	 * Note that this is the only member which is not derived from the output currently connected. 
 	 */
 	UPROPERTY()
-	FString InputName;
+	FName InputName;
 
 	UPROPERTY()
 	int32 Mask;
@@ -73,7 +73,7 @@ USTRUCT(noexport)
 struct FExpressionOutput
 {
 	UPROPERTY()
-	FString OutputName;
+	FName OutputName;
 
 	UPROPERTY()
 	int32 Mask;
@@ -134,10 +134,6 @@ class ENGINE_API UMaterialExpression : public UObject
 	/** A description that level designers can add (shows in the material editor UI). */
 	UPROPERTY(EditAnywhere, Category=MaterialExpression, meta=(MultiLine=true))
 	FString Desc;
-
-	/** Color of the expression's border outline. */
-	UPROPERTY()
-	FColor BorderColor;
 
 	/** Set to true by RecursiveUpdateRealtimePreview() if the expression's preview needs to be updated in realtime in the material editor. */
 	UPROPERTY()
@@ -246,9 +242,14 @@ class ENGINE_API UMaterialExpression : public UObject
 	virtual TArray<FExpressionOutput>& GetOutputs();
 	virtual const TArray<FExpressionInput*> GetInputs();
 	virtual FExpressionInput* GetInput(int32 InputIndex);
-	virtual FString GetInputName(int32 InputIndex) const;
+	virtual FName GetInputName(int32 InputIndex) const;
 	virtual bool IsInputConnectionRequired(int32 InputIndex) const;
 #if WITH_EDITOR
+	virtual bool CanUserDeleteExpression() const
+	{
+		return true;
+	};
+
 	virtual uint32 GetInputType(int32 InputIndex);
 	virtual uint32 GetOutputType(int32 OutputIndex);
 
@@ -420,7 +421,7 @@ protected:
 	 * @param ExpressionStack    List of expression keys that have been checked already in the current stack
 	 * @param VisitedExpressions List of all expression keys that have been visited
 	 */
-	bool ContainsInputLoopInternal(TArray<FMaterialExpressionKey>& ExpressionStack, TSet<FMaterialExpressionKey>& VisitedExpressions, const bool bStopOnFunctionCall);
+	bool ContainsInputLoopInternal(TArray<class FMaterialExpressionKey>& ExpressionStack, TSet<class FMaterialExpressionKey>& VisitedExpressions, const bool bStopOnFunctionCall);
 };
 
 

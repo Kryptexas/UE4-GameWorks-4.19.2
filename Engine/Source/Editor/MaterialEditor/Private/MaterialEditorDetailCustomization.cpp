@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MaterialEditorDetailCustomization.h"
 #include "Widgets/Text/STextBlock.h"
@@ -11,10 +11,370 @@
 #include "DetailWidgetRow.h"
 #include "DetailCategoryBuilder.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
+#include "MaterialLayersFunctionsCustomization.h"
+#include "PropertyEditorModule.h"
+#include "MaterialEditor/MaterialEditorPreviewParameters.h"
+#include "SButton.h"
+#include "MaterialEditor/MaterialEditorInstanceConstant.h"
+#include "IDetailGroup.h"
+#include "MaterialEditor/DEditorParameterValue.h"
+#include "AssetToolsModule.h"
+#include "ModuleManager.h"
+#include "Factories/MaterialInstanceConstantFactoryNew.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "MaterialEditor/DEditorScalarParameterValue.h"
+#include "MaterialEditor/DEditorFontParameterValue.h"
+#include "MaterialEditor/DEditorTextureParameterValue.h"
+#include "MaterialEditor/DEditorVectorParameterValue.h"
+#include "MaterialEditor/DEditorStaticSwitchParameterValue.h"
+#include "MaterialEditor/DEditorStaticComponentMaskParameterValue.h"
+#include "MaterialPropertyHelpers.h"
+#include "MaterialEditor/DEditorMaterialLayersParameterValue.h"
+#include "PropertyCustomizationHelpers.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditor"
 
+TSharedRef<IDetailCustomization> FMaterialEditorParameterDetails::MakeInstance(UMaterialEditorPreviewParameters* Material)
+{
+	return MakeShareable(new FMaterialEditorParameterDetails(Material));
+}
 
+FMaterialEditorParameterDetails::FMaterialEditorParameterDetails(UMaterialEditorPreviewParameters* Material)
+	: MaterialEditorInstance(Material)
+{
+}
+
+
+TOptional<float> FMaterialEditorParameterDetails::OnGetValue(TSharedRef<IPropertyHandle> PropertyHandle)
+{
+	float Value = 0.0f;
+	if (PropertyHandle->GetValue(Value) == FPropertyAccess::Success)
+	{
+		return TOptional<float>(Value);
+	}
+
+	// Value couldn't be accessed. Return an unset value
+	return TOptional<float>();
+}
+
+void FMaterialEditorParameterDetails::OnValueCommitted(float NewValue, ETextCommit::Type CommitType, TSharedRef<IPropertyHandle> PropertyHandle)
+{
+	// Try setting as float, if that fails then set as int
+	ensure(PropertyHandle->SetValue(NewValue) == FPropertyAccess::Success);
+}
+
+void FMaterialEditorParameterDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
+{
+	TSharedRef<IPropertyUtilities> PropertyUtils = DetailLayout.GetPropertyUtilities();
+	// Create a new category for a custom layout for the MIC parameters at the very top
+	FName GroupsCategoryName = TEXT("ParameterGroups");
+	IDetailCategoryBuilder& GroupsCategory = DetailLayout.EditCategory(GroupsCategoryName, LOCTEXT("MICParamGroupsTitle", "Parameter Groups"));
+	TSharedRef<IPropertyHandle> ParameterGroupsProperty = DetailLayout.GetProperty("ParameterGroups");
+
+	CreateGroupsWidget(ParameterGroupsProperty, GroupsCategory);
+
+	DetailLayout.HideProperty("ParameterGroups");
+
+	TArray<UObject*> ExternalObjects;
+	ExternalObjects.Add(MaterialEditorInstance->OriginalMaterial);
+}
+
+
+void FMaterialEditorParameterDetails::CreateGroupsWidget(TSharedRef<IPropertyHandle> ParameterGroupsProperty, IDetailCategoryBuilder& GroupsCategory)
+{
+	check(MaterialEditorInstance);
+	bool bShowSaveButtons = false;
+	for (int32 GroupIdx = 0; GroupIdx < MaterialEditorInstance->ParameterGroups.Num(); ++GroupIdx)
+	{
+		FEditorParameterGroup& ParameterGroup = MaterialEditorInstance->ParameterGroups[GroupIdx];
+		if (ParameterGroup.GroupAssociation == EMaterialParameterAssociation::GlobalParameter
+			&& ParameterGroup.GroupName != FMaterialPropertyHelpers::LayerParamName)
+		{
+			IDetailGroup& DetailGroup = GroupsCategory.AddGroup(ParameterGroup.GroupName, FText::FromName(ParameterGroup.GroupName), false, true);
+			CreateSingleGroupWidget(ParameterGroup, ParameterGroupsProperty->GetChildHandle(GroupIdx), DetailGroup);
+			bShowSaveButtons = true;
+		}
+	}
+	if (bShowSaveButtons)
+	{
+		FOnClicked ChildButtonClicked;
+		UObject* LocalEditorInstance = MaterialEditorInstance;
+		if (MaterialEditorInstance->OriginalMaterial)
+		{
+			ChildButtonClicked = FOnClicked::CreateStatic(FMaterialPropertyHelpers::OnClickedSaveNewMaterialInstance,
+				ImplicitConv<UMaterialInterface*>(MaterialEditorInstance->OriginalMaterial), LocalEditorInstance);
+		}
+		if (MaterialEditorInstance->OriginalFunction)
+		{
+			ChildButtonClicked = FOnClicked::CreateStatic(FMaterialPropertyHelpers::OnClickedSaveNewFunctionInstance,
+				ImplicitConv<UMaterialFunctionInterface*>(MaterialEditorInstance->OriginalFunction), ImplicitConv<UMaterialInterface*>(MaterialEditorInstance->PreviewMaterial), LocalEditorInstance);
+		}
+
+		FDetailWidgetRow& SaveInstanceRow = GroupsCategory.AddCustomRow(LOCTEXT("SaveInstances", "Save Instances"));
+		SaveInstanceRow.ValueContent()
+			.HAlign(HAlign_Fill)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				[
+					SNullWidget::NullWidget
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(2.0f)
+				[
+					SNew(SButton)
+					.ButtonStyle(FEditorStyle::Get(), "FlatButton.Dark")
+					.HAlign(HAlign_Center)
+					.OnClicked(ChildButtonClicked)
+					.ToolTipText(LOCTEXT("SaveToChildInstance", "Save To Child Instance"))
+					.Content()
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(STextBlock)
+							.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+							.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+							.Text(FText::FromString(FString(TEXT("\xf0c7 \xf149"))) /*fa-filter*/)
+						]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(STextBlock)
+							.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+							.Text(FText::FromString(FString(TEXT(" Save Child"))) /*fa-filter*/)
+						]
+					]
+				]
+			];
+	}
+	else
+	{
+		FDetailWidgetRow& NoParameters = GroupsCategory.AddCustomRow(LOCTEXT("NoParameters", "No Parameters"));
+		NoParameters.WholeRowContent()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("AddGlobalParameterPrompt", "Add a global parameter to see it here. \nMaterial Attribute Layers parameters are found in the Layer Parameter Preview panel."))
+				.AutoWrapText(true)
+			];
+	}
+}
+
+
+void FMaterialEditorParameterDetails::CreateSingleGroupWidget(FEditorParameterGroup& ParameterGroup, TSharedPtr<IPropertyHandle> ParameterGroupProperty, IDetailGroup& DetailGroup)
+{
+	TSharedPtr<IPropertyHandle> ParametersArrayProperty = ParameterGroupProperty->GetChildHandle("Parameters");
+
+	// Create a custom widget for each parameter in the group
+	for (int32 ParamIdx = 0; ParamIdx < ParameterGroup.Parameters.Num(); ++ParamIdx)
+	{
+		TSharedPtr<IPropertyHandle> ParameterProperty = ParametersArrayProperty->GetChildHandle(ParamIdx);
+
+		FString ParameterName = ParameterGroup.Parameters[ParamIdx]->ParameterInfo.Name.ToString();
+
+		UDEditorParameterValue* Parameter = ParameterGroup.Parameters[ParamIdx];
+		UDEditorFontParameterValue* FontParam = Cast<UDEditorFontParameterValue>(Parameter);
+		UDEditorScalarParameterValue* ScalarParam = Cast<UDEditorScalarParameterValue>(Parameter);
+		UDEditorStaticComponentMaskParameterValue* CompMaskParam = Cast<UDEditorStaticComponentMaskParameterValue>(Parameter);
+		UDEditorStaticSwitchParameterValue* SwitchParam = Cast<UDEditorStaticSwitchParameterValue>(Parameter);
+		UDEditorTextureParameterValue* TextureParam = Cast<UDEditorTextureParameterValue>(Parameter);
+		UDEditorVectorParameterValue* VectorParam = Cast<UDEditorVectorParameterValue>(Parameter);
+		UDEditorMaterialLayersParameterValue* LayersParam = Cast<UDEditorMaterialLayersParameterValue>(Parameter);
+
+		if (VectorParam && VectorParam->bIsUsedAsChannelMask)
+		{
+			CreateVectorChannelMaskParameterValueWidget(Parameter, ParameterProperty, DetailGroup);
+		}
+		else if (ScalarParam || SwitchParam || TextureParam || VectorParam || FontParam)
+		{
+			if (ScalarParam && ScalarParam->SliderMax > ScalarParam->SliderMin)
+			{
+				TSharedPtr<IPropertyHandle> ParameterValueProperty = ParameterProperty->GetChildHandle("ParameterValue");
+				ParameterValueProperty->SetInstanceMetaData("UIMin", FString::Printf(TEXT("%f"), ScalarParam->SliderMin));
+				ParameterValueProperty->SetInstanceMetaData("UIMax", FString::Printf(TEXT("%f"), ScalarParam->SliderMax));
+			}
+
+			CreateParameterValueWidget(Parameter, ParameterProperty, DetailGroup);
+		}
+		else if (LayersParam)
+		{
+		}
+		else if (CompMaskParam)
+		{
+			CreateMaskParameterValueWidget(Parameter, ParameterProperty, DetailGroup);
+		}
+		else
+		{
+			// Unsupported parameter type
+			check(false);
+		}
+	}
+}
+
+
+void FMaterialEditorParameterDetails::CreateParameterValueWidget(UDEditorParameterValue* Parameter, TSharedPtr<IPropertyHandle> ParameterProperty, IDetailGroup& DetailGroup)
+{
+	TSharedPtr<IPropertyHandle> ParameterValueProperty = ParameterProperty->GetChildHandle("ParameterValue");
+
+	if (ParameterValueProperty->IsValidHandle())
+	{
+
+		IDetailPropertyRow& PropertyRow = DetailGroup.AddPropertyRow(ParameterValueProperty.ToSharedRef());
+		PropertyRow
+			.DisplayName(FText::FromName(Parameter->ParameterInfo.Name))
+			.ToolTip(GetParameterExpressionDescription(Parameter));
+	}
+}
+
+void FMaterialEditorParameterDetails::CreateMaskParameterValueWidget(UDEditorParameterValue* Parameter, TSharedPtr<IPropertyHandle> ParameterProperty, IDetailGroup& DetailGroup)
+{
+	TSharedPtr<IPropertyHandle> ParameterValueProperty = ParameterProperty->GetChildHandle("ParameterValue");
+	TSharedPtr<IPropertyHandle> RMaskProperty = ParameterValueProperty->GetChildHandle("R");
+	TSharedPtr<IPropertyHandle> GMaskProperty = ParameterValueProperty->GetChildHandle("G");
+	TSharedPtr<IPropertyHandle> BMaskProperty = ParameterValueProperty->GetChildHandle("B");
+	TSharedPtr<IPropertyHandle> AMaskProperty = ParameterValueProperty->GetChildHandle("A");
+
+	if (ParameterValueProperty->IsValidHandle())
+	{
+		IDetailPropertyRow& PropertyRow = DetailGroup.AddPropertyRow(ParameterValueProperty.ToSharedRef());
+		const FText ParameterName = FText::FromName(Parameter->ParameterInfo.Name);
+
+		FDetailWidgetRow& CustomWidget = PropertyRow.CustomWidget();
+		CustomWidget
+			.FilterString(ParameterName)
+			.NameContent()
+			[
+				SNew(STextBlock)
+				.Text(ParameterName)
+				.ToolTipText(GetParameterExpressionDescription(Parameter))
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.ValueContent()
+			.MaxDesiredWidth(200.0f)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Left)
+					.AutoWidth()
+					[
+						RMaskProperty->CreatePropertyNameWidget(FText::GetEmpty(), FText::GetEmpty(), false)
+					]
+					+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Left)
+					.AutoWidth()
+					[
+						RMaskProperty->CreatePropertyValueWidget()
+					]
+					+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Left)
+					.Padding(FMargin(10.0f, 0.0f, 0.0f, 0.0f))
+					.AutoWidth()
+					[
+						GMaskProperty->CreatePropertyNameWidget(FText::GetEmpty(), FText::GetEmpty(), false)
+					]
+					+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Left)
+					.AutoWidth()
+					[
+						GMaskProperty->CreatePropertyValueWidget()
+					]
+					+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Left)
+					.Padding(FMargin(10.0f, 0.0f, 0.0f, 0.0f))
+					.AutoWidth()
+					[
+						BMaskProperty->CreatePropertyNameWidget(FText::GetEmpty(), FText::GetEmpty(), false)
+					]
+					+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Left)
+					.AutoWidth()
+					[
+						BMaskProperty->CreatePropertyValueWidget()
+					]
+					+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Left)
+					.Padding(FMargin(10.0f, 0.0f, 0.0f, 0.0f))
+					.AutoWidth()
+					[
+						AMaskProperty->CreatePropertyNameWidget(FText::GetEmpty(), FText::GetEmpty(), false)
+					]
+					+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Left)
+					.AutoWidth()
+					[
+						AMaskProperty->CreatePropertyValueWidget()
+					]
+				]
+			];
+	}
+}
+
+void FMaterialEditorParameterDetails::CreateVectorChannelMaskParameterValueWidget(UDEditorParameterValue* Parameter, TSharedPtr<IPropertyHandle> ParameterProperty, IDetailGroup& DetailGroup)
+{
+	TSharedPtr<IPropertyHandle> ParameterValueProperty = ParameterProperty->GetChildHandle("ParameterValue");
+
+	if (ParameterValueProperty->IsValidHandle())
+	{
+		TAttribute<bool> IsParamEnabled = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateStatic(&FMaterialPropertyHelpers::IsOverriddenExpression, Parameter));
+
+		IDetailPropertyRow& PropertyRow = DetailGroup.AddPropertyRow(ParameterValueProperty.ToSharedRef());
+		const FText ParameterName = FText::FromName(Parameter->ParameterInfo.Name);
+
+		FOnGetPropertyComboBoxStrings GetMaskStrings = FOnGetPropertyComboBoxStrings::CreateStatic(&FMaterialPropertyHelpers::GetVectorChannelMaskComboBoxStrings);
+		FOnGetPropertyComboBoxValue GetMaskValue = FOnGetPropertyComboBoxValue::CreateStatic(&FMaterialPropertyHelpers::GetVectorChannelMaskValue, Parameter);
+		FOnPropertyComboBoxValueSelected SetMaskValue = FOnPropertyComboBoxValueSelected::CreateStatic(&FMaterialPropertyHelpers::SetVectorChannelMaskValue, ParameterValueProperty, Parameter, (UObject*)MaterialEditorInstance);
+
+		FDetailWidgetRow& CustomWidget = PropertyRow.CustomWidget();
+		CustomWidget
+		.FilterString(ParameterName)
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Text(ParameterName)
+			.ToolTipText(FMaterialPropertyHelpers::GetParameterExpressionDescription(Parameter, MaterialEditorInstance))
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		.ValueContent()
+		.MaxDesiredWidth(200.0f)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.HAlign(HAlign_Left)
+				.AutoWidth()
+				[
+					PropertyCustomizationHelpers::MakePropertyComboBox(ParameterValueProperty, GetMaskStrings, GetMaskValue, SetMaskValue)
+				]
+			]
+		];
+	}
+}
+
+FText FMaterialEditorParameterDetails::GetParameterExpressionDescription(UDEditorParameterValue* Parameter) const
+{
+	UMaterial* BaseMaterial = MaterialEditorInstance->OriginalMaterial->GetMaterial();
+	if (BaseMaterial)
+	{
+		UMaterialExpression* MaterialExpression = BaseMaterial->FindExpressionByGUID<UMaterialExpression>(Parameter->ExpressionId);
+
+		if (MaterialExpression)
+		{
+			return FText::FromString(MaterialExpression->Desc);
+		}
+	}
+
+	return FText::GetEmpty();
+}
 
 TSharedRef<IDetailCustomization> FMaterialExpressionParameterDetails::MakeInstance(FOnCollectParameterGroups InCollectGroupsDelegate)
 {
@@ -23,6 +383,10 @@ TSharedRef<IDetailCustomization> FMaterialExpressionParameterDetails::MakeInstan
 
 FMaterialExpressionParameterDetails::FMaterialExpressionParameterDetails(FOnCollectParameterGroups InCollectGroupsDelegate)
 	: CollectGroupsDelegate(InCollectGroupsDelegate)
+{
+}
+
+FMaterialExpressionParameterDetails::FMaterialExpressionParameterDetails()
 {
 }
 
@@ -78,48 +442,50 @@ void FMaterialExpressionParameterDetails::CustomizeDetails( IDetailLayoutBuilder
 	// Get a handle to the property we are about to edit
 	GroupPropertyHandle = DetailLayout.GetProperty( "Group" );
 
-	GroupPropertyHandle->MarkHiddenByCustomization();
-
-	PopulateGroups();
-
 	TSharedPtr<SComboButton> NewComboButton;
 	TSharedPtr<SEditableText> NewEditBox;
 	TSharedPtr<SListView<TSharedPtr<FString>>> NewListView;
-	
-	Category.AddCustomRow( GroupPropertyHandle->GetPropertyDisplayName() )
-	.NameContent()
-	[
-		SNew( STextBlock )
-		.Text( GroupPropertyHandle->GetPropertyDisplayName() )
-		.Font( IDetailLayoutBuilder::GetDetailFont() )
-	]
-	.ValueContent()
-	[
-		SAssignNew(NewComboButton, SComboButton)
-		.ContentPadding(FMargin(2.0f, 2.0f))
-		.ButtonContent()
-		[
-			SAssignNew(NewEditBox, SEditableText)
+
+	if (GroupPropertyHandle->IsValidHandle())
+	{
+		GroupPropertyHandle->MarkHiddenByCustomization();
+
+		PopulateGroups();	
+
+		Category.AddCustomRow(GroupPropertyHandle->GetPropertyDisplayName())
+			.NameContent()
+			[
+				SNew(STextBlock)
+				.Text(GroupPropertyHandle->GetPropertyDisplayName())
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			]
+		.ValueContent()
+			[
+				SAssignNew(NewComboButton, SComboButton)
+				.ContentPadding(FMargin(2.0f, 2.0f))
+			.ButtonContent()
+			[
+				SAssignNew(NewEditBox, SEditableText)
 				.Text(this, &FMaterialExpressionParameterDetails::OnGetText)
-				.OnTextCommitted(this, &FMaterialExpressionParameterDetails::OnTextCommitted)
-		]
+			.OnTextCommitted(this, &FMaterialExpressionParameterDetails::OnTextCommitted)
+			]
 		.MenuContent()
-		[
-			SNew(SVerticalBox)
-			+SVerticalBox::Slot()
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
 			.AutoHeight()
 			.MaxHeight(400.0f)
 			[
 				SAssignNew(NewListView, SListView<TSharedPtr<FString>>)
-					.ListItemsSource(&GroupsSource)
-					.OnGenerateRow(this, &FMaterialExpressionParameterDetails::MakeDetailsGroupViewWidget)
-					.OnSelectionChanged(this, &FMaterialExpressionParameterDetails::OnSelectionChanged)
+				.ListItemsSource(&GroupsSource)
+			.OnGenerateRow(this, &FMaterialExpressionParameterDetails::MakeDetailsGroupViewWidget)
+			.OnSelectionChanged(this, &FMaterialExpressionParameterDetails::OnSelectionChanged)
 			]
-		]
-	];
+			]
+			];
 
-
-	Category.AddProperty("SortPriority");
+		Category.AddProperty("SortPriority");
+	}
 
 	GroupComboButton = NewComboButton;
 	GroupEditBox = NewEditBox;
@@ -427,7 +793,7 @@ void FMaterialDetailCustomization::CustomizeDetails( IDetailLayoutBuilder& Detai
 				if(		PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, MaterialDomain) 
 					&&	PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, BlendMode) 
 					&&	PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, OpacityMaskClipValue) 
-					&&  	PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, NumCustomizedUVs) )
+					&& 	PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, NumCustomizedUVs) )
 				{
 					DetailLayout.HideProperty( PropertyHandle );
 				}
@@ -453,6 +819,30 @@ void FMaterialDetailCustomization::CustomizeDetails( IDetailLayoutBuilder& Detai
 			}
 		}
 	}
+}
+
+TSharedRef<class IDetailCustomization> FMaterialExpressionLayersParameterDetails::MakeInstance(FOnCollectParameterGroups InCollectGroupsDelegate)
+{
+	return MakeShareable(new FMaterialExpressionLayersParameterDetails(InCollectGroupsDelegate));
+}
+
+FMaterialExpressionLayersParameterDetails::FMaterialExpressionLayersParameterDetails(FOnCollectParameterGroups InCollectGroupsDelegate)
+{
+	CollectGroupsDelegate = InCollectGroupsDelegate;
+}
+
+void FMaterialExpressionLayersParameterDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
+{
+	FMaterialExpressionParameterDetails::CustomizeDetails(DetailLayout);
+	// for expression parameters all their properties are in one category based on their class name.
+	FName LayerCategory = FName("Layers");
+	IDetailCategoryBuilder& Category = DetailLayout.EditCategory(LayerCategory);
+	// Get a handle to the property we are about to edit
+	GroupPropertyHandle = DetailLayout.GetProperty("DefaultLayers");
+	GroupPropertyHandle->MarkHiddenByCustomization();
+	TSharedRef<FMaterialLayersFunctionsCustomization> MaterialLayersFunctionsCustomization = MakeShareable(new FMaterialLayersFunctionsCustomization(GroupPropertyHandle, &DetailLayout));
+	Category.AddCustomBuilder(MaterialLayersFunctionsCustomization);
+	
 }
 
 #undef LOCTEXT_NAMESPACE

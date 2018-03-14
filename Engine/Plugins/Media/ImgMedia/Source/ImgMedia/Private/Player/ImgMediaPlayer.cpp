@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ImgMediaPlayer.h"
 #include "ImgMediaPrivate.h"
@@ -12,16 +12,24 @@
 #include "UObject/WeakObjectPtr.h"
 
 #include "ImgMediaLoader.h"
+#include "ImgMediaScheduler.h"
 #include "ImgMediaSettings.h"
 #include "ImgMediaTextureSample.h"
 
 #define LOCTEXT_NAMESPACE "FImgMediaPlayer"
 
 
-/* FExrVideoPlayer structors
+/** Time spent closing image media players. */
+DECLARE_CYCLE_STAT(TEXT("ImgMedia Player Close"), STAT_ImgMedia_PlayerClose, STATGROUP_Media);
+
+/** Time spent in image media player input tick. */
+DECLARE_CYCLE_STAT(TEXT("ImgMedia Player TickInput"), STAT_ImgMedia_PlayerTickInput, STATGROUP_Media);
+
+
+/* FImgMediaPlayer structors
  *****************************************************************************/
 
-FImgMediaPlayer::FImgMediaPlayer(IMediaEventSink& InEventSink)
+FImgMediaPlayer::FImgMediaPlayer(IMediaEventSink& InEventSink, const TSharedRef<FImgMediaScheduler, ESPMode::ThreadSafe>& InScheduler)
 	: CurrentDuration(FTimespan::Zero())
 	, CurrentRate(0.0f)
 	, CurrentState(EMediaState::Closed)
@@ -29,7 +37,9 @@ FImgMediaPlayer::FImgMediaPlayer(IMediaEventSink& InEventSink)
 	, EventSink(InEventSink)
 	, LastFetchTime(FTimespan::MinValue())
 	, PlaybackRestarted(false)
+	, Scheduler(InScheduler)
 	, SelectedVideoTrack(INDEX_NONE)
+	, ShouldLoop(false)
 { }
 
 
@@ -44,11 +54,14 @@ FImgMediaPlayer::~FImgMediaPlayer()
 
 void FImgMediaPlayer::Close()
 {
+	SCOPE_CYCLE_COUNTER(STAT_ImgMedia_PlayerClose);
+
 	if (!Loader.IsValid())
 	{
 		return;
 	}
 
+	Scheduler->UnregisterLoader(Loader.ToSharedRef());
 	Loader.Reset();
 
 	CurrentDuration = FTimespan::Zero();
@@ -152,18 +165,26 @@ bool FImgMediaPlayer::Open(const FString& Url, const IMediaOptions* Options)
 	}
 
 	// initialize image loader on a separate thread
-	Loader = MakeShared<FImgMediaLoader, ESPMode::ThreadSafe>();
+	Loader = MakeShared<FImgMediaLoader, ESPMode::ThreadSafe>(Scheduler.ToSharedRef());
+	Scheduler->RegisterLoader(Loader.ToSharedRef());
 
 	const float FpsOverride = (Options != nullptr) ? Options->GetMediaOption(ImgMedia::FramesPerSecondOverrideOption, 0.0f) : 0.0f;
-	const FString SequencePath = Proxy.IsEmpty() ? Url.RightChop(6) : FPaths::Combine(&Url[6], Proxy);
+	const FString SequencePath = Url.RightChop(6);
 
-	Async<void>(EAsyncExecution::ThreadPool, [FpsOverride, LoaderPtr = TWeakPtr<FImgMediaLoader, ESPMode::ThreadSafe>(Loader), SequencePath]()
+	Async<void>(EAsyncExecution::ThreadPool, [FpsOverride, LoaderPtr = TWeakPtr<FImgMediaLoader, ESPMode::ThreadSafe>(Loader), Proxy, SequencePath, Loop = ShouldLoop]()
 	{
 		TSharedPtr<FImgMediaLoader, ESPMode::ThreadSafe> PinnedLoader = LoaderPtr.Pin();
 
 		if (PinnedLoader.IsValid())
 		{
-			PinnedLoader->Initialize(SequencePath, FpsOverride);
+			FString ProxyPath = FPaths::Combine(SequencePath, Proxy);
+
+			if (!FPaths::DirectoryExists(ProxyPath))
+			{
+				ProxyPath = SequencePath; // fall back to root folder
+			}
+
+			PinnedLoader->Initialize(ProxyPath, FpsOverride, Loop);
 		}
 	});
 
@@ -179,6 +200,8 @@ bool FImgMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& /*Ar
 
 void FImgMediaPlayer::TickInput(FTimespan DeltaTime, FTimespan /*Timecode*/)
 {
+	SCOPE_CYCLE_COUNTER(STAT_ImgMedia_PlayerTickInput);
+
 	if (!Loader.IsValid() || (CurrentState == EMediaState::Error))
 	{
 		return;
@@ -245,7 +268,7 @@ void FImgMediaPlayer::TickInput(FTimespan DeltaTime, FTimespan /*Timecode*/)
 	// update image loader
 	if (SelectedVideoTrack != INDEX_NONE)
 	{
-		Loader->RequestFrame(CurrentTime, CurrentRate);
+		Loader->RequestFrame(CurrentTime, CurrentRate, ShouldLoop);
 	}
 }
 
@@ -394,6 +417,11 @@ bool FImgMediaPlayer::Seek(const FTimespan& Time)
 
 	CurrentTime = Time;
 	LastFetchTime = FTimespan::MinValue();
+
+	if (CurrentState == EMediaState::Paused)
+	{
+		Loader->RequestFrame(CurrentTime, CurrentRate, ShouldLoop);
+	}
 
 	EventSink.ReceiveMediaEvent(EMediaEvent::SeekCompleted);
 

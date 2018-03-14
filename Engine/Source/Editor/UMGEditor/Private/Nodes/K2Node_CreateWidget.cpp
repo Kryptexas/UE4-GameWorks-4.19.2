@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Nodes/K2Node_CreateWidget.h"
 
@@ -19,10 +19,10 @@
 
 struct FK2Node_CreateWidgetHelper
 {
-	static FString OwningPlayerPinName;
+	static const FName OwningPlayerPinName;
 };
 
-FString FK2Node_CreateWidgetHelper::OwningPlayerPinName(TEXT("OwningPlayer"));
+const FName FK2Node_CreateWidgetHelper::OwningPlayerPinName(TEXT("OwningPlayer"));
 
 UK2Node_CreateWidget::UK2Node_CreateWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -34,16 +34,9 @@ void UK2Node_CreateWidget::AllocateDefaultPins()
 {
 	Super::AllocateDefaultPins();
 
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 	// OwningPlayer pin
-	UEdGraphPin* OwningPlayerPin = CreatePin(EGPD_Input, K2Schema->PC_Object, FString(), APlayerController::StaticClass(), FK2Node_CreateWidgetHelper::OwningPlayerPinName);
+	UEdGraphPin* OwningPlayerPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, APlayerController::StaticClass(), FK2Node_CreateWidgetHelper::OwningPlayerPinName);
 	SetPinToolTip(*OwningPlayerPin, LOCTEXT("OwningPlayerPinDescription", "The player that 'owns' the widget."));
-}
-
-FLinearColor UK2Node_CreateWidget::GetNodeTitleColor() const
-{
-	return Super::GetNodeTitleColor();
 }
 
 FText UK2Node_CreateWidget::GetBaseNodeTitle() const
@@ -88,10 +81,10 @@ void UK2Node_CreateWidget::ExpandNode(class FKismetCompilerContext& CompilerCont
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	static FName Create_FunctionName = GET_FUNCTION_NAME_CHECKED(UWidgetBlueprintLibrary, Create);
-	static FString WorldContextObject_ParamName = FString(TEXT("WorldContextObject"));
-	static FString WidgetType_ParamName = FString(TEXT("WidgetType"));
-	static FString OwningPlayer_ParamName = FString(TEXT("OwningPlayer"));
+	static const FName Create_FunctionName = GET_FUNCTION_NAME_CHECKED(UWidgetBlueprintLibrary, Create);
+	static const FName WorldContextObject_ParamName(TEXT("WorldContextObject"));
+	static const FName WidgetType_ParamName(TEXT("WidgetType"));
+	static const FName OwningPlayer_ParamName(TEXT("OwningPlayer"));
 
 	UK2Node_CreateWidget* CreateWidgetNode = this;
 	UEdGraphPin* SpawnNodeExec = CreateWidgetNode->GetExecPin();

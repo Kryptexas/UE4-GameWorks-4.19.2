@@ -10,45 +10,8 @@ parent:Engine/Blueprints
 order:2
 type:landing
 tags:Blueprints
+topic-image:BP_HowTo_Topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/BP_HowTo:title%](Engine/Blueprints/BP_HowTo_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/BP_HowTo:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/BP_HowTo:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/BP_HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/BP_HowTo:title%](Engine/Blueprints/BP_HowTo_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/BP_HowTo:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/BP_HowTo:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/BP_HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 If you are new to [](Engine/Blueprints) in Unreal Engine 4, these Blueprint How To's provide information on the core aspects needed to work with Blueprints including Creating Blueprints, Adding and Connecting Nodes, Creating Variables and others as seen in the tables below. 
 
@@ -76,11 +39,13 @@ When you are ready and have an understanding of the core aspects behind Blueprin
 [](FANCY:Engine/Blueprints/BP_HowTo/MacroLibraries "%Engine/Blueprints/BP_HowTo/MacroLibraries:description%")
 [/REGION]
 
-<!-- To remove since information is redundant. 
+[COMMENT:none]
+ To remove since information is redundant. 
 
 | **[](Engine/Blueprints/BP_HowTo/BasicUsage)** | %Engine/Blueprints/BP_HowTo/BasicUsage:description% |
 
--->
+
+[/COMMENT]
 
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -23,37 +23,33 @@ class ENGINE_API FLocalVertexFactory : public FVertexFactory
 	DECLARE_VERTEX_FACTORY_TYPE(FLocalVertexFactory);
 public:
 
-	FLocalVertexFactory()
-		: ColorStreamIndex(-1)
+	FLocalVertexFactory(ERHIFeatureLevel::Type InFeatureLevel, const char* InDebugName, const FStaticMeshDataType* InStaticMeshDataType = nullptr)
+		: FVertexFactory(InFeatureLevel)
+		, ColorStreamIndex(-1)
+		, DebugName(InDebugName)
 	{
+		StaticMeshDataType = InStaticMeshDataType ? InStaticMeshDataType : &Data;
+		bSupportsManualVertexFetch = true;
 	}
 
-	struct FDataType
+	struct FDataType : public FStaticMeshDataType
 	{
-		/** The stream to read the vertex position from. */
-		FVertexStreamComponent PositionComponent;
-
-		/** The streams to read the tangent basis from. */
-		FVertexStreamComponent TangentBasisComponents[2];
-
-		/** The streams to read the texture coordinates from. */
-		TArray<FVertexStreamComponent,TFixedAllocator<MAX_STATIC_TEXCOORDS/2> > TextureCoordinates;
-
-		/** The stream to read the shadow map texture coordinates from. */
-		FVertexStreamComponent LightMapCoordinateComponent;
-
-		/** The stream to read the vertex color from. */
-		FVertexStreamComponent ColorComponent;
 	};
 
 	/**
 	 * Should we cache the material's shadertype on this platform with this vertex factory? 
 	 */
-	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType);
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType);
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("VF_SUPPORTS_SPEEDTREE_WIND"),TEXT("1"));
+
+		const bool ContainsManualVertexFetch = OutEnvironment.GetDefinitions().Contains("MANUAL_VERTEX_FETCH");
+		if (!ContainsManualVertexFetch && RHISupportsManualVertexFetch(Platform))
+		{
+			OutEnvironment.SetDefine(TEXT("MANUAL_VERTEX_FETCH"), TEXT("1"));
+		}
 	}
 
 	/**
@@ -77,15 +73,65 @@ public:
 	FORCEINLINE_DEBUGGABLE void SetColorOverrideStream(FRHICommandList& RHICmdList, const FVertexBuffer* ColorVertexBuffer) const
 	{
 		checkf(ColorVertexBuffer->IsInitialized(), TEXT("Color Vertex buffer was not initialized! Name %s"), *ColorVertexBuffer->GetFriendlyName());
-		checkf(IsInitialized() && Data.ColorComponent.bSetByVertexFactoryInSetMesh && ColorStreamIndex > 0, TEXT("Per-mesh colors with bad stream setup! Name %s"), *ColorVertexBuffer->GetFriendlyName());
+		checkf(IsInitialized() && EnumHasAnyFlags(EVertexStreamUsage::Overridden, Data.ColorComponent.VertexStreamUsage) && ColorStreamIndex > 0, TEXT("Per-mesh colors with bad stream setup! Name %s"), *ColorVertexBuffer->GetFriendlyName());
 		RHICmdList.SetStreamSource(ColorStreamIndex, ColorVertexBuffer->VertexBufferRHI, 0);
 	}
 
+	inline const FShaderResourceViewRHIParamRef GetPositionsSRV() const
+	{
+		return StaticMeshDataType->PositionComponentSRV;
+	}
+
+	inline const FShaderResourceViewRHIParamRef GetTangentsSRV() const
+	{
+		return StaticMeshDataType->TangentsSRV;
+	}
+
+	inline const FShaderResourceViewRHIParamRef GetTextureCoordinatesSRV() const
+	{
+		return StaticMeshDataType->TextureCoordinatesSRV;
+	}
+
+	inline const FShaderResourceViewRHIParamRef GetColorComponentsSRV() const
+	{
+		return StaticMeshDataType->ColorComponentsSRV;
+	}
+
+	inline const uint32 GetColorIndexMask() const
+	{
+		return StaticMeshDataType->ColorIndexMask;
+	}
+
+	inline const int GetLightMapCoordinateIndex() const
+	{
+		return StaticMeshDataType->LightMapCoordinateIndex;
+	}
+
+	inline const int GetNumTexcoords() const
+	{
+		return StaticMeshDataType->NumTexCoords;
+	}
+
 protected:
+	const FDataType& GetData() const { return Data; }
+
 	FDataType Data;
+	const FStaticMeshDataType* StaticMeshDataType;
+
 	int32 ColorStreamIndex;
 
-	const FDataType& GetData() const { return Data; }
+	struct FDebugName
+	{
+		FDebugName(const char* InDebugName)
+#if !UE_BUILD_SHIPPING
+			: DebugName(InDebugName)
+#endif
+		{}
+	private:
+#if !UE_BUILD_SHIPPING
+		const char* DebugName;
+#endif
+	} DebugName;
 };
 
 /**
@@ -103,8 +149,16 @@ public:
 	{
 	}
 
-	// True if either of the two below is bound, which puts us on the slow path in SetMesh
-	bool bAnySpeedTreeParamIsBound;
 	// SpeedTree LOD parameter
 	FShaderParameter LODParameter;
+
+	//Parameters to manually load TexCoords
+	FShaderParameter VertexFetch_VertexFetchParameters;
+	FShaderResourceParameter VertexFetch_PositionBufferParameter;
+	FShaderResourceParameter VertexFetch_TexCoordBufferParameter;
+	FShaderResourceParameter VertexFetch_PackedTangentsBufferParameter;
+	FShaderResourceParameter VertexFetch_ColorComponentsBufferParameter;
+
+	// True if LODParameter is bound, which puts us on the slow path in SetMesh
+	bool bAnySpeedTreeParamIsBound;
 };

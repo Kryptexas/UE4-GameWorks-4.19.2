@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShaderComplexityApplyPixelShader.usf: Maps accumulated shader complexity into color.
@@ -170,7 +170,7 @@ void Main(
 #if READ_QUAD_OVERDRAW
 	DebugViewShaderMode = (int)ShaderComplexityParams.y;
 	[branch]
-	if (DebugViewShaderMode != DVSM_ShaderComplexity)
+	if (DebugViewShaderMode == DVSM_QuadComplexity || DebugViewShaderMode == DVSM_ShaderComplexityContainedQuadOverhead || DebugViewShaderMode == DVSM_ShaderComplexityBleedingQuadOverhead)
 	{
 		float2 QuadID = ShaderComplexityParams2.zw * ViewportSize.zw * SvPosition.xy;
 		SceneColor.r += ComplexityToFloat(QuadOverdrawTexture.Load(int3(QuadID.xy + QuadOverdrawOffset(), 0)));
@@ -206,7 +206,7 @@ void Main(
 
 #if READ_QUAD_OVERDRAW
 	[branch]
-	if (DebugViewShaderMode != DVSM_ShaderComplexity)
+	if (DebugViewShaderMode == DVSM_QuadComplexity || DebugViewShaderMode == DVSM_ShaderComplexityContainedQuadOverhead || DebugViewShaderMode == DVSM_ShaderComplexityBleedingQuadOverhead)
 	{
 		float2 QuadID = ShaderComplexityParams2.zw * ViewportSize.zw * ViewportCenter.xy;
 		SceneColor.r += ComplexityToFloat(QuadOverdrawTexture.Load(int3(QuadID.xy + QuadOverdrawOffset(), 0)));

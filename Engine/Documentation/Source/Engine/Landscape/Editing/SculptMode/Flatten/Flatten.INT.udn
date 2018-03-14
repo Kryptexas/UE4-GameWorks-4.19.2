@@ -74,7 +74,8 @@ The brush strength determines the amount of Flattening that can happen when usin
 | [REGION:tablesection] Advanced [/REGION] ||
 | **Show Preview Grid** | When Flatten Target is enabled, you can enable this option to show a preview grid for the flatten target height. |
 
-<!--- Excerpts
+[COMMENT:none]
+- Excerpts
 
 [EXCERPT:flattenmode]
 |Selection | Description |
@@ -84,6 +85,7 @@ The brush strength determines the amount of Flattening that can happen when usin
 | **Lower** | This will only lower values that are higher than the currently selected height when the mouse click is activated. Any values lower than this clicked point will be left unchanged. |
 [/EXCERPT:flattenmode]
 
---->
+-
+[/COMMENT]
 
 

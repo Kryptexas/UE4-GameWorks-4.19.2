@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TiledDeferredLightRendering.cpp: Implementation of tiled deferred shading
@@ -82,14 +82,14 @@ class FTiledDeferredLightingCS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FTiledDeferredLightingCS,Global)
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), GDeferredLightTileSizeX);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), GDeferredLightTileSizeY);
 		OutEnvironment.SetDefine(TEXT("MAX_LIGHTS"), GMaxNumTiledDeferredLights);
@@ -117,7 +117,7 @@ public:
 	CA_SUPPRESS(6262);
 	void SetParameters(
 		FRHICommandList& RHICmdList, 
-		const FSceneView& View, 
+		const FViewInfo& View, 
 		int32 ViewIndex,
 		int32 NumViews,
 		const TArray<FSortedLightSceneInfo, SceneRenderingAllocator>& SortedLights, 
@@ -171,10 +171,6 @@ public:
 
 				if (LightSceneInfo->Proxy->IsInverseSquared())
 				{
-					// Correction for lumen units
-					LightData.LightColorAndFalloffExponent[LightIndex].X *= 16.0f;
-					LightData.LightColorAndFalloffExponent[LightIndex].Y *= 16.0f;
-					LightData.LightColorAndFalloffExponent[LightIndex].Z *= 16.0f;
 					LightData.LightColorAndFalloffExponent[LightIndex].W = 0;
 				}
 
@@ -222,12 +218,6 @@ public:
 				LightData2.LightDirectionAndSpotlightMaskAndMinRoughness[LightIndex] = FVector4(FVector(1, 0, 0), 0);
 				LightData2.SpotAnglesAndSourceRadiusAndSimpleLighting[LightIndex] = FVector4(-2, 1, 0, 1);
 				LightData2.ShadowMapChannelMask[LightIndex] = FVector4(0, 0, 0, 0);
-
-				if( SimpleLight.Exponent == 0.0f )
-				{
-					// Correction for lumen units
-					LightData.LightColorAndFalloffExponent[LightIndex] *= 16.0f;
-				}
 			}
 		}
 

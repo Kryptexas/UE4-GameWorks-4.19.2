@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3615003
-Availability:Docs
+﻿INTSourceChangelist:3717037
+Availability:Public
 Crumbs: %ROOT%
 Title:Animation Modifier
 Description:Animation Modifier を使用すると、任意のアニメーション シーケンスまたはスケルトンに対してアクション シーケンスを定義することができます。
@@ -11,16 +11,38 @@ Order:1
 Tags:Animation Notifies
 Tags:Skeleton
 Tags:Animation Asset Editor
-topic-image:Engine/Physics/physics_topic.png
+
+[TOC (start:2 end:2)]
 
 [REGION:warning]
 この機能は現在、実験的段階にあります。そのため、一部の機能は期待通りの動作をしない場合があります。 
 [/REGION]
 
-[TOC (start:2 end:2)]
-
 **Animation Modifiers (Anim Modifier)** は、ネイティブまたは [](Engine/Blueprints/UserGuide/Types/ClassBlueprint) の一種で、 [アニメーション シーケンス](Engine/Animation/Sequences) または [スケルトン](Engine/Animation/Skeleton) アセットにアクション シーケンスを適用することができます。
-これには、足の自動同期マーカーを作成するなどが考えられます。左または右の足が地面に触れるのはどのフレームであるかをピンポイントし、足の骨が最も低いポイント (フロアに接触する) にくる場所に **Animation Sync Markers** を追加します。 
+これには、足の自動同期マーカーを作成するなどが考えられます。左または右の足が地面に触れるのはどのフレームであるかをピンポイントで示します。こうした情報を使って、足の骨が最も低いポイント (フロアに接触する) にくる場所に **Animation Sync Markers** を追加します。 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	YC_UJuO9AI8
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+[REGION:caption]
+ここでは、Anim Modifier を使って足の自動同期マーカーを作成しています。 
+[/REGION]
+
 
 Anim Modifier は、**アニメーション エディタ** または **スケルトン エディタ** の **[Animation Data]** タブから適用します。 
 Anim Modifier をスケルトンに適用する場合、そのスケルトンに基づいたすべてのアニメーション シーケンスに適用されます。 
@@ -38,15 +60,15 @@ Anim Modifier をスケルトンに適用する場合、そのスケルトンに
 
 	![](Create_02.png)
 
-1. 新しい Animation Modifier ブループリントをダブルクリックしてブループリント エディタで開きます。 
+1. 新規 Animation Modifier ブループリントをダブルクリックしてブループリント エディタで開きます。 
 
 	![](Create_03.png)
 
-これでブループリント スクリプトと **Animation Blueprint Library (アニメーション ブループリント ライブラリ)** に入っている関数を使用してアニメーション データにアクセスして操作することができます。 
+Anim Modifier が作成された状態で、ブループリント スクリプトと **Animation Blueprint Library (アニメーション ブループリント ライブラリ)** に入っているブループリント スクリプトと関数を使用してアニメーション データにアクセスして操作することができます。 
 
 ### Animation Blueprint Library
 
-Anim Modifier ブループリントのグラフで右クリックして、コンテキスト メニューと利用可能な関数のリスト、特に Animation Blueprint Library に入っている者を確認します。 
+Anim Modifier ブループリントのグラフで右クリックして、コンテキスト メニューと利用可能な関数のリスト、特に Animation Blueprint Library に入っているものを確認します。 
 
 ![](AnimBPLibrary.png)
 
@@ -62,24 +84,6 @@ OnApply Event では、アニメーションのデータを変更、アニメー
 
 [REGION:caption]
 上の画像では、Anim Modifier を適用する場合に、新規 Notify トラックが定義した名前で作成されています。Anim Modifier をリバートするとトラックが取り除かれます。 
-[/REGION]
-
-### プロパティを公開する
-
-Anim Modifier ブループリント内で、アニメーション ツールの **Animation Tab** で操作できるパラメータを **Instance Editable** を使って公開することができます。
-
-![](InstanceEditable.png)
-
-[REGION:caption]
-上の画像では、ボーン名に対して設定可能な情報を含み、オフセットも提供する構造体変数を使用しています。 
-[/REGION]
-
-アニメーション シーケンス内で、Anim Modifier を実装して適用すると、公開されたパラメータが見えます。 
-
-![](AnimDataVariables.png)
-
-[REGION:caption]
-上の画像では、アニメーション データ (Bone Transform など) を集める Anim Modifier に含めたいボーン名を入力しています。 
 [/REGION]
 
 
@@ -101,12 +105,34 @@ Anim Modifier の実装は、**Skeleton** アセット (スケルトンに関連
 
 	適用するまで Anim Modifier は、**Out of Date** と表示されます。 
 
+	以下は、スケルトン アイコンで示されている Skeleton アセットに適用された Anim Modifier の例です。 
+
+	![](SkeletonModifier.png)
+
 **Instance Editable** として設定したプロパティは、**[Animation Data Modifiers]** タブで利用することができます。 
 
 ![](Implement_04.png)
 
 [REGION:caption]
 上の画像では、足を自動的に同期させるために使用可能なプロパティを定義しています。 
+[/REGION]
+
+### プロパティを公開する
+
+Anim Modifier ブループリント内で、アニメーション ツールの **Animation Tab** で操作できるパラメータを **Instance Editable** を使って公開することができます。
+
+![](InstanceEditable.png)
+
+[REGION:caption]
+上の画像では、ボーン名に対して設定可能な情報を含み、オフセットも提供する構造体変数を使用しています。 
+[/REGION]
+
+アニメーション シーケンス内で、Anim Modifier を実装して適用すると、公開されたパラメータが見えます。 
+
+![](AnimDataVariables.png)
+
+[REGION:caption]
+上の画像では、アニメーション データ (Bone Transform など) を集める Anim Modifier に含めたいボーン名を入力しています。 
 [/REGION]
 
 

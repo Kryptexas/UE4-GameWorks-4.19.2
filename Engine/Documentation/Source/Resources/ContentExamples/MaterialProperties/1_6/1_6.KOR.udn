@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1.6 - 독립 반투명
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
@@ -16,64 +16,6 @@ Related: Engine/Actors/DecalActor
 Related: Engine/Rendering/Materials/MaterialProperties
 Version: 4.9
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 예제](Resources/ContentExamples/MaterialProperties/1_5 "%Resources/ContentExamples/MaterialProperties/1_5:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[콘텐츠 예제 홈](Resources/ContentExamples)
-	[/PARAM]
-	[PARAM:next]
-		[다음 예제](Resources/ContentExamples/MaterialProperties/1_7 "%Resources/ContentExamples/MaterialProperties/1_7:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/MaterialProperties/1_6:title%](Resources/ContentExamples/MaterialProperties/rendering_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MaterialProperties/1_6:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MaterialProperties/1_6:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/MaterialProperties/1_6]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/MaterialProperties/1_6:title%](Resources/ContentExamples/MaterialProperties/rendering_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MaterialProperties/1_6:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MaterialProperties/1_6:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/MaterialProperties/1_6]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-<div align="center">
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
 	![Separate Translucency No Post Process](MP_1_6_001.png)(h:400)
@@ -82,7 +24,6 @@ Version: 4.9
 	![Separate Translucency with Depth of Field ](MP_1_6_002.png)(h:400)
 	[/PARAM]
 [/OBJECT]
-</div>
 
 반투명 오브젝트를 독립적으로 그립니다. **Separate Translucency** (독립 반투명) 셰이더는 **뎁스 오브 필드** 의 영향을 받지 않습니다.
 

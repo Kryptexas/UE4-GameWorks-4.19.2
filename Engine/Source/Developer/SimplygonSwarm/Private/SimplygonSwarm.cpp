@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SimplygonSwarmCommon.h"
 #include "SimplygonSwarmHelpers.h"
@@ -65,7 +65,7 @@ static const TCHAR* SG_UE_INTEGRATION_REV = TEXT("#SG_UE_INTEGRATION_REV");
 #define MAX_UPLOAD_PART_SIZE_MB  1024
 #define MAX_UPLOAD_PART_SIZE_BYTES ( MAX_UPLOAD_PART_SIZE_MB * 1024 * 1024 ) 
 
-static const TCHAR* SHADING_NETWORK_TEMPLATE = TEXT("<SimplygonShadingNetwork version=\"1.0\">\n\t<ShadingTextureNode ref=\"node_0\" name=\"ShadingTextureNode\">\n\t\t<DefaultColor0>\n\t\t\t<DefaultValue>1 1 1 1</DefaultValue>\n\t\t</DefaultColor0>\n\t\t<TextureName>%s</TextureName>\n\t\t<TextureLevelName>%s</TextureLevelName>\n\t\t<UseSRGB>%d</UseSRGB>\n\t\t<TileU>1.000000</TileU>\n\t\t<TileV>1.000000</TileV>\n\t</ShadingTextureNode>\n</SimplygonShadingNetwork>");
+static const TCHAR SHADING_NETWORK_TEMPLATE[] = TEXT("<SimplygonShadingNetwork version=\"1.0\">\n\t<ShadingTextureNode ref=\"node_0\" name=\"ShadingTextureNode\">\n\t\t<DefaultColor0>\n\t\t\t<DefaultValue>1 1 1 1</DefaultValue>\n\t\t</DefaultColor0>\n\t\t<TextureName>%s</TextureName>\n\t\t<TextureLevelName>%s</TextureLevelName>\n\t\t<UseSRGB>%d</UseSRGB>\n\t\t<TileU>1.000000</TileU>\n\t\t<TileV>1.000000</TileV>\n\t</ShadingTextureNode>\n</SimplygonShadingNetwork>");
 
 ssf::pssfMeshData CreateSSFMeshDataFromRawMesh(const FRawMesh& InRawMesh, TArray<FBox2D> InTextureBounds, TArray<FVector2D> InTexCoords);
 
@@ -100,6 +100,11 @@ public:
 	static FSimplygonSwarm* Create()
 	{
 		return new FSimplygonSwarm();
+	}
+
+	virtual FString GetName() override
+	{
+		return FString("SimplygonSwarm");
 	}
 
 	struct FMaterialCastingProperties
@@ -244,6 +249,7 @@ public:
 			TaskData.ProcessorJobID = InJobGUID;
 			TaskData.bDitheredTransition = (InputMaterials.Num() > 0) ? InputMaterials[0].bDitheredLODTransition : false;
 			TaskData.bEmissive = !bDiscardEmissive;
+			TaskData.JobName = InData[0].DebugJobName;
 						 
 			int32 MaxUploadSizeInBytes = GetMutableDefault<UEditorPerProjectUserSettings>()->SwarmMaxUploadChunkSizeInMB * 1024 * 1024;
 			FSimplygonRESTClient::Get()->SetMaxUploadSizeInBytes(MaxUploadSizeInBytes);
@@ -253,6 +259,8 @@ public:
 			SwarmTask->OnSwarmTaskFailed().BindRaw(this, &FSimplygonSwarm::OnSimplygonSwarmTaskFailed);
 			FSimplygonRESTClient::Get()->AddSwarmTask(SwarmTask);			
 		}
+		
+		delete spl;
 	}
 
 	/**
@@ -310,7 +318,9 @@ public:
 		FString ParentDirForOutputSsf = FString::Printf(TEXT("%s/outputlod_0"), *OutputFolderPath);
 
 		//for import the file back in uncomment
-		if (UnzipDownloadedContent(FPaths::ConvertRelativePathToFull(InSwarmTask.TaskData.OutputZipFilePath), FPaths::ConvertRelativePathToFull(OutputFolderPath)))
+		FString ZipFileFullPath = FPaths::ConvertRelativePathToFull(InSwarmTask.TaskData.OutputZipFilePath);
+		FString UnzipOutputFullPath = FPaths::ConvertRelativePathToFull(OutputFolderPath);
+		if (UnzipDownloadedContent(ZipFileFullPath, UnzipOutputFullPath))
 		{
 			FString InOuputSsfPath = FString::Printf(TEXT("%s/output.ssf"), *ParentDirForOutputSsf);
 			ssf::pssfScene OutSsfScene = new ssf::ssfScene();
@@ -361,8 +371,15 @@ public:
 				CompleteDelegate.Execute(OutProxyMesh, OutMaterial, InSwarmTask.TaskData.ProcessorJobID);
 			}
 			else
+			{
 				UE_LOG(LogSimplygonSwarm, Error, TEXT("No valid complete delegate is currently bounded. "));
+			}	
 			 
+		}
+		else
+		{
+			UE_LOG(LogSimplygonSwarm, Log, TEXT("Failed to unzip downloaded content %s"), *ZipFileFullPath);
+			FailedDelegate.ExecuteIfBound(InSwarmTask.TaskData.ProcessorJobID, TEXT("Invalid FRawMesh data"));
 		}
 	}
 
@@ -491,7 +508,7 @@ private:
 	void SaveSPL(FString InSplText, FString InOutputFilePath)
 	{
 		FArchive* SPLFile = IFileManager::Get().CreateFileWriter(*InOutputFilePath);
-		SPLFile->Logf(*InSplText);
+		SPLFile->Logf(TEXT("%s"), *InSplText);
 		SPLFile->Close();
 	}
 
@@ -796,7 +813,7 @@ private:
 		FString ChannelName,
 		TArray<FColor>& OutSamples,
 		FIntPoint& OutTextureSize)
-				{
+	{
 		for (ssf::pssfMaterialChannelTextureDescriptor TextureDescriptor : SsfMaterialChannel->MaterialChannelTextureDescriptorList)
 		{
 			ssf::pssfTexture Texture = FSimplygonSSFHelper::FindTextureById(SceneGraph, TextureDescriptor->TextureID.Get().Value);
@@ -805,8 +822,8 @@ private:
 			{
 				FString TextureFilePath = FString::Printf(TEXT("%s/%s"), *BaseTexturesPath, ANSI_TO_TCHAR(Texture->Path.Get().Value.c_str()));
 				CopyTextureData(OutSamples, OutTextureSize, ChannelName, TextureFilePath);
-				}
 			}
+		}
 	}
 
 	/**
@@ -912,8 +929,6 @@ private:
 			return false;
 		}
 
-
-
 		FString CmdExe = TEXT("cmd.exe");
 
 		bool bEnableDebugging = GetDefault<UEditorPerProjectUserSettings>()->bEnableSwarmDebugging;
@@ -931,16 +946,12 @@ private:
 	*/
 bool ZipContentsForUpload(FString InputDirectoryPath, FString OutputFileName)
 {
-		bool bEnableDebugging = GetDefault<UEditorPerProjectUserSettings>()->bEnableSwarmDebugging;
-
+	bool bEnableDebugging = GetDefault<UEditorPerProjectUserSettings>()->bEnableSwarmDebugging;
 	FString CmdExe = TEXT("cmd.exe");
-		FString CommandLine = FString::Printf(TEXT("ZipUtils -archive=\"%s\" -add=\"%s\" -compression=0 -nocompile"), *FPaths::ConvertRelativePathToFull(OutputFileName), *FPaths::ConvertRelativePathToFull(InputDirectoryPath));
-		
-		UE_CLOG(bEnableDebugging, LogSimplygonSwarm, Log, TEXT("Uat command line %s"), *CommandLine);
-		 
-		UatTask(CommandLine);
-
-	return true;
+	FString CommandLine = FString::Printf(TEXT("ZipUtils -archive=\"%s\" -add=\"%s\" -compression=0 -nocompile"), *FPaths::ConvertRelativePathToFull(OutputFileName), *FPaths::ConvertRelativePathToFull(InputDirectoryPath));
+	UE_CLOG(bEnableDebugging, LogSimplygonSwarm, Log, TEXT("Uat command line %s"), *CommandLine);
+	
+	return UatTask(CommandLine);
 }
 
 	/**
@@ -959,9 +970,9 @@ bool ZipContentsForUpload(FString InputDirectoryPath, FString OutputFileName)
 		FString RunUATScriptName = TEXT("RunUAT.command");
 		FString CmdExe = TEXT("/bin/sh");
 #endif
-		bool bEnableDebugging = GetDefault<UEditorPerProjectUserSettings>()->bEnableSwarmDebugging;
+		const bool bEnableDebugging = GetDefault<UEditorPerProjectUserSettings>()->bEnableSwarmDebugging;
 
-		FString UatPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles") / RunUATScriptName);
+		const FString UatPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles") / RunUATScriptName);
 
 		if (!FPaths::FileExists(UatPath))
 		{
@@ -977,21 +988,25 @@ bool ZipContentsForUpload(FString InputDirectoryPath, FString OutputFileName)
 #else
 		FString FullCommandLine = FString::Printf(TEXT("\"%s\" %s"), *UatPath, *CommandLine);
 #endif
+		while (FPlatformProcess::IsApplicationRunning(TEXT("AutomationTool.exe")))
+		{
+			static const float SleepTime = 0.5f;
+			FPlatformProcess::Sleep(SleepTime);
+			UE_CLOG(bEnableDebugging, LogSimplygonSwarm, Log, TEXT("UAT already running sleeping for %f seconds"), SleepTime);
+		}
 
 		TSharedPtr<FMonitoredProcess> UatProcess = MakeShareable(new FMonitoredProcess(CmdExe, FullCommandLine, true));
+		UatProcess->SetSleepInterval(0.1f);
 
 		// create notification item
 
-		bool sucess = UatProcess->Launch();
+		const bool bLaunched = UatProcess->Launch();
 
 		UatProcess->OnOutput().BindLambda([&](FString Message) {UE_CLOG(bEnableDebugging, LogSimplygonSwarm, Log, TEXT("UatTask Output %s"), *Message); });
 
-		while (UatProcess->Update())
-		{
-			FPlatformProcess::Sleep(0.1f);
-		}
+		while (UatProcess->Update()) {}
 
-		return sucess;
+		return bLaunched;
 
 	}
 
@@ -1404,7 +1419,7 @@ bool ZipContentsForUpload(FString InputDirectoryPath, FString OutputFileName)
 		bool IsNormalMap = false
 		)
 	{
-		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+		IImageWrapperModule& ImageWrapperModule = FModuleManager::GetModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
 		TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 		 
 		TArray<uint8> TextureData;
@@ -1435,7 +1450,7 @@ bool ZipContentsForUpload(FString InputDirectoryPath, FString OutputFileName)
 						OutSamples[PixelIndex].R = (*RawData)[PixelIndex*sizeof(FColor) + 2];
 						OutSamples[PixelIndex].A = (*RawData)[PixelIndex*sizeof(FColor) + 3];
 					}
-			}				 
+				}				 
 			}
 
 		}
@@ -1465,7 +1480,7 @@ bool ZipContentsForUpload(FString InputDirectoryPath, FString OutputFileName)
 		if (InSamples.Num() >= 1)
 		{
 
-			IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+			IImageWrapperModule& ImageWrapperModule = FModuleManager::GetModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
 			TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 			
 			FString TextureOutputRelative = FString::Printf(TEXT("%s/%s.png"), ANSI_TO_TCHAR(SsfTextureTable->TexturesDirectory->Value.c_str()), *TextureName);
@@ -1668,6 +1683,7 @@ TUniquePtr<FSimplygonSwarm> GSimplygonMeshReduction;
 void FSimplygonSwarmModule::StartupModule()
 {
 	GSimplygonMeshReduction.Reset(FSimplygonSwarm::Create());
+	FModuleManager::Get().LoadModule(FName("ImageWrapper"));
 	IModularFeatures::Get().RegisterModularFeature(IMeshReductionModule::GetModularFeatureName(), this);
 }
 

@@ -49,9 +49,12 @@ AO 値は GBuffer の一部であるため、マテリアルからも出力す�
 | **Radius in WorldSpace** | 有効化されると、 **AO Radius** の値はワールド空間にあると仮定されます。さもなければ、ビュー空間にあると仮定されます。 |
 | **Distance** | オブジェクト周りの暗いハローを回避するために必要な微調整用のパラメータです。オブジェクトの濃さが分からないため、SSAO 技術にはzbuffer のみが存在します。[INCLUDE:Engine/Rendering/LightingAndShadows/AmbientOcclusion#Distance]
 | **Power** | 計算された暗色化効果の強度を制御します。 [INCLUDE:Engine/Rendering/LightingAndShadows/AmbientOcclusion#Power] |
-| **Bias** |アンビエント オクルージョンの詳細を微調整します。遠方の高精度なアーティファクトを回避するために何かしらのバイアスが必要です。アンリアル単位の >0 、デフォルト(3.0) 値は平面に適していますが詳細度は縮小します。<!--TODO: images--> |
+| **Bias** |アンビエント オクルージョンの詳細を微調整します。遠方の高精度なアーティファクトを回避するために何かしらのバイアスが必要です。アンリアル単位の >0 、デフォルト(3.0) 値は平面に適していますが詳細度は縮小します。[COMMENT:none]
+TODO: images
+[/COMMENT] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Intensity]
 [REGION:imagetable]
 | ![AO Intensity - 0.0](ao_intensity_0.png)(w:390) | ![AO Intensity - 1.0](ao_intensity_1.png)(w:390)
@@ -86,4 +89,5 @@ AO 値は GBuffer の一部であるため、マテリアルからも出力す�
 | 1.0 | 4.0 | 10.0 |
 [/REGION]
 [/EXCERPT:Power]
--->
+
+[/COMMENT]

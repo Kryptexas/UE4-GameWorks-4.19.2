@@ -109,7 +109,11 @@ SymbolDebugger程序被用来辅助同步两部分文件，一部分是远程调
 	p4.exe=c:\Program Files\Perforce\p4.EXE
 
 
-<!---## 任务清单--->
+[COMMENT:none]
+-## 任务清单-
+[/COMMENT]
 
-<!---* 通过pdb文件的同步来防止出现锁住的情况--->
+[COMMENT:none]
+-* 通过pdb文件的同步来防止出现锁住的情况-
+[/COMMENT]
 

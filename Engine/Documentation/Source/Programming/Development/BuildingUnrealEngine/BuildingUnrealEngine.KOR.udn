@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3355414
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:소스에서 언리얼 엔진 빌드하기
 Crumbs: %ROOT%, Programming, Programming/Development
@@ -106,7 +106,8 @@ tags:Unreal Build System
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windowscompile]
 
 소스에서 언리얼 엔진을 빌드하기 전 Microsoft Visual Studio 2015 가 설치되어 있는지 확인해 주시기 바랍니다. 시스템 사양에 따라 엔진을 컴파일하는 데 10 에서 40 분까지도 걸릴 수 있습니다.
@@ -172,9 +173,11 @@ tags:Unreal Build System
 램이 최소 8 기가바이트, 최소 8 코어 이상의 (하이퍼스레드 포함) CPU 가 장착된 머신에서 소스 코드 컴파일 작업을 할 것을 추천합니다.
 
 [/EXCERPT:linuxcompile]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:windowsrun]
 
 1.	시작 프로젝트를 **UE4** 로 설정합니다.
@@ -222,7 +225,8 @@ tags:Unreal Build System
 
 	![](CompiledEditor_Linux.png)
 [/EXCERPT:linuxrun]
--->
+
+[/COMMENT]
 
 ## 언리얼 엔진 시작
 

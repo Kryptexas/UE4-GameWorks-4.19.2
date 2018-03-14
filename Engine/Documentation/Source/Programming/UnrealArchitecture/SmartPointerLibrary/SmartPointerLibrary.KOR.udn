@@ -1,9 +1,14 @@
-﻿INTSourceChangelist:3599948
+﻿INTSourceChangelist:3681055
 Availability:Public
 Title:언리얼 스마트 포인터 라이브러리
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture
 Description:약 포인터, Null 불가 공유 레퍼런스를 포함해서, 공유 포인터에 대한 커스텀 구현입니다.
 Version: 4.9
+Parent:Programming/UnrealArchitecture
+Order:
+Type:landing
+Tags:Programming
+Related:Programming/UnrealArchitecture/Objects
 
 [TOC(start:2)]
 

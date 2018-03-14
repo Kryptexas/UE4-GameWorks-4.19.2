@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -422,7 +422,7 @@ public:
 				check(GetTotalAllocatedSmallPoolMemory() == AllocatedSmallPoolMemoryValidation);
 				if (GetTotalAllocatedSmallPoolMemory() != AllocatedSmallPoolMemoryValidation)
 				{
-					FPlatformMisc::DebugBreak();
+					UE_DEBUG_BREAK();
 				}
 			}
 		}
@@ -488,7 +488,7 @@ public:
 			check(GetTotalAllocatedSmallPoolMemory() == AllocatedSmallPoolMemoryValidation);
 			if (GetTotalAllocatedSmallPoolMemory() != AllocatedSmallPoolMemoryValidation)
 			{
-				FPlatformMisc::DebugBreak();
+				UE_DEBUG_BREAK();
 			}
 		}
 		--RecursionCounter;
@@ -573,7 +573,7 @@ public:
 			check(GetTotalAllocatedSmallPoolMemory() == AllocatedSmallPoolMemoryValidation);
 			if (GetTotalAllocatedSmallPoolMemory() != AllocatedSmallPoolMemoryValidation)
 			{
-				FPlatformMisc::DebugBreak();
+				UE_DEBUG_BREAK();
 			}
 		}
 		--RecursionCounter;

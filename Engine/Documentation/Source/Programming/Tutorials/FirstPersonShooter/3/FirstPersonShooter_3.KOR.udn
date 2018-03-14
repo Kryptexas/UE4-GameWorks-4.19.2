@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 3 - 발사체 구현
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter
@@ -25,20 +25,12 @@ _이번 섹션을 마칠 무렵 보게 될 화면입니다._
 * 월드와 상호작용하는 발사체
 * 뷰포트에 조준선 추가
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		단계
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Programming/Tutorials/FirstPersonShooter/3/1 "%Programming/Tutorials/FirstPersonShooter/3/1:description%")
-	* [](Programming/Tutorials/FirstPersonShooter/3/2 "%Programming/Tutorials/FirstPersonShooter/3/2:description%")
-	* [](Programming/Tutorials/FirstPersonShooter/3/3 "%Programming/Tutorials/FirstPersonShooter/3/3:description%")
-	* [](Programming/Tutorials/FirstPersonShooter/3/4 "%Programming/Tutorials/FirstPersonShooter/3/4:description%")
-	* [](Programming/Tutorials/FirstPersonShooter/3/5 "%Programming/Tutorials/FirstPersonShooter/3/5:description%")
-	[/PARAM]
-[/OBJECT]
+## 단계
+
+[REGION:buttonlist]
+* [](Programming/Tutorials/FirstPersonShooter/3/1 "%Programming/Tutorials/FirstPersonShooter/3/1:description%")
+* [](Programming/Tutorials/FirstPersonShooter/3/2 "%Programming/Tutorials/FirstPersonShooter/3/2:description%")
+* [](Programming/Tutorials/FirstPersonShooter/3/3 "%Programming/Tutorials/FirstPersonShooter/3/3:description%")
+* [](Programming/Tutorials/FirstPersonShooter/3/4 "%Programming/Tutorials/FirstPersonShooter/3/4:description%")
+* [](Programming/Tutorials/FirstPersonShooter/3/5 "%Programming/Tutorials/FirstPersonShooter/3/5:description%")
+[/REGION]

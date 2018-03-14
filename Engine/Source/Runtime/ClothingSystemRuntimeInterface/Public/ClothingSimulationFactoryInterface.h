@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,6 +10,7 @@
 #include "ClothingSimulationFactoryInterface.generated.h"
 
 class UClothingAssetBase;
+class UClothingSimulationInteractor;
 
 // An interface for a class that will provide default simulation factory classes
 // Used by modules wanting to override clothing simulation to provide their own implementation
@@ -46,4 +47,16 @@ public:
 	// (return false if data is invalid or missing in the case of custom data)
 	virtual bool SupportsAsset(UClothingAssetBase* InAsset)
 	PURE_VIRTUAL(UClothingSimulationFactory::SupportsAsset, return false;);
+
+	// Whether or not we provide an interactor object to manipulate the simulation at runtime.
+	// If true is returned then CreateInteractor *must* create a valid object to handle this
+	virtual bool SupportsRuntimeInteraction()
+	PURE_VIRTUAL(UClothingSimulationFactory::SupportsRuntimeInteraction, return false;);
+
+	// Creates the runtime interactor object for a clothing simulation. This object will
+	// receive events allowing it to write data to the simulation context in a safe manner
+	virtual UClothingSimulationInteractor* CreateInteractor()
+	{
+		return nullptr;
+	}
 };

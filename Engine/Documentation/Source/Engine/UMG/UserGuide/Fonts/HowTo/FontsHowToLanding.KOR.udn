@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3399451
+﻿INTSourceChangelist:3782314
 Availability: Public
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Title: 폰트 안내서
@@ -21,7 +21,8 @@ Topic-Image:FontHowTo_Topic.png
 [DIR(output:"fancy" parent:"Engine/UMG/UserGuide/Fonts/HowTo" skill_level:"Beginner")]
 
 
-<!--- For future addition of tutorials in these skill levels ---
+[COMMENT:none]
+- For future addition of tutorials in these skill levels ---
 
 ## 머티리얼 추가 작업
 
@@ -31,4 +32,5 @@ Topic-Image:FontHowTo_Topic.png
 
 [DIR(output:"fancy" parent:"Engine/UMG/UserGuide/Fonts/HowTo" skill_level:"Advanced")]
 
---->
+-
+[/COMMENT]

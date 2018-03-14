@@ -43,7 +43,9 @@ Version:4.9
 [/OBJECT]
 [/VAR]
 
-<!--Insert path when done! [RELATIVE:Resources/ContentExamples/LevelScripting]-->
+[COMMENT:none]
+Insert path when done! [RELATIVE:Resources/ContentExamples/LevelScripting]
+[/COMMENT]
 
 **レベル スクリプト** のサンプル レベルへようこそ！
 

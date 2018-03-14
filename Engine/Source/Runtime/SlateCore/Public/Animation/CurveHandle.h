@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,32 +7,29 @@
 /**
  * Types of easing functions for Slate animation curves.  These are used to smooth out animations.
  */
-namespace ECurveEaseFunction
+enum class ECurveEaseFunction : uint8
 {
-	enum Type
-	{
-		/** Linear interpolation, with no easing */
-		Linear,
+	/** Linear interpolation, with no easing */
+	Linear,
 
-		/** Quadratic ease in */
-		QuadIn,
+	/** Quadratic ease in */
+	QuadIn,
 		
-		/** Quadratic ease out */
-		QuadOut,
+	/** Quadratic ease out */
+	QuadOut,
 
-		/** Quadratic ease in, quadratic ease out */
-		QuadInOut,
+	/** Quadratic ease in, quadratic ease out */
+	QuadInOut,
 
-		/** Cubic ease in */
-		CubicIn,
+	/** Cubic ease in */
+	CubicIn,
 		
-		/** Cubic ease out */
-		CubicOut,
+	/** Cubic ease out */
+	CubicOut,
 
-		/** Cubic ease in, cubic ease out */
-		CubicInOut,
-	};
-}
+	/** Cubic ease in, cubic ease out */
+	CubicInOut,
+};
 
 
 /**
@@ -72,7 +69,7 @@ public:
 public:
 
 	/** Applies animation easing to lerp value */
-	static float ApplyEasing( float Time, ECurveEaseFunction::Type EaseType );
+	static float ApplyEasing( float Time, ECurveEaseFunction EaseType );
 
 private:
 

@@ -43,7 +43,8 @@ Version:4.9
 
 
 
-<!--------------BEGIN INCLUDES------------
+[COMMENT:none]
+------------BEGIN INCLUDES------------
 
 [EXCERPT:TessellationPoints]
       TessellationPoints = TruncToInt((Distance Between Spawned Particles) / (DistanceTessellationStepSize))
@@ -70,4 +71,5 @@ Version:4.9
 	如 CheckTangent 值小于 0.5，将根据结果对 DistanceTessellationStepSize 进行调整。 
 [/EXCERPT:CheckTangent]
 
-------------END INCLUDES-------------->
+------------END INCLUDES------------
+[/COMMENT]

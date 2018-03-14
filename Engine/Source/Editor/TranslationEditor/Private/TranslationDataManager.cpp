@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "TranslationDataManager.h"
 #include "Internationalization/InternationalizationManifest.h"
@@ -729,8 +729,14 @@ void FTranslationDataManager::LoadFromArchive(TArray<UTranslationUnit*>& InTrans
 				if (ArchiveEntry.IsValid())
 				{
 					const FString PreviousTranslation = TranslationUnit->Translation;
-					TranslationUnit->Translation = ""; // Reset to null string
-					const FString TranslatedString = ArchiveEntry->Translation.Text;
+					TranslationUnit->Translation.Reset();
+
+					FString TranslatedString = ArchiveEntry->Translation.Text;
+					if (!ArchiveEntry->Source.Text.Equals(TranslationUnit->Source, ESearchCase::CaseSensitive))
+					{
+						// Stale translation
+						TranslatedString.Reset();
+					}
 
 					if (TranslatedString.IsEmpty())
 					{

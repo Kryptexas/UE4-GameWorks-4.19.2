@@ -1,0 +1,302 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{6F08EC9B-0A0F-451D-990D-BDD10A182A21}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>OpenVDB</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)..\..\Deploy\VS2015\lib\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)..\..\Intermediate\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)..\..\Deploy\VS2015\lib\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)..\..\Intermediate\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\..\..\..\..\Source\ThirdParty\;$(SolutionDir)..\..\..\..\..\..\..\Source\ThirdParty\IntelTBB\IntelTBB-4.4u3\include;$(SolutionDir)..\..\</AdditionalIncludeDirectories>
+      <AdditionalUsingDirectories>
+      </AdditionalUsingDirectories>
+      <AdditionalOptions>/bigobj</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_DEBUG;_LIB;OPENVDB_2_ABI_COMPATIBLE;OPENVDB_STATICLIB;OPENVDB_OPENEXR_STATICLIB;WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\..\..\..\..\Source\ThirdParty\zlib\v1.2.8.\include\Win64\VS2015\;$(SolutionDir)..\..\..\..\..\..\..\Source\ThirdyParty\openexr\Deploy\include;$(SolutionDir)..\..\..\..\..\..\..\Source\ThirdParty\;$(SolutionDir)..\..\..\..\..\..\..\Source\ThirdParty\IntelTBB\IntelTBB-4.4u3\include;$(SolutionDir)..\..\</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <AdditionalUsingDirectories>
+      </AdditionalUsingDirectories>
+      <AdditionalOptions>/bigobj</AdditionalOptions>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\..\..\..\..\Source\ThirdParty\;$(SolutionDir)..\..\..\..\..\..\..\Source\ThirdParty\IntelTBB\IntelTBB-4.4u3\include;$(SolutionDir)..\..\</AdditionalIncludeDirectories>
+      <AdditionalUsingDirectories>
+      </AdditionalUsingDirectories>
+      <AdditionalOptions>/bigobj</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>NDEBUG;_LIB;OPENVDB_2_ABI_COMPATIBLE;OPENVDB_STATICLIB;OPENVDB_OPENEXR_STATICLIB;WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\..\..\..\..\Source\ThirdParty\zlib\v1.2.8.\include\Win64\VS2015\;$(SolutionDir)..\..\..\..\..\..\..\Source\ThirdyParty\openexr\Deploy\include;$(SolutionDir)..\..\..\..\..\..\..\Source\ThirdParty\;$(SolutionDir)..\..\..\..\..\..\..\Source\ThirdParty\IntelTBB\IntelTBB-4.4u3\include;$(SolutionDir)..\..\</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <AdditionalUsingDirectories>
+      </AdditionalUsingDirectories>
+      <AdditionalOptions>/bigobj</AdditionalOptions>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\CHANGES" />
+    <None Include="..\..\COPYRIGHT" />
+    <None Include="..\..\doxygen-config" />
+    <None Include="..\..\INSTALL" />
+    <None Include="..\..\LICENSE" />
+    <None Include="..\..\Makefile" />
+    <None Include="..\..\README" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\Exceptions.h" />
+    <ClInclude Include="..\..\Grid.h" />
+    <ClInclude Include="..\..\io\Archive.h" />
+    <ClInclude Include="..\..\io\Compression.h" />
+    <ClInclude Include="..\..\io\File.h" />
+    <ClInclude Include="..\..\io\GridDescriptor.h" />
+    <ClInclude Include="..\..\io\io.h" />
+    <ClInclude Include="..\..\io\Queue.h" />
+    <ClInclude Include="..\..\io\Stream.h" />
+    <ClInclude Include="..\..\io\TempFile.h" />
+    <ClInclude Include="..\..\math\BBox.h" />
+    <ClInclude Include="..\..\math\ConjGradient.h" />
+    <ClInclude Include="..\..\math\Coord.h" />
+    <ClInclude Include="..\..\math\DDA.h" />
+    <ClInclude Include="..\..\math\FiniteDifference.h" />
+    <ClInclude Include="..\..\math\LegacyFrustum.h" />
+    <ClInclude Include="..\..\math\Maps.h" />
+    <ClInclude Include="..\..\math\Mat.h" />
+    <ClInclude Include="..\..\math\Mat3.h" />
+    <ClInclude Include="..\..\math\Mat4.h" />
+    <ClInclude Include="..\..\math\Math.h" />
+    <ClInclude Include="..\..\math\Operators.h" />
+    <ClInclude Include="..\..\math\Proximity.h" />
+    <ClInclude Include="..\..\math\QuantizedUnitVec.h" />
+    <ClInclude Include="..\..\math\Quat.h" />
+    <ClInclude Include="..\..\math\Ray.h" />
+    <ClInclude Include="..\..\math\Stats.h" />
+    <ClInclude Include="..\..\math\Stencils.h" />
+    <ClInclude Include="..\..\math\Transform.h" />
+    <ClInclude Include="..\..\math\Tuple.h" />
+    <ClInclude Include="..\..\math\Vec2.h" />
+    <ClInclude Include="..\..\math\Vec3.h" />
+    <ClInclude Include="..\..\math\Vec4.h" />
+    <ClInclude Include="..\..\Metadata.h" />
+    <ClInclude Include="..\..\MetaMap.h" />
+    <ClInclude Include="..\..\openvdb.h" />
+    <ClInclude Include="..\..\Platform.h" />
+    <ClInclude Include="..\..\PlatformConfig.h" />
+    <ClInclude Include="..\..\tools\ChangeBackground.h" />
+    <ClInclude Include="..\..\tools\Clip.h" />
+    <ClInclude Include="..\..\tools\Composite.h" />
+    <ClInclude Include="..\..\tools\Dense.h" />
+    <ClInclude Include="..\..\tools\DenseSparseTools.h" />
+    <ClInclude Include="..\..\tools\Diagnostics.h" />
+    <ClInclude Include="..\..\tools\Filter.h" />
+    <ClInclude Include="..\..\tools\GridOperators.h" />
+    <ClInclude Include="..\..\tools\GridTransformer.h" />
+    <ClInclude Include="..\..\tools\Interpolation.h" />
+    <ClInclude Include="..\..\tools\LevelSetAdvect.h" />
+    <ClInclude Include="..\..\tools\LevelSetFilter.h" />
+    <ClInclude Include="..\..\tools\LevelSetFracture.h" />
+    <ClInclude Include="..\..\tools\LevelSetMeasure.h" />
+    <ClInclude Include="..\..\tools\LevelSetMorph.h" />
+    <ClInclude Include="..\..\tools\LevelSetPlatonic.h" />
+    <ClInclude Include="..\..\tools\LevelSetRebuild.h" />
+    <ClInclude Include="..\..\tools\LevelSetSphere.h" />
+    <ClInclude Include="..\..\tools\LevelSetTracker.h" />
+    <ClInclude Include="..\..\tools\LevelSetUtil.h" />
+    <ClInclude Include="..\..\tools\MeshToVolume.h" />
+    <ClInclude Include="..\..\tools\Morphology.h" />
+    <ClInclude Include="..\..\tools\MultiResGrid.h" />
+    <ClInclude Include="..\..\tools\ParticleAtlas.h" />
+    <ClInclude Include="..\..\tools\ParticlesToLevelSet.h" />
+    <ClInclude Include="..\..\tools\PointAdvect.h" />
+    <ClInclude Include="..\..\tools\PointIndexGrid.h" />
+    <ClInclude Include="..\..\tools\PointPartitioner.h" />
+    <ClInclude Include="..\..\tools\PointScatter.h" />
+    <ClInclude Include="..\..\tools\PointsToMask.h" />
+    <ClInclude Include="..\..\tools\PoissonSolver.h" />
+    <ClInclude Include="..\..\tools\Prune.h" />
+    <ClInclude Include="..\..\tools\RayIntersector.h" />
+    <ClInclude Include="..\..\tools\RayTracer.h" />
+    <ClInclude Include="..\..\tools\SignedFloodFill.h" />
+    <ClInclude Include="..\..\tools\Statistics.h" />
+    <ClInclude Include="..\..\tools\TopologyToLevelSet.h" />
+    <ClInclude Include="..\..\tools\ValueTransformer.h" />
+    <ClInclude Include="..\..\tools\VectorTransformer.h" />
+    <ClInclude Include="..\..\tools\VelocityFields.h" />
+    <ClInclude Include="..\..\tools\VolumeAdvect.h" />
+    <ClInclude Include="..\..\tools\VolumeToMesh.h" />
+    <ClInclude Include="..\..\tools\VolumeToSpheres.h" />
+    <ClInclude Include="..\..\tree\InternalNode.h" />
+    <ClInclude Include="..\..\tree\Iterator.h" />
+    <ClInclude Include="..\..\tree\LeafBuffer.h" />
+    <ClInclude Include="..\..\tree\LeafManager.h" />
+    <ClInclude Include="..\..\tree\LeafNode.h" />
+    <ClInclude Include="..\..\tree\LeafNodeBool.h" />
+    <ClInclude Include="..\..\tree\LeafNodeMask.h" />
+    <ClInclude Include="..\..\tree\NodeManager.h" />
+    <ClInclude Include="..\..\tree\NodeUnion.h" />
+    <ClInclude Include="..\..\tree\RootNode.h" />
+    <ClInclude Include="..\..\tree\Tree.h" />
+    <ClInclude Include="..\..\tree\TreeIterator.h" />
+    <ClInclude Include="..\..\tree\ValueAccessor.h" />
+    <ClInclude Include="..\..\Types.h" />
+    <ClInclude Include="..\..\util\CpuTimer.h" />
+    <ClInclude Include="..\..\util\Formats.h" />
+    <ClInclude Include="..\..\util\logging.h" />
+    <ClInclude Include="..\..\util\MapsUtil.h" />
+    <ClInclude Include="..\..\util\Name.h" />
+    <ClInclude Include="..\..\util\NodeMasks.h" />
+    <ClInclude Include="..\..\util\NullInterrupter.h" />
+    <ClInclude Include="..\..\util\PagedArray.h" />
+    <ClInclude Include="..\..\util\Util.h" />
+    <ClInclude Include="..\..\version.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\Grid.cc" />
+    <ClCompile Include="..\..\io\Archive.cc" />
+    <ClCompile Include="..\..\io\Compression.cc" />
+    <ClCompile Include="..\..\io\File.cc" />
+    <ClCompile Include="..\..\io\GridDescriptor.cc" />
+    <ClCompile Include="..\..\io\Queue.cc" />
+    <ClCompile Include="..\..\io\Stream.cc" />
+    <ClCompile Include="..\..\io\TempFile.cc" />
+    <ClCompile Include="..\..\math\Maps.cc" />
+    <ClCompile Include="..\..\math\Proximity.cc" />
+    <ClCompile Include="..\..\math\QuantizedUnitVec.cc" />
+    <ClCompile Include="..\..\math\Transform.cc" />
+    <ClCompile Include="..\..\Metadata.cc" />
+    <ClCompile Include="..\..\MetaMap.cc" />
+    <ClCompile Include="..\..\openvdb.cc" />
+    <ClCompile Include="..\..\Platform.cc" />
+    <ClCompile Include="..\..\util\Formats.cc" />
+    <ClCompile Include="..\..\util\Util.cc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

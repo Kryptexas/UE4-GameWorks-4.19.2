@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SoundCueGraphNode_Base.cpp
@@ -124,7 +124,7 @@ void USoundCueGraphNode_Base::AllocateDefaultPins()
 
 	if (!IsRootNode())
 	{
-		CreatePin(EGPD_Output, TEXT("SoundNode"), FString(), nullptr, TEXT("Output"));
+		CreatePin(EGPD_Output, TEXT("SoundNode"), TEXT("Output"));
 	}
 }
 

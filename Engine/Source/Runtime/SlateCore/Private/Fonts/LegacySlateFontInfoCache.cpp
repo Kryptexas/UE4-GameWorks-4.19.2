@@ -1,10 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Fonts/LegacySlateFontInfoCache.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopeLock.h"
 #include "Misc/FileHelper.h"
-#include "Fonts/FontBulkData.h"
+#include "Fonts/FontProviderInterface.h"
+#include "Fonts/UnicodeBlockRange.h"
 
 TSharedPtr<FLegacySlateFontInfoCache> FLegacySlateFontInfoCache::Singleton;
 
@@ -63,9 +64,123 @@ TSharedPtr<const FCompositeFont> FLegacySlateFontInfoCache::GetCompositeFont(con
 		}
 	}
 
-	TSharedRef<const FCompositeFont> NewCompositeFont = MakeShareable(new FStandaloneCompositeFont(NAME_None, LegacyFontPath, InLegacyFontHinting, EFontLoadingPolicy::LazyLoad));
+	TSharedRef<const FCompositeFont> NewCompositeFont = MakeShared<FStandaloneCompositeFont>(NAME_None, LegacyFontPath, InLegacyFontHinting, EFontLoadingPolicy::LazyLoad);
 	LegacyFontNameToCompositeFont.Add(LegacyFontKey, NewCompositeFont);
 	return NewCompositeFont;
+}
+
+TSharedRef<const FCompositeFont> FLegacySlateFontInfoCache::GetDefaultFont()
+{
+	if (!DefaultFont.IsValid())
+	{
+		#define APPEND_FONT(TYPEFACE, NAME, FILENAME, HINTING) \
+			(TYPEFACE).AppendFont(TEXT(NAME), FPaths::EngineContentDir() / TEXT("Slate") / TEXT("Fonts") / TEXT(FILENAME), HINTING, EFontLoadingPolicy::LazyLoad)
+
+		#define APPEND_EDITOR_FONT(TYPEFACE, NAME, FILENAME, HINTING) \
+			(TYPEFACE).AppendFont(TEXT(NAME), FPaths::EngineContentDir() / TEXT("Editor") / TEXT("Slate") / TEXT("Fonts") / TEXT(FILENAME), HINTING, EFontLoadingPolicy::LazyLoad)
+
+		#define APPEND_RANGE(SUBFONT, RANGE) \
+			(SUBFONT).CharacterRanges.Add(FUnicodeBlockRange::GetUnicodeBlockRange(EUnicodeBlockRange::RANGE).Range)
+
+		TSharedRef<FCompositeFont> MutableDefaultFont = MakeShared<FStandaloneCompositeFont>();
+
+		// Default
+		{
+			APPEND_FONT(MutableDefaultFont->DefaultTypeface, "Regular", "Roboto-Regular.ttf", EFontHinting::Default);
+			APPEND_FONT(MutableDefaultFont->DefaultTypeface, "Italic", "Roboto-Italic.ttf", EFontHinting::Default);
+			APPEND_FONT(MutableDefaultFont->DefaultTypeface, "Bold", "Roboto-Bold.ttf", EFontHinting::Default);
+			APPEND_FONT(MutableDefaultFont->DefaultTypeface, "BoldItalic", "Roboto-BoldItalic.ttf", EFontHinting::Default);
+			APPEND_FONT(MutableDefaultFont->DefaultTypeface, "BoldCondensed", "Roboto-BoldCondensed.ttf", EFontHinting::Default);
+			APPEND_FONT(MutableDefaultFont->DefaultTypeface, "BoldCondensedItalic", "Roboto-BoldCondensedItalic.ttf", EFontHinting::Default);
+			APPEND_FONT(MutableDefaultFont->DefaultTypeface, "Black", "Roboto-Black.ttf", EFontHinting::Default);
+			APPEND_FONT(MutableDefaultFont->DefaultTypeface, "BlackItalic", "Roboto-BlackItalic.ttf", EFontHinting::Default);
+			APPEND_FONT(MutableDefaultFont->DefaultTypeface, "Light", "Roboto-Light.ttf", EFontHinting::Default);
+			APPEND_FONT(MutableDefaultFont->DefaultTypeface, "VeryLight", "Roboto-Light.ttf", EFontHinting::Auto);
+			APPEND_FONT(MutableDefaultFont->DefaultTypeface, "Mono", "DroidSansMono.ttf", EFontHinting::Default);
+		}
+
+		// Fallback
+		{
+			APPEND_FONT(MutableDefaultFont->FallbackTypeface.Typeface, "Regular", "DroidSansFallback.ttf", EFontHinting::Default);
+		}
+
+		// Arabic
+		{
+			FCompositeSubFont& SubFont = MutableDefaultFont->SubTypefaces[MutableDefaultFont->SubTypefaces.AddDefaulted()];
+			APPEND_RANGE(SubFont, Arabic);
+			APPEND_RANGE(SubFont, ArabicExtendedA);
+			APPEND_RANGE(SubFont, ArabicMathematicalAlphabeticSymbols);
+			APPEND_RANGE(SubFont, ArabicPresentationFormsA);
+			APPEND_RANGE(SubFont, ArabicPresentationFormsB);
+			APPEND_RANGE(SubFont, ArabicSupplement);
+			APPEND_FONT(SubFont.Typeface, "Regular", "NotoNaskhArabicUI-Regular.ttf", EFontHinting::Default);
+		}
+
+		// Japanese (editor-only)
+		if (GIsEditor)
+		{
+			FCompositeSubFont& SubFont = MutableDefaultFont->SubTypefaces[MutableDefaultFont->SubTypefaces.AddDefaulted()];
+			SubFont.Cultures = TEXT("ja");
+			APPEND_RANGE(SubFont, CJKCompatibility);
+			APPEND_RANGE(SubFont, CJKCompatibilityForms);
+			APPEND_RANGE(SubFont, CJKCompatibilityIdeographs);
+			APPEND_RANGE(SubFont, CJKCompatibilityIdeographsSupplement);
+			APPEND_RANGE(SubFont, CJKRadicalsSupplement);
+			APPEND_RANGE(SubFont, CJKStrokes);
+			APPEND_RANGE(SubFont, CJKSymbolsAndPunctuation);
+			APPEND_RANGE(SubFont, CJKUnifiedIdeographs);
+			APPEND_RANGE(SubFont, CJKUnifiedIdeographsExtensionA);
+			APPEND_RANGE(SubFont, CJKUnifiedIdeographsExtensionB);
+			APPEND_RANGE(SubFont, CJKUnifiedIdeographsExtensionC);
+			APPEND_RANGE(SubFont, CJKUnifiedIdeographsExtensionD);
+			APPEND_RANGE(SubFont, CJKUnifiedIdeographsExtensionE);
+			APPEND_RANGE(SubFont, EnclosedCJKLettersAndMonths);
+			APPEND_RANGE(SubFont, Hiragana);
+			APPEND_RANGE(SubFont, Katakana);
+			APPEND_RANGE(SubFont, KatakanaPhoneticExtensions);
+			APPEND_RANGE(SubFont, Kanbun);
+			APPEND_RANGE(SubFont, HalfwidthAndFullwidthForms);
+			APPEND_EDITOR_FONT(SubFont.Typeface, "Regular", "GenEiGothicPro-Regular.otf", EFontHinting::AutoLight);
+			APPEND_EDITOR_FONT(SubFont.Typeface, "Italic", "GenEiGothicPro-Regular.otf", EFontHinting::AutoLight);
+			APPEND_EDITOR_FONT(SubFont.Typeface, "Bold", "GenEiGothicPro-Bold.otf", EFontHinting::AutoLight);
+			APPEND_EDITOR_FONT(SubFont.Typeface, "BoldItalic", "GenEiGothicPro-Bold.otf", EFontHinting::AutoLight);
+			APPEND_EDITOR_FONT(SubFont.Typeface, "BoldCondensed", "GenEiGothicPro-SemiBold.otf", EFontHinting::AutoLight);
+			APPEND_EDITOR_FONT(SubFont.Typeface, "BoldCondensedItalic", "GenEiGothicPro-SemiBold.otf", EFontHinting::AutoLight);
+			APPEND_EDITOR_FONT(SubFont.Typeface, "Black", "GenEiGothicPro-Heavy.otf", EFontHinting::AutoLight);
+			APPEND_EDITOR_FONT(SubFont.Typeface, "BlackItalic", "GenEiGothicPro-Heavy.otf", EFontHinting::AutoLight);
+			APPEND_EDITOR_FONT(SubFont.Typeface, "Light", "GenEiGothicPro-Light.otf", EFontHinting::AutoLight);
+			APPEND_EDITOR_FONT(SubFont.Typeface, "VeryLight", "GenEiGothicPro-Light.otf", EFontHinting::AutoLight);
+		}
+
+		// Korean (editor-only)
+		if (GIsEditor)
+		{
+			FCompositeSubFont& SubFont = MutableDefaultFont->SubTypefaces[MutableDefaultFont->SubTypefaces.AddDefaulted()];
+			SubFont.Cultures = TEXT("ko");
+			APPEND_RANGE(SubFont, HangulJamo);
+			APPEND_RANGE(SubFont, HangulJamoExtendedA);
+			APPEND_RANGE(SubFont, HangulJamoExtendedB);
+			APPEND_RANGE(SubFont, HangulCompatibilityJamo);
+			APPEND_RANGE(SubFont, HangulSyllables);
+			APPEND_EDITOR_FONT(SubFont.Typeface, "Regular", "NanumGothic.ttf", EFontHinting::Default);
+			APPEND_EDITOR_FONT(SubFont.Typeface, "Italic", "NanumGothic.ttf", EFontHinting::Default);
+			APPEND_EDITOR_FONT(SubFont.Typeface, "Bold", "NanumGothicBold.ttf", EFontHinting::Default);
+			APPEND_EDITOR_FONT(SubFont.Typeface, "BoldItalic", "NanumGothicBold.ttf", EFontHinting::Default);
+			APPEND_EDITOR_FONT(SubFont.Typeface, "BoldCondensed", "NanumGothicBold.ttf", EFontHinting::Default);
+			APPEND_EDITOR_FONT(SubFont.Typeface, "BoldCondensedItalic", "NanumGothicBold.ttf", EFontHinting::Default);
+			APPEND_EDITOR_FONT(SubFont.Typeface, "Black", "NanumGothicExtraBold.ttf", EFontHinting::Default);
+			APPEND_EDITOR_FONT(SubFont.Typeface, "BlackItalic", "NanumGothicExtraBold.ttf", EFontHinting::Default);
+			APPEND_EDITOR_FONT(SubFont.Typeface, "Light", "NanumGothic.ttf", EFontHinting::Default);
+			APPEND_EDITOR_FONT(SubFont.Typeface, "VeryLight", "NanumGothic.ttf", EFontHinting::Default);
+		}
+
+		#undef APPEND_FONT
+		#undef APPEND_RANGE
+
+		DefaultFont = MutableDefaultFont;
+	}
+
+	return DefaultFont.ToSharedRef();
 }
 
 TSharedPtr<const FCompositeFont> FLegacySlateFontInfoCache::GetSystemFont()
@@ -78,7 +193,7 @@ TSharedPtr<const FCompositeFont> FLegacySlateFontInfoCache::GetSystemFont()
 			const FString FontFilename = FPaths::EngineIntermediateDir() / TEXT("DefaultSystemFont.ttf");
 			if (FFileHelper::SaveArrayToFile(FontBytes, *FontFilename))
 			{
-				SystemFont = MakeShareable(new FStandaloneCompositeFont(NAME_None, FontFilename, EFontHinting::Default, EFontLoadingPolicy::LazyLoad));
+				SystemFont = MakeShared<FStandaloneCompositeFont>(NAME_None, FontFilename, EFontHinting::Default, EFontLoadingPolicy::LazyLoad);
 			}
 		}
 	}
@@ -104,12 +219,12 @@ const FFontData& FLegacySlateFontInfoCache::GetLocalizedFallbackFontData()
 
 		TSharedPtr<const FFontData> PreviousLocalizedFallbackFontData = LocalizedFallbackFontData;
 
-		const FString FallbackFontPath = FPaths::EngineContentDir() / TEXT("Slate/Fonts/") / (NSLOCTEXT("Slate", "FallbackFont", "DroidSansFallback").ToString() + TEXT(".ttf"));
+		const FString FallbackFontPath = FPaths::EngineContentDir() / TEXT("Slate/Fonts/") / (NSLOCTEXT("Slate", "LegacyFallbackFont", "DroidSansFallback").ToString() + TEXT(".ttf"));
 		LocalizedFallbackFontData = AllLocalizedFallbackFontData.FindRef(FallbackFontPath);
 
 		if (!LocalizedFallbackFontData.IsValid())
 		{
-			LocalizedFallbackFontData = MakeShareable(new FFontData(FallbackFontPath, EFontHinting::Default, EFontLoadingPolicy::LazyLoad));
+			LocalizedFallbackFontData = MakeShared<FFontData>(FallbackFontPath, EFontHinting::Default, EFontLoadingPolicy::LazyLoad);
 			AllLocalizedFallbackFontData.Add(FallbackFontPath, LocalizedFallbackFontData);
 		}
 
@@ -141,7 +256,7 @@ TSharedPtr<const FCompositeFont> FLegacySlateFontInfoCache::GetLastResortFont()
 	if (!LastResortFont.IsValid() && bIsLastResortFontAvailable)
 	{
 		const FFontData& FontData = GetLastResortFontData();
-		LastResortFont = MakeShareable(new FStandaloneCompositeFont(NAME_None, FontData.GetFontFilename(), FontData.GetHinting(), FontData.GetLoadingPolicy()));
+		LastResortFont = MakeShared<FStandaloneCompositeFont>(NAME_None, FontData.GetFontFilename(), FontData.GetHinting(), FontData.GetLoadingPolicy());
 	}
 
 	return LastResortFont;
@@ -154,7 +269,7 @@ const FFontData& FLegacySlateFontInfoCache::GetLastResortFontData()
 
 	if (!LastResortFontData.IsValid())
 	{
-		LastResortFontData = MakeShareable(new FFontData(bIsLastResortFontAvailable ? LastResortFontPath : FString(), EFontHinting::Default, EFontLoadingPolicy::LazyLoad));
+		LastResortFontData = MakeShared<FFontData>(bIsLastResortFontAvailable ? LastResortFontPath : FString(), EFontHinting::Default, EFontLoadingPolicy::LazyLoad);
 	}
 
 	return *LastResortFontData;

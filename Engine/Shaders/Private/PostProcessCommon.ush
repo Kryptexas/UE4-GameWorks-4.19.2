@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessCommon.usf: PostProcessing shared functions and structures.
@@ -39,7 +39,7 @@ float4 PostprocessInput4Size;
 float4 PostprocessInput5Size;
 float4 PostprocessInput6Size;
 
-// xy = min valid UV in PostprocessInput%d, zw = max valid UV.
+// xy = min valid BufferUV for a bilinear sampler in PostprocessInput%d, zw = max valid BufferUV for a bilinear sampler.
 float4 PostprocessInput0MinMax;
 float4 PostprocessInput1MinMax;
 float4 PostprocessInput2MinMax;
@@ -60,6 +60,15 @@ SamplerState BilinearTextureSampler1;
 // (0,0) left top, (width-1,height-1) at right bottom, in pixels (without offset to reach the pixel center)
 // 	use ComputePixelPosCenter(UVAndScreenPos.zw, bPixelCenter) instead of directly accessing this
 float4 ScreenPosToPixel;
+
+float4 SceneColorBufferUVViewport;
+
+// transform viewport UV to scene color buffer UV. As oposed to ViewportUVToBufferUV(),
+// this handle viewrect change in middle of post processing caused by TAA upsample.
+float2 ViewportUVToPostProcessingSceneColorBufferUV(float2 ViewportUV)
+{
+	return ViewportUV * SceneColorBufferUVViewport.xy + SceneColorBufferUVViewport.zw;
+}
 
 // uses ScreenPosToPixel which is setup in FPostProcessPassParameters
 // for integer output bPixelCenter should be set to true (to avoid rounding errors), but often it's better to use "int2 PixelPos = (int2)SvPosition.xy;" instead

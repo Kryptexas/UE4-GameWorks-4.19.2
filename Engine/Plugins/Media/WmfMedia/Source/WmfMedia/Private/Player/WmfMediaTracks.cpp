@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "WmfMediaTracks.h"
 #include "WmfMediaPrivate.h"
@@ -109,6 +109,8 @@ void FWmfMediaTracks::ClearFlags()
 
 TComPtr<IMFTopology> FWmfMediaTracks::CreateTopology()
 {
+	FScopeLock Lock(&CriticalSection);
+
 	// validate streams
 	if (MediaSource == NULL)
 	{
@@ -163,6 +165,8 @@ TComPtr<IMFTopology> FWmfMediaTracks::CreateTopology()
 		return NULL;
 	}
 
+	UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Created playback topology %p (media source %p)"), this, Topology.Get(), MediaSource.Get());
+
 	return Topology;
 }
 
@@ -196,7 +200,7 @@ void FWmfMediaTracks::Initialize(IMFMediaSource* InMediaSource, const FString& U
 {
 	Shutdown();
 
-	UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks: %p: Initializing tracks"), this);
+	UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks: %p: Initializing (media source %p)"), this, InMediaSource);
 
 	FScopeLock Lock(&CriticalSection);
 
@@ -215,7 +219,7 @@ void FWmfMediaTracks::Initialize(IMFMediaSource* InMediaSource, const FString& U
 
 		if (FAILED(Result))
 		{
-			UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to create presentation descriptor: %s"), *WmfMedia::ResultToString(Result));
+			UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks %p: Failed to create presentation descriptor: %s"), this, *WmfMedia::ResultToString(Result));
 			return;
 		}
 	}
@@ -236,6 +240,8 @@ void FWmfMediaTracks::Initialize(IMFMediaSource* InMediaSource, const FString& U
 
 	// initialization successful
 	MediaSource = InMediaSource;
+	SourceUrl = Url;
+
 	PresentationDescriptor = NewPresentationDescriptor;
 
 	// add streams (Media Foundation reports them in reverse order)
@@ -254,10 +260,22 @@ void FWmfMediaTracks::Initialize(IMFMediaSource* InMediaSource, const FString& U
 	}
 }
 
+void FWmfMediaTracks::ReInitialize()
+{
+	if (MediaSource != NULL)
+	{
+		TComPtr<IMFMediaSource> lMediaSource = WmfMedia::ResolveMediaSource(nullptr, SourceUrl, false);
+		int32 lTrack = GetSelectedTrack(EMediaTrackType::Video);
+		int32 lFormat = GetTrackFormat(EMediaTrackType::Video, lTrack);
+		Initialize(lMediaSource, SourceUrl);
+		SetTrackFormat(EMediaTrackType::Video, lTrack, lFormat);
+		SelectTrack(EMediaTrackType::Video, lTrack);
+	}
+}
 
 void FWmfMediaTracks::Shutdown()
 {
-	UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks: %p: Shutting down tracks"), this);
+	UE_LOG(LogWmfMedia, Verbose, TEXT("Tracks: %p: Shutting down (media source %p)"), this, MediaSource.Get());
 
 	FScopeLock Lock(&CriticalSection);
 
@@ -279,7 +297,7 @@ void FWmfMediaTracks::Shutdown()
 	if (MediaSource != NULL)
 	{
 		MediaSource->Shutdown();
-		MediaSource = NULL;
+		MediaSource.Reset();
 	}
 
 	PresentationDescriptor.Reset();
@@ -1381,54 +1399,45 @@ bool FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, bool IsVideoDevice, 
 					else
 					{
 						BufferDim.X = Align(OutputDim.X, 16);
-						BufferDim.Y = Align(OutputDim.Y, 16) * 3 / 2;
+
+						if ((SubType == MFVideoFormat_H264) || (SubType == MFVideoFormat_H264_ES))
+						{
+							BufferDim.Y = Align(OutputDim.Y, 16) * 3 / 2;
+						}
+						else
+						{
+							BufferDim.Y = OutputDim.Y * 3 / 2;
+						}
 					}
 
 					BufferStride = BufferDim.X;
 					SampleFormat = EMediaTextureSampleFormat::CharNV12;
 				}
+				else if (OutputSubType == MFVideoFormat_RGB32)
+				{
+					BufferDim = OutputDim;
+					BufferStride = OutputDim.X * 4;
+					SampleFormat = EMediaTextureSampleFormat::CharBMP;
+				}
 				else
 				{
-					long SampleStride = ::MFGetAttributeUINT32(MediaType, MF_MT_DEFAULT_STRIDE, 0);
+					int32 AlignedOutputX = OutputDim.X;
 
-					if (OutputSubType == MFVideoFormat_RGB32)
+					if ((SubType == MFVideoFormat_H264) || (SubType == MFVideoFormat_H264_ES))
 					{
-						SampleFormat = EMediaTextureSampleFormat::CharBMP;
-
-						if (SampleStride == 0)
-						{
-							::MFGetStrideForBitmapInfoHeader(SubType.Data1, OutputDim.X, &SampleStride);
-						}
-
-						if (SampleStride == 0)
-						{
-							SampleStride = OutputDim.X * 4;
-						}
+						AlignedOutputX = Align(AlignedOutputX, 16);
 					}
-					else
-					{
-						SampleFormat = EMediaTextureSampleFormat::CharYUY2;
 
-						if (SampleStride == 0)
-						{
-							int32 AlignedOutputX = OutputDim.X;
-
-							if ((SubType == MFVideoFormat_H264) || (SubType == MFVideoFormat_H264_ES))
-							{
-								AlignedOutputX = Align(AlignedOutputX, 16);
-							}
-
-							SampleStride = AlignedOutputX * 2;
-						}
-					}
+					int32 SampleStride = AlignedOutputX * 2; // 2 bytes per pixel
 
 					if (SampleStride < 0)
 					{
 						SampleStride = -SampleStride;
 					}
 
-					BufferDim = FIntPoint(SampleStride / 4, OutputDim.Y);
+					BufferDim = FIntPoint(AlignedOutputX / 2, OutputDim.Y); // 2 pixels per texel
 					BufferStride = SampleStride;
+					SampleFormat = EMediaTextureSampleFormat::CharYUY2;
 				}
 			}
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3481084
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Unity 引っ越しガイド
 Crumbs: %ROOT%, GettingStarted
@@ -262,12 +262,12 @@ UE4 の優れた機能をご紹介します。新規 Actor ブループリント
 ビジュアル スクリプトをサポートするブループリント クラスに加えて、UE4 ではコードで実装された C++ クラスもサポートしています。以下は、Unity C#、UE4 C++、UE4 ブループリントです。
 
 
-| Unity C# | UE4 C++ |
-| --- | --- | 
-|[INCLUDE:GettingStarted/FromUnity#csharp_unity]| [INCLUDE:GettingStarted/FromUnity#cpp_ue4] | 
+| Unity C# | UE4 C++ | UE4 Blueprint |
+| --- | --- | --- |
+|[INCLUDE:GettingStarted/FromUnity#csharp_unity]| [INCLUDE:GettingStarted/FromUnity#cpp_ue4] |[REGION:lightbox][![](image_28.png)(w:220)](image_28.png)[/REGION]|
+																							   
+[COMMENT:none]
 
-
-<!--
 [EXCERPT:csharp_Unity]
 	using UnityEngine;
 	using System.Collections;
@@ -326,12 +326,8 @@ UE4 の優れた機能をご紹介します。新規 Actor ブループリント
 		}
 	};
 [/EXCERPT:cpp_UE4]
--->
 
-
-| UE4 ブループリント | 
-| --- |
-|![](image_28.png)| 
+[/COMMENT] 
 
 ### UE4 のブループリント クラスは拡張可能
 
@@ -622,7 +618,8 @@ UE4 C++:
 |[INCLUDE:GettingStarted/FromUnity#gameobject_unity]| [INCLUDE:GettingStarted/FromUnity#gameobject_cpp] | [INCLUDE:GettingStarted/FromUnity#gameobject_bp] |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:gameObject_Unity]
 	Destroy(MyGameObject);
 [/EXCERPT:gameObject_Unity]
@@ -634,7 +631,8 @@ UE4 C++:
 [EXCERPT:gameObject_bp]
 ![](image_23.png)
 [/EXCERPT:gameObject_bp]
--->
+
+[/COMMENT]
 
 
 
@@ -648,7 +646,8 @@ UE4 C++:
 |[INCLUDE:GettingStarted/FromUnity#destroy_unity]| [INCLUDE:GettingStarted/FromUnity#destroy_cpp] | [INCLUDE:GettingStarted/FromUnity#destroy_bp] |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:destroy_Unity]
 	Destroy(MyGameObject, 1);
 [/EXCERPT:destroy_Unity]
@@ -664,7 +663,8 @@ UE4 C++:
 
 _フルサイズ表示するにはここをクリック_
 [/EXCERPT:destroy_bp]
--->
+
+[/COMMENT]
 
 
 #### ゲームオブジェクト / アクタを無効にする
@@ -676,7 +676,8 @@ _フルサイズ表示するにはここをクリック_
 |[INCLUDE:GettingStarted/FromUnity#disable_unity]| [INCLUDE:GettingStarted/FromUnity#disable_cpp] | [INCLUDE:GettingStarted/FromUnity#disable_bp] |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:disable_Unity]
 	MyGameObject.SetActive(false);
 [/EXCERPT:disable_Unity]
@@ -699,7 +700,8 @@ _フルサイズ表示するにはここをクリック_
 
 _フルサイズ表示するにはここをクリック_
 [/EXCERPT:disable_bp]
--->
+
+[/COMMENT]
 
 #### コンポーネントからゲームオブジェクト / アクタにアクセスする
 
@@ -710,7 +712,8 @@ _フルサイズ表示するにはここをクリック_
 | [INCLUDE:GettingStarted/FromUnity#go1_unity] | [INCLUDE:GettingStarted/FromUnity#go1_cpp] | [INCLUDE:GettingStarted/FromUnity#go1_bp] |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:go1_Unity]
 	GameObject ParentGO = 
 	MyComponent.gameObject; 
@@ -727,18 +730,21 @@ _フルサイズ表示するにはここをクリック_
 [/REGION]
 _フルサイズ表示するにはここをクリック_
 [/EXCERPT:go1_bp]
--->
+
+[/COMMENT]
 
 
 #### ゲームオブジェクト / アクタからコンポーネントにアクセスする
 
-<!--
+[COMMENT:none]
+
 | メソッド | 説明 |
 | --- | --- |
 | Unity | [INCLUDE:GettingStarted/FromUnity#go2_unity]| 
 | C++ | [INCLUDE:GettingStarted/FromUnity#go2_cpp] | 
 | ブループリント | [INCLUDE:GettingStarted/FromUnity#go2_bp] | 
--->
+
+[/COMMENT]
 
 **Unity** 
 	MyComponent MyComp = gameObject.GetComponent<MyComponent>();
@@ -755,7 +761,8 @@ _フルサイズ表示するにはここをクリック_
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:go2_Unity]
 	MyComponent MyComp = gameObject.GetComponent<MyComponent>();
 [/EXCERPT:go2_Unity]
@@ -770,7 +777,8 @@ _フルサイズ表示するにはここをクリック_
 [/REGION]
 _フルサイズ表示するにはここをクリック_
 [/EXCERPT:go2_bp]
--->
+
+[/COMMENT]
 
 
 #### ゲームオブジェクト / アクタの検索

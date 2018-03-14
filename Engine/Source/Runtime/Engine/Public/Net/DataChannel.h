@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DataChannel.h: Unreal datachannel class.
@@ -117,15 +117,18 @@ private:
 			} \
 		} \
 		/** receives a message of this type from the passed in bunch */ \
-		static void Receive(FInBunch& Bunch, TypeA& ParamA) \
+		FUNCTION_CHECK_RETURN_START \
+		static bool Receive(FInBunch& Bunch, TypeA& ParamA) \
+		FUNCTION_CHECK_RETURN_END \
 		{ \
 			Bunch << ParamA; \
+			return !Bunch.IsError(); \
 		} \
 		/** throws away a message of this type from the passed in bunch */ \
 		static void Discard(FInBunch& Bunch) \
 		{ \
 			TypeA ParamA; \
-			Receive(Bunch, ParamA); \
+			if (Receive(Bunch, ParamA)) {} \
 		} \
 	};
 #define DEFINE_CONTROL_CHANNEL_MESSAGE_TWOPARAM(Name, Index, TypeA, TypeB) \
@@ -155,17 +158,20 @@ private:
 				Conn->Channels[0]->SendBunch(&Bunch, true); \
 			} \
 		} \
-		static void Receive(FInBunch& Bunch, TypeA& ParamA, TypeB& ParamB) \
+		FUNCTION_CHECK_RETURN_START \
+		static bool Receive(FInBunch& Bunch, TypeA& ParamA, TypeB& ParamB) \
+		FUNCTION_CHECK_RETURN_END \
 		{ \
 			Bunch << ParamA; \
 			Bunch << ParamB; \
+			return !Bunch.IsError(); \
 		} \
 		/** throws away a message of this type from the passed in bunch */ \
 		static void Discard(FInBunch& Bunch) \
 		{ \
 			TypeA ParamA; \
 			TypeB ParamB; \
-			Receive(Bunch, ParamA, ParamB); \
+			if (Receive(Bunch, ParamA, ParamB)) {} \
 		} \
 	};
 #define DEFINE_CONTROL_CHANNEL_MESSAGE_THREEPARAM(Name, Index, TypeA, TypeB, TypeC) \
@@ -196,11 +202,14 @@ private:
 				Conn->Channels[0]->SendBunch(&Bunch, true); \
 			} \
 		} \
-		static void Receive(FInBunch& Bunch, TypeA& ParamA, TypeB& ParamB, TypeC& ParamC) \
+		FUNCTION_CHECK_RETURN_START \
+		static bool Receive(FInBunch& Bunch, TypeA& ParamA, TypeB& ParamB, TypeC& ParamC) \
+		FUNCTION_CHECK_RETURN_END \
 		{ \
 			Bunch << ParamA; \
 			Bunch << ParamB; \
 			Bunch << ParamC; \
+			return !Bunch.IsError(); \
 		} \
 		/** throws away a message of this type from the passed in bunch */ \
 		static void Discard(FInBunch& Bunch) \
@@ -208,7 +217,7 @@ private:
 			TypeA ParamA; \
 			TypeB ParamB; \
 			TypeC ParamC; \
-			Receive(Bunch, ParamA, ParamB, ParamC); \
+			if (Receive(Bunch, ParamA, ParamB, ParamC)) {} \
 		} \
 	};
 #define DEFINE_CONTROL_CHANNEL_MESSAGE_FOURPARAM(Name, Index, TypeA, TypeB, TypeC, TypeD) \
@@ -240,12 +249,15 @@ private:
 				Conn->Channels[0]->SendBunch(&Bunch, true); \
 			} \
 		} \
-		static void Receive(FInBunch& Bunch, TypeA& ParamA, TypeB& ParamB, TypeC& ParamC, TypeD& ParamD) \
+		FUNCTION_CHECK_RETURN_START \
+		static bool Receive(FInBunch& Bunch, TypeA& ParamA, TypeB& ParamB, TypeC& ParamC, TypeD& ParamD) \
+		FUNCTION_CHECK_RETURN_END \
 		{ \
 			Bunch << ParamA; \
 			Bunch << ParamB; \
 			Bunch << ParamC; \
 			Bunch << ParamD; \
+			return !Bunch.IsError(); \
 		} \
 		/** throws away a message of this type from the passed in bunch */ \
 		static void Discard(FInBunch& Bunch) \
@@ -254,7 +266,7 @@ private:
 			TypeB ParamB; \
 			TypeC ParamC; \
 			TypeD ParamD; \
-			Receive(Bunch, ParamA, ParamB, ParamC, ParamD); \
+			if (Receive(Bunch, ParamA, ParamB, ParamC, ParamD)) {} \
 		} \
 	};
 
@@ -290,7 +302,9 @@ private:
 				Conn->Channels[0]->SendBunch(&Bunch, true); \
 			} \
 		} \
-		static void Receive(FInBunch& Bunch, TypeA& ParamA, TypeB& ParamB, TypeC& ParamC, TypeD& ParamD, TypeE& ParamE, TypeF& ParamF, TypeG& ParamG) \
+		FUNCTION_CHECK_RETURN_START \
+		static bool Receive(FInBunch& Bunch, TypeA& ParamA, TypeB& ParamB, TypeC& ParamC, TypeD& ParamD, TypeE& ParamE, TypeF& ParamF, TypeG& ParamG) \
+		FUNCTION_CHECK_RETURN_END \
 		{ \
 			Bunch << ParamA; \
 			Bunch << ParamB; \
@@ -299,6 +313,7 @@ private:
 			Bunch << ParamE; \
 			Bunch << ParamF; \
 			Bunch << ParamG; \
+			return !Bunch.IsError(); \
 		} \
 		/** throws away a message of this type from the passed in bunch */ \
 		static void Discard(FInBunch& Bunch) \
@@ -310,7 +325,7 @@ private:
 			TypeE ParamE; \
 			TypeF ParamF; \
 			TypeG ParamG; \
-			Receive(Bunch, ParamA, ParamB, ParamC, ParamD, ParamE, ParamF, ParamG); \
+			if (Receive(Bunch, ParamA, ParamB, ParamC, ParamD, ParamE, ParamF, ParamG)) {} \
 		} \
 	};
 
@@ -347,7 +362,9 @@ private:
 				Conn->Channels[0]->SendBunch(&Bunch, true); \
 			} \
 		} \
-		static void Receive(FInBunch& Bunch, TypeA& ParamA, TypeB& ParamB, TypeC& ParamC, TypeD& ParamD, TypeE& ParamE, TypeF& ParamF, TypeG& ParamG, TypeH& ParamH) \
+		FUNCTION_CHECK_RETURN_START \
+		static bool Receive(FInBunch& Bunch, TypeA& ParamA, TypeB& ParamB, TypeC& ParamC, TypeD& ParamD, TypeE& ParamE, TypeF& ParamF, TypeG& ParamG, TypeH& ParamH) \
+		FUNCTION_CHECK_RETURN_END \
 		{ \
 			Bunch << ParamA; \
 			Bunch << ParamB; \
@@ -357,6 +374,7 @@ private:
 			Bunch << ParamF; \
 			Bunch << ParamG; \
 			Bunch << ParamH; \
+			return !Bunch.IsError(); \
 		} \
 		/** throws away a message of this type from the passed in bunch */ \
 		static void Discard(FInBunch& Bunch) \
@@ -369,7 +387,7 @@ private:
 			TypeF ParamF; \
 			TypeG ParamG; \
 			TypeH ParamH; \
-			Receive(Bunch, ParamA, ParamB, ParamC, ParamD, ParamE, ParamF, ParamG, ParamH); \
+			if (Receive(Bunch, ParamA, ParamB, ParamC, ParamD, ParamE, ParamF, ParamG, ParamH)) {} \
 		} \
 	};
 
@@ -381,7 +399,7 @@ DEFINE_CONTROL_CHANNEL_MESSAGE_THREEPARAM(Welcome, 1, FString, FString, FString)
 DEFINE_CONTROL_CHANNEL_MESSAGE_ONEPARAM(Upgrade, 2, uint32); // server tells client their version is incompatible
 DEFINE_CONTROL_CHANNEL_MESSAGE_ONEPARAM(Challenge, 3, FString); // server sends client challenge string to verify integrity
 DEFINE_CONTROL_CHANNEL_MESSAGE_ONEPARAM(Netspeed, 4, int32); // client sends requested transfer rate
-DEFINE_CONTROL_CHANNEL_MESSAGE_FOURPARAM(Login, 5, FString, TArray<uint8>, FUniqueNetIdRepl, FString); // client requests to be admitted to the game
+DEFINE_CONTROL_CHANNEL_MESSAGE_FOURPARAM(Login, 5, FString, FString, FUniqueNetIdRepl, FString); // client requests to be admitted to the game
 DEFINE_CONTROL_CHANNEL_MESSAGE_ONEPARAM(Failure, 6, FString); // indicates connection failure
 DEFINE_CONTROL_CHANNEL_MESSAGE_ZEROPARAM(Join, 9); // final join request (spawns PlayerController)
 DEFINE_CONTROL_CHANNEL_MESSAGE_TWOPARAM(JoinSplit, 10, FString, FUniqueNetIdRepl); // child player (splitscreen) join request

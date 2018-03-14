@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,7 +10,7 @@ class FMetalCommandList;
  * Enumeration of features which are present only on some OS/device combinations.
  * These have to be checked at runtime as well as compile time to ensure backward compatibility.
  */
-enum EMetalFeatures
+typedef NS_OPTIONS(uint64, EMetalFeatures)
 {
 	/** Support for separate front & back stencil ref. values */
 	EMetalFeaturesSeparateStencil = 1 << 0,
@@ -75,11 +75,15 @@ enum EMetalFeatures
 	/** Supports accurate GPU times for commandbuffer start/end */
     EMetalFeaturesGPUCommandBufferTimes = 1 << 30,
     /** Supports minimum on-glass duration for drawables */
-    EMetalFeaturesPresentMinDuration = 1 << 31,
+    EMetalFeaturesPresentMinDuration = 1llu << 31llu,
     /** Supports programmatic frame capture API */
-    EMetalFeaturesGPUCaptureManager = 1 << 32,
+    EMetalFeaturesGPUCaptureManager = 1llu << 32llu,
 	/** Supports toggling V-Sync on & off */
-	EMetalFeaturesSupportsVSyncToggle = 1 << 33,
+	EMetalFeaturesSupportsVSyncToggle = 1llu << 33llu,
+	/** Supports function-constants for runtime shader specialisation */
+	EMetalFeaturesFunctionConstants = 1llu << 34llu,
+	/** Supports efficient buffer-blits */
+	EMetalFeaturesEfficientBufferBlits = 1llu << 35llu,
 };
 
 /**

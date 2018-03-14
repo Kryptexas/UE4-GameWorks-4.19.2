@@ -10,13 +10,17 @@ Slate控件可以用于在游戏中创建平头显示信息(HUD)或其他用户�
 比如菜单。您一般可以创建一个或多个 _容器_ 控件，每个容器可以包含几个其他类型的控件， 
 这些控件负责用户界面的特定方面。
 
-<!-- HUD widget w/ menu overlay -->
+[COMMENT:none]
+ HUD widget w/ menu overlay 
+[/COMMENT]
 
 比如，您可能具有一个针对游戏HUD的总体控件，同时具有针对主菜单、 
 选项菜单、暂停菜单、记分板等的各种控件。每种控件又可能由其他 
 自定义控件、标签、文本框、图片及其他类型的元素构成。
 
-<!-- container widget breakdown -->
+[COMMENT:none]
+ container widget breakdown 
+[/COMMENT]
 
 然后，可以根据游戏情境添加或删除这些容器控件： 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_ConstructObjectFromClass.h"
 #include "UObject/UnrealType.h"
@@ -10,14 +10,14 @@
 
 struct FK2Node_ConstructObjectFromClassHelper
 {
-	static FString WorldContextPinName;
-	static FString ClassPinName;
-	static FString OuterPinName;
+	static FName WorldContextPinName;
+	static FName ClassPinName;
+	static FName OuterPinName;
 };
 
-FString FK2Node_ConstructObjectFromClassHelper::WorldContextPinName(TEXT("WorldContextObject"));
-FString FK2Node_ConstructObjectFromClassHelper::ClassPinName(TEXT("Class"));
-FString FK2Node_ConstructObjectFromClassHelper::OuterPinName(TEXT("Outer"));
+FName FK2Node_ConstructObjectFromClassHelper::WorldContextPinName(TEXT("WorldContextObject"));
+FName FK2Node_ConstructObjectFromClassHelper::ClassPinName(TEXT("Class"));
+FName FK2Node_ConstructObjectFromClassHelper::OuterPinName(TEXT("Outer"));
 
 #define LOCTEXT_NAMESPACE "K2Node_ConstructObjectFromClass"
 
@@ -42,24 +42,24 @@ bool UK2Node_ConstructObjectFromClass::UseWorldContext() const
 void UK2Node_ConstructObjectFromClass::AllocateDefaultPins()
 {
 	// Add execution pins
-	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, FString(), nullptr, UEdGraphSchema_K2::PN_Execute);
-	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, FString(), nullptr, UEdGraphSchema_K2::PN_Then);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Execute);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Then);
 
 	// If required add the world context pin
 	if (UseWorldContext())
 	{
-		CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, FString(), UObject::StaticClass(), FK2Node_ConstructObjectFromClassHelper::WorldContextPinName);
+		CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, UObject::StaticClass(), FK2Node_ConstructObjectFromClassHelper::WorldContextPinName);
 	}
 
 	// Add blueprint pin
-	UEdGraphPin* ClassPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Class, FString(), GetClassPinBaseClass(), FK2Node_ConstructObjectFromClassHelper::ClassPinName);
+	UEdGraphPin* ClassPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Class, GetClassPinBaseClass(), FK2Node_ConstructObjectFromClassHelper::ClassPinName);
 	
 	// Result pin
-	UEdGraphPin* ResultPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Object, FString(), GetClassPinBaseClass(), UEdGraphSchema_K2::PN_ReturnValue);
+	UEdGraphPin* ResultPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Object, GetClassPinBaseClass(), UEdGraphSchema_K2::PN_ReturnValue);
 	
 	if (UseOuter())
 	{
-		UEdGraphPin* OuterPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, FString(), UObject::StaticClass(), FK2Node_ConstructObjectFromClassHelper::OuterPinName);
+		UEdGraphPin* OuterPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, UObject::StaticClass(), FK2Node_ConstructObjectFromClassHelper::OuterPinName);
 	}
 
 	Super::AllocateDefaultPins();
@@ -107,10 +107,10 @@ void UK2Node_ConstructObjectFromClass::CreatePinsForClass(UClass* InClass, TArra
 			bIsSettableExternally &&
 			Property->HasAllPropertyFlags(CPF_BlueprintVisible) &&
 			!bIsDelegate &&
-			(nullptr == FindPin(Property->GetName()) ) &&
+			(nullptr == FindPin(Property->GetFName()) ) &&
 			FBlueprintEditorUtils::PropertyStillExists(Property))
 		{
-			if (UEdGraphPin* Pin = CreatePin(EGPD_Input, FString(), FString(), nullptr, Property->GetName()))
+			if (UEdGraphPin* Pin = CreatePin(EGPD_Input, NAME_None, Property->GetFName()))
 			{
 				K2Schema->ConvertPropertyToPinType(Property, /*out*/ Pin->PinType);
 				if (OutClassPins)

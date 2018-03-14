@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "HierarchicalLOD.h"
 #include "Engine/World.h"
@@ -12,12 +12,15 @@
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
 #include "Misc/MapErrors.h"
+#include "GameFramework/WorldSettings.h"
 
 #if WITH_EDITOR
 #include "Engine/LODActor.h"
 #include "ObjectTools.h"
 #include "IHierarchicalLODUtilities.h"
 #include "HierarchicalLODUtilitiesModule.h"
+#include "../Classes/Editor/EditorEngine.h"
+#include "UnrealEdGlobals.h"
 #endif // WITH_EDITOR
 
 
@@ -30,27 +33,32 @@ DEFINE_LOG_CATEGORY_STATIC(LogLODGenerator, Warning, All);
 #define CM_TO_METER		0.01f
 #define METER_TO_CM		100.0f
 
+UHierarchicalLODSettings::UHierarchicalLODSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer), bForceSettingsInAllMaps(false)
+{	
+}
+
 FHierarchicalLODBuilder::FHierarchicalLODBuilder(UWorld* InWorld)
 :	World(InWorld)
-{}
+{
+	checkf(InWorld != nullptr, TEXT("Invalid nullptr world provided"));
+	HLODSettings = GetDefault<UHierarchicalLODSettings>();
+}
 
 FHierarchicalLODBuilder::FHierarchicalLODBuilder()
-	: World(nullptr)
+	: World(nullptr), 
+	  HLODSettings(nullptr)
 {
 	EnsureRetrievingVTablePtrDuringCtor(TEXT("FHierarchicalLODBuilder()"));
 }
 
 void FHierarchicalLODBuilder::Build()
 {
-	check (World)
-
-	AWorldSettings* WorldSetting = World->GetWorldSettings();
-	BuildLODLevelSettings = WorldSetting->HierarchicalLODSetup;
-
+	check(World);
 	bool bVisibleLevelsWarning = false;
 
 	const TArray<ULevel*>& Levels = World->GetLevels();
-	for (const auto& LevelIter : Levels)
+	for (ULevel* LevelIter : Levels)
 	{
 		// Only build clusters for levels that are visible, and throw warning if any are hidden
 		if (LevelIter->bIsVisible)
@@ -67,7 +75,7 @@ void FHierarchicalLODBuilder::Build()
 	{
 		FMessageLog MapCheck("HLODResults");
 		MapCheck.Warning()
-			->AddToken(FUObjectToken::Create(WorldSetting))
+			->AddToken(FUObjectToken::Create(World->GetWorldSettings()))
 			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_NoBuildHLODHiddenLevels", "Certain levels are marked as hidden, Hierarchical LODs will not be build for hidden levels.")));
 	}
 	
@@ -76,16 +84,15 @@ void FHierarchicalLODBuilder::Build()
 void FHierarchicalLODBuilder::PreviewBuild()
 {
 	check(World);
-	AWorldSettings* WorldSetting = World->GetWorldSettings();
-	BuildLODLevelSettings = WorldSetting->HierarchicalLODSetup;
 	bool bVisibleLevelsWarning = false;
 
 	const TArray<ULevel*>& Levels = World->GetLevels();
-	for (const auto& LevelIter : Levels)
+	for (ULevel* LevelIter : Levels)
 	{
 		// Only build clusters for levels that are visible
 		if (LevelIter->bIsVisible)
 		{
+			LevelIter->MarkPackageDirty();
 			BuildClusters(LevelIter, false);
 		}
 
@@ -97,7 +104,7 @@ void FHierarchicalLODBuilder::PreviewBuild()
 	{
 		FMessageLog MapCheck("HLODResults");
 		MapCheck.Warning()
-			->AddToken(FUObjectToken::Create(WorldSetting))
+			->AddToken(FUObjectToken::Create(World->GetWorldSettings()))
 			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_PreviewBuild_HLODHiddenLevels", "Certain levels are marked as hidden, Hierarchical LODs will not be built for hidden levels.")));
 	}
 }
@@ -106,7 +113,8 @@ void FHierarchicalLODBuilder::BuildClusters(ULevel* InLevel, const bool bCreateM
 {	
 	SCOPE_LOG_TIME(TEXT("STAT_HLOD_BuildClusters"), nullptr);
 
-
+	const TArray<FHierarchicalSimplification>& BuildLODLevelSettings = InLevel->GetWorldSettings()->GetHierarchicalLODSetup();
+	
 	LODLevelLODActors.Empty();
 	ValidStaticMeshActorsInLevel.Empty();
 
@@ -116,58 +124,83 @@ void FHierarchicalLODBuilder::BuildClusters(ULevel* InLevel, const bool bCreateM
 	
 	DeleteLODActors(InLevel, !bCreateMeshes);
 	
+	LODLevelLODActors.AddDefaulted(BuildLODLevelSettings.Num());
+	const int32 TotalNumLOD = BuildLODLevelSettings.Num();
+
+	LODLevelLODActors.Empty();
+	LODLevelLODActors.AddZeroed(TotalNumLOD);
 
 	// only build if it's enabled
-	if (InLevel->GetWorld()->GetWorldSettings()->bEnableHierarchicalLODSystem && BuildLODLevelSettings.Num() > 0)
+	if (InLevel->GetWorldSettings()->bEnableHierarchicalLODSystem && BuildLODLevelSettings.Num() > 0)
 	{
-		LODLevelLODActors.AddDefaulted(BuildLODLevelSettings.Num());
+		if (InLevel->GetWorldSettings()->bGenerateSingleClusterForLevel)
+		{
+			Clusters.Empty();
 
-		// Handle HierachicalLOD volumes first
-		HandleHLODVolumes(InLevel);
+			FLODCluster LevelCluster;
 
-		const int32 TotalNumLOD = BuildLODLevelSettings.Num();
-
-		LODLevelLODActors.Empty();
-		LODLevelLODActors.AddZeroed(TotalNumLOD);
-
-		for(int32 LODId=0; LODId<TotalNumLOD; ++LODId)
-		{			
-			// we use meter for bound. Otherwise it's very easy to get to overflow and have problem with filling ratio because
-			// bound is too huge
-			const float DesiredBoundRadius = BuildLODLevelSettings[LODId].DesiredBoundRadius * CM_TO_METER;
-			const float DesiredFillingRatio = BuildLODLevelSettings[LODId].DesiredFillingPercentage * 0.01f;
-			ensure(DesiredFillingRatio!=0.f);
-			const float HighestCost = FMath::Pow(DesiredBoundRadius, 3) / (DesiredFillingRatio);
-			const int32 MinNumActors = BuildLODLevelSettings[LODId].MinNumberOfActorsToBuild;
-			check (MinNumActors > 0);
-			// test parameter I was playing with to cull adding to the array
-			// intialization can have too many elements, decided to cull
-			// the problem can be that we can create disconnected tree
-			// my assumption is that if the merge cost is too high, then it's not worth merge anyway
-			static int32 CullMultiplier=1;
-
-			// since to show progress of initialization, I'm scoping it
+			TArray<AActor*> GenerationActors;
+			for (int32 ActorId = 0; ActorId < InLevel->Actors.Num(); ++ActorId)
 			{
-				FString LevelName = FPackageName::GetShortName(InLevel->GetOutermost()->GetName());
-				FFormatNamedArguments Arguments;
-				Arguments.Add(TEXT("LODIndex"), FText::AsNumber(LODId+1));
-				Arguments.Add(TEXT("LevelName"), FText::FromString(LevelName));
+				AActor* Actor = InLevel->Actors[ActorId];
+				if (ShouldGenerateCluster(Actor, !bCreateMeshes))
+				{
+					FLODCluster ActorCluster(Actor);
+					ValidStaticMeshActorsInLevel.Add(Actor);
 
-				FScopedSlowTask SlowTask(100, FText::Format(LOCTEXT("HierarchicalLOD_InitializeCluster", "Initializing Clusters for LOD {LODIndex} of {LevelName}..."), Arguments));
-				SlowTask.MakeDialog();
-
-				// initialize Clusters
-				InitializeClusters(InLevel, LODId, HighestCost*CullMultiplier, !bCreateMeshes);
-
-				// move a half way - I know we can do this better but as of now this is small progress
-				SlowTask.EnterProgressFrame(50);
-
-				// now we have all pair of nodes
-				FindMST();
+					LevelCluster += ActorCluster;
+				}
 			}
 
-			// now we have to calculate merge clusters and build actors
-			MergeClustersAndBuildActors(InLevel, LODId, HighestCost, MinNumActors, bCreateMeshes);
+			if (LevelCluster.IsValid())
+			{
+				ALODActor* LODActor = LevelCluster.BuildActor(InLevel, 0, bCreateMeshes);
+			}
+		}
+		else
+		{
+			// Handle HierachicalLOD volumes first
+			HandleHLODVolumes(InLevel);
+
+			for (int32 LODId = 0; LODId < TotalNumLOD; ++LODId)
+			{
+				// we use meter for bound. Otherwise it's very easy to get to overflow and have problem with filling ratio because
+				// bound is too huge
+				const float DesiredBoundRadius = BuildLODLevelSettings[LODId].DesiredBoundRadius * CM_TO_METER;
+				const float DesiredFillingRatio = BuildLODLevelSettings[LODId].DesiredFillingPercentage * 0.01f;
+				ensure(DesiredFillingRatio != 0.f);
+				const float HighestCost = FMath::Pow(DesiredBoundRadius, 3) / (DesiredFillingRatio);
+				const int32 MinNumActors = BuildLODLevelSettings[LODId].MinNumberOfActorsToBuild;
+				check(MinNumActors > 0);
+				// test parameter I was playing with to cull adding to the array
+				// intialization can have too many elements, decided to cull
+				// the problem can be that we can create disconnected tree
+				// my assumption is that if the merge cost is too high, then it's not worth merge anyway
+				static int32 CullMultiplier = 1;
+
+				// since to show progress of initialization, I'm scoping it
+				{
+					FString LevelName = FPackageName::GetShortName(InLevel->GetOutermost()->GetName());
+					FFormatNamedArguments Arguments;
+					Arguments.Add(TEXT("LODIndex"), FText::AsNumber(LODId + 1));
+					Arguments.Add(TEXT("LevelName"), FText::FromString(LevelName));
+
+					FScopedSlowTask SlowTask(100, FText::Format(LOCTEXT("HierarchicalLOD_InitializeCluster", "Initializing Clusters for LOD {LODIndex} of {LevelName}..."), Arguments));
+					SlowTask.MakeDialog();
+
+					// initialize Clusters
+					InitializeClusters(InLevel, LODId, HighestCost*CullMultiplier, !bCreateMeshes, BuildLODLevelSettings[LODId].bOnlyGenerateClustersForVolumes);
+
+					// move a half way - I know we can do this better but as of now this is small progress
+					SlowTask.EnterProgressFrame(50);
+
+					// now we have all pair of nodes
+					FindMST();
+				}
+
+				// now we have to calculate merge clusters and build actors
+				MergeClustersAndBuildActors(InLevel, LODId, HighestCost, MinNumActors, bCreateMeshes);
+			}
 		}
 	}
 	else
@@ -175,7 +208,7 @@ void FHierarchicalLODBuilder::BuildClusters(ULevel* InLevel, const bool bCreateM
 		// Fire map check warnings if HLOD System is not enabled
 		FMessageLog MapCheck("HLODResults");
 		MapCheck.Warning()
-			->AddToken(FUObjectToken::Create(InLevel->GetWorld()->GetWorldSettings()))
+			->AddToken(FUObjectToken::Create(InLevel->GetWorldSettings()))
 			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_HLODSystemNotEnabled", "Hierarchical LOD System is disabled, unable to build LOD actors.")))
 			->AddToken(FMapErrorToken::Create(FMapErrors::HLODSystemNotEnabled));
 	}
@@ -185,7 +218,7 @@ void FHierarchicalLODBuilder::BuildClusters(ULevel* InLevel, const bool bCreateM
 	Clusters.Shrink();
 }
 
-void FHierarchicalLODBuilder::InitializeClusters(ULevel* InLevel, const int32 LODIdx, float CullCost, const bool bPreviewBuild)
+void FHierarchicalLODBuilder::InitializeClusters(ULevel* InLevel, const int32 LODIdx, float CullCost, const bool bPreviewBuild, bool const bVolumesOnly)
 {
 	SCOPE_LOG_TIME(TEXT("STAT_HLOD_InitializeClusters"), nullptr);
 	if (InLevel->Actors.Num() > 0)
@@ -201,15 +234,15 @@ void FHierarchicalLODBuilder::InitializeClusters(ULevel* InLevel, const int32 LO
 				if (ShouldGenerateCluster(Actor, bPreviewBuild))
 				{
 					// Check whether or not this actor falls within a HierarchicalLODVolume, if so add to the Volume's cluster and exclude from normal process
-					bool bAdded = false;
-					for (auto& Cluster : HLODVolumeClusters)
+					bool bAdded = bVolumesOnly;
+					for (TPair<AHierarchicalLODVolume*, FLODCluster>& Cluster : HLODVolumeClusters)
 					{
-						if (Cluster.Key->EncompassesPoint(Actor->GetActorLocation(), 0.0f, nullptr))
+						if (Cluster.Key->EncompassesPoint(Actor->GetActorLocation(), Cluster.Key->bIncludeOverlappingActors ? Actor->GetComponentsBoundingBox().GetSize().Size() : 0.0f, nullptr))
 						{			
 							FBox BoundingBox = Actor->GetComponentsBoundingBox(true);
 							FBox VolumeBox = Cluster.Key->GetComponentsBoundingBox(true);
 
-							if (VolumeBox.IsInside(BoundingBox))
+							if (VolumeBox.IsInside(BoundingBox)|| (Cluster.Key->bIncludeOverlappingActors && VolumeBox.Intersect(BoundingBox)))
 							{
 								FLODCluster ActorCluster(Actor);
 								Cluster.Value += ActorCluster;
@@ -299,14 +332,13 @@ void FHierarchicalLODBuilder::FindMST()
 
 void FHierarchicalLODBuilder::HandleHLODVolumes(ULevel* InLevel)
 {	
-	HLODVolumeClusters.Empty();
+	HLODVolumeClusters.Reset();
 	for (int32 ActorId = 0; ActorId < InLevel->Actors.Num(); ++ActorId)
 	{
-		AActor* Actor = InLevel->Actors[ActorId];
-		if (Actor && Actor->IsA(AHierarchicalLODVolume::StaticClass()))
+		if (AHierarchicalLODVolume* Actor = Cast<AHierarchicalLODVolume>(InLevel->Actors[ActorId]))
 		{
 			// Came across a HLOD volume			
-			FLODCluster& NewCluster = HLODVolumeClusters.Add(CastChecked<AHierarchicalLODVolume>(Actor));
+			FLODCluster& NewCluster = HLODVolumeClusters.Add(Actor);
 
 			FVector Origin, Extent;
 			Actor->GetActorBounds(false, Origin, Extent);
@@ -328,6 +360,21 @@ bool FHierarchicalLODBuilder::ShouldGenerateCluster(AActor* Actor, const bool bP
 	}
 
 	if (Actor->bHidden)
+	{
+		return false;
+	}
+
+	if( Actor->HasAnyFlags( RF_Transient ) )
+	{
+		return false;
+	}
+
+	if( Actor->IsTemplate() )
+	{
+		return false;
+	}
+	
+	if( Actor->IsPendingKill() )
 	{
 		return false;
 	}
@@ -354,20 +401,26 @@ bool FHierarchicalLODBuilder::ShouldGenerateCluster(AActor* Actor, const bool bP
 	}	
 
 	// for now only consider staticmesh - I don't think skel mesh would work with simplygon merge right now @fixme
-	TArray<UStaticMeshComponent*> Components;
-	Actor->GetComponents<UStaticMeshComponent>(Components);
-	// TODO: support instanced static meshes
-	Components.RemoveAll([](UStaticMeshComponent* Val){ return Val->IsA(UInstancedStaticMeshComponent::StaticClass()); });
+	TInlineComponentArray<UStaticMeshComponent*> Components;
+	for (UActorComponent* Component : Actor->GetComponents())
+	{
+		UStaticMeshComponent* SMComponent = Cast<UStaticMeshComponent>(Component);
+		// TODO: support instanced static meshes
+		if (SMComponent && !Component->IsA<UInstancedStaticMeshComponent>())
+		{
+			Components.Add(SMComponent);
+		}
+	}
 
 	int32 ValidComponentCount = 0;
 	// now make sure you check parent primitive, so that we don't build for the actor that already has built. 
 	if (Components.Num() > 0)
 	{
-		for (auto& ComponentIter : Components)
+		for (UStaticMeshComponent* Component : Components)
 		{			
-			if (ComponentIter->GetLODParentPrimitive())
+			if (Component->GetLODParentPrimitive())
 			{
-				auto ParentActor = CastChecked<ALODActor>(ComponentIter->GetLODParentPrimitive()->GetOwner());
+				ALODActor* ParentActor = CastChecked<ALODActor>(Component->GetLODParentPrimitive()->GetOwner());
 				
 				if (ParentActor && bPreviewBuild)
 				{
@@ -375,13 +428,13 @@ bool FHierarchicalLODBuilder::ShouldGenerateCluster(AActor* Actor, const bool bP
 				}
 			}
 
-			if (ComponentIter->bHiddenInGame)
+			if (Component->bHiddenInGame)
 			{
 				return false;
 			}
 
 			// see if we should generate it
-			if (ComponentIter->ShouldGenerateAutoLOD())
+			if (Component->ShouldGenerateAutoLOD())
 			{
 				++ValidComponentCount;
 				break;
@@ -396,7 +449,7 @@ void FHierarchicalLODBuilder::ClearHLODs()
 {
 	bool bVisibleLevelsWarning = false;
 
-	for (auto& Level : World->GetLevels())
+	for (ULevel* Level : World->GetLevels())
 	{
 		bVisibleLevelsWarning |= !Level->bIsVisible;
 		if (Level->bIsVisible)
@@ -419,7 +472,7 @@ void FHierarchicalLODBuilder::ClearHLODs()
 void FHierarchicalLODBuilder::ClearPreviewBuild()
 {
 	bool bVisibleLevelsWarning = false;
-	for (auto& Level : World->GetLevels())
+	for (ULevel* Level : World->GetLevels())
 	{
 		bVisibleLevelsWarning |= !Level->bIsVisible;
 		if ( Level->bIsVisible )
@@ -438,15 +491,12 @@ void FHierarchicalLODBuilder::ClearPreviewBuild()
 	}
 }
 
-void FHierarchicalLODBuilder::BuildMeshesForLODActors()
-{
-	AWorldSettings* WorldSetting = World->GetWorldSettings();
-	BuildLODLevelSettings = WorldSetting->HierarchicalLODSetup;
-
+void FHierarchicalLODBuilder::BuildMeshesForLODActors(bool bForceAll)
+{	
 	bool bVisibleLevelsWarning = false;
 
 	const TArray<ULevel*>& Levels = World->GetLevels();
-	for (const auto& LevelIter : Levels)
+	for (const ULevel* LevelIter : Levels)
 	{
 		// Only meshes for clusters that are in a visible level
 		if (!LevelIter->bIsVisible)
@@ -457,6 +507,8 @@ void FHierarchicalLODBuilder::BuildMeshesForLODActors()
 
 		FScopedSlowTask SlowTask(105, (LOCTEXT("HierarchicalLOD_BuildLODActorMeshes", "Building LODActor meshes")));
 		SlowTask.MakeDialog();
+
+		const TArray<FHierarchicalSimplification>& BuildLODLevelSettings = LevelIter->GetWorldSettings()->GetHierarchicalLODSetup();
 
 		TArray<TArray<ALODActor*>> LODLevelActors;
 		LODLevelActors.AddDefaulted(BuildLODLevelSettings.Num());
@@ -475,7 +527,7 @@ void FHierarchicalLODBuilder::BuildMeshesForLODActors()
 				{
 					ALODActor* LODActor = CastChecked<ALODActor>(Actor);
 						
-					if (LODActor->IsDirty() && LODActor->HasValidSubActors())
+					if (bForceAll || (LODActor->IsDirty() && LODActor->HasValidSubActors()))
 					{
 						LODLevelActors[LODActor->LODLevel - 1].Add(LODActor);
 						NumLODActors++;
@@ -492,6 +544,8 @@ void FHierarchicalLODBuilder::BuildMeshesForLODActors()
 				checkf(AssetsOuter != nullptr, TEXT("Failed to created outer for generated HLOD assets"));
 				const int32 NumLODLevels = LODLevelActors.Num();
 
+				LevelIter->MarkPackageDirty();
+
 				for (int32 LODIndex = 0; LODIndex < NumLODLevels; ++LODIndex)
 				{
 					int32 CurrentLODLevel = LODIndex;
@@ -500,7 +554,7 @@ void FHierarchicalLODBuilder::BuildMeshesForLODActors()
 					for (ALODActor* Actor : LODLevel)
 					{
 						bBuildSuccesfull &= Utilities->BuildStaticMeshForLODActor(Actor, AssetsOuter, BuildLODLevelSettings[CurrentLODLevel]);
-						SlowTask.EnterProgressFrame(100.0f / (float)NumLODActors, FText::Format(LOCTEXT("HierarchicalLOD_BuildLODActorMeshesProgress", "Building LODActor Mesh {1} / {2} in LOD Level {0}"), FText::AsNumber(LODIndex), FText::AsNumber(LODActorIndex), FText::AsNumber(LODLevelActors[CurrentLODLevel].Num())));
+						SlowTask.EnterProgressFrame(100.0f / (float)NumLODActors, FText::Format(LOCTEXT("HierarchicalLOD_BuildLODActorMeshesProgress", "Building LODActor Mesh {1} of {2} (LOD Level {0})"), FText::AsNumber(LODIndex + 1), FText::AsNumber(LODActorIndex), FText::AsNumber(LODLevelActors[CurrentLODLevel].Num())));
 						++LODActorIndex;
 					}
 				}
@@ -515,7 +569,7 @@ void FHierarchicalLODBuilder::BuildMeshesForLODActors()
 	{
 		FMessageLog MapCheck("MapCheck");
 		MapCheck.Warning()
-			->AddToken(FUObjectToken::Create(WorldSetting))
+			->AddToken(FUObjectToken::Create(World->GetWorldSettings()))
 			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_NoBuildHLODHiddenLevels", "Certain levels are marked as hidden, Hierarchical LODs will not be build for hidden levels.")));
 	}
 
@@ -540,8 +594,7 @@ void FHierarchicalLODBuilder::DeleteLODActors(ULevel* InLevel, const bool bPrevi
 
 void FHierarchicalLODBuilder::BuildMeshForLODActor(ALODActor* LODActor, const uint32 LODLevel)
 {
-	AWorldSettings* WorldSetting = World->GetWorldSettings();
-	BuildLODLevelSettings = WorldSetting->HierarchicalLODSetup;
+	const TArray<FHierarchicalSimplification>& BuildLODLevelSettings = LODActor->GetLevel()->GetWorldSettings()->GetHierarchicalLODSetup();
 	
 	FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
 	IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
@@ -581,7 +634,7 @@ void FHierarchicalLODBuilder::MergeClustersAndBuildActors(ULevel* InLevel, const
 				// now we have minimum Clusters
 				for (int32 ClusterId = 0; ClusterId < TotalCluster; ++ClusterId)
 				{
-					auto& Cluster = Clusters[ClusterId];
+					FLODCluster& Cluster = Clusters[ClusterId];
 					UE_LOG(LogLODGenerator, Verbose, TEXT("%d. %0.2f {%s}"), ClusterId + 1, Cluster.GetCost(), *Cluster.ToString());
 
 					// progress bar update every percent, if ClustersPerPercent is zero ignore the progress bar as number of iterations is small.
@@ -595,7 +648,7 @@ void FHierarchicalLODBuilder::MergeClustersAndBuildActors(ULevel* InLevel, const
 						for (int32 MergedClusterId = 0; MergedClusterId < ClusterId; ++MergedClusterId)
 						{
 							// compare with previous clusters
-							auto& MergedCluster = Clusters[MergedClusterId];
+							FLODCluster& MergedCluster = Clusters[MergedClusterId];
 							// see if it's valid, if it contains, check the cost
 							if (MergedCluster.IsValid())
 							{
@@ -640,7 +693,7 @@ void FHierarchicalLODBuilder::MergeClustersAndBuildActors(ULevel* InLevel, const
 
 		if (LODIdx == 0)
 		{
-			for (auto& Cluster : HLODVolumeClusters)
+			for (TPair<AHierarchicalLODVolume*, FLODCluster>& Cluster : HLODVolumeClusters)
 			{
 				Clusters.Add(Cluster.Value);
 			}
@@ -651,7 +704,7 @@ void FHierarchicalLODBuilder::MergeClustersAndBuildActors(ULevel* InLevel, const
 			SCOPE_LOG_TIME(TEXT("HLOD_BuildActors"), nullptr);
 			// print data
 			int32 TotalValidCluster = 0;
-			for (auto& Cluster : Clusters)
+			for (FLODCluster& Cluster : Clusters)
 			{
 				if (Cluster.IsValid())
 				{
@@ -662,7 +715,7 @@ void FHierarchicalLODBuilder::MergeClustersAndBuildActors(ULevel* InLevel, const
 			FScopedSlowTask SlowTask(TotalValidCluster, FText::Format(LOCTEXT("HierarchicalLOD_MergeActors", "Merging Actors for LOD {LODIndex} of {LevelName}..."), Arguments));
 			SlowTask.MakeDialog();
 
-			for (auto& Cluster : Clusters)
+			for (FLODCluster& Cluster : Clusters)
 			{
 				if (Cluster.IsValid())
 				{
@@ -676,7 +729,7 @@ void FHierarchicalLODBuilder::MergeClustersAndBuildActors(ULevel* InLevel, const
 							LODLevelLODActors[LODIdx].Add(LODActor);
 						}
 
-						for (auto& RemoveActor : Cluster.Actors)
+						for (AActor* RemoveActor : Cluster.Actors)
 						{
 							ValidStaticMeshActorsInLevel.RemoveSingleSwap(RemoveActor, false);
 						}

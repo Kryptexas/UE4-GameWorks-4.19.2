@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AudioMixerBus.h"
 #include "AudioMixerSourceManager.h"
@@ -35,22 +35,24 @@ namespace Audio
 		InstanceIds.Remove(InSourceId);
 
 		// Return true if there is no more instances or sends
-		return !InstanceIds.Num() && !BusSends.Num();
+		return !InstanceIds.Num() && !BusSends[(int32)EBusSendType::PreEffect].Num() && !BusSends[(int32)EBusSendType::PostEffect].Num();
 	}
 
-	void FMixerBus::AddBusSend(const FBusSend& InBusSend)
+	void FMixerBus::AddBusSend(EBusSendType BusSendType, const FBusSend& InBusSend)
 	{
-		BusSends.Add(InBusSend);
+		BusSends[(int32)BusSendType].Add(InBusSend);
 	}
 
-	bool FMixerBus::RemoveBusSend(const int32 InSourceId)
+	bool FMixerBus::RemoveBusSend(EBusSendType BusSendType, const int32 InSourceId)
 	{
-		for (int32 i = BusSends.Num() - 1; i >= 0; --i)
+		TArray<FBusSend>& Sends = BusSends[(int32)BusSendType];
+
+		for (int32 i = Sends.Num() - 1; i >= 0; --i)
 		{
 			// Remove this source id's send
-			if (BusSends[i].SourceId == InSourceId)
+			if (Sends[i].SourceId == InSourceId)
 			{
-				BusSends.RemoveAtSwap(i, 1, false);
+				Sends.RemoveAtSwap(i, 1, false);
 
 				// There will only be one entry
 				break;
@@ -58,7 +60,7 @@ namespace Audio
 		}
 
 		// Return true if there is no more instances or sends
-		return !InstanceIds.Num() && !BusSends.Num();
+		return !InstanceIds.Num() && !BusSends[(int32)EBusSendType::PreEffect].Num() && !BusSends[(int32)EBusSendType::PostEffect].Num();
 	}
 
 	void FMixerBus::MixBuffer()
@@ -71,67 +73,74 @@ namespace Audio
 
 		float* BusDataBufferPtr = MixedSourceData[CurrentBufferIndex].GetData();
 
-		// Loop through the send list for this bus
-		for (FBusSend& BusSend : BusSends)
+		for (int32 BusSendType = 0; BusSendType < (int32)EBusSendType::Count; ++BusSendType)
 		{
-			const float* SourceBufferPtr = nullptr;
-
-			// If the source is a bus, we need to use the previous renderer buffer 
-			if (SourceManager->IsBus(BusSend.SourceId))
+			// Loop through the send list for this bus
+			for (FBusSend& BusSend : BusSends[BusSendType])
 			{
-				SourceBufferPtr = SourceManager->GetPreviousBusBuffer(BusSend.SourceId);
-			}
-			// If the source mixing into this is not itself a bus, then simply mix the pre-attenuation audio of the source into the bus
-			// The source will have already computed its buffers for this frame
-			else
-			{
-				SourceBufferPtr = SourceManager->GetPreDistanceAttenuationBuffer(BusSend.SourceId);
-			}
+				const float* SourceBufferPtr = nullptr;
 
-			const int32 NumSourceChannels = SourceManager->GetNumChannels(BusSend.SourceId);
-			const int32 NumSourceSamples = NumSourceChannels * SourceManager->GetNumOutputFrames();
-
-			// If source channels are 1 but the bus is 2 channels, we need to up-mix
-			if (NumSourceChannels == 1 && NumChannels == 2)
-			{
-				int32 BusSampleIndex = 0;
-				for (int32 SourceSampleIndex = 0; SourceSampleIndex < NumSourceSamples; ++SourceSampleIndex)
+				// If the source is a bus, we need to use the previous renderer buffer 
+				if (SourceManager->IsBus(BusSend.SourceId))
 				{
-					// Take half the source sample to up-mix to stereo
-					const float SourceSample = 0.5f * BusSend.SendLevel * SourceBufferPtr[SourceSampleIndex];
+					SourceBufferPtr = SourceManager->GetPreviousBusBuffer(BusSend.SourceId);
+				}
+				// If the source mixing into this is not itself a bus, then simply mix the pre-attenuation audio of the source into the bus
+				// The source will have already computed its buffers for this frame
+				else if (BusSendType == (int32)EBusSendType::PostEffect)
+				{
+					SourceBufferPtr = SourceManager->GetPreDistanceAttenuationBuffer(BusSend.SourceId);
+				}
+				else
+				{
+					SourceBufferPtr = SourceManager->GetPreEffectBuffer(BusSend.SourceId);
+				}
 
-					// Mix in the source sample
-					for (int32 BusChannel = 0; BusChannel < NumChannels; ++BusChannel)
+				const int32 NumSourceChannels = SourceManager->GetNumChannels(BusSend.SourceId);
+				const int32 NumSourceSamples = NumSourceChannels * SourceManager->GetNumOutputFrames();
+
+				// If source channels are 1 but the bus is 2 channels, we need to up-mix
+				if (NumSourceChannels == 1 && NumChannels == 2)
+				{
+					int32 BusSampleIndex = 0;
+					for (int32 SourceSampleIndex = 0; SourceSampleIndex < NumSourceSamples; ++SourceSampleIndex)
 					{
-						BusDataBufferPtr[BusSampleIndex++] += SourceSample;
+						// Take half the source sample to up-mix to stereo
+						const float SourceSample = 0.5f * BusSend.SendLevel * SourceBufferPtr[SourceSampleIndex];
+
+						// Mix in the source sample
+						for (int32 BusChannel = 0; BusChannel < NumChannels; ++BusChannel)
+						{
+							BusDataBufferPtr[BusSampleIndex++] += SourceSample;
+						}
 					}
 				}
-			}
-			// If the source channels are 2 but the bus is 1 channel, we need to down-mix
-			else if (NumSourceChannels == 2 && NumChannels == 1)
-			{
-				int32 SourceSampleIndex = 0;
-				for (int32 BusSampleIndex = 0; BusSampleIndex < NumSourceSamples; ++BusSampleIndex)
+				// If the source channels are 2 but the bus is 1 channel, we need to down-mix
+				else if (NumSourceChannels == 2 && NumChannels == 1)
 				{
-					// Downmix the stereo source to mono before summing to bus
-					float SourceSample = 0.0f;
-					for (int32 SourceChannel = 0; SourceChannel < 2; ++SourceChannel)
+					int32 SourceSampleIndex = 0;
+					for (int32 BusSampleIndex = 0; BusSampleIndex < NumSourceSamples; ++BusSampleIndex)
 					{
-						SourceSample += SourceBufferPtr[SourceSampleIndex++];
+						// Downmix the stereo source to mono before summing to bus
+						float SourceSample = 0.0f;
+						for (int32 SourceChannel = 0; SourceChannel < 2; ++SourceChannel)
+						{
+							SourceSample += SourceBufferPtr[SourceSampleIndex++];
+						}
+
+						SourceSample *= 0.5f;
+						SourceSample *= BusSend.SendLevel;
+
+						BusDataBufferPtr[BusSampleIndex] += SourceSample;
 					}
-
-					SourceSample *= 0.5f;
-					SourceSample *= BusSend.SendLevel;
-
-					BusDataBufferPtr[BusSampleIndex] += SourceSample;
 				}
-			}
-			// If they're the same channels, just mix it in
-			else
-			{
-				for (int32 SampleIndex = 0; SampleIndex < NumSourceSamples; ++SampleIndex)
+				// If they're the same channels, just mix it in
+				else
 				{
-					BusDataBufferPtr[SampleIndex] += (BusSend.SendLevel * SourceBufferPtr[SampleIndex]);
+					for (int32 SampleIndex = 0; SampleIndex < NumSourceSamples; ++SampleIndex)
+					{
+						BusDataBufferPtr[SampleIndex] += (BusSend.SendLevel * SourceBufferPtr[SampleIndex]);
+					}
 				}
 			}
 		}

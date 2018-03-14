@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -276,52 +276,52 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	GENERATED_UCLASS_BODY()
 
 	// Allowable PinType.PinCategory values
-	static const FString PC_Exec;
-	static const FString PC_Boolean;
-	static const FString PC_Byte;
-	static const FString PC_Class;    // SubCategoryObject is the MetaClass of the Class passed thru this pin, or SubCategory can be 'self'. The DefaultValue string should always be empty, use DefaultObject.
-	static const FString PC_SoftClass;
-	static const FString PC_Int;
-	static const FString PC_Float;
-	static const FString PC_Name;
-	static const FString PC_Delegate;    // SubCategoryObject is the UFunction of the delegate signature
-	static const FString PC_MCDelegate;  // SubCategoryObject is the UFunction of the delegate signature
-	static const FString PC_Object;    // SubCategoryObject is the Class of the object passed thru this pin, or SubCategory can be 'self'. The DefaultValue string should always be empty, use DefaultObject.
-	static const FString PC_Interface;	// SubCategoryObject is the Class of the object passed thru this pin.
-	static const FString PC_SoftObject;		// SubCategoryObject is the Class of the SoftObjectPtr passed thru this pin.
-	static const FString PC_String;
-	static const FString PC_Text;
-	static const FString PC_Struct;    // SubCategoryObject is the ScriptStruct of the struct passed thru this pin, 'self' is not a valid SubCategory. DefaultObject should always be empty, the DefaultValue string may be used for supported structs.
-	static const FString PC_Wildcard;    // Special matching rules are imposed by the node itself
-	static const FString PC_Enum;    // SubCategoryObject is the UEnum object passed thru this pin
+	static const FName PC_Exec;
+	static const FName PC_Boolean;
+	static const FName PC_Byte;
+	static const FName PC_Class;    // SubCategoryObject is the MetaClass of the Class passed thru this pin, or SubCategory can be 'self'. The DefaultValue string should always be empty, use DefaultObject.
+	static const FName PC_SoftClass;
+	static const FName PC_Int;
+	static const FName PC_Float;
+	static const FName PC_Name;
+	static const FName PC_Delegate;    // SubCategoryObject is the UFunction of the delegate signature
+	static const FName PC_MCDelegate;  // SubCategoryObject is the UFunction of the delegate signature
+	static const FName PC_Object;    // SubCategoryObject is the Class of the object passed thru this pin, or SubCategory can be 'self'. The DefaultValue string should always be empty, use DefaultObject.
+	static const FName PC_Interface;	// SubCategoryObject is the Class of the object passed thru this pin.
+	static const FName PC_SoftObject;		// SubCategoryObject is the Class of the AssetPtr passed thru this pin.
+	static const FName PC_String;
+	static const FName PC_Text;
+	static const FName PC_Struct;    // SubCategoryObject is the ScriptStruct of the struct passed thru this pin, 'self' is not a valid SubCategory. DefaultObject should always be empty, the DefaultValue string may be used for supported structs.
+	static const FName PC_Wildcard;    // Special matching rules are imposed by the node itself
+	static const FName PC_Enum;    // SubCategoryObject is the UEnum object passed thru this pin
 
 	// Common PinType.PinSubCategory values
-	static const FString PSC_Self;    // Category=PC_Object or PC_Class, indicates the class being compiled
+	static const FName PSC_Self;    // Category=PC_Object or PC_Class, indicates the class being compiled
 
-	static const FString PSC_Index;	// Category=PC_Wildcard, indicates the wildcard will only accept Int, Bool, Byte and Enum pins (used when a pin represents indexing a list)
-	static const FString PSC_Bitmask;	// Category=PC_Byte or PC_Int, indicates that the pin represents a bitmask field. SubCategoryObject is either NULL or the UEnum object to which the bitmap is linked for bitflag name specification.
+	static const FName PSC_Index;	// Category=PC_Wildcard, indicates the wildcard will only accept Int, Bool, Byte and Enum pins (used when a pin represents indexing a list)
+	static const FName PSC_Bitmask;	// Category=PC_Byte or PC_Int, indicates that the pin represents a bitmask field. SubCategoryObject is either NULL or the UEnum object to which the bitmap is linked for bitflag name specification.
 
 	// Pin names that have special meaning and required types in some contexts (depending on the node type)
-	static const FString PN_Execute;    // Category=PC_Exec, singleton, input
-	static const FString PN_Then;    // Category=PC_Exec, singleton, output
-	static const FString PN_Completed;    // Category=PC_Exec, singleton, output
-	static const FString PN_DelegateEntry;    // Category=PC_Exec, singleton, output; entry point for a dynamically bound delegate
-	static const FString PN_EntryPoint;	// entry point to the ubergraph
-	static const FString PN_Self;    // Category=PC_Object, singleton, input
-	static const FString PN_Else;    // Category=PC_Exec, singleton, output
-	static const FString PN_Loop;    // Category=PC_Exec, singleton, output
-	static const FString PN_After;    // Category=PC_Exec, singleton, output
-	static const FString PN_ReturnValue;		// Category=PC_Object, singleton, output
-	static const FString PN_ObjectToCast;    // Category=PC_Object, singleton, input
-	static const FString PN_Condition;    // Category=PC_Boolean, singleton, input
-	static const FString PN_Start;    // Category=PC_Int, singleton, input
-	static const FString PN_Stop;    // Category=PC_Int, singleton, input
-	static const FString PN_Index;    // Category=PC_Int, singleton, output
-	static const FString PN_Item;    // Category=PC_Int, singleton, output
-	static const FString PN_CastSucceeded;    // Category=PC_Exec, singleton, output
-	static const FString PN_CastFailed;    // Category=PC_Exec, singleton, output
+	static const FName PN_Execute;    // Category=PC_Exec, singleton, input
+	static const FName PN_Then;    // Category=PC_Exec, singleton, output
+	static const FName PN_Completed;    // Category=PC_Exec, singleton, output
+	static const FName PN_DelegateEntry;    // Category=PC_Exec, singleton, output; entry point for a dynamically bound delegate
+	static const FName PN_EntryPoint;	// entry point to the ubergraph
+	static const FName PN_Self;    // Category=PC_Object, singleton, input
+	static const FName PN_Else;    // Category=PC_Exec, singleton, output
+	static const FName PN_Loop;    // Category=PC_Exec, singleton, output
+	static const FName PN_After;    // Category=PC_Exec, singleton, output
+	static const FName PN_ReturnValue;		// Category=PC_Object, singleton, output
+	static const FName PN_ObjectToCast;    // Category=PC_Object, singleton, input
+	static const FName PN_Condition;    // Category=PC_Boolean, singleton, input
+	static const FName PN_Start;    // Category=PC_Int, singleton, input
+	static const FName PN_Stop;    // Category=PC_Int, singleton, input
+	static const FName PN_Index;    // Category=PC_Int, singleton, output
+	static const FName PN_Item;    // Category=PC_Int, singleton, output
+	static const FName PN_CastSucceeded;    // Category=PC_Exec, singleton, output
+	static const FName PN_CastFailed;    // Category=PC_Exec, singleton, output
 	static const FString PN_CastedValuePrefix;    // Category=PC_Object, singleton, output; actual pin name varies depending on the type to be casted to, this is just a prefix
-	static const FString PN_MatineeFinished;    // Category=PC_Exec, singleton, output
+	static const FName PN_MatineeFinished;    // Category=PC_Exec, singleton, output
 
 	// construction script function names
 	static const FName FN_UserConstructionScript;
@@ -349,7 +349,7 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	static int32 CurrentCacheRefreshID;
 
 	// Pin Selector category for all object types
-	static const FString AllObjectTypes;
+	static const FName AllObjectTypes;
 
 	UPROPERTY(globalconfig)
 	TArray<FBlueprintCallableFunctionRedirect> EditoronlyBPFunctionRedirects;
@@ -386,14 +386,14 @@ public:
 
 	public:
 		const FEdGraphPinType& GetPinType(bool bForceLoadedSubCategoryObject);
-		void SetPinSubTypeCategory(const FString& SubCategory)
+		void SetPinSubTypeCategory(const FName SubCategory)
 		{
 			PinType.PinSubCategory = SubCategory;
 		}
 
-		FPinTypeTreeInfo(const FText& InFriendlyName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FText& InTooltip, bool bInReadOnly = false, FTypesDatabase* TypesDatabase = nullptr);
-		FPinTypeTreeInfo(const FString& CategoryName, UObject* SubCategoryObject, const FText& InTooltip, bool bInReadOnly = false, uint8 InPossibleObjectReferenceTypes = 0);
-		FPinTypeTreeInfo(const FText& InFriendlyName, const FString& CategoryName, const FSoftObjectPath& SubCategoryObject, const FText& InTooltip, bool bInReadOnly = false, uint8 InPossibleObjectReferenceTypes = 0);
+		FPinTypeTreeInfo(const FText& InFriendlyName, const FName CategoryName, const UEdGraphSchema_K2* Schema, const FText& InTooltip, bool bInReadOnly = false, FTypesDatabase* TypesDatabase = nullptr);
+		FPinTypeTreeInfo(const FName CategoryName, UObject* SubCategoryObject, const FText& InTooltip, bool bInReadOnly = false, uint8 InPossibleObjectReferenceTypes = 0);
+		FPinTypeTreeInfo(const FText& InFriendlyName, const FName CategoryName, const FSoftObjectPath& SubCategoryObject, const FText& InTooltip, bool bInReadOnly = false, uint8 InPossibleObjectReferenceTypes = 0);
 
 		FPinTypeTreeInfo(TSharedPtr<FPinTypeTreeInfo> InInfo)
 		{
@@ -436,7 +436,7 @@ public:
 			, bReadOnly(false)
 		{}
 
-		void Init(const FText& FriendlyCategoryName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FText& InTooltip, bool bInReadOnly, FTypesDatabase* TypesDatabase);
+		void Init(const FText& FriendlyCategoryName, const FName CategoryName, const UEdGraphSchema_K2* Schema, const FText& InTooltip, bool bInReadOnly, FTypesDatabase* TypesDatabase);
 
 		FText GenerateDescription();
 	};
@@ -468,7 +468,7 @@ public:
 	virtual bool IsTitleBarPin(const UEdGraphPin& Pin) const override;
 	virtual void BreakNodeLinks(UEdGraphNode& TargetNode) const override;
 	virtual void BreakPinLinks(UEdGraphPin& TargetPin, bool bSendsNodeNotifcation) const override;
-	virtual void BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) override;
+	virtual void BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) const override;
 	virtual void ReconstructNode(UEdGraphNode& TargetNode, bool bIsBatchRequest=false) const override;
 	virtual bool CanEncapuslateNode(UEdGraphNode const& TestNode) const override;
 	virtual void HandleGraphBeingDeleted(UEdGraph& GraphBeingRemoved) const override;
@@ -490,7 +490,7 @@ public:
 	virtual void SplitPin(UEdGraphPin* Pin, bool bNotify = true) const override;
 	virtual void RecombinePin(UEdGraphPin* Pin) const override;
 	virtual void OnPinConnectionDoubleCicked(UEdGraphPin* PinA, UEdGraphPin* PinB, const FVector2D& GraphPosition) const override;
-	virtual UEdGraphPin* DropPinOnNode(UEdGraphNode* InTargetNode, const FString& InSourcePinName, const FEdGraphPinType& InSourcePinType, EEdGraphPinDirection InSourcePinDirection) const override;
+	virtual UEdGraphPin* DropPinOnNode(UEdGraphNode* InTargetNode, const FName& InSourcePinName, const FEdGraphPinType& InSourcePinType, EEdGraphPinDirection InSourcePinDirection) const override;
 	virtual bool SupportsDropPinOnNode(UEdGraphNode* InTargetNode, const FEdGraphPinType& InSourcePinType, EEdGraphPinDirection InSourcePinDirection, FText& OutErrorMessage) const override;
 	virtual bool IsCacheVisualizationOutOfDate(int32 InVisualizationCacheID) const override;
 	virtual int32 GetCurrentVisualizationCacheID() const override;
@@ -571,7 +571,7 @@ public:
 	virtual void GetPinDefaultValuesFromString(const FEdGraphPinType& PinType, UObject* OwningObject, const FString& NewValue, FString& UseDefaultValue, UObject*& UseDefaultObject, FText& UseDefaultText) const;
 
 	/** Do validation, that doesn't require a knowledge about actual pin */
-	virtual bool DefaultValueSimpleValidation(const FEdGraphPinType& PinType, const FString& PinName, const FString& NewDefaultValue, UObject* NewDefaultObject, const FText& InText, FString* OutMsg = nullptr) const;
+	virtual bool DefaultValueSimpleValidation(const FEdGraphPinType& PinType, const FName PinName, const FString& NewDefaultValue, UObject* NewDefaultObject, const FText& InText, FString* OutMsg = nullptr) const;
 
 	/** Returns true if the owning node is a function with AutoCreateRefTerm meta data */
 	bool IsAutoCreateRefTerm(const UEdGraphPin* Pin) const;
@@ -643,7 +643,7 @@ public:
 	}
 
 	/** Is given string a delegate category name ? */
-	virtual bool IsDelegateCategory(const FString& Category) const override;
+	virtual bool IsDelegateCategory(const FName Category) const override;
 
 	/** Returns whether a pin category is compatible with an Index Wildcard (PC_Wildcard and PSC_Index) */
 	inline bool IsIndexWildcardCompatible(const FEdGraphPinType& PinType) const
@@ -704,7 +704,7 @@ public:
 	}
 
 	/** Can Pin be promoted to a variable? */
-	bool CanPromotePinToVariable (const UEdGraphPin& Pin) const;
+	bool CanPromotePinToVariable (const UEdGraphPin& Pin, bool bInToMemberVariable) const;
 
 	/** Can Pin be split in to its component elements */
 	bool CanSplitStructPin(const UEdGraphPin& Pin) const;
@@ -717,7 +717,7 @@ public:
 	 * 
 	 * @return	true on success, false if the property is unsupported or invalid.
 	 */
-	static bool GetPropertyCategoryInfo(const UProperty* TestProperty, FString& OutCategory, FString& OutSubCategory, UObject*& OutSubCategoryObject, bool& bOutIsWeakPointer);
+	static bool GetPropertyCategoryInfo(const UProperty* TestProperty, FName& OutCategory, FName& OutSubCategory, UObject*& OutSubCategoryObject, bool& bOutIsWeakPointer);
 
 	/**
 	 * Convert the type of a UProperty to the corresponding pin type.
@@ -882,7 +882,7 @@ public:
 	*
 	* @return	The converted type text.
 	*/
-	static FText TerminalTypeToText(const FString& Category, const FString& SubCategory, UObject* SubCategoryObject, bool bIsWeakPtr);
+	static FText TerminalTypeToText(const FName Category, const FName SubCategory, UObject* SubCategoryObject, bool bIsWeakPtr);
 
 	/**
 	 * Converts a pin type into a fully qualified FText (e.g., object'ObjectName').
@@ -901,7 +901,7 @@ public:
 	 *
 	 * @return	The text to display for the category.
 	 */
-	static FText GetCategoryText(const FString& Category, const bool bForMenu = false);
+	static FText GetCategoryText(const FName Category, const bool bForMenu = false);
 
 	/**
 	 * Get the type tree for all of the property types valid for this schema
@@ -916,7 +916,7 @@ public:
 	 *
 	 * @param	Type	The type to check for subtypes
 	 */
-	bool DoesTypeHaveSubtypes( const FString& FriendlyTypeName ) const;
+	bool DoesTypeHaveSubtypes( const FName Category ) const;
 
 	/**
 	 * Returns true if the types and directions of two pins are schema compatible. Handles
@@ -1071,10 +1071,10 @@ public:
 	void LinkDataPinFromOutputToInput(UEdGraphNode* InOutputNode, UEdGraphNode* InInputNode) const;
 
 	/** Moves all connections from the old node to the new one. Returns true and destroys OldNode on success. Fails if it cannot find a mapping from an old pin. */
-	bool ReplaceOldNodeWithNew(UK2Node* OldNode, UK2Node* NewNode, const TMap<FString, FString>& OldPinToNewPinMap) const;
+	bool ReplaceOldNodeWithNew(UK2Node* OldNode, UK2Node* NewNode, const TMap<FName, FName>& OldPinToNewPinMap) const;
 
 	/** Convert a deprecated node into a function call node, called from per-node ConvertDeprecatedNode */
-	UK2Node* ConvertDeprecatedNodeToFunctionCall(UK2Node* OldNode, UFunction* NewFunction, TMap<FString, FString>& OldPinToNewPinMap, UEdGraph* Graph) const;
+	UK2Node* ConvertDeprecatedNodeToFunctionCall(UK2Node* OldNode, UFunction* NewFunction, TMap<FName, FName>& OldPinToNewPinMap, UEdGraph* Graph) const;
 
 	/** some inherited schemas don't want anim-notify actions listed, so this is an easy way to check that */
 	virtual bool DoesSupportAnimNotifyActions() const { return true; }
@@ -1089,7 +1089,7 @@ public:
 	static void OnCreateNonExistentLocalVariable(class UK2Node_Variable* Variable, UBlueprint* OwnerBlueprint);
 
 	/** Replace the variable that a variable node refers to when the variable it refers to does not exist */
-	static void OnReplaceVariableForVariableNode(class UK2Node_Variable* Variable, UBlueprint* OwnerBlueprint, FString VariableName, bool bIsSelfMember);
+	static void OnReplaceVariableForVariableNode(class UK2Node_Variable* Variable, UBlueprint* OwnerBlueprint, FName VariableName, bool bIsSelfMember);
 
 	/** Create sub menu that shows all possible variables that can be used to replace the existing variable reference */
 	static void GetReplaceVariableMenu(class FMenuBuilder& MenuBuilder, class UK2Node_Variable* Variable, UBlueprint* OwnerBlueprint, bool bReplaceExistingVariable = false);

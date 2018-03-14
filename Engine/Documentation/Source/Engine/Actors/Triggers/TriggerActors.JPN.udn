@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429227
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Trigger アクタ
 Crumbs: %ROOT%, Engine, Engine/Actors
@@ -51,5 +51,7 @@ type:overview
 この新しいイベントノードの実行ピンは、特定のイベントが起こるたびに発行します。上記の例では、 
 アクタがトリガーにオーバーラップする (または通過する) とイベントが発行します。
 
-<!-- Add GIF/slider showing overlap during play and pin firing in graph -->
+[COMMENT:none]
+ Add GIF/slider showing overlap during play and pin firing in graph 
+[/COMMENT]
 

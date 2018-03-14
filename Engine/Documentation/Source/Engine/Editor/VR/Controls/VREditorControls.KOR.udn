@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:3360829
+﻿INTSourceChangelist:3782314
 Availability: Public
-Title: VR 에디터 조작법
+Title: VR 모드 조작법
 Description: VR 모드에서 월드 제작 작업시 사용되는 여러가지 조작법과 상호작용 방식에 대해 배워봅니다.
 Crumbs:
 parent: Engine/Editor/VR
 type: overview
-order:
+order:1
 tags: VR
-version: 4.15
+version: 4.17
 skilllevel: intermediate
 topic-image:vreditor_controls.png
 prereq:Engine/Editor/VR/ActivateVRMode
@@ -33,25 +33,36 @@ prereq:Engine/Editor/VR/ActivateVRMode
 
 | 색 | 모양 | 의미 |
 | ----- | ---------- | ------- |
-| 주황 |![](standardmode.png)(w:192) | 컨트롤러가 표준 상호작용 모드입니다. 컨트롤러의 기본 상태입니다. |
-| 초록 |![](selectionmode.png)(w:192) | 컨트롤러가 선택 모드이며, 액터가 선택되었다는 뜻입니다. |
-| 노랑 |![](movementmode.png)(w:192) | 컨트롤러가 이동 모드이며, 월드 이동중이라는 뜻입니다. |
+| 빨강 |![](standardmode.png)(w:192) | 컨트롤러가 표준 상호작용 모드입니다. 컨트롤러의 기본 상태입니다. |
+| 주황 |![](selectionmode.png)(w:192) | 컨트롤러가 선택 모드이며, 액터가 선택되었다는 뜻입니다. |
+| 초록 |![](movementmode.png)(w:192) | 컨트롤러가 이동 모드이며, 월드 이동중이라는 뜻입니다. |
+| 파랑 |![](UImode.png)(w:192) | 컨트롤러가 UI 조작 모드이며, UI 를 이동중이라는 뜻입니다. |
 
 ##VR 의 UI
 
-VR 에디터 모드의 UI 로 VR 을 나갈 필요 없이 에디터 안에서 작업을 할 수 있습니다. 컨트롤을 사용해서 메뉴 시스템을 띄우면 VR 에서 데스크탑 에디터의 전체 기능을 활용할 수 있는 다양한 세팅 및 에디터 창을 열 수 있습니다.
-아래 섹션을 통해 시스템 호출 및 상호작용 방법을 확인해 보세요.
+VR 모드 모드의 UI 로 VR 을 나갈 필요 없이 에디터 안에서 작업을 할 수 있습니다. 컨트롤을 사용해서 메뉴 시스템을 띄우면 다양한 세팅 및 에디터 창을 열 수 있습니다. 아래 섹션을 통해 시스템 호출 및 상호작용 방법을 확인해 보세요.
 
+## 인터랙터 핸드
+
+**에디터 개인설정** > **일반** > **VR 모드** 에서 주 레이저를 붙일 손을 변경할 수 있습니다. **일반** 섹션에서 **Interactor Hand** (인터랙터 핸드)를 **Left** (왼쪽) 또는 **Right** (오른쪽)으로 설정하면 됩니다.
+
+[REGION:lightbox]
+[![](InteractionHand.png)(w:472)](InteractionHand.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
 
 ### 메뉴 조작법
 
-VR 편집 모드에서 쓸 수 있는 메뉴를 사용하려면, 다음 표에서 **원형** 및 **빠른 선택** 메뉴에 대해 알아보시기 바랍니다.
+VR 편집 모드에서 쓸 수 있는 메뉴를 사용하려면, 다음 표에서 **원형** 및 **원형** 메뉴에 대해 알아보시기 바랍니다.
 
 [REGION:raw]
 | 조작 | 설명 |
 | ------- | ----------- |
 | ![모디파이어 버튼](radial_menu.png)(convert:false) | 엄지로 트랙 패드를 살짝 누르면 **원형 메뉴** 가 열립니다. 트랙 패드 위에서 엄지를 움직이면 옵션이 강조됩니다. 트랙 패드를 완전히 누르면 강조된 옵션을 선택합니다. |
-| ![한 컨트롤러를 다른 컨트롤러에 조준](quick_select_menu.png)(convert:false) | 한 컨트롤러를 다른 컨트롤러에 조준하면 **빠른 선택** 메뉴가 열립니다. |
+| ![메뉴 버튼 누르기](Menu_Button.png)(convert:false) | 다른 컨트롤러에 메뉴 버튼 컨트롤러를 누르면 **원형** 메뉴에 접근할 수 있습니다. |
 [/REGION]
 
 ### 창 조작
@@ -60,18 +71,19 @@ VR 편집 모드에서 다양한 창을 조작하려면, 다음 표에서 창 �
 
 [REGION:raw]
 | 조작 | 설명 |
-| ------- | ----------- |
-| ![트랙 패드 탭](show_hide_windows.png)(convert:false) | 트랙 패드를 탭하면 창을 표시 또는 숨깁니다. |
+| ------- | ----------- |	
 | ![컨트롤러를 창 잡는 부분에 조준 + 트리거 쥐기 + 트랙 패드 가까이 또는 멀리](scale_window.png)(convert:false) | 컨트롤러를 창 잡는 부분에 조준한 뒤 트리거를 쥐어 창을 잡습니다. 트랙 패드에서 엄지를 위 아래로 올려 창 스케일을 증가/감소시킵니다. |
 [/REGION]
 
 ##VR 에서 편집
 
-VR 에디터 모드에서 편집할 때 직관적인 방식으로 씬의 액터를 조작하고 월드를 이동할 수 있어야 할 것입니다. 아래 섹션에서 액터 이동, 스케일, 회전과 같은 조작 방법 및 
+VR 모드 모드에서 편집할 때 직관적인 방식으로 씬의 액터를 조작하고 월드를 이동할 수 있어야 할 것입니다. 아래 섹션에서 액터 이동, 스케일, 회전과 같은 조작 방법 및 
 VR 에 있는 상태에서 월드를 효율적으로 돌아다니는 법을 배워보세요.
 
 
-<!--Add introductory text summarizing this section.-->
+[COMMENT:none]
+Add introductory text summarizing this section.
+[/COMMENT]
 
 ### 이동 조작법
 
@@ -98,8 +110,8 @@ VR 환경에서 액터를 선택하려는 경우, 다음 표를 참고하여 액
 [REGION:raw]
 | 조작 |  설명 |
 | ------- | ----------- |
-| ![컨트롤러 액터에 조준 + 트리거 쥐기](select_actor.png)(convert:false) | 컨트롤러의 월드의 액터에 조준한 상태로 트리거를 쥐면 액터를 선택합니다. |
-| [REGION:lightbox][![컨트롤러를 액터에 조준 + 트리거 절반 쥐기 + 컨트롤러 다른 액터에 조준 + 트리거 쥐기](select_actor_multiple.png)(h:108 convert:false)](select_actor_multiple.png)[/REGION] | 한 컨트롤러의 월드의 한 액터에 조준하고 트리거를 절반쯤 쥐면 다중 선택 모드로 들어갑니다. 트리거를 절반쯤 쥔 상태에서 다른 컨트롤러로 다른 액터를 조준한 뒤 그쪽 트리거를 쥐면, 그 액터가 선택에 추가 또는 제거됩니다. |
+| ![액터에 컨트롤러 조준 + 트리거 쥐기](select_actor.png)(convert:false) | 단일 액터 선택은, 모션 컨트롤러를 월드의 액터에 조준한 뒤 트리거를 쥐면 됩니다. |
+| [REGION:lightbox][![multi_select_actors.png](multi_select_actors.png)(h:108 convert:false)](multi_select_actors.png)[/REGION] |다수 액터 선택은, 인터랙터 핸드 모션 컨트롤러의 메뉴 버튼을 누른 채 선택하고자 하는 액터에 모션 컨트롤러를 조준하면 됩니다. 여전히 메뉴 버튼을 누른 채 모션 컨트롤러 트리거를 쥐면 액터 선택을 추가 또는 제거합니다. |
 [/REGION]
 
 ### 트랜스폼 조작법
@@ -117,7 +129,7 @@ VR 환경에서 액터를 선택하려는 경우, 다음 표를 참고하여 액
 
 ##VR 의 칠하기
 
-VR 에디터 모드에서 칠할 때는, 데스크탑 에디터와 비슷한 옵션이 있는데, 랜드스케이프 모드에서 폴리지 툴과 메시 페인팅으로 칠을 하는 것이 그렇습니다.
+VR 모드 모드에서 칠할 때는, 데스크탑 에디터와 비슷한 옵션이 있는데, 랜드스케이프 모드에서 폴리지 툴과 메시 페인팅으로 칠을 하는 것이 그렇습니다.
 아래 섹션에서 사용가능한 툴과 옵션을 활용하여 다양한 모드 사용 방법을 배워보세요.
 
 

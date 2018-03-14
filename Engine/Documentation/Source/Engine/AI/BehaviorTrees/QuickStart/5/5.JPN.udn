@@ -1,30 +1,17 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3717040
 Availability:Public
 Title:5.Blackboard アセットの設定
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:ステップ 5.Blackboard アセットの設定
 version:4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:5
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Engine/AI/BehaviorTrees/QuickStart/4 "%Engine/AI/BehaviorTrees/QuickStart/4:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine/AI/BehaviorTrees/QuickStart/6 "%Engine/AI/BehaviorTrees/QuickStart/6:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
-
-
-**Blackboard** アセットには、 **ビヘイビアツリー** から参照される AI コントローラの特定のインスタンスに必要なデータがすべて格納されています。この特別なケースでは、Actor to Follow (TargetToFollow)、AI の開始位置 (HomeLocation)、追跡しているアクタを最後に確認した位置を格納します。
+**Blackboard** アセットには、 **ビヘイビアツリー** から参照される AI コントローラの特定のインスタンスに必要なデータがすべて格納されています。このケースでは、Actor to Follow (TargetToFollow)、AI の開始位置 (HomeLocation)、追跡しているアクタを最後に確認した位置を格納します。
 
 ## ステップ
 
@@ -40,9 +27,4 @@ version:4.9
 1. **Blackboard** アセットを保存します。
 
 
-%Steps%
-
-
-
-
-
+[NAV]

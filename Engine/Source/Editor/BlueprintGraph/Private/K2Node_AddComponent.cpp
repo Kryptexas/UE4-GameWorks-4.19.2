@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "K2Node_AddComponent.h"
@@ -105,10 +105,10 @@ void UK2Node_AddComponent::AllocatePinsForExposedVariables()
 			{
 				FEdGraphPinType PinType;
 				K2Schema->ConvertPropertyToPinType(Property, /*out*/ PinType);	
-				const bool bIsUnique = (NULL == FindPin(Property->GetName()));
+				const bool bIsUnique = (nullptr == FindPin(Property->GetFName()));
 				if (K2Schema->FindSetVariableByNameFunction(PinType) && bIsUnique)
 				{
-					UEdGraphPin* Pin = CreatePin(EGPD_Input, FString(), FString(), nullptr, Property->GetName());
+					UEdGraphPin* Pin = CreatePin(EGPD_Input, NAME_None, Property->GetFName());
 					Pin->PinType = PinType;
 					bHasExposedVariable = true;
 
@@ -445,8 +445,7 @@ void UK2Node_AddComponent::ExpandNode(class FKismetCompilerContext& CompilerCont
 		NewNode->AllocateDefaultPinsWithoutExposedVariables();
 
 		// function parameters
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		CompilerContext.MovePinLinksToIntermediate(*FindPin(K2Schema->PN_Self), *NewNode->FindPin(K2Schema->PN_Self));
+		CompilerContext.MovePinLinksToIntermediate(*FindPin(UEdGraphSchema_K2::PN_Self), *NewNode->FindPin(UEdGraphSchema_K2::PN_Self));
 		CompilerContext.MovePinLinksToIntermediate(*GetTemplateNamePinChecked(), *NewNode->GetTemplateNamePinChecked());
 		CompilerContext.MovePinLinksToIntermediate(*GetRelativeTransformPin(), *NewNode->GetRelativeTransformPin());
 		CompilerContext.MovePinLinksToIntermediate(*GetManualAttachmentPin(), *NewNode->GetManualAttachmentPin());

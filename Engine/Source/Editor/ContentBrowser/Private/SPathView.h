@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,11 +14,15 @@
 #include "Misc/TextFilter.h"
 #include "IContentBrowserSingleton.h"
 #include "ContentBrowserDelegates.h"
+#include "DelegateCombinations.h"
 
 struct FHistoryData;
 struct FTreeItem;
 
 typedef TTextFilter< const FString& > FolderTextFilter;
+
+DECLARE_DELEGATE_OneParam(FOnAssetTreeSearchBoxChanged, const FText& /*SearchText*/);
+DECLARE_DELEGATE_TwoParams(FOnAssetTreeSearchBoxCommitted, const FText& /*InSearchText*/, ETextCommit::Type /*InCommitType*/);
 
 /**
  * The tree view of folders which contain content.
@@ -29,7 +33,7 @@ public:
 	SLATE_BEGIN_ARGS( SPathView )
 		: _FocusSearchBoxWhenOpened(true)
 		, _ShowTreeTitle(false)
-		, _ShowSearchBar(true)
+		, _SearchBarVisibility(EVisibility::Visible)
 		, _ShowSeparator(true)
 		, _AllowContextMenu(true)
 		, _AllowClassesFolder(false)
@@ -54,8 +58,8 @@ public:
 		/** If true, The tree title will be displayed */
 		SLATE_ARGUMENT( bool, ShowTreeTitle )
 
-		/** If true, The tree search bar will be displayed */
-		SLATE_ARGUMENT( bool, ShowSearchBar )
+		/** If EVisibility::Visible, The tree search bar will be displayed */
+		SLATE_ATTRIBUTE( EVisibility, SearchBarVisibility )
 
 		/** If true, The tree search bar separator be displayed */
 		SLATE_ARGUMENT( bool, ShowSeparator )
@@ -75,13 +79,13 @@ public:
 	~SPathView();
 
 	/** Constructs this widget with InArgs */
-	void Construct( const FArguments& InArgs );
+	virtual void Construct( const FArguments& InArgs );
 
 	/** Sets focus to the search box */
 	void FocusSearchBox();
 
 	/** Selects the closest matches to the supplied paths in the tree. "/" delimited */
-	void SetSelectedPaths(const TArray<FString>& Paths);
+	virtual void SetSelectedPaths(const TArray<FString>& Paths);
 
 	/** Clears selection of all paths */
 	void ClearSelection();
@@ -93,7 +97,7 @@ public:
 	TArray<FString> GetSelectedPaths() const;
 
 	/** Adds nodes to the tree in order to construct the specified path. If bUserNamed is true, the user will name the folder and Path includes the default name. */
-	TSharedPtr<FTreeItem> AddPath(const FString& Path, bool bUserNamed = false);
+	virtual TSharedPtr<FTreeItem> AddPath(const FString& Path, bool bUserNamed = false);
 
 	/** Attempts to removed the folder at the end of the specified path from the tree. Returns true when successful. */
 	bool RemovePath(const FString& Path);
@@ -138,23 +142,90 @@ public:
 	void ApplyHistoryData( const FHistoryData& History );
 
 	/** Saves any settings to config that should be persistent between editor sessions */
-	void SaveSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString) const;
+	virtual void SaveSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString) const;
 
 	/** Loads any settings to config that should be persistent between editor sessions */
-	void LoadSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString);
+	virtual void LoadSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString);
 
 	/** Populates the tree with all folders that are not filtered out */
-	void Populate();
+	virtual void Populate();
 
-private:
-	/** Internal sync implementation, syncs to the tree to the given array of items */
-	void SyncToInternal( const TArray<FAssetData>& AssetDataList, const TArray<FString>& FolderPaths, const bool bAllowImplicitSync );
+	/** Sets an alternate tree title*/
+	void SetTreeTitle(FText InTitle)
+	{
+		TreeTitle = InTitle;
+	};
+
+	FText GetTreeTitle() const
+	{
+		return TreeTitle;
+	}
+
+	/** Handler for when search terms change in the asset tree search box */
+	virtual void OnAssetTreeSearchBoxChanged(const FText& InSearchText);
+
+	/** Handler for when search term is committed in the asset tree search box */
+	virtual void OnAssetTreeSearchBoxCommitted(const FText& InSearchText, ETextCommit::Type InCommitType);
+
+public:
+	/** Delegate that handles if any folder paths changed as a result of a move, rename, etc. in the path view*/
+	FOnFolderPathChanged OnFolderPathChanged;
+
+protected:
+	/** Expands all parents of the specified item */
+	void RecursiveExpandParents(const TSharedPtr<FTreeItem>& Item);
 
 	/** Sort the root items into the correct order */
 	void SortRootItems();
 
+	/** Handles updating the content browser when an asset path is added to the asset registry */
+	virtual void OnAssetRegistryPathAdded(const FString& Path);
+
+	/** Handles updating the content browser when an asset path is removed from the asset registry */
+	virtual void OnAssetRegistryPathRemoved(const FString& Path);
+
+	/** Creates a list item for the tree view */
+	virtual TSharedRef<ITableRow> GenerateTreeRow(TSharedPtr<FTreeItem> TreeItem, const TSharedRef<STableViewBase>& OwnerTable);
+
+	/** Handles focusing a folder widget after it has been created with the intent to rename */
+	void TreeItemScrolledIntoView(TSharedPtr<FTreeItem> TreeItem, const TSharedPtr<ITableRow>& Widget);
+
+	/** Handler for tree view selection changes */
+	void TreeSelectionChanged(TSharedPtr< FTreeItem > TreeItem, ESelectInfo::Type SelectInfo);
+
 	/** Gets the content for a context menu */
 	TSharedPtr<SWidget> MakePathViewContextMenu();
+
+	/** Handler for returning a list of children associated with a particular tree node */
+	void GetChildrenForTree(TSharedPtr< FTreeItem > TreeItem, TArray< TSharedPtr<FTreeItem> >& OutChildren);
+
+	/** Handler for when a name was given to a new folder */
+	void FolderNameChanged(const TSharedPtr< FTreeItem >& TreeItem, const FString& OldPath, const FVector2D& MessageLocation, const ETextCommit::Type CommitType);
+
+	/** Handler used to verify the name of a new folder */
+	bool VerifyFolderNameChanged(const FString& InName, FText& OutErrorMessage, const FString& InFolderPath) const;
+
+	/** Gets the string to highlight in tree items (used in folder searching) */
+	FText GetHighlightText() const;
+
+	/** True if the specified item is selected in the asset tree */
+	bool IsTreeItemSelected(TSharedPtr<FTreeItem> TreeItem) const;
+
+	/** Handler for tree view folders are dragged */
+	FReply OnFolderDragDetected(const FGeometry& Geometry, const FPointerEvent& MouseEvent);
+
+	/** Handler for when assets or asset paths are dropped on a tree item */
+	virtual void TreeAssetsOrPathsDropped(const TArray<FAssetData>& AssetList, const TArray<FString>& AssetPaths, const TSharedPtr<FTreeItem>& TreeItem);
+
+	/** Handler for when asset paths are dropped on a tree item */
+	void TreeFilesDropped(const TArray<FString>& FileNames, const TSharedPtr<FTreeItem>& TreeItem);
+
+	/** Handler for the user selecting to move assets or asset paths to the specified folder */
+	virtual void ExecuteTreeDropMove(TArray<FAssetData> AssetList, TArray<FString> AssetPaths, FString DestinationPath);
+
+private:
+	/** Internal sync implementation, syncs to the tree to the given array of items */
+	void SyncToInternal( const TArray<FAssetData>& AssetDataList, const TArray<FString>& FolderPaths, const bool bAllowImplicitSync );
 
 	/** Called when "new folder" is selected in the context menu */
 	void OnCreateNewFolder(const FString& FolderName, const FString& FolderPath);
@@ -165,50 +236,20 @@ private:
 	/** Returns true if the selection changed delegate should be allowed */
 	bool ShouldAllowTreeItemChangedDelegate() const;
 
-	/** Expands all parents of the specified item */
-	void RecursiveExpandParents(const TSharedPtr<FTreeItem>& Item);
-
 	/** Adds a new root folder */
 	TSharedPtr<FTreeItem> AddRootItem( const FString& InFolderName );
-
-	/** Creates a list item for the tree view */
-	TSharedRef<ITableRow> GenerateTreeRow( TSharedPtr<FTreeItem> TreeItem, const TSharedRef<STableViewBase>& OwnerTable );
-
-	/** Handles focusing a folder widget after it has been created with the intent to rename */
-	void TreeItemScrolledIntoView( TSharedPtr<FTreeItem> TreeItem, const TSharedPtr<ITableRow>& Widget );
-
-	/** Handler for returning a list of children associated with a particular tree node */
-	void GetChildrenForTree( TSharedPtr< FTreeItem > TreeItem, TArray< TSharedPtr<FTreeItem> >& OutChildren );
 
 	/** Handler for recursively expanding/collapsing items in the tree view */
 	void SetTreeItemExpansionRecursive( TSharedPtr< FTreeItem > TreeItem, bool bInExpansionState );
 
-	/** Handler for tree view selection changes */
-	void TreeSelectionChanged( TSharedPtr< FTreeItem > TreeItem, ESelectInfo::Type SelectInfo );
-
 	/** Handler for tree view expansion changes */
 	void TreeExpansionChanged( TSharedPtr< FTreeItem > TreeItem, bool bIsExpanded );
-
-	/** Handler for when search terms change in the asset tree search box */
-	void OnAssetTreeSearchBoxChanged( const FText& InSearchText );
 
 	/** Handler for when the search box filter has changed */
 	void FilterUpdated();
 
-	/** Gets the string to highlight in tree items (used in folder searching) */
-	FText GetHighlightText() const;
-
 	/** Populates OutSearchStrings with the strings that should be used in searching */
 	void PopulateFolderSearchStrings( const FString& FolderName, OUT TArray< FString >& OutSearchStrings ) const;
-
-	/** Handler for tree view folders are dragged */
-	FReply OnFolderDragDetected(const FGeometry& Geometry, const FPointerEvent& MouseEvent);
-
-	/** Handler use dto verify the name of a new folder */
-	bool VerifyFolderNameChanged(const FString& InName, FText& OutErrorMessage, const FString& InFolderPath) const;
-
-	/** Handler for when a name was given to a new folder */
-	void FolderNameChanged( const TSharedPtr< FTreeItem >& TreeItem, const FString& OldPath, const FVector2D& MessageLocation, const ETextCommit::Type CommitType );
 
 	/** Returns true if the supplied folder item already exists in the tree. If so, ExistingItem will be set to the found item. */
 	bool FolderAlreadyExists(const TSharedPtr< FTreeItem >& TreeItem, TSharedPtr< FTreeItem >& ExistingItem);
@@ -216,32 +257,14 @@ private:
 	/** Removes the supplied folder from the tree. */
 	void RemoveFolderItem(const TSharedPtr< FTreeItem >& TreeItem);
 
-	/** Handler for when assets or asset paths are dropped on a tree item */
-	void TreeAssetsOrPathsDropped(const TArray<FAssetData>& AssetList, const TArray<FString>& AssetPaths, const TSharedPtr<FTreeItem>& TreeItem);
-
-	/** Handler for when asset paths are dropped on a tree item */
-	void TreeFilesDropped(const TArray<FString>& FileNames, const TSharedPtr<FTreeItem>& TreeItem);
-
 	/** True if the specified item is expanded in the asset tree */
 	bool IsTreeItemExpanded(TSharedPtr<FTreeItem> TreeItem) const;
-
-	/** True if the specified item is selected in the asset tree */
-	bool IsTreeItemSelected(TSharedPtr<FTreeItem> TreeItem) const;
 
 	/** Gets all the UObjects represented by assets in the AssetList */
 	void GetDroppedObjects(const TArray<FAssetData>& AssetList, TArray<UObject*>& OutDroppedObjects);
 
 	/** Handler for the user selecting to copy assets or asset paths to the specified folder */
 	void ExecuteTreeDropCopy(TArray<FAssetData> AssetList, TArray<FString> AssetPaths, FString DestinationPath);
-
-	/** Handler for the user selecting to move assets or asset paths to the specified folder */
-	void ExecuteTreeDropMove(TArray<FAssetData> AssetList, TArray<FString> AssetPaths, FString DestinationPath);
-
-	/** Handles updating the content browser when an asset path is added to the asset registry */
-	void OnAssetRegistryPathAdded(const FString& Path);
-
-	/** Handles updating the content browser when an asset path is removed from the asset registry */
-	void OnAssetRegistryPathRemoved(const FString& Path);
 
 	/** Notification for when the Asset Registry has completed it's initial search */
 	void OnAssetRegistrySearchCompleted();
@@ -264,7 +287,7 @@ private:
 	/** One-off active timer to repopulate the path view */
 	EActiveTimerReturnType TriggerRepopulate(double InCurrentTime, float InDeltaTime);
 
-private:
+protected:
 	/** A helper class to manage PreventTreeItemChangedDelegateCount by incrementing it when constructed (on the stack) and decrementing when destroyed */
 	class FScopedPreventTreeItemChangedDelegate
 	{
@@ -294,6 +317,22 @@ private:
 	/** The list of folders in the tree */
 	TArray< TSharedPtr<FTreeItem> > TreeRootItems;
 
+	/** The The TextFilter attached to the SearchBox widget */
+	TSharedPtr< FolderTextFilter > SearchBoxFolderFilter;
+
+	/** The paths that were last reported by OnPathSelected event. Used in preserving selection when filtering folders */
+	TSet< FString > LastSelectedPaths;
+
+	/** If not empty, this is the path of the folders to sync once they are available while assets are still being discovered */
+	TArray<FString> PendingInitialPaths;
+
+	TSharedPtr<SWidget> PathViewWidget;
+
+private:
+
+	/** The paths that were last reported by OnPathExpanded event. Used in preserving expansion when filtering folders */
+	TSet< FString > LastExpandedPaths;
+
 	/** Delegate to invoke when selection changes. */
 	FOnPathSelected OnPathSelected;
 
@@ -303,18 +342,6 @@ private:
 	/** Delegate to invoke when a context menu for a folder is opening. */
 	FContentBrowserMenuExtender_SelectedPaths OnGetPathContextMenuExtender;
 
-	/** The The TextFilter attached to the SearchBox widget */
-	TSharedPtr< FolderTextFilter > SearchBoxFolderFilter;
-
-	/** The paths that were last reported by OnPathSelected event. Used in preserving selection when filtering folders */
-	TSet< FString > LastSelectedPaths;
-
-	/** The paths that were last reported by OnPathExpanded event. Used in preserving expansion when filtering folders */
-	TSet< FString > LastExpandedPaths;
-
-	/** If not empty, this is the path of the folders to sync once they are available while assets are still being discovered */
-	TArray<FString> PendingInitialPaths;
-
 	/** If > 0, the selection or expansion changed delegate will not be called. Used to update the tree from an external source or in certain bulk operations. */
 	int32 PreventTreeItemChangedDelegateCount;
 
@@ -323,4 +350,62 @@ private:
 
 	/** If false, the classes folder will not be added to the tree automatically */
 	bool bAllowClassesFolder;
+
+	/** The title of this path view */
+	FText TreeTitle;
+};
+
+
+
+/**
+* The tree view of folders which contain favorited folders.
+*/
+class SFavoritePathView : public SPathView
+{
+public:
+	/** Constructs this widget with InArgs */
+	virtual void Construct(const FArguments& InArgs) override;
+
+	virtual void Populate() override;
+
+	/** Saves any settings to config that should be persistent between editor sessions */
+	virtual void SaveSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString) const override;
+
+	/** Loads any settings to config that should be persistent between editor sessions */
+	virtual void LoadSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString) override;
+
+	/** Handler for when search terms change in the asset tree search box */
+	virtual void OnAssetTreeSearchBoxChanged(const FText& InSearchText) override;
+
+	/** Handler for when search term is committed in the asset tree search box */
+	virtual void OnAssetTreeSearchBoxCommitted(const FText& InSearchText, ETextCommit::Type InCommitType) override;
+
+	/** Selects the closest matches to the supplied paths in the tree. "/" delimited */
+	virtual void SetSelectedPaths(const TArray<FString>& Paths) override;
+
+	FOnAssetTreeSearchBoxChanged OnFavoriteSearchChanged;
+
+	FOnAssetTreeSearchBoxCommitted OnFavoriteSearchCommitted;
+
+	/** Adds nodes to the tree in order to construct the specified path. If bUserNamed is true, the user will name the folder and Path includes the default name. */
+	virtual TSharedPtr<FTreeItem> AddPath(const FString& Path, bool bUserNamed = false) override;
+
+	/** Updates favorites based on an external change. */
+	void FixupFavoritesFromExternalChange(const TArray<struct FMovedContentFolder>& MovedFolders);
+
+private:
+
+	virtual TSharedRef<ITableRow> GenerateTreeRow(TSharedPtr<FTreeItem> TreeItem, const TSharedRef<STableViewBase>& OwnerTable) override;
+
+	/** Handles updating the content browser when an asset path is added to the asset registry */
+	virtual void OnAssetRegistryPathAdded(const FString& Path) override;
+
+	/** Handles updating the content browser when an asset path is removed from the asset registry */
+	virtual void OnAssetRegistryPathRemoved(const FString& Path) override;
+
+	virtual void ExecuteTreeDropMove(TArray<FAssetData> AssetList, TArray<FString> AssetPaths, FString DestinationPath) override;
+
+private:
+	TArray<FString> RemovedByFolderMove;
+
 };

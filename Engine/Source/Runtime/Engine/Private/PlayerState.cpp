@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PlayerState.cpp: 
@@ -31,7 +31,16 @@ APlayerState::APlayerState(const FObjectInitializer& ObjectInitializer)
 
 	EngineMessageClass = UEngineMessage::StaticClass();
 	SessionName = NAME_GameSession;
+
+	bShouldUpdateReplicatedPing = true; // Preserved behavior before bShouldUpdateReplicatedPing was added
+	bUseCustomPlayerNames = false;
 }
+
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+APlayerState::~APlayerState()
+{
+}
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 void APlayerState::UpdatePing(float InPing)
 {
@@ -74,7 +83,11 @@ void APlayerState::RecalculateAvgPing()
 
 	// Calculate the average, and divide it by 4 to optimize replication
 	ExactPing = (Count > 0 ? ((float)Sum / (float)Count) : 0.f);
-	Ping = FMath::Min(255, (int32)(ExactPing * 0.25f));
+
+	if (bShouldUpdateReplicatedPing || !HasAuthority())
+	{
+		Ping = FMath::Min(255, (int32)(ExactPing * 0.25f));
+	}
 }
 
 void APlayerState::DispatchOverrideWith(APlayerState* PlayerState)
@@ -93,8 +106,8 @@ void APlayerState::OverrideWith(APlayerState* PlayerState)
 {
 	bIsSpectator = PlayerState->bIsSpectator;
 	bOnlySpectator = PlayerState->bOnlySpectator;
-	PlayerName = PlayerState->PlayerName;
 	SetUniqueId(PlayerState->UniqueId.GetUniqueNetId());
+	SetPlayerNameInternal(PlayerState->GetPlayerName());
 }
 
 
@@ -102,9 +115,10 @@ void APlayerState::CopyProperties(APlayerState* PlayerState)
 {
 	PlayerState->Score = Score;
 	PlayerState->Ping = Ping;
-	PlayerState->PlayerName = PlayerName;
+	PlayerState->ExactPing = ExactPing;
 	PlayerState->PlayerId = PlayerId;
 	PlayerState->SetUniqueId(UniqueId.GetUniqueNetId());
+	PlayerState->SetPlayerNameInternal(GetPlayerName());
 	PlayerState->StartTime = StartTime;
 	PlayerState->SavedNetworkAddress = SavedNetworkAddress;
 }
@@ -159,50 +173,6 @@ void APlayerState::OnRep_Score()
 {
 }
 
-void APlayerState::OnRep_PlayerName()
-{
-	OldName = PlayerName;
-
-	if ( GetWorld()->TimeSeconds < 2 )
-	{
-		bHasBeenWelcomed = true;
-		return;
-	}
-
-	// new player or name change
-	if ( bHasBeenWelcomed )
-	{
-		if( ShouldBroadCastWelcomeMessage() )
-		{
-			for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
-			{
-				APlayerController* PlayerController = Iterator->Get();
-				if( PlayerController )
-				{
-					PlayerController->ClientReceiveLocalizedMessage( EngineMessageClass, 2, this );
-				}
-			}
-		}
-	}
-	else
-	{
-		int32 WelcomeMessageNum = bOnlySpectator ? 16 : 1;
-		bHasBeenWelcomed = true;
-
-		if( ShouldBroadCastWelcomeMessage() )
-		{
-			for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
-			{
-				APlayerController* PlayerController = Iterator->Get();
-				if( PlayerController )
-				{
-					PlayerController->ClientReceiveLocalizedMessage( EngineMessageClass, WelcomeMessageNum, this );
-				}
-			}
-		}
-	}
-}
-
 void APlayerState::OnRep_bIsInactive()
 {
 	// remove and re-add from the GameState so it's in the right list  
@@ -254,12 +224,31 @@ void APlayerState::Reset()
 
 FString APlayerState::GetHumanReadableName() const
 {
-	return PlayerName;
+	return GetPlayerName();
+}
+
+void APlayerState::OnRep_PlayerName()
+{
+	OldNamePrivate = GetPlayerName();
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS;
+	OldName = OldNamePrivate;
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS;
+
+	HandleWelcomeMessage();
+}
+
+void APlayerState::SetPlayerNameInternal(const FString& S)
+{
+	PlayerNamePrivate = S;
+
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS;
+	PlayerName = PlayerNamePrivate;
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS;
 }
 
 void APlayerState::SetPlayerName(const FString& S)
 {
-	PlayerName = S;
+	SetPlayerNameInternal(S);
 
 	// RepNotify callback won't get called by net code if we are the server
 	ENetMode NetMode = GetNetMode();
@@ -267,8 +256,84 @@ void APlayerState::SetPlayerName(const FString& S)
 	{
 		OnRep_PlayerName();
 	}
-	OldName = PlayerName;
+
+	OldNamePrivate = GetPlayerName();
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS;
+	OldName = OldNamePrivate;
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS;
+
 	ForceNetUpdate();
+}
+
+FString APlayerState::GetPlayerName() const
+{
+	return bUseCustomPlayerNames ? GetPlayerNameCustom() : PlayerNamePrivate;
+}
+
+FString APlayerState::GetPlayerNameCustom() const
+{
+	return PlayerNamePrivate;
+}
+
+FString APlayerState::GetOldPlayerName() const
+{
+	return OldNamePrivate;
+}
+
+void APlayerState::SetOldPlayerName(const FString& S)
+{
+	OldNamePrivate = S;
+
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	OldName = S;
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
+void APlayerState::HandleWelcomeMessage()
+{
+	UWorld* World = GetWorld();
+	if (World == nullptr || World->TimeSeconds < 2)
+	{
+		bHasBeenWelcomed = true;
+		return;
+	}
+
+	// new player or name change
+	if (bHasBeenWelcomed)
+	{
+		if (ShouldBroadCastWelcomeMessage())
+		{
+			for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
+			{
+				APlayerController* PlayerController = Iterator->Get();
+				if (PlayerController)
+				{
+					PlayerController->ClientReceiveLocalizedMessage(EngineMessageClass, 2, this);
+				}
+			}
+		}
+	}
+	else
+	{
+		int32 WelcomeMessageNum = bOnlySpectator ? 16 : 1;
+		bHasBeenWelcomed = true;
+
+		if (ShouldBroadCastWelcomeMessage())
+		{
+			for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
+			{
+				APlayerController* PlayerController = Iterator->Get();
+				if (PlayerController)
+				{
+					PlayerController->ClientReceiveLocalizedMessage(EngineMessageClass, WelcomeMessageNum, this);
+				}
+			}
+		}
+	}
+}
+
+void APlayerState::OnRep_PlayerId()
+{
 }
 
 void APlayerState::OnRep_UniqueId()
@@ -340,7 +405,6 @@ void APlayerState::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutL
 
 	DOREPLIFETIME( APlayerState, Score );
 
-	DOREPLIFETIME( APlayerState, PlayerName );
 	DOREPLIFETIME( APlayerState, bIsSpectator );
 	DOREPLIFETIME( APlayerState, bOnlySpectator );
 	DOREPLIFETIME( APlayerState, bFromPreviousLevel );
@@ -354,4 +418,6 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	DOREPLIFETIME_CONDITION( APlayerState, bIsABot,		COND_InitialOnly );
 	DOREPLIFETIME_CONDITION( APlayerState, bIsInactive, COND_InitialOnly );
 	DOREPLIFETIME_CONDITION( APlayerState, UniqueId,	COND_InitialOnly );
+
+	DOREPLIFETIME(APlayerState, PlayerNamePrivate);
 }

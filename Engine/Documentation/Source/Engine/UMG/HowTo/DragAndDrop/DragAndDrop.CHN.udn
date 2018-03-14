@@ -39,23 +39,17 @@ type:how-to
 
 _在此指南的最后，您将拥有一个可以在视口中进行四处拖动、并放置到新位置的 UI 控件。_
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		步骤
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 步骤
+
+[REGION:buttonlist]
+
 	* [](Engine\UMG\HowTo\DragAndDrop\ProjectSetup)
 	* [](Engine\UMG\HowTo\DragAndDrop\WidgetSetup)
 	* [](Engine\UMG\HowTo\DragAndDrop\OnDragDetected)
 	* [](Engine\UMG\HowTo\DragAndDrop\OnDrop)
 	* [](Engine\UMG\HowTo\DragAndDrop\FinishingUp)
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 [REGION:call_to_action]
 	[Click to Start](Engine\UMG\HowTo\DragAndDrop\ProjectSetup "%Engine\UMG\HowTo\DragAndDrop\ProjectSetup:title%")

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "HAL/FileManager.h"
@@ -384,7 +384,7 @@ namespace BlueprintEditorPromotionUtils
 	* @param NodeB - The second node to connect
 	* @param PinBName - The name of the pin on the second node
 	*/
-	static void ConnectGraphNodes(UEdGraphNode* NodeA, const FString& PinAName, UEdGraphNode* NodeB, const FString& PinBName)
+	static void ConnectGraphNodes(UEdGraphNode* NodeA, const FName& PinAName, UEdGraphNode* NodeB, const FName& PinBName)
 	{
 		const FScopedTransaction PropertyChanged(LOCTEXT("ConnectedNode", "Connected graph nodes"));
 		NodeA->GetGraph()->Modify();
@@ -398,7 +398,7 @@ namespace BlueprintEditorPromotionUtils
 		}
 		else
 		{
-			UE_LOG(LogBlueprintEditorPromotionTests, Error, TEXT("Could not connect pins %s and %s "), *PinAName, *PinBName);
+			UE_LOG(LogBlueprintEditorPromotionTests, Error, TEXT("Could not connect pins %s and %s "), *PinAName.ToString(), *PinBName.ToString());
 		}
 	}
 	
@@ -409,7 +409,7 @@ namespace BlueprintEditorPromotionUtils
 	* @param Node - The node that owns the pin
 	* @param PinName - The name of the pin to promote
 	*/
-	static void PromotePinToVariable(UBlueprint* InBlueprint, UEdGraphNode* Node, const FString& PinName)
+	static void PromotePinToVariable(UBlueprint* InBlueprint, UEdGraphNode* Node, const FName& PinName)
 	{
 		IAssetEditorInstance* OpenEditor = FAssetEditorManager::Get().FindEditorForAsset(InBlueprint, true);
 		FBlueprintEditor* CurrentBlueprintEditor = (FBlueprintEditor*)OpenEditor;
@@ -579,7 +579,7 @@ namespace BlueprintEditorPromotionUtils
 	* @param PinName - The name of the pin
 	* @param PinValue - The new default value
 	*/
-	static void SetPinDefaultValue(UEdGraphNode* Node, const FString& PinName, const FString& PinValue)
+	static void SetPinDefaultValue(UEdGraphNode* Node, const FName PinName, const FString& PinValue)
 	{
 		UEdGraphPin* Pin = Node->FindPin(PinName);
 		Pin->DefaultValue = PinValue;
@@ -592,7 +592,7 @@ namespace BlueprintEditorPromotionUtils
 	* @param PinName - The name of the pin
 	* @param PinObject - The new default object
 	*/
-	static void SetPinDefaultObject(UEdGraphNode* Node, const FString& PinName, UObject* PinObject)
+	static void SetPinDefaultObject(UEdGraphNode* Node, const FName PinName, UObject* PinObject)
 	{
 		UEdGraphPin* Pin = Node->FindPin(PinName);
 		Pin->DefaultObject = PinObject;
@@ -606,8 +606,7 @@ namespace BlueprintEditorPromotionUtils
 	*/
 	static void AddStringMemberValue(UBlueprint* InBlueprint, const FName& VariableName)
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		FEdGraphPinType StringPinType(K2Schema->PC_String, FString(), nullptr, EPinContainerType::None, false, FEdGraphTerminalType());
+		FEdGraphPinType StringPinType(UEdGraphSchema_K2::PC_String, NAME_None, nullptr, EPinContainerType::None, false, FEdGraphTerminalType());
 		FBlueprintEditorUtils::AddMemberVariable(InBlueprint, VariableName, StringPinType);
 	}
 
@@ -1043,8 +1042,6 @@ namespace BlueprintEditorPromotionTestHelper
 		{
 			if (BlueprintObject)
 			{
-				const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 				IAssetEditorInstance* AssetEditor = FAssetEditorManager::Get().FindEditorForAsset(BlueprintObject, true);
 				FBlueprintEditor* BlueprintEditor = (FBlueprintEditor*)AssetEditor;
 
@@ -1066,10 +1063,10 @@ namespace BlueprintEditorPromotionTestHelper
 				Test->TestNotNull(TEXT("Found entry node to connect Add Static Mesh to"), EntryNode);
 				if (EntryNode)
 				{
-					BlueprintEditorPromotionUtils::ConnectGraphNodes(AddMeshNode, K2Schema->PN_Execute, EntryNode, K2Schema->PN_Then);
+					BlueprintEditorPromotionUtils::ConnectGraphNodes(AddMeshNode, UEdGraphSchema_K2::PN_Execute, EntryNode, UEdGraphSchema_K2::PN_Then);
 
-					UEdGraphPin* EntryOutPin = EntryNode->FindPin(K2Schema->PN_Then);
-					UEdGraphPin* AddStaticMeshInPin = AddMeshNode->FindPin(K2Schema->PN_Execute);
+					UEdGraphPin* EntryOutPin = EntryNode->FindPin(UEdGraphSchema_K2::PN_Then);
+					UEdGraphPin* AddStaticMeshInPin = AddMeshNode->FindPin(UEdGraphSchema_K2::PN_Execute);
 
 					Test->TestTrue(TEXT("Connected entry node to Add Static Mesh node"), EntryOutPin->LinkedTo.Contains(AddStaticMeshInPin));
 
@@ -1111,8 +1108,7 @@ namespace BlueprintEditorPromotionTestHelper
 				IAssetEditorInstance* AssetEditor = FAssetEditorManager::Get().FindEditorForAsset(BlueprintObject, true);
 				FBlueprintEditor* BlueprintEditor = (FBlueprintEditor*)AssetEditor;
 
-				const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-				BlueprintEditorPromotionUtils::PromotePinToVariable(BlueprintObject, AddMeshNode, K2Schema->PN_ReturnValue);
+				BlueprintEditorPromotionUtils::PromotePinToVariable(BlueprintObject, AddMeshNode, UEdGraphSchema_K2::PN_ReturnValue);
 
 				Test->AddInfo(TEXT("Promoted the return pin on the add mesh node to a variable"));
 
@@ -1177,8 +1173,7 @@ namespace BlueprintEditorPromotionTestHelper
 				PostBeginPlayEventNode = BlueprintEditorPromotionUtils::CreatePostBeginPlayEvent(BlueprintObject, EventGraph);
 				Test->TestNotNull(TEXT("Created EventBeginPlay node"), PostBeginPlayEventNode);
 				
-				const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-				UEdGraphPin* PlayThenPin = PostBeginPlayEventNode->FindPin(K2Schema->PN_Then);
+				UEdGraphPin* PlayThenPin = PostBeginPlayEventNode->FindPin(UEdGraphSchema_K2::PN_Then);
 				
 				DelayNode = BlueprintEditorPromotionUtils::AddDelayNode(BlueprintObject, EventGraph, PlayThenPin);
 				Test->TestNotNull(TEXT("Created Delay node"), DelayNode);
@@ -1190,7 +1185,7 @@ namespace BlueprintEditorPromotionTestHelper
 				Test->TestTrue(TEXT("Redo adding Delay node succeeded"), EventGraph->Nodes.Num() > 0 && EventGraph->Nodes[EventGraph->Nodes.Num() - 1] == DelayNode);
 				
 				// Update Delay node's Duration pin with new default value
-				const FString DelayDurationPinName = TEXT("Duration");
+				const FName DelayDurationPinName = TEXT("Duration");
 				const FString NewDurationDefaultValue = TEXT("2.0");
 
 				BlueprintEditorPromotionUtils::SetPinDefaultValue(DelayNode, DelayDurationPinName, NewDurationDefaultValue);				
@@ -1256,18 +1251,16 @@ namespace BlueprintEditorPromotionTestHelper
 				PrintNode = BlueprintEditorPromotionUtils::AddPrintStringNode(BlueprintObject, EventGraph);
 				Test->TestNotNull(TEXT("Added Print String node"), PrintNode);
 				
-				const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 				//Connect Get to printstring
-				UEdGraphPin* GetVarPin = GetNode->FindPin(BlueprintEditorPromotionUtils::BlueprintStringVariableName.ToString());
+				UEdGraphPin* GetVarPin = GetNode->FindPin(BlueprintEditorPromotionUtils::BlueprintStringVariableName);
 				UEdGraphPin* InStringPin = PrintNode->FindPin(TEXT("InString"));
 				GetVarPin->MakeLinkTo(InStringPin);
 				Test->TestTrue(TEXT("Connected string variable Get node to the Print String node"), GetVarPin->LinkedTo.Contains(InStringPin));
 
 
 				//Connect Delay to PrintString
-				UEdGraphPin* DelayExecPin = DelayNode->FindPin(K2Schema->PN_Then);
-				UEdGraphPin* PrintStringPin = PrintNode->FindPin(K2Schema->PN_Execute);
+				UEdGraphPin* DelayExecPin = DelayNode->FindPin(UEdGraphSchema_K2::PN_Then);
+				UEdGraphPin* PrintStringPin = PrintNode->FindPin(UEdGraphSchema_K2::PN_Execute);
 				DelayExecPin->MakeLinkTo(PrintStringPin);
 				Test->TestTrue(TEXT("Connected Delay nod to Print String node"), DelayExecPin->LinkedTo.Contains(PrintStringPin));
 
@@ -1279,7 +1272,7 @@ namespace BlueprintEditorPromotionTestHelper
 				Test->TestNotNull(TEXT("Added Set Static Mesh node"), SetStaticMeshNode);
 				
  				UEdGraphPin* GetExecPin = GetNode->FindPin(TEXT("MyMesh"));
-				UEdGraphPin* SetStaticMeshSelfPin = SetStaticMeshNode->FindPin(K2Schema->PN_Self);
+				UEdGraphPin* SetStaticMeshSelfPin = SetStaticMeshNode->FindPin(UEdGraphSchema_K2::PN_Self);
 				GetExecPin->MakeLinkTo(SetStaticMeshSelfPin);
 				Test->TestTrue(TEXT("Connected Get MyMesh node to Set Static Mesh node"), GetExecPin->LinkedTo.Contains(SetStaticMeshSelfPin));
 
@@ -1288,8 +1281,8 @@ namespace BlueprintEditorPromotionTestHelper
 				Test->TestEqual(*FString::Printf(TEXT("Set Static Mesh default mesh updated to %s"), *SecondBlueprintMesh->GetName()), Cast<UStaticMesh>(SetStaticMeshMeshPin->DefaultObject), SecondBlueprintMesh);
 
 				//Connect SetStaticMeshMesh to PrintString
-				UEdGraphPin* PrintStringThenPin = PrintNode->FindPin(K2Schema->PN_Then);
-				UEdGraphPin* SetStaticMeshExecPin = SetStaticMeshNode->FindPin(K2Schema->PN_Execute);
+				UEdGraphPin* PrintStringThenPin = PrintNode->FindPin(UEdGraphSchema_K2::PN_Then);
+				UEdGraphPin* SetStaticMeshExecPin = SetStaticMeshNode->FindPin(UEdGraphSchema_K2::PN_Execute);
 				PrintStringThenPin->MakeLinkTo(SetStaticMeshExecPin);
 				Test->TestTrue(TEXT("Connected Print String node to Set Static Mesh node"), PrintStringThenPin->LinkedTo.Contains(SetStaticMeshExecPin));
 			}
@@ -1331,15 +1324,13 @@ namespace BlueprintEditorPromotionTestHelper
 		{
 			if (BlueprintObject)
 			{
-				const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 				CustomGraph = BlueprintEditorPromotionUtils::CreateNewFunctionGraph(BlueprintObject, TEXT("NewFunction"));
 				Test->TestNotNull(TEXT("Created new function graph"), CustomGraph);
 
 				AddParticleSystemNode = BlueprintEditorPromotionUtils::CreateAddComponentActionNode(BlueprintObject, CustomGraph, LoadedParticleSystem);
 				Test->TestNotNull(TEXT("Created Add Particle System node"), AddParticleSystemNode);
 
-				UEdGraphPin* ExecutePin = AddParticleSystemNode ? AddParticleSystemNode->FindPin(K2Schema->PN_Execute) : NULL;
+				UEdGraphPin* ExecutePin = AddParticleSystemNode ? AddParticleSystemNode->FindPin(UEdGraphSchema_K2::PN_Execute) : NULL;
 
 				//Find the input for the function graph
 				TArray<UK2Node_FunctionEntry*> EntryNodes;
@@ -1347,7 +1338,7 @@ namespace BlueprintEditorPromotionTestHelper
 				UEdGraphNode* EntryNode = EntryNodes.Num() > 0 ? EntryNodes[0] : NULL;
 				if (EntryNode && ExecutePin)
 				{
-					UEdGraphPin* EntryPin = EntryNode->FindPin(K2Schema->PN_Then);
+					UEdGraphPin* EntryPin = EntryNode->FindPin(UEdGraphSchema_K2::PN_Then);
 					EntryPin->MakeLinkTo(ExecutePin);
 					Test->TestTrue(TEXT("Connected Add Particle System node to entry node"), EntryPin->LinkedTo.Contains(ExecutePin));
 				}
@@ -1365,14 +1356,13 @@ namespace BlueprintEditorPromotionTestHelper
 		{
 			if (BlueprintObject)
 			{
-				const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 				UEdGraph* EventGraph = FBlueprintEditorUtils::FindEventGraph(BlueprintObject);
-				UEdGraphPin* SetStaticMeshThenPin = SetStaticMeshNode->FindPin(K2Schema->PN_Then);
+				UEdGraphPin* SetStaticMeshThenPin = SetStaticMeshNode->FindPin(UEdGraphSchema_K2::PN_Then);
 				CallFunctionNode = BlueprintEditorPromotionUtils::AddCallFunctionGraphNode(BlueprintObject, EventGraph, TEXT("NewFunction"), SetStaticMeshThenPin);
 				Test->TestNotNull(TEXT("Created Call Function node"), CallFunctionNode);
 				if (CallFunctionNode)
 				{
-					Test->TestTrue(TEXT("Connected Set Static Mesh node to Call Function node"), SetStaticMeshThenPin->LinkedTo.Contains(CallFunctionNode->FindPin(K2Schema->PN_Execute)));
+					Test->TestTrue(TEXT("Connected Set Static Mesh node to Call Function node"), SetStaticMeshThenPin->LinkedTo.Contains(CallFunctionNode->FindPin(UEdGraphSchema_K2::PN_Execute)));
 				}
 
 				BlueprintEditorPromotionUtils::CompileBlueprint(BlueprintObject);

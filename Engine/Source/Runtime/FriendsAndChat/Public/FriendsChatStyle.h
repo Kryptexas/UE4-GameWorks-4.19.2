@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -88,6 +88,10 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	FLinearColor GlobalChatColor;
 	FFriendsChatStyle& SetGlobalChatColor(const FLinearColor& InFontColor);
 
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FLinearColor FounderChatColor;
+	FFriendsChatStyle& SetFounderChatColor(const FLinearColor& InFontColor);
+
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FLinearColor GameChatColor;
 	FFriendsChatStyle& SetGameChatColor(const FLinearColor& InFontColor);
@@ -127,6 +131,10 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FLinearColor GlobalHyperlinkChatColor;
 	FFriendsChatStyle& SetGlobalHyperlinkChatColor(const FLinearColor& InFontColor);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FLinearColor FounderHyperlinkChatColor;
+	FFriendsChatStyle& SetFounderHyperlinkChatColor(const FLinearColor& InFontColor);
 
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FLinearColor GameHyperlinkChatColor;

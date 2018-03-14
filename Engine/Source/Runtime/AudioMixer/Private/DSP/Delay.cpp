@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DSP/Delay.h"
 #include "DSP/Dsp.h"
@@ -165,9 +165,18 @@ namespace Audio
 		const float Xn = *InAudio;
 		const float Yn = DelayInSamples == 0 ? Xn : Read();
 		WriteDelayAndInc(Xn);
-		*OutAudio = OutputAttenuation*Yn;
+		*OutAudio = OutputAttenuation * Yn;
 	}
-	 
+
+	float FDelay::ProcessAudio(const float InAudio)
+	{
+		Update();
+
+		const float Yn = DelayInSamples == 0 ? InAudio : Read();
+		WriteDelayAndInc(InAudio);
+		return OutputAttenuation * Yn;
+	}
+
 	void FDelay::Update(bool bForce)
 	{
 		if (!EaseDelayMsec.IsDone() || bForce)

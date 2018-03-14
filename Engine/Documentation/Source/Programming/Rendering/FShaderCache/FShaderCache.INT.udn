@@ -24,14 +24,16 @@ There are a number of console commands that can be used to enable or disable FSh
 | `r.AccelTargetPrecompileFrameTime [Time in (ms)]` | An option to accelerate asynchronous precompilation when in a non-interactive mode such as a load screen. Use 0 to use r.TargetPrecompileFrameTime.|
 | `r.InitialShaderLoadTime [Time in (ms)]`| A maximum amount of time to spend loading the shaders at launch before moving on to asynchronous precompilation. Use -1 to load synchronously) |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:UseShaderCaching]
 [REGION:plainlist]
 * Early submission during shader deserialisation rather than on-demand.
 * Tracking of bound-shader-states so that they may be pre-bound during early submission.
 [/REGION]
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 
 ## Use

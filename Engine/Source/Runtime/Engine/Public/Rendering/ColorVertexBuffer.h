@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,6 +12,12 @@ struct FStaticMeshBuildVertex;
 class FColorVertexBuffer : public FVertexBuffer
 {
 public:
+	enum class NullBindStride
+	{
+		FColorSizeForComponentOverride, //when we want to bind null buffer with the expectation that it must be overridden.  Stride must be correct so override binds correctly
+		ZeroForDefaultBufferBind, //when we want to bind the null color buffer for it to actually be used for draw.  Stride must be 0 so the IA gives correct data for all verts.
+	};
+
 	/** Default constructor. */
 	ENGINE_API FColorVertexBuffer();
 
@@ -20,6 +26,8 @@ public:
 
 	/** Delete existing resources */
 	ENGINE_API void CleanUp();
+
+	ENGINE_API void Init(uint32 InNumVertices);
 
 	/**
 	* Initializes the buffer with the given vertices, used to convert legacy layouts.
@@ -123,13 +131,29 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual void InitRHI() override;
+	ENGINE_API virtual void InitRHI() override;
+	ENGINE_API virtual void ReleaseRHI() override;
 	virtual FString GetFriendlyName() const override { return TEXT("ColorOnly Mesh Vertices"); }
+
+	ENGINE_API void BindColorVertexBuffer(const class FVertexFactory* VertexFactory, struct FStaticMeshDataType& StaticMeshData) const;
+	ENGINE_API static void BindDefaultColorVertexBuffer(const class FVertexFactory* VertexFactory, struct FStaticMeshDataType& StaticMeshData, NullBindStride BindStride);
+
+	FORCEINLINE const FShaderResourceViewRHIParamRef GetColorComponentsSRV() const
+	{
+		return ColorComponentsSRV;
+	}
+
+	void* GetVertexData()
+	{
+		return Data;
+	}
 
 private:
 
 	/** The vertex data storage type */
 	class FColorVertexData* VertexData;
+
+	FShaderResourceViewRHIRef ColorComponentsSRV;
 
 	/** The cached vertex data pointer. */
 	uint8* Data;
@@ -145,6 +169,4 @@ private:
 
 	/** Purposely hidden */
 	ENGINE_API FColorVertexBuffer(const FColorVertexBuffer &rhs);
-
-	friend class FStaticLODModel;
 };

@@ -1,0 +1,156 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title:Rendering Out Cinematic Movies
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:Shows you can render out your cinematic sequences to a saved movie file on your computer. 
+Version: 4.18
+SkillLevel: Intermediate
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related: Engine/Sequencer/Overview
+Related: Engine/Sequencer/Workflow/CustomRenderPass
+Related: Engine/Sequencer/HowTo/ImportExportEDLs
+Related: Engine/Sequencer/HowTo/CustomBurnIns
+tags:Sequencer
+type:how-to
+
+Once you have created your cinematic sequence (or even during your production process as part of daily reviews), you may want to render out your cinematic as a movie file that you can share with others. 
+The **Render Movie** option in Sequencer enables you to share your experience with others as an .AVI file that will play with most media players. 
+In addition to rendering as a movie file, you can render your cinematic as an Image Sequence or render out [Custom Render Passes](Engine/Sequencer/Workflow/CustomRenderPass) that you can use in an external application to finalize your scene. 
+
+In this example, we create a sample cinematic and render it out as a movie while outlining some of the options that are available as part of the rendering process: 
+
+![](HeroImage.png)
+
+
+## Steps
+
+[REGION:note]
+For this how-to guide, we are using the **Blueprint Third Person Template** with **Starter Content** enabled. 
+[/REGION]
+
+1.	Inside your project, from the Main Toolbar click the **Cinematics** button then select **Add Level Seequence**. 
+
+	![](RenderMovie_01.png)
+
+1.	In the **Save Asset As** window, enter a name for your Sequence, then click **Save**. 
+
+	![](RenderMovie_02.png)
+
+1.	Inside the **Sequencer Editor**, click the **Add Camera** button. 
+
+	![](RenderMovie_03.png)
+
+1.	In the Viewport, position the camera anywhere in the Level facing the Character, then press the **S** key to add a keyframe. 
+
+	![](RenderMovie_04.png)
+
+	We will shoot a sample scene where the camera pushes in our the Character in the level for a close-up shot. 
+
+1.	In the **Sequencer Editor** move to frame **150**, then move the Camera in the Level to a new location and press the **S** key to add a keyframe. 
+
+	[REGION:lightbox]
+	[![](RenderMovie_05.png)(w:640)](RenderMovie_05.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click image for full view. 
+	[/REGION]
+
+	The camera will now move from our first keyframe to our second keyframe, pushing in on the Character. 
+
+1.	In the **Sequencer Editor**, click the **Render Movie** button. 
+
+	![](RenderMovie_06.png)
+
+	The **Render Movie Settings** window will open. 
+
+	![](RenderMovie_07.png)
+
+1.	Under the **Capture Settings**, click the **Output Format** option to view the available options, then select **Video Sequence**. 
+
+	![](RenderMovie_08.png)
+
+	In addition to rendering your sequence out as a movie, you can also render it as an Image Sequence or render out Custom Render Passes. 
+
+1.	Under **General**, choose an **Output Directory** to save your cinematic to, then click **Capture Movie**. 
+
+	![](RenderMovie_09.png)
+
+	A preview window will appear while the rendering process occurs. 
+
+	![](RenderMovie_10.png)
+
+	[REGION:note]
+	If prompted to **Save** your content after selecting **Capture Movie**, click **Save** or **Don't Save** to continue. Selecting **Cancel** will abort the rendering process. 
+	[/REGION]
+
+
+## End Result
+
+After the capture process, you will have a video file of your cinematic sequence (below is our rendered out cinematic). 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:videoid]
+vuEZcdMlIgc
+[/PARAMLITERAL]
+[PARAMLITERAL:width]
+100
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+56.25
+[/PARAMLITERAL]
+[PARAMLITERAL:units]
+%
+[/PARAMLITERAL]
+[PARAMLITERAL:type]
+simple
+[/PARAMLITERAL]
+[/OBJECT]
+
+You can also include **Burn-ins** or create [Custom Burn-ins](Engine/Sequencer/HowTo/CustomBurnIns) (which are overlays that are embedded with your video) by enabling the **Use Burn In** option. 
+
+![](BurnIns.png)
+
+This can be useful if you are doing reviews of a cinematic as it will display timecode information as well as shot names or any custom information you want to provide. 
+
+![](BurnInsApplied.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

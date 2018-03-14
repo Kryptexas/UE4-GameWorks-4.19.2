@@ -1,7 +1,7 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	MapBuildData.cpp
+MapBuildData.cpp
 =============================================================================*/
 
 #include "CoreMinimal.h"
@@ -19,7 +19,13 @@
 #include "Components/ModelComponent.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "UObject/RenderingObjectVersion.h"
+#include "UObject/ReflectionCaptureObjectVersion.h"
 #include "ContentStreaming.h"
+#include "Components/ReflectionCaptureComponent.h"
+#include "Interfaces/ITargetPlatform.h"
+
+DECLARE_MEMORY_STAT(TEXT("Stationary Light Static Shadowmap"),STAT_StationaryLightBuildData,STATGROUP_MapBuildData);
+DECLARE_MEMORY_STAT(TEXT("Reflection Captures"),STAT_ReflectionCaptureBuildData,STATGROUP_MapBuildData);
 
 FArchive& operator<<(FArchive& Ar, FMeshMapBuildData& MeshMapBuildData)
 {
@@ -46,7 +52,7 @@ ULevel* UWorld::GetActiveLightingScenario() const
 	return NULL;
 }
 
-void UWorld::PropagateLightingScenarioChange(bool bLevelWasMadeVisible)
+void UWorld::PropagateLightingScenarioChange()
 {
 	for (FActorIterator It(this); It; ++It)
 	{
@@ -72,14 +78,6 @@ void UWorld::PropagateLightingScenarioChange(bool bLevelWasMadeVisible)
 	}
 
 	IStreamingManager::Get().PropagateLightingScenarioChange();
-
-	// Skipping the reflection capture update if made invisible, in most cases another lighting scenario level will be made visible shortly after, 
-	// Or we're unloading all levels and then it doesn't matter if lighting is updated.
-	if (bLevelWasMadeVisible)
-	{
-		//@todo - store reflection capture data in UMapBuildDataRegistry so it can work with multiple lighting scenarios without forcing a recapture
-		UpdateAllReflectionCaptures();
-	}
 }
 
 UMapBuildDataRegistry* CreateRegistryForLegacyMap(ULevel* Level)
@@ -162,6 +160,45 @@ void ULevel::HandleLegacyMapBuildData()
 			}
 		}
 	}
+
+	if (GReflectionCapturesWithLegacyBuildData.GetAnnotationMap().Num() > 0)
+	{
+		UMapBuildDataRegistry* Registry = MapBuildData;
+
+		for (int32 ActorIndex = 0; ActorIndex < Actors.Num(); ActorIndex++)
+		{
+			if (!Actors[ActorIndex])
+			{
+				continue;
+			}
+
+			TInlineComponentArray<UActorComponent*> Components;
+			Actors[ActorIndex]->GetComponents(Components);
+
+			for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
+			{
+				UActorComponent* CurrentComponent = Components[ComponentIndex];
+				UReflectionCaptureComponent* ReflectionCapture = Cast<UReflectionCaptureComponent>(CurrentComponent);
+
+				if (ReflectionCapture)
+				{
+					FReflectionCaptureMapBuildLegacyData LegacyReflectionData = GReflectionCapturesWithLegacyBuildData.GetAndRemoveAnnotation(ReflectionCapture);
+
+					if (!LegacyReflectionData.IsDefault())
+					{
+						if (!Registry)
+						{
+							Registry = CreateRegistryForLegacyMap(this);
+						}
+
+						FReflectionCaptureMapBuildData& DestData = Registry->AllocateReflectionCaptureBuildData(LegacyReflectionData.Id, false);
+						DestData = *LegacyReflectionData.MapBuildData;
+						delete LegacyReflectionData.MapBuildData;
+					}
+				}
+			}
+		}
+	}
 }
 
 FMeshMapBuildData::FMeshMapBuildData()
@@ -196,15 +233,103 @@ FArchive& operator<<(FArchive& Ar, FStaticShadowDepthMapData& ShadowMapData)
 	Ar << ShadowMapData.ShadowMapSizeX;
 	Ar << ShadowMapData.ShadowMapSizeY;
 	Ar << ShadowMapData.DepthSamples;
+
 	return Ar;
+}
+
+FLightComponentMapBuildData::~FLightComponentMapBuildData()
+{
+	DEC_DWORD_STAT_BY(STAT_StationaryLightBuildData, DepthMap.GetAllocatedSize());
+}
+
+void FLightComponentMapBuildData::FinalizeLoad()
+{
+	INC_DWORD_STAT_BY(STAT_StationaryLightBuildData, DepthMap.GetAllocatedSize());
 }
 
 FArchive& operator<<(FArchive& Ar, FLightComponentMapBuildData& LightBuildData)
 {
 	Ar << LightBuildData.ShadowMapChannel;
 	Ar << LightBuildData.DepthMap;
+
+	if (Ar.IsLoading())
+	{
+		LightBuildData.FinalizeLoad();
+	}
+
 	return Ar;
 }
+
+FArchive& operator<<(FArchive& Ar, FReflectionCaptureMapBuildData& ReflectionCaptureMapBuildData)
+{
+	Ar << ReflectionCaptureMapBuildData.CubemapSize;
+	Ar << ReflectionCaptureMapBuildData.AverageBrightness;
+
+	if (Ar.CustomVer(FRenderingObjectVersion::GUID) >= FRenderingObjectVersion::StoreReflectionCaptureBrightnessForCooking)
+	{
+		Ar << ReflectionCaptureMapBuildData.Brightness;
+	}
+
+	static FName FullHDR(TEXT("FullHDR"));
+	static FName EncodedHDR(TEXT("EncodedHDR"));
+
+	TArray<FName> Formats;
+
+	if (Ar.IsSaving() && Ar.IsCooking())
+	{
+		// Get all the reflection capture formats that the target platform wants
+		Ar.CookingTarget()->GetReflectionCaptureFormats(Formats);
+	}
+
+	if (Formats.Num() == 0 || Formats.Contains(FullHDR))
+	{
+		Ar << ReflectionCaptureMapBuildData.FullHDRCapturedData;
+	}
+	else
+	{
+		TArray<uint8> StrippedData;
+		Ar << StrippedData;
+	}
+
+	if (Formats.Num() == 0 || Formats.Contains(EncodedHDR))
+	{
+		if (Ar.IsSaving() 
+			&& Ar.IsCooking()
+			&& ReflectionCaptureMapBuildData.EncodedHDRCapturedData.Num() == 0
+			&& ReflectionCaptureMapBuildData.FullHDRCapturedData.Num() > 0)
+		{
+			// Encode from HDR as needed
+			//@todo - cache in DDC?
+			GenerateEncodedHDRData(ReflectionCaptureMapBuildData.FullHDRCapturedData, ReflectionCaptureMapBuildData.CubemapSize, ReflectionCaptureMapBuildData.Brightness, ReflectionCaptureMapBuildData.EncodedHDRCapturedData);
+		}
+
+		Ar << ReflectionCaptureMapBuildData.EncodedHDRCapturedData;
+	}
+	else
+	{
+		TArray<uint8> StrippedData;
+		Ar << StrippedData;
+	}
+
+	if (Ar.IsLoading())
+	{
+		ReflectionCaptureMapBuildData.FinalizeLoad();
+	}
+
+	return Ar;
+}
+
+FReflectionCaptureMapBuildData::~FReflectionCaptureMapBuildData()
+{
+	DEC_DWORD_STAT_BY(STAT_ReflectionCaptureBuildData, AllocatedSize);
+}
+
+void FReflectionCaptureMapBuildData::FinalizeLoad()
+{
+	AllocatedSize = FullHDRCapturedData.GetAllocatedSize() + EncodedHDRCapturedData.GetAllocatedSize();
+	INC_DWORD_STAT_BY(STAT_ReflectionCaptureBuildData, AllocatedSize);
+}
+
 
 UMapBuildDataRegistry::UMapBuildDataRegistry(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -219,6 +344,7 @@ void UMapBuildDataRegistry::Serialize(FArchive& Ar)
 	FStripDataFlags StripFlags(Ar, 0);
 
 	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+	Ar.UsingCustomVersion(FReflectionCaptureObjectVersion::GUID);
 
 	if (!StripFlags.IsDataStrippedForServer())
 	{
@@ -231,6 +357,54 @@ void UMapBuildDataRegistry::Serialize(FArchive& Ar)
 		}
 
 		Ar << LightBuildData;
+
+		if (Ar.IsSaving())
+		{
+			for (TMap<FGuid, FReflectionCaptureMapBuildData>::TIterator It(ReflectionCaptureBuildData); It; ++It)
+			{
+				const FReflectionCaptureMapBuildData& CaptureBuildData = It.Value();
+				// Sanity check that every reflection capture entry has valid data for at least one format
+				check(CaptureBuildData.FullHDRCapturedData.Num() > 0 || CaptureBuildData.EncodedHDRCapturedData.Num() > 0);
+			}
+		}
+
+		if (Ar.CustomVer(FReflectionCaptureObjectVersion::GUID) >= FReflectionCaptureObjectVersion::MoveReflectionCaptureDataToMapBuildData)
+		{
+			Ar << ReflectionCaptureBuildData;
+		}
+	}
+}
+
+void UMapBuildDataRegistry::PostLoad()
+{
+	Super::PostLoad();
+
+	if (ReflectionCaptureBuildData.Num() > 0 
+		// Only strip in PostLoad for cooked platforms.  Uncooked may need to generate encoded HDR data in UReflectionCaptureComponent::OnRegister().
+		&& FPlatformProperties::RequiresCookedData())
+	{
+		// We already stripped unneeded formats during cooking, but some cooking targets require multiple formats to be stored
+		// Strip unneeded formats for the current max feature level
+		bool bRetainAllFeatureLevelData = GIsEditor && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4;
+		bool bEncodedDataRequired = bRetainAllFeatureLevelData || (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2 || GMaxRHIFeatureLevel == ERHIFeatureLevel::ES3_1);
+		bool bFullDataRequired = GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4;
+
+		for (TMap<FGuid, FReflectionCaptureMapBuildData>::TIterator It(ReflectionCaptureBuildData); It; ++It)
+		{
+			FReflectionCaptureMapBuildData& CaptureBuildData = It.Value();
+
+			if (!bFullDataRequired)
+			{
+				CaptureBuildData.FullHDRCapturedData.Empty();
+			}
+
+			if (!bEncodedDataRequired)
+			{
+				CaptureBuildData.EncodedHDRCapturedData.Empty();
+			}
+
+			check(CaptureBuildData.FullHDRCapturedData.Num() > 0 || CaptureBuildData.EncodedHDRCapturedData.Num() > 0);
+		}
 	}
 }
 
@@ -266,7 +440,7 @@ void UMapBuildDataRegistry::FinishDestroy()
 {
 	Super::FinishDestroy();
 
-	EmptyData();
+	EmptyLevelData();
 }
 
 FMeshMapBuildData& UMapBuildDataRegistry::AllocateMeshBuildData(const FGuid& MeshId, bool bMarkDirty)
@@ -277,7 +451,7 @@ FMeshMapBuildData& UMapBuildDataRegistry::AllocateMeshBuildData(const FGuid& Mes
 	{
 		MarkPackageDirty();
 	}
-	
+
 	return MeshBuildData.Add(MeshId, FMeshMapBuildData());
 }
 
@@ -307,7 +481,7 @@ void UMapBuildDataRegistry::AddLevelPrecomputedLightVolumeBuildData(const FGuid&
 const FPrecomputedLightVolumeData* UMapBuildDataRegistry::GetLevelPrecomputedLightVolumeBuildData(FGuid LevelId) const
 {
 	const FPrecomputedLightVolumeData* const * DataPtr = LevelPrecomputedLightVolumeBuildData.Find(LevelId);
-	
+
 	if (DataPtr)
 	{
 		return *DataPtr;
@@ -344,7 +518,7 @@ void UMapBuildDataRegistry::AddLevelPrecomputedVolumetricLightmapBuildData(const
 const FPrecomputedVolumetricLightmapData* UMapBuildDataRegistry::GetLevelPrecomputedVolumetricLightmapBuildData(FGuid LevelId) const
 {
 	const FPrecomputedVolumetricLightmapData* const * DataPtr = LevelPrecomputedVolumetricLightmapBuildData.Find(LevelId);
-	
+
 	if (DataPtr)
 	{
 		return *DataPtr;
@@ -373,7 +547,7 @@ FLightComponentMapBuildData& UMapBuildDataRegistry::FindOrAllocateLightBuildData
 	{
 		MarkPackageDirty();
 	}
-	
+
 	return LightBuildData.FindOrAdd(LightId);
 }
 
@@ -387,15 +561,67 @@ FLightComponentMapBuildData* UMapBuildDataRegistry::GetLightBuildData(FGuid Ligh
 	return LightBuildData.Find(LightId);
 }
 
-void UMapBuildDataRegistry::InvalidateStaticLighting(UWorld* World)
+FReflectionCaptureMapBuildData& UMapBuildDataRegistry::AllocateReflectionCaptureBuildData(const FGuid& CaptureId, bool bMarkDirty)
+{
+	check(CaptureId.IsValid());
+
+	if (bMarkDirty)
+	{
+		MarkPackageDirty();
+	}
+
+	return ReflectionCaptureBuildData.Add(CaptureId, FReflectionCaptureMapBuildData());
+}
+
+const FReflectionCaptureMapBuildData* UMapBuildDataRegistry::GetReflectionCaptureBuildData(FGuid CaptureId) const
+{
+	return ReflectionCaptureBuildData.Find(CaptureId);
+}
+
+FReflectionCaptureMapBuildData* UMapBuildDataRegistry::GetReflectionCaptureBuildData(FGuid CaptureId)
+{
+	return ReflectionCaptureBuildData.Find(CaptureId);
+}
+
+void UMapBuildDataRegistry::InvalidateStaticLighting(UWorld* World, const TSet<FGuid>* ResourcesToKeep)
 {
 	if (MeshBuildData.Num() > 0 || LightBuildData.Num() > 0)
 	{
 		FGlobalComponentRecreateRenderStateContext Context;
-		MeshBuildData.Empty();
-		LightBuildData.Empty();
+
+		if (!ResourcesToKeep || !ResourcesToKeep->Num())
+		{
+			MeshBuildData.Empty();
+			LightBuildData.Empty();
+		}
+		else // Otherwise keep any resource if it's guid is in ResourcesToKeep.
+		{
+			TMap<FGuid, FMeshMapBuildData> PrevMeshData;
+			TMap<FGuid, FLightComponentMapBuildData> PrevLightData;
+			FMemory::Memswap(&MeshBuildData , &PrevMeshData, sizeof(MeshBuildData));
+			FMemory::Memswap(&LightBuildData , &PrevLightData, sizeof(LightBuildData));
+
+			for (const FGuid& Guid : *ResourcesToKeep)
+			{
+				const FMeshMapBuildData* MeshData = PrevMeshData.Find(Guid);
+				if (MeshData)
+				{
+					MeshBuildData.Add(Guid, *MeshData);
+					continue;
+				}
+
+				const FLightComponentMapBuildData* LightData = PrevLightData.Find(Guid);
+				if (LightData)
+				{
+					LightBuildData.Add(Guid, *LightData);
+					continue;
+				}
+			}
+		}
+
+		MarkPackageDirty();
 	}
-	
+
 	if (LevelPrecomputedLightVolumeBuildData.Num() > 0 || LevelPrecomputedVolumetricLightmapBuildData.Num() > 0)
 	{
 		for (int32 LevelIndex = 0; LevelIndex < World->GetNumLevels(); LevelIndex++)
@@ -403,15 +629,37 @@ void UMapBuildDataRegistry::InvalidateStaticLighting(UWorld* World)
 			World->GetLevel(LevelIndex)->ReleaseRenderingResources();
 		}
 
-		ReleaseResources();
+		ReleaseResources(ResourcesToKeep);
 
 		// Make sure the RT has processed the release command before we delete any FPrecomputedLightVolume's
 		FlushRenderingCommands();
 
-		EmptyData();
+		EmptyLevelData(ResourcesToKeep);
+
+		MarkPackageDirty();
 	}
-	
-	MarkPackageDirty();
+}
+
+void UMapBuildDataRegistry::InvalidateReflectionCaptures(const TSet<FGuid>* ResourcesToKeep)
+{
+	if (ReflectionCaptureBuildData.Num() > 0)
+	{
+		FGlobalComponentRecreateRenderStateContext Context;
+
+		TMap<FGuid, FReflectionCaptureMapBuildData> PrevReflectionCapturedData;
+		FMemory::Memswap(&ReflectionCaptureBuildData , &PrevReflectionCapturedData, sizeof(ReflectionCaptureBuildData));
+
+		for (TMap<FGuid, FReflectionCaptureMapBuildData>::TIterator It(PrevReflectionCapturedData); It; ++It)
+		{
+			// Keep any resource if it's guid is in ResourcesToKeep.
+			if (ResourcesToKeep && ResourcesToKeep->Contains(It.Key()))
+			{
+				ReflectionCaptureBuildData.Add(It.Key(), It.Value());
+			}
+		}
+
+		MarkPackageDirty();
+	}
 }
 
 bool UMapBuildDataRegistry::IsLegacyBuildData() const
@@ -419,34 +667,52 @@ bool UMapBuildDataRegistry::IsLegacyBuildData() const
 	return GetOutermost()->ContainsMap();
 }
 
-void UMapBuildDataRegistry::ReleaseResources()
+void UMapBuildDataRegistry::ReleaseResources(const TSet<FGuid>* ResourcesToKeep)
 {
 	for (TMap<FGuid, FPrecomputedVolumetricLightmapData*>::TIterator It(LevelPrecomputedVolumetricLightmapBuildData); It; ++It)
 	{
-		BeginReleaseResource(It.Value());
+		if (!ResourcesToKeep || !ResourcesToKeep->Contains(It.Key()))
+		{
+			BeginReleaseResource(It.Value());
+		}
 	}
 }
 
-void UMapBuildDataRegistry::EmptyData()
+void UMapBuildDataRegistry::EmptyLevelData(const TSet<FGuid>* ResourcesToKeep)
 {
-	MeshBuildData.Empty();
-	LightBuildData.Empty();
+	TMap<FGuid, FPrecomputedLightVolumeData*> PrevPrecomputedLightVolumeData;
+	TMap<FGuid, FPrecomputedVolumetricLightmapData*> PrevPrecomputedVolumetricLightmapData;
+	FMemory::Memswap(&LevelPrecomputedLightVolumeBuildData , &PrevPrecomputedLightVolumeData, sizeof(LevelPrecomputedLightVolumeBuildData));
+	FMemory::Memswap(&LevelPrecomputedVolumetricLightmapBuildData , &PrevPrecomputedVolumetricLightmapData, sizeof(LevelPrecomputedVolumetricLightmapBuildData));
 
-	for (TMap<FGuid, FPrecomputedLightVolumeData*>::TIterator It(LevelPrecomputedLightVolumeBuildData); It; ++It)
+	for (TMap<FGuid, FPrecomputedLightVolumeData*>::TIterator It(PrevPrecomputedLightVolumeData); It; ++It)
 	{
-		delete It.Value();
+		// Keep any resource if it's guid is in ResourcesToKeep.
+		if (!ResourcesToKeep || !ResourcesToKeep->Contains(It.Key()))
+		{
+			delete It.Value();
+		}
+		else
+		{
+			LevelPrecomputedLightVolumeBuildData.Add(It.Key(), It.Value());
+		}
 	}
 
-	LevelPrecomputedLightVolumeBuildData.Empty();
-
-	for (TMap<FGuid, FPrecomputedVolumetricLightmapData*>::TIterator It(LevelPrecomputedVolumetricLightmapBuildData); It; ++It)
+	for (TMap<FGuid, FPrecomputedVolumetricLightmapData*>::TIterator It(PrevPrecomputedVolumetricLightmapData); It; ++It)
 	{
-		delete It.Value();
+		// Keep any resource if it's guid is in ResourcesToKeep.
+		if (!ResourcesToKeep || !ResourcesToKeep->Contains(It.Key()))
+		{
+			delete It.Value();
+		}
+		else
+		{
+			LevelPrecomputedVolumetricLightmapBuildData.Add(It.Key(), It.Value());
+		}
 	}
-
-	LevelPrecomputedVolumetricLightmapBuildData.Empty();
 }
 
 FUObjectAnnotationSparse<FMeshMapBuildLegacyData, true> GComponentsWithLegacyLightmaps;
 FUObjectAnnotationSparse<FLevelLegacyMapBuildData, true> GLevelsWithLegacyBuildData;
 FUObjectAnnotationSparse<FLightComponentLegacyMapBuildData, true> GLightComponentsWithLegacyBuildData;
+FUObjectAnnotationSparse<FReflectionCaptureMapBuildLegacyData, true> GReflectionCapturesWithLegacyBuildData;

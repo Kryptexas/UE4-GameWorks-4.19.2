@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -26,20 +26,32 @@ class CheckCsprojDotNetVersion : BuildCommand
 		Regex FrameworkRegex = new Regex("<TargetFrameworkVersion>v(\\d\\.\\d\\.?\\d?)<\\/TargetFrameworkVersion>");
 		Regex PossibleAppConfigRegex = new Regex("<TargetFrameworkProfile>(.+)<\\/TargetFrameworkProfile>");
 		Regex AppConfigRegex = new Regex("<supportedRuntime version=\"v(\\d\\.\\d\\.?\\d?)\" sku=\"\\.NETFramework,Version=v(\\d\\.\\d\\.?\\d?),Profile=(.+)\"\\/>");
-		foreach (FileReference CsProj in DirectoryReference.EnumerateFiles(EngineDir, "*.csproj", SearchOption.AllDirectories))
-		{
-			if (CsProj.ContainsName(new FileSystemName("ThirdParty"), EngineDir) ||
-				(CsProj.ContainsName(new FileSystemName("UE4TemplateProject"), EngineDir) && CsProj.GetFileName().Equals("ProjectTemplate.csproj")))
-			{
-				continue;
-			}
+        Regex DotNetCoreRegex = new Regex("<TargetFramework>(netcoreapp2.0|netstandard2.0)<\\/TargetFramework>");
+        foreach (FileReference CsProj in DirectoryReference.EnumerateFiles(EngineDir, "*.csproj", SearchOption.AllDirectories))
+        {
+            if (CsProj.ContainsName(new FileSystemName("ThirdParty"), EngineDir) ||
+                (CsProj.ContainsName(new FileSystemName("UE4TemplateProject"), EngineDir) && CsProj.GetFileName().Equals("ProjectTemplate.csproj")) ||
+                CsProj.GetFileNameWithoutExtension().ToLower().Contains("_mono") ||
+                CsProj.GetFileNameWithoutExtension().ToLower().Contains("unrealvs"))
 
-			// read in the file
-			string Contents = File.ReadAllText(CsProj.FullName);
-			Match m = FrameworkRegex.Match(Contents);
-			if (m.Success)
+            {
+                continue;
+            }
+
+            // read in the file
+            string Contents = File.ReadAllText(CsProj.FullName);
+            Match Match = DotNetCoreRegex.Match(Contents);
+            // Check if we're a _NETCore app, ignore these.
+            if (Match.Success)
+            {
+                continue;
+            }
+
+
+            Match = FrameworkRegex.Match(Contents);
+            if (Match.Success)
 			{
-				string TargetedVersion = m.Groups[1].Value;
+				string TargetedVersion = Match.Groups[1].Value;
 				// make sure we match, throw warning otherwise
 				if (!DesiredTargetVersion.Equals(TargetedVersion, StringComparison.InvariantCultureIgnoreCase))
 				{
@@ -49,8 +61,8 @@ class CheckCsprojDotNetVersion : BuildCommand
 			// if we don't have a TargetFrameworkVersion, check for the existence of TargetFrameworkProfile.
 			else
 			{
-				m = PossibleAppConfigRegex.Match(Contents);
-				if (!m.Success)
+                Match = PossibleAppConfigRegex.Match(Contents);
+				if (!Match.Success)
 				{
 					CommandUtils.Log("No TargetFrameworkVersion or TargetFrameworkProfile found for project {0}, is it a mono project? If not, does it compile properly?", CsProj);
 					continue;
@@ -58,7 +70,7 @@ class CheckCsprojDotNetVersion : BuildCommand
 
 				// look for the app config
 				FileReference AppConfigFile = FileReference.Combine(CsProj.Directory, "app.config");
-				string Profile = m.Groups[1].Value;
+				string Profile = Match.Groups[1].Value;
 				if (!FileReference.Exists(AppConfigFile))
 				{
 					CommandUtils.Log("Found TargetFrameworkProfile but no associated app.config containing the version for project {0}.", CsProj);
@@ -67,8 +79,8 @@ class CheckCsprojDotNetVersion : BuildCommand
 
 				// read in the app config
 				Contents = File.ReadAllText(AppConfigFile.FullName);
-				m = AppConfigRegex.Match(Contents);
-				if (!m.Success)
+                Match = AppConfigRegex.Match(Contents);
+				if (!Match.Success)
 				{
 					CommandUtils.Log("Couldn't find a supportedRuntime match for the version in the app.config for project {0}.", CsProj);
 					continue;
@@ -77,9 +89,9 @@ class CheckCsprojDotNetVersion : BuildCommand
 				// Version1 is the one that appears right after supportedRuntime
 				// Version2 is the one in the sku
 				// ProfileString should match the TargetFrameworkProfile from the csproj
-				string Version1String = m.Groups[1].Value;
-				string Version2String = m.Groups[2].Value;
-				string ProfileString = m.Groups[3].Value;
+				string Version1String = Match.Groups[1].Value;
+				string Version2String = Match.Groups[2].Value;
+				string ProfileString = Match.Groups[3].Value;
 
 				// not sure how this is possible, but check for it anyway
 				if (!ProfileString.Equals(Profile, StringComparison.InvariantCultureIgnoreCase))

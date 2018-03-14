@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Collision.h"
 #include "LightingSystem.h"
@@ -310,7 +310,8 @@ bool FDefaultAggregateMesh::IntersectLightRay(
 			
 			if ((ClosestIntersection.Mesh == LightRay.Mesh && ((ClosestIntersection.Mesh->LightingFlags & GI_INSTANCE_SELFSHADOWDISABLE) || (LightRay.TraceFlags & LIGHTRAY_SELFSHADOWDISABLE)))
 				|| (bDirectShadowingRay && ClosestIntersection.Mesh->IsIndirectlyShadowedOnly(ClosestIntersection.ElementIndex))
-				|| (ClosestIntersection.Mesh != LightRay.Mesh && (ClosestIntersection.Mesh->LightingFlags & GI_INSTANCE_SELFSHADOWONLY)))
+				|| (ClosestIntersection.Mesh != LightRay.Mesh && (ClosestIntersection.Mesh->LightingFlags & GI_INSTANCE_SELFSHADOWONLY))
+				|| !ClosestIntersection.Mesh->IsSurfaceDomain(ClosestIntersection.ElementIndex))
 			{
 				// Nothing more to do if we're just avoiding shadowing based on trace flags, just keep going
 			}
@@ -430,7 +431,7 @@ bool FDefaultAggregateMesh::IntersectLightRay(
 	}
 	// Must not return an intersection with a translucent mesh
 	checkSlow(!ClosestIntersection.bIntersects 
-		|| !ClosestIntersection.Mesh->IsTranslucent(ClosestIntersection.ElementIndex) 
+		|| (!ClosestIntersection.Mesh->IsTranslucent(ClosestIntersection.ElementIndex) && !ClosestIntersection.Mesh->IsSurfaceDomain(ClosestIntersection.ElementIndex))
 		|| bDirectShadowingRay && ClosestIntersection.Mesh->IsCastingShadowsAsMasked(ClosestIntersection.ElementIndex));
 	ClosestIntersection.Transmission = Transmission;
 	return ClosestIntersection.bIntersects;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 SeparableSSS.cpp: Computing the kernel for the Separable Screen Space Subsurface Scattering, based on SeparableSSS, see copyright below

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LightmassSwarm.h"
 #include "CPUSolver.h"
@@ -277,7 +277,7 @@ void FLightmassSwarm::SendAlertMessage(	NSwarm::TAlertLevel AlertLevel,
 /**
  * Sends text information to Swarm, using printf-like parameters.
  */
-VARARG_BODY( void, FLightmassSwarm::SendTextMessage, const TCHAR*, VARARG_NONE )
+void FLightmassSwarm::SendTextMessageImpl(const TCHAR* Fmt, ...)
 {
 	int32		BufferSize	= 1024;
 	TCHAR*	Buffer		= NULL;

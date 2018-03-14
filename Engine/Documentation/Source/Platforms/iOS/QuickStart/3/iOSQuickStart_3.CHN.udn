@@ -20,7 +20,7 @@ Availability:Public
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:note]
 您是否已经有了信息提供和签名证书？ [您可以跳过这个部分。](Platforms/iOS/QuickStart/4)
@@ -56,7 +56,8 @@ Availability:Public
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windows]
 您可以通过组合使用苹果的开发者页面以及与虚幻引擎一起提供的虚幻iOS配置向导 (iPhonePackager) 应用程序(`Engine\Binaries\DotNET\IOS\IPhonePackager.exe`) 来生成Windows上iOS开发的签名认证。
 
@@ -132,6 +133,7 @@ Availability:Public
 1. 点击加号按钮，然后选择 **iOS Development（iOS开发）** 来完成认证生成过程。
 
 [/EXCERPT:macos]
--->
 
-%Steps%
+[/COMMENT]
+
+

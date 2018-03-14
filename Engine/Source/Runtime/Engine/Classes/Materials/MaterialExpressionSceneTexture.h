@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -82,10 +82,6 @@ class UMaterialExpressionSceneTexture : public UMaterialExpression
 	UPROPERTY(EditAnywhere, Category=UMaterialExpressionSceneTexture, meta=(DisplayName = "Scene Texture Id"))
 	TEnumAsByte<ESceneTextureId> SceneTextureId;
 	
-	/** Clamps texture coordinates to the range 0 to 1. Incurs a performance cost. */
-	UPROPERTY(EditAnywhere, Category=UMaterialExpressionSceneTexture, meta=(DisplayName = "Clamp UVs"))
-	bool bClampUVs;
-
 	/** Whether to use point sampled texture lookup (default) or using [bi-linear] filtered (can be slower, avoid faceted lock with distortions), some SceneTextures cannot be filtered */
 	UPROPERTY(EditAnywhere, Category=UMaterialExpressionSceneTexture, meta=(DisplayName = "Filtered"))
 	bool bFiltered;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,7 +7,7 @@
 #include "Math/UnrealMathUtility.h"
 #include "UnrealEngine.h"
 #include "Engine/GameViewportClient.h"
-#include "ARTrackingQuality.h"
+#include "ARsystem.h"
 
 // ARKit
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
@@ -39,7 +39,9 @@ struct APPLEARKIT_API FAppleARKitCamera
 	GENERATED_BODY()
 	
 	// Default constructor
-	FAppleARKitCamera() {};
+	FAppleARKitCamera()
+	: Orientation(EForceInit::ForceInit)
+	{};
 
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 

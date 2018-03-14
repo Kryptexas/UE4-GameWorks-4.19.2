@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "IMeshPainter.h"
 
@@ -22,7 +22,7 @@
 #include "Components/PrimitiveComponent.h"
 
 IMeshPainter::IMeshPainter()
-	: CurrentViewportInteractor(nullptr), bArePainting(false), TimeSinceStartedPainting(0.0f), Time(0.0f), WidgetLineThickness(1.0f), VertexPointSize(3.5f), VertexPointColor(FLinearColor::White), HoverVertexPointColor(0.3f, 1.0f, 0.3f), PaintTransaction(nullptr)
+	: CurrentViewportInteractor(nullptr), bArePainting(false), TimeSinceStartedPainting(0.0f), Time(0.0f), WidgetLineThickness(1.0f), VertexPointColor(FLinearColor::White), HoverVertexPointColor(0.3f, 1.0f, 0.3f), PaintTransaction(nullptr)
 {
 	FMeshPainterCommands::Register();
 }
@@ -185,6 +185,7 @@ void IMeshPainter::RenderInteractorWidget(const FVector& InCameraOrigin, const F
 		const FLinearColor NormalLineColor(0.3f, 1.0f, 0.3f);
 		const FLinearColor BrushCueColor = (bArePainting ? FLinearColor(1.0f, 1.0f, 0.3f) : FLinearColor(0.3f, 1.0f, 0.3f));
 		const FLinearColor InnerBrushCueColor = (bArePainting ? FLinearColor(0.5f, 0.5f, 0.1f) : FLinearColor(0.1f, 0.5f, 0.1f));
+		const float PointDrawSize = GetDefault<UMeshPaintSettings>()->VertexPreviewSize;
 
 		FVector BrushXAxis, BrushYAxis;
 		HitResult.Normal.FindBestAxisVectors(BrushXAxis, BrushYAxis);
@@ -246,7 +247,7 @@ void IMeshPainter::RenderInteractorWidget(const FVector& InCameraOrigin, const F
 					if (( HitResult.Location - WorldPositionVertex).Size() <= BrushRadius)
 					{
 						const FVector VertexVisualPosition = WorldPositionVertex + HitResult.Normal * VisualBiasDistance;
-						PDI->DrawPoint(VertexVisualPosition, HoverVertexPointColor, VertexPointSize * 2.0f, DepthGroup);
+						PDI->DrawPoint(VertexVisualPosition, HoverVertexPointColor, PointDrawSize, DepthGroup);
 					}
 				}
 			}

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PaperEditorShared/SpriteGeometryEditing.h"
 #include "Materials/Material.h"
@@ -382,11 +382,11 @@ void FSpriteGeometryEditingHelper::DrawGeometry(const FSceneView& View, FPrimiti
 
 			if (((TriangulatedPolygonVertices.Num() % 3) == 0) && (TriangulatedPolygonVertices.Num() > 0))
 			{
-				FDynamicMeshBuilder MeshBuilder;
+				FDynamicMeshBuilder MeshBuilder(View.GetFeatureLevel());
 
 				FDynamicMeshVertex MeshVertex;
 				MeshVertex.Color = BackgroundColor;
-				MeshVertex.TextureCoordinate = FVector2D::ZeroVector;
+				MeshVertex.TextureCoordinate[0] = FVector2D::ZeroVector;
 				MeshVertex.SetTangents(PaperAxisX, PaperAxisY, PaperAxisZ);
 
 				for (const FVector2D& SrcTriangleVertex : TriangulatedPolygonVertices)

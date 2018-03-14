@@ -1,12 +1,13 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MeshPaintSkeletalMeshAdapter.h"
 #include "Engine/SkeletalMesh.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "MeshPaintHelpers.h"
 #include "MeshPaintTypes.h"
-
 #include "ComponentReregisterContext.h"
+#include "Rendering/SkeletalMeshRenderData.h"
+#include "Rendering/SkeletalMeshModel.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FMeshPaintGeometryAdapterForSkeletalMeshes
@@ -51,16 +52,27 @@ void FMeshPaintGeometryAdapterForSkeletalMeshes::OnSkeletalMeshChanged()
 	}	
 }
 
+void FMeshPaintGeometryAdapterForSkeletalMeshes::OnPostMeshCached(USkeletalMesh* SkeletalMesh)
+{
+	if (ReferencedSkeletalMesh == SkeletalMesh)
+	{
+		OnSkeletalMeshChanged();
+	}
+}
+
 bool FMeshPaintGeometryAdapterForSkeletalMeshes::Initialize()
 {
 	check(ReferencedSkeletalMesh == SkeletalMeshComponent->SkeletalMesh);
 
 	bool bInitializationResult = false;
 
-	MeshResource = ReferencedSkeletalMesh->GetImportedResource();
+	MeshResource = ReferencedSkeletalMesh->GetResourceForRendering();
 	if (MeshResource != nullptr)
 	{
-		LODModel = &MeshResource->LODModels[MeshLODIndex];
+		LODData = &MeshResource->LODRenderData[MeshLODIndex];
+		checkf(ReferencedSkeletalMesh->GetImportedModel()->LODModels.IsValidIndex(MeshLODIndex), TEXT("Invalid Imported Model index for vertex painting"));
+		LODModel = &ReferencedSkeletalMesh->GetImportedModel()->LODModels[MeshLODIndex];
+
 		bInitializationResult = FBaseMeshPaintGeometryAdapter::Initialize();
 	}
 
@@ -71,17 +83,17 @@ bool FMeshPaintGeometryAdapterForSkeletalMeshes::Initialize()
 bool FMeshPaintGeometryAdapterForSkeletalMeshes::InitializeVertexData()
 {
 	// Retrieve mesh vertex and index data 
-	const int32 NumVertices = LODModel->NumVertices;
+	const int32 NumVertices = LODData->GetNumVertices();
 	MeshVertices.Reset();
 	MeshVertices.AddDefaulted(NumVertices);
 	for (int32 Index = 0; Index < NumVertices; Index++)
 	{
-		const FVector& Position = LODModel->VertexBufferGPUSkin.GetVertexPositionSlow(Index);
+		const FVector& Position = LODData->StaticVertexBuffers.PositionVertexBuffer.VertexPosition(Index);
 		MeshVertices[Index] = Position;
 	}
 
-	MeshIndices.Reserve(LODModel->MultiSizeIndexContainer.GetIndexBuffer()->Num());
-	LODModel->MultiSizeIndexContainer.GetIndexBuffer(MeshIndices);
+	MeshIndices.Reserve(LODData->MultiSizeIndexContainer.GetIndexBuffer()->Num());
+	LODData->MultiSizeIndexContainer.GetIndexBuffer(MeshIndices);
 
 	return (MeshVertices.Num() >= 0 && MeshIndices.Num() > 0);
 }
@@ -151,6 +163,9 @@ void FMeshPaintGeometryAdapterForSkeletalMeshes::OnAdded()
 
 	// Set new physics state for the component
 	SkeletalMeshComponent->RecreatePhysicsState();
+
+	// Register callback for when the skeletal mesh is cached underneath us
+	ReferencedSkeletalMesh->OnPostMeshCached().AddRaw(this, &FMeshPaintGeometryAdapterForSkeletalMeshes::OnPostMeshCached);
 }
 
 void FMeshPaintGeometryAdapterForSkeletalMeshes::OnRemoved()
@@ -194,6 +209,8 @@ void FMeshPaintGeometryAdapterForSkeletalMeshes::OnRemoved()
 		
 		verify(MeshToComponentMap.Remove(ReferencedSkeletalMesh) == 1);
 	}
+
+	ReferencedSkeletalMesh->OnPostMeshCached().RemoveAll(this);
 }
 
 bool FMeshPaintGeometryAdapterForSkeletalMeshes::LineTraceComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const struct FCollisionQueryParams& Params) const
@@ -291,7 +308,7 @@ void FMeshPaintGeometryAdapterForSkeletalMeshes::AddReferencedObjects(FReference
 
 void FMeshPaintGeometryAdapterForSkeletalMeshes::GetTextureCoordinate(int32 VertexIndex, int32 ChannelIndex, FVector2D& OutTextureCoordinate) const
 {
-	OutTextureCoordinate = LODModel->VertexBufferGPUSkin.GetVertexUVFast(VertexIndex, ChannelIndex);
+	OutTextureCoordinate = LODData->StaticVertexBuffers.StaticMeshVertexBuffer.GetVertexUV(VertexIndex, ChannelIndex);
 }
 
 void FMeshPaintGeometryAdapterForSkeletalMeshes::PreEdit()
@@ -312,37 +329,42 @@ void FMeshPaintGeometryAdapterForSkeletalMeshes::PreEdit()
 	// allocated, and potentially accessing the UStaticMesh.
 	ReferencedSkeletalMesh->ReleaseResourcesFence.Wait();
 
-	if (LODModel->ColorVertexBuffer.GetNumVertices() == 0)
+	if (LODData->StaticVertexBuffers.ColorVertexBuffer.GetNumVertices() == 0)
 	{
 		// Mesh doesn't have a color vertex buffer yet!  We'll create one now.
-		LODModel->ColorVertexBuffer.InitFromSingleColor(FColor(255, 255, 255, 255), LODModel->NumVertices);
+		LODData->StaticVertexBuffers.ColorVertexBuffer.InitFromSingleColor(FColor(255, 255, 255, 255), LODData->GetNumVertices());
 		ReferencedSkeletalMesh->bHasVertexColors = true;
-		BeginInitResource(&LODModel->ColorVertexBuffer);
+		BeginInitResource(&LODData->StaticVertexBuffers.ColorVertexBuffer);
 	}
 }
 
 void FMeshPaintGeometryAdapterForSkeletalMeshes::PostEdit()
 {
-	TUniquePtr< FSkeletalMeshComponentRecreateRenderStateContext > RecreateRenderStateContext = MakeUnique<FSkeletalMeshComponentRecreateRenderStateContext>(ReferencedSkeletalMesh);
+	TUniquePtr< FSkinnedMeshComponentRecreateRenderStateContext > RecreateRenderStateContext = MakeUnique<FSkinnedMeshComponentRecreateRenderStateContext>(ReferencedSkeletalMesh);
 	ReferencedSkeletalMesh->InitResources();
 }
 
 void FMeshPaintGeometryAdapterForSkeletalMeshes::GetVertexColor(int32 VertexIndex, FColor& OutColor, bool bInstance /*= true*/) const
 {
-	if (LODModel->ColorVertexBuffer.GetNumVertices() > 0)
+	if (LODData->StaticVertexBuffers.ColorVertexBuffer.GetNumVertices() > 0)
 	{
-		check((int32)LODModel->ColorVertexBuffer.GetNumVertices() > VertexIndex);
-		OutColor = LODModel->ColorVertexBuffer.VertexColor(VertexIndex);
+		check((int32)LODData->StaticVertexBuffers.ColorVertexBuffer.GetNumVertices() > VertexIndex);
+		OutColor = LODData->StaticVertexBuffers.ColorVertexBuffer.VertexColor(VertexIndex);
 	}
 }
 
 void FMeshPaintGeometryAdapterForSkeletalMeshes::SetVertexColor(int32 VertexIndex, FColor Color, bool bInstance /*= true*/)
 {
-	if (LODModel->ColorVertexBuffer.GetNumVertices() > 0)
+	if (LODData->StaticVertexBuffers.ColorVertexBuffer.GetNumVertices() > 0)
 	{
-		LODModel->ColorVertexBuffer.VertexColor(VertexIndex) = Color;
+		LODData->StaticVertexBuffers.ColorVertexBuffer.VertexColor(VertexIndex) = Color;
 
-		if (ReferencedSkeletalMesh->LODInfo[MeshLODIndex].bHasPerLODVertexColors)
+		int32 SectionIndex = INDEX_NONE;
+		int32 SectionVertexIndex = INDEX_NONE;		
+		LODModel->GetSectionFromVertexIndex(VertexIndex, SectionIndex, SectionVertexIndex);
+		LODModel->Sections[SectionIndex].SoftVertices[SectionVertexIndex].Color = Color;
+
+		if (!ReferencedSkeletalMesh->LODInfo[MeshLODIndex].bHasPerLODVertexColors)
 		{
 			ReferencedSkeletalMesh->LODInfo[MeshLODIndex].bHasPerLODVertexColors = true;
 		}

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -71,5 +71,5 @@ struct D6JointData
 void PrepareJointData(D6JointData& JointData);
 PxU32 D6JointSolverPrep(Px1DConstraint* constraints, PxVec3& body0WorldOffset, PxU32 maxConstraints, PxConstraintInvMassScale& invMassScale, const void* constantBlock, const PxTransform& bA2w, const PxTransform& bB2w);
 
-}
 #endif
+}

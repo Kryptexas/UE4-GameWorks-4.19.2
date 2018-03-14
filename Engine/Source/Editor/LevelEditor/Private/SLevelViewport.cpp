@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SLevelViewport.h"
 #include "Materials/MaterialInterface.h"
@@ -26,6 +26,7 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Views/SHeaderRow.h"
 #include "Framework/Docking/LayoutService.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "Editor/UnrealEdEngine.h"
 #include "Exporters/ExportTextContainer.h"
@@ -65,6 +66,8 @@
 #include "Slate/SGameLayerManager.h"
 #include "FoliageType.h"
 #include "IVREditorModule.h"
+#include "ShowFlagMenuCommands.h"
+#include "BufferVisualizationMenuCommands.h"
 
 static const FName LevelEditorName("LevelEditor");
 
@@ -120,9 +123,13 @@ SLevelViewport::~SLevelViewport()
 	LevelEditor.OnTakeHighResScreenShots().RemoveAll( this );
 	LevelEditor.OnActorSelectionChanged().RemoveAll( this );
 	LevelEditor.OnMapChanged().RemoveAll( this );
-	GEngine->OnLevelActorDeleted().RemoveAll( this );
 
-	GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().RemoveAll( this );
+	if(UObjectInitialized())
+	{
+		GEngine->OnLevelActorDeleted().RemoveAll(this);
+
+		GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().RemoveAll(this);
+	}
 
 	// If this viewport has a high res screenshot window attached to it, close it
 	if (HighResScreenshotDialog.IsValid())
@@ -245,6 +252,35 @@ void SLevelViewport::ConstructViewportOverlayContent()
 		.Padding(2.0f, 1.0f, 2.0f, 1.0f)
 		[
 			SNew(SHorizontalBox)
+			.Visibility(this, &SLevelViewport::GetCurrentScreenPercentageVisibility)
+			// Current screen percentage label
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2.0f, 1.0f, 2.0f, 1.0f)
+			[
+				SNew(STextBlock)
+				.Text(this, &SLevelViewport::GetCurrentScreenPercentageText, true)
+				.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+				.ShadowOffset(FVector2D(1, 1))
+			]
+
+			// Current screen percentage
+			+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(4.0f, 1.0f, 2.0f, 1.0f)
+				[
+					SNew(STextBlock)
+					.Text(this, &SLevelViewport::GetCurrentScreenPercentageText, false)
+					.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+					.ColorAndOpacity(FLinearColor(0.4f, 1.0f, 1.0f))
+					.ShadowOffset(FVector2D(1, 1))
+				]
+		]
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(2.0f, 1.0f, 2.0f, 1.0f)
+		[
+			SNew(SHorizontalBox)
 			.Visibility(this, &SLevelViewport::GetCurrentFeatureLevelPreviewTextVisibility)
 			// Current level label
 			+ SHorizontalBox::Slot()
@@ -350,6 +386,12 @@ void SLevelViewport::ConstructLevelEditorViewportClient( const FArguments& InArg
 		if(!GetBufferVisualizationData().GetMaterial(ViewportInstanceSettings.BufferVisualizationMode))
 		{
 			ViewportInstanceSettings.BufferVisualizationMode = NAME_None;
+		}
+
+		// Disable realtime viewports by default for remote sessions
+		if (FPlatformMisc::IsRemoteSession())
+		{
+			ViewportInstanceSettings.bIsRealtime = false;
 		}
 	}
 
@@ -1340,63 +1382,41 @@ void SLevelViewport::BindViewCommands( FUICommandList& OutCommandList )
 	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
 	LevelEditorModule.IterateViewportTypes(ProcessViewportTypeActions);
 
-	// Map Buffer visualization mode actions
-	for (FLevelViewportCommands::TBufferVisualizationModeCommandMap::TConstIterator It = ViewportActions.BufferVisualizationModeCommands.CreateConstIterator(); It; ++It)
-	{
-		const FLevelViewportCommands::FBufferVisualizationRecord& Record = It.Value();
-		OutCommandList.MapAction(
-			Record.Command,
-			FExecuteAction::CreateSP( this, &SLevelViewport::ChangeBufferVisualizationMode, Record.Name ),
-			FCanExecuteAction(),
-			FIsActionChecked::CreateSP( this, &SLevelViewport::IsBufferVisualizationModeSelected, Record.Name ) );
-	}
+	FBufferVisualizationMenuCommands::Get().BindCommands(OutCommandList, Client);
 }
 
 
 void SLevelViewport::BindShowCommands( FUICommandList& OutCommandList )
 {
+	FLevelViewportCommands& LevelViewportCommands = FLevelViewportCommands::Get();
+
 	OutCommandList.MapAction( 
-		FLevelViewportCommands::Get().UseDefaultShowFlags,
+		LevelViewportCommands.UseDefaultShowFlags,
 		FExecuteAction::CreateSP( this, &SLevelViewport::OnUseDefaultShowFlags, false ) );
 
-	const TArray<FShowFlagData>& ShowFlagData = GetShowFlagMenuItems();
-
-	// Bind each show flag to the same delegate.  We use the delegate payload system to figure out what show flag we are dealing with
-	for( int32 ShowFlag = 0; ShowFlag < ShowFlagData.Num(); ++ShowFlag )
-	{
-		const FShowFlagData& SFData = ShowFlagData[ShowFlag];
-
-		// NOTE: There should be one command per show flag so using ShowFlag as the index to ShowFlagCommands is acceptable
-		OutCommandList.MapAction(
-			FLevelViewportCommands::Get().ShowFlagCommands[ ShowFlag ].ShowMenuItem,
-			FExecuteAction::CreateSP( this, &SLevelViewport::ToggleShowFlag, SFData.EngineShowFlagIndex ),
-			FCanExecuteAction(),
-			FIsActionChecked::CreateSP( this, &SLevelViewport::IsShowFlagEnabled, SFData.EngineShowFlagIndex ) );
-	}
+	FShowFlagMenuCommands::Get().BindCommands(OutCommandList, Client);
 
 	// Show Volumes
 	{
 		// Map 'Show All' and 'Hide All' commands
 		OutCommandList.MapAction(
-			FLevelViewportCommands::Get().ShowAllVolumes,
+			LevelViewportCommands.ShowAllVolumes,
 			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllVolumeActors, true ) );
 
 		OutCommandList.MapAction(
-			FLevelViewportCommands::Get().HideAllVolumes,
+			LevelViewportCommands.HideAllVolumes,
 			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllVolumeActors, false ) );
 		
+
+		LevelViewportCommands.RegisterShowVolumeCommands();
+		const TArray<FLevelViewportCommands::FShowMenuCommand>& ShowVolumeCommands = LevelViewportCommands.ShowVolumeCommands;
+		for (int32 VolumeCommandIndex = 0; VolumeCommandIndex < ShowVolumeCommands.Num(); ++VolumeCommandIndex)
 		{
-			FLevelViewportCommands& LevelViewportCommands = FLevelViewportCommands::Get();
-			LevelViewportCommands.RegisterShowVolumeCommands();
-			const TArray<FLevelViewportCommands::FShowMenuCommand>& ShowVolumeCommands = LevelViewportCommands.ShowVolumeCommands;
-			for (int32 VolumeCommandIndex = 0; VolumeCommandIndex < ShowVolumeCommands.Num(); ++VolumeCommandIndex)
-			{
-				OutCommandList.MapAction(
-					ShowVolumeCommands[ VolumeCommandIndex ].ShowMenuItem,
-					FExecuteAction::CreateSP( this, &SLevelViewport::ToggleShowVolumeClass, VolumeCommandIndex ),
-					FCanExecuteAction(),
-					FIsActionChecked::CreateSP( this, &SLevelViewport::IsVolumeVisible, VolumeCommandIndex ) );
-			}
+			OutCommandList.MapAction(
+				ShowVolumeCommands[ VolumeCommandIndex ].ShowMenuItem,
+				FExecuteAction::CreateSP( this, &SLevelViewport::ToggleShowVolumeClass, VolumeCommandIndex ),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP( this, &SLevelViewport::IsVolumeVisible, VolumeCommandIndex ) );
 		}
 	}
 
@@ -1404,11 +1424,11 @@ void SLevelViewport::BindShowCommands( FUICommandList& OutCommandList )
 	{
 		// Map 'Show All' and 'Hide All' commands
 		OutCommandList.MapAction(
-			FLevelViewportCommands::Get().ShowAllLayers,
+			LevelViewportCommands.ShowAllLayers,
 			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllLayers, true ) );
 
 		OutCommandList.MapAction(
-			FLevelViewportCommands::Get().HideAllLayers,
+			LevelViewportCommands.HideAllLayers,
 			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllLayers, false ) );
 	}
 
@@ -1416,21 +1436,23 @@ void SLevelViewport::BindShowCommands( FUICommandList& OutCommandList )
 	{
 		// Map 'Show All' and 'Hide All' commands
 		OutCommandList.MapAction(
-			FLevelViewportCommands::Get().ShowAllSprites,
+			LevelViewportCommands.ShowAllSprites,
 			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllSpriteCategories, true ) );
 
 		OutCommandList.MapAction(
-			FLevelViewportCommands::Get().HideAllSprites,
+			LevelViewportCommands.HideAllSprites,
 			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllSpriteCategories, false ) );
 
 		// Bind each show flag to the same delegate.  We use the delegate payload system to figure out what show flag we are dealing with
-		for( int32 CategoryIndex = 0; CategoryIndex < GUnrealEd->SpriteIDToIndexMap.Num(); ++CategoryIndex )
+		LevelViewportCommands.RegisterShowSpriteCommands();
+		const TArray<FLevelViewportCommands::FShowMenuCommand>& ShowSpriteCommands = LevelViewportCommands.ShowSpriteCommands;
+		for (int32 SpriteCommandIndex = 0; SpriteCommandIndex < ShowSpriteCommands.Num(); ++SpriteCommandIndex)
 		{
 			OutCommandList.MapAction(
-				FLevelViewportCommands::Get().ShowSpriteCommands[ CategoryIndex ].ShowMenuItem,
-				FExecuteAction::CreateSP( this, &SLevelViewport::ToggleSpriteCategory, CategoryIndex ),
+				ShowSpriteCommands[SpriteCommandIndex].ShowMenuItem,
+				FExecuteAction::CreateSP(this, &SLevelViewport::ToggleSpriteCategory, SpriteCommandIndex),
 				FCanExecuteAction(),
-				FIsActionChecked::CreateSP( this, &SLevelViewport::IsSpriteCategoryVisible, CategoryIndex ) );
+				FIsActionChecked::CreateSP(this, &SLevelViewport::IsSpriteCategoryVisible, SpriteCommandIndex));
 		}
 	}
 
@@ -1438,10 +1460,10 @@ void SLevelViewport::BindShowCommands( FUICommandList& OutCommandList )
 	{
 		// Map 'Hide All' command
 		OutCommandList.MapAction(
-			FLevelViewportCommands::Get().HideAllStats,
+			LevelViewportCommands.HideAllStats,
 			FExecuteAction::CreateSP(this, &SLevelViewport::OnToggleAllStatCommands, false));
 
-		for (auto StatCatIt = FLevelViewportCommands::Get().ShowStatCatCommands.CreateConstIterator(); StatCatIt; ++StatCatIt)
+		for (auto StatCatIt = LevelViewportCommands.ShowStatCatCommands.CreateConstIterator(); StatCatIt; ++StatCatIt)
 		{
 			const TArray< FLevelViewportCommands::FShowMenuCommand >& ShowStatCommands = StatCatIt.Value();
 			for (int32 StatIndex = 0; StatIndex < ShowStatCommands.Num(); ++StatIndex)
@@ -1772,18 +1794,6 @@ bool SLevelViewport::IsInGameView() const
 	return LevelViewportClient->IsInGameView();
 }
 
-
-void SLevelViewport::ChangeBufferVisualizationMode( FName InName )
-{
-	LevelViewportClient->SetViewMode(VMI_VisualizeBuffer);
-	LevelViewportClient->CurrentBufferVisualizationMode = InName;
-}
-
-bool SLevelViewport::IsBufferVisualizationModeSelected( FName InName ) const
-{
-	return LevelViewportClient->IsViewModeEnabled( VMI_VisualizeBuffer ) && LevelViewportClient->CurrentBufferVisualizationMode == InName;	
-}
-
 void SLevelViewport::OnToggleAllVolumeActors( bool bVisible )
 {
 	// Reinitialize the volume actor visibility flags to the new state.  All volumes should be visible if "Show All" was selected and hidden if it was not selected.
@@ -2029,6 +2039,10 @@ void SLevelViewport::SaveConfig(const FString& ConfigName) const
 		FEngineShowFlags& GameShowFlagsToSave = LevelViewportClient->IsInGameView() ? LevelViewportClient->EngineShowFlags : LevelViewportClient->LastEngineShowFlags;
 
 		FLevelEditorViewportInstanceSettings ViewportInstanceSettings;
+		if (const FLevelEditorViewportInstanceSettings* CurrentViewportInstanceSettingsPtr = GetDefault<ULevelEditorViewportSettings>()->GetViewportInstanceSettings(ConfigName))
+		{
+			ViewportInstanceSettings = *CurrentViewportInstanceSettingsPtr;
+		}
 		ViewportInstanceSettings.ViewportType = LevelViewportClient->ViewportType;
 		ViewportInstanceSettings.PerspViewModeIndex = LevelViewportClient->GetPerspViewMode();
 		ViewportInstanceSettings.OrthoViewModeIndex = LevelViewportClient->GetOrthoViewMode();
@@ -2037,7 +2051,11 @@ void SLevelViewport::SaveConfig(const FString& ConfigName) const
 		ViewportInstanceSettings.BufferVisualizationMode = LevelViewportClient->CurrentBufferVisualizationMode;
 		ViewportInstanceSettings.ExposureSettings = LevelViewportClient->ExposureSettings;
 		ViewportInstanceSettings.FOVAngle = LevelViewportClient->FOVAngle;
-		ViewportInstanceSettings.bIsRealtime = LevelViewportClient->IsRealtime();
+		if (!FPlatformMisc::IsRemoteSession())
+		{
+			// Only save this when we're not a remote session, as remote sessions force realtime to be disabled
+			ViewportInstanceSettings.bIsRealtime = LevelViewportClient->IsRealtime();
+		}
 		ViewportInstanceSettings.bShowOnScreenStats = LevelViewportClient->ShouldShowStats();
 		ViewportInstanceSettings.FarViewPlane = LevelViewportClient->GetFarClipPlaneOverride();
 		ViewportInstanceSettings.bShowFullToolbar = bShowFullToolbar;
@@ -2134,6 +2152,12 @@ FLevelEditorViewportInstanceSettings SLevelViewport::LoadLegacyConfigFromIni(con
 	GConfig->GetBool(*IniSection, *(InConfigKey + TEXT(".bWantStats")), ViewportInstanceSettings.bShowOnScreenStats, GEditorPerProjectIni);
 	GConfig->GetBool(*IniSection, *(InConfigKey + TEXT(".bWantFPS")), ViewportInstanceSettings.bShowFPS_DEPRECATED, GEditorPerProjectIni);
 	GConfig->GetFloat(*IniSection, *(InConfigKey + TEXT(".FOVAngle")), ViewportInstanceSettings.FOVAngle, GEditorPerProjectIni);
+
+	// Disable realtime viewports by default for remote sessions
+	if (FPlatformMisc::IsRemoteSession())
+	{
+		ViewportInstanceSettings.bIsRealtime = false;
+	}
 
 	return ViewportInstanceSettings;
 }
@@ -2720,7 +2744,7 @@ void SActorPreview::Construct( const FArguments& InArgs )
 									[
 										SNew( STextBlock )
 											.Text( this, &SActorPreview::OnReadText )
-											.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 10 ) )
+											.Font( FCoreStyle::GetDefaultFontStyle("Bold", 10) )
 											.ShadowOffset( FVector2D::UnitVector )
 											.WrapTextAt( this, &SActorPreview::OnReadTextWidth )
 									]
@@ -3263,6 +3287,16 @@ FString SLevelViewport::GetDeviceProfileString( ) const
 	return DeviceProfile;
 }
 
+FText SLevelViewport::GetCurrentScreenPercentageText(bool bDrawOnlyLabel) const
+{
+	if (bDrawOnlyLabel)
+	{
+		return LOCTEXT("ScreenPercentageLabel", "Screen Percentage:");
+	}
+
+	return FText::FromString(FString::Printf(TEXT("%3d%%"), int32(GetLevelViewportClient().GetPreviewScreenPercentage())));
+}
+
 FText SLevelViewport::GetCurrentFeatureLevelPreviewText( bool bDrawOnlyLabel ) const
 {
 	FText LabelName;
@@ -3357,6 +3391,15 @@ EVisibility SLevelViewport::GetCurrentFeatureLevelPreviewTextVisibility() const
 	{
 		return EVisibility::Collapsed;
 	}
+}
+
+EVisibility SLevelViewport::GetCurrentScreenPercentageVisibility() const
+{
+	bool Visible = !IsPlayInEditorViewportActive() &&
+		GetLevelViewportClient().SupportsPreviewResolutionFraction() &&
+		GetLevelViewportClient().GetPreviewScreenPercentage() > 100;
+
+	return Visible ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 EVisibility SLevelViewport::GetViewportControlsVisibility() const
@@ -3630,7 +3673,7 @@ void SLevelViewport::ShowMouseCaptureLabel(ELabelAnchorMode AnchorMode)
 				[
 					SNew(STextBlock)
 					.Text(this, &SLevelViewport::GetMouseCaptureLabelText)
-					.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9 ) )
+					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 9))
 					.ColorAndOpacity(FLinearColor::White)
 				]
 			]

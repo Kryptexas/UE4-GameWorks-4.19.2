@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "TrackEditorThumbnail/TrackEditorThumbnail.h"
 #include "Modules/ModuleManager.h"
@@ -693,6 +693,9 @@ void FTrackEditorThumbnailCache::SetupViewportEngineFlags()
 	}
 
 	InternalViewportClient->EngineShowFlags = FEngineShowFlags(ESFIM_Game);
+
+	// Screen percentage is not supported in thumbnail.
+	InternalViewportClient->EngineShowFlags.ScreenPercentage = false;
 
 	switch (CurrentCache.Quality)
 	{

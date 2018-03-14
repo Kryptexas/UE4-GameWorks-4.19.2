@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429236
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 오디오 파일
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -15,14 +15,8 @@ order:3
 
 [TOC (start:2 end:3)]
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](WAV_TitleIcon.png)(w:200 convert:false) 
-	[/PARAM]
-	[PARAM:description]
-	언리얼 엔진 4 의 오디오 시스템에는 게임의 사운드를 분위기에 맞게 녹여내기 위한 툴과 기능이 다수 제공됩니다. 그 시작은 모두 오디오 소스 파일입니다. 모노든 스테레오든, 언리얼 엔진 4 에 임포트하여 창작물에 생동감을 불어넣는 것도 순식간입니다. 오디오 콘텐츠의 기본 요건과 간단한 임포트 안내는 아래와 같습니다.
-	[/PARAM]
-[/OBJECT]
+언리얼 엔진 4 의 오디오 시스템에는 게임의 사운드를 분위기에 맞게 녹여내기 위한 툴과 기능이 다수 제공됩니다. 그 시작은 모두 오디오 소스 파일입니다. 모노든 스테레오든, 언리얼 엔진 4 에 임포트하여 창작물에 생동감을 불어넣는 것도 순식간입니다. 오디오 콘텐츠의 기본 요건과 간단한 임포트 안내는 아래와 같습니다.
+
 
 
 ## 임포트
@@ -55,7 +49,8 @@ order:3
 
 [/EXCERPT:multiChannelExtensionTable]
 
-<!--
+[COMMENT:none]
+
 
 [REGION:raw]
 |                   | 확장자 | 4.0 | 5.1 | 6.1 | 7.1 |  
@@ -70,7 +65,8 @@ order:3
 | **BackRight**     | _br       |     |     |     | ![](icon_MatEd_Apply_40x.png)   |  
 [/REGION]
 
--->
+
+[/COMMENT]
 
 압축 세팅은 모든 플랫폼에 비슷한 퀄리티를 유지할 수 있도록 미세조정되어 있습니다. 여러 번의 사운드 테스트 결과 XMA 퀄리티 40 은 OGG Vorbis 퀄리티 0.15 에 해당한다는 결론을 내렸습니다.
 

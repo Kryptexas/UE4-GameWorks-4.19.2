@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,6 +9,8 @@
 #include "Misc/ScopeLock.h"
 #include "Templates/ScopedPointer.h"
 #include "UniquePtr.h"
+#include "BigInt.h"
+#include "AES.h"
 
 class FChunkCacheWorker;
 class IAsyncReadFileHandle;
@@ -22,6 +24,7 @@ DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Num open pak file handles"), STAT_Pa
 DECLARE_DELEGATE_RetVal_OneParam(bool, FFilenameSecurityDelegate, const TCHAR* /*InFilename*/);
 
 #define PAKHASH_USE_CRC	1
+#define PAK_TRACKER 0
 #define PAK_SIGNATURE_CHECK_FAILS_ARE_FATAL 0
 
 #if PAKHASH_USE_CRC
@@ -1000,12 +1003,12 @@ public:
 	/**
 	* Helper function for accessing pak encryption key
 	*/
-	static const ANSICHAR* GetPakEncryptionKey();
+	static void GetPakEncryptionKey(FAES::FAESKey& OutKey);
 
 	/**
 	* Helper function for accessing pak signing keys
 	*/
-	static void GetPakSigningKeys(FString& OutExponent, FString& OutModulus);
+	static void GetPakSigningKeys(FEncryptionKey& OutKey);
 
 	/**
 	 * Constructor.
@@ -1623,7 +1626,7 @@ public:
 	{
 		if (LowerLevel->DirectoryExists(Directory))
 		{
-			LowerLevel->FindFiles(FoundFiles, Directory, FileExtension);
+			LowerLevel->FindFilesRecursively(FoundFiles, Directory, FileExtension);
 		}
 		
 		bool bRecursive = true;
@@ -1749,6 +1752,12 @@ public:
 	void HandlePakCorruptCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 #endif
 	// END Console commands
+	
+#if PAK_TRACKER
+	static TMap<FString, int32> GPakSizeMap;
+	static void TrackPak(const TCHAR* Filename, const FPakEntry* PakEntry);
+	static TMap<FString, int32>& GetPakMap() { return GPakSizeMap; }
+#endif
 };
 
 

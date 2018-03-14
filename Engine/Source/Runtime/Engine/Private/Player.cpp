@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Player.cpp: Unreal player implementation.
@@ -90,40 +90,47 @@ APlayerController* UPlayer::GetPlayerController(UWorld* InWorld) const
 
 bool UPlayer::Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar)
 {
-	if(PlayerController)
+	AActor* ExecActor = PlayerController;
+	if (!ExecActor)
+	{
+		UNetConnection* NetConn = Cast<UNetConnection>(this);
+		ExecActor = (NetConn && NetConn->OwningActor) ? NetConn->OwningActor : nullptr;
+	}
+
+	if (ExecActor)
 	{
 		// Since UGameViewportClient calls Exec on UWorld, we only need to explicitly
 		// call UWorld::Exec if we either have a null GEngine or a null ViewportClient
-		UWorld* World = PlayerController->GetWorld();
+		UWorld* World = ExecActor->GetWorld();
 		check(World);
-		check(InWorld == NULL || InWorld == World);
-		const bool bWorldNeedsExec = GEngine == NULL || Cast<ULocalPlayer>(this) == NULL || static_cast<ULocalPlayer*>(this)->ViewportClient == NULL;
-		APawn* PCPawn = PlayerController->GetPawnOrSpectator();
-		if( bWorldNeedsExec && World->Exec(World, Cmd,Ar) )
+		check(InWorld == nullptr || InWorld == World);
+		const bool bWorldNeedsExec = GEngine == nullptr || Cast<ULocalPlayer>(this) == nullptr || static_cast<ULocalPlayer*>(this)->ViewportClient == nullptr;
+		APawn* PCPawn = PlayerController ? PlayerController->GetPawnOrSpectator() : nullptr;
+		if (bWorldNeedsExec && World->Exec(World, Cmd, Ar))
 		{
 			return true;
 		}
-		else if( PlayerController->PlayerInput && PlayerController->PlayerInput->ProcessConsoleExec(Cmd,Ar,PCPawn) )
+		else if (PlayerController && PlayerController->PlayerInput && PlayerController->PlayerInput->ProcessConsoleExec(Cmd, Ar, PCPawn))
 		{
 			return true;
 		}
-		else if( PlayerController->ProcessConsoleExec(Cmd,Ar,PCPawn) )
+		else if (ExecActor->ProcessConsoleExec(Cmd, Ar, PCPawn))
 		{
 			return true;
 		}
-		else if( PCPawn && PCPawn->ProcessConsoleExec(Cmd,Ar,PCPawn) )
+		else if (PCPawn && PCPawn->ProcessConsoleExec(Cmd, Ar, PCPawn))
 		{
 			return true;
 		}
-		else if( PlayerController->MyHUD && PlayerController->MyHUD->ProcessConsoleExec(Cmd,Ar,PCPawn) )
+		else if (PlayerController && PlayerController->MyHUD && PlayerController->MyHUD->ProcessConsoleExec(Cmd, Ar, PCPawn))
 		{
 			return true;
 		}
-		else if( World->GetAuthGameMode() && World->GetAuthGameMode()->ProcessConsoleExec(Cmd,Ar,PCPawn) )
+		else if (World->GetAuthGameMode() && World->GetAuthGameMode()->ProcessConsoleExec(Cmd, Ar, PCPawn))
 		{
 			return true;
 		}
-		else if( PlayerController->CheatManager && PlayerController->CheatManager->ProcessConsoleExec(Cmd,Ar,PCPawn) )
+		else if (PlayerController && PlayerController->CheatManager && PlayerController->CheatManager->ProcessConsoleExec(Cmd, Ar, PCPawn))
 		{
 			return true;
 		}
@@ -131,7 +138,7 @@ bool UPlayer::Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar)
 		{
 			return true;
 		}
-		else if (PlayerController->PlayerCameraManager && PlayerController->PlayerCameraManager->ProcessConsoleExec(Cmd, Ar, PCPawn))
+		else if (PlayerController && PlayerController->PlayerCameraManager && PlayerController->PlayerCameraManager->ProcessConsoleExec(Cmd, Ar, PCPawn))
 		{
 			return true;
 		}

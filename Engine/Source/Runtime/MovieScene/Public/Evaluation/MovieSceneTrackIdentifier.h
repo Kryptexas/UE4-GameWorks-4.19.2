@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -17,6 +17,11 @@ struct FMovieSceneTrackIdentifier
 	{}
 
 	static FMovieSceneTrackIdentifier Invalid() { return FMovieSceneTrackIdentifier(); }
+
+	explicit operator bool() const
+	{
+		return Value != -1;
+	}
 
 	FMovieSceneTrackIdentifier& operator++()
 	{
@@ -52,6 +57,7 @@ struct FMovieSceneTrackIdentifier
 	/** Custom serialized to reduce memory footprint */
 	bool Serialize(FArchive& Ar)
 	{
+		Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
 		if (Ar.CustomVer(FEditorObjectVersion::GUID) < FEditorObjectVersion::MovieSceneMetaDataSerialization)
 		{
 			return false;

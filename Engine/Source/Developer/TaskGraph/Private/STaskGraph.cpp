@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "STaskGraph.h"
 #include "Stats/Stats.h"
@@ -101,9 +101,9 @@ public:
 	}
 
 	/** We should call Tick on this object */
-	virtual bool IsTickable() const override
+	virtual ETickableTickType GetTickableTickType() const override
 	{
-		return true;
+		return ETickableTickType::Always;
 	}
 
 	/** Need this to be ticked when paused (that is the point!) */

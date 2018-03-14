@@ -1,10 +1,13 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:Ribbon 타입데이터
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
-Description:잇따르는 꼬리 파티클을 만들 수 있는 Ribbon 타입데이터 모듈에 대한 참고서입니다.
+Description:Ribbon 타입 데이터 모듈은 자취를 남기는 이미터를 나타냅니다. 파티클을 연결하여 리본같은 모양이 형성됩니다.
 Version: 4.9
 tags:Particles
+tags:TypeData
+order:4
+topic-image:RibbonSmoke.png
 
 
 
@@ -44,11 +47,11 @@ tags:Particles
 
 
 
-<!--------------BEGIN INCLUDES------------
+[COMMENT:none]
+------------BEGIN INCLUDES------------
 
 [EXCERPT:TessellationPoints]
       TessellationPoints = TruncToInt((Distance Between Spawned Particles) / (DistanceTessellationStepSize))
-      테셀레이션 점 = (스폰된 파티클간의 거리) 를 (거리 테셀레이션 스텝 크기) 로 나눈 (소수점 제외) 몫입니다.
 [/EXCERPT:TessellationPoints]
     
 [EXCERPT:RenderAxisOption]
@@ -72,4 +75,5 @@ tags:Particles
 	CheckTangent 가 0.5 보다 작으면, DistanceTessellationStepSize 는 결과에 따라 스케일이 적용됩니다.
 [/EXCERPT:CheckTangent]
 
-------------END INCLUDES-------------->
+------------END INCLUDES------------
+[/COMMENT]

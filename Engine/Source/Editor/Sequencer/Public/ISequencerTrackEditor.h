@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -183,6 +183,14 @@ public:
 	virtual void Resize(float NewSize, UMovieSceneTrack* InTrack)
 	{
 		
+	}
+
+	/**
+	 * @return The default expansion state of this track
+	 */
+	virtual bool GetDefaultExpansionState(UMovieSceneTrack* InTrack) const
+	{
+		return false;
 	}
 
 public:

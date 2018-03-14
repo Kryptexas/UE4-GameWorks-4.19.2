@@ -1,104 +1,83 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:How-To Create a Physics Constraint Profile
+﻿INTSourceChangelist:3710404
+Availability:Public
+Title:物理コンストレイント プロファイルの作成方法
 Crumbs: %ROOT%, Engine
-Description:This how-to will show you how to create a Physics Constraint Profile using the Physics Asset Tool.
+Description:物理アセット ツールによる物理コンストレイント プロファイルのスケルタルメッシュ コンポーネントへの作成方法の説明です。
 parent:Engine/Physics/PhAT/HowTo
 order:1
-Version: 4.13
+Version:4.13
 skilllevel:Intermediate
-related:Videos/PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f/N1tDjbFXeOo
+topic-image:Engine/Physics/physics_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/HowTo/CreateConstraintProfile:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/HowTo/CreateConstraintProfile:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/HowTo/CreateConstraintProfile:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat/HowTo]
-	[/PARAM],
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/HowTo/CreateConstraintProfile:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/HowTo/CreateConstraintProfile:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/HowTo/CreateConstraintProfile:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat/HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+この操作ガイドでは **コンストレイント プロファイル** を作成し **物理コンストレイント** に追加する基本的な操作方法を説明します。
 
-In this How-To we'll cover the basics of creating **Constraint Profile** and adding **Physics Constraints** to it.
+## ステップ
 
-## Steps
-
-1. Open or [Create](Engine/Physics/PhAT/HowTo/CreatePhysicsAsset) a **Physics Asset** for your **Skeletal Mesh** using the **Content Browser**.
+1. **コンテンツ ブラウザ** を使って、**スケルタルメッシュ** の **物理アセット** を開く、または [作成](Engine/Physics/PhAT/HowTo/CreatePhysicsAsset) します。
 
 	![](Engine\Physics\PhAT\HowTo\CreatePhysicalAnimationProfile\openPhATAsset.png)
 
 	[REGION:note]
-	If opting to create a new **Physics Asset** you'll need to set it up before continuing.
+	**物理アセット** を新規作成する場合、最初に設定が必要となります。
 	[/REGION]
 
-1. Open the Physics Asset window by using the **Window Menu** -> **Physics Asset** option.
+1. **[Window Menu]** -> **[Physics Asset]** オプションから [Physics Asset] ウィンドウを開きます。
 
 	[REGION:raw]
 	![](Engine\Physics\PhAT\HowTo\CreatePhysicalAnimationProfile\openPhATPhysicsAssetWindow.png)(convert:false)
 	[/REGION]
 
-1. Add Profile using the **+** button on the **Constraints Profile** entry, and set its name (in the image below we've named it `DocsConstraintProfile`).
+1. **[Constraints Profile]** 追加欄の **+** ボタンを使ってプロファイルを追加し、名前をつけます (下の画像では「DocsConstraintProfile」となっています)。
 
 	![](physConProfAddEntry.png)
 
-1. **Close** the Physics Assset Window.
+1. the [Physics Assset] ウィンドウを **終了** します。
 
-1. Using the **Profile Button** select the desired **Constraint Profile** to edit (again, we've chosen `DocsConstraintProfile`).
+1. **[Profile] ボタン** から編集したい **Constraint Profile** を選択します (ここでも `DocsConstraintProfile` を選ぶことにします)。
 
 	![](physConProfSelectProf.png)
 
-1. Switch the Physics Asset Editor to **Constraints Mode** using the **Constraints** ![](physConProfConsButton.png) button.
+1. **Constraints** ![](physConProfConsButton.png) ボタンを使って物理アセット エディタを **Constraints Mode** に切り替えます。
 
-1. Select the **Physics Constraints** you wish to include in the **Constraint Profile**.
+1. **Constraint Profile** に追加したい **Physics Constraints** を選択します。
 
-1. Press the **Add to Current Profile** button in the **Details Panel**.
+1. **[Details] パネル** の **[Add to Current Profile]** ボタンを押します。
 
 	![](physConProfAddToProf.png)
 
-1. Adjust the settings for the selected **Physics Constraints**.
+1. 選択した **Physics Constraints** の設定を調整します。
 
 	![](physConProfAdjust.png)
 
-1. Repeat steps 7-9 for **Physics Constraints** you desire to have in the **Physical Animation Profile**.
+1. **物理アニメーション プロファイル** に追加したい **物理コンストレイント** に対してステップ 7-9 を繰り返します。
 
-1. Save your **Physics Asset** using the **Save** button in the **Physics Asset Tool**.
+1. **物理アセット ツール** の **[Save]** ボタンを使って **物理アセット** を保存します。
 
 	[REGION:raw]
 	![](Engine\Physics\PhAT\HowTo\CreatePhysicalAnimationProfile\saveButton.png)(convert:false)
 	[/REGION]
 
-## Result
+## 結果
 
-The **Physics Asset** will have a profile that can be called upon from Blueprint or C++ to change its **Physical Constraint** properties.
+**物理アセット** には **物理コンストレイント* のプロパティを変更するためにブループリントまたは C++ から呼び出されるプロファイルがあります。
 
+## 追加の資料
 
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	N1tDjbFXeOo
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
 

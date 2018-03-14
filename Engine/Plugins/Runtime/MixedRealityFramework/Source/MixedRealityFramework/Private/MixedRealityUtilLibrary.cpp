@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MixedRealityUtilLibrary.h"
 #include "Kismet/GameplayStatics.h"
@@ -16,7 +16,6 @@
 
 namespace MixedRealityUtilLibrary_Impl
 {
-	static USceneComponent* GetHMDRootComponent(const APawn* PlayerPawn);
 	static FTransform GetVRToWorldTransform(const APawn* PlayerPawn);
 	static bool IsActorOwnedByPlayer(AActor* ActorInst, ULocalPlayer* Player);
 
@@ -27,19 +26,9 @@ namespace MixedRealityUtilLibrary_Impl
 	static void ComputeDivergenceField(const TArray<FVector>& VectorSet, TArray<FDivergenceItem>& Out);
 }
 
-static USceneComponent* MixedRealityUtilLibrary_Impl::GetHMDRootComponent(const APawn* PlayerPawn)
-{
-	USceneComponent* VROrigin = nullptr;
-	if (UCameraComponent* HMDCamera = UMixedRealityUtilLibrary::GetHMDCameraComponent(PlayerPawn))
-	{
-		VROrigin = HMDCamera->GetAttachParent();
-	}
-	return VROrigin;
-}
-
 static FTransform MixedRealityUtilLibrary_Impl::GetVRToWorldTransform(const APawn* PlayerPawn)
 {
-	if (USceneComponent* VROrigin = GetHMDRootComponent(PlayerPawn))
+	if (USceneComponent* VROrigin = UMixedRealityUtilLibrary::GetHMDRootComponent(PlayerPawn))
 	{
 		return VROrigin->GetComponentTransform();
 	}
@@ -119,86 +108,6 @@ static void MixedRealityUtilLibrary_Impl::ComputeDivergenceField(const TArray<FV
 UMixedRealityUtilLibrary::UMixedRealityUtilLibrary(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-}
-
-APawn* UMixedRealityUtilLibrary::FindAssociatedPlayerPawn(AActor* ActorInst)
-{
-	APawn* PlayerPawn = nullptr;
-
-	if (UWorld* TargetWorld = ActorInst->GetWorld())
-	{
-		const TArray<ULocalPlayer*>& LocalPlayers = GEngine->GetGamePlayers(TargetWorld);
-		for (ULocalPlayer* Player : LocalPlayers)
-		{
-			if (MixedRealityUtilLibrary_Impl::IsActorOwnedByPlayer(ActorInst, Player))
-			{
-				PlayerPawn = Player->GetPlayerController(TargetWorld)->GetPawnOrSpectator();
-				break;
-			}
-		}
-	}
-	return PlayerPawn;
-}
-
-USceneComponent* UMixedRealityUtilLibrary::FindAssociatedHMDRoot(AActor* ActorInst)
-{
-	APawn* PlayerPawn = FindAssociatedPlayerPawn(ActorInst);
-	return MixedRealityUtilLibrary_Impl::GetHMDRootComponent(PlayerPawn);
-}
-
-USceneComponent* UMixedRealityUtilLibrary::GetHMDRootComponent(const UObject* WorldContextObject, int32 PlayerIndex)
-{
-	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(WorldContextObject, PlayerIndex);
-	return MixedRealityUtilLibrary_Impl::GetHMDRootComponent(PlayerPawn);
-}
-
-USceneComponent* UMixedRealityUtilLibrary::GetHMDRootComponentFromPlayer(const APlayerController* Player)
-{
-	if (Player)
-	{
-		return MixedRealityUtilLibrary_Impl::GetHMDRootComponent(Player->GetPawnOrSpectator());
-	}
-	return nullptr;
-}
-
-UCameraComponent* UMixedRealityUtilLibrary::GetHMDCameraComponent(const APawn* PlayerPawn)
-{
-	UCameraComponent* HMDCam = nullptr;
-	if (PlayerPawn)
-	{
-		TArray<UCameraComponent*> CameraComponents;
-		PlayerPawn->GetComponents(CameraComponents);
-
-		for (UCameraComponent* Camera : CameraComponents)
-		{
-			if (Camera->bLockToHmd)
-			{
-				HMDCam = Camera;
-				break;
-			}
-		}
-
-		if (HMDCam == nullptr && CameraComponents.Num() > 0)
-		{
-			HMDCam = CameraComponents[0];
-		}
-	}
-	return HMDCam;
-}
-
-FTransform UMixedRealityUtilLibrary::GetVRDeviceToWorldTransform(const UObject* WorldContextObject, int32 PlayerIndex)
-{
-	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(WorldContextObject, PlayerIndex);
-	return MixedRealityUtilLibrary_Impl::GetVRToWorldTransform(PlayerPawn);
-}
-
-FTransform UMixedRealityUtilLibrary::GetVRDeviceToWorldTransformFromPlayer(const APlayerController* Player)
-{
-	if (Player)
-	{
-		return MixedRealityUtilLibrary_Impl::GetVRToWorldTransform(Player->GetPawnOrSpectator());
-	}
-	return FTransform::Identity;
 }
 
 void UMixedRealityUtilLibrary::SetMaterialBillboardSize(UMaterialBillboardComponent* Target, float NewSizeX, float NewSizeY)
@@ -321,6 +230,70 @@ void UMixedRealityUtilLibrary::SanitizeVectorDataSet(TArray<FVector>& VectorArra
 			}
 		}
 	}
+}
 
-	
+APawn* UMixedRealityUtilLibrary::FindAssociatedPlayerPawn(AActor* ActorInst)
+{
+	APawn* PlayerPawn = nullptr;
+
+	if (UWorld* TargetWorld = ActorInst->GetWorld())
+	{
+		const TArray<ULocalPlayer*>& LocalPlayers = GEngine->GetGamePlayers(TargetWorld);
+		for (ULocalPlayer* Player : LocalPlayers)
+		{
+			if (MixedRealityUtilLibrary_Impl::IsActorOwnedByPlayer(ActorInst, Player))
+			{
+				PlayerPawn = Player->GetPlayerController(TargetWorld)->GetPawnOrSpectator();
+				break;
+			}
+		}
+	}
+	return PlayerPawn;
+}
+
+USceneComponent* UMixedRealityUtilLibrary::FindAssociatedHMDRoot(AActor* ActorInst)
+{
+	APawn* PlayerPawn = FindAssociatedPlayerPawn(ActorInst);
+	return UMixedRealityUtilLibrary::GetHMDRootComponent(PlayerPawn);
+}
+
+USceneComponent* UMixedRealityUtilLibrary::GetHMDRootComponent(const UObject* WorldContextObject, int32 PlayerIndex)
+{
+	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(WorldContextObject, PlayerIndex);
+	return UMixedRealityUtilLibrary::GetHMDRootComponent(PlayerPawn);
+}
+
+USceneComponent* UMixedRealityUtilLibrary::GetHMDRootComponent(const APawn* PlayerPawn)
+{
+	USceneComponent* VROrigin = nullptr;
+	if (UCameraComponent* HMDCamera = UMixedRealityUtilLibrary::GetHMDCameraComponent(PlayerPawn))
+	{
+		VROrigin = HMDCamera->GetAttachParent();
+	}
+	return VROrigin;
+}
+
+UCameraComponent* UMixedRealityUtilLibrary::GetHMDCameraComponent(const APawn* PlayerPawn)
+{
+	UCameraComponent* HMDCam = nullptr;
+	if (PlayerPawn)
+	{
+		TArray<UCameraComponent*> CameraComponents;
+		PlayerPawn->GetComponents(CameraComponents);
+
+		for (UCameraComponent* Camera : CameraComponents)
+		{
+			if (Camera->bLockToHmd)
+			{
+				HMDCam = Camera;
+				break;
+			}
+		}
+
+		if (HMDCam == nullptr && CameraComponents.Num() > 0)
+		{
+			HMDCam = CameraComponents[0];
+		}
+	}
+	return HMDCam;
 }

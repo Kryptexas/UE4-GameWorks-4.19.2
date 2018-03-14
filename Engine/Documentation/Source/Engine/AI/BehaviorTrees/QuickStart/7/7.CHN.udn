@@ -21,7 +21,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:lightbox]
 [![](fullEG.png)(w:940 convert:false)](fullEG.png)
@@ -75,7 +75,7 @@ version:4.9
 
 在下一步中，我们将继续对此图表进行编辑，并将其添加至这个图表中，使 AI 控制器运行指定的行为树。
 
-%Steps%
+
 
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -169,6 +169,20 @@ private:
 
 	/** Called when the FOV slider is adjusted in the perspective viewport */
 	void OnFOVValueChanged( float NewValue );
+
+	/**
+	* @return The widget containing the screen percentage.
+	*/
+	TSharedRef<SWidget> GenerateScreenPercentageMenu() const;
+
+	/** Called by the ScreenPercentage slider */
+	int32 OnGetScreenPercentageValue() const;
+
+	/** Called by the ScreenPercentage slider */
+	bool OnScreenPercentageIsEnabled() const;
+
+	/** Called when the ScreenPercentage slider is adjusted in the viewport */
+	void OnScreenPercentageValueChanged(int32 NewValue);
 
 	/**
 	 * @return The widget containing the far view plane slider.

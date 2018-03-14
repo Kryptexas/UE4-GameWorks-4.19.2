@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialShader.h: Shader base classes
@@ -16,6 +16,9 @@
 #include "GlobalShader.h"
 #include "MaterialShaderType.h"
 #include "SceneRenderTargetParameters.h"
+#include "ShaderParameterUtils.h"
+
+FTextureRHIRef& GetEyeAdaptation(FRHICommandList& RHICmdList, const FSceneView& View);
 
 template<typename TBufferStruct> class TUniformBufferRef;
 
@@ -120,12 +123,8 @@ public:
 	FORCEINLINE_DEBUGGABLE void SetViewParameters(FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI, const FSceneView& View, const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer)
 	{
 		const auto& ViewUniformBufferParameter = GetUniformBufferParameter<FViewUniformShaderParameters>();
-		const auto& BuiltinSamplersUBParameter = GetUniformBufferParameter<FBuiltinSamplersParameters>();
 		CheckShaderIsValid();
 		SetUniformBufferParameter(RHICmdList, ShaderRHI, ViewUniformBufferParameter, ViewUniformBuffer);
-#if USE_GBuiltinSamplersUniformBuffer
-		SetUniformBufferParameter(RHICmdList, ShaderRHI, BuiltinSamplersUBParameter, GBuiltinSamplersUniformBuffer.GetUniformBufferRHI());
-#endif
 
 		if (View.bShouldBindInstancedViewUB && View.Family->Views.Num() > 0)
 		{
@@ -139,9 +138,7 @@ public:
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-	}
+	{ }
 
 	/** Sets pixel parameters that are material specific but not FMeshBatch specific. */
 	template< typename ShaderRHIParamRef >
@@ -155,11 +152,17 @@ public:
 		bool bDeferredPass, 
 		ESceneRenderTargetsMode::Type TextureMode);
 
-	FTextureRHIRef& GetEyeAdaptation(FRHICommandList& RHICmdList, const FSceneView& View);
-
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override;
 	virtual uint32 GetAllocatedSize() const override;
+
+	void SetInstanceParameters(FRHICommandList& RHICmdList, uint32 InVertexOffset, uint32 InInstanceOffset, uint32 InInstanceCount) const
+	{
+		bool const bZeroInstanceOffset = IsMetalPlatform(GMaxRHIShaderPlatform) || IsVulkanPlatform(GMaxRHIShaderPlatform) || IsVulkanMobilePlatform(GMaxRHIShaderPlatform);
+		SetShaderValue(RHICmdList, GetVertexShader(), VertexOffset, bZeroInstanceOffset ? 0 : InVertexOffset);
+		SetShaderValue(RHICmdList, GetVertexShader(), InstanceOffset, bZeroInstanceOffset ? 0 : InInstanceOffset);
+		SetShaderValue(RHICmdList, GetVertexShader(), InstanceCount, InInstanceCount);
+	}
 
 private:
 
@@ -175,6 +178,10 @@ private:
 
 	//Use of the eye adaptation texture here is experimental and potentially dangerous as it can introduce a feedback loop. May be removed.
 	FShaderResourceParameter EyeAdaptation;
+
+	FShaderParameter InstanceCount;
+	FShaderParameter InstanceOffset;
+	FShaderParameter VertexOffset;
 
 	FDebugUniformExpressionSet	DebugUniformExpressionSet;
 	FRHIUniformBufferLayout		DebugUniformExpressionUBLayout;

@@ -28,7 +28,7 @@ SkillLevel:Intermediate
 首次将 Oculus Rift 与电脑连接时，Rift 软件可能要求您更新 Rift 的固件。强烈建议完成此更新，确保 Rift 可结合 UE4 正常使用。
 [/region]
 
-%Steps%
+
 
 1. Oculus 软件的驱动和软件安装完成后，将出现 Rift 设置画面。 
 	按下 **Next** 键，根据屏幕上的说明开始 Rift 设置。
@@ -47,4 +47,4 @@ SkillLevel:Intermediate
 * [**Oculus 遥控**](https://support.oculus.com/835449819935261) 
 * [**设置 Xbox 控制器（无线模式）**](https://support.oculus.com/1560296144292386) 
 
-%Steps%
+

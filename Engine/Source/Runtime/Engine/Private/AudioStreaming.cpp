@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 AudioStreaming.cpp: Implementation of audio streaming classes.
@@ -130,7 +130,9 @@ bool FStreamingWaveData::Initialize(USoundWave* InSoundWave, FAudioStreamingMana
 	// Prepare 4 chunks of streaming wave data in loaded chunks array
 	LoadedChunks.Reset(4);
 
-	const int32 FirstLoadedChunkIndex = AddNewLoadedChunk(SoundWave->RunningPlatformData->Chunks[0].DataSize);
+	const int32 DataSize = SoundWave->RunningPlatformData->Chunks[0].DataSize;
+	const int32 AudioDataSize = SoundWave->RunningPlatformData->Chunks[0].AudioDataSize;
+	const int32 FirstLoadedChunkIndex = AddNewLoadedChunk(DataSize, AudioDataSize);
 
 	FLoadedAudioChunk* FirstChunk = &LoadedChunks[FirstLoadedChunkIndex];
 	FirstChunk->Index = 0;
@@ -288,7 +290,7 @@ void FStreamingWaveData::BeginPendingRequests(const TArray<uint32>& IndicesToLoa
 			const FStreamedAudioChunk& Chunk = SoundWave->RunningPlatformData->Chunks[Index];
 			int32 ChunkSize = Chunk.DataSize;
 
-			int32 LoadedChunkStorageIndex = AddNewLoadedChunk(ChunkSize);
+			int32 LoadedChunkStorageIndex = AddNewLoadedChunk(ChunkSize, Chunk.AudioDataSize);
 			FLoadedAudioChunk* ChunkStorage = &LoadedChunks[LoadedChunkStorageIndex];
 
 			ChunkStorage->Index = Index;
@@ -418,12 +420,13 @@ bool FStreamingWaveData::FinishDDCRequests()
 }
 #endif //WITH_EDITORONLY_DATA
 
-int32 FStreamingWaveData::AddNewLoadedChunk(int32 ChunkSize)
+int32 FStreamingWaveData::AddNewLoadedChunk(int32 ChunkSize, int32 AudioSize)
 {
 	int32 NewIndex = LoadedChunks.Num();
 	LoadedChunks.AddDefaulted();
 
 	LoadedChunks[NewIndex].DataSize = ChunkSize;
+	LoadedChunks[NewIndex].AudioDataSize = AudioSize;
 
 	return NewIndex;
 }
@@ -449,6 +452,7 @@ void FStreamingWaveData::FreeLoadedChunk(FLoadedAudioChunk& LoadedChunk)
 		DEC_DWORD_STAT_BY(STAT_AudioMemory, LoadedChunk.DataSize);
 	}
 	LoadedChunk.Data = NULL;
+	LoadedChunk.AudioDataSize = 0;
 	LoadedChunk.DataSize = 0;
 	LoadedChunk.MemorySize = 0;
 	LoadedChunk.Index = 0;
@@ -484,16 +488,18 @@ void FAudioStreamingManager::OnAsyncFileCallback(FStreamingWaveData* StreamingWa
 		// The chunk index to load the results into
 		NewAudioChunkLoadResult->LoadedAudioChunkIndex = LoadedAudioChunkIndex;
 
-		// Safely enqueue the results of the async file callback into a queue to be pumped on audio thread
-		AsyncAudioStreamChunkResults.Enqueue(NewAudioChunkLoadResult);
+		// Safely add the results of the async file callback into an array to be pumped on audio thread
+		FScopeLock StreamChunkResults(&ChunkResultCriticalSection);
+		AsyncAudioStreamChunkResults.Add(NewAudioChunkLoadResult);
 	}
 }
 
 void FAudioStreamingManager::ProcessPendingAsyncFileResults()
 {
 	// Pump the results of any async file loads in a protected critical section 
-	FASyncAudioChunkLoadResult* AudioChunkLoadResult = nullptr;
-	while (AsyncAudioStreamChunkResults.Dequeue(AudioChunkLoadResult))
+	FScopeLock StreamChunkResults(&ChunkResultCriticalSection);
+
+	for (FASyncAudioChunkLoadResult* AudioChunkLoadResult : AsyncAudioStreamChunkResults)
 	{
 		// Copy the results to the chunk storage safely
 		const int32 LoadedAudioChunkIndex = AudioChunkLoadResult->LoadedAudioChunkIndex;
@@ -516,6 +522,8 @@ void FAudioStreamingManager::ProcessPendingAsyncFileResults()
 		delete AudioChunkLoadResult;
 		AudioChunkLoadResult = nullptr;
 	}
+
+	AsyncAudioStreamChunkResults.Reset();
 }
 
 void FAudioStreamingManager::UpdateResourceStreaming(float DeltaTime, bool bProcessEverything /*= false*/)
@@ -814,7 +822,8 @@ const uint8* FAudioStreamingManager::GetLoadedChunk(const USoundWave* SoundWave,
 				{
 					if(OutChunkSize != NULL)
 					{
-						*OutChunkSize = WaveData->LoadedChunks[Index].DataSize;
+						// Return the size of the audio data within the chunk, not the chunk itself since this chunk could be zero-padded
+						*OutChunkSize = WaveData->LoadedChunks[Index].AudioDataSize;
 					}
 					
 					return WaveData->LoadedChunks[Index].Data;

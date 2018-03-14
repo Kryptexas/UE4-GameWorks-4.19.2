@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLRenderTarget.cpp: OpenGL render target implementation.
@@ -752,6 +752,24 @@ void FOpenGLDynamicRHI::ReadSurfaceDataRaw(FOpenGLContextState& ContextState, FT
 		if ( FOpenGL::SupportsBGRA8888() )
 		{
 			glReadPixels(Rect.Min.X, Rect.Min.Y, SizeX, SizeY, GL_BGRA, GL_FLOAT, FloatBGRAData );
+			GLenum Error = glGetError();
+			if (Error != GL_NO_ERROR)
+			{
+				glReadPixels(Rect.Min.X, Rect.Min.Y, SizeX, SizeY, GL_RGBA, GL_FLOAT, FloatBGRAData );
+				Error = glGetError();
+				if (Error == GL_NO_ERROR)
+				{
+					float* FloatDataPtr = FloatBGRAData;
+					float* FloatDataPtrEnd = FloatBGRAData + PixelComponentCount;
+					while (FloatDataPtr != FloatDataPtrEnd)
+					{
+						float Temp = FloatDataPtr[0];
+						FloatDataPtr[0] = FloatDataPtr[2];
+						FloatDataPtr[2] = Temp;
+						FloatDataPtr += 4;
+					}
+				}
+			}
 		}
 		else 
 		{

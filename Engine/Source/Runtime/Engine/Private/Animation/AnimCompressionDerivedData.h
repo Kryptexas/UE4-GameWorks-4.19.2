@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -44,7 +44,7 @@ public:
 		// This is a version string that mimics the old versioning scheme. If you
 		// want to bump this version, generate a new guid using VS->Tools->Create GUID and
 		// return it here. Ex.
-		return TEXT("44870622F1374957B3252BC65DDCFA9F");
+		return TEXT("A6E18B049A324E8B8946E9CA6F32CE38");
 	}
 
 	virtual FString GetPluginSpecificCacheKeySuffix() const override;

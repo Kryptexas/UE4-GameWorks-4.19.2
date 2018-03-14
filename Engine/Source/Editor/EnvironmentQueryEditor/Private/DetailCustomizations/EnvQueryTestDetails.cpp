@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizations/EnvQueryTestDetails.h"
 #include "UObject/Class.h"
@@ -39,7 +39,7 @@ void FEnvQueryTestDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
 		const UEnvQueryTest* EditedTest = Cast<const UEnvQueryTest>(EditedObjects[i].Get());
 		if (EditedTest)
 		{
-			MyTest = EditedTest;
+			MyTest = MakeWeakObjectPtr(const_cast<UEnvQueryTest*>(EditedTest));
 			break;
 		}
 	}

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -49,6 +49,7 @@ namespace PixelInspector
 		//~ End SCompoundWidget Interface
 
 		void OnApplicationPreInputKeyDownListener(const FKeyEvent& InKeyEvent);
+		void OnWindowClosed();
 
 		/** Button handlers */
 		FReply HandleTogglePixelInspectorEnableButton();
@@ -83,7 +84,7 @@ namespace PixelInspector
 		 * viewportUniqueId: The id of the view (FSceneView::State::GetViewKey) we want to capture the pixel, ScreenPosition has to come from this viewport
 		 * SceneInterface: The interface to set the data for the next render frame.
 		*/
-		 void CreatePixelInspectorRequest(FIntPoint ScreenPosition, int32 viewportUniqueId, FSceneInterface *SceneInterface, bool bInGameViewMode);
+		 void CreatePixelInspectorRequest(FVector2D InspectViewportUV, int32 viewportUniqueId, FSceneInterface *SceneInterface, bool bInGameViewMode);
 
 		 /**
 		 * Look if there is some request ready to be read and retrieve the value.

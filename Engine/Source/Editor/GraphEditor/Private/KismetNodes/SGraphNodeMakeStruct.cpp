@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "KismetNodes/SGraphNodeMakeStruct.h"
 #include "Widgets/SBoxPanel.h"
@@ -381,15 +381,14 @@ TSharedPtr<SGraphPin> SGraphNodeMakeStruct::CreatePinWidget(UEdGraphPin* Pin) co
 	UK2Node_MakeStruct* SetFieldsNode = CastChecked<UK2Node_MakeStruct>(GetNodeObj());
 	TSharedPtr<SGraphPin> ResultPin = FNodeFactory::CreatePinWidget(Pin);
 
-	const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(GraphNode->GetSchema());
-	if (!Pin->PinType.bIsReference && Pin->PinType.PinCategory != K2Schema->PC_Exec && Pin->Direction != EGPD_Output)
+	if (!Pin->PinType.bIsReference && Pin->PinType.PinCategory != UEdGraphSchema_K2::PC_Exec && Pin->Direction != EGPD_Output)
 	{
 		FOptionalPinFromProperty ReturnedPropertyEntry;
 		for (FOptionalPinFromProperty& PropertyEntry : SetFieldsNode->ShowPinForProperties)
 		{
 			if (PropertyEntry.bHasOverridePin)
 			{
-				if (PropertyEntry.PropertyName.ToString() == Pin->PinName)
+				if (PropertyEntry.PropertyName == Pin->PinName)
 				{
 					TWeakPtr<SHorizontalBox> HorizontalPin = ResultPin->GetFullPinHorizontalRowWidget();
 					if (HorizontalPin.IsValid())

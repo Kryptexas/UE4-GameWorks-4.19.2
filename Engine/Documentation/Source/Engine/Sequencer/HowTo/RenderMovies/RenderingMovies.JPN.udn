@@ -1,0 +1,156 @@
+﻿INTSourceChangelist:3741733
+Availability:Docs
+Title:シネマティック ムービーの出力
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:コンピュータ上に保存した動画ファイルにシネマティック シーケンスを出力する方法を説明します。 
+Version:4.18
+SkillLevel:Intermediate
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related:Engine/Sequencer/Overview
+Related:Engine/Sequencer/Workflow/CustomRenderPass
+Related:Engine/Sequencer/HowTo/ImportExportEDLs
+Related:Engine/Sequencer/HowTo/CustomBurnIns
+tags:Sequencer
+type:how-to
+
+シネマティック シーケンスを作成したら (場合によっては毎日の見直しの一部として制作プロセス中でも)、それを他の人と共有できるように動画ファイルとして出力することができます。 
+シーケンサーの **[Render Movie (動画出力)]** オプションを使うと、ほとんどのメディア プレイヤーで再生する .AVI ファイルとして自分の体験を他の人と共有することができます。 
+動画ファイルとして出力する以外に、シネマティックスを画像シーケンスとして出力するか、外部のアプリケーションで使用できるように [カスタム レンダー パス](Engine/Sequencer/Workflow/CustomRenderPass) を出力して、外部アプリケーションで使用してシーンを完成させることができます。 
+
+この例では、サンプルのシネマティックスを作成して、動画として出力し、出力プロセスの一部で利用可能ないくつかのオプションについて説明します。 
+
+![](HeroImage.png)
+
+
+## ステップ
+
+[REGION:note]
+ここでは **Starter Content Enabled (スターター コンテンツを有効にした状態)** で **Blueprint Third Person Template** を使います。 
+[/REGION]
+
+1.	プロジェクト内で、メイン ツールバーから **[Cinematics (シネマティックス)]** ボタンをクリックし、**[Add Level Sequence (レベル シーケンスを追加)]** を選択します。 
+
+	![](RenderMovie_01.png)
+
+1.	**[Save Asset As]** ウィンドウで、シーケンスの名前を入力し、**[Save]** をクリックします。 
+
+	![](RenderMovie_02.png)
+
+1.	**シーケンス エディタ** 内で **[Add Camera (カメラ追加)]** ボタンをクリックします。 
+
+	![](RenderMovie_03.png)
+
+1.	ビューポートでレベル内の任意の場所でカメラをキャラクターに向けて配置します。次に、**S** キーを押してキーフレームを追加します。 
+
+	![](RenderMovie_04.png)
+
+	クローズアップ ショットをレベルで撮るためにカメラがキャラクターに近づくサンプル シーンを撮影します。 
+
+1.	**シーケンス エディタ** でフレーム **150** に移動します。次にレベル内のカメラを新しい場所に動かし、**S** キーを押してキーフレームを追加します。 
+
+	[REGION:lightbox]
+	[![](RenderMovie_05.png)(w:640)](RenderMovie_05.png)
+	[/REGION]
+
+	[REGION:caption]
+	画像をクリックしてフルサイズで表示 
+	[/REGION]
+
+	カメラが最初のキーフレームから 2 つめのキーフレームに動き、キャラクターに近づきます。 
+
+1.	**シーケンサー エディタ** で **[Render Movie]** ボタンをクリックします。 
+
+	![](RenderMovie_06.png)
+
+	**[Render Movie Settings]** ウィンドウが開きます。 
+
+	![](RenderMovie_07.png)
+
+1.	**[Capture Settings (キャプチャー設定)]** で **[Output Format (出力フォーマット)]** オプションをクリックして、利用可能なオプションを表示して、**[Video Sequence]** を選択します。 
+
+	![](RenderMovie_08.png)
+
+	動画としてシーケンスを出力する以外に、画像シーケンスとして出力するか、カスタム レンダー パスを出力することができます。 
+
+1.	**[General]** で、シネマティックスの保存先の **[Output Directory]** を選択し、**[Capture Movie]** をクリックします。 
+
+	![](RenderMovie_09.png)
+
+	出力プロセス中にプレビュー ウィンドウが表示されます。 
+
+	![](RenderMovie_10.png)
+
+	[REGION:note]
+	**[Capture Movie]** を選択後に、コンテンツを **保存** するように促されたら **[Save]** または **[Don't Save]** をクリックして継続します。**[Cancel]** を選択すると出力プロセスを中止します。 
+	[/REGION]
+
+
+## 最終結果
+
+キャプチャー プロセス後、シネマティック シーケンスの動画ファイルができます (以下は出力されたシネマティックスです)。 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:videoid]
+vuEZcdMlIgc
+[/PARAMLITERAL]
+[PARAMLITERAL:width]
+100
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+56.25
+[/PARAMLITERAL]
+[PARAMLITERAL:units]
+%
+[/PARAMLITERAL]
+[PARAMLITERAL:type]
+simple
+[/PARAMLITERAL]
+[/OBJECT]
+
+**[Use Burn In]** オプションを有効にして **Burn-ins** を含めたり、 [カスタムの Burn In](Engine/Sequencer/HowTo/CustomBurnIns) (動画に埋め込まれるオーバーレイ) を作成することもできます。 
+
+![](BurnIns.png)
+
+これはシネマティックスをレビューする場合に役立ちます。タイムコード情報、ショット名、必要なカスタム情報が表示されるからです。 
+
+![](BurnInsApplied.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

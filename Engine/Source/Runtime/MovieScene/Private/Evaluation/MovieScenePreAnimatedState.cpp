@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Evaluation/MovieScenePreAnimatedState.h"
 
@@ -74,40 +74,6 @@ TPreAnimatedToken<TokenType>::TPreAnimatedToken(TokenType&& InToken)
 	: EntityRefCount(0)
 	, Token(MoveTemp(InToken))
 {}
-
-#if !PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-template<typename TokenType>
-TPreAnimatedToken<TokenType>::TPreAnimatedToken(TPreAnimatedToken&& RHS)
-	: EntityRefCount(RHS.EntityRefCount)
-	, Token(MoveTemp(RHS.Token))
-{
-}
-template<typename TokenType>
-TPreAnimatedToken<TokenType>& TPreAnimatedToken<TokenType>::operator=(TPreAnimatedToken&& RHS)
-{
-	EntityRefCount = RHS.EntityRefCount;
-	Token = MoveTemp(RHS.Token);
-	return *this;
-}
-
-template<typename TokenType>
-TMovieSceneSavedTokens<TokenType>::TMovieSceneSavedTokens(TMovieSceneSavedTokens&& RHS)
-	: AnimatedEntities(MoveTemp(RHS.AnimatedEntities))
-	, AllAnimatedTypeIDs(MoveTemp(RHS.AllAnimatedTypeIDs))
-	, PreAnimatedTokens(MoveTemp(RHS.PreAnimatedTokens))
-	, Payload(MoveTemp(RHS.Payload))
-{
-}
-template<typename TokenType>
-TMovieSceneSavedTokens<TokenType>& TMovieSceneSavedTokens<TokenType>::operator=(TMovieSceneSavedTokens&& RHS)
-{
-	AnimatedEntities = MoveTemp(RHS.AnimatedEntities);
-	AllAnimatedTypeIDs = MoveTemp(RHS.AllAnimatedTypeIDs);
-	PreAnimatedTokens = MoveTemp(RHS.PreAnimatedTokens);
-	Payload = MoveTemp(RHS.Payload);
-	return *this;
-}
-#endif
 
 template<typename TokenType>
 void TMovieSceneSavedTokens<TokenType>::OnPreAnimated(ECapturePreAnimatedState CaptureState, FMovieSceneAnimTypeID InAnimTypeID, FMovieSceneEvaluationKey AssociatedKey, const ProducerType& Producer, FMovieScenePreAnimatedState& Parent)
@@ -195,8 +161,8 @@ void TMovieSceneSavedTokens<TokenType>::Restore(IMovieScenePlayer& Player, TFunc
 		{
 			MovieSceneImpl::RestorePreAnimatedToken(PreAnimatedTokens[TokenIndex], Player, ResolvedPayload);
 
-			AllAnimatedTypeIDs.RemoveAtSwap(TokenIndex, 1, false);
-			PreAnimatedTokens.RemoveAtSwap(TokenIndex, 1, false);
+			AllAnimatedTypeIDs.RemoveAt(TokenIndex, 1, false);
+			PreAnimatedTokens.RemoveAt(TokenIndex, 1, false);
 
 			AnimatedEntities.RemoveAll(
 				[=](const FMovieSceneEntityAndAnimTypeID& InEntityAndAnimType)
@@ -225,7 +191,7 @@ bool TMovieSceneSavedTokens<TokenType>::RestoreEntity(IMovieScenePlayer& Player,
 				AnimTypesToRestore.Add(EntityAndAnimType.AnimTypeID);
 
 				// This entity is no longer animating this anim type ID
-				AnimatedEntities.RemoveAtSwap(LUTIndex);
+				AnimatedEntities.RemoveAt(LUTIndex);
 			}
 			else
 			{
@@ -251,8 +217,8 @@ bool TMovieSceneSavedTokens<TokenType>::RestoreEntity(IMovieScenePlayer& Player,
 			}
 			else
 			{
-				AllAnimatedTypeIDs.RemoveAtSwap(TokenIndex, 1, false);
-				PreAnimatedTokens.RemoveAtSwap(TokenIndex, 1, false);
+				AllAnimatedTypeIDs.RemoveAt(TokenIndex, 1, false);
+				PreAnimatedTokens.RemoveAt(TokenIndex, 1, false);
 			}
 		}
 	}

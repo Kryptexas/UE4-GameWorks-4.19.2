@@ -58,7 +58,8 @@ With a valid Epic Games account, you're able to download our installer (Epic Gam
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windows_install]
 1.	**Click** the **Download** button to get our installer.
 	
@@ -72,7 +73,8 @@ With a valid Epic Games account, you're able to download our installer (Epic Gam
 	
 	![](RunEpicLauncherSetup.png)
 [/EXCERPT:windows_install]
--->
+
+[/COMMENT]
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -172,7 +174,8 @@ Congratulations! You've learned how to:
 
 Now, you're ready to start using Unreal Engine.
 
-<!--Deprecated as it is redundant with the Related Topics section directly below it.
+[COMMENT:none]
+Deprecated as it is redundant with the Related Topics section directly below it.
 ## Getting Started with Unreal Engine
 
 Learn how to use Unreal Engine by referring to the [](GettingStarted) documentation!
@@ -185,8 +188,10 @@ If you're looking to quickly get started with UE4, refer to the following tutori
 
 [REGION:note]
 UE4's in-editor help features are a great way to get your questions answered.
-[/REGION]-->
-<!--Deprecated on 21 July 2015 due to outdated screenshots and outdated procedures
+[/REGION]
+[/COMMENT]
+[COMMENT:none]
+Deprecated on 21 July 2015 due to outdated screenshots and outdated procedures
 %Globals:OSSelect%
 
 ## Download the Installer
@@ -251,8 +256,10 @@ Once you have the Unreal Engine Launcher running, you must sign in and download 
 1. Once the download is completed, you can launch Unreal Engine using the **Launch** button:
 
 	![](launch.png)
--->
-<!--Previously deprecated procedures
+
+[/COMMENT]
+[COMMENT:none]
+Previously deprecated procedures
 [EXCERPT:Windows]
 1. Run the installer you downloaded and choose a location to install Unreal Engine to:
 
@@ -277,4 +284,5 @@ Once you have the Unreal Engine Launcher running, you must sign in and download 
 1. Once Finder finishes copying the files, Unreal Engine will be available in the **Launchpad**. Run it from there. 
 
 [/EXCERPT:MacOS]
--->
+
+[/COMMENT]

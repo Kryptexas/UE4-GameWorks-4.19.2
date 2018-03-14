@@ -75,7 +75,8 @@ create interesting looks and crevices to the Landscape.
 | **Rain Dist Scale** | The size of the noise filter for applying initial rain to the surface. The noise filter is related to position and scale, which means if you do not change **Rain Dist. Scale**, the same filter is applied to the same position many times. | 
 | **Detail Smooth** | If checked, performs a detail-preserving smoothing to the erosion effect using the specified detail-smoothing value. Larger detail-smoothing values remove more details, while smaller values preserve more details. |
 
-<!---
+[COMMENT:none]
+-
 [INCLUDE:#raindist]
 [EXCERPT:raindist]
 |Selection | Description |
@@ -84,4 +85,5 @@ create interesting looks and crevices to the Landscape.
 | **Positive** | This will act as if it has rained in all parts of the applied area to erode parts of the heightmap.  |
 [/EXCERPT:raindist]
 
---->
+-
+[/COMMENT]

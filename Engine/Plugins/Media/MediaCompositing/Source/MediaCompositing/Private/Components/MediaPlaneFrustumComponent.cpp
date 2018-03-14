@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DrawFrsutumComponent.cpp: UDrawFrsutumComponent implementation.
@@ -29,6 +29,12 @@ public:
 			ViewTarget = Parent->FindViewTarget();
 			InvViewProjectionMatrix = Parent->GetCachedInvViewProjectionMatrix();
 		}
+	}
+
+	SIZE_T GetTypeHash() const
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
 	}
 
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override

@@ -1,31 +1,18 @@
-﻿INTSourceChangelist:3255885
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:3 - Aim Offset を実装する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:Aim Offset を Animation ブループリントに追加し、それを既存の Anim Graph に接続します。 
 version:4.14
 skilllevel:Advanced
+parent:Engine/Animation/AnimHowTo/AimOffset
 type:how-to
+type:multi-step
+order:3
 tags:Animation
 tags:Aim Offset
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Engine\Animation\AnimHowTo\AimOffset\02_CreatingAimOffset\)
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[AimOffset を作成する ホーム](Engine\Animation\AnimHowTo\AimOffset)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine\Animation\AnimHowTo\AimOffset\04_FinishingUp)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 Aim Offset を Animation ブループリントに追加し、それを既存の Anim Graph に接続します。 
 
@@ -109,16 +96,4 @@ Aim Offset を Animation ブループリントに追加し、それを既存の 
 セットアップがほぼ終わったので、次のステップではすべてをつなげて、キャラクターの照準機能をテストします。 
 
 
-%Steps%
-
-
-
-
-
-
-
-
-
-
-
-
+[NAV]

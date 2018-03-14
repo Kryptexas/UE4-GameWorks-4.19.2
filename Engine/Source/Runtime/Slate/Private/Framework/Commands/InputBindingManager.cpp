@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Framework/Commands/InputBindingManager.h"
 #include "HAL/FileManager.h"
@@ -323,7 +323,7 @@ void FInputBindingManager::CheckForDuplicateDefaultChords( const FBindingContext
 			if (ExistingInfo->CommandName != InCommandInfo->CommandName)
 			{
 				// Two different commands with the same name in the same context or parent context
-				UE_LOG(LogSlate, Fatal, TEXT("The command '%s.%s' has the same default chord as '%s.%s' [%s]"),
+				UE_LOG(LogSlate, Warning, TEXT("The command '%s.%s' has the same default chord as '%s.%s' [%s]"),
 					*InCommandInfo->BindingContext.ToString(),
 					*InCommandInfo->CommandName.ToString(),
 					*ExistingInfo->BindingContext.ToString(),

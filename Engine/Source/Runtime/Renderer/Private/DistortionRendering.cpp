@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistortionRendering.cpp: Distortion rendering implementation.
@@ -24,10 +24,11 @@
 #include "PostProcess/PostProcessing.h"
 #include "PostProcess/SceneFilterRendering.h"
 #include "Materials/Material.h"
+#include "UnrealEngine.h"
 #include "PipelineStateCache.h"
 #include "ScenePrivate.h"
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Distortion"), Stat_GPU_Distortion, STATGROUP_GPU);
+DECLARE_GPU_STAT(Distortion);
 
 const uint8 kStencilMaskBit = STENCIL_SANDBOX_MASK;
 
@@ -46,9 +47,9 @@ class TDistortionApplyScreenPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(TDistortionApplyScreenPS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{ 
-		return !UseMSAA || IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return !UseMSAA || IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
 	TDistortionApplyScreenPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -64,7 +65,6 @@ public:
 			DistortionTexture.Bind(Initializer.ParameterMap, TEXT("DistortionTexture"));
 			SceneColorTexture.Bind(Initializer.ParameterMap, TEXT("SceneColorTexture"));
 		}
-		SceneColorRect.Bind(Initializer.ParameterMap, TEXT("SceneColorRect"));
 		DistortionTextureSampler.Bind(Initializer.ParameterMap,TEXT("DistortionTextureSampler"));
 		SceneColorTextureSampler.Bind(Initializer.ParameterMap,TEXT("SceneColorTextureSampler"));
 	}
@@ -98,20 +98,12 @@ public:
 			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
 			SceneColorTextureValue
 			);
-
-		FIntPoint SceneBufferSize = SceneContext.GetBufferSizeXY();
-		FIntRect ViewportRect = Context.GetViewport();
-		FVector4 SceneColorRectValue = FVector4((float)ViewportRect.Min.X/SceneBufferSize.X,
-												(float)ViewportRect.Min.Y/SceneBufferSize.Y,
-												(float)ViewportRect.Max.X/SceneBufferSize.X,
-												(float)ViewportRect.Max.Y/SceneBufferSize.Y);
-		SetShaderValue(Context.RHICmdList, ShaderRHI, SceneColorRect, SceneColorRectValue);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << DistortionTexture << DistortionTextureSampler << SceneColorTexture << SceneColorTextureSampler << SceneColorRect;
+		Ar << DistortionTexture << DistortionTextureSampler << SceneColorTexture << SceneColorTextureSampler;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -130,12 +122,11 @@ private:
 	FShaderResourceParameter DistortionTextureSampler;
 	FShaderResourceParameter SceneColorTexture;
 	FShaderResourceParameter SceneColorTextureSampler;
-	FShaderParameter SceneColorRect;
 	FShaderParameter DistortionParams;
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USE_MSAA"), UseMSAA ? 1 : 0);
 	}
 };
@@ -157,9 +148,9 @@ class TDistortionMergePS : public FGlobalShader
 	DECLARE_SHADER_TYPE(TDistortionMergePS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return !UseMSAA || IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return !UseMSAA || IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
 	TDistortionMergePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -215,9 +206,9 @@ private:
 	FShaderResourceParameter SceneColorTexture;
 	FShaderResourceParameter SceneColorTextureSampler;
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USE_MSAA"), UseMSAA ? 1 : 0);
 	}
 };
@@ -236,7 +227,7 @@ VARIATION1(true);
 class FDistortMeshAccumulatePolicy
 {	
 public:
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		return Material && IsTranslucentBlendMode(Material->GetBlendMode()) && Material->IsDistorted();
 	}
@@ -261,9 +252,9 @@ protected:
 	{
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return DistortMeshPolicy::ShouldCache(Platform,Material,VertexFactoryType);
+		return DistortMeshPolicy::ShouldCompilePermutation(Platform,Material,VertexFactoryType);
 	}
 
 public:
@@ -296,10 +287,10 @@ protected:
 
 	TDistortionMeshHS() {}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return FBaseHS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& DistortMeshPolicy::ShouldCache(Platform, Material, VertexFactoryType);
+		return FBaseHS::ShouldCompilePermutation(Platform, Material, VertexFactoryType)
+			&& DistortMeshPolicy::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
 	}
 };
 
@@ -319,10 +310,10 @@ protected:
 
 	TDistortionMeshDS() {}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return FBaseDS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& DistortMeshPolicy::ShouldCache(Platform, Material, VertexFactoryType);
+		return FBaseDS::ShouldCompilePermutation(Platform, Material, VertexFactoryType)
+			&& DistortMeshPolicy::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
 	}
 };
 
@@ -341,9 +332,9 @@ class TDistortionMeshPS : public FMeshMaterialShader
 	DECLARE_SHADER_TYPE(TDistortionMeshPS,MeshMaterial);
 
 public:
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return DistortMeshPolicy::ShouldCache(Platform,Material,VertexFactoryType);
+		return DistortMeshPolicy::ShouldCompilePermutation(Platform,Material,VertexFactoryType);
 	}
 
 	TDistortionMeshPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -433,7 +424,7 @@ public:
 	* @param Other - draw policy to compare
 	* @return true if the draw policies are a match
 	*/
-	FDrawingPolicyMatchResult Matches(const TDistortionMeshDrawingPolicy& Other) const;
+	FDrawingPolicyMatchResult Matches(const TDistortionMeshDrawingPolicy& Other, bool bForReals = false) const;
 
 	/**
 	* Executes the draw commands which can be shared between any meshes using this drawer.
@@ -524,6 +515,7 @@ TDistortionMeshDrawingPolicy<DistortMeshPolicy>::TDistortionMeshDrawingPolicy(
 		DistortPixelShader = InMaterialResource.GetShader<TDistortionMeshPS<DistortMeshPolicy> >(InVertexFactory->GetType());
 //later		InitializePixelShader = NULL;
 	}
+	BaseVertexShader = VertexShader;
 }
 
 /**
@@ -533,11 +525,11 @@ TDistortionMeshDrawingPolicy<DistortMeshPolicy>::TDistortionMeshDrawingPolicy(
 */
 template<class DistortMeshPolicy>
 FDrawingPolicyMatchResult TDistortionMeshDrawingPolicy<DistortMeshPolicy>::Matches(
-	const TDistortionMeshDrawingPolicy& Other
+	const TDistortionMeshDrawingPolicy& Other, bool bForReals
 	) const
 {
 	DRAWING_POLICY_MATCH_BEGIN
-		DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
+		DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other, bForReals)) &&
 		DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
 		DRAWING_POLICY_MATCH(HullShader == Other.HullShader) &&
 		DRAWING_POLICY_MATCH(DomainShader == Other.DomainShader) &&
@@ -752,10 +744,10 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawDynamicMesh(
 		for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 		{
 			TDrawEvent<FRHICommandList> MeshEvent;
-			BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent);
+			BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::DistortionDynamic));
 
 			DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex, DrawRenderStateLocal,typename TDistortionMeshDrawingPolicy<DistortMeshPolicy>::ElementDataType(), typename TDistortionMeshDrawingPolicy<DistortMeshPolicy>::ContextDataType());
-			DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
+			DrawingPolicy.DrawMesh(RHICmdList,View,Mesh,BatchElementIndex);
 		}
 
 		return true;
@@ -810,14 +802,14 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawStaticMesh(
 			if(BatchElementMask & 1)
 			{
 				TDrawEvent<FRHICommandList> MeshEvent;
-				BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, StaticMesh, MeshEvent);
+				BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, StaticMesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::DistortionStatic));
 
 
 				DrawingPolicy.SetMeshRenderState(RHICmdList, *View,PrimitiveSceneProxy,StaticMesh,BatchElementIndex,DrawRenderStateLocal,
 					typename TDistortionMeshDrawingPolicy<DistortMeshPolicy>::ElementDataType(),
 					typename TDistortionMeshDrawingPolicy<DistortMeshPolicy>::ContextDataType()
 					);
-				DrawingPolicy.DrawMesh(RHICmdList, StaticMesh, BatchElementIndex);
+				DrawingPolicy.DrawMesh(RHICmdList, *View, StaticMesh, BatchElementIndex);
 			}
 			BatchElementMask >>= 1;
 			BatchElementIndex++;
@@ -1023,7 +1015,7 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FSceneRenderer_RenderDistortion);
 	SCOPED_DRAW_EVENT(RHICmdList, Distortion);
-	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Distortion);
+	SCOPED_GPU_STAT(RHICmdList, Distortion);
 
 	// do we need to render the distortion pass?
 	bool bRender=false;
@@ -1198,7 +1190,7 @@ void FSceneRenderer::RenderDistortionES2(FRHICommandListImmediate& RHICmdList)
 		
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
-		RHICmdList.CopyToResolveTarget(SceneContext.GetSceneColorSurface(), SceneContext.GetSceneColorTexture(), true, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+		RHICmdList.CopyToResolveTarget(SceneContext.GetSceneColorSurface(), SceneContext.GetSceneColorTexture(), true, FResolveRect(0, 0, FamilySize.X, FamilySize.Y));
 
 		TRefCountPtr<IPooledRenderTarget> SceneColorDistorted;
 		FPooledRenderTargetDesc Desc = SceneContext.GetSceneColor()->GetDesc();

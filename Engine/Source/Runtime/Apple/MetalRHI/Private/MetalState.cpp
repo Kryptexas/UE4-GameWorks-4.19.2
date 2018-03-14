@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalState.cpp: Metal state implementation.
@@ -15,29 +15,6 @@ FAutoConsoleVariableRef CVarMetalUseSamplerCompareFunc(
 	TEXT("If true, tries to set the compareFunction on sampler descriptors if it is available. Defaults to 1, set to 0 to disable."),
 	ECVF_ReadOnly|ECVF_RenderThreadSafe
 	);
-
-/**
- * Translate from UE4 enums to Metal enums (leaving these in Metal just for help in setting them up)
- */
-static MTLSamplerMipFilter TranslateMipFilterMode(ESamplerFilter Filter)
-{
-	switch (Filter)
-	{
-		case SF_Point:	return MTLSamplerMipFilterNearest;
-		default:		return MTLSamplerMipFilterLinear;
-	}
-}
-
-static MTLSamplerMinMagFilter TranslateFilterMode(ESamplerFilter Filter)
-{
-	switch (Filter)
-	{
-		case SF_Point:				return MTLSamplerMinMagFilterNearest;
-		case SF_AnisotropicPoint:	return MTLSamplerMinMagFilterLinear;
-		case SF_AnisotropicLinear:	return MTLSamplerMinMagFilterLinear;
-		default:					return MTLSamplerMinMagFilterLinear;
-	}
-}
 
 static uint32 GetMetalMaxAnisotropy(ESamplerFilter Filter, uint32 MaxAniso)
 {
@@ -161,9 +138,30 @@ static MTLColorWriteMask TranslateWriteMask(EColorWriteMask WriteMask)
 FMetalSamplerState::FMetalSamplerState(id<MTLDevice> Device, const FSamplerStateInitializerRHI& Initializer)
 {
 	MTLSamplerDescriptor* Desc = [[MTLSamplerDescriptor alloc] init];
-	
-	Desc.minFilter = Desc.magFilter = TranslateFilterMode(Initializer.Filter);
-	Desc.mipFilter = TranslateMipFilterMode(Initializer.Filter);
+	switch(Initializer.Filter)
+	{
+		case SF_AnisotropicLinear:
+		case SF_AnisotropicPoint:
+			Desc.minFilter = MTLSamplerMinMagFilterLinear;
+			Desc.magFilter = MTLSamplerMinMagFilterLinear;
+			Desc.mipFilter = MTLSamplerMipFilterLinear;
+			break;
+		case SF_Trilinear:
+			Desc.minFilter = MTLSamplerMinMagFilterLinear;
+			Desc.magFilter = MTLSamplerMinMagFilterLinear;
+			Desc.mipFilter = MTLSamplerMipFilterLinear;
+			break;
+		case SF_Bilinear:
+			Desc.minFilter = MTLSamplerMinMagFilterLinear;
+			Desc.magFilter = MTLSamplerMinMagFilterLinear;
+			Desc.mipFilter = MTLSamplerMipFilterNearest;
+			break;
+		case SF_Point:
+			Desc.minFilter = MTLSamplerMinMagFilterNearest;
+			Desc.magFilter = MTLSamplerMinMagFilterNearest;
+			Desc.mipFilter = MTLSamplerMipFilterNearest;
+			break;
+	}
 	Desc.maxAnisotropy = GetMetalMaxAnisotropy(Initializer.Filter, Initializer.MaxAnisotropy);
 	Desc.sAddressMode = TranslateWrapMode(Initializer.AddressU);
 	Desc.tAddressMode = TranslateWrapMode(Initializer.AddressV);

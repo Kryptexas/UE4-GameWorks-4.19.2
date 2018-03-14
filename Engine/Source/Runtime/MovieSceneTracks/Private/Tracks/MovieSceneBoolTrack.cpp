@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Tracks/MovieSceneBoolTrack.h"
 #include "MovieSceneCommonHelpers.h"
@@ -14,21 +14,4 @@ UMovieSceneSection* UMovieSceneBoolTrack::CreateNewSection()
 FMovieSceneEvalTemplatePtr UMovieSceneBoolTrack::CreateTemplateForSection(const UMovieSceneSection& InSection) const
 {
 	return FMovieSceneBoolPropertySectionTemplate(*CastChecked<const UMovieSceneBoolSection>(&InSection), *this);
-}
-
-bool UMovieSceneBoolTrack::Eval( float Position, float LastPostion, bool& InOutBool ) const
-{	
-	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Position );
-
-	if( Section )
-	{
-		if (!Section->IsInfinite())
-		{
-			Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
-		}
-
-		InOutBool = CastChecked<UMovieSceneBoolSection>( Section )->Eval( Position, InOutBool );
-	}
-
-	return (Section != nullptr);
 }

@@ -286,7 +286,8 @@ properties to be displayed.
 	[RELATIVE:Engine/UI/LevelEditor/Details/Customizations/StaticMeshes]
 	[/PARAM]
 [/OBJECT]
-<!--
+[COMMENT:none]
+
 [OBJECT:TopicCompact]
 	[PARAM:image]
 	![](Engine/UI/LevelEditor/Details/Customizations/SkeletalMeshes/details_sk_topic.png)
@@ -298,7 +299,8 @@ properties to be displayed.
 	[RELATIVE:Engine/UI/LevelEditor/Details/Customizations/SkeletalMeshes]
 	[/PARAM]
 [/OBJECT]
--->
+
+[/COMMENT]
 [OBJECT:TopicCompact]
 	[PARAM:image]
 	![](Engine/UI/LevelEditor/Details/Customizations/CodeView/code_view_topic.png)

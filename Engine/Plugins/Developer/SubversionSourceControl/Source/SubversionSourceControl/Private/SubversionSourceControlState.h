@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -81,6 +81,7 @@ public:
 	virtual bool CanAdd() const override;
 	virtual bool CanDelete() const override;
 	virtual bool IsConflicted() const override;
+	virtual bool CanRevert() const override;
 
 public:
 	/** History of the item, if any */

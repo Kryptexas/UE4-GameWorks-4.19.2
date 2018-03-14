@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanPipelineState.h: Vulkan pipeline state definitions.
@@ -13,6 +13,7 @@
 #include "VulkanGlobalUniformBuffer.h"
 #include "VulkanPipeline.h"
 #include "VulkanRHIPrivate.h"
+#include "ArrayView.h"
 
 class FVulkanComputePipeline;
 
@@ -22,13 +23,32 @@ class FVulkanCommonPipelineState : public VulkanRHI::FDeviceChild
 public:
 	FVulkanCommonPipelineState(FVulkanDevice* InDevice)
 		: VulkanRHI::FDeviceChild(InDevice)
+#if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
 		, DSRingBuffer(InDevice)
+#endif
 	{
 	}
 
 protected:
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	inline void Bind(VkCommandBuffer CmdBuffer, VkPipelineLayout PipelineLayout, VkPipelineBindPoint BindPoint)
+	{
+		VulkanRHI::vkCmdBindDescriptorSets(CmdBuffer,
+			BindPoint,
+			PipelineLayout,
+			0, DescriptorSetHandles.Num(), DescriptorSetHandles.GetData(),
+			0, nullptr);
+	}
+#endif
 	FVulkanDescriptorSetWriteContainer DSWriteContainer;
-	FVulkanDescriptorSetRingBuffer DSRingBuffer;
+#if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+	FOLDVulkanDescriptorSetRingBuffer DSRingBuffer;
+#endif
+
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	FVulkanTypedDescriptorPoolSet* CurrentDescriptorPoolSet = nullptr;
+	TArray<VkDescriptorSet> DescriptorSetHandles;
+#endif
 };
 
 
@@ -44,7 +64,10 @@ public:
 	void Reset()
 	{
 		PackedUniformBuffersDirty = PackedUniformBuffersMask;
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+#else
 		DSRingBuffer.Reset();
+#endif
 		DSWriter.ResetDirty();
 	}
 
@@ -108,13 +131,30 @@ public:
 		}
 	}
 
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+	TArrayView<VkDescriptorSet> UpdateDescriptorSets(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, FVulkanGlobalUniformPool* GlobalUniformPool);
+
+	inline void BindDescriptorSets(VkCommandBuffer CmdBuffer, const TArrayView<VkDescriptorSet>& DescriptorSets)
+	{
+		VulkanRHI::vkCmdBindDescriptorSets(CmdBuffer,
+			VK_PIPELINE_BIND_POINT_COMPUTE,
+			ComputePipeline->GetLayout().GetPipelineLayout(),
+			0, DescriptorSets.Num(), DescriptorSets.GetData(),
+			0, nullptr);
+	}
+#else
 	bool UpdateDescriptorSets(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, FVulkanGlobalUniformPool* GlobalUniformPool);
 
 	inline void BindDescriptorSets(VkCommandBuffer CmdBuffer)
 	{
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+		Bind(CmdBuffer, ComputePipeline->GetLayout().GetPipelineLayout(), VK_PIPELINE_BIND_POINT_COMPUTE);
+#else
 		check(DSRingBuffer.CurrDescriptorSets);
 		DSRingBuffer.CurrDescriptorSets->Bind(CmdBuffer, ComputePipeline->GetLayout().GetPipelineLayout(), VK_PIPELINE_BIND_POINT_COMPUTE);
+#endif
 	}
+#endif
 
 protected:
 	FPackedUniformBuffers PackedUniformBuffers;
@@ -200,23 +240,42 @@ public:
 		}
 	}
 
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+	TArrayView<VkDescriptorSet> UpdateDescriptorSets(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, FVulkanGlobalUniformPool* GlobalUniformPool);
+
+	inline void BindDescriptorSets(VkCommandBuffer CmdBuffer, const TArrayView<VkDescriptorSet>& DescriptorSets)
+	{
+		VulkanRHI::vkCmdBindDescriptorSets(CmdBuffer,
+			VK_PIPELINE_BIND_POINT_GRAPHICS,
+			GfxPipeline->Pipeline->GetLayout().GetPipelineLayout(),
+			0, DescriptorSets.Num(), DescriptorSets.GetData(),
+			0, nullptr);
+	}
+#else
 	bool UpdateDescriptorSets(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, FVulkanGlobalUniformPool* GlobalUniformPool);
 
 	inline void BindDescriptorSets(VkCommandBuffer CmdBuffer)
 	{
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+		Bind(CmdBuffer, GfxPipeline->Pipeline->GetLayout().GetPipelineLayout(), VK_PIPELINE_BIND_POINT_GRAPHICS);
+#else
 		check(DSRingBuffer.CurrDescriptorSets);
 		DSRingBuffer.CurrDescriptorSets->Bind(CmdBuffer, GfxPipeline->Pipeline->GetLayout().GetPipelineLayout(), VK_PIPELINE_BIND_POINT_GRAPHICS);
+#endif
 	}
+#endif
 
 	void Reset()
 	{
 		FMemory::Memcpy(PackedUniformBuffersDirty, PackedUniformBuffersMask);
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+#else
 		DSRingBuffer.Reset();
+#endif
 		for (int32 Index = 0; Index < SF_Compute; ++Index)
 		{
 			DSWriter[Index].ResetDirty();
 		}
-		;
 	}
 
 	inline void Verify()

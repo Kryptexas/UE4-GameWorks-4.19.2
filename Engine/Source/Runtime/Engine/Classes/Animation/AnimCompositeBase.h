@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -156,8 +156,17 @@ struct FAnimSegment
 	 * Supports playing backwards (CurrentTrackPosition<PreviousTrackPosition).
 	 * Only supports contiguous range, does NOT support looping and wrapping over.
 	 */
+	DEPRECATED(4.19, "Use the GetAnimNotifiesFromTrackPositions that takes FAnimNotifyEventReferences instead")
 	void GetAnimNotifiesFromTrackPositions(const float& PreviousTrackPosition, const float& CurrentTrackPosition, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const;
 	
+	/**
+	* Retrieves AnimNotifies between two Track time positions. ]PreviousTrackPosition, CurrentTrackPosition]
+	* Between PreviousTrackPosition (exclusive) and CurrentTrackPosition (inclusive).
+	* Supports playing backwards (CurrentTrackPosition<PreviousTrackPosition).
+	* Only supports contiguous range, does NOT support looping and wrapping over.
+	*/
+	void GetAnimNotifiesFromTrackPositions(const float& PreviousTrackPosition, const float& CurrentTrackPosition, TArray<FAnimNotifyEventReference> & OutActiveNotifies) const;
+
 	/** 
 	 * Given a Track delta position [StartTrackPosition, EndTrackPosition]
 	 * See if this AnimSegment overlaps any of it, and if it does, break it up into RootMotionExtractionSteps.
@@ -263,7 +272,16 @@ struct FAnimTrack
 	* Supports playing backwards (CurrentTrackPosition<PreviousTrackPosition).
 	* Only supports contiguous range, does NOT support looping and wrapping over.
 	*/
+	DEPRECATED(4.19, "Use the GetAnimNotifiesFromTrackPositions that takes FAnimNotifyEventReferences instead")
 	void GetAnimNotifiesFromTrackPositions(const float& PreviousTrackPosition, const float& CurrentTrackPosition, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const;
+
+	/**
+	* Retrieves AnimNotifies between two Track time positions. ]PreviousTrackPosition, CurrentTrackPosition]
+	* Between PreviousTrackPosition (exclusive) and CurrentTrackPosition (inclusive).
+	* Supports playing backwards (CurrentTrackPosition<PreviousTrackPosition).
+	* Only supports contiguous range, does NOT support looping and wrapping over.
+	*/
+	void GetAnimNotifiesFromTrackPositions(const float& PreviousTrackPosition, const float& CurrentTrackPosition, TArray<FAnimNotifyEventReference> & OutActiveNotifies) const;
 
 	/** return true if anim notify is available */
 	bool IsNotifyAvailable() const;

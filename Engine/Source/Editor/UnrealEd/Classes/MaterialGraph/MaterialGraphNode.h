@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -72,6 +72,7 @@ public:
 	virtual void OnCommentBubbleToggled( bool bInCommentBubbleVisible ) override;
 	virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
 	virtual FString GetDocumentationExcerptName() const override;
+	virtual bool CanUserDeleteNode() const override; 
 	//~ End UEdGraphNode Interface.
 
 	//~ Begin UMaterialGraphNode_Base Interface
@@ -82,7 +83,7 @@ public:
 	//~ End UMaterialGraphNode_Base Interface
 
 	/** Will return the shorten pin name to use based on long pin name */
-	static FString UNREALED_API GetShortenPinName(const FString& PinName);
+	static FName UNREALED_API GetShortenPinName(const FName PinName);
 
 private:
 	/** Make sure the MaterialExpression is owned by the Material */

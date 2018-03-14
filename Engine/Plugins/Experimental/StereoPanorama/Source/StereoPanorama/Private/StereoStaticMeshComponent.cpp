@@ -5,12 +5,17 @@
 #include "Engine/StaticMesh.h"
 
 
-class FStereoStaticMeshSceneProxy
+class FStereoStaticMeshSceneProxy final
 	: public FStaticMeshSceneProxy
 {
     ESPStereoCameraLayer EyeToRender;
 
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
 
     FStereoStaticMeshSceneProxy(UStereoStaticMeshComponent* Component) :
         FStaticMeshSceneProxy(Component, false)
@@ -58,7 +63,7 @@ FPrimitiveSceneProxy* UStereoStaticMeshComponent::CreateSceneProxy()
     if ((GetStaticMesh() == nullptr) ||
 		(GetStaticMesh()->RenderData == nullptr) ||
 		(GetStaticMesh()->RenderData->LODResources.Num() == 0) ||
-		(GetStaticMesh()->RenderData->LODResources[0].VertexBuffer.GetNumVertices() == 0))
+		(GetStaticMesh()->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer.GetNumVertices() == 0))
     {
         return nullptr;
     }

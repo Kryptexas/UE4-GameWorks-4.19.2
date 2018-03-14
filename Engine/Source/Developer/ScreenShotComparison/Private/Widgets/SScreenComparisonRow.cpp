@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/SScreenComparisonRow.h"
 #include "Models/ScreenComparisonModel.h"
@@ -14,6 +14,7 @@
 #include "Widgets/Layout/SScaleBox.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SSlider.h"
+#include "Widgets/Input/SCheckBox.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 #include "IImageWrapperModule.h"
@@ -30,14 +31,14 @@ public:
 	SLATE_BEGIN_ARGS(SImageComparison) {}
 		SLATE_ARGUMENT(TSharedPtr<FSlateDynamicImageBrush>, BaseImage)
 		SLATE_ARGUMENT(TSharedPtr<FSlateDynamicImageBrush>, ModifiedImage)
+		SLATE_ARGUMENT(TSharedPtr<FSlateDynamicImageBrush>, DeltaImage)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs)
 	{
 		BaseImage = InArgs._BaseImage;
 		ModifiedImage = InArgs._ModifiedImage;
-
-		//const int32 MaxHeight = FSlateApplication::Get().GetPreferredWorkArea().GetSize().Y * 0.80;
+		DeltaImage = InArgs._DeltaImage;
 
 		ChildSlot
 		[
@@ -63,6 +64,13 @@ public:
 						.Image(ModifiedImage.Get())
 						.ColorAndOpacity(this, &SImageComparison::GetModifiedOpacity)
 					]
+
+					+ SOverlay::Slot()
+					[
+						SNew(SImage)
+						.Image(DeltaImage.Get())
+						.ColorAndOpacity(this, &SImageComparison::GetDeltaOpacity)
+					]
 				]
 			]
 			
@@ -72,6 +80,7 @@ public:
 			[
 				SNew(SHorizontalBox)
 				
+				// Comparison slider
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
@@ -96,6 +105,30 @@ public:
 					SNew(STextBlock)
 					.Text(LOCTEXT("Incoming", "Incoming"))
 				]
+
+				// Delta checkbox
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SBox)
+					.MinDesiredWidth(50)
+				]
+
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SBox)
+					[
+						SAssignNew(DeltaCheckbox, SCheckBox)
+					]
+				]
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("ShowDelta", "Show Delta"))
+				]
 			]
 		];
 	}
@@ -105,11 +138,18 @@ public:
 		return FLinearColor(1, 1, 1, OpacitySlider->GetValue());
 	}
 
+	FSlateColor GetDeltaOpacity() const
+	{
+		return FLinearColor(1, 1, 1, DeltaCheckbox->IsChecked() ? 1 : 0);
+	}
+
 private:
 	TSharedPtr<FSlateDynamicImageBrush> BaseImage;
 	TSharedPtr<FSlateDynamicImageBrush> ModifiedImage;
+	TSharedPtr<FSlateDynamicImageBrush> DeltaImage;
 
 	TSharedPtr<SSlider> OpacitySlider;
+	TSharedPtr<SCheckBox> DeltaCheckbox;
 };
 
 
@@ -154,6 +194,33 @@ TSharedRef<SWidget> SScreenComparisonRow::GenerateWidgetForColumn(const FName& C
 		if ( ComparisonResult.IsNew() )
 		{
 			return BuildAddedView();
+		}
+		else if (IsComparingAgainstPlatformFallback())
+		{
+			return
+				SNew(SVerticalBox)
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					BuildComparisonPreview()
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.HAlign(HAlign_Center)
+				[
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.IsEnabled(this, &SScreenComparisonRow::CanAddPlatformSpecificNew)
+						.Text(LOCTEXT("AddPlatformSpecificNew", "Add Platform-Specific New"))
+						.OnClicked(this, &SScreenComparisonRow::AddPlatformSpecificNew)
+					]
+				];
 		}
 		else
 		{
@@ -200,6 +267,15 @@ TSharedRef<SWidget> SScreenComparisonRow::GenerateWidgetForColumn(const FName& C
 bool SScreenComparisonRow::CanUseSourceControl() const
 {
 	return ISourceControlModule::Get().IsEnabled();
+}
+
+bool SScreenComparisonRow::IsComparingAgainstPlatformFallback() const
+{
+	// If the approved and incoming files are in different paths, that suggests a platform fallback
+	bool bHasApprovedFile = !Model->Report.Comparison.ApprovedFile.IsEmpty();
+	FString ApprovedPath = FPaths::GetPath(Model->Report.Comparison.ApprovedFile);
+	FString IncomingPath = FPaths::GetPath(Model->Report.Comparison.IncomingFile);
+	return bHasApprovedFile && ApprovedPath != IncomingPath;
 }
 
 TSharedRef<SWidget> SScreenComparisonRow::BuildAddedView()
@@ -284,7 +360,7 @@ TSharedRef<SWidget> SScreenComparisonRow::BuildComparisonPreview()
 						.AutoWidth()
 						.Padding(4.0f, 4.0f)
 						[
-							SNew(SAsyncImage)
+							SAssignNew(DeltaImageWidget, SAsyncImage)
 							.ImageFilePath(DeltaFile)
 						]
 
@@ -343,9 +419,21 @@ FReply SScreenComparisonRow::AddNew()
 	return FReply::Handled();
 }
 
-bool SScreenComparisonRow::CanReplace() const
+bool SScreenComparisonRow::CanAddPlatformSpecificNew() const
 {
 	return CanUseSourceControl();
+}
+
+FReply SScreenComparisonRow::AddPlatformSpecificNew()
+{
+	Model->AddNew(ScreenshotManager);
+
+	return FReply::Handled();
+}
+
+bool SScreenComparisonRow::CanReplace() const
+{
+	return CanUseSourceControl() && !IsComparingAgainstPlatformFallback();
 }
 
 FReply SScreenComparisonRow::Replace()
@@ -357,7 +445,7 @@ FReply SScreenComparisonRow::Replace()
 
 bool SScreenComparisonRow::CanAddAsAlternative() const
 {
-	return CanUseSourceControl() && (Model->Report.Comparison.IncomingFile != Model->Report.Comparison.ApprovedFile);
+	return CanUseSourceControl() && (Model->Report.Comparison.IncomingFile != Model->Report.Comparison.ApprovedFile) && !IsComparingAgainstPlatformFallback();
 }
 
 FReply SScreenComparisonRow::AddAlternative()
@@ -371,8 +459,9 @@ FReply SScreenComparisonRow::OnCompareImages(const FGeometry& InGeometry, const 
 {
 	TSharedPtr<FSlateDynamicImageBrush> ApprovedImage = ApprovedImageWidget->GetDynamicBrush();
 	TSharedPtr<FSlateDynamicImageBrush> UnapprovedImage = UnapprovedImageWidget->GetDynamicBrush();
+	TSharedPtr<FSlateDynamicImageBrush> DeltaImage = DeltaImageWidget->GetDynamicBrush();
 
-	if ( ApprovedImage.IsValid() && UnapprovedImage.IsValid() )
+	if ( ApprovedImage.IsValid() && UnapprovedImage.IsValid() && DeltaImage.IsValid()  )
 	{
 		TSharedRef<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared()).ToSharedRef();
 
@@ -391,6 +480,7 @@ FReply SScreenComparisonRow::OnCompareImages(const FGeometry& InGeometry, const 
 				SNew(SImageComparison)
 				.BaseImage(ApprovedImage)
 				.ModifiedImage(UnapprovedImage)
+				.DeltaImage(DeltaImage)
 			];
 
 		FSlateApplication::Get().AddWindowAsNativeChild(PopupWindow, ParentWindow, true);

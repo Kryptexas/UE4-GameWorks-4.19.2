@@ -28,7 +28,8 @@ Description:关卡中应用的常见Actor类型的列表及描述。
 | **AmbientSound（环境音效）**  | ![](Shared/Icons/Source/icon_class_AmbientSound_40px.png)(convert:false) | **环境音效Actors** 用于在世界中以 Sound Cue的形式播放音效。这些音效可以时循环播放的也可以是非循环播放的，可以具有空间化及衰减效果，但所有这些必须在SoundCue中进行设置，而没有暴露在环境音效actor本身上。|
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Trigger]
 [REGION:imagetable]
 | ![](Engine/Actors/Triggers/box_trigger.png)(w:200) | ![](Engine/Actors/Triggers/capsule_trigger.png)(w:200) | ![](Engine/Actors/Triggers/sphere_trigger.png)(w:200) |
@@ -36,4 +37,5 @@ Description:关卡中应用的常见Actor类型的列表及描述。
 | 盒体触发器 | 胶囊体触发器 | 球体触发器 |
 [/REGION]
 [/EXCERPT:Trigger]
--->
+
+[/COMMENT]

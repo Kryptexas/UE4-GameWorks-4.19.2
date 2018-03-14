@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3580568
 Availability:Docs
-Title:5 - Composure Game Mode & Level Blueprint Setup
+Title:5 - Composure 游戏模式与关卡蓝图设置
 Crumbs:%ROOT%
-Description:In this step, we will setup the level Blueprint and Game mode that Composure will use. 
+Description:在这步中，我们将对 Composure 使用的关卡蓝图和游戏模式进行设置。 
 SkillLevel:Beginner
 Version:4.17
 checkpoint:ComposureQS
@@ -13,75 +13,75 @@ tags:Composure
 
 [NAV]
 
-In the following section, we will go over setting up the Level Blueprint and Game Mode so that Sequencer and Composure can work together when you run your project. When completed, you will have a re-creation of the third shot from the Composure example project.
+在以下部分中，我们将对关卡蓝图和游戏模式进行设置，使 Sequencer 和 Composure 在运行项目时共同工作。操作完成后您将获得 Composure 范例项目的第三个镜头。
 
-## Steps
+## 步骤
 
-1. First, open up the Level Blueprint and click on the **Class Defaults** button. Then, over in the **Details** panel, under **Actor Tick**, press the Show Advanced Properties button and change the **Tick Group** to **Post Update Work**.
+1. 首先打开关卡蓝图并点击 **Class Defaults** 按钮。然后在 **Details** 面板中的 **Actor Tick** 下按下 Show Advanced Properties 按钮并将 **Tick Group** 改为 **Post Update Work**。
 
     [REGION:lightbox]
     [![](ComposureQS_S5_7.png)(w:740)](ComposureQS_S5_7.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
     [region:warning]
-    If you fail to change the Actor Tick group, you will introduce one frame of latency in the camera position/direction because the Advanced Compositing pipeline query these inputs from the Player Camera Manager and all Tick generated animations in the scene. Moreover, this is the last Tick group that gets updated before triggering the rendering command, and since we are manually triggering this through Composure, it needs to be in the Post Update Work Tick group to work correctly.
+    如未修改 Actor Tick 组，摄像机位置/方向上则会出现一帧延迟，因为高级合成流程将从 Player Camera Manager 和场景中所有 Tick 生成的动画查询这些输入。此外，这是触发渲染命令之前被更新的最后一个 Tick 组，我们将通过 Composure 手动将其触发，因此它需要处于 Post Update Work Tick 组中方能正常工作。
     [/region]
 
-1. Select the BP_AdvancedCompositing Blueprint in the **World Outliner** and then inside the Level Blueprint, right - click and choose the **Create a Reference to BP_AdvancedCompositing** option.
+1. 在 **World Outliner** 中选择 BP_AdvancedCompositing 蓝图，然后在关卡蓝图中点击右键并选择 **Create a Reference to BP_AdvancedCompositing** 选项。
 
     [REGION:lightbox]
     [![](ComposureQS_S5_1.png)(w:603)](ComposureQS_S5_1.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-1. Drag off the out of the **BP_AdvancedCompositing** variable output and from the displayed list, search for the **Process Current Frame** node and add it to the graph, connecting the Event Tick output to the input on the Process Current Frame node.
+1. 从 **BP_AdvancedCompositing** 变量输出连出引线，从显示的列表中搜索 **Process Current Frame** 并将其添加到图表，将 Event Tick 输出连接到 Process Current Frame 节点上的输入。
 
     [REGION:lightbox]
     [![](ComposureQS_S5_2.png)(w:615)](ComposureQS_S5_2.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-1. Next, drag of the Event Begin Play node output and from the displayed list, search for the **Set View Target with Blend** node and add it to the Event Graph. 
+1. 接下来从 Event Begin Play 节点输出连出引线，然后从出现的列表中搜索 **Set View Target with Blend** 节点并将其添加到事件图表。 
 
     [REGION:lightbox]
     [![](ComposureQS_S5_3.png)(w:615)](ComposureQS_S5_3.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
     [region:note]
-    You will need to disable **Context Sensitivity** in the Blueprint search box to see this node in the list.
+    需要在蓝图搜索框中禁用 **Context Sensitivity**，此节点才会显示在列表中。
     
     ![](ComposureQS_S5_4.png)
     [/region]
 
-1. Right- click in the Event Graph and search for a **Get Player Controller** and connect it to the **Target** input on the Target with Blend node. Then connect the **CineCameraActor** camera to the  **New View Target**  input on the Target with Blend node.
+1. 在事件图表中点击右键并搜索 **Get Player Controller**，然后将其连接到 Target with Blend 节点上的 **Target** 输入。然后将 **CineCameraActor** 摄像机连接到 Target with Blend 节点上的 **New View Target** 输入。
 
     [REGION:lightbox]
     [![](ComposureQS_S5_5.png)(w:500)](ComposureQS_S5_5.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-1. Now in the levels **World Settings** under **Game Mode** set the **Game Mode Override** to the **SimpleComposureGameModeBase** and then save your level.
+1. 在 **World Settings** 的 **Game Mode** 下将 **Game Mode Override** 设为 **SimpleComposureGameModeBase** 并保存关卡。
 
     ![](ComposureQS_S5_6.png)
 
-1. To see what the final video will look like, first, make sure that you have the sequence open in Sequencer and then change your play mode to **Simulate** and press the **Play** button or scrub the timeline to get the images on the plates to show up like in the following video
+1. 观看最终影片的操作：将序列在 Sequencer 中打开，将播放模式改为 **Simulate**，然后按下 **Play** 按钮，拖动时间轴，使图像与以下视频中所显示的内容类似。
 
     [OBJECT:EmbeddedVideo]
         [PARAMLITERAL:videoid]
@@ -101,9 +101,9 @@ In the following section, we will go over setting up the Level Blueprint and Gam
         [/PARAMLITERAL]
     [/OBJECT]
 
-## End Result
+## 最终结果
 
-With the character now being able to mix seamlessly with the foreground, background and lighting this brings us to the end of the Composure Quick Start. Keep in mind that this is just a small example of what is possible with the Composure system. In the next and final step, there will be some "On Your Own" challenges you can attempt and links to additional documentation.
+角色与前景、背景和灯光无缝混合后，Composure 快速入门的内容即将完结。这只是利用 Composure 进行的一个小例子而已，它还有极大潜力可以挖掘！最后一篇文档包含自由发挥的内容以及衍生文档的链接。
 
 
 [NAV]

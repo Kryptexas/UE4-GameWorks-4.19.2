@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "WheeledVehicleMovementComponent4W.h"
 #include "Components/PrimitiveComponent.h"
@@ -7,6 +7,7 @@
 
 UWheeledVehicleMovementComponent4W::UWheeledVehicleMovementComponent4W(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
+#if WITH_PHYSX
 	// grab default values from physx
 	PxVehicleDifferential4WData DefDifferentialSetup;
 	TEnumAsByte<EVehicleDifferential4W::Type> DiffType((uint8)DefDifferentialSetup.mType);
@@ -68,6 +69,7 @@ UWheeledVehicleMovementComponent4W::UWheeledVehicleMovementComponent4W(const FOb
 
 	// Initialize WheelSetups array with 4 wheels
 	WheelSetups.SetNum(4);
+#endif // WITH_PHYSX
 }
 
 #if WITH_EDITOR
@@ -105,6 +107,7 @@ void UWheeledVehicleMovementComponent4W::PostEditChangeProperty(struct FProperty
 }
 #endif
 
+#if WITH_PHYSX
 
 static void GetVehicleDifferential4WSetup(const FVehicleDifferential4WData& Setup, PxVehicleDifferential4WData& PxSetup)
 {
@@ -140,6 +143,8 @@ static void GetVehicleDifferential4WSetup(const FVehicleDifferential4WData& Setu
 	PxSetup.mRearBias = Setup.RearBias;
 }
 
+#endif // WITH_PHYSX
+
 float FVehicleEngineData::FindPeakTorque() const
 {
 	// Find max torque
@@ -153,6 +158,7 @@ float FVehicleEngineData::FindPeakTorque() const
 	return PeakTorque;
 }
 
+#if WITH_PHYSX
 static void GetVehicleEngineSetup(const FVehicleEngineData& Setup, PxVehicleEngineData& PxSetup)
 {
 	PxSetup.mMOI = M2ToCm2(Setup.MOI);
@@ -238,6 +244,10 @@ void SetupDriveHelper(const UWheeledVehicleMovementComponent4W* VehicleData, con
 	DriveData.setAutoBoxData(AutoBoxSetup);
 }
 
+#endif // WITH_PHYSX
+
+#if WITH_PHYSX
+
 void UWheeledVehicleMovementComponent4W::SetupVehicleDrive(PxVehicleWheelsSimData* PWheelsSimData)
 {
 	if(WheelSetups.Num() != 4)
@@ -310,9 +320,12 @@ void UWheeledVehicleMovementComponent4W::UpdateSimulation(float DeltaTime)
 	});
 }
 
+#endif // WITH_PHYSX
+
 
 void UWheeledVehicleMovementComponent4W::UpdateEngineSetup(const FVehicleEngineData& NewEngineSetup)
 {
+#if WITH_PHYSX
 	if (PVehicleDrive)
 	{
 		PxVehicleEngineData EngineData;
@@ -321,10 +334,12 @@ void UWheeledVehicleMovementComponent4W::UpdateEngineSetup(const FVehicleEngineD
 		PxVehicleDrive4W* PVehicleDrive4W = (PxVehicleDrive4W*)PVehicleDrive;
 		PVehicleDrive4W->mDriveSimData.setEngineData(EngineData);
 	}
+#endif // WITH_PHYSX
 }
 
 void UWheeledVehicleMovementComponent4W::UpdateDifferentialSetup(const FVehicleDifferential4WData& NewDifferentialSetup)
 {
+#if WITH_PHYSX
 	if (PVehicleDrive)
 	{
 		PxVehicleDifferential4WData DifferentialData;
@@ -333,10 +348,12 @@ void UWheeledVehicleMovementComponent4W::UpdateDifferentialSetup(const FVehicleD
 		PxVehicleDrive4W* PVehicleDrive4W = (PxVehicleDrive4W*)PVehicleDrive;
 		PVehicleDrive4W->mDriveSimData.setDiffData(DifferentialData);
 	}
+#endif // WITH_PHYSX
 }
 
 void UWheeledVehicleMovementComponent4W::UpdateTransmissionSetup(const FVehicleTransmissionData& NewTransmissionSetup)
 {
+#if WITH_PHYSX
 	if (PVehicleDrive)
 	{
 		PxVehicleGearsData GearData;
@@ -349,6 +366,7 @@ void UWheeledVehicleMovementComponent4W::UpdateTransmissionSetup(const FVehicleT
 		PVehicleDrive4W->mDriveSimData.setGearsData(GearData);
 		PVehicleDrive4W->mDriveSimData.setAutoBoxData(AutoBoxData);
 	}
+#endif // WITH_PHYSX
 }
 
 void BackwardsConvertCm2ToM2(float& val, float defaultValue)
@@ -362,6 +380,7 @@ void BackwardsConvertCm2ToM2(float& val, float defaultValue)
 void UWheeledVehicleMovementComponent4W::Serialize(FArchive & Ar)
 {
 	Super::Serialize(Ar);
+#if WITH_PHYSX
 	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_VEHICLES_UNIT_CHANGE)
 	{
 		PxVehicleEngineData DefEngineData;
@@ -383,6 +402,7 @@ void UWheeledVehicleMovementComponent4W::Serialize(FArchive & Ar)
 		BackwardsConvertCm2ToM2(EngineSetup.MOI, DefEngineData.mMOI);
 		BackwardsConvertCm2ToM2(TransmissionSetup.ClutchStrength, DefClutchData.mStrength);
 	}
+#endif // WITH_PHYSX
 }
 
 void UWheeledVehicleMovementComponent4W::ComputeConstants()

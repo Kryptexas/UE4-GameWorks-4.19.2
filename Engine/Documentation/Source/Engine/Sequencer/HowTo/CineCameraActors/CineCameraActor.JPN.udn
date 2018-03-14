@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244012
+﻿INTSourceChangelist:3683933
 Availability:Public
 Title:Cine Camera アクタを使用する
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -11,6 +11,7 @@ checkpoint: editorqs
 Related:Engine/Sequencer/Overview
 Related:Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 **Cine Camera アクタ** は特殊な [**Camera アクタ**](Engine/Actors/CameraActors/) で、最近のほとんどの現実のカメラにあるカメラ設定があります。 
 **Filmback (フィルムバック)**、 **Lens (レンズ)**、または **Focus (フォーカス)** の設定では、シネマティックスのような外観のショットを作るために標準の Camera アクタよりも多くのツールがあります。 

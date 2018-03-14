@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeGraphNode_Root.h"
 #include "UObject/UObjectIterator.h"
@@ -31,7 +31,7 @@ void UBehaviorTreeGraphNode_Root::PostPlacedNewNode()
 
 void UBehaviorTreeGraphNode_Root::AllocateDefaultPins()
 {
-	CreatePin(EGPD_Output, UBehaviorTreeEditorTypes::PinCategory_SingleComposite, FString(), nullptr, TEXT("In"));
+	CreatePin(EGPD_Output, UBehaviorTreeEditorTypes::PinCategory_SingleComposite, TEXT("In"));
 }
 
 FText UBehaviorTreeGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) const

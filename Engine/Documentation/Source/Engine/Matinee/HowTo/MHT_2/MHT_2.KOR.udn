@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:리프트 구성하기
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
@@ -7,19 +7,13 @@ Version: 4.9
 SkillLevel: Intermediate
 
 
----
 한 지점에서 다른 지점까지 자동으로 움직이는 두 개의 리프트를 만드는 법을 단계별로 알아보겠습니다.
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		리프트 만들기
-	[/PARAM]
-	[PARAM:description]
-	이번 단계에서는 기본적인 모양을 가지고 리프트와 플랫폼을 만들어 보겠습니다.
-	[/PARAM]
-[/OBJECT]
+## 리프트 만들기
+
+이번 단계에서는 기본적인 모양을 가지고 리프트와 플랫폼을 만들어 보겠습니다.
 
 1.  **콘텐츠 브라우저** 안에서 **Shapes** 폴더에 있는 **Shape_Cube** 를 레벨 내 **PlayerStart** 앞에 끌어 놓습니다. 
 
@@ -57,15 +51,9 @@ SkillLevel: Intermediate
 
 	![](MHT2_LastCubeAdded.png)
 
+## 마티네를 추가하고 첫 번째 리프트를 옮기기
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		마티네를 추가하고 첫 번째 리프트를 옮기기
-	[/PARAM]
-	[PARAM:description]
-	이번 단계에서는 **마티네** 를 추가한 다음 첫 번째 리프트에 대한 **Movement Track** 을 만들겠습니다.
-	[/PARAM]
-[/OBJECT]
+이번 단계에서는 **마티네** 를 추가한 다음 첫 번째 리프트에 대한 **Movement Track** 을 만들겠습니다.
 
 1. **툴바** 메뉴에서 **마티네** 를 선택한 다음 **마티네 추가** 버튼을 클릭합니다.
 
@@ -155,15 +143,9 @@ SkillLevel: Intermediate
 	[/PARAMLITERAL]
 	[/OBJECT]
 
+## 커브 에디터를 사용하여 두 번째 리프트 이동시키기
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		커브 에디터를 사용하여 두 번째 리프트 이동시키기
-	[/PARAM]
-	[PARAM:description]
-	이번 단계에서는 **커브 에디터** 에서 키프레임을 조정하여 두 번째 리프트를 이동시키겠습니다.
-	[/PARAM]
-[/OBJECT]
+이번 단계에서는 **커브 에디터** 에서 키프레임을 조정하여 두 번째 리프트를 이동시키겠습니다.
 
 1. **월드 아웃라이너** 에서 **MatineeActor** 를 선택한 다음 **디테일** 패널에서 **마티네 열기** 옵션을 선택합니다.
 
@@ -271,14 +253,3 @@ SkillLevel: Intermediate
 	[/PARAMLITERAL]
 	[/OBJECT]
 	
-
----
-
-
-
-
-
-
-
-
-

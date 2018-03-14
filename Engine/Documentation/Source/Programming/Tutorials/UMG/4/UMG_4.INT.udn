@@ -20,7 +20,7 @@ version:4.14
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 
 1. In the **Content Browser**, we will add a **Blueprint Class** based on our project's **GameMode**. This makes it possible to set the exposed variables on those two classes to whatever values we want. To do this:
@@ -70,143 +70,137 @@ version:4.14
 	[![](WorldSettings.png)](WorldSettings.png)
 
 
-----
-
 Our custom GameMode asset is now in effect on our level, configured to load our Main Menu, and use our Player Controller that shows the mouse cursor. If we run the game now, our Quit button will work as expected, and our New Game button will take us to an empty menu screen. Our next step will be to set up the New Game menu.
 
-[OBJECT:Section]
-    [PARAMLITERAL:id]
-    code
-    [/PARAMLITERAL]
-    [PARAM:heading]
-    Finished Code
-    [/PARAM]
-    [PARAM:content]
-		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+## Finished Code
 
-			using UnrealBuildTool;
+**HowTo_UMG.Build.cs**
 
-			public class HowTo_UMG : ModuleRules
-			{
-				public HowTo_UMG(TargetInfo Target)
-				{
-					PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "UMG" });
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-					//PrivateDependencyModuleNames.AddRange(new string[] {  });
+	using UnrealBuildTool;
 
-					// Uncomment if you are using Slate UI
-					PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
+	public class HowTo_UMG : ModuleRules
+	{
+		public HowTo_UMG(TargetInfo Target)
+		{
+			PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "UMG" });
+
+			//PrivateDependencyModuleNames.AddRange(new string[] {  });
+
+			// Uncomment if you are using Slate UI
+			PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 		
-					// Uncomment if you are using online features
-					// PrivateDependencyModuleNames.Add("OnlineSubsystem");
-					// if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
-					// {
-					//		if (UEBuildConfiguration.bCompileSteamOSS == true)
-					//		{
-					//			DynamicallyLoadedModuleNames.Add("OnlineSubsystemSteam");
-					//		}
-					// }
-				}
-			}
+			// Uncomment if you are using online features
+			// PrivateDependencyModuleNames.Add("OnlineSubsystem");
+			// if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
+			// {
+			//		if (UEBuildConfiguration.bCompileSteamOSS == true)
+			//		{
+			//			DynamicallyLoadedModuleNames.Add("OnlineSubsystemSteam");
+			//		}
+			// }
+		}
+	}
 
-		**HowTo_UMGGameMode.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+**HowTo_UMGGameMode.h**
 
-			#pragma once
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-			#include "Blueprint/UserWidget.h"
-			#include "GameFramework/GameModeBase.h"
-			#include "HowTo_UMGGameMode.generated.h"
+	#pragma once
 
-			/**
-			 * 
-			 */
-			UCLASS()
-			class HOWTO_UMG_API AHowTo_UMGGameMode : public AGameModeBase
+	#include "Blueprint/UserWidget.h"
+	#include "GameFramework/GameModeBase.h"
+	#include "HowTo_UMGGameMode.generated.h"
+
+	/**
+		* 
+		*/
+	UCLASS()
+	class HOWTO_UMG_API AHowTo_UMGGameMode : public AGameModeBase
+	{
+		GENERATED_BODY()
+
+	public:
+		/** Remove the current menu widget and create a new one from the specified class, if provided. */
+		UFUNCTION(BlueprintCallable, Category = "UMG Game")
+		void ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass);
+
+	protected:
+		/** Called when the game starts. */
+		virtual void BeginPlay() override;
+
+		/** The widget class we will use as our menu when the game starts. */
+		UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UMG Game")
+		TSubclassOf<UUserWidget> StartingWidgetClass;
+
+		/** The widget instance that we are using as our menu. */
+		UPROPERTY()
+		UUserWidget* CurrentWidget;
+	};
+
+**HowTo_UMGGameMode.cpp**
+
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
+	#include "HowTo_UMG.h"
+	#include "HowTo_UMGGameMode.h"
+
+	void AHowTo_UMGGameMode::BeginPlay()
+	{
+		Super::BeginPlay();
+		ChangeMenuWidget(StartingWidgetClass);
+	}
+
+	void AHowTo_UMGGameMode::ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass)
+	{
+		if (CurrentWidget != nullptr)
+		{
+			CurrentWidget->RemoveFromViewport();
+			CurrentWidget = nullptr;
+		}
+		if (NewWidgetClass != nullptr)
+		{
+			CurrentWidget = CreateWidget<UUserWidget>(GetWorld(), NewWidgetClass);
+			if (CurrentWidget != nullptr)
 			{
-				GENERATED_BODY()
-
-			public:
-				/** Remove the current menu widget and create a new one from the specified class, if provided. */
-				UFUNCTION(BlueprintCallable, Category = "UMG Game")
-				void ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass);
-
-			protected:
-				/** Called when the game starts. */
-				virtual void BeginPlay() override;
-
-				/** The widget class we will use as our menu when the game starts. */
-				UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UMG Game")
-				TSubclassOf<UUserWidget> StartingWidgetClass;
-
-				/** The widget instance that we are using as our menu. */
-				UPROPERTY()
-				UUserWidget* CurrentWidget;
-			};
-
-		**HowTo_UMGGameMode.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
-			#include "HowTo_UMG.h"
-			#include "HowTo_UMGGameMode.h"
-
-			void AHowTo_UMGGameMode::BeginPlay()
-			{
-				Super::BeginPlay();
-				ChangeMenuWidget(StartingWidgetClass);
+				CurrentWidget->AddToViewport();
 			}
-
-			void AHowTo_UMGGameMode::ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass)
-			{
-				if (CurrentWidget != nullptr)
-				{
-					CurrentWidget->RemoveFromViewport();
-					CurrentWidget = nullptr;
-				}
-				if (NewWidgetClass != nullptr)
-				{
-					CurrentWidget = CreateWidget<UUserWidget>(GetWorld(), NewWidgetClass);
-					if (CurrentWidget != nullptr)
-					{
-						CurrentWidget->AddToViewport();
-					}
-				}
-			}
+		}
+	}
 			
-		**HowTo_UMGPlayerController.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+**HowTo_UMGPlayerController.h**
 
-			#pragma once
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-			#include "GameFramework/PlayerController.h"
-			#include "HowTo_UMGPlayerController.generated.h"
+	#pragma once
 
-			/**
-			 * 
-			 */
-			UCLASS()
-			class HOWTO_UMG_API AHowTo_UMGPlayerController : public APlayerController
-			{
-				GENERATED_BODY()
+	#include "GameFramework/PlayerController.h"
+	#include "HowTo_UMGPlayerController.generated.h"
+
+	/**
+		* 
+		*/
+	UCLASS()
+	class HOWTO_UMG_API AHowTo_UMGPlayerController : public APlayerController
+	{
+		GENERATED_BODY()
 				
-			public:
-				virtual void BeginPlay() override;
-			};
+	public:
+		virtual void BeginPlay() override;
+	};
 
-		**HowTo_UMGPlayerController.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+**HowTo_UMGPlayerController.cpp**
 
-			#include "HowTo_UMG.h"
-			#include "HowTo_UMGPlayerController.h"
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-			void AHowTo_UMGPlayerController::BeginPlay()
-			{
-				Super::BeginPlay();
-				SetInputMode(FInputModeGameAndUI());
-			}
+	#include "HowTo_UMG.h"
+	#include "HowTo_UMGPlayerController.h"
 
-    [/PARAM]
-[/OBJECT]
+	void AHowTo_UMGPlayerController::BeginPlay()
+	{
+		Super::BeginPlay();
+		SetInputMode(FInputModeGameAndUI());
+	}
 
-%Steps%
+

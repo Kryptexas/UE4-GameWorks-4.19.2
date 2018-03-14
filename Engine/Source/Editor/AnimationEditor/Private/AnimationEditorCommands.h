@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -33,4 +33,6 @@ public:
 	TSharedPtr<FUICommandInfo> SetKey;
 	// bake bone track curves to animation
 	TSharedPtr<FUICommandInfo> ApplyAnimation;
+	// Remove bone tracks
+	TSharedPtr<FUICommandInfo> RemoveBoneTracks;
 };

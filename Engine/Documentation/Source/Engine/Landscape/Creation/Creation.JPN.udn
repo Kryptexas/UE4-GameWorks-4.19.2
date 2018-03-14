@@ -60,9 +60,11 @@ order:2
 動作中のランドスケープのサンプルは、 [](Resources\ContentExamples\Landscapes) を参照してください。
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 レベル エディタのパネルのカスタマイズについては、 [レベル エディタ インターフェースの概要](Engine/UI/InterfaceOverview) を参照してください。
--->
+
+[/COMMENT]
 
 ## Landscape ツールを開く
 

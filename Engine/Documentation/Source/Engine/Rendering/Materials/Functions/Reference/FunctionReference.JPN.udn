@@ -181,7 +181,8 @@ Version:4.9
 [/EXCERPT:Categories]
 
 
-<!--
+[COMMENT:none]
+
 [OBJECT:TopicCompact]
 	[PARAM:image]
 		![%Engine/Rendering/Materials/Functions/Reference/ComplexMotion:title%](ComplexMotion.png)
@@ -193,4 +194,5 @@ Version:4.9
 		[RELATIVE:Engine/Rendering/Materials/Functions/Reference/ComplexMotion]
 	[/PARAM]
 [/OBJECT]
--->
+
+[/COMMENT]

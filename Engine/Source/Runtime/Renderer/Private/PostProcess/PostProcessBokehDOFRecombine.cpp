@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessBokehDOFRecombine.cpp: Post processing lens blur implementation.
@@ -28,9 +28,9 @@ class FPostProcessBokehDOFRecombinePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessBokehDOFRecombinePS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	static int32 GetCombineFeatureMethod()
@@ -50,9 +50,9 @@ class FPostProcessBokehDOFRecombinePS : public FGlobalShader
 		return Method > 3;
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("RECOMBINE_METHOD"), GetCombineFeatureMethod());
 		OutEnvironment.SetDefine(TEXT("NEAREST_DEPTH_NEIGHBOR_UPSAMPLE"), UseNearestDepthNeighborUpsample());
 	}
@@ -119,9 +119,6 @@ public:
 			check(SceneContext.IsDownsampledTranslucencyDepthValid());
 			FTextureRHIParamRef LowResDepth = SceneContext.GetDownsampledTranslucencyDepthSurface();
 			SetTextureParameter(RHICmdList, ShaderRHI, LowResDepthTexture, LowResDepth);
-
-			const auto& BuiltinSamplersUBParameter = GetUniformBufferParameter<FBuiltinSamplersParameters>();
-			SetUniformBufferParameter(RHICmdList, ShaderRHI, BuiltinSamplersUBParameter, GBuiltinSamplersUniformBuffer.GetUniformBufferRHI());
 		}
 		else
 		{
@@ -159,9 +156,9 @@ class FPostProcessBokehDOFRecombineCS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessBokehDOFRecombineCS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
 	static int32 GetCombineFeatureMethod()
@@ -181,10 +178,10 @@ class FPostProcessBokehDOFRecombineCS : public FGlobalShader
 		return Method > 3;
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		// CS Params
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), GBokehDOFRecombineComputeTileSizeX);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), GBokehDOFRecombineComputeTileSizeY);
 
@@ -262,9 +259,6 @@ public:
 			check(SceneContext.IsDownsampledTranslucencyDepthValid());
 			FTextureRHIParamRef LowResDepth = SceneContext.GetDownsampledTranslucencyDepthSurface();
 			SetTextureParameter(RHICmdList, ShaderRHI, LowResDepthTexture, LowResDepth);
-
-			const auto& BuiltinSamplersUBParameter = GetUniformBufferParameter<FBuiltinSamplersParameters>();
-			SetUniformBufferParameter(RHICmdList, ShaderRHI, BuiltinSamplersUBParameter, GBuiltinSamplersUniformBuffer.GetUniformBufferRHI());
 
 			SetSamplerParameter(RHICmdList, ShaderRHI, BilinearClampedSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 			SetSamplerParameter(RHICmdList, ShaderRHI, PointClampedSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
@@ -368,7 +362,7 @@ void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext
 		Method += 2;
 	}
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 
 	SCOPED_DRAW_EVENTF(Context.RHICmdList, BokehDOFRecombine, TEXT("BokehDOFRecombine%s#%d %dx%d"),
 		bIsComputePass?TEXT("Compute"):TEXT(""), Method, View.ViewRect.Width(), View.ViewRect.Height());

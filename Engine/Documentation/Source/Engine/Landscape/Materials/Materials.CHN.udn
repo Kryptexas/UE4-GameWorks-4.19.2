@@ -309,11 +309,13 @@ version:4.9
 
 	![](Landscape_BaseNodeOpacity.png)
 
-	<!--
+	[COMMENT:none]
+
 	[REGION:tip]
 	如地形洞穴使用单独的材质，则必须将纹理插入 Base Color 槽中，否则将地形部分变为不可见时会出现黑块。
 	[/REGION]
-	-->
+	
+[/COMMENT]
 
 1. 接下来搜索并将 **LandscapeVisibilityMask** 节点添加到材质图表，然后将其输出和 **Opacity Mask** 的输入连接起来。
 
@@ -374,11 +376,13 @@ version:4.9
 如需了解地形洞穴材质的使用方法，请查阅 [利用不透明遮罩创建洞穴](Engine\Landscape\Editing\SculptMode\#UsingOpacityMaskingtoCreateaHole)。
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 ![Landscape_Material_Default.png](Landscape_Material_Default.png)(w:900 h:327)
 
 ![Landscape_Material_Viewport.png](Landscape_Material_Viewport.png)(w:900 h:327)
--->
+
+[/COMMENT]
 
 ## 曲面细分和置换
 

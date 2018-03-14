@@ -20,7 +20,7 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Now since you setup the Behavior Tree [earlier](Engine/AI/EnvironmentQuerySystem/QuickStart/9), and told the [AI Controller to run](Engine/AI/EnvironmentQuerySystem/QuickStart/7) it, you are ready to test! 
 
@@ -44,4 +44,4 @@ BWhnjDIhYwU
 [/OBJECT]
 
 
-%Steps%
+

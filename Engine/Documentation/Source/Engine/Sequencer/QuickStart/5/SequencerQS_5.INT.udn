@@ -1,11 +1,9 @@
 Availability:Public
 Title:5 - Finishing Up - Shots & Takes
 Crumbs:%ROOT%
-Description:In this step we use the Shot Track and create Takes as we wrap up our sample scene.
+Description:In this step, we use the Shot Track and create Takes as we wrap up our sample scene.
 SkillLevel:Beginner
-Version:4.12
-Related:Engine\Sequencer
-Related:Engine\Sequencer\Overview
+Version:4.18
 checkpoint: sequencerqs
 parent:Engine/Sequencer/QuickStart
 type:multi-step
@@ -14,8 +12,9 @@ tags:Sequencer
  
 [NAV]
 
-In the previous steps, we created our shots. Now, we tie them together using the **Shot Track** which enables you to add Level Sequences along the timeline for playback. We also create a **Take** of one of those Shots, which enables us to create a variant of that shot or use it as an additional Shot in the cinematic. 
-
+In the previous steps, we created our shots. 
+In this step we tie them together using the **Shot Track** which enables us to add Level Sequences along the timeline for playback.
+We also create a **Take** of one of those Shots, which enables us to create a variant of that shot or use it as an additional Shot in the cinematic. 
 At the end of this step, you will have your own multi-shot cinematic! 
 
 ## Steps
@@ -24,7 +23,7 @@ At the end of this step, you will have your own multi-shot cinematic!
 
 	![](SequencerQS_5_1.png)
 
-1. Inside the Level Sequence, click the **Add** button and select the **Shot Track**. 
+1. Inside the Level Sequence, click the **Track** button and select the **Shot Track**. 
 
 	![](SequencerQS_5_2.png)
 
@@ -32,94 +31,146 @@ At the end of this step, you will have your own multi-shot cinematic!
 
 	![](SequencerQS_5_3.png)
 
-1. Add **Shot02** to the **Shot Track**. Notice that Shot02 extends past the red maker (which is the end of playback range). Drag the red marker to the end of Shot02 or automatically keep added sections within playback range by enabling the option in the **General Options** menu.
+1. Move the Timeline Marker to frame **150** then add **Shot02** to the **Shot Track**. 
 
 	![](SequencerQS_5_4.png) 
 
-1. Click the **General Options** button and select **Keep Playback Range in Section Bounds**. This pushes the end marker out for us anytime we add content and will ensure that everything is within playback range. 
+	You will notice that **Shot02** extends past the red maker (which is the end of playback range) and is grayed out and is not being evaluated for playback. 
+	
+1. Click the **Playback Options** button and select **Keep Playback Range in Section Bounds**. 
 
 	![](SequencerQS_5_5.png)
 
-1. **Left-click** and drag **Shot02** down a level within the **Shot Track**. 
+	This will automatically push the Timeline End Marker out for us anytime we add content, ensuring that everything is within playback evaluation range. 
+
+1. Left-click and drag **Shot02** down to a new track within the **Shot Track**. 
 
 	![](SequencerQS_5_6.png)
 
-	[REGION:tip]
-	You can drag shots around to arrange the playback order or for organization purposes. A typical best practice is to alternate between tracks within a Shot Track to illustrate where cuts occur rather than leaving them all on the same single track. 
+	You can drag shots around to arrange the playback order or for organization purposes. 
+	A typical best practice is to alternate between tracks within a Shot Track to illustrate where cuts occur rather than leaving them all on the same single track.
+	Below we have an example with multiple shots that are staggered and alternate between tracks, which makes the distinction of where the cut appears, easier to spot.  
 
 	![](ShotCuts.png)
 
-	Below, we have the same number of shots without using an adddtional Track within the Shots Track. 
+	In the example below, we have the same number of shots without using an additional track to stagger each of our shots and the cuts are not as easily identifiable. 
 
 	![](ShotCutsB.png)
-	[/REGION]
 
-1. Click the **Lock Viewport** toggle button to lock the camera to the **Shot Track**. Like the **Camera Cuts** Camera Lock button, the Shot Track will only affect the Cinematic Viewport.
+1. Click the **Camera Lock** toggle button to lock the camera to the **Shot Track**. 
 
 	![](SequencerQS_5_7.png) 
 
-1. **Right-click** on **Shot02** and select the **New Take** option. 
+	Like the **Camera Cuts** Track, the **Camera Lock** button on the Shot Track will only affect the Cinematic Viewport.
+
+1. Right-click on **Shot02** and select the **New Take** option. 
 
 	![](SequencerQS_5_8.png)
+
+	**Takes** are a way to quickly create variations of a particular Shot in your cinematic. 
 
 1. A **Duplicate Asset As** window will appear, click **Save**. 
 
 	![](SequencerQS_5_9.png)
 
 	[REGION:note]
-	Takes are automatically named. You can change the naming convention in the [](Engine/UI/ProjectSettings) under **Level Sequences**.  
+	Takes are automatically named. You can change the auto naming convention in the [](Engine/UI/ProjectSettings) under **Level Sequences**.  
 	[/REGION]
 
-1.	**Right-click** on the newly created Shot and choose **New Take** again. 
+1.	Right-click on the newly created Shot and choose **New Take** again. 
 
 	![](SequencerQS_5_10.png)
 
 	[REGION:note]
-	When creating a Take, it does not delete the Level Sequence but creates a duplicate of it which you can then alter. Currently, when creating a Take for the first time, it replaces the Shot with the new Take (the original Shot still exists in the Content Browser but is not listed as a "Take" in the Takes Menu - see below). 
+	When creating a Take, it does not delete the Level Sequence but creates a duplicate of it which you can then alter. 
+	Currently, when creating a Take for the first time, it replaces the existing Shot with the new Take (the original Shot still exists in the Content Browser but is not listed as a "Take" in the Takes Menu). 
 	[/REGION]
 
-1.	**Right-click** on the newly created shot and highlight **Takes**. We are currently using **Take 3** in our cinematic. We can switch to Take 2 by select it from this menu. 
+1.	Right-click on the newly created shot and highlight **Takes**. 
 
 	![](SequencerQS_5_11.png)
 
-1.	**Double-click** on the **Shot0002_003** to open it. **Left-click** drag to select and delete each of the keyframes within it. We are going to change the current camera movement to a different motion for this take. 
+	We are currently using **Take 3** in our cinematic. We can switch to Take 2 by selecting it from this menu. 
+
+1.	Double-click on the **Shot0002_003** inside Sequencer to open it, then select and delete all the keyframes. 
 
 	![](SequencerQS_5_12.png)
 
-1.	Lock the Viewport to the camera. Move it near the character's face and press **S** to keyframe the position. 
+	We are going to supply new keyframes from this Take and new camera movement. 
+
+1.	Move the Camera in front of the Character's face, then in Sequencer for the Camera, add a key for **Transform** by pressing the **S** key. 
 
 	![](SequencerQS_5_14.png)
 
-1.	In the **Details** panel for the camera, adjust the **Manual Focus Distance** and add a keyframe for the adjusted value. 
+1.	In the **Details** panel for the camera, use the **Eye Dropper** and select the Character then add a keyframe for the new **Manual Focus Distance** value. 
 
 	![](SequencerQS_5_15.png)
 
-1.	Jump to the end of the sequence. Move the camera back away from the character and keyframe it. 
+1.	Move to the end of the Sequence, then move the Camera away from the Character and press the **S** key to add a key for the new **Transform** value. 
 
 	![](SequencerQS_5_16.png)
 
-1.	Click the **Master** breadcrumb to return to the **Master** Track. 
+	For this take, we will leave the Camera out of focus as it pulls away from the Character. 
+
+1.	Click the **Master** breadcrumb to return to the **Master** Track, lock the Viewport to the **Shots** Track and play your scene. 
+
+	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:videoid]
+		8d-iuJFT9uM
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		100
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
+	[/OBJECT] 
+
+	You can also right-click on the second shot and change to a different Take. 
+
+1.	Return to the **Content Browser** and drag your **Master** Level Sequence into the Level. 
 
 	![](SequencerQS_5_17.png)
+
+1.	In the **Details** panel for the **Master** Level Sequence, enable the **Auto Play** option. 
+
+	![](SequencerQS_5_18.png)
+
+	When you play in the Editor, this will automatically load and start playing your **Master** Level Sequence which includes your two shots. 
+
+1.	Click the **Play in Editor** button. 
 
 
 ## End Result
 
-You now have a two shot cinematic, however you can use different **Takes** from the Take Menu. 
+You now have a two-shot cinematic, however, you can use different **Takes** from the Take Menu. 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-Z2E4lcodFww
-[/PARAMLITERAL]
-[/OBJECT]
+	[PARAMLITERAL:videoid]
+	4QGdO92dZbw
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT] 
 
-You can re-arrange the Shots by dragging them to new locations on the Shot Track or add a Take as an additional Shot, giving you three Shots. While this is only a small fraction of what is possible with Sequencer, it highlights some of the core aspects of the tool that you can use to craft your scenes. 
+You can re-arrange the Shots by dragging them to new locations on the Shot Track or add a Take as an additional Shot, giving you three Shots. 
+While this is only a small fraction of what is possible with Sequencer, it highlights some of the core aspects of the tool that you can use to craft your scenes. 
 
 In the next and final step, there are some "On Your Own" challenges you can attempt to add to this scene and links to additional documentation. 
 

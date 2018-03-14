@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:파티클 이펙트
 Crumbs:%ROOT%, Resources,
@@ -9,50 +9,7 @@ Related: Engine/Rendering/ParticleSystems\Cascade
 Related: Engine/Rendering/ParticleSystems\Reference\TypeData\GPUSprites
 Related: Engine/Rendering/ParticleSystems/Reference
 Version: 4.9
-
-
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/Showcases/Effects:title%](Effects_CE_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/Effects:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/Effects:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/Effects]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/Showcases/Effects:title%](Effects_CE_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/Effects:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/Effects:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/Effects]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Effects_CE_topic.png
 
 
 [REGION:fullwidth]
@@ -69,10 +26,6 @@ Version: 4.9
 
 
 ## 파티클 시스템 예제
-
-
-
-[REGION:topics third]
 
 [OBJECT:TopicCompact]
 	[PARAM:image]
@@ -109,10 +62,6 @@ Version: 4.9
 		[RELATIVE:Resources\Showcases\Effects\FireExamples]
 	[/PARAM]
 [/OBJECT]
-[/REGION]
-
-
-
 
 ## 파티클 예제 분석
 
@@ -133,22 +82,7 @@ Version: 4.9
 ![](MatineePlayback.png)
 
 
-
-[EXCERPT:ParticleTopics]
-
-)
-
-
-[/EXCERPT:ParticleTopics]
-
-
-
-
-
-
-
-
-<!--------------------------------
+[COMMENT:none]
 
 [EXCERPT:SnowTopic]
 [OBJECT:TopicCompact]
@@ -190,11 +124,4 @@ Version: 4.9
 [/OBJECT]
 [/EXCERPT:FireTopic]
 
-
-
-
-
-
-
-
--------------------->
+[/COMMENT]

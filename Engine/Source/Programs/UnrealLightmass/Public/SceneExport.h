@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -350,7 +350,8 @@ public:
 	 * Fraction of a cell's size to expand it by when voxelizing.  
 	 * Larger values add more resolution around geometry, improving the lighting gradients but costing more memory.
 	 */
-	float VoxelizationCellExpansionForGeometry;
+	float VoxelizationCellExpansionForSurfaceGeometry;
+	float VoxelizationCellExpansionForVolumeGeometry;
 	float VoxelizationCellExpansionForLights;
 
 	/** Bricks with RMSE below this value are culled. */
@@ -364,6 +365,9 @@ public:
 
 	/** Subdivide bricks when a static point or spot light affects some part of the brick with brightness higher than this. */
 	float LightBrightnessSubdivideThreshold;
+
+	/** Maximum desired curvature in the lighting stored in Volumetric Lightmaps, used to reduce Spherical Harmonic ringing via a windowing filter. */
+	float WindowingTargetLaplacian;
 };
 
 /** Settings for precomputed visibility. */
@@ -537,6 +541,12 @@ public:
 	 * Memory use is proportional to the lightmap texels in the scene and number of final gather rays.
 	 */
 	bool bCacheFinalGatherHitPointsForRadiosity;
+
+	/**
+	 * Whether to use radiosity iterations for point / spot / directional lights, instead of photons. 
+	 * Has lower quality than photons in difficult indoor scenarios but useful as a reference.
+	 */
+	bool bUseRadiositySolverForLightMultibounce;
 };
 
 /** Settings controlling photon mapping behavior. */
@@ -832,6 +842,7 @@ struct FSceneFileHeader
 
 	int32		NumImportanceVolumes;
 	int32		NumCharacterIndirectDetailVolumes;
+	int32		NumVolumetricLightmapDensityVolumes;
 	int32		NumPortals;
 	int32		NumDirectionalLights;
 	int32		NumPointLights;
@@ -846,6 +857,7 @@ struct FSceneFileHeader
 	int32		NumFluidSurfaceTextureMappings;
 	int32		NumLandscapeTextureMappings;
 	int32		NumSpeedTreeMappings;
+	int32		NumVolumeMappings;
 	int32		NumPrecomputedVisibilityBuckets;
 	int32		NumVolumetricLightmapTasks;
 };
@@ -872,6 +884,8 @@ enum EDawnLightFlags
 
 struct FLightData
 {
+	static const int32 LightProfileTextureDataSize = 256 * 256;
+
 	FGuid			Guid;
 	/** Bit-wise combination of flags from EDawnLightFlags */
 	uint32			LightFlags;
@@ -892,21 +906,35 @@ struct FLightData
 	float			ShadowExponent;
 	/** Scales resolution of the static shadowmap for this light. */
 	float			ShadowResolutionScale;
-	//	only used if an LightProfile, 1d texture data 0:occluded, 255:not occluded
-	uint8			LightProfileTextureData[256];
 
-	// @param DotProd dot product of light direction and (normalized vector to surface) -1..1
-	inline float ComputeLightProfileMultiplier(const float DotProd) const
+	// @param WorldPosition		position of the point to light in the world
+	// @param LightPosition		position of the light in the world
+	// @param LightDirection	direction at which the light is emitting (x axis)
+	// @param LightTangent		tangent to the direction at which the light is emitting (z axis)
+	inline float ComputeLightProfileMultiplier(const TArray< uint8 >& LightProfileTextureData, FVector WorldPosition, FVector LightPosition, FVector LightDirection, FVector LightTangent) const
 	{
 		// optimization - only evaluate this function if needed
 		if(LightFlags & Lightmass::GI_LIGHT_USE_LIGHTPROFILE)
 		{
+			FVector LightBitangent = FVector::CrossProduct( LightTangent, LightDirection ).GetSafeNormal();
+
+			FMatrix LightTransform = FMatrix( LightDirection, LightBitangent, LightTangent, FVector4(0.f, 0.f, 0.f, 1.f) );
+			FMatrix InvLightTransform = LightTransform.GetTransposed();
+
+			FVector ToLight = (LightPosition - WorldPosition).GetSafeNormal();
+			FVector LocalToLight = InvLightTransform.TransformVector( ToLight );
+
+			// -1..1
+			float DotProd = FVector::DotProduct(ToLight, LightDirection);
 			// -PI..PI (this distortion could be put into the texture but not without quality loss or more memory)
 			float Angle = FMath::Asin(DotProd);
 			// 0..1
 			float NormAngle = Angle / PI + 0.5f;
 
-			return FilterLightProfile(NormAngle);
+			float TangentAngle = FMath::Atan2( -LocalToLight.Z, -LocalToLight.Y ); // -Y represents 0/360 horizontal angle and we're rotating counter-clockwise
+			float NormTangentAngle = TangentAngle / (PI * 2.f) + 0.5f;
+
+			return FilterLightProfile( LightProfileTextureData, NormAngle, NormTangentAngle );
 		}
 
 		return 1.0f;
@@ -915,24 +943,35 @@ struct FLightData
 private:
 	// @param X clamped in range 0..1
 	// @return 0..1
-	inline float FilterLightProfile(const float X) const
+	inline float FilterLightProfile(const TArray< uint8 >& LightProfileTextureData, const float X, const float Y) const
 	{
-		uint32 SizeX = sizeof(LightProfileTextureData);
+		const uint32 SizeX = FMath::Sqrt( LightProfileTextureDataSize );
+		const uint32 SizeY = LightProfileTextureDataSize / SizeX;
 
 		// can be optimized
 
 		// not 100% like GPU hardware but simple and almost the same
 		float UnNormalizedX = FMath::Clamp(X * SizeX, 0.0f, (float)(SizeX - 1));
-			
+		float UnNormalizedY = FMath::Clamp(Y * SizeY, 0.0f, (float)(SizeY - 1));
+
 		uint32 X0 = (uint32)UnNormalizedX;
 		uint32 X1 = FMath::Min(X0 + 1, SizeX - 1);
 
-		float Fraction = UnNormalizedX - X0;
+		uint32 Y0 = (uint32)UnNormalizedY;
+		uint32 Y1 = FMath::Min(Y0 + 1, SizeY - 1);
 
-		float V0 = LightProfileTextureData[X0] / 255.0f;
-		float V1 = LightProfileTextureData[X1] / 255.0f;
+		float XFraction = UnNormalizedX - X0;
+		float YFraction = UnNormalizedY - Y0;
 
-		return FMath::Lerp(V0, V1, Fraction);
+		float V00 = LightProfileTextureData[Y0 * SizeX + X0] / 255.0f;
+		float V10 = LightProfileTextureData[Y1 * SizeX + X0] / 255.0f;
+		float V01 = LightProfileTextureData[Y0 * SizeX + X1] / 255.0f;
+		float V11 = LightProfileTextureData[Y1 * SizeX + X1] / 255.0f;
+
+		float V0 = FMath::Lerp(V00, V10, YFraction);
+		float V1 = FMath::Lerp(V01, V11, YFraction);
+
+		return FMath::Lerp(V0, V1, XFraction);
 	}
 };
 
@@ -952,6 +991,8 @@ struct FPointLightData
 {
 	float		Radius;
 	float		FalloffExponent;
+	// Point lights need an additional axis to specify the direction of IES profiles, also used by spot lights for the direction of tube lights
+	FVector		LightTangent;
 };
 
 //----------------------------------------------------------------------------
@@ -959,10 +1000,10 @@ struct FPointLightData
 //----------------------------------------------------------------------------
 struct FSpotLightData
 {
+	/** Unclamped, in degrees */
 	float		InnerConeAngle;
+	/** Unclamped, in degrees */
 	float		OuterConeAngle;
-	// Spot lights need an additional axis to specify the direction of tube lights
-	FVector		LightTangent;
 };
 
 //----------------------------------------------------------------------------
@@ -1208,6 +1249,13 @@ struct FLandscapeStaticLightingMeshData
 	/** The number of quads we are expanding to eliminate seams. */
 	int32 ExpandQuadsX;
 	int32 ExpandQuadsY;
+};
+
+struct FVolumetricLightmapDensityVolumeData
+{
+	FBox Bounds;
+	FIntPoint AllowedMipLevelRange;
+	int32 NumPlanes;
 };
 
 #if !PLATFORM_MAC && !PLATFORM_LINUX

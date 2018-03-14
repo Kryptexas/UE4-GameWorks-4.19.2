@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:언리얼 매치 3 게임
 Crumbs:%ROOT%, Resources
@@ -8,52 +8,10 @@ related:Platforms/Mobile
 related:Engine/Paper2D
 related:Engine/UMG
 related:Engine/Blueprints/TechnicalGuide
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/SampleGames/UnrealMatch3:title%](Resources/SampleGames/UnrealMatch3/unrealmatch3_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/SampleGames/UnrealMatch3:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/SampleGames/UnrealMatch3:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/SampleGames/UnrealMatch3]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/SampleGames/UnrealMatch3:title%](Resources/SampleGames/UnrealMatch3/unrealmatch3_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/SampleGames/UnrealMatch3:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/SampleGames/UnrealMatch3:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/SampleGames/UnrealMatch3]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:unrealmatch3_topic.png
 
 ![](match3_banner.png)(convert:false)
 
-<!--
-[OBJECT:SampleDownload]
-	[PARAMLITERAL:url]
-	[/PARAMLITERAL]
-	[PARAMLITERAL:title]
-	Unreal Match 3 Game
-	[/PARAMLITERAL]
-[/OBJECT]
--->
 
 **Unreal Match 3** 샘플 게임은 언리얼 엔진 4 (UE4) 의 다재다능함과 유연성을 선보이기 위해 제작된 것입니다.
 Unreal Match 3 에서는 중저사양 스마트 폰을 대상으로 하는 모바일 게임 제작법과 아울러 
@@ -143,29 +101,3 @@ Unreal Match 3 프로젝트가 UE4 툴세트 중 여러가지 다양한 툴을 �
 	[/PARAMLITERAL]
 [/OBJECT]
 [/REGION]
-
-<!--
-## Using C++ and Blueprints together in a project
-
-
-## How to setup and use UMG for the  Menu System
-
-
-## How to set up In App Purchase
-
-
-## How to set up Ads for iOS and Android
-
-
-## How to setup Achievements for iOS and Android
-
-
-## How to setup a High score system
-
-
-## How to reduce your projects shipping size
-
-
-## Getting your project on both iOS App Store and Google Play
-
--->

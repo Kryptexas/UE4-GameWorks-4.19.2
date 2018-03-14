@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimationGraphSchema.cpp
@@ -135,18 +135,14 @@ bool UAnimationGraphSchema::IsPosePin(const FEdGraphPinType& PinType)
 
 bool UAnimationGraphSchema::IsLocalSpacePosePin(const FEdGraphPinType& PinType)
 {
-	const UAnimationGraphSchema* Schema = GetDefault<UAnimationGraphSchema>();
-
 	UScriptStruct* PoseLinkStruct = FPoseLink::StaticStruct();
-	return (PinType.PinCategory == Schema->PC_Struct) && (PinType.PinSubCategoryObject == PoseLinkStruct);
+	return (PinType.PinCategory == UAnimationGraphSchema::PC_Struct) && (PinType.PinSubCategoryObject == PoseLinkStruct);
 }
 
 bool UAnimationGraphSchema::IsComponentSpacePosePin(const FEdGraphPinType& PinType)
 {
-	const UAnimationGraphSchema* Schema = GetDefault<UAnimationGraphSchema>();
-
 	UScriptStruct* ComponentSpacePoseLinkStruct = FComponentSpacePoseLink::StaticStruct();
-	return (PinType.PinCategory == Schema->PC_Struct) && (PinType.PinSubCategoryObject == ComponentSpacePoseLinkStruct);
+	return (PinType.PinCategory == UAnimationGraphSchema::PC_Struct) && (PinType.PinSubCategoryObject == ComponentSpacePoseLinkStruct);
 }
 
 bool UAnimationGraphSchema::TryCreateConnection(UEdGraphPin* A, UEdGraphPin* B) const
@@ -428,7 +424,7 @@ void UAnimationGraphSchema::GetAssetsPinHoverMessage(const TArray<FAssetData>& A
 	if (bSkelMatch && bTypeMatch && bDirectionMatch)
 	{
 		OutOkIcon = true;
-		OutTooltipText = FText::Format(LOCTEXT("AssetPinHoverMessage_Success", "Play {0} and feed to {1}"), FText::FromString(Asset->GetName()), FText::FromString(HoverPin->PinName)).ToString();
+		OutTooltipText = FText::Format(LOCTEXT("AssetPinHoverMessage_Success", "Play {0} and feed to {1}"), FText::FromString(Asset->GetName()), FText::FromName(HoverPin->PinName)).ToString();
 	}
 	else
 	{

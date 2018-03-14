@@ -14,26 +14,13 @@ This document will cover the most common workflows of working with Particle Syst
 
 ## Creating a Particle System
 
-![](new1.png)(w:450) ![](new2.png)(w:450)
-
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](renameIt.png)(convert:false)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:#blank]
-	[/PARAM]
-[/OBJECT]
-
 To create a **Particle System**, **left-click** the **Add New** button on the **Content Browser**, and select **Particle System**, or **right-click** in the Content Browser's Asset View, and using the context menu select **Particle System**.
+
+![](new1.png)(w:450) ![](new2.png)(w:450)
 
 Once created, the name of the new Particle System will be highlighted awaiting a new name. Once a new name is entered, or you click something else, the Particle System's icon will update with a "No Image" thumbnail. You  will be able to generate a thumbnail from within Cascade, the Unreal Engine 4 particle editor.
 
-[EXCERPT:blank]
-
-[/EXCERPT:blank]
-
-
+![](renameIt.png)(convert:false)
 
 ## Editing a Particle System
 

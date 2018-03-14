@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessUpscale.cpp: Post processing Upscale implementation.
@@ -92,14 +92,14 @@ public:
 		PaniniParameters.Bind(Initializer.ParameterMap,TEXT("PaniniParams"));
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FPostProcessVS::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FPostProcessVS::ModifyCompilationEnvironment(Parameters,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("TESS_RECT_X"), FTesselatedScreenRectangleIndexBuffer::Width);
 		OutEnvironment.SetDefine(TEXT("TESS_RECT_Y"), FTesselatedScreenRectangleIndexBuffer::Height);
 	}
@@ -136,12 +136,12 @@ public:
 IMPLEMENT_SHADER_TYPE(,FPostProcessUpscaleVS,TEXT("/Engine/Private/PostProcessUpscale.usf"),TEXT("MainVS"),SF_Vertex);
 
 /** Encapsulates the post processing upscale pixel shader. */
-template <uint32 Method>
+template <uint32 Method, bool bManuallyClampUV>
 class FPostProcessUpscalePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessUpscalePS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		// Always allow point and bilinear upscale. (Provides upscaling for ES2 emulation)
 		if (Method == 0 || Method == 1)
@@ -149,13 +149,14 @@ class FPostProcessUpscalePS : public FGlobalShader
 			return true;
 		}
 
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("METHOD"), Method);
+		OutEnvironment.SetDefine(TEXT("MANUALLY_CLAMP_UV"), bManuallyClampUV ? 1 : 0);
 	}
 
 	/** Default constructor. */
@@ -165,6 +166,7 @@ public:
 	FPostProcessPassParameters PostprocessParameter;
 	FDeferredPixelShaderParameters DeferredParameters;
 	FShaderParameter UpscaleSoftness;
+	FShaderParameter SceneColorBilinearUVMinMax;
 
 	/** Initialization constructor. */
 	FPostProcessUpscalePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -173,6 +175,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		DeferredParameters.Bind(Initializer.ParameterMap);
 		UpscaleSoftness.Bind(Initializer.ParameterMap,TEXT("UpscaleSoftness"));
+		SceneColorBilinearUVMinMax.Bind(Initializer.ParameterMap, TEXT("SceneColorBilinearUVMinMax"));
 	}
 
 	template <typename TRHICmdList>
@@ -194,13 +197,23 @@ public:
 
 			SetShaderValue(RHICmdList, ShaderRHI, UpscaleSoftness, UpscaleSoftnessValue);
 		}
+
+		if (bManuallyClampUV)
+		{
+			FVector4 SceneColorBilinearUVMinMaxValue(
+				(Context.SceneColorViewRect.Min.X + 0.5) / float(Context.ReferenceBufferSize.X),
+				(Context.SceneColorViewRect.Min.Y + 0.5) / float(Context.ReferenceBufferSize.Y),
+				(Context.SceneColorViewRect.Max.X - 0.5) / float(Context.ReferenceBufferSize.X),
+				(Context.SceneColorViewRect.Max.Y - 0.5) / float(Context.ReferenceBufferSize.Y));
+			SetShaderValue(RHICmdList, ShaderRHI, SceneColorBilinearUVMinMax, SceneColorBilinearUVMinMaxValue);
+		}
 	}
 	
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << DeferredParameters << UpscaleSoftness;
+		Ar << PostprocessParameter << DeferredParameters << UpscaleSoftness << SceneColorBilinearUVMinMax;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -217,27 +230,44 @@ public:
 
 
 // #define avoids a lot of code duplication
-#define VARIATION1(A) typedef FPostProcessUpscalePS<A> FPostProcessUpscalePS##A; \
-	IMPLEMENT_SHADER_TYPE2(FPostProcessUpscalePS##A, SF_Pixel);
+#define VARIATION1(A, B) typedef FPostProcessUpscalePS<A, B> FPostProcessUpscalePS##A##B; \
+	IMPLEMENT_SHADER_TYPE2(FPostProcessUpscalePS##A##B, SF_Pixel);
 
-VARIATION1(0)
-VARIATION1(1)
-VARIATION1(2)
-VARIATION1(3)
-VARIATION1(4)
-VARIATION1(5)
+VARIATION1(0, false)
+VARIATION1(0, true)
+
+VARIATION1(1, false)
+VARIATION1(2, false)
+VARIATION1(3, false)
+VARIATION1(4, false)
+VARIATION1(5, false)
+VARIATION1(6, false)
+
+VARIATION1(1, true)
+VARIATION1(2, true)
+VARIATION1(3, true)
+VARIATION1(4, true)
+VARIATION1(5, true)
+VARIATION1(6, true)
 
 #undef VARIATION1
 
-FRCPassPostProcessUpscale::FRCPassPostProcessUpscale(const FViewInfo& InView, uint32 InUpscaleQuality, const PaniniParams& InPaniniConfig)
+FRCPassPostProcessUpscale::FRCPassPostProcessUpscale(const FViewInfo& InView, uint32 InUpscaleQuality, const PaniniParams& InPaniniConfig, bool bInIsSecondaryUpscale, bool bInIsMobileRenderer)
 	: UpscaleQuality(InUpscaleQuality)
+	, bIsSecondaryUpscale(bInIsSecondaryUpscale)
+	, bIsMobileRenderer(bInIsMobileRenderer)
 {
 	PaniniConfig.D = FMath::Max(InPaniniConfig.D, 0.0f);
 	PaniniConfig.S = InPaniniConfig.S;
 	PaniniConfig.ScreenFit = FMath::Max(InPaniniConfig.ScreenFit, 0.0f);
 
-	// Explicitly set output to viewport size, can't use input0 as downsized.
-	if (InView.Family->RenderTarget->GetRenderTargetTexture())
+	if (!bIsSecondaryUpscale && InView.RequiresSecondaryUpscale())
+	{
+		FIntPoint PrimaryUpscaleViewSize = InView.GetSecondaryViewRectSize();
+		FIntPoint QuantizedPrimaryUpscaleViewSize;
+		QuantizeSceneBufferSize(PrimaryUpscaleViewSize, OutputExtent);
+	}
+	else if (InView.Family->RenderTarget->GetRenderTargetTexture())
 	{
 		OutputExtent.X = InView.Family->RenderTarget->GetRenderTargetTexture()->GetSizeX();
 		OutputExtent.Y = InView.Family->RenderTarget->GetRenderTargetTexture()->GetSizeY();
@@ -249,7 +279,7 @@ FRCPassPostProcessUpscale::FRCPassPostProcessUpscale(const FViewInfo& InView, ui
 }
 
 template <uint32 Method, uint32 bTesselatedQuad>
-FShader* FRCPassPostProcessUpscale::SetShader(const FRenderingCompositePassContext& Context, const PaniniParams& PaniniConfig)
+FShader* FRCPassPostProcessUpscale::SetShader(const FRenderingCompositePassContext& Context, const PaniniParams& PaniniConfig, bool ManullyClampUV)
 {
 	FGraphicsPipelineStateInitializer GraphicsPSOInit;
 	Context.RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
@@ -258,64 +288,114 @@ FShader* FRCPassPostProcessUpscale::SetShader(const FRenderingCompositePassConte
 	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
-	if(bTesselatedQuad)
+	if (ManullyClampUV)
 	{
-		check(PaniniConfig.D > 0.0f);
+		if (bTesselatedQuad)
+		{
+			check(PaniniConfig.D > 0.0f);
 
-		TShaderMapRef<FPostProcessUpscaleVS> VertexShader(Context.GetShaderMap());
-		TShaderMapRef<FPostProcessUpscalePS<Method> > PixelShader(Context.GetShaderMap());
+			TShaderMapRef<FPostProcessUpscaleVS> VertexShader(Context.GetShaderMap());
+			TShaderMapRef<FPostProcessUpscalePS<Method, true> > PixelShader(Context.GetShaderMap());
 
-		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
-		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
-		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
+			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+			SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
-		PixelShader->SetPS(Context.RHICmdList, Context);
-		VertexShader->SetParameters(Context, PaniniConfig);
-		return *VertexShader;
+			PixelShader->SetPS(Context.RHICmdList, Context);
+			VertexShader->SetParameters(Context, PaniniConfig);
+			return *VertexShader;
+		}
+		else
+		{
+			check(PaniniConfig.D == 0.0f);
+
+			TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
+			TShaderMapRef<FPostProcessUpscalePS<Method, true> > PixelShader(Context.GetShaderMap());
+
+			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+			SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
+
+			PixelShader->SetPS(Context.RHICmdList, Context);
+			VertexShader->SetParameters(Context);
+			return *VertexShader;
+		}
 	}
 	else
 	{
-		check(PaniniConfig.D == 0.0f);
+		if (bTesselatedQuad)
+		{
+			check(PaniniConfig.D > 0.0f);
 
-		TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
-		TShaderMapRef<FPostProcessUpscalePS<Method> > PixelShader(Context.GetShaderMap());
+			TShaderMapRef<FPostProcessUpscaleVS> VertexShader(Context.GetShaderMap());
+			TShaderMapRef<FPostProcessUpscalePS<Method, false> > PixelShader(Context.GetShaderMap());
 
-		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
-		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
-		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
+			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+			SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
-		PixelShader->SetPS(Context.RHICmdList, Context);
-		VertexShader->SetParameters(Context);
-		return *VertexShader;
+			PixelShader->SetPS(Context.RHICmdList, Context);
+			VertexShader->SetParameters(Context, PaniniConfig);
+			return *VertexShader;
+		}
+		else
+		{
+			check(PaniniConfig.D == 0.0f);
+
+			TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
+			TShaderMapRef<FPostProcessUpscalePS<Method, false> > PixelShader(Context.GetShaderMap());
+
+			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+			SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
+
+			PixelShader->SetPS(Context.RHICmdList, Context);
+			VertexShader->SetParameters(Context);
+			return *VertexShader;
+		}
 	}
 }
 
 void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessUpscale);
+	checkf(Context.View.PrimaryScreenPercentageMethod != EPrimaryScreenPercentageMethod::RawOutput,
+		TEXT("Should not have and upscale pass if screen percentage is RawOutput."));
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
-
-	if(!InputDesc)
-	{
-		// input is not hooked up correctly
-		return;
-	}
-
-	const FSceneView& View = Context.View;
-	const FSceneViewFamily& ViewFamily = *(View.Family);
-	
-	FIntRect SrcRect = View.ViewRect;
-	// no upscale if separate ren target is used.
-	FIntRect DestRect = (ViewFamily.bUseSeparateRenderTarget) ? View.ViewRect : View.UnscaledViewRect;
-	FIntPoint SrcSize = InputDesc->Extent;
-
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
-	if (!DestRenderTarget.TargetableTexture)
+
+	FIntRect SrcRect = Context.SceneColorViewRect;
+	FIntRect DestRect = Context.View.UnscaledViewRect;
+
+	const TCHAR* PassName = bIsSecondaryUpscale ? TEXT("Secondary") : TEXT("Primary");
+
+	// If used as primary screen percentage method.
+	if (!bIsSecondaryUpscale)
 	{
-		return;
+		check(Context.View.PrimaryScreenPercentageMethod == EPrimaryScreenPercentageMethod::SpatialUpscale);
+
+		// If there is a secondary upscale, upscale to view size taken as input for secondary upscale
+		if (!Context.IsViewFamilyRenderTarget(DestRenderTarget))
+		{
+			if (bIsMobileRenderer)
+			{
+				DestRect = Context.View.UnscaledViewRect;
+			}
+			else
+			{
+				DestRect.Min = FIntPoint::ZeroValue;
+				DestRect.Max = Context.View.GetSecondaryViewRectSize();
+			}
+		}
 	}
+
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, Upscale, TEXT("%sUpscale quality=%d %dx%d -> %dx%d"), 
+		PassName, UpscaleQuality, SrcRect.Width(), SrcRect.Height(),  DestRect.Width(), DestRect.Height());
+
+	FIntPoint SrcSize = InputDesc->Extent;
 
 	// Set the view family's render target/viewport.
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
@@ -326,23 +406,26 @@ void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
 	FIntRect ExcludeRect = bTessellatedQuad ? FIntRect() : DestRect;
 
 	Context.SetViewportAndCallRHI(DestRect);
-	if (View.StereoPass == eSSP_FULL || View.StereoPass == eSSP_LEFT_EYE)
+	if (Context.GetLoadActionForRenderTarget(DestRenderTarget) == ERenderTargetLoadAction::EClear)
 	{
 		DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, ExcludeRect);
 	}
 
 	FShader* VertexShader = 0;
 
+	bool ManullyClampUV = SrcRect.Min != FIntPoint::ZeroValue || SrcRect.Max != SrcSize;
+
 	if(bTessellatedQuad)
 	{
 		switch (UpscaleQuality)
 		{
-			case 0:	VertexShader = SetShader<0, 1>(Context, PaniniConfig); break;
-			case 1:	VertexShader = SetShader<1, 1>(Context, PaniniConfig); break;
-			case 2:	VertexShader = SetShader<2, 1>(Context, PaniniConfig); break;
-			case 3:	VertexShader = SetShader<3, 1>(Context, PaniniConfig); break;
-			case 4:	VertexShader = SetShader<4, 1>(Context, PaniniConfig); break;
-			case 5:	VertexShader = SetShader<5, 1>(Context, PaniniConfig); break;
+			case 0:	VertexShader = SetShader<0, 1>(Context, PaniniConfig, false); break;
+			case 1:	VertexShader = SetShader<1, 1>(Context, PaniniConfig, ManullyClampUV); break;
+			case 2:	VertexShader = SetShader<2, 1>(Context, PaniniConfig, ManullyClampUV); break;
+			case 3:	VertexShader = SetShader<3, 1>(Context, PaniniConfig, ManullyClampUV); break;
+			case 4:	VertexShader = SetShader<4, 1>(Context, PaniniConfig, ManullyClampUV); break;
+			case 5:	VertexShader = SetShader<5, 1>(Context, PaniniConfig, ManullyClampUV); break;
+			case 6:	VertexShader = SetShader<6, 1>(Context, PaniniConfig, ManullyClampUV); break;
 			default:
 				checkNoEntry();
 				break;
@@ -352,12 +435,13 @@ void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
 	{
 		switch (UpscaleQuality)
 		{
-			case 0:	VertexShader = SetShader<0, 0>(Context, PaniniParams::Default); break;
-			case 1:	VertexShader = SetShader<1, 0>(Context, PaniniParams::Default); break;
-			case 2:	VertexShader = SetShader<2, 0>(Context, PaniniParams::Default); break;
-			case 3:	VertexShader = SetShader<3, 0>(Context, PaniniParams::Default); break;
-			case 4:	VertexShader = SetShader<4, 0>(Context, PaniniParams::Default); break;
-			case 5:	VertexShader = SetShader<5, 0>(Context, PaniniParams::Default); break;
+			case 0:	VertexShader = SetShader<0, 0>(Context, PaniniParams::Default, false); break;
+			case 1:	VertexShader = SetShader<1, 0>(Context, PaniniParams::Default, ManullyClampUV); break;
+			case 2:	VertexShader = SetShader<2, 0>(Context, PaniniParams::Default, ManullyClampUV); break;
+			case 3:	VertexShader = SetShader<3, 0>(Context, PaniniParams::Default, ManullyClampUV); break;
+			case 4:	VertexShader = SetShader<4, 0>(Context, PaniniParams::Default, ManullyClampUV); break;
+			case 5:	VertexShader = SetShader<5, 0>(Context, PaniniParams::Default, ManullyClampUV); break;
+			case 6:	VertexShader = SetShader<6, 0>(Context, PaniniParams::Default, ManullyClampUV); break;
 			default:
 				checkNoEntry();
 				break;
@@ -377,6 +461,10 @@ void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
 		bTessellatedQuad ? EDRF_UseTesselatedIndexBuffer: EDRF_UseTriangleOptimization);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+
+	// Update scene color view rectangle for secondary upscale.
+	Context.SceneColorViewRect = DestRect;
+	Context.ReferenceBufferSize = OutputExtent;
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessUpscale::ComputeOutputDesc(EPassOutputId InPassOutputId) const
@@ -392,14 +480,16 @@ FPooledRenderTargetDesc FRCPassPostProcessUpscale::ComputeOutputDesc(EPassOutput
 }
 
 FRCPassPostProcessUpscaleES2::FRCPassPostProcessUpscaleES2(const FViewInfo& InView)
-:	FRCPassPostProcessUpscale(InView, 1 /* bilinear */)
-,	View(InView)
+:	FRCPassPostProcessUpscale(InView, 1 /* bilinear */, PaniniParams::Default, false /* bIsSecondaryUpscale */, true /* bIsMobileRenderer */)
 {
+	OutputExtent = InView.UnscaledViewRect.Max;
 }
 
-FPooledRenderTargetDesc FRCPassPostProcessUpscaleES2::ComputeOutputDesc(EPassOutputId InPassOutputId) const
+FRCPassPostProcessUpscaleES2::FRCPassPostProcessUpscaleES2(const FViewInfo& InView, uint32 InUpscaleQuality, bool bOverrideOutputExtent)
+	: FRCPassPostProcessUpscale(InView, InUpscaleQuality, PaniniParams::Default, false /* bIsSecondaryUpscale */, true /* bIsMobileRenderer */)
 {
-	FPooledRenderTargetDesc Ret = FRCPassPostProcessUpscale::ComputeOutputDesc(InPassOutputId);
-	Ret.Extent = View.UnscaledViewRect.Max;
-	return Ret;
+	if (bOverrideOutputExtent)
+	{
+		OutputExtent = InView.UnscaledViewRect.Max;
+	}
 }

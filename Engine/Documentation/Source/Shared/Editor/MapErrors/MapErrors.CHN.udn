@@ -163,7 +163,9 @@ Actor 的 bStatic 标记被设为 true 但其 Physics 被设为 PHYS_None 时将
 [EXCERPT:CameraAspectRatioIsZero]
 **Camera has AspectRatio=0 - please set this to something non-zero**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:CameraAspectRatioIsZero]
 
 ### 类
@@ -172,14 +174,18 @@ Actor 的 bStatic 标记被设为 true 但其 Physics 被设为 PHYS_None 时将
 [EXCERPT:AbstractClass]
 **[ ]&#58;&#58;[ ] is obsolete and must be removed (Class is abstract)**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:AbstractClass]
 
 (#DeprecatedClass)
 [EXCERPT:DeprecatedClass]
 **[ ]&#58;&#58;[ ] is obsolete and must be removed (Class is deprecated)**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:DeprecatedClass]
 
 ### 植物
@@ -188,14 +194,18 @@ Actor 的 bStatic 标记被设为 true 但其 Physics 被设为 PHYS_None 时将
 [EXCERPT:FoliageMissingStaticMesh]
 **Foliage instances for a missing Static Mesh have been removed.**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:FoliageMissingStaticMesh]
 
 (#FoliageMissingStaticMesh)
 [EXCERPT:FoliageMissingClusterComponent]
 **Foliage in this map is missing [MissingCount] cluster component(s) for Static Mesh [MeshName].Opening the Foliage tool will fix this problem.**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:FoliageMissingClusterComponent]
 
 ### 地形
@@ -204,28 +214,36 @@ Actor 的 bStatic 标记被设为 true 但其 Physics 被设为 PHYS_None 时将
 [EXCERPT:FixedUpDeletedLayerWeightmap]
 **[LandscapeComponent] &#58; Fixed up deleted layer weightmap**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:FixedUpDeletedLayerWeightmap]
 
 (#FixedUpIncorrectLayerWeightmap)
 [EXCERPT:FixedUpIncorrectLayerWeightmap]
 **[LandscapeComponent] &#58; Fixed up incorrect layer weightmap texture index**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:FixedUpIncorrectLayerWeightmap]
 
 (#FixedUpSharedLayerWeightmap)
 [EXCERPT:FixedUpSharedLayerWeightmap]
 **Fixed up shared weightmap texture for layer [Layer] in component \[Component\] \(shares with [Name]\)**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:FixedUpSharedLayerWeightmap]
 
 (#LandscapeComponentPostLoad_Warning)
 [EXCERPT:LandscapeComponentPostLoad_Warning]
 **Landscape ([ProxyName]) has overlapping render components at location ([X,Y])**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:LandscapeComponentPostLoad_Warning]
 
 ### 关卡
@@ -265,7 +283,9 @@ Actor 的 bStatic 标记被设为 true 但其 Physics 被设为 PHYS_None 时将
 [EXCERPT:StaticComponentHasInvalidLightmapSettings]
 **Component is a static type but has invalid lightmap settings!  Indirect lighting will be black.  Common causes are lightmap resolution of 0, LightmapCoordinateIndex out of bounds.**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:StaticComponentHasInvalidLightmapSettings]
 
 ### 导航
@@ -274,7 +294,9 @@ Actor 的 bStatic 标记被设为 true 但其 Physics 被设为 PHYS_None 时将
 [EXCERPT:RebuildPaths]
 **Paths need to be rebuilt**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:RebuildPaths]
 
 ### 粒子系统
@@ -369,14 +391,18 @@ Param.Material 不应为 NULL。
 [EXCERPT:MoreMaterialsThanReferenced]
 **More overridden materials [Count] on Static Mesh component than are referenced [Count] in source mesh [StaticMesh]**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:MoreMaterialsThanReferenced]
 
 (#ElementsWithZeroTriangles)
 [EXCERPT:ElementsWithZeroTriangles]
 **[Count] element(s) with zero triangles in Static Mesh [StaticMesh]**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:ElementsWithZeroTriangles]
 
 
@@ -417,7 +443,9 @@ LevelGridVolume 被放置到流送关卡后将出现此警告。这类体积域�
 [EXCERPT:UsingExternalObject]
 **[ObjectName] &#58; Externally referenced**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:UsingExternalObject]
 
 

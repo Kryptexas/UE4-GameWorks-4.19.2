@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DynamicTextureInstanceManager.cpp: Implementation of content streaming classes.
@@ -57,17 +57,18 @@ void FDynamicTextureInstanceManager::IncrementalUpdate(FRemovedTextureArray& Rem
 	// Because PendingComponents could have duplicates, we first do a pass to remove everything.
 	for (const UPrimitiveComponent* Component : PendingComponents)
 	{
-		State->RemoveComponent(Component, RemovedTextures);
+		State->RemoveComponent(Component, &RemovedTextures);
 		Component->bAttachedToStreamingManagerAsDynamic = false;
 	}
 
 	// Now insert everything, checking for duplicates through bAttachedToStreamingManagerAsDynamic
 	for (const UPrimitiveComponent* Component : PendingComponents)
 	{
-		if (!Component->bAttachedToStreamingManagerAsDynamic && CanManage(Component) && Component->IsRegistered())
+		if (!Component->bAttachedToStreamingManagerAsDynamic && CanManage(Component) && 
+			Component->IsRegistered() && (!Component->IsRenderStateCreated() || Component->SceneProxy))
 		{
 			FStreamingTextureLevelContext LevelContext(EMaterialQualityLevel::Num, Component);
-			if (State->AddComponentFast(Component, LevelContext))
+			if (State->AddComponentIgnoreBounds(Component, LevelContext) == EAddComponentResult::Success)
 			{
 				Component->bAttachedToStreamingManagerAsDynamic = true;
 			}
@@ -108,8 +109,11 @@ void FDynamicTextureInstanceManager::OnRefreshVisibilityDone(int32 BeginIndex, i
 	// Move the last valid bound to the first empty place, trying to free the tail.
 	if (CVarStreamingDefragDynamicBounds.GetValueOnGameThread() > 0)
 	{
-		PendingDefragDstBoundIndex = FirstFreeBound;
-		PendingDefragSrcBoundIndex = LastUsedBound;
+		if (FirstFreeBound < LastUsedBound)
+		{
+			PendingDefragDstBoundIndex = FirstFreeBound;
+			PendingDefragSrcBoundIndex = LastUsedBound;
+		}
 	}
 }
 
@@ -138,24 +142,26 @@ void FDynamicTextureInstanceManager::Refresh(float Percentage)
 	}
 }
 
-bool FDynamicTextureInstanceManager::Add(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext)
+EAddComponentResult FDynamicTextureInstanceManager::Add(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext, float MaxAllowedUIDensity)
 {
+	// Don't cull out primitives with no SceneProxy because they need to be removed first (ex: if the primitive got hidden).
 	if (CanManage(Component))
 	{
-		// Postpone so that we don't have to sync the state.
-		PendingComponents.Add(Component);
-
-		Component->bAttachedToStreamingManagerAsDynamic = true;
-
 		// This flag stays true forever to notify that this will always be handled as dynamic from now on.
 		// To is to allow the update (on render state changes) to work, which handles only dynamic primitives
 		Component->bHandledByStreamingManagerAsDynamic = true;
-		return true;
+
+		// Postpone so that we don't have to sync the state.
+		PendingComponents.Add(Component);
+		// Notify attached since it is now refered in PendingComponents
+		Component->bAttachedToStreamingManagerAsDynamic = true;
+
+		return EAddComponentResult::Success;
 	}
-	return false;
+	return EAddComponentResult::Fail;
 }
 
-void FDynamicTextureInstanceManager::Remove(const UPrimitiveComponent* Component, FRemovedTextureArray& RemovedTextures)
+void FDynamicTextureInstanceManager::Remove(const UPrimitiveComponent* Component, FRemovedTextureArray* RemovedTextures)
 {
 	check(!Component || Component->IsValidLowLevelFast());
 	if (Component && Component->bAttachedToStreamingManagerAsDynamic)

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "DragTool_Measure.h"
@@ -45,6 +45,10 @@ FVector2D FDragTool_Measure::GetSnappedPixelPos(FVector2D PixelPos)
 
 	// And back into pixel-space (might fail, in which case we return the original)
 	View->WorldToPixel(WorldPos, PixelPos);
+
+	// The canvas we're going to render to factors in dpi scale to final position. 
+	// Since we're basing our position off mouse coordinates it will already be pixel acurate and therefore we must back out the scale the canvas will apply
+	PixelPos /= ViewportClient->GetDPIScale();
 
 	return PixelPos;
 }

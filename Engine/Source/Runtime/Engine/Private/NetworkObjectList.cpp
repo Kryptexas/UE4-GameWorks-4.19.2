@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/NetworkObjectList.h"
 #include "Engine/Level.h"
@@ -16,14 +16,33 @@ void FNetworkObjectList::AddInitialObjects(UWorld* const World, const FName NetD
 		AActor* Actor = *Iter;
 		if (Actor != nullptr && !Actor->IsPendingKill() && ULevel::IsNetActor(Actor))
 		{
-			Add(Actor, NetDriverName);
+			FindOrAdd(Actor, NetDriverName);
 		}
 	}
 }
 
-TSharedPtr<FNetworkObjectInfo>* FNetworkObjectList::Add(AActor* const Actor, const FName NetDriverName)
+TSharedPtr<FNetworkObjectInfo> FNetworkObjectList::Find(AActor* const Actor)
 {
-	if (Actor == nullptr || Actor->IsPendingKill())
+	if (Actor == nullptr)
+	{
+		return nullptr;
+	}
+
+	if (TSharedPtr<FNetworkObjectInfo>* InfoPtr = AllNetworkObjects.Find(Actor))
+	{
+		return *InfoPtr;
+	}
+
+	return TSharedPtr<FNetworkObjectInfo>();
+}
+
+TSharedPtr<FNetworkObjectInfo>* FNetworkObjectList::FindOrAdd(AActor* const Actor, const FName NetDriverName)
+{
+	if (Actor == nullptr || Actor->IsPendingKill() ||
+
+		// This implies the actor was added either added sometime during UWorld::DestroyActor,
+		// or was potentially previously destroyed (and its Index points to a diferent, non-PendingKill object).
+		!ensureAlwaysMsgf(!Actor->IsActorBeingDestroyed(), TEXT("Attempting to add an actor that's being destroyed to the NetworkObjectList Actor=%s NetDriver=%s"), *Actor->GetPathName(), *NetDriverName.ToString()))
 	{
 		return nullptr;
 	}
@@ -98,7 +117,7 @@ void FNetworkObjectList::Remove(AActor* const Actor)
 
 void FNetworkObjectList::MarkDormant(AActor* const Actor, UNetConnection* const Connection, const int32 NumConnections, const FName NetDriverName)
 {
-	TSharedPtr<FNetworkObjectInfo>* NetworkObjectInfoPtr = Add(Actor, NetDriverName);
+	TSharedPtr<FNetworkObjectInfo>* NetworkObjectInfoPtr = FindOrAdd(Actor, NetDriverName);
 
 	if (NetworkObjectInfoPtr == nullptr)
 	{
@@ -147,7 +166,7 @@ void FNetworkObjectList::MarkDormant(AActor* const Actor, UNetConnection* const 
 
 bool FNetworkObjectList::MarkActive(AActor* const Actor, UNetConnection* const Connection, const FName NetDriverName)
 {
-	TSharedPtr<FNetworkObjectInfo>* NetworkObjectInfoPtr = Add(Actor, NetDriverName);
+	TSharedPtr<FNetworkObjectInfo>* NetworkObjectInfoPtr = FindOrAdd(Actor, NetDriverName);
 
 	if (NetworkObjectInfoPtr == nullptr)
 	{
@@ -188,7 +207,7 @@ bool FNetworkObjectList::MarkActive(AActor* const Actor, UNetConnection* const C
 
 void FNetworkObjectList::ClearRecentlyDormantConnection(AActor* const Actor, UNetConnection* const Connection, const FName NetDriverName)
 {
-	TSharedPtr<FNetworkObjectInfo>* NetworkObjectInfoPtr = Add(Actor, NetDriverName);
+	TSharedPtr<FNetworkObjectInfo>* NetworkObjectInfoPtr = FindOrAdd(Actor, NetDriverName);
 
 	if (NetworkObjectInfoPtr == nullptr)
 	{
@@ -239,7 +258,7 @@ int32 FNetworkObjectList::GetNumDormantActorsForConnection(UNetConnection* const
 
 void FNetworkObjectList::ForceActorRelevantNextUpdate(AActor* const Actor, const FName NetDriverName)
 {
-	TSharedPtr<FNetworkObjectInfo>* NetworkObjectInfoPtr = Add(Actor, NetDriverName);
+	TSharedPtr<FNetworkObjectInfo>* NetworkObjectInfoPtr = FindOrAdd(Actor, NetDriverName);
 
 	if (NetworkObjectInfoPtr == nullptr)
 	{

@@ -19,7 +19,7 @@ Description:对类进行编码以变更相机视图
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. 我们现在可以创建一个C++类来控制相机视图了。 在这个教程中，我们可以扩展 **Actor** 为新类，我们将其称之为CameraDirector。
 
@@ -84,7 +84,7 @@ Description:对类进行编码以变更相机视图
     [/PARAM]
     [PARAM:content]
 		**MyPawn.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -116,7 +116,7 @@ Description:对类进行编码以变更相机视图
 			};
 
 		**MyPawn.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_AutoCamera.h"
 			#include "CameraDirector.h"
@@ -171,4 +171,4 @@ Description:对类进行编码以变更相机视图
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

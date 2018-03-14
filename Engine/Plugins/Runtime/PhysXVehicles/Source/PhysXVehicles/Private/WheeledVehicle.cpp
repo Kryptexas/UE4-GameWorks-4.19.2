@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Vehicle.cpp: AWheeledVehicle implementation
@@ -41,7 +41,9 @@ void AWheeledVehicle::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& Deb
 
 	if (DebugDisplay.IsDisplayOn(NAME_Vehicle))
 	{
+#if WITH_PHYSX
 		GetVehicleMovementComponent()->DrawDebug(Canvas, YL, YPos);
+#endif // WITH_PHYSX
 	}
 }
 

@@ -1,0 +1,320 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Crumbs: %ROOT%
+Title: Project Launcher Reference
+Description: A reference for the Project Launcher used to deploy projects using in Unreal Engine 4.
+Type: reference
+Version:4.18
+Parent:Engine/Deployment
+related:Engine/Deployment/Releasing
+related:Engine/Deployment/BuildOperations
+Order:1
+Tags:Packaging
+Topic-image:ProjectLauncher_Topic.png
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+
+[TOC(start:2 end:3)]
+
+
+
+The Project Launcher is used to cook and deploy builds of your projects to specified platforms for testing, debugging, and releasing your project. The following reference page breaks down the elements that make up the Project Launcher and the settings you can use when creating your own Custom Launch Profiles for deploying your content to different platforms.
+
+![](ProjectLauncher.png)(w:900)
+
+
+
+## Project Launcher interface
+
+The Project Launcher interface can be broken up into two main areas:
+
+![](ProjectLauncherHighlights.png)(w:900)
+
+
+1. Default Launch Profiles
+1. Custom Launch Profiles
+
+
+From the **Default Launch Profiles** window, you can see the available platforms and select from the devices that you want to deploy builds to. At the top of this window, you can specify a **Project** (if it's different than the current one you have opened) and a toggle for **Advanced** settings for these default launch profiles.
+
+When you click the **Advanced** toggle button, you'll get additional options next to the default launch profiles that enables you to select a **Build Configuration** and a **Cook** method.
+
+![](AdvancedDefautlLaunchProfile.png)
+
+In the **Custom Launch Profiles** window, you can create your own profiles that enable you to specify many more options for how content is built and deployed, which is detailed more in the [Custom Launch Profiles](#customlaunchprofiles) section.
+
+
+
+
+## Custom Launch Profiles
+
+From the Project Launcher, you can create a **Custom Launch Profile** that can be used with all platforms or even specific ones, like the Nintendo Switch. These profiles enable you to build your content in specific ways by setting how it is cooked, packaged, and even deployed using the available build operations.
+
+To add your own Custom Launch Profile, click the **plus** (**+**) sign in the Custom Launch Profiles window.
+
+![](AddCustomProfile.png)(w:950)
+
+After doing so, your Custom Launcher Profile will immediately open. Be sure to give it a name so that you can identify it later on.
+
+![](CustomLaunchProfile.png)(w:950)
+
+
+
+### Name and Description
+
+In the header bar, you'll find the **Name** and **Description** that you can apply to this custom profile. To edit these, double-click on either section's text to start editing them.
+
+![](NameDescription.png)
+
+
+### Project
+
+In the **Project** section, you can specify what project you want this profile to be associated with or if it can be used with any project. By default **Any Project** is set, but it can be set to a specific one. This can be useful when you are developing your project for multiple platforms, and those platforms require particular ways to deploy, test, debug, and even release them.
+
+![](Project.png)
+
+
+### Build
+
+The **Build** section enables you to specify the type of configuration you want to build and deploy against depending on your project's progression in development and how you need to test, debug, or release your project.
+
+![](Build.png)
+
+
+[REGION:raw]
+| Setting | %spacer% | Description |
+| --- | --- | --- |
+| **Build Configuration** || Choose from the available configurations you want to build and test with your project. [INCLUDE:#buildconfig] |
+| **Build UAT** || When enabled, the [Unreal Automation Tool](Programming/Automation) will be built as part of the build. |
+[/REGION]
+
+[COMMENT:none]
+-
+[INCLUDE:#buildconfig]
+[EXCERPT:buildconfig]
+
+![](BuildConfigSelection.png)
+
+| Configuration | Description |
+| --- | --- |
+| **Debug** | This configuration contains symbols for debugging. This configuration builds both engine and game code, so if you compile your project using this configuration and want to open the project with the Editor, you must use the command line parameter "-debug" to see your code changes reflected in your project. |
+| **DebugGame** | This configuration builds the Engine as optimized but leaves the game code debuggable. It is ideal only for debugging game modules.  |
+| **Development** | This configuration is equivalent to a release build. Unreal Editor uses the Development configuration by default. When your project is compiled using this configuration, it enables you to see code changes made to your project reflected in the Editor. |
+| **Shipping** | This is the configuration for optimal performance and shipping your game. This configuration strips out console commands, stats, and profiling tools. This configuration should be used when you are ready to release your game. |
+| **Testing** | This configuration is the same as **Shipping** configuration, but with some console commands, stats, and profiling tools enabled.  |
+[/EXCERPT:buildconfig]
+
+
+-
+[/COMMENT]
+
+
+### Cook
+
+In the **Cook** section, there are two ways you can cook content for your projects: **by the book** and **on the fly**.
+
+#### By the Book
+
+The Cook **by the book** option enables you to specify which content should be cooked and cooks everything in advance before launching the game.
+
+![](bythebook.png)
+
+[REGION:raw]
+| Setting | %spacer% | Description |
+| --- | --- | --- |
+| **Cooked Platform** || Select from the available target platforms listed that you would like this custom launch profile to be able to cook content for. |
+| **Cooked Cultures** || Select from the available localization cultures you would like this content to be cooked for. |
+| **Cooked Maps** || Select from the available maps in your title that you would like to cook. |
+| [REGION:tablesection] Release/DLC/Patching Settings [/REGION] |||
+| **Create a release version of the game for distribution** || Enables you to create a release version of your title that will be used for distribution. |
+| **Name of the new release to create** || Give your release a new name that will be used during the cook. |
+| **Release version this is based on** || This is the release version to base the next release / DLC / patch on. |
+| **Generate Patch** || If enabled, content will be diffed against source content and only changed files will be included in the new pak file. |
+| **Build DLC** || If enabled, DLC will be built without the content released with the original game. |
+| **Name of the DLC to build** || Give a name to the DLC that is going to be built. |
+| **Include Engine Content** || If enabled, DLC will include Engine content which was not included in the original release. If it is not checked, an error will be produced when accessing content from the **Engine** directory. |
+| [REGION:tablesection] Advanced Settings [/REGION] |||
+| **Iterative Cooking: Only cook content modified from previous cook** || If enabled, only modified content will be cooked resulting in much faster cooking times. It is recommended to enable this option whenever possible. |
+| **Stage base release pak files** || If enabled, unchanged pak files present in the base release version will be staged. |
+| **Compress Content** || If enabled, content generated will be compressed. These will be smaller but potentially take longer to load as it decompresses. |
+| **Add a new patch tier** || If enabled, a new numbered pak file will be generated with the patch content. |
+| **Save Packages Without Versions** || If enabled, the version is assumed to be the current at load. This is potentially dangerous but results in smaller patch sizes. |
+| **Number of cookers to spawn** || The number of cookers to spawn when doing cook by the book. |
+| **Store all content in a single file (UnrealPak)** || If enabled, the content will be deployed as a single UnrealPak file instead of many separate files. |
+| **Encrypt INI files (only with Use Pak File enabled)** || If enabled, ini files stored inside the UnrealPak file will be encrypted. |
+| **Generate Chunks** || If enabled, the content will be deployed as multiple UnrealPak files instead of many separate files. |
+| **Don't include Editor content in the build** || If enabled, the cooker will skip Editor content and not include it in the build. |
+| **HTTP Chunk Install Data Path** || [INCLUDE:#httpchunks] |
+| **Cooker Build Configuration** || Sets the build configuration to use for the cooker commandlet. |
+| **Additional Cooker Options** || Additional cooker command line parameters can be specified here. |
+[/REGION]
+
+
+[COMMENT:none]
+-
+
+[INCLUDE:#httpchunks]
+[EXCERPT:httpchunks]
+| --- | --- | --- |
+| **Create HTTP Chunk Install Data** || If enabled, the content will be split into multiple Pak files and stored as data that can be downloaded. |
+| **HTTP Chunk Install Data Path** || Specify the file path for the Chunk Install Data. |
+| **HTTP Chunk Install Release Name** || Name of this version of the HTTP Chunk Install Data.  |
+[/EXCERPT:httpchunks]
+
+-
+[/COMMENT]
+
+
+
+
+#### On the Fly
+
+The Cook **on the fly** option enables content to be cooked at runtime as needed before it is being sent to the device. 
+
+![](onthefly.png)
+
+[REGION:raw]
+| Setting | %spacer% | Description |
+| --- | --- | --- |
+| **Only Cook Modified Content** || If enabled, only modified content will be cooked, resulting in much faster cooking times. It is recommended to use this option whenever possible. |
+| **Additional Cooker Options** || Additional cooker command line parameters can be specified here. |
+[/REGION]
+
+
+
+
+
+
+
+
+### Package
+
+In the **Package** section, you can choose how the build is packaged and whether it should be stored locally or in a shared repository that can be accessed.
+
+![](Package.png)
+
+[REGION:raw]
+| Setting | %spacer% | Description |
+| --- | --- | --- |
+| **Package Method** || [INCLUDE:#packagepath] |
+[/REGION]
+
+
+[COMMENT:none]
+-
+
+[INCLUDE:#packagepath]
+[EXCERPT:packagepath]
+| --- | --- | --- |
+| [REGION:tablesection] Package & Store Locally [/REGION] |||
+| **Local Directory Path** ||  |
+| **Is this build for distribution to the public** ||  |
+| [REGION:tablesection] Package & Store In Repository [/REGION] |||
+| **Repository Path** ||  |
+[/EXCERPT:packagepath]
+
+-
+[/COMMENT]
+
+
+### Archive
+
+In the **Archive** section, you can specify whether or not to archive the build and the directory path if it is going to be archived for later reference.
+
+![](Archive.png)
+
+
+
+### Deploy
+
+In the **Deploy** section, you'll need to decide how you would like to deploy your current build to a device; using a **file server**, **copying to device**, or **copying from a repository to device**.
+
+
+Use the following selections to determine which deployment method to use:
+
+![](DeploySelection.png)
+
+
+[INCLUDE:Engine/Deployment/BuildOperations#deployingabuild]
+
+
+#### File Server
+
+The available settings you can use when selecting File Server.
+
+![](FileServer.png)
+
+[REGION:raw]
+| Setting | %spacer% | Description |
+| --- | ---  | --- |
+| **Default Deploy Platform** || Set the default target platform(s) you want to deploy content.|
+| [REGION:tablesection] Advanced Settings [/REGION] |||
+| **Hide the file server's console window** || If enabled, the file server's console window will be hidden from your desktop. |
+| **Streaming Server** || If enabled, the file server will use an experimental implementation that can serve multiple files simultaneously. |
+[/REGION]
+
+
+#### Copy to Device
+
+The available settings you can use when selecting Copy to Device.
+
+![](CopyToDevice.png)
+
+
+[REGION:raw]
+| Setting | %spacer% | Description |
+| --- | ---  | --- |
+| **Default Deploy Platform** || Set the default target platform(s) you want to deploy content.|
+| [REGION:tablesection] Advanced Settings [/REGION] |||
+| **Only Cook Modified Content** || If enabled, only modified content will be cooked, resulting in much faster cooking times. It is recommended to use this option whenever possible. |
+[/REGION]
+
+
+#### Copy Repository
+
+The available settings you can use when selecting Copy Repository.
+
+![](CopyToRepository.png)
+
+[REGION:raw]
+| Setting | %spacer% | Description |
+| --- | ---  | --- |
+| **Repository Path** || Set the file path to the repository that you want to copy to device. |
+| **Default Deploy Platform** || Set the default target platform(s) you want to deploy content.|
+[/REGION]
+
+### Launch
+
+![](Launch.png)
+
+[REGION:raw]
+| Setting | %spacer% | Description |
+| --- | --- | --- |
+| **Launch As** || Select how you would like the launch this instance of your build. [INCLUDE:#launchas] |
+| **Initial Culture** || Select the culture that you're initially targeting to use when launching the build.  |
+| **Initial Map** || Select the initial map you want the project to use when launching the build. |
+| **Additional Command Line Parameters** || Enter any necessary command line parameters you want to use when launching the build. |
+| **Synchronize Screen Refresh Rate (VSync)** || Enable this for the build to attempt to run the project at the same refresh rate as the monitor it's being run on.  |
+
+[/REGION]
+
+
+[COMMENT:none]
+-
+[INCLUDE:#launchas]
+
+[EXCERPT:launchas]
+
+![](launchas.png)
+
+| --- | --- | --- |
+| **Standalone Client** || Launches this instance as a standalone game client. |
+| **Listen Server** || Launches this instances a game client that can accept connections from other clients. |
+| **Dedicated Server** || Launches this instance as a dedicated game server. |
+| **Unreal Editor** || Launches this instance as an Unreal Editor. |
+[/EXCERPT:launchas]
+
+-
+[/COMMENT]
+

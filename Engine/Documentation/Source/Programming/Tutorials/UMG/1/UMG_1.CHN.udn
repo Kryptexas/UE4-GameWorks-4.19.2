@@ -18,7 +18,7 @@ Description:修改项目以包含用来编译菜单所需的模块。
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:tip]如果您刚使用 **虚幻引擎4** ，建议您先读一下[%Programming\QuickStart:title% tutorial](Programming\QuickStart) 。 对这篇教程来说，我们假设您已经了解了如何创建项目，如何添加C++代码到项目中，以及如何编译您的代码。 我们还会暴露函数和属性到 **蓝图** 中。 如您想要学习更多与此相关内容，请开始查阅[%Programming\Tutorials\VariablesTimersEvents:title% tutorial](Programming\Tutorials\VariablesTimersEvents)。[/REGION]
 
@@ -62,7 +62,7 @@ Description:修改项目以包含用来编译菜单所需的模块。
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -92,4 +92,4 @@ Description:修改项目以包含用来编译菜单所需的模块。
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

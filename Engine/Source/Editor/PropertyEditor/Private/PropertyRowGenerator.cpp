@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyRowGenerator.h"
 #include "PropertyNode.h"
@@ -10,6 +10,7 @@
 #include "DetailCategoryBuilderImpl.h"
 #include "ModuleManager.h"
 #include "DetailLayoutHelpers.h"
+#include "PropertyHandleImpl.h"
 
 class FPropertyRowGeneratorUtilities : public IPropertyUtilities
 {
@@ -21,7 +22,7 @@ public:
 	/** IPropertyUtilities interface */
 	virtual class FNotifyHook* GetNotifyHook() const override
 	{
-		return Generator.GetNotifyHook();
+		return nullptr;
 	}
 	virtual bool AreFavoritesEnabled() const override
 	{
@@ -116,6 +117,23 @@ void FPropertyRowGenerator::SetObjects(const TArray<UObject*>& InObjects)
 const TArray<TSharedRef<IDetailTreeNode>>& FPropertyRowGenerator::GetRootTreeNodes() const
 {
 	return RootTreeNodes;
+}
+
+TSharedPtr<IDetailTreeNode> FPropertyRowGenerator::FindTreeNode(TSharedPtr<IPropertyHandle> PropertyHandle) const
+{
+	if (PropertyHandle.IsValid() && PropertyHandle->IsValidHandle())
+	{
+		for (const TSharedPtr<IDetailTreeNode>& RootNode : RootTreeNodes)
+		{
+			TSharedPtr<IDetailTreeNode> Node = FindTreeNodeRecursive(RootNode, PropertyHandle);
+			if (Node.IsValid())
+			{
+				return Node;
+			}
+		}
+	}
+
+	return nullptr;
 }
 
 void FPropertyRowGenerator::RegisterInstancedCustomPropertyLayout(UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate)
@@ -391,7 +409,7 @@ void FPropertyRowGenerator::UpdateDetailRows()
 		}
 	}
 
-	RefreshRowsDelegate.Broadcast();
+	RowsRefreshedDelegate.Broadcast();
 
 }
 
@@ -439,7 +457,7 @@ void FPropertyRowGenerator::UpdateSinglePropertyMap(TSharedPtr<FComplexPropertyN
 	// Reset everything
 	LayoutData.ClassToPropertyMap.Empty();
 
-	TSharedPtr<FDetailLayoutBuilderImpl> DetailLayout = MakeShareable(new FDetailLayoutBuilderImpl(InRootPropertyNode, LayoutData.ClassToPropertyMap, PropertyUtilities, nullptr));
+	TSharedPtr<FDetailLayoutBuilderImpl> DetailLayout = MakeShareable(new FDetailLayoutBuilderImpl(InRootPropertyNode, LayoutData.ClassToPropertyMap, PropertyUtilities, nullptr, false));
 	LayoutData.DetailLayout = DetailLayout;
 
 	TSharedPtr<FComplexPropertyNode> RootPropertyNode = InRootPropertyNode;
@@ -481,7 +499,7 @@ bool FPropertyRowGenerator::ValidatePropertyNodes(const FRootPropertyNodeList &P
 			UpdateDetailRows();
 			break;
 		}
-		else if (Result == EPropertyDataValidationResult::ArraySizeChanged)
+		else if (Result == EPropertyDataValidationResult::ArraySizeChanged || Result == EPropertyDataValidationResult::ChildrenRebuilt)
 		{
 			UpdateDetailRows();
 		}
@@ -494,5 +512,29 @@ bool FPropertyRowGenerator::ValidatePropertyNodes(const FRootPropertyNodeList &P
 	}
 
 	return bFullRefresh;
+}
+
+TSharedPtr<IDetailTreeNode> FPropertyRowGenerator::FindTreeNodeRecursive(const TSharedPtr<IDetailTreeNode>& StartNode, TSharedPtr<IPropertyHandle> PropertyHandle) const
+{
+	TSharedPtr<FDetailTreeNode> TreeNodeImpl = StaticCastSharedPtr<FDetailTreeNode>(StartNode);
+	
+	TSharedPtr<FPropertyNode> PropertyNode = TreeNodeImpl->GetPropertyNode();
+	if (PropertyNode.IsValid() && PropertyNode == StaticCastSharedPtr<FPropertyHandleBase>(PropertyHandle)->GetPropertyNode())
+	{
+		return StartNode;
+	}
+
+	TArray<TSharedRef<IDetailTreeNode>> Children;
+	StartNode->GetChildren(Children);
+	for (TSharedRef<IDetailTreeNode>& Child : Children)
+	{
+		TSharedPtr<IDetailTreeNode> FoundNode = FindTreeNodeRecursive(Child, PropertyHandle);
+		if (FoundNode.IsValid())
+		{
+			return FoundNode;
+		}
+	}
+
+	return nullptr;
 }
 

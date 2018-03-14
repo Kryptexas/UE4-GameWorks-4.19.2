@@ -9,42 +9,11 @@ Related: Engine/Content/Tools/RenderToTextureTools/3
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/SubUV
 Related: Engine/Rendering/Materials/Functions/Reference/Misc
 Version: 4.9
+topic-image:paper2d_ce_compact.png
 
 [REGION:banner]
 ![](paper2d_header.png)(convert:false)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Paper2D:title%](paper2d_ce_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Paper2D:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Paper2D:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Paper2D]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Paper2D:title%](paper2d_ce_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Paper2D:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Paper2D]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 
 
 

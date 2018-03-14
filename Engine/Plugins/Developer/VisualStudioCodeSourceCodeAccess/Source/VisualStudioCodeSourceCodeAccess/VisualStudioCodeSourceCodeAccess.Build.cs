@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using Microsoft.Win32;
 
 namespace UnrealBuildTool.Rules
@@ -44,11 +44,11 @@ namespace UnrealBuildTool.Rules
 
 			if (bHasVisualStudioDTE)
 			{
-				Definitions.Add("VSACCESSOR_HAS_DTE=1");
+				PublicDefinitions.Add("VSACCESSOR_HAS_DTE=1");
 			}
 			else
 			{
-				Definitions.Add("VSACCESSOR_HAS_DTE=0");
+				PublicDefinitions.Add("VSACCESSOR_HAS_DTE=0");
 			}
 
 			bBuildLocallyWithSNDBS = true;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -113,6 +113,9 @@ public:
 
 	/** Starts tracking overall machine load. */
 	virtual bool StartMachineLoadTracking() = 0;
+
+	/** Starts tracking overall machine load (empty array will use default hitch buckets). */
+	virtual bool StartMachineLoadTracking(double TickRate, const TArray<double>& FrameTimeHistogramBucketsMs) = 0;
 
 	/** Stops tracking overall machine load. */
 	virtual bool StopMachineLoadTracking() = 0;

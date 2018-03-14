@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -106,13 +106,13 @@ public:
 	{
 		switch (Priority)
 		{
-		case TPri_AboveNormal: return THREAD_PRIORITY_ABOVE_NORMAL;
-		case TPri_Normal: return THREAD_PRIORITY_NORMAL;
-		case TPri_BelowNormal: return THREAD_PRIORITY_BELOW_NORMAL;
+		case TPri_AboveNormal: return THREAD_PRIORITY_HIGHEST;
+		case TPri_Normal: return THREAD_PRIORITY_HIGHEST - 1;
+		case TPri_BelowNormal: return THREAD_PRIORITY_HIGHEST - 3;
 		case TPri_Highest: return THREAD_PRIORITY_HIGHEST;
-		case TPri_TimeCritical: return THREAD_PRIORITY_TIME_CRITICAL;
-		case TPri_Lowest: return THREAD_PRIORITY_LOWEST;
-		case TPri_SlightlyBelowNormal: return THREAD_PRIORITY_NORMAL - 1;
+		case TPri_TimeCritical: return THREAD_PRIORITY_HIGHEST;
+		case TPri_Lowest: return THREAD_PRIORITY_HIGHEST - 4;
+		case TPri_SlightlyBelowNormal: return THREAD_PRIORITY_HIGHEST - 2;
 		default: UE_LOG(LogHAL, Fatal, TEXT("Unknown Priority passed to TranslateThreadPriority()")); return TPri_Normal;
 		}
 	}
@@ -120,13 +120,10 @@ public:
 	virtual void SetThreadPriority( EThreadPriority NewPriority ) override
 	{
 		// Don't bother calling the OS if there is no need
-		if (NewPriority != ThreadPriority)
-		{
 			ThreadPriority = NewPriority;
 			// Change the priority on the thread
 			::SetThreadPriority(Thread, TranslateThreadPriority(ThreadPriority));
 		}
-	}
 
 	virtual void Suspend( bool bShouldPause = true ) override
 	{
@@ -180,6 +177,14 @@ protected:
 		uint32 InStackSize = 0,
 		EThreadPriority InThreadPri = TPri_Normal, uint64 InThreadAffinityMask = 0 ) override
 	{
+		static bool bOnce = false;
+		if (!bOnce)
+		{
+			bOnce = true;
+			::SetThreadPriority(::GetCurrentThread(), TranslateThreadPriority(TPri_Normal)); // set the main thread to be normal, since this is no longer the windows default.
+		}
+
+
 		check(InRunnable);
 		Runnable = InRunnable;
 		ThreadAffinityMask = InThreadAffinityMask;
@@ -189,8 +194,10 @@ protected:
 
 		// Create the new thread
 		{
-			LLM_PLATFORM_SCOPE(ELLMTag::ThreadStack);
+			LLM_SCOPE(ELLMTag::ThreadStack);
+			LLM_PLATFORM_SCOPE(ELLMTag::ThreadStackPlatform);
 			// add in the thread size, since it's allocated in a black box we can't track
+			LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, nullptr, InStackSize));
 			LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Platform, nullptr, InStackSize));
 
 			// Create the thread as suspended, so we can ensure ThreadId is initialized and the thread manager knows about the thread before it runs.

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /**
  * SpeedTreeCommon.usf: Code for SpeedTree vertex processing
@@ -289,7 +289,7 @@ float Oscillate(FSpeedTreeData STData,
 		if (fBroadDetail < 0.0)
 		{
 			fTarget = -fTarget;
-			fAmount = -fAmount;
+			fAmount = abs(fAmount);
 		}
 
 		fBroadDetail = lerp(fBroadDetail, fTarget, fAmount);
@@ -341,7 +341,7 @@ float Turbulence(float fTime, float fOffset, float fGlobalTime, float fTurbulenc
 //  This function positions any tree geometry based on their untransformed 
 //	position and 4 wind floats.
 
-float3 GlobalWind(FSpeedTreeData STData, float3 vPos, float3 vInstancePos, bool bPreserveShape)
+float3 GlobalWind(FSpeedTreeData STData, float3 vPos, float3 vInstancePos, bool bPreserveShape, bool bGlobalWind, bool bExtraBend, float3 ExtraBend)
 {
 	// WIND_LOD_GLOBAL may be on, but if the global wind effect (WIND_EFFECT_GLOBAL_WIND)
 	// was disabled for the tree in the Modeler, we should skip it
@@ -359,26 +359,38 @@ float3 GlobalWind(FSpeedTreeData STData, float3 vPos, float3 vInstancePos, bool 
 	if (fAdjust != 0.0)
 		fAdjust = pow(fAdjust, STData.WindGlobal.w);
 
-	// primary oscillation
-	float4 vOscillations = TrigApproximate(float4(vInstancePos.x + STData.WindGlobal.x, vInstancePos.y + STData.WindGlobal.x * 0.8, 0.0, 0.0));
-	float fOsc = vOscillations.x + (vOscillations.y * vOscillations.y);
-	float fMoveAmount = STData.WindGlobal.y * fOsc;
+	if (bGlobalWind)
+	{
+		// primary oscillation
+		float4 vOscillations = TrigApproximate(float4(vInstancePos.x + STData.WindGlobal.x, vInstancePos.y + STData.WindGlobal.x * 0.8, 0.0, 0.0));
+		float fOsc = vOscillations.x + (vOscillations.y * vOscillations.y);
+		float fMoveAmount = STData.WindGlobal.y * fOsc;
 
-	// move a minimum amount based on direction adherence
-	float fMinMove = STData.WindBranchAdherences.x;
-	if (STData.WindGlobal.z != 0.0) // not sure why I need this check
-		fMinMove /= STData.WindGlobal.z;
-	fMoveAmount += fMinMove;
+		// move a minimum amount based on direction adherence
+		float fMinMove = STData.WindBranchAdherences.x;
+		if (STData.WindGlobal.z != 0.0) // not sure why I need this check
+			fMinMove /= STData.WindGlobal.z;
+		fMoveAmount += fMinMove;
 
-	// adjust based on how high up the tree this vertex is
-	fMoveAmount *= fAdjust;
+		// adjust based on how high up the tree this vertex is
+		fMoveAmount *= fAdjust;
 
-	// xy component
-	#ifdef SPEEDTREE_Z_UP
-		vPos.xy += STData.WindVector.xy * fMoveAmount;
-	#else
-		vPos.xz += STData.WindVector.xz * fMoveAmount;
-	#endif
+		// xy component
+		#ifdef SPEEDTREE_Z_UP
+			vPos.xy += STData.WindVector.xy * fMoveAmount;
+		#else
+			vPos.xz += STData.WindVector.xz * fMoveAmount;
+		#endif
+	}
+
+	if (bExtraBend)
+	{
+		#ifdef SPEEDTREE_Z_UP
+			vPos.xy += ExtraBend.xy * fAdjust;
+		#else
+			vPos.xz += ExtraBend.xz * fAdjust;
+		#endif
+	}
 
 	if (bPreserveShape)
 		vPos.xyz = normalize(vPos.xyz) * fLength;

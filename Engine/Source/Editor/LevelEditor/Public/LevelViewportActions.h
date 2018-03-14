@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -7,6 +7,7 @@
 #include "Stats/Stats.h"
 #include "Framework/Commands/Commands.h"
 #include "EditorStyleSet.h"
+#include "BufferVisualizationMenuCommands.h"
 
 /**
  * Public identifiers for the viewport layouts available in LevelViewportLayoutX.h files
@@ -97,9 +98,6 @@ public:
 	/** Finds instances of selected object in level script. */ 
 	TSharedPtr< FUICommandInfo > FindInLevelScriptBlueprint;
 
-	/** List of commands for show flags and their localized names.  One for each command */
-	TArray< FShowMenuCommand > ShowFlagCommands;
-
 	/** Shows all volume classes */
 	TSharedPtr< FUICommandInfo > ShowAllVolumes;
 
@@ -132,15 +130,6 @@ public:
 
 	/** Applys a material to an actor */
 	TSharedPtr< FUICommandInfo > ApplyMaterialToActor;
-
-	struct FBufferVisualizationRecord
-	{
-		FName Name;
-		TSharedPtr< FUICommandInfo > Command;
-	};
-
-	typedef TMultiMap<FName, FBufferVisualizationRecord> TBufferVisualizationModeCommandMap;
-	TBufferVisualizationModeCommandMap BufferVisualizationModeCommands;
 	
 	TSharedPtr< FUICommandInfo > FocusViewportToSelectedActors;
 
@@ -190,6 +179,9 @@ public:
 
 	/** Registers our commands with the binding system for showing volumes. */
 	void RegisterShowVolumeCommands();
+
+	/** Registers our commands with the binding system for showing sprites. */
+	void RegisterShowSpriteCommands();
 
 private:
 	/** Registers additional commands as they are loaded */

@@ -3,11 +3,13 @@ Title:UPrimitiveComponent RTTs
 Crumbs:
 
 
-<!-- 
+[COMMENT:none]
+ 
  Indicates if we'd like to create physics state all the time (for collision and simulation). 
  If you set this to false, it still will create physics state if collision or simulation activated. 
  This can help performance if you'd like to avoid overhead of creating physics state when triggers 
--->
+
+[/COMMENT]
 [EXCERPT:bAlwaysCreatePhysicsState]
 
 If disabled, there will be a run time processing overhead for creating the Physics State for this component if it is collided with or starts simulating.
@@ -18,7 +20,9 @@ Engine/Physics/Collision#properties
 [/EXCERPT:bAlwaysCreatePhysicsState]
 
 
-<!-- If true, this component will generate overlap events when it is overlapping other components (e.g. ReceiveBeginOverlap, NotifyEncroachedBy) -->
+[COMMENT:none]
+ If true, this component will generate overlap events when it is overlapping other components (e.g. ReceiveBeginOverlap, NotifyEncroachedBy) 
+[/COMMENT]
 [EXCERPT:bGenerateOverlapEvents]
 
 An overlap between two objects will register if both objects set this flag to true. This way an object can opt out of all overlap events by turning its own flag off.
@@ -31,9 +35,11 @@ Engine/Physics/Collision#properties
 [/EXCERPT:bGenerateOverlapEvents]
 
 
-<!-- If true, this component will generate individual overlaps for each overlapping physics body if it is a multi-body component. When false, this component will
+[COMMENT:none]
+ If true, this component will generate individual overlaps for each overlapping physics body if it is a multi-body component. When false, this component will
 generate only one overlap, regardless of how many physics bodies it has and how many of them are overlapping another component/body. This flag has no
-influence on single body components. -->
+influence on single body components. 
+[/COMMENT]
 [EXCERPT:bMultiBodyOverlap]
 
 If set to True, this will allow this Component to generate overlap events for every Physics Body it contains.
@@ -46,7 +52,9 @@ Engine/Physics/Collision#properties
 [/EXCERPT:bMultiBodyOverlap]
 
 
-<!-- If true, this component will look for collisions on both physic scenes during movement -->
+[COMMENT:none]
+ If true, this component will look for collisions on both physic scenes during movement 
+[/COMMENT]
 [EXCERPT:bCheckAsyncSceneOnMove]
 
 This flag, though appearing everywhere, only works on the capsule associated with a movement component, such as the one that comes with creating a Character Blueprint.
@@ -59,7 +67,9 @@ Engine/Physics/Collision#properties
 [/EXCERPT:bCheckAsyncSceneOnMove]
 
 
-<!-- If true, component sweeps with this component should trace against complex collision during movement. -->
+[COMMENT:none]
+ If true, component sweeps with this component should trace against complex collision during movement. 
+[/COMMENT]
 [EXCERPT:bTraceComplexOnMove]
 
 This flag, though appearing everywhere, only works on the capsule associated with a movement component, such as the one that comes with creating a Character Blueprint.
@@ -72,7 +82,9 @@ Engine/Physics/Collision#properties
 [/EXCERPT:bTraceComplexOnMove]
 
 
-<!-- If true, component sweeps will return the material in their hit-info. -->
+[COMMENT:none]
+ If true, component sweeps will return the material in their hit-info. 
+[/COMMENT]
 [EXCERPT:bReturnMaterialOnMove]
 
 Only useful when used on the collision object for a Movement Component, such as the one that comes with a Character or Pawn.
@@ -86,19 +98,25 @@ Engine/Physics/Collision#properties
 [/EXCERPT:bReturnMaterialOnMove]
 
 
-<!-- Will ignore radial impulses applied to this component. -->
+[COMMENT:none]
+ Will ignore radial impulses applied to this component. 
+[/COMMENT]
 [EXCERPT:bIgnoreRadialImpulse]
 
 [/EXCERPT:bIgnoreRadialImpulse]
 
 
-<!-- Will ignore radial forces applied to this component. -->
+[COMMENT:none]
+ Will ignore radial forces applied to this component. 
+[/COMMENT]
 [EXCERPT:bIgnoreRadialForce]
 
 [/EXCERPT:bIgnoreRadialForce]
 
 
-<!-- can this component potentially influence navigation -->
+[COMMENT:none]
+ can this component potentially influence navigation 
+[/COMMENT]
 [EXCERPT:bCanEverAffectNavigation]
 
 Defines if this component can ever influence navigation. If disabled, the component will never influence navigation.
@@ -112,134 +130,178 @@ Engine/Physics/PhysicsBodies#collision
 
 
 
-<!-- True if the primitive should be rendered using ViewOwnerDepthPriorityGroup if viewed by its owner. -->
+[COMMENT:none]
+ True if the primitive should be rendered using ViewOwnerDepthPriorityGroup if viewed by its owner. 
+[/COMMENT]
 [EXCERPT:bUseViewOwnerDepthPriorityGroup]
 [/EXCERPT:bUseViewOwnerDepthPriorityGroup]
 
 
-<!-- Whether to accept cull distance volumes to modify cached cull distance. -->
+[COMMENT:none]
+ Whether to accept cull distance volumes to modify cached cull distance. 
+[/COMMENT]
 [EXCERPT:bAllowCullDistanceVolume]
 [/EXCERPT:bAllowCullDistanceVolume]
 
 
-<!-- true if the primitive has motion blur velocity meshes -->
+[COMMENT:none]
+ true if the primitive has motion blur velocity meshes 
+[/COMMENT]
 [EXCERPT:bHasMotionBlurVelocityMeshes]
 [/EXCERPT:bHasMotionBlurVelocityMeshes]
 
 	
-<!-- If true, this component will be rendered in the CustomDepth pass (usually used for outlines) -->
+[COMMENT:none]
+ If true, this component will be rendered in the CustomDepth pass (usually used for outlines) 
+[/COMMENT]
 [EXCERPT:bRenderCustomDepth]
 [/EXCERPT:bRenderCustomDepth]
 
-<!-- Optionally write this 0-255 value to the stencil buffer in CustomDepth pass (Requires project setting or r.CustomDepth == 3)  -->
+[COMMENT:none]
+ Optionally write this 0-255 value to the stencil buffer in CustomDepth pass (Requires project setting or r.CustomDepth == 3)  
+[/COMMENT]
 [EXCERPT:CustomDepthStencilValue]
 [/EXCERPT:CustomDepthStencilValue]
 
 
-<!-- If true, this component will be rendered in the main pass (z prepass, basepass, transparency) -->
+[COMMENT:none]
+ If true, this component will be rendered in the main pass (z prepass, basepass, transparency) 
+[/COMMENT]
 [EXCERPT:bRenderInMainPass]
 [/EXCERPT:bRenderInMainPass]
 
 	
-<!-- Whether the primitive receives decals. -->
+[COMMENT:none]
+ Whether the primitive receives decals. 
+[/COMMENT]
 [EXCERPT:bReceivesDecals]
 [/EXCERPT:bReceivesDecals]
 
 
-<!-- If this is True, this component won't be visible when the view actor is the component's owner, directly or indirectly. -->
+[COMMENT:none]
+ If this is True, this component won't be visible when the view actor is the component's owner, directly or indirectly. 
+[/COMMENT]
 [EXCERPT:bOwnerNoSee]
 [/EXCERPT:bOwnerNoSee]
 
 
-<!-- If this is True, this component will only be visible when the view actor is the component's owner, directly or indirectly. -->
+[COMMENT:none]
+ If this is True, this component will only be visible when the view actor is the component's owner, directly or indirectly. 
+[/COMMENT]
 [EXCERPT:bOnlyOwnerSee]
 [/EXCERPT:bOnlyOwnerSee]
 
 
-<!-- 
+[COMMENT:none]
+ 
  Whether to render the primitive in the depth only pass.  
  Setting this to false will cause artifacts with dominant light shadows and potentially large performance loss,
  So it should be true on all lit objects, setting it to false is mostly only useful for debugging.
--->
+
+[/COMMENT]
 [EXCERPT:bUseAsOccluder]
 [/EXCERPT:bUseAsOccluder]
 
 
-<!-- If this is True, this component can be selected in the editor. -->
+[COMMENT:none]
+ If this is True, this component can be selected in the editor. 
+[/COMMENT]
 [EXCERPT:bSelectable]
 [/EXCERPT:bSelectable]
 
 
-<!-- If true, forces mips for textures used by this component to be resident when this component's level is loaded. -->
+[COMMENT:none]
+ If true, forces mips for textures used by this component to be resident when this component's level is loaded. 
+[/COMMENT]
 [EXCERPT:bForceMipStreaming]
 [/EXCERPT:bForceMipStreaming]
 
 
-<!-- If true a hit-proxy will be generated for each instance of instanced static meshes -->
+[COMMENT:none]
+ If true a hit-proxy will be generated for each instance of instanced static meshes 
+[/COMMENT]
 [EXCERPT:bHasPerInstanceHitProxies]
 [/EXCERPT:bHasPerInstanceHitProxies]
 
 
 	
-<!-- Controls whether the primitive component should cast a shadow or not. -->
+[COMMENT:none]
+ Controls whether the primitive component should cast a shadow or not. 
+[/COMMENT]
 [EXCERPT:CastShadow]
 [/EXCERPT:CastShadow]
 
 
-<!-- Controls whether the primitive should cast shadows in the case of non precomputed shadowing.  This flag is only used if CastShadow is true. -->
+[COMMENT:none]
+ Controls whether the primitive should cast shadows in the case of non precomputed shadowing.  This flag is only used if CastShadow is true. 
+[/COMMENT]
 [EXCERPT:bCastDynamicShadow]
 [/EXCERPT:bCastDynamicShadow]
 
 
-<!-- Whether the object should cast a static shadow from shadow casting lights.  This flag is only used if CastShadow is true. -->
+[COMMENT:none]
+ Whether the object should cast a static shadow from shadow casting lights.  This flag is only used if CastShadow is true. 
+[/COMMENT]
 [EXCERPT:bCastStaticShadow]
 [/EXCERPT:bCastStaticShadow]
 
 
-<!-- 
+[COMMENT:none]
+ 
  Whether the object should cast a volumetric translucent shadow.
  Volumetric translucent shadows are useful for primitives with smoothly changing opacity like particles representing a volume, 
  But have artifacts when used on highly opaque surfaces.
--->
+
+[/COMMENT]
 [EXCERPT:bCastVolumetricTranslucentShadow]
 [/EXCERPT:bCastVolumetricTranslucentShadow]
 
 
-<!-- 
+[COMMENT:none]
+ 
  Whether this component should create a per-object shadow that gives higher effective shadow resolution. 
  Useful for cinematic character shadowing.
--->
+
+[/COMMENT]
 [EXCERPT:bCastInsetShadow]
 [/EXCERPT:bCastInsetShadow]
 
 
-<!-- 
+[COMMENT:none]
+ 
 	If true, the primitive will cast shadows even if bHidden is true.
 	Controls whether the primitive should cast shadows when hidden.
 	This flag is only used if CastShadow is true.
--->
+
+[/COMMENT]
 [EXCERPT:bCastHiddenShadow]
 [/EXCERPT:bCastHiddenShadow]
 
 
-<!-- Whether this primitive should cast dynamic shadows as if it were a two sided material. -->
+[COMMENT:none]
+ Whether this primitive should cast dynamic shadows as if it were a two sided material. 
+[/COMMENT]
 [EXCERPT:bCastShadowAsTwoSided]
 [/EXCERPT:bCastShadowAsTwoSided]
 
 
-<!-- 
+[COMMENT:none]
+ 
  Whether to light this primitive as if it were static, including generating lightmaps.  
  This is useful for moving meshes that don't change significantly.
--->
+
+[/COMMENT]
 [EXCERPT:bLightAsIfStatic]
 [/EXCERPT:bLightAsIfStatic]
 
 
-<!-- 
+[COMMENT:none]
+ 
  Whether to light this component and any attachments as a group.  This only has effect on the root component of an attachment tree.
  When enabled, attached component shadowing settings like bCastInsetShadow, bCastVolumetricTranslucentShadow, etc, will be ignored.
  This is useful for improving performance when multiple movable components are attached together.
--->
+
+[/COMMENT]
 [EXCERPT:bLightAttachmentsAsGroup]
 [/EXCERPT:bLightAttachmentsAsGroup]
 
@@ -248,7 +310,9 @@ Engine/Physics/PhysicsBodies#collision
 [/EXCERPT:bHasCachedStaticLighting]
 
 
-<!-- If true, asynchronous static build lighting will be enqueued to be applied to this -->
+[COMMENT:none]
+ If true, asynchronous static build lighting will be enqueued to be applied to this 
+[/COMMENT]
 [EXCERPT:bStaticLightingBuildEnqueued]
 [/EXCERPT:bStaticLightingBuildEnqueued]
 
@@ -259,50 +323,66 @@ Engine/Physics/PhysicsBodies#collision
 
 
 	
-<!-- If this is True, this component must always be loaded on clients, even if Hidden and CollisionEnabled is NoCollision. -->
+[COMMENT:none]
+ If this is True, this component must always be loaded on clients, even if Hidden and CollisionEnabled is NoCollision. 
+[/COMMENT]
 [EXCERPT:AlwaysLoadOnClient]
 [/EXCERPT:AlwaysLoadOnClient]
 
 
-<!-- If this is True, this component must always be loaded on servers, even if Hidden and CollisionEnabled is NoCollision -->
+[COMMENT:none]
+ If this is True, this component must always be loaded on servers, even if Hidden and CollisionEnabled is NoCollision 
+[/COMMENT]
 [EXCERPT:AlwaysLoadOnServer]
 [/EXCERPT:AlwaysLoadOnServer]
 
 
-<!-- Determines whether or not we allow shadowing fading.  Some objects (especially in cinematics) having the shadow fade/pop out looks really bad. -->
+[COMMENT:none]
+ Determines whether or not we allow shadowing fading.  Some objects (especially in cinematics) having the shadow fade/pop out looks really bad. 
+[/COMMENT]
 [EXCERPT:bAllowShadowFade]
 [/EXCERPT:bAllowShadowFade]
 
 
-<!-- Composite the drawing of this component onto the scene after post processing (only applies to editor drawing) -->
+[COMMENT:none]
+ Composite the drawing of this component onto the scene after post processing (only applies to editor drawing) 
+[/COMMENT]
 [EXCERPT:bUseEditorCompositing]
 [/EXCERPT:bUseEditorCompositing]
 
-<!--
+[COMMENT:none]
+
  Translucent objects with a lower sort priority draw behind objects with a higher priority.
  Translucent objects with the same priority are rendered from back-to-front based on their bounds origin.
 
  Ignored if the object is not translucent.  The default priority is zero.
  Warning: This should never be set to a non-default value unless you know what you are doing, as it will prevent the renderer from sorting correctly.  
  It is especially problematic on dynamic gameplay effects.
--->
+
+[/COMMENT]
 [EXCERPT:TranslucencySortPriority]
 [/EXCERPT:TranslucencySortPriority]
 
 
-<!-- Used for precomputed visibility -->
+[COMMENT:none]
+ Used for precomputed visibility 
+[/COMMENT]
 [EXCERPT:VisibilityId]
 [/EXCERPT:VisibilityId]
 
 
-<!-- Used by the renderer, to identify a component across re-registers. -->
+[COMMENT:none]
+ Used by the renderer, to identify a component across re-registers. 
+[/COMMENT]
 [EXCERPT:ComponentId]
 [/EXCERPT:ComponentId]
 
 
 
 	
-<!-- Physics scene information for this component, holds a single rigid body with multiple shapes. -->
+[COMMENT:none]
+ Physics scene information for this component, holds a single rigid body with multiple shapes. 
+[/COMMENT]
 [EXCERPT:BodyInstance]
 [/EXCERPT:BodyInstance]
 

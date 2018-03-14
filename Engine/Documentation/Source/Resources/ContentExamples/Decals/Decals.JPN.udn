@@ -5,7 +5,9 @@ Crumbs:%ROOT%, Resources, Resources/ContentExamples
 Description:デカールのサンプル レベルの概要
 Version:4.9
 Related:Engine/Actors/DecalActor
-<!---[TOC(start:2 end:2)]--->
+[COMMENT:none]
+-[TOC(start:2 end:2)]-
+[/COMMENT]
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -73,8 +75,10 @@ Deferred Decal アクタを作成するには、**[Modes (モード)]**パネル
 %Resources/ContentExamples/Decals/1_7:TopicCompact%
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 ## 関連トピックと参考文献
 
 * [デカール](Engine/Actors/DecalActor)
---->
+-
+[/COMMENT]

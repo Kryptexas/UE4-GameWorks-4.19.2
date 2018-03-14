@@ -56,22 +56,16 @@ skilllevel:Beginner
 	[/PARAMLITERAL]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## ステップ
+
+[REGION:buttonlist]
+
 	* [](Programming\Tutorials\VariablesTimersEvents\1 "%Programming\Tutorials\VariablesTimersEvents\1:description%")
 	* [](Programming\Tutorials\VariablesTimersEvents\2 "%Programming\Tutorials\VariablesTimersEvents\2:description%")
 	* [](Programming\Tutorials\VariablesTimersEvents\3 "%Programming\Tutorials\VariablesTimersEvents\3:description%")
 	* [](Programming\Tutorials\VariablesTimersEvents\4 "%Programming\Tutorials\VariablesTimersEvents\4:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

@@ -1,71 +1,84 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "MovieSceneSequenceID.h"
 #include "Evaluation/MovieSceneSequenceTransform.h"
-#include "Evaluation/MovieSceneEvaluationState.h"
 #include "Evaluation/MovieScenePlayback.h"
 #include "Evaluation/MovieSceneSequenceTemplateStore.h"
 #include "Evaluation/MovieSceneEvaluationTemplate.h"
 #include "Evaluation/MovieSceneExecutionTokens.h"
+#include "Evaluation/MovieSceneRootOverridePath.h"
 
 class UMovieSceneSequence;
 struct FDelayedPreAnimatedStateRestore;
+struct FCompileOnTheFlyData;
 
 /**
  * An instance of an evaluation template. Fast to initialize and evaluate.
  */
 struct FMovieSceneEvaluationTemplateInstance
 {
-	FMovieSceneEvaluationTemplateInstance() : Template(nullptr), HierarchicalBias(0), SequenceID(MovieSceneSequenceID::Invalid) {}
+	FMovieSceneEvaluationTemplateInstance();
 
-	/**
-	 * Constructor for root instances
-	 *
-	 * @param InSequence			The source master sequence we're playing back at the root level
-	 * @param InTemplate			The template to use when playing back the specified sequence. A pointer to which will be held within this instance.
-	 */
-	FMovieSceneEvaluationTemplateInstance(UMovieSceneSequence& InSequence, const FMovieSceneEvaluationTemplate& InTemplate);
+	FMovieSceneEvaluationTemplateInstance(UMovieSceneSequence& InSequence, FMovieSceneEvaluationTemplate* InTemplate);
 
-	/**
-	 * Constructor for sub sequence instances. SubData must point to a valid sequence
-	 *
-	 * @param SubData				Information about the sub sequence we're instantiating
-	 * @param InTemplate			The template to use when playing back the sub sequence. A pointer to which will be held within this instance.
-	 * @param InSequenceID			The unique identifier within the master sequence
-	 */
-	FMovieSceneEvaluationTemplateInstance(const FMovieSceneSubSequenceData& SubData, const FMovieSceneEvaluationTemplate& InTemplate, FMovieSceneSequenceIDRef InSequenceID);
+	FMovieSceneEvaluationTemplateInstance(const FMovieSceneSubSequenceData* InSubData, IMovieSceneSequenceTemplateStore& TemplateStore);
 
-	FMovieSceneEvaluationTemplateInstance(const FMovieSceneEvaluationTemplateInstance&) = delete;
-	FMovieSceneEvaluationTemplateInstance& operator=(const FMovieSceneEvaluationTemplateInstance&) = delete;
+	bool IsValid() const
+	{
+		return Sequence && Template;
+	}
 
-	FMovieSceneEvaluationTemplateInstance(FMovieSceneEvaluationTemplateInstance&&) = default;
-	FMovieSceneEvaluationTemplateInstance& operator=(FMovieSceneEvaluationTemplateInstance&&) = default;
-
-public:
-
-	/** The sequence that the sub section references */
-	TWeakObjectPtr<UMovieSceneSequence> Sequence;
-
-	/** Transform that transforms a given time from the sequences outer space, to its authored space. */
-	FMovieSceneSequenceTransform RootToSequenceTransform;
+	/** The sequence this applies to */
+	UMovieSceneSequence* Sequence;
 
 	/** Pointer to the evaluation template we're evaluating */
-	const FMovieSceneEvaluationTemplate* Template;
+	FMovieSceneEvaluationTemplate* Template;
 
-	/** Pre and Post roll ranges in the inner-sequence's time space */
-	TRange<float> PreRollRange, PostRollRange;
+	/** Sub Data or nullptr */
+	const FMovieSceneSubSequenceData* SubData;
+};
 
-	/** The hierarchical bias for this template instance */
-	int32 HierarchicalBias;
+struct FMovieSceneEvaluationTemplateInstanceContainer
+{
+	FMovieSceneEvaluationTemplateInstanceContainer()
+		: RootID(MovieSceneSequenceID::Invalid)
+	{}
 
-	/** ID of the sequence within the master sequence */
-	FMovieSceneSequenceID SequenceID;
+	void Reset()
+	{
+		RootID = MovieSceneSequenceID::Invalid;
+		RootInstance = FMovieSceneEvaluationTemplateInstance();
+		ResetSubInstances();
+	}
 
-	/** Legacy sequence instance required for old track instances */
-	TSharedPtr<FMovieSceneSequenceInstance> LegacySequenceInstance;
+	void ResetSubInstances()
+	{
+		SubInstances.Reset();
+	}
+
+	void Add(FMovieSceneSequenceID InID, const FMovieSceneEvaluationTemplateInstance& InInstance)
+	{
+		check(InID != RootID);
+		SubInstances.Add(InID, InInstance);
+	}
+
+	const FMovieSceneEvaluationTemplateInstance& GetChecked(FMovieSceneSequenceID InID) const
+	{
+		return InID == RootID ? RootInstance : SubInstances.FindChecked(InID);
+	}
+
+	FMovieSceneEvaluationTemplateInstance* Find(FMovieSceneSequenceID InID)
+	{
+		return InID == RootID ? &RootInstance : SubInstances.Find(InID);
+	}
+
+	/** Sequence ID that is used to evaluate from for the current frame */
+	FMovieSceneSequenceID RootID;
+	FMovieSceneEvaluationTemplateInstance RootInstance;
+	TMap<FMovieSceneSequenceID, FMovieSceneEvaluationTemplateInstance> SubInstances;
 };
 
 /**
@@ -88,7 +101,7 @@ public:
 	 */
 	bool IsValid() const
 	{
-		return RootSequence.Get() && RootInstance.Template;
+		return RootSequence.Get() && RootTemplate;
 	}
 
 	/**
@@ -106,7 +119,7 @@ public:
 	 * @param Player					The player responsible for playback
 	 * @param TemplateStore				Template store responsible for supplying templates for a given sequence
 	 */
-	MOVIESCENE_API void Initialize(UMovieSceneSequence& RootSequence, IMovieScenePlayer& Player, TSharedRef<FMovieSceneSequenceTemplateStore> TemplateStore);
+	MOVIESCENE_API void Initialize(UMovieSceneSequence& RootSequence, IMovieScenePlayer& Player, TSharedRef<IMovieSceneSequenceTemplateStore> TemplateStore);
 
 	/**
 	 * Evaluate this sequence
@@ -124,38 +137,12 @@ public:
 	 */
 	MOVIESCENE_API void Finish(IMovieScenePlayer& Player);
 
-public:
-
-	class FOnUpdated : public TBaseMulticastDelegate<void>
-	{
-		friend FMovieSceneRootEvaluationTemplateInstance;
-	};
-
 	/**
-	 * Event that is triggered when this sequence has been updated
+	 * Check whether the evaluation template is dirty based on the last evaluated frame's meta-data
 	 */
-	FOnUpdated& OnUpdated() { return OnUpdatedEvent; }
+	MOVIESCENE_API bool IsDirty() const;
 
 public:
-
-	/**
-	 * Retrieve a specific template instance given a sequence ID
-	 *
-	 * @param SequenceID			The sequence ID to find a template for
-	 * @return Pointer to a template instance, or nullptr if the ID was not found
-	 */
-	FORCEINLINE const FMovieSceneEvaluationTemplateInstance* GetInstance(FMovieSceneSequenceIDRef SequenceID) const
-	{
-		return SequenceID == MovieSceneSequenceID::Root ? &RootInstance : SubInstances.Find(SequenceID);
-	}
-
-	/**
-	 * Access the underlying map of sub template instances
-	 */
-	const TMap<FMovieSceneSequenceID, FMovieSceneEvaluationTemplateInstance>& GetSubInstances() const
-	{
-		return SubInstances;
-	}
 
 	/**
 	 * Attempt to locate the underlying sequence given a sequence ID
@@ -163,22 +150,32 @@ public:
 	 * @param SequenceID 			ID of the sequence to locate
 	 * @return The sequence, or nullptr if the ID was not found
 	 */
-	UMovieSceneSequence* GetSequence(FMovieSceneSequenceIDRef SequenceID) const
-	{
-		if (const FMovieSceneEvaluationTemplateInstance* Instance = GetInstance(SequenceID))
-		{
-			return Instance->Sequence.Get();
-		}
-		return nullptr;
-	}
+	MOVIESCENE_API UMovieSceneSequence* GetSequence(FMovieSceneSequenceIDRef SequenceID) const;
 
+	/**
+	 * Attempt to locate a template corresponding to the specified Sequence ID
+	 *
+	 * @param SequenceID 			ID of the sequence template to locate
+	 * @return The template, or nullptr if the ID is invalid, or the template has not been compiled
+	 */
+	MOVIESCENE_API FMovieSceneEvaluationTemplate* FindTemplate(FMovieSceneSequenceIDRef SequenceID);
 
 	/**
 	 * Access the master sequence's hierarchy data
 	 */
 	const FMovieSceneSequenceHierarchy& GetHierarchy() const
 	{
-		return RootInstance.Template->Hierarchy;
+		check(RootTemplate);
+		return RootTemplate->Hierarchy;
+	}
+
+	/**
+	 * Access the master sequence's hierarchy data
+	 */
+	FMovieSceneSequenceHierarchy& GetHierarchy()
+	{
+		check(RootTemplate);
+		return RootTemplate->Hierarchy;
 	}
 
 	/**
@@ -187,14 +184,6 @@ public:
 	const FMovieSceneEvaluationMetaData& GetThisFrameMetaData() const
 	{
 		return ThisFrameMetaData;
-	}
-
-	/**
-	 * Check whether this instance is dirty (one of its referenced templates has changed)
-	 */
-	bool IsDirty() const
-	{
-		return bIsDirty;
 	}
 
 	/**
@@ -207,6 +196,13 @@ public:
 private:
 
 	/**
+	 * Setup the current frame by finding or generating the necessary evaluation group and meta-data
+	 *
+	 * @param Context				Evaluation context containing the time (or range) to evaluate
+	 */
+	const FMovieSceneEvaluationGroup* SetupFrame(IMovieScenePlayer& Player, FMovieSceneSequenceID InOverrideRootID, FMovieSceneContext Context);
+
+	/**
 	 * Process entities that are newly evaluated, and those that are no longer being evaluated
 	 */
 	void CallSetupTearDown(IMovieScenePlayer& Player, FDelayedPreAnimatedStateRestore* DelayedRestore = nullptr);
@@ -216,82 +212,29 @@ private:
 	 */
 	void EvaluateGroup(const FMovieSceneEvaluationGroup& Group, const FMovieSceneContext& Context, IMovieScenePlayer& Player);
 
-	/**
-	 * Remap the specified sequence ID based on the currently evaluating sequence path, to the Root
-	 *
-	 * @param SequenceID			The sequence ID to find a template for
-	 * @return Pointer to a template instance, or nullptr if the ID was not found
-	 */
-	FORCEINLINE_DEBUGGABLE FMovieSceneSequenceID GetSequenceIdForRoot(FMovieSceneSequenceID SequenceID) const
-	{
-		if (!ReverseOverrideRootPath.Num())
-		{
-			return SequenceID;
-		}
-
-		for (FMovieSceneSequenceID Parent : ReverseOverrideRootPath)
-		{
-			SequenceID = SequenceID.AccumulateParentID(Parent);
-		}
-		return SequenceID;
-	}
-
-	/**
-	 * Retrieve a specific template instance given a sequence ID. Assumes it exists.
-	 *
-	 * @param SequenceID			The sequence ID to find a template for
-	 * @return The template instance
-	 */
-	FORCEINLINE_DEBUGGABLE const FMovieSceneEvaluationTemplateInstance& GetInstanceChecked(FMovieSceneSequenceIDRef SequenceID) const
-	{
-		return SequenceID == MovieSceneSequenceID::Root ? RootInstance : SubInstances.FindChecked(SequenceID);
-	}
-
-	/**
-	 * Attempt to retrieve a specific template instance given a sequence ID
-	 *
-	 * @param SequenceID			The sequence ID to find a template for
-	 * @return Pointer to a template instance, or nullptr if the ID was not found
-	 */
-	FORCEINLINE_DEBUGGABLE const FMovieSceneEvaluationTemplateInstance* FindInstance(FMovieSceneSequenceIDRef SequenceID) const
-	{
-		return SequenceID == MovieSceneSequenceID::Root ? &RootInstance : SubInstances.Find(SequenceID);
-	}
-
 private:
 
-	/** Called whenever any of the sequences contained within this instance is changed */
-	void OnSequenceChanged();
-
-	/** Reset this template instance */
-	void Reset();
+	void RecreateInstances(const FMovieSceneEvaluationTemplateInstance& RootOverrideInstance, FMovieSceneSequenceID InOverrideRootID, IMovieScenePlayer& Player);
 
 private:
 
 	TWeakObjectPtr<UMovieSceneSequence> RootSequence;
 
-	FMovieSceneEvaluationTemplateInstance RootInstance;
+	FMovieSceneEvaluationTemplate* RootTemplate;
+
+	FMovieSceneEvaluationTemplateInstanceContainer TransientInstances;
 
 	/** Cache of everything that was evaluated last frame */
 	FMovieSceneEvaluationMetaData LastFrameMetaData;
 	/** Cache of everything that is evaluated this frame */
 	FMovieSceneEvaluationMetaData ThisFrameMetaData;
 
-	/** Map of all sub instances, arranged by sequence ID */
-	TMap<FMovieSceneSequenceID, FMovieSceneEvaluationTemplateInstance> SubInstances;
-
 	/** Template store responsible for supplying templates for a given sequence */
-	TSharedPtr<FMovieSceneSequenceTemplateStore> TemplateStore;
+	TSharedPtr<IMovieSceneSequenceTemplateStore> TemplateStore;
 
-	/** A reverse path of deterministic sequence IDs required to accumulate from local -> root */
-	TArray<FMovieSceneSequenceID, TInlineAllocator<8>> ReverseOverrideRootPath;
+	/** Override path that is used to remap inner sequence IDs to the root space when evaluating with a root override */
+	FMovieSceneRootOverridePath RootOverridePath;
 
 	/** Execution tokens that are used to apply animated state */
 	FMovieSceneExecutionTokens ExecutionTokens;
-
-	/** True when any of our templates are out of date, and need reinitializing */
-	bool bIsDirty;
-
-	/** Event that is triggered on update */
-	FOnUpdated OnUpdatedEvent;
 };

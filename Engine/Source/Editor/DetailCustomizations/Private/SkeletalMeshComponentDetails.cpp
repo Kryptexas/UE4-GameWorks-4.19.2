@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SkeletalMeshComponentDetails.h"
 #include "Modules/ModuleManager.h"
@@ -21,6 +21,7 @@
 #include "Animation/AnimBlueprintGeneratedClass.h"
 #include "SImage.h"
 #include "PhysicsEngine/PhysicsSettings.h"
+#include "SkeletalMeshCustomizationHelpers.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponentDetails"
 
@@ -73,7 +74,7 @@ void FSkeletalMeshComponentDetails::CustomizeDetails(IDetailLayoutBuilder& Detai
 	DetailBuilder.EditCategory("Materials", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
 	DetailBuilder.EditCategory("Physics", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
 	DetailBuilder.HideProperty("bCastStaticShadow", UPrimitiveComponent::StaticClass());
-	DetailBuilder.HideProperty("bLightAsIfStatic", UPrimitiveComponent::StaticClass());
+	DetailBuilder.HideProperty("LightmapType", UPrimitiveComponent::StaticClass());
 	DetailBuilder.EditCategory("Animation", FText::GetEmpty(), ECategoryPriority::Important);
 
 	PerformInitialRegistrationOfSkeletalMeshes(DetailBuilder);
@@ -205,9 +206,6 @@ void FSkeletalMeshComponentDetails::UpdatePhysicsCategory(IDetailLayoutBuilder& 
 	AsyncSceneHandle = DetailBuilder.GetProperty(AsyncSceneFName);
 	check(AsyncSceneHandle->IsValidHandle());
 
-	TAttribute<EVisibility> AsyncSceneWarningVisibilityAttribute(this, &FSkeletalMeshComponentDetails::VisibilityForAsyncSceneWarning);
-	TAttribute<bool> AsyncSceneDropdownEnabledState(this, &FSkeletalMeshComponentDetails::ShouldAllowAsyncSceneSettingToBeChanged);
-
 	DetailBuilder.HideProperty(AsyncSceneHandle);
 	PhysicsCategory.AddCustomRow(AsyncSceneHandle->GetPropertyDisplayName(), true)
 	.Visibility(EVisibility::Visible)
@@ -218,60 +216,7 @@ void FSkeletalMeshComponentDetails::UpdatePhysicsCategory(IDetailLayoutBuilder& 
 	.ValueContent()
 	.HAlign(HAlign_Fill)
 	[
-		SNew(SVerticalBox)
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-			.IsEnabled(AsyncSceneDropdownEnabledState)
-			+ SHorizontalBox::Slot()
-			.HAlign(HAlign_Left)
-			[
-				AsyncSceneHandle->CreatePropertyValueWidget()
-			]
-		]
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(FMargin(0,4))
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.HAlign(HAlign_Left)
-			[
-				SNew(SBorder)
-				.BorderBackgroundColor(FLinearColor::Yellow)
-				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-				.Padding(2)
-				.HAlign(HAlign_Fill)
-				.Visibility(AsyncSceneWarningVisibilityAttribute)
-				.Clipping(EWidgetClipping::ClipToBounds)
-				[
-					SNew(SHorizontalBox)
-
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					.Padding(0)
-					[
-						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("Icons.Warning"))
-					]
-
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding(FMargin(2,0))
-					[
-						SNew(STextBlock)
-						.Font(IDetailLayoutBuilder::GetDetailFont())
-						.Text(LOCTEXT("WarningForProjectAsyncSceneNotEnabled", "The project setting \"Enable Async Scene\" must be set."))
-						.AutoWrapText(true)
-						.ToolTipText(LOCTEXT("WarningForProjectAsyncSceneNotEnabledTooltip",
-							"The project setting \"Enable Async Scene\" must be set in order to use an async scene. "
-							"Otherwise, this property will be ignored."))
-					]
-				]
-			]
-		]
+		SkeletalMeshCustomizationHelpers::CreateAsyncSceneValueWidgetWithWarning(AsyncSceneHandle)
 	];
 }
 
@@ -430,16 +375,6 @@ void FSkeletalMeshComponentDetails::UseSelectedAnimBlueprint()
 			}
 		}
 	}
-}
-
-EVisibility FSkeletalMeshComponentDetails::VisibilityForAsyncSceneWarning() const
-{
-	return UPhysicsSettings::Get()->bEnableAsyncScene ? EVisibility::Collapsed : EVisibility::Visible;
-}
-
-bool FSkeletalMeshComponentDetails::ShouldAllowAsyncSceneSettingToBeChanged() const
-{
-	return UPhysicsSettings::Get()->bEnableAsyncScene;
 }
 
 void FSkeletalMeshComponentDetails::PerformInitialRegistrationOfSkeletalMeshes(IDetailLayoutBuilder& DetailBuilder)

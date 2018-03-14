@@ -173,7 +173,8 @@ version: 4.9
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SkeletonOverview]
 **骨骼模式** 能够可视化的控制角色或者骨骼网格物体，包括控制单个骨骼或者关节继承关系。比如可以做的事情包括：
 
@@ -209,11 +210,13 @@ version: 4.9
 * 在动画蓝图的事件图中播放动画蒙太奇。
 * 使用 AnimGraph 混合不同的姿势以及其他动画计算的结果数据。
 [/EXCERPT:GraphOverview]
--->
+
+[/COMMENT]
 
 
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:Modes]
 
 
@@ -222,14 +225,16 @@ version: 4.9
 [/EXCERPT:Modes]
 
 
---->
+-
+[/COMMENT]
 
 
 
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SkeletonUI]
 
 [REGION:simpletable]
@@ -312,10 +317,12 @@ version: 4.9
 [/EXCERPT:GraphUI]
 
 
---->
+-
+[/COMMENT]
 
 
-<!--
+[COMMENT:none]
+
 
 
 ## Interface Elements
@@ -454,7 +461,8 @@ See [](Engine/Animation/Sequences/Editor) for more information on setting up Ani
 See [](Engine/Animation/Blendspaces/Editor) for more information on setting up Blendspaces.
 
 
---->
+-
+[/COMMENT]
 
 
 

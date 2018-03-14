@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -37,6 +37,9 @@ struct FAssetViewItem
 	/** Get whether this is a temporary item */
 	virtual bool IsTemporaryItem() const = 0;
 
+	/** Updates cached custom column data, does nothing by default */
+	virtual void CacheCustomColumns(const TArray<FAssetViewCustomColumn>& CustomColumns, bool bUpdateSortData, bool bUpdateDisplayText, bool bUpdateExisting) {}
+
 	/** Broadcasts whenever a rename is requested */
 	FSimpleDelegate RenamedRequestEvent;
 
@@ -56,6 +59,9 @@ struct FAssetViewAsset : public FAssetViewItem
 
 	/** Map of values for custom columns */
 	TMap<FName, FString> CustomColumnData;
+
+	/** Map of display text for custom columns */
+	TMap<FName, FText> CustomColumnDisplayText;
 
 	explicit FAssetViewAsset(const FAssetData& AssetData)
 		: Data(AssetData)
@@ -89,6 +95,35 @@ struct FAssetViewAsset : public FAssetViewItem
 	virtual bool IsTemporaryItem() const override
 	{
 		return false;
+	}
+
+	virtual void CacheCustomColumns(const TArray<FAssetViewCustomColumn>& CustomColumns, bool bUpdateSortData, bool bUpdateDisplayText, bool bUpdateExisting) override
+	{
+		for (const FAssetViewCustomColumn& Column : CustomColumns)
+		{
+			if (bUpdateSortData)
+			{
+				if (bUpdateExisting ? CustomColumnData.Contains(Column.ColumnName) : !CustomColumnData.Contains(Column.ColumnName))
+				{
+					CustomColumnData.Add(Column.ColumnName, Column.OnGetColumnData.Execute(Data, Column.ColumnName));
+				}
+			}
+
+			if (bUpdateDisplayText)
+			{
+				if (bUpdateExisting ? CustomColumnDisplayText.Contains(Column.ColumnName) : !CustomColumnDisplayText.Contains(Column.ColumnName))
+				{
+					if (Column.OnGetColumnDisplayText.IsBound())
+					{
+						CustomColumnDisplayText.Add(Column.ColumnName, Column.OnGetColumnDisplayText.Execute(Data, Column.ColumnName));
+					}
+					else
+					{
+						CustomColumnDisplayText.Add(Column.ColumnName, FText::AsCultureInvariant(Column.OnGetColumnData.Execute(Data, Column.ColumnName)));
+					}
+				}
+			}
+		}
 	}
 };
 

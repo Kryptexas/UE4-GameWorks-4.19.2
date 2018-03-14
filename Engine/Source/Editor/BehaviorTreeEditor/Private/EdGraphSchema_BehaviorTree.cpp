@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "EdGraphSchema_BehaviorTree.h"
 #include "Layout/SlateRect.h"
@@ -131,7 +131,7 @@ void UEdGraphSchema_BehaviorTree::GetSubNodeClasses(int32 SubNodeFlags, TArray<F
 
 void UEdGraphSchema_BehaviorTree::GetGraphContextActions(FGraphContextMenuBuilder& ContextMenuBuilder) const
 {
-	const FString PinCategory = ContextMenuBuilder.FromPin ?
+	const FName PinCategory = ContextMenuBuilder.FromPin ?
 		ContextMenuBuilder.FromPin->PinType.PinCategory : 
 		UBehaviorTreeEditorTypes::PinCategory_MultipleNodes;
 

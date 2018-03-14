@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -31,14 +31,23 @@ struct ENGINE_API FPoseData
 {
 	GENERATED_USTRUCT_BODY()
 
+#if WITH_EDITORONLY_DATA
+	// source local space pose, this pose is always full pose
+	UPROPERTY()
+	TArray<FTransform>		SourceLocalSpacePose;
+
+	// source curve data that is full value
+	UPROPERTY()
+	TArray<float>			SourceCurveData;
+#endif // WITH_EDITORONLY_DATA
+
 	// local space pose, # of array match with # of Tracks
 	UPROPERTY()
 	TArray<FTransform>		LocalSpacePose;
 
-	// whether or not, the joint contains dirty transform
+	// whether or not, the joint contains delta transform from base pose
 	// it only blends if this is true 
 	// this allows per bone blend
-	// @todo: convert to bit field?
 	UPROPERTY()
 	TArray<bool>			LocalSpacePoseMask;
 
@@ -81,24 +90,6 @@ private:
 
 	void Reset();
 
-	void AddOrUpdatePose(const FSmartName& InPoseName, const TArray<FTransform>& InlocalSpacePose, const TArray<float>& InCurveData);
-
-	// remove track if all poses has identity key
-	// Shrink currently works with only full pose
-	// we could support addiitve with comparing with identity but right now PoseContainer it self doesn't know if it's additive or not
-	// not sure if that's a good or not yet
-	void Shrink(USkeleton* InSkeleton, FName& InRetargetSourceName);
-
-	bool InsertTrack(const FName& InTrackName, USkeleton* InSkeleton, FName& InRetargetSourceName);
-	bool FillUpDefaultPose(const FSmartName& InPoseName, USkeleton* InSkeleton, FName& InRetargetSourceName);
-	bool FillUpDefaultPose(FPoseData* PoseData, USkeleton* InSkeleton, FName& InRetargetSourceName);
-	FTransform GetDefaultTransform(int32 SkeletonIndex, USkeleton* InSkeleton, const FName& InRetargetSourceName) const;
-	FTransform GetDefaultTransform(const FName& InTrackName, USkeleton* InSkeleton, const FName& InRetargetSourceName) const;
-	void RenamePose(FSmartName OldPoseName, FSmartName NewPoseName);
-	bool DeletePose(FSmartName PoseName);
-	bool DeleteCurve(FSmartName CurveName);
-	void DeleteTrack(int32 TrackIndex);
-
 	FPoseData* FindPoseData(FSmartName PoseName);
 	FPoseData* FindOrAddPoseData(FSmartName PoseName);
 
@@ -107,9 +98,29 @@ private:
 
 	bool IsValid() const { return PoseNames.Num() == Poses.Num() && Tracks.Num() == TrackMap.Num(); }
 	void GetPoseCurve(const FPoseData* PoseData, FBlendedCurve& OutCurve) const;
-	void ConvertToFullPose(int32 InBasePoseIndex, const TArray<FTransform>& InBasePose, const TArray<float>& InBaseCurve);
-	void ConvertToAdditivePose(int32 InBasePoseIndex, const TArray<FTransform>& InBasePose, const TArray<float>& InBaseCurve);
 
+	// we have to delete tracks if skeleton has modified
+	// usually this may not be issue since once cooked, it should match
+	void DeleteTrack(int32 TrackIndex);
+	
+	// mark pose flag on any track that has delta transform, so that it's used in blending
+	void MarkPoseFlags(USkeleton* InSkeleton, FName& InRetargetSourceName);
+	FTransform GetDefaultTransform(int32 SkeletonIndex, USkeleton* InSkeleton, const FName& InRetargetSourceName) const;
+	FTransform GetDefaultTransform(const FName& InTrackName, USkeleton* InSkeleton, const FName& InRetargetSourceName) const;
+
+#if WITH_EDITOR
+	void AddOrUpdatePose(const FSmartName& InPoseName, const TArray<FTransform>& InlocalSpacePose, const TArray<float>& InCurveData);
+	void RenamePose(FSmartName OldPoseName, FSmartName NewPoseName);
+	bool DeletePose(FSmartName PoseName);
+	bool DeleteCurve(FSmartName CurveName);
+	bool InsertTrack(const FName& InTrackName, USkeleton* InSkeleton, FName& InRetargetSourceName);
+	
+	bool FillUpSkeletonPose(FPoseData* PoseData, USkeleton* InSkeleton);
+	void RetrieveSourcePoseFromExistingPose(bool bAdditive, int32 InBasePoseIndex, const TArray<FTransform>& InBasePose, const TArray<float>& InBaseCurve);
+
+	void ConvertToFullPose();
+	void ConvertToAdditivePose(int32 InBasePoseIndex, const TArray<FTransform>& InBasePose, const TArray<float>& InBaseCurve);
+#endif // WITH_EDITOR
 	friend class UPoseAsset;
 };
 
@@ -212,22 +223,23 @@ public:
 
 	// Remove poses or curves using the smart names supplied
 	ENGINE_API void RemoveSmartNames(const TArray<FName>& InNamesToRemove);
-#endif
+
+	// editor interface
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	// Return full (local space, non additive) pose. Will do conversion if PoseAsset is Additive. 
+	ENGINE_API bool GetFullPose(int32 PoseIndex, TArray<FTransform>& OutTransforms) const;
 
 	ENGINE_API int32 DeletePoses(TArray<FName> PoseNamesToDelete);
 	ENGINE_API int32 DeleteCurves(TArray<FName> CurveNamesToDelete);
 	ENGINE_API bool ConvertSpace(bool bNewAdditivePose, int32 NewBasePoseInde);
+	ENGINE_API const FName GetPoseNameByIndex(int32 InBasePoseIndex) const { return PoseContainer.PoseNames.IsValidIndex(InBasePoseIndex) ? PoseContainer.PoseNames[InBasePoseIndex].DisplayName : NAME_None; }
+#endif // WITH_EDITOR
 
 	ENGINE_API int32 GetBasePoseIndex() const { return BasePoseIndex;  }
 	ENGINE_API const int32 GetPoseIndexByName(const FName& InBasePoseName) const;
-	ENGINE_API const FName GetPoseNameByIndex(int32 InBasePoseIndex) const { return PoseContainer.PoseNames.IsValidIndex(InBasePoseIndex)? PoseContainer.PoseNames[InBasePoseIndex].DisplayName : NAME_None; }
-
 	ENGINE_API const int32 GetCurveIndexByName(const FName& InCurveName) const;
 
-	/** Return full (local space, non additive) pose. Will do conversion if PoseAsset is Additive. */
-	ENGINE_API bool GetFullPose(int32 PoseIndex, TArray<FTransform>& OutTransforms) const;
-
-
+#if WITH_EDITOR
 private: 
 	DECLARE_MULTICAST_DELEGATE(FOnPoseListChangedMulticaster)
 	FOnPoseListChangedMulticaster OnPoseListChanged;
@@ -246,22 +258,19 @@ public:
 		OnPoseListChanged.Remove(Handle);
 	}
 
-#if WITH_EDITOR
+
 protected:
 	virtual void RemapTracksToNewSkeleton(USkeleton* NewSkeleton, bool bConvertSpaces) override;
-#endif // WITH_EDITOR	
-
-private:
-
+private: 
 	// this will do multiple things, it will add tracks and make sure it fix up all poses with it
 	// use same as retarget source system we have for animation
 	void CombineTracks(const TArray<FName>& NewTracks);
 
 	bool ConvertToFullPose();
 	bool ConvertToAdditivePose(int32 NewBasePoseIndex);
-
 	bool GetBasePoseTransform(TArray<FTransform>& OutBasePose, TArray<float>& OutCurve) const;
-	void RecacheTrackmap();
-
 	void Reinitialize();
+#endif // WITH_EDITOR	
+
+	void RecacheTrackmap();
 };

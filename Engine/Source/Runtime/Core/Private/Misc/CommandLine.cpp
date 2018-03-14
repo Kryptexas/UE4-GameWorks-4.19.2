@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Misc/CommandLine.h"
 #include "Misc/MessageDialog.h"
@@ -85,6 +85,15 @@ void FCommandLine::Append(const TCHAR* AppendString)
 	WhitelistCommandLines();
 }
 
+bool FCommandLine::IsCommandLineLoggingFiltered()
+{
+#ifdef FILTER_COMMANDLINE_LOGGING
+	return true;
+#else
+	return false;
+#endif
+}
+
 #if WANTS_COMMANDLINE_WHITELIST
 TArray<FString> FCommandLine::ApprovedArgs;
 TArray<FString> FCommandLine::FilterArgsForLogging;
@@ -93,7 +102,7 @@ TArray<FString> FCommandLine::FilterArgsForLogging;
 /**
  * When overriding this setting make sure that your define looks like the following in your .cs file:
  *
- *		OutCPPEnvironmentConfiguration.Definitions.Add("OVERRIDE_COMMANDLINE_WHITELIST=\"-arg1 -arg2 -arg3 -arg4\"");
+ *		GlobalDefinitions.Add("OVERRIDE_COMMANDLINE_WHITELIST=\"-arg1 -arg2 -arg3 -arg4\"");
  *
  * The important part is the \" as they quotes get stripped off by the compiler without them
  */
@@ -107,7 +116,7 @@ const TCHAR* OverrideList = TEXT("-fullscreen /windowed");
 /**
  * When overriding this setting make sure that your define looks like the following in your .cs file:
  *
- *		OutCPPEnvironmentConfiguration.Definitions.Add("FILTER_COMMANDLINE_LOGGING=\"-arg1 -arg2 -arg3 -arg4\"");
+ *		GlobalDefinitions.Add("FILTER_COMMANDLINE_LOGGING=\"-arg1 -arg2 -arg3 -arg4\"");
  *
  * The important part is the \" as they quotes get stripped off by the compiler without them
  */
@@ -273,19 +282,8 @@ void FCommandLine::Parse(const TCHAR* InCmdLine, TArray<FString>& Tokens, TArray
 	FString NextToken;
 	while (FParse::Token(InCmdLine, NextToken, false))
 	{
-		if ((**NextToken == TCHAR('-')) 
-#if PLATFORM_WINDOWS	// deprecate, but temporarily continue support /-prefixed switches on Windows
-			|| (**NextToken == TCHAR('/'))
-#endif // PLATFORM_WINDOWS
-			)
+		if ((**NextToken == TCHAR('-')))
 		{
-#if PLATFORM_WINDOWS	// warn as a courtesy
-			if (**NextToken == TCHAR('/'))
-			{
-				UE_LOG(LogInit, Warning, TEXT("Passing commandline switches using / instead of - has been deprecated and will be removed in future versions of Unreal Engine."));
-			}
-#endif // PLATFORM_WINDOWS
-
 			new(Switches) FString(NextToken.Mid(1));
 			new(Tokens) FString(NextToken.Right(NextToken.Len() - 1));
 		}

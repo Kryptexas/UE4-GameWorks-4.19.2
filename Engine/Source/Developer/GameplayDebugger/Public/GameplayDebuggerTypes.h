@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -43,11 +43,46 @@ public:
 	void PrintAt(float PosX, float PosY, const FString& String);
 
 	// print formatted string on canvas
-	VARARG_DECL(void, void, {}, Printf, VARARG_NONE, const TCHAR*, VARARG_NONE, VARARG_NONE);
-	VARARG_DECL(void, void, {}, Printf, VARARG_NONE, const TCHAR*, VARARG_EXTRA(const FColor& Color), VARARG_EXTRA(Color));
-	VARARG_DECL(void, void, {}, PrintfAt, VARARG_NONE, const TCHAR*, VARARG_EXTRA(float PosX) VARARG_EXTRA(float PosY), VARARG_EXTRA(PosX) VARARG_EXTRA(PosY));
-	VARARG_DECL(void, void, {}, PrintfAt, VARARG_NONE, const TCHAR*, VARARG_EXTRA(float PosX) VARARG_EXTRA(float PosY) VARARG_EXTRA(const FColor& Color), VARARG_EXTRA(PosX) VARARG_EXTRA(PosY) VARARG_EXTRA(Color));
+	template <typename FmtType, typename... Types>
+	void Printf(const FmtType& Fmt, Types... Args)
+	{
+		static_assert(TIsArrayOrRefOfType<FmtType, TCHAR>::Value, "Formatting string must be a TCHAR array.");
+		static_assert(TAnd<TIsValidVariadicFunctionArg<Types>...>::Value, "Invalid argument(s) passed to FGameplayDebuggerCanvasContext::Printf");
 
+		PrintfImpl(Fmt, Args...);
+	}
+	template <typename FmtType, typename... Types>
+	void Printf(const FColor& Color, const FmtType& Fmt, Types... Args)
+	{
+		static_assert(TIsArrayOrRefOfType<FmtType, TCHAR>::Value, "Formatting string must be a TCHAR array.");
+		static_assert(TAnd<TIsValidVariadicFunctionArg<Types>...>::Value, "Invalid argument(s) passed to FGameplayDebuggerCanvasContext::Printf");
+
+		PrintfImpl(Color, Fmt, Args...);
+	}
+	template <typename FmtType, typename... Types>
+	void PrintfAt(float PosX, float PosY, const FmtType& Fmt, Types... Args)
+	{
+		static_assert(TIsArrayOrRefOfType<FmtType, TCHAR>::Value, "Formatting string must be a TCHAR array.");
+		static_assert(TAnd<TIsValidVariadicFunctionArg<Types>...>::Value, "Invalid argument(s) passed to FGameplayDebuggerCanvasContext::PrintfAt");
+
+		PrintfAtImpl(PosX, PosY, Fmt, Args...);
+	}
+	template <typename FmtType, typename... Types>
+	void PrintfAt(float PosX, float PosY, const FColor& Color, const FmtType& Fmt, Types... Args)
+	{
+		static_assert(TIsArrayOrRefOfType<FmtType, TCHAR>::Value, "Formatting string must be a TCHAR array.");
+		static_assert(TAnd<TIsValidVariadicFunctionArg<Types>...>::Value, "Invalid argument(s) passed to FGameplayDebuggerCanvasContext::PrintfAt");
+
+		PrintfAtImpl(PosX, PosY, Color, Fmt, Args...);
+	}
+
+private:
+	void VARARGS PrintfImpl(const TCHAR* Args, ...);
+	void VARARGS PrintfImpl(const FColor& Color, const TCHAR* Args, ...);
+	void VARARGS PrintfAtImpl(float PosX, float PosY, const TCHAR* Args, ...);
+	void VARARGS PrintfAtImpl(float PosX, float PosY, const FColor& Color, const TCHAR* Args, ...);
+
+public:
 	// moves cursor to new line
 	void MoveToNewLine();
 

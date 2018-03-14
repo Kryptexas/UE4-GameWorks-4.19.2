@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,7 +16,6 @@ class NIAGARAEDITOR_API UNiagaraStackFunctionInputCollection : public UNiagaraSt
 
 public:
 	DECLARE_MULTICAST_DELEGATE(FOnInputPinnedChanged);
-	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnFilterChildren, UNiagaraStackFunctionInput*);
 
 public:
 	struct FDisplayOptions
@@ -24,7 +23,7 @@ public:
 		FText DisplayName;
 		bool bShouldShowInStack;
 		int32 ChildItemIndentLevel;
-		FOnFilterChildren ChildFilter;
+		UNiagaraStackEntry::FOnFilterChild ChildFilter;
 	};
 
 public:
@@ -47,6 +46,11 @@ public:
 	virtual FName GetTextStyleName() const override;
 	virtual bool GetCanExpand() const override;
 	virtual bool GetShouldShowInStack() const override;
+	virtual int32 GetErrorCount() const override;
+	virtual bool GetErrorFixable(int32 ErrorIdx) const override;
+	virtual bool TryFixError(int32 ErrorIdx) override;
+	virtual FText GetErrorText(int32 ErrorIdx) const override;
+	virtual FText GetErrorSummaryText(int32 ErrorIdx) const override;
 
 	FOnInputPinnedChanged& OnInputPinnedChanged();
 
@@ -57,6 +61,16 @@ private:
 	void ChildPinnedChanged();
 
 private:
+	DECLARE_DELEGATE(FFixError);
+	struct FError
+	{
+		FText ErrorText;
+		FText ErrorSummaryText;
+		FFixError Fix;
+	};
+
+	TArray<FError> Errors;
+
 	UNiagaraStackEditorData* StackEditorData;
 	UNiagaraNodeFunctionCall* ModuleNode;
 	UNiagaraNodeFunctionCall* InputFunctionCallNode;

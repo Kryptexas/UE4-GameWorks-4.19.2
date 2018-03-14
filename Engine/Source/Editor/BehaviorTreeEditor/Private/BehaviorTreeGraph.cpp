@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #include "BehaviorTreeGraph.h"
 #include "EdGraph/EdGraphPin.h"
 #include "SGraphNode.h"
@@ -33,8 +33,9 @@ namespace BTGraphVersion
 	const int32 Initial = 0;
 	const int32 UnifiedSubNodes = 1;
 	const int32 InnerGraphWhitespace = 2;
+	const int32 RunBehaviorInSeparateGraph = 3;
 
-	const int32 Latest = InnerGraphWhitespace;
+	const int32 Latest = RunBehaviorInSeparateGraph;
 }
 
 UBehaviorTreeGraph::UBehaviorTreeGraph(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -59,6 +60,7 @@ void UBehaviorTreeGraph::UpdateBlackboardChange()
 			UBTNode* MyNodeInstance = Cast<UBTNode>(MyNode->NodeInstance);
 			if (MyNodeInstance)
 			{
+				UBehaviorTreeTypes::SetBTLoggingContext(MyNodeInstance);
 				MyNodeInstance->InitializeFromAsset(*BTAsset);
 			}
 
@@ -67,6 +69,7 @@ void UBehaviorTreeGraph::UpdateBlackboardChange()
 				UBTNode* DecoratorNodeInstance = MyNode->Decorators[iDecorator] ? Cast<UBTNode>(MyNode->Decorators[iDecorator]->NodeInstance) : NULL;
 				if (DecoratorNodeInstance)
 				{
+					UBehaviorTreeTypes::SetBTLoggingContext(DecoratorNodeInstance);
 					DecoratorNodeInstance->InitializeFromAsset(*BTAsset);
 				}
 
@@ -82,9 +85,12 @@ void UBehaviorTreeGraph::UpdateBlackboardChange()
 				UBTNode* ServiceNodeInstance = MyNode->Services[iService] ? Cast<UBTNode>(MyNode->Services[iService]->NodeInstance) : NULL;
 				if (ServiceNodeInstance)
 				{
+					UBehaviorTreeTypes::SetBTLoggingContext(ServiceNodeInstance);
 					ServiceNodeInstance->InitializeFromAsset(*BTAsset);
 				}
 			}
+
+			UBehaviorTreeTypes::SetBTLoggingContext(nullptr);
 		}
 	}
 }
@@ -172,6 +178,8 @@ void UBehaviorTreeGraph::UpdateAsset(int32 UpdateFlags)
 			}
 		}
 	}
+
+	UpdateBlackboardChange();
 }
 
 void UBehaviorTreeGraph::OnCreated()
@@ -184,14 +192,12 @@ void UBehaviorTreeGraph::OnLoaded()
 {
 	Super::OnLoaded();
 	UpdatePinConnectionTypes();
-	UpdateDeprecatedNodes();
 	RemoveUnknownSubNodes();
 }
 
 void UBehaviorTreeGraph::Initialize()
 {
 	Super::Initialize();
-	UpdateBlackboardChange();
 	UpdateInjectedNodes();
 }
 
@@ -212,7 +218,7 @@ void UBehaviorTreeGraph::UpdatePinConnectionTypes()
 
 		for (int32 iPin = 0; iPin < Node->Pins.Num(); iPin++)
 		{
-			FString& PinCategory = Node->Pins[iPin]->PinType.PinCategory;
+			FName& PinCategory = Node->Pins[iPin]->PinType.PinCategory;
 			if (PinCategory == TEXT("Transition"))
 			{
 				PinCategory = bIsCompositeNode ? 
@@ -251,7 +257,7 @@ void UBehaviorTreeGraph::ReplaceNodeConnections(UEdGraphNode* OldNode, UEdGraphN
 	}
 }
 
-void UBehaviorTreeGraph::UpdateDeprecatedNodes()
+void UBehaviorTreeGraph::UpdateVersion_RunBehaviorInSeparateGraph()
 {
 	for (int32 Index = 0; Index < Nodes.Num(); ++Index)
 	{
@@ -1316,6 +1322,11 @@ void UBehaviorTreeGraph::UpdateVersion()
 	if (GraphVersion < BTGraphVersion::InnerGraphWhitespace)
 	{
 		UpdateVersion_InnerGraphWhitespace();
+	}
+
+	if (GraphVersion < BTGraphVersion::RunBehaviorInSeparateGraph)
+	{
+		UpdateVersion_RunBehaviorInSeparateGraph();
 	}
 
 	GraphVersion = BTGraphVersion::Latest;

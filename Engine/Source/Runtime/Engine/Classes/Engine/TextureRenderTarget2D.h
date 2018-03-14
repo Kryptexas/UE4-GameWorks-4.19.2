@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -94,11 +94,19 @@ class UTextureRenderTarget2D : public UTextureRenderTarget
 
 	/** True to force linear gamma space for this render target */
 	UPROPERTY()
-	uint32 bForceLinearGamma:1;
+	uint8 bForceLinearGamma:1;
 
 	/** Whether to support storing HDR values, which requires more memory. */
 	UPROPERTY()
-	uint32 bHDR_DEPRECATED:1;
+	uint8 bHDR_DEPRECATED:1;
+
+	/** Whether to support GPU sharing of the underlying native texture resource. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = TextureRenderTarget2D, meta=(DisplayName = "Shared"), AssetRegistrySearchable, AdvancedDisplay)
+	uint8 bGPUSharedFlag : 1;
+
+	/** Whether to support Mip maps for this render target texture */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=TextureRenderTarget2D, AssetRegistrySearchable)
+	uint8 bAutoGenerateMips:1;
 
 	/** 
 	 * Format of the texture render target. 
@@ -108,14 +116,6 @@ class UTextureRenderTarget2D : public UTextureRenderTarget
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=TextureRenderTarget2D, AssetRegistrySearchable)
 	TEnumAsByte<enum ETextureRenderTargetFormat> RenderTargetFormat;
-
-	/** Whether to support GPU sharing of the underlying native texture resource. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = TextureRenderTarget2D, meta=(DisplayName = "Shared"), AssetRegistrySearchable, AdvancedDisplay)
-	uint32 bGPUSharedFlag : 1;
-
-	/** Whether to support Mip maps for this render target texture */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=TextureRenderTarget2D, AssetRegistrySearchable)
-	uint32 bAutoGenerateMips:1;
 
 	/** Normally the format is derived from RenderTargetFormat, this allows code to set the format explicitly. */
 	UPROPERTY()

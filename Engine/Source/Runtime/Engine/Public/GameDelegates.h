@@ -1,8 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
 #include "CoreMinimal.h"
+
+struct FUniqueNetIdRepl;
 
 /**
  * Collection of delegates for various components to call into game code
@@ -38,6 +40,8 @@ DECLARE_DELEGATE_FiveParams(FWebServerActionDelegate, int32 /*UserIndex*/, const
 /** Delegate called before a map change at runtime */
 DECLARE_MULTICAST_DELEGATE_TwoParams(FPreCommitMapChangeDelegate, const FString& /*PreviousMapName*/, const FString& /*NextMapName*/);
 
+/** Delegate called when a connection is lost, but there is no owning actor to handle it */
+DECLARE_MULTICAST_DELEGATE_OneParam(FPendingConnectionLostDelegate, const FUniqueNetIdRepl& /*ConnectionUniqueId*/);
 /** Delegate to handle when a connection is disconnecting */
 DECLARE_MULTICAST_DELEGATE_TwoParams(FHandleDisconnectDelegate, class UWorld* /*InWorld*/, class UNetDriver* /*NetDriver*/);
 
@@ -68,7 +72,7 @@ public:
 	DEFINE_GAME_DELEGATE_TYPED(MatineeCancelledDelegate, FSimpleMulticastDelegate);
 
 	// Called when a pending connection has been lost 
-	DEFINE_GAME_DELEGATE_TYPED(PendingConnectionLostDelegate, FSimpleMulticastDelegate);
+	DEFINE_GAME_DELEGATE_TYPED(PendingConnectionLostDelegate, FPendingConnectionLostDelegate);
 
 	// Called when pre/post committing a map change at runtime
 	DEFINE_GAME_DELEGATE(PreCommitMapChangeDelegate);

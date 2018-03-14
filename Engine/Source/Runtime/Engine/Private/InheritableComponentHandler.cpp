@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/InheritableComponentHandler.h"
 #include "Components/ActorComponent.h"
@@ -27,14 +27,17 @@ void UInheritableComponentHandler::Serialize(FArchive& Ar)
 void UInheritableComponentHandler::PostLoad()
 {
 	Super::PostLoad();
-
+	
+#if WITH_EDITOR
 	if (!GIsDuplicatingClassForReinstancing)
+#endif
 	{
 		for (int32 Index = Records.Num() - 1; Index >= 0; --Index)
 		{
 			FComponentOverrideRecord& Record = Records[Index];
 			if (Record.ComponentTemplate)
 			{
+#if WITH_EDITOR
 				if (GetLinkerCustomVersion(FBlueprintsObjectVersion::GUID) < FBlueprintsObjectVersion::SCSHasComponentTemplateClass)
 				{
 					// Fix up component class on load, if it's not already set.
@@ -42,27 +45,28 @@ void UInheritableComponentHandler::PostLoad()
 					{
 						Record.ComponentClass = Record.ComponentTemplate->GetClass();
 					}
-
-					// Fix up component template name on load, if it doesn't match the original template name. Otherwise, archetype lookups will fail for this template.
-					// For example, this can occur after a component variable rename in a parent BP class, but before a child BP class with an override template is loaded.
-					if (UActorComponent* OriginalTemplate = Record.ComponentKey.GetOriginalTemplate())
+				}
+				
+				// Fix up component template name on load, if it doesn't match the original template name. Otherwise, archetype lookups will fail for this template.
+				// For example, this can occur after a component variable rename in a parent BP class, but before a child BP class with an override template is loaded.
+				if (UActorComponent* OriginalTemplate = Record.ComponentKey.GetOriginalTemplate())
+				{
+					FString ExpectedTemplateName = OriginalTemplate->GetName();
+					if (USCS_Node* SCSNode = Record.ComponentKey.FindSCSNode())
 					{
-						FString ExpectedTemplateName = OriginalTemplate->GetName();
-						if (USCS_Node* SCSNode = Record.ComponentKey.FindSCSNode())
+						// We append a prefix onto SCS default scene root node overrides. This is done to ensure that the override template does not collide with our owner's own SCS default scene root node template.
+						if (SCSNode == SCSNode->GetSCS()->GetDefaultSceneRootNode())
 						{
-							// We append a prefix onto SCS default scene root node overrides. This is done to ensure that the override template does not collide with our owner's own SCS default scene root node template.
-							if (SCSNode == SCSNode->GetSCS()->GetDefaultSceneRootNode())
-							{
-								ExpectedTemplateName = SCSDefaultSceneRootOverrideNamePrefix + ExpectedTemplateName;
-							}
-						}
-
-						if (ExpectedTemplateName != Record.ComponentTemplate->GetName())
-						{
-							FixComponentTemplateName(Record.ComponentTemplate, ExpectedTemplateName);
+							ExpectedTemplateName = SCSDefaultSceneRootOverrideNamePrefix + ExpectedTemplateName;
 						}
 					}
+
+					if (ExpectedTemplateName != Record.ComponentTemplate->GetName())
+					{
+						FixComponentTemplateName(Record.ComponentTemplate, ExpectedTemplateName);
+					}
 				}
+#endif
 
 				if (!CastChecked<UActorComponent>(Record.ComponentTemplate->GetArchetype())->IsEditableWhenInherited())
 				{
@@ -78,16 +82,6 @@ void UInheritableComponentHandler::PostLoad()
 		}
 	}
 }
-
-void UInheritableComponentHandler::GetPreloadDependencies(TArray<UObject*>& OutDeps)
-{
-	Super::GetPreloadDependencies(OutDeps);
-	for (auto Record : Records)
-	{
-		OutDeps.Add(Record.ComponentTemplate);
-	}
-}
-
 
 #if WITH_EDITOR
 UActorComponent* UInheritableComponentHandler::CreateOverridenComponentTemplate(FComponentKey Key)

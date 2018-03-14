@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -143,7 +143,7 @@ class SCRIPTPLUGIN_API UScriptBlueprintGeneratedClass : public UBlueprintGenerat
 	* @param InName Name of the native function
 	* @param InPointer Pointer to the native member function
 	*/
-	void AddUniqueNativeFunction(const FName& InName, Native InPointer);
+	void AddUniqueNativeFunction(const FName& InName, FNativeFuncPtr InPointer);
 
 	/**
 	* Removes native function mapping

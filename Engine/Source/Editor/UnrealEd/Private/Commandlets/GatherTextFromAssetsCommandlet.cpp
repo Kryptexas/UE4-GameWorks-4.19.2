@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Commandlets/GatherTextFromAssetsCommandlet.h"
 #include "UObject/Class.h"
@@ -86,12 +86,12 @@ public:
 		{
 			static const FString LogIndentation = TEXT("    ");
 
-			UE_LOG(LogGatherTextFromAssetsCommandlet, Log, TEXT("Package '%s' produced %d error(s) and %d warning(s) while loading. Please verify that your text has gathered correctly."), *PackageContext, ErrorCount, WarningCount);
+			UE_LOG(LogGatherTextFromAssetsCommandlet, Display, TEXT("Package '%s' produced %d error(s) and %d warning(s) while loading. Please verify that your text has gathered correctly."), *PackageContext, ErrorCount, WarningCount);
 
-			GWarn->Log(NAME_None, ELogVerbosity::Log, FString::Printf(TEXT("The following errors and warnings were reported while loading '%s':"), *PackageContext));
+			GWarn->Log(NAME_None, ELogVerbosity::Display, FString::Printf(TEXT("The following errors and warnings were reported while loading '%s':"), *PackageContext));
 			for (const auto& FormattedOutput : FormattedErrorsAndWarningsList)
 			{
-				GWarn->Log(NAME_None, ELogVerbosity::Log, LogIndentation + FormattedOutput);
+				GWarn->Log(NAME_None, ELogVerbosity::Display, LogIndentation + FormattedOutput);
 			}
 		}
 	}
@@ -122,6 +122,57 @@ private:
 
 	FString PackageContext;
 	FFeedbackContext* OriginalWarningContext;
+};
+
+class FAssetGatherCacheMetrics
+{
+public:
+	enum class EUncachedAssetReason : uint8
+	{
+		TooOld = 0,
+		NoCache,
+		Num,
+	};
+
+	FAssetGatherCacheMetrics()
+		: CachedAssetCount(0)
+		, UncachedAssetCount(0)
+	{
+		FMemory::Memzero(UncachedAssetBreakdown);
+	}
+
+	void CountCachedAsset()
+	{
+		++CachedAssetCount;
+	}
+
+	void CountUncachedAsset(const EUncachedAssetReason InReason)
+	{
+		check(InReason != EUncachedAssetReason::Num);
+		++UncachedAssetCount;
+		++UncachedAssetBreakdown[(int32)InReason];
+	}
+
+	void LogMetrics() const
+	{
+		UE_LOG(LogGatherTextFromAssetsCommandlet, Display, TEXT("%s"), *ToString());
+	}
+
+	FString ToString() const
+	{
+		return FString::Printf(
+			TEXT("Asset gather cache metrics: %d cached, %d uncached (%d too old, %d no cache or contained bytecode)"), 
+			CachedAssetCount, 
+			UncachedAssetCount, 
+			UncachedAssetBreakdown[(int32)EUncachedAssetReason::TooOld], 
+			UncachedAssetBreakdown[(int32)EUncachedAssetReason::NoCache]
+			);
+	}
+
+private:
+	int32 CachedAssetCount;
+	int32 UncachedAssetCount;
+	int32 UncachedAssetBreakdown[(int32)EUncachedAssetReason::Num];
 };
 
 #define LOC_DEFINE_REGION
@@ -385,6 +436,9 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 	}
 	AssetDataArray.Empty();
 
+	FAssetGatherCacheMetrics AssetGatherCacheMetrics;
+	TMap<FString, FName> AssignedPackageLocalizationIds;
+
 	// Process all packages that do not need to be loaded. Remove processed packages from the list.
 	FilePathsOfPackagesToProcess.RemoveAll([&](const FString& PackageFilePath) -> bool
 	{
@@ -398,7 +452,24 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 		FPackageFileSummary PackageFileSummary;
 		*FileReader << PackageFileSummary;
 
-		bool MustLoadForGather = false;
+		// Track the package localization ID of this package (if known) and detect duplicates
+		if (!PackageFileSummary.LocalizationId.IsEmpty())
+		{
+			FString LongPackageName;
+			if (FPackageName::TryConvertFilenameToLongPackageName(PackageFilePath, LongPackageName))
+			{
+				if (const FName* ExistingLongPackageName = AssignedPackageLocalizationIds.Find(PackageFileSummary.LocalizationId))
+				{
+					UE_LOG(LogGatherTextFromAssetsCommandlet, Warning, TEXT("Package '%s' and '%s' have the same localization ID (%s). Please reset one of these (Asset Localization -> Reset Localization ID) to avoid conflicts."), *LongPackageName, *ExistingLongPackageName->ToString(), *PackageFileSummary.LocalizationId);
+				}
+				else
+				{
+					AssignedPackageLocalizationIds.Add(PackageFileSummary.LocalizationId, *LongPackageName);
+				}
+			}
+		}
+
+		FAssetGatherCacheMetrics::EUncachedAssetReason UncachedAssetReason = FAssetGatherCacheMetrics::EUncachedAssetReason::Num;
 
 		// Have we been asked to skip the cache of text that exists in the header of newer packages?
 		if (bSkipGatherCache && PackageFileSummary.GetFileVersionUE4() >= VER_UE4_SERIALIZE_TEXT_IN_PACKAGES)
@@ -406,7 +477,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 			// Fallback on the old package flag check.
 			if (PackageFileSummary.PackageFlags & PKG_RequiresLocalizationGather)
 			{
-				MustLoadForGather = true;
+				UncachedAssetReason = FAssetGatherCacheMetrics::EUncachedAssetReason::NoCache;
 			}
 		}
 
@@ -415,7 +486,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 		// Packages not resaved since localization gathering flagging was added to packages must be loaded.
 		if (PackageFileSummary.GetFileVersionUE4() < VER_UE4_PACKAGE_REQUIRES_LOCALIZATION_GATHER_FLAGGING)
 		{
-			MustLoadForGather = true;
+			UncachedAssetReason = FAssetGatherCacheMetrics::EUncachedAssetReason::TooOld;
 		}
 		// Package not resaved since gatherable text data was added to package headers must be loaded, since their package header won't contain pregathered text data.
 		else if (PackageFileSummary.GetFileVersionUE4() < VER_UE4_SERIALIZE_TEXT_IN_PACKAGES || (!EditorVersion || EditorVersion->Version < FEditorObjectVersion::GatheredTextEditorOnlyPackageLocId))
@@ -423,7 +494,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 			// Fallback on the old package flag check.
 			if (PackageFileSummary.PackageFlags & PKG_RequiresLocalizationGather)
 			{
-				MustLoadForGather = true;
+				UncachedAssetReason = FAssetGatherCacheMetrics::EUncachedAssetReason::TooOld;
 			}
 		}
 		else if (PackageFileSummary.GetFileVersionUE4() < VER_UE4_DIALOGUE_WAVE_NAMESPACE_AND_CONTEXT_CHANGES)
@@ -435,7 +506,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 			{
 				if (AssetData.AssetClass == UDialogueWave::StaticClass()->GetFName())
 				{
-					MustLoadForGather = true;
+					UncachedAssetReason = FAssetGatherCacheMetrics::EUncachedAssetReason::TooOld;
 				}
 			}
 		}
@@ -443,17 +514,20 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 		// If this package doesn't have any cached data, then we have to load it for gather
 		if (PackageFileSummary.GetFileVersionUE4() >= VER_UE4_SERIALIZE_TEXT_IN_PACKAGES && PackageFileSummary.GatherableTextDataOffset == 0 && (PackageFileSummary.PackageFlags & PKG_RequiresLocalizationGather))
 		{
-			MustLoadForGather = true;
+			UncachedAssetReason = FAssetGatherCacheMetrics::EUncachedAssetReason::NoCache;
 		}
 
-		if (MustLoadForGather)
+		if (UncachedAssetReason != FAssetGatherCacheMetrics::EUncachedAssetReason::Num)
 		{
+			AssetGatherCacheMetrics.CountUncachedAsset(UncachedAssetReason);
 			return false;
 		}
 
 		// Process packages that don't require loading to process.
 		if (PackageFileSummary.GatherableTextDataOffset > 0)
 		{
+			AssetGatherCacheMetrics.CountCachedAsset();
+
 			FileReader->Seek(PackageFileSummary.GatherableTextDataOffset);
 
 			TArray<FGatherableTextData> GatherableTextDataArray;
@@ -470,6 +544,8 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 		return true;
 	});
 
+	AssetGatherCacheMetrics.LogMetrics();
+
 	// Collect garbage before beginning to load packages for processing.
 	CollectGarbage(RF_NoFlags);
 
@@ -478,7 +554,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 	const int32 BatchCount = PackageCount / PackagesPerBatchCount + (PackageCount % PackagesPerBatchCount > 0 ? 1 : 0); // Add an extra batch for any remainder if necessary.
 	if (PackageCount > 0)
 	{
-		UE_LOG(LogGatherTextFromAssetsCommandlet, Log, TEXT("Loading %i packages in %i batches of %i."), PackageCount, BatchCount, PackagesPerBatchCount);
+		UE_LOG(LogGatherTextFromAssetsCommandlet, Display, TEXT("Loading %i packages in %i batches of %i."), PackageCount, BatchCount, PackagesPerBatchCount);
 	}
 	FLoadPackageLogOutputRedirector LogOutputRedirector;
 
@@ -531,7 +607,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 			++PackagesInThisBatch;
 		}
 
-		UE_LOG(LogGatherTextFromAssetsCommandlet, Log, TEXT("Loaded %i packages in batch %i of %i. %i failed."), PackagesInThisBatch, BatchIndex + 1, BatchCount, FailuresInThisBatch);
+		UE_LOG(LogGatherTextFromAssetsCommandlet, Display, TEXT("Loaded %i packages in batch %i of %i. %i failed."), PackagesInThisBatch, BatchIndex + 1, BatchCount, FailuresInThisBatch);
 
 		ProcessPackages(LoadedPackagesToProcess);
 		LoadedPackagesToProcess.Empty(PackagesPerBatchCount);
@@ -550,12 +626,12 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 					{
 						if (SavePackageHelper(Package, *PackageName))
 						{
-							UE_LOG(LogGatherTextFromAssetsCommandlet, Log, TEXT("Saved Package %s."), *PackageName);
+							UE_LOG(LogGatherTextFromAssetsCommandlet, Display, TEXT("Saved Package %s."), *PackageName);
 						}
 						else
 						{
 							//TODO - Work out how to integrate with source control. The code from the source gatherer doesn't work.
-							UE_LOG(LogGatherTextFromAssetsCommandlet, Log, TEXT("Could not save package %s. Probably due to source control. "), *PackageName);
+							UE_LOG(LogGatherTextFromAssetsCommandlet, Display, TEXT("Could not save package %s. Probably due to source control. "), *PackageName);
 						}
 					}
 				}
@@ -707,7 +783,7 @@ bool UGatherTextFromAssetsCommandlet::ConfigureFromScript(const FString& GatherT
 	{
 		GetBoolFromConfig(*SectionName, TEXT("SkipGatherCache"), bSkipGatherCache, GatherTextConfigPath);
 	}
-	UE_LOG(LogGatherTextFromAssetsCommandlet, Log, TEXT("SkipGatherCache: %s"), bSkipGatherCache ? TEXT("true") : TEXT("false"));
+	UE_LOG(LogGatherTextFromAssetsCommandlet, Display, TEXT("SkipGatherCache: %s"), bSkipGatherCache ? TEXT("true") : TEXT("false"));
 
 	return !HasFatalError;
 }

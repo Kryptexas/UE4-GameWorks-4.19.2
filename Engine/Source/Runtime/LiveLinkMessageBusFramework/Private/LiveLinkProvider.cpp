@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LiveLinkProvider.h"
 #include "IMessageContext.h"
@@ -21,11 +21,12 @@ struct FTrackedSubject
 	// Curve data
 	TArray<FLiveLinkCurveElement> Curves;
 
+	// MetaData for subject
+	FLiveLinkMetaData MetaData;
+
 	// Incrementing time (application time) for interpolation purposes
 	double Time;
 
-	// Frame number of current data
-	int32 FrameNum;
 };
 
 // Address that we have had a connection request from
@@ -40,12 +41,28 @@ struct FTrackedAddress
 	double			LastHeartbeatTime;
 };
 
-struct FLiveLinkProvider : public ILiveLinkProvider
+// Validate the supplied connection as still active
+struct FConnectionValidator
 {
+	FConnectionValidator()
+		: CutOffTime(FPlatformTime::Seconds() - CONNECTION_TIMEOUT)
+	{}
+
+	bool operator()(const FTrackedAddress& Connection) const { return Connection.LastHeartbeatTime >= CutOffTime; }
+
 private:
 	// How long we give connections before we decide they are dead
 	static const double CONNECTION_TIMEOUT;
 
+	// Oldest time that we still deem as active
+	const double CutOffTime;
+};
+
+const double FConnectionValidator::CONNECTION_TIMEOUT = 10.f;
+
+struct FLiveLinkProvider : public ILiveLinkProvider
+{
+private:
 	const FString ProviderName;
 	
 	const FString MachineName;
@@ -57,6 +74,9 @@ private:
 
 	// Cache of our current subject state
 	TMap<FName, FTrackedSubject> Subjects;
+
+	// Delegate to notify interested parties when the client sources have changed
+	FLiveLinkProviderConnectionStatusChanged OnConnectionStatusChanged;
 	
 	//Message bus message handlers
 	void HandlePingMessage(const FLiveLinkPingMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
@@ -67,9 +87,14 @@ private:
 	// Validate our current connections
 	void ValidateConnections()
 	{
-		double CutOffTime = FPlatformTime::Seconds() - CONNECTION_TIMEOUT;
+		FConnectionValidator Validator;
 
-		ConnectedAddresses.RemoveAll([=](const FTrackedAddress& Address) { return Address.LastHeartbeatTime < CutOffTime; });
+		const int32 RemovedConnections = ConnectedAddresses.RemoveAll([=](const FTrackedAddress& Address) { return !Validator(Address); });
+
+		if (RemovedConnections > 0)
+		{
+			OnConnectionStatusChanged.Broadcast();
+		}
 	}
 
 	// Get the cached data for the named subject
@@ -107,8 +132,8 @@ private:
 		SubjectFrame->Transforms = Subject.Transforms;
 		SubjectFrame->SubjectName = SubjectName;
 		SubjectFrame->Curves = Subject.Curves;
+		SubjectFrame->MetaData = Subject.MetaData;
 		SubjectFrame->Time = Subject.Time;
-		SubjectFrame->FrameNum = Subject.FrameNum;
 
 		MessageEndpoint->Send(SubjectFrame, Address);
 	}
@@ -174,6 +199,14 @@ public:
 		}
 	}
 
+	virtual ~FLiveLinkProvider()
+	{
+		if (MessageEndpoint.IsValid())
+		{
+			FMessageEndpoint::SafeRelease(MessageEndpoint);
+		}
+	}
+
 	virtual void UpdateSubject(const FName& SubjectName, const TArray<FName>& BoneNames, const TArray<int32>& BoneParents)
 	{
 		FTrackedSubject& Subject = GetTrackedSubject(SubjectName);
@@ -190,25 +223,54 @@ public:
 		SendClearSubjectToConnections(SubjectName);
 	}
 
-	virtual void UpdateSubjectFrame(const FName& SubjectName, const TArray<FTransform>& BoneTransforms, const TArray<FLiveLinkCurveElement>& CurveData, double Time, int32 FrameNum)
+	virtual void UpdateSubjectFrame(const FName& SubjectName, const TArray<FTransform>& BoneTransforms, const TArray<FLiveLinkCurveElement>& CurveData, double Time)
 	{
 		FTrackedSubject& Subject = GetTrackedSubject(SubjectName);
 
 		Subject.Transforms = BoneTransforms;
 		Subject.Curves = CurveData;
 		Subject.Time = Time;
-		Subject.FrameNum = FrameNum;
 
 		SendSubjectFrameToConnections(SubjectName);
 	}
 
-	virtual ~FLiveLinkProvider()
+	virtual void UpdateSubjectFrame(const FName& SubjectName, const TArray<FTransform>& BoneTransforms, const TArray<FLiveLinkCurveElement>& CurveData,
+		const FLiveLinkMetaData& MetaData, double Time) override
 	{
-		FPlatformMisc::LowLevelOutputDebugString(TEXT("Destroyed"));
+		FTrackedSubject& Subject = GetTrackedSubject(SubjectName);
+
+		Subject.Transforms = BoneTransforms;
+		Subject.Curves = CurveData;
+		Subject.MetaData = MetaData;
+		Subject.Time = Time;
+
+		SendSubjectFrameToConnections(SubjectName);
+	}
+
+	virtual bool HasConnection() const
+	{
+		FConnectionValidator Validator;
+
+		for (const FTrackedAddress& Connection : ConnectedAddresses)
+		{
+			if (Validator(Connection))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	virtual FDelegateHandle RegisterConnStatusChangedHandle(const FLiveLinkProviderConnectionStatusChanged::FDelegate& ConnStatusChanged)
+	{
+		return OnConnectionStatusChanged.Add(ConnStatusChanged);
+	}
+
+	virtual void UnregisterConnStatusChangedHandle(FDelegateHandle Handle)
+	{
+		OnConnectionStatusChanged.Remove(Handle);
 	}
 };
-
-const double FLiveLinkProvider::CONNECTION_TIMEOUT = 10.f;
 
 void FLiveLinkProvider::HandlePingMessage(const FLiveLinkPingMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
@@ -228,6 +290,7 @@ void FLiveLinkProvider::HandleConnectMessage(const FLiveLinkConnectMessage& Mess
 			FPlatformProcess::Sleep(0.1); //HACK: Try to help these go in order, editor needs extra buffering support to make sure this isn't needed in future.
 			SendSubjectFrameToAddress(Subject.Key, Subject.Value, ConnectionAddress);
 		}
+		OnConnectionStatusChanged.Broadcast();
 	}
 }
 

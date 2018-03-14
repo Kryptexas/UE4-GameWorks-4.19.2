@@ -9,62 +9,7 @@ Related: Engine/Physics/Constraints/ConstraintsUserGuide
 Related: Engine/Physics/Collision
 Related: Engine/Physics/PhysicalMaterials/Reference
 Version: 4.9
-
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Physics Home](Resources/ContentExamples/Physics)
-	[/PARAM]
-	[PARAM:next]
-		[Next Example](Resources/ContentExamples/Physics/1_2 "%Resources/ContentExamples/Physics/1_2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources\ContentExamples\Physics\1_1:title%](physics_1_1_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources\ContentExamples\Physics\1_1:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources\ContentExamples\Physics\1_1:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources\ContentExamples\Physics\1_1]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources\ContentExamples\Physics\1_1:title%](physics_1_1_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources\ContentExamples\Physics\1_1:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources\ContentExamples\Physics\1_1:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources\ContentExamples\Physics\1_2]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:physics_1_1_topic.png
 
 
 [REGION:fullwidth]

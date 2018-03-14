@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -64,7 +64,9 @@ class AIMODULE_API AEQSTestingPawn : public ACharacter, public IEQSQueryResultSo
 
 	UPROPERTY(Category=EQS, EditAnywhere)
 	TEnumAsByte<EEnvQueryRunMode::Type> QueryingMode;
-	
+
+	UPROPERTY(Category = EQS, EditAnywhere)
+	FNavAgentProperties NavAgentProperties;
 
 #if WITH_EDITORONLY_DATA
 private:
@@ -96,6 +98,10 @@ public:
 	virtual bool GetShouldDrawFailedItems() const override{ return bDrawFailedItems; }
 	virtual float GetHighlightRangePct() const override;
 	// IEQSQueryResultSourceInterface end
+
+	// INavAgentInterface begin
+	virtual const FNavAgentProperties& GetNavAgentPropertiesRef() const override;
+	// INavAgentInterface end
 
 	void RunEQSQuery();
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -298,6 +298,53 @@ struct ENGINE_API FCompressedOffsetData
 	}
 };
 
+#if WITH_EDITOR
+// Cache debugging data in editor for UE-49335
+struct FAnimLoadingDebugData
+{
+public:
+	//Single debug entry
+	struct Entry
+	{
+		FString Tag;
+		int32 RawDataCount;
+		int32 SourceDataCount;
+
+		Entry(const TCHAR* InTag, int32 InRawDataCount, int32 InSourceDataCount)
+			: Tag(InTag)
+			, RawDataCount(InRawDataCount)
+			, SourceDataCount(InSourceDataCount)
+		{}
+	};
+
+	template <typename... ArgsType>
+	void AddEntry(ArgsType&&... Args)
+	{
+		Entries.Emplace(Args...);
+	}
+
+	// Build a string of all the debug entries for output
+	FString GetEntries() const
+	{
+		FString Ret;
+		for (const Entry& E : Entries)
+		{
+			TArray<FStringFormatArg> Args;
+			Args.Add(LexicalConversion::ToString(E.Tag));
+			Args.Add(LexicalConversion::ToString(E.RawDataCount));
+			Args.Add(LexicalConversion::ToString(E.SourceDataCount));
+			Ret += FString::Format(TEXT("\t{0}: Raw:{1} Source:{2}\n"), Args);
+		}
+		return Ret;
+	}
+
+private:
+
+	TArray<Entry> Entries;
+};
+
+#endif
+
 FArchive& operator<<(FArchive& Ar, FCompressedOffsetData& D);
 
 UCLASS(config=Engine, hidecategories=(UObject, Length), BlueprintType)
@@ -339,7 +386,7 @@ protected:
 	/**
 	 * This is name of RawAnimationData tracks for editoronly - if we lose skeleton, we'll need relink them
 	 */
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, Category="Animation")
 	TArray<FName> AnimationTrackNames;
 
 	/**
@@ -359,7 +406,6 @@ public:
 #if WITH_EDITORONLY_DATA
 	/**
 	 * The compression scheme that was most recently used to compress this animation.
-	 * May be NULL.
 	 */
 	UPROPERTY(Category=Compression, VisibleAnywhere)
 	class UAnimCompress* CompressionScheme;
@@ -528,7 +574,6 @@ public:
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 #endif // WITH_EDITOR
 	virtual void BeginDestroy() override;
-	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	//~ End UObject Interface
 
@@ -792,6 +837,11 @@ public:
 	 */
 	bool AddLoopingInterpolation();
 
+	/*
+	* Clear all raw animation data that contains bone tracks
+	*/
+	void RemoveAllTracks();
+
 	/** 
 	 * Bake Transform Curves.TransformCurves to RawAnimation after making a back up of current RawAnimation
 	 */
@@ -958,6 +1008,7 @@ private:
 	 * Utility function that helps to remove track, you can't just remove RawAnimationData
 	 */
 	void RemoveTrack(int32 TrackIndex);
+
 	/**
 	 * Utility function that finds the correct spot to insert track to 
 	 */
@@ -980,13 +1031,35 @@ private:
 	void UpdateSHAWithCurves(FSHA1& Sha, const FRawCurveTracks& RawCurveData) const;
 	// Should we be always using our raw data (i.e is our compressed data stale)
 	bool bUseRawDataOnly;
+
+	// Populate InOutPose based on raw animation data. 
+	void BuildPoseFromRawData(const TArray<FRawAnimSequenceTrack>& InAnimationData, FCompactPose& InOutPose, float InTime) const;
 	
+	// Internal functionality used by BuildPoseFromRawData. Template param specifies whether KeyIndex2 and Alpha are expected to be used.
+	template<bool INTERPOLATE>
+	void BuildPoseFromRawDataInternal(const TArray<FRawAnimSequenceTrack>& InAnimationData, FCompactPose& InOutPose, int32 KeyIndex1, int32 KeyIndex2, float Alpha) const;
+
 public:
 	// Are we currently compressing this animation
 	bool bCompressionInProgress;
 
 	friend class UAnimationAsset;
 	friend struct FScopedAnimSequenceRawDataCache;
+
+#if WITH_EDITOR
+	// Cache debugging data in editor for UE-49335
+	FAnimLoadingDebugData AnimLoadingDebugData;
+#endif
+
+	// Cache debugging data in editor for UE-49335
+	void AddAnimLoadingDebugEntry(const TCHAR* Tag)
+	{
+#if WITH_EDITOR
+		AnimLoadingDebugData.AddEntry(Tag, RawAnimationData.Num(), SourceRawAnimationData.Num());
+#endif
+	}
+
+	friend class UAnimationBlueprintLibrary;
 };
 
 struct FScopedAnimSequenceRawDataCache

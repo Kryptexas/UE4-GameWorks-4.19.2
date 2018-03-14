@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Engine.h: Unreal engine public header file.
@@ -189,8 +189,43 @@ public:
 	{
 		check(IsInGameThread());
 		check(CurrentWorld);
-		EObjectFlags ExcludeFlags = RF_ClassDefaultObject;
-		GetObjectsOfClass(InClass, ObjectArray, true, ExcludeFlags, EInternalObjectFlags::PendingKill);
+
+#if WITH_EDITOR
+		// In the editor, you are more likely to have many worlds in memory at once.
+		// As an optimization to avoid iterating over many actors that are not in the world we are asking for,
+		// if the filter class is AActor, just use the actors that are in the world you asked for.
+		// This could be useful in runtime code as well if there are many worlds in memory, but for now we will leave
+		// it in editor code.
+		if (InClass == AActor::StaticClass())
+		{
+			// First determine the number of actors in the world to reduce reallocations when we append them to the array below.
+			int32 NumActors = 0;
+			for (ULevel* Level : InWorld->GetLevels())
+			{
+				if (Level)
+				{
+					NumActors += Level->Actors.Num();
+				}
+			}
+
+			// Presize the array
+			ObjectArray.Reserve(NumActors);
+
+			// Fill the array
+			for (ULevel* Level : InWorld->GetLevels())
+			{
+				if (Level)
+				{
+					ObjectArray.Append(Level->Actors);
+				}
+			}
+		}
+		else
+#endif // WITH_EDITOR
+		{
+			EObjectFlags ExcludeFlags = RF_ClassDefaultObject;
+			GetObjectsOfClass(InClass, ObjectArray, true, ExcludeFlags, EInternalObjectFlags::PendingKill);
+		}
 
 		auto ActorSpawnedDelegate = FOnActorSpawned::FDelegate::CreateRaw(this, &FActorIteratorState::OnActorSpawned);
 		ActorSpawnedDelegateHandle = CurrentWorld->AddOnActorSpawnedHandler(ActorSpawnedDelegate);

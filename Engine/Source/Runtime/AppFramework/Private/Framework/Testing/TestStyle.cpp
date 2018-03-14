@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Framework/Testing/TestStyle.h"
 #include "Brushes/SlateBorderBrush.h"
@@ -7,6 +7,7 @@
 #include "Styling/SlateStyleRegistry.h"
 #include "Styling/SlateStyle.h"
 #include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
 #include "Application/SlateWindowHelper.h"
 
 #if !UE_BUILD_SHIPPING
@@ -42,8 +43,7 @@ void FTestStyle::SetStyle( const TSharedRef< ISlateStyle >& NewStyle )
 #define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush( Style->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
 #define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush( Style->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
 #define BORDER_BRUSH( RelativePath, ... ) FSlateBorderBrush( Style->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
-#define TTF_FONT( RelativePath, ... ) FSlateFontInfo( Style->RootToContentDir( RelativePath, TEXT(".ttf") ), __VA_ARGS__ )
-#define OTF_FONT( RelativePath, ... ) FSlateFontInfo( Style->RootToContentDir( RelativePath, TEXT(".otf") ), __VA_ARGS__ )
+#define DEFAULT_FONT(...) FCoreStyle::GetDefaultFontStyle(__VA_ARGS__)
 
 TSharedRef< ISlateStyle > FTestStyle::Create()
 {
@@ -72,7 +72,7 @@ TSharedRef< ISlateStyle > FTestStyle::Create()
 
 	// Normal Text
 	const FTextBlockStyle NormalText = FTextBlockStyle()
-		.SetFont( TTF_FONT("Fonts/Roboto-Regular", 9 ) )
+		.SetFont( DEFAULT_FONT("Regular", 9) )
 		.SetColorAndOpacity(FSlateColor::UseForeground())
 		.SetShadowOffset(FVector2D::ZeroVector)
 		.SetShadowColorAndOpacity(FLinearColor::Black)
@@ -108,7 +108,7 @@ TSharedRef< ISlateStyle > FTestStyle::Create()
 		Style->Set( "RichText.RoundedBackground", new BOX_BRUSH( "Common/RoundedSelection_16x", 4.0f/16.0f, FLinearColor(FColor(0xffeff3f3)) ) );
 
 		const FTextBlockStyle NormalRichTextStyle = FTextBlockStyle(NormalText)
-			.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 14 ) )
+			.SetFont( DEFAULT_FONT("Regular", 14) )
 			.SetColorAndOpacity(FLinearColor(FColor( 0xff2c3e50 )));
 
 		Style->Set( "RichText.Text", NormalRichTextStyle);
@@ -117,12 +117,12 @@ TSharedRef< ISlateStyle > FTestStyle::Create()
 			);
 
 		Style->Set( "RichText.Text.Fancy", FTextBlockStyle(NormalRichTextStyle)
-			.SetFont( TTF_FONT( "Testing/Fonts/Roboto-BlackItalic", 14 ) )
+			.SetFont( DEFAULT_FONT("BlackItalic", 14) )
 			.SetColorAndOpacity(FLinearColor(FColor( 0xff19bc9c )))
 		);
 
 		Style->Set( "RichText.Header", FTextBlockStyle(NormalText)
-			.SetFont( TTF_FONT("Fonts/Roboto-Bold", 20) )
+			.SetFont( DEFAULT_FONT("Bold", 20) )
 			.SetColorAndOpacity(FLinearColor(FColor( 0xff2c3e50 )))
 		);
 
@@ -153,22 +153,22 @@ TSharedRef< ISlateStyle > FTestStyle::Create()
 			Style->Set("RichText.Tagline.Background", new BOX_BRUSH("Testing/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor(FColor(0xffdbe4e4))));
 			Style->Set("RichText.Tagline.DarkBackground", new BOX_BRUSH("Testing/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor(0.55423, 0.60548, 0.60548)));
 			Style->Set( "RichText.Tagline.Text", FTextBlockStyle(NormalText)
-				.SetFont( TTF_FONT("Fonts/Roboto-Bold", 24) )
+				.SetFont( DEFAULT_FONT("Bold", 24) )
 				.SetColorAndOpacity(FLinearColor(FColor( 0xff2c3e50 )))
 			);
 
 			Style->Set( "RichText.Tagline.TextHighlight", FTextBlockStyle(NormalText)
-				.SetFont( TTF_FONT("Fonts/Roboto-Bold", 24) )
+				.SetFont( DEFAULT_FONT("Bold", 24) )
 				.SetColorAndOpacity(FLinearColor(FColor( 0xff19bc9c )))
 			);
 
 			Style->Set( "RichText.Tagline.SubtleText", FTextBlockStyle(NormalText)
-				.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 16 ) )
+				.SetFont( DEFAULT_FONT( "Regular", 16 ) )
 				.SetColorAndOpacity(FLinearColor(FColor( 0xff2c3e50 )))
 			);
 
 			Style->Set( "RichText.Tagline.SubtleTextHighlight", FTextBlockStyle(NormalText)
-				.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 16 ) )
+				.SetFont( DEFAULT_FONT( "Regular", 16 ) )
 				.SetColorAndOpacity(FLinearColor(FColor( 0xff19bc9c )))
 			);
 		}
@@ -178,7 +178,7 @@ TSharedRef< ISlateStyle > FTestStyle::Create()
 			Style->Set( "RichText.Interactive.Details.Background", new BOX_BRUSH( "Testing/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(0), FLinearColor(FColor(0xffdbe4e4))) );
 
 			const FTextBlockStyle NormalInteractiveRichText = FTextBlockStyle(NormalText)
-				.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 12 ) )
+				.SetFont( DEFAULT_FONT( "Regular", 12 ) )
 				.SetColorAndOpacity(FLinearColor(FColor( 0xff2c3e50 )));
 
 			Style->Set( "RichText.Interactive.Text", NormalInteractiveRichText	);
@@ -198,12 +198,12 @@ TSharedRef< ISlateStyle > FTestStyle::Create()
 			// Dialogue
 			{
 				const FTextBlockStyle NormalInteractiveRichDialogueText = FTextBlockStyle(NormalText)
-					.SetFont( TTF_FONT( "Testing/Fonts/Roboto-Italic", 12 ) )
+					.SetFont( DEFAULT_FONT( "Italic", 12 ) )
 					.SetColorAndOpacity(FLinearColor(FColor( 0xff2c3e50 )));
 				Style->Set( "RichText.Interactive.Text.Dialogue", NormalInteractiveRichDialogueText );
 
 				Style->Set( "RichText.Interactive.Text.StrongDialogue", FTextBlockStyle(NormalInteractiveRichDialogueText)
-					.SetFont( TTF_FONT( "Testing/Fonts/Roboto-BoldItalic", 12 ) )
+					.SetFont( DEFAULT_FONT( "BoldItalic", 12 ) )
 					.SetColorAndOpacity(FLinearColor(FColor( 0xff2c3e50 )))
 					);
 
@@ -223,12 +223,12 @@ TSharedRef< ISlateStyle > FTestStyle::Create()
 			// Details
 			{
 				Style->Set( "RichText.Interactive.Details.Name.Text", FTextBlockStyle(NormalText)
-					.SetFont( TTF_FONT("Fonts/Roboto-Bold", 10) )
+					.SetFont( DEFAULT_FONT("Bold", 10) )
 					.SetColorAndOpacity(FLinearColor(FColor( 0xff2c3e50 )))
 					);
 
 				Style->Set( "RichText.Interactive.Details.Value.Text", FTextBlockStyle(NormalText)
-					.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 10 ) )
+					.SetFont( DEFAULT_FONT( "Regular", 10) )
 					.SetColorAndOpacity(FLinearColor(FColor( 0xff2c3e50 )))
 					);
 
@@ -254,7 +254,7 @@ TSharedRef< ISlateStyle > FTestStyle::Create()
 			// Default text styles
 			{
 				const FTextBlockStyle RichTextNormal = FTextBlockStyle()
-					.SetFont(TTF_FONT("Fonts/Roboto-Regular", 11))
+					.SetFont(DEFAULT_FONT("Regular", 11))
 					.SetColorAndOpacity(FSlateColor::UseForeground())
 					.SetShadowOffset(FVector2D::ZeroVector)
 					.SetShadowColorAndOpacity(FLinearColor::Black)
@@ -289,17 +289,17 @@ TSharedRef< ISlateStyle > FTestStyle::Create()
 				Style->Set( "RichText.Toolbar.TextColor", TextColor );
 
 				Style->Set( "RichText.Toolbar.Text", FTextBlockStyle(NormalText)
-					.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 10 ) )
+					.SetFont( DEFAULT_FONT( "Regular", 10 ) )
 					.SetColorAndOpacity( TextColor )
 					);
 
 				Style->Set( "RichText.Toolbar.BoldText", FTextBlockStyle(NormalText)
-					.SetFont( TTF_FONT( "Fonts/Roboto-Bold", 10 ) )
+					.SetFont( DEFAULT_FONT( "Bold", 10 ) )
 					.SetColorAndOpacity( TextColor )
 					);
 
 				Style->Set( "RichText.Toolbar.ItalicText", FTextBlockStyle(NormalText)
-					.SetFont( TTF_FONT( "Testing/Fonts/Roboto-Italic", 10 ) )
+					.SetFont( DEFAULT_FONT( "Italic", 10 ) )
 					.SetColorAndOpacity( TextColor )
 					);
 
@@ -363,7 +363,7 @@ TSharedRef< ISlateStyle > FTestStyle::Create()
 		// The War of the Worlds example
 		{
 			Style->Set( "TheWarOfTheWorlds.Text", FTextBlockStyle(NormalText)
-				.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 10 ) )
+				.SetFont( DEFAULT_FONT( "Regular", 10 ) )
 				.SetColorAndOpacity(FLinearColor(FColor( 0xff2c3e50 )))
 			);
 		}
@@ -371,32 +371,32 @@ TSharedRef< ISlateStyle > FTestStyle::Create()
 		// Rainbow example
 		{
 			Style->Set( "Rainbow.Text", FTextBlockStyle(NormalText)
-				.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 12 ) )
+				.SetFont( DEFAULT_FONT( "Regular", 12 ) )
 				.SetColorAndOpacity(FLinearColor(FColor( 0xff2c3e50 )))
 			);
 
 			Style->Set( "Rainbow.Text.Red", FTextBlockStyle(NormalText)
-				.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 12 ) )
+				.SetFont( DEFAULT_FONT( "Regular", 12 ) )
 				.SetColorAndOpacity(FLinearColor(FColor( 0xffb40000 )))
 			);
 
 			Style->Set( "Rainbow.Text.Orange", FTextBlockStyle(NormalText)
-				.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 12 ) )
+				.SetFont( DEFAULT_FONT( "Regular", 12 ) )
 				.SetColorAndOpacity(FLinearColor(FColor( 0xffb46100 )))
 			);
 
 			Style->Set( "Rainbow.Text.Yellow", FTextBlockStyle(NormalText)
-				.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 12 ) )
+				.SetFont( DEFAULT_FONT( "Regular", 12 ) )
 				.SetColorAndOpacity(FLinearColor(FColor( 0xffb2b400 )))
 			);
 
 			Style->Set( "Rainbow.Text.Green", FTextBlockStyle(NormalText)
-				.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 12 ) )
+				.SetFont( DEFAULT_FONT( "Regular", 12 ) )
 				.SetColorAndOpacity(FLinearColor(FColor( 0xff22b400 )))
 			);
 
 			Style->Set( "Rainbow.Text.Blue", FTextBlockStyle(NormalText)
-				.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 12 ) )
+				.SetFont( DEFAULT_FONT( "Regular", 12 ) )
 				.SetColorAndOpacity(FLinearColor(FColor( 0xff006ab4 )))
 			);
 		}
@@ -408,7 +408,6 @@ TSharedRef< ISlateStyle > FTestStyle::Create()
 #undef IMAGE_BRUSH
 #undef BOX_BRUSH
 #undef BORDER_BRUSH
-#undef TTF_FONT
-#undef OTF_FONT
+#undef DEFAULT_FONT
 
 #endif // #if !UE_BUILD_SHIPPING

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneView.cpp: SceneView implementation.
@@ -34,63 +34,7 @@ DECLARE_CYCLE_STAT(TEXT("OverridePostProcessSettings"), STAT_OverridePostProcess
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FPrimitiveUniformShaderParameters,TEXT("Primitive"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters,TEXT("View"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FInstancedViewUniformShaderParameters, TEXT("InstancedView"));
-IMPLEMENT_UNIFORM_BUFFER_STRUCT(FBuiltinSamplersParameters, TEXT("BuiltinSamplers"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FMobileDirectionalLightShaderParameters, TEXT("MobileDirectionalLight"));
-
-FBuiltinSamplersUniformBuffer::FBuiltinSamplersUniformBuffer()
-{
-	FBuiltinSamplersParameters UB;
-	UB.Bilinear = nullptr;
-	UB.BilinearClamped = nullptr;
-	UB.Point = nullptr;
-	UB.PointClamped = nullptr;
-	UB.Trilinear = nullptr;
-	UB.TrilinearClamped = nullptr;
-	SetContents(UB);
-}
-
-static TRefCountPtr<FRHISamplerState> BuiltinBilinear;
-static TRefCountPtr<FRHISamplerState> BuiltinBilinearClamped;
-static TRefCountPtr<FRHISamplerState> BuiltinPoint;
-static TRefCountPtr<FRHISamplerState> BuiltinPointClamped;
-static TRefCountPtr<FRHISamplerState> BuiltinTrilinear;
-static TRefCountPtr<FRHISamplerState> BuiltinTrilinearClamped;
-
-void FBuiltinSamplersUniformBuffer::InitDynamicRHI()
-{
-	BuiltinBilinear =			RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap));
-	BuiltinBilinearClamped =	RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp));
-	BuiltinPoint =				RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Point, AM_Wrap, AM_Wrap, AM_Wrap));
-	BuiltinPointClamped =		RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Point, AM_Clamp, AM_Clamp, AM_Clamp));
-	BuiltinTrilinear =			RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Trilinear, AM_Wrap, AM_Wrap, AM_Wrap));
-	BuiltinTrilinearClamped =	RHICreateSamplerState(FSamplerStateInitializerRHI(SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp));
-
-	FBuiltinSamplersParameters UB;
-
-	UB.Bilinear =			BuiltinBilinear;
-	UB.BilinearClamped =	BuiltinBilinearClamped;
-	UB.Point =				BuiltinPoint;
-	UB.PointClamped =		BuiltinPointClamped;
-	UB.Trilinear =			BuiltinTrilinear;
-	UB.TrilinearClamped =	BuiltinTrilinearClamped;
-	SetContents(UB);
-
-	TUniformBuffer<FBuiltinSamplersParameters>::InitDynamicRHI();
-}
-
-void FBuiltinSamplersUniformBuffer::ReleaseDynamicRHI()
-{
-	TUniformBuffer<FBuiltinSamplersParameters>::ReleaseDynamicRHI();
-
-	BuiltinBilinear =			nullptr;
-	BuiltinBilinearClamped =	nullptr;
-	BuiltinPoint =				nullptr;
-	BuiltinPointClamped =		nullptr;
-	BuiltinTrilinear =			nullptr;
-	BuiltinTrilinearClamped =	nullptr;
-}
-
-TGlobalResource<FBuiltinSamplersUniformBuffer> GBuiltinSamplersUniformBuffer;
 
 
 static TAutoConsoleVariable<float> CVarSSRMaxRoughness(
@@ -127,14 +71,6 @@ static TAutoConsoleVariable<int32> CVarRenderTimeFrozen(
 	TEXT(" 0: off\n")
 	TEXT(" 1: on (Note: this also disables occlusion queries)"),
 	ECVF_Cheat);
-
-static TAutoConsoleVariable<int32> CVarScreenPercentageEditor(
-	TEXT("r.ScreenPercentage.VREditor"),
-	0,
-	TEXT("To allow to have an effect of ScreenPercentage in the VR Editor.\n")
-	TEXT("0: off (default)\n")
-	TEXT("1: allow upsample (blurry but faster) and downsample (cripser but slower)"),
-	ECVF_Default);
 
 static TAutoConsoleVariable<float> CVarDepthOfFieldDepthBlurAmount(
 	TEXT("r.DepthOfField.DepthBlur.Amount"),
@@ -236,6 +172,23 @@ static TAutoConsoleVariable<int32> CVarDefaultAntiAliasing(
 	TEXT(" 3: MSAA (Forward shading only)"),
     ECVF_RenderThreadSafe);
 
+// see ELightUnits
+static TAutoConsoleVariable<int32> CVarDefaultPointLightUnits(
+	TEXT("r.DefaultFeature.PointLightUnits"),
+	1,
+	TEXT("Default units to use for point lights\n")
+	TEXT(" 0: unitless \n")
+	TEXT(" 1: candelas (default)\n")
+	TEXT(" 2: lumens"));
+
+static TAutoConsoleVariable<int32> CVarDefaultSpotLightUnits(
+	TEXT("r.DefaultFeature.SpotLightUnits"),
+	1,
+	TEXT("Default units to use for point lights\n")
+	TEXT(" 0: unitless \n")
+	TEXT(" 1: candelas (default)\n")
+	TEXT(" 2: lumens"));
+
 static TAutoConsoleVariable<float> CVarMotionBlurScale(
 	TEXT("r.MotionBlur.Scale"),
 	1.0f,
@@ -322,6 +275,14 @@ static TAutoConsoleVariable<int32> CVarAllowTranslucencyAfterDOF(
 	TEXT(" 0: off (translucency is affected by depth of field)\n")
 	TEXT(" 1: on costs GPU performance and memory but keeps translucency unaffected by Depth of Field. (default)"),
 	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarEnableTemporalUpsample(
+	TEXT("r.TemporalAA.Upsampling"),
+	0,
+	TEXT("Whether to do primary screen percentage with temporal AA or not.\n")
+	TEXT(" 0: use spatial upscale pass independently of TAA (default);\n")
+	TEXT(" 1: TemporalAA performs spatial and temporal upscale as screen percentage method."),
+	ECVF_Default);
 
 
 /** Global vertex color view mode setting when SHOW_VertexColors show flag is set */
@@ -590,7 +551,6 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, ViewActor(InitOptions.ViewActor)
 	, PlayerIndex(InitOptions.PlayerIndex)
 	, Drawer(InitOptions.ViewElementDrawer)
-	, ViewRect(InitOptions.GetConstrainedViewRect())
 	, UnscaledViewRect(InitOptions.GetConstrainedViewRect())
 	, UnconstrainedViewRect(InitOptions.GetViewRect())
 	, MaxShadowCascades(10)
@@ -638,6 +598,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, bHasSelectedComponents( false )
 #endif
 	, AntiAliasingMethod(AAM_None)
+	, PrimaryScreenPercentageMethod(EPrimaryScreenPercentageMethod::SpatialUpscale)
 	, ForwardLightingResources(nullptr)
 	, FeatureLevel(InitOptions.ViewFamily ? InitOptions.ViewFamily->GetFeatureLevel() : GMaxRHIFeatureLevel)
 {	
@@ -723,8 +684,6 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	bUseFieldOfViewForLOD = InitOptions.bUseFieldOfViewForLOD;
 	DrawDynamicFlags = EDrawDynamicFlags::None;
 	bAllowTemporalJitter = true;
-	TemporalJitterPixelsX = 0.0f;
-	TemporalJitterPixelsY = 0.0f;
 
 #if WITH_EDITOR
 	bUsePixelInspector = false;
@@ -756,7 +715,24 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	bIsMobileMultiViewEnabled = bIsMobileMultiViewEnabled && GSupportsMobileMultiView;
 
 	SetupAntiAliasingMethod();
+
+	if (CVarEnableTemporalUpsample.GetValueOnAnyThread() && AntiAliasingMethod == AAM_TemporalAA)
+	{
+		// The renderer will automatically fallback to SpatialUpscale if not using TemporalAA anti aliasing method.
+		PrimaryScreenPercentageMethod = EPrimaryScreenPercentageMethod::TemporalUpscale;
+	}
+
+	check(VerifyMembersChecks());
 }
+
+
+#if DO_CHECK
+bool FSceneView::VerifyMembersChecks() const
+{
+	return true;
+}
+#endif
+
 
 void FSceneView::SetupAntiAliasingMethod()
 {
@@ -825,11 +801,11 @@ float FSceneView::GetLODDistanceFactor() const
 {
 	bool bCompensateForFOV = bUseFieldOfViewForLOD && CVarCompensateForFOV.GetValueOnAnyThread() != 0;
 	float ScreenScaleX = bCompensateForFOV ? ViewMatrices.GetProjectionMatrix().M[0][0] : 1.0f;
-	float ScreenScaleY = bCompensateForFOV ? ViewMatrices.GetProjectionMatrix().M[1][1] : (static_cast<float>(ViewRect.Width()) / ViewRect.Height());
+	float ScreenScaleY = bCompensateForFOV ? ViewMatrices.GetProjectionMatrix().M[1][1] : (float(UnscaledViewRect.Width()) / UnscaledViewRect.Height());
 
-	const float ScreenMultiple = FMath::Max(ViewRect.Width() / 2.0f * ScreenScaleX,
-		ViewRect.Height() / 2.0f * ScreenScaleY);
-	float Fac = PI * ScreenMultiple * ScreenMultiple / ViewRect.Area();
+	const float ScreenMultiple = FMath::Max(UnscaledViewRect.Width() / 2.0f * ScreenScaleX,
+		UnscaledViewRect.Height() / 2.0f * ScreenScaleY);
+	float Fac = PI * ScreenMultiple * ScreenMultiple / UnscaledViewRect.Area();
 	return Fac;
 }
 
@@ -989,18 +965,6 @@ void FSceneView::UpdatePlanarReflectionViewMatrix(const FSceneView& SourceView, 
 
 	// We need to keep ShadowViewMatrices in sync.
 	ShadowViewMatrices = ViewMatrices;
-}
-
-void FSceneView::SetScaledViewRect(FIntRect InScaledViewRect)
-{
-	check(InScaledViewRect.Min.X >= 0);
-	check(InScaledViewRect.Min.Y >= 0);
-	check(InScaledViewRect.Width() > 0);
-	check(InScaledViewRect.Height() > 0);
-
-	check(ViewRect == UnscaledViewRect);
-
-	ViewRect = InScaledViewRect;
 }
 
 FVector4 FSceneView::WorldToScreen(const FVector& WorldPoint) const
@@ -1274,6 +1238,9 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 		LERP_PP(ColorCorrectionShadowsMax);
 		LERP_PP(ColorCorrectionHighlightsMin);
 
+		LERP_PP(BlueCorrection);
+		LERP_PP(ExpandGamut);
+
 		LERP_PP(FilmWhitePoint);
 		LERP_PP(FilmSaturation);
 		LERP_PP(FilmChannelMixerRed);
@@ -1295,6 +1262,7 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 
 		LERP_PP(SceneColorTint);
 		LERP_PP(SceneFringeIntensity);
+		LERP_PP(ChromaticAberrationStartOffset);
 		LERP_PP(BloomIntensity);
 		LERP_PP(BloomThreshold);
 		LERP_PP(Bloom1Tint);
@@ -1320,10 +1288,13 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 		LERP_PP(BloomConvolutionPreFilterMult);
 		LERP_PP(AmbientCubemapIntensity);
 		LERP_PP(AmbientCubemapTint);
+		LERP_PP(CameraShutterSpeed);
+		LERP_PP(CameraISO);
 		LERP_PP(AutoExposureLowPercent);
 		LERP_PP(AutoExposureHighPercent);
 		LERP_PP(AutoExposureMinBrightness);
 		LERP_PP(AutoExposureMaxBrightness);
+		LERP_PP(AutoExposureCalibrationConstant);
 		LERP_PP(AutoExposureSpeedUp);
 		LERP_PP(AutoExposureSpeedDown);
 		LERP_PP(AutoExposureBias);
@@ -1794,7 +1765,7 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 		{
 			float CVarResScale = FMath::Max(1.0f, CVarDepthOfFieldDepthBlurResolutionScale.GetValueOnGameThread());
 			
-			float Factor = FMath::Max(ViewRect.Width() / 1920.0f - 1.0f, 0.0f);
+			float Factor = FMath::Max(UnscaledViewRect.Width() / 1920.0f - 1.0f, 0.0f);
 
 			DepthBlurRadius *= 1.0f + Factor * (CVarResScale - 1.0f);
 		}
@@ -1811,27 +1782,6 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 		// We intentionally don't do the DepthOfFieldFocalRegion as it breaks realism.
 		// Doing this fixes DOF material expression.
 		FinalPostProcessSettings.DepthOfFieldFocalRegion = 0;
-	}
-
-	{
-#if WITH_EDITOR
-		if (ViewInitOptions.bDisableGameScreenPercentage)
-		{
-			FinalPostProcessSettings.ScreenPercentage = 100.0f;
-		}
-		else
-#endif
-		{
-			static const auto ScreenPercentageCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
-			FinalPostProcessSettings.ScreenPercentage *= ScreenPercentageCVar->GetValueOnGameThread() / 100.0f;
-		}
-
-#if WITH_EDITOR
-		if (ViewInitOptions.EditorViewScreenPercentage.IsSet() && StereoPass == EStereoscopicPass::eSSP_FULL)
-		{
-			FinalPostProcessSettings.ScreenPercentage *= ViewInitOptions.EditorViewScreenPercentage.GetValue() / 100.0f;
-		}
-#endif
 	}
 
 	{
@@ -1861,13 +1811,6 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 		{
 			FinalPostProcessSettings.AmbientOcclusionStaticFraction = Value;
 		}
-	}
-
-	// ScreenPercentage is not supported in ES2/3.1 with MobileHDR = false
-	const bool bIsMobileLDR = (SceneViewFeatureLevel <= ERHIFeatureLevel::ES3_1 && !IsMobileHDR());
-	if(!Family->EngineShowFlags.ScreenPercentage || bIsSceneCapture || bIsReflectionCapture || bIsMobileLDR)
-	{
-		FinalPostProcessSettings.ScreenPercentage = 100.0f;
 	}
 
 	if(!Family->EngineShowFlags.AmbientOcclusion || !Family->EngineShowFlags.ScreenSpaceAO)
@@ -1954,7 +1897,7 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	if (Config.bDisplayCaptureRegion && !GIsHighResScreenshot)
 	{
 		// Only enable the capture region effect if the capture region is different from the view rectangle...
-		if ((Config.UnscaledCaptureRegion != ViewRect) && (Config.UnscaledCaptureRegion.Area() > 0) && (State != NULL))
+		if ((Config.UnscaledCaptureRegion != UnscaledViewRect) && (Config.UnscaledCaptureRegion.Area() > 0) && (State != NULL))
 		{
 			// ...and if this is the viewport associated with the highres screenshot UI
 			auto ConfigViewport = Config.TargetViewport.Pin();
@@ -1964,10 +1907,10 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 				FLinearColor NormalizedCaptureRegion;
 
 				// Normalize capture region into view rectangle
-				NormalizedCaptureRegion.R = (float)Config.UnscaledCaptureRegion.Min.X / (float)ViewRect.Width();
-				NormalizedCaptureRegion.G = (float)Config.UnscaledCaptureRegion.Min.Y / (float)ViewRect.Height();
-				NormalizedCaptureRegion.B = (float)Config.UnscaledCaptureRegion.Max.X / (float)ViewRect.Width();
-				NormalizedCaptureRegion.A = (float)Config.UnscaledCaptureRegion.Max.Y / (float)ViewRect.Height();
+				NormalizedCaptureRegion.R = (float)Config.UnscaledCaptureRegion.Min.X / (float)UnscaledViewRect.Width();
+				NormalizedCaptureRegion.G = (float)Config.UnscaledCaptureRegion.Min.Y / (float)UnscaledViewRect.Height();
+				NormalizedCaptureRegion.B = (float)Config.UnscaledCaptureRegion.Max.X / (float)UnscaledViewRect.Width();
+				NormalizedCaptureRegion.A = (float)Config.UnscaledCaptureRegion.Max.Y / (float)UnscaledViewRect.Height();
 
 				// Get a MID for drawing this frame and push the capture region into the shader parameter
 				FinalPostProcessSettings.HighResScreenshotCaptureRegionMaterial = State->GetReusableMID(Config.HighResScreenshotCaptureRegionMaterial);
@@ -1977,52 +1920,16 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	}
 #endif // WITH_EDITOR
 
-
-	// Upscaling or Super sampling
+	if (Family->EngineShowFlags.ScreenPercentage)
 	{
-		float LocalScreenPercentage = FinalPostProcessSettings.ScreenPercentage;
-
-		float Fraction = 1.0f;
-
-		// apply ScreenPercentage
-		if (LocalScreenPercentage != 100.f)
-		{
-			Fraction = FMath::Clamp(LocalScreenPercentage / 100.0f, 0.1f, 4.0f);
-		}
-
-		// Window full screen mode with upscaling
-		bool bFullscreen = false;
-		bool bSceneCapture = false;
-		if (ViewInitOptions.ViewFamily && ViewInitOptions.ViewFamily->Views.Num() == 1)
-		{
-			auto* View = ViewInitOptions.ViewFamily->Views[0];
-			bSceneCapture = View ? View->bIsSceneCapture : false;
-		}
-
-		if (!bSceneCapture && GEngine && GEngine->GameViewport && GEngine->GameViewport->GetWindow().IsValid())
-		{												  
-			bFullscreen = GEngine->GameViewport->GetWindow()->GetWindowMode() != EWindowMode::Windowed;
-		}
-
-		check(Family->RenderTarget);
-
-		// Upscale if needed
-		if (Fraction != 1.0f)
-		{
-			// compute the view rectangle with the ScreenPercentage applied
-			FIntRect ScreenPercentageAffectedViewRect = ViewInitOptions.GetConstrainedViewRect().Scale(Fraction);
-			QuantizeSceneBufferSize(ScreenPercentageAffectedViewRect.Max.X, ScreenPercentageAffectedViewRect.Max.Y);
-			// Mosaic needs to the viewport height to be a multiple of 2.
-			if (SceneViewFeatureLevel <= ERHIFeatureLevel::ES3_1 && IsMobileHDRMosaic())
-			{
-				if (((ScreenPercentageAffectedViewRect.Size().Y) & 1) == 1)
-				{
-					ScreenPercentageAffectedViewRect.Max.Y -= 1;
-				}
-			}
-			SetScaledViewRect(ScreenPercentageAffectedViewRect);
-		}
+		FinalPostProcessSettings.ScreenPercentage = FMath::Clamp(FinalPostProcessSettings.ScreenPercentage, 1.f, 400.0f);
 	}
+	else
+	{
+		FinalPostProcessSettings.ScreenPercentage = 100;
+	}
+
+	check(VerifyMembersChecks());
 }
 
 void FSceneView::ConfigureBufferVisualizationSettings()
@@ -2118,14 +2025,11 @@ void FSceneView::SetupViewRectUniformBufferParameters(FViewUniformShaderParamete
 	ViewUniformShaderParameters.ViewRectMin = FVector4(EffectiveViewRect.Min.X, EffectiveViewRect.Min.Y, 0.0f, 0.0f);
 	ViewUniformShaderParameters.ViewSizeAndInvSize = FVector4(EffectiveViewRect.Width(), EffectiveViewRect.Height(), 1.0f / float(EffectiveViewRect.Width()), 1.0f / float(EffectiveViewRect.Height()));
 	ViewUniformShaderParameters.BufferSizeAndInvSize = FVector4(BufferSize.X, BufferSize.Y, InvBufferSizeX, InvBufferSizeY);
-
-	FVector2D OneScenePixelUVSize = FVector2D(1.0f / BufferSize.X, 1.0f / BufferSize.Y);
-	FVector4 SceneTexMinMax(((float)EffectiveViewRect.Min.X / BufferSize.X),
-		((float)EffectiveViewRect.Min.Y / BufferSize.Y),
-		(((float)EffectiveViewRect.Max.X / BufferSize.X) - OneScenePixelUVSize.X),
-		(((float)EffectiveViewRect.Max.Y / BufferSize.Y) - OneScenePixelUVSize.Y));
-
-	ViewUniformShaderParameters.SceneTextureMinMax = SceneTexMinMax;
+	ViewUniformShaderParameters.BufferBilinearUVMinMax = FVector4(
+		InvBufferSizeX * (EffectiveViewRect.Min.X + 0.5),
+		InvBufferSizeY * (EffectiveViewRect.Min.Y + 0.5),
+		InvBufferSizeX * (EffectiveViewRect.Max.X - 0.5),
+		InvBufferSizeY * (EffectiveViewRect.Max.Y - 0.5));
 
 	ViewUniformShaderParameters.MotionBlurNormalizedToPixel = FinalPostProcessSettings.MotionBlurMax * EffectiveViewRect.Width() / 100.0f;
 
@@ -2207,6 +2111,7 @@ void FSceneView::SetupCommonViewUniformBufferParameters(
 	ViewUniformShaderParameters.TranslatedWorldToCameraView = InViewMatrices.GetTranslatedViewMatrix();
 	ViewUniformShaderParameters.CameraViewToTranslatedWorld = InViewMatrices.GetInvTranslatedViewMatrix();
 	ViewUniformShaderParameters.ViewToClip = InViewMatrices.GetProjectionMatrix();
+	ViewUniformShaderParameters.ViewToClipNoAA = InViewMatrices.GetProjectionNoAAMatrix();
 	ViewUniformShaderParameters.ClipToView = InViewMatrices.GetInvProjectionMatrix();
 	ViewUniformShaderParameters.ClipToTranslatedWorld = InViewMatrices.GetInvTranslatedViewProjectionMatrix();
 	ViewUniformShaderParameters.ViewForward = InViewMatrices.GetOverriddenTranslatedViewMatrix().GetColumn(2);
@@ -2253,6 +2158,8 @@ void FSceneView::SetupCommonViewUniformBufferParameters(
 	ViewUniformShaderParameters.WorldCameraMovementSinceLastFrame = InViewMatrices.GetViewOrigin() - InPrevViewMatrices.GetViewOrigin();
 	ViewUniformShaderParameters.CullingSign = bReverseCulling ? -1.0f : 1.0f;
 	ViewUniformShaderParameters.NearPlane = GNearClippingPlane;
+	ViewUniformShaderParameters.MaterialTextureMipBias = 0.0f;
+	ViewUniformShaderParameters.MaterialTextureDerivativeMultiply = 1.0f;
 
 	ViewUniformShaderParameters.bCheckerboardSubsurfaceProfileRendering = 0;
 
@@ -2303,11 +2210,7 @@ void FSceneView::SetupCommonViewUniformBufferParameters(
 FSceneViewFamily::FSceneViewFamily(const ConstructionValues& CVS)
 	:
 	ViewMode(VMI_Lit),
-	FamilySizeX(0),
-	FamilySizeY(0),
-	InstancedStereoWidth(0),
 	RenderTarget(CVS.RenderTarget),
-	bUseSeparateRenderTarget(false),
 	Scene(CVS.Scene),
 	EngineShowFlags(CVS.EngineShowFlags),
 	CurrentWorldTime(CVS.CurrentWorldTime),
@@ -2320,7 +2223,10 @@ FSceneViewFamily::FSceneViewFamily(const ConstructionValues& CVS)
 	SceneCaptureSource(SCS_FinalColorLDR),
 	SceneCaptureCompositeMode(SCCM_Overwrite),
 	bWorldIsPaused(false),
-	GammaCorrection(CVS.GammaCorrection)
+	GammaCorrection(CVS.GammaCorrection),
+	SecondaryViewFraction(1.0f),
+	SecondaryScreenPercentageMethod(ESecondaryScreenPercentageMethod::LowerPixelDensitySimulation),
+	ScreenPercentageInterface(nullptr)
 {
 	// If we do not pass a valid scene pointer then SetWorldTimes must be called to initialized with valid times.
 	ensure(CVS.bTimesSet);
@@ -2341,7 +2247,7 @@ FSceneViewFamily::FSceneViewFamily(const ConstructionValues& CVS)
 	{
 		DebugViewShaderMode = DVSM_None;
 	}
-	bUsedDebugViewPSVSHS = DebugViewShaderMode != DVSM_None && AllowDebugViewVSDSHS(GetShaderPlatform());
+	bUsedDebugViewVSDSHS = DebugViewShaderMode != DVSM_None && AllowDebugViewVSDSHS(GetShaderPlatform());
 #endif
 
 #if !WITH_EDITOR
@@ -2387,64 +2293,22 @@ FSceneViewFamily::FSceneViewFamily(const ConstructionValues& CVS)
 		MonoParameters.Mode = static_cast<EMonoscopicFarFieldMode>(FMath::Clamp(CVarMonoMode->GetValueOnAnyThread(), 0, 4));
 		MonoParameters.CullingDistance = CVS.MonoFarFieldCullingDistance;
 	}
+
+	// ScreenPercentage is not supported in ES2/3.1 with MobileHDR = false. Disable show flag so to have it respected.
+	const bool bIsMobileLDR = (GetFeatureLevel() <= ERHIFeatureLevel::ES3_1 && !IsMobileHDR());
+	if (bIsMobileLDR)
+	{
+		EngineShowFlags.ScreenPercentage = false;
+	}
 }
 
-void FSceneViewFamily::ComputeFamilySize()
+FSceneViewFamily::~FSceneViewFamily()
 {
-	// Calculate the screen extents of the view family.
-	bool bInitializedExtents = false;
-	float MaxFamilyX = 0;
-	float MaxFamilyY = 0;
-
-	for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
+	// If a screen percentage was given for the view family, delete it since any new copy of a view family will Fork it.
+	if (ScreenPercentageInterface)
 	{
-		const FSceneView* View = Views[ViewIndex];
-
-		if (View->ResolutionOverrideRect.Area() > 0)
-		{
-			MaxFamilyX = FMath::Max(MaxFamilyX, static_cast<float>(View->ResolutionOverrideRect.Max.X));
-			MaxFamilyY = FMath::Max(MaxFamilyY, static_cast<float>(View->ResolutionOverrideRect.Max.Y));
-			bInitializedExtents = true;
-		}
-		else
-		{
-			float FinalViewMaxX = (float)View->ViewRect.Max.X;
-			float FinalViewMaxY = (float)View->ViewRect.Max.Y;
-
-			// Derive the amount of scaling needed for screenpercentage from the scaled / unscaled rect
-			const float XScale = FinalViewMaxX / (float)View->UnscaledViewRect.Max.X;
-			const float YScale = FinalViewMaxY / (float)View->UnscaledViewRect.Max.Y;
-
-			if (!bInitializedExtents)
-			{
-				// Note: using the unconstrained view rect to compute family size
-				// In the case of constrained views (black bars) this means the scene render targets will fill the whole screen
-				// Which is needed for ES2 paths where we render directly to the backbuffer, and the scene depth buffer has to match in size
-				MaxFamilyX = View->UnconstrainedViewRect.Max.X * XScale;
-				MaxFamilyY = View->UnconstrainedViewRect.Max.Y * YScale;
-				bInitializedExtents = true;
-			}
-			else
-			{
-				MaxFamilyX = FMath::Max(MaxFamilyX, View->UnconstrainedViewRect.Max.X * XScale);
-				MaxFamilyY = FMath::Max(MaxFamilyY, View->UnconstrainedViewRect.Max.Y * YScale);
-			}
-
-			// floating point imprecision could cause MaxFamilyX to be less than View->ViewRect.Max.X after integer truncation.
-			// since this value controls rendertarget sizes, we don't want to create rendertargets smaller than the view size.
-			MaxFamilyX = FMath::Max(MaxFamilyX, FinalViewMaxX);
-			MaxFamilyY = FMath::Max(MaxFamilyY, FinalViewMaxY);
-		}
-
-		InstancedStereoWidth = FPlatformMath::Max(InstancedStereoWidth, static_cast<uint32>(Views[ViewIndex]->ViewRect.Max.X));
+		delete ScreenPercentageInterface;
 	}
-
-	// We render to the actual position of the viewports so with black borders we need the max.
-	// We could change it by rendering all to left top but that has implications for splitscreen. 
-	FamilySizeX = FMath::TruncToInt(MaxFamilyX);
-	FamilySizeY = FMath::TruncToInt(MaxFamilyY);	
-
-	check(bInitializedExtents);
 }
 
 ERHIFeatureLevel::Type FSceneViewFamily::GetFeatureLevel() const
@@ -2464,17 +2328,37 @@ const FSceneView& FSceneViewFamily::GetStereoEyeView(const EStereoscopicPass Eye
 	const int32 EyeIndex = static_cast<int32>(Eye);
 	check(Views.Num() > 0 && Views.Num() >= EyeIndex);
 
-	// Mono or left eye
-	if (EyeIndex <= 1)
+	if (EyeIndex <= 1) // Mono or left eye
 	{
 		return *Views[0];
 	}
-
-	// Right eye
-	else
+	else if (EyeIndex == 2) // Right eye
 	{
 		return *Views[1];
 	}
+	else // For extra views
+	{
+		return *Views[EyeIndex - eSSP_MONOSCOPIC_EYE + 1];
+	}
+}
+
+bool FSceneViewFamily::SupportsScreenPercentage() const
+{
+	EShadingPath ShadingPath = Scene->GetShadingPath();
+
+	// The deferred shading renderer supports screen percentage when used normally
+	if (Scene->GetShadingPath() == EShadingPath::Deferred)
+	{
+		return true;
+	}
+
+	// Mobile renderer does not support screen percentage with LDR.
+	if ((GetFeatureLevel() <= ERHIFeatureLevel::ES3_1 && !IsMobileHDR()) || PLATFORM_HTML5)
+	{
+		return false;
+	}
+
+	return true;
 }
 
 bool FSceneViewFamily::AllowTranslucencyAfterDOF() const

@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright 2015 NVIDIA Corporation. All rights reserved.
+// Copyright 2016 NVIDIA Corporation. All rights reserved.
 
 #pragma once
 #include <ansel/Defines.h>
@@ -46,12 +46,15 @@ namespace ansel
         bool is360MonoAllowed;
         // Game allows 360 stereo capture during session
         bool is360StereoAllowed;
-        // Game allows capturing HDR buffer
-        bool isExrAllowed;
+        // Game allows capturing pre-tonemapping raw HDR buffer
+        bool isRawAllowed;
         // The speed at which camera moves in the world, initialized with a value given in Configuration
         float translationalSpeedInWorldUnitsPerSecond;
         // The speed at which camera rotates, initialized with a value given in Configuration
         float rotationalSpeedInDegreesPerSecond;
+        // The maximum FoV value in degrees displayed in the Ansel UI.
+        // Any value in the range [140, 179] can be specified and values outside will be clamped to this range.
+        float maximumFovInDegrees;
 
         SessionConfiguration()
         {
@@ -62,7 +65,8 @@ namespace ansel
             isHighresAllowed = true;
             is360MonoAllowed = true;
             is360StereoAllowed = true;
-            isExrAllowed = true;
+            isRawAllowed = true;
+            maximumFovInDegrees = 140.0f;
         }
     };
 

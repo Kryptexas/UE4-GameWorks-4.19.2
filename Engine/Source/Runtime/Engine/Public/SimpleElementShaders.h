@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	SimpleElementShaders.h: Definitions for simple element shaders.
@@ -23,7 +23,7 @@ class ENGINE_API FSimpleElementVS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FSimpleElementVS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return true; }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return true; }
 
 	FSimpleElementVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer);
 	FSimpleElementVS() {}
@@ -32,7 +32,7 @@ public:
 
 	virtual bool Serialize(FArchive& Ar) override;
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment);
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment);
 
 private:
 	FShaderParameter Transform;
@@ -48,7 +48,7 @@ class FSimpleElementPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FSimpleElementPS, Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return true; }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return true; }
 
 	FSimpleElementPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer);
 	FSimpleElementPS() {}
@@ -59,7 +59,7 @@ public:
 	 * @param View			SceneView for view constants when compositing
 	 * @param DepthTexture	Depth texture to read from when depth testing for compositing.  If not set no compositing will occur
 	 */
-	void SetEditorCompositingParameters(FRHICommandList& RHICmdList, const FSceneView* View, FTexture2DRHIRef DepthTexture );
+	void SetEditorCompositingParameters(FRHICommandList& RHICmdList, const FSceneView* View);
 
 	void SetParameters(FRHICommandList& RHICmdList, const FTexture* TextureValue );
 
@@ -115,9 +115,9 @@ public:
 	FSimpleElementGammaPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) : FSimpleElementGammaBasePS(Initializer) {}
 	FSimpleElementGammaPS() {}
 
-	static bool ShouldCache(EShaderPlatform Platform) { return true; }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return true; }
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("SRGB_INPUT_TEXTURE"), bSRGBTexture);
 	}
@@ -134,7 +134,7 @@ public:
 	FSimpleElementGammaAlphaOnlyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) : FSimpleElementGammaBasePS(Initializer) {}
 	FSimpleElementGammaAlphaOnlyPS() {}
 
-	static bool ShouldCache(EShaderPlatform Platform) { return true; }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return true; }
 };
 
 /**
@@ -165,8 +165,8 @@ public:
 	FSimpleElementMaskedGammaPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) : FSimpleElementMaskedGammaBasePS(Initializer) {}
 	FSimpleElementMaskedGammaPS() {}
 
-	static bool ShouldCache(EShaderPlatform Platform) { return true; }
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return true; }
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("SRGB_INPUT_TEXTURE"), bSRGBTexture);
 	}
@@ -186,7 +186,7 @@ public:
 	* @param Platform - current shader platform being compiled
 	* @return true if this shader should be cached for the given platform
 	*/
-	static bool ShouldCache(EShaderPlatform Platform) 
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) 
 	{ 
 		return true; 
 	}
@@ -267,9 +267,9 @@ class FSimpleElementHitProxyPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FSimpleElementHitProxyPS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) 
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) 
 	{ 
-		return IsPCPlatform(Platform); 
+		return IsPCPlatform(Parameters.Platform); 
 	}
 
 
@@ -296,9 +296,9 @@ class FSimpleElementColorChannelMaskPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FSimpleElementColorChannelMaskPS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) 
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) 
 	{ 
-		return IsPCPlatform(Platform); 
+		return IsPCPlatform(Parameters.Platform); 
 	}
 
 
@@ -331,9 +331,9 @@ public:
 	FEncodedSimpleElement(const ShaderMetaType::CompiledShaderInitializerType& Initializer) : TSimpleElementBase(Initializer) {}
 	FEncodedSimpleElement() {}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		TSimpleElementBase::ModifyCompilationEnvironment(Platform, OutEnvironment); 
+		TSimpleElementBase::ModifyCompilationEnvironment(Parameters, OutEnvironment); 
 		OutEnvironment.SetDefine(TEXT("SE_BLEND_OPAQUE"), (uint32)ESimpleElementBlendMode::SE_BLEND_Opaque);
 		OutEnvironment.SetDefine(TEXT("SE_BLEND_MASKED"), (uint32)ESimpleElementBlendMode::SE_BLEND_Masked);
 		OutEnvironment.SetDefine(TEXT("SE_BLEND_TRANSLUCENT"), (uint32)ESimpleElementBlendMode::SE_BLEND_Translucent);
@@ -351,9 +351,9 @@ public:
 		OutEnvironment.SetDefine(TEXT("USE_32BPP_HDR"), 1u);
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return ((IsES2Platform(Platform) && IsPCPlatform(Platform)) || Platform == SP_OPENGL_ES2_ANDROID) && TSimpleElementBase::ShouldCache(Platform);
+		return ((IsES2Platform(Parameters.Platform) && IsPCPlatform(Parameters.Platform)) || Parameters.Platform == SP_OPENGL_ES2_ANDROID) && TSimpleElementBase::ShouldCompilePermutation(Parameters);
 	}
 };
 

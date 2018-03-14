@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429233
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:애니메이션 시퀀스
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -102,7 +102,8 @@ Qo4hH0h9ZZA
 
 ![](AnimAssetDetails.png)
 
-<!-- This was moved with the 4.14 Animation Edtior Revamp
+[COMMENT]
+ This was moved with the 4.14 Animation Edtior Revamp
 ### 선형 키 제거
 
 |---|---|
@@ -115,7 +116,8 @@ Qo4hH0h9ZZA
 |**Parent Key Scale**| 부모 키 스케일 - 스케일 값은 본의 부모 역시 같은 시간 위치에 키가 있을 때 키 유지 확률을 높이는 스케일 값입니다. |
 |**Retarget**| 리타겟 - true 면 애니메이션 압축시 압축 오차 보정을 위해 애니메이션 노드를 조절합니다. false 면 애니메이션 노드는 조절하지 않습니다. |
 |**Actually Filter Linear Keys**| 실제 선형 키 필터링 - 최종 필터링 단계가 실제로 일어나도록 할 것인지, 아니면 비트단위 압축 이후 리타게팅만 할 것인지 제어합니다. 이 옵션과 **Retarget** 옵션 둘 다 false 인 경우, 선형 압축기는 내재된 비트 단위 압축기와 별반 다를 것 없이, 엄청 느릴 것입니다. |
--->
+
+[/COMMENT]
 
 ### 애니메이션
 

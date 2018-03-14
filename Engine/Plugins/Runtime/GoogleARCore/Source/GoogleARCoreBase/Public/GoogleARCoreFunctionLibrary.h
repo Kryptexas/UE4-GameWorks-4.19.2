@@ -3,40 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Kismet/BlueprintFunctionLibrary.h"
-#include "GoogleARCorePrimitives.h"
-#include "GoogleARCoreAnchor.h"
-#include "GoogleARCoreAnchorActor.h"
 #include "Engine/LatentActionManager.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
+
+#include "GoogleARCoreTypes.h"
+#include "GoogleARCoreSessionConfig.h"
 #include "GoogleARCoreFunctionLibrary.generated.h"
-
-/**
- * @ingroup GoogleARCoreBase
- * Describes whether Google ARCore is supported on a device.
- */
-UENUM(BlueprintType)
-enum class EGoogleARCoreSupportEnum : uint8
-{
-	/** Google ARCore is not supported. */
-	NotSupported,
-	/** Google ARCore is supported. */
-	Supported,
-};
-
-/**
- * @ingroup GoogleARCoreBase
- * Describes the Google ARCore session status.
- */
-UENUM(BlueprintType)
-enum class EGoogleARCoreSessionStatus : uint8
-{
-	/** Tracking session hasn't started yet.*/
-	NotStarted,
-	/** Tracking session has started but hasn't got valid tracking data yet.*/
-	NotTracking,
-	/** Tracking session is currently tracking.*/
-	Tracking
-};
 
 /** A function library that provides static/Blueprint functions associated with GoogleARCore session.*/
 UCLASS()
@@ -46,168 +18,107 @@ class GOOGLEARCOREBASE_API UGoogleARCoreSessionFunctionLibrary : public UBluepri
 
 public:
 	//-----------------Lifecycle---------------------
-	/**
-	 * Checks whether Google ARCore is supported.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Session|Configuration", meta = (Keywords = "googlear googlearcore supported"))
-	static EGoogleARCoreSupportEnum IsGoogleARCoreSupported();
 
 	/**
-	 * Gets a copy of the current FGoogleARCoreSessionConfig that Google ARCore is configured with.
+	 * A Latent Action to check the availability of ARCore on this device.
+	 * This may initiate a query with a remote service to determine if the device is supported by ARCore. The Latent Action will complete when the check is finished.
 	 *
-	 * @param OutCurrentTangoConfig		Return a copy of the current session configuration.
+	 * @param OutAvailability	The availability result as a EGoogleARCoreAvailability.
 	 */
-	UFUNCTION(BlueprintPure, Category = "GoogleARCore|Session|Configuration", meta = (Keywords = "googlear googlearcore config"))
-	static void GetCurrentSessionConfig(FGoogleARCoreSessionConfig& OutCurrentTangoConfig);
+	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Availability", meta = (Latent, LatentInfo = "LatentInfo", WorldContext = "WorldContextObject", Keywords = "googlear arcore availability"))
+	static void CheckARCoreAvailability(UObject* WorldContextObject, struct FLatentActionInfo LatentInfo, EGoogleARCoreAvailability& OutAvailability);
 
 	/**
-	 * Gets a list of the required runtime permissions for the current configuration suitable
-	 * for use with the AndroidPermission plugin.
+	 * A Latent Action to initiates installation of ARCore if required.
+	 * This function may cause your application be paused if installing ARCore is required.
 	 *
-	 * @param OutRuntimePermissions		The returned runtime permissions.
+	 * @param OutInstallResult	The install request result as a EGoogleARCoreInstallRequestResult.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Session|Configuration", meta = (Keywords = "googlear googlearcore permission"))
-	static void GetSessionRequiredRuntimPermissions(TArray<FString>& OutRuntimePermissions)
-	{
-		FGoogleARCoreSessionConfig Config;
-		GetCurrentSessionConfig(Config);
-		GetSessionRequiredRuntimPermissionsWithConfig(Config, OutRuntimePermissions);
-	}
-
+	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Availability", meta = (Latent, LatentInfo = "LatentInfo", WorldContext = "WorldContextObject", Keywords = "googlear arcore availability"))
+	static void InstallARCoreService(UObject* WorldContextObject, struct FLatentActionInfo LatentInfo, EGoogleARCoreInstallRequestResult& OutInstallResult);
+	
 	/**
-	 * Gets a list of the required runtime permissions for the given configuration suitable
-	 * for use with the AndroidPermission plugin.
+	 * A polling function to check the ARCore availability in C++.
+	 * This may initiate a query with a remote service to determine if the device is supported by ARCore, so this function will EGoogleARCoreAvailability::UnkownChecking.
 	 *
-	 * @param Configuration				The configuration to check for permission.
-	 * @param OutRuntimePermissions		The returned runtime permission.
+	 * @return	The availability result as a EGoogleARCoreAvailability.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Session|Configuration", meta = (Keywords = "googlear googlearcore permission"))
-	static void GetSessionRequiredRuntimPermissionsWithConfig(const FGoogleARCoreSessionConfig& Configuration, TArray<FString>& OutRuntimePermissions);
-
+	static EGoogleARCoreAvailability CheckARCoreAvailableStatus();
+	
 	/**
-	 * Returns the current ARCore session status.
+	 * Initiates installation of ARCore if required.
+	 * This function will return immediately and may pause your application if installing ARCore is required.
 	 *
-	 * @return	A EGoogleARCoreSessionStatus enum that describes the session status.
+	 * @return EGoogleARCoreInstallStatus::Requrested if it started a install request.
 	 */
-	UFUNCTION(BlueprintPure, Category = "GoogleARCore|Session|Lifecycle", meta = (Keywords = "googlear googlearcore session"))
-	static EGoogleARCoreSessionStatus GetSessionStatus();
+	static EGoogleARCoreInstallStatus RequestInstallARCoreAPK();
+	
+	/**
+	 * A polling function to check the ARCore install request result in C++.
+	 * After you call RequestInstallARCoreAPK() and it returns EGoogleARCoreInstallStatus::Requrested. You can call this function to check the install requst result.
+	 *
+	 * @return The install request result as a EGoogleARCoreInstallRequestResult.
+	 */
+	static EGoogleARCoreInstallRequestResult GetARCoreAPKInstallResult();
 
 	/**
-	 * Starts the ARCore tracking session with the current configuration.
-	 * Note: only valid if AutoConnect is false in your settings.
+	 * Starts a new ARCore tracking session GoogleARCore specific configuration.
+	 * If the session already started and the config isn't the same, it will stop the previous session and start a new session with the new config.
+	 * Note that this is a latent action, you can query the session start result by querying GetARCoreSessionStatus() after the latent action finished.
+	 *
+	 * @param Configuration				The ARCoreSession configuration to start the session.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Session|Lifecycle", meta = (Keywords = "googlear googlearcore session"))
-	static void StartSession();
-
-	/**
-	 * Starts a new ARCore tracking session with the provided configuration.
-	 * Note: only valid if AutoConnect is false in your settings.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Session|Lifecycle", meta = (Keywords = "googlear googlearcore session config"))
-	static void StartSessionWithConfig(const FGoogleARCoreSessionConfig& Configuration);
-
-	/**
-	 * Stops the current ARCore tracking session.
-	 * Note: only valid if AutoConnect is false in your settings.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Session|Lifecycle", meta = (Keywords = "googlear googlearcore session"))
-	static void StopSession();
+	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Session", meta = (Latent, LatentInfo = "LatentInfo", WorldContext = "WorldContextObject", Keywords = "googlear arcore session start config"))
+	static void StartARCoreSession(UObject* WorldContextObject, struct FLatentActionInfo LatentInfo, UGoogleARCoreSessionConfig* Configuration);
 
 	//-----------------PassthroughCamera---------------------
-
 	/**
-	 * Returns the state of the passthrough camera rendering in GoogleARCore HMD.
+	 * Returns the state of the passthrough camera rendering in GoogleARCore ARSystem.
 	 *
-	 * @return	True if the passthrough camera is enabled.
+	 * @return	True if the passthrough camera rendering is enabled.
 	 */
-	UFUNCTION(BlueprintPure, Category = "GoogleARCore|Session|PassthroughCamera", meta = (Keywords = "googlear googlearcore passthrough camera"))
+	UFUNCTION(BlueprintPure, Category = "GoogleARCore|PassthroughCamera", meta = (Keywords = "googlear arcore passthrough camera"))
 	static bool IsPassthroughCameraRenderingEnabled();
 
 	/**
-	 * Enables/Disables the passthrough camera rendering in GoogleARCore HMD.
+	 * Enables/Disables the passthrough camera rendering in GoogleARCore ARSystem.
 	 * Note that when passthrough camera rendering is enabled, the camera FOV will be forced
 	 * to match FOV of the physical camera on the device.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Session|PassthroughCamera", meta = (Keywords = "googlear googlearcore passthrough camera"))
+	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|PassthroughCamera", meta = (Keywords = "googlear arcore passthrough camera"))
 	static void SetPassthroughCameraRenderingEnabled(bool bEnable);
 
 	/**
 	 * Gets the texture coordinate information about the passthrough camera texture.
 	 *
-	 * @return	An array of texture coordinates that can be used to sample the camera texture
-	 * correctly based on the current screen size.
+	 * @param InUV		The original UVs of on the quad. Should be an array with 8 floats.
+	 * @param OutUV		The orientated UVs that can be used to sample the passthrough camera texture and make sure it is displayed correctly.
 	 */
-	UFUNCTION(BlueprintPure, Category = "GoogleARCore|Session|PassthroughCamera", meta = (Keywords = "googlear googlearcore passthrough camera uv"))
-	static void GetPassthroughCameraImageUV(TArray<FVector2D>& CameraImageUV);
+	UFUNCTION(BlueprintPure, Category = "GoogleARCore|PassthroughCamera", meta = (Keywords = "googlear arcore passthrough camera uv"))
+	static void GetPassthroughCameraImageUV(const TArray<float>& InUV, TArray<float>& OutUV);
 
-	//------------------ARAnchor---------------------
+	//-------------------Trackables-------------------------
 	/**
-	 * Spawns a GoogleARCoreAnchorActor and creates a GoogleARCoreAnchor object at the given
-	 * world transform to provide a fixed reference point in the real world. The
-	 * GoogleARCoreAnchorActor will automatically update its transform using the latest pose
-	 * on the GoogleARCoreAnchor object.
+	 * Gets a list of all valid UARPlaneGeometry objects that ARCore is currently tracking.
+	 * Planes that have entered the EARTrackingState::StoppedTracking state or for which 
+	 * UARPlaneGeometry::GetSubsumedBy returns non-null will not be included.
 	 *
-	 * @param WorldContextObject		The world context.
-	 * @param ARAnchorActorClass		The class type of ARAnchor Actor. You can either use the GoogleARCoreAnchorActor or a subclass actor that inherits from it.
-	 * @param ARAnchorWorldTransform	The world transform where the ARAnchor Actor will be spawned.
-	 * @param OutARAnchorActor			The ARAnchorActor reference it spawns.
-	 * @return True if the Anchor Actor created successfully.
+	 * @param OutAnchorList		An array that contains all the valid planes detected by ARCore.
 	 */
-	UFUNCTION(BlueprintCallable,  Category = "GoogleARCore|Session|ARAnchor", meta = (WorldContext = "WorldContextObject", Keywords = "googlear googlearcore anchor aranchor"))
-	static bool SpawnARAnchorActor(UObject* WorldContextObject, UClass* ARAnchorActorClass, const FTransform& ARAnchorWorldTransform, AGoogleARCoreAnchorActor*& OutARAnchorActor);
+	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|TrackablePlane", meta = (Keywords = "googlear arcore all plane"))
+	static void GetAllPlanes(TArray<UARPlaneGeometry*>& OutPlaneList);
+	
+	/**
+	 * Gets a list of all valid UARTrackedPoint objects that ARCore is currently tracking.
+	 * TrackablePoint that have entered the EARTrackingState::StoppedTracking state will not be included.
+	 *
+	 * @param OutAnchorList		An array that contains all the valid planes detected by ARCore.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|TrackablePoint", meta = (Keywords = "googlear arcore pose transform"))
+	static void GetAllTrackablePoints(TArray<UARTrackedPoint*>& OutTrackablePointList);
 
-	/**
-	 * Creates a GoogleARCoreAnchor object at the given world transform to provide a fixed
-	 * reference point in the real world that can update to reflect changing knowledge of
-	 * the scene. You can either use the ARAnchor object directly by querying the pose or
-	 * hook it up with an ARAnchorActor.
-	 *
-	 * @param ARAnchorWorldTransform	The world transform where the anchor is at.
-	 * @param OutARAnchorObject			The ARAnchor object reference it created.
-	 * @return True if the Anchor Actor created successfully.
-	 */
-	UFUNCTION(BlueprintCallable,  Category = "GoogleARCore|Session|ARAnchor", meta = (Keywords = "googlear googlearcore anchor aranchor"))
-	static bool CreateARAnchorObject(const FTransform& ARAnchorWorldTransform, UGoogleARCoreAnchor*& OutARAnchorObject);
-
-	/**
-	 * Removes the ARAnchor object from the current tracking session. After removal, the
-	 * ARAnchor object will stop updating the pose and will be garbage collected if no
-	 * other reference is kept.
-	 *
-	 * @param ARAnchorObject	ARAnchor object reference to be removed.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Session|ARAnchor", meta = (Keywords = "googlear googlearcore anchor aranchor remove"))
-	static void RemoveGoogleARAnchorObject(UGoogleARCoreAnchorBase* ARAnchorObject);
-
-	//-------------------HitTest-------------------------
-	/**
-	 * Traces a ray against the feature point cloud and returns the feature point that is
-	 * closest to the ray.
-	 *
-	 * @param WorldContextObject	The world context.
-	 * @param Start					Start location of the ray.
-	 * @param End					End location of the ray.
-	 * @param ImpactPoint			The world location of the closest feature point.
-	 * @return						True if there is a hit detected.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Session|LineTrace", meta = (WorldContext = "WorldContextObject", Keywords = "googlear googlearcore raycast hit"))
-	static bool LineTraceSingleOnFeaturePoints(UObject* WorldContextObject, const FVector& Start, const FVector& End, FVector& ImpactPoint);
-
-	/**
-	 * Traces a ray against all the planes detected by GoogleARCore and returns the first
-	 * hit point and the plane.
-	 *
-	 * @param WorldContextObject	The world context.
-	 * @param Start					Start location of the ray.
-	 * @param End					End location of the ray.
-	 * @param ImpactPoint			The world location of the hit test.
-	 * @param ImpactNormal			The world normal of the hit test.
-	 * @param OutPlaneObject		The plane object that the hit test detected.
-	 * @param bCheckBoundingBoxOnly	When set to true, the hit test will only test against the plane bounding box instead of the polygon.
-	 * @return						True if there is a hit detected.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Session|LineTrace", meta = (WorldContext = "WorldContextObject", Keywords = "googlear googlearcore raycast hit"))
-	static bool LineTraceSingleOnPlanes(UObject* WorldContextObject, const FVector& Start, const FVector& End, FVector& ImpactPoint, FVector& ImpactNormal, UGoogleARCorePlane*& OutPlaneObject, bool bCheckBoundingBoxOnly = false);
+	/** Template function to get all trackables from a given type. */
+	template< class T > static void GetAllTrackable(TArray<T*>& OutTrackableList);
 };
 
 /** A function library that provides static/Blueprint functions associated with most recent GoogleARCore tracking frame.*/
@@ -218,42 +129,103 @@ class GOOGLEARCOREBASE_API UGoogleARCoreFrameFunctionLibrary : public UBlueprint
 
 public:
 	/**
-	 * Gets the latest tracking pose of the device or camera.
+	 * Returns the current ARCore session status.
+	 *
+	 * @return	A EARSessionStatus enum that describes the session status.
+	 */
+	UFUNCTION(BlueprintPure, Category = "GoogleARCore|MotionTracking", meta = (Keywords = "googlear arcore session"))
+	static EGoogleARCoreTrackingState GetTrackingState();
+
+	/**
+	 * Gets the latest tracking pose in Unreal world space of the ARCore device.
 	 *
 	 * Note that ARCore motion tracking has already integrated with HMD and the motion controller interface.
 	 * Use this function only if you need to implement your own tracking component.
 	 *
-	 * @param PoseType			The type of pose to query.
-	 * @param OutTangoPose		The requested pose data.
-	 * @return					True if the pose is updated successfully for this frame.
+	 * @param OutPose		The latest device pose.
+	 * @return				True if the pose is updated successfully for this frame.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Frame|Motion", meta = (Keywords = "googlear googlearcore pose transform"))
-	static bool GetLatestPose(EGoogleARCorePoseType PoseType, FGoogleARCorePose& OutTangoPose);
+	UFUNCTION(BlueprintPure, Category = "GoogleARCore|MotionTracking", meta = (Keywords = "googlear arcore pose transform"))
+	static void GetPose(FTransform& OutPose);
 
 	/**
-	 * Gets a list of all the GoogleARCorePlane objects that are tracked by the tracking session.
+	 * Traces a ray from the user's device in the direction of the given location in the camera
+	 * view. Intersections with detected scene geometry are returned, sorted by distance from the
+	 * device; the nearest intersection is returned first.
 	 *
-	 * @param OutARCorePlaneList	A list of pointers to GoogleARCorePlane objects.
+	 * @param WorldContextObject	The world context.
+	 * @param ScreenPosition		The position on the screen to cast the ray from.
+	 * @param ARObjectType			A set of EGoogleARCoreLineTraceChannel indicate which type of line trace it should perform.
+	 * @param OutHitResults			The list of hit results sorted by distance.
+	 * @return						True if there is a hit detected.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Frame|Plane", meta = (Keywords = "googlear googlearcore pose transform"))
-	static void GetAllPlanes(TArray<UGoogleARCorePlane*>& OutARCorePlaneList);
+	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|LineTrace", meta = (WorldContext = "WorldContextObject", Keywords = "googlear arcore raycast hit"))
+	static bool ARCoreLineTrace(UObject* WorldContextObject, const FVector2D& ScreenPosition, TSet<EGoogleARCoreLineTraceChannel> TraceChannels, TArray<FARTraceResult>& OutHitResults);
 
 	/**
-	 * Gets the latest light estimation based on the passthrough camera image.
+	 * Gets a list of UARPin objects that were changed in this frame.
 	 *
-	 * @param OutPixelIntensity		The average pixel intensity of the latest passthrough camera image.
+	 * @param OutAnchorList		An array that contains the updated UARPin.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|Frame|LightEstimation", meta = (Keywords = "googlear googlearcore light ambient"))
-	static void GetLatestLightEstimation(float& OutPixelIntensity);
+	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|ARAnchor", meta = (Keywords = "googlear arcore Anchor"))
+	static void GetUpdatedARPins(TArray<UARPin*>& OutAnchorList);
 
 	/**
-	 * Gets the raw pointer to the latest point cloud in local space and the pose associated to it.
-	 * You can use the LocalToWorldTransfrom in the struct to transform the point to Unreal world space.
-	 * Note that the OutPointCloudData is only guaranteed to be valid for one frame. C++ only.
-
-	 * @return  A FGoogleARCorePointCloud struct that contains a pointer to the raw point cloud data, its ARCore timestamp and a localToWorld transform.
+	 * Gets a list of UARPlaneGeometry objects that were changed in this frame.
+	 *
+	 * @param OutARCorePlaneList	An array that contains the updated UARPlaneGeometry.
 	 */
-	static FGoogleARCorePointCloud GetLatestPointCloud();
+	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|TrackablePlane", meta = (Keywords = "googlear arcore pose transform"))
+	static void GetUpdatedPlanes(TArray<UARPlaneGeometry*>& OutPlaneList);
 
+	/**
+	 * Gets a list of UARTrackedPoint objects that were changed in this frame.
+	 *
+	 * @param OutARCorePlaneList	An array that contains the updated UARTrackedPoint.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|TrackablePoint", meta = (Keywords = "googlear arcore pose transform"))
+	static void GetUpdatedTrackablePoints(TArray<UARTrackedPoint*>& OutTrackablePointList);
+
+	/** Template function to get the updated trackables in this frame a given trackable type. */
+	template< class T > static void GetUpdatedTrackable(TArray<T*>& OutTrackableList);
+
+	/**
+	 * Gets the latest light estimation.
+	 *
+	 * @param OutLightEstimate		The struct that describes the latest light estimation.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|LightEstimation", meta = (Keywords = "googlear arcore light ambient"))
+	static void GetLightEstimation(FGoogleARCoreLightEstimate& OutLightEstimate);
+
+	/**
+	 * Gets the latest point cloud that will be only available for this frame.
+	 * If you want to keep the point cloud data, you can either copy it to your own struct 
+	 * or call AcquireLatestPointCloud() to avoid the copy.
+	 * 
+	 * @param OutLatestPointCloud		A pointer point to the latest point cloud.
+	 * @return  An EGoogleARCoreFunctionStatus. Possible value: Success, SessionPaused, ResourceExhausted.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|PointCloud", meta = (Keywords = "googlear arcore pointcloud"))
+	static EGoogleARCoreFunctionStatus GetPointCloud(UGoogleARCorePointCloud*& OutLatestPointCloud);
+
+	/**
+	 * Acquires latest point cloud. This will make the point cloud remain valid unless you call UGoogleARCrePointCloud::ReleasePointCloud().
+	 * Be aware that this function could fail if the maximal number of point cloud has been acquired.
+	 *
+	 * @param OutLatestPointCloud		A pointer point to the latest point cloud.
+	 * @return  An EGoogleARCoreFunctionStatus. Possible value: Success, SessionPaused, ResourceExhausted.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoogleARCore|PointCloud", meta = (Keywords = "googlear arcore pointcloud"))
+	static EGoogleARCoreFunctionStatus AcquirePointCloud(UGoogleARCorePointCloud*& OutLatestPointCloud);
+
+#if PLATFORM_ANDROID
+	/**
+	 * Gets the camera metadata for the latest camera image.
+	 * Note that ACameraMetadata is a Ndk type. Include the Ndk header <camera/NdkCameraMetadata.h> to use query value from ACameraMetadata.
+	 *
+	 * @param OutCameraMetadata		A pointer to a ACameraMetadata struct which is only valid in one frame.
+	 * @return An EGoogleARCoreFunctionStatus. Possible value: Success, SessionPaused, NotAvailable.
+	 */
+	static EGoogleARCoreFunctionStatus GetCameraMetadata(const ACameraMetadata*& OutCameraMetadata);
+#endif
 };
-

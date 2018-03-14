@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -27,7 +27,11 @@ public:
 	//~ End UMaterialExpression Interface
 
 	/** Return whether this is the named parameter, and fill in its value */
-	bool IsNamedParameter(FName InParameterName, bool& OutValue, FGuid& OutExpressionGuid) const;
+	bool IsNamedParameter(const FMaterialParameterInfo& ParameterInfo, bool& OutValue, FGuid& OutExpressionGuid) const;
+
+#if WITH_EDITOR
+	bool SetParameterValue(FName InParameterName, bool OutValue, FGuid InExpressionGuid);
+#endif
 };
 
 

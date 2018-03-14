@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 namespace UnrealBuildTool.Rules
 {
@@ -58,11 +58,11 @@ namespace UnrealBuildTool.Rules
                 PublicIncludePaths.Add(Target.UEThirdPartySourceDirectory + "NotForLicensees/Apsalar/IOS/");
                 PublicAdditionalLibraries.Add(Target.UEThirdPartySourceDirectory + "NotForLicensees/Apsalar/IOS/libApsalar.a");
 
-                Definitions.Add("WITH_APSALAR=1");
+                PublicDefinitions.Add("WITH_APSALAR=1");
             }
             else
             {
-                Definitions.Add("WITH_APSALAR=0");
+                PublicDefinitions.Add("WITH_APSALAR=0");
             }
         }
 	}

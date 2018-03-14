@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PartyGameState.h"
 #include "Engine/LocalPlayer.h"
@@ -78,9 +78,7 @@ void UPartyGameState::OnShutdown()
 	UPartyGameState* This = CastChecked<UPartyGameState>(InThis);
 	check(This);
 
-	TArray<UPartyMemberState*> PartyMembers;
-	This->PartyMembersState.GenerateValueArray(PartyMembers);
-	Collector.AddReferencedObjects(PartyMembers);
+	Collector.AddReferencedObjects(This->PartyMembersState);
 }
 
 void UPartyGameState::RegisterFrontendDelegates()
@@ -910,9 +908,16 @@ void UPartyGameState::SetPartyMaxSize(int32 NewSize)
 	{
 		if (CurrentConfig.MaxMembers != NewSize)
 		{
-			UParty* Party = GetPartyOuter();
-			CurrentConfig.MaxMembers = FMath::Clamp(NewSize, 1, Party->GetDefaultPartyMaxSize());
-			UpdatePartyConfig();
+			if (IsLocalPartyLeader())
+			{
+				UParty* Party = GetPartyOuter();
+				CurrentConfig.MaxMembers = FMath::Clamp(NewSize, 1, Party->GetDefaultPartyMaxSize());
+				UpdatePartyConfig();
+			}
+			else
+			{
+				UE_LOG(LogParty, Warning, TEXT("Non party leader trying to change max size!"));
+			}
 		}
 	}
 	else

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1. 월드에 카메라 배치
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/AutoCamera
@@ -20,7 +20,7 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:tip]**언리얼 엔진 4** 가 처음이신 경우, [%Programming\QuickStart:title% 튜토리얼](Programming\QuickStart) 먼저 읽어보실 것을 권합니다. 이 튜토리얼은 프로젝트 생성, C++ 코드 추가, 컴파일, **언리얼 에디터** 에서 **액터** 에 **컴포넌트** 추가 등이 익숙하신 분들을 대상으로 합니다.[/REGION]
 
@@ -51,4 +51,4 @@ version: 4.9
 
 월드 구성이 완료되었으니, 카메라 뷰를 제어할 클래스를 만들 준비가 되었습니다.
 
-%Steps%
+

@@ -1,7 +1,6 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ScreenShotManager.h"
-
 #include "AutomationWorkerMessages.h"
 #include "Async/Async.h"
 #include "HAL/FileManager.h"
@@ -10,11 +9,13 @@
 #include "Misc/Paths.h"
 #include "Misc/EngineVersion.h"
 #include "Misc/FilterCollection.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Modules/ModuleManager.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "JsonObjectConverter.h"
 
+DEFINE_LOG_CATEGORY(LogScreenShotManager);
 
 class FScreenshotComparisons
 {
@@ -43,6 +44,8 @@ FScreenShotManager::FScreenShotManager()
 
 	// Clear previous comparison results from the local comparison folder.
 	//IFileManager::Get().DeleteDirectory(*ComparisonResultsRoot, false, true);
+
+	BuildFallbackPlatformsListFromConfig();
 }
 
 FString FScreenShotManager::GetLocalUnapprovedFolder() const
@@ -63,14 +66,16 @@ FString FScreenShotManager::GetLocalComparisonFolder() const
 /* IScreenShotManager event handlers
  *****************************************************************************/
 
-TFuture<FImageComparisonResult> FScreenShotManager::CompareScreensotAsync(FString RelativeImagePath)
+TFuture<FImageComparisonResult> FScreenShotManager::CompareScreenshotAsync(FString RelativeImagePath)
 {
-	return Async<FImageComparisonResult>(EAsyncExecution::Thread, [&] () { return CompareScreensot(RelativeImagePath); });
+	return Async<FImageComparisonResult>(EAsyncExecution::Thread, [=] () { return CompareScreenshot(RelativeImagePath); });
 }
 
-FImageComparisonResult FScreenShotManager::CompareScreensot(FString ExistingImage)
+FImageComparisonResult FScreenShotManager::CompareScreenshot(FString ExistingImage)
 {
 	FString Existing = FPaths::GetPath(ExistingImage);
+	FString TestRoot = FPaths::GetPath(FPaths::GetPath(Existing));
+	FString CurrentPlatformRHI = Existing.RightChop(TestRoot.Len());
 
 	FImageComparer Comparer;
 	Comparer.ImageRootA = ScreenshotApprovedFolder;
@@ -87,10 +92,27 @@ FImageComparisonResult FScreenShotManager::CompareScreensot(FString ExistingImag
 	TArray<FString> ApprovedDeviceShots;
 	IFileManager::Get().FindFilesRecursive(ApprovedDeviceShots, *TestApprovedFolder, TEXT("*.png"), true, false);
 
+	// If failed to find any approved shots, walk fallback hierarchy
+	//	Note: This will stop at the first valid folder, should potentially compare against each
+	//	hierarchy level then recurse to the next looking for valid shots
+	while (ApprovedDeviceShots.Num() == 0)
+	{
+		FString* FallbackPlatformRHI = FallbackPlatforms.Find(CurrentPlatformRHI);
+		if (!FallbackPlatformRHI)
+		{
+			break;
+		}
+
+		CurrentPlatformRHI = *FallbackPlatformRHI;
+		TestApprovedFolder = ScreenshotApprovedFolder + TestRoot + CurrentPlatformRHI;
+				
+		IFileManager::Get().FindFilesRecursive(ApprovedDeviceShots, *TestApprovedFolder, TEXT("*.png"), true, false);
+	}
+
 	FImageComparisonResult ComparisonResult;
 
-	// We can't find a ground truth, so it's a new comparison.
-	if ( ApprovedDeviceShots.Num() > 0 )
+	// Use found shots as ground truth
+	if (ApprovedDeviceShots.Num() > 0)
 	{
 		// Load the metadata for the incoming unapproved image.
 		FString UnapprovedFileName = FPaths::GetCleanFilename(ExistingImage);
@@ -176,6 +198,7 @@ FImageComparisonResult FScreenShotManager::CompareScreensot(FString ExistingImag
 	}
 	else
 	{
+		// We can't find a ground truth, so it's a new comparison.
 		ComparisonResult.IncomingFile = ExistingImage;
 	}
 
@@ -220,7 +243,7 @@ FImageComparisonResult FScreenShotManager::CompareScreensot(FString ExistingImag
 
 TFuture<FScreenshotExportResults> FScreenShotManager::ExportComparisonResultsAsync(FString ExportPath)
 {
-	return Async<FScreenshotExportResults>(EAsyncExecution::Thread, [&] () { return ExportComparisonResults(ExportPath); });
+	return Async<FScreenshotExportResults>(EAsyncExecution::Thread, [=] () { return ExportComparisonResults(ExportPath); });
 }
 
 FScreenshotExportResults FScreenShotManager::ExportComparisonResults(FString RootExportFolder)
@@ -303,5 +326,47 @@ void FScreenShotManager::CopyDirectory(const FString& DestDir, const FString& Sr
 		FString DestFilePath = DestDir / SourceFilePath.RightChop(SrcDir.Len());
 
 		IFileManager::Get().Copy(*DestFilePath, *File, true, true);
+	}
+}
+
+void FScreenShotManager::BuildFallbackPlatformsListFromConfig()
+{
+	FallbackPlatforms.Empty();
+	if (GConfig)
+	{
+		for (const TPair<FString,FConfigFile>& Config : *GConfig)
+		{
+			FConfigSection* FallbackSection = GConfig->GetSectionPrivate(TEXT("AutomationTestFallbackHierarchy"), false, true, Config.Key);
+			if (FallbackSection)
+			{
+				// Parse all fallback definitions of the format "FallbackPlatform=(Child=/Platform/RHI, Parent=/Platform/RHI)"
+				for (FConfigSection::TIterator Section(*FallbackSection); Section; ++Section)
+				{
+					if (Section.Key() == TEXT("FallbackPlatform"))
+					{
+						FString FallbackValue = Section.Value().GetValue();
+						FString Child, Parent;
+						bool bSuccess = false;
+
+						if (FParse::Value(*FallbackValue, TEXT("Child="), Child, true) && FParse::Value(*FallbackValue, TEXT("Parent="), Parent, true))
+						{
+							// These are used as folders so ensure they match the expected layout
+							if (Child.StartsWith(TEXT("/")) && Parent.StartsWith(TEXT("/")))
+							{
+								// Append or override, could error here instead
+								FString& Fallback = FallbackPlatforms.FindOrAdd(Child);
+								Fallback = Parent;
+								bSuccess = true;
+							}
+						}
+						
+						if (!bSuccess)
+						{
+							UE_LOG(LogScreenShotManager, Error, TEXT("Invalid fallback platform definition: '%s'"), *FallbackValue);
+						}
+					}
+				}
+			}
+		}
 	}
 }

@@ -87,7 +87,8 @@ At this point, you should be able to debug and modify the Nativized code at your
 
 [/PUBLISH:Licensee]
 
-<!--Commented out per SME; however, it's being preserved for future review.
+[COMMENT:none]
+Commented out per SME; however, it's being preserved for future review.
 
 1. Run the following lines. They can be found in your output log when your nativized build is packaged, so it's easiest to copy them out to verify that the switches 
 are correct for your environment. Just change the `Development` switch to `Debug`. 
@@ -100,4 +101,5 @@ are correct for your environment. Just change the `Development` switch to `Debug
 
 3. Run debug in Visual Studio, but do not recompile the project from Visual Studio.
 
--->
+
+[/COMMENT]

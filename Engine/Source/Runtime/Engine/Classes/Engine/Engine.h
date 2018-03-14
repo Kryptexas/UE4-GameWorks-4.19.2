@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -100,6 +100,20 @@ enum EConsoleType
 	CONSOLE_Any,
 	CONSOLE_Mobile,
 	CONSOLE_MAX,
+};
+
+/** Status of dynamic resolution that depends on project setting cvar, game user settings, and pause */
+enum class EDynamicResolutionStatus
+{
+	// Dynamic resolution is disabled by project setting cvar r.DynamicRes.OperationMode=0 or disabled by game user
+	// settings with r.DynamicRes.OperationMode=1.
+	Disabled,
+
+	// Dynamic resolution has been paused by game thread.
+	Paused,
+
+	// Dynamic resolution is currently enabled.
+	Enabled
 };
 
 
@@ -565,6 +579,10 @@ struct FPluginRedirect
 	UPROPERTY()
 	FString NewPluginName;
 };
+
+
+/** Game thread events for dynamic resolution state. */
+enum class EDynamicResolutionStateEvent : uint8;
 
 
 class IAnalyticsProvider;
@@ -1562,6 +1580,85 @@ public:
 	 * Restores the selected material color back to the user setting
 	 */
 	void RestoreSelectedMaterialColor();
+
+	/** Returns the current status of dynamic resolution. */
+	EDynamicResolutionStatus GetDynamicResolutionStatus() const;
+
+	/** Pause dynamic resolution for this frame. */
+	void PauseDynamicResolution();
+
+	/** Resume dynamic resolution for this frame. */
+	FORCEINLINE void ResumeDynamicResolution()
+	{
+		#if !UE_SERVER
+			bIsDynamicResolutionPaused = false;
+			UpdateDynamicResolutionStatus();
+		#endif // !UE_SERVER
+	}
+
+	/** Emit an event for dynamic resolution if not already done. */
+	void EmitDynamicResolutionEvent(EDynamicResolutionStateEvent Event);
+
+	/** Get's global dynamic resolution state */
+	FORCEINLINE class IDynamicResolutionState* GetDynamicResolutionState()
+	{
+		#if UE_SERVER
+			return nullptr;
+		#else
+			// Returns next's frame dynamic resolution state to keep game thread consistency after a ChangeDynamicResolutionStateAtNextFrame().
+			check(NextDynamicResolutionState.IsValid() || IsRunningCommandlet() || IsRunningDedicatedServer());
+			return NextDynamicResolutionState.Get();
+		#endif
+	}
+
+	/** Override dynamic resolution state for next frame.
+	 * Old dynamic resolution state will be disabled, and the new one will be enabled automatically at next frame.
+	 */
+	void ChangeDynamicResolutionStateAtNextFrame(TSharedPtr< class IDynamicResolutionState > NewState);
+
+	/** Get the user setting for dynamic resolution. */
+	FORCEINLINE bool GetDynamicResolutionUserSetting() const
+	{
+		#if UE_SERVER
+			return false;
+		#else
+			return bDynamicResolutionEnableUserSetting;
+		#endif
+	}
+
+	/** Set the user setting for dynamic resolution. */
+	FORCEINLINE void SetDynamicResolutionUserSetting(bool Enable)
+	{
+		#if !UE_SERVER
+			bDynamicResolutionEnableUserSetting = Enable;
+			UpdateDynamicResolutionStatus();
+		#endif
+	}
+
+
+	#if !UE_SERVER
+private:
+		/** Last dynamic resolution event. */
+		EDynamicResolutionStateEvent LastDynamicResolutionEvent;
+
+		/** Global state for dynamic resolution's heuristic. */
+		TSharedPtr< class IDynamicResolutionState > DynamicResolutionState;
+
+		/** Next frame's Global state for dynamic resolution's heuristic. */
+		TSharedPtr< class IDynamicResolutionState > NextDynamicResolutionState;
+
+		/** Whether dynamic resolution is paused or not. */
+		bool bIsDynamicResolutionPaused;
+
+		/** Game user setting for dynamic resolution that has been committed. */
+		bool bDynamicResolutionEnableUserSetting;
+
+		/** Returns whether should be enabled or not. */
+		bool ShouldEnableDynamicResolutionState() const;
+
+		/** Enable/Disable dynamic resolution state according to ShouldEnableDynamicResolutionState(). */
+		void UpdateDynamicResolutionStatus();
+	#endif
 
 protected:
 

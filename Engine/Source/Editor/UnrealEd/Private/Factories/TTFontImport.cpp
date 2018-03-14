@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TTFontImport.cpp: True-type Font Importing
@@ -1660,6 +1660,11 @@ void* UTrueTypeFontFactory::LoadFontFace( void* FTLibrary, int32 Height, FFeedba
 }
 
 #elif PLATFORM_LINUX
+void* UTrueTypeFontFactory::LoadFontFace( void* FTLibrary, int32 Height, FFeedbackContext* Warn, void** OutFontData )
+{
+	STUBBED("UTrueTypeFontFactory::LoadFontFace");
+	return nullptr;
+}
 #else 
 #error "Unknown platform"
 #endif

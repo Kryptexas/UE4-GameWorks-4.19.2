@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Private/Lws/LwsWebSocket.h"
 
@@ -10,7 +10,7 @@
 #include "Ssl.h"
 #include "Misc/ScopeLock.h"
 
-// FLwsSendBuffer
+// FLwsSendBuffer 
 FLwsSendBuffer::FLwsSendBuffer(const uint8* Data, SIZE_T Size, bool bInIsBinary)
 	: bIsBinary(bInIsBinary)
 	, BytesWritten(0)
@@ -290,7 +290,7 @@ int FLwsWebSocket::LwsCallback(lws* Instance, lws_callback_reasons Reason, void*
 			State == EState::ClosingByRequest)
 		{
 			LwsConnection = nullptr;
-			const bool bPeerSpecifiedReason = CloseReasonString.IsEmpty();
+			const bool bPeerSpecifiedReason = !CloseReasonString.IsEmpty();
 			if (!bPeerSpecifiedReason)
 			{
 				CloseReasonString = TEXT("Peer did not specify a reason for initiating the closing");
@@ -417,9 +417,10 @@ int FLwsWebSocket::LwsCallback(lws* Instance, lws_callback_reasons Reason, void*
 	{
 		if (!UpgradeHeader.IsEmpty())
 		{
-			// FIXME: Should probably use strcat but libws suggests snprintf (https://libwebsockets.org/lws-api-doc-master/html/)
 			char** WriteableString = reinterpret_cast<char**>(Data);
-			*WriteableString += FCStringAnsi::Snprintf(*WriteableString, Length, TCHAR_TO_ANSI(*UpgradeHeader));
+			auto UpgradeHeaderAnsi = StringCast<ANSICHAR>(*UpgradeHeader);
+			FCStringAnsi::Strncpy(*WriteableString, UpgradeHeaderAnsi.Get(), Length);
+			*WriteableString += UpgradeHeaderAnsi.Length();
 		}
 		break;
 	}
@@ -446,23 +447,20 @@ void FLwsWebSocket::GameThreadTick()
 		LastGameThreadState = CurrentState;
 	}
 
-	if (CurrentState == EState::Connected)
+	// If we requested a close then we don't care about any messages we receive
+	// No lock, only this thread will modify CloseRequest
+	if (CloseRequest.Code == 0)
 	{
-		// If we requested a close then we don't care about any messages we receive
-		// No lock, only this thread will modify CloseRequest
-		if (CloseRequest.Code == 0)
+		FLwsReceiveBufferTextPtr BufferText;
+		while (ReceiveTextQueue.Dequeue(BufferText))
 		{
-			FLwsReceiveBufferTextPtr BufferText;
-			while (ReceiveTextQueue.Dequeue(BufferText))
-			{
-				OnMessage().Broadcast(BufferText->Text);
-			}
+			OnMessage().Broadcast(BufferText->Text);
+		}
 
-			FLwsReceiveBufferBinaryPtr BufferBinary;
-			while (ReceiveBinaryQueue.Dequeue(BufferBinary))
-			{
-				OnRawMessage().Broadcast(BufferBinary->Payload.GetData(), BufferBinary->Payload.Num(), BufferBinary->BytesRemaining);
-			}
+		FLwsReceiveBufferBinaryPtr BufferBinary;
+		while (ReceiveBinaryQueue.Dequeue(BufferBinary))
+		{
+			OnRawMessage().Broadcast(BufferBinary->Payload.GetData(), BufferBinary->Payload.Num(), BufferBinary->BytesRemaining);
 		}
 	}
 }

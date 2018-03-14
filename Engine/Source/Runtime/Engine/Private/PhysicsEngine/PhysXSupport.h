@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysXSupport.h: PhysX support
@@ -69,8 +69,6 @@ const uint32 AggregateBodyShapesThreshold	   = 999999999;
 /////// UTILS
 
 
-/** Perform any deferred cleanup of resources (GPhysXPendingKillConvex etc) */
-ENGINE_API void DeferredPhysResourceCleanup();
 
 
 /** Calculates correct impulse at the body's center of mass and adds the impulse to the body. */
@@ -122,9 +120,7 @@ extern ENGINE_API TArray<PxHeightField*>	GPhysXPendingKillHeightfield;
 extern TArray<PxMaterial*>		GPhysXPendingKillMaterial;
 
 
-#if WITH_PHYSX
 extern const physx::PxQuat U2PSphylBasis;
-#endif // WITH_PHYSX
 
 /** Utility class to keep track of shared physics data */
 class FPhysxSharedData
@@ -134,8 +130,8 @@ public:
 	static void Initialize();
 	static void Terminate();
 
-	void Add(PxBase* Obj);
-	void Remove(PxBase* Obj)	{ if(Obj) { SharedObjects->remove(*Obj); } }
+	void Add(PxBase* Obj, const FString& OwnerName);
+	void Remove(PxBase* Obj);
 
 	const PxCollection* GetCollection()	{ return SharedObjects; }
 
@@ -143,6 +139,7 @@ public:
 private:
 	/** Collection of shared physx objects */
 	PxCollection* SharedObjects;
+	TMap<PxBase*, FString> OwnerNames;
 	
 	static FPhysxSharedData* Singleton;
 
@@ -389,11 +386,15 @@ public:
 			}
 		};
 				
+		size_t TotalSize = 0;
 		AllocationsByType.ValueSort(FSortBySize());
 		for( auto It=AllocationsByType.CreateConstIterator(); It; ++It )
 		{
+			TotalSize += It.Value();
 			Ar->Logf(TEXT("%-10d %s"), It.Value(), *It.Key().ToString());
 		}
+
+		Ar->Logf(TEXT("Total:%-10d"), TotalSize);
 	}
 #endif
 
@@ -566,7 +567,6 @@ public:
  * @returns						Size of the object in bytes determined by serialization
  **/
 ENGINE_API SIZE_T GetPhysxObjectSize(PxBase* Obj, const PxCollection* SharedCollection);
-#endif // WITH_PHYSX
 
 /** Helper struct holding physics body filter data during initialisation */
 struct FShapeFilterData
@@ -600,3 +600,4 @@ struct FShapeData
 	PxRigidBodyFlags SyncBodyFlags;
 	PxRigidBodyFlags AsyncBodyFlags;
 };
+#endif // WITH_PHYSX

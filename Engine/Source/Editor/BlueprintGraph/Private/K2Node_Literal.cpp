@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "K2Node_Literal.h"
@@ -71,13 +71,12 @@ UK2Node_Literal::UK2Node_Literal(const FObjectInitializer& ObjectInitializer)
 {
 }
 
-static FString ValuePinName(TEXT("Value"));
+static const FName ValuePinName(TEXT("Value"));
 
 void UK2Node_Literal::AllocateDefaultPins()
 {
 	// The literal node only has one pin:  an output of the desired value, on a wildcard pin type
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-	CreatePin(EGPD_Output, Schema->PC_Object, FString(), nullptr, *ValuePinName);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Object, ValuePinName);
 
 	// After allocating the pins, try to coerce pin type
 	SetObjectRef( ObjectRef );
@@ -85,14 +84,13 @@ void UK2Node_Literal::AllocateDefaultPins()
 
 void UK2Node_Literal::PostReconstructNode()
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 	UEdGraphPin* ValuePin = GetValuePin();
 
 	// See if we need to fix up the value pin to have a valid type after reconstruction.  Could be invalid with a stale object ref
 	if( ValuePin && !ObjectRef && (ValuePin->LinkedTo.Num() > 0) )
 	{
 		// Loop over the node, and figure out the most derived class connected to this pin, and use that, so everyone is happy
-		UClass* PinSubtype = NULL;
+		UClass* PinSubtype = nullptr;
 		for( TArray<UEdGraphPin*>::TIterator PinIt(ValuePin->LinkedTo); PinIt; ++PinIt )
 		{
 			UClass* TestType = Cast<UClass>((*PinIt)->PinType.PinSubCategoryObject.Get());
@@ -255,7 +253,6 @@ UEdGraphPin* UK2Node_Literal::GetValuePin() const
 
 void UK2Node_Literal::SetObjectRef(UObject* NewValue)
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 	UEdGraphPin* ValuePin = GetValuePin();
 
 	// First, see if this is an object
@@ -267,8 +264,8 @@ void UK2Node_Literal::SetObjectRef(UObject* NewValue)
 		if( ValuePin )
 		{
 			ValuePin->Modify();
-			ValuePin->PinType.PinCategory = Schema->PC_Object;
-			ValuePin->PinType.PinSubCategory.Reset();
+			ValuePin->PinType.PinCategory = UEdGraphSchema_K2::PC_Object;
+			ValuePin->PinType.PinSubCategory = NAME_None;
 			ValuePin->PinType.PinSubCategoryObject = ObjectRef->GetClass();
 		}
 	}
@@ -276,7 +273,7 @@ void UK2Node_Literal::SetObjectRef(UObject* NewValue)
 	if( ValuePin )
 	{
 		ValuePin->PinFriendlyName = GetNodeTitle(ENodeTitleType::FullTitle);
-		ValuePin->PinName = ValuePin->PinFriendlyName.BuildSourceString();
+		ValuePin->PinName = *ValuePin->PinFriendlyName.BuildSourceString();
 	}
 }
 

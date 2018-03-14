@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraDataSet.h"
 #include "NiagaraCommon.h"
 #include "NiagaraShader.h"
 #include "GlobalShader.h"
 #include "UpdateTextureShaders.h"
+#include "ShaderParameterUtils.h"
+#include "NiagaraStats.h"
+
+DECLARE_CYCLE_STAT(TEXT("InitRenderData"), STAT_InitRenderData, STATGROUP_Niagara);
 
 //////////////////////////////////////////////////////////////////////////
 void FNiagaraDataSet::SetShaderParams(FNiagaraShader *Shader, FRHICommandList &CommandList)
@@ -68,11 +72,105 @@ void FNiagaraDataSet::UnsetShaderParams(FNiagaraShader *Shader, FRHICommandList 
 	}
 }
 
+//////////////////////////////////////////////////////////////////////////
+static int32 GRenderDataBlockSize = 4096;
+static FAutoConsoleVariableRef CVarRenderDataBlockSize(
+	TEXT("fx.RenderDataBlockSize"),
+	GRenderDataBlockSize,
+	TEXT("Size of alloaction blocks for Niagara render data. \n"),
+	ECVF_Default
+);
+
+static float GGPUBufferShrinkFactor = .5f;
+static FAutoConsoleVariableRef CVarNiagaraRenderBufferShrinkFactor(
+	TEXT("fx.RenderBufferShrinkFactor"),
+	GGPUBufferShrinkFactor,
+	TEXT("What factor should the render buffers grow by when they need to grow. \n"),
+	ECVF_Default
+);
+
+void FNiagaraDataSet::InitGPUFromCPU_RenderThread()
+{
+	SCOPE_CYCLE_COUNTER(STAT_InitRenderData);
+	check(IsInRenderingThread());
+	
+	//Some very basic size handling so we don't have to recreate these buffers every frame. TODO: Improve.
+	auto CalcNewSize = [](int32 ReqNum, int32 CurrNum)
+	{
+		int32 NewSize = AlignArbitrary(ReqNum, GRenderDataBlockSize);
+		int32 ShrinkSize = AlignArbitrary(int32(CurrNum * GGPUBufferShrinkFactor), GRenderDataBlockSize);
+		if (ReqNum < ShrinkSize)
+		{
+			NewSize = ShrinkSize;
+		}
+
+		check(NewSize >= ReqNum);
+		return NewSize;
+	};
+
+	if (GetNumFloatComponents())
+	{
+		int32 CurrBytes = RenderDataFloat.NumBytes;
+		int32 ValidBytes = CurrDataRender().GetFloatBuffer().Num();
+		int32 NewBytes = CalcNewSize(ValidBytes, CurrBytes);
+		if (NewBytes != CurrBytes)
+ 		{
+			RenderDataFloat.Release();
+
+			if (NewBytes > 0)
+			{
+				RenderDataFloat.Initialize(sizeof(float), NewBytes / sizeof(float), EPixelFormat::PF_R32_FLOAT, BUF_Dynamic);
+			}
+		}
+
+		if (NewBytes > 0 && ValidBytes > 0)
+		{
+			void* BufferData = RHILockVertexBuffer(RenderDataFloat.Buffer, 0, ValidBytes, RLM_WriteOnly);
+			FPlatformMemory::Memcpy(BufferData, CurrDataRender().GetFloatBuffer().GetData(), ValidBytes);
+			RHIUnlockVertexBuffer(RenderDataFloat.Buffer);
+		}
+	}
+
+	if (GetNumInt32Components())
+	{
+		int32 CurrBytes = RenderDataInt.NumBytes;
+		int32 ValidBytes = CurrDataRender().GetInt32Buffer().Num();
+		int32 NewBytes = CalcNewSize(ValidBytes, CurrBytes);
+ 		if (NewBytes != CurrBytes)
+ 		{
+			RenderDataInt.Release();
+
+			if (NewBytes > 0)
+			{
+				RenderDataInt.Initialize(sizeof(int32), NewBytes / sizeof(int32), EPixelFormat::PF_R32_SINT, BUF_Dynamic);
+			}
+		}
+
+		if (NewBytes > 0 && ValidBytes > 0)
+		{
+			void*BufferData = RHILockVertexBuffer(RenderDataInt.Buffer, 0, ValidBytes, RLM_WriteOnly);
+			FPlatformMemory::Memcpy(BufferData, CurrDataRender().GetInt32Buffer().GetData(), ValidBytes);
+			RHIUnlockVertexBuffer(RenderDataInt.Buffer);
+		}
+	}
+
+	CurrentFloatDataSRV = RenderDataFloat.SRV;
+	CurrentIntDataSRV = RenderDataInt.SRV;
+}
+
+
+void FNiagaraDataSet::InitGPUSimSRVs_RenderThread()
+{
+	CurrentFloatDataSRV = CurrDataRender().GetGPUBufferFloat()->SRV;
+	CurrentIntDataSRV = CurrDataRender().GetGPUBufferInt()->SRV;
+}
+
+
 void FNiagaraDataSet::Dump(FNiagaraDataSet& Other, bool bCurr)
 {
 	Other.Reset();
 	Other.Variables = Variables;
-	Other.VariableLayoutMap = VariableLayoutMap;
+	Other.VariableLayouts = VariableLayouts;
 
 	int32 IndexRead = CurrBuffer > 0 ? CurrBuffer - 1 : MaxBufferIdx;
 	if (bCurr)
@@ -106,7 +204,7 @@ void FNiagaraDataSet::Dump(bool bCurr, int32 StartIdx, int32 NumInstances)
 	int32 NumInstancesDumped = 0;
 	TArray<FString> Lines;
 	Lines.Reserve(GetNumInstances());
-	while (Itr.IsValid() && NumInstancesDumped++ < NumInstances)
+	while (Itr.IsValid() && NumInstancesDumped < NumInstances)
 	{
 		Itr.Get();
 
@@ -117,6 +215,7 @@ void FNiagaraDataSet::Dump(bool bCurr, int32 StartIdx, int32 NumInstances)
 		}
 		Lines.Add(Line);
 		Itr.Advance();
+		NumInstancesDumped++;
 	}
 
 	static FString Sep;
@@ -153,6 +252,7 @@ void FNiagaraDataBuffer::Allocate(uint32 InNumInstances, ENiagaraSimTarget Targe
 	if (Target == ENiagaraSimTarget::CPUSim)
 	{
 		NumInstancesAllocated = InNumInstances;
+		NumInstances = 0;
 
 		int32 OldFloatStride = FloatStride;
 		FloatStride = GetSafeComponentBufferSize(NumInstancesAllocated * sizeof(float));
@@ -209,13 +309,18 @@ void FNiagaraDataBuffer::AllocateGPU(uint32 InNumInstances, FRHICommandList &RHI
 		NumChunksAllocatedForGPU = ((InNumInstances + ALLOC_CHUNKSIZE - 1) / ALLOC_CHUNKSIZE);
 		uint32 NumElementsToAlloc = NumChunksAllocatedForGPU * ALLOC_CHUNKSIZE;
 
+		if (NumElementsToAlloc == 0)
+		{
+			return;
+		}
+
 		if (Owner->GetNumFloatComponents())
 		{
 			if (GPUBufferFloat.Buffer)
 			{
 				GPUBufferFloat.Release();
 			}
-			GPUBufferFloat.Initialize(sizeof(float), NumElementsToAlloc * Owner->GetNumFloatComponents(), EPixelFormat::PF_R32_FLOAT);
+			GPUBufferFloat.Initialize(sizeof(float), NumElementsToAlloc * Owner->GetNumFloatComponents(), EPixelFormat::PF_R32_FLOAT, BUF_Static);
 		}
 		if (Owner->GetNumInt32Components())
 		{
@@ -223,23 +328,8 @@ void FNiagaraDataBuffer::AllocateGPU(uint32 InNumInstances, FRHICommandList &RHI
 			{
 				GPUBufferInt.Release();
 			}
-			GPUBufferInt.Initialize(sizeof(int32), NumElementsToAlloc * Owner->GetNumInt32Components(), EPixelFormat::PF_R32_SINT);
+			GPUBufferInt.Initialize(sizeof(int32), NumElementsToAlloc * Owner->GetNumInt32Components(), EPixelFormat::PF_R32_SINT, BUF_Static);
 		}
-	}
-}
-
-
-void FNiagaraDataBuffer::InitGPUFromCPU()
-{
-	if (Owner->GetNumFloatComponents())
-	{
-		GPUBufferFloat.Release();
-		GPUBufferFloat.Initialize(sizeof(float), FloatStride/sizeof(float) * Owner->GetNumFloatComponents(), EPixelFormat::PF_R32_FLOAT, 0, TEXT("GPUBufferFloat"), &FloatData);
-	}
-	if (Owner->GetNumInt32Components())
-	{
-		GPUBufferInt.Release();
-		GPUBufferInt.Initialize(sizeof(int32), Int32Stride/sizeof(int32) * Owner->GetNumInt32Components(), EPixelFormat::PF_R32_SINT, 0, TEXT("GPUBufferInt"), &Int32Data);
 	}
 }
 

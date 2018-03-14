@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,6 +15,7 @@
 #include "SharedPointer.h"
 #include "Map.h"
 #include "SCheckBox.h"
+#include "NiagaraParameterStore.h"
 
 class SNiagaraSpreadsheetView : public SCompoundWidget, public FTickableEditorObject
 {
@@ -27,6 +28,7 @@ public:
 	void Construct(const FArguments& InArgs, TSharedRef<FNiagaraSystemViewModel> InSystemViewModel);
 	virtual ~SNiagaraSpreadsheetView();
 
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override {}
 	virtual void Tick(float DeltaTime) override;
 	virtual bool IsTickable() const override;
 	virtual TStatId GetStatId() const override;
@@ -35,6 +37,7 @@ public:
 	{
 		uint32 FloatStartOffset;
 		uint32 IntStartOffset;
+		uint32 GlobalStartOffset;
 		bool bFloat;
 		bool bBoolean;
 		TWeakObjectPtr<const UEnum> Enum;
@@ -59,27 +62,36 @@ protected:
 
 	struct CapturedUIData
 	{
-		CapturedUIData() : TargetUsage(ENiagaraScriptUsage::ParticleUpdateScript), LastCaptureTime( -FLT_MAX) , bAwaitingFrame(false), LastReadWriteId(-1),	DataSet( nullptr), bColumnsAreAttributes(true)
+		CapturedUIData() : LastReadWriteId(-1), DataSet(nullptr), TargetUsage(ENiagaraScriptUsage::ParticleUpdateScript), bAwaitingFrame(false), LastCaptureTime(-FLT_MAX), bInputColumnsAreAttributes(true), bOutputColumnsAreAttributes(true)
 		{ }
 
-		TSharedPtr<SHeaderRow> HeaderRow;
-		TSharedPtr < STreeView<TSharedPtr<int32> > > ListView;
+		TSharedPtr<SHeaderRow> OutputHeaderRow;
+		TSharedPtr<SHeaderRow> InputHeaderRow;
+		TSharedPtr < STreeView<TSharedPtr<int32> > > OutputsListView;
+		TSharedPtr < STreeView<TSharedPtr<int32> > > InputsListView;
 		TSharedPtr < SCheckBox > CheckBox;
-		TArray< TSharedPtr<int32> > SupportedIndices;
+		TArray< TSharedPtr<int32> > SupportedInputIndices;
+		TArray< TSharedPtr<int32> > SupportedOutputIndices;
 		int32 LastReadWriteId;
 		FNiagaraDataSet* DataSet;
-		TSharedPtr<TArray<FName> > SupportedFields;
-		TSharedPtr<TMap<FName, FieldInfo> > FieldInfoMap;
+		FNiagaraParameterStore InputParams;
+		TSharedPtr<TArray<FName> > SupportedInputFields;
+		TSharedPtr<TArray<FName> > SupportedOutputFields;
+		TSharedPtr<TMap<FName, FieldInfo> > InputFieldInfoMap;
+		TSharedPtr<TMap<FName, FieldInfo> > OutputFieldInfoMap;
 		ENiagaraScriptUsage TargetUsage;
 		bool bAwaitingFrame;
 		float LastCaptureTime;
 		float TargetCaptureTime;
 		FGuid LastCaptureHandleId;
 		TWeakObjectPtr<UNiagaraEmitter> DataSource;
-		TSharedPtr<SScrollBar> HorizontalScrollBar;
-		TSharedPtr<SScrollBar> VerticalScrollBar;
+		TSharedPtr<SScrollBar> OutputHorizontalScrollBar;
+		TSharedPtr<SScrollBar> OutputVerticalScrollBar;
+		TSharedPtr<SScrollBar> InputHorizontalScrollBar;
+		TSharedPtr<SScrollBar> InputVerticalScrollBar;
 		TSharedPtr<SVerticalBox> Container;
-		bool bColumnsAreAttributes;
+		bool bInputColumnsAreAttributes;
+		bool bOutputColumnsAreAttributes;
 		FText ColumnName;
 	};
 
@@ -112,7 +124,7 @@ protected:
 	 * @param Selection Currently selected event
 	 * @param SelectInfo Provides context on how the selection changed
 	 */
-	void OnEventSelectionChanged(TSharedPtr<int32> Selection, ESelectInfo::Type SelectInfo, EUITab Tab);
+	void OnEventSelectionChanged(TSharedPtr<int32> Selection, ESelectInfo::Type SelectInfo, EUITab Tab, bool bInputList);
 
 	/** 
 	 * Generates SEventItem widgets for the events tree
@@ -120,7 +132,7 @@ protected:
 	 * @param InItem Event to generate SEventItem for
 	 * @param OwnerTable Owner Table
 	 */
-	TSharedRef< ITableRow > OnGenerateWidgetForList(TSharedPtr<int32> InItem, const TSharedRef< STableViewBase >& OwnerTable , EUITab Tab);
+	TSharedRef< ITableRow > OnGenerateWidgetForList(TSharedPtr<int32> InItem, const TSharedRef< STableViewBase >& OwnerTable , EUITab Tab, bool bInputList);
 
 	/** 
 	 * Given a profiler event, generates children for it
@@ -128,7 +140,7 @@ protected:
 	 * @param InItem Event to generate children for
 	 * @param OutChildren Generated children
 	 */
-	void OnGetChildrenForList(TSharedPtr<int32> InItem, TArray<TSharedPtr<int32>>& OutChildren, EUITab Tab);
+	void OnGetChildrenForList(TSharedPtr<int32> InItem, TArray<TSharedPtr<int32>>& OutChildren, EUITab Tab, bool bInputList);
 };
 
 
@@ -139,13 +151,15 @@ public:
 	typedef TSharedPtr<TMap <FName, SNiagaraSpreadsheetView::FieldInfo> > FieldsMap;
 
 	SLATE_BEGIN_ARGS(SNiagaraSpreadsheetRow)
-		: _RowIndex(0), _DataSet(nullptr), _ColumnsAreAttributes(true)
+		: _RowIndex(0), _ColumnsAreAttributes(true), _DataSet(nullptr)
 	{}
 	SLATE_ARGUMENT(int32, RowIndex)
 	SLATE_ARGUMENT(bool, ColumnsAreAttributes)
 	SLATE_ARGUMENT(FNiagaraDataSet*, DataSet)
 	SLATE_ARGUMENT(NamesArray, SupportedFields)
 	SLATE_ARGUMENT(FieldsMap, FieldInfoMap)
+	SLATE_ARGUMENT(bool, UseGlobalOffsets)
+	SLATE_ARGUMENT(FNiagaraParameterStore*, ParameterStore)
 	SLATE_END_ARGS()
 
 		/**
@@ -166,8 +180,10 @@ public:
 private:
 	int32 RowIndex;
 	FNiagaraDataSet* DataSet;
+	FNiagaraParameterStore* ParameterStore;
 	TSharedPtr<TArray<FName> > SupportedFields;
 	TSharedPtr<TMap<FName, SNiagaraSpreadsheetView::FieldInfo> > FieldInfoMap;
 	bool ColumnsAreAttributes;
+	bool UseGlobalOffsets;
 };
 

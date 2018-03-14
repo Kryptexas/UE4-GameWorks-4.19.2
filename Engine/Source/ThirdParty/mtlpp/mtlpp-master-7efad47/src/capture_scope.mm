@@ -1,12 +1,14 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-#include "capture_scope.hpp"
-#include "device.hpp"
-#include "command_queue.hpp"
 #include <Metal/MTLCaptureScope.h>
 #include <Metal/MTLDevice.h>
 #include <Metal/MTLCommandQueue.h>
 #include <Foundation/NSString.h>
+#include "capture_scope.hpp"
+#include "device.hpp"
+#include "command_queue.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -14,7 +16,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		[(id<MTLCaptureScope>) m_ptr beginScope];
+		m_table->beginScope(m_ptr);
 #endif
 	}
 	
@@ -22,7 +24,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		[(id<MTLCaptureScope>) m_ptr endScope];
+		m_table->endScope(m_ptr);
 #endif
 	}
 	
@@ -30,7 +32,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return ns::Handle{ [(id<MTLCaptureScope>) m_ptr label] };
+		return m_table->label(m_ptr);
 #else
 		return ns::String();
 #endif
@@ -40,7 +42,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		[(id<MTLCaptureScope>) m_ptr setLabel:(NSString*)label.GetPtr()];
+		m_table->Setlabel(m_ptr, label.GetPtr());
 #endif
 	}
 	
@@ -48,7 +50,7 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return ns::Handle{ [(id<MTLCaptureScope>) m_ptr device] };
+		return m_table->device(m_ptr);
 #else
 		return Device();
 #endif
@@ -58,9 +60,11 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return ns::Handle{ [(id<MTLCaptureScope>) m_ptr commandQueue] };
+		return m_table->commandQueue(m_ptr);
 #else
 		return CommandQueue();
 #endif
 	}
 }
+
+MTLPP_END

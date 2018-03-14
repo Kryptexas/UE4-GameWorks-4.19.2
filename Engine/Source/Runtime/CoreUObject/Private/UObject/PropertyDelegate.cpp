@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
@@ -36,29 +36,25 @@ void UDelegateProperty::InstanceSubobjects(void* Data, void const* DefaultData, 
 
 bool UDelegateProperty::Identical( const void* A, const void* B, uint32 PortFlags ) const
 {
-	bool bResult = false;
-
-	FScriptDelegate* DA = (FScriptDelegate*)A;
-	FScriptDelegate* DB = (FScriptDelegate*)B;
+	const FScriptDelegate* DA = (const FScriptDelegate*)A;
+	const FScriptDelegate* DB = (const FScriptDelegate*)B;
 	
-	if( DB == NULL )
+	if (!DB)
 	{
-		bResult = DA->GetFunctionName() == NAME_None;
-	}
-	else if ( DA->GetFunctionName() == DB->GetFunctionName() )
-	{
-		if ( DA->GetUObject() == DB->GetUObject() )
-		{
-			bResult = true;
-		}
-		else if	((DA->GetUObject() == NULL || DB->GetUObject() == NULL)
-			&&	(PortFlags&PPF_DeltaComparison) != 0)
-		{
-			bResult = true;
-		}
+		return DA->GetFunctionName() == NAME_None;
 	}
 
-	return bResult;
+	if (DA->GetUObject() != DB->GetUObject())
+	{
+		return false;
+	}
+
+	if (DA->GetFunctionName() != DB->GetFunctionName())
+	{
+		return false;
+	}
+
+	return true;
 }
 
 

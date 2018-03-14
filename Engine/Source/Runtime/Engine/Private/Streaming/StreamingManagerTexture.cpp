@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TextureStreamingManager.cpp: Implementation of content streaming classes.
@@ -296,6 +296,7 @@ void FStreamingManagerTexture::ProcessRemovedTextures()
 	for (int32 TextureIndex : RemovedTextureIndices)
 	{
 		// Remove swap all elements, until this entry has a valid texture.
+		// This handles the case where the last element was also removed.
 		while (StreamingTextures.IsValidIndex(TextureIndex) && !StreamingTextures[TextureIndex].Texture)
 		{
 			StreamingTextures.RemoveAtSwap(TextureIndex);
@@ -348,7 +349,8 @@ void FStreamingManagerTexture::ConditionalUpdateStaticData()
 		// This is used to test regression / improvements, and insertion perfs.
 		if (PreviousSettings.bUseMaterialData != Settings.bUseMaterialData ||
 			PreviousSettings.bUseNewMetrics != Settings.bUseNewMetrics ||
-			PreviousSettings.bUsePerTextureBias != Settings.bUsePerTextureBias)
+			PreviousSettings.bUsePerTextureBias != Settings.bUsePerTextureBias || 
+			PreviousSettings.MaxTextureUVDensity != Settings.MaxTextureUVDensity)
 		{
 			TArray<ULevel*, TInlineAllocator<32> > Levels;
 
@@ -621,7 +623,7 @@ void FStreamingManagerTexture::NotifyActorDestroyed( AActor* Actor )
 	for (UPrimitiveComponent* Component : Components)
 	{
 		// Remove any references in the dynamic component manager.
-		DynamicComponentManager.Remove(Component, RemovedTextures);
+		DynamicComponentManager.Remove(Component, &RemovedTextures);
 
 		// Reset this now as we have finished iterating over the levels
 		Component->bAttachedToStreamingManagerAsStatic = false;
@@ -721,7 +723,7 @@ void FStreamingManagerTexture::NotifyPrimitiveDetached( const UPrimitiveComponen
 	}
 	
 	// Dynamic component must be removed when visibility changes.
-	DynamicComponentManager.Remove(Primitive, RemovedTextures);
+	DynamicComponentManager.Remove(Primitive, &RemovedTextures);
 
 	SetTexturesRemovedTimestamp(RemovedTextures);
 	STAT(GatheredStats.CallbacksCycles += FPlatformTime::Cycles();)
@@ -793,6 +795,8 @@ void FStreamingManagerTexture::SyncStates(bool bCompleteFullUpdateCycle)
 	TextureInstanceAsyncWork->EnsureCompletion();
 
 	// Update any pending states, including added/removed textures.
+	// Doing so when ProcessingStage != 0 risk invalidating the indice in the async task used in StreamTextures().
+	// This would in practice postpone some of the load and cancel requests.
 	UpdatePendingStates(false);
 }
 
@@ -897,35 +901,44 @@ void FStreamingManagerTexture::StreamTextures( bool bProcessEverything )
 {
 	const FAsyncTextureStreamingTask& AsyncTask = AsyncWork->GetTask();
 
+	// Note that texture indices referred by the async task could be outdated if UpdatePendingStates() was called between the
+	// end of the async task work, and this call to StreamTextures(). This happens when SyncStates(false) is called.
+
 	if (!bPauseTextureStreaming || bProcessEverything)
 	{
 		for (int32 TextureIndex : AsyncTask.GetCancelationRequests())
 		{
-			check(StreamingTextures.IsValidIndex(TextureIndex));
-			StreamingTextures[TextureIndex].CancelPendingMipChangeRequest();
+			if (StreamingTextures.IsValidIndex(TextureIndex))
+			{
+				StreamingTextures[TextureIndex].CancelPendingMipChangeRequest();
+			}
 		}
 
 		for (int32 TextureIndex : AsyncTask.GetLoadRequests())
 		{
-			check(StreamingTextures.IsValidIndex(TextureIndex));
-			StreamingTextures[TextureIndex].StreamWantedMips(*this);
+			if (StreamingTextures.IsValidIndex(TextureIndex))
+			{
+				StreamingTextures[TextureIndex].StreamWantedMips(*this);
+			}
 		}
 	}
 	
 	for (int32 TextureIndex : AsyncTask.GetPendingUpdateDirties())
 	{
-		FStreamingTexture& StreamingTexture = StreamingTextures[TextureIndex];
-		const bool bNewState = StreamingTexture.HasUpdatePending(bPauseTextureStreaming, AsyncTask.HasAnyView());
-
-		// Always update the texture and the streaming texture together to make sure they are in sync.
-		StreamingTexture.bHasUpdatePending = bNewState;
-		if (StreamingTexture.Texture)
+		if (StreamingTextures.IsValidIndex(TextureIndex))
 		{
-			StreamingTexture.Texture->bHasStreamingUpdatePending = bNewState;
+			FStreamingTexture& StreamingTexture = StreamingTextures[TextureIndex];
+			const bool bNewState = StreamingTexture.HasUpdatePending(bPauseTextureStreaming, AsyncTask.HasAnyView());
+
+			// Always update the texture and the streaming texture together to make sure they are in sync.
+			StreamingTexture.bHasUpdatePending = bNewState;
+			if (StreamingTexture.Texture)
+			{
+				StreamingTexture.Texture->bHasStreamingUpdatePending = bNewState;
+			}
 		}
 	}
 }
-
 
 void FStreamingManagerTexture::CheckUserSettings()
 {	
@@ -1022,9 +1035,14 @@ static TAutoConsoleVariable<int32> CVarFramesForFullUpdate(
 	5,
 	TEXT("Texture streaming is time sliced per frame. This values gives the number of frames to visit all textures."));
 
+static TAutoConsoleVariable<int32> CVarUseBackgroundThreadPool(
+	TEXT("r.Streaming.UseBackgroundThreadPool"),
+	1,
+	TEXT("If true, use the background thread pool for mip calculations."));
+
 void FStreamingManagerTexture::UpdateResourceStreaming( float DeltaTime, bool bProcessEverything/*=false*/ )
 {
-	SCOPE_CYCLE_COUNTER(STAT_GameThreadUpdateTime);
+	SCOPE_CYCLE_COUNTER(STAT_TextureStreaming_GameThreadUpdateTime);
 
 	LogViewLocationChange();
 	STAT(DisplayedStats.Apply();)
@@ -1071,7 +1089,7 @@ void FStreamingManagerTexture::UpdateResourceStreaming( float DeltaTime, bool bP
 		// Here we rely on dynamic components to be updated on the last stage, in order to split the workload. 
 		UpdatePendingStates(false);
 		PrepareAsyncTask(bProcessEverything);
-		AsyncWork->StartBackgroundTask();
+		AsyncWork->StartBackgroundTask(CVarUseBackgroundThreadPool.GetValueOnGameThread() ? GBackgroundPriorityThreadPool : GThreadPool);
 		++ProcessingStage;
 
 		STAT(GatheredStats.SetupAsyncTaskCycles += FPlatformTime::Cycles();)
@@ -1113,7 +1131,7 @@ void FStreamingManagerTexture::UpdateResourceStreaming( float DeltaTime, bool bP
 		STAT(UpdateStats();)
 	}
 
-	TextureInstanceAsyncWork->StartBackgroundTask();
+	TextureInstanceAsyncWork->StartBackgroundTask(CVarUseBackgroundThreadPool.GetValueOnGameThread() ? GBackgroundPriorityThreadPool : GThreadPool);
 }
 
 /**
@@ -1246,7 +1264,6 @@ bool FStreamingManagerTexture::HandleListStreamingTexturesCommand( const TCHAR* 
 	for (TMap<FString, int32>::TConstIterator It(SortedTextures); It; ++It)
 	{
 		const FStreamingTexture& StreamingTexture = StreamingTextures[It.Value()];
-		if (bShouldOnlyListUnkownRef && !StreamingTexture.bUseUnkownRefHeuristic) continue;
 
 		const UTexture2D* Texture2D = StreamingTexture.Texture;
 		UE_LOG(LogContentStreaming, Log,  TEXT("Texture [%d] : %s"), It.Value(), *Texture2D->GetFullName() );
@@ -1483,7 +1500,7 @@ bool FStreamingManagerTexture::HandleStreamOutCommand( const TCHAR* Cmd, FOutput
 	if ( FreeMB > 0 )
 	{
 		bool bSucceeded = StreamOutTextureData( FreeMB * 1024 * 1024 );
-		Ar.Logf( TEXT("Tried to stream out %ld MB of texture data: %s"), FreeMB, bSucceeded ? TEXT("Succeeded") : TEXT("Failed") );
+		Ar.Logf( TEXT("Tried to stream out %llu MB of texture data: %s"), FreeMB, bSucceeded ? TEXT("Succeeded") : TEXT("Failed") );
 	}
 	else
 	{

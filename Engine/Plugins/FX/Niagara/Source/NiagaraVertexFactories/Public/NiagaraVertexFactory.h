@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleVertexFactory.h: Particle vertex factory definitions.
@@ -48,6 +48,14 @@ public:
 		bNeedsDeclaration = false;
 	}
 
+	NIAGARAVERTEXFACTORIES_API static void Init()
+	{
+		if (DummyBuffer.Buffer == nullptr)
+		{
+			DummyBuffer.Initialize(4, 1, PF_R32_UINT);
+		}
+	}
+
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FVertexFactory::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
@@ -92,6 +100,8 @@ public:
 		return true;
 	}
 
+protected:
+	static FRWBuffer DummyBuffer;
 private:
 
 	/** Last state where we set this. We only need to setup these once per frame, so detemine same frame by number, time, and view family. */
@@ -105,5 +115,4 @@ private:
 
 	/** Whether the vertex factory is in use. */
 	bool bInUse;
-
 };

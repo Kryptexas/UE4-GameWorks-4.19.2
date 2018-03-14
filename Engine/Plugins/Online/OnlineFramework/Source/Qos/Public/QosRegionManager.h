@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -211,6 +211,11 @@ public:
 	const TArray<FQosRegionInfo>& GetRegionOptions() const;
 
 	/**
+	 * @return true if this is a usable region, false otherwise
+	 */
+	bool IsUsableRegion(const FString& InRegionId) const;
+
+	/**
 	 * Try to set the selected region ID (must be present in GetRegionOptions)
 	 *
 	 * @param bForce if true then use selected region even if QoS eval has not completed successfully
@@ -291,6 +296,9 @@ private:
 	/** Value forced to be the region (development) */
 	UPROPERTY()
 	FString ForceRegionId;
+	/** Was the region forced via commandline */
+	UPROPERTY()
+	bool bRegionForcedViaCommandline;
 	/** Value set by the game to be the current region */
 	UPROPERTY()
 	FString SelectedRegionId;

@@ -2,116 +2,120 @@
  * Copyright 2016-2017 Nikolay Aleksiev. All rights reserved.
  * License: https://github.com/naleksiev/mtlpp/blob/master/LICENSE
  */
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
-#include "vertex_descriptor.hpp"
 #include <Metal/MTLVertexDescriptor.h>
+#include "vertex_descriptor.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
     VertexBufferLayoutDescriptor::VertexBufferLayoutDescriptor() :
-        ns::Object(ns::Handle{ (__bridge void*)[[MTLVertexBufferLayoutDescriptor alloc] init] }, false)
+        ns::Object<MTLVertexBufferLayoutDescriptor*>([[MTLVertexBufferLayoutDescriptor alloc] init], false)
     {
     }
 
-    uint32_t VertexBufferLayoutDescriptor::GetStride() const
+    NSUInteger VertexBufferLayoutDescriptor::GetStride() const
     {
         Validate();
-        return uint32_t([(__bridge MTLVertexBufferLayoutDescriptor*)m_ptr stride]);
+        return NSUInteger([(MTLVertexBufferLayoutDescriptor*)m_ptr stride]);
     }
 
-    uint32_t VertexBufferLayoutDescriptor::GetStepRate() const
+    NSUInteger VertexBufferLayoutDescriptor::GetStepRate() const
     {
         Validate();
-        return uint32_t([(__bridge MTLVertexBufferLayoutDescriptor*)m_ptr stepRate]);
+        return NSUInteger([(MTLVertexBufferLayoutDescriptor*)m_ptr stepRate]);
     }
 
     VertexStepFunction VertexBufferLayoutDescriptor::GetStepFunction() const
     {
         Validate();
-        return VertexStepFunction([(__bridge MTLVertexBufferLayoutDescriptor*)m_ptr stepFunction]);
+        return VertexStepFunction([(MTLVertexBufferLayoutDescriptor*)m_ptr stepFunction]);
     }
 
-    void VertexBufferLayoutDescriptor::SetStride(uint32_t stride)
+    void VertexBufferLayoutDescriptor::SetStride(NSUInteger stride)
     {
         Validate();
-        [(__bridge MTLVertexBufferLayoutDescriptor*)m_ptr setStride:stride];
+        [(MTLVertexBufferLayoutDescriptor*)m_ptr setStride:stride];
     }
 
-    void VertexBufferLayoutDescriptor::SetStepRate(uint32_t stepRate)
+    void VertexBufferLayoutDescriptor::SetStepRate(NSUInteger stepRate)
     {
         Validate();
-        [(__bridge MTLVertexBufferLayoutDescriptor*)m_ptr setStepRate:stepRate];
+        [(MTLVertexBufferLayoutDescriptor*)m_ptr setStepRate:stepRate];
     }
 
     void VertexBufferLayoutDescriptor::SetStepFunction(VertexStepFunction stepFunction)
     {
         Validate();
-        [(__bridge MTLVertexBufferLayoutDescriptor*)m_ptr setStepFunction:MTLVertexStepFunction(stepFunction)];
+        [(MTLVertexBufferLayoutDescriptor*)m_ptr setStepFunction:MTLVertexStepFunction(stepFunction)];
     }
 
     VertexAttributeDescriptor::VertexAttributeDescriptor() :
-        ns::Object(ns::Handle{ (__bridge void*)[[MTLVertexAttributeDescriptor alloc] init] }, false)
+        ns::Object<MTLVertexAttributeDescriptor*>([[MTLVertexAttributeDescriptor alloc] init], false)
     {
     }
 
     VertexFormat VertexAttributeDescriptor::GetFormat() const
     {
         Validate();
-        return VertexFormat([(__bridge MTLVertexAttributeDescriptor*)m_ptr format]);
+        return VertexFormat([(MTLVertexAttributeDescriptor*)m_ptr format]);
     }
 
-    uint32_t VertexAttributeDescriptor::GetOffset() const
+    NSUInteger VertexAttributeDescriptor::GetOffset() const
     {
         Validate();
-        return uint32_t([(__bridge MTLVertexAttributeDescriptor*)m_ptr offset]);
+        return NSUInteger([(MTLVertexAttributeDescriptor*)m_ptr offset]);
     }
 
-    uint32_t VertexAttributeDescriptor::GetBufferIndex() const
+    NSUInteger VertexAttributeDescriptor::GetBufferIndex() const
     {
         Validate();
-        return uint32_t([(__bridge MTLVertexAttributeDescriptor*)m_ptr bufferIndex]);
+        return NSUInteger([(MTLVertexAttributeDescriptor*)m_ptr bufferIndex]);
     }
 
     void VertexAttributeDescriptor::SetFormat(VertexFormat format)
     {
         Validate();
-        [(__bridge MTLVertexAttributeDescriptor*)m_ptr setFormat:MTLVertexFormat(format)];
+        [(MTLVertexAttributeDescriptor*)m_ptr setFormat:MTLVertexFormat(format)];
     }
 
-    void VertexAttributeDescriptor::SetOffset(uint32_t offset)
+    void VertexAttributeDescriptor::SetOffset(NSUInteger offset)
     {
         Validate();
-        [(__bridge MTLVertexAttributeDescriptor*)m_ptr setOffset:offset];
+        [(MTLVertexAttributeDescriptor*)m_ptr setOffset:offset];
     }
 
-    void VertexAttributeDescriptor::SetBufferIndex(uint32_t bufferIndex)
+    void VertexAttributeDescriptor::SetBufferIndex(NSUInteger bufferIndex)
     {
         Validate();
-        [(__bridge MTLVertexAttributeDescriptor*)m_ptr setBufferIndex:bufferIndex];
+        [(MTLVertexAttributeDescriptor*)m_ptr setBufferIndex:bufferIndex];
     }
 
     VertexDescriptor::VertexDescriptor() :
-        ns::Object(ns::Handle{ (__bridge void*)[[MTLVertexDescriptor alloc] init] }, false)
+        ns::Object<MTLVertexDescriptor*>([[MTLVertexDescriptor alloc] init], false)
     {
     }
 
     ns::Array<VertexBufferLayoutDescriptor> VertexDescriptor::GetLayouts() const
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge MTLVertexDescriptor*)m_ptr layouts] };
+        return (NSArray*)[(MTLVertexDescriptor*)m_ptr layouts];
     }
 
     ns::Array<VertexAttributeDescriptor> VertexDescriptor::GetAttributes() const
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge MTLVertexDescriptor*)m_ptr attributes] };
+        return (NSArray*)[(MTLVertexDescriptor*)m_ptr attributes];
     }
 
     void VertexDescriptor::Reset()
     {
         Validate();
-        [(__bridge MTLVertexDescriptor*)m_ptr reset];
+        [(MTLVertexDescriptor*)m_ptr reset];
     }
 }
+
+MTLPP_END

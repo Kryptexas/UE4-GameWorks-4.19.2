@@ -228,7 +228,8 @@ UE4 の物理ベースのマテリアル システムに関する技術情報お
 
 
 
-<!--Inclusions-----
+[COMMENT:none]
+Inclusions-----
 [EXCERPT:BaseColor]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -390,4 +391,5 @@ UE4 の物理ベースのマテリアル システムに関する技術情報お
 
 [/EXCERPT:InverseSquared]
 
-------------------->
+-----------------
+[/COMMENT]

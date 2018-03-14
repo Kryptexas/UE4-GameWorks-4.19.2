@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,19 +8,32 @@
 
 class FShaderCacheState;
 
+enum EMetalPipelineFlags
+{
+	EMetalPipelineFlagPipelineState = 1 << 0,
+    EMetalPipelineFlagVertexBuffers = 1 << 1,
+    EMetalPipelineFlagPixelBuffers = 1 << 2,
+    EMetalPipelineFlagDomainBuffers = 1 << 3,
+    EMetalPipelineFlagComputeBuffers = 1 << 4,
+    EMetalPipelineFlagComputeShader = 1 << 5,
+    EMetalPipelineFlagRasterMask = 0xF,
+    EMetalPipelineFlagComputeMask = 0x30,
+    EMetalPipelineFlagMask = 0x3F
+};
+
 enum EMetalRenderFlags
 {
-    EMetalRenderFlagPipelineState = 1 << 0,
-    EMetalRenderFlagViewport = 1 << 1,
-    EMetalRenderFlagFrontFacingWinding = 1 << 2,
-    EMetalRenderFlagCullMode = 1 << 3,
-    EMetalRenderFlagDepthBias = 1 << 4,
-    EMetalRenderFlagScissorRect = 1 << 5,
-    EMetalRenderFlagTriangleFillMode = 1 << 6,
-    EMetalRenderFlagBlendColor = 1 << 7,
-    EMetalRenderFlagDepthStencilState = 1 << 8,
-    EMetalRenderFlagStencilReferenceValue = 1 << 9,
-    EMetalRenderFlagVisibilityResultMode = 1 << 10,
+    EMetalRenderFlagViewport = 1 << 0,
+    EMetalRenderFlagFrontFacingWinding = 1 << 1,
+    EMetalRenderFlagCullMode = 1 << 2,
+    EMetalRenderFlagDepthBias = 1 << 3,
+    EMetalRenderFlagScissorRect = 1 << 4,
+    EMetalRenderFlagTriangleFillMode = 1 << 5,
+    EMetalRenderFlagBlendColor = 1 << 6,
+    EMetalRenderFlagDepthStencilState = 1 << 7,
+    EMetalRenderFlagStencilReferenceValue = 1 << 8,
+    EMetalRenderFlagVisibilityResultMode = 1 << 9,
+    EMetalRenderFlagMask = 0x1FF
 };
 
 class FMetalStateCache
@@ -125,12 +138,14 @@ public:
 	bool NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo& RenderTargetsInfo);
 	bool HasValidDepthStencilSurface() const { return IsValidRef(DepthStencilSurface); }
 	EMetalIndexType GetIndexType() const { return IndexType; }
-	FMetalShaderPipeline* GetPipelineState() const { return GraphicsPSO->GetPipeline(GetIndexType()); }
     bool GetUsingTessellation() const { return bUsingTessellation; }
     bool CanRestartRenderPass() const { return bCanRestartRenderPass; }
 	MTLRenderPassDescriptor* GetRenderPassDescriptor(void) const { return RenderPassDesc; }
 	uint32 GetSampleCount(void) const { return SampleCount; }
-	bool IsAtomicUAV(EShaderFrequency ShaderStage, uint32 BindIndex);
+    bool IsLinearBuffer(EShaderFrequency ShaderStage, uint32 BindIndex);
+	bool ValidateBufferFormat(EShaderFrequency ShaderStage, uint32 BindIndex, EPixelFormat Format);
+    FMetalShaderPipeline* GetPipelineState(uint32 V, uint32 F, uint32 C, EPixelFormat const* const VS, EPixelFormat const* const PS, EPixelFormat const* const DS) const { return GraphicsPSO->GetPipeline(GetIndexType(), V, F, C, VS, PS, DS); }
+    FMetalShaderPipeline* GetPipelineState(void) const { return GraphicsPSO->GetPipeline(GetIndexType(), ShaderBuffers[SF_Vertex].FormatHash, ShaderBuffers[SF_Pixel].FormatHash, ShaderBuffers[SF_Domain].FormatHash, nullptr, nullptr, nullptr); }
 	
 	FTexture2DRHIRef CreateFallbackDepthStencilSurface(uint32 Width, uint32 Height);
 	bool GetFallbackDepthStencilBound(void) const { return bFallbackDepthStencilBound; }
@@ -138,12 +153,14 @@ public:
 	void SetShaderCacheStateObject(FShaderCacheState* CacheState)	{ShaderCacheContextState = CacheState;}
 	FShaderCacheState* GetShaderCacheStateObject() const			{return ShaderCacheContextState;}
 	
+    void SetRenderPipelineState(FMetalCommandEncoder& CommandEncoder, FMetalCommandEncoder* PrologueEncoder);
+    void SetComputePipelineState(FMetalCommandEncoder& CommandEncoder);
 private:
 	void ConditionalUpdateBackBuffer(FMetalSurface& Surface);
 	
 	void SetDepthStencilState(FMetalDepthStencilState* InDepthStencilState);
 	void SetRasterizerState(FMetalRasterizerState* InRasterizerState);
-	
+
 private:
 	FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FRHITexture* RESTRICT TextureRHI, float CurrentTime);
 	
@@ -174,8 +191,6 @@ private:
 		NSUInteger Offset;
 		/** The bound buffer lengths or 0. */
 		NSUInteger Length;
-		/** Pixel type for UAVs */
-		EPixelFormat Type;
 	};
 	
 	/** A structure of arrays for the current buffer binding settings. */
@@ -183,6 +198,10 @@ private:
 	{
 		/** The bound buffers/bytes or nil. */
 		FMetalBufferBinding Buffers[ML_MaxBuffers];
+		/** The pixel formats for buffers bound so that we emulate [RW]Buffer<T> type conversion */
+		EPixelFormat Formats[ML_MaxBuffers];
+		/** The hash of the pixel formats for the formats above */
+		uint32 FormatHash;
 		/** A bitmask for which buffers were bound by the application where a bit value of 1 is bound and 0 is unbound. */
 		uint32 Bound;
 	};
@@ -205,6 +224,10 @@ private:
 		uint16 Bound;
 	};
 	
+private:
+
+    EMetalBufferType GetShaderBufferBindingType(FMetalBufferBindings& BufferBindings, uint32 BoundBuffers, uint32 ShaderBindingHash);
+    
 private:
 	FMetalShaderParameterCache ShaderParameters[CrossCompiler::NUM_SHADER_STAGES];
 
@@ -256,6 +279,7 @@ private:
 	FTexture2DRHIRef FallbackDepthStencilSurface;
 	MTLRenderPassDescriptor* RenderPassDesc;
 	uint32 RasterBits;
+    uint8 PipelineBits;
 	bool bIsRenderTargetActive;
 	bool bHasValidRenderTarget;
 	bool bHasValidColorTarget;

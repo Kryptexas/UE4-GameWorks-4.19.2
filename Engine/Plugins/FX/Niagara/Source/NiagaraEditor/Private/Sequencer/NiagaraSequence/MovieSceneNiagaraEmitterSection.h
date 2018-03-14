@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -73,7 +73,7 @@ public:
 
 private:
 	/** The view model for the handle to the emitter this section represents. */
-	TSharedPtr<FNiagaraEmitterHandleViewModel> EmitterHandleViewModel;
+	TWeakPtr<FNiagaraEmitterHandleViewModel> EmitterHandleViewModel;
 
 	/** Storage for the key times in the burst curve. */
 	TArray<float> Times;

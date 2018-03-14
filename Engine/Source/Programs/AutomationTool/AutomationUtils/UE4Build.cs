@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -142,16 +142,9 @@ namespace AutomationTool
 			// Also, if we're running from VS then since UAT references UBT, we already have the most up-to-date version of UBT.exe
 			if (!bIsUBTReady && GlobalCommandLine.Compile && !System.Diagnostics.Debugger.IsAttached)
 			{
-                string RebuildString = "";
-                if (!GlobalCommandLine.IncrementalBuildUBT)
-                {
-                    CommandUtils.DeleteFile(UBTExecutable);
-                    RebuildString = " /target:Rebuild";
-                }
-
 				CommandUtils.MsBuild(CommandUtils.CmdEnv,
 						CommandUtils.CmdEnv.LocalRoot + @"/Engine/Source/Programs/UnrealBuildTool/" + HostPlatform.Current.UBTProjectName + @".csproj",
-						"/verbosity:minimal /nologo" + RebuildString + " /property:Configuration=Development /property:Platform=AnyCPU",
+						"/verbosity:minimal /nologo /property:Configuration=Development /property:Platform=AnyCPU",
 						"BuildUBT");
 
 				bIsUBTReady = true;
@@ -814,14 +807,6 @@ namespace AutomationTool
 
 		public bool ProcessXGEItems(List<XGEItem> Actions, string XGETool, string Args, string TaskFilePath, bool DoRetries, bool SpecialTestFlag, bool ShowProgress)
 		{
-			foreach(XGEItem Item in Actions)
-			{
-				if(Item.Manifest.PreBuildScripts != null)
-				{
-					Utils.ExecuteCustomBuildSteps(Item.Manifest.PreBuildScripts.Select(x => new FileReference(x)).ToArray());
-				}
-			}
-
 			TelemetryStopwatch CombineXGEStopwatch = new TelemetryStopwatch("CombineXGEItemFiles.{0}", Path.GetFileNameWithoutExtension(XGETool));
 
 			XmlDocument XGETaskDocument;	

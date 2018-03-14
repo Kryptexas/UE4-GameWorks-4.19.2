@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -49,6 +49,12 @@ public:
 
 	/** @return Returns the name to use for any profiler registered as a modular feature usable by this system */
 	static FName GetFeatureName();
+
+	/** Starts a scoped event specific to the profiler. */
+	virtual void StartScopedEvent(const TCHAR* Text) {};
+
+	/** Ends a scoped event specific to the profiler. */
+	virtual void EndScopedEvent() {};
 
 
 private:

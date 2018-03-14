@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Factories/ReimportFbxSceneFactory.h"
 #include "Misc/Paths.h"
@@ -1051,6 +1051,7 @@ EReimportResult::Type UReimportFbxSceneFactory::ImportSkeletalMesh(void* VoidRoo
 	//TODO support bBakePivotInVertex
 	bool Old_bBakePivotInVertex = GlobalImportSettings->bBakePivotInVertex;
 	GlobalImportSettings->bBakePivotInVertex = false;
+	GlobalImportSettings->bImportBoneTracks = true;
 	//if (GlobalImportSettings->bBakePivotInVertex && MeshInfo->PivotNodeUid == INVALID_UNIQUE_ID)
 	//{
 		//GlobalImportSettings->bBakePivotInVertex = false;
@@ -1228,6 +1229,7 @@ EReimportResult::Type UReimportFbxSceneFactory::ReimportSkeletalMesh(void* VoidF
 	//TODO support bBakePivotInVertex
 	bool Old_bBakePivotInVertex = GlobalImportSettings->bBakePivotInVertex;
 	GlobalImportSettings->bBakePivotInVertex = false;
+	GlobalImportSettings->bImportBoneTracks = true;
 	//if (GlobalImportSettings->bBakePivotInVertex && MeshInfo->PivotNodeUid == INVALID_UNIQUE_ID)
 	//{
 		//GlobalImportSettings->bBakePivotInVertex = false;

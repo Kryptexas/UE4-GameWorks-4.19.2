@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLWindows.h: Manual loading of OpenGL functions from DLL.
@@ -371,6 +371,8 @@ namespace GLFuncPointers
 {
 	ENUM_GL_ENTRYPOINTS_ALL(DECLARE_GL_ENTRYPOINTS);
 };
+
+#undef DECLARE_GL_ENTRYPOINTS
 
 // this using is needed since the rest of code uses plain GL names
 using namespace GLFuncPointers;

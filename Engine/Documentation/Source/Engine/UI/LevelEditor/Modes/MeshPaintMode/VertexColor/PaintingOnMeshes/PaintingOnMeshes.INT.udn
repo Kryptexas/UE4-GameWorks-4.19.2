@@ -3,7 +3,11 @@ Title:Painting on Meshes
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor
 Description:An overview of how to lay paint strokes down on meshes using Mesh Paint Mode.
 Version: 4.13
+parent:Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor
+type:how-to
+order:2
 SkillLevel: Intermediate
+topic-image:PaintStroke_Green.png
 
 [EXCERPT:Intro]
 Painting on meshes is easy! The first thing to remember is that you can only paint on selected meshes.  This helps you restrict painting to only specific objects, while still allowing you to paint across multiple selected _Mesh Actors_ if necessary.

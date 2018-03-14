@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LODActorItem.h"
 #include "Textures/SlateIcon.h"
@@ -11,8 +11,9 @@
 
 #define LOCTEXT_NAMESPACE "LODActorItem"
 
-HLODOutliner::FLODActorItem::FLODActorItem(const ALODActor* InLODActor)
-	: LODActor(InLODActor), ID(InLODActor)
+HLODOutliner::FLODActorItem::FLODActorItem(ALODActor* InLODActor)
+	: LODActor(InLODActor)
+	, ID(InLODActor)
 {
 	Type = ITreeItem::HierarchicalLODActor;
 }

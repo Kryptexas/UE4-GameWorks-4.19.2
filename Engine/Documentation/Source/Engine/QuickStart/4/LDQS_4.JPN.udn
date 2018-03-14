@@ -29,7 +29,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 このステップでは空のレベル内に [アクタ](Engine/Actors) (ライトやジオメトリなど) を配置していきます。 
 アクタをレベルに追加する最も一般的な 2 つの方法である、[Place モード](Engine/UI/LevelEditor/Modes/PlaceMode) を用いる方法と、[コンテンツ ブラウザ](Engine/Content/Browser) による方法を説明します。 
@@ -119,4 +119,4 @@ checkpoint: editorqs
 
 次のセクションでは、レベルに配置したアクタの編集と、アクタのプロパティのカスタマイズ方法を学習します。 
 
-%Steps%
+

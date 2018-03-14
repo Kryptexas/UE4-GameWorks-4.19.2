@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:2.1 - 네트워크 연관성 [1 부 - 전혀 리플리케이트되지 않음]
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
@@ -25,7 +25,7 @@ Version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]

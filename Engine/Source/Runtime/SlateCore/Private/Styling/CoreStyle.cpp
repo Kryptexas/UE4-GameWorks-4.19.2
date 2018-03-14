@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Styling/CoreStyle.h"
 #include "SlateGlobals.h"
@@ -9,6 +9,7 @@
 #include "Styling/SlateStyleRegistry.h"
 #include "Styling/SlateStyle.h"
 #include "Styling/SlateTypes.h"
+#include "Fonts/LegacySlateFontInfoCache.h"
 
 
 /* Static initialization
@@ -55,8 +56,21 @@ public:
 };
 
 
-/* FSlateThrottleManager static functions
+/* FSlateCoreStyle static functions
  *****************************************************************************/
+
+TSharedRef<const FCompositeFont> FCoreStyle::GetDefaultFont()
+{
+	// FCoreStyle::GetDefaultFont is an alias so that the default font from FLegacySlateFontInfoCache can be acccessed outside of SlateCore (FLegacySlateFontInfoCache is private)
+	return FLegacySlateFontInfoCache::Get().GetDefaultFont();
+}
+
+
+FSlateFontInfo FCoreStyle::GetDefaultFontStyle(const FName InTypefaceFontName, const int32 InSize, const FFontOutlineSettings& InOutlineSettings)
+{
+	return FSlateFontInfo(GetDefaultFont(), InSize, InTypefaceFontName, InOutlineSettings);
+}
+
 
 void FCoreStyle::ResetToDefault( )
 {
@@ -115,8 +129,7 @@ PRAGMA_DISABLE_OPTIMIZATION
 #define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush(Style->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
 #define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush(Style->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
 #define BORDER_BRUSH( RelativePath, ... ) FSlateBorderBrush(Style->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
-#define TTF_FONT( RelativePath, ... ) FSlateFontInfo(Style->RootToContentDir(RelativePath, TEXT(".ttf")), __VA_ARGS__)
-#define OTF_FONT( RelativePath, ... ) FSlateFontInfo(Style->RootToContentDir(RelativePath, TEXT(".otf")), __VA_ARGS__)
+#define DEFAULT_FONT(...) FCoreStyle::GetDefaultFontStyle(__VA_ARGS__)
 
 TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 {
@@ -163,16 +176,16 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 
 	Style->Set("DefaultAppIcon", new IMAGE_BRUSH("Icons/DefaultAppIcon", Icon24x24));
 
-	Style->Set("NormalFont", TTF_FONT("Fonts/Roboto-Regular", 9));
+	Style->Set("NormalFont", DEFAULT_FONT("Regular", RegularTextSize));
 
-	Style->Set("SmallFont", TTF_FONT("Fonts/Roboto-Regular", 8));
+	Style->Set("SmallFont", DEFAULT_FONT("Regular", SmallTextSize));
 
 	FSlateBrush* DefaultTextUnderlineBrush = new IMAGE_BRUSH("Old/White", Icon8x8, FLinearColor::White, ESlateBrushTileType::Both);
 	Style->Set("DefaultTextUnderline", DefaultTextUnderlineBrush);
 
 	// Normal Text
 	const FTextBlockStyle NormalText = FTextBlockStyle()
-		.SetFont(TTF_FONT("Fonts/Roboto-Regular", 9))
+		.SetFont(DEFAULT_FONT("Regular", RegularTextSize))
 		.SetColorAndOpacity(FSlateColor::UseForeground())
 		.SetShadowOffset(FVector2D::ZeroVector)
 		.SetShadowColorAndOpacity(FLinearColor::Black)
@@ -184,7 +197,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 
 	// Monospaced Text
 	const FTextBlockStyle MonospacedText = FTextBlockStyle()
-		.SetFont(TTF_FONT("Fonts/DroidSansMono", 10))
+		.SetFont(DEFAULT_FONT("Mono", 10))
 		.SetColorAndOpacity(FSlateColor::UseForeground())
 		.SetShadowOffset(FVector2D::ZeroVector)
 		.SetShadowColorAndOpacity(FLinearColor::Black)
@@ -200,14 +213,14 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 
 	// Small Text
 	const FTextBlockStyle SmallText = FTextBlockStyle(NormalText)
-		.SetFont(TTF_FONT("Fonts/Roboto-Regular", 8));
+		.SetFont(DEFAULT_FONT("Regular", SmallTextSize));
 
 	const FTextBlockStyle SmallUnderlinedText = FTextBlockStyle(SmallText)
 		.SetUnderlineBrush(*DefaultTextUnderlineBrush);
 
 	// Embossed Text
 	Style->Set("EmbossedText", FTextBlockStyle(NormalText)
-		.SetFont(TTF_FONT("Fonts/Roboto-Regular", 24))
+		.SetFont(DEFAULT_FONT("Regular", 24))
 		.SetColorAndOpacity(FLinearColor::Black )
 		.SetShadowOffset( FVector2D(0.0f, 1.0f))
 		.SetShadowColorAndOpacity(FLinearColor(0.8f, 0.8f, 0.8f, 0.5))
@@ -314,6 +327,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "GenericCommands.Delete", new IMAGE_BRUSH("Icons/Edit/icon_Edit_Delete_16x", Icon16x16) );
 		Style->Set( "GenericCommands.Paste", new IMAGE_BRUSH("Icons/Edit/icon_Edit_Paste_16x", Icon16x16) );
 		Style->Set( "GenericCommands.Duplicate", new IMAGE_BRUSH("Icons/Edit/icon_Edit_Duplicate_16x", Icon16x16) );
+		Style->Set( "GenericCommands.Rename", new IMAGE_BRUSH( "Icons/Edit/icon_Edit_Rename_16x", Icon16x16 ) );
 	}
 
 	// SVerticalBox Drag& Drop icon
@@ -546,17 +560,17 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 	{
 		Style->Set( "SuggestionTextBox.Background",	new BOX_BRUSH( "Old/Menu_Background", FMargin(8.0f/64.0f) ) );
 		Style->Set( "SuggestionTextBox.Text", FTextBlockStyle()
-			.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) )
+			.SetFont( DEFAULT_FONT( "Regular", 9 ) )
 			.SetColorAndOpacity( FLinearColor(FColor(0xffaaaaaa)) )
 			);
 	}
 
 	// SToolTip defaults...
 	{
-		Style->Set("ToolTip.Font", TTF_FONT("Fonts/Roboto-Regular", 8));
+		Style->Set("ToolTip.Font", DEFAULT_FONT("Regular", 8));
 		Style->Set("ToolTip.Background", new BOX_BRUSH("Old/ToolTip_Background", FMargin(8.0f / 64.0f)));
 
-		Style->Set("ToolTip.LargerFont", TTF_FONT("Fonts/Roboto-Regular", 9));
+		Style->Set("ToolTip.LargerFont", DEFAULT_FONT("Regular", 9));
 		Style->Set("ToolTip.BrightBackground", new BOX_BRUSH("Old/ToolTip_BrightBackground", FMargin(8.0f / 64.0f)));
 	}
 
@@ -600,7 +614,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 			.SetCollapsedImage( IMAGE_BRUSH( "Common/TreeArrow_Collapsed", Icon10x10, DefaultForeground ) )
 			.SetExpandedImage( IMAGE_BRUSH( "Common/TreeArrow_Expanded", Icon10x10, DefaultForeground ) )
 			);
-		Style->Set( "ExpandableArea.TitleFont", TTF_FONT( "Fonts/Roboto-Bold", 8 ) );
+		Style->Set( "ExpandableArea.TitleFont", DEFAULT_FONT( "Bold", 8 ) );
 		Style->Set( "ExpandableArea.Border", new BOX_BRUSH( "Common/GroupBorder", FMargin(4.0f/16.0f) ) );
 	}
 
@@ -686,7 +700,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "ColorPicker.Border", new BOX_BRUSH( "Common/GroupBorder", FMargin(4.0f/16.0f) ) );
 		Style->Set( "ColorPicker.AlphaBackground", new IMAGE_BRUSH( "Common/Checker", Icon16x16, FLinearColor::White, ESlateBrushTileType::Both ) );
 		Style->Set( "ColorPicker.EyeDropper", new IMAGE_BRUSH( "Icons/eyedropper_16px", Icon16x16) );
-		Style->Set( "ColorPicker.Font", TTF_FONT( "Fonts/Roboto-Regular", 10 ) );
+		Style->Set( "ColorPicker.Font", DEFAULT_FONT( "Regular", 10 ) );
 		Style->Set( "ColorPicker.Mode", new IMAGE_BRUSH( "Common/ColorPicker_Mode_16x", Icon16x16) );
 		Style->Set( "ColorPicker.Separator", new IMAGE_BRUSH( "Common/ColorPicker_Separator", FVector2D(2.0f, 2.0f) ) );
 		Style->Set( "ColorPicker.Selector", new IMAGE_BRUSH( "Common/Circle", FVector2D(8, 8) ) );
@@ -824,12 +838,12 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "ToolBar.Separator", new BOX_BRUSH( "Old/Button", 4.0f/32.0f ) );
 		Style->Set( "ToolBar.Separator.Padding", FMargin( 0.5f ) );
 
-		Style->Set( "ToolBar.Label", FTextBlockStyle(NormalText) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) ) );
-		Style->Set( "ToolBar.EditableText", FEditableTextBoxStyle(NormalEditableTextBoxStyle) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) ) );
-		Style->Set( "ToolBar.Keybinding", FTextBlockStyle(NormalText) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 8 ) ) );
+		Style->Set( "ToolBar.Label", FTextBlockStyle(NormalText) .SetFont( DEFAULT_FONT( "Regular", 9 ) ) );
+		Style->Set( "ToolBar.EditableText", FEditableTextBoxStyle(NormalEditableTextBoxStyle) .SetFont( DEFAULT_FONT( "Regular", 9 ) ) );
+		Style->Set( "ToolBar.Keybinding", FTextBlockStyle(NormalText) .SetFont( DEFAULT_FONT( "Regular", 8 ) ) );
 
 		Style->Set( "ToolBar.Heading", FTextBlockStyle(NormalText)
-			.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 8 ) )
+			.SetFont( DEFAULT_FONT( "Regular", 8 ) )
 			.SetColorAndOpacity( FLinearColor( 0.4f, 0.4, 0.4f, 1.0f ) ) );
 
 		/* Create style for "ToolBar.CheckBox" widget ... */
@@ -845,6 +859,20 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 			.SetUndeterminedPressedImage( IMAGE_BRUSH( "Common/CheckBox_Undetermined_Hovered", Icon14x14, FLinearColor( 0.5f, 0.5f, 0.5f ) ) );
 		/* ... and add new style */
 		Style->Set( "ToolBar.CheckBox", ToolBarCheckBoxStyle );
+
+		/* Read-only checkbox that appears next to a menu item */
+		/* Set images for various SCheckBox states associated with read-only toolbar check box items... */
+		const FCheckBoxStyle BasicToolBarCheckStyle = FCheckBoxStyle()
+			.SetUncheckedImage(IMAGE_BRUSH("Icons/Empty_14x", Icon14x14))
+			.SetUncheckedHoveredImage(IMAGE_BRUSH("Icons/Empty_14x", Icon14x14))
+			.SetUncheckedPressedImage(IMAGE_BRUSH("Common/SmallCheckBox_Hovered", Icon14x14))
+			.SetCheckedImage(IMAGE_BRUSH("Common/SmallCheck", Icon14x14))
+			.SetCheckedHoveredImage(IMAGE_BRUSH("Common/SmallCheck", Icon14x14))
+			.SetCheckedPressedImage(IMAGE_BRUSH("Common/SmallCheck", Icon14x14))
+			.SetUndeterminedImage(IMAGE_BRUSH("Icons/Empty_14x", Icon14x14))
+			.SetUndeterminedHoveredImage(FSlateNoResource())
+			.SetUndeterminedPressedImage(FSlateNoResource());
+		Style->Set("ToolBar.Check", BasicToolBarCheckStyle);
 
 		// This radio button is actually just a check box with different images
 		/* Create style for "ToolBar.RadioButton" widget ... */
@@ -903,12 +931,12 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "Menu.Separator", new BOX_BRUSH( "Old/Button", 4.0f/32.0f ) );
 		Style->Set( "Menu.Separator.Padding", FMargin( 0.5f ) );
 
-		Style->Set( "Menu.Label", FTextBlockStyle(NormalText) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) ) );
-		Style->Set( "Menu.EditableText", FEditableTextBoxStyle(NormalEditableTextBoxStyle) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) ) );
-		Style->Set( "Menu.Keybinding", FTextBlockStyle(NormalText) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 8 ) ) );
+		Style->Set( "Menu.Label", FTextBlockStyle(NormalText) .SetFont( DEFAULT_FONT( "Regular", 9 ) ) );
+		Style->Set( "Menu.EditableText", FEditableTextBoxStyle(NormalEditableTextBoxStyle) .SetFont( DEFAULT_FONT( "Regular", 9 ) ) );
+		Style->Set( "Menu.Keybinding", FTextBlockStyle(NormalText) .SetFont( DEFAULT_FONT( "Regular", 8 ) ) );
 
 		Style->Set( "Menu.Heading", FTextBlockStyle(NormalText)
-			.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 8 ) )
+			.SetFont( DEFAULT_FONT( "Regular", 8 ) )
 			.SetColorAndOpacity( FLinearColor( 0.4f, 0.4, 0.4f, 1.0f ) ) );
 
 		/* Set images for various SCheckBox states associated with menu check box items... */
@@ -1011,8 +1039,8 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 
 	// SNotificationList defaults...
 	{
-		Style->Set( "NotificationList.FontBold", TTF_FONT( "Fonts/Roboto-Bold", 16 ) );
-		Style->Set( "NotificationList.FontLight", TTF_FONT( "Fonts/Roboto-Light", 12 ) );
+		Style->Set( "NotificationList.FontBold", DEFAULT_FONT( "Bold", 16 ) );
+		Style->Set( "NotificationList.FontLight", DEFAULT_FONT( "Light", 12 ) );
 		Style->Set( "NotificationList.ItemBackground", new BOX_BRUSH( "Old/Menu_Background", FMargin(8.0f/64.0f) ) );
 		Style->Set( "NotificationList.ItemBackground_Border", new BOX_BRUSH( "Old/Menu_Background_Inverted_Border_Bold", FMargin(8.0f/64.0f) ) );
 		Style->Set( "NotificationList.ItemBackground_Border_Transparent", new BOX_BRUSH("Old/Notification_Border_Flash", FMargin(8.0f/64.0f)));
@@ -1038,7 +1066,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "Docking.Border", new BOX_BRUSH( "Common/GroupBorder", FMargin(4.0f/16.0f) ) );
 
 		Style->Set( "Docking.TabFont", FTextBlockStyle(NormalText)
-			.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) )
+			.SetFont( DEFAULT_FONT( "Regular", 9 ) )
 			.SetColorAndOpacity( FLinearColor(0.72f, 0.72f, 0.72f, 1.f) )
 			.SetShadowOffset( FVector2D( 1,1 ) )
 			.SetShadowColorAndOpacity( FLinearColor::Black )
@@ -1158,7 +1186,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 #endif
 
 		const FTextBlockStyle TitleTextStyle = FTextBlockStyle(NormalText)
-			.SetFont(TTF_FONT("Fonts/Roboto-Regular", 9))
+			.SetFont(DEFAULT_FONT("Regular", 9))
 			.SetColorAndOpacity(FLinearColor::White)
 			.SetShadowOffset(FVector2D(1.0f, 1.0f))
 			.SetShadowColorAndOpacity(FLinearColor::Black);
@@ -1194,7 +1222,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set("StandardDialog.SlotPadding",FMargin(8.0f, 0.0f, 0.0f, 0.0f));
 		Style->Set("StandardDialog.MinDesiredSlotWidth", 80.0f);
 		Style->Set("StandardDialog.MinDesiredSlotHeight", 0.0f);
-		Style->Set("StandardDialog.LargeFont", TTF_FONT("Fonts/Roboto-Regular", 11));
+		Style->Set("StandardDialog.LargeFont", DEFAULT_FONT("Regular", 11));
 	}
 
 	// Widget Reflector Window
@@ -1202,12 +1230,23 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set("WidgetReflector.TabIcon", new IMAGE_BRUSH("Icons/icon_tab_WidgetReflector_16x", Icon16x16));
 		Style->Set("WidgetReflector.Icon", new IMAGE_BRUSH("Icons/icon_tab_WidgetReflector_40x", Icon40x40));
 		Style->Set("WidgetReflector.Icon.Small", new IMAGE_BRUSH("Icons/icon_tab_WidgetReflector_40x", Icon20x20));
+		Style->Set("WidgetReflector.FocusableCheck", FCheckBoxStyle()
+			.SetUncheckedImage(IMAGE_BRUSH("Icons/Empty_14x", Icon14x14))
+			.SetUncheckedHoveredImage(IMAGE_BRUSH("Icons/Empty_14x", Icon14x14))
+			.SetUncheckedPressedImage(IMAGE_BRUSH("Common/SmallCheckBox_Hovered", Icon14x14))
+			.SetCheckedImage(IMAGE_BRUSH("Common/SmallCheck", Icon14x14))
+			.SetCheckedHoveredImage(IMAGE_BRUSH("Common/SmallCheck", Icon14x14))
+			.SetCheckedPressedImage(IMAGE_BRUSH("Common/SmallCheck", Icon14x14))
+			.SetUndeterminedImage(IMAGE_BRUSH("Icons/Empty_14x", Icon14x14))
+			.SetUndeterminedHoveredImage(FSlateNoResource())
+			.SetUndeterminedPressedImage(FSlateNoResource())
+			);
 	}
 
 	// Message Log
 	{
 		Style->Set("MessageLog", FTextBlockStyle(NormalText)
-			.SetFont(TTF_FONT("Fonts/Roboto-Regular", 8))
+			.SetFont(DEFAULT_FONT("Regular", 8))
 			.SetShadowOffset(FVector2D::ZeroVector)
 		);
 		Style->Set("MessageLog.Error", new IMAGE_BRUSH("MessageLog/Log_Error", Icon16x16));
@@ -1224,7 +1263,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 	// Syntax highlighting
 	{
 		const FTextBlockStyle SmallMonospacedText = FTextBlockStyle(MonospacedText)
-			.SetFont(TTF_FONT("Fonts/DroidSansMono", 9));
+			.SetFont(DEFAULT_FONT("Mono", 9));
 
 		Style->Set("SyntaxHighlight.Normal", SmallMonospacedText);
 		Style->Set("SyntaxHighlight.Node", FTextBlockStyle(SmallMonospacedText).SetColorAndOpacity(FLinearColor(FColor(0xff006ab4)))); // blue
@@ -1240,8 +1279,7 @@ PRAGMA_ENABLE_OPTIMIZATION
 #undef IMAGE_BRUSH
 #undef BOX_BRUSH
 #undef BORDER_BRUSH
-#undef TTF_FONT
-#undef OTF_FONT
+#undef DEFAULT_FONT
 
 
 const TSharedPtr<FSlateDynamicImageBrush> FCoreStyle::GetDynamicImageBrush( FName BrushTemplate, FName TextureName, const ANSICHAR* Specifier )

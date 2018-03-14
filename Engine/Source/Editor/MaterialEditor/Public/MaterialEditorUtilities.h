@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,10 +12,10 @@ class IMaterialEditor;
 class UMaterial;
 class UMaterialExpressionComment;
 class UMaterialExpressionFunctionInput;
-class UMaterialFunction;
 class UMaterialInstance;
 class UMaterialInterface;
 struct FGraphActionMenuBuilder;
+struct FMaterialParameterInfo;
 
 //////////////////////////////////////////////////////////////////////////
 // FMaterialEditorUtilities
@@ -26,11 +26,17 @@ public:
 
 	FGetVisibleMaterialParametersFunctionState(UMaterialExpressionMaterialFunctionCall* InFunctionCall) :
 		FunctionCall(InFunctionCall)
-	{}
+	{
+		if (FunctionCall)
+		{
+			StackParameterInfo = FunctionCall->FunctionParameterInfo;
+		}
+	}
 
 	class UMaterialExpressionMaterialFunctionCall* FunctionCall;
 	TArray<FMaterialExpressionKey> ExpressionStack;
 	TSet<FMaterialExpressionKey> VisitedExpressions;
+	FMaterialParameterInfo StackParameterInfo;
 };
 
 class MATERIALEDITOR_API FMaterialEditorUtilities
@@ -150,12 +156,9 @@ public:
 	 *
 	 * @param	Material			The material to retrieve the parameters from.
 	 * @param	MaterialInstance	The material instance that contains all parameter overrides.
-	 * @param	VisisbleExpressions	The array that will contain the id's of the visible parameter expressions.
+	 * @param	VisisbleExpressions	The array that will contain the name's of the visible parameter expressions.
 	 */
-	static void GetVisibleMaterialParameters(const UMaterial *Material, UMaterialInstance *MaterialInstance, TArray<FGuid> &VisibleExpressions);
-
-	/** Returns true if the function or dependent functions contain a static switch expression */
-	static bool IsFunctionContainingSwitchExpressions(UMaterialFunction* MaterialFunction);
+	static void GetVisibleMaterialParameters(const UMaterial *Material, UMaterialInstance *MaterialInstance, TArray<FMaterialParameterInfo> &VisibleExpressions);
 
 	/** Finds an input in the passed in array with a matching Id. */
 	static const FFunctionExpressionInput* FindInputById(const UMaterialExpressionFunctionInput* InputExpression, const TArray<FFunctionExpressionInput>& Inputs);
@@ -198,12 +201,12 @@ private:
 	 *
 	 * @param	MaterialExpression				The expression to parse.
 	 * @param	MaterialInstance				The material instance that contains all parameter overrides.
-	 * @param	VisisbleExpressions				The array that will contain the id's of the visible parameter expressions.
+	 * @param	VisisbleExpressions				The array that will contain the name's of the visible parameter expressions.
 	 */
 	static void GetVisibleMaterialParametersFromExpression(
 		FMaterialExpressionKey MaterialExpressionKey, 
 		UMaterialInstance* MaterialInstance, 
-		TArray<FGuid>& VisibleExpressions, 
+		TArray<FMaterialParameterInfo>& VisibleExpressions, 
 		TArray<FGetVisibleMaterialParametersFunctionState*>& FunctionStack);
 
 	/**

@@ -1,0 +1,136 @@
+﻿INTSourceChangelist:3782314
+Availability:Public
+Title:4.シーケンスの再生とブレンドをトリガーする
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:シーケンスの再生をトリガーし、Slot アニメーションへのブレンドを開始するようにブループリントに指示します。
+Version:4.17
+SkillLevel:Advanced
+parent:Engine/Sequencer/HowTo/GameplayAnimBlending
+order:1
+checkpoint: editorqs
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor
+Related:Engine\Blueprints
+Related:Engine\Animation\AnimBlueprints
+tags:Sequencer
+tags:Animation
+type:how-to
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Engine\Sequencer\HowTo\GameplayAnimBlending\03_LevelSetup)
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ゲームプレイ アニメーションのブレンドのホーム](Engine\Sequencer\HowTo\GameplayAnimBlending)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[COMMENT:none]
+
+
+
+[/COMMENT]
+
+[nav]
+
+最終ステップでは、セットアップしたものをテストする前に、Level ブループリントを使ってプレイヤーがトリガー ボックスに入るとレベル シーケンスを起動させます。 
+シーケンスが開始すると、シネマティックスに公開されるプロパティ、**DefaultSlotInterp** が変更されて、interp 値の更新プロセスが始まります。 
+これにより、ゲームプレイ アニメーションから Slot アニメーションへのブレンドを開始するように Animation ブループリントに指示します。 
+
+1.	**トリガーボックス** を選択した状態で、メインツールバーから **[Blueprints]** ボタンをクリックします。次に **[Open Level Blueprint]** をクリックします。 
+
+	![](GameBlend_16.png)
+
+1.	グラフを右クリックして、トリガー ボックスの **[Collision]** で、**[Add On Actor Begin Overlap]** を選択します。 
+
+	![](GameBlend_17.png)
+
+1.	レベル ビューポートに戻り、レベル シーケンスを選択します。次に **Level ブループリント** で右クリックして、レベル シーケンスに参照を追加します。 
+
+	![](GameBlend_18.png)
+
+1.	レベル シーケンスから **Get Sequence Player** を使って、そこから **Play** ノードを使用して以下のように接続します。 
+
+	![](GameBlend_19.png)
+
+1.	**[コンパイル]** と **[保存]** をクリックします。エディタで再生するには、**[Play]** をクリックします。 
+
+
+## 最終結果
+
+キャラクターがトリガー ボリュームに入ると、現在のアニメーション ステートに関係なく、ゲームプレイ ポーズからシーケンサーによって定義されるデス (death) ポーズへとブレンドします。
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	KxmKS4hnSHk
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+シーケンスにカメラを追加して、シーケンスで death アニメーションが開始するポイントをシフトすることでブレンドを改善することができます。 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	ZQX4CB0s9b0
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+次の例では、プレイヤーが歩く、走る、かがんで歩く、ジャンプしてトリガーに入っています。各ケースで、トリガー ボリュームに入るとデス アニメーションにブレンドします。 
+
+[nav]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

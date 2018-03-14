@@ -58,7 +58,8 @@ version: 4.9
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsMinHardware]
 |||
 | -------- | --- |
@@ -83,7 +84,8 @@ version: 4.9
 | **内存** | 16 GB RAM |
 | **显卡** | NVIDIA GeForce 470 GTX 或更高级别的显卡，并使用最新的 Nvidia 驱动程序 |
 [/EXCERPT:LinuxMinHardware]
--->
+
+[/COMMENT]
 
 
 [PUBLISH:Licensee]
@@ -145,7 +147,8 @@ version: 4.9
 [/REGION]
 [/PUBLISH:Licensee]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsMinSoftware]
 | 运行引擎 ||
 | -------- | --- |
@@ -177,7 +180,8 @@ version: 4.9
 [Visual Studio C++ 2015 Redist](https://www.microsoft.com/en-us/download/details.aspx?id=48145)
 [/EXCERPT:VCRuntime]
 
--->
+
+[/COMMENT]
 
 
 程序员使用引擎开发的要求列于下方。
@@ -223,7 +227,8 @@ version: 4.9
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsMinDevelopment]
 | 使用引擎进行开发 ||
 | -------- | --- |
@@ -246,9 +251,11 @@ version: 4.9
 | **IDE** | QtCreator 3.1 或 KDevelop 4.6|
 | **Build 系统** | CMake 2.8 |
 [/EXCERPT:LinuxMinDevelopment]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:VS]
 Visual Studio 2015 Pro 版 或 Visual Studio 2015 Community 版：
 
@@ -256,7 +263,8 @@ Visual Studio 2015 Pro 版 或 Visual Studio 2015 Community 版：
 * [Community 版](https://www.visualstudio.com/en-us/products/visual-studio-community-vs.aspx)
 
 [/EXCERPT:VS]
--->
+
+[/COMMENT]
 
 [PUBLISH:Licensee]
 ## 显卡驱动程序

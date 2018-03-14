@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3782314
+Availability: Public
 Crumbs: %ROOT%, Engine, Engine/Animation
-Title: Pose Driver
-Description:Describes how to use the Pose Driver to drive Pose Asset or Curve values based on a bone's movement.
+Title: 포즈 드라이버
+Description:본의 이동에 따라 포즈 애셋 또는 커브 값을 구동시키는 포즈 드라이버 사용법입니다.
 Type: Reference
 Version: 4.16
 Parent: Engine/Animation/AnimPose
@@ -19,17 +19,17 @@ Tags:Animation Blending
 Tags:Pose Assets
 
 [REGION:warning]
-The Pose Driver node inside the AnimGraph in Animation Blueprints is currently experimental and some features may not work as expected.
+애니메이션 블루프린트 내 애님 그래프의 Pose Driver (포즈 드라이버) 노드는 현재 실험단계이며 일부 기능이 예상대로 작동하지 않을 수 있습니다.
 [/REGION]
 
 [TOC (start:2 end:2)]
 
-In addition to using the [](Engine\Animation\AnimPose\PoseBlenderNode) to playback **Pose Assets** through [Animation Blueprints](Engine/Animation/AnimBlueprints), 
-you can also drive Pose Assets directly at runtime with the **Pose Driver** node available within the [AnimGraph])Engine/Animation/AnimBlueprints/AnimGraph) of an Animation Blueprint. 
-The Pose Driver node enables a bone to drive other aspects of animation, based on a set of 'example poses' or lets you drive a curve value based on a bone's movement. 
-One use for this node would be to create a pose space deformer to drive corrective blend shapes based on a bone's orientation or translation. 
+[애니메이션 블루프린트](Engine/Animation/AnimBlueprints) 를 통해 **Pose Asset** (포즈 애셋)을 재생하기 위해 [](Engine\Animation\AnimPose\PoseBlenderNode) 를 사용하는 것에 추가로,
+애니메이션 블루프린트의 [애님 그래프](Engine/Animation/AnimBlueprints/AnimGraph) 안에서 사용할 수 있는 **Pose Driver** (포즈 드라이버) 노드로 실행시간에 직접 포즈 애셋을 구동시킬 수도 있습니다.
+포즈 드라이버 노드는 본으로 하여금 '예제 포즈" 세트에 따라 애니메이션의 다른 부분을 구동시키거나, 본의 이동에 따라 커브 값을 구동시킬 수 있도록 합니다.
+이 노드의 한 가지 사용 예는 포즈 스페이스 디포머를 만들어 본의 방향이나 위치에 따른 교정형 블렌드 셰이프를 구동시키는 것입니다.
 
-In the clip below, clavicle bone poses are being used to move the shoulder relative to the arm bone's movement. 
+아래 영상에서, 쇄골(clavicle) 본 포즈를 사용하여 팔(arm) 본의 이동을 기준으로 어깨(shoulder)를 움직이고 있습니다.
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -49,118 +49,120 @@ In the clip below, clavicle bone poses are being used to move the shoulder relat
 	[/PARAMLITERAL]
 [/OBJECT]
 
-We add the Pose Driver node and assign a Pose Asset containing our poses that we want to control. 
-We then set the **Source Bone** to our **clav** bone so that based on the **Drive Source** (which is set to **Rotate**), 
-we can update our **Pose Targets** that drive the pose being used.
-As the animation plays and the clav bone rotates, in the **Pose Targets** section each pose displays a bar to indicate the amount of influence it has to the final pose. 
+포즈 드라이버 노드를 추가하고 제어하고자 하는 포즈가 들어있는 포즈 애셋을 할당합니다.
+그리고 **Source Bone** 을 **clav** 본으로 설정하여 (**Rotate** (회전)으로 설정된) **Drive Source** (구동 소스)에 따라
+사용되고 있는 포즈를 구동시키는 **Pose Targets** (포즈 타겟)을 업데이트합니다.
+애니메이션이 재생되고 쇄골 본이 회전하면서, **Pose Targets** (포즈 타겟) 섹션의 각 포즈가 최종 포즈에 끼치는 영향력이 막대로 표시됩니다.
 [REGION:note]
-The Pose Driver node uses **RBF (Radial Basis Function)** which interpolates driven values based on the orientation of a target bone.
+포즈 드라이버 노드는 타겟 본의 방향에 따라 구동 값을 보간하는 **RBF (Radial Basis Function)** (방사 기저 함수)를 사용합니다.
 [/REGION]
 
-## Adding a Pose Driver
+## 포즈 드라이버 추가
 
-To add a Pose Driver node to your **Animation Blueprint**: 
+**애니메이션 블루프린트** 에 포즈 드라이버 노드를 추가하는 방법은 다음과 같습니다:
 
-1. On the **AnimGraph**, right-click in the graph and search for the **Pose Driver** node. 
+1. **애님 그래프** 안에 우클릭하고 **Pose Driver** 노드를 검색합니다.
 
 	![](ContextPoseDriverNode.png)
 
-1. Once the node has been added, supply the incoming **Source Pose** and the wire the **Out Pose** to the **Final Animation Pose** or other nodes for blending. 
+1. 노드를 추가했으면, 입력 **Source Pose** 를 주고 **Out Pose** 를 **Final Animation Pose** (최종 애니메이션 포즈) 또는 다른 노드에 블렌딩하도록 연결합니다.
 
 	![](CompletePoseDriver.png)
 
-1. Use the **Details** panel to define what bones should be evaluated and Pose Asset poses or Curves should be driven. 
+1. **디테일** 패널에서 평가 대상 본과 구동 대상 포즈 애셋 포즈 또는 커브를 정의합니다.
 
 	![](BlankDetails.png)
 
 	
-## Pose Targets
+## 포즈 타겟
 
-Pose Targets are where you specify the Poses from a Pose Asset or Curves you want to drive with the Pose Driver node. 
+Pose Target (포즈 타겟)에서는 포즈 드라이버 노드로 구동시키고자 하는 포즈를 포즈 애셋 또는 커브로부터 지정합니다.
 
-With a Pose Asset assigned, you can click the **Tools** button and select **Copy All from PoseAsset** to add each of the poses to the Pose Target window. 
+포즈 애셋을 할당한 채, **툴** 버튼을 클릭하고 **Copy All from PoseAsset** (포즈 애셋에서 모두 복사)를 선택하면 각 포즈가 포즈 타겟 창에 추가됩니다.
 
 ![](CopyPoses.png)
 
-Once they have been added, the window will update with the corresponding poses. 
+추가하면, 그에 맞는 포즈가 창에 업데이트됩니다.
 
 ![](PoseTargetsOptions.png)
 
 [REGION:tip]
-You can select each pose by clicking on it in the **Pose Target** window or by clicking on the target line in the viewport. 
+**포즈 타겟** 창의 포즈를 클릭하거나 뷰포트에서 타겟 라인을 클릭하면 포즈를 선택할 수 있습니다.
 [/REGION]
 
-### Curve based Pose Targets
+### 커브 기반 포즈 타겟
 
-Pose Targets can also be driven by [](Engine/Animation/Sequences/Curves) (Morph Targets and Material Curves) instead of using a Pose Asset. 
+포즈 타겟은 포즈 애셋 대신 [](Engine/Animation/Sequences/Curves) (모프 타겟 및 머티리얼 커브)로도 구동시킬 수 있습니다.
 
-To use curve data instead of a Pose Asset: 
+포즈 애셋 대신 커브 데이터를 사용하는 방법은:
 
-1.	In the **Details** panel of a **Pose Driver** node, under the **Pose Driver** section, change the **Drive Output** to **Drive Curves**. 
+1.	**Pose Driver** 노드의 **디테일** 패널에서, **Pose Driver** 섹션 아래 **Drive Output** 을 **Drive Curves** 로 변경합니다. 
 
 	![](DriveOutputSetting.png)
 
-1.	**Compile** the **Animation Blueprint**. 
+1.	**애니메이션 블루프린트** 를 **컴파일** 합니다.
 
 	![](CompileButton.png)
 
-1.	Click the **Add Target** button to add the number of curves you want to drive.
+1.	**타겟 추가** 버튼을 눌러 구동시키고자 하는 커브 수를 추가합니다.
 
 	![](AddTarget.png)
 
-1.	For each curve, under the **Drive** option select your desired curve and check the **Curve** checkbox, then define its value in the graph. 
+1.	각 커브에 대해, **Drive** 옵션 아래 원하는 커브를 선택하고 **Curve** (커브) 박스를 체크한 뒤, 그래프에서 그 값을 정의합니다.
 
 	![](CurveSetupComplete.png)
 
 
-## Pose Driver Properties
+## 포즈 드라이버 프로퍼티
 
-The **Pose Driver** properties section of the **Details** panel enables you to define the **Source Bones** to use for driving parameters in the **Pose Targets**. 
-You can specify multiple Source Bones or **Only Drive Selected Bones**, define an **Eval Space Bone** to use when reading the Source Bone Transform, set **RBF Parameters** used by the RBF Solver, as well as set the **Drive Source** and **Drive Output**. 
+**디테일** 패널의 **Pose Driver** 프로퍼티 섹션에서는 **포즈 타겟** 의 파라미터를 구동하는 데 사용할 **Source Bones** (소스 본)을 정의할 수 있습니다.
+다수의 소스 본 지정 또는 **Only Drive Selected Bones** (선택 본만 구동), 소스 본 트랜스폼을 읽을 때 사용할 **Eval Space Bone** (이밸 스페이스 본) 정의, RBF 솔버에 사용되는 **RBF Parameters** 설정, **Drive Source** 및 **Drive Output** 설정 등입니다.
 
-Below are the properties within the Pose Driver section: 
+Pose Driver 섹션에 있는 프로퍼티는 다음과 같습니다:
 
-| Option | Description |
+| 옵션 | 설명 |
 | --- |--- |
-| **Source Bones** | Bone to use for driving parameters based on its orientation. | 
-| **Only Drive Selected Bones** |  If we should filter bones to be driven using the **Only Drive Bones** array. | 
-| **Only Drive Bones** | Only the bones specified in the array will be modified by the Pose Driver node. | 
-| **Eval Space Bone** | Optional other bone space to use when reading Source Bone transform. If not specified, the local space of Source Bone (for example, relative to the parent bone) is used.| 
-| **RBFParams** | [INCLUDE:Engine\Animation\AnimPose\PoseDriverNode#rbftable] | 
-| **Drive Source** | Which part of the transform is read: **Rotation** or **Translation**. | 
-| **Drive Output** | Whether we should drive poses or curves. | 
+| **Source Bones** | 소스 본 - 이 본의 방향에 따라 파라미터를 구동시킵니다. |
+| **Only Drive Selected Bones** | 선택 본만 구동 - **Only Drive Bones** 배열을 사용하여 구동시킬 본에 필터를 적용할지 여부입니다. | 
+| **Only Drive Bones** | 본만 구동 - 이 배열에 지정된 본만 포즈 드라이버 노드로 변경됩니다. | 
+| **Eval Space Bone** | 이밸 스페이스 본 - 소스 본 트랜스폼을 읽을 때 사용할 다른 옵션 본 스페이스입니다. 지정하지 않으면, 소스 본의 로컬 스페이스를(, 즉 부모 본 기준을) 사용합니다. | 
+| **RBFParams** | RBF 파라미터 - [INCLUDE:Engine\Animation\AnimPose\PoseDriverNode#rbftable] | 
+| **Drive Source** | 구동 소스 - **Rotation** (회전) 또는 **Translation** (이동) 중 트랜스폼 어느 부분을 읽을지 입니다. | 
+| **Drive Output** | 구동 출력 - 포즈 또는 커브 중 무엇을 구동시킬지 입니다. | 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:rbftable]
-| Option | Description |
+| 옵션 | 설명 |
 | ----------- |------|
-| **Radius** | Default radius for each target, scaled by per-Target Scale Factor. | 
-| **Function** | Defines the type of [Blend Mode](Engine/Animation/NonLinearBlends) to use. | 
-| **Distance Method** | Sets the measurement of distance to: **Swing Angle**, **Quaternion** or **Euclidean**. | 
-| **Twist Axis** | Axis to use when **Distance Method** is set to **Swing Angle**. | 
-| **Weight Threshold** | Weight below which we shouldn't bother returning a contribution from a target. | 
+| **Radius** | 반경 - 각 타겟에 대한 기본 반경으로, 타겟 스케일 팩터 단위로 곱합니다. | 
+| **Function** | 함수 - 사용할 [블렌드 모드](Engine/Animation/NonLinearBlends) 유형을 정의합니다. | 
+| **Distance Method** | 거리 메소드 - 거리 측정 방법을 **Swing Angle** (스윙 각도), **Quaternion** (쿼터니언), **Euclidean** (유클리드) 중에서 선택합니다. | 
+| **Twist Axis** | 트위스트 축 - **Distance Method** 가 **Swing Angle** 로 설정되었을 때 사용할 축입니다. | 
+| **Weight Threshold** | 가중 한계치 - 가중치가 이 수치 미만이면 타겟으로부터의 기여를 반환하지 않습니다. | 
 [/EXCERPT:rbftable]
--->
+
+[/COMMENT]
 
 
-## Settings and Relevancy
+## 세팅 및 연관성
 
-The **Settings** section of the **Details** panel enables you to define the **Pose Asset** to evaluate and define if [](Engine/Animation/SyncGroups) are used. 
-The **Relevancy** section provides a way for you to determine if relevant animation nodes should ignore the node. 
+**디테일** 패널의 **Settings** (세팅) 섹션에서는 평가할 **포즈 애셋** 정의 및 [](Engine/Animation/SyncGroups) 사용 여부를 정의합니다.
+**Relevancy** (연관성) 섹션에서는 연관 애니메이션 노드가 이 노드를 무시하도록 설정할 수 있습니다.
 
-| Option | Description |
+| 옵션 | 설명 |
 | --- |--- |
-| **Pose Source** | The **Pose Asset** used as the source of pose data. | 
-| **Sync Group Name** | The name of the Synch Group to reference. | 
-| **Sync Group Role** | The type of membership in the group. | 
-| **Ignore for Relevancy Test** | If true, "Relevant anim" nodes that look for the highest weighted animation in a state will ignore this node.  | 
+| **Pose Source** | 포즈 소스 - 포즈 데이터 소스로 사용되는 **포즈 애셋** 입니다. | 
+| **Sync Group Name** | 싱크 그룹 이름 - 레퍼런싱할 싱크 그룹 이름입니다. | 
+| **Sync Group Role** | 싱크 그룹 역할 - 그룹 내 멤버십 유형입니다. | 
+| **Ignore for Relevancy Test** | 연관성 테스트 무시 - true 면 스테이트에서 가중치가 가장 높은 애니메이션을 찾는 Relevant anim 노드는 이 노드를 무시합니다. | 
 
 
-## Additional Examples and Resources
+## 부가 예제와 자료
 
-Below are some additional examples of the Pose Driver node and settings. 
+포즈 드라이버 노드와 세팅의 부가 예제 몇 가지입니다.
 
-Below, the clavicle, lower, and upper arm bones are driving corrective blend shapes deforming the area around the shoulder as it rotates through curves. 
+아래는, 쇄골(clavicle), 하박(lower arm), 상박(upper arm) 본이 어깨가 커브를 통해 회전하면서 그 주변 영역을 변형(deform)하는 교정형 블렌드 셰이프를 구동하는 모습입니다.
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -180,7 +182,7 @@ Below, the clavicle, lower, and upper arm bones are driving corrective blend sha
 	[/PARAMLITERAL]
 [/OBJECT]
 
-Another example of setting up and using the Pose Driver node can be found in the following Live Stream: 
+포즈 드라이버 노드를 구성하여 사용하는 또다른 예를 찾아볼 수 있는 라이브 스트림입니다:
 
 
 [OBJECT:EmbeddedVideo]

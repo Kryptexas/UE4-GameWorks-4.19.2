@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkyLightComponent.cpp: SkyLightComponent implementation.
@@ -22,6 +22,25 @@
 #include "ReleaseObjectVersion.h"
 
 #define LOCTEXT_NAMESPACE "SkyLightComponent"
+
+void OnUpdateSkylights(UWorld* InWorld)
+{
+	for (TObjectIterator<USkyLightComponent> It; It; ++It)
+	{
+		USkyLightComponent* SkylightComponent = *It;
+		if (InWorld->ContainsActor(SkylightComponent->GetOwner()) && !SkylightComponent->IsPendingKill())
+		{			
+			SkylightComponent->SetCaptureIsDirty();			
+		}
+	}
+	USkyLightComponent::UpdateSkyCaptureContents(InWorld);
+}
+
+FAutoConsoleCommandWithWorld CaptureConsoleCommand(
+	TEXT("r.SkylightRecapture"),
+	TEXT("Updates all stationary and movable skylights, useful for debugging the capture pipeline"),
+	FConsoleCommandWithWorldDelegate::CreateStatic(OnUpdateSkylights)
+	);
 
 void FSkyTextureCubeResource::InitRHI()
 {
@@ -692,6 +711,17 @@ void USkyLightComponent::SetCubemapBlend(UTextureCube* SourceCubemap, UTextureCu
 				});
 			}
 		}
+	}
+}
+
+void USkyLightComponent::SetLowerHemisphereColor(const FLinearColor& InLowerHemisphereColor)
+{
+	// Can't set on a static light
+	if (AreDynamicDataChangesAllowed()
+		&& LowerHemisphereColor != InLowerHemisphereColor)
+	{
+		LowerHemisphereColor = InLowerHemisphereColor;
+		MarkRenderStateDirty();
 	}
 }
 

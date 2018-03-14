@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 NiagaraRenderer.h: Base class for Niagara render modules
@@ -34,22 +34,32 @@ public:
 	/** Update render data buffer from attributes */
 	FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraSceneProxy* Proxy, FNiagaraDataSet &Data, const ENiagaraSimTarget Target) override;
 
-	void AddRibbonVert(TArray<FNiagaraRibbonVertex>& RenderData, FVector ParticlePos, FVector2D UV1,
-		const FLinearColor &Color, const float Age, const float Rotation, const FVector2D &Size)
+	void AddRibbonVert(TArray<FNiagaraRibbonVertex>& RenderData, FVector ParticlePos, FVector2D UV1, FVector2D UV2,
+		const FLinearColor &Color, const float Age, const float Rotation, const float Size, const FVector NormDir, const FVector CustomFacing)
 	{
-		FNiagaraRibbonVertex& NewVertex = *new(RenderData)FNiagaraRibbonVertex;
+		FNiagaraRibbonVertex NewVertex;
 		NewVertex.Position = ParticlePos;
-		NewVertex.OldPosition = NewVertex.Position;
+		NewVertex.Direction = NormDir;
 		NewVertex.Color = Color;
-		NewVertex.ParticleId = RenderData.Num();
-		NewVertex.RelativeTime = Age;
 		NewVertex.Size = Size;
 		NewVertex.Rotation = Rotation;
-		NewVertex.SubImageIndex = 0.f;
-		NewVertex.Tex_U = UV1.X;
-		NewVertex.Tex_V = UV1.Y;
-		NewVertex.Tex_U2 = UV1.X;
-		NewVertex.Tex_V2 = UV1.Y;
+		NewVertex.Tex_U = UV1.X * Properties->UV0Scale.X;
+		NewVertex.Tex_V = UV1.Y * Properties->UV0Scale.Y;
+		NewVertex.Tex_U2 = UV2.X * Properties->UV1Scale.X;
+		NewVertex.Tex_V2 = UV2.Y * Properties->UV1Scale.Y;
+		NewVertex.CustomFacingVector = CustomFacing;
+		//NewVertex.NormalizedAge = Age;
+		RenderData.Add(NewVertex);
+	}
+
+	void AddDynamicParam(TArray<FNiagaraRibbonVertexDynamicParameter>& ParamData, const FVector4& DynamicParam)
+	{
+		FNiagaraRibbonVertexDynamicParameter Param;
+		Param.DynamicValue[0] = DynamicParam.X;
+		Param.DynamicValue[1] = DynamicParam.Y;
+		Param.DynamicValue[2] = DynamicParam.Z;
+		Param.DynamicValue[3] = DynamicParam.W;
+		ParamData.Add(Param);
 	}
 
 

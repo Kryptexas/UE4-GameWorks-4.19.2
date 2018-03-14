@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "FoliageEditModule.h"
 #include "Modules/ModuleManager.h"
@@ -29,6 +29,7 @@ const FName FoliageEditAppIdentifier = FName(TEXT("FoliageEdApp"));
 #include "FoliageTypeObjectCustomization.h"
 #include "FoliageType_ISMThumbnailRenderer.h"
 #include "EditorModeManager.h"
+#include "LevelEditorViewport.h"
 
 /**
  * Foliage Edit Mode module
@@ -153,6 +154,10 @@ public:
 
 	void HandleExperimentalSettingChanged(FName PropertyName)
 	{
+		// Update the volume visibility flags
+		TArray<UClass*> PreviousVolumeClasses;
+		UUnrealEdEngine::GetSortedVolumeClasses(&PreviousVolumeClasses);
+
 		if (GetDefault<UEditorExperimentalSettings>()->bProceduralFoliage)
 		{
 			AProceduralFoliageVolume::StaticClass()->ClassFlags &= ~CLASS_NotPlaceable;
@@ -163,6 +168,36 @@ public:
 			AProceduralFoliageVolume::StaticClass()->ClassFlags |= CLASS_NotPlaceable;
 			AProceduralFoliageBlockingVolume::StaticClass()->ClassFlags |= CLASS_NotPlaceable;
 		}
+
+		// Update the volume visibility flags
+		TArray<UClass*> VolumeClasses;
+		UUnrealEdEngine::GetSortedVolumeClasses(&VolumeClasses);
+
+		// Update the visibility state of each actor for each viewport
+		for (int32 ViewportIdx = 0; ViewportIdx < GUnrealEd->LevelViewportClients.Num(); ++ViewportIdx)
+		{
+			FLevelEditorViewportClient& ViewClient = *GUnrealEd->LevelViewportClients[ViewportIdx];
+			
+			// Backup previous values
+			TMap<UClass*, bool> PreviousVolumeClassVisibility;
+
+			for (int32 i = 0; i < ViewClient.VolumeActorVisibility.Num(); ++i)
+			{
+				PreviousVolumeClassVisibility.Add(PreviousVolumeClasses[i], ViewClient.VolumeActorVisibility[i]);
+			}
+
+			// Resize the array to fix with the new values
+			ViewClient.VolumeActorVisibility.Init(true, VolumeClasses.Num());
+
+			// Reapply previous values
+			for (int32 i = 0; i < ViewClient.VolumeActorVisibility.Num(); ++i)
+			{
+				const bool* PreviousVisiblity = PreviousVolumeClassVisibility.Find(VolumeClasses[i]);
+				ViewClient.VolumeActorVisibility[i] = PreviousVisiblity != nullptr ? *PreviousVisiblity : true;
+			}
+		}
+
+		GUnrealEd->UpdateVolumeActorVisibility();
 	}
 
 	virtual void MoveSelectedFoliageToLevel(ULevel* InTargetLevel) override

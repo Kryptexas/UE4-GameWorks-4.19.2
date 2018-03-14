@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SPluginTile.h"
 #include "HAL/PlatformFilemanager.h"
@@ -54,6 +54,12 @@ void SPluginTile::RecreateWidgets()
 	// @todo plugedit: Maybe we should do the FileExists check ONCE at plugin load time and not at query time
 
 	const FPluginDescriptor& PluginDescriptor = Plugin->GetDescriptor();
+
+	// Disable Enterprise plugins if project is not an Enterprise project
+	if (Plugin->GetType() == EPluginType::Enterprise && !IProjectManager::Get().IsEnterpriseProject())
+	{
+		SetEnabled(false);
+	}
 
 	// Plugin thumbnail image
 	FString Icon128FilePath = Plugin->GetBaseDir() / TEXT("Resources/Icon128.png");

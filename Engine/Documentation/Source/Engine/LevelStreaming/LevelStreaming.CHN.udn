@@ -50,19 +50,13 @@ order:10
 如果制作的恰当，能够做到一个非常大的，无缝的管卡之间的切换，这能使玩家觉得仿佛置身在一个庞大的世界中。
 [/EXCERPT:Intro]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-	![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	流关卡的话题
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 流关卡的话题
+
+[REGION:buttonlist]
+
 	* [](Engine/LevelStreaming/WorldBrowser "%Engine/LevelStreaming/WorldBrowser:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
  
 
 

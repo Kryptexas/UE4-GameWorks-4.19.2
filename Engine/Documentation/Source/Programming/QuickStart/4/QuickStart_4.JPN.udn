@@ -22,7 +22,7 @@ Version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. **アンリアル エディタ** の **コンテンツ ブラウザ** から「C++ Classes」という名前のフォルダを展開します。そのフォルダ内の「QuickStart」フォルダの中に、**Actor** クラスの **FloatingActor** が入っています。
 
@@ -53,7 +53,7 @@ Version:4.9
     [/PARAM]
     [PARAM:content]
 		**FloatingActor.h**
-			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc.All Rights Reserved.
 
 			#pragma once
 
@@ -79,7 +79,7 @@ Version:4.9
 			};
 
 		**FloatingActor.cpp**
-			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc.All Rights Reserved.
 
 			#include "QuickStart.h"
 			#include "FloatingActor.h"
@@ -114,4 +114,4 @@ Version:4.9
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

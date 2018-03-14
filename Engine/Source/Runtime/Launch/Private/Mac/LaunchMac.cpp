@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Misc/App.h"
@@ -235,7 +235,14 @@ static int32 MacOSVersionCompare(const NSOperatingSystemVersion& VersionA, const
 
 	FEngineLoop::AppExit();
 
-	[NSApp terminate: nil];
+	if (GGuardedMainErrorLevel == 0)
+	{
+		[NSApp terminate: nil];
+	}
+	else
+	{
+		_Exit(GGuardedMainErrorLevel);
+	}
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)Notification

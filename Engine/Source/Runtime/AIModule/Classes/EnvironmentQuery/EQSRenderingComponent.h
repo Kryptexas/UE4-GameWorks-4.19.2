@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,10 +16,12 @@ class APlayerController;
 class IEQSQueryResultSourceInterface;
 class UCanvas;
 
-class AIMODULE_API FEQSSceneProxy : public FDebugRenderSceneProxy
+class AIMODULE_API FEQSSceneProxy final : public FDebugRenderSceneProxy
 {
 	friend class FEQSRenderingDebugDrawDelegateHelper;
 public:
+	SIZE_T GetTypeHash() const override;
+
 	DEPRECATED(4.14, "This FEQSSceneProxy constructor version is deprecated. Please use the one taking UPrimitiveComponent&")
 	FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FString& ViewFlagName = TEXT("DebugAI"));
 	DEPRECATED(4.14, "This FEQSSceneProxy constructor version is deprecated. Please use the one taking UPrimitiveComponent&")

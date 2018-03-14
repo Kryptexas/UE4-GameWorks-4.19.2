@@ -1,10 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TileRendering.cpp: Tile rendering implementation.
 =============================================================================*/
 
-#include "TileRendering.h"
 #include "RHI.h"
 #include "ShowFlags.h"
 #include "RenderResource.h"
@@ -23,202 +22,331 @@
 #define NUM_MATERIAL_TILE_VERTS	6
 
 /** 
-* vertex data for a screen quad 
-*/
-struct FMaterialTileVertex
-{
-	FVector			Position;
-	FPackedNormal	TangentX;
-	FPackedNormal	TangentZ;
-	uint32			Color;
-	float			U;
-	float			V;
-
-	inline void Initialize(float InX, float InY, float InU, float InV)
-	{
-		Position.X = InX; 
-		Position.Y = InY; 
-		Position.Z = 0.0f;
-		TangentX = FVector(1, 0, 0); 
-		//TangentY = FVector(0, 1, 0); 
-		TangentZ = FVector(0, 0, 1);
-		// TangentZ.w contains the sign of the tangent basis determinant. Assume +1
-		TangentZ.Vector.W = 255;
-		Color = FColor(255,255,255,255).DWColor();
-		U = InU; 
-		V = InV;
-	}
-};
-
-/** 
 * Vertex buffer
 */
-class FMaterialTileVertexBuffer : public FVertexBuffer
+class FMaterialTileVertexBuffer : public FRenderResource
 {
 public:
+	FVertexBuffer PositionBuffer;
+	FVertexBuffer TangentBuffer;
+	FVertexBuffer TexCoordBuffer;
+	FVertexBuffer ColorBuffer;
+
+	FShaderResourceViewRHIRef TangentBufferSRV;
+	FShaderResourceViewRHIRef TexCoordBufferSRV;
+	FShaderResourceViewRHIRef ColorBufferSRV;
+	FShaderResourceViewRHIRef PositionBufferSRV;
+
 	/** 
 	* Initialize the RHI for this rendering resource 
 	*/
 	virtual void InitRHI() override
 	{
+		FVector* PositionBufferData = nullptr;
 		// used with a trilist, so 6 vertices are needed
-		uint32 Size = NUM_MATERIAL_TILE_VERTS * sizeof(FMaterialTileVertex);
+		uint32 PositionSize = NUM_MATERIAL_TILE_VERTS * sizeof(FVector);
 		// create vertex buffer
-		FRHIResourceCreateInfo CreateInfo;
-		void* Buffer = nullptr;
-		VertexBufferRHI = RHICreateAndLockVertexBuffer(Size,BUF_Static,CreateInfo, Buffer);
-				
-		// first vertex element
-		FMaterialTileVertex* DestVertex = (FMaterialTileVertex*)Buffer;
+		{
+			FRHIResourceCreateInfo CreateInfo;
+			void* Data = nullptr;
+			PositionBuffer.VertexBufferRHI = RHICreateAndLockVertexBuffer(PositionSize, BUF_Static | BUF_ShaderResource, CreateInfo, Data);
+			PositionBufferData = static_cast<FVector*>(Data);
+			if (RHISupportsManualVertexFetch(GMaxRHIShaderPlatform))
+			{
+				PositionBufferSRV = RHICreateShaderResourceView(PositionBuffer.VertexBufferRHI, sizeof(float), PF_R32_FLOAT);
+			}
+
+		}
+
+		FPackedNormal* TangentBufferData = nullptr;
+		// used with a trilist, so 6 vertices are needed
+		uint32 TangentSize = NUM_MATERIAL_TILE_VERTS * 2 * sizeof(FPackedNormal);
+		// create vertex buffer
+		{
+			FRHIResourceCreateInfo CreateInfo;
+			void* Data = nullptr;
+			TangentBuffer.VertexBufferRHI = RHICreateAndLockVertexBuffer(TangentSize, BUF_Static | BUF_ShaderResource, CreateInfo, Data);
+			TangentBufferData = static_cast<FPackedNormal*>(Data);
+			if (RHISupportsManualVertexFetch(GMaxRHIShaderPlatform))
+			{
+				TangentBufferSRV = RHICreateShaderResourceView(TangentBuffer.VertexBufferRHI, sizeof(FPackedNormal), PF_R8G8B8A8);
+			}
+		}
+
+		FVector2D* TexCoordBufferData = nullptr;
+		// used with a trilist, so 6 vertices are needed
+		uint32 TexCoordSize = NUM_MATERIAL_TILE_VERTS * sizeof(FVector2D);
+		// create vertex buffer
+		{
+			FRHIResourceCreateInfo CreateInfo;
+			void* Data = nullptr;
+			TexCoordBuffer.VertexBufferRHI = RHICreateAndLockVertexBuffer(TexCoordSize, BUF_Static | BUF_ShaderResource, CreateInfo, Data);
+			TexCoordBufferData = static_cast<FVector2D*>(Data);
+
+			if (RHISupportsManualVertexFetch(GMaxRHIShaderPlatform))
+			{
+				TexCoordBufferSRV = RHICreateShaderResourceView(TexCoordBuffer.VertexBufferRHI, sizeof(FVector2D), PF_G32R32F);
+			}
+		}
+
+		uint32* ColorBufferData = nullptr;
+		// used with a trilist, so 6 vertices are needed
+		uint32 ColorSize = NUM_MATERIAL_TILE_VERTS * sizeof(uint32);
+		// create vertex buffer
+		{
+			FRHIResourceCreateInfo CreateInfo;
+			void* Data = nullptr;
+			ColorBuffer.VertexBufferRHI = RHICreateAndLockVertexBuffer(ColorSize, BUF_Static | BUF_ShaderResource, CreateInfo, Data);
+			ColorBufferData = static_cast<uint32*>(Data);
+			if (RHISupportsManualVertexFetch(GMaxRHIShaderPlatform))
+			{
+				ColorBufferSRV = RHICreateShaderResourceView(ColorBuffer.VertexBufferRHI, sizeof(uint32), PF_R8G8B8A8);
+			}
+		}
 
 		// fill out the verts
-		DestVertex[0].Initialize(1, -1, 1, 1);
-		DestVertex[1].Initialize(1, 1, 1, 0);
-		DestVertex[2].Initialize(-1, -1, 0, 1);
-		DestVertex[3].Initialize(-1, -1, 0, 1);
-		DestVertex[4].Initialize(1, 1, 1, 0);	
-		DestVertex[5].Initialize(-1, 1, 0, 0);
+		PositionBufferData[0] = FVector( 1, -1, 0);
+		PositionBufferData[1] = FVector( 1,  1, 0);
+		PositionBufferData[2] = FVector(-1, -1, 0);
+		PositionBufferData[3] = FVector(-1, -1, 0);
+		PositionBufferData[4] = FVector( 1,  1, 0);	
+		PositionBufferData[5] = FVector(-1,  1, 0);
+
+		TexCoordBufferData[0] = FVector2D(1, 1);
+		TexCoordBufferData[1] = FVector2D(1, 0);
+		TexCoordBufferData[2] = FVector2D(0, 1);
+		TexCoordBufferData[3] = FVector2D(0, 1);
+		TexCoordBufferData[4] = FVector2D(1, 0);
+		TexCoordBufferData[5] = FVector2D(0, 0);
+
+		for (int i = 0; i < NUM_MATERIAL_TILE_VERTS; i++)
+		{
+			TangentBufferData[2 * i + 0] = FVector(1, 0, 0);
+			TangentBufferData[2 * i + 1] = FVector(0, 0, 1);
+			ColorBufferData[i] = FColor(255, 255, 255, 255).DWColor();
+		}
 
 		// Unlock the buffer.
-		RHIUnlockVertexBuffer(VertexBufferRHI);        
+		RHIUnlockVertexBuffer(PositionBuffer.VertexBufferRHI);
+		RHIUnlockVertexBuffer(TangentBuffer.VertexBufferRHI);
+		RHIUnlockVertexBuffer(TexCoordBuffer.VertexBufferRHI);
+		RHIUnlockVertexBuffer(ColorBuffer.VertexBufferRHI);
 	}
-};
-TGlobalResource<FMaterialTileVertexBuffer> GTileRendererVertexBuffer;
 
-/**
- * Vertex factory for rendering tiles.
- */
-class FTileVertexFactory : public FLocalVertexFactory
-{
-public:
-
-	/** Default constructor. */
-	FTileVertexFactory()
+	void InitResource() override
 	{
-		FLocalVertexFactory::FDataType VertexData;
-		// position
-		VertexData.PositionComponent = FVertexStreamComponent(
-			&GTileRendererVertexBuffer,STRUCT_OFFSET(FMaterialTileVertex,Position),sizeof(FMaterialTileVertex),VET_Float3);
-		// tangents
-		VertexData.TangentBasisComponents[0] = FVertexStreamComponent(
-			&GTileRendererVertexBuffer,STRUCT_OFFSET(FMaterialTileVertex,TangentX),sizeof(FMaterialTileVertex),VET_PackedNormal);
-		VertexData.TangentBasisComponents[1] = FVertexStreamComponent(
-			&GTileRendererVertexBuffer,STRUCT_OFFSET(FMaterialTileVertex,TangentZ),sizeof(FMaterialTileVertex),VET_PackedNormal);
-		// color
-		VertexData.ColorComponent = FVertexStreamComponent(
-			&GTileRendererVertexBuffer,STRUCT_OFFSET(FMaterialTileVertex,Color),sizeof(FMaterialTileVertex),VET_Color);
-		// UVs
-		VertexData.TextureCoordinates.Add(FVertexStreamComponent(
-			&GTileRendererVertexBuffer,STRUCT_OFFSET(FMaterialTileVertex,U),sizeof(FMaterialTileVertex),VET_Float2));
-
-		// update the data
-		SetData(VertexData);
+		FRenderResource::InitResource();
+		PositionBuffer.InitResource();
+		TangentBuffer.InitResource();
+		TexCoordBuffer.InitResource();
+		ColorBuffer.InitResource();
 	}
-};
-TGlobalResource<FTileVertexFactory> GTileVertexFactory;
 
-/**
- * Mesh used to render tiles.
- */
-class FTileMesh : public FRenderResource
-{
-public:
-
-	/** The mesh element. */
-	FMeshBatch MeshElement;
-
-	virtual void InitRHI() override
+	void ReleaseResource() override
 	{
-		FMeshBatchElement& BatchElement = MeshElement.Elements[0];
-		MeshElement.VertexFactory = &GTileVertexFactory;
-		MeshElement.DynamicVertexStride = sizeof(FMaterialTileVertex);
-		BatchElement.FirstIndex = 0;
-		BatchElement.NumPrimitives = 2;
-		BatchElement.MinVertexIndex = 0;
-		BatchElement.MaxVertexIndex = NUM_MATERIAL_TILE_VERTS - 1;
-		MeshElement.ReverseCulling = false;
-		MeshElement.UseDynamicData = true;
-		MeshElement.Type = PT_TriangleList;
-		MeshElement.DepthPriorityGroup = SDPG_Foreground;
-		BatchElement.PrimitiveUniformBufferResource = &GIdentityPrimitiveUniformBuffer;
+		FRenderResource::ReleaseResource();
+		PositionBuffer.ReleaseResource();
+		TangentBuffer.ReleaseResource();
+		TexCoordBuffer.ReleaseResource();
+		ColorBuffer.ReleaseResource();
 	}
 
 	virtual void ReleaseRHI() override
 	{
-		MeshElement.Elements[0].PrimitiveUniformBuffer.SafeRelease();
+		PositionBuffer.ReleaseRHI();
+		TangentBuffer.ReleaseRHI();
+		TexCoordBuffer.ReleaseRHI();
+		ColorBuffer.ReleaseRHI();
+
+		TangentBufferSRV.SafeRelease();
+		TexCoordBufferSRV.SafeRelease();
+		ColorBufferSRV.SafeRelease();
+		PositionBufferSRV.SafeRelease();
 	}
 };
-TGlobalResource<FTileMesh> GTileMesh;
+TGlobalResource<FMaterialTileVertexBuffer> GTileRendererVertexBuffer;
 
-static void CreateTileVertices(FMaterialTileVertex DestVertex[NUM_MATERIAL_TILE_VERTS], const class FSceneView& View, bool bNeedsToSwitchVerticalAxis, float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, const FColor InVertexColor)
+
+/**
+* Vertex factory for rendering tiles.
+*/
+	/** Default constructor. */
+FCanvasTileRendererItem::FTileVertexFactory::FTileVertexFactory(ERHIFeatureLevel::Type InFeatureLevel) : FLocalVertexFactory(InFeatureLevel, "FTileVertexFactory")
+{
+	
+}
+
+/**
+ * Mesh used to render tiles.
+ */
+FCanvasTileRendererItem::FTileMesh::FTileMesh(FCanvasTileRendererItem::FTileVertexFactory* InVertexFactory)
+	: VertexFactory(InVertexFactory)
+{
+}
+
+void FCanvasTileRendererItem::FTileMesh::InitRHI()
+{
+	FMeshBatchElement& BatchElement = MeshElement.Elements[0];
+	MeshElement.VertexFactory = VertexFactory;
+	BatchElement.FirstIndex = 0;
+	BatchElement.NumPrimitives = 2;
+	BatchElement.MinVertexIndex = 0;
+	BatchElement.MaxVertexIndex = NUM_MATERIAL_TILE_VERTS - 1;
+	MeshElement.ReverseCulling = false;
+	MeshElement.Type = PT_TriangleList;
+	MeshElement.DepthPriorityGroup = SDPG_Foreground;
+	BatchElement.PrimitiveUniformBufferResource = &GIdentityPrimitiveUniformBuffer;
+}
+
+void FCanvasTileRendererItem::FTileMesh::ReleaseRHI()
+{
+	MeshElement.Elements[0].PrimitiveUniformBuffer.SafeRelease();
+}
+
+FCanvasTileRendererItem::FRenderData::FRenderData(ERHIFeatureLevel::Type InFeatureLevel,
+	const FMaterialRenderProxy* InMaterialRenderProxy,
+	const FCanvas::FTransformEntry& InTransform )
+	: VertexFactory(InFeatureLevel)
+	, TileMesh(&VertexFactory)
+	, MaterialRenderProxy(InMaterialRenderProxy)
+	, Transform(InTransform)
+{
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(FCanvasTileRendererItemFTileVertexFactoryInit,
+		FTileVertexFactory*, TileVertexFactory, &VertexFactory,
+		{
+			FLocalVertexFactory::FDataType VertexData;
+			VertexData.NumTexCoords = 1;
+
+			{
+				VertexData.LightMapCoordinateIndex = 0;
+				VertexData.TangentsSRV = GTileRendererVertexBuffer.TangentBufferSRV;
+				VertexData.TextureCoordinatesSRV = GTileRendererVertexBuffer.TexCoordBufferSRV;
+				VertexData.ColorComponentsSRV = GTileRendererVertexBuffer.ColorBufferSRV;
+				VertexData.PositionComponentSRV = GTileRendererVertexBuffer.PositionBufferSRV;
+			}
+
+			{
+				// position
+				VertexData.PositionComponent = FVertexStreamComponent(
+					&GTileRendererVertexBuffer.PositionBuffer,
+					0,
+					sizeof(FVector),
+					VET_Float3,
+					EVertexStreamUsage::Default
+				);
+
+				// tangents
+				VertexData.TangentBasisComponents[0] = FVertexStreamComponent(&GTileRendererVertexBuffer.TangentBuffer, 0, 2 * sizeof(FPackedNormal), VET_PackedNormal, EVertexStreamUsage::ManualFetch);
+				VertexData.TangentBasisComponents[1] = FVertexStreamComponent(&GTileRendererVertexBuffer.TangentBuffer, sizeof(FPackedNormal), 2 * sizeof(FPackedNormal), VET_PackedNormal, EVertexStreamUsage::ManualFetch);
+
+				// color
+				VertexData.ColorComponent = FVertexStreamComponent(&GTileRendererVertexBuffer.ColorBuffer, 0, sizeof(FColor), VET_Color, EVertexStreamUsage::ManualFetch);
+				// UVs
+				VertexData.TextureCoordinates.Add(FVertexStreamComponent(
+					&GTileRendererVertexBuffer.TexCoordBuffer,
+					0,
+					sizeof(FVector2D),
+					VET_Float2,
+					EVertexStreamUsage::ManualFetch
+				));
+
+				// update the data
+				TileVertexFactory->SetData(VertexData);
+			}
+	});
+}
+
+FCanvasTileRendererItem::~FCanvasTileRendererItem()
+{
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(FCanvasTileRendererItemDeleteRenderData,
+		FCanvasTileRendererItem::FRenderData*, RenderData, Data,
+		{
+			delete RenderData;
+		});
+	
+	Data = nullptr;
+}
+
+void FCanvasTileRendererItem::InitTileBuffers(FLocalVertexFactory* VertexFactory, TArray<FTileInst>& Tiles, const FSceneView& View, bool bNeedsToSwitchVerticalAxis)
 {
 	static_assert(NUM_MATERIAL_TILE_VERTS == 6, "Invalid tile tri-list size.");
+	Data->StaticMeshVertexBuffers.PositionVertexBuffer.Init(Tiles.Num() * NUM_MATERIAL_TILE_VERTS);
+	Data->StaticMeshVertexBuffers.StaticMeshVertexBuffer.Init(Tiles.Num() * NUM_MATERIAL_TILE_VERTS, 1);
+	Data->StaticMeshVertexBuffers.ColorVertexBuffer.Init(Tiles.Num() * NUM_MATERIAL_TILE_VERTS);
 
-	if (bNeedsToSwitchVerticalAxis)
+	for (int32 i = 0; i < Tiles.Num(); i++)
 	{
-		DestVertex[0].Initialize(X + SizeX, View.ViewRect.Height() - (Y + SizeY), U + SizeU, V + SizeV);
-		DestVertex[1].Initialize(X, View.ViewRect.Height() - (Y + SizeY), U, V + SizeV);
-		DestVertex[2].Initialize(X + SizeX, View.ViewRect.Height() - Y, U + SizeU, V);
-		DestVertex[3].Initialize(X + SizeX, View.ViewRect.Height() - Y, U + SizeU, V);
-		DestVertex[4].Initialize(X, View.ViewRect.Height() - (Y + SizeY), U, V + SizeV);
-		DestVertex[5].Initialize(X, View.ViewRect.Height() - Y, U, V);
-	}
-	else
-	{
-		DestVertex[0].Initialize(X + SizeX, Y, U + SizeU, V);
-		DestVertex[1].Initialize(X, Y, U, V);
-		DestVertex[2].Initialize(X + SizeX, Y + SizeY, U + SizeU, V + SizeV);
-		DestVertex[3].Initialize(X + SizeX, Y + SizeY, U + SizeU, V + SizeV);
-		DestVertex[4].Initialize(X, Y, U, V);	
-		DestVertex[5].Initialize(X, Y + SizeY, U, V + SizeV);
-	}
+		const FTileInst& Tile = Tiles[i];
 
-	DestVertex[0].Color = InVertexColor.DWColor();
-	DestVertex[1].Color = InVertexColor.DWColor();
-	DestVertex[2].Color = InVertexColor.DWColor();
-	DestVertex[3].Color = InVertexColor.DWColor();
-	DestVertex[4].Color = InVertexColor.DWColor();
-	DestVertex[5].Color = InVertexColor.DWColor();
-}
+		const float X = Tile.X;
+		const float Y = Tile.Y;
+		const float U = Tile.U;
+		const float V = Tile.V;
+		const float SizeX = Tile.SizeX;
+		const float SizeY = Tile.SizeY;
+		const float SizeU = Tile.SizeU;
+		const float SizeV = Tile.SizeV;
 
-void FTileRenderer::DrawTile(FRHICommandListImmediate& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, bool bNeedsToSwitchVerticalAxis, float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, bool bIsHitTesting, const FHitProxyId HitProxyId, const FColor InVertexColor)
-{
-	// create verts
-	FMaterialTileVertex DestVertex[NUM_MATERIAL_TILE_VERTS];
-	CreateTileVertices(DestVertex, View, bNeedsToSwitchVerticalAxis, X, Y, SizeX, SizeY, U, V, SizeU, SizeV, InVertexColor);
+		if (bNeedsToSwitchVerticalAxis)
+		{
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 0) = FVector(X + SizeX, View.UnscaledViewRect.Height() - (Y + SizeY), 0.0f);
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 1) = FVector(X, View.UnscaledViewRect.Height() - (Y + SizeY), 0.0f);
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 2) = FVector(X + SizeX, View.UnscaledViewRect.Height() - Y, 0.0f);
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 3) = FVector(X + SizeX, View.UnscaledViewRect.Height() - Y, 0.0f);
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 4) = FVector(X, View.UnscaledViewRect.Height() - (Y + SizeY), 0.0f);
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 5) = FVector(X, View.UnscaledViewRect.Height() - Y, 0.0f);
 
-	// update the FMeshBatch
-	FMeshBatch& Mesh = GTileMesh.MeshElement;
-	Mesh.UseDynamicData = true;
-	Mesh.DynamicVertexData = DestVertex;
-	Mesh.MaterialRenderProxy = MaterialRenderProxy;
+			Data->StaticMeshVertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i * NUM_MATERIAL_TILE_VERTS + 0, 0, FVector2D(U + SizeU, V + SizeV));
+			Data->StaticMeshVertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i * NUM_MATERIAL_TILE_VERTS + 1, 0, FVector2D(U, V + SizeV));
+			Data->StaticMeshVertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i * NUM_MATERIAL_TILE_VERTS + 2, 0, FVector2D(U + SizeU, V));
+			Data->StaticMeshVertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i * NUM_MATERIAL_TILE_VERTS + 3, 0, FVector2D(U + SizeU, V));
+			Data->StaticMeshVertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i * NUM_MATERIAL_TILE_VERTS + 4, 0, FVector2D(U, V + SizeV));
+			Data->StaticMeshVertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i * NUM_MATERIAL_TILE_VERTS + 5, 0, FVector2D(U, V));
+		}
+		else
+		{
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 0) = FVector(X + SizeX, Y, 0.0f);
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 1) = FVector(X, Y, 0.0f);
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 2) = FVector(X + SizeX, Y + SizeY, 0.0f);
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 3) = FVector(X + SizeX, Y + SizeY, 0.0f);
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 4) = FVector(X, Y, 0.0f);
+			Data->StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(i * NUM_MATERIAL_TILE_VERTS + 5) = FVector(X, Y + SizeY, 0.0f);
 
-	GetRendererModule().DrawTileMesh(RHICmdList, DrawRenderState, View, Mesh, bIsHitTesting, HitProxyId);
-}
+			Data->StaticMeshVertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i * NUM_MATERIAL_TILE_VERTS + 0, 0, FVector2D(U + SizeU, V));
+			Data->StaticMeshVertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i * NUM_MATERIAL_TILE_VERTS + 1, 0, FVector2D(U, V));
+			Data->StaticMeshVertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i * NUM_MATERIAL_TILE_VERTS + 2, 0, FVector2D(U + SizeU, V + SizeV));
+			Data->StaticMeshVertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i * NUM_MATERIAL_TILE_VERTS + 3, 0, FVector2D(U + SizeU, V + SizeV));
+			Data->StaticMeshVertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i * NUM_MATERIAL_TILE_VERTS + 4, 0, FVector2D(U, V));
+			Data->StaticMeshVertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i * NUM_MATERIAL_TILE_VERTS + 5, 0, FVector2D(U, V + SizeV));
+		}
 
-void FTileRenderer::DrawRotatedTile(FRHICommandListImmediate& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, bool bNeedsToSwitchVerticalAxis, const FQuat& Rotation, float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, bool bIsHitTesting, const FHitProxyId HitProxyId, const FColor InVertexColor)
-{
-	// create verts
-	FMaterialTileVertex DestVertex[NUM_MATERIAL_TILE_VERTS];
-	CreateTileVertices(DestVertex, View, bNeedsToSwitchVerticalAxis, X, Y, SizeX, SizeY, U, V, SizeU, SizeV, InVertexColor);
-	
-	// rotate tile using view center as origin
-	FIntPoint ViewRectSize = View.ViewRect.Size();
-	FVector ViewRectOrigin = FVector(ViewRectSize.X*0.5f, ViewRectSize.Y*0.5f, 0.f);
-	for (int32 i = 0; i < NUM_MATERIAL_TILE_VERTS; ++i)
-	{
-		DestVertex[i].Position = Rotation.RotateVector(DestVertex[i].Position - ViewRectOrigin) + ViewRectOrigin;
-		DestVertex[i].TangentX = Rotation.RotateVector(DestVertex[i].TangentX);
-		DestVertex[i].TangentZ = Rotation.RotateVector(DestVertex[i].TangentZ);
+		for (int j = 0; j < NUM_MATERIAL_TILE_VERTS; j++)
+		{
+			Data->StaticMeshVertexBuffers.StaticMeshVertexBuffer.SetVertexTangents(i * NUM_MATERIAL_TILE_VERTS + j, FVector(1.0f, 0.0f, 0.0f), FVector(0.0f, 1.0f, 0.0f), FVector(0.0f, 0.0f, 1.0f));
+			Data->StaticMeshVertexBuffers.ColorVertexBuffer.VertexColor(i * NUM_MATERIAL_TILE_VERTS + j) = Tile.InColor;
+		}
 	}
 
-	// update the FMeshBatch
-	FMeshBatch& Mesh = GTileMesh.MeshElement;
-	Mesh.UseDynamicData = true;
-	Mesh.DynamicVertexData = DestVertex;
-	Mesh.MaterialRenderProxy = MaterialRenderProxy;
+	FCanvasTileRendererItem::FRenderData* RenderData = Data;
+	ENQUEUE_RENDER_COMMAND(CreateTileVerticesBuffersLegacyInit)(
+		[VertexFactory, RenderData](FRHICommandListImmediate& RHICmdList)
+	{
+		RenderData->StaticMeshVertexBuffers.PositionVertexBuffer.InitResource();
+		RenderData->StaticMeshVertexBuffers.StaticMeshVertexBuffer.InitResource();
+		RenderData->StaticMeshVertexBuffers.ColorVertexBuffer.InitResource();
 
-	GetRendererModule().DrawTileMesh(RHICmdList, DrawRenderState, View, Mesh, bIsHitTesting, HitProxyId);
+		FLocalVertexFactory::FDataType RData;
+		RenderData->StaticMeshVertexBuffers.PositionVertexBuffer.BindPositionVertexBuffer(VertexFactory, RData);
+		RenderData->StaticMeshVertexBuffers.StaticMeshVertexBuffer.BindTangentVertexBuffer(VertexFactory, RData);
+		RenderData->StaticMeshVertexBuffers.StaticMeshVertexBuffer.BindPackedTexCoordVertexBuffer(VertexFactory, RData);
+		RenderData->StaticMeshVertexBuffers.StaticMeshVertexBuffer.BindLightMapVertexBuffer(VertexFactory, RData, 0);
+		RenderData->StaticMeshVertexBuffers.ColorVertexBuffer.BindColorVertexBuffer(VertexFactory, RData);
+		VertexFactory->SetData(RData);
+
+		RenderData->VertexFactory.InitResource();
+		RenderData->TileMesh.InitResource();
+	});
 }
 
 bool FCanvasTileRendererItem::Render_RenderThread(FRHICommandListImmediate& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FCanvas* Canvas)
@@ -260,30 +388,32 @@ bool FCanvasTileRendererItem::Render_RenderThread(FRHICommandListImmediate& RHIC
 	
 	bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && IsMobileHDR();
 
+	Data->TileMesh.InitResource();
+	InitTileBuffers(&Data->VertexFactory, Data->Tiles, *View, bNeedsToSwitchVerticalAxis);
+
 	for (int32 TileIdx = 0; TileIdx < Data->Tiles.Num(); TileIdx++)
 	{
-		const FRenderData::FTileInst& Tile = Data->Tiles[TileIdx];
-		FTileRenderer::DrawTile(
-			RHICmdList,
-			DrawRenderState,
-			*View,
-			Data->MaterialRenderProxy,
-			bNeedsToSwitchVerticalAxis,
-			Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY,
-			Tile.U, Tile.V, Tile.SizeU, Tile.SizeV,
-			Canvas->IsHitTesting(), Tile.HitProxyId,
-			Tile.InColor
-			);
+		FRenderData::FTileInst& Tile = Data->Tiles[TileIdx];
+
+		// update the FMeshBatch
+		FMeshBatch& Mesh = Data->TileMesh.MeshElement;
+		Mesh.MaterialRenderProxy = Data->MaterialRenderProxy;
+		Mesh.Elements[0].BaseVertexIndex = NUM_MATERIAL_TILE_VERTS * TileIdx;
+
+		GetRendererModule().DrawTileMesh(RHICmdList, DrawRenderState, *View, Mesh, Canvas->IsHitTesting(), Tile.HitProxyId);
 	}
+
+	Data->StaticMeshVertexBuffers.PositionVertexBuffer.ReleaseResource();
+	Data->StaticMeshVertexBuffers.StaticMeshVertexBuffer.ReleaseResource();
+	Data->StaticMeshVertexBuffers.ColorVertexBuffer.ReleaseResource();
+	Data->TileMesh.ReleaseResource();
+	Data->VertexFactory.ReleaseResource();
 
 	delete View->Family;
 	delete View;
 	if (Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender)
 	{
 		delete Data;
-	}
-	if (Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender)
-	{
 		Data = NULL;
 	}
 	return true;
@@ -333,7 +463,6 @@ bool FCanvasTileRendererItem::Render_GameThread(const FCanvas* Canvas)
 		FSceneView* View;
 		FRenderData* RenderData;
 		uint32 bIsHitTesting : 1;
-		uint32 bNeedsToSwitchVerticalAxis : 1;
 		uint32 AllowedCanvasModes;
 	};
 	FDrawTileParameters DrawTileParameters =
@@ -341,15 +470,16 @@ bool FCanvasTileRendererItem::Render_GameThread(const FCanvas* Canvas)
 		View,
 		Data,
 		Canvas->IsHitTesting() ? uint32(1) : uint32(0),
-		bNeedsToSwitchVerticalAxis ? uint32(1) : uint32(0),
 		Canvas->GetAllowedModes()
 	};
+
+	InitTileBuffers(&Data->VertexFactory, Data->Tiles, *View, bNeedsToSwitchVerticalAxis);
+
 	ENQUEUE_RENDER_COMMAND(DrawTileCommand)(
 		[DrawTileParameters](FRHICommandListImmediate& RHICmdList)
 		{
 			SCOPED_DRAW_EVENTF(RHICmdList, CanvasDrawTile, *DrawTileParameters.RenderData->MaterialRenderProxy->GetMaterial(GMaxRHIFeatureLevel)->GetFriendlyName());
-			
-			
+
 			FDrawingPolicyRenderState DrawRenderState(*DrawTileParameters.View);
 
 			// disable depth test & writes
@@ -357,18 +487,21 @@ bool FCanvasTileRendererItem::Render_GameThread(const FCanvas* Canvas)
 
 			for (int32 TileIdx = 0; TileIdx < DrawTileParameters.RenderData->Tiles.Num(); TileIdx++)
 			{
-				const FRenderData::FTileInst& Tile = DrawTileParameters.RenderData->Tiles[TileIdx];
-				FTileRenderer::DrawTile(
-					RHICmdList,
-					DrawRenderState,
-					*DrawTileParameters.View,
-					DrawTileParameters.RenderData->MaterialRenderProxy,
-					DrawTileParameters.bNeedsToSwitchVerticalAxis,
-					Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY,
-					Tile.U, Tile.V, Tile.SizeU, Tile.SizeV,
-					DrawTileParameters.bIsHitTesting, Tile.HitProxyId,
-					Tile.InColor);
+				FRenderData::FTileInst& Tile = DrawTileParameters.RenderData->Tiles[TileIdx];
+
+				// update the FMeshBatch
+				FMeshBatch& Mesh = DrawTileParameters.RenderData->TileMesh.MeshElement;
+				Mesh.MaterialRenderProxy = DrawTileParameters.RenderData->MaterialRenderProxy;
+				Mesh.Elements[0].BaseVertexIndex = NUM_MATERIAL_TILE_VERTS * TileIdx;
+
+				GetRendererModule().DrawTileMesh(RHICmdList, DrawRenderState, *DrawTileParameters.View, Mesh, DrawTileParameters.bIsHitTesting, Tile.HitProxyId);
 			}
+
+			DrawTileParameters.RenderData->StaticMeshVertexBuffers.PositionVertexBuffer.ReleaseResource();
+			DrawTileParameters.RenderData->StaticMeshVertexBuffers.StaticMeshVertexBuffer.ReleaseResource();
+			DrawTileParameters.RenderData->StaticMeshVertexBuffers.ColorVertexBuffer.ReleaseResource();
+			DrawTileParameters.RenderData->TileMesh.ReleaseResource();
+			DrawTileParameters.RenderData->VertexFactory.ReleaseResource();
 
 			delete DrawTileParameters.View->Family;
 			delete DrawTileParameters.View;
@@ -377,6 +510,7 @@ bool FCanvasTileRendererItem::Render_GameThread(const FCanvas* Canvas)
 				delete DrawTileParameters.RenderData;
 			}
 		});
+
 	if (Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender)
 	{
 		Data = NULL;

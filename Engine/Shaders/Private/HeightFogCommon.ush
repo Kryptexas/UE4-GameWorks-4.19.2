@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HeightFogCommon.usf: 
@@ -147,26 +147,10 @@ half4 GetExponentialHeightFog(float3 WorldPositionRelativeToCamera, float Exclud
 	return half4((InscatteringColor) * (1 - ExpFogFactor) + DirectionalInscattering, ExpFogFactor);
 }
 
-Texture3D IntegratedLightScattering;
-SamplerState IntegratedLightScatteringSampler;
-
-float4 CombineVolumetricFog(float4 GlobalFog, float3 VolumeUV)
+half4 CalculateHeightFog(float3 WorldPositionRelativeToCamera)
 {
-	float4 VolumetricFogLookup = float4(0, 0, 0, 1);
-
-	if (ApplyVolumetricFog > 0)
-	{
-		VolumetricFogLookup = Texture3DSampleLevel(IntegratedLightScattering, IntegratedLightScatteringSampler, VolumeUV, 0);
-	}
-
-	// Visualize depth distribution
-	//VolumetricFogLookup.rgb += .1f * frac(min(ZSlice, 1.0f) / View.VolumetricFogInvGridSize.z);
-
-	return float4(VolumetricFogLookup.rgb + GlobalFog.rgb * VolumetricFogLookup.a, VolumetricFogLookup.a * GlobalFog.a);
-}
-
-float4 CalculateCombinedFog(float3 WorldPositionRelativeToCamera, float3 VolumeUV)
-{
+	float3 WorldPosition = WorldPositionRelativeToCamera + ResolvedView.TranslatedWorldCameraOrigin - ResolvedView.PreViewTranslation.xyz;
+	
 	float ExcludeDistance = 0;
 
 #if SUPPORT_VOLUMETRIC_FOG
@@ -176,12 +160,33 @@ float4 CalculateCombinedFog(float3 WorldPositionRelativeToCamera, float3 VolumeU
 #endif
 
 	float4 FogInscatteringAndOpacity = GetExponentialHeightFog(WorldPositionRelativeToCamera, ExcludeDistance);
+	return FogInscatteringAndOpacity;
+}
 
-#if SUPPORT_VOLUMETRIC_FOG
-	FogInscatteringAndOpacity = CombineVolumetricFog(FogInscatteringAndOpacity, VolumeUV);
+Texture3D IntegratedLightScattering;
+SamplerState IntegratedLightScatteringSampler;
+
+#if SUPPORTS_INDEPENDENT_SAMPLERS
+	#define SharedIntegratedLightScatteringSampler View.SharedBilinearClampedSampler
+#else
+	#define SharedIntegratedLightScatteringSampler IntegratedLightScatteringSampler
 #endif
 
-	return FogInscatteringAndOpacity;
+float4 CombineVolumetricFog(float4 GlobalFog, float3 VolumeUV)
+{
+	float4 VolumetricFogLookup = float4(0, 0, 0, 1);
+
+#if SUPPORT_VOLUMETRIC_FOG
+	if (ApplyVolumetricFog > 0)
+	{
+		VolumetricFogLookup = Texture3DSampleLevel(IntegratedLightScattering, SharedIntegratedLightScatteringSampler, VolumeUV, 0);
+	}
+#endif
+
+	// Visualize depth distribution
+	//VolumetricFogLookup.rgb += .1f * frac(min(ZSlice, 1.0f) / View.VolumetricFogInvGridSize.z);
+
+	return float4(VolumetricFogLookup.rgb + GlobalFog.rgb * VolumetricFogLookup.a, VolumetricFogLookup.a * GlobalFog.a);
 }
 
 float ComputeNormalizedZSliceFromDepth(float SceneDepth)
@@ -195,11 +200,3 @@ float3 ComputeVolumeUV(float3 WorldPosition, float4x4 WorldToClip)
 	NDCPosition.xy /= NDCPosition.w;
 	return float3(NDCPosition.xy * float2(.5f, -.5f) + .5f, ComputeNormalizedZSliceFromDepth(NDCPosition.w));
 }
-
-half4 CalculateHeightFog(float3 WorldPositionRelativeToCamera)
-{
-	float3 WorldPosition = WorldPositionRelativeToCamera + ResolvedView.TranslatedWorldCameraOrigin - ResolvedView.PreViewTranslation.xyz;
-	float3 VolumeUV = ComputeVolumeUV(WorldPosition, ResolvedView.WorldToClip);
-	return CalculateCombinedFog(WorldPositionRelativeToCamera, VolumeUV);
-}
-

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1.2 - 머티리얼 인스턴스
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
@@ -12,66 +12,8 @@ Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Actors/DecalActor
 Version: 4.9
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 예제](Resources/ContentExamples/MaterialInstances/1_1 "%Resources/ContentExamples/MaterialInstances/1_1:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[콘텐츠 예제 홈](Resources/ContentExamples)
-	[/PARAM]
-	[PARAM:next]
-		[다음 예제](Resources/ContentExamples/MaterialInstances/1_3 "%Resources/ContentExamples/MaterialInstances/1_3:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
-%Steps%
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/MaterialInstances/1_2:title%](Resources\ContentExamples\MaterialInstances\rendering_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MaterialInstances/1_2:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MaterialInstances/1_2:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/MaterialInstances/1_2]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/MaterialInstances/1_2:title%](Resources\ContentExamples\MaterialInstances\rendering_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MaterialInstances/1_2:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MaterialInstances/1_2:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/MaterialInstances/1_2]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-<div align="center">
 ![](MI_1_2_001.png)(w:900)
-</div>
 
 **Material Instance** (머티리얼 인스턴스)란 머티리얼의 자손으로, **부모 머티리얼** 의 모든 것을 상속받았으나 그 **파라미터** 는 **머티리얼 인스턴스** 별로 변경할 수 있다는 뜻입니다.
 

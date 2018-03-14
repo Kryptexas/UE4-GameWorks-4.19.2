@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalViewport.cpp: Metal viewport RHI implementation.
@@ -105,10 +105,13 @@ FMetalViewport::FMetalViewport(void* WindowHandle, uint32 InSizeX,uint32 InSizeY
 
 FMetalViewport::~FMetalViewport()
 {
-	if (GMetalSeparatePresentThread && Block)
+	if (Block)
 	{
 		FScopeLock BlockLock(&Mutex);
-		FPlatformRHIFramePacer::RemoveHandler(Block);
+		if (GMetalSeparatePresentThread)
+		{
+			FPlatformRHIFramePacer::RemoveHandler(Block);
+		}
 		Block_release(Block);
 		Block = nil;
 	}
@@ -256,7 +259,11 @@ TRefCountPtr<FMetalTexture2D> FMetalViewport::GetBackBuffer(EMetalViewportAccess
 
 id<MTLDrawable> FMetalViewport::GetDrawable(EMetalViewportAccessFlag Accessor)
 {
-	if (!Drawable)
+	if (!Drawable
+#if !PLATFORM_MAC
+	|| (((id<CAMetalDrawable>)Drawable).texture.width != BackBuffer[GetViewportIndex(Accessor)]->GetSizeX() || ((id<CAMetalDrawable>)Drawable).texture.height != BackBuffer[GetViewportIndex(Accessor)]->GetSizeY())
+#endif
+	)
 	{
 		@autoreleasepool
 		{
@@ -272,16 +279,26 @@ id<MTLDrawable> FMetalViewport::GetDrawable(EMetalViewportAccessFlag Accessor)
 			{
 				Drawable = nil;
 			}
-	#else
-			Drawable = [[IOSAppDelegate GetDelegate].IOSView MakeDrawable];
-	#endif
 			
 #if METAL_DEBUG_OPTIONS
-			if ((((id<CAMetalDrawable>)Drawable).layer.drawableSize.width != BackBuffer[GetViewportIndex(Accessor)]->GetSizeX() || ((id<CAMetalDrawable>)Drawable).layer.drawableSize.height != BackBuffer[GetViewportIndex(Accessor)]->GetSizeY()))
+			CGSize Size = ((id<CAMetalDrawable>)Drawable).layer.drawableSize;
+			if ((Size.width != BackBuffer[GetViewportIndex(Accessor)]->GetSizeX() || Size.height != BackBuffer[GetViewportIndex(Accessor)]->GetSizeY()))
 			{
-				UE_LOG(LogMetal, Display, TEXT("Viewport Size Mismatch: Drawable W:%f H:%f, Viewport W:%u H:%u"), ((id<CAMetalDrawable>)Drawable).layer.drawableSize.width, ((id<CAMetalDrawable>)Drawable).layer.drawableSize.height, BackBuffer[GetViewportIndex(Accessor)]->GetSizeX(), BackBuffer[GetViewportIndex(Accessor)]->GetSizeY());
+				UE_LOG(LogMetal, Display, TEXT("Viewport Size Mismatch: Drawable W:%f H:%f, Viewport W:%u H:%u"), Size.width, Size.height, BackBuffer[GetViewportIndex(Accessor)]->GetSizeX(), BackBuffer[GetViewportIndex(Accessor)]->GetSizeY());
 			}
 #endif
+
+	#else
+			CGSize Size;
+			do
+			{
+				Drawable = [[IOSAppDelegate GetDelegate].IOSView MakeDrawable];
+				Size.width = ((id<CAMetalDrawable>)Drawable).texture.width;
+				Size.height = ((id<CAMetalDrawable>)Drawable).texture.height;
+			}
+			while (Size.width != BackBuffer[GetViewportIndex(Accessor)]->GetSizeX() || Size.height != BackBuffer[GetViewportIndex(Accessor)]->GetSizeY());
+			
+	#endif
 			
 			GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUPresent] += FPlatformTime::Cycles() - IdleStart;
 			GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUPresent]++;

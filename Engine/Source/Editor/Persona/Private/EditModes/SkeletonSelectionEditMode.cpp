@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "EditModes/SkeletonSelectionEditMode.h"
 #include "Animation/DebugSkelMeshComponent.h"
@@ -10,6 +10,8 @@
 #include "AssetEditorModeManager.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "EngineUtils.h"
+#include "Rendering/SkeletalMeshRenderData.h"
+
 
 #define LOCTEXT_NAMESPACE "SkeletonSelectionEditMode"
 
@@ -377,14 +379,15 @@ bool FSkeletonSelectionEditMode::IsSelectedBoneRequired() const
 {
 	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene().GetPreviewMeshComponent();
 	int32 SelectedBoneIndex = GetAnimPreviewScene().GetSelectedBoneIndex();
-	if (SelectedBoneIndex != INDEX_NONE && PreviewMeshComponent->SkeletalMesh && PreviewMeshComponent->SkeletalMesh->GetImportedResource())
+	if (SelectedBoneIndex != INDEX_NONE && PreviewMeshComponent->GetSkeletalMeshRenderData())
 	{
 		//Get current LOD
-		const int32 LODIndex = FMath::Clamp(PreviewMeshComponent->PredictedLODLevel, 0, PreviewMeshComponent->SkeletalMesh->GetImportedResource()->LODModels.Num() - 1);
-		FStaticLODModel& LODModel = PreviewMeshComponent->SkeletalMesh->GetImportedResource()->LODModels[LODIndex];
+		FSkeletalMeshRenderData* SkelMeshRenderData = PreviewMeshComponent->GetSkeletalMeshRenderData();
+		const int32 LODIndex = FMath::Clamp(PreviewMeshComponent->PredictedLODLevel, 0, SkelMeshRenderData->LODRenderData.Num() - 1);
+		FSkeletalMeshLODRenderData& LODData = SkelMeshRenderData->LODRenderData[LODIndex];
 
 		//Check whether the bone is vertex weighted
-		return LODModel.RequiredBones.Find(SelectedBoneIndex) != INDEX_NONE;
+		return LODData.RequiredBones.Find(SelectedBoneIndex) != INDEX_NONE;
 	}
 
 	return false;
@@ -481,8 +484,15 @@ bool FSkeletonSelectionEditMode::HandleClick(FEditorViewportClient* InViewportCl
 	bool bHandled = false;
 	const bool bSelectingSections = GetAnimPreviewScene().AllowMeshHitProxies();
 
+	USkeletalMeshComponent* MeshComponent = GetAnimPreviewScene().GetPreviewMeshComponent();
+
 	if ( HitProxy )
 	{
+		if (!HitProxy->IsA(HActor::StaticGetType()) && MeshComponent)
+		{
+			MeshComponent->SetSelectedEditorSection(INDEX_NONE);
+		}
+
 		if ( HitProxy->IsA( HPersonaSocketProxy::StaticGetType() ) )
 		{
 			// Tell the skeleton tree that the socket has been selected - this will sort out the skeleton tree, etc.
@@ -498,8 +508,16 @@ bool FSkeletonSelectionEditMode::HandleClick(FEditorViewportClient* InViewportCl
 		else if ( HitProxy->IsA( HActor::StaticGetType() ) && bSelectingSections)
 		{
 			HActor* ActorHitProxy = static_cast<HActor*>(HitProxy);
-			GetAnimPreviewScene().BroadcastMeshClick(ActorHitProxy, Click);
+			GetAnimPreviewScene().BroadcastMeshClick(ActorHitProxy, Click); // This can pop up menu which redraws viewport and invalidates HitProxy!
 			bHandled = true;
+		}
+	}
+	else
+	{
+		// Deselect mesh sections
+		if (MeshComponent)
+		{
+			MeshComponent->SetSelectedEditorSection(INDEX_NONE);
 		}
 	}
 	
@@ -519,18 +537,6 @@ bool FSkeletonSelectionEditMode::HandleClick(FEditorViewportClient* InViewportCl
 		{
 			// We didn't hit a proxy or a physics object, so deselect all objects
 			static_cast<FAnimationViewportClient*>(InViewportClient)->GetSkeletonTree()->DeselectAll();
-		}
-	}
-
-	if(!HitProxy || !HitProxy->IsA(HActor::StaticGetType()))
-	{
-		// Deselect mesh sections
-		if(USkeletalMeshComponent* MeshComponent = GetAnimPreviewScene().GetPreviewMeshComponent())
-		{
-			if(USkeletalMesh* SkelMesh = MeshComponent->SkeletalMesh)
-			{
-				SkelMesh->SelectedEditorSection = INDEX_NONE;
-			}
 		}
 	}
 

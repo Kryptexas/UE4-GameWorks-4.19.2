@@ -1,0 +1,90 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Crumbs: %ROOT%, 
+Title:Create a Particle Light
+Description:Describes how you can create light within your particle system.
+Type: how-to
+SkillLevel:Beginner
+Version: 4.17
+parent:Engine/Niagara/HowTo
+order:5
+tags:Niagara
+topic-image:
+
+Giving particles the ability to illuminate the world around them can add an extra layer of realism to any of your project's visual effects. In the following How - To we will take a look at setting up a Niagara emitter so that particles and lights are spawned at the same time.
+
+![](PL_Hero_Image.png)
+
+## Steps
+
+1. First, we will need to create a **Niagara Emitter** by right-clicking in the **Content Browser**, then from the displayed menu, go to **FX** and click **Niagara Emitter**. 
+
+    ![](Engine\Niagara\HowTo\SpriteEffect\SE_01.png)
+
+1. Name the newly created Niagara Emitter, **FX_Light** and then double-click on it to open it up.
+
+    ![](PL_01.png)
+
+1. Next in the **Render** section of the FX_Light Niagara Emitter, press the **Plus** sign icon and from the displayed list, select the **Niagara Light Renderer Properties** option.
+
+    ![](PL_02.png)
+
+1. In the Niagara Light Renderer Properties, set the **Radius Scale** and **Color Add** to a value of **10**.
+
+    ![](PL_03.png)
+
+1. Then press the **Compile**, **Apply** and **Save** buttons to apply and save the changes and then close the **FX_Mesh** emitter.
+
+    ![](Engine\Niagara\HowTo\MeshEffect\ME_09.png)
+
+1. Now over in the **Content Browser**, right-click and from the displayed list, go to **FX** and then select the **Niagara System** option, giving it a name of **ParticleLight**.
+
+    ![](Engine\Niagara\HowTo\SpriteEffect\SE_16.png)
+
+1. Double-click on the Particle Light Niagara System to open it up and then drag the **FX_Light** Niagara Emitter to the **Timeline** of the Particle Light Niagara System.
+
+    [REGION:lightbox]
+    [![](PL_04.png)(w:317)](PL_04.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
+
+1. Press the **Compile** and **Save** buttons and then close the Particle Light Niagara System down and then over in the Content Browser, drag the Mesh Niagara System into the level viewport.
+
+    [REGION:lightbox]
+    [![](PL_05.png)(w:779)](PL_05.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
+
+## End Result
+
+When completed you will now have a VFX that will cast light into the world when the particles are spawned.
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    7D0edbLt2oE
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
+
+
+
+
+
+

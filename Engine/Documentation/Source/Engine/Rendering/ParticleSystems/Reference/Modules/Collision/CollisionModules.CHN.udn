@@ -93,7 +93,8 @@ Framerate 部分打开后，将 **Min Desired Frame Rate** 设为低于 **30** F
 完成 Min Desired Frame Rate 的变更和 Drop Detail 框的取消勾选后， 
 在 iOS 移动设备端重新搭建或重新部署项目，确认粒子碰撞功能正常。 
 
-<!-----------
+[COMMENT:none]
+---------
 
 #### 包括
 
@@ -118,4 +119,5 @@ Framerate 部分打开后，将 **Min Desired Frame Rate** 设为低于 **30** F
 [/EXCERPT:CollisionCompletionOption]
 
 
-------->
+-----
+[/COMMENT]

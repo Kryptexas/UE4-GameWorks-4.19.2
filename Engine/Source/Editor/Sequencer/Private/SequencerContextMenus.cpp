@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerContextMenus.h"
 #include "Modules/ModuleManager.h"
@@ -288,7 +288,8 @@ public:
 			.CreateStructureDetailView(DetailsViewArgs, StructureViewArgs, nullptr, LOCTEXT("MessageData", "Message Data"));
 
 		// register details customizations for this instance
-		StructureDetailsView->GetDetailsView()->RegisterInstancedCustomPropertyLayout(FIntegralKey::StaticStruct(), FOnGetDetailCustomizationInstance::CreateStatic(&FIntegralKeyDetailsCustomization::MakeInstance, TWeakObjectPtr<const UMovieSceneSection>(WeakSection)));
+		TWeakObjectPtr<const UMovieSceneSection> ConstWeakSection = WeakSection;
+		StructureDetailsView->GetDetailsView()->RegisterInstancedCustomPropertyLayout(FIntegralKey::StaticStruct(), FOnGetDetailCustomizationInstance::CreateStatic(&FIntegralKeyDetailsCustomization::MakeInstance, ConstWeakSection));
 
 		StructureDetailsView->SetStructureData(SelectedKeyStruct);
 		StructureDetailsView->GetOnFinishedChangingPropertiesDelegate().AddSP(this, &SInlineDetailsView::OnFinishedChangingProperties, SelectedKeyStruct);
@@ -692,9 +693,8 @@ void FSectionContextMenu::AddPropertiesMenu(FMenuBuilder& MenuBuilder)
 	}
 
 	TSharedRef<IDetailsView> DetailsView = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor").CreateDetailView(DetailsViewArgs);
-	{
-		DetailsView->SetObjects(Sections);
-	}
+	Sequencer->OnInitializeDetailsPanel().Broadcast(DetailsView, Sequencer);
+	DetailsView->SetObjects(Sections);
 
 	DetailsNotifyWrapper->SetDetailsAndSequencer(DetailsView, Sequencer);
 	MenuBuilder.AddWidget(DetailsNotifyWrapper, FText::GetEmpty(), true);
@@ -733,7 +733,8 @@ void FSectionContextMenu::AddBlendTypeMenu(FMenuBuilder& MenuBuilder)
 		}
 	}
 
-	FSequencerUtilities::PopulateMenu_SetBlendType(MenuBuilder, Sections);
+	TWeakPtr<FSequencer> WeakSequencer = Sequencer;
+	FSequencerUtilities::PopulateMenu_SetBlendType(MenuBuilder, Sections, WeakSequencer);
 }
 
 void FSectionContextMenu::SelectAllKeys()
@@ -1777,15 +1778,22 @@ void FEasingContextMenu::PopulateMenu(FMenuBuilder& MenuBuilder)
 
 		auto OnBeginSliderMovement = [=]
 		{
-			if (ensure(!Shared->ScopedTransaction.IsValid()))
-			{
-				Shared->ScopedTransaction.Reset(new FScopedTransaction(LOCTEXT("SetEasingTimeText", "Set Easing Length")));
-			}
+			GEditor->BeginTransaction(LOCTEXT("SetEasingTimeText", "Set Easing Length"));
 		};
 		auto OnEndSliderMovement = [=](float NewLength)
 		{
-			Shared->OnUpdateLength(NewLength);
-			Shared->ScopedTransaction.Reset();
+			if (GEditor->IsTransactionActive())
+			{
+				GEditor->EndTransaction();
+			}
+		};
+		auto OnValueCommitted = [=](float NewLength, ETextCommit::Type CommitInfo)
+		{
+			if (CommitInfo == ETextCommit::OnEnter || CommitInfo == ETextCommit::OnUserMovedFocus)
+			{
+				FScopedTransaction Transaction(LOCTEXT("SetEasingTimeText", "Set Easing Length"));
+				Shared->OnUpdateLength(NewLength);
+			}
 		};
 
 		TSharedRef<SWidget> SpinBox = SNew(SHorizontalBox)
@@ -1809,7 +1817,7 @@ void FEasingContextMenu::PopulateMenu(FMenuBuilder& MenuBuilder)
 					.Delta(0.001f)
 					.Value_Lambda([=]{ return Shared->GetCurrentLength(); })
 					.OnValueChanged_Lambda([=](float NewLength){ Shared->OnUpdateLength(NewLength); })
-					.OnValueCommitted_Lambda([=](float NewLength, ETextCommit::Type){ Shared->OnUpdateLength(NewLength); })
+					.OnValueCommitted_Lambda(OnValueCommitted)
 					.OnBeginSliderMovement_Lambda(OnBeginSliderMovement)
 					.OnEndSliderMovement_Lambda(OnEndSliderMovement)
 					.BorderForegroundColor(FEditorStyle::GetSlateColor("DefaultForeground"))
@@ -2065,11 +2073,15 @@ void FEasingContextMenu::EasingOptionsMenu(FMenuBuilder& MenuBuilder)
 		{
 			if (Handle.EasingType == ESequencerEasingType::In)
 			{
-				Objects.AddUnique(Section->Easing.EaseIn.GetObject());
+				UObject* EaseInObject = Section->Easing.EaseIn.GetObject();
+				EaseInObject->SetFlags(RF_Transactional);
+				Objects.AddUnique(EaseInObject);
 			}
 			else
 			{
-				Objects.AddUnique(Section->Easing.EaseOut.GetObject());
+				UObject* EaseOutObject = Section->Easing.EaseOut.GetObject();
+				EaseOutObject->SetFlags(RF_Transactional);
+				Objects.AddUnique(EaseOutObject);
 			}
 		}
 	}

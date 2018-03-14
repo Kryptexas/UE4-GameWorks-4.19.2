@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Misc/DateTime.h"
 #include "HAL/PlatformTime.h"
@@ -180,6 +180,13 @@ bool FDateTime::Serialize(FArchive& Ar)
 	return true;
 }
 
+
+bool FDateTime::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+{
+	Ar << *this;
+	bOutSuccess = true;
+	return true;
+}
 
 FString FDateTime::ToHttpDate() const
 {

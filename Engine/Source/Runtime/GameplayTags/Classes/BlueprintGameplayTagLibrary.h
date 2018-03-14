@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,7 +11,7 @@
 #include "Templates/SubclassOf.h"
 #include "BlueprintGameplayTagLibrary.generated.h"
 
-UCLASS(MinimalAPI)
+UCLASS(MinimalAPI, meta=(ScriptName="GameplayTagLibrary"))
 class UBlueprintGameplayTagLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

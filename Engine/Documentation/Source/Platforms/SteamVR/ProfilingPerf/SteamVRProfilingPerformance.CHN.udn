@@ -1,0 +1,73 @@
+﻿INTSourceChangelist:3703703
+Title:SteamVR 分析与性能
+Availability:Public
+Crumbs:%ROOT%, Platforms
+Description:UE4 SteamVR 项目的性能分析信息。
+Navigation:platform
+Platform:SteamVR
+Version:4.17
+type:landing
+parent:Platforms/SteamVR
+order:2
+tags:Performance and Profiling
+type:overview
+topic-image:SteamVR_ProPref_Topic_Image.png
+
+此页面说明如何对使用 SteamVR 的虚幻引擎 4（UE4）项目进行性能分析。 
+
+## SteamVR Frame Timing 工具
+
+![](SteamVR_ProPref_00.png)
+
+SteamVR Frame Timing 工具能够追踪 UE4 项目运行性能差的原因。无论在编辑器还是在打包版本中，SteamVR Frame Timing 工具都能够确认实际的 CPU 和 GPU 时间，同时负责应用程序节流。要深度了解能够用 SteamVR Frame Timing 工具进行的操作，请查看 [SteamVR Frame Timing 工具](https://developer.valvesoftware.com/wiki/SteamVR/Frame_Timing) 的官方文档。
+
+执行以下步骤显示 SteamVR Frame Timing 工具。
+
+1. 右键点击 SteamVR 工具，从出现的菜单中选择 **Settings** 选项。
+
+    ![](SteamVR_ProPref_01.png)
+
+1. 然后从 Settings 菜单中点击 **Display Frame Timing** 按钮显示 Frame Timing 工具。
+
+    [REGION:lightbox]
+    [![](SteamVR_ProPref_02.png)(w:340)](SteamVR_ProPref_02.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
+
+1. Frame Timing 运行后即可启动 UE4 项目，在 Frame Timing 工具中查看具体情况。 
+
+    ![](SteamVR_ProPref_00.png)
+
+## 保存 SteamVR 帧时
+
+您可以保存 Frame Timing 工具生成的信息，便于之后查看或发送给其他人员查看。执行以下步骤保存 SteamVR 帧时。
+
+1. 右键点击 SteamVR 工具，从出现的菜单中选择 **Settings** 选项。
+
+    ![](SteamVR_ProPref_01.png)
+
+1. 然后从 Settings 菜单中点击 **Save Frame Data Now** 按钮保存帧数据。
+
+    [REGION:lightbox]
+    [![](SteamVR_ProPref_03.png)(w:340)](SteamVR_ProPref_03.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]    
+
+1. 之后帧时将被保存到一个名为 **VRFrames.csv** 的 .CSV 文件中，保存路径为 **C:\Program Files (x86)\Steam\logs**。 
+
+    ![](SteamVR_ProPref_04.png)
+
+
+
+
+
+
+
+
+

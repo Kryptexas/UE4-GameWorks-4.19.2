@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,6 +6,7 @@
 #include "KismetCompiler.h"
 #include "Animation/AnimNodeBase.h"
 #include "AnimGraphNode_Base.h"
+#include "KismetCompilerModule.h"
 
 class UAnimationGraphSchema;
 class UAnimGraphNode_SaveCachedPose;
@@ -29,15 +30,14 @@ class UBlueprintGeneratedClass;
 struct FPoseLinkMappingRecord;
 
 //////////////////////////////////////////////////////////////////////////
-// FAnimBlueprintCompiler
-
-class KISMETCOMPILER_API FAnimBlueprintCompiler : public FKismetCompilerContext
+// FAnimBlueprintCompilerContext
+class FAnimBlueprintCompilerContext : public FKismetCompilerContext
 {
 protected:
 	typedef FKismetCompilerContext Super;
 public:
-	FAnimBlueprintCompiler(UAnimBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions, TArray<UObject*>* InObjLoaded);
-	virtual ~FAnimBlueprintCompiler();
+	FAnimBlueprintCompilerContext(UAnimBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions, TArray<UObject*>* InObjLoaded);
+	virtual ~FAnimBlueprintCompilerContext();
 
 	virtual void PostCompile() override;
 

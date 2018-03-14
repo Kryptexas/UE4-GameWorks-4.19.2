@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Tracks/MovieSceneStringTrack.h"
 #include "MovieSceneCommonHelpers.h"
@@ -35,24 +35,6 @@ bool UMovieSceneStringTrack::AddKeyToSection(float Time, const FString& String)
 	StringSection->AddKey(Time, String, EMovieSceneKeyInterpolation::Auto);
 
 	return true;
-}
-
-
-bool UMovieSceneStringTrack::Eval(float Position, float LastPostion, FString& InOutString) const
-{
-	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime(Sections, Position);
-
-	if (Section)
-	{
-		if (!Section->IsInfinite())
-		{
-			Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
-		}
-
-		InOutString = CastChecked<UMovieSceneStringSection>(Section)->Eval(Position, InOutString);
-	}
-
-	return Section != nullptr;
 }
 
 

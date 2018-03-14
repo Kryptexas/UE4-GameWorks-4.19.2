@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LightingMesh.h"
 #include "Importer.h"
@@ -151,6 +151,7 @@ void FStaticLightingMesh::Import( FLightmassImporter& Importer )
 		CurrentMaterialElement.bIsTwoSided = CurrentMaterialElement.Material->bTwoSided;
 		CurrentMaterialElement.bTranslucent = !CurrentMaterialElement.bIsMasked && CurrentMaterialElement.Material->TransmissionSize > 0;
 		CurrentMaterialElement.bCastShadowAsMasked = CurrentMaterialElement.Material->bCastShadowAsMasked;
+		CurrentMaterialElement.bSurfaceDomain = CurrentMaterialElement.Material->bSurfaceDomain;
 	}
 	bColorInvalidTexels = true;
 	bUseDebugMaterial = false;
@@ -464,10 +465,10 @@ void FStaticLightingMesh::CreateMeshAreaLights(
 							{
 								// Draw 4 lines between the primitive corners for debugging
 								// Currently hijacking ShadowRays
-								LightingSystem.DebugOutput.ShadowRays.Add(FDebugStaticLightingRay(EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[0].WorldPosition - FVector4(0,0,.1f), EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[1].WorldPosition - FVector4(0,0,.1f), true, false));
-								LightingSystem.DebugOutput.ShadowRays.Add(FDebugStaticLightingRay(EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[1].WorldPosition - FVector4(0,0,.1f), EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[3].WorldPosition - FVector4(0,0,.1f), true, true));
-								LightingSystem.DebugOutput.ShadowRays.Add(FDebugStaticLightingRay(EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[3].WorldPosition - FVector4(0,0,.1f), EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[2].WorldPosition - FVector4(0,0,.1f), true, false));
-								LightingSystem.DebugOutput.ShadowRays.Add(FDebugStaticLightingRay(EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[2].WorldPosition - FVector4(0,0,.1f), EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[0].WorldPosition - FVector4(0,0,.1f), true, true));
+								//LightingSystem.DebugOutput.ShadowRays.Add(FDebugStaticLightingRay(EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[0].WorldPosition - FVector4(0,0,.1f), EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[1].WorldPosition - FVector4(0,0,.1f), true, false));
+								//LightingSystem.DebugOutput.ShadowRays.Add(FDebugStaticLightingRay(EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[1].WorldPosition - FVector4(0,0,.1f), EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[3].WorldPosition - FVector4(0,0,.1f), true, true));
+								//LightingSystem.DebugOutput.ShadowRays.Add(FDebugStaticLightingRay(EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[3].WorldPosition - FVector4(0,0,.1f), EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[2].WorldPosition - FVector4(0,0,.1f), true, false));
+								//LightingSystem.DebugOutput.ShadowRays.Add(FDebugStaticLightingRay(EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[2].WorldPosition - FVector4(0,0,.1f), EmissivePrimitives[LightIndex][PrimitiveIndex].Corners[0].WorldPosition - FVector4(0,0,.1f), true, true));
 							}
 						}
 					}

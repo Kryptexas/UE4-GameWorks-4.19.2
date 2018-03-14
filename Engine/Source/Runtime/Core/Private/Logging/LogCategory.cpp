@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Logging/LogCategory.h"
 #include "CoreGlobals.h"
@@ -50,6 +50,6 @@ void FLogCategoryBase::PostTrigger(ELogVerbosity::Type VerbosityLevel)
 	{
 		GLog->FlushThreadedLogs();
 		DebugBreakOnLog = false; // toggle this off automatically
-		FPlatformMisc::DebugBreak();
+		UE_DEBUG_BREAK();
 	}
 }

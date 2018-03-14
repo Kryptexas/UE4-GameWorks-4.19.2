@@ -62,7 +62,8 @@ version: 4.9
 |![](MediaFrameworkImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#mediaeditor]| 
 
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:leveleditor]
 **关卡编辑器**
 
@@ -220,4 +221,5 @@ Physics Asset 工具编辑器（简称 PhAT ）用来为 [](Engine/Content/Types
 更多内容请查看： [](Engine/MediaFramework)
 [/EXCERPT:mediaeditor]
 
---->	
+-
+[/COMMENT]	

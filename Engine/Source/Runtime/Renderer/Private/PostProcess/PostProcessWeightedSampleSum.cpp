@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessWeightedSampleSum.cpp: Post processing weight sample sum implementation.
@@ -63,23 +63,23 @@ static TAutoConsoleVariable<int32> FilterNewMethod(
  * A pixel shader which filters a texture.
  * @param CombineMethod 0:weighted filtering, 1: weighted filtering + additional texture, 2: max magnitude
  */
-template<uint32 CompileTimeNumSamples, uint32 CombineMethodInt>
+template<uint32 CompileTimeNumSamples, uint32 CombineMethodInt, bool ManuallyClampUV>
 class TFilterPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(TFilterPS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		if( IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (Platform != SP_METAL_MRT && Platform != SP_METAL_MRT_MAC) )
+		if( IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && (Parameters.Platform != SP_METAL_MRT && Parameters.Platform != SP_METAL_MRT_MAC) )
 		{
 			return true;
 		}
-		else if (Platform == SP_METAL_MRT || Platform == SP_METAL_MRT_MAC)
+		else if (Parameters.Platform == SP_METAL_MRT || Parameters.Platform == SP_METAL_MRT_MAC)
 		{
 			return CompileTimeNumSamples <= MAX_FILTER_COMPILE_TIME_SAMPLES_IOS;
 		}
-		else if( IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) )
+		else if( IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4) )
 		{
 			return CompileTimeNumSamples <= MAX_FILTER_COMPILE_TIME_SAMPLES_SM4;
 		}
@@ -89,11 +89,12 @@ public:
 		}
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("NUM_SAMPLES"), CompileTimeNumSamples);
 		OutEnvironment.SetDefine(TEXT("COMBINE_METHOD"), CombineMethodInt);
+		OutEnvironment.SetDefine(TEXT("MANUALLY_CLAMP_UV"), ManuallyClampUV ? 1 : 0);
 
 		if (CompileTimeNumSamples == 0)
 		{
@@ -115,7 +116,9 @@ public:
 		AdditiveTexture.Bind(Initializer.ParameterMap,TEXT("AdditiveTexture"));
 		AdditiveTextureSampler.Bind(Initializer.ParameterMap,TEXT("AdditiveTextureSampler"));
 		SampleWeights.Bind(Initializer.ParameterMap,TEXT("SampleWeights"));
-		
+		FilteredBufferUVMinMax.Bind(Initializer.ParameterMap, TEXT("FilteredBufferUVMinMax"));
+		AdditiveBufferUVMinMax.Bind(Initializer.ParameterMap, TEXT("AdditiveBufferUVMinMax"));
+
 		if (CompileTimeNumSamples == 0)
 		{
 			// dynamic loop do UV offset in the pixel shader, and requires the number of samples.
@@ -128,14 +131,14 @@ public:
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << FilterTexture << FilterTextureSampler << AdditiveTexture << AdditiveTextureSampler << SampleWeights << SampleOffsets << SampleCount;
+		Ar << FilterTexture << FilterTextureSampler << AdditiveTexture << AdditiveTextureSampler << SampleWeights << FilteredBufferUVMinMax << AdditiveBufferUVMinMax << SampleOffsets << SampleCount;
 		return bShaderHasOutdatedParameters;
 	}
 
 	/** Sets shader parameter values */
 	void SetParameters(
 		FRHICommandList& RHICmdList, FSamplerStateRHIParamRef SamplerStateRHI, FTextureRHIParamRef FilterTextureRHI, FTextureRHIParamRef AdditiveTextureRHI, 
-		const FLinearColor* SampleWeightValues, const FVector2D* SampleOffsetValues, uint32 NumSamples )
+		const FLinearColor* SampleWeightValues, const FVector2D* SampleOffsetValues, uint32 NumSamples, const FVector4& FilteredBufferUVMinMaxValue, const FVector4& AdditiveBufferUVMinMaxValue )
 	{
 		check(CompileTimeNumSamples == 0 && NumSamples > 0 && NumSamples <= MAX_FILTER_SAMPLES || CompileTimeNumSamples == NumSamples);
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
@@ -163,6 +166,12 @@ public:
 			SetShaderValueArray(RHICmdList, ShaderRHI, SampleOffsets, PackedSampleOffsetValues, MAX_PACKED_SAMPLES_OFFSET);
 			SetShaderValue(RHICmdList, ShaderRHI, SampleCount, NumSamples);
 		}
+
+		if (ManuallyClampUV)
+		{
+			SetShaderValue(RHICmdList, ShaderRHI, FilteredBufferUVMinMax, FilteredBufferUVMinMaxValue);
+			SetShaderValue(RHICmdList, ShaderRHI, AdditiveBufferUVMinMax, AdditiveBufferUVMinMaxValue);
+		}
 	}
 
 	static const TCHAR* GetSourceFilename()
@@ -181,6 +190,8 @@ protected:
 	FShaderResourceParameter AdditiveTexture;
 	FShaderResourceParameter AdditiveTextureSampler;
 	FShaderParameter SampleWeights;
+	FShaderParameter FilteredBufferUVMinMax;
+	FShaderParameter AdditiveBufferUVMinMax;
 
 	// parameters only for CompileTimeNumSamples == 0
 	FShaderParameter SampleOffsets;
@@ -191,15 +202,19 @@ protected:
 
 // #define avoids a lot of code duplication
 #define VARIATION1(A)		VARIATION2(A,0)			VARIATION2(A,1)			VARIATION2(A,2)
-#define VARIATION2(A, B) typedef TFilterPS<A, B> TFilterPS##A##B; \
-	IMPLEMENT_SHADER_TYPE2(TFilterPS##A##B, SF_Pixel);
+#define VARIATION2(A, B) VARIATION3(A, B, false) VARIATION3(A, B, true)
+#define VARIATION3(A, B, C) typedef TFilterPS<A, B, C> TFilterPS##A##B##C; \
+	IMPLEMENT_SHADER_TYPE2(TFilterPS##A##B##C, SF_Pixel);
+
 	VARIATION1(0) // number of samples known at runtime
 	VARIATION1(1) VARIATION1(2) VARIATION1(3) VARIATION1(4) VARIATION1(5) VARIATION1(6) VARIATION1(7) VARIATION1(8)
 	VARIATION1(9) VARIATION1(10) VARIATION1(11) VARIATION1(12) VARIATION1(13) VARIATION1(14) VARIATION1(15) VARIATION1(16)
 	VARIATION1(17) VARIATION1(18) VARIATION1(19) VARIATION1(20) VARIATION1(21) VARIATION1(22) VARIATION1(23) VARIATION1(24)
 	VARIATION1(25) VARIATION1(26) VARIATION1(27) VARIATION1(28) VARIATION1(29) VARIATION1(30) VARIATION1(31) VARIATION1(32)
+
 #undef VARIATION1
 #undef VARIATION2
+#undef VARIATION3
 
 
 /** A vertex shader which filters a texture. Can re reused by other postprocessing pixel shaders. */
@@ -212,17 +227,17 @@ public:
 	/** The number of 4D constant registers used to hold the packed 2D sample offsets. */
 	enum { NumSampleChunks = (NumSamples + 1) / 2 };
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		if( IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (Platform != SP_METAL_MRT && Platform != SP_METAL_MRT_MAC) )
+		if( IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && (Parameters.Platform != SP_METAL_MRT && Parameters.Platform != SP_METAL_MRT_MAC) )
 		{
 			return true;
 		}
-		else if (Platform == SP_METAL_MRT || Platform == SP_METAL_MRT_MAC)
+		else if (Parameters.Platform == SP_METAL_MRT || Parameters.Platform == SP_METAL_MRT_MAC)
 		{
 			return NumSamples <= MAX_FILTER_COMPILE_TIME_SAMPLES_IOS;
 		}
-		else if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4))
+		else if (IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4))
 		{
 			return NumSamples <= MAX_FILTER_COMPILE_TIME_SAMPLES_SM4;
 		}
@@ -232,9 +247,9 @@ public:
 		}
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("NUM_SAMPLES"), NumSamples);
 	}
 
@@ -317,23 +332,24 @@ private:
 #undef IMPLEMENT_FILTER_SHADER_TYPE
 
 /** Encapsulates the post weighted sample sum compute shader. */
-template<uint32 CompileTimeNumSamples, uint32 CombineMethodInt>
+template<uint32 CompileTimeNumSamples, uint32 CombineMethodInt, bool ManuallyClampUV>
 class TFilterCS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(TFilterCS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}	
 	
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), GFilterComputeTileSizeX);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), GFilterComputeTileSizeY);
 		OutEnvironment.SetDefine(TEXT("NUM_SAMPLES"), CompileTimeNumSamples);
 		OutEnvironment.SetDefine(TEXT("COMBINE_METHOD"), CombineMethodInt);
+		OutEnvironment.SetDefine(TEXT("MANUALLY_CLAMP_UV"), ManuallyClampUV ? 1 : 0);
 
 		if (CompileTimeNumSamples == 0)
 		{
@@ -457,15 +473,19 @@ public:
 };
 
 #define VARIATION1(A)		VARIATION2(A,0)			VARIATION2(A,1)			VARIATION2(A,2)
-#define VARIATION2(A, B) typedef TFilterCS<A, B> TFilterCS##A##B; \
-	IMPLEMENT_SHADER_TYPE2(TFilterCS##A##B, SF_Compute);
+#define VARIATION2(A, B) VARIATION3(A, B, false) //VARIATION3(A, B, true)
+#define VARIATION3(A, B, C) typedef TFilterCS<A, B, C> TFilterCS##A##B##C; \
+	IMPLEMENT_SHADER_TYPE2(TFilterCS##A##B##C, SF_Compute);
+
 	VARIATION1(0) // number of samples known at runtime
 	VARIATION1(1) VARIATION1(2) VARIATION1(3) VARIATION1(4) VARIATION1(5) VARIATION1(6) VARIATION1(7) VARIATION1(8)
 	VARIATION1(9) VARIATION1(10) VARIATION1(11) VARIATION1(12) VARIATION1(13) VARIATION1(14) VARIATION1(15) VARIATION1(16)
 	VARIATION1(17) VARIATION1(18) VARIATION1(19) VARIATION1(20) VARIATION1(21) VARIATION1(22) VARIATION1(23) VARIATION1(24)
 	VARIATION1(25) VARIATION1(26) VARIATION1(27) VARIATION1(28) VARIATION1(29) VARIATION1(30) VARIATION1(31) VARIATION1(32)
+
 #undef VARIATION1
 #undef VARIATION2
+#undef VARIATION3
 
 /**
  * Sets the filter shaders with the provided filter samples.
@@ -488,7 +508,11 @@ void SetFilterShaders(
 	FVector2D* SampleOffsets,
 	FLinearColor* SampleWeights,
 	uint32 NumSamples,
-	FShader** OutVertexShader
+	FShader** OutVertexShader,
+	FIntRect SrcRect,
+	FIntPoint SrcSize,
+	FIntRect AdditiveSrcRect,
+	FIntPoint AdditiveSrcSize
 	)
 {
 	check(CombineMethodInt <= 2);
@@ -503,7 +527,17 @@ void SetFilterShaders(
 
 	auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 	const auto DynamicNumSample = CVarLoopMode.GetValueOnRenderThread();
-	
+
+	FVector4 FilteredBufferUVMinMaxValue(
+		(SrcRect.Min.X + 0.5f) / SrcSize.X, (SrcRect.Min.Y + 0.5f) / SrcSize.Y,
+		(SrcRect.Max.X - 0.5f) / SrcSize.X, (SrcRect.Max.Y - 0.5f) / SrcSize.Y);
+
+	FVector4 AdditiveBufferUVMinMaxValue(
+		(AdditiveSrcRect.Min.X + 0.5f) / AdditiveSrcSize.X, (AdditiveSrcRect.Min.Y + 0.5f) / AdditiveSrcSize.Y,
+		(AdditiveSrcRect.Max.X - 0.5f) / AdditiveSrcSize.X, (AdditiveSrcRect.Max.Y - 0.5f) / AdditiveSrcSize.Y);
+
+	bool DoManualClampUV = !(SrcRect.Min == FIntPoint::ZeroValue && SrcRect.Max == SrcSize);
+
 	if ((NumSamples > MAX_FILTER_COMPILE_TIME_SAMPLES && DynamicNumSample != 0) || (DynamicNumSample == 2))
 	{
 		// there is to many samples, so we use the dynamic sample count shader
@@ -513,38 +547,71 @@ void SetFilterShaders(
 		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
 		*OutVertexShader = *VertexShader;
 
-		if(CombineMethodInt == 0)
+		if (DoManualClampUV)
 		{
-			TShaderMapRef<TFilterPS<0, 0> > PixelShader(ShaderMap);
+			if (CombineMethodInt == 0)
 			{
-				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+				TShaderMapRef<TFilterPS<0, 0, true> > PixelShader(ShaderMap);
+				{
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+				}
+				PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples, FilteredBufferUVMinMaxValue, AdditiveBufferUVMinMaxValue);
 			}
-			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples);
+			else if (CombineMethodInt == 1)
+			{
+				TShaderMapRef<TFilterPS<0, 1, true> > PixelShader(ShaderMap);
+				{
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+				}
+				PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples, FilteredBufferUVMinMaxValue, AdditiveBufferUVMinMaxValue);
+			}
+			else\
+			{
+				TShaderMapRef<TFilterPS<0, 2, true> > PixelShader(ShaderMap);
+				{
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+				}
+				PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples, FilteredBufferUVMinMaxValue, AdditiveBufferUVMinMaxValue);
+			}
 		}
-		else if(CombineMethodInt == 1)
+		else
 		{
-			TShaderMapRef<TFilterPS<0, 1> > PixelShader(ShaderMap);
+			if (CombineMethodInt == 0)
 			{
-				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+				TShaderMapRef<TFilterPS<0, 0, false> > PixelShader(ShaderMap);
+				{
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+				}
+				PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples, FilteredBufferUVMinMaxValue, AdditiveBufferUVMinMaxValue);
 			}
-			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples);
-		}
-		else\
-		{
-			TShaderMapRef<TFilterPS<0, 2> > PixelShader(ShaderMap);
+			else if (CombineMethodInt == 1)
 			{
-				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+				TShaderMapRef<TFilterPS<0, 1, false> > PixelShader(ShaderMap);
+				{
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+				}
+				PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples, FilteredBufferUVMinMaxValue, AdditiveBufferUVMinMaxValue);
 			}
-			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples);
+			else\
+			{
+				TShaderMapRef<TFilterPS<0, 2, false> > PixelShader(ShaderMap);
+				{
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+				}
+				PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples, FilteredBufferUVMinMaxValue, AdditiveBufferUVMinMaxValue);
+			}
 		}
 		return;
 	}
 
 	// A macro to handle setting the filter shader for a specific number of samples.
-#define SET_FILTER_SHADER_TYPE(CompileTimeNumSamples) \
+#define SET_FILTER_SHADER_TYPE(CompileTimeNumSamples, DoManualClampUV) \
 	case CompileTimeNumSamples: \
 	{ \
 		TShaderMapRef<TFilterVS<CompileTimeNumSamples> > VertexShader(ShaderMap); \
@@ -553,30 +620,30 @@ void SetFilterShaders(
 		*OutVertexShader = *VertexShader; \
 		if(CombineMethodInt == 0) \
 		{ \
-			TShaderMapRef<TFilterPS<CompileTimeNumSamples, 0> > PixelShader(ShaderMap); \
+			TShaderMapRef<TFilterPS<CompileTimeNumSamples, 0, DoManualClampUV> > PixelShader(ShaderMap); \
 			{ \
 				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader); \
 				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit); \
 			} \
-			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples); \
+			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples, FilteredBufferUVMinMaxValue, AdditiveBufferUVMinMaxValue); \
 		} \
 		else if(CombineMethodInt == 1) \
 		{ \
-			TShaderMapRef<TFilterPS<CompileTimeNumSamples, 1> > PixelShader(ShaderMap); \
+			TShaderMapRef<TFilterPS<CompileTimeNumSamples, 1, DoManualClampUV> > PixelShader(ShaderMap); \
 			{ \
 				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader); \
 				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit); \
 			} \
-			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples); \
+			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples, FilteredBufferUVMinMaxValue, AdditiveBufferUVMinMaxValue); \
 		} \
 		else\
 		{ \
-			TShaderMapRef<TFilterPS<CompileTimeNumSamples, 2> > PixelShader(ShaderMap); \
+			TShaderMapRef<TFilterPS<CompileTimeNumSamples, 2, DoManualClampUV> > PixelShader(ShaderMap); \
 			{ \
 				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader); \
 				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit); \
 			} \
-			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples); \
+			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples, FilteredBufferUVMinMaxValue, AdditiveBufferUVMinMaxValue); \
 		} \
 		VertexShader->SetParameters(RHICmdList, SampleOffsets); \
 		break; \
@@ -585,45 +652,88 @@ void SetFilterShaders(
 	check(NumSamples <= MAX_FILTER_COMPILE_TIME_SAMPLES);
 
 	// Set the appropriate filter shader for the given number of samples.
-	switch(NumSamples)
+	if (DoManualClampUV)
 	{
-	SET_FILTER_SHADER_TYPE(1);
-	SET_FILTER_SHADER_TYPE(2);
-	SET_FILTER_SHADER_TYPE(3);
-	SET_FILTER_SHADER_TYPE(4);
-	SET_FILTER_SHADER_TYPE(5);
-	SET_FILTER_SHADER_TYPE(6);
-	SET_FILTER_SHADER_TYPE(7);
-	SET_FILTER_SHADER_TYPE(8);
-	SET_FILTER_SHADER_TYPE(9);
-	SET_FILTER_SHADER_TYPE(10);
-	SET_FILTER_SHADER_TYPE(11);
-	SET_FILTER_SHADER_TYPE(12);
-	SET_FILTER_SHADER_TYPE(13);
-	SET_FILTER_SHADER_TYPE(14);
-	SET_FILTER_SHADER_TYPE(15);
-	SET_FILTER_SHADER_TYPE(16);
-	SET_FILTER_SHADER_TYPE(17);
-	SET_FILTER_SHADER_TYPE(18);
-	SET_FILTER_SHADER_TYPE(19);
-	SET_FILTER_SHADER_TYPE(20);
-	SET_FILTER_SHADER_TYPE(21);
-	SET_FILTER_SHADER_TYPE(22);
-	SET_FILTER_SHADER_TYPE(23);
-	SET_FILTER_SHADER_TYPE(24);
-	SET_FILTER_SHADER_TYPE(25);
-	SET_FILTER_SHADER_TYPE(26);
-	SET_FILTER_SHADER_TYPE(27);
-	SET_FILTER_SHADER_TYPE(28);
-	SET_FILTER_SHADER_TYPE(29);
-	SET_FILTER_SHADER_TYPE(30);
-	SET_FILTER_SHADER_TYPE(31);
-	SET_FILTER_SHADER_TYPE(32);
-	default:
-		UE_LOG(LogRenderer, Fatal,TEXT("Invalid number of samples: %u"),NumSamples);
+		switch (NumSamples)
+		{
+			SET_FILTER_SHADER_TYPE(1, true);
+			SET_FILTER_SHADER_TYPE(2, true);
+			SET_FILTER_SHADER_TYPE(3, true);
+			SET_FILTER_SHADER_TYPE(4, true);
+			SET_FILTER_SHADER_TYPE(5, true);
+			SET_FILTER_SHADER_TYPE(6, true);
+			SET_FILTER_SHADER_TYPE(7, true);
+			SET_FILTER_SHADER_TYPE(8, true);
+			SET_FILTER_SHADER_TYPE(9, true);
+			SET_FILTER_SHADER_TYPE(10, true);
+			SET_FILTER_SHADER_TYPE(11, true);
+			SET_FILTER_SHADER_TYPE(12, true);
+			SET_FILTER_SHADER_TYPE(13, true);
+			SET_FILTER_SHADER_TYPE(14, true);
+			SET_FILTER_SHADER_TYPE(15, true);
+			SET_FILTER_SHADER_TYPE(16, true);
+			SET_FILTER_SHADER_TYPE(17, true);
+			SET_FILTER_SHADER_TYPE(18, true);
+			SET_FILTER_SHADER_TYPE(19, true);
+			SET_FILTER_SHADER_TYPE(20, true);
+			SET_FILTER_SHADER_TYPE(21, true);
+			SET_FILTER_SHADER_TYPE(22, true);
+			SET_FILTER_SHADER_TYPE(23, true);
+			SET_FILTER_SHADER_TYPE(24, true);
+			SET_FILTER_SHADER_TYPE(25, true);
+			SET_FILTER_SHADER_TYPE(26, true);
+			SET_FILTER_SHADER_TYPE(27, true);
+			SET_FILTER_SHADER_TYPE(28, true);
+			SET_FILTER_SHADER_TYPE(29, true);
+			SET_FILTER_SHADER_TYPE(30, true);
+			SET_FILTER_SHADER_TYPE(31, true);
+			SET_FILTER_SHADER_TYPE(32, true);
+		default:
+			UE_LOG(LogRenderer, Fatal, TEXT("Invalid number of samples: %u"), NumSamples);
+		}
+	}
+	else
+	{
+		switch (NumSamples)
+		{
+			SET_FILTER_SHADER_TYPE(1, false);
+			SET_FILTER_SHADER_TYPE(2, false);
+			SET_FILTER_SHADER_TYPE(3, false);
+			SET_FILTER_SHADER_TYPE(4, false);
+			SET_FILTER_SHADER_TYPE(5, false);
+			SET_FILTER_SHADER_TYPE(6, false);
+			SET_FILTER_SHADER_TYPE(7, false);
+			SET_FILTER_SHADER_TYPE(8, false);
+			SET_FILTER_SHADER_TYPE(9, false);
+			SET_FILTER_SHADER_TYPE(10, false);
+			SET_FILTER_SHADER_TYPE(11, false);
+			SET_FILTER_SHADER_TYPE(12, false);
+			SET_FILTER_SHADER_TYPE(13, false);
+			SET_FILTER_SHADER_TYPE(14, false);
+			SET_FILTER_SHADER_TYPE(15, false);
+			SET_FILTER_SHADER_TYPE(16, false);
+			SET_FILTER_SHADER_TYPE(17, false);
+			SET_FILTER_SHADER_TYPE(18, false);
+			SET_FILTER_SHADER_TYPE(19, false);
+			SET_FILTER_SHADER_TYPE(20, false);
+			SET_FILTER_SHADER_TYPE(21, false);
+			SET_FILTER_SHADER_TYPE(22, false);
+			SET_FILTER_SHADER_TYPE(23, false);
+			SET_FILTER_SHADER_TYPE(24, false);
+			SET_FILTER_SHADER_TYPE(25, false);
+			SET_FILTER_SHADER_TYPE(26, false);
+			SET_FILTER_SHADER_TYPE(27, false);
+			SET_FILTER_SHADER_TYPE(28, false);
+			SET_FILTER_SHADER_TYPE(29, false);
+			SET_FILTER_SHADER_TYPE(30, false);
+			SET_FILTER_SHADER_TYPE(31, false);
+			SET_FILTER_SHADER_TYPE(32, false);
+		default:
+			UE_LOG(LogRenderer, Fatal, TEXT("Invalid number of samples: %u"), NumSamples);
+		}
 	}
 
-#undef SET_FILTER_SHADER_TYPE
+	#undef SET_FILTER_SHADER_TYPE
 }
 
 /**
@@ -745,7 +855,7 @@ FRCPassPostProcessWeightedSampleSum::FRCPassPostProcessWeightedSampleSum(EFilter
 
 void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext& Context)
 {
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	const auto FeatureLevel = Context.View.GetFeatureLevel();
 
@@ -758,20 +868,19 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 
 	FIntPoint SrcSize = InputDesc->Extent;
 	FIntPoint DestSize = PassOutputs[0].RenderTargetDesc.Extent;
-	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 
 	// e.g. 4 means the input texture is 4x smaller than the buffer size
-	const FIntPoint BufferSize = SceneContext.GetBufferSizeXY();
+	const FIntPoint BufferSize = Context.ReferenceBufferSize;
 
-	const uint32 SrcScaleFactorX = FMath::DivideAndRoundUp(BufferSize.X, SrcSize.X);
-	const uint32 SrcScaleFactorY = FMath::DivideAndRoundUp(BufferSize.Y, SrcSize.Y);
+	const uint32 SrcScaleFactorX = FMath::RoundUpToPowerOfTwo(FMath::DivideAndRoundUp(BufferSize.X, SrcSize.X));
+	const uint32 SrcScaleFactorY = FMath::RoundUpToPowerOfTwo(FMath::DivideAndRoundUp(BufferSize.Y, SrcSize.Y));
 	const FIntPoint SrcScaleFactor(SrcScaleFactorX, SrcScaleFactorY);
 
-	const uint32 DstScaleFactorX = FMath::DivideAndRoundUp(BufferSize.X, DestSize.X);
-	const uint32 DstScaleFactorY = FMath::DivideAndRoundUp(BufferSize.Y, DestSize.Y);
+	const uint32 DstScaleFactorX = FMath::RoundUpToPowerOfTwo(FMath::DivideAndRoundUp(BufferSize.X, DestSize.X));
+	const uint32 DstScaleFactorY = FMath::RoundUpToPowerOfTwo(FMath::DivideAndRoundUp(BufferSize.Y, DestSize.Y));
 	const FIntPoint DstScaleFactor(DstScaleFactorX, DstScaleFactorY);
 
-	FIntRect DestRect = FIntRect::DivideAndRoundUp(View.ViewRect, DstScaleFactor);
+	FIntRect DestRect = FIntRect::DivideAndRoundUp(Context.SceneColorViewRect, DstScaleFactor);
 
 	TRefCountPtr<IPooledRenderTarget> InputPooledElement = Input->RequestInput();
 
@@ -783,7 +892,7 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 
 	FVector2D InvSrcSize(1.0f / SrcSize.X, 1.0f / SrcSize.Y);
 	// we scale by width because FOV is defined horizontally
-	float SrcSizeForThisAxis = View.ViewRect.Width() / (float)SrcScaleFactor.X;
+	float SrcSizeForThisAxis = Context.SceneColorViewRect.Width() / (float)SrcScaleFactor.X;
 
 	if(bDoFastBlur && FilterShape == EFS_Vert)
 	{
@@ -835,6 +944,9 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 	FRenderingCompositeOutputRef* NodeInput1 = GetInput(ePId_Input1);
 	FRenderingCompositeOutput* Input1 = NodeInput1 ? NodeInput1->GetOutput() : 0;
 
+	FIntPoint AdditiveSrcSize;
+	FIntRect AdditiveSrcRect;
+
 	if (Input1)
 	{
 		TRefCountPtr<IPooledRenderTarget> InputPooledElement1 = Input1->RequestInput();
@@ -842,14 +954,25 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 
 		check(CombineMethod == EFCM_Weighted);
 		CombineMethodInt = 1;
+
+		const FPooledRenderTargetDesc* Input1Desc = GetInputDesc(ePId_Input1);
+		AdditiveSrcSize = Input1Desc->Extent;
+
+		const uint32 AdditiveScaleFactorX = FMath::RoundUpToPowerOfTwo(FMath::DivideAndRoundUp(BufferSize.X, AdditiveSrcSize.X));
+		const uint32 AdditiveScaleFactorY = FMath::RoundUpToPowerOfTwo(FMath::DivideAndRoundUp(BufferSize.Y, AdditiveSrcSize.Y));
+
+		const FIntPoint AdditiveScaleFactor(AdditiveScaleFactorX, AdditiveScaleFactorY);
+
+		AdditiveSrcRect = FIntRect::DivideAndRoundUp(Context.SceneColorViewRect, AdditiveScaleFactor);
 	}
 
-	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessWeightedSampleSum, TEXT("PostProcessWeightedSampleSum%s#%d %dx%d in %dx%d"),
-		bIsComputePass?TEXT("Compute"):TEXT(""), NumSamples, DestRect.Width(), DestRect.Height(), DestSize.X, DestSize.Y);
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessWeightedSampleSum, TEXT("PostProcessWeightedSampleSum%s#%d%s %dx%d in %dx%d"),
+		bIsComputePass?TEXT("Compute"):TEXT(""), NumSamples, FilterShape == EFS_Horiz ? TEXT("Horizontal") : TEXT("Vertical"),
+		DestRect.Width(), DestRect.Height(), DestSize.X, DestSize.Y);
 
 	if (bIsComputePass)
 	{
-		DestRect = {View.ViewRect.Min, View.ViewRect.Min + DestSize};
+		DestRect = {Context.SceneColorViewRect.Min, Context.SceneColorViewRect.Min + DestSize};
 		
 		// Common setup
 		SetRenderTarget(Context.RHICmdList, nullptr, nullptr);
@@ -899,34 +1022,37 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 		else
 		{
 			SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EExistingColorAndDepth);	
-	}
+		}
 
 		Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);
 
-		FIntRect SrcRect = FIntRect::DivideAndRoundUp(View.ViewRect, SrcScaleFactor);
+		FIntRect SrcRect = FIntRect::DivideAndRoundUp(Context.SceneColorViewRect, SrcScaleFactor);
 		if (bRequiresClear)
 		{
 			DrawClear(Context.RHICmdList, FeatureLevel, bDoFastBlur, SrcRect, DestRect, DestSize);
 		}
 
+		FShader* VertexShader = nullptr;
+		SetFilterShaders(
+			Context.RHICmdList,
+			FeatureLevel,
+			TStaticSamplerState<SF_Bilinear, AM_Border, AM_Border, AM_Clamp>::GetRHI(),
+			FilterTexture,
+			AdditiveTexture,
+			CombineMethodInt,
+			BlurOffsets,
+			BlurWeights,
+			NumSamples,
+			&VertexShader,
+			SrcRect,
+			SrcSize,
+			AdditiveSrcRect,
+			AdditiveSrcSize
+		);
 
-	FShader* VertexShader = nullptr;
-	SetFilterShaders(
-		Context.RHICmdList,
-		FeatureLevel,
-		TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Clamp>::GetRHI(),
-		FilterTexture,
-		AdditiveTexture,
-		CombineMethodInt,
-		BlurOffsets,
-		BlurWeights,
-		NumSamples,
-		&VertexShader
-		);	
+		DrawQuad(Context.RHICmdList, FeatureLevel, bDoFastBlur, SrcRect, DestRect, DestSize, SrcSize, VertexShader);
 
-	DrawQuad(Context.RHICmdList, FeatureLevel, bDoFastBlur, SrcRect, DestRect, DestSize, SrcSize, VertexShader);
-
-	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+		Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 	}
 }
 
@@ -935,7 +1061,7 @@ void DispatchCSTemplate(TRHICmdList& RHICmdList, FRenderingCompositePassContext&
 	FTextureRHIParamRef FilterTextureRHI, FTextureRHIParamRef AdditiveTextureRHI, FLinearColor* SampleWeightValues, FVector2D* SampleOffsetValues, uint32 NumSamples)
 {
 	auto ShaderMap = Context.GetShaderMap();
-	TShaderMapRef<TFilterCS<CompileTimeNumSamples, CombineMethodInt>> ComputeShader(ShaderMap);
+	TShaderMapRef<TFilterCS<CompileTimeNumSamples, CombineMethodInt, false>> ComputeShader(ShaderMap);
 
 	RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 
@@ -993,6 +1119,7 @@ void FRCPassPostProcessWeightedSampleSum::DispatchCS(TRHICmdList& RHICmdList, FR
 		case 10: DISPATCH_METHODS(10); break;
 		case 11: DISPATCH_METHODS(11); break;
 		case 12: DISPATCH_METHODS(12); break;
+		case 13: DISPATCH_METHODS(13); break;
 		case 14: DISPATCH_METHODS(14); break;
 		case 15: DISPATCH_METHODS(15); break;
 		case 16: DISPATCH_METHODS(16); break;
@@ -1128,8 +1255,6 @@ void FRCPassPostProcessWeightedSampleSum::DrawClear(FRHICommandListImmediate& RH
 	{
 		AdjustRectsForFastBlur(SrcRect, DestRect);
 	}
-
-	DrawClearQuad(RHICmdList, true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, DestSize, DestRect);	
 }
 
 void FRCPassPostProcessWeightedSampleSum::DrawQuad(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bDoFastBlur, FIntRect SrcRect, FIntRect DestRect, FIntPoint DestSize, FIntPoint SrcSize, FShader* VertexShader) const

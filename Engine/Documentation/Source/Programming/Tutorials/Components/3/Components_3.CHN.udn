@@ -20,7 +20,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. 现在我们可以返回 **Visual Studio** 并对自定义的 **Pawn 移动组件** 进行编程。我们需要编写的是一个 **TickComponent** 函数（与 **Actor** 的 **Tick** 函数相似），确定每帧中的移动。在 CollidingPawnMovementComponent.h 中，我们在类定义中对 TickComponent 进行覆写。
 
@@ -235,4 +235,4 @@ version:4.9
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

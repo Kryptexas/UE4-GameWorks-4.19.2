@@ -1,10 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ISteamVRControllerPlugin.h"
 #include "ISteamVRPlugin.h"
 #include "IInputDevice.h"
 #include "IHapticDevice.h"
-#include "IMotionController.h"
+#include "XRMotionControllerBase.h"
 #include "Engine/Engine.h"
 #include "EngineGlobals.h"
 #include "GenericPlatform/IInputInterface.h"
@@ -91,7 +91,7 @@ namespace SteamVRControllerKeys
 	const FKey SteamVR_Knuckles_Right_PinkyGrip("SteamVR_Knuckles_Right_PinkyGrip");
 }
 
-class FSteamVRController : public IInputDevice, public IMotionController, public IHapticDevice
+class FSteamVRController : public IInputDevice, public FXRMotionControllerBase, public IHapticDevice
 {
 #if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 	FSteamVRHMD* GetSteamVRHMD() const

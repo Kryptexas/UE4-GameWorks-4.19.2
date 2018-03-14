@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AtmosphericFogPixelShader.usf: Scene atmospheric fogging pixel shader.
@@ -61,5 +61,9 @@ void AtmosphericPixelMain(
 #if !ATMOSPHERIC_NO_LIGHT_SHAFT
 	float LightShaftMask = Texture2DSample(OcclusionTexture, OcclusionTextureSampler, TexCoord).x;
 	OutColor.rgb = OutColor.rgb * LightShaftMask;
+#endif
+
+#if USE_PREEXPOSURE 
+	OutColor.rgb *= View.PreExposure;
 #endif
 }

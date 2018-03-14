@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -24,7 +26,7 @@ namespace UnrealBuildTool
 		/// <param name="bUseStandardError">TRUE if we are writing to the standard error stream, FALSE for standard output</param>
 		public UEConsoleTraceListener(bool bUseStandardError = false)
 		{
-			Writer = bUseStandardError ? System.Console.Out : System.Console.Error;
+			Writer = bUseStandardError ? System.Console.Error : System.Console.Out;
 		}
 
 		/// <summary>

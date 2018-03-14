@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Docs
 Title:4.1 - 커브 에디터
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/Matinee
@@ -6,25 +6,6 @@ Description:Matinee 예제 레벨에 대한 개요로, 예제 4.1: Curve Editor 
 
 [TOC(start:2 end:2)]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Matinee/4_1:title%](Resources\ContentExamples\Matinee\matinee_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Matinee/4_1:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Matinee/4_1:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/Matinee/4_1]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 앞서 (키 유형에서) 프리셋에 대해 알아봤으나, 커브는 편집 가능합니다. 모든 트랙에는 지그재그 선이 있는 작은 회색 박스가 있습니다. 클릭하면 (노랑) 커브 에디터 창에 그 트랙이 표시됩니다.
 

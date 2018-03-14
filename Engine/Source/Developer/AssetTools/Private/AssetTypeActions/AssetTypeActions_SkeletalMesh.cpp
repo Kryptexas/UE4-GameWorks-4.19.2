@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetTypeActions/AssetTypeActions_SkeletalMesh.h"
 #include "Animation/Skeleton.h"
@@ -35,6 +35,8 @@
 #include "ApexClothingUtils.h"
 #include "Algo/Transform.h"
 #include "Factories/PhysicsAssetFactory.h"
+
+#include "EditorReimportHandler.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -563,14 +565,13 @@ void FAssetTypeActions_SkeletalMesh::GetResolvedSourceFilePaths(const TArray<UOb
 void FAssetTypeActions_SkeletalMesh::GetLODMenu(class FMenuBuilder& MenuBuilder,TArray<TWeakObjectPtr<USkeletalMesh>> Objects)
 {
 	check(Objects.Num() > 0);
-	auto First = Objects[0];
-	USkeletalMesh* SkeletalMesh = First.Get();
-
-	for(int32 LOD = 0;LOD<=First->LODInfo.Num();++LOD)
+	//Use the first object
+	USkeletalMesh* SkeletalMesh = Objects[0].Get();
+	int32 LODMax = SkeletalMesh->LODInfo.Num();
+	for(int32 LOD = 0; LOD < LODMax; ++LOD)
 	{
 		const FText Description = FText::Format( LOCTEXT("LODLevel", "LOD {0}"), FText::AsNumber( LOD ) );
-		const FText ToolTip = ( LOD == First->LODInfo.Num() ) ? LOCTEXT("NewImportTip", "Import new LOD") : LOCTEXT("ReimportTip", "Reimport over existing LOD");
-
+		const FText ToolTip = ( LOD == SkeletalMesh->LODInfo.Num() ) ? LOCTEXT("NewImportTip", "Import new LOD") : LOCTEXT("ReimportTip", "Reimport over existing LOD");
 		MenuBuilder.AddMenuEntry(	Description, 
 									ToolTip, FSlateIcon(),
 									FUIAction(FExecuteAction::CreateStatic( &FAssetTypeActions_SkeletalMesh::ExecuteImportMeshLOD, static_cast<UObject*>(SkeletalMesh), LOD) )) ;
@@ -709,7 +710,17 @@ void FAssetTypeActions_SkeletalMesh::ExecuteFindSkeleton(TArray<TWeakObjectPtr<U
 
 void FAssetTypeActions_SkeletalMesh::ExecuteImportMeshLOD(UObject* Mesh, int32 LOD)
 {
-	FbxMeshUtils::ImportMeshLODDialog(Mesh, LOD);
+	if (LOD == 0)
+	{
+		//re-import of the asset
+		TArray<UObject *> AssetArray;
+		AssetArray.Add(Mesh);
+		FReimportManager::Instance()->ValidateAllSourceFileAndReimport(AssetArray);
+	}
+	else
+	{
+		FbxMeshUtils::ImportMeshLODDialog(Mesh, LOD);
+	}
 }
 
 void FAssetTypeActions_SkeletalMesh::ExecuteImportClothing(TArray<TWeakObjectPtr<USkeletalMesh>> Objects)
@@ -827,13 +838,13 @@ void FAssetTypeActions_SkeletalMesh::AssignSkeletonToMesh(USkeletalMesh* SkelMes
 	}
 }
 
-void FAssetTypeActions_SkeletalMesh::OnAssetCreated(TArray<UObject*> NewAssets) const
+bool FAssetTypeActions_SkeletalMesh::OnAssetCreated(TArray<UObject*> NewAssets) const
 {
 	if (NewAssets.Num() > 1)
 	{
 		FAssetTools::Get().SyncBrowserToAssets(NewAssets);
 	}
-
+	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

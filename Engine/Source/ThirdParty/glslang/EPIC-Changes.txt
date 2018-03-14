@@ -1,8 +1,24 @@
-* ResourceLImits.h Add #define ENABLE_HLSL 1
+* Intermediate.h Add #define ENABLE_HLSL 1
 * check() doesn't work as it's on a header that ends up used in the Engine which conflicts with our macro check(), rename to Check()
-* Relaxed promotions for mobile profiles, Intermediate.cpp:
+* Intermediate.cpp, Relaxed promotions for mobile profiles:
 	bool TIntermediate::canImplicitlyPromote(TBasicType from, TBasicType to) const
 	{
 		//#Epic - Allow more conversions
 		//if (profile == EEsProfile || version == 110)
 		//    return false;
+* reflection.h, missing method on TObjectReflection
+//#Epic - Expose missing functionality
+	int getBinding() const {
+        if (type == nullptr || type->getQualifier().layoutBinding == TQualifier::layoutBindingEnd)
+            return -1;
+        return type->getQualifier().layoutBinding;
+    }
+* ShaderLang.h/cpp, missing method on TProgram
+	//#Epic - Expose missing functionality
+	int getUniformBinding(int index) const;
+
+	//#Epic - Expose missing functionality
+	int TProgram::getUniformBinding(int index) const
+	{
+		return reflection->getUniform(index).getBinding();
+	}

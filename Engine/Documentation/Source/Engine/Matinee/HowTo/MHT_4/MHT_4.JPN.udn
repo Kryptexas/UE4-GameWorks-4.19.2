@@ -6,19 +6,13 @@ Description:複数の FOV アングルとポストプロセス エフェクト �
 Version:4.9
 SkillLevel:Intermediate
 
----
 この操作ガイド シリーズでは、様々な FOV (Field of View:視野角)、被写界深度、それらに適用されたその他のポストプロセス エフェクトを持つ複数のカメラ アングルを使用する短いシーケンスを作成します。 
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		マチネ、カメラ、プロップを追加する
-	[/PARAM]
-	[PARAM:description]
-	この手順では、**Matinee アクタ**、**カメラ**、およびショット対象のプロップを追加します。 
-	[/PARAM]
-[/OBJECT]
+マチネ、カメラ、プロップを追加する
+
+この手順では、**Matinee アクタ**、**カメラ**、およびショット対象のプロップを追加します。 
 
 1. **ツールバー** メニューから **[マチネ]** を選択し、**[Add Matinee]** ボタンをクリックします。 
 
@@ -63,14 +57,9 @@ SkillLevel:Intermediate
 	![](MHT4_C2_CameraSettings.png)
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		カメラをマチネに追加し、トラックを追加する
-	[/PARAM]
-	[PARAM:description]
-	このステップでは、**カメラ** を **マチネ** に追加し、シーンで操作するポストプロセスのトラックをセットアップします。
-	[/PARAM]
-[/OBJECT]
+カメラをマチネに追加し、トラックを追加する
+
+このステップでは、**カメラ** を **マチネ** に追加し、シーンで操作するポストプロセスのトラックをセットアップします。
 
 1. **ワールド アウトライナー** からマチネを選択し、[詳細] パネルで **[Open Matinee]** オプションを選択します。 
 
@@ -118,14 +107,9 @@ SkillLevel:Intermediate
 	![](MHT4_CameraGroupsComplete.png)
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Camera 1, Shot 1 - 移動とポストプロセス エフェクト
-	[/PARAM]
-	[PARAM:description]
-	この手順では、カメラの移動とポストプロセス エフェクトを Camera 1 に追加しますが、これが第 1 のショットになります。
-	[/PARAM]
-[/OBJECT]
+Camera 1, Shot 1 - 移動とポストプロセス エフェクト
+
+この手順では、カメラの移動とポストプロセス エフェクトを Camera 1 に追加しますが、これが第 1 のショットになります。
 
 1. マチネ エディタ 内で、Camera1 グループの FOVAngle トラックを選択し、**Enter** を押してキーフレームを **0.00** に追加します。 
 
@@ -178,15 +162,9 @@ SkillLevel:Intermediate
 	_これでバックグラウンドがフォーカスされ、続いてフォアグラウンドの低木をフォーカスするにつれて、バックグラウンドはブレンドしてフォーカスされなくなります。_
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Camera 2, Shot 2 - 移動とポストプロセス エフェクト
-	[/PARAM]
-	[PARAM:description]
-	この手順では、カメラの移動とポストプロセス エフェクトを Camera 2 に追加しますが、これが第 2 のショットになります。 
-	[/PARAM]
-[/OBJECT]
+Camera 2, Shot 2 - 移動とポストプロセス エフェクト
 
+この手順では、カメラの移動とポストプロセス エフェクトを Camera 2 に追加しますが、これが第 2 のショットになります。 
 
 
 1. **Camera2** の **Movement** トラック上でタイムバーを **5.00** に移動し、**[Enter]** キーを押してキーフレームを追加し、**0.00** のキーフレームを削除します。
@@ -238,14 +216,9 @@ SkillLevel:Intermediate
 	_これで、岩にフォーカスをあてながらバックグラウンドをぼやかし、雲にパンすると雲にフォーカスが合わせられます。_
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Camera 1, Shot 3 - フィルム エフェクトを追加する
-	[/PARAM]
-	[PARAM:description]
-	この手順では、シーケンスの第 3 のショットのためにカメラ 1 に切り替え、フィルムのポストプロセス エフェクトを追加します。 
-	[/PARAM]
-[/OBJECT]
+Camera 1, Shot 3 - フィルム エフェクトを追加する
+
+この手順では、シーケンスの第 3 のショットのためにカメラ 1 に切り替え、フィルムのポストプロセス エフェクトを追加します。 
 
 1. マチネ エディタ内で、Camera1 の Movement トラック上で **5.00** のキーフレームを選択し、コピーします。 
 
@@ -300,14 +273,9 @@ SkillLevel:Intermediate
 	_マチネで更新されるため、これらの設定はデフォルトのままにします。_
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Camera 2, Shot 4 - シーンカラー エフェクトを追加する
-	[/PARAM]
-	[PARAM:description]
-	この手順では、最終ショットのためにカメラ 2 に切り替え、シーンにノイズフィルタ エフェクトを追加します。 
-	[/PARAM]
-[/OBJECT]
+Camera 2, Shot 4 - シーンカラー エフェクトを追加する
+
+この手順では、最終ショットのためにカメラ 2 に切り替え、シーンにノイズフィルタ エフェクトを追加します。 
 
 1. マチネ エディタ内でタイムバーを **15.50** 目盛に移動します。 
 
@@ -334,14 +302,9 @@ SkillLevel:Intermediate
 	_マチネで更新されるため、この設定はデフォルトのままにします。_
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Director Group - カメラのカットとフェードを追加する
-	[/PARAM]
-	[PARAM:description]
-	この手順では、カメラのカットとフェードを **Director** トラックで追加して終了します。 
-	[/PARAM]
-[/OBJECT]
+Director Group - カメラのカットとフェードを追加する
+
+この手順では、カメラのカットとフェードを **Director** トラックで追加して終了します。 
 
 1. マチネ エディタ内の Camera2 の最後のトラックの空のスペースで、**右クリック** し、コンテキスト メニューから **Add New Director Group** を選択します。 
 	![](MHT4_AddDirectorGroup.png)(h:400)

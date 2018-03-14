@@ -1,20 +1,26 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "XRRenderTargetManager.h"
 #include "SceneViewport.h"
 #include "Widgets/SViewport.h"
+#include "IHeadMountedDisplay.h"
+#include "IXRTrackingSystem.h"
+#include "Engine/Engine.h"
 
 void FXRRenderTargetManager::CalculateRenderTargetSize(const class FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY)
 {
 	check(IsInGameThread());
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
-	if (CVar)
+
+	if (GEngine && GEngine->XRSystem.IsValid())
 	{
-		float ScreenPercentage = FMath::Clamp(CVar->GetValueOnGameThread(), 30.f, 300.f);
-		if (ScreenPercentage > 0.0f)
+		IHeadMountedDisplay* const HMDDevice = GEngine->XRSystem->GetHMDDevice();
+		if (HMDDevice)
 		{
-			InOutSizeX = FMath::CeilToInt(InOutSizeX * ScreenPercentage / 100.f);
-			InOutSizeY = FMath::CeilToInt(InOutSizeY * ScreenPercentage / 100.f);
+			const FIntPoint IdealRenderTargetSize = HMDDevice->GetIdealRenderTargetSize();
+			const float PixelDensity = HMDDevice->GetPixelDenity();
+			InOutSizeX = FMath::CeilToInt(IdealRenderTargetSize.X * PixelDensity);
+			InOutSizeY = FMath::CeilToInt(IdealRenderTargetSize.Y * PixelDensity);
+			check(InOutSizeX != 0 && InOutSizeY != 0);
 		}
 	}
 }

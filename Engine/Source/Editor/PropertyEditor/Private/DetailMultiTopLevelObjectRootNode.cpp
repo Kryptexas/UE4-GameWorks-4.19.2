@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailMultiTopLevelObjectRootNode.h"
 #include "IDetailRootObjectCustomization.h"
@@ -74,7 +74,7 @@ FDetailMultiTopLevelObjectRootNode::FDetailMultiTopLevelObjectRootNode( const FD
 	: ChildNodes(InChildNodes)
 	, DetailsView(InDetailsView)
 	, RootObjectCustomization(InRootObjectCustomization)
-	, RootObject(&InRootObject)
+	, RootObject(const_cast<UObject*>(&InRootObject))
 	, NodeName(InRootObject.GetFName())
 	, bShouldBeVisible(false)
 {

@@ -21,7 +21,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 In general, Axis Mappings allow us to map keyboard, mouse, and controller inputs to a "friendly name" that can later be bound to game behavior, such as movement. 
 Axis Mappings are continuously polled, allowing for seamless movement transitions and smooth game behavior. Hardware axes (such as controller joysticks) provide degrees of input, rather than discrete input (1 - pressed vs. 0 - not pressed). 
@@ -82,4 +82,3 @@ During this step, we're going to get our new Character to move around the map by
 
 1.	Now that you've set your MoveLeft and MoveRight Axis Mappings, go ahead and close the **Project Settings** menu.
 
-%Steps%

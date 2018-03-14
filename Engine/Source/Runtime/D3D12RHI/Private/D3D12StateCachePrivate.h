@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // Implementation of Device Context State Caching to improve draw
 //	thread performance by removing redundant device context calls.
@@ -36,17 +36,6 @@
 // out at 1M for now.
 #define NUM_VIEW_DESCRIPTORS_TIER_3 D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2
 
-// This value defines how many descriptors will be in the device global view heap which
-// is shared across contexts to allow the driver to eliminate redundant descriptor heap sets.
-// This should be tweaked for each title as heaps require VRAM. The default value of 512k takes up ~16MB
-#if PLATFORM_XBOXONE
-  #define GLOBAL_VIEW_HEAP_SIZE ( 500 * 1000 ) // This should be a multiple of DESCRIPTOR_HEAP_BLOCK_SIZE
-  #define LOCAL_VIEW_HEAP_SIZE  ( 64 * 1024 )
-#else
-  #define GLOBAL_VIEW_HEAP_SIZE  ( 500 * 1000 ) // This should be a multiple of DESCRIPTOR_HEAP_BLOCK_SIZE
-  #define LOCAL_VIEW_HEAP_SIZE  ( 500 * 1000 )
-#endif
-
 // Heap for updating UAV counter values.
 #define COUNTER_HEAP_SIZE 1024 * 64
 
@@ -58,6 +47,8 @@ extern bool GD3D12SkipStateCaching;
 #else
 static const bool GD3D12SkipStateCaching = false;
 #endif
+
+extern int32 GGlobalViewHeapSize;
 
 struct FD3D12VertexBufferCache
 {

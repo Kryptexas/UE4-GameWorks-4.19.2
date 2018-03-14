@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -72,8 +72,15 @@ public:
 	EMeshPaintColorViewMode ColorViewMode;
 };
 
-UCLASS()
+UCLASS(config = EditorPerProjectUserSettings)
 class MESHPAINT_API UMeshPaintSettings : public UObject
 {
 	GENERATED_BODY()
+
+public:
+
+	/** Size of vertex points drawn when mesh painting is active. */
+	UPROPERTY(config, EditAnywhere, Category=Visualization)
+	float VertexPreviewSize;
+
 };

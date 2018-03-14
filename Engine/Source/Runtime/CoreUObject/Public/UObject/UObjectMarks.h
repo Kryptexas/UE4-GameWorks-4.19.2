@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectMark.h: Unreal object marks
@@ -102,6 +102,14 @@ COREUOBJECT_API bool ObjectHasAnyMarks(const class UObjectBase* Object, EObjectM
  * @return	true if the object has any of the given marks.
  */
 COREUOBJECT_API bool ObjectHasAllMarks(const class UObjectBase* Object, EObjectMark Marks);
+
+/**
+ * Returns all of the object marks on a specific object
+ *
+ * @param	Object	Object to get marks for
+ * @return	all Marks for an object
+ */
+COREUOBJECT_API EObjectMark ObjectGetAllMarks(const class UObjectBase* Object);
 
 /**
  * Build an array of objects having ALL of a set of marks

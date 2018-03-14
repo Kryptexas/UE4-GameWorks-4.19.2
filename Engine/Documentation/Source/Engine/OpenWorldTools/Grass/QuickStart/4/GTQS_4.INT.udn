@@ -22,7 +22,7 @@ Version: 4.8
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 In order to see the Grass system in action we need to apply the Material that was created in the last step to the Landscape and then use the Landscape painting tools to define where we want the grass to be spawned.
 In the following section we will go over how to apply our Material to the Landscape Terrain and then how to use the Landscape Painting Tools to define areas where grass should spawn.
@@ -73,4 +73,4 @@ We will continue to work with the **GT_00** level that was created in the last s
 	Adjusting the **Brush Size** and **Tool Strength** will help to better define how the grass is placed or removed while painting on the Landscape.
 
 
-%Steps%
+

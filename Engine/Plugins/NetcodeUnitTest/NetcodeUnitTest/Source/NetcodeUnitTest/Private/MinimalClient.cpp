@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MinimalClient.h"
 
@@ -9,7 +9,7 @@
 #include "Engine/ActorChannel.h"
 #include "Net/DataChannel.h"
 
-#include "ClientUnitTest.h"
+#include "UnitTest.h"
 #include "NetcodeUnitTest.h"
 #include "UnitTestEnvironment.h"
 #include "UnitTestManager.h"
@@ -53,11 +53,16 @@ UMinimalClient::UMinimalClient(const FObjectInitializer& ObjectInitializor)
 	: Super(ObjectInitializor)
 	, FProtMinClientParms()
 	, FProtMinClientHooks()
+	, FUnitLogRedirect()
 	, bConnected(false)
 	, UnitWorld(nullptr)
 	, UnitNetDriver(nullptr)
 	, UnitConn(nullptr)
 	, PendingNetActorChans()
+	, bSentBunch(false)
+#if TARGET_UE4_CL >= CL_DEPRECATEDEL
+	, InternalNotifyNetworkFailureDelegateHandle()
+#endif
 {
 }
 
@@ -78,51 +83,44 @@ bool UMinimalClient::Connect(FMinClientParms Parms, FMinClientHooks Hooks)
 	{
 		// Make all of this happen in a blank, newly constructed world
 		UnitWorld = NUTNet::CreateUnitTestWorld();
+	}
 
-		if (UnitWorld != nullptr)
+	if (UnitWorld != nullptr)
+	{
+		if (ConnectMinimalClient())
 		{
-			if (ConnectMinimalClient())
+			if (GEngine != nullptr)
 			{
-				if (GEngine != nullptr)
-				{
 #if TARGET_UE4_CL >= CL_DEPRECATEDEL
-					InternalNotifyNetworkFailureDelegateHandle = GEngine->OnNetworkFailure().AddUObject(this,
-																	&UMinimalClient::InternalNotifyNetworkFailure);
+				InternalNotifyNetworkFailureDelegateHandle = GEngine->OnNetworkFailure().AddUObject(this,
+																&UMinimalClient::InternalNotifyNetworkFailure);
 #else
-					GEngine->OnNetworkFailure().AddUObject(this, &UMinimalClient::InternalNotifyNetworkFailure);
+				GEngine->OnNetworkFailure().AddUObject(this, &UMinimalClient::InternalNotifyNetworkFailure);
 #endif
-				}
-
-				if (!(MinClientFlags & EMinClientFlags::AcceptRPCs) || !!(MinClientFlags & EMinClientFlags::NotifyProcessNetEvent))
-				{
-					FProcessEventHook::Get().AddRPCHook(UnitWorld,
-						FOnProcessNetEvent::CreateUObject(this, &UMinimalClient::NotifyReceiveRPC));
-				}
-
-				bSuccess = true;
 			}
-			else
+
+			if (!(MinClientFlags & EMinClientFlags::AcceptRPCs) || !!(MinClientFlags & EMinClientFlags::NotifyProcessNetEvent))
 			{
-				FString LogMsg = TEXT("Failed to create minimal client connection");
-
-				UNIT_LOG_OBJ(Owner, ELogType::StatusFailure, TEXT("%s"), *LogMsg);
-				UNIT_STATUS_LOG_OBJ(Owner, ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
+				FProcessEventHook::Get().AddRPCHook(UnitWorld,
+					FOnProcessNetEvent::CreateUObject(this, &UMinimalClient::NotifyReceiveRPC));
 			}
+
+			bSuccess = true;
 		}
 		else
 		{
-			FString LogMsg = TEXT("Failed to create unit test world");
+			FString LogMsg = TEXT("Failed to create minimal client connection");
 
-			UNIT_LOG_OBJ(Owner, ELogType::StatusFailure, TEXT("%s"), *LogMsg);
-			UNIT_STATUS_LOG_OBJ(Owner, ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
+			UNIT_LOG(ELogType::StatusFailure, TEXT("%s"), *LogMsg);
+			UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
 		}
 	}
 	else
 	{
-		FString LogMsg = TEXT("Unit test world already exists, can't create minimal client");
+		FString LogMsg = TEXT("Failed to create unit test world");
 
-		UNIT_LOG_OBJ(Owner, ELogType::StatusWarning, TEXT("%s"), *LogMsg);
-		UNIT_STATUS_LOG_OBJ(Owner, ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
+		UNIT_LOG(ELogType::StatusFailure, TEXT("%s"), *LogMsg);
+		UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
 	}
 
 	return bSuccess;
@@ -221,35 +219,349 @@ FOutBunch* UMinimalClient::CreateChannelBunch(EChannelType ChType, int32 ChIndex
 	return ReturnVal;
 }
 
+void UMinimalClient::DiscardChannelBunch(FOutBunch* Bunch)
+{
+	if (UnitConn != nullptr && Bunch != nullptr)
+	{
+		--UnitConn->OutReliable[Bunch->ChIndex];
+	}
+}
+
+// @todo #JohnB: Deprecate this function when next refactoring (touches unit tests)
 bool UMinimalClient::SendControlBunch(FOutBunch* ControlChanBunch)
 {
 	bool bSuccess = false;
 
-	if (ControlChanBunch != nullptr && UnitConn != nullptr && UnitConn->Channels[0] != nullptr)
+	if (ControlChanBunch != nullptr && UnitConn != nullptr)
 	{
-		// Since it's the unit test control channel, sending the packet abnormally, append to OutRec manually
-		if (ControlChanBunch->bReliable)
+		check(ControlChanBunch->ChIndex == 0);
+
+		bSuccess = SendRawBunch(*ControlChanBunch);;
+	}
+
+	return bSuccess;
+}
+
+bool UMinimalClient::SendRawBunch(FOutBunch& Bunch, bool bAllowPartial/*=false*/)
+{
+	bool bSuccess = false;
+
+	if (UnitConn != nullptr)
+	{
+		TArray<FOutBunch*> SendBunches;
+		const int32 MAX_SINGLE_BUNCH_SIZE_BITS = UnitConn->GetMaxSingleBunchSizeBits();
+		int32 BunchNumBits = Bunch.GetNumBits();
+
+		if (bAllowPartial && BunchNumBits > MAX_SINGLE_BUNCH_SIZE_BITS)
 		{
-			UChannel* ControlChan = UnitConn->Channels[0];
+			const int32 MAX_SINGLE_BUNCH_SIZE_BYTES = MAX_SINGLE_BUNCH_SIZE_BITS / 8;
+			const int32 MAX_PARTIAL_BUNCH_SIZE_BITS = MAX_SINGLE_BUNCH_SIZE_BYTES * 8;
+			int32 NumSerializedBits = 0;
 
-			for (FOutBunch* CurOut=ControlChan->OutRec; CurOut!=nullptr; CurOut=CurOut->Next)
+			// Discard the original bunch before splitting it, in order to have the correct packet sequence for the new packets
+			DiscardChannelBunch(&Bunch);
+
+			while (NumSerializedBits < BunchNumBits)
 			{
-				if (CurOut->Next == nullptr)
-				{
-					CurOut->Next = ControlChanBunch;
-					ControlChan->NumOutRec++;
+				FOutBunch* NewBunch = CreateChannelBunch((EChannelType)Bunch.ChType, Bunch.ChIndex);
+				int32 NewNumBits = FMath::Min(BunchNumBits - NumSerializedBits, MAX_PARTIAL_BUNCH_SIZE_BITS);
 
-					break;
+				NewBunch->SerializeBits(Bunch.GetData() + (NumSerializedBits >> 3), NewNumBits);
+				NumSerializedBits += NewNumBits;
+
+
+				NewBunch->bReliable = Bunch.bReliable;
+				NewBunch->bOpen = Bunch.bOpen;
+				NewBunch->bClose = Bunch.bClose;
+				NewBunch->bDormant = Bunch.bDormant;
+				NewBunch->bIsReplicationPaused = Bunch.bIsReplicationPaused;
+				NewBunch->ChIndex = Bunch.ChIndex;
+				NewBunch->ChType = Bunch.ChType;
+
+				if (!NewBunch->bHasPackageMapExports)
+				{
+					NewBunch->bHasMustBeMappedGUIDs |= Bunch.bHasMustBeMappedGUIDs;
 				}
+
+				NewBunch->bPartial = 1;
+				NewBunch->bPartialInitial = SendBunches.Num() == 0;
+				NewBunch->bPartialFinal = NumSerializedBits >= BunchNumBits;
+				NewBunch->bOpen &= SendBunches.Num() == 0;
+				NewBunch->bClose = Bunch.bClose && NumSerializedBits >= BunchNumBits;
+
+
+				SendBunches.Add(NewBunch);
+				NewBunch->DebugString = FString::Printf(TEXT("Partial[%d]: %s"), SendBunches.Num(), *Bunch.DebugString);
+			}
+
+			UNIT_LOG(, TEXT("SendRawBunch: Split oversized bunch (%i bits) into '%i' partial packets."), BunchNumBits,
+						SendBunches.Num());
+		}
+		else
+		{
+			SendBunches.Add(&Bunch);
+		}
+
+		FOutBunch* FirstBunch = SendBunches[0];
+		int32 ChIdx = FirstBunch->ChIndex;
+		bool bAddToOutRec = FirstBunch->bReliable && UnitConn->Channels[ChIdx] != nullptr;
+
+		for (int32 BunchIdx = 0; BunchIdx < SendBunches.Num(); BunchIdx++)
+		{
+			FOutBunch* CurBunch = SendBunches[BunchIdx];
+
+			UnitConn->SendRawBunch(*CurBunch, SendBunches.Num() == 1);
+
+			if (BunchIdx > 0 && bAddToOutRec)
+			{
+				SendBunches[BunchIdx-1]->Next = CurBunch;
+			}
+
+			bSuccess = true;
+		}
+
+
+		// Since the packet is being sent abnormally, append it to the channels OutRec manually
+		if (bAddToOutRec)
+		{
+			UChannel* CurChan = UnitConn->Channels[ChIdx];
+			FOutBunch*& OutRec = CurChan->OutRec;
+
+			if (OutRec == nullptr)
+			{
+				OutRec = FirstBunch;
+			}
+			else
+			{
+				for (FOutBunch* CurOut=OutRec; CurOut!=nullptr; CurOut=CurOut->Next)
+				{
+					if (CurOut->Next == nullptr)
+					{
+						CurOut->Next = FirstBunch;
+						break;
+					}
+				}
+			}
+
+			CurChan->NumOutRec += SendBunches.Num();
+		}
+		// @todo #JohnB: Remove this, eventually - you just want to enforce use of bReliable bunches for now, otherwise it memleaks.
+#if 1
+		else
+		{
+			check(false);
+		}
+#endif
+
+		// @todo #JohnB: You need to add detection here, to see if the bunch was added to GC handling somewhere (e.g. OutRec),
+		//					and if not, then add some kind of handling for that (or destroy the bunch immediately, perhaps?),
+		//					otherwise the bunch is memleaked.
+	}
+
+	return bSuccess;
+}
+
+bool UMinimalClient::SendRPCChecked(UObject* Target, const TCHAR* FunctionName, void* Parms, int16 ParmsSize,
+										int16 ParmsSizeCorrection/*=0*/)
+{
+	bool bSuccess = false;
+	UFunction* TargetFunc = Target->FindFunction(FName(FunctionName));
+
+	PreSendRPC();
+
+	if (TargetFunc != nullptr)
+	{
+		if (TargetFunc->ParmsSize == ParmsSize + ParmsSizeCorrection)
+		{
+			if (UnitConn->IsNetReady(false))
+			{
+				Target->ProcessEvent(TargetFunc, Parms);
+			}
+			else
+			{
+				UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to send RPC '%s', network saturated."), FunctionName);
+			}
+		}
+		else
+		{
+			UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to send RPC '%s', mismatched parameters: '%i' vs '%i' (%i - %i)."),
+						FunctionName, TargetFunc->ParmsSize, ParmsSize + ParmsSizeCorrection, ParmsSize, -ParmsSizeCorrection);
+		}
+	}
+	else
+	{
+		UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to send RPC, could not find RPC: %s"), FunctionName);
+	}
+
+	bSuccess = PostSendRPC(FunctionName, Target);
+
+	return bSuccess;
+}
+
+bool UMinimalClient::SendRPCChecked(UObject* Target, FFuncReflection& FuncRefl)
+{
+	bool bSuccess = false;
+
+	if (FuncRefl.IsValid())
+	{
+		bSuccess = SendRPCChecked(Target, *FuncRefl.Function->GetName(), FuncRefl.GetParms(), FuncRefl.Function->ParmsSize);
+	}
+	else
+	{
+		UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to send RPC '%s', function reflection failed."), FuncRefl.FunctionName);
+	}
+
+	return bSuccess;
+}
+
+void UMinimalClient::PreSendRPC()
+{
+	// The failure delegate must be bound - otherwise there's no point in having a 'checked' RPC call function
+	check(RPCFailureDel.IsBound());
+
+	// Must be able to send RPC's
+	check(!!(MinClientFlags & EMinClientFlags::SendRPCs));
+
+	// Flush before and after, so no queued data is counted as a send, and so that the queued RPC is immediately sent and detected
+	UnitConn->FlushNet();
+
+	bSentBunch = false;
+}
+
+bool UMinimalClient::PostSendRPC(FString RPCName, UObject* Target/*=nullptr*/)
+{
+	bool bSuccess = false;
+	UActorComponent* TargetComponent = Cast<UActorComponent>(Target);
+	AActor* TargetActor = (TargetComponent != nullptr ? TargetComponent->GetOwner() : Cast<AActor>(Target));
+	UChannel* TargetChan = UnitConn->ActorChannels.FindRef(TargetActor);
+
+	UnitConn->FlushNet();
+
+	// Just hack-erase bunch overflow tracking for this actors channel
+	if (TargetChan != nullptr)
+	{
+		TargetChan->NumOutRec = 0;
+	}
+
+	// If sending failed, trigger an overall unit test failure
+	if (!bSentBunch)
+	{
+		FString LogMsg = FString::Printf(TEXT("Failed to send RPC '%s', unit test needs update."), *RPCName);
+
+		// If specific/known failure cases are encountered, append them to the log message, to aid debugging
+		// (try to enumerate all possible cases)
+		if (TargetActor != nullptr)
+		{
+			FString LogAppend = TEXT("");
+			UWorld* TargetWorld = TargetActor->GetWorld();
+
+			if (IsGarbageCollecting())
+			{
+				LogAppend += TEXT(", IsGarbageCollecting() returned TRUE");
+			}
+
+			if (TargetWorld == nullptr)
+			{
+				LogAppend += TEXT(", TargetWorld == nullptr");
+			}
+			else if (!TargetWorld->AreActorsInitialized() && !GAllowActorScriptExecutionInEditor)
+			{
+				LogAppend += TEXT(", AreActorsInitialized() returned FALSE");
+			}
+
+			if (TargetActor->IsPendingKill())
+			{
+				LogAppend += TEXT(", IsPendingKill() returned TRUE");
+			}
+
+			UFunction* TargetFunc = RPCName.StartsWith(TEXT("UnitTestServer_")) ?
+									TargetActor->FindFunction(FName(TEXT("ServerExecute"))) :
+									TargetActor->FindFunction(FName(*RPCName));
+
+			if (TargetFunc == nullptr)
+			{
+				LogAppend += TEXT(", TargetFunc == nullptr");
+			}
+			else
+			{
+				int32 Callspace = TargetActor->GetFunctionCallspace(TargetFunc, nullptr, nullptr);
+
+				if (!(Callspace & FunctionCallspace::Remote))
+				{
+					LogAppend += FString::Printf(TEXT(", GetFunctionCallspace() returned non-remote, value: %i (%s)"), Callspace,
+													FunctionCallspace::ToString((FunctionCallspace::Type)Callspace));
+				}
+			}
+
+			if (TargetActor->GetNetDriver() == nullptr)
+			{
+				FName TargetNetDriver = TargetActor->GetNetDriverName();
+
+				LogAppend += FString::Printf(TEXT(", GetNetDriver() returned nullptr - NetDriverName: %s"),
+												*TargetNetDriver.ToString());
+
+				if (TargetNetDriver == NAME_GameNetDriver && TargetWorld != nullptr && TargetWorld->GetNetDriver() == nullptr)
+				{
+					LogAppend += FString::Printf(TEXT(", TargetWorld->GetNetDriver() returned nullptr - World: %s"),
+													*TargetWorld->GetFullName());
+				}
+			}
+
+			UNetConnection* TargetConn = TargetActor->GetNetConnection();
+
+			if (TargetConn == nullptr)
+			{
+				LogAppend += TEXT(", GetNetConnection() returned nullptr");
+			}
+			else if (!TargetConn->IsNetReady(false))
+			{
+				LogAppend += TEXT(", IsNetReady() returned FALSE");
+			}
+
+			if (TargetChan == nullptr)
+			{
+				LogAppend += TEXT(", TargetChan == nullptr");
+			}
+			else if (TargetChan->OpenPacketId.First == INDEX_NONE)
+			{
+				LogAppend += TEXT(", Channel not open");
+			}
+
+
+			if (LogAppend.Len() > 0)
+			{
+				LogMsg += FString::Printf(TEXT(" (%s)"), *LogAppend.Mid(2));
 			}
 		}
 
-		UnitConn->SendRawBunch(*ControlChanBunch, true);
+		UNIT_LOG(ELogType::StatusFailure, TEXT("%s"), *LogMsg);
+		UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
 
+		RPCFailureDel.Execute();
+
+		bSuccess = false;
+	}
+	else
+	{
 		bSuccess = true;
 	}
 
 	return bSuccess;
+}
+
+void UMinimalClient::ResetConnTimeout(float Duration)
+{
+	UNetDriver* UnitDriver = (UnitConn != nullptr ? UnitConn->Driver : nullptr);
+
+	if (UnitDriver != nullptr && UnitConn->State != USOCK_Closed)
+	{
+		// @todo #JohnBHack: This is a slightly hacky way of setting the timeout to a large value, which will be overridden by newly
+		//				received packets, making it unsuitable for most situations (except crashes - but that could still be subject
+		//				to a race condition)
+		double NewLastReceiveTime = UnitDriver->Time + Duration;
+
+		UnitConn->LastReceiveTime = FMath::Max(NewLastReceiveTime, UnitConn->LastReceiveTime);
+	}
 }
 
 void UMinimalClient::UnitTick(float DeltaTimm)
@@ -290,8 +602,8 @@ bool UMinimalClient::ConnectMinimalClient()
 
 		// @todo #JohnB: Block voice channel?
 
-		UnitNetDriver->InitialConnectTimeout = FMath::Max(UnitNetDriver->InitialConnectTimeout, (float)Owner->UnitTestTimeout);
-		UnitNetDriver->ConnectionTimeout = FMath::Max(UnitNetDriver->ConnectionTimeout, (float)Owner->UnitTestTimeout);
+		UnitNetDriver->InitialConnectTimeout = FMath::Max(UnitNetDriver->InitialConnectTimeout, (float)Timeout);
+		UnitNetDriver->ConnectionTimeout = FMath::Max(UnitNetDriver->ConnectionTimeout, (float)Timeout);
 
 #if !UE_BUILD_SHIPPING
 		if (!(MinClientFlags & EMinClientFlags::SendRPCs) || !!(MinClientFlags & EMinClientFlags::DumpSendRPC))
@@ -301,7 +613,7 @@ bool UMinimalClient::ConnectMinimalClient()
 #endif
 
 		bool bBeaconConnect = !!(MinClientFlags & EMinClientFlags::BeaconConnect);
-		FString ConnectAddress = (bBeaconConnect ? BeaconAddress : ServerAddress);
+		FString ConnectAddress = (bBeaconConnect ? BeaconAddress : ServerAddress) + URLOptions;
 		FURL DefaultURL;
 		FURL TravelURL(&DefaultURL, *ConnectAddress, TRAVEL_Absolute);
 		FString ConnectionError;
@@ -332,7 +644,7 @@ bool UMinimalClient::ConnectMinimalClient()
 		}
 		else
 		{
-			UNIT_LOG_OBJ(Owner, ELogType::StatusFailure, TEXT("Failed to replace PackageMapClass, minimal client connection failed."));
+			UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to replace PackageMapClass, minimal client connection failed."));
 		}
 
 		if (bSuccess)
@@ -341,23 +653,19 @@ bool UMinimalClient::ConnectMinimalClient()
 
 			check(UnitConn->PackageMapClass == UUnitTestPackageMap::StaticClass());
 
+			UUnitTestPackageMap* PackageMap = CastChecked<UUnitTestPackageMap>(UnitConn->PackageMap);
+
+			PackageMap->MinClient = this;
+
 			FString LogMsg = FString::Printf(TEXT("Successfully created minimal client connection to IP '%s'"), *ConnectAddress);
 
-			UNIT_LOG_OBJ(Owner, ELogType::StatusImportant, TEXT("%s"), *LogMsg);
-			UNIT_STATUS_LOG_OBJ(Owner, ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
+			UNIT_LOG(ELogType::StatusImportant, TEXT("%s"), *LogMsg);
+			UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
 
 
 #if !UE_BUILD_SHIPPING
 			UnitConn->ReceivedRawPacketDel = FOnReceivedRawPacket::CreateUObject(this, &UMinimalClient::NotifyReceivedRawPacket);
-
-			if (!!(MinClientFlags & EMinClientFlags::DumpSendRaw))
-			{
-				UnitConn->LowLevelSendDel = FOnLowLevelSend::CreateUObject(this, &UMinimalClient::NotifySocketSend);
-			}
-			else
-			{
-				UnitConn->LowLevelSendDel = LowLevelSendDel;
-			}
+			UnitConn->LowLevelSendDel = FOnLowLevelSend::CreateUObject(this, &UMinimalClient::NotifySocketSend);
 #endif
 
 			// Work around a minor UNetConnection bug, where QueuedBits is not initialized, until after the first Tick
@@ -381,13 +689,13 @@ bool UMinimalClient::ConnectMinimalClient()
 		}
 		else
 		{
-			UNIT_LOG_OBJ(Owner, ELogType::StatusFailure, TEXT("Failed to kickoff connect to IP '%s', error: %s"), *ConnectAddress,
+			UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to kickoff connect to IP '%s', error: %s"), *ConnectAddress,
 							*ConnectionError);
 		}
 	}
 	else
 	{
-		UNIT_LOG_OBJ(Owner, ELogType::StatusFailure, TEXT("Failed to create an instance of the unit test net driver"));
+		UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to create an instance of the unit test net driver"));
 	}
 
 	return bSuccess;
@@ -405,7 +713,9 @@ void UMinimalClient::CreateNetDriver()
 
 		// Setup a new driver name entry
 		bool bFoundDef = false;
-		FName UnitDefName = TEXT("UnitTestNetDriver");
+		FString DriverClassName = (NetDriverClass.Len() > 0 ? *NetDriverClass : TEXT("/Script/OnlineSubsystemUtils.IpNetDriver"));
+		int32 ClassLoc = DriverClassName.Find(TEXT("."));
+		FName UnitDefName = *(FString(TEXT("UnitTestNetDriver_")) + DriverClassName.Mid(ClassLoc+1));
 
 		for (int32 i=0; i<GameEngine->NetDriverDefinitions.Num(); i++)
 		{
@@ -421,8 +731,11 @@ void UMinimalClient::CreateNetDriver()
 			FNetDriverDefinition NewDriverEntry;
 
 			NewDriverEntry.DefName = UnitDefName;
-			NewDriverEntry.DriverClassName = TEXT("/Script/OnlineSubsystemUtils.IpNetDriver");
-			NewDriverEntry.DriverClassNameFallback = TEXT("/Script/OnlineSubsystemUtils.IpNetDriver");
+			NewDriverEntry.DriverClassName = (NetDriverClass.Len() > 0 ? *NetDriverClass :
+												TEXT("/Script/OnlineSubsystemUtils.IpNetDriver"));
+
+			// Don't allow fallbacks for the MinimalClient
+			NewDriverEntry.DriverClassNameFallback = NewDriverEntry.DriverClassName;
 
 			GameEngine->NetDriverDefinitions.Add(NewDriverEntry);
 		}
@@ -454,30 +767,33 @@ void UMinimalClient::CreateNetDriver()
 			}
 			else
 			{
-				UNIT_LOG_OBJ(Owner, ELogType::StatusWarning,
+				UNIT_LOG(ELogType::StatusWarning,
 								TEXT("CreateNetDriver: No LevelCollection found for created world, may block replication."));
 			}
 
-			UNIT_LOG_OBJ(Owner,, TEXT("CreateNetDriver: Created named net driver: %s, NetDriverName: %s, for World: %s"),
+			UNIT_LOG(, TEXT("CreateNetDriver: Created named net driver: %s, NetDriverName: %s, for World: %s"),
 							*UnitNetDriver->GetFullName(), *UnitNetDriver->NetDriverName.ToString(), *UnitWorld->GetFullName());
 		}
 		else
 		{
-			UNIT_LOG_OBJ(Owner, ELogType::StatusFailure, TEXT("CreateNetDriver: CreateNamedNetDriver failed"));
+			UNIT_LOG(ELogType::StatusFailure, TEXT("CreateNetDriver: CreateNamedNetDriver failed"));
 		}
 	}
 	else if (GameEngine == nullptr)
 	{
-		UNIT_LOG_OBJ(Owner, ELogType::StatusFailure, TEXT("CreateNetDriver: GameEngine is nullptr"));
+		UNIT_LOG(ELogType::StatusFailure, TEXT("CreateNetDriver: GameEngine is nullptr"));
 	}
 	else //if (UnitWorld == nullptr)
 	{
-		UNIT_LOG_OBJ(Owner, ELogType::StatusFailure, TEXT("CreateNetDriver: UnitWorld is nullptr"));
+		UNIT_LOG(ELogType::StatusFailure, TEXT("CreateNetDriver: UnitWorld is nullptr"));
 	}
 }
 
 void UMinimalClient::SendInitialJoin()
 {
+	// Make sure to flush any existing packet buffers, as Fortnite connect URL's can be very large and trigger an overflow
+	UnitConn->FlushNet();
+
 	FOutBunch* ControlChanBunch = CreateChannelBunch(CHTYPE_Control, 0);
 
 	if (ControlChanBunch != nullptr)
@@ -488,17 +804,24 @@ void UMinimalClient::SendInitialJoin()
 		// We need to construct the NMT_Hello packet manually, for the initial connection
 		uint8 MessageType = NMT_Hello;
 
+		// Allow the bunch to resize, and be split into partial bunches in SendRawBunch - for Fortnite
+		ControlChanBunch->SetAllowResize(true);
+
 		*ControlChanBunch << MessageType;
 		*ControlChanBunch << IsLittleEndian;
 
 		uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
 		*ControlChanBunch << LocalNetworkVersion;
 
+#if TARGET_UE4_CL >= CL_HELLOENCRYPTION
+		FString EncryptionToken = TEXT("");
+
+		*ControlChanBunch << EncryptionToken;
+#endif
+
 
 		bool bSkipControlJoin = !!(MinClientFlags & EMinClientFlags::SkipControlJoin);
 		bool bBeaconConnect = !!(MinClientFlags & EMinClientFlags::BeaconConnect);
-		FString BlankStr = TEXT("");
-		FString ConnectURL = UUnitTest::UnitEnv->GetDefaultClientConnectURL();
 
 		if (bBeaconConnect)
 		{
@@ -523,18 +846,9 @@ void UMinimalClient::SendInitialJoin()
 		else
 		{
 			// Then send NMT_Login
-			MessageType = NMT_Login;
-			*ControlChanBunch << MessageType;
-			*ControlChanBunch << BlankStr;
-			*ControlChanBunch << ConnectURL;
+			WriteControlLogin(ControlChanBunch);
 
-			int32 UIDSize = JoinUID.Len();
-
-			*ControlChanBunch << UIDSize;
-			*ControlChanBunch << JoinUID;
-
-
-			// Now send NMT_Join, to trigger a fake player, which should then trigger replication of basic actor channels
+			// Now send NMT_Join, which will spawn the PlayerController, which should then trigger replication of basic actor channels
 			if (!bSkipControlJoin)
 			{
 				MessageType = NMT_Join;
@@ -542,14 +856,10 @@ void UMinimalClient::SendInitialJoin()
 			}
 		}
 
+		SendRawBunch(*ControlChanBunch, true);
 
-		// Big hack: Store OutRec value on the unit test control channel, to enable 'retry-send' code
-		if (UnitConn->Channels[0] != nullptr)
-		{
-			UnitConn->Channels[0]->OutRec = ControlChanBunch;
-		}
-
-		UnitConn->SendRawBunch(*ControlChanBunch, true);
+		// Immediately flush, so that Fortnite doesn't trigger an overflow
+		UnitConn->FlushNet();
 
 
 		// At this point, fire of notification that we are connected
@@ -559,8 +869,32 @@ void UMinimalClient::SendInitialJoin()
 	}
 	else
 	{
-		UNIT_LOG_OBJ(Owner, ELogType::StatusFailure, TEXT("Failed to kickoff connection, could not create control channel bunch."));
+		UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to kickoff connection, could not create control channel bunch."));
 	}
+}
+
+void UMinimalClient::WriteControlLogin(FOutBunch* ControlChanBunch)
+{
+	uint8 MessageType = NMT_Login;
+	FString BlankStr = TEXT("");
+	int32 UIDSize = JoinUID.Len();
+	FString OnlinePlatformName = TEXT("Dud");
+
+	// @todo #JohnB: It would be nice to remove this last UnitTest dependency (may be opportune to, when doing MCP connect URL)
+	// @todo #JohnB: Update the existing environments that use this, to use a UnitTask with AlterMinClient instead, like Fortnite,
+	//					then completely remove this method (and the unit test dependency).
+	//					Problem is, this will require retesting UT and such.
+	FString ConnectURL = UUnitTest::UnitEnv->GetDefaultClientConnectURL() + URLOptions;
+
+	UNIT_LOG(, TEXT("Sending NMT_Login with parameters: ClientResponse: %s, ConnectURL: %s, UID: %s, OnlinePlatformName: %s"),
+							*BlankStr, *ConnectURL, *JoinUID, *OnlinePlatformName);
+
+	*ControlChanBunch << MessageType;
+	*ControlChanBunch << BlankStr;
+	*ControlChanBunch << ConnectURL;
+	*ControlChanBunch << UIDSize;
+	*ControlChanBunch << JoinUID;
+	*ControlChanBunch << OnlinePlatformName;
 }
 
 void UMinimalClient::DisconnectMinimalClient()
@@ -575,9 +909,9 @@ void UMinimalClient::NotifySocketSend(void* Data, int32 Count, bool& bBlockSend)
 {
 	if (!!(MinClientFlags & EMinClientFlags::DumpSendRaw))
 	{
-		UNIT_LOG_OBJ(Owner, ELogType::StatusDebug, TEXT("NotifySocketSend: Packet dump:"));
+		UNIT_LOG(ELogType::StatusDebug, TEXT("NotifySocketSend: Packet dump:"));
 
-		UNIT_LOG_BEGIN(Owner, ELogType::StatusDebug | ELogType::StyleMonospace);
+		UNIT_LOG_BEGIN(this, ELogType::StatusDebug | ELogType::StyleMonospace);
 		NUTDebug::LogHexDump((const uint8*)Data, Count, true, true);
 		UNIT_LOG_END();
 	}
@@ -585,49 +919,56 @@ void UMinimalClient::NotifySocketSend(void* Data, int32 Count, bool& bBlockSend)
 #if !UE_BUILD_SHIPPING
 	LowLevelSendDel.ExecuteIfBound(Data, Count, bBlockSend);
 #endif
+
+	bSentBunch = !bBlockSend;
 }
 
 void UMinimalClient::NotifyReceivedRawPacket(void* Data, int32 Count, bool& bBlockReceive)
 {
 #if !UE_BUILD_SHIPPING
-	GActiveReceiveUnitConnection = UnitConn;
-
-	ReceivedRawPacketDel.ExecuteIfBound(Data, Count);
-
-	if (Owner != nullptr)
+	// This check isn't needed, but added to satisfy PVS-Studio, as their warning-disable macro's are sketchy.
+	if (UnitConn != nullptr)
 	{
+		GActiveReceiveUnitConnection = UnitConn;
+
+		ReceivedRawPacketDel.ExecuteIfBound(Data, Count);
+
 		if (!!(MinClientFlags & EMinClientFlags::DumpReceivedRaw))
 		{
-			UNIT_LOG_OBJ(Owner, ELogType::StatusDebug, TEXT("NotifyReceivedRawPacket: Packet dump:"));
+			UNIT_LOG(ELogType::StatusDebug, TEXT("NotifyReceivedRawPacket: Packet dump:"));
 
-			UNIT_LOG_BEGIN(Owner, ELogType::StatusDebug | ELogType::StyleMonospace);
+			UNIT_LOG_BEGIN(this, ELogType::StatusDebug | ELogType::StyleMonospace);
 			NUTDebug::LogHexDump((const uint8*)Data, Count, true, true);
 			UNIT_LOG_END();
 		}
+
+
+		// The rest of the original ReceivedRawPacket function call is blocked, so temporarily disable the delegate,
+		// and re-trigger it here, so that we correctly encapsulate its call with GActiveReceiveUnitConnection
+		FOnReceivedRawPacket TempDel = UnitConn->ReceivedRawPacketDel;
+
+		UnitConn->ReceivedRawPacketDel.Unbind();
+
+		UnitConn->UNetConnection::ReceivedRawPacket(Data, Count);
+
+		// Null check, in case connection closes while receiving
+		if (UnitConn != nullptr)
+		{
+			UnitConn->ReceivedRawPacketDel = TempDel;
+		}
+
+
+		GActiveReceiveUnitConnection = nullptr;
+
+		// Block the original function call - replaced with the above
+		bBlockReceive = true;
 	}
-
-
-	// The rest of the original ReceivedRawPacket function call is blocked, so temporarily disable the delegate,
-	// and re-trigger it here, so that we correctly encapsulate its call with GActiveReceiveUnitConnection
-	FOnReceivedRawPacket TempDel = UnitConn->ReceivedRawPacketDel;
-
-	UnitConn->ReceivedRawPacketDel.Unbind();
-
-	UnitConn->UNetConnection::ReceivedRawPacket(Data, Count);
-
-	UnitConn->ReceivedRawPacketDel = TempDel;
-
-
-	GActiveReceiveUnitConnection = nullptr;
-
-	// Block the original function call - replaced with the above
-	bBlockReceive = true;
 #endif
 }
 
 void UMinimalClient::NotifyReceiveRPC(AActor* Actor, UFunction* Function, void* Parameters, bool& bBlockRPC)
 {
-	UNIT_EVENT_BEGIN(Owner);
+	UNIT_EVENT_BEGIN(this);
 
 	// If specified, block RPC's by default - the delegate below has a chance to override this
 	if (!(MinClientFlags & EMinClientFlags::AcceptRPCs))
@@ -649,11 +990,11 @@ void UMinimalClient::NotifyReceiveRPC(AActor* Actor, UFunction* Function, void* 
 	{
 		FString FuncParms = NUTUtilRefl::FunctionParmsToString(Function, Parameters);
 
-		UNIT_LOG_OBJ(Owner,, TEXT("Blocking receive RPC '%s' for actor '%s'"), *FuncName, *Actor->GetFullName());
+		UNIT_LOG(, TEXT("Blocking receive RPC '%s' for actor '%s'"), *FuncName, *Actor->GetFullName());
 
 		if (FuncParms.Len() > 0)
 		{
-			UNIT_LOG_OBJ(Owner,, TEXT("     '%s' parameters: %s"), *FuncName, *FuncParms);
+			UNIT_LOG(, TEXT("     '%s' parameters: %s"), *FuncName, *FuncParms);
 		}
 	}
 
@@ -662,11 +1003,11 @@ void UMinimalClient::NotifyReceiveRPC(AActor* Actor, UFunction* Function, void* 
 	{
 		FString FuncParms = NUTUtilRefl::FunctionParmsToString(Function, Parameters);
 
-		UNIT_LOG_OBJ(Owner, ELogType::StatusDebug, TEXT("Received RPC '%s' for actor '%s'"), *FuncName, *Actor->GetFullName());
+		UNIT_LOG(ELogType::StatusDebug, TEXT("Received RPC '%s' for actor '%s'"), *FuncName, *Actor->GetFullName());
 
 		if (FuncParms.Len() > 0)
 		{
-			UNIT_LOG_OBJ(Owner,, TEXT("     '%s' parameters: %s"), *FuncName, *FuncParms);
+			UNIT_LOG(, TEXT("     '%s' parameters: %s"), *FuncName, *FuncParms);
 		}
 	}
 
@@ -687,7 +1028,7 @@ void UMinimalClient::NotifySendRPC(AActor* Actor, UFunction* Function, void* Par
 	{
 		if (!!(MinClientFlags & EMinClientFlags::DumpSendRPC))
 		{
-			UNIT_LOG_OBJ(Owner, ELogType::StatusDebug, TEXT("Send RPC '%s' for actor '%s' (SubObject '%s')"), *Function->GetName(),
+			UNIT_LOG(ELogType::StatusDebug, TEXT("Send RPC '%s' for actor '%s' (SubObject '%s')"), *Function->GetName(),
 						*Actor->GetFullName(), (SubObject != NULL ? *SubObject->GetFullName() : TEXT("nullptr")));
 		}
 	}
@@ -695,7 +1036,7 @@ void UMinimalClient::NotifySendRPC(AActor* Actor, UFunction* Function, void* Par
 	{
 		if (!(MinClientFlags & EMinClientFlags::SendRPCs))
 		{
-			UNIT_LOG_OBJ(Owner, , TEXT("Blocking send RPC '%s' in actor '%s' (SubObject '%s')"), *Function->GetName(),
+			UNIT_LOG(, TEXT("Blocking send RPC '%s' in actor '%s' (SubObject '%s')"), *Function->GetName(),
 						*Actor->GetFullName(), (SubObject != NULL ? *SubObject->GetFullName() : TEXT("nullptr")));
 		}
 	}
@@ -706,7 +1047,7 @@ void UMinimalClient::InternalNotifyNetworkFailure(UWorld* InWorld, UNetDriver* I
 {
 	if (InNetDriver == (UNetDriver*)UnitNetDriver)
 	{
-		UNIT_EVENT_BEGIN(Owner);
+		UNIT_EVENT_BEGIN(this);
 
 		NetworkFailureDel.ExecuteIfBound(FailureType, ErrorString);
 
@@ -720,9 +1061,16 @@ bool UMinimalClient::NotifyAcceptingChannel(UChannel* Channel)
 
 	if (Channel->ChType == CHTYPE_Actor)
 	{
+		UUnitTestActorChannel* ActorChan = Cast<UUnitTestActorChannel>(Channel);
+
+		if (ActorChan != nullptr)
+		{
+			ActorChan->MinClient = this;
+		}
+
 		bAccepted = !!(MinClientFlags & EMinClientFlags::AcceptActors);
 
-		if (!!(MinClientFlags & EMinClientFlags::NotifyNetActors))
+		if (bAccepted && !!(MinClientFlags & EMinClientFlags::NotifyNetActors))
 		{
 			PendingNetActorChans.Add(Channel->ChIndex);
 		}
@@ -731,23 +1079,3 @@ bool UMinimalClient::NotifyAcceptingChannel(UChannel* Channel)
 	return bAccepted;
 }
 
-// @todo #JohnB: Remove dependency on ClientUnitTest eventually
-UMinimalClient* UMinimalClient::GetMinClientFromConn(UNetConnection* InConn)
-{
-	UMinimalClient* ReturnVal = nullptr;
-
-	for (UUnitTest* CurUnitTest : GUnitTestManager->ActiveUnitTests)
-	{
-		UClientUnitTest* CurClientUnitTest = Cast<UClientUnitTest>(CurUnitTest);
-		UMinimalClient* MinClient = (CurClientUnitTest != nullptr ? CurClientUnitTest->MinClient : nullptr);
-		UNetConnection* CurUnitConn = (MinClient != nullptr ? MinClient->GetConn() : nullptr);
-
-		if (CurUnitConn != nullptr && CurUnitConn == InConn)
-		{
-			ReturnVal = MinClient;
-			break;
-		}
-	}
-
-	return ReturnVal;
-}

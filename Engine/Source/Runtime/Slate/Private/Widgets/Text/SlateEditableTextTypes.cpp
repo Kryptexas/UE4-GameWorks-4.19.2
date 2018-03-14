@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/Text/SlateEditableTextTypes.h"
 #include "Rendering/SlateLayoutTransform.h"
@@ -100,7 +100,7 @@ void FCursorLineHighlighter::SetCursorBrush(const TAttribute<const FSlateBrush*>
 int32 FCursorLineHighlighter::OnPaint(const FPaintArgs& Args, const FTextLayout::FLineView& Line, const float OffsetX, const float Width, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	const FVector2D Location(Line.Offset.X + OffsetX, Line.Offset.Y);
-	const FVector2D Size(Width, Line.TextSize.Y);
+	const FVector2D Size(Width, Line.TextHeight);
 
 	FLinearColor CursorColorAndOpacity = InWidgetStyle.GetForegroundColor();
 
@@ -159,7 +159,7 @@ void FTextCompositionHighlighter::SetCompositionBrush(const TAttribute<const FSl
 int32 FTextCompositionHighlighter::OnPaint(const FPaintArgs& Args, const FTextLayout::FLineView& Line, const float OffsetX, const float Width, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	const FVector2D Location(Line.Offset.X + OffsetX, Line.Offset.Y);
-	const FVector2D Size(Width, Line.TextSize.Y);
+	const FVector2D Size(Width, Line.TextHeight);
 
 	// The block size and offset values are pre-scaled, so we need to account for that when converting the block offsets into paint geometry
 	const float InverseScale = Inverse(AllottedGeometry.Scale);
@@ -212,7 +212,7 @@ int32 FTextSelectionHighlighter::OnPaint(const FPaintArgs& Args, const FTextLayo
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			++LayerId,
-			AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, FVector2D(HighlightWidth, FMath::Max(Line.Size.Y, Line.TextSize.Y))), FSlateLayoutTransform(TransformPoint(InverseScale, Location))),
+			AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, FVector2D(HighlightWidth, FMath::Max(Line.Size.Y, Line.TextHeight))), FSlateLayoutTransform(TransformPoint(InverseScale, Location))),
 			&DefaultStyle.HighlightShape,
 			bParentEnabled && bHasKeyboardFocus ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 			SelectionBackgroundColorAndOpacity
@@ -248,7 +248,7 @@ int32 FTextSearchHighlighter::OnPaint(const FPaintArgs& Args, const FTextLayout:
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			++LayerId,
-			AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, FVector2D(Width, FMath::Max(Line.Size.Y, Line.TextSize.Y))), FSlateLayoutTransform(TransformPoint(InverseScale, Location))),
+			AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, FVector2D(Width, FMath::Max(Line.Size.Y, Line.TextHeight))), FSlateLayoutTransform(TransformPoint(InverseScale, Location))),
 			&DefaultStyle.HighlightShape,
 			bParentEnabled && bHasKeyboardFocus ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 			SelectionBackgroundColorAndOpacity

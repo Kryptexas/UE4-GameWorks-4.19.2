@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,9 +26,9 @@ class FRGBAToYUV420CS
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		if (Platform == EShaderPlatform::SP_PS4)
+		if (Parameters.Platform == EShaderPlatform::SP_PS4)
 		{
 			// we must use a run time check for this because the builds the build machines create will have Morpheus defined,
 			// but a user will not necessarily have the Morpheus files

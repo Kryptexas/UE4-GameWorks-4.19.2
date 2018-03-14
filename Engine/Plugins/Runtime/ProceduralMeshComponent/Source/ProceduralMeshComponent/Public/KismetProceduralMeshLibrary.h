@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -23,7 +23,7 @@ enum class EProcMeshSliceCapOption : uint8
 	UseLastSectionForCap
 };
 
-UCLASS()
+UCLASS(meta=(ScriptName="ProceduralMeshLibrary"))
 class PROCEDURALMESHCOMPONENT_API UKismetProceduralMeshLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
@@ -60,6 +60,11 @@ class PROCEDURALMESHCOMPONENT_API UKismetProceduralMeshLibrary : public UBluepri
 	/** Copy materials from StaticMeshComponent to ProceduralMeshComponent. */
 	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")
 	static void CopyProceduralMeshFromStaticMeshComponent(UStaticMeshComponent* StaticMeshComponent, int32 LODIndex, UProceduralMeshComponent* ProcMeshComponent, bool bCreateCollision);
+
+	/** Grab geometry data from a ProceduralMeshComponent. */
+	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")
+	static void GetSectionFromProceduralMesh(UProceduralMeshComponent* InProcMesh, int32 SectionIndex, TArray<FVector>& Vertices, TArray<int32>& Triangles, TArray<FVector>& Normals, TArray<FVector2D>& UVs, TArray<FProcMeshTangent>& Tangents);
+
 
 	/** 
 	 *	Slice the ProceduralMeshComponent (including simple convex collision) using a plane. Optionally create 'cap' geometry. 

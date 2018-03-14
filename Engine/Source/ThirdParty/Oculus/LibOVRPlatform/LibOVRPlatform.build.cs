@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -27,7 +27,7 @@ public class LibOVRPlatform : ModuleRules
 		{
 			PublicAdditionalLibraries.Add(OculusThirdPartyDirectory + "/lib/libovrplatformloader.so");
 			string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
-			AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "LibOVRPlatform_APL.xml")));
+			AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(PluginPath, "LibOVRPlatform_APL.xml"));
 			isLibrarySupported = true;
 		}
 		else

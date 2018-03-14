@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -190,7 +190,7 @@ public:
 	EGizmoHandleTypes GetCurrentGizmoType() const;
 
 	/** @return Returns the type of HMD we're dealing with */
-	EHMDDeviceType::Type GetHMDDeviceType() const;
+	FName GetHMDDeviceType() const;
 
 	/** @return Checks to see if the specified interactor is aiming roughly toward the specified capsule */
 	bool IsHandAimingTowardsCapsule(class UViewportInteractor* Interactor, const FTransform& CapsuleTransform, const FVector CapsuleStart, const FVector CapsuleEnd, const float CapsuleRadius, const float MinDistanceToCapsule, const FVector CapsuleFrontDirection, const float MinDotForAimingAtCapsule) const;

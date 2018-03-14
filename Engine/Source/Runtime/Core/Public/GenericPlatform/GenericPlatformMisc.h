@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -324,6 +324,12 @@ struct CORE_API FGenericPlatformMisc
 	/** Submits a crash report to a central server (release builds only) */
 	static void SubmitErrorReport( const TCHAR* InErrorHist, EErrorReportMode::Type InMode );
 
+	/** Check to see if the platform is being viewed remotely. In such a mode we should aim to minimize screen refresh to get the best performance on the remote viewer */
+	static bool IsRemoteSession()
+	{
+		return false;
+	}
+
 	/** Return true if a debugger is present */
 	FORCEINLINE static bool IsDebuggerPresent()
 	{
@@ -335,6 +341,7 @@ struct CORE_API FGenericPlatformMisc
 	}
 
 	/** Break into the debugger, if IsDebuggerPresent returns true, otherwise do nothing  */
+	DEPRECATED(4.19, "FPlatformMisc::DebugBreak is deprecated. Use the UE_DEBUG_BREAK() macro instead.")
 	FORCEINLINE static void DebugBreak()
 	{
 		if (IsDebuggerPresent())
@@ -454,20 +461,13 @@ public:
 	/**
 	 * Platform specific function for adding a named event that can be viewed in PIX
 	 */
-	FORCEINLINE static void BeginNamedEvent(const struct FColor& Color,const TCHAR* Text)
-	{
-	}
-
-	FORCEINLINE static void BeginNamedEvent(const struct FColor& Color,const ANSICHAR* Text)
-	{
-	}
+	static void BeginNamedEvent(const struct FColor& Color, const TCHAR* Text);
+	static void BeginNamedEvent(const struct FColor& Color, const ANSICHAR* Text);
 
 	/**
 	 * Platform specific function for closing a named event that can be viewed in PIX
 	 */
-	FORCEINLINE static void EndNamedEvent()
-	{
-	}
+	static void EndNamedEvent();
 
     /**
 	* Platform specific function for initializing storage of tagged memory buffers
@@ -807,6 +807,12 @@ public:
 	static FString GetDefaultLocale();
 
 	/**
+	 * Get the timezone identifier for this platform, or an empty string if the default timezone calculation will work.
+	 * @note This should return either an Olson timezone (eg, "America/Los_Angeles") or an offset from GMT/UTC (eg, "GMT-8:00").
+	 */
+	static FString GetTimeZoneId();
+
+	/**
 	 *	Platform-specific Exec function
 	 *
 	 *  @param	InWorld		World context
@@ -1054,15 +1060,15 @@ public:
 		return true;
 	}
 
-	/**
-	 * Allows the OS to enable high DPI mode 
+#if !UE_BUILD_SHIPPING
+	/** 
+	 * Returns any platform specific warning messages we want printed on screen
 	 */
-	static void SetHighDPIMode()
+	static bool GetPlatformScreenWarnings(TArray<FText>& PlatformScreenWarnings)
 	{
-
+		return false;
 	}
 
-#if !UE_BUILD_SHIPPING
 protected:
 	/** Whether the user should be prompted to allow for a remote debugger to be attached */
 	static bool bShouldPromptForRemoteDebugging;

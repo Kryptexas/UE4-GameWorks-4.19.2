@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 
@@ -74,6 +74,7 @@ PFNGLCLEARBUFFERIVPROC					glClearBufferiv = NULL;
 PFNGLCLEARBUFFERUIVPROC					glClearBufferuiv = NULL;
 PFNGLDRAWBUFFERSPROC					glDrawBuffers = NULL;
 PFNGLTEXBUFFEREXTPROC					glTexBufferEXT = NULL;
+PFNGLCOPYIMAGESUBDATAPROC				glCopyImageSubData = nullptr;
 
 PFNGLGETPROGRAMBINARYOESPROC            glGetProgramBinary = NULL;
 PFNGLPROGRAMBINARYOESPROC               glProgramBinary = NULL;
@@ -86,6 +87,9 @@ PFNGLVERTEXATTRIBIPOINTERPROC			glVertexAttribIPointer = NULL;
 
 PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC glFramebufferTextureMultiviewOVR = NULL;
 PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC glFramebufferTextureMultisampleMultiviewOVR = NULL;
+
+int32 FAndroidOpenGL::GLMajorVerion = 0;
+int32 FAndroidOpenGL::GLMinorVersion = 0;
 
 struct FPlatformOpenGLDevice
 {
@@ -112,7 +116,7 @@ FPlatformOpenGLDevice::FPlatformOpenGLDevice()
 {
 }
 
-// call out to JNI to see if the application was packaged for GearVR
+// call out to JNI to see if the application was packaged for Gear VR
 extern bool AndroidThunkCpp_IsGearVRApplication();
 
 void FPlatformOpenGLDevice::Init()
@@ -210,23 +214,34 @@ bool PlatformInitOpenGL()
 
 	{
 		// determine ES version. PlatformInitOpenGL happens before ProcessExtensions and therefore FAndroidOpenGL::bES31Support.
-		FString SubVersion;
-		const bool bES31Supported = FAndroidGPUInfo::Get().GLVersion.Split(TEXT("OpenGL ES 3."), nullptr, &SubVersion) && FCString::Atoi(*SubVersion) >= 1;
+		FString FullVersionString, VersionString, SubVersionString;
+		FAndroidGPUInfo::Get().GLVersion.Split(TEXT("OpenGL ES "), nullptr, &FullVersionString);
+		FullVersionString.Split(TEXT(" "), &FullVersionString, nullptr);
+		FullVersionString.Split(TEXT("."), &VersionString, &SubVersionString);
+		FAndroidOpenGL::GLMajorVerion = FCString::Atoi(*VersionString);
+		FAndroidOpenGL::GLMinorVersion = FCString::Atoi(*SubVersionString);
+
+		bool bES31Supported = FAndroidOpenGL::GLMajorVerion == 3 && FAndroidOpenGL::GLMinorVersion >= 1;
 		static const auto CVarDisableES31 = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Android.DisableOpenGLES31Support"));
 
 		bool bBuildForES31 = false;
 		GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bBuildForES31"), bBuildForES31, GEngineIni);
+
 		const bool bSupportsFloatingPointRTs = FAndroidMisc::SupportsFloatingPointRenderTargets();
 		const bool bSupportsShaderIOBlocks = FAndroidMisc::SupportsShaderIOBlocks();
 
-		if (bBuildForES31 && bES31Supported && bSupportsFloatingPointRTs && bSupportsShaderIOBlocks && CVarDisableES31->GetValueOnAnyThread() == 0)
+		const bool bES20Fallback = !bSupportsFloatingPointRTs || !bSupportsShaderIOBlocks || !!CVarDisableES31->GetValueOnAnyThread();
+
+		if (bBuildForES31 && bES31Supported && !bES20Fallback)
 		{
-			FAndroidOpenGL::CurrentFeatureLevelSupport = FAndroidOpenGL::EFeatureLevelSupport::ES31;
+			FAndroidOpenGL::CurrentFeatureLevelSupport = FAndroidOpenGL::GLMinorVersion >= 2 ? FAndroidOpenGL::EFeatureLevelSupport::ES32 : FAndroidOpenGL::EFeatureLevelSupport::ES31;
 			// shut down existing ES2 egl.
-			UE_LOG(LogRHI, Log, TEXT("App is packaged for OpenGL ES 3.1 and an ES 3.1-capable device was detected. Reinitializing OpenGL ES with a 3.1 context."));
+			UE_LOG(LogRHI, Log, TEXT("App is packaged for OpenGL ES 3.1 and an ES %d.%d-capable device was detected. Reinitializing OpenGL ES with a %d.%d context."),
+				FAndroidOpenGL::GLMajorVerion, FAndroidOpenGL::GLMinorVersion, FAndroidOpenGL::GLMajorVerion, FAndroidOpenGL::GLMinorVersion);
+
 			FAndroidAppEntry::ReleaseEGL();
-			// Re-init gles for 3.1
-			AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 3, 1, false);
+			// Re-init gles for 3.1/3.2
+			AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, FAndroidOpenGL::GLMajorVerion, FAndroidOpenGL::GLMinorVersion, false);
 		}
 		else
 		{
@@ -412,6 +427,9 @@ FAndroidOpenGL::EImageExternalType FAndroidOpenGL::ImageExternalType = FAndroidO
 GLint FAndroidOpenGL::MaxMSAASamplesTileMem = 1;
 
 FAndroidOpenGL::EFeatureLevelSupport FAndroidOpenGL::CurrentFeatureLevelSupport = FAndroidOpenGL::EFeatureLevelSupport::Invalid;
+
+extern bool AndroidThunkCpp_GetMetaDataBoolean(const FString& Key);
+extern FString AndroidThunkCpp_GetMetaDataString(const FString& Key);
 
 void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 {
@@ -686,12 +704,6 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	// so we set this to false to modify the glsl manually at compile-time.
 	bSupportsTextureCubeLodEXT = false;
 
-	// On some Android devices with Mali GPUs textureCubeLod is not available.
-	if (RendererString.Contains(TEXT("Mali-400")))
-	{
-		bSupportsShaderTextureCubeLod = false;
-	}
-
 	// Nexus 5 (Android 4.4.2) doesn't like glVertexAttribDivisor(index, 0) called when not using a glDrawElementsInstanced
 	if (bIsAdrenoBased && VersionString.Contains(TEXT("OpenGL ES 3.0 V@66.0 AU@  (CL@)")))
 	{
@@ -733,8 +745,106 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		bSupportsATITC = false;
 		bSupportsPVRTC = false;
 	}
-}
 
+	// check for supported texture formats if enabled
+	bool bCookOnTheFly = false;
+#if !UE_BUILD_SHIPPING
+	FString FileHostIP;
+	bCookOnTheFly = FParse::Value(FCommandLine::Get(), TEXT("filehostip"), FileHostIP);
+#endif
+	if (!bCookOnTheFly && AndroidThunkCpp_GetMetaDataBoolean(TEXT("com.epicgames.ue4.GameActivity.bValidateTextureFormats")))
+	{
+		FString CookedFlavorsString = AndroidThunkCpp_GetMetaDataString(TEXT("com.epicgames.ue4.GameActivity.CookedFlavors"));
+		if (!CookedFlavorsString.IsEmpty())
+		{
+			TArray<FString> CookedFlavors;
+			CookedFlavorsString.ParseIntoArray(CookedFlavors, TEXT(","), true);
+
+			// check each cooked flavor for support (only need one to be supported)
+			bool bFoundSupported = false;
+			for (FString Flavor : CookedFlavors)
+			{
+				if (Flavor.Equals(TEXT("ETC1")))
+				{
+					// every device supports ETC1
+					bFoundSupported = true;
+					break;
+				}
+				if (Flavor.Equals(TEXT("ETC2")))
+				{
+					if (FOpenGL::SupportsETC2())
+					{
+						bFoundSupported = true;
+						break;
+					}
+				}
+				if (Flavor.Equals(TEXT("ATC")))
+				{
+					if (FOpenGL::SupportsATITC())
+					{
+						bFoundSupported = true;
+						break;
+					}
+				}
+				if (Flavor.Equals(TEXT("DXT")))
+				{
+					if (FOpenGL::SupportsDXT())
+					{
+						bFoundSupported = true;
+						break;
+					}
+				}
+				if (Flavor.Equals(TEXT("PVRTC")))
+				{
+					if (FOpenGL::SupportsPVRTC())
+					{
+						bFoundSupported = true;
+						break;
+					}
+				}
+				if (Flavor.Equals(TEXT("ASTC")))
+				{
+					if (FOpenGL::SupportsASTC())
+					{
+						bFoundSupported = true;
+						break;
+					}
+				}
+			}
+
+			if (!bFoundSupported)
+			{
+				FString Message = TEXT("Cooked Flavors: ") + CookedFlavorsString + TEXT("\n\nSupported: ETC1") +
+					(FOpenGL::SupportsETC2() ? TEXT(",ETC2") : TEXT("")) +
+					(FOpenGL::SupportsATITC() ? TEXT(",ATC") : TEXT("")) +
+					(FOpenGL::SupportsDXT() ? TEXT(",DXT") : TEXT("")) +
+					(FOpenGL::SupportsPVRTC() ? TEXT(",PVRTC") : TEXT("")) +
+					(FOpenGL::SupportsASTC() ? TEXT(",ASTC") : TEXT(""));
+
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Error: Unsupported Texture Format\n%s"), *Message);
+				FAndroidMisc::MessageBoxExt(EAppMsgType::Ok, *Message, TEXT("Unsupported Texture Format"));
+			}
+		}
+	}
+
+	// test for glCopyImageSubData functionality
+	// if device supports GLES 3.2 or higher get api function address otherwise search for glCopyImageSubDataEXT extension
+	{
+		if (GLMajorVerion >= 3 && GLMinorVersion >= 2)
+		{
+			glCopyImageSubData = (PFNGLCOPYIMAGESUBDATAPROC)((void*)eglGetProcAddress("glCopyImageSubData"));
+		}
+		else
+		{
+			// search for extension name first because a non-null eglGetProcAddress() result does not necessarily imply the presence of the extension
+			if (ExtensionsString.Contains(TEXT("GL_EXT_copy_image")))
+			{
+				glCopyImageSubData = (PFNGLCOPYIMAGESUBDATAPROC)((void*)eglGetProcAddress("glCopyImageSubDataEXT"));
+			}
+		}
+		bSupportsCopyImage = (glCopyImageSubData != nullptr);
+	}
+}
 
 FString FAndroidMisc::GetGPUFamily()
 {

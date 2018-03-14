@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright 2015 NVIDIA Corporation. All rights reserved.
+// Copyright 2016 NVIDIA Corporation. All rights reserved.
 
 #pragma once
 #include <ansel/Defines.h>

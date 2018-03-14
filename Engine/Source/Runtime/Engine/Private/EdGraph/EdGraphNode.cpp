@@ -1,7 +1,8 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "EdGraph/EdGraphNode.h"
 #include "UObject/BlueprintsObjectVersion.h"
+#include "UObject/FrameworkObjectVersion.h"
 #include "EdGraph/EdGraphPin.h"
 #include "Textures/SlateIcon.h"
 #include "EdGraph/EdGraph.h"
@@ -30,8 +31,23 @@ FEdGraphTerminalType FEdGraphTerminalType::FromPinType(const FEdGraphPinType& Pi
 
 FArchive& operator<<(FArchive& Ar, FEdGraphTerminalType& T)
 {
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
+	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) >= FFrameworkObjectVersion::PinsStoreFName)
+	{
 	Ar << T.TerminalCategory;
 	Ar << T.TerminalSubCategory;
+	}
+	else
+	{
+		FString TerminalCategoryStr;
+		Ar << TerminalCategoryStr;
+		T.TerminalCategory = *TerminalCategoryStr;
+
+		FString TerminalSubCategoryStr;
+		Ar << TerminalSubCategoryStr;
+		T.TerminalSubCategory = *TerminalSubCategoryStr;
+	}
 
 	// See: FArchive& operator<<( FArchive& Ar, FWeakObjectPtr& WeakObjectPtr )
 	// The PinSubCategoryObject should be serialized into the package.
@@ -53,11 +69,22 @@ FArchive& operator<<(FArchive& Ar, FEdGraphTerminalType& T)
 
 FName const FNodeMetadata::DefaultGraphNode(TEXT("DefaultGraphNode"));
 
+#if WITH_EDITOR
+UEdGraphNode::FCreatePinParams::FCreatePinParams(const FEdGraphPinType& PinType)
+	: ContainerType(PinType.ContainerType)
+	, bIsReference(PinType.bIsReference)
+	, bIsConst(PinType.bIsConst)
+	, Index(INDEX_NONE)
+	, ValueTerminalType(PinType.PinValueType)
+{
+}
+#endif // WITH_EDITOR
+
 /////////////////////////////////////////////////////
 // FGraphNodeContextMenuBuilder
 
 FGraphNodeContextMenuBuilder::FGraphNodeContextMenuBuilder(const UEdGraph* InGraph, const UEdGraphNode* InNode, const UEdGraphPin* InPin, FMenuBuilder* InMenuBuilder, bool bInDebuggingMode)
-	: Blueprint(NULL)
+	: Blueprint(nullptr)
 	, Graph(InGraph)
 	, Node(InNode)
 	, Pin(InPin)
@@ -68,7 +95,7 @@ FGraphNodeContextMenuBuilder::FGraphNodeContextMenuBuilder(const UEdGraph* InGra
 	Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph);
 #endif
 
-	if (Pin != NULL)
+	if (Pin)
 	{
 		Node = Pin->GetOwningNode();
 	}
@@ -151,7 +178,7 @@ void UEdGraphNode::DiffProperties(UClass* StructA, UClass* StructB, UObject* Dat
 	}
 }
 
-UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FEdGraphPinType& InPinType, const FString& PinName, int32 Index /*= INDEX_NONE*/)
+UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FEdGraphPinType& InPinType, const FName PinName, int32 Index /*= INDEX_NONE*/)
 {
 	UEdGraphPin* NewPin = UEdGraphPin::CreatePin(this);
 	NewPin->PinName = PinName;
@@ -171,56 +198,70 @@ UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FEdGraphPin
 	return NewPin;
 }
 
-UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FString& PinCategory, const FString& PinSubCategory, UObject* PinSubCategoryObject, bool bIsArray, bool bIsReference, const FString& PinName, bool bIsConst /*= false*/, int32 Index /*= INDEX_NONE*/, bool bIsSet /*= false*/, bool bIsMap /*= false*/, const FEdGraphTerminalType& ValueTerminalType /*= FEdGraphTerminalType()*/)
+UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FNameParameterHelper PinCategory, const FNameParameterHelper PinSubCategory, UObject* PinSubCategoryObject, bool bIsArray, bool bIsReference, const FNameParameterHelper PinName, bool bIsConst /*= false*/, int32 Index /*= INDEX_NONE*/, bool bIsSet /*= false*/, bool bIsMap /*= false*/, const FEdGraphTerminalType& ValueTerminalType /*= FEdGraphTerminalType()*/)
 {
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return CreatePin(Dir, PinCategory, PinSubCategory, PinSubCategoryObject, PinName, FEdGraphPinType::ToPinContainerType(bIsArray, bIsSet, bIsMap), bIsReference, bIsConst, Index, ValueTerminalType);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
-UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FString& PinCategory, const FString& PinSubCategory, UObject* PinSubCategoryObject, const FString& PinName, EPinContainerType PinContainerType /* EPinContainerType::None */, bool bIsReference /* = false */, bool bIsConst /*= false*/, int32 Index /*= INDEX_NONE*/, const FEdGraphTerminalType& ValueTerminalType /*= FEdGraphTerminalType()*/)
+UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FNameParameterHelper PinCategory, const FNameParameterHelper PinSubCategory, UObject* PinSubCategoryObject, const FNameParameterHelper PinName, EPinContainerType PinContainerType /* EPinContainerType::None */, bool bIsReference /* = false */, bool bIsConst /*= false*/, int32 Index /*= INDEX_NONE*/, const FEdGraphTerminalType& ValueTerminalType /*= FEdGraphTerminalType()*/)
 {
-	FEdGraphPinType PinType(PinCategory, PinSubCategory, PinSubCategoryObject, PinContainerType, bIsReference, ValueTerminalType);
-	PinType.bIsConst = bIsConst;
+	FCreatePinParams PinParams;
+	PinParams.ContainerType = PinContainerType;
+	PinParams.bIsConst = bIsConst;
+	PinParams.bIsReference = bIsReference;
+	PinParams.Index = Index;
+	PinParams.ValueTerminalType = ValueTerminalType;
 
-	return CreatePin(Dir, PinType, PinName, Index);
+	return CreatePin(Dir, *PinCategory, *PinSubCategory, PinSubCategoryObject, *PinName, PinParams);
 }
 
-UEdGraphPin* UEdGraphNode::FindPin(const FString& PinName, const EEdGraphPinDirection Direction) const
+
+UEdGraphPin* UEdGraphNode::CreatePin(const EEdGraphPinDirection Dir, const FName PinCategory, const FName PinSubCategory, UObject* PinSubCategoryObject, const FName PinName, const FCreatePinParams& PinParams)
 {
-	for(int32 PinIdx=0; PinIdx<Pins.Num(); PinIdx++)
+	FEdGraphPinType PinType(PinCategory, PinSubCategory, PinSubCategoryObject, PinParams.ContainerType, PinParams.bIsReference, PinParams.ValueTerminalType);
+	PinType.bIsConst = PinParams.bIsConst;
+
+	return CreatePin(Dir, PinType, PinName, PinParams.Index);
+}
+
+UEdGraphPin* UEdGraphNode::FindPin(const FName PinName, const EEdGraphPinDirection Direction) const
+{
+	for (UEdGraphPin* Pin : Pins)
 	{
-		if( Pins[PinIdx]->PinName == PinName && (Direction == EGPD_MAX || Direction == Pins[PinIdx]->Direction))
+		if ((Direction == EGPD_MAX || Direction == Pin->Direction) && Pin->PinName == PinName)
 		{
-			return Pins[PinIdx];
+			return Pin;
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
-UEdGraphPin* UEdGraphNode::FindPinChecked(const FString& PinName, const EEdGraphPinDirection Direction) const
+UEdGraphPin* UEdGraphNode::FindPin(const TCHAR* const PinName, const EEdGraphPinDirection Direction) const
 {
-	UEdGraphPin* Result = FindPin(PinName, Direction);
-	check(Result != NULL);
-	return Result;
+	const FName PinFName(PinName, FNAME_Find);
+	return (!PinFName.IsNone() ? FindPin(PinFName, Direction) : nullptr);
 }
 
 UEdGraphPin* UEdGraphNode::FindPinById(const FGuid PinId) const
 {
-	for (int32 PinIdx = 0; PinIdx < Pins.Num(); PinIdx++)
+	for (UEdGraphPin* Pin : Pins)
 	{
-		if (Pins[PinIdx]->PinId == PinId)
+		if (Pin->PinId == PinId)
 		{
-			return Pins[PinIdx];
+			return Pin;
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 UEdGraphPin* UEdGraphNode::FindPinByIdChecked(const FGuid PinId) const
 {
 	UEdGraphPin* Result = FindPinById(PinId);
-	check(Result != NULL);
+	check(Result);
 	return Result;
 }
 

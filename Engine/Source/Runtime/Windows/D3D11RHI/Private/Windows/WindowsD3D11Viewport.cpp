@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11Viewport.cpp: D3D viewport RHI implementation.
@@ -10,6 +10,8 @@
 
 #include "AllowWindowsPlatformTypes.h"
 #include <dwmapi.h>
+
+#include "dxgi1_2.h"
 
 extern FD3D11Texture2D* GetSwapChainSurface(FD3D11DynamicRHI* D3DRHI, EPixelFormat PixelFormat, IDXGISwapChain* SwapChain);
 
@@ -67,22 +69,62 @@ FD3D11Viewport::FD3D11Viewport(FD3D11DynamicRHI* InD3DRHI,HWND InWindowHandle,ui
 	}
 
 	// Create the swapchain.
-	DXGI_SWAP_CHAIN_DESC SwapChainDesc;
-	FMemory::Memzero( &SwapChainDesc, sizeof(DXGI_SWAP_CHAIN_DESC) );
+	if (InD3DRHI->IsQuadBufferStereoEnabled())
+	{
+		IDXGIFactory2* Factory2 = (IDXGIFactory2*)D3DRHI->GetFactory();
 
-	SwapChainDesc.BufferDesc = SetupDXGI_MODE_DESC();
-	// MSAA Sample count
-	SwapChainDesc.SampleDesc.Count = 1;
-	SwapChainDesc.SampleDesc.Quality = 0;
-	SwapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
-	// 1:single buffering, 2:double buffering, 3:triple buffering
-	SwapChainDesc.BufferCount = 1;
-	SwapChainDesc.OutputWindow = WindowHandle;
-	SwapChainDesc.Windowed = !bIsFullscreen;
-	// DXGI_SWAP_EFFECT_DISCARD / DXGI_SWAP_EFFECT_SEQUENTIAL
-	SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-	SwapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-	VERIFYD3D11RESULT_EX(D3DRHI->GetFactory()->CreateSwapChain(DXGIDevice,&SwapChainDesc,SwapChain.GetInitReference()), D3DRHI->GetDevice());
+		BOOL stereoEnabled = Factory2->IsWindowedStereoEnabled();
+		if (stereoEnabled) 
+		{
+			DXGI_SWAP_CHAIN_DESC1 SwapChainDesc1;
+			FMemory::Memzero(&SwapChainDesc1, sizeof(DXGI_SWAP_CHAIN_DESC1));
+
+			// Enable stereo 
+			SwapChainDesc1.Stereo = true;
+			// MSAA Sample count
+			SwapChainDesc1.SampleDesc.Count = 1;
+			SwapChainDesc1.SampleDesc.Quality = 0;
+
+			SwapChainDesc1.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
+			SwapChainDesc1.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
+			// Double buffering required to create stereo swap chain
+			SwapChainDesc1.BufferCount = 2;
+			SwapChainDesc1.Scaling = DXGI_SCALING_NONE;
+			SwapChainDesc1.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; 
+			SwapChainDesc1.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+
+			IDXGISwapChain1* SwapChain1 = nullptr;
+			VERIFYD3D11RESULT_EX((Factory2->CreateSwapChainForHwnd(D3DRHI->GetDevice(), WindowHandle, &SwapChainDesc1, nullptr, nullptr, &SwapChain1)), D3DRHI->GetDevice());
+			SwapChain = SwapChain1;
+		}
+		else
+		{
+			UE_LOG(LogD3D11RHI, Log, TEXT("FD3D11Viewport::FD3D11Viewport was not able to create stereo SwapChain; Please enable stereo in driver settings."));
+			InD3DRHI->DisableQuadBufferStereo();
+		}
+	}
+	
+	// if stereo was not activated or not enabled in settings
+	if(SwapChain == nullptr)
+	{
+		// Create the swapchain.
+		DXGI_SWAP_CHAIN_DESC SwapChainDesc;
+		FMemory::Memzero(&SwapChainDesc, sizeof(DXGI_SWAP_CHAIN_DESC));
+
+		SwapChainDesc.BufferDesc = SetupDXGI_MODE_DESC();
+		// MSAA Sample count
+		SwapChainDesc.SampleDesc.Count = 1;
+		SwapChainDesc.SampleDesc.Quality = 0;
+		SwapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
+		// 1:single buffering, 2:double buffering, 3:triple buffering
+		SwapChainDesc.BufferCount = 1;
+		SwapChainDesc.OutputWindow = WindowHandle;
+		SwapChainDesc.Windowed = !bIsFullscreen;
+		// DXGI_SWAP_EFFECT_DISCARD / DXGI_SWAP_EFFECT_SEQUENTIAL
+		SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+		SwapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+		VERIFYD3D11RESULT_EX(D3DRHI->GetFactory()->CreateSwapChain(DXGIDevice, &SwapChainDesc, SwapChain.GetInitReference()), D3DRHI->GetDevice());
+	}
 
 	// Set the DXGI message hook to not change the window behind our back.
 	D3DRHI->GetFactory()->MakeWindowAssociation(WindowHandle,DXGI_MWA_NO_WINDOW_CHANGES);

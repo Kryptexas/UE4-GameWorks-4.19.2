@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,7 +12,7 @@
 #include "K2Node.h"
 #include "AnimGraphNode_Base.generated.h"
 
-class FAnimBlueprintCompiler;
+class FAnimBlueprintCompilerContext;
 class FAnimGraphNodeDetails;
 class FBlueprintActionDatabaseRegistrar;
 class FCanvas;
@@ -284,7 +284,7 @@ class ANIMGRAPH_API UAnimGraphNode_Base : public UK2Node
 	bool IsPinExposedAndLinked(const FString& InPinName, const EEdGraphPinDirection Direction = EGPD_MAX) const;
 
 protected:
-	friend FAnimBlueprintCompiler;
+	friend FAnimBlueprintCompilerContext;
 	friend FAnimGraphNodeDetails;
 
 	// Gets the animation FNode type represented by this ed graph node

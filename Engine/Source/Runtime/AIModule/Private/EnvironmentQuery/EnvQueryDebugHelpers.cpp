@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "EnvironmentQuery/EnvQueryDebugHelpers.h"
 #include "Serialization/MemoryWriter.h"
@@ -175,7 +175,7 @@ namespace
 	}
 }
 
-void UEnvQueryDebugHelpers::LogQueryInternal(FEnvQueryInstance& Query, const FLogCategoryBase& Category, ELogVerbosity::Type Verbosity, float TimeSeconds, FVisualLogEntry *CurrentEntry)
+void UEnvQueryDebugHelpers::LogQueryInternal(FEnvQueryInstance& Query, const FName& CategoryName, ELogVerbosity::Type Verbosity, float TimeSeconds, FVisualLogEntry *CurrentEntry)
 {
 	const int32 UniqueId = FVisualLogger::Get().GetUniqueId(TimeSeconds);
 
@@ -186,11 +186,11 @@ void UEnvQueryDebugHelpers::LogQueryInternal(FEnvQueryInstance& Query, const FLo
 	DebugDataToBlobArray(EQSLocalData, BlobArray);
 
 	const FString AdditionalLogInfo = FString::Printf(TEXT("Executed EQS: \n - Name: '%s' (id=%d, option=%d),\n - All Items: %d,\n - ValidItems: %d"), *Query.QueryName, Query.QueryID, Query.OptionIndex, Query.ItemDetails.Num(), Query.NumValidItems);
-	FVisualLogLine Line(Category.GetCategoryName(), Verbosity, AdditionalLogInfo, Query.QueryID);
+	FVisualLogLine Line(CategoryName, Verbosity, AdditionalLogInfo, Query.QueryID);
 	Line.TagName = *EVisLogTags::TAG_EQS;
 	Line.UniqueId = UniqueId;
 
-	CurrentEntry->AddDataBlock(EVisLogTags::TAG_EQS, BlobArray, Category.GetCategoryName(), Verbosity).UniqueId = UniqueId;
+	CurrentEntry->AddDataBlock(EVisLogTags::TAG_EQS, BlobArray, CategoryName, Verbosity).UniqueId = UniqueId;
 
 
 	if (EQSLocalData.NumValidItems > 0)

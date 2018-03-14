@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -143,7 +143,7 @@ public:
 	 *
 	 * @return	UMaterialGraphNode*	Newly created Graph node to represent expression
 	 */
-	class UMaterialGraphNode*			AddExpression(UMaterialExpression* Expression);
+	class UMaterialGraphNode*			AddExpression(UMaterialExpression* Expression, bool bUserInvoked);
 
 	/**
 	 * Add a Comment to the Graph

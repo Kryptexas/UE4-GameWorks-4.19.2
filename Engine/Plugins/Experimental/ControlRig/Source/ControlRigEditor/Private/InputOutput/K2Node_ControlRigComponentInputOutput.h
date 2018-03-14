@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,7 +19,7 @@ class UK2Node_ControlRigComponentInputOutput : public UK2Node_ControlRig
 
 public:
 	/** Name of the ControlRig component pin */
-	FString ControlRigComponentPinName;
+	FName ControlRigComponentPinName;
 
 	/** The type of the ControlRig whose input/outputs we want to access. If the supplied ControlRig does not match, no action will be taken */
 	UPROPERTY(EditAnywhere, Category = "ControlRig")

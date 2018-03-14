@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -50,6 +50,6 @@ protected:
 	bool SynchronizeWithStruct();
 	bool GetSupportedNiagaraTypeDef(const UProperty* Property, FNiagaraTypeDefinition& TypeDef);
 
-	static FString ConditionVarName;
+	static const FName ConditionVarName;
 };
 

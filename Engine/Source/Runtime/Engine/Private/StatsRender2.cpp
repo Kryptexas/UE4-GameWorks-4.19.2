@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /**
  *
@@ -122,9 +122,6 @@ struct FStatRenderGlobals
 	/** Whether we need update internals. */
 	bool bNeedRefresh;
 
-	/** Scale of the stat rendering */
-	float StatScale;
-
 	FStatRenderGlobals() :
 		AfterNameColumnOffset(0),
 		InterColumnOffset(0),
@@ -133,8 +130,7 @@ struct FStatRenderGlobals
 		GroupColor(FLinearColor::White),
 		StatFont(nullptr),
 		StatFontType(EStatFontTypes::NumFonts),
-		bNeedRefresh(true),
-		StatScale(1.0f)
+		bNeedRefresh(true)
 	{
 		BackgroundColors[0] = FLinearColor(0.05f, 0.05f, 0.05f, 0.92f); // dark gray mostly occluding the background
 		BackgroundColors[1] = FLinearColor(0.02f, 0.02f, 0.02f, 0.88f); // slightly different to help make long lines more readable
@@ -144,9 +140,8 @@ struct FStatRenderGlobals
 	/**
 	 * Initializes stat render globals.
 	 */
-	void Initialize( const int32 InSizeX, const int32 InSizeY, const int32 InSafeSizeX, const bool bInIsStereo, const float InStatScale )
+	void Initialize( const int32 InSizeX, const int32 InSizeY, const int32 InSafeSizeX, const bool bInIsStereo )
 	{
-		StatScale = InStatScale;
 		FIntPoint NewSizeXY( InSizeX, InSizeY );
 		if (NewSizeXY != SizeXY)
 		{
@@ -157,6 +152,10 @@ struct FStatRenderGlobals
 		if( SizeXY.X < 1280 )
 		{
 			SetNewFont( EStatFontTypes::Tiny );
+		}
+		else
+		{
+			SetNewFont(EStatFontTypes::Small);
 		}
 
 		SafeSizeX = InSafeSizeX;
@@ -204,7 +203,7 @@ struct FStatRenderGlobals
 	 */
 	int32 GetFontHeight() const
 	{
-		return GStatFonts[( int32 )StatFontType].FontHeight * StatScale;
+		return GStatFonts[( int32 )StatFontType].FontHeight;
 	}
 
 	/**
@@ -296,9 +295,7 @@ static void RightJustify( FCanvas* Canvas, const int32 X, const int32 Y, TCHAR c
 
 	int32 StatColumnSpaceSizeX, StatColumnSpaceSizeY;
 	StringSize(Globals.StatFont, StatColumnSpaceSizeX, StatColumnSpaceSizeY, Text);
-	StatColumnSpaceSizeX *= Globals.StatScale;
-	StatColumnSpaceSizeY *= Globals.StatScale;
-	Canvas->DrawShadowedString(X + Globals.InterColumnOffset - StatColumnSpaceSizeX, Y, Text, Globals.StatFont, Color, Globals.StatScale);
+	Canvas->DrawShadowedString(X + Globals.InterColumnOffset - StatColumnSpaceSizeX, Y, Text, Globals.StatFont, Color);
 }
 
 
@@ -356,7 +353,7 @@ static int32 RenderCycle( const FComplexStatMessage& Item, class FCanvas* Canvas
 	const FString StatDesc = Item.GetDescription();
 	const FString StatDisplay = StatDesc.Len() == 0 ? Item.GetShortName().GetPlainNameString() : StatDesc;
 
-	Canvas->DrawShadowedString(X + IndentWidth, Y, *ShortenName(*StatDisplay), Globals.StatFont, Color, Globals.StatScale);
+	Canvas->DrawShadowedString(X + IndentWidth, Y, *ShortenName(*StatDisplay), Globals.StatFont, Color);
 
 	int32 CurrX = X + Globals.AfterNameColumnOffset;
 	// Now append the call count
@@ -441,7 +438,7 @@ static int32 RenderGroupedHeadings( class FCanvas* Canvas, const int X, const in
 
 	if(!bBudget)
 	{
-		Canvas->DrawShadowedString(X, Y, bIsHierarchy ? CaptionHier : CaptionFlat, Globals.StatFont, Globals.HeadingColor, Globals.StatScale);
+		Canvas->DrawShadowedString(X, Y, bIsHierarchy ? CaptionHier : CaptionFlat, Globals.StatFont, Globals.HeadingColor);
 	}
 
 	int32 CurrX = X + Globals.AfterNameColumnOffset;
@@ -480,14 +477,14 @@ static int32 RenderCounterHeadings( class FCanvas* Canvas, const int32 X, const 
 	// Stat [32chars]	Value [8chars]	Average [8chars]
 	const FStatRenderGlobals& Globals = GetStatRenderGlobals();
 
-	Canvas->DrawShadowedString(X, Y, TEXT("Counters"), Globals.StatFont, Globals.HeadingColor, Globals.StatScale);
+	Canvas->DrawShadowedString(X, Y, TEXT("Counters"), Globals.StatFont, Globals.HeadingColor);
 
 	// Determine where the first column goes
 	int32 CurrX = X + Globals.AfterNameColumnOffset;
 
 	// Draw the average column label.
 	RightJustify(Canvas, CurrX, Y, TEXT("Average"), Globals.HeadingColor);
-	CurrX += Globals.InterColumnOffset * Globals.StatScale;
+	CurrX += Globals.InterColumnOffset;
 
 	// Draw the max column label.
 	RightJustify(Canvas, CurrX, Y, TEXT("Max"), Globals.HeadingColor);
@@ -509,19 +506,19 @@ static int32 RenderMemoryHeadings( class FCanvas* Canvas, const int32 X, const  
 	// Stat [32chars]	MemUsed [8chars]	PhysMem [8chars]
 	const FStatRenderGlobals& Globals = GetStatRenderGlobals();
 
-	Canvas->DrawShadowedString(X, Y, TEXT("Memory Counters"), Globals.StatFont, Globals.HeadingColor, Globals.StatScale);
+	Canvas->DrawShadowedString(X, Y, TEXT("Memory Counters"), Globals.StatFont, Globals.HeadingColor);
 
 	// Determine where the first column goes
 	int32 CurrX = X + Globals.AfterNameColumnOffset;
 	RightJustify(Canvas, CurrX, Y, TEXT("UsedMax"), Globals.HeadingColor);
 
-	CurrX += Globals.InterColumnOffset * Globals.StatScale;
+	CurrX += Globals.InterColumnOffset;
 	RightJustify(Canvas, CurrX, Y, TEXT("Mem%"), Globals.HeadingColor);
 
-	CurrX += Globals.InterColumnOffset * Globals.StatScale;
+	CurrX += Globals.InterColumnOffset;
 	RightJustify(Canvas, CurrX, Y, TEXT("MemPool"), Globals.HeadingColor);
 
-	CurrX += Globals.InterColumnOffset * Globals.StatScale;
+	CurrX += Globals.InterColumnOffset;
 	RightJustify(Canvas, CurrX, Y, TEXT("Pool Capacity"), Globals.HeadingColor);
 
 	return Globals.GetFontHeight() + (Globals.GetFontHeight() / 3);
@@ -559,7 +556,7 @@ static int32 RenderMemoryCounter( const FGameThreadStatsData& ViewData, const FC
 	const float MaxMemUsed = All.GetValue_double(EComplexStatField::IncMax);
 
 	// Draw the label
-	Canvas->DrawShadowedString(X, Y, *ShortenName(*All.GetDescription()), Globals.StatFont, Globals.StatColor, Globals.StatScale);
+	Canvas->DrawShadowedString(X, Y, *ShortenName(*All.GetDescription()), Globals.StatFont, Globals.StatColor);
 	int32 CurrX = X + Globals.AfterNameColumnOffset;
 
 	// always use MB for easier comparisons
@@ -567,22 +564,22 @@ static int32 RenderMemoryCounter( const FGameThreadStatsData& ViewData, const FC
 
 	// Now append the max value of the stat
 	RightJustify(Canvas, CurrX, Y, *GetMemoryString(MaxMemUsed, bAutoType), Globals.StatColor);
-	CurrX += Globals.InterColumnOffset * Globals.StatScale;
+	CurrX += Globals.InterColumnOffset;
 	if (ViewData.PoolCapacity.Contains(Region))
 	{
 		RightJustify(Canvas, CurrX, Y, *FString::Printf(TEXT("%.0f%%"), float(100.0 * MaxMemUsed / double(ViewData.PoolCapacity[Region]))), Globals.StatColor);
 	}
-	CurrX += Globals.InterColumnOffset * Globals.StatScale;
+	CurrX += Globals.InterColumnOffset;
 	if (ViewData.PoolAbbreviation.Contains(Region))
 	{
 		RightJustify(Canvas, CurrX, Y, *ViewData.PoolAbbreviation[Region], Globals.StatColor);
 	}
-	CurrX += Globals.InterColumnOffset * Globals.StatScale;
+	CurrX += Globals.InterColumnOffset;
 	if (ViewData.PoolCapacity.Contains(Region))
 	{
 		RightJustify(Canvas, CurrX, Y, *GetMemoryString(double(ViewData.PoolCapacity[Region]), bAutoType), Globals.StatColor);
 	}
-	CurrX += Globals.InterColumnOffset * Globals.StatScale;
+	CurrX += Globals.InterColumnOffset;
 
 	return Globals.GetFontHeight();
 }
@@ -601,7 +598,7 @@ static int32 RenderCounter( const FGameThreadStatsData& ViewData, const FComplex
 	const bool bDisplayAll = All.NameAndInfo.GetFlag(EStatMetaFlags::ShouldClearEveryFrame);
 
 	// Draw the label
-	Canvas->DrawShadowedString(X, Y, *ShortenName(*All.GetDescription()), Globals.StatFont, Globals.StatColor, Globals.StatScale);
+	Canvas->DrawShadowedString(X, Y, *ShortenName(*All.GetDescription()), Globals.StatFont, Globals.StatColor);
 	int32 CurrX = X + Globals.AfterNameColumnOffset;
 
 	if( bDisplayAll )
@@ -618,7 +615,7 @@ static int32 RenderCounter( const FGameThreadStatsData& ViewData, const FComplex
 			RightJustify(Canvas, CurrX, Y, *ValueFormatted, Globals.StatColor);
 		}
 	}
-	CurrX += Globals.InterColumnOffset * Globals.StatScale;
+	CurrX += Globals.InterColumnOffset;
 
 	// Append the maximum.
 	if (All.NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_double)
@@ -668,7 +665,7 @@ int32 RenderGroupBudget( FCanvas* Canvas, const  int32 X, const int32 Y, const u
 
 	FString BudgetString = FString::Printf(TEXT("Total (of %1.2f ms)"), GroupBudget);
 
-	Canvas->DrawShadowedString(X, Y, *BudgetString, Globals.StatFont, FLinearColor::Green, Globals.StatScale);
+	Canvas->DrawShadowedString(X, Y, *BudgetString, Globals.StatFont, FLinearColor::Green);
 
 	int32 CurrX = X + Globals.AfterNameColumnOffset;
 	CurrX += Globals.InterColumnOffset;
@@ -686,7 +683,7 @@ int32 RenderMoreStatsLine(FCanvas* Canvas, const  int32 X, const int32 Y, const 
 	const FStatRenderGlobals& Globals = GetStatRenderGlobals();
 
 	FString MoreString = FString::Printf(TEXT("[%d more stats. Use the stats.MaxPerGroup CVar to increase the limit]"), NumMoreStats);
-	Canvas->DrawShadowedString(X, Y, *MoreString, Globals.StatFont, FLinearColor::Yellow, Globals.StatScale);
+	Canvas->DrawShadowedString(X, Y, *MoreString, Globals.StatFont, FLinearColor::Yellow);
 
 	return Globals.GetFontHeight();
 }
@@ -717,7 +714,7 @@ void RenderArrayOfStats( FCanvas* Canvas, const int32 X, int32& Y, const TArray<
 
 		if (BackgroundTexture != nullptr)
 		{
-			Canvas->DrawTile(X, Y + Globals.GetYOffset(), Globals.AfterNameColumnOffset + (Globals.InterColumnOffset * Globals.StatScale) * NumColumns, Globals.GetFontHeight(),
+			Canvas->DrawTile(X, Y + Globals.GetYOffset(), Globals.AfterNameColumnOffset + (Globals.InterColumnOffset) * NumColumns, Globals.GetFontHeight(),
 				0, 0, 1, 1,
 				Globals.BackgroundColors[RowIndex & 1], BackgroundTexture, true);
 		}
@@ -799,7 +796,7 @@ static void RenderGroupedWithHierarchy(const FGameThreadStatsData& ViewData, FVi
 			{
 				GroupLongName += FString::Printf(TEXT(" ROOT=%s"), *ViewData.RootFilter);
 			}
-			Canvas->DrawShadowedString(X, Y, *GroupLongName, Globals.StatFont, Globals.GroupColor, Globals.StatScale);
+			Canvas->DrawShadowedString(X, Y, *GroupLongName, Globals.StatFont, Globals.GroupColor);
 			Y += Globals.GetFontHeight();
 
 			
@@ -857,7 +854,7 @@ static void RenderGroupedWithHierarchy(const FGameThreadStatsData& ViewData, FVi
  * @param Y			the Y location to start rendering at
  * @param SafeSizeX	the X size that can be used to render the stats
  */
-void RenderStats(FViewport* Viewport, class FCanvas* Canvas, int32 X, int32 Y, int32 SafeSizeX, const float TextScale)
+void RenderStats(FViewport* Viewport, class FCanvas* Canvas, int32 X, int32 Y, int32 SafeSizeX)
 {
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "RenderStats" ), STAT_RenderStats, STATGROUP_StatSystem );
 
@@ -870,7 +867,7 @@ void RenderStats(FViewport* Viewport, class FCanvas* Canvas, int32 X, int32 Y, i
 	FStatRenderGlobals& Globals = GetStatRenderGlobals();
 	// SizeX is used to clip/arrange the rendered stats to avoid overlay in stereo mode.
 	const bool bIsStereo = Canvas->IsStereoRendering();
-	Globals.Initialize( Viewport->GetSizeXY().X, Viewport->GetSizeXY().Y, SafeSizeX, bIsStereo, TextScale );
+	Globals.Initialize( Viewport->GetSizeXY().X/Canvas->GetDPIScale(), Viewport->GetSizeXY().Y/Canvas->GetDPIScale(), SafeSizeX, bIsStereo );
 
 	if( !ViewData->bDrawOnlyRawStats )
 	{
@@ -881,7 +878,7 @@ void RenderStats(FViewport* Viewport, class FCanvas* Canvas, int32 X, int32 Y, i
 		// Render all counters.
 		for( int32 RowIndex = 0; RowIndex < ViewData->GroupDescriptions.Num(); ++RowIndex )
 		{
-			Canvas->DrawShadowedString(X, Y, *ViewData->GroupDescriptions[RowIndex], Globals.StatFont, Globals.StatColor, TextScale);
+			Canvas->DrawShadowedString(X, Y, *ViewData->GroupDescriptions[RowIndex], Globals.StatFont, Globals.StatColor);
 			Y += Globals.GetFontHeight();
 		}
 	}

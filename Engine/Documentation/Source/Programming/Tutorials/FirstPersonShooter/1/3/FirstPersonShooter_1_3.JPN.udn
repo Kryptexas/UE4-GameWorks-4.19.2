@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388666
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:1.3 - ログ メッセージを追加する
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
@@ -22,7 +22,7 @@ Version:4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 プロジェクトへのコード追加を開始するには、ログ メッセージを `FPSGameMode` に追加するとよいでしょう。ログ メッセージは、開発中にコードの検証やデバッグで非常に役立ちます。このステップでは、ログ メッセージを使ってアンリアル エンジンのデフォルトの `Game Mode` ではなく、実際に `FPSGameMode` の使用を検証します。
 
@@ -115,4 +115,3 @@ Version:4.15
 
 1.	CPP ファイルを Visual Studio を保存します。
 
-%Steps%

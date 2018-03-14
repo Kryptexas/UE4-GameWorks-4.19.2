@@ -32,20 +32,14 @@ zrYjngjYrEI
 
 _在此指南结束时，您将使一个菜单出现在 3D 游戏世界中，而非覆盖在屏幕上。_
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		步骤
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 步骤
+
+[REGION:buttonlist]
+
 	* [](Engine\UMG\HowTo\Create3DWidgets\WidgetSetup)
 	* [](Engine\UMG\HowTo\Create3DWidgets\ActorSetup)
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 [REGION:call_to_action]
 	[Click to Start](Engine\UMG\HowTo\Create3DWidgets\WidgetSetup "%Engine\UMG\HowTo\Create3DWidgets\WidgetSetup:title%")

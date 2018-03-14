@@ -1,0 +1,98 @@
+﻿INTSourceChangelist:3782314
+Availability:Public
+Title:1.シーケンスのセットアップ
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:レベル シーケンスを作成し、ブレンドさせたいアニメーションをシーケンサーに追加します。 
+Version:4.17
+SkillLevel:Advanced
+parent:Engine/Sequencer/HowTo/GameplayAnimBlending
+order:1
+checkpoint: editorqs
+tags:Sequencer
+tags:Animation
+type:how-to
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ゲームプレイ アニメーションのブレンドのホーム](Engine\Sequencer\HowTo\GameplayAnimBlending)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Engine\Sequencer\HowTo\GameplayAnimBlending\02_AnimCharacterBPs)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[COMMENT:none]
+ Pulling this as we aren't doing it this way anymore. 
+
+
+[/COMMENT]
+
+[nav]
+
+このステップではレベル シーケンスを作成し、プレイ可能なキャラクターとブレンドしたいアニメーションをシーケンサーに追加します。 
+
+[REGION:note]
+ここでは、**Blueprint Third Person テンプレート** と、エピックのマーケットプレイスから無料で入手できる **Animation Starter Pack** を使用します。 
+
+![](AnimStarterPack.png)
+
+[/REGION]
+
+1.	プロジェクト内でレベルから **ThirdPersonCharacter** を削除し、**[Ue4ASP_Character]** を追加し、**[Auto Possess Player]** を **[Player 0]** に設定します。 
+
+	![](GameBlend_01.png)
+
+	オプションで Capsule コンポーネントを非表示にすることができます。これを行うには、Capsule コンポーネントを選択してから、**[Hidden in Game (ゲーム内で非表示)]** オプションにチェックを入れます。 
+
+	![](GameBlend_01b.png)
+
+1.	メイン ツールバーから **[Cinematics (シネマティックス)]** ボタンをクリックし、ドロップダウン メニューから **[Add Level Sequence (レベル シーケンスを追加)]** を選択して、任意の名前を付けて保存します。 
+
+	![](GameBlend_02.png)
+
+1.	レベル シーケンスで **[Ue4ASP_Character]**、および **Death_3** のアニメーションを含む **アニメーション トラック** を追加します。 
+
+	![](GameBlend_03.png)
+
+1.	キーフレーム ウィンドウ内のアニメーションを右クリックして、プロパティで **[When Finished]** を **[Keep State]** に変更してください。 
+
+	![](GameBlend_03b.png)
+
+	これでレベル シーケンス終了時にアニメーションの状態を保つことができます。以下でハイライトされている **[Slot Name]** プロパティにも注目してください。 
+
+	![](GameBlend_03c.png)
+
+	Animation ブループリントがスケルタルメッシュを制御する場合、シーケンサーはそのブループリント内のスロットでアニメーションを再生し、**[Slot Name]** プロパティを通して制御することができます。 
+	Animation ブループリントは、これでスロットのアニメーション、および任意のゲームロジックで動く、キャラクターが入っているアニメーションとの間でブレンドすることができます。 
+
+次のステップでは、Animation ブループリントと Character ブループリントをセットアップし、ゲームプレイ アニメーションをこのステップで作成したデス (death) アニメーションにブレンドできるようにします。 
+
+[nav]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -311,7 +311,6 @@ namespace UnrealBuildTool
 		/// </summary>
 		public override void ValidateTarget(TargetRules Target)
 		{
-			Target.bCompileNvCloth = true;
 			// Disable Simplygon support if compiling against the NULL RHI.
 			if (Target.GlobalDefinitions.Contains("USE_NULL_RHI=1"))
 			{
@@ -323,7 +322,7 @@ namespace UnrealBuildTool
 			// Set the compiler version if necessary
 			if (Target.WindowsPlatform.Compiler == WindowsCompiler.Default)
 			{
-				Target.WindowsPlatform.Compiler = GetDefaultCompiler();
+				Target.WindowsPlatform.Compiler = GetDefaultCompiler(Target.ProjectFile);
 			}
 
 			// Disable linking if we're using a static analyzer
@@ -380,7 +379,7 @@ namespace UnrealBuildTool
 		/// Gets the default compiler which should be used, if it's not set explicitly by the target, command line, or config file.
 		/// </summary>
 		/// <returns>The default compiler version</returns>
-		internal static WindowsCompiler GetDefaultCompiler()
+		internal static WindowsCompiler GetDefaultCompiler(FileReference ProjectFile)
 		{
 			// If there's no specific compiler set, try to pick the matching compiler for the selected IDE
 			object ProjectFormatObject;
@@ -392,6 +391,20 @@ namespace UnrealBuildTool
 					return WindowsCompiler.VisualStudio2017;
 				}
 				else if (ProjectFormat == VCProjectFileFormat.VisualStudio2015)
+				{
+					return WindowsCompiler.VisualStudio2015;
+				}
+			}
+
+			// Check the editor settings too
+			ProjectFileFormat PreferredAccessor;
+			if(ProjectFileGenerator.GetPreferredSourceCodeAccessor(ProjectFile, out PreferredAccessor))
+			{
+				if(PreferredAccessor == ProjectFileFormat.VisualStudio2017)
+				{
+					return WindowsCompiler.VisualStudio2017;
+				}
+				else if(PreferredAccessor == ProjectFileFormat.VisualStudio2015)
 				{
 					return WindowsCompiler.VisualStudio2015;
 				}
@@ -754,12 +767,12 @@ namespace UnrealBuildTool
 				if (Target.WindowsPlatform.bPixProfilingEnabled && Target.Platform == UnrealTargetPlatform.Win64 && Target.Configuration != UnrealTargetConfiguration.Shipping && Target.Configuration != UnrealTargetConfiguration.Test)
 				{
 					// Define to indicate profiling enabled (64-bit only)
-					Rules.Definitions.Add("D3D12_PROFILING_ENABLED=1");
-					Rules.Definitions.Add("PROFILE");
+					Rules.PublicDefinitions.Add("D3D12_PROFILING_ENABLED=1");
+					Rules.PublicDefinitions.Add("PROFILE");
 				}
 				else
 				{
-					Rules.Definitions.Add("D3D12_PROFILING_ENABLED=0");
+					Rules.PublicDefinitions.Add("D3D12_PROFILING_ENABLED=0");
 				}
 
 				// To enable platform specific D3D12 RHI Types

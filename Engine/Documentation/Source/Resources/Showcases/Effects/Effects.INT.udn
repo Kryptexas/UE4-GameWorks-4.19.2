@@ -8,50 +8,7 @@ Related: Engine/Rendering/ParticleSystems\Cascade
 Related: Engine/Rendering/ParticleSystems\Reference\TypeData\GPUSprites
 Related: Engine/Rendering/ParticleSystems/Reference
 Version: 4.9
-
-
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/Showcases/Effects:title%](Effects_CE_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/Effects:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/Effects:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/Effects]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/Showcases/Effects:title%](Effects_CE_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/Effects:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/Effects:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/Effects]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Effects_CE_topic.png
 
 
 [REGION:fullwidth]
@@ -68,10 +25,6 @@ This example showcases a cavern level, high up in a snowy arctic mountain range.
 
 
 ## Particle System Examples
-
-
-
-[REGION:topics third]
 
 [OBJECT:TopicCompact]
 	[PARAM:image]
@@ -108,10 +61,6 @@ This example showcases a cavern level, high up in a snowy arctic mountain range.
 		[RELATIVE:Resources\Showcases\Effects\FireExamples]
 	[/PARAM]
 [/OBJECT]
-[/REGION]
-
-
-
 
 ## Deconstructing Particle Examples
 
@@ -132,22 +81,7 @@ As a special treat to show off the effects in this level, we have included a Mat
 ![](MatineePlayback.png)
 
 
-
-[EXCERPT:ParticleTopics]
-
-)
-
-
-[/EXCERPT:ParticleTopics]
-
-
-
-
-
-
-
-
-<!--------------------------------
+[COMMENT:none]
 
 [EXCERPT:SnowTopic]
 [OBJECT:TopicCompact]
@@ -189,11 +123,4 @@ As a special treat to show off the effects in this level, we have included a Mat
 [/OBJECT]
 [/EXCERPT:FireTopic]
 
-
-
-
-
-
-
-
--------------------->
+[/COMMENT]

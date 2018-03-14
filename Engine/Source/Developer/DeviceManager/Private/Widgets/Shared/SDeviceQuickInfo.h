@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,6 +9,7 @@
 #include "Misc/Paths.h"
 #include "PlatformInfo.h"
 #include "Styling/StyleDefaults.h"
+#include "Styling/CoreStyle.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/SCompoundWidget.h"
@@ -77,7 +78,7 @@ public:
 					+ SGridPanel::Slot(0, 0)
 						[
 							SNew(STextBlock)
-								.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9))
+								.Font(FCoreStyle::GetDefaultFontStyle("Bold", 9))
 								.Text(LOCTEXT("DeviceNameLabel", "Name:"))
 						]
 
@@ -93,7 +94,7 @@ public:
 						.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 						[
 							SNew(STextBlock)
-								.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9))
+								.Font(FCoreStyle::GetDefaultFontStyle("Bold", 9))
 								.Text(LOCTEXT("DevicePlatformLabel", "Platform:"))
 						]
 
@@ -109,7 +110,7 @@ public:
 						.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 						[
 							SNew(STextBlock)
-								.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9))
+								.Font(FCoreStyle::GetDefaultFontStyle("Bold", 9))
 								.Text(LOCTEXT("DeviceMakeModelLabel", "Operating System:"))
 						]
 
@@ -125,7 +126,7 @@ public:
 						.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 						[
 							SNew(STextBlock)
-								.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9))
+								.Font(FCoreStyle::GetDefaultFontStyle("Bold", 9))
 								.Text(LOCTEXT("DeviceIdLabel", "Device ID:"))
 						]
 
@@ -141,7 +142,7 @@ public:
 						.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 						[
 							SNew(STextBlock)
-								.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9))
+								.Font(FCoreStyle::GetDefaultFontStyle("Bold", 9))
 								.Text(LOCTEXT("DefaultDeviceLabel", "Default device:"))
 						]
 
@@ -157,7 +158,7 @@ public:
 						.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 						[
 							SNew(STextBlock)
-								.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9))
+								.Font(FCoreStyle::GetDefaultFontStyle("Bold", 9))
 								.Text(LOCTEXT("StatusLabel", "Status:"))
 						]
 

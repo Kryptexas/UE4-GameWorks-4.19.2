@@ -89,7 +89,7 @@ void MainPS(in float4 Position : SV_Position, in float4 Color : COLOR0,
 {
 	// Only testing 1 channel for optimization
 #if PIXELSHADER // Fix ES2 error since VS and PS are in the same file
-#if METAL_PROFILE || METAL_MRT_PROFILE || METAL_SM4_PROFILE || METAL_SM5_PROFILE // Fix Mac issue with bvec2
+#if METAL_PROFILE || METAL_MRT_PROFILE || METAL_SM5_NOTESS_PROFILE || METAL_SM5_PROFILE // Fix Mac issue with bvec2
 	const float2 OOBCoords = TexCoord1.zw - saturate(TexCoord1.zw);
 	if( dot(OOBCoords, OOBCoords) != 0.0 )
 #else

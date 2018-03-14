@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Blueprint/UserWidget.h"
 #include "Rendering/DrawElements.h"
@@ -23,6 +23,7 @@
 #include "UMGPrivate.h"
 #include "UObject/UObjectHash.h"
 #include "PropertyPortFlags.h"
+#include "TimerManager.h"
 
 DECLARE_CYCLE_STAT(TEXT("UserWidget Create"), STAT_CreateWidget, STATGROUP_Slate);
 
@@ -53,11 +54,12 @@ UUserWidget::UUserWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bCanEverTick(true)
 	, bCanEverPaint(true)
+	, bInitialized(false)
+	, bStoppingAllAnimations(false)
 {
 	ViewportAnchors = FAnchors(0, 0, 1, 1);
 	Visibility = ESlateVisibility::SelfHitTestInvisible;
 
-	bInitialized = false;
 	bSupportsKeyboardFocus_DEPRECATED = true;
 	bIsFocusable = false;
 	ColorAndOpacity = FLinearColor::White;
@@ -172,7 +174,7 @@ void UUserWidget::TemplateInitInner()
 			// Initialize Navigation Data
 			if ( Widget->Navigation )
 			{
-				Widget->Navigation->ResolveExplictRules(WidgetTree);
+				Widget->Navigation->ResolveRules(this, WidgetTree);
 			}
 
 			if ( UUserWidget* UserWidget = Cast<UUserWidget>(Widget) )
@@ -356,6 +358,17 @@ bool UUserWidget::Initialize()
 			InitializeNamedSlots(bReparentToWidgetTree);
 		}
 
+		// Setup the player context on sub user widgets, if we have a valid context
+		if (PlayerContext.IsValid())
+		{
+			WidgetTree->ForEachWidget([&](UWidget* Widget) {
+				if (UUserWidget* UserWidget = Cast<UUserWidget>(Widget))
+				{
+					UserWidget->SetPlayerContext(PlayerContext);
+				}
+			});
+		}
+
 		return true;
 	}
 
@@ -396,17 +409,19 @@ void UUserWidget::DuplicateAndInitializeFromWidgetTree(UWidgetTree* InWidgetTree
 	{
 		FObjectDuplicationParameters Parameters(InWidgetTree, this);
 
-		// Set to be transient and strip public flags
-		Parameters.ApplyFlags = RF_Transient | RF_DuplicateTransient;
-		Parameters.FlagMask = Parameters.FlagMask & ~( RF_Public | RF_DefaultSubObject );
-
 		WidgetTree = Cast<UWidgetTree>(StaticDuplicateObjectEx(Parameters));
+
+		// Set widget tree to be transient
+		WidgetTree->SetFlags(RF_Transient | RF_DuplicateTransient);
 	}
 }
 
 void UUserWidget::BeginDestroy()
 {
 	Super::BeginDestroy();
+
+	//TODO: Investigate why this would ever be called directly, RemoveFromParent isn't safe to call during GC,
+	// as the widget structure may be in a partially destroyed state.
 
 	// If anyone ever calls BeginDestroy explicitly on a widget we need to immediately remove it from
 	// the the parent as it may be owned currently by a slate widget.  As long as it's the viewport we're
@@ -547,11 +562,11 @@ UWorld* UUserWidget::GetWorld() const
 
 UUMGSequencePlayer* UUserWidget::GetOrAddPlayer(UWidgetAnimation* InAnimation)
 {
-	if (InAnimation)
+	if (InAnimation && !bStoppingAllAnimations)
 	{
 		// @todo UMG sequencer - Restart animations which have had Play called on them?
 		UUMGSequencePlayer** FoundPlayer = nullptr;
-		for ( UUMGSequencePlayer * Player : ActiveSequencePlayers )
+		for ( UUMGSequencePlayer* Player : ActiveSequencePlayers )
 		{
 			// We need to make sure we haven't stopped the animation, otherwise it'll get cancelled on the next frame.
 			if (Player->GetAnimation() == InAnimation
@@ -593,7 +608,7 @@ void UUserWidget::Invalidate()
 
 void UUserWidget::PlayAnimation( UWidgetAnimation* InAnimation, float StartAtTime, int32 NumberOfLoops, EUMGSequencePlayMode::Type PlayMode, float PlaybackSpeed)
 {
-	FScopedNamedEvent NamedEvent(FColor::Emerald, "Widget::PlayAnimation");
+	SCOPED_NAMED_EVENT_TEXT("Widget::PlayAnimation", FColor::Emerald);
 
 	UUMGSequencePlayer* Player = GetOrAddPlayer(InAnimation);
 	if (Player)
@@ -610,7 +625,7 @@ void UUserWidget::PlayAnimation( UWidgetAnimation* InAnimation, float StartAtTim
 
 void UUserWidget::PlayAnimationTo(UWidgetAnimation* InAnimation, float StartAtTime, float EndAtTime, int32 NumberOfLoops, EUMGSequencePlayMode::Type PlayMode, float PlaybackSpeed)
 {
-	FScopedNamedEvent NamedEvent(FColor::Emerald, "Widget::PlayAnimationTo");
+	SCOPED_NAMED_EVENT_TEXT("Widget::PlayAnimationTo", FColor::Emerald);
 
 	UUMGSequencePlayer* Player = GetOrAddPlayer(InAnimation);
 	if (Player)
@@ -637,6 +652,16 @@ void UUserWidget::StopAnimation(const UWidgetAnimation* InAnimation)
 			(*FoundPlayer)->Stop();
 		}
 	}
+}
+
+void UUserWidget::StopAllAnimations()
+{
+	bStoppingAllAnimations = true;
+	for (UUMGSequencePlayer* FoundPlayer : ActiveSequencePlayers)
+	{
+		FoundPlayer->Stop();
+	}
+	bStoppingAllAnimations = false;
 }
 
 float UUserWidget::PauseAnimation(const UWidgetAnimation* InAnimation)
@@ -1319,9 +1344,24 @@ void UUserWidget::TickActionsAndAnimation(const FGeometry& MyGeometry, float InD
 	if ( World )
 	{
 		// Update any latent actions we have for this actor
-		FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
-		LatentActionManager.ProcessLatentActions(this, InDeltaTime);
+		World->GetLatentActionManager().ProcessLatentActions(this, InDeltaTime);
 	}
+}
+
+void UUserWidget::CancelLatentActions()
+{
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		World->GetLatentActionManager().RemoveActionsForObject(this);
+		World->GetTimerManager().ClearAllTimersForObject(this);
+	}
+}
+
+void UUserWidget::StopAnimationsAndLatentActions()
+{
+	StopAllAnimations();
+	CancelLatentActions();
 }
 
 void UUserWidget::ListenForInputAction( FName ActionName, TEnumAsByte< EInputEvent > EventType, bool bConsume, FOnInputAction Callback )

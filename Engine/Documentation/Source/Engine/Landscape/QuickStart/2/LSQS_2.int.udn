@@ -21,7 +21,7 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 ## Creating a New FPS Blueprint Project
 Creating a new Landscape is actually a simple process that we will be going over in the next few steps. 
@@ -67,4 +67,4 @@ For now, just press the **1: Fill World Button** to make your Landscape Actor fi
 	[/REGION]
 
 
-%Steps%
+

@@ -27,7 +27,7 @@ Order: 2
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Now that we have created a Widget Blueprint that we want to display, we can create a **Widget Component** inside any Blueprint and place that Blueprint in our level to display in in the game world. 
 There are also settings on the Widget Component to determine if we want to display the Widget in World or Screen space (with World being the default option). 
@@ -130,7 +130,7 @@ zrYjngjYrEI
 When you play in the editor, you should now see the UI widget you created in UMG appear in 3D world space. You should also be able to move the mouse over the menu items to change which one is currently highlighted. This is an example of how you can set up an interactive 3D menu but you could take the same process for creating other forms of 3D widgets such as health meters, keypads, or other interactive UI elements you want to appear in the game world. 
 
 
-%Steps%
+
 
 
 

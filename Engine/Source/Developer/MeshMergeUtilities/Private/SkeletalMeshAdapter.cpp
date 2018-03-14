@@ -1,10 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SkeletalMeshAdapter.h"
 #include "MeshMergeHelpers.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
 #include "UObject/Package.h"
+#include "Rendering/SkeletalMeshModel.h"
 
 FSkeletalMeshComponentAdapter::FSkeletalMeshComponentAdapter(USkeletalMeshComponent* InSkeletalMeshComponent)
 	: SkeletalMeshComponent(InSkeletalMeshComponent), SkeletalMesh(InSkeletalMeshComponent->SkeletalMesh)
@@ -30,7 +31,7 @@ void FSkeletalMeshComponentAdapter::RetrieveMeshSections(int32 LODIndex, TArray<
 
 int32 FSkeletalMeshComponentAdapter::GetMaterialIndex(int32 LODIndex, int32 SectionIndex) const
 {
-	return SkeletalMesh->GetImportedResource()->LODModels[LODIndex].Sections[SectionIndex].MaterialIndex;
+	return SkeletalMesh->GetImportedModel()->LODModels[LODIndex].Sections[SectionIndex].MaterialIndex;
 }
 
 UPackage* FSkeletalMeshComponentAdapter::GetOuter() const
@@ -50,7 +51,7 @@ void FSkeletalMeshComponentAdapter::SetMaterial(int32 MaterialIndex, UMaterialIn
 
 void FSkeletalMeshComponentAdapter::RemapMaterialIndex(int32 LODIndex, int32 SectionIndex, int32 NewMaterialIndex)
 {
-	SkeletalMesh->GetImportedResource()->LODModels[LODIndex].Sections[SectionIndex].MaterialIndex = NewMaterialIndex;
+	SkeletalMesh->GetImportedModel()->LODModels[LODIndex].Sections[SectionIndex].MaterialIndex = NewMaterialIndex;
 }
 
 int32 FSkeletalMeshComponentAdapter::AddMaterial(UMaterialInterface* Material)

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraEmitterSection.h"
 #include "MovieSceneNiagaraEmitterSection.h"
@@ -26,6 +26,12 @@ UMovieSceneSection* FNiagaraEmitterSection::GetSectionObject(void)
 
 int32 FNiagaraEmitterSection::OnPaintSection(FSequencerSectionPainter& InPainter) const
 {
+	TSharedPtr<FNiagaraEmitterHandleViewModel> EmitterHandleViewModel = EmitterSection->GetEmitterHandle();
+	if (EmitterHandleViewModel.IsValid() == false)
+	{
+		return InPainter.LayerId;
+	}
+
 	// draw the first run of the emitter
 	FSlateDrawElement::MakeBox
 	(
@@ -40,7 +46,7 @@ int32 FNiagaraEmitterSection::OnPaintSection(FSequencerSectionPainter& InPainter
 	// draw all loops of the emitter as 'ghosts' of the original section
 	float X = InPainter.SectionGeometry.AbsolutePosition.X;
 	float GeomW = InPainter.SectionGeometry.GetDrawSize().X;
-	int32 NumLoops = EmitterSection->GetEmitterHandle()->GetEmitterViewModel()->GetNumLoops() - 1;
+	int32 NumLoops = EmitterHandleViewModel->GetEmitterViewModel()->GetNumLoops() - 1;
 	for (int32 Loop = 0; Loop < NumLoops; Loop++)
 	{
 		FSlateDrawElement::MakeBox
@@ -59,7 +65,12 @@ int32 FNiagaraEmitterSection::OnPaintSection(FSequencerSectionPainter& InPainter
 
 FText FNiagaraEmitterSection::GetSectionTitle(void) const
 {
-	return EmitterSection->GetEmitterHandle()->GetNameText();
+	TSharedPtr<FNiagaraEmitterHandleViewModel> EmitterHandleviewModel = EmitterSection->GetEmitterHandle();
+	if (EmitterHandleviewModel.IsValid())
+	{
+		return EmitterHandleviewModel->GetNameText();
+	}
+	return FText();
 }
 
 void FNiagaraEmitterSection::GenerateSectionLayout(ISectionLayoutBuilder &LayoutBuilder) const

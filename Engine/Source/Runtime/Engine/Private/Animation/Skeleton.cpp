@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Skeleton.cpp: Skeleton features
@@ -50,13 +50,24 @@ const FName FAnimSlotGroup::DefaultSlotName = FName(TEXT("DefaultSlot"));
 
 FArchive& operator<<(FArchive& Ar, FReferencePose & P)
 {
+	Ar.UsingCustomVersion(FAnimPhysObjectVersion::GUID);
+
 	Ar << P.PoseName;
 	Ar << P.ReferencePose;
 #if WITH_EDITORONLY_DATA
 	//TODO: we should use strip flags but we need to rev the serialization version
 	if (!Ar.IsCooking())
 	{
-		Ar << P.ReferenceMesh;
+		if (Ar.IsLoading() && Ar.CustomVer(FAnimPhysObjectVersion::GUID) < FAnimPhysObjectVersion::ChangeRetargetSourceReferenceToSoftObjectPtr)
+		{
+			USkeletalMesh* SourceMesh = nullptr;
+			Ar << SourceMesh;
+			P.SourceReferenceMesh = SourceMesh;
+		}
+		else
+		{
+			Ar << P.SourceReferenceMesh;
+		}
 	}
 #endif
 	return Ar;
@@ -241,20 +252,6 @@ void USkeleton::PostEditUndo()
 }
 #endif // WITH_EDITOR
 
-void USkeleton::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	USkeleton* This = CastChecked<USkeleton>(InThis);
-
-#if WITH_EDITORONLY_DATA
-	for (auto Iter = This->AnimRetargetSources.CreateIterator(); Iter; ++Iter)
-	{		
-		Collector.AddReferencedObject(Iter.Value().ReferenceMesh, This);
-	}
-#endif
-
-	Super::AddReferencedObjects( This, Collector );
-}
-
 /** Remove this function when VER_UE4_REFERENCE_SKELETON_REFACTOR is removed. */
 void USkeleton::ConvertToFReferenceSkeleton()
 {
@@ -410,7 +407,7 @@ void USkeleton::ClearCacheData()
 
 int32 USkeleton::GetMeshLinkupIndex(const USkeletalMesh* InSkelMesh)
 {
-	const int32* IndexPtr = SkelMesh2LinkupCache.Find(InSkelMesh);
+	const int32* IndexPtr = SkelMesh2LinkupCache.Find(MakeWeakObjectPtr(const_cast<USkeletalMesh*>(InSkelMesh)));
 	int32 LinkupIndex = INDEX_NONE;
 
 	if ( IndexPtr == NULL )
@@ -430,7 +427,7 @@ int32 USkeleton::GetMeshLinkupIndex(const USkeletalMesh* InSkelMesh)
 
 void USkeleton::RemoveLinkup(const USkeletalMesh* InSkelMesh)
 {
-	SkelMesh2LinkupCache.Remove(InSkelMesh);
+	SkelMesh2LinkupCache.Remove(MakeWeakObjectPtr(const_cast<USkeletalMesh*>(InSkelMesh)));
 }
 
 int32 USkeleton::BuildLinkup(const USkeletalMesh* InSkelMesh)
@@ -506,7 +503,7 @@ int32 USkeleton::BuildLinkup(const USkeletalMesh* InSkelMesh)
 
 	int32 NewIndex = LinkupCache.Add(NewMeshLinkup);
 	check (NewIndex != INDEX_NONE);
-	SkelMesh2LinkupCache.Add(InSkelMesh, NewIndex);
+	SkelMesh2LinkupCache.Add(MakeWeakObjectPtr(const_cast<USkeletalMesh*>(InSkelMesh)), NewIndex);
 
 	return NewIndex;
 }
@@ -747,35 +744,25 @@ void USkeleton::UpdateRetargetSource( const FName Name )
 
 	if (PoseFound)
 	{
-		USkeletalMesh * ReferenceMesh = PoseFound->ReferenceMesh;
+		USkeletalMesh* ReferenceMesh;
 		
-		// reference mesh can be deleted after base pose is created, don't update it if it's not there. 
-		if(ReferenceMesh)
+		if (PoseFound->SourceReferenceMesh.IsValid())
 		{
-			const TArray<FTransform>& MeshRefPose = ReferenceMesh->RefSkeleton.GetRefBonePose();
-			const TArray<FTransform>& SkeletonRefPose = GetReferenceSkeleton().GetRefBonePose();
-			const TArray<FMeshBoneInfo> & SkeletonBoneInfo = GetReferenceSkeleton().GetRefBoneInfo();
-
-			PoseFound->ReferencePose.Empty(SkeletonRefPose.Num());
-			PoseFound->ReferencePose.AddUninitialized(SkeletonRefPose.Num());
-
-			for (int32 SkeletonBoneIndex=0; SkeletonBoneIndex<SkeletonRefPose.Num(); ++SkeletonBoneIndex)
-			{
-				FName SkeletonBoneName = SkeletonBoneInfo[SkeletonBoneIndex].Name;
-				int32 MeshBoneIndex = ReferenceMesh->RefSkeleton.FindBoneIndex(SkeletonBoneName);
-				if (MeshBoneIndex != INDEX_NONE)
-				{
-					PoseFound->ReferencePose[SkeletonBoneIndex] = MeshRefPose[MeshBoneIndex];
-				}
-				else
-				{
-					PoseFound->ReferencePose[SkeletonBoneIndex] = FTransform::Identity;
-				}
-			}
+			ReferenceMesh = PoseFound->SourceReferenceMesh.Get();
 		}
 		else
 		{
-			UE_LOG(LogAnimation, Warning, TEXT("Reference Mesh for Retarget Source %s has been removed."), *Name.ToString());
+			PoseFound->SourceReferenceMesh.LoadSynchronous();
+			ReferenceMesh = PoseFound->SourceReferenceMesh.Get();
+		}
+
+		if (ReferenceMesh)
+		{
+			FAnimationRuntime::MakeSkeletonRefPoseFromMesh(ReferenceMesh, this, PoseFound->ReferencePose);
+		}
+		else
+		{
+			UE_LOG(LogAnimation, Warning, TEXT("Reference Mesh for Retarget Source %s has been removed."), *GetName());
 		}
 	}
 }

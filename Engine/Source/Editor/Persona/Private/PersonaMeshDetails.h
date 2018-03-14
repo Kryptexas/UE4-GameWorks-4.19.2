@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -206,16 +206,25 @@ private:
 	 */
 	TSharedRef<SWidget> OnGenerateCustomSectionWidgetsForSection(int32 LODIndex, int32 SectionIndex);
 
-	TSharedRef<SWidget> OnGenerateLodComboBoxForSectionList(int32 LodIndex);
+	bool IsSectionEnabled(int32 LodIndex, int32 SectionIndex) const;
+	EVisibility ShowEnabledSectionDetail(int32 LodIndex, int32 SectionIndex) const;
+	EVisibility ShowDisabledSectionDetail(int32 LodIndex, int32 SectionIndex) const;
+	void OnSectionEnabledChanged(int32 LodIndex, int32 SectionIndex, bool bEnable);
+
+	TSharedRef<SWidget> OnGenerateLodComboBoxForLodPicker();
+	EVisibility LodComboBoxVisibilityForLodPicker() const;
+	bool IsLodComboBoxEnabledForLodPicker() const;
+
 	/*
-	 * Generate the context menu to choose the LOD we will display the section list
+	 * Generate the context menu to choose the LOD we will display the picker list
 	*/
-	TSharedRef<SWidget> OnGenerateLodMenuForSectionList(int32 LodIndex);
-	void UpdateLODCategoryVisibility() const;
+	TSharedRef<SWidget> OnGenerateLodMenuForLodPicker();
 	FText GetCurrentLodName() const;
 	FText GetCurrentLodTooltip() const;
 
 	void SetCurrentLOD(int32 NewLodIndex);
+
+	void UpdateLODCategoryVisibility() const;
 
 	FText GetMaterialNameText(int32 MaterialIndex)const ;
 	void OnMaterialNameCommitted(const FText& InValue, ETextCommit::Type CommitType, int32 MaterialIndex);
@@ -460,11 +469,13 @@ private:
 	
 	bool FilterOutBakePose(const struct FAssetData& AssetData, USkeleton* Skeleton) const;
 
-	EVisibility LodComboBoxVisibilityForSectionList(int32 LodIndex) const;
 	FText GetLODCustomModeNameContent(int32 LODIndex) const;
 	ECheckBoxState IsLODCustomModeCheck(int32 LODIndex) const;
 	void SetLODCustomModeCheck(ECheckBoxState NewState, int32 LODIndex);
 	bool IsLODCustomModeEnable(int32 LODIndex) const;
+
+	/** Gets the max LOD that can be set from the lod count slider (current num plus an interval) */
+	TOptional<int32> GetLodSliderMaxValue() const;
 
 public:
 
@@ -495,11 +506,11 @@ private:
 	TMap<int32, TArray<FSectionLocalizer>> MaterialUsedMap;
 
 	TArray<class IDetailCategoryBuilder*> LodCategories;
+	IDetailCategoryBuilder* LodCustomCategory;
 
 	bool CustomLODEditMode;
-	bool DetailDisplayLODs[MAX_SKELETAL_MESH_LODS];
+	TArray<bool> DetailDisplayLODs;
 
-#if WITH_APEX_CLOTHING
 private:
 
 	// info about clothing combo boxes for multiple LOD
@@ -571,7 +582,5 @@ private:
 
 	/* Removes a clothing asset */ 
 	FReply OnRemoveApexFileClicked(int32 AssetIndex, IDetailLayoutBuilder* DetailLayout);
-
-#endif // #if WITH_APEX_CLOTHING
 
 };

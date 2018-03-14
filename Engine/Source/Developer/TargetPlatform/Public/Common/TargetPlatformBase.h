@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -39,6 +39,11 @@ public:
 #endif //WITH_ENGINE
 
 	virtual bool PackageBuild( const FString& InPackgeDirectory ) override
+	{
+		return true;
+	}
+
+	virtual bool CanSupportXGEShaderCompile() const override
 	{
 		return true;
 	}

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -436,11 +436,12 @@ public:
 	/** IPropertyHandle interface */
 	virtual bool IsValidHandle() const override;
 	virtual FText GetPropertyDisplayName() const override;
+	virtual void SetPropertyDisplayName(FText InDisplayName) override;
 	virtual void ResetToDefault() override;
 	virtual bool DiffersFromDefault() const override;
 	virtual FText GetResetToDefaultLabel() const override;
 	virtual void MarkHiddenByCustomization() override;
-	virtual void MarkResetToDefaultCustomized() override;
+	virtual void MarkResetToDefaultCustomized(bool bCustomized = true) override;
 	virtual void ClearResetToDefaultCustomized() override;
 	virtual bool IsCustomized() const override;
 	virtual bool IsResetToDefaultCustomized() const override;

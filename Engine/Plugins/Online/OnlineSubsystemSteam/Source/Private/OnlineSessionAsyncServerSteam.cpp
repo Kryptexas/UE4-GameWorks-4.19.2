@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSessionAsyncServerSteam.h"
 #include "GameFramework/GameStateBase.h"
@@ -195,7 +195,7 @@ void UpdatePublishedSettings(UWorld* World, FNamedOnlineSession* Session)
 				if (PlayerState && PlayerState->UniqueId.IsValid())
 				{
 					CSteamID SteamId(*(uint64*)PlayerState->UniqueId->GetBytes());
-					SteamGameServerPtr->BUpdateUserData(SteamId, TCHAR_TO_UTF8(*PlayerState->PlayerName), PlayerState->Score);
+					SteamGameServerPtr->BUpdateUserData(SteamId, TCHAR_TO_UTF8(*PlayerState->GetPlayerName()), PlayerState->Score);
 				}
 			}
 		}

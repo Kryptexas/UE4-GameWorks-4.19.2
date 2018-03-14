@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Reflection Environment - feature that provides HDR glossy reflections on any surfaces, leveraging precomputation to prefilter cubemaps of the scene
@@ -28,7 +28,7 @@
 #include "LightPropagationVolumeSettings.h"
 #include "PipelineStateCache.h"
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Reflection Environment"), Stat_GPU_ReflectionEnvironment, STATGROUP_GPU);
+DECLARE_GPU_STAT_NAMED(ReflectionEnvironment, TEXT("Reflection Environment"));
 
 extern TAutoConsoleVariable<int32> CVarLPVMixing;
 
@@ -268,7 +268,7 @@ void FReflectionEnvironmentCubemapArray::ResizeCubemapArrayGPU(uint32 InMaxCubem
 
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, ReflectionEnvironment_ResizeCubemapArray);
-		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ReflectionEnvironment)
+		SCOPED_GPU_STAT(RHICmdList, ReflectionEnvironment)
 
 		// Copy the cubemaps, remapping the elements as necessary
 		FResolveParams ResolveParams;
@@ -373,7 +373,6 @@ struct FReflectionCaptureSortData
 	FMatrix BoxTransform;
 	FVector4 BoxScales;
 	FVector4 CaptureOffsetAndAverageBrightness;
-	FTexture* SM4FullHDRCubemap;
 
 	bool operator < (const FReflectionCaptureSortData& Other) const
 	{
@@ -388,7 +387,7 @@ struct FReflectionCaptureSortData
 	}
 };
 
-IMPLEMENT_UNIFORM_BUFFER_STRUCT(FReflectionCaptureData,TEXT("ReflectionCapture"));
+IMPLEMENT_UNIFORM_BUFFER_STRUCT(FReflectionCaptureShaderData,TEXT("ReflectionCapture"));
 
 /** Compute shader that does tiled deferred culling of reflection captures, then sorts and composites them. */
 class FReflectionEnvironmentTiledDeferredPS : public FGlobalShader
@@ -396,17 +395,17 @@ class FReflectionEnvironmentTiledDeferredPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FReflectionEnvironmentTiledDeferredPS,Global)
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("MAX_CAPTURES"), GMaxNumReflectionCaptures);
 		OutEnvironment.CompilerFlags.Add(CFLAG_StandardOptimization);
-		FForwardLightingParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FForwardLightingParameters::ModifyCompilationEnvironment(Parameters.Platform, OutEnvironment);
 	}
 
 	FReflectionEnvironmentTiledDeferredPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -464,7 +463,7 @@ public:
 
 		SetTextureParameter(RHICmdList, ShaderRHI, ScreenSpaceReflectionsTexture, ScreenSpaceReflectionsSampler, TStaticSamplerState<SF_Point>::GetRHI(), SSRTexture);
 
-		SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FReflectionCaptureData>(), View.ReflectionCaptureUniformBuffer);
+		SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FReflectionCaptureShaderData>(), View.ReflectionCaptureUniformBuffer);
 
 		SetTextureParameter(RHICmdList, ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture);
 	
@@ -519,9 +518,9 @@ public:
 	: FReflectionEnvironmentTiledDeferredPS(Initializer)
 	{}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FReflectionEnvironmentTiledDeferredPS::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FReflectionEnvironmentTiledDeferredPS::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USE_LIGHTMAPS"), bUseLightmaps);
 		OutEnvironment.SetDefine(TEXT("ENABLE_SKY_LIGHT"), bHasSkyLight);
 		OutEnvironment.SetDefine(TEXT("REFLECTION_COMPOSITE_HAS_BOX_CAPTURES"), bBoxCapturesOnly);
@@ -577,14 +576,9 @@ class FReflectionCaptureSpecularBouncePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FReflectionCaptureSpecularBouncePS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/** Default constructor. */
@@ -696,19 +690,19 @@ void GatherAndSortReflectionCaptures(const FViewInfo& View, const FScene* Scene,
 			FReflectionCaptureSortData NewSortEntry;
 
 			NewSortEntry.CaptureIndex = -1;
+			NewSortEntry.CaptureOffsetAndAverageBrightness = FVector4(CurrentCapture->CaptureOffset, 1.0f);
 			if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM5)
 			{
 				const FCaptureComponentSceneState* ComponentStatePtr = Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Find(CurrentCapture->Component);
-				NewSortEntry.CaptureIndex = ComponentStatePtr ? ComponentStatePtr->CaptureIndex : -1;
-				check(NewSortEntry.CaptureIndex < MaxCubemaps);
+				NewSortEntry.CaptureIndex = ComponentStatePtr ? ComponentStatePtr->CaptureIndex : 0;
+				check(NewSortEntry.CaptureIndex < MaxCubemaps || NewSortEntry.CaptureIndex == 0);
+				NewSortEntry.CaptureOffsetAndAverageBrightness.W = ComponentStatePtr ? ComponentStatePtr->AverageBrightness : 1.0f;
 			}
 
-			NewSortEntry.SM4FullHDRCubemap = CurrentCapture->SM4FullHDRCubemap;
 			NewSortEntry.Guid = CurrentCapture->Guid;
 			NewSortEntry.PositionAndRadius = FVector4(CurrentCapture->Position, CurrentCapture->InfluenceRadius);
 			float ShapeTypeValue = (float)CurrentCapture->Shape;
 			NewSortEntry.CaptureProperties = FVector4(CurrentCapture->Brightness, NewSortEntry.CaptureIndex, ShapeTypeValue, 0);
-			NewSortEntry.CaptureOffsetAndAverageBrightness = FVector4(CurrentCapture->CaptureOffset, CurrentCapture->AverageBrightness);
 
 			if (CurrentCapture->Shape == EReflectionCaptureShape::Plane)
 			{
@@ -751,7 +745,7 @@ void FDeferredShadingSceneRenderer::SetupReflectionCaptureBuffers(FViewInfo& Vie
 		
 	if (View.GetFeatureLevel() >= ERHIFeatureLevel::SM5)
 	{
-		FReflectionCaptureData SamplePositionsBuffer;
+		FReflectionCaptureShaderData SamplePositionsBuffer;
 
 		for (int32 CaptureIndex = 0; CaptureIndex < SortData.Num(); CaptureIndex++)
 		{
@@ -762,7 +756,7 @@ void FDeferredShadingSceneRenderer::SetupReflectionCaptureBuffers(FViewInfo& Vie
 			SamplePositionsBuffer.BoxScales[CaptureIndex] = SortData[CaptureIndex].BoxScales;
 		}
 
-		View.ReflectionCaptureUniformBuffer = TUniformBufferRef<FReflectionCaptureData>::CreateUniformBufferImmediate(SamplePositionsBuffer, UniformBuffer_SingleFrame);
+		View.ReflectionCaptureUniformBuffer = TUniformBufferRef<FReflectionCaptureShaderData>::CreateUniformBufferImmediate(SamplePositionsBuffer, UniformBuffer_SingleFrame);
 	}
 }
 
@@ -796,7 +790,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 
 		if(bRequiresApply)
 		{
-			SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ReflectionEnvironment);
+			SCOPED_GPU_STAT(RHICmdList, ReflectionEnvironment);
 			SCOPED_DRAW_EVENTF(RHICmdList, ReflectionEnvironment, TEXT("ReflectionEnvironment PixelShader"));
 
 			// Render the reflection environment with tiled deferred culling
@@ -870,8 +864,8 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections(FRHICommandListImm
 	
 	if (bAnyViewIsReflectionCapture)
 	{
-		// If we're currently capturing a reflection capture, output SpecularColor * IndirectIrradiance for metals so they are not black in reflections,
-		// Since we don't have multiple bounce specular reflections
+	    // If we're currently capturing a reflection capture, output SpecularColor * IndirectIrradiance for metals so they are not black in reflections,
+	    // Since we don't have multiple bounce specular reflections
 		RenderReflectionCaptureSpecularBounceForAllViews(RHICmdList);
 	}
 	else

@@ -10,46 +10,7 @@ type:landing
 tags:Particles
 related:Engine/Basics/Distributions
 related:Engine/Rendering/Materials/Editor
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/ParticleSystems:title%](Engine/Rendering/ParticleSystems/particles_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/fx_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/ParticleSystems:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/ParticleSystems:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/ParticleSystems]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/ParticleSystems:title%](Engine/Rendering/ParticleSystems/particles_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/fx_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/ParticleSystems:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/ParticleSystems:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/ParticleSystems]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:particles_topic.png
 
 [REGION:banner]
 ![](effects_landing_banner.png)(convert:false)
@@ -65,15 +26,7 @@ Particle systems are also very closely related to the various materials and text
 
 ## Starting Out
 
-[DIR(output:"topic" parent:"Engine/Rendering/ParticleSystems" end:"1" org:"hierarchy" tags:"Getting Started")]
-
-## Guides
-
-[DIR(output:"topic" parent:"Engine/Rendering/ParticleSystems" end:"1" org:"hierarchy" type:"!reference" tags:"!Getting Started")]
-
-## Reference
-
-[DIR(output:"topic" parent:"Engine/Rendering/ParticleSystems" end:"1" org:"hierarchy" type:"reference")]
+[DIR(output:"topic" parent:"Engine/Rendering/ParticleSystems" end:"1" org:"hierarchy")]
 
 
 

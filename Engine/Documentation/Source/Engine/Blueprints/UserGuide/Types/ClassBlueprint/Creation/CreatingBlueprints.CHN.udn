@@ -90,7 +90,8 @@ Blueprint（蓝图）存储在包中可以像创建任何其他资源一样通�
 
 [/EXCERPT:CreateBP3]
 
-<!--
+[COMMENT:none]
+
 1.	在 **Content Browser**中,右键点击并且选择你要新建蓝图的类型。 在示例中，点击 **New Blueprint**将新建一个一个普通的蓝图:
 
 ![Create Blueprint Menu Option](k2_create_menu.png)
@@ -178,7 +179,8 @@ Blueprint（蓝图）存储在包中可以像创建任何其他资源一样通�
 
 	![](rename_blueprint.png)
 
--->
+
+[/COMMENT]
 
 
 

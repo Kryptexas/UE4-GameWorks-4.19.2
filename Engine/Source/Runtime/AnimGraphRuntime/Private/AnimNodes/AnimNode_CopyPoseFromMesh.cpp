@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimNodes/AnimNode_CopyPoseFromMesh.h"
 #include "Animation/AnimInstanceProxy.h"
@@ -9,6 +9,7 @@
 FAnimNode_CopyPoseFromMesh::FAnimNode_CopyPoseFromMesh()
 	: SourceMeshComponent(nullptr)
 	, bUseAttachedParent (false)
+	, bCopyCurves (false)
 {
 }
 
@@ -20,6 +21,7 @@ void FAnimNode_CopyPoseFromMesh::Initialize_AnyThread(const FAnimationInitialize
 
 void FAnimNode_CopyPoseFromMesh::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context)
 {
+
 }
 
 void FAnimNode_CopyPoseFromMesh::RefreshMeshComponent(FAnimInstanceProxy* AnimInstanceProxy)
@@ -83,6 +85,7 @@ void FAnimNode_CopyPoseFromMesh::Evaluate_AnyThread(FPoseContext& Output)
 	if (CurrentMeshComponent && CurrentMeshComponent->SkeletalMesh && CurrentMeshComponent->IsRegistered())
 	{
 		const FBoneContainer& RequiredBones = OutPose.GetBoneContainer();
+		const TArray<FTransform>& SourcMeshTransformArray = CurrentMeshComponent->GetComponentSpaceTransforms();
 		for(FCompactPoseBoneIndex PoseBoneIndex : OutPose.ForEachBoneIndex())
 		{
 			const int32& SkeletonBoneIndex = RequiredBones.GetSkeletonIndex(PoseBoneIndex);
@@ -96,13 +99,33 @@ void FAnimNode_CopyPoseFromMesh::Evaluate_AnyThread(FPoseContext& Output)
 				// only apply if I also have parent, otherwise, it should apply the space bases
 				if (ParentIndex != INDEX_NONE && MyParentIndex != INDEX_NONE)
 				{
-					const FTransform& ParentTransform = CurrentMeshComponent->GetComponentSpaceTransforms()[ParentIndex];
-					const FTransform& ChildTransform = CurrentMeshComponent->GetComponentSpaceTransforms()[SourceBoneIndex];
+					const FTransform& ParentTransform = SourcMeshTransformArray[ParentIndex];
+					const FTransform& ChildTransform = SourcMeshTransformArray[SourceBoneIndex];
 					OutPose[PoseBoneIndex] = ChildTransform.GetRelativeTransform(ParentTransform);
 				}
 				else
 				{
-					OutPose[PoseBoneIndex] = CurrentMeshComponent->GetComponentSpaceTransforms()[SourceBoneIndex];
+					OutPose[PoseBoneIndex] = SourcMeshTransformArray[SourceBoneIndex];
+				}
+			}
+		}
+
+		if (bCopyCurves)
+		{
+			UAnimInstance* SourceAnimInstance = CurrentMeshComponent->GetAnimInstance();
+			if (SourceAnimInstance)
+			{
+				// attribute curve contains all list
+				const TMap<FName, float>& SourceCurveList = SourceAnimInstance->GetAnimationCurveList(EAnimCurveType::AttributeCurve);
+
+				for (auto Iter = SourceCurveList.CreateConstIterator(); Iter; ++Iter)
+				{
+					const SmartName::UID_Type* UID = CurveNameToUIDMap.Find(Iter.Key());
+					if (UID)
+					{
+						// set source value to output curve
+						Output.Curve.Set(*UID, Iter.Value());
+					}
 				}
 			}
 		}
@@ -117,6 +140,8 @@ void FAnimNode_CopyPoseFromMesh::ReinitializeMeshComponent(USkeletalMeshComponen
 {
 	CurrentlyUsedSourceMeshComponent = NewSourceMeshComponent;
 	BoneMapToSource.Reset();
+	CurveNameToUIDMap.Reset();
+
 	if (NewSourceMeshComponent && NewSourceMeshComponent->SkeletalMesh && !NewSourceMeshComponent->IsPendingKill())
 	{
 		USkeletalMeshComponent* TargetMeshComponent = AnimInstanceProxy->GetSkelMeshComponent();
@@ -138,6 +163,31 @@ void FAnimNode_CopyPoseFromMesh::ReinitializeMeshComponent(USkeletalMeshComponen
 				{
 					FName BoneName = TargetSkelMesh->RefSkeleton.GetBoneName(ComponentSpaceBoneId);
 					BoneMapToSource.Add(ComponentSpaceBoneId, SourceSkelMesh->RefSkeleton.FindBoneIndex(BoneName));
+				}
+			}
+
+			if (bCopyCurves)
+			{
+				USkeleton* SourceSkeleton = SourceSkelMesh->Skeleton;
+				USkeleton* TargetSkeleton = TargetSkelMesh->Skeleton;
+
+				// you shouldn't be here if this happened
+				check(SourceSkeleton && TargetSkeleton);
+
+				const FSmartNameMapping* SourceContainer = SourceSkeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
+				const FSmartNameMapping* TargetContainer = TargetSkeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
+
+				TArray<FName> SourceCurveNames;
+				SourceContainer->FillNameArray(SourceCurveNames);
+				for (int32 Index = 0; Index < SourceCurveNames.Num(); ++Index)
+				{
+					SmartName::UID_Type UID = TargetContainer->FindUID(SourceCurveNames[Index]);
+					if (UID != SmartName::MaxUID)
+					{
+						// has a valid UID, add to the list
+						SmartName::UID_Type& Value = CurveNameToUIDMap.Add(SourceCurveNames[Index]);
+						Value = UID;
+					}
 				}
 			}
 		}

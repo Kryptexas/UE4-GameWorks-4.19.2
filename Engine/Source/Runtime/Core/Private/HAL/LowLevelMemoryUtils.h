@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -31,7 +31,7 @@ public:
 		Allocator = InAllocator;
 	}
 
-	int32 Num() const
+	uint32 Num() const
 	{
 		return Count;
 	}
@@ -53,7 +53,7 @@ public:
 	void Add(const T& Item)
 	{
 		if (Count == Capacity)
-			Reserve(Capacity ? (150 * Capacity) / 100 : DefaultCapacity);
+			Reserve(Capacity ? (150U * Capacity) / 100U : DefaultCapacity);
 
 		Array[Count] = Item;
 		++Count;
@@ -68,13 +68,13 @@ public:
 		return Last;
 	}
 
-	T& operator[](int32 Index)
+	T& operator[](uint32 Index)
 	{
 		check(Index >= 0 && Index < Count);
 		return Array[Index];
 	}
 
-	const T& operator[](int32 Index) const
+	const T& operator[](uint32 Index) const
 	{
 		check(Index >= 0 && Index < Count);
 		return Array[Index];
@@ -86,7 +86,7 @@ public:
 		return Array[Count - 1];
 	}
 
-	void Reserve(int32 NewCapacity)
+	void Reserve(uint32 NewCapacity)
 	{
 		if (NewCapacity == Capacity)
 		{
@@ -145,12 +145,12 @@ public:
 
 private:
 	T* Array;
-	int32 Count;
-	int32 Capacity;
+	uint32 Count;
+	uint32 Capacity;
 
 	FLLMAllocator* Allocator;
 
-	static const int StaticArrayCapacity = 64;	// beause the default size is so large this actually saves memory
+	static const int StaticArrayCapacity = 64;	// because the default size is so large this actually saves memory
 	T StaticArray[StaticArrayCapacity];
 
 	static const int ItemsPerPage = LLM_PAGE_SIZE / sizeof(T);
@@ -275,7 +275,7 @@ public:
 		Clear();
 	}
 
-	void SetAllocator(FLLMAllocator* InAllocator, int32 InDefaultCapacity = DefaultCapacity)
+	void SetAllocator(FLLMAllocator* InAllocator, uint32 InDefaultCapacity = DefaultCapacity)
 	{
 		FScopeLock Lock(&CriticalSection);
 
@@ -300,7 +300,7 @@ public:
 		Values2.Clear(true);
 		FreeKeyIndices.Clear(true);
 
-		Allocator->Free(Map, Capacity * sizeof(int32));
+		Allocator->Free(Map, Capacity * sizeof(uint32));
 		Map = NULL;
 		Count = 0;
 		Capacity = 0;
@@ -316,17 +316,24 @@ public:
 
 		FScopeLock Lock(&CriticalSection);
 
-		int32 MapIndex = GetMapIndex(Key, KeyHash);
-		int32 KeyIndex = Map[MapIndex];
+		uint32 MapIndex = GetMapIndex(Key, KeyHash);
+		uint32 KeyIndex = Map[MapIndex];
 
 		if (KeyIndex != InvalidIndex)
 		{
+			static bool ShownWarning = false;
+			if (!ShownWarning)
+			{
+				FPlatformMisc::LowLevelOutputDebugString(TEXT("LLM WARNING: Replacing allocation in tracking map. Alloc/Free Mismatch."));
+				ShownWarning = true;
+			}
+
 			Values1[KeyIndex] = Value1;
 			Values2[KeyIndex] = Value2;
 		}
 		else
 		{
-			if (Count == (Margin * Capacity) / 256)
+			if (Count == (Margin * Capacity) / 256U)
 			{
 				Grow();
 				MapIndex = GetMapIndex(Key, KeyHash);
@@ -334,7 +341,7 @@ public:
 
 			if (FreeKeyIndices.Num())
 			{
-				int32 FreeIndex = FreeKeyIndices.RemoveLast();
+				uint32 FreeIndex = FreeKeyIndices.RemoveLast();
 				Map[MapIndex] = FreeIndex;
 				Keys[FreeIndex] = Key;
 				KeyHashes[FreeIndex] = KeyHash;
@@ -360,9 +367,9 @@ public:
 
 		FScopeLock Lock(&CriticalSection);
 
-		int32 MapIndex = GetMapIndex(Key, KeyHash);
+		uint32 MapIndex = GetMapIndex(Key, KeyHash);
 
-		int32 KeyIndex = Map[MapIndex];
+		uint32 KeyIndex = Map[MapIndex];
 		check(KeyIndex != InvalidIndex);
 
 		Values RetValues;
@@ -380,10 +387,10 @@ public:
 
 		FScopeLock Lock(&CriticalSection);
 
-		int32 MapIndex = GetMapIndex(Key, KeyHash);
+		uint32 MapIndex = GetMapIndex(Key, KeyHash);
 		check(IsItemInUse(MapIndex));
 
-		int32 KeyIndex = Map[MapIndex];
+		uint32 KeyIndex = Map[MapIndex];
 
 		Values RetValues;
 		RetValues.Value1 = Values1[KeyIndex];
@@ -402,8 +409,8 @@ public:
 		}
 
 		// find first index in this array
-		int32 IndexIter = MapIndex;
-		int32 FirstIndex = MapIndex;
+		uint32 IndexIter = MapIndex;
+		uint32 FirstIndex = MapIndex;
 		if (!IndexIter)
 		{
 			IndexIter = Capacity;
@@ -423,14 +430,14 @@ public:
 		for (;;)
 		{
 			// find the last item in the array that can replace the item being removed
-			int32 IndexIter2 = (MapIndex + 1) & (Capacity - 1);
+			uint32 IndexIter2 = (MapIndex + 1) & (Capacity - 1);
 
-			int32 SwapIndex = InvalidIndex;
+			uint32 SwapIndex = InvalidIndex;
 			while (IsItemInUse(IndexIter2))
 			{
-				int32 SearchKeyIndex = Map[IndexIter2];
+				uint32 SearchKeyIndex = Map[IndexIter2];
 				const uint32 SearchHashCode = KeyHashes[SearchKeyIndex];
-				const int32 SearchInsertIndex = SearchHashCode & (Capacity - 1);
+				const uint32 SearchInsertIndex = SearchHashCode & (Capacity - 1);
 
 				if (InRange(SearchInsertIndex, FirstIndex, MapIndex))
 				{
@@ -462,7 +469,7 @@ public:
 		return RetValues;
 	}
 
-	int32 Num() const
+	uint32 Num() const
 	{
 		FScopeLock Lock(&CriticalSection);
 
@@ -475,7 +482,7 @@ public:
 
 		FScopeLock Lock(&CriticalSection);
 
-		int32 MapIndex = GetMapIndex(Key, KeyHash);
+		uint32 MapIndex = GetMapIndex(Key, KeyHash);
 		return IsItemInUse(MapIndex);
 	}
 
@@ -491,58 +498,59 @@ public:
 	}
 
 private:
-	void Reserve(int32 NewCapacity)
+	void Reserve(uint32 NewCapacity)
 	{
 		NewCapacity = GetNextPow2(NewCapacity);
 
 		// keep a copy of the old map
-		int32* OldMap = Map;
-		int32 OldCapacity = Capacity;
+		uint32* OldMap = Map;
+		uint32 OldCapacity = Capacity;
 
 		// allocate the new table
 		Capacity = NewCapacity;
-		Map = (int32*)Allocator->Alloc(NewCapacity * sizeof(int32));
+		Map = (uint32*)Allocator->Alloc(NewCapacity * sizeof(uint32));
 
-		for (int32 Index = 0; Index < NewCapacity; ++Index)
+		for (uint32 Index = 0; Index < NewCapacity; ++Index)
 			Map[Index] = InvalidIndex;
 
 		// copy the values from the old to the new table
-		int* OldItem = OldMap;
-		for (int32 Index = 0; Index < OldCapacity; ++Index, ++OldItem)
+		uint32* OldItem = OldMap;
+		for (uint32 Index = 0; Index < OldCapacity; ++Index, ++OldItem)
 		{
-			int32 KeyIndex = *OldItem;
+			uint32 KeyIndex = *OldItem;
 
 			if (KeyIndex != InvalidIndex)
 			{
-				int32 MapIndex = GetMapIndex(Keys[KeyIndex], KeyHashes[KeyIndex]);
+				uint32 MapIndex = GetMapIndex(Keys[KeyIndex], KeyHashes[KeyIndex]);
 				Map[MapIndex] = KeyIndex;
 			}
 		}
 
-		Allocator->Free(OldMap, OldCapacity * sizeof(int32));
+		Allocator->Free(OldMap, OldCapacity * sizeof(uint32));
 	}
 
-	static int32 GetNextPow2(int32 value)
+	static uint32 GetNextPow2(uint32 value)
 	{
-		int32 p = 2;
+		uint32 p = 2;
 		while (p < value)
 			p *= 2;
 		return p;
 	}
 
-	bool IsItemInUse(int32 MapIndex) const
+	bool IsItemInUse(uint32 MapIndex) const
 	{
 		return Map[MapIndex] != InvalidIndex;
 	}
 
-	int32 GetMapIndex(const TKey& Key, uint32 Hash) const
+	uint32 GetMapIndex(const TKey& Key, uint32 Hash) const
 	{
-		int32 MapIndex = Hash & (Capacity - 1);
+		int32 Mask = Capacity - 1;
+		int32 MapIndex = Hash & Mask;
 		int32 KeyIndex = Map[MapIndex];
 
 		while (KeyIndex != InvalidIndex && !(Keys[KeyIndex] == Key))
 		{
-			MapIndex = (MapIndex + 1) & (Capacity - 1);
+			MapIndex = (MapIndex + 1) & Mask;
 			KeyIndex = Map[MapIndex];
 #ifdef PROFILE_LLMMAP
 			++IterAcc;
@@ -569,14 +577,14 @@ private:
 	// Increase the capacity of the map
 	void Grow()
 	{
-		int32 NewCapacity = Capacity ? 2 * Capacity : DefaultCapacity;
+		uint32 NewCapacity = Capacity ? 2 * Capacity : DefaultCapacity;
 		Reserve(NewCapacity);
 	}
 
 	static bool InRange(
-		const int32 Index,
-		const int32 StartIndex,
-		const int32 EndIndex)
+		const uint32 Index,
+		const uint32 StartIndex,
+		const uint32 EndIndex)
 	{
 		return (StartIndex <= EndIndex) ?
 			Index >= StartIndex && Index <= EndIndex :
@@ -587,15 +595,15 @@ private:
 private:
 	enum { DefaultCapacity = 1024 * 1024 };
 	enum { InvalidIndex = -1 };
-	enum { Margin = (30 * 256) / 100 };
+	static const uint32 Margin = (30 * 256) / 100;
 
 	FCriticalSection CriticalSection;
 
 	FLLMAllocator* Allocator;
 
-	int32* Map;
-	int32 Count;
-	int32 Capacity;
+	uint32* Map;
+	uint32 Count;
+	uint32 Capacity;
 
 	// all these arrays must be kept in sync and are accessed by MapIndex
 	FLLMArray<TKey> Keys;

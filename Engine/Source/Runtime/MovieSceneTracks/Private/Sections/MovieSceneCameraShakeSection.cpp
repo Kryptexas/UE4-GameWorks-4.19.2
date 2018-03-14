@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Sections/MovieSceneCameraShakeSection.h"
 #include "Tracks/MovieSceneCameraShakeTrack.h"
 #include "Evaluation/MovieSceneCameraAnimTemplate.h"
+#include "SequencerObjectVersion.h"
 
 
 UMovieSceneCameraShakeSection::UMovieSceneCameraShakeSection(const FObjectInitializer& ObjectInitializer)
@@ -13,7 +14,10 @@ UMovieSceneCameraShakeSection::UMovieSceneCameraShakeSection(const FObjectInitia
 	PlaySpace_DEPRECATED = ECameraAnimPlaySpace::CameraLocal;
 	UserDefinedPlaySpace_DEPRECATED = FRotator::ZeroRotator;
 
-	EvalOptions.EnableAndSetCompletionMode(EMovieSceneCompletionMode::RestoreState);
+	EvalOptions.EnableAndSetCompletionMode
+		(GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToProjectDefault ? 
+			EMovieSceneCompletionMode::RestoreState : 
+			EMovieSceneCompletionMode::ProjectDefault);
 }
 
 void UMovieSceneCameraShakeSection::PostLoad()

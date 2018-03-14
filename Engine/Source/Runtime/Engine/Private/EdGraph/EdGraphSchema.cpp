@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "EdGraph/EdGraphSchema.h"
 #include "UObject/MetaData.h"
@@ -596,7 +596,7 @@ void UEdGraphSchema::BreakPinLinks(UEdGraphPin& TargetPin, bool bSendsNodeNotifi
 #endif	//#if WITH_EDITOR
 }
 
-void UEdGraphSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin)
+void UEdGraphSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) const
 {
 	SourcePin->BreakLinkTo(TargetPin);
 
@@ -693,19 +693,23 @@ FText UEdGraphSchema::GetPinDisplayName(const UEdGraphPin* Pin) const
 	check(Pin != nullptr);
 	if (Pin->PinFriendlyName.IsEmpty())
 	{
-		ResultPinName = FText::FromString(Pin->PinName);
+		// We don't want to display "None" for no name
+		if (Pin->PinName.IsNone())
+		{
+			return FText::GetEmpty();
+		}
+		else
+		{
+			ResultPinName = FText::FromName(Pin->PinName);
+		}
 	}
 	else
 	{
 		ResultPinName = Pin->PinFriendlyName;
-		static bool bInitializedShowNodesAndPinsUnlocalized = false;
-		static bool bShowNodesAndPinsUnlocalized = false;
-		if (!bInitializedShowNodesAndPinsUnlocalized)
-		{
-			GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorSettingsIni );
-			bInitializedShowNodesAndPinsUnlocalized =  true;
-		}
-		if (bShowNodesAndPinsUnlocalized)
+
+		bool bShouldUseLocalizedNodeAndPinNames = false;
+		GConfig->GetBool(TEXT("Internationalization"), TEXT("ShouldUseLocalizedNodeAndPinNames"), bShouldUseLocalizedNodeAndPinNames, GEditorSettingsIni);
+		if (!bShouldUseLocalizedNodeAndPinNames)
 		{
 			ResultPinName = FText::FromString(ResultPinName.BuildSourceString());
 		}
@@ -823,7 +827,7 @@ void UEdGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, const U
 				{
 					MenuBuilder->AddWidget(NodeCommentBox, FText::GetEmpty() );
 				}
-				TWeakObjectPtr<UEdGraphNode> SelectedNodeWeakPtr = InGraphNode;
+				TWeakObjectPtr<UEdGraphNode> SelectedNodeWeakPtr = MakeWeakObjectPtr(const_cast<UEdGraphNode*>(InGraphNode));
 
 				FText NodeCommentText;
 				if ( UEdGraphNode* SelectedNode = SelectedNodeWeakPtr.Get() )

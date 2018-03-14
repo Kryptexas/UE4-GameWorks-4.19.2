@@ -65,22 +65,5 @@ For more information on this section, please see [](Engine/Blueprints/UserGuide/
 
 For more information on this section, please see [](Engine/Blueprints/UserGuide/Types/MacroLibrary).
 
-
-<!--
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![Blueprints](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Blueprint Utilities
-	[/PARAM]
-	[PARAM:description]
-		A **Blueprint Utility**, a.k.a. a **Blutility**, is an editor-only _Blueprint_ that can be used to perform editor actions or extend 
-		editor functionality. These can expose [](Engine/Blueprints/UserGuide/Events) with no parameters as buttons in the UI 
-		and have the ability to execute any functions exposed to _Blueprints_ and act on the current set of selected Actors in the viewport.
-	[/PARAM]
-[/OBJECT]
--->
-
 [/EXCERPT:Types]
 

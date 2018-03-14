@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ImmediatePhysicsContactPointRecorder.h"
 #include "ImmediatePhysicsContactPair.h"
@@ -7,6 +7,7 @@
 
 namespace ImmediatePhysics
 {
+#if WITH_PHYSX
 
 	EFrictionCombineMode::Type GetCombineMode(EFrictionCombineMode::Type A, EFrictionCombineMode::Type B)
 	{
@@ -60,4 +61,5 @@ bool FContactPointRecorder::recordContacts(const Gu::ContactPoint* ContactPoints
 	return true;
 }
 
+#endif // WITH_PHYSX
 }

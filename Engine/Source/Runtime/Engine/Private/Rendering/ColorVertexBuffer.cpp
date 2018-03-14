@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Rendering/ColorVertexBuffer.h"
 #include "CoreMinimal.h"
@@ -20,16 +20,6 @@ public:
 		: TStaticMeshVertexData<FColor>( InNeedsCPUAccess )
 	{
 	}
-
-	/**
-	* Assignment operator. This is currently the only method which allows for 
-	* modifying an existing resource array
-	*/
-	TStaticMeshVertexData<FColor>& operator=(const TArray<FColor>& Other)
-	{
-		TStaticMeshVertexData<FColor>::operator=(Other);
-		return *this;
-	}
 };
 
 
@@ -49,7 +39,7 @@ FColorVertexBuffer::FColorVertexBuffer( const FColorVertexBuffer &rhs ):
 {
 	if (rhs.VertexData)
 	{
-		InitFromColorArray(TArray<FColor>(*rhs.VertexData));
+		InitFromColorArray(reinterpret_cast<FColor*>(rhs.VertexData->GetDataPointer()), rhs.VertexData->Num());
 	}
 	else
 	{
@@ -70,6 +60,18 @@ void FColorVertexBuffer::CleanUp()
 		delete VertexData;
 		VertexData = NULL;
 	}
+}
+
+void FColorVertexBuffer::Init(uint32 InNumVertices)
+{
+	NumVertices = InNumVertices;
+
+	// Allocate the vertex data storage type.
+	AllocateData();
+
+	// Allocate the vertex data buffer.
+	VertexData->ResizeBuffer(NumVertices);
+	Data = InNumVertices ? VertexData->GetDataPointer() : nullptr;
 }
 
 /**
@@ -119,14 +121,7 @@ void FColorVertexBuffer::Init(const TArray<FStaticMeshBuildVertex>& InVertices)
 	}
 	else
 	{
-		NumVertices = InVertexCount;
-
-		// Allocate the vertex data storage type.
-		AllocateData();
-
-		// Allocate the vertex data buffer.
-		VertexData->ResizeBuffer(NumVertices);
-		Data = VertexData->GetDataPointer();
+		Init(InVertexCount);
 
 		// Copy the vertices into the buffer.
 		for(int32 VertexIndex = 0;VertexIndex < InVertices.Num();VertexIndex++)
@@ -144,13 +139,9 @@ void FColorVertexBuffer::Init(const TArray<FStaticMeshBuildVertex>& InVertices)
  */
 void FColorVertexBuffer::Init(const FColorVertexBuffer& InVertexBuffer)
 {
-	NumVertices = InVertexBuffer.GetNumVertices();
 	if ( NumVertices )
 	{
-		AllocateData();
-		check( Stride == InVertexBuffer.GetStride() );
-		VertexData->ResizeBuffer(NumVertices);
-		Data = VertexData->GetDataPointer();
+		Init(InVertexBuffer.GetNumVertices());
 		const uint8* InData = InVertexBuffer.Data;
 		FMemory::Memcpy( Data, InData, Stride * NumVertices );
 	}
@@ -330,7 +321,7 @@ void FColorVertexBuffer::InitFromColorArray( const FColor *InColors, const uint3
 
 	// Copy the colors
 	{
-		VertexData->AddUninitialized(Count);
+		VertexData->ResizeBuffer(Count);
 
 		const uint8 *Src = (const uint8 *)InColors;
 		FColor *Dst = (FColor *)VertexData->GetDataPointer();
@@ -351,7 +342,7 @@ uint32 FColorVertexBuffer::GetAllocatedSize() const
 {
 	if(VertexData)
 	{
-		return VertexData->GetAllocatedSize();
+		return VertexData->GetResourceSize();
 	}
 	else
 	{
@@ -368,9 +359,17 @@ void FColorVertexBuffer::InitRHI()
 		{
 			// Create the vertex buffer.
 			FRHIResourceCreateInfo CreateInfo(ResourceArray);
-			VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(),BUF_Static,CreateInfo);
+			VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(), BUF_Static | BUF_ShaderResource, CreateInfo);
+			ColorComponentsSRV = RHICreateShaderResourceView(VertexBufferRHI, 4,  PF_R8G8B8A8);
 		}
 	}
+}
+
+void FColorVertexBuffer::ReleaseRHI()
+{
+	ColorComponentsSRV.SafeRelease();
+
+	FVertexBuffer::ReleaseRHI();
 }
 
 void FColorVertexBuffer::AllocateData( bool bNeedsCPUAccess /*= true*/ )
@@ -381,4 +380,44 @@ void FColorVertexBuffer::AllocateData( bool bNeedsCPUAccess /*= true*/ )
 	VertexData = new FColorVertexData(bNeedsCPUAccess);
 	// Calculate the vertex stride.
 	Stride = VertexData->GetStride();
+}
+
+void FColorVertexBuffer::BindColorVertexBuffer(const FVertexFactory* VertexFactory, FStaticMeshDataType& StaticMeshData) const
+{
+	if (GetNumVertices() == 0)
+	{
+		BindDefaultColorVertexBuffer(VertexFactory, StaticMeshData, NullBindStride::ZeroForDefaultBufferBind);
+		return;
+	}
+
+	StaticMeshData.ColorComponentsSRV = ColorComponentsSRV;
+	StaticMeshData.ColorIndexMask = ~0u;
+
+	{	
+		StaticMeshData.ColorComponent = FVertexStreamComponent(
+			this,
+			0,	// Struct offset to color
+			GetStride(),
+			VET_Color,
+			EVertexStreamUsage::ManualFetch
+		);
+	}
+}
+
+void FColorVertexBuffer::BindDefaultColorVertexBuffer(const FVertexFactory* VertexFactory, FStaticMeshDataType& StaticMeshData, NullBindStride BindStride)
+{
+	StaticMeshData.ColorComponentsSRV = GNullColorVertexBuffer.VertexBufferSRV;
+	StaticMeshData.ColorIndexMask = 0;
+
+	{
+		const bool bBindForDrawOverride = BindStride == NullBindStride::FColorSizeForComponentOverride;
+
+		StaticMeshData.ColorComponent = FVertexStreamComponent(
+			&GNullColorVertexBuffer,
+			0, // Struct offset to color
+			bBindForDrawOverride ? sizeof(FColor) : 0, //asserted elsewhere
+			VET_Color,
+			bBindForDrawOverride ? (EVertexStreamUsage::ManualFetch | EVertexStreamUsage::Overridden) : (EVertexStreamUsage::ManualFetch)
+		);
+	}
 }

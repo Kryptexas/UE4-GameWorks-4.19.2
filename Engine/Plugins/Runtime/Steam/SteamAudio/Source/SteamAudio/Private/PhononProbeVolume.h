@@ -60,22 +60,41 @@ class STEAMAUDIO_API APhononProbeVolume : public AVolume
 public:
 
 #if WITH_EDITOR
+
+	/** Creates a probe box with the current probe placement parameters and writes it to disk. Updates ProbeDataSize for display. */
+	void PlaceProbes(IPLhandle PhononScene, IPLProbePlacementProgressCallback ProbePlacementCallback, TArray<IPLSphere>& ProbeSpheres);
+
+	/** Writes probe box out to disk. Creates a new probe batch and writes it to disk. Updates ProbeDataSize for display. */
+	void UpdateProbeData(IPLhandle ProbeBox);
+
+	/** Writes a given probe box out to the EditorOnly folder. Returns file size, or 0 if no file was written. */
+	int32 SaveProbeBoxToDisk(IPLhandle ProbeBox);
+
+	/** Writes a given probe batch out to the Runtime folder. Returns file size, or 0 if no file was written. */
+	int32 SaveProbeBatchToDisk(IPLhandle ProbeBatch);
+
 	virtual bool CanEditChange(const UProperty* InProperty) const override;
 
-	void PlaceProbes(IPLhandle PhononScene, IPLProbePlacementProgressCallback ProbePlacementCallback, TArray<IPLSphere>& ProbeSpheres);
 #endif
 
-	void UpdateProbeBoxData(IPLhandle ProbeBox);
-
-	uint8* GetProbeBoxData();
-
+	/** Returns size of probe box file on disk, or 0 if none exists. */
 	int32 GetProbeBoxDataSize() const;
 
-	uint8* GetProbeBatchData();
-
+	/** Returns size of probe batch file on disk, or 0 if none exists. */
 	int32 GetProbeBatchDataSize() const;
 
+	/** Returns data size for the specified source from member data. */
 	int32 GetDataSizeForSource(const FName& UniqueIdentifier) const;
+
+	/** Composes a probe box filename for this actor. TODO: ensure uniqueness. */
+	FString GetProbeBoxFileName() const;
+
+	/** Composes a probe batch filename for this actor. TODO: ensure uniqueness. */
+	FString GetProbeBatchFileName() const;
+
+	bool LoadProbeBoxFromDisk(IPLhandle* ProbeBox) const;
+
+	bool LoadProbeBatchFromDisk(IPLhandle* ProbeBatch) const;
 
 	class UPhononProbeComponent* GetPhononProbeComponent() const { return PhononProbeComponent; }
 
@@ -97,19 +116,21 @@ public:
 
 	// Size of probe data in bytes.
 	UPROPERTY(VisibleAnywhere, Category = ProbeVolumeStatistics, meta = (DisplayName = "Probe Data Size"))
-	int32 ProbeBoxDataSize;
+	int32 ProbeDataSize;
 
+	// Useful information for each baked source.
 	UPROPERTY(VisibleAnywhere, Category = ProbeVolumeStatistics, meta = (DisplayName = "Detailed Statistics"))
 	TArray<FBakedDataInfo> BakedDataInfo;
 
+	// Component used for visualization.
 	UPROPERTY()
 	class UPhononProbeComponent* PhononProbeComponent;
 
-private:
-
+	// Current filename where probe box data is stored. Used to maintain connection if volume is renamed.
 	UPROPERTY()
-	TArray<uint8> ProbeBoxData;
+	FString ProbeBoxFileName;
 
+	// Current filename where probe batch data is stored. Used to maintain connection if volume is renamed.
 	UPROPERTY()
-	TArray<uint8> ProbeBatchData;
+	FString ProbeBatchFileName;
 };

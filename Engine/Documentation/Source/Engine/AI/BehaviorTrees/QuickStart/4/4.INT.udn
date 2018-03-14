@@ -3,24 +3,12 @@ Title: 4. Setup the Character Blueprint
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 4. Setup the Character Blueprint
 version: 4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:4
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Engine/AI/BehaviorTrees/QuickStart/3 "%Engine/AI/BehaviorTrees/QuickStart/3:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine/AI/BehaviorTrees/QuickStart/5 "%Engine/AI/BehaviorTrees/QuickStart/5:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 As we have created a project with a **Character** already in it, we have access to a humanoid **Skeletal Mesh** and its **Animation Blueprint**. We will use these in the tutorial, but feel free to use your own if you have them available.
 
@@ -71,9 +59,4 @@ This Character will become our new AI Character. The reason we use a Character, 
 1. Compile and Save.
 
 
-%Steps%
-
-
-
-
-
+[NAV]

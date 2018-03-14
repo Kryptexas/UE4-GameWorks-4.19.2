@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SCrashReportClient.h"
 
@@ -6,6 +6,7 @@
 
 #include "CrashReportClientStyle.h"
 #include "SlateStyle.h"
+#include "Styling/CoreStyle.h"
 #include "SThrobber.h"
 #include "CrashDescription.h"
 #include "Framework/Text/SlateHyperlinkRun.h"
@@ -122,7 +123,7 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 						.Style( &FCrashReportClientStyle::Get().GetWidgetStyle<FEditableTextBoxStyle>( "NormalEditableTextBox" ) )
 						.OnTextCommitted( CrashReportClient.ToSharedRef(), &FCrashReportClient::UserCommentChanged )
 						.OnTextChanged( this, &SCrashReportClient::OnUserCommentTextChanged)
-						.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 9 ) )
+						.Font( FCoreStyle::GetDefaultFontStyle("Regular", 9) )
 						.AutoWrapText( true )
 						.BackgroundColor( FSlateColor( FLinearColor::Black ) )
 						.ForegroundColor( FSlateColor( FLinearColor::White * 0.8f ) )
@@ -133,7 +134,7 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 					[
 						SNew(STextBlock)
 						.Margin( FMargin(4,2,0,0) )
-						.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Testing/Fonts/Roboto-Italic.ttf" ), 9 ) )
+						.Font( FCoreStyle::GetDefaultFontStyle("Italic", 9) )
 						.ColorAndOpacity( FSlateColor( FLinearColor::White * 0.5f ) )
 						.Text( LOCTEXT( "CrashProvide", "Please provide detailed information about what you were doing when the crash occurred." ) )
 						.Visibility( this, &SCrashReportClient::IsHintTextVisible )
@@ -176,7 +177,7 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 						[
 							SNew( SMultiLineEditableTextBox )
 							.Style( &FCrashReportClientStyle::Get().GetWidgetStyle<FEditableTextBoxStyle>( "NormalEditableTextBox" ) )
-							.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 8 ) )
+							.Font( FCoreStyle::GetDefaultFontStyle("Regular", 8) )
 							.AutoWrapText( false )
 							.IsReadOnly( true )
 							.ReadOnlyForegroundColor( FSlateColor( FLinearColor::White * 0.8f) )

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleVertexFactory.h: Particle vertex factory definitions.
@@ -31,6 +31,10 @@ enum EParticleVertexFactoryType
 class FParticleVertexFactoryBase : public FVertexFactory
 {
 public:
+	explicit FParticleVertexFactoryBase(ERHIFeatureLevel::Type InFeatureLevel)
+		: FVertexFactory(InFeatureLevel)
+	{
+	}
 
 	/** Default constructor. */
 	explicit FParticleVertexFactoryBase( EParticleVertexFactoryType Type, ERHIFeatureLevel::Type InFeatureLevel )
@@ -145,8 +149,8 @@ public:
 		DynamicParameterStride(0)
 	{}
 
-	FParticleSpriteVertexFactory() 
-		: FParticleVertexFactoryBase(PVFT_MAX, ERHIFeatureLevel::Num),
+	FParticleSpriteVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
+		: FParticleVertexFactoryBase(PVFT_MAX, InFeatureLevel),
 		NumVertsInInstanceBuffer(0),
 		NumCutoutVerticesPerFrame(0),
 		CutoutGeometrySRV(nullptr),
@@ -163,7 +167,7 @@ public:
 	/**
 	 * Should we cache the material's shadertype on this platform with this vertex factory? 
 	 */
-	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType);
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType);
 
 	/**
 	 * Can be overridden by FVertexFactory subclasses to modify their compile environment just before compilation occurs.

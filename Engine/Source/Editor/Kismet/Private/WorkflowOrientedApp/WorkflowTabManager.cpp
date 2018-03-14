@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "WorkflowOrientedApp/WorkflowTabManager.h"
 #include "Widgets/Layout/SBorder.h"
@@ -28,13 +28,16 @@ FTabInfo::FTabInfo(const TSharedRef<SDockTab>& InTab, const TSharedPtr<FDocument
 
 bool FTabInfo::PayloadMatches(const TSharedPtr<FTabPayload> TestPayload) const
 {
-	TSharedPtr<FTabPayload> CurrentPayload = History[CurrentHistoryIndex]->GetPayload();
+	return PayloadMatches(History[CurrentHistoryIndex]->GetPayload(), TestPayload);
+}
 
-	if (CurrentPayload.IsValid() && TestPayload.IsValid())
+bool FTabInfo::PayloadMatches(TSharedPtr<FTabPayload> A, TSharedPtr<FTabPayload> B)
+{
+	if (A.IsValid() && B.IsValid())
 	{
-		return CurrentPayload->IsEqual(TestPayload.ToSharedRef());
+		return A->IsEqual(B.ToSharedRef());
 	}
-	else if (!TestPayload.IsValid() && !CurrentPayload.IsValid())
+	else if (!B.IsValid() && !A.IsValid())
 	{
 		return true;
 	}
@@ -44,7 +47,7 @@ bool FTabInfo::PayloadMatches(const TSharedPtr<FTabPayload> TestPayload) const
 	}
 }
 
-void FTabInfo::AddTabHistory(TSharedPtr< struct FGenericTabHistory > InHistoryNode, bool bInSaveHistory/* = true*/)
+void FTabInfo::AddTabHistory(TSharedPtr< struct FGenericTabHistory > InHistoryNode, bool bInSaveHistory/* = true*/, bool bPrevTabMatches/* = false*/)
 {
 	// If the tab is not new, save the current history.
 	if(CurrentHistoryIndex >= 0 && bInSaveHistory)
@@ -72,7 +75,7 @@ void FTabInfo::AddTabHistory(TSharedPtr< struct FGenericTabHistory > InHistoryNo
 	CurrentHistoryIndex = History.Num() - 1;
 
 	// Evoke the history
-	InHistoryNode->EvokeHistory(AsShared());
+	InHistoryNode->EvokeHistory(AsShared(), bPrevTabMatches);
 	InHistoryNode->GetFactory().Pin()->OnTabActivated(Tab.Pin());
 }
 
@@ -80,6 +83,7 @@ FReply FTabInfo::OnGoForwardInHistory()
 {
 	if( CurrentHistoryIndex < History.Num() - 1 )
 	{
+		const int32 PreviousHistoryIndex = CurrentHistoryIndex;
 		History[CurrentHistoryIndex]->SaveHistory();
 
 		while( CurrentHistoryIndex < History.Num() - 1)
@@ -88,7 +92,8 @@ FReply FTabInfo::OnGoForwardInHistory()
 
 			if( History[CurrentHistoryIndex]->IsHistoryValid() )
 			{
-				History[CurrentHistoryIndex]->EvokeHistory(AsShared());
+				bool bPayloadMatches = PayloadMatches(History[PreviousHistoryIndex]->GetPayload(), History[CurrentHistoryIndex]->GetPayload());
+				History[CurrentHistoryIndex]->EvokeHistory(AsShared(), bPayloadMatches);
 				History[CurrentHistoryIndex]->RestoreHistory();
 				History[CurrentHistoryIndex]->GetFactory().Pin()->OnTabActivated(Tab.Pin());
 				break;
@@ -102,6 +107,7 @@ FReply FTabInfo::OnGoBackInHistory()
 {
 	if( CurrentHistoryIndex > 0 )
 	{
+		const int32 PreviousHistoryIndex = CurrentHistoryIndex;
 		History[CurrentHistoryIndex]->SaveHistory();
 
 		while( CurrentHistoryIndex > 0 )
@@ -110,7 +116,8 @@ FReply FTabInfo::OnGoBackInHistory()
 				
 			if( History[CurrentHistoryIndex]->IsHistoryValid() )
 			{
-				History[CurrentHistoryIndex]->EvokeHistory(AsShared());
+				bool bPayloadMatches = PayloadMatches(History[PreviousHistoryIndex]->GetPayload(), History[CurrentHistoryIndex]->GetPayload());
+				History[CurrentHistoryIndex]->EvokeHistory(AsShared(), bPayloadMatches);
 				History[CurrentHistoryIndex]->RestoreHistory();
 				History[CurrentHistoryIndex]->GetFactory().Pin()->OnTabActivated(Tab.Pin());
 
@@ -145,7 +152,7 @@ void FTabInfo::JumpToNearestValidHistoryData()
 				}
 			}
 
-			History[CurrentHistoryIndex]->EvokeHistory(AsShared());
+			History[CurrentHistoryIndex]->EvokeHistory(AsShared(), false);
 			History[CurrentHistoryIndex]->RestoreHistory();
 			History[CurrentHistoryIndex]->GetFactory().Pin()->OnTabActivated(Tab.Pin());
 			FGlobalTabmanager::Get()->SetActiveTab(nullptr);
@@ -168,10 +175,13 @@ void FTabInfo::GoToHistoryIndex(int32 InHistoryIdx)
 {
 	if(History[InHistoryIdx]->IsHistoryValid())
 	{
+		const int32 PreviousHistoryIndex = CurrentHistoryIndex;
 		History[CurrentHistoryIndex]->SaveHistory();
 
 		CurrentHistoryIndex = InHistoryIdx;
-		History[CurrentHistoryIndex]->EvokeHistory(AsShared());
+		
+		bool bPayloadMatches = PayloadMatches(History[PreviousHistoryIndex]->GetPayload(), History[CurrentHistoryIndex]->GetPayload());
+		History[CurrentHistoryIndex]->EvokeHistory(AsShared(), bPayloadMatches);
 		History[CurrentHistoryIndex]->RestoreHistory();
 		History[CurrentHistoryIndex]->GetFactory().Pin()->OnTabActivated(Tab.Pin());
 	}
@@ -486,12 +496,17 @@ TSharedPtr<SDockTab> FDocumentTracker::OpenDocument(TSharedPtr<FTabPayload> InPa
 	}
 	else if(InOpenCause == OpenNewDocument || InOpenCause == CreateHistoryEvent)
 	{
+		TSharedPtr< FTabInfo > TabInfo;
 		TSharedPtr<SDockTab> Tab;
+		bool bPrevTabMatches = false;
 
 		// If the current tab matches we'll re-use it.
-		if(LastEditedTabInfo.IsValid() && LastEditedTabInfo.Pin()->PayloadMatches(InPayload))
+		TSharedPtr<FTabInfo> LastEditedTabInfoPinned = LastEditedTabInfo.Pin();
+		if(LastEditedTabInfoPinned.IsValid() && LastEditedTabInfoPinned->PayloadMatches(InPayload))
 		{
-			Tab = LastEditedTabInfo.Pin()->GetTab().Pin();
+			TabInfo = LastEditedTabInfoPinned;
+			Tab = TabInfo->GetTab().Pin();
+			bPrevTabMatches = true;
 		}
 		else
 		{
@@ -501,21 +516,22 @@ TSharedPtr<SDockTab> FDocumentTracker::OpenDocument(TSharedPtr<FTabPayload> InPa
 			{
 				if ((*ListIt)->PayloadMatches(InPayload))
 				{
-					Tab = (*ListIt)->GetTab().Pin();
-					TabManager->DrawAttention( Tab.ToSharedRef() );
+					TabInfo = (*ListIt);
+					Tab = TabInfo->GetTab().Pin();
+					TabManager->DrawAttention( TabInfo->GetTab().Pin().ToSharedRef() );
 				}
 			}
 		}
 		
-		if(!Tab.IsValid())
+		if(!TabInfo.IsValid())
 		{
 			// If no tab was found with the payload
 			Tab = OpenNewTab(InPayload, OpenNewDocument);
 		}
 		else if(InOpenCause == CreateHistoryEvent)
 		{
-			// We are forcing a history event, navigate the current tab.
-			Tab = NavigateCurrentTab(InPayload, NavigatingCurrentDocument);
+			TSharedPtr<FDocumentTabFactory> Factory = FindSupportingFactory(InPayload.ToSharedRef());
+			TabInfo->AddTabHistory(Factory->CreateTabHistoryNode(InPayload), true, true);
 		}
 		
 		return Tab;

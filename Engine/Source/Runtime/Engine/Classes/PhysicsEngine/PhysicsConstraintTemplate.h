@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // Complete constraint definition used by rigid body physics.
@@ -109,6 +109,9 @@ class UPhysicsConstraintTemplate : public UObject
 
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+
+	/** Update the profile instance if anything changes */
+	ENGINE_API void UpdateProfileInstance();
 
 	ENGINE_API FName GetCurrentConstraintProfileName() const;
 	ENGINE_API void UpdateConstraintProfiles(const TArray<FName>& Profiles);

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "TrackEditors/PathTrackEditor.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
@@ -41,7 +41,7 @@ public:
 			TSharedPtr<ISequencer> Sequencer = PathTrackEditor->GetSequencer();
 			if (Sequencer.IsValid())
 			{
-				TArrayView<TWeakObjectPtr<UObject>> RuntimeObjects = Sequencer->FindBoundObjects(PathSection->GetConstraintId(), Sequencer->GetFocusedTemplateID());
+				TArrayView<TWeakObjectPtr<UObject>> RuntimeObjects = Sequencer->FindBoundObjects(PathSection->GetConstraintBindingID().GetGuid(), PathSection->GetConstraintBindingID().GetSequenceID());
 				if (RuntimeObjects.Num() == 1 && RuntimeObjects[0].IsValid())
 				{
 					if (AActor* Actor = Cast<AActor>(RuntimeObjects[0].Get()))
@@ -135,14 +135,11 @@ bool F3DPathTrackEditor::IsActorPickable(const AActor* const ParentActor, FGuid 
 	UMovieScene3DPathSection* PathSection = Cast<UMovieScene3DPathSection>(InSection);
 	if (PathSection != nullptr)
 	{
-		FGuid ConstraintId = PathSection->GetConstraintId();
-
-		if (ConstraintId.IsValid())
+		TArrayView<TWeakObjectPtr<UObject>> RuntimeObjects = GetSequencer()->FindBoundObjects(PathSection->GetConstraintBindingID().GetGuid(), PathSection->GetConstraintBindingID().GetSequenceID());
+		
+		if (RuntimeObjects.Contains(ParentActor))
 		{
-			if (GetSequencer()->FindObjectsInCurrentSequence(ConstraintId).Contains(ParentActor))
-			{
-				return false;
-			}
+			return false;
 		}
 	}
 
@@ -162,18 +159,29 @@ bool F3DPathTrackEditor::IsActorPickable(const AActor* const ParentActor, FGuid 
 }
 
 
-void F3DPathTrackEditor::ActorSocketPicked(const FName SocketName, USceneComponent* Component, AActor* ParentActor, FGuid ObjectGuid, UMovieSceneSection* Section)
+void F3DPathTrackEditor::ActorSocketPicked(const FName SocketName, USceneComponent* Component, FActorPickerID ActorPickerID, FGuid ObjectGuid, UMovieSceneSection* Section)
 {
 	if (Section != nullptr)
 	{
 		const FScopedTransaction Transaction(LOCTEXT("UndoSetPath", "Set Path"));
 
 		UMovieScene3DPathSection* PathSection = (UMovieScene3DPathSection*)(Section);
-		FGuid SplineId = FindOrCreateHandleToObject(ParentActor).Handle;
 
-		if (SplineId.IsValid())
+		FMovieSceneObjectBindingID ConstraintBindingID;
+
+		if (ActorPickerID.ExistingBindingID.IsValid())
 		{
-			PathSection->SetConstraintId(SplineId);
+			ConstraintBindingID = ActorPickerID.ExistingBindingID;
+		}
+		else if (ActorPickerID.ActorPicked.IsValid())
+		{
+			FGuid ParentActorId = FindOrCreateHandleToObject(ActorPickerID.ActorPicked.Get()).Handle;
+			ConstraintBindingID = FMovieSceneObjectBindingID(ParentActorId, MovieSceneSequenceID::Root);
+		}
+
+		if (ConstraintBindingID.IsValid())
+		{
+			PathSection->SetConstraintBindingID(ConstraintBindingID);
 		}
 	}
 	else if (ObjectGuid.IsValid())
@@ -183,26 +191,29 @@ void F3DPathTrackEditor::ActorSocketPicked(const FName SocketName, USceneCompone
 		{
 			OutObjects.Add(Object);
 		}
-		AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &F3DPathTrackEditor::AddKeyInternal, OutObjects, ParentActor) );
+		AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &F3DPathTrackEditor::AddKeyInternal, OutObjects, ActorPickerID) );
 	}
 }
 
-FKeyPropertyResult F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArray<TWeakObjectPtr<UObject>> Objects, AActor* ParentActor)
+FKeyPropertyResult F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArray<TWeakObjectPtr<UObject>> Objects, FActorPickerID ActorPickerID)
 {
 	FKeyPropertyResult KeyPropertyResult;
 
-	AActor* ActorWithSplineComponent = ParentActor;
-	
-	FGuid SplineId;
+	FMovieSceneObjectBindingID ConstraintBindingID;
 
-	if (ActorWithSplineComponent != nullptr)
+	if (ActorPickerID.ExistingBindingID.IsValid())
 	{
-		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject( ActorWithSplineComponent );
-		SplineId = HandleResult.Handle;
+		ConstraintBindingID = ActorPickerID.ExistingBindingID;
+	}
+	else if (ActorPickerID.ActorPicked.IsValid())
+	{
+		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject(ActorPickerID.ActorPicked.Get());
+		FGuid ParentActorId = HandleResult.Handle;
 		KeyPropertyResult.bHandleCreated |= HandleResult.bWasCreated;
+		ConstraintBindingID = FMovieSceneObjectBindingID(ParentActorId, MovieSceneSequenceID::Root);
 	}
 
-	if (!SplineId.IsValid())
+	if (!ConstraintBindingID.IsValid())
 	{
 		return KeyPropertyResult;
 	}
@@ -238,7 +249,7 @@ FKeyPropertyResult F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArr
 					}
 				}
 
-				Cast<UMovieScene3DPathTrack>(Track)->AddConstraint( KeyTime, PathEndTime, NAME_None, NAME_None, SplineId );
+				Cast<UMovieScene3DPathTrack>(Track)->AddConstraint( KeyTime, PathEndTime, NAME_None, NAME_None, ConstraintBindingID );
 				KeyPropertyResult.bTrackModified = true;
 			}
 		}
@@ -246,6 +257,5 @@ FKeyPropertyResult F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArr
 
 	return KeyPropertyResult;
 }
-
 
 #undef LOCTEXT_NAMESPACE

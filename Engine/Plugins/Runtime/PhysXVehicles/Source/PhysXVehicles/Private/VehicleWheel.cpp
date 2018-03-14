@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "VehicleWheel.h"
 #include "UObject/ConstructorHelpers.h"
@@ -38,24 +38,29 @@ UVehicleWheel::UVehicleWheel(const FObjectInitializer& ObjectInitializer)
 	SweepType = EWheelSweepType::SimpleAndComplex;
 }
 
+#if WITH_PHYSX
 FPhysXVehicleManager* UVehicleWheel::GetVehicleManager() const
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(VehicleSim, EGetWorldErrorMode::LogAndReturnNull);
 	return World ? FPhysXVehicleManager::GetVehicleManagerFromScene(World->GetPhysicsScene()) : nullptr;
 }
+#endif // WITH_PHYSX
 
 float UVehicleWheel::GetSteerAngle() const
 {
+#if WITH_PHYSX
 	if (FPhysXVehicleManager* VehicleManager = GetVehicleManager())
 	{
 		SCOPED_SCENE_READ_LOCK(VehicleManager->GetScene());
 		return FMath::RadiansToDegrees(VehicleManager->GetWheelsStates_AssumesLocked(VehicleSim)[WheelIndex].steerAngle);
 	}
+#endif // WITH_PHYSX
 	return 0.0f;
 }
 
 float UVehicleWheel::GetRotationAngle() const
 {
+#if WITH_PHYSX
 	if (FPhysXVehicleManager* VehicleManager = GetVehicleManager())
 	{
 		SCOPED_SCENE_READ_LOCK(VehicleManager->GetScene());
@@ -64,28 +69,33 @@ float UVehicleWheel::GetRotationAngle() const
 		ensure(!FMath::IsNaN(RotationAngle));
 		return RotationAngle;
 	}
+#endif // WITH_PHYSX
 	return 0.0f;
 }
 
 float UVehicleWheel::GetSuspensionOffset() const
 {
+#if WITH_PHYSX
 	if (FPhysXVehicleManager* VehicleManager = GetVehicleManager())
 	{
 		SCOPED_SCENE_READ_LOCK(VehicleManager->GetScene());
 
 		return VehicleManager->GetWheelsStates_AssumesLocked(VehicleSim)[WheelIndex].suspJounce;
 	}
+#endif // WITH_PHYSX
 	return 0.0f;
 }
 
 bool UVehicleWheel::IsInAir() const
 {
+#if WITH_PHYSX
 	if (FPhysXVehicleManager* VehicleManager = GetVehicleManager())
 	{
 		SCOPED_SCENE_READ_LOCK(VehicleManager->GetScene());
 
 		return VehicleManager->GetWheelsStates_AssumesLocked(VehicleSim)[WheelIndex].isInAir;
 	}
+#endif // WITH_PHYSX
 	return false;
 }
 
@@ -96,6 +106,8 @@ void UVehicleWheel::Init( UWheeledVehicleMovementComponent* InVehicleSim, int32 
 
 	VehicleSim = InVehicleSim;
 	WheelIndex = InWheelIndex;
+
+#if WITH_PHYSX
 	WheelShape = NULL;
 
 	FPhysXVehicleManager* VehicleManager = FPhysXVehicleManager::GetVehicleManagerFromScene(VehicleSim->GetWorld()->GetPhysicsScene());
@@ -106,6 +118,7 @@ void UVehicleWheel::Init( UWheeledVehicleMovementComponent* InVehicleSim, int32 
 
 	VehicleSim->PVehicle->getRigidDynamicActor()->getShapes( &WheelShape, 1, WheelShapeIdx );
 	check(WheelShape);
+#endif // WITH_PHYSX
 
 	Location = GetPhysicsLocation();
 	OldLocation = Location;
@@ -113,7 +126,9 @@ void UVehicleWheel::Init( UWheeledVehicleMovementComponent* InVehicleSim, int32 
 
 void UVehicleWheel::Shutdown()
 {
+#if WITH_PHYSX
 	WheelShape = NULL;
+#endif // WITH_PHYSX
 }
 
 FWheelSetup& UVehicleWheel::GetWheelSetup()
@@ -130,6 +145,7 @@ void UVehicleWheel::Tick( float DeltaTime )
 
 FVector UVehicleWheel::GetPhysicsLocation()
 {
+#if WITH_PHYSX
 	if ( WheelShape )
 	{
 		if (FPhysXVehicleManager* VehicleManager = GetVehicleManager())
@@ -140,7 +156,7 @@ FVector UVehicleWheel::GetPhysicsLocation()
 			return P2UVector(PLocation);
 		}
 	}
-
+#endif // WITH_PHYSX
 	return FVector::ZeroVector;
 }
 
@@ -150,8 +166,10 @@ void UVehicleWheel::PostEditChangeProperty( FPropertyChangedEvent& PropertyChang
 {
 	Super::PostEditChangeProperty( PropertyChangedEvent );
 
+#if WITH_PHYSX
 	// Trigger a runtime rebuild of the PhysX vehicle
 	FPhysXVehicleManager::VehicleSetupTag++;
+#endif // WITH_PHYSX
 }
 
 #endif //WITH_EDITOR
@@ -161,6 +179,7 @@ UPhysicalMaterial* UVehicleWheel::GetContactSurfaceMaterial()
 {
 	UPhysicalMaterial* PhysMaterial = NULL;
 
+#if WITH_PHYSX
 	FPhysXVehicleManager* VehicleManager = FPhysXVehicleManager::GetVehicleManagerFromScene(VehicleSim->GetWorld()->GetPhysicsScene());
 	SCOPED_SCENE_READ_LOCK(VehicleManager->GetScene());
 
@@ -169,6 +188,7 @@ UPhysicalMaterial* UVehicleWheel::GetContactSurfaceMaterial()
 	{
 		PhysMaterial = FPhysxUserData::Get<UPhysicalMaterial>(ContactSurface->userData);
 	}
+#endif // WITH_PHYSX
 
 	return PhysMaterial;
 }

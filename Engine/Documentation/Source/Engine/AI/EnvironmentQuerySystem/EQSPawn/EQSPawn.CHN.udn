@@ -4,45 +4,7 @@ Title:EQS 测试 Pawn
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
 Description:场景查询系统包含一个特殊 pawn，可显示编辑器中任意场景查询的实时结果。此文档讲述 EQSTestingPawn 的创建和使用。
 version:4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/AI/EnvironmentQuerySystem/EQSPawn:title%](AI_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/AI/EnvironmentQuerySystem/EQSPawn:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/AI/EnvironmentQuerySystem/EQSPawn:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/AI/EnvironmentQuerySystem/EQSPawn]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/AI/EnvironmentQuerySystem/EQSPawn:title%](AI_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/AI/EnvironmentQuerySystem/EQSPawn:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/AI/EnvironmentQuerySystem/EQSPawn:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/AI/EnvironmentQuerySystem/EQSPawn]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/AI/BehaviorTrees/AI_topic.png
 
 ![](testingPawnBanner.png)(convert:false)
 
@@ -93,7 +55,8 @@ version:4.9
 | **Should be Visible in Game** | 在运行的游戏中显示 EQSTestingPawn 和调试显示。|
 | **Querying Mode** | [INCLUDE:#eqs1] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:EQS1]
 变更调试视图显示的内容。
 
@@ -102,4 +65,5 @@ version:4.9
 | **Single Result** | 只显示 **Step to Debug Draw** 属性中列出项目的结果。|
 | **All Matching** | 显示整个场景查询经过滤和加权的最终分数。|
 [/EXCERPT:EQS1]
--->
+
+[/COMMENT]

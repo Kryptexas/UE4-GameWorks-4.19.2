@@ -1,0 +1,85 @@
+﻿INTSourceChangelist:3645552
+Availability:Public
+Crumbs: %ROOT%, Platforms
+Title:修改 Oculus Rift Guardian 系统的颜色
+Description:修改 Oculus Rift Guardian 系统的颜色。
+Type: how-to
+Skilllevel:Intermediate
+Version:4.17
+Parent:Platforms/Oculus
+Order:2
+tags:Oculus
+topic-image:Platforms\Oculus\HowTo\GuardianSystem\HTGuardian_System_Topic_Image.png
+
+
+Oculus Guardian 系统用于显示 VR 交互区域的边界。追踪设备靠近边界时，Oculus Runtime 将自动进行可视提示，告知用户。以下指南将说明如何修改用于显示 VR 互动区的 Oculus Guardian 系统的颜色。
+
+[REGION:note]
+以下指南将使用添加了触摸控制器和 Guardian 支持的站立 VR Pawn。如您不明确设置方法，请参考以下三个指南：
+* [**设置 Oculus Rift 的摄像机**](Platforms\Oculus\HowTo\StandingCamera)
+* [**设置运动控制器**](Platforms\VR\MotionController)
+* [**设置 Guardian 系统**](Platforms\Oculus\HowTo\GuardianSystem)
+[/REGION]
+
+[REGION:note]
+需要设置 Guardian 系统使用 Oculus 应用程序才能使其正常使用。如需了解详细操作方法，请查看官方 [Oculus Guardian 系统](https://developer.oculus.com/documentation/pcsdk/latest/concepts/dg-guardian-system/) 设置页面。
+[/REGION]
+
+[REGION:warning]
+在 UE4 中禁用 Guardian 系统 **不** 明智，也不可取。然而，您可以调整用户靠近边界时 UE4 作出的响应。  
+[/REGION]
+
+## 修改 Oculus Rift Guardian 系统的颜色
+
+[REGION:note]
+必须为 Pawn 添加 **OculusRiftBoundy**，否则以下操作将无法实现。如果您不熟悉这些操作，请参考 [设置 Guardian 系统](Platforms\Oculus\HowTo\GuardianSystem) 页面。
+[/REGION]
+
+1. 创建一个名为 **Oculus Rift Boundary Color** 的新 **变量**，并将其类型设为 **Linear Color**、颜色设为 **Red**。
+
+    ![](HTGuardian_System_04.png)
+
+1. 在 **事件图表** 中添加一个 **Event Begin Play** 和 **Set Tracking Origin** 节点。将 Set Tracking Origin 节点的 **Origin** 设为 **Floor Level**，然后将 Event Begin Play 连接到 Set Tracking Origin 节点。 
+
+    [REGION:lightbox]
+    [![](HTGuardian_System_02.png)(w:492)](HTGuardian_System_02.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
+
+1. 右键点击事件图表，从菜单中搜寻 **Set Outer Boundary Color**，点击将其添加到图表。 
+
+    ![](HTGuardian_System_03.png)
+
+1. 将 **Oculus Rift Boundary Color** 变量和 **Oculus Rift Boundary** 组件拖入事件图表。将 Oculus Rift Boundary Color 变量连接到 Set Boundary Color 节点上的 **In Boundary Color**，然后将 Oculus Rift Boundary 连接到 **Target** 输入。 
+
+    [REGION:lightbox]
+    [![](HTGuardian_System_05.png)(w:492)](HTGuardian_System_05.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
+
+1. 将 Set Tracking Origin 节点的输出连接到 Set Outer Boundary Color 节点的输入，操作完成后事件图表应与下图类似。
+
+    [REGION:lightbox]
+    [![](HTGuardian_System_06.png)(w:492)](HTGuardian_System_06.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
+
+1. 现在即可戴上头戴显示器，运行关卡。边界显示的颜色便是您在 Oculus Rift Boundary Color 变量设置的颜色。 
+
+    ![](HTGuardian_System_07.png)
+
+
+## UE4 项目下载
+可使用以下链接下载用于创建此例的 UE4 项目。
+
+* [**Oculus Rift Guardian 系统范例项目**](https://epicgames.box.com/s/s4vvkb2i0ohtice8vtqude6i8ih7hy8i)
+

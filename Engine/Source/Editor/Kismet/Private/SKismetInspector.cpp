@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SKismetInspector.h"
@@ -756,7 +756,7 @@ bool SKismetInspector::IsPropertyVisible( const FPropertyAndParent& PropertyAndP
 	}
 
 	// Filter down to selected properties only if set.
-	if ( SelectedObjectProperties.Find( &Property) ) 
+	if ( SelectedObjectProperties.Find( MakeWeakObjectPtr( const_cast<UProperty*>( &Property ) ) ) ) 
 	{
 		// If the current property is selected, it is visible.
 		return true;
@@ -771,12 +771,12 @@ bool SKismetInspector::IsPropertyVisible( const FPropertyAndParent& PropertyAndP
 			ParentPropertyOuter = Cast<UProperty>(ParentProperty->GetOuter());
 		}
 
-		if ( SelectedObjectProperties.Find( ParentProperty ) )
+		if ( SelectedObjectProperties.Find( MakeWeakObjectPtr( const_cast<UProperty*>( ParentProperty ) ) ) )
 		{
 			// If its parent is selected, it should be visible
 			return true;
 		}
-		else if ( ParentPropertyOuter && SelectedObjectProperties.Find( ParentPropertyOuter ) )
+		else if ( ParentPropertyOuter && SelectedObjectProperties.Find( MakeWeakObjectPtr( const_cast<UProperty*>( ParentPropertyOuter ) ) ) )
 		{
 			// If its parent is part of a container and the container property is selected, it should be visible
 			return true;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -67,9 +67,11 @@ public:
 	 * @param  Objects			The objects to add
 	 * @param  PropertyName		Name of a property inside the object(s) to add.
 	 * @param  UniqueIdName		Optional identifier that uniquely identifies this object among other objects of the same type.  If this is empty, saving and restoring expansion state of this object may not work
+	 * @param  bAllowChildrenOverride Allows customization of how the new root property node is expanded when this is added. 
+	 * @param  bCreateCategoryNodesOverride Allows customization of how the new root node's category is displayed (or not). 
 	 * @return The header row generated for this set of objects by the details panel
 	 */
-	virtual class IDetailPropertyRow* AddExternalObjectProperty(const TArray<UObject*>& Objects, FName PropertyName, FName UniqueIdName = NAME_None) = 0;
+	virtual class IDetailPropertyRow* AddExternalObjectProperty(const TArray<UObject*>& Objects, FName PropertyName, FName UniqueIdName = NAME_None, TOptional<bool> bAllowChildrenOverride = TOptional<bool>(), TOptional<bool> bCreateCategoryNodesOverride = TOptional<bool>()) = 0;
 
 	/**
 	 * Adds a custom structure as a child

@@ -66,7 +66,7 @@ For a quick reference guide to the Landscape tool's various modes, tools, and br
 
 The **Sculpting Tools** enable you to modify the shape of your Landscape in various ways. Explore the different sculpting selections available below:
 
-[DIR(output:"topiccompact" parent:"Engine/Landscape/Editing/SculptMode" org:"hierarchy" tags:"landscape" tags:"!region" end:"1")]
+[DIR(output:"topiccompact" parent:"Engine/Landscape/Editing/SculptMode" org:"hierarchy" tags:"landscape" tags:"sculpting" end:"1")]
 
 (#RegionTools)
 

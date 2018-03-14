@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -82,6 +82,15 @@ public:
 		{
 			Data.RemoveAt(GetByteCount(), GetBufferSize()-GetByteCount());
 		}
+	}
+
+	/**
+	 * Act as if the buffer is now empty. Useful for buffers that are reused
+	 */
+	inline void Reset()
+	{
+		NumBytes = 0;
+		bHasOverflowed = false;
 	}
 
 	/**

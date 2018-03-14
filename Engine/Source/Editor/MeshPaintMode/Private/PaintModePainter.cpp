@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PaintModePainter.h"
 
@@ -343,7 +343,7 @@ void FPaintModePainter::PasteVertexColors()
 					{
 						// no corresponding LOD in color paste buffer CopiedColorsByLOD
 						// create array of all white verts
-						MeshPaintHelpers::SetInstanceColorDataForLOD(Component, LODIndex, FColor::White);
+						MeshPaintHelpers::SetInstanceColorDataForLOD(Component, LODIndex, FColor::White, FColor::White);
 					}
 					else
 					{
@@ -363,7 +363,7 @@ void FPaintModePainter::PasteVertexColors()
 							for (int32 VertexIndex = 0; VertexIndex < NumLODVertices; ++VertexIndex)
 							{
 								// Search for color matching this vertex position otherwise fill it with white
-								const FVector& Vertex = LodRenderData.PositionVertexBuffer.VertexPosition(VertexIndex);
+								const FVector& Vertex = LodRenderData.VertexBuffers.PositionVertexBuffer.VertexPosition(VertexIndex);
 								const FColor* FoundColor = LODData.ColorsByPosition.Find(Vertex);
 								PositionMatchedColors.Add(FoundColor ? *FoundColor : FColor::White);
 							}
@@ -533,6 +533,16 @@ void FPaintModePainter::RegisterCommands(TSharedRef<FUICommandList> CommandList)
 	auto TexturePaintModeLambda = [this]() -> bool { return PaintSettings->PaintMode == EPaintMode::Textures;  };
 	CommandList->MapAction(Commands.NextTexture, FExecuteAction::CreateLambda(TextureCycleLambda, 1), FCanExecuteAction::CreateLambda(TexturePaintModeLambda));
 	CommandList->MapAction(Commands.PreviousTexture, FExecuteAction::CreateLambda(TextureCycleLambda, -1), FCanExecuteAction::CreateLambda(TexturePaintModeLambda));
+
+	CommandList->MapAction(Commands.SwitchForeAndBackgroundColor, FExecuteAction::CreateLambda([this]()
+	{
+		if (PaintSettings->PaintMode == EPaintMode::Vertices)
+		{
+			const FLinearColor Temp = PaintSettings->VertexPaintSettings.PaintColor;
+			PaintSettings->VertexPaintSettings.PaintColor = PaintSettings->VertexPaintSettings.EraseColor;
+			PaintSettings->VertexPaintSettings.EraseColor = Temp;
+		}
+	}));
 	
 	/** Map commit texture painting to commiting all the outstanding paint changes */
 	auto CanCommitLambda = [this]() -> bool { return GetNumberOfPendingPaintChanges() > 0; };
@@ -1897,11 +1907,19 @@ void FPaintModePainter::FillWithVertexColor()
 	const TArray<UMeshComponent*> MeshComponents = GetSelectedComponents<UMeshComponent>();
 
 	static const bool bConvertSRGB = false;
-	FColor FillColor = PaintSettings->VertexPaintSettings.PaintColor.ToFColor(bConvertSRGB);
+	FColor FillColor = PaintSettings->VertexPaintSettings.PaintColor.ToFColor(bConvertSRGB);	
+	FColor MaskColor = FColor::White;
 
 	if (PaintSettings->VertexPaintSettings.MeshPaintMode == EMeshPaintMode::PaintWeights)
 	{
 		FillColor = MeshPaintHelpers::GenerateColorForTextureWeight((int32)PaintSettings->VertexPaintSettings.TextureWeightType, (int32)PaintSettings->VertexPaintSettings.PaintTextureWeightIndex).ToFColor(bConvertSRGB);
+	}
+	else
+	{
+		MaskColor.R = PaintSettings->VertexPaintSettings.bWriteRed ? 255 : 0;
+		MaskColor.G = PaintSettings->VertexPaintSettings.bWriteGreen ? 255 : 0;
+		MaskColor.B = PaintSettings->VertexPaintSettings.bWriteBlue ? 255 : 0;
+		MaskColor.A = PaintSettings->VertexPaintSettings.bWriteAlpha ? 255 : 0;
 	}
 
 	TUniquePtr< FComponentReregisterContext > ComponentReregisterContext;
@@ -1911,7 +1929,19 @@ void FPaintModePainter::FillWithVertexColor()
 		checkf(Component != nullptr, TEXT("Invalid Mesh Component"));
 		Component->Modify();
 		ComponentReregisterContext = MakeUnique<FComponentReregisterContext>(Component);
-		MeshPaintHelpers::FillVertexColors(Component, FillColor, true);
+
+		TSharedPtr<IMeshPaintGeometryAdapter>* MeshAdapter = ComponentToAdapterMap.Find(Component);
+		if (MeshAdapter)
+		{
+			(*MeshAdapter)->PreEdit();
+		}
+		
+		MeshPaintHelpers::FillVertexColors(Component, FillColor, MaskColor, true);
+
+		if (MeshAdapter)
+		{
+			(*MeshAdapter)->PostEdit();
+		}
 	}
 }
 

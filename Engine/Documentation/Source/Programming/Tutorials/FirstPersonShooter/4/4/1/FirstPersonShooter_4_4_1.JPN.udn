@@ -22,7 +22,7 @@ Version:4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 このステップでは、Idle と Run の間の遷移を追加し、キャラクターが動き始めるとステートマシーンが **Idle** から **Run** に遷移するようにします。
 
@@ -56,4 +56,3 @@ Version:4.15
 
 	![](IsNotRunningtoResult.png)
 
-%Steps%

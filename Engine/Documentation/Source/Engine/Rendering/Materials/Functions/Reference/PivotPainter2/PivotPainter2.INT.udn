@@ -1,12 +1,12 @@
 Availability:Public
 Crumbs:%ROOT%
-Title:Pivot Painter 2 Material Functions
+Title:Pivot Painter Tool 2.0 Material Functions
 Description: Material Functions designed to enable utilization of the Pivot Painter 2 MAXScript in an Unreal shader network.
 Type:reference
 Version:4.16
 Parent:Engine/Rendering/Materials/Functions/Reference
-Related:Engine/Content/Tools/PivotPainter2
-Related:Engine/Content/Tools/PivotPainter2/Reference
+Related:Engine/Content/Tools/PivotPainter/PivotPainter2
+Related:Engine/Content/Tools/PivotPainter/PivotPainter2/Reference
 Order:1
 Topic-image:PivotPainter2MF_Topic.png
 Social-image:PP2MaterialFunction_Social.png
@@ -29,9 +29,7 @@ Tags:Materials
 	[/PARAMLITERAL]
 [/OBJECT]
 
-Pivot Painter 2 Material Functions enable you to tap into and decode useful model information stored by Pivot Painter 2 MAXScript using textures. Each texture output by the MAXScript can be referenced
-directly in a Material but without applying the proper steps after sampling the texture the values would be incorrect. These Material Functions found in this page make it easy to quickly decode
-the texture information. 
+Pivot Painter 2 Material Functions enable you to tap into and decode useful model information stored by Pivot Painter 2 MAXScript using textures. Each texture output by the MAXScript can be referenced directly in a Material but without applying the proper steps after sampling the texture the values would be incorrect. These Material Functions found in this page make it easy to quickly decode the texture information. 
 
 A lot of the Material Functions included in this page will enable you to use the Pivot Painter 2 pivot and rotational information to do specific effects via your Material, however, one of
 the greater benefits of Pivot Painter 2 is its ease of use with the provided sample shader for foliage; **PivotPainter2FoliageShader**. This specific Material Function enables you to 
@@ -42,7 +40,7 @@ quickly setup your model and its Pivot Painter 2 generated textures with your fo
 
 ## Pivot Painter 2 Functions
 
-The following is a list of all the functions related to Pivot Painter 2. 
+The following is a list of all the functions related to Pivot Painter 2.0. 
 
 
 ### PivotPainter2FoliageShader
@@ -50,6 +48,10 @@ The following is a list of all the functions related to Pivot Painter 2.
 ![](PP2_FoliageShader.png)
 
 This Material Function contains texture and numeric parameters that should be altered to fit your particular asset. 
+
+#### PivotPainter2FoliageShader Workflow
+
+For this particular function, you should create a Material Instance of your Material so that you can access the Material Function's already setup parameters for wind and turbulence. 
 
 Also, for this particular function, it is suggested that you create a Material Instance, where the Material Function's parameters will be accessible to make changes to your Pivot Painter 2 shader. 
 

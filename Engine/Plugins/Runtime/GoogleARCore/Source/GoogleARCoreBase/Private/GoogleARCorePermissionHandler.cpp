@@ -5,24 +5,24 @@
 #include "AndroidPermissionCallbackProxy.h"
 #include "GoogleARCoreDevice.h"
 
-UTangoAndroidPermissionHandler::UTangoAndroidPermissionHandler(const FObjectInitializer& Init) : Super(Init)
+UARCoreAndroidPermissionHandler::UARCoreAndroidPermissionHandler(const FObjectInitializer& Init) : Super(Init)
 {
 }
 
-bool UTangoAndroidPermissionHandler::CheckRuntimePermission(const FString& RuntimePermission)
+bool UARCoreAndroidPermissionHandler::CheckRuntimePermission(const FString& RuntimePermission)
 {
 	return UAndroidPermissionFunctionLibrary::CheckPermission(RuntimePermission);
 }
 
-void UTangoAndroidPermissionHandler::RequestRuntimePermissions(const TArray<FString>& RuntimePermissions)
+void UARCoreAndroidPermissionHandler::RequestRuntimePermissions(const TArray<FString>& RuntimePermissions)
 {
-	UAndroidPermissionCallbackProxy::GetInstance()->OnPermissionsGrantedDynamicDelegate.AddDynamic(this, &UTangoAndroidPermissionHandler::OnPermissionsGranted);
+	UAndroidPermissionCallbackProxy::GetInstance()->OnPermissionsGrantedDynamicDelegate.AddDynamic(this, &UARCoreAndroidPermissionHandler::OnPermissionsGranted);
 	UAndroidPermissionFunctionLibrary::AcquirePermissions(RuntimePermissions);
 }
 
-void UTangoAndroidPermissionHandler::OnPermissionsGranted(const TArray<FString> &Permissions, const TArray<bool>& Granted)
+void UARCoreAndroidPermissionHandler::OnPermissionsGranted(const TArray<FString> &Permissions, const TArray<bool>& Granted)
 {
-	UAndroidPermissionCallbackProxy::GetInstance()->OnPermissionsGrantedDynamicDelegate.RemoveDynamic(this, &UTangoAndroidPermissionHandler::OnPermissionsGranted);
+	UAndroidPermissionCallbackProxy::GetInstance()->OnPermissionsGrantedDynamicDelegate.RemoveDynamic(this, &UARCoreAndroidPermissionHandler::OnPermissionsGranted);
 	FGoogleARCoreDevice::GetInstance()->HandleRuntimePermissionsGranted(Permissions, Granted);
 }
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SNiagaraSpreadsheetView.h"
 #include "Textures/SlateIcon.h"
@@ -25,8 +25,10 @@
 
 #define LOCTEXT_NAMESPACE "SNiagaraSpreadsheetView"
 #define ARRAY_INDEX_COLUMN_NAME TEXT("Array Index")
-#define KEY_COLUMN_NAME TEXT("Property")
+#define OUTPUT_KEY_COLUMN_NAME TEXT("Output Property")
+#define INPUT_KEY_COLUMN_NAME TEXT("Input Property")
 #define VALUE_COLUMN_NAME TEXT("Value")
+#define FILLER_COLUMN_NAME TEXT("__FILLER__")
 
 void SNiagaraSpreadsheetRow::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView)
 {
@@ -36,6 +38,8 @@ void SNiagaraSpreadsheetRow::Construct(const FArguments& InArgs, const TSharedRe
 
 	SupportedFields = InArgs._SupportedFields;
 	FieldInfoMap = InArgs._FieldInfoMap;
+	UseGlobalOffsets = InArgs._UseGlobalOffsets;
+	ParameterStore = InArgs._ParameterStore;
 
 	SMultiColumnTableRow< TSharedPtr<int32> >::Construct(FSuperRowType::FArguments(), InOwnerTableView);
 }
@@ -43,6 +47,11 @@ void SNiagaraSpreadsheetRow::Construct(const FArguments& InArgs, const TSharedRe
 
 TSharedRef< SWidget > SNiagaraSpreadsheetRow::GenerateWidgetForColumn(const FName& ColumnName)
 {
+	if (ColumnName == FILLER_COLUMN_NAME)
+	{
+		return SNullWidget::NullWidget;
+	}
+
 	TSharedPtr<SWidget> EntryWidget;
 	const SNiagaraSpreadsheetView::FieldInfo* FieldInfo = nullptr;
 	int32 RealRowIdx = 0;
@@ -51,7 +60,7 @@ TSharedRef< SWidget > SNiagaraSpreadsheetRow::GenerateWidgetForColumn(const FNam
 		EntryWidget = SNew(STextBlock)
 			.Text(FText::AsNumber(RowIndex));
 	}
-	else if (!ColumnsAreAttributes && ColumnName == KEY_COLUMN_NAME)
+	else if (!ColumnsAreAttributes && (ColumnName == INPUT_KEY_COLUMN_NAME || ColumnName == OUTPUT_KEY_COLUMN_NAME))
 	{
 		EntryWidget = SNew(STextBlock)
 			.Text(FText::FromName((*SupportedFields.Get())[RowIndex]));
@@ -66,13 +75,22 @@ TSharedRef< SWidget > SNiagaraSpreadsheetRow::GenerateWidgetForColumn(const FNam
 		FieldInfo = FieldInfoMap->Find((*SupportedFields.Get())[RowIndex]);
 	}
 
-	if (FieldInfo != nullptr && DataSet != nullptr && !EntryWidget.IsValid())
+	if (FieldInfo != nullptr && (UseGlobalOffsets ? ParameterStore != nullptr : DataSet != nullptr) && !EntryWidget.IsValid())
 	{
 		
 		if (FieldInfo->bFloat)
 		{
-			uint32 CompBufferOffset = FieldInfo->FloatStartOffset;
-			float* Src = DataSet->PrevData().GetInstancePtrFloat(CompBufferOffset, RealRowIdx);
+			float* Src = nullptr;
+			if (UseGlobalOffsets)
+			{
+				uint32 CompBufferOffset = FieldInfo->GlobalStartOffset;
+				Src = (float*)(ParameterStore->GetParameterDataArray().GetData() + CompBufferOffset);
+			}
+			else
+			{
+				uint32 CompBufferOffset = FieldInfo->FloatStartOffset;
+				Src = DataSet->PrevData().GetInstancePtrFloat(CompBufferOffset, RealRowIdx);
+			}
 
 			EntryWidget = SNew(STextBlock)
 				.Text(FText::AsNumber(Src[0]));
@@ -80,8 +98,17 @@ TSharedRef< SWidget > SNiagaraSpreadsheetRow::GenerateWidgetForColumn(const FNam
 		}
 		else if (FieldInfo->bBoolean)
 		{
-			uint32 CompBufferOffset = FieldInfo->IntStartOffset;
-			int32* Src = DataSet->PrevData().GetInstancePtrInt32(CompBufferOffset, RealRowIdx);
+			int32* Src = nullptr;
+			if (UseGlobalOffsets)
+			{
+				uint32 CompBufferOffset = FieldInfo->GlobalStartOffset;
+				Src = (int32*)(ParameterStore->GetParameterDataArray().GetData() + CompBufferOffset);
+			}
+			else
+			{
+				uint32 CompBufferOffset = FieldInfo->IntStartOffset;
+				Src = DataSet->PrevData().GetInstancePtrInt32(CompBufferOffset, RealRowIdx);
+			}
 			FText ValueText;
 			if (Src[0] == 0)
 			{
@@ -101,16 +128,34 @@ TSharedRef< SWidget > SNiagaraSpreadsheetRow::GenerateWidgetForColumn(const FNam
 		}
 		else if (FieldInfo->Enum.IsValid())
 		{
-			uint32 CompBufferOffset = FieldInfo->IntStartOffset;
-			int32* Src = DataSet->PrevData().GetInstancePtrInt32(CompBufferOffset, RealRowIdx);
+			int32* Src = nullptr;
+			if (UseGlobalOffsets)
+			{
+				uint32 CompBufferOffset = FieldInfo->GlobalStartOffset;
+				Src = (int32*)(ParameterStore->GetParameterDataArray().GetData() + CompBufferOffset);
+			}
+			else
+			{
+				uint32 CompBufferOffset = FieldInfo->IntStartOffset;
+				Src = DataSet->PrevData().GetInstancePtrInt32(CompBufferOffset, RealRowIdx);
+			}
 			EntryWidget = SNew(STextBlock)
 				.Text(FText::Format(LOCTEXT("EnumValue","{0}({1})"), FieldInfo->Enum->GetDisplayNameTextByValue(Src[0]), FText::AsNumber(Src[0])));
 
 		}
 		else
 		{
-			uint32 CompBufferOffset = FieldInfo->IntStartOffset;
-			int32* Src = DataSet->PrevData().GetInstancePtrInt32(CompBufferOffset, RealRowIdx);
+			int32* Src = nullptr;
+			if (UseGlobalOffsets)
+			{
+				uint32 CompBufferOffset = FieldInfo->GlobalStartOffset;
+				Src = (int32*)(ParameterStore->GetParameterDataArray().GetData() + CompBufferOffset);
+			}
+			else
+			{
+				uint32 CompBufferOffset = FieldInfo->IntStartOffset;
+				Src = DataSet->PrevData().GetInstancePtrInt32(CompBufferOffset, RealRowIdx);
+			}
 			EntryWidget = SNew(STextBlock)
 				.Text(FText::AsNumber(Src[0]));
 
@@ -144,8 +189,10 @@ void SNiagaraSpreadsheetView::Construct(const FArguments& InArgs, TSharedRef<FNi
 	CaptureData[(int)UISystemUpdate].TargetUsage = ENiagaraScriptUsage::SystemUpdateScript;
 	CaptureData[(int)UIPerParticleUpdate].ColumnName = LOCTEXT("PerParticleUpdate", "Per-Particle Update");
 	CaptureData[(int)UISystemUpdate].ColumnName = LOCTEXT("SystemUpdate", "System Update");
-	CaptureData[(int)UIPerParticleUpdate].bColumnsAreAttributes = true;
-	CaptureData[(int)UISystemUpdate].bColumnsAreAttributes = false;
+	CaptureData[(int)UIPerParticleUpdate].bOutputColumnsAreAttributes = true;
+	CaptureData[(int)UISystemUpdate].bOutputColumnsAreAttributes = false;
+	CaptureData[(int)UIPerParticleUpdate].bInputColumnsAreAttributes = false;
+	CaptureData[(int)UISystemUpdate].bInputColumnsAreAttributes = false;
 
 	SystemViewModel = InSystemViewModel;
 	SystemViewModel->OnSelectedEmitterHandlesChanged().AddRaw(this, &SNiagaraSpreadsheetView::SelectedEmitterHandlesChanged);
@@ -153,35 +200,64 @@ void SNiagaraSpreadsheetView::Construct(const FArguments& InArgs, TSharedRef<FNi
 
 	for (int32 i = 0; i < (int32)UIMax; i++)
 	{
-		CaptureData[i].HorizontalScrollBar = SNew(SScrollBar)
+		CaptureData[i].OutputHorizontalScrollBar = SNew(SScrollBar)
 			.Orientation(Orient_Horizontal)
 			.Thickness(FVector2D(8.0f, 8.0f));
 
-		CaptureData[i].VerticalScrollBar = SNew(SScrollBar)
+		CaptureData[i].OutputVerticalScrollBar = SNew(SScrollBar)
 			.Orientation(Orient_Vertical)
 			.Thickness(FVector2D(8.0f, 8.0f));
 
+		CaptureData[i].InputHorizontalScrollBar = SNew(SScrollBar)
+			.Orientation(Orient_Horizontal)
+			.Thickness(FVector2D(8.0f, 8.0f));
 
-		SAssignNew(CaptureData[i].ListView, STreeView< TSharedPtr<int32> >)
+		CaptureData[i].InputVerticalScrollBar = SNew(SScrollBar)
+			.Orientation(Orient_Vertical)
+			.Thickness(FVector2D(8.0f, 8.0f));
+
+		SAssignNew(CaptureData[i].OutputsListView, STreeView< TSharedPtr<int32> >)
 			.IsEnabled(this, &SNiagaraSpreadsheetView::IsPausedAtRightTimeOnRightHandle)
 			// List view items are this tall
 			.ItemHeight(12)
 			// Tell the list view where to get its source data
-			.TreeItemsSource(&CaptureData[i].SupportedIndices)
+			.TreeItemsSource(&CaptureData[i].SupportedOutputIndices)
 			// When the list view needs to generate a widget for some data item, use this method
-			.OnGenerateRow(this, &SNiagaraSpreadsheetView::OnGenerateWidgetForList, (EUITab)i)
+			.OnGenerateRow(this, &SNiagaraSpreadsheetView::OnGenerateWidgetForList, (EUITab)i, false)
 			// Given some DataItem, this is how we find out if it has any children and what they are.
-			.OnGetChildren(this, &SNiagaraSpreadsheetView::OnGetChildrenForList, (EUITab)i)
+			.OnGetChildren(this, &SNiagaraSpreadsheetView::OnGetChildrenForList, (EUITab)i, false)
 			// Selection mode
 			.SelectionMode(ESelectionMode::Single)
-			.ExternalScrollbar(CaptureData[i].VerticalScrollBar)
+			.ExternalScrollbar(CaptureData[i].OutputVerticalScrollBar)
 			.ConsumeMouseWheel(EConsumeMouseWheel::Always)
 			.AllowOverscroll(EAllowOverscroll::No)
 			// Selection callback
-			.OnSelectionChanged(this, &SNiagaraSpreadsheetView::OnEventSelectionChanged, (EUITab)i)
+			.OnSelectionChanged(this, &SNiagaraSpreadsheetView::OnEventSelectionChanged, (EUITab)i, false)
 			.HeaderRow
 			(
-				SAssignNew(CaptureData[i].HeaderRow, SHeaderRow)
+				SAssignNew(CaptureData[i].OutputHeaderRow, SHeaderRow)
+			);
+
+		SAssignNew(CaptureData[i].InputsListView, STreeView< TSharedPtr<int32> >)
+			.IsEnabled(this, &SNiagaraSpreadsheetView::IsPausedAtRightTimeOnRightHandle)
+			// List view items are this tall
+			.ItemHeight(12)
+			// Tell the list view where to get its source data
+			.TreeItemsSource(&CaptureData[i].SupportedInputIndices)
+			// When the list view needs to generate a widget for some data item, use this method
+			.OnGenerateRow(this, &SNiagaraSpreadsheetView::OnGenerateWidgetForList, (EUITab)i, true)
+			// Given some DataItem, this is how we find out if it has any children and what they are.
+			.OnGetChildren(this, &SNiagaraSpreadsheetView::OnGetChildrenForList, (EUITab)i, true)
+			// Selection mode
+			.SelectionMode(ESelectionMode::Single)
+			.ExternalScrollbar(CaptureData[i].InputVerticalScrollBar)
+			.ConsumeMouseWheel(EConsumeMouseWheel::Always)
+			.AllowOverscroll(EAllowOverscroll::No)
+			// Selection callback
+			.OnSelectionChanged(this, &SNiagaraSpreadsheetView::OnEventSelectionChanged, (EUITab)i, true)
+			.HeaderRow
+			(
+				SAssignNew(CaptureData[i].InputHeaderRow, SHeaderRow)
 			);
 
 		SAssignNew(CaptureData[i].CheckBox, SCheckBox)
@@ -205,28 +281,53 @@ void SNiagaraSpreadsheetView::Construct(const FArguments& InArgs, TSharedRef<FNi
 		SAssignNew(CaptureData[i].Container, SVerticalBox)
 			.Visibility(this, &SNiagaraSpreadsheetView::GetViewVisibility, (EUITab)i)
 			+ SVerticalBox::Slot()
+			.FillHeight(0.25f)
 			[
 				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				[
 					SNew(SScrollBox)
 					.Orientation(Orient_Horizontal)
-					.ExternalScrollbar(CaptureData[i].HorizontalScrollBar)
+					.ExternalScrollbar(CaptureData[i].InputHorizontalScrollBar)
 					+ SScrollBox::Slot()
 					[
-						CaptureData[i].ListView.ToSharedRef()
+						CaptureData[i].InputsListView.ToSharedRef()
 					]
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
-					CaptureData[i].VerticalScrollBar.ToSharedRef()
+					CaptureData[i].InputVerticalScrollBar.ToSharedRef()
 				]
 			]
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			[
-				CaptureData[i].HorizontalScrollBar.ToSharedRef()
+				CaptureData[i].InputHorizontalScrollBar.ToSharedRef()
+			]
+			+ SVerticalBox::Slot()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				[
+					SNew(SScrollBox)
+					.Orientation(Orient_Horizontal)
+					.ExternalScrollbar(CaptureData[i].OutputHorizontalScrollBar)
+					+ SScrollBox::Slot()
+					[
+						CaptureData[i].OutputsListView.ToSharedRef()
+					]
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					CaptureData[i].OutputVerticalScrollBar.ToSharedRef()
+				]
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				CaptureData[i].OutputHorizontalScrollBar.ToSharedRef()
 			];
 		}
 
@@ -351,14 +452,30 @@ EVisibility SNiagaraSpreadsheetView::GetViewVisibility(EUITab Tab) const
 }
 
 
-TSharedRef< ITableRow > SNiagaraSpreadsheetView::OnGenerateWidgetForList(TSharedPtr<int32> InItem, const TSharedRef<STableViewBase>& OwnerTable, EUITab Tab)
+TSharedRef< ITableRow > SNiagaraSpreadsheetView::OnGenerateWidgetForList(TSharedPtr<int32> InItem, const TSharedRef<STableViewBase>& OwnerTable, EUITab Tab, bool bInputList)
 {
-	return SNew(SNiagaraSpreadsheetRow, OwnerTable)
-		.RowIndex(*InItem)
-		.ColumnsAreAttributes(CaptureData[(int32)Tab].bColumnsAreAttributes)
-		.DataSet(CaptureData[(int32)Tab].DataSet)
-		.SupportedFields(CaptureData[(int32)Tab].SupportedFields)
-		.FieldInfoMap(CaptureData[(int32)Tab].FieldInfoMap);
+	if (bInputList)
+	{
+		return SNew(SNiagaraSpreadsheetRow, OwnerTable)
+			.RowIndex(*InItem)
+			.ColumnsAreAttributes(CaptureData[(int32)Tab].bInputColumnsAreAttributes)
+			.DataSet(nullptr)
+			.SupportedFields(CaptureData[(int32)Tab].SupportedInputFields)
+			.FieldInfoMap(CaptureData[(int32)Tab].InputFieldInfoMap)
+			.UseGlobalOffsets(true)
+			.ParameterStore(&CaptureData[(int32)Tab].InputParams);
+	}
+	else
+	{
+		return SNew(SNiagaraSpreadsheetRow, OwnerTable)
+			.RowIndex(*InItem)
+			.ColumnsAreAttributes(CaptureData[(int32)Tab].bOutputColumnsAreAttributes)
+			.DataSet(CaptureData[(int32)Tab].DataSet)
+			.SupportedFields(CaptureData[(int32)Tab].SupportedOutputFields)
+			.FieldInfoMap(CaptureData[(int32)Tab].OutputFieldInfoMap)
+			.UseGlobalOffsets(false)
+			.ParameterStore(nullptr);
+	}
 }
 
 FText SNiagaraSpreadsheetView::LastCapturedInfoText() const
@@ -377,7 +494,7 @@ FText SNiagaraSpreadsheetView::LastCapturedInfoText() const
 	return LOCTEXT("LastCapturedHandleNameStale", "Captured Info: Out-of-date");
 }
 
-void SNiagaraSpreadsheetView::OnGetChildrenForList(TSharedPtr<int32> InItem, TArray<TSharedPtr<int32>>& OutChildren, EUITab Tab)
+void SNiagaraSpreadsheetView::OnGetChildrenForList(TSharedPtr<int32> InItem, TArray<TSharedPtr<int32>>& OutChildren, EUITab Tab, bool bInputList)
 {
 	OutChildren.Empty();
 }
@@ -389,25 +506,27 @@ void SNiagaraSpreadsheetView::SelectedEmitterHandlesChanged()
 	{
 		CaptureData[i].LastReadWriteId = -1;
 		CaptureData[i].DataSet = nullptr;
-		CaptureData[i].SupportedIndices.SetNum(0);
-		CaptureData[i].ListView->RequestTreeRefresh();
+		CaptureData[i].SupportedInputIndices.SetNum(0);
+		CaptureData[i].SupportedOutputIndices.SetNum(0);
+		CaptureData[i].OutputsListView->RequestTreeRefresh();
+		CaptureData[i].InputsListView->RequestTreeRefresh();
 	}
 	
 }
 
 FReply SNiagaraSpreadsheetView::OnCSVOutputPressed()
 {
-	if (CaptureData[(int32)TabState].SupportedFields.IsValid() && CaptureData[(int32)TabState].FieldInfoMap.IsValid() && IsPausedAtRightTimeOnRightHandle())
+	if (CaptureData[(int32)TabState].SupportedOutputFields.IsValid() && CaptureData[(int32)TabState].OutputFieldInfoMap.IsValid() && IsPausedAtRightTimeOnRightHandle())
 	{
 		FString CSVOutput;
 		int32 SkipIdx = -1;
 		int32 NumWritten = 0;
 		TArray<const SNiagaraSpreadsheetView::FieldInfo*> FieldInfos;
-		FieldInfos.SetNum(CaptureData[(int32)TabState].SupportedFields->Num());
+		FieldInfos.SetNum(CaptureData[(int32)TabState].SupportedOutputFields->Num());
 		FString DelimiterString = TEXT("\t");
-		for (int32 i = 0; i < CaptureData[(int32)TabState].SupportedFields->Num(); i++)
+		for (int32 i = 0; i < CaptureData[(int32)TabState].SupportedOutputFields->Num(); i++)
 		{
-			FName Field = (*CaptureData[(int32)TabState].SupportedFields)[i];
+			FName Field = (*CaptureData[(int32)TabState].SupportedOutputFields)[i];
 			if (Field == ARRAY_INDEX_COLUMN_NAME)
 			{
 				SkipIdx = i;
@@ -419,7 +538,7 @@ FReply SNiagaraSpreadsheetView::OnCSVOutputPressed()
 				CSVOutput += DelimiterString;
 			}
 
-			FieldInfos[i] = CaptureData[(int32)TabState].FieldInfoMap->Find(Field);
+			FieldInfos[i] = CaptureData[(int32)TabState].OutputFieldInfoMap->Find(Field);
 
 			CSVOutput += Field.ToString();
 			NumWritten++;
@@ -430,7 +549,7 @@ FReply SNiagaraSpreadsheetView::OnCSVOutputPressed()
 		for (uint32 RowIndex = 0; RowIndex < CaptureData[(int32)TabState].DataSet->PrevData().GetNumInstances(); RowIndex++)
 		{
 			NumWritten = 0;
-			for (int32 i = 0; i < CaptureData[(int32)TabState].SupportedFields->Num(); i++)
+			for (int32 i = 0; i < CaptureData[(int32)TabState].SupportedOutputFields->Num(); i++)
 			{
 				if (i == SkipIdx)
 				{
@@ -503,7 +622,7 @@ void SNiagaraSpreadsheetView::HandleTimeChange()
 				UNiagaraScript* FoundScript = nullptr;
 				for (UNiagaraScript* Script : Scripts)
 				{
-					if (Script->IsEquivalentUsage(CaptureData[i].TargetUsage))
+					if (Script && Script->IsEquivalentUsage(CaptureData[i].TargetUsage))
 					{
 						FoundScript = Script;
 						break;
@@ -516,6 +635,7 @@ void SNiagaraSpreadsheetView::HandleTimeChange()
 				{
 					CaptureData[i].LastReadWriteId = FoundScript->GetDebuggerInfo().DebugFrameLastWriteId;
 					CaptureData[i].DataSet = &FoundScript->GetDebuggerInfo().DebugFrame;
+					CaptureData[i].InputParams = FoundScript->GetDebuggerInfo().DebugParameters;
 					CaptureData[i].DataSet->Tick(ENiagaraSimTarget::CPUSim); // Force a buffer swap, from here out we read from PrevData.
 
 					CaptureData[i].LastCaptureTime = LocalCaptureTime;
@@ -549,7 +669,7 @@ bool SNiagaraSpreadsheetView::CanCapture() const
 	if (SelectedEmitterHandles.Num() == 1)
 	{
 		FNiagaraEmitterHandle* Handle = SelectedEmitterHandles[0]->GetEmitterHandle();
-		if (Handle && Handle->GetInstance()->SimTarget == ENiagaraSimTarget::CPUSim)
+		if (Handle )
 		{
 			return true;
 		}
@@ -575,20 +695,39 @@ void SNiagaraSpreadsheetView::ResetEntries(EUITab Tab)
 {
 	if (CaptureData[(int32)Tab].DataSet)
 	{
-		int32 NumInstances = CaptureData[(int32)Tab].DataSet->GetPrevNumInstances();
-		if (!CaptureData[(int32)Tab].bColumnsAreAttributes)
 		{
-			NumInstances = CaptureData[(int32)Tab].SupportedFields->Num();
+			int32 NumInstances = CaptureData[(int32)Tab].DataSet->GetPrevNumInstances();
+			if (!CaptureData[(int32)Tab].bOutputColumnsAreAttributes)
+			{
+				NumInstances = CaptureData[(int32)Tab].SupportedOutputFields->Num();
+			}
+
+			CaptureData[(int32)Tab].SupportedOutputIndices.SetNum(NumInstances);
+
+			for (int32 i = 0; i < NumInstances; i++)
+			{
+				CaptureData[(int32)Tab].SupportedOutputIndices[i] = MakeShared<int32>(i);
+			}
+
+			CaptureData[(int32)Tab].OutputsListView->RequestTreeRefresh();
 		}
-
-		CaptureData[(int32)Tab].SupportedIndices.SetNum(NumInstances);
-
-		for (int32 i = 0; i < NumInstances; i++)
+	
 		{
-			CaptureData[(int32)Tab].SupportedIndices[i] = MakeShared<int32>(i);
-		}
+			int32 NumInstances = CaptureData[(int32)Tab].InputParams.GetNumParameters();
+			if (!CaptureData[(int32)Tab].bInputColumnsAreAttributes)
+			{
+				NumInstances = CaptureData[(int32)Tab].SupportedInputFields->Num();
+			}
 
-		CaptureData[(int32)Tab].ListView->RequestTreeRefresh();
+			CaptureData[(int32)Tab].SupportedInputIndices.SetNum(NumInstances);
+
+			for (int32 i = 0; i < NumInstances; i++)
+			{
+				CaptureData[(int32)Tab].SupportedInputIndices[i] = MakeShared<int32>(i);
+			}
+
+			CaptureData[(int32)Tab].InputsListView->RequestTreeRefresh();
+		}
 	}
 }
 
@@ -611,6 +750,7 @@ void SNiagaraSpreadsheetView::GenerateLayoutInfo(FNiagaraTypeLayoutInfo& Layout,
 			Info.bFloat = true;
 			Info.FloatStartOffset = Layout.FloatComponentRegisterOffsets.Num();
 			Info.IntStartOffset = UINT_MAX;
+			Info.GlobalStartOffset = sizeof(float) * Layout.FloatComponentRegisterOffsets.Num() + sizeof(int32) * Layout.Int32ComponentByteOffsets.Num();
 			Info.Enum = nullptr;
 			FieldInfo.Add(Info);
 				
@@ -623,8 +763,9 @@ void SNiagaraSpreadsheetView::GenerateLayoutInfo(FNiagaraTypeLayoutInfo& Layout,
 			SNiagaraSpreadsheetView::FieldInfo Info;
 			Info.bFloat = false;
 			Info.bBoolean = Property->IsA(UBoolProperty::StaticClass());
-			Info.FloatStartOffset = -1.0f;
+			Info.FloatStartOffset = UINT_MAX;
 			Info.IntStartOffset = Layout.Int32ComponentRegisterOffsets.Num();
+			Info.GlobalStartOffset = sizeof(float) * Layout.FloatComponentRegisterOffsets.Num() + sizeof(int32) * Layout.Int32ComponentByteOffsets.Num();
 			Info.Enum = Enum;
 			FieldInfo.Add(Info);
 
@@ -655,93 +796,194 @@ void SNiagaraSpreadsheetView::ResetColumns(EUITab Tab)
 
 	if (CaptureData[(int32)i].DataSet)
 	{
-		CaptureData[(int32)i].HeaderRow->ClearColumns();
-
-
-		CaptureData[(int32)i].SupportedFields = MakeShared<TArray<FName> >();
-		CaptureData[(int32)i].FieldInfoMap = MakeShared<TMap<FName, FieldInfo> >();
-		uint32 TotalFloatComponents = 0;
-		uint32 TotalInt32Components = 0;
-
-		TArray<FNiagaraVariable> Variables = CaptureData[(int32)i].DataSet->GetVariables();
-
-
 		float ManualWidth = 75.0f;
-		TArray<FName> ColumnNames;
 
-		if (CaptureData[(int32)i].bColumnsAreAttributes)
+		// Handle output columns
 		{
-			ColumnNames.Add(ARRAY_INDEX_COLUMN_NAME);
-		}
-		else
-		{
-			ManualWidth = 300.0f;
-			ColumnNames.Add(KEY_COLUMN_NAME);
-			ColumnNames.Add(VALUE_COLUMN_NAME);
-		}
+			CaptureData[(int32)i].OutputHeaderRow->ClearColumns();
 
-		for (const FNiagaraVariable& Var : Variables)
-		{
-			FNiagaraTypeDefinition TypeDef = Var.GetType();
-			const UScriptStruct* Struct = TypeDef.GetScriptStruct();
-			const UEnum* Enum = TypeDef.GetEnum();
+			CaptureData[(int32)i].SupportedOutputFields = MakeShared<TArray<FName> >();
+			CaptureData[(int32)i].OutputFieldInfoMap = MakeShared<TMap<FName, FieldInfo> >();
+			uint32 TotalFloatComponents = 0;
+			uint32 TotalInt32Components = 0;
 
-			FNiagaraTypeLayoutInfo Layout;
-			TArray<FName> PropertyNames;
-			TArray<SNiagaraSpreadsheetView::FieldInfo> FieldInfos;
+			TArray<FNiagaraVariable> Variables = CaptureData[(int32)i].DataSet->GetVariables();
 
-			uint32 TotalFloatComponentsBeforeStruct = TotalFloatComponents;
-			uint32 TotalInt32ComponentsBeforeStruct = TotalInt32Components;
+			TArray<FName> ColumnNames;
 
-			GenerateLayoutInfo(Layout, Struct, Enum, Var.GetName(), PropertyNames, FieldInfos);
-
-			for (int32 VarIdx = 0; VarIdx < PropertyNames.Num(); VarIdx++)
+			if (CaptureData[(int32)i].bOutputColumnsAreAttributes)
 			{
-				
+				ColumnNames.Add(ARRAY_INDEX_COLUMN_NAME);
+			}
+			else
+			{
+				ManualWidth = 300.0f;
+				ColumnNames.Add(OUTPUT_KEY_COLUMN_NAME);
+				ColumnNames.Add(VALUE_COLUMN_NAME);
+				ColumnNames.Add(FILLER_COLUMN_NAME);
+			}
+
+			for (const FNiagaraVariable& Var : Variables)
+			{
+				FNiagaraTypeDefinition TypeDef = Var.GetType();
+				const UScriptStruct* Struct = TypeDef.GetScriptStruct();
+				const UEnum* Enum = TypeDef.GetEnum();
+
+				FNiagaraTypeLayoutInfo Layout;
+				TArray<FName> PropertyNames;
+				TArray<SNiagaraSpreadsheetView::FieldInfo> FieldInfos;
+
+				uint32 TotalFloatComponentsBeforeStruct = TotalFloatComponents;
+				uint32 TotalInt32ComponentsBeforeStruct = TotalInt32Components;
+
+				GenerateLayoutInfo(Layout, Struct, Enum, Var.GetName(), PropertyNames, FieldInfos);
+
+				for (int32 VarIdx = 0; VarIdx < PropertyNames.Num(); VarIdx++)
 				{
-					if (FieldInfos[VarIdx].bFloat)
+
 					{
-						FieldInfos[VarIdx].FloatStartOffset += TotalFloatComponentsBeforeStruct;
-						TotalFloatComponents++;
-					}
-					else
-					{
-						FieldInfos[VarIdx].IntStartOffset += TotalInt32ComponentsBeforeStruct;
-						TotalInt32Components++;
+						if (FieldInfos[VarIdx].bFloat)
+						{
+							FieldInfos[VarIdx].FloatStartOffset += TotalFloatComponentsBeforeStruct;
+							TotalFloatComponents++;
+						}
+						else
+						{
+							FieldInfos[VarIdx].IntStartOffset += TotalInt32ComponentsBeforeStruct;
+							TotalInt32Components++;
+						}
+
+						CaptureData[(int32)i].SupportedOutputFields->Add(PropertyNames[VarIdx]);
+						CaptureData[(int32)i].OutputFieldInfoMap->Add(PropertyNames[VarIdx], FieldInfos[VarIdx]);
 					}
 
-					CaptureData[(int32)i].SupportedFields->Add(PropertyNames[VarIdx]);
-					CaptureData[(int32)i].FieldInfoMap->Add(PropertyNames[VarIdx], FieldInfos[VarIdx]);
-				}
-
-				if (CaptureData[(int32)i].bColumnsAreAttributes)
-				{
-					ColumnNames.Add(PropertyNames[VarIdx]);
+					if (CaptureData[(int32)i].bOutputColumnsAreAttributes)
+					{
+						ColumnNames.Add(PropertyNames[VarIdx]);
+					}
 				}
 			}
+
+
+			for (int32 ColIdx = 0; ColIdx < ColumnNames.Num(); ColIdx++)
+			{
+				FName ColumnName = ColumnNames[ColIdx];
+				SHeaderRow::FColumn::FArguments ColumnArgs;
+				ColumnArgs
+					.ColumnId(ColumnName)
+					.SortMode(EColumnSortMode::None)
+					.HAlignHeader(HAlign_Center)
+					.VAlignHeader(VAlign_Fill)
+					.HeaderContentPadding(TOptional<FMargin>(2.0f))
+					.HAlignCell(HAlign_Fill)
+					.VAlignCell(VAlign_Fill);
+
+				if (ColumnName != FILLER_COLUMN_NAME)
+				{
+					ColumnArgs.DefaultLabel(FText::FromName(ColumnName));
+					ColumnArgs.ManualWidth(ManualWidth);
+				}
+				else
+				{
+					ColumnArgs.DefaultLabel(FText::FromString(TEXT(" ")));
+					ColumnArgs.ManualWidth(ManualWidth);
+				}
+				CaptureData[(int32)i].OutputHeaderRow->AddColumn(ColumnArgs);
+			}
+
+			CaptureData[(int32)i].OutputHeaderRow->ResetColumnWidths();
+			CaptureData[(int32)i].OutputHeaderRow->RefreshColumns();
+			CaptureData[(int32)i].OutputsListView->RequestTreeRefresh();
 		}
 
-
-		for (FName ColumnName : ColumnNames)
+		// Handle input columns
 		{
-			SHeaderRow::FColumn::FArguments ColumnArgs;
+			CaptureData[(int32)i].InputHeaderRow->ClearColumns();
 
-			ColumnArgs
-				.ColumnId(ColumnName)
-				.DefaultLabel(FText::FromName(ColumnName))
-				.SortMode(EColumnSortMode::None)
-				.HAlignHeader(HAlign_Center)
-				.VAlignHeader(VAlign_Fill)
-				.HeaderContentPadding(TOptional<FMargin>(2.0f))
-				.HAlignCell(HAlign_Fill)
-				.VAlignCell(VAlign_Fill)
-				.ManualWidth(ManualWidth);
-			CaptureData[(int32)i].HeaderRow->AddColumn(ColumnArgs);
+
+			CaptureData[(int32)i].SupportedInputFields = MakeShared<TArray<FName> >();
+			CaptureData[(int32)i].InputFieldInfoMap = MakeShared<TMap<FName, FieldInfo> >();
+
+			TArray<FNiagaraVariable> Variables;
+			CaptureData[(int32)i].InputParams.GetParameters(Variables);
+
+			TArray<FName> ColumnNames;
+
+			if (CaptureData[(int32)i].bInputColumnsAreAttributes)
+			{
+				ColumnNames.Add(ARRAY_INDEX_COLUMN_NAME);
+			}
+			else
+			{
+				ManualWidth = 300.0f;
+				ColumnNames.Add(INPUT_KEY_COLUMN_NAME);
+				ColumnNames.Add(VALUE_COLUMN_NAME);
+				ColumnNames.Add(FILLER_COLUMN_NAME);
+			}
+
+			for (const FNiagaraVariable& Var : Variables)
+			{
+				FNiagaraTypeDefinition TypeDef = Var.GetType();
+				const UScriptStruct* Struct = TypeDef.GetScriptStruct();
+				const UEnum* Enum = TypeDef.GetEnum();
+
+				FNiagaraTypeLayoutInfo Layout;
+				TArray<FName> PropertyNames;
+				TArray<SNiagaraSpreadsheetView::FieldInfo> FieldInfos;
+
+				int32 ByteOffset = CaptureData[(int32)i].InputParams.IndexOf(Var);
+
+				GenerateLayoutInfo(Layout, Struct, Enum, Var.GetName(), PropertyNames, FieldInfos);
+
+				for (int32 VarIdx = 0; VarIdx < PropertyNames.Num(); VarIdx++)
+				{
+
+					{
+						
+						FieldInfos[VarIdx].GlobalStartOffset += ByteOffset;
+
+						CaptureData[(int32)i].SupportedInputFields->Add(PropertyNames[VarIdx]);
+						CaptureData[(int32)i].InputFieldInfoMap->Add(PropertyNames[VarIdx], FieldInfos[VarIdx]);
+					}
+
+					if (CaptureData[(int32)i].bInputColumnsAreAttributes)
+					{
+						ColumnNames.Add(PropertyNames[VarIdx]);
+					}
+				}
+			}
+
+
+			for (int32 ColIdx = 0; ColIdx < ColumnNames.Num(); ColIdx++)
+			{
+				FName ColumnName = ColumnNames[ColIdx];
+				SHeaderRow::FColumn::FArguments ColumnArgs;
+				ColumnArgs
+					.ColumnId(ColumnName)
+					.SortMode(EColumnSortMode::None)
+					.HAlignHeader(HAlign_Center)
+					.VAlignHeader(VAlign_Fill)
+					.HeaderContentPadding(TOptional<FMargin>(2.0f))
+					.HAlignCell(HAlign_Fill)
+					.VAlignCell(VAlign_Fill);
+
+				if (ColumnName != FILLER_COLUMN_NAME)
+				{
+					ColumnArgs.DefaultLabel(FText::FromName(ColumnName));
+					ColumnArgs.ManualWidth(ManualWidth);
+				}
+				else
+				{
+					ColumnArgs.DefaultLabel(FText::FromString(TEXT(" ")));
+					ColumnArgs.ManualWidth(ManualWidth);
+				}
+				CaptureData[(int32)i].InputHeaderRow->AddColumn(ColumnArgs);
+			}
+
+			CaptureData[(int32)i].InputHeaderRow->ResetColumnWidths();
+			CaptureData[(int32)i].InputHeaderRow->RefreshColumns();
+			CaptureData[(int32)i].InputsListView->RequestTreeRefresh();
 		}
-
-		CaptureData[(int32)i].HeaderRow->ResetColumnWidths();
-		CaptureData[(int32)i].HeaderRow->RefreshColumns();
-		CaptureData[(int32)i].ListView->RequestTreeRefresh();
 	}
 }
 
@@ -767,7 +1009,7 @@ FReply SNiagaraSpreadsheetView::OnCaptureRequestPressed()
 		UNiagaraScript* FoundScript = nullptr;
 		for (UNiagaraScript* Script : Scripts)
 		{
-			if (Script->IsEquivalentUsage(CaptureData[(int32)i].TargetUsage))
+			if (Script && Script->IsEquivalentUsage(CaptureData[(int32)i].TargetUsage))
 			{
 				FoundScript = Script;
 				break;
@@ -796,7 +1038,7 @@ FReply SNiagaraSpreadsheetView::OnCaptureRequestPressed()
 	return FReply::Handled();
 }
 
-void SNiagaraSpreadsheetView::OnEventSelectionChanged(TSharedPtr<int32> Selection, ESelectInfo::Type /*SelectInfo*/, EUITab /*Tab*/)
+void SNiagaraSpreadsheetView::OnEventSelectionChanged(TSharedPtr<int32> Selection, ESelectInfo::Type /*SelectInfo*/, EUITab /*Tab*/, bool /*bInputList*/)
 {
 	if (Selection.IsValid())
 	{

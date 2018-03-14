@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3478014
+﻿INTSourceChangelist:3782314
 Availability:Docs
 Title:1. 위젯 블루프린트 구성
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo, Engine\UMG\HowTo\Create3DWidgets
@@ -28,7 +28,7 @@ Order: 1
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 3D 월드 스페이스에 위젯을 표시하기 위해서는 먼저 표시할 [위젯 블루프린트](Engine/UMG/UserGuide/WidgetBlueprints) 를 만들어야 합니다. 이번 튜토리얼에서는 플레이어가 둘러볼 수 있는 3D 메뉴를 만들 것이며, 이 방법을 통해 어떤 유형의 3D 위젯(생명력 막대, 상호작용형 월드내 UI 요소 등)도 표시할 수 있을 것입니다.
 
@@ -125,7 +125,7 @@ Order: 1
 
 이렇게 완성된 위젯 블루프린트를 **위젯 컴포넌트** 로 사용할 수 있도록, 다음에는 액터 블루프린트를 구성해 줘야 겠습니다. 버튼 클릭시의 함수성을 연결하지는 않더라도, 최소한 3D 월드 스페이스에서 마우스로 조작할 수 있는 메뉴는 나올테니 첫 시작을 어떻게 해야 하는지는 알 수 있을 것입니다.
 
-%Steps%
+
 
 
 

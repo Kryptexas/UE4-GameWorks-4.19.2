@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -148,8 +150,13 @@ namespace UnrealBuildTool
 		/// List of runtime dependencies, with convenience methods for adding new items
 		/// </summary>
 		[Serializable]
-		public class RuntimeDependencyList : List<RuntimeDependency>
+		public class RuntimeDependencyList
 		{
+			/// <summary>
+			/// Inner list of runtime dependencies
+			/// </summary>
+			internal List<RuntimeDependency> Inner = new List<RuntimeDependency>();
+
 			/// <summary>
 			/// Default constructor
 			/// </summary>
@@ -161,10 +168,68 @@ namespace UnrealBuildTool
 			/// Add a runtime dependency to the list
 			/// </summary>
 			/// <param name="InPath">Path to the runtime dependency. May include wildcards.</param>
+			public void Add(string InPath)
+			{
+				Inner.Add(new RuntimeDependency(InPath));
+			}
+
+			/// <summary>
+			/// Add a runtime dependency to the list
+			/// </summary>
+			/// <param name="InPath">Path to the runtime dependency. May include wildcards.</param>
 			/// <param name="InType">How to stage this file</param>
 			public void Add(string InPath, StagedFileType InType)
 			{
-				Add(new RuntimeDependency(InPath, InType));
+				Inner.Add(new RuntimeDependency(InPath, InType));
+			}
+
+			/// <summary>
+			/// Add a runtime dependency to the list
+			/// </summary>
+			/// <param name="InRuntimeDependency">RuntimeDependency instance</param>
+			[Obsolete("Constructing a RuntimeDependency object is deprecated. Call RuntimeDependencies.Add() with the path to the file to stage.")]
+			public void Add(RuntimeDependency InRuntimeDependency)
+			{
+				Inner.Add(InRuntimeDependency);
+			}
+		}
+
+		/// <summary>
+		/// List of runtime dependencies, with convenience methods for adding new items
+		/// </summary>
+		[Serializable]
+		public class ReceiptPropertyList
+		{
+			/// <summary>
+			/// Inner list of runtime dependencies
+			/// </summary>
+			internal List<ReceiptProperty> Inner = new List<ReceiptProperty>();
+
+			/// <summary>
+			/// Default constructor
+			/// </summary>
+			public ReceiptPropertyList()
+			{
+			}
+
+			/// <summary>
+			/// Add a receipt property to the list
+			/// </summary>
+			/// <param name="Name">Name of the property</param>
+			/// <param name="Value">Value for the property</param>
+			public void Add(string Name, string Value)
+			{
+				Inner.Add(new ReceiptProperty(Name, Value));
+			}
+
+			/// <summary>
+			/// Add a receipt property to the list
+			/// </summary>
+			/// <param name="InReceiptProperty">ReceiptProperty instance</param>
+			[Obsolete("Constructing a ReceiptProperty object is deprecated. Call RuntimeDependencies.Add() with the path to the file to stage.")]
+			public void Add(ReceiptProperty InReceiptProperty)
+			{
+				Inner.Add(InReceiptProperty);
 			}
 		}
 
@@ -379,9 +444,23 @@ namespace UnrealBuildTool
 		public List<string> PublicDelayLoadDLLs = new List<string>();
 
 		/// <summary>
-		/// Additional compiler definitions for this module
+		/// Accessor for the PublicDefinitions list
 		/// </summary>
-		public List<string> Definitions = new List<string>();
+		[Obsolete("The 'Definitions' property has been deprecated. Please use 'PublicDefinitions' instead.")]
+		public List<string> Definitions
+		{
+			get { return PublicDefinitions; }
+		}
+
+		/// <summary>
+		/// Private compiler definitions for this module
+		/// </summary>
+		public List<string> PrivateDefinitions = new List<string>();
+
+		/// <summary>
+		/// Public compiler definitions for this module
+		/// </summary>
+		public List<string> PublicDefinitions = new List<string>();
 
 		/// <summary>
 		/// Addition modules this module may require at run-time 
@@ -401,7 +480,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// List of additional properties to be added to the build receipt
 		/// </summary>
-		public List<ReceiptProperty> AdditionalPropertiesForReceipt = new List<ReceiptProperty>();
+		public ReceiptPropertyList AdditionalPropertiesForReceipt = new ReceiptPropertyList();
 
 		/// <summary>
 		/// Which targets this module should be precompiled for
@@ -425,31 +504,12 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Default constructor. Deprecated in 4.15.
-		/// </summary>
-		[Obsolete("Please change your module constructor to take a ReadOnlyTargetRules parameter, and pass it to the base class constructor (eg. \"MyModuleRules(ReadOnlyTargetRules Target) : base(Target)\").")]
-		public ModuleRules()
-		{
-		}
-
-		/// <summary>
 		/// Constructor. For backwards compatibility while the parameterless constructor is being phased out, initialization which would happen here is done by 
 		/// RulesAssembly.CreateModulRules instead.
 		/// </summary>
 		/// <param name="Target">Rules for building this target</param>
 		public ModuleRules(ReadOnlyTargetRules Target)
 		{
-		}
-
-		/// <summary>
-		/// Made Obsolete so that we can more clearly show that this should be used for third party modules within the Engine directory
-		/// </summary>
-		/// <param name="Target">The target this module belongs to</param>
-		/// <param name="ModuleNames">The names of the modules to add</param>
-		[Obsolete("Use AddEngineThirdPartyPrivateStaticDependencies to add dependencies on ThirdParty modules within the Engine Directory")]
-		public void AddThirdPartyPrivateStaticDependencies(ReadOnlyTargetRules Target, params string[] ModuleNames)
-		{
-			AddEngineThirdPartyPrivateStaticDependencies(Target, ModuleNames);
 		}
 
 		/// <summary>
@@ -466,17 +526,6 @@ namespace UnrealBuildTool
 			{
 				PrivateDependencyModuleNames.AddRange(ModuleNames);
 			}
-		}
-
-		/// <summary>
-		/// Made Obsolete so that we can more clearly show that this should be used for third party modules within the Engine directory
-		/// </summary>
-		/// <param name="Target">Rules for the target being built</param>
-		/// <param name="ModuleNames">The names of the modules to add</param>
-		[Obsolete("Use AddEngineThirdPartyPrivateDynamicDependencies to add dependencies on ThirdParty modules within the Engine Directory")]
-		public void AddThirdPartyPrivateDynamicDependencies(ReadOnlyTargetRules Target, params string[] ModuleNames)
-		{
-			AddEngineThirdPartyPrivateDynamicDependencies(Target, ModuleNames);
 		}
 
 		/// <summary>
@@ -507,11 +556,11 @@ namespace UnrealBuildTool
 			if (Target.bCompilePhysX == true)
 			{
 				PrivateDependencyModuleNames.Add("PhysX");
-				Definitions.Add("WITH_PHYSX=1");
+				PublicDefinitions.Add("WITH_PHYSX=1");
 			}
 			else
 			{
-				Definitions.Add("WITH_PHYSX=0");
+				PublicDefinitions.Add("WITH_PHYSX=0");
 			}
 
 			if (Target.bCompileAPEX == true)
@@ -522,18 +571,18 @@ namespace UnrealBuildTool
 				}
 
 				PrivateDependencyModuleNames.Add("APEX");
-				Definitions.Add("WITH_APEX=1");
-				Definitions.Add("WITH_APEX_CLOTHING=1");
-				Definitions.Add("WITH_CLOTH_COLLISION_DETECTION=1");
-				Definitions.Add("WITH_PHYSX_COOKING=1");  // APEX currently relies on cooking even at runtime
+				PublicDefinitions.Add("WITH_APEX=1");
+				PublicDefinitions.Add("WITH_APEX_CLOTHING=1");
+				PublicDefinitions.Add("WITH_CLOTH_COLLISION_DETECTION=1");
+				PublicDefinitions.Add("WITH_PHYSX_COOKING=1");  // APEX currently relies on cooking even at runtime
 
 			}
 			else
 			{
-				Definitions.Add("WITH_APEX=0");
-				Definitions.Add("WITH_APEX_CLOTHING=0");
-				Definitions.Add("WITH_CLOTH_COLLISION_DETECTION=0");
-				Definitions.Add(string.Format("WITH_PHYSX_COOKING={0}", Target.bBuildEditor ? 1 : 0));  // without APEX, we only need cooking in editor builds
+				PublicDefinitions.Add("WITH_APEX=0");
+				PublicDefinitions.Add("WITH_APEX_CLOTHING=0");
+				PublicDefinitions.Add("WITH_CLOTH_COLLISION_DETECTION=0");
+				PublicDefinitions.Add(string.Format("WITH_PHYSX_COOKING={0}", Target.bBuildEditor && Target.bCompilePhysX ? 1 : 0));  // without APEX, we only need cooking in editor builds
 			}
 
 			if (Target.bCompileNvCloth == true)
@@ -544,40 +593,13 @@ namespace UnrealBuildTool
 				}
 
 				PrivateDependencyModuleNames.Add("NvCloth");
-                Definitions.Add("WITH_NVCLOTH=1");
+                PublicDefinitions.Add("WITH_NVCLOTH=1");
 
 			}
 			else
 			{
-				Definitions.Add("WITH_NVCLOTH=0");
+				PublicDefinitions.Add("WITH_NVCLOTH=0");
 			}
-		}
-
-		/// <summary>
-		/// Hack to allow deprecating existing code which references the static BuildConfiguration object; redirect it to use properties on this object.
-		/// </summary>
-		[Obsolete("The BuildConfiguration alias is deprecated in 4.18. Set the same properties on the ReadOnlyTargetRules instance passed into the ModuleRules constructor instead.")]
-		public ReadOnlyTargetRules BuildConfiguration
-		{
-			get { return Target; }
-		}
-
-		/// <summary>
-		/// Hack to allow deprecating existing code which references the static UEBuildConfiguration object; redirect it to use properties on this object.
-		/// </summary>
-		[Obsolete("The UEBuildConfiguration alias is deprecated in 4.18. Set the same properties on the ReadOnlyTargetRules instance passed into the ModuleRules constructor instead.")]
-		public ReadOnlyTargetRules UEBuildConfiguration
-		{
-			get { return Target; }
-		}
-
-		/// <summary>
-		/// Hack to allow deprecating existing code which references the static WindowsPlatform object; redirect it to use properties on the target rules.
-		/// </summary>
-		[Obsolete("The WindowsPlatform alias is deprecated in 4.18. Set the same properties on the WindowsPlatform member of the ReadOnlyTargetRules instance passed into the ModuleRules constructor instead.")]
-		public ReadOnlyWindowsTargetRules WindowsPlatform
-		{
-			get { return Target.WindowsPlatform; }
 		}
 	}
 }

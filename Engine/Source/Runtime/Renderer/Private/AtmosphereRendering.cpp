@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AtmosphereRendering.cpp: Fog rendering implementation.
@@ -23,8 +23,7 @@
 #include "AtmosphereTextures.h"
 #include "PostProcess/SceneFilterRendering.h"
 #include "PipelineStateCache.h"
-
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Atmosphere"), Stat_GPU_Atmosphere, STATGROUP_GPU);
+DECLARE_GPU_STAT(Atmosphere);
 
 class FAtmosphereShaderPrecomputeTextureParameters
 {
@@ -159,18 +158,9 @@ class FAtmosphericFogPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FAtmosphericFogPS, Global);
 public:
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
-	}
-
-	/**
-	* Add any compiler flags/defines required by the shader
-	* @param OutEnvironment - shader environment to modify
-	*/
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	FAtmosphericFogPS() {}
@@ -245,9 +235,9 @@ public:
 	* Add any compiler flags/defines required by the shader
 	* @param OutEnvironment - shader environment to modify
 	*/
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FAtmosphericFogPS::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FAtmosphericFogPS::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("ATMOSPHERIC_NO_SUN_DISK"), (RenderFlag & EAtmosphereRenderFlag::E_DisableSunDisk));
 		OutEnvironment.SetDefine(TEXT("ATMOSPHERIC_NO_GROUND_SCATTERING"), (RenderFlag & EAtmosphereRenderFlag::E_DisableGroundScattering));
 		OutEnvironment.SetDefine(TEXT("ATMOSPHERIC_NO_LIGHT_SHAFT"), (RenderFlag & EAtmosphereRenderFlag::E_DisableLightShaft));
@@ -293,9 +283,9 @@ class FAtmosphericVS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FAtmosphericVS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	FAtmosphericVS( )	{ }
@@ -434,7 +424,7 @@ void FDeferredShadingSceneRenderer::RenderAtmosphere(FRHICommandListImmediate& R
 			const FViewInfo& View = Views[ViewIndex];
 
 			SCOPED_DRAW_EVENTF(RHICmdList, Atmosphere, TEXT("Atmosphere %dx%d"), View.ViewRect.Width(), View.ViewRect.Height());
-			SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Atmosphere);
+			SCOPED_GPU_STAT(RHICmdList, Atmosphere);
 
 			// Set the device viewport for the view.
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
@@ -462,9 +452,9 @@ class FAtmosphereTransmittancePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FAtmosphereTransmittancePS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/* Default constructor. */
@@ -494,9 +484,9 @@ class FAtmosphereIrradiance1PS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FAtmosphereIrradiance1PS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/* Default constructor. */
@@ -530,9 +520,9 @@ class FAtmosphereIrradianceNPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FAtmosphereIrradianceNPS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/* Default constructor. */
@@ -574,9 +564,9 @@ class FAtmosphereCopyIrradiancePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FAtmosphereCopyIrradiancePS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/* Default constructor. */
@@ -610,9 +600,9 @@ class FAtmosphereGS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FAtmosphereGS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform) 
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) 
 	{ 
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && RHISupportsGeometryShaders(Platform);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4) && RHISupportsGeometryShaders(Parameters.Platform);
 	}
 
 	FAtmosphereGS() {}
@@ -643,9 +633,9 @@ class FAtmosphereInscatter1PS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FAtmosphereInscatter1PS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/* Default constructor. */
@@ -686,9 +676,9 @@ class FAtmosphereCopyInscatter1PS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FAtmosphereCopyInscatter1PS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/* Default constructor. */
@@ -734,9 +724,9 @@ class FAtmosphereCopyInscatterNPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FAtmosphereCopyInscatterNPS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/* Default constructor. */
@@ -780,9 +770,9 @@ class FAtmosphereInscatterSPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FAtmosphereInscatterSPS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/* Default constructor. */
@@ -832,9 +822,9 @@ class FAtmosphereInscatterNPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FAtmosphereInscatterNPS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/* Default constructor. */
@@ -880,9 +870,9 @@ class FAtmospherePrecomputeVS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FAtmospherePrecomputeVS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/* Default constructor. */
@@ -907,9 +897,9 @@ class FAtmospherePrecomputeInscatterVS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FAtmospherePrecomputeInscatterVS,Global);
 	
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 	
 	/* Default constructor. */
@@ -944,9 +934,9 @@ class FAtmosphereCopyInscatterFPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FAtmosphereCopyInscatterFPS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/* Default constructor. */
@@ -989,9 +979,9 @@ class FAtmosphereCopyInscatterFBackPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FAtmosphereCopyInscatterFBackPS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/* Default constructor. */

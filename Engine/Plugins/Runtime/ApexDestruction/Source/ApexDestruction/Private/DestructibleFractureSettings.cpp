@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DestructibleFractureSettings.h"
 #include "Materials/Material.h"
@@ -385,20 +385,7 @@ bool UDestructibleFractureSettings::SetRootMesh(const TArray<apex::ExplicitRende
 
 	OriginalSubmeshCount = SubmeshData.Num();
 
-	Materials.Init(NULL, SubmeshData.Num());
-	for (int32 MaterialIndex = 0; MaterialIndex < Materials.Num(); ++MaterialIndex)
-	{
-		UMaterialInterface* Material = NULL;
-		if (MaterialIndex < InMaterials.Num())
-		{
-			Material = InMaterials[MaterialIndex];
-		}
-		if (Material == NULL)
-		{
-			Material = UMaterial::GetDefaultMaterial(MD_Surface);
-		}
-		Materials[MaterialIndex] = Material;
-	}
+	Materials = InMaterials;
 
 	return Success;
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "ShaderFormatVectorVM.h"
@@ -111,7 +111,7 @@ public:
 					check(assign->rhs->as_expression() == nullptr);
 					check(assign->rhs->as_swizzle() || assign->rhs->as_dereference_variable() || assign->rhs->as_constant());
 					check(assign->rhs->type->is_scalar());//All assignments must be scalar at this point!
-					ir_rvalue* new_rval = assign->rhs->clone(ralloc_parent(assign), nullptr);
+					ir_rvalue* new_rval = assign->rhs->clone(parse_state, nullptr);
 					(*rvalue) = new_rval;
 					progress = true;
 				}
@@ -204,78 +204,6 @@ void vm_propagate_non_expressions_visitor(exec_list* ir, _mesa_glsl_parse_state*
 	ir_propagate_non_expressions_visitor::run(ir, state);
 }
 
-//////////////////////////////////////////////////////////////////////////
-/** Replaces any array accesses to matrices with the equivalant swizzle. */
-class ir_matrix_array_access_to_swizzles final : public ir_rvalue_visitor
-{
-public:
-
-	bool progress;
-	ir_matrix_array_access_to_swizzles()
-	{
-		progress = false;
-	}
-
-	virtual ~ir_matrix_array_access_to_swizzles()
-	{
-	}
-
-	unsigned get_component_from_matrix_array_deref(ir_dereference_array* array_deref)
-	{
-		check(array_deref);
-		check(array_deref->variable_referenced()->type->is_matrix());
-		ir_constant* index = array_deref->array_index->as_constant();
-		check((index->type == glsl_type::uint_type || index->type == glsl_type::int_type) && index->type->is_scalar());
-		unsigned deref_idx = index->type == glsl_type::uint_type ? index->value.u[0] : index->value.i[0];
-		return deref_idx * array_deref->variable_referenced()->type->vector_elements;
-	}
-
-	virtual void handle_rvalue(ir_rvalue **rvalue)
-	{
-		if (rvalue && *rvalue)
-		{
-			if (ir_swizzle* swiz = (*rvalue)->as_swizzle())
-			{
-				check(swiz->type->is_scalar());//Post scalarize so this should be all scalar.				
-				if (ir_dereference_array* array_deref = swiz->val->as_dereference_array())
-				{
-					swiz->mask.x += get_component_from_matrix_array_deref(array_deref);
-					swiz->val = array_deref->array->clone(ralloc_parent(swiz), nullptr);
-				}
-			}
-		}
-	}
-	
-	virtual ir_visitor_status visit_leave(ir_assignment *assign)
-	{		
-		//Remove matrix array access on the lhs too.
-		if (ir_dereference_array* array_deref = assign->lhs->as_dereference_array())
-		{			
-			assign->write_mask <<= get_component_from_matrix_array_deref(array_deref);
-			assign->lhs = array_deref->array->clone(ralloc_parent(assign), nullptr)->as_dereference();
-		}
-		return ir_rvalue_visitor::visit_leave(assign);
-	}
-
-	static void run(exec_list *ir)
-	{
-		bool progress = false;
-		do
-		{
-			ir_matrix_array_access_to_swizzles v;
-			visit_list_elements(&v, ir);
-
-			progress = v.progress;
-
-			//vm_debug_print("== propagate non expressions - BEFORE DEADCODE ==\n");
-			//vm_debug_dump(ir, state);
-
-			//progress = do_dead_code(ir, false) || progress;
-			//progress = do_dead_code_local(ir) || progress;
-		} while (progress);
-	}
-};
-
 struct MatrixVectors
 {
 	ir_variable* v[4];
@@ -284,12 +212,14 @@ struct MatrixVectors
 class ir_matrices_to_vectors : public ir_rvalue_visitor
 {
 	bool progress;
+	_mesa_glsl_parse_state* parse_state;
 
 	TMap<class ir_variable*, MatrixVectors> MatrixVectorMap;
 public:
-	ir_matrices_to_vectors()
+	ir_matrices_to_vectors(_mesa_glsl_parse_state* in_parse_state)
 	{
 		progress = false;
+		parse_state = in_parse_state;
 	}
 
 	virtual ~ir_matrices_to_vectors()
@@ -300,17 +230,27 @@ public:
 	{
 		if (rvalue && *rvalue)
 		{		
-			check((*rvalue)->as_dereference_array() == nullptr);
-			if (ir_swizzle* swiz = (*rvalue)->as_swizzle())
+			if (ir_dereference* deref = (*rvalue)->as_dereference_array())
 			{
-				ir_variable* var = swiz->variable_referenced();
-				if (var->type->is_matrix())
+				ir_variable* var = deref->variable_referenced();
+				if (var->type->is_matrix() && var->mode != ir_var_uniform)
 				{
 					MatrixVectors& mv = MatrixVectorMap.FindChecked(var);
-					unsigned v_idx = swiz->mask.x / 4;
-					swiz->mask.x %= 4;					
-					void* p = ralloc_parent(swiz);
-					swiz->val = new(p) ir_dereference_variable(mv.v[v_idx]);
+					if (ir_dereference_array* array_deref = (*rvalue)->as_dereference_array())
+					{
+						ir_constant* idx = array_deref->array_index->as_constant();
+						check(idx);
+						unsigned v_idx = idx->value.i[0];
+						//void* p = ralloc_parent(array_deref);
+						*rvalue = new(parse_state) ir_dereference_variable(mv.v[v_idx]);
+					}
+					else if (ir_swizzle* swiz = (*rvalue)->as_swizzle())
+					{
+						unsigned v_idx = swiz->mask.x / 4;
+						swiz->mask.x %= 4;
+						//void* p = ralloc_parent(swiz);
+						swiz->val = new(parse_state) ir_dereference_variable(mv.v[v_idx]);
+					}
 				}
 			}
 		}	
@@ -318,27 +258,55 @@ public:
 
 	virtual ir_visitor_status visit_leave(ir_assignment *assign)
 	{
+		//Dont think this is required.
+		//Previous pass should convert all matrix ops to vec ops so the worst this will be is a Mat[row] = somevec.xyzw so replacing the array deref is is fine.
 		ir_variable* var = assign->lhs->variable_referenced();
 		if (var->type->is_matrix())
 		{
 			MatrixVectors& mv = MatrixVectorMap.FindChecked(var);
-			ir_variable* v = nullptr;
-			unsigned v_idx = 0;
-			while (assign->write_mask > 0)
+			if (ir_dereference_array* array_deref = assign->lhs->as_dereference_array())
 			{
-				if ((assign->write_mask & 15) != 0)
-				{
-					v = mv.v[v_idx];
-					check(assign->write_mask >> 4 == 0);
-					break;
-				}
-				++v_idx;
-				assign->write_mask >>= 4;
+				ir_constant* idx = array_deref->array_index->as_constant();
+				check(idx);
+				unsigned v_idx = idx->value.i[0];
+				//void* p = ralloc_parent(array_deref);
+				assign->set_lhs(new(parse_state) ir_dereference_variable(mv.v[v_idx]));
 			}
-			check(v);
-			void* p = ralloc_parent(assign);
-			assign->lhs = new(p) ir_dereference_variable(v);
+			else if (ir_dereference_variable* matrix_deref = assign->lhs->as_dereference_variable())
+			{
+				ir_dereference_variable* src_mat = assign->rhs->as_dereference_variable();
+				check(src_mat && src_mat->type->is_matrix());
+				ir_dereference* src_derefs[4];
+				//void* p = ralloc_parent(array_deref);
+				if (src_mat->variable_referenced()->mode == ir_var_uniform)
+				{
+					src_derefs[0] = new(parse_state) ir_dereference_array(src_mat->variable_referenced(), new(parse_state) ir_constant(0));
+					src_derefs[1] = new(parse_state) ir_dereference_array(src_mat->variable_referenced(), new(parse_state) ir_constant(1));
+					src_derefs[2] = new(parse_state) ir_dereference_array(src_mat->variable_referenced(), new(parse_state) ir_constant(2));
+					src_derefs[3] = new(parse_state) ir_dereference_array(src_mat->variable_referenced(), new(parse_state) ir_constant(3));
+
+				}
+				else
+				{
+					MatrixVectors& src_mv = MatrixVectorMap.FindChecked(src_mat->variable_referenced());
+					src_derefs[0] = new(parse_state) ir_dereference_variable(src_mv.v[0]);
+					src_derefs[1] = new(parse_state) ir_dereference_variable(src_mv.v[1]);
+					src_derefs[2] = new(parse_state) ir_dereference_variable(src_mv.v[2]);
+					src_derefs[3] = new(parse_state) ir_dereference_variable(src_mv.v[3]);
+				}
+
+				assign->insert_before(new(parse_state) ir_assignment(new(parse_state) ir_dereference_variable(mv.v[0]), src_derefs[0], assign->condition, 0xF));
+				assign->insert_before(new(parse_state) ir_assignment(new(parse_state) ir_dereference_variable(mv.v[1]), src_derefs[1], assign->condition, 0xF));
+				assign->insert_before(new(parse_state) ir_assignment(new(parse_state) ir_dereference_variable(mv.v[2]), src_derefs[2], assign->condition, 0xF));
+				assign->insert_before(new(parse_state) ir_assignment(new(parse_state) ir_dereference_variable(mv.v[3]), src_derefs[3], assign->condition, 0xF));
+				assign->remove();
+			}
+			else
+			{
+				check(false);//Should have removed matrix swizzles by now
+			}
 		}
+
 		return ir_rvalue_visitor::visit_leave(assign);
 	}
 
@@ -352,22 +320,27 @@ public:
 				mv = &MatrixVectorMap.Add(var);
 				void* p = ralloc_parent(var);
 
-				check(var->next && var->prev);
-
 				const glsl_type* vtype = var->type->column_type();
-				const char *name = ralloc_asprintf(p, "%s_%s", var->name,"col0");				
+
+				const char* base_name = var->name ? var->name : "temp";
+				const char *name = ralloc_asprintf(p, "%s_%s", base_name,"col0");
 				mv->v[0] = new(p) ir_variable(vtype, name, var->mode);
-				var->insert_before(mv->v[0]);
-				name = ralloc_asprintf(p, "%s_%s", var->name, "col1");
+				name = ralloc_asprintf(p, "%s_%s", base_name, "col1");
 				mv->v[1] = new(p) ir_variable(vtype, name, var->mode);
-				var->insert_before(mv->v[1]);
-				name = ralloc_asprintf(p, "%s_%s", var->name, "col2");
+				name = ralloc_asprintf(p, "%s_%s", base_name, "col2");
 				mv->v[2] = new(p) ir_variable(vtype, name, var->mode);
-				var->insert_before(mv->v[2]);
-				name = ralloc_asprintf(p, "%s_%s", var->name, "col3");
+				name = ralloc_asprintf(p, "%s_%s", base_name, "col3");
 				mv->v[3] = new(p) ir_variable(vtype, name, var->mode);
-				var->insert_before(mv->v[3]);
-				var->remove();
+
+				//This is called manually on uniforms too but these are not in a cclist so those functions need not (and cannot) be called.
+				if (var->mode != ir_var_uniform)
+				{
+					var->insert_before(mv->v[0]);
+					var->insert_before(mv->v[1]);
+					var->insert_before(mv->v[2]);
+					var->insert_before(mv->v[3]);
+					var->remove();
+				}
 			}
 		}
 		return visit_continue;
@@ -378,16 +351,7 @@ public:
 		bool progress = false;
 		do
 		{
-			ir_matrices_to_vectors v;
-			
-			//Have to manually visit uniforms first.
-			for (SCBuffer& buff : state->CBuffersOriginal)
-			{
-				for (SCBufferMember& member : buff.Members)
-				{
-					member.Var->accept(&v);
-				}
-			}
+			ir_matrices_to_vectors v(state);
 
 			visit_list_elements(&v, ir);
 
@@ -404,6 +368,5 @@ public:
 
 void vm_matrices_to_vectors(exec_list* ir, _mesa_glsl_parse_state* state)
 {	
-	ir_matrix_array_access_to_swizzles::run(ir);
 	ir_matrices_to_vectors::run(ir, state);
 }

@@ -1,0 +1,220 @@
+﻿INTSourceChangelist:3782314
+Availability: Public
+Crumbs:%ROOT%, Platforms
+Title:구글 VR 용 카메라 구성
+Description:GoogleVR 에서 사용할 수 있도록 카메라를 구성하는 법입니다.
+Type: how-to
+SkillLevel:Beginner
+Version:4.17
+Parent:Platforms/GoogleVR
+Order:2
+Tags:Basics
+topic-image:Platforms\GoogleVR\HowTo\HT_GoogleVR_Camera_Setup_Topic_Image.png
+prereq: Platforms\GoogleVR\QuickStart
+
+![](Platforms\VR\ContentSetup\VR_Seated_Experiance.png)
+
+구글 VR 프로젝트가 앉아서 하는 체험이든 서서 하는 체험이든 관계 없이, 게임의 카메라 구성 방식은 동일합니다. 여기서는 구글 VR 체험에 사용할 카메라 구성 방법을 살펴보겠습니다.
+
+## 단계
+
+아래는, 구글 VR 체험에 필수인 프로젝트 및 카메라 구성 방법에 대한 안내입니다.
+
+1. 다음과 같은 세팅으로 언리얼 엔진 프로젝트를 새로 만듭니다:
+
+    * 블루프린트
+    * 공백 프로젝트
+    * 모바일 / 태블릿
+    * 스케일가능 3D 또는 2D
+    * 시작용 콘텐츠 없음
+    * 프로젝트를 저장할 위치
+    * 프로젝트 이름
+
+    [REGION:lightbox]
+    [![](HT_GoogleVR_Camera_Setup_00.png)(w:555)](HT_GoogleVR_Camera_Setup_00.png)
+    [/REGION]
+
+    [REGION:caption]
+    이미지를 클릭하면 원본을 확인합니다.
+    [/REGION]
+
+1. 에디터에서 **편집** > **Plugins** (플러그인) 으로 플러그인 메뉴를 엽니다.
+    
+    ![](HT_GoogleVR_Camera_Setup_01.png)
+
+1.  플러그인 창에서 **Virtual Reality** 섹션을 선택한 뒤 **GoogleVR** 옵션의 **Enabled** 박스를 체크하여 활성화시킵니다.
+ 
+    [REGION:lightbox]
+    [![](HT_GoogleVR_Camera_Setup_02.png)(w:547)](HT_GoogleVR_Camera_Setup_02.png)
+    [/REGION]
+
+    [REGION:caption]
+    이미지를 클릭하면 원본을 확인합니다.
+    [/REGION]
+
+    [region:note]
+    플러그인 활성화 이후 에디터를 재시작해야 다음 번 에디터가 실행되면서 플러그인이 로드됩니다.
+    [/region] 
+
+1. 에디터 재시작 이후, **콘텐츠 브라우저** 에 우클릭하고 표시되는 메뉴에서 **기본 애셋 생성** 부분의 **블루프린트 클래스** 옵션을 선택합니다.
+
+    [![](Platforms\Oculus\HowTo\StandingCamera\HT_Rift_Camera_Setup_01.png)(w:150)](Platforms\Oculus\HowTo\StandingCamera\HT_Rift_Camera_Setup_01.png)
+
+1. **부모 클래스 선택** 창에서 **Pawn** 옵션을 선택하고, 이름을 **GoogleVR_Pawn** 이라 한 뒤 GoogleVRPawn 을 더블클릭하여 블루프린트 에디터에서 엽니다.
+
+    [![](HT_GoogleVR_Camera_Setup_03.png)(w:691)](HT_GoogleVR_Camera_Setup_03.png)
+
+1. GoogleVR_Pawn 블루프린트를 열고 **뷰포트** 탭의 **컴포넌트** 섹션으로 갑니다. **컴포넌트 추가** 버튼을 사용하여 다음 두 컴포넌트를 다음과 같은 이름으로 추가하고 카메라가 씬 컴포넌트의 자식이 되도록 합니다.
+    
+    [REGION:simpletable]
+	|컴포넌트 이름| 값 |
+    |--------|------------|
+    |** Scene**|VRCameraRoot|
+    |**Camera**|VRCamera|
+	[/region]
+
+    ![](HT_GoogleVR_Camera_Setup_08.png)
+
+    [region:note]
+    어떤 VR HMD 를 사용하든 상관 없이, 에픽에서는 이와 같은 방식으로 VR 카메라를 구성할 것을 추천합니다. 그래야 실제 카메라를 옮길 필요 없이 카메라 위치리에 오프셋을 줄 수 있습니다.
+    [/region]
+
+1. **GoogleVR_Pawn** 블루프린트를 열고 **이벤트 그래프** 에서 **Event Begin Play** 노드를 끌어 놓으면 실행가능 동작 목록이 표시됩니다. 목록에서 **Set Tracking Origin** 노드를 검색하고 클릭하여 이벤트 그래프에 추가합니다.
+
+	![](HT_GoogleVR_Camera_Setup_06.png)
+
+1. Set Tracking Origin 노드의 **Origin** 이 **Eye Level** 로 설정되어 있는지 확인합니다.
+    
+    [REGION:lightbox]
+    [![](Platforms\Oculus\HowTo\SeatedCamera\HT_Rift_Camera_Setup_10.png)(w:555)](Platforms\Oculus\HowTo\SeatedCamera\HT_Rift_Camera_Setup_10.png)
+    [/REGION]
+
+    [REGION:caption]
+    이미지를 클릭하면 원본을 확인합니다.
+    [/REGION]
+
+1. **Vector** 변수를 새로 만들어 **CameraHeight** 라 하고 **Z** 값을 **180** 으로 설정합니다.
+
+    ![](Platforms\GearVR\HowTo\CameraSetup\HT_GearVR_Camera_Setup_03.png)
+
+    [region:note]
+    이 수치는 실제 사용자가 서있는 높이를 센티미터 단위로 설정해야 합니다.
+    [/region]
+
+1. Set Tracking Origin 노드의 출력을 끌어놓고 **Set Relative Location** 노드를 검색한 뒤, **SetRelativeLocation(VRCameraRoot)** 옵션을 선택합니다.
+
+    [REGION:lightbox]
+    [![](HT_GoogleVR_Camera_Setup_06.png)(w:342)](HT_GoogleVR_Camera_Setup_06.png)
+    [/REGION]
+
+    [REGION:caption]
+    이미지를 클릭하면 원본을 확인합니다.
+    [/REGION]
+
+1. **Camera Height** 변수를 **Set Relative Location** 노드의 **New Location** 입력에 연결한 뒤 **컴파일** 버튼을 클릭합니다. 완료된 이벤트 그래프는 다음과 같습니다:
+
+    [REGION:fullwidth]
+    [INCLUDE:Platforms\GoogleVR\HowTo\CameraSetup\#GoogleVRCamera]
+    [/REGION]
+
+    [region:tip]
+    이미지 좌상단 구석을 클릭하고 Ctrl + C 를 누르면 완성된 블루프린트를 복사할 수 있습니다. 그 후 블루프린트 이벤트로 가서 Ctrl + V 를 눌러 붙여넣으면 됩니다.
+    [/region]
+
+1. 콘텐츠 브라우저에서 **GoogleVR_Pawn** 블루프린트를 끌어 레벨에 놓고, 땅에 최대한 가까이 놓여있는지 확인합니다.
+
+    [REGION:lightbox]
+    [![](HT_GoogleVR_Camera_Setup_09.png)(w:555)](HT_GoogleVR_Camera_Setup_09.png)
+    [/REGION]
+
+    [REGION:caption]
+    이미지를 클릭하면 원본을 확인합니다.
+    [/REGION]
+
+1. GoogleVR_Pawn 블루프린트를 선택합니다. **디테일 패널** 에서 **Pawn** 세팅 아래 **Auto Possess Player** (플레이어 자동 빙의) 설정을 **Disabled** 에서 **Player 0** 으로 바꿉니다.
+
+    ![](HT_GoogleVR_Camera_Setup_05.png)
+
+## 최종 결과
+
+**메인 툴바** 에서 **실행 옵션** 옆 작은 흰색 삼각형을 클릭한 뒤, 목록에서 안드로이드 디바이스를 선택하면 해당 디바이스에 대한 패키징 및 디플로이 프로세스가 시작됩니다. 그 작업이 완료되면 HMD 에 스마트폰을 끼워 VR 에서 UE4 프로젝트를 볼 수 있습니다.
+
+ ![](Platforms\GearVR\HowTo\CameraSetup\HT_GearVR_Camera_Setup_08.png)
+
+## 언리얼 엔진 프로젝트 다운로드
+
+아래는, 이 예제를 만드는 데 사용된 언리얼 엔진 프로젝트를 다운로드할 수 있는 링크입니다:
+
+* [**GoogleVR Camera Example Project**](https://epicgames.box.com/s/duniqrm3wl8u9lkq7igskq4fh7rl9e0f)
+
+
+[COMMENT:none]
+
+[EXCERPT:GoogleVRCamera]	
+[OBJECT:Snippet]
+	[PARAMLITERAL:id]
+		GoogleVRCamera
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+		blueprint
+	[/PARAMLITERAL]
+	[PARAM:image]
+		[REGION:lightbox]
+		[![](HT_GoogleVR_Camera_Setup_07.png)(w:1000)](HT_GoogleVR_Camera_Setup_07.png)
+		[/REGION]
+	[/PARAM]
+	[PARAM:snippet]
+						Begin Object Class=/Script/BlueprintGraph.K2Node_Event Name="K2Node_Event_3"
+			   EventReference=(MemberParent=Class'/Script/Engine.Actor',MemberName="ReceiveBeginPlay")
+			   bOverrideFunction=True
+			   NodePosX=-64
+			   NodePosY=208
+			   NodeGuid=93C09D814ED1E9D44D261A9686B86DCA
+			   CustomProperties Pin (PinId=7F2EC56943D8143A39FA97A62B1F4E79,PinName="OutputDelegate",Direction="EGPD_Output",PinType.PinCategory="delegate",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(MemberParent=Class'/Script/Engine.Actor',MemberName="ReceiveBeginPlay"),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+			   CustomProperties Pin (PinId=FBAC704C41732BA0574711B1FCA29206,PinName="then",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_1 65C430D34EC91388FB4328874913A070,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+			End Object
+			Begin Object Class=/Script/BlueprintGraph.K2Node_CallFunction Name="K2Node_CallFunction_1"
+			   FunctionReference=(MemberParent=Class'/Script/HeadMountedDisplay.HeadMountedDisplayFunctionLibrary',MemberName="SetTrackingOrigin")
+			   NodePosX=176
+			   NodePosY=208
+			   NodeGuid=9A4CBAD3436F40EAADD15FB1E078F81F
+			   CustomProperties Pin (PinId=65C430D34EC91388FB4328874913A070,PinName="execute",PinType.PinCategory="exec",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_Event_3 FBAC704C41732BA0574711B1FCA29206,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+			   CustomProperties Pin (PinId=93BC380F44B0A11FE8A023977452EE2B,PinName="then",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_52 FE5D38794B000B7752514CAFCC5316E4,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+			   CustomProperties Pin (PinId=3CDA4D324563AA248BE6FD898AE21B08,PinName="self",PinFriendlyName=NSLOCTEXT("K2Node", "Target", "Target"),PinType.PinCategory="object",PinType.PinSubCategory="",PinType.PinSubCategoryObject=Class'/Script/HeadMountedDisplay.HeadMountedDisplayFunctionLibrary',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultObject="/Script/HeadMountedDisplay.Default__HeadMountedDisplayFunctionLibrary",PersistentGuid=00000000000000000000000000000000,bHidden=True,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+			   CustomProperties Pin (PinId=61713C8E4CF694BE266DD2BD7B1A2A53,PinName="Origin",PinType.PinCategory="byte",PinType.PinSubCategory="",PinType.PinSubCategoryObject=Enum'/Script/HeadMountedDisplay.EHMDTrackingOrigin',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="Eye",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+			End Object
+			Begin Object Class=/Script/BlueprintGraph.K2Node_CallFunction Name="K2Node_CallFunction_52"
+			   FunctionReference=(MemberParent=Class'/Script/Engine.SceneComponent',MemberName="K2_SetRelativeLocation")
+			   NodePosX=528
+			   NodePosY=192
+			   NodeGuid=CBF27D16498498DCC1B698BBB05BBB64
+			   CustomProperties Pin (PinId=FE5D38794B000B7752514CAFCC5316E4,PinName="execute",PinType.PinCategory="exec",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_1 93BC380F44B0A11FE8A023977452EE2B,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+			   CustomProperties Pin (PinId=1C7A9A54494AE23B7164B7B8725F5D52,PinName="then",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+			   CustomProperties Pin (PinId=0811E84B4E91F1030D8FE3BAC770A247,PinName="self",PinFriendlyName=NSLOCTEXT("K2Node", "Target", "Target"),PinType.PinCategory="object",PinType.PinSubCategory="",PinType.PinSubCategoryObject=Class'/Script/Engine.SceneComponent',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_VariableGet_23 14EFDA2C47FF2DF1F58E7A9BA401135E,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+			   CustomProperties Pin (PinId=C2D0A283497566CAFA793CB992D07158,PinName="NewLocation",PinType.PinCategory="struct",PinType.PinSubCategory="",PinType.PinSubCategoryObject=ScriptStruct'/Script/CoreUObject.Vector',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="0, 0, 0",AutogeneratedDefaultValue="0, 0, 0",LinkedTo=(K2Node_VariableGet_24 7FE7B76D4888DB151FF54EAB9D25F826,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+			   CustomProperties Pin (PinId=3D1069744CC4C94F298F3980C2A0F289,PinName="bSweep",PinType.PinCategory="bool",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="false",AutogeneratedDefaultValue="false",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+			   CustomProperties Pin (PinId=63A901EA42073DA211529DBD9BDB4FF8,PinName="SweepHitResult",Direction="EGPD_Output",PinType.PinCategory="struct",PinType.PinSubCategory="",PinType.PinSubCategoryObject=ScriptStruct'/Script/Engine.HitResult',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+			   CustomProperties Pin (PinId=03544D8C4FC9FC037BE82CB2780E14A1,PinName="bTeleport",PinType.PinCategory="bool",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="false",AutogeneratedDefaultValue="false",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+			End Object
+			Begin Object Class=/Script/BlueprintGraph.K2Node_VariableGet Name="K2Node_VariableGet_23"
+			   VariableReference=(MemberName="VRCameraRoot",bSelfContext=True)
+			   NodePosX=272
+			   NodePosY=352
+			   NodeGuid=8372D50849CD3678B5FC15A6DEF7B8FF
+			   CustomProperties Pin (PinId=14EFDA2C47FF2DF1F58E7A9BA401135E,PinName="VRCameraRoot",Direction="EGPD_Output",PinType.PinCategory="object",PinType.PinSubCategory="",PinType.PinSubCategoryObject=Class'/Script/Engine.SceneComponent',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_52 0811E84B4E91F1030D8FE3BAC770A247,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+			   CustomProperties Pin (PinId=E2C335C44D268CDCA73404AA7E7D9ABD,PinName="self",PinFriendlyName=NSLOCTEXT("K2Node", "Target", "Target"),PinType.PinCategory="object",PinType.PinSubCategory="",PinType.PinSubCategoryObject=BlueprintGeneratedClass'/Game/Blueprints/GoogleVR_Pawn.GoogleVR_Pawn_C',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=True,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+			End Object
+			Begin Object Class=/Script/BlueprintGraph.K2Node_VariableGet Name="K2Node_VariableGet_24"
+			   VariableReference=(MemberName="CameraHeight",MemberGuid=ACC6F49F42C088E811CC9BB892E6F87B,bSelfContext=True)
+			   NodePosX=288
+			   NodePosY=432
+			   NodeGuid=BBF93606403186ED65F98F907C091CC5
+			   CustomProperties Pin (PinId=7FE7B76D4888DB151FF54EAB9D25F826,PinName="CameraHeight",Direction="EGPD_Output",PinType.PinCategory="struct",PinType.PinSubCategory="",PinType.PinSubCategoryObject=ScriptStruct'/Script/CoreUObject.Vector',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="0, 0, 0",AutogeneratedDefaultValue="0, 0, 0",LinkedTo=(K2Node_CallFunction_52 C2D0A283497566CAFA793CB992D07158,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+			   CustomProperties Pin (PinId=DA87D3494F0E12714F4126B699524EAA,PinName="self",PinFriendlyName=NSLOCTEXT("K2Node", "Target", "Target"),PinType.PinCategory="object",PinType.PinSubCategory="",PinType.PinSubCategoryObject=BlueprintGeneratedClass'/Game/Blueprints/GoogleVR_Pawn.GoogleVR_Pawn_C',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=True,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+			End Object
+			END OBJECT
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:GoogleVRCamera]
+
+[/COMMENT]

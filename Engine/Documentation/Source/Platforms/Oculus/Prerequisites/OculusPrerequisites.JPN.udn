@@ -1,0 +1,72 @@
+﻿INTSourceChangelist:3769005
+Availability:Public
+Crumbs: %ROOT%
+Title:Oculus の前提条件
+Description:UE4 と連携するように  Oculus Rift を設定する
+Type:Reference
+Version:4.16
+Parent:Platforms/Oculus
+Order:1
+Tags:Oculus Rift
+Tags:Platform
+topic-image:PreRecProfiling_Topic_Image.png
+
+
+アンリアル エンジン 4 (UE4) プロジェクトが Oculus Rift HMD で動くか確認する方法を説明します。 
+
+## Unknown Sources を有効にする 
+
+Unreal Engine 4 (UE4) Virtual Reality (VR) プロジェクトの開発中は、**[Unknown Sources (提供元不明のアプリ)]** を有効にして、登録あるいはレビューせずに Oculus 上でアプリケーションが実行できる状態にしておくのがベストです。**[Unknown Sources]** オプションを有効にするには、以下の手順に従います。
+
+1. Oculus Store を開いて、右上隅の **ギア** アイコンをクリックして **[Settings (設定)]** メニュー オプションを開いて、**[Settings (設定)]** という単語をクリックします。
+
+	[REGION:lightbox]
+	[![](Platforms\Oculus\Rift_UKS_01.png)(w:512)](Platforms\Oculus\Rift_UKS_01.png)
+	[/REGION]
+
+	[REGION:caption]
+	クリックしてフルサイズで表示
+	[/REGION]
+
+1. 左側の欄の **[General]** セクションを選びます。**[Unknown Sources]** セクションのボタンをクリックすると、このオプションが有効になります。
+
+	[REGION:lightbox]
+	[![](Platforms\Oculus\Rift_UKS_02.png)(w:512)](Platforms\Oculus\Rift_UKS_02.png)
+	[/REGION]
+
+	[REGION:caption]
+	クリックしてフルサイズで表示
+	[/REGION]
+
+1. ボタンをクリックするとメッセージが表示されます。**[Allow (許可)]** ボタンをクリックして続けます。
+
+	[REGION:lightbox]
+	[![](Platforms\Oculus\Rift_UKS_03.png)(w:512)](Platforms\Oculus\Rift_UKS_03.png)
+	[/REGION]
+
+	[REGION:caption]
+	クリックしてフルサイズで表示
+	[/REGION]
+
+1. 完了すると、以下の画像のようにボタンが青になります。
+    
+	[REGION:lightbox]
+	[![](Platforms\Oculus\Rift_UKS_04.png)(w:512)](Platforms\Oculus\Rift_UKS_04.png)
+	[/REGION]
+
+	[REGION:caption]
+	クリックしてフルサイズで表示
+	[/REGION]
+
+    [region:note]
+    デフォルト設定に戻すには、ボタンを再度クリックします。チェックマークが X に変わります。
+    [/region]
+
+## SteamVR トラブルシューティング
+
+Oculus Rift の実行で問題が発生した場合は、Oculus Support Center ページを参照してください。ほとんどの問題の解決策が見つかります。
+
+[**Oculus Support Center**](https://support.oculus.com/)
+
+
+

@@ -1,48 +1,14 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:스태틱 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows,Engine/Rendering/LightingAndShadows/LightMobility
 Description:게임 실행 도중에는 부하가 거의 걸리지 않는 완벽히 정적인 라이트입니다.
 Version: 4.9
+parent:Engine/Rendering/LightingAndShadows/LightMobility
+order:1
+type:overview
+topic-image:SL_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightMobility/StaticLights:title%](SL_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightMobility/StaticLights:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightMobility/StaticLights:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightMobility/StaticLights]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightMobility/StaticLights:title%](SL_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightMobility/StaticLights:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightMobility/StaticLights:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightMobility/StaticLights]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:fullwidth raw]
 ![](Engine/Rendering/LightingAndShadows/lighting_overview_banner_001.png)(convert:false)
@@ -78,11 +44,15 @@ Version: 4.9
 	[/PARAM]
 [/OBJECT]
 
-<!-- 
+[COMMENT:none]
+ 
 [INCLUDE:Resources/ContentExamples\Lighting\2_1#StaticLighting02]
--->
-<!-- Long Description Excerpt
+
+[/COMMENT]
+[COMMENT:none]
+ Long Description Excerpt
 [EXCERPT:Static001]
 스태틱 라이트는 완벽히 정적인 빛과 그림자를 드리웁니다. 이게 무슨 뜻이냐면, **라이트매스** 속에 라이트 맵으로, 그리고 간접광 캐시 속으로 그 효과를 구워 넣는다는 뜻입니다. **스태틱 라이트는 무버블/다이내믹 액터에는 직접적인 영향을 끼치지도 않고, 어떤 오브젝트에도 스페큘러 하이라이트를 생성하지도 않습니다만**, 무버블/다이내믹 오브젝트에 _미약한_ 간접적 효과는 지니게 됩니다.
 [/EXCERPT:Static001]
--->
+
+[/COMMENT]

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
@@ -10,18 +10,7 @@ public class UnrealVersionSelectorTarget : TargetRules
 		Type = TargetType.Program;
 		LinkType = TargetLinkType.Monolithic;
 		LaunchModuleName = "UnrealVersionSelector";
-	}
 
-	//
-	// TargetRules interface.
-	//
-
-	public override void SetupGlobalEnvironment(
-		TargetInfo Target,
-		ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
-		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
-		)
-	{
 		bCompileLeanAndMeanUE = true;
 		bUseMallocProfiler = false;
 

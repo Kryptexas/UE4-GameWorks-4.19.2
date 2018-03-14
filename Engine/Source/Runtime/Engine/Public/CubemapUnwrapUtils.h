@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CubemapUnwapUtils.h: Pixel and Vertex shader to render a cube map as 2D texture
@@ -48,7 +48,7 @@ class FCubemapTexturePropertiesVS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FCubemapTexturePropertiesVS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return !IsConsolePlatform(Platform); }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return !IsConsolePlatform(Parameters.Platform); }
 
 	FCubemapTexturePropertiesVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FGlobalShader(Initializer)
@@ -80,7 +80,7 @@ class FCubemapTexturePropertiesPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FCubemapTexturePropertiesPS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return !IsConsolePlatform(Platform); }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return !IsConsolePlatform(Parameters.Platform); }
 
 	FCubemapTexturePropertiesPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FGlobalShader(Initializer)
@@ -102,9 +102,9 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("HDR_OUTPUT"), bHDROutput ? TEXT("1") : TEXT("0"));
 	}
 private:
@@ -145,9 +145,9 @@ class FIESLightProfilePS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FIESLightProfilePS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && !IsConsolePlatform(Platform);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4) && !IsConsolePlatform(Parameters.Platform);
 	}
 
 	FIESLightProfilePS() {}

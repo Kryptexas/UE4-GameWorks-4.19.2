@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Evaluation/MovieSceneCameraAnimTemplate.h"
 #include "Camera/CameraComponent.h"
@@ -26,12 +26,25 @@ struct FBlendedPostProcessSettings : FPostProcessSettings
 };
 
 
+FMovieSceneSharedDataId GetSharedExecutionTokenID()
+{
+	static FMovieSceneSharedDataId SharedDataId = FMovieSceneSharedDataId::Allocate();
+	return SharedDataId;
+}
+
 /** Persistent data that exists as long as a given camera track is being evaluated */
 struct FMovieSceneAdditiveCameraData : IPersistentEvaluationData
 {
+	FMovieSceneAdditiveCameraData()
+		: bApplyTransform(false)
+		, bApplyPostProcessing(false)
+		, TotalTransform(FTransform::Identity)
+		, TotalFOVOffset(0.f)
+	{}
+
 	static FMovieSceneAdditiveCameraData& Get(const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData)
 	{
-		return PersistentData.GetOrAdd<FMovieSceneAdditiveCameraData>(FSharedPersistentDataKey(FMovieSceneAdditiveCameraAnimationTrackTemplate::SharedDataId, Operand));
+		return PersistentData.GetOrAdd<FMovieSceneAdditiveCameraData>(FSharedPersistentDataKey(GetSharedExecutionTokenID(), Operand));
 	}
 
 	/** Reset the additive camera values */
@@ -188,45 +201,36 @@ struct FPreAnimatedPostProcessingBlendsTokenProducer : IMovieScenePreAnimatedTok
 };
 
 /** A movie scene execution token that applies camera cuts */
-struct FApplyCameraAnimExecutionToken : IMovieSceneExecutionToken
+struct FApplyCameraAnimExecutionToken : IMovieSceneSharedExecutionToken
 {
-	static FMovieSceneAnimTypeID GetAnimTypeID()
+	FApplyCameraAnimExecutionToken(const FMovieSceneEvaluationOperand& InOperand)
 	{
-		return TMovieSceneAnimTypeID<FApplyCameraAnimExecutionToken>();
+		Operands.Add(InOperand);
+		// Evaluate after everything else in the group
+		Order = 1000;
 	}
 
-	/** Execute this token, operating on all objects referenced by 'Operand' */
-	virtual void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
+	virtual void Execute(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
 	{
-		FMovieSceneAdditiveCameraData& SharedData = FMovieSceneAdditiveCameraData::Get(Operand, PersistentData);
-
-		for (TWeakObjectPtr<> ObjectWP : Player.FindBoundObjects(Operand))
+		for (FMovieSceneEvaluationOperand& Operand : Operands)
 		{
-			UCameraComponent* CameraComponent = MovieSceneHelpers::CameraComponentFromRuntimeObject(ObjectWP.Get());
-			if (CameraComponent)
+			FMovieSceneAdditiveCameraData& SharedData = FMovieSceneAdditiveCameraData::Get(Operand, PersistentData);
+
+			for (TWeakObjectPtr<> ObjectWP : Player.FindBoundObjects(Operand))
 			{
-				SharedData.ApplyCumulativeAnimation(*CameraComponent);
+				UCameraComponent* CameraComponent = MovieSceneHelpers::CameraComponentFromRuntimeObject(ObjectWP.Get());
+				if (CameraComponent)
+				{
+					SharedData.ApplyCumulativeAnimation(*CameraComponent);
+				}
 			}
+
+			SharedData.Reset();
 		}
 	}
+
+	TSet<FMovieSceneEvaluationOperand> Operands;
 };
-
-const FMovieSceneSharedDataId FMovieSceneAdditiveCameraAnimationTrackTemplate::SharedDataId = FMovieSceneSharedDataId::Allocate();
-
-FMovieSceneAdditiveCameraAnimationTrackTemplate::FMovieSceneAdditiveCameraAnimationTrackTemplate()
-{
-}
-
-void FMovieSceneAdditiveCameraAnimationTrackTemplate::Initialize(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const
-{
-	FMovieSceneAdditiveCameraData::Get(Operand, PersistentData).Reset();
-}
-
-void FMovieSceneAdditiveCameraAnimationTrackTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
-{
-	// Add a final execution token that will apply the blended result of anything added to our shared data
-	ExecutionTokens.Add(FApplyCameraAnimExecutionToken());
-}
 
 /** A movie scene execution token that applies camera animations */
 struct FAccumulateCameraAnimExecutionToken : IMovieSceneExecutionToken
@@ -303,6 +307,19 @@ struct FAccumulateCameraAnimExecutionToken : IMovieSceneExecutionToken
 void FMovieSceneAdditiveCameraAnimationTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 {
 	ExecutionTokens.Add(FAccumulateCameraAnimExecutionToken(this));
+
+	// Add a shared token that will apply the blended camera anims
+
+	FMovieSceneSharedDataId TokenID = GetSharedExecutionTokenID();
+	// It's safe to cast here as only FApplyCameraAnimExecutionTokens can have this token ID
+	if (FApplyCameraAnimExecutionToken* ExistingToken = static_cast<FApplyCameraAnimExecutionToken*>(ExecutionTokens.FindShared(TokenID)))
+	{
+		ExistingToken->Operands.Add(Operand);
+	}
+	else
+	{
+		ExecutionTokens.AddShared(GetSharedExecutionTokenID(), FApplyCameraAnimExecutionToken(Operand));
+	}
 }
 
 /** Persistent data that exists as long as a given camera anim section is being evaluated */

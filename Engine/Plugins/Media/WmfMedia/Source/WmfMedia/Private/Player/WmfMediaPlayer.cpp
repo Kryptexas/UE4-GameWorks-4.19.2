@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "WmfMediaPlayer.h"
 
@@ -168,8 +168,16 @@ void FWmfMediaPlayer::TickFetch(FTimespan /*DeltaTime*/, FTimespan /*Timecode*/)
 
 	if (TrackSelectionChanged)
 	{
-		UE_LOG(LogWmfMedia, Verbose, TEXT("Player %p: Creating and setting new playback topology"), this);
+		// less than windows 10, seem to be a problem switching stream
+		if (!FWindowsPlatformMisc::VerifyWindowsVersion(10, 0) /* Anything < Windows 10.0 */)
+		{
+			const auto Settings = GetDefault<UWmfMediaSettings>();
+			check(Settings != nullptr);
 
+			Session->Initialize(Settings->LowLatency);
+			Tracks->ReInitialize();
+		}
+	
 		if (!Tracks->IsInitialized() || !Session->SetTopology(Tracks->CreateTopology(), Tracks->GetDuration()))
 		{
 			Session->Shutdown();

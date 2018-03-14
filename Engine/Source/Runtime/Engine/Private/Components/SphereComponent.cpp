@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "Components/SphereComponent.h"
@@ -105,9 +105,14 @@ bool USphereComponent::IsZeroExtent() const
 FPrimitiveSceneProxy* USphereComponent::CreateSceneProxy()
 {
 	/** Represents a DrawLightRadiusComponent to the scene manager. */
-	class FSphereSceneProxy : public FPrimitiveSceneProxy
+	class FSphereSceneProxy final : public FPrimitiveSceneProxy
 	{
 	public:
+		SIZE_T GetTypeHash() const override
+		{
+			static size_t UniquePointer;
+			return reinterpret_cast<size_t>(&UniquePointer);
+		}
 
 		/** Initialization constructor. */
 		FSphereSceneProxy(const USphereComponent* InComponent)

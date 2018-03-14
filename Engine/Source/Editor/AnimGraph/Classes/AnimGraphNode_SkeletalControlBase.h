@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -52,7 +52,7 @@ public:
 	virtual void CopyNodeDataFrom(const FAnimNode_Base* NewAnimNode){}
 
 	/** Are we currently showing this pin */
-	bool IsPinShown(const FString& PinName) const;
+	bool IsPinShown(const FName PinName) const;
 
 	// Returns the coordinate system that should be used for this bone
 	DEPRECATED(4.14, "This function is deprecated. Use a IAnimNodeEditMode-derived class to implement a new editor mode and override GetEditorMode to return its ID")
@@ -97,11 +97,11 @@ public:
 
 public:
 	// set literal value for FVector
-	void SetDefaultValue(const FString& InDefaultValueName, const FVector& InValue);
+	void SetDefaultValue(const FName InDefaultValueName, const FVector& InValue);
 	// get literal value for vector
-	void GetDefaultValue(const FString& UpdateDefaultValueName, FVector& OutVec);
+	void GetDefaultValue(const FName UpdateDefaultValueName, FVector& OutVec);
 
-	void GetDefaultValue(const FString& PropName, FRotator& OutValue)
+	void GetDefaultValue(const FName PropName, FRotator& OutValue)
 	{
 		FVector Value;
 		GetDefaultValue(PropName, Value);
@@ -111,7 +111,7 @@ public:
 	}
 
 	template<class ValueType>
-	ValueType GetNodeValue(const FString& PropName, const ValueType& CompileNodeValue)
+	ValueType GetNodeValue(const FName PropName, const ValueType& CompileNodeValue)
 	{
 		if (IsPinShown(PropName))
 		{
@@ -122,14 +122,14 @@ public:
 		return CompileNodeValue;
 	}
 
-	void SetDefaultValue(const FString& PropName, const FRotator& InValue)
+	void SetDefaultValue(const FName PropName, const FRotator& InValue)
 	{
 		FVector VecValue(InValue.Pitch, InValue.Yaw, InValue.Roll);
 		SetDefaultValue(PropName, VecValue);
 	}
 
 	template<class ValueType>
-	void SetNodeValue(const FString& PropName, ValueType& CompileNodeValue, const ValueType& InValue)
+	void SetNodeValue(const FName PropName, ValueType& CompileNodeValue, const ValueType& InValue)
 	{
 		if (IsPinShown(PropName))
 		{

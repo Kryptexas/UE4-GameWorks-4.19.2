@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "USDPrimResolver.h"
 #include "USDImporter.h"
@@ -20,14 +20,56 @@ void UUSDPrimResolver::Init()
 	AssetRegistry = &FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
 }
 
-void UUSDPrimResolver::FindPrimsToImport(FUsdImportContext& ImportContext, TArray<FUsdPrimToImport>& OutPrimsToImport)
+void UUSDPrimResolver::FindMeshAssetsToImport(FUsdImportContext& ImportContext, IUsdPrim* StartPrim, TArray<FUsdAssetPrimToImport>& OutAssetsToImport, bool bRecursive) const
 {
-	IUsdPrim* RootPrim = ImportContext.RootPrim;
+	const FString PrimName = USDToUnreal::ConvertString(StartPrim->GetPrimName());
 
-	FindPrimsToImport_Recursive(ImportContext, RootPrim, OutPrimsToImport);
+	const FString KindName = USDToUnreal::ConvertString(StartPrim->GetKind());
+
+	bool bHasUnrealAssetPath = StartPrim->GetUnrealAssetPath() != nullptr;
+	bool bHasUnrealActorClass = StartPrim->GetUnrealActorClass() != nullptr;
+
+	if (!StartPrim->IsProxyOrGuide())
+	{
+		if (StartPrim->HasGeometryDataOrLODVariants())
+		{
+			FUsdAssetPrimToImport NewTopLevelPrim;
+
+			FString FinalPrimName;
+			// if the prim has a path use that as the final name
+			if (bHasUnrealAssetPath)
+			{
+				FinalPrimName = StartPrim->GetUnrealAssetPath();
+			}
+			else
+			{
+				FinalPrimName = PrimName;
+			}
+
+			NewTopLevelPrim.Prim = StartPrim;
+			NewTopLevelPrim.AssetPath = FinalPrimName;
+
+			FindMeshChildren(ImportContext, StartPrim, true, NewTopLevelPrim.MeshPrims);
+
+			for (IUsdPrim* MeshPrim : NewTopLevelPrim.MeshPrims)
+			{
+				NewTopLevelPrim.NumLODs = FMath::Max(NewTopLevelPrim.NumLODs, MeshPrim->GetNumLODs());
+			}
+
+			OutAssetsToImport.Add(NewTopLevelPrim);
+		}
+		else if(bRecursive)
+		{
+			int32 NumChildren = StartPrim->GetNumChildren();
+			for (int32 ChildIdx = 0; ChildIdx < NumChildren; ++ChildIdx)
+			{
+				FindMeshAssetsToImport(ImportContext, StartPrim->GetChild(ChildIdx), OutAssetsToImport);
+			}
+		}
+	}
 }
 
-void UUSDPrimResolver::FindActorsToSpawn(FUSDSceneImportContext& ImportContext, TArray<FActorSpawnData>& OutActorSpawnDatas)
+void UUSDPrimResolver::FindActorsToSpawn(FUSDSceneImportContext& ImportContext, TArray<FActorSpawnData>& OutActorSpawnDatas) const
 {
 	IUsdPrim* RootPrim = ImportContext.RootPrim;
 
@@ -93,108 +135,36 @@ AActor* UUSDPrimResolver::SpawnActor(FUSDSceneImportContext& ImportContext, cons
 		// The asset which should be used to spawn the actor
 		UObject* ActorAsset = nullptr;
 
-		TMap<FString, int32> NameToCount;
+		TArray<UObject*> ImportedAssets;
 
-		// Note: it is expected that MeshPrim and ActorClassName are mutually exclusive in that if there is a mesh we do not assume we have a custom actor class yet
-		if (SpawnData.MeshPrim)
+		// Note: an asset path on the actor is multually exclusive with importing geometry.
+		if (SpawnData.AssetPath.IsEmpty() && SpawnData.AssetsToImport.Num() > 0)
 		{
-			//SlowTask.EnterProgressFrame(1.0f / PrimsToImport.Num(), FText::Format(LOCTEXT("ImportingUSDMesh", "Importing Mesh {0} of {1}"), MeshCount + 1, PrimsToImport.Num()));
+			ImportedAssets = USDImporter->ImportMeshes(ImportContext, SpawnData.AssetsToImport);
 
-			FString FullPath;
-
-			// If there is no asset path, come up with an asset path for the mesh to be imported
-			if (SpawnData.AssetPath.IsEmpty())
-			{
-				FString MeshName = USDToUnreal::ConvertString(SpawnData.MeshPrim->GetPrimName());
-				MeshName = ObjectTools::SanitizeObjectName(MeshName);
-
-				// Generate a custom path to the actor
-
-				if (ImportOptions->bGenerateUniquePathPerUSDPrim)
-				{
-					FString USDPath = USDToUnreal::ConvertString(SpawnData.ActorPrim->GetPrimPath());
-					USDPath.RemoveFromEnd(MeshName);
-					FullPath = ImportContext.ImportPathName / USDPath;
-				}
-				else
-				{
-					FullPath = ImportContext.ImportPathName;
-				}
-
-				// If we're generating unique meshes append a unique number if the mesh has already been found
-				if (ImportOptions->bGenerateUniqueMeshes)
-				{
-					int32* Count = NameToCount.Find(MeshName);
-					if (Count)
-					{
-						MeshName += TEXT("_");
-						MeshName.AppendInt(*Count);
-						++(*Count);
-					}
-					else
-					{
-						NameToCount.Add(MeshName, 1);
-					}
-				}
-
-				FullPath /= MeshName;
-			}
-			else
-			{
-				FullPath = SpawnData.AssetPath;
-			}
-
-			ActorAsset = LoadObject<UObject>(nullptr, *FullPath, nullptr, LOAD_NoWarn | LOAD_Quiet);
-
-			// Only import the asset if it doesnt exist || we're allowed to reimport it based on user settings
-			const bool bImportAsset = ImportOptions->bImportMeshes && (!ActorAsset || ImportOptions->ExistingAssetPolicy == EExistingAssetPolicy::Reimport);
-
-			if (bImportAsset)
-			{
-				if(IsValidPathForImporting(FullPath))
-				{
-					FString NewPackageName = FPackageName::ObjectPathToPackageName(FullPath);
-
-					UPackage* Package = CreatePackage(nullptr, *NewPackageName);
-					if (Package)
-					{
-						Package->FullyLoad();
-
-						ImportContext.Parent = Package;
-						ImportContext.ObjectName = FPackageName::GetLongPackageAssetName(Package->GetOutermost()->GetName());
-
-						FUsdPrimToImport PrimToImport;
-						PrimToImport.NumLODs = SpawnData.MeshPrim->GetNumLODs();
-						PrimToImport.Prim = SpawnData.MeshPrim;
-
-						// Compute a transform so that the mesh ends up in the correct place relative to the actor we are spawning.  This accounts for any skipped prims that should contribute to the final transform
-						PrimToImport.CustomPrimTransform = USDToUnreal::ConvertMatrix(SpawnData.MeshPrim->GetLocalToAncestorTransform(SpawnData.ActorPrim));
-
-						ActorAsset = USDImporter->ImportSingleMesh(ImportContext, ImportOptions->MeshImportType, PrimToImport);
-
-						if (ActorAsset)
-						{
-							FAssetRegistryModule::AssetCreated(ActorAsset);
-							Package->MarkPackageDirty();
-						}
-					}
-				}
-				else
-				{
-					ImportContext.AddErrorMessage(
-						EMessageSeverity::Error, FText::Format(LOCTEXT("InvalidPathForImporting", "Could not import asset. '{0}' is not a valid path for assets"),
-							FText::FromString(FullPath)));
-				}
-			}
-
+			// If there is more than one asset imported just use the first one.  This may be invalid if the actor only supports one mesh
+			// so we will warn about that below if we can.
+			ActorAsset = ImportedAssets.Num() > 0 ? ImportedAssets[0] : nullptr;
 		}
-		else if (!SpawnData.ActorClassName.IsEmpty())
+		else if(!SpawnData.AssetPath.IsEmpty() && SpawnData.AssetsToImport.Num() > 0)
+		{
+			ImportContext.AddErrorMessage(EMessageSeverity::Warning,
+				FText::Format(
+					LOCTEXT("ConflictWithAssetPathAndMeshes", "Actor has an asset path '{0} but also contains meshes {1} to import. Meshes will be ignored"),
+					FText::FromString(SpawnData.AssetPath),
+					FText::AsNumber(SpawnData.AssetsToImport.Num())
+				)
+			);
+		}
+
+		if (!SpawnData.ActorClassName.IsEmpty())
 		{
 			TSubclassOf<AActor> ActorClass = FindActorClass(ImportContext, SpawnData);
 			if (ActorClass)
 			{
 				SpawnedActor = ImportContext.World->SpawnActor<AActor>(ActorClass);
 			}
+
 		}
 		else if (!SpawnData.AssetPath.IsEmpty())
 		{
@@ -210,7 +180,7 @@ AActor* UUSDPrimResolver::SpawnActor(FUSDSceneImportContext& ImportContext, cons
 			}
 		}
 
-		if (ActorAsset)
+		if (SpawnData.ActorClassName.IsEmpty() && ActorAsset)
 		{
 			UClass* AssetClass = ActorAsset->GetClass();
 
@@ -235,7 +205,7 @@ AActor* UUSDPrimResolver::SpawnActor(FUSDSceneImportContext& ImportContext, cons
 
 		}
 
-		if (ActorFactory)
+		if (!SpawnedActor && ActorFactory)
 		{
 			SpawnedActor = ActorFactory->CreateActor(ActorAsset, ImportContext.World->GetCurrentLevel(), FTransform::Identity, RF_Transactional, SpawnData.ActorName);
 
@@ -243,6 +213,18 @@ AActor* UUSDPrimResolver::SpawnActor(FUSDSceneImportContext& ImportContext, cons
 			if (ActorFactory == ImportContext.EmptyActorFactory)
 			{
 				SpawnedActor->GetRootComponent()->SetMobility(EComponentMobility::Static);
+			}
+
+			if (ImportedAssets.Num() > 1)
+			{
+				// Multiple assets were found but factories only support creating from one asset so warn about this
+				ImportContext.AddErrorMessage(
+					EMessageSeverity::Warning, FText::Format(LOCTEXT("MultipleAssetsForASingleActor", "Actor type '{0}' only supports one asset but {1} assets were imported.   The first imported asset '{2}' was assigned to the actor"),
+						FText::FromString(SpawnedActor->GetClass()->GetName()),
+						FText::AsNumber(ImportedAssets.Num()),
+						FText::FromString(ActorAsset ? ActorAsset->GetName() : TEXT("None"))
+					)
+				);
 			}
 		}
 
@@ -321,53 +303,53 @@ TSubclassOf<AActor> UUSDPrimResolver::FindActorClass(FUSDSceneImportContext& Imp
 	return ActorClass;
 }
 
-void UUSDPrimResolver::FindPrimsToImport_Recursive(FUsdImportContext& ImportContext, IUsdPrim* Prim, TArray<FUsdPrimToImport>& OutTopLevelPrims)
+void UUSDPrimResolver::FindMeshChildren(FUsdImportContext& ImportContext, IUsdPrim* ParentPrim, bool bOnlyLODRoots, TArray<IUsdPrim*>& OutMeshChildren) const
 {
-	const FString PrimName = USDToUnreal::ConvertString(Prim->GetPrimName());
+	const FString PrimName = USDToUnreal::ConvertString(ParentPrim->GetPrimName());
 
-	const FString KindName = USDToUnreal::ConvertString(Prim->GetKind());
+	const FString KindName = USDToUnreal::ConvertString(ParentPrim->GetKind());
 
-	bool bHasUnrealAssetPath = Prim->GetUnrealAssetPath() != nullptr;
-	bool bHasUnrealActorClass = Prim->GetUnrealActorClass() != nullptr;
+	const bool bHasUnrealAssetPath = ParentPrim->GetUnrealAssetPath() != nullptr;
+	const bool bHasUnrealActorClass = ParentPrim->GetUnrealActorClass() != nullptr;
 
-	
-	// Ignore prims with unreal asset path or actor class specified as these are custom and should not spawn geometry
-	bool bShouldImportGeometry = !bHasUnrealActorClass && !bHasUnrealAssetPath;
-	if (bShouldImportGeometry && Prim->HasGeometryData())
+	const bool bIncludeLODs = bOnlyLODRoots;
+
+	if(bOnlyLODRoots && ParentPrim->GetNumLODs() > 0)
 	{
-		// Note if there are lod's the prim is not expected to have it's own geometry
-
-		//@todo LODs are not expected to have children with geometry 
-		FUsdPrimToImport NewPrim;
-		NewPrim.NumLODs = Prim->GetNumLODs();
-		NewPrim.Prim = Prim;
-
-		OutTopLevelPrims.Add(NewPrim);
+		// We're only looking for lod roots and this prim has LODs so add the prim and dont recurse into children
+		OutMeshChildren.Add(ParentPrim);
 	}
-
-	if (!ImportContext.bFindUnrealAssetReferences && Prim->GetNumLODs() == 0)
+	else
 	{
-		// prim has no geometry data or LODs and does not define an unreal asset path (or we arent checking). Look at children
-		int32 NumChildren = Prim->GetNumChildren();
+		if (ParentPrim->HasGeometryData())
+		{
+			OutMeshChildren.Add(ParentPrim);
+		}
+
+		const int32 NumChildren = ParentPrim->GetNumChildren();
 		for (int32 ChildIdx = 0; ChildIdx < NumChildren; ++ChildIdx)
 		{
-			FindPrimsToImport_Recursive(ImportContext, Prim->GetChild(ChildIdx), OutTopLevelPrims);
+			IUsdPrim* Child = ParentPrim->GetChild(ChildIdx);
+			if (!Child->IsProxyOrGuide() && !Child->IsKindChildOf(USDKindTypes::Component))
+			{
+				FindMeshChildren(ImportContext, Child, bOnlyLODRoots, OutMeshChildren);
+			}
 		}
 	}
 }
 
-void UUSDPrimResolver::FindActorsToSpawn_Recursive(FUSDSceneImportContext& ImportContext, IUsdPrim* Prim, IUsdPrim* ParentPrim, TArray<FActorSpawnData>& OutSpawnDatas)
+void UUSDPrimResolver::FindActorsToSpawn_Recursive(FUSDSceneImportContext& ImportContext, IUsdPrim* Prim, IUsdPrim* ParentPrim, TArray<FActorSpawnData>& OutSpawnDatas) const
 {
 	TArray<FActorSpawnData>* SpawnDataArray = &OutSpawnDatas;
 
 	UUSDSceneImportOptions* ImportOptions = Cast<UUSDSceneImportOptions>(ImportContext.ImportOptions);
 
+	FActorSpawnData SpawnData;
+
 	FString AssetPath;
 	FName ActorClassName;
 	if (Prim->HasTransform())
 	{
-		FActorSpawnData SpawnData;
-
 		if (Prim->GetUnrealActorClass())
 		{
 			SpawnData.ActorClassName = USDToUnreal::ConvertString(Prim->GetUnrealActorClass());
@@ -378,10 +360,7 @@ void UUSDPrimResolver::FindActorsToSpawn_Recursive(FUSDSceneImportContext& Impor
 			SpawnData.AssetPath = USDToUnreal::ConvertString(Prim->GetUnrealAssetPath());
 		}
 
-		if (Prim->HasGeometryData())
-		{
-			SpawnData.MeshPrim = Prim;
-		}
+		FindMeshAssetsToImport(ImportContext, Prim, SpawnData.AssetsToImport, false);
 
 		FName PrimName = USDToUnreal::ConvertName(Prim->GetPrimName());
 		SpawnData.ActorName = PrimName;
@@ -402,7 +381,6 @@ void UUSDPrimResolver::FindActorsToSpawn_Recursive(FUSDSceneImportContext& Impor
 		for (int32 ChildIdx = 0; ChildIdx < Prim->GetNumChildren(); ++ChildIdx)
 		{
 			IUsdPrim* Child = Prim->GetChild(ChildIdx);
-
 			FindActorsToSpawn_Recursive(ImportContext, Child, Prim, *SpawnDataArray);
 		}
 	}

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialGraphSchema.cpp
@@ -164,22 +164,23 @@ UEdGraphNode* FMaterialGraphSchemaAction_Paste::PerformAction(class UEdGraph* Pa
 //////////////////////////
 // UMaterialGraphSchema //
 
+const FName UMaterialGraphSchema::PC_Mask(TEXT("mask"));
+const FName UMaterialGraphSchema::PC_Required(TEXT("required"));
+const FName UMaterialGraphSchema::PC_Optional(TEXT("optional"));
+const FName UMaterialGraphSchema::PC_MaterialInput(TEXT("materialinput"));
+
+const FName UMaterialGraphSchema::PSC_Red(TEXT("red"));
+const FName UMaterialGraphSchema::PSC_Green(TEXT("green"));
+const FName UMaterialGraphSchema::PSC_Blue(TEXT("blue"));
+const FName UMaterialGraphSchema::PSC_Alpha(TEXT("alpha"));
+
+const FLinearColor UMaterialGraphSchema::ActivePinColor = FLinearColor::White;
+const FLinearColor UMaterialGraphSchema::InactivePinColor = FLinearColor(0.05f, 0.05f, 0.05f);
+const FLinearColor UMaterialGraphSchema::AlphaPinColor = FLinearColor(0.5f, 0.5f, 0.5f);
+
 UMaterialGraphSchema::UMaterialGraphSchema(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	PC_Mask = TEXT("mask");
-	PC_Required = TEXT("required");
-	PC_Optional = TEXT("optional");
-	PC_MaterialInput = TEXT("materialinput");
-
-	PSC_Red = TEXT("red");
-	PSC_Green = TEXT("green");
-	PSC_Blue = TEXT("blue");
-	PSC_Alpha = TEXT("alpha");
-
-	ActivePinColor = FLinearColor::White;
-	InactivePinColor = FLinearColor(0.05f, 0.05f, 0.05f);
-	AlphaPinColor = FLinearColor(0.5f, 0.5f, 0.5f);
 }
 
 void UMaterialGraphSchema::SelectAllInputNodes(UEdGraph* Graph, UEdGraphPin* InGraphPin)
@@ -224,7 +225,7 @@ void UMaterialGraphSchema::GetBreakLinkToSubMenuActions( class FMenuBuilder& Men
 		FText Title = FText::FromString( TitleString );
 		if ( Pin->PinName != TEXT("") )
 		{
-			TitleString = FString::Printf(TEXT("%s (%s)"), *TitleString, *Pin->PinName);
+			TitleString = FString::Printf(TEXT("%s (%s)"), *TitleString, *Pin->PinName.ToString());
 
 			// Add name of connection if possible
 			FFormatNamedArguments Args;
@@ -441,7 +442,7 @@ void UMaterialGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, c
 							if (FunctionOutput)
 							{
 								FFormatNamedArguments Arguments;
-								Arguments.Add(TEXT("Name"), FText::FromString( *FunctionOutput->OutputName ));
+								Arguments.Add(TEXT("Name"), FText::FromName( FunctionOutput->OutputName ));
 								const FText Label = FText::Format( LOCTEXT( "ConnectToFunction", "Connect To {Name}" ), Arguments );
 								const FText ToolTip = FText::Format( LOCTEXT( "ConnectToFunctionTooltip", "Connects to the function output {Name}" ), Arguments );
 								MenuBuilder->AddMenuEntry(Label,
@@ -636,7 +637,7 @@ void UMaterialGraphSchema::BreakPinLinks(UEdGraphPin& TargetPin, bool bSendsNode
 	}
 }
 
-void UMaterialGraphSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin)
+void UMaterialGraphSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) const
 {
 	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "GraphEd_BreakSinglePinLink", "Break Pin Link") );
 
@@ -669,7 +670,7 @@ void UMaterialGraphSchema::DroppedAssetsOnGraph(const TArray<struct FAssetData>&
 		bool bAddedNode = false;
 		UObject* Asset = Assets[AssetIdx].GetAsset();
 		UClass* MaterialExpressionClass = Cast<UClass>(Asset);
-		UMaterialFunction* Func = Cast<UMaterialFunction>(Asset);
+		UMaterialFunctionInterface* Func = Cast<UMaterialFunctionInterface>(Asset);
 		UTexture* Tex = Cast<UTexture>(Asset);
 		UMaterialParameterCollection* ParameterCollection = Cast<UMaterialParameterCollection>(Asset);
 		
@@ -860,13 +861,13 @@ bool UMaterialGraphSchema::HasCompatibleConnection(const FAssetData& FunctionAss
 {
 	if (TestType != 0)
 	{
-		uint32 CombinedInputTypes = FunctionAssetData.GetTagValueRef<uint32>(GET_MEMBER_NAME_CHECKED(UMaterialFunction, CombinedInputTypes));
-		uint32 CombinedOutputTypes = FunctionAssetData.GetTagValueRef<uint32>(GET_MEMBER_NAME_CHECKED(UMaterialFunction, CombinedOutputTypes));
+		uint32 CombinedInputTypes = FunctionAssetData.GetTagValueRef<uint32>(GET_MEMBER_NAME_CHECKED(UMaterialFunctionInterface, CombinedInputTypes));
+		uint32 CombinedOutputTypes = FunctionAssetData.GetTagValueRef<uint32>(GET_MEMBER_NAME_CHECKED(UMaterialFunctionInterface, CombinedOutputTypes));
 
 		if (CombinedOutputTypes == 0)
 		{
 			// Need to load function to build combined output types
-			UMaterialFunction* MaterialFunction = Cast<UMaterialFunction>(FunctionAssetData.GetAsset());
+			UMaterialFunctionInterface* MaterialFunction = Cast<UMaterialFunctionInterface>(FunctionAssetData.GetAsset());
 			if (MaterialFunction != nullptr)
 			{
 				CombinedInputTypes = MaterialFunction->CombinedInputTypes;

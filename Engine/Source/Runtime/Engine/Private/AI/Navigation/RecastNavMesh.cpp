@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AI/Navigation/RecastNavMesh.h"
 #include "Misc/Paths.h"
@@ -227,6 +227,8 @@ ARecastNavMesh::ARecastNavMesh(const FObjectInitializer& ObjectInitializer)
 	, DefaultMaxHierarchicalSearchNodes(RECAST_MAX_SEARCH_NODES)
 	, bPerformVoxelFiltering(true)	
 	, bMarkLowHeightAreas(false)
+	, bFilterLowSpanSequences(false)
+	, bFilterLowSpanFromTileCache(false)
 	, bStoreEmptyTileLayers(false)
 	, bUseVirtualFilters(true)
 	, bAllowNavLinkAsPathEnd(false)
@@ -1478,7 +1480,7 @@ bool ARecastNavMesh::SetPolyArea(NavNodeRef PolyID, TSubclassOf<UNavArea> AreaCl
 		{
 			// @todo implement a single detour function that would do both
 			bSuccess = dtStatusSucceed(NavMesh->setPolyArea(PolyID, AreaId));
-			bSuccess = (bSuccess && dtStatusSucceed(NavMesh->setPolyFlags(PolyID, AreaId)));
+			bSuccess = (bSuccess && dtStatusSucceed(NavMesh->setPolyFlags(PolyID, AreaFlags)));
 		}
 	}
 	return bSuccess;
@@ -1904,13 +1906,18 @@ void ARecastNavMesh::OnStreamingLevelAdded(ULevel* InLevel, UWorld* InWorld)
 		URecastNavMeshDataChunk* NavDataChunk = GetNavigationDataChunk(InLevel);
 		if (NavDataChunk)
 		{
-			TArray<uint32> AttachedIndices = NavDataChunk->AttachTiles(*RecastNavMeshImpl);
-			if (AttachedIndices.Num() > 0)
-			{
-				InvalidateAffectedPaths(AttachedIndices);
-				RequestDrawingUpdate();
-			}
+			AttachNavMeshDataChunk(*NavDataChunk);
 		}
+	}
+}
+
+void ARecastNavMesh::AttachNavMeshDataChunk(URecastNavMeshDataChunk& NavDataChunk)
+{
+	TArray<uint32> AttachedIndices = NavDataChunk.AttachTiles(*RecastNavMeshImpl);
+	if (AttachedIndices.Num() > 0)
+	{
+		InvalidateAffectedPaths(AttachedIndices);
+		RequestDrawingUpdate();
 	}
 }
 
@@ -1923,13 +1930,18 @@ void ARecastNavMesh::OnStreamingLevelRemoved(ULevel* InLevel, UWorld* InWorld)
 		URecastNavMeshDataChunk* NavDataChunk = GetNavigationDataChunk(InLevel);
 		if (NavDataChunk)
 		{
-			TArray<uint32> DetachedIndices = NavDataChunk->DetachTiles(*RecastNavMeshImpl);
-			if (DetachedIndices.Num() > 0)
-			{
-				InvalidateAffectedPaths(DetachedIndices);
-				RequestDrawingUpdate();
-			}
+			DetachNavMeshDataChunk(*NavDataChunk);
 		}
+	}
+}
+
+void ARecastNavMesh::DetachNavMeshDataChunk(URecastNavMeshDataChunk& NavDataChunk)
+{
+	TArray<uint32> DetachedIndices = NavDataChunk.DetachTiles(*RecastNavMeshImpl);
+	if (DetachedIndices.Num() > 0)
+	{
+		InvalidateAffectedPaths(DetachedIndices);
+		RequestDrawingUpdate();
 	}
 }
 

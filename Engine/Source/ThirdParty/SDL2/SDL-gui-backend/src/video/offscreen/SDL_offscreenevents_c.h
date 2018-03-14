@@ -1,7 +1,7 @@
 /*
   Simple DirectMedia Layer
   Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
-  Copyright (C) 2016-2017 Epic Games, Inc.
+  Copyright (C) 2016-2018 Epic Games, Inc.
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages

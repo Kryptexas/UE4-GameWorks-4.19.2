@@ -1,0 +1,42 @@
+<?xml version='1.0' ?>
+<BuildGraph xmlns="http://www.epicgames.com/BuildGraph" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.epicgames.com/BuildGraph ../../../Engine/Build/Graph/Schema.xsd" >
+  <Property Name="LocalSourceDir" Value="$(RootDir)\Engine\Source\Programs\MayaLiveLinkPlugin"/>
+  <Property Name="LocalStagingDir" Value="$(LocalSourceDir)\Staging"/>
+  <Property Name="LocalBinaryDir" Value="$(RootDir)\Engine\Binaries\Win64"/>
+  
+  <Agent Name="MayaLiveLinkPlugin" Type="Win64">
+    <Node Name="Compile UnrealHeaderTool Win64">
+      <Compile Target="UnrealHeaderTool" Platform="Win64" Configuration="Development" Arguments="-precompile -nodebuginfo"/>
+    </Node>
+
+    <Node Name="Compile Maya 2016 Win64" Requires="Compile UnrealHeaderTool Win64">
+      <Compile Target="MayaLiveLinkPlugin2016" Platform="Win64" Configuration="Development" />
+    </Node>
+	
+	<Node Name="Compile Maya 2017 Win64" Requires="Compile UnrealHeaderTool Win64">
+      <Compile Target="MayaLiveLinkPlugin2017" Platform="Win64" Configuration="Development" />
+    </Node>
+	
+	<Node Name="Compile Maya 2018 Win64" Requires="Compile UnrealHeaderTool Win64">
+      <Compile Target="MayaLiveLinkPlugin2018" Platform="Win64" Configuration="Development" />
+    </Node>
+	
+	<Node Name="Stage Maya Plugin Module" Requires="Compile Maya 2016 Win64;Compile Maya 2017 Win64;Compile Maya 2018 Win64">
+		<Copy From="$(LocalSourceDir)\ReadMe.txt" To="$(LocalStagingDir)\ReadMe.txt" />
+		
+		<Copy From="$(LocalBinaryDir)\MayaLiveLinkPlugin2016.mll" To="$(LocalStagingDir)\MayaLiveLink2016\LiveLink\plug-ins\MayaLiveLinkPlugin2016.mll" />
+		<Copy From="$(LocalSourceDir)\MayaLiveLinkUI.py" To="$(LocalStagingDir)\MayaLiveLink2016\LiveLink\plug-ins\MayaLiveLinkUI.py" />
+		<Copy From="$(LocalSourceDir)\LiveLink.mod" To="$(LocalStagingDir)\MayaLiveLink2016\LiveLink.mod" />
+		
+		<Copy From="$(LocalBinaryDir)\MayaLiveLinkPlugin2017.mll" To="$(LocalStagingDir)\MayaLiveLink2017\LiveLink\plug-ins\MayaLiveLinkPlugin2017.mll" />
+		<Copy From="$(LocalSourceDir)\MayaLiveLinkUI.py" To="$(LocalStagingDir)\MayaLiveLink2017\LiveLink\plug-ins\MayaLiveLinkUI.py" />
+		<Copy From="$(LocalSourceDir)\LiveLink.mod" To="$(LocalStagingDir)\MayaLiveLink2017\LiveLink.mod" />
+		
+		<Copy From="$(LocalBinaryDir)\MayaLiveLinkPlugin2018.mll" To="$(LocalStagingDir)\MayaLiveLink2018\LiveLink\plug-ins\MayaLiveLinkPlugin2018.mll" />
+		<Copy From="$(LocalSourceDir)\MayaLiveLinkUI.py" To="$(LocalStagingDir)\MayaLiveLink2018\LiveLink\plug-ins\MayaLiveLinkUI.py" />
+		<Copy From="$(LocalSourceDir)\LiveLink.mod" To="$(LocalStagingDir)\MayaLiveLink2018\LiveLink.mod" />
+		
+		<Zip FromDir="$(LocalStagingDir)" ZipFile="$(LocalStagingDir)\LiveLinkMaya.zip"/>
+	</Node>
+  </Agent>
+</BuildGraph>

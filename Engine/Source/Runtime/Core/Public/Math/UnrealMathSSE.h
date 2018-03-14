@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -806,9 +806,9 @@ FORCEINLINE VectorRegister VectorTransformVector(const VectorRegister&  VecP,  c
  * @param Vec1		Source vector1
  * @param Vec2		Source vector2
  * @param X			Index for which component of Vector1 to use for X (literal 0-3)
- * @param Y			Index for which component to Vector1 to use for Y (literal 0-3)
- * @param Z			Index for which component to Vector2 to use for Z (literal 0-3)
- * @param W			Index for which component to Vector2 to use for W (literal 0-3)
+ * @param Y			Index for which component of Vector1 to use for Y (literal 0-3)
+ * @param Z			Index for which component of Vector2 to use for Z (literal 0-3)
+ * @param W			Index for which component of Vector2 to use for W (literal 0-3)
  * @return			The swizzled vector
  */
 #define VectorShuffle( Vec1, Vec2, X, Y, Z, W )	_mm_shuffle_ps( Vec1, Vec2, SHUFFLEMASK(X,Y,Z,W) )

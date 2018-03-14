@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 D3D12Resources.cpp: D3D RHI utility implementation.
@@ -6,7 +6,7 @@ D3D12Resources.cpp: D3D RHI utility implementation.
 
 #include "D3D12RHIPrivate.h"
 #include "EngineModule.h"
-#include "D3D12LLM.h"
+#include "HAL/LowLevelMemTracker.h"
 
 /////////////////////////////////////////////////////////////////////
 //	FD3D12 Deferred Deletion Queue
@@ -276,6 +276,7 @@ HRESULT FD3D12Adapter::CreateCommittedResource(const D3D12_RESOURCE_DESC& InDesc
 
 	TRefCountPtr<ID3D12Resource> pResource;
 	const HRESULT hr = RootDevice->CreateCommittedResource(&HeapProps, D3D12_HEAP_FLAG_NONE, &InDesc, InitialUsage, ClearValue, IID_PPV_ARGS(pResource.GetInitReference()));
+	checkf(SUCCEEDED(hr), TEXT("HR=0x%x"), hr);
 	check(SUCCEEDED(hr));
 
 	if (SUCCEEDED(hr))
@@ -301,7 +302,6 @@ HRESULT FD3D12Adapter::CreatePlacedResourceWithHeap(const D3D12_RESOURCE_DESC& I
 		return E_POINTER;
 	}
 
-	LLM_PLATFORM_SCOPE_D3D12(ELLMTagD3D12::CommittedResources);
 	TRefCountPtr<ID3D12Resource> pResource;
 	FD3D12Heap* Heap = nullptr;
 	HRESULT hr;
@@ -312,13 +312,11 @@ HRESULT FD3D12Adapter::CreatePlacedResourceWithHeap(const D3D12_RESOURCE_DESC& I
 	HeapDesc.SizeInBytes = ResInfo.SizeInBytes;
 	HeapDesc.Alignment = 0;
 	HeapDesc.Flags = D3D12_HEAP_FLAG_NONE;
-	
-#if PLATFORM_XBOXONE
-	if (InDesc.Flags & D3D12RHI_RESOURCE_FLAG_ALLOW_INDIRECT_BUFFER)
+
+	if (InDesc.Flags & D3D12RHI_RESOURCE_FLAG_ALLOW_INDIRECT_BUFFER) //-V616
 	{
-		HeapDesc.Flags |= D3D12RHI_HEAP_FLAG_ALLOW_INDIRECT_BUFFERS;
+		HeapDesc.Flags |= D3D12RHI_HEAP_FLAG_ALLOW_INDIRECT_BUFFERS; //-V616
 	}
-#endif
 	hr = RootDevice->CreateHeap(&HeapDesc, IID_PPV_ARGS(D3DHeap.GetInitReference()));
 	check(SUCCEEDED(hr));
 	if (SUCCEEDED(hr))
@@ -456,6 +454,10 @@ void FD3D12ResourceLocation::InternalClear()
 
 void FD3D12ResourceLocation::TransferOwnership(FD3D12ResourceLocation& Destination, FD3D12ResourceLocation& Source)
 {
+	// Skip if source and dest are the same
+	if (&Source == &Destination)
+		return;
+
 	// Clear out the destination
 	Destination.Clear();
 

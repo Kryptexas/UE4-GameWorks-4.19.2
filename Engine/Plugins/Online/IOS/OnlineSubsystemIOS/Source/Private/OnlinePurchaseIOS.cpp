@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemIOSPrivatePCH.h"
 #include "OnlinePurchaseIOS.h"
@@ -265,7 +265,7 @@ void FOnlinePurchaseIOS::OnTransactionCompleteResponse(EPurchaseTransactionState
 					FinalResult.bSucceeded = true;
 					break;
 				default:
-					UE_LOG(LogOnline, Warning, TEXT("Unexpected state after purchase %d"), FinalState);
+					UE_LOG(LogOnline, Warning, TEXT("Unexpected state after purchase %d"), (int)FinalState);
 					FinalResult.SetFromErrorCode(TEXT("com.epicgames.purchase.unexpected_state"));
 					FinalResult.ErrorMessage = !ErrorStr.IsEmpty() ? FText::FromString(ErrorStr) : LOCTEXT("UnexpectedState", "Unexpected purchase result");
 					UserPendingTransaction->PendingPurchaseInfo.TransactionState = EPurchaseTransactionState::Failed;

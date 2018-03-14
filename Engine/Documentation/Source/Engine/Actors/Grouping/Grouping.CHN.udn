@@ -1,47 +1,8 @@
-Availability: Public
+﻿Availability: Public
 Title:组合Actor 
 Crumbs:%ROOT%, Engine, Engine/Actors
 Description:关于在虚幻编辑器中创建及应用actor组合的指南。
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors/Grouping:title%](Engine/Actors/Grouping/actorgrouping_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Grouping:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Grouping:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Grouping]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors/Grouping:title%](Engine/Actors/Grouping/actorgrouping_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Grouping:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Grouping:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Grouping]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:actorgrouping_topic.png
 
 [TOC(start:2)]
 
@@ -98,7 +59,9 @@ Description:关于在虚幻编辑器中创建及应用actor组合的指南。
 
 组合是个没有破坏性的操作，因为它将永远不会破坏现有的选中组合。当创建一个组合时，选中的项中可以包含多个actor或现有的组合。比如，如果选中了两个光源及一个现有的由两个静态网格物体构成的锁定组合，然后进行组合操作，那么将会创建一个新的组合，该组合中包含两个光源和一个由静态网格物体构成的子组合。如果选中的actor中包含‘解锁组合’中的actor，那么将把该actor从其旧的组合中删除，并将其放入到新的组合中。
 
-<!------![Group_Nested.PNG](Group_Nested.PNG)--->
+[COMMENT:none]
+----![Group_Nested.PNG](Group_Nested.PNG)-
+[/COMMENT]
 
 一旦一个新的组合形成，那么将会在组合周围出现一个绿色的方括号，其支点会自动设置为组合的中心。
 
@@ -136,7 +99,8 @@ Description:关于在虚幻编辑器中创建及应用actor组合的指南。
 
 	![Unlocked Group](LE_GroupBracketsUnlocked.png)
 
-<!------
+[COMMENT:none]
+----
 
 * 对于嵌套的组合，锁定和解锁 操作都是在按层执行的。 
 	![NestedGroupLock_1.png](NestedGroupLock_1.png) <br/>   
@@ -145,7 +109,8 @@ Description:关于在虚幻编辑器中创建及应用actor组合的指南。
 
 锁定组合的处理顺序恰好相反。在当前解锁的子组合上选择 Lock Group（锁定组合）将会锁定该指定组合。再次在同一个组合上选择 **Lock Group（锁定组合）**，那么将会锁定父项组合。
 
------>
+---
+[/COMMENT]
 
 
 ### 从组合中删除

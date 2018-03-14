@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,12 +10,17 @@
 #include "MovieSceneSignedObject.h"
 #include "MovieSceneSection.h"
 #include "Misc/InlineValue.h"
+#include "Compilation/MovieSceneSegmentCompiler.h"
 #include "MovieSceneTrack.generated.h"
 
 struct FMovieSceneEvaluationTrack;
-struct FMovieSceneSegmentCompilerRules;
-struct FMovieSceneSequenceTemplateStore;
+struct FMovieSceneTrackSegmentBlender;
+struct FMovieSceneTrackRowSegmentBlender;
 struct IMovieSceneTemplateGenerator;
+
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	typedef TInlineValue<FMovieSceneSegmentCompilerRules> FMovieSceneDeprecatedCompilerRulesPtr;
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 /** Flags used to perform cook-time optimization of movie scene data */
 enum class ECookOptimizationFlags
@@ -29,57 +34,31 @@ enum class ECookOptimizationFlags
 };
 ENUM_CLASS_FLAGS(ECookOptimizationFlags)
 
-/** Movie scene compilation parameters. Serialized items contribute to a compiled template's cached hash */
-USTRUCT()
-struct FMovieSceneTrackCompilationParams
-{
-	GENERATED_BODY()
-
-	FMovieSceneTrackCompilationParams()
-		: bForEditorPreview(false)
-		, bDuringBlueprintCompile(false)
-	{
-	}
-
-	friend bool operator!=(const FMovieSceneTrackCompilationParams& A, const FMovieSceneTrackCompilationParams& B)
-	{
-		return !(A == B);
-	}
-
-	friend bool operator==(const FMovieSceneTrackCompilationParams& A, const FMovieSceneTrackCompilationParams& B)
-	{
-		return A.bForEditorPreview == B.bForEditorPreview && A.bDuringBlueprintCompile == B.bDuringBlueprintCompile;
-	}
-
-	/** Whether we're generating for an editor preview, or for efficient runtime evaluation */
-	UPROPERTY()
-	bool bForEditorPreview;
-
-	/** Whether we're generating during a blueprint compile. As such, UObject types may not have been fully loaded. */
-	UPROPERTY()
-	bool bDuringBlueprintCompile;
-};
-
 /** Track compiler arguments */
 struct FMovieSceneTrackCompilerArgs
 {
-	FMovieSceneTrackCompilerArgs(IMovieSceneTemplateGenerator& InGenerator, FMovieSceneSequenceTemplateStore& InSubSequenceStore)
+	FMovieSceneTrackCompilerArgs(IMovieSceneTemplateGenerator& InGenerator)
 		: Generator(InGenerator)
-		, SubSequenceStore(InSubSequenceStore)
 	{
 	}
-
-	/** Compilation parameters */
-	FMovieSceneTrackCompilationParams Params;
 
 	/** The object binding ID that this track belongs to. */
 	FGuid ObjectBindingId;
 
+	EMovieSceneCompletionMode DefaultCompletionMode;
+
 	/** The generator responsible for generating the template */
 	IMovieSceneTemplateGenerator& Generator;
 
-	/** Store that describes how to find sub sequence templates */
-	FMovieSceneSequenceTemplateStore& SubSequenceStore;
+	struct FMovieSceneSequenceTemplateStore {};
+
+	DEPRECATED(4.19, "Template store is no longer supplied as part of track compilation")
+	FMovieSceneSequenceTemplateStore SubSequenceStore;
+
+	struct FMovieSceneTrackCompilationParams { 	bool bForEditorPreview, bDuringBlueprintCompile; };
+
+	DEPRECATED(4.19, "Template store is no longer supplied as part of track compilation")
+	FMovieSceneTrackCompilationParams Params;
 };
 
 /** Generic evaluation options for any track */
@@ -167,13 +146,19 @@ public:
 	 * Get compiler rules to use when compiling sections that overlap on the same row.
 	 * These define how to deal with overlapping sections and empty space on a row
 	 */
-	MOVIESCENE_API virtual TInlineValue<FMovieSceneSegmentCompilerRules> GetRowCompilerRules() const;
+	MOVIESCENE_API virtual FMovieSceneTrackRowSegmentBlenderPtr GetRowSegmentBlender() const;
 
 	/** 
 	 * Get compiler rules to use when compiling sections that overlap on different rows.
 	 * These define how to deal with overlapping sections and empty space at the track level
 	 */
-	MOVIESCENE_API virtual TInlineValue<FMovieSceneSegmentCompilerRules> GetTrackCompilerRules() const;
+	MOVIESCENE_API virtual FMovieSceneTrackSegmentBlenderPtr GetTrackSegmentBlender() const;
+
+	DEPRECATED(4.19, "Please override GetRowSegmentBlender() instead.")
+	MOVIESCENE_API virtual FMovieSceneDeprecatedCompilerRulesPtr GetRowCompilerRules() const;
+
+	DEPRECATED(4.19, "Please override GetTrackSegmentBlender() instead.")
+	MOVIESCENE_API virtual FMovieSceneDeprecatedCompilerRulesPtr GetTrackCompilerRules() const;
 
 	/**
 	 * Generate a template for this track
@@ -206,13 +191,6 @@ protected:
 	 */
 	virtual void PostCompile(FMovieSceneEvaluationTrack& Track, const FMovieSceneTrackCompilerArgs& Args) const {}
 
-public:
-
-	/**
-	 * Internal function to create a legacy track instance
-	 */
-	TSharedPtr<class IMovieSceneTrackInstance> CreateLegacyInstance() const;
-
 protected:
 
 	/**
@@ -231,12 +209,6 @@ protected:
 	 * @return Compilation result
 	 */
 	MOVIESCENE_API EMovieSceneCompileResult Compile(FMovieSceneEvaluationTrack& Track, const FMovieSceneTrackCompilerArgs& Args) const;
-
-	/**
-	 * Deprecated method of creating track instances
-	 */
-	DEPRECATED(4.15, "Create Instance has been deprecated. Please provide an evaluation template through CreateTemplateForSection instead.")
-	virtual TSharedPtr<class IMovieSceneTrackInstance> CreateInstance() { return nullptr; }
 
 protected:
 

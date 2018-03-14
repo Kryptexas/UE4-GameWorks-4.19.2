@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Factories/FbxSceneImportData.h"
 #include "Serialization/JsonReader.h"
@@ -121,7 +121,23 @@ UnFbx::FBXImportOptions *JSONToFbxOption(TSharedPtr<FJsonValue> OptionJsonValue,
 	OptionObj->TryGetBoolField("bPreserveSmoothingGroups", Option->bPreserveSmoothingGroups);
 	OptionObj->TryGetBoolField("bImportMeshesInBoneHierarchy", Option->bImportMeshesInBoneHierarchy);
 	OptionObj->TryGetBoolField("bImportMorphTargets", Option->bImportMorph);
-	OptionObj->TryGetBoolField("bKeepOverlappingVertices", Option->bKeepOverlappingVertices);
+	
+	if (OptionObj->TryGetObjectField("OverlappingThresholds", DataObj))
+	{
+		double Pos, NTB, UV;
+		if ((*DataObj)->TryGetNumberField("ThresholdPosition", Pos))
+		{
+			Option->OverlappingThresholds.ThresholdPosition = (float)Pos;
+		}
+		if ((*DataObj)->TryGetNumberField("ThresholdTangentNormal", NTB))
+		{
+			Option->OverlappingThresholds.ThresholdTangentNormal = (float)NTB;
+		}
+		if ((*DataObj)->TryGetNumberField("ThresholdUV", UV))
+		{
+			Option->OverlappingThresholds.ThresholdUV = (float)UV;
+		}
+	}
 
 	FString MaterialBasePath;
 	if (OptionObj->TryGetStringField("MaterialBasePath", MaterialBasePath))
@@ -185,13 +201,15 @@ FString FbxOptionToJSON(FString OptionName, UnFbx::FBXImportOptions *Option)
 		);
 
 	//Skeletal mesh options
-	JsonString += FString::Printf(TEXT("\"bUpdateSkeletonReferencePose\" : \"%d\", \"bUseT0AsRefPose\" : \"%d\", \"bPreserveSmoothingGroups\" : \"%d\", \"bImportMeshesInBoneHierarchy\" : \"%d\", \"bImportMorphTargets\" : \"%d\", \"bKeepOverlappingVertices\" : \"%d\", "),
+	JsonString += FString::Printf(TEXT("\"bUpdateSkeletonReferencePose\" : \"%d\", \"bUseT0AsRefPose\" : \"%d\", \"bPreserveSmoothingGroups\" : \"%d\", \"bImportMeshesInBoneHierarchy\" : \"%d\", \"bImportMorphTargets\" : \"%d\", \"OverlappingThresholds\" : {\"ThresholdPosition\" : \"%f\", \"ThresholdTangentNormal\" : \"%f\", \"ThresholdUV\" : \"%f\"},"),
 		Option->bUpdateSkeletonReferencePose ? 1 : 0,
 		Option->bUseT0AsRefPose ? 1 : 0,
 		Option->bPreserveSmoothingGroups ? 1 : 0,
 		Option->bImportMeshesInBoneHierarchy ? 1 : 0,
 		Option->bImportMorph ? 1 : 0,
-		Option->bKeepOverlappingVertices ? 1 : 0
+		Option->OverlappingThresholds.ThresholdPosition,
+		Option->OverlappingThresholds.ThresholdTangentNormal,
+		Option->OverlappingThresholds.ThresholdUV
 		);
 
 	JsonString += FString::Printf(TEXT("\"MaterialBasePath\" : \"%s\"}"), *(Option->MaterialBasePath.ToString()));

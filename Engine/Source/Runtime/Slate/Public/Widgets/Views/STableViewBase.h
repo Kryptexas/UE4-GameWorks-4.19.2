@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -115,6 +115,9 @@ public:
 	/** Set the scroll offset of this view (in items) */
 	void SetScrollOffset( const float InScrollOffset );
 
+	/** Reset the inertial scroll velocity accumulated in the InertialScrollManager */
+	void EndInertialScrolling();
+
 	/** Add the scroll offset of this view (in items) */
 	void AddScrollOffset(const float InScrollOffsetDelta, bool RefreshList = false);
 
@@ -164,13 +167,13 @@ protected:
 	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmount, EAllowOverscroll InAllowOverscroll );
 
 	/**
-	 * Scroll the view to an offset
+	 * Scroll the view to an offset and resets the inertial scroll velocity 
 	 *
-	 * @param InScrollOffset  Offset into the total list length to scroll down.
+	 * @param InScrollOffset       Offset into the total list length to scroll down.
 	 *
 	 * @return The amount actually scrolled
 	 */
-	virtual float ScrollTo( float InScrollOffset );
+	virtual float ScrollTo( float InScrollOffset);
 
 	/** Insert WidgetToInsert at the top of the view. */
 	void InsertWidget( const TSharedRef<ITableRow> & WidgetToInset );

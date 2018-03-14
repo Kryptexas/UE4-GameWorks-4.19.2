@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3599948
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:맵 체크 오류
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
@@ -163,7 +163,9 @@ $ **[브러시 액터] &#58; 브러시에 0 폴리곤이 있습니다. 지워 �
 [EXCERPT:CameraAspectRatioIsZero]
 **카메라에 AspectRatio=0 입니다. 이 값을 0 이외로 설정해 주십시오.**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:CameraAspectRatioIsZero]
 
 ### 클래스
@@ -172,14 +174,18 @@ $ **[브러시 액터] &#58; 브러시에 0 폴리곤이 있습니다. 지워 �
 [EXCERPT:AbstractClass]
 **[ ]&#58;&#58;[ ] 는 낡아서 제거해야 합니다. (클래스는 abstract)**
 
-NEEDS DESCRIPTION
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:AbstractClass]
 
 (#DeprecatedClass)
 [EXCERPT:DeprecatedClass]
 **[ ]&#58;&#58;[ ] 는 낡아서 제거해야 합니다. (클래스는 deprecated)**
 
-NEEDS DESCRIPTION
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:DeprecatedClass]
 
 ### 폴리지
@@ -188,14 +194,18 @@ NEEDS DESCRIPTION
 [EXCERPT:FoliageMissingStaticMesh]
 **없는 스태틱 메시에 대한 폴리지 인스턴스가 제거되었습니다.**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:FoliageMissingStaticMesh]
 
 (#FoliageMissingStaticMesh)
 [EXCERPT:FoliageMissingClusterComponent]
 **이 맵의 폴리지에 없는 클러스터 컴포넌트가 [x] 개, 스태틱 메시 [이름] 에 대한 것입니다. 폴리지 툴을 열면 이 문제가 해결됩니다.**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:FoliageMissingClusterComponent]
 
 ### 랜드스케이프
@@ -204,28 +214,36 @@ NEEDS DESCRIPTION
 [EXCERPT:FixedUpDeletedLayerWeightmap]
 **[랜드스케이프 컴포넌트] &#58; 삭제된 레이어 웨이트맵을 고쳤습니다.**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:FixedUpDeletedLayerWeightmap]
 
 (#FixedUpIncorrectLayerWeightmap)
 [EXCERPT:FixedUpIncorrectLayerWeightmap]
 **[랜드스케이프 컴포넌트] &#58; 잘못된 레이어 웨이트맵 텍스처 인덱스를 고쳤습니다.**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:FixedUpIncorrectLayerWeightmap]
 
 (#FixedUpSharedLayerWeightmap)
 [EXCERPT:FixedUpSharedLayerWeightmap]
 **[레이어] 레이어, \[컴포넌트\] 컴포넌트 \(에서 [이름] 과 공유하는\) 레이어에 대한 공유 웨이트맵 텍스처를 고쳤습니다.**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:FixedUpSharedLayerWeightmap]
 
 (#LandscapeComponentPostLoad_Warning)
 [EXCERPT:LandscapeComponentPostLoad_Warning]
 **랜드스케이프 ([프록시명]) 의 ([X,Y]) 위치에 겹치는 렌더 컴포넌트가 있습니다.**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:LandscapeComponentPostLoad_Warning]
 
 ### 레벨
@@ -265,7 +283,9 @@ NEEDS DESCRIPTION
 [EXCERPT:StaticComponentHasInvalidLightmapSettings]
 **컴포넌트가 정적인 유형인데 라이트맵 세팅이 잘못되어 있습니다! 간접광이 검게 나올 것입니다. 흔한 원인은 라이트맵 해상도 0, LightmapCoordinateIndex 범위 초과 등입니다.**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:StaticComponentHasInvalidLightmapSettings]
 
 ### 내비게이션
@@ -274,7 +294,9 @@ NEEDS DESCRIPTION
 [EXCERPT:RebuildPaths]
 **패스를 리빌드해야 합니다.**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:RebuildPaths]
 
 ### 파티클 시스템
@@ -369,14 +391,18 @@ NULL SoundCue 프로퍼티가 있는 앰비언트 사운드가 있을 때 발생
 [EXCERPT:MoreMaterialsThanReferenced]
 **스태틱 메시 컴포넌트 위에 덮어쓰여진 머티리얼 수[x]가 레퍼런스된 수[y], '[스태틱 메시]' 소스 메시에 있는 것보다 많습니다.**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:MoreMaterialsThanReferenced]
 
 (#ElementsWithZeroTriangles)
 [EXCERPT:ElementsWithZeroTriangles]
 **트라이앵글이 0 인 [x] 개의 엘리먼트가 '[스태틱 메시]' 스태틱 메시에 있습니다.**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:ElementsWithZeroTriangles]
 
 
@@ -417,7 +443,9 @@ NULL SoundCue 프로퍼티가 있는 앰비언트 사운드가 있을 때 발생
 [EXCERPT:UsingExternalObject]
 **[오브젝트명] &#58; 외부적으로 레퍼런스되었습니다.**
 
-<!-- TODO -->
+[COMMENT:none]
+ TODO 
+[/COMMENT]
 [/EXCERPT:UsingExternalObject]
 
 

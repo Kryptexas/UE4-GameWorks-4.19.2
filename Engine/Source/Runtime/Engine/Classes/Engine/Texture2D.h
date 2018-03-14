@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -39,14 +39,6 @@ public:
 	UPROPERTY()
 	int32 FirstResourceMemMip;
 
-private:
-	/**
-	 * The imported size of the texture. Only valid on cooked builds when texture source is not
-	 * available. Access ONLY via the GetImportedSize() accessor!
-	 */
-	UPROPERTY()
-	FIntPoint ImportedSize;
-
 public:
 	/**
 	 * Retrieves the size of the source image from which the texture was created.
@@ -61,40 +53,36 @@ public:
 	}
 
 private:
-	/** WorldSettings timestamp that tells the streamer to force all miplevels to be resident up until that time. */
-	UPROPERTY(transient)
-	double ForceMipLevelsToBeResidentTimestamp;
-
 	/** True if streaming is temporarily disabled so we can update subregions of this texture's resource 
 	without streaming clobbering it. Automatically cleared before saving. */
 	UPROPERTY(transient)
-	bool bTemporarilyDisableStreaming;
+	uint8 bTemporarilyDisableStreaming:1;
 
 public:
 	/** Whether the texture is currently streamable or not.						*/
 	UPROPERTY(transient, NonTransactional)
-	bool bIsStreamable;
+	uint8 bIsStreamable:1;
 
 	/** Whether some mips might be streamed soon. If false, the texture is not planned resolution will be stable. */
 	UPROPERTY(transient, NonTransactional)
-	uint32 bHasStreamingUpdatePending:1;
+	uint8 bHasStreamingUpdatePending:1;
 
 	/** Override whether to fully stream even if texture hasn't been rendered.	*/
 	UPROPERTY(transient)
-	uint32 bForceMiplevelsToBeResident:1;
+	uint8 bForceMiplevelsToBeResident:1;
 
 	/** Ignores the streaming mip bias used to accommodate memory constraints. */
 	UPROPERTY(transient)
-	uint32 bIgnoreStreamingMipBias:1;
+	uint8 bIgnoreStreamingMipBias:1;
 
 	/** Global and serialized version of ForceMiplevelsToBeResident.				*/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LevelOfDetail, meta=(DisplayName="Global Force Resident Mip Levels"), AdvancedDisplay)
-	uint32 bGlobalForceMipLevelsToBeResident:1;
+	uint8 bGlobalForceMipLevelsToBeResident:1;
 
 #if WITH_EDITORONLY_DATA
 	/** Whether the texture has been painted in the editor.						*/
 	UPROPERTY()
-	uint32 bHasBeenPaintedInEditor:1;
+	uint8 bHasBeenPaintedInEditor:1;
 #endif // WITH_EDITORONLY_DATA
 
 	/** The addressing mode to use for the X axis.								*/
@@ -104,6 +92,18 @@ public:
 	/** The addressing mode to use for the Y axis.								*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Texture, meta=(DisplayName="Y-axis Tiling Method"), AssetRegistrySearchable, AdvancedDisplay)
 	TEnumAsByte<enum TextureAddress> AddressY;
+
+private:
+	/**
+	 * The imported size of the texture. Only valid on cooked builds when texture source is not
+	 * available. Access ONLY via the GetImportedSize() accessor!
+	 */
+	UPROPERTY()
+	FIntPoint ImportedSize;
+
+	/** WorldSettings timestamp that tells the streamer to force all miplevels to be resident up until that time. */
+	UPROPERTY(transient)
+	double ForceMipLevelsToBeResidentTimestamp;
 
 public:
 	/** The derived data for this texture on this platform. */
@@ -263,7 +263,7 @@ public:
 	 *						Mips.Num() - FirstMipToLoad + 1 entries. Upon
 	 *						return those pointers will contain mip data.
 	 */
-	void GetMipData(int32 FirstMipToLoad, void** OutMipData);
+	ENGINE_API void GetMipData(int32 FirstMipToLoad, void** OutMipData);
 
 	/**
 	 * Returns the number of mips in this texture that are not able to be streamed.

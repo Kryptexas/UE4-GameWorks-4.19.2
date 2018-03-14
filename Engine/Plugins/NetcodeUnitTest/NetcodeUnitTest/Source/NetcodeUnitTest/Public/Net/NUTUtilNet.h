@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,6 +8,9 @@
 #include "Engine/NetworkDelegates.h"
 #include "Engine/World.h"
 #include "Sockets.h"
+
+#include "Net/UnitTestPackageMap.h"
+
 
 class APlayerController;
 class FInBunch;
@@ -38,6 +41,7 @@ DECLARE_DELEGATE_FourParams(FOnProcessNetEvent, AActor* /*Actor*/, UFunction* /*
 
 /**
  * Class for encapsulating ProcessEvent and general RPC hooks, implemented globally for each UWorld
+ * NOTE: Presently, all RPC hooks tied to UWorld's only hook client RPC's - global RPC hooks, hook both client and server RPC's
  */
 class FProcessEventHook
 {
@@ -63,6 +67,9 @@ public:
 	 */
 	FProcessEventHook()
 		: NetEventHooks()
+		, EventHooks()
+		, GlobalNetEventHooks()
+		, GlobalEventHooks()
 	{
 	}
 
@@ -85,7 +92,7 @@ public:
 	 * Adds a non-RPC hook for the specified UWorld.
 	 *
 	 * @param InWorld	The UWorld whose RPC's should be hooked
-	 * @param InHook	The delegate for handling the hooked RPC's
+	 * @param InHook	The delegate for handling the hooked events
 	 */
 	void AddEventHook(UWorld* InWorld, FOnProcessNetEvent InHook);
 
@@ -96,8 +103,48 @@ public:
 	 */
 	void RemoveEventHook(UWorld* InWorld);
 
+	/**
+	 * Adds a global RPC hook.
+	 *
+	 * @param InHook	The delegate for handling the hooked RPC's
+	 * @return			Returns a delegate handle, used for removing the hook later
+	 */
+	FDelegateHandle AddGlobalRPCHook(FOnProcessNetEvent InHook);
+
+	/**
+	 * Removes the specified global RPC hook
+	 *
+	 * @param InHandle	The handle to the global RPC hook to remove
+	 */
+	void RemoveGlobalRPCHook(FDelegateHandle InHandle);
+
+	/**
+	 * Adds a global non-RPC hook.
+	 *
+	 * @param InHook	The delegate for handling the hooked events
+	 * @return			Returns a delegate handle, used for removing the hook later
+	 */
+	FDelegateHandle AddGlobalEventHook(FOnProcessNetEvent InHook);
+
+	/**
+	 * Removes the specified global non-RPC hook
+	 *
+	 * @param InHandle	The handle to the global non-RPC hook to remove
+	 */
+	void RemoveGlobalEventHook(FDelegateHandle InHandle);
+
 
 private:
+	/**
+	 * Checks performed prior to adding any hooks
+	 */
+	void PreAddHook();
+
+	/**
+	 * Checks performed after removing any hooks
+	 */
+	void PostRemoveHook();
+
 	/**
 	 * Base hook for AActor::ProcessEventDelegate - responsible for filtering based on RPC events and Actor UWorld
 	 */
@@ -109,6 +156,12 @@ private:
 
 	/** The global list of ProcessEvent hooks, and the UWorld they are associated with */
 	TMap<UWorld*, FOnProcessNetEvent> EventHooks;
+
+	/** The global list of RPC hooks, which aren't associated with a specific UWorld */
+	TArray<FOnProcessNetEvent> GlobalNetEventHooks;
+
+	/** The global list of ProcessEvent hooks, which aren't associated with a specific UWorld */
+	TArray<FOnProcessNetEvent> GlobalEventHooks;
 };
 
 
@@ -193,46 +246,14 @@ public:
 	{
 	}
 
-	void Init()
-	{
-		if (AttachedWorld != NULL)
-		{
-#if TARGET_UE4_CL >= CL_DEPRECATEDEL
-			TickDispatchDelegateHandle  = AttachedWorld->OnTickDispatch().AddRaw(this, &FWorldTickHook::TickDispatch);
-			PostTickFlushDelegateHandle = AttachedWorld->OnPostTickFlush().AddRaw(this, &FWorldTickHook::PostTickFlush);
-#else
-			AttachedWorld->OnTickDispatch().AddRaw(this, &FWorldTickHook::TickDispatch);
-			AttachedWorld->OnPostTickFlush().AddRaw(this, &FWorldTickHook::PostTickFlush);
-#endif
-		}
-	}
+	void Init();
 
-	void Cleanup()
-	{
-		if (AttachedWorld != NULL)
-		{
-#if TARGET_UE4_CL >= CL_DEPRECATEDEL
-			AttachedWorld->OnPostTickFlush().Remove(PostTickFlushDelegateHandle);
-			AttachedWorld->OnTickDispatch().Remove(TickDispatchDelegateHandle);
-#else
-			AttachedWorld->OnPostTickFlush().RemoveRaw(this, &FWorldTickHook::PostTickFlush);
-			AttachedWorld->OnTickDispatch().RemoveRaw(this, &FWorldTickHook::TickDispatch);
-#endif
-		}
-
-		AttachedWorld = NULL;
-	}
+	void Cleanup();
 
 private:
-	void TickDispatch(float DeltaTime)
-	{
-		GActiveLogWorld = AttachedWorld;
-	}
+	void TickDispatch(float DeltaTime);
 
-	void PostTickFlush()
-	{
-		GActiveLogWorld = NULL;
-	}
+	void PostTickFlush();
 
 public:
 	/** The world this is attached to */
@@ -249,6 +270,7 @@ private:
 };
 
 
+// @todo #JohnB: Refactor to be based on minimal client
 /**
  * Hooks netcode object serialization, in order to replace replication of a specific object, with another specified object,
  * for the lifetime of the scoped instance
@@ -267,6 +289,26 @@ private:
 	UObject* ObjToReplace;
 };
 
+/**
+ * Hooks netcode name serialization, in order to replace replication of a specific name, with another specified name,
+ * for the lifetime of the scoped instance
+ */
+class NETCODEUNITTEST_API FScopedNetNameReplace
+{
+public:
+	FScopedNetNameReplace(UMinimalClient* InMinClient, const FOnSerializeName::FDelegate& InDelegate);
+
+	// @todo #JohnB: This variation is not tested
+	FScopedNetNameReplace(UMinimalClient* InMinClient, FName InNameToReplace, FName InNameReplacement);
+
+	~FScopedNetNameReplace();
+
+private:
+	UMinimalClient* MinClient;
+
+	FDelegateHandle Handle;
+};
+
 
 /**
  * Netcode based utility functions
@@ -281,11 +323,11 @@ struct NUTNet
 	 * @param InBeacon		The beacon that should be setup
 	 * @param InConnection	The connection associated with the beacon
 	 */
-	static void HandleBeaconReplicate(AActor* InBeacon, UNetConnection* InConnection);
+	static NETCODEUNITTEST_API void HandleBeaconReplicate(AActor* InBeacon, UNetConnection* InConnection);
 
 
 	/**
-	 * Creates a barebones/minimal UWorld, for setting up minimal fake player connections,
+	 * Creates a barebones/minimal UWorld, for setting up minimal client connections,
 	 * and as a container for objects in the unit test commandlet
 	 *
 	 * @return	Returns the created UWorld object

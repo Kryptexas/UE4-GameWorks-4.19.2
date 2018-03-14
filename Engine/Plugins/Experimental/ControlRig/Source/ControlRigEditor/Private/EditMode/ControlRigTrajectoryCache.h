@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -116,7 +116,7 @@ protected:
 	TArray<FDynamicMeshVertex> Vertices;
 
 	/** 'Index buffer' we use to render with */
-	TArray<int32> Indices;
+	TArray<uint32> Indices;
 
 	/** Currently selected indices */
 	TArray<int32> NodeIndices;

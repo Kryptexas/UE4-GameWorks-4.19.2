@@ -4,46 +4,7 @@ Crumbs:%ROOT%
 Description:Links to various example scenes, sample games, and tutorials.
 Navigation:topic
 Version: 4.9
-
-
-[VAR:Params]
-[PARAM:image]
-	![](TP_ThirdPersonBP_Preview.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/tutorial_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Resources/Templates/ThirdPerson:title%
-[/PARAM]
-[PARAM:description]
-	%Resources/Templates/ThirdPerson:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Resources/Templates/ThirdPerson]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:Role]
-[OBJECT:Role]
-%params%
-[PARAMLITERAL:id]
-resources
-[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
+topic-image:TP_ThirdPersonBP_Preview.png
 
 ![](templateMore.PNG)(convert:false)
 
@@ -72,9 +33,4 @@ So you have started a new game using the **Third Person Template**? Awesome! If 
 	* Procedural content
 	* Cover systems
 
-<!--
 
-* Create a [particle effect](Engine/Rendering/ParticleSystems), using the [Cascade Particle Editor](Engine/Rendering/ParticleSystems/Cascade), that represents a muzzle flash! Then using a [Particle System Component](Engine/Components/Rendering#particlesystemcomponent), add it to the **FirstPersonCharacter** Blueprint, and Activate the component in the **InputAction Fire** Event.
-	* Bonus: Add a Particle System Component to the **FirstPersonProjectile** to make it look like it trails smoke behind it. Look for the **Use Local Space** property [here](Engine/Rendering/ParticleSystems/Reference/Modules/Required).
-
--->

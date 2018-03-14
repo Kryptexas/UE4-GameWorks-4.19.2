@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Input/HittestGrid.h"
 #include "Rendering/RenderingCommon.h"
@@ -96,36 +96,9 @@ struct FHittestGrid::FGridTestingParams
 };
 
 
-struct FHittestGrid::FCachedWidget
-{
-	FCachedWidget(int32 InParentIndex, const FArrangedWidget& InWidget, int32 InClippingStateIndex, int32 InLayerId)
-	: WidgetPtr(InWidget.Widget)
-	, CachedGeometry(InWidget.Geometry)
-	, ClippingStateIndex(InClippingStateIndex)
-	, Children()
-	, ParentIndex(InParentIndex)
-	, LayerId(InLayerId)
-	{}
-
-	void AddChild(const int32 ChildIndex)
-	{
-		Children.Add(ChildIndex);
-	}
-
-	TWeakPtr<SWidget> WidgetPtr;
-	/** Allow widgets that implement this interface to insert widgets into the bubble path */
-	TWeakPtr<ICustomHitTestPath> CustomPath;
-	FGeometry CachedGeometry;
-	int32 ClippingStateIndex;
-	TArray<int32, TInlineAllocator<16> > Children;
-	int32 ParentIndex;
-	/** This is needed to be able to pick the best of the widgets within the virtual cursor's radius. */
-	int32 LayerId;
-};
-
 
 FHittestGrid::FHittestGrid()
-: WidgetsCachedThisFrame( new TArray<FCachedWidget>() )
+: WidgetsCachedThisFrame()
 {
 }
 
@@ -142,7 +115,7 @@ TArray<FWidgetAndPointer> FHittestGrid::GetBubblePath(FVector2D DesktopSpaceCoor
 	//calculate the cursor position in the grid
 	const FVector2D CursorPositionInGrid = DesktopSpaceCoordinate - GridOrigin;
 
-	if (WidgetsCachedThisFrame->Num() > 0 && Cells.Num() > 0)
+	if (WidgetsCachedThisFrame.Num() > 0 && Cells.Num() > 0)
 	{
 		//grab the path for direct testing first
 		FGridTestingParams DirectTestingParams;
@@ -250,7 +223,7 @@ void FHittestGrid::ClearGridForNewFrame(const FSlateRect& HittestArea)
 	GridOrigin = HittestArea.GetTopLeft();
 	const FVector2D GridSize = HittestArea.GetSize();
 	NumCells = FIntPoint(FMath::CeilToInt(GridSize.X / CellSize.X), FMath::CeilToInt(GridSize.Y / CellSize.Y));
-	WidgetsCachedThisFrame->Reset();
+	WidgetsCachedThisFrame.Reset();
 
 	const int32 NewTotalCells = NumCells.X * NumCells.Y;
 	if (NewTotalCells != Cells.Num())
@@ -283,7 +256,7 @@ void FHittestGrid::PopClip()
 
 int32 FHittestGrid::InsertWidget(const int32 ParentHittestIndex, const EVisibility& Visibility, const FArrangedWidget& ArrangedWidget, const FVector2D InWindowOffset, int32 LayerId)
 {
-	if (ensureMsgf(ParentHittestIndex < WidgetsCachedThisFrame->Num(), TEXT("Widget '%s' being drawn before its parent."), *ArrangedWidget.ToString()))
+	if (ensureMsgf(ParentHittestIndex < WidgetsCachedThisFrame.Num(), TEXT("Widget '%s' being drawn before its parent."), *ArrangedWidget.ToString()))
 	{
 		// Update the FGeometry to transform into desktop space.
 		FArrangedWidget WindowAdjustedWidget(ArrangedWidget);
@@ -292,7 +265,7 @@ int32 FHittestGrid::InsertWidget(const int32 ParentHittestIndex, const EVisibili
 #if 0
 		// Enable this code if you're trying to make sure a widget is only ever added to the hit test grid once.
 		const FCachedWidget* ExistingCachedWidget =
-			WidgetsCachedThisFrame->FindByPredicate([Widget](const FCachedWidget& CachedWidget) {
+			WidgetsCachedThisFrame.FindByPredicate([Widget](const FCachedWidget& CachedWidget) {
 			return CachedWidget.WidgetPtr.Pin() == Widget.Widget;
 		});
 
@@ -302,11 +275,11 @@ int32 FHittestGrid::InsertWidget(const int32 ParentHittestIndex, const EVisibili
 		const int32 ClippingStateIndex = ClippingManager.GetClippingIndex();
 
 		// Remember this widget, its geometry, and its place in the logical hierarchy.
-		const int32 WidgetIndex = WidgetsCachedThisFrame->Add(FCachedWidget(ParentHittestIndex, WindowAdjustedWidget, ClippingStateIndex, LayerId));
-		check(WidgetIndex < WidgetsCachedThisFrame->Num());
+		const int32 WidgetIndex = WidgetsCachedThisFrame.Add(FCachedWidget(ParentHittestIndex, WindowAdjustedWidget, ClippingStateIndex, LayerId));
+		check(WidgetIndex < WidgetsCachedThisFrame.Num());
 		if (ParentHittestIndex != INDEX_NONE)
 		{
-			(*WidgetsCachedThisFrame)[ParentHittestIndex].AddChild(WidgetIndex);
+			WidgetsCachedThisFrame[ParentHittestIndex].AddChild(WidgetIndex);
 		}
 
 		if (Visibility.IsHitTestVisible())
@@ -346,9 +319,9 @@ int32 FHittestGrid::InsertWidget(const int32 ParentHittestIndex, const EVisibili
 
 void FHittestGrid::InsertCustomHitTestPath( TSharedRef<ICustomHitTestPath> CustomHitTestPath, int32 WidgetIndex )
 {
-	if( WidgetsCachedThisFrame->IsValidIndex( WidgetIndex ) )
+	if( WidgetsCachedThisFrame.IsValidIndex( WidgetIndex ) )
 	{
-		(*WidgetsCachedThisFrame)[WidgetIndex].CustomPath = CustomHitTestPath;
+		WidgetsCachedThisFrame[WidgetIndex].CustomPath = CustomHitTestPath;
 	}
 }
 
@@ -364,7 +337,7 @@ bool FHittestGrid::IsDescendantOf(const TSharedRef<SWidget> Parent, const FCache
 	int32 CurWidgetIndex = Child.ParentIndex;
 	while (CurWidgetIndex != INDEX_NONE)
 	{
-		const FCachedWidget& CurCachedWidget = (*WidgetsCachedThisFrame)[CurWidgetIndex];
+		const FCachedWidget& CurCachedWidget = WidgetsCachedThisFrame[CurWidgetIndex];
 		CurWidgetIndex = CurCachedWidget.ParentIndex;
 
 		if (Parent == CurCachedWidget.WidgetPtr.Pin())
@@ -426,9 +399,9 @@ TSharedPtr<SWidget> FHittestGrid::FindFocusableWidget(FSlateRect WidgetRect, con
 			for (int32 i = IndexesInCell.Num() - 1; i >= 0; --i)
 			{
 				int32 CurrentIndex = IndexesInCell[i];
-				check(CurrentIndex < WidgetsCachedThisFrame->Num());
+				check(CurrentIndex < WidgetsCachedThisFrame.Num());
 
-				const FCachedWidget& TestCandidate = (*WidgetsCachedThisFrame)[CurrentIndex];
+				const FCachedWidget& TestCandidate = WidgetsCachedThisFrame[CurrentIndex];
 				FSlateRect TestCandidateRect = TestCandidate.CachedGeometry.GetRenderBoundingRect().OffsetBy(-GridOrigin);
 
 				if (CompareFunc(DestSideFunc(TestCandidateRect), CurrentSourceSide) && FSlateRect::DoRectanglesIntersect(SweptRect, TestCandidateRect))
@@ -467,6 +440,7 @@ TSharedPtr<SWidget> FHittestGrid::FindFocusableWidget(FSlateRect WidgetRect, con
 				case EUINavigationRule::Explicit:
 					return NavigationReply.GetFocusRecipient();
 				case EUINavigationRule::Custom:
+				case EUINavigationRule::CustomBoundary:
 				{
 					const FNavigationDelegate& FocusDelegate = NavigationReply.GetFocusDelegate();
 					if (FocusDelegate.IsBound())
@@ -493,14 +467,25 @@ TSharedPtr<SWidget> FHittestGrid::FindFocusableWidget(FSlateRect WidgetRect, con
 		// break if we have looped back to where we started.
 		if (bWrapped && StartingIndex == CurrentCellProcessed) { break; }
 
-		// If were going to fail our bounds check and our rule is to wrap then wrap our position
-		if (!(CurrentCellPoint[AxisIndex] >= 0 && CurrentCellPoint[AxisIndex] < NumCells[AxisIndex]) && NavigationReply.GetBoundaryRule() == EUINavigationRule::Wrap)
+		// If were going to fail our bounds check and our rule is to a boundary condition (Wrap or CustomBoundary) handle appropriately
+		if (!(CurrentCellPoint[AxisIndex] >= 0 && CurrentCellPoint[AxisIndex] < NumCells[AxisIndex]))
 		{
-			CurrentSourceSide = DestSideFunc(SweptRect);
-			FVector2D SampleSpot = WidgetRect.GetCenter();
-			SampleSpot[AxisIndex] = CurrentSourceSide;
-			CurrentCellPoint = GetCellCoordinate(SampleSpot);
-			bWrapped = true;
+			if (NavigationReply.GetBoundaryRule() == EUINavigationRule::Wrap)
+			{
+				CurrentSourceSide = DestSideFunc(SweptRect);
+				FVector2D SampleSpot = WidgetRect.GetCenter();
+				SampleSpot[AxisIndex] = CurrentSourceSide;
+				CurrentCellPoint = GetCellCoordinate(SampleSpot);
+				bWrapped = true;
+			}
+			else if (NavigationReply.GetBoundaryRule() == EUINavigationRule::CustomBoundary)
+			{
+				const FNavigationDelegate& FocusDelegate = NavigationReply.GetFocusDelegate();
+				if (FocusDelegate.IsBound())
+				{
+					return FocusDelegate.Execute(Direction);
+				}
+			}
 		}
 	}
 
@@ -625,11 +610,11 @@ void FHittestGrid::LogGrid() const
 
 	UE_LOG(LogHittestDebug, Warning, TEXT("\n%s"), *TempString);
 
-	for (int i = 0; i < WidgetsCachedThisFrame->Num(); ++i)
+	for (int i = 0; i < WidgetsCachedThisFrame.Num(); ++i)
 	{
-		if ((*WidgetsCachedThisFrame)[i].ParentIndex == INDEX_NONE)
+		if (WidgetsCachedThisFrame[i].ParentIndex == INDEX_NONE)
 		{
-			LogChildren(i, 0, *WidgetsCachedThisFrame);
+			LogChildren(i, 0, WidgetsCachedThisFrame);
 		}
 	}
 }
@@ -661,7 +646,7 @@ FHittestGrid::FWidgetPathAndDist FHittestGrid::GetWidgetPathAndDist(const FGridT
 	if (HitIndex.WidgetIndex != INDEX_NONE)
 	{
 		// if we have a custom path, we want to do the testing for 3D Widgets
-		const FCachedWidget& PhysicallyHitWidget = (*WidgetsCachedThisFrame)[HitIndex.WidgetIndex];
+		const FCachedWidget& PhysicallyHitWidget = WidgetsCachedThisFrame[HitIndex.WidgetIndex];
 		if (PhysicallyHitWidget.CustomPath.IsValid())
 		{
 			const FVector2D DesktopSpaceCoordinate = Params.CursorPositionInGrid + GridOrigin;
@@ -695,9 +680,9 @@ FHittestGrid::FIndexAndDistance FHittestGrid::GetHitIndexFromCellIndex(const FGr
 		{
 			const int32 WidgetIndex = IndexesInCell[i];
 
-			check(WidgetsCachedThisFrame->IsValidIndex(WidgetIndex));
+			check(WidgetsCachedThisFrame.IsValidIndex(WidgetIndex));
 
-			const FHittestGrid::FCachedWidget& TestCandidate = (*WidgetsCachedThisFrame)[WidgetIndex];
+			const FHittestGrid::FCachedWidget& TestCandidate = WidgetsCachedThisFrame[WidgetIndex];
 
 			// When performing a point hittest, accept all hittestable widgets.
 			// When performing a hittest with a radius, only grab interactive widgets.
@@ -745,13 +730,13 @@ TArray<FWidgetAndPointer> FHittestGrid::GetBubblePathFromHitIndex(const int32 Hi
 {
 	TArray<FWidgetAndPointer> BubblePath;
 
-	if (WidgetsCachedThisFrame->IsValidIndex(HitIndex))
+	if (WidgetsCachedThisFrame.IsValidIndex(HitIndex))
 	{
 		int32 CurWidgetIndex = HitIndex;
 		do
 		{
-			check(CurWidgetIndex < WidgetsCachedThisFrame->Num());
-			const FHittestGrid::FCachedWidget& CurCachedWidget = (*WidgetsCachedThisFrame)[CurWidgetIndex];
+			check(CurWidgetIndex < WidgetsCachedThisFrame.Num());
+			const FHittestGrid::FCachedWidget& CurCachedWidget = WidgetsCachedThisFrame[CurWidgetIndex];
 			const TSharedPtr<SWidget> CachedWidgetPtr = CurCachedWidget.WidgetPtr.Pin();
 
 

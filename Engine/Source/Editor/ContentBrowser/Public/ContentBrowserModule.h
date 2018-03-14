@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -51,6 +51,9 @@ public:
 	virtual TArray<FContentBrowserMenuExtender_SelectedAssets>& GetAllAssetViewContextMenuExtenders() {return AssetViewContextMenuExtenders;}
 	virtual TArray<FContentBrowserMenuExtender>& GetAllAssetViewViewMenuExtenders() {return AssetViewViewMenuExtenders;}
 
+	/** Delegates to call to extend the command/keybinds for content browser */
+	virtual TArray<FContentBrowserCommandExtender>& GetAllContentBrowserCommandExtenders() { return ContentBrowserCommandExtenders; }
+
 	/** Delegates to be called to extend the drag-and-drop support of the asset view */
 	virtual TArray<FAssetViewDragAndDropExtender>& GetAssetViewDragAndDropExtenders() { return AssetViewDragAndDropExtenders; }
 
@@ -72,6 +75,7 @@ private:
 	TArray<FContentBrowserMenuExtender> CollectionViewContextMenuExtenders;
 	TArray<FContentBrowserMenuExtender_SelectedAssets> AssetViewContextMenuExtenders;
 	TArray<FContentBrowserMenuExtender> AssetViewViewMenuExtenders;
+	TArray<FContentBrowserCommandExtender> ContentBrowserCommandExtenders;
 
 	/** All extender delegates for the drag-and-drop support of the asset view */
 	TArray<FAssetViewDragAndDropExtender> AssetViewDragAndDropExtenders;

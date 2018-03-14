@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -13,7 +13,7 @@ public class OnlineSubsystemIOS : ModuleRules
                 }
                 );
 
-        Definitions.Add("ONLINESUBSYSTEMIOS_PACKAGE=1");
+        PublicDefinitions.Add("ONLINESUBSYSTEMIOS_PACKAGE=1");
 
 		PrivateDependencyModuleNames.AddRange(
             new string[] { 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PropertyNode.h"
@@ -64,6 +64,7 @@ FPropertyNode::FPropertyNode(void)
 	, MaxChildDepthAllowed(FPropertyNodeConstants::NoDepthRestrictions)
 	, PropertyNodeFlags (EPropertyNodeFlags::NoFlags)
 	, bRebuildChildrenRequested( false )
+	, bChildrenRebuilt(false)
 	, PropertyPath(TEXT(""))
 	, bIsEditConst(false)
 	, bUpdateEditConstState(true)
@@ -114,7 +115,14 @@ void FPropertyNode::InitNode( const FPropertyNodeInitParams& InitParams )
 	//default to copying from the parent
 	if (ParentNode)
 	{
-		SetNodeFlags(EPropertyNodeFlags::ShowCategories, !!ParentNode->HasNodeFlags(EPropertyNodeFlags::ShowCategories));
+		if (ParentNode->HasNodeFlags(EPropertyNodeFlags::ShowCategories) != 0)
+		{
+			SetNodeFlags(EPropertyNodeFlags::ShowCategories, true);
+		}
+		else
+		{
+			SetNodeFlags(EPropertyNodeFlags::ShowCategories, false);
+		}
 
 		// We are advanced if our parent is advanced or our property is marked as advanced
 		SetNodeFlags(EPropertyNodeFlags::IsAdvanced, ParentNode->HasNodeFlags(EPropertyNodeFlags::IsAdvanced) || bAdvanced );
@@ -236,6 +244,7 @@ void FPropertyNode::RebuildChildren()
 
 	// Children have been rebuilt, clear any pending rebuild requests
 	bRebuildChildrenRequested = false;
+	bChildrenRebuilt = true;
 
 	// Notify any listener that children have been rebuilt
 	OnRebuildChildren.ExecuteIfBound();
@@ -387,6 +396,13 @@ EPropertyDataValidationResult FPropertyNode::EnsureDataIsValid()
 {
 	bool bValidateChildren = !HasNodeFlags(EPropertyNodeFlags::SkipChildValidation);
 	bool bValidateChildrenKeyNodes = false;		// by default, we don't check this, since it's just for Map properties
+
+	// If we have rebuilt children since last EnsureDataIsValid call let the caller know
+	if (bChildrenRebuilt)
+	{
+		bChildrenRebuilt = false;
+		return EPropertyDataValidationResult::ChildrenRebuilt;
+	}
 
 	// The root must always be validated
 	if( GetParentNode() == NULL || HasNodeFlags(EPropertyNodeFlags::RequiresValidation) != 0 )
@@ -1570,11 +1586,6 @@ bool FPropertyNode::GetDiffersFromDefaultForObject( FPropertyItemValueDataTracke
 				{
 					PortFlags |= PPF_DeepCompareInstances;
 				}
-				// Use PPF_DeltaComparison for instanced objects
-				else
-				{
-					PortFlags |= PPF_DeltaComparison;
-				}
 			}
 
 			if ( ValueTracker.GetPropertyValueAddress() == NULL || ValueTracker.GetPropertyDefaultAddress() == NULL )
@@ -1689,11 +1700,6 @@ FString FPropertyNode::GetDefaultValueAsStringForObject( FPropertyItemValueDataT
 					{
 						PortFlags |= PPF_DeepCompareInstances;
 					}
-					// Use PPF_DeltaComparison for instanced objects
-					else
-					{
-						PortFlags |= PPF_DeltaComparison;
-					}
 				}
 
 				if ( ValueTracker.GetPropertyValueAddress() == NULL || ValueTracker.GetPropertyDefaultAddress() == NULL )
@@ -1799,6 +1805,10 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 		bool bEditInlineNewWasReset = false;
 
 		TArray< TMap<FString, int32> > ArrayIndicesPerObject;
+
+		// List of top level objects sent to the PropertyChangedEvent
+		TArray<const UObject*> TopLevelObjects;
+		TopLevelObjects.Reserve(ObjectNode->GetNumObjects());
 
 		for( int32 ObjIndex = 0; ObjIndex < ObjectNode->GetNumObjects(); ++ObjIndex )
 		{
@@ -2008,6 +2018,8 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 						PropagatePropertyChange(Object, *ValueAfterImport, PreviousArrayValue.IsEmpty() ? PreviousValue : PreviousArrayValue);
 					}
 
+					TopLevelObjects.Add(Object);
+
 					if(OldGWorld)
 					{
 						// restore the original (editor) GWorld
@@ -2024,7 +2036,7 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 		{
 			// Call PostEditchange on all the objects
 			// Assume reset to default, can change topology
-			FPropertyChangedEvent ChangeEvent( TheProperty, EPropertyChangeType::ValueSet );
+			FPropertyChangedEvent ChangeEvent( TheProperty, EPropertyChangeType::ValueSet, &TopLevelObjects );
 			ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
 
 			NotifyPostChange( ChangeEvent, InNotifyHook );
@@ -2658,17 +2670,6 @@ bool FPropertyNode::IsFilterAcceptable(const TArray<FString>& InAcceptableNames,
 	return bCompleteMatchFound;
 }
 
-void FPropertyNode::AdditionalInitializationUDS(UProperty* Property, uint8* RawPtr)
-{
-	if (const UStructProperty* StructProperty = Cast<const UStructProperty>(Property))
-	{
-		if (!FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<const UUserDefinedStruct>(StructProperty->Struct), RawPtr))
-		{
-			UE_LOG(LogPropertyNode, Warning, TEXT("MakeStructureDefaultValue parsing error. Property: %s "), *StructProperty->GetPathName());
-		}
-	}
-}
-
 void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, const FString& OriginalContainerContent, EPropertyArrayChangeType::Type ChangeType, int32 Index, TMap<UObject*, bool>* PropagationResult, int32 SwapIndex /*= INDEX_NONE*/)
 {
 	UProperty* NodeProperty = GetProperty();
@@ -2800,10 +2801,6 @@ void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, c
 							}
 							break;
 						}
-						if (ElementToInitialize >= 0)
-						{
-							AdditionalInitializationUDS(ArrayProperty->Inner, ArrayHelper.GetRawPtr(ElementToInitialize));
-						}
 					}
 				}	// End Array
 
@@ -2835,11 +2832,6 @@ void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, c
 							check(false);	// Duplicate not supported on sets
 							break;
 						}
-
-						if (ElementToInitialize >= 0)
-						{
-							AdditionalInitializationUDS(SetProperty->ElementProp, SetHelper.GetElementPtr(ElementToInitialize));
-						}
 					}
 				}	// End Set
 				else if (MapProperty)
@@ -2869,14 +2861,6 @@ void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, c
 						case EPropertyArrayChangeType::Duplicate:
 							check(false);	// Duplicate is not supported for maps
 							break;
-						}
-
-						if (ElementToInitialize >= 0)
-						{
-							uint8* PairPtr = MapHelper.GetPairPtr(ElementToInitialize);
-
-							AdditionalInitializationUDS(MapProperty->KeyProp, MapProperty->KeyProp->ContainerPtrToValuePtr<uint8>(PairPtr));
-							AdditionalInitializationUDS(MapProperty->ValueProp, MapProperty->ValueProp->ContainerPtrToValuePtr<uint8>(PairPtr));
 						}
 					}
 				}	// End Map

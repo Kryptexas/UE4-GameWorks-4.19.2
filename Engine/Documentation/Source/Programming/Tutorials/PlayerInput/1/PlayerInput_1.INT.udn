@@ -19,7 +19,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:tip]If you are new to **Unreal Engine 4**, you might want to read our [%Programming\QuickStart:title% tutorial](Programming\QuickStart) first. For this tutorial, we will assume you are familiar with creating a project, adding C++ code to it, and compiling your code.[/REGION]
 
@@ -62,95 +62,88 @@ version:4.9
 
 Now that we have a customized Pawn to react to our game's input, we'll need to define what that input will be. To do this, we'll configure our project's **Input Settings** in the **Unreal Editor**.
 
-[OBJECT:Section]
-    [PARAMLITERAL:id]
-    code
-    [/PARAMLITERAL]
-    [PARAM:heading]
-    Work-In-Progress Code
-    [/PARAM]
-    [PARAM:content]
-		**MyPawn.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+## Work-In-Progress Code
 
-			#pragma once
+**MyPawn.h**
 
-			#include "GameFramework/Pawn.h"
-			#include "MyPawn.generated.h"
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-			UCLASS()
-			class HOWTO_PLAYERINPUT_API AMyPawn : public APawn
-			{
-				GENERATED_BODY()
+	#pragma once
 
-			public:
-				// Sets default values
-				AMyPawn();
+	#include "GameFramework/Pawn.h"
+	#include "MyPawn.generated.h"
 
-			protected:
-				// Called when the game starts or when spawned
-				virtual void BeginPlay() override;
+	UCLASS()
+	class HOWTO_PLAYERINPUT_API AMyPawn : public APawn
+	{
+		GENERATED_BODY()
+
+	public:
+		// Sets default values
+		AMyPawn();
+
+	protected:
+		// Called when the game starts or when spawned
+		virtual void BeginPlay() override;
 			
-			public:
-				// Called every frame
-				virtual void Tick( float DeltaSeconds ) override;
+	public:
+		// Called every frame
+		virtual void Tick( float DeltaSeconds ) override;
 
-				// Called to bind functionality to input
-				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+		// Called to bind functionality to input
+		virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
-				UPROPERTY(EditAnywhere)
-				USceneComponent* OurVisibleComponent;
-			};
+		UPROPERTY(EditAnywhere)
+		USceneComponent* OurVisibleComponent;
+	};
 
-		**MyPawn.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+**MyPawn.cpp**
 
-			#include "HowTo_PlayerInput.h"
-			#include "MyPawn.h"
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-			// Sets default values
-			AMyPawn::AMyPawn()
-			{
- 				// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-				PrimaryActorTick.bCanEverTick = true;
+	#include "HowTo_PlayerInput.h"
+	#include "MyPawn.h"
 
-				// Set this pawn to be controlled by the lowest-numbered player
-				AutoPossessPlayer = EAutoReceiveInput::Player0;
+	// Sets default values
+	AMyPawn::AMyPawn()
+	{
+ 		// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+		PrimaryActorTick.bCanEverTick = true;
 
-				// Create a dummy root component we can attach things to.
-				RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
-				// Create a camera and a visible object
-				UCameraComponent* OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("OurCamera"));
-				OurVisibleComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("OurVisibleComponent"));
-				// Attach our camera and visible object to our root component. Offset and rotate the camera.
-				OurCamera->SetupAttachment(RootComponent);
-				OurCamera->SetRelativeLocation(FVector(-250.0f, 0.0f, 250.0f));
-				OurCamera->SetRelativeRotation(FRotator(-45.0f, 0.0f, 0.0f));
-				OurVisibleComponent->SetupAttachment(RootComponent);
-			}
+		// Set this pawn to be controlled by the lowest-numbered player
+		AutoPossessPlayer = EAutoReceiveInput::Player0;
 
-			// Called when the game starts or when spawned
-			void AMyPawn::BeginPlay()
-			{
-				Super::BeginPlay();
+		// Create a dummy root component we can attach things to.
+		RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+		// Create a camera and a visible object
+		UCameraComponent* OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("OurCamera"));
+		OurVisibleComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("OurVisibleComponent"));
+		// Attach our camera and visible object to our root component. Offset and rotate the camera.
+		OurCamera->SetupAttachment(RootComponent);
+		OurCamera->SetRelativeLocation(FVector(-250.0f, 0.0f, 250.0f));
+		OurCamera->SetRelativeRotation(FRotator(-45.0f, 0.0f, 0.0f));
+		OurVisibleComponent->SetupAttachment(RootComponent);
+	}
 
-			}
+	// Called when the game starts or when spawned
+	void AMyPawn::BeginPlay()
+	{
+		Super::BeginPlay();
 
-			// Called every frame
-			void AMyPawn::Tick( float DeltaTime )
-			{
-				Super::Tick( DeltaTime );
+	}
 
-			}
+	// Called every frame
+	void AMyPawn::Tick( float DeltaTime )
+	{
+		Super::Tick( DeltaTime );
 
-			// Called to bind functionality to input
-			void AMyPawn::SetupPlayerInputComponent(class UInputComponent* InputComponent)
-			{
-				Super::SetupPlayerInputComponent(InputComponent);
+	}
 
-			}
+	// Called to bind functionality to input
+	void AMyPawn::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+	{
+		Super::SetupPlayerInputComponent(InputComponent);
 
-    [/PARAM]
-[/OBJECT]
+	}
 
-%Steps%
+

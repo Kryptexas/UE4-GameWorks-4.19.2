@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
@@ -91,7 +91,7 @@ struct ENGINE_API FAreaNavModifier : public FNavigationModifier
 	float Cost;
 	float FixedCost;
 
-	FAreaNavModifier() : Cost(0.0f), FixedCost(0.0f), Bounds(ForceInitToZero), ShapeType(ENavigationShapeType::Unknown), ApplyMode(ENavigationAreaMode::Apply), bIncludeAgentHeight(false) {}
+	FAreaNavModifier() : Cost(0.0f), FixedCost(0.0f), Bounds(ForceInitToZero), ShapeType(ENavigationShapeType::Unknown), ApplyMode(ENavigationAreaMode::Apply), bIncludeAgentHeight(false), bIsLowAreaModifier(false) {}
 	FAreaNavModifier(float Radius, float Height, const FTransform& LocalToWorld, const TSubclassOf<UNavArea> AreaClass);
 	FAreaNavModifier(const FVector& Extent, const FTransform& LocalToWorld, const TSubclassOf<UNavArea> AreaClass);
 	FAreaNavModifier(const FBox& Box, const FTransform& LocalToWorld, const TSubclassOf<UNavArea> AreaClass);
@@ -103,6 +103,7 @@ struct ENGINE_API FAreaNavModifier : public FNavigationModifier
 	FORCEINLINE const FBox& GetBounds() const { return Bounds; }
 	FORCEINLINE ENavigationShapeType::Type GetShapeType() const { return ShapeType; }
 	FORCEINLINE ENavigationAreaMode::Type GetApplyMode() const { return ApplyMode; }
+	FORCEINLINE bool IsLowAreaModifier() const { return bIsLowAreaModifier; }
 	FORCEINLINE bool ShouldIncludeAgentHeight() const { return bIncludeAgentHeight; }
 	FORCEINLINE void SetIncludeAgentHeight(bool bInclude) { bIncludeAgentHeight = bInclude; }
 	FORCEINLINE const TSubclassOf<UNavArea> GetAreaClass() const { return TSubclassOf<UNavArea>(AreaClassOb.Get()); }
@@ -133,6 +134,9 @@ protected:
 
 	/** if set, area shape will be extended by agent's height to cover area underneath like regular colliding geometry */
 	uint8 bIncludeAgentHeight : 1;
+
+	/** set when this modifier affects low spans in navmesh generation step */
+	uint8 bIsLowAreaModifier : 1;
 
 	void Init(const TSubclassOf<UNavArea> InAreaClass);
 	void SetConvex(const FVector* InPoints, const int32 FirstIndex, const int32 LastIndex, ENavigationCoordSystem::Type CoordType, const FTransform& LocalToWorld);
@@ -233,7 +237,7 @@ protected:
 
 struct ENGINE_API FCompositeNavModifier : public FNavigationModifier
 {
-	FCompositeNavModifier() : bHasPotentialLinks(false), bAdjustHeight(false) {}
+	FCompositeNavModifier() : bHasPotentialLinks(false), bAdjustHeight(false), bHasLowAreaModifiers(false) {}
 
 	void Shrink();
 	void Reset();
@@ -249,6 +253,7 @@ struct ENGINE_API FCompositeNavModifier : public FNavigationModifier
 		Areas.Add(Area);
 		bHasMetaAreas |= Area.HasMetaAreas(); 
 		bAdjustHeight |= Area.ShouldIncludeAgentHeight();
+		bHasLowAreaModifiers |= Area.IsLowAreaModifier();
 	}
 
 	void Add(const FSimpleLinkNavModifier& Link)
@@ -270,6 +275,7 @@ struct ENGINE_API FCompositeNavModifier : public FNavigationModifier
 		CustomLinks.Append(Modifiers.CustomLinks); 
 		bHasMetaAreas |= Modifiers.bHasMetaAreas; 
 		bAdjustHeight |= Modifiers.HasAgentHeightAdjust();
+		bHasLowAreaModifiers |= Modifiers.HasLowAreaModifiers();
 	}
 
 	void CreateAreaModifiers(const UPrimitiveComponent* PrimComp, const TSubclassOf<UNavArea> AreaClass);
@@ -282,6 +288,7 @@ struct ENGINE_API FCompositeNavModifier : public FNavigationModifier
 	FORCEINLINE bool HasPotentialLinks() const { return bHasPotentialLinks; }
 	FORCEINLINE bool HasAgentHeightAdjust() const { return bAdjustHeight; }
 	FORCEINLINE bool HasAreas() const { return Areas.Num() > 0; }
+	FORCEINLINE bool HasLowAreaModifiers() const { return bHasLowAreaModifiers; }
 
 	FORCEINLINE void ReserveForAdditionalAreas(int32 AdditionalElementsCount) { Areas.Reserve(Areas.Num() + AdditionalElementsCount); }
 
@@ -305,4 +312,5 @@ private:
 	TArray<FCustomLinkNavModifier> CustomLinks;
 	uint32 bHasPotentialLinks : 1;
 	uint32 bAdjustHeight : 1;
+	uint32 bHasLowAreaModifiers : 1;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,20 +19,23 @@ class MOVIESCENETRACKS_API UMovieSceneCinematicShotSection
 	/** Default constructor. */
 	UMovieSceneCinematicShotSection();
 
+	/** ~UObject interface */
+	virtual void PostLoad() override;
+
 public:
 
 	/** @return The shot display name */
-	FText GetShotDisplayName() const
+	FString GetShotDisplayName() const
 	{
-		return DisplayName;
+		return ShotDisplayName;
 	}
 
 	/** Set the shot display name */
-	void SetShotDisplayName(const FText& InDisplayName)
+	void SetShotDisplayName(const FString& InShotDisplayName)
 	{
 		if (TryModify())
 		{
-			DisplayName = InDisplayName;
+			ShotDisplayName = InShotDisplayName;
 		}
 	}
 
@@ -40,7 +43,11 @@ private:
 
 	/** The Shot's display name */
 	UPROPERTY()
-	FText DisplayName;
+	FString ShotDisplayName;
+
+	/** The Shot's display name */
+	UPROPERTY()
+	FText DisplayName_DEPRECATED;
 
 #if WITH_EDITORONLY_DATA
 public:

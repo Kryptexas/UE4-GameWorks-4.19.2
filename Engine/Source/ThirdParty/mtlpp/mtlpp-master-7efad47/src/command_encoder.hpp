@@ -2,13 +2,17 @@
  * Copyright 2016-2017 Nikolay Aleksiev. All rights reserved.
  * License: https://github.com/naleksiev/mtlpp/blob/master/LICENSE
  */
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+#include "imp_CommandEncoder.hpp"
 #include "ns.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -22,11 +26,12 @@ namespace mtlpp
 	}
 	MTLPP_AVAILABLE(10_13, 11_0);
 
-    class CommandEncoder : public ns::Object
+	template<typename T>
+	class CommandEncoder : public ns::Object<T>
     {
     public:
         CommandEncoder() { }
-        CommandEncoder(const ns::Handle& handle) : ns::Object(handle) { }
+        CommandEncoder(T handle) : ns::Object<T>(handle) { }
 
         Device     GetDevice() const;
         ns::String GetLabel() const;
@@ -40,3 +45,7 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 }
+
+#include "command_encoder.mm"
+
+MTLPP_END

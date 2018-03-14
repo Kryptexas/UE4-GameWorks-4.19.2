@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:3. 포인트 라이트 추가하기
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
@@ -23,7 +23,7 @@ Version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 기본 레벨 라이팅이 생겼으니, 작은 아파트 화장실 안에 **포인트 라이트** 를 추가하겠습니다.
 
@@ -70,6 +70,7 @@ Version: 4.9
 화장실에 **포인트 라이트** 를 추가했으니, **다음 단계** 에서는 작은 아파트에 **스포트 라이트** 를 추가하겠습니다.
 
 
-%Steps%
+
+
 
 

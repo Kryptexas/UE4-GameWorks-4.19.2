@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SpotLightComponent.cpp: LightComponent implementation.
@@ -170,10 +170,14 @@ public:
 		// Heuristic: use the radius of the inscribed sphere at the cone's end as the light's effective screen radius
 		// We do so because we do not want to use the light's radius directly, which will make us overestimate the shadow map resolution greatly for a spot light
 
-		const FVector InscribedSpherePosition = GetOrigin() + GetDirection() * GetRadius();
-		const float InscribedSphereRadius = GetRadius() / InvTanOuterCone;
+		// In the correct form,
+		//   InscribedSpherePosition = GetOrigin() + GetDirection().Normalize() * GetRadius() / CosOuterCone
+		//   InscribedSphereRadius = GetRadius() / SinOuterCone
+		// Do it incorrectly to avoid division which is more expensive and risks division by zero
+		const FVector InscribedSpherePosition = GetOrigin() + GetDirection().Normalize() * GetRadius() * CosOuterCone;
+		const float InscribedSphereRadius = GetRadius() * SinOuterCone;
 
- 		const float SphereDistanceFromViewOrigin = (InscribedSpherePosition - ShadowViewMatrices.GetViewOrigin()).Size();
+		const float SphereDistanceFromViewOrigin = (InscribedSpherePosition - ShadowViewMatrices.GetViewOrigin()).Size();
 
 		return ShadowViewMatrices.GetScreenScale() * InscribedSphereRadius / FMath::Max(SphereDistanceFromViewOrigin, 1.0f);
 	}
@@ -199,6 +203,13 @@ USpotLightComponent::USpotLightComponent(const FObjectInitializer& ObjectInitial
 	OuterConeAngle = 44.0f;
 }
 
+float USpotLightComponent::GetCosHalfConeAngle() const
+{
+	const float ClampedInnerConeAngle = FMath::Clamp(InnerConeAngle,0.0f,89.0f) * (float)PI / 180.0f;
+	const float ClampedOuterConeAngle = FMath::Clamp(OuterConeAngle * (float)PI / 180.0f, ClampedInnerConeAngle + 0.001f,89.0f * (float)PI / 180.0f + 0.001f);
+	return FMath::Cos(ClampedOuterConeAngle);
+}
+
 void USpotLightComponent::SetInnerConeAngle(float NewInnerConeAngle)
 {
 	if (AreDynamicDataChangesAllowed(false)
@@ -219,6 +230,28 @@ void USpotLightComponent::SetOuterConeAngle(float NewOuterConeAngle)
 	}
 }
 
+float USpotLightComponent::ComputeLightBrightness() const
+{
+	float LightBrightness = ULightComponent::ComputeLightBrightness();
+
+	if (bUseInverseSquaredFalloff)
+	{
+		if (IntensityUnits == ELightUnits::Candelas)
+		{
+			LightBrightness *= (100.f * 100.f); // Conversion from cm2 to m2
+		}
+		else if (IntensityUnits == ELightUnits::Lumens)
+		{
+			LightBrightness *= (100.f * 100.f / 2.f / PI / (1.f - GetCosHalfConeAngle())); // Conversion from cm2 to m2 and cone remapping.
+		}
+		else
+		{
+			LightBrightness *= 16; // Legacy scale of 16
+		}
+	}
+	return LightBrightness;
+}
+
 // Disable for now
 //void USpotLightComponent::SetLightShaftConeAngle(float NewLightShaftConeAngle)
 //{
@@ -236,13 +269,8 @@ FLightSceneProxy* USpotLightComponent::CreateSceneProxy() const
 
 FSphere USpotLightComponent::GetBoundingSphere() const
 {
-	float ClampedInnerConeAngle = FMath::Clamp(InnerConeAngle,0.0f,89.0f) * (float)PI / 180.0f;
-	float ClampedOuterConeAngle = FMath::Clamp(OuterConeAngle * (float)PI / 180.0f,ClampedInnerConeAngle + 0.001f,89.0f * (float)PI / 180.0f + 0.001f);
-
-	float CosOuterCone = FMath::Cos(ClampedOuterConeAngle);
-
 	// Use the law of cosines to find the distance to the furthest edge of the spotlight cone from a position that is halfway down the spotlight direction
-	const float BoundsRadius = FMath::Sqrt(1.25f * AttenuationRadius * AttenuationRadius - AttenuationRadius * AttenuationRadius * CosOuterCone);
+	const float BoundsRadius = FMath::Sqrt(1.25f * AttenuationRadius * AttenuationRadius - AttenuationRadius * AttenuationRadius * GetCosHalfConeAngle());
 	return FSphere(GetComponentTransform().GetLocation() + .5f * GetDirection() * AttenuationRadius, BoundsRadius);
 }
 

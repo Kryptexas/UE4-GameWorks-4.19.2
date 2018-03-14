@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NetworkMessage.h"
 #include "SocketSubsystem.h"
@@ -27,13 +27,18 @@ bool FSimpleAbstractSocket_FSocket::Receive(uint8 *Results, int32 Size) const
 
 bool FSimpleAbstractSocket_FSocket::Send(const uint8 *Buffer, int32 Size) const
 {
-	int32 AmountSent = 0;
-	Socket->Send(Buffer, Size, AmountSent);
-	// make sure it sent it all
-	if (AmountSent != Size)
+	while (Size > 0)
 	{
-		return false;
+		int32 BytesSent = 0;
+		if (!Socket->Send(Buffer, Size, BytesSent))
+		{
+			return false;
+		}
+
+		Size -= BytesSent;
+		Buffer += BytesSent;
 	}
+
 	return true;
 }
 

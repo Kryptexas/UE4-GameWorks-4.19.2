@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MetalUtils.h"
 #include "MetalShaderFormat.h"
@@ -1173,24 +1173,26 @@ void FMetalCodeBackend::MovePackedUniformsToMain(exec_list* ir, _mesa_glsl_parse
 		if (Var)
 		{
 			bool bIsBuffer = false;
-			bool bIsStructuredBuffer = Var->type->sampler_buffer && (Var->type->inner_type->is_record() || !strncmp(Var->type->name, "RWStructuredBuffer<", 19) || !strncmp(Var->type->name, "StructuredBuffer<", 17));
-			bool bIsByteAddressBuffer = Var->type->sampler_buffer && (!strncmp(Var->type->name, "RWByteAddressBuffer<", 20) || !strncmp(Var->type->name, "ByteAddressBuffer<", 18));
-							
+            bool bIsVec3 = (Var->type->inner_type && Var->type->inner_type->is_vector() && Var->type->inner_type->components() == 3);
+			bool bIsStructuredBuffer = Var->type->sampler_buffer && Var->type->inner_type && (Var->type->inner_type->is_record() || !strncmp(Var->type->name, "RWStructuredBuffer<", 19) || !strncmp(Var->type->name, "StructuredBuffer<", 17));
+			bool bIsByteAddressBuffer = Var->type->sampler_buffer && (!strncmp(Var->type->name, "RWByteAddressBuffer", 19) || !strncmp(Var->type->name, "ByteAddressBuffer", 17));
+			bool bIsInvariant = Var->invariant;
 			switch(TypedMode)
 			{
-				case EMetalTypeBufferModeNone:
+				case EMetalTypeBufferModeRaw:
+                case EMetalTypeBufferModeFun:
 				{
 					bIsBuffer = (!Var->type->is_sampler() && !Var->type->is_image()) || Var->type->sampler_buffer;
 					break;
 				}
 				case EMetalTypeBufferModeSRV:
 				{
-					bIsBuffer = (!Var->type->is_sampler() && !Var->type->is_image()) || (Var->type->sampler_buffer && (Var->type->is_image() || bIsStructuredBuffer || bIsByteAddressBuffer || OutBuffers.AtomicVariables.find(Var) != OutBuffers.AtomicVariables.end()));
+					bIsBuffer = (!Var->type->is_sampler() && !Var->type->is_image()) || (Var->type->sampler_buffer && (Var->type->is_image() || bIsStructuredBuffer || bIsByteAddressBuffer || bIsInvariant || OutBuffers.AtomicVariables.find(Var) != OutBuffers.AtomicVariables.end())) || bIsVec3;
 					break;
 				}
 				case EMetalTypeBufferModeUAV:
 				{
-					bIsBuffer = (!Var->type->is_sampler() && !Var->type->is_image()) || (Var->type->sampler_buffer && (OutBuffers.AtomicVariables.find(Var) != OutBuffers.AtomicVariables.end() || bIsStructuredBuffer || bIsByteAddressBuffer));
+					bIsBuffer = (!Var->type->is_sampler() && !Var->type->is_image()) || (Var->type->sampler_buffer && (OutBuffers.AtomicVariables.find(Var) != OutBuffers.AtomicVariables.end() || bIsStructuredBuffer || bIsInvariant || bIsByteAddressBuffer)) || bIsVec3;
 					break;
 				}
 				default:
@@ -1313,7 +1315,6 @@ static bool ProcessStageInVariables(_mesa_glsl_parse_state* ParseState, EMetalGP
 			return true;
 		}
 	}
-
 
 	if (Frequency == HSF_VertexShader)
 	{

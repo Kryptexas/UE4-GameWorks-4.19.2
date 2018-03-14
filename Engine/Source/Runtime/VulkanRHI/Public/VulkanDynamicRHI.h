@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanRHI.h: Public Vulkan RHI definitions.
@@ -249,11 +249,8 @@ public:
 	virtual FTextureCubeRHIRef RHICreateTextureCubeFromResource(EPixelFormat Format, uint32 Size, bool bArray, uint32 ArraySize, uint32 NumMips, VkImage Resource, uint32 Flags);
 	virtual void RHIAliasTextureResources(FTextureRHIParamRef DestTexture, FTextureRHIParamRef SrcTexture);
 
-
-	inline uint32 GetPresentCount() const
-	{
-		return PresentCount;
-	}
+	// Historical number of times we've presented any and all viewports
+	uint32 TotalPresentCount = 0;
 
 	const TArray<const ANSICHAR*>& GetInstanceExtensions() const
 	{
@@ -347,8 +344,6 @@ protected:
 	}
 
 	FCriticalSection LockBufferCS;
-
-	uint32 PresentCount;
 
 	void InternalUnlockTexture2D(bool bFromRenderingThread, FTexture2DRHIParamRef Texture, uint32 MipIndex, bool bLockWithinMiptail);
 	void InternalUpdateTexture2D(bool bFromRenderingThread, FTexture2DRHIParamRef TextureRHI, uint32 MipIndex, const struct FUpdateTextureRegion2D& UpdateRegion, uint32 SourcePitch, const uint8* SourceData);

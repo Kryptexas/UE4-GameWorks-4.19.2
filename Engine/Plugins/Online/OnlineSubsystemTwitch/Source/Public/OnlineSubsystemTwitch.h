@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -61,13 +61,6 @@ public:
 	 * Destructor
 	 */
 	virtual ~FOnlineSubsystemTwitch() = default;
-
-	/**
-	 * Is Twitch available for use
-	 *
-	 * @return true if Twitch functionality is available, false otherwise
-	 */
-	static bool IsEnabled();
 
 	/**
 	 * Get the twitch login service configuration

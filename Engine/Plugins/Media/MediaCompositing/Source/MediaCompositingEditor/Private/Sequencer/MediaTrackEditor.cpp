@@ -1,15 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MediaTrackEditor.h"
 
 #include "ContentBrowserModule.h"
 #include "EditorStyleSet.h"
+#include "Framework/Application/SlateApplication.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "IContentBrowserSingleton.h"
 #include "ISequencer.h"
 #include "ISequencerObjectChangeListener.h"
-#include "MediaPlayer.h"
 #include "MediaSource.h"
+#include "MediaTexture.h"
 #include "MovieSceneBinding.h"
 #include "MovieSceneMediaSection.h"
 #include "MovieSceneMediaTrack.h"
@@ -32,7 +33,7 @@
 
 TArray<FAnimatedPropertyKey, TInlineAllocator<1>> FMediaTrackEditor::GetAnimatedPropertyTypes()
 {
-	return TArray<FAnimatedPropertyKey, TInlineAllocator<1>>({ FAnimatedPropertyKey::FromObjectType(UMediaPlayer::StaticClass()) });
+	return TArray<FAnimatedPropertyKey, TInlineAllocator<1>>({ FAnimatedPropertyKey::FromObjectType(UMediaTexture::StaticClass()) });
 }
 
 
@@ -41,21 +42,13 @@ TArray<FAnimatedPropertyKey, TInlineAllocator<1>> FMediaTrackEditor::GetAnimated
 
 FMediaTrackEditor::FMediaTrackEditor(TSharedRef<ISequencer> InSequencer)
 	: FMovieSceneTrackEditor(InSequencer)
-	, PropertyKey(FAnimatedPropertyKey::FromObjectType(UMediaPlayer::StaticClass()))
 {
 	ThumbnailPool = MakeShared<FTrackEditorThumbnailPool>(InSequencer);
-	OnPropertyChangedHandle = InSequencer->GetObjectChangeListener().GetOnAnimatablePropertyChanged(PropertyKey).AddRaw(this, &FMediaTrackEditor::OnAnimatedPropertyChanged);
 }
 
 
 FMediaTrackEditor::~FMediaTrackEditor()
 {
-	TSharedPtr<ISequencer> SequencerPtr = GetSequencer();
-
-	if (SequencerPtr.IsValid())
-	{
-		SequencerPtr->GetObjectChangeListener().GetOnAnimatablePropertyChanged(PropertyKey).Remove(OnPropertyChangedHandle);
-	}
 }
 
 
@@ -65,145 +58,30 @@ FMediaTrackEditor::~FMediaTrackEditor()
 UMovieSceneTrack* FMediaTrackEditor::AddTrack(UMovieScene* FocusedMovieScene, const FGuid& ObjectHandle, TSubclassOf<class UMovieSceneTrack> TrackClass, FName UniqueTypeName)
 {
 	UMovieSceneTrack* Track = FocusedMovieScene->AddTrack(TrackClass, ObjectHandle);
-	if (UMovieSceneMediaTrack* MediaTrack = Cast<UMovieSceneMediaTrack>(Track))
-	{
-		MediaTrack->UniqueTrackName = UniqueTypeName;
-	}
+	UMovieSceneMediaTrack* MediaTrack = Cast<UMovieSceneMediaTrack>(Track);
+
 	return Track;
 }
 
-void FMediaTrackEditor::OnAnimatedPropertyChanged(const FPropertyChangedParams& PropertyChangedParams)
+
+void FMediaTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 {
-	const UProperty* ChangedProperty = PropertyChangedParams.PropertyPath.GetLeafMostProperty().Property.Get();
-	if (!ChangedProperty)
-	{
-		return;
-	}
-
-	FText DisplayText = ChangedProperty->GetDisplayNameText();
-	FName UniqueName(*PropertyChangedParams.PropertyPath.ToString(TEXT(".")));
-
-	// Set up the appropriate name for the track from an array index if necessary
-	for (int32 PropertyIndex = PropertyChangedParams.PropertyPath.GetNumProperties() - 1; PropertyIndex >= 0; --PropertyIndex)
-	{
-		const FPropertyInfo& Info = PropertyChangedParams.PropertyPath.GetPropertyInfo(PropertyIndex);
-		const UArrayProperty* ParentArrayProperty = PropertyIndex > 0 ? Cast<UArrayProperty>(PropertyChangedParams.PropertyPath.GetPropertyInfo(PropertyIndex-1).Property.Get()) : nullptr;
-
-		UProperty* Property = Info.Property.Get();
-		if (Property && Info.ArrayIndex != INDEX_NONE)
-		{
-			DisplayText = FText::Format(LOCTEXT("MediaTrackNameFormat", "{0} ({1}[{2}])"),
-				ChangedProperty->GetDisplayNameText(),
-				(ParentArrayProperty ? ParentArrayProperty : Property)->GetDisplayNameText(),
-				FText::AsNumber(Info.ArrayIndex)
-				);
-			break;
-		}
-	}
-
-	for (UObject* Object : PropertyChangedParams.ObjectsThatChanged)
-	{
-		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject(Object);
-		if (!ensure(HandleResult.Handle.IsValid()))
-		{
-			continue;
-		}
-		
-		FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject(HandleResult.Handle, UMovieSceneMediaTrack::StaticClass(), UniqueName);
-		UMovieSceneMediaTrack* MediaTrack = Cast<UMovieSceneMediaTrack>(TrackResult.Track);
-		
-		if (TrackResult.bWasCreated)
-		{
-			MediaTrack->SetPropertyNameAndPath(ChangedProperty->GetFName(), PropertyChangedParams.PropertyPath.ToString(TEXT(".")));
-			MediaTrack->SetDisplayName(DisplayText);
-		}
-
-		GetSequencer()->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemAdded);
-	}
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("AddTrack", "Media Track"),
+		LOCTEXT("AddTooltip", "Adds a new master media track that can play media sources."),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.Tracks.Media"),
+		FUIAction(
+			FExecuteAction::CreateRaw(this, &FMediaTrackEditor::HandleAddMediaTrackMenuEntryExecute)
+		)
+	);
 }
 
-void FMediaTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
-{
-	// We only know how to add specific properties for image planes and components. Anything else must be keyed through the generic MediaPlayer property
-	if (!ObjectClass->IsChildOf(AMediaPlane::StaticClass()) && !ObjectClass->IsChildOf(UMediaPlaneComponent::StaticClass()))
-	{
-		return;
-	}
-
-	// Find the spawned object or its template
-	UObject* Object = GetSequencer()->FindSpawnedObjectOrTemplate(ObjectBinding);
-	if (!Object)
-	{
-		return;
-	}
-
-	auto GeneratePropertyPath = [this](UMediaPlaneComponent* MediaPlaneComponent)
-	{
-		check(MediaPlaneComponent);
-
-		UStructProperty* MediaPlanesProperty = MediaPlaneComponent->GetMediaPlaneProperty();
-
-		check(MediaPlanesProperty);
-
-		TSharedRef<FPropertyPath> Path = FPropertyPath::CreateEmpty();
-		Path->AddProperty(FPropertyInfo(MediaPlanesProperty));
-
-		return Path;
-	};
-
-	auto AddNewTrack = [this](UMediaPlaneComponent* MediaPlaneComponent, TSharedRef<FPropertyPath> PropertyPath)
-	{
-		check(MediaPlaneComponent);
-
-		FPropertyChangedParams ChangedParams(TArray<UObject*>({ MediaPlaneComponent }), *PropertyPath, NAME_None, ESequencerKeyMode::ManualKeyForced);
-		this->OnAnimatedPropertyChanged(ChangedParams);
-	};
-
-	// Try and root out an image plane component
-	UMediaPlaneComponent* Component = Cast<UMediaPlaneComponent>(Object);
-	if (AMediaPlane* MediaPlane = Cast<AMediaPlane>(Object))
-	{
-		Component = Cast<UMediaPlaneComponent>(MediaPlane->GetRootComponent());
-	}
-
-	if (Component)
-	{
-		UMovieScene* MovieScene = GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene();
-
-		TSharedRef<FPropertyPath> Path = GeneratePropertyPath(Component);
-
-		bool bCanAddTrack = true;
-
-		const FMovieSceneBinding* Binding = MovieScene->GetBindings().FindByPredicate([=](const FMovieSceneBinding& InBinding){ return InBinding.GetObjectGuid() == ObjectBinding; });
-		if (Binding)
-		{
-			FString PredicatePath = Path->ToString(TEXT("."));
-
-			bCanAddTrack = !Binding->GetTracks().ContainsByPredicate(
-				[&](UMovieSceneTrack* Track)
-				{
-					UMovieSceneMediaTrack* MediaTrack = Cast<UMovieSceneMediaTrack>(Track);
-					return MediaTrack && MediaTrack->GetPropertyPath() == PredicatePath;
-				}
-			);
-		}
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("AddMediaTrack_Text", "Media"),
-			LOCTEXT("AddMediaTrack_Tip", "Adds a media track that controls the media presented to the media plane."),
-			FSlateIcon(),
-			FUIAction(
-				FExecuteAction::CreateLambda(AddNewTrack, Component, Path),
-				FCanExecuteAction::CreateLambda([=]{ return bCanAddTrack; })
-			)
-		);
-	}
-}
 
 TSharedPtr<SWidget> FMediaTrackEditor::BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params)
 {
 	UMovieSceneMediaTrack* MediaTrack = Cast<UMovieSceneMediaTrack>(Track);
-	if (!MediaTrack)
+
+	if (MediaTrack == nullptr)
 	{
 		return SNullWidget::NullWidget;
 	}
@@ -211,12 +89,13 @@ TSharedPtr<SWidget> FMediaTrackEditor::BuildOutlinerEditWidget(const FGuid& Obje
 	auto CreatePicker = [this, MediaTrack]
 	{
 		FAssetPickerConfig AssetPickerConfig;
-		AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateRaw(this, &FMediaTrackEditor::AddNewSection, MediaTrack);
-		AssetPickerConfig.bAllowNullSelection = false;
-		AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
-
-		AssetPickerConfig.Filter.bRecursiveClasses = true;
-		AssetPickerConfig.Filter.ClassNames.Add(UMediaSource::StaticClass()->GetFName());
+		{
+			AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateRaw(this, &FMediaTrackEditor::AddNewSection, MediaTrack);
+			AssetPickerConfig.bAllowNullSelection = false;
+			AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
+			AssetPickerConfig.Filter.bRecursiveClasses = true;
+			AssetPickerConfig.Filter.ClassNames.Add(UMediaSource::StaticClass()->GetFName());
+		}
 
 		FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
 
@@ -231,7 +110,8 @@ TSharedPtr<SWidget> FMediaTrackEditor::BuildOutlinerEditWidget(const FGuid& Obje
 	};
 
 	return SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
+
+	+ SHorizontalBox::Slot()
 		.AutoWidth()
 		.VAlign(VAlign_Center)
 		[
@@ -239,69 +119,35 @@ TSharedPtr<SWidget> FMediaTrackEditor::BuildOutlinerEditWidget(const FGuid& Obje
 		];
 }
 
-void FMediaTrackEditor::AddNewSection(const FAssetData& AssetData, UMovieSceneMediaTrack* Track)
+
+bool FMediaTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObjectGuid)
 {
-	UMediaSource* MediaSource = Cast<UMediaSource>(AssetData.GetAsset());
-	if (!MediaSource)
+	if ((Asset == nullptr) || !Asset->IsA<UMediaSource>())
 	{
-		return;
+		return false;
 	}
 
-	check(Track);
+	auto MediaSource = Cast<UMediaSource>(Asset);
 
-	float TimeToStart = GetSequencer()->GetLocalTime();
-
-	UMediaPlayer* TransientPlayer = NewObject<UMediaPlayer>(GetTransientPackage(), MakeUniqueObjectName(GetTransientPackage(), UMediaPlayer::StaticClass()));
-	TransientPlayer->AddToRoot();
-
-	TRange<float> SectionRange(TimeToStart, TimeToStart + 1.f);
-
-	if (TransientPlayer->OpenSource(MediaSource))
+	if (TargetObjectGuid.IsValid())
 	{
-		// @todo: Make this more robust for all media types
-		FTimespan Length = TransientPlayer->GetDuration();
-		if (Length.GetTotalSeconds() > 0)
+		TArray<TWeakObjectPtr<>> OutObjects;
+
+		for (TWeakObjectPtr<> Object : GetSequencer()->FindObjectsInCurrentSequence(TargetObjectGuid))
 		{
-			SectionRange = TRange<float>(TimeToStart, TRangeBound<float>::Inclusive(TimeToStart + float(Length.GetTicks()) / ETimespan::TicksPerSecond));
+			OutObjects.Add(Object);
 		}
 
-		TransientPlayer->Close();
+		AnimatablePropertyChanged(FOnKeyProperty::CreateRaw(this, &FMediaTrackEditor::AddAttachedMediaSource, MediaSource, OutObjects));
 	}
-
-	TransientPlayer->RemoveFromRoot();
-
-	// Find a row to put this video on
-	TArray<int32> InvalidRows;
-	for (UMovieSceneSection* Section : Track->GetAllSections())
+	else
 	{
-		if (Section->GetRange().Overlaps(SectionRange))
-		{
-			InvalidRows.Add(Section->GetRowIndex());
-		}
+		AnimatablePropertyChanged(FOnKeyProperty::CreateRaw(this, &FMediaTrackEditor::AddMasterMediaSource, MediaSource));
 	}
 
-	int32 BestRow = 0;
-	for ( ; ; ++BestRow)
-	{
-		if (!InvalidRows.Contains(BestRow))
-		{
-			break;
-		}
-	}
-
-	UMovieSceneMediaSection* Section = CastChecked<UMovieSceneMediaSection>(Track->CreateNewSection());
-	Section->SetRange(SectionRange);
-	Section->SetRowIndex(BestRow);
-	Section->SetMediaSource(MediaSource);
-	Track->AddSection(*Section);
-
-	GetSequencer()->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemAdded);
+	return true;
 }
 
-void FMediaTrackEditor::Tick(float DeltaTime)
-{
-	ThumbnailPool->DrawThumbnails();
-}
 
 TSharedRef<ISequencerSection> FMediaTrackEditor::MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding)
 {
@@ -309,10 +155,130 @@ TSharedRef<ISequencerSection> FMediaTrackEditor::MakeSectionInterface(UMovieScen
 	return MakeShared<FMediaThumbnailSection>(*CastChecked<UMovieSceneMediaSection>(&SectionObject), ThumbnailPool, GetSequencer());
 }
 
+
 bool FMediaTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> TrackClass) const
 {
 	return TrackClass.Get() && TrackClass.Get()->IsChildOf(UMovieSceneMediaTrack::StaticClass());
 }
+
+
+void FMediaTrackEditor::Tick(float DeltaTime)
+{
+	ThumbnailPool->DrawThumbnails();
+}
+
+
+const FSlateBrush* FMediaTrackEditor::GetIconBrush() const
+{
+	return FEditorStyle::GetBrush("Sequencer.Tracks.Media");
+}
+
+
+/* FMediaTrackEditor implementation
+ *****************************************************************************/
+
+FKeyPropertyResult FMediaTrackEditor::AddAttachedMediaSource(float KeyTime, UMediaSource* MediaSource, TArray<TWeakObjectPtr<UObject>> ObjectsToAttachTo)
+{
+	FKeyPropertyResult KeyPropertyResult;
+
+	for (int32 ObjectIndex = 0; ObjectIndex < ObjectsToAttachTo.Num(); ++ObjectIndex)
+	{
+		UObject* Object = ObjectsToAttachTo[ObjectIndex].Get();
+
+		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject(Object);
+		FGuid ObjectHandle = HandleResult.Handle;
+		KeyPropertyResult.bHandleCreated |= HandleResult.bWasCreated;
+
+		if (ObjectHandle.IsValid())
+		{
+			FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject(ObjectHandle, UMovieSceneMediaTrack::StaticClass());
+			UMovieSceneTrack* Track = TrackResult.Track;
+			KeyPropertyResult.bTrackCreated |= TrackResult.bWasCreated;
+
+			if (ensure(Track))
+			{
+				auto MediaTrack = Cast<UMovieSceneMediaTrack>(Track);
+				MediaTrack->AddNewMediaSource(*MediaSource, KeyTime);
+				MediaTrack->SetDisplayName(LOCTEXT("MediaTrackName", "Media"));
+				KeyPropertyResult.bTrackModified = true;
+			}
+		}
+	}
+
+	return KeyPropertyResult;
+}
+
+
+FKeyPropertyResult FMediaTrackEditor::AddMasterMediaSource(float KeyTime, UMediaSource* MediaSource)
+{
+	FKeyPropertyResult KeyPropertyResult;
+
+	FFindOrCreateMasterTrackResult<UMovieSceneMediaTrack> TrackResult = FindOrCreateMasterTrack<UMovieSceneMediaTrack>();
+	UMovieSceneTrack* Track = TrackResult.Track;
+	auto MediaTrack = Cast<UMovieSceneMediaTrack>(Track);
+
+	MediaTrack->AddNewMediaSource(*MediaSource, KeyTime);
+
+	if (TrackResult.bWasCreated)
+	{
+		MediaTrack->SetDisplayName(LOCTEXT("MediaTrackName", "Media"));
+	}
+
+	KeyPropertyResult.bTrackModified = true;
+
+	return KeyPropertyResult;
+}
+
+
+void FMediaTrackEditor::AddNewSection(const FAssetData& AssetData, UMovieSceneMediaTrack* Track)
+{
+	FSlateApplication::Get().DismissAllMenus();
+
+	UObject* SelectedObject = AssetData.GetAsset();
+
+	if (SelectedObject)
+	{
+		auto MediaSource = CastChecked<UMediaSource>(AssetData.GetAsset());
+
+		if (MediaSource != nullptr)
+		{
+			const FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "AddMedia_Transaction", "Add Media"));
+
+			auto MediaTrack = Cast<UMovieSceneMediaTrack>(Track);
+			MediaTrack->Modify();
+
+			float KeyTime = GetSequencer()->GetLocalTime();
+			MediaTrack->AddNewMediaSource(*MediaSource, KeyTime);
+
+			GetSequencer()->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemAdded);
+		}
+	}
+}
+
+
+/* FMediaTrackEditor callbacks
+ *****************************************************************************/
+
+void FMediaTrackEditor::HandleAddMediaTrackMenuEntryExecute()
+{
+	UMovieScene* FocusedMovieScene = GetFocusedMovieScene();
+
+	if (FocusedMovieScene == nullptr)
+	{
+		return;
+	}
+
+	const FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "AddMediaTrack_Transaction", "Add Media Track"));
+	FocusedMovieScene->Modify();
+	
+	auto NewTrack = FocusedMovieScene->AddMasterTrack<UMovieSceneMediaTrack>();
+	ensure(NewTrack);
+
+	NewTrack->SetDisplayName(LOCTEXT("MediaTrackName", "Media"));
+
+	GetSequencer()->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemAdded);
+}
+
 
 
 #undef LOCTEXT_NAMESPACE

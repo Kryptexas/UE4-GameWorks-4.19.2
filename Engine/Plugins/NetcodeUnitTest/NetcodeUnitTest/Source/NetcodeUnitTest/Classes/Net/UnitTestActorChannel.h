@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,10 +20,12 @@ class UMinimalClient;
 UCLASS(transient)
 class UUnitTestActorChannel : public UActorChannel
 {
+	friend UMinimalClient;
+
 	GENERATED_UCLASS_BODY()
 
-	virtual void Init(UNetConnection* InConnection, int32 InChIndex, bool InOpenedLocally) override;
 
+public:
 	virtual void ReceivedBunch(FInBunch& Bunch) override;
 
 	virtual void Tick() override;

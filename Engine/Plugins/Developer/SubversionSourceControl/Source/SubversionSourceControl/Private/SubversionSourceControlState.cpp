@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SubversionSourceControlState.h"
 
@@ -307,6 +307,11 @@ bool FSubversionSourceControlState::CanAdd() const
 bool FSubversionSourceControlState::IsConflicted() const
 {
 	return PendingMergeBaseFileRevNumber != INVALID_REVISION;
+}
+
+bool FSubversionSourceControlState::CanRevert() const
+{
+	return CanCheckIn();
 }
 
 #undef LOCTEXT_NAMESPACE

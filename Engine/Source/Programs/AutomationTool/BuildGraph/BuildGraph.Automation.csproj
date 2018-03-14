@@ -32,7 +32,7 @@
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <DocumentationFile>..\..\..\..\Binaries\DotNET\AutomationScripts\BuildGraph.Automation.xml</DocumentationFile>
+    <DocumentationFile>BuildGraph.Automation.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Ionic.Zip.Reduced">
@@ -79,6 +79,7 @@
     <Compile Include="Tasks\CommandletTask.cs" />
     <Compile Include="Tasks\CsCompileTask.cs" />
     <Compile Include="Tasks\MoveTask.cs" />
+    <Compile Include="Tasks\MsBuildTask.cs" />
     <Compile Include="Tasks\SymStoreTask.cs" />
     <Compile Include="Tasks\TagReceiptTask.cs" />
     <Compile Include="Tasks\PakFileTask.cs" />

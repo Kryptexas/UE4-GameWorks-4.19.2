@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreTypes.h"
@@ -34,7 +34,7 @@ public:
 	void LoadAllCultureData();
 
 	bool IsCultureRemapped(const FString& Name, FString* OutMappedCulture);
-	bool IsCultureDisabled(const FString& Name);
+	bool IsCultureAllowed(const FString& Name);
 
 	void HandleLanguageChanged(const FString& Name);
 	void GetCultureNames(TArray<FString>& CultureNames) const;
@@ -51,11 +51,12 @@ private:
 
 	void InitializeAvailableCultures();
 	void ConditionalInitializeCultureMappings();
-	void ConditionalInitializeDisabledCultures();
+	void ConditionalInitializeAllowedCultures();
 
 	enum class EAllowDefaultCultureFallback : uint8 { No, Yes, };
 	FCulturePtr FindOrMakeCulture(const FString& Name, const EAllowDefaultCultureFallback AllowDefaultFallback);
 
+	void InitializeTimeZone();
 	void InitializeInvariantGregorianCalendar();
 
 private:
@@ -89,7 +90,8 @@ private:
 	bool bHasInitializedCultureMappings;
 	TMap<FString, FString> CultureMappings;
 
-	bool bHasInitializedDisabledCultures;
+	bool bHasInitializedAllowedCultures;
+	TSet<FString> EnabledCultures;
 	TSet<FString> DisabledCultures;
 
 	TMap<FString, FCultureRef> CachedCultures;

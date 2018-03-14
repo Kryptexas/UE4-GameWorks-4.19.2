@@ -13,9 +13,8 @@ social-image:googlevr_social.png
 
 
 ## Starting Out
-The OSVR Quick Start will walk you through getting your PC setup to work with UE4 and OSVR.
 
-[DIR(output:"listbutton" type:"quick start" parent:"Platforms/OSVR")]
+[DIR(output:"topic" type:"quick start" parent:"Platforms/OSVR")]
 
 
 

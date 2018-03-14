@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AndroidEventManager.h"
 #include "AndroidApplication.h"
@@ -14,8 +14,7 @@
 DEFINE_LOG_CATEGORY(LogAndroidEvents);
 
 FAppEventManager* FAppEventManager::sInstance = NULL;
-// whether EventManager started doing ticks
-static volatile bool bStartedTicking = false;
+
 
 FAppEventManager* FAppEventManager::GetInstance()
 {
@@ -30,8 +29,6 @@ FAppEventManager* FAppEventManager::GetInstance()
 
 void FAppEventManager::Tick()
 {
-	bStartedTicking = true;
-	
 	static const bool bIsDaydreamApp = FAndroidMisc::IsDaydreamApplication();
 	bool bWindowCreatedThisTick = false;
 	
@@ -44,10 +41,14 @@ void FAppEventManager::Tick()
 		switch (Event.State)
 		{
 		case APP_EVENT_STATE_WINDOW_CREATED:
-			bCreateWindow = true;
-			PendingWindow = (ANativeWindow*)Event.Data;
+			// if we have a "destroy window" event pending, the data has been invalidated
+			if (!bDestroyWindowPending)
+			{
+				bCreateWindow = true;
+				PendingWindow = (ANativeWindow*)Event.Data;
 
-			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("APP_EVENT_STATE_WINDOW_CREATED, %d, %d, %d"), int(bRunning), int(bHaveWindow), int(bHaveGame));
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("APP_EVENT_STATE_WINDOW_CREATED, %d, %d, %d"), int(bRunning), int(bHaveWindow), int(bHaveGame));
+			}
 			break;
 		
 		case APP_EVENT_STATE_WINDOW_RESIZED:
@@ -63,25 +64,32 @@ void FAppEventManager::Tick()
 			bSaveState = true; //todo android: handle save state.
 			break;
 		case APP_EVENT_STATE_WINDOW_DESTROYED:
-			if (bIsDaydreamApp)
+			// only if precedeed by a a successfull "create window" event 
+			if (bHaveWindow)
 			{
-				bCreateWindow = false;
-			}
-			else
-			{
-				if (GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice() && GEngine->XRSystem->GetHMDDevice()->IsHMDConnected())
+				if (bIsDaydreamApp)
 				{
-					// delay the destruction until after the renderer teardown on GearVR
-					bDestroyWindow = true;
+					bCreateWindow = false;
 				}
 				else
 				{
-					FAndroidAppEntry::DestroyWindow();
-					FAndroidWindow::SetHardwareWindow(NULL);
+				if (GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice() && GEngine->XRSystem->GetHMDDevice()->IsHMDConnected())
+				{
+					// delay the destruction until after the renderer teardown on Gear VR
+					bDestroyWindow = true;
+				}
+					else
+					{
+						FAndroidAppEntry::DestroyWindow();
+						FAndroidWindow::SetHardwareWindow(NULL);
+					}
 				}
 			}
 
 			bHaveWindow = false;
+
+			// allow further "create window" events to be processed 
+			bDestroyWindowPending = false;
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("APP_EVENT_STATE_WINDOW_DESTROYED, %d, %d, %d"), int(bRunning), int(bHaveWindow), int(bHaveGame));
 			break;
 		case APP_EVENT_STATE_ON_START:
@@ -236,6 +244,7 @@ FAppEventManager::FAppEventManager():
 	,bHaveWindow(false)
 	,bHaveGame(false)
 	,bRunning(false)
+	,bDestroyWindowPending(false)
 {
 	pthread_mutex_init(&MainMutex, NULL);
 	pthread_mutex_init(&QueueMutex, NULL);
@@ -283,14 +292,25 @@ void FAppEventManager::HandleWindowCreated(void* InWindow)
 		return;
 	}
 
+	int rc = pthread_mutex_lock(&MainMutex);
+	check(rc == 0);
+	bool AlreadyInited = FirstInitialized;
+	rc = pthread_mutex_unlock(&MainMutex);
+	check(rc == 0);
+
 	// Make sure window will not be deleted until event is processed
 	// Window could be deleted by OS while event queue stuck at game start-up phase
 	FAndroidWindow::AcquireWindowRef((ANativeWindow*)InWindow);
 
-	if (!bStartedTicking)
+	if (AlreadyInited)
+	{
+		EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CREATED, InWindow);
+	}
+	else
 	{
 		//This cannot wait until first tick. 
-		int rc = pthread_mutex_lock(&MainMutex);
+
+		rc = pthread_mutex_lock(&MainMutex);
 		check(rc == 0);
 
 		check(FAndroidWindow::GetHardwareWindow() == NULL);
@@ -299,9 +319,9 @@ void FAppEventManager::HandleWindowCreated(void* InWindow)
 
 		rc = pthread_mutex_unlock(&MainMutex);
 		check(rc == 0);
+
+		EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CREATED, InWindow);
 	}
-	
-	EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CREATED, InWindow);
 }
 
 void FAppEventManager::HandleWindowClosed()
@@ -322,37 +342,18 @@ void FAppEventManager::HandleWindowClosed()
 
 		rc = pthread_mutex_unlock(&MainMutex);
 		check(rc == 0);
+	}
 
-		EnqueueAppEvent(APP_EVENT_STATE_WINDOW_DESTROYED, NULL);
-		return;
-	}
-	
-	if (!bStartedTicking)
+	// a "destroy window" event appears on the game preInit routine
+	//     before creating a valid Android window
+	// - override the "create window" data
+	if (!GEngine || !GEngine->IsInitialized())
 	{
-		// If engine is not ticking yet, and window is being destroyed
-		// 1. Immediately release current window
-		// 2. Unwind to queue to APP_EVENT_STATE_WINDOW_CREATED event
-		int rc = pthread_mutex_lock(&MainMutex);
-		check(rc == 0);
-		FAndroidWindow::SetHardwareWindow(nullptr);
-		while (!Queue.IsEmpty())
-		{
-			FAppEventData Event = DequeueAppEvent();
-			if (Event.State == APP_EVENT_STATE_WINDOW_CREATED)
-			{
-				ANativeWindow* DestroyedWindow = (ANativeWindow*)Event.Data;
-				FAndroidWindow::ReleaseWindowRef(DestroyedWindow);
-				break;
-			}
-		}
-				
-		rc = pthread_mutex_unlock(&MainMutex);
-		check(rc == 0);
+		FirstInitialized = false;
+		FAndroidWindow::SetHardwareWindow(NULL);
+		bDestroyWindowPending = true;
 	}
-	else
-	{
-		EnqueueAppEvent(APP_EVENT_STATE_WINDOW_DESTROYED, NULL);
-	}
+	EnqueueAppEvent(APP_EVENT_STATE_WINDOW_DESTROYED, NULL);
 }
 
 
@@ -464,9 +465,14 @@ void FAppEventManager::PauseAudio()
 			AudioDevice->SuspendContext();
 		}
 		else
-	{
-		GEngine->GetMainAudioDevice()->Suspend(false);
-	}
+		{
+			GEngine->GetMainAudioDevice()->Suspend(false);
+
+			// make sure the audio thread runs the pause request
+			FAudioCommandFence Fence;
+			Fence.BeginFence();
+			Fence.Wait();
+		}
 	}
 }
 
@@ -485,9 +491,9 @@ void FAppEventManager::ResumeAudio()
 			AudioDevice->ResumeContext();
 		}
 		else
-	{
-		GEngine->GetMainAudioDevice()->Suspend(true);
-	}
+		{
+			GEngine->GetMainAudioDevice()->Suspend(true);
+		}
 	}
 }
 

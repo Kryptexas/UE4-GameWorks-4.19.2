@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MetalRHIPrivate.h"
 #include "Misc/App.h"
@@ -207,7 +207,12 @@ static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 		FString(GPU.GPUName).TrimStart().ParseIntoArray(NameComponents, TEXT(" "));	
 		for (id<MTLDevice> Device in DeviceList)
 		{
-			if(([Device.name rangeOfString:@"Nvidia" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x10DE)
+			if([Device respondsToSelector:@selector(registryID)] && (uint64)[Device performSelector:@selector(registryID)] == GPU.RegistryID)
+			{
+				DeviceIndex = ExplicitRendererId;
+				SelectedDevice = Device;
+			}
+			else if(([Device.name rangeOfString:@"Nvidia" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x10DE)
 			   || ([Device.name rangeOfString:@"AMD" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x1002)
 			   || ([Device.name rangeOfString:@"Intel" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x8086))
 			{
@@ -237,7 +242,13 @@ static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 		for (uint32 i = 0; i < GPUs.Num(); i++)
 		{
 			FMacPlatformMisc::FGPUDescriptor const& GPU = GPUs[i];
-			if(([SelectedDevice.name rangeOfString:@"Nvidia" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x10DE)
+			if([SelectedDevice respondsToSelector:@selector(registryID)] && (uint64)[SelectedDevice performSelector:@selector(registryID)] == GPU.RegistryID)
+			{
+				DeviceIndex = i;
+				bFoundDefault = true;
+				break;
+			}
+			else if(([SelectedDevice.name rangeOfString:@"Nvidia" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x10DE)
 			   || ([SelectedDevice.name rangeOfString:@"AMD" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x1002)
 			   || ([SelectedDevice.name rangeOfString:@"Intel" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x8086))
 			{
@@ -841,24 +852,11 @@ void FMetalDeviceContext::ReleasePooledBuffer(id<MTLBuffer> Buffer)
 {
 	if(GIsRHIInitialized)
 	{
-		if (Buffer.storageMode == MTLStorageModePrivate)
-		{
-			static bool bSupportsHeaps = SupportsFeature(EMetalFeaturesHeaps);
-			id<TMTLBuffer> TBuffer = (id<TMTLBuffer>)Buffer;
-			check ([TBuffer heap: bSupportsHeaps]);
-			[TBuffer makeAliasable: bSupportsHeaps];
-
-			// Can't release via the resource path as we have made this resource aliasable and the backing store may be reused before we process the free-list
-			ReleaseObject(Buffer);
-		}
-		else
-		{
-			ReleaseResource(Buffer);
-		}
+		ReleaseResource(Buffer);
 	}
 }
 
-struct FMetalRHICommandUpdateFence : public FRHICommand<FMetalRHICommandUpdateFence>
+struct FMetalRHICommandUpdateFence final : public FRHICommand<FMetalRHICommandUpdateFence>
 {
 	enum EMode
 	{
@@ -1276,7 +1274,6 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType, EMetalIndexType IndexTyp
 	
 	// make sure the BSS has a valid pipeline state object
 	StateCache.SetIndexType(IndexType);
-	check(CurrentPSO->GetPipeline(IndexType));
 	
 	return true;
 }
@@ -1447,9 +1444,9 @@ void FMetalContext::CopyFromTextureToBuffer(id<MTLTexture> Texture, uint32 sourc
 	RenderPass.CopyFromTextureToBuffer(Texture, sourceSlice, sourceLevel, sourceOrigin, sourceSize, toBuffer, destinationOffset, destinationBytesPerRow, destinationBytesPerImage, options);
 }
 
-void FMetalContext::CopyFromBufferToTexture(id<MTLBuffer> Buffer, uint32 sourceOffset, uint32 sourceBytesPerRow, uint32 sourceBytesPerImage, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin)
+void FMetalContext::CopyFromBufferToTexture(id<MTLBuffer> Buffer, uint32 sourceOffset, uint32 sourceBytesPerRow, uint32 sourceBytesPerImage, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin, MTLBlitOption options)
 {
-	RenderPass.CopyFromBufferToTexture(Buffer, sourceOffset, sourceBytesPerRow, sourceBytesPerImage, sourceSize, toTexture, destinationSlice, destinationLevel, destinationOrigin);
+	RenderPass.CopyFromBufferToTexture(Buffer, sourceOffset, sourceBytesPerRow, sourceBytesPerImage, sourceSize, toTexture, destinationSlice, destinationLevel, destinationOrigin, options);
 }
 
 void FMetalContext::CopyFromTextureToTexture(id<MTLTexture> Texture, uint32 sourceSlice, uint32 sourceLevel, MTLOrigin sourceOrigin, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin)
@@ -1462,14 +1459,19 @@ void FMetalContext::CopyFromBufferToBuffer(id<MTLBuffer> SourceBuffer, NSUIntege
 	RenderPass.CopyFromBufferToBuffer(SourceBuffer, SourceOffset, DestinationBuffer, DestinationOffset, Size);
 }
 
-void FMetalContext::AsyncCopyFromBufferToTexture(id<MTLBuffer> Buffer, uint32 sourceOffset, uint32 sourceBytesPerRow, uint32 sourceBytesPerImage, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin)
+void FMetalContext::AsyncCopyFromBufferToTexture(id<MTLBuffer> Buffer, uint32 sourceOffset, uint32 sourceBytesPerRow, uint32 sourceBytesPerImage, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin, MTLBlitOption options)
 {
-	RenderPass.AsyncCopyFromBufferToTexture(Buffer, sourceOffset, sourceBytesPerRow, sourceBytesPerImage, sourceSize, toTexture, destinationSlice, destinationLevel, destinationOrigin);
+	RenderPass.AsyncCopyFromBufferToTexture(Buffer, sourceOffset, sourceBytesPerRow, sourceBytesPerImage, sourceSize, toTexture, destinationSlice, destinationLevel, destinationOrigin, options);
 }
 
 void FMetalContext::AsyncCopyFromTextureToTexture(id<MTLTexture> Texture, uint32 sourceSlice, uint32 sourceLevel, MTLOrigin sourceOrigin, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin)
 {
 	RenderPass.AsyncCopyFromTextureToTexture(Texture, sourceSlice, sourceLevel, sourceOrigin, sourceSize, toTexture, destinationSlice, destinationLevel, destinationOrigin);
+}
+
+void FMetalContext::AsyncCopyFromBufferToBuffer(id<MTLBuffer> SourceBuffer, NSUInteger SourceOffset, id<MTLBuffer> DestinationBuffer, NSUInteger DestinationOffset, NSUInteger Size)
+{
+	RenderPass.AsyncCopyFromBufferToBuffer(SourceBuffer, SourceOffset, DestinationBuffer, DestinationOffset, Size);
 }
 
 void FMetalContext::AsyncGenerateMipmapsForTexture(id<MTLTexture> Texture)

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -197,12 +197,6 @@ public:
 	UPROPERTY(Category=LOD, AdvancedDisplay, VisibleAnywhere, BlueprintReadOnly, meta=(DisplayName="Current Max Draw Distance") )
 	float CachedMaxDrawDistance;
 
-#if WITH_EDITORONLY_DATA
-	/** If true, and if World setting has bEnableHierarchicalLOD equal to true, then this component will be included when generating a Proxy mesh for the parent Actor */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = HLOD, meta = (DisplayName = "Include Component for HLOD Mesh generation"))
-	uint8 bEnableAutoLODGeneration : 1;
-#endif 
-
 	/** The scene depth priority group to draw the primitive in. */
 	UPROPERTY()
 	TEnumAsByte<enum ESceneDepthPriorityGroup> DepthPriorityGroup;
@@ -215,6 +209,15 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
 	TEnumAsByte<EIndirectLightingCacheQuality> IndirectLightingCacheQuality;
 
+#if WITH_EDITORONLY_DATA
+	/** If true, and if World setting has bEnableHierarchicalLOD equal to true, then this component will be included when generating a Proxy mesh for the parent Actor */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = HLOD, meta = (DisplayName = "Include Component for HLOD Mesh generation"))
+	uint8 bEnableAutoLODGeneration : 1;
+#endif 
+	/** Controls the type of lightmap used for this component. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
+	ELightmapType LightmapType;
+
 public:
 
 	/** Whether this primitive is referenced by a FLevelTextureManager  */
@@ -226,7 +229,7 @@ public:
 
 	/** Whether this primitive is referenced by the streaming manager and should sent callbacks when detached or destroyed */
 	FORCEINLINE bool IsAttachedToStreamingManager() const { return !!(bAttachedToStreamingManagerAsStatic | bAttachedToStreamingManagerAsDynamic); }
-	
+
 	/** 
 	 * Indicates if we'd like to create physics state all the time (for collision and simulation). 
 	 * If you set this to false, it still will create physics state if collision or simulation activated. 
@@ -409,13 +412,8 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(EditCondition="CastShadow", DisplayName = "Shadow Two Sided"))
 	uint8 bCastShadowAsTwoSided:1;
 
-	/** 
-	 * Whether to light this primitive as if it were static, including generating lightmaps.  
-	 * This only has an effect for component types that can bake lighting, like static mesh components.
-	 * This is useful for moving meshes that don't change significantly.
-	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
-	uint8 bLightAsIfStatic:1;
+	UPROPERTY()
+	uint8 bLightAsIfStatic_DEPRECATED:1;
 
 	/** 
 	 * Whether to light this component and any attachments as a group.  This only has effect on the root component of an attachment tree.
@@ -425,13 +423,12 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
 	uint8 bLightAttachmentsAsGroup:1;
 
-	/** 
-	 * Mobile only:
-	 * If enabled this component can receive combined static and CSM shadows from a stationary light. (Enabling will increase shading cost.) 
-	 * If disabled this component will only receive static shadows from stationary lights.
-	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Mobile, meta=(DisplayName ="Receive Combined Static and CSM Shadows from Stationary Lights"))
-	uint8 bReceiveCombinedCSMAndStaticShadowsFromStationaryLights : 1;
+	/**
+	* Mobile only:
+	* If disabled this component will not receive CSM shadows. (Components that do not receive CSM may have reduced shading cost)
+	*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Mobile, meta = (DisplayName = "Receive CSM Shadows"))
+	uint8 bReceiveMobileCSMShadows : 1;
 
 	/** 
 	 * Whether the whole component should be shadowed as one from stationary lights, which makes shadow receiving much cheaper.
@@ -983,7 +980,7 @@ public:
 	 *
 	 *	@param	Impulse		Magnitude and direction of impulse to apply.
 	 *	@param	BoneName	If a SkeletalMeshComponent, name of body to apply impulse to. 'None' indicates root body.
-	 *	@param	bVelChange	If true, the Strength is taken as a change in velocity instead of an impulse (ie. mass will have no affect).
+	 *	@param	bVelChange	If true, the Strength is taken as a change in velocity instead of an impulse (ie. mass will have no effect).
 	 */
 	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void AddImpulse(FVector Impulse, FName BoneName = NAME_None, bool bVelChange = false);
@@ -1042,7 +1039,7 @@ public:
 	 * @param Radius		Size of radial impulse. Beyond this distance from Origin, there will be no affect.
 	 * @param Strength		Maximum strength of impulse applied to body.
 	 * @param Falloff		Allows you to control the strength of the impulse as a function of distance from Origin.
-	 * @param bVelChange	If true, the Strength is taken as a change in velocity instead of an impulse (ie. mass will have no affect).
+	 * @param bVelChange	If true, the Strength is taken as a change in velocity instead of an impulse (ie. mass will have no effect).
 	 */
 	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void AddRadialImpulse(FVector Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bVelChange = false);
@@ -1053,7 +1050,7 @@ public:
 	 *
 	 *	@param	Force		 Force vector to apply. Magnitude indicates strength of force.
 	 *	@param	BoneName	 If a SkeletalMeshComponent, name of body to apply force to. 'None' indicates root body.
-	 *  @param  bAccelChange If true, Force is taken as a change in acceleration instead of a physical force (i.e. mass will have no affect).
+	 *  @param  bAccelChange If true, Force is taken as a change in acceleration instead of a physical force (i.e. mass will have no effect).
 	 */
 	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void AddForce(FVector Force, FName BoneName = NAME_None, bool bAccelChange = false);
@@ -1087,7 +1084,7 @@ public:
 	 *	@param Radius		Radius within which to apply the force.
 	 *	@param Strength		Strength of force to apply.
 	 *  @param Falloff		Allows you to control the strength of the force as a function of distance from Origin.
-	 *  @param bAccelChange If true, Strength is taken as a change in acceleration instead of a physical force (i.e. mass will have no affect).
+	 *  @param bAccelChange If true, Strength is taken as a change in acceleration instead of a physical force (i.e. mass will have no effect).
 	 */
 	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void AddRadialForce(FVector Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bAccelChange = false);
@@ -1353,7 +1350,7 @@ public:
 	virtual void SetCollisionObjectType(ECollisionChannel Channel);
 
 	/** Perform a line trace against a single component */
-	UFUNCTION(BlueprintCallable, Category="Collision", meta=(DisplayName = "Line Trace Component", bTraceComplex="true", UnsafeDuringActorConstruction="true"))	
+	UFUNCTION(BlueprintCallable, Category="Collision", meta=(DisplayName = "Line Trace Component", ScriptName = "LineTraceComponent", bTraceComplex="true", UnsafeDuringActorConstruction="true"))	
 	bool K2_LineTraceComponent(FVector TraceStart, FVector TraceEnd, bool bTraceComplex, bool bShowTrace, FVector& HitLocation, FVector& HitNormal, FName& BoneName, FHitResult& OutHit);
 
 	/** Sets the bRenderCustomDepth property and marks the render state dirty. */
@@ -1464,6 +1461,9 @@ public:
 	 * @param InOptions - The options for the static lighting build.
 	 */
 	virtual void GetStaticLightingInfo(struct FStaticLightingPrimitiveInfo& OutPrimitiveInfo,const TArray<class ULightComponent*>& InRelevantLights,const class FLightingBuildOptions& Options) {}
+
+	/** Add the used GUIDs from UMapBuildDataRegistry::MeshBuildData. Used to preserve hidden level data in lighting scenario. */
+	virtual void AddMapBuildDataGUIDs(TSet<FGuid>& InGUIDs) const {}
 #endif
 	/**
 	 *	Requests whether the component will use texture, vertex or no lightmaps.
@@ -1804,15 +1804,15 @@ public:
 	virtual ECollisionEnabled::Type GetCollisionEnabled() const override;
 
 	/** Utility to see if there is any form of collision (query or physics) enabled on this component. */
-	UFUNCTION(BlueprintPure, meta=(DisplayName="Is Collision Enabled"), Category="Collision")
+	UFUNCTION(BlueprintPure, meta=(DisplayName="Is Collision Enabled", ScriptName="IsCollisionEnabled"), Category="Collision")
 	bool K2_IsCollisionEnabled() const;
 
 	/** Utility to see if there is any query collision enabled on this component. */
-	UFUNCTION(BlueprintPure, meta=(DisplayName="Is Query Collision Enabled"), Category="Collision")
+	UFUNCTION(BlueprintPure, meta=(DisplayName="Is Query Collision Enabled", ScriptName="IsQueryCollisionEnabled"), Category="Collision")
 	bool K2_IsQueryCollisionEnabled() const;
 
 	/** Utility to see if there is any physics collision enabled on this component. */
-	UFUNCTION(BlueprintPure, meta=(DisplayName="Is Physics Collision Enabled"), Category="Collision")
+	UFUNCTION(BlueprintPure, meta=(DisplayName="Is Physics Collision Enabled", ScriptName="IsPhysicsCollisionEnabled"), Category="Collision")
 	bool K2_IsPhysicsCollisionEnabled() const;
 
 	/** Gets the response type given a specific channel */
@@ -2007,6 +2007,14 @@ public:
 
 	/** Returns the calculated mass in kg. This is not 100% exactly the mass physx will calculate, but it is very close ( difference < 0.1kg ). */
 	virtual float CalculateMass(FName BoneName = NAME_None);
+
+	/** Set whether this component should use Continuous Collision Detection */
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	virtual void SetUseCCD(bool InUseCCD, FName BoneName = NAME_None);
+
+	/** Set whether all bodies in this component should use Continuous Collision Detection */
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	virtual void SetAllUseCCD(bool InUseCCD);
 
 	/**
 	 *	Force all bodies in this component to sleep.

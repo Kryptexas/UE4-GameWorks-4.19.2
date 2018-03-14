@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,11 +19,14 @@ public:
 	)
 	{}
 	
-	/** Toggles sky sphere visibility */
-	TSharedPtr< FUICommandInfo > ToggleSky;
+	/** Toggles environment (sky sphere) visibility */
+	TSharedPtr< FUICommandInfo > ToggleEnvironment;
 
 	/** Toggles floor visibility */
 	TSharedPtr< FUICommandInfo > ToggleFloor;
+
+	/** Toggles post processing */
+	TSharedPtr< FUICommandInfo > TogglePostProcessing;
 
 	/**
 	 * Initialize commands

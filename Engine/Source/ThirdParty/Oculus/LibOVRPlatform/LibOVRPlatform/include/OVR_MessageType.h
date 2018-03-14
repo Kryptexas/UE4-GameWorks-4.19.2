@@ -25,6 +25,10 @@ typedef enum ovrMessageType_ {
   ovrMessage_ApplicationLifecycle_GetSessionKey                  = 0x3AAF591D, ///< Generated in response to ovr_ApplicationLifecycle_GetSessionKey()
   ovrMessage_ApplicationLifecycle_RegisterSessionKey             = 0x4DB6AFF8, ///< Generated in response to ovr_ApplicationLifecycle_RegisterSessionKey()
   ovrMessage_Application_GetVersion                              = 0x68670A0E, ///< Generated in response to ovr_Application_GetVersion()
+  ovrMessage_Application_LaunchOtherApp                          = 0x54E2D1F8, ///< Generated in response to ovr_Application_LaunchOtherApp()
+  ovrMessage_AssetFile_Delete                                    = 0x6D5D7886, ///< Generated in response to ovr_AssetFile_Delete()
+  ovrMessage_AssetFile_Download                                  = 0x11449FC5, ///< Generated in response to ovr_AssetFile_Download()
+  ovrMessage_AssetFile_DownloadCancel                            = 0x080AD3C7, ///< Generated in response to ovr_AssetFile_DownloadCancel()
   ovrMessage_CloudStorage_Delete                                 = 0x28DA456D, ///< Generated in response to ovr_CloudStorage_Delete()
   ovrMessage_CloudStorage_GetNextCloudStorageMetadataArrayPage   = 0x5C07A2EF, ///< Generated in response to ovr_CloudStorage_GetNextCloudStorageMetadataArrayPage()
   ovrMessage_CloudStorage_Load                                   = 0x40846B41, ///< Generated in response to ovr_CloudStorage_Load()
@@ -67,6 +71,7 @@ typedef enum ovrMessageType_ {
   ovrMessage_Matchmaking_JoinRoom                                = 0x4D32D7FD, ///< Generated in response to ovr_Matchmaking_JoinRoom()
   ovrMessage_Matchmaking_ReportResultInsecure                    = 0x1A36D18D, ///< Generated in response to ovr_Matchmaking_ReportResultInsecure()
   ovrMessage_Matchmaking_StartMatch                              = 0x44D40945, ///< Generated in response to ovr_Matchmaking_StartMatch()
+  ovrMessage_Media_ShareToFacebook                               = 0x00E38AEF, ///< Generated in response to ovr_Media_ShareToFacebook()
   ovrMessage_Notification_GetNextRoomInviteNotificationArrayPage = 0x0621FB77, ///< Generated in response to ovr_Notification_GetNextRoomInviteNotificationArrayPage()
   ovrMessage_Notification_GetRoomInvites                         = 0x6F916B92, ///< Generated in response to ovr_Notification_GetRoomInvites()
   ovrMessage_Notification_MarkAsRead                             = 0x717259E3, ///< Generated in response to ovr_Notification_MarkAsRead()
@@ -96,11 +101,29 @@ typedef enum ovrMessageType_ {
   ovrMessage_User_GetLoggedInUser                                = 0x436F345D, ///< Generated in response to ovr_User_GetLoggedInUser()
   ovrMessage_User_GetLoggedInUserFriends                         = 0x587C2A8D, ///< Generated in response to ovr_User_GetLoggedInUserFriends()
   ovrMessage_User_GetLoggedInUserFriendsAndRooms                 = 0x5E870B87, ///< Generated in response to ovr_User_GetLoggedInUserFriendsAndRooms()
+  ovrMessage_User_GetLoggedInUserRecentlyMetUsersAndRooms        = 0x295FBA30, ///< Generated in response to ovr_User_GetLoggedInUserRecentlyMetUsersAndRooms()
   ovrMessage_User_GetNextUserAndRoomArrayPage                    = 0x7FBDD2DF, ///< Generated in response to ovr_User_GetNextUserAndRoomArrayPage()
   ovrMessage_User_GetNextUserArrayPage                           = 0x267CF743, ///< Generated in response to ovr_User_GetNextUserArrayPage()
   ovrMessage_User_GetOrgScopedID                                 = 0x18F0B01B, ///< Generated in response to ovr_User_GetOrgScopedID()
+  ovrMessage_User_GetSdkAccounts                                 = 0x67526A83, ///< Generated in response to ovr_User_GetSdkAccounts()
   ovrMessage_User_GetUserProof                                   = 0x22810483, ///< Generated in response to ovr_User_GetUserProof()
+  ovrMessage_User_LaunchProfile                                  = 0x0A397297, ///< Generated in response to ovr_User_LaunchProfile()
   ovrMessage_Voip_SetSystemVoipSuppressed                        = 0x453FC9AA, ///< Generated in response to ovr_Voip_SetSystemVoipSuppressed()
+
+  /// Sent when a launch intent is received (for both cold and warm starts). The
+  /// payload is the type of the intent.
+  /// ovr_ApplicationLifecycle_GetLaunchDetails() should be called to get the
+  /// other details.
+  ///
+  /// The message will contain a payload of type const char *.
+  /// Extract the payload from the message handle with ::ovr_Message_GetString().
+  ovrMessage_Notification_ApplicationLifecycle_LaunchIntentChanged = 0x04B34CA3,
+
+  /// Sent to indicate download progress for asset files.
+  ///
+  /// The message will contain a payload of type ::ovrAssetFileDownloadUpdateHandle.
+  /// Extract the payload from the message handle with ::ovr_Message_GetAssetFileDownloadUpdate().
+  ovrMessage_Notification_AssetFile_DownloadUpdate = 0x2FDD0CCD,
 
   /// Sent to indicate that more data has been read or an error occured.
   ///
@@ -155,6 +178,14 @@ typedef enum ovrMessageType_ {
   /// The message will contain a payload of type const char *.
   /// Extract the payload from the message handle with ::ovr_Message_GetString().
   ovrMessage_Notification_Room_InviteAccepted = 0x6D1071B1,
+
+  /// Handle this to notify the user when they've received an invitation to join
+  /// a room in your game. You can use this in lieu of, or in addition to,
+  /// polling for room invitations via ovr_Notification_GetRoomInvites().
+  ///
+  /// The message will contain a payload of type ::ovrRoomInviteNotificationHandle.
+  /// Extract the payload from the message handle with ::ovr_Message_GetRoomInviteNotification().
+  ovrMessage_Notification_Room_InviteReceived = 0x6A499D54,
 
   /// Indicates that the current room has been updated. Use ovr_Message_GetRoom()
   /// to extract the updated room.

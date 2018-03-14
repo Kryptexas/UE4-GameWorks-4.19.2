@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections;
@@ -20,6 +20,7 @@ namespace UnrealBuildTool
         }
 
         protected UnrealPluginLanguage UPL = null;
+		protected delegate bool FilenameFilter(string InFilename);
 
 		protected class VersionUtilities
 		{
@@ -273,9 +274,9 @@ namespace UnrealBuildTool
 				}
 			}
 			ConfigHierarchy GameIni = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, DirRef, UnrealTargetPlatform.IOS);
-			bool bStartInAR = false;
-			GameIni.GetBool("/Script/EngineSettings.GeneralProjectSettings", "bStartInAR", out bStartInAR);
-			if (bStartInAR)
+			bool bSupportAR = false;
+			GameIni.GetBool("/Script/EngineSettings.GeneralProjectSettings", "bSupportAR", out bSupportAR);
+			if (bSupportAR)
 			{
 				RequiredCaps += "\t\t<string>arkit</string>\n";
 			}
@@ -646,7 +647,7 @@ namespace UnrealBuildTool
 			}
 
 			// add the camera usage key
-			if (bStartInAR)
+			if (bSupportAR)
 			{
 				Text.AppendLine("\t<key>NSCameraUsageDescription</key>");
 				Text.AppendLine("\t\t<string>The camera is used for augmenting reality.</string>");
@@ -809,6 +810,19 @@ namespace UnrealBuildTool
                 CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-568h@2x.png", true);
             }
         }
+		protected virtual void CopyLocalizationsResources(string InEngineDir, string AppDirectory, string BuildDirectory, string IntermediateDir)
+		{
+			string LocalizationsPath = BuildDirectory + "/Resources/Localizations";
+			if (Directory.Exists(LocalizationsPath))
+			{
+				Log.TraceInformation("Copy localizations from Resources {0}, {1}", LocalizationsPath, AppDirectory);
+				CopyFolder(BuildDirectory + "/Resources/Localizations", AppDirectory, true, delegate (string InFilename)
+				{
+					if (Path.GetFileName(InFilename).Equals(".DS_Store")) return false;
+					return true;
+				});
+			}
+		}
 
         public bool PrepForUATPackageOrDeploy(UnrealTargetConfiguration Config, FileReference ProjectFile, string InProjectName, string InProjectDirectory, string InExecutablePath, string InEngineDir, bool bForDistribution, string CookFlavor, bool bIsDataDeploy, bool bCreateStubIPA)
 		{
@@ -988,6 +1002,7 @@ namespace UnrealBuildTool
 			if (!bCreateStubIPA)
 			{
                 CopyGraphicsResources(bSkipDefaultPNGs, bSkipIcons, InEngineDir, AppDirectory, BuildDirectory, IntermediateDirectory, bSupportsPortrait, bSupportsLandscape);
+				CopyLocalizationsResources(InEngineDir, AppDirectory, BuildDirectory, IntermediateDirectory);
 
                 // copy additional engine framework assets in
                 // @todo tvos: TVOS probably needs its own assets?
@@ -1159,17 +1174,21 @@ namespace UnrealBuildTool
 			}
 		}
 
-		protected void CopyFolder(string SourceDirectory, string DestinationDirectory, bool bOverwrite = false)
+		protected void CopyFolder(string SourceDirectory, string DestinationDirectory, bool bOverwrite = false, FilenameFilter Filter = null)
 		{
 			Directory.CreateDirectory(DestinationDirectory);
-			RecursiveFolderCopy(new DirectoryInfo(SourceDirectory), new DirectoryInfo(DestinationDirectory), bOverwrite);
+			RecursiveFolderCopy(new DirectoryInfo(SourceDirectory), new DirectoryInfo(DestinationDirectory), bOverwrite, Filter);
 		}
 
-		static private void RecursiveFolderCopy(DirectoryInfo SourceFolderInfo, DirectoryInfo DestFolderInfo, bool bOverwrite = false)
+		static private void RecursiveFolderCopy(DirectoryInfo SourceFolderInfo, DirectoryInfo DestFolderInfo, bool bOverwrite = false, FilenameFilter Filter = null)
 		{
 			foreach (FileInfo SourceFileInfo in SourceFolderInfo.GetFiles())
 			{
 				string DestinationPath = Path.Combine(DestFolderInfo.FullName, SourceFileInfo.Name);
+				if (Filter != null && !Filter(DestinationPath))
+				{
+					continue;
+				}
 				SafeFileCopy(SourceFileInfo, DestinationPath, bOverwrite);
 			}
 

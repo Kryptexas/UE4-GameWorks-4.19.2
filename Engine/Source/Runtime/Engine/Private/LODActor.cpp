@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LODActorBase.cpp: Static mesh actor base class implementation.
@@ -75,7 +75,7 @@ static void HLODConsoleCommand(const TArray<FString>& Args, UWorld* World)
 		{
 			const int32 ForcedLevel = FCString::Atoi(*Args[1]);
 
-			if (ForcedLevel >= -1 && ForcedLevel < World->GetWorldSettings()->HierarchicalLODSetup.Num())
+			if (ForcedLevel >= -1 && ForcedLevel < World->GetWorldSettings()->GetNumHierarchicalLODLevels())
 			{
 				const TArray<ULevel*>& Levels = World->GetLevels();
 				for (ULevel* Level : Levels)
@@ -192,6 +192,7 @@ void ALODActor::PostLoad()
 {
 	Super::PostLoad();
 	StaticMeshComponent->MinDrawDistance = LODDrawDistance;
+	StaticMeshComponent->bCastDynamicShadow = false;	
 	UpdateRegistrationToMatchMaximumLODLevel();
 
 #if WITH_EDITOR
@@ -305,9 +306,9 @@ void ALODActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 		{
 			UWorld* World = GetWorld();
 			check(World != nullptr);
-			AWorldSettings* WorldSettings = World->GetWorldSettings();
-			checkf(WorldSettings->HierarchicalLODSetup.IsValidIndex(LODLevel - 1), TEXT("Out of range HLOD level (%i) found in LODActor (%s)"), LODLevel - 1, *GetName());
-			CalculateSreenSize = WorldSettings->HierarchicalLODSetup[LODLevel - 1].TransitionScreenSize;
+			const TArray<struct FHierarchicalSimplification>& HierarchicalLODSetups = World->GetWorldSettings()->GetHierarchicalLODSetup();
+			checkf(HierarchicalLODSetups.IsValidIndex(LODLevel - 1), TEXT("Out of range HLOD level (%i) found in LODActor (%s)"), LODLevel - 1, *GetName());
+			CalculateSreenSize = HierarchicalLODSetups[LODLevel - 1].TransitionScreenSize;
 		}
 
 		RecalculateDrawingDistance(CalculateSreenSize);
@@ -332,7 +333,10 @@ bool ALODActor::GetReferencedContentObjects( TArray<UObject*>& Objects ) const
 	// Retrieve referenced objects for sub actors as well
 	for (AActor* SubActor : SubActors)
 	{
-		SubActor->GetReferencedContentObjects(Objects);
+		if (SubActor)
+		{
+			SubActor->GetReferencedContentObjects(Objects);
+		}
 	}
 	return true;
 }
@@ -492,14 +496,17 @@ void ALODActor::DetermineShadowingFlags()
 	bool bCastFarShadow = false;
 	for (AActor* Actor : SubActors)
 	{
-		TArray<UStaticMeshComponent*> StaticMeshComponents;
-		Actor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
-		for (UStaticMeshComponent* Component : StaticMeshComponents)
+		if (Actor)
 		{
-			bCastsShadow |= Component->CastShadow;
-			bCastsStaticShadow |= Component->bCastStaticShadow;
-			bCastsDynamicShadow |= Component->bCastDynamicShadow;
-			bCastFarShadow |= Component->bCastFarShadow;
+			TArray<UStaticMeshComponent*> StaticMeshComponents;
+			Actor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
+			for (UStaticMeshComponent* Component : StaticMeshComponents)
+			{
+				bCastsShadow |= Component->CastShadow;
+				bCastsStaticShadow |= Component->bCastStaticShadow;
+				bCastsDynamicShadow |= Component->bCastDynamicShadow;
+				bCastFarShadow |= Component->bCastFarShadow;
+			}
 		}
 	}
 
@@ -554,27 +561,30 @@ const bool ALODActor::HasValidSubActors() const
 	// Make sure there are at least two meshes in the subactors
 	for (AActor* SubActor : SubActors)
 	{
-		TInlineComponentArray<UStaticMeshComponent*> Components;
-		SubActor->GetComponents(/*out*/ Components);
+		if (SubActor)
+		{
+			TInlineComponentArray<UStaticMeshComponent*> Components;
+			SubActor->GetComponents(/*out*/ Components);
 
 #if WITH_EDITOR
-		FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
-		IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
+			FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+			IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
 
-		for (UStaticMeshComponent* Component : Components)
-		{
-			if (!Component->bHiddenInGame && Component->ShouldGenerateAutoLOD())
+			for (UStaticMeshComponent* Component : Components)
 			{
-				++NumMeshes;
+				if (!Component->bHiddenInGame && Component->ShouldGenerateAutoLOD())
+				{
+					++NumMeshes;
+				}
 			}
-		}
 #else
-		NumMeshes += Components.Num();
+			NumMeshes += Components.Num();
 #endif
 
-		if (NumMeshes > 1)
-		{
-			break;
+			if (NumMeshes > 1)
+			{
+				break;
+			}
 		}
 	}
 
@@ -609,14 +619,17 @@ void ALODActor::SetHiddenFromEditorView(const bool InState, const int32 ForceLOD
 
 		for (AActor* Actor : SubActors)
 		{
-			// If this actor belongs to a lower HLOD level that is being forced hide the sub-actors
-			if (LODLevel < ForceLODLevel)
+			if (Actor)
 			{
-				Actor->SetIsTemporarilyHiddenInEditor(InState);
-			}
+				// If this actor belongs to a lower HLOD level that is being forced hide the sub-actors
+				if (LODLevel < ForceLODLevel)
+				{
+					Actor->SetIsTemporarilyHiddenInEditor(InState);
+				}
 
-			// Toggle/set the LOD parent to nullptr or this
-			Actor->SetLODParent((InState) ? nullptr : StaticMeshComponent, (InState) ? 0.0f : LODDrawDistance);
+				// Toggle/set the LOD parent to nullptr or this
+				Actor->SetLODParent((InState) ? nullptr : StaticMeshComponent, (InState) ? 0.0f : LODDrawDistance);
+			}
 		}
 	}
 
@@ -652,7 +665,10 @@ void ALODActor::UpdateSubActorLODParents()
 {
 	for (AActor* Actor : SubActors)
 	{	
-		Actor->SetLODParent(StaticMeshComponent, StaticMeshComponent->MinDrawDistance);
+		if (Actor)
+		{
+			Actor->SetLODParent(StaticMeshComponent, StaticMeshComponent->MinDrawDistance);
+		}
 	}
 }
 

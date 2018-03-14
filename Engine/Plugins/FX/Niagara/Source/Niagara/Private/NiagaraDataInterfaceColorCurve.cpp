@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraDataInterfaceColorCurve.h"
 #include "Curves/CurveVector.h"
 #include "Curves/CurveLinearColor.h"
 #include "Curves/CurveFloat.h"
 #include "NiagaraTypes.h"
+#include "NiagaraCustomVersion.h"
 
 //////////////////////////////////////////////////////////////////////////
 //Color Curve
@@ -19,7 +20,7 @@ void UNiagaraDataInterfaceColorCurve::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-	//Can we regitser data interfaces as regular types and fold them into the FNiagaraVariable framework for UI and function calls etc?
+	//Can we register data interfaces as regular types and fold them into the FNiagaraVariable framework for UI and function calls etc?
 	if (HasAnyFlags(RF_ClassDefaultObject))
 	{
 		FNiagaraTypeRegistry::Register(FNiagaraTypeDefinition(GetClass()), true, false, false);
@@ -31,7 +32,20 @@ void UNiagaraDataInterfaceColorCurve::PostInitProperties()
 void UNiagaraDataInterfaceColorCurve::PostLoad()
 {
 	Super::PostLoad();
+
+	const int32 NiagaraVer = GetLinkerCustomVersion(FNiagaraCustomVersion::GUID);
+
+	if (NiagaraVer < FNiagaraCustomVersion::CurveLUTNowOnByDefault)
+	{
+		UpdateLUT();
+	}
+	TArray<float> OldLUT = ShaderLUT;
 	UpdateLUT();
+	if (!CompareLUTS(OldLUT))
+	{
+		UE_LOG(LogNiagara, Log, TEXT("PostLoad LUT generation is out of sync. Please investigate. %s"), *GetPathName());
+	}
+
 }
 
 #if WITH_EDITOR
@@ -47,12 +61,13 @@ void UNiagaraDataInterfaceColorCurve::PostEditChangeProperty(struct FPropertyCha
 		{
 			Modify();
 			RedCurve = ColorCurveAsset->FloatCurves[0];
-			BlueCurve = ColorCurveAsset->FloatCurves[1];
-			GreenCurve = ColorCurveAsset->FloatCurves[2];
+			GreenCurve = ColorCurveAsset->FloatCurves[1];
+			BlueCurve = ColorCurveAsset->FloatCurves[2];
 			AlphaCurve = ColorCurveAsset->FloatCurves[3];
 		}
-		UpdateLUT();
 	}
+
+	UpdateLUT();
 }
 
 #endif
@@ -60,9 +75,32 @@ void UNiagaraDataInterfaceColorCurve::PostEditChangeProperty(struct FPropertyCha
 void UNiagaraDataInterfaceColorCurve::UpdateLUT()
 {
 	ShaderLUT.Empty();
+
+	if (bAllowUnnormalizedLUT && (RedCurve.GetNumKeys() > 0 || GreenCurve.GetNumKeys() > 0 || BlueCurve.GetNumKeys() > 0 || AlphaCurve.GetNumKeys() > 0))
+	{
+		LUTMinTime = FLT_MAX;
+		LUTMinTime = FMath::Min(RedCurve.GetNumKeys() > 0 ? RedCurve.GetFirstKey().Time : LUTMinTime, LUTMinTime);
+		LUTMinTime = FMath::Min(GreenCurve.GetNumKeys() > 0 ? GreenCurve.GetFirstKey().Time : LUTMinTime, LUTMinTime);
+		LUTMinTime = FMath::Min(BlueCurve.GetNumKeys() > 0 ? BlueCurve.GetFirstKey().Time : LUTMinTime, LUTMinTime);
+		LUTMinTime = FMath::Min(AlphaCurve.GetNumKeys() > 0 ? AlphaCurve.GetFirstKey().Time : LUTMinTime, LUTMinTime);
+
+		LUTMaxTime = FLT_MIN;
+		LUTMaxTime = FMath::Max(RedCurve.GetNumKeys() > 0 ? RedCurve.GetLastKey().Time : LUTMaxTime, LUTMaxTime);
+		LUTMaxTime = FMath::Max(GreenCurve.GetNumKeys() > 0 ? GreenCurve.GetLastKey().Time : LUTMaxTime, LUTMaxTime);
+		LUTMaxTime = FMath::Max(BlueCurve.GetNumKeys() > 0 ? BlueCurve.GetLastKey().Time : LUTMaxTime, LUTMaxTime);
+		LUTMaxTime = FMath::Max(AlphaCurve.GetNumKeys() > 0 ? AlphaCurve.GetLastKey().Time : LUTMaxTime, LUTMaxTime);
+		LUTInvTimeRange = 1.0f / (LUTMaxTime - LUTMinTime);
+	}
+	else
+	{
+		LUTMinTime = 0.0f;
+		LUTMaxTime = 1.0f;
+		LUTInvTimeRange = 1.0f;
+	}
+
 	for (uint32 i = 0; i < CurveLUTWidth; i++)
 	{
-		float X = i / (float)CurveLUTWidth;
+		float X = UnnormalizeTime(i / (float)CurveLUTWidth);
 		FLinearColor C(RedCurve.Eval(X), GreenCurve.Eval(X), BlueCurve.Eval(X), AlphaCurve.Eval(X));
 		ShaderLUT.Add(C.R);
 		ShaderLUT.Add(C.G);
@@ -72,9 +110,9 @@ void UNiagaraDataInterfaceColorCurve::UpdateLUT()
 	GPUBufferDirty = true;
 }
 
-bool UNiagaraDataInterfaceColorCurve::CopyTo(UNiagaraDataInterface* Destination) const 
+bool UNiagaraDataInterfaceColorCurve::CopyToInternal(UNiagaraDataInterface* Destination) const 
 {
-	if (!Super::CopyTo(Destination))
+	if (!Super::CopyToInternal(Destination))
 	{
 		return false;
 	}
@@ -85,6 +123,10 @@ bool UNiagaraDataInterfaceColorCurve::CopyTo(UNiagaraDataInterface* Destination)
 	DestinationColorCurve->AlphaCurve = AlphaCurve;
 	DestinationColorCurve->UpdateLUT();
 
+	if (!CompareLUTS(DestinationColorCurve->ShaderLUT))
+	{
+		UE_LOG(LogNiagara, Log, TEXT("CopyToInternal LUT generation is out of sync. Please investigate. %s to %s"), *GetPathName(), *DestinationColorCurve->GetPathName());
+	}
 	return true;
 }
 
@@ -127,10 +169,10 @@ void UNiagaraDataInterfaceColorCurve::GetFunctions(TArray<FNiagaraFunctionSignat
 // the HLSL in the spirit of a static switch
 // TODO: need a way to identify each specific function here
 // 
-bool UNiagaraDataInterfaceColorCurve::GetFunctionHLSL(FString FunctionName, TArray<DIGPUBufferParamDescriptor> &Descriptors, FString &HLSLInterfaceID, FString &OutHLSL)
+bool UNiagaraDataInterfaceColorCurve::GetFunctionHLSL(const FName& DefinitionFunctionName, FString InstanceFunctionName, TArray<FDIGPUBufferParamDescriptor> &Descriptors, FString &HLSLInterfaceID, FString &OutHLSL)
 {
 	FString BufferName = Descriptors[0].BufferParamName;
-	OutHLSL += TEXT("void ") + FunctionName + TEXT("(in float In_X, out float4 Out_Value) \n{\n");
+	OutHLSL += TEXT("void ") + InstanceFunctionName + TEXT("(in float In_X, out float4 Out_Value) \n{\n");
 	OutHLSL += TEXT("\t Out_Value.x = ") + BufferName + TEXT("[(int)(In_X *") + FString::FromInt(CurveLUTWidth) + TEXT(")* 4 ];");
 	OutHLSL += TEXT("\t Out_Value.y = ") + BufferName + TEXT("[1+ (int)(In_X *") + FString::FromInt(CurveLUTWidth) + TEXT(")* 4 ];");
 	OutHLSL += TEXT("\t Out_Value.z = ") + BufferName + TEXT("[2+ (int)(In_X *") + FString::FromInt(CurveLUTWidth) + TEXT(")* 4 ];");
@@ -146,25 +188,27 @@ bool UNiagaraDataInterfaceColorCurve::GetFunctionHLSL(FString FunctionName, TArr
 // 3. store buffer declaration hlsl in OutHLSL
 // multiple buffers can be defined at once here
 //
-void UNiagaraDataInterfaceColorCurve::GetBufferDefinitionHLSL(FString DataInterfaceID, TArray<DIGPUBufferParamDescriptor> &BufferDescriptors, FString &OutHLSL)
+void UNiagaraDataInterfaceColorCurve::GetBufferDefinitionHLSL(FString DataInterfaceID, TArray<FDIGPUBufferParamDescriptor> &BufferDescriptors, FString &OutHLSL)
 {
 	FString BufferName = "CurveLUT" + DataInterfaceID;
 	OutHLSL += TEXT("Buffer<float> ") + BufferName + TEXT(";\n");
 
-	BufferDescriptors.Add( DIGPUBufferParamDescriptor(BufferName, 0) );		// add a descriptor for shader parameter binding
+	BufferDescriptors.Add( FDIGPUBufferParamDescriptor(BufferName, 0) );		// add a descriptor for shader parameter binding
 
 }
 
 // called after translate, to setup buffers matching the buffer descriptors generated during hlsl translation
 // need to do this because the script used during translate is a clone, including its DIs
 //
-void UNiagaraDataInterfaceColorCurve::SetupBuffers(TArray<DIGPUBufferParamDescriptor> &BufferDescriptors)
+void UNiagaraDataInterfaceColorCurve::SetupBuffers(FDIBufferDescriptorStore &BufferDescriptors)
 {
-	for (DIGPUBufferParamDescriptor &Desc : BufferDescriptors)
+	GPUBuffers.Empty();
+	for (FDIGPUBufferParamDescriptor &Desc : BufferDescriptors.Descriptors)
 	{
 		FNiagaraDataInterfaceBufferData BufferData(*Desc.BufferParamName);	// store off the data for later use
 		GPUBuffers.Add(BufferData);
 	}
+	GPUBufferDirty = true;
 }
 
 // return the GPU buffer array (called from NiagaraInstanceBatcher to get the buffers for setting to the shader)
@@ -179,7 +223,13 @@ TArray<FNiagaraDataInterfaceBufferData> &UNiagaraDataInterfaceColorCurve::GetBuf
 
 		FNiagaraDataInterfaceBufferData &GPUBuffer = GPUBuffers[0];
 		GPUBuffer.Buffer.Release();
-		GPUBuffer.Buffer.Initialize(sizeof(float), CurveLUTWidth*4 , EPixelFormat::PF_R32_FLOAT, BUF_Volatile);	// always allocate for up to 64 data sets
+
+/*		TResourceArray<float> FloatRes;
+		FloatRes.AddZeroed(ShaderLUT.Num());
+		uint32 BufferSize = ShaderLUT.Num() * sizeof(float);
+		FPlatformMemory::Memcpy(FloatRes.GetData(), ShaderLUT.GetData(), BufferSize);*/
+
+		GPUBuffer.Buffer.Initialize(sizeof(float), CurveLUTWidth*4 , EPixelFormat::PF_R32_FLOAT, BUF_Static);	// always allocate for up to 64 data sets
 		uint32 BufferSize = ShaderLUT.Num() * sizeof(float);
 		int32 *BufferData = static_cast<int32*>(RHILockVertexBuffer(GPUBuffer.Buffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly));
 		FPlatformMemory::Memcpy(BufferData, ShaderLUT.GetData(), BufferSize);
@@ -198,7 +248,7 @@ FVMExternalFunction UNiagaraDataInterfaceColorCurve::GetVMExternalFunction(const
 {
 	if (BindingInfo.Name == TEXT("SampleColorCurve") && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 4)
 	{
-		return TNDIParamBinder<0, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceColorCurve, SampleCurve)>::Bind(this, BindingInfo, InstanceData);
+		return TCurveUseLUTBinder<TNDIParamBinder<0, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceColorCurve, SampleCurve)>>::Bind(this, BindingInfo, InstanceData);
 	}
 	else
 	{
@@ -208,7 +258,21 @@ FVMExternalFunction UNiagaraDataInterfaceColorCurve::GetVMExternalFunction(const
 	}
 }
 
-template<typename XParamType>
+template<>
+FORCEINLINE_DEBUGGABLE FLinearColor UNiagaraDataInterfaceColorCurve::SampleCurveInternal<TIntegralConstant<bool, true>>(float X)
+{
+	float NormalizedX = NormalizeTime(X);
+	int32 AccessIdx = FMath::Clamp<int32>(FMath::TruncToInt(NormalizedX * CurveLUTWidthMinusOne), 0, CurveLUTWidthMinusOne) * CurveLUTNumElems;
+	return FLinearColor(ShaderLUT[AccessIdx], ShaderLUT[AccessIdx + 1], ShaderLUT[AccessIdx + 2], ShaderLUT[AccessIdx + 3]);
+}
+
+template<>
+FORCEINLINE_DEBUGGABLE FLinearColor UNiagaraDataInterfaceColorCurve::SampleCurveInternal<TIntegralConstant<bool, false>>(float X)
+{
+	return FLinearColor(RedCurve.Eval(X), GreenCurve.Eval(X), BlueCurve.Eval(X), AlphaCurve.Eval(X));
+}
+
+template<typename UseLUT, typename XParamType>
 void UNiagaraDataInterfaceColorCurve::SampleCurve(FVectorVMContext& Context)
 {
 	//TODO: Create some SIMDable optimized representation of the curve to do this faster.
@@ -221,7 +285,7 @@ void UNiagaraDataInterfaceColorCurve::SampleCurve(FVectorVMContext& Context)
 	for (int32 i = 0; i < Context.NumInstances; ++i)
 	{
 		float X = XParam.Get();
-		FLinearColor C(RedCurve.Eval(X), GreenCurve.Eval(X), BlueCurve.Eval(X), AlphaCurve.Eval(X));
+		FLinearColor C = SampleCurveInternal<UseLUT>(X);
 		*SamplePtrR.GetDest() = C.R;
 		*SamplePtrG.GetDest() = C.G;
 		*SamplePtrB.GetDest() = C.B;

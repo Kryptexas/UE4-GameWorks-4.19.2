@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -876,7 +876,6 @@ public:
 	//~ UObject interface
 
 	virtual void BeginDestroy() override;
-	virtual bool CanBeInCluster() const override;
 	virtual FString GetDesc() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	virtual void PostInitProperties() override;

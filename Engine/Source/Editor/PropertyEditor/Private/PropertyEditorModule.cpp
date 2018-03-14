@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PropertyEditorModule.h"
@@ -238,7 +238,7 @@ TSharedPtr<FAssetThumbnailPool> FPropertyEditorModule::GetThumbnailPool()
 	if (!GlobalThumbnailPool.IsValid())
 	{
 		// Create a thumbnail pool for the view if it doesn't exist.  This does not use resources of no thumbnails are used
-		GlobalThumbnailPool = MakeShareable(new FAssetThumbnailPool(50, false));
+		GlobalThumbnailPool = MakeShareable(new FAssetThumbnailPool(50, true));
 	}
 
 	return GlobalThumbnailPool;
@@ -659,28 +659,44 @@ FPropertyTypeLayoutCallback FPropertyEditorModule::GetPropertyTypeCustomization(
 		}
 		else if ( bObjectProperty )
 		{
-			PropertyTypeName = ObjectProperty->PropertyClass->GetFName();
+			UClass* PropertyClass = ObjectProperty->PropertyClass;
+			while (PropertyClass)
+			{
+				const FPropertyTypeLayoutCallback& Callback = FindPropertyTypeLayoutCallback(PropertyClass->GetFName(), PropertyHandle, InstancedPropertyTypeLayoutMap);
+				if (Callback.IsValid())
+				{
+					return Callback;
+				}
+
+				PropertyClass = PropertyClass->GetSuperClass();
+			}
 		}
 		else
 		{
 			PropertyTypeName = Property->GetClass()->GetFName();
 		}
 
+		return FindPropertyTypeLayoutCallback(PropertyTypeName, PropertyHandle, InstancedPropertyTypeLayoutMap);
+	}
 
-		if (PropertyTypeName != NAME_None)
-		{
-			const FPropertyTypeLayoutCallbackList* LayoutCallbacks = InstancedPropertyTypeLayoutMap.Find( PropertyTypeName );
+	return FPropertyTypeLayoutCallback();
+}
+
+FPropertyTypeLayoutCallback FPropertyEditorModule::FindPropertyTypeLayoutCallback(FName PropertyTypeName, const IPropertyHandle& PropertyHandle, const FCustomPropertyTypeLayoutMap& InstancedPropertyTypeLayoutMap)
+{
+	if (PropertyTypeName != NAME_None)
+	{
+		const FPropertyTypeLayoutCallbackList* LayoutCallbacks = InstancedPropertyTypeLayoutMap.Find( PropertyTypeName );
 	
-			if( !LayoutCallbacks )
-			{
-				LayoutCallbacks = GlobalPropertyTypeToLayoutMap.Find(PropertyTypeName);
-			}
+		if( !LayoutCallbacks )
+		{
+			LayoutCallbacks = GlobalPropertyTypeToLayoutMap.Find(PropertyTypeName);
+		}
 
-			if ( LayoutCallbacks )
-			{
-				const FPropertyTypeLayoutCallback& Callback = LayoutCallbacks->Find(PropertyHandle);
-				return Callback;
-			}
+		if ( LayoutCallbacks )
+		{
+			const FPropertyTypeLayoutCallback& Callback = LayoutCallbacks->Find(PropertyHandle);
+			return Callback;
 		}
 	}
 

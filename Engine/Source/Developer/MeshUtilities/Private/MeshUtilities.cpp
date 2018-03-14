@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MeshUtilities.h"
 #include "MeshUtilitiesPrivate.h"
@@ -56,12 +56,14 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SComboButton.h"
 #include "Containers/Algo/Transform.h"
+#include "Rendering/SkeletalMeshModel.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 
 #include "LandscapeProxy.h"
 #include "Landscape.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "Engine/MeshMergeCullingVolume.h"
-//#include "ProxyMaterialUtilities.h"
+
 #include "Toolkits/AssetEditorManager.h"
 #include "LevelEditor.h"
 #include "IAnimationBlueprintEditor.h"
@@ -79,6 +81,7 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Engine/MeshSimplificationSettings.h"
+#include "Engine/ProxyLODMeshSimplificationSettings.h"
 
 #include "IDetailCustomization.h"
 #include "EditorStyleSet.h"
@@ -488,60 +491,6 @@ void FMeshUtilities::BuildSkeletalAdjacencyIndexBuffer(
 	}
 }
 
-void FMeshUtilities::RechunkSkeletalMeshModels(USkeletalMesh* SrcMesh, int32 MaxBonesPerChunk)
-{
-#if WITH_EDITORONLY_DATA
-	TIndirectArray<FStaticLODModel> DestModels;
-	TIndirectArray<FSkinnedModelData> ModelData;
-	FReferenceSkeleton RefSkeleton = SrcMesh->RefSkeleton;
-	uint32 VertexBufferBuildFlags = SrcMesh->GetVertexBufferFlags();
-	FSkeletalMeshResource* SrcMeshResource = SrcMesh->GetImportedResource();
-	FVector TriangleSortCenter;
-	bool bHaveTriangleSortCenter = SrcMesh->GetSortCenterPoint(TriangleSortCenter);
-
-	for (int32 ModelIndex = 0; ModelIndex < SrcMeshResource->LODModels.Num(); ++ModelIndex)
-	{
-		FSkinnedModelData& TmpModelData = *new(ModelData)FSkinnedModelData();
-		SkeletalMeshTools::CopySkinnedModelData(TmpModelData, SrcMeshResource->LODModels[ModelIndex]);
-	}
-
-	for (int32 ModelIndex = 0; ModelIndex < ModelData.Num(); ++ModelIndex)
-	{
-		TArray<FSkinnedMeshChunk*> Chunks;
-		TArray<int32> PointToOriginalMap;
-		TArray<ETriangleSortOption> SectionSortOptions;
-
-		const FSkinnedModelData& SrcModel = ModelData[ModelIndex];
-		FStaticLODModel& DestModel = *new(DestModels)FStaticLODModel();
-
-		SkeletalMeshTools::UnchunkSkeletalModel(Chunks, PointToOriginalMap, SrcModel);
-		SkeletalMeshTools::ChunkSkinnedVertices(Chunks, MaxBonesPerChunk);
-
-		for (int32 ChunkIndex = 0; ChunkIndex < Chunks.Num(); ++ChunkIndex)
-		{
-			int32 SectionIndex = Chunks[ChunkIndex]->OriginalSectionIndex;
-			SectionSortOptions.Add(SrcModel.Sections[SectionIndex].TriangleSorting);
-		}
-		check(SectionSortOptions.Num() == Chunks.Num());
-
-		BuildSkeletalModelFromChunks(DestModel, RefSkeleton, Chunks, PointToOriginalMap);
-		check(DestModel.Sections.Num() == SectionSortOptions.Num());
-
-		DestModel.NumTexCoords = SrcModel.NumTexCoords;
-		DestModel.BuildVertexBuffers(VertexBufferBuildFlags);
-		for (int32 SectionIndex = 0; SectionIndex < DestModel.Sections.Num(); ++SectionIndex)
-		{
-			DestModel.SortTriangles(TriangleSortCenter, bHaveTriangleSortCenter, SectionIndex, SectionSortOptions[SectionIndex]);
-		}
-	}
-
-	//@todo-rco: Swap() doesn't seem to work
-	Exchange(SrcMeshResource->LODModels, DestModels);
-
-	// TODO: Also need to patch bEnableShadowCasting in the LODInfo struct.
-#endif // #if WITH_EDITORONLY_DATA
-}
-
 void FMeshUtilities::CalcBoneVertInfos(USkeletalMesh* SkeletalMesh, TArray<FBoneVertInfo>& Infos, bool bOnlyDominant)
 {
 	SkeletalMeshTools::CalcBoneVertInfos(SkeletalMesh, Infos, bOnlyDominant);
@@ -618,7 +567,7 @@ static void SkinnedMeshToRawMeshes(USkinnedMeshComponent* InSkinnedMeshComponent
 	const int32 BaseMaterialIndex = OutMaterials.Num();
 
 	// Export all LODs to raw meshes
-	const int32 NumLODs = InSkinnedMeshComponent->MeshObject->GetSkeletalMeshResource().LODModels.Num();
+	const int32 NumLODs = InSkinnedMeshComponent->GetNumLODs();
 
 	for (int32 OverallLODIndex = 0; OverallLODIndex < InOverallMaxLODs; OverallLODIndex++)
 	{
@@ -634,8 +583,8 @@ static void SkinnedMeshToRawMeshes(USkinnedMeshComponent* InSkinnedMeshComponent
 		TArray<FFinalSkinVertex> FinalVertices;
 		InSkinnedMeshComponent->GetCPUSkinnedVertices(FinalVertices, LODIndexRead);
 
-		FSkeletalMeshResource& SkeletalMeshResource = InSkinnedMeshComponent->MeshObject->GetSkeletalMeshResource();
-		FStaticLODModel& StaticLODModel = SkeletalMeshResource.LODModels[LODIndexRead];
+		FSkeletalMeshRenderData& SkeletalMeshRenderData = InSkinnedMeshComponent->MeshObject->GetSkeletalMeshRenderData();
+		FSkeletalMeshLODRenderData& LODData = SkeletalMeshRenderData.LODRenderData[LODIndexRead];
 
 		// Copy skinned vertex positions
 		for (int32 VertIndex = 0; VertIndex < FinalVertices.Num(); ++VertIndex)
@@ -643,14 +592,14 @@ static void SkinnedMeshToRawMeshes(USkinnedMeshComponent* InSkinnedMeshComponent
 			RawMesh.VertexPositions.Add(InComponentToWorld.TransformPosition(FinalVertices[VertIndex].Position));
 		}
 
-		const uint32 NumTexCoords = FMath::Min(StaticLODModel.VertexBufferGPUSkin.GetNumTexCoords(), (uint32)MAX_MESH_TEXTURE_COORDS);
-		const int32 NumSections = StaticLODModel.Sections.Num();
-		FRawStaticIndexBuffer16or32Interface& IndexBuffer = *StaticLODModel.MultiSizeIndexContainer.GetIndexBuffer();
+		const uint32 NumTexCoords = FMath::Min(LODData.StaticVertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords(), (uint32)MAX_MESH_TEXTURE_COORDS);
+		const int32 NumSections = LODData.RenderSections.Num();
+		FRawStaticIndexBuffer16or32Interface& IndexBuffer = *LODData.MultiSizeIndexContainer.GetIndexBuffer();
 
 		for (int32 SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
 		{
-			const FSkelMeshSection& SkelMeshSection = StaticLODModel.Sections[SectionIndex];
-			if (!SkelMeshSection.bDisabled)
+			const FSkelMeshRenderSection& SkelMeshSection = LODData.RenderSections[SectionIndex];
+			if (InSkinnedMeshComponent->IsMaterialSectionShown(SkelMeshSection.MaterialIndex, LODIndexRead))
 			{
 				// Build 'wedge' info
 				const int32 NumWedges = SkelMeshSection.NumTriangles * 3;
@@ -678,14 +627,14 @@ static void SkinnedMeshToRawMeshes(USkinnedMeshComponent* InSkinnedMeshComponent
 						}
 						else
 						{
-							RawMesh.WedgeTexCoords[TexCoordIndex].Add(StaticLODModel.VertexBufferGPUSkin.GetVertexUV(VertexIndexForWedge, TexCoordIndex));
+							RawMesh.WedgeTexCoords[TexCoordIndex].Add(LODData.StaticVertexBuffers.StaticMeshVertexBuffer.GetVertexUV(VertexIndexForWedge, TexCoordIndex));
 							RawMeshTracker.bValidTexCoords[TexCoordIndex] = true;
 						}
 					}
 
-					if (StaticLODModel.ColorVertexBuffer.IsInitialized())
+					if (LODData.StaticVertexBuffers.ColorVertexBuffer.IsInitialized())
 					{
-						RawMesh.WedgeColors.Add(StaticLODModel.ColorVertexBuffer.VertexColor(VertexIndexForWedge));
+						RawMesh.WedgeColors.Add(LODData.StaticVertexBuffers.ColorVertexBuffer.VertexColor(VertexIndexForWedge));
 						RawMeshTracker.bValidColors = true;
 					}
 					else
@@ -738,11 +687,11 @@ static void StaticMeshToRawMeshes(UStaticMeshComponent* InStaticMeshComponent, i
 
 		for (int32 VertIndex = 0; VertIndex < LODResource.GetNumVertices(); ++VertIndex)
 		{
-			RawMesh.VertexPositions.Add(InComponentToWorld.TransformPosition(LODResource.PositionVertexBuffer.VertexPosition((uint32)VertIndex)));
+			RawMesh.VertexPositions.Add(InComponentToWorld.TransformPosition(LODResource.VertexBuffers.PositionVertexBuffer.VertexPosition((uint32)VertIndex)));
 		}
 
 		const FIndexArrayView IndexArrayView = LODResource.IndexBuffer.GetArrayView();
-		const FStaticMeshVertexBuffer& StaticMeshVertexBuffer = LODResource.VertexBuffer;
+		const FStaticMeshVertexBuffer& StaticMeshVertexBuffer = LODResource.VertexBuffers.StaticMeshVertexBuffer;
 		const int32 NumTexCoords = FMath::Min(StaticMeshVertexBuffer.GetNumTexCoords(), (uint32)MAX_MESH_TEXTURE_COORDS);
 		const int32 NumSections = LODResource.Sections.Num();
 
@@ -773,9 +722,9 @@ static void StaticMeshToRawMeshes(UStaticMeshComponent* InStaticMeshComponent, i
 					}
 				}
 
-				if (LODResource.ColorVertexBuffer.IsInitialized())
+				if (LODResource.VertexBuffers.ColorVertexBuffer.IsInitialized())
 				{
-					RawMesh.WedgeColors.Add(LODResource.ColorVertexBuffer.VertexColor(Index));
+					RawMesh.WedgeColors.Add(LODResource.VertexBuffers.ColorVertexBuffer.VertexColor(Index));
 					RawMeshTracker.bValidColors = true;
 				}
 				else
@@ -853,7 +802,7 @@ UStaticMesh* FMeshUtilities::ConvertMeshesToStaticMesh(const TArray<UMeshCompone
 
 			if (IsValidSkinnedMeshComponent(SkinnedMeshComponent))
 			{
-				OverallMaxLODs = FMath::Max(SkinnedMeshComponent->MeshObject->GetSkeletalMeshResource().LODModels.Num(), OverallMaxLODs);
+				OverallMaxLODs = FMath::Max(SkinnedMeshComponent->MeshObject->GetSkeletalMeshRenderData().LODRenderData.Num(), OverallMaxLODs);
 			}
 			else if(IsValidStaticMeshComponent(StaticMeshComponent))
 			{
@@ -1020,16 +969,13 @@ UStaticMesh* FMeshUtilities::ConvertMeshesToStaticMesh(const TArray<UMeshCompone
 * @param Chunks				Skinned mesh chunks from which to build the renderable model.
 * @param PointToOriginalMap	Maps a vertex's RawPointIdx to its index at import time.
 */
-void FMeshUtilities::BuildSkeletalModelFromChunks(FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, TArray<FSkinnedMeshChunk*>& Chunks, const TArray<int32>& PointToOriginalMap)
+void FMeshUtilities::BuildSkeletalModelFromChunks(FSkeletalMeshLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, TArray<FSkinnedMeshChunk*>& Chunks, const TArray<int32>& PointToOriginalMap)
 {
 #if WITH_EDITORONLY_DATA
 	// Clear out any data currently held in the LOD model.
 	LODModel.Sections.Empty();
 	LODModel.NumVertices = 0;
-	if (LODModel.MultiSizeIndexContainer.IsIndexBufferValid())
-	{
-		LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Empty();
-	}
+	LODModel.IndexBuffer.Empty();
 
 	// Setup the section and chunk arrays on the model.
 	for (int32 ChunkIndex = 0; ChunkIndex < Chunks.Num(); ++ChunkIndex)
@@ -1199,26 +1145,20 @@ void FMeshUtilities::BuildSkeletalModelFromChunks(FStaticLODModel& LODModel, con
 		LODModel.RawPointIndices.Unlock();
 	}
 
-#if DISALLOW_32BIT_INDICES
-	LODModel.MultiSizeIndexContainer.CreateIndexBuffer(sizeof(uint16));
-#else
-	LODModel.MultiSizeIndexContainer.CreateIndexBuffer((LODModel.NumVertices < MAX_uint16) ? sizeof(uint16) : sizeof(uint32));
-#endif
-
 	// Finish building the sections.
 	for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
 	{
 		FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
 
 		const TArray<uint32>& SectionIndices = Chunks[SectionIndex]->Indices;
-		FRawStaticIndexBuffer16or32Interface* IndexBuffer = LODModel.MultiSizeIndexContainer.GetIndexBuffer();
-		Section.BaseIndex = IndexBuffer->Num();
+
+		Section.BaseIndex = LODModel.IndexBuffer.Num();
 		const int32 NumIndices = SectionIndices.Num();
 		const TArray<uint32>& SectionVertexIndexRemap = VertexIndexRemap[SectionIndex];
 		for (int32 Index = 0; Index < NumIndices; Index++)
 		{
 			uint32 VertexIndex = SectionVertexIndexRemap[SectionIndices[Index]];
-			IndexBuffer->AddItem(VertexIndex);
+			LODModel.IndexBuffer.Add(VertexIndex);
 		}
 	}
 
@@ -1229,21 +1169,6 @@ void FMeshUtilities::BuildSkeletalModelFromChunks(FStaticLODModel& LODModel, con
 		Chunks[i] = NULL;
 	}
 	Chunks.Empty();
-
-	// Build the adjacency index buffer used for tessellation.
-	{
-		TArray<FSoftSkinVertex> Vertices;
-		LODModel.GetVertices(Vertices);
-
-		FMultiSizeIndexContainerData IndexData;
-		LODModel.MultiSizeIndexContainer.GetIndexBufferData(IndexData);
-
-		FMultiSizeIndexContainerData AdjacencyIndexData;
-		AdjacencyIndexData.DataTypeSize = IndexData.DataTypeSize;
-
-		BuildSkeletalAdjacencyIndexBuffer(Vertices, LODModel.NumTexCoords, IndexData.Indices, AdjacencyIndexData.Indices);
-		LODModel.AdjacencyMultiSizeIndexContainer.RebuildIndexBuffer(AdjacencyIndexData);
-	}
 
 	// Compute the required bones for this model.
 	USkeletalMesh::CalculateRequiredBones(LODModel, RefSkeleton, NULL);
@@ -2227,14 +2152,12 @@ static void MikkGetTexCoord_Skeletal(const SMikkTSpaceContext* Context, float UV
 	UV[1] = TexCoord.Y;
 }
 
-static void ComputeTangents_MikkTSpace(
+static void ComputeNormals(
 	const TArray<FVector>& InVertices,
 	const TArray<uint32>& InIndices,
 	const TArray<FVector2D>& InUVs,
 	const TArray<uint32>& SmoothingGroupIndices,
 	TMultiMap<int32, int32> const& OverlappingCorners,
-	TArray<FVector>& OutTangentX,
-	TArray<FVector>& OutTangentY,
 	TArray<FVector>& OutTangentZ,
 	const uint32 TangentOptions
 	)
@@ -2265,18 +2188,6 @@ static void ComputeTangents_MikkTSpace(
 
 	int32 NumWedges = InIndices.Num();
 	int32 NumFaces = NumWedges / 3;
-
-	bool bWedgeTSpace = false;
-
-	if (OutTangentX.Num() > 0 && OutTangentY.Num() > 0)
-	{
-		bWedgeTSpace = true;
-		for (int32 WedgeIdx = 0; WedgeIdx < OutTangentX.Num()
-			&& WedgeIdx < OutTangentY.Num(); ++WedgeIdx)
-		{
-			bWedgeTSpace = bWedgeTSpace && (!OutTangentX[WedgeIdx].IsNearlyZero()) && (!OutTangentY[WedgeIdx].IsNearlyZero());
-		}
-	}
 
 	// Allocate storage for tangents if none were provided, and calculate normals for MikkTSpace.
 	if (OutTangentZ.Num() != NumWedges)
@@ -2486,6 +2397,39 @@ static void ComputeTangents_MikkTSpace(
 		for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
 		{
 			OutTangentZ[WedgeOffset + CornerIndex] = CornerNormal[CornerIndex];
+		}
+	}
+
+	check(OutTangentZ.Num() == NumWedges);
+}
+
+static void ComputeTangents_MikkTSpace(
+	const TArray<FVector>& InVertices,
+	const TArray<uint32>& InIndices,
+	const TArray<FVector2D>& InUVs,
+	const TArray<uint32>& SmoothingGroupIndices,
+	TMultiMap<int32, int32> const& OverlappingCorners,
+	TArray<FVector>& OutTangentX,
+	TArray<FVector>& OutTangentY,
+	TArray<FVector>& OutTangentZ,
+	const uint32 TangentOptions
+	)
+{
+	ComputeNormals( InVertices, InIndices, InUVs, SmoothingGroupIndices, OverlappingCorners, OutTangentZ, TangentOptions );
+
+	bool bIgnoreDegenerateTriangles = (TangentOptions & ETangentOptions::IgnoreDegenerateTriangles) != 0;
+
+	int32 NumWedges = InIndices.Num();
+
+	bool bWedgeTSpace = false;
+
+	if (OutTangentX.Num() > 0 && OutTangentY.Num() > 0)
+	{
+		bWedgeTSpace = true;
+		for (int32 WedgeIdx = 0; WedgeIdx < OutTangentX.Num()
+			&& WedgeIdx < OutTangentY.Num(); ++WedgeIdx)
+		{
+			bWedgeTSpace = bWedgeTSpace && (!OutTangentX[WedgeIdx].IsNearlyZero()) && (!OutTangentY[WedgeIdx].IsNearlyZero());
 		}
 	}
 
@@ -2873,7 +2817,7 @@ public:
 
 				float ComparisonThreshold = GetComparisonThreshold(LODBuildSettings[LODIndex]);
 				int32 NumWedges = RawMesh.WedgeIndices.Num();
-								
+
 				// Find overlapping corners to accelerate adjacency.
 				MeshUtilities.FindOverlappingCorners(OverlappingCorners, RawMesh, ComparisonThreshold);
 
@@ -3150,11 +3094,11 @@ public:
 
 			// Initialize the vertex buffer.
 			int32 NumTexCoords = ComputeNumTexCoords(RawMesh, MAX_STATIC_TEXCOORDS);
-			LODModel.VertexBuffer.SetUseHighPrecisionTangentBasis(LODBuildSettings[LODIndex].bUseHighPrecisionTangentBasis);
-			LODModel.VertexBuffer.SetUseFullPrecisionUVs(LODBuildSettings[LODIndex].bUseFullPrecisionUVs);
-			LODModel.VertexBuffer.Init(Vertices, NumTexCoords);
-			LODModel.PositionVertexBuffer.Init(Vertices);
-			LODModel.ColorVertexBuffer.Init(Vertices);
+			LODModel.VertexBuffers.StaticMeshVertexBuffer.SetUseHighPrecisionTangentBasis(LODBuildSettings[LODIndex].bUseHighPrecisionTangentBasis);
+			LODModel.VertexBuffers.StaticMeshVertexBuffer.SetUseFullPrecisionUVs(LODBuildSettings[LODIndex].bUseFullPrecisionUVs);
+			LODModel.VertexBuffers.StaticMeshVertexBuffer.Init(Vertices, NumTexCoords);
+			LODModel.VertexBuffers.PositionVertexBuffer.Init(Vertices);
+			LODModel.VertexBuffers.ColorVertexBuffer.Init(Vertices);
 
 			// Concatenate the per-section index buffers.
 			TArray<uint32> CombinedIndices;
@@ -3267,8 +3211,8 @@ public:
 				TArray<uint32> AdjacencyIndices;
 
 				BuildStaticAdjacencyIndexBuffer(
-					LODModel.PositionVertexBuffer,
-					LODModel.VertexBuffer,
+					LODModel.VertexBuffers.PositionVertexBuffer,
+					LODModel.VertexBuffers.StaticMeshVertexBuffer,
 					CombinedIndices,
 					AdjacencyIndices
 					);
@@ -3284,7 +3228,7 @@ public:
 
 		// Calculate the bounding box.
 		FBox BoundingBox(ForceInit);
-		FPositionVertexBuffer& BasePositionVertexBuffer = OutRenderData.LODResources[0].PositionVertexBuffer;
+		FPositionVertexBuffer& BasePositionVertexBuffer = OutRenderData.LODResources[0].VertexBuffers.PositionVertexBuffer;
 		for (uint32 VertexIndex = 0; VertexIndex < BasePositionVertexBuffer.GetNumVertices(); VertexIndex++)
 		{
 			BoundingBox += BasePositionVertexBuffer.VertexPosition(VertexIndex);
@@ -3444,7 +3388,7 @@ class SkeletalMeshBuildData final : public IMeshBuildData
 {
 public:
 	SkeletalMeshBuildData(
-		FStaticLODModel& InLODModel,
+		FSkeletalMeshLODModel& InLODModel,
 		const FReferenceSkeleton& InRefSkeleton,
 		const TArray<FVertInfluence>& InInfluences,
 		const TArray<FMeshWedge>& InWedges,
@@ -3471,6 +3415,38 @@ public:
 		MikkTInterface.m_getTexCoord = MikkGetTexCoord_Skeletal;
 		MikkTInterface.m_setTSpaceBasic = MikkSetTSpaceBasic_Skeletal;
 		MikkTInterface.m_setTSpace = nullptr;
+
+		//Fill the NTBs information
+		if (!InBuildOptions.bComputeNormals || !InBuildOptions.bComputeTangents)
+		{
+			if (!InBuildOptions.bComputeTangents)
+			{
+				TangentX.AddZeroed(Wedges.Num());
+				TangentY.AddZeroed(Wedges.Num());
+			}
+
+			if (!InBuildOptions.bComputeNormals)
+			{
+				TangentZ.AddZeroed(Wedges.Num());
+			}
+
+			for (const FMeshFace& MeshFace : Faces)
+			{
+				for (int32 CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
+				{
+					uint32 WedgeIndex = MeshFace.iWedge[CornerIndex];
+					if (!InBuildOptions.bComputeTangents)
+					{
+						TangentX[WedgeIndex] = MeshFace.TangentX[CornerIndex];
+						TangentY[WedgeIndex] = MeshFace.TangentY[CornerIndex];
+					}
+					if (!InBuildOptions.bComputeNormals)
+					{
+						TangentZ[WedgeIndex] = MeshFace.TangentZ[CornerIndex];
+					}
+				}
+			}
+		}
 	}
 
 	virtual uint32 GetWedgeIndex(uint32 FaceIndex, uint32 TriIndex) override
@@ -3557,7 +3533,7 @@ public:
 	SMikkTSpaceInterface MikkTInterface;
 	MikkTSpace_Skeletal_Mesh MikkTUserData;
 
-	FStaticLODModel& LODModel;
+	FSkeletalMeshLODModel& LODModel;
 	const FReferenceSkeleton& RefSkeleton;
 	const TArray<FVertInfluence>& Influences;
 	const TArray<FMeshWedge>& Wedges;
@@ -3684,8 +3660,7 @@ public:
 	{
 		bool bBlendOverlappingNormals = true;
 		bool bIgnoreDegenerateTriangles = BuildData->BuildOptions.bRemoveDegenerateTriangles;
-		float ComparisonThreshold = bIgnoreDegenerateTriangles ? THRESH_POINTS_ARE_SAME : 0.0f;
-
+		
 		// Compute per-triangle tangents.
 		TArray<FVector> TriangleTangentX;
 		TArray<FVector> TriangleTangentY;
@@ -3747,9 +3722,9 @@ public:
 			}
 
 			// Don't process degenerate triangles.
-			if (PointsEqual(CornerPositions[0], CornerPositions[1], ComparisonThreshold)
-				|| PointsEqual(CornerPositions[0], CornerPositions[2], ComparisonThreshold)
-				|| PointsEqual(CornerPositions[1], CornerPositions[2], ComparisonThreshold))
+			if (PointsEqual(CornerPositions[0], CornerPositions[1], BuildData->BuildOptions.OverlappingThresholds)
+				|| PointsEqual(CornerPositions[0], CornerPositions[2], BuildData->BuildOptions.OverlappingThresholds)
+				|| PointsEqual(CornerPositions[1], CornerPositions[2], BuildData->BuildOptions.OverlappingThresholds))
 			{
 				continue;
 			}
@@ -3818,7 +3793,7 @@ public:
 							if (PointsEqual(
 								CornerPositions[OurCornerIndex],
 								BuildData->GetVertexPosition(OtherFaceIndex, OtherCornerIndex),
-								ComparisonThreshold
+								BuildData->BuildOptions.OverlappingThresholds
 								))
 							{
 								CommonIndexCount++;
@@ -3862,7 +3837,7 @@ public:
 								if (!NextFace.bFilled) // && !NextFace.bBlendTangents)
 								{
 									if (NextFaceIndex != OtherFaceIdx)
-										//&& (RawMesh.FaceSmoothingMasks[NextFace.FaceIndex] & RawMesh.FaceSmoothingMasks[OtherFace.FaceIndex]))
+										//&& (BuildData->GetFaceSmoothingGroups(NextFace.FaceIndex) & BuildData->GetFaceSmoothingGroups(OtherFace.FaceIndex)))
 									{
 										int32 CommonVertices = 0;
 										int32 CommonTangentVertices = 0;
@@ -3876,14 +3851,15 @@ public:
 												if (PointsEqual(
 													BuildData->GetVertexPosition(NextFace.FaceIndex, NextCornerIndex),
 													BuildData->GetVertexPosition(OtherFace.FaceIndex, OtherCornerIndex),
-													ComparisonThreshold))
+													BuildData->BuildOptions.OverlappingThresholds))
 												{
 													CommonVertices++;
 
 
 													if (UVsEqual(
 														BuildData->GetVertexUV(NextFace.FaceIndex, NextCornerIndex, 0),
-														BuildData->GetVertexUV(OtherFace.FaceIndex, OtherCornerIndex, 0)))
+														BuildData->GetVertexUV(OtherFace.FaceIndex, OtherCornerIndex, 0),
+														BuildData->BuildOptions.OverlappingThresholds))
 													{
 														CommonTangentVertices++;
 													}
@@ -4006,7 +3982,6 @@ public:
 	{
 		bool bBlendOverlappingNormals = true;
 		bool bIgnoreDegenerateTriangles = BuildData->BuildOptions.bRemoveDegenerateTriangles;
-		float ComparisonThreshold = bIgnoreDegenerateTriangles ? THRESH_POINTS_ARE_SAME : 0.0f;
 
 		// Compute per-triangle tangents.
 		TArray<FVector> TriangleTangentX;
@@ -4070,9 +4045,9 @@ public:
 			}
 
 			// Don't process degenerate triangles.
-			if (PointsEqual(CornerPositions[0], CornerPositions[1], ComparisonThreshold)
-				|| PointsEqual(CornerPositions[0], CornerPositions[2], ComparisonThreshold)
-				|| PointsEqual(CornerPositions[1], CornerPositions[2], ComparisonThreshold))
+			if (PointsEqual(CornerPositions[0], CornerPositions[1], BuildData->BuildOptions.OverlappingThresholds)
+				|| PointsEqual(CornerPositions[0], CornerPositions[2], BuildData->BuildOptions.OverlappingThresholds)
+				|| PointsEqual(CornerPositions[1], CornerPositions[2], BuildData->BuildOptions.OverlappingThresholds))
 			{
 				continue;
 			}
@@ -4132,7 +4107,7 @@ public:
 							if (PointsEqual(
 								CornerPositions[OurCornerIndex],
 								BuildData->GetVertexPosition(OtherFaceIndex, OtherCornerIndex),
-								ComparisonThreshold
+								BuildData->BuildOptions.OverlappingThresholds
 								))
 							{
 								CommonIndexCount++;
@@ -4189,7 +4164,7 @@ public:
 												if (PointsEqual(
 													BuildData->GetVertexPosition(NextFace.FaceIndex, NextCornerIndex),
 													BuildData->GetVertexPosition(OtherFace.FaceIndex, OtherCornerIndex),
-													ComparisonThreshold))
+													BuildData->BuildOptions.OverlappingThresholds))
 												{
 													CommonVertices++;
 													if (bBlendOverlappingNormals
@@ -4511,7 +4486,7 @@ public:
 		}
 
 		// Generate chunks and their vertices and indices
-		SkeletalMeshTools::BuildSkeletalMeshChunks(BuildData.Faces, RawVertices, VertIndexAndZ, BuildData.BuildOptions.bKeepOverlappingVertices, BuildData.Chunks, BuildData.bTooManyVerts);
+		SkeletalMeshTools::BuildSkeletalMeshChunks(BuildData.Faces, RawVertices, VertIndexAndZ, BuildData.BuildOptions.OverlappingThresholds, BuildData.Chunks, BuildData.bTooManyVerts);
 
 		// Chunk vertices to satisfy the requested limit.
 		const uint32 MaxGPUSkinBones = FGPUBaseSkinVertexFactory::GetMaxGPUSkinBones();
@@ -4560,13 +4535,54 @@ private:
 	EStage Stage;
 };
 
-bool FMeshUtilities::BuildSkeletalMesh(FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, const MeshBuildOptions& BuildOptions, TArray<FText> * OutWarningMessages, TArray<FName> * OutWarningNames)
+bool FMeshUtilities::BuildSkeletalMesh(FSkeletalMeshLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, const MeshBuildOptions& BuildOptions, TArray<FText> * OutWarningMessages, TArray<FName> * OutWarningNames)
 {
 #if WITH_EDITORONLY_DATA
+
+	auto UpdateOverlappingVertices = [](FSkeletalMeshLODModel& InLODModel)
+	{
+		// clear first
+		for (int32 SectionIdx = 0; SectionIdx < InLODModel.Sections.Num(); SectionIdx++)
+		{
+			FSkelMeshSection& CurSection = InLODModel.Sections[SectionIdx];
+			CurSection.OverlappingVertices.Reset();
+		}
+
+		for (int32 SectionIdx = 0; SectionIdx < InLODModel.Sections.Num(); SectionIdx++)
+		{
+			FSkelMeshSection& CurSection = InLODModel.Sections[SectionIdx];
+			const int32 NumSoftVertices = CurSection.SoftVertices.Num();
+			for (int32 SrcVertIndex = 0; SrcVertIndex < NumSoftVertices; ++SrcVertIndex)
+			{
+				FSoftSkinVertex& SrcVert = CurSection.SoftVertices[SrcVertIndex];
+
+				for (int32 IterVertIndex = SrcVertIndex + 1; IterVertIndex < NumSoftVertices; ++IterVertIndex)
+				{
+					FSoftSkinVertex& IterVert = CurSection.SoftVertices[IterVertIndex];
+					if (PointsEqual(SrcVert.Position, IterVert.Position))
+					{
+						// if so, we add to overlapping vert
+						TArray<int32>& SrcValueArray = CurSection.OverlappingVertices.FindOrAdd(SrcVertIndex);
+						SrcValueArray.Add(IterVertIndex);
+
+						TArray<int32>& IterValueArray = CurSection.OverlappingVertices.FindOrAdd(IterVertIndex);
+						IterValueArray.Add(SrcVertIndex);
+					}
+				}
+			}
+		}
+	};
+
 	// Temporarily supporting both import paths
 	if (!BuildOptions.bUseMikkTSpace)
 	{
-		return BuildSkeletalMesh_Legacy(LODModel, RefSkeleton, Influences, Wedges, Faces, Points, PointToOriginalMap, BuildOptions.bKeepOverlappingVertices, BuildOptions.bComputeNormals, BuildOptions.bComputeTangents, OutWarningMessages, OutWarningNames);
+		bool bBuildSuccess = BuildSkeletalMesh_Legacy(LODModel, RefSkeleton, Influences, Wedges, Faces, Points, PointToOriginalMap, BuildOptions.OverlappingThresholds, BuildOptions.bComputeNormals, BuildOptions.bComputeTangents, OutWarningMessages, OutWarningNames);
+		if (bBuildSuccess)
+		{
+			UpdateOverlappingVertices(LODModel);
+		}
+
+		return bBuildSuccess;
 	}
 
 	SkeletalMeshBuildData BuildData(
@@ -4595,6 +4611,7 @@ bool FMeshUtilities::BuildSkeletalMesh(FStaticLODModel& LODModel, const FReferen
 	// Build the skeletal model from chunks.
 	Builder.BeginSlowTask();
 	BuildSkeletalModelFromChunks(BuildData.LODModel, BuildData.RefSkeleton, BuildData.Chunks, BuildData.PointToOriginalMap);
+	UpdateOverlappingVertices(BuildData.LODModel);
 	Builder.EndSlowTask();
 
 	// Only show these warnings if in the game thread.  When importing morph targets, this function can run in another thread and these warnings dont prevent the mesh from importing
@@ -4664,7 +4681,18 @@ bool FMeshUtilities::BuildSkeletalMesh(FStaticLODModel& LODModel, const FReferen
 }
 
 //@TODO: The OutMessages has to be a struct that contains FText/FName, or make it Token and add that as error. Needs re-work. Temporary workaround for now. 
-bool FMeshUtilities::BuildSkeletalMesh_Legacy(FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, bool bKeepOverlappingVertices, bool bComputeNormals, bool bComputeTangents, TArray<FText> * OutWarningMessages, TArray<FName> * OutWarningNames)
+bool FMeshUtilities::BuildSkeletalMesh_Legacy(FSkeletalMeshLODModel& LODModel
+											, const FReferenceSkeleton& RefSkeleton
+											, const TArray<FVertInfluence>& Influences
+											, const TArray<FMeshWedge>& Wedges
+											, const TArray<FMeshFace>& Faces
+											, const TArray<FVector>& Points
+											, const TArray<int32>& PointToOriginalMap
+											, const FOverlappingThresholds& OverlappingThresholds
+											, bool bComputeNormals
+											, bool bComputeTangents
+											, TArray<FText> * OutWarningMessages
+											, TArray<FName> * OutWarningNames)
 {
 	bool bTooManyVerts = false;
 
@@ -4802,7 +4830,7 @@ bool FMeshUtilities::BuildSkeletalMesh_Legacy(FStaticLODModel& LODModel, const F
 			// only need to search forward, since we add pairs both ways
 			for (int32 j = i + 1; j < VertIndexAndZ.Num(); j++)
 			{
-				if (FMath::Abs(VertIndexAndZ[j].Z - VertIndexAndZ[i].Z) > THRESH_POINTS_ARE_SAME)
+				if (FMath::Abs(VertIndexAndZ[j].Z - VertIndexAndZ[i].Z) > OverlappingThresholds.ThresholdPosition)
 				{
 					// our list is sorted, so there can't be any more dupes
 					break;
@@ -4811,7 +4839,7 @@ bool FMeshUtilities::BuildSkeletalMesh_Legacy(FStaticLODModel& LODModel, const F
 				// check to see if the points are really overlapping
 				if (PointsEqual(
 					Points[VertIndexAndZ[i].Index],
-					Points[VertIndexAndZ[j].Index]))
+					Points[VertIndexAndZ[j].Index], OverlappingThresholds))
 				{
 					Vert2Duplicates.Add(VertIndexAndZ[i].Index, VertIndexAndZ[j].Index);
 					Vert2Duplicates.Add(VertIndexAndZ[j].Index, VertIndexAndZ[i].Index);
@@ -4913,10 +4941,11 @@ bool FMeshUtilities::BuildSkeletalMesh_Legacy(FStaticLODModel& LODModel, const F
 					{
 						if (PointsEqual(
 							Points[Wedges[OtherFace.iWedge[OtherVertexIndex]].iVertex],
-							Points[Wedges[Face.iWedge[VertexIndex]].iVertex]
+							Points[Wedges[Face.iWedge[VertexIndex]].iVertex],
+							OverlappingThresholds
 							))
 						{
-							if (Determinant * OtherFaceDeterminant > 0.0f && SkeletalMeshTools::SkeletalMesh_UVsEqual(Wedges[OtherFace.iWedge[OtherVertexIndex]], Wedges[Face.iWedge[VertexIndex]]))
+							if (Determinant * OtherFaceDeterminant > 0.0f && SkeletalMeshTools::SkeletalMesh_UVsEqual(Wedges[OtherFace.iWedge[OtherVertexIndex]], Wedges[Face.iWedge[VertexIndex]], OverlappingThresholds))
 							{
 								VertexTangentX[VertexIndex] += FaceTangentX[OtherFaceIndex];
 								VertexTangentY[VertexIndex] += FaceTangentY[OtherFaceIndex];
@@ -5037,7 +5066,7 @@ bool FMeshUtilities::BuildSkeletalMesh_Legacy(FStaticLODModel& LODModel, const F
 	}
 
 	// Generate chunks and their vertices and indices
-	SkeletalMeshTools::BuildSkeletalMeshChunks(Faces, RawVertices, VertIndexAndZ, bKeepOverlappingVertices, Chunks, bTooManyVerts);
+	SkeletalMeshTools::BuildSkeletalMeshChunks(Faces, RawVertices, VertIndexAndZ, OverlappingThresholds, Chunks, bTooManyVerts);
 
 	// Chunk vertices to satisfy the requested limit.
 	const uint32 MaxGPUSkinBones = FGPUBaseSkinVertexFactory::GetMaxGPUSkinBones();
@@ -5125,6 +5154,19 @@ static bool NonOpaqueMaterialPredicate(UStaticMeshComponent* InMesh)
 
 void FMeshUtilities::RecomputeTangentsAndNormalsForRawMesh(bool bRecomputeTangents, bool bRecomputeNormals, const FMeshBuildSettings& InBuildSettings, FRawMesh &OutRawMesh) const
 {
+	// Compute any missing tangents.
+	if (bRecomputeNormals || bRecomputeTangents)
+	{
+		float ComparisonThreshold = InBuildSettings.bRemoveDegenerates ? THRESH_POINTS_ARE_SAME : 0.0f;
+		TMultiMap<int32, int32> OverlappingCorners;
+		FindOverlappingCorners(OverlappingCorners, OutRawMesh, ComparisonThreshold);
+
+		RecomputeTangentsAndNormalsForRawMesh( bRecomputeTangents, bRecomputeNormals, InBuildSettings, OverlappingCorners, OutRawMesh );
+	}
+}
+
+void FMeshUtilities::RecomputeTangentsAndNormalsForRawMesh(bool bRecomputeTangents, bool bRecomputeNormals, const FMeshBuildSettings& InBuildSettings, const TMultiMap<int32, int32>& InOverlappingCorners, FRawMesh &OutRawMesh) const
+{
 	const int32 NumWedges = OutRawMesh.WedgeIndices.Num();
 
 	// Dump normals and tangents if we are recomputing them.
@@ -5145,10 +5187,6 @@ void FMeshUtilities::RecomputeTangentsAndNormalsForRawMesh(bool bRecomputeTangen
 	// Compute any missing tangents.
 	if (bRecomputeNormals || bRecomputeTangents)
 	{
-		float ComparisonThreshold = InBuildSettings.bRemoveDegenerates ? THRESH_POINTS_ARE_SAME : 0.0f;
-		TMultiMap<int32, int32> OverlappingCorners;
-		FindOverlappingCorners(OverlappingCorners, OutRawMesh, ComparisonThreshold);
-
 		// Static meshes always blend normals of overlapping corners.
 		uint32 TangentOptions = ETangentOptions::BlendOverlappingNormals;
 		if (InBuildSettings.bRemoveDegenerates)
@@ -5156,13 +5194,14 @@ void FMeshUtilities::RecomputeTangentsAndNormalsForRawMesh(bool bRecomputeTangen
 			// If removing degenerate triangles, ignore them when computing tangents.
 			TangentOptions |= ETangentOptions::IgnoreDegenerateTriangles;
 		}
+
 		if (InBuildSettings.bUseMikkTSpace)
 		{
-			ComputeTangents_MikkTSpace(OutRawMesh, OverlappingCorners, TangentOptions);
+			ComputeTangents_MikkTSpace(OutRawMesh, InOverlappingCorners, TangentOptions);
 		}
 		else
 		{
-			ComputeTangents(OutRawMesh, OverlappingCorners, TangentOptions);
+			ComputeTangents(OutRawMesh, InOverlappingCorners, TangentOptions);
 		}
 	}
 
@@ -5252,12 +5291,10 @@ void FMeshUtilities::ExtractMeshDataForGeometryCache(FRawMesh& RawMesh, const FM
 Mesh merging
 ------------------------------------------------------------------------------*/
 
-void FMeshUtilities::CalculateTextureCoordinateBoundsForSkeletalMesh(const FStaticLODModel& LODModel, TArray<FBox2D>& OutBounds) const
+void FMeshUtilities::CalculateTextureCoordinateBoundsForSkeletalMesh(const FSkeletalMeshLODModel& LODModel, TArray<FBox2D>& OutBounds) const
 {
 	TArray<FSoftSkinVertex> Vertices;
-	FMultiSizeIndexContainerData IndexData;
 	LODModel.GetVertices(Vertices);
-	LODModel.MultiSizeIndexContainer.GetIndexBufferData(IndexData);
 
 	const uint32 SectionCount = (uint32)LODModel.NumNonClothingSections();
 
@@ -5277,7 +5314,7 @@ void FMeshUtilities::CalculateTextureCoordinateBoundsForSkeletalMesh(const FStat
 
 		for (uint32 Index = FirstIndex; Index < LastIndex; ++Index)
 		{
-			uint32 VertexIndex = IndexData.Indices[Index];
+			uint32 VertexIndex = LODModel.IndexBuffer[Index];
 			FSoftSkinVertex& Vertex = Vertices[VertexIndex];
 
 			FVector2D TexCoord = Vertex.UVs[0];
@@ -5353,22 +5390,28 @@ private:
 
 		TArray<FName> ModuleNames;
 		FModuleManager::Get().FindModules(TEXT("*MeshReduction"), ModuleNames);
-
-		MenuBuilder.BeginSection(NAME_None, LOCTEXT("AvailableReductionPluginsMenuSection", "Available Plugins"));
+		
 		if(ModuleNames.Num() > 0)
 		{
 			for(FName ModuleName : ModuleNames)
-		{
-				FUIAction UIAction;
-				UIAction.ExecuteAction.BindSP(this, &FMeshSimplifcationSettingsCustomization::OnMeshSimplificationModuleChosen, ModuleName);
-				UIAction.GetActionCheckState.BindSP(this, &FMeshSimplifcationSettingsCustomization::IsMeshSimplificationModuleChosen, ModuleName);
+			{
+				IMeshReductionModule& Module = FModuleManager::LoadModuleChecked<IMeshReductionModule>(ModuleName);
 
-				MenuBuilder.AddMenuEntry( FText::FromName(ModuleName), FText::GetEmpty(), FSlateIcon(), UIAction, NAME_None, EUserInterfaceActionType::RadioButton );
+				IMeshReduction* StaticMeshReductionInterface = Module.GetStaticMeshReductionInterface();
+				// Only include options that support static mesh reduction.
+				if (StaticMeshReductionInterface)
+				{
+					FUIAction UIAction;
+					UIAction.ExecuteAction.BindSP(this, &FMeshSimplifcationSettingsCustomization::OnMeshSimplificationModuleChosen, ModuleName);
+					UIAction.GetActionCheckState.BindSP(this, &FMeshSimplifcationSettingsCustomization::IsMeshSimplificationModuleChosen, ModuleName);
 
+					MenuBuilder.AddMenuEntry(FText::FromName(ModuleName), FText::GetEmpty(), FSlateIcon(), UIAction, NAME_None, EUserInterfaceActionType::RadioButton);
+				}
 			}
 
 			MenuBuilder.AddMenuSeparator();
-			}
+		}
+		
 
 		FUIAction OpenMarketplaceAction;
 		OpenMarketplaceAction.ExecuteAction.BindSP(this, &FMeshSimplifcationSettingsCustomization::OnFindReductionPluginsClicked);
@@ -5408,6 +5451,128 @@ private:
 	TSharedPtr<IPropertyHandle> MeshReductionModuleProperty;
 };
 
+
+
+class FProxyLODMeshSimplifcationSettingsCustomization : public IDetailCustomization
+{
+public:
+	static TSharedRef<IDetailCustomization> MakeInstance()
+	{
+		return MakeShareable(new FProxyLODMeshSimplifcationSettingsCustomization);
+	}
+
+	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override
+	{
+		ProxyLODMeshReductionModuleProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UProxyLODMeshSimplificationSettings, ProxyLODMeshReductionModuleName));
+
+		IDetailCategoryBuilder& Category = DetailBuilder.EditCategory(TEXT("General"));
+
+		IDetailPropertyRow& PropertyRow = Category.AddProperty(ProxyLODMeshReductionModuleProperty);
+
+		FDetailWidgetRow& WidgetRow = PropertyRow.CustomWidget();
+		WidgetRow.NameContent()
+			[
+				ProxyLODMeshReductionModuleProperty->CreatePropertyNameWidget()
+			];
+
+		WidgetRow.ValueContent()
+			.MaxDesiredWidth(0)
+			[
+				SNew(SComboButton)
+				.OnGetMenuContent(this, &FProxyLODMeshSimplifcationSettingsCustomization::GenerateProxyLODMeshSimplifierMenu)
+			.ContentPadding(FMargin(2.0f, 2.0f))
+			.ButtonContent()
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+			.Text(this, &FProxyLODMeshSimplifcationSettingsCustomization::GetCurrentProxyLODMeshSimplifierName)
+			]
+			];
+	}
+
+private:
+	FText GetCurrentProxyLODMeshSimplifierName() const
+	{
+		if (ProxyLODMeshReductionModuleProperty->IsValidHandle())
+		{
+			FText Name;
+			ProxyLODMeshReductionModuleProperty->GetValueAsDisplayText(Name);
+
+			return Name;
+		}
+		else
+		{
+			return LOCTEXT("AutomaticProxyLODMeshReductionPlugin", "Automatic");
+		}
+	}
+
+	TSharedRef<SWidget> GenerateProxyLODMeshSimplifierMenu() const
+	{
+		FMenuBuilder MenuBuilder(true, nullptr);
+
+		TArray<FName> ModuleNames;
+		FModuleManager::Get().FindModules(TEXT("*MeshReduction"), ModuleNames);
+
+		if (ModuleNames.Num() > 0)
+		{
+			for (FName ModuleName : ModuleNames)
+			{
+				IMeshReductionModule& Module = FModuleManager::LoadModuleChecked<IMeshReductionModule>(ModuleName);
+				 
+				IMeshMerging* MeshMergingInterface = Module.GetMeshMergingInterface();
+				// Only include options that support mesh mergine.
+				if (MeshMergingInterface)
+				{
+					FUIAction UIAction;
+					UIAction.ExecuteAction.BindSP(this, &FProxyLODMeshSimplifcationSettingsCustomization::OnProxyLODMeshSimplificationModuleChosen, ModuleName);
+					UIAction.GetActionCheckState.BindSP(this, &FProxyLODMeshSimplifcationSettingsCustomization::IsProxyLODMeshSimplificationModuleChosen, ModuleName);
+
+					MenuBuilder.AddMenuEntry(FText::FromName(ModuleName), FText::GetEmpty(), FSlateIcon(), UIAction, NAME_None, EUserInterfaceActionType::RadioButton);
+				}
+			}
+
+			MenuBuilder.AddMenuSeparator();
+		}
+
+
+		FUIAction OpenMarketplaceAction;
+		OpenMarketplaceAction.ExecuteAction.BindSP(this, &FProxyLODMeshSimplifcationSettingsCustomization::OnFindReductionPluginsClicked);
+		FSlateIcon Icon = FSlateIcon(FEditorStyle::Get().GetStyleSetName(), "LevelEditor.OpenMarketplace.Menu");
+		MenuBuilder.AddMenuEntry(LOCTEXT("FindMoreReductionPluginsLink", "Search the Marketplace"), LOCTEXT("FindMoreReductionPluginsLink_Tooltip", "Opens the Marketplace to find more mesh reduction plugins"), Icon, OpenMarketplaceAction);
+		return MenuBuilder.MakeWidget();
+	}
+
+	void OnProxyLODMeshSimplificationModuleChosen(FName ModuleName)
+	{
+		if (ProxyLODMeshReductionModuleProperty->IsValidHandle())
+		{
+			ProxyLODMeshReductionModuleProperty->SetValue(ModuleName);
+		}
+	}
+
+	ECheckBoxState IsProxyLODMeshSimplificationModuleChosen(FName ModuleName)
+	{
+		if (ProxyLODMeshReductionModuleProperty->IsValidHandle())
+		{
+			FName CurrentModuleName;
+			ProxyLODMeshReductionModuleProperty->GetValue(CurrentModuleName);
+			return CurrentModuleName == ModuleName ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		}
+
+		return ECheckBoxState::Unchecked;
+	}
+
+	void OnFindReductionPluginsClicked()
+	{
+		FString URL;
+		FUnrealEdMisc::Get().GetURL(TEXT("MeshSimplificationPluginsURL"), URL);
+
+		FUnrealEdMisc::Get().OpenMarketplace(URL);
+	}
+private:
+	TSharedPtr<IPropertyHandle> ProxyLODMeshReductionModuleProperty;
+};
+
 /*------------------------------------------------------------------------------
 Module initialization / teardown.
 ------------------------------------------------------------------------------*/
@@ -5421,6 +5586,8 @@ void FMeshUtilities::StartupModule()
 
 	PropertyEditorModule.RegisterCustomClassLayout("MeshSimplificationSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FMeshSimplifcationSettingsCustomization::MakeInstance));
 
+	PropertyEditorModule.RegisterCustomClassLayout("ProxyLODMeshSimplificationSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FProxyLODMeshSimplifcationSettingsCustomization::MakeInstance));
+
 	bDisableTriangleOrderOptimization = (CVarTriangleOrderOptimization.GetValueOnGameThread() == 2);
 
 	bUsingNvTriStrip = !bDisableTriangleOrderOptimization && (CVarTriangleOrderOptimization.GetValueOnGameThread() == 0);
@@ -5430,7 +5597,7 @@ void FMeshUtilities::StartupModule()
 
 	IMeshReductionManagerModule& Module = FModuleManager::Get().LoadModuleChecked<IMeshReductionManagerModule>("MeshReductionInterface");
 	IMeshReduction* StaticMeshReduction = Module.GetStaticMeshReductionInterface();
-	
+
 
 	// Construct and cache the version string for the mesh utilities module.
 	VersionString = FString::Printf(
@@ -5491,17 +5658,15 @@ void FMeshUtilities::ShutdownModule()
 }
 
 
-bool FMeshUtilities::GenerateUniqueUVsForSkeletalMesh(const FStaticLODModel& LODModel, int32 TextureResolution, TArray<FVector2D>& OutTexCoords) const
+bool FMeshUtilities::GenerateUniqueUVsForSkeletalMesh(const FSkeletalMeshLODModel& LODModel, int32 TextureResolution, TArray<FVector2D>& OutTexCoords) const
 {
 	// Get easy to use SkeletalMesh data
 	TArray<FSoftSkinVertex> Vertices;
-	FMultiSizeIndexContainerData IndexData;
 	LODModel.GetVertices(Vertices);
-	LODModel.MultiSizeIndexContainer.GetIndexBufferData(IndexData);
 
-	int32 NumCorners = IndexData.Indices.Num();
+	int32 NumCorners = LODModel.IndexBuffer.Num();
 
-	// Generate FRawMesh from FStaticLODModel
+	// Generate FRawMesh from FSkeletalMeshLODModel
 	FRawMesh TempMesh;
 	TempMesh.WedgeIndices.AddUninitialized(NumCorners);
 	TempMesh.WedgeTexCoords[0].AddUninitialized(NumCorners);
@@ -5521,7 +5686,7 @@ bool FMeshUtilities::GenerateUniqueUVsForSkeletalMesh(const FStaticLODModel& LOD
 	for (int32 Index = 0; Index < NumCorners; Index++)
 	{
 		// Copy static vertex data
-		int32 VertexIndex = IndexData.Indices[Index];
+		int32 VertexIndex = LODModel.IndexBuffer[Index];
 		FSoftSkinVertex& Vertex = Vertices[VertexIndex];
 		TempMesh.WedgeIndices[Index] = Index; // rudimental data, not really used by FLayoutUV - but array size matters
 		TempMesh.WedgeTexCoords[0][Index] = Vertex.UVs[0];
@@ -5536,7 +5701,7 @@ bool FMeshUtilities::GenerateUniqueUVsForSkeletalMesh(const FStaticLODModel& LOD
 	TMultiMap<int32, int32> OverlappingCorners;
 	for (int32 Index = 0; Index < NumCorners; Index++)
 	{
-		int VertexIndex = IndexData.Indices[Index];
+		int VertexIndex = LODModel.IndexBuffer[Index];
 		for (int32 CornerIndex = LastWedgeCorner[VertexIndex]; CornerIndex >= 0; CornerIndex = PrevCorner[CornerIndex])
 		{
 			if (CornerIndex != Index)
@@ -5575,6 +5740,16 @@ void FMeshUtilities::CalculateTangents(const TArray<FVector>& InVertices, const 
 	{
 		ComputeTangents(InVertices, InIndices, InUVs, InSmoothingGroupIndices, OverlappingCorners, OutTangentX, OutTangentY, OutNormals, InTangentOptions);
 	}
+}
+
+void FMeshUtilities::CalculateNormals(const TArray<FVector>& InVertices, const TArray<uint32>& InIndices, const TArray<FVector2D>& InUVs, const TArray<uint32>& InSmoothingGroupIndices, const uint32 InTangentOptions, TArray<FVector>& OutNormals) const
+{
+	const float ComparisonThreshold = (InTangentOptions & ETangentOptions::IgnoreDegenerateTriangles ) ? THRESH_POINTS_ARE_SAME : 0.0f;
+
+	TMultiMap<int32, int32> OverlappingCorners;
+	FindOverlappingCorners(OverlappingCorners, InVertices, InIndices, ComparisonThreshold);
+
+	ComputeNormals(InVertices, InIndices, InUVs, InSmoothingGroupIndices, OverlappingCorners, OutNormals, InTangentOptions);
 }
 
 void FMeshUtilities::CalculateOverlappingCorners(const TArray<FVector>& InVertices, const TArray<uint32>& InIndices, bool bIgnoreDegenerateTriangles, TMultiMap<int32, int32>& OutOverlappingCorners) const

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MallocBinned.cpp: Binned memory allocator
@@ -300,7 +300,7 @@ struct FMallocBinned2::Private
 
 			void* Result;
 			{
-				LLM_PLATFORM_SCOPE(ELLMTag::SmallBinnedAllocation);
+				LLM_PLATFORM_SCOPE(ELLMTag::FMalloc);
 				Result = FPlatformMemory::BinnedAllocFromOS(PoolArraySize);
 			}
 
@@ -344,7 +344,7 @@ struct FMallocBinned2::Private
 		if (!Allocator.HashBucketFreeList)
 		{
 			{
-				LLM_PLATFORM_SCOPE(ELLMTag::SmallBinnedAllocation);
+				LLM_PLATFORM_SCOPE(ELLMTag::FMalloc);
 				Allocator.HashBucketFreeList = (PoolHashBucket*)FPlatformMemory::BinnedAllocFromOS(FMallocBinned2::PageSize);
 			}
 
@@ -485,12 +485,18 @@ struct FMallocBinned2::Private
 				{
 					Table.ActivePools.LinkToFront(NodePool);
 				}
+				else
+				{
+					check(NodePool->FirstFreeBlock->Canary == 0 || NodePool->FirstFreeBlock->IsCanaryOk());
+				}
 
 				// Free a pooled allocation.
 				FFreeBlock* Free = (FFreeBlock*)Node;
 				Free->NumFreeBlocks = 1;
 				Free->NextFreeBlock = NodePool->FirstFreeBlock;
 				Free->BlockSize     = InBlockSize;
+				Free->Canary = FFreeBlock::CANARY_VALUE;
+				Free->PoolIndex = InPoolIndex;
 				NodePool->FirstFreeBlock   = Free;
 
 				// Free this pool.
@@ -581,11 +587,12 @@ FMallocBinned2::FPoolInfo& FMallocBinned2::FPoolList::PushNewPoolToFront(FMalloc
 	const uint32 LocalPageSize = Allocator.PageSize;
 
 	// Allocate memory.
-	FFreeBlock* Free = new (Allocator.CachedOSPageAllocator.Allocate(LocalPageSize)) FFreeBlock(LocalPageSize, InBlockSize, InPoolIndex);
-	if (!Free)
+	void* FreePtr = Allocator.CachedOSPageAllocator.Allocate(LocalPageSize);
+	if (!FreePtr)
 	{
 		Private::OutOfMemory(LocalPageSize);
 	}
+	FFreeBlock* Free = new (FreePtr) FFreeBlock(LocalPageSize, InBlockSize, InPoolIndex);
 #if BINNED2_ALLOCATOR_STATS
 	AllocatedOSSmallPoolMemory += (int64)LocalPageSize;
 #endif
@@ -663,7 +670,7 @@ FMallocBinned2::FMallocBinned2()
 	uint64 MaxHashBuckets = PtrToPoolMapping.GetMaxHashBuckets();
 
 	{
-		LLM_PLATFORM_SCOPE(ELLMTag::SmallBinnedAllocation);
+		LLM_PLATFORM_SCOPE(ELLMTag::FMalloc);
 		HashBuckets = (PoolHashBucket*)FPlatformMemory::BinnedAllocFromOS(Align(MaxHashBuckets * sizeof(PoolHashBucket), OsAllocationGranularity));
 	}
 
@@ -1116,7 +1123,7 @@ void FMallocBinned2::FPerThreadFreeBlockLists::SetTLS()
 	FPerThreadFreeBlockLists* ThreadSingleton = (FPerThreadFreeBlockLists*)FPlatformTLS::GetTlsValue(FMallocBinned2::Binned2TlsSlot);
 	if (!ThreadSingleton)
 	{
-		LLM_PLATFORM_SCOPE(ELLMTag::SmallBinnedAllocation);
+		LLM_PLATFORM_SCOPE(ELLMTag::FMalloc);
 		ThreadSingleton = new (FPlatformMemory::BinnedAllocFromOS(Align(sizeof(FPerThreadFreeBlockLists), FMallocBinned2::OsAllocationGranularity))) FPerThreadFreeBlockLists();
 		FPlatformTLS::SetTlsValue(FMallocBinned2::Binned2TlsSlot, ThreadSingleton);
 		FMallocBinned2::Private::RegisterThreadFreeBlockLists(ThreadSingleton);

@@ -26,7 +26,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 一旦关卡中有了要处理的 Actor，您就可以通过 **细节（Details）**面板更改该 Actor 的 [材质](Engine/Rendering/Materials)，快速更改其外观。 
 在此步骤中，我们将通过“细节”（Details）面板中的“材质”（Material）属性指定材质，以及从 **内容浏览器** 中指定材质。 
@@ -83,4 +83,4 @@ checkpoint: editorqs
 在下一步中，我们将了解 Actor 的 [](Engine/Physics) 和 [碰撞](Engine/Physics/Collision/Overview) 属性以对我们的球体启用物理模拟，这样，当我们启动游戏时，这个球体将滚下楼梯并撞上我们的可操纵角色，将其杀死。 
 
 
-%Steps%
+

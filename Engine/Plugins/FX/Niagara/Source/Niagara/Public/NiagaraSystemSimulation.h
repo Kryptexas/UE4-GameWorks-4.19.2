@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -42,7 +42,7 @@ struct FNiagaraParameterStoreToDataSetBinding
 		for (const FNiagaraVariable& Var : DataSet.GetVariables())
 		{
 			const FNiagaraVariableLayoutInfo* Layout = DataSet.GetVariableLayout(Var);
-			const int32* ParameterOffsetPtr = ParameterStore.ParameterOffsets.Find(Var);
+			const int32* ParameterOffsetPtr = ParameterStore.FindParameterOffset(Var);
 			if (ParameterOffsetPtr && Layout)
 			{
 				int32 ParameterOffset = *ParameterOffsetPtr;
@@ -65,7 +65,8 @@ struct FNiagaraParameterStoreToDataSetBinding
 	FORCEINLINE_DEBUGGABLE void DataSetToParameterStore(FNiagaraParameterStore& ParameterStore, FNiagaraDataSet& DataSet, int32 DataSetInstanceIndex)
 	{
 		FNiagaraDataBuffer& CurrBuffer = DataSet.CurrData();
-		uint8* ParameterData = ParameterStore.GetParameterDataArray().GetData();
+		TArray<uint8> ParameterDataArrayCopy = ParameterStore.GetParameterDataArray();
+		uint8* ParameterData = ParameterDataArrayCopy.GetData();
 
 		for (const FDataOffsets& DataOffsets : FloatOffsets)
 		{
@@ -79,12 +80,14 @@ struct FNiagaraParameterStoreToDataSetBinding
 			int32* DataSetPtr = CurrBuffer.GetInstancePtrInt32(DataOffsets.DataSetComponentOffset, DataSetInstanceIndex);
 			*ParamPtr = *DataSetPtr;
 		}
+
+		ParameterStore.SetParameterDataArray(ParameterDataArrayCopy);
 	}
 
 	FORCEINLINE_DEBUGGABLE void ParameterStoreToDataSet(FNiagaraParameterStore& ParameterStore, FNiagaraDataSet& DataSet, int32 DataSetInstanceIndex)
 	{
 		FNiagaraDataBuffer& CurrBuffer = DataSet.CurrData();
-		uint8* ParameterData = ParameterStore.GetParameterDataArray().GetData();
+		const uint8* ParameterData = ParameterStore.GetParameterDataArray().GetData();
 
 		for (const FDataOffsets& DataOffsets : FloatOffsets)
 		{
@@ -105,9 +108,10 @@ struct FNiagaraParameterStoreToDataSetBinding
 class FNiagaraSystemSimulation
 {
 public:
+	~FNiagaraSystemSimulation();
 	bool Init(UNiagaraSystem* InSystem, UWorld* InWorld);
 	void Destroy();
-	void Tick(float DeltaSeconds);
+	bool Tick(float DeltaSeconds);
 
 	void RemoveInstance(FNiagaraSystemInstance* Instance);
 	void AddInstance(FNiagaraSystemInstance* Instance);
@@ -118,11 +122,16 @@ public:
 
 	void TickSoloDataSet();
 
-	FORCEINLINE UNiagaraSystem* GetSystem()const { return System; }
+	FORCEINLINE UNiagaraSystem* GetSystem()const { return WeakSystem.Get(); }
+
+	const TArray<UNiagaraDataInterface*>& GetSoloDataInterfacesSpawn();
+	const TArray<UNiagaraDataInterface*>& GetSoloDataInterfacesUpdate();
+
+	UNiagaraParameterCollectionInstance* GetParameterCollectionInstance(UNiagaraParameterCollection* Collection);
 protected:
 
-	/** System of instances being simulated. No need for GC knowledge as all simulations will be cleaned up by the world manager if the system is invalid. */
-	UNiagaraSystem* System;
+	/** System of instances being simulated.  We use a weak object ptr here because once the last referencing object goes away this system may be come invalid at runtime. */
+	TWeakObjectPtr<UNiagaraSystem> WeakSystem;
 
 	/** World this system simulation belongs to. */
 	UWorld* World;
@@ -141,8 +150,8 @@ protected:
 	In some cases this might be a big waste of memory as there'll be duplicated data from a parameter store that's shared across all instances.
 	Though all these parameters can be unique per instance so for now lets just do the simple thing and improve later.
 	*/
-	FNiagaraDataSet SpawnParameterDataSet;
-	FNiagaraDataSet UpdateParameterDataSet;
+	FNiagaraDataSet SpawnInstanceParameterDataSet;
+ 	FNiagaraDataSet UpdateInstanceParameterDataSet;
 
 	FNiagaraScriptExecutionContext SpawnExecContext;
 	FNiagaraScriptExecutionContext UpdateExecContext;
@@ -151,10 +160,12 @@ protected:
 	FNiagaraScriptExecutionContext UpdateExecContextSolo;
 
 	/** Bindings that pull per component parameters into the spawn parameter dataset. */
-	FNiagaraParameterStoreToDataSetBinding SpawnParameterToDataSetBinding;
+	FNiagaraParameterStoreToDataSetBinding SpawnInstanceParameterToDataSetBinding;
 	/** Bindings that pull per component parameters into the update parameter dataset. */
-	FNiagaraParameterStoreToDataSetBinding UpdateParameterToDataSetBinding;
-	
+	FNiagaraParameterStoreToDataSetBinding UpdateInstanceParameterToDataSetBinding;
+	FNiagaraParameterStoreToDataSetBinding SpawnConstantParameterToDataSetBinding;
+	FNiagaraParameterStoreToDataSetBinding UpdateConstantParameterToDataSetBinding;
+
 	/** Binding to push system attributes into each emitter spawn parameters. */
 	TArray<FNiagaraParameterStoreToDataSetBinding> DataSetToEmitterSpawnParameters;
 	/** Binding to push system attributes into each emitter update parameters. */
@@ -171,16 +182,12 @@ protected:
 
 	void InitBindings(FNiagaraSystemInstance* SystemInst);
 
-	FNiagaraDataSetAccessor<FNiagaraBool> SystemEnabledAccessor;
 	FNiagaraDataSetAccessor<int32> SystemExecutionStateAccessor;
-	TArray<FNiagaraDataSetAccessor<FNiagaraBool>> EmitterEnabledAccessors;
 	TArray<TArray<FNiagaraDataSetAccessor<FNiagaraSpawnInfo>>> EmitterSpawnInfoAccessors;
 	TArray<FNiagaraDataSetAccessor<int32>> EmitterExecutionStateAccessors;
 
 	//Annoying duplicates required because these access the solo data set. When I rework the where the layout data for parameters and data sets live then these can go away.
-	FNiagaraDataSetAccessor<FNiagaraBool> SoloSystemEnabledAccessor;
 	FNiagaraDataSetAccessor<int32> SoloSystemExecutionStateAccessor;
-	TArray<FNiagaraDataSetAccessor<FNiagaraBool>> SoloEmitterEnabledAccessors;
 	TArray<TArray<FNiagaraDataSetAccessor<FNiagaraSpawnInfo>>> SoloEmitterSpawnInfoAccessors;
 	TArray<FNiagaraDataSetAccessor<int32>> SoloEmitterExecutionStateAccessors;
 

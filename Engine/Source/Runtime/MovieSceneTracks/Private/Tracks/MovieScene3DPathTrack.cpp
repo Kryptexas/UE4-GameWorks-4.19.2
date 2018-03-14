@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Tracks/MovieScene3DPathTrack.h"
 #include "Sections/MovieScene3DPathSection.h"
@@ -21,11 +21,11 @@ FMovieSceneEvalTemplatePtr UMovieScene3DPathTrack::CreateTemplateForSection(cons
 }
 
 
-void UMovieScene3DPathTrack::AddConstraint(float KeyTime, float ConstraintEndTime, const FName SocketName, const FName ComponentName, const FGuid& ConstraintId)
+void UMovieScene3DPathTrack::AddConstraint(float KeyTime, float ConstraintEndTime, const FName SocketName, const FName ComponentName, const FMovieSceneObjectBindingID& ConstraintBindingID)
 {
 	UMovieScene3DPathSection* NewSection = NewObject<UMovieScene3DPathSection>(this);
 	{
-		NewSection->AddPath(KeyTime, ConstraintEndTime, ConstraintId);
+		NewSection->AddPath(KeyTime, ConstraintEndTime, ConstraintBindingID);
 		NewSection->InitialPlacement( ConstraintSections, KeyTime, ConstraintEndTime, SupportsMultipleRows() );
 	}
 

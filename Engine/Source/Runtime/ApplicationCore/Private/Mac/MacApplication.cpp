@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MacApplication.h"
 #include "MacWindow.h"
@@ -28,8 +28,6 @@ FMacApplication* MacApplication = nullptr;
 static FCriticalSection GAllScreensMutex;
 TArray<TSharedRef<FMacScreen>> FMacApplication::AllScreens;
 
-static FCocoaWindow* GWindowToIgnoreBecomeMainNotification = nullptr;
-
 const uint32 RESET_EVENT_SUBTYPE = 0x0f00;
 
 #if WITH_EDITOR
@@ -40,30 +38,7 @@ extern "C" void MTDeviceStart(void*, int);
 extern "C" bool MTDeviceIsBuiltIn(void*);
 #endif
 
-static bool IsAppHighResolutionCapable()
-{
-	SCOPED_AUTORELEASE_POOL;
-
-	static bool bIsAppHighResolutionCapable = false;
-	static bool bInitialized = false;
-
-	if (!bInitialized)
-	{
-		NSDictionary<NSString *,id>* BundleInfo = [[NSBundle mainBundle] infoDictionary];
-		if (BundleInfo)
-		{
-			NSNumber* Value = (NSNumber*)[BundleInfo objectForKey:@"NSHighResolutionCapable"];
-			if (Value)
-			{
-				bIsAppHighResolutionCapable = [Value boolValue];
-			}
-		}
-
-		bInitialized = true;
-	}
-
-	return bIsAppHighResolutionCapable && GIsEditor;
-}
+FMacApplication::MenuBarShutdownFuncPtr FMacApplication::MenuBarShutdownFunc = nullptr;
 
 FMacApplication* FMacApplication::CreateMacApplication()
 {
@@ -126,8 +101,6 @@ FMacApplication::FMacApplication()
 		CGDisplayRegisterReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
 	}, NSDefaultRunLoopMode, true);
 
-	bIsHighDPIModeEnabled = IsAppHighResolutionCapable();
-
 #if WITH_EDITOR
 	NSMutableArray* MultiTouchDevices = (__bridge NSMutableArray*)MTDeviceCreateList();
 	for (id Device in MultiTouchDevices)
@@ -135,6 +108,7 @@ FMacApplication::FMacApplication()
 		MTRegisterContactFrameCallback((void*)Device, FMacApplication::MTContactCallback);
 		MTDeviceStart((void*)Device, 0);
 	}
+	[MultiTouchDevices release];
 
 	FMemory::Memzero(GestureUsage);
 	LastGestureUsed = EGestureEvent::None;
@@ -146,6 +120,11 @@ FMacApplication::FMacApplication()
 
 FMacApplication::~FMacApplication()
 {
+	if (MenuBarShutdownFunc)
+	{
+		MenuBarShutdownFunc();
+	}
+
 	MainThreadCall(^{
 		if (MouseMovedEventMonitor)
 		{
@@ -384,9 +363,13 @@ void FMacApplication::DeferEvent(NSObject* Object)
 
 		if (DeferredEvent.Type == NSKeyDown)
 		{
-			if (DeferredEvent.Window && [DeferredEvent.Window openGLView])
+			// In UE4 the main window rather than key window is the current active window in Slate, so the main window may be the one we want to send immKeyDown to,
+			// for example in case of search text edit fields in context menus.
+			NSWindow* MainWindow = [NSApp mainWindow];
+			FCocoaWindow* IMMWindow = [MainWindow isKindOfClass:[FCocoaWindow class]] ? (FCocoaWindow*)MainWindow : DeferredEvent.Window;
+			if (IMMWindow && [IMMWindow openGLView])
 			{
-				FCocoaTextView* View = (FCocoaTextView*)[DeferredEvent.Window openGLView];
+				FCocoaTextView* View = (FCocoaTextView*)[IMMWindow openGLView];
 				if (View && [View imkKeyDown:Event])
 				{
 					return;
@@ -477,15 +460,6 @@ void FMacApplication::DeferEvent(NSObject* Object)
 						OnWindowDidResize(Window.ToSharedRef()); }, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ], true);
 				}
 				return;
-			}
-			else if (DeferredEvent.NotificationName == NSWindowDidBecomeMainNotification)
-			{
-				// Special case for window activated as a result of other window closing. For such windows we let Slate know early (to emulate Windows behavior),
-				// but then we need to ignore the OS notification so that Slate doesn't get the event again.
-				if (GWindowToIgnoreBecomeMainNotification == DeferredEvent.Window)
-				{
-					return;
-				}
 			}
 		}
 		else if ([[Notification object] conformsToProtocol:@protocol(NSDraggingInfo)])
@@ -668,14 +642,6 @@ void FMacApplication::ProcessEvent(const FDeferredMacEvent& Event)
 		else if (Event.NotificationName == NSWindowDidExitFullScreenNotification)
 		{
 			OnWindowDidResize(EventWindow.ToSharedRef(), true);
-		}
-		else if (Event.NotificationName == NSWindowDidBecomeMainNotification)
-		{
-			OnWindowActivationChanged(EventWindow.ToSharedRef(), EWindowActivation::Activate);
-		}
-		else if (Event.NotificationName == NSWindowDidResignMainNotification)
-		{
-			OnWindowActivationChanged(EventWindow.ToSharedRef(), EWindowActivation::Deactivate);
 		}
 		else if (Event.NotificationName == NSWindowWillMoveNotification)
 		{
@@ -933,6 +899,13 @@ void FMacApplication::ProcessMouseUpEvent(const FDeferredMacEvent& Event, TShare
 	}
 
 	MessageHandler->OnMouseUp(Button);
+	
+	// 10.12.6 Fix for window position after dragging window to desktop selector in mission control
+	// 10.13.0 Doesn't need this as it always fires the window move event after desktop drag operation
+	if(DraggedWindow != nullptr && EventWindow->GetWindowHandle() == DraggedWindow)
+	{
+		OnWindowDidMove(EventWindow.ToSharedRef());
+	}
 
 	if (EventWindow.IsValid() && EventWindow->GetWindowHandle() && !DraggedWindow && !GetCapture())
 	{
@@ -1145,10 +1118,7 @@ bool FMacApplication::OnWindowDestroyed(TSharedRef<FMacWindow> DestroyedWindow)
 
 	if (WindowToActivate.IsValid())
 	{
-		OnWindowActivationChanged(WindowToActivate.ToSharedRef(), EWindowActivation::Activate);
-		GWindowToIgnoreBecomeMainNotification = WindowToActivate->GetWindowHandle();
 		WindowToActivate->SetWindowFocus();
-		GWindowToIgnoreBecomeMainNotification = nullptr;
 	}
 
 	return true;
@@ -1547,7 +1517,7 @@ void FMacApplication::UpdateScreensArray()
 		CurScreen->VisibleFrame.origin.y = WholeWorkspace.origin.y + WholeWorkspace.size.height - CurScreen->VisibleFrame.size.height - CurScreen->VisibleFrame.origin.y;
 	}
 
-	const bool bUseHighDPIMode = MacApplication ? MacApplication->IsHighDPIModeEnabled() : IsAppHighResolutionCapable();
+	const bool bUseHighDPIMode = FPlatformApplicationMisc::IsHighDPIModeEnabled();
 
 	TArray<TSharedRef<FMacScreen>> SortedScreens;
 
@@ -1641,7 +1611,7 @@ FVector2D FMacApplication::CalculateScreenOrigin(NSScreen* Screen)
 float FMacApplication::GetPrimaryScreenBackingScaleFactor()
 {
 	FScopeLock Lock(&GAllScreensMutex);
-	const bool bUseHighDPIMode = MacApplication ? MacApplication->IsHighDPIModeEnabled() : IsAppHighResolutionCapable();
+	const bool bUseHighDPIMode = FPlatformApplicationMisc::IsHighDPIModeEnabled();
 	return bUseHighDPIMode ? AllScreens[0]->Screen.backingScaleFactor : 1.0f;
 }
 
@@ -1686,7 +1656,7 @@ TSharedRef<FMacScreen> FMacApplication::FindScreenByCocoaPosition(float X, float
 FVector2D FMacApplication::ConvertSlatePositionToCocoa(float X, float Y)
 {
 	TSharedRef<FMacScreen> Screen = FindScreenBySlatePosition(X, Y);
-	const bool bUseHighDPIMode = MacApplication ? MacApplication->IsHighDPIModeEnabled() : IsAppHighResolutionCapable();
+	const bool bUseHighDPIMode = FPlatformApplicationMisc::IsHighDPIModeEnabled();
 	const float DPIScaleFactor = bUseHighDPIMode ? Screen->Screen.backingScaleFactor : 1.0f;
 	const FVector2D OffsetOnScreen = FVector2D(X - Screen->FramePixels.origin.x, Screen->FramePixels.origin.y + Screen->FramePixels.size.height - Y) / DPIScaleFactor;
 	return FVector2D(Screen->Screen.frame.origin.x + OffsetOnScreen.X, Screen->Screen.frame.origin.y + OffsetOnScreen.Y);
@@ -1695,7 +1665,7 @@ FVector2D FMacApplication::ConvertSlatePositionToCocoa(float X, float Y)
 FVector2D FMacApplication::ConvertCocoaPositionToSlate(float X, float Y)
 {
 	TSharedRef<FMacScreen> Screen = FindScreenByCocoaPosition(X, Y);
-	const bool bUseHighDPIMode = MacApplication ? MacApplication->IsHighDPIModeEnabled() : IsAppHighResolutionCapable();
+	const bool bUseHighDPIMode = FPlatformApplicationMisc::IsHighDPIModeEnabled();
 	const float DPIScaleFactor = bUseHighDPIMode ? Screen->Screen.backingScaleFactor : 1.0f;
 	const FVector2D OffsetOnScreen = FVector2D(X - Screen->Screen.frame.origin.x, Screen->Screen.frame.origin.y + Screen->Screen.frame.size.height - Y) * DPIScaleFactor;
 	return FVector2D(Screen->FramePixels.origin.x + OffsetOnScreen.X, Screen->FramePixels.origin.y + OffsetOnScreen.Y);
@@ -1704,7 +1674,7 @@ FVector2D FMacApplication::ConvertCocoaPositionToSlate(float X, float Y)
 CGPoint FMacApplication::ConvertSlatePositionToCGPoint(float X, float Y)
 {
 	TSharedRef<FMacScreen> Screen = FindScreenBySlatePosition(X, Y);
-	const bool bUseHighDPIMode = MacApplication ? MacApplication->IsHighDPIModeEnabled() : IsAppHighResolutionCapable();
+	const bool bUseHighDPIMode = FPlatformApplicationMisc::IsHighDPIModeEnabled();
 	const float DPIScaleFactor = bUseHighDPIMode ? Screen->Screen.backingScaleFactor : 1.0f;
 	const FVector2D OffsetOnScreen = FVector2D(X - Screen->FramePixels.origin.x, Y - Screen->FramePixels.origin.y) / DPIScaleFactor;
 	return CGPointMake(Screen->Frame.origin.x + OffsetOnScreen.X, Screen->Frame.origin.y + OffsetOnScreen.Y);

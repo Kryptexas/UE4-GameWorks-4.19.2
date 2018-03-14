@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -21,7 +21,7 @@ enum class ESlateGesture : uint8
 	LongPress
 };
 
-UCLASS()
+UCLASS(meta=(ScriptName="InputLibrary"))
 class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

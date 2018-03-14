@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 D3D12Adapter.cpp:D3D12 Adapter implementation.
@@ -6,7 +6,7 @@ D3D12Adapter.cpp:D3D12 Adapter implementation.
 
 #include "D3D12RHIPrivate.h"
 
-struct FRHICommandSignalFrameFence : public FRHICommand<FRHICommandSignalFrameFence>
+struct FRHICommandSignalFrameFence final : public FRHICommand<FRHICommandSignalFrameFence>
 {
 	ID3D12CommandQueue* const pCommandQueue;
 	FD3D12ManualFence* const Fence;
@@ -102,7 +102,7 @@ void FD3D12Adapter::CreateRootDevice(bool bWithDebug)
 
 #if USE_PIX
 	UE_LOG(LogD3D12RHI, Log, TEXT("Emitting draw events for PIX profiling."));
-	GEmitDrawEvents = true;
+	SetEmitDrawEvents(true);
 #endif
 	const bool bIsPerfHUD = !FCString::Stricmp(GetD3DAdapterDesc().Description, TEXT("NVIDIA PerfHUD"));
 

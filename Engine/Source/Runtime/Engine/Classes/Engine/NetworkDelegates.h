@@ -1,5 +1,4 @@
-
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,6 +7,8 @@
 #include "UObject/UObjectGlobals.h"
 #include "UObject/Object.h"
 #include "Engine/EngineBaseTypes.h"
+
+class UPendingNetGame;
 
 /**
 * Accepting connection response codes
@@ -147,6 +148,42 @@ struct FEncryptionKeyResponse
 	}
 };
 
+/** Types of punishment to apply to a cheating client */
+enum class ECheatPunishType : uint8
+{
+	/* Unknown type of cheat punishment */
+	Unknown,
+	/** User should be booted from the game client via logout */
+	KickClient,
+	/** User should be booted from the current game session via disconnect */
+	KickMatch,
+	/** User received info about being punished (eg. ban type etc) */
+	PunishInfo
+};
+
+namespace Lex
+{
+	inline const TCHAR* const ToString(const ECheatPunishType Response)
+	{
+		switch (Response)
+		{
+			case ECheatPunishType::Unknown:
+				return TEXT("Unknown");
+			case ECheatPunishType::KickClient:
+				return TEXT("KickClient");
+			case ECheatPunishType::KickMatch:
+				return TEXT("KickMatch");
+			case ECheatPunishType::PunishInfo:
+				return TEXT("PunishInfo");
+			default:
+				break;
+		}
+
+		checkf(false, TEXT("Missing ECheatPunishType Type: %d"), static_cast<const int32>(Response));
+		return TEXT("");
+	}
+}
+
 /** 
  * Delegate called by the game to provide a response to the encryption key request
  * Provides the encryption key if successful, or a failure reason so the network connection may proceed
@@ -180,5 +217,25 @@ public:
 	 */
 	DECLARE_DELEGATE_OneParam(FReceivedNetworkEncryptionAck, const FOnEncryptionKeyResponse& /*Delegate*/);
 	static FReceivedNetworkEncryptionAck OnReceivedNetworkEncryptionAck;
+
+
+	/**
+	 * Delegate fires whenever a client cheater is detected in the networking code
+	 *
+	 * @param PlayerId net id of the cheating client
+	 * @param PunishType type of punishment to apply to a cheating client
+	 * @param ReasonStr why the client is being punished due to cheating
+	 * @param InfoStr extra info about the punishment to be applied (eg. ban received, etc)
+	 */
+	DECLARE_DELEGATE_FourParams(FNetworkCheatDetected, const class FUniqueNetId& /*PlayerId*/, ECheatPunishType /*PunishType*/, const FString& /*ReasonStr*/, const FString& /*InfoStr*/);
+	static FNetworkCheatDetected OnNetworkCheatDetected;
+
+	/**
+	 * Delegate fired when a pending net game has created a UNetConnection to the server but hasn't sent the initial join message yet.
+	 *
+	 * @param PendingNetGame pointer to the PendingNetGame that is initializing its connection to a server.
+	 */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPendingNetGameConnectionCreated, UPendingNetGame* /*PendingNetGame*/);
+	static FOnPendingNetGameConnectionCreated OnPendingNetGameConnectionCreated;
 
 };

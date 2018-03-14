@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	KismetCompiler.cpp
@@ -24,20 +24,20 @@
 #include "Engine/UserDefinedStruct.h"
 #include "EdGraphUtilities.h"
 #include "K2Node_CallFunction.h"
-#include "K2Node_Knot.h"
-#include "K2Node_Tunnel.h"
 #include "K2Node_Composite.h"
 #include "K2Node_CreateDelegate.h"
 #include "K2Node_CustomEvent.h"
 #include "K2Node_FunctionEntry.h"
 #include "K2Node_FunctionResult.h"
+#include "K2Node_Knot.h"
 #include "K2Node_MacroInstance.h"
 #include "K2Node_MakeArray.h"
 #include "K2Node_TemporaryVariable.h"
 #include "K2Node_Timeline.h"
+#include "K2Node_Tunnel.h"
+#include "K2Node_TunnelBoundary.h"
 #include "K2Node_VariableGet.h"
 #include "K2Node_VariableSet.h"
-#include "K2Node_TunnelBoundary.h"
 #include "KismetCompilerBackend.h"
 #include "Kismet2/KismetReinstanceUtilities.h"
 #include "Engine/SCS_Node.h"
@@ -400,7 +400,7 @@ void FKismetCompilerContext::ValidateLink(const UEdGraphPin* PinA, const UEdGrap
 	{
 		const UEdGraphPin* InputPin = (EEdGraphPinDirection::EGPD_Input == PinA->Direction) ? PinA : PinB;
 		const UEdGraphPin* OutputPin = (EEdGraphPinDirection::EGPD_Output == PinA->Direction) ? PinA : PinB;
-		const bool bInvalidConnection = InputPin && OutputPin && (OutputPin->PinType.PinCategory == Schema->PC_Interface) && (InputPin->PinType.PinCategory == Schema->PC_Object);
+		const bool bInvalidConnection = InputPin && OutputPin && (OutputPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Interface) && (InputPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object);
 		if (bInvalidConnection)
 		{
 			MessageLog.Error(*LOCTEXT("PinTypeMismatch_Error_UseExplictCast", "Can't connect pins @@ (Interface) and @@ (Object). Use an explicit cast node.").ToString(), OutputPin, InputPin);
@@ -684,12 +684,11 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 			continue;
 		}
 
-		FEdGraphPinType TimelinePinType(Schema->PC_Object, FString(), UTimelineComponent::StaticClass(), EPinContainerType::None, false, FEdGraphTerminalType());
+		FEdGraphPinType TimelinePinType(UEdGraphSchema_K2::PC_Object, NAME_None, UTimelineComponent::StaticClass(), EPinContainerType::None, false, FEdGraphTerminalType());
 
 		// Previously UTimelineComponent object has exactly the same name as UTimelineTemplate object (that obj was in blueprint)
 		const FString TimelineVariableName = UTimelineTemplate::TimelineTemplateNameToVariableName(Timeline->GetFName());
-		UProperty* TimelineProperty = CreateVariable(*TimelineVariableName, TimelinePinType);
-		if (TimelineProperty != NULL)
+		if (UProperty* TimelineProperty = CreateVariable(*TimelineVariableName, TimelinePinType))
 		{
 			TimelineProperty->SetMetaData( TEXT("Category"), *Blueprint->GetName() );
 			TimelineProperty->SetPropertyFlags(CPF_BlueprintVisible);
@@ -697,22 +696,22 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 			TimelineToMemberVariableMap.Add(Timeline, TimelineProperty);
 		}
 
-		FEdGraphPinType DirectionPinType(Schema->PC_Byte, FString(), FTimeline::GetTimelineDirectionEnum(), EPinContainerType::None, false, FEdGraphTerminalType());
+		FEdGraphPinType DirectionPinType(UEdGraphSchema_K2::PC_Byte, NAME_None, FTimeline::GetTimelineDirectionEnum(), EPinContainerType::None, false, FEdGraphTerminalType());
 		CreateVariable(Timeline->GetDirectionPropertyName(), DirectionPinType);
 
-		FEdGraphPinType FloatPinType(Schema->PC_Float, FString(), nullptr, EPinContainerType::None, false, FEdGraphTerminalType());
+		FEdGraphPinType FloatPinType(UEdGraphSchema_K2::PC_Float, NAME_None, nullptr, EPinContainerType::None, false, FEdGraphTerminalType());
 		for (const FTTFloatTrack& FloatTrack : Timeline->FloatTracks)
 		{
 			CreateVariable(Timeline->GetTrackPropertyName(FloatTrack.TrackName), FloatPinType);
 		}
 
-		FEdGraphPinType VectorPinType(Schema->PC_Struct, FString(), VectorStruct, EPinContainerType::None, false, FEdGraphTerminalType());
+		FEdGraphPinType VectorPinType(UEdGraphSchema_K2::PC_Struct, NAME_None, VectorStruct, EPinContainerType::None, false, FEdGraphTerminalType());
 		for (const FTTVectorTrack& VectorTrack : Timeline->VectorTracks)
 		{
 			CreateVariable(Timeline->GetTrackPropertyName(VectorTrack.TrackName), VectorPinType);
 		}
 
-		FEdGraphPinType LinearColorPinType(Schema->PC_Struct, FString(), LinearColorStruct, EPinContainerType::None, false, FEdGraphTerminalType());
+		FEdGraphPinType LinearColorPinType(UEdGraphSchema_K2::PC_Struct, NAME_None, LinearColorStruct, EPinContainerType::None, false, FEdGraphTerminalType());
 		for (const FTTLinearColorTrack& LinearColorTrack : Timeline->LinearColorTracks)
 		{
 			CreateVariable(Timeline->GetTrackPropertyName(LinearColorTrack.TrackName), LinearColorPinType);
@@ -735,7 +734,7 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 				FName VarName = Node->GetVariableName();
 				if ((VarName != NAME_None) && (Node->ComponentClass != nullptr))
 				{
-					FEdGraphPinType Type(Schema->PC_Object, FString(), Node->ComponentClass, EPinContainerType::None, false, FEdGraphTerminalType());
+					FEdGraphPinType Type(UEdGraphSchema_K2::PC_Object, NAME_None, Node->ComponentClass, EPinContainerType::None, false, FEdGraphTerminalType());
 					if (UProperty* NewProperty = CreateVariable(VarName, Type))
 					{
 						const FText CategoryName = Node->CategoryName.IsEmpty() ? FText::FromString(Blueprint->GetName()) : Node->CategoryName ;
@@ -1429,7 +1428,7 @@ void FKismetCompilerContext::ValidateNoWildcardPinsInGraph(const UEdGraph* Sourc
 			{
 				if (const UEdGraphPin* Pin = Node->Pins[PinIndex])
 				{
-					if (Pin->PinType.PinCategory == Schema->PC_Wildcard)
+					if (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard)
 					{
 						// Wildcard pins should never be seen by the compiler; they should always be forced into a particular type by wiring.
 						MessageLog.Error(*LOCTEXT("UndeterminedPinType_Error", "The type of @@ is undetermined.  Connect something to @@ to imply a specific type.").ToString(), Pin, Pin->GetOwningNodeUnchecked());
@@ -1490,7 +1489,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context,
 		}
 
 		// Create the function stub
-		FName NewFunctionName = (Context.EntryPoint->CustomGeneratedFunctionName != NAME_None) ? Context.EntryPoint->CustomGeneratedFunctionName : Context.EntryPoint->SignatureName;
+		FName NewFunctionName = (Context.EntryPoint->CustomGeneratedFunctionName != NAME_None) ? Context.EntryPoint->CustomGeneratedFunctionName : Context.EntryPoint->FunctionReference.GetMemberName();
 		if (Context.IsDelegateSignature())
 		{
 			// prefix with the the blueprint name to avoid conflicts with natively defined delegate signatures
@@ -1583,7 +1582,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context,
 			
 			if (UEdGraphPin* WorldContextPin = Context.EntryPoint->GetAutoWorldContextPin())
 			{
-				Context.Function->SetMetaData(FBlueprintMetadata::MD_WorldContext, *WorldContextPin->PinName);
+				Context.Function->SetMetaData(FBlueprintMetadata::MD_WorldContext, *WorldContextPin->PinName.ToString());
 			}
 		}
 
@@ -1665,7 +1664,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context,
 			!Context.IsEventGraph() &&
 			!Context.bIsSimpleStubGraphWithNoParams &&
 			Context.CanBeCalledByKismet() &&
-			Context.Function->GetFName() != Context.Schema->FN_UserConstructionScript)
+			Context.Function->GetFName() != UEdGraphSchema_K2::FN_UserConstructionScript)
 		{
 			// dig into the (actual) source graph and find the original return node:
 			UObject* Object = Context.MessageLog.FindSourceObject(Context.SourceGraph);
@@ -1743,9 +1742,9 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context,
 			if (!ParentFunction->IsSignatureCompatibleWith(Context.Function))
 			{
 				FString SignatureClassName("");
-				if (Context.EntryPoint->SignatureClass)
+				if (const UClass* SignatureClass = Context.EntryPoint->FunctionReference.GetMemberParentClass())
 				{
-					SignatureClassName = Context.EntryPoint->SignatureClass->GetName();
+					SignatureClassName = SignatureClass->GetName();
 				}
 				MessageLog.Error(*FString::Printf(*LOCTEXT("OverrideFunctionDifferentSignature_Error", "Cannot override '%s::%s' at @@ which was declared in a parent with a different signature").ToString(), *SignatureClassName, *NewFunctionNameString), Context.EntryPoint);
 			}
@@ -2077,7 +2076,7 @@ void FKismetCompilerContext::SetCalculatedMetaDataAndFlags(UFunction* Function, 
 	}
 	if (UEdGraphPin* WorldContextPin = EntryNode->GetAutoWorldContextPin())
 	{
-		Function->SetMetaData(FBlueprintMetadata::MD_WorldContext, *WorldContextPin->PinName);
+		Function->SetMetaData(FBlueprintMetadata::MD_WorldContext, *WorldContextPin->PinName.ToString());
 	}
 
 	for (int32 EntryPinIndex = 0; EntryPinIndex < EntryNode->Pins.Num(); ++EntryPinIndex)
@@ -2087,10 +2086,21 @@ void FKismetCompilerContext::SetCalculatedMetaDataAndFlags(UFunction* Function, 
 		if(	!K2Schema->IsMetaPin(*EntryPin) && 
 			(EntryPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Object) && 
 			(EntryPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Class) && 
-			(EntryPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Interface) && 
-			!EntryPin->DefaultValue.IsEmpty() )
+			(EntryPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Interface))
 		{
-			Function->SetMetaData(*EntryPin->PinName, *EntryPin->DefaultValue);
+			if (!EntryPin->DefaultValue.IsEmpty())
+			{
+				Function->SetMetaData(EntryPin->PinName, *EntryPin->DefaultValue);
+			}
+			else if (!EntryPin->DefaultTextValue.IsEmpty())
+			{
+				FString TextAsString;
+				if (FTextStringHelper::WriteToString(TextAsString, EntryPin->DefaultTextValue))
+				{
+					Function->SetMetaData(EntryPin->PinName, *TextAsString);
+				}
+			}
+			
 		}
 	}
 
@@ -2276,9 +2286,7 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 	}
 
 	Class->StaticLink(true);
-	
-	extern COREUOBJECT_API void SetUpRuntimeReplicationData(UClass* Class);
-	SetUpRuntimeReplicationData(Class);
+	Class->SetUpRuntimeReplicationData();
 
 	// Create the default object for this class
 	FKismetCompilerUtilities::CompileDefaultProperties(Class);
@@ -2327,7 +2335,7 @@ void FKismetCompilerContext::BuildDynamicBindingObjects(UBlueprintGeneratedClass
  * @param PinName		The pin name to redirect output from, into the pin of the node event
  * @param ExecFuncName	The event signature name that the event node implements
  */ 
-void FKismetCompilerContext::CreatePinEventNodeForTimelineFunction(UK2Node_Timeline* TimelineNode, UEdGraph* SourceGraph, FName FunctionName, const FString& PinName, FName ExecFuncName)
+void FKismetCompilerContext::CreatePinEventNodeForTimelineFunction(UK2Node_Timeline* TimelineNode, UEdGraph* SourceGraph, FName FunctionName, const FName PinName, FName ExecFuncName)
 {
 	UEdGraphPin* SourcePin = nullptr;
 	if (UK2Node_Timeline* SourceNode = Cast<UK2Node_Timeline>(MessageLog.FindSourceObject(TimelineNode)))
@@ -2342,7 +2350,7 @@ void FKismetCompilerContext::CreatePinEventNodeForTimelineFunction(UK2Node_Timel
 
 	// Move any links from 'update' pin to the 'update event' node
 	UEdGraphPin* UpdatePin = TimelineNode ? TimelineNode->FindPin(PinName) : nullptr;
-	ensureMsgf(UpdatePin, TEXT("Timeline '%s' has no pin '%s'"), *GetPathNameSafe(TimelineNode), *PinName);
+	ensureMsgf(UpdatePin, TEXT("Timeline '%s' has no pin '%s'"), *GetPathNameSafe(TimelineNode), *PinName.ToString());
 
 	UEdGraphPin* UpdateOutput = Schema->FindExecutionPin(*TimelineEventNode, EGPD_Output);
 
@@ -2360,7 +2368,7 @@ UK2Node_CallFunction* FKismetCompilerContext::CreateCallTimelineFunction(UK2Node
 	CallNode->AllocateDefaultPins();
 
 	// Wire 'get timeline' to 'self' pin of function call
-	UEdGraphPin* CallSelfPin = CallNode->FindPinChecked(Schema->PN_Self);
+	UEdGraphPin* CallSelfPin = CallNode->FindPinChecked(UEdGraphSchema_K2::PN_Self);
 	TimelineVarPin->MakeLinkTo(CallSelfPin);
 
 	// Move any exec links from 'play' pin to the 'call play' node
@@ -2409,7 +2417,7 @@ void FKismetCompilerContext::ExpandTimelineNodes(UEdGraph* SourceGraph)
 				UClass* ValueClass = ValuePin->PinType.PinSubCategoryObject.IsValid() ? Cast<UClass>( ValuePin->PinType.PinSubCategoryObject.Get() ) : nullptr;
 				if( ValueClass == UTimelineComponent::StaticClass() )
 				{
-					const FName PinName( *ValuePin->PinName );
+					const FName PinName = ValuePin->PinName;
 					if( UTimelineTemplate* TimelineTemplate = Blueprint->FindTimelineTemplateByVariableName( PinName ))
 					{
 						TimelinePlayNodes.Add( PinName );
@@ -2426,8 +2434,6 @@ void FKismetCompilerContext::ExpandTimelineNodes(UEdGraph* SourceGraph)
 
 		if (bIsFullCompile)
 		{
-			const FString TimelineNameString = TimelineNode->TimelineName.ToString();
-
 			UEdGraphPin* PlayPin = TimelineNode->GetPlayPin();
 			bool bPlayPinConnected = (PlayPin->LinkedTo.Num() > 0);
 
@@ -2470,20 +2476,19 @@ void FKismetCompilerContext::ExpandTimelineNodes(UEdGraph* SourceGraph)
 				GetTimelineNode->AllocateDefaultPins();
 
 				// Debug data: Associate the timeline node instance with the property that was created earlier
-				UProperty* AssociatedTimelineInstanceProperty = TimelineToMemberVariableMap.FindChecked(Timeline);
-				if (AssociatedTimelineInstanceProperty != NULL)
+				if (UProperty* AssociatedTimelineInstanceProperty = TimelineToMemberVariableMap.FindChecked(Timeline))
 				{
 					UObject* TrueSourceObject = MessageLog.FindSourceObject(TimelineNode);
 					NewClass->GetDebugData().RegisterClassPropertyAssociation(TrueSourceObject, AssociatedTimelineInstanceProperty);
 				}
 
 				// Get the variable output pin
-				UEdGraphPin* TimelineVarPin = GetTimelineNode->FindPin(TimelineNameString);
+				UEdGraphPin* TimelineVarPin = GetTimelineNode->FindPin(TimelineNode->TimelineName);
 
 				// This might fail if this is the first compile after adding the timeline (property doesn't exist yet) - in that case, manually add the output pin
-				if (TimelineVarPin == NULL)
+				if (TimelineVarPin == nullptr)
 				{
-					TimelineVarPin = GetTimelineNode->CreatePin(EGPD_Output, Schema->PC_Object, FString(), UTimelineComponent::StaticClass(), TimelineNode->TimelineName.ToString());
+					TimelineVarPin = GetTimelineNode->CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Object, UTimelineComponent::StaticClass(), TimelineNode->TimelineName);
 				}
 
 				if (bPlayPinConnected)
@@ -2538,8 +2543,8 @@ void FKismetCompilerContext::ExpandTimelineNodes(UEdGraph* SourceGraph)
 		// Create event nodes for any event tracks
 		for(int32 EventTrackIdx=0; EventTrackIdx<Timeline->EventTracks.Num(); EventTrackIdx++)
 		{
-			FName EventTrackName =  Timeline->EventTracks[EventTrackIdx].TrackName;
-			CreatePinEventNodeForTimelineFunction(TimelineNode, SourceGraph, Timeline->GetEventTrackFunctionName(EventTrackIdx), EventTrackName.ToString(), EventSigFunc->GetFName());
+			const FName EventTrackName = Timeline->EventTracks[EventTrackIdx].TrackName;
+			CreatePinEventNodeForTimelineFunction(TimelineNode, SourceGraph, Timeline->GetEventTrackFunctionName(EventTrackIdx), EventTrackName, EventSigFunc->GetFName());
 		}
 
 		// Generate Update Pin Event Node
@@ -2584,16 +2589,18 @@ FPinConnectionResponse FKismetCompilerContext::CopyPinLinksToIntermediate(UEdGra
 	return ConnectionResult;
 }
 
-UK2Node_TemporaryVariable* FKismetCompilerContext::SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory, UObject* SubcategoryObject, bool bIsArray, bool bIsSet, bool bIsMap, const FEdGraphTerminalType& ValueTerminalType)
+UK2Node_TemporaryVariable* FKismetCompilerContext::SpawnInternalVariable(UEdGraphNode* SourceNode, const FString& Category, const FString& SubCategory, UObject* SubcategoryObject, bool bIsArray, bool bIsSet, bool bIsMap, const FEdGraphTerminalType& ValueTerminalType)
 {
-	return SpawnInternalVariable(SourceNode, MoveTemp(Category), MoveTemp(SubCategory), SubcategoryObject, FEdGraphPinType::ToPinContainerType(bIsArray, bIsSet, bIsMap), ValueTerminalType);
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	return SpawnInternalVariable(SourceNode, Category, SubCategory, SubcategoryObject, FEdGraphPinType::ToPinContainerType(bIsArray, bIsSet, bIsMap), ValueTerminalType);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
-UK2Node_TemporaryVariable* FKismetCompilerContext::SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory, UObject* SubcategoryObject, EPinContainerType PinContainerType, const FEdGraphTerminalType& ValueTerminalType)
+UK2Node_TemporaryVariable* FKismetCompilerContext::SpawnInternalVariable(UEdGraphNode* SourceNode, const FName Category, const FName SubCategory, UObject* SubcategoryObject, EPinContainerType PinContainerType, const FEdGraphTerminalType& ValueTerminalType)
 {
 	UK2Node_TemporaryVariable* Result = SpawnIntermediateNode<UK2Node_TemporaryVariable>(SourceNode);
 
-	Result->VariableType = FEdGraphPinType(MoveTemp(Category), MoveTemp(SubCategory), SubcategoryObject, PinContainerType, false, ValueTerminalType);
+	Result->VariableType = FEdGraphPinType(Category, SubCategory, SubcategoryObject, PinContainerType, false, ValueTerminalType);
 	Result->AllocateDefaultPins();
 
 	return Result;
@@ -2617,7 +2624,7 @@ FName FKismetCompilerContext::GetEventStubFunctionName(UK2Node_Event* SrcEventNo
 		}
 		else
 		{
-			FString EventNodeString = ClassScopeNetNameMap.MakeValidName<UEdGraphNode>(SrcEventNode);
+			FString EventNodeString = ClassScopeNetNameMap.MakeValidName(SrcEventNode);
 			EventNodeName = FName(*EventNodeString);
 		}
 	}
@@ -2650,9 +2657,6 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 	FKismetFunctionContext& StubContext = *new (FunctionList) FKismetFunctionContext(MessageLog, Schema, NewClass, Blueprint, CompileOptions.DoesRequireCppCodeGeneration());
 	StubContext.SourceGraph = ChildStubGraph;
 
-	// A stub graph has no visual representation and is thus not suited to be debugged via the debugger
-	StubContext.bCreateDebugData = false;
-
 	StubContext.SourceEventFromStubGraph = SrcEventNode;
 
 	if (SrcEventNode->bOverrideFunction || SrcEventNode->bInternalEvent)
@@ -2678,8 +2682,7 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 	// Create an entry point
 	UK2Node_FunctionEntry* EntryNode = SpawnIntermediateNode<UK2Node_FunctionEntry>(SrcEventNode, ChildStubGraph);
 	EntryNode->NodePosX = -200;
-	EntryNode->SignatureClass = SrcEventNode->EventReference.GetMemberParentClass(SrcEventNode->GetBlueprintClassFromNode());
-	EntryNode->SignatureName = SrcEventNode->EventReference.GetMemberName();
+	EntryNode->FunctionReference = SrcEventNode->EventReference;
 	EntryNode->CustomGeneratedFunctionName = EventNodeName;
 
 	if (!SrcEventNode->bOverrideFunction && SrcEventNode->IsUsedByAuthorityOnlyDelegate())
@@ -2734,7 +2737,7 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 			UEdGraphPin* UGSourcePin = SrcEventNode->FindPin(SourcePin->PinName);
 			const FString MemberVariableName = ClassScopeNetNameMap.MakeValidName(UGSourcePin);
 
-			UEdGraphPin* DestPin = AssignmentNode->CreatePin(EGPD_Input, SourcePin->PinType, MemberVariableName);
+			UEdGraphPin* DestPin = AssignmentNode->CreatePin(EGPD_Input, SourcePin->PinType, *MemberVariableName);
 			MessageLog.NotifyIntermediatePinCreation(DestPin, SourcePin);
 			DestPin->MakeLinkTo(SourcePin);
 		}
@@ -2751,16 +2754,16 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 	CallIntoUbergraph->NodePosX = 300;
 
 	// Use the ExecuteUbergraph base function to generate the pins...
-	CallIntoUbergraph->FunctionReference.SetExternalMember(Schema->FN_ExecuteUbergraphBase, UObject::StaticClass());
+	CallIntoUbergraph->FunctionReference.SetExternalMember(UEdGraphSchema_K2::FN_ExecuteUbergraphBase, UObject::StaticClass());
 	CallIntoUbergraph->AllocateDefaultPins();
 	
 	// ...then swap to the generated version for this level
 	CallIntoUbergraph->FunctionReference.SetSelfMember(GetUbergraphCallName());
 	UEdGraphPin* CallIntoUbergraphSelf = Schema->FindSelfPin(*CallIntoUbergraph, EGPD_Input);
-	CallIntoUbergraphSelf->PinType.PinSubCategory = Schema->PSC_Self;
+	CallIntoUbergraphSelf->PinType.PinSubCategory = UEdGraphSchema_K2::PSC_Self;
 	CallIntoUbergraphSelf->PinType.PinSubCategoryObject = *Blueprint->SkeletonGeneratedClass;
 
-	UEdGraphPin* EntryPointPin = CallIntoUbergraph->FindPin(Schema->PN_EntryPoint);
+	UEdGraphPin* EntryPointPin = CallIntoUbergraph->FindPin(UEdGraphSchema_K2::PN_EntryPoint);
 	if (EntryPointPin)
 	{
 		EntryPointPin->DefaultValue = TEXT("0");
@@ -2773,7 +2776,7 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 	UEdGraphPin* ExecEntryOut = Schema->FindExecutionPin(*EntryNode, EGPD_Output);
 	UEdGraphPin* ExecCallIn = Schema->FindExecutionPin(*CallIntoUbergraph, EGPD_Input);
 
-	if (AssignmentNode != NULL)
+	if (AssignmentNode)
 	{
 		UEdGraphPin* ExecVariablesIn = Schema->FindExecutionPin(*AssignmentNode, EGPD_Input);
 		UEdGraphPin* ExecVariablesOut = Schema->FindExecutionPin(*AssignmentNode, EGPD_Output);
@@ -2953,27 +2956,27 @@ void FKismetCompilerContext::VerifyValidOverrideEvent(const UEdGraph* Graph)
 
 void FKismetCompilerContext::VerifyValidOverrideFunction(const UEdGraph* Graph)
 {
-	check(NULL != Graph);
-	check(NULL != Blueprint);
+	check(nullptr != Graph);
+	check(nullptr != Blueprint);
 
-	TArray<const UK2Node_FunctionEntry*> EntryPoints;
+	TArray<UK2Node_FunctionEntry*> EntryPoints;
 	Graph->GetNodesOfClass(EntryPoints);
 
 	for(int32 EntryPointsIdx = 0; EntryPointsIdx < EntryPoints.Num(); EntryPointsIdx++)
 	{
-		const UK2Node_FunctionEntry* EventNode = EntryPoints[EntryPointsIdx];
-		check(NULL != EventNode);
+		UK2Node_FunctionEntry* EntryNode = EntryPoints[EntryPointsIdx];
+		check(nullptr != EntryNode);
 
-		const UClass* FuncClass = *EventNode->SignatureClass;
-		if( FuncClass )
+		const UClass* FuncClass = EntryNode->FunctionReference.GetMemberParentClass();
+		if (FuncClass)
 		{
-			const UFunction* Function = FuncClass->FindFunctionByName(EventNode->SignatureName);
-			if( Function )
+			const UFunction* Function = FuncClass->FindFunctionByName(EntryNode->FunctionReference.GetMemberName());
+			if (Function)
 			{
 				const bool bCanBeOverridden = Function->HasAllFunctionFlags(FUNC_BlueprintEvent);
-				if(!bCanBeOverridden)
+				if (!bCanBeOverridden)
 				{
-					MessageLog.Error(TEXT("The function in node @@ cannot be overridden"), EventNode);
+					MessageLog.Error(TEXT("The function in node @@ cannot be overridden"), EntryNode);
 				}
 			}
 		}
@@ -2983,9 +2986,9 @@ void FKismetCompilerContext::VerifyValidOverrideFunction(const UEdGraph* Graph)
 			for (TFieldIterator<UFunction> FunctionIt(Blueprint->ParentClass, EFieldIteratorFlags::IncludeSuper); FunctionIt; ++FunctionIt)
 			{
 				const UFunction* Function = *FunctionIt;
-				if( Function && (Function->GetFName() == EventNode->SignatureName) )
+				if (Function && (Function->GetFName() == EntryNode->FunctionReference.GetMemberName()))
 				{
-					MessageLog.Error(TEXT("The function name in node @@ is already used"), EventNode);
+					MessageLog.Error(TEXT("The function name in node @@ is already used"), EntryNode);
 				}
 			}
 		}
@@ -3081,8 +3084,7 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 		// Add a dummy entry point to the uber graph, to get the function signature correct
 		{
 			UK2Node_FunctionEntry* EntryNode = SpawnIntermediateNode<UK2Node_FunctionEntry>(NULL, ConsolidatedEventGraph);
-			EntryNode->SignatureClass = UObject::StaticClass();
-			EntryNode->SignatureName = Schema->FN_ExecuteUbergraphBase;
+			EntryNode->FunctionReference.SetExternalMember(UEdGraphSchema_K2::FN_ExecuteUbergraphBase, UObject::StaticClass());
 			EntryNode->CustomGeneratedFunctionName = ConsolidatedEventGraph->GetFName();
 			EntryNode->AllocateDefaultPins();
 		}
@@ -3230,16 +3232,6 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 			// Clone the macro graph, then move all of its children, keeping a list of nodes from the macro
 			UEdGraph* ClonedGraph = FEdGraphUtilities::CloneGraph(MacroGraph, NULL, &MessageLog, true);
 
-			// Find active tunnel instances for this macro instance.
-			TArray<TWeakObjectPtr<UEdGraphNode>> TunnelInstances;
-			MessageLog.GetTunnelsActiveForNode(MacroInstanceNode, TunnelInstances);
-			if (!TunnelInstances.Num())
-			{
-				UEdGraphNode* SourceMacroInstance = Cast<UEdGraphNode>(MessageLog.FindSourceObject(MacroInstanceNode));
-				TunnelInstances.Add(SourceMacroInstance);
-				MessageLog.RegisterIntermediateTunnelInstance(MacroInstanceNode, TunnelInstances);
-			}
-
 			for (int32 I = 0; I < ClonedGraph->Nodes.Num(); ++I)
 			{
 				MacroGeneratedNodes.Add(ClonedGraph->Nodes[I], CurrentNode);
@@ -3248,7 +3240,7 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 			TArray<UEdGraphNode*> MacroNodes(ClonedGraph->Nodes);
 
 			// resolve any wildcard pins in the nodes cloned from the macro
-			if (!MacroInstanceNode->ResolvedWildcardType.PinCategory.IsEmpty())
+			if (!MacroInstanceNode->ResolvedWildcardType.PinCategory.IsNone())
 			{
 				for (UEdGraphNode* const ClonedNode : ClonedGraph->Nodes)
 				{
@@ -3256,7 +3248,7 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 					{
 						for (UEdGraphPin* const ClonedPin : ClonedNode->Pins)
 						{
-							if ( ClonedPin && (ClonedPin->PinType.PinCategory == Schema->PC_Wildcard) )
+							if ( ClonedPin && (ClonedPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard) )
 							{
 								// copy only type info, so array or ref status is preserved
 								ClonedPin->PinType.PinCategory = MacroInstanceNode->ResolvedWildcardType.PinCategory;
@@ -3301,7 +3293,7 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 					else if (Pin->LinkedTo.Num() == 0 &&
 							Pin->Direction == EGPD_Input &&
 							Pin->DefaultValue != FString() &&
-							Pin->PinType.PinCategory == Schema->PC_Byte &&
+							Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Byte &&
 							Pin->PinType.PinSubCategoryObject.IsValid() &&
 							Pin->PinType.PinSubCategoryObject->IsA<UEnum>())
 					{
@@ -3309,7 +3301,7 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 						UK2Node_EnumLiteral* EnumLiteralNode = SpawnIntermediateNode<UK2Node_EnumLiteral>(MacroInstanceNode, SourceGraph);
 						EnumLiteralNode->Enum = CastChecked<UEnum>(Pin->PinType.PinSubCategoryObject.Get());
 						EnumLiteralNode->AllocateDefaultPins();
-						EnumLiteralNode->FindPinChecked(Schema->PN_ReturnValue)->MakeLinkTo(Pin);
+						EnumLiteralNode->FindPinChecked(UEdGraphSchema_K2::PN_ReturnValue)->MakeLinkTo(Pin);
 
 						UEdGraphPin* InPin = EnumLiteralNode->FindPinChecked(UK2Node_EnumLiteral::GetEnumInputPinName());
 						check(InPin);
@@ -3353,13 +3345,6 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 						DuplicatedNode->ReconstructNode();
 					}
 
-					// Record the source node mapping for the intermediate node and register any active tunnel instances if it is a tunnel/macro instance node.
-					MessageLog.RegisterIntermediateTunnelNode(DuplicatedNode, MacroInstanceNode);
-					if (FBlueprintEditorUtils::IsTunnelInstanceNode(DuplicatedNode))
-					{
-						MessageLog.RegisterIntermediateTunnelInstance(DuplicatedNode, TunnelInstances);
-					}
-
 					DuplicatedNode->NodePosY += NodeOffsetY;
 					DuplicatedNode->NodePosX += NodeOffsetX;
 
@@ -3396,29 +3381,46 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 		}
 		else if (TunnelNode)
 		{
-			UEdGraphNode* InputSink = TunnelNode->GetInputSink();
-			for (UEdGraphPin const* TunnelPin : TunnelNode->Pins)
+			UK2Node_Tunnel* InputSink = TunnelNode->GetInputSink();
+			UK2Node_Tunnel* OutputSource = TunnelNode->GetOutputSource();
+			
+			// Determine the tunnel nodes that bound the expansion
+			UK2Node_Tunnel* TunnelInstance = nullptr;
+			UK2Node_Tunnel* TunnelInputSite = nullptr;
+			UK2Node_Tunnel *TunnelOutputSite = nullptr;
+			if (FBlueprintEditorUtils::IsTunnelInstanceNode(TunnelNode))
 			{
-				if ((TunnelPin->Direction != EGPD_Input) || (TunnelPin->PinType.PinCategory != Schema->PC_Exec))
-				{
-					continue;
-				}
-				check(InputSink != NULL);
+				TunnelInstance = TunnelNode;
+				TunnelInputSite = InputSink;
+				TunnelOutputSite = OutputSource;
+			}
+			else if (FBlueprintEditorUtils::IsTunnelInstanceNode(InputSink))
+			{
+				TunnelInstance = InputSink;
+				TunnelOutputSite = TunnelNode;
+			}
+			else if (FBlueprintEditorUtils::IsTunnelInstanceNode(OutputSource))
+			{
+				TunnelInstance = OutputSource;
+				TunnelInputSite = TunnelNode;
+			}
 
-				UEdGraphPin* SinkPin = InputSink->FindPin(TunnelPin->PinName);
-				if (SinkPin == NULL)
+			if (TunnelInstance)
+			{
+				if (TunnelInputSite)
 				{
-					continue;
+					// Construct an intermediate tunnel boundary on the input side of a tunnel instance expansion.
+					ProcessIntermediateTunnelBoundary(TunnelInstance, TunnelInputSite);
 				}
-				check(SinkPin->Direction == EGPD_Output);
 
-				for (UEdGraphPin* TunnelLinkedPin : TunnelPin->LinkedTo)
+				if (TunnelOutputSite)
 				{
-					MessageLog.NotifyIntermediatePinCreation(TunnelLinkedPin, SinkPin);
+					// Construct an intermediate tunnel boundary on the output side of a tunnel instance expansion.
+					ProcessIntermediateTunnelBoundary(TunnelOutputSite, TunnelInstance);
 				}
 			}
 
-			bool bSuccess = Schema->CollapseGatewayNode(TunnelNode, InputSink, TunnelNode->GetOutputSource(), this);
+			const bool bSuccess = Schema->CollapseGatewayNode(TunnelNode, InputSink, OutputSource, this);
 			if (!bSuccess)
 			{
 				MessageLog.Error(*LOCTEXT("CollapseTunnel_Error", "Failed to collapse tunnel @@").ToString(), TunnelNode);
@@ -3447,6 +3449,12 @@ void FKismetCompilerContext::ResetErrorFlags(UEdGraph* Graph) const
 void FKismetCompilerContext::ProcessOneFunctionGraph(UEdGraph* SourceGraph, bool bInternalFunction)
 {
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ProcessFunctionGraph);
+
+	if (SourceGraph->GetFName() == Schema->FN_UserConstructionScript && FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint))
+	{
+		// This is a data only blueprint, we do not want to actually create our user construction script as it only consists of a call to the parent
+		return;
+	}
 
 	// Clone the source graph so we can modify it as needed; merging in the child graphs
 	UEdGraph* FunctionGraph = FEdGraphUtilities::CloneGraph(SourceGraph, Blueprint, &MessageLog, true); 
@@ -3513,7 +3521,7 @@ void FKismetCompilerContext::ValidateFunctionGraphNames()
 		for (int32 FunctionIndex=0; FunctionIndex < Blueprint->FunctionGraphs.Num(); ++FunctionIndex)
 		{
 			UEdGraph* FunctionGraph = Blueprint->FunctionGraphs[FunctionIndex];
-			if(FunctionGraph->GetFName() != Schema->FN_UserConstructionScript)
+			if(FunctionGraph->GetFName() != UEdGraphSchema_K2::FN_UserConstructionScript)
 			{
 				if( ParentBPNameValidator->IsValid(FunctionGraph->GetName()) != EValidatorResult::Ok )
 				{
@@ -3810,7 +3818,7 @@ void FKismetCompilerContext::CompileClassLayout(EInternalCompilerFlags InternalF
 	if (UsePersistentUberGraphFrame() && UbergraphContext)
 	{
 		//UBER GRAPH PERSISTENT FRAME
-		FEdGraphPinType Type(TEXT("struct"), FString(), FPointerToUberGraphFrame::StaticStruct(), EPinContainerType::None, false, FEdGraphTerminalType());
+		FEdGraphPinType Type(TEXT("struct"), NAME_None, FPointerToUberGraphFrame::StaticStruct(), EPinContainerType::None, false, FEdGraphTerminalType());
 		UProperty* Property = CreateVariable(UBlueprintGeneratedClass::GetUberGraphFrameName(), Type);
 		Property->SetPropertyFlags(CPF_DuplicateTransient | CPF_Transient);
 	}
@@ -3951,8 +3959,6 @@ void FKismetCompilerContext::CompileFunctions(EInternalCompilerFlags InternalFla
 		}
 
 		UObject* NewCDO = NewClass->GetDefaultObject();
-
-		FUserDefinedStructureCompilerUtils::DefaultUserDefinedStructs(NewCDO, MessageLog);
 
 		// Copy over the CDO properties if we're not already regenerating on load.  In that case, the copy will be done after compile on load is complete
 		FBlueprintEditorUtils::PropagateParentBlueprintDefaults(NewClass);
@@ -4439,7 +4445,7 @@ void FKismetCompilerContext::SetCanEverTick() const
 					MessageLog.Warning(*ReceiveTickEventWarning, FindLocalEntryPoint(ReceiveTickEvent));
 
 					const FString ReceiveTickEventRemedies = FString::Printf(
-						*LOCTEXT("RecieveTick_CanNeverTickRemedies", "You can solve this in several ways:\n  1) Consider using a Timer instead of Tick.\n  2) Add meta=(%s) to the parent C++ class\n  3) Reparent the Blueprint to AActor or UActorComponent, which can always tick.").ToString(),
+						*LOCTEXT("ReceiveTick_CanNeverTickRemedies", "You can solve this in several ways:\n  1) Consider using a Timer instead of Tick.\n  2) Add meta=(%s) to the parent C++ class\n  3) Reparent the Blueprint to AActor or UActorComponent, which can always tick.").ToString(),
 						*FBlueprintMetadata::MD_ChildCanTick.ToString());
 					MessageLog.Warning(*ReceiveTickEventRemedies);
 				}
@@ -4476,15 +4482,205 @@ FString FKismetCompilerContext::GetGuid(const UEdGraphNode* Node) const
 	return Ret.ToString();
 }
 
+TMap< UClass*, CompilerContextFactoryFunction> CustomCompilerMap;
+
 TSharedPtr<FKismetCompilerContext> FKismetCompilerContext::GetCompilerForBP(UBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions)
 {
+	// Typically whatever loads the compiler module can also register it (or the module can self register). Due to load order
+	// issues anim blueprint is part of Engine and so there is no obvious place to register FAnimBlueprintCompilerContext,
+	// so I have simply hard-coded it:
 	if(UAnimBlueprint* AnimBP = Cast<UAnimBlueprint>(BP))
 	{
-		return TSharedPtr<FKismetCompilerContext>(new FAnimBlueprintCompiler(AnimBP, InMessageLog, InCompileOptions, nullptr));
+		return TSharedPtr<FKismetCompilerContext>(new FAnimBlueprintCompilerContext(AnimBP, InMessageLog, InCompileOptions, nullptr));
+	}
+	else if(CompilerContextFactoryFunction* FactoryFunction = CustomCompilerMap.Find(BP->GetClass()))
+	{
+		return (*FactoryFunction)(BP, InMessageLog, InCompileOptions);
 	}
 	else
 	{
 		return TSharedPtr<FKismetCompilerContext>(new FKismetCompilerContext(BP, InMessageLog, InCompileOptions, nullptr));
+	}
+}
+
+void FKismetCompilerContext::RegisterCompilerForBP(UClass* BPClass, TFunction<TSharedPtr<FKismetCompilerContext>(UBlueprint*, FCompilerResultsLog&, const FKismetCompilerOptions&)> FactoryFunction)
+{
+	CustomCompilerMap.Add(BPClass, FactoryFunction);
+}
+
+void FKismetCompilerContext::MapExpansionPathToTunnelInstance(const UEdGraphNode* InnerExpansionNode, const UEdGraphNode* OuterTunnelInstance)
+{
+	if (InnerExpansionNode && OuterTunnelInstance)
+	{
+		// Only map the node to the tunnel instance if it hasn't been mapped before (e.g. by a nested expansion).
+		if (!MessageLog.GetIntermediateTunnelInstance(InnerExpansionNode))
+		{
+			MessageLog.NotifyIntermediateTunnelNode(InnerExpansionNode, OuterTunnelInstance);
+		}
+
+		// Recursively map any nodes linked to this node along each output execution path.
+		for (const UEdGraphPin* OutputPin : InnerExpansionNode->Pins)
+		{
+			if (OutputPin->Direction == EGPD_Output && UEdGraphSchema_K2::IsExecPin(*OutputPin) && OutputPin->LinkedTo.Num() > 0)
+			{
+				for (const UEdGraphPin* LinkedTo : OutputPin->LinkedTo)
+				{
+					// Make sure it is valid and hasn't already been mapped (e.g. shared execution paths). Also, avoid mapping tunnel output nodes (not needed).
+					const UEdGraphNode* LinkedExpansionNode = LinkedTo->GetOwningNode();
+					if (LinkedExpansionNode
+						&& !MessageLog.GetIntermediateTunnelInstance(LinkedExpansionNode)
+						&& (!LinkedExpansionNode->IsA<UK2Node_Tunnel>() || FBlueprintEditorUtils::IsTunnelInstanceNode(LinkedExpansionNode)))
+					{
+						MapExpansionPathToTunnelInstance(LinkedExpansionNode, OuterTunnelInstance);
+					}
+				}
+			}
+		}
+	}
+}
+
+// This method injects an intermediate "boundary" node on either side of a tunnel instance node and the tunnel input/output
+// nodes which can be found along the execution path that flows through the tunnel instance node's expansion. The boundary
+// nodes resolve to a NOP debug site for breakpoints and wire traces, and are only constructed when debug data is enabled.
+//
+// For example:
+//
+//     +======================+
+//     | Tunnel instance node |
+//     +======================+
+// (1) | >--+            +--> |
+//     +====|============|====+
+//          |            |
+//          |            +-------------------------------------------------------+
+//          |                                                                    |
+//          |   +================+                         +=================+   |
+//          |   | Input (Tunnel) |                         | Output (Tunnel) |   |
+//          |   +================+                         +=================+   |
+//          +---|--------------> | (2) . . . . . . . . (3) | >---------------|---+
+//              +================+                         +=================+
+//
+// In the expansion shown above, intermediate boundary nodes are created at the following locations along the execution path:
+//
+//	(1) "Entry" site - Precedes the tunnel instance node in the execution sequence.
+//	(2) "Input" site - Follows the input tunnel in the expansion of the tunnel instance.
+//	(3) "Output" site - Precedes the output tunnel in the expansion of the tunnel instance.
+//
+// After tunnels are collapsed and isolated in the intermediate function graph during expansion, the tunnel boundary nodes will
+// remain in place along the execution path, and they won't get compiled out. The resulting bytecode resolves to a NOP sequence.
+//
+// When a tunnel instance node has multiple exec inputs/outputs, this method creates one tunnel boundary per exec path through
+// the expansion. Also, note that we do not create a boundary node on the output side of the tunnel instance node, because we want
+// execution to continue on to the next linked node after the instruction pointer passes the tunnel output site when single-stepping.
+//
+// In addition to creating intermediate tunnel boundary nodes, this method also maps the intermediate impure nodes along each unique
+// execution path through the expansion (between boundaries 2 and 3 in the diagram above) back to the intermediate tunnel instance
+// node that resulted in the expansion. This mapping is used for (a) producing stable UUIDs for latent nodes in an expansion, and
+// (b) drawing "marching ants" on either side of the tunnel instance node that corresponds to the execution path in the source graph. 
+//
+void FKismetCompilerContext::ProcessIntermediateTunnelBoundary(UK2Node_Tunnel* TunnelInput, UK2Node_Tunnel* TunnelOutput)
+{
+	// @TODO move this check out of KismetFunctionContext so we can use it here?
+	auto IsDebuggingOrInstrumentationRequired = []() -> bool
+	{
+		return GIsEditor && !IsRunningCommandlet();
+	};
+
+	// Common initialization.
+	auto InitializeTunnelBoundaryNode = [this](UK2Node_TunnelBoundary* TunnelBoundary, UK2Node_Tunnel* TunnelSource)
+	{
+		// Set the base node name and boundary type.
+		TunnelBoundary->SetNodeAttributes(TunnelSource);
+
+		// Position the node in the intermediate graph.
+		TunnelBoundary->NodePosX = TunnelSource->NodePosX;
+		TunnelBoundary->NodePosY = TunnelSource->NodePosY;
+	};
+
+	if (TunnelInput)
+	{
+		// Flag that indicates whether or not the tunnel instance node is designated as an input or an output.
+		const bool bIsTunnelEntrySite = FBlueprintEditorUtils::IsTunnelInstanceNode(TunnelInput);
+
+		for (UEdGraphPin* InputPin : TunnelInput->Pins)
+		{
+			// We create a boundary node for each exec pin input. This way every execution path has a debug site.
+			if (InputPin->Direction == EGPD_Input && UEdGraphSchema_K2::IsExecPin(*InputPin) && InputPin->LinkedTo.Num() > 0)
+			{
+				if (IsDebuggingOrInstrumentationRequired())
+				{
+					// Create one or more boundary nodes that precede the tunnel input node.
+					if (UK2Node_TunnelBoundary* InputBoundaryNode = SpawnIntermediateNode<UK2Node_TunnelBoundary>(TunnelInput))
+					{
+						InitializeTunnelBoundaryNode(InputBoundaryNode, TunnelInput);
+
+						// Map the intermediate input tunnel boundary node back to the intermediate tunnel instance node that spawned it.
+						MessageLog.NotifyIntermediateTunnelNode(InputBoundaryNode, bIsTunnelEntrySite ? TunnelInput : TunnelOutput);
+
+						if (UEdGraphPin* NewInputPin = InputBoundaryNode->CreatePin(EGPD_Input, InputPin->PinType, InputPin->PinName))
+						{
+							if (UEdGraphPin* NewOutputPin = InputBoundaryNode->CreatePin(EGPD_Output, InputPin->PinType, InputBoundaryNode->CreateUniquePinName(InputPin->PinName)))
+							{
+								// Move the exec pin links to the boundary node. This ensures that execution will flow through the boundary node.
+								if (MovePinLinksToIntermediate(*InputPin, *NewInputPin).CanSafeConnect())
+								{
+									NewOutputPin->MakeLinkTo(InputPin);
+								}
+							}
+						}
+					}
+				}
+
+				// Look for a matching pin on the tunnel output node.
+				if (UEdGraphPin* OutputPin = TunnelOutput ? TunnelOutput->FindPin(InputPin->PinName) : nullptr)
+				{
+					if (ensure(OutputPin->Direction == EGPD_Output && UEdGraphSchema_K2::IsExecPin(*OutputPin)) && OutputPin->LinkedTo.Num() > 0)
+					{
+						if (bIsTunnelEntrySite)
+						{
+							// Map the execution path through the expansion back to the tunnel instance node. Note that the assumption here is
+							// that we haven't collapsed the tunnels yet, so the output side of the expansion shouldn't be linked to anything.
+							for (UEdGraphPin* LinkedTo : OutputPin->LinkedTo)
+							{
+								MapExpansionPathToTunnelInstance(LinkedTo->GetOwningNode(), TunnelInput);
+							}
+
+							if (IsDebuggingOrInstrumentationRequired())
+							{
+								// We also create a boundary node for each matching exec pin on the tunnel output node.
+								if (UK2Node_TunnelBoundary* OutputBoundaryNode = SpawnIntermediateNode<UK2Node_TunnelBoundary>(TunnelOutput))
+								{
+									InitializeTunnelBoundaryNode(OutputBoundaryNode, TunnelOutput);
+
+									// Map the intermediate output tunnel boundary node back to the intermediate tunnel instance node that spawned it.
+									MessageLog.NotifyIntermediateTunnelNode(OutputBoundaryNode, TunnelInput);
+
+									if (UEdGraphPin* NewInputPin = OutputBoundaryNode->CreatePin(EGPD_Input, OutputPin->PinType, OutputPin->PinName))
+									{
+										if (UEdGraphPin* NewOutputPin = OutputBoundaryNode->CreatePin(EGPD_Output, OutputPin->PinType, OutputBoundaryNode->CreateUniquePinName(OutputPin->PinName)))
+										{
+											// Move the exec pin links to the boundary node. This ensures that execution will flow through the boundary node.
+											if (MovePinLinksToIntermediate(*OutputPin, *NewOutputPin).CanSafeConnect())
+											{
+												NewInputPin->MakeLinkTo(OutputPin);
+											}
+										}
+									}
+								}
+							}
+						}
+						else if(IsDebuggingOrInstrumentationRequired())
+						{
+							// This is the output side of the expansion, so a tunnel boundary node will not be required on the output side of the pair. However, for
+							// wire traces to function properly, we still need to map exec pins linked to the input side back to the matching pin on the output side.
+							for (UEdGraphPin* LinkedInputPin : InputPin->LinkedTo)
+							{
+								MessageLog.NotifyIntermediatePinCreation(LinkedInputPin, OutputPin);
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 }
 

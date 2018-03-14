@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SClothPaintTab.h"
 
@@ -135,6 +135,13 @@ bool SClothPaintTab::IsPaintModeActive() const
 
 void SClothPaintTab::UpdatePaintTools()
 {
+	if(!HostingApp.IsValid())
+	{
+		// If we have no valid host, we can't do anything with our editor below, so don't perform a
+		// state update on the tool mode.
+		return;
+	}
+
 	if (bPaintModeEnabled)
 	{
 		ISkeletalMeshEditor* SkeletalMeshEditor = static_cast<ISkeletalMeshEditor*>(HostingApp.Pin().Get());

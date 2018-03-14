@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MfMediaTracks.h"
 #include "MfMediaPrivate.h"
@@ -119,15 +119,25 @@ FTimespan FMfMediaTracks::GetDuration() const
 {
 	FScopeLock Lock(&CriticalSection);
 
-	if (PresentationDescriptor == NULL)
+	if (!SourceReader.IsValid())
 	{
 		return FTimespan::Zero();
 	}
 
-	UINT64 PresentationDuration = 0;
-	PresentationDescriptor->GetUINT64(MF_PD_DURATION, &PresentationDuration);
+	PROPVARIANT DurationAttrib;
+	{
+		const HRESULT Result = SourceReader->GetPresentationAttribute(MF_SOURCE_READER_MEDIASOURCE, MF_PD_DURATION, &DurationAttrib);
 
-	return FTimespan(PresentationDuration);
+		if (FAILED(Result))
+		{
+			return FTimespan::Zero();
+		}
+	}
+
+	const int64 Duration = (DurationAttrib.vt == VT_UI8) ? (int64)DurationAttrib.uhVal.QuadPart : 0;
+	::PropVariantClear(&DurationAttrib);
+
+	return FTimespan(Duration);
 }
 
 
@@ -169,18 +179,6 @@ void FMfMediaTracks::Initialize(IMFMediaSource* InMediaSource, IMFSourceReaderCa
 		return;
 	}
 
-	// create presentation descriptor
-	TComPtr<IMFPresentationDescriptor> NewPresentationDescriptor;
-	{
-		HRESULT Result = InMediaSource->CreatePresentationDescriptor(&NewPresentationDescriptor);
-
-		if (FAILED(Result))
-		{
-			UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Failed to create presentation descriptor: %s"), this, *MfMedia::ResultToString(Result));
-			return;
-		}
-	}
-
 	// create source reader
 	TComPtr<IMFAttributes> Attributes;
 	{
@@ -213,7 +211,7 @@ void FMfMediaTracks::Initialize(IMFMediaSource* InMediaSource, IMFSourceReaderCa
 
 	TComPtr<IMFSourceReader> NewSourceReader;
 	{
-		HRESULT Result = ::MFCreateSourceReaderFromMediaSource(InMediaSource, Attributes, &NewSourceReader);
+		const HRESULT Result = ::MFCreateSourceReaderFromMediaSource(InMediaSource, Attributes, &NewSourceReader);
 
 		if (FAILED(Result))
 		{
@@ -222,39 +220,25 @@ void FMfMediaTracks::Initialize(IMFMediaSource* InMediaSource, IMFSourceReaderCa
 		}
 	}
 
-	// get number of streams
-	DWORD StreamCount = 0;
-	{
-		HRESULT Result = NewPresentationDescriptor->GetStreamDescriptorCount(&StreamCount);
-
-		if (FAILED(Result))
-		{
-			UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Failed to get stream count: %s"), this, *MfMedia::ResultToString(Result));
-			return;
-		}
-
-		UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Found %i streams"), this, StreamCount);
-	}
-
 	// initialization successful
 	MediaSource = InMediaSource;
-	PresentationDescriptor = NewPresentationDescriptor;
 	Samples = InSamples;
 	SourceReader = NewSourceReader;
 
-	// add streams (Media Foundation reports them in reverse order)
-	bool AllStreamsAdded = true;
+	// add streams
+	int32 StreamIndex = 0;
 
-	for (int32 StreamIndex = StreamCount - 1; StreamIndex >= 0; --StreamIndex)
+	while (AddStreamToTracks(StreamIndex, Info))
 	{
-		AllStreamsAdded &= AddStreamToTracks(StreamIndex, Info);
 		Info += TEXT("\n");
+		++StreamIndex;
 	}
 
-	if (!AllStreamsAdded)
-	{
-		UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Not all available streams were added to the track collection"), this);
-	}
+	UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Found %i streams"), this, StreamIndex);
+
+	Algo::Reverse(AudioTracks);
+	Algo::Reverse(CaptionTracks);
+	Algo::Reverse(VideoTracks);
 }
 
 
@@ -449,7 +433,6 @@ void FMfMediaTracks::Shutdown()
 	CaptionDone = true;
 	VideoDone = true;
 
-	PresentationDescriptor.Reset();
 	Samples.Reset();
 	SourceReader.Reset();
 
@@ -781,20 +764,14 @@ bool FMfMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackIndex)
 	if (*SelectedTrack != INDEX_NONE)
 	{
 		const DWORD StreamIndex = (*Tracks)[*SelectedTrack].StreamIndex;
-		HRESULT Result = PresentationDescriptor->DeselectStream(StreamIndex);
-
-		if (FAILED(Result))
 		{
-			UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Failed to deselect stream %i on presentation descriptor: %s"), this, StreamIndex, *MfMedia::ResultToString(Result));
-			return false;
-		}
+			const HRESULT Result = SourceReader->SetStreamSelection(StreamIndex, FALSE);
 
-		Result = SourceReader->SetStreamSelection(StreamIndex, FALSE);
-
-		if (FAILED(Result))
-		{
-			UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Failed to deselect stream %i on source reader: %s"), this, StreamIndex, *MfMedia::ResultToString(Result));
-			return false;
+			if (FAILED(Result))
+			{
+				UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Failed to deselect stream %i on source reader: %s"), this, StreamIndex, *MfMedia::ResultToString(Result));
+				return false;
+			}
 		}
 
 		UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Disabled stream %i"), this, StreamIndex);
@@ -802,7 +779,7 @@ bool FMfMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackIndex)
 		*SelectedTrack = INDEX_NONE;
 		SelectionChanged = true;
 
-		Result = SourceReader->Flush(StreamIndex);
+		HRESULT Result = SourceReader->Flush(StreamIndex);
 
 		if (FAILED(Result))
 		{
@@ -814,19 +791,11 @@ bool FMfMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackIndex)
 	if (TrackIndex != INDEX_NONE)
 	{
 		const DWORD StreamIndex = (*Tracks)[TrackIndex].StreamIndex;
-		HRESULT Result = SourceReader->SetStreamSelection(StreamIndex, TRUE);
+		const HRESULT Result = SourceReader->SetStreamSelection(StreamIndex, TRUE);
 
 		if (FAILED(Result))
 		{
 			UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Failed to select stream %i on source reader: %s"), this, StreamIndex, *MfMedia::ResultToString(Result));
-			return false;
-		}
-
-		Result = PresentationDescriptor->SelectStream(StreamIndex);
-
-		if (FAILED(Result))
-		{
-			UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Failed to select stream %i on presenation descriptor: %s"), this, StreamIndex, *MfMedia::ResultToString(Result));
 			return false;
 		}
 
@@ -889,25 +858,17 @@ bool FMfMediaTracks::SetTrackFormat(EMediaTrackType TrackType, int32 TrackIndex,
 
 	check(Format.InputType.IsValid());
 	check(Format.OutputType.IsValid());
-	check(Track.Handler.IsValid());
 
 	// set track format
-	UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Set format %i instead of %i on %s track %i (%i formats)"), this, FormatIndex, Track.SelectedFormat, *MediaUtils::TrackTypeToString(TrackType), TrackIndex, Track.Formats.Num());
-
-	HRESULT Result = Track.Handler->SetCurrentMediaType(Format.InputType);
-
-	if (FAILED(Result))
+	UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Setting format %i instead of %i on %s track %i (%i formats)"), this, FormatIndex, Track.SelectedFormat, *MediaUtils::TrackTypeToString(TrackType), TrackIndex, Track.Formats.Num());
 	{
-		UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Failed to set selected media type on handler for stream %i: %s"), this, Track.StreamIndex, *MfMedia::ResultToString(Result));
-		return false;
-	}
+		HRESULT Result = SourceReader->SetCurrentMediaType(Track.StreamIndex, NULL, Format.OutputType);
 
-	Result = SourceReader->SetCurrentMediaType(Track.StreamIndex, NULL, Format.OutputType);
-
-	if (FAILED(Result))
-	{
-		UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Failed to set selected media type on reader for stream %i: %s"), this, Track.StreamIndex, *MfMedia::ResultToString(Result));
-		return false;
+		if (FAILED(Result))
+		{
+			UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Failed to set selected media type on reader for stream %i: %s"), this, Track.StreamIndex, *MfMedia::ResultToString(Result));
+			return false;
+		}
 	}
 
 	Track.SelectedFormat = FormatIndex;
@@ -924,35 +885,15 @@ bool FMfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 {
 	OutInfo += FString::Printf(TEXT("Stream %i\n"), StreamIndex);
 
-	// get stream descriptor
-	TComPtr<IMFStreamDescriptor> StreamDescriptor;
+	// get current format
+	TComPtr<IMFMediaType> CurrentMediaType;
 	{
-		BOOL Selected = FALSE;
-		const HRESULT Result = PresentationDescriptor->GetStreamDescriptorByIndex(StreamIndex, &Selected, &StreamDescriptor);
+		const HRESULT Result = SourceReader->GetCurrentMediaType(StreamIndex, &CurrentMediaType);
 
 		if (FAILED(Result))
 		{
-			UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Failed to get stream descriptor for stream %i: %s"), this, StreamIndex, *MfMedia::ResultToString(Result));
-			OutInfo += TEXT("\tmissing stream descriptor\n");
-
-			return false;
-		}
-
-		if (Selected == TRUE)
-		{
-			PresentationDescriptor->DeselectStream(StreamIndex);
-		}
-	}
-
-	// get media type handler
-	TComPtr<IMFMediaTypeHandler> Handler;
-	{
-		const HRESULT Result = StreamDescriptor->GetMediaTypeHandler(&Handler);
-
-		if (FAILED(Result))
-		{
-			UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Failed to get media type handler for stream %i: %s"), this, StreamIndex, *MfMedia::ResultToString(Result));
-			OutInfo += TEXT("\tno handler available\n");
+			UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Failed to get current media type in stream %i: %s"), this, StreamIndex, *MfMedia::ResultToString(Result));
+			OutInfo += TEXT("\tfailed to get current format\n");
 
 			return false;
 		}
@@ -961,7 +902,7 @@ bool FMfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 	// skip unsupported handler types
 	GUID MajorType;
 	{
-		const HRESULT Result = Handler->GetMajorType(&MajorType);
+		const HRESULT Result = CurrentMediaType->GetGUID(MF_MT_MAJOR_TYPE, &MajorType);
 
 		if (FAILED(Result))
 		{
@@ -986,25 +927,19 @@ bool FMfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 	}
 
 	// @todo gmp: handle protected content
-	const bool Protected = ::MFGetAttributeUINT32(StreamDescriptor, MF_SD_PROTECTED, FALSE) != 0;
+	BOOL Protected = FALSE;
 	{
-		if (Protected)
+		PROPVARIANT ProtectedAttrib;
+
+		if (SUCCEEDED(SourceReader->GetPresentationAttribute(StreamIndex, MF_SD_PROTECTED, &ProtectedAttrib)))
 		{
-			OutInfo += FString::Printf(TEXT("\tProtected content\n"));
-		}
-	}
+			Protected = (ProtectedAttrib.vt == VT_BOOL) && (ProtectedAttrib.boolVal == VARIANT_TRUE);
+			::PropVariantClear(&ProtectedAttrib);
 
-	// get number of track formats
-	DWORD NumMediaTypes = 0;
-	{
-		const HRESULT Result = Handler->GetMediaTypeCount(&NumMediaTypes);
-
-		if (FAILED(Result))
-		{
-			UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Failed to get number of track formats in stream %i"), this, StreamIndex);
-			OutInfo += TEXT("\tfailed to get track formats\n");
-
-			return false;
+			if (Protected == TRUE)
+			{
+				OutInfo += FString::Printf(TEXT("\tProtected content\n"));
+			}
 		}
 	}
 
@@ -1028,35 +963,35 @@ bool FMfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 	}
 
 	check(Track != nullptr);
-
-	// get current format
-	TComPtr<IMFMediaType> CurrentMediaType;
-	{
-		HRESULT Result = Handler->GetCurrentMediaType(&CurrentMediaType);
-
-		if (FAILED(Result))
-		{
-			UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Failed to get current media type in stream %i: %s"), this, StreamIndex, *MfMedia::ResultToString(Result));
-		}
-	}
-
 	Track->SelectedFormat = INDEX_NONE;
 
 	// add track formats
 	const bool AllowNonStandardCodecs = false;// GetDefault<UMfMediaSettings>()->AllowNonStandardCodecs;
 
-	for (DWORD TypeIndex = 0; TypeIndex < NumMediaTypes; ++TypeIndex)
+	int32 TypeIndex = INDEX_NONE;
+
+	while (true)
 	{
-		OutInfo += FString::Printf(TEXT("\tFormat %i\n"), TypeIndex);
+		++TypeIndex;
 
 		// get media type
 		TComPtr<IMFMediaType> MediaType;
-
-		if (FAILED(Handler->GetMediaTypeByIndex(TypeIndex, &MediaType)))
 		{
-			OutInfo += TEXT("\t\tfailed to get media type\n");
+			const HRESULT Result = SourceReader->GetNativeMediaType(StreamIndex, TypeIndex, &MediaType);
 
-			continue;
+			if (Result == MF_E_NO_MORE_TYPES)
+			{
+				break; // done
+			}
+
+			OutInfo += FString::Printf(TEXT("\tFormat %i\n"), TypeIndex);
+
+			if (FAILED(Result))
+			{
+				OutInfo += TEXT("\t\tfailed to get media type\n");
+
+				continue;
+			}
 		}
 
 		// get sub-type
@@ -1359,10 +1294,9 @@ bool FMfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 		for (int32 FormatIndex = 0; FormatIndex < Track->Formats.Num(); ++FormatIndex)
 		{
 			const FFormat& Format = Track->Formats[FormatIndex];
-			const HRESULT ReaderResult = SourceReader->SetCurrentMediaType(StreamIndex, NULL, Format.OutputType);
-			const HRESULT TrackResult = Handler->SetCurrentMediaType(Format.InputType);
+			const HRESULT Result = SourceReader->SetCurrentMediaType(StreamIndex, NULL, Format.OutputType);
 
-			if (SUCCEEDED(TrackResult) && SUCCEEDED(ReaderResult))
+			if (SUCCEEDED(Result))
 			{
 				UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %p: Picked default format %i for stream %i"), this, FormatIndex, StreamIndex);
 				Track->SelectedFormat = FormatIndex;
@@ -1378,28 +1312,41 @@ bool FMfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 	}
 
 	// set track details
-	PWSTR OutString = NULL;
-	UINT32 OutLength = 0;
+	PROPVARIANT LanguageAttrib;
 
-	if (SUCCEEDED(StreamDescriptor->GetAllocatedString(MF_SD_LANGUAGE, &OutString, &OutLength)))
+	if (SUCCEEDED(SourceReader->GetPresentationAttribute(StreamIndex, MF_SD_LANGUAGE, &LanguageAttrib)))
 	{
-		Track->Language = OutString;
-		::CoTaskMemFree(OutString);
+		if ((LanguageAttrib.vt == VT_LPWSTR) || (LanguageAttrib.vt == VT_BSTR))
+		{
+			if (LanguageAttrib.pwszVal != NULL)
+			{
+				Track->Language = LanguageAttrib.pwszVal;
+			}
+		}
+
+		::PropVariantClear(&LanguageAttrib);
 	}
 
-	if (SUCCEEDED(StreamDescriptor->GetAllocatedString(MF_SD_STREAM_NAME, &OutString, &OutLength)))
+	PROPVARIANT NameAttrib;
+
+	if (SUCCEEDED(SourceReader->GetPresentationAttribute(StreamIndex, MF_SD_STREAM_NAME, &NameAttrib)))
 	{
-		Track->Name = OutString;
-		::CoTaskMemFree(OutString);
+		if ((NameAttrib.vt == VT_LPWSTR) || (NameAttrib.vt == VT_BSTR))
+		{
+			if (NameAttrib.pwszVal != NULL)
+			{
+				Track->Name = NameAttrib.pwszVal;
+			}
+		}
+
+		::PropVariantClear(&NameAttrib);
 	}
 
 	Track->DisplayName = (Track->Name.IsEmpty())
 		? FText::Format(LOCTEXT("UnnamedStreamFormat", "Unnamed Track (Stream {0})"), FText::AsNumber((uint32)StreamIndex))
 		: FText::FromString(Track->Name);
 
-	Track->Descriptor = StreamDescriptor;
-	Track->Handler = Handler;
-	Track->Protected = Protected;
+	Track->Protected = (Protected == TRUE);
 	Track->StreamIndex = StreamIndex;
 
 	return true;

@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3169600
-Availability:Docs
+﻿INTSourceChangelist:3454520
+Availability:Public
 Title:オンライン ビーコン
 Crumbs: %ROOT%, Engine
 Description:オンライン ビーコン システムの概要
 Version:4.13
-parent:Engine
+parent:Gameplay/Networking
 Related:Gameplay/Networking/Actors/RPCs
 Related:Gameplay/Networking/Actors/Properties
 

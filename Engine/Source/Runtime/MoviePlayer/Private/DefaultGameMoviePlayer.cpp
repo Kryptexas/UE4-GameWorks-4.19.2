@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DefaultGameMoviePlayer.h"
 #include "HAL/PlatformSplash.h"
@@ -415,10 +415,11 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 		}
 
 		// Continue to wait until the user calls finish (if enabled) or when loading completes or the minimum enforced time (if any) has been reached.
-		while ( 
-				(bWaitForManualStop && !bUserCalledFinish)
+		// Don't continue playing on game shutdown
+		while ( !GIsRequestingExit &&
+				((bWaitForManualStop && !bUserCalledFinish)
 			||	(!bUserCalledFinish && !bEnforceMinimumTime && !IsMovieStreamingFinished() && !bAutoCompleteWhenLoadingCompletes) 
-			||	(bEnforceMinimumTime && (FPlatformTime::Seconds() - LastPlayTime) < LoadingScreenAttributes.MinimumLoadingScreenDisplayTime))
+			||	(bEnforceMinimumTime && (FPlatformTime::Seconds() - LastPlayTime) < LoadingScreenAttributes.MinimumLoadingScreenDisplayTime)))
 		{
 			// If we are in a loading loop, and this is the last movie in the playlist.. assume you can break out.
 			if (MovieStreamer.IsValid() && LoadingScreenAttributes.PlaybackType == MT_LoadingLoop && MovieStreamer->IsLastMovieInPlaylist())
@@ -504,7 +505,9 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 	else
 	{	
 		UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
-		if (GameEngine)
+
+		// Don't switch the window on game shutdown
+		if (GameEngine && !GIsRequestingExit)
 		{
 			GameEngine->SwitchGameWindowToUseGameViewport();
 		}

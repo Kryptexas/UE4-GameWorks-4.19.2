@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanShaders.cpp: Vulkan shader RHI implementation.
@@ -226,15 +226,17 @@ void FVulkanLayout::Compile()
 }
 
 
-FVulkanDescriptorSetRingBuffer::FVulkanDescriptorSetRingBuffer(FVulkanDevice* InDevice)
+#if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+FOLDVulkanDescriptorSetRingBuffer::FOLDVulkanDescriptorSetRingBuffer(FVulkanDevice* InDevice)
 	: VulkanRHI::FDeviceChild(InDevice)
 	, CurrDescriptorSets(nullptr)
 {
 }
 
-FVulkanDescriptorSetRingBuffer::~FVulkanDescriptorSetRingBuffer()
+FOLDVulkanDescriptorSetRingBuffer::~FOLDVulkanDescriptorSetRingBuffer()
 {
 }
+#endif
 
 void FVulkanDescriptorSetWriter::SetupDescriptorWrites(const FNEWVulkanShaderDescriptorInfo& Info, VkWriteDescriptorSet* InWriteDescriptors, VkDescriptorImageInfo* InImageInfo, VkDescriptorBufferInfo* InBufferInfo)
 {
@@ -344,12 +346,13 @@ void FVulkanComputeShaderState::ResetState()
 
 */
 
-FVulkanDescriptorSetRingBuffer::FDescriptorSetsPair::~FDescriptorSetsPair()
+#if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+FOLDVulkanDescriptorSetRingBuffer::FDescriptorSetsPair::~FDescriptorSetsPair()
 {
 	delete DescriptorSets;
 }
 
-FVulkanDescriptorSets* FVulkanDescriptorSetRingBuffer::RequestDescriptorSets(FVulkanCommandListContext* Context, FVulkanCmdBuffer* CmdBuffer, const FVulkanLayout& Layout)
+FOLDVulkanDescriptorSets* FOLDVulkanDescriptorSetRingBuffer::RequestDescriptorSets(FVulkanCommandListContext* Context, FVulkanCmdBuffer* CmdBuffer, const FVulkanLayout& Layout)
 {
 	FDescriptorSetsEntry* FoundEntry = nullptr;
 	for (FDescriptorSetsEntry* DescriptorSetsEntry : DescriptorSetsEntries)
@@ -383,10 +386,11 @@ FVulkanDescriptorSets* FVulkanDescriptorSetRingBuffer::RequestDescriptorSets(FVu
 	}
 
 	FDescriptorSetsPair* NewEntry = new (FoundEntry->Pairs) FDescriptorSetsPair;
-	NewEntry->DescriptorSets = new FVulkanDescriptorSets(Device, Layout.GetDescriptorSetsLayout(), Context);
+	NewEntry->DescriptorSets = new FOLDVulkanDescriptorSets(Device, Layout.GetDescriptorSetsLayout(), Context);
 	NewEntry->FenceCounter = CmdBufferFenceSignaledCounter;
 	return NewEntry->DescriptorSets;
 }
+#endif
 
 FVulkanBoundShaderState::FVulkanBoundShaderState(FVertexDeclarationRHIParamRef InVertexDeclarationRHI, FVertexShaderRHIParamRef InVertexShaderRHI,
 	FPixelShaderRHIParamRef InPixelShaderRHI, FHullShaderRHIParamRef InHullShaderRHI,
@@ -428,29 +432,57 @@ FBoundShaderStateRHIRef FVulkanDynamicRHI::RHICreateBoundShaderState(
 	return new FVulkanBoundShaderState(VertexDeclarationRHI, VertexShaderRHI, PixelShaderRHI, HullShaderRHI, DomainShaderRHI, GeometryShaderRHI);
 }
 
-FVulkanDescriptorPool* FVulkanCommandListContext::AllocateDescriptorSets(const VkDescriptorSetAllocateInfo& InDescriptorSetAllocateInfo, const FVulkanDescriptorSetsLayout& Layout, VkDescriptorSet* OutSets)
+#if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+FOLDVulkanDescriptorPool* FVulkanCommandListContext::AllocateDescriptorSets(const VkDescriptorSetAllocateInfo& InDescriptorSetAllocateInfo, const FVulkanDescriptorSetsLayout& Layout, VkDescriptorSet* OutSets)
 {
-	FVulkanDescriptorPool* Pool = DescriptorPools.Last();
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	FOLDVulkanDescriptorPool* Pool = nullptr;
 	VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo = InDescriptorSetAllocateInfo;
 	VkResult Result = VK_ERROR_OUT_OF_DEVICE_MEMORY;
 
+	const uint32 Hash = VULKAN_HASH_POOLS_WITH_TYPES_USAGE_ID ? Layout.GetTypesUsageID() : GetTypeHash(Layout);
+	FDescriptorPoolArray* TypedDescriptorPools = DescriptorPools.Find(Hash);
+
+	if (TypedDescriptorPools != nullptr)
+	{
+		Pool = TypedDescriptorPools->Last();
+
+		if (Pool->CanAllocate(Layout))
+		{
+			DescriptorSetAllocateInfo.descriptorPool = Pool->GetHandle();
+			Result = VulkanRHI::vkAllocateDescriptorSets(Device->GetInstanceHandle(), &DescriptorSetAllocateInfo, OutSets);
+		}
+	}
+	else
+	{
+		TypedDescriptorPools = &DescriptorPools.Add(Hash);
+	}
+#else
+	FOLDVulkanDescriptorPool* Pool = DescriptorPools.Last();
+	VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo = InDescriptorSetAllocateInfo;
+	VkResult Result = VK_ERROR_OUT_OF_DEVICE_MEMORY;
 	if (Pool->CanAllocate(Layout))
 	{
 		DescriptorSetAllocateInfo.descriptorPool = Pool->GetHandle();
 		Result = VulkanRHI::vkAllocateDescriptorSets(Device->GetInstanceHandle(), &DescriptorSetAllocateInfo, OutSets);
 	}
-
+#endif
 	if (Result < VK_SUCCESS)
 	{
-		if (Pool->IsEmpty())
+		if (Pool && Pool->IsEmpty())
 		{
 			VERIFYVULKANRESULT(Result);
 		}
 		else
 		{
 			// Spec says any negative value could be due to fragmentation, so create a new Pool. If it fails here then we really are out of memory!
-			Pool = new FVulkanDescriptorPool(Device);
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+			Pool = new FOLDVulkanDescriptorPool(Device, Layout);
+			TypedDescriptorPools->Add(Pool);
+#else
+			Pool = new FOLDVulkanDescriptorPool(Device);
 			DescriptorPools.Add(Pool);
+#endif
 			DescriptorSetAllocateInfo.descriptorPool = Pool->GetHandle();
 			VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkAllocateDescriptorSets(Device->GetInstanceHandle(), &DescriptorSetAllocateInfo, OutSets));
 		}
@@ -458,3 +490,4 @@ FVulkanDescriptorPool* FVulkanCommandListContext::AllocateDescriptorSets(const V
 
 	return Pool;
 }
+#endif

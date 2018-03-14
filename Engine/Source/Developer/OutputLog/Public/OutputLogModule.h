@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,7 +7,8 @@
 #include "Modules/ModuleInterface.h"
 #include "Widgets/SWindow.h"
 
-class SEditableTextBox;
+class FConsoleCommandExecutor;
+class SMultiLineEditableTextBox;
 
 /** Style of the debug console */
 namespace EDebugConsoleStyle
@@ -26,6 +27,7 @@ struct FDebugConsoleDelegates
 {
 	FSimpleDelegate OnFocusLost;
 	FSimpleDelegate OnConsoleCommandExecuted;
+	FSimpleDelegate OnCloseConsole;
 };
 
 class FOutputLogModule : public IModuleInterface
@@ -36,7 +38,7 @@ public:
 
 	/** Generates a console input box widget.  Remember, this widget will become invalid if the
 	    output log DLL is unloaded on the fly. */
-	virtual TSharedRef< SWidget > MakeConsoleInputBox( TSharedPtr< SEditableTextBox >& OutExposedEditableTextBox ) const;
+	virtual TSharedRef< SWidget > MakeConsoleInputBox( TSharedPtr< SMultiLineEditableTextBox >& OutExposedEditableTextBox ) const;
 
 	/** Opens a debug console in the specified window, if not already open */
 	virtual void ToggleDebugConsoleForWindow( const TSharedRef< SWindow >& Window, const EDebugConsoleStyle::Type InStyle, const FDebugConsoleDelegates& DebugConsoleDelegates );
@@ -49,4 +51,7 @@ private:
 
 	/** Weak pointer to a debug console that's currently open, if any */
 	TWeakPtr< SWidget > DebugConsole;
+
+	/** Pointer to the classic "Cmd" executor */
+	TSharedPtr<FConsoleCommandExecutor> CmdExec;
 };

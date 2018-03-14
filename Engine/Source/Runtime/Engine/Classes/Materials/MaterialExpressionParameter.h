@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -8,6 +8,8 @@
 #include "Misc/Guid.h"
 #include "Materials/MaterialExpression.h"
 #include "MaterialExpressionParameter.generated.h"
+
+struct FMaterialParameterInfo;
 
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionParameter : public UMaterialExpression
@@ -59,7 +61,7 @@ class UMaterialExpressionParameter : public UMaterialExpression
 	/**
 	 * Get list of parameter names for static parameter sets
 	 */
-	void GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const;
+	void GetAllParameterInfo(TArray<FMaterialParameterInfo> &OutParameterInfo, TArray<FGuid> &OutParameterIds, const FMaterialParameterInfo& InBaseParameterInfo) const;
 };
 
 

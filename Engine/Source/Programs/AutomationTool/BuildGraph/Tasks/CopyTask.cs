@@ -1,10 +1,11 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using AutomationTool;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using Tools.DotNETCommon;
@@ -92,6 +93,45 @@ namespace BuildGraph.Tasks
 			{
 				CommandUtils.Log("No files found matching '{0}'", SourcePattern);
 				return;
+			}
+
+			// If the target is on a network share, retry creating the first directory until it succeeds
+			DirectoryReference FirstTargetDirectory = TargetFileToSourceFile.First().Key.Directory;
+			if(!DirectoryReference.Exists(FirstTargetDirectory))
+			{
+				const int MaxNumRetries = 15;
+				for(int NumRetries = 0;;NumRetries++)
+				{
+					try
+					{
+						DirectoryReference.CreateDirectory(FirstTargetDirectory);
+						if(NumRetries == 1)
+						{
+							Log.TraceInformation("Created target directory {0} after 1 retry.", FirstTargetDirectory);
+						}
+						else if(NumRetries > 1)
+						{
+							Log.TraceInformation("Created target directory {0} after {1} retries.", FirstTargetDirectory, NumRetries);
+						}
+						break;
+					}
+					catch(Exception Ex)
+					{
+						if(NumRetries == 0)
+						{
+							Log.TraceInformation("Unable to create directory '{0}' on first attempt. Retrying {1} times...", FirstTargetDirectory, MaxNumRetries);
+						}
+
+						Log.TraceLog("  {0}", Ex);
+
+						if(NumRetries >= 15)
+						{
+							throw new AutomationException(Ex, "Unable to create target directory '{0}' after {1} retries.", FirstTargetDirectory, NumRetries);
+						}
+
+						Thread.Sleep(2000);
+					}
+				}
 			}
 
 			// Copy them all

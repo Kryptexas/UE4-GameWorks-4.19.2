@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RecomputeTangentsCommon.usf: Recompute Skin Tangents
@@ -22,10 +22,12 @@ uint NumTriangles;
 // vertex input ----------------------------
 
 //
-Buffer<uint> SkinStreamInputBuffer;
-// in bytes
-uint InputStreamStride;
-// in floats
+
+Buffer<float4> TangentInputBuffer;
+Buffer<float2> UVsInputBuffer;
+RWBuffer<float4> TangentBufferUAV;
+
+// in vertices
 uint InputStreamStart;
 
 // index input ----------------------------
@@ -39,12 +41,11 @@ Buffer<uint> IndexBuffer;
 // SkinCache -----------------------------
 
 // input vertex data (SkinCache output)
-// Buffer<float> GPUSkinCacheBuffer;
 // used as input in MainCS()
-Buffer<float> GPUSkinCacheBuffer;
-// used as output in ResolveCS()
-RWBuffer<float> SkinCacheBufferUAV;
-// start offset within SkinCacheBufferUAV[], in floats
+Buffer<float4> GPUTangentCacheBuffer;
+Buffer<float> GPUPositionCacheBuffer;
+
+// start offset in vertices
 uint SkinCacheStart;
 
 // intermediate ------------------------------

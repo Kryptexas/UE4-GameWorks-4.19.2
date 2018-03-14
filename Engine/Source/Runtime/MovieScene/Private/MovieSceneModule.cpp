@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
@@ -15,13 +15,28 @@ DEFINE_LOG_CATEGORY(LogMovieScene);
  */
 class FMovieSceneModule
 	: public IMovieSceneModule
+	, public TSharedFromThis<FMovieSceneModule>
 {
 public:
 
 	// IModuleInterface interface
+	~FMovieSceneModule()
+	{
+		ensure(ModuleHandle.IsUnique());
+	}
 
-	virtual void StartupModule() override { }
-	virtual void ShutdownModule() override { }
+	virtual void StartupModule() override
+	{
+		struct FNoopDefaultDeleter
+		{
+			void operator()(FMovieSceneModule* Object) const {}
+		};
+		ModuleHandle = MakeShareable(this, FNoopDefaultDeleter());
+	}
+
+	virtual void ShutdownModule() override
+	{
+	}
 
 	virtual void RegisterEvaluationGroupParameters(FName GroupName, const FMovieSceneEvaluationGroupParameters& GroupParameters) override
 	{
@@ -41,7 +56,13 @@ public:
 		return EvaluationGroupParameters.FindRef(GroupName);
 	}
 
+	virtual TWeakPtr<IMovieSceneModule> GetWeakPtr() override
+	{
+		return ModuleHandle;
+	}
+
 private:
+	TSharedPtr<FMovieSceneModule> ModuleHandle;
 	TMap<FName, FMovieSceneEvaluationGroupParameters> EvaluationGroupParameters;
 };
 

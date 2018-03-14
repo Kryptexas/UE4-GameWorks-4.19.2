@@ -19,7 +19,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. Our countdown timer is currently hard-coded to use a value of 3 seconds. It would be more useful if we could set the countdown time to any value we want in the editor, and this is easy to do. In **Visual Studio**, we can open Countdown.h and find the line that says:
 
@@ -82,122 +82,114 @@ version:4.9
 
 		void ACountdown::CountdownHasFinished_Implementation()
 
-----
 
 We have now made a variable and a function accessible to, and alterable by, non-programmers, while providing our own default value and functionality in C++. To see how a non-programmer might use this, we'll make a Blueprint extension of our ACountdown class and modify it ourselves.
 
-[OBJECT:Section]
-    [PARAMLITERAL:id]
-    code
-    [/PARAMLITERAL]
-    [PARAM:heading]
-	    Finished Code
-    [/PARAM]
-    [PARAM:content]
-		**Countdown.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+## Finished Code
 
-			#pragma once
+**Countdown.h**
 
-			#include "GameFramework/Actor.h"
-			#include "Countdown.generated.h"
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-			UCLASS()
-			class HOWTO_VTE_API ACountdown : public AActor
-			{
-				GENERATED_BODY()
+	#pragma once
+
+	#include "GameFramework/Actor.h"
+	#include "Countdown.generated.h"
+
+	UCLASS()
+	class HOWTO_VTE_API ACountdown : public AActor
+	{
+		GENERATED_BODY()
 	
-			public:	
-				// Sets default values for this actor's properties
-				ACountdown();
+	public:	
+		// Sets default values for this actor's properties
+		ACountdown();
 
-			protected:
-				// Called when the game starts or when spawned
-				virtual void BeginPlay() override;
+	protected:
+		// Called when the game starts or when spawned
+		virtual void BeginPlay() override;
 	
-			public:
-				// Called every frame
-				virtual void Tick( float DeltaSeconds ) override;
+	public:
+		// Called every frame
+		virtual void Tick( float DeltaSeconds ) override;
 
-				//How long, in seconds, the countdown will run
-				UPROPERTY(EditAnywhere)
-				int32 CountdownTime;
+		//How long, in seconds, the countdown will run
+		UPROPERTY(EditAnywhere)
+		int32 CountdownTime;
 
-				UTextRenderComponent* CountdownText;
+		UTextRenderComponent* CountdownText;
 
-				void UpdateTimerDisplay();
+		void UpdateTimerDisplay();
 
-				void AdvanceTimer();
+		void AdvanceTimer();
 
-				UFUNCTION(BlueprintNativeEvent)
-				void CountdownHasFinished();
-				virtual void CountdownHasFinished_Implementation();
+		UFUNCTION(BlueprintNativeEvent)
+		void CountdownHasFinished();
+		virtual void CountdownHasFinished_Implementation();
 
-				FTimerHandle CountdownTimerHandle;
-			};
+		FTimerHandle CountdownTimerHandle;
+	};
 
 
-		**Countdown.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+**Countdown.cpp**
 
-			#include "HowTo_VTE.h"
-			#include "Countdown.h"
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-			// Sets default values
-			ACountdown::ACountdown()
-			{
- 				// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-				PrimaryActorTick.bCanEverTick = false;
+	#include "HowTo_VTE.h"
+	#include "Countdown.h"
+
+	// Sets default values
+	ACountdown::ACountdown()
+	{
+ 		// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+		PrimaryActorTick.bCanEverTick = false;
 	
-				CountdownText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("CountdownNumber"));
-				CountdownText->SetHorizontalAlignment(EHTA_Center);
-				CountdownText->SetWorldSize(150.0f);
-				RootComponent = CountdownText;
+		CountdownText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("CountdownNumber"));
+		CountdownText->SetHorizontalAlignment(EHTA_Center);
+		CountdownText->SetWorldSize(150.0f);
+		RootComponent = CountdownText;
 
-				CountdownTime = 3;
-			}
+		CountdownTime = 3;
+	}
 
-			// Called when the game starts or when spawned
-			void ACountdown::BeginPlay()
-			{
-				Super::BeginPlay();
+	// Called when the game starts or when spawned
+	void ACountdown::BeginPlay()
+	{
+		Super::BeginPlay();
 	
-				UpdateTimerDisplay();
-				GetWorldTimerManager().SetTimer(CountdownTimerHandle, this, &ACountdown::AdvanceTimer, 1.0f, true);
-			}
+		UpdateTimerDisplay();
+		GetWorldTimerManager().SetTimer(CountdownTimerHandle, this, &ACountdown::AdvanceTimer, 1.0f, true);
+	}
 
-			// Called every frame
-			void ACountdown::Tick( float DeltaTime )
-			{
-				Super::Tick( DeltaTime );
+	// Called every frame
+	void ACountdown::Tick( float DeltaTime )
+	{
+		Super::Tick( DeltaTime );
 
-			}
+	}
 
-			void ACountdown::UpdateTimerDisplay()
-			{
-				CountdownText->SetText(FString::FromInt(FMath::Max(CountdownTime, 0)));
-			}
+	void ACountdown::UpdateTimerDisplay()
+	{
+		CountdownText->SetText(FString::FromInt(FMath::Max(CountdownTime, 0)));
+	}
 
-			void ACountdown::AdvanceTimer()
-			{
-				--CountdownTime;
-				UpdateTimerDisplay();
-				if (CountdownTime < 1)
-				{
-					// We're done counting down, so stop running the timer.
-					GetWorldTimerManager().ClearTimer(CountdownTimerHandle);
-					//Perform any special actions we want to do when the timer ends.
-					CountdownHasFinished();
-				}
-			}
+	void ACountdown::AdvanceTimer()
+	{
+		--CountdownTime;
+		UpdateTimerDisplay();
+		if (CountdownTime < 1)
+		{
+			// We're done counting down, so stop running the timer.
+			GetWorldTimerManager().ClearTimer(CountdownTimerHandle);
+			//Perform any special actions we want to do when the timer ends.
+			CountdownHasFinished();
+		}
+	}
 
-			void ACountdown::CountdownHasFinished_Implementation()
-			{
-				//Change to a special readout
-				CountdownText->SetText(TEXT("GO!"));
-			}
+	void ACountdown::CountdownHasFinished_Implementation()
+	{
+		//Change to a special readout
+		CountdownText->SetText(TEXT("GO!"));
+	}
 
-    [/PARAM]
-[/OBJECT]
 
-%Steps%

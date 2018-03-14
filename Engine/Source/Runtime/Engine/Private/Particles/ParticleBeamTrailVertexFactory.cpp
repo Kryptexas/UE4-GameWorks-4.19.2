@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleBeamTrailVertexFactory.cpp: Particle vertex factory implementation.
@@ -96,7 +96,7 @@ static TGlobalResource<FParticleBeamTrailVertexDeclaration> GParticleBeamTrailVe
 
 ///////////////////////////////////////////////////////////////////////////////
 
-bool FParticleBeamTrailVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+bool FParticleBeamTrailVertexFactory::ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
 	return Material->IsUsedWithBeamTrails() || Material->IsSpecialEngineMaterial();
 }

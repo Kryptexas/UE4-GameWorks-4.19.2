@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -29,7 +29,7 @@ public:
 	struct FSlateCurve
 	{
 		/** Constructor */
-		FSlateCurve( float InStartTime, float InDurationSeconds, const ECurveEaseFunction::Type InEaseFunction )
+		FSlateCurve( float InStartTime, float InDurationSeconds, const ECurveEaseFunction InEaseFunction )
 			: DurationSeconds(InDurationSeconds)
 			, StartTime(InStartTime)
 			, EaseFunction(InEaseFunction)
@@ -46,7 +46,7 @@ public:
 		 * Type of easing function to use for this curve.
 		 * Could be passed it at call site.
 		 */
-		ECurveEaseFunction::Type EaseFunction;
+		ECurveEaseFunction EaseFunction;
 	};
 
 	/** Default constructor */
@@ -63,7 +63,7 @@ public:
 	 * @param InEaseFunction       Easing function to use for this curve.  Defaults to Linear.  Use this to smooth out your animation transitions.
 	 * @return A FCurveHandle that can be used to get the value of this curve after the animation starts playing.
 	 */
-	FCurveSequence( const float InStartTimeSeconds, const float InDurationSeconds, const ECurveEaseFunction::Type InEaseFunction = ECurveEaseFunction::Linear  );
+	FCurveSequence( const float InStartTimeSeconds, const float InDurationSeconds, const ECurveEaseFunction InEaseFunction = ECurveEaseFunction::Linear  );
 
 	/**
 	 * Add a new curve at a given time and offset.
@@ -73,7 +73,7 @@ public:
 	 * @param InEaseFunction       Easing function to use for this curve.  Defaults to Linear.  Use this to smooth out your animation transitions.
 	 * @return A FCurveHandle that can be used to get the value of this curve after the animation starts playing.
 	 */
-	FCurveHandle AddCurve( const float InStartTimeSeconds, const float InDurationSeconds, const ECurveEaseFunction::Type InEaseFunction = ECurveEaseFunction::Linear );
+	FCurveHandle AddCurve( const float InStartTimeSeconds, const float InDurationSeconds, const ECurveEaseFunction InEaseFunction = ECurveEaseFunction::Linear );
 
 	/**
 	 * Add a new curve relative to the current end of the sequence. Makes stacking easier.
@@ -88,7 +88,7 @@ public:
 	 * @param InDurationSecond     How long this curve lasts.
 	 * @param InEaseFunction       Easing function to use for this curve.  Defaults to Linear.  Use this to smooth out your animation transitions.
 	 */
-	FCurveHandle AddCurveRelative( const float InOffset, const float InDurationSecond, const ECurveEaseFunction::Type InEaseFunction = ECurveEaseFunction::Linear );
+	FCurveHandle AddCurveRelative( const float InOffset, const float InDurationSecond, const ECurveEaseFunction InEaseFunction = ECurveEaseFunction::Linear );
 
 	/**
 	 * Start playing this curve sequence. Registers an active timer with the widget being animated.

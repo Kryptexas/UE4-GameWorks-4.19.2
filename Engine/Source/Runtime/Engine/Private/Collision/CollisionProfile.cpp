@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/CollisionProfile.h"
 #include "Misc/ConfigCacheIni.h"
@@ -195,8 +195,6 @@ bool UCollisionProfile::ReadConfig(FName ProfileName, FBodyInstance& BodyInstanc
 		BodyInstance.CollisionEnabled = Template.CollisionEnabled;
 		BodyInstance.ObjectType = Template.ObjectType;
 		BodyInstance.CollisionResponses.SetCollisionResponseContainer(Template.ResponseToChannels);
-		BodyInstance.ResponseToChannels_DEPRECATED = Template.ResponseToChannels;
-
 		BodyInstance.UpdatePhysicsFilterData();
 		return true;
 	}

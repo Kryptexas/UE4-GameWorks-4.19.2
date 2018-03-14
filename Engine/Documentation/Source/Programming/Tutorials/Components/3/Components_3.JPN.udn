@@ -20,7 +20,7 @@ Description:Pawn Movement Component でコントロールするポーンがフ�
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. **Visual Studio** に戻ってカスタム仕様の **Pawn Movement Component** をプログラミングします。ここで必要な記述は、フレーム間を移動するための **TickComponent** 関数です（ **アクタ** のTick 関数と類似）「CollidingPawnMovementComponent.h」ファイルのクラス定義で TickComponent をオーバーライドしなくてはいけません：
 
@@ -75,7 +75,7 @@ Pawn Movement Component のビヘイビアを定義したら、カスタマイ�
     [/PARAM]
     [PARAM:content]
 		**CollidingPawn.h**
-			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc.All Rights Reserved.
 
 			#pragma once
 
@@ -104,7 +104,7 @@ Pawn Movement Component のビヘイビアを定義したら、カスタマイ�
 			};
 
 		**CollidingPawn.cpp**
-			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc.All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawn.h"
@@ -181,7 +181,7 @@ Pawn Movement Component のビヘイビアを定義したら、カスタマイ�
 			}
 
 		**CollidingPawnMovementComponent.h**
-			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc.All Rights Reserved.
 
 			#pragma once
 
@@ -201,7 +201,7 @@ Pawn Movement Component のビヘイビアを定義したら、カスタマイ�
 			};
 
 		**CollidingPawnMovementComponent.cpp**
-			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc.All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawnMovementComponent.h"
@@ -235,4 +235,4 @@ Pawn Movement Component のビヘイビアを定義したら、カスタマイ�
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

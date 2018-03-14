@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // VRNotificationsComponent.cpp: Component to handle receiving notifications from VR HMD
 
 #include "VRNotificationsComponent.h"

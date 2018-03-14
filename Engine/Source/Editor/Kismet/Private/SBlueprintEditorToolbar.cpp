@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SBlueprintEditorToolbar.h"
@@ -101,15 +101,11 @@ void FKismet2Menu::FillDeveloperMenu( FMenuBuilder& MenuBuilder )
 	}
 	MenuBuilder.EndSection();
 
-	static const FBoolConfigValueHelper NativeCodeGenerationTool(TEXT("Kismet"), TEXT("bNativeCodeGenerationTool"), GEngineIni);
-	if (NativeCodeGenerationTool)
+	MenuBuilder.BeginSection("GenerateNativeCode", LOCTEXT("Cpp", "C++"));
 	{
-		MenuBuilder.BeginSection("GenerateNativeCode", LOCTEXT("Cpp", "C++"));
-		{
-			MenuBuilder.AddMenuEntry(FBlueprintEditorCommands::Get().GenerateNativeCode);
-		}
-		MenuBuilder.EndSection();
+		MenuBuilder.AddMenuEntry(FBlueprintEditorCommands::Get().GenerateNativeCode);
 	}
+	MenuBuilder.EndSection();
 
 	if (false)
 	{

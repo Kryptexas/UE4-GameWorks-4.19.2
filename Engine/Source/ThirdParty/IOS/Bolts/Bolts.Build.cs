@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -8,7 +8,7 @@ public class Bolts : ModuleRules
     {
         Type = ModuleType.External;
 
-        Definitions.Add("WITH_BOLTS=1");
+        PublicDefinitions.Add("WITH_BOLTS=1");
 
 		string BoltsPath = Target.UEThirdPartySourceDirectory + "IOS/Bolts/";
         if (Target.Platform == UnrealTargetPlatform.IOS)

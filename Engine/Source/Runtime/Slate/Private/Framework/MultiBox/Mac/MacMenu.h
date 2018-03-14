@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,14 +7,15 @@
 #include "CocoaMenu.h"
 
 @interface FMacMenu : FCocoaMenu <NSMenuDelegate>
-@property (assign) TSharedPtr<const FMenuEntryBlock> MenuEntryBlock;
-@property (assign) TSharedPtr<const FMultiBox> MultiBox;
+@property (assign) TWeakPtr<const FMenuEntryBlock> MenuEntryBlock;
+@property (assign) TWeakPtr<const FMultiBox> MultiBox;
 @end
 
 class SLATE_API FSlateMacMenu
 {
 public:
 
+	static void CleanupOnShutdown();
 	static void UpdateWithMultiBox(const TSharedPtr<FMultiBox> MultiBox);
 	static void UpdateMenu(FMacMenu* Menu);
 	static void UpdateCachedState();

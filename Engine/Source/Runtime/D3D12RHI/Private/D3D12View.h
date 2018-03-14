@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 D3D12View.h: D3D12 Resource Views
@@ -613,184 +613,136 @@ inline uint32 CViewSubresourceSubset::MaxSubresource() const
 	return (*(--end())).Value;
 }
 
-// The view is either based on a resource location or a resource; not both
-class FD3D12ViewGeneric
+template <typename TDesc>
+class TD3D12ViewDescriptorHandle : public FD3D12DeviceChild
 {
-protected:
-	CD3DX12_CPU_DESCRIPTOR_HANDLE Descriptor;
-	uint32 DescriptorHeapIndex;
-	FD3D12ResourceLocation* ResourceLocation;
-	FD3D12ResidencyHandle* ResidencyHandle;
+	template <typename TDesc> struct TCreateViewMap;
+	template<> struct TCreateViewMap<D3D12_SHADER_RESOURCE_VIEW_DESC>	{ static decltype(&ID3D12Device::CreateShaderResourceView)	GetCreate()	{ return &ID3D12Device::CreateShaderResourceView;	} };
+	template<> struct TCreateViewMap<D3D12_RENDER_TARGET_VIEW_DESC>		{ static decltype(&ID3D12Device::CreateRenderTargetView)	GetCreate()	{ return &ID3D12Device::CreateRenderTargetView;		} };
+	template<> struct TCreateViewMap<D3D12_DEPTH_STENCIL_VIEW_DESC>		{ static decltype(&ID3D12Device::CreateDepthStencilView)	GetCreate()	{ return &ID3D12Device::CreateDepthStencilView;		} };
+	template<> struct TCreateViewMap<D3D12_UNORDERED_ACCESS_VIEW_DESC>	{ static decltype(&ID3D12Device::CreateUnorderedAccessView)	GetCreate()	{ return &ID3D12Device::CreateUnorderedAccessView;	} };
 
-	explicit FD3D12ViewGeneric(FD3D12ResourceLocation* InResourceLocation)
-		: ResourceLocation(InResourceLocation)
-		, ResidencyHandle((InResourceLocation) ? InResourceLocation->GetResource()->GetResidencyHandle() : nullptr)
-	{
-		Descriptor.ptr = 0;
-		DescriptorHeapIndex = 0;
-	}
-
-	void ResetFromResourceLocation(FD3D12ResourceLocation* InResourceLocation)
-	{
-		ResourceLocation = InResourceLocation;
-		Descriptor.ptr = 0;
-		DescriptorHeapIndex = 0;
-
-		if (InResourceLocation)
-		{
-			ResidencyHandle = InResourceLocation->GetResource()->GetResidencyHandle();
-		}
-	}
+	CD3DX12_CPU_DESCRIPTOR_HANDLE Handle;
+	uint32 Index;
 
 public:
-	CD3DX12_CPU_DESCRIPTOR_HANDLE GetView() const { check(Descriptor.ptr != 0); return Descriptor; }
-	uint32 GetDescriptorHeapIndex() const { return DescriptorHeapIndex; }
-	FD3D12ResourceLocation* GetResourceLocation() const { return ResourceLocation; }
-	FD3D12Resource* GetResource() const
+	TD3D12ViewDescriptorHandle(FD3D12Device* InParentDevice)
+		: FD3D12DeviceChild(InParentDevice)
 	{
-		if (ResourceLocation)
-		{
-			return ResourceLocation->GetResource();
-		}
-
-		return nullptr;
+		// Allocate descriptor slot
+		FD3D12OfflineDescriptorManager& DescriptorAllocator = GetParentDevice()->GetViewDescriptorAllocator<TDesc>();
+		Handle = DescriptorAllocator.AllocateHeapSlot(Index);
+		check(Handle.ptr != 0);
 	}
 
-	FD3D12ResidencyHandle* GetResidencyHandle() { return ResidencyHandle; }
+	~TD3D12ViewDescriptorHandle()
+	{
+		// Free descriptor slot
+		FD3D12OfflineDescriptorManager& DescriptorAllocator = GetParentDevice()->GetViewDescriptorAllocator<TDesc>();
+		DescriptorAllocator.FreeHeapSlot(Handle, Index);
+		Handle.ptr = 0;
+	}
 
-	friend class FD3D12VertexBuffer;
+	void CreateView(const TDesc& Desc, ID3D12Resource* Resource)
+	{
+		(GetParentDevice()->GetDevice()->*TCreateViewMap<TDesc>::GetCreate()) (Resource, &Desc, Handle);
+	}
+
+	void CreateViewWithCounter(const TDesc& Desc, ID3D12Resource* Resource, ID3D12Resource* CounterResource)
+	{
+		(GetParentDevice()->GetDevice()->*TCreateViewMap<TDesc>::GetCreate()) (Resource, CounterResource, &Desc, Handle);
+	}
+
+	inline const CD3DX12_CPU_DESCRIPTOR_HANDLE& GetHandle() const { return Handle; }
+	inline uint32 GetIndex() const { return Index; }
 };
 
-template <typename TDesc> struct TCreateViewMap;
-template<> struct TCreateViewMap < D3D12_SHADER_RESOURCE_VIEW_DESC > { static decltype(&ID3D12Device::CreateShaderResourceView) GetCreate() { return &ID3D12Device::CreateShaderResourceView; } };
-template<> struct TCreateViewMap < D3D12_RENDER_TARGET_VIEW_DESC > { static decltype(&ID3D12Device::CreateRenderTargetView) GetCreate() { return &ID3D12Device::CreateRenderTargetView; } };
-template<> struct TCreateViewMap < D3D12_DEPTH_STENCIL_VIEW_DESC > { static decltype(&ID3D12Device::CreateDepthStencilView) GetCreate() { return &ID3D12Device::CreateDepthStencilView; } };
-template<> struct TCreateViewMap < D3D12_UNORDERED_ACCESS_VIEW_DESC > { static decltype(&ID3D12Device::CreateUnorderedAccessView) GetCreate() { return &ID3D12Device::CreateUnorderedAccessView; } };
+typedef TD3D12ViewDescriptorHandle<D3D12_SHADER_RESOURCE_VIEW_DESC>		FD3D12DescriptorHandleSRV;
+typedef TD3D12ViewDescriptorHandle<D3D12_RENDER_TARGET_VIEW_DESC>		FD3D12DescriptorHandleRTV;
+typedef TD3D12ViewDescriptorHandle<D3D12_DEPTH_STENCIL_VIEW_DESC>		FD3D12DescriptorHandleDSV;
+typedef TD3D12ViewDescriptorHandle<D3D12_UNORDERED_ACCESS_VIEW_DESC>	FD3D12DescriptorHandleUAV;
 
 template <typename TDesc>
-class FD3D12View : public FD3D12ViewGeneric, public FD3D12DeviceChild
+class FD3D12View
 {
+private:
+	TD3D12ViewDescriptorHandle<TDesc> Descriptor;
+
 protected:
+	ViewSubresourceSubsetFlags Flags;
+	FD3D12ResourceLocation* ResourceLocation;
+	FD3D12ResidencyHandle* ResidencyHandle;
 	CViewSubresourceSubset ViewSubresourceSubset;
 	TDesc Desc;
 
-protected:
-	explicit FD3D12View()
-		: FD3D12ViewGeneric(nullptr)
-		, FD3D12DeviceChild(nullptr)
-	{
-	}
+#if DO_CHECK
+	bool bInitialized;
+#endif
 
-	explicit FD3D12View(FD3D12Device* InParent, const TDesc* InDesc, FD3D12ResourceLocation* InResourceLocation, ViewSubresourceSubsetFlags InFlags)
-		: FD3D12ViewGeneric(InResourceLocation)
-		, ViewSubresourceSubset(*InDesc,
-			GetResource() ? GetResource()->GetMipLevels() : 0,
-			GetResource() ? GetResource()->GetArraySize() : 0,
-			GetResource() ? GetResource()->GetDesc().Format : DXGI_FORMAT_UNKNOWN,
-			InFlags)
-		, FD3D12DeviceChild(InParent)
-	{
-		Init(InDesc);
-	}
+	explicit FD3D12View(FD3D12Device* InParent, ViewSubresourceSubsetFlags InFlags)
+		: Descriptor(InParent)
+		, Flags(InFlags)
+#if DO_CHECK
+		, bInitialized(false)
+#endif
+	{}
 
 	virtual ~FD3D12View()
 	{
-		FreeHeapSlot();
+#if DO_CHECK
+		bInitialized = false;
+#endif
 	}
 
-	void Init(const TDesc* InDesc)
+private:
+	void Initialize(const TDesc& InDesc, FD3D12ResourceLocation& InResourceLocation)
 	{
-		if (InDesc)
-		{
-			Desc = *InDesc;
-		}
-		else
-		{
-			FMemory::Memzero(&Desc, sizeof(Desc));
-		}
-		AllocateHeapSlot();
+		ResourceLocation = &InResourceLocation;
+		FD3D12Resource* Resource = ResourceLocation->GetResource();
+		check(Resource);
+
+		ResidencyHandle = Resource->GetResidencyHandle();
+
+		Desc = InDesc;
+
+		ViewSubresourceSubset = CViewSubresourceSubset(Desc,
+			Resource->GetMipLevels(),
+			Resource->GetArraySize(),
+			Resource->GetDesc().Format,
+			Flags);
+
+#if DO_CHECK
+		bInitialized = true;
+#endif
 	}
 
-	void AllocateHeapSlot()
+protected:
+	void CreateView(const TDesc& InDesc, FD3D12ResourceLocation& InResourceLocation)
 	{
-		FD3D12OfflineDescriptorManager& DescriptorAllocator = GetParentDevice()->template GetViewDescriptorAllocator<TDesc>();
-		Descriptor = DescriptorAllocator.AllocateHeapSlot(DescriptorHeapIndex);
-		check(Descriptor.ptr != 0);
+		Initialize(InDesc, InResourceLocation);
+
+		ID3D12Resource* D3DResource = ResourceLocation->GetResource()->GetResource();
+		Descriptor.CreateView(Desc, D3DResource);
 	}
 
-	void FreeHeapSlot()
+	void CreateViewWithCounter(const TDesc& InDesc, FD3D12ResourceLocation& InResourceLocation, FD3D12Resource* InCounterResource)
 	{
-		if (Descriptor.ptr)
-		{
-			FD3D12OfflineDescriptorManager& DescriptorAllocator = GetParentDevice()->template GetViewDescriptorAllocator<TDesc>();
-			DescriptorAllocator.FreeHeapSlot(Descriptor, DescriptorHeapIndex);
-			Descriptor.ptr = 0;
-		}
+		Initialize(InDesc, InResourceLocation);
+
+		ID3D12Resource* D3DResource = ResourceLocation->GetResource()->GetResource();
+		ID3D12Resource* D3DCounterResource = InCounterResource ? InCounterResource->GetResource() : nullptr;
+		Descriptor.CreateViewWithCounter(Desc, D3DResource, D3DCounterResource);
 	}
-
-	void UpdateViewSubresourceSubset(const FD3D12Resource* const InResource)
-	{
-		if (InResource == GetResource())
-		{
-			// Nothing to update
-			return;
-		}
-
-		if (InResource)
-		{
-			const D3D12_RESOURCE_DESC &ResDesc = InResource->GetDesc();
-			ViewSubresourceSubset.m_MipLevels = ResDesc.MipLevels;
-			ViewSubresourceSubset.m_ArraySlices = ResDesc.DepthOrArraySize;
-			ViewSubresourceSubset.m_PlaneCount = GetPlaneCount(ResDesc.Format);
-		}
-		else
-		{
-			// Null resource
-			ViewSubresourceSubset.m_MipLevels = 0;
-			ViewSubresourceSubset.m_ArraySlices = 0;
-			ViewSubresourceSubset.m_PlaneCount = 0;
-		}
-	}
-
 
 public:
-	void CreateView(FD3D12Resource* InResource = nullptr, FD3D12Resource* InCounterResource = nullptr)
-	{
-		if (!InResource)
-		{
-			InResource = GetResource();
-		}
-		else
-		{
-			// Only need to update the view's subresource subset if a new resource is used
-			UpdateViewSubresourceSubset(InResource);
-		}
-
-		check(Descriptor.ptr != 0);
-		(GetParentDevice()->GetDevice()->*TCreateViewMap<TDesc>::GetCreate()) (
-			InResource ? InResource->GetResource() : nullptr, &Desc, Descriptor);
-	}
-
-	void CreateViewWithCounter(FD3D12Resource* InResource, FD3D12Resource* InCounterResource)
-	{
-		if (!InResource)
-		{
-			InResource = GetResource();
-		}
-		else
-		{
-			// Only need to update the view's subresource subset if a new resource is used
-			UpdateViewSubresourceSubset(InResource);
-		}
-
-		check(Descriptor.ptr != 0);
-		(GetParentDevice()->GetDevice()->*TCreateViewMap<TDesc>::GetCreate()) (
-			InResource ? InResource->GetResource() : nullptr,
-			InCounterResource ? InCounterResource->GetResource() : nullptr, &Desc, Descriptor);
-	}
-
-	const TDesc& GetDesc() const { return Desc; }
-	const CViewSubresourceSubset& GetViewSubresourceSubset() const { return ViewSubresourceSubset; }
+	inline FD3D12Device*					GetParentDevice()			const { return Descriptor.GetParentDevice(); }
+	inline const TDesc&						GetDesc()					const { check(bInitialized); return Desc; }
+	inline CD3DX12_CPU_DESCRIPTOR_HANDLE	GetView()					const { check(bInitialized); return Descriptor.GetHandle(); }
+	inline uint32							GetDescriptorHeapIndex()	const { check(bInitialized); return Descriptor.GetIndex(); }
+	inline FD3D12Resource*					GetResource()				const { check(bInitialized); return ResourceLocation->GetResource(); }
+	inline FD3D12ResourceLocation*			GetResourceLocation()		const { check(bInitialized); return ResourceLocation; }
+	inline FD3D12ResidencyHandle*			GetResidencyHandle()		const { check(bInitialized); return ResidencyHandle; }
+	inline const CViewSubresourceSubset&	GetViewSubresourceSubset()	const { check(bInitialized); return ViewSubresourceSubset; }
 
 	template< class T >
 	inline bool DoesNotOverlap(const FD3D12View< T >& Other) const
@@ -800,102 +752,93 @@ public:
 };
 
 /** Shader resource view class. */
-class FD3D12ShaderResourceView : public FRHIShaderResourceView, public FD3D12View < D3D12_SHADER_RESOURCE_VIEW_DESC >, public FD3D12LinkedAdapterObject<FD3D12ShaderResourceView>
+class FD3D12ShaderResourceView : public FRHIShaderResourceView, public FD3D12View<D3D12_SHADER_RESOURCE_VIEW_DESC>, public FD3D12LinkedAdapterObject<FD3D12ShaderResourceView>
 {
-	const bool bIsBuffer;
-	const bool bContainsDepthPlane;
-	const bool bContainsStencilPlane;
+	bool bContainsDepthPlane;
+	bool bContainsStencilPlane;
 	uint32 Stride;
 
 public:
-	FD3D12ShaderResourceView(FD3D12Device* InParent, D3D12_SHADER_RESOURCE_VIEW_DESC* InSRVDesc, FD3D12ResourceLocation* InResourceLocation, uint32 InStride = 1)
-		: FD3D12View(InParent, InSRVDesc, InResourceLocation, ViewSubresourceSubsetFlags_None)
-		, bIsBuffer(InSRVDesc->ViewDimension == D3D12_SRV_DIMENSION_BUFFER)
-		, bContainsDepthPlane(InResourceLocation ? InResourceLocation->GetResource()->IsDepthStencilResource() && GetPlaneSliceFromViewFormat(InResourceLocation->GetResource()->GetDesc().Format, InSRVDesc->Format) == 0 : false)
-		, bContainsStencilPlane(InResourceLocation ? InResourceLocation->GetResource()->IsDepthStencilResource() && GetPlaneSliceFromViewFormat(InResourceLocation->GetResource()->GetDesc().Format, InSRVDesc->Format) == 1 : false)
-		, Stride(InStride)
-	{
-		// Check the plane slice of the SRV matches the texture format
-		// Texture2DMS does not have explicit plane index (it's implied by the format)
-		if (InResourceLocation && InSRVDesc->ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2D)
-		{
-			check(GetPlaneSliceFromViewFormat(InResourceLocation->GetResource()->GetDesc().Format, InSRVDesc->Format) == InSRVDesc->Texture2D.PlaneSlice);
-		}
-		
-		if (bIsBuffer && !!InResourceLocation)
-		{
-			check(InResourceLocation->GetOffsetFromBaseOfResource() / Stride == InSRVDesc->Buffer.FirstElement);
-		}
+	// Used for dynamic buffer SRVs, which can be renamed. Must be explicitly Initialize()'d before it can be used.
+	FD3D12ShaderResourceView(FD3D12Device* InParent)
+		: FD3D12View(InParent, ViewSubresourceSubsetFlags_None)
+	{}
 
-		CreateView();
+	// Used for all other SRV resource types. Initialization is immediate on the calling thread.
+	// Should not be used for dynamic resources which can be renamed.
+	FD3D12ShaderResourceView(FD3D12Device* InParent, D3D12_SHADER_RESOURCE_VIEW_DESC& InDesc, FD3D12ResourceLocation& InResourceLocation, uint32 InStride = -1)
+		: FD3D12ShaderResourceView(InParent)
+	{
+		Initialize(InDesc, InResourceLocation, InStride);
 	}
 
-	static FD3D12ShaderResourceView* CreateShaderResourceView(FD3D12Device* Parent, FD3D12ResourceLocation* ResourceLocation, D3D12_SHADER_RESOURCE_VIEW_DESC& Desc);
-
-	void Rename(FD3D12ResourceLocation& InResourceLocation, CD3DX12_CPU_DESCRIPTOR_HANDLE InDescriptor, uint32 InDescriptorHeapIndex)
+	void Initialize(D3D12_SHADER_RESOURCE_VIEW_DESC& InDesc, FD3D12ResourceLocation& InResourceLocation, uint32 InStride)
 	{
-		ResourceLocation = &InResourceLocation;
-		if (bIsBuffer)
+		Stride = InStride;
+		bContainsDepthPlane   = InResourceLocation.GetResource()->IsDepthStencilResource() && GetPlaneSliceFromViewFormat(InResourceLocation.GetResource()->GetDesc().Format, InDesc.Format) == 0;
+		bContainsStencilPlane = InResourceLocation.GetResource()->IsDepthStencilResource() && GetPlaneSliceFromViewFormat(InResourceLocation.GetResource()->GetDesc().Format, InDesc.Format) == 1;
+
+#if DO_CHECK
+		// Check the plane slice of the SRV matches the texture format
+		// Texture2DMS does not have explicit plane index (it's implied by the format)
+		if (InDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2D)
+		{
+			check(GetPlaneSliceFromViewFormat(InResourceLocation.GetResource()->GetDesc().Format, InDesc.Format) == InDesc.Texture2D.PlaneSlice);
+		}
+
+		if (InDesc.ViewDimension == D3D12_SRV_DIMENSION_BUFFER)
+		{
+			check(InResourceLocation.GetOffsetFromBaseOfResource() / Stride == InDesc.Buffer.FirstElement);
+		}
+#endif
+
+		CreateView(InDesc, InResourceLocation);
+	}
+
+	void Rename(FD3D12ResourceLocation& InResourceLocation)
+	{
+		// Update the first element index, then reinitialize the SRV
+		if (Desc.ViewDimension == D3D12_SRV_DIMENSION_BUFFER)
 		{
 			Desc.Buffer.FirstElement = InResourceLocation.GetOffsetFromBaseOfResource() / Stride;
 		}
 
-		// If no descriptor and heap index were provided...
-		if (InDescriptor.ptr == 0)
-		{
-			// Create a new view
-			CreateView();
-		}
-		else
-		{
-			// Otherwise use the provided descriptor and index
-			Descriptor.ptr = InDescriptor.ptr;
-			DescriptorHeapIndex = InDescriptorHeapIndex;
-		}
-
-		check(ResourceLocation);
-		ResidencyHandle = ResourceLocation->GetResource()->GetResidencyHandle();
+		Initialize(Desc, InResourceLocation, Stride);
 	}
 
 	void Rename(float ResourceMinLODClamp)
 	{
+		check(bInitialized);
 		check(ResourceLocation);
-
-		// Update the LODClamp
 		check(Desc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2D);
+
+		// Update the LODClamp, the reinitialize the SRV
 		Desc.Texture2D.ResourceMinLODClamp = ResourceMinLODClamp;
-
-		// Create a new view
-		CreateView();
+		CreateView(Desc, *ResourceLocation);
 	}
 
-	FORCEINLINE bool IsDepthStencilResource() const { return bContainsDepthPlane || bContainsStencilPlane; }
-	FORCEINLINE bool IsDepthPlaneResource() const { return bContainsDepthPlane; }
-	FORCEINLINE bool IsStencilPlaneResource() const { return bContainsStencilPlane; }
-	FORCEINLINE const D3D12_SHADER_RESOURCE_VIEW_DESC& GetDesc()
-	{
-		return Desc;
-	}
+	FORCEINLINE bool IsDepthStencilResource()	const { return bContainsDepthPlane || bContainsStencilPlane; }
+	FORCEINLINE bool IsDepthPlaneResource()		const { return bContainsDepthPlane; }
+	FORCEINLINE bool IsStencilPlaneResource()	const { return bContainsStencilPlane; }
 };
 
 class FD3D12UnorderedAccessView : public FRHIUnorderedAccessView, public FD3D12View < D3D12_UNORDERED_ACCESS_VIEW_DESC >, public FD3D12LinkedAdapterObject<FD3D12UnorderedAccessView>
 {
 public:
-
 	TRefCountPtr<FD3D12Resource> CounterResource;
 	bool CounterResourceInitialized;
 
-	FD3D12UnorderedAccessView(FD3D12Device* InParent, D3D12_UNORDERED_ACCESS_VIEW_DESC* InUAVDesc, FD3D12ResourceLocation* InResourceLocation, TRefCountPtr<FD3D12Resource> InCounterResource = nullptr)
-		: FD3D12View(InParent, InUAVDesc, InResourceLocation, ViewSubresourceSubsetFlags_None)
+	FD3D12UnorderedAccessView(FD3D12Device* InParent, D3D12_UNORDERED_ACCESS_VIEW_DESC& InDesc, FD3D12ResourceLocation& InResourceLocation, FD3D12Resource* InCounterResource = nullptr)
+		: FD3D12View(InParent, ViewSubresourceSubsetFlags_None)
 		, CounterResource(InCounterResource)
 		, CounterResourceInitialized(false)
 	{
-		CreateViewWithCounter(nullptr, CounterResource);
+		CreateViewWithCounter(InDesc, InResourceLocation, InCounterResource);
 	}
 };
 
 #if USE_STATIC_ROOT_SIGNATURE
-class FD3D12ConstantBufferView : /*public FD3D12ViewGeneric, */public FD3D12DeviceChild
+class FD3D12ConstantBufferView : public FD3D12DeviceChild
 {
 			public:
 //protected:
@@ -942,42 +885,6 @@ class FD3D12ConstantBufferView : /*public FD3D12ViewGeneric, */public FD3D12Devi
 	void Create(D3D12_GPU_VIRTUAL_ADDRESS GPUAddress, const uint32 AlignedSize);
 
 public:
-/*
-	void CreateView(FD3D12Resource* InResource = nullptr, FD3D12Resource* InCounterResource = nullptr)
-	{
-		if (!InResource)
-		{
-			InResource = GetResource();
-		}
-		else
-		{
-			// Only need to update the view's subresource subset if a new resource is used
-			UpdateViewSubresourceSubset(InResource);
-		}
-
-		check(Descriptor.ptr != 0);
-		(GetParentDevice()->GetDevice()->*TCreateViewMap<TDesc>::GetCreate()) (
-			InResource ? InResource->GetResource() : nullptr, &Desc, Descriptor);
-	}
-
-	void CreateViewWithCounter(FD3D12Resource* InResource, FD3D12Resource* InCounterResource)
-	{
-		if (!InResource)
-		{
-			InResource = GetResource();
-		}
-		else
-		{
-			// Only need to update the view's subresource subset if a new resource is used
-			UpdateViewSubresourceSubset(InResource);
-		}
-
-		check(Descriptor.ptr != 0);
-		(GetParentDevice()->GetDevice()->*TCreateViewMap<TDesc>::GetCreate()) (
-			InResource ? InResource->GetResource() : nullptr,
-			InCounterResource ? InCounterResource->GetResource() : nullptr, &Desc, Descriptor);
-	}*/
-
 	const D3D12_CONSTANT_BUFFER_VIEW_DESC& GetDesc() const { return Desc; }
 };
 #endif
@@ -985,13 +892,11 @@ public:
 class FD3D12RenderTargetView : public FD3D12View<D3D12_RENDER_TARGET_VIEW_DESC>, public FRHIResource, public FD3D12LinkedAdapterObject<FD3D12RenderTargetView>
 {
 public:
-	FD3D12RenderTargetView(FD3D12Device* InParent, D3D12_RENDER_TARGET_VIEW_DESC* InRTVDesc, FD3D12ResourceLocation* ResourceLocation)
-		: FD3D12View(InParent, InRTVDesc, ResourceLocation, ViewSubresourceSubsetFlags_None)
+	FD3D12RenderTargetView(FD3D12Device* InParent, const D3D12_RENDER_TARGET_VIEW_DESC& InRTVDesc, FD3D12ResourceLocation& InResourceLocation)
+		: FD3D12View(InParent, ViewSubresourceSubsetFlags_None)
 	{
-		CreateView();
+		CreateView(InRTVDesc, InResourceLocation);
 	}
-
-	static FD3D12RenderTargetView* CreateRenderTargetView(FD3D12Device* Parent, FD3D12ResourceLocation* ResourceLocation, D3D12_RENDER_TARGET_VIEW_DESC& Desc);
 };
 
 class FD3D12DepthStencilView : public FD3D12View<D3D12_DEPTH_STENCIL_VIEW_DESC>, public FRHIResource, public FD3D12LinkedAdapterObject<FD3D12DepthStencilView>
@@ -1002,33 +907,31 @@ class FD3D12DepthStencilView : public FD3D12View<D3D12_DEPTH_STENCIL_VIEW_DESC>,
 	CViewSubresourceSubset StencilOnlyViewSubresourceSubset;
 
 public:
-	FD3D12DepthStencilView(FD3D12Device* InParent, D3D12_DEPTH_STENCIL_VIEW_DESC* InDSVDesc, FD3D12ResourceLocation* InResourceLocation, bool InHasStencil)
-		: FD3D12View(InParent, InDSVDesc, InResourceLocation, ViewSubresourceSubsetFlags_DepthAndStencilDsv)
+	FD3D12DepthStencilView(FD3D12Device* InParent, const D3D12_DEPTH_STENCIL_VIEW_DESC& InDSVDesc, FD3D12ResourceLocation& InResourceLocation, bool InHasStencil)
+		: FD3D12View(InParent, ViewSubresourceSubsetFlags_DepthAndStencilDsv)
 		, bHasDepth(true)				// Assume all DSVs have depth bits in their format
 		, bHasStencil(InHasStencil)		// Only some DSVs have stencil bits in their format
-		, DepthOnlyViewSubresourceSubset(*InDSVDesc, 0, 0, DXGI_FORMAT_UNKNOWN, ViewSubresourceSubsetFlags_DepthOnlyDsv)
-		, StencilOnlyViewSubresourceSubset(*InDSVDesc, 0, 0, DXGI_FORMAT_UNKNOWN, ViewSubresourceSubsetFlags_StencilOnlyDsv)
 	{
-		CreateView();
+		CreateView(InDSVDesc, InResourceLocation);
 
-		FD3D12Resource* Resource = (InResourceLocation) ? InResourceLocation->GetResource() : nullptr;
+		FD3D12Resource* Resource = InResourceLocation.GetResource();
 
 		// Create individual subresource subsets for each plane
 		if (bHasDepth)
 		{
-			DepthOnlyViewSubresourceSubset = CViewSubresourceSubset(*InDSVDesc,
-				Resource ? Resource->GetMipLevels() : 0,
-				Resource ? Resource->GetArraySize() : 0,
-				Resource ? Resource->GetDesc().Format : DXGI_FORMAT_UNKNOWN,
+			DepthOnlyViewSubresourceSubset = CViewSubresourceSubset(InDSVDesc,
+				Resource->GetMipLevels(),
+				Resource->GetArraySize(),
+				Resource->GetDesc().Format,
 				ViewSubresourceSubsetFlags_DepthOnlyDsv);
 		}
 
 		if (bHasStencil)
 		{
-			StencilOnlyViewSubresourceSubset = CViewSubresourceSubset(*InDSVDesc,
-				Resource ? Resource->GetMipLevels() : 0,
-				Resource ? Resource->GetArraySize() : 0,
-				Resource ? Resource->GetDesc().Format : DXGI_FORMAT_UNKNOWN,
+			StencilOnlyViewSubresourceSubset = CViewSubresourceSubset(InDSVDesc,
+				Resource->GetMipLevels(),
+				Resource->GetArraySize(),
+				Resource->GetDesc().Format,
 				ViewSubresourceSubsetFlags_StencilOnlyDsv);
 		}
 	}
@@ -1054,8 +957,6 @@ public:
 		check(bHasStencil);
 		return StencilOnlyViewSubresourceSubset;
 	}
-
-	static FD3D12DepthStencilView* CreateDepthStencilView(FD3D12Device* Parent, FD3D12ResourceLocation* ResourceLocation, D3D12_DEPTH_STENCIL_VIEW_DESC& Desc, bool HasStencil);
 };
 
 template<>

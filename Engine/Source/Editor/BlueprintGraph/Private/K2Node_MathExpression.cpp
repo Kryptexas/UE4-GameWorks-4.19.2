@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_MathExpression.h"
 #include "UObject/UnrealType.h"
@@ -58,11 +58,10 @@ static void DeleteGeneratedNodesInGraph(UEdGraph* Graph)
  */
 static bool PromoteByteToInt(FEdGraphPinType& InOutType)
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-	if (InOutType.PinCategory == Schema->PC_Byte)
+	if (InOutType.PinCategory == UEdGraphSchema_K2::PC_Byte)
 	{
-		InOutType.PinCategory = Schema->PC_Int;
-		InOutType.PinSubCategoryObject = NULL;
+		InOutType.PinCategory = UEdGraphSchema_K2::PC_Int;
+		InOutType.PinSubCategoryObject = nullptr;
 		return true;
 	}
 	return false;
@@ -77,11 +76,10 @@ static bool PromoteByteToInt(FEdGraphPinType& InOutType)
 */
 static bool PromoteIntToFloat(FEdGraphPinType& InOutType)
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-	if (InOutType.PinCategory == Schema->PC_Int)
+	if (InOutType.PinCategory == UEdGraphSchema_K2::PC_Int)
 	{
-		InOutType.PinCategory = Schema->PC_Float;
-		InOutType.PinSubCategoryObject = NULL;
+		InOutType.PinCategory = UEdGraphSchema_K2::PC_Float;
+		InOutType.PinSubCategoryObject = nullptr;
 		return true;
 	}
 	return false;
@@ -1138,7 +1136,7 @@ public:
 	virtual bool ConnectToInput(UEdGraphPin* InputPin, FCompilerResultsLog& MessageLog) override
 	{
 		bool bSuccess = false;
-		if (UEdGraphPin* VariablePin = GeneratedNode->FindPin(GeneratedNode->VariableReference.GetMemberName().ToString()))
+		if (UEdGraphPin* VariablePin = GeneratedNode->FindPin(GeneratedNode->VariableReference.GetMemberName()))
 		{
 			bSuccess = SafeConnectPins(VariablePin, InputPin, MessageLog);
 		}
@@ -1220,8 +1218,8 @@ public:
 		}
 		else 
 		{
-			FText ErrorText = FText::Format(LOCTEXT("LiteralNotCompatible", "Literal type ({0}) is incompatible with pin: '@@'"),
-				FText::FromString(GetOutputType().PinCategory));
+			const FText ErrorText = FText::Format(LOCTEXT("LiteralNotCompatible", "Literal type ({0}) is incompatible with pin: '@@'"), 
+				FText::FromName(GetOutputType().PinCategory));
 			MessageLog.Error(*ErrorText.ToString(), InputPin);
 		}
 		return bSuccess;
@@ -1369,47 +1367,44 @@ public:
 			// first we try to match up variables with existing variable properties on the blueprint
 
 			FMemberReference VariableReference;
-			FString VariableName;
+			FName VariableName;
 			FGuid VariableGuid;
 
 			if (ExpressionNode.Token.TokenType == FBasicToken::TOKEN_Guid && FGuid::Parse(VariableIdentifier, VariableGuid))
 			{
 				// First look the variable up as a Member variable
-				FName VariableFName;
-				VariableFName = FBlueprintEditorUtils::FindMemberVariableNameByGuid(TargetBlueprint, VariableGuid);
+				VariableName = FBlueprintEditorUtils::FindMemberVariableNameByGuid(TargetBlueprint, VariableGuid);
 
 				// If the variable was not found, look it up as a local variable
-				if (VariableFName.IsNone())
+				if (VariableName.IsNone())
 				{
-					VariableFName = FBlueprintEditorUtils::FindLocalVariableNameByGuid(TargetBlueprint, VariableGuid);
-					VariableReference.SetLocalMember(VariableFName, CompilingNode->GetGraph()->GetName(), VariableGuid);
+					VariableName = FBlueprintEditorUtils::FindLocalVariableNameByGuid(TargetBlueprint, VariableGuid);
+					VariableReference.SetLocalMember(VariableName, CompilingNode->GetGraph()->GetName(), VariableGuid);
 				}
 				else
 				{
-					VariableReference.SetSelfMember(VariableFName);
+					VariableReference.SetSelfMember(VariableName);
 				}
-
-				VariableName = VariableFName.ToString();
 			}
 			else 
 			{
-				VariableName = VariableIdentifier;
+				VariableName = *VariableIdentifier;
 
 				// First look the variable up as a Member variable
-				VariableGuid = FBlueprintEditorUtils::FindMemberVariableGuidByName(TargetBlueprint, FName(*VariableName));
+				VariableGuid = FBlueprintEditorUtils::FindMemberVariableGuidByName(TargetBlueprint, VariableName);
 
 				// If the variable was not found, look it up as a local variable
 				if (!VariableGuid.IsValid())
 				{
-					VariableGuid = FBlueprintEditorUtils::FindLocalVariableGuidByName(TargetBlueprint, CompilingNode->GetGraph(), FName(*VariableName));
+					VariableGuid = FBlueprintEditorUtils::FindLocalVariableGuidByName(TargetBlueprint, CompilingNode->GetGraph(), VariableName);
 					if (VariableGuid.IsValid())
 					{
-						VariableReference.SetLocalMember(FName(*VariableName), CompilingNode->GetGraph()->GetName(), VariableGuid);
+						VariableReference.SetLocalMember(VariableName, CompilingNode->GetGraph()->GetName(), VariableGuid);
 					}
 				}
 				else
 				{
-					VariableReference.SetSelfMember(FName(*VariableName));
+					VariableReference.SetSelfMember(VariableName);
 				}
 
 				// If we found a valid Guid, change the expression's identifier to be the Guid
@@ -1431,7 +1426,7 @@ public:
 			// if a variable-get couldn't be created for it, it needs to be an input to the math node
 			else if(ExpressionNode.Token.TokenType != FBasicToken::TOKEN_Guid)
 			{
-				CompiledFragments.Add(&ExpressionNode, GenerateInputPinFragment(VariableIdentifier));
+				CompiledFragments.Add(&ExpressionNode, GenerateInputPinFragment(*VariableIdentifier));
 			}
 			
 		}
@@ -1619,7 +1614,7 @@ private:
      * @param  VariableIdentifier   The name of the pin to generate a fragment for.
      * @return A new input pin fragment (associated with a pin on the math expression's entry node).
      */
-	TSharedPtr<FCodeGenFragment_InputPin> GenerateInputPinFragment(FString const VariableIdentifier)
+	TSharedPtr<FCodeGenFragment_InputPin> GenerateInputPinFragment(const FName VariableIdentifier)
 	{
 		TSharedPtr<FCodeGenFragment_InputPin> InputPinFragment;
 		UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
@@ -1636,7 +1631,7 @@ private:
 			// Create an input pin (using the default guessed type)
 			FEdGraphPinType DefaultType;
 			// currently, generated expressions ALWAYS take a float (it is the most versatile type)
-			DefaultType.PinCategory = K2Schema->PC_Float;
+			DefaultType.PinCategory = UEdGraphSchema_K2::PC_Float;
 			
 			UEdGraphPin* NewInputPin = EntryNode->CreateUserDefinedPin(VariableIdentifier, DefaultType, EGPD_Output);
 			InputPinFragment = MakeShareable(new FCodeGenFragment_InputPin(NewInputPin));
@@ -1711,22 +1706,21 @@ private:
 	TSharedPtr<FCodeGenFragment_Literal> GenerateLiteralFragment(FBasicToken const& Token, FCompilerResultsLog& MessageLog)
 	{
 		check(Token.TokenType == FBasicToken::TOKEN_Const);
-		UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		
 		FEdGraphPinType LiteralType;
 		switch (Token.ConstantType)
 		{
 			case CPT_Bool:
-				LiteralType.PinCategory = K2Schema->PC_Boolean;
+				LiteralType.PinCategory = UEdGraphSchema_K2::PC_Boolean;
 				break;
 			case CPT_Float:
-				LiteralType.PinCategory = K2Schema->PC_Float;
+				LiteralType.PinCategory = UEdGraphSchema_K2::PC_Float;
 				break;
 			case CPT_Int:
-				LiteralType.PinCategory = K2Schema->PC_Int;
+				LiteralType.PinCategory = UEdGraphSchema_K2::PC_Int;
 				break;
 			case CPT_String:
-				LiteralType.PinCategory = K2Schema->PC_String;
+				LiteralType.PinCategory = UEdGraphSchema_K2::PC_String;
 				break;
 			default:
 				MessageLog.Error(*FText::Format(LOCTEXT("UnhandledLiteralType", "Unknown literal type in expression: '@@'"),
@@ -1944,7 +1938,7 @@ private:
 	 * After the code generation, we want to clear any old pins that 
 	 * weren't reused, so here we track the ones in use.
 	 */
-	TArray<FString> InputPinNames;
+	TArray<FName> InputPinNames;
 };
 
 /*******************************************************************************
@@ -2708,17 +2702,7 @@ void UK2Node_MathExpression::ValidateNodeDuringCompilation(FCompilerResultsLog& 
 	{
 		if(UObject const* SourceObject = MessageLog.FindSourceObject(this))
 		{
-			UK2Node_MathExpression const* MathExpression = nullptr;
-
-			// If the source object is a MacroInstance, we need to look elsewhere for the original MathExpression
-			if(Cast<UK2Node_MacroInstance>(SourceObject))
-			{
-				MathExpression = CastChecked<UK2Node_MathExpression>(MessageLog.GetSourceTunnelNode(this));
-			}
-			else
-			{
-				MathExpression = MessageLog.FindSourceObjectTypeChecked<UK2Node_MathExpression>(this);
-			}
+			UK2Node_MathExpression const* MathExpression = MessageLog.FindSourceObjectTypeChecked<UK2Node_MathExpression>(this);
 
 			// Should always be able to find the source math expression
 			check(MathExpression);

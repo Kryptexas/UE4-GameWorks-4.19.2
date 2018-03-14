@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LocalVertexFactory.usf: Local vertex factory shader code.
@@ -90,67 +90,97 @@ float3 SplineMeshX;
 float3 SplineMeshY;
 #endif	// USE_SPLINEDEFORM
 
+#ifndef MANUAL_VERTEX_FETCH
+#define MANUAL_VERTEX_FETCH 0
+#endif
+
+#if GPUSKIN_PASS_THROUGH
+#undef MANUAL_VERTEX_FETCH
+#define MANUAL_VERTEX_FETCH 0
+#endif
+
+#if MANUAL_VERTEX_FETCH
+	Buffer<float2> VertexFetch_TexCoordBuffer;
+	Buffer<float4> VertexFetch_PackedTangentsBuffer;
+	Buffer<float4> VertexFetch_ColorComponentsBuffer;
+	Buffer<float4> VertexFetch_InstanceOriginBuffer;
+	Buffer<float4> VertexFetch_InstanceTransformBuffer;
+	Buffer<float4> VertexFetch_InstanceLightmapBuffer;
+
+	uint3 VertexFetch_Parameters;
+	uint InstanceOffset;
+	uint VertexOffset;
+
+	#define VF_ColorIndexMask_Index 0
+	#define VF_NumTexcoords_Index 1
+	#define FV_LightMapIndex_Index 2
+#endif
+
 struct FVertexFactoryInput
 {
 	float4	Position	: ATTRIBUTE0;
-#if METAL_PROFILE
-	//@todo-rco: FIXME!
-	float3	TangentX	: ATTRIBUTE1;
-	float4	TangentZ	: ATTRIBUTE2;
-	float4	Color		: ATTRIBUTE3;
-#else
-	half3	TangentX	: ATTRIBUTE1;
-	// TangentZ.w contains sign of tangent basis determinant
-	half4	TangentZ	: ATTRIBUTE2;
-	half4	Color		: ATTRIBUTE3;
-#endif	// METAL_PROFILE
+
+#if !MANUAL_VERTEX_FETCH
+	#if METAL_PROFILE
+		float3	TangentX	: ATTRIBUTE1;
+		// TangentZ.w contains sign of tangent basis determinant
+		float4	TangentZ	: ATTRIBUTE2;
+
+		float4	Color		: ATTRIBUTE3;
+	#else
+		half3	TangentX	: ATTRIBUTE1;
+		// TangentZ.w contains sign of tangent basis determinant
+		half4	TangentZ	: ATTRIBUTE2;
+
+		half4	Color		: ATTRIBUTE3;
+	#endif
+#endif
 
 #if NUM_MATERIAL_TEXCOORDS_VERTEX
-	#if GPUSKIN_PASS_THROUGH
-		// These must match GPUSkinVertexFactory.usf
-		float2	TexCoords[NUM_MATERIAL_TEXCOORDS_VERTEX] : ATTRIBUTE4;
-		#if NUM_MATERIAL_TEXCOORDS_VERTEX > 4
-			#error Too many texture coordinate sets defined on GPUSkin vertex input. Max: 4.
-		#endif
-	#else
-		#if NUM_MATERIAL_TEXCOORDS_VERTEX > 1
-			float4	PackedTexCoords4[NUM_MATERIAL_TEXCOORDS_VERTEX/2] : ATTRIBUTE4;
-		#endif
-		#if NUM_MATERIAL_TEXCOORDS_VERTEX == 1
-			float2	PackedTexCoords2 : ATTRIBUTE4;
-		#elif NUM_MATERIAL_TEXCOORDS_VERTEX == 3
-			float2	PackedTexCoords2 : ATTRIBUTE5;
-		#elif NUM_MATERIAL_TEXCOORDS_VERTEX == 5
-			float2	PackedTexCoords2 : ATTRIBUTE6;
-		#elif NUM_MATERIAL_TEXCOORDS_VERTEX == 7
-			float2	PackedTexCoords2 : ATTRIBUTE7;
+	#if !MANUAL_VERTEX_FETCH
+		#if GPUSKIN_PASS_THROUGH
+			// These must match GPUSkinVertexFactory.usf
+			float2	TexCoords[NUM_MATERIAL_TEXCOORDS_VERTEX] : ATTRIBUTE4;
+			#if NUM_MATERIAL_TEXCOORDS_VERTEX > 4
+				#error Too many texture coordinate sets defined on GPUSkin vertex input. Max: 4.
+			#endif
+		#else
+			#if NUM_MATERIAL_TEXCOORDS_VERTEX > 1
+				float4	PackedTexCoords4[NUM_MATERIAL_TEXCOORDS_VERTEX/2] : ATTRIBUTE4;
+			#endif
+			#if NUM_MATERIAL_TEXCOORDS_VERTEX == 1
+				float2	PackedTexCoords2 : ATTRIBUTE4;
+			#elif NUM_MATERIAL_TEXCOORDS_VERTEX == 3
+				float2	PackedTexCoords2 : ATTRIBUTE5;
+			#elif NUM_MATERIAL_TEXCOORDS_VERTEX == 5
+				float2	PackedTexCoords2 : ATTRIBUTE6;
+			#elif NUM_MATERIAL_TEXCOORDS_VERTEX == 7
+				float2	PackedTexCoords2 : ATTRIBUTE7;
+			#endif
 		#endif
 	#endif
-
-#elif USE_PARTICLE_SUBUVS
+#elif USE_PARTICLE_SUBUVS && !MANUAL_VERTEX_FETCH
 	float2	TexCoords[1] : ATTRIBUTE4;
 #endif
 
-#if USE_INSTANCING && !USE_INSTANCING_EMULATED
+#if USE_INSTANCING && !USE_INSTANCING_EMULATED && !MANUAL_VERTEX_FETCH
 	float4 InstanceOrigin : ATTRIBUTE8;  // per-instance random in w 
 	half4 InstanceTransform1 : ATTRIBUTE9;  // hitproxy.r + 256 * selected in .w
 	half4 InstanceTransform2 : ATTRIBUTE10; // hitproxy.g in .w
 	half4 InstanceTransform3 : ATTRIBUTE11; // hitproxy.b in .w
 	float4 InstanceLightmapAndShadowMapUVBias : ATTRIBUTE12; 
-#else
-
 #endif //USE_INSTANCING && !USE_INSTANCING_EMULATED
 
-#if NEEDS_LIGHTMAP_COORDINATE
+#if NEEDS_LIGHTMAP_COORDINATE && !MANUAL_VERTEX_FETCH
 	float2	LightMapCoordinate : ATTRIBUTE15;
 #endif
 
 /** Optional instance ID for vertex layered rendering */
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
+#if FEATURE_LEVEL >= FEATURE_LEVEL_ES3_1 && ((ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER) || (MANUAL_VERTEX_FETCH && (USE_INSTANCING && !USE_INSTANCING_EMULATED)))
 	uint InstanceId	: SV_InstanceID;
 #endif
 
-#if GPUSKIN_PASS_THROUGH
+#if GPUSKIN_PASS_THROUGH || MANUAL_VERTEX_FETCH
 	uint VertexId : SV_VertexID;
 #endif
 };
@@ -158,8 +188,8 @@ struct FVertexFactoryInput
 struct FPositionOnlyVertexFactoryInput
 {
 	float4	Position	: ATTRIBUTE0;
-	
-#if USE_INSTANCING && !USE_INSTANCING_EMULATED
+
+#if USE_INSTANCING && !USE_INSTANCING_EMULATED && !MANUAL_VERTEX_FETCH
 	float4 InstanceOrigin : ATTRIBUTE8;  // per-instance random in w 
 	half4 InstanceTransform1 : ATTRIBUTE9;  // hitproxy.r + 256 * selected in .w
 	half4 InstanceTransform2 : ATTRIBUTE10; // hitproxy.g in .w
@@ -167,8 +197,12 @@ struct FPositionOnlyVertexFactoryInput
 #endif	// USE_INSTANCING && !USE_INSTANCING_EMULATED
 
 /** Optional instance ID for vertex layered rendering */
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
+#if (FEATURE_LEVEL >= FEATURE_LEVEL_ES3_1) && ((ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER) || (MANUAL_VERTEX_FETCH && (USE_INSTANCING && !USE_INSTANCING_EMULATED)))
 	uint InstanceId	: SV_InstanceID;
+#endif
+
+#if MANUAL_VERTEX_FETCH
+	uint VertexId : SV_VertexID;
 #endif
 };
 
@@ -180,20 +214,27 @@ struct FVertexFactoryIntermediates
 
 	half4 Color;
 #if USE_INSTANCING
+	#if !USE_INSTANCING_EMULATED
+		float4 InstanceOrigin;
+		float4 InstanceTransform1;
+		float4 InstanceTransform2;
+		float4 InstanceTransform3;
+		float4 InstanceLightmapAndShadowMapUVBias;
+	#endif
 	// x = per-instance random, y = per-instance fade out amount, z = hide/show flag, w dither fade cutoff
 	float4 PerInstanceParams;
 #endif	// USE_INSTANCING
 };
 
 #if USE_INSTANCING
-float4x4 GetInstanceTransform(FVertexFactoryInput Input)
+float4x4 GetInstanceTransform(FVertexFactoryIntermediates Intermediates)
 {
 	#if !USE_INSTANCING_EMULATED
 	return float4x4(
-		float4(Input.InstanceTransform1.xyz, 0.0f), 
-		float4(Input.InstanceTransform2.xyz, 0.0f), 
-		float4(Input.InstanceTransform3.xyz, 0.0f), 
-		float4(Input.InstanceOrigin.xyz, 1.0f));
+		float4(Intermediates.InstanceTransform1.xyz, 0.0f),
+		float4(Intermediates.InstanceTransform2.xyz, 0.0f),
+		float4(Intermediates.InstanceTransform3.xyz, 0.0f),
+		float4(Intermediates.InstanceOrigin.xyz, 1.0f));
 	#else
 	return float4x4(
 		float4(CPUInstanceTransform[0].xyz, 0.0f), 
@@ -205,11 +246,17 @@ float4x4 GetInstanceTransform(FVertexFactoryInput Input)
 
 float4x4 GetInstanceTransform(FPositionOnlyVertexFactoryInput Input)
 {
-	#if !USE_INSTANCING_EMULATED
+	#if !USE_INSTANCING_EMULATED && MANUAL_VERTEX_FETCH
 	return float4x4(
-		float4(Input.InstanceTransform1.xyz, 0.0f), 
-		float4(Input.InstanceTransform2.xyz, 0.0f), 
-		float4(Input.InstanceTransform3.xyz, 0.0f), 
+		float4(VertexFetch_InstanceTransformBuffer[3 * (Input.InstanceId + InstanceOffset) + 0].xyz, 0.0f),
+		float4(VertexFetch_InstanceTransformBuffer[3 * (Input.InstanceId + InstanceOffset) + 1].xyz, 0.0f),
+		float4(VertexFetch_InstanceTransformBuffer[3 * (Input.InstanceId + InstanceOffset) + 2].xyz, 0.0f),
+		float4(VertexFetch_InstanceOriginBuffer[(Input.InstanceId + InstanceOffset)].xyz, 1.0f));
+	#elif !USE_INSTANCING_EMULATED
+	return float4x4(
+		float4(Input.InstanceTransform1.xyz, 0.0f),
+		float4(Input.InstanceTransform2.xyz, 0.0f),
+		float4(Input.InstanceTransform3.xyz, 0.0f),
 		float4(Input.InstanceOrigin.xyz, 1.0f));
 	#else
 	return float4x4(
@@ -220,66 +267,57 @@ float4x4 GetInstanceTransform(FPositionOnlyVertexFactoryInput Input)
 	#endif	// !USE_INSTANCING_EMULATED
 }
 
-half3x3 GetInstanceToLocal3x3(FVertexFactoryInput Input)
+half3x3 GetInstanceToLocal3x3(FVertexFactoryIntermediates Intermediates)
 {
 	#if !USE_INSTANCING_EMULATED
-	return half3x3(Input.InstanceTransform1.xyz, Input.InstanceTransform2.xyz, Input.InstanceTransform3.xyz);
+	return half3x3(Intermediates.InstanceTransform1.xyz, Intermediates.InstanceTransform2.xyz, Intermediates.InstanceTransform3.xyz);
 	#else
 	return half3x3(half3(CPUInstanceTransform[0].xyz), half3(CPUInstanceTransform[1].xyz), half3(CPUInstanceTransform[2].xyz));
 	#endif	// !USE_INSTANCING_EMULATED
 }
 
-half3x3 GetInstanceToLocal3x3(FPositionOnlyVertexFactoryInput Input)
+float2 GetInstanceShadowMapBias(FVertexFactoryIntermediates Intermediates)
 {
 	#if !USE_INSTANCING_EMULATED
-	return half3x3(Input.InstanceTransform1.xyz, Input.InstanceTransform2.xyz, Input.InstanceTransform3.xyz);
-	#else
-	return half3x3(half3(CPUInstanceTransform[0].xyz), half3(CPUInstanceTransform[1].xyz), half3(CPUInstanceTransform[2].xyz));
-	#endif	// !USE_INSTANCING_EMULATED
-}
-
-float2 GetInstanceShadowMapBias(FVertexFactoryInput Input)
-{
-	#if !USE_INSTANCING_EMULATED
-	return Input.InstanceLightmapAndShadowMapUVBias.zw;
+	return Intermediates.InstanceLightmapAndShadowMapUVBias.zw;
 	#else
 	return CPUInstanceLightmapAndShadowMapBias.zw;
 	#endif	// !USE_INSTANCING_EMULATED
 }
 
-float2 GetInstanceLightMapBias(FVertexFactoryInput Input)
+float2 GetInstanceLightMapBias(FVertexFactoryIntermediates Intermediates)
 {
 	#if !USE_INSTANCING_EMULATED
-	return Input.InstanceLightmapAndShadowMapUVBias.xy;
+	return Intermediates.InstanceLightmapAndShadowMapUVBias.xy;
 	#else
 	return CPUInstanceLightmapAndShadowMapBias.xy;
 	#endif	// !USE_INSTANCING_EMULATED
 }
 
-float GetInstanceSelected(FVertexFactoryInput Input)
+float GetInstanceSelected(FVertexFactoryIntermediates Intermediates)
 {
 	#if !USE_INSTANCING_EMULATED
-		float SelectedValue = trunc(Input.InstanceTransform1.w * (1.0 / 256.0));
+		float SelectedValue = trunc(Intermediates.InstanceTransform1.w * (1.0 / 256.0));
 	#else
 		float SelectedValue = trunc(CPUInstanceTransform[0].w * (1.0 / 256.0));
 	#endif	// !USE_INSTANCING_EMULATED
 	return SelectedValue;
 }
 
-float GetInstanceRandom(FVertexFactoryInput Input)
+float GetInstanceRandom(FVertexFactoryIntermediates Intermediates)
 {
 	#if !USE_INSTANCING_EMULATED
-		float RandomVal = Input.InstanceOrigin.w;
+		float RandomVal = Intermediates.InstanceOrigin.w;
 	#else
 		float RandomVal = CPUInstanceOrigin.w;
 	#endif	// !USE_INSTANCING_EMULATED
 	return RandomVal;
 }
 
-float3 GetInstanceOrigin(FVertexFactoryInput Input)
+float3 GetInstanceOrigin(FVertexFactoryIntermediates Intermediates)
 {
 	#if !USE_INSTANCING_EMULATED
-		float3 Origin = Input.InstanceOrigin.xyz;
+		float3 Origin = Intermediates.InstanceOrigin.xyz;
 	#else
 		float3 Origin = CPUInstanceOrigin.xyz;
 	#endif	// !USE_INSTANCING_EMULATED
@@ -358,37 +396,47 @@ FMaterialVertexParameters GetMaterialVertexParameters(FVertexFactoryInput Input,
 	Result.TangentToWorld = Intermediates.TangentToWorld;
 
 #if USE_INSTANCING
-	Result.InstanceLocalToWorld = mul(GetInstanceTransform(Input), Primitive.LocalToWorld);
+	Result.InstanceLocalToWorld = mul(GetInstanceTransform(Intermediates), Primitive.LocalToWorld);
 	Result.InstanceLocalPosition = Input.Position.xyz;
 	Result.PerInstanceParams = Intermediates.PerInstanceParams;
 #endif	// USE_INSTANCING
 
 	Result.PreSkinnedPosition = Input.Position.xyz;
-	Result.PreSkinnedNormal = Input.TangentZ.xyz * 2.f - 1.f;
+	Result.PreSkinnedNormal = TangentToLocal[2]; //Input.TangentZ.xyz * 2.f - 1.f;
 
-#if NUM_MATERIAL_TEXCOORDS_VERTEX
-	#if GPUSKIN_PASS_THROUGH
-		for (int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS_VERTEX; CoordinateIndex++)
+#if MANUAL_VERTEX_FETCH && NUM_MATERIAL_TEXCOORDS_VERTEX
+		const uint NumFetchTexCoords = VertexFetch_Parameters[VF_NumTexcoords_Index];
+		UNROLL
+		for (uint CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS_VERTEX; CoordinateIndex++)
 		{
-			Result.TexCoords[CoordinateIndex] = Input.TexCoords[CoordinateIndex].xy;
+			// Clamp coordinates to mesh's maximum as materials can request more than are available
+			uint ClampedCoordinateIndex = min(CoordinateIndex, NumFetchTexCoords-1);
+			Result.TexCoords[CoordinateIndex] = VertexFetch_TexCoordBuffer[NumFetchTexCoords * (VertexOffset + Input.VertexId) + ClampedCoordinateIndex];
 		}
-	#else
-		#if NUM_MATERIAL_TEXCOORDS_VERTEX > 1
+#elif NUM_MATERIAL_TEXCOORDS_VERTEX
+		#if GPUSKIN_PASS_THROUGH
 			UNROLL
-			for(int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS_VERTEX-1; CoordinateIndex+=2)
+			for (int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS_VERTEX; CoordinateIndex++)
 			{
-				Result.TexCoords[CoordinateIndex] = Input.PackedTexCoords4[CoordinateIndex/2].xy;
-				if( CoordinateIndex+1 < NUM_MATERIAL_TEXCOORDS_VERTEX )
-				{
-					Result.TexCoords[CoordinateIndex+1] = Input.PackedTexCoords4[CoordinateIndex/2].zw;
-				}
+				Result.TexCoords[CoordinateIndex] = Input.TexCoords[CoordinateIndex].xy;
 			}
-		#endif	// NUM_MATERIAL_TEXCOORDS_VERTEX > 1
-		#if NUM_MATERIAL_TEXCOORDS_VERTEX % 2 == 1
-			Result.TexCoords[NUM_MATERIAL_TEXCOORDS_VERTEX-1] = Input.PackedTexCoords2;
-		#endif	// NUM_MATERIAL_TEXCOORDS_VERTEX % 2 == 1
-	#endif
-#endif	// NUM_MATERIAL_TEXCOORDS_VERTEX
+		#else
+			#if NUM_MATERIAL_TEXCOORDS_VERTEX > 1
+				UNROLL
+				for(int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS_VERTEX-1; CoordinateIndex+=2)
+				{
+					Result.TexCoords[CoordinateIndex] = Input.PackedTexCoords4[CoordinateIndex/2].xy;
+					if( CoordinateIndex+1 < NUM_MATERIAL_TEXCOORDS_VERTEX )
+					{
+						Result.TexCoords[CoordinateIndex+1] = Input.PackedTexCoords4[CoordinateIndex/2].zw;
+					}
+				}
+			#endif	// NUM_MATERIAL_TEXCOORDS_VERTEX > 1
+			#if NUM_MATERIAL_TEXCOORDS_VERTEX % 2 == 1
+				Result.TexCoords[NUM_MATERIAL_TEXCOORDS_VERTEX-1] = Input.PackedTexCoords2;
+			#endif	// NUM_MATERIAL_TEXCOORDS_VERTEX % 2 == 1
+		#endif
+#endif  //MANUAL_VERTEX_FETCH && NUM_MATERIAL_TEXCOORDS_VERTEX
 	return Result;
 }
 
@@ -514,12 +562,21 @@ float4 CalcWorldPosition(float4 Position)
 #endif
 }
 
-half3x3 CalcTangentToLocal(FVertexFactoryInput Input)
+half3x3 CalcTangentToLocal(FVertexFactoryInput Input, out float TangentSign)
 {
 	half3x3 Result;
 	
-	half3 TangentX = TangentBias(Input.TangentX);
-	half4 TangentZ = TangentBias(Input.TangentZ);
+#if MANUAL_VERTEX_FETCH
+	half3 TangentInputX = VertexFetch_PackedTangentsBuffer[2 * (VertexOffset + Input.VertexId) + 0].xyz;
+	half4 TangentInputZ = VertexFetch_PackedTangentsBuffer[2 * (VertexOffset + Input.VertexId) + 1].xyzw;
+#else
+	half3 TangentInputX = Input.TangentX;
+	half4 TangentInputZ = Input.TangentZ;
+#endif
+
+	half3 TangentX = TangentBias(TangentInputX);
+	half4 TangentZ = TangentBias(TangentInputZ);
+	TangentSign = TangentZ.w;
 
 #if USE_SPLINEDEFORM
 	// Make slice rotation matrix, and use that to transform tangents
@@ -542,10 +599,10 @@ half3x3 CalcTangentToLocal(FVertexFactoryInput Input)
 	return Result;
 }
 
-half3x3 CalcTangentToWorld(FVertexFactoryInput Input, half3x3 TangentToLocal)
+half3x3 CalcTangentToWorld(FVertexFactoryIntermediates Intermediates, half3x3 TangentToLocal)
 {
 #if USE_INSTANCING
-	half3x3 InstanceToWorld = mul(GetInstanceToLocal3x3(Input), GetLocalToWorld3x3());
+	half3x3 InstanceToWorld = mul(GetInstanceToLocal3x3(Intermediates), GetLocalToWorld3x3());
 	// remove scaling
 	InstanceToWorld[0] = normalize(InstanceToWorld[0]);
 	InstanceToWorld[1] = normalize(InstanceToWorld[1]);
@@ -561,19 +618,38 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 {
 	FVertexFactoryIntermediates Intermediates;
 
-	Intermediates.TangentToLocal = CalcTangentToLocal(Input);
-	Intermediates.TangentToWorld = CalcTangentToWorld(Input,Intermediates.TangentToLocal);
-	Intermediates.TangentToWorldSign = TangentBias(Input.TangentZ.w) * Primitive.LocalToWorldDeterminantSign;
+#if MANUAL_VERTEX_FETCH
+	Intermediates.Color = VertexFetch_ColorComponentsBuffer[(VertexOffset + Input.VertexId) & VertexFetch_Parameters[VF_ColorIndexMask_Index]] FMANUALFETCH_COLOR_COMPONENT_SWIZZLE; // Swizzle vertex color.
+#else
+	Intermediates.Color = Input.Color FCOLOR_COMPONENT_SWIZZLE; // Swizzle vertex color.
+#endif
 
-	// Swizzle vertex color.
-	Intermediates.Color = Input.Color FCOLOR_COMPONENT_SWIZZLE;
+#if USE_INSTANCING && !USE_INSTANCING_EMULATED && MANUAL_VERTEX_FETCH
+	Intermediates.InstanceTransform1 = VertexFetch_InstanceTransformBuffer[3 * (Input.InstanceId + InstanceOffset) + 0];
+	Intermediates.InstanceTransform2 = VertexFetch_InstanceTransformBuffer[3 * (Input.InstanceId + InstanceOffset) + 1];
+	Intermediates.InstanceTransform3 = VertexFetch_InstanceTransformBuffer[3 * (Input.InstanceId + InstanceOffset) + 2];
+	Intermediates.InstanceOrigin = VertexFetch_InstanceOriginBuffer[(Input.InstanceId + InstanceOffset)];
+	Intermediates.InstanceLightmapAndShadowMapUVBias = VertexFetch_InstanceLightmapBuffer[(Input.InstanceId + InstanceOffset)];
+#elif USE_INSTANCING && !USE_INSTANCING_EMULATED
+	Intermediates.InstanceTransform1 = Input.InstanceTransform1;
+	Intermediates.InstanceTransform2 = Input.InstanceTransform2;
+	Intermediates.InstanceTransform3 = Input.InstanceTransform3;
+	Intermediates.InstanceOrigin = Input.InstanceOrigin;
+	Intermediates.InstanceLightmapAndShadowMapUVBias = Input.InstanceLightmapAndShadowMapUVBias;
+#endif
+
+	float TangentSign;
+	Intermediates.TangentToLocal = CalcTangentToLocal(Input, TangentSign);
+	Intermediates.TangentToWorld = CalcTangentToWorld(Intermediates,Intermediates.TangentToLocal);
+	Intermediates.TangentToWorldSign = TangentSign * Primitive.LocalToWorldDeterminantSign;
+
 #if USE_INSTANCING
 	// x = per-instance random, y = per-instance fade out factor, z = zero or one depending of if it is shown at all, w is dither cutoff 
 
 	// PerInstanceParams.z stores a hide/show flag for this instance
-	float SelectedValue = GetInstanceSelected(Input);
-	Intermediates.PerInstanceParams.x = GetInstanceRandom(Input);
-	float3 InstanceLocation = TransformLocalToWorld(GetInstanceOrigin(Input)).xyz;
+	float SelectedValue = GetInstanceSelected(Intermediates);
+	Intermediates.PerInstanceParams.x = GetInstanceRandom(Intermediates);
+	float3 InstanceLocation = TransformLocalToWorld(GetInstanceOrigin(Intermediates)).xyz;
 	Intermediates.PerInstanceParams.y = 1.0 - saturate((length(InstanceLocation + ResolvedView.PreViewTranslation.xyz) - InstancingFadeOutParams.x) * InstancingFadeOutParams.y);
 	// InstancingFadeOutParams.z,w are RenderSelected and RenderDeselected respectively.
 	Intermediates.PerInstanceParams.z = InstancingFadeOutParams.z * SelectedValue + InstancingFadeOutParams.w * (1-SelectedValue);
@@ -608,7 +684,7 @@ half3x3 VertexFactoryGetTangentToLocal( FVertexFactoryInput Input, FVertexFactor
 float4 VertexFactoryGetWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
 {
 #if USE_INSTANCING
-	return CalcWorldPosition(Input.Position, GetInstanceTransform(Input)) * Intermediates.PerInstanceParams.z;
+	return CalcWorldPosition(Input.Position, GetInstanceTransform(Intermediates)) * Intermediates.PerInstanceParams.z;
 #else
 	return CalcWorldPosition(Input.Position);
 #endif	// USE_INSTANCING
@@ -644,23 +720,32 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 	}
 
 #elif NUM_MATERIAL_TEXCOORDS_VERTEX == 0 && USE_PARTICLE_SUBUVS
-	SetUV(Interpolants, 0, Input.TexCoords[0]);
+	#if MANUAL_VERTEX_FETCH
+		SetUV(Interpolants, 0, VertexFetch_TexCoordBuffer[VertexFetch_Parameters[VF_NumTexcoords_Index] * (VertexOffset + Input.VertexId)]);
+	#else
+		SetUV(Interpolants, 0, Input.TexCoords[0]);
+	#endif
 #endif
 
 #if NEEDS_LIGHTMAP_COORDINATE
 	float2 LightMapCoordinate = 0;
 	float2 ShadowMapCoordinate = 0;
+	#if MANUAL_VERTEX_FETCH
+		float2 LightMapCoordinateInput = VertexFetch_TexCoordBuffer[VertexFetch_Parameters[VF_NumTexcoords_Index] * (VertexOffset + Input.VertexId) + VertexFetch_Parameters[FV_LightMapIndex_Index]];
+	#else
+		float2 LightMapCoordinateInput = Input.LightMapCoordinate;
+	#endif
 
 	#if USE_INSTANCING
-		LightMapCoordinate = Input.LightMapCoordinate * PrecomputedLightingBuffer.LightMapCoordinateScaleBias.xy + GetInstanceLightMapBias(Input);
+		LightMapCoordinate = LightMapCoordinateInput * PrecomputedLightingBuffer.LightMapCoordinateScaleBias.xy + GetInstanceLightMapBias(Intermediates);
 	#else
-		LightMapCoordinate = Input.LightMapCoordinate * PrecomputedLightingBuffer.LightMapCoordinateScaleBias.xy + PrecomputedLightingBuffer.LightMapCoordinateScaleBias.zw;
+		LightMapCoordinate = LightMapCoordinateInput * PrecomputedLightingBuffer.LightMapCoordinateScaleBias.xy + PrecomputedLightingBuffer.LightMapCoordinateScaleBias.zw;
 	#endif
 	#if STATICLIGHTING_TEXTUREMASK
 		#if USE_INSTANCING
-			ShadowMapCoordinate = Input.LightMapCoordinate * PrecomputedLightingBuffer.ShadowMapCoordinateScaleBias.xy + GetInstanceShadowMapBias(Input);
+			ShadowMapCoordinate = LightMapCoordinateInput * PrecomputedLightingBuffer.ShadowMapCoordinateScaleBias.xy + GetInstanceShadowMapBias(Intermediates);
 		#else
-			ShadowMapCoordinate = Input.LightMapCoordinate * PrecomputedLightingBuffer.ShadowMapCoordinateScaleBias.xy + PrecomputedLightingBuffer.ShadowMapCoordinateScaleBias.zw;
+			ShadowMapCoordinate = LightMapCoordinateInput * PrecomputedLightingBuffer.ShadowMapCoordinateScaleBias.xy + PrecomputedLightingBuffer.ShadowMapCoordinateScaleBias.zw;
 		#endif
 	#endif	// STATICLIGHTING_TEXTUREMASK
 
@@ -683,17 +768,18 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 /** for depth-only pass */
 float4 VertexFactoryGetWorldPosition(FPositionOnlyVertexFactoryInput Input)
 {
+	float4 Position = Input.Position;
+
 #if USE_INSTANCING
-	return CalcWorldPosition(Input.Position, GetInstanceTransform(Input));
+	return CalcWorldPosition(Position, GetInstanceTransform(Input));
 #else
-	return CalcWorldPosition(Input.Position);
+	return CalcWorldPosition(Position);
 #endif	// USE_INSTANCING
 }
 
 // Information when using pass through to get the previous position, as no matrix is available/needed
 #if GPUSKIN_PASS_THROUGH
-uint GPUSkinCachePreviousFloatOffset;
-Buffer<float> GPUSkinCachePreviousBuffer;
+Buffer<float> GPUSkinCachePreviousPositionBuffer;
 #endif
 
 // @return previous translated world position
@@ -705,14 +791,14 @@ float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexF
 	PreviousLocalToWorldTranslated[3][2] += ResolvedView.PrevPreViewTranslation.z;
 
 #if USE_INSTANCING
-	float4x4 InstanceTransform = GetInstanceTransform(Input);
+	float4x4 InstanceTransform = GetInstanceTransform(Intermediates);
 	return mul(mul(Input.Position, InstanceTransform), PreviousLocalToWorldTranslated);
 #elif GPUSKIN_PASS_THROUGH
-	uint Offset = Input.VertexId * GPUSKIN_RWBUFFER_NUM_FLOATS + GPUSkinCachePreviousFloatOffset;
+	uint Offset = Input.VertexId * 3;
 	float3 PreviousPos;
-	PreviousPos.x = GPUSkinCachePreviousBuffer[Offset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 0];
-	PreviousPos.y = GPUSkinCachePreviousBuffer[Offset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 1];
-	PreviousPos.z = GPUSkinCachePreviousBuffer[Offset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 2];
+	PreviousPos.x = GPUSkinCachePreviousPositionBuffer[Offset + 0];
+	PreviousPos.y = GPUSkinCachePreviousPositionBuffer[Offset + 1];
+	PreviousPos.z = GPUSkinCachePreviousPositionBuffer[Offset + 2];
 	return mul(float4(PreviousPos, 1), PreviousLocalToWorldTranslated);
 #elif USE_SPLINEDEFORM
 	// Just like CalcWorldPosition...
@@ -833,11 +919,11 @@ float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexF
 float4 VertexFactoryGetInstanceHitProxyId(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
 {
 	#if !USE_INSTANCING_EMULATED
-		float R = Input.InstanceTransform1.w - 256.0 * GetInstanceSelected(Input);
-		float G = Input.InstanceTransform2.w;
-		float B = Input.InstanceTransform3.w;
+		float R = Intermediates.InstanceTransform1.w - 256.0 * GetInstanceSelected(Intermediates);
+		float G = Intermediates.InstanceTransform2.w;
+		float B = Intermediates.InstanceTransform3.w;
 	#else
-		float R = CPUInstanceTransform[0].w - 256.0 * GetInstanceSelected(Input);
+		float R = CPUInstanceTransform[0].w - 256.0 * GetInstanceSelected(Intermediates);
 		float G = CPUInstanceTransform[1].w;
 		float B = CPUInstanceTransform[2].w;
 	#endif

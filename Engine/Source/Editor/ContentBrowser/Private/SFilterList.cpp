@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SFilterList.h"
@@ -185,9 +185,10 @@ public:
 
 		if ( AssetTypeActions.IsValid() )
 		{
-			// Add the supported class for this type to a filter
-			Filter.ClassNames.Add(AssetTypeActions.Pin()->GetSupportedClass()->GetFName());
-			Filter.bRecursiveClasses = true;
+			if (AssetTypeActions.Pin()->CanFilter())
+			{
+				AssetTypeActions.Pin()->BuildBackendFilter(Filter);
+			}
 		}
 
 		return Filter;

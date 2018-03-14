@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MallocLeakDetection.h: Helper class to track memory allocations
@@ -225,8 +225,6 @@ private:
 	/* Verifier object */
 	FMallocLeakDetection& Verify;
 
-	FCriticalSection AllocatedPointersCritical;
-
 public:
 	explicit FMallocLeakDetectionProxy(FMalloc* InMalloc);	
 
@@ -234,7 +232,6 @@ public:
 
 	virtual void* Malloc(SIZE_T Size, uint32 Alignment) override
 	{
-		FScopeLock SafeLock(&AllocatedPointersCritical);
 		void* Result = UsedMalloc->Malloc(Size, Alignment);
 		Verify.Malloc(Result, Size);
 		return Result;
@@ -242,7 +239,6 @@ public:
 
 	virtual void* Realloc(void* OldPtr, SIZE_T NewSize, uint32 Alignment) override
 	{
-		FScopeLock SafeLock(&AllocatedPointersCritical);
 		SIZE_T OldSize(0);
 		GetAllocationSize(OldPtr, OldSize);
 		void* NewPtr = UsedMalloc->Realloc(OldPtr, NewSize, Alignment);
@@ -254,7 +250,6 @@ public:
 	{
 		if (Ptr)
 		{
-			FScopeLock SafeLock(&AllocatedPointersCritical);
 			Verify.Free(Ptr);
 			UsedMalloc->Free(Ptr);
 		}
@@ -272,9 +267,13 @@ public:
 
 	virtual void DumpAllocatorStats(FOutputDevice& Ar) override
 	{
-		FScopeLock Lock(&AllocatedPointersCritical);
 		//Verify.DumpOpenCallstacks(1024 * 1024);
 		UsedMalloc->DumpAllocatorStats(Ar);
+	}
+
+	virtual bool IsInternallyThreadSafe() const override
+	{
+		return UsedMalloc->IsInternallyThreadSafe();
 	}
 
 	virtual bool ValidateHeap() override
@@ -313,16 +312,6 @@ public:
 	virtual const TCHAR* GetDescriptiveName() override
 	{ 
 		return UsedMalloc->GetDescriptiveName();
-	}
-
-	void Lock()
-	{
-		AllocatedPointersCritical.Lock();
-	}
-
-	void Unlock()
-	{
-		AllocatedPointersCritical.Unlock();
 	}
 };
 

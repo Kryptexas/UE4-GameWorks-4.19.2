@@ -1,7 +1,8 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SCaptureRegionWidget.h"
 #include "Fonts/SlateFontInfo.h"
+#include "Styling/CoreStyle.h"
 #include "Misc/Paths.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Slate/SceneViewport.h"
@@ -14,7 +15,7 @@ void SCaptureRegionWidget::Construct( const FArguments& InArgs )
 	.HAlign(HAlign_Center)
 		[
 			SNew(STextBlock)
-			.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 20 ) )
+			.Font(FCoreStyle::GetDefaultFontStyle("Regular", 20))
 			.ShadowOffset(FVector2D(1, 1))
 			.Text(NSLOCTEXT("CaptureRegion", "SpecifyRectangleToCaptureMessage", "Please specify capture rectangle"))
 		];

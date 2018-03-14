@@ -51,22 +51,16 @@ Description:学习在不同的视图间激活和切换。
 	[/PARAMLITERAL]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		步骤
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 步骤
+
+[REGION:buttonlist]
+
 	* [](Programming\Tutorials\AutoCamera\1 "%Programming\Tutorials\AutoCamera\1:description%")
 	* [](Programming\Tutorials\AutoCamera\2 "%Programming\Tutorials\AutoCamera\2:description%")
 	* [](Programming\Tutorials\AutoCamera\3 "%Programming\Tutorials\AutoCamera\3:description%")
 	* [](Programming\Tutorials\AutoCamera\4 "%Programming\Tutorials\AutoCamera\4:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

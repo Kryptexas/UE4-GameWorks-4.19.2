@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PhysicsAssetUtils.h"
 #include "Modules/ModuleManager.h"
@@ -237,7 +237,7 @@ bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* 
 			if(bSuccess)
 			{
 				// create joint to parent body
-				if (Params.bCreateJoints)
+				if (Params.bCreateConstraints)
 				{
 					// Transform of child from parent is just child ref-pose entry.
 					FTransform RelTM = FTransform::Identity;
@@ -556,7 +556,7 @@ bool CreateCollisionFromBoneInternal(UBodySetup* bs, USkeletalMesh* skelMesh, in
 
 		if (Verts.Num())
 		{
-			DecomposeMeshToHulls(bs, Verts, Indices, Params.HullAccuracy, Params.MaxHullVerts);
+			DecomposeMeshToHulls(bs, Verts, Indices, Params.HullCount, Params.MaxHullVerts);
 		}
 		else
 		{

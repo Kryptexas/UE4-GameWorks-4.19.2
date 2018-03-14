@@ -23,7 +23,7 @@ Version:4.8
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 在以下章节中我们将讨论如何设置 **植物类 Actors**，以便使用程序化植物生成器。 
 我们将继续使用上一步创建的 **PFT_00** 关卡。
 
@@ -60,4 +60,4 @@ Version:4.8
 	![](T_Final_Results.png)
 
 
-%Steps%
+

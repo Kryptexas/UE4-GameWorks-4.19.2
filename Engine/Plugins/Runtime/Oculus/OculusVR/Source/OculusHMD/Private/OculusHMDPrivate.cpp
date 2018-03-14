@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OculusHMDPrivate.h"
 #include "RHICommandList.h"
@@ -26,7 +26,7 @@ bool InGameThread()
 
 bool InRenderThread()
 {
-	if (GRenderingThread && !GIsRenderingThreadSuspended)
+	if (GRenderingThread && !GIsRenderingThreadSuspended.Load(EMemoryOrder::Relaxed))
 	{
 		return FPlatformTLS::GetCurrentThreadId() == GRenderingThread->GetThreadID();
 	}
@@ -39,7 +39,7 @@ bool InRenderThread()
 
 bool InRHIThread()
 {
-	if (GRenderingThread && !GIsRenderingThreadSuspended)
+	if (GRenderingThread && !GIsRenderingThreadSuspended.Load(EMemoryOrder::Relaxed))
 	{
 		if (GRHIThreadId)
 		{
@@ -71,7 +71,7 @@ void ExecuteOnRenderThread(const std::function<void()>& Function)
 {
 	CheckInGameThread();
 
-	if (GIsThreadedRendering && !GIsRenderingThreadSuspended)
+	if (GIsThreadedRendering && !GIsRenderingThreadSuspended.Load(EMemoryOrder::Relaxed))
 	{
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 			ExecuteOnRenderThread,
@@ -93,7 +93,7 @@ void ExecuteOnRenderThread_DoNotWait(const std::function<void()>& Function)
 {
 	CheckInGameThread();
 
-	if (GIsThreadedRendering && !GIsRenderingThreadSuspended)
+	if (GIsThreadedRendering && !GIsRenderingThreadSuspended.Load(EMemoryOrder::Relaxed))
 	{
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 			ExecuteOnRenderThread,
@@ -113,7 +113,7 @@ void ExecuteOnRenderThread(const std::function<void(FRHICommandListImmediate&)>&
 {
 	CheckInGameThread();
 
-	if (GIsThreadedRendering && !GIsRenderingThreadSuspended)
+	if (GIsThreadedRendering && !GIsRenderingThreadSuspended.Load(EMemoryOrder::Relaxed))
 	{
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 			ExecuteOnRenderThread,
@@ -135,7 +135,7 @@ void ExecuteOnRenderThread_DoNotWait(const std::function<void(FRHICommandListImm
 {
 	CheckInGameThread();
 
-	if (GIsThreadedRendering && !GIsRenderingThreadSuspended)
+	if (GIsThreadedRendering && !GIsRenderingThreadSuspended.Load(EMemoryOrder::Relaxed))
 	{
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 			ExecuteOnRenderThread,
@@ -151,7 +151,7 @@ void ExecuteOnRenderThread_DoNotWait(const std::function<void(FRHICommandListImm
 }
 
 
-struct FRHICommandExecute_Void : public FRHICommand<FRHICommandExecute_Void>
+struct FRHICommandExecute_Void final : public FRHICommand<FRHICommandExecute_Void>
 {
 	std::function<void()> Function;
 
@@ -203,7 +203,7 @@ void ExecuteOnRHIThread_DoNotWait(const std::function<void()>& Function)
 }
 
 
-struct FRHICommandExecute_RHICmdList : public FRHICommand<FRHICommandExecute_RHICmdList>
+struct FRHICommandExecute_RHICmdList final : public FRHICommand<FRHICommandExecute_RHICmdList>
 {
 	std::function<void(FRHICommandList&)> Function;
 

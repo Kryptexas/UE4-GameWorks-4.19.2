@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // Implementation of Device Context State Caching to improve draw
 //	thread performance by removing redundant device context calls.
@@ -8,6 +8,27 @@
 //-----------------------------------------------------------------------------
 #include "D3D12RHIPrivate.h"
 #include <emmintrin.h>
+
+// This value defines how many descriptors will be in the device local view heap which
+// This should be tweaked for each title as heaps require VRAM. The default value of 512k takes up ~16MB
+int32 GLocalViewHeapSize = 500 * 1000;
+static FAutoConsoleVariableRef CVarLocalViewHeapSize(
+	TEXT("D3D12.LocalViewHeapSize"),
+	GLocalViewHeapSize,
+	TEXT("Local view heap size"),
+	ECVF_ReadOnly
+);
+
+// This value defines how many descriptors will be in the device global view heap which
+// is shared across contexts to allow the driver to eliminate redundant descriptor heap sets.
+// This should be tweaked for each title as heaps require VRAM. The default value of 512k takes up ~16MB
+int32 GGlobalViewHeapSize = 500 * 1000;
+static FAutoConsoleVariableRef CVarGlobalViewHeapSize(
+	TEXT("D3D12.GlobalViewHeapSize"),
+	GGlobalViewHeapSize,
+	TEXT("Global view heap size"),
+	ECVF_ReadOnly
+);
 
 extern bool D3D12RHI_ShouldCreateWithD3DDebug();
 
@@ -70,11 +91,11 @@ void FD3D12StateCacheBase::Init(FD3D12Device* InParent, FD3D12CommandContext* In
 	const uint32 MaxDescriptorsForTier = (ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1) ? NUM_VIEW_DESCRIPTORS_TIER_1 :
 		NUM_VIEW_DESCRIPTORS_TIER_2;
 
-	check(LOCAL_VIEW_HEAP_SIZE <= MaxDescriptorsForTier);
-	check(GLOBAL_VIEW_HEAP_SIZE <= MaxDescriptorsForTier);
+	check(GLocalViewHeapSize <= (int32)MaxDescriptorsForTier);
+	check(GGlobalViewHeapSize <= (int32)MaxDescriptorsForTier);
 
 	const uint32 NumSamplerDescriptors = NUM_SAMPLER_DESCRIPTORS;
-	DescriptorCache.Init(InParent, InCmdContext, LOCAL_VIEW_HEAP_SIZE, NumSamplerDescriptors, SubHeapDesc);
+	DescriptorCache.Init(InParent, InCmdContext, GLocalViewHeapSize, NumSamplerDescriptors, SubHeapDesc);
 
 	if (AncestralState)
 	{
@@ -1141,6 +1162,9 @@ void FD3D12StateCacheBase::InternalSetIndexBuffer(FD3D12ResourceLocation* IndexB
 
 void FD3D12StateCacheBase::InternalSetStreamSource(FD3D12ResourceLocation* VertexBufferLocation, uint32 StreamIndex, uint32 Stride, uint32 Offset)
 {
+	// If we have a vertex buffer location, that location should also have an underlying resource.
+	check(VertexBufferLocation == nullptr || VertexBufferLocation->GetResource());
+
 	check(StreamIndex < ARRAYSIZE(PipelineState.Graphics.VBCache.CurrentVertexBufferResources));
 
 	__declspec(align(16)) D3D12_VERTEX_BUFFER_VIEW NewView;

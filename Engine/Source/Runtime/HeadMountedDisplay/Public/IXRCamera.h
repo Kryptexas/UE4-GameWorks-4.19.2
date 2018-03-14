@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,6 +27,11 @@ public:
 	 * Set the view offset mode to assume an implied HMD position
 	 */
 	virtual void UseImplicitHMDPosition(bool bInImplicitHMDPosition) = 0;
+
+	/**
+	* Get the view offset mode
+	*/
+	virtual bool GetUseImplicitHMDPosition() = 0;
 
 	/**
 	 * Optionally called by APlayerController to apply the orientation of the

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,16 +16,13 @@
 #include "Components.h"
 #include "ReferenceSkeleton.h"
 #include "GPUSkinPublicDefs.h"
-#include "SkeletalMeshTypes.h"
 #include "Animation/PreviewAssetAttachComponent.h"
 #include "BoneContainer.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
 #include "EngineTypes.h"
+#include "SkeletalMeshSampling.h"
 
 #include "SkeletalMesh.generated.h"
-
-/** The maximum number of skeletal mesh LODs allowed. */
-#define MAX_SKELETAL_MESH_LODS 5
 
 class UAnimInstance;
 class UAssetUserData;
@@ -36,6 +33,12 @@ class USkeleton;
 class UClothingAssetBase;
 class UBlueprint;
 class UNodeMappingContainer;
+class UPhysicsAsset;
+class FSkeletalMeshRenderData;
+class FSkeletalMeshModel;
+class FSkeletalMeshLODModel;
+class FSkeletalMeshLODRenderData;
+class FSkinWeightVertexBuffer;
 
 #if WITH_APEX_CLOTHING
 
@@ -109,30 +112,6 @@ struct FBoneMirrorExport
 
 	FBoneMirrorExport()
 		: BoneFlipAxis(0)
-	{
-	}
-
-};
-
-/** Struct containing triangle sort settings for a particular section */
-USTRUCT()
-struct FTriangleSortSettings
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, Category=TriangleSortSettings)
-	TEnumAsByte<enum ETriangleSortOption> TriangleSorting;
-
-	UPROPERTY(EditAnywhere, Category=TriangleSortSettings)
-	TEnumAsByte<enum ETriangleSortAxis> CustomLeftRightAxis;
-
-	UPROPERTY(EditAnywhere, Category=TriangleSortSettings)
-	FName CustomLeftRightBoneName;
-
-
-	FTriangleSortSettings()
-		: TriangleSorting(0)
-		, CustomLeftRightAxis(0)
 	{
 	}
 
@@ -316,9 +295,6 @@ struct FSkeletalMeshLODInfo
 	UPROPERTY()
 	TArray<bool> bEnableShadowCasting_DEPRECATED;
 
-	UPROPERTY()
-	TArray<struct FTriangleSortSettings> TriangleSortSettings;
-
 	/** Whether to disable morph targets for this LOD. */
 	UPROPERTY()
 	uint32 bHasBeenSimplified:1;
@@ -346,12 +322,26 @@ struct FSkeletalMeshLODInfo
 	UPROPERTY()
 	uint32 bHasPerLODVertexColors : 1;
 
+	/** Keeps this LODs data on the CPU so it can be used for things such as sampling in FX. */
+	UPROPERTY(EditAnywhere, Category = SkeletalMeshLODInfo)
+	uint32 bAllowCPUAccess : 1;
+
+	/**
+	Mesh supports uniformly distributed sampling in constant time.
+	Memory cost is 8 bytes per triangle.
+	Example usage is uniform spawning of particles.
+	*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = SkeletalMeshLODInfo, meta=(EditCondition="bAllowCPUAccess"))
+	uint32 bSupportUniformlyDistributedSampling : 1;
+
 	FSkeletalMeshLODInfo()
 		: ScreenSize(0)
 		, LODHysteresis(0)
 		, bHasBeenSimplified(false)
 		, BakePose(nullptr)
 		, bHasPerLODVertexColors(false)
+		, bAllowCPUAccess(false)
+		, bSupportUniformlyDistributedSampling(false)
 	{
 	}
 
@@ -432,11 +422,6 @@ struct FClothingAssetData_Legacy
 #endif// #if WITH_APEX_CLOTHING
 	// serialization
 	friend FArchive& operator<<(FArchive& Ar, FClothingAssetData_Legacy& A);
-	// get resource size
-	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-	SIZE_T GetResourceSize() const;
-	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const;
-	SIZE_T GetResourceSizeBytes() const;
 };
 
 //~ Begin Material Interface for USkeletalMesh - contains a material and a shadow casting flag
@@ -500,7 +485,10 @@ struct FSkeletalMaterial
 	FMeshUVChannelInfo			UVChannelData;
 };
 
-class FSkeletalMeshResource;
+#if WITH_EDITOR
+/** delegate type for pre skeletal mesh build events */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnPostMeshCache, class USkeletalMesh*);
+#endif
 
 /**
  * SkeletalMesh is geometry bound to a hierarchical skeleton of bones which can be animated for the purpose of deforming the mesh.
@@ -514,16 +502,31 @@ class ENGINE_API USkeletalMesh : public UObject, public IInterface_CollisionData
 {
 	GENERATED_UCLASS_BODY()
 
+	// This is declared so we can use TUniquePtr<FSkeletalMeshRenderData> with just a forward declare of that class
+	USkeletalMesh(FVTableHelper& Helper);
+	~USkeletalMesh();
+
+#if WITH_EDITOR
+	/** Notification when anything changed */
+	DECLARE_MULTICAST_DELEGATE(FOnMeshChanged);
+#endif
 private:
-	/** Rendering resources created at import time. */
-	TSharedPtr<FSkeletalMeshResource> ImportedResource;
+#if WITH_EDITORONLY_DATA
+	/** Imported skeletal mesh geometry information (not used at runtime). */
+	TSharedPtr<FSkeletalMeshModel> ImportedModel;
+#endif
+
+	/** Rendering resources used at runtime */
+	TUniquePtr<FSkeletalMeshRenderData> SkeletalMeshRenderData;
 
 public:
-	/** Get the default resource for this skeletal mesh. */
-	FORCEINLINE FSkeletalMeshResource* GetImportedResource() const { return ImportedResource.Get(); }
+#if WITH_EDITORONLY_DATA
+	/** Get the imported data for this skeletal mesh. */
+	FORCEINLINE FSkeletalMeshModel* GetImportedModel() const { return ImportedModel.Get(); }
+#endif
 
-	/** Get the resource to use for rendering. */
-	FORCEINLINE FSkeletalMeshResource* GetResourceForRendering() const { return GetImportedResource(); }
+	/** Get the data to use for rendering. */
+	FORCEINLINE FSkeletalMeshRenderData* GetResourceForRendering() const { return SkeletalMeshRenderData.Get(); }
 
 	/** Skeleton of this skeletal mesh **/
 	UPROPERTY(Category=Mesh, AssetRegistrySearchable, VisibleAnywhere, BlueprintReadOnly)
@@ -623,6 +626,9 @@ public:
 	/** Whether or not the mesh has vertex colors */
 	UPROPERTY()
 	uint32 bHasVertexColors:1;
+
+	//caching optimization to avoid recalculating in non-editor builds
+	uint32 bHasActiveClothingAssets:1;
 
 	/** Uses skinned data for collision data. Per poly collision cannot be used for simulation, in most cases you are better off using the physics asset */
 	UPROPERTY(EditAnywhere, Category = Physics)
@@ -726,17 +732,6 @@ public:
 	TArray<FMatrix> RefBasesInvMatrix;    
 
 #if WITH_EDITORONLY_DATA
-	/** The section currently selected in the Editor. Used for highlighting */
-	UPROPERTY(transient)
-	int32 SelectedEditorSection;
-
-	/** The Material currently selected. need to remember this index for reimporting cloth */
-	UPROPERTY(transient)
-	int32 SelectedEditorMaterial;
-
-	/** The section currently selected for clothing. need to remember this index for reimporting cloth */
-	UPROPERTY(transient)
-	int32 SelectedClothingSection;
 
 	/** Height offset for the floor mesh in the editor */
 	UPROPERTY()
@@ -759,8 +754,28 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SkeletalMesh)
 	TSubclassOf<UAnimInstance> PostProcessAnimBlueprint;
 
+#if WITH_EDITOR && WITH_APEX_CLOTHING
+	/** 
+	 * Take clothing assets that were imported using APEX files before we moved away from the APEX simulation
+	 * framework and upgrade them to UE4 UClothingAssets. This will bind the new assets to the mesh so the
+	 * clothing remains working as before.
+	 */
+	void UpgradeOldClothingAssets();
+#endif //WITH_EDITOR && WITH_APEX_CLOTHING
+
+#if WITH_EDITOR
 	/** If the given section of the specified LOD has a clothing asset, unbind it's data and remove it from the asset array */
 	void RemoveClothingAsset(int32 InLodIndex, int32 InSectionIndex);
+
+	/**
+	* Clothing used to require the original section to be hidden and duplicated to a new rendered
+	* section. This was mainly due to an older requirement that we use new render data so the
+	* duplicated section allowed us not to destroy the original data. This method will undo this
+	* process and restore the mesh now that this is no longer necessary.
+	*/
+	void RemoveLegacyClothingSections();
+
+#endif // WITH_EDITOR
 
 	/**
 	 * Given an LOD and section index, retrieve a clothing asset bound to that section.
@@ -788,6 +803,8 @@ public:
 
 	/* Get whether or not any bound clothing assets exist for this mesh **/
 	bool HasActiveClothingAssets() const;
+	/* Compute whether or not any bound clothing assets exist for this mesh **/
+	bool ComputeActiveClothingAssets() const;
 
 	/** Populates OutClothingAssets with all clothing assets that are mapped to sections in the mesh. */
 	void GetClothingAssetsInUse(TArray<UClothingAssetBase*>& OutClothingAssets) const;
@@ -795,16 +812,33 @@ public:
 	/** Adds an asset to this mesh with validation and event broadcast */
 	void AddClothingAsset(UClothingAssetBase* InNewAsset);
 
+	const FSkeletalMeshSamplingInfo& GetSamplingInfo() { return SamplingInfo; }
+
+#if WITH_EDITOR
+	void SetSamplingInfo(const FSkeletalMeshSamplingInfo& InSamplingInfo) { SamplingInfo = InSamplingInfo; }
+	FOnMeshChanged& GetOnMeshChanged() { return OnMeshChanged; }
+#endif
+
+	/** 
+	True if this mesh LOD needs to keep it's data on CPU. 
+	*/
+	bool NeedCPUData(int32 LODIndex)const;
+
 protected:
+
+	/** Defines if and how to generate a set of precomputed data allowing targeted and fast sampling of this mesh on the CPU. */
+	UPROPERTY(EditAnywhere, Category = "Sampling", meta=(ShowOnlyInnerProperties))
+	FSkeletalMeshSamplingInfo SamplingInfo;
 
 	/** Array of user data stored with the asset */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category=SkeletalMesh)
 	TArray<UAssetUserData*> AssetUserData;
 
-private:
-	/** Skeletal mesh source data */
-	class FSkeletalMeshSourceData* SourceData;
+#if WITH_EDITOR
+	FOnMeshChanged OnMeshChanged;
+#endif
 
+private:
 	/** 
 	 *	Array of named socket locations, set up in editor and used as a shortcut instead of specifying 
 	 *	everything explicitly to AttachComponent in the SkeletalMeshComponent. 
@@ -830,6 +864,9 @@ public:
 	/** Release CPU access version of buffer */
 	void ReleaseCPUResources();
 
+	/** Allocate a new FSkeletalMeshRenderData and assign to SkeletalMeshRenderData member.  */
+	void AllocateResourceForRendering();
+
 	/** 
 	 * Update the material UV channel data used by the texture streamer. 
 	 *
@@ -847,18 +884,12 @@ public:
 	const FMeshUVChannelInfo* GetUVChannelData(int32 MaterialIndex) const;
 
 	/**
-	 * Gets the center point from which triangles should be sorted, if any.
-	 */
-	bool GetSortCenterPoint(FVector& OutSortCenter) const;
-
-	/**
 	 * Computes flags for building vertex buffers.
 	 */
 	uint32 GetVertexBufferFlags() const;
 
 	//~ Begin UObject Interface.
 #if WITH_EDITOR
-	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 
 	virtual void PostEditUndo() override;
@@ -881,8 +912,10 @@ public:
 
 	void CalculateInvRefMatrices();
 
+#if WITH_EDITOR
 	/** Calculate the required bones for a Skeletal Mesh LOD, including possible extra influences */
-	static void CalculateRequiredBones(class FStaticLODModel& LODModel, const struct FReferenceSkeleton& RefSkeleton, const TMap<FBoneIndexType, FBoneIndexType> * BonesToRemove);
+	static void CalculateRequiredBones(FSkeletalMeshLODModel& LODModel, const struct FReferenceSkeleton& RefSkeleton, const TMap<FBoneIndexType, FBoneIndexType> * BonesToRemove);
+#endif // WITH_EDITOR
 
 	/** 
 	 *	Find a socket object in this SkeletalMesh by name. 
@@ -951,15 +984,6 @@ public:
 	TArray<USkeletalMeshSocket*> GetActiveSocketList() const;
 
 #if WITH_EDITOR
-	/** Retrieves the source model for this skeletal mesh. */
-	FStaticLODModel& GetSourceModel();
-
-	/**
-	 * Copies off the source model for this skeletal mesh if necessary and returns it. This function should always be called before
-	 * making destructive changes to the mesh's geometry, e.g. simplification.
-	 */
-	FStaticLODModel& PreModifyMesh();
-
 	/**
 	* Makes sure all attached objects are valid and removes any that aren't.
 	*
@@ -997,6 +1021,8 @@ public:
 	void RegisterMorphTarget(UMorphTarget* MorphTarget);
 
 	void UnregisterMorphTarget(UMorphTarget* MorphTarget);
+
+	void UnregisterAllMorphTarget();
 
 	/** Initialize MorphSets look up table : MorphTargetIndexMap */
 	void InitMorphTargets();
@@ -1044,7 +1070,21 @@ public:
 	virtual const TArray<UAssetUserData*>* GetAssetUserDataArray() const override;
 	//~ End IInterface_AssetUserData Interface
 
+#if WITH_EDITOR
+private:	
+	/** Called after derived mesh data is cached */
+	FOnPostMeshCache PostMeshCached;
+public:
+	/** Get multicast delegate broadcast post to mesh data caching */
+	FOnPostMeshCache& OnPostMeshCached() { return PostMeshCached; }
+#endif 
+
 private:
+
+#if WITH_EDITOR
+	/** Generate SkeletalMeshRenderData from ImportedModel */
+	void CacheDerivedData();
+#endif
 
 	/** Utility function to help with building the combined socket list */
 	bool IsSocketOnMesh( const FName& InSocketName ) const;
@@ -1053,21 +1093,18 @@ private:
 	* Flush current render state
 	*/
 	void FlushRenderState();
-	/**
-	* Restart render state. 
-	*/
-	void RestartRenderState();
 
+	/**
+	* Create a new GUID for the source Model data, regenerate derived data and re-create any render state based on that.
+	*/
+	void InvalidateRenderData();
+
+#if WITH_EDITORONLY_DATA
 	/**
 	* In older data, the bEnableShadowCasting flag was stored in LODInfo
 	* so it needs moving over to materials
 	*/
 	void MoveDeprecatedShadowFlagToMaterials();
-
-	/**
-	* Test whether all the flags in an array are identical (could be moved to Array.h?)
-	*/
-	bool AreAllFlagsIdentical( const TArray<bool>& BoolArray ) const;
 
 	/*
 	* Ask the reference skeleton to rebuild the NameToIndexMap array. This is use to load old package before this array was created.
@@ -1082,12 +1119,19 @@ private:
 	*/
 	void MoveMaterialFlagsToSections();
 
+#endif // WITH_EDITORONLY_DATA
+
+	/**
+	* Test whether all the flags in an array are identical (could be moved to Array.h?)
+	*/
+	bool AreAllFlagsIdentical( const TArray<bool>& BoolArray ) const;
+
 #if WITH_EDITOR
 	public:
-		/** Delegates for asset editor events */
+	/** Delegates for asset editor events */
 
-		FDelegateHandle RegisterOnClothingChange(const FSimpleMulticastDelegate::FDelegate& InDelegate);
-		void UnregisterOnClothingChange(const FDelegateHandle& InHandle);
+	FDelegateHandle RegisterOnClothingChange(const FSimpleMulticastDelegate::FDelegate& InDelegate);
+	void UnregisterOnClothingChange(const FDelegateHandle& InHandle);
 
 	private:
 
@@ -1107,3 +1151,5 @@ private:
  * @param	InSkeletalMesh	SkeletalMesh that physics asset has been changed for
  */
 ENGINE_API void RefreshSkelMeshOnPhysicsAssetChange(const USkeletalMesh* InSkeletalMesh);
+
+ENGINE_API FVector GetSkeletalMeshRefVertLocation(const USkeletalMesh* Mesh, const FSkeletalMeshLODRenderData& LODData, const FSkinWeightVertexBuffer& SkinWeightVertexBuffer, const int32 VertIndex);

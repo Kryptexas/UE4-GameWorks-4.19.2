@@ -55,7 +55,8 @@ skilllevel: intermediate
 | **Scale** | ![](GlobalScale.png)(w:350) [INCLUDE:#worldscale]|![](LocalScale.png)(w:350)[INCLUDE:#localscale] |
 
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:WorldUniversal]
 * [移動](#translate)
@@ -71,8 +72,10 @@ skilllevel: intermediate
 * [均一なスケール](#uniformscale)
 * [スケール](#scale)
 [/EXCERPT]
--->
-<!--
+
+[/COMMENT]
+[COMMENT:none]
+
 
 [EXCERPT:WorldTranslate]
 * [移動](#translate)
@@ -83,8 +86,10 @@ skilllevel: intermediate
 * [移動](#translate)
 * [プレーンを移動](#translateplane)
 [/EXCERPT]
--->
-<!--
+
+[/COMMENT]
+[COMMENT:none]
+
 
 [EXCERPT:WorldRotate]
 * [回転](#rotate)
@@ -93,8 +98,10 @@ skilllevel: intermediate
 [EXCERPT:LocalRotate]
 * [回転](#rotate)
 [/EXCERPT]
--->
-<!--
+
+[/COMMENT]
+[COMMENT:none]
+
 
 [EXCERPT:WorldScale]
 * [均一なスケール](#uniformscale)
@@ -106,7 +113,8 @@ skilllevel: intermediate
 * [プレーンをスケール](#scaleplane)
 * [伸縮](#stretch)
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 ## ギズモのアクションのトランスフォーム
 

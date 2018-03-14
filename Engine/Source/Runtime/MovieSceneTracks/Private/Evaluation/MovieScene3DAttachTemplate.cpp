@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Evaluation/MovieScene3DAttachTemplate.h"
 #include "Sections/MovieScene3DAttachSection.h"
@@ -117,9 +117,9 @@ struct F3DAttachExecutionToken
 	: IMovieSceneExecutionToken
 	, F3DAttachTrackToken
 {
-	F3DAttachExecutionToken(FGuid InAttachGuid, FName InAttachSocketName, FName InAttachComponentName, bool bInShouldBeAttached, EAttachmentRule InAttachmentLocationRule, EAttachmentRule InAttachmentRotationRule, EAttachmentRule InAttachmentScaleRule, EDetachmentRule InDetachmentLocationRule, EDetachmentRule InDetachmentRotationRule, EDetachmentRule InDetachmentScaleRule) 
+	F3DAttachExecutionToken(FMovieSceneObjectBindingID InAttachBindingID, FName InAttachSocketName, FName InAttachComponentName, bool bInShouldBeAttached, EAttachmentRule InAttachmentLocationRule, EAttachmentRule InAttachmentRotationRule, EAttachmentRule InAttachmentScaleRule, EDetachmentRule InDetachmentLocationRule, EDetachmentRule InDetachmentRotationRule, EDetachmentRule InDetachmentScaleRule) 
 		: F3DAttachTrackToken(nullptr, InAttachSocketName, bInShouldBeAttached, InAttachmentLocationRule, InAttachmentRotationRule, InAttachmentScaleRule, InDetachmentLocationRule, InDetachmentRotationRule, InDetachmentScaleRule)
-		, AttachGuid(InAttachGuid)
+		, AttachBindingID(InAttachBindingID)
 		, AttachComponentName(InAttachComponentName)
 	{}
 
@@ -170,7 +170,19 @@ struct F3DAttachExecutionToken
 	{
 		MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_AttachTrack_TokenExecute)
 
-		FMovieSceneEvaluationOperand AttachOperand(Operand.SequenceID, AttachGuid);
+		FMovieSceneSequenceID SequenceID = Operand.SequenceID;
+		if (AttachBindingID.GetSequenceID().IsValid())
+		{
+			if (const FMovieSceneSubSequenceData* SubData = Player.GetEvaluationTemplate().GetHierarchy().FindSubData(SequenceID))
+			{
+				// Ensure that this ID is resolvable from the root, based on the current local sequence ID
+				FMovieSceneObjectBindingID RootBindingID = AttachBindingID.ResolveLocalToRoot(SequenceID, Player.GetEvaluationTemplate().GetHierarchy());
+				SequenceID = RootBindingID.GetSequenceID();
+			}
+		}
+
+		// If the transform is set, otherwise use the bound actor's transform
+		FMovieSceneEvaluationOperand AttachOperand(SequenceID, AttachBindingID.GetGuid());
 		
 		TArrayView<TWeakObjectPtr<>> Objects = Player.FindBoundObjects(AttachOperand);
 		if (!Objects.Num())
@@ -210,12 +222,12 @@ struct F3DAttachExecutionToken
 		}
 	}
 	
-	FGuid AttachGuid;
+	FMovieSceneObjectBindingID AttachBindingID;
 	FName AttachComponentName;
 };
 
 FMovieScene3DAttachSectionTemplate::FMovieScene3DAttachSectionTemplate(const UMovieScene3DAttachSection& Section)
-	: AttachGuid(Section.GetConstraintId())
+	: AttachBindingID(Section.GetConstraintBindingID())
 	, AttachSocketName(Section.AttachSocketName)
 	, AttachComponentName(Section.AttachComponentName)
 	, AttachmentLocationRule(Section.AttachmentLocationRule)
@@ -233,5 +245,5 @@ void FMovieScene3DAttachSectionTemplate::Evaluate(const FMovieSceneEvaluationOpe
 
 	const bool bShouldBeAttached = true;
 
-	ExecutionTokens.Add(F3DAttachExecutionToken(AttachGuid, AttachSocketName, AttachComponentName, bShouldBeAttached, AttachmentLocationRule, AttachmentRotationRule, AttachmentScaleRule, DetachmentLocationRule, DetachmentRotationRule, DetachmentScaleRule));
+	ExecutionTokens.Add(F3DAttachExecutionToken(AttachBindingID, AttachSocketName, AttachComponentName, bShouldBeAttached, AttachmentLocationRule, AttachmentRotationRule, AttachmentScaleRule, DetachmentLocationRule, DetachmentRotationRule, DetachmentScaleRule));
 }

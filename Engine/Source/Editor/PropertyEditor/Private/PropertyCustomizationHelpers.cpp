@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyCustomizationHelpers.h"
 #include "IDetailChildrenBuilder.h"
@@ -30,6 +30,7 @@
 #include "Widgets/Layout/SWidgetSwitcher.h"
 #include "IDocumentation.h"
 #include "SResetToDefaultPropertyEditor.h"
+#include "EditorFontGlyphs.h"
 
 #define LOCTEXT_NAMESPACE "PropertyCustomizationHelpers"
 
@@ -82,6 +83,20 @@ namespace PropertyCustomizationHelpers
 	private:
 		FSimpleDelegate OnClickAction;
 	};
+
+	TSharedRef<SWidget> MakeResetButton(FSimpleDelegate OnResetClicked, TAttribute<FText> OptionalToolTipText /*= FText()*/, TAttribute<bool> IsEnabled /*= true*/)
+	{
+		return
+			SNew(SPropertyEditorButton)
+			.Text(LOCTEXT("ResetButtonLabel", "ResetToDefault"))
+			.ToolTipText(OptionalToolTipText.Get().IsEmpty() ? LOCTEXT("ResetButtonToolTipText", "Resets Element to Default Value") : OptionalToolTipText)
+			.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+			.OnClickAction(OnResetClicked)
+			.IsEnabled(IsEnabled)
+			.Visibility(IsEnabled.Get() ? EVisibility::Visible : EVisibility::Collapsed)
+			.IsFocusable(false);
+	}
+
 
 	TSharedRef<SWidget> MakeAddButton( FSimpleDelegate OnAddClicked, TAttribute<FText> OptionalToolTipText, TAttribute<bool> IsEnabled )
 	{
@@ -153,6 +168,32 @@ namespace PropertyCustomizationHelpers
 			.OnClickAction( OnClearClicked )
 			.IsEnabled(IsEnabled)
 			.IsFocusable( false );
+	}
+
+	FText GetVisibilityDisplay(TAttribute<bool> bEnabled)
+	{
+		return bEnabled.Get() ? FEditorFontGlyphs::Eye : FEditorFontGlyphs::Eye_Slash;
+	}
+
+	TSharedRef<SWidget> MakeVisibilityButton(FOnClicked OnVisibilityClicked, TAttribute<FText> OptionalToolTipText, TAttribute<bool> VisibilityDelegate)
+	{
+		TAttribute<FText>::FGetter DynamicVisibilityGetter;
+		DynamicVisibilityGetter.BindStatic(&GetVisibilityDisplay, VisibilityDelegate);
+		TAttribute<FText> DynamicVisibilityAttribute = TAttribute<FText>::Create(DynamicVisibilityGetter);
+		return
+			SNew( SButton )
+			.OnClicked( OnVisibilityClicked )
+			.IsEnabled(true)
+			.IsFocusable( false )
+			.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+			.ToolTipText(LOCTEXT("ToggleVisibility", "Toggle Visibility"))
+			.ContentPadding(2.0f)
+			.ForegroundColor(FSlateColor::UseForeground())
+			[
+				SNew(STextBlock)
+				.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+				.Text(DynamicVisibilityAttribute)
+			];
 	}
 
 	TSharedRef<SWidget> MakeBrowseButton( FSimpleDelegate OnFindClicked, TAttribute<FText> OptionalToolTipText, TAttribute<bool> IsEnabled )
@@ -372,6 +413,11 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 
 	bool bDisplayThumbnail = InArgs._DisplayThumbnail;
 	FIntPoint ThumbnailSize(64, 64);
+	if (InArgs._ThumbnailSizeOverride.IsSet())
+	{
+		ThumbnailSize = InArgs._ThumbnailSizeOverride.Get();
+	}
+
 
 	if( InArgs._PropertyHandle.IsValid() && InArgs._PropertyHandle->IsValidHandle() )
 	{
@@ -884,12 +930,10 @@ private:
 			Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, ERHIFeatureLevel::Num, true);
 
 			// Add a menu item for each texture.  Clicking on the texture will display it in the content browser
-			for( int32 TextureIndex = 0; TextureIndex < Textures.Num(); ++TextureIndex )
+			// UObject for delegate compatibility
+			for( UObject* Texture : Textures )
 			{
-				// UObject for delegate compatibility
-				UObject* Texture = Textures[TextureIndex];
-
-				FUIAction Action( FExecuteAction::CreateSP( this, &FMaterialItemView::GoToAssetInContentBrowser, TWeakObjectPtr<UObject>(Texture) ) );
+				FUIAction Action( FExecuteAction::CreateSP( this, &FMaterialItemView::GoToAssetInContentBrowser, MakeWeakObjectPtr(Texture) ) );
 
 				MenuBuilder.AddMenuEntry( FText::FromString( Texture->GetName() ), LOCTEXT( "BrowseTexture_ToolTip", "Find this texture in the content browser" ), FSlateIcon(), Action );
 			}
@@ -1638,13 +1682,6 @@ void FSectionList::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
 		.Text(LOCTEXT("SectionHeaderTitle", "Sections"))
 		.Font(IDetailLayoutBuilder::GetDetailFont())
 	];
-	if (SectionListDelegates.OnGenerateLodComboBox.IsBound())
-	{
-		NodeRow.ValueContent()
-		[
-			SectionListDelegates.OnGenerateLodComboBox.Execute(SectionsLodIndex)
-		];
-	}
 }
 
 void FSectionList::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)
@@ -1743,6 +1780,11 @@ void FSectionList::OnPasteSectionItem(int32 LODIndex, int32 SectionIndex)
 	}
 }
 
+void FSectionList::OnEnableSectionItem(int32 LodIndex, int32 SectionIndex, bool bEnable)
+{
+	SectionListDelegates.OnEnableSectionItem.ExecuteIfBound(LodIndex, SectionIndex, bEnable);
+}
+
 void FSectionList::AddSectionItem(FDetailWidgetRow& Row, int32 LodIndex, const struct FSectionListItem& Item, bool bDisplayLink)
 {
 	uint32 NumSections = SectionListBuilder->GetNumSections(LodIndex);
@@ -1775,6 +1817,12 @@ void FSectionList::AddSectionItem(FDetailWidgetRow& Row, int32 LodIndex, const s
 
 	Row.CopyAction(FUIAction(FExecuteAction::CreateSP(this, &FSectionList::OnCopySectionItem, LodIndex, Item.SectionIndex), FCanExecuteAction::CreateSP(this, &FSectionList::OnCanCopySectionItem, LodIndex, Item.SectionIndex)));
 	Row.PasteAction(FUIAction(FExecuteAction::CreateSP(this, &FSectionList::OnPasteSectionItem, LodIndex, Item.SectionIndex)));
+
+	if(SectionListDelegates.OnEnableSectionItem.IsBound())
+	{
+		Row.AddCustomContextMenuAction(FUIAction(FExecuteAction::CreateSP(this, &FSectionList::OnEnableSectionItem, LodIndex, Item.SectionIndex, true)), LOCTEXT("SectionItemContexMenu_Enable", "Enable"));
+		Row.AddCustomContextMenuAction(FUIAction(FExecuteAction::CreateSP(this, &FSectionList::OnEnableSectionItem, LodIndex, Item.SectionIndex, false)), LOCTEXT("SectionItemContexMenu_Disable", "Disable"));
+	}
 
 	Row.NameContent()
 		[

@@ -1,0 +1,59 @@
+﻿INTSourceChangelist:3697586
+Availability:Public
+Crumbs:  %ROOT%, Platforms
+Title:缩减 Gear VR APK 包的容量
+Description:缩减 Gear VR 项目容量的的方法。
+Type: how-to
+SkillLevel:Advanced
+Version:4.17
+Parent:Platforms/GearVR
+Order:3
+Tags:GearVR
+prereq:Platforms/Android/ReducingAPKSize
+
+
+要将 Gear VR 项目 APK 包尽量缩小，需要提前进行规划，了解需要使用哪些 UE4 功能。以下指南将说明缩减 Gear VR 项目容量的诸多功法。 
+
+
+## ASTC 纹理格式
+
+虽然 Gear VR 兼容诸多不同的纹理格式，但使用 **ASTC** 格式能够在项目打包后使文件更小。
+
+![](Android_ASTC_Texture_Format.png)
+
+
+
+
+## 其他平台的技巧
+
+除上述 Gear VR 特定的方法外，还有多种方法对目标平台的游戏包容量进行控制。
+
+[INCLUDE:Engine/Performance/ReducingPackageSize#main(offset:1)]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

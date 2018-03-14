@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,6 +6,7 @@
 #include "Templates/IsPointer.h"
 #include "Templates/PointerIsConvertibleFromTo.h"
 #include "Templates/AreTypesEqual.h"
+#include "Templates/AndOrNot.h"
 #include "Containers/Map.h"
 #include "UObject/AutoPointer.h"
 
@@ -38,30 +39,61 @@ struct TWeakObjectPtr : private TWeakObjectPtrBase
 	// and are only templates for module organization reasons.
 	static_assert(TAreTypesEqual<TWeakObjectPtrBase, FWeakObjectPtr>::Value, "TWeakObjectPtrBase should not be overridden");
 
+	// These exists only to disambiguate the two constructors below
+	enum EDummy1 { Dummy1 };
+	enum EDummy2 { Dummy2 };
+
 public:
+	TWeakObjectPtr() = default;
+	TWeakObjectPtr(const TWeakObjectPtr&) = default;
+	TWeakObjectPtr& operator=(const TWeakObjectPtr&) = default;
+	~TWeakObjectPtr() = default;
 
-	/** Default constructor (no initialization). **/
-	FORCEINLINE TWeakObjectPtr() { }
+	/**
+	 * Construct from a null pointer
+	**/
+	FORCEINLINE TWeakObjectPtr(TYPE_OF_NULLPTR) :
+		TWeakObjectPtrBase((UObject*)nullptr)
+	{
+	}
 
-	/**  
+	/**
 	 * Construct from an object pointer
 	 * @param Object object to create a weak pointer to
 	**/
-	FORCEINLINE TWeakObjectPtr(const T* Object) :
+	template <
+		typename U,
+		typename = typename TEnableIf<
+			TAnd<
+				TPointerIsConvertibleFromTo<const volatile U, const volatile T>,
+				TNot<TLosesQualifiersFromTo<U, T>>
+			>::Value
+		>::Type
+	>
+	FORCEINLINE TWeakObjectPtr(U* Object, EDummy1 = Dummy1) :
 		TWeakObjectPtrBase((UObject*)Object)
 	{
 		// This static assert is in here rather than in the body of the class because we want
 		// to be able to define TWeakObjectPtr<UUndefinedClass>.
 		static_assert(TPointerIsConvertibleFromTo<T, const volatile UObject>::Value, "TWeakObjectPtr can only be constructed with UObject types");
 	}
-
-	/**  
-	 * Construct from another weak pointer
-	 * @param Other weak pointer to copy from
-	**/
-	FORCEINLINE TWeakObjectPtr(const TWeakObjectPtr& Other) :
-		TWeakObjectPtrBase(Other)
-	{ }
+	template <
+		typename U,
+		typename = typename TEnableIf<
+			TAnd<
+				TPointerIsConvertibleFromTo<const volatile U, const volatile T>,
+				TLosesQualifiersFromTo<U, T>
+			>::Value
+		>::Type
+	>
+	DEPRECATED(4.19, "Implicit conversions from const pointers to non-const TWeakObjectPtrs has been deprecated. Please const-correct this usage.")
+	FORCEINLINE TWeakObjectPtr(U* Object, EDummy2 = Dummy2) :
+		TWeakObjectPtrBase((const UObject*)Object)
+	{
+		// This static assert is in here rather than in the body of the class because we want
+		// to be able to define TWeakObjectPtr<UUndefinedClass>.
+		static_assert(TPointerIsConvertibleFromTo<T, const volatile UObject>::Value, "TWeakObjectPtr can only be constructed with UObject types");
+	}
 
 	/**  
 	 * Construct from another weak pointer of another type, intended for derived-to-base conversions
@@ -89,19 +121,17 @@ public:
 	 * @param Object object to create a weak pointer to
 	**/
 	template<class U>
-	FORCEINLINE void operator=(const U* Object)
+	FORCEINLINE typename TEnableIf<!TLosesQualifiersFromTo<U, T>::Value>::Type operator=(U* Object)
+	{
+		T* TempObject = Object;
+		TWeakObjectPtrBase::operator=(TempObject);
+	}
+	template<class U>
+	DEPRECATED(4.19, "Implicit conversions from const pointers to non-const TWeakObjectPtrs has been deprecated. Please const-correct this usage.")
+	FORCEINLINE typename TEnableIf<TLosesQualifiersFromTo<U, T>::Value>::Type operator=(U* Object)
 	{
 		const T* TempObject = Object;
 		TWeakObjectPtrBase::operator=(TempObject);
-	}
-
-	/**  
-	 * Construct from another weak pointer
-	 * @param Other weak pointer to copy from
-	**/
-	FORCEINLINE void operator=(const TWeakObjectPtr& Other)
-	{
-		TWeakObjectPtrBase::operator=(Other);
 	}
 
 	/**  
@@ -207,6 +237,13 @@ public:
 		return Ar;
 	}
 };
+
+// Helper function which deduces the type of the initializer
+template <typename T>
+FORCEINLINE TWeakObjectPtr<T> MakeWeakObjectPtr(T* Ptr)
+{
+	return TWeakObjectPtr<T>(Ptr);
+}
 
 template <typename LhsT, typename RhsT, typename OtherTWeakObjectPtrBase>
 FORCENOINLINE bool operator==(const TWeakObjectPtr<LhsT, OtherTWeakObjectPtrBase>& Lhs, const TWeakObjectPtr<RhsT, OtherTWeakObjectPtrBase>& Rhs)

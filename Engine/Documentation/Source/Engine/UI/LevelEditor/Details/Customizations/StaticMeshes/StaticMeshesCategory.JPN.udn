@@ -23,7 +23,8 @@ Version:4.9
 | ------- | ----------- |
 | ![](button_blocking_volume.png) | コリジョンとして使用するために、以下のいずれかの手法で _スタティックメッシュ_ から _BlockingVolume_ を生成します。 [INCLUDE:#BlockingVolume] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BlockingVolume]
 [REGION:simpletable]
 | メソッド | 説明 |
@@ -41,4 +42,5 @@ $ NormalTolerance :拒絶許容値です。ブロッキング ボリューム �
 その影響で重複を取り除きます。
 [/REGION]
 [/EXCERPT:BlockingVolume]
--->
+
+[/COMMENT]

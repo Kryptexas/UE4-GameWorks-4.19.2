@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimStateTransitionNode.cpp
@@ -16,6 +16,7 @@
 #include "EdGraphUtilities.h"
 #include "Kismet2/Kismet2NameValidators.h"
 #include "ScopedTransaction.h"
+#include "Animation/BlendProfile.h"
 
 //////////////////////////////////////////////////////////////////////////
 // IAnimStateTransitionNodeSharedDataHelper
@@ -83,9 +84,9 @@ UAnimStateTransitionNode::UAnimStateTransitionNode(const FObjectInitializer& Obj
 
 void UAnimStateTransitionNode::AllocateDefaultPins()
 {
-	UEdGraphPin* Inputs = CreatePin(EGPD_Input, TEXT("Transition"), FString(), nullptr, TEXT("In"));
+	UEdGraphPin* Inputs = CreatePin(EGPD_Input, TEXT("Transition"), TEXT("In"));
 	Inputs->bHidden = true;
-	UEdGraphPin* Outputs = CreatePin(EGPD_Output, TEXT("Transition"), FString(), nullptr, TEXT("Out"));
+	UEdGraphPin* Outputs = CreatePin(EGPD_Output, TEXT("Transition"), TEXT("Out"));
 	Outputs->bHidden = true;
 }
 
@@ -125,6 +126,29 @@ void UAnimStateTransitionNode::PostLoad()
 				break;
 		}
 	}
+
+	if(GetLinkerCustomVersion(FAnimPhysObjectVersion::GUID) < FAnimPhysObjectVersion::FixupBadBlendProfileReferences)
+	{
+		ValidateBlendProfile();
+	}
+}
+
+bool UAnimStateTransitionNode::ValidateBlendProfile()
+{
+	if(BlendProfile)
+	{
+		// validate the skeleton of our blend profile
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNodeChecked(this);
+		UAnimBlueprint* AnimBP = CastChecked<UAnimBlueprint>(Blueprint);
+
+		if(AnimBP->TargetSkeleton && !AnimBP->TargetSkeleton->BlendProfiles.Contains(BlendProfile))
+		{
+			BlendProfile = nullptr;
+			return false;
+		}
+	}
+
+	return true;
 }
 
 void UAnimStateTransitionNode::PostPasteNode()
@@ -158,6 +182,8 @@ void UAnimStateTransitionNode::PostPasteNode()
 		// Transactional flag is lost in copy/paste, restore it.
 		CustomTransitionGraph->SetFlags(RF_Transactional);
 	}
+
+	ValidateBlendProfile();
 
 	Super::PostPasteNode();
 
@@ -502,6 +528,12 @@ void UAnimStateTransitionNode::CreateCustomTransitionGraph()
 		ParentGraph->Modify();
 		ParentGraph->SubGraphs.Add(CustomTransitionGraph);
 	}
+}
+
+void UAnimStateTransitionNode::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+	Ar.UsingCustomVersion(FAnimPhysObjectVersion::GUID);
 }
 
 void UAnimStateTransitionNode::DestroyNode()

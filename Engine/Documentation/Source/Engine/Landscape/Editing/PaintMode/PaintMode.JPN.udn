@@ -102,11 +102,13 @@ Paint ツールは、現在選択されているブラシとフォールオフ�
 | --- | --- |
 | **Flatten Mode** | ツールで選択したレイヤーのウェイトのアプリケーションを増加、減少、または増減させるかを決定します。|
 
-<!----
+[COMMENT:none]
+--
 | **Use Slope Flatten** | 有効な場合、ランドスケープの既存スロープに沿って平坦化します。|
 | **Pick Value Per Apply** | チェックが入っていると、最初にクリックした点のみを使用するのではなく、常に新しい値を選んで平坦化します。 |
 | **Flatten Target** | 平坦化するためのターゲット値を設定します。|
----->
+--
+[/COMMENT]
 
 
 ### Noise
@@ -162,7 +164,9 @@ Paint ツールは、現在選択されているブラシとフォールオフ�
 ![](WeightBlended_NonWeightBlended.png)
 1. レイヤー情報オブジェクトの保存場所を選択します。
 
-<!-- what's the difference between weight-blended and non weight-blended? -->
+[COMMENT:none]
+ what's the difference between weight-blended and non weight-blended? 
+[/COMMENT]
 
 作成後は、Layer Info Object は **コンテンツブラウザ** に以下のようにアセットとして存在します。
 

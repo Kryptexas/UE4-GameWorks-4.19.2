@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MacErrorOutputDevice.h"
 #include "Misc/App.h"
@@ -18,7 +18,7 @@ FMacErrorOutputDevice::FMacErrorOutputDevice()
 
 void FMacErrorOutputDevice::Serialize( const TCHAR* Msg, ELogVerbosity::Type Verbosity, const class FName& Category )
 {
-	FPlatformMisc::DebugBreak();
+	UE_DEBUG_BREAK();
 
 	if( !GIsCriticalError )
 	{   
@@ -49,7 +49,7 @@ void FMacErrorOutputDevice::Serialize( const TCHAR* Msg, ELogVerbosity::Type Ver
 	{
 		// Propagate error so structured exception handler can perform necessary work.
 #if PLATFORM_EXCEPTIONS_DISABLED
-		FPlatformMisc::DebugBreak();
+		UE_DEBUG_BREAK();
 #endif
 		FPlatformMisc::RaiseException( 1 );
 	}

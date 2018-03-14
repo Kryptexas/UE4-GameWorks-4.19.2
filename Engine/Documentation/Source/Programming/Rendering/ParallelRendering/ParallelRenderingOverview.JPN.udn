@@ -1,0 +1,47 @@
+﻿INTSourceChangelist:3731677
+Availability:Docs
+Crumbs: %ROOT%
+Title:Parallel Rendering の概要
+Description:アンリアル エンジン 4 の Parallel Rendering の概要
+Type:Overview
+SkillLevel: advanced
+Version:4.18
+Programming\Rendering\
+Order:5
+Tags: rendering
+
+[TOC(start:1 end:2)]
+
+## スレッド処理の概要
+
+これまでレンダラはレンダー スレッド上で実行され、フレームで後で実行される Game Thread によって待機状態にされたスレッドに対して命令します。これらのコマンドは、サポート対象プラットフォーム上で異なるグラフィックス API へのクロス プラットフォーム インターフェースとしての役割をする Render Hardware Interface (RHI) レイヤーを呼び出します。
+
+このプロセスの効率を改善し、サポート対象プラットフォームの機能を活かすために、Render Thread はプラットフォームに依存しないグラフィカルなコマンドをレンダラのコマンドリストのキューに加えるフロントエンドの役目をし、新しいスレッドである RHI Thread はバックエンドで適切なグラフィックス API 経由でそれらを変換 (実行) します。このように分けると、独立したバックエンドの平行処理がゲーム コンソール、DX12、Vulkan などサポートしているプラットフォームで可能になります。通常、フロントエンドで並列処理で生成されたものはすべてバックエンドで並列処理で変換されます。
+
+[REGION:note]コマンドの中には、Lock や Unlock 操作など、コマンドリスト システムを使わずに実行できるものがあります。これらのコマンドは Render Thread が直接発行します。これらのケースでは、RHI Thread をフラッシュして待つか、データをコピーしてキューに追加します。実装方法は、操作とプラットフォームによって異なります。[/REGION]
+
+## グラフィカルなコマンドとコマンドリスト
+
+レンダー スレッドによって待機状態のコマンドは `FRHICommand` テンプレートから派生した構造体のインスタンスです。これらは、変換処理中に呼び出された `Execute` 関数をオーバーラードし、それらが要求するデータを格納します。コマンドは、プラットフォームの最適なパフォーマンスのヒューリスティックに応じて異なるプラットフォームの GPU に異なる方法でサブミットしたり (例えば、フレームごとに複数回サブミットする、フレームの最後に全部を一度にサブミットするなど)、`FRHISubmitCommandsHint` コマンドを発行してサブミットすることができます。
+
+変換に使用する主なインターフェースは `IRHICommandContext` です。それぞれのプラットフォームと API には派生した `RHICommandContext` があります。変換中、`RHICommandList` は操作するための`RHICommandContext` に与えられます。各コマンドの`Execute` 関数は `RHICommandContext` API を呼び出します。コマンドのコンテキストは、ステート シャドウイング、検証、任意の操作を実行するために必要な API 特有の詳細を調整します。
+
+## 同期
+
+GameThread、RenderThread、RHI Thread、GPU 間でのレンダラの同期は複雑なトピックです。概略を述べると、アンリアル エンジン 4 は通常は「シングル フレーム遅れ」のレンダラとして設定されています。つまり、GameThread が Frame N+1 を処理している場合に、RenderThread は Frame N を処理していることが許されています。ただし、RenderThread の処理速度が GameThread よりも速い場合は例外です。RenderThread は、Frame N+1 のためのビジビリティの計算を先に済ませてから、RHI Thread が Frame N の処理を完了するのを待つことができます。したがって、Frame N+1 における GameThread が Frame N+1 を処理している間、RenderThread は、Frame N または Frame N+1 を処理することが許されており、RHI Thread は、実行時間に応じて Frame N または Frame N+1 のコマンドを解釈することが可能です。これらの保証事項は、`FFrameEndSync`、および、`FRHICommandListImmediate` の `RHIThreadFence` 関数によって仲介されます。また、並行処理がどのように設定されていようとも、コマンドを GPU へ提出 (Submission) する順序が、シングルスレッドのレンダラでコマンドをサブミットする順序と変わらないことが保証されます。このような順序が不変であることは、一貫性を確保するのに必要なことです。また、この順序が不変であることはレンダリングのコードが変更されても維持されなければなりません。
+
+## デバッグ作業
+
+様々な CVAR を使ってこの挙動を調整することができます。これらのステージの多くは直行なので、テストの際にはここに無効化できますし、時間があれば、これらのステージで新規プラットフォームを使うことができます。
+
+|コマンド|説明|
+|--------------|--------------|
+|**r.rhicmdusedeferredcontexts**|0 に設定すると、バックエンドの並列処理を無効にします。デフォルト値は 1 です。|
+|**r.rhicmduseparallelalgorithms**|0 に設定すると、フロントエンドの並列処理が無効になります。デフォルト値は 1 です。|
+|**r.rhicmdusedeferredcontexts**|0 に設定すると、RHI Thread が完全に無効になります。コマンドリストはまだ生成されますが、ある時点で直接 RenderThread で変換されます。|
+|**r.rhicmdbypass**|コマンドラインを回避してレンダリング スレッド上に RHI コマンドを直接呼び出すと、コマンドリストの生成を完全に無効にして、レンダラを以前の挙動にすることができます。RHI スレッドも無効にした後でのみ反映されます。RHI Thread が無効にされるまで、これは無視されることに注目してください。|
+
+![](Parallel_Rendering_00.png)
+[REGION:caption]
+並列処理コマンドリストの生成の仕組み
+[/REGION]

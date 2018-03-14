@@ -12,13 +12,17 @@ order:2
 topic-icon:%ROOT%/platform_icon.png
 topic-image:VirtualRealityDevelopment_topic.png
 
-## Virtual Reality Desktop Platforms
+## Desktop Platforms
 
-[DIR(end:"1" output:"topic" type:"landing" tags:"platform" parent:"Platforms\VR\DesktopVR")]
+[DIR(end:"1" output:"topic" type:"landing" tags:"platform" tags:"Desktop VR" parent:"Platforms/VR")]
 
-## Virtual Reality Mobile Platforms
+## Mobile Platforms
 
-[DIR(end:"1" output:"topic" type:"landing" tags:"platform" parent:"Platforms\VR\MobileVR")]
+[DIR(end:"1" output:"topic" type:"landing" tags:"platform" tags:"Mobile VR" parent:"Platforms/VR")]
+
+## General VR Development
+
+[DIR(end:"1" output:"topic" parent:"Platforms/VR" type:"overview,reference,how-to")]
 
 ## Training Streams
 

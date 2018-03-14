@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/MaterialBillboardComponent.h"
 #include "EngineGlobals.h"
@@ -17,6 +17,7 @@
 #include "Engine/LevelStreaming.h"
 #include "LevelUtils.h"
 #include "PrimitiveSceneProxy.h"
+#include "StaticMeshResources.h"
 
 /** A material sprite vertex. */
 struct FMaterialSpriteVertex
@@ -41,52 +42,6 @@ public:
 };
 static TGlobalResource<FMaterialSpriteVertexBuffer> GDummyMaterialSpriteVertexBuffer;
 
-/** The vertex factory used to draw material sprites. */
-class FMaterialSpriteVertexFactory : public FLocalVertexFactory
-{
-public:
-
-	FMaterialSpriteVertexFactory()
-	{
-		FLocalVertexFactory::FDataType VertexData;
-
-		VertexData.PositionComponent = FVertexStreamComponent(
-			&GDummyMaterialSpriteVertexBuffer,
-			STRUCT_OFFSET(FMaterialSpriteVertex,Position),
-			sizeof(FMaterialSpriteVertex),
-			VET_Float3
-			);
-		VertexData.TangentBasisComponents[0] = FVertexStreamComponent(
-			&GDummyMaterialSpriteVertexBuffer,
-			STRUCT_OFFSET(FMaterialSpriteVertex,TangentX),
-			sizeof(FMaterialSpriteVertex),
-			VET_PackedNormal
-			);
-		VertexData.TangentBasisComponents[1] = FVertexStreamComponent(
-			&GDummyMaterialSpriteVertexBuffer,
-			STRUCT_OFFSET(FMaterialSpriteVertex,TangentZ),
-			sizeof(FMaterialSpriteVertex),
-			VET_PackedNormal
-			);
-		VertexData.ColorComponent = FVertexStreamComponent(
-			&GDummyMaterialSpriteVertexBuffer,
-			STRUCT_OFFSET(FMaterialSpriteVertex,Color),
-			sizeof(FMaterialSpriteVertex),
-			VET_Color
-			);
-		VertexData.TextureCoordinates.Empty();
-		VertexData.TextureCoordinates.Add(FVertexStreamComponent(
-			&GDummyMaterialSpriteVertexBuffer,
-			STRUCT_OFFSET(FMaterialSpriteVertex,TexCoords),
-			sizeof(FMaterialSpriteVertex),
-			VET_Float2
-			));
-
-		SetData(VertexData);
-	}
-};
-static TGlobalResource<FMaterialSpriteVertexFactory> GMaterialSpriteVertexFactory;
-
 class FMaterialSpriteVertexArray : public FOneFrameResource
 {
 public:
@@ -94,15 +49,21 @@ public:
 };
 
 /** Represents a sprite to the scene manager. */
-class FMaterialSpriteSceneProxy : public FPrimitiveSceneProxy
+class FMaterialSpriteSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
 
 	/** Initialization constructor. */
 	FMaterialSpriteSceneProxy(const UMaterialBillboardComponent* InComponent)
 	: FPrimitiveSceneProxy(InComponent)
 	, Elements(InComponent->Elements)
 	, BaseColor(FColor::White)
+	, VertexFactory(GetScene().GetFeatureLevel(), "FMaterialSpriteSceneProxy")
 	{
 		AActor* Owner = InComponent->GetOwner();
 		if (Owner)
@@ -129,117 +90,171 @@ public:
 		FColor NewPropertyColor;
 		GEngine->GetPropertyColorationColor( (UObject*)InComponent, NewPropertyColor );
 		PropertyColor = NewPropertyColor;
+
+		StaticMeshVertexBuffers.PositionVertexBuffer.Init(1);
+		StaticMeshVertexBuffers.StaticMeshVertexBuffer.Init(1, 1);
+		StaticMeshVertexBuffers.ColorVertexBuffer.Init(1);
+
+		const FMaterialSpriteSceneProxy* Self = this;
+		ENQUEUE_RENDER_COMMAND(FMaterialSpriteSceneProxyInit)(
+			[Self](FRHICommandListImmediate& RHICmdList)
+		{
+			Self->StaticMeshVertexBuffers.PositionVertexBuffer.InitResource();
+			Self->StaticMeshVertexBuffers.StaticMeshVertexBuffer.InitResource();
+			Self->StaticMeshVertexBuffers.ColorVertexBuffer.InitResource();
+
+			FLocalVertexFactory::FDataType Data;
+			Self->StaticMeshVertexBuffers.PositionVertexBuffer.BindPositionVertexBuffer(&Self->VertexFactory, Data);
+			Self->StaticMeshVertexBuffers.StaticMeshVertexBuffer.BindTangentVertexBuffer(&Self->VertexFactory, Data);
+			Self->StaticMeshVertexBuffers.StaticMeshVertexBuffer.BindPackedTexCoordVertexBuffer(&Self->VertexFactory, Data);
+			Self->StaticMeshVertexBuffers.StaticMeshVertexBuffer.BindLightMapVertexBuffer(&Self->VertexFactory, Data, 0);
+			Self->StaticMeshVertexBuffers.ColorVertexBuffer.BindColorVertexBuffer(&Self->VertexFactory, Data);
+			Self->VertexFactory.SetData(Data);
+
+			Self->VertexFactory.InitResource();
+		});
+	}
+
+	~FMaterialSpriteSceneProxy()
+	{
+		VertexFactory.ReleaseResource();
+		StaticMeshVertexBuffers.PositionVertexBuffer.ReleaseResource();
+		StaticMeshVertexBuffers.StaticMeshVertexBuffer.ReleaseResource();
+		StaticMeshVertexBuffers.ColorVertexBuffer.ReleaseResource();
 	}
 
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
 	{
 		QUICK_SCOPE_CYCLE_COUNTER( STAT_MaterialSpriteSceneProxy_GetDynamicMeshElements );
 
-		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		const int ElementStride = 4 * Elements.Num();
+		const int WorstCaseVertexBufferSize = ElementStride * Views.Num();
+
+		if (WorstCaseVertexBufferSize > 0)
 		{
-			if (VisibilityMap & (1 << ViewIndex))
+			StaticMeshVertexBuffers.PositionVertexBuffer.Init(WorstCaseVertexBufferSize);
+			StaticMeshVertexBuffers.StaticMeshVertexBuffer.Init(WorstCaseVertexBufferSize, 1);
+			StaticMeshVertexBuffers.ColorVertexBuffer.Init(WorstCaseVertexBufferSize);
+
+			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 			{
-				const FSceneView* View = Views[ViewIndex];
-
-				const bool bIsWireframe = View->Family->EngineShowFlags.Wireframe;
-				// Determine the position of the source
-				const FVector SourcePosition = GetLocalToWorld().GetOrigin();
-				const FVector CameraToSource = View->ViewMatrices.GetViewOrigin() - SourcePosition;
-				const float DistanceToSource = CameraToSource.Size();
-
-				const FVector CameraUp      = -View->ViewMatrices.GetInvViewProjectionMatrix().TransformVector(FVector(1.0f,0.0f,0.0f));
-				const FVector CameraRight   = -View->ViewMatrices.GetInvViewProjectionMatrix().TransformVector(FVector(0.0f,1.0f,0.0f));
-				const FVector CameraForward = -View->ViewMatrices.GetInvViewProjectionMatrix().TransformVector(FVector(0.0f,0.0f,1.0f));
-				const FMatrix WorldToLocal	= GetLocalToWorld().InverseFast();
-				const FVector LocalCameraUp = WorldToLocal.TransformVector(CameraUp);
-				const FVector LocalCameraRight = WorldToLocal.TransformVector(CameraRight);
-				const FVector LocalCameraForward = WorldToLocal.TransformVector(CameraForward);
-
-				// Draw the elements ordered so the last is on top of the first.
-				for(int32 ElementIndex = 0;ElementIndex < Elements.Num();++ElementIndex)
+				if (VisibilityMap & (1 << ViewIndex))
 				{
-					const FMaterialSpriteElement& Element = Elements[ElementIndex];
+					const FSceneView* View = Views[ViewIndex];
 
-					if(Element.Material)
+					const bool bIsWireframe = View->Family->EngineShowFlags.Wireframe;
+					// Determine the position of the source
+					const FVector SourcePosition = GetLocalToWorld().GetOrigin();
+					const FVector CameraToSource = View->ViewMatrices.GetViewOrigin() - SourcePosition;
+					const float DistanceToSource = CameraToSource.Size();
+
+					const FVector CameraUp = -View->ViewMatrices.GetInvViewProjectionMatrix().TransformVector(FVector(1.0f, 0.0f, 0.0f));
+					const FVector CameraRight = -View->ViewMatrices.GetInvViewProjectionMatrix().TransformVector(FVector(0.0f, 1.0f, 0.0f));
+					const FVector CameraForward = -View->ViewMatrices.GetInvViewProjectionMatrix().TransformVector(FVector(0.0f, 0.0f, 1.0f));
+					const FMatrix WorldToLocal = GetLocalToWorld().InverseFast();
+					const FVector LocalCameraUp = WorldToLocal.TransformVector(CameraUp);
+					const FVector LocalCameraRight = WorldToLocal.TransformVector(CameraRight);
+					const FVector LocalCameraForward = WorldToLocal.TransformVector(CameraForward);
+
+					// Draw the elements ordered so the last is on top of the first.
+					for (int32 ElementIndex = 0; ElementIndex < Elements.Num(); ++ElementIndex)
 					{
-						// Evaluate the size of the sprite.
-						float SizeX = Element.BaseSizeX;
-						float SizeY = Element.BaseSizeY;
-						if(Element.DistanceToSizeCurve)
+						const FMaterialSpriteElement& Element = Elements[ElementIndex];
+
+						if (Element.Material)
 						{
-							const float SizeFactor = Element.DistanceToSizeCurve->GetFloatValue(DistanceToSource);
-							SizeX *= SizeFactor;
-							SizeY *= SizeFactor;
+							// Evaluate the size of the sprite.
+							float SizeX = Element.BaseSizeX;
+							float SizeY = Element.BaseSizeY;
+							if (Element.DistanceToSizeCurve)
+							{
+								const float SizeFactor = Element.DistanceToSizeCurve->GetFloatValue(DistanceToSource);
+								SizeX *= SizeFactor;
+								SizeY *= SizeFactor;
+							}
+
+							// Convert the size into world-space.
+							const float W = View->ViewMatrices.GetViewProjectionMatrix().TransformPosition(SourcePosition).W;
+							const float AspectRatio = CameraRight.Size() / CameraUp.Size();
+							const float WorldSizeX = Element.bSizeIsInScreenSpace ? (SizeX               * W) : (SizeX / CameraRight.Size());
+							const float WorldSizeY = Element.bSizeIsInScreenSpace ? (SizeY * AspectRatio * W) : (SizeY / CameraUp.Size());
+
+							// Evaluate the color/opacity of the sprite.
+							FLinearColor Color = BaseColor;
+							if (Element.DistanceToOpacityCurve)
+							{
+								Color.A *= Element.DistanceToOpacityCurve->GetFloatValue(DistanceToSource);
+							}
+
+							const int WriteOffset = ElementStride * ViewIndex + 4 * ElementIndex;
+							for (uint32 VertexIndex = 0; VertexIndex < 4; ++VertexIndex)
+							{
+								const int WriteIndex = WriteOffset + VertexIndex;
+								StaticMeshVertexBuffers.StaticMeshVertexBuffer.SetVertexTangents(WriteIndex, LocalCameraRight.GetSafeNormal(), LocalCameraUp.GetSafeNormal(), -LocalCameraForward.GetSafeNormal());
+								StaticMeshVertexBuffers.ColorVertexBuffer.VertexColor(WriteIndex) = Color.ToFColor(true);
+							}
+
+							// Set up the sprite vertex positions and texture coordinates.
+							StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(WriteOffset + 0) = -WorldSizeX * LocalCameraRight + +WorldSizeY * LocalCameraUp;
+							StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(WriteOffset + 1) = +WorldSizeX * LocalCameraRight + +WorldSizeY * LocalCameraUp;
+							StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(WriteOffset + 2) = -WorldSizeX * LocalCameraRight + -WorldSizeY * LocalCameraUp;
+							StaticMeshVertexBuffers.PositionVertexBuffer.VertexPosition(WriteOffset + 3) = +WorldSizeX * LocalCameraRight + -WorldSizeY * LocalCameraUp;
+
+							StaticMeshVertexBuffers.StaticMeshVertexBuffer.SetVertexUV(WriteOffset + 0, 0, FVector2D(0, 0));
+							StaticMeshVertexBuffers.StaticMeshVertexBuffer.SetVertexUV(WriteOffset + 1, 0, FVector2D(0, 1));
+							StaticMeshVertexBuffers.StaticMeshVertexBuffer.SetVertexUV(WriteOffset + 2, 0, FVector2D(1, 0));
+							StaticMeshVertexBuffers.StaticMeshVertexBuffer.SetVertexUV(WriteOffset + 3, 0, FVector2D(1, 1));
+
+							// Set up the FMeshElement.
+							FMeshBatch& Mesh = Collector.AllocateMesh();
+
+							Mesh.VertexFactory = &VertexFactory;
+							Mesh.MaterialRenderProxy = Element.Material->GetRenderProxy((View->Family->EngineShowFlags.Selection) && IsSelected(), IsHovered());
+							Mesh.LCI = NULL;
+							Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative() ? true : false;
+							Mesh.CastShadow = false;
+							Mesh.DepthPriorityGroup = (ESceneDepthPriorityGroup)GetDepthPriorityGroup(View);
+							Mesh.Type = PT_TriangleStrip;
+							Mesh.bDisableBackfaceCulling = true;
+
+							// Set up the FMeshBatchElement.
+							FMeshBatchElement& BatchElement = Mesh.Elements[0];
+							BatchElement.IndexBuffer = NULL;
+							BatchElement.FirstIndex = 0;
+							BatchElement.MinVertexIndex = 0;
+							BatchElement.MaxVertexIndex = 3;
+							BatchElement.PrimitiveUniformBuffer = GetUniformBuffer();
+							BatchElement.NumPrimitives = 2;
+							BatchElement.BaseVertexIndex = WriteOffset;
+
+							Mesh.bCanApplyViewModeOverrides = true;
+							Mesh.bUseWireframeSelectionColoring = IsSelected();
+
+							Collector.AddMesh(ViewIndex, Mesh);
 						}
-						
-						// Convert the size into world-space.
-						const float W = View->ViewMatrices.GetViewProjectionMatrix().TransformPosition(SourcePosition).W;
-						const float AspectRatio = CameraRight.Size() / CameraUp.Size();
-						const float WorldSizeX = Element.bSizeIsInScreenSpace ? (SizeX               * W) : (SizeX / CameraRight.Size());
-						const float WorldSizeY = Element.bSizeIsInScreenSpace ? (SizeY * AspectRatio * W) : (SizeY / CameraUp.Size());
-			
-						// Evaluate the color/opacity of the sprite.
-						FLinearColor Color = BaseColor;
-						if(Element.DistanceToOpacityCurve)
-						{
-							Color.A *= Element.DistanceToOpacityCurve->GetFloatValue(DistanceToSource);
-						}
-
-						// Set up the sprite vertex attributes that are constant across the sprite.
-						FMaterialSpriteVertexArray& VertexArray = Collector.AllocateOneFrameResource<FMaterialSpriteVertexArray>();
-						VertexArray.Vertices.Empty(4);
-						VertexArray.Vertices.AddUninitialized(4);
-
-						for(uint32 VertexIndex = 0;VertexIndex < 4;++VertexIndex)
-						{
-							VertexArray.Vertices[VertexIndex].Color = Color.ToFColor(true);
-							VertexArray.Vertices[VertexIndex].TangentX = FPackedNormal(LocalCameraRight.GetSafeNormal());
-							VertexArray.Vertices[VertexIndex].TangentZ = FPackedNormal(-LocalCameraForward.GetSafeNormal());
-						}
-
-						// Set up the sprite vertex positions and texture coordinates.
-						VertexArray.Vertices[0].Position  = -WorldSizeX * LocalCameraRight + +WorldSizeY * LocalCameraUp;
-						VertexArray.Vertices[0].TexCoords = FVector2D(0,0);
-						VertexArray.Vertices[1].Position  = +WorldSizeX * LocalCameraRight + +WorldSizeY * LocalCameraUp;
-						VertexArray.Vertices[1].TexCoords = FVector2D(0,1);
-						VertexArray.Vertices[2].Position  = -WorldSizeX * LocalCameraRight + -WorldSizeY * LocalCameraUp;
-						VertexArray.Vertices[2].TexCoords = FVector2D(1,0);
-						VertexArray.Vertices[3].Position  = +WorldSizeX * LocalCameraRight + -WorldSizeY * LocalCameraUp;
-						VertexArray.Vertices[3].TexCoords = FVector2D(1,1);
-			
-						// Set up the FMeshElement.
-						FMeshBatch& Mesh = Collector.AllocateMesh();
-						Mesh.UseDynamicData      = true;
-						Mesh.DynamicVertexData   = VertexArray.Vertices.GetData();
-						Mesh.DynamicVertexStride = sizeof(FMaterialSpriteVertex);
-
-						Mesh.VertexFactory           = &GMaterialSpriteVertexFactory;
-						Mesh.MaterialRenderProxy     = Element.Material->GetRenderProxy((View->Family->EngineShowFlags.Selection) && IsSelected(),IsHovered());
-						Mesh.LCI                     = NULL;
-						Mesh.ReverseCulling          = IsLocalToWorldDeterminantNegative() ? true : false;
-						Mesh.CastShadow              = false;
-						Mesh.DepthPriorityGroup      = (ESceneDepthPriorityGroup)GetDepthPriorityGroup(View);
-						Mesh.Type                    = PT_TriangleStrip;
-						Mesh.bDisableBackfaceCulling = true;
-
-						// Set up the FMeshBatchElement.
-						FMeshBatchElement& BatchElement = Mesh.Elements[0];
-						BatchElement.IndexBuffer            = NULL;
-						BatchElement.DynamicIndexData       = NULL;
-						BatchElement.DynamicIndexStride     = 0;
-						BatchElement.FirstIndex             = 0;
-						BatchElement.MinVertexIndex         = 0;
-						BatchElement.MaxVertexIndex         = 3;
-						BatchElement.PrimitiveUniformBuffer = GetUniformBuffer();
-						BatchElement.NumPrimitives          = 2;
-
-						Mesh.bCanApplyViewModeOverrides = true;
-						Mesh.bUseWireframeSelectionColoring = IsSelected();
-
-						Collector.AddMesh(ViewIndex, Mesh);
 					}
 				}
 			}
+
+			FLocalVertexFactory* VertexFactoryPtr = &VertexFactory;
+			const FMaterialSpriteSceneProxy* Self = this;
+			ENQUEUE_RENDER_COMMAND(FMaterialSpriteSceneProxyLegacyInit)(
+				[VertexFactoryPtr, Self](FRHICommandListImmediate& RHICmdList)
+			{
+				Self->StaticMeshVertexBuffers.PositionVertexBuffer.UpdateRHI();
+				Self->StaticMeshVertexBuffers.StaticMeshVertexBuffer.UpdateRHI();
+				Self->StaticMeshVertexBuffers.ColorVertexBuffer.UpdateRHI();
+
+				FLocalVertexFactory::FDataType Data;
+				Self->StaticMeshVertexBuffers.PositionVertexBuffer.BindPositionVertexBuffer(VertexFactoryPtr, Data);
+				Self->StaticMeshVertexBuffers.StaticMeshVertexBuffer.BindTangentVertexBuffer(VertexFactoryPtr, Data);
+				Self->StaticMeshVertexBuffers.StaticMeshVertexBuffer.BindPackedTexCoordVertexBuffer(VertexFactoryPtr, Data);
+				Self->StaticMeshVertexBuffers.StaticMeshVertexBuffer.BindLightMapVertexBuffer(VertexFactoryPtr, Data, 0);
+				Self->StaticMeshVertexBuffers.ColorVertexBuffer.BindColorVertexBuffer(VertexFactoryPtr, Data);
+				VertexFactoryPtr->SetData(Data);
+
+				VertexFactoryPtr->UpdateRHI();
+			});
 		}
 	}
 
@@ -258,9 +273,13 @@ public:
 	uint32 GetAllocatedSize() const { return FPrimitiveSceneProxy::GetAllocatedSize(); }
 
 private:
+	/** The buffer containing vertex data. */
+	mutable FStaticMeshVertexBuffers StaticMeshVertexBuffers;
+	
 	TArray<FMaterialSpriteElement> Elements;
 	FMaterialRelevance MaterialRelevance;
 	FColor BaseColor;
+	mutable FLocalVertexFactory VertexFactory;
 };
 
 UMaterialBillboardComponent::UMaterialBillboardComponent(const FObjectInitializer& ObjectInitializer)

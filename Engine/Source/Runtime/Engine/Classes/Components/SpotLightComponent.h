@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -44,6 +44,10 @@ class ENGINE_API USpotLightComponent : public UPointLightComponent
 	virtual bool AffectsBounds(const FBoxSphereBounds& InBounds) const override;
 	virtual ELightComponentType GetLightType() const override;
 	virtual FLightSceneProxy* CreateSceneProxy() const override;
+	virtual float ComputeLightBrightness() const override;
+
+	float GetCosHalfConeAngle() const;
+
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif

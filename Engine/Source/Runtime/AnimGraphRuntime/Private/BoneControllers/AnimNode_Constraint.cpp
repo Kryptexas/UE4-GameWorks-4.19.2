@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BoneControllers/AnimNode_Constraint.h"
 #include "AnimationCoreLibrary.h"
@@ -44,18 +44,14 @@ void FAnimNode_Constraint::EvaluateSkeletalControl_AnyThread(FComponentSpacePose
 		const FConstraint& Constraint = ConstraintSetup[ConstraintIndex];
 		const float Weight = ConstraintWeights[ConstraintIndex];
 
-		if (Weight > ZERO_ANIMWEIGHT_THRESH && Constraint.IsValidToEvaluate(BoneContainer))
+		if (Weight > ZERO_ANIMWEIGHT_THRESH && Constraint.IsValidToEvaluate(BoneContainer) && Constraint.ConstraintDataIndex != INDEX_NONE)
 		{
-			ConstraintData[ConstraintIndex].Weight = Weight;
-			ConstraintData[ConstraintIndex].CurrentTransform = Output.Pose.GetComponentSpaceTransform(Constraint.TargetBone.CachedCompactPoseIndex);
+			ConstraintData[Constraint.ConstraintDataIndex].Weight = Weight;
+			ConstraintData[Constraint.ConstraintDataIndex].CurrentTransform = Output.Pose.GetComponentSpaceTransform(Constraint.TargetBone.CachedCompactPoseIndex);
 
 #if WITH_EDITOR
-			CachedTargetTransforms.Add(ConstraintData[ConstraintIndex].CurrentTransform);
+			CachedTargetTransforms.Add(ConstraintData[Constraint.ConstraintDataIndex].CurrentTransform);
 #endif // WITH_EDITOR
-		}
-		else
-		{
-			ConstraintData[ConstraintIndex].Weight = 0.f;
 		}
 	}
 
@@ -138,7 +134,11 @@ void FAnimNode_Constraint::InitializeBoneReferences(const FBoneContainer& Requir
 
 				NewConstraintData.SaveInverseOffset(SourceTransform, TargetTransform, ParentTransform);
 
-				ConstraintData.Add(NewConstraintData);
+				Constraint.ConstraintDataIndex = ConstraintData.Add(NewConstraintData);
+			}
+			else
+			{
+				Constraint.ConstraintDataIndex = INDEX_NONE;
 			}
 		}
 	}

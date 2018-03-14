@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -25,7 +25,7 @@ class UK2Node_TemporaryVariable;
 
 struct FAsyncTaskPinRedirectMapInfo
 {
-	TMap<FString, TArray<UClass*> > OldPinToProxyClassMap;
+	TMap<FName, TArray<UClass*> > OldPinToProxyClassMap;
 };
 
 /** !!! The proxy object should have RF_StrongRefOnFrame flag. !!! */
@@ -57,6 +57,9 @@ protected:
 	// Returns the factory function (checked)
 	UFunction* GetFactoryFunction() const;
 
+	/** Determines what the possible redirect pin names are **/
+	virtual void GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FString>& RedirectPinNames) const;
+
 protected:
 	// The name of the function to call to create a proxy object
 	UPROPERTY()
@@ -84,7 +87,7 @@ protected:
 			FOutputPinAndLocalVariable(UEdGraphPin* Pin, UK2Node_TemporaryVariable* Var) : OutputPin(Pin), TempVar(Var) {}
 		};
 
-		static bool ValidDataPin(const UEdGraphPin* Pin, EEdGraphPinDirection Direction, const UEdGraphSchema_K2* Schema);
+		static bool ValidDataPin(const UEdGraphPin* Pin, EEdGraphPinDirection Direction);
 		static bool CreateDelegateForNewFunction(UEdGraphPin* DelegateInputPin, FName FunctionName, UK2Node* CurrentNode, UEdGraph* SourceGraph, FKismetCompilerContext& CompilerContext);
 		static bool CopyEventSignature(UK2Node_CustomEvent* CENode, UFunction* Function, const UEdGraphSchema_K2* Schema);
 		static bool HandleDelegateImplementation(
@@ -92,10 +95,10 @@ protected:
 			UEdGraphPin* ProxyObjectPin, UEdGraphPin*& InOutLastThenPin,
 			UK2Node* CurrentNode, UEdGraph* SourceGraph, FKismetCompilerContext& CompilerContext);
 
-		static const FString& GetAsyncTaskProxyName();
+		static const FName GetAsyncTaskProxyName();
 	};
 
 	// Pin Redirector support
-	static TMap<FString, FAsyncTaskPinRedirectMapInfo> AsyncTaskPinRedirectMap;
+	static TMap<FName, FAsyncTaskPinRedirectMapInfo> AsyncTaskPinRedirectMap;
 	static bool bAsyncTaskPinRedirectMapInitialized;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ContentSourceProviders/FeaturePack/FeaturePackContentSourceProvider.h"
 #include "GenericPlatform/GenericPlatformFile.h"
@@ -33,7 +33,9 @@ public:
 FFeaturePackContentSourceProvider::FFeaturePackContentSourceProvider()
 {
 	FeaturePackPath = FPaths::FeaturePackDir();
+	EnterpriseFeaturePackPath = FPaths::EnterpriseFeaturePackDir();
 	TemplatePath = FPaths::RootDir() + TEXT("Templates/");
+	EnterpriseTemplatePath = FPaths::EnterpriseDir() + TEXT("Templates/");
 	StartUpDirectoryWatcher();
 	RefreshFeaturePacks();
 }
@@ -58,6 +60,13 @@ void FFeaturePackContentSourceProvider::StartUpDirectoryWatcher()
 		IFileManager::Get().MakeDirectory(*FeaturePackPath);
 		DirectoryChangedDelegate = IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FFeaturePackContentSourceProvider::OnFeaturePackDirectoryChanged);
 		DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(FeaturePackPath, DirectoryChangedDelegate, DirectoryChangedDelegateHandle);
+
+		if (IFileManager::Get().DirectoryExists(*FPaths::EnterpriseDir()))
+		{
+			// If the path doesn't exist on disk, make it so the watcher will work.
+			IFileManager::Get().MakeDirectory(*EnterpriseFeaturePackPath);
+			DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(EnterpriseFeaturePackPath, DirectoryChangedDelegate, DirectoryChangedDelegateHandle);
+		}
 	}
 }
 
@@ -68,6 +77,7 @@ void FFeaturePackContentSourceProvider::ShutDownDirectoryWatcher()
 	if ( DirectoryWatcher )
 	{
 		DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle(FeaturePackPath, DirectoryChangedDelegateHandle);
+		DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle(EnterpriseFeaturePackPath, DirectoryChangedDelegateHandle);
 	}
 }
 
@@ -89,7 +99,8 @@ void FFeaturePackContentSourceProvider::RefreshFeaturePacks()
 	// first the .upack files
 	IPlatformFile &PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 	FFillArrayDirectoryVisitor DirectoryVisitor;
-	PlatformFile.IterateDirectory( *FeaturePackPath, DirectoryVisitor );
+	PlatformFile.IterateDirectory(*FeaturePackPath, DirectoryVisitor);
+	PlatformFile.IterateDirectory(*EnterpriseFeaturePackPath, DirectoryVisitor);
 	for ( auto FeaturePackFile : DirectoryVisitor.Files )
 	{
 		if( FeaturePackFile.EndsWith(TEXT(".upack")) == true)
@@ -105,6 +116,7 @@ void FFeaturePackContentSourceProvider::RefreshFeaturePacks()
 	// Now the 'loose' feature packs
 	FFillArrayDirectoryVisitor TemplateDirectoryVisitor;
 	PlatformFile.IterateDirectoryRecursively(*TemplatePath, TemplateDirectoryVisitor);
+	PlatformFile.IterateDirectoryRecursively(*EnterpriseTemplatePath, TemplateDirectoryVisitor);
 	for (auto TemplatePackFile: TemplateDirectoryVisitor.Files)
 	{
 		FString ThisPackRoot = FPaths::GetPath(TemplatePackFile);

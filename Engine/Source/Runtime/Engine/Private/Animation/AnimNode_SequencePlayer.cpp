@@ -1,7 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Animation/AnimNode_SequencePlayer.h"
 #include "Animation/AnimInstanceProxy.h"
+
+#define LOCTEXT_NAMESPACE "AnimNode_SequencePlayer"
 
 /////////////////////////////////////////////////////
 // FAnimSequencePlayerNode
@@ -13,7 +15,8 @@ float FAnimNode_SequencePlayer::GetCurrentAssetTime()
 
 float FAnimNode_SequencePlayer::GetCurrentAssetTimePlayRateAdjusted()
 {
-	float EffectivePlayrate = PlayRate * (Sequence ? Sequence->RateScale : 1.0f);
+	const float SequencePlayRate = (Sequence ? Sequence->RateScale : 1.f);
+	const float EffectivePlayrate = FMath::IsNearlyZero(PlayRateBasis) ? 0.f : (SequencePlayRate * PlayRate / PlayRateBasis);
 	return (EffectivePlayrate < 0.0f) ? GetCurrentAssetLength() - InternalTimeAccumulator : InternalTimeAccumulator;
 }
 
@@ -28,11 +31,11 @@ void FAnimNode_SequencePlayer::Initialize_AnyThread(const FAnimationInitializeCo
 
 	EvaluateGraphExposedInputs.Execute(Context);
 	InternalTimeAccumulator = StartPosition;
-	if (Sequence != NULL)
+	if (Sequence != nullptr)
 	{
 		InternalTimeAccumulator = FMath::Clamp(StartPosition, 0.f, Sequence->SequenceLength);
-
-		if (StartPosition == 0.f && (PlayRate * Sequence->RateScale) < 0.0f)
+		const float EffectivePlayrate = FMath::IsNearlyZero(PlayRateBasis) ? 0.f : (Sequence->RateScale * PlayRate / PlayRateBasis);
+		if ((StartPosition == 0.f) && (EffectivePlayrate < 0.f))
 		{
 			InternalTimeAccumulator = Sequence->SequenceLength;
 		}
@@ -47,27 +50,33 @@ void FAnimNode_SequencePlayer::UpdateAssetPlayer(const FAnimationUpdateContext& 
 {
 	EvaluateGraphExposedInputs.Execute(Context);
 
-	if ((Sequence != NULL) && (Context.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
+	if ((Sequence != nullptr) && (Context.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
 	{
 		InternalTimeAccumulator = FMath::Clamp(InternalTimeAccumulator, 0.f, Sequence->SequenceLength);
-		CreateTickRecordForNode(Context, Sequence, bLoopAnimation, PlayRate);
+		const float AdjustedPlayRate = FMath::IsNearlyZero(PlayRateBasis) ? 0.f : (PlayRate / PlayRateBasis);
+		CreateTickRecordForNode(Context, Sequence, bLoopAnimation, AdjustedPlayRate);
 	}
 }
 
 void FAnimNode_SequencePlayer::Evaluate_AnyThread(FPoseContext& Output)
 {
-	Evaluate_AnyThread(Output, false);
-}
+	auto BoolToYesNo = [](const bool& bBool) -> const TCHAR*
+	{
+		return bBool ? TEXT("Yes") : TEXT("No");
+	};
 
-void FAnimNode_SequencePlayer::Evaluate_AnyThread(FPoseContext& Output, bool bExpectsAdditivePose)
-{
-	if ((Sequence != NULL) && (Output.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
+	if ((Sequence != nullptr) && (Output.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
 	{
+		const bool bExpectedAdditive = Output.ExpectsAdditivePose();
+		const bool bIsAdditive = Sequence->IsValidAdditive();
+
+		if (bExpectedAdditive && !bIsAdditive)
+		{
+			FText Message = FText::Format(LOCTEXT("AdditiveMismatchWarning", "Trying to play a non-additive animation '{0}' into a pose that is expected to be additive in anim instance '{1}'"), FText::FromString(Sequence->GetName()), FText::FromString(Output.AnimInstanceProxy->GetAnimInstanceName()));
+			Output.LogMessage(EMessageSeverity::Warning, Message);
+		}
+
 		Sequence->GetAnimationPose(Output.Pose, Output.Curve, FAnimExtractContext(InternalTimeAccumulator, Output.AnimInstanceProxy->ShouldExtractRootMotion()));
-	}
-	else if (bExpectsAdditivePose)
-	{
-		Output.ResetToAdditiveIdentity();
 	}
 	else
 	{
@@ -95,3 +104,5 @@ float FAnimNode_SequencePlayer::GetTimeFromEnd(float CurrentNodeTime)
 {
 	return Sequence->GetMaxCurrentTime() - CurrentNodeTime;
 }
+
+#undef LOCTEXT_NAMESPACE

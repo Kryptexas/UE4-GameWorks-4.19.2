@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SRetargetSourceWindow.h"
@@ -19,7 +19,10 @@
 #include "AssetNotifications.h"
 #include "Widgets/Input/SSearchBox.h"
 #include "Widgets/Text/SInlineEditableTextBlock.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Framework/Notifications/NotificationManager.h"
 #include "IEditableSkeleton.h"
+#include "AnimationRuntime.h"
 
 #define LOCTEXT_NAMESPACE "SRetargetSourceWindow"
 
@@ -117,7 +120,7 @@ TSharedRef< SWidget > SRetargetSourceListRow::GenerateWidgetForColumn( const FNa
 			.VAlign( VAlign_Center )
 			[
 				SAssignNew(InlineWidget, SInlineEditableTextBlock)
-				.Text( FText::FromString(Item->Name.ToString()) )
+				.Text( FText::FromString(Item->GetDisplayName()) )
 				.OnTextCommitted(this, &SRetargetSourceListRow::HandleNameCommitted)
 				.OnVerifyTextChanged(this, &SRetargetSourceListRow::HandleVerifyNameChanged)
 				.HighlightText( RetargetSourceWindow->GetFilterText() )
@@ -194,12 +197,28 @@ void SRetargetSourceWindow::Construct(const FArguments& InArgs, const TSharedRef
 
 			+SHorizontalBox::Slot()
 			.HAlign(HAlign_Right)
+			.AutoWidth()
+			.Padding(2, 0)
 			[
 				SNew(SButton)
 				.OnClicked(FOnClicked::CreateSP(this, &SRetargetSourceWindow::OnAddRetargetSourceButtonClicked))
 				.HAlign(HAlign_Center)
 				.VAlign(VAlign_Center)
-				.Text(LOCTEXT("AddRetargetSourceButton_Label", "Add New Retarget Source"))
+				.Text(LOCTEXT("AddRetargetSourceButton_Label", "Add New"))
+				.ToolTipText(LOCTEXT("AddRetargetSourceButton_ToolTip", "Add new retarget source to the list. It won't add if one already exists."))
+			]
+
+			+SHorizontalBox::Slot()
+			.HAlign(HAlign_Right)
+			.AutoWidth()
+			.Padding(2, 0)
+			[
+				SNew(SButton)
+				.OnClicked(FOnClicked::CreateSP(this, &SRetargetSourceWindow::OnUpdateAllRetargetSourceButtonClicked))
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.Text(LOCTEXT("UpdateAllRetargetSourceButton_Label", "Update All"))
+				.ToolTipText(LOCTEXT("UpdateAllRetargetSourceButton_ToolTip", "Use this to update all retarget source poses with latest mesh. If you want to update individual, use the context menu."))
 			]
 		]
 
@@ -341,10 +360,10 @@ TSharedPtr<SWidget> SRetargetSourceWindow::OnGetContextMenuContent() const
 		MenuBuilder.AddMenuEntry( Label, ToolTipText, FSlateIcon(), Action);
 	}
 	{
-		FUIAction Action = FUIAction( FExecuteAction::CreateSP( this, &SRetargetSourceWindow::OnRefreshRetargetSource ), 
+		FUIAction Action = FUIAction( FExecuteAction::CreateSP( this, &SRetargetSourceWindow::OnRefreshRetargetSource, false ), 
 			FCanExecuteAction::CreateSP( this, &SRetargetSourceWindow::CanPerformRefresh ) );
-		const FText Label = LOCTEXT("RefreshRetargetSourceActionLabel", "Refresh");
-		const FText ToolTipText = LOCTEXT("RefreshRetargetSourceActionTooltip", "Refreshs the selected retarget sources.");
+		const FText Label = LOCTEXT("RefreshRetargetSourceActionLabel", "Update");
+		const FText ToolTipText = LOCTEXT("RefreshRetargetSourceActionTooltip", "Updates the selected retarget sources from source mesh.");
 		MenuBuilder.AddMenuEntry( Label, ToolTipText, FSlateIcon(), Action);
 	}
 	MenuBuilder.EndSection();
@@ -365,20 +384,26 @@ void SRetargetSourceWindow::CreateRetargetSourceList( const FString& SearchText,
 	{
 		const FName& Name = Iter.Key();
 		const FReferencePose& RefPose = Iter.Value();
+		const FString SourceMeshName = RefPose.SourceReferenceMesh.ToString();
 
 		if ( bDoFiltering )
 		{
-			if (!Name.ToString().Contains( SearchText ))
+			if (!Name.ToString().Contains( SearchText ) && !SourceMeshName.Contains(SearchText))
 			{
 				continue; // Skip items that don't match our filter
 			}
-			if (RefPose.ReferenceMesh && RefPose.ReferenceMesh->GetPathName().Contains( SearchText ))
-			{
-				continue;
-			}
 		}
 
-		TSharedRef<FDisplayedRetargetSourceInfo> Info = FDisplayedRetargetSourceInfo::Make( Name, RefPose.ReferenceMesh );
+		USkeletalMesh* LoadedMesh = RefPose.SourceReferenceMesh.Get();
+		bool bDirty = false;
+		if (LoadedMesh)
+		{
+			TArray<FTransform> TransformArray;
+			FAnimationRuntime::MakeSkeletonRefPoseFromMesh(LoadedMesh, &Skeleton, TransformArray);
+			bDirty = (RefPose.ReferencePose.Num() != TransformArray.Num()) || (FMemory::Memcmp(TransformArray.GetData(), RefPose.ReferencePose.GetData(), RefPose.ReferencePose.GetAllocatedSize()) != 0);
+		}
+
+		TSharedRef<FDisplayedRetargetSourceInfo> Info = FDisplayedRetargetSourceInfo::Make( Name, RefPose.SourceReferenceMesh, bDirty);
 
 		if (Name == NewName)
 		{
@@ -460,24 +485,38 @@ void SRetargetSourceWindow::OnAddRetargetSource()
 
 void SRetargetSourceWindow::OnAssetSelectedFromMeshPicker(const FAssetData& AssetData)
 {
-	USkeletalMesh * SelectedMesh = CastChecked<USkeletalMesh> (AssetData.GetAsset());
-
 	// make sure you don't have any more retarget sources from the same mesh
 	const USkeleton& Skeleton = EditableSkeletonPtr.Pin()->GetSkeleton();
+	const FString AssetFullPath = AssetData.ToSoftObjectPath().ToString();
 	for (auto Iter=Skeleton.AnimRetargetSources.CreateConstIterator(); Iter; ++Iter)
 	{
 		const FName& Name = Iter.Key();
 		const FReferencePose& RefPose = Iter.Value();
 
-		if (RefPose.ReferenceMesh == SelectedMesh)
+		if (RefPose.SourceReferenceMesh.ToString() == AssetFullPath)
 		{
+			// make ask users if they'd like to create new source when there is existing source. 
+			// they could update existing source
+
 			// redundant source exists
-			
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("SkeletalMeshName"), FText::FromString(AssetFullPath));
+			Args.Add(TEXT("ExistingSourceName"), FText::FromName(RefPose.PoseName));
+			FNotificationInfo Info(FText::Format(LOCTEXT("RetargetSourceAlreadyExists", "Retarget Source for {SkeletalMeshName} already exists : {ExistingSourceName}"), Args));
+			Info.ExpireDuration = 5.0f;
+			Info.bUseLargeFont = false;
+			TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
+			if (Notification.IsValid())
+			{
+				Notification->SetCompletionState(SNotificationItem::CS_Fail);
+			}
+
 			FSlateApplication::Get().DismissAllMenus();
 			return;
 		}
 	}
 
+	USkeletalMesh * SelectedMesh = CastChecked<USkeletalMesh>(AssetData.GetAsset());
 	// give temporary name, and make it editable first time
 	AddRetargetSource(FName(*SelectedMesh->GetName()), SelectedMesh);
 	FSlateApplication::Get().DismissAllMenus();
@@ -536,13 +575,23 @@ bool SRetargetSourceWindow::CanPerformRefresh() const
 	return SelectedRows.Num() > 0;
 }
 
-void SRetargetSourceWindow::OnRefreshRetargetSource()
+void SRetargetSourceWindow::OnRefreshRetargetSource(bool bAll)
 {
 	TArray<FName> SelectedNames;
-	TArray< TSharedPtr< FDisplayedRetargetSourceInfo > > SelectedRows = RetargetSourceListView->GetSelectedItems();
-	for (int RowIndex = 0; RowIndex < SelectedRows.Num(); ++RowIndex)
+	if (bAll)
 	{
-		SelectedNames.Add(SelectedRows[RowIndex]->Name);
+		for (int RowIndex = 0; RowIndex < RetargetSourceList.Num(); ++RowIndex)
+		{
+			SelectedNames.Add(RetargetSourceList[RowIndex]->Name);
+		}
+	}
+	else
+	{
+		TArray< TSharedPtr< FDisplayedRetargetSourceInfo > > SelectedRows = RetargetSourceListView->GetSelectedItems();
+		for (int RowIndex = 0; RowIndex < SelectedRows.Num(); ++RowIndex)
+		{
+			SelectedNames.Add(SelectedRows[RowIndex]->Name);
+		}
 	}
 
 	EditableSkeletonPtr.Pin()->RefreshRetargetSources(SelectedNames);
@@ -558,6 +607,12 @@ void SRetargetSourceWindow::PostUndo()
 FReply SRetargetSourceWindow::OnAddRetargetSourceButtonClicked()
 {
 	OnAddRetargetSource();
+	return FReply::Handled();
+}
+
+FReply SRetargetSourceWindow::OnUpdateAllRetargetSourceButtonClicked()
+{
+	OnRefreshRetargetSource(true);
 	return FReply::Handled();
 }
 #undef LOCTEXT_NAMESPACE

@@ -1,9 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreTypes.h"
 #include "GenericApplication.h"
+#include "IConsoleManager.h"
 
 /**
  * The accuracy when dealing with physical characteristics of the monitor/screen of the device we're running on.
@@ -130,6 +131,14 @@ struct APPLICATIONCORE_API FGenericPlatformApplicationMisc
 	}
 
 	/**
+	 * Allows the OS to enable high DPI mode
+	 */
+	static void SetHighDPIMode()
+	{
+
+	}
+
+	/**
 	* Returns monitor's DPI scale factor at given screen coordinates (expressed in pixels)
 	* @return Monitor's DPI scale factor at given point
 	*/
@@ -137,6 +146,10 @@ struct APPLICATIONCORE_API FGenericPlatformApplicationMisc
 	{
 		return 1.0f;
 	}
+
+	/** @return true if the application is high dpi aware */
+
+	static bool IsHighDPIAwarenessEnabled();
 
 	/*
 	 * Resets the gamepad to player controller id assignments
@@ -190,4 +203,6 @@ protected:
 	static bool CachedPhysicalScreenData;
 	static EScreenPhysicalAccuracy CachedPhysicalScreenAccuracy;
 	static int32 CachedPhysicalScreenDensity;
+	static FAutoConsoleVariableRef CVarEnableHighDPIAwareness;
+
 };

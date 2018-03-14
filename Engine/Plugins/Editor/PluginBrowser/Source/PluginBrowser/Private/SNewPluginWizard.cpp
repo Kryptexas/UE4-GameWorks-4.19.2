@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SNewPluginWizard.h"
 #include "Misc/Paths.h"
@@ -743,7 +743,7 @@ FReply SNewPluginWizard::OnCreatePluginClicked()
 	if (bSucceeded && bHasModules)
 	{
 		FString ProjectFileName = FPaths::GetProjectFilePath();
-		FString Arguments = FString::Printf(TEXT("%sEditor %s %s -EditorRecompile -Module %s -Project=\"%s\" -Plugin \"%s\" -Progress -NoHotReloadFromIDE"), *FPaths::GetBaseFilename(ProjectFileName), FModuleManager::Get().GetUBTConfiguration(), FPlatformMisc::GetUBTPlatform(), *PluginModuleName, *ProjectFileName, *UPluginFilePath);
+		FString Arguments = FString::Printf(TEXT("%sEditor %s %s -EditorRecompile -Module=%s -Project=\"%s\" -Plugin=\"%s\" -Progress -NoHotReloadFromIDE"), *FPaths::GetBaseFilename(ProjectFileName), FModuleManager::Get().GetUBTConfiguration(), FPlatformMisc::GetUBTPlatform(), *PluginModuleName, *ProjectFileName, *UPluginFilePath);
 		if (!FDesktopPlatformModule::Get()->RunUnrealBuildTool(LOCTEXT("Compiling", "Compiling..."), FPaths::RootDir(), Arguments, GWarn))
 		{
 			PopErrorNotification(LOCTEXT("FailedToCompile", "Failed to compile source code."));
@@ -890,7 +890,7 @@ bool SNewPluginWizard::WritePluginDescriptor(const FString& PluginModuleName, co
 	FText FailReason;
 	if (!Descriptor.Save(UPluginFilePath, FailReason))
 	{
-		PopErrorNotification(FText::Format(LOCTEXT("FailedToWriteDescriptor", "Couldn't save plugin descriptor under %s"), FText::AsCultureInvariant(UPluginFilePath)));
+		PopErrorNotification(FText::Format(LOCTEXT("FailedToWriteDescriptor", "Couldn't save plugin descriptor under {0}"), FText::AsCultureInvariant(UPluginFilePath)));
 		return false;
 	}
 

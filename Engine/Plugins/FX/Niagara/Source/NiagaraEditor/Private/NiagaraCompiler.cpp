@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraCompiler.h"
 #include "NiagaraHlslTranslator.h"
@@ -24,9 +24,14 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogNiagaraCompiler, All, All);
 
+DECLARE_CYCLE_STAT(TEXT("Niagara - Module - CompileScript"), STAT_NiagaraEditor_Module_CompileScript, STATGROUP_NiagaraEditor);
+DECLARE_CYCLE_STAT(TEXT("Niagara - HlslCompiler - CompileScript"), STAT_NiagaraEditor_HlslCompiler_CompileScript, STATGROUP_NiagaraEditor);
+DECLARE_CYCLE_STAT(TEXT("Niagara - HlslCompiler - CompileShader_VectorVM"), STAT_NiagaraEditor_HlslCompiler_CompileShader_VectorVM, STATGROUP_NiagaraEditor);
+DECLARE_CYCLE_STAT(TEXT("Niagara - Module - CompileShader_VectorVMSucceeded"), STAT_NiagaraEditor_HlslCompiler_CompileShader_VectorVMSucceeded, STATGROUP_NiagaraEditor);
 
 ENiagaraScriptCompileStatus FNiagaraEditorModule::CompileScript(UNiagaraScript* ScriptToCompile, FString& OutGraphLevelErrorMessages)
 {
+	SCOPE_CYCLE_COUNTER(STAT_NiagaraEditor_Module_CompileScript);
 	check(ScriptToCompile != NULL);
 
 	UNiagaraGraph* Graph = Cast<UNiagaraScriptSource>(ScriptToCompile->GetSource())->NodeGraph;
@@ -176,6 +181,8 @@ ENiagaraScriptCompileStatus FNiagaraCompileResults::CompileResultsToSummary(cons
 
 const FNiagaraCompileResults &FHlslNiagaraCompiler::CompileScript(UNiagaraScript* InScript, FNiagaraTranslatorOutput *TranslatorOutput, FString &TranslatedHLSL)
 {
+	SCOPE_CYCLE_COUNTER(STAT_NiagaraEditor_HlslCompiler_CompileScript);
+
 	//TODO: This should probably be done via the same route that other shaders take through the shader compiler etc.
 	//But that adds the complexity of a new shader type, new shader class and a new shader map to contain them etc.
 	//Can do things simply for now.
@@ -185,7 +192,7 @@ const FNiagaraCompileResults &FHlslNiagaraCompiler::CompileScript(UNiagaraScript
 	Input.VirtualSourceFilePath = TEXT("/Engine/Private/NiagaraEmitterInstanceShader.usf");
 	Input.EntryPointName = TEXT("SimulateMain");
 	Input.Environment.SetDefine(TEXT("VM_SIMULATION"), 1);
-	Input.Environment.IncludeVirtualPathToContentsMap.Add(TEXT("/Engine/Generated/NiagaraEmitterInstance.usf"), StringToArray<ANSICHAR>(*TranslatedHLSL, TranslatedHLSL.Len() + 1));
+	Input.Environment.IncludeVirtualPathToContentsMap.Add(TEXT("/Engine/Generated/NiagaraEmitterInstance.usf"), TranslatedHLSL);
 	FShaderCompilerOutput Output;
 
 	FVectorVMCompilationOutput CompilationOutput;
@@ -203,6 +210,7 @@ const FNiagaraCompileResults &FHlslNiagaraCompiler::CompileScript(UNiagaraScript
 	}
 	else
 	{
+		SCOPE_CYCLE_COUNTER(STAT_NiagaraEditor_HlslCompiler_CompileShader_VectorVM);
 		CompileResults.bVMSucceeded = CompileShader_VectorVM(Input, Output, FString(FPlatformProcess::ShaderDir()), 0, CompilationOutput);
 	}
 
@@ -217,9 +225,12 @@ const FNiagaraCompileResults &FHlslNiagaraCompiler::CompileScript(UNiagaraScript
 	//Eventually Niagara will have all the shader plumbing and do things like materials.
 	if (CompileResults.bVMSucceeded)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_NiagaraEditor_HlslCompiler_CompileShader_VectorVMSucceeded);
 		check(TranslatorOutput);
-		Script->ByteCode = CompilationOutput.ByteCode;
+		Script->SetByteCode(CompilationOutput.ByteCode);
 		Script->LastHlslTranslation = TranslatedHLSL;
+		Script->LastAssemblyTranslation = CompilationOutput.AssemblyAsString;
+		Script->LastOpCount = CompilationOutput.NumOps;
 		Script->Attributes = TranslatorOutput->Attributes;
 		Script->Parameters = TranslatorOutput->Parameters;
 		Script->DataUsage.bReadsAttriubteData = TranslatorOutput->bReadsAttributeData;
@@ -256,7 +267,15 @@ const FNiagaraCompileResults &FHlslNiagaraCompiler::CompileScript(UNiagaraScript
 		for (FNiagaraScriptDataInterfaceInfo& DataInterfaceInfo : TranslatorOutput->DataInterfaceInfo)
 		{
 			int32 Idx = Script->DataInterfaceInfo.AddDefaulted();
-			Script->DataInterfaceInfo[Idx].DataInterface = Cast<UNiagaraDataInterface>(StaticDuplicateObject(DataInterfaceInfo.DataInterface, Script, NAME_None, ~RF_Transient));
+			if (DataInterfaceInfo.DataInterface)
+			{
+				Script->DataInterfaceInfo[Idx].DataInterface = Cast<UNiagaraDataInterface>(StaticDuplicateObject(DataInterfaceInfo.DataInterface, Script, NAME_None, ~RF_Transient));
+			}
+			else
+			{
+				Script->DataInterfaceInfo[Idx].DataInterface = nullptr;
+			}
+			Script->DataInterfaceInfo[Idx].Type = DataInterfaceInfo.Type;
 			Script->DataInterfaceInfo[Idx].Name = DataInterfaceInfo.Name;
 			Script->DataInterfaceInfo[Idx].UserPtrIdx = DataInterfaceInfo.UserPtrIdx;
 		}
@@ -304,7 +323,8 @@ const FNiagaraCompileResults &FHlslNiagaraCompiler::CompileScript(UNiagaraScript
 	if (CompileResults.bVMSucceeded == false)
 	{
 		//Some error. Clear script and exit.
-		Script->ByteCode.Empty();
+		Script->LastHlslTranslation = TranslatedHLSL;
+		Script->SetByteCode(CompilationOutput.ByteCode);
 		Script->Attributes.Empty();
 		Script->Parameters.Empty();
 		Script->InternalParameters.Empty();

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RendererInterface.h: Renderer interface definition.
@@ -13,6 +13,7 @@
 #include "RHI.h"
 #include "RenderResource.h"
 #include "RenderUtils.h"
+#include "EnumClassFlags.h"
 
 class FCanvas;
 class FMaterial;
@@ -23,11 +24,32 @@ class FSceneViewFamily;
 struct FMeshBatch;
 struct FSynthBenchmarkResults;
 
-// Shortcut for the allocator used by scene rendering.
-class SceneRenderingAllocator
-	: public TMemStackAllocator<>
+enum class EShowMaterialDrawEventTypes
 {
+	None						= 0 << 0,  //0
+	CompositionLighting			= 1 << 0,  //1
+	BasePass					= 1 << 1,  //2
+	DepthPositionOnly			= 1 << 2,  //4
+	Depth						= 1 << 3,  //8
+	DistortionDynamic			= 1 << 4,  //16
+	DistortionStatic			= 1 << 5,  //32
+	MobileBasePass				= 1 << 6,  //64
+	MobileTranslucent			= 1 << 7,  //128
+	MobileTranslucentOpacity	= 1 << 8,  //256
+	ShadowDepth					= 1 << 9,  //512
+	ShadowDepthRsm				= 1 << 10, //1024
+	ShadowDepthStatic			= 1 << 11, //2048
+	StaticDraw					= 1 << 12, //4096
+	StaticDrawStereo			= 1 << 13, //8192
+	TranslucentLighting			= 1 << 14, //16384
+	Translucent					= 1 << 15, //32768
+	Velocity					= 1 << 16, //65536
+	FogVoxelization				= 1 << 17, //131072
 };
+ENUM_CLASS_FLAGS(EShowMaterialDrawEventTypes)
+
+// Shortcut for the allocator used by scene rendering.
+typedef TMemStackAllocator<> SceneRenderingAllocator;
 
 /** All necessary data to create a render target from the pooled render targets. */
 struct FPooledRenderTargetDesc
@@ -557,7 +579,7 @@ class FPixelInspectorRequest
 public:
 	FPixelInspectorRequest()
 	{
-		SourcePixelPosition = FIntPoint(-1, -1);
+		SourceViewportUV = FVector2D(-1, -1);
 		BufferIndex = -1;
 		RenderingCommandSend = false;
 		RequestComplete = true;
@@ -568,9 +590,9 @@ public:
 		RequestTickSinceCreation = 0;
 	}
 
-	void SetRequestData(FIntPoint SrcPixelPosition, int32 TargetBufferIndex, int32 ViewUniqueId, int32 GBufferFormat, bool StaticLightingEnable)
+	void SetRequestData(FVector2D SrcViewportUV, int32 TargetBufferIndex, int32 ViewUniqueId, int32 GBufferFormat, bool StaticLightingEnable)
 	{
-		SourcePixelPosition = SrcPixelPosition;
+		SourceViewportUV = SrcViewportUV;
 		BufferIndex = TargetBufferIndex;
 		RenderingCommandSend = false;
 		RequestComplete = false;
@@ -591,7 +613,7 @@ public:
 	int32 FrameCountAfterRenderingCommandSend;
 	int32 RequestTickSinceCreation;
 	bool RequestComplete;
-	FIntPoint SourcePixelPosition;
+	FVector2D SourceViewportUV;
 	int32 BufferIndex;
 	int32 ViewId;
 
@@ -703,9 +725,6 @@ public:
 
 	virtual void RegisterPostOpaqueRenderDelegate(const FPostOpaqueRenderDelegate& PostOpaqueRenderDelegate) = 0;
 	virtual void RegisterOverlayRenderDelegate(const FPostOpaqueRenderDelegate& OverlayRenderDelegate) = 0;
-	virtual void RenderPostOpaqueExtensions(const FSceneView& View, FRHICommandListImmediate& RHICmdList, class FSceneRenderTargets& SceneContext) = 0;
-	virtual void RenderOverlayExtensions(const FSceneView& View, FRHICommandListImmediate& RHICmdList, FSceneRenderTargets& SceneContext) = 0;
-	virtual bool HasPostOpaqueExtentions() const = 0;
 
 	virtual void RegisterPostOpaqueComputeDispatcher(FComputeDispatcher *Dispatcher) = 0;
 	virtual void UnRegisterPostOpaqueComputeDispatcher(FComputeDispatcher *Dispatcher) = 0;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemGameCircleModule.h"
 #include "OnlineSubsystemGameCircle.h"
@@ -37,7 +37,7 @@ public:
 	{
 		if (!GameCircleSingleton.IsValid())
 		{
-			GameCircleSingleton = MakeShareable(new FOnlineSubsystemGameCircle(InInstanceName));
+			GameCircleSingleton = MakeShared<FOnlineSubsystemGameCircle, ESPMode::ThreadSafe>(InInstanceName);
 			if (GameCircleSingleton->IsEnabled())
 			{
 				if(!GameCircleSingleton->Init())

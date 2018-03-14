@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 //
 // Unreal networking serialization helpers
@@ -71,14 +71,20 @@ struct FUniqueNetIdRepl : public FUniqueNetIdWrapper
 	/** Create a unique id from a json string */
 	void FromJson(const FString& InValue);
 
+	/**
+	* For FUniqueNetIdRepl objects, we use the same hashing function as any other wrapper.
+	*/
 	friend inline uint32 GetTypeHash(FUniqueNetIdRepl const& Value)
 	{
-		if (Value.UniqueNetId.IsValid())
+		if (Value.IsValid())
 		{
-			return (uint32)(*(*Value).GetBytes());
+			return GetTypeHash(*Value);
 		}
-		
-		return 0;
+		else
+		{
+			// If we hit this, something went wrong and we have received an unhashable wrapper.
+			return INDEX_NONE;
+		}
 	}
 
 protected:
@@ -86,6 +92,8 @@ protected:
 	/** Helper to create an FUniqueNetId from a string */
 	void UniqueIdFromString(const FString& Contents);
 };
+
+//static ENGINE_API uint32 GetTypeHash(FUniqueNetIdRepl const& Value);
 
 /** Specify type trait support for various low level UPROPERTY overrides */
 template<>

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AsyncLoadingThread.h: Unreal async loading code.
@@ -179,6 +179,9 @@ class FAsyncLoadingThread : public FRunnable
 	TArray<FAsyncPackage*> LoadedPackagesToProcess;
 	TArray<FAsyncPackage*> PackagesToDelete;
 	TMap<FName, FAsyncPackage*> LoadedPackagesToProcessNameLookup;
+#if WITH_EDITOR
+	TArray<FWeakObjectPtr> LoadedAssets;
+#endif
 #if THREADSAFE_UOBJECTS
 	/** [ASYNC/GAME THREAD] Critical section for LoadedPackagesToProcess list. 
 	 * Note this is only required for looking up existing packages on the async loading thread 

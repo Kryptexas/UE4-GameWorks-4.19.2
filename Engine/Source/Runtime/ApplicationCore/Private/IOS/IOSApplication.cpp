@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "IOSApplication.h"
 #include "IOSInputInterface.h"
@@ -120,9 +120,9 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 		float RequestedContentScaleFactor = CVar->GetFloat();
 
 		UIEdgeInsets insets = [[[[UIApplication sharedApplication] delegate] window] safeAreaInsets];
-		// Hack: Temporary solution: we store the safe area offsets in TitleSafePaddingSize and ActionSafePaddingSize, because we cannot change them to FVector4 for hotfix.
-		OutDisplayMetrics.TitleSafePaddingSize = FVector2D(insets.left * RequestedContentScaleFactor, insets.right * RequestedContentScaleFactor);
-		OutDisplayMetrics.ActionSafePaddingSize = FVector2D(insets.top * RequestedContentScaleFactor, insets.bottom * RequestedContentScaleFactor);
+		// FVector4(X,Y,Z,W) being used like FMargin(left, top, right, bottom)
+		OutDisplayMetrics.TitleSafePaddingSize =
+		OutDisplayMetrics.ActionSafePaddingSize = FVector4(insets.left, insets.top, insets.right, insets.bottom) * RequestedContentScaleFactor;
 	}
 	else
 #endif

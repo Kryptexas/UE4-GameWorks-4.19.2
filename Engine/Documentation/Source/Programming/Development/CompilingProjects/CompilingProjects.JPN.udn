@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3426963
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:ゲーム プロジェクトのコンパイル
 Crumbs: %ROOT%, Programming, Programming/Development
@@ -12,7 +12,7 @@ type:overview
 
 [EXCERPT:Main]
 
-アンリアル・エンジン4 (UE4) ではUnrealBuildTool を用いたカスタムビルド手法を使用します。 
+アンリアル エンジン4 (UE4) ではUnrealBuildTool を用いたカスタムビルド手法を使用します。 
 UnrealBuildTool は、プロジェクトのコンパイルとこれらをエンジンとリンクさせる複雑な部分を全て処理します。標準の Visual Studio のビルド ワークフローを使用してプロジェクトのビルドを行うことができる 
 透過的なプロセスです。
 
@@ -57,22 +57,26 @@ UnrealBuildTool はゲームプロジェクトのビルドに *.Build.cs と *.T
 ### プロジェクト / コンフィギュレーション メニュー
 
 ![Project - Configuration Menu](rocket_configuration_menu.png)
-<!--
+[COMMENT:none]
+
 ### ソリューション / コンフィギュレーション メニュー
 
 ![UE4 Solution - Configuration Menu](configuration_menu.png)
--->
+
+[/COMMENT]
 ### ソリューション プラットフォームを設定する
 
 このソリューション プラットフォームは、Visual Studio のツールバーから設定することができます。
-<!--
+[COMMENT:none]
+
 UE4 は現在、以下のプラットフォームをサポートしています。
 
 * **Windows 64-bit**
 
 ![Project - Platform Menu](rocket_platform_menu.png)
 ![UE4 Solution - Platform Menu](platform_menu.png)
--->
+
+[/COMMENT]
 UE4 は現在、以下のプラットフォームをサポートしています。
 
 * **Windows 32-bit**
@@ -87,7 +91,8 @@ UE4 で作業をする場合、通常 **Win64** プラットフォームを使�
 作業を開始する前に、インストールされている Visual Studio 2015 (以降) for Windows Desktop を実行していることを確認してください。Mac を使用している場合、Xcode 8 以降をインストール済みであることを確認してください。
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 
 [REGION:tip]
 Visual Studio でビルドする場合、ゲーム プロジェクトだけをコンパイルします。アンリアル エディタはコンパイルしません。  
@@ -105,7 +110,8 @@ Visual Studio でビルドする場合、ゲーム プロジェクトに加え�
 1. ゲームプロジェクトで右クリックして、**[Rebuild]** を選んで再コンパイルします。
 
 	![](rebuild_project_rocket.png)
--->
+
+[/COMMENT]
 1.	 **[Solution Configuration]** にビルドしたいコンフィギュレーションを設定します。この例では、**Development Editor** に設定されています。利用可能な各コンフィギュレーションの詳細は [ビルド コンフィギュレーション](#ビルドコンフィギュレーション) セクションを参照してください。
 
 	![](rocket_config_development_menu.png)
@@ -162,15 +168,19 @@ Xcode でビルドする場合、ゲーム プロジェクトだけをコンパ�
 | ----- | -------- |
 | Xcode は、ブレークポイントでは停止しません。 | [INCLUDE:#XcodeDebug] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:XcodeDebug]
 Xcode の LLDB デバッガーは、アンリアル エンジンのプロジェクトでブレークポイントを正しく処理するように設定する必要があります。ホームフォルダで .lldbinit ファイルを作成 (または、既にある場合は、編集) し、以下の行を追加する必要があります。
 
 	settings set target.inline-breakpoint-strategy always
 [/EXCERPT:XcodeDebug]
--->
+
+[/COMMENT]
 
 [/EXCERPT:Xcode]
 
-<!-- The following was deprecated per LaurenR 29.7.15
-| **Uncooked**      | **Uncooked** タイプを持つコンフィギュレーションを使用してビルドされたプロジェクトは、"-game" フラグを使ってアンリアル エディタで開きます。これにより、クックされていないコンテンツでゲームを新しいウィンドウで実行します。エディタの [**Play in > New Window at Default Player Start**] に相当します。       | -->
+[COMMENT:none]
+ The following was deprecated per LaurenR 29.7.15
+| **Uncooked**      | **Uncooked** タイプを持つコンフィギュレーションを使用してビルドされたプロジェクトは、"-game" フラグを使ってアンリアル エディタで開きます。これにより、クックされていないコンテンツでゲームを新しいウィンドウで実行します。エディタの [**Play in > New Window at Default Player Start**] に相当します。       | 
+[/COMMENT]

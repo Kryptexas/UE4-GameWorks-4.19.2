@@ -1,14 +1,15 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
+#include "Math/TransformCalculus2D.h"
 #include "Layout/SlateRect.h"
 #include "Layout/SlateRotatedRect.h"
-#include "Math/TransformCalculus2D.h"
-#include "Rendering/SlateLayoutTransform.h"
 #include "Layout/PaintGeometry.h"
+#include "Layout/SlateRotatedRect.h"
+#include "Rendering/SlateLayoutTransform.h"
 #include "Geometry.generated.h"
 
 class FArrangedWidget;
@@ -376,8 +377,9 @@ public:
 	 */
 	FORCEINLINE_DEBUGGABLE bool IsUnderLocation(const FVector2D& AbsoluteCoordinate) const
 	{
-		// this render transform invert is a little expensive. We might consider caching it.
-		return FSlateRect(FVector2D(0.0f, 0.0f), Size).ContainsPoint(TransformPoint(Inverse(GetAccumulatedRenderTransform()), AbsoluteCoordinate));
+		// this render transform invert is a little expensive. We might consider caching it?
+		FSlateRotatedRect Rect = TransformRect(GetAccumulatedRenderTransform(), FSlateRotatedRect(FSlateRect(FVector2D(0.0f, 0.0f), Size)));
+		return Rect.IsUnderLocation(AbsoluteCoordinate);
 	}
 
 	/** 

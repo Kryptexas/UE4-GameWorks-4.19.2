@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -285,6 +285,9 @@ public:
 	/** Called to get the level text */
 	FText GetCurrentLevelText( bool bDrawOnlyLabel ) const;
 
+	/** Called to get the screen percentage preview text */
+	FText GetCurrentScreenPercentageText(bool bDrawOnlyLabel) const;
+
 	/** Called to get the feature level preview text */
 	FText GetCurrentFeatureLevelPreviewText( bool bDrawOnlyLabel ) const;
 	
@@ -293,6 +296,9 @@ public:
 
 	/** @return The visibility of the current feature level preview text display */
 	EVisibility GetCurrentFeatureLevelPreviewTextVisibility() const;
+
+	/** @return The visibility of the current screen percentage text display */
+	EVisibility GetCurrentScreenPercentageVisibility() const;
 
 	/** @return The visibility of the viewport controls popup */
 	virtual EVisibility GetViewportControlsVisibility() const;
@@ -462,21 +468,6 @@ private:
 	 * Called when show flags for this viewport should be reset to default, or the saved settings
 	 */
 	void OnUseDefaultShowFlags(bool bUseSavedDefaults = false);
-
-	/**
-	 * Changes the buffer visualization mode for this viewport
-	 *
-	 * @param InName	The ID of the required visualization mode
-	 */
-	void ChangeBufferVisualizationMode( FName InName );
-
-	/**
-	 * Checks if a buffer visualization mode is selected
-	 * 
-	 * @param InName	The ID of the required visualization mode
-	 * @return	true if the supplied buffer visualization mode is checked
-	 */
-	bool IsBufferVisualizationModeSelected( FName InName ) const;
 
 	/**
 	 * Called to set a bookmark

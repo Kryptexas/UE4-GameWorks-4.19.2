@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PhysicsAssetGraphSchema.h"
 #include "GlobalEditorCommonCommands.h"
@@ -9,6 +9,8 @@
 #include "PhysicsAssetGraphNode_Constraint.h"
 #include "PhysicsAssetGraph.h"
 #include "PhysicsAssetEditor.h"
+
+#define LOCTEXT_NAMESPACE "PhysicsAssetGraphSchema"
 
 UPhysicsAssetGraphSchema::UPhysicsAssetGraphSchema(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -45,7 +47,7 @@ void UPhysicsAssetGraphSchema::BreakPinLinks(UEdGraphPin& TargetPin, bool bSends
 	// Don't allow breaking any links
 }
 
-void UPhysicsAssetGraphSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin)
+void UPhysicsAssetGraphSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) const
 {
 	// Don't allow breaking any links
 }
@@ -180,3 +182,29 @@ void UPhysicsAssetGraphSchema::LayoutNodes(UPhysicsAssetGraph* InGraph, UPhysics
 		}
 	}
 }
+
+const FPinConnectionResponse UPhysicsAssetGraphSchema::CanCreateConnection(const UEdGraphPin* A, const UEdGraphPin* B) const
+{
+	return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("HowToMakeANewConstraint", "Drag from the output pin of a body and drop on\nempty space to create a new constraint"));
+}
+
+FPinConnectionResponse UPhysicsAssetGraphSchema::CanCreateNewNodes(UEdGraphPin* InSourcePin) const
+{
+	if(UPhysicsAssetGraphNode_Bone* PhysicsAssetGraphNode = Cast<UPhysicsAssetGraphNode_Bone>(InSourcePin->GetOwningNode()))
+	{
+		if(InSourcePin->Direction == EGPD_Output)
+		{
+			return FPinConnectionResponse(CONNECT_RESPONSE_MAKE, LOCTEXT("MakeANewConstraint", "Create a new constraint"));
+		}
+	}
+
+	return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("HowToMakeANewConstraint", "Drag from the output pin of a body and drop on\nempty space to create a new constraint"));
+}
+
+bool UPhysicsAssetGraphSchema::SupportsDropPinOnNode(UEdGraphNode* InTargetNode, const FEdGraphPinType& InSourcePinType, EEdGraphPinDirection InSourcePinDirection, FText& OutErrorMessage) const
+{
+	OutErrorMessage = LOCTEXT("HowToMakeANewConstraint", "Drag from the output pin of a body and drop on\nempty space to create a new constraint");
+	return false;
+}
+
+#undef LOCTEXT_NAMESPACE

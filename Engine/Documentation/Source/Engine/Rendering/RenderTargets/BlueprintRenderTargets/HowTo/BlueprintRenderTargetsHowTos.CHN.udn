@@ -12,7 +12,9 @@ tags:Blueprints
 topic-image:Engine/Rendering/RenderTargets/Render_Targets_Best_Practies.png
 
 下方的 **蓝图和渲染目标 - 指南** 页面中的实例包含详细步骤，说明如何在虚幻引擎 4（UE4）项目中同时使用蓝图和渲染目标。 
-<!-- 此外还包括参考链接，便于您获得更多内容。 -->
+[COMMENT:none]
+ 此外还包括参考链接，便于您获得更多内容。 
+[/COMMENT]
 
 ## 中级
 

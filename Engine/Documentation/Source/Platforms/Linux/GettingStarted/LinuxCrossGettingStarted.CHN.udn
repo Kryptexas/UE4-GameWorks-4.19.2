@@ -15,7 +15,9 @@ related:Platforms/Linux/AdvancedLinuxDeveloper/LinuxCrossCompileLegacy
 related:Programming/Basics/ConfigurationFiles
 topic-image:GettingStarted_Topic.png
 
-<!--- %Globals:BinarySourceSelectVar% --->
+[COMMENT:none]
+- %Globals:BinarySourceSelectVar% -
+[/COMMENT]
 
 [TOC(start:2 end:4)]
 

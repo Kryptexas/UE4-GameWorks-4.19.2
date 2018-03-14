@@ -19,7 +19,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:tip] **アンリアルエンジン 4** 初心者の人は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このチュートリアルの対象者は、プロジェクトを作成、プロジェクトに C++ コードを追加、および **アンリアル エディタ** で入力値の設定ができる方を想定しています。独自の **Pawn** クラス作成や入力設定に不慣れなユーザーは、 [%Programming\Tutorials\PlayerInput:title% tutorial](Programming\Tutorials\PlayerInput) から始めてください。[/REGION]
 
@@ -101,7 +101,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**CollidingPawn.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -130,7 +130,7 @@ version:4.9
 			};
 
 		**CollidingPawn.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawn.h"
@@ -210,4 +210,4 @@ version:4.9
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:3200922
+﻿INTSourceChangelist:3717083
 Availability:Public
 Title:加算 vs. フルボディ
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:加算とフルボディの設定が Pose アセットにどのように影響を与えるかについて説明します。 
+Parent:Engine/Animation/AnimPose
 Related:Engine\Animation\AnimHowTo\CreatePoseAsset
 Related:Engine\Animation\AnimHowTo\CurveDrivenAnimation
 Related:Engine\Animation\AnimPose\AnimBPPoseNodes

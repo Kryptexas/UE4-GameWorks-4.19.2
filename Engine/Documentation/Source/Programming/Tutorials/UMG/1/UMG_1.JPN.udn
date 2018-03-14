@@ -20,7 +20,7 @@ version:4.14
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:tip] **アンリアルエンジン 4** 初心者の方は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このチュートリアルの対象者は、プロジェクトの作成、プロジェクトに C++ コードを追加、またコードをコンパイルできる方を想定しています。**ブループリント** に関数やプロパティもエクスポーズします。さらに学習する場合は、[%Programming\Tutorials\VariablesTimersEvents:title% tutorial](Programming\Tutorials\VariablesTimersEvents) から始めると良いでしょう。[/REGION]
 
@@ -64,7 +64,7 @@ UMG を設定したら、ゲームのメニューを作成および表示する�
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -94,4 +94,4 @@ UMG を設定したら、ゲームのメニューを作成および表示する�
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

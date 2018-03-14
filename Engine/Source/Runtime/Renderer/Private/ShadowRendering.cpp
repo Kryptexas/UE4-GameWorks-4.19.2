@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShadowRendering.cpp: Shadow rendering implementation
@@ -92,7 +92,7 @@ static TAutoConsoleVariable<int32> CVarMaxSoftKernelSize(
 	TEXT("Mazimum size of the softening kernels in pixels."),
 	ECVF_RenderThreadSafe);
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("ShadowProjection"), Stat_GPU_ShadowProjection, STATGROUP_GPU);
+DECLARE_GPU_STAT_NAMED(ShadowProjection, TEXT("Shadow Projection"));
 
 // 0:off, 1:low, 2:med, 3:high, 4:very high, 5:max
 uint32 GetShadowQuality()
@@ -154,11 +154,6 @@ TGlobalResource<StencilingGeometry::FStencilConeIndexBuffer> StencilingGeometry:
 /*-----------------------------------------------------------------------------
 	FShadowVolumeBoundProjectionVS
 -----------------------------------------------------------------------------*/
-
-bool FShadowVolumeBoundProjectionVS::ShouldCache(EShaderPlatform Platform)
-{
-	return true;
-}
 
 void FShadowVolumeBoundProjectionVS::SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo)
 {
@@ -581,6 +576,7 @@ void FProjectedShadowInfo::SetupFrustumForProjection(const FViewInfo* View, TArr
 void FProjectedShadowInfo::SetupProjectionStencilMask(
 	FRHICommandListImmediate& RHICmdList, 
 	const FViewInfo* View, 
+	const FSceneRenderer* SceneRender,
 	const TArray<FVector4, TInlineAllocator<8>>& FrustumVertices,
 	bool bMobileModulatedProjections, 
 	bool bCameraInsideShadowFrustum) const
@@ -600,7 +596,7 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 		const bool bIsInstancedStereoEmulated = View->bIsInstancedStereoEnabled && !View->bIsMultiViewEnabled && View->StereoPass != eSSP_FULL;
 		if (bIsInstancedStereoEmulated)
 		{
-			RHICmdList.SetViewport(0, 0, 0, View->Family->InstancedStereoWidth, View->ViewRect.Max.Y, 1);
+			RHICmdList.SetViewport(0, 0, 0, SceneRender->InstancedStereoWidth, View->ViewRect.Max.Y, 1);
 		}
 
 		// Set stencil to one.
@@ -845,7 +841,7 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 	}
 }
 
-void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const FViewInfo* View, bool bProjectingForForwardShading, bool bMobileModulatedProjections) const
+void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const FViewInfo* View, const FSceneRenderer* SceneRender, bool bProjectingForForwardShading, bool bMobileModulatedProjections) const
 {
 #if WANTS_DRAW_MESH_EVENTS
 	FString EventName;
@@ -878,7 +874,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 
 	if (!bDepthBoundsTestEnabled)
 	{
-		SetupProjectionStencilMask(RHICmdList, View, FrustumVertices, bMobileModulatedProjections, bCameraInsideShadowFrustum);
+		SetupProjectionStencilMask(RHICmdList, View, SceneRender, FrustumVertices, bMobileModulatedProjections, bCameraInsideShadowFrustum);
 	}
 
 	// solid rasterization w/ back-face culling.
@@ -1380,8 +1376,6 @@ bool FDeferredShadingSceneRenderer::InjectReflectiveShadowMaps(FRHICommandListIm
 
 	return true;
 }
-	
-extern int32 GCapsuleShadows;
 
 bool FSceneRenderer::RenderShadowProjections(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, IPooledRenderTarget* ScreenShadowMaskTexture, bool bProjectingForForwardShading, bool bMobileModulatedProjections)
 {
@@ -1408,7 +1402,7 @@ bool FSceneRenderer::RenderShadowProjections(FRHICommandListImmediate& RHICmdLis
 		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
 		// Set the light's scissor rectangle.
-		LightSceneInfo->Proxy->SetScissorRect(RHICmdList, View);
+		LightSceneInfo->Proxy->SetScissorRect(RHICmdList, View, View.ViewRect);
 
 		// Project the shadow depth buffers onto the scene.
 		for (int32 ShadowIndex = 0; ShadowIndex < VisibleLightInfo.ShadowsToProject.Num(); ShadowIndex++)
@@ -1430,7 +1424,7 @@ bool FSceneRenderer::RenderShadowProjections(FRHICommandListImmediate& RHICmdLis
 					}
 					else 
 					{
-						ProjectedShadowInfo->RenderProjection(RHICmdList, ViewIndex, &View, bProjectingForForwardShading, bMobileModulatedProjections);
+						ProjectedShadowInfo->RenderProjection(RHICmdList, ViewIndex, &View, this, bProjectingForForwardShading, bMobileModulatedProjections);
 					}
 				}
 			}
@@ -1448,7 +1442,7 @@ bool FDeferredShadingSceneRenderer::RenderShadowProjections(FRHICommandListImmed
 	SCOPED_NAMED_EVENT(FDeferredShadingSceneRenderer_RenderShadowProjections, FColor::Emerald);
 	SCOPE_CYCLE_COUNTER(STAT_ProjectedShadowDrawTime);
 	SCOPED_DRAW_EVENT(RHICmdList, ShadowProjectionOnOpaque);
-	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ShadowProjection);
+	SCOPED_GPU_STAT(RHICmdList, ShadowProjection);
 
 	FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
 

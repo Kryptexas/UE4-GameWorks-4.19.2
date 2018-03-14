@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 MonoscopicFarFieldRendering.cpp: Monoscopic far field rendering implementation.
@@ -16,7 +16,7 @@ class FCompositeMonoscopicFarFieldViewVS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FCompositeMonoscopicFarFieldViewVS, Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return true; }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return true; }
 
 	FCompositeMonoscopicFarFieldViewVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
 		FGlobalShader(Initializer)
@@ -32,10 +32,10 @@ public:
 		SetShaderValue(RHICmdList, GetVertexShader(), LateralOffsetNDCParameter, LateralOffset);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		const bool bIsAndroidGLES = RHISupportsMobileMultiView(Platform);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
+		const bool bIsAndroidGLES = RHISupportsMobileMultiView(Parameters.Platform);
 		OutEnvironment.SetDefine(TEXT("MOBILE_MULTI_VIEW"), (bMobileMultiView && bIsAndroidGLES) ? 1u : 0u);
 	}
 
@@ -60,7 +60,7 @@ class FCompositeMonoscopicFarFieldViewPS : public FGlobalShader
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -93,10 +93,10 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		const bool bIsAndroidGLES = RHISupportsMobileMultiView(Platform);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
+		const bool bIsAndroidGLES = RHISupportsMobileMultiView(Parameters.Platform);
 		OutEnvironment.SetDefine(TEXT("MOBILE_MULTI_VIEW"), (bMobileMultiView && bIsAndroidGLES) ? 1u : 0u);
 	}
 
@@ -119,7 +119,7 @@ class FMonoscopicFarFieldMaskPS : public FGlobalShader
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -162,10 +162,10 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		const bool bIsAndroidGLES = RHISupportsMobileMultiView(Platform);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
+		const bool bIsAndroidGLES = RHISupportsMobileMultiView(Parameters.Platform);
 		OutEnvironment.SetDefine(TEXT("MOBILE_MULTI_VIEW"), (bMobileMultiView && bIsAndroidGLES) ? 1u : 0u);
 	}
 

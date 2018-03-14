@@ -1,13 +1,18 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "VIGizmoHandleMeshComponent.h"
 #include "StaticMeshResources.h"
 
 #include "RHIResources.h"
 
-class FGimzoHandleSceneProxy: public FStaticMeshSceneProxy
+class FGimzoHandleSceneProxy final : public FStaticMeshSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
 
 	FGimzoHandleSceneProxy(UGizmoHandleMeshComponent* InComponent)
 		: FStaticMeshSceneProxy(InComponent, false)

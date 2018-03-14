@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -60,7 +60,8 @@ public class TargetPlatform : ModuleRules
 					DynamicallyLoadedModuleNames.Add("Android_ATCTargetPlatform");
 					DynamicallyLoadedModuleNames.Add("Android_DXTTargetPlatform");
 					DynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
-					DynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
+                    DynamicallyLoadedModuleNames.Add("Android_ETC1aTargetPlatform");
+                    DynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
 					DynamicallyLoadedModuleNames.Add("Android_ASTCTargetPlatform");
 					DynamicallyLoadedModuleNames.Add("Android_MultiTargetPlatform");
 					DynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
@@ -97,7 +98,8 @@ public class TargetPlatform : ModuleRules
 					DynamicallyLoadedModuleNames.Add("Android_ATCTargetPlatform");
 					DynamicallyLoadedModuleNames.Add("Android_DXTTargetPlatform");
 					DynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
-					DynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
+                    DynamicallyLoadedModuleNames.Add("Android_ETC1aTargetPlatform");
+                    DynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
 					DynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
 					DynamicallyLoadedModuleNames.Add("TVOSTargetPlatform");
 					DynamicallyLoadedModuleNames.Add("HTML5TargetPlatform");
@@ -128,7 +130,8 @@ public class TargetPlatform : ModuleRules
 					DynamicallyLoadedModuleNames.Add("Android_ATCTargetPlatform");
 					DynamicallyLoadedModuleNames.Add("Android_DXTTargetPlatform");
 					DynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
-					DynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
+                    DynamicallyLoadedModuleNames.Add("Android_ETC1aTargetPlatform");
+                    DynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
 					DynamicallyLoadedModuleNames.Add("Android_ASTCTargetPlatform");
 					DynamicallyLoadedModuleNames.Add("HTML5TargetPlatform");
 				}

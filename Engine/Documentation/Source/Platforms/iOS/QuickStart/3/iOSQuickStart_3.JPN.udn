@@ -22,7 +22,7 @@ SkillLevel:Intermediate
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:note]
 プロビジョニングと署名証明書を既にお持ちですか？[このセクションはスキップできます。](Platforms/iOS/QuickStart/4)
@@ -58,7 +58,8 @@ SkillLevel:Intermediate
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windows]
 Windows で iOS 開発をするための署名証明書の生成は、Apple 社のデベロッパー サイトと 
 Unreal iOS Configuration Wizard (iPhonePackager) アプリケーション (`Engine\Binaries\DotNET\IOS\IPhonePackager.exe`) を 
@@ -138,6 +139,7 @@ Unreal iOS Configuration Wizard (iPhonePackager) アプリケーション (`Engi
 1. プラス記号をクリックし、**[iOS Development]** を選択し、証明書生成プロセスを完了します。
 
 [/EXCERPT:macos]
--->
 
-%Steps%
+[/COMMENT]
+
+

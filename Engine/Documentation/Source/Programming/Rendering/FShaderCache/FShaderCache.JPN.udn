@@ -25,14 +25,16 @@ FShaderCache は、インゲームでのシェーダーの処理落ちを減ら�
 | `r.AccelTargetPrecompileFrameTime [Time in (ms)]` | ロード画面などのインタラクティブでないモードの時に、一時的に非同期プリコンパイル処理を加速させるオプションです。r.TargetPrecompileFrameTime を使用するには 0 を使います。. |
 | `r.InitialShaderLoadTime [Time in (ms)]`| 非同期プリコンパイル処理を開始する前に、起動時にシェーダー取り込み最大時間です。同時にロードするには -1 を使います。 |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:UseShaderCaching]
 [REGION:plainlist]
 * 必要に応じてではなく、シェーダーのデシリアライズ中の早期サブミット
 * 早期サブミット中に事前に結合されるように結合シェーダー ステートを追跡
 [/REGION]
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 
 ## 使用方法

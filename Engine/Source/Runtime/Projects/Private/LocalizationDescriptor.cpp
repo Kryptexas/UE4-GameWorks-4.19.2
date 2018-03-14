@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LocalizationDescriptor.h"
 #include "Misc/App.h"
@@ -154,12 +154,12 @@ bool FLocalizationTargetDescriptor::ShouldLoadLocalizationTarget() const
 	case ELocalizationTargetDescriptorLoadingPolicy::PropertyNames:
 #if WITH_EDITOR
 		{
-			bool bShouldLoadLocalizedPropertyNames = true;
-			if (!GConfig->GetBool(TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEditorSettingsIni))
+			bool bShouldUseLocalizedPropertyNames = false;
+			if (!GConfig->GetBool(TEXT("Internationalization"), TEXT("ShouldUseLocalizedPropertyNames"), bShouldUseLocalizedPropertyNames, GEditorSettingsIni))
 			{
-				GConfig->GetBool(TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEngineIni);
+				GConfig->GetBool(TEXT("Internationalization"), TEXT("ShouldUseLocalizedPropertyNames"), bShouldUseLocalizedPropertyNames, GEngineIni);
 			}
-			return bShouldLoadLocalizedPropertyNames;
+			return bShouldUseLocalizedPropertyNames;
 		}
 #else	// WITH_EDITOR
 		return false;

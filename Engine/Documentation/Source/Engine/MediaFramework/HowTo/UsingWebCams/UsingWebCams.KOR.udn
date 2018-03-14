@@ -1,0 +1,173 @@
+﻿INTSourceChangelist:3726700
+Availability:Public
+Title: 라이브 비디오 캡처 재생
+Crumbs:%ROOT%, Engine
+Description:라이브 비디오 캡처를 끌어와 UE4 안에서 미디어 프레임워크 툴로 재생하는 방법을 선보입니다.
+Type: how-to
+SkillLevel: Advanced
+Version: 4.18
+Parent: Engine/MediaFramework/HowTo
+Order: 3
+Tags: Media Framework
+Tags: Video Playback
+Related: Engine\MediaFramework
+
+언리얼 엔진 4 (UE4)의 미디어 프레임워크는 비디오 및 오디오 캡처 디바이스를 엔진 내에서 재생할 수 있는 미디어의 한 형태로 지원합니다.
+예를 들어, 웹캠에서 라이브 비디오 피드를 받아 UE4 내 스태틱 메시나 HUD 일부에 직접 재생할 수 있습니다.
+아니면, 프로젝트를 모바일 디바이스에 디플로이한 후 전방 또는 후방 카메라 비디오 피드를 받아 어플리케이션 안에서 재생시킬 수도 있습니다.
+
+이 예제에서는, 웹캠에서 비디오 캡처 피드를 받아 게임플레이 도중 HUD 일부에 표시하도록 하겠습니다.
+
+![](WebCamHero.png)
+
+## 단계
+
+[REGION:note]
+여기서는 **블루프린트 삼인칭 템플릿** 프로젝트에 **시작용 콘텐츠** 를 포함시켜 사용하고 있습니다.
+또 컴퓨터에 웹캠이 연결되어 있어야 합니다.
+[/REGION]
+
+1.	**소스** 패널을 펼치고 **Movies** 라는 폴더를 만든 뒤, 그 안에 **미디어 플레이어** 를 만들고 **MediaPlayer** 라는 **미디어 텍스처** 를 연결합니다.
+
+	![](WebCam_01.png)
+
+1.	**MediaPlayer** 애셋을 연 뒤 **Media URL** 칸 옆 **Capture Devices** (캡처 디바이스)를 클릭하여 펼친 뒤 **Video** (비디오) 아래에서 카메라를 찾습니다.
+
+	![](WebCam_02.png)
+
+	[REGION:note]
+	캡처 디바이스의 수와 표시되는 이름은 컴퓨터 구성 상태에 따라 스크린샷과 다를 수 있습니다.
+	[/REGION]
+
+	비디오 캡처 디바이스를 선택하면, 카메라의 비디오가 미디어 에디터 플레이어 안에 표시됩니다.
+
+1.	Media URL 칸에 표시된 **Media URL** 스트링을 선택한 후 우클릭 복사합니다.
+
+	![](WebCam_03.png)
+
+	[REGION:note]
+	표시되는 URL 스트링은 컴퓨터 구성에 따라 스크린샷과 다를 수 있습니다.
+	[/REGION]
+
+1.	**콘텐츠 브라우저** 안에서 **User Interface** (유저 인터페이스) 아래 **Widget Blueprint** (위젯 블루프린트)를 생성하고 **HUD** 라 합니다. 
+
+	![](WebCam_04.png)
+
+	유저 인터페이스 안에서 **미디어 텍스처** 를 사용하여 웹캠 비디오를 받아 사진 속 사진 스타일의 HUD 에 표시하도록 하겠습니다.
+
+1.	**HUD** 위젯 블루프린트를 연 뒤 **팔레트** 창에서 **Image** 를 끌어 그래프에 놓고 원하는 대로 크기를 조절합니다.
+
+	![](WebCam_05.png)
+
+	창은 좌상단 구석에 두었지만, 아무렇게나 놔둬도 됩니다.
+
+1.	**Image** 를 선택하고 **디테일** 패널에서 **Brush** (브러시) 아래 **Image** (이미지)를 1 단계에서 만든 **MediaPlayer_Video** 미디어 텍스처로 설정합니다.
+
+	![](WebCam_06.png)
+
+1.	**HUD** 위젯 블루프린트를 닫은 뒤 메인 에디터 툴바의 **블루프린트** - **레벨 블루프린트 열기** 를 선택합니다.
+
+	![](WebCam_07.png)
+
+	미디어 소스를 바로 여는 것이 아닌 미디어 URL 을 복사한 것이지만, 그래도 런타임에 재생하기 위해서는 열어야 합니다.
+
+1.	**내 블루프린트** 패널에서 변수를 만들고 이름은 **Media Player**, 유형은 **Media Player Object Reference** 로 한 뒤 자신의 **미디어 플레이어** 를 할당합니다.
+
+	![](WebCam_08.png)
+
+	[REGION:note]
+	**컴파일** 버튼을 클릭하여 블루프린트를 컴파일해야 Media Player 변수의 **Default Value** 할당이 가능할 것입니다.
+	[/REGION]
+
+1.	**Ctrl** 키를 누르고 **MediaPlayer** 변수를 그래프에 끌어놓은 뒤, 우클릭하고 **Event BeginPlay** 노드를 추가합니다.
+
+	![](WebCam_09.png)
+
+	작업을 하고자 하는 미디어 플레이어로의 레퍼런스와 게임플레이 시작을 알릴 [이벤트를](Engine/Blueprints/UserGuide/Events/) 만들었습니다.
+
+1.	우클릭하고 **Create Widget** 노드를 추가한 뒤 (**Class** 는 **HUD**), **Return Value** 에서 **Add to Viewport** 를 사용하여 그림처럼 연결합니다.
+
+	![](WebCam_10.png)
+
+	여기서는 게임이 시작되면, HUD 위젯 블루프린트를 만들어 플레이어 뷰포트에 추가하고 있습니다.
+
+1.	그래프의 **Media Player** 노드에서 **Open URL** 을 사용하여 3 단계에서 복사한 URL 을 붙여넣고 그림처럼 연결합니다.
+
+	![](WebCam_11.png)
+
+	이제 에디터에서 플레이하면, 웹캠의 비디오가 원하는 위치에 배치한 HUD 이미지 상에 나타날 것입니다.
+
+	![](WebCam_12.png)
+
+	우리 예제에서, 열려는 미디어 URL 을 지정했지만 그게 무엇인지를 항상 알 수는 없습니다.
+	이 기능으로 프로젝트를 패키징하여 다른 이에게 배포한 뒤, 최종 사용자가 연결한 캡처 디바이스를 구해 그 중 하나를 사용할 수도 있습니다.
+	아니면 프로젝트를 모바일 디바이스에 디플로이하고 전방 또는 후방 카메라 비디오 피드를 구해 그것을 미디어 소스로 사용할 수도 있습니다.
+	**Enumerate Capture Devices** 함수를 사용하여 연결된 캡처 디바이스 전부를 반환한 뒤 그 디바이스 관련 정보를 구할 수 있습니다.
+
+1.	그래프에 우클릭하고 **Enumerate Video Capture Devices** 함수를 검색하여 추가합니다.
+
+	![](WebCam_13.png)
+
+	오디오, 비디오, 웹캠 캡처 디바이스를 열거해 주는 함수입니다 (웹캠은 모바일 디바이스에서 전방 또는 후방 카메라를 구할 수 있습니다).
+
+1.	**Filter** 핀을 끌어놓고 **Make Bitmask** 노드를 사용합니다.
+
+	![](WebCam_14.png)
+
+	Make Bitmask 노드를 사용하면 특정 디바이스 서브셋 필터를 적용할 수 있습니다.
+
+1.	**Make Bitmask** 노드를 선택한 채, **디테일** 패널에서 **Bitmask Enum** 을 **EMediaVideoCaptureDeviceFilter** 로 변경한 뒤 필터에서 각각을 켭니다.
+
+	![](WebCam_14b.png)
+
+	여기서는 활성화된 옵션 각각을 필터링하여 캡처 디바이스를 반환하고 있습니다 (생략하고자 하는 것을 제외시켜 반환 디바이스 목록을 좁힐 수 있습니다).
+
+1.	**Out Devices** 에서 **Get Copy** 노드를 사용여 그 출력 핀에서 **Break MediaCpatureDevice** 노드를 통해 **Open URL** 에 그림처럼 연결합니다.
+
+	[REGION:lightbox]
+	[![](WebCam_16.png)](WebCam_16.png)
+	[/REGION]
+
+	[REGION:caption]
+	이미지를 클릭하면 원본을 확인합니다. 
+	[/REGION]
+
+	이 프로세스는 사용가능한 첫 번째 캡처 디바이스를 찾아 그 URL 을 반환한 뒤, Open URL 에 사용하여 재생할 소스를 엽니다.
+
+1.	**컴파일** 후 레벨 블루프린트를 닫고 메인 툴바의 **플레이** 버튼을 눌러 에디터에서 플레이합니다.
+	
+## 최종 결과
+
+에디터에서 플레이하면, 엔진으로 푸시된 카메라의 비디오 피드가 HUD 에 나타날 것입니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	Y8ixEPgho5U
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+모바일 디바이스의 전방 또는 후방 카메라를 구하려면:
+
+* **Enumerate Video Capture Devices** 노드를 사용하여 **Bitmask Enum** 을 **EMediaWebcamCaptureDeviceFilter** 옵션으로 설정합니다.
+* **Make Bitmask** 노드에서 구하고자 하는 카메라를 설정합니다.
+
+![](WebCam_15.png)
+
+
+
+
+
+
+

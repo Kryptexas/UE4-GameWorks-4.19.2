@@ -63,7 +63,8 @@ Description:引擎和游戏项目的目录概述。
 | **Saved** | 保存了引擎生成的文件，比如配置文件和日志。 这些文件可被删除和重建。 |
 | **Source** | 包含了游戏模块对象的类文件。 [INCLUDE:#Source] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Source]
 [REGION:simpletable]
 | --- | --- |
@@ -72,7 +73,8 @@ Description:引擎和游戏项目的目录概述。
 | Public | 包含了公共游戏对象类的实现文件 (`.cpp` 文件) 。 |
 [/REGION]
 [/EXCERPT:Source]
--->
+
+[/COMMENT]
 
 ## 解决方案目录
  

@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3467293
+﻿INTSourceChangelist:3719888
 Availability:Public
 Title:Linux ゲームの開発
-Crumbs:
+Crumbs:%ROOT%
 Description:DLinux プラットフォーム向けゲームの開発
 Platform:Linux
 Navigation:platform
@@ -17,10 +17,10 @@ Topic-image:LinuxDevelopment_topic.png
 世界中の Linux ユーザーとゲームを作成し共有することができるようになりました。Linux でゲーム開発をしたことがない場合、高度なトピックスへ進む前に、
 クイック スタート ガイドを一読しておくことをお勧めします。
 
-## はじめよう
+## 作業を開始する
 
 %Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow:topic%
-%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE:topic%
+%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpQtCreator:topic%
 %Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux:topic%
 
 ## 高度なトピック

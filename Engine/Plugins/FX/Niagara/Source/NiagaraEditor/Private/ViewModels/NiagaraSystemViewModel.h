@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,6 +18,7 @@ class UNiagaraComponent;
 class UNiagaraSequence;
 class UMovieSceneNiagaraEmitterTrack;
 struct FNiagaraVariable;
+struct FNiagaraEmitterHandle;
 class FNiagaraEmitterHandleViewModel;
 class FNiagaraSystemScriptViewModel;
 class FNiagaraSystemInstance;
@@ -26,23 +27,37 @@ struct FAssetData;
 class UNiagaraSystemEditorData;
 struct FRichCurve;
 
+/** Defines different editing modes for this system view model. */
+enum class ENiagaraSystemViewModelEditMode
+{
+	/** A system asset is being edited.  This assumes that emitters should be inheriting from a base version and that emitter editing will be restricted. */
+	SystemAsset,
+	/** An emitter asset is being edited.  In this mode the system scripts will not be editable and all emitter editing options are available. */
+	EmitterAsset,
+};
+
 /** Defines options for the niagara System view model */
 struct FNiagaraSystemViewModelOptions
 {
-	/** Whether or not the user can remove emitters from the timeline. */
-	bool bCanRemoveEmittersFromTimeline;
+	FNiagaraSystemViewModelOptions();
 
-	/** Whether or not the user can rename emitters from the timeline. */
-	bool bCanRenameEmittersFromTimeline;
-
-	/** Whether or not the user can add emitters from the timeline. */
-	bool bCanAddEmittersFromTimeline;
+	/** Whether or not the user can edit emitters from the timeline. */
+	bool bCanModifyEmittersFromTimeline;
 
 	/** A delegate which is used to generate the content for the add menu in sequencer. */
 	FOnGetAddMenuContent OnGetSequencerAddMenuContent;
 
 	/** Whether or not we use the system's execution state to drive when we reset the timeline*/
 	bool bUseSystemExecStateForTimelineReset;
+
+	/** Whether or not the system represented by this view model can be automatically compiled.  True by default. */
+	bool bCanAutoCompile;
+
+	/** Whether or not the system represented by this view model can be simulated. True by default. */
+	bool bCanSimulate;
+
+	/** Gets the current editing mode for this system. */
+	ENiagaraSystemViewModelEditMode EditMode;
 };
 
 /** A view model for viewing and editing a UNiagaraSystem. */
@@ -88,11 +103,11 @@ public:
 	/** Get access to the underlying system*/
 	UNiagaraSystem& GetSystem() { return System; }
 
-	/** Gets whether or not this system is transient.  This will be true for the system view model in the emitter editor. */
-	bool GetSystemIsTransient() const;
-
 	/** Gets whether or not emitters can be added from the timeline. */
-	bool GetCanAddEmittersFromTimeline() const;
+	bool GetCanModifyEmittersFromTimeline() const;
+
+	/** Gets the current editing mode for this system view model. */
+	ENiagaraSystemViewModelEditMode GetEditMode() const;
 
 	/** Adds a new emitter to the System from an emitter asset data. */
 	void AddEmitterFromAssetData(const FAssetData& AssetData);
@@ -136,13 +151,14 @@ public:
 	virtual bool IsTickable() const override;
 	virtual TStatId GetStatId() const override;
 
-	void ResynchronizeAllHandles();
-
 	/** Resets the System instance to initial conditions. */
 	void ResetSystem();
 
+	/** Reinitializes the System instance to initial conditions - rebuilds all data sets and resets data interfaces. */
+	void ReInitializeSystemInstances();
+
 	/** Compiles the spawn and update scripts. */
-	void CompileSystem();
+	void CompileSystem(bool bForce);
 
 	/* Get the latest status of this view-model's script compilation.*/
 	ENiagaraScriptCompileStatus GetLatestCompileStatus();
@@ -173,6 +189,22 @@ public:
 
 	/** Called to notify the system view model that one of the data objects in the system was modified. */
 	void NotifyDataObjectChanged(UObject* ChangedObject);
+
+	/** Updates all selected emitter's fixed bounds with their current dynamic bounds. */
+	void UpdateEmitterFixedBounds();
+
+	/** Whether it is possible to isolate an emitter. */
+	bool CanExecuteToggleIsolation();
+
+	/** Isolates the selected emitters and sets all the others to not be isolated. */
+	void IsolateSelectedEmitters();
+
+	/** Toggle the isolate state of the selected emitters. */
+	void IsolateEmitterToggle();
+
+	/** Whether all the selected emitters are isolated. */
+	bool IsEmitterIsolationActive();
+
 private:
 
 	/** Sets up the preview component and System instance. */
@@ -199,9 +231,6 @@ private:
 	/** Kills all system instances using the system being displayed by this view model. */
 	void KillSystemInstances();
 
-	/** Reinitializes the System instance to initial conditions - rebuilds all data sets and resets data interfaces. */
-	void ReInitializeSystemInstances();
-
 	/** Resets and rebuilds the data in the curve owner. */
 	void ResetCurveData();
 
@@ -210,6 +239,9 @@ private:
 
 	/** Called whenever a property on the emitter handle changes. */
 	void EmitterHandlePropertyChanged(TSharedRef<FNiagaraEmitterHandleViewModel> EmitterHandleViewModel);
+
+	/** Called whenever the name on an emitter handle changes. */
+	void EmitterHandleNameChanged(TSharedRef<FNiagaraEmitterHandleViewModel> EmitterHandleViewModel);
 
 	/** Called whenever a property on the emitter changes. */
 	void EmitterPropertyChanged(TSharedRef<FNiagaraEmitterHandleViewModel> EmitterHandleViewModel);
@@ -244,6 +276,12 @@ private:
 	/** Called whenever the System instance is initialized. */
 	void SystemInstanceInitialized();
 
+	/** Called whenever the System instance is reset.*/
+	void SystemInstanceReset();
+
+	/** Duplicates a set of emitters and refreshes everything.*/
+	void DuplicateEmitters(TSet<FGuid> EmitterHandleIdsToDuplicate);
+
 private:
 	/** The System being viewed and edited by this view model. */
 	UNiagaraSystem& System;
@@ -275,17 +313,23 @@ private:
 	/** The previous time for the sequencer timeline. */
 	float PreviousSequencerTime;
 
-	/** Whether or not the user can remove emitters from the timeline. */
-	bool bCanRemoveEmittersFromTimeline;
-
-	/** Whether or not the user can rename emitters from the timeline. */
-	bool bCanRenameEmittersFromTimeline;
-
-	/** Whether or not the user can add emitters from the timeline. */
-	bool bCanAddEmittersFromTimeline;
+	/** Whether or not the user can edit emitters from the timeline. */
+	bool bCanModifyEmittersFromTimeline;
 
 	/** Whether or not we use the system's execution state to drive when we reset the timeline*/
 	bool bUseSystemExecStateForTimelineReset;
+
+	/** Whether or not the system represented by this view model can be automatically compiled. */
+	bool bCanAutoCompile;
+
+	/** Whether or not the system requires a compilation*/
+	bool bForceAutoCompileOnce;
+
+	/** Whether or not the system represented by this view model can be simulated. */
+	bool bCanSimulate;
+
+	/** The current editing mode for this view model. */
+	ENiagaraSystemViewModelEditMode EditMode;
 
 	/** A delegate which is used to generate the content for the add menu in sequencer. */
 	FOnGetAddMenuContent OnGetSequencerAddMenuContent;

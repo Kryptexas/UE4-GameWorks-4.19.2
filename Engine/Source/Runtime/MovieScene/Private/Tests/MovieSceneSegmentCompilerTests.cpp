@@ -1,25 +1,28 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneSegmentCompilerTests.h"
 #include "CoreMinimal.h"
 #include "Misc/AutomationTest.h"
+#include "Compilation/MovieSceneCompiler.h"
 #include "Compilation/MovieSceneSegmentCompiler.h"
 #include "Compilation/MovieSceneCompilerRules.h"
 #include "MovieSceneTestsCommon.h"
+#include "Evaluation/MovieSceneEvaluationTrack.h"
+#include "Evaluation/MovieSceneEvaluationField.h"
 #include "Package.h"
+
+#if WITH_DEV_AUTOMATION_TESTS
 
 namespace Impl
 {
 	static const TRangeBound<float> Inf = TRangeBound<float>::Open();
-	static const FOptionalMovieSceneBlendType NoBlending;
+
+	typedef TTuple<TRange<float>, TArray<int32>> FEvaluationTreeIteratorResult;
 
 	/** Compiler rules to sort by priority */
-	struct FSortByPriorityCompilerRules : FMovieSceneSegmentCompilerRules
+	struct FSortByPrioritySegmentBlender : FMovieSceneTrackSegmentBlender
 	{
-		int32 MaxImplIndex;
-
-		FSortByPriorityCompilerRules(int32 InMaxImplIndex, bool bInAllowEmptySegments)
-			: MaxImplIndex(InMaxImplIndex)
+		FSortByPrioritySegmentBlender(bool bInAllowEmptySegments)
 		{
 			bAllowEmptySegments = bInAllowEmptySegments;
 		}
@@ -29,53 +32,67 @@ namespace Impl
 			return bAllowEmptySegments ? FMovieSceneSegment(Range) : TOptional<FMovieSceneSegment>();
 		}
 
-		virtual void BlendSegment(FMovieSceneSegment& Segment, const TArrayView<const FMovieSceneSectionData>& SourceData) const
+		virtual void Blend(FSegmentBlendData& BlendData) const
 		{
-			Segment.Impls.Sort(
-				[&](const FSectionEvaluationData& A, const FSectionEvaluationData& B)
+			BlendData.Sort(
+				[](const FMovieSceneSectionData& A, const FMovieSceneSectionData& B)
 				{
-					return SourceData[A.ImplIndex].Priority > SourceData[B.ImplIndex].Priority;
+					// Sort by template index and flags when we don't have any sections
+					if (!A.Section || !B.Section)
+					{
+						if (A.Flags == ESectionEvaluationFlags::None && B.Flags == ESectionEvaluationFlags::None)
+						{
+							return A.TemplateIndex < B.TemplateIndex;
+						}
+
+						return A.Flags != ESectionEvaluationFlags::None;
+					}
+					return A.Section->GetOverlapPriority() > B.Section->GetOverlapPriority();
 				}
 			);
 		}
+	};
 
-		virtual void PostProcessSegments(TArray<FMovieSceneSegment>& Segments, const TArrayView<const FMovieSceneSectionData>& SourceData) const override
+	FString Join(TArrayView<const FSectionEvaluationData> Stuff)
+	{
+		FString Result;
+		for (const FSectionEvaluationData& Thing : Stuff)
 		{
-			for (FMovieSceneSegment& Segment : Segments)
+			if (Result.Len())
 			{
-				for (FSectionEvaluationData EvalData : Segment.Impls)
-				{
-					ensureMsgf(SourceData.IsValidIndex(EvalData.ImplIndex),
-						TEXT("Compiled segment data does not correctly map to the source data array"));
-
-					const int32 ThisImpl = SourceData[EvalData.ImplIndex].EvalData.ImplIndex;
-					ensureMsgf(ThisImpl >= 0 && ThisImpl <= MaxImplIndex,
-						TEXT("Compiled segment data does not correctly map to either the designated implementation range"));
-				}
+				Result += TEXT(", ");
 			}
+
+			Result += FString::Printf(TEXT("(Impl: %d, ForcedTime: %.7f, Flags: %u)"), Thing.ImplIndex, Thing.ForcedTime, (uint8)Thing.Flags);
 		}
 
-	};
-	
-	FORCEINLINE void AssertSegmentValues(FAutomationTestBase* Test, TArrayView<const FMovieSceneSegment> Expected, TArrayView<const FMovieSceneSegment> Actual)
+		return Result;
+	}
+
+	FORCEINLINE_DEBUGGABLE void AssertSegmentImpls(FAutomationTestBase* Test, TArrayView<const FSectionEvaluationData> ExpectedImpls, TArrayView<const FSectionEvaluationData> ActualImpls, const TCHAR* AdditionalText = TEXT(""))
 	{
-		auto Join = [](TArrayView<const FSectionEvaluationData> Stuff) -> FString
+		FString ActualImplsString = Join(ActualImpls);
+		FString ExpectedImplsString = Join(ExpectedImpls);
+
+		if (ActualImplsString != ExpectedImplsString)
 		{
-			FString Result;
-			for (const FSectionEvaluationData& Thing : Stuff)
-			{
-				if (Result.Len())
-				{
-					Result += TEXT(", ");
-				}
-
-				Result += FString::Printf(TEXT("(Impl: %d, ForcedTime: %.7f, Flags: %u)"), Thing.ImplIndex, Thing.ForcedTime, (uint8)Thing.Flags);
-			}
-
-			return Result;
-		};
-
+			Test->AddError(FString::Printf(TEXT("Compiled data does not match for segment %s.\nExpected: %s\nActual:   %s."), AdditionalText, *ExpectedImplsString, *ActualImplsString));
+		}
+	}
+	
+	FORCEINLINE_DEBUGGABLE void AssertSegmentValues(FAutomationTestBase* Test, TArrayView<const FMovieSceneSegment> Expected, TArrayView<const FMovieSceneSegment> Actual)
+	{
 		using namespace Lex;
+
+		for (const FMovieSceneSegment& Segment : Actual)
+		{
+			Test->AddInfo(FString::Printf(TEXT("Actual   %s, Impls: %s"), *ToString(Segment.Range), *Join(Segment.Impls)));
+		}
+		for (const FMovieSceneSegment& Segment : Expected)
+		{
+			Test->AddInfo(FString::Printf(TEXT("Expected %s, Impls: %s"), *ToString(Segment.Range), *Join(Segment.Impls)));
+		}
+
 		if (Actual.Num() != Expected.Num())
 		{
 			Test->AddError(FString::Printf(TEXT("Wrong number of compiled segments. Expected %d, actual %d."), Expected.Num(), Actual.Num()));
@@ -87,21 +104,58 @@ namespace Impl
 
 			if (ExpectedSegment.Range != ActualSegment.Range)
 			{
-				Test->AddError(FString::Printf(TEXT("Incorrect compiled segment range at segment index %d. Expected:\n%s\nActual:\n%s"), Index, *Lex::ToString(ExpectedSegment.Range), *Lex::ToString(ActualSegment.Range)));
+				Test->AddError(FString::Printf(TEXT("Incorrect compiled segment range at segment index %d. Expected:\n%s\nActual:\n%s"), Index, *ToString(ExpectedSegment.Range), *ToString(ActualSegment.Range)));
 			}
-			else if (ExpectedSegment.Impls.Num() != ActualSegment.Impls.Num())
-			{
-				Test->AddError(FString::Printf(TEXT("Incorrect number of implementation references compiled into segment index %d. Expected %d, actual %d."), Index, ExpectedSegment.Impls.Num(), ActualSegment.Impls.Num()));
-			}
-			else 
-			{
-				FString ActualImpls = Join(ActualSegment.Impls);
-				FString ExpectedImpls = Join(ExpectedSegment.Impls);
 
-				if (ActualImpls != ExpectedImpls)
+			AssertSegmentImpls(Test, ExpectedSegment.Impls, ActualSegment.Impls, *FString::Printf(TEXT("index %d"), Index));
+		}
+	}
+
+	FORCEINLINE_DEBUGGABLE void AssertSegmentAtTime(FAutomationTestBase* Test, FMovieSceneEvaluationTrack& InTrack, float InTime, TArrayView<const FSectionEvaluationData> ExpectedImpls)
+	{
+		FMovieSceneSegmentIdentifier ID = InTrack.GetSegmentFromTime(InTime);
+		if (!ID.IsValid())
+		{
+			Test->AddError(TEXT("No segment compiled for time %.fs"), InTime);
+		}
+		else
+		{
+			AssertSegmentImpls(Test, ExpectedImpls, InTrack.GetSegment(ID).Impls, *FString::Printf(TEXT("time %.8fs"), InTime));
+		}
+	}
+
+	FORCEINLINE_DEBUGGABLE void AssertEvaluationTree(FAutomationTestBase* Test, const TMovieSceneEvaluationTree<int32>& Tree, TArrayView<const FEvaluationTreeIteratorResult> Expected)
+	{
+		using namespace Lex;
+		int32 Index = 0;
+		for (FMovieSceneEvaluationTreeRangeIterator It(Tree); It; ++It, ++Index)
+		{
+			if (Index >= Expected.Num())
+			{
+				Test->AddError(FString::Printf(TEXT("Too many ranges iterated (expected %d, iterated >= %d)"), Expected.Num(), Index + 1));
+				break;
+			}
+
+			if (It.Range() != Expected[Index].Get<0>())
+			{
+				Test->AddError(FString::Printf(TEXT("Incorrect range iterated at index %d. %s != %s"), Index, *ToString(It.Range()), *ToString(Expected[Index].Get<0>())));
+				continue;
+			}
+
+			int32 Count = 0;
+			const TArray<int32>& ExpectedData = Expected[Index].Get<1>();
+			for (auto AllDataIt = Tree.GetAllData(It.Node()); AllDataIt; ++AllDataIt, ++Count)
+			{
+				if (!ExpectedData.Contains(*AllDataIt))
 				{
-					Test->AddError(FString::Printf(TEXT("Compiled data does not match for segment index %d.\nExpected: %s\nActual:   %s."), Index, *ExpectedImpls, *ActualImpls));
+					Test->AddError(FString::Printf(TEXT("Incorrect data encountered at index %d. Count not find %d in expected data."), Index, *AllDataIt));
+					continue;
 				}
+			}
+
+			if (Count != ExpectedData.Num())
+			{
+				Test->AddError(FString::Printf(TEXT("Incorrect number of data entries iterated at index %d. Found %d entries, expected %d"), Index, Count, ExpectedData.Num()));
 			}
 		}
 	}
@@ -123,27 +177,32 @@ bool FMovieSceneCompilerBasicTest::RunTest(const FString& Parameters)
 	//----------------------------------------------------------------------------------------------------------------------------------------
 	//	Expected Impls		[ 		3			|			0,2,3			|		1,2		|		1,2,4		|			4				]
 
-	const FMovieSceneSectionData SegmentData[] = {
-		FMovieSceneSectionData(TRange<float>(10.f,	20.f), 									FSectionEvaluationData(0), 	NoBlending,		4),
-		FMovieSceneSectionData(TRange<float>(20.f,	30.f), 									FSectionEvaluationData(1), 	NoBlending,		3),
-		FMovieSceneSectionData(TRange<float>(10.f,	30.f), 									FSectionEvaluationData(2), 	NoBlending,		2),
-		FMovieSceneSectionData(TRange<float>(Inf,	TRangeBound<float>::Exclusive(20.f)), 	FSectionEvaluationData(3), 	NoBlending,		1),
-		FMovieSceneSectionData(TRange<float>(25.f,	Inf), 									FSectionEvaluationData(4), 	NoBlending,		0)
-	};
+	// Override the blender (so it doesn't try and get it from the null track ptr)
+	FScopedOverrideTrackSegmentBlender ScopedBlenderOverride(FSortByPrioritySegmentBlender(false));
 
-	FSortByPriorityCompilerRules DefaultRules(4, false);
-	TArray<FMovieSceneSegment> Segments = FMovieSceneSegmentCompiler().Compile(SegmentData, &DefaultRules);
+	FMovieSceneEvaluationTrack Track;
+
+	Track.AddTreeData(TRange<float>(10.f,	20.f),										FSectionEvaluationData(0));
+	Track.AddTreeData(TRange<float>(20.f,	30.f),										FSectionEvaluationData(1));
+	Track.AddTreeData(TRange<float>(10.f,	30.f),										FSectionEvaluationData(2));
+	Track.AddTreeData(TRange<float>(Inf,	TRangeBound<float>::Exclusive(20.f)),		FSectionEvaluationData(3));
+	Track.AddTreeData(TRange<float>(25.f,	Inf),										FSectionEvaluationData(4));
 
 	FMovieSceneSegment Expected[] = {
-		FMovieSceneSegment(FFloatRange(Inf, 	TRangeBound<float>::Exclusive(10.f)), { FSectionEvaluationData(3) }),
-		FMovieSceneSegment(FFloatRange(10.f,	20.f), { FSectionEvaluationData(0), FSectionEvaluationData(2), FSectionEvaluationData(3) }),
-		FMovieSceneSegment(FFloatRange(20.f,	25.f), { FSectionEvaluationData(1), FSectionEvaluationData(2) }),
-		FMovieSceneSegment(FFloatRange(25.f,	30.f), { FSectionEvaluationData(1), FSectionEvaluationData(2), FSectionEvaluationData(4) }),
-		FMovieSceneSegment(FFloatRange(30.f,	Inf), { FSectionEvaluationData(4) })
+		FMovieSceneSegment(FFloatRange(Inf, 	TRangeBound<float>::Exclusive(10.f)),	{ FSectionEvaluationData(3) }),
+		FMovieSceneSegment(FFloatRange(10.f,	20.f),									{ FSectionEvaluationData(0), FSectionEvaluationData(2), FSectionEvaluationData(3) }),
+		FMovieSceneSegment(FFloatRange(20.f,	25.f),									{ FSectionEvaluationData(1), FSectionEvaluationData(2) }),
+		FMovieSceneSegment(FFloatRange(25.f,	30.f),									{ FSectionEvaluationData(1), FSectionEvaluationData(2), FSectionEvaluationData(4) }),
+		FMovieSceneSegment(FFloatRange(30.f,	Inf),									{ FSectionEvaluationData(4) })
 	};
-	AssertSegmentValues(this, Expected, Segments);
+
+	// Compile all the segments
+	Track.GetSegmentsInRange(TRange<float>::All());
+
+	AssertSegmentValues(this, Expected, Track.GetSortedSegments());
 	return true;
 }
+
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMovieSceneCompilerEmptySpaceTest, "System.Engine.Sequencer.Compiler.Empty Space", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FMovieSceneCompilerEmptySpaceTest::RunTest(const FString& Parameters)
@@ -157,56 +216,58 @@ bool FMovieSceneCompilerEmptySpaceTest::RunTest(const FString& Parameters)
 	//----------------------------------------------------------------------------------------------------------------------------------------
 	//	Expected Impls	[	Empty		|		0		|	Empty		|		1		|	Empty		]
 
-	const FMovieSceneSectionData SegmentData[] = {
-		FMovieSceneSectionData(TRange<float>(10.f,	20.f), 									FSectionEvaluationData(0), NoBlending, 	1),
-		FMovieSceneSectionData(TRange<float>(30.f,	40.f), 									FSectionEvaluationData(1), NoBlending, 	0)
-	};
+	FMovieSceneEvaluationTrack Track;
 
-	FSortByPriorityCompilerRules DefaultRules(1, true);
-	TArray<FMovieSceneSegment> Segments = FMovieSceneSegmentCompiler().Compile(SegmentData, &DefaultRules);
+	Track.AddTreeData(TRange<float>(10.f,	20.f), 		FSectionEvaluationData(0));
+	Track.AddTreeData(TRange<float>(30.f,	40.f), 		FSectionEvaluationData(1));
+
+	// Override the blender (so it doesn't try and get it from the null track ptr)
+	FScopedOverrideTrackSegmentBlender ScopedBlenderOverride(FSortByPrioritySegmentBlender(true));
+
+	// Compile all the segments
+	Track.GetSegmentsInRange(TRange<float>::All());
 
 	FMovieSceneSegment Expected[] = {
-		FMovieSceneSegment(FFloatRange(Inf, 	TRangeBound<float>::Exclusive(10.f)), { }),
-		FMovieSceneSegment(FFloatRange(10.f,	20.f), { FSectionEvaluationData(0) }),
-		FMovieSceneSegment(FFloatRange(20.f,	30.f), {  }),
-		FMovieSceneSegment(FFloatRange(30.f,	40.f), { FSectionEvaluationData(1) }),
-		FMovieSceneSegment(FFloatRange(40.f,	Inf), {  })
+		FMovieSceneSegment(FFloatRange(Inf, 	TRangeBound<float>::Exclusive(10.f)), 	{ }),
+		FMovieSceneSegment(FFloatRange(10.f,	20.f), 									{ FSectionEvaluationData(0) }),
+		FMovieSceneSegment(FFloatRange(20.f,	30.f), 									{  }),
+		FMovieSceneSegment(FFloatRange(30.f,	40.f), 									{ FSectionEvaluationData(1) }),
+		FMovieSceneSegment(FFloatRange(40.f,	Inf), 									{  })
 	};
-	AssertSegmentValues(this, Expected, Segments);
+	AssertSegmentValues(this, Expected, Track.GetSortedSegments());
 	return true;
 }
+
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMovieSceneCustomCompilerTest, "System.Engine.Sequencer.Compiler.Custom", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FMovieSceneCustomCompilerTest::RunTest(const FString& Parameters)
 {
 	using namespace Impl;
 
-	// Specify descending priorities on the segments so we always sort the compiled segments in the order they're defined within the data
+	//	Test that we don't get duplicate entries in the resulting segments except for differing flag sets
+
 	//	This is our test layout
 	//	Time			-Inf			10			15			20			25			30						40				Inf
 	//									[===== 0 (preroll) =====]
 	//												[========== 0 ==========]
 	//															[========== 0 ==========][========== 0 =========]
-	//----------------------------------------------------------------------------------------------------------------------------------------
-	//	Expected Impls					[	0 (p)	| (0, 0(p)) |						0						]
 
-	const FMovieSceneSectionData SegmentData[] = {
-		FMovieSceneSectionData(TRange<float>(TRangeBound<float>::Inclusive(10.f),	TRangeBound<float>::Exclusive(20.f)), FSectionEvaluationData(0, ESectionEvaluationFlags::PreRoll),	NoBlending,	4),
-		FMovieSceneSectionData(TRange<float>(TRangeBound<float>::Inclusive(15.f),	TRangeBound<float>::Exclusive(25.f)), FSectionEvaluationData(0),									NoBlending,	1),
-		FMovieSceneSectionData(TRange<float>(TRangeBound<float>::Inclusive(20.f),	TRangeBound<float>::Exclusive(30.f)), FSectionEvaluationData(0),									NoBlending,	1),
-		FMovieSceneSectionData(TRange<float>(TRangeBound<float>::Inclusive(30.f),	TRangeBound<float>::Exclusive(40.f)), FSectionEvaluationData(0),									NoBlending,	1),
-	};
+	FMovieSceneEvaluationTrack Track;
 
-	FSortByPriorityCompilerRules DefaultRules(0, false);
-	TArray<FMovieSceneSegment> Segments = FMovieSceneSegmentCompiler().Compile(SegmentData, &DefaultRules);
+	Track.AddUniqueTreeData(TRange<float>(TRangeBound<float>::Inclusive(10.f),	TRangeBound<float>::Exclusive(20.f)), FSectionEvaluationData(0, ESectionEvaluationFlags::PreRoll));
+	Track.AddUniqueTreeData(TRange<float>(TRangeBound<float>::Inclusive(15.f),	TRangeBound<float>::Exclusive(25.f)), FSectionEvaluationData(0));
+	Track.AddUniqueTreeData(TRange<float>(TRangeBound<float>::Inclusive(20.f),	TRangeBound<float>::Exclusive(30.f)), FSectionEvaluationData(0));
+	Track.AddUniqueTreeData(TRange<float>(TRangeBound<float>::Inclusive(30.f),	TRangeBound<float>::Exclusive(40.f)), FSectionEvaluationData(0));
 
-	FMovieSceneSegment Expected[] = {
-		FMovieSceneSegment(TRange<float>(TRangeBound<float>::Inclusive(10.f),	TRangeBound<float>::Exclusive(15.f)), { FSectionEvaluationData(0, ESectionEvaluationFlags::PreRoll) }),
-		FMovieSceneSegment(TRange<float>(TRangeBound<float>::Inclusive(15.f),	TRangeBound<float>::Exclusive(20.f)), { FSectionEvaluationData(0, ESectionEvaluationFlags::PreRoll), FSectionEvaluationData(0) }),
-		FMovieSceneSegment(TRange<float>(TRangeBound<float>::Inclusive(20.f),	TRangeBound<float>::Exclusive(40.f)), { FSectionEvaluationData(0) }),
-	};
+	// Override the blender (so it doesn't try and get it from the null track ptr)
+	FScopedOverrideTrackSegmentBlender ScopedBlenderOverride(FSortByPrioritySegmentBlender(false));
 
-	AssertSegmentValues(this, Expected, Segments);
+	AssertSegmentAtTime(this, Track, 12.5f,		{ FSectionEvaluationData(0, ESectionEvaluationFlags::PreRoll) });
+	AssertSegmentAtTime(this, Track, 17.5f,		{ FSectionEvaluationData(0, ESectionEvaluationFlags::PreRoll), FSectionEvaluationData(0) });
+	AssertSegmentAtTime(this, Track, 22.5f,		{ FSectionEvaluationData(0) });
+	AssertSegmentAtTime(this, Track, 27.5f,		{ FSectionEvaluationData(0) });
+	AssertSegmentAtTime(this, Track, 30.f,		{ FSectionEvaluationData(0) });
+
 	return true;
 }
 
@@ -243,26 +304,27 @@ bool FMovieSceneTrackCompilerTest::RunTest(const FString& Parameters)
 		Track->SectionArray.Add(Section0);
 		Track->SectionArray.Add(Section1);
 
-		TInlineValue<FMovieSceneSegmentCompilerRules> RowCompilerRules = Track->GetRowCompilerRules();
-		FMovieSceneTrackCompiler::FRows Rows(Track->SectionArray, RowCompilerRules.GetPtr(nullptr));
-
 		// Test compiling the track with the additive camera rules
 		{
-			FMovieSceneAdditiveCameraRules AdditiveCameraRules(Track);
-			FMovieSceneTrackEvaluationField Field = FMovieSceneTrackCompiler().Compile(Rows.Rows, &AdditiveCameraRules);
+			FScopedOverrideTrackSegmentBlender ScopedBlenderOverride{FMovieSceneAdditiveCameraTrackBlender()};
+
+			FMovieSceneEvaluationTrack EvalTrack = Track->GenerateTrackTemplate();
+			EvalTrack.GetSegmentsInRange(TRange<float>::All());
 
 			FMovieSceneSegment Expected[] = {
 				FMovieSceneSegment(FFloatRange(TRangeBound<float>::Inclusive(10.f),	TRangeBound<float>::Exclusive(20.f)), { FSectionEvaluationData(0) }),
 				FMovieSceneSegment(FFloatRange(TRangeBound<float>::Inclusive(20.f),	TRangeBound<float>::Inclusive(25.f)), { FSectionEvaluationData(0), FSectionEvaluationData(1) }),
 				FMovieSceneSegment(FFloatRange(TRangeBound<float>::Exclusive(25.f),	TRangeBound<float>::Inclusive(30.f)), { FSectionEvaluationData(1) }),
 			};
-			AssertSegmentValues(this, Expected, Field.Segments);
+			AssertSegmentValues(this, Expected, EvalTrack.GetSortedSegments());
 		}
 
 		// Test compiling with 'evaluate nearest section' enabled
 		{
 			Track->EvalOptions.bEvalNearestSection = true;
-			FMovieSceneTrackEvaluationField Field = FMovieSceneTrackCompiler().Compile(Rows.Rows, Track->GetTrackCompilerRules().GetPtr(nullptr));
+
+			FMovieSceneEvaluationTrack EvalTrack = Track->GenerateTrackTemplate();
+			EvalTrack.GetSegmentsInRange(TRange<float>::All());
 
 			FMovieSceneSegment Expected[] = {
 				FMovieSceneSegment(FFloatRange(Inf,									TRangeBound<float>::Exclusive(10.f)),	{ FSectionEvaluationData(0, 10.f) }),
@@ -271,33 +333,37 @@ bool FMovieSceneTrackCompilerTest::RunTest(const FString& Parameters)
 				FMovieSceneSegment(FFloatRange(TRangeBound<float>::Exclusive(25.f),	TRangeBound<float>::Inclusive(30.f)),	{ FSectionEvaluationData(1) }),
 				FMovieSceneSegment(FFloatRange(TRangeBound<float>::Exclusive(30.f),	Inf), 									{ FSectionEvaluationData(1, 30.f) }),
 			};
-			AssertSegmentValues(this, Expected, Field.Segments);
+			AssertSegmentValues(this, Expected, EvalTrack.GetSortedSegments());
 		}
 
 		// Test compiling without 'evaluate nearest section' enabled
 		{
 			Track->EvalOptions.bEvalNearestSection = false;
-			FMovieSceneTrackEvaluationField Field = FMovieSceneTrackCompiler().Compile(Rows.Rows, Track->GetTrackCompilerRules().GetPtr(nullptr));
+
+			FMovieSceneEvaluationTrack EvalTrack = Track->GenerateTrackTemplate();
+			EvalTrack.GetSegmentsInRange(TRange<float>::All());
 
 			FMovieSceneSegment Expected[] = {
 				FMovieSceneSegment(FFloatRange(TRangeBound<float>::Inclusive(10.f),	TRangeBound<float>::Exclusive(20.f)), { FSectionEvaluationData(0) }),
 				FMovieSceneSegment(FFloatRange(TRangeBound<float>::Inclusive(20.f),	TRangeBound<float>::Inclusive(25.f)), { FSectionEvaluationData(0), FSectionEvaluationData(1) }),
 				FMovieSceneSegment(FFloatRange(TRangeBound<float>::Exclusive(25.f),	TRangeBound<float>::Inclusive(30.f)), { FSectionEvaluationData(1) }),
 			};
-			AssertSegmentValues(this, Expected, Field.Segments);
+			AssertSegmentValues(this, Expected, EvalTrack.GetSortedSegments());
 		}
 
 		// Test high-pass filter
 		{
 			Track->EvalOptions.bEvalNearestSection = false;
 			Track->bHighPassFilter = true;
-			FMovieSceneTrackEvaluationField Field = FMovieSceneTrackCompiler().Compile(Rows.Rows, Track->GetTrackCompilerRules().GetPtr(nullptr));
+
+			FMovieSceneEvaluationTrack EvalTrack = Track->GenerateTrackTemplate();
+			EvalTrack.GetSegmentsInRange(TRange<float>::All());
 
 			FMovieSceneSegment Expected[] = {
 				FMovieSceneSegment(FFloatRange(TRangeBound<float>::Inclusive(10.f),	TRangeBound<float>::Inclusive(25.f)), { FSectionEvaluationData(0) }),
 				FMovieSceneSegment(FFloatRange(TRangeBound<float>::Exclusive(25.f),	TRangeBound<float>::Inclusive(30.f)), { FSectionEvaluationData(1) }),
 			};
-			AssertSegmentValues(this, Expected, Field.Segments);
+			AssertSegmentValues(this, Expected, EvalTrack.GetSortedSegments());
 		}
 	}
 
@@ -340,9 +406,6 @@ bool FMovieSceneTrackCompilerTest::RunTest(const FString& Parameters)
 		Track->SectionArray.Add(Section2);
 		Track->SectionArray.Add(Section3);
 
-		auto RowCompilerRules = Track->GetRowCompilerRules();
-		FMovieSceneTrackCompiler::FRows Rows(Track->SectionArray, RowCompilerRules.GetPtr(nullptr));
-
 		// Additive camera rules prescribe that they are evaluated in order of start time
 		FMovieSceneSegment Expected[] = {
 			FMovieSceneSegment(FFloatRange(Inf,											TRangeBound<float>::Exclusive(10.f)),	{ }),
@@ -354,8 +417,10 @@ bool FMovieSceneTrackCompilerTest::RunTest(const FString& Parameters)
 
 		// Test compiling the track with the additive camera rules
 		{
-			FMovieSceneAdditiveCameraRules AdditiveCameraRules(Track);
-			FMovieSceneTrackEvaluationField Field = FMovieSceneTrackCompiler().Compile(Rows.Rows, &AdditiveCameraRules);
+			FScopedOverrideTrackSegmentBlender ScopedBlenderOverride{FMovieSceneAdditiveCameraTrackBlender()};
+
+			FMovieSceneEvaluationTrack EvalTrack = Track->GenerateTrackTemplate();
+			EvalTrack.GetSegmentsInRange(TRange<float>::All());
 
 			// Additive camera rules prescribe that they are evaluated in order of start time
 			Expected[0].Impls = { FSectionEvaluationData(1) };
@@ -364,13 +429,15 @@ bool FMovieSceneTrackCompilerTest::RunTest(const FString& Parameters)
 			Expected[3].Impls = { FSectionEvaluationData(1), FSectionEvaluationData(0), FSectionEvaluationData(2) };
 			Expected[4].Impls = { FSectionEvaluationData(1) };
 
-			AssertSegmentValues(this, Expected, Field.Segments);
+			AssertSegmentValues(this, Expected, EvalTrack.GetSortedSegments());
 		}
 
 		// Test compiling with 'evaluate nearest section' enabled
 		{
 			Track->EvalOptions.bEvalNearestSection = true;
-			FMovieSceneTrackEvaluationField Field = FMovieSceneTrackCompiler().Compile(Rows.Rows, Track->GetTrackCompilerRules().GetPtr(nullptr));
+
+			FMovieSceneEvaluationTrack EvalTrack = Track->GenerateTrackTemplate();
+			EvalTrack.GetSegmentsInRange(TRange<float>::All());
 
 			Expected[0].Impls = { FSectionEvaluationData(1) };
 			Expected[1].Impls = { FSectionEvaluationData(0), FSectionEvaluationData(1) };
@@ -378,13 +445,15 @@ bool FMovieSceneTrackCompilerTest::RunTest(const FString& Parameters)
 			Expected[3].Impls = { FSectionEvaluationData(2), FSectionEvaluationData(0), FSectionEvaluationData(1) };
 			Expected[4].Impls = { FSectionEvaluationData(1) };
 
-			AssertSegmentValues(this, Expected, Field.Segments);
+			AssertSegmentValues(this, Expected, EvalTrack.GetSortedSegments());
 		}
 
 		// Test compiling without 'evaluate nearest section' enabled
 		{
 			Track->EvalOptions.bEvalNearestSection = false;
-			FMovieSceneTrackEvaluationField Field = FMovieSceneTrackCompiler().Compile(Rows.Rows, Track->GetTrackCompilerRules().GetPtr(nullptr));
+
+			FMovieSceneEvaluationTrack EvalTrack = Track->GenerateTrackTemplate();
+			EvalTrack.GetSegmentsInRange(TRange<float>::All());
 
 			Expected[0].Impls = { FSectionEvaluationData(1) };
 			Expected[1].Impls = { FSectionEvaluationData(0), FSectionEvaluationData(1) };
@@ -392,14 +461,16 @@ bool FMovieSceneTrackCompilerTest::RunTest(const FString& Parameters)
 			Expected[3].Impls = { FSectionEvaluationData(2), FSectionEvaluationData(0), FSectionEvaluationData(1) };
 			Expected[4].Impls = { FSectionEvaluationData(1) };
 
-			AssertSegmentValues(this, Expected, Field.Segments);
+			AssertSegmentValues(this, Expected, EvalTrack.GetSortedSegments());
 		}
 
 		// Test compiling with high pass filter
 		{
 			Track->EvalOptions.bEvalNearestSection = false;
 			Track->bHighPassFilter = true;
-			FMovieSceneTrackEvaluationField Field = FMovieSceneTrackCompiler().Compile(Rows.Rows, Track->GetTrackCompilerRules().GetPtr(nullptr));
+
+			FMovieSceneEvaluationTrack EvalTrack = Track->GenerateTrackTemplate();
+			EvalTrack.GetSegmentsInRange(TRange<float>::All());
 
 			Expected[0].Impls = { FSectionEvaluationData(1) };
 			Expected[1].Impls = { FSectionEvaluationData(0) };
@@ -407,41 +478,164 @@ bool FMovieSceneTrackCompilerTest::RunTest(const FString& Parameters)
 			Expected[3].Impls = { FSectionEvaluationData(2) };
 			Expected[4].Impls = { FSectionEvaluationData(1) };
 
-			AssertSegmentValues(this, Expected, Field.Segments);
+			AssertSegmentValues(this, Expected, EvalTrack.GetSortedSegments());
 		}
 	}
 
 	return true;
 }
 
-
-TInlineValue<FMovieSceneSegmentCompilerRules> UMovieSceneSegmentCompilerTestTrack::GetTrackCompilerRules() const
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMovieSceneCompilerTreeBasicTest, "System.Engine.Sequencer.Compiler.Tree Basic", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FMovieSceneCompilerTreeBasicTest::RunTest(const FString& Parameters)
 {
-	struct FRules : FMovieSceneSegmentCompilerRules
+	using namespace Impl;
+
+	// Specify descending priorities on the segments so we always sort the compiled segments in the order they're defined within the data
+	//	This is our test layout
+	//	Time				-inf				10							20				25					30							inf
+	//											[============= 0 ===========]
+	//																		[============== 1 ==================]
+	//											[========================== 2 ==================================]
+	//						[================== 3 ==========================]
+	//																						[================== 4 ==========================]
+	//----------------------------------------------------------------------------------------------------------------------------------------
+	//	Expected Impls		[ 		3			|			0,2,3			|		1,2		|		1,2,4		|			4				]
+
+	TMovieSceneEvaluationTree<FSectionEvaluationData> EvalTree;
+
+	EvalTree.Add(TRange<float>(10.f,	20.f), 								FSectionEvaluationData(0));
+	EvalTree.Add(TRange<float>(20.f,	30.f), 								FSectionEvaluationData(1));
+	EvalTree.Add(TRange<float>(10.f,	30.f), 								FSectionEvaluationData(2));
+	EvalTree.Add(TRange<float>(Inf,	TRangeBound<float>::Exclusive(20.f)), 	FSectionEvaluationData(3));
+	EvalTree.Add(TRange<float>(25.f,	Inf), 								FSectionEvaluationData(4));
+
+	EvalTree.Compact();
+
+	TArray<FMovieSceneSegment> Segments;
+
+	for (FMovieSceneEvaluationTreeRangeIterator It(EvalTree); It; ++It)
+	{
+		FMovieSceneSegment NewSegment(It.Range());
+
+		for (FSectionEvaluationData EvalData : EvalTree.GetAllData(It.Node()))
+		{
+			NewSegment.Impls.Add(EvalData);
+		}
+
+		Algo::SortBy(NewSegment.Impls, &FSectionEvaluationData::ImplIndex);
+		Segments.Add(NewSegment);
+	}
+
+	FMovieSceneSegment Expected[] = {
+		FMovieSceneSegment(FFloatRange(Inf, 	TRangeBound<float>::Exclusive(10.f)), { FSectionEvaluationData(3) }),
+		FMovieSceneSegment(FFloatRange(10.f,	20.f), { FSectionEvaluationData(0), FSectionEvaluationData(2), FSectionEvaluationData(3) }),
+		FMovieSceneSegment(FFloatRange(20.f,	25.f), { FSectionEvaluationData(1), FSectionEvaluationData(2) }),
+		FMovieSceneSegment(FFloatRange(25.f,	30.f), { FSectionEvaluationData(1), FSectionEvaluationData(2), FSectionEvaluationData(4) }),
+		FMovieSceneSegment(FFloatRange(30.f,	Inf), { FSectionEvaluationData(4) })
+	};
+	AssertSegmentValues(this, Expected, Segments);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMovieSceneCompilerTreeIteratorTest, "System.Engine.Sequencer.Compiler.Tree Iterator", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FMovieSceneCompilerTreeIteratorTest::RunTest(const FString& Parameters)
+{
+	using namespace Impl;
+	using namespace Lex;
+
+	//	Time				-inf				10							20				25					30							inf
+	//											[============= 0 ===========]
+	//																		[============== 1 ==================]
+	//											[========================== 2 ==================================]
+	//						[================== 3 ==========================]
+	//																						[================== 4 ==========================]
+	//----------------------------------------------------------------------------------------------------------------------------------------
+	//	Expected Impls		[ 		3			|			0,2,3			|		1,2		|		1,2,4		|			4				]
+
+	TMovieSceneEvaluationTree<int32> Tree;
+
+	Tree.Add(TRange<float>(10.f,	20.f), 								0);
+	Tree.Add(TRange<float>(20.f,	30.f), 								1);
+	Tree.Add(TRange<float>(10.f,	30.f), 								2);
+	Tree.Add(TRange<float>(Inf,	TRangeBound<float>::Exclusive(20.f)), 	3);
+	Tree.Add(TRange<float>(25.f,	Inf), 								4);
+
+	FEvaluationTreeIteratorResult Expected[] = {
+		MakeTuple( TRange<float>(Inf, 	TRangeBound<float>::Exclusive(10.f)),   TArray<int32>({ 3 })         ),
+		MakeTuple( TRange<float>(10.f,	20.f),                                  TArray<int32>({ 0, 2, 3 })   ),
+		MakeTuple( TRange<float>(20.f,	25.f),                                  TArray<int32>({ 1, 2 })      ),
+		MakeTuple( TRange<float>(25.f,	30.f),                                  TArray<int32>({ 1, 2, 4 })   ),
+		MakeTuple( TRange<float>(30.f,	Inf),                                   TArray<int32>({ 4 })         ),
+	};
+
+	AssertEvaluationTree(this, Tree, Expected);
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMovieSceneCompilerTreeIteratorBoundsTest, "System.Engine.Sequencer.Compiler.Tree Iterator Bounds", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FMovieSceneCompilerTreeIteratorBoundsTest::RunTest(const FString& Parameters)
+{
+	using namespace Impl;
+	using namespace Lex;
+
+	//	Time				-inf				10							20				25					30							inf
+	//						[======== 0 ========][========= 1 ==============][============= 2 ==================][=========== 3 =============]
+
+	TMovieSceneEvaluationTree<int32> Tree;
+
+	Tree.Add(TRange<float>(Inf,		TRangeBound<float>::Exclusive(10.f)), 		0);
+	Tree.Add(TRange<float>(10.f,	TRangeBound<float>::Exclusive(20.f)), 		1);
+	Tree.Add(TRange<float>(20.f,	TRangeBound<float>::Exclusive(30.f)), 		2);
+	Tree.Add(TRange<float>(30.f,	Inf), 										3);
+
+
+	FEvaluationTreeIteratorResult Expected[] = {
+		MakeTuple( TRange<float>(Inf,	TRangeBound<float>::Exclusive(10.f)), 		TArray<int32>({ 0 }) ),
+		MakeTuple( TRange<float>(10.f,	TRangeBound<float>::Exclusive(20.f)), 		TArray<int32>({ 1 }) ),
+		MakeTuple( TRange<float>(20.f,	TRangeBound<float>::Exclusive(30.f)), 		TArray<int32>({ 2 }) ),
+		MakeTuple( TRange<float>(30.f,	Inf), 										TArray<int32>({ 3 }) ),
+	};
+
+	AssertEvaluationTree(this, Tree, Expected);
+
+	return true;
+}
+
+#endif // WITH_DEV_AUTOMATION_TESTS
+
+
+
+FMovieSceneEvalTemplatePtr UMovieSceneSegmentCompilerTestTrack::CreateTemplateForSection(const UMovieSceneSection& InSection) const
+{
+	return FTestMovieSceneEvalTemplate();
+}
+
+FMovieSceneTrackSegmentBlenderPtr UMovieSceneSegmentCompilerTestTrack::GetTrackSegmentBlender() const
+{
+	struct FSegmentBlender : FMovieSceneTrackSegmentBlender
 	{
 		bool bHighPass;
 		bool bEvaluateNearest;
 
-		FRules(bool bInHighPassFilter, bool bInEvaluateNearest)
+		FSegmentBlender(bool bInHighPassFilter, bool bInEvaluateNearest)
 			: bHighPass(bInHighPassFilter)
 			, bEvaluateNearest(bInEvaluateNearest)
-		{}
+		{
+			bCanFillEmptySpace = bEvaluateNearest;
+		}
 
-		virtual void BlendSegment(FMovieSceneSegment& Segment, const TArrayView<const FMovieSceneSectionData>& SourceData) const
+		virtual void Blend(FSegmentBlendData& BlendData) const
 		{
 			if (bHighPass)
 			{
-				MovieSceneSegmentCompiler::BlendSegmentHighPass(Segment, SourceData);
+				MovieSceneSegmentCompiler::ChooseLowestRowIndex(BlendData);
 			}
 
 			// Always sort by priority
-			Segment.Impls.Sort(
-				[&](const FSectionEvaluationData& A, const FSectionEvaluationData& B)
-				{
-					return SourceData[A.ImplIndex].Priority > SourceData[B.ImplIndex].Priority;
-				}
-			);
+			Algo::SortBy(BlendData, [](const FMovieSceneSectionData& In){ return In.Section->GetRowIndex(); });
 		}
+
 		virtual TOptional<FMovieSceneSegment> InsertEmptySpace(const TRange<float>& Range, const FMovieSceneSegment* PreviousSegment, const FMovieSceneSegment* NextSegment) const
 		{
 			return bEvaluateNearest ? MovieSceneSegmentCompiler::EvaluateNearestSegment(Range, PreviousSegment, NextSegment) : TOptional<FMovieSceneSegment>();
@@ -449,5 +643,5 @@ TInlineValue<FMovieSceneSegmentCompilerRules> UMovieSceneSegmentCompilerTestTrac
 	};
 
 	// Evaluate according to bEvalNearestSection preference
-	return FRules(bHighPassFilter, EvalOptions.bCanEvaluateNearestSection && EvalOptions.bEvalNearestSection);
+	return FSegmentBlender(bHighPassFilter, EvalOptions.bCanEvaluateNearestSection && EvalOptions.bEvalNearestSection);
 }

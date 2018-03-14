@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Lightmass/LightmassLandscapeRender.h"
 #include "RHI.h"
@@ -23,66 +23,7 @@
 #include "LandscapeComponent.h"
 #include "EngineModule.h"
 #include "LandscapeEdit.h"
-
-struct FLightmassLandscapeVertex
-{
-	FVector			Position;
-	FPackedNormal	TangentX;
-	FPackedNormal	TangentZ;
-	FColor			Color;
-
-	// 0: Layer texcoord (XY)
-	// 1: Layer texcoord (XZ)
-	// 2: Layer texcoord (YZ)
-	// 3: Weightmap texcoord
-	// 4: Lightmap texcoord (ignored)
-	// 5: Heightmap texcoord (ignored)
-	FVector2DHalf UVs[4];
-
-	FLightmassLandscapeVertex(FVector InPosition, FVector LayerTexcoords, FVector2D WeightmapTexcoords)
-		: Position(InPosition)
-		, TangentX(FVector(1, 0, 0))
-		, TangentZ(FVector(0, 0, 1))
-		, Color(FColor::White)
-	{
-		// TangentZ.w contains the sign of the tangent basis determinant. Assume +1
-		TangentZ.Vector.W = 255;
-
-		UVs[0] = FVector2D(LayerTexcoords.X, LayerTexcoords.Y);
-		UVs[1] = FVector2D(LayerTexcoords.X, LayerTexcoords.Y); // Z not currently set, so use Y
-		UVs[2] = FVector2D(LayerTexcoords.Y, LayerTexcoords.X); // Z not currently set, so use X
-		UVs[3] = WeightmapTexcoords;
-	};
-};
-
-TGlobalResource<FVertexBuffer> LightmassLandscapeVertexBuffer;
-
-class FLightmassLandscapeVertexFactory : public FLocalVertexFactory
-{
-public:
-
-	/** Default constructor. */
-	FLightmassLandscapeVertexFactory()
-	{
-		FLocalVertexFactory::FDataType VertextData;
-		// Position
-		VertextData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(&LightmassLandscapeVertexBuffer, FLightmassLandscapeVertex, Position, VET_Float3);
-		// Tangents
-		VertextData.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(&LightmassLandscapeVertexBuffer, FLightmassLandscapeVertex, TangentX, VET_PackedNormal);
-		VertextData.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(&LightmassLandscapeVertexBuffer, FLightmassLandscapeVertex, TangentZ, VET_PackedNormal);
-		// Color
-		VertextData.ColorComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(&LightmassLandscapeVertexBuffer, FLightmassLandscapeVertex, Color, VET_Color);
-		// UVs (packed two to a stream component)
-		VertextData.TextureCoordinates.Add(STRUCTMEMBER_VERTEXSTREAMCOMPONENT(&LightmassLandscapeVertexBuffer, FLightmassLandscapeVertex, UVs[0], VET_Half4));
-		VertextData.TextureCoordinates.Add(STRUCTMEMBER_VERTEXSTREAMCOMPONENT(&LightmassLandscapeVertexBuffer, FLightmassLandscapeVertex, UVs[2], VET_Half4));
-
-		// update the data
-		SetData(VertextData);
-	}
-};
-TGlobalResource<FLightmassLandscapeVertexFactory> LightmassLandscapeVertexFactory;
-
-TGlobalResource<FIdentityPrimitiveUniformBuffer> LightmassLandscapeUniformBuffer;
+#include "DynamicMeshBuilder.h"
 
 void RenderLandscapeMaterialForLightmass(const FLandscapeStaticLightingMesh* LandscapeMesh, FMaterialRenderProxy* MaterialProxy, const FRenderTarget* RenderTarget)
 {
@@ -103,8 +44,8 @@ void RenderLandscapeMaterialForLightmass(const FLandscapeStaticLightingMesh* Lan
 	const FVector2D PatchExpandOffset = FVector2D((float)PatchExpandCountX / (ComponentSizeQuads + 2 * PatchExpandCountX), (float)PatchExpandCountY / (ComponentSizeQuads + 2 * PatchExpandCountY)) * FVector2D(RenderTarget->GetSizeXY());
 	const FVector2D PatchExpandScale = FVector2D((float)ComponentSizeQuads / (ComponentSizeQuads + 2 * PatchExpandCountX), (float)ComponentSizeQuads / (ComponentSizeQuads + 2 * PatchExpandCountY));
 
-	TArray<FLightmassLandscapeVertex> Vertices;
-	TArray<uint16> Indices;
+	TArray<FDynamicMeshVertex> Vertices;
+	TArray<uint32> Indices;
 	Vertices.Reserve(FMath::Square(NumSubsections) * 4);
 	Indices.Reserve(FMath::Square(NumSubsections) * 6);
 
@@ -132,10 +73,10 @@ void RenderLandscapeMaterialForLightmass(const FLandscapeStaticLightingMesh* Lan
 			const FVector2D BaseLayerCoords = FVector2D(UVSubsection) * LayerScale;
 			const FVector2D BaseWeightmapCoords = WeightmapBias + FVector2D(UVSubsection) * WeightmapSubsection;
 
-			int32 Index = Vertices.Add(FLightmassLandscapeVertex(FVector(BasePosition /*FVector2D(0, 0) * PositionScale*/, 0), FVector(BaseLayerCoords /*FVector2D(0, 0) * UVScale * LayerScale*/, 0), BaseWeightmapCoords /*FVector2D(0, 0) * UVScale * WeightmapScale*/));
-			verifySlow(   Vertices.Add(FLightmassLandscapeVertex(FVector(BasePosition + FVector2D(1, 0) * PositionScale,   0), FVector(BaseLayerCoords + FVector2D(1, 0) * UVScale * LayerScale,   0), BaseWeightmapCoords + FVector2D(1, 0) * UVScale * WeightmapScale  )) == Index + 1);
-			verifySlow(   Vertices.Add(FLightmassLandscapeVertex(FVector(BasePosition + FVector2D(0, 1) * PositionScale,   0), FVector(BaseLayerCoords + FVector2D(0, 1) * UVScale * LayerScale,   0), BaseWeightmapCoords + FVector2D(0, 1) * UVScale * WeightmapScale  )) == Index + 2);
-			verifySlow(   Vertices.Add(FLightmassLandscapeVertex(FVector(BasePosition + FVector2D(1, 1) * PositionScale,   0), FVector(BaseLayerCoords + FVector2D(1, 1) * UVScale * LayerScale,   0), BaseWeightmapCoords + FVector2D(1, 1) * UVScale * WeightmapScale  )) == Index + 3);
+			int32 Index = Vertices.Add(FDynamicMeshVertex(FVector(BasePosition /*FVector2D(0, 0) * PositionScale*/, 0), FVector(BaseLayerCoords /*FVector2D(0, 0) * UVScale * LayerScale*/, 0), BaseWeightmapCoords /*FVector2D(0, 0) * UVScale * WeightmapScale*/));
+			verifySlow(   Vertices.Add(FDynamicMeshVertex(FVector(BasePosition + FVector2D(1, 0) * PositionScale,   0), FVector(BaseLayerCoords + FVector2D(1, 0) * UVScale * LayerScale,   0), BaseWeightmapCoords + FVector2D(1, 0) * UVScale * WeightmapScale  )) == Index + 1);
+			verifySlow(   Vertices.Add(FDynamicMeshVertex(FVector(BasePosition + FVector2D(0, 1) * PositionScale,   0), FVector(BaseLayerCoords + FVector2D(0, 1) * UVScale * LayerScale,   0), BaseWeightmapCoords + FVector2D(0, 1) * UVScale * WeightmapScale  )) == Index + 2);
+			verifySlow(   Vertices.Add(FDynamicMeshVertex(FVector(BasePosition + FVector2D(1, 1) * PositionScale,   0), FVector(BaseLayerCoords + FVector2D(1, 1) * UVScale * LayerScale,   0), BaseWeightmapCoords + FVector2D(1, 1) * UVScale * WeightmapScale  )) == Index + 3);
 			checkSlow(Index + 3 <= MAX_uint16);
 			Indices.Add(Index);
 			Indices.Add(Index + 3);
@@ -146,35 +87,16 @@ void RenderLandscapeMaterialForLightmass(const FLandscapeStaticLightingMesh* Lan
 		}
 	}
 
-	FMeshBatch MeshElement;
-	MeshElement.DynamicVertexStride = sizeof(FLightmassLandscapeVertex);
-	MeshElement.UseDynamicData = true;
-	MeshElement.bDisableBackfaceCulling = true;
-	MeshElement.CastShadow = false;
-	MeshElement.bWireframe = false;
-	MeshElement.Type = PT_TriangleList;
-	MeshElement.DepthPriorityGroup = SDPG_Foreground;
-	MeshElement.bUseAsOccluder = false;
-	MeshElement.bSelectable = false;
-	MeshElement.DynamicVertexData = Vertices.GetData();
-	MeshElement.VertexFactory = &LightmassLandscapeVertexFactory;
-	MeshElement.MaterialRenderProxy = MaterialProxy;
-
-	FMeshBatchElement& BatchElement = MeshElement.Elements[0];
-	BatchElement.PrimitiveUniformBufferResource = &LightmassLandscapeUniformBuffer;
-	BatchElement.DynamicIndexData = Indices.GetData();
-	BatchElement.FirstIndex = 0;
-	BatchElement.NumPrimitives = Indices.Num() / 3;
-	BatchElement.MinVertexIndex = 0;
-	BatchElement.MaxVertexIndex = Vertices.Num() - 1;
-	BatchElement.DynamicIndexStride = sizeof(uint16);
-
 	FSceneViewFamily ViewFamily(FSceneViewFamily::ConstructionValues(
 		RenderTarget,
 		NULL,
 		FEngineShowFlags(ESFIM_Game))
 		.SetWorldTimes(0, 0, 0)
 		.SetGammaCorrection(RenderTarget->GetDisplayGamma()));
+
+	FDynamicMeshBuilder DynamicMeshBuilder(ViewFamily.GetFeatureLevel(), 4, 0, true);
+	DynamicMeshBuilder.AddVertices(Vertices);
+	DynamicMeshBuilder.AddTriangles(Indices);
 
 	const FIntRect ViewRect(FIntPoint(0, 0), RenderTarget->GetSizeXY());
 
@@ -188,30 +110,36 @@ void RenderLandscapeMaterialForLightmass(const FLandscapeStaticLightingMesh* Lan
 	ViewInitOptions.BackgroundColor = FLinearColor::Black;
 	ViewInitOptions.OverlayColor = FLinearColor::White;
 
-	const FMeshBatch& Mesh = MeshElement;
 	ENQUEUE_RENDER_COMMAND(CanvasFlushSetupCommand)(
-		[RenderTarget, &Mesh, ViewInitOptions](FRHICommandListImmediate& RHICmdList)
+		[RenderTarget, &DynamicMeshBuilder, ViewInitOptions, MaterialProxy](FRHICommandListImmediate& RHICmdList)
 		{
+			FMeshBatch Mesh;
+			FMeshBuilderOneFrameResources OneFrameResource;
+			DynamicMeshBuilder.GetMeshElement(FMatrix::Identity, MaterialProxy, SDPG_Foreground, true, false, 0, OneFrameResource, Mesh);
+
 			//SCOPED_DRAW_EVENT(RHICmdList, CanvasFlush);
 			
-			// Set the RHI render target.
-			RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, RenderTarget->GetRenderTargetTexture());
-			::SetRenderTarget(RHICmdList, RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
+			if (OneFrameResource.IsValidForRendering())
+			{
+				// Set the RHI render target.
+				RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, RenderTarget->GetRenderTargetTexture());
+				::SetRenderTarget(RHICmdList, RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
 
-			const FIntRect RTViewRect = FIntRect(0, 0, RenderTarget->GetRenderTargetTexture()->GetSizeX(), RenderTarget->GetRenderTargetTexture()->GetSizeY());
+				const FIntRect RTViewRect = FIntRect(0, 0, RenderTarget->GetRenderTargetTexture()->GetSizeX(), RenderTarget->GetRenderTargetTexture()->GetSizeY());
 
-			// set viewport to RT size
-			RHICmdList.SetViewport(RTViewRect.Min.X, RTViewRect.Min.Y, 0.0f, RTViewRect.Max.X, RTViewRect.Max.Y, 1.0f);
+				// set viewport to RT size
+				RHICmdList.SetViewport(RTViewRect.Min.X, RTViewRect.Min.Y, 0.0f, RTViewRect.Max.X, RTViewRect.Max.Y, 1.0f);
 
-			FSceneView View(ViewInitOptions);
+				FSceneView View(ViewInitOptions);
 
-			FDrawingPolicyRenderState DrawRenderState(View);
+				FDrawingPolicyRenderState DrawRenderState(View);
 
-			// disable depth test & writes
-			DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+				// disable depth test & writes
+				DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-			//SCOPED_DRAW_EVENT(RHICmdList, RenderLandscapeMaterialToTexture);
-			GetRendererModule().DrawTileMesh(RHICmdList, DrawRenderState, View, Mesh, false, FHitProxyId());
+				//SCOPED_DRAW_EVENT(RHICmdList, RenderLandscapeMaterialToTexture);
+				GetRendererModule().DrawTileMesh(RHICmdList, DrawRenderState, View, Mesh, false, FHitProxyId());
+			}
 		});
 	FlushRenderingCommands();
 }

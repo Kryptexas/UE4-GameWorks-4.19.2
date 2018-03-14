@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -24,9 +24,6 @@ public:
 	{
 	}
 
-	/** Option to show grid */
-	TSharedPtr< FUICommandInfo > ToggleGrid;
-
 	/** Option to align floor to Mesh */
 	TSharedPtr< FUICommandInfo > AutoAlignFloorToMesh;
 
@@ -38,6 +35,9 @@ public:
 
 	/** Option to show root motion in viewport */
 	TSharedPtr< FUICommandInfo > ProcessRootMotion;
+
+	/** Option to enable/disable post process anim blueprint evaluation */
+	TSharedPtr< FUICommandInfo > DisablePostProcessBlueprint;
 
 	/** Show reference pose on preview mesh */
 	TSharedPtr< FUICommandInfo > ShowRetargetBasePose;
@@ -110,11 +110,11 @@ public:
 	/** Show all local axes */
 	TSharedPtr< FUICommandInfo > ShowLocalAxesAll;
 
-	/** Disable cloth simulation */
-	TSharedPtr< FUICommandInfo > DisableClothSimulation;
+	/** Enable cloth simulation */
+	TSharedPtr< FUICommandInfo > EnableClothSimulation;
 
-	/** Apply wind for clothing */
-	TSharedPtr< FUICommandInfo > ApplyClothWind;
+	/** Reset cloth simulation */
+	TSharedPtr< FUICommandInfo > ResetClothSimulation;
 
 	/** Enables collision detection between collision primitives in the base mesh 
 	  * and clothing on any attachments in the preview scene. 

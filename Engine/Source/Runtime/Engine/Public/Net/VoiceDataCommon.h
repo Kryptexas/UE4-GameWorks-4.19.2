@@ -1,10 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/CoreOnline.h"
-
+#include "VoiceConfig.h"
 #ifndef MAX_VOICE_DATA_SIZE
 	#define MAX_VOICE_DATA_SIZE 8*1024
 #endif
@@ -64,6 +64,12 @@ public:
 	 * @param Ar buffer to write into
 	 */
 	virtual void Serialize(class FArchive& Ar) = 0;
+
+	/** Return the index of the first sample of this packet in the audio stream. */
+	virtual uint64 GetSampleCounter() const
+	{
+		return 0;
+	}
 };
 
 /** Make the TArray of voice packets a bit more readable */

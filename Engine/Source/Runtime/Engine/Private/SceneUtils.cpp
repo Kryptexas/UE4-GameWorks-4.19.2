@@ -1,18 +1,21 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SceneUtils.h"
+#include "CsvProfiler.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSceneUtils,All,All);
 
 // Only exposed for debugging. Disabling this carries a severe performance penalty
 #define RENDER_QUERY_POOLING_ENABLED 1
 
-#if HAS_GPU_STATS
+#if HAS_GPU_STATS 
 
 // If this is enabled, the child stat timings will be included in their parents' times.
 // This presents problems for non-hierarchical stats if we're expecting them to add up
 // to the total GPU time, so we probably want this disabled
 #define GPU_STATS_CHILD_TIMES_INCLUDED 0
+
+CSV_DEFINE_CATEGORY_MODULE(ENGINE_API, GPU, true);
 
 static TAutoConsoleVariable<int> CVarGPUStatsEnabled(
 	TEXT("r.GPUStatsEnabled"),
@@ -27,7 +30,12 @@ static TAutoConsoleVariable<int> CVarGPUStatsMaxQueriesPerFrame(
 	ECVF_RenderThreadSafe);
 
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("[TOTAL]"), Stat_GPU_Total, STATGROUP_GPU);
+static TAutoConsoleVariable<int> CVarGPUCsvStatsEnabled(
+	TEXT("r.GPUCsvStatsEnabled"),
+	0,
+	TEXT("Enables or disables GPU stat recording to CSVs"));
+
+DECLARE_GPU_STAT_NAMED( Total, TEXT("[TOTAL]") );
 
 #endif //HAS_GPU_STATS
 
@@ -157,7 +165,7 @@ public:
 	static const uint64 InvalidQueryResult = 0xFFFFFFFFFFFFFFFFull;
 
 public:
-	FRealtimeGPUProfilerEvent(const TStatId& InStatId, FRenderQueryPool* RenderQueryPool)
+	FRealtimeGPUProfilerEvent(const FName& InName, const FName& InStatName, FRenderQueryPool* RenderQueryPool)
 		: StartResultMicroseconds(InvalidQueryResult)
 		, EndResultMicroseconds(InvalidQueryResult)
 		, FrameNumber(-1)
@@ -165,7 +173,10 @@ public:
 		, bBeginQueryInFlight(false)
 		, bEndQueryInFlight(false)
 	{
-		StatName = InStatId.GetName();
+#if STATS
+		StatName = InStatName;
+#endif
+		Name = InName;
 
 		const int MaxGPUQueries = CVarGPUStatsMaxQueriesPerFrame.GetValueOnRenderThread();
 		if ( MaxGPUQueries == -1 || RenderQueryPool->GetAllocatedQueryCount() < MaxGPUQueries )
@@ -279,15 +290,24 @@ public:
 		return StartResultMicroseconds != FRealtimeGPUProfilerEvent::InvalidQueryResult && EndResultMicroseconds != FRealtimeGPUProfilerEvent::InvalidQueryResult;
 	}
 
+#if STATS
 	const FName& GetStatName() const
 	{
 		return StatName;
+	}
+#endif
+	const FName& GetName() const
+	{
+		return Name;
 	}
 
 private:
 	FRenderQueryRHIRef StartQuery;
 	FRenderQueryRHIRef EndQuery;
+#if STATS
 	FName StatName;
+#endif
+	FName Name;
 	uint64 StartResultMicroseconds;
 	uint64 EndResultMicroseconds;
 	uint32 FrameNumber;
@@ -314,7 +334,7 @@ public:
 		Clear(nullptr);
 	}
 
-	void PushEvent(FRHICommandListImmediate& RHICmdList, TStatId StatId)
+	void PushEvent(FRHICommandListImmediate& RHICmdList, const FName& Name, const FName& StatName)
 	{
 #if GPU_STATS_CHILD_TIMES_INCLUDED == 0
 		if (EventStack.Num() > 0)
@@ -325,24 +345,27 @@ public:
 			ParentEvent->End(RHICmdList);
 		}
 #endif
-		FRealtimeGPUProfilerEvent* Event = CreateNewEvent(StatId);
+		FRealtimeGPUProfilerEvent* Event = CreateNewEvent(StatName,Name);
 		EventStack.Push(Event);
-		StatStack.Push(StatId);
 		Event->Begin(RHICmdList);
 	}
 
 	void PopEvent(FRHICommandListImmediate& RHICmdList)
 	{
 		FRealtimeGPUProfilerEvent* Event = EventStack.Pop();
-		StatStack.Pop();
 		Event->End(RHICmdList);
 
 #if GPU_STATS_CHILD_TIMES_INCLUDED == 0
 		if (EventStack.Num() > 0)
 		{
 			// Resume the parent event (requires creation of a new FRealtimeGPUProfilerEvent)
-			TStatId PrevStatId = StatStack.Last();
-			FRealtimeGPUProfilerEvent* ResumedEvent = CreateNewEvent(PrevStatId);
+#if STATS
+			FName PrevStatName = EventStack.Last()->GetStatName();
+#else
+			FName PrevStatName = FName();
+#endif
+			FRealtimeGPUProfilerEvent* ResumedEvent = CreateNewEvent(
+				PrevStatName, EventStack.Last()->GetName());
 			EventStack.Last() = ResumedEvent;
 			ResumedEvent->Begin(RHICmdList);
 		}
@@ -353,7 +376,6 @@ public:
 	void Clear(FRHICommandListImmediate* RHICommandListPtr )
 	{
 		EventStack.Empty();
-		StatStack.Empty();
 
 		for (int Index = 0; Index < GpuProfilerEvents.Num(); Index++)
 		{
@@ -368,6 +390,8 @@ public:
 
 	bool UpdateStats(FRHICommandListImmediate& RHICmdList)
 	{
+		bool bCsvStatsEnabled = !!CVarGPUCsvStatsEnabled.GetValueOnRenderThread();
+
 		// Gather any remaining results and check all the results are ready
 		bool bAllQueriesAllocated = true;
 		for (int Index = 0; Index < GpuProfilerEvents.Num(); Index++)
@@ -408,40 +432,53 @@ public:
 			FRealtimeGPUProfilerEvent* Event = GpuProfilerEvents[Index];
 			check(Event != nullptr);
 			check(Event->HasValidResult());
-			EStatOperation::Type StatOp;
-			const FName& StatName = Event->GetStatName();
+			const FName& StatName = Event->GetName();
 
 			// Check if we've seen this stat yet 
+			bool bIsNew = true;
 			if (StatSeenMap.Find(StatName) == nullptr)
 			{
 				StatSeenMap.Add(StatName, true);
-				StatOp = EStatOperation::Set;
+				bIsNew = false;
 			}
-			else
-			{
-				// Stat was seen before, so accumulate 
-				StatOp = EStatOperation::Add;
-			}
+
 			float ResultMS = Event->GetResultMS();
-			FThreadStats::AddMessage(StatName, StatOp, double(ResultMS));
+#if STATS
+			EStatOperation::Type StatOp = bIsNew ? EStatOperation::Set : EStatOperation::Add;
+			FThreadStats::AddMessage(Event->GetStatName(), StatOp, double(ResultMS));
+#endif
+
+			if (bCsvStatsEnabled)
+			{
+				ECsvCustomStatOp CsvStatOp = bIsNew ? ECsvCustomStatOp::Set : ECsvCustomStatOp::Accumulate;
+				FCsvProfiler::Get()->RecordCustomStat(Event->GetName(), CSV_CATEGORY_INDEX(GPU), ResultMS, CsvStatOp);
+			}
 			TotalMS += ResultMS;
 		}
 
+#if STATS
 		FThreadStats::AddMessage( GET_STATFNAME(Stat_GPU_Total), EStatOperation::Set, double(TotalMS) );
+#endif 
+
+#if CSV_PROFILER
+		if (bCsvStatsEnabled)
+		{
+			FCsvProfiler::Get()->RecordCustomStat(CSV_STAT_FNAME(Total), CSV_CATEGORY_INDEX(GPU), TotalMS, ECsvCustomStatOp::Set);
+		}
+#endif
 		return true;
 	}
 
 private:
-	FRealtimeGPUProfilerEvent* CreateNewEvent(const TStatId& StatId)
+	FRealtimeGPUProfilerEvent* CreateNewEvent(const FName& StatName, const FName& Name)
 	{
-		FRealtimeGPUProfilerEvent* NewEvent = new FRealtimeGPUProfilerEvent(StatId, RenderQueryPool);
+		FRealtimeGPUProfilerEvent* NewEvent = new FRealtimeGPUProfilerEvent(Name, StatName, RenderQueryPool);
 		GpuProfilerEvents.Add(NewEvent);
 		return NewEvent;
 	}
 
 	TArray<FRealtimeGPUProfilerEvent*> GpuProfilerEvents;
 	TArray<FRealtimeGPUProfilerEvent*> EventStack;
-	TArray<TStatId> StatStack;
 	uint32 FrameNumber;
 	FRenderQueryPool* RenderQueryPool;
 };
@@ -491,6 +528,31 @@ void FRealtimeGPUProfiler::BeginFrame(FRHICommandListImmediate& RHICmdList)
 	bInBeginEndBlock = true;
 }
 
+inline bool AreGPUStatsEnabled()
+{
+	if (GSupportsTimestampRenderQueries == false || !CVarGPUStatsEnabled.GetValueOnRenderThread())
+	{
+		return false;
+	}
+
+	// If stats are off, we only enable GPU stats if the CSV profiler is enabled
+#if !STATS 
+#if !CSV_PROFILER
+	return false;
+#endif
+	// If we only have CSV stats, only capture if CSV GPU stats are enabled, and we're capturing
+	if (!CVarGPUCsvStatsEnabled.GetValueOnRenderThread())
+	{
+		return false;
+	}
+	if (!FCsvProfiler::Get()->IsCapturing_Renderthread())
+	{
+		return false;
+	}
+#endif
+	return true;
+}
+
 void FRealtimeGPUProfiler::EndFrame(FRHICommandListImmediate& RHICmdList)
 {
 	// This is called at the end of the renderthread frame. Note that the RHI thread may still be processing commands for the frame at this point, however
@@ -500,7 +562,7 @@ void FRealtimeGPUProfiler::EndFrame(FRHICommandListImmediate& RHICmdList)
 	check(IsInRenderingThread());
 	check(bInBeginEndBlock == true);
 	bInBeginEndBlock = false;
-	if (GSupportsTimestampRenderQueries == false || !CVarGPUStatsEnabled.GetValueOnRenderThread())
+	if (!AreGPUStatsEnabled())
 	{
 		return;
 	}
@@ -521,7 +583,7 @@ void FRealtimeGPUProfiler::EndFrame(FRHICommandListImmediate& RHICmdList)
 	}
 }
 
-void FRealtimeGPUProfiler::PushEvent(FRHICommandListImmediate& RHICmdList, TStatId StatId)
+void FRealtimeGPUProfiler::PushEvent(FRHICommandListImmediate& RHICmdList, const FName& Name, const FName& StatName)
 {
 	check(IsInRenderingThread());
 	if (bStatGatheringPaused || !bInBeginEndBlock)
@@ -531,7 +593,7 @@ void FRealtimeGPUProfiler::PushEvent(FRHICommandListImmediate& RHICmdList, TStat
 	check(Frames.Num() > 0);
 	if (WriteBufferIndex >= 0)
 	{
-		Frames[WriteBufferIndex]->PushEvent(RHICmdList, StatId);
+		Frames[WriteBufferIndex]->PushEvent(RHICmdList, Name, StatName);
 	}
 }
 
@@ -552,10 +614,10 @@ void FRealtimeGPUProfiler::PopEvent(FRHICommandListImmediate& RHICmdList)
 /*-----------------------------------------------------------------------------
 FScopedGPUStatEvent
 -----------------------------------------------------------------------------*/
-void FScopedGPUStatEvent::Begin(FRHICommandList& InRHICmdList, TStatId InStatID)
+void FScopedGPUStatEvent::Begin(FRHICommandList& InRHICmdList, const FName& Name, const FName& StatName)
 {
 	check(IsInRenderingThread());
-	if ( GSupportsTimestampRenderQueries == false || !CVarGPUStatsEnabled.GetValueOnRenderThread() )
+	if (!AreGPUStatsEnabled())
 	{
 		return;
 	}
@@ -564,14 +626,14 @@ void FScopedGPUStatEvent::Begin(FRHICommandList& InRHICmdList, TStatId InStatID)
 	if (InRHICmdList.IsImmediate())
 	{
 		RHICmdList = (FRHICommandListImmediate*)&InRHICmdList;
-		FRealtimeGPUProfiler::Get()->PushEvent(*RHICmdList, InStatID);
+		FRealtimeGPUProfiler::Get()->PushEvent(*RHICmdList, Name, StatName);
 	}
 }
 
 void FScopedGPUStatEvent::End()
 {
 	check(IsInRenderingThread());
-	if ( GSupportsTimestampRenderQueries == false || !CVarGPUStatsEnabled.GetValueOnRenderThread() )
+	if (!AreGPUStatsEnabled())
 	{
 		return;
 	}

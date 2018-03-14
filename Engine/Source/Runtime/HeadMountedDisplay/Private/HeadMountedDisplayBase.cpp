@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "HeadMountedDisplayBase.h"
 
@@ -11,13 +11,14 @@
 #include "Engine/Texture.h"
 #include "DefaultSpectatorScreenController.h"
 #include "DefaultXRCamera.h"
+#include "Engine/Engine.h"
 #if WITH_EDITOR
 #include "Editor/EditorEngine.h" // for UEditorEngine::IsHMDTrackingAllowed()
 #endif
 
 // including interface headers without their own implementation file, so that 
 // functions (default ctors, etc.) get compiled into this module
-#include "IXRDeviceAssets.h"
+#include "IXRSystemAssets.h"
 
 void FHeadMountedDisplayBase::RecordAnalytics()
 {
@@ -74,7 +75,7 @@ IStereoLayers* FHeadMountedDisplayBase::GetStereoLayers()
 	return DefaultStereoLayers.Get();
 }
 
-bool FHeadMountedDisplayBase::GetHMDDistortionEnabled() const
+bool FHeadMountedDisplayBase::GetHMDDistortionEnabled(EShadingPath /* ShadingPath */) const
 {
 	return true;
 }
@@ -96,17 +97,12 @@ FVector2D FHeadMountedDisplayBase::GetEyeCenterPoint_RenderThread(EStereoscopicP
 	return CenterPoint;
 }
 
-
-void FHeadMountedDisplayBase::BeginRendering_RenderThread(const FTransform& NewRelativeTransform, FRHICommandListImmediate& /* RHICmdList */, FSceneViewFamily& /* ViewFamily */)
+void FHeadMountedDisplayBase::OnLateUpdateApplied_RenderThread(const FTransform& NewRelativeTransform)
 {
 	if (DefaultStereoLayers.IsValid())
 	{
 		DefaultStereoLayers->UpdateHmdTransform(NewRelativeTransform);
 	}
-}
-
-void FHeadMountedDisplayBase::BeginRendering_GameThread()
-{
 }
 
 void FHeadMountedDisplayBase::CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation)
@@ -133,3 +129,26 @@ class ISpectatorScreenController const * FHeadMountedDisplayBase::GetSpectatorSc
 {
 	return SpectatorScreenController.Get();
 }
+
+void FHeadMountedDisplayBase::CVarSinkHandler()
+{
+	check(IsInGameThread());
+
+	if (GEngine && GEngine->XRSystem.IsValid())
+	{
+		static const auto PixelDensityCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("vr.PixelDensity"));
+		IHeadMountedDisplay* const HMDDevice = GEngine->XRSystem->GetHMDDevice();
+		if (HMDDevice && PixelDensityCVar)
+		{
+			float NewPixelDensity = PixelDensityCVar->GetFloat();
+			if (NewPixelDensity < PixelDensityMin || NewPixelDensity > PixelDensityMax)
+			{
+				UE_LOG(LogHMD, Warning, TEXT("Invalid pixel density. Valid values must be within the range: [%f, %f]."), PixelDensityMin, PixelDensityMax);
+				NewPixelDensity = FMath::Clamp(NewPixelDensity, PixelDensityMin, PixelDensityMax);
+			}
+			HMDDevice->SetPixelDensity(NewPixelDensity);
+		}
+	}
+}
+
+FAutoConsoleVariableSink FHeadMountedDisplayBase::CVarSink(FConsoleCommandDelegate::CreateStatic(&FHeadMountedDisplayBase::CVarSinkHandler));

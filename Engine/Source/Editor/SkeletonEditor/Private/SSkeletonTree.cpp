@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SSkeletonTree.h"
@@ -8,7 +8,7 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Textures/SlateIcon.h"
 #include "Framework/Commands/UIAction.h"
-#include "Framework/Commands/UICommandList.h"
+#include "UICommandList_Pinnable.h"
 #include "Widgets/Images/SImage.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Widgets/Layout/SScrollBorder.h"
@@ -64,6 +64,8 @@
 
 #include "HAL/PlatformApplicationMisc.h"
 #include "STreeView.h"
+#include "IPinnedCommandList.h"
+#include "PersonaModule.h"
 
 #define LOCTEXT_NAMESPACE "SSkeletonTree"
 
@@ -144,6 +146,8 @@ void SSkeletonTree::Construct(const FArguments& InArgs, const TSharedRef<FEditab
 
 	Builder->Initialize(SharedThis(this), InSkeletonTreeArgs.PreviewScene, FOnFilterSkeletonTreeItem::CreateSP(this, &SSkeletonTree::HandleFilterSkeletonTreeItem));
 
+	ContextName = InSkeletonTreeArgs.ContextName;
+
 	TextFilterPtr = MakeShareable(new FTextFilterExpressionEvaluator(ETextFilterExpressionEvaluatorMode::BasicString));
 
 	SetPreviewComponentSocketFilter();
@@ -173,6 +177,10 @@ void SSkeletonTree::Construct(const FArguments& InArgs, const TSharedRef<FEditab
 	BoneProxy->SkelMeshComponent = PreviewScene.IsValid() ? PreviewScene.Pin()->GetPreviewMeshComponent() : nullptr;
 	BoneProxy->bIsTickable = true;
 
+	// Create our pinned commands before we bind commands
+	IPinnedCommandListModule& PinnedCommandListModule = FModuleManager::LoadModuleChecked<IPinnedCommandListModule>(TEXT("PinnedCommandList"));
+	PinnedCommands = PinnedCommandListModule.CreatePinnedCommandList(ContextName);
+
 	// Register and bind all our menu commands
 	FSkeletonTreeCommands::Register();
 	BindCommands();
@@ -193,17 +201,65 @@ void SSkeletonTree::Construct(const FArguments& InArgs, const TSharedRef<FEditab
 		
 			+ SVerticalBox::Slot()
 			.AutoHeight()
-			.Padding( FMargin( 0.0f, 0.0f, 0.0f, 4.0f ) )
+			.Padding(FMargin(0.0f, 0.0f, 0.0f, 2.0f))
 			[
-				SAssignNew( NameFilterBox, SSearchBox )
-				.SelectAllTextWhenFocused( true )
-				.OnTextChanged( this, &SSkeletonTree::OnFilterTextChanged )
-				.HintText( LOCTEXT( "SearchBoxHint", "Search Skeleton Tree...") )
-				.AddMetaData<FTagMetaData>(TEXT("SkelTree.Search"))
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				.Padding(0.0f, 0.0f, InSkeletonTreeArgs.bShowFilterMenu ? 2.0f : 0.0f, 0.0f)
+				[
+					SAssignNew(FilterComboButton, SComboButton)
+					.Visibility(InSkeletonTreeArgs.bShowFilterMenu ? EVisibility::Visible : EVisibility::Collapsed)
+					.ComboButtonStyle(FEditorStyle::Get(), "GenericFilters.ComboButtonStyle")
+					.ForegroundColor(FLinearColor::White)
+					.ContentPadding(0.0f)
+					.OnGetMenuContent( this, &SSkeletonTree::CreateFilterMenu )
+					.ToolTipText( this, &SSkeletonTree::GetFilterMenuTooltip )
+					.AddMetaData<FTagMetaData>(TEXT("SkelTree.Bones"))
+					.ButtonContent()
+					[
+						SNew(SHorizontalBox)
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						[
+							SNew(STextBlock)
+							.TextStyle(FEditorStyle::Get(), "GenericFilters.TextStyle")
+							.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.9"))
+							.Text(FText::FromString(FString(TEXT("\xf0b0"))) /*fa-filter*/)
+						]
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.Padding(2, 0, 0, 0)
+						.VAlign(VAlign_Center)
+						[
+							SNew( STextBlock )
+							.TextStyle(FEditorStyle::Get(), "GenericFilters.TextStyle")
+							.Text( LOCTEXT("FilterMenuLabel", "Options") )
+						]
+					]
+				]
+				+SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				[
+					SAssignNew( NameFilterBox, SSearchBox )
+					.SelectAllTextWhenFocused( true )
+					.OnTextChanged( this, &SSkeletonTree::OnFilterTextChanged )
+					.HintText( LOCTEXT( "SearchBoxHint", "Search Skeleton Tree...") )
+					.AddMetaData<FTagMetaData>(TEXT("SkelTree.Search"))
+				]
 			]
 
 			+ SVerticalBox::Slot()
-			.Padding( FMargin( 0.0f, 4.0f, 0.0f, 0.0f ) )
+			.Padding( FMargin( 0.0f, 2.0f, 0.0f, 0.0f ) )
+			.AutoHeight()
+			[
+				PinnedCommands.ToSharedRef()
+			]
+
+			+ SVerticalBox::Slot()
+			.Padding( FMargin( 0.0f, 2.0f, 0.0f, 0.0f ) )
 			[
 				SAssignNew(TreeHolder, SOverlay)
 			]
@@ -227,39 +283,6 @@ void SSkeletonTree::Construct(const FArguments& InArgs, const TSharedRef<FEditab
 						SAssignNew(BlendProfilePicker, SBlendProfilePicker, GetEditableSkeleton())
 						.Standalone(true)
 						.OnBlendProfileSelected(this, &SSkeletonTree::OnBlendProfileSelected)
-					]
-				]
-
-				+ SHorizontalBox::Slot()
-				.Padding( 0.0f, 0.0f, InSkeletonTreeArgs.bShowFilterMenu ? 2.0f : 0.0f, 0.0f )
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Right)
-				[
-					SAssignNew( FilterComboButton, SComboButton )
-					.Visibility(InSkeletonTreeArgs.bShowFilterMenu ? EVisibility::Visible : EVisibility::Collapsed)
-					.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
-					.ForegroundColor(this, &SSkeletonTree::GetFilterComboButtonForegroundColor)
-					.ContentPadding(0.0f)
-					.OnGetMenuContent( this, &SSkeletonTree::CreateFilterMenu )
-					.ToolTipText( LOCTEXT( "BoneFilterToolTip", "Change which types of tree items are shown, as well as other options" ) )
-					.AddMetaData<FTagMetaData>(TEXT("SkelTree.Bones"))
-					.ButtonContent()
-					[
-						SNew(SHorizontalBox)
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						.VAlign(VAlign_Center)
-						[
-							SNew(SImage).Image( FEditorStyle::GetBrush("GenericViewButton") )
-						]
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						.Padding(2, 0, 0, 0)
-						.VAlign(VAlign_Center)
-						[
-							SNew( STextBlock )
-							.Text( this, &SSkeletonTree::GetFilterMenuTitle )
-						]
 					]
 				]
 			]
@@ -288,82 +311,14 @@ void SSkeletonTree::BindCommands()
 	// This should not be called twice on the same instance
 	check( !UICommandList.IsValid() );
 
-	UICommandList = MakeShareable( new FUICommandList );
+	UICommandList = MakeShareable( new FUICommandList_Pinnable );
 
-	FUICommandList& CommandList = *UICommandList;
+	FUICommandList_Pinnable& CommandList = *UICommandList;
 
 	// Grab the list of menu commands to bind...
 	const FSkeletonTreeCommands& MenuActions = FSkeletonTreeCommands::Get();
 
 	// ...and bind them all
-
-	// Bone Filter commands
-	CommandList.MapAction(
-		MenuActions.ShowAllBones,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::SetBoneFilter, EBoneFilter::All ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( this, &SSkeletonTree::IsBoneFilter, EBoneFilter::All ) );
-
-	CommandList.MapAction(
-		MenuActions.ShowMeshBones,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::SetBoneFilter, EBoneFilter::Mesh ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( this, &SSkeletonTree::IsBoneFilter, EBoneFilter::Mesh ) );
-
-	CommandList.MapAction(
-		MenuActions.ShowLODBones,
-		FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneFilter, EBoneFilter::LOD),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SSkeletonTree::IsBoneFilter, EBoneFilter::LOD));
-	
-	CommandList.MapAction(
-		MenuActions.ShowWeightedBones,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::SetBoneFilter, EBoneFilter::Weighted ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( this, &SSkeletonTree::IsBoneFilter, EBoneFilter::Weighted ) );
-
-	CommandList.MapAction(
-		MenuActions.HideBones,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::SetBoneFilter, EBoneFilter::None ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( this, &SSkeletonTree::IsBoneFilter, EBoneFilter::None ) );
-
-	// Socket filter commands
-	CommandList.MapAction(
-		MenuActions.ShowActiveSockets,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::SetSocketFilter, ESocketFilter::Active ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( this, &SSkeletonTree::IsSocketFilter, ESocketFilter::Active ) );
-
-	CommandList.MapAction(
-		MenuActions.ShowMeshSockets,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::SetSocketFilter, ESocketFilter::Mesh ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( this, &SSkeletonTree::IsSocketFilter, ESocketFilter::Mesh ) );
-
-	CommandList.MapAction(
-		MenuActions.ShowSkeletonSockets,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::SetSocketFilter, ESocketFilter::Skeleton ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( this, &SSkeletonTree::IsSocketFilter, ESocketFilter::Skeleton ) );
-
-	CommandList.MapAction(
-		MenuActions.ShowAllSockets,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::SetSocketFilter, ESocketFilter::All ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( this, &SSkeletonTree::IsSocketFilter, ESocketFilter::All ) );
-
-	CommandList.MapAction(
-		MenuActions.HideSockets,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::SetSocketFilter, ESocketFilter::None ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( this, &SSkeletonTree::IsSocketFilter, ESocketFilter::None ) );
-
-	CommandList.MapAction(
-		MenuActions.ShowRetargeting,
-		FExecuteAction::CreateSP(this, &SSkeletonTree::OnChangeShowingAdvancedOptions),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SSkeletonTree::IsShowingAdvancedOptions));
 
 	CommandList.MapAction(
 		MenuActions.FilteringFlattensHierarchy,
@@ -376,6 +331,82 @@ void SSkeletonTree::BindCommands()
 		FExecuteAction::CreateLambda([this]() { GetMutableDefault<UPersonaOptions>()->bHideParentsWhenFiltering = !GetDefault<UPersonaOptions>()->bHideParentsWhenFiltering; }),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateLambda([]() { return GetDefault<UPersonaOptions>()->bHideParentsWhenFiltering; }));
+
+	// Bone Filter commands
+	CommandList.BeginGroup(TEXT("BoneFilterGroup"));
+
+	CommandList.MapAction(
+		MenuActions.ShowAllBones,
+		FExecuteAction::CreateSP( this, &SSkeletonTree::SetBoneFilter, EBoneFilter::All ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP( this, &SSkeletonTree::IsBoneFilter, EBoneFilter::All ));
+
+	CommandList.MapAction(
+		MenuActions.ShowMeshBones,
+		FExecuteAction::CreateSP( this, &SSkeletonTree::SetBoneFilter, EBoneFilter::Mesh ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP( this, &SSkeletonTree::IsBoneFilter, EBoneFilter::Mesh ));
+
+	CommandList.MapAction(
+		MenuActions.ShowLODBones,
+		FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneFilter, EBoneFilter::LOD),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SSkeletonTree::IsBoneFilter, EBoneFilter::LOD));
+	
+	CommandList.MapAction(
+		MenuActions.ShowWeightedBones,
+		FExecuteAction::CreateSP( this, &SSkeletonTree::SetBoneFilter, EBoneFilter::Weighted ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP( this, &SSkeletonTree::IsBoneFilter, EBoneFilter::Weighted ));
+
+	CommandList.MapAction(
+		MenuActions.HideBones,
+		FExecuteAction::CreateSP( this, &SSkeletonTree::SetBoneFilter, EBoneFilter::None ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP( this, &SSkeletonTree::IsBoneFilter, EBoneFilter::None ));
+
+	CommandList.EndGroup();
+
+	// Socket filter commands
+	CommandList.BeginGroup(TEXT("SocketFilterGroup"));
+
+	CommandList.MapAction(
+		MenuActions.ShowActiveSockets,
+		FExecuteAction::CreateSP( this, &SSkeletonTree::SetSocketFilter, ESocketFilter::Active ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP( this, &SSkeletonTree::IsSocketFilter, ESocketFilter::Active ));
+
+	CommandList.MapAction(
+		MenuActions.ShowMeshSockets,
+		FExecuteAction::CreateSP( this, &SSkeletonTree::SetSocketFilter, ESocketFilter::Mesh ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP( this, &SSkeletonTree::IsSocketFilter, ESocketFilter::Mesh ));
+
+	CommandList.MapAction(
+		MenuActions.ShowSkeletonSockets,
+		FExecuteAction::CreateSP( this, &SSkeletonTree::SetSocketFilter, ESocketFilter::Skeleton ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP( this, &SSkeletonTree::IsSocketFilter, ESocketFilter::Skeleton ));
+
+	CommandList.MapAction(
+		MenuActions.ShowAllSockets,
+		FExecuteAction::CreateSP( this, &SSkeletonTree::SetSocketFilter, ESocketFilter::All ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP( this, &SSkeletonTree::IsSocketFilter, ESocketFilter::All ));
+
+	CommandList.MapAction(
+		MenuActions.HideSockets,
+		FExecuteAction::CreateSP( this, &SSkeletonTree::SetSocketFilter, ESocketFilter::None ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP( this, &SSkeletonTree::IsSocketFilter, ESocketFilter::None ));
+
+	CommandList.EndGroup();
+
+	CommandList.MapAction(
+		MenuActions.ShowRetargeting,
+		FExecuteAction::CreateSP(this, &SSkeletonTree::OnChangeShowingAdvancedOptions),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SSkeletonTree::IsShowingAdvancedOptions));
 
 	// Socket manipulation commands
 	CommandList.MapAction(
@@ -408,7 +439,7 @@ void SSkeletonTree::BindCommands()
 
 	CommandList.MapAction(
 		MenuActions.CopyBoneNames,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::OnCopyBoneNames ) );
+		FExecuteAction::CreateSP( this, &SSkeletonTree::OnCopyBoneNames ));
 
 	CommandList.MapAction(
 		MenuActions.ResetBoneTransforms,
@@ -416,19 +447,24 @@ void SSkeletonTree::BindCommands()
 
 	CommandList.MapAction(
 		MenuActions.CopySockets,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::OnCopySockets ) );
+		FExecuteAction::CreateSP( this, &SSkeletonTree::OnCopySockets ),
+		FCanExecuteAction::CreateSP( this, &SSkeletonTree::CanCopySockets ));
 
 	CommandList.MapAction(
 		MenuActions.PasteSockets,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::OnPasteSockets, false ) );
+		FExecuteAction::CreateSP( this, &SSkeletonTree::OnPasteSockets, false ),
+		FCanExecuteAction::CreateSP( this, &SSkeletonTree::CanPasteSockets ));
 
 	CommandList.MapAction(
 		MenuActions.PasteSocketsToSelectedBone,
-		FExecuteAction::CreateSP(this, &SSkeletonTree::OnPasteSockets, true));
+		FExecuteAction::CreateSP(this, &SSkeletonTree::OnPasteSockets, true),
+		FCanExecuteAction::CreateSP( this, &SSkeletonTree::CanPasteSockets ));
 
 	CommandList.MapAction(
 		MenuActions.FocusCamera,
 		FExecuteAction::CreateSP(this, &SSkeletonTree::HandleFocusCamera));
+
+	PinnedCommands->BindCommandList(UICommandList.ToSharedRef());
 }
 
 TSharedRef<ITableRow> SSkeletonTree::MakeTreeRowWidget(TSharedPtr<ISkeletonTreeItem> InInfo, const TSharedRef<STableViewBase>& OwnerTable)
@@ -1103,6 +1139,14 @@ void SSkeletonTree::OnCopySockets() const
 	}
 }
 
+bool SSkeletonTree::CanCopySockets() const
+{
+	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+	FSkeletonTreeSelection TreeSelection(SelectedItems);
+	TArray<TSharedPtr<FSkeletonTreeSocketItem>> SelectedSockets = TreeSelection.GetSelectedItems<FSkeletonTreeSocketItem>();
+	return SelectedSockets.Num() > 0;
+}
+
 FString SSkeletonTree::SerializeSocketToString( USkeletalMeshSocket* Socket, ESocketParentType ParentType) const
 {
 	FString SocketString;
@@ -1131,6 +1175,19 @@ void SSkeletonTree::OnPasteSockets(bool bPasteToSelectedBone)
 
 		CreateFromSkeleton();
 	}
+}
+
+bool SSkeletonTree::CanPasteSockets() const
+{
+	if(SkeletonTreeView->GetNumItemsSelected() == 1)
+	{
+		TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+		FSkeletonTreeSelection TreeSelection(SelectedItems);
+
+		return TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeBoneItem>();
+	}
+
+	return false;
 }
 
 void SSkeletonTree::OnAddSocket()
@@ -1255,19 +1312,18 @@ bool SSkeletonTree::CanRemoveAllAssets() const
 bool SSkeletonTree::CanRenameSelected() const
 {
 	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
-	FSkeletonTreeSelection TreeSelection(SelectedItems);
-	return TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeSocketItem>() || TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeVirtualBoneItem>();
+
+	return SelectedItems.Num() == 1 && SelectedItems[0]->CanRenameItem();
 }
 
 void SSkeletonTree::OnRenameSelected()
 {
 	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
-	FSkeletonTreeSelection TreeSelection(SelectedItems);
 
-	if(TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeSocketItem>() || TreeSelection.IsSingleOfTypeSelected<FSkeletonTreeVirtualBoneItem>())
+	if(SelectedItems.Num() == 1 && SelectedItems[0]->CanRenameItem())
 	{
-		SkeletonTreeView->RequestScrollIntoView(TreeSelection.GetSingleSelectedItem());
-		DeferredRenameRequest = TreeSelection.GetSingleSelectedItem();
+		SkeletonTreeView->RequestScrollIntoView(SelectedItems[0]);
+		DeferredRenameRequest = SelectedItems[0];
 	}
 }
 
@@ -1483,7 +1539,7 @@ void SSkeletonTree::SetSelectedSocket( const FSelectedSocketInfo& SocketInfo )
 		{
 			TSharedPtr<ISkeletonTreeItem> SkeletonRow = *(SkeletonRowIt);
 
-			if (SkeletonRow->IsOfType<FSkeletonTreeSocketItem>() && StaticCastSharedPtr<FSkeletonTreeSocketItem>(SkeletonRow)->GetSocket() == SocketInfo.Socket)
+			if (SkeletonRow->GetFilterResult() != ESkeletonTreeFilterResult::Hidden && SkeletonRow->IsOfType<FSkeletonTreeSocketItem>() && StaticCastSharedPtr<FSkeletonTreeSocketItem>(SkeletonRow)->GetSocket() == SocketInfo.Socket)
 			{
 				SkeletonTreeView->SetSelection(SkeletonRow);
 				SkeletonTreeView->RequestScrollIntoView(SkeletonRow);
@@ -1519,7 +1575,7 @@ void SSkeletonTree::SetSelectedBone( const FName& BoneName )
 		{
 			TSharedPtr<ISkeletonTreeItem> SkeletonRow = *(SkeletonRowIt);
 
-			if (SkeletonRow->IsOfType<FSkeletonTreeBoneItem>() && SkeletonRow->GetRowItemName() == BoneName)
+			if (SkeletonRow->GetFilterResult() != ESkeletonTreeFilterResult::Hidden && SkeletonRow->IsOfType<FSkeletonTreeBoneItem>() && SkeletonRow->GetRowItemName() == BoneName)
 			{
 				SkeletonTreeView->SetSelection(SkeletonRow);
 				SkeletonTreeView->RequestScrollIntoView(SkeletonRow);
@@ -1652,7 +1708,7 @@ bool SSkeletonTree::IsSocketFilter( ESocketFilter InSocketFilter ) const
 	return SocketFilter == InSocketFilter;
 }
 
-FText SSkeletonTree::GetFilterMenuTitle() const
+FText SSkeletonTree::GetFilterMenuTooltip() const
 {
 	TArray<FText> FilterLabels;
 
@@ -1721,15 +1777,16 @@ FText SSkeletonTree::GetFilterMenuTitle() const
 	FText Label;
 	if(FilterLabels.Num() > 0)
 	{
-		Label = FText::Format(LOCTEXT("FilterMenuLabelFormatStart", "{0}"), FilterLabels[0]);
+		Label = FText::Format(LOCTEXT("FilterMenuLabelFormatStart", "Showing: {0}"), FilterLabels[0]);
 		for(int32 LabelIndex = 1; LabelIndex < FilterLabels.Num(); ++LabelIndex)
 		{
 			Label = FText::Format(LOCTEXT("FilterMenuLabelFormat", "{0}, {1}"), Label, FilterLabels[LabelIndex]);
 		}
+		Label = FText::Format(LOCTEXT("FilterMenuLabelFormatEnd", "{0}\nShift-clicking on items will 'pin' them to the skeleton tree."), Label);
 	}
 	else
 	{
-		Label = LOCTEXT("ShowingNoneLabel", "Filters");
+		Label = LOCTEXT("ShowingNoneLabel", "Filters.\nShift-clicking on items will 'pin' them to the skeleton tree.");
 	}
 	
 	return Label;
@@ -1939,16 +1996,31 @@ void SSkeletonTree::OnLODSwitched()
 
 void SSkeletonTree::SelectItemsBy(TFunctionRef<bool(const TSharedRef<ISkeletonTreeItem>&, bool&)> Predicate) const
 {
-	SkeletonTreeView->ClearSelection();
-
+	TArray<TPair<TSharedPtr<ISkeletonTreeItem>, bool>> ItemsToSelect;
 	TSharedPtr<ISkeletonTreeItem> ScrollItem = nullptr;
 	for (const TSharedPtr<ISkeletonTreeItem>& Item : LinearItems)
 	{
-		bool bExpand = false;
-		if (Predicate(Item.ToSharedRef(), bExpand))
+		if(Item->GetFilterResult() != ESkeletonTreeFilterResult::Hidden)
 		{
+			bool bExpand = false;
+			if (Predicate(Item.ToSharedRef(), bExpand))
+			{
+				ItemsToSelect.Emplace(Item, bExpand);
+				ScrollItem = Item;
+			}
+		}
+	}
+
+	if(ItemsToSelect.Num() > 0)
+	{
+		SkeletonTreeView->ClearSelection();
+
+		for (const TPair<TSharedPtr<ISkeletonTreeItem>, bool>& ItemPair : ItemsToSelect)
+		{
+			TSharedPtr<ISkeletonTreeItem> Item = ItemPair.Key;
+
 			SkeletonTreeView->SetItemSelection(Item, true);
-			if (bExpand)
+			if (ItemPair.Value)
 			{
 				if(Item->GetChildren().Num() == 0)
 				{
@@ -1964,7 +2036,6 @@ void SSkeletonTree::SelectItemsBy(TFunctionRef<bool(const TSharedRef<ISkeletonTr
 					SkeletonTreeView->SetItemExpansion(Item, true);
 				}
 			}
-			ScrollItem = Item;
 		}
 	}
 
@@ -1988,18 +2059,6 @@ void SSkeletonTree::DuplicateAndSelectSocket(const FSelectedSocketInfo& SocketIn
 
 	FSelectedSocketInfo NewSocketInfo(NewSocket, SocketInfoToDuplicate.bSocketIsOnSkeleton);
 	SetSelectedSocket(NewSocketInfo);
-}
-
-FSlateColor SSkeletonTree::GetFilterComboButtonForegroundColor() const
-{
-	static const FName InvertedForegroundName("InvertedForeground");
-	static const FName DefaultForegroundName("DefaultForeground");
-
-	if (FilterComboButton.IsValid())
-	{
-		return FilterComboButton->IsHovered() ? FEditorStyle::GetSlateColor(InvertedForegroundName) : FEditorStyle::GetSlateColor(DefaultForegroundName);
-	}
-	return FSlateColor::UseForeground();
 }
 
 void SSkeletonTree::HandleFocusCamera()

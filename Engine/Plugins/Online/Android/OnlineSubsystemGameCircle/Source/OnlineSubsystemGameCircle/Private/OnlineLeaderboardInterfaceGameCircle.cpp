@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineLeaderboardInterfaceGameCircle.h"
 #include "Online.h"
@@ -315,7 +315,7 @@ void FOnlineLeaderboardsGameCircle::WriteRowForUIDToReadObject(TSharedRef<const 
 
 		default:
 			{
-				UE_LOG_ONLINE(Warning, TEXT("Unsupported key value pair during retrieval from Game Circle %s"), ColumnMeta.ColumnName);
+				UE_LOG_ONLINE(Warning, TEXT("Unsupported key value pair during retrieval from Game Circle %s"), *ColumnMeta.ColumnName.ToString());
 				break;
 			}
 		}

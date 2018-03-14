@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "QosInterface.h"
 #include "QosModule.h"
@@ -62,6 +62,12 @@ void FQosInterface::ForceSelectRegion(const FString& InRegionId)
 {
 	check(RegionManager);
 	RegionManager->ForceSelectRegion(InRegionId);
+}
+
+bool FQosInterface::IsUsableRegion(const FString& InRegionId) const
+{
+	check(RegionManager);
+	return RegionManager->IsUsableRegion(InRegionId);
 }
 
 bool FQosInterface::SetSelectedRegion(const FString& InRegionId)

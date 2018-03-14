@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -141,5 +141,8 @@ public:
 
 	/** Get whether this file is in a conflicted state */
 	virtual bool IsConflicted() const = 0;
+
+	/** Get whether this file can be reverted, i.e. its changes are discarded and the file will no longer be checked-out. */
+	virtual bool CanRevert() const = 0;
 };
 

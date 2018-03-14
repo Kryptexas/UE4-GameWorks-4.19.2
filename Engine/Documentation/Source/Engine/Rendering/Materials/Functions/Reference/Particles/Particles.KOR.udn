@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3242329
+﻿INTSourceChangelist:3782314
 Availability: Public
 title:파티클
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -45,7 +45,8 @@ Particles 카테고리 아래 있는 함수들은 다음과 같습니다.
 [REGION:note]
 	앞에 "--------" 가 붙은 입력은 입력 리스트의 구분자로, 실제 입력을 받는 것은 아닙니다.
 [/REGION]
-<!---
+[COMMENT:none]
+-
 ### RandomUVs
 
 파티클 시스템에 탄생되는 파티클의 텍스처 좌표를 쉽게 난수화시킬 수 있는 함수입니다. 이 함수는 UV 좌표를 이동시킬 파라미터 이름으로 *U_Offset*, *V_Offset* 을 가진 DynamicParameter 를 사용합니다. 이는 균등 분포로 구성되며, 스폰 시간에만 계산되고, 채널별로 0-1 분포를 갖습니다.
@@ -61,5 +62,6 @@ Particles 카테고리 아래 있는 함수들은 다음과 같습니다.
 
 
 ![RandomUVs](RandomUVs.png)
---->
+-
+[/COMMENT]
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "UdpMessagingPrivate.h"
 
@@ -433,6 +433,9 @@ protected:
 	 */
 	bool SupportsNetworkedTransport() const
 	{
+#if UE_BUILD_SHIPPING
+		return false;
+#else
 		// disallow unsupported platforms
 		if (!FPlatformMisc::SupportsMessaging())
 		{
@@ -453,6 +456,7 @@ protected:
 
 		// otherwise only allow if explicitly desired
 		return FParse::Param(FCommandLine::Get(), TEXT("Messaging"));
+#endif
 	}
 
 	/** Shuts down the message bridge. */

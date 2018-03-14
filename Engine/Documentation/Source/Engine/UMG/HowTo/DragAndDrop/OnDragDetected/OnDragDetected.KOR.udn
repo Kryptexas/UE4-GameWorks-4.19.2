@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3478014
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:3. 드래그 감지 시
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -31,7 +31,7 @@ type:how-to
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 이번 단계에서는 플레이어가 사실상 HealthBar 를 화면에서 드래그할 때 무슨 일이 벌어질지를 결정합니다.
 
@@ -77,7 +77,7 @@ type:how-to
 이제 남은 몇 가지 작업은 플레이어가 왼쪽 마우스 버튼을 뗄 때 무슨 일이 벌어지는가 결정하고 OnDrop 함수를 수행하는 것입니다.
 또한 메인 HUD 위젯 블루프린트에 HealthBar 위젯을 추가하고 표시하도록 해 줘야 모든 것을 테스트할 수 있을 것입니다.
 
-%Steps%
+
 
 
 

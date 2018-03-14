@@ -1,10 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreTypes.h"
 #include "Math/NumericLimits.h"
 #include "Misc/Timespan.h"
+#include "Templates/Atomic.h"
 
 /**
  * Interface for waitable events.
@@ -109,11 +110,11 @@ protected:
 	void ResetForStats();
 
 	/** Counter used to generate an unique id for the events. */
-	static uint32 EventUniqueId;
+	static TAtomic<uint32> EventUniqueId;
 
 	/** An unique id of this event. */
 	uint32 EventId;
 
 	/** Greater than 0, if the event called wait. */
-	uint32 EventStartCycles;
+	TAtomic<uint32> EventStartCycles;
 };

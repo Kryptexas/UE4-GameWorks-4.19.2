@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "NiagaraDataInterface.h"
@@ -42,7 +42,6 @@ public:
 	virtual int32 PerInstanceDataSize()const override;
 	virtual void GetFunctions(TArray<FNiagaraFunctionSignature>& OutFunctions)override;
 	virtual FVMExternalFunction GetVMExternalFunction(const FVMExternalFunctionBindingInfo& BindingInfo, void* InstanceData)override;
-	virtual bool CopyTo(UNiagaraDataInterface* Destination) const override;
 	virtual bool Equals(const UNiagaraDataInterface* Other) const override;
 	virtual bool CanExecuteOnTarget(ENiagaraSimTarget Target)const override { return Target == ENiagaraSimTarget::CPUSim; }
 	//UNiagaraDataInterface Interface End
@@ -62,6 +61,9 @@ public:
 	
 	void GetLocalToWorld(FVectorVMContext& Context);
 	void GetLocalToWorldInverseTransposed(FVectorVMContext& Context);
+
+protected:
+	virtual bool CopyToInternal(UNiagaraDataInterface* Destination) const override;
 
 private:
 	

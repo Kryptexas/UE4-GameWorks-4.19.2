@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SAnimNotifyPanel.h"
@@ -16,6 +16,7 @@
 #include "Layout/WidgetPath.h"
 #include "Framework/Application/MenuStack.h"
 #include "Fonts/FontMeasure.h"
+#include "Styling/CoreStyle.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SScrollBar.h"
@@ -38,6 +39,7 @@
 #include "Modules/ModuleManager.h"
 #include "IEditableSkeleton.h"
 #include "ISkeletonEditorModule.h"
+#include "SNumericEntryBox.h"
 
 // Track Panel drawing
 const float NotificationTrackHeight = 20.0f;
@@ -179,6 +181,18 @@ struct FNotifyNodeInterface : public INodeObjectInterface
 		{
 			ToolTipText = FText::Format(LOCTEXT("AnimNotify_ToolTipBranchingPoint", "{0} (BranchingPoint)"), ToolTipText);
 		}
+
+		UObject* NotifyToDisplayClassOf = NotifyEvent->Notify;
+		if (NotifyToDisplayClassOf == nullptr)
+		{
+			NotifyToDisplayClassOf = NotifyEvent->NotifyStateClass;
+		}
+
+		if (NotifyToDisplayClassOf != nullptr)
+		{
+			ToolTipText = FText::Format(LOCTEXT("AnimNotify_ToolTipNotifyClass", "{0}\nClass: {1}"), ToolTipText, NotifyToDisplayClassOf->GetClass()->GetDisplayNameText());
+		}
+
 		return ToolTipText;
 	}
 
@@ -766,18 +780,11 @@ protected:
 	void ReplaceSelectedWithBlueprintNotify(FString NewNotifyName, FString BlueprintPath);
 	void ReplaceSelectedWithNotify(FString NewNotifyName, UClass* NotifyClass);
 	bool IsValidToPlace(UClass* NotifyClass) const;
-	void OnSetNodeTimeClicked(int32 NodeIndex);
-	void SetNodeTime(const FText& NodeTimeText, ETextCommit::Type CommitInfo, int32 NodeIndex);
-	void OnSetNodeFrameClicked(int32 NodeIndex);
-	void SetNodeFrame(const FText& NodeFrameText, ETextCommit::Type CommitInfo, int32 NodeIndex);
 
 	// Whether we have one node selected
 	bool IsSingleNodeSelected();
 	// Checks the clipboard for an anim notify buffer, and returns whether there's only one notify
 	bool IsSingleNodeInClipboard();
-
-	void OnSetDurationNotifyClicked(int32 NotifyIndex);
-	void SetDuration(const FText& DurationText, ETextCommit::Type CommitInfo, int32 NotifyIndex);
 
 	/** Function to copy anim notify event */
 	void OnCopyNotifyClicked(int32 NotifyIndex);
@@ -1421,7 +1428,7 @@ const float SAnimNotifyNode::MinimumStateDuration = (1.0f / 30.0f);
 void SAnimNotifyNode::Construct(const FArguments& InArgs)
 {
 	Sequence = InArgs._Sequence;
-	Font = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 );
+	Font = FCoreStyle::GetDefaultFontStyle("Regular", 10);
 	bBeingDragged = false;
 	CurrentDragHandle = ENotifyStateHandleHit::None;
 	bDrawTooltipToRight = true;
@@ -2830,52 +2837,170 @@ TSharedPtr<SWidget> SAnimNotifyTrack::SummonContextMenu(const FGeometry& MyGeome
 				SelectTrackObjectNode(NodeIndex, MouseEvent.IsControlDown());
 			}
 
-			FNumberFormattingOptions Options;
-			Options.MinimumFractionalDigits = 5;
-
-			// Add item to directly set notify time
-			const FText CurrentTime = FText::AsNumber(NodeObject->GetTime(), &Options);
-			const FText TimeMenuText = FText::Format(LOCTEXT("TimeMenuText", "Set Notify Begin Time: {0}..."), CurrentTime);
-
-			NewAction.ExecuteAction.BindRaw(this, &SAnimNotifyTrack::OnSetNodeTimeClicked, NodeIndex);
-			NewAction.CanExecuteAction.BindRaw(this, &SAnimNotifyTrack::IsSingleNodeSelected);
-
-			MenuBuilder.AddMenuEntry(TimeMenuText, LOCTEXT("SetTimeToolTip", "Set the time of this notify directly"), FSlateIcon(), NewAction);
-
-			// Add item to directly set notify frame
-			const FText Frame = FText::AsNumber(Sequence->GetFrameAtTime(NodeObject->GetTime()));
-			const FText FrameMenuText = FText::Format(LOCTEXT("FrameMenuText", "Set Notify Frame: {0}..."), Frame);
-
-			NewAction.ExecuteAction.BindRaw(this, &SAnimNotifyTrack::OnSetNodeFrameClicked, NodeIndex);
-			NewAction.CanExecuteAction.BindRaw(this, &SAnimNotifyTrack::IsSingleNodeSelected);
-
-			MenuBuilder.AddMenuEntry(FrameMenuText, LOCTEXT("SetFrameToolTip", "Set the frame of this notify directly"), FSlateIcon(), NewAction);
-
-			if (NotifyEvent)
+			if(IsSingleNodeSelected())
 			{
-				// add menu to get threshold weight for triggering this notify
-				NewAction.ExecuteAction.BindRaw(
-					this, &SAnimNotifyTrack::OnSetTriggerWeightNotifyClicked, NotifyIndex);
-				NewAction.CanExecuteAction.BindRaw(
-					this, &SAnimNotifyTrack::IsSingleNodeSelected);
+				// Add item to directly set notify time
+				TSharedRef<SWidget> TimeWidget = 
+					SNew( SBox )
+					.HAlign( HAlign_Right )
+					.ToolTipText(LOCTEXT("SetTimeToolTip", "Set the time of this notify directly"))
+					[
+						SNew(SBox)
+						.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+						.WidthOverride(100.0f)
+						[
+							SNew(SNumericEntryBox<float>)
+							.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+							.MinValue(0.0f)
+							.MaxValue(Sequence->SequenceLength)
+							.Value(NodeObject->GetTime())
+							.AllowSpin(false)
+							.OnValueCommitted_Lambda([this, NodeIndex](float InValue, ETextCommit::Type InCommitType)
+							{
+								if (InCommitType == ETextCommit::OnEnter && NotifyNodes.IsValidIndex(NodeIndex))
+								{
+									INodeObjectInterface* LocalNodeObject = NotifyNodes[NodeIndex]->NodeObjectInterface;
 
-				const FText Threshold = FText::AsNumber(NotifyEvent->TriggerWeightThreshold, &Options);
-				const FText MinTriggerWeightText = FText::Format(LOCTEXT("MinTriggerWeight", "Min Trigger Weight: {0}..."), Threshold);
-				MenuBuilder.AddMenuEntry(MinTriggerWeightText, LOCTEXT("MinTriggerWeightToolTip", "The minimum weight to trigger this notify"), FSlateIcon(), NewAction);
+									float NewTime = FMath::Clamp(InValue, 0.0f, Sequence->SequenceLength - LocalNodeObject->GetDuration());
+									LocalNodeObject->SetTime(NewTime);
 
-				// Add menu for changing duration if this is an AnimNotifyState
-				if (NotifyEvent->NotifyStateClass)
+									if (FAnimNotifyEvent* Event = LocalNodeObject->GetNotifyEvent())
+									{
+										Event->RefreshTriggerOffset(Sequence->CalculateOffsetForNotify(Event->GetTime()));
+										if (Event->GetDuration() > 0.0f)
+										{
+											Event->RefreshEndTriggerOffset(Sequence->CalculateOffsetForNotify(Event->GetTime() + Event->GetDuration()));
+										}
+									}
+									OnUpdatePanel.ExecuteIfBound();
+								}
+
+								FSlateApplication::Get().DismissAllMenus();
+							})
+						]
+					];
+
+				MenuBuilder.AddWidget(TimeWidget, LOCTEXT("TimeMenuText", "Notify Begin Time"));
+
+				// Add item to directly set notify frame
+				TSharedRef<SWidget> FrameWidget = 
+					SNew( SBox )
+					.HAlign( HAlign_Right )
+					.ToolTipText(LOCTEXT("SetFrameToolTip", "Set the frame of this notify directly"))
+					[
+						SNew(SBox)
+						.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+						.WidthOverride(100.0f)
+						[
+							SNew(SNumericEntryBox<int32>)
+							.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+							.MinValue(0)
+							.MaxValue(Sequence->GetNumberOfFrames())
+							.Value(Sequence->GetFrameAtTime(NodeObject->GetTime()))
+							.AllowSpin(false)						
+							.OnValueCommitted_Lambda([this, NodeIndex](int32 InValue, ETextCommit::Type InCommitType)
+							{
+								if (InCommitType == ETextCommit::OnEnter && NotifyNodes.IsValidIndex(NodeIndex))
+								{
+									INodeObjectInterface* LocalNodeObject = NotifyNodes[NodeIndex]->NodeObjectInterface;
+
+									float NewTime = FMath::Clamp(Sequence->GetTimeAtFrame(InValue), 0.0f, Sequence->SequenceLength - LocalNodeObject->GetDuration());
+									LocalNodeObject->SetTime(NewTime);
+
+									if (FAnimNotifyEvent* Event = LocalNodeObject->GetNotifyEvent())
+									{
+										Event->RefreshTriggerOffset(Sequence->CalculateOffsetForNotify(Event->GetTime()));
+										if (Event->GetDuration() > 0.0f)
+										{
+											Event->RefreshEndTriggerOffset(Sequence->CalculateOffsetForNotify(Event->GetTime() + Event->GetDuration()));
+										}
+									}
+									OnUpdatePanel.ExecuteIfBound();
+								}
+
+								FSlateApplication::Get().DismissAllMenus();
+							})
+						]
+					];
+
+				MenuBuilder.AddWidget(FrameWidget, LOCTEXT("FrameMenuText", "Notify Frame"));
+
+				if (NotifyEvent)
 				{
-					NewAction.ExecuteAction.BindRaw(
-						this, &SAnimNotifyTrack::OnSetDurationNotifyClicked, NotifyIndex);
-					NewAction.CanExecuteAction.BindRaw(
-						this, &SAnimNotifyTrack::IsSingleNodeSelected);
+					// add menu to get threshold weight for triggering this notify
+					TSharedRef<SWidget> ThresholdWeightWidget = 
+						SNew( SBox )
+						.HAlign( HAlign_Right )
+						.ToolTipText(LOCTEXT("MinTriggerWeightToolTip", "The minimum weight to trigger this notify"))
+						[
+							SNew(SBox)
+							.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+							.WidthOverride(100.0f)
+							[
+								SNew(SNumericEntryBox<float>)
+								.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+								.MinValue(0.0f)
+								.MaxValue(1.0f)
+								.Value(NotifyEvent->TriggerWeightThreshold)
+								.AllowSpin(false)						
+								.OnValueCommitted_Lambda([this, NotifyIndex](float InValue, ETextCommit::Type InCommitType)
+								{
+									if ( InCommitType == ETextCommit::OnEnter && AnimNotifies.IsValidIndex(NotifyIndex) )
+									{
+										float NewWeight = FMath::Max(InValue, ZERO_ANIMWEIGHT_THRESH);
+										AnimNotifies[NotifyIndex]->TriggerWeightThreshold = NewWeight;
+									}
 
-					FText SetAnimStateDurationText = FText::Format(LOCTEXT("SetAnimStateDuration", "Set AnimNotifyState duration ({0})"), FText::AsNumber(NotifyEvent->GetDuration()));
-					MenuBuilder.AddMenuEntry(SetAnimStateDurationText, LOCTEXT("SetAnimStateDuration_ToolTip", "The duration of this AnimNotifyState"), FSlateIcon(), NewAction);
+									FSlateApplication::Get().DismissAllMenus();
+								})
+							]
+						];
+
+					MenuBuilder.AddWidget(ThresholdWeightWidget, LOCTEXT("MinTriggerWeight", "Min Trigger Weight"));
+
+					// Add menu for changing duration if this is an AnimNotifyState
+					if (NotifyEvent->NotifyStateClass)
+					{
+						// add menu to get threshold weight for triggering this notify
+						TSharedRef<SWidget> NotifyStateDurationWidget = 
+							SNew( SBox )
+							.HAlign( HAlign_Right )
+							.ToolTipText(LOCTEXT("SetAnimStateDuration_ToolTip", "The duration of this Anim Notify State"))
+							[
+								SNew(SBox)
+								.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+								.WidthOverride(100.0f)
+								[
+									SNew(SNumericEntryBox<float>)
+									.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+									.MinValue(SAnimNotifyNode::MinimumStateDuration)
+									.MinSliderValue(SAnimNotifyNode::MinimumStateDuration)
+									.MaxSliderValue(100.0f)
+									.Value(NotifyEvent->GetDuration())
+									.AllowSpin(false)						
+									.OnValueCommitted_Lambda([this, NotifyIndex](float InValue, ETextCommit::Type InCommitType)
+									{
+										if ( InCommitType == ETextCommit::OnEnter && AnimNotifies.IsValidIndex(NotifyIndex) )
+										{
+											float NewDuration = FMath::Max(InValue, SAnimNotifyNode::MinimumStateDuration);
+											float MaxDuration = Sequence->SequenceLength - AnimNotifies[NotifyIndex]->GetTime();
+											NewDuration = FMath::Min(NewDuration, MaxDuration);
+											AnimNotifies[NotifyIndex]->SetDuration(NewDuration);
+
+											// If we have a delegate bound to refresh the offsets, call it.
+											// This is used by the montage editor to keep the offsets up to date.
+											OnRequestRefreshOffsets.ExecuteIfBound();
+										}
+
+										FSlateApplication::Get().DismissAllMenus();
+									})
+								]
+							];
+
+						MenuBuilder.AddWidget(NotifyStateDurationWidget, LOCTEXT("SetAnimStateDuration", "Anim Notify State Duration"));
+					}
 				}
 			}
-
 		}
 		else
 		{
@@ -3068,20 +3193,6 @@ void SAnimNotifyTrack::OnOpenNotifySource(UBlueprint* InSourceBlueprint) const
 	FAssetEditorManager::Get().OpenEditorForAsset(InSourceBlueprint);
 }
 
-void SAnimNotifyTrack::SetTriggerWeight(const FText& TriggerWeight, ETextCommit::Type CommitInfo, int32 NotifyIndex)
-{
-	if ( CommitInfo == ETextCommit::OnEnter || CommitInfo == ETextCommit::OnUserMovedFocus )
-	{
-		if ( AnimNotifies.IsValidIndex(NotifyIndex) )
-		{
-			float NewWeight = FMath::Max(FCString::Atof( *TriggerWeight.ToString() ), ZERO_ANIMWEIGHT_THRESH);
-			AnimNotifies[NotifyIndex]->TriggerWeightThreshold = NewWeight;
-		}
-	}
-
-	FSlateApplication::Get().DismissAllMenus();
-}
-
 bool SAnimNotifyTrack::IsSingleNodeSelected()
 {
 	return SelectedNodeIndices.Num() == 1;
@@ -3103,72 +3214,6 @@ bool SAnimNotifyTrack::IsSingleNodeInClipboard()
 		return *Buffer == 0;
 	}
 	return false;
-}
-
-void SAnimNotifyTrack::OnSetTriggerWeightNotifyClicked(int32 NotifyIndex)
-{
-	if (AnimNotifies.IsValidIndex(NotifyIndex))
-	{
-		FString DefaultText = FString::Printf(TEXT("%0.6f"), AnimNotifies[NotifyIndex]->TriggerWeightThreshold);
-
-		// Show dialog to enter weight
-		TSharedRef<STextEntryPopup> TextEntry =
-			SNew(STextEntryPopup)
-			.Label( LOCTEXT("TriggerWeightNotifyClickedLabel", "Trigger Weight") )
-			.DefaultText( FText::FromString(DefaultText) )
-			.OnTextCommitted( this, &SAnimNotifyTrack::SetTriggerWeight, NotifyIndex );
-
-		FSlateApplication::Get().PushMenu(
-			AsShared(), // Menu being summoned from a menu that is closing: Parent widget should be k2 not the menu thats open or it will be closed when the menu is dismissed
-			FWidgetPath(),
-			TextEntry,
-			FSlateApplication::Get().GetCursorPos(),
-			FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
-			);
-	}
-}
-
-void SAnimNotifyTrack::OnSetDurationNotifyClicked(int32 NotifyIndex)
-{
-	if (AnimNotifies.IsValidIndex(NotifyIndex))
-	{
-		FString DefaultText = FString::Printf(TEXT("%f"), AnimNotifies[NotifyIndex]->GetDuration());
-
-		// Show dialog to enter weight
-		TSharedRef<STextEntryPopup> TextEntry =
-			SNew(STextEntryPopup)
-			.Label(LOCTEXT("DurationNotifyClickedLabel", "Duration"))
-			.DefaultText( FText::FromString(DefaultText) )
-			.OnTextCommitted( this, &SAnimNotifyTrack::SetDuration, NotifyIndex );
-
-		FSlateApplication::Get().PushMenu(
-			AsShared(), // Menu being summoned from a menu that is closing: Parent widget should be k2 not the menu thats open or it will be closed when the menu is dismissed
-			FWidgetPath(),
-			TextEntry,
-			FSlateApplication::Get().GetCursorPos(),
-			FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
-			);
-	}
-}
-
-void SAnimNotifyTrack::SetDuration(const FText& DurationText, ETextCommit::Type CommitInfo, int32 NotifyIndex)
-{
-	if ( CommitInfo == ETextCommit::OnEnter || CommitInfo == ETextCommit::OnUserMovedFocus )
-	{
-		if ( AnimNotifies.IsValidIndex(NotifyIndex) )
-		{
-			float NewDuration = FMath::Max(FCString::Atof( *DurationText.ToString() ), SAnimNotifyNode::MinimumStateDuration);
-			float MaxDuration = Sequence->SequenceLength - AnimNotifies[NotifyIndex]->GetTime();
-			NewDuration = FMath::Min(NewDuration, MaxDuration);
-			AnimNotifies[NotifyIndex]->SetDuration(NewDuration);
-
-			// If we have a delegate bound to refresh the offsets, call it.
-			// This is used by the montage editor to keep the offsets up to date.
-			OnRequestRefreshOffsets.ExecuteIfBound();
-		}
-	}
-
-	FSlateApplication::Get().DismissAllMenus();
 }
 
 void SAnimNotifyTrack::OnNewNotifyClicked()
@@ -3748,112 +3793,6 @@ void SAnimNotifyTrack::GetNotifyMenuData(TArray<FAssetData>& NotifyAssetData, TA
 	{
 		return A.NotifyName < B.NotifyName;
 	});
-}
-
-void SAnimNotifyTrack::OnSetNodeTimeClicked(int32 NodeIndex)
-{
-	if (NotifyNodes.IsValidIndex(NodeIndex))
-	{
-		INodeObjectInterface* NodeObject = NotifyNodes[NodeIndex]->NodeObjectInterface;
-		FString DefaultText = FString::Printf(TEXT("%0.6f"), NodeObject->GetTime());
-
-		// Show dialog to enter time
-		TSharedRef<STextEntryPopup> TextEntry =
-			SNew(STextEntryPopup)
-			.Label(LOCTEXT("NotifyTimeClickedLabel", "Notify Time"))
-			.DefaultText(FText::FromString(DefaultText))
-			.OnTextCommitted(this, &SAnimNotifyTrack::SetNodeTime, NodeIndex);
-
-		FSlateApplication::Get().PushMenu(
-			AsShared(), // Menu being summoned from a menu that is closing: Parent widget should be k2 not the menu thats open or it will be closed when the menu is dismissed
-			FWidgetPath(),
-			TextEntry,
-			FSlateApplication::Get().GetCursorPos(),
-			FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
-			);
-	}
-}
-
-void SAnimNotifyTrack::SetNodeTime(const FText& NodeTimeText, ETextCommit::Type CommitInfo, int32 NodeIndex)
-{
-	if(CommitInfo == ETextCommit::OnEnter || CommitInfo == ETextCommit::OnUserMovedFocus)
-	{
-		if (NotifyNodes.IsValidIndex(NodeIndex))
-		{
-			INodeObjectInterface* NodeObject = NotifyNodes[NodeIndex]->NodeObjectInterface;
-
-			float NewTime = FMath::Clamp(FCString::Atof(*NodeTimeText.ToString()), 0.0f, Sequence->SequenceLength - NodeObject->GetDuration());
-
-			NodeObject->SetTime(NewTime);
-
-			if (FAnimNotifyEvent* Event = NodeObject->GetNotifyEvent())
-			{
-				Event->RefreshTriggerOffset(Sequence->CalculateOffsetForNotify(Event->GetTime()));
-				if (Event->GetDuration() > 0.0f)
-				{
-					Event->RefreshEndTriggerOffset(Sequence->CalculateOffsetForNotify(Event->GetTime() + Event->GetDuration()));
-				}
-			}
-			OnUpdatePanel.ExecuteIfBound();
-		}
-	}
-
-	FSlateApplication::Get().DismissAllMenus();
-}
-
-void SAnimNotifyTrack::OnSetNodeFrameClicked(int32 NodeIndex)
-{
-	if (NotifyNodes.IsValidIndex(NodeIndex))
-	{
-		INodeObjectInterface* NodeObject = NotifyNodes[NodeIndex]->NodeObjectInterface;
-
-		const FText Frame = FText::AsNumber(Sequence->GetFrameAtTime(NodeObject->GetTime()));
-
-		FString DefaultText = FString::Printf(TEXT("%s"), *Frame.ToString());
-
-		// Show dialog to enter frame
-		TSharedRef<STextEntryPopup> TextEntry =
-			SNew(STextEntryPopup)
-			.Label(LOCTEXT("NotifyFrameClickedLabel", "Notify Frame"))
-			.DefaultText(FText::FromString(DefaultText))
-			.OnTextCommitted(this, &SAnimNotifyTrack::SetNodeFrame, NodeIndex);
-
-		FSlateApplication::Get().PushMenu(
-			AsShared(), // Menu being summoned from a menu that is closing: Parent widget should be k2 not the menu thats open or it will be closed when the menu is dismissed
-			FWidgetPath(),
-			TextEntry,
-			FSlateApplication::Get().GetCursorPos(),
-			FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
-			);
-	}
-}
-
-void SAnimNotifyTrack::SetNodeFrame(const FText& NodeFrameText, ETextCommit::Type CommitInfo, int32 NodeIndex)
-{
-	if(CommitInfo == ETextCommit::OnEnter || CommitInfo == ETextCommit::OnUserMovedFocus)
-	{
-		if (NotifyNodes.IsValidIndex(NodeIndex))
-		{
-			INodeObjectInterface* NodeObject = NotifyNodes[NodeIndex]->NodeObjectInterface;
-
-			int32 Frame = FCString::Atof(*NodeFrameText.ToString());
-			float NewTime = FMath::Clamp(Sequence->GetTimeAtFrame(Frame), 0.0f, Sequence->SequenceLength - NodeObject->GetDuration());
-
-			NodeObject->SetTime(NewTime);
-
-			if (FAnimNotifyEvent* Event = NodeObject->GetNotifyEvent())
-			{
-				Event->RefreshTriggerOffset(Sequence->CalculateOffsetForNotify(Event->GetTime()));
-				if (Event->GetDuration() > 0.0f)
-				{
-					Event->RefreshEndTriggerOffset(Sequence->CalculateOffsetForNotify(Event->GetTime() + Event->GetDuration()));
-				}
-			}
-			OnUpdatePanel.ExecuteIfBound();
-		}
-	}
-
-	FSlateApplication::Get().DismissAllMenus();
 }
 
 const EVisibility SAnimNotifyTrack::GetTimingNodeVisibility(TSharedPtr<SAnimNotifyNode> NotifyNode)

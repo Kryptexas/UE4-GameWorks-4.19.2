@@ -45,7 +45,8 @@ related:Engine/Blueprints/TechnicalGuide
 
 ![](match3_banner.png)(convert:false)
 
-<!--
+[COMMENT:none]
+
 [OBJECT:SampleDownload]
 	[PARAMLITERAL:url]
 	[/PARAMLITERAL]
@@ -53,7 +54,8 @@ related:Engine/Blueprints/TechnicalGuide
 	Unreal Match 3
 	[/PARAMLITERAL]
 [/OBJECT]
--->
+
+[/COMMENT]
 
 **Unreal Match 3** 用于展示虚幻引擎 4（UE4）的多样性和灵活性。 
 Unreal Match 3 为 UE4 开发者展示：如何打造针对中低端智能手机的移动游戏、如何在 UE4 项目中应用社交和盈利功能（如成就和内购）。
@@ -143,7 +145,8 @@ Unreal Match 3 项目使用了 UE4 工具集中的多种不同工具，在此介
 [/OBJECT]
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 ## 在项目中使用 C++ 和蓝图
 
 
@@ -167,4 +170,5 @@ Unreal Match 3 项目使用了 UE4 工具集中的多种不同工具，在此介
 
 ## 项目上架 iOS App Store 和 Google Play
 
--->
+
+[/COMMENT]

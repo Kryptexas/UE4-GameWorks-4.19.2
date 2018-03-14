@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DecalComponent.cpp: Decal component implementation.
@@ -24,14 +24,15 @@ FDeferredDecalProxy::FDeferredDecalProxy(const UDecalComponent* InComponent)
 	, FadeScreenSize( InComponent->FadeScreenSize )
 {
 	UMaterialInterface* EffectiveMaterial = UMaterial::GetDefaultMaterial(MD_DeferredDecal);
+	UMaterialInterface* ComponentMaterial = InComponent->GetDecalMaterial();
 
-	if(InComponent->DecalMaterial)
+	if (ComponentMaterial)
 	{
-		UMaterial* BaseMaterial = InComponent->DecalMaterial->GetMaterial();
+		UMaterial* BaseMaterial = ComponentMaterial->GetMaterial();
 
-		if(BaseMaterial->MaterialDomain == MD_DeferredDecal)
+		if (BaseMaterial->MaterialDomain == MD_DeferredDecal)
 		{
-			EffectiveMaterial = InComponent->DecalMaterial;
+			EffectiveMaterial = ComponentMaterial;
 		}
 	}
 
@@ -134,11 +135,12 @@ void UDecalComponent::LifeSpanCallback()
 {
 	DestroyComponent();
 
-	auto* Owner = GetOwner();
-
-	if (bDestroyOwnerAfterFade && Owner && (FadeDuration > 0.0f || FadeStartDelay > 0.0f))
+	if (bDestroyOwnerAfterFade  && (FadeDuration > 0.0f || FadeStartDelay > 0.0f))
 	{
-		Owner->Destroy();
+		if (AActor* Owner = GetOwner())
+		{
+			Owner->Destroy();
+		}
 	}
 }
 

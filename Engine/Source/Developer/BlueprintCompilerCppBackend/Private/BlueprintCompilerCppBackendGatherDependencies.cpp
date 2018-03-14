@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintCompilerCppBackendGatherDependencies.h"
 #include "Misc/CoreMisc.h"
@@ -42,16 +42,15 @@ struct FGatherConvertedClassDependenciesHelperBase : public FReferenceCollector
 		}
 
 		{
-			FArchive& CollectorArchive = GetVerySlowReferenceCollectorArchive();
-			FSerializedPropertyScope PropertyScope(CollectorArchive, nullptr);
-			const bool bOldFilterEditorOnly = CollectorArchive.IsFilterEditorOnly();
-			CollectorArchive.SetFilterEditorOnly(true);
+			FVerySlowReferenceCollectorArchiveScope CollectorScope(GetVerySlowReferenceCollectorArchive(), Object, nullptr);
+			const bool bOldFilterEditorOnly = CollectorScope.GetArchive().IsFilterEditorOnly();
+			CollectorScope.GetArchive().SetFilterEditorOnly(true);
 			if (UClass* AsBPGC = Cast<UBlueprintGeneratedClass>(Object))
 			{
 				Object = Dependencies.FindOriginalClass(AsBPGC);
 			}
-			Object->Serialize(CollectorArchive);
-			CollectorArchive.SetFilterEditorOnly(bOldFilterEditorOnly);
+			Object->Serialize(CollectorScope.GetArchive());
+			CollectorScope.GetArchive().SetFilterEditorOnly(bOldFilterEditorOnly);
 		}
 	}
 
@@ -122,8 +121,8 @@ struct FFindAssetsToInclude : public FGatherConvertedClassDependenciesHelperBase
 		const bool bUseZConstructorInGeneratedCode = false;
 		UField* AsField = Cast<UField>(Object);
 		UBlueprintGeneratedClass* ObjAsBPGC = Cast<UBlueprintGeneratedClass>(Object);
-		const bool bWillBeConvetedAsBPGC = ObjAsBPGC && Dependencies.WillClassBeConverted(ObjAsBPGC);
-		if (bWillBeConvetedAsBPGC)
+		const bool bWillBeConvertedAsBPGC = ObjAsBPGC && Dependencies.WillClassBeConverted(ObjAsBPGC);
+		if (bWillBeConvertedAsBPGC)
 		{
 			if (ObjAsBPGC != CurrentlyConvertedStruct)
 			{
@@ -500,7 +499,7 @@ UClass* FGatherConvertedClassDependencies::FindOriginalClass(const UClass* InCla
 	if (InClass)
 	{
 		IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
-		auto ClassWeakPtrPtr = BackEndModule.GetOriginalClassMap().Find(InClass);
+		TWeakObjectPtr<UClass>* ClassWeakPtrPtr = BackEndModule.GetOriginalClassMap().Find(MakeWeakObjectPtr(const_cast<UClass*>(InClass)));
 		UClass* OriginalClass = ClassWeakPtrPtr ? ClassWeakPtrPtr->Get() : nullptr;
 		return OriginalClass ? OriginalClass : const_cast<UClass*>(InClass);
 	}

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3350329
+﻿INTSourceChangelist:3746534
 Availability:Public
 Title: VR 및 메시 에디터 GDC 2017 피처 프리뷰
 Crumbs:
@@ -12,7 +12,7 @@ reference-image:vr_contentBrowser.gif
 reference-image:vr_contextOption.gif
 reference-image:vr_radialMenu.gif
 prereq:Engine/Editor/VR/ActivateVRMode
-prereq:Engine/Editor/VR/Setup
+
 
 [TOC(start:1 end:4)]
 
@@ -32,17 +32,6 @@ VR 에디터와 메시 에디터는 실험단계 기능입니다. 이번 릴리�
 * 원형 메뉴가 맥락에 따른 작업이 가능하도록 새롭게 디자인했습니다.
 * 스마트 스냅을 통해 레벨의 다른 애셋을 기준으로 오브젝트를 빠르고 정확히 배치할 수 있습니다.
 * 시뮬레이트 모드 도중 스태틱 메시에 가한 변경을 저장할 수 있습니다.
-
-## Dev-Geometry GDC 2017 Features Branch 다운로드
-
-Dev-Geometry GDC 2017 Features Branch 다운로드 방법은 다음과 같습니다:
-
-1. [GitHub 계정과 EpicID 계정을 연동시킵니다](https://www.unrealengine.com/ue4-on-github). 
-
-1. GitHub repository 에서 빌드를 다운로드합니다: [Dev-Geometry](https://github.com/EpicGames/UnrealEngine/tree/dev-geometry)
-
-1. 언리얼 에디터를 [컴파일](Programming/Development/BuildingUnrealEngine) 및 [실행](GettingStarted/RunningUnrealEngine) 합니다.
-
 
 ## 메시 에디터
 
@@ -169,22 +158,13 @@ Dev-Geometry GDC 2017 Features Branch 다운로드 방법은 다음과 같습니
 
 VR 모드는 이 빌드에서 기본으로 활성화되며, 레벨 에디터 툴바의 버튼이나 (**Alt + ~**) 단축키를 통해 진입할 수 있습니다. 추가로 Auto-entry(자동 진입)은 Oculus 또는 Vive 헤드셋을 쓰면 VR 모드에 자동 진입합니다.
 
-[REGION:note]자동 진입은 **에디터 개인설정 > 실험단계 > VR Editor** 아래에서 켜고 끌 수 있습니다.[/REGION]
+[REGION:note]자동 진입은 **에디터 설정 > 일반 > VR 모드** 아래에서 켜고 끌 수 있습니다.[/REGION]
 
 컨트롤러는 이제 Vive 와 Oculus 양쪽에서 동일하지 않습니다. 왼쪽 컨트롤러는 메뉴와 옵션을 여는 데 사용되는 반면, 오른쪽 컨트롤러는 아이템 선택 및 조작에 사용됩니다.
 
 ![](controllers.png)(w:640)
 
-텔레포트가 더이상 월드를 회색으로 탈색시키지 않으며 월드 스케일을 1:1 로 자동 되돌려 놓습니다.
-
 트리거 절반 누르기 옵션이 제거되었습니다. 월드 상호작용은 트리거를 완전히 쥐어야 합니다.
-
-**OCULUS 전용**: "하드 리셋 / 패닉 버튼" 이 추가되었습니다. 왼쪽 썸스틱을 클릭하면 다음과 같은 동작을 한꺼번에 수행합니다:
-
-* 모든 선택 아이템 선택 해제
-* 모든 열린 창 / 애셋 에디터 닫기
-* 시뮬레이트 취소
-* 사용자 액터 / 선택 모드
 
 되돌리기/다시하기 옵션은 오른쪽 썸스틱/터치패드에 할당되었습니다.
 

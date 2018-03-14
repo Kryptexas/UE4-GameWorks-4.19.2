@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -10,6 +10,25 @@
 
 struct FARFilter;
 struct FCollectionNameType;
+class FUICommandList;
+
+
+ enum class CONTENTBROWSER_API EMovedContentFolderFlags : uint8
+{
+	None = 0,
+	Favorite = 1 << 0,
+};
+
+ENUM_CLASS_FLAGS(EMovedContentFolderFlags)
+
+struct CONTENTBROWSER_API FMovedContentFolder
+{
+	FString OldPath;
+	FString NewPath;
+	EMovedContentFolderFlags Flags;
+
+	FMovedContentFolder(const FString& InOldPath, const FString& InNewPath);
+};
 
 /** Called when a "Find in Asset Tree" is requested */
 DECLARE_DELEGATE_OneParam(FOnFindInAssetTreeRequested, const TArray<FAssetData>& /*AssetsToFind*/);
@@ -83,6 +102,10 @@ DECLARE_DELEGATE_OneParam(FOnPathSelected, const FString& /*Path*/);
 /** Called when a path is double clicked in the asset view */
 DECLARE_DELEGATE_OneParam(FOnPathDoubleClicked, const FString& /*Path*/);
 
+/** Called when registering a custom command/keybinding for the content browser */
+DECLARE_DELEGATE_TwoParams(FOnContentBrowserGetSelection, TArray<FAssetData>& /*SelectedAssets*/, TArray<FString>& /*SelectedPaths*/);
+DECLARE_DELEGATE_TwoParams(FContentBrowserCommandExtender, TSharedRef<FUICommandList> /*CommandList*/, FOnContentBrowserGetSelection /*GetSelectionDelegate*/);
+
 /** Called to request the menu when right clicking on a path */
 DECLARE_DELEGATE_RetVal(TSharedRef<FExtender>, FContentBrowserMenuExtender);
 DECLARE_DELEGATE_RetVal_OneParam(TSharedRef<FExtender>, FContentBrowserMenuExtender_SelectedAssets, const TArray<FAssetData>& /*SelectedAssets*/);
@@ -91,11 +114,18 @@ DECLARE_DELEGATE_RetVal_OneParam(TSharedRef<FExtender>, FContentBrowserMenuExten
 /** Called to request the menu when right clicking on an asset */
 DECLARE_DELEGATE_RetVal_ThreeParams(TSharedPtr<SWidget>, FOnGetFolderContextMenu, const TArray<FString>& /*SelectedPaths*/, FContentBrowserMenuExtender_SelectedPaths /*MenuExtender*/, FOnCreateNewFolder /*CreationDelegate*/);
 
+/** Called to see if it is valid to request a custom asset item tooltip */
+DECLARE_DELEGATE_RetVal_OneParam(bool, FOnIsAssetValidForCustomToolTip, FAssetData& /*AssetData*/);
+
 /** Called to request a custom asset item tooltip */
 DECLARE_DELEGATE_RetVal_OneParam( TSharedRef<SToolTip>, FOnGetCustomAssetToolTip, FAssetData& /*AssetData*/);
 
-/** Called to get value for a custom column, will get converted as necesary */
+/** Called to get string/text value for a custom column, will get converted as necessary */
 DECLARE_DELEGATE_RetVal_TwoParams(FString, FOnGetCustomAssetColumnData, FAssetData& /*AssetData*/, FName /*ColumnName*/);
+DECLARE_DELEGATE_RetVal_TwoParams(FText, FOnGetCustomAssetColumnDisplayText, FAssetData& /*AssetData*/, FName /*ColumnName*/);
+
+/** Called to add extra asset data to the asset view, to display virtual assets. These get treated similar to Class assets */
+DECLARE_DELEGATE_TwoParams(FOnGetCustomSourceAssets, const FARFilter& /*SourceFilter*/, TArray<FAssetData>& /*AddedAssets*/);
 
 /** Called when an asset item visualizes its tooltip */
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnVisualizeAssetToolTip, const TSharedPtr<SWidget>& /*ToolTipContent*/, FAssetData& /*AssetData*/);
@@ -111,6 +141,9 @@ DECLARE_DELEGATE_OneParam(FOnAssetsChosenForOpen, const TArray<FAssetData>& /*Se
 
 /** Called from the Asset Dialog when an asset name is chosen in non-modal Save dialogs */
 DECLARE_DELEGATE_OneParam(FOnObjectPathChosenForSave, const FString& /*ObjectPath*/);
+
+/** Called when a favorite folder is moved or renamed in the content browser */
+DECLARE_DELEGATE_OneParam(FOnFolderPathChanged, const TArray<struct FMovedContentFolder>& /*MovedFolders*/);
 
 /** Contains the delegates used to handle a custom drag-and-drop in the asset view */
 struct FAssetViewDragAndDropExtender
@@ -170,18 +203,22 @@ struct FAssetViewCustomColumn
 	/** Type of column, used for sorting */
 	UObject::FAssetRegistryTag::ETagType DataType;
 
-	/** Delegate to get String value for this column */
+	/** Delegate to get String value for this column, used for sorting and internal use */
 	FOnGetCustomAssetColumnData OnGetColumnData;
+
+	/** Delegate to get Text value for this column, used to actually display */
+	FOnGetCustomAssetColumnDisplayText OnGetColumnDisplayText;
 
 	FAssetViewCustomColumn()
 		: DataType(UObject::FAssetRegistryTag::TT_Alphabetical) 
 	{ }
 
-	FAssetViewCustomColumn(FName InColumnName, const FText& InDisplayName, const FText& InTooltipText, UObject::FAssetRegistryTag::ETagType InDataType, const FOnGetCustomAssetColumnData& InOnGetColumnData)
+	FAssetViewCustomColumn(FName InColumnName, const FText& InDisplayName, const FText& InTooltipText, UObject::FAssetRegistryTag::ETagType InDataType, const FOnGetCustomAssetColumnData& InOnGetColumnData, const FOnGetCustomAssetColumnDisplayText& InOnGetColumnDisplayText = FOnGetCustomAssetColumnDisplayText())
 		: ColumnName(InColumnName)
 		, DisplayName(InDisplayName)
 		, TooltipText(InTooltipText)
 		, DataType(InDataType)
 		, OnGetColumnData(InOnGetColumnData)
+		, OnGetColumnDisplayText(InOnGetColumnDisplayText)
 	{ }
 };

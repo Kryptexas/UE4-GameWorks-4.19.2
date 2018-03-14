@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidTargetPlatform.h: Declares the FAndroidTargetPlatform class.
@@ -50,6 +50,7 @@ namespace AndroidTexFormat
 	static FName NameAutoATC(TEXT("AutoATC"));
 	static FName NameETC1(TEXT("ETC1"));
 	static FName NameAutoETC1(TEXT("AutoETC1"));			// ETC1 or uncompressed RGBA, if alpha channel required
+	static FName NameAutoETC1a(TEXT("AutoETC1a"));
 	static FName NameETC2_RGB(TEXT("ETC2_RGB"));
 	static FName NameETC2_RGBA(TEXT("ETC2_RGBA"));
 	static FName NameAutoETC2(TEXT("AutoETC2"));
@@ -151,6 +152,11 @@ public:
 		return true;
 	}
 
+	virtual FString IniPlatformName() const override
+	{
+		return "Android";
+	}
+
 #if WITH_ENGINE
 	virtual void GetReflectionCaptureFormats( TArray<FName>& OutFormats ) const override;
 
@@ -185,6 +191,7 @@ public:
 		InBoolKeys.Add(TEXT("bBuildForArmV7")); InBoolKeys.Add(TEXT("bBuildForArm64")); InBoolKeys.Add(TEXT("bBuildForX86"));
 		InBoolKeys.Add(TEXT("bBuildForX8664")); InBoolKeys.Add(TEXT("bBuildForES2"));
 		InBoolKeys.Add(TEXT("bBuildForES31")); InBoolKeys.Add(TEXT("bBuildWithHiddenSymbolVisibility"));
+		InStringKeys.Add(TEXT("NDKAPILevel"));
 	}
 
 	DECLARE_DERIVED_EVENT(FAndroidTargetPlatform, ITargetPlatform::FOnTargetDeviceDiscovered, FOnTargetDeviceDiscovered);

@@ -4,25 +4,12 @@ Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:In this final step, we define the method in which to layer our blended animation and which bone to start the blend from. 
 version: 4.14
 skilllevel: Advanced
+parent:Engine/Animation/AnimHowTo/AdditiveAnimations
 type:how-to
+order:4
 tags:Animation
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous](Engine\Animation\AnimHowTo\AdditiveAnimations\03_AnimGraphSetup)
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Layered Animations - Home ](Engine\Animation\AnimHowTo\AdditiveAnimations)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 In this final step, we define the method in which to layer our blended animation and which bone to start the blend from. 
 
@@ -94,7 +81,7 @@ You could use this same guide to play a melee attack, reload animation or any ot
 The **UpperBody** slot that we created and assigned in our Animation Montage can be assigned in other Animation Montages as well. 
 Since our AnimGraph has the Slot node assigned, whenever we call to play an Animation Montage that has that slot assigned, it will get played with our defined settings. 
  
-%Steps%
+[NAV]
 
 
 

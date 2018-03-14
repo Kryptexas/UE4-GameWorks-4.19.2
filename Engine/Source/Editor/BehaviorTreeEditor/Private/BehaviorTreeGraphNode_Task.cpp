@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeGraphNode_Task.h"
 #include "BehaviorTree/BTNode.h"
@@ -10,7 +10,7 @@ UBehaviorTreeGraphNode_Task::UBehaviorTreeGraphNode_Task(const FObjectInitialize
 
 void UBehaviorTreeGraphNode_Task::AllocateDefaultPins()
 {
-	CreatePin(EGPD_Input, UBehaviorTreeEditorTypes::PinCategory_SingleComposite, FString(), nullptr, TEXT("In"));
+	CreatePin(EGPD_Input, UBehaviorTreeEditorTypes::PinCategory_SingleComposite, TEXT("In"));
 }
 
 FText UBehaviorTreeGraphNode_Task::GetNodeTitle(ENodeTitleType::Type TitleType) const

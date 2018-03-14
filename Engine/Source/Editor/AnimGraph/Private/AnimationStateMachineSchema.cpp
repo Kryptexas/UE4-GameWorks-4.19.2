@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimationStateMachineSchema.cpp
@@ -113,10 +113,11 @@ UEdGraphNode* FEdGraphSchemaAction_NewStateComment::PerformAction(class UEdGraph
 /////////////////////////////////////////////////////
 // UAnimationStateMachineSchema
 
+const FName UAnimationStateMachineSchema::PC_Exec(TEXT("exec"));
+
 UAnimationStateMachineSchema::UAnimationStateMachineSchema(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	PC_Exec = TEXT("exec");
 }
 
 void UAnimationStateMachineSchema::CreateDefaultNodesForGraph(UEdGraph& Graph) const
@@ -462,7 +463,7 @@ void UAnimationStateMachineSchema::BreakPinLinks(UEdGraphPin& TargetPin, bool bS
 	FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 }
 
-void UAnimationStateMachineSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin)
+void UAnimationStateMachineSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) const
 {
 	const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "GraphEd_BreakSinglePinLink", "Break Pin Link"));
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNodeChecked(TargetPin->GetOwningNode());

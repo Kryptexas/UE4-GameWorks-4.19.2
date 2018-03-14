@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -358,17 +358,19 @@ namespace AutomationTool
 		{
 			return LocalPath;
 		}
-		/// <summary>
-		/// Returns a list of the compiler produced debug file extensions
-		/// </summary>
-		/// <returns>a list of the compiler produced debug file extensions</returns>
-		public virtual List<string> GetDebugFileExtentions()
-		{
-			return new List<string>();
-		}
+        /// <summary>
+        /// Returns a list of the compiler produced debug file extensions
+        /// </summary>
+        /// <returns>a list of the compiler produced debug file extensions</returns>
+        public virtual List<string> GetDebugFileExtensions()
+        {
+            return new List<string>();
+        }
 
 		/// <summary>
 		/// Remaps movie directory for platforms that need a remap
+		/// If true, CopyBuildToStagingDirectory.Automation.cs will do this. 
+		/// If false, each platform can still do this individually.
 		/// </summary>
 		public virtual bool StageMovies
 		{

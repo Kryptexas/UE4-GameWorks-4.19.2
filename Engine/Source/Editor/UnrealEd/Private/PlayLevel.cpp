@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Misc/MessageDialog.h"
@@ -99,6 +99,7 @@
 #include "Net/OnlineEngineInterface.h"
 #include "Kismet2/DebuggerCommands.h"
 #include "Misc/ScopeExit.h"
+#include "IVREditorModule.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayLevel, Log, All);
@@ -2467,7 +2468,7 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	}
 
 	// Make sure to focus the game viewport.
-	if (!bInSimulateInEditor)
+	if (!bInSimulateInEditor && (GetDefault<ULevelEditorPlaySettings>()->GameGetsMouseControl || IVREditorModule::Get().IsVREditorEnabled() || (bUseVRPreviewForPlayWorld && GEngine->XRSystem.IsValid())))
 	{
 		FSlateApplication::Get().SetAllUserFocusToGameViewport();
 	}

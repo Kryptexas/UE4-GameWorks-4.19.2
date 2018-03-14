@@ -46,39 +46,11 @@ social-image:RoboRecallModding_Guns_Ref.png
 
 The Notify Start Firing event is called each time the player presses the 'fire' button. Any nodes connected to the _exec_ output pin will be executed at this time. Use this event to extend or override the firing functionality of the weapon, such as changing the firing location or spawning firing effects.
 
-[OBJECT:Section]
-    [PARAMLITERAL:id]
-    outputs
-    [/PARAMLITERAL]
-    [PARAM:heading]
-    Outputs
-    [/PARAM]
-    [PARAM:content]
-        [OBJECT:MemberIconListHeadBlank]
-        [/OBJECT]
-        [OBJECT:ActionPinListItem]
-            [PARAM:icons]
-                [REGION:input_exec exec]
-                    
-                [/REGION]
-            [/PARAM]
-            [PARAMLITERAL:name]
-                
-            [/PARAMLITERAL]
-            [PARAMLITERAL:type]
-                exec
-            [/PARAMLITERAL]
-            [PARAM:tooltip]
-                Nodes connected to this are exected when the event is called.
-            [/PARAM]
-            [PARAMLITERAL:id]
-                Out_Exec
-            [/PARAMLITERAL]
-        [/OBJECT]
-        [OBJECT:MemberIconListTail]
-        [/OBJECT]
-    [/PARAM]
-[/OBJECT]
+### Outputs
+
+| Type | Description |
+| ---- | ----------- |
+| exec | Nodes connected to this are exected when the event is called. |
 
 ### Event Notify Stop Firing
 
@@ -109,37 +81,9 @@ The Notify Start Firing event is called each time the player presses the 'fire' 
 
 The Notify Stop Firing event is called each time the player releases the 'fire' button. Any nodes connected to the _exec_ output pin will be executed at this time. Use this event to extend or override the 'stop firing' functionality of the weapon, such as cleaning up firing effects spawned when firing.
 
-[OBJECT:Section]
-    [PARAMLITERAL:id]
-    outputs
-    [/PARAMLITERAL]
-    [PARAM:heading]
-    Outputs
-    [/PARAM]
-    [PARAM:content]
-        [OBJECT:MemberIconListHeadBlank]
-        [/OBJECT]
-        [OBJECT:ActionPinListItem]
-            [PARAM:icons]
-                [REGION:input_exec exec]
-                    
-                [/REGION]
-            [/PARAM]
-            [PARAMLITERAL:name]
-                
-            [/PARAMLITERAL]
-            [PARAMLITERAL:type]
-                exec
-            [/PARAMLITERAL]
-            [PARAM:tooltip]
-                Nodes connected to this are exected when the event is called.
-            [/PARAM]
-            [PARAMLITERAL:id]
-                Out_Exec
-            [/PARAMLITERAL]
-        [/OBJECT]
-        [OBJECT:MemberIconListTail]
-        [/OBJECT]
-    [/PARAM]
-[/OBJECT]
+### Outputs
+
+| Type | Description |
+| ---- | ----------- |
+| exec | Nodes connected to this are exected when the event is called. |
 

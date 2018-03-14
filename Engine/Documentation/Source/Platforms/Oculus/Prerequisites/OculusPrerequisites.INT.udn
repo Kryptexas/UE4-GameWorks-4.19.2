@@ -1,0 +1,71 @@
+Availability: Public
+Crumbs: %ROOT%
+Title: Oculus Prerequisites
+Description: Information about setting up your Oculus Rift to be used with UE4.
+Type: Reference
+Version: 4.16
+Parent: Platforms/Oculus
+Order: 1
+Tags: Oculus Rift
+Tags: Platform
+topic-image:PreRecProfiling_Topic_Image.png
+
+
+On the following page, you will find information on how to make sure your Unreal Engine 4 (UE4) project will work with the Oculus Rift HMD. 
+
+## Enabling Unknown Sources 
+
+While you're developing your Unreal Engine 4 (UE4) Virtual Reality (VR) project, it's best to enable allow **Unknown Sources** so you can run your application without having to have it be registered or reviewed by Oculus. To enable the **Unknown Sources** option, you will need to do the following:
+
+1. Open the Oculus Store then click on the **Gear** icon that is in the upper right-hand corner to expose the **Settings** menu option, then click on the word **Settings**.
+
+	[REGION:lightbox]
+	[![](Platforms\Oculus\Rift_UKS_01.png)(w:512)](Platforms\Oculus\Rift_UKS_01.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
+1. From the left-hand side, select the **General** section. Then in the **Unknown Sources** section, click on the button to enable this option.
+
+	[REGION:lightbox]
+	[![](Platforms\Oculus\Rift_UKS_02.png)(w:512)](Platforms\Oculus\Rift_UKS_02.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
+1. After the button has been clicked on, a message will be displayed. Click on the **Allow** button to continue.
+
+	[REGION:lightbox]
+	[![](Platforms\Oculus\Rift_UKS_03.png)(w:512)](Platforms\Oculus\Rift_UKS_03.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
+1. When completed, the button will turn blue like in the following image.
+    
+	[REGION:lightbox]
+	[![](Platforms\Oculus\Rift_UKS_04.png)(w:512)](Platforms\Oculus\Rift_UKS_04.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
+
+    [region:note]
+    To revert this change back to the default settings, click on the button again and the checkmark will change from a checkmark back into an X.
+    [/region]
+
+## SteamVR Troubleshooting
+
+If you are having issues getting your Oculus Rift to run, the Oculus Support Center pages can help you fix most issues that you will run into.
+
+[**Oculus Support Center**](https://support.oculus.com/)
+
+
+

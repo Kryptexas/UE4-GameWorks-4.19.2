@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // This code is modified from that in the Mesa3D Graphics library available at
 // http://mesa3d.org/
@@ -73,7 +73,7 @@ ir_constant* ir_expression::constant_expression_value()
 		return NULL;
 	}
 
-	ir_constant* op[Elements(this->operands)] = { NULL, };
+	ir_constant* op[GetNumArrayElements(this->operands)] = { NULL, };
 	ir_constant_data data;
 
 	memset(&data, 0, sizeof(data));

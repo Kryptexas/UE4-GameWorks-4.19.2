@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayDebuggerTypes.h"
 #include "InputCoreTypes.h"
@@ -462,22 +462,22 @@ void FGameplayDebuggerCanvasContext::PrintAt(float PosX, float PosY, const FColo
 	PrintFunc; \
 	FMemory::SystemFree(AllocatedBuffer);
 
-VARARG_BODY(void, FGameplayDebuggerCanvasContext::Printf, const TCHAR*, VARARG_NONE)
+void FGameplayDebuggerCanvasContext::PrintfImpl(const TCHAR* Fmt, ...)
 {
 	GROWABLE_PRINTF(Print(Buffer));
 }
 
-VARARG_BODY(void, FGameplayDebuggerCanvasContext::Printf, const TCHAR*, VARARG_EXTRA(const FColor& Color))
+void FGameplayDebuggerCanvasContext::PrintfImpl(const FColor& Color, const TCHAR* Fmt, ...)
 {
 	GROWABLE_PRINTF(Print(Color, Buffer));
 }
 
-VARARG_BODY(void, FGameplayDebuggerCanvasContext::PrintfAt, const TCHAR*, VARARG_EXTRA(float PosX) VARARG_EXTRA(float PosY))
+void FGameplayDebuggerCanvasContext::PrintfAtImpl(float PosX, float PosY, const TCHAR* Fmt, ...)
 {
 	GROWABLE_PRINTF(PrintAt(PosX, PosY, Buffer));
 }
 
-VARARG_BODY(void, FGameplayDebuggerCanvasContext::PrintfAt, const TCHAR*, VARARG_EXTRA(float PosX) VARARG_EXTRA(float PosY) VARARG_EXTRA(const FColor& Color))
+void FGameplayDebuggerCanvasContext::PrintfAtImpl(float PosX, float PosY, const FColor& Color, const TCHAR* Fmt, ...)
 {
 	GROWABLE_PRINTF(PrintAt(PosX, PosY, Color, Buffer));
 }

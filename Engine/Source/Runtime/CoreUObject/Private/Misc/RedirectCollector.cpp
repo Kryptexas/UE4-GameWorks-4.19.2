@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Misc/RedirectCollector.h"
 #include "Misc/CoreDelegates.h"
@@ -30,8 +30,9 @@ void FRedirectCollector::OnSoftObjectPathLoaded(const FSoftObjectPath& InPath)
 
 	FName PackageName, PropertyName;
 	ESoftObjectPathCollectType CollectType = ESoftObjectPathCollectType::AlwaysCollect;
+	ESoftObjectPathSerializeType SerializeType = ESoftObjectPathSerializeType::AlwaysSerialize;
 
-	ThreadContext.GetSerializationOptions(PackageName, PropertyName, CollectType);
+	ThreadContext.GetSerializationOptions(PackageName, PropertyName, CollectType, SerializeType);
 
 	if (CollectType == ESoftObjectPathCollectType::NeverCollect)
 	{
@@ -155,18 +156,15 @@ void FRedirectCollector::ProcessSoftObjectPathPackageList(FName FilterPackage, b
 		// Package name may be null, if so return the set of things not associated with a package
 		if (FilterPackage == RefFilenameAndProperty.GetCachedPackageName())
 		{
-			FString PackageNameString = FPackageName::ObjectPathToPackageName(ToLoadFName.ToString());
-
 			if (!RefFilenameAndProperty.GetReferencedByEditorOnlyProperty() || bGetEditorOnly)
 			{
+				FString PackageNameString = FPackageName::ObjectPathToPackageName(ToLoadFName.ToString());
 				OutReferencedPackages.Add(FName(*PackageNameString));
 			}
 
 			It.RemoveCurrent();
 		}
 	}
-
-	SoftObjectPathMap.Compact();
 }
 
 void FRedirectCollector::AddAssetPathRedirection(FName OriginalPath, FName RedirectedPath)

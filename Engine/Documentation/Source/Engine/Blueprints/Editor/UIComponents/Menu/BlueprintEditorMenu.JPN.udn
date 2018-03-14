@@ -126,7 +126,8 @@ version:4.9
 
 [/EXCERPT:Main]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:devtools]
 [REGION:simpletable]
 | サブメニュー アイテム | 説明 |
@@ -144,4 +145,5 @@ version:4.9
 | **Widget Reflector** | ウィジェット リフレクタを開きます。エディタ インターフェース内のインターフェースを構成する様々なスレート エレメントを見ることができます。 |
 [/REGION]
 [/EXCERPT:devtools]
--->
+
+[/COMMENT]

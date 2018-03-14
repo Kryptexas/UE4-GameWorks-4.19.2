@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParllelFor.h: TaskGraph library
@@ -39,7 +39,7 @@ struct FParallelForData
 		check(InTotalNum >= InNumThreads);
 		BlockSize = 0;
 		Num = 0;
-		for (int32 Div = 3; Div; Div--)
+		for (int32 Div = 6; Div; Div--)
 		{
 			BlockSize = InTotalNum / (InNumThreads * Div);
 			if (BlockSize)

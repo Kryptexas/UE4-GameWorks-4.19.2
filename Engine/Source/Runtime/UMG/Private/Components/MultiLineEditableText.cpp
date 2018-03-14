@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/MultiLineEditableText.h"
 #include "UObject/ConstructorHelpers.h"
@@ -17,13 +17,18 @@ UMultiLineEditableText::UMultiLineEditableText(const FObjectInitializer& ObjectI
 	SMultiLineEditableText::FArguments Defaults;
 	WidgetStyle = *Defaults._TextStyle;
 	bIsReadOnly = Defaults._IsReadOnly.Get();
+	SelectAllTextWhenFocused = Defaults._SelectAllTextWhenFocused.Get();
+	ClearTextSelectionOnFocusLoss = Defaults._ClearTextSelectionOnFocusLoss.Get();
+	RevertTextOnEscape = Defaults._RevertTextOnEscape.Get();
+	ClearKeyboardFocusOnCommit = Defaults._ClearKeyboardFocusOnCommit.Get();
 	AllowContextMenu = Defaults._AllowContextMenu.Get();
 	Clipping = Defaults._Clipping;
+	VirtualKeyboardDismissAction = Defaults._VirtualKeyboardDismissAction.Get();
 	AutoWrapText = true;
 	
 	if (!IsRunningDedicatedServer())
 	{
-		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
+		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(*UWidget::GetDefaultFontName());
 		Font_DEPRECATED = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
 
 		WidgetStyle.SetFont(Font_DEPRECATED);
@@ -45,14 +50,16 @@ TSharedRef<SWidget> UMultiLineEditableText::RebuildWidget()
 	.IsReadOnly(bIsReadOnly)
 //	.MinDesiredWidth(MinimumDesiredWidth)
 //	.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
-//	.SelectAllTextWhenFocused(SelectAllTextWhenFocused)
-//	.RevertTextOnEscape(RevertTextOnEscape)
-//	.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
+	.SelectAllTextWhenFocused(SelectAllTextWhenFocused)
+	.ClearTextSelectionOnFocusLoss(ClearTextSelectionOnFocusLoss)
+	.RevertTextOnEscape(RevertTextOnEscape)
+	.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
 //	.SelectAllTextOnCommit(SelectAllTextOnCommit)
 //	.BackgroundImageSelected(BackgroundImageSelected ? TAttribute<const FSlateBrush*>(&BackgroundImageSelected->Brush) : TAttribute<const FSlateBrush*>())
 //	.BackgroundImageSelectionTarget(BackgroundImageSelectionTarget ? TAttribute<const FSlateBrush*>(&BackgroundImageSelectionTarget->Brush) : TAttribute<const FSlateBrush*>())
 //	.BackgroundImageComposing(BackgroundImageComposing ? TAttribute<const FSlateBrush*>(&BackgroundImageComposing->Brush) : TAttribute<const FSlateBrush*>())
 //	.CaretImage(CaretImage ? TAttribute<const FSlateBrush*>(&CaretImage->Brush) : TAttribute<const FSlateBrush*>())
+	.VirtualKeyboardDismissAction(VirtualKeyboardDismissAction)
 	.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
 	.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
 	;
@@ -71,8 +78,12 @@ void UMultiLineEditableText::SynchronizeProperties()
 	MyMultiLineEditableText->SetHintText(HintTextBinding);
 	MyMultiLineEditableText->SetAllowContextMenu(AllowContextMenu);
 	MyMultiLineEditableText->SetIsReadOnly(bIsReadOnly);
+	MyMultiLineEditableText->SetVirtualKeyboardDismissAction(VirtualKeyboardDismissAction);
+	MyMultiLineEditableText->SetSelectAllTextWhenFocused(SelectAllTextWhenFocused);
+	MyMultiLineEditableText->SetClearTextSelectionOnFocusLoss(ClearTextSelectionOnFocusLoss);
+	MyMultiLineEditableText->SetRevertTextOnEscape(RevertTextOnEscape);
+	MyMultiLineEditableText->SetClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit);
 
-//	MyMultiLineEditableText->SetIsPassword(IsPassword);
 //	MyMultiLineEditableText->SetColorAndOpacity(ColorAndOpacity);
 
 	// TODO UMG Complete making all properties settable on SMultiLineEditableText
@@ -137,7 +148,7 @@ void UMultiLineEditableText::PostLoad()
 
 const FText UMultiLineEditableText::GetPaletteCategory()
 {
-	return LOCTEXT("Primitive", "Primitive");
+	return LOCTEXT("Input", "Input");
 }
 
 #endif

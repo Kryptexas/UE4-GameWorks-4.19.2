@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SDetailSingleItemRow.h"
 #include "ObjectPropertyNode.h"
@@ -478,26 +478,42 @@ bool SDetailSingleItemRow::OnContextMenuOpening(FMenuBuilder& MenuBuilder)
 		}
 	}
 
+	bool bAddedMenuEntry = false;
 	if (CopyAction.IsBound() && PasteAction.IsBound())
 	{
-		MenuBuilder.AddMenuSeparator();
+		// Hide separator line if it only contains the SearchWidget, making the next 2 elements the top of the list
+		if (MenuBuilder.GetMultiBox()->GetBlocks().Num() > 1)
+		{
+			MenuBuilder.AddMenuSeparator();
+		}
 
 		MenuBuilder.AddMenuEntry(
 			NSLOCTEXT("PropertyView", "CopyProperty", "Copy"),
 			NSLOCTEXT("PropertyView", "CopyProperty_ToolTip", "Copy this property value"),
-			FSlateIcon(),
+			FSlateIcon(FCoreStyle::Get().GetStyleSetName(), "GenericCommands.Copy"),
 			CopyAction);
 
 		MenuBuilder.AddMenuEntry(
 			NSLOCTEXT("PropertyView", "PasteProperty", "Paste"),
 			NSLOCTEXT("PropertyView", "PasteProperty_ToolTip", "Paste the copied value here"),
-			FSlateIcon(),
+			FSlateIcon(FCoreStyle::Get().GetStyleSetName(), "GenericCommands.Paste"),
 			PasteAction);
 
-		return true;
+		bAddedMenuEntry = true;
 	}
 
-	return false;
+	for(const FDetailWidgetRow::FCustomMenuData& CustomMenuData : Customization->GetWidgetRow().CustomMenuItems)
+	{
+		//Add the menu entry
+		MenuBuilder.AddMenuEntry(
+			CustomMenuData.Name,
+			CustomMenuData.Tooltip,
+			CustomMenuData.SlateIcon,
+			CustomMenuData.Action);
+		bAddedMenuEntry = true;
+	}
+
+	return bAddedMenuEntry;
 }
 
 void SDetailSingleItemRow::OnLeftColumnResized( float InNewWidth )

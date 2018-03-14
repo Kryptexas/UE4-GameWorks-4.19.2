@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -201,8 +201,14 @@ struct FAssetPickerConfig
 	/** The delegate that fires when a folder is right clicked and a context menu is requested */
 	FOnGetFolderContextMenu OnGetFolderContextMenu;
 
+	/** Called to see if it is valid to get a custom asset tool tip */
+	FOnIsAssetValidForCustomToolTip OnIsAssetValidForCustomToolTip;
+
 	/** Fired when an asset item is constructed and a tooltip is requested. If unbound the item will use the default widget */
 	FOnGetCustomAssetToolTip OnGetCustomAssetToolTip;
+
+	/** Called to add extra asset data to the asset view, to display virtual assets. These get treated similar to Class assets */
+	FOnGetCustomSourceAssets OnGetCustomSourceAssets;
 
 	/** Fired when an asset item is about to show its tool tip */
 	FOnVisualizeAssetToolTip OnVisualizeAssetToolTip;

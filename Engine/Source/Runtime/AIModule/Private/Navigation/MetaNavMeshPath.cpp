@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Navigation/MetaNavMeshPath.h"
 #include "GameFramework/Controller.h"
@@ -78,7 +78,7 @@ void FMetaNavMeshPath::Initialize(const FVector& AgentLocation)
 		UE_VLOG(GetSourceActor(), LogNavigation, Log, TEXT("Initializing meta path, Waypoints:%d GoalActor:%s"),
 			Waypoints.Num(), *GetNameSafe(GetGoalActor()));
 
-		PathGoal = GetGoalActor();
+		PathGoal = MakeWeakObjectPtr(const_cast<AActor*>(GetGoalActor()));
 		PathGoalTetherDistance = GetGoalActorTetherDistance();
 		DisableGoalActorObservation();
 

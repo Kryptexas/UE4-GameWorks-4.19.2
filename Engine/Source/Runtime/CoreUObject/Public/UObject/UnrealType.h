@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealType.h: Unreal engine base type definitions.
@@ -2018,9 +2018,9 @@ public:
 	// TProperty::GetCPPType should not be used here
 	virtual FString GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const override
 	{
-		check(UObjectPropertyBase::PropertyClass);
+		check(this->PropertyClass);
 		return this->GetCPPTypeCustom(ExtendedTypeText, CPPExportFlags, 
-			FString::Printf(TEXT("%s%s"), UObjectPropertyBase::PropertyClass->GetPrefixCPP(), *UObjectPropertyBase::PropertyClass->GetName()));
+			FString::Printf(TEXT("%s%s"), this->PropertyClass->GetPrefixCPP(), *this->PropertyClass->GetName()));
 	}
 };
 
@@ -2571,6 +2571,8 @@ public:
 	virtual bool SameType(const UProperty* Other) const override;
 	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty) override;
 	// End of UProperty interface
+
+	FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& KeyTypeText, const FString& InKeyExtendedTypeText, const FString& ValueTypeText, const FString& InValueExtendedTypeText) const;
 };
 
 // need to break this out a different type so that the DECLARE_CASTED_CLASS_INTRINSIC macro can digest the comma
@@ -2621,6 +2623,8 @@ public:
 	virtual bool SameType(const UProperty* Other) const override;
 	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty) override;
 	// End of UProperty interface
+
+	FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& ElementTypeText, const FString& InElementExtendedTypeText) const;
 };
 
 /**
@@ -4163,6 +4167,7 @@ public:
 
 	// UProperty interface
 	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const override;
+	virtual FString GetCPPTypeForwardDeclaration() const override;
 	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const override;
 	virtual void SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const override;
 	virtual bool NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData = NULL ) const override;

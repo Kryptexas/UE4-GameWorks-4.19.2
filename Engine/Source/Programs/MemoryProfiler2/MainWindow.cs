@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections;
@@ -2472,6 +2472,10 @@ namespace MemoryProfiler2
 		{
 		}
 
+        public virtual void SetModuleOffset(ulong offset)
+        {
+        }
+
 		public virtual bool ResolveAddressToSymboInfo(ESymbolResolutionMode SymbolResolutionMode, ulong Address, out string OutFileName, out string OutFunction, out int OutLineNumber)
 		{
 			OutFileName = null;
@@ -2574,7 +2578,7 @@ namespace MemoryProfiler2
 					Callback(CallStack);
 				}
 			});
-
+            AsyncWorker.WorkerSupportsCancellation = true;
 			AsyncWorker.RunWorkerAsync();
 			ResolveCallstackSymbolInfoAsyncTasks.Add(AsyncWorker);
 		}

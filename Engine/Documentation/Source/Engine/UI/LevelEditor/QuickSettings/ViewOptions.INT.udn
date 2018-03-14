@@ -39,7 +39,8 @@ The **Settings** are a set of properties for controlling selection, editing, and
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BrushPolys]
 [REGION:imagetable]
 | ![](brush_polys_enabled.png)(quality:100) | ![](brush_polys_disabled.png)(quality:100) |
@@ -64,4 +65,5 @@ Sets the Material quality level used for previewing in the Viewports. See [Mater
 | High |
 [/REGION]
 [/EXCERPT:MaterialQuality]
--->
+
+[/COMMENT]

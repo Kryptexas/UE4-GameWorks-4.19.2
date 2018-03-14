@@ -21,7 +21,7 @@ tags:Blueprints
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 In this step, we will update the values displayed on our HUD Widget Blueprint by communicating with our Character Blueprint to get values stored in it for Pulls, Shots, and Score. To do this, we will use a **Cast** node to access the player's Character Blueprint then Bind properties in our HUD to values in our Character Blueprint so they automatically get updated when those values are updated in the Character Blueprint. 
 
@@ -106,7 +106,8 @@ In the final step, you will see some examples you can take to alter this project
 
 
 
-<!-- Old
+[COMMENT:none]
+ Old
 
 For more information on the topics covered in this guide, and across the entire editor, see the [**Unreal Editor Manual**](Engine).
 
@@ -122,9 +123,10 @@ As for coverage related to the topics in this guide:
 
 * For more information on creating HUD elements with **Unreal Motion Graphics** (UMG), see: [**Unreal Motion Graphics**](Engine/UMG)
 
--->
 
-%Steps%
+[/COMMENT]
+
+
 
 
 

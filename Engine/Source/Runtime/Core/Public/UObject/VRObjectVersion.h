@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreTypes.h"
@@ -11,6 +11,9 @@ struct CORE_API FVRObjectVersion
 	{
 		// Before any version changes were made
 		BeforeCustomVersionWasAdded = 0,
+
+		// Change UMotionControllerComponent from using EControllerHand to FName for motion source
+		UseFNameInsteadOfEControllerHandForMotionSource,
 
 
 		// -----<new versions can be added above this line>-------------------------------------------------

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessHistogram.h: Post processing histogram implementation.
@@ -40,6 +40,6 @@ public:
 
 	// -------------------------------------------
 
-	static FIntPoint ComputeGatherExtent(const FSceneView& View);
+	static FIntPoint ComputeGatherExtent(const FRenderingCompositePassContext& Context);
 	static FIntPoint ComputeThreadGroupCount(FIntPoint PixelExtent);
 };

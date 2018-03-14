@@ -1,29 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:앰비언트 오클루전
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:Occlusion, 차폐에 의한 빛의 감쇠를 추정합니다.
 Version: 4.9
+topic-image:ao.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/AmbientOcclusion:title%](ao.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/AmbientOcclusion:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/AmbientOcclusion:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/AmbientOcclusion]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [EXCERPT:AmbientOcclusion_Desc]
 **Screen Space Ambient Occlusion** (SSAO, 스크린 스페이스 앰비언트 오클루전)은 빛의 차폐로 인한 감쇠 근사치를 구하는 이펙트입니다. 현실에서도 방의 구석 부분은 훨씬 더 어둡듯이, 구석이나 틈 같은 곳을 더 어둡게 하여 더욱 자연스럽고 사실적인 느낌을 낼 수 있도록, 표준 글로벌 일루미네이션에 더해 미묘한 이펙트로 사용하는 것이 보통 가장 좋습니다.
@@ -49,9 +31,12 @@ AO 는 GBuffer 의 일부이기에 머티리얼이 출력하는 것도 가능합
 | **Radius in WorldSpace** | 반경 월드스페이스에 - 켜면 **AO Radius** 프로퍼티 값은 월드 스페이스에, 끄면 뷰 스페이스에 있다고 가정합니다. |
 | **Distance** | 거리 - SSAO 기법은 zbuffer 만 있어서 오브젝트의 두께를 알 길이 없기 때문에 그 주변에 발생하는 검은 테두리를 피하기 위해 사용하는 트윅 파라미터입니다. [INCLUDE:Engine/Rendering/LightingAndShadows/AmbientOcclusion#Distance] |
 | **Power** | 세기 - 계산을 통한 어둡게 하는 효과의 세기를 조절합니다. [INCLUDE:Engine/Rendering/LightingAndShadows/AmbientOcclusion#Power] |
-| **Bias** | 편향 - AO 디테일 트윅이 가능합니다. 약간의 편향치는 원거리의 부작용을 방지하기 위해 필요합니다. 언리얼 유닛으로 0 초과이며, 기본값 (3.0) 으로 평평한 표면에는 잘 돌아가나 디테일이 떨어질 수 있습니다. <!--TODO: images--> |
+| **Bias** | 편향 - AO 디테일 트윅이 가능합니다. 약간의 편향치는 원거리의 부작용을 방지하기 위해 필요합니다. 언리얼 유닛으로 0 초과이며, 기본값 (3.0) 으로 평평한 표면에는 잘 돌아가나 디테일이 떨어질 수 있습니다. [COMMENT:none]
+TODO: images
+[/COMMENT] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Intensity]
 [REGION:imagetable]
 | ![AO Intensity - 0.0](ao_intensity_0.png)(w:390) | ![AO Intensity - 1.0](ao_intensity_1.png)(w:390)
@@ -86,4 +71,5 @@ AO 는 GBuffer 의 일부이기에 머티리얼이 출력하는 것도 가능합
 | 1.0 | 4.0 | 10.0 |
 [/REGION]
 [/EXCERPT:Power]
--->
+
+[/COMMENT]

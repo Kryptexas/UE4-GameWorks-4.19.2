@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -70,7 +70,7 @@ public:
 	static const UFunction* FindOverriddenImplementableEvent(const FName& EventName, const UClass* Class);
 
 	/** Helper function for creating property for primitive types. Used only to create inner peroperties for UArrayProperty, USetProperty, and UMapProperty: */
-	static UProperty* CreatePrimitiveProperty( UObject* PropertyScope, const FName& ValidatedPropertyName, const FString& PinCategory, const FString& PinSubCategory, UObject* PinSubCategoryObject, UClass* SelfClass, bool bIsWeakPointer, const class UEdGraphSchema_K2* Schema, FCompilerResultsLog& MessageLog);
+	static UProperty* CreatePrimitiveProperty( UObject* PropertyScope, const FName& ValidatedPropertyName, const FName& PinCategory, const FName& PinSubCategory, UObject* PinSubCategoryObject, UClass* SelfClass, bool bIsWeakPointer, const class UEdGraphSchema_K2* Schema, FCompilerResultsLog& MessageLog);
 
 	/** Creates a property named PropertyName of type PropertyType in the Scope or returns NULL if the type is unknown, but does *not* link that property in */
 	static UProperty* CreatePropertyOnScope(UStruct* Scope, const FName& PropertyName, const FEdGraphPinType& Type, UClass* SelfClass, uint64 PropertyFlags, const class UEdGraphSchema_K2* Schema, FCompilerResultsLog& MessageLog);
@@ -213,19 +213,19 @@ public:
 struct FNetNameMapping
 {
 public:
-	TMap<const UObject*, FString> NetToName;
-	TMap<UEdGraphPin*, FString> NetPinToName;
-	TMap<FString, int32> BaseNameToCount;
-
-public:
-	KISMETCOMPILER_API static FString MakeBaseName(const UEdGraphNode* Net);
-	KISMETCOMPILER_API static FString MakeBaseName(const UEdGraphPin* Net);;
-	KISMETCOMPILER_API static FString MakeBaseName(const UAnimGraphNode_Base* Net);
-
 	// Come up with a valid, unique (within the scope of NetNameMap) name based on an existing Net object.
 	// The resulting name is stable across multiple calls if given the same pointer.
-	template<typename NetType>
-	FString MakeValidName(const NetType* Net)
+	FString MakeValidName(const UEdGraphNode* Net) { return MakeValidNameImpl(Net); }
+	FString MakeValidName(const UEdGraphPin* Net) { return MakeValidNameImpl(Net); }
+	FString MakeValidName(const UAnimGraphNode_Base* Net){ return MakeValidNameImpl(Net); }
+
+private:
+	KISMETCOMPILER_API static FString MakeBaseName(const UEdGraphNode* Net);
+	KISMETCOMPILER_API static FString MakeBaseName(const UEdGraphPin* Net);
+	KISMETCOMPILER_API static FString MakeBaseName(const UAnimGraphNode_Base* Net);
+
+	template< typename NetType >
+	FString MakeValidNameImpl(NetType Net)
 	{
 		// Check to see if this net was already used to generate a name
 		if (FString* Result = NetToName.Find(Net))
@@ -234,44 +234,32 @@ public:
 		}
 		else
 		{
-			FString NetName = MakeBaseName(Net);
-			FNodeHandlingFunctor::SanitizeName(NetName);
-
-			int32& ExistingCount = BaseNameToCount.FindOrAdd(NetName);
-			++ExistingCount;
-			if (ExistingCount > 1)
-			{
-				NetName += FString::FromInt(ExistingCount);
-			}
-
+			FString NetName = GetUniqueName(MakeBaseName(Net));
 			NetToName.Add(Net, NetName);
-
+			NameToNet.Add(NetName, Net);
 			return NetName;
 		}
 	}
 
-	FString MakeValidName(UEdGraphPin* Net)
+	FString GetUniqueName(FString NetName)
 	{
-		if (FString* Result = NetPinToName.Find(Net))
+		FNodeHandlingFunctor::SanitizeName(NetName);
+		// Scratchpad so that we can find a new postfix:
+		FString NewNetName(NetName);
+
+		int32 Postfix = 0;
+		const void** ExistingNet = NameToNet.Find(NewNetName);
+		while(ExistingNet && *ExistingNet)
 		{
-			return *Result;
+			++Postfix;
+			// Add an integer to the base name and check if it's free:
+			NewNetName = NetName + FString::FromInt(Postfix);
+			ExistingNet = NameToNet.Find(NewNetName);
 		}
-		else
-		{
-			FString NetName = MakeBaseName(Net);
-			FNodeHandlingFunctor::SanitizeName(NetName);
-
-			int32& ExistingCount = BaseNameToCount.FindOrAdd(NetName);
-			++ExistingCount;
-			if (ExistingCount > 1)
-			{
-				NetName += FString::FromInt(ExistingCount);
-			}
-
-			NetPinToName.Add(Net, NetName);
-
-			return NetName;
-		}
+		return NewNetName;
 	}
+	
+	TMap<const void*, FString> NetToName;
+	TMap<FString, const void*> NameToNet;
 };
 

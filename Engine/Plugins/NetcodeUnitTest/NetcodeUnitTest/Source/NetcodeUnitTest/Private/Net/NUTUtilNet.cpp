@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Net/NUTUtilNet.h"
 #include "UObject/CoreOnline.h"
@@ -41,51 +41,83 @@ TArray<FWorldTickHook*> ActiveTickHooks;
 
 void FProcessEventHook::AddRPCHook(UWorld* InWorld, FOnProcessNetEvent InHook)
 {
-#if !UE_BUILD_SHIPPING
-	if (NetEventHooks.Num() == 0 && EventHooks.Num() == 0)
-	{
-		AActor::ProcessEventDelegate.BindRaw(this, &FProcessEventHook::HandleProcessEvent);
-	}
-
+	PreAddHook();
 	NetEventHooks.Add(InWorld, InHook);
-#else
-	check(false);
-#endif
 }
 
 void FProcessEventHook::RemoveRPCHook(UWorld* InWorld)
 {
-#if !UE_BUILD_SHIPPING
 	NetEventHooks.Remove(InWorld);
-
-	if (NetEventHooks.Num() == 0 && EventHooks.Num() == 0)
-	{
-		AActor::ProcessEventDelegate.Unbind();
-	}
-#else
-	check(false);
-#endif
+	PostRemoveHook();
 }
 
 void FProcessEventHook::AddEventHook(UWorld* InWorld, FOnProcessNetEvent InHook)
+{
+	PreAddHook();
+	EventHooks.Add(InWorld, InHook);
+}
+
+void FProcessEventHook::RemoveEventHook(UWorld* InWorld)
+{
+	EventHooks.Remove(InWorld);
+	PostRemoveHook();
+}
+
+FDelegateHandle FProcessEventHook::AddGlobalRPCHook(FOnProcessNetEvent InHook)
+{
+	PreAddHook();
+	GlobalNetEventHooks.Add(InHook);
+
+	return GlobalNetEventHooks.Last().GetHandle();
+}
+
+void FProcessEventHook::RemoveGlobalRPCHook(FDelegateHandle InHandle)
+{
+	int32 Idx = GlobalNetEventHooks.IndexOfByPredicate(
+		[&InHandle](const FOnProcessNetEvent& CurEntry)
+		{
+			return CurEntry.GetHandle() == InHandle;
+		});
+
+	GlobalNetEventHooks.RemoveAt(Idx);
+	PostRemoveHook();
+}
+
+FDelegateHandle FProcessEventHook::AddGlobalEventHook(FOnProcessNetEvent InHook)
+{
+	PreAddHook();
+	GlobalEventHooks.Add(InHook);
+
+	return GlobalEventHooks.Last().GetHandle();
+}
+
+void FProcessEventHook::RemoveGlobalEventHook(FDelegateHandle InHandle)
+{
+	int32 Idx = GlobalEventHooks.IndexOfByPredicate(
+		[&InHandle](const FOnProcessNetEvent& CurEntry)
+		{
+			return CurEntry.GetHandle() == InHandle;
+		});
+
+	GlobalEventHooks.RemoveAt(Idx);
+	PostRemoveHook();
+}
+
+void FProcessEventHook::PreAddHook()
 {
 #if !UE_BUILD_SHIPPING
 	if (NetEventHooks.Num() == 0 && EventHooks.Num() == 0)
 	{
 		AActor::ProcessEventDelegate.BindRaw(this, &FProcessEventHook::HandleProcessEvent);
 	}
-
-	EventHooks.Add(InWorld, InHook);
 #else
 	check(false);
 #endif
 }
 
-void FProcessEventHook::RemoveEventHook(UWorld* InWorld)
+void FProcessEventHook::PostRemoveHook()
 {
 #if !UE_BUILD_SHIPPING
-	EventHooks.Remove(InWorld);
-
 	if (NetEventHooks.Num() == 0 && EventHooks.Num() == 0)
 	{
 		AActor::ProcessEventDelegate.Unbind();
@@ -117,6 +149,13 @@ bool FProcessEventHook::HandleProcessEvent(AActor* Actor, UFunction* Function, v
 					Hook->Execute(Actor, Function, Parameters, bBlockEvent);
 				}
 			}
+		}
+
+		bool bNetServerRPC = !!(Function->FunctionFlags & FUNC_Net) && !!(Function->FunctionFlags & FUNC_NetServer);
+
+		for (const FOnProcessNetEvent& Hook : (bNetClientRPC || bNetServerRPC ? GlobalNetEventHooks : GlobalEventHooks))
+		{
+			Hook.Execute(Actor, Function, Parameters, bBlockEvent);
 		}
 	}
 
@@ -192,6 +231,51 @@ void FNetworkNotifyHook::NotifyControlMessage(UNetConnection* Connection, uint8 
 
 
 /**
+ * FWorldTickHook
+ */
+
+void FWorldTickHook::Init()
+{
+	if (AttachedWorld != nullptr)
+	{
+#if TARGET_UE4_CL >= CL_DEPRECATEDEL
+		TickDispatchDelegateHandle  = AttachedWorld->OnTickDispatch().AddRaw(this, &FWorldTickHook::TickDispatch);
+		PostTickFlushDelegateHandle = AttachedWorld->OnPostTickFlush().AddRaw(this, &FWorldTickHook::PostTickFlush);
+#else
+		AttachedWorld->OnTickDispatch().AddRaw(this, &FWorldTickHook::TickDispatch);
+		AttachedWorld->OnPostTickFlush().AddRaw(this, &FWorldTickHook::PostTickFlush);
+#endif
+	}
+}
+
+void FWorldTickHook::Cleanup()
+{
+	if (AttachedWorld != nullptr)
+	{
+#if TARGET_UE4_CL >= CL_DEPRECATEDEL
+		AttachedWorld->OnPostTickFlush().Remove(PostTickFlushDelegateHandle);
+		AttachedWorld->OnTickDispatch().Remove(TickDispatchDelegateHandle);
+#else
+		AttachedWorld->OnPostTickFlush().RemoveRaw(this, &FWorldTickHook::PostTickFlush);
+		AttachedWorld->OnTickDispatch().RemoveRaw(this, &FWorldTickHook::TickDispatch);
+#endif
+	}
+
+	AttachedWorld = nullptr;
+}
+
+void FWorldTickHook::TickDispatch(float DeltaTime)
+{
+	GActiveLogWorld = AttachedWorld;
+}
+
+void FWorldTickHook::PostTickFlush()
+{
+	GActiveLogWorld = nullptr;
+}
+
+
+/**
  * FScopedNetObjectReplace
  */
 
@@ -244,6 +328,56 @@ FScopedNetObjectReplace::~FScopedNetObjectReplace()
 	else
 	{
 		check(false);
+	}
+}
+
+/**
+ * FScopedNetNameReplace
+ */
+
+FScopedNetNameReplace::FScopedNetNameReplace(UMinimalClient* InMinClient, const FOnSerializeName::FDelegate& InDelegate)
+	: MinClient(InMinClient)
+	, Handle()
+{
+	UNetConnection* UnitConn = (MinClient != nullptr ? MinClient->GetConn() : nullptr);
+	UUnitTestPackageMap* PackageMap = (UnitConn != nullptr ? Cast<UUnitTestPackageMap>(UnitConn->PackageMap) : nullptr);
+
+	if (PackageMap != nullptr)
+	{
+		Handle = PackageMap->OnSerializeName.Add(InDelegate);
+	}
+}
+
+FScopedNetNameReplace::FScopedNetNameReplace(UMinimalClient* InMinClient, FName InNameToReplace, FName InNameReplacement)
+	: FScopedNetNameReplace(InMinClient, FOnSerializeName::FDelegate::CreateLambda(
+		[InNameToReplace, InNameReplacement](bool bPreSerialize, bool& bSerializedName, FArchive&Ar, FName& InName)
+		{
+			if (InName == InNameToReplace)
+			{
+				if (Ar.IsSaving() && bPreSerialize)
+				{
+					InName = InNameReplacement;
+				}
+				else if (Ar.IsLoading() && !bPreSerialize)
+				{
+					InName = InNameReplacement;
+				}
+			}
+		}))
+{
+}
+
+FScopedNetNameReplace::~FScopedNetNameReplace()
+{
+	if (Handle.IsValid())
+	{
+		UNetConnection* UnitConn = (MinClient != nullptr ? MinClient->GetConn() : nullptr);
+		UUnitTestPackageMap* PackageMap = (UnitConn != nullptr ? Cast<UUnitTestPackageMap>(UnitConn->PackageMap) : nullptr);
+
+		if (PackageMap != nullptr)
+		{
+			PackageMap->OnSerializeName.Remove(Handle);
+		}
 	}
 }
 
@@ -303,6 +437,7 @@ UWorld* NUTNet::CreateUnitTestWorld(bool bHookTick/*=true*/)
 		ReturnVal->bActorsInitialized = true;
 
 		// Enable pause, using the PlayerController of the primary world (unless we're in the editor)
+		// @todo #JohnB: Broken in the commandlet. No LocalPlayer
 		if (!GIsEditor)
 		{
 			AWorldSettings* CurSettings = ReturnVal->GetWorldSettings();

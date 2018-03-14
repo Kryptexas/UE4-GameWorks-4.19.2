@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "K2Node_AssignmentStatement.h"
@@ -55,8 +55,8 @@ public:
 };
 
 
-FString UK2Node_AssignmentStatement::VariablePinName = FString(TEXT("Variable"));
-FString UK2Node_AssignmentStatement::ValuePinName = FString(TEXT("Value"));
+FName UK2Node_AssignmentStatement::VariablePinName(TEXT("Variable"));
+FName UK2Node_AssignmentStatement::ValuePinName(TEXT("Value"));
 
 
 UK2Node_AssignmentStatement::UK2Node_AssignmentStatement(const FObjectInitializer& ObjectInitializer)
@@ -66,13 +66,11 @@ UK2Node_AssignmentStatement::UK2Node_AssignmentStatement(const FObjectInitialize
 
 void UK2Node_AssignmentStatement::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Execute);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Then);
 
-	CreatePin(EGPD_Input, Schema->PC_Exec, FString(), nullptr, Schema->PN_Execute);
-	CreatePin(EGPD_Output, Schema->PC_Exec, FString(), nullptr, Schema->PN_Then);
-
-	UEdGraphPin* VariablePin = CreatePin(EGPD_Input, Schema->PC_Wildcard, FString(), nullptr, VariablePinName);
-	UEdGraphPin* ValuePin = CreatePin(EGPD_Input, Schema->PC_Wildcard, FString(), nullptr, ValuePinName);
+	UEdGraphPin* VariablePin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Wildcard, VariablePinName);
+	UEdGraphPin* ValuePin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Wildcard, ValuePinName);
 
 	Super::AllocateDefaultPins();
 }
@@ -111,18 +109,16 @@ void UK2Node_AssignmentStatement::NotifyPinConnectionListChanged(UEdGraphPin* Pi
 {
 	Super::NotifyPinConnectionListChanged(Pin);
 
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-
 	UEdGraphPin* VariablePin = FindPin(TEXT("Variable"));
 	UEdGraphPin* ValuePin = FindPin(TEXT("Value"));
 
 	if ((VariablePin->LinkedTo.Num() == 0) && (ValuePin->LinkedTo.Num() == 0))
 	{
 		// Restore the wildcard status
-		VariablePin->PinType.PinCategory = Schema->PC_Wildcard;
+		VariablePin->PinType.PinCategory = UEdGraphSchema_K2::PC_Wildcard;
 		VariablePin->PinType.PinSubCategory = TEXT("");
 		VariablePin->PinType.PinSubCategoryObject = NULL;
-		ValuePin->PinType.PinCategory = Schema->PC_Wildcard;
+		ValuePin->PinType.PinCategory = UEdGraphSchema_K2::PC_Wildcard;
 		ValuePin->PinType.PinSubCategory = TEXT("");
 		ValuePin->PinType.PinSubCategoryObject = NULL;
 	}
@@ -157,17 +153,13 @@ void UK2Node_AssignmentStatement::PostReconstructNode()
 
 UEdGraphPin* UK2Node_AssignmentStatement::GetThenPin() const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	UEdGraphPin* Pin = FindPin(K2Schema->PN_Then);
+	UEdGraphPin* Pin = FindPin(UEdGraphSchema_K2::PN_Then);
 	check(Pin != NULL);
 	return Pin;
 }
 
 UEdGraphPin* UK2Node_AssignmentStatement::GetVariablePin() const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 	UEdGraphPin* Pin = FindPin(VariablePinName);
 	check(Pin != NULL);
 	return Pin;
@@ -175,8 +167,6 @@ UEdGraphPin* UK2Node_AssignmentStatement::GetVariablePin() const
 
 UEdGraphPin* UK2Node_AssignmentStatement::GetValuePin() const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 	UEdGraphPin* Pin = FindPin(ValuePinName);
 	check(Pin != NULL);
 	return Pin;

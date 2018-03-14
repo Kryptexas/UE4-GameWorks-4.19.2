@@ -11,7 +11,9 @@ skilllevel:Beginner
 
 您经常需要在您的游戏中向关卡内动态添加物品，这被称为“生成 Actor”。
 您想生成的物品可以是任何东西，如其他玩家或敌人，或是生命值、武器、奖励之类的拾取物品。
-在本页中，您将了解如何通过蓝图来生成 Actor。<!-- as well as other information regarding **Actor Spawning** and links to more documentation.--> 
+在本页中，您将了解如何通过蓝图来生成 Actor。[COMMENT:none]
+ as well as other information regarding **Actor Spawning** and links to more documentation.
+[/COMMENT] 
 
 ## 设置
 

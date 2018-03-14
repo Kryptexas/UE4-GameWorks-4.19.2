@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelSequenceActorSpawner.h"
 #include "MovieSceneSpawnable.h"
@@ -53,6 +53,7 @@ UObject* FLevelSequenceActorSpawner::SpawnObject(FMovieSceneSpawnable& Spawnable
 		//SpawnInfo.Template = ObjectTemplate;
 		// allow pre-construction variables to be set.
 		SpawnInfo.bDeferConstruction = true;
+		SpawnInfo.Template = ObjectTemplate;
 		SpawnInfo.OverrideLevel = WorldContext->PersistentLevel;
 	}
 
@@ -62,6 +63,10 @@ UObject* FLevelSequenceActorSpawner::SpawnObject(FMovieSceneSpawnable& Spawnable
 	{
 		SpawnTransform.SetTranslation(RootComponent->RelativeLocation);
 		SpawnTransform.SetRotation(RootComponent->RelativeRotation.Quaternion());
+	}
+	else
+	{
+		SpawnTransform = Spawnable.SpawnTransform;
 	}
 
 	{
@@ -79,12 +84,12 @@ UObject* FLevelSequenceActorSpawner::SpawnObject(FMovieSceneSpawnable& Spawnable
 		return nullptr;
 	}
 	
-	UEngine::FCopyPropertiesForUnrelatedObjectsParams CopyParams;
-	CopyParams.bPreserveRootComponent = false;
-	CopyParams.bNotifyObjectReplacement = false;
-	SpawnedActor->UnregisterAllComponents();
-	UEngine::CopyPropertiesForUnrelatedObjects(ObjectTemplate, SpawnedActor, CopyParams);
-	SpawnedActor->RegisterAllComponents();
+	//UEngine::FCopyPropertiesForUnrelatedObjectsParams CopyParams;
+	//CopyParams.bPreserveRootComponent = false;
+	//CopyParams.bNotifyObjectReplacement = false;
+	//SpawnedActor->UnregisterAllComponents();
+	//UEngine::CopyPropertiesForUnrelatedObjects(ObjectTemplate, SpawnedActor, CopyParams);
+	//SpawnedActor->RegisterAllComponents();
 
 	// Ensure this spawnable is not a preview actor. Preview actors will not have BeginPlay() called on them.
 #if WITH_EDITOR

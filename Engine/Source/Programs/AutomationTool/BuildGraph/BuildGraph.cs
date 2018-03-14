@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -133,6 +133,7 @@ namespace AutomationTool
 				DefaultProperties["EngineMajorVersion"] = Version.MajorVersion.ToString();
 				DefaultProperties["EngineMinorVersion"] = Version.MinorVersion.ToString();
 				DefaultProperties["EnginePatchVersion"] = Version.PatchVersion.ToString();
+				DefaultProperties["EngineCompatibleChange"] = Version.CompatibleChangelist.ToString();
 			}
 
 			// Add any additional custom arguments from the command line (of the form -Set:X=Y)

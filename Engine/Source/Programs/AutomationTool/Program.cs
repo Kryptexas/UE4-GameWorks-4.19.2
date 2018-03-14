@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // This software is provided "as-is," without any express or implied warranty. 
 // In no event shall the author, nor Epic Games, Inc. be held liable for any damages arising from the use of this software.
 // This software will not be supported.

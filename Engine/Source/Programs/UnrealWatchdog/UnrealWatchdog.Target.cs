@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
@@ -13,18 +13,7 @@ public class UnrealWatchdogTarget : TargetRules
 		LinkType = TargetLinkType.Monolithic;
 		UndecoratedConfiguration = UnrealTargetConfiguration.Shipping;
 		LaunchModuleName = "UnrealWatchdog";
-	}
 
-	//
-	// TargetRules interface.
-	//
-
-	public override void SetupGlobalEnvironment(
-		TargetInfo Target,
-		ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
-		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
-		)
-	{
 		// Lean and mean
 		bCompileLeanAndMeanUE = true;
 		bUseMallocProfiler = false;
@@ -41,6 +30,6 @@ public class UnrealWatchdogTarget : TargetRules
 		bBuildDeveloperTools = false;
 
 		// Console application, not a Windows app (sets entry point to main(), instead of WinMain())
-		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;
+		bIsBuildingConsoleApplication = true;
 	}
 }

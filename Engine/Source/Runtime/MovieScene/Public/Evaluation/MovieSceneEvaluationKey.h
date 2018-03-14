@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,16 +19,16 @@ struct FMovieSceneEvaluationKey
 	FMovieSceneEvaluationKey()
 		: SequenceID(MovieSceneSequenceID::Invalid)
 		, TrackIdentifier(FMovieSceneTrackIdentifier::Invalid())
-		, SectionIdentifier(-1)
+		, SectionIndex(-1)
 	{}
 
 	/**
 	 * User construction
 	 */
-	FMovieSceneEvaluationKey(FMovieSceneSequenceIDRef InSequenceID, FMovieSceneTrackIdentifier InTrackIdentifier, uint32 InSectionIdentifier = uint32(-1))
+	FMovieSceneEvaluationKey(FMovieSceneSequenceIDRef InSequenceID, FMovieSceneTrackIdentifier InTrackIdentifier, uint32 InSectionIndex = uint32(-1))
 		: SequenceID(InSequenceID)
 		, TrackIdentifier(InTrackIdentifier)
-		, SectionIdentifier(InSectionIdentifier)
+		, SectionIndex(InSectionIndex)
 	{}
 
 	/**
@@ -45,7 +45,7 @@ struct FMovieSceneEvaluationKey
 	FMovieSceneEvaluationKey AsSection(uint32 InSectionIdentifier) const
 	{
 		FMovieSceneEvaluationKey NewKey = *this;
-		NewKey.SectionIdentifier = InSectionIdentifier;
+		NewKey.SectionIndex = InSectionIdentifier;
 		return NewKey;
 	}
 
@@ -55,13 +55,13 @@ struct FMovieSceneEvaluationKey
 	FMovieSceneEvaluationKey AsTrack() const
 	{
 		FMovieSceneEvaluationKey NewKey = *this;
-		NewKey.SectionIdentifier = uint32(-1);
+		NewKey.SectionIndex = uint32(-1);
 		return NewKey;
 	}
 
 	friend bool operator==(const FMovieSceneEvaluationKey& A, const FMovieSceneEvaluationKey& B)
 	{
-		return A.TrackIdentifier == B.TrackIdentifier && A.SequenceID == B.SequenceID && A.SectionIdentifier == B.SectionIdentifier;
+		return A.TrackIdentifier == B.TrackIdentifier && A.SequenceID == B.SequenceID && A.SectionIndex == B.SectionIndex;
 	}
 
 	friend bool operator<(const FMovieSceneEvaluationKey& A, const FMovieSceneEvaluationKey& B)
@@ -80,13 +80,13 @@ struct FMovieSceneEvaluationKey
 		}
 		else
 		{
-			return A.TrackIdentifier == B.TrackIdentifier && A.SectionIdentifier < B.SectionIdentifier;
+			return A.TrackIdentifier == B.TrackIdentifier && A.SectionIndex < B.SectionIndex;
 		}
 	}
 
 	friend uint32 GetTypeHash(const FMovieSceneEvaluationKey& In)
 	{
-		return GetTypeHash(In.SequenceID) ^ (~GetTypeHash(In.TrackIdentifier)) ^ In.SectionIdentifier;
+		return GetTypeHash(In.SequenceID) ^ (~GetTypeHash(In.TrackIdentifier)) ^ In.SectionIndex;
 	}
 
 	/** Custom serialized to reduce memory footprint */
@@ -94,7 +94,7 @@ struct FMovieSceneEvaluationKey
 	{
 		Ar << SequenceID;
 		Ar << TrackIdentifier;
-		Ar << SectionIdentifier;
+		Ar << SectionIndex;
 		return true;
 	}
 
@@ -112,9 +112,9 @@ struct FMovieSceneEvaluationKey
 	UPROPERTY()
 	FMovieSceneTrackIdentifier TrackIdentifier;
 
-	/** ID of the section this key relates to (or -1 where this key relates to a track) */
+	/** Index of the section template within the track this key relates to (or -1 where this key relates to a track) */
 	UPROPERTY()
-	uint32 SectionIdentifier;
+	uint32 SectionIndex;
 };
 
 template<>

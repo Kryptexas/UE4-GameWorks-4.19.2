@@ -27,7 +27,8 @@ Event モジュールは、パーティクル同士やワールドとの相互�
 
 
 
-<!-------------Event Generator Includes----------------
+[COMMENT:none]
+-----------Event Generator Includes----------------
 #### Includes
 
 [EXCERPT:EventGenType]
@@ -44,7 +45,8 @@ Event モジュールは、パーティクル同士やワールドとの相互�
 [/EXCERPT:EventGenType]
 
 
--------------End Event Generator Includes--------------->
+-------------End Event Generator Includes-------------
+[/COMMENT]
 
 
 ## Event Receiver Kill All (EventRcvr KillAll)
@@ -61,7 +63,8 @@ Event モジュールは、パーティクル同士やワールドとの相互�
 
 
 
-<!-------------Event Generator Includes----------------
+[COMMENT:none]
+-----------Event Generator Includes----------------
 #### Includes
 
 [EXCERPT:EventRecType]
@@ -78,7 +81,8 @@ Event モジュールは、パーティクル同士やワールドとの相互�
 [/EXCERPT:EventRecType]
 
 
--------------End Event Generator Includes--------------->
+-------------End Event Generator Includes-------------
+[/COMMENT]
 
 ## Event Receiver Spawn (EventRcvr Spawn)
 

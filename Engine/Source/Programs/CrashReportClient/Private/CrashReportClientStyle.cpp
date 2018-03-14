@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashReportClientStyle.h"
 #include "Misc/AssertionMacros.h"
@@ -12,6 +12,7 @@
 
 #include "Styling/SlateStyleRegistry.h"
 #include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
 
 TSharedPtr< FSlateStyleSet > FCrashReportClientStyle::StyleSet = nullptr;
 
@@ -31,10 +32,10 @@ void FCrashReportClientStyle::Shutdown()
 	StyleSet.Reset();
 }
 
-#define TTF_FONT(RelativePath, ...) FSlateFontInfo(ContentFromEngine(TEXT(RelativePath), TEXT(".ttf")), __VA_ARGS__)
 #define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush(ContentFromEngine(TEXT(RelativePath), TEXT(".png")), __VA_ARGS__)
 #define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush(ContentFromEngine(TEXT(RelativePath), TEXT(".png")), __VA_ARGS__)
 #define BORDER_BRUSH( RelativePath, ... ) FSlateBorderBrush(ContentFromEngine(RelativePath, TEXT(".png")), __VA_ARGS__)
+#define DEFAULT_FONT(...) FCoreStyle::GetDefaultFontStyle(__VA_ARGS__)
 
 namespace
 {
@@ -51,19 +52,19 @@ TSharedRef< FSlateStyleSet > FCrashReportClientStyle::Create()
 	FSlateStyleSet& Style = StyleRef.Get();
 
 	const FTextBlockStyle DefaultText = FTextBlockStyle()
-		.SetFont(TTF_FONT("Fonts/Roboto-Bold", 10))
+		.SetFont(DEFAULT_FONT("Bold", 10))
 		.SetColorAndOpacity(FSlateColor::UseForeground())
 		.SetShadowOffset(FVector2D::ZeroVector)
 		.SetShadowColorAndOpacity(FLinearColor::Black);
 
 	// Set the client app styles
 	Style.Set(TEXT("Code"), FTextBlockStyle(DefaultText)
-		.SetFont(TTF_FONT("Fonts/Roboto-Regular", 8))
+		.SetFont(DEFAULT_FONT("Regular", 8))
 		.SetColorAndOpacity(FSlateColor(FLinearColor::White * 0.8f))
 	);
 
 	Style.Set(TEXT("Title"), FTextBlockStyle(DefaultText)
-		.SetFont(TTF_FONT("Fonts/Roboto-Bold", 12))
+		.SetFont(DEFAULT_FONT("Bold", 12))
 	);
 
 	Style.Set(TEXT("Status"), FTextBlockStyle(DefaultText)
@@ -96,7 +97,7 @@ TSharedRef< FSlateStyleSet > FCrashReportClientStyle::Create()
 
 	// RichText
 	const FTextBlockStyle CrashReportDataStyle = FTextBlockStyle()
-		.SetFont( TTF_FONT( "Testing/Fonts/Roboto-Italic", 9 ) )
+		.SetFont( DEFAULT_FONT( "Italic", 9 ) )
 		.SetColorAndOpacity( FSlateColor( FLinearColor::White * 0.5f ) )
 		.SetShadowOffset( FVector2D::ZeroVector )
 		.SetShadowColorAndOpacity( FLinearColor::Black );
@@ -118,7 +119,10 @@ TSharedRef< FSlateStyleSet > FCrashReportClientStyle::Create()
 	return StyleRef;
 }
 
-#undef TTF_FONT
+#undef IMAGE_BRUSH
+#undef BOX_BRUSH
+#undef BORDER_BRUSH
+#undef DEFAULT_FONT
 
 const ISlateStyle& FCrashReportClientStyle::Get()
 {

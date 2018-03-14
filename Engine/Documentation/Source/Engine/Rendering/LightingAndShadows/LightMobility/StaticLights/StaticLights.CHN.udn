@@ -78,11 +78,14 @@ Version: 4.9
 	[/PARAM]
 [/OBJECT]
 
-<!-- 
+[COMMENT:none]
+ 
 [INCLUDE:Resources/ContentExamples\Lighting\2_1#StaticLighting02]
--->
 
-<!----
+[/COMMENT]
+
+[COMMENT:none]
+--
 ![](SL_compare.png)(w:900 convert:false)
 
 _在上面的图片中，左边图片上的光源是 **静态的** ,而右侧图片上的光源是 **可移动的** ，但除此之外它们的设置完全一样。两个角色都是动态的、可移动的actor，注意 **静态** 光源是如何没有造成镜面反射或投射阴影。_
@@ -93,10 +96,13 @@ _在上面的图片中，左边图片上的光源是 **静态的** ,而右侧图
 %Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights:topiccompact%
 %Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights:topiccompact%
 [/REGION]
----->
+--
+[/COMMENT]
 
-<!-- Long Description Excerpt
+[COMMENT:none]
+ Long Description Excerpt
 [EXCERPT:Static001]
 静态光源投射完全静态的光照和阴影。这意味着会在 **Lightmass** 中把它们的效果烘焙到光照贴图和间接光照缓存中。**静态光源对 可移动的/动态的 actor没有直接影响，也不会在任何物体上产生高光** ，但由于他们会烘焙到间接光照缓存中，所以它们会对 可移动的/动态的 物体有 _少量的_ 间接影响。
 [/EXCERPT:Static001]
--->
+
+[/COMMENT]

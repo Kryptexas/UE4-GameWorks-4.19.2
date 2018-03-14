@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Presentation/PropertyEditor/PropertyEditor.h"
 #include "Modules/ModuleManager.h"
@@ -616,16 +616,22 @@ TSharedRef< IPropertyHandle > FPropertyEditor::GetPropertyHandle() const
 
 bool FPropertyEditor::IsEditConditionMet( UBoolProperty* ConditionProperty, const TArray<FPropertyConditionInfo>& ConditionValues ) const
 {
-	check( ConditionProperty );
+	check(ConditionProperty);
 
 	bool bResult = false;
 
 	FPropertyNode* ParentNode = PropertyNode->GetParentNode();
-	if(ParentNode)
+	if (ParentNode)
 	{
 		bool bAllConditionsMet = true;
 		for (int32 ValueIdx = 0; bAllConditionsMet && ValueIdx < ConditionValues.Num(); ValueIdx++)
 		{
+			if (!ConditionValues[ValueIdx].Object.IsValid())
+			{
+				bAllConditionsMet = false;
+				break;
+			}
+
 			uint8* BaseOffset = ParentNode->GetValueAddress(ConditionValues[ValueIdx].BaseAddress);
 			if (!BaseOffset)
 			{
@@ -686,7 +692,9 @@ bool FPropertyEditor::GetEditConditionPropertyAddress( UBoolProperty*& Condition
 					check(BaseOffset != NULL);
 
 					FPropertyConditionInfo NewCondition;
+					NewCondition.Object = ComplexParentNode->AsStructureNode() ? TWeakObjectPtr<UObject>(ComplexParentNode->GetBaseStructure()) : ComplexParentNode->GetInstanceAsUObject(Index);
 					// now calculate the address of the property value being used as the condition and add it to the array.
+					NewCondition.Object = ComplexParentNode->AsStructureNode() ? TWeakObjectPtr<UObject>(ComplexParentNode->GetBaseStructure()) : ComplexParentNode->GetInstanceAsUObject(Index);
 					NewCondition.BaseAddress = BaseAddress;
 					NewCondition.bNegateValue = bNegate;
 					ConditionPropertyAddresses.Add(NewCondition);

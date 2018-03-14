@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalCommandQueue.cpp: Metal command queue wrapper.
@@ -64,7 +64,7 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 		
 		if(!bNoMetalv2 && ([Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v3] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily1_v3]))
 		{
-			Features |= EMetalFeaturesStencilView | EMetalFeaturesGraphicsUAVs | EMetalFeaturesMemoryLessResources /*| EMetalFeaturesHeaps | EMetalFeaturesFences*/;
+			Features |= EMetalFeaturesStencilView | EMetalFeaturesFunctionConstants | EMetalFeaturesGraphicsUAVs | EMetalFeaturesMemoryLessResources /*| EMetalFeaturesHeaps | EMetalFeaturesFences*/;
 		}
 		
 		if(!bNoMetalv2 && [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2])
@@ -72,9 +72,11 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 			Features |= EMetalFeaturesTessellation | EMetalFeaturesMSAAStoreAndResolve;
 		}
 		
-		if(Vers.majorVersion >= 10 && Vers.minorVersion >= 3)
+		if(Vers.majorVersion > 10 || (Vers.majorVersion == 10 && Vers.minorVersion >= 3))
         {
             Features |= EMetalFeaturesGPUCommandBufferTimes;
+			Features |= EMetalFeaturesLinearTextures;
+			Features |= EMetalFeaturesEfficientBufferBlits;
 			
 			if(!bNoMetalv2 && ([Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v3] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily1_v3]))
 			{
@@ -96,10 +98,19 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 	Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesDepthClipMode | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions | EMetalFeaturesCountingQueries | EMetalFeaturesBaseVertexInstance | EMetalFeaturesIndirectBuffer | EMetalFeaturesLayeredRendering | EMetalFeaturesShaderVersions | EMetalFeaturesCombinedDepthStencil | EMetalFeaturesCubemapArrays;
     if (!FParse::Param(FCommandLine::Get(),TEXT("nometalv2")) && [Device supportsFeatureSet:MTLFeatureSet_OSX_GPUFamily1_v2])
     {
-        Features |= EMetalFeaturesStencilView | EMetalFeaturesDepth16 | EMetalFeaturesTessellation | EMetalFeaturesGraphicsUAVs | EMetalFeaturesDeferredStoreActions | EMetalFeaturesMSAADepthResolve | EMetalFeaturesMSAAStoreAndResolve;
+        Features |= EMetalFeaturesStencilView | EMetalFeaturesDepth16 | EMetalFeaturesTessellation | EMetalFeaturesFunctionConstants | EMetalFeaturesGraphicsUAVs | EMetalFeaturesDeferredStoreActions | EMetalFeaturesMSAADepthResolve | EMetalFeaturesMSAAStoreAndResolve;
         
         // Assume that set*Bytes only works on macOS Sierra and above as no-one has tested it anywhere else.
 		Features |= EMetalFeaturesSetBytes;
+		
+		Features |= EMetalFeaturesLinearTextures;
+		
+		// Using Private Memory & BlitEncoders for Vertex & Index data is slower on the Mac Pro's DXXX GPUs
+		// Everywhere else it should be *much* faster.
+		if ([Device.name rangeOfString:@"FirePro" options:NSCaseInsensitiveSearch].location == NSNotFound)
+		{
+			Features |= EMetalFeaturesEfficientBufferBlits;
+		}
     }
     else if ([Device.name rangeOfString:@"Nvidia" options:NSCaseInsensitiveSearch].location != NSNotFound)
     {
@@ -107,22 +118,27 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
     	Features |= EMetalFeaturesSetBytes;
     }
     
-    if([Device supportsFeatureSet:(MTLFeatureSet)EMetalFeatureSetMacOSv3])
+#if PLATFORM_MAC
+    if([Device supportsFeatureSet:(MTLFeatureSet)EMetalFeatureSetMacOSv3] && FPlatformMisc::MacOSXVersionCompare(10,13,0) >= 0)
     {
         Features |= EMetalFeaturesMultipleViewports | EMetalFeaturesGPUCommandBufferTimes | EMetalFeaturesGPUCaptureManager | EMetalFeaturesAbsoluteTimeQueries | EMetalFeaturesSupportsVSyncToggle;
     }
-    // Time query emulation breaks on AMD < 10.13 - disable by default until they can explain why, should work everywhere else.
-	else if ([Device.name rangeOfString:@"AMD" options:NSCaseInsensitiveSearch].location == NSNotFound || FParse::Param(FCommandLine::Get(),TEXT("metaltimequery")))
+	else
+#endif
+	// Time query emulation breaks on AMD < 10.13 - disable by default until they can explain why, should work everywhere else.
+	if ([Device.name rangeOfString:@"AMD" options:NSCaseInsensitiveSearch].location == NSNotFound || FParse::Param(FCommandLine::Get(),TEXT("metaltimequery")))
 	{
 		Features |= EMetalFeaturesAbsoluteTimeQueries;
 	}
 #endif
 	
+#if !UE_BUILD_SHIPPING
 	Class MTLDebugDevice = NSClassFromString(@"MTLDebugDevice");
 	if ([Device isKindOfClass:MTLDebugDevice])
 	{
 		Features |= EMetalFeaturesValidation;
 	}
+#endif
 	
 	static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.Optimize"));
 	if (CVar->GetInt() == 0 || FParse::Param(FCommandLine::Get(),TEXT("metalshaderdebug")))
@@ -197,7 +213,7 @@ FMetalCommandQueue::~FMetalCommandQueue(void)
 
 id<MTLCommandBuffer> FMetalCommandQueue::CreateCommandBuffer(void)
 {
-	static bool bUnretainedRefs = !FParse::Param(FCommandLine::Get(),TEXT("metalretainrefs"));
+	static bool bUnretainedRefs = !FParse::Param(FCommandLine::Get(),TEXT("metalretainrefs")) && [CommandQueue.device.name rangeOfString:@"Nvidia" options:NSCaseInsensitiveSearch].location == NSNotFound;
 	id<MTLCommandBuffer> CmdBuffer = nil;
 	@autoreleasepool
 	{
@@ -208,7 +224,7 @@ id<MTLCommandBuffer> FMetalCommandQueue::CreateCommandBuffer(void)
 		}
 		else if (RuntimeDebuggingLevel == EMetalDebugLevelLogDebugGroups)
 		{
-			((NSObject<MTLCommandBuffer>*)CmdBuffer).debugGroups = [NSMutableArray new];
+			((NSObject<MTLCommandBuffer>*)CmdBuffer).debugGroups = [[NSMutableArray new] autorelease];
 		}
 	}
 	INC_DWORD_STAT(STAT_MetalCommandBufferCreatedPerFrame);

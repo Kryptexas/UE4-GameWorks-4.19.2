@@ -13,9 +13,11 @@ SkillLevel: Intermediate
  
 
 ## Get All Actors of Class 节点
-<!---
+[COMMENT:none]
+-
 以下步骤将展示如何使用 **Get All Actors of Class** 节点查找场景中特定类的所有 Actor。 
---->
+-
+[/COMMENT]
  _在此示例中，我们使用的是 **带有起始资源的第三人称模板创建的项目中的蓝图** 。_
 
 1.	在 **Game/Blueprints** 下的 **Content Browser** 中，拖入三个 **Blueprint_Effect_Fire** 资源。 

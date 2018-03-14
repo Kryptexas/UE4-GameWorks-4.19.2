@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistanceFieldLightingPost.usf
@@ -25,6 +25,9 @@ float HistoryWeight;
 float AOHistoryMinConfidenceScale;
 float HistoryDistanceThreshold;
 float UseHistoryFilter;
+
+float4 HistoryScreenPositionScaleBias;
+float4 HistoryUVMinMax;
 
 Texture2D VelocityTexture;
 SamplerState VelocityTextureSampler;
@@ -68,47 +71,29 @@ void UpdateHistoryDepthRejectionPS(
 	float NewConfidence = Texture2DSampleLevel(ConfidenceTexture, ConfidenceSampler, DistanceFieldUVs, 0);
 #endif
 	float SceneDepth = NewValue.w;
-	float PixelSpeed;
 
-	float2 OldUV;
-
+	float4 ThisClip = float4( UVAndScreenPos.zw, ConvertToDeviceZ(SceneDepth), 1 );
+	float4 PrevClip = mul( ThisClip, View.ClipToPrevClip );
+	float2 PrevScreen = PrevClip.xy / PrevClip.w;
+	float2 Screenvelocity = UVAndScreenPos.zw - PrevScreen;
+		
+	float2 FullResTexel = UVAndScreenPos.xy - .5f * View.BufferSizeAndInvSize.zw;
+	float2 VelocityN = Texture2DSampleLevel(VelocityTexture, VelocityTextureSampler, FullResTexel, 0).xy;
+		
+	if (VelocityN.x > 0.0)
 	{
-		float3 xyd;
-		xyd.xy = UVAndScreenPos.zw * float2(0.5, -0.5) + 0.5;
-		xyd.z = ConvertToDeviceZ(SceneDepth);
-
-		float scaleM = 1.0 / (dot(xyd, CameraMotion.Value[0].xyz) + CameraMotion.Value[0].w);
-		float2 MotionVector;
-		// Unwound vector-matrix transform with special care for precision taken from Temporal AA
-		MotionVector.x = ((xyd.x * ((CameraMotion.Value[1].x * xyd.y) + (CameraMotion.Value[1].y * xyd.z) + CameraMotion.Value[1].z)) + (CameraMotion.Value[1].w * xyd.y) + (CameraMotion.Value[2].x * xyd.x * xyd.x) + (CameraMotion.Value[2].y * xyd.z) + CameraMotion.Value[2].z) * scaleM;
-		MotionVector.y = ((xyd.y * ((CameraMotion.Value[3].x * xyd.x) + (CameraMotion.Value[3].y * xyd.z) + CameraMotion.Value[3].z)) + (CameraMotion.Value[3].w * xyd.x) + (CameraMotion.Value[4].x * xyd.y * xyd.y) + (CameraMotion.Value[4].y * xyd.z) + CameraMotion.Value[4].z) * scaleM;
-
-		// Note: have to sample from one of the high res texels exactly to avoid filtering of the velocity buffer
-		// 0 is stored where camera velocity should be used, which must not be filtered with valid object velocities
-		float2 FullResTexel = UVAndScreenPos.xy - .5f * View.BufferSizeAndInvSize.zw;
-		float2 VelocityN = Texture2DSampleLevel(VelocityTexture, VelocityTextureSampler, FullResTexel, 0).xy;
-
-		if (VelocityN.x > 0)
-		{
-			// Use the per-pixel velocity vector where valid, this handles object, bone and WPO movement
-			MotionVector = float2(-.5f, .5f) * DecodeVelocityFromTexture(VelocityN);
-		}
-
-		PixelSpeed = length(MotionVector);
-		OldUV = UVAndScreenPos.xy + MotionVector / float2(0.5, -0.5) * View.ScreenPositionScaleBias.xy;
+		Screenvelocity = DecodeVelocityFromTexture(VelocityN);
 	}
-	
-	float2 OldScreenPosition = (OldUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
-	float2 OldDistanceFieldUVs = OldUV.xy - View.ViewRectMin.xy * View.BufferSizeAndInvSize.zw;
+		
+	float PixelSpeed = 0.5 * length(Screenvelocity);
 
-	float2 MinUV = View.ViewRectMin.xy * View.BufferSizeAndInvSize.zw;
-	// Pull in the max UV to exclude the region which will read outside the viewport due to bilinear filtering
-	float2 MaxUV = MinUV + (View.ViewSizeAndInvSize.xy - 1 * DOWNSAMPLE_FACTOR) * View.BufferSizeAndInvSize.zw;
+	float2 OldScreenPosition = (UVAndScreenPos.zw - Screenvelocity);
+	float2 OldDistanceFieldUVs = OldScreenPosition * HistoryScreenPositionScaleBias.xy + HistoryScreenPositionScaleBias.wz;
 
 	float EffectiveHistoryWeight = HistoryWeight;
 
 	FLATTEN
-	if (any(OldUV > MaxUV) || any(OldUV < MinUV))
+	if (any(OldDistanceFieldUVs > HistoryUVMinMax.zw) || any(OldDistanceFieldUVs < HistoryUVMinMax.xy))
 	{
 		EffectiveHistoryWeight = 0;
 	}
@@ -244,7 +229,14 @@ void UpdateHistoryDepthRejectionPS(
 		EffectiveHistoryWeight = 0;
 	}
 
-	OutBentNormal.rgb = isnan(OutBentNormal.rgb) || isinf(OutBentNormal.rgb) ? 0 : OutBentNormal.rgb;
+#if XBOXONE_PROFILE
+    // Xbox shader compiler (FXC) does non-IEEE optimization by default unless __XBOX_CONTROL_NONIEEE is
+    // defined to 0, which is not done currently due to performance reason. As a result, we need to check
+    // for Nan manually on Xbox.
+	OutBentNormal.rgb = (asuint(OutBentNormal.rgb) & 0x7f800000) == 0x7f800000 ? 0 : OutBentNormal.rgb;
+#else
+    OutBentNormal.rgb = isnan(OutBentNormal.rgb) || isinf(OutBentNormal.rgb) ? 0 : OutBentNormal.rgb;
+#endif
 	OutBentNormal.a = SceneDepth;
 
 	FLATTEN
@@ -257,6 +249,7 @@ void UpdateHistoryDepthRejectionPS(
 
 #define HALF_HISTORY_FILL_KERNEL_SIZE 2
 float2 BentNormalAOTexelSize;
+float2 MaxSampleBufferUV;
 
 /** Seeds newly rejected history values (which are sources of temporal instability) with the results of a spatial search from stable history values */
 void FilterHistoryPS(
@@ -268,15 +261,21 @@ void FilterHistoryPS(
 #endif
 	)
 {
-	float4 HistoryValue = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, UVAndScreenPos.xy, 0);
+	float2 BufferUV = UVAndScreenPos.xy;
+
+	#if MANUALLY_CLAMP_UV
+		BufferUV = min(BufferUV, MaxSampleBufferUV);
+	#endif
+
+	float4 HistoryValue = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, BufferUV, 0);
 #if SUPPORTS_INDEPENDENT_SAMPLERS
-	float HistoryConfidence = Texture2DSampleLevel(ConfidenceTexture, BentNormalAOSampler, UVAndScreenPos.xy, 0);
+	float HistoryConfidence = Texture2DSampleLevel(ConfidenceTexture, BentNormalAOSampler, BufferUV, 0);
 #else
-	float HistoryConfidence = Texture2DSampleLevel(ConfidenceTexture, ConfidenceSampler, UVAndScreenPos.xy, 0);
+	float HistoryConfidence = Texture2DSampleLevel(ConfidenceTexture, ConfidenceSampler, BufferUV, 0);
 #endif
 
 #if SUPPORT_IRRADIANCE
-	float3 IrradianceValue = Texture2DSampleLevel(IrradianceTexture, IrradianceSampler, UVAndScreenPos.xy, 0).xyz;
+	float3 IrradianceValue = Texture2DSampleLevel(IrradianceTexture, IrradianceSampler, BufferUV, 0).xyz;
 #endif
 
 	// Only do the spatial search for pixels who discarded their history value
@@ -291,8 +290,14 @@ void FilterHistoryPS(
 		{
 			for (float x = -HALF_HISTORY_FILL_KERNEL_SIZE; x <= HALF_HISTORY_FILL_KERNEL_SIZE; x++)
 			{
-				float2 UVOffset = BentNormalAOTexelSize * float2(x, y);
-				float4 TextureValue = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, UVAndScreenPos.xy + UVOffset, 0);
+				float2 SampleBufferUV = UVAndScreenPos.xy + BentNormalAOTexelSize * float2(x, y);
+
+				#if MANUALLY_CLAMP_UV
+					// Distance field AO was computed at 0,0 regardless of viewrect min.
+					SampleBufferUV = min(SampleBufferUV, MaxSampleBufferUV);
+				#endif
+
+				float4 TextureValue = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, SampleBufferUV, 0);
 
 				float SampleSceneDepth = abs(TextureValue.w);
 				float ValidMask = TextureValue.w > 0;
@@ -310,7 +315,7 @@ void FilterHistoryPS(
 				Accumulation.a += Weight;
 
 				#if SUPPORT_IRRADIANCE
-					float3 Irradiance = Texture2DSampleLevel(IrradianceTexture, IrradianceSampler, UVAndScreenPos.xy + UVOffset, 0).xyz;
+					float3 Irradiance = Texture2DSampleLevel(IrradianceTexture, IrradianceSampler, SampleBufferUV, 0).xyz;
 					IrradianceAccumulation += Irradiance * Weight;
 				#endif
 			}

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessHistogram.cpp: Post processing histogram implementation.
@@ -13,19 +13,20 @@ class FPostProcessHistogramCS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessHistogramCS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), FRCPassPostProcessHistogram::ThreadGroupSizeX);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), FRCPassPostProcessHistogram::ThreadGroupSizeY);
 		OutEnvironment.SetDefine(TEXT("LOOP_SIZEX"), FRCPassPostProcessHistogram::LoopCountX);
 		OutEnvironment.SetDefine(TEXT("LOOP_SIZEY"), FRCPassPostProcessHistogram::LoopCountY);
 		OutEnvironment.SetDefine(TEXT("HISTOGRAM_SIZE"), FRCPassPostProcessHistogram::HistogramSize);
+		OutEnvironment.SetDefine(TEXT("EYE_ADAPTATION_PARAMS_SIZE"), (uint32)EYE_ADAPTATION_PARAMS_SIZE);
 		OutEnvironment.CompilerFlags.Add( CFLAG_StandardOptimization );
 	}
 
@@ -67,10 +68,10 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, HistogramParameters, HistogramParametersValue);
 
 		{
-			FVector4 Temp[3];
+			FVector4 Temp[EYE_ADAPTATION_PARAMS_SIZE];
 
 			FRCPassPostProcessEyeAdaptation::ComputeEyeAdaptationParamsValue(Context.View, Temp);
-			SetShaderValueArray(RHICmdList, ShaderRHI, EyeAdaptationParams, Temp, 3);
+			SetShaderValueArray(RHICmdList, ShaderRHI, EyeAdaptationParams, Temp, EYE_ADAPTATION_PARAMS_SIZE);
 		}
 	}
 	
@@ -96,11 +97,11 @@ void FRCPassPostProcessHistogram::Process(FRenderingCompositePassContext& Contex
 		return;
 	}
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	
 	FIntPoint SrcSize = InputDesc->Extent;
-	FIntRect DestRect = View.ViewRect;
+	FIntRect DestRect = Context.SceneColorViewRect;
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
@@ -115,7 +116,7 @@ void FRCPassPostProcessHistogram::Process(FRenderingCompositePassContext& Contex
 	Context.RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, DestRenderTarget.UAV);
 	Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->HistogramRWTexture.GetBaseIndex(), DestRenderTarget.UAV);
 
-	FIntPoint GatherExtent = ComputeGatherExtent(View);
+	FIntPoint GatherExtent = ComputeGatherExtent(Context);
 	FIntPoint ThreadGroupCountValue = ComputeThreadGroupCount(GatherExtent);
 
 	ComputeShader->SetCS(Context.RHICmdList, Context, ThreadGroupCountValue, (DestRect.Min + FIntPoint(1, 1)) / 2, GatherExtent);
@@ -130,10 +131,10 @@ void FRCPassPostProcessHistogram::Process(FRenderingCompositePassContext& Contex
 }
 
 
-FIntPoint FRCPassPostProcessHistogram::ComputeGatherExtent(const FSceneView& View)
+FIntPoint FRCPassPostProcessHistogram::ComputeGatherExtent(const FRenderingCompositePassContext& Context)
 {
 	// we currently assume the input is half res, one full res pixel less to avoid getting bilinear filtered input
-	return (View.ViewRect.Size() - FIntPoint(1, 1)) / 2;
+	return (Context.SceneColorViewRect.Size() - FIntPoint(1, 1)) / 2;
 }
 
 FIntPoint FRCPassPostProcessHistogram::ComputeThreadGroupCount(FIntPoint PixelExtent)

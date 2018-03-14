@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,6 +26,7 @@ enum SimplygonRESTState
 	SRS_UNKNOWN,
 	SRS_FAILED,
 	SRS_ASSETUPLOADED_PENDING,
+	SRS_MULTIPARTASSETUPLOAD_PENDING,
 	SRS_ASSETUPLOADED,
 	SRS_JOBCREATED_PENDING,
 	SRS_JOBCREATED,
@@ -272,6 +273,8 @@ private:
 	/** Map that stores pending request. They need to be cleaned up when destroying the instance. Especially if job has completed*/
 	TMap<TSharedPtr<IHttpRequest>, FString> PendingRequests;
 
+	bool bProcessingStarted;
+	float TimeSinceProcessStart;
 };
 
 /*

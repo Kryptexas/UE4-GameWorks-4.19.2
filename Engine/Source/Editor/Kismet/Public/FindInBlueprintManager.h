@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -128,73 +128,6 @@ struct FSearchData
 		: Blueprint(nullptr)
 		, bMarkedForDeletion(false)
 		, Version(0)
-	{
-	}
-
-	// Adding move semantics (on Mac this counts as a user defined constructor, so I have to reimplement the default
-	// copy constructor. PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS is not true on all compilers yet, so I'm implementing manually:
-	FSearchData(FSearchData&& Other)
-		: Blueprint(Other.Blueprint)
-		, BlueprintPath(MoveTemp(Other.BlueprintPath))
-		, Value(MoveTemp(Other.Value))
-		, ParentClass(MoveTemp(Other.ParentClass))
-		, Interfaces(MoveTemp(Other.Interfaces))
-		, bMarkedForDeletion(Other.bMarkedForDeletion)
-		, ImaginaryBlueprint(Other.ImaginaryBlueprint)
-		, Version(Other.Version)
-	{
-	}
-
-	FSearchData& operator=(FSearchData&& RHS)
-	{
-		if (this == &RHS)
-		{
-			return *this;
-		}
-
-		Blueprint = RHS.Blueprint;
-		BlueprintPath = MoveTemp(RHS.BlueprintPath);
-		Value = MoveTemp(RHS.Value);
-		bMarkedForDeletion = RHS.bMarkedForDeletion;
-		ParentClass = MoveTemp(RHS.ParentClass);
-		Interfaces = MoveTemp(RHS.Interfaces);
-		Version = RHS.Version;
-		ImaginaryBlueprint = RHS.ImaginaryBlueprint;
-		return *this;
-	}
-
-	FSearchData(const FSearchData& Other)
-		: Blueprint(Other.Blueprint)
-		, BlueprintPath(Other.BlueprintPath)
-		, Value(Other.Value)
-		, ParentClass(Other.ParentClass)
-		, Interfaces(Other.Interfaces)
-		, bMarkedForDeletion(Other.bMarkedForDeletion)
-		, ImaginaryBlueprint(Other.ImaginaryBlueprint)
-		, Version(Other.Version)
-	{
-	}
-
-	FSearchData& operator=(const FSearchData& RHS)
-	{
-		if (this == &RHS)
-		{
-			return *this;
-		}
-
-		Blueprint = RHS.Blueprint;
-		BlueprintPath = RHS.BlueprintPath;
-		Value = RHS.Value;
-		bMarkedForDeletion = RHS.bMarkedForDeletion;
-		ParentClass = RHS.ParentClass;
-		Interfaces = RHS.Interfaces;
-		Version = RHS.Version;
-		ImaginaryBlueprint = RHS.ImaginaryBlueprint;
-		return *this;
-	}
-
-
-	~FSearchData()
 	{
 	}
 };

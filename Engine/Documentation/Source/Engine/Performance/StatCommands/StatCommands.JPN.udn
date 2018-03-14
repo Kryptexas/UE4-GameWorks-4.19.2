@@ -42,7 +42,8 @@ version:4.9
 
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-<!--
+[COMMENT:none]
+
 注記：プロファイラ情報との照合に使用できるまでは削除されます。StatsViewer は P4 またはバイナリ ビルドでは表示されません。
 | **stat StartFile** **stat StopFile** | オフラインで分析可能な .ue4stats ファイルを生成します (UE4\Engine\Binaries\DotNET\StatsViewer から  StatsViewer ツールを使用)。前のフレームの作業負荷が高いと、GPU 遅延が発生することがあります。
 
@@ -75,7 +76,8 @@ msを下げたり深度を増加させると、パフォーマンス全体に影
 
 [/EXCERPT]
 
--->
+
+[/COMMENT]
 
 
 

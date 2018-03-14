@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -25,6 +25,7 @@ private:
 	TSharedRef<SWidget> OnGenerateAssetPicker();
 
 	void OnAssetSelectedFromPicker( const struct FAssetData& AssetData );
+	void OnAssetEnterPressedFromPicker( const TArray<struct FAssetData>& AssetData );
 private:
 	/** Menu anchor for opening and closing the asset picker */
 	TSharedPtr< class SMenuAnchor > AssetPickerAnchor;

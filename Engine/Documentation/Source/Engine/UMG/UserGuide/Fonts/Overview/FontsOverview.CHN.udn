@@ -41,7 +41,8 @@ SkillLevel:Beginner
 | **Layout Method** | 此项将选择字体布局时所使用的方法。如字体出现裁剪或高度问题，可尝试对此项进行修改。[INCLUDE:#layoutmethod] |
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:hinting]
 [REGION:simpletable]
 | 选项 | 描述 |
@@ -72,7 +73,8 @@ SkillLevel:Beginner
 [/REGION] 
 [/EXCERPT:layoutmethod]
 
---->
+-
+[/COMMENT]
 
 ## 将字体资源更新至 4.15 及更新版本
 

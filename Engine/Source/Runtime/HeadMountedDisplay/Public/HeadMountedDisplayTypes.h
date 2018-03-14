@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,22 +9,6 @@
 #include "HeadMountedDisplayTypes.generated.h"
 
 struct FFilterVertex;
-
-/**
-* The family of HMD device.  Register a new class of device here if you need to branch code for PostProcessing until
-*/
-namespace EHMDDeviceType
-{
-	enum Type
-	{
-		DT_OculusRift,
-		DT_Morpheus,
-		DT_ES2GenericStereoMesh,
-		DT_SteamVR,
-		DT_GearVR,
-		DT_GoogleVR
-	};
-}
 
 class HEADMOUNTEDDISPLAY_API FHMDViewMesh
 {
@@ -188,3 +172,20 @@ struct FSpectatorScreenModeTexturePlusEyeLayout
 };
 
 DECLARE_DELEGATE_FiveParams(FSpectatorScreenRenderDelegate, FRHICommandListImmediate& /* RHICmdList */, FTexture2DRHIRef /* TargetTexture */, FTexture2DRHIRef /* EyeTexture */, FTexture2DRHIRef /* OtherTexture */, FVector2D /* WindowSize */);
+
+UENUM(BlueprintType)
+enum class EXRTrackedDeviceType : uint8
+{
+	/** Represents a head mounted display */
+	HeadMountedDisplay,
+	/** Represents a controller */
+	Controller,
+	/** Represents a static tracking reference device, such as a Lighthouse or tracking camera */
+	TrackingReference,
+	/** Misc. device types, for future expansion */
+	Other,
+	/** DeviceId is invalid */
+	Invalid = (uint8)-2 UMETA(Hidden),
+	/** Pass to EnumerateTrackedDevices to get all devices regardless of type */
+	Any = (uint8)-1,
+};

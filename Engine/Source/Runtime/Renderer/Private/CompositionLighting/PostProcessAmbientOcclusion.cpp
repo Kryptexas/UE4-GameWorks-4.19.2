@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessAmbientOcclusion.cpp: Post processing ambient occlusion implementation.
@@ -151,8 +151,6 @@ bool FSSAOHelper::IsAmbientOcclusionAsyncCompute(const FViewInfo& View, uint32 A
 	return false;
 }
 
-IMPLEMENT_UNIFORM_BUFFER_STRUCT(FCameraMotionParameters,TEXT("CameraMotion"));
-
 
 /** Shader parameters needed for screen space AmbientOcclusion passes. */
 class FScreenSpaceAOParameters
@@ -166,7 +164,7 @@ public:
 
 	//@param TRHICmdList could be async compute or compute dispatch, so template on commandlist type.
 	template<typename ShaderRHIParamRef, typename TRHICmdList>
-	void Set(TRHICmdList& RHICmdList, const FSceneView& View, const ShaderRHIParamRef ShaderRHI, FIntPoint InputTextureSize) const
+	void Set(TRHICmdList& RHICmdList, const FViewInfo& View, const ShaderRHIParamRef ShaderRHI, FIntPoint InputTextureSize) const
 	{
 		const FFinalPostProcessSettings& Settings = View.FinalPostProcessSettings;
 
@@ -237,14 +235,14 @@ class FPostProcessAmbientOcclusionSetupPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessAmbientOcclusionSetupPS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("INITIAL_PASS"), bInitialPass);
 	}
 
@@ -313,7 +311,7 @@ public:
 // --------------------------------------------------------
 void FRCPassPostProcessAmbientOcclusionSetup::Process(FRenderingCompositePassContext& Context)
 {
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
@@ -446,21 +444,21 @@ class FPostProcessAmbientOcclusionPSandCS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessAmbientOcclusionPSandCS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		if(bComputeShader)
 		{
-			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+			return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 		}
 		else
 		{
-			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+			return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 		}
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters,OutEnvironment);
 
 		OutEnvironment.SetDefine(TEXT("USE_UPSAMPLE"), bDoUpsample);
 		OutEnvironment.SetDefine(TEXT("USE_AO_SETUP_AS_INPUT"), bTAOSetupAsInput);
@@ -781,7 +779,7 @@ void FRCPassPostProcessAmbientOcclusion::ProcessPS(FRenderingCompositePassContex
 
 void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext& Context)
 {
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 
 	const FPooledRenderTargetDesc* InputDesc0 = GetInputDesc(ePId_Input0);
 	const FPooledRenderTargetDesc* InputDesc2 = GetInputDesc(ePId_Input2);
@@ -865,14 +863,9 @@ class FPostProcessBasePassAOPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessBasePassAOPS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/** Default constructor. */
@@ -919,7 +912,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessBasePassAOPS,TEXT("/Engine/Private/PostProces
 
 void FRCPassPostProcessBasePassAO::Process(FRenderingCompositePassContext& Context)
 {
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 
 	SCOPED_DRAW_EVENTF(Context.RHICmdList, ApplyAOToBasePassSceneColor, TEXT("ApplyAOToBasePassSceneColor %dx%d"), View.ViewRect.Width(), View.ViewRect.Height());
 
@@ -977,64 +970,4 @@ FPooledRenderTargetDesc FRCPassPostProcessBasePassAO::ComputeOutputDesc(EPassOut
 	Ret.DebugName = TEXT("SceneColorWithAO");
 
 	return Ret;
-}
-
-TUniformBufferRef<FCameraMotionParameters> CreateCameraMotionParametersUniformBuffer(const FSceneView& View)
-{
-	FSceneViewState* ViewState = (FSceneViewState*)View.State;
-
-	FMatrix Proj = View.ViewMatrices.ComputeProjectionNoAAMatrix();
-	FMatrix PrevProj = ViewState->PrevViewMatrices.ComputeProjectionNoAAMatrix();
-
-	FVector DeltaTranslation = ViewState->PrevViewMatrices.GetPreViewTranslation() - View.ViewMatrices.GetPreViewTranslation();
-	FMatrix ViewProj = ( View.ViewMatrices.GetTranslatedViewMatrix() * Proj ).GetTransposed();
-	FMatrix PrevViewProj = ( FTranslationMatrix(DeltaTranslation) * ViewState->PrevViewMatrices.GetTranslatedViewMatrix() * PrevProj ).GetTransposed();
-
-	double InvViewProj[16];
-	Inverse4x4( InvViewProj, (float*)ViewProj.M );
-
-	const float* p = (float*)PrevViewProj.M;
-
-	const double cxx = InvViewProj[ 0]; const double cxy = InvViewProj[ 1]; const double cxz = InvViewProj[ 2]; const double cxw = InvViewProj[ 3];
-	const double cyx = InvViewProj[ 4]; const double cyy = InvViewProj[ 5]; const double cyz = InvViewProj[ 6]; const double cyw = InvViewProj[ 7];
-	const double czx = InvViewProj[ 8]; const double czy = InvViewProj[ 9]; const double czz = InvViewProj[10]; const double czw = InvViewProj[11];
-	const double cwx = InvViewProj[12]; const double cwy = InvViewProj[13]; const double cwz = InvViewProj[14]; const double cww = InvViewProj[15];
-
-	const double pxx = (double)(p[ 0]); const double pxy = (double)(p[ 1]); const double pxz = (double)(p[ 2]); const double pxw = (double)(p[ 3]);
-	const double pyx = (double)(p[ 4]); const double pyy = (double)(p[ 5]); const double pyz = (double)(p[ 6]); const double pyw = (double)(p[ 7]);
-	const double pwx = (double)(p[12]); const double pwy = (double)(p[13]); const double pwz = (double)(p[14]); const double pww = (double)(p[15]);
-
-	FCameraMotionParameters LocalCameraMotion;
-
-	LocalCameraMotion.Value[0] = FVector4(
-		(float)(4.0*(cwx*pww + cxx*pwx + cyx*pwy + czx*pwz)),
-		(float)((-4.0)*(cwy*pww + cxy*pwx + cyy*pwy + czy*pwz)),
-		(float)(2.0*(cwz*pww + cxz*pwx + cyz*pwy + czz*pwz)),
-		(float)(2.0*(cww*pww - cwx*pww + cwy*pww + (cxw - cxx + cxy)*pwx + (cyw - cyx + cyy)*pwy + (czw - czx + czy)*pwz)));
-
-	LocalCameraMotion.Value[1] = FVector4(
-		(float)(( 4.0)*(cwy*pww + cxy*pwx + cyy*pwy + czy*pwz)),
-		(float)((-2.0)*(cwz*pww + cxz*pwx + cyz*pwy + czz*pwz)),
-		(float)((-2.0)*(cww*pww + cwy*pww + cxw*pwx - 2.0*cxx*pwx + cxy*pwx + cyw*pwy - 2.0*cyx*pwy + cyy*pwy + czw*pwz - 2.0*czx*pwz + czy*pwz - cwx*(2.0*pww + pxw) - cxx*pxx - cyx*pxy - czx*pxz)),
-		(float)(-2.0*(cyy*pwy + czy*pwz + cwy*(pww + pxw) + cxy*(pwx + pxx) + cyy*pxy + czy*pxz)));
-
-	LocalCameraMotion.Value[2] = FVector4(
-		(float)((-4.0)*(cwx*pww + cxx*pwx + cyx*pwy + czx*pwz)),
-		(float)(cyz*pwy + czz*pwz + cwz*(pww + pxw) + cxz*(pwx + pxx) + cyz*pxy + czz*pxz),
-		(float)(cwy*pww + cwy*pxw + cww*(pww + pxw) - cwx*(pww + pxw) + (cxw - cxx + cxy)*(pwx + pxx) + (cyw - cyx + cyy)*(pwy + pxy) + (czw - czx + czy)*(pwz + pxz)),
-		(float)(0));
-
-	LocalCameraMotion.Value[3] = FVector4(
-		(float)((-4.0)*(cwx*pww + cxx*pwx + cyx*pwy + czx*pwz)),
-		(float)((-2.0)*(cwz*pww + cxz*pwx + cyz*pwy + czz*pwz)),
-		(float)(2.0*((-cww)*pww + cwx*pww - 2.0*cwy*pww - cxw*pwx + cxx*pwx - 2.0*cxy*pwx - cyw*pwy + cyx*pwy - 2.0*cyy*pwy - czw*pwz + czx*pwz - 2.0*czy*pwz + cwy*pyw + cxy*pyx + cyy*pyy + czy*pyz)),
-		(float)(2.0*(cyx*pwy + czx*pwz + cwx*(pww - pyw) + cxx*(pwx - pyx) - cyx*pyy - czx*pyz)));
-
-	LocalCameraMotion.Value[4] = FVector4(
-		(float)(4.0*(cwy*pww + cxy*pwx + cyy*pwy + czy*pwz)),
-		(float)(cyz*pwy + czz*pwz + cwz*(pww - pyw) + cxz*(pwx - pyx) - cyz*pyy - czz*pyz),
-		(float)(cwy*pww + cww*(pww - pyw) - cwy*pyw + cwx*((-pww) + pyw) + (cxw - cxx + cxy)*(pwx - pyx) + (cyw - cyx + cyy)*(pwy - pyy) + (czw - czx + czy)*(pwz - pyz)),
-		(float)(0));
-
-	return TUniformBufferRef<FCameraMotionParameters>::CreateUniformBufferImmediate(LocalCameraMotion, UniformBuffer_SingleFrame);
 }

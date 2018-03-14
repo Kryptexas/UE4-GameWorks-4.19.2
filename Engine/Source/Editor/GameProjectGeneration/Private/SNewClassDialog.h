@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -215,6 +215,9 @@ private:
 
 	/** The available modules combo box */
 	TSharedPtr<SComboBox<TSharedPtr<FModuleContextInfo>>> AvailableModulesCombo;
+
+	/** The last selected module name. Meant to keep the same module selected after first selection */
+	static FString LastSelectedModuleName;
 
 	/** The name of the class being created */
 	FString NewClassName;

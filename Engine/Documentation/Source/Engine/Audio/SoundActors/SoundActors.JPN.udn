@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3599948
+﻿INTSourceChangelist:3750407
 Availability:Public
 Title:Ambient Sound アクタのユーザーガイド
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -18,15 +18,9 @@ order:2
 
 ## Ambient Sound アクタ
 
-
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](ambientActors.png)
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-
-[/OBJECT]
+[REGION:raw]
+![](ambientActors.png)
+[/REGION]
 
 Ambient Sound アクタ (画像の左側にあるアイコン) は、環境ループ音やループしない音など多用途に使用できます。 
 一般的に、 Ambient Sound アクタはサウンドに近いほど音が大きく感じられる現実世界のように機能します。比較すると、通常大きいサウンドは、遠くなるとソフトになっていきます。 

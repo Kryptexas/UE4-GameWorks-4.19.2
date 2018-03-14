@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GeomFitUtils.cpp: Utilities for fitting collision models to static meshes.
@@ -100,7 +100,7 @@ int32 GenerateKDopAsSimpleCollision(UStaticMesh* StaticMesh, const TArray<FVecto
 	{
 		for(int32 j=0; j<kCount; j++)
 		{
-			float dist = RenderData.PositionVertexBuffer.VertexPosition(i) | Dirs[j];
+			float dist = RenderData.VertexBuffers.PositionVertexBuffer.VertexPosition(i) | Dirs[j];
 			maxDist[j] = FMath::Max(dist, maxDist[j]);
 		}
 	}

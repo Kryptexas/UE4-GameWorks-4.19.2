@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AndroidTargetSettingsCustomization.h"
 #include "Misc/Paths.h"
@@ -103,10 +103,12 @@ static void OnBrowserLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata)
 void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutBuilder& DetailLayout)
 {
 	// Cache some categories
-	IDetailCategoryBuilder& APKPackagingCategory = DetailLayout.EditCategory(TEXT("APKPackaging"));
+	IDetailCategoryBuilder& APKPackagingCategory = DetailLayout.EditCategory(TEXT("APK Packaging"));
 	IDetailCategoryBuilder& BuildCategory = DetailLayout.EditCategory(TEXT("Build"));
 	IDetailCategoryBuilder& AdvancedBuildCategory = DetailLayout.EditCategory(TEXT("AdvancedBuild"));
 	AdvancedBuildCategory.InitiallyCollapsed(true);
+	IDetailCategoryBuilder& SDKConfigCategory = DetailLayout.EditCategory(TEXT("Project SDK Override"));
+	SDKConfigCategory.InitiallyCollapsed(true);
 
 	IDetailCategoryBuilder& SigningCategory = DetailLayout.EditCategory(TEXT("DistributionSigning"));
 
@@ -189,6 +191,32 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 				.OnClicked(this, &FAndroidTargetSettingsCustomization::OpenBuildFolder)
 			]
 		];
+
+	SDKConfigCategory.AddCustomRow(LOCTEXT("SDKConfigInfo", "SDK Config Info"), false)
+		.WholeRowWidget
+		[
+			SNew(SBorder)
+			.Padding(1)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(FMargin(10, 10, 10, 10))
+				.FillWidth(1.0f)
+				[
+					SNew(SRichTextBlock)
+					.Text(LOCTEXT("SDKConfigMessage", "Leave these fields blank to use global Android SDK project settings. Changing these settings will only affect this project."))
+					.TextStyle(FEditorStyle::Get(), "MessageLog")
+					.DecoratorStyleSet(&FEditorStyle::Get())
+					.AutoWrapText(true)
+				]
+			]
+		];
+
+	TSharedRef<IPropertyHandle> SDKAPILevelOverrideProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, SDKAPILevelOverride));
+	SDKConfigCategory.AddProperty(SDKAPILevelOverrideProperty);
+
+	TSharedRef<IPropertyHandle> NDKAPILevelOverrideProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, NDKAPILevelOverride));
+	SDKConfigCategory.AddProperty(NDKAPILevelOverrideProperty);
 
 	// Signing category
 	SigningCategory.AddCustomRow(LOCTEXT("SigningHyperlink", "Signing Hyperlink"), false)

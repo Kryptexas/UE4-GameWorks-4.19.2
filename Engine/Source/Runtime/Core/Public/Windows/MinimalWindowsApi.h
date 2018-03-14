@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 //=====================================================================================================================
 // Implementation of a minimal subset of the Windows API required for inline function definitions and platform-specific

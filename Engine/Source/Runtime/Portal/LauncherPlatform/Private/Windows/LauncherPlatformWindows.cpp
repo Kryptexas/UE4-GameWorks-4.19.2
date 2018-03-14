@@ -1,6 +1,7 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LauncherPlatformWindows.h"
+#include "LauncherPlatformModule.h"
 #include "WindowsPlatformProcess.h"
 #include "WindowsHWrapper.h"
 #include "Paths.h"
@@ -22,6 +23,10 @@ bool FLauncherPlatformWindows::OpenLauncher(const FOpenLauncherOptions& Options)
 
 		FString Error;
 		FPlatformProcess::LaunchURL(*LauncherUriRequest, nullptr, &Error);
+		if (!Error.IsEmpty())
+		{
+			UE_LOG(LogLauncherPlatform, Warning, TEXT("FPlatformProcess::LaunchURL had an error: %s"), *Error);
+		}
 		return true;
 	}
 	// Otherwise see if we can install it

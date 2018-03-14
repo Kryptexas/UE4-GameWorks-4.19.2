@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/Input/SEditableText.h"
 #include "Framework/Text/TextEditHelper.h"
@@ -34,6 +34,7 @@ void SEditableText::Construct( const FArguments& InArgs )
 	VirtualKeyboardType = InArgs._VirtualKeyboardType;
 	VirtualKeyboardTrigger = InArgs._VirtualKeyboardTrigger;
 	VirtualKeyboardDismissAction = InArgs._VirtualKeyboardDismissAction;
+	OnKeyCharHandler = InArgs._OnKeyCharHandler;
 	OnKeyDownHandler = InArgs._OnKeyDownHandler;
 
 	Font = InArgs._Font;
@@ -171,7 +172,20 @@ void SEditableText::OnFocusLost( const FFocusEvent& InFocusEvent )
 
 FReply SEditableText::OnKeyChar( const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent )
 {
-	return EditableTextLayout->HandleKeyChar(InCharacterEvent);
+	FReply Reply = FReply::Unhandled();
+
+	// First call the user defined key handler, there might be overrides to normal functionality
+	if (OnKeyCharHandler.IsBound())
+	{
+		Reply = OnKeyCharHandler.Execute(MyGeometry, InCharacterEvent);
+	}
+
+	if (!Reply.IsEventHandled())
+	{
+		Reply = EditableTextLayout->HandleKeyChar(InCharacterEvent);
+	}
+
+	return Reply;
 }
 
 FReply SEditableText::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
@@ -316,9 +330,19 @@ void SEditableText::SetSelectAllTextOnCommit(const TAttribute<bool>& InSelectAll
 	bSelectAllTextOnCommit = InSelectAllTextOnCommit;
 }
 
+void SEditableText::SetJustification(const TAttribute<ETextJustify::Type>& InJustification)
+{
+	EditableTextLayout->SetJustification(InJustification);
+}
+
 void SEditableText::SetAllowContextMenu(const TAttribute< bool >& InAllowContextMenu)
 {
 	bAllowContextMenu = InAllowContextMenu;
+}
+
+void SEditableText::SetVirtualKeyboardDismissAction(TAttribute< EVirtualKeyboardDismissAction > InVirtualKeyboardDismissAction)
+{
+	VirtualKeyboardDismissAction = InVirtualKeyboardDismissAction;
 }
 
 void SEditableText::SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod)
@@ -474,7 +498,12 @@ bool SEditableText::CanInsertCarriageReturn() const
 
 bool SEditableText::CanTypeCharacter(const TCHAR InChar) const
 {
-	return !OnIsTypedCharValid.IsBound() || OnIsTypedCharValid.Execute(InChar);
+	if (OnIsTypedCharValid.IsBound())
+	{
+		return OnIsTypedCharValid.Execute(InChar);
+	}
+
+	return InChar != TEXT('\t');
 }
 
 void SEditableText::EnsureActiveTick()

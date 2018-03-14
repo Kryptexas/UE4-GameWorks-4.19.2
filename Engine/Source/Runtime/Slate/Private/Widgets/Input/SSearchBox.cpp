@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/Input/SSearchBox.h"
 #include "Widgets/SBoxPanel.h"
@@ -22,7 +22,7 @@ void SSearchBox::Construct( const FArguments& InArgs )
 	SEditableTextBox::Construct( SEditableTextBox::FArguments()
 		.Style( &InArgs._Style->TextBoxStyle )
 		.Font( this, &SSearchBox::GetWidgetFont )
-		.Text( InArgs._InitialText )
+		.Text( InArgs._InitialText.Get() )
 		.HintText( InArgs._HintText )
 		.SelectAllTextWhenFocused( InArgs._SelectAllTextWhenFocused )
 		.RevertTextOnEscape( true )

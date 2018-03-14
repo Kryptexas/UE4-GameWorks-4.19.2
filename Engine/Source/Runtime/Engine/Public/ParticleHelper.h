@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleHelper.h: Particle helper definitions/ macros.
@@ -233,26 +233,26 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Sprite Ptcls Spawned"),STAT_SpritePartic
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Sprite Ptcls Updated"),STAT_SpriteParticlesUpdated,STATGROUP_Particles, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Sprite Ptcls Killed"),STAT_SpriteParticlesKilled,STATGROUP_Particles, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Particle Draw Calls"),STAT_ParticleDrawCalls,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Sort Time"),STAT_SortingTime,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Sprite Render Time"),STAT_SpriteRenderingTime,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Sprite Tick Time"),STAT_SpriteTickTime,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Sprite Spawn Time"),STAT_SpriteSpawnTime,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Sprite Update Time"),STAT_SpriteUpdateTime,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("PSys Comp Tick Time"),STAT_PSysCompTickTime,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Particle Collision Time"),STAT_ParticleCollisionTime,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Particle SkelMeshSurf Time"),STAT_ParticleSkelMeshSurfTime,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Particle Pool Time"),STAT_ParticlePoolTime,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Particle Compute Time"),STAT_ParticleComputeTickTime,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Particle Finalize Time"),STAT_ParticleFinalizeTickTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Sort Time RT"),STAT_SortingTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Sprite Render Time RT"),STAT_SpriteRenderingTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Sprite Tick Time GT"),STAT_SpriteTickTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Sprite Spawn Time GT"),STAT_SpriteSpawnTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Sprite Update Time GT"),STAT_SpriteUpdateTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("PSys Comp Tick Time GT"),STAT_PSysCompTickTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Particle Collision Time GT"),STAT_ParticleCollisionTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Particle SkelMeshSurf Time GT"),STAT_ParticleSkelMeshSurfTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Particle Pool Time RT"),STAT_ParticlePoolTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Particle Compute Time GT,AT"),STAT_ParticleComputeTickTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Particle Finalize Time GT"),STAT_ParticleFinalizeTickTime,STATGROUP_Particles, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Particle GT Stall Time"),STAT_GTSTallTime,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Particle Render Time"),STAT_ParticleRenderingTime,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Particle Packing Time"),STAT_ParticlePackingTime,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("SetTemplate Time"),STAT_ParticleSetTemplateTime,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Initialize Time"),STAT_ParticleInitializeTime,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Activate Time"),STAT_ParticleActivateTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Particle Render Time RT"),STAT_ParticleRenderingTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Particle Packing Time RT"),STAT_ParticlePackingTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("SetTemplate Time GT"),STAT_ParticleSetTemplateTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Initialize Time GT"),STAT_ParticleInitializeTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Activate Time GT"),STAT_ParticleActivateTime,STATGROUP_Particles, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Async Work Time"),STAT_ParticleAsyncTime,STATGROUP_Particles, );           // regardless of if it is actually performed on other threads or not
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Wait For ASync Time"),STAT_ParticleAsyncWaitTime,STATGROUP_Particles, );   // can be either performed on this thread or a true wait
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Update Bounds Time"),STAT_ParticleUpdateBounds,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Update Bounds Time GT"),STAT_ParticleUpdateBounds,STATGROUP_Particles, );
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Particle Memory Time"),STAT_ParticleMemTime,STATGROUP_ParticleMem, );
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Ptcls Data GT Mem"),STAT_GTParticleData,STATGROUP_ParticleMem, );
@@ -316,12 +316,14 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Cull Vector Fields"),STAT_GPUParticleVFCullTime,
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Misc1"),STAT_GPUParticleMisc1,STATGROUP_GPUParticles, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Misc2"),STAT_GPUParticleMisc2,STATGROUP_GPUParticles, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Misc3"),STAT_GPUParticleMisc3,STATGROUP_GPUParticles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Injection Tick Time"), STAT_GPUParticlesInjectionTime, STATGROUP_GPUParticles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Execute Simulation Commands Time"), STAT_GPUParticlesSimulationCommands, STATGROUP_GPUParticles, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Single Iteration Emitters"), STAT_GPUSingleIterationEmitters, STATGROUP_GPUParticles, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Multi Iterations Emitters"), STAT_GPUMultiIterationsEmitters, STATGROUP_GPUParticles, );
 
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Mesh Particles"),STAT_MeshParticles,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Mesh Render Time"),STAT_MeshRenderingTime,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Mesh Tick Time"),STAT_MeshTickTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Mesh Render Time RT"),STAT_MeshRenderingTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Mesh Tick Time GT,AT"),STAT_MeshTickTime,STATGROUP_Particles, );
 
 /**
  * Per-particle data sent to the GPU.
@@ -520,11 +522,11 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Trail Ptcls Spawned"),STAT_TrailParticle
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Trail Tick Calls"),STAT_TrailParticlesTickCalls,STATGROUP_TrailParticles, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Trail Ptcls Killed"),STAT_TrailParticlesKilled,STATGROUP_Particles, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Trail Ptcl Tris"),STAT_TrailParticlesTrianglesRendered,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Trail FillVertex Time"),STAT_TrailFillVertexTime,STATGROUP_TrailParticles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Trail FillIndex Time"),STAT_TrailFillIndexTime,STATGROUP_TrailParticles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Trail Render Time"),STAT_TrailRenderingTime,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Trail Tick Time"),STAT_TrailTickTime,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("AnimTrail Notify Time"),STAT_AnimTrailNotifyTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Trail FillVertex Time RT"),STAT_TrailFillVertexTime,STATGROUP_TrailParticles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Trail FillIndex Time RT"),STAT_TrailFillIndexTime,STATGROUP_TrailParticles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Trail Render Time RT"),STAT_TrailRenderingTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Trail Tick Time GT"),STAT_TrailTickTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("AnimTrail Notify Time GT"),STAT_AnimTrailNotifyTime,STATGROUP_Particles, );
 
 /**
  * Beam particle stats
@@ -536,11 +538,11 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Beam Ptcl Update Calls"),STAT_BeamPartic
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Beam Ptcls Updated"),STAT_BeamParticlesUpdated,STATGROUP_BeamParticles, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Beam Ptcls Killed"),STAT_BeamParticlesKilled,STATGROUP_Particles, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Beam Ptcl Tris"),STAT_BeamParticlesTrianglesRendered,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Beam Spawn Time"),STAT_BeamSpawnTime,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Beam FillVertex Time"),STAT_BeamFillVertexTime,STATGROUP_BeamParticles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Beam FillIndex Time"),STAT_BeamFillIndexTime,STATGROUP_BeamParticles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Beam Render Time"),STAT_BeamRenderingTime,STATGROUP_Particles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Beam Tick Time"),STAT_BeamTickTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Beam Spawn Time GT"),STAT_BeamSpawnTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Beam FillVertex Time RT"),STAT_BeamFillVertexTime,STATGROUP_BeamParticles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Beam FillIndex Time RT"),STAT_BeamFillIndexTime,STATGROUP_BeamParticles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Beam Render Time RT"),STAT_BeamRenderingTime,STATGROUP_Particles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Beam Tick Time GT"),STAT_BeamTickTime,STATGROUP_Particles, );
 
 //
 //	Helper structures for payload data...
@@ -1394,7 +1396,7 @@ struct FDynamicEmitterDataBase
 	void* operator new(size_t Size);
 	void operator delete(void *RawMemory, size_t Size);
 
-	virtual FParticleVertexFactoryBase *CreateVertexFactory()
+	virtual FParticleVertexFactoryBase *CreateVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		return nullptr;
 	}
@@ -1681,7 +1683,7 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	{
 	}
 
-	virtual FParticleVertexFactoryBase *CreateVertexFactory() override;
+	virtual FParticleVertexFactoryBase *CreateVertexFactory(ERHIFeatureLevel::Type InFeatureLevel) override;
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	void Init( bool bInSelected );
@@ -1831,7 +1833,7 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 
 	virtual ~FDynamicMeshEmitterData();
 
-	FParticleVertexFactoryBase *CreateVertexFactory() override;
+	FParticleVertexFactoryBase *CreateVertexFactory(ERHIFeatureLevel::Type InFeatureLevel) override;
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	void Init(bool bInSelected,const FParticleMeshEmitterInstance* InEmitterInstance,UStaticMesh* InStaticMesh, ERHIFeatureLevel::Type InFeatureLevel );
@@ -1940,7 +1942,7 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	int32					LastFramePreRendered;
 
 	UStaticMesh*		StaticMesh;
-	TArray<UMaterialInterface*, TInlineAllocator<2> > MeshMaterials;
+	TArray<FMaterialRenderProxy*, TInlineAllocator<2>> MeshMaterials;	
 
 	/** offset to FMeshTypeDataPayload */
 	uint32 MeshTypeDataOffset;
@@ -2125,7 +2127,7 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 
 	~FDynamicBeam2EmitterData();
 
-	virtual FParticleVertexFactoryBase *CreateVertexFactory() override;
+	virtual FParticleVertexFactoryBase *CreateVertexFactory(ERHIFeatureLevel::Type InFeatureLevel) override;
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	void Init( bool bInSelected );
@@ -2274,7 +2276,7 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 
 	~FDynamicTrailsEmitterData();
 
-	virtual FParticleVertexFactoryBase *CreateVertexFactory() override;
+	virtual FParticleVertexFactoryBase *CreateVertexFactory(ERHIFeatureLevel::Type InFeatureLevel) override;
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 	virtual void Init(bool bInSelected);
@@ -2468,18 +2470,41 @@ public:
 //	Scene Proxies
 //
 
-class FParticleSystemSceneProxy : public FPrimitiveSceneProxy
+class FParticleSystemSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override;
+
 	/** Initialization constructor. */
-	FParticleSystemSceneProxy(const UParticleSystemComponent* Component, FParticleDynamicData* InDynamicData);
+	FParticleSystemSceneProxy(const UParticleSystemComponent* Component, FParticleDynamicData* InDynamicData, bool bCanBeOccluded);
 	virtual ~FParticleSystemSceneProxy();
 
 	// FPrimitiveSceneProxy interface.
 	virtual bool CanBeOccluded() const override
 	{
-		return false;
+		return  bCanBeOccluded ? !MaterialRelevance.bDisableDepthTest : false;
 	}
+
+	/**
+	*	Returns whether the proxy utilizes custom occlusion bounds or not
+	*
+	*	@return	bool		true if custom occlusion bounds are used, false if not;
+	*/
+	virtual bool HasCustomOcclusionBounds() const override
+	{
+		return bCanBeOccluded ? bHasCustomOcclusionBounds : FPrimitiveSceneProxy::HasCustomOcclusionBounds();
+	}
+
+	/**
+	*	Return the custom occlusion bounds for this scene proxy.
+	*
+	*	@return	FBoxSphereBounds		The custom occlusion bounds.
+	*/
+	virtual FBoxSphereBounds GetCustomOcclusionBounds() const override
+	{
+		return bCanBeOccluded ? OcclusionBounds.TransformBy(GetLocalToWorld()) : FPrimitiveSceneProxy::GetCustomOcclusionBounds();
+	}
+
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
 	virtual void OnTransformChanged() override;
@@ -2593,7 +2618,7 @@ public:
 
 		if (EmitterVertexFactoryArray[InDynamicData->EmitterIndex] == nullptr)
 		{
-			EmitterVertexFactoryArray[InDynamicData->EmitterIndex] = InDynamicData->CreateVertexFactory();
+			EmitterVertexFactoryArray[InDynamicData->EmitterIndex] = InDynamicData->CreateVertexFactory(FeatureLevel);
 		}
 	}
 
@@ -2659,45 +2684,12 @@ protected:
 	mutable TArray<FDynamicEmitterDataBase*> DynamicDataForThisFrame; 
 	mutable bool bVertexFactoriesDirty : 1;
 
+	ERHIFeatureLevel::Type FeatureLevel;
+
 	friend struct FDynamicSpriteEmitterDataBase;
-};
-
-class FParticleSystemOcclusionSceneProxy : public FParticleSystemSceneProxy
-{
-public:
-	/** Initialization constructor. */
-	FParticleSystemOcclusionSceneProxy(const UParticleSystemComponent* Component, FParticleDynamicData* InDynamicData);
-	virtual ~FParticleSystemOcclusionSceneProxy();
-
-	// FPrimitiveSceneProxy interface.
-	/** @return true if the proxy requires occlusion queries */
-	virtual bool CanBeOccluded() const override
-	{
-		return !MaterialRelevance.bDisableDepthTest;
-	}
-	
-	/**
-	 *	Returns whether the proxy utilizes custom occlusion bounds or not
-	 *
-	 *	@return	bool		true if custom occlusion bounds are used, false if not;
-	 */
-	virtual bool HasCustomOcclusionBounds() const override
-	{
-		return bHasCustomOcclusionBounds;
-	}
-
-	/**
-	 *	Return the custom occlusion bounds for this scene proxy.
-	 *	
-	 *	@return	FBoxSphereBounds		The custom occlusion bounds.
-	 */
-	virtual FBoxSphereBounds GetCustomOcclusionBounds() const override
-	{
-		return OcclusionBounds.TransformBy(GetLocalToWorld());
-	}
 
 private:
-
+	uint32	bCanBeOccluded : 1;
 	uint32	bHasCustomOcclusionBounds : 1;
 
 	/** Bounds for occlusion rendering. */

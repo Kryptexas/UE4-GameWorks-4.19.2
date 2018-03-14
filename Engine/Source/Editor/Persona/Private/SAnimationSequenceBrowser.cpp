@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SAnimationSequenceBrowser.h"
@@ -424,11 +424,11 @@ void SAnimationSequenceBrowser::OnApplyCompression(TArray<FAssetData> SelectedAs
 	if ( SelectedAssets.Num() > 0 )
 	{
 		TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
-		for(auto Iter = SelectedAssets.CreateIterator(); Iter; ++Iter)
+		for(const FAssetData& Asset : SelectedAssets)
 		{
-			if(UAnimSequence* AnimSequence = Cast<UAnimSequence>(Iter->GetAsset()) )
+			if(UAnimSequence* AnimSequence = Cast<UAnimSequence>(Asset.GetAsset()) )
 			{
-				AnimSequences.Add( TWeakObjectPtr<UAnimSequence>(AnimSequence) );
+				AnimSequences.Add( MakeWeakObjectPtr(AnimSequence) );
 			}
 		}
 
@@ -442,12 +442,12 @@ void SAnimationSequenceBrowser::OnExportToFBX(TArray<FAssetData> SelectedAssets)
 	if (SelectedAssets.Num() > 0)
 	{
 		TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
-		for(auto Iter = SelectedAssets.CreateIterator(); Iter; ++Iter)
+		for(const FAssetData& Asset : SelectedAssets)
 		{
-			if(UAnimSequence* AnimSequence = Cast<UAnimSequence>(Iter->GetAsset()))
+			if(UAnimSequence* AnimSequence = Cast<UAnimSequence>(Asset.GetAsset()))
 			{
 				// we only shows anim sequence that belong to this skeleton
-				AnimSequences.Add(TWeakObjectPtr<UAnimSequence>(AnimSequence));
+				AnimSequences.Add(MakeWeakObjectPtr(AnimSequence));
 			}
 		}
 
@@ -481,12 +481,12 @@ void SAnimationSequenceBrowser::OnAddLoopingInterpolation(TArray<FAssetData> Sel
 	if(SelectedAssets.Num() > 0)
 	{
 		TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
-		for(auto Iter = SelectedAssets.CreateIterator(); Iter; ++Iter)
+		for(const FAssetData& Asset : SelectedAssets)
 		{
-			if(UAnimSequence* AnimSequence = Cast<UAnimSequence>(Iter->GetAsset()))
+			if(UAnimSequence* AnimSequence = Cast<UAnimSequence>(Asset.GetAsset()))
 			{
 				// we only shows anim sequence that belong to this skeleton
-				AnimSequences.Add(TWeakObjectPtr<UAnimSequence>(AnimSequence));
+				AnimSequences.Add(MakeWeakObjectPtr(AnimSequence));
 			}
 		}
 
@@ -634,6 +634,7 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs, const TShare
 		Config.ExtraFrontendFilters.Add(FolderFilter);
 	}
 
+	Config.OnIsAssetValidForCustomToolTip = FOnIsAssetValidForCustomToolTip::CreateLambda([](const FAssetData& AssetData) {return AssetData.IsAssetLoaded(); });
 	Config.OnGetCustomAssetToolTip = FOnGetCustomAssetToolTip::CreateSP(this, &SAnimationSequenceBrowser::CreateCustomAssetToolTip);
 	Config.OnVisualizeAssetToolTip = FOnVisualizeAssetToolTip::CreateSP(this, &SAnimationSequenceBrowser::OnVisualizeAssetToolTip);
 	Config.OnAssetToolTipClosing = FOnAssetToolTipClosing::CreateSP( this, &SAnimationSequenceBrowser::OnAssetToolTipClosing );
@@ -1161,7 +1162,7 @@ bool SAnimationSequenceBrowser::OnVisualizeAssetToolTip(const TSharedPtr<SWidget
 	// Resolve the asset
 	USkeletalMesh* MeshToUse = nullptr;
 	UClass* AssetClass = FindObject<UClass>(ANY_PACKAGE, *AssetData.AssetClass.ToString());
-	if(AssetClass->IsChildOf(UAnimationAsset::StaticClass()) && AssetData.GetAsset())
+	if(AssetClass->IsChildOf(UAnimationAsset::StaticClass()) && AssetData.IsAssetLoaded() && AssetData.GetAsset())
 	{
 		// Set up the viewport to show the asset. Catching the visualize allows us to use
 		// one viewport between all of the assets in the sequence browser.

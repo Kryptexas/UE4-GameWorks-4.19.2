@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SCurveEditor.h"
@@ -35,6 +35,8 @@
 #include "Widgets/Input/STextEntryPopup.h"
 
 #define LOCTEXT_NAMESPACE "SCurveEditor"
+
+DEFINE_LOG_CATEGORY_STATIC(LogCurveEditor, Log, All);
 
 const static FVector2D	CONST_KeySize		= FVector2D(11,11);
 const static FVector2D	CONST_TangentSize	= FVector2D(7,7);
@@ -491,6 +493,8 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 	}
 
 	FCoreUObjectDelegates::OnObjectPropertyChanged.AddSP(this, &SCurveEditor::OnObjectPropertyChanged);
+
+	bRequireFocusToZoom = false;
 }
 
 FText SCurveEditor::GetIsCurveVisibleToolTip(TSharedPtr<FCurveViewModel> CurveViewModel) const
@@ -1303,6 +1307,21 @@ void SCurveEditor::SetZoomToFit(bool bNewZoomToFitVertical, bool bNewZoomToFitHo
 	bZoomToFitHorizontal = bNewZoomToFitHorizontal;
 }
 
+void SCurveEditor::SetRequireFocusToZoom(bool bInRequireFocusToZoom)
+{
+	bRequireFocusToZoom = bInRequireFocusToZoom;
+}
+
+TOptional<bool> SCurveEditor::OnQueryShowFocus(const EFocusCause InFocusCause) const
+{
+	if (bRequireFocusToZoom)
+	{
+		// Enable showing a focus rectangle when the widget has keyboard focus
+		return TOptional<bool>(true);
+	}
+	return TOptional<bool>();
+}
+
 FCurveOwnerInterface* SCurveEditor::GetCurveOwner() const
 {
 	return CurveOwner;
@@ -1555,8 +1574,12 @@ void SCurveEditor::UpdateCurveToolTip(const FGeometry& InMyGeometry, const FPoin
 
 FReply SCurveEditor::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	ZoomView(FVector2D(MouseEvent.GetWheelDelta(), MouseEvent.GetWheelDelta()));
-	return FReply::Handled();
+	if (!bRequireFocusToZoom || HasKeyboardFocus())
+	{
+		ZoomView(FVector2D(MouseEvent.GetWheelDelta(), MouseEvent.GetWheelDelta()));
+		return FReply::Handled();
+	}
+	return FReply::Unhandled();
 }
 
 void SCurveEditor::ZoomView(FVector2D Delta)
@@ -2299,7 +2322,7 @@ void SCurveEditor::MoveSelectedKeys(FVector2D Delta)
 	TArray<FRichCurveEditInfo> ChangedCurveEditInfos;
 
 	const FScopedTransaction Transaction( LOCTEXT("CurveEditor_MoveKeys", "Move Keys") );
-	CurveOwner->ModifyOwner();
+	CurveOwner->ModifyOwnerChange();
 
 	// track all unique curves encountered so their tangents can be updated later
 	TSet<FRichCurve*> UniqueCurves;
@@ -3242,10 +3265,17 @@ void SCurveEditor::OnBakeCurveSampleRateCommitted(const FText& InText, ETextComm
 	{
 		double NewBakeSampleRate = FCString::Atod(*InText.ToString());
 		const bool bIsNumber = InText.IsNumeric(); 
-		if(!bIsNumber)
+		if (!bIsNumber)
+		{
 			return;
+		}
+		if (NewBakeSampleRate <= 0.0)
+		{
+			UE_LOG(LogCurveEditor, Error, TEXT("Invalid Bake Sample Rate"));
+			return;
+		}
 
-		float BakeSampleRate = (float)NewBakeSampleRate;
+		const float BakeSampleRate = (float)NewBakeSampleRate;
 
 		const FScopedTransaction Transaction(LOCTEXT("CurveEditor_BakeCurve", "Bake Curve"));
 		CurveOwner->ModifyOwner();
@@ -3273,8 +3303,15 @@ void SCurveEditor::OnBakeCurveSampleRateCommitted(const FText& InText, ETextComm
 		{
 			for (auto CurveToBake : CurveRangeMap)
 			{
-				CurveToBake.Key->BakeCurve(BakeSampleRate, CurveToBake.Value.Min, CurveToBake.Value.Max);
-				ChangedCurveEditInfos.Add(GetViewModelForCurve(CurveToBake.Key)->CurveInfo);
+				if (CurveToBake.Value.Min != CurveToBake.Value.Max)
+				{
+					CurveToBake.Key->BakeCurve(BakeSampleRate, CurveToBake.Value.Min, CurveToBake.Value.Max);
+					ChangedCurveEditInfos.Add(GetViewModelForCurve(CurveToBake.Key)->CurveInfo);
+				}
+				else
+				{
+					UE_LOG(LogCurveEditor, Warning, TEXT("Unable to bake single-point curve. Check if you don't have a single key selected before Baking."));
+				}
 			}
 		}
 		else
@@ -3481,6 +3518,7 @@ bool SCurveEditor::IsPostInfinityExtrapSelected(ERichCurveExtrapolation Extrapol
 void SCurveEditor::MoveTangents(FTrackScaleInfo& ScaleInfo, FVector2D Delta)
 {
 	TArray<FRichCurveEditInfo> ChangedCurveEditInfos;
+	CurveOwner->ModifyOwnerChange();
 
 	for (auto SelectedTangent : SelectedTangents)
 	{

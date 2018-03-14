@@ -19,7 +19,7 @@ Description:配置可应用于pawn和相机的输入。
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. 我们需要确定相机控制所需进行的操作，然后进行相应设置。 对这个项目，让我们在鼠标右键按住不放的时候来缩短跟随距离并放大视野。 让我们同时使用鼠标来控制视角，并使用WASD键来控制 **Pawn** 的移动。 要完成此内容，我们应打开 **Unreal Engine（虚幻引擎）** 编辑器中的 **Edit（编辑）** 下拉菜单的 **Project Settings（项目设置）** 。
 
@@ -58,7 +58,7 @@ Description:配置可应用于pawn和相机的输入。
     [/PARAM]
     [PARAM:content]
 		**PawnWithCamera.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -90,7 +90,7 @@ Description:配置可应用于pawn和相机的输入。
 			};
 
 		**PawnWithCamera.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_PlayerCamera.h"
 			#include "PawnWithCamera.h"
@@ -141,4 +141,4 @@ Description:配置可应用于pawn和相机的输入。
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

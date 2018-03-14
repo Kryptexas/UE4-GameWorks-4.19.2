@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LandscapeVertexFactory.usf: Landscape vertex factory.
@@ -6,7 +6,6 @@
 
 #include "VertexFactoryCommon.ush"
 
-#define ES2_MAXLOD	5
 #define VERTEX_FACTORY_MODIFIES_TESSELLATION 1
 
 // Set by FLightMapTexturePolicy
@@ -32,6 +31,16 @@ float4 LodBias;
    w = 1/SectionSizeQuads in current LOD
 */
 float4 LodValues;
+
+#if USING_TESSELLATION
+/* Used to perform adaptative falloff using C - K * d
+   x = C
+   y = K
+   z = unused
+   w = unused
+*/
+float4 LodTessellationParams;
+#endif
 
 /* Fractional Lod values for each section */
 float4 SectionLods;
@@ -81,7 +90,11 @@ struct FVertexFactoryInput
 
 struct FVertexFactoryInterpolantsVSToPS
 {
-	float2	LayerTexCoord			: TEXCOORD0;
+#if USING_TESSELLATION
+	float4	LayerTexCoord			: TEXCOORD0; // xy == texcoord, zw == tess falloff params
+#else
+	float2	LayerTexCoord			: TEXCOORD0; // xy == texcoord
+#endif
 #if (ES2_PROFILE || ES3_1_PROFILE)
 	float2	WeightMapTexCoord		: TEXCOORD1;
 	float4	TransformedTexCoord0	: TEXCOORD2;
@@ -106,7 +119,7 @@ struct FVertexFactoryInterpolantsVSToPS
 
 struct FLandscapeTexCoords
 {
-	float2	LayerTexCoord;
+	float4	LayerTexCoord; // xy == texcoord, zw == tess falloff params
 	float2	WeightMapTexCoord;
 #if !(ES2_PROFILE || ES3_1_PROFILE)
 	float2	HeightMapTexCoord;
@@ -141,11 +154,14 @@ float2 VertexFactoryGetTextureCoordinateDS( FVertexFactoryInterpolantsVSToDS Int
 }
 
 float VertexFactoryModifyTessellationMultiplier(FVertexFactoryInterpolantsVSToDS Interpolants, float3 CameraLocalWorldPosition, float MaterialTessellationMultiplier)
-{
-	// The 3.0f is a tunable value for falloff speed
-	float TessellationFalloff = saturate((1.0f - Interpolants.CalculatedLOD) * 3.0f);
+{		
+	float CurrentDistance = length(CameraLocalWorldPosition);
+	return MaterialTessellationMultiplier * saturate(Interpolants.InterpolantsVSToPS.LayerTexCoord.z - (Interpolants.InterpolantsVSToPS.LayerTexCoord.w * CurrentDistance));
+}
 
-	return MaterialTessellationMultiplier * TessellationFalloff;
+float VertexFactoryModifyTessellationWorldDisplacementMultiplier(FVertexFactoryInterpolantsVSToDS Interpolants, float3 CameraLocalWorldPosition, float MaterialTessellationMultiplier, float CurrentTessellationMultiplier)
+{
+	return max(CurrentTessellationMultiplier, 0.001) / max(MaterialTessellationMultiplier, 0.001);// smooth out the application of the displacement based on the current tess multiplier
 }
 #endif // #if USING_TESSELLATION
 
@@ -184,7 +200,11 @@ FLandscapeTexCoords GetLandscapeTexCoords(FVertexFactoryInput Input, FVertexFact
 {
 	FLandscapeTexCoords Result;
 
-	Result.LayerTexCoord = Intermediates.LocalPosition.xy + LandscapeParameters.SubsectionSizeVertsLayerUVPan.zw + Intermediates.InputPosition.zw * LandscapeParameters.SubsectionOffsetParams.ww;
+	Result.LayerTexCoord.xy = Intermediates.LocalPosition.xy + LandscapeParameters.SubsectionSizeVertsLayerUVPan.zw + Intermediates.InputPosition.zw * LandscapeParameters.SubsectionOffsetParams.ww;
+#if USING_TESSELLATION
+	Result.LayerTexCoord.z = LodTessellationParams.x;
+	Result.LayerTexCoord.w = LodTessellationParams.y;
+#endif
 
 	Result.WeightMapTexCoord	= Intermediates.LocalPosition.xy * LandscapeParameters.WeightmapUVScaleBias.xy + LandscapeParameters.WeightmapUVScaleBias.zw + Intermediates.InputPosition.zw * LandscapeParameters.SubsectionOffsetParams.zz;
 #if !(ES2_PROFILE || ES3_1_PROFILE)
@@ -576,7 +596,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	float LODCalculated = CalcLOD(xy, Intermediates.InputPosition.zw);
 
 	float LodValue = floor(LODCalculated);
-	float MorphAlpha = frac(LODCalculated);
+	float MorphAlpha = LODCalculated - LodValue;
 
 	// InputPositionLODAdjusted : Position for actual LOD in base LOD units
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
@@ -727,7 +747,7 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 		float2 CustomizedUVs[NUM_MATERIAL_TEXCOORDS];
 		GetMaterialCustomizedUVs(VertexParameters, CustomizedUVs);
 
-		Interpolants.LayerTexCoord = CustomizedUVs[0];
+		Interpolants.LayerTexCoord.xy = CustomizedUVs[0];
 		#if NUM_MATERIAL_TEXCOORDS > 1
 			Interpolants.TransformedTexCoord0.xy	= CustomizedUVs[1];
 			#if NUM_MATERIAL_TEXCOORDS > 2
@@ -744,7 +764,7 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 		float2 CustomizedUVs[NUM_MATERIAL_TEXCOORDS];
 		GetMaterialCustomizedUVs(VertexParameters, CustomizedUVs);
 
-		Interpolants.LayerTexCoord = CustomizedUVs[0];
+		Interpolants.LayerTexCoord.xy = CustomizedUVs[0];
 		Interpolants.TransformedTexCoords = 0;
 
 		#if NUM_MATERIAL_TEXCOORDS > 1

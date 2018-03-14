@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -111,7 +111,6 @@ namespace AutomationTool
         /// </summary>
         public static CommandLineArg NoCompileLegacyDontUse = new CommandLineArg("-NoCompile");
         public static CommandLineArg NoCompileEditor = new CommandLineArg("-NoCompileEditor");
-        public static CommandLineArg IncrementalBuildUBT = new CommandLineArg("-IncrementalBuildUBT");
 		public static CommandLineArg Help = new CommandLineArg("-Help");
 		public static CommandLineArg List = new CommandLineArg("-List");
 		public static CommandLineArg VS2015 = new CommandLineArg("-2015");

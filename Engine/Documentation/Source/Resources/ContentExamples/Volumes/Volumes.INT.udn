@@ -8,43 +8,11 @@ Related: Engine/Rendering/LightingAndShadows/LightPropagationVolumes
 Related: Engine/AI/BehaviorTrees/QuickStart/2
 Related: Engine/Actors/Triggers
 Version: 4.9
-
+topic-image:Volumes_Compact.png
 
 [REGION:banner]
 ![](Volumes_Header.png)(convert:false)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Volumes:title%](Volumes_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Volumes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Volumes:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Volumes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Volumes:title%](Volumes_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Volumes:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Volumes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 
 
 The **Volumes** Content Example map illustrates how you can use different types of Volumes to produce different gameplay effects, set boundaries, improve performance and (or) reduce lighting build times. 

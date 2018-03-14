@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -58,7 +58,8 @@ public:
 
 	/** Get the currently entered password */
 	static FString GetPassword();
-
+	
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime );
 private:
 
 	/** Fire off a source control operation to see what workspaces we have */

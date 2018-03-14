@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -247,9 +247,35 @@ namespace UnrealBuildTool
 		{
 			Process LocalProcess = new Process();
 			LocalProcess.StartInfo = StartInfo;
-			LocalProcess.OutputDataReceived += (Sender, Line) => { if (Line != null && Line.Data != null) Log.TraceInformation(Line.Data); };
-			LocalProcess.ErrorDataReceived += (Sender, Line) => { if (Line != null && Line.Data != null) Log.TraceError(Line.Data); };
+			LocalProcess.OutputDataReceived += (Sender, Args) => { LocalProcessOutput(Args, false); };
+			LocalProcess.ErrorDataReceived += (Sender, Args) => { LocalProcessOutput(Args, true); };
 			return RunLocalProcess(LocalProcess);
+		}
+
+		/// <summary>
+		/// Output a line of text from a local process. Implemented as a separate function to give a useful function name in the UAT log prefix.
+		/// </summary>
+		static void LocalProcessOutput(DataReceivedEventArgs Args, bool bIsError)
+		{
+			if(Args != null && Args.Data != null)
+			{
+				if(bIsError)
+				{
+					Log.TraceError(Args.Data.TrimEnd());
+				}
+				else
+				{
+					Log.TraceInformation(Args.Data.TrimEnd());
+				}
+			}
+		}
+
+		/// <summary>
+		/// Runs a local process and pipes the output to the log
+		/// </summary>
+		public static int RunLocalProcessAndLogOutput(string Command, string Args)
+		{
+			return RunLocalProcessAndLogOutput(new ProcessStartInfo(Command, Args));
 		}
 
 		/// <summary>
@@ -259,6 +285,19 @@ namespace UnrealBuildTool
 		/// <param name="Command">Command to run</param>
 		/// <param name="Args">Arguments to Command</param>
 		public static string RunLocalProcessAndReturnStdOut(string Command, string Args)
+		{
+			int ExitCode;
+			return RunLocalProcessAndReturnStdOut(Command, Args, out ExitCode);	
+		}
+
+		/// <summary>
+		/// Runs a command line process, and returns simple StdOut output.
+		/// </summary>
+		/// <returns>The entire StdOut generated from the process as a single trimmed string</returns>
+		/// <param name="Command">Command to run</param>
+		/// <param name="Args">Arguments to Command</param>
+		/// <param name="ExitCode">The return code from the process after it exits</param>
+		public static string RunLocalProcessAndReturnStdOut(string Command, string Args, out int ExitCode)
 		{
 			ProcessStartInfo StartInfo = new ProcessStartInfo(Command, Args);
 			StartInfo.UseShellExecute = false;
@@ -271,6 +310,8 @@ namespace UnrealBuildTool
 				StreamReader OutputReader = LocalProcess.StandardOutput;
 				// trim off any extraneous new lines, helpful for those one-line outputs
 				FullOutput = OutputReader.ReadToEnd().Trim();
+				LocalProcess.WaitForExit();
+				ExitCode = LocalProcess.ExitCode;
 			}
 
 			return FullOutput;

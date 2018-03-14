@@ -1,21 +1,22 @@
-﻿INTSourceChangelist:3143336
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:ネットワークの構築とマルチプレイヤー
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description:マルチプレイヤーに対応するネットワークゲームの設定
 version:4.9
+Parent:Engine
+type:landing
+order:20
+topic-image:NetworkingAndMultiplayer_Topic.png
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		トピック
-	[/PARAM]
-	[PARAM:description]
-		UE4 のマルチプレイヤーに関するトピック一覧です。まず最初に [概要](Gameplay/Networking/Overview) から確認してください！
-	[/PARAM]
-	[PARAM:links]
+[DIR(output:"listbutton" parent:"Gameplay/Networking" org:"hierarchy")]
+
+[COMMENT:none]
+
+## トピック
+
+[REGION:buttonlist]
+
 		* [](Gameplay/Networking/Overview "%Gameplay/Networking/Overview:Description%")
 		* [](Gameplay/Networking/Example "%Gameplay/Networking/Example:Description%")
 		* [](Gameplay/Networking/Blueprints "%Gameplay/Networking/Blueprints:Description%")
@@ -35,6 +36,7 @@ version:4.9
 		* [](Gameplay/Networking/CharacterMovementComponent "%Gameplay/Networking/CharacterMovementComponent:Description%")
 		* [](Gameplay/Networking/Actors/ReplicationPerformance "%Gameplay/Networking/Actors/ReplicationPerformance:Description%")
 
-	[/PARAM]
-[/OBJECT]
+		
+[/REGION]
 
+[/COMMENT]

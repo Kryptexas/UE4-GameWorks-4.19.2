@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #include "Tiles/WorldTileCollectionModel.h"
 #include "Misc/PackageName.h"
 #include "Components/PrimitiveComponent.h"
@@ -1755,6 +1755,8 @@ void FWorldTileCollectionModel::ReimportTiledLandscape_Executed(FName TargetLaye
 
 		ALandscapeProxy* Landscape = TileModel->GetLandscape();
 		FIntRect LandscapeSize = Landscape->GetBoundingRect();
+		int32 NumSamplesX = LandscapeSize.Width() + 1;
+		int32 NumSamplesY = LandscapeSize.Height() + 1;
 
 		ULandscapeLayerInfoObject* DataLayer = ALandscapeProxy::VisibilityLayer;
 
@@ -1763,7 +1765,7 @@ void FWorldTileCollectionModel::ReimportTiledLandscape_Executed(FName TargetLaye
 			if (!Landscape->ReimportHeightmapFilePath.IsEmpty())
 			{
 				TArray<uint16> RawData;
-				ReadHeightmapFile(RawData, *Landscape->ReimportHeightmapFilePath, LandscapeSize.Width(), LandscapeSize.Height());
+				ReadHeightmapFile(RawData, *Landscape->ReimportHeightmapFilePath, NumSamplesX, NumSamplesY);
 				LandscapeEditorUtils::SetHeightmapData(Landscape, RawData);
 			}
 		}
@@ -1776,7 +1778,7 @@ void FWorldTileCollectionModel::ReimportTiledLandscape_Executed(FName TargetLaye
 					if (!LayerSettings.ReimportLayerFilePath.IsEmpty())
 					{
 						TArray<uint8> RawData;
-						ReadWeightmapFile(RawData, *LayerSettings.ReimportLayerFilePath, LayerSettings.LayerInfoObj->LayerName, LandscapeSize.Width(), LandscapeSize.Height());
+						ReadWeightmapFile(RawData, *LayerSettings.ReimportLayerFilePath, LayerSettings.LayerInfoObj->LayerName, NumSamplesX, NumSamplesY);
 						LandscapeEditorUtils::SetWeightmapData(Landscape, LayerSettings.LayerInfoObj, RawData);
 
 						if (TargetLayer != NAME_None)

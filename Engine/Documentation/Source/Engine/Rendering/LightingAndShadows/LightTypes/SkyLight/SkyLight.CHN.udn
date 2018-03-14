@@ -90,7 +90,8 @@ Version: 4.9
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [REGION:lightbox]
 
 [![](skyLightEx_01.png)(w:884)](skyLightEx_01.png) [![](skyLightEx_02.png)(w:884)](skyLightEx_02.png)
@@ -98,7 +99,8 @@ Version: 4.9
 [/REGION]
 
 _This scene was lit with only a Stationary Sky light, by specifying different HDR skybox cubemaps._
--->
+
+[/COMMENT]
 
 ## 静态天空光照
 
@@ -123,13 +125,15 @@ _This scene was lit with only a Stationary Sky light, by specifying different HD
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [REGION:lightbox]
 
 [![](skyLightEx_03.png)(w:462)](skyLightEx_03.png) [![](skyLightEx_04.png)(w:462)](skyLightEx_04.png)
 
 [/REGION]
--->
+
+[/COMMENT]
 _第一张图片显示了仅有 AO 的天空光照效果。第二张图显示来使用弯曲法线遮罩的天空光照。请注意看在褶皱密集处表面光线对照射进来的光线趋于“一致”的效果。_
 
 注意：只有那些光照设置为 **静态** 或者 **固定** 的组件，才会被捕获，并结合固定天空光照产生效果。
@@ -145,7 +149,8 @@ _第一张图片显示了仅有 AO 的天空光照效果。第二张图显示来
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [REGION:lightbox]
 
 [![](0Original.jpg)(w:884)](0Original.jpg) [![](0SkyLightGI.jpg)(w:884)](0SkyLightGI.jpg)
@@ -153,7 +158,8 @@ _第一张图片显示了仅有 AO 的天空光照效果。第二张图显示来
 [/REGION]
 
 _Top: Direct lighting only, Bottom: Direct lighting and Diffuse GI computed by Lightmass for a Stationary Skylight._
--->
+
+[/COMMENT]
 
 ## 可移动的天空光照
 

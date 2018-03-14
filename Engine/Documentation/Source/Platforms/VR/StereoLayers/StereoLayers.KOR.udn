@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3580774
+﻿INTSourceChangelist:3680097
 Availability:Public
 Title:VR 스테레오 레이어
 Crumbs:%ROOT%,
@@ -33,7 +33,7 @@ VR 스테레오 레이어는 UE4 가 지원하는 모든 VR 플랫폼에서 지�
 * [**Google VR**](https://vr.google.com/)
 * [**Steam VR**](http://store.steampowered.com/steamvr)
 * [**PSVR**](https://www.playstation.com/en-us/explore/playstation-vr/)
-* [**OSVR**](http://www.osvr.org/)
+
 
 ## 플랫폼 차이
 
@@ -69,7 +69,7 @@ VR 스테레오 레이어는 UE4 가 지원하는 모든 VR 플랫폼에서 지�
 
 * 월드 / 트래커 고정 레이어에 Support Depth 플래그를 지원합니다.
 
-* 다수의 레이어에 우순권이 같은 경우, 정의되지 않은 순서로 레이어를 렌더링합니다. 순서가 중요한 경우, 우선권을 다르게 설정하세요.
+* Oculus 플러그인은 모든 스테레오 레이어를 씬에 교차하는 것으로 취급합니다. 레이어에 [**Support Depth**](Engine/Basics/Screenshots) 플래그가 항상 true 설정된 것처럼 작동하도록 해줍니다. 어느 레이어를 위에 그릴지 순서를 변경하기 위해서는, 먼저 렌더링하고자 하는 레이어를 카메라 가까이로 직접 움직여 줘야 합니다.
 
 ### Gear VR 
 

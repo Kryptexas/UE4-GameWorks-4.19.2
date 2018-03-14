@@ -1,25 +1,223 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MeshProxyTool/SMeshProxyDialog.h"
+#include "Editor.h"
+#include "EditorStyleSet.h"
 #include "Engine/MeshMerging.h"
+#include "Engine/Selection.h"
 #include "MeshProxyTool/MeshProxyTool.h"
-#include "UObject/UnrealType.h"
-#include "Widgets/SBoxPanel.h"
+#include "Modules/ModuleManager.h"
+#include "PropertyEditorModule.h"
 #include "Styling/SlateTypes.h"
 #include "SlateOptMacros.h"
-#include "Widgets/Layout/SBorder.h"
+#include "UObject/UnrealType.h"
 #include "Widgets/Images/SImage.h"
-#include "Widgets/Text/STextBlock.h"
-#include "Widgets/Layout/SBox.h"
 #include "Widgets/Input/SCheckBox.h"
-#include "EditorStyleSet.h"
 #include "Widgets/Input/SNumericEntryBox.h"
 #include "Widgets/Input/STextComboBox.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Views/SListView.h"
+
 
 #define LOCTEXT_NAMESPACE "SMeshProxyDialog"
 
+SMeshProxyDialog::SMeshProxyDialog()
+{
+	bRefreshListView = false;
+}
 
-void SMeshProxyDialog::Construct(const FArguments& InArgs, FMeshProxyTool* InTool)
+SMeshProxyDialog::~SMeshProxyDialog()
+{
+	// Remove all delegates
+	USelection::SelectionChangedEvent.RemoveAll(this);
+	USelection::SelectObjectEvent.RemoveAll(this);
+	FEditorDelegates::MapChange.RemoveAll(this);
+	FEditorDelegates::NewCurrentLevel.RemoveAll(this);
+}
+
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+void  SMeshProxyDialog::Construct(const FArguments& InArgs, FMeshProxyTool* InTool)
+{
+	checkf(InTool != nullptr, TEXT("Invalid owner tool supplied"));
+	Tool = InTool;
+
+	UpdateSelectedStaticMeshComponents();
+	CreateSettingsView();
+
+	// Create widget layout
+	this->ChildSlot
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0, 10, 0, 0)
+			[
+				SNew(SBorder)
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				[
+					SNew(SVerticalBox)
+					// Static mesh component selection
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("MergeStaticMeshComponentsLabel", "Mesh Components to be incorporated in the merge:"))
+						]
+					]
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+					[
+						SAssignNew(ComponentSelectionControl.ComponentsListView, SListView<TSharedPtr<FMergeComponentData>>)
+						.ListItemsSource(&ComponentSelectionControl.SelectedComponents)
+						.OnGenerateRow(this, &SMeshProxyDialog::MakeComponentListItemWidget)
+						.ToolTipText(LOCTEXT("SelectedComponentsListBoxToolTip", "The selected mesh components will be incorporated into the merged mesh"))
+					]
+				]
+			]
+
+			+ SVerticalBox::Slot()
+			.Padding(0, 10, 0, 0)
+			[
+				SNew(SBorder)
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			[
+				SNew(SVerticalBox)
+				// Static mesh component selection
+				+ SVerticalBox::Slot()
+				.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					[
+						SettingsView->AsShared()
+					]
+				]
+			]
+		]
+
+
+
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(10)
+		[
+			SNew(SBorder)
+			.BorderBackgroundColor(FLinearColor::Yellow)
+			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			.Visibility_Lambda([this]()->EVisibility { return this->GetContentEnabledState() ? EVisibility::Collapsed : EVisibility::Visible; })
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("DeleteUndo", "Insufficient mesh components found for merging."))
+			]
+			]
+		];
+
+
+	// Selection change
+	USelection::SelectionChangedEvent.AddRaw(this, &SMeshProxyDialog::OnLevelSelectionChanged);
+	USelection::SelectObjectEvent.AddRaw(this, &SMeshProxyDialog::OnLevelSelectionChanged);
+	FEditorDelegates::MapChange.AddSP(this, &SMeshProxyDialog::OnMapChange);
+	FEditorDelegates::NewCurrentLevel.AddSP(this, &SMeshProxyDialog::OnNewCurrentLevel);
+
+	ProxySettings = UMeshProxySettingsObject::Get();
+	SettingsView->SetObject(ProxySettings);
+}
+
+void  SMeshProxyDialog::OnMapChange(uint32 MapFlags)
+{
+	Reset();
+}
+
+void  SMeshProxyDialog::OnNewCurrentLevel()
+{
+	Reset();
+}
+
+void  SMeshProxyDialog::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	// Check if we need to update selected components and the listbox
+	if (bRefreshListView == true)
+	{
+		ComponentSelectionControl.UpdateSelectedCompnentsAndListBox();
+
+		bRefreshListView = false;
+	}
+}
+
+
+void SMeshProxyDialog::Reset()
+{
+	bRefreshListView = true;
+}
+
+
+bool SMeshProxyDialog::GetContentEnabledState() const
+{
+	return (GetNumSelectedMeshComponents() >= 1); // Only enabled if a mesh is selected
+}
+
+void SMeshProxyDialog::UpdateSelectedStaticMeshComponents()
+{
+
+	ComponentSelectionControl.UpdateSelectedStaticMeshComponents();
+}
+
+
+TSharedRef<ITableRow> SMeshProxyDialog::MakeComponentListItemWidget(TSharedPtr<FMergeComponentData> ComponentData, const TSharedRef<STableViewBase>& OwnerTable)
+{
+
+	return ComponentSelectionControl.MakeComponentListItemWidget(ComponentData, OwnerTable);
+}
+
+
+void SMeshProxyDialog::CreateSettingsView()
+{
+	// Create a property view
+	FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+
+	FDetailsViewArgs DetailsViewArgs;
+	DetailsViewArgs.bUpdatesFromSelection = true;
+	DetailsViewArgs.bLockable = true;
+	DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::ComponentsAndActorsUseNameArea;
+	DetailsViewArgs.bCustomNameAreaLocation = false;
+	DetailsViewArgs.bCustomFilterAreaLocation = true;
+	DetailsViewArgs.DefaultsOnlyVisibility = EEditDefaultsOnlyNodeVisibility::Hide;
+
+
+	// Tiny hack to hide this setting, since we have no way / value to go off to 
+	struct Local
+	{
+		/** Delegate to show all properties */
+		static bool IsPropertyVisible(const FPropertyAndParent& PropertyAndParent, bool bInShouldShowNonEditable)
+		{
+			return (PropertyAndParent.Property.GetFName() != GET_MEMBER_NAME_CHECKED(FMaterialProxySettings, GutterSpace));
+		}
+	};
+
+	SettingsView = EditModule.CreateDetailView(DetailsViewArgs);
+	SettingsView->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateStatic(&Local::IsPropertyVisible, true));
+}
+
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+void SMeshProxyDialog::OnLevelSelectionChanged(UObject* Obj)
+{
+	Reset();
+}
+
+
+void SThirdPartyMeshProxyDialog::Construct(const FArguments& InArgs, FThirdPartyMeshProxyTool* InTool)
 {
 	Tool = InTool;
 	check(Tool != nullptr);
@@ -42,7 +240,7 @@ void SMeshProxyDialog::Construct(const FArguments& InArgs, FMeshProxyTool* InToo
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SMeshProxyDialog::CreateLayout()
+void  SThirdPartyMeshProxyDialog::CreateLayout()
 {
 	int32 TextureResEntryIndex = FindTextureResolutionEntryIndex(Tool->ProxySettings.MaterialSettings.TextureSize.X);
 	int32 LightMapResEntryIndex = FindTextureResolutionEntryIndex(Tool->ProxySettings.LightMapResolution);
@@ -104,8 +302,8 @@ void SMeshProxyDialog::CreateLayout()
 							.MinSliderValue(40)
 							.MaxSliderValue(1200)
 							.AllowSpin(true)
-							.Value(this, &SMeshProxyDialog::GetScreenSize)
-							.OnValueChanged(this, &SMeshProxyDialog::ScreenSizeChanged)
+							.Value(this, &SThirdPartyMeshProxyDialog::GetScreenSize)
+							.OnValueChanged(this, &SThirdPartyMeshProxyDialog::ScreenSizeChanged)
 						]
 					]
 				]
@@ -141,8 +339,8 @@ void SMeshProxyDialog::CreateLayout()
 							.MinSliderValue(0)
 							.MaxSliderValue(300)
 							.AllowSpin(true)
-							.Value(this, &SMeshProxyDialog::GetMergeDistance)
-							.OnValueChanged(this, &SMeshProxyDialog::MergeDistanceChanged)
+							.Value(this, &SThirdPartyMeshProxyDialog::GetMergeDistance)
+							.OnValueChanged(this, &SThirdPartyMeshProxyDialog::MergeDistanceChanged)
 						]
 					]
 				]
@@ -169,7 +367,7 @@ void SMeshProxyDialog::CreateLayout()
 						.Font(FEditorStyle::GetFontStyle("StandardDialog.SmallFont"))
 						.OptionsSource(&TextureResolutionOptions)
 						.InitiallySelectedItem(TextureResolutionOptions[TextureResEntryIndex])
-						.OnSelectionChanged(this, &SMeshProxyDialog::SetTextureResolution)
+						.OnSelectionChanged(this, &SThirdPartyMeshProxyDialog::SetTextureResolution)
 					]
 				]
 
@@ -196,7 +394,7 @@ void SMeshProxyDialog::CreateLayout()
 						.Font(FEditorStyle::GetFontStyle("StandardDialog.SmallFont"))
 						.OptionsSource(&TextureResolutionOptions)
 						.InitiallySelectedItem(TextureResolutionOptions[LightMapResEntryIndex])
-						.OnSelectionChanged(this, &SMeshProxyDialog::SetLightMapResolution)
+						.OnSelectionChanged(this, &SThirdPartyMeshProxyDialog::SetLightMapResolution)
 					]
 				]
 
@@ -232,9 +430,9 @@ void SMeshProxyDialog::CreateLayout()
 							.MinSliderValue(0.f)
 							.MaxSliderValue(180.f)
 							.AllowSpin(true)
-							.Value(this, &SMeshProxyDialog::GetHardAngleThreshold)
-							.OnValueChanged(this, &SMeshProxyDialog::HardAngleThresholdChanged)
-							.IsEnabled(this, &SMeshProxyDialog::HardAngleThresholdEnabled)
+							.Value(this, &SThirdPartyMeshProxyDialog::GetHardAngleThreshold)
+							.OnValueChanged(this, &SThirdPartyMeshProxyDialog::HardAngleThresholdChanged)
+							.IsEnabled(this, &SThirdPartyMeshProxyDialog::HardAngleThresholdEnabled)
 						]
 					]
 				]
@@ -245,8 +443,8 @@ void SMeshProxyDialog::CreateLayout()
 				[
 					SNew(SCheckBox)
 					.Type(ESlateCheckBoxType::CheckBox)
-					.IsChecked(this, &SMeshProxyDialog::GetRecalculateNormals)
-					.OnCheckStateChanged(this, &SMeshProxyDialog::SetRecalculateNormals)
+					.IsChecked(this, &SThirdPartyMeshProxyDialog::GetRecalculateNormals)
+					.OnCheckStateChanged(this, &SThirdPartyMeshProxyDialog::SetRecalculateNormals)
 					.Content()
 					[
 						SNew(STextBlock)
@@ -262,8 +460,8 @@ void SMeshProxyDialog::CreateLayout()
 				[
 					SNew(SCheckBox)
 					.Type(ESlateCheckBoxType::CheckBox)
-					.IsChecked(this, &SMeshProxyDialog::GetExportNormalMap)
-					.OnCheckStateChanged(this, &SMeshProxyDialog::SetExportNormalMap)
+					.IsChecked(this, &SThirdPartyMeshProxyDialog::GetExportNormalMap)
+					.OnCheckStateChanged(this, &SThirdPartyMeshProxyDialog::SetExportNormalMap)
 					.Content()
 					[
 						SNew(STextBlock)
@@ -278,8 +476,8 @@ void SMeshProxyDialog::CreateLayout()
 				[
 					SNew(SCheckBox)
 					.Type(ESlateCheckBoxType::CheckBox)
-					.IsChecked(this, &SMeshProxyDialog::GetExportMetallicMap)
-					.OnCheckStateChanged(this, &SMeshProxyDialog::SetExportMetallicMap)
+					.IsChecked(this, &SThirdPartyMeshProxyDialog::GetExportMetallicMap)
+					.OnCheckStateChanged(this, &SThirdPartyMeshProxyDialog::SetExportMetallicMap)
 					.Content()
 					[
 						SNew(STextBlock)
@@ -294,8 +492,8 @@ void SMeshProxyDialog::CreateLayout()
 				[
 					SNew(SCheckBox)
 					.Type(ESlateCheckBoxType::CheckBox)
-					.IsChecked(this, &SMeshProxyDialog::GetExportRoughnessMap)
-					.OnCheckStateChanged(this, &SMeshProxyDialog::SetExportRoughnessMap)
+					.IsChecked(this, &SThirdPartyMeshProxyDialog::GetExportRoughnessMap)
+					.OnCheckStateChanged(this, &SThirdPartyMeshProxyDialog::SetExportRoughnessMap)
 					.Content()
 					[
 						SNew(STextBlock)
@@ -310,8 +508,8 @@ void SMeshProxyDialog::CreateLayout()
 				[
 					SNew(SCheckBox)
 					.Type(ESlateCheckBoxType::CheckBox)
-					.IsChecked(this, &SMeshProxyDialog::GetExportSpecularMap)
-					.OnCheckStateChanged(this, &SMeshProxyDialog::SetExportSpecularMap)
+					.IsChecked(this, &SThirdPartyMeshProxyDialog::GetExportSpecularMap)
+					.OnCheckStateChanged(this, &SThirdPartyMeshProxyDialog::SetExportSpecularMap)
 					.Content()
 					[
 						SNew(STextBlock)
@@ -325,7 +523,7 @@ void SMeshProxyDialog::CreateLayout()
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-int32 SMeshProxyDialog::FindTextureResolutionEntryIndex(int32 InResolution) const
+int32 SThirdPartyMeshProxyDialog::FindTextureResolutionEntryIndex(int32 InResolution) const
 {
 	FString ResolutionStr = TTypeToString<int32>::ToString(InResolution);
 	
@@ -337,7 +535,7 @@ int32 SMeshProxyDialog::FindTextureResolutionEntryIndex(int32 InResolution) cons
 	return Result;
 }
 
-FText SMeshProxyDialog::GetPropertyToolTipText(const FName& PropertyName) const
+FText SThirdPartyMeshProxyDialog::GetPropertyToolTipText(const FName& PropertyName) const
 {
 	UProperty* Property = FMeshProxySettings::StaticStruct()->FindPropertyByName(PropertyName);
 	if (Property)
@@ -349,29 +547,29 @@ FText SMeshProxyDialog::GetPropertyToolTipText(const FName& PropertyName) const
 }
 
 //Screen size
-TOptional<int32> SMeshProxyDialog::GetScreenSize() const
+TOptional<int32> SThirdPartyMeshProxyDialog::GetScreenSize() const
 {
 	return Tool->ProxySettings.ScreenSize;
 }
 
-void SMeshProxyDialog::ScreenSizeChanged(int32 NewValue)
+void SThirdPartyMeshProxyDialog::ScreenSizeChanged(int32 NewValue)
 {
 	Tool->ProxySettings.ScreenSize = NewValue;
 }
 
 //Recalculate normals
-ECheckBoxState SMeshProxyDialog::GetRecalculateNormals() const
+ECheckBoxState SThirdPartyMeshProxyDialog::GetRecalculateNormals() const
 {
 	return Tool->ProxySettings.bRecalculateNormals ? ECheckBoxState::Checked: ECheckBoxState::Unchecked;
 }
 
-void SMeshProxyDialog::SetRecalculateNormals(ECheckBoxState NewValue)
+void SThirdPartyMeshProxyDialog::SetRecalculateNormals(ECheckBoxState NewValue)
 {
 	Tool->ProxySettings.bRecalculateNormals = (NewValue == ECheckBoxState::Checked);
 }
 
 //Hard Angle Threshold
-bool SMeshProxyDialog::HardAngleThresholdEnabled() const
+bool SThirdPartyMeshProxyDialog::HardAngleThresholdEnabled() const
 {
 	if(Tool->ProxySettings.bRecalculateNormals)
 	{
@@ -381,29 +579,29 @@ bool SMeshProxyDialog::HardAngleThresholdEnabled() const
 	return false;
 }
 
-TOptional<float> SMeshProxyDialog::GetHardAngleThreshold() const
+TOptional<float> SThirdPartyMeshProxyDialog::GetHardAngleThreshold() const
 {
 	return Tool->ProxySettings.HardAngleThreshold;
 }
 
-void SMeshProxyDialog::HardAngleThresholdChanged(float NewValue)
+void SThirdPartyMeshProxyDialog::HardAngleThresholdChanged(float NewValue)
 {
 	Tool->ProxySettings.HardAngleThreshold = NewValue;
 }
 
 //Merge Distance
-TOptional<int32> SMeshProxyDialog::GetMergeDistance() const
+TOptional<int32> SThirdPartyMeshProxyDialog::GetMergeDistance() const
 {
 	return Tool->ProxySettings.MergeDistance;
 }
 
-void SMeshProxyDialog::MergeDistanceChanged(int32 NewValue)
+void SThirdPartyMeshProxyDialog::MergeDistanceChanged(int32 NewValue)
 {
 	Tool->ProxySettings.MergeDistance = NewValue;
 }
 
 //Texture Resolution
-void SMeshProxyDialog::SetTextureResolution(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)
+void SThirdPartyMeshProxyDialog::SetTextureResolution(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)
 {
 	int32 Resolution = 512;
 	TTypeFromString<int32>::FromString(Resolution, **NewSelection);
@@ -412,7 +610,7 @@ void SMeshProxyDialog::SetTextureResolution(TSharedPtr<FString> NewSelection, ES
 	Tool->ProxySettings.MaterialSettings.TextureSize = TextureSize;
 }
 
-void SMeshProxyDialog::SetLightMapResolution(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)
+void SThirdPartyMeshProxyDialog::SetLightMapResolution(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)
 {
 	int32 Resolution = 256;
 	TTypeFromString<int32>::FromString(Resolution, **NewSelection);
@@ -420,42 +618,42 @@ void SMeshProxyDialog::SetLightMapResolution(TSharedPtr<FString> NewSelection, E
 	Tool->ProxySettings.LightMapResolution = Resolution;
 }
 
-ECheckBoxState SMeshProxyDialog::GetExportNormalMap() const
+ECheckBoxState SThirdPartyMeshProxyDialog::GetExportNormalMap() const
 {
 	return Tool->ProxySettings.MaterialSettings.bNormalMap ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
 }
 
-void SMeshProxyDialog::SetExportNormalMap(ECheckBoxState NewValue)
+void SThirdPartyMeshProxyDialog::SetExportNormalMap(ECheckBoxState NewValue)
 {
 	Tool->ProxySettings.MaterialSettings.bNormalMap = (NewValue == ECheckBoxState::Checked);
 }
 
-ECheckBoxState SMeshProxyDialog::GetExportMetallicMap() const
+ECheckBoxState SThirdPartyMeshProxyDialog::GetExportMetallicMap() const
 {
 	return Tool->ProxySettings.MaterialSettings.bMetallicMap ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
 }
 
-void SMeshProxyDialog::SetExportMetallicMap(ECheckBoxState NewValue)
+void SThirdPartyMeshProxyDialog::SetExportMetallicMap(ECheckBoxState NewValue)
 {
 	Tool->ProxySettings.MaterialSettings.bMetallicMap = (NewValue == ECheckBoxState::Checked);
 }
 
-ECheckBoxState SMeshProxyDialog::GetExportRoughnessMap() const
+ECheckBoxState SThirdPartyMeshProxyDialog::GetExportRoughnessMap() const
 {
 	return Tool->ProxySettings.MaterialSettings.bRoughnessMap ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
 }
 
-void SMeshProxyDialog::SetExportRoughnessMap(ECheckBoxState NewValue)
+void SThirdPartyMeshProxyDialog::SetExportRoughnessMap(ECheckBoxState NewValue)
 {
 	Tool->ProxySettings.MaterialSettings.bRoughnessMap = (NewValue == ECheckBoxState::Checked);
 }
 
-ECheckBoxState SMeshProxyDialog::GetExportSpecularMap() const
+ECheckBoxState SThirdPartyMeshProxyDialog::GetExportSpecularMap() const
 {
 	return Tool->ProxySettings.MaterialSettings.bSpecularMap ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
 }
 
-void SMeshProxyDialog::SetExportSpecularMap(ECheckBoxState NewValue)
+void SThirdPartyMeshProxyDialog::SetExportSpecularMap(ECheckBoxState NewValue)
 {
 	Tool->ProxySettings.MaterialSettings.bSpecularMap = (NewValue == ECheckBoxState::Checked);
 }

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429227
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:액터 그룹
 Crumbs:%ROOT%, Engine, Engine/Actors
@@ -64,7 +64,9 @@ topic-image:actorgrouping_topic.png
 
 그룹은 비파괴성(non-destructive)이라 기존 선택 그룹을 절대 망가뜨리지 않습니다. 그룹을 만들 때는 액터나 그룹을 얼마든지 추가할 수 있습니다. 예를 들어 라이트 둘, 두 개의 스태틱 메시로 고정된 그룹을 선택한 다음 그룹을 하면, 새로 생기는 그룹에는 두 개의 라이트와 그 아래 스태틱 메시 서브그룹이 달린 채 생성됩니다. 선택된 액터 중 고정해제된 그룹에 있는 것이 있다면, 기존 그룹에서 제거되고 새 그룹으로 들어갑니다.
 
-<!------![Group_Nested.PNG](Group_Nested.PNG)--->
+[COMMENT:none]
+----![Group_Nested.PNG](Group_Nested.PNG)-
+[/COMMENT]
 
 그룹이 형성되면 초록색 각괄호로 둘러싸이며, 피벗 포인트가 자동으로 그룹 중심점으로 잡힙니다.
 
@@ -102,7 +104,8 @@ topic-image:actorgrouping_topic.png
 
 	![Unlocked Group](LE_GroupBracketsUnlocked.png)
 
-<!------
+[COMMENT:none]
+----
 
 * 중첩된 그룹의 경우, 그룹 고정/고정해제 작업은 레이어 별로 수행됩니다.   
 	![NestedGroupLock_1.png](NestedGroupLock_1.png) <br/>   
@@ -111,7 +114,8 @@ topic-image:actorgrouping_topic.png
 
 그룹 고정은 역순으로 일어납니다. 현재 해제되어 있는 서브그룹에서 **그룹 고정** 을 선택하면, 일단 그 그룹이 고정됩니다. 그 상태로 **그룹 고정** 을 다시 선택하면 부모가 고정됩니다.
 
------>
+---
+[/COMMENT]
 
 
 ### 그룹에서 제거

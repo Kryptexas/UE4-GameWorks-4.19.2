@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -11,6 +11,7 @@
 class UAnimSequenceBase;
 class UParticleSystem;
 class USkeletalMeshComponent;
+class UParticleSystemComponent;
 
 UCLASS(const, hidecategories=Object, collapsecategories, meta=(DisplayName="Play Particle Effect"))
 class ENGINE_API UAnimNotify_PlayParticleEffect : public UAnimNotify
@@ -31,6 +32,9 @@ public:
 	// Begin UAnimNotify interface
 	virtual FString GetNotifyName_Implementation() const override;
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation) override;
+#if WITH_EDITOR
+	virtual void ValidateAssociatedAssets() override;
+#endif
 	// End UAnimNotify interface
 
 	// Particle System to Spawn
@@ -52,6 +56,10 @@ public:
 private:
 	// Cached version of the Rotation Offset already in Quat form
 	FQuat RotationOffsetQuat;
+
+protected:
+	// Spawns the ParticleSystemComponent. Called from Notify.
+	virtual UParticleSystemComponent* SpawnParticleSystem(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation);
 
 public:
 

@@ -2,93 +2,95 @@
  * Copyright 2016-2017 Nikolay Aleksiev. All rights reserved.
  * License: https://github.com/naleksiev/mtlpp/blob/master/LICENSE
  */
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
-#include "texture.hpp"
 #include <Metal/MTLTexture.h>
+#include "texture.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
     TextureDescriptor::TextureDescriptor() :
-        ns::Object(ns::Handle{ (__bridge void*)[[MTLTextureDescriptor alloc] init] }, false)
+        ns::Object<MTLTextureDescriptor*>([[MTLTextureDescriptor alloc] init], false)
     {
     }
 
-    TextureDescriptor TextureDescriptor::Texture2DDescriptor(PixelFormat pixelFormat, uint32_t width, uint32_t height, bool mipmapped)
+    TextureDescriptor TextureDescriptor::Texture2DDescriptor(PixelFormat pixelFormat, NSUInteger width, NSUInteger height, bool mipmapped)
     {
-        return ns::Handle{ (__bridge void*)[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormat(pixelFormat)
+        return [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormat(pixelFormat)
                                                                                               width:width
                                                                                              height:height
-                                                                                          mipmapped:mipmapped] };
+                                                                                          mipmapped:mipmapped];
     }
 
-    TextureDescriptor TextureDescriptor::TextureCubeDescriptor(PixelFormat pixelFormat, uint32_t size, bool mipmapped)
+    TextureDescriptor TextureDescriptor::TextureCubeDescriptor(PixelFormat pixelFormat, NSUInteger size, bool mipmapped)
     {
-        return ns::Handle{ (__bridge void*)[MTLTextureDescriptor textureCubeDescriptorWithPixelFormat:MTLPixelFormat(pixelFormat)
+        return [MTLTextureDescriptor textureCubeDescriptorWithPixelFormat:MTLPixelFormat(pixelFormat)
                                                                                                  size:size
-                                                                                            mipmapped:mipmapped] };
+                                                                                            mipmapped:mipmapped];
     }
 
     TextureType TextureDescriptor::GetTextureType() const
     {
         Validate();
-        return TextureType([(__bridge MTLTextureDescriptor*)m_ptr textureType]);
+        return TextureType([(MTLTextureDescriptor*)m_ptr textureType]);
     }
 
     PixelFormat TextureDescriptor::GetPixelFormat() const
     {
         Validate();
-        return PixelFormat([(__bridge MTLTextureDescriptor*)m_ptr pixelFormat]);
+        return PixelFormat([(MTLTextureDescriptor*)m_ptr pixelFormat]);
     }
 
-    uint32_t TextureDescriptor::GetWidth() const
+    NSUInteger TextureDescriptor::GetWidth() const
     {
         Validate();
-        return uint32_t([(__bridge MTLTextureDescriptor*)m_ptr width]);
+        return NSUInteger([(MTLTextureDescriptor*)m_ptr width]);
     }
 
-    uint32_t TextureDescriptor::GetHeight() const
+    NSUInteger TextureDescriptor::GetHeight() const
     {
         Validate();
-        return uint32_t([(__bridge MTLTextureDescriptor*)m_ptr height]);
+        return NSUInteger([(MTLTextureDescriptor*)m_ptr height]);
     }
 
-    uint32_t TextureDescriptor::GetDepth() const
+    NSUInteger TextureDescriptor::GetDepth() const
     {
         Validate();
-        return uint32_t([(__bridge MTLTextureDescriptor*)m_ptr depth]);
+        return NSUInteger([(MTLTextureDescriptor*)m_ptr depth]);
     }
 
-    uint32_t TextureDescriptor::GetMipmapLevelCount() const
+    NSUInteger TextureDescriptor::GetMipmapLevelCount() const
     {
         Validate();
-        return uint32_t([(__bridge MTLTextureDescriptor*)m_ptr mipmapLevelCount]);
+        return NSUInteger([(MTLTextureDescriptor*)m_ptr mipmapLevelCount]);
     }
 
-    uint32_t TextureDescriptor::GetSampleCount() const
+    NSUInteger TextureDescriptor::GetSampleCount() const
     {
         Validate();
-        return uint32_t([(__bridge MTLTextureDescriptor*)m_ptr sampleCount]);
+        return NSUInteger([(MTLTextureDescriptor*)m_ptr sampleCount]);
     }
 
-    uint32_t TextureDescriptor::GetArrayLength() const
+    NSUInteger TextureDescriptor::GetArrayLength() const
     {
         Validate();
-        return uint32_t([(__bridge MTLTextureDescriptor*)m_ptr arrayLength]);
+        return NSUInteger([(MTLTextureDescriptor*)m_ptr arrayLength]);
     }
 
     ResourceOptions TextureDescriptor::GetResourceOptions() const
     {
         Validate();
-        return ResourceOptions([(__bridge MTLTextureDescriptor*)m_ptr resourceOptions]);
+        return ResourceOptions([(MTLTextureDescriptor*)m_ptr resourceOptions]);
     }
 
     CpuCacheMode TextureDescriptor::GetCpuCacheMode() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_11, 9_0)
-        return CpuCacheMode([(__bridge MTLTextureDescriptor*)m_ptr cpuCacheMode]);
+        return CpuCacheMode([(MTLTextureDescriptor*)m_ptr cpuCacheMode]);
 #else
         return CpuCacheMode(0);
 #endif
@@ -98,7 +100,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_11, 9_0)
-        return StorageMode([(__bridge MTLTextureDescriptor*)m_ptr storageMode]);
+        return StorageMode([(MTLTextureDescriptor*)m_ptr storageMode]);
 #else
         return StorageMode(0);
 #endif
@@ -108,7 +110,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_11, 9_0)
-        return TextureUsage([(__bridge MTLTextureDescriptor*)m_ptr usage]);
+        return TextureUsage([(MTLTextureDescriptor*)m_ptr usage]);
 #else
         return TextureUsage(0);
 #endif
@@ -117,62 +119,62 @@ namespace mtlpp
     void TextureDescriptor::SetTextureType(TextureType textureType)
     {
         Validate();
-        [(__bridge MTLTextureDescriptor*)m_ptr setTextureType:MTLTextureType(textureType)];
+        [(MTLTextureDescriptor*)m_ptr setTextureType:MTLTextureType(textureType)];
     }
 
     void TextureDescriptor::SetPixelFormat(PixelFormat pixelFormat)
     {
         Validate();
-        [(__bridge MTLTextureDescriptor*)m_ptr setPixelFormat:MTLPixelFormat(pixelFormat)];
+        [(MTLTextureDescriptor*)m_ptr setPixelFormat:MTLPixelFormat(pixelFormat)];
     }
 
-    void TextureDescriptor::SetWidth(uint32_t width)
+    void TextureDescriptor::SetWidth(NSUInteger width)
     {
         Validate();
-        [(__bridge MTLTextureDescriptor*)m_ptr setWidth:width];
+        [(MTLTextureDescriptor*)m_ptr setWidth:width];
     }
 
-    void TextureDescriptor::SetHeight(uint32_t height)
+    void TextureDescriptor::SetHeight(NSUInteger height)
     {
         Validate();
-        [(__bridge MTLTextureDescriptor*)m_ptr setHeight:height];
+        [(MTLTextureDescriptor*)m_ptr setHeight:height];
     }
 
-    void TextureDescriptor::SetDepth(uint32_t depth)
+    void TextureDescriptor::SetDepth(NSUInteger depth)
     {
         Validate();
-        [(__bridge MTLTextureDescriptor*)m_ptr setDepth:depth];
+        [(MTLTextureDescriptor*)m_ptr setDepth:depth];
     }
 
-    void TextureDescriptor::SetMipmapLevelCount(uint32_t mipmapLevelCount)
+    void TextureDescriptor::SetMipmapLevelCount(NSUInteger mipmapLevelCount)
     {
         Validate();
-        [(__bridge MTLTextureDescriptor*)m_ptr setMipmapLevelCount:mipmapLevelCount];
+        [(MTLTextureDescriptor*)m_ptr setMipmapLevelCount:mipmapLevelCount];
     }
 
-    void TextureDescriptor::SetSampleCount(uint32_t sampleCount)
+    void TextureDescriptor::SetSampleCount(NSUInteger sampleCount)
     {
         Validate();
-        [(__bridge MTLTextureDescriptor*)m_ptr setSampleCount:sampleCount];
+        [(MTLTextureDescriptor*)m_ptr setSampleCount:sampleCount];
     }
 
-    void TextureDescriptor::SetArrayLength(uint32_t arrayLength)
+    void TextureDescriptor::SetArrayLength(NSUInteger arrayLength)
     {
         Validate();
-        [(__bridge MTLTextureDescriptor*)m_ptr setArrayLength:arrayLength];
+        [(MTLTextureDescriptor*)m_ptr setArrayLength:arrayLength];
     }
 
     void TextureDescriptor::SetResourceOptions(ResourceOptions resourceOptions)
     {
         Validate();
-        [(__bridge MTLTextureDescriptor*)m_ptr setResourceOptions:MTLResourceOptions(resourceOptions)];
+        [(MTLTextureDescriptor*)m_ptr setResourceOptions:MTLResourceOptions(resourceOptions)];
     }
 
     void TextureDescriptor::SetCpuCacheMode(CpuCacheMode cpuCacheMode)
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_11, 9_0)
-        [(__bridge MTLTextureDescriptor*)m_ptr setCpuCacheMode:MTLCPUCacheMode(cpuCacheMode)];
+        [(MTLTextureDescriptor*)m_ptr setCpuCacheMode:MTLCPUCacheMode(cpuCacheMode)];
 #endif
     }
 
@@ -180,7 +182,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_11, 9_0)
-        [(__bridge MTLTextureDescriptor*)m_ptr setStorageMode:MTLStorageMode(storageMode)];
+        [(MTLTextureDescriptor*)m_ptr setStorageMode:MTLStorageMode(storageMode)];
 #endif
     }
 
@@ -188,7 +190,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_11, 9_0)
-        [(__bridge MTLTextureDescriptor*)m_ptr setUsage:MTLTextureUsage(usage)];
+        [(MTLTextureDescriptor*)m_ptr setUsage:MTLTextureUsage(usage)];
 #endif
     }
 
@@ -197,12 +199,12 @@ namespace mtlpp
         Validate();
 #if MTLPP_IS_AVAILABLE(10_11, 8_0)
 #   if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return ns::Handle{ nullptr };
+        return nullptr;
 #   else
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLTexture>)m_ptr rootResource] };
+		return ((IMPTable<id<MTLTexture>, void>*)m_table)->Rootresource((id<MTLTexture>)m_ptr);
 #   endif
 #else
-        return ns::Handle{ nullptr };
+        return nullptr;
 #endif
     }
 
@@ -210,28 +212,28 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_11, 9_0)
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLTexture>)m_ptr parentTexture] };
+		return ((IMPTable<id<MTLTexture>, void>*)m_table)->Parenttexture((id<MTLTexture>)m_ptr);
 #else
-        return ns::Handle{ nullptr };
+        return nullptr;
 #endif
     }
 
-    uint32_t Texture::GetParentRelativeLevel() const
+    NSUInteger Texture::GetParentRelativeLevel() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_11, 9_0)
-        return uint32_t([(__bridge id<MTLTexture>)m_ptr parentRelativeLevel]);
+		return ((IMPTable<id<MTLTexture>, void>*)m_table)->Parentrelativelevel((id<MTLTexture>)m_ptr);
 #else
         return 0;
 #endif
 
     }
 
-    uint32_t Texture::GetParentRelativeSlice() const
+    NSUInteger Texture::GetParentRelativeSlice() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_11, 9_0)
-        return uint32_t([(__bridge id<MTLTexture>)m_ptr parentRelativeSlice]);
+		return ((IMPTable<id<MTLTexture>, void>*)m_table)->Parentrelativeslice((id<MTLTexture>)m_ptr);
 #else
         return 0;
 #endif
@@ -242,29 +244,29 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 9_0)
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLTexture>)m_ptr buffer] };
+		return ((IMPTable<id<MTLTexture>, void>*)m_table)->Buffer((id<MTLTexture>)m_ptr);
 #else
-        return ns::Handle{ nullptr };
+        return nullptr;
 #endif
 
     }
 
-    uint32_t Texture::GetBufferOffset() const
+    NSUInteger Texture::GetBufferOffset() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 9_0)
-        return uint32_t([(__bridge id<MTLTexture>)m_ptr bufferOffset]);
+		return ((IMPTable<id<MTLTexture>, void>*)m_table)->Bufferoffset((id<MTLTexture>)m_ptr);
 #else
         return 0;
 #endif
 
     }
 
-    uint32_t Texture::GetBufferBytesPerRow() const
+    NSUInteger Texture::GetBufferBytesPerRow() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 9_0)
-        return uint32_t([(__bridge id<MTLTexture>)m_ptr bufferBytesPerRow]);
+		return ((IMPTable<id<MTLTexture>, void>*)m_table)->Bufferbytesperrow((id<MTLTexture>)m_ptr);
 #else
         return 0;
 #endif
@@ -275,17 +277,17 @@ namespace mtlpp
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE_MAC(10_11)
-		return ns::Handle{ (__bridge void*)[(__bridge id<MTLTexture>)m_ptr iosurface] };
+		return ((IMPTable<id<MTLTexture>, void>*)m_table)->Iosurface((id<MTLTexture>)m_ptr);
 #else
 		return ns::IOSurface();
 #endif
 	}
 
-    uint32_t Texture::GetIOSurfacePlane() const
+    NSUInteger Texture::GetIOSurfacePlane() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE_MAC(10_11)
-        return uint32_t([(__bridge id<MTLTexture>)m_ptr iosurfacePlane]);
+		return ((IMPTable<id<MTLTexture>, void>*)m_table)->Iosurfaceplane((id<MTLTexture>)m_ptr);
 #else
         return 0;
 #endif
@@ -294,115 +296,102 @@ namespace mtlpp
     TextureType Texture::GetTextureType() const
     {
         Validate();
-        return TextureType([(__bridge id<MTLTexture>)m_ptr textureType]);
+		return (TextureType)((IMPTable<id<MTLTexture>, void>*)m_table)->Texturetype((id<MTLTexture>)m_ptr);
     }
 
     PixelFormat Texture::GetPixelFormat() const
     {
         Validate();
-        return PixelFormat([(__bridge id<MTLTexture>)m_ptr pixelFormat]);
+		return (PixelFormat)((IMPTable<id<MTLTexture>, void>*)m_table)->Pixelformat((id<MTLTexture>)m_ptr);
     }
 
-    uint32_t Texture::GetWidth() const
+    NSUInteger Texture::GetWidth() const
     {
         Validate();
-        return uint32_t([(__bridge id<MTLTexture>)m_ptr width]);
+		return ((IMPTable<id<MTLTexture>, void>*)m_table)->Width((id<MTLTexture>)m_ptr);    }
+
+    NSUInteger Texture::GetHeight() const
+    {
+        Validate();
+		return ((IMPTable<id<MTLTexture>, void>*)m_table)->Height((id<MTLTexture>)m_ptr);
     }
 
-    uint32_t Texture::GetHeight() const
+    NSUInteger Texture::GetDepth() const
     {
         Validate();
-        return uint32_t([(__bridge id<MTLTexture>)m_ptr height]);
+		return ((IMPTable<id<MTLTexture>, void>*)m_table)->Depth((id<MTLTexture>)m_ptr);
     }
 
-    uint32_t Texture::GetDepth() const
+    NSUInteger Texture::GetMipmapLevelCount() const
     {
         Validate();
-        return uint32_t([(__bridge id<MTLTexture>)m_ptr depth]);
+		return ((IMPTable<id<MTLTexture>, void>*)m_table)->Mipmaplevelcount((id<MTLTexture>)m_ptr);
     }
 
-    uint32_t Texture::GetMipmapLevelCount() const
+    NSUInteger Texture::GetSampleCount() const
     {
         Validate();
-        return uint32_t([(__bridge id<MTLTexture>)m_ptr mipmapLevelCount]);
+		return ((IMPTable<id<MTLTexture>, void>*)m_table)->Samplecount((id<MTLTexture>)m_ptr);
     }
 
-    uint32_t Texture::GetSampleCount() const
+    NSUInteger Texture::GetArrayLength() const
     {
         Validate();
-        return uint32_t([(__bridge id<MTLTexture>)m_ptr sampleCount]);
-    }
-
-    uint32_t Texture::GetArrayLength() const
-    {
-        Validate();
-        return uint32_t([(__bridge id<MTLTexture>)m_ptr arrayLength]);
+		return ((IMPTable<id<MTLTexture>, void>*)m_table)->Arraylength((id<MTLTexture>)m_ptr);
     }
 
     TextureUsage Texture::GetUsage() const
     {
         Validate();
-        return TextureUsage([(__bridge id<MTLTexture>)m_ptr usage]);
+		return TextureUsage(((IMPTable<id<MTLTexture>, void>*)m_table)->Usage((id<MTLTexture>)m_ptr));
     }
 
     bool Texture::IsFrameBufferOnly() const
     {
         Validate();
-        return [(__bridge id<MTLTexture>)m_ptr isFramebufferOnly];
+		return ((IMPTable<id<MTLTexture>, void>*)m_table)->Isframebufferonly((id<MTLTexture>)m_ptr);
     }
 
-    void Texture::GetBytes(void* pixelBytes, uint32_t bytesPerRow, uint32_t bytesPerImage, const Region& fromRegion, uint32_t mipmapLevel, uint32_t slice)
+    void Texture::GetBytes(void* pixelBytes, NSUInteger bytesPerRow, NSUInteger bytesPerImage, const Region& fromRegion, NSUInteger mipmapLevel, NSUInteger slice)
     {
         Validate();
-        [(__bridge id<MTLTexture>)m_ptr getBytes:pixelBytes
-                                     bytesPerRow:bytesPerRow
-                                   bytesPerImage:bytesPerImage
-                                      fromRegion:MTLRegionMake3D(fromRegion.Origin.X, fromRegion.Origin.Y, fromRegion.Origin.Z, fromRegion.Size.Width, fromRegion.Size.Height, fromRegion.Size.Depth)
-                                     mipmapLevel:mipmapLevel
-                                           slice:slice];
+		((IMPTable<id<MTLTexture>, void>*)m_table)->Getbytesbytesperrowbytesperimagefromregionmipmaplevelslice((id<MTLTexture>)m_ptr, pixelBytes, bytesPerRow, bytesPerImage, fromRegion, mipmapLevel, slice);
     }
 
-    void Texture::Replace(const Region& region, uint32_t mipmapLevel, uint32_t slice, void* pixelBytes, uint32_t bytesPerRow, uint32_t bytesPerImage)
+    void Texture::Replace(const Region& region, NSUInteger mipmapLevel, NSUInteger slice, void* pixelBytes, NSUInteger bytesPerRow, NSUInteger bytesPerImage)
     {
         Validate();
-        [(__bridge id<MTLTexture>)m_ptr replaceRegion:MTLRegionMake3D(region.Origin.X, region.Origin.Y, region.Origin.Z, region.Size.Width, region.Size.Height, region.Size.Depth)
-                                          mipmapLevel:mipmapLevel
-                                                slice:slice
-                                            withBytes:pixelBytes
-                                          bytesPerRow:bytesPerRow
-                                        bytesPerImage:bytesPerImage];
+		((IMPTable<id<MTLTexture>, void>*)m_table)->Replaceregionmipmaplevelslicewithbytesbytesperrowbytesperimage((id<MTLTexture>)m_ptr, region, mipmapLevel, slice, pixelBytes, bytesPerRow, bytesPerImage);
     }
 
-    void Texture::GetBytes(void* pixelBytes, uint32_t bytesPerRow, const Region& fromRegion, uint32_t mipmapLevel)
+    void Texture::GetBytes(void* pixelBytes, NSUInteger bytesPerRow, const Region& fromRegion, NSUInteger mipmapLevel)
     {
         Validate();
-        [(__bridge id<MTLTexture>)m_ptr getBytes:pixelBytes
-                                     bytesPerRow:bytesPerRow
-                                      fromRegion:MTLRegionMake3D(fromRegion.Origin.X, fromRegion.Origin.Y, fromRegion.Origin.Z, fromRegion.Size.Width, fromRegion.Size.Height, fromRegion.Size.Depth)
-                                     mipmapLevel:mipmapLevel];
+		((IMPTable<id<MTLTexture>, void>*)m_table)->Getbytesbytesperrowfromregionmipmaplevel((id<MTLTexture>)m_ptr, pixelBytes, bytesPerRow, fromRegion, mipmapLevel);
     }
 
-    void Texture::Replace(const Region& region, uint32_t mipmapLevel, void* pixelBytes, uint32_t bytesPerRow)
+    void Texture::Replace(const Region& region, NSUInteger mipmapLevel, void* pixelBytes, NSUInteger bytesPerRow)
     {
         Validate();
-        [(__bridge id<MTLTexture>)m_ptr replaceRegion:MTLRegionMake3D(region.Origin.X, region.Origin.Y, region.Origin.Z, region.Size.Width, region.Size.Height, region.Size.Depth)
-                                          mipmapLevel:mipmapLevel
-                                            withBytes:pixelBytes
-                                          bytesPerRow:bytesPerRow];
+		((IMPTable<id<MTLTexture>, void>*)m_table)->Replaceregionmipmaplevelwithbytesbytesperrow((id<MTLTexture>)m_ptr, region, mipmapLevel, pixelBytes, bytesPerRow);
     }
 
     Texture Texture::NewTextureView(PixelFormat pixelFormat)
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLTexture>)m_ptr newTextureViewWithPixelFormat:MTLPixelFormat(pixelFormat)] };
+		return ((IMPTable<id<MTLTexture>, void>*)m_table)->Newtextureviewwithpixelformat((id<MTLTexture>)m_ptr, MTLPixelFormat(pixelFormat));
     }
 
     Texture Texture::NewTextureView(PixelFormat pixelFormat, TextureType textureType, const ns::Range& mipmapLevelRange, const ns::Range& sliceRange)
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLTexture>)m_ptr newTextureViewWithPixelFormat:MTLPixelFormat(pixelFormat)
-                                                                                             textureType:MTLTextureType(textureType)
-                                                                                                  levels:NSMakeRange(mipmapLevelRange.Location, mipmapLevelRange.Length)
-                                                                                                  slices:NSMakeRange(sliceRange.Location, sliceRange.Length)] };
+		return ((IMPTable<id<MTLTexture>, void>*)m_table)->Newtextureviewwithpixelformattexturetypelevelsslices((id<MTLTexture>)m_ptr, MTLPixelFormat(pixelFormat), MTLTextureType(textureType), NSMakeRange(mipmapLevelRange.Location, mipmapLevelRange.Length), NSMakeRange(sliceRange.Location, sliceRange.Length));
     }
+	
+	Texture::Texture(ns::Protocol<id<MTLTexture>>::type handle)
+	: Resource((ns::Protocol<id<MTLResource>>::type)handle)
+	{
+	}
 }
+
+MTLPP_END

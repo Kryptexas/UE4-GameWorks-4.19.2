@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -23,22 +23,12 @@ struct FEvaluatedParameterSectionValues
 {
 	FEvaluatedParameterSectionValues() = default;
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	FEvaluatedParameterSectionValues(FEvaluatedParameterSectionValues&&) = default;
 	FEvaluatedParameterSectionValues& operator=(FEvaluatedParameterSectionValues&&) = default;
-#else
-	FEvaluatedParameterSectionValues(FEvaluatedParameterSectionValues&& RHS)
-	{
-		*this = MoveTemp(RHS);
-	}
-	FEvaluatedParameterSectionValues& operator=(FEvaluatedParameterSectionValues&& RHS)
-	{
-		ScalarValues = MoveTemp(RHS.ScalarValues);
-		VectorValues = MoveTemp(RHS.VectorValues);
-		ColorValues = MoveTemp(RHS.ColorValues);
-		return *this;
-	}
-#endif
+
+	// Non-copyable
+	FEvaluatedParameterSectionValues(const FEvaluatedParameterSectionValues&) = delete;
+	FEvaluatedParameterSectionValues& operator=(const FEvaluatedParameterSectionValues&) = delete;
 
 	/** Array of evaluated scalar values */
 	TArray<FScalarParameterNameAndValue, TInlineAllocator<2>> ScalarValues;
@@ -109,22 +99,12 @@ struct TMaterialTrackExecutionToken : IMovieSceneExecutionToken
 	{
 	}
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	TMaterialTrackExecutionToken(TMaterialTrackExecutionToken&&) = default;
 	TMaterialTrackExecutionToken& operator=(TMaterialTrackExecutionToken&&) = default;
-#else
-	TMaterialTrackExecutionToken(TMaterialTrackExecutionToken&& RHS)
-		: Accessor(MoveTemp(RHS.Accessor))
-		, Values(MoveTemp(RHS.Values))
-	{
-	}
-	TMaterialTrackExecutionToken& operator=(TMaterialTrackExecutionToken&& RHS)
-	{
-		Accessor = MoveTemp(RHS.Accessor);
-		Values = MoveTemp(RHS.Values);
-		return *this;
-	}
-#endif
+
+	// Non-copyable
+	TMaterialTrackExecutionToken(const TMaterialTrackExecutionToken&) = delete;
+	TMaterialTrackExecutionToken& operator=(const TMaterialTrackExecutionToken&) = delete;
 
 	virtual void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player)
 	{

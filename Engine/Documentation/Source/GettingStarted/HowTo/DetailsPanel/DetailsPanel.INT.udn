@@ -11,21 +11,13 @@ Once you place an [Actor](Engine/Actors) in your level, you may want to modify t
 
 Over the course of this guide we will change several properties that will affect an Actor in our level such as scaling the Actor to increase its size, applying a Material, turning on Physics for the Actor, as well as tweaking Collision Settings so that it registers when it hits other Actors during gameplay. 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](GettingStarted\HowTo\DetailsPanel\Transform)
-	* [](GettingStarted\HowTo\DetailsPanel\Materials)
-	* [](GettingStarted\HowTo\DetailsPanel\Collision)
-	[/PARAM]
-[/OBJECT]
+## Steps
+
+[REGION:buttonlist]
+* [](GettingStarted\HowTo\DetailsPanel\Transform)
+* [](GettingStarted\HowTo\DetailsPanel\Materials)
+* [](GettingStarted\HowTo\DetailsPanel\Collision)
+[/REGION]
 
 [REGION:call_to_action]
 	[Click to Start](GettingStarted\HowTo\DetailsPanel\Transform "%GettingStarted\HowTo\DetailsPanel\Transform:title%")

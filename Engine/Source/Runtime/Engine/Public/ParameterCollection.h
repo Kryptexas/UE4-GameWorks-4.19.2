@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParameterCollection.h: 
@@ -26,7 +26,7 @@ class FMaterialParameterCollectionInstanceResource
 public:
 	
 	/** Update the contents of the uniform buffer, called from the game thread. */
-	void GameThread_UpdateContents(const FGuid& InId, const TArray<FVector4>& Data);
+	void GameThread_UpdateContents(const FGuid& InId, const TArray<FVector4>& Data, const FName& InOwnerName);
 
 	/** Destroy, called from the game thread. */
 	void GameThread_Destroy();
@@ -34,6 +34,11 @@ public:
 	FGuid GetId() const 
 	{ 
 		return Id; 
+	}
+
+	FName GetOwnerName() const
+	{
+		return OwnerName;
 	}
 
 	FUniformBufferRHIParamRef GetUniformBuffer() const
@@ -49,12 +54,14 @@ private:
 	/** Unique identifier for the UMaterialParameterCollection that material shaders were compiled with. */
 	FGuid Id;
 
+	FName OwnerName;
+
 	/** Uniform buffer containing the UMaterialParameterCollection default parameter values and UMaterialParameterCollectionInstance instance overrides. */
 	FUniformBufferRHIRef UniformBuffer;
 
 	FRHIUniformBufferLayout UniformBufferLayout;
 
-	void UpdateContents(const FGuid& InId, const TArray<FVector4>& Data);
+	void UpdateContents(const FGuid& InId, const TArray<FVector4>& Data, const FName& InOwnerName);
 };
 
 // Default instance resources used when rendering a material using a parameter collection but there's no FScene present to get a FMaterialParameterCollectionInstanceResource

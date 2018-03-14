@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -47,6 +47,11 @@ public:
 	 * If this list is empty, the client cannot play.
 	 */
 	const TArray<FQosRegionInfo>& GetRegionOptions() const;
+
+	/**
+	 * @return true if this is a usable region, false otherwise
+	 */
+	bool IsUsableRegion(const FString& InRegionId) const;
 
 	/**
 	 * Try to set the selected region ID (must be present in GetRegionOptions)

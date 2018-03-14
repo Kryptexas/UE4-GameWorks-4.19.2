@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "UATHelperModule.h"
 #include "CoreTypes.h"
@@ -19,14 +19,20 @@
 #include "Editor.h"
 #include "EditorAnalytics.h"
 #include "IUATHelperModule.h"
+#include "AssetRegistryModule.h"
 
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Logging/TokenizedMessage.h"
 #include "Logging/MessageLog.h"
+#include "Developer/MessageLog/Public/IMessageLogListing.h"
+#include "Developer/MessageLog/Public/MessageLogModule.h"
+#include "Misc/UObjectToken.h"
 
 #include "GameProjectGenerationModule.h"
 #include "AnalyticsEventAttribute.h"
+
+#include "ShaderCompiler.h"
 
 #define LOCTEXT_NAMESPACE "UATHelper"
 
@@ -50,11 +56,33 @@ class FMainFrameActionsNotificationTask
 {
 public:
 
-	FMainFrameActionsNotificationTask(TWeakPtr<SNotificationItem> InNotificationItemPtr, SNotificationItem::ECompletionState InCompletionState, const FText& InText)
+	FMainFrameActionsNotificationTask(TWeakPtr<SNotificationItem> InNotificationItemPtr, SNotificationItem::ECompletionState InCompletionState, const FText& InText, const FText& InLinkText = FText(), bool InExpireAndFadeout = true)
 		: CompletionState(InCompletionState)
 		, NotificationItemPtr(InNotificationItemPtr)
 		, Text(InText)
+		, LinkText(InLinkText)
+		, bExpireAndFadeout(InExpireAndFadeout)
+
 	{ }
+
+	static void HandleHyperlinkNavigate()
+	{
+		FMessageLog("PackagingResults").Open(EMessageSeverity::Error, true);
+	}
+
+	static void HandleDismissButtonClicked()
+	{
+		TSharedPtr<SNotificationItem> NotificationItem = ExpireNotificationItemPtr.Pin();
+		if (NotificationItem.IsValid())
+		{
+
+			NotificationItem->SetExpireDuration(0.0f);
+			NotificationItem->SetFadeOutDuration(0.0f);
+			NotificationItem->SetCompletionState(SNotificationItem::CS_Fail);
+			NotificationItem->ExpireAndFadeout();
+			ExpireNotificationItemPtr.Reset();
+		}
+	}
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
@@ -70,9 +98,34 @@ public:
 			}
 
 			TSharedPtr<SNotificationItem> NotificationItem = NotificationItemPtr.Pin();
-			NotificationItem->SetText(Text);
-			NotificationItem->SetCompletionState(CompletionState);
-			NotificationItem->ExpireAndFadeout();
+			NotificationItem->SetText(Text);			
+
+			if (!LinkText.IsEmpty())
+			{
+				FText VLinkText(LinkText);
+				const TAttribute<FText> Message = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateLambda([VLinkText]()
+				{
+					return VLinkText;
+				}));
+
+				NotificationItem->SetHyperlink(FSimpleDelegate::CreateStatic(&HandleHyperlinkNavigate), Message);
+
+			}
+
+			if (bExpireAndFadeout)
+			{
+				ExpireNotificationItemPtr.Reset();
+				NotificationItem->SetExpireDuration(3.0f);
+				NotificationItem->SetFadeOutDuration(0.5f);
+				NotificationItem->SetCompletionState(CompletionState);
+				NotificationItem->ExpireAndFadeout();
+			}
+			else
+			{
+				// Handling the notification expiration in callback
+				ExpireNotificationItemPtr = NotificationItem;
+				NotificationItem->SetCompletionState(CompletionState);
+			}
 		}
 	}
 
@@ -85,17 +138,26 @@ public:
 
 private:
 
+	static TWeakPtr<SNotificationItem> ExpireNotificationItemPtr;
+
 	SNotificationItem::ECompletionState CompletionState;
 	TWeakPtr<SNotificationItem> NotificationItemPtr;
 	FText Text;
+	FText LinkText;
+	bool bExpireAndFadeout;
 };
 
+TWeakPtr<SNotificationItem> FMainFrameActionsNotificationTask::ExpireNotificationItemPtr;
 
 /**
 * Helper class to deal with packaging issues encountered in UAT.
 **/
 class FPackagingErrorHandler
 {
+
+public:
+
+
 private:
 
 	/**
@@ -105,7 +167,54 @@ private:
 	* @Param MessageType - The severity of the message, i.e. error, warning etc.
 	**/
 	static void AddMessageToMessageLog(FString MessageString, EMessageSeverity::Type MessageType)
-	{
+	{		
+		if (!bSawSummary && (MessageType == EMessageSeverity::Error || MessageType == EMessageSeverity::Warning))
+		{
+			FAssetData AssetData;
+
+			// Parse the warning/error into an array and check whether there is an asset on the path
+			TArray<FString> MessageArray;
+			MessageString.ParseIntoArray(MessageArray, TEXT(": "), true);
+
+			FString AssetPath = MessageArray.Num() > 0 ? MessageArray[0] : TEXT("");
+			if (AssetPath.Len())
+			{			
+				// Convert from the asset's full path provided by UE_ASSET_LOG back to an AssetData, if possible
+				FString LongPackageName;
+				FPaths::NormalizeFilename(AssetPath);
+				if (FPackageName::TryConvertFilenameToLongPackageName(AssetPath, LongPackageName))
+				{
+					// Generate qualified asset path and query the registry
+					AssetPath = LongPackageName + TEXT(".") + FPackageName::GetShortName(LongPackageName);
+					FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+					AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(FName(*AssetPath));
+				}
+			}
+	
+
+			if (AssetData.IsValid())
+			{
+				// we have asset errors in the cook
+				if (MessageType == EMessageSeverity::Error)
+				{
+					bHasAssetErrors = true;
+				}
+
+				TSharedRef<FTokenizedMessage> PackagingMsg = MessageType == EMessageSeverity::Error ? FMessageLog("PackagingResults").Error()
+					: FMessageLog("PackagingResults").Warning();
+
+				PackagingMsg->AddToken(FTextToken::Create(FText::FromString(MessageArray.Num() > 1 ? MessageArray[1] : MessageString)));
+
+				if (AssetData.IsValid())
+				{
+					PackagingMsg->AddToken(FUObjectToken::Create(AssetData.GetAsset()));
+				}
+
+			}
+
+		}			
+
+		// note: CookResults:Warning: actually outputs some unhandled errors.
 		FText MsgText = FText::FromString(MessageString);
 
 		TSharedRef<FTokenizedMessage> Message = FTokenizedMessage::Create(MessageType);
@@ -113,6 +222,7 @@ private:
 
 		FMessageLog MessageLog("PackagingResults");
 		MessageLog.AddMessage(Message);
+		
 	}
 
 	/**
@@ -141,7 +251,36 @@ private:
 			);
 	}
 
+	// Whether there are asset errors in the cook, which can be navigated to in the content browser.
+	static bool bHasAssetErrors;
+	// Whether the cook summary has been seen in the log.
+	static bool bSawSummary;
+
 public:
+
+	/**
+	* Determine if the output is an communication message we wish to process.
+	*
+	* @Param UATOutput - The current line of output from the UAT package process.
+	**/
+	static bool ProcessAndHandleCookMessageOutput(FString UATOutput)
+	{
+		FString LhsUATOutputMsg, ParsedCookIssue;
+		if (UATOutput.Split(TEXT("Shaders left to compile "), &LhsUATOutputMsg, &ParsedCookIssue))
+		{
+			if (GShaderCompilingManager)
+			{
+				if (ParsedCookIssue.IsNumeric())
+				{
+					int32 ShadersLeft = FCString::Atoi(*ParsedCookIssue);
+					GShaderCompilingManager->SetExternalJobs(ShadersLeft);
+				}
+			}
+			return false;
+		}
+		return true;
+	}
+
 	/**
 	* Determine if the output is an error we wish to send to the Message Log.
 	*
@@ -151,16 +290,31 @@ public:
 	{
 		FString LhsUATOutputMsg, ParsedCookIssue;
 
+		// we don't want to report duplicate warnings/errors to the package results log
+		// so, only add messages between the cook start and the summary
+		if (UATOutput.Contains(TEXT("Warning/Error Summary")))
+		{
+			bSawSummary = true;
+		}
+
 		// note: CookResults:Warning: actually outputs some unhandled errors.
 		if ( UATOutput.Split(TEXT("CookResults:Warning: "), &LhsUATOutputMsg, &ParsedCookIssue) )
 		{
 			SyncMessageWithMessageLog(ParsedCookIssue, EMessageSeverity::Warning);
 		}
-
-		if ( UATOutput.Split(TEXT("CookResults:Error: "), &LhsUATOutputMsg, &ParsedCookIssue) )
+		else if ( UATOutput.Split(TEXT("CookResults:Error: "), &LhsUATOutputMsg, &ParsedCookIssue) )
 		{
 			SyncMessageWithMessageLog(ParsedCookIssue, EMessageSeverity::Error);
 		}
+		else if (!bSawSummary && UATOutput.Split(TEXT("Warning: "), &LhsUATOutputMsg, &ParsedCookIssue))
+		{
+			SyncMessageWithMessageLog(ParsedCookIssue, EMessageSeverity::Warning);
+		}
+		else if (!bSawSummary && UATOutput.Split(TEXT("Error: "), &LhsUATOutputMsg, &ParsedCookIssue))
+		{
+			SyncMessageWithMessageLog(ParsedCookIssue, EMessageSeverity::Error);
+		}
+
 	}
 
 	/**
@@ -172,8 +326,21 @@ public:
 	{
 		SyncMessageWithMessageLog(FEditorAnalytics::TranslateErrorCode(ErrorCode), EMessageSeverity::Error);
 	}
+
+	/**
+	* Get Whether the UAT process returned asset errors via the log
+	**/
+	static bool GetHasAssetErrors() { return bHasAssetErrors; }
+
+	/**
+	* Clear the asset error state for the UAT process
+	**/
+	static void ClearAssetErrors() { bHasAssetErrors = false; bSawSummary = false; }
+
 };
 
+bool FPackagingErrorHandler::bHasAssetErrors = false;
+bool FPackagingErrorHandler::bSawSummary = false;
 
 DECLARE_CYCLE_STAT(TEXT("Requesting FUATHelperModule::HandleUatProcessCompleted message dialog to present the error message"), STAT_FUATHelperModule_HandleUatProcessCompleted_DialogMessage, STATGROUP_TaskGraphTasks);
 
@@ -207,10 +374,22 @@ public:
 		FString CmdExe = TEXT("/bin/sh");
 	#endif
 
+		// If this is a packaging or cooking task, clear the PackagingResults log
+		if (!TaskShortName.CompareToCaseIgnored(FText::FromString(TEXT("Packaging"))) || 
+			!TaskShortName.CompareToCaseIgnored(FText::FromString(TEXT("Cooking"))))
+		{
+			FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
+			if (MessageLogModule.IsRegisteredLogListing(TEXT("PackagingResults")))
+			{
+				TSharedRef<IMessageLogListing> PackagingResultsListing = MessageLogModule.GetLogListing(TEXT("PackagingResults"));
+				PackagingResultsListing->ClearMessages();
+			}
+		}
+
 		FString UatPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles") / RunUATScriptName);
 		FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
 		bool bHasCode = GameProjectModule.Get().ProjectHasCodeFiles();
-
+		
 		if (!FPaths::FileExists(UatPath))
 		{
 			FFormatNamedArguments Arguments;
@@ -233,6 +412,8 @@ public:
 
 		TSharedPtr<FMonitoredProcess> UatProcess = MakeShareable(new FMonitoredProcess(CmdExe, FullCommandLine, true));
 
+		FPackagingErrorHandler::ClearAssetErrors();
+
 		// create notification item
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("Platform"), PlatformDisplayName);
@@ -241,14 +422,24 @@ public:
 		
 		Info.Image = TaskIcon;
 		Info.bFireAndForget = false;
-		Info.ExpireDuration = 3.0f;
+		Info.FadeOutDuration = 0.0f;
+		Info.ExpireDuration = 0.0f;
 		Info.Hyperlink = FSimpleDelegate::CreateStatic(&FUATHelperModule::HandleUatHyperlinkNavigate);
 		Info.HyperlinkText = LOCTEXT("ShowOutputLogHyperlink", "Show Output Log");
 		Info.ButtonDetails.Add(
 			FNotificationButtonInfo(
 				LOCTEXT("UatTaskCancel", "Cancel"),
 				LOCTEXT("UatTaskCancelToolTip", "Cancels execution of this task."),
-				FSimpleDelegate::CreateStatic(&FUATHelperModule::HandleUatCancelButtonClicked, UatProcess)
+				FSimpleDelegate::CreateStatic(&FUATHelperModule::HandleUatCancelButtonClicked, UatProcess),
+				SNotificationItem::CS_Pending
+			)
+		);
+		Info.ButtonDetails.Add(
+			FNotificationButtonInfo(
+				LOCTEXT("UatTaskDismiss", "Dismiss"),
+				FText(),
+				FSimpleDelegate::CreateStatic(&FMainFrameActionsNotificationTask::HandleDismissButtonClicked),
+				SNotificationItem::CS_Fail
 			)
 		);
 
@@ -288,6 +479,9 @@ public:
 			GEditor->PlayEditorSound(TEXT("/Engine/EditorSounds/Notifications/CompileFailed_Cue.CompileFailed_Cue"));
 
 			NotificationItem->SetText(LOCTEXT("UatLaunchFailedNotification", "Failed to launch Unreal Automation Tool (UAT)!"));
+
+			NotificationItem->SetExpireDuration(3.0f);
+			NotificationItem->SetFadeOutDuration(0.5f);
 			NotificationItem->SetCompletionState(SNotificationItem::CS_Fail);
 			NotificationItem->ExpireAndFadeout();
 
@@ -305,7 +499,6 @@ public:
 	{
 		FGlobalTabmanager::Get()->InvokeTab(FName("OutputLog"));
 	}
-
 
 	static void HandleUatCancelButtonClicked(TSharedPtr<FMonitoredProcess> PackagerProcess)
 	{
@@ -344,6 +537,10 @@ public:
 		{
 			Event.ResultCallback(TEXT("Canceled"), TimeSec);
 		}
+		if (GShaderCompilingManager)
+		{
+			GShaderCompilingManager->SetExternalJobs(0);
+		}
 		//	FMessageLog("PackagingResults").Warning(FText::Format(LOCTEXT("UatProcessCanceledMessageLog", "{TaskName} for {Platform} canceled by user"), Arguments));
 	}
 
@@ -373,12 +570,13 @@ public:
 			//		FMessageLog("PackagingResults").Info(FText::Format(LOCTEXT("UatProcessSuccessMessageLog", "{TaskName} for {Platform} completed successfully"), Arguments));
 		}
 		else
-		{
+		{	
 			TGraphTask<FMainFrameActionsNotificationTask>::CreateTask().ConstructAndDispatchWhenReady(
 				NotificationItemPtr,
 				SNotificationItem::CS_Fail,
-				FText::Format(LOCTEXT("PackagerFailedNotification", "{TaskName} failed!"), Arguments)
-				);
+				FText::Format(LOCTEXT("PackagerFailedNotification", "{TaskName} failed!"), Arguments),
+				FPackagingErrorHandler::GetHasAssetErrors() ? LOCTEXT("ShowResultsLogHyperlink", "Show Results Log") : FText(),
+				false);
 
 			TArray<FAnalyticsEventAttribute> ParamArray;
 			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), TimeSec));
@@ -405,27 +603,46 @@ public:
 					nullptr,
 					ENamedThreads::GameThread
 					);
-			}
+			}			
+
 			//		FMessageLog("PackagingResults").Info(FText::Format(LOCTEXT("UatProcessFailedMessageLog", "{TaskName} for {Platform} failed"), Arguments));
 		}
+		if (GShaderCompilingManager)
+		{
+			GShaderCompilingManager->SetExternalJobs(0);
+		}
 	}
-
 
 	static void HandleUatProcessOutput(FString Output, TWeakPtr<SNotificationItem> NotificationItemPtr, FText PlatformDisplayName, FText TaskName)
 	{
 		if ( !Output.IsEmpty() && !Output.Equals("\r") )
 		{
-			UE_LOG(UATHelper, Log, TEXT("%s (%s): %s"), *TaskName.ToString(), *PlatformDisplayName.ToString(), *Output);
+			bool bDisplayLog = true;
+			if (TaskName.EqualTo(LOCTEXT("PackagingTaskName", "Packaging")))
+			{
+				// Deal with any cook messages that may have been encountered.
+				bDisplayLog = FPackagingErrorHandler::ProcessAndHandleCookMessageOutput(Output);
+			}
+			if (bDisplayLog)
+			{
+				UE_LOG(UATHelper, Log, TEXT("%s (%s): %s"), *TaskName.ToString(), *PlatformDisplayName.ToString(), *Output);
+			}
 
 			if ( TaskName.EqualTo(LOCTEXT("PackagingTaskName", "Packaging")) )
 			{
 				// Deal with any cook errors that may have been encountered.
 				FPackagingErrorHandler::ProcessAndHandleCookErrorOutput(Output);
 			}
+			if (TaskName.EqualTo(LOCTEXT("CookingTaskName", "Cooking")))
+			{
+				// Deal with any cook errors that may have been encountered.
+				FPackagingErrorHandler::ProcessAndHandleCookErrorOutput(Output);
+			}
+
+
 		}
 	}
 };
-
 
 IMPLEMENT_MODULE(FUATHelperModule, UATHelper)
 

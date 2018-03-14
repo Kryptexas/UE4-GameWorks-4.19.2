@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -84,7 +84,7 @@ struct FPropertyTypeLayoutCallback
 
 	TSharedPtr<class IPropertyTypeIdentifier> PropertyTypeIdentifier;
 
-	bool IsValid() { return PropertyTypeLayoutDelegate.IsBound(); }
+	bool IsValid() const { return PropertyTypeLayoutDelegate.IsBound(); }
 
 	TSharedRef<class IPropertyTypeCustomization> GetCustomizationInstance() const;
 };

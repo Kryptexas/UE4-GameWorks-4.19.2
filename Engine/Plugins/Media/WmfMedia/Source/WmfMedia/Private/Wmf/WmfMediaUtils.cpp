@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "WmfMediaUtils.h"
 
@@ -493,7 +493,7 @@ namespace WmfMedia
 				}
 			}
 
-			if (SubType == MFVideoFormat_HEVC)
+			if ((SubType == MFVideoFormat_HEVC) || (SubType == MFVideoFormat_HEVC_ES))
 			{
 				if (!FWindowsPlatformMisc::VerifyWindowsVersion(10, 0) /*Win10*/)
 				{
@@ -518,7 +518,10 @@ namespace WmfMedia
 				return NULL;
 			}
 
-			if ((SubType == MFVideoFormat_HEVC) || (SubType == MFVideoFormat_NV12))
+			if ((SubType == MFVideoFormat_HEVC) ||
+				(SubType == MFVideoFormat_HEVC_ES) ||
+				(SubType == MFVideoFormat_NV12) ||
+				(SubType == MFVideoFormat_IYUV))
 			{
 				Result = OutputType->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_NV12);
 			}
@@ -757,11 +760,18 @@ namespace WmfMedia
 		for (int32 CharIndex = 0; CharIndex < 4; ++CharIndex)
 		{
 			const unsigned char C = Fourcc & 0xff;
-			Result += FString::Printf(TChar<char>::IsPrint(C) ? TEXT("%c") : TEXT("[%d]"), C);
+			if (TChar<char>::IsPrint(C))
+			{
+				Result += FString::Printf(TEXT("%c"), C);
+			}
+			else
+			{
+				Result += FString::Printf(TEXT("[%d]"), C);
+			}
 			Fourcc >>= 8;
 		}
 
-		return Result;
+		return Result.Reverse();
 	}
 
 

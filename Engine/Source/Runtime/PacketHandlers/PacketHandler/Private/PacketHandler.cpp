@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PacketHandler.h"
 #include "PacketAudit.h"
@@ -77,7 +77,7 @@ void PacketHandler::Tick(float DeltaTime)
 	}
 }
 
-void PacketHandler::Initialize(Handler::Mode InMode, uint32 InMaxPacketBits, bool bConnectionlessOnly/*=false*/)
+void PacketHandler::Initialize(Handler::Mode InMode, uint32 InMaxPacketBits, bool bConnectionlessOnly/*=false*/, TSharedPtr<IAnalyticsProvider> InProvider/*=nullptr*/)
 {
 	Mode = InMode;
 	MaxPacketBits = InMaxPacketBits;
@@ -121,6 +121,8 @@ void PacketHandler::Initialize(Handler::Mode InMode, uint32 InMaxPacketBits, boo
 		ReliabilityComponent = MakeShareable(new ReliabilityHandlerComponent);
 		AddHandler(ReliabilityComponent, true);
 	}
+
+	Provider = InProvider;
 }
 
 void PacketHandler::InitializeComponents()
@@ -145,6 +147,7 @@ void PacketHandler::InitializeComponents()
 		if (!CurComponent.IsInitialized())
 		{
 			CurComponent.Initialize();
+			CurComponent.SetAnalyticsProvider(Provider);
 		}
 	}
 
@@ -185,6 +188,18 @@ void PacketHandler::AddHandler(TSharedPtr<HandlerComponent> NewHandler, bool bDe
 	if (!NewHandler.IsValid())
 	{
 		LowLevelFatalError(TEXT("Failed to add handler - invalid instance."));
+		return;
+	}
+
+	// Warn if a component already exists with the same name.
+	const bool bNameAlreadyExists = HandlerComponents.ContainsByPredicate([NewHandler](const TSharedPtr<HandlerComponent>& Component)
+	{
+		return Component->GetName() == NewHandler->GetName();
+	});
+
+	if (bNameAlreadyExists)
+	{
+		UE_LOG(PacketHandlerLog, Warning, TEXT("Packet handler already contains a component with name %s."), *NewHandler->GetName().ToString());
 		return;
 	}
 
@@ -316,6 +331,19 @@ void PacketHandler::OutgoingHigh(FBitWriter& Writer)
 TSharedPtr<FEncryptionComponent> PacketHandler::GetEncryptionComponent()
 {
 	return EncryptionComponent;
+}
+
+TSharedPtr<HandlerComponent> PacketHandler::GetComponentByName(FName ComponentName) const
+{
+	for (const TSharedPtr<HandlerComponent>& Component : HandlerComponents)
+	{
+		if (Component.IsValid() && Component->GetName() == ComponentName)
+		{
+			return Component;
+		}
+	}
+
+	return nullptr;
 }
 
 const ProcessedPacket PacketHandler::Incoming_Internal(uint8* Packet, int32 CountBytes, bool bConnectionless, FString Address)
@@ -816,6 +844,18 @@ HandlerComponent::HandlerComponent()
 	, bRequiresReliability(false)
 	, bActive(false)
 	, bInitialized(false)
+{
+}
+
+HandlerComponent::HandlerComponent(FName InName)
+	: Handler(nullptr)
+	, State(Handler::Component::State::UnInitialized)
+	, MaxOutgoingBits(0)
+	, bRequiresHandshake(false)
+	, bRequiresReliability(false)
+	, bActive(false)
+	, bInitialized(false)
+	, Name(InName)
 {
 }
 

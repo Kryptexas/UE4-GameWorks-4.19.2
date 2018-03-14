@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LODUtilities.h"
 #include "Misc/MessageDialog.h"
@@ -8,7 +8,7 @@
 #include "Components/SkinnedMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/MorphTarget.h"
-
+#include "Rendering/SkeletalMeshModel.h"
 
 #include "MeshUtilities.h"
 
@@ -22,9 +22,9 @@
 void FLODUtilities::RemoveLOD(FSkeletalMeshUpdateContext& UpdateContext, int32 DesiredLOD )
 {
 	USkeletalMesh* SkeletalMesh = UpdateContext.SkeletalMesh;
-	FSkeletalMeshResource* SkelMeshResource = SkeletalMesh->GetImportedResource();
+	FSkeletalMeshModel* SkelMeshModel = SkeletalMesh->GetImportedModel();
 
-	if( SkelMeshResource->LODModels.Num() == 1 )
+	if(SkelMeshModel->LODModels.Num() == 1 )
 	{
 		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "NoLODToRemove", "No LODs to remove!") );
 		return;
@@ -32,16 +32,16 @@ void FLODUtilities::RemoveLOD(FSkeletalMeshUpdateContext& UpdateContext, int32 D
 
 	// Now display combo to choose which LOD to remove.
 	TArray<FString> LODStrings;
-	LODStrings.AddZeroed( SkelMeshResource->LODModels.Num()-1 );
-	for(int32 i=0; i<SkelMeshResource->LODModels.Num()-1; i++)
+	LODStrings.AddZeroed(SkelMeshModel->LODModels.Num()-1 );
+	for(int32 i=0; i<SkelMeshModel->LODModels.Num()-1; i++)
 	{
 		LODStrings[i] = FString::Printf( TEXT("%d"), i+1 );
 	}
 
-	check( SkeletalMesh->LODInfo.Num() == SkelMeshResource->LODModels.Num() );
+	check( SkeletalMesh->LODInfo.Num() == SkelMeshModel->LODModels.Num() );
 
 	// If its a valid LOD, kill it.
-	if( DesiredLOD > 0 && DesiredLOD < SkelMeshResource->LODModels.Num() )
+	if( DesiredLOD > 0 && DesiredLOD < SkelMeshModel->LODModels.Num() )
 	{
 		//We'll be modifying the skel mesh data so reregister
 
@@ -49,14 +49,13 @@ void FLODUtilities::RemoveLOD(FSkeletalMeshUpdateContext& UpdateContext, int32 D
 		FMultiComponentReregisterContext ReregisterContext(UpdateContext.AssociatedComponents);
 
 		// Release rendering resources before deleting LOD
-		SkelMeshResource->ReleaseResources();
+		SkeletalMesh->ReleaseResources();
 
 		// Block until this is done
 		FlushRenderingCommands();
 
-		SkelMeshResource->LODModels.RemoveAt(DesiredLOD);
+		SkelMeshModel->LODModels.RemoveAt(DesiredLOD);
 		SkeletalMesh->LODInfo.RemoveAt(DesiredLOD);
-		SkeletalMesh->InitResources();
 
 		RefreshLODChange(SkeletalMesh);
 
@@ -78,7 +77,10 @@ void FLODUtilities::RemoveLOD(FSkeletalMeshUpdateContext& UpdateContext, int32 D
 				MorphTarget->MorphLODModels.RemoveAt(DesiredLOD);
 			}
 		}
-		
+
+		// This will recache derived render data, and re-init resources
+		SkeletalMesh->PostEditChange();
+
 		//Notify calling system of change
 		UpdateContext.OnLODChanged.ExecuteIfBound();
 

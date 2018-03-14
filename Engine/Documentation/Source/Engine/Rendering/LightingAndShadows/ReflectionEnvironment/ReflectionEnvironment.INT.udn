@@ -3,47 +3,9 @@ Title: Reflection Environment
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:System for capturing and displaying local glossy reflections.
 Version: 4.14
+topic-image:reflection_topic.png
 
 [TOC(start:2)]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/ReflectionEnvironment:title%](%ROOT%/Engine/Rendering/LightingAndShadows/ReflectionEnvironment/reflection_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	![](%ROOT%/ue4_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	%Engine/Rendering/LightingAndShadows/ReflectionEnvironment:title%
-	[/PARAM]
-	[PARAM:description]
-	%Engine/Rendering/LightingAndShadows/ReflectionEnvironment:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/ReflectionEnvironment]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/ReflectionEnvironment:title%](%ROOT%/Engine/Rendering/LightingAndShadows/ReflectionEnvironment/reflection_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	![](%ROOT%/ue4_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	%Engine/Rendering/LightingAndShadows/ReflectionEnvironment:title%
-	[/PARAM]
-	[PARAM:description]
-	%Engine/Rendering/LightingAndShadows/ReflectionEnvironment:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/ReflectionEnvironment]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [EXCERPT:ReflectionEnv001]
 The **Reflection Environment** feature provides efficient glossy reflections in every area of the level. Many 
@@ -201,19 +163,19 @@ An important factor in achieving high quality reflections is how accurately the 
 1. In the Static Mesh Editor, go the **Details** panel and expand the **LOD0** option.
 
 	[REGION:lightbox]
-	[![](SM_HP_Vertex_Normals_00.png)(w:400 h:350)](SM_HP_Vertex_Normals_00.png)
+	[![](SM_HP_Vertex_Normals_00.png)(w:400)](SM_HP_Vertex_Normals_00.png)
 	[/REGION]
 
 1. At the bottom of the **LOD0**, there is a section called **Build Settings**. Click on the small triangle next to Build Settings to expand the Build Settings options.
 
 	[REGION:lightbox]
-	[![](SM_HP_Vertex_Normals_01.png)(w:400 h:350)](SM_HP_Vertex_Normals_01.png)
+	[![](SM_HP_Vertex_Normals_01.png)(w:400)](SM_HP_Vertex_Normals_01.png)
 	[/REGION]
 
 1. Enable the **Use High Precision Tangent Basis** option by clicking on the check box next to its name and then press the **Apply Changes** button to apply the new settings.
 
 	[REGION:lightbox]
-	[![](SM_HP_Vertex_Normals_02.png)(w:400 h:350)](SM_HP_Vertex_Normals_02.png)
+	[![](SM_HP_Vertex_Normals_02.png)(w:400)](SM_HP_Vertex_Normals_02.png)
 	[/REGION]
 
 The viewport will automatically update to reflect the changes. 
@@ -232,7 +194,7 @@ The quality of the reflection that is viewed is directly related to how densely 
 [/OBJECT]
 
 [REGION:lightbox]
-[![](SM_HP_Vertex_Normals_Wireframe.png)(w:582 h:580)](SM_HP_Vertex_Normals_Wireframe.png)
+[![](SM_HP_Vertex_Normals_Wireframe.png)(w:582)](SM_HP_Vertex_Normals_Wireframe.png)
 [/REGION]
 	
 
@@ -245,13 +207,13 @@ Enabling the High Precision GBuffer Normal Encoding option will allow the GBuffe
 1. In the **Main Toolbar**, select **Edit** >  **Project Settings** to open the **Project Settings**.
 
 	[REGION:lightbox]
-	[![](ARCS_00.png)(w:400 h:350)](ARCS_00.png)
+	[![](ARCS_00.png)(w:400)](ARCS_00.png)
 	[/REGION]
 
 1. In the Project Settings under the **Engine** section, click on the **Rendering** option and under the **Optimizations** section change the **Gbuffer Format** from **Default** to **High Precision Normals**.
 
 	[REGION:lightbox]
-	[![](HPGBuffer_01.png)(w:400 h:350)](HPGBuffer_01.png)
+	[![](HPGBuffer_01.png)(w:400)](HPGBuffer_01.png)
 	[/REGION]
 
 	[region:warning]
@@ -316,7 +278,7 @@ It is important to note that Reflection Probes are not automatically kept up to 
 If you make any other kind of edit to the level like change a light's brightness or move around level geometry, you will need to select a Reflection Capture Actor and click the **Update Captures** button to propagate the changes. 
 
 [REGION:lightbox]
-[![](Update_Captures_Button.png)(w:400 h:350)](Update_Captures_Button.png)
+[![](Update_Captures_Button.png)(w:400)](Update_Captures_Button.png)
 [/REGION]
 
 ### Using a Custom HDRI Cubemap in a Reflection Probe
@@ -337,7 +299,7 @@ To specify a custom HDRI Cubemap for your project's Reflection Probes to use you
 1. First, make sure that you have an HDRI Cubemap Texture available for use. If you do not have an HDRI Cubemap Texture in your project, one comes bundled with the Starter Content called **HDRI_Epic_Courtyard_Daylight**.
 
 	[REGION:lightbox]
-	[![](Custom_Cubemap_00.png)(w:400 h:350)](Custom_Cubemap_00.png)
+	[![](Custom_Cubemap_00.png)(w:400)](Custom_Cubemap_00.png)
 	[/REGION]
 
 	[region:note]
@@ -348,19 +310,19 @@ To specify a custom HDRI Cubemap for your project's Reflection Probes to use you
 1. Select a **Reflection Probe** Actor that has been placed in the level and in the **Details** panel under the **Reflection Capture** section change the **Reflection Source Type** from **Captured Scene** to **Specified Cubemap**
 
 	[REGION:lightbox]
-	[![](Custom_Cubemap_01.png)(w:400 h:350)](Custom_Cubemap_01.png)
+	[![](Custom_Cubemap_01.png)(w:400)](Custom_Cubemap_01.png)
 	[/REGION]
 
 1. With the Reflection Probe still selected in the level, go to the Content Browser and select the HDRI Texture you want to use. Then in the Reflection Capture Actor, under the **Reflection Capture** drag the HDRI Texture from the Content Browser to the **Cubemap** input.
 
 	[REGION:lightbox]
-	[![](Custom_Cubemap_02.png)(w:400 h:350)](Custom_Cubemap_02.png)
+	[![](Custom_Cubemap_02.png)(w:400)](Custom_Cubemap_02.png)
 	[/REGION]
 
 1. Press the **Update Capture** button to refresh the Reflection Capture Actor to use the new HDRI Cubemap Texture that was just specified. 
 
 	[REGION:lightbox]
-	[![](Custom_Cubemap_03.png)(w:400 h:350)](Custom_Cubemap_03.png)
+	[![](Custom_Cubemap_03.png)(w:400)](Custom_Cubemap_03.png)
 	[/REGION]
 
 ### Adjusting Reflection Probe Resolution
@@ -370,13 +332,13 @@ You can globally adjust the resolution of the HDRI Cubemaps that are used for th
 1. Open up your **Project settings** by going to the **Main Toolbar** and then selecting **Edit** >  **Project Settings**.
 	
 	[REGION:lightbox]
-	[![](ARCS_00.png)(w:400 h:350)](ARCS_00.png)
+	[![](ARCS_00.png)(w:400)](ARCS_00.png)
 	[/REGION]
 
 1. From the Project Settings menu  go to the **Engine** > **Rendering** section and then look for the **Textures** option.
 	
 	[REGION:lightbox]
-	[![](ARCS_01.png)(w:400 h:350)](ARCS_01.png)
+	[![](ARCS_01.png)(w:400)](ARCS_01.png)
 	[/REGION]
 
 1. By adjusting the **Reflection Capture Resolution** option you can increase or decrease the size of the HDRI Cubemap Texture that was specified.
@@ -399,25 +361,25 @@ Like with the Reflection Probes, Skylights also have the ability to define and a
 1. From the **Mode** panel under the **Lights** section, select and then drag a **Skylight** into your level. 
 	
 	[REGION:lightbox]
-	[![](Skylight_Reflection_00.png)(w:500 h:300)](Skylight_Reflection_00.png)
+	[![](Skylight_Reflection_00.png)(w:500)](Skylight_Reflection_00.png)
 	[/REGION]
 
 1. Select the Skylight and in the **Details** panel under the **Light** section, change the **Source Type** from **SLS Captured Scene** to **SLS Specified Cubemap**.
 
 	[REGION:lightbox]
-	[![](Skylight_Reflection_01.png)(w:500 h:300)](Skylight_Reflection_01.png)
+	[![](Skylight_Reflection_01.png)(w:500)](Skylight_Reflection_01.png)
 	[/REGION]
 
 1. Click on the drop down box in the **Cubemap** section and select an HDRI cube map from the list.
 
 	[REGION:lightbox]
-	[![](Skylight_Reflection_02.png)(w:300 h:300)](Skylight_Reflection_02.png)
+	[![](Skylight_Reflection_02.png)(w:300)](Skylight_Reflection_02.png)
 	[/REGION]
 
 1. After the cubemap has been selected you can adjust its resolution by changing the value in the **Cubemap Resolution** input.
 	
 	[REGION:lightbox]
-	[![](Skylight_Reflection_03.png)(w:300 h:300)](Skylight_Reflection_03.png)
+	[![](Skylight_Reflection_03.png)(w:300)](Skylight_Reflection_03.png)
 	[/REGION]
 
 	[region:note]
@@ -431,25 +393,25 @@ You can blend between multiple different cubemap reflections by providing the Re
 1. First, make sure that you have at least one **Reflection Probe** added to your level and that you have changed the **Reflection Source Type** to **Specified Cubemap** and input an HDRI Texture into the **Cubemap** input. 
 
 	[REGION:lightbox]
-	[![](Blend_RFD_00.png)(w:600 h:400)](Blend_RFD_00.png)
+	[![](Blend_RFD_00.png)(w:600)](Blend_RFD_00.png)
 	[/REGION]
 
 1. Duplicate or add a new Reflection Probe to the level and position / adjust its **Influence Radius** it so that part of it's yellow influence radius is intersecting with the first Reflection Probe. 
 
 	[REGION:lightbox]
-	[![](Blend_RFD_01.png)(w:600 h:400)](Blend_RFD_01.png)
+	[![](Blend_RFD_01.png)(w:600)](Blend_RFD_01.png)
 	[/REGION]
 
 1. Select the newly duplicated / created Reflection Probe Actor and in the **Details** panel under the **Cubemap** section change the HDRI cubemap to a different one.
 
 	[REGION:lightbox]
-	[![](Blend_RFD_02.png)(w:600 h:400)](Blend_RFD_02.png)
+	[![](Blend_RFD_02.png)(w:600)](Blend_RFD_02.png)
 	[/REGION]
 
 1. With the Reflection Probe that was added / duplicated still selected, go to the **Details** panel in the **Reflection Capture** section and press the **Update Captures** button to update the reflection to use what was input in the Cubemap input.
 
 	[REGION:lightbox]
-	[![](Blend_RFD_03.png)(w:600 h:400)](Blend_RFD_03.png)
+	[![](Blend_RFD_03.png)(w:600)](Blend_RFD_03.png)
 	[/REGION]
 
 1. If you select and move the Reflection Probe around the level you can get a better idea for how the two HDRI cubemaps will blend together.
@@ -508,7 +470,8 @@ One side can be setup to have correct reflections, but it will always leak into 
 the world can have at most 341 reflection captures enabled at one time.
 
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:ReflectionResolution]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -537,4 +500,5 @@ the world can have at most 341 reflection captures enabled at one time.
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:ReflectionResolution]
--->
+
+[/COMMENT]

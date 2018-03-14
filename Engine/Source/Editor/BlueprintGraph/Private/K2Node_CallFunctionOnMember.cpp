@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "K2Node_CallFunctionOnMember.h"
@@ -18,18 +18,16 @@ UK2Node_CallFunctionOnMember::UK2Node_CallFunctionOnMember(const FObjectInitiali
 
 UEdGraphPin* UK2Node_CallFunctionOnMember::CreateSelfPin(const UFunction* Function) 
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 	UEdGraphPin* SelfPin = nullptr;
 	if (MemberVariableToCallOn.IsSelfContext())
 	{
 		// This means the function is defined within the blueprint, so the pin should be a true "self" pin
-		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, K2Schema->PSC_Self, nullptr, K2Schema->PN_Self);
+		SelfPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, UEdGraphSchema_K2::PSC_Self, UEdGraphSchema_K2::PN_Self);
 	}
 	else
 	{
 		// This means that the function is declared in an external class, and should reference that class
-		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, FString(), MemberVariableToCallOn.GetMemberParentClass(GetBlueprintClassFromNode()), K2Schema->PN_Self);
+		SelfPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, MemberVariableToCallOn.GetMemberParentClass(GetBlueprintClassFromNode()), UEdGraphSchema_K2::PN_Self);
 	}
 	check(SelfPin);
 

@@ -1,67 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:라이팅 기초
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:레벨에 라이트를 배치하고 셋업하는 법에 대한 기초입니다.
 SkillLevel: Beginner
 Version: 4.9
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[예전 토픽](Engine/Rendering/Materials/IntroductionToMaterials "%Engine/Rendering/Materials/IntroductionToMaterials:title%")
-	[/PARAM]
-	[PARAM:next]
-		[다음 토픽](Engine/UI/LevelEditor/InEditorTesting "%Engine/UI/LevelEditor/InEditorTesting:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/Basics:title%](PL_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/Basics:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/Basics:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/Basics]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/Basics:title%](PL_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/Basics:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/Basics:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/Basics]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:PL_Topic.png
 
 [REGION:fullwidth raw]
 ![](PL_Banner.png)(convert:false)

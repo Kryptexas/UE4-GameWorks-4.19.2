@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -228,7 +228,7 @@ public:
 	FGetText ToolTipTextDelegate;
 
 	/** Tooltip widget to show when the user hovers over the widget with the mouse */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Behavior", AdvancedDisplay)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Behavior", AdvancedDisplay)
 	UWidget* ToolTipWidget;
 
 	/** A bindable delegate for ToolTipWidget */
@@ -321,6 +321,10 @@ public:
 	/** The visibility of the widget */
 	UPROPERTY(EditAnywhere, Category="Behavior")
 	ESlateVisibility Visibility;
+
+	/** The opacity of the widget */
+	UPROPERTY(EditAnywhere, Category="Behavior")
+	float RenderOpacity;
 
 	/**
 	 * The navigation object for this widget is optionally created if the user has configured custom
@@ -419,6 +423,14 @@ public:
 	/** Sets the visibility of the widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	virtual void SetVisibility(ESlateVisibility InVisibility);
+
+	/** Gets the current visibility of the widget. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	float GetRenderOpacity() const;
+
+	/** Sets the visibility of the widget. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void SetRenderOpacity(float InOpacity);
 
 	/** Gets the clipping state of this widget. */
 	UFUNCTION(BlueprintCallable, Category = "Widget")
@@ -727,6 +739,8 @@ public:
 	static FSizeParam ConvertSerializedSizeParamToRuntime(const FSlateChildSize& Input);
 
 	static UWidget* FindChildContainingDescendant(UWidget* Root, UWidget* Descendant);
+
+	static FString GetDefaultFontName();
 
 protected:
 	virtual void OnBindingChanged(const FName& Property);

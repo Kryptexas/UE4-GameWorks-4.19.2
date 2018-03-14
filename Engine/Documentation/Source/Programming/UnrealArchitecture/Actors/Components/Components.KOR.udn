@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3692796
 Availability:Public
 Title: 컴포넌트
 Crumbs:%ROOT%, Programming
@@ -22,7 +22,7 @@ Version: 4.9
 바람직한 행위는 아닐 테지요. 기본적인 컴포넌트 인스턴싱 덕에 **액터** 에 고유 서브-오브젝트를 빠르게 추가하는 프로세스가 단순화됩니다.
 
 [REGION:note]
-**주:** 컴포넌트 인스턴싱이 없다면, 모든 컴포넌트 변수는 **[Instanced](Programming\UnrealArchitecture\Reference\Properties\Specifiers\Instanced) 변수 지정자** 로 선언해 줘야 할 것입니다.
+**주:** 컴포넌트 인스턴싱이 없다면, 모든 컴포넌트 변수는 **[Instanced](Programming\UnrealArchitecture\Reference\Properties\Specifiers) 변수 지정자** 로 선언해 줘야 할 것입니다.
 [/REGION]
 
 ## 액터 컴포넌트

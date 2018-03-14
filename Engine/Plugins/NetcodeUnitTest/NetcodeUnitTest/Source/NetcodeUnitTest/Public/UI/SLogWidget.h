@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,7 +10,10 @@
 #include "Widgets/SCompoundWidget.h"
 #include "Widgets/Input/SComboBox.h"
 #include "Framework/Docking/TabManager.h"
+
 #include "NetcodeUnitTest.h"
+#include "UnitLogging.h"
+
 
 class FUICommandList;
 class SEditableTextBox;
@@ -56,11 +59,15 @@ struct FLogLine
 	/** The color of the log line */
 	FSlateColor			LogColor;
 
+	/** The text within the log line, to highlight (from searches) */
+	FString				LogHighlight;
+
 
 	FLogLine(ELogType InLogType, TSharedRef<FString> InLogLine, FSlateColor InLogColor)
 		: LogType(InLogType)
 		, LogLine(InLogLine)
 		, LogColor(InLogColor)
+		, LogHighlight()
 	{
 	}
 };
@@ -99,8 +106,20 @@ struct FLogTabInfo
 	/** The text box for the 'Find' bar */
 	TSharedPtr<SEditableTextBox> FindBox;
 
+	/** The label that's displayed when there's an error searching, or searching past the start/end of the list */
+	TSharedPtr<SBorder> FindErrorLabel;
+
+	/** The text block for the above label */
+	TSharedPtr<STextBlock> FindErrorText;
+
+	/** Caches the text of the last search */
+	FString LastFind;
+
 	/** Whether or not the last search direction was upwards */
 	bool bLastFindWasUp;
+
+	/** Whether or not to highlight text, from searches */
+	bool bHighlightFind;
 
 
 	/** Automatically generated name given to the tab */
@@ -125,7 +144,11 @@ struct FLogTabInfo
 		, LogListView()
 		, FindWidgets()
 		, FindBox()
+		, FindErrorLabel()
+		, FindErrorText()
+		, LastFind()
 		, bLastFindWasUp(false)
+		, bHighlightFind(true)
 		, TabWidget()
 	{
 		static uint8 TabNameCounter = 0;
@@ -275,6 +298,19 @@ protected:
 	 * @return			Whether or not auto-scrolling is possible
 	 */
 	bool CanAutoScroll(TSharedPtr<FLogTabInfo> InTab);
+
+	/**
+	 * Updates the find text highlighting for a tab
+	 *
+	 * @param InTab				The tab to update
+	 * @param bHighlight		Whether or not highlighting has been enabled (NOTE: This often differs from the tabs bHighlightFind value)
+	 * @param HighlightText		The text to highlight, if any
+	 */
+	void UpdateFindHighlight(TSharedPtr<FLogTabInfo> InTab, bool bHighlight, FString HighlightText=TEXT(""));
+
+
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+
 
 protected:
 	/** The log window tab manager */

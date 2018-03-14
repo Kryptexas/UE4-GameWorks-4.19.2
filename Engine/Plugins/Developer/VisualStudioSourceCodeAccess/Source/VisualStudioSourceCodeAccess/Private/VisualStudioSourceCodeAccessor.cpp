@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "VisualStudioSourceCodeAccessor.h"
 #include "VisualStudioSourceCodeAccessModule.h"
@@ -12,6 +12,9 @@
 #include "Misc/UProjectInfo.h"
 #include "Misc/App.h"
 #include "HAL/PlatformTime.h"
+#include "ProjectDescriptor.h"
+#include "Interfaces/IProjectManager.h"
+//#include "GameProjectGenerationModule.h"
 
 #if WITH_EDITOR
 #include "Developer/HotReload/Public/IHotReload.h"
@@ -85,10 +88,10 @@ enum class EAccessVisualStudioResult : uint8
 };
 
 /** save all open documents in visual studio, when recompiling */
-void OnModuleCompileStarted(bool bIsAsyncCompile)
+static void OnModuleCompileStarted(bool bIsAsyncCompile)
 {
-	FVisualStudioSourceCodeAccessModule& VisualStudioSourceCodeAccessModule = FModuleManager::LoadModuleChecked<FVisualStudioSourceCodeAccessModule>(TEXT("VisualStudioSourceCodeAccess"));
-	VisualStudioSourceCodeAccessModule.GetAccessor().SaveAllOpenDocuments();
+	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+	SourceCodeAccessModule.GetAccessor().SaveAllOpenDocuments();
 }
 
 int32 GetVisualStudioVersionForCompiler()
@@ -893,7 +896,7 @@ bool FVisualStudioSourceCodeAccessor::OpenSourceFiles(const TArray<FString>& Abs
 		TArray<FileOpenRequest> Requests;
 		for ( const FString& FullPath : AbsoluteSourcePaths )
 		{
-			Requests.Add(FileOpenRequest(FullPath, 0, 0));
+			Requests.Add(FileOpenRequest(FullPath, 1, 1));
 		}
 
 		return OpenVisualStudioFilesInternal(Requests);
@@ -1277,7 +1280,7 @@ FString FVisualStudioSourceCodeAccessor::GetSolutionPath() const
 		}
 		else
 		{
-			CachedSolutionPath = FPaths::ProjectDir();
+			CachedSolutionPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
 
 			if (!FUProjectDictionary(FPaths::RootDir()).IsForeignProject(CachedSolutionPath))
 			{
@@ -1285,11 +1288,22 @@ FString FVisualStudioSourceCodeAccessor::GetSolutionPath() const
 			}
 			else
 			{
-				FString BaseName = FApp::HasProjectName() ? FApp::GetProjectName() : FPaths::GetBaseFilename(CachedSolutionPath);
-				CachedSolutionPath = FPaths::Combine(CachedSolutionPath, BaseName + TEXT(".sln"));
+				const FProjectDescriptor* CurrentProject = IProjectManager::Get().GetCurrentProject();
+
+				if (CurrentProject == nullptr || CurrentProject->Modules.Num() == 0)
+				{
+					CachedSolutionPath = TEXT("");
+				}
+				else
+				{
+					FString BaseName = FApp::HasProjectName() ? FApp::GetProjectName() : FPaths::GetBaseFilename(CachedSolutionPath);
+					CachedSolutionPath = FPaths::Combine(CachedSolutionPath, BaseName + TEXT(".sln"));
+				}
 			}
 		}
 	}
+
+	// This must be an absolute path as VS always uses absolute paths
 	return CachedSolutionPath;
 }
 

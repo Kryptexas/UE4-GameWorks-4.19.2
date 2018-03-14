@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // MaterialFunctionFactoryNew
@@ -15,7 +15,6 @@ UCLASS(MinimalAPI, hidecategories=Object, collapsecategories)
 class UMaterialFunctionFactoryNew : public UFactory
 {
 	GENERATED_UCLASS_BODY()
-
 
 	//~ Begin UFactory Interface
 	virtual UObject* FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn) override;

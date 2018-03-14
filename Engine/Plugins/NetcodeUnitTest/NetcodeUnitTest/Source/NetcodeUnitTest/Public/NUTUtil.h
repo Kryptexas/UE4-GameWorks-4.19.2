@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -175,14 +175,17 @@ public:
 
 		for (auto CurEntry : DisabledAsserts)
 		{
-			if (FCString::Stristr(V, *CurEntry))
+			if (FCString::Stristr(V, *CurEntry) != nullptr)
 			{
 				bReturnVal = true;
 				break;
 			}
 		}
 
-		UE_LOG(LogUnitTest, Log, TEXT("Blocking disabled assert: %s"), V);
+		if (bReturnVal)
+		{
+			UE_LOG(LogUnitTest, Log, TEXT("Blocking disabled assert: %s"), V);
+		}
 
 		return bReturnVal;
 	}
@@ -226,7 +229,7 @@ template<typename Accessor, typename Accessor::Member Member> struct AccessPriva
 // This is used to aid in linking one member in FStackTracker, to the above template
 struct FStackTrackerbIsEnabledAccessor
 {
-	typedef bool FStackTracker::*Member;
+	using Member = bool FStackTracker::*;
 
 	friend Member GetPrivate(FStackTrackerbIsEnabledAccessor);
 };
@@ -240,7 +243,7 @@ template struct AccessPrivate<FStackTrackerbIsEnabledAccessor, &FStackTracker::b
 // Used, in combination with another template, for accessing private/protected members of classes
 struct AShooterCharacterServerEquipWeaponAccessor
 {
-	typedef void (AShooterCharacter::*Member)(AShooterWeapon* Weapon);
+	using Member = void (AShooterCharacter::*)(AShooterWeapon* Weapon);
 
 	friend Member GetPrivate(AShooterCharacterServerEquipWeaponAccessor);
 };
@@ -262,7 +265,7 @@ template struct AccessPrivate<AShooterCharacterServerEquipWeaponAccessor, &AShoo
 #define IMPLEMENT_GET_PRIVATE_VAR(InClass, VarName, VarType) \
 	struct InClass##VarName##Accessor \
 	{ \
-		typedef VarType InClass::*Member; \
+		using Member = VarType InClass::*; \
 		\
 		friend Member GetPrivate(InClass##VarName##Accessor); \
 	}; \
@@ -285,7 +288,7 @@ template struct AccessPrivate<AShooterCharacterServerEquipWeaponAccessor, &AShoo
 #define IMPLEMENT_GET_PRIVATE_FUNC_CONST(InClass, FuncName, FuncRet, FuncParms, FuncModifier) \
 	struct InClass##FuncName##Accessor \
 	{ \
-		typedef FuncRet (InClass::*Member)(FuncParms) FuncModifier; \
+		using Member = FuncRet (InClass::*)(FuncParms) FuncModifier; \
 		\
 		friend Member GetPrivate(InClass##FuncName##Accessor); \
 	}; \
@@ -306,6 +309,12 @@ template struct AccessPrivate<AShooterCharacterServerEquipWeaponAccessor, &AShoo
  * @return				The value of the member 
  */
 #define GET_PRIVATE(InClass, InObj, MemberName) (*InObj).*GetPrivate(InClass##MemberName##Accessor())
+
+/**
+ * Redundant version of the above, for emphasizing the ability to assign a writable reference which can modify the original value
+ */
+#define GET_PRIVATE_REF(InClass, InObj, MemberName) GET_PRIVATE(InClass, InObj, MemberName)
+
 
 // @todo #JohnB: Restore if fixed in VS2015
 #if 0
@@ -332,6 +341,9 @@ template struct AccessPrivate<AShooterCharacterServerEquipWeaponAccessor, &AShoo
 			return FuncName(FuncParmNames); \
 		} \
 	};
+
+#define IMPLEMENT_GET_PROTECTED_FUNC(InClass, FuncName, FuncRet, FuncParms, FuncParmNames) \
+	IMPLEMENT_GET_PROTECTED_FUNC_CONST(InClass, FuncName, FuncRet, FuncParms, FuncParmNames,)
 
 // Version of GET_PRIVATE, for calling protected functions
 #define CALL_PROTECTED(InClass, InObj, MemberName) ((InClass##MemberName##Accessor*)&(*InObj))->MemberName##Accessor

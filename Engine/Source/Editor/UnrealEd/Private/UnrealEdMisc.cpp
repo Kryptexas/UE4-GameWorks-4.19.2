@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEdMisc.h"
 #include "TickableEditorObject.h"
@@ -88,6 +88,8 @@
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdMisc, Log, All);
 
 bool FTickableEditorObject::bCollectionIntact = true;
+bool FTickableEditorObject::bIsTickingObjects = false;
+
 
 namespace
 {
@@ -452,6 +454,7 @@ void FUnrealEdMisc::OnInit()
 	{
 		FMessageLogInitializationOptions InitOptions;
 		InitOptions.bShowPages = true;
+		InitOptions.bShowFilters = true;
 		MessageLogModule.RegisterLogListing("PackagingResults", LOCTEXT("PackagingResults", "Packaging Results"), InitOptions);
 	}
 

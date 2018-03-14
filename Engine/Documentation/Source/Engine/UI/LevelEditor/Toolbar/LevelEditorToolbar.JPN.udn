@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3467293
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:レベル エディタ ツールバー
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
@@ -25,11 +25,13 @@ topic-image:LevelEditorToolbar_topic.png
 | ![](button_Toolbar_PlayIn.png) | [INCLUDE:#playin] |
 | ![](button_Toolbar_launch.png) | サポートしているプラットフォーム上で現在のマップを起動します。接続されているデバイスは、矢印をクリックしてアクセスするメニューに一覧表示されます。 |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:simulate]
 シミュレーション モードでゲームを開始します。詳細は [SimulateInEditor](Engine/UI/LevelEditor/InEditorTesting#SimulateInEditor) セクションを参照してください。
 [/EXCERPT:simulate]
 [EXCERPT:playin]
 通常のプレイ モードでゲームを開始します。矢印をクリックすると **[Play Options]** メニューが表示されます。詳細は [PlayInEditor](Engine/UI/LevelEditor/InEditorTesting#PlayInEditor) を参照してください。
 [/EXCERPT:playin]
--->
+
+[/COMMENT]

@@ -1,6 +1,8 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/Widget.h"
+#include "ConfigCacheIni.h"
+#include "CoreGlobals.h"
 #include "Widgets/SNullWidget.h"
 #include "Types/NavigationMetaData.h"
 #include "Widgets/IToolTip.h"
@@ -153,6 +155,7 @@ UWidget::UWidget(const FObjectInitializer& ObjectInitializer)
 	DesignerFlags = EWidgetDesignFlags::None;
 #endif
 	Visibility = ESlateVisibility::Visible;
+	RenderOpacity = 1.0f;
 	RenderTransformPivot = FVector2D(0.5f, 0.5f);
 	Cursor = EMouseCursor::Default;
 
@@ -289,6 +292,28 @@ void UWidget::SetVisibility(ESlateVisibility InVisibility)
 	{
 		EVisibility SlateVisibility = UWidget::ConvertSerializedVisibilityToRuntime(InVisibility);
 		SafeWidget->SetVisibility(SlateVisibility);
+	}
+}
+
+float UWidget::GetRenderOpacity() const
+{
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if (SafeWidget.IsValid())
+	{
+		return SafeWidget->GetRenderOpacity();
+	}
+
+	return RenderOpacity;
+}
+
+void UWidget::SetRenderOpacity(float InRenderOpacity)
+{
+	RenderOpacity = InRenderOpacity;
+
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if (SafeWidget.IsValid())
+	{
+		SafeWidget->SetRenderOpacity(InRenderOpacity);
 	}
 }
 
@@ -530,7 +555,7 @@ void UWidget::ForceLayoutPrepass()
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
 	if (SafeWidget.IsValid())
 	{
-		SafeWidget->SlatePrepass();
+		SafeWidget->SlatePrepass(SafeWidget->GetCachedGeometry().Scale);
 	}
 }
 
@@ -1019,6 +1044,8 @@ void UWidget::SynchronizeProperties()
 
 	SafeWidget->ForceVolatile(bIsVolatile);
 
+	SafeWidget->SetRenderOpacity(RenderOpacity);
+
 	UpdateRenderTransform();
 	SafeWidget->SetRenderTransformPivot(RenderTransformPivot);
 
@@ -1174,6 +1201,15 @@ UWidget* UWidget::FindChildContainingDescendant(UWidget* Root, UWidget* Descenda
 	}
 
 	return nullptr;
+}
+
+// TODO: Clean this up to, move it to a user interface setting, don't use a config. 
+FString UWidget::GetDefaultFontName()
+{
+	FString DefaultFontName = TEXT("/Engine/EngineFonts/Roboto");
+	GConfig->GetString(TEXT("SlateStyle"), TEXT("DefaultFontName"), DefaultFontName, GEngineIni);
+
+	return DefaultFontName;
 }
 
 //bool UWidget::BindProperty(const FName& DestinationProperty, UObject* SourceObject, const FName& SourceProperty)

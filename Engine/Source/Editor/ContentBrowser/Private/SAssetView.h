@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -32,6 +32,9 @@ class SComboButton;
 class UFactory;
 struct FPropertyChangedEvent;
 
+/** Delegate called when selection changed. Provides more context than FOnAssetSelected */
+DECLARE_DELEGATE_TwoParams(FOnAssetSelectionChanged, const FAssetData& /*InAssetData*/, ESelectInfo::Type /*InSelectInfo*/);
+
 /**
  * A widget to display a list of filtered assets
  */
@@ -52,6 +55,7 @@ public:
 		, _CanShowRealTimeThumbnails(false)
 		, _CanShowDevelopersFolder(false)
 		, _CanShowCollections(false)
+		, _CanShowFavorites(false)
 		, _PreloadAssetsForContextMenu(true)
 		, _SelectionMode( ESelectionMode::Multi )
 		, _AllowDragging(true)
@@ -67,6 +71,9 @@ public:
 
 		/** Called to when an asset is selected */
 		SLATE_EVENT( FOnAssetSelected, OnAssetSelected )
+
+		/** Called to when an asset is selected. Provides more context OnAssetSelected */
+		SLATE_EVENT( FOnAssetSelectionChanged, OnAssetSelectionChanged )
 
 		/** Called when the user double clicks, presses enter, or presses space on an asset */
 		SLATE_EVENT( FOnAssetsActivated, OnAssetsActivated )
@@ -85,6 +92,9 @@ public:
 
 		/** Called when the user has committed a rename of one or more assets */
 		SLATE_EVENT( FOnAssetRenameCommitted, OnAssetRenameCommitted )
+
+		/** Delegate to call (if bound) to check if it is valid to get a custom tooltip for this asset item */
+		SLATE_EVENT(FOnIsAssetValidForCustomToolTip, OnIsAssetValidForCustomToolTip)
 
 		/** Called to get a custom asset item tool tip (if necessary) */
 		SLATE_EVENT( FOnGetCustomAssetToolTip, OnGetCustomAssetToolTip )
@@ -152,6 +162,9 @@ public:
 		/** Indicates if the 'Show Collections' option should be enabled or disabled */
 		SLATE_ARGUMENT( bool, CanShowCollections )
 
+		/** Indicates if the 'Show Favorites' option should be enabled or disabled */
+		SLATE_ARGUMENT(bool, CanShowFavorites)
+
 		/** Indicates if the context menu is going to load the assets, and if so to preload before the context menu is shown, and warn about the pending load. */
 		SLATE_ARGUMENT( bool, PreloadAssetsForContextMenu )
 
@@ -182,11 +195,14 @@ public:
 		/** Called when a folder is entered */
 		SLATE_EVENT( FOnPathSelected, OnPathSelected )
 
+		/** Called to add extra asset data to the asset view, to display virtual assets. These get treated similar to Class assets */
+		SLATE_EVENT( FOnGetCustomSourceAssets, OnGetCustomSourceAssets )
+
 		/** Columns to hide by default */
 		SLATE_ARGUMENT( TArray<FString>, HiddenColumnNames )
 
 		/** Custom columns that can be use specific */
-		SLATE_ARGUMENT(TArray<FAssetViewCustomColumn>, CustomColumns)
+		SLATE_ARGUMENT( TArray<FAssetViewCustomColumn>, CustomColumns )
 
 	SLATE_END_ARGS()
 
@@ -484,6 +500,15 @@ private:
 	/** @return true when we are showing collections */
 	bool IsShowingCollections() const;
 
+	/** Toggle whether favorites should be shown or not */
+	void ToggleShowFavorites();
+
+	/** Whether or not it's possible to toggle favorites */
+	bool IsToggleShowFavoritesAllowed() const;
+
+	/** @return true when we are showing favorites */
+	bool IsShowingFavorites() const;
+
 	/** Toggle whether C++ content should be shown or not */
 	void ToggleShowCppContent();
 
@@ -722,6 +747,10 @@ private:
 	/** Will compute the max row size from all its children for the specified column id*/
 	FVector2D GetMaxRowSizeForColumn(const FName& ColumnId);
 
+public:
+	/** Delegate that handles if any folder paths changed as a result of a move, rename, etc. in the asset view*/
+	FOnFolderPathChanged OnFolderPathChanged;
+
 private:
 
 	/** The asset items being displayed in the view and the filtered list */
@@ -776,6 +805,9 @@ private:
 	/** Called when an asset was selected in the list */
 	FOnAssetSelected OnAssetSelected;
 
+	/** Called when an asset was selected in the list. Provides more context than OnAssetSelected. */
+	FOnAssetSelectionChanged OnAssetSelectionChanged;
+
 	/** Called when the user double clicks, presses enter, or presses space on an asset */
 	FOnAssetsActivated OnAssetsActivated;
 
@@ -797,6 +829,9 @@ private:
 	/** Called to check if an asset tag should be display in details view. */
 	FOnShouldDisplayAssetTag OnAssetTagWantsToBeDisplayed;
 
+	/** Called to see if it is valid to get a custom asset tool tip */
+	FOnIsAssetValidForCustomToolTip OnIsAssetValidForCustomToolTip;
+
 	/** Called to get a custom asset item tooltip (If necessary) */
 	FOnGetCustomAssetToolTip OnGetCustomAssetToolTip;
 
@@ -805,6 +840,9 @@ private:
 
 	/** Called when a custom asset item's tooltip is closing */
 	FOnAssetToolTipClosing OnAssetToolTipClosing;
+
+	/** Called to add extra asset data to the asset view, to display virtual assets. These get treated similar to Class assets */
+	FOnGetCustomSourceAssets OnGetCustomSourceAssets;
 
 	/** When true, filtered list items will be sorted next tick. Provided another sort hasn't happened recently or we are renaming an asset */
 	bool bPendingSortFilteredItems;
@@ -890,6 +928,9 @@ private:
 
 	/** Indicates if the 'Show Collections' option should be enabled or disabled */
 	bool bCanShowCollections;
+
+	/** Indicates if the 'Show Favorites' option should be enabled or disabled */
+	bool bCanShowFavorites;
 
 	/** Indicates if the context menu is going to load the assets, and if so to preload before the context menu is shown, and warn about the pending load. */
 	bool bPreloadAssetsForContextMenu;

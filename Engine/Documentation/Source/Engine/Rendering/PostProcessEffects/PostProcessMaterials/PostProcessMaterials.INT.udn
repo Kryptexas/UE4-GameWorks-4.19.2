@@ -15,12 +15,14 @@ Topic-image:PPMaterials_Topic.png
 ![](Teaser_Banner.png)
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 ![](Teaser3.png)
 ![](Teaser0.png)
 ![](Teaser1.png)
 ![](Teaser2.png)
--->
+
+[/COMMENT]
 
 
 Post Process Materials enable you to set up materials that can be used with your post process to create visual screen effects for damage, area type effects, or overall look for your game
@@ -117,7 +119,8 @@ Depending on the camera position the setting of one volume is used and blended w
 [/REGION]
 
 
-<!---
+[COMMENT:none]
+-
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
 	![Green vignette material instance](VignetteG.png)(w:450)
@@ -126,7 +129,8 @@ Depending on the camera position the setting of one volume is used and blended w
 	![Red vignette material instance](VignetteR.png)(w:450)
 	[/PARAM]
 [/OBJECT]
---->
+-
+[/COMMENT]
 
 With camera movement, you can perceive soft linear transition between the two effects setting.
 

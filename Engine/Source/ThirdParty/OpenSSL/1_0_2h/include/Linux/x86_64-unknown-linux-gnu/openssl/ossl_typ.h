@@ -169,7 +169,6 @@ typedef struct conf_st CONF;
 typedef struct store_st STORE;
 typedef struct store_method_st STORE_METHOD;
 
-#define UI OSSL_UI
 typedef struct ui_st UI;
 typedef struct ui_method_st UI_METHOD;
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FXSystemPrivate.h: Internal effects system interface.
@@ -54,20 +54,23 @@ enum EParticleCollisionShaderMode
 };
 
 /** Helper function to determine whether the given particle collision shader mode is supported on the given shader platform */
-inline bool IsParticleCollisionModeSupported(EShaderPlatform InPlatform, EParticleCollisionShaderMode InCollisionShaderMode)
+inline bool IsParticleCollisionModeSupported(EShaderPlatform InPlatform, EParticleCollisionShaderMode InCollisionShaderMode, bool bForCaching = false)
 {
 	switch (InCollisionShaderMode)
 	{
 	case PCM_None:
 		return IsFeatureLevelSupported(InPlatform, ERHIFeatureLevel::ES2);
 	case PCM_DepthBuffer:
-		return IsFeatureLevelSupported(InPlatform, ERHIFeatureLevel::SM4) && !IsSimpleForwardShadingEnabled(InPlatform);
+		// we only need to check for simple forward if we're NOT curently attempting to cache the shader
+		// since SF is a runtime change, we need to compile the shader regardless, because we could be switching to deferred at any time
+		return IsFeatureLevelSupported(InPlatform, ERHIFeatureLevel::SM4) && (bForCaching || !IsSimpleForwardShadingEnabled(InPlatform));
 	case PCM_DistanceField:
 		return IsFeatureLevelSupported(InPlatform, ERHIFeatureLevel::SM5);
 	}
 	check(0);
 	return IsFeatureLevelSupported(InPlatform, ERHIFeatureLevel::SM4);
 }
+
 
 inline EParticleSimulatePhase::Type GetLastParticleSimulationPhase(EShaderPlatform InPlatform)
 {

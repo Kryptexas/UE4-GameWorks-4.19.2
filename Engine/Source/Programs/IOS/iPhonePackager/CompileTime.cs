@@ -1,5 +1,5 @@
 /*
- * Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+ * Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
  */
 
 using System;
@@ -236,6 +236,74 @@ namespace iPhonePackager
 
 			Program.Log("Updating .plist: {0} --> {1}", SourcePListFilename, TargetPListFilename);
 
+			string FinalMobileProvisionFilename = null;
+			CurrentBaseXCodeCommandLine = GetBaseXcodeCommandline();
+			if (!Config.bAutomaticSigning)
+			{
+				// Copy the mobile provision file over
+				string CFBundleIdentifier = null;
+				Info.GetString("CFBundleIdentifier", out CFBundleIdentifier);
+				bool bNameMatch;
+				string ProvisionWithPrefix = MobileProvision.FindCompatibleProvision(CFBundleIdentifier, out bNameMatch, true, true, false);
+				if (!File.Exists(ProvisionWithPrefix))
+				{
+					ProvisionWithPrefix = FileOperations.FindPrefixedFile(Config.BuildDirectory, Program.GameName + ".mobileprovision");
+					if (!File.Exists(ProvisionWithPrefix))
+					{
+						ProvisionWithPrefix = FileOperations.FindPrefixedFile(Config.BuildDirectory + "/NotForLicensees/", Program.GameName + ".mobileprovision");
+						if (!File.Exists(ProvisionWithPrefix))
+						{
+							ProvisionWithPrefix = FileOperations.FindPrefixedFile(Config.EngineBuildDirectory, "UE4Game.mobileprovision");
+							if (!File.Exists(ProvisionWithPrefix))
+							{
+								ProvisionWithPrefix = FileOperations.FindPrefixedFile(Config.EngineBuildDirectory + "/NotForLicensees/", "UE4Game.mobileprovision");
+							}
+						}
+					}
+				}
+				FinalMobileProvisionFilename = Path.Combine(Config.PCXcodeStagingDir, MacMobileProvisionFilename);
+				FileOperations.CopyRequiredFile(ProvisionWithPrefix, FinalMobileProvisionFilename);
+
+				// make sure this .mobileprovision file is newer than any other .mobileprovision file on the Mac (this file gets multiple games named the same file, 
+				// so the time stamp checking can fail when moving between games, a la the buildmachines!)
+				File.SetLastWriteTime(FinalMobileProvisionFilename, DateTime.UtcNow);
+
+				// copy the signing certificate over
+				// export the signing certificate to a file
+				MobileProvision Provision = MobileProvisionParser.ParseFile(ProvisionWithPrefix);
+				var Certificate = CodeSignatureBuilder.FindCertificate(Provision);
+				byte[] Data = Certificate.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Pkcs12, "A");
+				File.WriteAllBytes(Path.Combine(Config.PCXcodeStagingDir, MacSigningIdentityFilename), Data);
+				Config.CodeSigningIdentity = Certificate.FriendlyName; // since the pipeline will use a temporary keychain that will contain only this certificate, this should be the only identity that will work
+
+				if (Provision != null)
+				{
+					Config.bForDistribution = !Provision.bDebug;
+				}
+				// regenerate command with new found identity
+				CurrentBaseXCodeCommandLine = GetBaseXcodeCommandline();
+
+				// get the UUID
+				string AllText = File.ReadAllText(FinalMobileProvisionFilename);
+				string UUID = "";
+				int idx = AllText.IndexOf("<key>UUID</key>");
+				if (idx > 0)
+				{
+					idx = AllText.IndexOf("<string>", idx);
+					if (idx > 0)
+					{
+						idx += "<string>".Length;
+						UUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
+					}
+				}
+
+				CurrentBaseXCodeCommandLine += String.Format(" PROVISIONING_PROFILE=" + UUID);
+			}
+			else
+			{
+				CurrentBaseXCodeCommandLine += " DEVELOPMENT_TEAM=" + Config.TeamID + " CODE_SIGN_STYLE=\"Automatic\" -allowProvisioningUpdates";
+			}
+			
 			// look for an entitlements file (optional)
 			string SourceEntitlements = FileOperations.FindPrefixedFile(Config.BuildDirectory, Program.GameName + ".entitlements");
 			
@@ -252,64 +320,13 @@ namespace iPhonePackager
 				File.WriteAllText(TargetEntitlements, string.Format("<plist><dict><key>get-task-allow</key><{0}/></dict></plist>",
 					Config.bForDistribution ? "false" : "true"));
 			}
-			
-			// Copy the mobile provision file over
-			string CFBundleIdentifier = null;
-			Info.GetString("CFBundleIdentifier", out CFBundleIdentifier);
-			bool bNameMatch;
-			string ProvisionWithPrefix = MobileProvision.FindCompatibleProvision(CFBundleIdentifier, out bNameMatch);
-			if (!File.Exists(ProvisionWithPrefix))
-			{
-				ProvisionWithPrefix = FileOperations.FindPrefixedFile(Config.BuildDirectory, Program.GameName + ".mobileprovision");
-				if (!File.Exists(ProvisionWithPrefix))
-				{
-					ProvisionWithPrefix = FileOperations.FindPrefixedFile(Config.BuildDirectory + "/NotForLicensees/", Program.GameName + ".mobileprovision");
-					if (!File.Exists(ProvisionWithPrefix))
-					{
-						ProvisionWithPrefix = FileOperations.FindPrefixedFile(Config.EngineBuildDirectory, "UE4Game.mobileprovision");
-						if (!File.Exists(ProvisionWithPrefix))
-						{
-							ProvisionWithPrefix = FileOperations.FindPrefixedFile(Config.EngineBuildDirectory + "/NotForLicensees/", "UE4Game.mobileprovision");
-						}
-					}
-				}
-			}
-			string FinalMobileProvisionFilename = Path.Combine(Config.PCXcodeStagingDir, MacMobileProvisionFilename);
-			FileOperations.CopyRequiredFile(ProvisionWithPrefix, FinalMobileProvisionFilename);
 
-            // make sure this .mobileprovision file is newer than any other .mobileprovision file on the Mac (this file gets multiple games named the same file, 
-            // so the time stamp checking can fail when moving between games, a la the buildmachines!)
-            File.SetLastWriteTime(FinalMobileProvisionFilename, DateTime.UtcNow);
 			string ProjectFile = Config.RootRelativePath + @"Engine\Intermediate\ProjectFiles\UE4.xcodeproj\project.pbxproj";
 			if (Program.GameName != "UE4Game")
 			{
 				ProjectFile = Path.GetDirectoryName(Config.IntermediateDirectory) + @"\ProjectFiles\" + Program.GameName + @".xcodeproj\project.pbxproj";
 			}
 			FileOperations.CopyRequiredFile(ProjectFile, Path.Combine(Config.PCXcodeStagingDir, @"project.pbxproj.datecheck"));
-			
-			// copy the signing certificate over
-			// export the signing certificate to a file
-			MobileProvision Provision = MobileProvisionParser.ParseFile(ProvisionWithPrefix);
-			var Certificate = CodeSignatureBuilder.FindCertificate(Provision);
-			byte[] Data = Certificate.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Pkcs12, "A");
-			File.WriteAllBytes(Path.Combine(Config.PCXcodeStagingDir, MacSigningIdentityFilename), Data);
-            Config.CodeSigningIdentity = Certificate.FriendlyName; // since the pipeline will use a temporary keychain that will contain only this certificate, this should be the only identity that will work
-            CurrentBaseXCodeCommandLine = GetBaseXcodeCommandline();
-
-            // get the UUID
-            string AllText = File.ReadAllText(FinalMobileProvisionFilename);
-            string UUID = "";
-            int idx = AllText.IndexOf("<key>UUID</key>");
-            if (idx > 0)
-            {
-                idx = AllText.IndexOf("<string>", idx);
-                if (idx > 0)
-                {
-                    idx += "<string>".Length;
-                    UUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
-                }
-            }
-            CurrentBaseXCodeCommandLine += String.Format(" PROVISIONING_PROFILE=" + UUID);
 
 			// needs Mac line endings so it can be executed
 			string SrcPath = @"..\..\..\Build\" + Config.OSString + @"\XcodeSupportFiles\prepackage.sh";
@@ -389,7 +406,7 @@ namespace iPhonePackager
 				Program.Log(" ... making application (codesign, etc...)");
 				Program.Log("  Using signing identity '{0}'", Config.CodeSigningIdentity);
                 DisplayCommandLine = "security -v unlock-keychain -p \"A\" \"" + TempKeychain + "\" && " + CurrentBaseXCodeCommandLine;
-                CommandLine = "\"" + MacXcodeStagingDir + "/..\" " + DisplayCommandLine;
+				CommandLine = "\"" + MacXcodeStagingDir + "/..\" " + DisplayCommandLine;
 				WorkingFolder = "\"" + MacXcodeStagingDir + "/..\"";
 				Error = ErrorCodes.Error_RemoteCertificatesNotFound;
 				break;
@@ -397,7 +414,14 @@ namespace iPhonePackager
 			case "createkeychain":
 				Program.Log(" ... creating temporary key chain with signing certificate");
 				Program.Log("  Using signing identity '{0}'", Config.CodeSigningIdentity);
-                DisplayCommandLine = "security create-keychain -p \"A\" \"" + TempKeychain + "\" && security list-keychains -s \"" + TempKeychain + "\" && security list-keychains && security set-keychain-settings -t 3600 -l  \"" + TempKeychain + "\" && security -v unlock-keychain -p \"A\" \"" + TempKeychain + "\" && security import " + Certificate + " -k \"" + TempKeychain + "\" -P \"A\" -T /usr/bin/codesign -T /usr/bin/security -t agg && CERT_IDENTITY=$(security find-identity -v -p codesigning \"" + TempKeychain + "\" | head -1 | grep '\"' | sed -e 's/[^\"]*\"//' -e 's/\".*//') && security default-keychain -s \"" + TempKeychain + "\" && security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k \"A\" -D \"$CERT_IDENTITY\" -t private " + TempKeychain;
+				if (Config.bAutomaticSigning)
+				{                                                                                                                                                                                                                                                                                                           
+						DisplayCommandLine = "security dump-keychain -i login.keychain && security create-keychain -p \"A\" \"" + TempKeychain + "\" && security list-keychains -s \"" + TempKeychain + "\" && security list-keychains && security set-keychain-settings -t 3600 -l  \"" + TempKeychain + "\" && security -v unlock-keychain -p \"A\" \"" + TempKeychain + "\" && security default-keychain -s \"" + TempKeychain + "\" && security import login.keychain -P \"A\" -T /usr/bin/codesign";//&& security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k \"A\" -t private " + TempKeychain;
+				}
+				else
+				{
+					DisplayCommandLine = "security create-keychain -p \"A\" \"" + TempKeychain + "\" && security list-keychains -s \"" + TempKeychain + "\" && security list-keychains && security set-keychain-settings -t 3600 -l  \"" + TempKeychain + "\" && security -v unlock-keychain -p \"A\" \"" + TempKeychain + "\" && security import " + Certificate + " -k \"" + TempKeychain + "\" -P \"A\" -T /usr/bin/codesign -T /usr/bin/security -t agg && CERT_IDENTITY=$(security find-identity -v -p codesigning \"" + TempKeychain + "\" | head -1 | grep '\"' | sed -e 's/[^\"]*\"//' -e 's/\".*//') && security default-keychain -s \"" + TempKeychain + "\" && security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k \"A\" -D \"$CERT_IDENTITY\" -t private " + TempKeychain;
+				}
                 CommandLine = "\"" + MacXcodeStagingDir + "/..\" " + DisplayCommandLine;
 				WorkingFolder = "\"" + MacXcodeStagingDir + "/..\"";
 				break;

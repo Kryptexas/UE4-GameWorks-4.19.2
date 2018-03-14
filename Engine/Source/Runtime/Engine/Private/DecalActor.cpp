@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/DecalActor.h"
 #include "UObject/ConstructorHelpers.h"
@@ -126,9 +126,10 @@ bool ADecalActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 {
 	Super::GetReferencedContentObjects(Objects);
 
-	if (Decal->DecalMaterial != nullptr)
+	UMaterialInterface* DecalMaterial = Decal->GetDecalMaterial();
+	if (DecalMaterial)
 	{
-		Objects.Add(Decal->DecalMaterial);
+		Objects.Add(DecalMaterial);
 	}
 
 	return true;

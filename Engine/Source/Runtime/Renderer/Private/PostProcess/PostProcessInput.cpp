@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessAA.cpp: Post processing input implementation.
@@ -6,7 +6,7 @@
 
 #include "PostProcess/PostProcessInput.h"
 
-FRCPassPostProcessInput::FRCPassPostProcessInput(TRefCountPtr<IPooledRenderTarget>& InData)
+FRCPassPostProcessInput::FRCPassPostProcessInput(const TRefCountPtr<IPooledRenderTarget>& InData)
 	: Data(InData)
 {
 }

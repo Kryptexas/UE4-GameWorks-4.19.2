@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticMeshActorBase.cpp: Static mesh actor base class implementation.
@@ -167,16 +167,20 @@ void AStaticMeshActor::CheckForErrors()
 
 	if( !StaticMeshComponent )
 	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
 		MapCheck.Warning()
 			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_StaticMeshComponent", "Static mesh actor has NULL StaticMeshComponent property - please delete" ) ))
+			->AddToken(FTextToken::Create(FText::Format(LOCTEXT( "MapCheck_Message_StaticMeshComponent", "Static mesh actor {ActorName} has NULL StaticMeshComponent property - please delete" ), Arguments)))
 			->AddToken(FMapErrorToken::Create(FMapErrors::StaticMeshComponent));
 	}
 	else if( StaticMeshComponent->GetStaticMesh() == nullptr )
 	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
 		MapCheck.Warning()
 			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_StaticMeshNull", "Static mesh actor has NULL StaticMesh property" ) ))
+			->AddToken(FTextToken::Create(FText::Format(LOCTEXT( "MapCheck_Message_StaticMeshNull", "Static mesh actor {ActorName} has NULL StaticMesh property" ), Arguments)))
 			->AddToken(FMapErrorToken::Create(FMapErrors::StaticMeshNull));
 	}
 	else

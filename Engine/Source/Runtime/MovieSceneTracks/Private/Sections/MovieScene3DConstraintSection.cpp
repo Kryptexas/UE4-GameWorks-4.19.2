@@ -1,6 +1,7 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Sections/MovieScene3DConstraintSection.h"
+#include "MovieSceneObjectBindingID.h"
 
 
 UMovieScene3DConstraintSection::UMovieScene3DConstraintSection( const FObjectInitializer& ObjectInitializer )
@@ -12,14 +13,14 @@ void UMovieScene3DConstraintSection::SetConstraintId(const FGuid& InConstraintId
 {
 	if (TryModify())
 	{
-		ConstraintId = InConstraintId;
+		SetConstraintBindingID(FMovieSceneObjectBindingID(InConstraintId, MovieSceneSequenceID::Root, EMovieSceneObjectBindingSpace::Local));
 	}
 }
 
 
 FGuid UMovieScene3DConstraintSection::GetConstraintId() const
 {
-	return ConstraintId;
+	return FGuid();
 }
 
 
@@ -37,9 +38,22 @@ void UMovieScene3DConstraintSection::SetKeyTime(FKeyHandle KeyHandle, float Time
 
 void UMovieScene3DConstraintSection::OnBindingsUpdated(const TMap<FGuid, FGuid>& OldGuidToNewGuidMap)
 {
-	if (OldGuidToNewGuidMap.Contains(GetConstraintId()))
+	if (OldGuidToNewGuidMap.Contains(ConstraintBindingID.GetGuid()))
 	{
-		SetConstraintId(OldGuidToNewGuidMap[GetConstraintId()]);
+		ConstraintBindingID.SetGuid(OldGuidToNewGuidMap[ConstraintBindingID.GetGuid()]);
 	}
 }
 
+void UMovieScene3DConstraintSection::PostLoad()
+{
+	Super::PostLoad();
+
+	if (ConstraintId_DEPRECATED.IsValid())
+	{
+		if (!ConstraintBindingID.IsValid())
+		{
+			ConstraintBindingID = FMovieSceneObjectBindingID(ConstraintId_DEPRECATED, MovieSceneSequenceID::Root, EMovieSceneObjectBindingSpace::Local);
+		}
+		ConstraintId_DEPRECATED.Invalidate();
+	}
+}

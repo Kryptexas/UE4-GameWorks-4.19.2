@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 레거시 안드로이드 개발
 Crumbs:%ROOT%, Platforms
@@ -46,7 +46,8 @@ Android Works 는 언리얼 엔진 4.8 에서 작동하지 **않을** 것입니�
 	[/PARAM]
 [/OBJECT]
  
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsSetup]
 
 [REGION:tip]
@@ -210,7 +211,8 @@ TADP 인스톨러와 Android SDK 툴을 맥에서 사용하려면 Java 6 와 Jav
 
 [/EXCERPT:MacOSSetup]
 
--->
+
+[/COMMENT]
 
 
 

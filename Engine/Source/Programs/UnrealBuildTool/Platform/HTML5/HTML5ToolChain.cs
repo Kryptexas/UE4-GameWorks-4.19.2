@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -90,7 +90,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		string GetSharedArguments_Global(CppConfiguration Configuration, bool bOptimizeForSize, string Architecture, bool bEnableShadowVariableWarnings, bool bShadowVariableWarningsAsErrors, bool bEnableUndefinedIdentifierWarnings, bool bUndefinedIdentifierWarningsAsErrors)
+		string GetSharedArguments_Global(CppConfiguration Configuration, bool bOptimizeForSize, string Architecture, bool bEnableShadowVariableWarnings, bool bShadowVariableWarningsAsErrors, bool bEnableUndefinedIdentifierWarnings, bool bUndefinedIdentifierWarningsAsErrors, bool bUseInlining)
 		{
 			string Result = " ";
 //			string Result = " -Werror";
@@ -142,6 +142,11 @@ namespace UnrealBuildTool
 				Result += " -O3"; // favor speed over size
 			}
 
+			if (!bUseInlining)
+			{
+				Result += " -fno-inline-functions";
+			}
+
 			PrintOnce(Configuration, bOptimizeForSize);
 
 			// --------------------------------------------------------------------------------
@@ -159,14 +164,14 @@ namespace UnrealBuildTool
 
 			// --------------------------------------------------------------------------------
 			// normally, these option are for linking -- but it using here to force recompile when
-//			if (targetWebGL2) // flipping between webgl1 and webgl2
-//			{
-				Result += " -s USE_WEBGL2=1"; // see NOTE: UE-51094 UE-51267 futher below...
-//			}
-//			else
-//			{
-//				Result += " -s USE_WEBGL2=0";
-//			}
+			if (targetWebGL2) // flipping between webgl1 and webgl2
+			{
+				Result += " -s USE_WEBGL2=1";
+			}
+			else
+			{
+				Result += " -s USE_WEBGL2=0";
+			}
 			// --------------------------------------------------------------------------------
 
 			// Expect that Emscripten SDK has been properly set up ahead in time (with emsdk and prebundled toolchains this is always the case)
@@ -189,7 +194,7 @@ namespace UnrealBuildTool
 
 		string GetCLArguments_Global(CppCompileEnvironment CompileEnvironment)
 		{
-			string Result = GetSharedArguments_Global(CompileEnvironment.Configuration, CompileEnvironment.bOptimizeForSize, CompileEnvironment.Architecture, CompileEnvironment.bEnableShadowVariableWarnings, CompileEnvironment.bShadowVariableWarningsAsErrors, CompileEnvironment.bEnableUndefinedIdentifierWarnings, CompileEnvironment.bUndefinedIdentifierWarningsAsErrors);
+			string Result = GetSharedArguments_Global(CompileEnvironment.Configuration, CompileEnvironment.bOptimizeForSize, CompileEnvironment.Architecture, CompileEnvironment.bEnableShadowVariableWarnings, CompileEnvironment.bShadowVariableWarningsAsErrors, CompileEnvironment.bEnableUndefinedIdentifierWarnings, CompileEnvironment.bUndefinedIdentifierWarningsAsErrors, CompileEnvironment.bUseInlining);
 
 // no longer needed as of UE4.18
 //			Result += " -Wno-reorder"; // we disable constructor order warnings.
@@ -213,7 +218,7 @@ namespace UnrealBuildTool
 
 		string GetLinkArguments(LinkEnvironment LinkEnvironment)
 		{
-			string Result = GetSharedArguments_Global(LinkEnvironment.Configuration, LinkEnvironment.bOptimizeForSize, LinkEnvironment.Architecture, false, false, false, false);
+			string Result = GetSharedArguments_Global(LinkEnvironment.Configuration, LinkEnvironment.bOptimizeForSize, LinkEnvironment.Architecture, false, false, false, false, false);
 
 			/* N.B. When editing link flags in this function, UnrealBuildTool does not seem to automatically pick them up and do an incremental
 			 *	relink only of UE4Game.js (at least when building blueprints projects). Therefore after editing, delete the old build
@@ -291,8 +296,7 @@ namespace UnrealBuildTool
 			// no need for exceptions
 			Result += " -s DISABLE_EXCEPTION_CATCHING=1";
 
-			// NOTE: UE-51094 UE-51267 -- always USE_WEBGL2, webgl1 only feature can be switched on the fly via url paramater "?webgl1"
-//			if (targetWebGL2)
+			if (targetWebGL2)
 			{
 				// WARNING - WARNING - WARNING - WARNING
 				// ensure the following chunk of code is added near the end of "Parse args" at the end of "shared.Settings..." section
@@ -304,7 +308,6 @@ namespace UnrealBuildTool
 
 				// Enable targeting WebGL 2 when available.
 				Result += " -s USE_WEBGL2=1";
-
 
 				// Also enable WebGL 1 emulation in WebGL 2 contexts. This adds backwards compatibility related features to WebGL 2,
 				// such as:
@@ -380,14 +383,7 @@ namespace UnrealBuildTool
 				MatchLineNumber.Length == 0 ||
 				MatchDescription.Length == 0)
 			{
-				// emscripten output match
-				string RegexEmscriptenInfo = @"^INFO:";
-				Match match = Regex.Match(Output, RegexEmscriptenInfo);
-				if ( match.Success ) {
-					Log.TraceInformation(Output);
-				} else {
-					Log.TraceWarning(Output);
-				}
+				Log.TraceInformation(Output);
 				return;
 			}
 

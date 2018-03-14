@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/SBoxPanel.h"
@@ -49,12 +49,14 @@ void SEditableTextBox::Construct( const FArguments& InArgs )
 					.SelectAllTextWhenFocused( InArgs._SelectAllTextWhenFocused )
 					.RevertTextOnEscape( InArgs._RevertTextOnEscape )
 					.ClearKeyboardFocusOnCommit( InArgs._ClearKeyboardFocusOnCommit )
+					.Justification( InArgs._Justification )
 					.AllowContextMenu( InArgs._AllowContextMenu )
 					.OnContextMenuOpening( InArgs._OnContextMenuOpening )
 					.OnTextChanged( InArgs._OnTextChanged )
 					.OnTextCommitted( InArgs._OnTextCommitted )
 					.MinDesiredWidth( InArgs._MinDesiredWidth )
 					.SelectAllTextOnCommit( InArgs._SelectAllTextOnCommit )
+					.OnKeyCharHandler( InArgs._OnKeyCharHandler )			
 					.OnKeyDownHandler( InArgs._OnKeyDownHandler )
 					.VirtualKeyboardType( InArgs._VirtualKeyboardType )
 					.VirtualKeyboardTrigger( InArgs._VirtualKeyboardTrigger )
@@ -128,6 +130,12 @@ void SEditableTextBox::SetError( const FString& InError )
 	}
 
 	ErrorReporting->SetError( InError );
+}
+
+
+void SEditableTextBox::SetOnKeyCharHandler(FOnKeyChar InOnKeyCharHandler)
+{
+	EditableText->SetOnKeyCharHandler(InOnKeyCharHandler);
 }
 
 
@@ -371,7 +379,19 @@ void SEditableTextBox::SetSelectAllTextOnCommit(const TAttribute<bool>& InSelect
 	EditableText->SetSelectAllTextOnCommit(InSelectAllTextOnCommit);
 }
 
+
+void SEditableTextBox::SetJustification(const TAttribute<ETextJustify::Type>& InJustification)
+{
+	EditableText->SetJustification(InJustification);
+}
+
+
 void SEditableTextBox::SetAllowContextMenu(TAttribute<bool> InAllowContextMenu)
 {
 	EditableText->SetAllowContextMenu(InAllowContextMenu);
+}
+
+void SEditableTextBox::SetVirtualKeyboardDismissAction(TAttribute<EVirtualKeyboardDismissAction> InVirtualKeyboardDismissAction)
+{
+	EditableText->SetVirtualKeyboardDismissAction(InVirtualKeyboardDismissAction);
 }

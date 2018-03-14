@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:4. 그래스 툴 사용하기
 Crumbs:
@@ -23,7 +23,7 @@ Version: 4.8
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 실전에서의 그래스 시스템을 확인하기 위해, 예전 단계에서 생성했던 머티리얼을 랜드스케이프에 적용한 뒤 랜드스케이프 칠하기 툴을 사용하여 그래스 스폰 지역을 정의해야 합니다.
 여기서는 랜드스케이프 터레인에 머티리얼을 적용하고, 랜드스케이프 칠하기 툴을 사용해서 그래스 스폰 지역을 정의하는 법에 대해 다루겠습니다.
@@ -74,4 +74,4 @@ Version: 4.8
 	**Brush Size** 와 **Tool Strength** 를 조절하면 랜드스케이프에 풀을 추가/제거하는 방법을 더욱 잘 정의할 수 있습니다.
 
 
-%Steps%
+

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/GameNetworkManager.h"
@@ -54,6 +54,7 @@ AGameModeBase::AGameModeBase(const FObjectInitializer& ObjectInitializer)
 	GameSessionClass = AGameSession::StaticClass();
 	SpectatorClass = ASpectatorPawn::StaticClass();
 	ReplaySpectatorPlayerControllerClass = APlayerController::StaticClass();
+	ServerStatReplicatorClass = AServerStatReplicator::StaticClass();
 }
 
 void AGameModeBase::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
@@ -531,8 +532,17 @@ void AGameModeBase::HandleSeamlessTravelPlayer(AController*& C)
 	APlayerController* PC = Cast<APlayerController>(C);
 	if (PC && PC->Player)
 	{
-		// We need to spawn a new PlayerController to replace the old one
-		APlayerController* NewPC = SpawnPlayerController(PC->IsLocalPlayerController() ? ROLE_SimulatedProxy : ROLE_AutonomousProxy, PC->GetFocalLocation(), PC->GetControlRotation());
+		APlayerController* NewPC = nullptr;
+		if (PC->PlayerState && PC->PlayerState->bOnlySpectator && ReplaySpectatorPlayerControllerClass != nullptr)
+		{
+			NewPC = SpawnReplayPlayerController(PC->IsLocalPlayerController() ? ROLE_SimulatedProxy : ROLE_AutonomousProxy, PC->GetFocalLocation(), PC->GetControlRotation());
+		}
+		else
+		{
+			// We need to spawn a new PlayerController to replace the old one
+			NewPC = SpawnPlayerController(PC->IsLocalPlayerController() ? ROLE_SimulatedProxy : ROLE_AutonomousProxy, PC->GetFocalLocation(), PC->GetControlRotation());
+		}
+
 
 		if (NewPC)
 		{
@@ -643,7 +653,16 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		return nullptr;
 	}
 
-	APlayerController* NewPlayerController = SpawnPlayerController(InRemoteRole, FVector::ZeroVector, FRotator::ZeroRotator);
+	APlayerController* NewPlayerController = nullptr;
+	if (Options.Contains(FString(TEXT("SpectatorOnly=1"))) && ReplaySpectatorPlayerControllerClass != nullptr)
+	{
+		NewPlayerController = SpawnReplayPlayerController(InRemoteRole, FVector::ZeroVector, FRotator::ZeroRotator);
+	}
+	else
+	{
+		// We need to spawn a new PlayerController to replace the old one
+		NewPlayerController = SpawnPlayerController(InRemoteRole, FVector::ZeroVector, FRotator::ZeroRotator);
+	}
 
 	// Handle spawn failure.
 	if (NewPlayerController == nullptr)
@@ -665,11 +684,21 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 APlayerController* AGameModeBase::SpawnPlayerController(ENetRole InRemoteRole, FVector const& SpawnLocation, FRotator const& SpawnRotation)
 {
+	return SpawnPlayerControllerCommon(InRemoteRole, SpawnLocation, SpawnRotation, PlayerControllerClass);
+}
+
+APlayerController* AGameModeBase::SpawnReplayPlayerController(ENetRole InRemoteRole, FVector const& SpawnLocation, FRotator const& SpawnRotation)
+{
+	return SpawnPlayerControllerCommon(InRemoteRole, SpawnLocation, SpawnRotation, ReplaySpectatorPlayerControllerClass);
+}
+
+APlayerController* AGameModeBase::SpawnPlayerControllerCommon(ENetRole InRemoteRole, FVector const& SpawnLocation, FRotator const& SpawnRotation, TSubclassOf<APlayerController> InPlayerControllerClass)
+{
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.Instigator = Instigator;
 	SpawnInfo.ObjectFlags |= RF_Transient;	// We never want to save player controllers into a map
 	SpawnInfo.bDeferConstruction = true;
-	APlayerController* NewPC = GetWorld()->SpawnActor<APlayerController>(PlayerControllerClass, SpawnLocation, SpawnRotation, SpawnInfo);
+	APlayerController* NewPC = GetWorld()->SpawnActor<APlayerController>(InPlayerControllerClass, SpawnLocation, SpawnRotation, SpawnInfo);
 	if (NewPC)
 	{
 		if (InRemoteRole == ROLE_SimulatedProxy)
@@ -850,6 +879,7 @@ void AGameModeBase::ReplicateStreamingStatus(APlayerController* PC)
 		if (MyWorld->StreamingLevels.Num() > 0)
 		{
 			// Tell the player controller the current streaming level status
+			TArray<FUpdateLevelStreamingLevelStatus> LevelStatuses;
 			for (int32 LevelIndex = 0; LevelIndex < MyWorld->StreamingLevels.Num(); LevelIndex++)
 			{
 				ULevelStreaming* TheLevel = MyWorld->StreamingLevels[LevelIndex];
@@ -858,7 +888,7 @@ void AGameModeBase::ReplicateStreamingStatus(APlayerController* PC)
 				{
 					const ULevel* LoadedLevel = TheLevel->GetLoadedLevel();
 
-					UE_LOG(LogGameMode, Log, TEXT("levelStatus: %s %i %i %i %s %i"),
+					UE_LOG(LogGameMode, Verbose, TEXT("ReplicateStreamingStatus: %s %i %i %i %s %i"),
 						*TheLevel->GetWorldAssetPackageName(),
 						TheLevel->bShouldBeVisible,
 						LoadedLevel && LoadedLevel->bIsVisible,
@@ -866,14 +896,15 @@ void AGameModeBase::ReplicateStreamingStatus(APlayerController* PC)
 						*GetNameSafe(LoadedLevel),
 						TheLevel->bHasLoadRequestPending);
 
-					PC->ClientUpdateLevelStreamingStatus(
-						PC->NetworkRemapPath(TheLevel->GetWorldAssetPackageFName(), false),
-						TheLevel->bShouldBeLoaded,
-						TheLevel->bShouldBeVisible,
-						TheLevel->bShouldBlockOnLoad,
-						TheLevel->LevelLODIndex);
+					FUpdateLevelStreamingLevelStatus& LevelStatus = *new( LevelStatuses ) FUpdateLevelStreamingLevelStatus();
+					LevelStatus.PackageName = PC->NetworkRemapPath(TheLevel->GetWorldAssetPackageFName(), false);
+					LevelStatus.bNewShouldBeLoaded = TheLevel->bShouldBeLoaded;
+					LevelStatus.bNewShouldBeVisible = TheLevel->bShouldBeVisible;
+					LevelStatus.bNewShouldBlockOnLoad = TheLevel->bShouldBlockOnLoad;
+					LevelStatus.LODIndex = TheLevel->LevelLODIndex;
 				}
 			}
+			PC->ClientUpdateMultipleLevelsStreamingStatus( LevelStatuses );
 			PC->ClientFlushLevelStreaming();
 		}
 
@@ -1190,7 +1221,7 @@ void AGameModeBase::RestartPlayerAtPlayerStart(AController* NewPlayer, AActor* S
 
 	FRotator SpawnRotation = StartSpot->GetActorRotation();
 
-	UE_LOG(LogGameMode, Verbose, TEXT("RestartPlayerAtPlayerStart %s"), NewPlayer->PlayerState ? *NewPlayer->PlayerState->PlayerName : TEXT("Unknown"));
+	UE_LOG(LogGameMode, Verbose, TEXT("RestartPlayerAtPlayerStart %s"), (NewPlayer && NewPlayer->PlayerState) ? *NewPlayer->PlayerState->GetPlayerName() : TEXT("Unknown"));
 
 	if (MustSpectate(Cast<APlayerController>(NewPlayer)))
 	{
@@ -1229,7 +1260,7 @@ void AGameModeBase::RestartPlayerAtTransform(AController* NewPlayer, const FTran
 		return;
 	}
 
-	UE_LOG(LogGameMode, Verbose, TEXT("RestartPlayerAtTransform %s"), NewPlayer->PlayerState ? *NewPlayer->PlayerState->PlayerName : TEXT("Unknown"));
+	UE_LOG(LogGameMode, Verbose, TEXT("RestartPlayerAtTransform %s"), (NewPlayer && NewPlayer->PlayerState) ? *NewPlayer->PlayerState->GetPlayerName() : TEXT("Unknown"));
 
 	if (MustSpectate(Cast<APlayerController>(NewPlayer)))
 	{
@@ -1297,17 +1328,6 @@ void AGameModeBase::InitStartSpot_Implementation(AActor* StartSpot, AController*
 void AGameModeBase::SetPlayerDefaults(APawn* PlayerPawn)
 {
 	PlayerPawn->SetPlayerDefaults();
-
-#if !UE_WITH_PHYSICS
-	// If there is no physics, set to flying by default
-	UCharacterMovementComponent* CharacterMovement = Cast<UCharacterMovementComponent>(NewPlayer->GetPawn()->GetMovementComponent());
-	if (CharacterMovement)
-	{
-		CharacterMovement->bCheatFlying = true;
-		CharacterMovement->SetMovementMode(MOVE_Flying);
-	}
-#endif	//!UE_WITH_PHYSICS
-
 }
 
 void AGameModeBase::ChangeName(AController* Other, const FString& S, bool bNameChange)

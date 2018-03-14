@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244012
+﻿INTSourceChangelist:3683933
 Availability: Public
 Title:레벨 비저빌리티 트랙 사용법
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -11,6 +11,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 시퀀스 도중 전체 [**레벨**](Engine/Levels/) 비저빌리티(표시여부)를 껐다켰다 하고픈 때가 있습니다. 그럴 때는 시퀀서 안에서 **Level Visibility Track** (레벨 비저빌리티 트랙)으로 레벨의 표시여부를 **Visible** (표시) 또는 **Hidden** (숨김) 으로 설정해 주면 됩니다.
 이는 레벨 스트림 인/아웃이 되지는 않으며, 레벨 내 모든 콘텐츠를 표시 또는 숨김으로 설정만 합니다.

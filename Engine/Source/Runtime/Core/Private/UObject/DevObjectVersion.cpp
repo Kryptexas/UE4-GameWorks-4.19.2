@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #include "UObject/DevObjectVersion.h"
 #include "Logging/LogMacros.h"
 #include "UObject/BlueprintsObjectVersion.h"
@@ -16,6 +16,9 @@
 #include "UObject/VRObjectVersion.h"
 #include "UObject/GeometryObjectVersion.h"
 #include "UObject/AnimPhysObjectVersion.h"
+#include "UObject/ReflectionCaptureObjectVersion.h"
+#include "UObject/LoadTimesObjectVersion.h"
+#include "UObject/AutomationObjectVersion.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDevObjectVersion, Log, All);
 
@@ -111,7 +114,6 @@ const FGuid FLoadTimesObjectVersion::GUID(0xC2A15278, 0xBFE74AFE, 0x6C1790FF, 0x
 // Register LoadTimes custom version with Core
 FDevVersionRegistration GRegisterLoadTimesObjectVersion(FLoadTimesObjectVersion::GUID, FLoadTimesObjectVersion::LatestVersion, TEXT("Dev-LoadTimes"));
 
-
 // Unique Geometry Object version id
 const FGuid FGeometryObjectVersion::GUID(0x6EACA3D4, 0x40EC4CC1, 0xb7868BED, 0x9428FC5);
 // Register Geometry custom version with Core
@@ -121,3 +123,13 @@ FDevVersionRegistration GRegisterGeometryObjectVersion(FGeometryObjectVersion::G
 const FGuid FAnimPhysObjectVersion::GUID(0x29E575DD, 0xE0A34627, 0x9D10D276, 0x232CDCEA);
 // Register AnimPhys custom version with Core
 FDevVersionRegistration GRegisterAnimPhysObjectVersion(FAnimPhysObjectVersion::GUID, FAnimPhysObjectVersion::LatestVersion, TEXT("Dev-AnimPhys"));
+
+// Unique ReflectionCapture Object version id
+const FGuid FReflectionCaptureObjectVersion::GUID(0x6B266CEC, 0x1EC74B8F, 0xA30BE4D9, 0x0942FC07);
+// Register Rendering custom version with Core
+FDevVersionRegistration GRegisterReflectionCaptureObjectVersion(FReflectionCaptureObjectVersion::GUID, FReflectionCaptureObjectVersion::LatestVersion, TEXT("Dev-ReflectionCapture"));
+
+// Unique Automation Object version id
+const FGuid FAutomationObjectVersion::GUID(0x0DF73D61, 0xA23F47EA, 0xB72789E9, 0x0C41499A);
+// Register Automation custom version with Core
+FDevVersionRegistration GRegisterAutomationObjectVersion(FAutomationObjectVersion::GUID, FAutomationObjectVersion::LatestVersion, TEXT("Dev-Automation"));

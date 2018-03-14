@@ -43,7 +43,9 @@ Description:材质节点示例关卡概述
 [/OBJECT]
 [/VAR]
 
-<!--Insert Path when finished  [RELATIVE:Resources/ContentExamples/Matinee]--->
+[COMMENT:none]
+Insert Path when finished  [RELATIVE:Resources/ContentExamples/Matinee]-
+[/COMMENT]
 
 
 ## 概述

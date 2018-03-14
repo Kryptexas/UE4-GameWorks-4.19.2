@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalResources.h: Metal resource RHI definitions.
@@ -60,6 +60,21 @@ protected:
 
 extern NSString* DecodeMetalSourceCode(uint32 CodeSize, TArray<uint8> const& CompressedSource);
 
+enum EMetalIndexType
+{
+	EMetalIndexType_None   = 0,
+	EMetalIndexType_UInt16 = 1,
+	EMetalIndexType_UInt32 = 2,
+	EMetalIndexType_Num	   = 3
+};
+
+enum EMetalBufferType
+{
+	EMetalBufferType_Dynamic = 0,
+	EMetalBufferType_Static = 1,
+	EMetalBufferType_Num = 2
+};
+
 /** This represents a vertex shader that hasn't been combined with a specific declaration to create a bound shader. */
 template<typename BaseResourceType, int32 ShaderType>
 class TMetalBaseShader : public BaseResourceType, public IRefCountedObject
@@ -69,14 +84,15 @@ public:
 
 	/** Initialization constructor. */
 	TMetalBaseShader()
-	: Function(nil)
-	, Library(nil)
-	, SideTableBinding(-1)
+	: SideTableBinding(-1)
 	, SourceLen(0)
 	, SourceCRC(0)
+    , BufferTypeHash(0)
 	, GlslCodeNSString(nil)
 	, CodeSize(0)
 	{
+		Function[EMetalIndexType_None][EMetalBufferType_Dynamic] = Function[EMetalIndexType_UInt16][EMetalBufferType_Dynamic] = Function[EMetalIndexType_UInt32][EMetalBufferType_Dynamic] = nil;
+		Function[EMetalIndexType_None][EMetalBufferType_Static] = Function[EMetalIndexType_UInt16][EMetalBufferType_Static] = Function[EMetalIndexType_UInt32][EMetalBufferType_Static] = nil;
 	}
 	
 	void Init(const TArray<uint8>& InCode, FMetalCodeHeader& Header, id<MTLLibrary> InLibrary = nil);
@@ -107,10 +123,6 @@ public:
 	{
 		return FRHIResource::GetRefCount();
 	}
-	
-	// this is the compiler shader
-	id<MTLFunction> Function;
-	id<MTLLibrary> Library; // For function-constant specialisation.
 
 	/** External bindings for this shader. */
 	FMetalShaderBindings Bindings;
@@ -125,7 +137,23 @@ public:
 	uint32 SourceLen;
 	uint32 SourceCRC;
 	
+	/** Hash for the shader/material permutation constants */
+	uint32 ConstantValueHash;
+
+	/** Hash of the typed_buffer format types */
+    uint32 BufferTypeHash;
+    
+protected:
+	id<MTLFunction> GetCompiledFunction(EMetalIndexType IndexType, EPixelFormat const* const BufferTypes, uint32 BufferTypeHash, bool const bAsync = false);
+	uint32 GetBufferBindingHash(EPixelFormat const* const BufferTypes) const;
+
+    // this is the compiler shader
+    id<MTLFunction> Function[EMetalIndexType_Num][EMetalBufferType_Num];
+    
 private:
+	// This is the MTLLibrary for the shader so we can dynamically refine the MTLFunction
+	id<MTLLibrary> Library;
+	
 	/** The debuggable text source */
 	NSString* GlslCodeNSString;
 	
@@ -134,6 +162,11 @@ private:
 	
 	/** The uncompressed text source size */
 	uint32 CodeSize;
+    
+    // Function constant states
+    bool bHasFunctionConstants;
+    bool bTessFunctionConstants;
+    bool bDeviceFunctionConstants;
 };
 
 class FMetalVertexShader : public TMetalBaseShader<FRHIVertexShader, SF_Vertex>
@@ -141,6 +174,9 @@ class FMetalVertexShader : public TMetalBaseShader<FRHIVertexShader, SF_Vertex>
 public:
 	FMetalVertexShader(const TArray<uint8>& InCode);
 	FMetalVertexShader(const TArray<uint8>& InCode, id<MTLLibrary> InLibrary);
+	
+	uint32 GetBindingHash(EPixelFormat const* const BufferTypes) const;
+	id<MTLFunction> GetFunction(EMetalIndexType IndexType, EPixelFormat const* const BufferTypes, uint32 BufferTypeHash);
 	
 	// for VSHS
 	FMetalTessellationOutputs TessellationOutputAttribs;
@@ -162,6 +198,9 @@ class FMetalPixelShader : public TMetalBaseShader<FRHIPixelShader, SF_Pixel>
 public:
 	FMetalPixelShader(const TArray<uint8>& InCode);
 	FMetalPixelShader(const TArray<uint8>& InCode, id<MTLLibrary> InLibrary);
+	
+	uint32 GetBindingHash(EPixelFormat const* const BufferTypes) const;
+	id<MTLFunction> GetFunction(EMetalIndexType IndexType, EPixelFormat const* const BufferTypes, uint32 BufferTypeHash);
 };
 
 class FMetalHullShader : public TMetalBaseShader<FRHIHullShader, SF_Hull>
@@ -169,6 +208,9 @@ class FMetalHullShader : public TMetalBaseShader<FRHIHullShader, SF_Hull>
 public:
 	FMetalHullShader(const TArray<uint8>& InCode);
 	FMetalHullShader(const TArray<uint8>& InCode, id<MTLLibrary> InLibrary);
+	
+	uint32 GetBindingHash(EPixelFormat const* const BufferTypes) const;
+	id<MTLFunction> GetFunction(EMetalIndexType IndexType, EPixelFormat const* const BufferTypes, uint32 BufferTypeHash);
 };
 
 class FMetalDomainShader : public TMetalBaseShader<FRHIDomainShader, SF_Domain>
@@ -176,6 +218,9 @@ class FMetalDomainShader : public TMetalBaseShader<FRHIDomainShader, SF_Domain>
 public:
 	FMetalDomainShader(const TArray<uint8>& InCode);
 	FMetalDomainShader(const TArray<uint8>& InCode, id<MTLLibrary> InLibrary);
+	
+	uint32 GetBindingHash(EPixelFormat const* const BufferTypes) const;
+	id<MTLFunction> GetFunction(EMetalIndexType IndexType, EPixelFormat const* const BufferTypes, uint32 BufferTypeHash);
 	
 	MTLWinding TessellationOutputWinding;
 	MTLTessellationPartitionMode TessellationPartitioning;
@@ -188,17 +233,20 @@ typedef TMetalBaseShader<FRHIGeometryShader, SF_Geometry> FMetalGeometryShader;
 class FMetalComputeShader : public TMetalBaseShader<FRHIComputeShader, SF_Compute>
 {
 public:
-	FMetalComputeShader(const TArray<uint8>& InCode);
-	FMetalComputeShader(const TArray<uint8>& InCode, id<MTLLibrary> InLibrary);
+	FMetalComputeShader(const TArray<uint8>& InCode, id<MTLLibrary> InLibrary = nil);
 	virtual ~FMetalComputeShader();
 	
-	// the state object for a compute shader
-	FMetalShaderPipeline* Pipeline;
+	uint32 GetBindingHash(EPixelFormat const* const BufferTypes) const;
+	FMetalShaderPipeline* GetPipeline(EPixelFormat const* const BufferTypes, uint32 BufferTypeHash);
 	
 	// thread group counts
 	int32 NumThreadsX;
 	int32 NumThreadsY;
 	int32 NumThreadsZ;
+    
+private:
+    // the state object for a compute shader
+    FMetalShaderPipeline* Pipeline[EMetalBufferType_Num];
 };
 
 struct FMetalRenderPipelineHash
@@ -221,26 +269,14 @@ class DEPRECATED(4.15, "Use GraphicsPipelineState Interface") FMetalBoundShaderS
 {
 };
 
-enum EMetalIndexType
-{
-	EMetalIndexType_None   = 0,
-	EMetalIndexType_UInt16 = 1,
-	EMetalIndexType_UInt32 = 2,
-	EMetalIndexType_Num	   = 3
-};
-
 class FMetalGraphicsPipelineState : public FRHIGraphicsPipelineState
 {
 public:
 	FMetalGraphicsPipelineState(const FGraphicsPipelineStateInitializer& Init);
 	virtual ~FMetalGraphicsPipelineState();
 
-	FMetalShaderPipeline* GetPipeline(EMetalIndexType IndexType)
-	{
-		check(IndexType < EMetalIndexType_Num && PipelineStates[IndexType]);
-		return PipelineStates[IndexType];
-	}
-
+	FMetalShaderPipeline* GetPipeline(EMetalIndexType IndexType, uint32 VertexBufferHash, uint32 PixelBufferHash, uint32 DomainBufferHash, EPixelFormat const* const VertexBufferTypes = nullptr, EPixelFormat const* const PixelBufferTypes = nullptr, EPixelFormat const* const DomainBufferTypes = nullptr);
+	
 	/** Cached vertex structure */
 	TRefCountPtr<FMetalVertexDeclaration> VertexDeclaration;
 	
@@ -255,9 +291,11 @@ public:
 	TRefCountPtr<FMetalDepthStencilState> DepthStencilState;
 	TRefCountPtr<FMetalRasterizerState> RasterizerState;
 	
-private:	
+private:
+	// Needed to runtime refine shaders currently.
+	FGraphicsPipelineStateInitializer Initializer;
 	// Tessellation pipelines have three different variations for the indexing-style.
-	FMetalShaderPipeline* PipelineStates[EMetalIndexType_Num];
+	FMetalShaderPipeline* PipelineStates[EMetalIndexType_Num][EMetalBufferType_Num][EMetalBufferType_Num][EMetalBufferType_Num];
 };
 
 class FMetalComputePipelineState : public FRHIComputePipelineState
@@ -667,6 +705,9 @@ public:
 	// balsa buffer memory
 	id<MTLBuffer> Buffer;
 	
+	// A temporary shared/CPU accessible buffer for upload/download
+	id<MTLBuffer> CPUBuffer;
+	
 	// The matching linear texture for this index buffer. 
 	id<MTLTexture> LinearTexture;
 
@@ -726,6 +767,9 @@ public:
 	
 	// balsa buffer memory
 	id<MTLBuffer> Buffer;
+
+	// A temporary shared/CPU accessible buffer for upload/download	
+	id<MTLBuffer> CPUBuffer;
 	
 	// The map of linear textures for this vertex buffer - may be more than one due to type conversion. 
 	TMap<EPixelFormat, id<MTLTexture>> LinearTextures;

@@ -14,14 +14,8 @@ order:3
 
 [TOC (start:2 end:3)]
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](WAV_TitleIcon.png)(w:200 convert:false) 
-	[/PARAM]
-	[PARAM:description]
-	Unreal Engine 4's audio system provides tools and features to mold the sounds in the game to give them the desired feel. This all starts with your audio source files. Either as mono or stereo files, they can be quickly imported into Unreal Editor 4 and begin breathing more life into your creations. Below are the basic requirements for your audio content and a quick import guide.
-	[/PARAM]
-[/OBJECT]
+Unreal Engine 4's audio system provides tools and features to mold the sounds in the game to give them the desired feel. This all starts with your audio source files. Either as mono or stereo files, they can be quickly imported into Unreal Editor 4 and begin breathing more life into your creations. Below are the basic requirements for your audio content and a quick import guide.
+
 
 
 ## Import
@@ -54,7 +48,8 @@ Importing with the normal sound factory yields a simple sound node wave that can
 
 [/EXCERPT:multiChannelExtensionTable]
 
-<!--
+[COMMENT:none]
+
 
 [REGION:raw]
 |                   | Extension | 4.0 | 5.1 | 6.1 | 7.1 |  
@@ -69,7 +64,8 @@ Importing with the normal sound factory yields a simple sound node wave that can
 | **BackRight**     | _br       |     |     |     | ![](icon_MatEd_Apply_40x.png)   |  
 [/REGION]
 
--->
+
+[/COMMENT]
 
 Compression settings are tweaked to maintain similar quality across platforms. After testing many sounds, our musician determined an XMA quality of 40 was equivalent to an ogg vorbis quality of 0.15. 
 

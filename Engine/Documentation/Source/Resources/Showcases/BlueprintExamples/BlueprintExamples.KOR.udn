@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:블루프린트
 Crumbs:%ROOT%, Resources,
@@ -10,50 +10,7 @@ Related: Gameplay/Framework/Camera
 Related: Engine/Rendering/ParticleSystems
 Related: Engine/Rendering/Materials
 Version: 4.9
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/Showcases/BlueprintExamples:title%](BlueprintExamples_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/BlueprintExamples:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/BlueprintExamples:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/BlueprintExamples]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/Showcases/BlueprintExamples:title%](BlueprintExamples_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/BlueprintExamples:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/BlueprintExamples:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/BlueprintExamples]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-
+topic-image:BlueprintExamples_Topic.png
 
 [REGION:fullwidth]
 ![](BlueprintExamplesGraphicHeader.png)
@@ -91,83 +48,38 @@ Version: 4.9
 ## 포함된 예제
 
 
+### [](Resources\Showcases\BlueprintExamples\CommentaryBox)
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](TopicCommentary.png)(w:192)](Resources\Showcases\BlueprintExamples\CommentaryBox)
-	[/PARAM]
-	[PARAM:title]
-		[%Resources\Showcases\BlueprintExamples\CommentaryBox:Title%](Resources\Showcases\BlueprintExamples\CommentaryBox)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Resources\Showcases\BlueprintExamples\CommentaryBox#Overview]
-	[/PARAM]
-[/OBJECT]
+[![](TopicCommentary.png)(w:192)](Resources\Showcases\BlueprintExamples\CommentaryBox)
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](FogSheetTopic.png)(w:192)](Resources\Showcases\BlueprintExamples\FogSheet)
-	[/PARAM]
-	[PARAM:title]
-		[%Resources\Showcases\BlueprintExamples\FogSheet:Title%](Resources\Showcases\BlueprintExamples\FogSheet)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Resources\Showcases\BlueprintExamples\FogSheet#Overview]
-	[/PARAM]
-[/OBJECT]
+[INCLUDE:Resources\Showcases\BlueprintExamples\CommentaryBox#Overview]
 
- 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](FoliageTopic.png)(w:192)](Resources\Showcases\BlueprintExamples\Foliage)
-	[/PARAM]
-	[PARAM:title]
-		[%Resources\Showcases\BlueprintExamples\Foliage:Title%](Resources\Showcases\BlueprintExamples\Foliage)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Resources\Showcases\BlueprintExamples\Foliage#Overview]
-	[/PARAM]
-[/OBJECT]
+## [](Resources\Showcases\BlueprintExamples\FogSheet)
 
+[![](FogSheetTopic.png)(w:192)](Resources\Showcases\BlueprintExamples\FogSheet)
 
+[INCLUDE:Resources\Showcases\BlueprintExamples\FogSheet#Overview]
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](ButterflyTopic.png)(w:192)](Resources\Showcases\BlueprintExamples\Butterfly)
-	[/PARAM]
-	[PARAM:title]
-		[%Resources\Showcases\BlueprintExamples\Butterfly:Title%](Resources\Showcases\BlueprintExamples\Butterfly)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Resources\Showcases\BlueprintExamples\Butterfly#Overview]
-	[/PARAM]
-[/OBJECT]
+## [](Resources\Showcases\BlueprintExamples\Foliage)
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](CamAlarmDoor_Topic.png)(w:192)](Resources\Showcases\BlueprintExamples\SecurityDoor)
-	[/PARAM]
-	[PARAM:title]
-		[%Resources\Showcases\BlueprintExamples\SecurityDoor:Title%](Resources\Showcases\BlueprintExamples\SecurityDoor)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Resources\Showcases\BlueprintExamples\SecurityDoor#Overview]
-	[/PARAM]
-[/OBJECT]
+[![](FoliageTopic.png)(w:192)](Resources\Showcases\BlueprintExamples\Foliage)
 
+[INCLUDE:Resources\Showcases\BlueprintExamples\Foliage#Overview]
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](SecurityConsole.png)(w:192)](Resources\Showcases\BlueprintExamples\SecurityCameraAndAlarm)
-	[/PARAM]
-	[PARAM:title]
-		[%Resources\Showcases\BlueprintExamples\SecurityCameraAndAlarm:Title%](Resources\Showcases\BlueprintExamples\SecurityCameraAndAlarm)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Resources\Showcases\BlueprintExamples\SecurityCameraAndAlarm#Overview]
-	[/PARAM]
-[/OBJECT]
+## [](Resources\Showcases\BlueprintExamples\Butterfly)
 
+[![](ButterflyTopic.png)(w:192)](Resources\Showcases\BlueprintExamples\Butterfly)
 
+[INCLUDE:Resources\Showcases\BlueprintExamples\Butterfly#Overview]
 
+## [](Resources\Showcases\BlueprintExamples\SecurityDoor)
 
+[![](CamAlarmDoor_Topic.png)(w:192)](Resources\Showcases\BlueprintExamples\SecurityDoor)
+
+[INCLUDE:Resources\Showcases\BlueprintExamples\SecurityDoor#Overview]
+
+## [](Resources\Showcases\BlueprintExamples\SecurityCameraAndAlarm)
+
+[![](SecurityConsole.png)(w:192)](Resources\Showcases\BlueprintExamples\SecurityCameraAndAlarm)
+
+[INCLUDE:Resources\Showcases\BlueprintExamples\SecurityCameraAndAlarm#Overview]

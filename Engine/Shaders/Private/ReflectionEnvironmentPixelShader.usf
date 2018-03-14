@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ReflectionEnvironmentComputeShaders - functionality to apply local cubemaps.
@@ -39,7 +39,7 @@ Texture2D ScreenSpaceReflectionsTexture;
 SamplerState ScreenSpaceReflectionsSampler;
 
 void ReflectionEnvironmentTiledDeferredMain(
-	in float4 UVAndScreenPos : TEXCOORD0,
+	in noperspective float4 UVAndScreenPos : TEXCOORD0,
 	in float4 SvPosition : SV_Position,
 	out float4 OutColor : SV_Target0)
 {
@@ -50,6 +50,12 @@ void ReflectionEnvironmentTiledDeferredMain(
 	float SceneDepth = CalcSceneDepth(ScreenUV);
 	
 	OutColor = 0;
+
+#if USE_PREEXPOSURE
+	const float PreExposure = View.PreExposure;
+#else
+	const float PreExposure = 1.f;
+#endif
 	
 	float4 Color = float4(0, 0, 0, 1);
 	
@@ -111,7 +117,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 
 		uint GridIndex = ComputeLightGridCellIndex(uint2(LocalPosition.x, LocalPosition.y), SceneDepth);
 		uint NumCulledEntryIndex = (ForwardGlobalLightData.NumGridCells + GridIndex) * NUM_CULLED_LIGHTS_GRID_STRIDE;
-		uint NumCulledReflectionCaptures = NumCulledLightsGrid[NumCulledEntryIndex + 0];
+		uint NumCulledReflectionCaptures = min(NumCulledLightsGrid[NumCulledEntryIndex + 0], ForwardGlobalLightData.NumReflectionCaptures);
 		uint DataStartIndex = NumCulledLightsGrid[NumCulledEntryIndex + 1];
 #else
 		uint DataStartIndex = 0;
@@ -119,7 +125,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 #endif
 
 		//bottom for clearcoat or the only reflection.
-		Color.rgb += GatherRadiance(Color.a, WorldPosition, R, GBuffer.Roughness, ScreenUV, IndirectIrradiance, GBuffer.ShadingModelID, NumCulledReflectionCaptures, DataStartIndex);
+		Color.rgb += PreExposure * GatherRadiance(Color.a, WorldPosition, R, GBuffer.Roughness, ScreenUV, IndirectIrradiance, GBuffer.ShadingModelID, NumCulledReflectionCaptures, DataStartIndex);
 
 		BRANCH
 		if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
@@ -148,7 +154,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 			Color.a *= SpecularOcclusion;
 
 			float3 TopLayerR = 2 * dot( V, N ) * N - V;
-			Color.rgb += GatherRadiance(Color.a, WorldPosition, TopLayerR, ClearCoatRoughness, ScreenUV, IndirectIrradiance, GBuffer.ShadingModelID, NumCulledReflectionCaptures, DataStartIndex);
+			Color.rgb += PreExposure * GatherRadiance(Color.a, WorldPosition, TopLayerR, ClearCoatRoughness, ScreenUV, IndirectIrradiance, GBuffer.ShadingModelID, NumCulledReflectionCaptures, DataStartIndex);
 		}
 		else
 		{

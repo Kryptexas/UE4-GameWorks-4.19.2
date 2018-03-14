@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TranslucentRendering.cpp: Translucent rendering implementation.
@@ -20,8 +20,7 @@ DECLARE_CYCLE_STAT(TEXT("TranslucencyTimestampQuery Wait"), STAT_TranslucencyTim
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Translucency GPU Time (MS)"), STAT_TranslucencyGPU, STATGROUP_SceneRendering);
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Translucency"), Stat_GPU_Translucency, STATGROUP_GPU);
-
+DECLARE_GPU_STAT(Translucency);
 
 static TAutoConsoleVariable<int32> CVarSeparateTranslucencyAutoDownsample(
 	TEXT("r.SeparateTranslucencyAutoDownsample"),
@@ -298,7 +297,7 @@ class FCopySceneColorPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FCopySceneColorPS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4); }
 
 	FCopySceneColorPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FGlobalShader(Initializer)
@@ -456,7 +455,6 @@ public:
 			bRenderAtmosphericFog,
 			ComputeMeshOverrideSettings(Parameters.Mesh),
 			View.Family->GetDebugViewShaderMode(),
-			false,
 			false);
 
 		DrawingPolicy.SetupPipelineState(DrawRenderState, View);
@@ -470,7 +468,7 @@ public:
 			if(BatchElementMask & 1)
 			{
 				TDrawEvent<FRHICommandList> MeshEvent;
-				BeginMeshDrawEvent(RHICmdList, Parameters.PrimitiveSceneProxy, Parameters.Mesh, MeshEvent);
+				BeginMeshDrawEvent(RHICmdList, Parameters.PrimitiveSceneProxy, Parameters.Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::Translucent));
 
 				DrawingPolicy.SetMeshRenderState(
 					RHICmdList, 
@@ -482,7 +480,7 @@ public:
 					typename TBasePassDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData),
 					typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType()
 					);
-				DrawingPolicy.DrawMesh(RHICmdList, Parameters.Mesh,BatchElementIndex);
+				DrawingPolicy.DrawMesh(RHICmdList,View,Parameters.Mesh,BatchElementIndex);
 			}
 
 			BatchElementMask >>= 1;
@@ -522,8 +520,6 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 
 			const bool bDisableDepthTest = Material->ShouldDisableDepthTest();
 			const bool bEnableResponsiveAA = Material->ShouldEnableResponsiveAA();
-			// editor compositing not supported on translucent materials currently
-			const bool bEditorCompositeDepthTest = false;
 
 			// if this draw is coming postAA then there is probably no depth buffer (it's canvas) and bEnableResponsiveAA wont' do anything anyway.
 			if (bEnableResponsiveAA && !DrawingContext.bPostAA)
@@ -566,7 +562,6 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 					Material,
 					PrimitiveSceneProxy, 
 					!bPreFog,
-					bEditorCompositeDepthTest,
 					DrawingContext.TextureMode,
 					FeatureLevel
 				),
@@ -704,7 +699,7 @@ public:
 
 	ENamedThreads::Type GetDesiredThread()
 	{
-		return ENamedThreads::RenderThread_Local;
+		return ENamedThreads::GetRenderThread_Local();
 	}
 
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
@@ -785,7 +780,7 @@ void FTranslucentPrimSet::DrawPrimitives(
 		RenderPrimitive(RHICmdList, View, DrawRenderState, PrimitiveSceneInfo, ViewRelevance, TranslucentSelfShadow, TranslucencyPass);
 	}
 
-	View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, FTexture2DRHIRef(), EBlendModeFilter::Translucent);
+	View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, EBlendModeFilter::Translucent);
 }
 
 void FTranslucentPrimSet::RenderPrimitive(
@@ -1007,8 +1002,8 @@ class FTranslucencyPassParallelCommandListSet : public FParallelCommandListSet
 	bool bRenderInSeparateTranslucency;
 
 public:
-	FTranslucencyPassParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext, ETranslucencyPass::Type InTranslucencyPass, bool InRenderInSeparateTranslucency)
-		: FParallelCommandListSet(GET_STATID(STAT_CLP_Translucency), InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
+	FTranslucencyPassParallelCommandListSet(const FViewInfo& InView, const FSceneRenderer* InSceneRenderer, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext, ETranslucencyPass::Type InTranslucencyPass, bool InRenderInSeparateTranslucency)
+		: FParallelCommandListSet(GET_STATID(STAT_CLP_Translucency), InView, InSceneRenderer, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
 		, TranslucencyPass(InTranslucencyPass)
 		, bRenderInSeparateTranslucency(InRenderInSeparateTranslucency)
 	{
@@ -1066,7 +1061,7 @@ void FDeferredShadingSceneRenderer::RenderViewTranslucency(FRHICommandListImmedi
 
 	if (IsMainTranslucencyPass(TranslucencyPass))
 		{
-		View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, FTexture2DRHIRef(), EBlendModeFilter::Translucent);
+		View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, EBlendModeFilter::Translucent);
 
 		// editor and debug rendering
 		if (View.bHasTranslucentViewMeshElements)
@@ -1092,6 +1087,7 @@ void FDeferredShadingSceneRenderer::RenderViewTranslucencyParallel(FRHICommandLi
 {
 	FTranslucencyPassParallelCommandListSet ParallelCommandListSet(
 		View, 
+		this,
 		RHICmdList, 
 				CVarRHICmdTranslucencyPassDeferredContexts.GetValueOnRenderThread() > 0, 
 				CVarRHICmdFlushRenderThreadTasksTranslucentPass.GetValueOnRenderThread() == 0  && CVarRHICmdFlushRenderThreadTasks.GetValueOnRenderThread() == 0, 
@@ -1101,7 +1097,7 @@ void FDeferredShadingSceneRenderer::RenderViewTranslucencyParallel(FRHICommandLi
 
 			{
 				QUICK_SCOPE_CYCLE_COUNTER(RenderTranslucencyParallel_Start_FDrawSortedTransAnyThreadTask);
-				
+
 		FInt32Range PassRange = View.TranslucentPrimSet.SortedPrimsNum.GetPassRange(TranslucencyPass);
 				int32 NumPrims = PassRange.Size<int32>();
 				int32 EffectiveThreads = FMath::Min<int32>(FMath::DivideAndRoundUp(NumPrims, ParallelCommandListSet.MinDrawsPerCommandList), ParallelCommandListSet.Width);
@@ -1119,8 +1115,8 @@ void FDeferredShadingSceneRenderer::RenderViewTranslucencyParallel(FRHICommandLi
 
 						{
 							FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
-						
-							FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawSortedTransAnyThreadTask>::CreateTask(ParallelCommandListSet.GetPrereqs(), ENamedThreads::RenderThread)
+
+					FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawSortedTransAnyThreadTask>::CreateTask(ParallelCommandListSet.GetPrereqs(), ENamedThreads::GetRenderThread())
 						.ConstructAndDispatchWhenReady(*this, *CmdList, View, ParallelCommandListSet.DrawRenderState, TranslucencyPass, Start, Last);
 
 							ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
@@ -1132,7 +1128,7 @@ void FDeferredShadingSceneRenderer::RenderViewTranslucencyParallel(FRHICommandLi
 
 	if (IsMainTranslucencyPass(TranslucencyPass))
 	{
-		View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, FTexture2DRHIRef(), EBlendModeFilter::Translucent);
+		View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, EBlendModeFilter::Translucent);
 
 		// editor and debug rendering
 		if (View.bHasTranslucentViewMeshElements)
@@ -1183,12 +1179,12 @@ void FDeferredShadingSceneRenderer::SetupDownsampledTranslucencyViewUniformBuffe
 					ScaledSize,
 			FIntRect(View.ViewRect.Min.X * DownsamplingScale, View.ViewRect.Min.Y * DownsamplingScale, View.ViewRect.Max.X * DownsamplingScale, View.ViewRect.Max.Y * DownsamplingScale),
 					View.ViewMatrices,
-					View.PrevViewMatrices
+					View.PrevViewInfo.ViewMatrices
 				);
 
 				View.DownsampledTranslucencyViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(DownsampledTranslucencyParameters, UniformBuffer_SingleFrame);
 			}
-		}
+}
 
 void FDeferredShadingSceneRenderer::ConditionalResolveSceneColorForTranslucentMaterials(FRHICommandListImmediate& RHICmdList)
 {
@@ -1207,7 +1203,7 @@ void FDeferredShadingSceneRenderer::ConditionalResolveSceneColorForTranslucentMa
 			FTranslucencyDrawingPolicyFactory::CopySceneColor(RHICmdList, View);
 		}
 	}
-				}
+}
 				
 void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate& RHICmdList, ETranslucencyPass::Type TranslucencyPass)
 {
@@ -1217,7 +1213,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 	}
 
 	SCOPED_DRAW_EVENT(RHICmdList, Translucency);
-	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Translucency);
+	SCOPED_GPU_STAT(RHICmdList, Translucency);
 
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
@@ -1299,7 +1295,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 			else
 			{
 				RenderViewTranslucency(RHICmdList, View, DrawRenderState, TranslucencyPass);
-}
+			}
 
 			// SceneContext.FinishRenderingTranslucency(RHICmdList, View);
 		}
@@ -1317,9 +1313,9 @@ class FTranslucencyUpsamplingPS : public FGlobalShader
 {
 protected:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/** Default constructor. */
@@ -1385,7 +1381,7 @@ public:
 };
 
 class FTranslucencySimpleUpsamplingPS : public FTranslucencyUpsamplingPS
-					{
+{
 protected:
 	DECLARE_SHADER_TYPE(FTranslucencySimpleUpsamplingPS, Global);
 	FTranslucencySimpleUpsamplingPS() : FTranslucencyUpsamplingPS(false) {}
@@ -1407,13 +1403,13 @@ public:
 IMPLEMENT_SHADER_TYPE(,FTranslucencyNearestDepthNeighborUpsamplingPS,TEXT("/Engine/Private/TranslucencyUpsampling.usf"),TEXT("NearestDepthNeighborUpsamplingPS"),SF_Pixel);
 
 bool UseNearestDepthNeighborUpsampleForSeparateTranslucency(const FSceneRenderTargets& SceneContext)
-					{
+{
 	FIntPoint OutScaledSize;
 	float OutScale;
 	SceneContext.GetSeparateTranslucencyDimensions(OutScaledSize, OutScale);
 
 	return 	CVarSeparateTranslucencyUpsampleMode.GetValueOnRenderThread() != 0 && FMath::Abs(OutScale - .5f) < .001f;
-					}
+}
 
 void FTranslucencyDrawingPolicyFactory::UpsampleTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View, bool bOverwrite)
 {

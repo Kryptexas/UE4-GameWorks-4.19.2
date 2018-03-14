@@ -2,46 +2,7 @@
 Title:大气层雾用户指南
 Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/FogEffects
 Description:大气层雾actor可以产生具有真实感觉的大气层、空气密度以及穿过大气层介质的光线散射。
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors/FogEffects/AtmosphericFog:title%](Engine/Actors/FogEffects/AtmosphericFog/atmofog_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/FogEffects/AtmosphericFog:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/FogEffects/AtmosphericFog:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/FogEffects/AtmosphericFog]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors/FogEffects/AtmosphericFog:title%](Engine/Actors/FogEffects/AtmosphericFog/atmofog_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/FogEffects/AtmosphericFog:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/FogEffects/AtmosphericFog:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/FogEffects/AtmosphericFog]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:atmofog_topic.png
 
 [REGION:banner]
 ![大气层雾](atmofog_banner.png)
@@ -105,7 +66,8 @@ Description:大气层雾actor可以产生具有真实感觉的大气层、空气
 | 衰减高度为1.0 (64 km)，最大散射为4|衰减高度为1.0 (64 km)，最大散射为1|
 [/REGION]
 [/EXCERPT:examples]
-<!---Includes
+[COMMENT:none]
+-Includes
 [EXCERPT:PrecomputeParams]
 [REGION:simpletable]
 	| **属性** | **描述** |
@@ -115,4 +77,5 @@ Description:大气层雾actor可以产生具有真实感觉的大气层、空气
 	| *Inscatter Altitude Sample（内散射高度样本）* | 用于取样内散射颜色的许多不同高度(三维贴图尺寸大小; 1-32). |
 [/REGION]
 [/EXCERPT:PrecomputeParams]
- End Includes----->
+ End Includes---
+[/COMMENT]

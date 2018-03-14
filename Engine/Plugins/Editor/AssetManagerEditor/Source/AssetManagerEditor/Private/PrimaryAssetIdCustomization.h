@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -23,9 +23,12 @@ public:
 	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override {}
 
 private:
-	bool OnShouldFilterAsset(const struct FAssetData& InAssetData, TArray<FPrimaryAssetType> AllowedTypes) const;
-	FString OnGetObjectPath() const;
-	void OnSetObject(const FAssetData& AssetData);
+	void OnIdSelected(FPrimaryAssetId AssetId);
+	void OnBrowseTo();
+	void OnClear();
+	void OnUseSelected();
+	FText GetDisplayText() const;
+	FPrimaryAssetId GetCurrentPrimaryAssetId() const;
 
 	/** Handle to the struct property being customized */
 	TSharedPtr<IPropertyHandle> StructPropertyHandle;
@@ -51,6 +54,10 @@ private:
 
 	void OnIdSelected(FPrimaryAssetId AssetId);
 	FText GetDisplayText() const;
+	FSlateColor OnGetWidgetForeground() const;
+	FSlateColor OnGetWidgetBackground() const;
+	FReply OnBrowseTo();
+	FReply OnUseSelected();
 
 	FPrimaryAssetId CurrentId;
 };

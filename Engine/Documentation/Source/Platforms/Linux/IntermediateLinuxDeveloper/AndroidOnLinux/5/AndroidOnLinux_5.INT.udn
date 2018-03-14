@@ -2,7 +2,7 @@ Availability: Public
 Title: 5 - Packaging your Game
 Crumbs:%ROOT%
 Description:Learn how to package your mobile game for distribution (release).
-Version: 4.14
+Version: 4.17
 type:quick start
 parent:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux
 order: 5

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // PlayerInput
@@ -448,7 +448,7 @@ public:
 	 * @param: Index is 0 for X axis, 1 for Y axis
 	 * @return the smoothed mouse axis movement
 	 */
-	float SmoothMouse(float aMouse, uint8& SampleCount, int32 Index);
+	virtual float SmoothMouse(float aMouse, uint8& SampleCount, int32 Index);
 
 	/**
 	 * Draw important PlayerInput variables on canvas.  HUD will call DisplayDebug() on the current ViewTarget when the ShowDebug exec is used
@@ -526,7 +526,7 @@ private:
 	 * Given raw keystate value, returns the "massaged" value. Override for any custom behavior,
 	 * such as input changes dependent on a particular game state.
  	 */
-	float MassageAxisInput(FKey Key, float RawValue);
+	virtual float MassageAxisInput(FKey Key, float RawValue);
 
 	/** Process non-axes keystates */
 	void ProcessNonAxesKeys(FKey Inkey, FKeyState* KeyState);
@@ -589,8 +589,12 @@ private:
 	/** @return true if InKey is being consumed */
 	bool IsKeyConsumed(FKey Key) const;
 
+protected:
+
 	/** Initialized axis properties (i.e deadzone values) if needed */
 	void ConditionalInitAxisProperties();
+
+private:
 
 	/** @return True if a key is handled by an action binding */
 	bool IsKeyHandledByAction( FKey Key ) const;

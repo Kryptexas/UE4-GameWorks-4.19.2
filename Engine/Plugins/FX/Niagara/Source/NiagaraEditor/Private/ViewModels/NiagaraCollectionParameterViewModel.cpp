@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraCollectionParameterViewModel.h"
 #include "NiagaraEditorUtilities.h"
@@ -12,8 +12,8 @@
 
 FNiagaraCollectionParameterViewModel::FNiagaraCollectionParameterViewModel(FNiagaraVariable& Variable, UNiagaraParameterCollectionInstance* CollectionInstance, ENiagaraParameterEditMode ParameterEditMode)
 	: FNiagaraParameterViewModel(ParameterEditMode)
-	, Parameter(Variable)
 	, CollectionInst(CollectionInstance)
+	, Parameter(Variable)
 {
 	DefaultValueType = Variable.IsDataInterface() ? INiagaraParameterViewModel::EDefaultValueType::Object : INiagaraParameterViewModel::EDefaultValueType::Struct;
 	RefreshParameterValue();
@@ -161,7 +161,7 @@ TSharedRef<FStructOnScope> FNiagaraCollectionParameterViewModel::GetDefaultValue
 
 UObject* FNiagaraCollectionParameterViewModel::GetDefaultValueObject()
 {
-	return Cast<UObject>(CollectionInst->GetParameterStore().GetDataInterface(Parameter));
+	return CollectionInst->GetParameterStore().GetDataInterface(Parameter);
 }
 
 void FNiagaraCollectionParameterViewModel::NotifyDefaultValuePropertyChanged(const FPropertyChangedEvent& PropertyChangedEvent)

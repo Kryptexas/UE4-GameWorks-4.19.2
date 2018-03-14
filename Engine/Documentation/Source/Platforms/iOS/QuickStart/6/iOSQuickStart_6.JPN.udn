@@ -23,7 +23,7 @@ SkillLevel:Intermediate
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 %Globals:OSSelect%
 
@@ -60,7 +60,8 @@ Distribution プロビジョニング プロファイルはゲームを App Stor
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windows]
 [REGION:note]
 過去に Mac で iOS アプリケーションを開発したことがあるが、Windows PC で iOS ゲームを開発するためにアンリアル エンジンを使用する場合、 
@@ -73,7 +74,8 @@ Distribution プロビジョニング プロファイルはゲームを App Stor
 アンリアル・エンジンで使用します。
 [/REGION]
 [/EXCERPT:macos]
--->
+
+[/COMMENT]
 
 **モバイル プロビジョニング プロファイルを作成する方法**
 
@@ -136,7 +138,8 @@ Distribution プロビジョニング プロファイルはゲームを App Stor
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windowsimport]
 1. `Engine\Binaries\DotNET\IOS\` ディレクトリに移動し、`iPhonePackager.exe` を実行します。
 
@@ -162,6 +165,7 @@ Distribution プロビジョニング プロファイルはゲームを App Stor
 [EXCERPT:macosimport]
 1. ダウンロードしたプロビジョニング プロファイル (`.mobileprovision` ファイル) を `[ProjectDirectory]/Build/iOS` ディレクトリにコピーします。
 [/EXCERPT:macosimport]
--->
 
-%Steps%
+[/COMMENT]
+
+

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Blend 노드
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
@@ -131,7 +131,8 @@ Blend Pose 입력을 추가하려면, 노드에 우클릭한 다음 맥락 메�
 
 
 
-<!-- Hidden for now. Seems no longer available.
+[COMMENT:none]
+ Hidden for now. Seems no longer available.
 
 ## Two-Way Additive Blend
 
@@ -147,4 +148,5 @@ The **Two-way Additive Blend** is virtually identical to the **Two-way Blend** d
 | Alpha | A `float` value in the range **[0.0, 1.0]** to use as the alpha value to determine the weighting of the two poses. A value of **0.0** gives full weighting to the **A** input pose, while a value of **1.0** gives full weighting to the **B** input pose. |
 | [REGION:tablesection]**Output Pins**[/REGION] ||
 | Pose | The final additive pose after the blending has been applied. |
---->
+-
+[/COMMENT]

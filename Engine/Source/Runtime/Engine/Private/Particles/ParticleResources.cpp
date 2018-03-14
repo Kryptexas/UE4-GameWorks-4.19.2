@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleResources.cpp: Implementation of global particle resources.
@@ -149,7 +149,7 @@ void FParticleScratchVertexBuffer::InitRHI()
 	VertexBufferRHI = RHICreateVertexBuffer(GParticleScratchVertexBufferSize, Flags, CreateInfo);
 	if (GSupportsResourceView)
 	{
-		VertexBufferSRV_G32R32F = RHICreateShaderResourceView( VertexBufferRHI, /*Stride=*/ sizeof(FVector2D), PF_G32R32F );
+		VertexBufferSRV_G32R32F = RHICreateShaderResourceView(VertexBufferRHI, /*Stride=*/ sizeof(FVector2D), PF_G32R32F);
 	}
 }
 

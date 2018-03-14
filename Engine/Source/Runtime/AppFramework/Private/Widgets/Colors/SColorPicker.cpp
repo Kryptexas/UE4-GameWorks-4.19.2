@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/Colors/SColorPicker.h"
 #include "Misc/ConfigCacheIni.h"
@@ -79,6 +79,7 @@ void SColorPicker::Construct( const FArguments& InArgs )
 	DisplayGamma = InArgs._DisplayGamma;
 	bClosedViaOkOrCancel = false;
 	bValidCreationOverrideExists = InArgs._OverrideColorPickerCreation;
+	OptionalOwningDetailsView = InArgs._OptionalOwningDetailsView.Get().IsValid() ? InArgs._OptionalOwningDetailsView.Get() : nullptr;
 
 	if ( InArgs._sRGBOverride.IsSet() )
 	{
@@ -1626,11 +1627,23 @@ SColorPicker::FOnColorPickerDestructionOverride SColorPicker::OnColorPickerDestr
 /** A static color picker that everything should use. */
 static TWeakPtr<SWindow> ColorPickerWindow;
 
+static TWeakPtr<SColorPicker> GlobalColorPicker;
+
+TSharedPtr<SColorPicker> GetColorPicker()
+{
+	if (GlobalColorPicker.IsValid())
+	{
+		return GlobalColorPicker.Pin();
+	}
+	else
+	{
+		return nullptr;
+	}
+}
 
 bool OpenColorPicker(const FColorPickerArgs& Args)
 {
 	DestroyColorPicker();
-
 	bool Result = false;
 
 	// Consoles do not support opening new windows
@@ -1706,7 +1719,7 @@ bool OpenColorPicker(const FColorPickerArgs& Args)
 		}
 	}
 
-	TSharedRef<SColorPicker> ColorPicker = SNew(SColorPicker)
+	TSharedRef<SColorPicker> CreatedColorPicker = SNew(SColorPicker)
 		.TargetColorAttribute(OldColor)
 		.TargetFColors(Args.ColorArray ? *Args.ColorArray : TArray<FColor*>())
 		.TargetLinearColors(Args.LinearColorArray ? *Args.LinearColorArray : TArray<FLinearColor*>())
@@ -1724,12 +1737,13 @@ bool OpenColorPicker(const FColorPickerArgs& Args)
 		.ParentWindow(Window)
 		.DisplayGamma(Args.DisplayGamma)
 		.sRGBOverride(Args.sRGBOverride)
-		.OverrideColorPickerCreation(bOverrideNonModalCreation);
+		.OverrideColorPickerCreation(bOverrideNonModalCreation)
+		.OptionalOwningDetailsView(Args.OptionalOwningDetailsView);
 	
 	// If the color picker requested is modal, don't override the behavior even if the delegate is bound
 	if (bOverrideNonModalCreation)
 	{
-		SColorPicker::OnColorPickerNonModalCreateOverride.Execute(ColorPicker);
+		SColorPicker::OnColorPickerNonModalCreateOverride.Execute(CreatedColorPicker);
 
 		Result = true;
 
@@ -1738,7 +1752,7 @@ bool OpenColorPicker(const FColorPickerArgs& Args)
 	}
 	else
 	{
-		WindowContent->SetContent(ColorPicker);
+		WindowContent->SetContent(CreatedColorPicker);
 
 		if (Args.bIsModal)
 		{
@@ -1765,6 +1779,7 @@ bool OpenColorPicker(const FColorPickerArgs& Args)
 		//hold on to the window created for external use...
 		ColorPickerWindow = Window;
 	}
+	GlobalColorPicker = CreatedColorPicker;
 #endif
 
 	return Result;
@@ -1788,6 +1803,7 @@ void DestroyColorPicker()
 			ColorPickerWindow.Pin()->RequestDestroyWindow();
 		}
 		ColorPickerWindow.Reset();
+		GlobalColorPicker.Reset();
 	}
 }
 

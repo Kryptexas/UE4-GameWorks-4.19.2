@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ArchVisCharacter.h"
 #include "Components/InputComponent.h"
 #include "ArchVisCharMovementComponent.h"
+#include "Engine/World.h"
 
 AArchVisCharacter::AArchVisCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UArchVisCharMovementComponent>(ACharacter::CharacterMovementComponentName))

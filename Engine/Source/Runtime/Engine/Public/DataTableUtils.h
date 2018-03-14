@@ -1,9 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Misc/EnumClassFlags.h"
+
+class UDataTable;
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogDataTable, Log, All);
 
@@ -90,4 +92,9 @@ namespace DataTableUtils
 	 * Util to get the friendly display name of a given property.
 	 */
 	ENGINE_API FString GetPropertyDisplayName(const UProperty* Prop, const FString& DefaultName);
+
+	/**
+	 * Output each row for a specific column/property in the table (doesn't include the title)
+	 */
+	ENGINE_API TArray<FString> GetColumnDataAsString(const UDataTable* InTable, const FName& PropertyName, const EDataTableExportFlags InDTExportFlags);
 }

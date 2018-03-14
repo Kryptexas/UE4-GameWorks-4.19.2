@@ -132,7 +132,8 @@ Since this Blueprint is primarily a level design tool, most of its functionality
 
 
 
-<!----------EXCERPTS---------------
+[COMMENT:none]
+--------EXCERPTS---------------
 
 [EXCERPT:FogSheetCS]
 The _Construction Script_ performs the following tasks:
@@ -155,4 +156,5 @@ The _Construction Script_ performs the following tasks:
 
 
 
------------/EXCERPTS------------->
+-----------/EXCERPTS-----------
+[/COMMENT]

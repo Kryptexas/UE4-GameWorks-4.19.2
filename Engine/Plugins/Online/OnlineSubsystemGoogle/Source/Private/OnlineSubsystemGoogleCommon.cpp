@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemGoogleCommon.h"
 #include "OnlineSubsystemGooglePrivate.h"
@@ -88,18 +88,6 @@ bool FOnlineSubsystemGoogleCommon::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutp
 		return true;
 	}
 	return false;
-}
-
-bool FOnlineSubsystemGoogleCommon::IsEnabled() const
-{
-	// Check the ini for disabling Google
-	bool bEnableGoogle = false;
-	if (!GConfig->GetBool(TEXT("OnlineSubsystemGoogle"), TEXT("bEnabled"), bEnableGoogle, GEngineIni))
-	{
-		UE_LOG(LogOnline, Warning, TEXT("The [OnlineSubsystemGoogle]:bEnabled flag has not been set."));
-	}
-
-	return bEnableGoogle;
 }
 
 IOnlineSessionPtr FOnlineSubsystemGoogleCommon::GetSessionInterface() const

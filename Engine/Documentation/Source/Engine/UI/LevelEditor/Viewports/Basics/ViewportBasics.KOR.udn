@@ -1,51 +1,11 @@
-﻿INTSourceChangelist:3480676
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:뷰포트 기본
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
 Description:언리얼 에디터의 뷰포트에 대한 기본 개념 및 기능에 대한 글입니다.
 Version: 4.9
 SkillLevel: Beginner
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](viewport_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor/Viewports/Basics:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor/Viewports/Basics:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor/Viewports/Basics]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](viewport_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor/Viewports/Basics:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor/Viewports/Basics:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor/Viewports/Basics]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:viewport_topic.png
 
 [TOC(start:2 end:3)]
 
@@ -82,7 +42,8 @@ SkillLevel: Beginner
 뷰포트는 각 뷰포트 우상단 구석에 위치한 ![Minimize Viewport](button_minimize.png), ![Maximize Viewport](button_maximize.png) 버튼으로 
 최소화 및 최대화시킬 수 있습니다.
 
-<!--
+[COMMENT:none]
+
 [REGION:fullwidth]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -105,7 +66,8 @@ SkillLevel: Beginner
 	[/PARAM]
 [/OBJECT]
 [/REGION]
--->
+
+[/COMMENT]
 
 ## 뷰 모드
 

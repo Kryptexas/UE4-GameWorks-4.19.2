@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreTypes.h"
 #include "HAL/PlatformProcess.h"
@@ -7,7 +7,17 @@
 #include "Templates/ScopedPointer.h"
 #include "Features/IModularFeatures.h"
 #include "UniquePtr.h"
+#include "Containers/Map.h"
+#include "HAL/ThreadSingleton.h"
 
+// VTune header for ITT event tracing
+#include "ittnotify.h"
+
+/** Per thread TMap for all ITT String Handles */
+struct FVTunePerThreadHandleMap : public TThreadSingleton<FVTunePerThreadHandleMap>
+{
+	TMap<uint32, __itt_string_handle *> VTuneHandleMap;
+};
 
 /**
  * VTune implementation of FExternalProfiler
@@ -65,6 +75,28 @@ public:
 		VTResume();
 	}
 
+	void StartScopedEvent(const TCHAR* Text) 
+	{
+		uint32 Hash = GetTypeHash(Text);
+
+		TMap<uint32, __itt_string_handle *>& VTuneHandleMap = FVTunePerThreadHandleMap::Get().VTuneHandleMap;
+
+		if (!VTuneHandleMap.Contains(Hash))
+		{
+			VTuneHandleMap.Emplace(Hash, __itt_string_handle_createW(Text));
+		}
+
+		//Activate timer
+		__itt_string_handle *Handle = VTuneHandleMap[Hash];
+		__itt_task_begin(Domain, __itt_null, __itt_null, Handle);
+	}
+
+	void EndScopedEvent()
+	{
+		//Deactivate last event
+		__itt_task_end(Domain);
+	}
+
 	/**
 	 * Initializes profiler hooks. It is not valid to call pause/ resume on an uninitialized
 	 * profiler and the profiler implementation is free to assert or have other undefined
@@ -112,6 +144,12 @@ public:
 				VTPause = NULL;
 				VTResume = NULL;
 			}
+
+			//If successfully initialized, initialize task data structures.
+			if (DLLHandle != NULL)
+			{
+				Domain = __itt_domain_create(L"UE4Domain");
+			}
 		}
 
 		return DLLHandle != NULL;
@@ -134,6 +172,9 @@ private:
 
 	/** Pointer to VTResume function. */
 	VTResumeFunctionPtr VTResume;
+
+	/** Domain for ITT Events */
+	__itt_domain* Domain;
 };
 
 

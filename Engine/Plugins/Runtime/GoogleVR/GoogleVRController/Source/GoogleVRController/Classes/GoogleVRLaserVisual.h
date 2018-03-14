@@ -36,13 +36,16 @@ public:
 	virtual float GetMaxPointerDistance(float WorldToMetersScale) const { check(0 && "You must override this"); return 0.0f; };
 
 	virtual void SetDefaultLaserDistance(float WorldToMetersScale) { check(0 && "You must override this"); };
-	virtual void UpdateLaserDistance(float Distance) { check(0 && "You must override this"); };
+	virtual void UpdateLaserDistance(float Distance, float WorldToMetersScale) { check(0 && "You must override this"); };
 	virtual void UpdateLaserCorrection(FVector Correction) { check(0 && "You must override this"); };
 
 	virtual FMaterialSpriteElement* GetReticleSprite() const { check(0 && "You must override this"); return nullptr; };
 	virtual float GetReticleSize() { check(0 && "You must override this"); return 0.0f; };
+	virtual FVector GetReticleLocation() { check(0 && "You must override this"); return FVector::ZeroVector; };
 	virtual void SetDefaultReticleDistance(float WorldToMetersScale, FVector CameraLocation) { check(0 && "You must override this"); };
+	virtual float GetDefaultReticleDistance(float WorldToMetersScale) { check(0 && "You must override this"); return 0.0f; };
 	virtual void UpdateReticleLocation(FVector Location, FVector OriginLocation, float WorldToMetersScale, FVector CameraLocation) { check(0 && "You must override this"); };
+	virtual void UpdateReticleDistance(float Distance, float WorldToMetersScale, FVector CameraLocation) { check(0 && "You must override this"); };
 
 	virtual void SetSubComponentsEnabled(bool bNewEnabled) { check(0 && "You must override this"); };
 

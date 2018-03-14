@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "StaticMeshEditor.h"
 #include "AssetData.h"
@@ -41,6 +41,8 @@
 #include "PhysicsEngine/BodySetup.h"
 
 #include "AdvancedPreviewSceneModule.h"
+
+#include "ConvexDecompositionNotification.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshEditor"
 
@@ -110,6 +112,17 @@ void FStaticMeshEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager
 
 FStaticMeshEditor::~FStaticMeshEditor()
 {
+#if USE_ASYNC_DECOMP
+	/** If there is an active instance of the asynchronous convex decomposition interface, release it here. */
+	if (GConvexDecompositionNotificationState)
+	{
+		GConvexDecompositionNotificationState->IsActive = false;
+	}
+	if (DecomposeMeshToHullsAsync)
+	{
+		DecomposeMeshToHullsAsync->Release();
+	}
+#endif
 	FReimportManager::Instance()->OnPostReimport().RemoveAll(this);
 
 	GEditor->UnregisterForUndo( this );
@@ -499,7 +512,7 @@ void FStaticMeshEditor::ExtendToolBar()
 {
 	struct Local
 	{
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, FStaticMeshEditor* ThisEditor, TSharedPtr< class STextComboBox > LODLevelCombo)
+		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, FStaticMeshEditor* ThisEditor) 
 		{
 			ToolbarBuilder.BeginSection("Realtime");
 			{
@@ -548,12 +561,6 @@ void FStaticMeshEditor::ExtendToolBar()
 				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().ResetCamera);
 			}
 			ToolbarBuilder.EndSection();
-	
-			ToolbarBuilder.BeginSection("LOD");
-			{
-				ToolbarBuilder.AddWidget(LODLevelCombo.ToSharedRef());
-			}
-			ToolbarBuilder.EndSection();
 
 			ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetDrawAdditionalData);
 		}
@@ -569,7 +576,7 @@ void FStaticMeshEditor::ExtendToolBar()
 		"Asset",
 		EExtensionHook::After,
 		Viewport->GetCommandList(),
-		FToolBarExtensionDelegate::CreateStatic( &Local::FillToolbar, ThisEditor, LODLevelCombo )
+		FToolBarExtensionDelegate::CreateStatic(&Local::FillToolbar, ThisEditor) 
 		);
 	
 	AddToolbarExtender(ToolbarExtender);
@@ -586,17 +593,7 @@ void FStaticMeshEditor::BuildSubTools()
 
 	SAssignNew( ConvexDecomposition, SConvexDecomposition )
 		.StaticMeshEditorPtr(SharedThis(this));
-
-	LODLevelCombo = SNew(STextComboBox)
-		.OptionsSource(&LODLevels)
-		.OnSelectionChanged(this, &FStaticMeshEditor::LODLevelsSelectionChanged)
-		.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() );
-
-	if(LODLevels.IsValidIndex(0))
-	{
-		LODLevelCombo->SetSelectedItem(LODLevels[0]);
-	}
-
+	
 	FAdvancedPreviewSceneModule& AdvancedPreviewSceneModule = FModuleManager::LoadModuleChecked<FAdvancedPreviewSceneModule>("AdvancedPreviewScene");
 	AdvancedPreviewSettingsWidget = AdvancedPreviewSceneModule.CreateAdvancedPreviewSceneSettingsWidget(Viewport->GetPreviewScene());
 }
@@ -1100,53 +1097,12 @@ void FStaticMeshEditor::RefreshTool()
 	bool bForceRefresh = true;
 	StaticMeshDetailsView->SetObject( StaticMesh, bForceRefresh );
 
-	RegenerateLODComboList();
 	RefreshViewport();
 }
 
 void FStaticMeshEditor::RefreshViewport()
 {
 	Viewport->RefreshViewport();
-}
-
-void FStaticMeshEditor::RegenerateLODComboList()
-{
-	if( StaticMesh->RenderData )
-	{
-		int32 OldLOD = GetCurrentLODLevel();
-
-		NumLODLevels = StaticMesh->RenderData->LODResources.Num();
-
-		// Fill out the LOD level combo.
-		LODLevels.Empty();
-		LODLevels.Add( MakeShareable( new FString( LOCTEXT("AutoLOD", "Auto LOD").ToString() ) ) );
-		LODLevels.Add( MakeShareable( new FString( LOCTEXT("BaseLOD", "Base LOD").ToString() ) ) );
-		for(int32 LODLevelID = 1; LODLevelID < NumLODLevels; ++LODLevelID)
-		{
-			LODLevels.Add( MakeShareable( new FString( FString::Printf(*LOCTEXT("LODLevel_ID", "LOD Level %d").ToString(), LODLevelID ) ) ) );
-		}
-
-		if( LODLevelCombo.IsValid() )
-		{
-			LODLevelCombo->RefreshOptions();
-
-			if(LODLevels.IsValidIndex(OldLOD) && OldLOD < LODLevels.Num() )
-			{
-				LODLevelCombo->SetSelectedItem(LODLevels[OldLOD]);
-			}
-			else
-			{
-				LODLevelCombo->SetSelectedItem(LODLevels[0]);
-			}
-
-		}
-	}
-	else
-	{
-		NumLODLevels = 0;
-		LODLevels.Empty();
-		LODLevels.Add( MakeShareable( new FString( LOCTEXT("AutoLOD", "Auto LOD").ToString() ) ) );
-	}
 }
 
 TSharedRef<SWidget> FStaticMeshEditor::GenerateUVChannelComboList()
@@ -1203,7 +1159,7 @@ void FStaticMeshEditor::UpdateLODStats(int32 CurrentLOD)
 	NumTriangles[CurrentLOD] = 0;
 	NumVertices[CurrentLOD] = 0;
 	NumUVChannels[CurrentLOD] = 0;
-	NumLODLevels = 0;
+	int32 NumLODLevels = 0;
 
 	if( StaticMesh->RenderData )
 	{
@@ -1213,7 +1169,7 @@ void FStaticMeshEditor::UpdateLODStats(int32 CurrentLOD)
 			FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[CurrentLOD];
 			NumTriangles[CurrentLOD] = LODModel.GetNumTriangles();
 			NumVertices[CurrentLOD] = LODModel.GetNumVertices();
-			NumUVChannels[CurrentLOD] = LODModel.VertexBuffer.GetNumTexCoords();
+			NumUVChannels[CurrentLOD] = LODModel.VertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords();
 		}
 	}
 }
@@ -1223,26 +1179,6 @@ void FStaticMeshEditor::ComboBoxSelectionChanged( TSharedPtr<FString> NewSelecti
 	Viewport->RefreshViewport();
 }
 
-void FStaticMeshEditor::LODLevelsSelectionChanged( TSharedPtr<FString> NewSelection, ESelectInfo::Type /*SelectInfo*/ )
-{
-	int32 CurrentLOD = 0;
-	LODLevels.Find(LODLevelCombo->GetSelectedItem(), CurrentLOD);
-	if (GetStaticMeshComponent() != nullptr)
-	{
-		GetStaticMeshComponent()->ForcedLodModel = CurrentLOD;
-	}
-	UpdateLODStats( CurrentLOD > 0? CurrentLOD - 1 : 0 );
-	Viewport->ForceLODLevel(CurrentLOD);
-	if (OnSelectedLODChanged.IsBound())
-	{
-		OnSelectedLODChanged.Broadcast();
-	}
-	if (OnSelectedLODChangedResetOnRefresh.IsBound())
-	{
-		OnSelectedLODChangedResetOnRefresh.Broadcast();
-	}
-}
-
 int32 FStaticMeshEditor::GetCurrentUVChannel()
 {
 	return FMath::Min(CurrentViewedUVChannel, GetNumUVChannels());
@@ -1250,18 +1186,11 @@ int32 FStaticMeshEditor::GetCurrentUVChannel()
 
 int32 FStaticMeshEditor::GetCurrentLODLevel()
 {
-	int32 Index = 0;
-	LODLevels.Find(LODLevelCombo->GetSelectedItem(), Index);
-	if (GetStaticMeshComponent() != nullptr)
+	if (GetStaticMeshComponent())
 	{
-		if (GetStaticMeshComponent()->ForcedLodModel != Index)
-		{
-			LODLevelCombo->SetSelectedItem(LODLevels[GetStaticMeshComponent()->ForcedLodModel]);
-			LODLevels.Find(LODLevelCombo->GetSelectedItem(), Index);
-		}
+		return GetStaticMeshComponent()->ForcedLodModel;
 	}
-
-	return Index;
+	return 0;
 }
 
 int32 FStaticMeshEditor::GetCurrentLODIndex()
@@ -1584,29 +1513,10 @@ void FStaticMeshEditor::SetEditorMesh(UStaticMesh* InStaticMesh, bool bResetCame
 	NumUVChannels.Empty(ArraySize);
 	NumUVChannels.AddZeroed(ArraySize);
 
-	// Always default the LOD to 0 when setting the mesh.
-	UpdateLODStats(0);
-
-	// Fill out the LOD level combo.
-	LODLevels.Empty();
-	LODLevels.Add( MakeShareable( new FString( LOCTEXT("AutoLOD", "Auto LOD").ToString() ) ) );
-	LODLevels.Add( MakeShareable( new FString( LOCTEXT("BaseLOD", "Base LOD").ToString() ) ) );
-	for(int32 LODLevelID = 1; LODLevelID < NumLODLevels; ++LODLevelID)
+	int32 NumLODs = StaticMesh->GetNumLODs();
+	for (int32 LODIndex = 0; LODIndex < NumLODs; ++LODIndex)
 	{
-		LODLevels.Add( MakeShareable( new FString( FString::Printf(*LOCTEXT("LODLevel_ID", "LOD Level %d").ToString(), LODLevelID ) ) ) );
-
-		//Update LOD stats for each level
-		UpdateLODStats(LODLevelID);
-	}
-
-	if( LODLevelCombo.IsValid() )
-	{
-		LODLevelCombo->RefreshOptions();
-
-		if(LODLevels.Num())
-		{
-			LODLevelCombo->SetSelectedItem(LODLevels[0]);
-		}
+		UpdateLODStats(LODIndex);
 	}
 
 	// Set the details view.
@@ -1673,7 +1583,7 @@ void FStaticMeshEditor::OnSaveGeneratedLODs()
 	}
 }
 
-void FStaticMeshEditor::DoDecomp(float InAccuracy, int32 InMaxHullVerts)
+void FStaticMeshEditor::DoDecomp(uint32 InHullCount, int32 InMaxHullVerts, uint32 InHullPrecision)
 {
 	// Check we have a selected StaticMesh
 	if(StaticMesh && StaticMesh->RenderData)
@@ -1684,11 +1594,11 @@ void FStaticMeshEditor::DoDecomp(float InAccuracy, int32 InMaxHullVerts)
 		const FScopedBusyCursor BusyCursor;
 
 		// Make vertex buffer
-		int32 NumVerts = LODModel.VertexBuffer.GetNumVertices();
+		int32 NumVerts = LODModel.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices();
 		TArray<FVector> Verts;
 		for(int32 i=0; i<NumVerts; i++)
 		{
-			FVector Vert = LODModel.PositionVertexBuffer.VertexPosition(i);
+			FVector Vert = LODModel.VertexBuffers.PositionVertexBuffer.VertexPosition(i);
 			Verts.Add(Vert);
 		}
 
@@ -1730,7 +1640,18 @@ void FStaticMeshEditor::DoDecomp(float InAccuracy, int32 InMaxHullVerts)
 		// Run actual util to do the work (if we have some valid input)
 		if(Verts.Num() >= 3 && CollidingIndices.Num() >= 3)
 		{
-			DecomposeMeshToHulls(bs, Verts, CollidingIndices, InAccuracy, InMaxHullVerts);		
+#if USE_ASYNC_DECOMP
+			// If there is currently a decomposition already in progress we release it.
+			if (DecomposeMeshToHullsAsync)
+			{
+				DecomposeMeshToHullsAsync->Release();
+			}
+			// Begin the convex decomposition process asynchronously
+			DecomposeMeshToHullsAsync = CreateIDecomposeMeshToHullAsync();
+			DecomposeMeshToHullsAsync->DecomposeMeshToHullsAsyncBegin(bs, Verts, CollidingIndices, InHullCount, InMaxHullVerts, InHullPrecision);
+#else
+			DecomposeMeshToHulls(bs, Verts, CollidingIndices, InHullCount, InMaxHullVerts, InHullPrecision);
+#endif
 		}
 
 		// Enable collision, if not already
@@ -2058,5 +1979,32 @@ ECheckBoxState FStaticMeshEditor::GetUVChannelCheckState(int32 TestUVChannel) co
 {
 	return CurrentViewedUVChannel == TestUVChannel && GetViewportClient().IsDrawUVOverlayChecked() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
+
+void FStaticMeshEditor::Tick(float DeltaTime)
+{
+#if USE_ASYNC_DECOMP
+	/** If we have an active convex decomposition task running, we check to see if is completed and, if so, release the interface */
+	if (DecomposeMeshToHullsAsync)
+	{
+		if (DecomposeMeshToHullsAsync->IsComplete())
+		{
+			DecomposeMeshToHullsAsync->Release();
+			DecomposeMeshToHullsAsync = nullptr;
+			GConvexDecompositionNotificationState->IsActive = false;
+		}
+		else if (GConvexDecompositionNotificationState)
+		{
+			GConvexDecompositionNotificationState->IsActive = true;
+			GConvexDecompositionNotificationState->Status = DecomposeMeshToHullsAsync->GetCurrentStatus();
+		}
+	}
+#endif
+}
+
+TStatId FStaticMeshEditor::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(FStaticMeshEditor, STATGROUP_TaskGraphTasks);
+}
+
 
 #undef LOCTEXT_NAMESPACE

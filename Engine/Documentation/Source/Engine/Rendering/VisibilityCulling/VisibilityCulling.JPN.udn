@@ -1,9 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: Visibility Culling
+﻿Availability:Docs
+Title:ビジビリティ カリング
 Crumbs: %ROOT%, Engine, 
-Description: How Visibility Culling works in your game.
-Version: 4.13
+Description:Visibility Culling の機能の説明
+Version:4.13
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -47,41 +46,41 @@ Version: 4.13
 
 [TOC(start:2 end:2)]
 
-## What is Visibility Culling?
+## Visibility Culling とは
 
-Visibility culling uses a process to gather all the Actors in the scene and then will use one of the available culling methods to test whether the Actor is visible or not. The process of checking 
-an Actor's visibility state is used to increase the culling effecitveness by reducing the number of queries to the GPU to test. 
+ビジビリティ カリングはシーンのすべてのアクタを集めてから、使用できるカリング メソッドの 1 つを使って見えるかどうかをテストします。アクタの可視ステートの確認プロセスは、 
+テストのために GPU に送るクエリ数を減らすことでカリングの効率性を上げるために使われます。 
 
-In order to understand how visibility and occlusion culling works it is necessary to first understand how an Actors bounding box and sphere is used to test its visibility state, 
-what the view frustum does, and lastly what makes an Actor an occluder or occludee. 
+このカリング処理の仕組みを理解するには、まずアクタのバウンディング ボックスと球体がどのように可視ステートのテストに使われるのか、 
+視錐台とは何か、そしてオクルーダー アクタとオクルーディー アクタの違いを理解しなければなりません。 
 
-### Actor Bounds
+### アクタの境界
 
-Each Actor has its own bounds. These are made up of a bounding box and sphere that surround the geometry of the mesh. The bounds can be edited via the Static Mesh Editor, Persona, or per-instance via the 
-Detail's panel in your scene. For visibility and occlusion culling purposes it is used to test whether an Actor is visible within the Camera's field of view.
+アクタにはそれぞれ境界があります。この境界は、メッシュのジオメトリを囲むバウンディング ボックスと球体で構成されています。スタティックメッシュ エディタ、ペルソナ、 
+またはシーンの [Details (詳細)] パネルでインスタンスごとに編集することができます。ビジビリティとオクルージョン カリングを行うために、アクタがカメラの視野角内でのアクタの可視ステートのテストに使用されます。
 
 
 ![](BoundsEditorView1.png)(w:350)
 [REGION:caption]
-Actor's bounding box and sphere
+アクタのバウンディング ボックスと球体
 [/REGION]
 
-##### Setting the Bounds Scale
+Bounds Scale の設定方法
 
-You can set the Static and Skeletal Meshes bounds by using the following options.
+以下のオプションを使って、スタティクメッシュおよびスケルタルメッシュの境界を設定することができます。
 
 [REGION:imagetable]
 | ![](BoundScaleSetting.png)(w:400) | ![](BoundsScaleSettingSMEditor.png)(w:400) |
 | --- | --- |
-| Scene Per-Instance Detail's panel | Static and Skeletal Mesh Editor Detail's panel | 
+| Scene Per-Instance Detail's panel | スタティックメッシュ エディタとスケルタルメッシュ エディタの詳細パネルです。 | 
 [/REGION]
 
 [REGION:note]
-The per-instance setting for the **Bounds Scale** will use a multiplier that scales evenly for the Actor's bounds, whereas the Static Mesh Editor and Persona will allow you to set specific XYZ coordinate values.
+スタティックメッシュ エディタとペルソナでは特定の XYZ 座標値を設定できますが、**Bounds Scale** ではアクタの境界を均等にスケールする乗数を使ってインスタンスごとに設定します。
 [/REGION]
 
-To view the bounds of an Actor, you must first go to the viewport and **Show** > **Advanced** > **Bounds** or use the console command `Show Bounds`. Then when you select the Actor in the scene
-to see the bounds visualization.
+アクタの境界を表示するには、まずビューポートを開いて、**[Show (表示)]** > **[Advanced (詳細)]** > **[Bounds (境界)]** を選択、あるいはコマンド `Show Bounds` を使います。次に、シーンのアクタを選択して、
+境界が見えるか確認します。
 
 [OBJECT:ComparisonSlider]
  [PARAM:before]
@@ -92,50 +91,51 @@ to see the bounds visualization.
  [/PARAM]
 [/OBJECT]
 [REGION:caption]
-_Setting the Bounds Scale in the Detail's panel of the selected Actor._
+_選択したアクタの [Detail (詳細)] パネルで Bounds Scale を設定する_
 [/REGION]
 
 [REGION:tip]
-When you increase the bounds of an Actor you do not have to increase by whole numbers. You can increase with decimal values incrementally until you get the results you are wanting. For example, 
-increase the Bounds Scale to 1.15 rather than increasing to 2.0. 
+アクタの境界は、整数でなくても広げることができます。目指す大きさになるまで、小数点単位で徐々に増やしていくことができます。例えば、 
+Bounds Scale を 2.0 ではなく 1.15 にします。 
 [/REGION]
 
 
 
-### What is the Camera's View Frustum?
+### カメラの視錐台について
 
-The Camera's view frustum is the viewing area within 3D space that is represented by a pyramidal shape from its viewpoint. 
+カメラの視錐台とは、3D で表示される領域のことです。 
 
 [REGION:imagetable]
 | [INCLUDE:#cameraview1] |
 | ---------------------- |
-| Camera Field of View (FOV) set to 90 degrees (Default) |
+| カメラの視錐台 (FOV) を 90 度 (デフォルト) に設定 |
 [REGION:caption]
-_Click images for full size_
+_画像をクリックしてフルサイズで表示_
 [/REGION]
 [/REGION]
 
-This pyramidal shape represents up our **Field of View** (FOV) as seen from the Camera's perspective. This perspective shows our various Actors in the scene that are within this view.
-The image below contains all the elements that make up the scene above. This can include Actors that are not visibile within the view frustum, like the Spot Light that is lighting the scene, 
-or other Actors not visible within the view frusum.  
+このピラミッド型がカメラ ビューから見た **視野角** (FOV) を表します。このビュー内にあるシーンの中の様々なアクタを表示します。
+下の画像は、上のシーンを構成するエレメントをすべて含んでいます。視錐台内で見えないスポットライトなどのアクタ、 
+あるいは視錐台内で見えないその他のアクタも含むことができます。  
 
 [REGION:imagetable]
 | [INCLUDE:#sceneview1]| 
 | --- |
-| Scene View with Camera Attributes  |
+| カメラのアトリビュートを付けたシーン ビュー  |
 [/REGION]
 [REGION:caption]
-_Click images for full size_
+_画像をクリックしてフルサイズで表示_
 [/REGION]
 
-| Number | Description |
+| 番号 | 説明 |
 | ------ | ----------- |
-| **1**  | **Field of View (FOV):** The width of the view angle measured in degrees. |
-| **2**  | **Near Clip Plane:** The nearest point to the camera that will render. |
-| **3**  | **Camera View Frustum:** The area between the near and far clip planes. Anything within this view is considered for rendering. |
-| **4**  | **Far Clip Plane:** The farthest point from the camera that will render. This is controlled by scene depth instead of a set distance that clips the view. |
+| **1**  | **視野角 (FOV):** 度で計測した視野角の幅です。 |
+| **2**  | **ニアクリップ プレーン:** カメラに最も近いレンダリング ポイントです。 |
+| **3**  | **カメラ視錐台:** ニアクリップ プレーンとファー クリップ プレーンの間の領域です。このビューにあるものはすべてレンダリング対象と見なされます。 |
+| **4**  | **ファークリップ プレーン:** カメラから最も遠いレンダリング ポイントです。ビューをクリップする設定距離ではなく、シーン深度によって調節されます。 |
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:CameraView1]
 [REGION:lightbox]
 [![](CameraView.png)(w:600)](CameraView.png)
@@ -147,12 +147,13 @@ _Click images for full size_
 [![](FrustumView.png)(w:600)](FrustumView.png)
 [/REGION]
 [/EXCERPT:SceneView1]
---->
+-
+[/COMMENT]
 
-The view frustum is controlled by its **Field of View** (FOV). Higher values will give wider viewing angle and a lower value will restrict the available viewing angle.
+視錐台は **視野角** (FOV) で調整します。値が高いと表示角度が広くなり、値が低いと表示角度が制限されます。
 
 [REGION:note]
-The Camera's view frustum visualization is not enabled by default. You must first go to the Viewport and select **Show** > **Advanced** > **Camera Frustum** to enable it.
+カメラの視錐台の可視化はデフォルトでは無効になっています。ビューポートで **[Show (表示)]** > **[Advanced (詳細)]** > **[Camera Frustum (カメラ錐台)]** を選択して、まず有効にしなければなりません。
 [/REGION]
 
 [OBJECT:EmbeddedVideo]
@@ -167,30 +168,31 @@ The Camera's view frustum visualization is not enabled by default. You must firs
  [/PARAMLITERAL]
 [/OBJECT]
 
-For more information on [using and setting up Cameras](Gameplay/HowTo/UsingCameras) you can read about them in this page.
+詳細は、本ページの [カメラの使用および設定方法](Gameplay/HowTo/UsingCameras) をご覧ください。
 
 
-### What is Occlusion?
+### オクルージョンについて
 
-Occlusion happens when you have an Actor that can block or become blocked by another Actor. The Actors are either occluders, occludees, or both. 
+オクルージョンは、別のアクタを隠すことができるアクタ、または別のアクタから隠されるアクタがあると発生します。アクタは、オクルーダー、オクルーディー、あるいはその両方になります。 
  
-* An occluder is any Actor that can occlude another Actor from being visible to the view frustum.
-* An occludee is any Actor that is occluded by another Actor from being visible to the view frustum. If this Actor is large enough it can also be an occluder for smaller Actors that it blocks from the view frustum.
+* オクルーダーは、別のアクタを視錐台に表示されないようにするアクタです。
+* オクルーディーは、別のアクタによって視錐台に表示されなくなるアクタのことです。アクタがある程度大きければ、それより小さいアクタを視錐台で隠すオクルーダーとなります。
 
-In the example below, the Camera represents the view of the scene. Behind the wall lies two Actors that cannot be seen because they are blocked from the camera view. The statue and barrel both would be occludees since 
-they are being blocked by the wall that is an occluding them. Also, remember that both the barrel and statue could be occluders if they were blocking anything behind them. Every occluder can be an occludee if it is large 
-enough to block another actor.
+下の例では、カメラがシーンのビューを表しています。ウォールの後ろには、カメラ ビューで隠されているため表示されていないアクタがあります。彫刻と銃身は、それらをオクルードしている壁によって隠されているので、 
+両方ともオクルーディーとなります。さらに、銃身と彫刻は後ろにあるものを隠していればオクルーダーとなることを覚えておいてください。すべてのオクルーダーは、 
+他のアクタを隠すことができる大きさがあればオクルーディーになることができます。
 
 [REGION:imagetable]
 | [INCLUDE:#OccluderVsOccludee1] | [INCLUDE:#OccluderVsOccludeeCV] |
 | --- | --- | 
-| Occluder = Wall, Occludee = Barrels and Statue  | Camera FOV shows the wall that occludes the barrels and statue. |
+| Occluder = Wall, Occludee = Barrels and Statue  | カメラの FOV が銃身と彫刻をオクルードする壁を表示します。 |
 [/REGION]
 [REGION:caption]
-_Click images for full size_
+_画像をクリックしてフルサイズで表示_
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:OccluderVsOccludee1]
 [REGION:lightbox]
 [![](OccluderVsOccludee.png)(w:450)](OccluderVsOccludee.png)
@@ -202,54 +204,55 @@ _Click images for full size_
 [![](OccluderVsOccludeeCameraView.png)(w:450)](OccluderVsOccludeeCameraView.png)
 [/REGION]
 [/EXCERPT:OccluderVsOccludeeCV]
---->
+-
+[/COMMENT]
 
-### Visibility Culling
+### ビジビリティ カリング
 
-The following types of culling are used to determine the current visibility state of an Actor in the scene.
+以下のタイプのカリングは、シーンのアクタの現在の可視ステートの判断に使用します。
 
-| Types of Culling | Description |
+|カリングのタイプ|説明|
 | ---------------- | ----------- |
-| **Distance** | The Actor's set distance is used to determine its visibility state. |
-| **View Frustum** | This is used to remove any Actors that do not have its bounds visible within the Camera's view frustum. Anything outside of this viewing area will not be rendered.  |
-| **Occlusion** | This is used to remove any additional Actors that are within the Camera's view frustum that is blocked by another from being viewed. This is done by testing if the Actor is visible within the scene's depth buffer. If it is visible it will be rendered, and if it is not it will be considered occluded and not rendered. |
+| **Distance** | アクタの設定距離を可視ステートの判断に使用します。 |
+| **View Frustum** | カメラの視錐台内に境界が一切表示されないアクタを削除するために使用します。この表示領域の外にあるものは、レンダリングの対象にはなりません。 |
+| **Occlusion** | カメラ視錐台にありながら、他のアクタに隠されて表示されない余分なアクタを削除するために使用します。アクタがシーンの深度バッファ内にあるかどうかテストして行います。あればレンダリングされ、なければオクルードされているとみなされレンダリングされません。 |
 
 
-For more information on [Buffer Visualizations](Engine/UI/LevelEditor/Viewports/ViewModes#buffervisualization) you can read about them on this page.
+詳細は、[バッファの視覚化](Engine/UI/LevelEditor/Viewports/ViewModes#Bufferの視覚化) でご確認ください。
 
-## Visibility Culling Methods
+## ビジビリティ カリング メソッド
 
-Once the data has been culled from the scene it is tested against the available culling methods that have been implemented to test the visibility state of the Actors. The visibility culling methods work
-together and in the case of mobile offer a solution where dynamic occlusion is not possible.
+データがシーンからカリングされたら、アクタの可視ステートをテストするために実装されているカリング メソッドでテストします。ビジビリティ カリング メソッドは連動しています。
+モバイルの場合、動的オクルージョンができない場合の解決方法となります。
 
-These culling methods listed here are in the order they are applied, which is also from least to most expensive in terms of rendering thread cost.
+以下のカリング メソッドは適用順になっています。同時に、レンダリング スレッド負荷の小さいもの順にもなっています。
 
-* Distance culling (Per-instance and Cull Distance Volumes)
-* View frustum culling
-* Precomputed occlusion culling
-* Dynamic occlusion culling (hardware occlusion queries)
+* 距離カリング (インスタンスごとのボリュームおよび Cull Distance Volumes)
+* 視錐台カリング
+* 事前計算オクルージョン カリング
+* 動的オクルージョン カリング (ハードウェア オクルージョン クエリ)
 
 
-#### Distance Culling (Per-instance)
+#### Distance Culling (インスタンス別)
 
-Each Actor in the scene can have its own set draw distance that will allows minimum and maximum distance for it to be rendered visible.
+シーン内の各アクタに対して、レンダリング結果として表示できる最短 / 最長の描画距離を設定することができます。
 
 ![](DistanceCullSettings.png)
 
-| **Property** | **Description** |
+| **プロパティ** | **説明** |
 | ------------ | --------------- |
-| **Min Draw Distance** | The minimum distance at which the primitive should be rendered. This is measured in world space units from the center of the primitive's bounding sphere to the camera position. |
-| **Desired Max Draw Distance** | The max draw distance exposed to Level Designers. The real max draw distance is the min (disregarding 0) of this and volumes effecting this object. |
-| **Current Max Draw Distance** | This is not an editable property. This field shows the cull distance that is set by the CullDistanceVolume that the primitive is residing inside of. If it is set to 0 no Cull Distance Volume has been set so the value will be 0. |
+| **Min Draw Distance** | プリミティブのレンダリング最小距離です。プリミティブのバウンディング球体の中央からカメラ位置までワールド スペース単位で計測されます。 |
+| **Desired Max Draw Distance** | レベル デザイナーに公開されている最長描画距離です。実際の最大描画距離は、この Desired Max Draw Distance の値、および、このオブジェクトに影響を与えるボリュームに設定された値のうちで最小の値 (ゼロは無視します) になります。|
+| **Current Max Draw Distance** | このプロパティは編集できません。このフィールドには、プリミティブが中に存在する CullDistanceVolume によって設定されたカリング距離が表示されます。0 に設定すると Cull Distance Volume は設定されないので、値は 0 になります。 |
 
-In the examples below, the **Min Draw Distance** and **Desired Max Draw Distance** have been set for the cube. These values determine the closest distance to render the Actor or the farthest distance that 
-the Actor can be rendered from the Camera's view.
+下の例では、キューブに **Min Draw Distance** と **Desired Max Draw Distance** を設定しています。これらの値は、アクタをレンダリングする最短距離、あるいは 
+アクタをレンダリングできるカメラのビューからの最長距離を決定します。
 
 * **Min Draw Distance:** 500
 * **Desired Max Draw Distance:** 1000
 
 [REGION:note]
-Note that the **Desired Max Draw Distance** here will override any higher value set in a Cull Distance Volume. See the [Cull Distance Volume](1_TimH\2_IN_PROGRESS\VisibilityCulling\CullDistanceVolume) page for more information.
+ここで、**Desired Max Draw Distance** が Cull Distance Volume に設定された高い値をオーバーライドしていることに注目してください。詳細は、[Cull Distance Volume](1_TimH\2_IN_PROGRESS\VisibilityCulling\CullDistanceVolume) ページを参照してください。
 [/REGION]
 
 [OBJECT:EmbeddedVideo]
@@ -265,22 +268,25 @@ Note that the **Desired Max Draw Distance** here will override any higher value 
 [/OBJECT]
 
 
-<!---
+[COMMENT:none]
+-
 [REGION:imagetable]
 | [INCLUDE:#Units1500] | [INCLUDE:#Units1000] | [INCLUDE:#Units500] |
 | --- | --- | --- |
-| More than Desired Max Draw Distance | Within Range of Min and Max Draw Distance | Less than Min Draw Distance | 
+| Desired Max Draw Distance より長い | Min と Max Draw Distance の間 | Min Draw Distance 未満 | 
 [/REGION]
 
-To help illustrate what is happening in the video above, the images here show a top-down view and mark the distance from the **Camera** Actor to the center point of the **Cube** Actor. 
-The image directly below the top-down view shows the camera's view.
+上の動画での現象を図説しやすいように、この画像はトップダウン ビューを表示し、**Camera** アクタか **Cube** アクタの中央までの距離を示します。 
+トップダウン ビューのすぐ下の画像は、カメラのビューです。
 
---->
+-
+[/COMMENT]
 
-Since the **Desired Max Draw Distance** is set to 1000 and the **Min Draw Distance** is set to 500 the cube Actor will only be visible when the Camera moves within this distance from the Actor's bounding box
-center. When the Camera moves outside of this space the Actor will no longer be rendered. 
+**Desired Max Draw Distance** が 1000、**Min Draw Distance** が 500 に設定されているので、
+キューブ アクタはカメラがアクラのバウンディング ボックスの中央からこの範囲内を移動した時だけみえるようになります。カメラがこのスペース外に移動すると、アクタはレンダリング対象外となります。 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Units1500]
 [REGION:lightbox]
 [![](1500units.png)(w:300)](1500Units.png)
@@ -298,26 +304,27 @@ center. When the Camera moves outside of this space the Actor will no longer be 
 [![](500units.png)(w:300)](500Units.png)
 [/REGION]
 [/EXCERPT:Units500]
--->
+
+[/COMMENT]
 
 
 #### Cull Distance Volume
 
-Cull Distance Volumes allow you to specify a set of sizes and distances in an array that will automatically remove any Actor based on its bounds size at the corresponding distance. These volumes are useful
-for large outdoor scenes that have detailed interiors. 
+Cull Distance Volumes は、対応する距離の境界のサイズに基づいて、アクタを自動除去する大きさと距離を配列に指定することができるようにします。これらのボリュームは、
+大きな屋外シーンに詳細な内部がある場合に便利です。 
 
-For more information on using and setting up [Cull Distance Volumes](1_TimH\2_IN_PROGRESS\VisibilityCulling\CullDistanceVolume) you can read about it in this page.
+使用方法とセットアップに関する情報は、本ページの [Cull Distance Volumes](1_TimH\2_IN_PROGRESS\VisibilityCulling\CullDistanceVolume) をご覧ください。
 
 
-#### View Frustum Culling
+#### 視錐台カリング
 
-The Camera's view frustum is used to test whether the culled data from the scene is visible within its viewing area. This process uses the Actor's bounding box and sphere to check if it is visible within the view. If not, the 
-Actor will not be rendered.
+カメラの視錐台は、シーンからカリングされたデータが表示中の領域内にあるかどうかをテストするために使います。この処理は、アクタのバウンディング ボックスと球体を使ってデータがビューの中で見えるか確認します。もしなければ、 
+アクタはレンダリングされません。
 
-The following example demonstrates how the view frustum considers Actors that are visible within the viewing area.
+以下の例は、視錐台が表示中の領域内のアクタの存在の判定方法です。
 
-* Yellow represents FOV of the view frustum and the area that is no occluded by other Actors.
-* Red represents the part of the view frustum that is occluded due to other Actors (ie. walls and large objects).
+* 黄色は、視錐台の FOV と他のアクタにオクルードされない領域を表します。
+* 赤は、他のアクタ (壁や大きいオブジェクトなど) のためオクルードされて部分的に見えている視錐台です。
 
 [REGION:imagetable]
 | [INCLUDE:#Camera1] | [INCLUDE:#Camera2] | [INCLUDE:#Camera3] | [INCLUDE:#Camera4] |
@@ -325,19 +332,20 @@ The following example demonstrates how the view frustum considers Actors that ar
 |          1         |          2         |          3         |          4         | 
 [/REGION]
 
-| **Number** | **Description** |
+| **番号** | **説明** |
 | ---------- | --------------- |
-| **1** | From this perspective there are large walls that act as occluders obstructing all but the view along the hallway. Because of this only the cube is visible. This means that the sphere and cone are occludees of the wall and will not be rendered. |
-| **2** | As the Camera moves forward there is more of the scene that is exposed to the view frustum. The walls no longer fully occlude the sphere and cone now that we can see parts of them around the corners of the wall. This means that they are now being fully rendered even though we can only see a small part of them. |
-| **3** | Next the as the Camera turns to the left we now have the sphere and cube within the view frustum. The cone and walls out of view will no longer be rendered. |
-| **4** | Now as the Camera is turned back to the right the cone and cube are within the view and the walls and sphere that are out of view are no longer being rendered. |
+| **1** | このパースペクティブでは、玄関までのビュー以外すべてを隠すオクルーダとなる大きい壁があります。このため、キューブだけしか見えません。つまり、球体とコーンは壁のオクルーディーなので、レンダリングはされません。 |
+| **2** | カメラが前方に動くと、視錐台には映るシーンが広がります。壁が球体とコーンをオクルードしなくなり、壁の隅周辺で球体とコーンが部分的に見えます。見えているのは一部ですが、全体がレンダリングされているということになります。 |
+| **3** | 次に、カメラが左を向くと、視錐台内には球体とキューブが見えます。ビューの外にあるコーンと壁はレンダリングされません。 |
+| **4** | 今度はカメラが右に向くと、ビューにコーンとキューブが見えるようになり、ビューから外れた壁と球体はレンダリングされなくなります。 |
 
 [REGION:note]
-This is a generalized example of how visibility culling works and there is a number of caveats and reasons to how things can be rendered that are not covered here. For additional tips and strategies to use
-with visibility culling see the [Culling Strategies for Best Practices](#cullingstrategiesforbestpractices) section in this page.
+ビジビリティ カリングの仕組みの一般的な例です。レンダリングに関する注意事項と理由はたくさんあるので、ここでは一部のみ説明します。ヒントや方策については、
+本ページの [ベスト プラクティスのためのカリング方法](#ベストプラクティスのためのカリング方法) をご覧ください。
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Camera1]
 [REGION:lightbox]
 [![](Camera1.png)(w:215)](Camera1.png)
@@ -361,136 +369,141 @@ with visibility culling see the [Culling Strategies for Best Practices](#culling
 [![](Camera4.png)(w:215)](Camera4.png)
 [/REGION]
 [/EXCERPT:Camera4]
--->
+
+[/COMMENT]
 
 
 #### Precomputed Visibility Volume
 
-<!---![](PrecomputedVisibilityVolume.png)(w:500)--->
+[COMMENT:none]
+-![](PrecomputedVisibilityVolume.png)(w:500)-
+[/COMMENT]
 
-Precomputed Visibility Volumes use visibility cells that are placed on surfaces after a static lighting build. These visibility cells use the Camera view to change the visibility state of an Actor.
-This culling method is good for having visibility culling on mobile devices where hardware occlusion queries cannot be issued to check the visibility state. 
+Precomputed Visibility Volumes は、静的ライティング ビルドの後にサーフェイスに置かれるビジビリティ セルを使います。これらのビジビリティ セルは、カメラ ビューを使ってアクタの可視ステートを変更します。
+カリング メソッドは、可視ステートを確認するためのハードウェア オクルージョン クエリを発行できないモバイル デバイス上にビジビリティ カリングを行う際に便利です。 
 
-For more information on using and setting up [Precomputed Visibility Volumes](1_TimH\2_IN_PROGRESS\VisibilityCulling\PrecomputedVisibilityVolume) you can read about them in this page.
+使用方法とセットアップに関する情報は、[Precomputed Visibility Volumes](1_TimH\2_IN_PROGRESS\VisibilityCulling\PrecomputedVisibilityVolume) をご覧ください。
 
-#### Dynamic Occlusion
+#### 動的オクルージョン
 
-Dynamic occlusion queries are performed last in the chain of culling methods by only looking at the Actors that have been determined to be within the view frustum of the Camera. The Actors bounds that are 
-within the view frustum are then tested against the Scene Depth Buffer for their visibility by sending them to the GPU and reading them back one frame later. If an Actor's bounds is not visible within the 
-scene depth it will not be rendered. This allows the visibility state for any Actor occluded by another Actor to not be rendered. This method can allow for farther view distances because it relies on appoximate
-distances rather than setting a specific value for the far clip plane's distance.
+動的オクルージョン クエリは、カメラの視錐台内にあると判定されたアクタを見るだけでカリング メソッドのチェーンの最後に実施されます。視錐台内にあるアクタ境界は、 
+GPU に送られて 1 フレーム遅れで読みとられて、シーン深度バッファに対するビジビリティがテストされます。アクタの境界がシーン深度内に表示されなければ、 
+レンダリングはされません。これにより、別のアクタにオクルードされたアクタに対する可視ステートがレンダリングされないようにします。また、ファー クリップ プレーンの距離に特定の値を設定するのではなくて、
+おおよその距離に依存しているので、表示距離を遠くにすることができます。
 
 #### Hierarchical Z Buffer
 
 [REGION:warning]
-The Hierarchical Z-Buffer occlusion implementation is still considered experimental. There are some known issues that have not yet been addressed, like some meshes being culled when they should not be. 
+Hierarchical Z-Buffer オクルージョンの実装はまだ実験的と見なされています。不適切にメッシュがカリングされてしまうなど、未対処の既知の問題があります。 
 [/REGION]
 
-The idea behind Hierarchical Z-Buffer occlusion is to represent the depth of the scene with multiple resolutions to determine the visibility of an Actor. This is done by creating mipmapped version 
-of the render target for the scene depth which has texels that identify the depth in the scene for the Actors tested. The Actors can be tested for occlusion by comparing the depth value of the Actor's bounds
-to that in the render target that was captured. By using a lower resolution mip level this will use a more conservative check for the bounds of an Actor which leads to fewer texture fetches when sampling from
-a mip level. 
+Hierarchical Z-Buffer オクルージョンの背後にある考え方は、アクタの可視性を決定するために複数の解像度でシーンの深度を表現することです。これは、テスト対象のアクタに対してシーンで深度を特定するテクセルがあるシーン深度に対して、 
+レンダー ターゲットのミップマップ版を作成することで実現します。アクタの境界の深度値をキャプチャされたレンダー ターゲットの深度値と比較すれば、
+アクタのオクルージョンをテストすることができます。解像度が低めのミップ レベルを使うと、アクタ境界のチェックが慎重になり、
+ミップ レベルからサンプリングする際のテクスチャ フェッチが少なくなります。 
 
 [REGION:note]
-By rendering the scene to a lower resolution than the actual scene resolution you risk falsely culling Actors that should be visible.  
+シーンを実際のシーン解像度より低い解像度でレンダリングすると、表示すべきアクタを不正にカリングする危険があります。  
 [/REGION]
 
-Hierarchical Z-Buffer Occlusion Culling can be enabled by using the following console command: 
+Hierarchical Z-Buffer Occlusion Culling は以下のコンソール コマンドで有効にすることができます。 
 
 	r.HZBOcclusion
 
-* 0 will disable Hierarchical Z-Buffer occlusion
-* 1 will enable Hierarchical Z-Buffer occlusion
-* 2 will force the Hierarchical Z-Buffer system, which will override any rendering platform preferences
+* 0 で Hierarchical Z-Buffer occlusion を無効にします。
+* 1 で Hierarchical Z-Buffer occlusion を有効にします。
+* 2 は Hierarchical Z-Buffer システムを強制使用します。これにより、レンダリング プラットフォームの環境設定をオーバーライドします。
 
 
-## Culling Strategies for Best Practices
+## ベスト プラクティスのためのカリング方法
 
-Below are some good practices to follow when designing and working with visibility culling for your game.
+ゲームで Visibility Culling を作成および使用するためのグッドプラクティスをいくつか紹介します。
 
-### "Popping" in/Lag from GPU Queries of Actors
+### GPU クエリによるアクタのポッピング / 遅延現象
 
-This is a common issue with using visibility culling for the view frustum and hardware occlusion queries since they are being read back from the GPU one frame later. This is often 
-noticeable when turning your player camera very fast or when you come around a corner in darkly lit areas that have a contrasting lit area behind them. 
+GPU から 1 フレーム遅れて読み取られるので、視錐台とハードウェア オクルージョン クエリに Visibility Culling を使うとこの問題がよく発生します。プレイヤー カメラを急速に切り替える、もしくは明るい照明の前の領域を暗く照らそうとすると、 
+よく分かります。 
 
-* Use other geometry to help hide this artifact. For something like caves or darkened areas with bright outsides use a large occluder mesh that can sit just outside of these pieces to hide the popping in and block the light that makes it evident.
-* Increase the Bounds Scale of the Actor that is causing the offending behavior. 
-* Build geometry in a way that does not have too many small pieces that need to be assembled. This is especially true for walls, floors, and ceilings.
+* 別のジオメトリを使って、このアーティファクトを隠します。洞窟や、暗い場所で外が明るい場合、これらの構成要素のちょうど外側に収まる大きなオクルーダ メッシュを使って、ポッピングの部分を隠し、アーティファクトを目立たせるライトをブロックします。
+* 問題のビヘイビアを発生させているアクタの Bounds Scale を増やします。 
+* 小さい構成要素を組み立てなくて済むような方法でジオメトリをビルドします。ウォール、フロア、天井に特に当てはまります。
 
 ### Large View Distances
 
-Large view distances can cause an impact on performance due to the number of Actors that need to be rendered. By blocking these large view distances with large occluders you can block Actors that would have been rendered otherwise.
-This can reduce the number of queries that need to be sent to the GPU by having fewer Actors to check. In turn, you get better performance by having fewer Actors to check and render.
+Large View Distances は、レンダリングが必要なアクタ数のために、パフォーマンスに影響を与える可能性があります。こういった Large View Distances を大きなオクルーダでブロックすれば、レンダリングされてしまう可能性のあるアクタをブロックすることができます。
+これによりチェックするアクタ数が少なくなるため、GPU へ送らなければならないクエリ数を減らすことができます。同様に、チェックおよびレンダリングするアクタ数が減れば、パフォーマンスも良くなります。
 
-* Use large occluders where possible. 
-* Use Cull Distance Volumes to remove any smaller Actors that will not be easily visible at far distances, even if they are occluded from view.
-* Limit the amount of overdraw you get from Translucent Actors, since they will not occlude.
+* 可能な限り、大きいオクルーダを使います。 
+* 小さなアクタは、例えビューからオクルードされていても、それが遠くで見えずらい場合は、Cull Distance Volumes を使って取り除きます。
+* Translucent アクタから取得したオーバードローはオクルードされないので、量を制限します。
 
-### Asset Construction
+### アセットの構築
 
-When creating geometry for your game it is a good idea to break your geometry up into modular pieces for design purposes and reusability. However, it is possible to modularize too much in the design 
-process by using pieces that are too small to make up larger geometry. Because of this, each actor will need to be have its visibility state checked. It's best to find a balance that makes sense
-for your game design and optimize for the best performance. Reducing the number of queries needed to check visibility is key for optimization and to help reduce the "Popping" in that can happen. 
+ゲームのジオメトリを作成する場合、ジオメトリをモジュラーに分割しておくと、デザインがしやすく、また再利用もできます。ただし、あまりに小さい要素で大きなジオメトリを作ろうとすると、 
+デザイン プロセスで非常に多くのモジュラーができてしまう可能性があります。そこで、各アクタの可視性ステートをチェックしておく必要があります。ゲーム デザインにぴったりのバランスを見つけ出し、
+ベストパフォーマンスを引き出すような最適化を行うことが重要です。可視性チェックに必要なクエリ数の削減が最適化には必須であり、「ポッピング」が起こる確率も減らしやすくなります。 
 
-* Use larger geometry when crafting your levels for structural surfaces rather than breaking it up into many smaller pieces. There is more impact on the GPU testing multiple smaller Actors than a single Actor.
-* "Popping" in of Actors is reduced when considering the construction of the mesh.
+* 構造的なサーフェイスに対してレベルを作る時は、小さな構成要素にたくさん分割せずに大きいジオメトリを使います。単一のアクタをテストするよりも、複数の小さなアクタをテストする方が GPU への負荷は大きくなります。
+* メッシュ構築を検討する際に、アクタの「ポッピング」を減らします。
 
 
-### Consider Occlusion vs Distance Culling Cost
+### Occlusion Culling と Distance Culling の負荷を考慮する
 
-Occlusion and visibility culling methods cost much more than distance culling since these require GPU queries, so it is a good idea to setup Cull Distance Volumes for distant stuff even if they will 
-be occluded from a certain part of the scene.
+オクルージョンと Visibility Culling メソッドは GPU クエリを要求するため、Distance Culling よりも高負荷です。従って、そのシーンのある場所から別のアクタでオクルードされていても、 
+遠くのものには Cull Distance Volumes を設定すると良いでしょう。
 
-* Make good use of Cull Distance Volumes to reduce occlusion culling costs.
-* Stream out levels where possible instead of relying on distance or occlusion culling.
-* Use the `Stat Initviews` command to keep performance balance in check.
+* Cull Distance Volumes を活用して、Occlusion Culling 負荷を削減します。
+* Distance Culling または Occlusion Culling に依存するのではなく、できる限りレベルをストリームアウトします。
+* `Stat Initviews` コマンドを使って、常にパフォーマンス バランスを確認します。
 
-For information about [Level Streaming](Engine/LevelStreaming) see how to set this up in this page.
+* セットアップ方法については、以下の [レベル ストリーミング](Engine/LevelStreaming) セクションをご覧ください！
 
-## Project Settings
+## プロジェクト設定
 
-To open the **Project Settings** you must first go to the main menu and select **Edit** > **Project Settings**. When the window opens you can select the **Rendering** category to see the available
-settings under the section named **Culling**.
+メイン メニューから **[Edit]** > **[Project Settings]** を選択して **[Project Settings]** ウィンドウを開きます。ウィンドウが開くと **[Rendering]** カテゴリの **[Culling]** セクションに
+使用可能な設定が表示されます。
 
 
 ![](ProjectSettingsCulling.png)
 
-| Setting | Description |
+| 設定 | 説明 |
 | --- | --- |
-| **Occlusion Culling** | Allows occluded meshes to be culled and not rendered. If this is disabled all occlusion culling will be disabled for the project which can have performance implications. |
-| **Min Screen Radius for EarlyZPass** | Screen radius at which objects are culled for early Z pass. Larger values can improve performance but very large values can degrade performance if large occluders are not rendered. |
-| **Warn about no precomputed visibility** | Displays a warning when no precomputed visibility data is available for the current camera location. This can be helpful if you are making a game that relies on precomputed visibility. |
+| **Occlusion Culling** | オクルージョン メッシュをレンダリングせずにカリングします。この設定を無効にすると、プロジェクトのすべてのオクルージョン カリングが無効にされ、パフォーマンスへ影響する可能性があります。 |
+| **Min Screen Radius for EarlyZPass** | Early-Z pass に対してオブジェクトをカリングする画面半径です。値が大きいとパフォーマンスが良くなりますが、値が非常に大きいとオクルーダがレンダリングされない場合、パフォーマンスが落ちます。 |
+| **Warn about no precomputed visibility** | 使用中のカメラ位置に対して利用できる事前計算されたビジビリティ データがない場合に警告を表示します。事前計算されたビジビリティに依存するゲームを作成する場合に便利です。 |
 
 [REGION:tip]
-​If you are developing a mobile game it would be beneficial to enable the option for **Warn about no precomputed visibility** as a good reminder for your Level Designers when developing for mobile, since it does not currently use dynamic 
-occlusion culling.
+​モバイルゲームを開発中ならば、現在動的オクルージョン カリングを使用しないので、 
+レベル デザイナーへのリマインダーとして **[Warn about no precomputed visibility]** オプションを有効にすることを覚えておくと便利です。
 [/REGION]
 
 
-<!---
-## Console Commands
+[COMMENT:none]
+-
+## コンソール コマンド
 
-| Console Variable | Description |
+| コンソール変数 | 説明 |
 | --- | --- |
-| **r.OneFrameThreadLag** | Controls when occlusion queries are rendered. Rendering before the base pass may give worse occlusion (because not all occluders generally render in the earlyzpass). However, it may reduce CPU waiting for query result stalls on some platforms and increase overall performance. 0: After BasePass. 1: After EarlyZPass, but before BasePass. |
-| **r.AllowOcclusionQueries** | If zero, occlusion queries will not be used to cull primitives. |
-| **r.DownsampledOcclusionQueries** | Whether to issue occlusion queries to a downsampled depth buffer. |
-| **r.NumBufferedOcclusionQueries** | Number of frames to buffer occlusion queries (including the current render thread frame). More frames reduce the chance of stalling the CPU waiting for the results, but increases out of date query artifacts. |
--->
+| **r.OneFrameThreadLag** | オクルージョン クエリをレンダリングするタイミングを調節します。レンダリングをベース パス前に行うと、オクルージョンの質が落ちます (一般的にすべてのオクルーダは earlyzpass でレンダリングするため)。ただし、プラットフォームによっては CPU のクエリ結果待ちによる遅延が改善されるため、全体的にパフォーマンスが良くなります。0:BasePass の後1:EarlyZPass の後で BasePass の前 |
+| **r.AllowOcclusionQueries** | 0 に設定すると、プリミティブのカリングにオクルージョン クエリを使用しません。 |
+| **r.DownsampledOcclusionQueries** | ダウンサンプル深度バッファに対してオクルージョン クエリを発行するか設定します。 |
+| **r.NumBufferedOcclusionQueries** | (使用中のレンダリング スレッド フレームを含む) オクルージョン クエリをバッファするフレーム数です。フレーム数を増やすと、結果待ちによる CPU 遅延の可能性が減りますが、無効のクエリ アーティファクトが増加します。 |
 
-## Relevant Stats for Performance
+[/COMMENT]
 
-In real-time rendering for games, it is important to manage your scene for optimization by keeping check of the stats generated for your scene that are relevant to visibility and occlusion culling.
+## パフォーマンス関連の統計
 
-Use the following console command to view the stats relevant to visibility and occlusion culling for your scene: 
+ゲームをリアルタイムでレンダリングする場合は、シーンに対して作成されるビジビリティ カリングとオクルージョン カリング関連の統計を常に確認してシーンの最適化を管理することが重要です。
 
-	Stat Initviews
+以下のコンソール コマンドを使って、シーンのビジビリティ カリングとオクルージョン カリング関連の統計を表示します。 
+
+	統計の初期ビュー
 
 [REGION:warning]
-Keep in mind that when testing visibility and occlusion culling there are a couple of things to be aware of.
+ビジビリティ カリングとオクルージョン カリングをテストする際には、以下の点に留意してください。
 
-* Occlusion culling is disabled in **Wireframe** view mode.
-* Use the console command **Stat Initviews** in PIE or Standalone games for more accurate results, because geometry for editor Actors that represent Lights, Cameras, and so on will be included when calculating visibility and occlusion culling.
+* **Wireframe** ビューモードではオクルージョン カリングは無効になります。
+* PIE またはスタンドアローン ゲームでコンソール コマンド **Stat Initviews** と使うと、ライト、カメラなどを表すエディタ アクタのジオメトリは、ビジビリティとオクルージョン カリングの計算時に含まれるので、結果の精度があがります。
 [/REGION]
 
 
@@ -498,14 +511,14 @@ Keep in mind that when testing visibility and occlusion culling there are a coup
 ![](StatInitViews.png)
 [/REGION]
 [REGION:caption]
-The scene's stats above were taken from the [Infinity Blade Grasslands](https://www.unrealengine.com/marketplace/infinity-blade-plain-lands) created by EPIC Games and is freely available on the EPIC Games Marketplace.
+上記は、エピック ゲームズ制作の [Infinity Blade Grasslands](https://www.unrealengine.com/marketplace/infinity-blade-plain-lands) の統計です。エピック ゲームズ マーケットプレイスで無料で利用できます。
 [/REGION]
 
-The **Stat Initiviews** window is broken up into two sections for `Cycle Counters` and `Counters`. The Cycle Counter's stats focus on the number of cycles in milliseconds it took to process, while the Counter's stats simply
-add up the primitives that are processed.
+**[Stat Initiviews (統計の初期ビュー)]** ウィンドウは、[Cycle Counters] と [Counters] の 2 つのセクションに分割されています。Cycle Counter の統計情報は、処理にかかるミリ秒での周期数がメインで、
+一方、Counter の統計情報は処理されたプリミティブの単純加算です。
 
 [REGION:tip]
-`Visible Static Mesh Elements` is the single biggest contributor to rendering thread time and should be carefully watched and optimized.
+`Visible Static Mesh Elements` は、レンダリング スレッド時間を長くする唯一かつ最大の要因です。注意して観察して最適化してください。
 [/REGION]
 
 | Stat Initviews |  |
@@ -514,47 +527,49 @@ add up the primitives that are processed.
 | **Counters** | [INCLUDE:#counters] |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:CycleCounter]
-| Stat | Description|
+| 統計情報 | 説明 |
 | --- | --- |
-| **View Visibility** | The amount of frame time spent to process Actor visibility queries. |
-| **Occlusion Cull** | The amount of frame time spent to query the scene for Actors within the view frustum that were occluded by other Actors. |
-| **Frustum Cull** | The amount of frame time spent to query if an Actor's bounds were within the view frustum. |
-| **Decompress Occlusion** | The amount of frame time it took to load the precomputed visibility. |
+| **View Visibility** | アクタ ビジビリティ クエリの処理にかかるフレーム時間の合計です。 |
+| **Occlusion Cull** | 他のアクタによってオクルードされた視錐台のアクタに対するシーンのクエリにかかるフレーム時間の合計です。 |
+| **Frustum Cull** | 視錐体にアクタの境界があるかどうかのクエリにかかるフレーム時間の合計です。 |
+| **Decompress Occlusion** | 事前計算されたビジビリティのロードにかかるフレーム時間の合計です。 |
 [/EXCERPT:CycleCounter]
 
 [EXCERPT:Counters]
-| Stat | Description|
+| 統計情報 | 説明 |
 | --- | --- |
-| **Processed Primitives** | This is the total number of Actors that are being processed in the scene.  |
-| **Frustum Culled Primitives** | This is the number of primitives culled when not within the view frustum's FOV. |
-| **Occluded Primitives** | The number of Actors that are occluded by other Actors from within the view frustum's FOV. |
-| **Occlusion Queries** | This is the number of scene occlusion queries sent to the GPU based on the number of Actors visible within the view frustum. |
-| **Visible Dynamic Primitives** | This is the number of dynamic primitives in the scene that have their mobility set to Movable, like Particle Systems and Foliage instances. |
-| **Visible Static Mesh Elements** | This is the number of visible meshes that have their mobility set to Static within the scene. |
+| **Processed Primitives** | シーンで処理されるアクタ数の合計です。 |
+| **Frustum Culled Primitives** | 視錐体の FOV 外でカリングされたプリミティブ数です。 |
+| **Occluded Primitives** | 視錐体の FOV から他のアクタにオクルードされている状態のアクタ数です。 |
+| **Occlusion Queries** | 視錐体に表示されているアクタ数に応じて GPU に送るシーン オクルージョン クエリ数です。|
+| **Visible Dynamic Primitives** | パーティクル システムとフォリッジ インスタンスなど、可動性が Movable に設定されたシーン内の動的プリミティブ数です。 |
+| **Visible Static Mesh Elements** | 可動性が Static に設定された表示メッシュ数です。 |
 [/EXCERPT:Counters]
--->
 
-## Tips & Tricks
+[/COMMENT]
 
-The following Tips & Tricks can be used to help troubleshoot and test your scene when you suspect problem related to visibility or occlusion culling. 
+## ヒントとコツ
 
-##### Visualize Occluded Primitives
+ビジビリティ カリングおよびオクルージョン カリング絡みの問題が発生した場合のシーンのトラブルシューティングおよびテストに、以下のヒントとコツが役立ちます。 
 
-This will enable the visualization mode to draw the bounding boxes of any Actors in your scene that are occluded from the Camera view. A green bounding box indicates the Actor is 
-dynamically occluded and a red bounding box indicates that the Actor is statically occluded when using [Precomputed Visibility Volumes](1_TimH\2_IN_PROGRESS\VisibilityCulling\PrecomputedVisibilityVolume). 
+##### オクルードされたプリミティブを可視化する
 
-Use the following console command to enable this visualization: 
+可視化モードを有効にすると、シーン内でカメラ ビューからオクルードされたすべてのアクタのバウンディングボックスを描画することができます。[Precomputed Visibility Volumes](1_TimH\2_IN_PROGRESS\VisibilityCulling\PrecomputedVisibilityVolume) を使うと、 
+緑のバウンディング ボックスは、アクタが動的にオクルードされていること、赤のバウンディングボックスはアクタが静的にオクルードされていることを表します。 
+
+以下のコンソール コマンドを使って、可視化を有効にします。 
 
 	r.VisualizeOccludedPrimitives 1
 
 
 [REGION:note]
-This console command will only work while in the editor and not in PIE or Standalone games.
+このコンソール コマンドはエディタ内のみでしか使用できません。PIE あるいはスタンドアローン式ゲームでは使用できません。
 [/REGION]
 
-In the example below, the visualization of occluded Actors blocked by the wall is compared to the placement of the Actor's with the wall removed. 
+以下の例では、壁によってブロックされている、オクルードされたアクタを可視化したものと、壁を取り除いた時のアクタを配置を比べています。 
 
 [OBJECT:ComparisonSlider]
  [PARAM:before]
@@ -566,11 +581,11 @@ In the example below, the visualization of occluded Actors blocked by the wall i
 [/OBJECT]
 
 
-##### Freeze Rendering
+##### レンダリングのフリーズ
 
-This will toggle the rendering state of the scene from the current Camera perspective while allowing you to freely move around the world.
+ワールド内を自由に移動しながら、現在のカメラ視点からのシーンのレンダリング ステートを切り替えます。
 
-Use the following console command to toggle this mode:
+このモードの切り替えには、次のコンソール コマンドを使います。
 
 	FREEZERENDERING
 
@@ -590,26 +605,20 @@ Use the following console command to toggle this mode:
 
 ##### Game View Mode
 
-You can use the keyboard shortcut for **G** or use the main **Viewport Options** down-arrow to select **Game View** to be able to work in the editor and switch between what you would see in game. 
-This is helpful when you do not want to PIE or launch a game but need to check what the game would look like. This is ideal for checking [Cull Distance Volumes](1_TimH\2_IN_PROGRESS\VisibilityCulling\CullDistanceVolume) 
-and [Precomputed Visibility Volumes](1_TimH\2_IN_PROGRESS\VisibilityCulling\PrecomputedVisibilityVolume) since these do not work unless you are in game or using the Game View.
+キーボードのショートカット **G** またはメインの **[Viewport Options]** ドロップダウンから **[Game View]** を選ぶと、エディタで作業することができるようになり、ゲームでの表示との切り替えが可能になります。 
+PIE での作業やゲームの起動をせずにゲームでの見え方を確認したい場合に便利なモードです。ゲーム内にいるか、Game View を使わない限り動作しないモードなので、 
+[Cull Distance Volumes](1_TimH\2_IN_PROGRESS\VisibilityCulling\CullDistanceVolume) および [Precomputed Visibility Volumes](1_TimH\2_IN_PROGRESS\VisibilityCulling\PrecomputedVisibilityVolume) の確認にも理想的なモードです。
 
-For more information on the [Game View](Engine\UI\LevelEditor\Viewports\Basics) mode, you can read about it in this page.
-
-
+詳細は、[Game View](Engine\UI\LevelEditor\Viewports\Basics) モードのセクションをご覧ください。
 
 
-[OBJECT:TopicButtonList]
- [PARAM:icon]
-  ![](%ROOT%/related_icon.png)(convert:false)
- [/PARAM]
- [PARAM:title]
-  Related Links
- [/PARAM]
- [PARAM:description]
- [/PARAM]
- [PARAM:links]
+
+
+## 関連リンク
+
+[REGION:buttonlist]
+
   * [](1_TimH\2_IN_PROGRESS\VisibilityCulling\PrecomputedVisibilityVolume)
   * [](1_TimH\2_IN_PROGRESS\VisibilityCulling\CullDistanceVolume)
- [/PARAM]
-[/OBJECT]
+ 
+[/REGION]

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,7 +7,8 @@
 #include "UObject/Object.h"
 #include "Misc/Guid.h"
 #include "Templates/Casts.h"
-#include "Materials/MaterialExpressionMaterialFunctionCall.h"
+#include "Materials/MaterialFunctionInterface.h"
+#include "StaticParameterSet.h"
 #include "MaterialFunction.generated.h"
 
 class UMaterial;
@@ -18,13 +19,9 @@ struct FPropertyChangedEvent;
  * A Material Function is a collection of material expressions that can be reused in different materials
  */
 UCLASS(BlueprintType, hidecategories=object, MinimalAPI)
-class UMaterialFunction : public UObject
+class UMaterialFunction : public UMaterialFunctionInterface
 {
 	GENERATED_UCLASS_BODY()
-
-	/** Used by materials using this function to know when to recompile. */
-	UPROPERTY(duplicatetransient)
-	FGuid StateId;
 
 #if WITH_EDITORONLY_DATA
 	/** Used in the material editor, points to the function asset being edited, which this function is just a preview for. */
@@ -39,6 +36,10 @@ class UMaterialFunction : public UObject
 	/** Whether to list this function in the material function library, which is a window in the material editor that lists categorized functions. */
 	UPROPERTY(EditAnywhere, Category=MaterialFunction, AssetRegistrySearchable)
 	uint32 bExposeToLibrary:1;
+	
+	/** If true, parameters in this function will have a prefix added to their group name. */
+	UPROPERTY(EditAnywhere, Category=MaterialFunction)
+	uint32 bPrefixParameterNames:1;
 
 #if WITH_EDITORONLY_DATA
 	/** 
@@ -67,95 +68,79 @@ class UMaterialFunction : public UObject
 	UPROPERTY(transient)
 	UMaterial* PreviewMaterial;
 #endif // WITH_EDITORONLY_DATA
+
 private:
 	/** Transient flag used to track re-entrance in recursive functions like IsDependent. */
 	UPROPERTY(transient)
 	uint32 bReentrantFlag:1;
 
 public:
-
 	//~ Begin UObject Interface.
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	//~ End UObject Interface.
 
+	void SetMaterialFunctionUsage(EMaterialFunctionUsage Usage) { MaterialFunctionUsage = Usage; }
+
+	//~ Begin UMaterialFunctionInterface interface
+	virtual EMaterialFunctionUsage GetMaterialFunctionUsage() override { return MaterialFunctionUsage; }
+
 	/** Recursively update all function call expressions in this function, or in nested functions. */
-	void UpdateFromFunctionResource();
+	virtual void UpdateFromFunctionResource() override;
 
 	/** Get the inputs and outputs that this function exposes, for a function call expression to use. */
-	void GetInputsAndOutputs(TArray<struct FFunctionExpressionInput>& OutInputs, TArray<struct FFunctionExpressionOutput>& OutOutputs) const;
+	virtual void GetInputsAndOutputs(TArray<struct FFunctionExpressionInput>& OutInputs, TArray<struct FFunctionExpressionOutput>& OutOutputs) const override;
 
-	int32 Compile(class FMaterialCompiler* Compiler, const struct FFunctionExpressionOutput& Output);
-
-	/** Called during compilation before entering the function. */
-	void LinkIntoCaller(const TArray<FFunctionExpressionInput>& CallerInputs);
-
-	void UnlinkFromCaller();
-
-	/** @return true if this function is dependent on the passed in function, directly or indirectly. */
-	ENGINE_API bool IsDependent(UMaterialFunction* OtherFunction);
-
-	/** Returns an array of the functions that this function is dependent on, directly or indirectly. */
-	ENGINE_API void GetDependentFunctions(TArray<UMaterialFunction*>& DependentFunctions) const;
-
-	/** Appends textures referenced by the expressions in this function. */
-	ENGINE_API void AppendReferencedTextures(TArray<UTexture*>& InOutTextures) const;
-
-	template<typename ExpressionType>
-	void GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
-	{
-		for (int32 ExpressionIndex = 0; ExpressionIndex < FunctionExpressions.Num(); ExpressionIndex++)
-		{
-			const UMaterialExpressionMaterialFunctionCall* FunctionExpression = Cast<const UMaterialExpressionMaterialFunctionCall>(FunctionExpressions[ExpressionIndex]);
-
-			if (FunctionExpression)
-			{
-				if (FunctionExpression->MaterialFunction)
-				{
-					FunctionExpression->MaterialFunction->GetAllParameterNames<const ExpressionType>(OutParameterNames, OutParameterIds);
-				}
-			}
-			else
-			{
-				const ExpressionType* ParameterExpression = Cast<const ExpressionType>(FunctionExpressions[ExpressionIndex]);
-
-				if (ParameterExpression)
-				{
-					ParameterExpression->GetAllParameterNames(OutParameterNames, OutParameterIds);
-				}
-			}
-		}
-
-		check(OutParameterNames.Num() == OutParameterIds.Num());
-	}
+	virtual bool ValidateFunctionUsage(class FMaterialCompiler* Compiler, const FFunctionExpressionOutput& Output) override;
 
 #if WITH_EDITOR
-	ENGINE_API UMaterial* GetPreviewMaterial();
+	virtual int32 Compile(class FMaterialCompiler* Compiler, const struct FFunctionExpressionOutput& Output) override;
 
-	void UpdateInputOutputTypes();
+	/** Called during compilation before entering the function. */
+	virtual void LinkIntoCaller(const TArray<FFunctionExpressionInput>& CallerInputs) override;
+
+	virtual void UnlinkFromCaller() override;
+#endif
+
+	/** @return true if this function is dependent on the passed in function, directly or indirectly. */
+	virtual bool IsDependent(UMaterialFunctionInterface* OtherFunction) override;
+
+	/** Returns an array of the functions that this function is dependent on, directly or indirectly. */
+	ENGINE_API virtual void GetDependentFunctions(TArray<UMaterialFunctionInterface*>& DependentFunctions) const override;
+
+	/** Appends textures referenced by the expressions in this function. */
+	virtual void AppendReferencedTextures(TArray<UTexture*>& InOutTextures) const override;
+
+#if WITH_EDITOR
+	virtual UMaterialInterface* GetPreviewMaterial() override;
+
+	virtual void UpdateInputOutputTypes() override;
 
 	/**
 	 * Checks whether a Material Function is arranged in the old style, with inputs flowing from right to left
 	 */
-	bool HasFlippedCoordinates() const;
+	virtual bool HasFlippedCoordinates() const override;
 #endif
 
-#if WITH_EDITORONLY_DATA
-	UPROPERTY(AssetRegistrySearchable)
-	uint32 CombinedInputTypes;
+	virtual UMaterialFunctionInterface* GetBaseFunction() override { return this; }
+	virtual const UMaterialFunctionInterface* GetBaseFunction() const override { return this; }
+	virtual const TArray<UMaterialExpression*>* GetFunctionExpressions() const override { return &FunctionExpressions; }
+	virtual const FString* GetDescription() const override { return &Description; }
 
-	UPROPERTY(AssetRegistrySearchable)
-	uint32 CombinedOutputTypes;
+	virtual bool GetReentrantFlag() const override { return bReentrantFlag; }
+	virtual void SetReentrantFlag(const bool bIsReentrant) override { bReentrantFlag = bIsReentrant; }
+	//~ End UMaterialFunctionInterface interface
 
-	/** Information for thumbnail rendering */
-	UPROPERTY(VisibleAnywhere, Instanced, Category = Thumbnail)
-	class UThumbnailInfo* ThumbnailInfo;
-#endif
+
+#if WITH_EDITOR
+	ENGINE_API bool SetVectorParameterValueEditorOnly(FName ParameterName, FLinearColor InValue);
+	ENGINE_API bool SetScalarParameterValueEditorOnly(FName ParameterName, float InValue);
+	ENGINE_API bool SetTextureParameterValueEditorOnly(FName ParameterName, class UTexture* InValue);
+	ENGINE_API bool SetFontParameterValueEditorOnly(FName ParameterName, class UFont* InFontValue, int32 InFontPage);
+	ENGINE_API bool SetStaticComponentMaskParameterValueEditorOnly(FName ParameterName, bool R, bool G, bool B, bool A, FGuid OutExpressionGuid);
+	ENGINE_API bool SetStaticSwitchParameterValueEditorOnly(FName ParameterName, bool OutValue, FGuid OutExpressionGuid);
+#endif // WITH_EDITOR
 };
-
-
-

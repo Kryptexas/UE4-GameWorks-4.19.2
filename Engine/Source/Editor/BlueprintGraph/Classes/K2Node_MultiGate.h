@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -60,6 +60,6 @@ class UK2Node_MultiGate : public UK2Node_ExecutionSequence
 
 private:
 	// Returns the exec output pin name for a given 0-based index
- 	virtual FString GetPinNameGivenIndex(int32 Index) const override;
+ 	virtual FName GetPinNameGivenIndex(int32 Index) const override;
 };
 

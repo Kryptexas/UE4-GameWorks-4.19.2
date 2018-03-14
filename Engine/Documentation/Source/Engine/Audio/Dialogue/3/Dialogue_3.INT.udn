@@ -59,7 +59,8 @@ conversation logic herself.
 [NAV]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:graph]
 [OBJECT:Snippet]
 [PARAMLITERAL:id]
@@ -182,4 +183,5 @@ conversation logic herself.
 [/PARAM]
 [/OBJECT]
 [/EXCERPT]
--->
+
+[/COMMENT]

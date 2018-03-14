@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DepthRendering.h: Depth rendering definitions.
@@ -67,10 +67,10 @@ public:
 
 	void ApplyDitheredLODTransitionState(FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither);
 
-	FDrawingPolicyMatchResult Matches(const FDepthDrawingPolicy& Other) const
+	FDrawingPolicyMatchResult Matches(const FDepthDrawingPolicy& Other, bool bForReals = false) const
 	{
 		DRAWING_POLICY_MATCH_BEGIN
-		 	DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
+		 	DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other, bForReals)) &&
 			DRAWING_POLICY_MATCH(bNeedsPixelShader == Other.bNeedsPixelShader) &&
 			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
 			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader) &&
@@ -141,10 +141,10 @@ public:
 
 	void ApplyDitheredLODTransitionState(FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither);
 
-	FDrawingPolicyMatchResult Matches(const FPositionOnlyDepthDrawingPolicy& Other) const
+	FDrawingPolicyMatchResult Matches(const FPositionOnlyDepthDrawingPolicy& Other, bool bForReals = false) const
 	{
 		DRAWING_POLICY_MATCH_BEGIN
-			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) && 
+			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other, bForReals)) &&
 			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader);
 		DRAWING_POLICY_MATCH_END
 	}

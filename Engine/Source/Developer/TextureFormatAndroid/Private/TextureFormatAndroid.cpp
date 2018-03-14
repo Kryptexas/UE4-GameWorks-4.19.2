@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "GenericPlatform/GenericPlatformStackWalk.h"
@@ -25,6 +25,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogTextureFormatAndroid, Log, All);
 	op(AutoATC) \
 	op(ETC1) \
 	op(AutoETC1) \
+	op(AutoETC1a) \
 	op(ETC2_RGB) \
 	op(ETC2_RGBA) \
 	op(AutoETC2)
@@ -60,6 +61,7 @@ static bool CompressImageUsingQonvert(
 	)
 {
 	// Avoid dependency on GPixelFormats in RenderCore.
+	// If block size changes, please update in AndroidETC.cpp in DecompressTexture
 	const int32 BlockSizeX = 4;
 	const int32 BlockSizeY = 4;
 	const int32 BlockBytes = (PixelFormat == PF_ATC_RGBA_E || PixelFormat == PF_ATC_RGBA_I || PixelFormat == PF_ETC2_RGBA) ? 16 : 8;
@@ -184,6 +186,16 @@ class FTextureFormatAndroid : public ITextureFormat
 		if (BuildSettings.TextureFormatName == GTextureFormatNameETC1)
 		{
 			CompressedPixelFormat = PF_ETC1;
+		}
+		else
+		if (BuildSettings.TextureFormatName == GTextureFormatNameAutoETC1a && !bImageHasAlphaChannel)
+		{
+			CompressedPixelFormat = PF_ETC1;
+		}
+		else
+		if (BuildSettings.TextureFormatName == GTextureFormatNameAutoETC1a && bImageHasAlphaChannel)
+		{
+			CompressedPixelFormat = PF_ETC2_RGBA;
 		}
 		else
 		if (BuildSettings.TextureFormatName == GTextureFormatNameETC2_RGB ||

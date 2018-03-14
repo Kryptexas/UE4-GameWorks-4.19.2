@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,10 +19,10 @@ class UNetConnection;
 UENUM()
 enum EVisibilityAggressiveness
 {
-	VIS_LeastAggressive,
-	VIS_ModeratelyAggressive,
-	VIS_MostAggressive,
-	VIS_Max,
+	VIS_LeastAggressive UMETA(DisplayName = "Least Aggressive"),
+	VIS_ModeratelyAggressive UMETA(DisplayName = "Moderately Aggressive"),
+	VIS_MostAggressive UMETA(DisplayName = "Most Aggressive"),
+	VIS_Max UMETA(Hidden),
 };
 
 UENUM()
@@ -34,14 +34,14 @@ enum EVolumeLightingMethod
 	 * Positions outside of the Importance Volume reuse the border texels of the Volumetric Lightmap (clamp addressing).
 	 * On mobile, interpolation is done on the CPU at the center of each object's bounds.
 	 */
-	VLM_VolumetricLightmap,
+	VLM_VolumetricLightmap UMETA(DisplayName = "Volumetric Lightmap"),
 
 	/** 
 	 * Volume lighting samples are placed on top of static surfaces at medium density, and everywhere else in the Lightmass Importance Volume at low density.  Positions outside of the Importance Volume will have no indirect lighting.
 	 * This method requires CPU interpolation so the Indirect Lighting Cache is used to interpolate results for each dynamic object, adding Rendering Thread overhead.  
 	 * Volumetric Fog cannot be affected by precomputed lighting with this method.
 	 */
-	VLM_SparseVolumeLightingSamples,
+	VLM_SparseVolumeLightingSamples UMETA(DisplayName = "Sparse Volume Lighting Samples"),
 };
 
 USTRUCT()
@@ -130,6 +130,15 @@ struct FLightmassWorldInfoSettings
 	float VolumetricLightmapMaximumBrickMemoryMb;
 
 	/** 
+	 * Controls how much smoothing should be done to Volumetric Lightmap samples during Spherical Harmonic de-ringing.  
+	 * Whenever highly directional lighting is stored in a Spherical Harmonic, a ringing artifact occurs which manifests as unexpected black areas on the opposite side.
+	 * Smoothing can reduce this artifact.  Smoothing is only applied when the ringing artifact is present.
+	 * 0 = no smoothing, 1 = strong smooth (little directionality in lighting).
+	 */
+	UPROPERTY(EditAnywhere, Category=LightmassVolumeLighting, meta=(UIMin = "0", UIMax = "1"))
+	float VolumetricLightmapSphericalHarmonicSmoothing;
+
+	/** 
 	 * Scales the distances at which volume lighting samples are placed.  Volume lighting samples are computed by Lightmass and are used for GI on movable components.
 	 * Using larger scales results in less sample memory usage and reduces Indirect Lighting Cache update times, but less accurate transitions between lighting areas.
 	 */
@@ -197,6 +206,7 @@ struct FLightmassWorldInfoSettings
 		, VolumeLightingMethod(VLM_VolumetricLightmap)
 		, VolumetricLightmapDetailCellSize(200)
 		, VolumetricLightmapMaximumBrickMemoryMb(30)
+		, VolumetricLightmapSphericalHarmonicSmoothing(.02f)
 		, VolumeLightSamplePlacementScale(1)
 		, bUseAmbientOcclusion(false)
 		, bGenerateAmbientOcclusionMaterialMask(false)
@@ -292,12 +302,17 @@ struct ENGINE_API FHierarchicalSimplification
 	UPROPERTY(EditAnywhere, Category=FHierarchicalSimplification, AdvancedDisplay, meta=(ClampMin = "1", UIMin = "1"))
 	int32 MinNumberOfActorsToBuild;	
 
+	/** Min number of actors to build LODActor */
+	UPROPERTY(EditAnywhere, Category = FHierarchicalSimplification, AdvancedDisplay)
+	bool bOnlyGenerateClustersForVolumes;
+
 	FHierarchicalSimplification()
 		: TransitionScreenSize(0.315f)
-		, bSimplifyMesh(false)		
-		, DesiredBoundRadius(2000) 
+		, bSimplifyMesh(false)
+		, DesiredBoundRadius(2000)
 		, DesiredFillingPercentage(50)
 		, MinNumberOfActorsToBuild(2)
+		, bOnlyGenerateClustersForVolumes(false)
 	{
 		MergeSetting.bMergeMaterials = true;
 		MergeSetting.bGenerateLightMapUV = true;
@@ -318,6 +333,21 @@ private:
 };
 
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
+
+UCLASS(Blueprintable)
+class ENGINE_API UHierarchicalLODSetup : public UObject
+{
+	GENERATED_BODY()
+public:
+	UHierarchicalLODSetup()
+	{
+		HierarchicalLODSetup.AddDefaulted();
+	}
+
+	/** Hierarchical LOD Setup */
+	UPROPERTY(EditAnywhere, Category = HLODSystem)
+	TArray<struct FHierarchicalSimplification> HierarchicalLODSetup;
+};
 
 /**
  * Actor containing all script accessible world properties.
@@ -506,12 +536,22 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	UPROPERTY(EditAnywhere, config, Category=LODSystem)
 	uint32 bEnableHierarchicalLODSystem:1;
 
+	/** If sets overrides the level settings and global project settings */
+	UPROPERTY(EditAnywhere, config, Category = LODSystem)
+	TSoftClassPtr<class UHierarchicalLODSetup> HLODSetupAsset;
+
+protected:
 	/** Hierarchical LOD Setup */
-	UPROPERTY(EditAnywhere, Category=LODSystem, meta=(editcondition = "bEnableHierarchicalLODSystem"))
+	UPROPERTY(EditAnywhere, Category=LODSystem, config, meta=(editcondition = "bEnableHierarchicalLODSystem"))
 	TArray<struct FHierarchicalSimplification>	HierarchicalLODSetup;
 
+public:
 	UPROPERTY()
 	int32 NumHLODLevels;
+
+	/** if set to true, all eligible actors in this level will be added to a single cluster representing the entire level (used for small sublevels)*/
+	UPROPERTY(EditAnywhere, config, Category = LODSystem, AdvancedDisplay)
+	uint32 bGenerateSingleClusterForLevel : 1;
 #endif
 	/************************************/
 	/** DEFAULT SETTINGS **/
@@ -651,6 +691,11 @@ public:
 	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
 	//~ End IInterface_AssetUserData Interface
 
+#if WITH_EDITOR
+	const TArray<struct FHierarchicalSimplification>& GetHierarchicalLODSetup() const;
+	TArray<struct FHierarchicalSimplification>& GetHierarchicalLODSetup();
+	int32 GetNumHierarchicalLODLevels() const;
+#endif // WITH EDITOR
 
 private:
 

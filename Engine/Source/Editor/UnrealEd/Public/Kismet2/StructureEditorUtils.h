@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -91,6 +91,8 @@ public:
 
 	static FString GetVariableDisplayName(const UUserDefinedStruct* Struct, FGuid VarGuid);
 
+	static UProperty* GetPropertyByDisplayName(const UUserDefinedStruct* Struct, FString DisplayName);
+
 	static FString GetVariableTooltip(const UUserDefinedStruct* Struct, FGuid VarGuid);
 	
 	static bool ChangeVariableTooltip(UUserDefinedStruct* Struct, FGuid VarGuid, const FString& InTooltip);
@@ -145,17 +147,7 @@ public:
 	static void RemoveInvalidStructureMemberVariableFromBlueprint(UBlueprint* Blueprint);
 
 	//DEFAULT VALUE
-	/*
-	 Default values for member variables in User Defined Structure are stored in meta data "MakeStructureDefaultValue"
-	 The following functions are used to fill an instance of user defined struct with those default values.
-	 */
-	static bool Fill_MakeStructureDefaultValue(const UUserDefinedStruct* Struct, uint8* StructData);
-
-	static bool Fill_MakeStructureDefaultValue(const UProperty* Property, uint8* PropertyData);
-
 	static void RecreateDefaultInstanceInEditorData(UUserDefinedStruct* Struct);
-
-	static bool DiffersFromDefaultValue(const UUserDefinedStruct* Struct, uint8* StructData);
 
 	//VALIDATION
 	static bool CanHaveAMemberVariableOfType(const UUserDefinedStruct* Struct, const FEdGraphPinType& VarType, FString* OutMsg = NULL);

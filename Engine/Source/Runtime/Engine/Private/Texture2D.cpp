@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Texture2D.cpp: Implementation of UTexture2D.
@@ -122,6 +122,11 @@ static bool CanCreateAsVirtualTexture(uint32 TexCreateFlags)
 int32 GDefragmentationRetryCounter = 10;
 /** Number of times to retry to reallocate a texture before trying a panic defragmentation, subsequent times. */
 int32 GDefragmentationRetryCounterLong = 100;
+
+#if STATS
+int64 GUITextureMemory = 0;
+int64 GNeverStreamTextureMemory = 0;
+#endif
 
 /** Turn on ENABLE_TEXTURE_TRACKING in ContentStreaming.cpp and setup GTrackedTextures to track specific textures through the streaming system. */
 extern bool TrackTextureEvent( FStreamingTexture* StreamingTexture, UTexture2D* Texture, bool bForceMipLevelsToBeResident, const FStreamingManagerTexture* Manager );
@@ -914,14 +919,13 @@ void UTexture2D::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 
 	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Exclusive)
 	{
-		CumulativeResourceSize.AddUnknownMemoryBytes(CalcTextureMemorySize(GetNumResidentMips()));
+		// Use only loaded mips
+		CumulativeResourceSize.AddDedicatedVideoMemoryBytes(CalcTextureMemorySize(GetNumResidentMips()));
 	}
 	else
 	{
-		if (PlatformData)
-		{
-			CumulativeResourceSize.AddUnknownMemoryBytes(CalcTextureSize(GetSizeX(), GetSizeY(), GetPixelFormat(), GetNumMips()));
-		}
+		// Use all possible mips
+		CumulativeResourceSize.AddDedicatedVideoMemoryBytes(CalcTextureMemorySize(GetNumMipsAllowed(true)));
 	}
 }
 
@@ -1001,11 +1005,31 @@ void UTexture2D::SetForceMipLevelsToBeResident( float Seconds, int32 CinematicTe
 
 int32 UTexture2D::Blueprint_GetSizeX() const
 {
+#if WITH_EDITORONLY_DATA
+	// When cooking, blueprint construction scripts are ran before textures get postloaded.
+	// In that state, the texture size is 0. Here we compute the resolution once cooked.
+	if (!GetSizeX())
+	{
+		const UTextureLODSettings* LODSettings = UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings();
+		const int32 CookedLODBias = LODSettings->CalculateLODBias(Source.SizeX, Source.SizeY, LODGroup, LODBias, 0, MipGenSettings);
+		return FMath::Max<int32>(Source.SizeX >> CookedLODBias, 1);
+	}
+#endif
 	return GetSizeX();
 }
 
 int32 UTexture2D::Blueprint_GetSizeY() const
 {
+#if WITH_EDITORONLY_DATA
+	// When cooking, blueprint construction scripts are ran before textures get postloaded.
+	// In that state, the texture size is 0. Here we compute the resolution once cooked.
+	if (!GetSizeY())
+	{
+		const UTextureLODSettings* LODSettings = UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings();
+		const int32 CookedLODBias = LODSettings->CalculateLODBias(Source.SizeX, Source.SizeY, LODGroup, LODBias, 0, MipGenSettings);
+		return FMath::Max<int32>(Source.SizeY >> CookedLODBias, 1);
+	}
+#endif
 	return GetSizeY();
 }
 
@@ -1180,6 +1204,17 @@ void FTexture2DResource::InitRHI()
 	INC_DWORD_STAT_BY( STAT_TextureMemory, TextureSize );
 	INC_DWORD_STAT_FNAME_BY( LODGroupStatName, TextureSize );
 
+#if STATS
+	if (Owner->LODGroup == TEXTUREGROUP_UI)
+	{
+		GUITextureMemory += TextureSize;
+	}
+	else if (Owner->NeverStream)
+	{
+		GNeverStreamTextureMemory += TextureSize;
+	}
+#endif
+
 	const TIndirectArray<FTexture2DMipMap>& OwnerMips = Owner->GetPlatformMips();
 	const int32 RequestedMips = OwnerMips.Num() - CurrentFirstMip;
 	uint32 SizeX = OwnerMips[CurrentFirstMip].SizeX;
@@ -1344,6 +1379,17 @@ void FTexture2DResource::ReleaseRHI()
 
 	DEC_DWORD_STAT_BY( STAT_TextureMemory, TextureSize );
 	DEC_DWORD_STAT_FNAME_BY( LODGroupStatName, TextureSize );
+
+#if STATS
+	if (Owner->LODGroup == TEXTUREGROUP_UI)
+	{
+		GUITextureMemory -= TextureSize;
+	}
+	else if (Owner->NeverStream)
+	{
+		GNeverStreamTextureMemory -= TextureSize;
+	}
+#endif
 
 	FTextureResource::ReleaseRHI();
 	Texture2DRHI.SafeRelease();

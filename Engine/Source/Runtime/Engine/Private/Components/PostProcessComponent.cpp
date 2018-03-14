@@ -1,6 +1,7 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/PostProcessComponent.h"
+#include "Components/SphereComponent.h"
 
 UPostProcessComponent::UPostProcessComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -21,17 +22,17 @@ bool UPostProcessComponent::EncompassesPoint(FVector Point, float SphereRadius/*
 		FVector ClosestPoint;
 		float Distance = ParentShape->GetDistanceToCollision(Point, ClosestPoint);
 #else
-		FBoxSphereBounds Bounds = ParentShape->CalcBounds(ParentShape->GetComponentTransform());
+		FBoxSphereBounds SphereBounds = ParentShape->CalcBounds(ParentShape->GetComponentTransform());
 		float Distance = 0;
 		if (ParentShape->IsA<USphereComponent>())
 		{
-			const FSphere& Sphere = Bounds.GetSphere();
+			const FSphere& Sphere = SphereBounds.GetSphere();
 			const FVector& Dist = Sphere.Center - Point;
 			Distance = FMath::Max(0.0f, Dist.Size() - Sphere.W);
 		}
 		else // UBox or UCapsule shape (approx).
 		{
-			Distance = FMath::Sqrt(Bounds.GetBox().ComputeSquaredDistanceToPoint(Point));
+			Distance = FMath::Sqrt(SphereBounds.GetBox().ComputeSquaredDistanceToPoint(Point));
 		}
 #endif
 

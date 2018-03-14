@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalRHIPrivate.h: Private Metal RHI definitions.
@@ -9,6 +9,7 @@
 #include "CoreMinimal.h"
 #include "Misc/ScopeLock.h"
 #include "Misc/CommandLine.h"
+#include "PixelFormat.h"
 
 // Requirement for vertex buffer offset field
 const uint32 BufferOffsetAlignment = 256;
@@ -49,7 +50,6 @@ enum EMTLTextureType
 #define METAL_SUPPORTS_INDIRECT_ARGUMENT_BUFFERS (!PLATFORM_MAC && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000) && (__clang_major__ >= 9)
 #define METAL_SUPPORTS_CAPTURE_MANAGER (PLATFORM_MAC && __MAC_OS_X_VERSION_MAX_ALLOWED >= 101300) || (!PLATFORM_MAC && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000) && (__clang_major__ >= 9)
 #define METAL_SUPPORTS_TILE_SHADERS (!PLATFORM_MAC && !PLATFORM_TVOS && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000) && (__clang_major__ >= 9)
-
 // In addition to compile-time SDK checks we also need a way to check if these are available on runtime
 extern bool GMetalSupportsIndirectArgumentBuffers;
 extern bool GMetalSupportsCaptureManager;
@@ -58,12 +58,24 @@ extern bool GMetalSupportsStoreActionOptions;
 extern bool GMetalSupportsDepthClipMode;
 extern bool GMetalCommandBufferHasStartEndTimeAPI;
 
+struct FMetalBufferFormat
+{
+	// Valid linear texture pixel formats - potentially different than the actual texture formats
+	MTLPixelFormat LinearTextureFormat;
+	// Metal buffer data types for manual ALU format conversions
+	uint8 DataFormat;
+};
+
+extern FMetalBufferFormat GMetalBufferFormats[PF_MAX];
+
 #define METAL_DEBUG_OPTIONS !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #if METAL_DEBUG_OPTIONS
 #define METAL_DEBUG_OPTION(Code) Code
 #else
 #define METAL_DEBUG_OPTION(Code)
 #endif
+
+extern bool GMetalSupportsTileShaders;
 
 #define SHOULD_TRACK_OBJECTS (UE_BUILD_DEBUG)
 

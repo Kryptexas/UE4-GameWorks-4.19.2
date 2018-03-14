@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,6 +11,7 @@
 #include "Containers/ArrayView.h"
 #include "IMovieScenePlayer.h"
 #include "KeyPropertyParams.h"
+#include "MovieSceneBinding.h"
 #include "Widgets/Input/NumericTypeInterface.h"
 #include "Editor/SequencerWidgets/Public/ITimeSlider.h"
 
@@ -22,6 +23,7 @@ class FUICommandList;
 class ISequencerKeyCollection;
 class UMovieSceneSequence;
 class UMovieSceneSubSection;
+class IDetailsView;
 enum class EMapChangeType : uint8;
 
 /**
@@ -127,16 +129,19 @@ class ISequencer
 public:
 	
 	DECLARE_MULTICAST_DELEGATE(FOnGlobalTimeChanged);
+	DECLARE_MULTICAST_DELEGATE(FOnPlayEvent);
+	DECLARE_MULTICAST_DELEGATE(FOnStopEvent);
 	DECLARE_MULTICAST_DELEGATE(FOnBeginScrubbingEvent);
 	DECLARE_MULTICAST_DELEGATE(FOnEndScrubbingEvent);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnMovieSceneDataChanged, EMovieSceneDataChangeType);
 	DECLARE_MULTICAST_DELEGATE(FOnMovieSceneBindingsChanged);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnMovieSceneBindingsPasted, const TArray<FMovieSceneBinding>&);
 	
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectionChangedObjectGuids, TArray<FGuid> /*Object*/)
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectionChangedObjectGuids, TArray<FGuid> /*Object*/);
 
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectionChangedTracks, TArray<UMovieSceneTrack*> /*Tracks*/)
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectionChangedTracks, TArray<UMovieSceneTrack*> /*Tracks*/);
 
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectionChangedSections, TArray<UMovieSceneSection*> /*Sections*/)
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectionChangedSections, TArray<UMovieSceneSection*> /*Sections*/);
 
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnActorAddedToSequencer, AActor*, const FGuid);
 
@@ -182,9 +187,10 @@ public:
 	 * Attempts to add a new spawnable to the MovieScene for the specified object (asset, class or actor instance)
 	 *
 	 * @param	Object	The asset, class, or actor to add a spawnable for
+	 * @param	ActorFactory	Optional actor factory to use to create spawnable type
 	 * @return	The spawnable guid for the spawnable, or an invalid Guid if we were not able to create a spawnable
 	 */
-	virtual FGuid MakeNewSpawnable(UObject& SourceObject) = 0;
+	virtual FGuid MakeNewSpawnable(UObject& SourceObject, UActorFactory* ActorFactory = nullptr) = 0;
 
 	/**
 	 * Add actors as possessable objects to sequencer.
@@ -349,6 +355,17 @@ public:
 	DECLARE_EVENT_OneParam(ISequencer, FOnActivateSequence, FMovieSceneSequenceIDRef)
 	virtual FOnActivateSequence& OnActivateSequence() = 0;
 
+	DECLARE_EVENT_TwoParams(ISequencer, FOnInitializeDetailsPanel, TSharedRef<IDetailsView>, TSharedRef<ISequencer>)
+	FOnInitializeDetailsPanel& OnInitializeDetailsPanel() { return InitializeDetailsPanelEvent; }
+
+	/** A delegate which will determine whether a binding should be visible in the tree. */
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnGetIsBindingVisible, const FMovieSceneBinding&)
+	FOnGetIsBindingVisible& OnGetIsBindingVisible() { return GetIsBindingVisible; }
+
+	/** A delegate which will determine whether a track should be visible in the tree. */
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnGetIsTrackVisible, const UMovieSceneTrack*)
+	FOnGetIsTrackVisible& OnGetIsTrackVisible() { return GetIsTrackVisible; }
+
 	/**
 	 * Gets a handle to runtime information about the object being manipulated by a movie scene
 	 * 
@@ -370,15 +387,19 @@ public:
 	DEPRECATED( 4.13, "NotifyMovieSceneDataChanged() is deprecated, use the version that takes EMovieSceneDataChangeType" )
 	void NotifyMovieSceneDataChanged() { NotifyMovieSceneDataChangedInternal(); };
 
+	/** Refresh the sequencer tree view */
+	virtual void RefreshTree() = 0;
+
 protected:
 	virtual void NotifyMovieSceneDataChangedInternal() = 0;
 
 public:
 	virtual void NotifyMovieSceneDataChanged( EMovieSceneDataChangeType DataChangeType ) = 0;
 
-	virtual void UpdateRuntimeInstances() = 0;
-
 	virtual void UpdatePlaybackRange() = 0;
+
+	virtual void SetPlaybackSpeed(float InPlaybackSpeed) = 0;
+	virtual float GetPlaybackSpeed() const = 0;
 
 	/** Get all the keys for the current sequencer selection */
 	virtual void GetKeysFromSelection(TUniquePtr<ISequencerKeyCollection>& KeyCollection, float DuplicateThresoldTime) = 0;
@@ -410,6 +431,12 @@ public:
 	/** Gets a multicast delegate which is executed whenever the global time changes. */
 	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() = 0;
 
+	/** Gets a multicast delegate which is executed whenever the user begins playing the sequence. */
+	virtual FOnPlayEvent& OnPlayEvent() = 0;
+
+	/** Gets a multicast delegate which is executed whenever the user stops playing the sequence. */
+	virtual FOnStopEvent& OnStopEvent() = 0;
+
 	/** Gets a multicast delegate which is executed whenever the user begins scrubbing. */
 	virtual FOnBeginScrubbingEvent& OnBeginScrubbingEvent() = 0;
 
@@ -421,6 +448,9 @@ public:
 
 	/** Gets a multicast delegate which is executed whenever the movie scene bindings are changed. */
 	virtual FOnMovieSceneBindingsChanged& OnMovieSceneBindingsChanged() = 0;
+
+	/** Gets a multicast delegate which is executed whenever bindings are pasted. */
+	virtual FOnMovieSceneBindingsPasted& OnMovieSceneBindingsPasted() = 0;
 
 	/** Gets a multicast delegate with an array of FGuid of bound objects which is called when the outliner node selection changes. */
 	virtual FOnSelectionChangedObjectGuids& GetSelectionChangedObjectGuids() = 0;
@@ -444,7 +474,7 @@ public:
 	virtual TSharedRef<SWidget> MakeTransportControls(bool bExtended) = 0;
 
 	/** Play or toggle playback at the specified play rate */
-	virtual FReply OnPlay(bool bTogglePlay = true, float InPlayRate = 1.f) = 0;
+	virtual FReply OnPlay(bool bTogglePlay = true) = 0;
 
 	/** Pause playback */
 	virtual void Pause() = 0;
@@ -475,4 +505,9 @@ public:
 	 * @return the widget
 	 */
 	virtual TSharedPtr<class ITimeSlider> GetTopTimeSliderWidget() const = 0;
+
+protected:
+	FOnInitializeDetailsPanel InitializeDetailsPanelEvent;
+	FOnGetIsBindingVisible GetIsBindingVisible;
+	FOnGetIsTrackVisible GetIsTrackVisible;
 };

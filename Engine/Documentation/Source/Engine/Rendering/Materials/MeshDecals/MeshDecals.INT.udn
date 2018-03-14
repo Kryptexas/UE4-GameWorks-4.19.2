@@ -19,11 +19,13 @@ details that shear and distort when not aligned with the surface it’s projecti
 simple projection and instead can be used with geometry that wraps around edges, being used with spline meshes, ultimately enhancing the 
 look of your characters. 
 
-<!---
+[COMMENT:none]
+-
 <div align= "center">
 ![](MeshDecalVsMasked.png)(w:700)
 </div>
---->
+-
+[/COMMENT]
 
 ## Mesh Decal versus Masked Material
 

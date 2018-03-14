@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameFramework/EngineMessage.h"
 #include "GameFramework/PlayerController.h"
@@ -29,7 +29,7 @@ void UEngineMessage::ClientReceive(const FClientReceiveData& ClientData) const
 				}
 				else
 				{
-					LocalMessageString = FString::Printf(TEXT("%s%s"), *ClientData.RelatedPlayerState_1->PlayerName, *EnteredMessage);
+					LocalMessageString = FString::Printf(TEXT("%s%s"), *ClientData.RelatedPlayerState_1->GetPlayerName(), *EnteredMessage);
 				}
 				break;
 			case 2:
@@ -39,7 +39,7 @@ void UEngineMessage::ClientReceive(const FClientReceiveData& ClientData) const
 				}
 				else
 				{
-					LocalMessageString = FString::Printf(TEXT("%s %s %s"), *ClientData.RelatedPlayerState_1->OldName, *GlobalNameChange, *ClientData.RelatedPlayerState_1->PlayerName);
+					LocalMessageString = FString::Printf(TEXT("%s %s %s"), *ClientData.RelatedPlayerState_1->GetOldPlayerName(), *GlobalNameChange, *ClientData.RelatedPlayerState_1->GetPlayerName());
 				}
 				break;
 			case 4:
@@ -49,7 +49,7 @@ void UEngineMessage::ClientReceive(const FClientReceiveData& ClientData) const
 				}
 				else
 				{
-					LocalMessageString = FString::Printf(TEXT("%s%s"), *ClientData.RelatedPlayerState_1->PlayerName, *LeftMessage);
+					LocalMessageString = FString::Printf(TEXT("%s%s"), *ClientData.RelatedPlayerState_1->GetPlayerName(), *LeftMessage);
 				}
 				break;
 			case 7:
@@ -64,7 +64,7 @@ void UEngineMessage::ClientReceive(const FClientReceiveData& ClientData) const
 				}
 				else
 				{
-					LocalMessageString = FString::Printf(TEXT("%s%s"), *ClientData.RelatedPlayerState_1->PlayerName, *SpecEnteredMessage);
+					LocalMessageString = FString::Printf(TEXT("%s%s"), *ClientData.RelatedPlayerState_1->GetPlayerName(), *SpecEnteredMessage);
 				}
 				break;
 		}

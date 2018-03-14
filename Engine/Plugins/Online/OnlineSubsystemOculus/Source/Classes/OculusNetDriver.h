@@ -24,6 +24,8 @@ private:
 	/** Should this net driver behave as a passthrough to normal IP */
 	bool bIsPassthrough;
 
+	TMap<uint64, EConnectionState> PendingClientConnections;
+
 public:
 	TMap<uint64, UOculusNetConnection*> Connections;
 
@@ -33,6 +35,7 @@ public:
 	virtual bool InitConnect(FNetworkNotify* InNotify, const FURL& ConnectURL, FString& Error) override;
 	virtual bool InitListen(FNetworkNotify* InNotify, FURL& LocalURL, bool bReuseAddressAndPort, FString& Error) override;
 	virtual void TickDispatch(float DeltaTime) override;
+	virtual void LowLevelSend(FString Address, void* Data, int32 CountBits) override;
 	virtual void Shutdown() override;
 	virtual bool IsNetResourceValid() override;
 

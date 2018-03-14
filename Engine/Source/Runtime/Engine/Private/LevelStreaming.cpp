@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/LevelStreaming.h"
 #include "ContentStreaming.h"
@@ -463,7 +463,6 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 			UWorld* PIELevelWorld = UWorld::DuplicateWorldForPIE(NonPrefixedLevelName, PersistentWorld);
 			if (PIELevelWorld)
 			{
-				PIELevelWorld->PersistentLevel->bAlreadyMovedActors = true; // As we have duplicated the world, the actors will already have been transformed
 				check(PendingUnloadLevel == NULL);
 				SetLoadedLevel(PIELevelWorld->PersistentLevel);
 
@@ -1123,23 +1122,46 @@ ALevelScriptActor* ULevelStreaming::GetLevelScriptActor()
 	return nullptr;
 }
 
-ULevelStreamingKismet* ULevelStreamingKismet::LoadLevelInstance(UObject* WorldContextObject, const FString& LevelName, const FVector& Location, const FRotator& Rotation, bool& bOutSuccess)
-{ 
-	bOutSuccess = false; 
+ULevelStreamingKismet* ULevelStreamingKismet::LoadLevelInstance(UObject* WorldContextObject, const FString LevelName, const FVector Location, const FRotator Rotation, bool& bOutSuccess)
+{
+	bOutSuccess = false;
 	UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
-	if (!World) 
+	if (!World)
 	{
 		return nullptr;
 	}
-	
+
 	// Check whether requested map exists, this could be very slow if LevelName is a short package name
 	FString LongPackageName;
 	bOutSuccess = FPackageName::SearchForPackageOnDisk(LevelName, &LongPackageName);
-	if (!bOutSuccess) 
+	if (!bOutSuccess)
 	{
 		return nullptr;
 	}
-		 
+
+	return LoadLevelInstance_Internal(World, LongPackageName, Location, Rotation, bOutSuccess);
+}
+
+ULevelStreamingKismet* ULevelStreamingKismet::LoadLevelInstanceBySoftObjectPtr(UObject* WorldContextObject, const TSoftObjectPtr<UWorld> Level, const FVector Location, const FRotator Rotation, bool& bOutSuccess)
+{
+	bOutSuccess = false;
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	// Check whether requested map exists, this could be very slow if LevelName is a short package name
+	if (Level.IsNull())
+	{
+		return nullptr;
+	}
+
+	return LoadLevelInstance_Internal(World, Level.GetLongPackageName(), Location, Rotation, bOutSuccess);
+}
+
+ULevelStreamingKismet* ULevelStreamingKismet::LoadLevelInstance_Internal(UWorld* World, const FString& LongPackageName, const FVector Location, const FRotator Rotation, bool& bOutSuccess)
+{
     // Create Unique Name for sub-level package
 	const FString ShortPackageName = FPackageName::GetShortName(LongPackageName);
 	const FString PackagePath = FPackageName::GetLongPackagePath(LongPackageName);

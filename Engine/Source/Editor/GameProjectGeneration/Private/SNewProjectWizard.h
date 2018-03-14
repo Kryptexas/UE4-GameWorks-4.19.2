@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,6 +8,8 @@
 #include "Input/Reply.h"
 #include "Widgets/SWidget.h"
 #include "Widgets/SCompoundWidget.h"
+#include "Widgets/Text/SRichTextBlock.h"
+#include "Widgets/SBoxPanel.h"
 #include "HardwareTargetingSettings.h"
 #include "Widgets/Views/STileView.h"
 
@@ -208,6 +210,9 @@ private:
 	/** Get the check state for the specified categories tab */
 	ECheckBoxState GetCategoryTabCheckState(FName Category) const;
 
+	TSharedRef<SRichTextBlock> MakeProjectSettingsDescriptionBox();
+	TSharedRef<SHorizontalBox> MakeProjectSettingsOptionsBox();
+
 private:
 
 	/** The wizard widget */
@@ -260,4 +265,9 @@ private:
 	/** Names for pages */
 	static FName TemplatePageName;
 	static FName NameAndLocationPageName;
+
+	TSharedPtr<SRichTextBlock> ProjectSettingsDescriptionBox;
+	TSharedPtr<SHorizontalBox> ProjectSettingsOptionsBox;
+
+	bool bProjectSettingsHidden;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilingDebugging/ExternalProfiler.h"
 #include "Logging/LogMacros.h"
@@ -54,7 +54,10 @@ FExternalProfiler* FActiveExternalProfilerBase::GetActiveProfiler()
 		{
 			FExternalProfiler& CurProfiler = IModularFeatures::Get().GetModularFeature<FExternalProfiler&>(FExternalProfiler::GetFeatureName());
 
+#if 0
+			// Logging disabled here as it can cause a stack overflow whilst flushing logs during EnginePreInit
 			UE_LOG(LogExternalProfiler, Log, TEXT("Found external profiler: %s"), CurProfiler.GetProfilerName());
+#endif
 
 			// Default to the first profiler we have if none were specified on the command-line
 			if (ActiveProfiler == NULL)
@@ -69,6 +72,8 @@ FExternalProfiler* FActiveExternalProfilerBase::GetActiveProfiler()
 			}
 		}
 
+#if 0
+		// Logging disabled here as it can cause a stack overflow whilst flushing logs during EnginePreInit
 		if (ActiveProfiler != NULL)
 		{
 			UE_LOG(LogExternalProfiler, Log, TEXT("Using external profiler: %s"), ActiveProfiler->GetProfilerName());
@@ -77,6 +82,7 @@ FExternalProfiler* FActiveExternalProfilerBase::GetActiveProfiler()
 		{
 			UE_LOG(LogExternalProfiler, Log, TEXT("No external profilers were discovered.  External profiling features will not be available."));
 		}
+#endif
 
 		// Don't try to initialize again this session
 		bDidInitialize = true;

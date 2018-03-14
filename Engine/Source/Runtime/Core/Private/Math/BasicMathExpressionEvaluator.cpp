@@ -1,8 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Math/BasicMathExpressionEvaluator.h"
 #include "Misc/AutomationTest.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Misc/ExpressionParser.h"
+#include "Internationalization/Culture.h"
+#include "Internationalization/Internationalization.h"
 
 #define LOCTEXT_NAMESPACE "BasicMathExpressionEvaluator"
 
@@ -22,106 +25,118 @@ namespace ExpressionParser
 	const TCHAR* const FSquareRoot::Moniker = TEXT("sqrt");
 	const TCHAR* const FPower::Moniker = TEXT("^");
 
-	TOptional<FStringToken> ParseNumber(const FTokenStream& InStream, FStringToken* Accumulate)
+	const FDecimalNumberFormattingRules& GetLocalizedNumberFormattingRules()
 	{
-		enum class EState { LeadIn, Sign, Integer, Dot, Fractional };
-
-		EState State = EState::LeadIn;
-		return InStream.ParseToken([&](TCHAR InC){
-
-			if (State == EState::LeadIn)
-			{
-				if (FChar::IsDigit(InC))
-				{
-					State = EState::Integer;
-					return EParseState::Continue;
-				}
-				else if (InC == '+' || InC == '-')
-				{
-					State = EState::Sign;
-					return EParseState::Continue;
-				}
-				else if (InC == '.')
-				{
-					State = EState::Dot;
-					return EParseState::Continue;
-				}
-				else
-				{
-					// Not a number
-					return EParseState::Cancel;
-				}
-			}
-			else if (State == EState::Sign)
-			{
-				if (FChar::IsDigit(InC))
-				{
-					State = EState::Integer;
-					return EParseState::Continue;
-				}
-				else if (InC == '.')
-				{
-					State = EState::Dot;
-					return EParseState::Continue;
-				}
-				else
-				{
-					// Not a number
-					return EParseState::Cancel;
-				}
-			}
-			else if (State == EState::Integer)
-			{
-				if (FChar::IsDigit(InC))
-				{
-					return EParseState::Continue;
-				}
-				else if (InC == '.')
-				{
-					State = EState::Dot;
-					return EParseState::Continue;
-				}
-			}
-			else if (State == EState::Dot)
-			{
-				if (FChar::IsDigit(InC))
-				{
-					State = EState::Fractional;
-					return EParseState::Continue;
-				}
-				else if (InC == '.')
-				{
-					// Not a number
-					return EParseState::Cancel;
-				}
-			}
-			else if (State == EState::Fractional)
-			{
-				if (FChar::IsDigit(InC))
-				{
-					return EParseState::Continue;
-				}
-			}
-
-			return EParseState::StopBefore;
-		}, Accumulate);
+		bool bShouldUseLocalizedNumericInput = false;
+		GConfig->GetBool(TEXT("Internationalization"), TEXT("ShouldUseLocalizedNumericInput"), bShouldUseLocalizedNumericInput, GIsEditor ? GEditorSettingsIni : GGameUserSettingsIni);
+		return bShouldUseLocalizedNumericInput 
+			? FInternationalization::Get().GetCurrentLocale()->GetDecimalNumberFormattingRules() 
+			: FastDecimalFormat::GetCultureAgnosticFormattingRules();
 	}
 
-	TOptional<FExpressionError> ConsumeNumber(FExpressionTokenConsumer& Consumer)
+	TOptional<FStringToken> ParseNumberWithFallback(const FTokenStream& InStream, const FDecimalNumberFormattingRules& InPrimaryFormattingRules, const FDecimalNumberFormattingRules& InFallbackFormattingRules, FStringToken* Accumulate, double* OutValue)
+	{
+		// Attempt to parse a number from the string
+		// This call will return false if there is some other data after the number, which is why we check the parsed length instead
+		double PrimaryValue = 0.0;
+		int32 PrimaryParsedLen = 0;
+		FastDecimalFormat::StringToNumber(InStream.GetRead(), InStream.GetEnd() - InStream.GetRead(), InPrimaryFormattingRules, FNumberParsingOptions::DefaultNoGrouping(), PrimaryValue, &PrimaryParsedLen);
+
+		double FallbackValue = 0.0;
+		int32 FallbackParsedLen = 0;
+		FastDecimalFormat::StringToNumber(InStream.GetRead(), InStream.GetEnd() - InStream.GetRead(), InFallbackFormattingRules, FNumberParsingOptions::DefaultNoGrouping(), FallbackValue, &FallbackParsedLen);
+
+		// We take whichever value parsed the most text from the string
+		if (FallbackParsedLen <= PrimaryParsedLen)
+		{
+			if (OutValue)
+			{
+				*OutValue = PrimaryValue;
+			}
+
+			return PrimaryParsedLen > 0 ? InStream.GenerateToken(PrimaryParsedLen) : TOptional<FStringToken>();
+		}
+		else
+		{
+			if (OutValue)
+			{
+				*OutValue = FallbackValue;
+			}
+
+			return FallbackParsedLen > 0 ? InStream.GenerateToken(FallbackParsedLen) : TOptional<FStringToken>();
+		}
+	}
+
+	TOptional<FStringToken> ParseNumberWithRules(const FTokenStream& InStream, const FDecimalNumberFormattingRules& InFormattingRules, FStringToken* Accumulate, double* OutValue)
+	{
+		// Attempt to parse a number from the string
+		// This call will return false if there is some other data after the number, which is why we check the parsed length instead
+		double Value = 0.0;
+		int32 ParsedLen = 0;
+		FastDecimalFormat::StringToNumber(InStream.GetRead(), InStream.GetEnd() - InStream.GetRead(), InFormattingRules, FNumberParsingOptions::DefaultNoGrouping(), Value, &ParsedLen);
+
+		if (OutValue)
+		{
+			*OutValue = Value;
+		}
+
+		return ParsedLen > 0 ? InStream.GenerateToken(ParsedLen) : TOptional<FStringToken>();
+	}
+
+	TOptional<FStringToken> ParseLocalizedNumberWithAgnosticFallback(const FTokenStream& InStream, FStringToken* Accumulate, double* OutValue)
+	{
+		return ParseNumberWithFallback(InStream, GetLocalizedNumberFormattingRules(), FastDecimalFormat::GetCultureAgnosticFormattingRules(), Accumulate, OutValue);
+	}
+
+	TOptional<FStringToken> ParseLocalizedNumber(const FTokenStream& InStream, FStringToken* Accumulate, double* OutValue)
+	{
+		return ParseNumberWithRules(InStream, GetLocalizedNumberFormattingRules(), Accumulate, OutValue);
+	}
+
+	TOptional<FStringToken> ParseNumber(const FTokenStream& InStream, FStringToken* Accumulate, double* OutValue)
+	{
+		return ParseNumberWithRules(InStream, FastDecimalFormat::GetCultureAgnosticFormattingRules(), Accumulate, OutValue);
+	}
+
+	TOptional<FExpressionError> ConsumeNumberWithRules(FExpressionTokenConsumer& Consumer, const FDecimalNumberFormattingRules& InFormattingRules)
 	{
 		auto& Stream = Consumer.GetStream();
 
-		TOptional<FStringToken> Token = ParseNumber(Stream);
-		
+		double Value = 0.0;
+		TOptional<FStringToken> Token = ParseNumberWithRules(Stream, InFormattingRules, nullptr, &Value);
+
 		if (Token.IsSet())
 		{
-			double Value = FCString::Atod(*Token.GetValue().GetString());
 			Consumer.Add(Token.GetValue(), FExpressionNode(Value));
 		}
 
 		return TOptional<FExpressionError>();
 	}
 
+	TOptional<FExpressionError> ConsumeLocalizedNumberWithAgnosticFallback(FExpressionTokenConsumer& Consumer)
+	{
+		auto& Stream = Consumer.GetStream();
+
+		double Value = 0.0;
+		TOptional<FStringToken> Token = ParseLocalizedNumberWithAgnosticFallback(Stream, nullptr, &Value);
+
+		if (Token.IsSet())
+		{
+			Consumer.Add(Token.GetValue(), FExpressionNode(Value));
+		}
+
+		return TOptional<FExpressionError>();
+	}
+
+	TOptional<FExpressionError> ConsumeLocalizedNumber(FExpressionTokenConsumer& Consumer)
+	{
+		return ConsumeNumberWithRules(Consumer, GetLocalizedNumberFormattingRules());
+	}
+
+	TOptional<FExpressionError> ConsumeNumber(FExpressionTokenConsumer& Consumer)
+	{
+		return ConsumeNumberWithRules(Consumer, FastDecimalFormat::GetCultureAgnosticFormattingRules());
+	}
 }
 
 FBasicMathExpressionEvaluator::FBasicMathExpressionEvaluator()
@@ -142,7 +157,7 @@ FBasicMathExpressionEvaluator::FBasicMathExpressionEvaluator()
 	TokenDefinitions.DefineToken(&ConsumeSymbol<FPercent>);
 	TokenDefinitions.DefineToken(&ConsumeSymbol<FSquareRoot>);
 	TokenDefinitions.DefineToken(&ConsumeSymbol<FPower>);
-	TokenDefinitions.DefineToken(&ConsumeNumber);
+	TokenDefinitions.DefineToken(&ConsumeLocalizedNumberWithAgnosticFallback);
 
 	Grammar.DefineGrouping<FSubExpressionStart, FSubExpressionEnd>();
 	Grammar.DefinePreUnaryOperator<FPlus>();

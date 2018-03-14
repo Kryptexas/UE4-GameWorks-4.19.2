@@ -15,49 +15,7 @@ Related: Programming/Slate
 Related: Gameplay/Input
 Related: Engine/Rendering/ParticleSystems
 Version: 4.9
-
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/SampleGames/ShooterGame:title%](Shooter_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/SampleGames/ShooterGame:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/SampleGames/ShooterGame:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/SampleGames/ShooterGame]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/SampleGames/ShooterGame:title%](Shooter_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/SampleGames/ShooterGame:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/SampleGames/ShooterGame:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/SampleGames/ShooterGame]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:Shooter_Topic.png
 
 
 [REGION:fullwidth]

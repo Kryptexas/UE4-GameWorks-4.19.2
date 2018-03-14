@@ -22,7 +22,7 @@ Version:4.11
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 现在即可编译项目，使代码修改反映到游戏中。 
 
@@ -67,4 +67,4 @@ Version:4.11
 
 1.	关闭蓝图编辑器之前将 `BP_FPSProjectGameMode` 蓝图保存。
 
-%Steps%
+

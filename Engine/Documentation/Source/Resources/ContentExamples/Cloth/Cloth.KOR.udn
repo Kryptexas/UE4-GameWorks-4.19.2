@@ -1,45 +1,16 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:클로스 콘텐츠 예제
 Crumbs: %ROOT%, Resources
 Description:클로스 콘텐츠 예제에 제공된 샘플에 대한 개요입니다.
 Related: Engine/Physics/Apex
 Version: 4.9
+topic-image:Cloth_Compact.png
 
 [REGION:banner]
 ![](Cloth_Header.png)(convert:false)
 [/REGION]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Cloth:title%](Cloth_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Cloth:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Cloth:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Cloth]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Cloth:title%](Cloth_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Cloth:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Cloth]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 

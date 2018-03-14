@@ -3,12 +3,15 @@ Crumbs: %ROOT%
 Title: Google VR Quick Start
 Description: Instructions on setting up and using Google VR
 Type: quick start
+type:landing
 SkillLevel: Intermediate
 Version: 4.17
 Parent: Platforms/GoogleVR
 Order:2
 tags:Google VR
+tags:Getting Started
 Checkpoint:GoogleVRQS
+prereq:Platforms/Android/GettingStarted/
 topic-image:Platforms\GoogleVR\GoogleVR_Cardboard_Topic_Image.png
 
 ![](Google_Cardboard_Headset.png)
@@ -18,7 +21,7 @@ topic-image:Platforms\GoogleVR\GoogleVR_Cardboard_Topic_Image.png
 The GoogleVR Quick Start will walk you through setting up your UE4 project to work with Google VR.
 
 [region:note]
-Google has a provided a very detailed document that goes over everything you need to know to get the most out of Daydream. You can find the documents by going to the [Offical Google Daydream Unreal](https://developers.google.com/vr/unreal/) help site.
+Google has a provided a very detailed document that goes over everything you need to know to get the most out of Daydream. You can find the documents by going to the [Official Google Daydream Unreal](https://developers.google.com/vr/unreal/) help site.
 [/region]
 
 ## Objectives

@@ -158,6 +158,27 @@ void FGoogleVRSplash::Tick(float DeltaTime)
 		RenderStereoSplashScreen(FRHICommandListExecutor::GetImmediateCommandList(), GVRCustomPresent->TextureSet->GetTexture2D());
 		bSplashScreenRendered = true;
 	}
+
+	/*
+	GVRHMD->UpdatePoses();
+	FRotator CurrentHeadOrientation = FRotator(GVRHMD->CachedFinalHeadRotation);
+	// Use the user defined angle to hide the splash screen.
+	// Note that if we do not hide the splash screen at all, users will see a flipped splash screen
+	// when they look backward due to artifact of the async reprojection
+	float HalfViewAngle = ViewAngleInDegree * 0.5f;
+	bool bHideSplashScreen = FMath::Abs(CurrentHeadOrientation.Yaw - SplashScreenRenderingOrientation.Yaw) > HalfViewAngle;
+
+	if (!bSplashScreenRendered && !bHideSplashScreen)
+	{
+		RenderStereoSplashScreen(FRHICommandListExecutor::GetImmediateCommandList(), GVRCustomPresent->TextureSet->GetTexture2D());
+		bSplashScreenRendered = true;
+	}
+	else if (bSplashScreenRendered && bHideSplashScreen)
+	{
+		SubmitBlackFrame();
+		bSplashScreenRendered = false;
+	}
+	*/
 }
 
 bool FGoogleVRSplash::IsTickable() const
@@ -345,7 +366,7 @@ void FGoogleVRSplash::UpdateSplashScreenEyeOffset()
 {
 	// Get eye offset from GVR
 	float WorldToMeterScale = GVRHMD->GetWorldToMetersScale();
-	float HalfEyeDistance = GVRHMD->GetInterpupillaryDistance() * 0.5f;
+	float HalfEyeDistance = GVRHMD->GetInterpupillaryDistance() * WorldToMeterScale * 0.5f;
 	float Depth = RenderDistanceInMeter * WorldToMeterScale;
 	// Get eye Fov from GVR
 	gvr_rectf LeftEyeFOV = GVRHMD->GetGVREyeFOV(0);

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3481084
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:3 - 새 레벨 생성
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
@@ -25,7 +25,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 다음으로 게임 환경을 지을 새 [레벨](Engine/Levels) 을 만들겠습니다.
 새 레벨을 만드는 방법은 여러가지 있지만, 레벨 선택 옵션이 제공되는 **파일 메뉴** 방법을 사용하겠습니다.
@@ -106,7 +106,7 @@ checkpoint: editorqs
 
 다음 단계에서는, 애셋 추가 및 환경 제작을 시작하겠습니다.
 
-%Steps%	
+	
 
 
 

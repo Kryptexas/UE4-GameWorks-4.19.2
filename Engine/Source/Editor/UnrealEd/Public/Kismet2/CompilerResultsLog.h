@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -110,21 +110,12 @@ public:
 protected:
 	// Maps from transient object created during compiling to original 'source code' object
 	FBacktrackMap SourceBacktrackMap;
-	
-	// Maps immediately back to source uobject, which may itself by an intermediate object:
-	TMap<UEdGraphNode const*, UEdGraphNode*> FullSourceBacktrackMap;
 
 	// Name of the source object being compiled
 	FString SourcePath;
 
-	// Backtrack map for intermendiate tunnel/macro nodes
-	FBacktrackMap FinalNodeBackToTunnelSourceMap;
-	
 	// Map to track intermediate tunnel nodes back to the intermediate expansion tunnel instance.
-	TMap<TWeakObjectPtr<UEdGraphNode>, TWeakObjectPtr<UEdGraphNode>> IntermediateTunnelNodeToTunnelInstanceMap;
-
-	// Map to track active nested tunnels for intermediate tunnel instances.
-	TMultiMap<TWeakObjectPtr<UEdGraphNode>, TWeakObjectPtr<UEdGraphNode>> IntermediateTunnelInstanceHierarchyMap;
+	TMap<TWeakObjectPtr<const UEdGraphNode>, TWeakObjectPtr<const UEdGraphNode>> IntermediateTunnelNodeToTunnelInstanceMap;
 
 public:
 	FCompilerResultsLog(bool bIsCompatibleWithEvents = true);
@@ -260,30 +251,15 @@ public:
 	void NotifyIntermediateObjectCreation(UObject* NewObject, UObject* SourceObject);
 	void NotifyIntermediatePinCreation(UEdGraphPin* NewObject, UEdGraphPin* SourceObject);
 
-	/** Registers intermediate tunnel nodes, both the node and tunnel instance should be intermediate nodes */
-	void RegisterIntermediateTunnelNode(UEdGraphNode* Node, UEdGraphNode* OwningTunnelInstance);
-
-	/** Registers an intermediate tunnel instance node, the active tunnels should not be intermediate nodes. */
-	void RegisterIntermediateTunnelInstance(UEdGraphNode* IntermediateTunnel, TArray<TWeakObjectPtr<UEdGraphNode>>& ActiveTunnels);
-
-	/** Returns the source tunnel instance or the source tunnel node depending on what created the intermediate node */
-	UEdGraphNode* GetSourceNode(const UEdGraphNode* IntermediateNode);
-
-	/** Returns the intermediate tunnel instance that generated the node */
-	UEdGraphNode* GetIntermediateTunnelInstance(const UEdGraphNode* IntermediateNode) const;
-
-	/** Returns the source tunnel node for the intermediate node */
-	UEdGraphNode* GetSourceTunnelNode(const UEdGraphNode* IntermediateNode);
-
-	/** Returns the source tunnel instance that generated the intermediate node */
-	UEdGraphNode* GetSourceTunnelInstance(const UEdGraphNode* IntermediateNode);
-
-	/** Returns the active tunnel instances for the intermediate node */
-	void GetTunnelsActiveForNode(const UEdGraphNode* IntermediateNode, TArray<TWeakObjectPtr<UEdGraphNode>>& ActiveTunnelsOut);
+	/** Update the expansion map to note that Node was expanded from OuterTunnelInstance, both the node and tunnel instance should be intermediate nodes */
+	void NotifyIntermediateTunnelNode(const UEdGraphNode* Node, const UEdGraphNode* OuterTunnelInstance);
 
 	/** Returns the true source object for the passed in object */
 	UObject* FindSourceObject(UObject* PossiblyDuplicatedObject);
 	UObject const* FindSourceObject(UObject const* PossiblyDuplicatedObject) const;
+
+	/** Returns the intermediate tunnel instance that generated the node */
+	const UEdGraphNode* GetIntermediateTunnelInstance(const UEdGraphNode* IntermediateNode) const;
 
 	/** Returns a int32 used to uniquely identify an action for the latent action manager */
 	int32 CalculateStableIdentifierForLatentActionManager( const UEdGraphNode* Node );

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Serialization/LargeMemoryWriter.h"
 #include "Logging/LogMacros.h"
@@ -8,12 +8,12 @@
 	FLargeMemoryWriter
 ----------------------------------------------------------------------------*/
 
-FLargeMemoryWriter::FLargeMemoryWriter(const int64 PreAllocateBytes, bool bIsPersistent, const FName InArchiveName)
+FLargeMemoryWriter::FLargeMemoryWriter(const int64 PreAllocateBytes, bool bIsPersistent, const TCHAR* InFilename)
 	: FMemoryArchive()
 	, Data(nullptr)
 	, NumBytes(0)
 	, MaxBytes(0)
-	, ArchiveName(InArchiveName)
+	, ArchiveName(InFilename ? InFilename : TEXT("FLargeMemoryWriter"))
 {
 	ArIsSaving = true;
 	ArIsPersistent = bIsPersistent;
@@ -22,7 +22,7 @@ FLargeMemoryWriter::FLargeMemoryWriter(const int64 PreAllocateBytes, bool bIsPer
 
 void FLargeMemoryWriter::Serialize(void* InData, int64 Num)
 {
-	UE_CLOG(!Data, LogSerialization, Fatal, TEXT("Tried to serialize data to an FLargeMemoryWriter that was already released. Archive name: %s."), *ArchiveName.ToString());
+	UE_CLOG(!Data, LogSerialization, Fatal, TEXT("Tried to serialize data to an FLargeMemoryWriter that was already released. Archive name: %s."), *ArchiveName);
 	
 	const int64 NumBytesToAdd = Offset + Num - NumBytes;
 	if (NumBytesToAdd > 0)
@@ -47,7 +47,7 @@ void FLargeMemoryWriter::Serialize(void* InData, int64 Num)
 
 FString FLargeMemoryWriter::GetArchiveName() const
 {
-	return ArchiveName.ToString();
+	return ArchiveName;
 }
 
 int64 FLargeMemoryWriter::TotalSize()
@@ -57,7 +57,7 @@ int64 FLargeMemoryWriter::TotalSize()
 
 uint8* FLargeMemoryWriter::GetData() const
 {
-	UE_CLOG(!Data, LogSerialization, Warning, TEXT("Tried to get written data from an FLargeMemoryWriter that was already released. Archive name: %s."), *ArchiveName.ToString());
+	UE_CLOG(!Data, LogSerialization, Warning, TEXT("Tried to get written data from an FLargeMemoryWriter that was already released. Archive name: %s."), *ArchiveName);
 
 	return Data;
 }

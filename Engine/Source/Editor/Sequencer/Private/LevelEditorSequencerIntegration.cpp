@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelEditorSequencerIntegration.h"
 #include "SequencerEdMode.h"
@@ -40,6 +40,9 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
 #include "UObject/ObjectKey.h"
+#include "UnrealEdGlobals.h"
+#include "Editor/UnrealEdEngine.h"
+#include "EditorSupportDelegates.h"
 
 #define LOCTEXT_NAMESPACE "LevelEditorSequencerIntegration"
 
@@ -108,7 +111,7 @@ private:
 static const FName DetailsTabIdentifiers[] = { "LevelEditorSelectionDetails", "LevelEditorSelectionDetails2", "LevelEditorSelectionDetails3", "LevelEditorSelectionDetails4" };
 
 FLevelEditorSequencerIntegration::FLevelEditorSequencerIntegration()
-	: bScrubbing(false)
+	: bDeferUpdates(false)
 {
 	KeyFrameHandler = MakeShared<FDetailKeyframeHandlerWrapper>();
 }
@@ -243,31 +246,39 @@ void FLevelEditorSequencerIntegration::GetActorRecordingState( bool& bIsRecordin
 	);
 }
 
-void RenameSpawnable(FSequencer* Sequencer, UMovieSceneSequence* Sequence, FMovieSceneSequenceIDRef SequenceID, AActor* ChangedActor)
+void RenameSpawnableRecursive(FSequencer* Sequencer, FMovieSceneSequenceIDRef SequenceID, AActor* ChangedActor)
 {
-	UMovieScene* MovieScene = Sequence->GetMovieScene();
-	if (!MovieScene)
-	{
-		return;
-	}
-		
-	for (int32 Index = 0; Index < MovieScene->GetSpawnableCount(); ++Index)
-	{
-		FGuid ThisGuid = MovieScene->GetSpawnable(Index).GetGuid();
+	FMovieSceneRootEvaluationTemplateInstance& RootInstance = Sequencer->GetEvaluationTemplate();
 
-		for (TWeakObjectPtr<> WeakObject : Sequencer->FindBoundObjects(ThisGuid, SequenceID))
+	// Find the sequence that corresponds to the sequence ID
+	UMovieSceneSequence* Sequence = RootInstance.GetSequence(SequenceID);
+	UMovieScene* MovieScene = Sequence ? Sequence->GetMovieScene() : nullptr;
+
+	if (MovieScene)
+	{
+		// Iterate all this movie scene's spawnables, renaming as appropriate
+		for (int32 Index = 0; Index < MovieScene->GetSpawnableCount(); ++Index)
 		{
-			if (WeakObject.IsValid())
+			FGuid ThisGuid = MovieScene->GetSpawnable(Index).GetGuid();
+
+			for (TWeakObjectPtr<> WeakObject : Sequencer->FindBoundObjects(ThisGuid, SequenceID))
 			{
 				AActor* Actor = Cast<AActor>(WeakObject.Get());
-				if (Actor != nullptr)
+				if (Actor && Actor == ChangedActor)
 				{
-					if (Actor == ChangedActor)
-					{
-						MovieScene->GetSpawnable(Index).SetName(ChangedActor->GetActorLabel());
-					}
+					MovieScene->GetSpawnable(Index).SetName(ChangedActor->GetActorLabel());
 				}
 			}
+		}
+	}
+
+	// Recurse into child nodes
+	const FMovieSceneSequenceHierarchyNode* Node = RootInstance.GetHierarchy().FindNode(SequenceID);
+	if (Node)
+	{
+		for (FMovieSceneSequenceIDRef ChildID : Node->Children)
+		{
+			RenameSpawnableRecursive(Sequencer, ChildID, ChangedActor);
 		}
 	}
 }
@@ -279,14 +290,7 @@ void FLevelEditorSequencerIntegration::OnActorLabelChanged(AActor* ChangedActor)
 		TSharedPtr<FSequencer> Pinned = SequencerAndOptions.Sequencer.Pin();
 		if (Pinned.IsValid())
 		{
-			FMovieSceneRootEvaluationTemplateInstance& RootTemplate = Pinned.Get()->GetEvaluationTemplate();
-	
-			RenameSpawnable(Pinned.Get(), Pinned.Get()->GetRootMovieSceneSequence(), MovieSceneSequenceID::Root, ChangedActor);
-			
-			for (auto& SubInstance : RootTemplate.GetSubInstances())
-			{
-				RenameSpawnable(Pinned.Get(), SubInstance.Value.Sequence.Get(), SubInstance.Key, ChangedActor);
-			}
+			RenameSpawnableRecursive(Pinned.Get(), MovieSceneSequenceID::Root, ChangedActor);
 		}
 	}
 }
@@ -362,6 +366,11 @@ void FLevelEditorSequencerIntegration::OnActorSelectionChanged( UObject* )
 		{
 			if (Options.bRequiresActorEvents)
 			{
+				if (In.GetSequencerSettings()->GetShowSelectedNodesOnly())
+				{
+					In.RefreshTree();
+				}
+
 				In.ExternalSelectionHasChanged();
 			}
 		}
@@ -399,21 +408,64 @@ void FLevelEditorSequencerIntegration::OnSequencerEvaluated()
 		}
 	}
 
-	if (!bScrubbing)
+	if (!bDeferUpdates)
 	{
 		UpdateDetails();
 	}
+
+	// If realtime is off, this needs to be called to update the pivot location when scrubbing.
+	GUnrealEd->UpdatePivotLocationForSelection();
+
+	// Redraw
+	FEditorSupportDelegates::RedrawAllViewports.Broadcast();
 }
 
-void FLevelEditorSequencerIntegration::OnBeginScrubbing()
+void FLevelEditorSequencerIntegration::OnBeginDeferUpdates()
 {
-	bScrubbing = true;
+	bDeferUpdates = true;
 }
 
-void FLevelEditorSequencerIntegration::OnEndScrubbing()
+void FLevelEditorSequencerIntegration::OnEndDeferUpdates()
 {
-	bScrubbing = false;
+	bDeferUpdates = false;
 	UpdateDetails();
+}
+
+bool FLevelEditorSequencerIntegration::IsBindingVisible(const FMovieSceneBinding& InBinding)
+{
+	// If nothing selected, show all nodes
+	if (GEditor->GetSelectedActorCount() == 0)
+	{
+		return true;
+	}
+
+	// Disregard if not a level sequence (ie. a control rig sequence)
+	for (FSequencerAndOptions& SequencerAndOptions : BoundSequencers)
+	{
+		TSharedPtr<FSequencer> Pinned = SequencerAndOptions.Sequencer.Pin();
+		if (Pinned.IsValid())
+		{
+			if (UMovieSceneSequence* RootSequence = Pinned->GetRootMovieSceneSequence())
+			{
+				if (RootSequence->GetClass()->GetName() != TEXT("LevelSequence"))
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	for( FSelectionIterator SelectionIt( *GEditor->GetSelectedActors() ); SelectionIt; ++SelectionIt )
+	{
+		AActor* SelectedActor = CastChecked<AActor>( *SelectionIt );
+		
+		if (SelectedActor->GetActorLabel() == InBinding.GetName())
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void FLevelEditorSequencerIntegration::OnMovieSceneBindingsChanged()
@@ -1255,8 +1307,12 @@ void FLevelEditorSequencerIntegration::AddSequencer(TSharedRef<ISequencer> InSeq
 		FDelegateHandle DataHandle = InSequencer->OnMovieSceneDataChanged().AddRaw(this, &FLevelEditorSequencerIntegration::OnMovieSceneDataChanged);
 		FDelegateHandle AllowEditsModeHandle = InSequencer->GetSequencerSettings()->GetOnAllowEditsModeChanged().AddRaw(this, &FLevelEditorSequencerIntegration::OnAllowEditsModeChanged);
 
-		FDelegateHandle BeginScrubbingHandle = InSequencer->OnBeginScrubbingEvent().AddRaw(this, &FLevelEditorSequencerIntegration::OnBeginScrubbing);
-		FDelegateHandle EndScrubbingHandle = InSequencer->OnEndScrubbingEvent().AddRaw(this, &FLevelEditorSequencerIntegration::OnEndScrubbing);
+		FDelegateHandle PlayHandle = InSequencer->OnPlayEvent().AddRaw(this, &FLevelEditorSequencerIntegration::OnBeginDeferUpdates);
+		FDelegateHandle StopHandle = InSequencer->OnStopEvent().AddRaw(this, &FLevelEditorSequencerIntegration::OnEndDeferUpdates);
+		FDelegateHandle BeginScrubbingHandle = InSequencer->OnBeginScrubbingEvent().AddRaw(this, &FLevelEditorSequencerIntegration::OnBeginDeferUpdates);
+		FDelegateHandle EndScrubbingHandle = InSequencer->OnEndScrubbingEvent().AddRaw(this, &FLevelEditorSequencerIntegration::OnEndDeferUpdates);
+
+		InSequencer->OnGetIsBindingVisible().BindRaw(this, &FLevelEditorSequencerIntegration::IsBindingVisible);
 
 		BoundSequencers.Last().AcquiredResources.Add(
 			[=]
@@ -1268,6 +1324,8 @@ void FLevelEditorSequencerIntegration::AddSequencer(TSharedRef<ISequencer> InSeq
 					Pinned->OnMovieSceneBindingsChanged().Remove(BindingsHandle);
 					Pinned->OnMovieSceneDataChanged().Remove(DataHandle);
 					Pinned->GetSequencerSettings()->GetOnAllowEditsModeChanged().Remove(AllowEditsModeHandle);
+					Pinned->OnPlayEvent().Remove(PlayHandle);
+					Pinned->OnStopEvent().Remove(StopHandle);
 					Pinned->OnBeginScrubbingEvent().Remove(BeginScrubbingHandle);
 					Pinned->OnEndScrubbingEvent().Remove(EndScrubbingHandle);
 				}
@@ -1341,20 +1399,48 @@ void FLevelEditorSequencerIntegration::RemoveSequencer(TSharedRef<ISequencer> In
 	}
 }
 
-void AddActorsToBindingsMap(TWeakPtr<FSequencer> Sequencer, UMovieSceneSequence* Sequence, FMovieSceneSequenceIDRef SequenceID, TMap<FObjectKey, FString>& ActorBindingsMap)
+void AddActorsToBindingsMapRecursive(FSequencer& Sequencer, FMovieSceneSequenceIDRef SequenceID, TMap<FObjectKey, FString>& ActorBindingsMap)
 {
-	UMovieScene* MovieScene = Sequence->GetMovieScene();
+	FMovieSceneRootEvaluationTemplateInstance& RootInstance = Sequencer.GetEvaluationTemplate();
 
-	FString SequenceName = Sequence->GetDisplayName().ToString();
+	// Find the sequence that corresponds to the sequence ID
+	UMovieSceneSequence* Sequence = RootInstance.GetSequence(SequenceID);
+	UMovieScene* MovieScene = Sequence ? Sequence->GetMovieScene() : nullptr;
 
-	// Search all possessables
-	for (int32 Index = 0; Index < MovieScene->GetPossessableCount(); ++Index)
+	if (MovieScene)
 	{
-		FGuid ThisGuid = MovieScene->GetPossessable(Index).GetGuid();
+		FString SequenceName = Sequence->GetDisplayName().ToString();
 
-		for (TWeakObjectPtr<> WeakObject : Sequencer.Pin()->FindBoundObjects(ThisGuid, SequenceID))
+		// Search all possessables
+		for (int32 Index = 0; Index < MovieScene->GetPossessableCount(); ++Index)
 		{
-			if (WeakObject.IsValid())
+			FGuid ThisGuid = MovieScene->GetPossessable(Index).GetGuid();
+
+			for (TWeakObjectPtr<> WeakObject : Sequencer.FindBoundObjects(ThisGuid, SequenceID))
+			{
+				AActor* Actor = Cast<AActor>(WeakObject.Get());
+				if (Actor != nullptr)
+				{
+					FObjectKey ActorKey(Actor);
+
+					if (ActorBindingsMap.Contains(ActorKey))
+					{
+						ActorBindingsMap[ActorKey] = ActorBindingsMap[ActorKey] + TEXT(", ") + SequenceName;
+					}
+					else
+					{
+						ActorBindingsMap.Add(ActorKey, SequenceName);
+					}
+				}
+			}
+		}
+
+		// Search all spawnables
+		for (int32 Index = 0; Index < MovieScene->GetSpawnableCount(); ++Index)
+		{
+			FGuid ThisGuid = MovieScene->GetSpawnable(Index).GetGuid();
+
+			for (TWeakObjectPtr<> WeakObject : Sequencer.FindBoundObjects(ThisGuid, SequenceID))
 			{
 				AActor* Actor = Cast<AActor>(WeakObject.Get());
 				if (Actor != nullptr)
@@ -1374,30 +1460,13 @@ void AddActorsToBindingsMap(TWeakPtr<FSequencer> Sequencer, UMovieSceneSequence*
 		}
 	}
 
-	// Search all spawnables
-	for (int32 Index = 0; Index < MovieScene->GetSpawnableCount(); ++Index)
+	// Recurse into child nodes
+	const FMovieSceneSequenceHierarchyNode* Node = RootInstance.GetHierarchy().FindNode(SequenceID);
+	if (Node)
 	{
-		FGuid ThisGuid = MovieScene->GetSpawnable(Index).GetGuid();
-
-		for (TWeakObjectPtr<> WeakObject : Sequencer.Pin()->FindBoundObjects(ThisGuid, SequenceID))
+		for (FMovieSceneSequenceIDRef ChildID : Node->Children)
 		{
-			if (WeakObject.IsValid())
-			{
-				AActor* Actor = Cast<AActor>(WeakObject.Get());
-				if (Actor != nullptr)
-				{
-					FObjectKey ActorKey(Actor);
-
-					if (ActorBindingsMap.Contains(ActorKey))
-					{
-						ActorBindingsMap[ActorKey] = ActorBindingsMap[ActorKey] + TEXT(", ") + SequenceName;
-					}
-					else
-					{
-						ActorBindingsMap.Add(ActorKey, SequenceName);
-					}
-				}
-			}
+			AddActorsToBindingsMapRecursive(Sequencer, ChildID, ActorBindingsMap);
 		}
 	}
 }
@@ -1483,17 +1552,7 @@ void FLevelEditorSequencerBindingData::UpdateActorBindingsData(TWeakPtr<FSequenc
 	
 		// Finding the bound objects can cause bindings to be evaluated and changed, causing this to be invoked again
 		TGuardValue<bool> ReentrantGuard(bIsReentrant, true);
-
-		FMovieSceneRootEvaluationTemplateInstance& RootTemplate = InSequencer.Pin()->GetEvaluationTemplate();
-		
-		UMovieSceneSequence* Sequence = RootTemplate.GetSequence(MovieSceneSequenceID::Root);
-
-		AddActorsToBindingsMap(InSequencer, Sequence, MovieSceneSequenceID::Root, ActorBindingsMap);
-
-		for (auto& SubInstance : RootTemplate.GetSubInstances())
-		{
-			AddActorsToBindingsMap(InSequencer, SubInstance.Value.Sequence.Get(), SubInstance.Key, ActorBindingsMap);
-		}
+		AddActorsToBindingsMapRecursive(*InSequencer.Pin(), MovieSceneSequenceID::Root, ActorBindingsMap);
 
 		bActorBindingsDirty = false;
 

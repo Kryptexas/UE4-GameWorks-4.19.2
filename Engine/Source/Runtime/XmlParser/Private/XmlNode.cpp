@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "XmlNode.h"
 
@@ -63,7 +63,7 @@ const FXmlNode* FXmlNode::FindChildNode(const FString& InTag) const
 
 FXmlNode* FXmlNode::FindChildNode(const FString& InTag)
 {
-	return const_cast<FXmlNode*>(const_cast<const FXmlNode*>(this)->FindChildNode(InTag));
+	return const_cast<FXmlNode*>(AsConst(this)->FindChildNode(InTag));
 }
 
 const FString& FXmlNode::GetTag() const

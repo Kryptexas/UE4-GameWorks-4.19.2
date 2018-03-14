@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MacPlatformMisc.mm: Mac implementations of misc functions
@@ -23,6 +23,7 @@
 #include "Misc/OutputDeviceError.h"
 #include "Misc/OutputDeviceRedirector.h"
 #include "Misc/FeedbackContext.h"
+#include "Misc/CoreDelegates.h"
 #include "Internationalization/Internationalization.h"
 #include "Internationalization/Culture.h"
 #include "Modules/ModuleManager.h"
@@ -536,8 +537,8 @@ TArray<uint8> FMacPlatformMisc::GetMacAddress()
 			{
 				Result.AddZeroed(kIOEthernetAddressSize);
 				CFDataGetBytes((CFDataRef)MACAddressAsCFData, CFRangeMake(0, kIOEthernetAddressSize), Result.GetData());
-				break;
 				CFRelease(MACAddressAsCFData);
+				break;
 			}
 			IOObjectRelease(ControllerService);
 		}
@@ -551,7 +552,9 @@ TArray<uint8> FMacPlatformMisc::GetMacAddress()
 void FMacPlatformMisc::RequestExit( bool Force )
 {
 	UE_LOG(LogMac, Log,  TEXT("FPlatformMisc::RequestExit(%i)"), Force );
-	
+
+	FCoreDelegates::ApplicationWillTerminateDelegate.Broadcast();
+
 	notify_cancel(GMacAppInfo.PowerSourceNotification);
 	GMacAppInfo.PowerSourceNotification = 0;
 	
@@ -656,7 +659,8 @@ void FMacPlatformMisc::NormalizePath(FString& InPath)
 }
 
 FMacPlatformMisc::FGPUDescriptor::FGPUDescriptor()
-: PCIDevice(0)
+: RegistryID(0)
+, PCIDevice(0)
 , GPUName(nil)
 , GPUMetalBundle(nil)
 , GPUOpenGLBundle(nil)
@@ -670,7 +674,8 @@ FMacPlatformMisc::FGPUDescriptor::FGPUDescriptor()
 }
 
 FMacPlatformMisc::FGPUDescriptor::FGPUDescriptor(FGPUDescriptor const& Other)
-: PCIDevice(0)
+: RegistryID(0)
+, PCIDevice(0)
 , GPUName(nil)
 , GPUMetalBundle(nil)
 , GPUOpenGLBundle(nil)
@@ -700,6 +705,8 @@ FMacPlatformMisc::FGPUDescriptor& FMacPlatformMisc::FGPUDescriptor::operator=(FG
 {
 	if(this != &Other)
 	{
+		RegistryID = Other.RegistryID;
+		
 		if(Other.PCIDevice)
 		{
 			IOObjectRetain((io_registry_entry_t)Other.PCIDevice);
@@ -888,6 +895,9 @@ TArray<FMacPlatformMisc::FGPUDescriptor> const& FMacPlatformMisc::GetGPUDescript
 									if (IOMatchCategory && CFGetTypeID(IOMatchCategory) == CFStringGetTypeID() && CFStringCompare(IOMatchCategory, IOAcceleratorRef, 0) == kCFCompareEqualTo)
 									{
 										BundleID = (CFStringRef)IORegistryEntrySearchCFProperty(ChildEntry, kIOServicePlane, CFBundleIdentifier, kCFAllocatorDefault, 0);
+										
+										kern_return_t Result = IORegistryEntryGetRegistryEntryID(ChildEntry, &Desc.RegistryID);
+										check(Result == kIOReturnSuccess);
 									}
 									if (IOMatchCategory)
 									{
@@ -1128,6 +1138,7 @@ FGPUDriverInfo FMacPlatformMisc::GetGPUDriverInfo(const FString& DeviceDescripti
 								}
 							}
 						}
+						[URL release];
 					}
 				}
 				
@@ -1285,6 +1296,38 @@ bool FMacPlatformMisc::IsSupportedXcodeVersionInstalled()
 	return GMacAppInfo.XcodeVersion.majorVersion > 8 || (GMacAppInfo.XcodeVersion.majorVersion == 8 && GMacAppInfo.XcodeVersion.minorVersion >= 2);
 }
 
+CGDisplayModeRef FMacPlatformMisc::GetSupportedDisplayMode(CGDirectDisplayID DisplayID, uint32 Width, uint32 Height)
+{
+	CGDisplayModeRef BestMatchingMode = nullptr;
+	uint32 BestWidth = 0;
+	uint32 BestHeight = 0;
+
+	CFArrayRef AllModes = CGDisplayCopyAllDisplayModes(DisplayID, nullptr);
+	if (AllModes)
+	{
+		const int32 NumModes = CFArrayGetCount(AllModes);
+		for (int32 Index = 0; Index < NumModes; Index++)
+		{
+			CGDisplayModeRef Mode = (CGDisplayModeRef)CFArrayGetValueAtIndex(AllModes, Index);
+			const int32 ModeWidth = (int32)CGDisplayModeGetWidth(Mode);
+			const int32 ModeHeight = (int32)CGDisplayModeGetHeight(Mode);
+
+			const bool bIsEqualOrBetterWidth = FMath::Abs((int32)ModeWidth - (int32)Width) <= FMath::Abs((int32)BestWidth - (int32)Width);
+			const bool bIsEqualOrBetterHeight = FMath::Abs((int32)ModeHeight - (int32)Height) <= FMath::Abs((int32)BestHeight - (int32)Height);
+			if (!BestMatchingMode || (bIsEqualOrBetterWidth && bIsEqualOrBetterHeight))
+			{
+				BestWidth = ModeWidth;
+				BestHeight = ModeHeight;
+				BestMatchingMode = Mode;
+			}
+		}
+		BestMatchingMode = CGDisplayModeRetain(BestMatchingMode);
+		CFRelease(AllModes);
+	}
+
+	return BestMatchingMode;
+}
+
 /** Global pointer to crash handler */
 void (* GCrashHandlerPointer)(const FGenericCrashContext& Context) = NULL;
 
@@ -1439,202 +1482,6 @@ void FMacPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrash
 	}
 }
 
-void FMacCrashContext::GenerateWindowsErrorReport(char const* WERPath, bool bIsEnsure) const
-{
-	int ReportFile = open(WERPath, O_CREAT|O_WRONLY, 0766);
-	if (ReportFile != -1)
-	{
-		TCHAR Line[PATH_MAX] = {};
-		
-		// write BOM
-		static uint16 ByteOrderMarker = 0xFEFF;
-		write(ReportFile, &ByteOrderMarker, sizeof(ByteOrderMarker));
-		
-		WriteLine(ReportFile, TEXT("<?xml version=\"1.0\" encoding=\"UTF-16\"?>"));
-		WriteLine(ReportFile, TEXT("<WERReportMetadata>"));
-		
-		WriteLine(ReportFile, TEXT("\t<OSVersionInformation>"));
-		WriteUTF16String(ReportFile, TEXT("\t\t<WindowsNTVersion>"));
-		WriteUTF16String(ReportFile, *GMacAppInfo.OSVersion);
-		WriteLine(ReportFile, TEXT("</WindowsNTVersion>"));
-		
-		WriteUTF16String(ReportFile, TEXT("\t\t<Build>"));
-		WriteUTF16String(ReportFile, *GMacAppInfo.OSVersion);
-		WriteUTF16String(ReportFile, TEXT(" ("));
-		WriteUTF16String(ReportFile, *GMacAppInfo.OSBuild);
-		WriteLine(ReportFile, TEXT(")</Build>"));
-		
-		WriteUTF16String(ReportFile, TEXT("\t\t<Product>(0x30): Mac OS X "));
-		WriteUTF16String(ReportFile, *GMacAppInfo.OSVersion);
-		WriteLine(ReportFile, TEXT("</Product>"));
-		
-		WriteLine(ReportFile, TEXT("\t\t<Edition>Mac OS X</Edition>"));
-		
-		WriteUTF16String(ReportFile, TEXT("\t\t<BuildString>Mac OS X "));
-		WriteUTF16String(ReportFile, *GMacAppInfo.OSVersion);
-		WriteUTF16String(ReportFile, TEXT(" ("));
-		WriteUTF16String(ReportFile, *GMacAppInfo.OSBuild);
-		WriteLine(ReportFile, TEXT(")</BuildString>"));
-		
-		WriteUTF16String(ReportFile, TEXT("\t\t<Revision>"));
-		WriteUTF16String(ReportFile, *GMacAppInfo.OSBuild);
-		WriteLine(ReportFile, TEXT("</Revision>"));
-		
-		WriteLine(ReportFile, TEXT("\t\t<Flavor>Multiprocessor Free</Flavor>"));
-		WriteLine(ReportFile, TEXT("\t\t<Architecture>X64</Architecture>"));
-		WriteUTF16String(ReportFile, TEXT("\t\t<LCID>"));
-		WriteUTF16String(ReportFile, *GMacAppInfo.LCID);
-		WriteLine(ReportFile, TEXT("</LCID>"));
-		WriteLine(ReportFile, TEXT("\t</OSVersionInformation>"));
-		
-		WriteLine(ReportFile, TEXT("\t<ParentProcessInformation>"));
-		
-		WriteUTF16String(ReportFile, TEXT("\t\t<ParentProcessId>"));
-		WriteUTF16String(ReportFile, ItoTCHAR(getppid(), 10));
-		WriteLine(ReportFile, TEXT("</ParentProcessId>"));
-		
-		WriteUTF16String(ReportFile, TEXT("\t\t<ParentProcessPath>"));
-		WriteUTF16String(ReportFile, *GMacAppInfo.ParentProcess);
-		WriteLine(ReportFile, TEXT("</ParentProcessPath>"));
-		
-		WriteLine(ReportFile, TEXT("\t\t<ParentProcessCmdLine></ParentProcessCmdLine>"));	// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t</ParentProcessInformation>"));
-		
-		WriteLine(ReportFile, TEXT("\t<ProblemSignatures>"));
-		WriteLine(ReportFile, TEXT("\t\t<EventType>APPCRASH</EventType>"));
-		
-		WriteUTF16String(ReportFile, TEXT("\t\t<Parameter0>UE4-"));
-		WriteUTF16String(ReportFile, *GMacAppInfo.AppName);
-		WriteLine(ReportFile, TEXT("</Parameter0>"));
-		
-		WriteUTF16String(ReportFile, TEXT("\t\t<Parameter1>"));
-		WriteUTF16String(ReportFile, ItoTCHAR(FEngineVersion::Current().GetMajor(), 10));
-		WriteUTF16String(ReportFile, TEXT("."));
-		WriteUTF16String(ReportFile, ItoTCHAR(FEngineVersion::Current().GetMinor(), 10));
-		WriteUTF16String(ReportFile, TEXT("."));
-		WriteUTF16String(ReportFile, ItoTCHAR(FEngineVersion::Current().GetPatch(), 10));
-		WriteLine(ReportFile, TEXT("</Parameter1>"));
-
-		// App time stamp
-		WriteLine(ReportFile, TEXT("\t\t<Parameter2>528f2d37</Parameter2>"));													// FIXME: supply valid?
-		
-		Dl_info DLInfo;
-		if(Info && Info->si_addr != 0 && dladdr(Info->si_addr, &DLInfo) != 0)
-		{
-			// Crash Module name
-			WriteUTF16String(ReportFile, TEXT("\t\t<Parameter3>"));
-			if (DLInfo.dli_fname && FCStringAnsi::Strlen(DLInfo.dli_fname))
-			{
-				FMemory::Memzero(Line, PATH_MAX * sizeof(TCHAR));
-				FUTF8ToTCHAR_Convert::Convert(Line, PATH_MAX, DLInfo.dli_fname, FCStringAnsi::Strlen(DLInfo.dli_fname));
-				WriteUTF16String(ReportFile, Line);
-			}
-			else
-			{
-				WriteUTF16String(ReportFile, TEXT("Unknown"));
-			}
-			WriteLine(ReportFile, TEXT("</Parameter3>"));
-			
-			// Check header
-			uint32 Version = 0;
-			uint32 TimeStamp = 0;
-			struct mach_header_64* Header = (struct mach_header_64*)DLInfo.dli_fbase;
-			struct load_command *CurrentCommand = (struct load_command *)( (char *)Header + sizeof(struct mach_header_64) );
-			if( Header->magic == MH_MAGIC_64 )
-			{
-				for( int32 i = 0; i < Header->ncmds; i++ )
-				{
-					if( CurrentCommand->cmd == LC_LOAD_DYLIB )
-					{
-						struct dylib_command *DylibCommand = (struct dylib_command *) CurrentCommand;
-						Version = DylibCommand->dylib.current_version;
-						TimeStamp = DylibCommand->dylib.timestamp;
-						Version = ((Version & 0xff) + ((Version >> 8) & 0xff) * 100 + ((Version >> 16) & 0xffff) * 10000);
-						break;
-					}
-					
-					CurrentCommand = (struct load_command *)( (char *)CurrentCommand + CurrentCommand->cmdsize );
-				}
-			}
-			
-			// Module version
-			WriteUTF16String(ReportFile, TEXT("\t\t<Parameter4>"));
-			WriteUTF16String(ReportFile, ItoTCHAR(Version, 10));
-			WriteLine(ReportFile, TEXT("</Parameter4>"));
-			
-			// Module time stamp
-			WriteUTF16String(ReportFile, TEXT("\t\t<Parameter5>"));
-			WriteUTF16String(ReportFile, ItoTCHAR(TimeStamp, 16));
-			WriteLine(ReportFile, TEXT("</Parameter5>"));
-			
-			// MethodDef token -> no equivalent
-			WriteLine(ReportFile, TEXT("\t\t<Parameter6>00000001</Parameter6>"));
-			
-			// IL Offset -> Function pointer
-			WriteUTF16String(ReportFile, TEXT("\t\t<Parameter7>"));
-			WriteUTF16String(ReportFile, ItoTCHAR((uint64)Info->si_addr, 16));
-			WriteLine(ReportFile, TEXT("</Parameter7>"));
-		}
-		
-		// Command line, must match the Windows version.
-		WriteUTF16String(ReportFile, TEXT("\t\t<Parameter8>!"));
-		WriteUTF16String(ReportFile, FCommandLine::GetOriginal());
-		WriteLine(ReportFile, TEXT("!</Parameter8>"));
-		
-		WriteUTF16String(ReportFile, TEXT("\t\t<Parameter9>"));
-		WriteUTF16String(ReportFile, *GMacAppInfo.BranchBaseDir);
-		WriteLine(ReportFile, TEXT("</Parameter9>"));
-		
-		WriteLine(ReportFile, TEXT("\t</ProblemSignatures>"));
-		
-		WriteLine(ReportFile, TEXT("\t<DynamicSignatures>"));
-		
-		WriteUTF16String(ReportFile, TEXT("\t\t<Parameter1>"));
-		WriteUTF16String(ReportFile, *GMacAppInfo.BiosUUID);
-		WriteLine(ReportFile, TEXT("</Parameter1>"));
-		
-		WriteUTF16String(ReportFile, TEXT("\t\t<Parameter2>"));
-		WriteUTF16String(ReportFile, *GMacAppInfo.LCID);
-		WriteLine(ReportFile, TEXT("</Parameter2>"));
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<DeploymentName>%s</DeploymentName>"), FApp::GetDeploymentName()));
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsEnsure>%s</IsEnsure>"), bIsEnsure ? TEXT("1") : TEXT("0")));
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsAssert>%s</IsAssert>"), FDebug::bHasAsserted ? TEXT("1") : TEXT("0")));
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<CrashType>%s</CrashType>"), FGenericCrashContext::GetCrashTypeString(bIsEnsure, FDebug::bHasAsserted, GIsGPUCrashed)));
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<BuildVersion>%s</BuildVersion>"), FApp::GetBuildVersion()));
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<EngineModeEx>%s</EngineModeEx>"), FGenericCrashContext::EngineModeExString()));
-
-		WriteLine(ReportFile, TEXT("\t</DynamicSignatures>"));
-		
-		WriteLine(ReportFile, TEXT("\t<SystemInformation>"));
-		
-		WriteUTF16String(ReportFile, TEXT("\t\t<MID>"));
-		WriteUTF16String(ReportFile, *GMacAppInfo.MachineUUID);
-		WriteLine(ReportFile, TEXT("</MID>"));
-		
-		WriteLine(ReportFile, TEXT("\t\t<SystemManufacturer>Apple Inc.</SystemManufacturer>"));
-		
-		WriteUTF16String(ReportFile, TEXT("\t\t<SystemProductName>"));
-		WriteUTF16String(ReportFile, *GMacAppInfo.MachineModel);
-		WriteLine(ReportFile, TEXT("</SystemProductName>"));
-		
-		WriteUTF16String(ReportFile, TEXT("\t\t<BIOSVersion>"));
-		WriteUTF16String(ReportFile, *GMacAppInfo.BiosRelease);
-		WriteUTF16String(ReportFile, TEXT("-"));
-		WriteUTF16String(ReportFile, *GMacAppInfo.BiosRevision);
-		WriteLine(ReportFile, TEXT("</BIOSVersion>"));
-		
-		WriteUTF16String(ReportFile, TEXT("\t\t<GraphicsCard>"));
-		WriteUTF16String(ReportFile, *GMacAppInfo.PrimaryGPU);
-		WriteLine(ReportFile, TEXT("</GraphicsCard>"));
-		
-		WriteLine(ReportFile, TEXT("\t</SystemInformation>"));
-		
-		WriteLine(ReportFile, TEXT("</WERReportMetadata>"));
-		
-		close(ReportFile);
-	}
-}
-
 void FMacCrashContext::CopyMinidump(char const* OutputPath, char const* InputPath) const
 {
 	int ReportFile = open(OutputPath, O_CREAT|O_WRONLY, 0766);
@@ -1656,7 +1503,7 @@ void FMacCrashContext::CopyMinidump(char const* OutputPath, char const* InputPat
 	}
 }
 
-void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder, bool bIsEnsure) const
+void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder) const
 {
 	// create a crash-specific directory
 	char CrashInfoFolder[PATH_MAX] = {};
@@ -1665,26 +1512,6 @@ void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder, bool b
 	if(!mkdir(CrashInfoFolder, 0766))
 	{
 		char FilePath[PATH_MAX] = {};
-		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
-		FCStringAnsi::Strcat(FilePath, PATH_MAX, "/report.wer");
-		int ReportFile = open(FilePath, O_CREAT|O_WRONLY, 0766);
-		if (ReportFile != -1)
-		{
-			// write BOM
-			static uint16 ByteOrderMarker = 0xFEFF;
-			write(ReportFile, &ByteOrderMarker, sizeof(ByteOrderMarker));
-			
-			WriteUTF16String(ReportFile, TEXT("\r\nAppPath="));
-			WriteUTF16String(ReportFile, *GMacAppInfo.AppPath);
-			WriteLine(ReportFile, TEXT("\r\n"));
-			
-			close(ReportFile);
-		}
-		
-		// generate "WER"
-		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
-		FCStringAnsi::Strcat(FilePath, PATH_MAX, "/wermeta.xml");
-		GenerateWindowsErrorReport(FilePath, bIsEnsure);
 		
 		// generate "minidump" (Apple crash log format)
 		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
@@ -1694,7 +1521,7 @@ void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder, bool b
 		// generate "info.txt" custom data for our server
 		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
 		FCStringAnsi::Strcat(FilePath, PATH_MAX, "/info.txt");
-		ReportFile = open(FilePath, O_CREAT|O_WRONLY, 0766);
+		int ReportFile = open(FilePath, O_CREAT|O_WRONLY, 0766);
 		if (ReportFile != -1)
 		{
 			WriteUTF16String(ReportFile, TEXT("GameName UE4-"));
@@ -1721,7 +1548,7 @@ void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder, bool b
 		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
 		FCStringAnsi::Strcat(FilePath, PATH_MAX, "/" );
 		FCStringAnsi::Strcat(FilePath, PATH_MAX, FGenericCrashContext::CrashContextRuntimeXMLNameA );
-		//SerializeAsXML( FilePath ); @todo uncomment after verification - need to do a bit more work on this for macOS
+		SerializeAsXML( *FString(FilePath) );
 		
 		// copy log
 		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
@@ -1818,8 +1645,7 @@ void FMacCrashContext::GenerateCrashInfoAndLaunchReporter() const
 		FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, ItoANSI(GMacAppInfo.RunUUID.C, 16));
 		FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, ItoANSI(GMacAppInfo.RunUUID.D, 16));
 		
-		const bool bIsEnsure = false;
-		GenerateInfoInFolder(CrashInfoFolder, bIsEnsure);
+		GenerateInfoInFolder(CrashInfoFolder);
 
 		// try launching the tool and wait for its exit, if at all
 		// Use vfork() & execl() as they are async-signal safe, CreateProc can fail in Cocoa
@@ -1884,8 +1710,7 @@ void FMacCrashContext::GenerateEnsureInfoAndLaunchReporter() const
 		FString GameName = FApp::GetProjectName();
 		FString EnsureLogFolder = FString(GMacAppInfo.CrashReportPath) / FString::Printf(TEXT("EnsureReport-%s-%s"), *GameName, *Guid.ToString(EGuidFormats::Digits));
 		
-		const bool bIsEnsure = true;
-		GenerateInfoInFolder(TCHAR_TO_UTF8(*EnsureLogFolder), bIsEnsure);
+		GenerateInfoInFolder(TCHAR_TO_UTF8(*EnsureLogFolder));
 		
 		FString Arguments;
 		if (IsInteractiveEnsureMode())
@@ -1925,7 +1750,7 @@ void NewReportEnsure( const TCHAR* ErrorMessage )
 		Signal.si_code = TRAP_TRACE;
 		Signal.si_addr = __builtin_return_address(0);
 		
-		FMacCrashContext EnsureContext;
+		FMacCrashContext EnsureContext(true);
 		EnsureContext.InitFromSignal(SIGTRAP, &Signal, nullptr);
 		EnsureContext.GenerateEnsureInfoAndLaunchReporter();
 	}

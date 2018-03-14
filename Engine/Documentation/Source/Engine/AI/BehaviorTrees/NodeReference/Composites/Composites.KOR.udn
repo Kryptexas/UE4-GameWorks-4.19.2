@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Title: 비헤이비어 트리 노드 참고서: 컴포짓
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:비헤이비어 트리의 Composit, 컴포짓 노드에 대한 참고서입니다.
@@ -39,11 +39,13 @@ Simple Parallel, 단순 병렬 노드는 전체 트리와 나란히 단일 메�
 | **Finish Mode** | 완료 모드 - [INCLUDE:#subprop1] |
 | **Node Name** | 노드 이름 - 비헤이비어 트리 그래프에 표시할 노드 이름입니다. |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:subprop1]
 | --- | --- |
 | **Immediate** | 즉시 - 메인 태스크가 완료되면, 백그라운드 트리는 중단됩니다. |
 | **Delayed** | 지연 - 메인 트리가 완료되고도 백그라운드 트리 완료를 기다려 줍니다. |
 [/EXCERPT:subprop1]
--->
+
+[/COMMENT]
 

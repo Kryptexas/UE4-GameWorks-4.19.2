@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SoundWaveDetails.h"
 #include "Settings/EditorExperimentalSettings.h"
@@ -34,7 +34,7 @@ void FSoundWaveDetails::CustomizeCurveDetails(IDetailLayoutBuilder& DetailBuilde
 	{
 		USoundWave* SoundWave = CastChecked<USoundWave>(Objects[0].Get());
 
-		TSharedRef<IPropertyHandle> CurvePropertyHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(USoundWave, Curves));
+		TSharedRef<IPropertyHandle> CurvePropertyHandle = DetailBuilder.GetProperty(USoundWave::GetCurvePropertyName());
 		if(CurvePropertyHandle->IsValidHandle())
 		{
 			IDetailPropertyRow& CurvePropertyRow = DetailBuilder.EditCategory(TEXT("Curves")).AddProperty(CurvePropertyHandle);
@@ -105,7 +105,7 @@ EVisibility FSoundWaveDetails::GetMakeInternalCurvesVisibility(USoundWave* Sound
 
 EVisibility FSoundWaveDetails::GetUseInternalCurvesVisibility(USoundWave* SoundWave, TSharedRef<IPropertyHandle> CurvePropertyHandle) const
 {
-	UCurveTable* InternalCurveTable = SoundWave->InternalCurves;
+	UCurveTable* InternalCurveTable = SoundWave->GetInternalCurveData();
 
 	UObject* CurrentCurveTable = nullptr;
 	if (CurvePropertyHandle->GetValue(CurrentCurveTable) == FPropertyAccess::Success)
@@ -121,15 +121,17 @@ EVisibility FSoundWaveDetails::GetUseInternalCurvesVisibility(USoundWave* SoundW
 
 FReply FSoundWaveDetails::HandleMakeInternalCurves(USoundWave* SoundWave)
 {
-	if (SoundWave->Curves != nullptr)
+	UCurveTable* ExistingCurves = SoundWave->GetCurveData();
+	if (ExistingCurves != nullptr)
 	{
 		FScopedTransaction Transaction(LOCTEXT("MakeInternalCurve", "Copy Curve to Internal"));
 		SoundWave->Modify();
 
-		SoundWave->Curves = DuplicateObject<UCurveTable>(SoundWave->Curves, SoundWave, InternalCurveTableName);
-		SoundWave->Curves->ClearFlags(RF_Public);
-		SoundWave->Curves->SetFlags(SoundWave->Curves->GetFlags() | RF_Standalone | RF_Transactional);
-		SoundWave->InternalCurves = SoundWave->Curves;
+		UCurveTable* DuplicatedCurves = DuplicateObject<UCurveTable>(ExistingCurves, SoundWave, InternalCurveTableName);
+		DuplicatedCurves->ClearFlags(RF_Public);
+		DuplicatedCurves->SetFlags(ExistingCurves->GetFlags() | RF_Standalone | RF_Transactional);
+		SoundWave->SetCurveData(DuplicatedCurves);
+		SoundWave->SetInternalCurveData(DuplicatedCurves);
 	}
 
 	return FReply::Handled();
@@ -137,7 +139,7 @@ FReply FSoundWaveDetails::HandleMakeInternalCurves(USoundWave* SoundWave)
 
 FReply FSoundWaveDetails::HandleUseInternalCurves(USoundWave* SoundWave, TSharedRef<IPropertyHandle> CurvePropertyHandle)
 {
-	UCurveTable* InternalCurveTable = SoundWave->InternalCurves;
+	UCurveTable* InternalCurveTable = SoundWave->GetInternalCurveData();
 	if (InternalCurveTable != nullptr)
 	{
 		CurvePropertyHandle->SetValue(InternalCurveTable);

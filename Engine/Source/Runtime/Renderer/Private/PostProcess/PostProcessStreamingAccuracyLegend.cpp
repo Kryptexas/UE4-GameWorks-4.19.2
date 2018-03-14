@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 PostProcessVisualizeComplexity.cpp: Contains definitions for complexity viewmode.
@@ -41,9 +41,9 @@ void FRCPassPostProcessStreamingAccuracyLegend::DrawCustom(FRenderingCompositePa
 
 	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessStreamingAccuracyLegend);
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
-	FIntRect DestRect = View.UnscaledViewRect;
+	FIntRect DestRect = Context.SceneColorViewRect;
 
 	FRenderTargetTemp TempRenderTarget(View, (const FTexture2DRHIRef&)PassOutputs[0].RequestSurface(Context).TargetableTexture);
 	FCanvas Canvas(&TempRenderTarget, NULL, ViewFamily.CurrentRealTime, ViewFamily.CurrentWorldTime, ViewFamily.DeltaWorldTime, Context.GetFeatureLevel());

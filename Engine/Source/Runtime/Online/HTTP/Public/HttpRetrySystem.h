@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -46,6 +46,7 @@ namespace FHttpRetrySystem
     typedef TOptionalSetting<RetryLimitCountType>             FRetryLimitCountSetting;
     typedef TOptionalSetting<RetryTimeoutRelativeSecondsType> FRetryTimeoutRelativeSecondsSetting;
 	typedef TSet<int32> FRetryResponseCodes;
+    typedef TSet<FName> FRetryVerbs;
 };
 
 
@@ -90,7 +91,8 @@ namespace FHttpRetrySystem
 			const TSharedRef<IHttpRequest>& HttpRequest,
 			const FRetryLimitCountSetting& InRetryLimitCountOverride = FRetryLimitCountSetting::Unused(),
 			const FRetryTimeoutRelativeSecondsSetting& InRetryTimeoutRelativeSecondsOverride = FRetryTimeoutRelativeSecondsSetting::Unused(),
-			const FRetryResponseCodes& InRetryResponseCodes = FRetryResponseCodes()
+            const FRetryResponseCodes& InRetryResponseCodes = FRetryResponseCodes(),
+            const FRetryVerbs& InRetryVerbs = FRetryVerbs()
 			);
 
 		void HttpOnRequestProgress(FHttpRequestPtr InHttpRequest, int32 BytesSent, int32 BytesRcv);
@@ -100,6 +102,7 @@ namespace FHttpRetrySystem
         FRetryLimitCountSetting              RetryLimitCountOverride;
         FRetryTimeoutRelativeSecondsSetting  RetryTimeoutRelativeSecondsOverride;
 		FRetryResponseCodes					 RetryResponseCodes;
+        FRetryVerbs                          RetryVerbs;
 
 		FHttpRequestCompleteDelegate OnProcessRequestCompleteDelegate;
 		FHttpRequestProgressDelegate OnProcessRequestProgressDelegate;
@@ -122,7 +125,8 @@ namespace FHttpRetrySystem
 		HTTP_API TSharedRef<class FHttpRetrySystem::FRequest> CreateRequest(
 			const FRetryLimitCountSetting& InRetryLimitCountOverride = FRetryLimitCountSetting::Unused(),
 			const FRetryTimeoutRelativeSecondsSetting& InRetryTimeoutRelativeSecondsOverride = FRetryTimeoutRelativeSecondsSetting::Unused(),
-			const FRetryResponseCodes& InRetryResponseCodes = FRetryResponseCodes()
+			const FRetryResponseCodes& InRetryResponseCodes = FRetryResponseCodes(),
+			const FRetryVerbs& InRetryVerbs = FRetryVerbs()
 			);
 
 

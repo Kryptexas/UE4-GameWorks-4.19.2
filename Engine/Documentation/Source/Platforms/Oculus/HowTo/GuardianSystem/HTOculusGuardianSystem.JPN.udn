@@ -1,0 +1,70 @@
+﻿INTSourceChangelist:3719384
+Availability:Public
+Crumbs:%ROOT%, 
+Title:Oculus Rift ガーディアン システムの設定方法
+Description:スケール VR を使用するための Oculus Rift ガーディアン システムの設定方法
+Type: how-to
+Skilllevel:Beginner
+Version:4.17
+Parent:Platforms/Oculus
+Order:4
+tags:Basics
+topic-image:HTGuardian_System_Topic_Image.png
+prereq:Platforms\Oculus\HowTo\StandingCamera
+prereq:Platforms\VR\MotionController
+
+![](HTGuardian_System_Hero_Image.png)
+
+Oculus Guardian システムは、VR インタラクション エリアの境界をユーザーに表示します。トラックされたデバイスが境界に近づくと、Oculus Runtime が自動的に視覚的なヒントを出してユーザーに知らせます。この操作ガイドでは、UE4 プロジェクトのプレイヤー ポーンに Oculus Guardian システムを追加します。
+
+[REGION:note]
+ガーディアン システムを使用するためには Oculus App による設定が必要です。設定方法の詳細は、[Oculus ガーディアン システム](https://www.vive.com/us/support/category_howto/setting-up-room-scale-play-area.html) 設定ページをご覧ください。
+[/REGION]
+
+[REGION:warning]
+UE4 からガーディアン システムを無効にすることは **できません**。また推奨もしません。ただし、ユーザーの境界への接近に対する UE4 の反応は様々な設定が可能です。  
+[/REGION]
+
+## ステップ
+
+この機能を UE4 プレイヤー ポーンに追加するには、以下の手順に従います。
+
+1. プロジェクト プレイヤーの Pawn ブループリントを開いて **[Components]** タブが表示されるようにします。  
+
+1. **[Add Component (コンポーネントを追加)]** ボタンをクリックして表示されたリストで **OculusRiftBoundy** コンポーネントを検索し、Component リストに追加します。
+
+    ![](HTGuardian_System_00.png)
+
+1. 完了すると、プレイヤー ポーンはこのようになります。
+
+    ![](HTGuardian_System_01.png)
+
+## 最終結果
+
+ここで VR でプロジェクトを起動して Rift HMD を装着して VR インタラクション エリアの境界へ近づくと、以下の動画のように見えるはずです。
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    AGgUNDZoObQ
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
+
+## UE4 プロジェクトのダウンロード
+
+以下のリンクから、このサンプルの作成に使われた UE4 プロジェクトをダウンロードすることができます。 
+
+* [**Oculus Rift ガーディアン システム設定プロジェクト**](https://epicgames.box.com/s/s4vvkb2i0ohtice8vtqude6i8ih7hy8i)
+
+

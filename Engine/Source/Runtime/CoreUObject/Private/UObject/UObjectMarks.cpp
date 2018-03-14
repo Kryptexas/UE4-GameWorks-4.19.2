@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectMarks.cpp: Unreal save marks annotation
@@ -51,8 +51,16 @@ template <> struct TIsPODType<FObjectMark> { enum { Value = true }; };
 /**
  * Annotation to relate objects with object marks
  */
-static FUObjectAnnotationSparse<FObjectMark,true> MarkAnnotation;
+class FThreadMarkAnnotation : public TThreadSingleton<FThreadMarkAnnotation>
+{
+	friend class TThreadSingleton<FThreadMarkAnnotation>;
 
+	FThreadMarkAnnotation()	{}
+
+public:
+
+	FUObjectAnnotationSparse<FObjectMark, true> MarkAnnotation;
+};
 
 
 /**
@@ -63,7 +71,8 @@ static FUObjectAnnotationSparse<FObjectMark,true> MarkAnnotation;
  */
 void MarkObject(const class UObjectBase* Object, EObjectMark Marks)
 {
-	MarkAnnotation.AddAnnotation(Object,FObjectMark(EObjectMark(MarkAnnotation.GetAnnotation(Object).Marks | Marks)));
+	FUObjectAnnotationSparse<FObjectMark, true>& ThreadMarkAnnotation = FThreadMarkAnnotation::Get().MarkAnnotation;
+	ThreadMarkAnnotation.AddAnnotation(Object,FObjectMark(EObjectMark(ThreadMarkAnnotation.GetAnnotation(Object).Marks | Marks)));
 }
 
 /**
@@ -74,10 +83,11 @@ void MarkObject(const class UObjectBase* Object, EObjectMark Marks)
  */
 void UnMarkObject(const class UObjectBase* Object, EObjectMark Marks)
 {
-	FObjectMark Annotation = MarkAnnotation.GetAnnotation(Object);
+	FUObjectAnnotationSparse<FObjectMark, true>& ThreadMarkAnnotation = FThreadMarkAnnotation::Get().MarkAnnotation;
+	FObjectMark Annotation = ThreadMarkAnnotation.GetAnnotation(Object);
 	if(Annotation.Marks & Marks)
 	{
-		MarkAnnotation.AddAnnotation(Object,FObjectMark(EObjectMark(Annotation.Marks & ~Marks)));
+		ThreadMarkAnnotation.AddAnnotation(Object,FObjectMark(EObjectMark(Annotation.Marks & ~Marks)));
 	}
 }
 
@@ -91,18 +101,19 @@ void MarkAllObjects(EObjectMark Marks)
 
 void UnMarkAllObjects(EObjectMark Marks)
 {
+	FUObjectAnnotationSparse<FObjectMark, true>& ThreadMarkAnnotation = FThreadMarkAnnotation::Get().MarkAnnotation;
 	if (Marks == OBJECTMARK_ALLMARKS)
 	{
-		MarkAnnotation.RemoveAllAnnotations();
+		ThreadMarkAnnotation.RemoveAllAnnotations();
 	}
 	else
 	{
-		const TMap<const UObjectBase *, FObjectMark>& Map = MarkAnnotation.GetAnnotationMap();
+		const TMap<const UObjectBase *, FObjectMark>& Map = ThreadMarkAnnotation.GetAnnotationMap();
 		for (TMap<const UObjectBase *, FObjectMark>::TConstIterator It(Map); It; ++It)
 		{
 			if(It.Value().Marks & Marks)
 			{
-				MarkAnnotation.AddAnnotation((UObject*)It.Key(),FObjectMark(EObjectMark(It.Value().Marks & ~Marks)));
+				ThreadMarkAnnotation.AddAnnotation((UObject*)It.Key(),FObjectMark(EObjectMark(It.Value().Marks & ~Marks)));
 			}
 		}
 	}
@@ -110,12 +121,17 @@ void UnMarkAllObjects(EObjectMark Marks)
 
 bool ObjectHasAnyMarks(const class UObjectBase* Object, EObjectMark Marks)
 {
-	return !!(MarkAnnotation.GetAnnotation(Object).Marks & Marks);
+	return !!(FThreadMarkAnnotation::Get().MarkAnnotation.GetAnnotation(Object).Marks & Marks);
 }
 
 bool ObjectHasAllMarks(const class UObjectBase* Object, EObjectMark Marks)
 {
-	return (MarkAnnotation.GetAnnotation(Object).Marks & Marks) == Marks;
+	return (FThreadMarkAnnotation::Get().MarkAnnotation.GetAnnotation(Object).Marks & Marks) == Marks;
+}
+
+EObjectMark ObjectGetAllMarks(const class UObjectBase* Object)
+{
+	return FThreadMarkAnnotation::Get().MarkAnnotation.GetAnnotation(Object).Marks;
 }
 
 void GetObjectsWithAllMarks(TArray<UObject *>& Results, EObjectMark Marks)
@@ -126,7 +142,7 @@ void GetObjectsWithAllMarks(TArray<UObject *>& Results, EObjectMark Marks)
 	{
 		ExclusionFlags |= EInternalObjectFlags::AsyncLoading;
 	}
-	const TMap<const UObjectBase *, FObjectMark>& Map = MarkAnnotation.GetAnnotationMap();
+	const TMap<const UObjectBase *, FObjectMark>& Map = FThreadMarkAnnotation::Get().MarkAnnotation.GetAnnotationMap();
 	Results.Empty(Map.Num());
 	for (TMap<const UObjectBase *, FObjectMark>::TConstIterator It(Map); It; ++It)
 	{
@@ -149,7 +165,7 @@ void GetObjectsWithAnyMarks(TArray<UObject *>& Results, EObjectMark Marks)
 	{
 		ExclusionFlags |= EInternalObjectFlags::AsyncLoading;
 	}
-	const TMap<const UObjectBase *, FObjectMark>& Map = MarkAnnotation.GetAnnotationMap();
+	const TMap<const UObjectBase *, FObjectMark>& Map = FThreadMarkAnnotation::Get().MarkAnnotation.GetAnnotationMap();
 	Results.Empty(Map.Num());
 	for (TMap<const UObjectBase *, FObjectMark>::TConstIterator It(Map); It; ++It)
 	{

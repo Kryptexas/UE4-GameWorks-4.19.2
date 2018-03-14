@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // ActorComponent.cpp: Actor component implementation.
 
 #include "Components/ActorComponent.h"
@@ -407,7 +407,7 @@ ULevel* UActorComponent::GetComponentLevel() const
 {
 	// For model components Level is outer object
 	AActor* MyOwner = GetOwner();
-	return (MyOwner ? Cast<ULevel>(MyOwner->GetOuter()) : Cast<ULevel>( GetOuter() ) );
+	return (MyOwner ? MyOwner->GetLevel() : GetTypedOuter<ULevel>());
 }
 
 bool UActorComponent::ComponentIsInLevel(const ULevel *TestLevel) const
@@ -1001,6 +1001,7 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 			if (!bHasBegunPlay)
 			{
 				BeginPlay();
+				ensureMsgf(bHasBegunPlay, TEXT("Failed to route BeginPlay (%s)"), *GetFullName());
 			}
 		}
 	}
@@ -1543,7 +1544,7 @@ void UActorComponent::SetTickableWhenPaused(bool bTickableWhenPaused)
 bool UActorComponent::IsOwnerRunningUserConstructionScript() const
 {
 	AActor* MyOwner = GetOwner();
-	return (MyOwner && MyOwner->bRunningUserConstructionScript);
+	return (MyOwner && MyOwner->IsRunningUserConstructionScript());
 }
 
 void UActorComponent::AddAssetUserData(UAssetUserData* InUserData)

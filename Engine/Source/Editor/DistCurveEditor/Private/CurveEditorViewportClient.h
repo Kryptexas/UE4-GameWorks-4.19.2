@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,7 +16,7 @@ struct FCurveEdEntry;
    FCurveEditorViewportClient
 -----------------------------------------------------------------------------*/
 
-class FCurveEditorViewportClient : public FViewportClient
+class FCurveEditorViewportClient : public FCommonViewportClient
 {
 public:
 	/** Constructor */
@@ -38,6 +38,8 @@ public:
 	/** Set snap behavior */
 	void SetInSnap(bool bEnabled, float SnapAmount, bool bInSnapToFrames);
 
+	/** FViewport interface */
+	virtual float UpdateViewportClientWindowDPIScale() const override;
 private:
 	/** Curve editor key movement axis locking */
 	enum ECurveEdMovementAxisLock
@@ -92,6 +94,8 @@ private:
 	/** Hide/show curves */
 	void ToggleCurveHidden(int32 InCurveIndex);
 	void ToggleSubCurveHidden(int32 InCurveIndex, int32 InSubCurveIndex);
+
+	void HandleWindowDPIScaleChanged(TSharedRef<SWindow> Window);
 
 private:
 	/** Pointer back to the Particle editor tool that owns us */

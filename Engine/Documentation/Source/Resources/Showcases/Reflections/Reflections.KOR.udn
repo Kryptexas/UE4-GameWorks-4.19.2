@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:리플렉션
 Crumbs:%ROOT%, Resources
@@ -10,50 +10,7 @@ Related: Engine/Rendering/PostProcessEffects/ScreenSpaceReflection
 Related: Resources/ContentExamples/Reflections/1_4
 Related: Resources/ContentExamples/Reflections/1_3
 Version: 4.9
-
-
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/Showcases/Reflections:title%](Reflections_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/Reflections:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/Reflections:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/Reflections]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/Showcases/Reflections:title%](Reflections_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/Reflections:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/Reflections:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/Reflections]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:Reflections_Topic.png
 
 
 [REGION:fullwidth]

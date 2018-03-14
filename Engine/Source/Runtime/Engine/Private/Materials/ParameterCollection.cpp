@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ParameterCollection.h"
 #include "UObject/UObjectHash.h"
@@ -55,12 +55,13 @@ void UMaterialParameterCollection::BeginDestroy()
 {
 	if (DefaultResource)
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-			FRemoveDefaultResourceCommand,
-			FGuid,Id,StateId,
-		{
-			GDefaultMaterialParameterCollectionInstances.Remove(Id);
-		});
+		FGuid Id = StateId;
+		ENQUEUE_RENDER_COMMAND(RemoveDefaultResourceCommand)(
+			[Id](FRHICommandListImmediate& RHICmdList)
+			{	
+				GDefaultMaterialParameterCollectionInstances.Remove(Id);			
+			}
+		);
 
 		DefaultResource->GameThread_Destroy();
 		DefaultResource = NULL;
@@ -216,7 +217,7 @@ void UMaterialParameterCollection::PostEditChangeProperty(FPropertyChangedEvent&
 
 				// Preview materials often use expressions for rendering that are not in their Expressions array, 
 				// And therefore their MaterialParameterCollectionInfos are not up to date.
-				if (CurrentMaterial->bIsPreviewMaterial)
+				if (CurrentMaterial->bIsPreviewMaterial || CurrentMaterial->bIsFunctionPreviewMaterial)
 				{
 					bRecompile = true;
 				}
@@ -461,15 +462,16 @@ void UMaterialParameterCollection::UpdateDefaultResource()
 	// Propagate the new values to the rendering thread
 	TArray<FVector4> ParameterData;
 	GetDefaultParameterData(ParameterData);
-	DefaultResource->GameThread_UpdateContents(StateId, ParameterData);
+	DefaultResource->GameThread_UpdateContents(StateId, ParameterData, GetFName());
 
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		FUpdateDefaultResourceCommand,
-		FGuid,Id,StateId,
-		FMaterialParameterCollectionInstanceResource*,Resource,DefaultResource,
-	{
-		GDefaultMaterialParameterCollectionInstances.Add(Id, Resource);
-	});
+	FGuid Id = StateId;
+	FMaterialParameterCollectionInstanceResource* Resource = DefaultResource;
+	ENQUEUE_RENDER_COMMAND(UpdateDefaultResourceCommand)(
+		[Id, Resource](FRHICommandListImmediate& RHICmdList)
+		{	
+			GDefaultMaterialParameterCollectionInstances.Add(Id, Resource);
+		}
+	);
 }
 
 UMaterialParameterCollectionInstance::UMaterialParameterCollectionInstance(const FObjectInitializer& ObjectInitializer)
@@ -597,7 +599,7 @@ void UMaterialParameterCollectionInstance::UpdateRenderState()
 	// Propagate the new values to the rendering thread
 	TArray<FVector4> ParameterData;
 	GetParameterData(ParameterData);
-	Resource->GameThread_UpdateContents(Collection ? Collection->StateId : FGuid(), ParameterData);
+	Resource->GameThread_UpdateContents(Collection ? Collection->StateId : FGuid(), ParameterData, GetFName());
 	// Update the world's scene with the new uniform buffer pointer
 	World->UpdateParameterCollectionInstances(false);
 }
@@ -646,26 +648,26 @@ void UMaterialParameterCollectionInstance::FinishDestroy()
 	Super::FinishDestroy();
 }
 
-void FMaterialParameterCollectionInstanceResource::GameThread_UpdateContents(const FGuid& InGuid, const TArray<FVector4>& Data)
+void FMaterialParameterCollectionInstanceResource::GameThread_UpdateContents(const FGuid& InGuid, const TArray<FVector4>& Data, const FName& InOwnerName)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-		FUpdateCollectionCommand,
-		FGuid,Id,InGuid,
-		TArray<FVector4>,Data,Data,
-		FMaterialParameterCollectionInstanceResource*,Resource,this,
-	{
-		Resource->UpdateContents(Id, Data);
-	});
+	FMaterialParameterCollectionInstanceResource* Resource = this;
+	ENQUEUE_RENDER_COMMAND(UpdateCollectionCommand)(
+		[InGuid, Data, InOwnerName, Resource](FRHICommandListImmediate& RHICmdList)
+		{
+			Resource->UpdateContents(InGuid, Data, InOwnerName);
+		}
+	);
 }
 
 void FMaterialParameterCollectionInstanceResource::GameThread_Destroy()
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		FDestroyCollectionCommand,
-		FMaterialParameterCollectionInstanceResource*,Resource,this,
-	{
-		delete Resource;
-	});
+	FMaterialParameterCollectionInstanceResource* Resource = this;
+	ENQUEUE_RENDER_COMMAND(DestroyCollectionCommand)(
+		[Resource](FRHICommandListImmediate& RHICmdList)
+		{
+			delete Resource;
+		}
+	);
 }
 
 static FName MaterialParameterCollectionInstanceResourceName(TEXT("MaterialParameterCollectionInstanceResource"));
@@ -680,15 +682,15 @@ FMaterialParameterCollectionInstanceResource::~FMaterialParameterCollectionInsta
 	UniformBuffer.SafeRelease();
 }
 
-void FMaterialParameterCollectionInstanceResource::UpdateContents(const FGuid& InId, const TArray<FVector4>& Data)
+void FMaterialParameterCollectionInstanceResource::UpdateContents(const FGuid& InId, const TArray<FVector4>& Data, const FName& InOwnerName)
 {
 	UniformBuffer.SafeRelease();
 
 	Id = InId;
+	OwnerName = InOwnerName;
 
 	if (InId != FGuid() && Data.Num() > 0)
 	{
-		UniformBuffer.SafeRelease();
 		UniformBufferLayout.ConstantBufferSize = Data.GetTypeSize() * Data.Num();
 		UniformBufferLayout.ResourceOffset = 0;
 		check(UniformBufferLayout.Resources.Num() == 0);

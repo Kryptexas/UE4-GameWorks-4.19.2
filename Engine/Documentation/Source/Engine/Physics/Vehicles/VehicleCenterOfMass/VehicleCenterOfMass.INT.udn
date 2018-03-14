@@ -33,13 +33,15 @@ Depending on where the Center of Mass is located, you can shift it to be predomi
 	[/PARAM]
 [/OBJECT]
 
-<!---
+[COMMENT:none]
+-
 [REGION:imagetable]
 | ![Understeer](Understeering.png)(w:450) | ![Oversteer](Oversteering.png)(w:450) |
 | --- | --- |
 | Understeer | Oversteer |
 [/REGION]
---->
+-
+[/COMMENT]
 
 Also, when you consider where to place the Center of Mass, it is worth noting that this choice can have an effect on how your vehicle handles in the air. In this example, the Center of Mass has been lowered and moved closer to the rear of the car. Since it's low to the ground and can get to high speed quickly, the lower rear Center of Mass helps to stabilize the car, especially with jumps!
 
@@ -49,7 +51,8 @@ Also, when you consider where to place the Center of Mass, it is worth noting th
 | Center of Mass: X: 0, Y: 0, Z: 0 | Center of Mass: X: -25, Y: 0, Z: -10 |
 [/REGION]
 
-<!--- 
+[COMMENT:none]
+- 
 
 [EXCERPT:originalCoM]
 [OBJECT:EmbeddedVideo]
@@ -78,7 +81,8 @@ Also, when you consider where to place the Center of Mass, it is worth noting th
 	[/PARAMLITERAL]
 [/OBJECT]
 [/EXCERPT:adjustedCoM]
---->
+-
+[/COMMENT]
 
 ## Debugging Center of Mass
 

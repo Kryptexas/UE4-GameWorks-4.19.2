@@ -1,4 +1,4 @@
-/// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -29,7 +29,7 @@ public:
 	 * @param Protocols a list of protocols the client will handle.
 	 * @return new IWebSocket instance
 	 */
-	virtual TSharedRef<IWebSocket> CreateWebSocket(const FString& Url, const TArray<FString>& Protocols, const FString& UpgradeHeader) = 0;
+	virtual TSharedRef<IWebSocket> CreateWebSocket(const FString& Url, const TArray<FString>& Protocols, const TMap<FString, FString>& UpgradeHeaders) = 0;
 
 	/**
 	 * Virtual destructor

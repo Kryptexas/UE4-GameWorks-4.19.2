@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -48,6 +50,22 @@ namespace UnrealBuildTool
 			if (!bWriteMarkup && bWriteToConsole)
 			{
 				Console.WriteLine();
+			}
+		}
+
+		/// <summary>
+		/// Write a message to the log, clearing the current progress percentage first
+		/// </summary>
+		public void LogMessage(LogEventType Verbosity, string Format, params object[] Args)
+		{
+			if(bWriteToConsole)
+			{
+				Console.Write(new string('\b', Message.Length + 1 + NumCharsToBackspaceOver) + new string(' ', Message.Length + 1 + NumCharsToBackspaceOver) + new string('\b', Message.Length + 1 + NumCharsToBackspaceOver));
+			}
+			Log.WriteLine(Verbosity, Format, Args);
+			if(bWriteToConsole)
+			{
+				Console.Write("{0} {1}", Message, CurrentProgressString);
 			}
 		}
 

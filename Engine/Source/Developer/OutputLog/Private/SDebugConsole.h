@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,7 +11,7 @@
 #include "Widgets/SCompoundWidget.h"
 #include "OutputLogModule.h"
 
-class SEditableTextBox;
+class SMultiLineEditableTextBox;
 
 /**
  * Debug console widget, designed to be summoned on top of a viewport or window
@@ -50,7 +50,7 @@ protected:
 private:
 
 	/** Editable text box for this debug console's input line */
-	TSharedPtr< SEditableTextBox > EditableTextBox;
+	TSharedPtr< SMultiLineEditableTextBox > EditableTextBox;
 
 	/** Current style of the debug console.  Can be changed on the fly. */
 	EDebugConsoleStyle::Type CurrentStyle;

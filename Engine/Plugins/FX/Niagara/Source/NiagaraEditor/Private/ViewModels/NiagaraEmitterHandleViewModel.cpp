@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraEmitterHandleViewModel.h"
 #include "NiagaraSystem.h"
@@ -108,44 +108,6 @@ EVisibility FNiagaraEmitterHandleViewModel::GetErrorTextVisibility() const
 	return EmitterViewModel->GetLatestCompileStatus() != ENiagaraScriptCompileStatus::NCS_UpToDate ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-
-FText FNiagaraEmitterHandleViewModel::GetSourceSynchronizationText() const
-{
-	
-	if (EmitterHandle->IsSynchronizedWithSource())
-	{
-		return LOCTEXT("SynchronizedWithSource", "Up-To-Date");
-	}
-	else
-	{
-		return LOCTEXT("NotSynchronizedWithSource", "Not Up-To-Date");
-	}
-}
-
-EVisibility FNiagaraEmitterHandleViewModel::GetSourceSynchronizationTextVisibility() const
-{
-	if (OwningSystem.GetAutoImportChangedEmitters())
-	{
-		return EVisibility::Collapsed;
-	}
-	else
-	{
-		return EVisibility::Visible;
-	}
-}
-
-FSlateColor FNiagaraEmitterHandleViewModel::GetSourceSynchronizationTextColor() const
-{
-	if (EmitterHandle->IsSynchronizedWithSource())
-	{
-		return FSlateColor::UseForeground();
-	}
-	else
-	{
-		return FSlateColor(FLinearColor::Yellow);
-	}
-}
-
 FName FNiagaraEmitterHandleViewModel::GetName() const
 {
 	if (EmitterHandle)
@@ -164,20 +126,13 @@ void FNiagaraEmitterHandleViewModel::SetName(FName InName)
 
 	if (EmitterHandle)
 	{
-		TSet<FName> OtherEmitterNames;
-		for (const FNiagaraEmitterHandle& OtherEmitterHandle : OwningSystem.GetEmitterHandles())
-		{
-			if (OtherEmitterHandle.GetId() != EmitterHandle->GetId())
-			{
-				OtherEmitterNames.Add(OtherEmitterHandle.GetName());
-			}
-		}
-		FName UniqueName = FNiagaraEditorUtilities::GetUniqueName(InName, OtherEmitterNames);
-
 		FScopedTransaction ScopedTransaction(NSLOCTEXT("NiagaraEmitterEditor", "EditEmitterNameTransaction", "Edit emitter name"));
 		OwningSystem.Modify();
-		EmitterHandle->SetName(UniqueName);
+		OwningSystem.RemoveSystemParametersForEmitter(*EmitterHandle);
+		EmitterHandle->SetName(InName, OwningSystem);
+		OwningSystem.RefreshSystemParametersFromEmitter(*EmitterHandle);
 		OnPropertyChangedDelegate.Broadcast();
+		OnNameChangedDelegate.Broadcast();
 	}
 }
 
@@ -250,54 +205,9 @@ TSharedRef<FNiagaraEmitterViewModel> FNiagaraEmitterHandleViewModel::GetEmitterV
 	return EmitterViewModel;
 }
 
-void FNiagaraEmitterHandleViewModel::CompileScripts()
+void FNiagaraEmitterHandleViewModel::CompileScripts(bool bForce)
 {
-	EmitterViewModel->CompileScripts();
-}
-
-
-
-void FNiagaraEmitterHandleViewModel::RefreshFromSource()
-{
-	FScopedTransaction ScopedTransaction(NSLOCTEXT("NiagaraEmitterEditor", "RefreshFromSource", "Reset emitter from source."));
-	OwningSystem.Modify();
-
-	if (EmitterHandle)
-	{
-		{
-			// Pull in changes to the emitter asset by copying the source scripts, compiling and then copying over parameter values
-			// where relevant.
-			if (EmitterHandle->RefreshFromSource() == false)
-			{
-				UE_LOG(LogNiagaraEditor, Error, TEXT("Failed to compile during refresh. Refresh cancelled. %s"), *EmitterHandle->GetSource()->GetPathName());
-
-				const FText NotificationText = FText::Format(LOCTEXT("FailedScriptRefresh", "'{0}' failed to refresh due to compile errors. Please see log."), FText::FromString(EmitterHandle->GetSource()->GetName()));
-
-				FNotificationInfo Info(NotificationText);
-				Info.bFireAndForget = true;
-				Info.bUseThrobber = true;
-				Info.bUseSuccessFailIcons = true;
-				Info.ExpireDuration = 10.0f;
-				FSlateNotificationManager::Get().AddNotification(Info);
-			}
-		}
-
-		EmitterViewModel->SetEmitter(EmitterHandle->GetInstance());
-	}
-	OnPropertyChangedDelegate.Broadcast();
-}
-
-void FNiagaraEmitterHandleViewModel::ResetToSource()
-{
-	FScopedTransaction ScopedTransaction(NSLOCTEXT("NiagaraEmitterEditor", "ResetToSource", "Reset emitter to source."));
-	OwningSystem.Modify();
-	
-	if (EmitterHandle)
-	{
-		EmitterHandle->ResetToSource();
-		EmitterViewModel->SetEmitter(EmitterHandle->GetInstance());
-	}
-	OnPropertyChangedDelegate.Broadcast();
+	EmitterViewModel->CompileScripts(bForce);
 }
 
 void FNiagaraEmitterHandleViewModel::OpenSourceEmitter()
@@ -311,6 +221,11 @@ void FNiagaraEmitterHandleViewModel::OpenSourceEmitter()
 FNiagaraEmitterHandleViewModel::FOnPropertyChanged& FNiagaraEmitterHandleViewModel::OnPropertyChanged()
 {
 	return OnPropertyChangedDelegate;
+}
+
+FNiagaraEmitterHandleViewModel::FOnNameChanged& FNiagaraEmitterHandleViewModel::OnNameChanged()
+{
+	return OnNameChangedDelegate;
 }
 
 #undef LOCTEXT_NAMESPACE

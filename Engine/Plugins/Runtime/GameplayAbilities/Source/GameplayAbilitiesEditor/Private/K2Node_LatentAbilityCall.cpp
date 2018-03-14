@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_LatentAbilityCall.h"
 #include "Abilities/GameplayAbility.h"
@@ -78,7 +78,7 @@ void UK2Node_LatentAbilityCall::GetMenuActions(FBlueprintActionDatabaseRegistrar
 		check(NodeSpawner != nullptr);
 		NodeSpawner->NodeClass = NodeClass;
 
-		TWeakObjectPtr<UFunction> FunctionPtr = FactoryFunc;
+		TWeakObjectPtr<UFunction> FunctionPtr = MakeWeakObjectPtr(const_cast<UFunction*>(FactoryFunc));
 		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(GetMenuActions_Utils::SetNodeFunc, FunctionPtr);
 
 		return NodeSpawner;
@@ -96,7 +96,7 @@ void UK2Node_LatentAbilityCall::ValidateNodeDuringCompilation(class FCompilerRes
 		{
 			if (Property->GetBoolMetaData(FK2Node_LatentAbilityCallHelper_RequiresConnection))
 			{
-				if (UEdGraphPin* DelegateExecPin = FindPin(Property->GetName()))
+				if (UEdGraphPin* DelegateExecPin = FindPin(Property->GetFName()))
 				{
 					if (DelegateExecPin->LinkedTo.Num() < 1)
 					{

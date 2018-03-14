@@ -158,7 +158,8 @@ The door has the following exposed properties:
 
 
 
-<!-----------------------------------
+[COMMENT:none]
+---------------------------------
 
 [EXCERPT:CameraCL]
 The Components List for the camera contains the following components:
@@ -244,4 +245,5 @@ The Event Graph performs the following tasks when we receive a signal from the a
 
 
 
------------------------------------->
+----------------------------------
+[/COMMENT]

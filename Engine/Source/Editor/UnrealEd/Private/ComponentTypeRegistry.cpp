@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ComponentTypeRegistry.h"
 #include "Modules/ModuleManager.h"
@@ -38,7 +38,7 @@ struct FComponentTypeRegistryData
 
 	/** Implementation of FTickableEditorObject */
 	virtual void Tick(float) override;
-	virtual bool IsTickable() const override { return true; }
+	virtual ETickableTickType GetTickableTickType() const override { return ETickableTickType::Always; }
 	virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(FTypeDatabaseUpdater, STATGROUP_Tickables); }
 
 	// Request a refresh of the components list next frame
@@ -330,7 +330,7 @@ void FComponentTypeRegistryData::ForceRefreshComponentList()
 			// GetAssetsByClass call is a kludge to get the full asset paths for the blueprints we care about, Bob T. thinks 
 			// that the Asset Registry could just keep asset paths:
 			TArray<FAssetData> BlueprintAssetData;
-			AssetRegistryModule.Get().GetAssetsByClass(UBlueprint::StaticClass()->GetFName(), BlueprintAssetData);
+			AssetRegistryModule.Get().GetAssetsByClass(UBlueprint::StaticClass()->GetFName(), BlueprintAssetData, true);
 			TMap<FString, FAssetData> BlueprintNames;
 			for (const FAssetData& Blueprint : BlueprintAssetData)
 			{

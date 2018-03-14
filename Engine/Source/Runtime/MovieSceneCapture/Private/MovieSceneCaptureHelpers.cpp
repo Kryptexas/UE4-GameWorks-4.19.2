@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneCaptureHelpers.h"
 #include "MovieScene.h"
@@ -465,7 +465,7 @@ bool MovieSceneCaptureHelpers::ExportEDL(const UMovieScene* InMovieScene, float 
 					continue;
 				}
 
-				FString ShotName = CinematicShotSection->GetShotDisplayName().ToString();
+				FString ShotName = CinematicShotSection->GetShotDisplayName();
 				FString ShotPath = CinematicShotSection->GetSequence()->GetMovieScene()->GetOuter()->GetPathName();
 
 				float HandleFrameTime = (float)InHandleFrames / (float)InFrameRate;

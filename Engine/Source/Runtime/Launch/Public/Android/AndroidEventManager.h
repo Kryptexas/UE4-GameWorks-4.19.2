@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -94,4 +94,7 @@ private:
 	bool bHaveWindow;
 	bool bHaveGame;
 	bool bRunning;
+
+	// mark the "destroy window" event to prevent "create window" with invalid data on the same frame
+	bool bDestroyWindowPending;
 };

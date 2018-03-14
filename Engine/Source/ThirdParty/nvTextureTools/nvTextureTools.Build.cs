@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -23,7 +23,7 @@ public class nvTextureTools : ModuleRules
 
 			PublicDelayLoadDLLs.Add("nvtt_64.dll");
 
-			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/nvTextureTools/Win64/nvtt_64.dll"));
+			RuntimeDependencies.Add("$(EngineDir)/Binaries/ThirdParty/nvTextureTools/Win64/nvtt_64.dll");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32)
 		{
@@ -34,7 +34,7 @@ public class nvTextureTools : ModuleRules
 
 			PublicDelayLoadDLLs.Add("nvtt.dll");
 
-			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/nvTextureTools/Win32/nvtt.dll"));
+			RuntimeDependencies.Add("$(EngineDir)/Binaries/ThirdParty/nvTextureTools/Win32/nvtt.dll");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
@@ -52,10 +52,10 @@ public class nvTextureTools : ModuleRules
             PublicAdditionalLibraries.Add(nvttPath + "lib/Linux/x86_64-unknown-linux-gnu/libnvtt.so");
             PublicAdditionalLibraries.Add(nvttPath + "lib/Linux/x86_64-unknown-linux-gnu/libsquish.a");
 
-			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Linux/libnvcore.so"));
-			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Linux/libnvimage.so"));
-			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Linux/libnvmath.so"));
-			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Linux/libnvtt.so"));
+			RuntimeDependencies.Add("$(EngineDir)/Binaries/Linux/libnvcore.so");
+			RuntimeDependencies.Add("$(EngineDir)/Binaries/Linux/libnvimage.so");
+			RuntimeDependencies.Add("$(EngineDir)/Binaries/Linux/libnvmath.so");
+			RuntimeDependencies.Add("$(EngineDir)/Binaries/Linux/libnvtt.so");
         }
 	}
 }

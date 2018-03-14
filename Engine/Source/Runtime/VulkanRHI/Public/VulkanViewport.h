@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanViewport.h: Vulkan viewport RHI definitions.
@@ -100,3 +100,10 @@ struct TVulkanResourceTraits<FRHIViewport>
 {
 	typedef FVulkanViewport TConcreteType;
 };
+
+
+inline bool DelayAcquireBackBuffer()
+{
+	extern FAutoConsoleVariable GCVarDelayAcquireBackBuffer;
+	return GCVarDelayAcquireBackBuffer->GetInt() != 0;
+}

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,6 +11,7 @@
 #include "IMediaView.h"
 
 class FImgMediaLoader;
+class FImgMediaScheduler;
 class IImgMediaReader;
 class IMediaEventSink;
 class IMediaTextureSample;
@@ -33,8 +34,9 @@ public:
 	 * Create and initialize a new instance.
 	 *
 	 * @param InEventSink The object that receives media events from this player.
+	 * @param InScheduler The image loading scheduler to use.
 	 */
-	FImgMediaPlayer(IMediaEventSink& InEventSink);
+	FImgMediaPlayer(IMediaEventSink& InEventSink, const TSharedRef<FImgMediaScheduler, ESPMode::ThreadSafe>& InScheduler);
 
 	/** Virtual destructor. */
 	virtual ~FImgMediaPlayer();
@@ -139,6 +141,9 @@ private:
 
 	/** If playback just restarted from the Stopped state. */
 	bool PlaybackRestarted;
+
+	/** The scheduler for image loading. */
+	TSharedPtr<FImgMediaScheduler, ESPMode::ThreadSafe> Scheduler;
 
 	/** Index of the selected video track. */
 	int32 SelectedVideoTrack;

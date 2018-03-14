@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerUtilities.h"
 #include "Misc/Paths.h"
@@ -10,6 +10,7 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SComboButton.h"
 #include "Widgets/Input/SButton.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "SequencerTrackNode.h"
 #include "MovieSceneTrack.h"
@@ -37,7 +38,7 @@ static EVisibility GetRolloverVisibility(TAttribute<bool> HoverState, TWeakPtr<S
 
 TSharedRef<SWidget> FSequencerUtilities::MakeAddButton(FText HoverText, FOnGetContent MenuContent, const TAttribute<bool>& HoverState)
 {
-	FSlateFontInfo SmallLayoutFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8 );
+	FSlateFontInfo SmallLayoutFont = FCoreStyle::GetDefaultFontStyle("Regular", 8);
 
 	TSharedRef<STextBlock> ComboButtonText = SNew(STextBlock)
 		.Text(HoverText)
@@ -146,14 +147,14 @@ void FSequencerUtilities::PopulateMenu_CreateNewSection(FMenuBuilder& MenuBuilde
 	}
 }
 
-void FSequencerUtilities::PopulateMenu_SetBlendType(FMenuBuilder& MenuBuilder, UMovieSceneSection* Section)
+void FSequencerUtilities::PopulateMenu_SetBlendType(FMenuBuilder& MenuBuilder, UMovieSceneSection* Section, TWeakPtr<ISequencer> InSequencer)
 {
-	PopulateMenu_SetBlendType(MenuBuilder, TArray<TWeakObjectPtr<UMovieSceneSection>>({ Section }));
+	PopulateMenu_SetBlendType(MenuBuilder, TArray<TWeakObjectPtr<UMovieSceneSection>>({ Section }), InSequencer);
 }
 
-void FSequencerUtilities::PopulateMenu_SetBlendType(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<UMovieSceneSection>>& InSections)
+void FSequencerUtilities::PopulateMenu_SetBlendType(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<UMovieSceneSection>>& InSections, TWeakPtr<ISequencer> InSequencer)
 {
-	auto Execute = [InSections](EMovieSceneBlendType BlendType)
+	auto Execute = [InSections, InSequencer](EMovieSceneBlendType BlendType)
 	{
 		FScopedTransaction Transaction(LOCTEXT("SetBlendType", "Set Blend Type"));
 		for (TWeakObjectPtr<UMovieSceneSection> WeakSection : InSections)
@@ -163,6 +164,12 @@ void FSequencerUtilities::PopulateMenu_SetBlendType(FMenuBuilder& MenuBuilder, c
 				Section->Modify();
 				Section->SetBlendType(BlendType);
 			}
+		}
+			
+		TSharedPtr<ISequencer> Sequencer = InSequencer.Pin();
+		if (Sequencer.IsValid())
+		{
+			Sequencer->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::TrackValueChanged);
 		}
 	};
 

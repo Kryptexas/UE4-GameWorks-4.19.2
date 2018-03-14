@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ThumbnailRendering/LevelThumbnailRenderer.h"
 #include "EngineDefines.h"
@@ -7,8 +7,6 @@
 #include "ShowFlags.h"
 #include "SceneView.h"
 #include "Engine/LevelBounds.h"
-#include "RendererInterface.h"
-#include "EngineModule.h"
 
 ULevelThumbnailRenderer::ULevelThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -32,7 +30,7 @@ void ULevelThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 Wid
 
 		if (ViewFamily.Views.Num() > 0)
 		{
-			GetRendererModule().BeginRenderingViewFamily(Canvas, &ViewFamily);
+			RenderViewFamily(Canvas, &ViewFamily);
 		}
 	}
 }

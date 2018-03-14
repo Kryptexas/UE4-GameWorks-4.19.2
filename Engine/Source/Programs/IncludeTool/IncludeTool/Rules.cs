@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using IncludeTool.Support;
 using System;
@@ -260,6 +260,7 @@ namespace IncludeTool
 			"/Engine/Plugins/Online/OnlineSubsystem/Source/Public/OnlineSubsystemPackage.h",
 			"/Engine/Plugins/Online/OnlineSubsystemNull/Source/Public/OnlineSubsystemNullPackage.h",
 			"/Engine/Plugins/Online/NotForLicensees/OnlineSubsystemMcp/Source/Public/OnlineSubsystemMcpPackage.h",
+			"/Engine/Plugins/Online/NotForLicensees/OnlineSubsystemTencent/Source/Public/OnlineSubsystemTencentPackage.h",
 			"/Engine/Plugins/Online/OnlineSubsystemSteam/Source/Public/OnlineSubsystemSteamPackage.h",
 			"/Engine/Plugins/Online/OnlineSubsystemAmazon/Source/Public/OnlineSubsystemAmazonPackage.h",
 			"/Engine/Plugins/Online/OnlineSubsystemUtils/Source/OnlineSubsystemUtils/Public/OnlineSubsystemUtilsPackage.h",

@@ -1,49 +1,49 @@
-﻿INTSourceChangelist:2707774
-Title:クラス指定子
+﻿Title:クラス指定子
 Crumbs:%ROOT%, Programming/UnrealArchitecture/Reference,  Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes
-Description:エンジンおよびエディタの様々な側面でクラスの動作を指定する、ゲームプレイクラスの宣言時に使用するキーワード
+Description:エンジンおよびエディタの様々な側面でクラスがどのように動作するかを指定する、ゲームプレイクラスの宣言時に使用するキーワード
 Availability:Public
 Version:4.9
 
 [EXCERPT:main]
-クラスを宣言するときに、エンジンやエディタの様々な側面でクラスがどのように動作するかを制御する指定子を 
-宣言に追加することができます。
+クラスを宣言するときに、エンジンやエディタの様々な側面でクラスがどのように動作するかを制御する指定子を宣言に追加することができます。
 
-[REGION:buttonlist]
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/Abstract) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/AdvancedClassDisplay) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/AutoCollapseCategories) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/AutoExpandCategories) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/Blueprintable) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/BlueprintType) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/ClassGroup) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/CollapseCategories) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/Config) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/Const) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/ConversionRoot) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/CustomConstructor) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/DefaultToInstanced) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/DependsOn)
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/Deprecated) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/DontAutoCollapseCategories) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/DontCollapseCategories)
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/EditInlineNew)
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/HideCategories)
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/HideDropdown)
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/HideFunctions)
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/Intrinsic) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/MinimalAPI) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/NoExport) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/NonTransient) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/NotBlueprintable) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/NotPlaceable) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/PerObjectConfig) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/Placeable) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/ShowCategories) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/ShowFunctions) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/Transient) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/Within) 
-[/REGION]
+| クラス指定子 | 効果 |
+| --- | --- |
+| `Abstract` | **Abstract** クラス指定子によって、このクラスを「抽象基本クラス」として宣言し、このクラスのアクタがアンリアル エディタでワールドに追加されないようにしたり、ゲーム中にこのクラスのインスタンスが作成されないようにします。これは、それ自体では意味をもたないクラスで役立ちます。例えば、`ATriggerBase` 基本クラスは抽象クラスですが、`ATriggerBox` サブクラスは抽象クラスではありません。`ATriggerBox` クラスのインスタンスをワールドに配置し、使用することができますが、`ATriggerBase` のインスタンスだけでは使用できません。 |
+| `AdvancedClassDisplay` | **AdvancedClassDisplay** クラス指定子は、クラスのすべてのプロパティを、**[Details (詳細)]** パネルの [Advanced Sections](Engine/UI/LevelEditor/Details#詳細なプロパティ) でのみ見えるようにし、デフォルトでは非表示にします。個々のプロパティでこれをオーバーライドするには、プロパティで `SimpleDisplay` 指定子を使います。 |
+| `AutoCollapseCategories=(Category1, Category2, ...)` | **AutoCollapseCategories** クラス指定子は、親クラスの **AutoExpandCategories** 指定子のリストされているカテゴリの効果を無効にします。 |
+| `AutoExpandCategories=(Category1, Category2, ...)` | このクラスのオブジェクトに対し、アンリアル エディタのプロパティ ウィンドウで自動的に展開するカテゴリを 1 つ以上指定します。カテゴリなしで宣言された変数を自動展開するには、変数を宣言するクラス名を使用します。 |
+| `Blueprintable` | ブループリントの作成に使用できる基本クラスとしてこのクラスを公開します。他のものを継承していない場合、初期設定は `NotBlueprintable` となります。この指定子はサブクラスで継承されます。 |
+| BlueprintType | ブループリントの変数に使用できるタイプとしてクラスを公開します。 |
+| `ClassGroup=GroupName` | アクタのブラウザで **Group View** が有効な場合、指定された GroupName` 内でクラスとサブクラスを含みます。 |
+| `CollapseCategories` | このクラスのプロパティは、アンリアル エディタのプロパティ ウィンドウのカテゴリでグループ化されません。この指定子は子クラスに受け継がれますが、子クラスは `DontCollapseCategories` 指定子を使ってこれをオーバーライドすることができます。 |
+| `Config=ConfigName` | このクラスがコンフィギュレーション ファイル (`.ini`) にデータを格納できることを示しています。`config` 指定子または `globalconfig` の指定子で宣言されているクラスのプロパティがあれば、指定子によって、こうしたプロパティを指定されたコンフィギュレーション ファイルに格納します。この指定子は全ての子クラスへ受け継がれ、無効にすることはできませんが、子クラスは `config` 指定子を再宣言し、別の `ConfigName` を指定することによって config ファイルを変更することができます。一般的な `ConfigName` 値は、"Engine"、"Editor"、"Input"、および "Game" です。 |
+| `Const` | このクラスの全プロパティと関数は `const` です。また、`const` としてエクスポートされなくてはいけません。この指定子はサブクラスで継承されます。 |
+| `ConversionRoot` | ルートの変換は、サブクラスの変換を階層を上に進み、最初のルートクラスの子クラスのみに制限します。 |
+| `CustomConstructor` | コンストラクタ宣言の自動生成を防ぎます。 |
+| `DefaultToInstanced` | このクラスの全インスタンスは「インスタンス化された」とみなされます。インスタンス化されたクラス (コンポーネント) は構成時に複製されます。この指定子はサブクラスで継承されます。 |
+| `DependsOn=(ClassName1, ClassName2, ...)` | リストされている全クラスは、このクラスより前にコンパイルされます。 *ClassName* は同じ (あるいは以前の) パッケージのクラスを指定しなければなりません。1 行の `DependsOn` をカンマで区切ったり、クラスごとに別の `DependsOn` 行を使うことで、複数の依存クラスを指定することができます。これは他のクラスで宣言された構造体や列挙型変数をクラスで使う場合に重要になります。コンパイラはクラス内のコンパイル済みのものしか認識しないからです。 |
+| `Deprecated` | このクラスは非推奨とし、クラスのオブジェクトはシリアル化時に保存されません。この指定子はサブクラスで継承されます。 |
+| `DontAutoCollapseCategories=(Category, Category, ...)` | 親クラスから継承したリスト化されたカテゴリの `AutoCollapseCategories` 指定子を無効にします。 |
+| `DontCollapseCategories` | 基本クラスから継承した `CollapseCatogories` 指定子を無効にします。 |
+| `EditInlineNew` | このクラスのオブジェクトは、既存のアセットから参照されるのではなく、アンリアル エディタのプロパティ ウィンドウから作成できることを示しています。デフォルトの挙動は、既存のオブジェクトのみの参照をプロパティ ウィンドウで割り当てることができます。この指定子はすべての子クラスに受け継がれますが、子クラスは `NotEditInlineNew` 指定子を使ってこの指定子をオーバーライドできます。
+| `HideCategories=(Category1, Category2, ...)` | このクラスのオブジェクトに対し、アンリアル エディタのプロパティ ウィンドウで非表示にするカテゴリを 1 つ以上リスト化します。カテゴリなしで宣言されたプロパティを非表示にするには、変数を宣言するクラス名を使います。この指定子は子クラスに受け継がれます。 |
+| `HideDropdown` | アンリアル エディタのプロパティ ウィンドウのコンボ ボックスにこのクラスが表示されないようにします。 |
+| `HideFunctions=(Category1, Category2, ...)` | 指定されたカテゴリのすべての関数をプロパティ ビューアで非表示にします。 |
+| `HideFunctions=FunctionName` | 名前付き関数をプロパティ ビューアで非表示にします。 |
+| `Intrinsic` | クラスは直接 C++ で宣言され、 **UnrealHeaderTool** はボイラープレートを生成しないことを示します。新規のクラスにこの指定子を使用しないでください。 |
+| `MinimalAPI` | 他のモジュールで使用するために、クラスの型情報のみエクスポートさせます。クラスはキャスト可能ですが、クラスの関数を呼び出すことはできません (インライン メソッドは除く)。これにより、他のモジュールからすべての関数にアクセス可能である必要のないクラスで何もかもをエクスポートしないことでコンパイル時間を短縮できます。 |
+| `NoExport` | このクラスの宣言は、ヘッダ ジェネレータで自動生成された C++ ヘッダファイルに含まれてはいけないことを示します。C++ クラス宣言は、別のヘッダファイルで手書きのコードによって定義されなければなりません。ネイティブ クラスに対してのみ有効です。新規のクラスにこの指定子を使用しないでください。 |
+| `NonTransient` | 基本クラスから継承した `Transient` 指定子を無効にします。 |
+| `NotBlueprintable` | ブループリントの作成に使用できない基本クラスに指定します。他のものを継承していない場合、初期設定は `NotBlueprintable` となります。これはサブクラスで継承されます。 |
+| `NotPlaceable` | 基本クラスから継承した `Placeable` キーワードを無効にします。このクラスのオブジェクトはエディタでレベル、UI、シーン、ブループリントなどには配置できないことを示します。 |
+| `PerObjectConfig` | このクラスのコンフィギュレーション情報はオブジェクト毎に保存されます。この場合、各オブジェクトは `[ObjectName ClassName]` の形式でオブジェクトにちなんで名付けられた `.ini` ファイルのセクションを持ちます。この指定子は子クラスに受け継がれます。 |
+| `Placeable` | アンリアル エディタで作成可能であり、レベル、 UI シーン、ブループリント (クラスのタイプにより異なります) で作成置可能なクラスであることを示します。このフラグは子クラスに受け継がれますが、子クラスは `NotPlaceable` 指定子を使ってこのフラグをオーバーライドできます。 |
+| `ShowCategories=(Category1, Category2, ...)` | リストされているカテゴリの `HideCategories` 指定子 (基本クラスから継承) を無効にします。 |
+| `ShowFunctions=(Category1, Category2, ...)` | リストされているカテゴリ内の全関数をプロパティ ビューアに表示します。 |
+| `ShowFunctions=FunctionName` | 名前付けした関数をプロパティ ビューアに表示します。 |
+| `Transient` | このクラスに属するオブジェクトがディスクに保存されることはありません。プレイヤーやウィンドウなど、本質的に非永続的な、一定のネイティブ クラスと併用する場合に役立ちます。この指定子は子クラスに受け継がれますが、`NonTransient` 指定子によってオーバーライドすることができます。 |
+| `Within=OuterClassName` | このクラスのオブジェクトは `OuterClassName` オブジェクトのインスタンス外では存在できません。つまり、このクラスのオブジェクトの作成では、`OuterClassName` のインスタンスが `Outer` オブジェクトとして指定されていることが必要です。
 
 ## メタデータ指定子
 [INCLUDE:Programming/UnrealArchitecture/Reference/Metadata#MetadataUsage]

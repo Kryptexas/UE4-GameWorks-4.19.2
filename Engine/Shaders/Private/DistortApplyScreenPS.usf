@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 /*=============================================================================
 	DistortApplyScreenPixelShader.usf: Pixel shader for rendering screen distortion pass
 =============================================================================*/
@@ -24,14 +24,6 @@ Texture2D		DistortionTexture;
 SamplerState	DistortionTextureSampler;
 #endif
 
-/**
- * Contains the valid region in the scenecolor texture (in UV space).
- * Trying to sample outside this region will yield garbage colors.
- * X,Y = Upper-left corner
- * Z,W = Lower-left corner
- */
-float4		SceneColorRect;
-
 /** distorts screen texture using accumulated distortion offsets */
 void Main(
 	in noperspective float4 TexCoord: TEXCOORD0,
@@ -50,25 +42,26 @@ void Main(
 
 	// apply inverse scale
 	// offset = [R-B,G-A] 
-	half2 DistOffset = (AccumDist.rg - AccumDist.ba);
-	//Scale by the screen size and a fudge factor to come close to the offset values we would have had under normal circumstances before my changes. Also flip Y and invert the precision bias scale.
-	DistOffset *= InvDistortionScaleBias;
-	
-	
-	float2 NewTexCoord = TexCoord.xy + DistOffset;
+	half2 DistBufferUVOffset = (AccumDist.rg - AccumDist.ba);
 
-	// If we're about to sample outside the valid SceneColorRect, set to 0 distortion.
-	FLATTEN if ( NewTexCoord.x < SceneColorRect.x || NewTexCoord.x > SceneColorRect.z ||
-				 NewTexCoord.y < SceneColorRect.y || NewTexCoord.y > SceneColorRect.w )
+	//Scale by the screen size and a fudge factor to come close to the offset values we would have had under normal circumstances before my changes. Also flip Y and invert the precision bias scale.
+	DistBufferUVOffset *= InvDistortionScaleBias;
+	
+	
+	float2 NewBufferUV = TexCoord.xy + DistBufferUVOffset;
+
+	// If we're about to sample outside the valid BufferUVMinMax, set to 0 distortion.
+	FLATTEN if ( NewBufferUV.x < View.BufferBilinearUVMinMax.x || NewBufferUV.x > View.BufferBilinearUVMinMax.z ||
+				 NewBufferUV.y < View.BufferBilinearUVMinMax.y || NewBufferUV.y > View.BufferBilinearUVMinMax.w )
 	{
-		NewTexCoord = TexCoord.xy;
+		NewBufferUV = TexCoord.xy;
 	}
 
 	// sample screen using offset coords
 #if USE_MSAA
-	OutColor = SceneColorMSAATexture.Load(int2(NewTexCoord * View.BufferSizeAndInvSize.xy), SampleIndex);
+	OutColor = SceneColorMSAATexture.Load(int2(NewBufferUV * View.BufferSizeAndInvSize.xy), SampleIndex);
 #else
-	OutColor = Texture2DSample(SceneColorTexture, SceneColorTextureSampler, NewTexCoord);
+	OutColor = Texture2DSample(SceneColorTexture, SceneColorTextureSampler, NewBufferUV);
 #endif
 }
 

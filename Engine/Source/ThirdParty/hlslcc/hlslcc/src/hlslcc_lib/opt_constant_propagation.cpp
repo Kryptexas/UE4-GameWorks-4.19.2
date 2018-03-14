@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // This code is modified from that in the Mesa3D Graphics library available at
 // http://mesa3d.org/
@@ -47,11 +47,12 @@
 #include "ir_basic_block.h"
 #include "ir_optimization.h"
 #include "glsl_types.h"
+#include "hash_table.h"
 
-class acp_entry : public exec_node
+class cpv_entry : public exec_node
 {
 public:
-	acp_entry(ir_variable *var, unsigned write_mask, ir_constant *constant)
+	cpv_entry(ir_variable *var, unsigned write_mask, ir_constant *constant)
 	{
 		check(var);
 		check(constant);
@@ -61,7 +62,7 @@ public:
 		this->initial_values = write_mask;
 	}
 
-	acp_entry(const acp_entry *src)
+	cpv_entry(const cpv_entry *src)
 	{
 		this->var = src->var;
 		this->write_mask = src->write_mask;
@@ -77,6 +78,97 @@ public:
 	unsigned initial_values;
 };
 
+unsigned constprop_hash_table_pointer_hash(const void *key)
+{
+    return (unsigned)((uintptr_t)key >> 4);
+}
+
+class constprop_hash_table
+{
+public:
+	constprop_hash_table(void *imem_ctx)
+	: acp_ht(nullptr)
+	, mem_ctx(imem_ctx)
+	{
+		this->acp_ht = hash_table_ctor(1543, constprop_hash_table_pointer_hash, hash_table_pointer_compare);
+	}
+	
+	~constprop_hash_table()
+	{
+		hash_table_dtor(acp_ht);
+	}
+	
+	static void copy_function(const void *key, void *data, void *closure)
+	{
+		constprop_hash_table* ht = (constprop_hash_table*)closure;
+		exec_list* list = new(ht->mem_ctx)exec_list;
+		hash_table_insert(ht->acp_ht, list, key);
+		exec_list* src_list = (exec_list*)data;
+		foreach_iter(exec_list_iterator, iter, *src_list)
+		{
+			cpv_entry* a = (cpv_entry*)iter.get();
+			if (a->get_next() && a->get_prev())
+			{
+                cpv_entry* entry = new(ht->mem_ctx) cpv_entry(*a);
+				list->push_tail(entry);
+			}
+		}
+	}
+	
+	static constprop_hash_table* copy(constprop_hash_table const& other)
+	{
+		constprop_hash_table* ht = new constprop_hash_table(other.mem_ctx);
+		
+		/* Populate the initial acp with a copy of the original */
+		hash_table_call_foreach(other.acp_ht, &copy_function, ht);
+		
+		return ht;
+	}
+	
+	void add_acp(cpv_entry* entry)
+	{
+		add_acp_hash(entry->var, entry);
+	}
+	
+	void add_acp_hash(ir_variable* var, cpv_entry* entry)
+	{
+		exec_list* entries = (exec_list*)hash_table_find(acp_ht, var);
+		if (!entries)
+		{
+			entries = new (mem_ctx)exec_list;
+			hash_table_insert(acp_ht, entries, var);
+		}
+		bool bFound = false;
+		foreach_iter(exec_list_iterator, iter, *entries)
+		{
+			cpv_entry* a = (cpv_entry *)iter.get();
+			if (entry == a || (entry->var == a->var && entry->write_mask == a->write_mask && entry->constant == a->constant))
+			{
+				bFound = true;
+				break;
+			}
+		}
+		if (!bFound)
+		{
+			entries->push_tail(entry);
+		}
+	}
+	
+	exec_list* find_acp_hash_entry_list(ir_variable* var)
+	{
+		return (exec_list*)hash_table_find(acp_ht, var);
+	}
+	
+	void make_empty()
+	{
+		hash_table_clear(acp_ht);
+	}
+	
+private:
+	/** List of cpv_entry: The available copies to propagate */
+	hash_table* acp_ht;
+	void *mem_ctx;
+};
 
 class kill_entry : public exec_node
 {
@@ -99,12 +191,14 @@ public:
 	{
 		progress = false;
 		mem_ctx = ralloc_context(0);
-		this->acp = new(mem_ctx)exec_list;
-		this->kills = new(mem_ctx)exec_list;
+		this->acp = new constprop_hash_table(mem_ctx);
+        this->kills = hash_table_ctor(1024, constprop_hash_table_pointer_hash, hash_table_pointer_compare);
 		this->killed_all = false;
 	}
 	~ir_constant_propagation_visitor()
 	{
+        delete acp;
+        hash_table_dtor(this->kills);
 		ralloc_free(mem_ctx);
 	}
 
@@ -120,14 +214,14 @@ public:
 	void handle_if_block(exec_list *instructions);
 	void handle_rvalue(ir_rvalue **rvalue);
 
-	/** List of acp_entry: The available constants to propagate */
-	exec_list *acp;
+	/** List of cpv_entry: The available constants to propagate */
+	constprop_hash_table *acp;
 
 	/**
 	* List of kill_entry: The masks of variables whose values were
 	* killed in this block.
 	*/
-	exec_list *kills;
+	hash_table *kills;
 
 	bool progress;
 
@@ -166,7 +260,7 @@ ir_constant_propagation_visitor::handle_rvalue(ir_rvalue **rvalue)
 	for (unsigned int i = 0; i < type->components(); i++)
 	{
 		int channel;
-		acp_entry *found = NULL;
+		cpv_entry *found = NULL;
 
 		if (swiz)
 		{
@@ -184,15 +278,19 @@ ir_constant_propagation_visitor::handle_rvalue(ir_rvalue **rvalue)
 			channel = i;
 		}
 
-		foreach_iter(exec_list_iterator, iter, *this->acp)
-		{
-			acp_entry *entry = (acp_entry *)iter.get();
-			if (entry->var == deref->var && entry->write_mask & (1 << channel))
-			{
-				found = entry;
-				break;
-			}
-		}
+        exec_list* list = acp->find_acp_hash_entry_list(deref->var);
+        if (list)
+        {
+            foreach_iter(exec_list_iterator, iter, *list)
+            {
+                cpv_entry *entry = (cpv_entry *)iter.get();
+                if (entry->write_mask & (1 << channel))
+                {
+                    found = entry;
+                    break;
+                }
+            }
+        }
 
 		if (!found)
 			return;
@@ -245,16 +343,19 @@ ir_constant_propagation_visitor::visit_enter(ir_function_signature *ir)
 	* block.  Any instructions at global scope will be shuffled into
 	* main() at link time, so they're irrelevant to us.
 	*/
-	exec_list *orig_acp = this->acp;
-	exec_list *orig_kills = this->kills;
+	constprop_hash_table *orig_acp = this->acp;
+	hash_table *orig_kills = this->kills;
 	bool orig_killed_all = this->killed_all;
 
-	this->acp = new(mem_ctx)exec_list;
-	this->kills = new(mem_ctx)exec_list;
+	this->acp = new constprop_hash_table(mem_ctx);
+	this->kills = hash_table_ctor(1024, constprop_hash_table_pointer_hash, hash_table_pointer_compare);;
 	this->killed_all = false;
 
 	visit_list_elements(this, &ir->body);
 
+    hash_table_dtor(this->kills);
+    delete acp;
+    
 	this->kills = orig_kills;
 	this->acp = orig_acp;
 	this->killed_all = orig_killed_all;
@@ -324,23 +425,24 @@ ir_constant_propagation_visitor::visit_enter(ir_call *ir)
 	return visit_continue_with_parent;
 }
 
+static void kill_function(const void *key, void *data, void *closure)
+{
+    ir_constant_propagation_visitor *visitor = (ir_constant_propagation_visitor*)closure;
+    kill_entry *k = (kill_entry*)data;
+    visitor->kill(k->var, k->write_mask);
+}
+
 void
 ir_constant_propagation_visitor::handle_if_block(exec_list *instructions)
 {
-	exec_list *orig_acp = this->acp;
-	exec_list *orig_kills = this->kills;
+	constprop_hash_table *orig_acp = this->acp;
+	hash_table *orig_kills = this->kills;
 	bool orig_killed_all = this->killed_all;
 
-	this->acp = new(mem_ctx)exec_list;
-	this->kills = new(mem_ctx)exec_list;
+    /* Populate the initial acp with a constant of the original */
+    this->acp = constprop_hash_table::copy(*orig_acp);
+	this->kills = hash_table_ctor(1024, constprop_hash_table_pointer_hash, hash_table_pointer_compare);
 	this->killed_all = false;
-
-	/* Populate the initial acp with a constant of the original */
-	foreach_iter(exec_list_iterator, iter, *orig_acp)
-	{
-		acp_entry *a = (acp_entry *)iter.get();
-		this->acp->push_tail(new(this->mem_ctx) acp_entry(a));
-	}
 
 	visit_list_elements(this, instructions);
 
@@ -348,17 +450,17 @@ ir_constant_propagation_visitor::handle_if_block(exec_list *instructions)
 	{
 		orig_acp->make_empty();
 	}
+    
+    delete acp;
 
-	exec_list *new_kills = this->kills;
+	hash_table *new_kills = this->kills;
 	this->kills = orig_kills;
 	this->acp = orig_acp;
 	this->killed_all = this->killed_all || orig_killed_all;
 
-	foreach_iter(exec_list_iterator, iter, *new_kills)
-	{
-		kill_entry *k = (kill_entry *)iter.get();
-		kill(k->var, k->write_mask);
-	}
+    hash_table_call_foreach(new_kills, &kill_function, this);
+    
+    hash_table_dtor(new_kills);
 }
 
 ir_visitor_status
@@ -377,16 +479,16 @@ ir_constant_propagation_visitor::visit_enter(ir_if *ir)
 ir_visitor_status
 ir_constant_propagation_visitor::visit_enter(ir_loop *ir)
 {
-	exec_list *orig_acp = this->acp;
-	exec_list *orig_kills = this->kills;
+	constprop_hash_table *orig_acp = this->acp;
+	hash_table *orig_kills = this->kills;
 	bool orig_killed_all = this->killed_all;
 
 	/* FINISHME: For now, the initial acp for loops is totally empty.
 	* We could go through once, then go through again with the acp
 	* cloned minus the killed entries after the first run through.
 	*/
-	this->acp = new(mem_ctx)exec_list;
-	this->kills = new(mem_ctx)exec_list;
+    this->acp = new constprop_hash_table(mem_ctx);
+    this->kills = hash_table_ctor(1024, constprop_hash_table_pointer_hash, hash_table_pointer_compare);
 	this->killed_all = false;
 
 	visit_list_elements(this, &ir->body_instructions);
@@ -395,21 +497,22 @@ ir_constant_propagation_visitor::visit_enter(ir_loop *ir)
 	{
 		orig_acp->make_empty();
 	}
+    
+    delete acp;
 
-	exec_list *new_kills = this->kills;
+	hash_table *new_kills = this->kills;
 	this->kills = orig_kills;
 	this->acp = orig_acp;
 	this->killed_all = this->killed_all || orig_killed_all;
 
-	foreach_iter(exec_list_iterator, iter, *new_kills)
-	{
-		kill_entry *k = (kill_entry *)iter.get();
-		kill(k->var, k->write_mask);
-	}
+	hash_table_call_foreach(new_kills, &kill_function, this);
+    
+    hash_table_dtor(new_kills);
 
 	/* already descended into the children. */
 	return visit_continue_with_parent;
 }
+
 
 void
 ir_constant_propagation_visitor::kill(ir_variable *var, unsigned write_mask)
@@ -421,35 +524,36 @@ ir_constant_propagation_visitor::kill(ir_variable *var, unsigned write_mask)
 		return;
 
 	/* Remove any entries currently in the ACP for this kill. */
-	foreach_iter(exec_list_iterator, iter, *this->acp)
-	{
-		acp_entry *entry = (acp_entry *)iter.get();
+    exec_list* list = acp->find_acp_hash_entry_list(var);
+    if (list)
+    {
+        foreach_iter(exec_list_iterator, iter, *list)
+        {
+            cpv_entry *entry = (cpv_entry *)iter.get();
 
-		if (entry->var == var)
-		{
-			entry->write_mask &= ~write_mask;
-			if (entry->write_mask == 0)
-			{
-				entry->remove();
-			}
-		}
-	}
+            if (entry->var == var)
+            {
+                entry->write_mask &= ~write_mask;
+                if (entry->write_mask == 0)
+                {
+                    entry->remove();
+                }
+            }
+        }
+    }
 
 	/* Add this writemask of the variable to the list of killed
 	* variables in this block.
 	*/
-	foreach_iter(exec_list_iterator, iter, *this->kills)
-	{
-		kill_entry *entry = (kill_entry *)iter.get();
+    kill_entry *entry = (kill_entry *)hash_table_find(kills, var);
+    if (entry)
+    {
+        entry->write_mask |= write_mask;
+        return;
+    }
 
-		if (entry->var == var)
-		{
-			entry->write_mask |= write_mask;
-			return;
-		}
-	}
-	/* Not already in the list.  Make new entry. */
-	this->kills->push_tail(new(this->mem_ctx) kill_entry(var, write_mask));
+    /* Not already in the list.  Make new entry. */
+    hash_table_insert(kills, new(this->mem_ctx) kill_entry(var, write_mask), var);
 }
 
 /**
@@ -459,7 +563,7 @@ ir_constant_propagation_visitor::kill(ir_variable *var, unsigned write_mask)
 void
 ir_constant_propagation_visitor::add_constant(ir_assignment *ir)
 {
-	acp_entry *entry;
+	cpv_entry *entry;
 
 	if (ir->condition)
 		return;
@@ -479,8 +583,8 @@ ir_constant_propagation_visitor::add_constant(ir_assignment *ir)
 	if (!deref->var->type->is_vector() && !deref->var->type->is_scalar())
 		return;
 
-	entry = new(this->mem_ctx) acp_entry(deref->var, ir->write_mask, constant);
-	this->acp->push_tail(entry);
+	entry = new(this->mem_ctx) cpv_entry(deref->var, ir->write_mask, constant);
+	this->acp->add_acp(entry);
 }
 
 /**

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429238
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 블루프린트 비주얼 스크립팅
 Crumbs: %ROOT%, Engine
@@ -9,69 +9,8 @@ order:5
 social-image:bp_social_image.png
 type:landing
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints:title%](Engine/Blueprints/kismet_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints:title%](Engine/Blueprints/kismet_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:Role]
-[OBJECT:Role]
-	[PARAM:image]
-		![%Engine/Blueprints:title%](Engine/Blueprints/kismet_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints]
-	[/PARAM]
-	[PARAMLITERAL:id]
-	blueprints
-	[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Blueprints/kismet_topic.png
+topic-icon:%ROOT%/blueprint_icon.png
 
 [REGION:banner]
 ![](k2_banner.gif)
@@ -196,23 +135,3 @@ UE4 를 사용하다 보면, 블루프린트를 사용하여 정의된 오브젝
 
 [DIR(output:"topic" parent:"Engine/Blueprints" type:"overview" org:"hierarchy")]
 
-
-<!--
-## 시작하기
-
-[DIR(end:"1" output:"topic" type:"quickstart" parent:"Engine/Blueprints")]
-
-## 참고서
-
-[DIR(end:"1" output:"topic" type:"reference" parent:"Engine/Blueprints")]
-
-## 안내서
-
-[DIR(end:"1" output:"topic" type:"howto" parent:"Engine/Blueprints")]
-
-## 비디오 튜토리얼
-
-[REGION:simplegallery]
-[VideoLink(videoid:"EFXMW_UEDco" playlistid:"PLZlv_N0_O1gY35ezlSQn1sWOGfh4C7ewO" width:"275")]
-[/REGION]
--->

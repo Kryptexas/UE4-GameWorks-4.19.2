@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3278909
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 오픈 월드 툴 프로퍼티 참고서
 Crumbs:
@@ -123,7 +123,8 @@ Version: 4.12
 |**Foliage Type Object** | 폴리지 타입 오브젝트 - 절차적 폴리지 시뮬레이션으로 스폰되는 폴리지 타입입니다. |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:NavMesh]
 | 값 | 설명 |
 | --- | --- |
@@ -132,6 +133,7 @@ Version: 4.12
 | **Even if not Collidable** | 메시가 충돌 가능하지 않아서 내비메시에 정상적으로 영향을 주지 못한다 할지라도 DoCustomNavigableGeometryExport() 를 호출합니다. |
 | **Dont Export**| 프리미티브가 내비게이션에 연관성이 없더라도 내비게이션 가능 지오메트리를 익스포트하지 않습니다 (모디파이어는 여전히 추가할 수 있습니다). |
 [/EXCERPT:NavMesh]
--->
+
+[/COMMENT]
 
 

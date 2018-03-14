@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -124,6 +124,13 @@ extern ENGINE_API int32 GLevelStreamingComponentsRegistrationGranularity;
 extern ENGINE_API int32 GLevelStreamingComponentsUnregistrationGranularity;
 /** Maximum allowed time to spend for actor unregistration steps during level streaming (ms per frame). If this is 0.0 then we don't timeslice.*/
 extern ENGINE_API float GLevelStreamingUnregisterComponentsTimeLimit;
+/** Whether to force a GC after levels are streamed out to instantly reclaim the memory at the expensive of a hitch. */
+extern ENGINE_API int32 GLevelStreamingForceGCAfterLevelStreamedOut;
+/** Whether to repeatedly kick off incremental GC when there are levels still waiting to be purged. */
+extern ENGINE_API int32 GLevelStreamingContinuouslyIncrementalGCWhileLevelsPendingPurge;
+/** Enables level streaming requests while async loading (of anything) while the match is already in progress and no loading screen is up. */
+extern ENGINE_API int32 GLevelStreamingAllowLevelRequestsWhileAsyncLoadingInMatch;
+
 
 /**
 * Implements the settings for garbage collection.

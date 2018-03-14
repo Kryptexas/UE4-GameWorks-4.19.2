@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -60,11 +60,21 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = "Asset Manager")
 	TArray<FPrimaryAssetRulesOverride> PrimaryAssetRules;
 
-	/** If true, DevelopmentCook assets will error when they are cooked */
+	/** If true, DevelopmentCook assets will error when they are cooked, you should enable this on production branches */
 	UPROPERTY(config, EditAnywhere, Category = "Asset Manager")
 	bool bOnlyCookProductionAssets;
 
-	/** If true, PrimaryAsset Type/Name will be implied for assets in the editor (cooked builds always must be explicit). This allows guessing for content that hasn't been resaved yet */
+	/**
+	 * If true, the asset manager will determine the type and name for Primary Assets that do not implement GetPrimaryAssetId, by calling DeterminePrimaryAssetIdForObject and using the ini settings.
+	 * This works in both cooked and uncooked builds but is slower than directly implementing GetPrimaryAssetId on the native asset
+	 */
+	UPROPERTY(config, EditAnywhere, Category = "Asset Manager")
+	bool bShouldManagerDetermineTypeAndName;
+
+	/**
+	 * If true, PrimaryAsset Type/Name will be implied for assets in the editor even if bShouldManagerDetermineTypeAndName is false.
+	 * This guesses the correct id for content that hasn't been resaved after GetPrimaryAssetId was implemented
+	 */
 	UPROPERTY(config, EditAnywhere, Category = "Asset Manager")
 	bool bShouldGuessTypeAndNameInEditor;
 

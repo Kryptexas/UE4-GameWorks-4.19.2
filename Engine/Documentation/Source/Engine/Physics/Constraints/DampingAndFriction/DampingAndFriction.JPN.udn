@@ -54,7 +54,8 @@ _2 つの Angular Swing Motions は、Damping (減衰) 値を共有し、Angular
 または、物理コンストレイントで利用可能なプロパティの
  リファレンスについては、[](Engine/Physics\Constraints\ConstraintsReference) をご覧ください。
 
-<!--
+[COMMENT:none]
+
 ##PhysicalMaterial 減衰
 これはボディに適用される空気抵抗のようなものと考えるとよいでしょう。ボディを減速させようとして力が適用されます。 
 力の強度はオブジェクトが移動している速さに比例します。線形減衰と傾斜減衰には別個の設定があります。そのため、平行移動や回転の動きにどの程度抵抗しようとするかを制御できます。 
@@ -81,7 +82,8 @@ AngularDriveForceLimit を変更してジョイントにどの程度の摩擦が
 ZoneVelocity プロパティは、ボリューム内のオブジェクトが達成すべき望ましい速度です。エリア内の川や風洞の速度と考えることができます。次に、RigidBodyDamping プロパティを変更して、 
 ボリューム内で物理ボディがどれくらい強くその速度を達成しようとするかを制御することができます。ZoneVelocity をゼロに設定し、RigidBodyDamping を高くすると、 
 ボリュームはゼリーのような挙動をします。ZoneVelocity を水平にし、RigidBodyDamping を中程度にすると、流れる川の水のようになります。
--->
+
+[/COMMENT]
  
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -23,7 +23,7 @@ class UMaterialExpressionVertexInterpolator : public UMaterialExpressionCustomOu
 
 	virtual FExpressionInput* GetInput(int32 InputIndex) override;
 	virtual FString GetFunctionName() const override { return TEXT("VertexInterpolator"); }
-	virtual FString GetInputName(int32 InputIndex) const override { return TEXT("VS"); }
+	virtual FName GetInputName(int32 InputIndex) const override { return TEXT("VS"); }
 
 	int32				InterpolatorIndex;
 	EMaterialValueType	InterpolatedType;

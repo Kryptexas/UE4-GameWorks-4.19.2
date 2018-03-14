@@ -1,9 +1,8 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
-#include "SkeletalMeshTypes.h"
 #include "Engine/EngineTypes.h"
 #include "PhysicsAssetUtils.generated.h"
 
@@ -43,57 +42,57 @@ struct FPhysAssetCreateParams
 		GeomType = EFG_Sphyl;
 		VertWeight = EVW_DominantWeight;
 		bAutoOrientToBone = true;
-		bCreateJoints = true;
+		bCreateConstraints = true;
 		bWalkPastSmall = true;
 		bBodyForAll = false;
 		AngularConstraintMode = ACM_Limited;
-		HullAccuracy = 0.5f;
+		HullCount = 4;
 		MaxHullVerts = 16;
 	}
 
 	/** Bones that are shorter than this value will be ignored for body creation */
 	UPROPERTY(EditAnywhere, Category = "Body Creation")
-	float MinBoneSize;
+	float								MinBoneSize;
 
 	/** Bones that are smaller than this value will be merged together for body creation */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = "Body Creation")
-	float MinWeldSize;
+	float								MinWeldSize;
 
 	/** The geometry type that should be used when creating bodies */
 	UPROPERTY(EditAnywhere, Category = "Body Creation", meta=(DisplayName="Primitive Type"))
 	TEnumAsByte<EPhysAssetFitGeomType> GeomType;
 
-	/** How vertices are mapped bones when approximating them with bodies */
+	/** How vertices are mapped to bones when approximating them with bodies */
 	UPROPERTY(EditAnywhere, Category = "Body Creation", meta=(DisplayName="Vertex Weighting Type"))
 	TEnumAsByte<EPhysAssetFitVertWeight> VertWeight;
 
 	/** Whether to automatically orient the created bodies to their corresponding bones */
 	UPROPERTY(EditAnywhere, Category = "Body Creation")
-	bool bAutoOrientToBone;
+	bool								bAutoOrientToBone;
 
 	/** Whether to create constraints between adjacent created bodies */
 	UPROPERTY(EditAnywhere, Category = "Constraint Creation")
-	bool bCreateJoints;
+	bool								bCreateConstraints;
 
 	/** Whether to skip small bones entirely (rather than merge them with adjacent bones) */
 	UPROPERTY(EditAnywhere, Category = "Body Creation", meta=(DisplayName="Walk Past Small Bones"))
-	bool bWalkPastSmall;
+	bool								bWalkPastSmall;
 
 	/** Forces creation of a body for each bone */
 	UPROPERTY(EditAnywhere, Category = "Body Creation", meta=(DisplayName="Create Body for All Bones"))
-	bool bBodyForAll;
+	bool								bBodyForAll;
 
 	/** The type of angular constraint to create between bodies */
-	UPROPERTY(EditAnywhere, Category = "Constraint Creation", meta=(EditCondition="bCreateJoints"))
+	UPROPERTY(EditAnywhere, Category = "Constraint Creation", meta=(EditCondition="bCreateConstraints"))
 	TEnumAsByte<EAngularConstraintMotion> AngularConstraintMode;
 
-	/** When creating convex hulls, the target accuracy of the created hull */
+	/** When creating multiple convex hulls, the maximum number that will be created. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = "Body Creation")
-	float HullAccuracy;
+	int32								HullCount;
 
 	/** When creating convex hulls, the maximum verts that should be created */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = "Body Creation")
-	int32 MaxHullVerts;
+	int32								MaxHullVerts;
 };
 
 class UPhysicsAsset;

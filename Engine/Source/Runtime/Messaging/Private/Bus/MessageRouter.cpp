@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Bus/MessageRouter.h"
 #include "HAL/PlatformProcess.h"
@@ -174,7 +174,7 @@ void FMessageRouter::FilterSubscriptions(
 
 	for (int32 SubscriptionIndex = 0; SubscriptionIndex < Subscriptions.Num(); ++SubscriptionIndex)
 	{
-		const auto& Subscription = Subscriptions[SubscriptionIndex];
+		const auto Subscription = Subscriptions[SubscriptionIndex];
 
 		if (!Subscription->IsEnabled() || !Subscription->GetScopeRange().Contains(MessageScope))
 		{
@@ -298,13 +298,13 @@ void FMessageRouter::HandleRemoveSubscriber(TWeakPtr<IMessageReceiver, ESPMode::
 
 		TArray<TSharedPtr<IMessageSubscription, ESPMode::ThreadSafe>>& Subscriptions = SubscriptionsPair.Value;
 
-		for (int32 Index = 0; Index < Subscriptions.Num(); Index++)
+		for (int32 SubscriptionIndex = 0; SubscriptionIndex < Subscriptions.Num(); ++SubscriptionIndex)
 		{
-			const auto& Subscription = Subscriptions[Index];
+			const auto Subscription = Subscriptions[SubscriptionIndex];
 
 			if (Subscription->GetSubscriber().Pin() == Subscriber)
 			{
-				Subscriptions.RemoveAtSwap(Index);
+				Subscriptions.RemoveAtSwap(SubscriptionIndex);
 				Tracer->TraceRemovedSubscription(Subscription.ToSharedRef(), MessageType);
 
 				break;

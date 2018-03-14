@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GenericPlatform/StandardPlatformString.h"
 
@@ -83,6 +83,17 @@ static int32 GetFormattingInfo(const WIDECHAR* Format, FFormatInfo& OutInfo)
 	}
 
 	OutInfo.Type = *Format++;
+
+	// The only valid length modifier for floating point types is L, all other modifiers should be ignored. Length modifier for void pointers should also be ignored.
+	if (OutInfo.LengthModifier != LITERAL(WIDECHAR, 'L') &&
+		  (OutInfo.Type == LITERAL(WIDECHAR, 'f') || OutInfo.Type == LITERAL(WIDECHAR, 'F')
+		|| OutInfo.Type == LITERAL(WIDECHAR, 'e') || OutInfo.Type == LITERAL(WIDECHAR, 'E')
+		|| OutInfo.Type == LITERAL(WIDECHAR, 'g') || OutInfo.Type == LITERAL(WIDECHAR, 'G')
+		|| OutInfo.Type == LITERAL(WIDECHAR, 'a') || OutInfo.Type == LITERAL(WIDECHAR, 'A')
+		|| OutInfo.Type == LITERAL(WIDECHAR, 'p')))
+	{
+		OutInfo.LengthModifier = 0;
+	}
 
 	const int32 FormatLength = Format - FormatStart;
 

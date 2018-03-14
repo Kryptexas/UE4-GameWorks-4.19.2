@@ -1,8 +1,26 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Stats/StatsMisc.h"
+#include "Stats/Stats.h"
 #include "Logging/LogMacros.h"
 #include "CoreGlobals.h"
+
+
+#if !ENABLE_STATNAMEDEVENTS && defined(USE_LIGHTWEIGHT_STATS_FOR_HITCH_DETECTION) && USE_LIGHTWEIGHT_STATS_FOR_HITCH_DETECTION && USE_HITCH_DETECTION
+
+#include "ThreadHeartBeat.h"
+
+void FLightweightStatScope::ReportHitch()
+{
+	if (StatString)
+	{
+		float Delta = float(FPlatformTime::Seconds() - FGameThreadHitchHeartBeat::Get().GetFrameStartTime()) * 1000.0f;
+		UE_LOG(LogCore, Error, TEXT("Leaving stat scope on hitch (+%8.2fms) %s"), Delta, StatString);
+	}
+}
+
+#endif
+
 
 FScopeLogTime::FScopeLogTime( const WIDECHAR* InName, FTotalTimeAndCount* InCumulative /*= nullptr */, EScopeLogTimeUnits InUnits /*= ScopeLog_Milliseconds */ )
 : StartTime( FPlatformTime::Seconds() )

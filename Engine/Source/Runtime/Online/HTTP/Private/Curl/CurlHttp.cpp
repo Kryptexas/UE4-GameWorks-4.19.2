@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Curl/CurlHttp.h"
 #include "Stats/Stats.h"
@@ -41,14 +41,10 @@ FCurlHttpRequest::FCurlHttpRequest()
 {
 	EasyHandle = curl_easy_init();
 
-#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
-
-	// set debug functions (FIXME: find a way to do it only if LogHttp is >= Verbose)
+	// Always setup the debug function to allow for activity to be tracked
 	curl_easy_setopt(EasyHandle, CURLOPT_DEBUGDATA, this);
 	curl_easy_setopt(EasyHandle, CURLOPT_DEBUGFUNCTION, StaticDebugCallback);
 	curl_easy_setopt(EasyHandle, CURLOPT_VERBOSE, 1L);
-
-#endif // !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 
 	curl_easy_setopt(EasyHandle, CURLOPT_SHARE, FCurlHttpManager::GShareHandle);
 
@@ -272,7 +268,6 @@ size_t FCurlHttpRequest::StaticReceiveResponseBodyCallback(void* Ptr, size_t Siz
 	return Request->ReceiveResponseBodyCallback(Ptr, SizeInBlocks, BlockSizeInBytes);	
 }
 
-#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 size_t FCurlHttpRequest::StaticDebugCallback(CURL * Handle, curl_infotype DebugInfoType, char * DebugInfo, size_t DebugInfoSize, void* UserData)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FCurlHttpRequest_StaticDebugCallback);
@@ -283,17 +278,15 @@ size_t FCurlHttpRequest::StaticDebugCallback(CURL * Handle, curl_infotype DebugI
 	FCurlHttpRequest* Request = reinterpret_cast<FCurlHttpRequest*>(UserData);
 	return Request->DebugCallback(Handle, DebugInfoType, DebugInfo, DebugInfoSize);
 }
-#endif // #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 
 size_t FCurlHttpRequest::ReceiveResponseHeaderCallback(void* Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FCurlHttpRequest_ReceiveResponseHeaderCallback);
 	check(Response.IsValid());
-
+	
+	TimeSinceLastResponse = 0.0f;
 	if (Response.IsValid())
 	{
-		TimeSinceLastResponse = 0.0f;
-
 		uint32 HeaderSize = SizeInBlocks * BlockSizeInBytes;
 		if (HeaderSize > 0 && HeaderSize <= CURL_MAX_HTTP_HEADER)
 		{
@@ -352,10 +345,9 @@ size_t FCurlHttpRequest::ReceiveResponseBodyCallback(void* Ptr, size_t SizeInBlo
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FCurlHttpRequest_ReceiveResponseBodyCallback);
 	check(Response.IsValid());
 
+	TimeSinceLastResponse = 0.0f;
 	if (Response.IsValid())
 	{
-		TimeSinceLastResponse = 0.0f;
-
 		uint32 SizeToDownload = SizeInBlocks * BlockSizeInBytes;
 
 		UE_LOG(LogHttp, Verbose, TEXT("%p: ReceiveResponseBodyCallback: %d bytes out of %d received. (SizeInBlocks=%d, BlockSizeInBytes=%d, Response->TotalBytesRead=%d, Response->GetContentLength()=%d, SizeToDownload=%d (<-this will get returned from the callback))"),
@@ -412,11 +404,10 @@ size_t FCurlHttpRequest::UploadCallback(void* Ptr, size_t SizeInBlocks, size_t B
 	return SizeToSendThisTime;
 }
 
-#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 size_t FCurlHttpRequest::DebugCallback(CURL * Handle, curl_infotype DebugInfoType, char * DebugInfo, size_t DebugInfoSize)
 {
 	check(Handle == EasyHandle);	// make sure it's us
-
+#if CURL_ENABLE_DEBUG_CALLBACK
 	switch(DebugInfoType)
 	{
 		case CURLINFO_TEXT:
@@ -471,11 +462,24 @@ size_t FCurlHttpRequest::DebugCallback(CURL * Handle, curl_infotype DebugInfoTyp
 			UE_LOG(LogHttp, VeryVerbose, TEXT("%p: DebugCallback: Unknown DebugInfoType=%d (DebugInfoSize: %d bytes)"), this, (int32)DebugInfoType, DebugInfoSize);
 			break;
 	}
+#endif // CURL_ENABLE_DEBUG_CALLBACK
+
+	switch (DebugInfoType)
+	{
+		case CURLINFO_HEADER_IN:
+		case CURLINFO_HEADER_OUT:
+		case CURLINFO_DATA_IN:
+		case CURLINFO_DATA_OUT:
+		case CURLINFO_SSL_DATA_IN:
+		case CURLINFO_SSL_DATA_OUT:
+			TimeSinceLastResponse = 0.0f;
+			break;
+		default:
+			break;
+	}
 	
 	return 0;
 }
-
-#endif // !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 
 bool IsURLEncoded(const TArray<uint8> & Payload)
 {
@@ -549,6 +553,12 @@ bool FCurlHttpRequest::SetupRequest()
 
 	curl_easy_setopt(EasyHandle, CURLOPT_URL, TCHAR_TO_ANSI(*URL));
 
+	if (!FCurlHttpManager::CurlRequestOptions.LocalHostAddr.IsEmpty())
+	{
+		// Set the local address to use for making these requests
+		CURLcode ErrCode = curl_easy_setopt(EasyHandle, CURLOPT_INTERFACE, TCHAR_TO_ANSI(*FCurlHttpManager::CurlRequestOptions.LocalHostAddr));
+	}
+
 	// set up verb (note that Verb is expected to be uppercase only)
 	if (Verb == TEXT("POST"))
 	{
@@ -595,7 +605,7 @@ bool FCurlHttpRequest::SetupRequest()
 	else
 	{
 		UE_LOG(LogHttp, Fatal, TEXT("Unsupported verb '%s', can be perhaps added with CURLOPT_CUSTOMREQUEST"), *Verb);
-		FPlatformMisc::DebugBreak();
+		UE_DEBUG_BREAK();
 	}
 
 	// set up header function to receive response headers
@@ -616,12 +626,6 @@ bool FCurlHttpRequest::SetupRequest()
 	if (GetHeader("Content-Length").IsEmpty())
 	{
 		SetHeader(TEXT("Content-Length"), FString::Printf(TEXT("%d"), RequestPayload.Num()));
-	}
-
-	// Add "Pragma: no-cache" to mimic WinInet behavior
-	if (GetHeader("Pragma").IsEmpty())
-	{
-		SetHeader(TEXT("Pragma"), TEXT("no-cache"));
 	}
 
 	// Remove "Expect: 100-continue" since this is supposed to cause problematic behavior on Amazon ELB (and WinInet doesn't send that either)
@@ -647,6 +651,7 @@ bool FCurlHttpRequest::SetupRequest()
 		curl_easy_setopt(EasyHandle, CURLOPT_HTTPHEADER, HeaderList);
 	}
 
+	UE_LOG(LogHttp, Log, TEXT("%p: Starting %s request to URL='%s'"), this, *Verb, *URL);
 	return true;
 }
 
@@ -712,12 +717,13 @@ bool FCurlHttpRequest::IsThreadedRequestComplete()
 
 	const float HttpTimeout = FHttpModule::Get().GetHttpTimeout();
 	bool bTimedOut = (HttpTimeout > 0 && TimeSinceLastResponse >= HttpTimeout);
-#if !UE_BUILD_SHIPPING
+#if CURL_ENABLE_NO_TIMEOUTS_OPTION
 	static const bool bNoTimeouts = FParse::Param(FCommandLine::Get(), TEXT("NoTimeouts"));
 	bTimedOut = bTimedOut && !bNoTimeouts;
 #endif
 	if (bTimedOut)
 	{
+		UE_LOG(LogHttp, Warning, TEXT("%p: HTTP request timed out after %0.2f seconds URL=%s"), this, TimeSinceLastResponse, *GetURL());
 		return true;
 	}
 
@@ -842,7 +848,7 @@ void FCurlHttpRequest::FinishedRequest()
 			}
 			else
 			{
-				UE_LOG(LogHttp, Verbose, TEXT("%p: request has been successfully processed. URL: %s, HTTP code: %d, content length: %d, actual payload size: %d"),
+				UE_LOG(LogHttp, Log, TEXT("%p: request has been successfully processed. URL: %s, HTTP code: %d, content length: %d, actual payload size: %d"),
 					this, *GetURL(), Response->HttpCode, Response->ContentLength, Response->Payload.Num());
 			}
 

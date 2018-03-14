@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388666
+﻿INTSourceChangelist:3650654
 Availability:Public
 Title:3.4 - 発射物をワールドと相互作用させる
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
@@ -22,7 +22,7 @@ Version:4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 発射物 (プロジェクタイル) のコリジョンの相互作用を検知できるようになったので、コリジョンの反応方法を決めることができます。このステップでは、`OnHit` 関数を collision event に反応する `FPSProjectile` に追加します。
 
@@ -80,7 +80,7 @@ Version:4.15
 1.	**Solution Explorer** で、`FPSProjectile` class CPP ファイルを探して、`FPSProjectile.cpp` を開いて以下のコードを追加します。
 
 		// Function that is called when the projectile hits something. (発射物が何かにぶつかると呼び出される関数)
-		void AFPSProjectile::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
+		void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
 		{
 			if (OtherActor != this && OtherComponent->IsSimulatingPhysics())
 			{
@@ -149,7 +149,7 @@ Version:4.15
 		}
 		// Function that is called when the projectile hits something. (発射物が何かにぶつかると呼び出される関数)
 
-		void AFPSProjectile::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
+		void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
 		{
 			if (OtherActor != this && OtherComponent->IsSimulatingPhysics())
 			{
@@ -209,4 +209,3 @@ Version:4.15
 
 1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで Escape キーを押すか、**[Stop]** ボタンをクリックします。
 
-%Steps%

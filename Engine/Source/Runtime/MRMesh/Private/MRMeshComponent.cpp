@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MRMeshComponent.h"
 #include "PrimitiveSceneProxy.h"
@@ -115,20 +115,6 @@ public:
 
 struct FMRMeshProxySection;
 
-class FMRMeshVertexFactory : public FLocalVertexFactory
-{
-public:
-
-	FMRMeshVertexFactory()
-	{}
-
-	/** Init function that should only be called on render thread. */
-	void Init_RenderThread(const FMRMeshProxySection& MRMeshSection);
-
-	/** Init function that can be called on any thread, and will do the right thing (enqueue command if called on main thread) */
-	void Init(const FMRMeshProxySection& MRMeshSection);
-};
-
 struct FMRMeshProxySection
 {
 	/** Which brick this section represents */
@@ -138,18 +124,22 @@ struct FMRMeshProxySection
 	/** Texture coordinates buffer */
 	FNullVertexBuffer UVBuffer;
 	/** Tangent space buffer */
-	FNullVertexBuffer TangentXBuffer;
-	/** Tangent space buffer */
-	FNullVertexBuffer TangentZBuffer;
+	FNullVertexBuffer TangentXZBuffer;
 	/** We don't need color */
 	FMRMeshVertexBuffer<FColor> ColorBuffer;
 	/** Index buffer for this section */
 	FMRMeshIndexBuffer IndexBuffer;
 	/** Vertex factory for this section */
-	FMRMeshVertexFactory VertexFactory;
+	FLocalVertexFactory VertexFactory;
 
-	FMRMeshProxySection(FIntVector InBrickId)
+	FShaderResourceViewRHIRef PositionBufferSRV;
+	FShaderResourceViewRHIRef UVBufferSRV;
+	FShaderResourceViewRHIRef TangentXZBufferSRV;
+	FShaderResourceViewRHIRef ColorBufferSRV;
+
+	FMRMeshProxySection(FIntVector InBrickId, ERHIFeatureLevel::Type InFeatureLevel)
 		: BrickId(InBrickId)
+		, VertexFactory(InFeatureLevel, "FMRMeshProxySection")
 	{
 	}
 
@@ -157,59 +147,59 @@ struct FMRMeshProxySection
 	{
 		PositionBuffer.ReleaseResource();
 		UVBuffer.ReleaseResource();
-		TangentXBuffer.ReleaseResource();
-		TangentZBuffer.ReleaseResource();
+		TangentXZBuffer.ReleaseResource();
 		ColorBuffer.ReleaseResource();
 		IndexBuffer.ReleaseResource();
 		VertexFactory.ReleaseResource();
 	}
 
-	FMRMeshProxySection(const FMRMeshVertexFactory&) = delete;
-	void operator==(const FMRMeshVertexFactory&) = delete;
+	FMRMeshProxySection(const FLocalVertexFactory&) = delete;
+	void operator==(const FLocalVertexFactory&) = delete;
 };
 
-
-void FMRMeshVertexFactory::Init_RenderThread(const FMRMeshProxySection& MRMeshSection)
+static void InitVertexFactory(FLocalVertexFactory* VertexFactory, const FMRMeshProxySection& MRMeshSection)
 {
-	check(IsInRenderingThread());
-
-	// Initialize the vertex factory's stream components.
-	FDataType NewData;
-	NewData.PositionComponent = FVertexStreamComponent(&MRMeshSection.PositionBuffer, 0, sizeof(FVector), VET_Float3);
-	NewData.TextureCoordinates.Add(
-		FVertexStreamComponent(&MRMeshSection.UVBuffer, 0, 0/*sizeof(FVector2D)*/, VET_Float2)
-	);
-	NewData.TangentBasisComponents[0] = FVertexStreamComponent(&MRMeshSection.TangentXBuffer, 0, 0/*sizeof(FPackedNormal)*/, VET_PackedNormal);
-	NewData.TangentBasisComponents[1] = FVertexStreamComponent(&MRMeshSection.TangentZBuffer, 0, 0/*sizeof(FPackedNormal)*/, VET_PackedNormal);
-	NewData.ColorComponent = FVertexStreamComponent(&MRMeshSection.ColorBuffer, 0, sizeof(FColor), VET_Color);
-	SetData(NewData);
-}
-
-void FMRMeshVertexFactory::Init(const FMRMeshProxySection& MRMeshSection)
-{
-	if (IsInRenderingThread())
+	ENQUEUE_RENDER_COMMAND(InitProcMeshVertexFactory)(
+		[VertexFactory, MRMeshSection](FRHICommandListImmediate& RHICmdList)
 	{
-		Init_RenderThread(MRMeshSection);
-	}
-	else
-	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			InitProcMeshVertexFactory,
-			FMRMeshVertexFactory*, VertexFactory, this,
-			const FMRMeshProxySection&, MRMeshSection, MRMeshSection,
-			{
-				VertexFactory->Init_RenderThread(MRMeshSection);
-			});
-	}
+		check(IsInRenderingThread());
+
+		// Initialize the vertex factory's stream components.
+		FLocalVertexFactory::FDataType NewData;
+
+		{
+			NewData.PositionComponentSRV = MRMeshSection.PositionBufferSRV;
+			NewData.TextureCoordinatesSRV = MRMeshSection.UVBufferSRV;
+			NewData.TangentsSRV = MRMeshSection.TangentXZBufferSRV;
+			NewData.ColorComponentsSRV = MRMeshSection.ColorBufferSRV;
+		}
+		
+		{
+			NewData.PositionComponent = FVertexStreamComponent(&MRMeshSection.PositionBuffer, 0, sizeof(FVector), VET_Float3, EVertexStreamUsage::ManualFetch);
+			NewData.TextureCoordinates.Add(FVertexStreamComponent(&MRMeshSection.UVBuffer, 0, sizeof(FVector2D), VET_Float2, EVertexStreamUsage::ManualFetch));
+			NewData.TangentBasisComponents[0] = FVertexStreamComponent(&MRMeshSection.TangentXZBuffer, 0, 2 * sizeof(FPackedNormal), VET_PackedNormal, EVertexStreamUsage::ManualFetch);
+			NewData.TangentBasisComponents[1] = FVertexStreamComponent(&MRMeshSection.TangentXZBuffer, sizeof(FPackedNormal), 2 * sizeof(FPackedNormal), VET_PackedNormal, EVertexStreamUsage::ManualFetch);
+			NewData.ColorComponent = FVertexStreamComponent(&MRMeshSection.ColorBuffer, 0, sizeof(FColor), VET_Color, EVertexStreamUsage::ManualFetch);
+		}
+
+		VertexFactory->SetData(NewData);
+	});
 }
 
 
-class FMRMeshProxy : public FPrimitiveSceneProxy
+class FMRMeshProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
+
 	FMRMeshProxy(const UMRMeshComponent* InComponent)
 	: FPrimitiveSceneProxy(InComponent)
 	, MaterialToUse((InComponent->Material!=nullptr) ? InComponent->Material : UMaterial::GetDefaultMaterial(MD_Surface) )
+	, FeatureLevel(GetScene().GetFeatureLevel())
 	{
 	}
 
@@ -229,7 +219,7 @@ public:
 	{
 		check(IsInRenderingThread() || IsInRHIThread());
 
-		FMRMeshProxySection* NewSection = new FMRMeshProxySection(Args.BrickCoords);
+		FMRMeshProxySection* NewSection = new FMRMeshProxySection(Args.BrickCoords, FeatureLevel);
 		ProxySections.Add(NewSection);
 
 		check(Args.PositionData.Num() == Args.ColorData.Num() || Args.ColorData.Num() == 0
@@ -242,30 +232,31 @@ public:
 		{
 			NewSection->PositionBuffer.InitResource();
 			NewSection->PositionBuffer.InitRHIWith(Args.PositionData);
+			NewSection->PositionBufferSRV = RHICreateShaderResourceView(NewSection->PositionBuffer.VertexBufferRHI, sizeof(float), PF_R32_FLOAT);
+			//FStructuredBufferRHIRef StructuredBuffer = RHICreateStructuredBuffer(sizeof(FVector), ResourceArray->GetResourceDataSize(), BUF_Static | BUF_ShaderResource, CreateInfo);
+			//PositionComponentSRV = RHICreateShaderResourceView(StructuredBuffer);
+			//NewSection->PositionBuffer.VertexBufferRHI = StructuredBuffer;
 		}
 
 		// TEXTURE COORDS BUFFER
 		{
 			NewSection->UVBuffer.InitResource();
 			//NewSection->UVBuffer.InitRHIWith(Args.UVData);
+			NewSection->UVBufferSRV = RHICreateShaderResourceView(NewSection->UVBuffer.VertexBufferRHI, 8, PF_G32R32F);
 		}
 
-		// TEXTURE COORDS BUFFER
+		// TANGENTS BUFFER
 		{
-			NewSection->TangentXBuffer.InitResource();
-			//NewSection->TangentXBuffer.InitRHIWith(Args.TangentXData);
-		}
-
-		// TEXTURE COORDS BUFFER
-		{
-			NewSection->TangentZBuffer.InitResource();
-			//NewSection->TangentZBuffer.InitRHIWith(Args.TangentZData);
+			NewSection->TangentXZBuffer.InitResource();
+			//NewSection->TangentXZBuffer.InitRHIWith(Args.TangentXData);
+			NewSection->UVBufferSRV = RHICreateShaderResourceView(NewSection->TangentXZBuffer.VertexBufferRHI, 4, PF_R8G8B8A8);
 		}
 
 		// NO COLOR
 		{
 			NewSection->ColorBuffer.InitResource();
 			NewSection->ColorBuffer.InitRHIWith(Args.ColorData);
+			NewSection->ColorBufferSRV = RHICreateShaderResourceView(NewSection->ColorBuffer.VertexBufferRHI, 4, PF_R8G8B8A8);
 		}
 
 		// INDEX BUFFER
@@ -276,7 +267,7 @@ public:
 
 		// VERTEX FACTORY
 		{
-			NewSection->VertexFactory.Init(*NewSection);
+			InitVertexFactory(&NewSection->VertexFactory, *NewSection);
 			NewSection->VertexFactory.InitResource();
 		}
 	}
@@ -373,6 +364,7 @@ private:
 private:
 	TArray<FMRMeshProxySection*> ProxySections;
 	UMaterialInterface* MaterialToUse;
+	ERHIFeatureLevel::Type FeatureLevel;
 };
 
 
@@ -455,6 +447,7 @@ UBodySetup* CreateBodySetupHelper(UMRMeshComponent* Outer)
 
 void UMRMeshComponent::SendBrickData_Internal(IMRMesh::FSendBrickDataArgs Args, FOnProcessingComplete OnProcessingComplete)
 {
+#if WITH_PHYSX
 	check(IsInGameThread());
 
 	if (!IsPendingKill() && this->GetCollisionEnabled())
@@ -522,6 +515,8 @@ void UMRMeshComponent::SendBrickData_Internal(IMRMesh::FSendBrickDataArgs Args, 
 		}
 
 	}
+#endif // WITH_PHYSX
+
 
 	if (SceneProxy != nullptr && GRenderingThread != nullptr)
 	{

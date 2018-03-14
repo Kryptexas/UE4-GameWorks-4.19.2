@@ -119,9 +119,11 @@ CodeWorks for Android 1R5 をインストールする前に UE4 を終了して�
 
 	[REGION:tip]
 	Ubuntu の GUI を使わない場合は、ターミナルに `sudo reboot` と入力してからコンピューターを再起動します。 
-	<!-- 
+	[COMMENT:none]
+ 
 	![](LinuxAndroid_Step16.png)(w:900)
-	-->
+	
+[/COMMENT]
 	[/REGION]
 [/EXCERPT:AndroidLinux_1]
 

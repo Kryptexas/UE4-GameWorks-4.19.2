@@ -67,7 +67,7 @@
 /// Extract the payload from the message handle with ::ovr_Message_GetAchievementUpdate().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Achievements_AddCount(const char *name, unsigned long long count);
 
-/// Unlock fields of a BITFIELD acheivement.
+/// Unlock fields of a BITFIELD achievement.
 /// \param name The name of the achievement to unlock
 /// \param fields A string containing either '0' or '1' characters. Every '1' will unlock the field in the corresponding position.
 ///

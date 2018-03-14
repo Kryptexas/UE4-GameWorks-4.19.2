@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -255,7 +255,7 @@ public:
 	 * @param Offset The offset in the buffer or 0 when Buffer is nil.
 	 * @param Index The index to modify.
 	 */
-	void SetShaderData(MTLFunctionType const FunctionType, FMetalBufferData* Data, NSUInteger const Offset, NSUInteger const Index);
+	void SetShaderData(MTLFunctionType const FunctionType, FMetalBufferData* Data, NSUInteger const Offset, NSUInteger const Index, EPixelFormat const Format = PF_Unknown);
 	
 	/*
 	 * Set bytes to the specified shader frequency at the given bind point index.

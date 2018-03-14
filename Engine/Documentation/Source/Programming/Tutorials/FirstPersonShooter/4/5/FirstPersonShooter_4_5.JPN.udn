@@ -21,7 +21,7 @@ Version:4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 チュートリアルのこの最終セクションでは、作成した Animation ブループリントを Character ブループリントと関連付けます。
 
@@ -58,4 +58,3 @@ Version:4.15
 
 C++ の FPS チュートリアルはこれで終わりです。
 
-%Steps%

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3242329
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:레이어드 머티리얼 만들기
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/LayeredMaterials
@@ -6,46 +6,7 @@ Description:UE4 의 레이어드 머티리얼 기법에 대한 입문서입니�
 Version: 4.9
 SkillLevel: Intermediate
 tags:Materials
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](%ROOT%/Resources/Tutorials/Materials/CreatingLayeredMaterials/layered_tutorial_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Tutorials/Materials/CreatingLayeredMaterials:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Tutorials/Materials/CreatingLayeredMaterials:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Tutorials/Materials/CreatingLayeredMaterials]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](%ROOT%/Resources/Tutorials/Materials/CreatingLayeredMaterials/layered_tutorial_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Tutorials/Materials/CreatingLayeredMaterials:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Tutorials/Materials/CreatingLayeredMaterials:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Tutorials/Materials/CreatingLayeredMaterials]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:layered_tutorial_topic.png
 
 [REGION:fullwidth]
 ![](SnowyStuff.png)

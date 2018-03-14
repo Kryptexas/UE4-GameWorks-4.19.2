@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameFramework/RootMotionSource.h"
 #include "DrawDebugHelpers.h"
@@ -29,7 +29,7 @@ void RootMotionSourceDebug::PrintOnScreen(const ACharacter& InCharacter, const F
 	// Skip bots, debug player networking.
 	if (InCharacter.IsPlayerControlled())
 	{
-		const FString AdjustedDebugString = FString::Printf(TEXT("[%d] [%s] %s"), GFrameCounter, *InCharacter.GetName(), *InString);
+		const FString AdjustedDebugString = FString::Printf(TEXT("[%d] [%s] %s"), (uint64)GFrameCounter, *InCharacter.GetName(), *InString);
 
 		// If on the server, replicate this message to everyone.
 		if (!InCharacter.IsLocallyControlled() && (InCharacter.Role == ROLE_Authority))

@@ -40,42 +40,18 @@ In general, focus on reducing the complexity of your Materials as a way to incre
 Once you establish where your issue(s) lie, you can use the following to begin optimizing.
 
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/fx_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Troubleshooting Links
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [I am having trouble on the GPU.](Engine/Rendering/ParticleSystems/Optimization/Results#OverdrawGraphics)
-		* [I am having trouble on the Game Thread.](Engine/Rendering/ParticleSystems/Optimization/Results#GameThread)
-		* [I am having trouble on the Render Thread.](Engine/Rendering/ParticleSystems/Optimization/Results#RenderThread)
-	[/PARAM]
-[/OBJECT]
+## Troubleshooting Links
 
- 
+* [I am having trouble on the GPU.](Engine/Rendering/ParticleSystems/Optimization/Results#OverdrawGraphics)
+* [I am having trouble on the Game Thread.](Engine/Rendering/ParticleSystems/Optimization/Results#GameThread)
+* [I am having trouble on the Render Thread.](Engine/Rendering/ParticleSystems/Optimization/Results#RenderThread)
 
+## Particle System General Topics
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/fx_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Particle System General Topics
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [VFX Optimization: Balancing Visual Effects with Performance](Engine/Rendering/ParticleSystems/Optimization/Balance)
-		* [VFX Optimization: Core Optimization Concepts](Engine/Rendering/ParticleSystems/Optimization/Concepts)
-		* [VFX Optimization: Getting Results](Engine/Rendering/ParticleSystems/Optimization/Results)
-		* [VFX Optimization: Split Screen](Engine/Rendering/ParticleSystems/Optimization/SplitScreen)
-	[/PARAM]
-[/OBJECT]
-
+* [VFX Optimization: Balancing Visual Effects with Performance](Engine/Rendering/ParticleSystems/Optimization/Balance)
+* [VFX Optimization: Core Optimization Concepts](Engine/Rendering/ParticleSystems/Optimization/Concepts)
+* [VFX Optimization: Getting Results](Engine/Rendering/ParticleSystems/Optimization/Results)
+* [VFX Optimization: Split Screen](Engine/Rendering/ParticleSystems/Optimization/SplitScreen)
 
 
 

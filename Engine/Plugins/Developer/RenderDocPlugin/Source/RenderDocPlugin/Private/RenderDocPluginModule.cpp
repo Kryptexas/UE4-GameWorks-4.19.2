@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "RenderDocPluginModule.h"
 
@@ -68,8 +68,8 @@ class FRenderDocFrameCapturer
 public:
 	static void BeginCapture(HWND WindowHandle, FRenderDocPluginLoader::RENDERDOC_API_CONTEXT* RenderDocAPI, FRenderDocPluginModule* Plugin)
 	{
-		UE4_GEmitDrawEvents_BeforeCapture = GEmitDrawEvents;
-		GEmitDrawEvents = true;
+		UE4_GEmitDrawEvents_BeforeCapture = GetEmitDrawEvents();
+		SetEmitDrawEvents(true);
 
 		RENDERDOC_DevicePointer Device = GDynamicRHI->RHIGetNativeDevice();
 		RenderDocAPI->StartFrameCapture(Device, WindowHandle);
@@ -79,7 +79,7 @@ public:
 		RENDERDOC_DevicePointer Device = GDynamicRHI->RHIGetNativeDevice();
 		RenderDocAPI->EndFrameCapture(Device, WindowHandle);
 
-		GEmitDrawEvents = UE4_GEmitDrawEvents_BeforeCapture;
+		SetEmitDrawEvents(UE4_GEmitDrawEvents_BeforeCapture);
 
 		TGraphTask<FRenderDocAsyncGraphTask>::CreateTask().ConstructAndDispatchWhenReady(ENamedThreads::GameThread, [Plugin]()
 		{

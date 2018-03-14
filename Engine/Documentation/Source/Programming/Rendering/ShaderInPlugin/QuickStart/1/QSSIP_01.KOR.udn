@@ -1,8 +1,8 @@
 ﻿INTSourceChangelist:0
-Availability: Docs
+Availability:Public 
 Crumbs: %ROOT%
-Title: Creating a New Global Shader in a Plugin
-Description: Setting up the Plugin and code for the Gloabl Shader plugin
+Title: Creating a New Global Shader in a Plugin - Code Setup
+Description: Setting up the plugin and code for the Gloabl Shader plugin
 Type:quick start
 Type:multi-step
 SkillLevel:Intermediate
@@ -10,9 +10,12 @@ Version: 4.17
 Parent:Programming/Rendering/ShaderInPlugin/QuickStart
 Order:1
 Tags:Rendering
+Tags:Programming
 Checkpoint:shaderqs
 
 [Nav]
+
+Before you can start creating a new Plugin for Unreal Engine 4 (UE4) you will first need to make sure that you have Visual Studio installed. Visual Studio is required for this Quick Start as you will need to compile your Plugin's code so that it can run. If you are not sure how to go about doing this, check out the [Setting Up Visual Studio for UE4](Programming/Development/VisualStudioSetup/) documents for more help.   
 
 1. First, create a new C++ **Basic Code** project that uses the **Desktop Setting** with **Maximum Quality** and does not have any **Starter Content**. 
 
@@ -26,18 +29,11 @@ Checkpoint:shaderqs
 
 1. Once the project has been created, Visual Studio will open up and after it has,  right- click on the ShadersInPlugins project and select the **Build** option to compile the project.
 
-    [REGION:lightbox]
-    [![](HT_ShadersInPlugins_01.png)(w:481)](HT_ShadersInPlugins_01.png)
-    [/REGION]
-
-    [REGION:caption]
-    Click for full image.
-    [/REGION]
+    ![](HT_ShadersInPlugins_01.png)(w:481)
 
 1. When the project has finished compiling, press the **F5** key inside Visual Studio to launch the ShadersInPlugins project in the UE4 Editor.
 
 1. Once the UE4 Editor has finished loading, open up the **Plugins** manager by going to **Edit** > **Plugins** and then click on the **New Plugin** option that is on the lower right-hand side of the Plugin window to bring up the New Plugin creation window. 
-
     [REGION:lightbox]
     [![](HT_ShadersInPlugins_02.png)(w:564)](HT_ShadersInPlugins_02.png)
     [/REGION]
@@ -49,19 +45,18 @@ Checkpoint:shaderqs
 1. From the **New Plugin** window, select the **Blank** plugin and then input the name **Foo** for the name and keeping all of the settings as default. When all of that is completed, press the **Create Plugin** button to create all of the initial required content for the plugin.
 
     [REGION:lightbox]
-    [![](HT_ShadersInPlugins_03.png)(w:505)](HT_ShadersInPlugins_03.png)
+    [![](HT_ShadersInPlugins_03.png)(w:564)](HT_ShadersInPlugins_03.png)
     [/REGION]
-
-    [REGION:caption]
-    Click for full image.
-    [/REGION]
+	[REGION:caption] 
+	Click for full image. 
+	[/REGION]
 
 1. When that is completed, shut down UE4 and Visual Studio and then go to the **Plugins** > **Foo** plugin folder that was created inside your project folder.
 
 1. Inside the Foo plugins folder, add a new folder called **Shaders** and then inside of that folder, create a new folder called **Private**.
 
     [REGION:lightbox]
-    [![](HT_ShadersInPlugins_04.png)(w:457)](HT_ShadersInPlugins_04.png)
+    [![](HT_ShadersInPlugins_04.png)(w:564)](HT_ShadersInPlugins_04.png)
     [/REGION]
 
     [REGION:caption]
@@ -70,11 +65,11 @@ Checkpoint:shaderqs
 
 1. Inside of the Private folder, create a new text file and call it **MyShader.USF** and then copy and paste the following HLSL code into this file, saving the file when completed.
 
-    [region:note]
+    [REGION:note]
     Make sure that you change the file extension to **.USF** or UE4 will not understand that this is a shader file.
-    [/region]
+    [/REGION]
 
-        // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+        // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
         /*=============================================================================
             LensDistortionUVGeneration.usf: Generate lens distortion and undistortion
@@ -87,7 +82,7 @@ Checkpoint:shaderqs
             However to avoid resolving with a ferrari method, or doing a newton method
             on the GPU to compute the undistort viewport UV to distort viewport UV
             displacement, this couple of shaders works as follow: The vertex shader
-            undistort the grid's vertices, and passdown to the pixel shader the viewport
+            undistort the grid's vertices, and pass down to the pixel shader the viewport
             UV of where they should have been on screen without undistortion. The pixel
             shader can then generate the undistort viewport UV to distort viewport UV
             displacement by just subtracting the pixel's viewport UV.
@@ -266,7 +261,7 @@ Checkpoint:shaderqs
     You should replace FLensDistortionCameraModel with FFooCameraModel **four** times in this file.
     [/region]
 
-            // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+            // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
             #pragma once
 
@@ -336,7 +331,7 @@ Checkpoint:shaderqs
                  * @param UndistortOverscanFactor The factor of the overscan for the undistorted render.
                  * @param OutputRenderTarget The render target to draw to. Don't necessarily need to have same resolution or aspect ratio as distorted render.
                  * @param OutputMultiply The multiplication factor applied on the displacement.
-                 * @param OutputAdd Value added to the multiplied displacement before storing into the output render target.
+                 * @param OutputAdd Value added to the multiplied displacement before storing the output render target.
                  */
                 void DrawUVDisplacementToRenderTarget(
                     class UWorld* World,
@@ -373,7 +368,7 @@ Checkpoint:shaderqs
     You should replace FLensDistortionCameraModel with FFooCameraModel **six** times in this file.
     [/region]
 
-        // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+        // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
         #pragma once
 
@@ -446,7 +441,7 @@ Checkpoint:shaderqs
     You should replace FLensDistortionCameraModel with FFooCameraModel **two** times and ULensDistortionBlueprintLibrary with UFooBlueprintLibrary **four** times.
     [/region]
 
-            // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+            // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
             #include "LensDistortionBlueprintLibrary.h"
 
@@ -487,7 +482,7 @@ Checkpoint:shaderqs
     [region:note]
     You should replace FLensDistortionCameraModel with FFooCameraModel **six** times in this file.
     [/region]
-            // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+            // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
             #include "LensDistortionAPI.h"
             #include "Classes/Engine/TextureRenderTarget2D.h"
@@ -859,7 +854,7 @@ Checkpoint:shaderqs
 
      * IMPLEMENT_SHADER_TYPE(, FLensDistortionUVGenerationPS, TEXT("/Plugin/Foo/Private/MyShader.usf"), TEXT("MainPS"), SF_Pixel)
 
-1. Now, go  to the **Foo/Source** folder and open up the **Foo.Build.cs** file and in the **Foo.Build.cs** under the **PublicDependencyModuleNames.AddRange** section add the following lines of code:
+1. Now, go to the **Foo/Source** folder and open up the **Foo.Build.cs** file and in the **Foo.Build.cs** under the **PublicDependencyModuleNames.AddRange** section add the following lines of code:
 
             PublicDependencyModuleNames.AddRange(
             new string[]
@@ -874,7 +869,7 @@ Checkpoint:shaderqs
 
 1. Then, in the **PrivateDependencyModuleNames.AddRange** section of **Foo.Build.cs** remove **Slate** and **SlateCore** and when completed your Foo.Build.cs file should look like this:
 
-        // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+        // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
         using UnrealBuildTool;
 
@@ -929,30 +924,28 @@ Checkpoint:shaderqs
 
 1. When the UE4 Editor finishes loading, go to the **Plugins** manager by going to **Edit** > **Plugins**.
 
-    [REGION:lightbox]
-    [![](HT_ShadersInPlugins_08.png)(w:250)](HT_ShadersInPlugins_08.png)
-    [/REGION]
-
-    [REGION:caption]
-    Click for full image.
-    [/REGION]
-
+    ![](HT_ShadersInPlugins_08.png)(w:250)
+	
 1. Inside of the Plugins manager, scroll down to the bottom and look for the **Project** section and in this section, you should see your Plugin. 
     
     ![](HT_ShadersInPlugins_09.png)
 
     [region:note]
-    If your plug is not enabled, enable it by clicking on the checkmark box next to it's name and re-start the UE4 editor. 
+    If your plug is not enabled, enable it by clicking on the checkmark box next to its name and re-start the UE4 editor. 
     [/region]
 
 1. To check to make sure everything is there, open up the Level Blueprint and right - click in the Event Graph inputting **Foo** into the search box. Once that is complete, you should now see all of the items that were added to the Foo Camera category. 
 
     [REGION:lightbox]
-    [![](HT_ShadersInPlugins_10.png)(w:825)](HT_ShadersInPlugins_10.png)
+    [![](HT_ShadersInPlugins_10.png)(w:950)](HT_ShadersInPlugins_10.png)
     [/REGION]
 
     [REGION:caption]
     Click for full image.
     [/REGION]
 
-	[Nav]
+## End Result
+
+Congratulations, you have now successfully recreated and compiled a new version of the Lense Distortion UE4 plugin. In the next step, you will learn how to invoke this new global shader from Blueprints and also see how it distorts Render Targets.
+
+[Nav]

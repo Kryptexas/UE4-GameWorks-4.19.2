@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,17 +22,29 @@ class FDisplayedRetargetSourceInfo
 {
 public:
 	FName Name;
-	USkeletalMesh * ReferenceMesh;
+	TSoftObjectPtr<USkeletalMesh> ReferenceMesh;
 
 	/** Static function for creating a new item, but ensures that you can only have a TSharedRef to one */
-	static TSharedRef<FDisplayedRetargetSourceInfo> Make(const FName& SourcePose, USkeletalMesh * ReferenceMesh)
+	static TSharedRef<FDisplayedRetargetSourceInfo> Make(const FName& SourcePose, TSoftObjectPtr<USkeletalMesh> InReferenceMesh, bool bInDirtyFlag)
 	{
-		return MakeShareable(new FDisplayedRetargetSourceInfo(SourcePose, ReferenceMesh));
+		return MakeShareable(new FDisplayedRetargetSourceInfo(SourcePose, InReferenceMesh, bInDirtyFlag));
+	}
+
+	FString GetDisplayName()
+	{
+		TArray<FStringFormatArg> Args;
+		Args.Add(FStringFormatArg(Name.ToString()));
+		Args.Add(FStringFormatArg(bDirtyFlag ? TEXT(" [out of date]") : TEXT("")));
+
+		return FString::Format(TEXT("{0}{1}"), Args);
 	}
 
 	FString GetReferenceMeshName()
 	{
-		return (ReferenceMesh)? ReferenceMesh->GetPathName() : TEXT("None");
+		TArray<FStringFormatArg> Args;
+		Args.Add(FStringFormatArg((!ReferenceMesh.IsNull()) ? ReferenceMesh.ToString() : TEXT("None")));
+
+		return FString::Format(TEXT("{0}"), Args);
 	}
 
 	/** Requests a rename on the socket item */
@@ -47,16 +59,18 @@ public:
 
 protected:
 	/** Hidden constructor, always use Make above */
-	FDisplayedRetargetSourceInfo(const FName& InSource, USkeletalMesh * RefMesh)
+	FDisplayedRetargetSourceInfo(const FName& InSource, TSoftObjectPtr<USkeletalMesh> InRefMesh, bool InDirtyFlag)
 		: Name( InSource )
-		, ReferenceMesh( RefMesh )
+		, ReferenceMesh( InRefMesh )
 		, bRenamePending( false )
+		, bDirtyFlag(InDirtyFlag)
 	{}
 
 	/** Hidden constructor, always use Make above */
 	FDisplayedRetargetSourceInfo() {}
 
 	bool bRenamePending;
+	bool bDirtyFlag;
 };
 
 typedef SListView< TSharedPtr<FDisplayedRetargetSourceInfo> > SRetargetSourceListType;
@@ -158,7 +172,7 @@ public:
 	/**
 	* Handler for the delete of retarget source
 	*/
-	void OnRefreshRetargetSource();
+	void OnRefreshRetargetSource(bool bAll = false);
 
 	/**
 	* Accessor so our rows can grab the filtertext for highlighting
@@ -210,4 +224,5 @@ private:
 
 	/** Button handler **/
 	FReply OnAddRetargetSourceButtonClicked();
+	FReply OnUpdateAllRetargetSourceButtonClicked();
 };

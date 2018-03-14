@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -50,6 +50,11 @@ enum EFBXExpectedResultPreset
 	/** Data should be the LOD index [int0], section index [int1] and the expected original imported material slot name [string0]. */
 	Mesh_LOD_Section_Material_Imported_Name,
 	
+	/** Data should be the LOD index [int0], vertex index [int1] and the expected position of the vertex X[float0] Y[float1] Z[float2]. */
+	Mesh_LOD_Vertex_Position,
+	/** Data should be the LOD index [int0], vertex index [int1] and the expected normal of the vertex X[float0] Y[float1] Z[float2]. */
+	Mesh_LOD_Vertex_Normal,
+
 	/** Data should be the LOD index [int0] and the number of UV channel [int1] for the specified LOD. */
 	LOD_UV_Channel_Number,
 

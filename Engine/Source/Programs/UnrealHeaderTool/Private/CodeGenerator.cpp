@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealHeaderTool.h"
 #include "CoreMinimal.h"
@@ -81,7 +81,7 @@ namespace
 	}
 
 	const TCHAR HeaderCopyright[] =
-		TEXT("// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.\r\n")
+		TEXT("// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.\r\n")
 		TEXT("/*===========================================================================\r\n")
 		TEXT("\tGenerated code exported from UnrealHeaderTool.\r\n")
 		TEXT("\tDO NOT modify this manually! Edit the corresponding .h files instead!\r\n")
@@ -338,22 +338,6 @@ struct FParmsAndReturnProperties
 		: Return(NULL)
 	{
 	}
-
-	#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-
-		FParmsAndReturnProperties(FParmsAndReturnProperties&&) = default;
-		FParmsAndReturnProperties(const FParmsAndReturnProperties&) = default;
-		FParmsAndReturnProperties& operator=(FParmsAndReturnProperties&&) = default;
-		FParmsAndReturnProperties& operator=(const FParmsAndReturnProperties&) = default;
-
-	#else
-
-		FParmsAndReturnProperties(      FParmsAndReturnProperties&& Other) : Parms(MoveTemp(Other.Parms)), Return(MoveTemp(Other.Return)) {}
-		FParmsAndReturnProperties(const FParmsAndReturnProperties&  Other) : Parms(         Other.Parms ), Return(         Other.Return ) {}
-		FParmsAndReturnProperties& operator=(      FParmsAndReturnProperties&& Other) { Parms = MoveTemp(Other.Parms); Return = MoveTemp(Other.Return); return *this; }
-		FParmsAndReturnProperties& operator=(const FParmsAndReturnProperties&  Other) { Parms =          Other.Parms ; Return =          Other.Return ; return *this; }
-
-	#endif
 
 	bool HasParms() const
 	{
@@ -2270,7 +2254,7 @@ void FNativeClassHeaderGenerator::ExportNatives(FOutputDevice& Out, FClass* Clas
 				EditorOnly(Function->HasAnyFunctionFlags(FUNC_EditorOnly));
 
 				Out.Logf(
-					TEXT("\t\t\t{ %s, (Native)&%s::exec%s },\r\n"),
+					TEXT("\t\t\t{ %s, &%s::exec%s },\r\n"),
 					*Func.Get<1>(),
 					*TypeName,
 					*Function->GetName()
@@ -2674,8 +2658,9 @@ void FNativeClassHeaderGenerator::ExportClassFromSourceFileInner(
 			// Thunk functions
 			FUHTStringBuilder InterfaceBoilerplate;
 
-			InterfaceBoilerplate.Logf(TEXT("protected:\r\n\tvirtual ~%s() {}\r\npublic:\r\n"), *InterfaceCPPName);
-			InterfaceBoilerplate.Logf(TEXT("\ttypedef %s UClassType;\r\n"), ClassCPPName);
+			InterfaceBoilerplate.Logf(TEXT("protected:\r\n\tvirtual ~%s() {}\r\n"), *InterfaceCPPName);
+			InterfaceBoilerplate.Logf(TEXT("public:\r\n\ttypedef %s UClassType;\r\n"), ClassCPPName);
+			InterfaceBoilerplate.Logf(TEXT("\ttypedef %s ThisClass;\r\n"), *InterfaceCPPName);
 
 			ExportInterfaceCallFunctions(OutCpp, InterfaceBoilerplate, CallbackFunctions, *Class->GetName());
 
@@ -3032,8 +3017,15 @@ void FNativeClassHeaderGenerator::ExportEnum(FOutputDevice& Out, UEnum* Enum)
 {
 	// Export FOREACH macro
 	Out.Logf( TEXT("#define FOREACH_ENUM_%s(op) "), *Enum->GetName().ToUpper() );
-	for (int32 i = 0; i < Enum->NumEnums() - 1; i++)
+	bool bHasExistingMax = Enum->ContainsExistingMax();
+	int64 MaxEnumVal = bHasExistingMax ? Enum->GetMaxEnumValue() : 0;
+	for (int32 i = 0; i < Enum->NumEnums(); i++)
 	{
+		if (bHasExistingMax && Enum->GetValueByIndex(i) == MaxEnumVal)
+		{
+			continue;
+		}
+
 		const FString QualifiedEnumValue = Enum->GetNameByIndex(i).ToString();
 		Out.Logf( TEXT("\\\r\n\top(%s) "), *QualifiedEnumValue );
 	}
@@ -4243,7 +4235,7 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 	// Call the validate function if there is one
 	if (!(FunctionData.FunctionExportFlags & FUNCEXPORT_CppStatic) && (FunctionData.FunctionFlags & FUNC_NetValidate))
 	{
-		RPCWrappers.Logf(TEXT("\t\tif (!this->%s(%s))") LINE_TERMINATOR, *FunctionData.CppValidationImplName, *ParameterList);
+		RPCWrappers.Logf(TEXT("\t\tif (!P_THIS->%s(%s))") LINE_TERMINATOR, *FunctionData.CppValidationImplName, *ParameterList);
 		RPCWrappers.Logf(TEXT("\t\t{") LINE_TERMINATOR);
 		RPCWrappers.Logf(TEXT("\t\t\tRPC_ValidateFailed(TEXT(\"%s\"));") LINE_TERMINATOR, *FunctionData.CppValidationImplName);
 		RPCWrappers.Logf(TEXT("\t\t\treturn;") LINE_TERMINATOR);	// If we got here, the validation function check failed
@@ -4272,7 +4264,7 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 	}
 	else
 	{
-		RPCWrappers.Logf(TEXT("this->%s(%s);") LINE_TERMINATOR, *FunctionData.CppImplName, *ParameterList);
+		RPCWrappers.Logf(TEXT("P_THIS->%s(%s);") LINE_TERMINATOR, *FunctionData.CppImplName, *ParameterList);
 	}
 	RPCWrappers += TEXT("\t\tP_NATIVE_END;") LINE_TERMINATOR;
 }

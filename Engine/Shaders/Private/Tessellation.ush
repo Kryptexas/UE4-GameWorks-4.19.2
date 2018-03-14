@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Tessellation.usf: Shader #include dispatch for tessellation
@@ -64,6 +64,18 @@ float GetTessellationMultiplier(FPassSpecificVSToDS I)
 	return VertexFactoryModifyTessellationMultiplier(I.FactoryInterpolants, I.Position.xyz, MaterialTessellationMultiplier);
 #else
 	return MaterialTessellationMultiplier;
+#endif
+}
+
+float GetTessellationWorldDisplacementMultiplier(FPassSpecificVSToDS I, float TessellationMultiplier)
+{
+#if VERTEX_FACTORY_MODIFIES_TESSELLATION
+	FMaterialTessellationParameters MaterialParameters = GetMaterialTessellationParameters(I.FactoryInterpolants, I.Position.xyz);
+	float MaterialTessellationMultiplier = GetMaterialTessellationMultiplier(MaterialParameters);
+
+	return VertexFactoryModifyTessellationWorldDisplacementMultiplier(I.FactoryInterpolants, I.Position.xyz, MaterialTessellationMultiplier, TessellationMultiplier);
+#else
+	return 1.0;
 #endif
 }
 

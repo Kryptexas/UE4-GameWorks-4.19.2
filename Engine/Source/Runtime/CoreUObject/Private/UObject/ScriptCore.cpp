@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScriptCore.cpp: Kismet VM execution and support code.
@@ -48,10 +48,10 @@ DEFINE_STAT(STAT_ScriptNativeTime_Total);
 //
 // Native function table.
 //
-COREUOBJECT_API Native GNatives[EX_Max];
+COREUOBJECT_API FNativeFuncPtr GNatives[EX_Max];
 COREUOBJECT_API int32 GNativeDuplicate=0;
 
-COREUOBJECT_API void (UObject::*GCasts[CST_Max])( FFrame &Stack, RESULT_DECL );
+COREUOBJECT_API FNativeFuncPtr GCasts[CST_Max];
 COREUOBJECT_API int32 GCastDuplicate=0;
 
 COREUOBJECT_API int32 GMaximumScriptLoopIterations = 1000000;
@@ -73,16 +73,16 @@ COREUOBJECT_API void GInitRunaway()
 COREUOBJECT_API void GInitRunaway() {}
 #endif
 
-#define IMPLEMENT_FUNCTION(cls,func) \
-	static FNativeFunctionRegistrar cls##func##Registar(cls::StaticClass(),#func,(Native)&cls::func);
+#define IMPLEMENT_FUNCTION(func) \
+	static FNativeFunctionRegistrar UObject##func##Registar(UObject::StaticClass(),#func,&UObject::func);
 
-#define IMPLEMENT_CAST_FUNCTION(cls, CastIndex, func) \
-	IMPLEMENT_FUNCTION(cls, func); \
-	static uint8 cls##func##CastTemp = GRegisterCast( CastIndex, (Native)&cls::func );
+#define IMPLEMENT_CAST_FUNCTION(CastIndex, func) \
+	IMPLEMENT_FUNCTION(func); \
+	static uint8 UObject##func##CastTemp = GRegisterCast( CastIndex, &UObject::func );
 
 #define IMPLEMENT_VM_FUNCTION(BytecodeIndex, func) \
-	IMPLEMENT_FUNCTION(UObject, func) \
-	static uint8 UObject##func##BytecodeTemp = GRegisterNative( BytecodeIndex, (Native)&UObject::func );
+	IMPLEMENT_FUNCTION(func) \
+	static uint8 UObject##func##BytecodeTemp = GRegisterNative( BytecodeIndex, &UObject::func );
 
 //////////////////////////////////////////////////////////////////////////
 // FBlueprintCoreDelegates
@@ -175,6 +175,30 @@ void FBlueprintCoreDelegates::SetScriptMaximumLoopIterations( const int32 Maximu
 	}
 }
 
+// This is meant to be called from the immediate mode, and for confusing reasons the optimized code isn't always safe in that case
+PRAGMA_DISABLE_OPTIMIZATION
+
+void PrintScriptCallStackImpl()
+{
+#if DO_BLUEPRINT_GUARD
+	FBlueprintExceptionTracker& BlueprintExceptionTracker = FBlueprintExceptionTracker::Get();
+	if( BlueprintExceptionTracker.ScriptStack.Num() > 0 )
+	{
+		FString ScriptStack = TEXT( "\n\nScript Stack:\n" );
+		for (int32 FrameIdx = BlueprintExceptionTracker.ScriptStack.Num() - 1; FrameIdx >= 0; --FrameIdx)
+		{
+			ScriptStack += BlueprintExceptionTracker.ScriptStack[FrameIdx]->GetStackDescription() + TEXT( "\n" );
+		}
+
+		UE_LOG( LogOutputDevice, Warning, TEXT( "%s" ), *ScriptStack );
+	}
+#endif
+}
+
+PRAGMA_ENABLE_OPTIMIZATION
+
+extern CORE_API void (*GPrintScriptCallStackFn)();
+
 //////////////////////////////////////////////////////////////////////////
 // FEditorScriptExecutionGuard
 FEditorScriptExecutionGuard::FEditorScriptExecutionGuard()
@@ -185,6 +209,8 @@ FEditorScriptExecutionGuard::FEditorScriptExecutionGuard()
 	if( GIsEditor && !FApp::IsGame() )
 	{
 		GInitRunaway();
+		
+		GPrintScriptCallStackFn = &PrintScriptCallStackImpl;
 	}
 }
 
@@ -280,10 +306,10 @@ FString UnicodeToCPPIdentifier(const FString& InName, bool bDeprecated, const TC
 	FFrame implementation.
 -----------------------------------------------------------------------------*/
 
-void FFrame::Step(UObject *Context, RESULT_DECL)
+void FFrame::Step(UObject* Context, RESULT_DECL)
 {
 	int32 B = *Code++;
-	(Context->*GNatives[B])(*this,RESULT_PARAM);
+	(GNatives[B])(Context,*this,RESULT_PARAM);
 }
 
 void FFrame::StepExplicitProperty(void*const Result, UProperty* Property)
@@ -343,7 +369,7 @@ FString FFrame::GetScriptCallstack()
 	{
 		for (int32 i = BlueprintExceptionTracker.ScriptStack.Num() - 1; i >= 0; --i)
 		{
-			ScriptStack += TEXT("\t") + BlueprintExceptionTracker.ScriptStack[i].GetStackDescription() + TEXT("\n");
+			ScriptStack += TEXT("\t") + BlueprintExceptionTracker.ScriptStack[i]->GetStackDescription() + TEXT("\n");
 		}
 	}
 	else
@@ -355,6 +381,11 @@ FString FFrame::GetScriptCallstack()
 #endif
 
 	return ScriptStack;
+}
+
+FString FFrame::GetStackDescription() const
+{
+	return Node->GetOuter()->GetName() + TEXT(".") + Node->GetName();
 }
 
 //
@@ -538,7 +569,7 @@ int32 FScriptInstrumentationSignal::GetScriptCodeOffset() const
 // Register a native function.
 // Warning: Called at startup time, before engine initialization.
 //
-COREUOBJECT_API uint8 GRegisterNative( int32 NativeBytecodeIndex, const Native& Func )
+COREUOBJECT_API uint8 GRegisterNative( int32 NativeBytecodeIndex, const FNativeFuncPtr& Func )
 {
 	static bool bInitialized = false;
 	if (!bInitialized)
@@ -574,7 +605,7 @@ COREUOBJECT_API uint8 GRegisterNative( int32 NativeBytecodeIndex, const Native& 
 	return 0;
 }
 
-COREUOBJECT_API uint8 GRegisterCast( int32 CastCode, const Native& Func )
+COREUOBJECT_API uint8 GRegisterCast( int32 CastCode, const FNativeFuncPtr& Func )
 {
 	static int32 bInitialized = false;
 	if (!bInitialized)
@@ -646,7 +677,7 @@ void UObject::SkipFunction(FFrame& Stack, RESULT_DECL, UFunction* Function)
 #pragma warning (disable : 4750) // warning C4750: function with _alloca() inlined into a loop
 #endif
 
-void UObject::execCallMathFunction(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execCallMathFunction)
 {
 	UFunction* Function = (UFunction*)Stack.ReadObject();
 	checkSlow(Function);
@@ -660,9 +691,9 @@ void UObject::execCallMathFunction(FFrame& Stack, RESULT_DECL)
 		// CurrentNativeFunction is used so far only by FLuaContext::InvokeScriptFunction
 		// TGuardValue<UFunction*> NativeFuncGuard(Stack.CurrentNativeFunction, Function);
 		
-		Native Func = Function->GetNativeFunc();
+		FNativeFuncPtr Func = Function->GetNativeFunc();
 		checkSlow(Func);
-		(NewContext->*Func)(Stack, RESULT_PARAM);
+		(*Func)(NewContext, Stack, RESULT_PARAM);
 	}
 }
 IMPLEMENT_VM_FUNCTION(EX_CallMath, execCallMathFunction);
@@ -670,12 +701,12 @@ IMPLEMENT_VM_FUNCTION(EX_CallMath, execCallMathFunction);
 void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
 {
 #if PER_FUNCTION_SCRIPT_STATS
-	const bool bShouldTrackFunction = FThreadStats::IsCollectingData();
+	const bool bShouldTrackFunction = Stats::IsThreadCollectingData();
 	FScopeCycleCounterUObject FunctionScope(bShouldTrackFunction ? Function : nullptr);
 #endif // PER_FUNCTION_SCRIPT_STATS
 
-#if STATS
-	const bool bShouldTrackObject = FThreadStats::IsCollectingData();
+#if STATS || ENABLE_STATNAMEDEVENTS
+	const bool bShouldTrackObject = Stats::IsThreadCollectingData();
 	FScopeCycleCounterUObject ContextScope(bShouldTrackObject ? this : nullptr);
 #endif
 
@@ -850,7 +881,7 @@ void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
 		// Execute the code.
 		if( bIsValidFunction )
 		{
-			ProcessInternal( NewStack, RESULT_PARAM );
+			ProcessInternal( this, NewStack, RESULT_PARAM );
 		}
 
 		if (!bUsePersistentFrame)
@@ -884,14 +915,14 @@ void ClearReturnValue(UProperty* ReturnProp, RESULT_DECL)
 	}
 }
 
-void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::ProcessInternal)
 {
 	// remove later when stable
-	if (GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists))
+	if (P_THIS->GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists))
 	{
 		if (!GIsReinstancing)
 		{
-			ensureMsgf(!GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists), TEXT("Object '%s' is being used for execution, but its class is out of date and has been replaced with a recompiled class!"), *GetFullName());
+			ensureMsgf(!P_THIS->GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists), TEXT("Object '%s' is being used for execution, but its class is out of date and has been replaced with a recompiled class!"), *P_THIS->GetFullName());
 		}
 		return;
 	}
@@ -899,19 +930,19 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 	UFunction* Function = (UFunction*)Stack.Node;
 
 #if PER_FUNCTION_SCRIPT_STATS
-	const bool bShouldTrackFunction = FThreadStats::IsCollectingData();
+	const bool bShouldTrackFunction = Stats::IsThreadCollectingData();
 	FScopeCycleCounterUObject FunctionScope(bShouldTrackFunction ? Function : nullptr);
 #endif // PER_FUNCTION_SCRIPT_STATS
 
-#if STATS
-	const bool bShouldTrackObject = FThreadStats::IsCollectingData();
-	FScopeCycleCounterUObject ContextScope(bShouldTrackObject ? this : nullptr);
+#if STATS || ENABLE_STATNAMEDEVENTS
+	const bool bShouldTrackObject = Stats::IsThreadCollectingData();
+	FScopeCycleCounterUObject ContextScope(bShouldTrackObject ? P_THIS : nullptr);
 #endif
 
-	int32 FunctionCallspace = GetFunctionCallspace(Function, Stack.Locals, NULL);
+	int32 FunctionCallspace = P_THIS->GetFunctionCallspace(Function, Stack.Locals, NULL);
 	if (FunctionCallspace & FunctionCallspace::Remote)
 	{
-		CallRemoteFunction(Function, Stack.Locals, Stack.OutParms, NULL);
+		P_THIS->CallRemoteFunction(Function, Stack.Locals, Stack.OutParms, NULL);
 	}
 
 	if (FunctionCallspace & FunctionCallspace::Local)
@@ -941,7 +972,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 					FText::AsNumber(RECURSE_LIMIT)
 				)
 			);
-			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, InfiniteRecursionExceptionInfo);
+			FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, InfiniteRecursionExceptionInfo);
 
 			// This flag prevents repeated warnings of infinite loop, script exception handler 
 			// is expected to have terminated execution appropriately:
@@ -973,7 +1004,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 				// and other scripts running will then erroneously think they are also "runaway".
 				FBlueprintExceptionTracker::Get().Runaway = 0;
 
-				FBlueprintCoreDelegates::ThrowScriptException(this, Stack, RunawayLoopExceptionInfo);
+				FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, RunawayLoopExceptionInfo);
 				return;
 			}
 #endif
@@ -1201,12 +1232,12 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 #endif // TOTAL_OVERHEAD_SCRIPT_STATS
 
 #if PER_FUNCTION_SCRIPT_STATS
-	const bool bShouldTrackFunction = FThreadStats::IsCollectingData();
+	const bool bShouldTrackFunction = Stats::IsThreadCollectingData();
 	FScopeCycleCounterUObject FunctionScope(bShouldTrackFunction ? Function : nullptr);
 #endif // PER_FUNCTION_SCRIPT_STATS
 
-#if STATS
-	const bool bShouldTrackObject = FThreadStats::IsCollectingData();
+#if STATS || ENABLE_STATNAMEDEVENTS
+	const bool bShouldTrackObject = Stats::IsThreadCollectingData();
 	FScopeCycleCounterUObject ContextScope(bShouldTrackObject ? this : nullptr);
 #endif
 
@@ -1344,21 +1375,21 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 #pragma warning (pop)
 #endif
 
-void UObject::execUndefined(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execUndefined)
 {
 	Stack.Logf(ELogVerbosity::Error, TEXT("Unknown code token %02X"), Stack.Code[-1] );
 }
 
-void UObject::execLocalVariable(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execLocalVariable)
 {
-	checkSlow(Stack.Object == this);
+	checkSlow(Stack.Object == P_THIS);
 	checkSlow(Stack.Locals != NULL);
 
 	UProperty* VarProperty = Stack.ReadProperty();
 	if (VarProperty == nullptr)
 	{
 		FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, LOCTEXT("MissingLocalVariable", "Attempted to access missing local variable. If this is a packaged/cooked build, are you attempting to use an editor-only property?"));
-		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+		FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 
 		Stack.MostRecentPropertyAddress = nullptr;
 	}
@@ -1374,21 +1405,21 @@ void UObject::execLocalVariable(FFrame& Stack, RESULT_DECL)
 }
 IMPLEMENT_VM_FUNCTION( EX_LocalVariable, execLocalVariable );
 
-void UObject::execInstanceVariable(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execInstanceVariable)
 {
 	UProperty* VarProperty = (UProperty*)Stack.ReadObject();
 	Stack.MostRecentProperty = VarProperty;
 
-	if (VarProperty == nullptr || !IsA((UClass*)VarProperty->GetOuter()))
+	if (VarProperty == nullptr || !P_THIS->IsA((UClass*)VarProperty->GetOuter()))
 	{
 		FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, FText::Format(LOCTEXT("MissingProperty", "Attempted to access missing property '{0}'. If this is a packaged/cooked build, are you attempting to use an editor-only property?"), FText::FromString(GetNameSafe(VarProperty))));
-		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+		FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 
 		Stack.MostRecentPropertyAddress = nullptr;
 	}
 	else
 	{
-		Stack.MostRecentPropertyAddress = VarProperty->ContainerPtrToValuePtr<uint8>(this);
+		Stack.MostRecentPropertyAddress = VarProperty->ContainerPtrToValuePtr<uint8>(P_THIS);
 
 		if (RESULT_PARAM)
 		{
@@ -1400,16 +1431,16 @@ void UObject::execInstanceVariable(FFrame& Stack, RESULT_DECL)
 }
 IMPLEMENT_VM_FUNCTION( EX_InstanceVariable, execInstanceVariable );
 
-void UObject::execDefaultVariable(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execDefaultVariable)
 {
 	UProperty* VarProperty = (UProperty*)Stack.ReadObject();
 	Stack.MostRecentProperty = VarProperty;
 	Stack.MostRecentPropertyAddress = nullptr;
 
 	UObject* DefaultObject = nullptr;
-	if (HasAnyFlags(RF_ClassDefaultObject))
+	if (P_THIS->HasAnyFlags(RF_ClassDefaultObject))
 	{
-		DefaultObject = this;
+		DefaultObject = P_THIS;
 	}
 	else
 	{
@@ -1419,7 +1450,7 @@ void UObject::execDefaultVariable(FFrame& Stack, RESULT_DECL)
 	if (VarProperty == nullptr || (DefaultObject && !DefaultObject->IsA((UClass*)VarProperty->GetOuter())))
 	{
 		FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, LOCTEXT("MissingPropertyDefaultObject", "Attempted to access a missing property on a CDO. If this is a packaged/cooked build, are you attempting to use an editor-only property?"));
-		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+		FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 	}
 	else
 	{
@@ -1434,15 +1465,15 @@ void UObject::execDefaultVariable(FFrame& Stack, RESULT_DECL)
 		else
 		{
 			FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, LOCTEXT("AccessNoneDefaultObject", "Accessed None attempting to read a default property"));
-			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+			FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 		}
 	}
 }
 IMPLEMENT_VM_FUNCTION( EX_DefaultVariable, execDefaultVariable );
 
-void UObject::execLocalOutVariable(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execLocalOutVariable)
 {
-	checkSlow(Stack.Object == this);
+	checkSlow(Stack.Object == P_THIS);
 
 	// get the property we need to find
 	UProperty* VarProperty = Stack.ReadProperty();
@@ -1465,11 +1496,11 @@ void UObject::execLocalOutVariable(FFrame& Stack, RESULT_DECL)
 }
 IMPLEMENT_VM_FUNCTION(EX_LocalOutVariable, execLocalOutVariable);
 
-void UObject::execInterfaceContext(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execInterfaceContext)
 {
 	// get the value of the interface variable
 	FScriptInterface InterfaceValue;
-	Stack.Step(this, &InterfaceValue);
+	Stack.Step(P_THIS, &InterfaceValue);
 
 	if (RESULT_PARAM != NULL)
 	{
@@ -1479,11 +1510,11 @@ void UObject::execInterfaceContext(FFrame& Stack, RESULT_DECL)
 }
 IMPLEMENT_VM_FUNCTION( EX_InterfaceContext, execInterfaceContext );
 
-void UObject::execClassContext(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execClassContext)
 {
 	// Get class expression.
 	UClass* ClassContext = NULL;
-	Stack.Step(this, &ClassContext);
+	Stack.Step(P_THIS, &ClassContext);
 
 	// Execute expression in class context.
 	if(IsValid(ClassContext))
@@ -1506,12 +1537,12 @@ void UObject::execClassContext(FFrame& Stack, RESULT_DECL)
 					FText::FromString(Stack.MostRecentProperty->GetName())
 				)
 			);
-			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+			FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 		}
 		else
 		{
 			FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, LOCTEXT("AccessedNoneClassUnknownProperty", "Accessed None reading a Class"));
-			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+			FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 		}
 
 		const CodeSkipSizeType wSkip = Stack.ReadCodeSkipCount(); // Code offset for NULL expressions. Code += sizeof(CodeSkipSizeType)
@@ -1529,7 +1560,7 @@ void UObject::execClassContext(FFrame& Stack, RESULT_DECL)
 }
 IMPLEMENT_VM_FUNCTION( EX_ClassContext, execClassContext );
 
-void UObject::execEndOfScript( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execEndOfScript)
 {
 #if WITH_EDITOR
 	if (GIsEditor)
@@ -1547,55 +1578,55 @@ void UObject::execEndOfScript( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_EndOfScript, execEndOfScript );
 
-void UObject::execNothing( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execNothing)
 {
 	// Do nothing.
 }
 IMPLEMENT_VM_FUNCTION( EX_Nothing, execNothing );
 
-void UObject::execNothingOp4a( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execNothingOp4a)
 {
 	// Do nothing.
 }
 IMPLEMENT_VM_FUNCTION( EX_DeprecatedOp4A, execNothingOp4a );
 
-void UObject::execBreakpoint( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execBreakpoint)
 {
 #if WITH_EDITORONLY_DATA
 	if (GIsEditor)
 	{
 		FBlueprintExceptionInfo BreakpointExceptionInfo(EBlueprintExceptionType::Breakpoint);
-		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, BreakpointExceptionInfo);
+		FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, BreakpointExceptionInfo);
 	}
 #endif
 }
 IMPLEMENT_VM_FUNCTION( EX_Breakpoint, execBreakpoint );
 
-void UObject::execTracepoint( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execTracepoint)
 {
 #if WITH_EDITORONLY_DATA
 	if (GIsEditor)
 	{
 		FBlueprintExceptionInfo TracepointExceptionInfo(EBlueprintExceptionType::Tracepoint);
-		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, TracepointExceptionInfo);
+		FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, TracepointExceptionInfo);
 	}
 #endif
 }
 IMPLEMENT_VM_FUNCTION( EX_Tracepoint, execTracepoint );
 
-void UObject::execWireTracepoint( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execWireTracepoint)
 {
 #if WITH_EDITORONLY_DATA
 	if (GIsEditor)
 	{
 		FBlueprintExceptionInfo TracepointExceptionInfo(EBlueprintExceptionType::WireTracepoint);
-		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, TracepointExceptionInfo);
+		FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, TracepointExceptionInfo);
 	}
 #endif
 }
 IMPLEMENT_VM_FUNCTION( EX_WireTracepoint, execWireTracepoint );
 
-void UObject::execInstrumentation( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execInstrumentation)
 {
 #if !UE_BUILD_SHIPPING
 	const EScriptInstrumentation::Type EventType = static_cast<EScriptInstrumentation::Type>(Stack.PeekCode());
@@ -1605,30 +1636,30 @@ void UObject::execInstrumentation( FFrame& Stack, RESULT_DECL )
 		if (EventType == EScriptInstrumentation::NodeEntry)
 		{
 			FBlueprintExceptionInfo TracepointExceptionInfo(EBlueprintExceptionType::Tracepoint);
-			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, TracepointExceptionInfo);
+			FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, TracepointExceptionInfo);
 		}
 		else if (EventType == EScriptInstrumentation::NodeExit)
 		{
 			FBlueprintExceptionInfo WiretraceExceptionInfo(EBlueprintExceptionType::WireTracepoint);
-			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, WiretraceExceptionInfo);
+			FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, WiretraceExceptionInfo);
 		}
 		else if (EventType == EScriptInstrumentation::NodeDebugSite)
 		{
 			FBlueprintExceptionInfo TracepointExceptionInfo(EBlueprintExceptionType::Breakpoint);
-			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, TracepointExceptionInfo);
+			FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, TracepointExceptionInfo);
 		}
 	}
 #endif
 	if (EventType == EScriptInstrumentation::InlineEvent)
 	{
 		const FName& EventName = *reinterpret_cast<FName*>(&Stack.Code[1]);
-		FScriptInstrumentationSignal InstrumentationEventInfo(EventType, this, Stack, EventName);
+		FScriptInstrumentationSignal InstrumentationEventInfo(EventType, P_THIS, Stack, EventName);
 		FBlueprintCoreDelegates::InstrumentScriptEvent(InstrumentationEventInfo);
 		Stack.SkipCode(sizeof(FName) + 1);
 	}
 	else
 	{
-		FScriptInstrumentationSignal InstrumentationEventInfo(EventType, this, Stack);
+		FScriptInstrumentationSignal InstrumentationEventInfo(EventType, P_THIS, Stack);
 		FBlueprintCoreDelegates::InstrumentScriptEvent(InstrumentationEventInfo);
 		Stack.SkipCode(1);
 	}
@@ -1636,7 +1667,7 @@ void UObject::execInstrumentation( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_InstrumentationEvent, execInstrumentation );
 
-void UObject::execEndFunctionParms( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execEndFunctionParms)
 {
 	// For skipping over optional function parms without values specified.
 	Stack.Code--;
@@ -1644,7 +1675,7 @@ void UObject::execEndFunctionParms( FFrame& Stack, RESULT_DECL )
 IMPLEMENT_VM_FUNCTION( EX_EndFunctionParms, execEndFunctionParms );
 
 
-void UObject::execJump( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execJump)
 {
 	CHECK_RUNAWAY;
 
@@ -1654,7 +1685,7 @@ void UObject::execJump( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_Jump, execJump );
 
-void UObject::execComputedJump( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execComputedJump)
 {
 	CHECK_RUNAWAY;
 
@@ -1668,7 +1699,7 @@ void UObject::execComputedJump( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_ComputedJump, execComputedJump );
 	
-void UObject::execJumpIfNot( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execJumpIfNot)
 {
 	CHECK_RUNAWAY;
 
@@ -1687,7 +1718,7 @@ void UObject::execJumpIfNot( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_JumpIfNot, execJumpIfNot );
 
-void UObject::execAssert( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execAssert)
 {
 	// Get line number.
 	int32 wLine = Stack.ReadWord();
@@ -1715,7 +1746,7 @@ void UObject::execAssert( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_Assert, execAssert );
 
-void UObject::execPushExecutionFlow( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execPushExecutionFlow)
 {
 	// Read a code offset and push it onto the flow stack
 	CodeSkipSizeType Offset = Stack.ReadCodeSkipCount();
@@ -1723,7 +1754,7 @@ void UObject::execPushExecutionFlow( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_PushExecutionFlow, execPushExecutionFlow );
 
-void UObject::execPopExecutionFlow( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execPopExecutionFlow)
 {
 	// Since this is a branch function, check for runaway script execution
 	CHECK_RUNAWAY;
@@ -1742,7 +1773,7 @@ void UObject::execPopExecutionFlow( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_PopExecutionFlow, execPopExecutionFlow );
 
-void UObject::execPopExecutionFlowIfNot( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execPopExecutionFlowIfNot)
 {
 	// Since this is a branch function, check for runaway script execution
 	CHECK_RUNAWAY;
@@ -1768,7 +1799,7 @@ void UObject::execPopExecutionFlowIfNot( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_PopExecutionFlowIfNot, execPopExecutionFlowIfNot );
 
-void UObject::execLetValueOnPersistentFrame(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execLetValueOnPersistentFrame)
 {
 #if USE_UBER_GRAPH_PERSISTENT_FRAME
 	Stack.MostRecentProperty = NULL;
@@ -1788,7 +1819,7 @@ void UObject::execLetValueOnPersistentFrame(FFrame& Stack, RESULT_DECL)
 }
 IMPLEMENT_VM_FUNCTION(EX_LetValueOnPersistentFrame, execLetValueOnPersistentFrame);
 
-void UObject::execSwitchValue(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execSwitchValue)
 {
 	const int32 NumCases = Stack.ReadWord();
 	const CodeSkipSizeType OffsetToEnd = Stack.ReadCodeSkipCount();
@@ -1810,7 +1841,7 @@ void UObject::execSwitchValue(FFrame& Stack, RESULT_DECL)
 				FText::FromString(IndexProperty->GetName())
 			)
 		);
-		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+		FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 	}
 
 	bool bProperCaseUsed = false;
@@ -1848,7 +1879,7 @@ void UObject::execSwitchValue(FFrame& Stack, RESULT_DECL)
 				FText::FromString(IndexProperty->GetName())
 			)
 		);
-		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+		FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 
 		// get default value
 		Stack.Step(Stack.Object, RESULT_PARAM);
@@ -1856,7 +1887,7 @@ void UObject::execSwitchValue(FFrame& Stack, RESULT_DECL)
 }
 IMPLEMENT_VM_FUNCTION(EX_SwitchValue, execSwitchValue);
 
-void UObject::execArrayGetByRef(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execArrayGetByRef)
 {
 	// Get variable address.
 	Stack.MostRecentPropertyAddress = NULL;
@@ -1865,7 +1896,7 @@ void UObject::execArrayGetByRef(FFrame& Stack, RESULT_DECL)
 	if (Stack.MostRecentPropertyAddress == NULL)
 	{
 		static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, LOCTEXT("ArrayGetRefException", "Attempt to assign variable through None"));
-		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+		FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 	}
 
 	void* ArrayAddr = Stack.MostRecentPropertyAddress;
@@ -1911,12 +1942,12 @@ void UObject::execArrayGetByRef(FFrame& Stack, RESULT_DECL)
 			FText::AsNumber(ArrayHelper.Num())
 			)
 		);
-		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+		FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 	}
 }
 IMPLEMENT_VM_FUNCTION(EX_ArrayGetByRef, execArrayGetByRef);
 
-void UObject::execLet(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execLet)
 {
 	Stack.MostRecentProperty = nullptr;
 	UProperty* LocallyKnownProperty = Stack.ReadPropertyUnchecked();
@@ -1932,7 +1963,7 @@ void UObject::execLet(FFrame& Stack, RESULT_DECL)
 		FBlueprintExceptionInfo ExceptionInfo(
 			EBlueprintExceptionType::AccessViolation, 
 			LOCTEXT("LetAccessNone", "Attempted to assign to None"));
-		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+		FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 
 		if (LocallyKnownProperty)
 		{
@@ -1957,7 +1988,7 @@ void UObject::execLet(FFrame& Stack, RESULT_DECL)
 }
 IMPLEMENT_VM_FUNCTION( EX_Let, execLet );
 
-void UObject::execLetObj( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execLetObj)
 {
 	// Get variable address.
 	Stack.MostRecentPropertyAddress = NULL;
@@ -1968,7 +1999,7 @@ void UObject::execLetObj( FFrame& Stack, RESULT_DECL )
 		FBlueprintExceptionInfo ExceptionInfo(
 			EBlueprintExceptionType::AccessViolation, 
 			LOCTEXT("LetObjAccessNone", "Accessed None attempting to assign variable on an object"));
-		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+		FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 	}
 
 	void* ObjAddr = Stack.MostRecentPropertyAddress;
@@ -1994,7 +2025,7 @@ void UObject::execLetObj( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_LetObj, execLetObj );
 
-void UObject::execLetWeakObjPtr( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execLetWeakObjPtr)
 {
 	// Get variable address.
 	Stack.MostRecentPropertyAddress = NULL;
@@ -2005,7 +2036,7 @@ void UObject::execLetWeakObjPtr( FFrame& Stack, RESULT_DECL )
 		FBlueprintExceptionInfo ExceptionInfo(
 			EBlueprintExceptionType::AccessViolation,
 			LOCTEXT("LetWeakObjAccessNone", "Accessed None attempting to assign variable on a weakly referenced object"));
-		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+		FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 	}
 
 	void* ObjAddr = Stack.MostRecentPropertyAddress;
@@ -2031,7 +2062,7 @@ void UObject::execLetWeakObjPtr( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_LetWeakObjPtr, execLetWeakObjPtr );
 
-void UObject::execLetBool( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execLetBool)
 {
 	Stack.MostRecentPropertyAddress = NULL;
 	Stack.MostRecentProperty = NULL;
@@ -2076,7 +2107,7 @@ void UObject::execLetBool( FFrame& Stack, RESULT_DECL )
 IMPLEMENT_VM_FUNCTION( EX_LetBool, execLetBool );
 
 
-void UObject::execLetDelegate( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execLetDelegate)
 {
 	// Get variable address.
 	Stack.MostRecentPropertyAddress = NULL;
@@ -2095,7 +2126,7 @@ void UObject::execLetDelegate( FFrame& Stack, RESULT_DECL )
 IMPLEMENT_VM_FUNCTION( EX_LetDelegate, execLetDelegate );
 
 
-void UObject::execLetMulticastDelegate( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execLetMulticastDelegate)
 {
 	// Get variable address.
 	Stack.MostRecentPropertyAddress = NULL;
@@ -2114,12 +2145,12 @@ void UObject::execLetMulticastDelegate( FFrame& Stack, RESULT_DECL )
 IMPLEMENT_VM_FUNCTION( EX_LetMulticastDelegate, execLetMulticastDelegate );
 
 
-void UObject::execSelf( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execSelf)
 {
 	// Get Self actor for this context.
 	if (RESULT_PARAM != nullptr)
 	{
-		*(UObject**)RESULT_PARAM = this;
+		*(UObject**)RESULT_PARAM = P_THIS;
 	}
 	// likely it's expecting us to fill out Stack.MostRecentProperty, which you 
 	// cannot because 'self' is not a UProperty (it is essentially a constant)
@@ -2129,20 +2160,20 @@ void UObject::execSelf( FFrame& Stack, RESULT_DECL )
 			EBlueprintExceptionType::AccessViolation,
 			LOCTEXT("AccessSelfAddress", "Attempted to reference 'self' as an addressable property.")
 		);
-		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+		FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 	}
 }
 IMPLEMENT_VM_FUNCTION( EX_Self, execSelf );
 
-void UObject::execContext( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execContext)
 {
-	ProcessContextOpcode(Stack, RESULT_PARAM, /*bCanFailSilently=*/ false);
+	P_THIS->ProcessContextOpcode(Stack, RESULT_PARAM, /*bCanFailSilently=*/ false);
 }
 IMPLEMENT_VM_FUNCTION( EX_Context, execContext );
 
-void UObject::execContext_FailSilent( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execContext_FailSilent)
 {
-	ProcessContextOpcode(Stack, RESULT_PARAM, /*bCanFailSilently=*/ true);
+	P_THIS->ProcessContextOpcode(Stack, RESULT_PARAM, /*bCanFailSilently=*/ true);
 }
 IMPLEMENT_VM_FUNCTION( EX_Context_FailSilent, execContext_FailSilent );
 
@@ -2225,7 +2256,7 @@ void UObject::ProcessContextOpcode( FFrame& Stack, RESULT_DECL, bool bCanFailSil
 	}
 }
 
-void UObject::execStructMemberContext(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execStructMemberContext)
 {
 	// Get the structure element we care about
 	UProperty* StructProperty = Stack.ReadProperty();
@@ -2258,7 +2289,7 @@ void UObject::execStructMemberContext(FFrame& Stack, RESULT_DECL)
 				FText::FromString(StructProperty->GetName())
 			)
 		);
-		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+		FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 
 		Stack.MostRecentPropertyAddress = NULL;
 		Stack.MostRecentProperty = NULL;
@@ -2266,17 +2297,17 @@ void UObject::execStructMemberContext(FFrame& Stack, RESULT_DECL)
 }
 IMPLEMENT_VM_FUNCTION( EX_StructMemberContext, execStructMemberContext );
 
-void UObject::execVirtualFunction( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execVirtualFunction)
 {
 	// Call the virtual function.
-	CallFunction( Stack, RESULT_PARAM, FindFunctionChecked(Stack.ReadName()) );
+	P_THIS->CallFunction( Stack, RESULT_PARAM, P_THIS->FindFunctionChecked(Stack.ReadName()) );
 }
 IMPLEMENT_VM_FUNCTION( EX_VirtualFunction, execVirtualFunction );
 
-void UObject::execFinalFunction( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execFinalFunction)
 {
 	// Call the final function.
-	CallFunction( Stack, RESULT_PARAM, (UFunction*)Stack.ReadObject() );
+	P_THIS->CallFunction( Stack, RESULT_PARAM, (UFunction*)Stack.ReadObject() );
 }
 IMPLEMENT_VM_FUNCTION( EX_FinalFunction, execFinalFunction );
 
@@ -2332,13 +2363,13 @@ public:
 	}
 };
 
-void UObject::execCallMulticastDelegate( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execCallMulticastDelegate)
 {
 	FCallDelegateHelper::CallMulticastDelegate(Stack);
 }
 IMPLEMENT_VM_FUNCTION( EX_CallMulticastDelegate, execCallMulticastDelegate );
 
-void UObject::execAddMulticastDelegate( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execAddMulticastDelegate)
 {
 	// Get variable address.
 	Stack.MostRecentPropertyAddress = NULL;
@@ -2356,7 +2387,7 @@ void UObject::execAddMulticastDelegate( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_AddMulticastDelegate, execAddMulticastDelegate );
 
-void UObject::execRemoveMulticastDelegate( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execRemoveMulticastDelegate)
 {
 	// Get variable address.
 	Stack.MostRecentPropertyAddress = NULL;
@@ -2374,7 +2405,7 @@ void UObject::execRemoveMulticastDelegate( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_RemoveMulticastDelegate, execRemoveMulticastDelegate );
 
-void UObject::execClearMulticastDelegate( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execClearMulticastDelegate)
 {
 	// Get the delegate address
 	Stack.MostRecentPropertyAddress = NULL;
@@ -2389,38 +2420,38 @@ void UObject::execClearMulticastDelegate( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_ClearMulticastDelegate, execClearMulticastDelegate );
 
-void UObject::execIntConst( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execIntConst)
 {
 	*(int32*)RESULT_PARAM = Stack.ReadInt<int32>();
 }
 IMPLEMENT_VM_FUNCTION( EX_IntConst, execIntConst );
 
-void UObject::execInt64Const(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execInt64Const)
 {
 	*(int64*)RESULT_PARAM = Stack.ReadInt<int64>();
 }
 IMPLEMENT_VM_FUNCTION(EX_Int64Const, execInt64Const);
 
-void UObject::execUInt64Const(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execUInt64Const)
 {
 	*(uint64*)RESULT_PARAM = Stack.ReadInt<uint64>();
 }
 IMPLEMENT_VM_FUNCTION(EX_UInt64Const, execUInt64Const);
 
-void UObject::execSkipOffsetConst( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execSkipOffsetConst)
 {
 	CodeSkipSizeType Literal = Stack.ReadCodeSkipCount();
 	*(int32*)RESULT_PARAM = Literal;
 }
 IMPLEMENT_VM_FUNCTION( EX_SkipOffsetConst, execSkipOffsetConst );
 
-void UObject::execFloatConst( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execFloatConst)
 {
 	*(float*)RESULT_PARAM = Stack.ReadFloat();
 }
 IMPLEMENT_VM_FUNCTION( EX_FloatConst, execFloatConst );
 
-void UObject::execStringConst( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execStringConst)
 {
 	*(FString*)RESULT_PARAM = (ANSICHAR*)Stack.Code;
 	while( *Stack.Code )
@@ -2429,7 +2460,7 @@ void UObject::execStringConst( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_StringConst, execStringConst );
 
-void UObject::execUnicodeStringConst( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execUnicodeStringConst)
 {
  	*(FString*)RESULT_PARAM = FString((UCS2CHAR*)Stack.Code);
 
@@ -2441,7 +2472,7 @@ void UObject::execUnicodeStringConst( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_UnicodeStringConst, execUnicodeStringConst );
 
-void UObject::execTextConst( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execTextConst)
 {
 	// What kind of text are we dealing with?
 	const EBlueprintTextLiteralType TextLiteralType = (EBlueprintTextLiteralType)*Stack.Code++;
@@ -2508,13 +2539,13 @@ void UObject::execTextConst( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_TextConst, execTextConst );
 
-void UObject::execObjectConst( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execObjectConst)
 {
 	*(UObject**)RESULT_PARAM = (UObject*)Stack.ReadObject();
 }
 IMPLEMENT_VM_FUNCTION( EX_ObjectConst, execObjectConst );
 
-void UObject::execSoftObjectConst(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execSoftObjectConst)
 {
 	FString LongPath;
 	Stack.Step(Stack.Object, &LongPath);
@@ -2522,14 +2553,14 @@ void UObject::execSoftObjectConst(FFrame& Stack, RESULT_DECL)
 }
 IMPLEMENT_VM_FUNCTION( EX_SoftObjectConst, execSoftObjectConst);
 
-void UObject::execInstanceDelegate( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execInstanceDelegate)
 {
 	FName FunctionName = Stack.ReadName();
-	((FScriptDelegate*)RESULT_PARAM)->BindUFunction( (FunctionName == NAME_None) ? NULL : this, FunctionName );
+	((FScriptDelegate*)RESULT_PARAM)->BindUFunction( (FunctionName == NAME_None) ? NULL : P_THIS, FunctionName );
 }
 IMPLEMENT_VM_FUNCTION( EX_InstanceDelegate, execInstanceDelegate );
 
-void UObject::execBindDelegate( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execBindDelegate)
 {
 	FName FunctionName = Stack.ReadName();
 
@@ -2550,19 +2581,19 @@ void UObject::execBindDelegate( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_BindDelegate, execBindDelegate );
 
-void UObject::execNameConst( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execNameConst)
 {
 	*(FName*)RESULT_PARAM = Stack.ReadName();
 }
 IMPLEMENT_VM_FUNCTION( EX_NameConst, execNameConst );
 
-void UObject::execByteConst( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execByteConst)
 {
 	*(uint8*)RESULT_PARAM = *Stack.Code++;
 }
 IMPLEMENT_VM_FUNCTION( EX_ByteConst, execByteConst );
 
-void UObject::execRotationConst( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execRotationConst)
 {
 	((FRotator*)RESULT_PARAM)->Pitch = Stack.ReadFloat();
 	((FRotator*)RESULT_PARAM)->Yaw   = Stack.ReadFloat();
@@ -2570,7 +2601,7 @@ void UObject::execRotationConst( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_RotationConst, execRotationConst );
 
-void UObject::execVectorConst( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execVectorConst)
 {
 	((FVector*)RESULT_PARAM)->X = Stack.ReadFloat();
 	((FVector*)RESULT_PARAM)->Y = Stack.ReadFloat();
@@ -2578,7 +2609,7 @@ void UObject::execVectorConst( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_VectorConst, execVectorConst );
 
-void UObject::execTransformConst( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execTransformConst)
 {
 	// Rotation
 	FQuat TmpRotation;
@@ -2603,7 +2634,7 @@ void UObject::execTransformConst( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_TransformConst, execTransformConst );
 
-void UObject::execStructConst( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execStructConst)
 {
 	UScriptStruct* ScriptStruct = CastChecked<UScriptStruct>(Stack.ReadObject());
 	int32 SerializedSize = Stack.ReadInt<int32>();
@@ -2625,11 +2656,18 @@ void UObject::execStructConst( FFrame& Stack, RESULT_DECL )
 		}
 	}
 
+	if (ScriptStruct->StructFlags & STRUCT_PostScriptConstruct)
+	{
+		UScriptStruct::ICppStructOps* TheCppStructOps = ScriptStruct->GetCppStructOps();
+		check(TheCppStructOps); // else should not have STRUCT_PostScriptConstruct
+		TheCppStructOps->PostScriptConstruct(RESULT_PARAM);
+	}
+
 	P_FINISH;	// EX_EndStructConst
 }
 IMPLEMENT_VM_FUNCTION( EX_StructConst, execStructConst );
 
-void UObject::execSetArray( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execSetArray)
 {
 	// Get the array address
 	Stack.MostRecentPropertyAddress = NULL;
@@ -2652,7 +2690,7 @@ void UObject::execSetArray( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_SetArray, execSetArray );
 
-void UObject::execSetSet( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execSetSet)
 {
 	// Get the set address
 	Stack.MostRecentPropertyAddress = nullptr;
@@ -2685,7 +2723,7 @@ void UObject::execSetSet( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_SetSet, execSetSet );
 
-void UObject::execSetMap( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execSetMap)
 {
 	// Get the map address
 	Stack.MostRecentPropertyAddress = nullptr;
@@ -2719,7 +2757,7 @@ void UObject::execSetMap( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_SetMap, execSetMap );
 
-void UObject::execArrayConst(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execArrayConst)
 {
 	UProperty* InnerProperty = CastChecked<UProperty>(Stack.ReadObject());
 	int32 Num = Stack.ReadInt<int32>();
@@ -2739,7 +2777,7 @@ void UObject::execArrayConst(FFrame& Stack, RESULT_DECL)
 }
 IMPLEMENT_VM_FUNCTION(EX_ArrayConst, execArrayConst);
 
-void UObject::execSetConst(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execSetConst)
 {
 	UProperty* InnerProperty = CastChecked<UProperty>(Stack.ReadObject());
 	int32 Num = Stack.ReadInt<int32>();
@@ -2759,7 +2797,7 @@ void UObject::execSetConst(FFrame& Stack, RESULT_DECL)
 }
 IMPLEMENT_VM_FUNCTION(EX_SetConst, execSetConst);
 
-void UObject::execMapConst(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execMapConst)
 {
 	UProperty* KeyProperty = CastChecked<UProperty>(Stack.ReadObject());
 	UProperty* ValProperty = CastChecked<UProperty>(Stack.ReadObject());
@@ -2781,51 +2819,51 @@ void UObject::execMapConst(FFrame& Stack, RESULT_DECL)
 }
 IMPLEMENT_VM_FUNCTION(EX_MapConst, execMapConst);
 
-void UObject::execIntZero( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execIntZero)
 {
 	*(int32*)RESULT_PARAM = 0;
 }
 IMPLEMENT_VM_FUNCTION( EX_IntZero, execIntZero );
 
-void UObject::execIntOne( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execIntOne)
 {
 	*(int32*)RESULT_PARAM = 1;
 }
 IMPLEMENT_VM_FUNCTION( EX_IntOne, execIntOne );
 
-void UObject::execTrue( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execTrue)
 {
 	*(bool*)RESULT_PARAM = true;
 }
 IMPLEMENT_VM_FUNCTION( EX_True, execTrue );
 
-void UObject::execFalse( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execFalse)
 {
 	*(bool*)RESULT_PARAM = false;
 }
 IMPLEMENT_VM_FUNCTION( EX_False, execFalse );
 
-void UObject::execNoObject( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execNoObject)
 {
 	*(UObject**)RESULT_PARAM = NULL;
 }
 IMPLEMENT_VM_FUNCTION( EX_NoObject, execNoObject );
 
-void UObject::execNullInterface(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execNullInterface)
 {
 	FScriptInterface& InterfaceValue = *(FScriptInterface*)RESULT_PARAM;
 	InterfaceValue.SetObject(nullptr);
 }
 IMPLEMENT_VM_FUNCTION( EX_NoInterface, execNullInterface );
 
-void UObject::execIntConstByte( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execIntConstByte)
 {
 	*(int32*)RESULT_PARAM = *Stack.Code++;
 }
 IMPLEMENT_VM_FUNCTION( EX_IntConstByte, execIntConstByte );
 
 
-void UObject::execDynamicCast( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execDynamicCast)
 {
 	// Get "to cast to" class for the dynamic actor class
 	UClass* ClassPtr = (UClass *)Stack.ReadObject();
@@ -2872,7 +2910,7 @@ void UObject::execDynamicCast( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_DynamicCast, execDynamicCast );
 
-void UObject::execMetaCast( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execMetaCast)
 {
 	UClass* MetaClass = (UClass*)Stack.ReadObject();
 
@@ -2884,36 +2922,36 @@ void UObject::execMetaCast( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_MetaCast, execMetaCast );
 
-void UObject::execPrimitiveCast( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execPrimitiveCast)
 {
 	int32 B = *(Stack.Code)++;
-	(Stack.Object->*GCasts[B])( Stack, RESULT_PARAM );
+	(*GCasts[B])( Stack.Object, Stack, RESULT_PARAM );
 }
 IMPLEMENT_VM_FUNCTION( EX_PrimitiveCast, execPrimitiveCast );
 
-void UObject::execInterfaceCast( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execInterfaceCast)
 {
-	(Stack.Object->*GCasts[CST_ObjectToInterface])(Stack, RESULT_PARAM);
+	(*GCasts[CST_ObjectToInterface])(Stack.Object, Stack, RESULT_PARAM);
 }
 IMPLEMENT_VM_FUNCTION( EX_ObjToInterfaceCast, execInterfaceCast );
 
-void UObject::execObjectToBool( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execObjectToBool)
 {
 	UObject* Obj=NULL;
 	Stack.Step( Stack.Object, &Obj );
 	*(bool*)RESULT_PARAM = Obj != NULL;
 }
-IMPLEMENT_CAST_FUNCTION( UObject, CST_ObjectToBool, execObjectToBool );
+IMPLEMENT_CAST_FUNCTION( CST_ObjectToBool, execObjectToBool );
 
-void UObject::execInterfaceToBool( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execInterfaceToBool)
 {
 	FScriptInterface Interface;
 	Stack.Step( Stack.Object, &Interface);
 	*(bool*)RESULT_PARAM = (Interface.GetObject() != NULL);
 }
-IMPLEMENT_CAST_FUNCTION( UObject, CST_InterfaceToBool, execInterfaceToBool );
+IMPLEMENT_CAST_FUNCTION( CST_InterfaceToBool, execInterfaceToBool );
 
-void UObject::execObjectToInterface( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execObjectToInterface)
 {
 	FScriptInterface& InterfaceValue = *(FScriptInterface*)RESULT_PARAM;
 
@@ -2937,9 +2975,9 @@ void UObject::execObjectToInterface( FFrame& Stack, RESULT_DECL )
 		InterfaceValue.SetObject(NULL);
 	}
 }
-IMPLEMENT_CAST_FUNCTION( UObject, CST_ObjectToInterface, execObjectToInterface );
+IMPLEMENT_CAST_FUNCTION( CST_ObjectToInterface, execObjectToInterface );
 
-void UObject::execInterfaceToInterface( FFrame& Stack, RESULT_DECL )
+DEFINE_FUNCTION(UObject::execInterfaceToInterface)
 {
 	FScriptInterface& CastResult = *(FScriptInterface*)RESULT_PARAM;
 
@@ -2967,7 +3005,7 @@ void UObject::execInterfaceToInterface( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_CrossInterfaceCast, execInterfaceToInterface );
 
-void UObject::execInterfaceToObject(FFrame& Stack, RESULT_DECL)
+DEFINE_FUNCTION(UObject::execInterfaceToObject)
 {
 	// read the interface class off the stack
 	UClass* ObjClassToCastTo = dynamic_cast<UClass*>(Stack.ReadObject());

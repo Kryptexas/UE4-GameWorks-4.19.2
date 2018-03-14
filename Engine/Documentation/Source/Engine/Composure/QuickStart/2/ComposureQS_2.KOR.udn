@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:2 - Composure Actor Setup
+﻿INTSourceChangelist:3728507
+Availability:Public
+Title:2 - 컴포셔 액터 구성
 Crumbs:%ROOT%
-Description:In this step we will set up the needed Blueprints and Actors Composure requires. 
+Description:여기서는 필수 블루프린트, 액터 컴포셔를 구성합니다.
 SkillLevel:Beginner
 Version:4.17
 checkpoint:ComposureQS
@@ -13,55 +13,55 @@ tags:Composure
 
 [NAV]
 
-In the last section, we added the needed assets to help us visualise what is going on and also light the scene. In this section we will add the needed Actors and Blueprints so that we can start to use Composure.
+전 단계에서 무슨 일이 벌어지는지 시각화시키는 데 도움을 줄 애셋을 추가하고 씬 라이팅 작업도 했습니다. 여기서는 필수 액터와 블루프린트를 추가하여 컴포셔 사용을 시작하도록 하겠습니다.
 
-## Steps
+## 단계
 
-1. From the **Modes** panel, locate the  **Cine Camera Actor** and drag it into the level, position it at 0,0,0 in the world.
+1. **모드** 패널에서 **Cine Camera Actor** (시네 카메라 액터)를 찾아 레벨에 끌어 놓고, 월드의 위치 0,0,0 으로 설정합니다.
 
-	[REGION:lightbox]
-	[![](ComposureQS_S2_1.png)(w:568)](ComposureQS_S2_1.png)
-	[/REGION]
+    [REGION:lightbox]
+    [![](ComposureQS_S2_1.png)(w:568)](ComposureQS_S2_1.png)
+    [/REGION]
 
-	[REGION:caption]
-	Click for full image.
-	[/REGION]
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
-1. Go to the **Blueprints** folder in the Content Browser and add the following Blueprints to the level, making sure to position each Blueprint at 0,0,0 in the level.
+1. 콘텐츠 브라우저에서 **Blueprints** 폴더로 이동한 뒤 레벨에 다음 블루프린트를 추가합니다. 각 블루프린트 위치는 레벨에서 0,0,0 인지 확인합니다.
 
-	* **BP_AdvancedCompositing**
-	* **BP_AdvancedCompositingSkeletalMesh**
+    * **BP_AdvancedCompositing**
+    * **BP_AdvancedCompositingSkeletalMesh**
 
-	[REGION:lightbox]
-	[![](ComposureQS_S2_2.png)(w:857)](ComposureQS_S2_2.png)
-	[/REGION]
+    [REGION:lightbox]
+    [![](ComposureQS_S2_2.png)(w:857)](ComposureQS_S2_2.png)
+    [/REGION]
 
-	[REGION:caption]
-	Click for full image.
-	[/REGION]
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
-1. Select the **BP_AdvancedCompositing** and in the **Config** section set the **Sequencer Camera** to the Cine Camera Actor that was added to the level.
+1. **BP_AdvancedCompositing** 를 선택하고 **Config** (환경설정) 섹션에서 **Sequencer Camera** (시퀀서 카메라)를 레벨에 추가한 시네 카메라 액터로 설정합니다.
 
-	[REGION:lightbox]
-	[![](ComposureQS_S2_3.png)(w:256)](ComposureQS_S2_3.png)
-	[/REGION]
+    [REGION:lightbox]
+    [![](ComposureQS_S2_3.png)(w:256)](ComposureQS_S2_3.png)
+    [/REGION]
 
-	[REGION:caption]
-	Click for full image.
-	[/REGION]
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
-1. Then select the **BP_AdvancedCompositingSkeletalMesh** and under the **Mesh** section, set the **Skeletal Mesh** to **SK_Mannequin**.
+1. 그리고 **BP_AdvancedCompositingSkeletalMesh** 를 선택하고 **Mesh** (메시) 섹션 아래 **Skeletal Mesh** (스켈레탈 메시)를 **SK_Mannequin** 으로 설정합니다.
 
-	[REGION:lightbox]
-	[![](ComposureQS_S2_4.png)(w:256)](ComposureQS_S2_4.png)
-	[/REGION]
+    [REGION:lightbox]
+    [![](ComposureQS_S2_4.png)(w:256)](ComposureQS_S2_4.png)
+    [/REGION]
 
-	[REGION:caption]
-	Click for full image.
-	[/REGION]
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
-## End Result
+## 최종 결과
 
-With the need Blueprints and Actors added to the level, in the next section of this Quick Start we will take a look at setting up Sequencer to work with Composure.
+필수 블루프린트와 액터를 레벨에 배치했으니, 다음에는 컴포셔로 작업할 시퀀서 구성 방법을 살펴보겠습니다.
 
 [NAV]

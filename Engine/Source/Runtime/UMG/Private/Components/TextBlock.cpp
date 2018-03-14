@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/TextBlock.h"
 #include "UObject/ConstructorHelpers.h"
@@ -6,6 +6,7 @@
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/SInvalidationPanel.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -20,10 +21,11 @@ UTextBlock::UTextBlock(const FObjectInitializer& ObjectInitializer)
 	ShadowOffset = FVector2D(1.0f, 1.0f);
 	ColorAndOpacity = FLinearColor::White;
 	ShadowColorAndOpacity = FLinearColor::Transparent;
+	bAutoWrapText = false;
 
 	if (!IsRunningDedicatedServer())
 	{
-		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
+		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(*UWidget::GetDefaultFontName());
 		Font = FSlateFontInfo(RobotoFontObj.Object, 24, FName("Bold"));
 	}
 }
@@ -76,6 +78,7 @@ void UTextBlock::SetFont(FSlateFontInfo InFontInfo)
 	if (MyTextBlock.IsValid())
 	{
 		MyTextBlock->SetFont(Font);
+		MyTextBlock->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 	}
 }
 
@@ -95,6 +98,59 @@ void UTextBlock::SetMinDesiredWidth(float InMinDesiredWidth)
 	{
 		MyTextBlock->SetMinDesiredWidth(MinDesiredWidth);
 	}
+}
+
+void UTextBlock::SetAutoWrapText(bool InAutoWrapText)
+{
+	bAutoWrapText = InAutoWrapText;
+	if(MyTextBlock.IsValid())
+	{
+		MyTextBlock->SetAutoWrapText(InAutoWrapText);
+	}
+}
+
+UMaterialInstanceDynamic* UTextBlock::GetDynamicFontMaterial()
+{
+	if (ensure(Font.FontMaterial))
+	{
+		UMaterialInterface* Material = CastChecked<UMaterialInterface>(Font.FontMaterial);
+
+		UMaterialInstanceDynamic* DynamicMaterial = Cast<UMaterialInstanceDynamic>(Material);
+
+		if (!DynamicMaterial)
+		{
+			DynamicMaterial = UMaterialInstanceDynamic::Create(Material, this);
+			Font.FontMaterial = DynamicMaterial;
+
+			SetFont(Font);
+		}
+
+		return DynamicMaterial;
+	}
+
+	return nullptr;
+}
+
+UMaterialInstanceDynamic* UTextBlock::GetDynamicOutlineMaterial()
+{
+	if (ensure(Font.OutlineSettings.OutlineMaterial))
+	{
+		UMaterialInterface* Material = CastChecked<UMaterialInterface>(Font.OutlineSettings.OutlineMaterial);
+
+		UMaterialInstanceDynamic* DynamicMaterial = Cast<UMaterialInstanceDynamic>(Material);
+
+		if (!DynamicMaterial)
+		{
+			DynamicMaterial = UMaterialInstanceDynamic::Create(Material, this);
+			Font.OutlineSettings.OutlineMaterial = DynamicMaterial;
+
+			SetFont(Font);
+		}
+
+		return DynamicMaterial;
+	}
+
+	return nullptr;
 }
 
 TSharedRef<SWidget> UTextBlock::RebuildWidget()
@@ -158,6 +214,7 @@ void UTextBlock::SynchronizeProperties()
 		MyTextBlock->SetShadowOffset( ShadowOffset );
 		MyTextBlock->SetShadowColorAndOpacity( ShadowColorAndOpacityBinding );
 		MyTextBlock->SetMinDesiredWidth( MinDesiredWidth );
+		MyTextBlock->SetAutoWrapText(bAutoWrapText);
 
 		Super::SynchronizeTextLayoutProperties( *MyTextBlock );
 	}

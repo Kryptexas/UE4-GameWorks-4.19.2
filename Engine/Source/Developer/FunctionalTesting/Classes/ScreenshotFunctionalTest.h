@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,12 +22,13 @@ class FUNCTIONALTESTING_API AScreenshotFunctionalTest : public AScreenshotFuncti
 public:
 	AScreenshotFunctionalTest(const FObjectInitializer& ObjectInitializer);
 
-	// Tests relying on temporal effects can force a camera cut to flush stale data
+	virtual void Serialize(FArchive& Ar) override;
+
+	// Tests not relying on temporal effects can force a camera cut to flush stale data
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", SimpleDisplay)
 	bool bCameraCutOnScreenshotPrep;
 
 protected:
 	virtual void PrepareTest() override;
-
 	virtual void RequestScreenshot() override;
 };

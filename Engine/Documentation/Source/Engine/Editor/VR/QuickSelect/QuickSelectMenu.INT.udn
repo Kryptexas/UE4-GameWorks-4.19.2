@@ -1,7 +1,7 @@
 Title: Quick Select Menu
 Description: The Quick Select menu provides easy access to editor panels and windows in VR mode.
 Crumbs:
-Availability: public
+Availability: Docs
 parent: Engine/Editor/VR
 type: reference
 order: 2
@@ -30,7 +30,7 @@ As you can see in the image, the **Quick Select** menu is grouped into four menu
 
 ### Grid Snap
 
-In the **Grid Snap** options you can adjust the snap settings for the **Tranlate**, **Rotation**, and **Scale** menu options. By clicking on the value below the selection you can cyle through its snap values.
+In the **Grid Snap** options you can adjust the snap settings for the **Translate**, **Rotation**, and **Scale** menu options. By clicking on the value below the selection, you can cycle through its snap values.
 
 ![](GridSnapOptions.png)(w:350)
 
@@ -55,7 +55,7 @@ In the **Interface** options you have quick access to the various editor windows
 | Asset Editor | Opens the Asset window, which acts as a container for any asset editors (Blueprint Editor, Material Editor, etc.) that may be open. |
 | Tutorial | Opens the **VR Mode Tutorial** window, which provides access to a collection of instructional walkthroughs for common features that are found in the VR Editor. |
 | World | Opens the **World Settings** panel, providing access to properties of the current Level. |
-| Toggle All UI | This will open the available UI Interace windows available under the Interface section of this Quick Select Menu. |
+| Toggle All UI | This will open the available UI Interface windows available under the Interface section of this Quick Select Menu. |
 
 ### Tools
 
@@ -66,12 +66,12 @@ In the **Tools** options you can quickly take a screenshot, use a flashlight for
 | Option | Description |
 | ------ | ----------- |
 | Screenshot | Takes a screenshot of the current scene. |
-| Flashlight | Adds a flashlight to, or removes the flashlight from, the controller that was used to click the button.  |
+| Flashlight | Adds a flashlight too, or removes the flashlight from, the controller that was used to click the button.  |
 | Play | Starts your project from within the VR Editor so that you can test your gameplay quickly. You will begin gameplay from the player start location. To instantly go back to the VR Editor from your test session, press both triggers and a grip button on each motion controller.  |
 
 ### Gizmo
 
-In the **Gizmo** options you can quickly cycle through and change the bahavior of your Translate, Rotation, and Scale gizmos.
+In the **Gizmo** options you can quickly cycle through and change the behavior of your Translate, Rotation, and Scale gizmos.
 
 ![](GizmoOptions.png)(w:350) 
 

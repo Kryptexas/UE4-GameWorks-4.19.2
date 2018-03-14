@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -195,21 +195,21 @@ private:
 	UPROPERTY(NotReplicated)
 	TEnumAsByte<ETimelineLengthMode> LengthMode;
 
-	/** How long the timeline is, will stop or loop at the end */
- 	UPROPERTY(NotReplicated)
- 	float Length;
-
 	/** Whether timeline should loop when it reaches the end, or stop */
 	UPROPERTY()
-	uint32 bLooping:1;
+	uint8 bLooping:1;
 
 	/** If playback should move the current position backwards instead of forwards */
 	UPROPERTY()
-	uint32 bReversePlayback:1;
+	uint8 bReversePlayback:1;
 
 	/** Are we currently playing (moving Position) */
 	UPROPERTY()
-	uint32 bPlaying:1;
+	uint8 bPlaying:1;
+
+	/** How long the timeline is, will stop or loop at the end */
+ 	UPROPERTY(NotReplicated)
+ 	float Length;
 
 	/** How fast we should play through the timeline */
 	UPROPERTY()
@@ -243,9 +243,6 @@ private:
 	UPROPERTY(NotReplicated)
 	FOnTimelineEvent TimelineFinishedFunc;
 
-	/** Called whenever this timeline is finished. Is not called if 'stop' is used to terminate timeline early  */
-	FOnTimelineEventStatic TimelineFinishFuncStatic;
-
 	/**	Optional. If set, Timeline will also set float/vector properties on this object using the PropertyName set in the tracks. */
 	UPROPERTY(NotReplicated)
 	TWeakObjectPtr<UObject> PropertySetObject;
@@ -254,6 +251,9 @@ private:
 	UPROPERTY(NotReplicated)
 	FName DirectionPropertyName;
 
+	/** Called whenever this timeline is finished. Is not called if 'stop' is used to terminate timeline early  */
+	FOnTimelineEventStatic TimelineFinishFuncStatic;
+
 	/** Cached property pointer for setting timeline direction */
 	UPROPERTY(Transient, NotReplicated)
 	UProperty* DirectionProperty;
@@ -261,10 +261,10 @@ private:
 public:
 	FTimeline()
 	: LengthMode( TL_LastKeyFrame )
-	, Length( 5.f )
 	, bLooping( false )
 	, bReversePlayback( false )
 	, bPlaying( false )
+	, Length( 5.f )
 	, PlayRate( 1.f )
 	, Position( 0.0f )	
 	, PropertySetObject(nullptr)

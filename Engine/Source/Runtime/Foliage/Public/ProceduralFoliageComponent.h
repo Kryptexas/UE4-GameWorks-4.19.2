@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -96,7 +96,7 @@ class FOLIAGE_API UProceduralFoliageComponent : public UActorComponent
 	FVector GetWorldPosition() const;
 
 	/** @return The bounds of area encompassed by the simulation */
-	FBox GetBounds() const;
+	virtual FBox GetBounds() const;
 
 	/** @return The body instanced used for bounds checking */
 	FBodyInstance* GetBoundsBodyInstance() const;

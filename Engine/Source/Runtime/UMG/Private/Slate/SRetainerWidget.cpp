@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Slate/SRetainerWidget.h"
 #include "Misc/App.h"
@@ -92,7 +92,9 @@ void SRetainerWidget::Construct(const FArguments& InArgs)
 
 	SurfaceBrush.SetResourceObject(RenderTarget);
 
-	Window = SNew(SVirtualWindow);
+	Window = SNew(SVirtualWindow)
+    .Visibility(EVisibility::SelfHitTestInvisible);  // deubanks: We don't want Retainer Widgets blocking hit testing for tooltips
+
 	Window->SetShouldResolveDeferred(false);
 	
 	UpdateWidgetRenderer();

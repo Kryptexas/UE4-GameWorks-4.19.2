@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -79,7 +79,7 @@ public:
 	virtual bool Shutdown() override;
 	virtual FString GetAppId() const override;
 	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
-
+	virtual bool IsEnabled() const override;
 	virtual FText GetOnlineServiceName() const override;
 	//~ End IOnlineSubsystem Interface
 
@@ -89,12 +89,6 @@ PACKAGE_SCOPE:
 
 	FOnlineSubsystemGooglePlay();
 	FOnlineSubsystemGooglePlay(FName InInstanceName);
-
-	/**
-	 * Is Online Subsystem Android available for use
-	 * @return true if Android Online Subsystem functionality is available, false otherwise
-	 */
-	bool IsEnabled();
 
 	/** Return the async task manager owned by this subsystem */
 	class FOnlineAsyncTaskManagerGooglePlay* GetAsyncTaskManager() { return OnlineAsyncTaskThreadRunnable.Get(); }

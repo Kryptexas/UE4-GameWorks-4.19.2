@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OculusHMD_StressTester.h"
 
@@ -95,9 +95,16 @@ public:
 		TextureParameter.Bind(Initializer.ParameterMap, TEXT("TextureParameter"));
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return true;
+		if (Parameters.Platform == EShaderPlatform::SP_METAL || Parameters.Platform == EShaderPlatform::SP_METAL_MRT)
+		{
+			return false;
+		}
+		else
+		{
+			return true;
+		}
 	}
 
 	virtual bool Serialize(FArchive& Ar) override

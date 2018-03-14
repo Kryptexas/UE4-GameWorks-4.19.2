@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:2. 애트머스페릭 & 디렉셔널 라이팅
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
@@ -23,7 +23,7 @@ SkillLevel: Beginner
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 예전 단계에서 기본 아파트 구성이 완료되었으니, 전체적인 레벨 라이팅을 추가하도록 하겠습니다.
 
@@ -109,5 +109,6 @@ SkillLevel: Beginner
 
 애트머스페릭 라이팅 구성이 완료되었으니, **다음 단계** 에서는 아파트 안의 어두운 부분을 밝히기 위한 라이트를 조금 추가해 보겠습니다.
 	
-%Steps%
+
+
 

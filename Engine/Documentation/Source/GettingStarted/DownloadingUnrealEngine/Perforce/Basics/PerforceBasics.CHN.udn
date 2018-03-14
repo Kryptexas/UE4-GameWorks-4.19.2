@@ -5,11 +5,13 @@ Crumbs:
 Description:使用 Perforce 下载虚幻引擎源代码的说明。
 Parent:GettingStarted/DownloadingUnrealEngine/Perforce
 
-<!--
+[COMMENT:none]
+
 ## 连接到 Epic 的 VPN
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine/VPNSetup#Browser]
--->
+
+[/COMMENT]
 
 [EXCERPT:main]
 要连入 Epic 的 perforce 需要用到 SSL 功能，并且必须要使用 2012.1 或以后的 perforce 客户端（P4V，p4，或 API）。通过善加利用全局的 DNS 名称及基于延迟的路由信息，便能自动的连入离你当地位置最近的 Perforce 代理服务器上。当然你也可以选择直接连入某个区域代理服务器，来确保你的连接总是最近的一个。

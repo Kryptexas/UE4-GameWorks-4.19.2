@@ -72,7 +72,8 @@ Due to hardware differences between PCs and mobile devices you could run into is
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:UFP]
 When enabled, the Material's shader will use the highest precision math available on a mobile device. This can be used to work around rendering problems caused by low-precision math, such as usage of world coordinates or tight specular reflections on glossy materials. 
 
@@ -89,5 +90,6 @@ Enabling full precision shaders will make the Material more expensive.
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:UFP]
--->
+
+[/COMMENT]
 

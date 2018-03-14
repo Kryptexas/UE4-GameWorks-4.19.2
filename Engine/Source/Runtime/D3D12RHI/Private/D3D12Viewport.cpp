@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Viewport.cpp: D3D viewport RHI implementation.
@@ -35,14 +35,6 @@ namespace D3D12RHI
 			TEXT("D3D12.ForceThirtyHz"),
 			bForceThirtyHz,
 			TEXT("If true, the display will never update more often than 30Hz."),
-			ECVF_RenderThreadSafe
-			);
-
-		int32 SyncInterval = 1;
-		static FAutoConsoleVariableRef CVarSyncInterval(
-			TEXT("D3D12.SyncInterval"),
-			SyncInterval,
-			TEXT("When synchronizing with D3D, specifies the interval at which to refresh."),
 			ECVF_RenderThreadSafe
 			);
 
@@ -219,7 +211,7 @@ FD3D12Texture2D* GetSwapChainSurface(FD3D12Device* Parent, EPixelFormat PixelFor
 	RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 	RTVDesc.Texture2D.MipSlice = 0;
 
-	FD3D12RenderTargetView* BackBufferRenderTargetView = new FD3D12RenderTargetView(Parent, &RTVDesc, &NewTexture->ResourceLocation);
+	FD3D12RenderTargetView* BackBufferRenderTargetView = new FD3D12RenderTargetView(Parent, RTVDesc, NewTexture->ResourceLocation);
 	NewTexture->SetRenderTargetView(BackBufferRenderTargetView);
 
 	// create a shader resource view to allow using the backbuffer as a texture
@@ -230,7 +222,7 @@ FD3D12Texture2D* GetSwapChainSurface(FD3D12Device* Parent, EPixelFormat PixelFor
 	SRVDesc.Texture2D.MostDetailedMip = 0;
 	SRVDesc.Texture2D.MipLevels = 1;
 
-	FD3D12ShaderResourceView* WrappedShaderResourceView = new FD3D12ShaderResourceView(Parent, &SRVDesc, &NewTexture->ResourceLocation);
+	FD3D12ShaderResourceView* WrappedShaderResourceView = new FD3D12ShaderResourceView(Parent, SRVDesc, NewTexture->ResourceLocation);
 	NewTexture->SetShaderResourceView(WrappedShaderResourceView);
 
 	FD3D12TextureStats::D3D12TextureAllocated2D(*NewTexture);
@@ -272,10 +264,10 @@ DXGI_MODE_DESC FD3D12Viewport::SetupDXGI_MODE_DESC() const
 	return Ret;
 }
 
-void FD3D12Viewport::CalculateSwapChainDepth()
+void FD3D12Viewport::CalculateSwapChainDepth(int32 DefaultSwapChainDepth)
 {
 	FD3D12Adapter* Adapter = GetParentAdapter();
-	NumBackBuffers = (Adapter->AlternateFrameRenderingEnabled()) ? (AFRNumBackBuffersPerNode * Adapter->GetNumGPUNodes()) : DefaultNumBackBuffers;
+	NumBackBuffers = (Adapter->AlternateFrameRenderingEnabled()) ? (AFRNumBackBuffersPerNode * Adapter->GetNumGPUNodes()) : DefaultSwapChainDepth;
 
 	BackBuffers.Empty();
 	BackBuffers.AddZeroed(NumBackBuffers);
@@ -629,7 +621,7 @@ bool FD3D12Viewport::Present(bool bLockToVsync)
 	}
 #endif //PLATFORM_SUPPORTS_MGPU
 
-	const int32 SyncInterval = bLockToVsync ? RHIConsoleVariables::SyncInterval : 0;
+	const int32 SyncInterval = bLockToVsync ? RHIGetSyncInterval() : 0;
 	const bool bNativelyPresented = PresentChecked(SyncInterval);
 	if (bNativelyPresented)
 	{
@@ -674,7 +666,7 @@ void FD3D12Viewport::AdvanceBackBufferFrame_RenderThread()
 }
 
 
-/*=============================================================================
+/*==============================================================================
  *	The following RHI functions must be called from the main thread.
  *=============================================================================*/
 FViewportRHIRef FD3D12DynamicRHI::RHICreateViewport(void* WindowHandle, uint32 SizeX, uint32 SizeY, bool bIsFullscreen, EPixelFormat PreferredPixelFormat)

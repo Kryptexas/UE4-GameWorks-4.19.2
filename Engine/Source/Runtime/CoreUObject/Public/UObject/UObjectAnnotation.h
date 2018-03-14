@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectAnnotation.h: Unreal object annotation template
@@ -9,6 +9,7 @@
 #include "CoreMinimal.h"
 #include "UObject/UObjectArray.h"
 #include "Misc/ScopeLock.h"
+#include "Misc/ScopeRWLock.h"
 
 /**
 * FUObjectAnnotationSparse is a helper class that is used to store sparse, slow, temporary, editor only, external 
@@ -524,7 +525,7 @@ public:
 		}
 		else
 		{
-			FScopeLock AnnotationArrayLock(&AnnotationArrayCritical);
+			FRWScopeLock AnnotationArrayLock(AnnotationArrayCritical, SLT_Write);
 			if (AnnotationArray.Num() == 0)
 			{
 				// we are adding the first one, so if we are auto removing or verifying removal, register now
@@ -565,7 +566,7 @@ public:
 	void RemoveAnnotation(int32 Index)
 	{
 		check(Index >= 0);
-		FScopeLock AnnotationArrayLock(&AnnotationArrayCritical);
+		FRWScopeLock AnnotationArrayLock(AnnotationArrayCritical, SLT_Write);
 		if (Index <  AnnotationArray.Num())
 		{
 			AnnotationArray[Index] = TAnnotation();
@@ -577,7 +578,7 @@ public:
 	 */
 	void RemoveAllAnnotations()
 	{
-		FScopeLock AnnotationArrayLock(&AnnotationArrayCritical);
+		FRWScopeLock AnnotationArrayLock(AnnotationArrayCritical, SLT_Write);
 		bool bHadElements = (AnnotationArray.Num() > 0);
 		AnnotationArray.Empty();
 		if (bHadElements)
@@ -611,7 +612,7 @@ public:
 	FORCEINLINE TAnnotation GetAnnotation(int32 Index)
 	{
 		check(Index >= 0);
-		FScopeLock AnnotationArrayLock(&AnnotationArrayCritical);
+		FRWScopeLock AnnotationArrayLock(AnnotationArrayCritical, SLT_ReadOnly);
 		if (Index < AnnotationArray.Num())
 		{
 			return AnnotationArray[Index];
@@ -640,7 +641,7 @@ public:
 	 */
 	FORCEINLINE TAnnotation& GetAnnotationRef(int32 Index)
 	{
-		FScopeLock AnnotationArrayLock(&AnnotationArrayCritical);
+		FRWScopeLock AnnotationArrayLock(AnnotationArrayCritical, SLT_Write);
 		if (Index >= AnnotationArray.Num())
 		{
 			AddAnnotation(Index, TAnnotation());
@@ -654,7 +655,7 @@ private:
 	 * Map from live objects to an annotation
 	 */
 	TArray<TAnnotation> AnnotationArray;
-	FCriticalSection AnnotationArrayCritical;
+	FRWLock AnnotationArrayCritical;
 
 };
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 9. 비헤이비어 트리 구성
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
@@ -21,7 +21,7 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 트리를 채우는 데 필요한 애셋이 이미 전부 갖춰졌으므로, 이 비헤이비어 트리를 만듭니다:
 
@@ -97,6 +97,6 @@ version: 4.9
 
 모든 것이 연결되었으면 비헤이비어 트리 준비가 완료되어 더이상의 수정이 필요치 않을 것입니다.
 
-%Steps%
+
 
 [VAR:arrow]![](Engine\AI\EnvironmentQuerySystem\QuickStart\arrow_button.png)[/VAR]

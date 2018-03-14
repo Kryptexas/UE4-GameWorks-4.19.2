@@ -21,7 +21,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Currently, our projectiles:
 
@@ -129,4 +129,3 @@ Unreal Engine comes packaged with several preset collision chanels; however, the
 
 	![](BuildFPSProject.png)
 
-%Steps%

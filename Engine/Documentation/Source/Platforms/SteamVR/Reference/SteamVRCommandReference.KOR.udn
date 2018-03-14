@@ -1,0 +1,69 @@
+﻿INTSourceChangelist:3782314
+Availability: Public
+Crumbs: %ROOT%, Platforms
+Title: SteamVR 명령 참고서
+Description: SteamVR 에서 사용할 수 있는 여러가지 명령 관련 정보입니다.
+Type:reference
+Version: 4.17
+Parent: Platforms/SteamVR
+Order: 2
+tags: VR
+topic-image:Platforms\SteamVR\SteamVRDevelopment_topic.png
+related: Engine/Performance/GPU/ 
+related: Engine/Performance/CPU/
+related: Platforms/VR/VRSpectatorScreen/
+
+UE4 와 SteamVR 상호작용 방식을 조정하는 데 사용할 수 있는 여러가지 콘솔 명령은 다음과 같습니다.
+
+[COMMENT:none]
+
+## SteamVR VR 미러 모드
+
+VR Mirror (VR 미러)는 VR 사용자 이외에게 VR 사용자가 보고 있는 화면을 보여주는 뷰포트 창 이름입니다. SteamVR 을 사용할 때 VR 미러 표시 방식을 바꾸는 방법이 몇 가지 있습니다. 
+VR 미러 모드 작동 방식 변경을 위한 명령과 VR 미러 모습에 어떤 영향을 끼치는지에 대한 설명은 아래와 같습니다.
+
+[REGION:note]
+**`** 물결표 키를 눌러 UE4 콘솔을 띄우고 **VR.MirrorMode** 뒤에 다음 숫자 중 하나를 입력하면 됩니다.
+[/REGION]
+
+
+|명령|설명|이미지|
+|-----------|-------------------|----------------|
+| **VR.SpectatorScreenMode 0** | VR 미러를 끕니다.|N/A|
+| **VR.SpectatorScreenMode 1** | 한쪽 눈을 디스토션 없이 표시합니다. |[REGION:lightbox][![](SteamVRCR_00.png)(w:160)](SteamVRCR_00.png)[/REGION]|
+| **VR.SpectatorScreenMode 2** | 양쪽 눈을 스테레오로 렌즈 디스토션 없이 표시합니다. |[REGION:lightbox][![](SteamVRCR_01.png)(w:160)](SteamVRCR_01.png)[/REGION]|
+| **VR.SpectatorScreenMode 3** | 한쪽 눈을 화면에 채워지는 잘라낸 사각형에 표시합니다. |[REGION:lightbox][![](SteamVRCR_02.png)(w:160)](SteamVRCR_02.png)[/REGION]|
+| **VR.SpectatorScreenMode 4** | 한쪽 눈을 스테레오로 표시합니다. |[REGION:lightbox][![](SteamVRCR_03.png)(w:160)](SteamVRCR_03.png)[/REGION]|
+| **VR.SpectatorScreenMode 7** | 다른 텍스처를 표시하는 옵션과 함께 한쪽 눈을 잘라낸 사각형에 표시합니다. |[REGION:lightbox][![](SteamVRCR_04.png)(w:160)](SteamVRCR_04.png)[/REGION]|
+
+[/COMMENT]
+
+|명령|설명|
+|-----------|-------------------|
+|**vr.SteamVR.AdaptiveDebugGPUTime**|GPU 프레임 타이밍에 ms 단위로 테스트를 위해 추가합니다. |
+|**vr.SteamVR.AdaptiveGPUTimeThreshold**|GPU 프레임 시간 안정화 목표로 삼을 ms 단위 시간입니다. |
+|**vr.SteamVR.PixelDensityAdaptiveDebugCycle**|0 이 아니면 적응형 픽셀 밀도가 최대에서 최소로 순환한 뒤 최대로 점프합니다. |
+|**vr.SteamVR.PixelDensityAdaptiveDebugOutput**|0 이 아니면 적응형 픽셀 밀도는 로그에 디버깅 정보를 출력합니다.|
+|**vr.SteamVR.PixelDensityAdaptivePostProcess**|0 이 아니면 적응형 밀도 변경 시 몇 프레임 동안 TAA (템포럴 안티 앨리어싱)을 꺼 버퍼를 지웁니다. |
+|**vr.SteamVR.PixelDensityMax**|최대 픽셀 밀도를 나타내는 플로트 값입니다.|
+|**vr.SteamVR.PixelDensityMin**|최소 픽셀 밀도를 나타내는 플로트 값입니다.|
+|**vr.SteamVR.ShowDebug**|	0 이 아니면 캔버스에 디버깅 정보를 그립니다.|
+|**vr.SteamVR.UsePostPresentHandoff**|	PostPresentHandoff 사용 여부입니다. true 면 보다 많은 GPU 시간을 활용할 수 있지만, 씬에 SceneCaptureComponent2D 또는 WidgetComponents 가 활성화되지 않는다는 전제가 있습니다. false 면 비동기 리프로젝션을 중단합니다. |
+|**vr.SteamVR.UseVisibleAreaMesh**|0 이 아니면, SteamVR 는 숨겨진 영역 메시 최적화에 더해 보이는 영역 메시를 사용합니다. 플랫폼 베타 버전에서는 문제가 있을 수 있습니다. |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

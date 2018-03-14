@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -35,8 +35,8 @@ public:
 	virtual UMovieSceneSection* CreateNewSection() override;
 	virtual void RemoveSection(UMovieSceneSection& Section) override;
 	virtual bool SupportsMultipleRows() const override;
-	virtual TInlineValue<FMovieSceneSegmentCompilerRules> GetRowCompilerRules() const override;
-	virtual TInlineValue<FMovieSceneSegmentCompilerRules> GetTrackCompilerRules() const override;
+	virtual FMovieSceneTrackRowSegmentBlenderPtr GetRowSegmentBlender() const override;
+	virtual FMovieSceneTrackSegmentBlenderPtr GetTrackSegmentBlender() const override;
 	
 #if WITH_EDITOR
 	virtual void OnSectionMoved(UMovieSceneSection& Section) override;

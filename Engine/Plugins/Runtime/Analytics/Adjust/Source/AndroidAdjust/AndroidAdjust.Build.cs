@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System.IO;
 
@@ -40,12 +40,12 @@ namespace UnrealBuildTool.Rules
 			bool bHasAdjustSDK = true; //  Directory.Exists(System.IO.Path.Combine(PluginPath, "ThirdParty", "adjust_library"));
             if (bHasAdjustSDK)
             {
-                Definitions.Add("WITH_ADJUST=1");
-				AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "Adjust_UPL.xml")));
+                PublicDefinitions.Add("WITH_ADJUST=1");
+				AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(PluginPath, "Adjust_UPL.xml"));
             }
             else
             {
-                Definitions.Add("WITH_ADJUST=0");
+                PublicDefinitions.Add("WITH_ADJUST=0");
             }
         }
 	}

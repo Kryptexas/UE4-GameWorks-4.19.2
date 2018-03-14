@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -97,7 +97,7 @@ protected:
 
 			if ( ObjectHandle.IsValid() )
 			{
-				KeyPropertyResult.bTrackCreated |= AddKeysToHandle( ObjectHandle, KeyTime, NewKeys, DefaultKeys, KeyMode, TrackClass, PropertyName, OnInitializeNewTrack );
+				KeyPropertyResult |= AddKeysToHandle( ObjectHandle, KeyTime, NewKeys, DefaultKeys, KeyMode, TrackClass, PropertyName, OnInitializeNewTrack );
 			}
 		}
 		return KeyPropertyResult;
@@ -144,7 +144,7 @@ private:
 	 *        track is created, but before any sections or keys have been added.
 	 * @return Whether or not a track was created. Note this does not return true if keys were added or modified.
 	*/
-	bool AddKeysToHandle(
+	FKeyPropertyResult AddKeysToHandle(
 		FGuid ObjectHandle, float KeyTime,
 		const TArray<KeyDataType>& NewKeys, const TArray<KeyDataType>& DefaultKeys,
 		ESequencerKeyMode KeyMode, TSubclassOf<UMovieSceneTrack> TrackClass, FName PropertyName,
@@ -175,21 +175,24 @@ private:
 			}
 		}
 
+		FKeyPropertyResult KeyPropertyResult;
 		if ( Track )
 		{
-			bSectionCreated = AddKeysToTrack( Track, KeyTime, NewKeys, DefaultKeys, KeyMode, bTrackCreated );
+			KeyPropertyResult |= AddKeysToTrack( Track, KeyTime, NewKeys, DefaultKeys, KeyMode, bTrackCreated );
 		}
 
-		return bTrackCreated || bSectionCreated;
+		KeyPropertyResult.bTrackCreated |= bTrackCreated || bSectionCreated;
+
+		return KeyPropertyResult;
 	}
 
-	/* Returns whether a section was added */
-	bool AddKeysToTrack(
+	FKeyPropertyResult AddKeysToTrack(
 		TrackType* Track, float KeyTime,
 		const TArray<KeyDataType>& NewKeys, const TArray<KeyDataType>& DefaultKeys,
 		ESequencerKeyMode KeyMode, bool bNewTrack)
 	{
 		bool bSectionCreated = false;
+		bool bKeyCreated = false;
 		bool bInfiniteKeyAreas = GetSequencer()->GetInfiniteKeyAreas();
 
 		EAutoChangeMode AutoChangeMode = GetSequencer()->GetAutoChangeMode();
@@ -213,6 +216,7 @@ private:
 					if ( HasKeys( Track, NewKey ) || bKeyEvenIfEmpty )
 					{
 						bSectionCreated |= AddKey( Track, KeyTime, NewKey, InterpolationMode, bInfiniteKeyAreas );
+						bKeyCreated = true;
 					}
 				}
 			}
@@ -239,7 +243,11 @@ private:
 			NewSection->SetIsInfinite(bInfiniteKeyAreas);
 		}
 
-		return bSectionCreated;
+		FKeyPropertyResult KeyPropertyResult;
+		KeyPropertyResult.bTrackCreated |= bSectionCreated;
+		KeyPropertyResult.bKeyCreated = bKeyCreated;
+
+		return KeyPropertyResult;
 	}
 
 	bool NewKeyIsNewData( TrackType* Track, float Time, const KeyDataType& KeyData ) const

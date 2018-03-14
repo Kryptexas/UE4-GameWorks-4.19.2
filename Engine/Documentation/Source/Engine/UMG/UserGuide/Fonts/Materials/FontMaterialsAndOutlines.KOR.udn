@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3394420
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 폰트 머티리얼 및 윤곽선
 Description:색, 머티리얼, 윤곽선을 사용하여 UMG 폰트의 스타일을 잡는 방법에 대한 예제입니다.
@@ -56,7 +56,8 @@ UMG 에서 **Font** (폰트)에 **Color and Opacity** (색과 불투명도)를 �
 
 ![](UI.png)
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BaseColorGraph]
 [REGION:lightbox]
 [![](BaseColorMatGraph.png)(w:400)](BaseColorMatGraph.png)
@@ -68,7 +69,8 @@ UMG 에서 **Font** (폰트)에 **Color and Opacity** (색과 불투명도)를 �
 [![](VertexColorMatGraph.png)(w:400)](VertexColorMatGraph.png)
 [/REGION]
 [/EXCERPT]
--->
+
+[/COMMENT]
 ## 폰트 윤곽선
 
 폰트 윤곽선에는 다양한 **Outline Color** (윤곽선 색)은 물론 다양한 머티리얼을 지정할 수도 있습니다.

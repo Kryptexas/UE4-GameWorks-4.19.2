@@ -11,11 +11,15 @@ topic-image:Modding/RoboRecall/RoboRecall_Topic.png
 social-image:Modding/RoboRecall/RoboRecall_Social.png
 checkpoint:mod_extend
 
-<!-- Location: Modding/RoboRecall/Quickstarts/WeaponMod/1 -->
+[COMMENT:none]
+ Location: Modding/RoboRecall/Quickstarts/WeaponMod/1 
+[/COMMENT]
 
 [NAV]
 
-<!-- Title Image if Needed Here -->
+[COMMENT:none]
+ Title Image if Needed Here 
+[/COMMENT]
 
 Overview Text
 
@@ -45,17 +49,17 @@ Overview Text
 
 1. Your new mod package will be automatically focused in the **Content Browser**, but it will be at the root level of the mod.
 
-	![image alt text](image_3.png)(w:934 h:288 convert:false)
+	![image alt text](image_3.png)(w:934 convert:false)
 
 1. Double click the **Blueprints** folder, then the **Weapons** folder to find the Blueprint asset for your new custom pistol.
 
-	![image alt text](image_4.png)(w:934 h:288 convert:false)
+	![image alt text](image_4.png)(w:934 convert:false)
 
 ## Results
 
 You now have a mod with a custom pistol that will replace the default pistol in the game. Now it needs the functionality to cause it to explode when thrown.
 
-![image alt text](image_0.png)(w:805 h:352 convert:false)
+![image alt text](image_0.png)(w:805 convert:false)
 
 [NAV]
 

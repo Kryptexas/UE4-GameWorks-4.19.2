@@ -25,7 +25,7 @@ SkillLevel:Beginner
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 As you worked your way to this final step, you linked your Epic Games account with your GitHub username, you downloaded the Unreal Engine source code from our 
 GitHub site, and you compiled a binary of UE4 on your Linux system. The only remaining task is for you to run the UE4 Editor so that you can start making 
@@ -59,4 +59,3 @@ you learned:
 
 Are you ready to do some exercises on your own?
 
-%Steps%

@@ -11,15 +11,15 @@ With [**AnimDynamics**](Engine/Animation/NodeReference/SkeletalControls) those p
 In this How-to we will apply AnimDynamics to a character to achieve the effect seen below: 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-w7c3i2vpcUc
-[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	w7c3i2vpcUc
+	[/PARAMLITERAL]
 [/OBJECT]
 
 Above, the character has AnimDynamics applied to the harness and furnace that is being carried around the character's neck. As the character moves, the harness shifts slightly while the furnace has a bit more movement forwards/backwards. 
@@ -29,45 +29,10 @@ The amount of movement can be adjusted via the **Details** panel of the AnimDyna
 If you already have a character with an AnimBlueprint and bones ready to drive with AnimDynamics, you can proceed to step 2. 
 [/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine\Animation\AnimHowTo\AnimDynamics\Setup "%Engine\Animation\AnimHowTo\AnimDynamics\Setup:description%")
-	* [](Engine\Animation\AnimHowTo\AnimDynamics\ApplyDynamics "%Engine\Animation\AnimHowTo\AnimDynamics\ApplyDynamics:description%")
-	[/PARAM]
-[/OBJECT]
+## Steps
 
+[DIR(output:"checkpoint" parent:"Engine\Animation\AnimHowTo\AnimDynamics")]
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+[REGION:call_to_action]
+[Click to Start](Engine\Animation\AnimHowTo\AnimDynamics\Setup "%Engine\Animation\AnimHowTo\AnimDynamics\Setup:description%")
+[/REGION]

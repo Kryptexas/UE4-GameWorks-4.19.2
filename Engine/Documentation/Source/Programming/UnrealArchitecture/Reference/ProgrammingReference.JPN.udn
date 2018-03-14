@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429264
+﻿INTSourceChangelist:3692796
 Availability:Public
 Title:アンリアルのアーキテクチャ
 Crumbs:%ROOT%, Programming
@@ -14,30 +14,24 @@ C++ コードでゲームプレイ要素をプログラミングする場合、�
 
 クラスはそれぞれ新規のアクタまたはオブジェクトに対するテンプレートを定義します。クラスヘッダ ファイル内では、そのクラス、クラスの [関数](Programming\UnrealArchitecture\Reference\Functions) および [プロパティ](Programming\UnrealArchitecture\Reference\Properties) 
 が宣言されます。クラスには、関連プロパティの整理と操作をしやすくするデータ構造である [構造体](Programming\UnrealArchitecture\Reference\Structs) も含まれます。構造体はそれ自体でも定義することができます。
-[インターフェース](Programming\UnrealArchitecture\Reference\Interfaces) は追加のゲームプレイ ビヘイビアを異なるクラスで実装できるようにします。 
+[インターフェース](Programming\UnrealArchitecture\Reference\Interfaces) は追加のゲームプレイの挙動を異なるクラスで実装できるようにします。 
 
 アンリアル エンジンでプログラミングする場合、標準の C++ クラス、関数、変数をもつことが可能です。これらは、標準の C++ 記法で定義することができます。ただし、アンリアル エンジンに新規のクラス、関数、変数を認識させるように UCLASS() 、
  UFUNCTION() 、 UPROPERTY() マクロを使用することができます。例えば、 UPROPERTY() マクロで始まる宣言のある変数はエンジンによるガーベジ コレクションの対象となることができ、 
 アンリアル エディタ内での表示と編集が可能です。`UINTERFACE()` マクロと `USTRUCT()` マクロ、および各マクロのキーワードを使って 
-[クラス](Programming\UnrealArchitecture\Reference\Classes\Specifiers) 、 [関数](Programming\UnrealArchitecture\Reference\Functions\Specifiers) 、 [プロパティ](Programming\UnrealArchitecture\Reference\Properties\Specifiers) 、
- [インターフェース](Programming\UnrealArchitecture\Reference\Interfaces\Specifiers) 、 [構造体](Programming\UnrealArchitecture\Reference\Structs\Specifiers) のアンリアル エンジンとアンリアル エディタ内でのビヘイビアを指定することができます。
+[クラス](Programming\UnrealArchitecture\Reference\Classes\Specifiers)、 [関数](Programming\UnrealArchitecture\Reference\Functions\Specifiers)、 [プロパティ](Programming\UnrealArchitecture\Reference\Properties\Specifiers)、
+ インターフェース、[構造体](Programming\UnrealArchitecture\Reference\Structs\Specifiers) のアンリアル エンジンとアンリアル エディタ内での挙動を指定することができます。
 
- 上記のマクロに加えて、UPARAM() マクロがあります。このマクロは主に C++ コードをブループリントにエクスポーズする場合に使用します。UPARAM() の使用例は、[](Engine/Blueprints/TechnicalGuide/ExtendingBlueprints) のドキュメントをご覧ください。
+ 上記のマクロに加えて、UPARAM() マクロがあります。このマクロは主に C++ コードをブループリントに公開する場合に使用します。UPARAM() の使用例は、[](Engine/Blueprints/TechnicalGuide/ExtendingBlueprints) のドキュメントをご覧ください。
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/prog_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ゲームプレイ プログラミングのリファレンス ディレクトリ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## ゲームプレイ プログラミングのリファレンス ディレクトリ
+
+[REGION:buttonlist]
+
 		* [](Programming\UnrealArchitecture\Reference\Classes "%Programming/UnrealArchitecture/Reference/Classes:Description% ")
 			* [](Programming\UnrealArchitecture\Reference\Functions "%Programming/UnrealArchitecture/Reference/Functions:Description% ")
 			* [](Programming\UnrealArchitecture\Reference\Properties "%Programming/UnrealArchitecture/Reference/Properties:Description% ")
 		* [](Programming\UnrealArchitecture\Reference\Structs "%Programming/UnrealArchitecture/Reference/Structs:Description% ")
 		* [](Programming\UnrealArchitecture\Reference\Interfaces "%Programming/UnrealArchitecture/Reference/Interfaces:Description% ")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]

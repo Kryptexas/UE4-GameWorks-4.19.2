@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MaterialGraphNode_Knot.h"
 #include "Kismet2NameValidators.h"
@@ -22,13 +22,13 @@ UMaterialGraphNode_Knot::UMaterialGraphNode_Knot(const FObjectInitializer& Objec
 
 void UMaterialGraphNode_Knot::AllocateDefaultPins()
 {
-	const FString InputPinName(TEXT("InputPin"));
-	const FString OutputPinName(TEXT("OutputPin"));
+	const FName InputPinName(TEXT("InputPin"));
+	const FName OutputPinName(TEXT("OutputPin"));
 
-	UEdGraphPin* MyInputPin = CreatePin(EGPD_Input, PC_Wildcard, FString(), nullptr, InputPinName);
+	UEdGraphPin* MyInputPin = CreatePin(EGPD_Input, PC_Wildcard, InputPinName);
 	MyInputPin->bDefaultValueIsIgnored = true;
 
-	UEdGraphPin* MyOutputPin = CreatePin(EGPD_Output, PC_Wildcard, FString(), nullptr, OutputPinName);
+	UEdGraphPin* MyOutputPin = CreatePin(EGPD_Output, PC_Wildcard, OutputPinName);
 }
 
 FText UMaterialGraphNode_Knot::GetTooltipText() const

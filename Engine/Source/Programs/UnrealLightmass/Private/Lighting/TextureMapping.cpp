@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Raster.h"
@@ -127,7 +127,7 @@ void FStaticLightingTextureMapping::Initialize(FStaticLightingSystem& System)
 void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLightingTextureMapping* TextureMapping)
 {
 	checkSlow(TextureMapping);
-	FStaticLightingMappingContext MappingContext(TextureMapping->Mesh,*this);
+	FStaticLightingMappingContext MappingContext(TextureMapping->Mesh,*this,&StartupDebugOutput);
 	LIGHTINGSTAT(FScopedRDTSCTimer CachingTime(MappingContext.Stats.IrradiancePhotonCachingThreadTime));
 	const FBoxSphereBounds ImportanceBounds = Scene.GetImportanceBounds();
 
@@ -383,7 +383,7 @@ void FStaticLightingSystem::RasterizeToSurfaceCacheTextureMapping(FStaticLightin
 void FStaticLightingSystem::FinalizeSurfaceCacheTextureMapping(FStaticLightingTextureMapping* TextureMapping)
 {
 	checkSlow(TextureMapping);
-	FStaticLightingMappingContext MappingContext(TextureMapping->Mesh,*this);
+	FStaticLightingMappingContext MappingContext(TextureMapping->Mesh,*this,&StartupDebugOutput);
 	const FBoxSphereBounds ImportanceBounds = Scene.GetImportanceBounds();
 
 	FTexelToVertexMap TexelToVertexMap(TextureMapping->SurfaceCacheSizeX, TextureMapping->SurfaceCacheSizeY);
@@ -429,7 +429,9 @@ void FStaticLightingSystem::FinalizeSurfaceCacheTextureMapping(FStaticLightingTe
 				// SurfaceCacheLighting at this point contains 1st and up bounce lighting for the skylight and emissive sources, computed by the radiosity iterations
 				FinalIncidentLighting += TextureMapping->SurfaceCacheLighting[SurfaceCacheIndex];
 
-				if (GeneralSettings.ViewSingleBounceNumber < 0 || GeneralSettings.ViewSingleBounceNumber >= 2)
+				if ((GeneralSettings.ViewSingleBounceNumber < 0 || GeneralSettings.ViewSingleBounceNumber >= 2)
+					&& !ImportanceTracingSettings.bUseRadiositySolverForLightMultibounce
+					&& PhotonMappingSettings.bUseIrradiancePhotons)
 				{
 					const FIrradiancePhoton* NearestPhoton = TextureMapping->CachedIrradiancePhotons[SurfaceCacheIndex];
 
@@ -479,10 +481,18 @@ void FStaticLightingSystem::ProcessTextureMapping(FStaticLightingTextureMapping*
 	bDebugThisMapping = TextureMapping == Scene.DebugMapping;
 #endif
 
+	TList<FTextureMappingStaticLightingData>* StaticLightingLink = new TList<FTextureMappingStaticLightingData>(FTextureMappingStaticLightingData(),NULL);
+
 	// light guid to shadow map mapping
 	TMap<const FLight*, FShadowMapData2D*> ShadowMaps;
 	TMap<const FLight*, FSignedDistanceFieldShadowMapData2D*> SignedDistanceFieldShadowMaps;
-	FStaticLightingMappingContext MappingContext(TextureMapping->Mesh, *this);
+
+	if (bDebugThisMapping)
+	{
+		StaticLightingLink->Element.DebugOutput = StartupDebugOutput;
+	}
+
+	FStaticLightingMappingContext MappingContext(TextureMapping->Mesh, *this, &StaticLightingLink->Element.DebugOutput);
 
 	// Allocate light-map data.
 	FGatheredLightMapData2D LightMapData(TextureMapping->CachedSizeX, TextureMapping->CachedSizeY);
@@ -508,7 +518,7 @@ void FStaticLightingSystem::ProcessTextureMapping(FStaticLightingTextureMapping*
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
 	if (bDebugThisMapping)
 	{
-		DebugOutput.bValid = true;
+		MappingContext.DebugOutput->bValid = true;
 		for (int32 Y = 0;Y < TextureMapping->CachedSizeY;Y++)
 		{
 			for (int32 X = 0;X < TextureMapping->CachedSizeX;X++)
@@ -528,10 +538,10 @@ void FStaticLightingSystem::ProcessTextureMapping(FStaticLightingTextureMapping*
 							FDebugStaticLightingVertex DebugVertex;
 							DebugVertex.VertexNormal = FVector4(TexelToVertex.WorldTangentZ);
 							DebugVertex.VertexPosition = TexelToVertex.WorldPosition;
-							DebugOutput.Vertices.Add(DebugVertex);
+							MappingContext.DebugOutput->Vertices.Add(DebugVertex);
 
-							DebugOutput.SelectedVertexIndices.Add(DebugOutput.Vertices.Num() - 1);
-							DebugOutput.SampleRadius = TexelToVertex.TexelRadius;
+							MappingContext.DebugOutput->SelectedVertexIndices.Add(MappingContext.DebugOutput->Vertices.Num() - 1);
+							MappingContext.DebugOutput->SampleRadius = TexelToVertex.TexelRadius;
 						}
 					}
 				}
@@ -746,7 +756,6 @@ void FStaticLightingSystem::ProcessTextureMapping(FStaticLightingTextureMapping*
 	const double ExecutionTime = CurrentTime - StartTime;
 
 	// Enqueue the static lighting for application in the main thread.
-	TList<FTextureMappingStaticLightingData>* StaticLightingLink = new TList<FTextureMappingStaticLightingData>(FTextureMappingStaticLightingData(),NULL);
 	StaticLightingLink->Element.Mapping = TextureMapping;
 	StaticLightingLink->Element.LightMapData = FinalLightmapData;
 	StaticLightingLink->Element.ShadowMaps = ShadowMaps;
@@ -859,7 +868,7 @@ void FStaticLightingSystem::TraceToTexelCorner(
 		{
 			DebugRay.End = Intersection.IntersectionVertex.WorldPosition;
 		}
-		DebugOutput.ShadowRays.Add(DebugRay);
+		MappingContext.DebugOutput->ShadowRays.Add(DebugRay);
 	}
 #endif
 }
@@ -881,8 +890,8 @@ void FStaticLightingSystem::SetupTextureMapping(
 		const FTexelToCorners& TexelToCorners = TexelToCornersMap(Scene.DebugInput.LocalX, Scene.DebugInput.LocalY);
 		for (int32 CornerIndex = 0; CornerIndex < NumTexelCorners; CornerIndex++)
 		{
-			DebugOutput.TexelCorners[CornerIndex] = TexelToCorners.Corners[CornerIndex].WorldPosition;
-			DebugOutput.bCornerValid[CornerIndex] = TexelToCorners.bValid[CornerIndex] != 0;
+			MappingContext.DebugOutput->TexelCorners[CornerIndex] = TexelToCorners.Corners[CornerIndex].WorldPosition;
+			MappingContext.DebugOutput->bCornerValid[CornerIndex] = TexelToCorners.bValid[CornerIndex] != 0;
 		}
 	}
 #endif
@@ -2043,7 +2052,7 @@ void FStaticLightingSystem::CalculateDirectSignedDistanceFieldLightingTextureMap
 						{
 							DebugRay.End = Intersection.IntersectionVertex.WorldPosition;
 						}
-						DebugOutput.ShadowRays.Add(DebugRay);
+						MappingContext.DebugOutput->ShadowRays.Add(DebugRay);
 					}
 #endif
 				}
@@ -3237,7 +3246,7 @@ void FStaticLightingSystem::CalculateIndirectLightingTextureMapping(
 				delete CompletedTasks[TaskIndex];
 			}
 
-			DebugOutput.CacheRecords = MappingContext.DebugCacheRecords;
+			MappingContext.DebugOutput->CacheRecords = MappingContext.DebugCacheRecords;
 		}
 
 		MappingContext.Stats.BlockOnIndirectLightingInterpolateTasksTime += FPlatformTime::Seconds() - EndCacheTime;

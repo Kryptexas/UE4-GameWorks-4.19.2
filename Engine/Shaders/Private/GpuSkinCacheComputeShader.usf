@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GpuSkinCacheComputeShader.usf: Perform vertex skinning into a buffer to avoid skinning in the vertex shader.
@@ -10,6 +10,9 @@
 #include "GpuSkinCommon.ush"
 
 // 0/1 setup by CPU
+// #define GPUSKIN_APEX_CLOTH
+
+// 0/1 setup by CPU
 // #define GPUSKIN_MORPH_BLEND
 
 // Set to 1 to enable passing through values from vertex buffer (ie do not skin)
@@ -17,11 +20,11 @@
 
 #define FBoneMatrix float3x4
 
-Buffer<float4> BoneMatrices;
+STRONG_TYPE Buffer<float4> BoneMatrices;
 
 #if GPUSKIN_MORPH_BLEND
 // float3 DeltaPosition, PackedNormal, see FMorphGPUSkinVertex
-Buffer<float> MorphBuffer;
+STRONG_TYPE Buffer<float> MorphBuffer;
 // data offset to start indexing the data in MorphBuffer, in float units
 uint MorphBufferOffset;
 	
@@ -30,7 +33,7 @@ void GetMorphBuffer(uint VertexIndex, out float3 DeltaPosition, out half3 DeltaT
 	// see CPU code: "check(MorphStride == sizeof(float) * 6);"
 	// in floats
 	// 3 + 3 floats because of the format defined in InitMorphVertexFactoryComponents / FMorphGPUSkinVertex
-	uint Offset = MorphBufferOffset + VertexIndex * (3 + 3);
+	uint Offset = VertexIndex * (3 + 3);
 
 	DeltaPosition = float3(
 		MorphBuffer[Offset + 0],
@@ -43,11 +46,31 @@ void GetMorphBuffer(uint VertexIndex, out float3 DeltaPosition, out half3 DeltaT
 		MorphBuffer[Offset + 5]);
 }
 #endif
+#if GPUSKIN_APEX_CLOTH
+Buffer<uint4> ClothBuffer;
+Buffer<float2> ClothPositionsAndNormalsBuffer;
+float ClothBlendWeight;
+float4x4 ClothLocalToWorld;
+float4x4 ClothWorldToLocal;
+
+void GetClothBuffer(uint VertexIndex, out float4 PositionBaryCoordsAndDist, out float4 NormalBaryCoordsAndDist, out float4 TangentBaryCoordsAndDist, out uint4 SourceMeshVertIndices)
+{
+    uint Offset = VertexIndex * 4;
+
+    PositionBaryCoordsAndDist = asfloat(ClothBuffer[Offset]);
+    NormalBaryCoordsAndDist = asfloat(ClothBuffer[Offset + 1]);
+    TangentBaryCoordsAndDist = asfloat(ClothBuffer[Offset + 2]);
+
+    uint4 PackedIndices = ClothBuffer[Offset + 3];
+    SourceMeshVertIndices.yw = (PackedIndices.xy >> 16) & 0xffff;
+    SourceMeshVertIndices.xz = PackedIndices.xy & 0xffff;
+}
+#endif
 
 struct FVertexUnpacked
 {
-	float3	TangentX;
-	float3	TangentZ;
+	float4	TangentX;
+	float4	TangentZ;
 
 	int4	BlendIndices;
 #if GPUSKIN_USE_EXTRA_INFLUENCES
@@ -64,6 +87,13 @@ struct FVertexUnpacked
 	// morph target, added to the TangentZ and then used to derive new TangentX and TangentY, -2..2
 	half3	DeltaTangentZ;
 #endif
+
+#if GPUSKIN_APEX_CLOTH
+    float4  PositionBaryCoordsAndDist;
+    float4  NormalBaryCoordsAndDist;
+    float4  TangentBaryCoordsAndDist;
+    uint4   SourceMeshVertIndices;
+#endif
 };
 
 struct FVertexFactoryIntermediates
@@ -79,6 +109,11 @@ struct FVertexFactoryIntermediates
 
 	// Vertex Color
 	float4 Color;
+
+#if GPUSKIN_APEX_CLOTH
+    float3 SimulatedPosition;
+#endif
+
 };
 
 FBoneMatrix CalcBoneMatrix( FVertexUnpacked VertexUnpacked )
@@ -96,37 +131,28 @@ FBoneMatrix CalcBoneMatrix( FVertexUnpacked VertexUnpacked )
 	return BoneMatrix;
 }
 
-Buffer<uint> SkinStreamInputBuffer;
-
-RWBuffer<float> SkinCacheBufferUAV;
+Buffer<float4> TangentInputBuffer;
+RWBuffer<float4> TangentBufferUAV;
+Buffer<float> PositionInputBuffer;
+RWBuffer<float> PositionBufferUAV;
 
 uint InputStreamStart;
 uint SkinCacheStart;
-uint InputStreamStride;
 uint NumVertices;
 
 uint InputWeightStart;
 uint InputWeightStride;
 Buffer<uint> InputWeightStream;
 
-float3 MeshOrigin;
-float3 MeshExtension;
 // see r.SkinCache.Debug, default is 1.0f
 float SkinCacheDebug;
 
-FVertexUnpacked UnpackedVertex(uint VertexIndex, uint Offset, uint WeightOffset )
+FVertexUnpacked UnpackedVertex(uint MorphIndex, uint ClothIndex, uint VertexIndex, uint WeightOffset )
 {
 	FVertexUnpacked Unpacked;
 
-	uint Tangent = SkinStreamInputBuffer[Offset + GPUSKIN_VB_OFFSET_TANGENT_X];
-	Unpacked.TangentX.x = (float((Tangent >> 0) & 0xff) / 128.0f) - 1.0f;
-	Unpacked.TangentX.y = (float((Tangent >> 8) & 0xff) / 128.0f) - 1.0f;
-	Unpacked.TangentX.z = (float((Tangent >> 16) & 0xff) / 128.0f) - 1.0f;
-
-	Tangent = SkinStreamInputBuffer[Offset + GPUSKIN_VB_OFFSET_TANGENT_Z];
-	Unpacked.TangentZ.x = (float((Tangent >> 0) & 0xff) / 128.0f) - 1.0f;
-	Unpacked.TangentZ.y = (float((Tangent >> 8) & 0xff) / 128.0f) - 1.0f;
-	Unpacked.TangentZ.z = (float((Tangent >> 16) & 0xff) / 128.0f) - 1.0f;
+	Unpacked.TangentX = (TangentInputBuffer[2 * VertexIndex + GPUSKIN_VB_OFFSET_TANGENT_X] * 2.0f) - 1.0f;
+	Unpacked.TangentZ = (TangentInputBuffer[2 * VertexIndex + GPUSKIN_VB_OFFSET_TANGENT_Z] * 2.0f) - 1.0f;
 
 	uint BlendIndices = InputWeightStream[WeightOffset + GPUSKIN_VB_OFFSET_INFLUENCEBONES];
 	Unpacked.BlendIndices.x = BlendIndices & 0xff;
@@ -153,7 +179,10 @@ FVertexUnpacked UnpackedVertex(uint VertexIndex, uint Offset, uint WeightOffset 
 	Unpacked.BlendWeights2.w = float(BlendWeights >> 24 & 0xff) / 255.0f;
 #endif
 #if GPUSKIN_MORPH_BLEND
-	GetMorphBuffer(VertexIndex, Unpacked.DeltaPosition, Unpacked.DeltaTangentZ);
+	GetMorphBuffer(MorphIndex, Unpacked.DeltaPosition, Unpacked.DeltaTangentZ);
+#endif
+#if GPUSKIN_APEX_CLOTH
+    GetClothBuffer(ClothIndex, Unpacked.PositionBaryCoordsAndDist, Unpacked.NormalBaryCoordsAndDist, Unpacked.TangentBaryCoordsAndDist, Unpacked.SourceMeshVertIndices);
 #endif
 	return Unpacked;
 }
@@ -180,16 +209,17 @@ void SkinCacheUpdateBatchCS(uint3 GroupID : SV_GroupID,
 	}
 
 	// Find offset for regular (position/tangent/UV) vertex buffer
-	uint FloatsPerVertex = InputStreamStride / 4;
-	uint VBOffset = VertexIndex * FloatsPerVertex;
-	uint RWOffset = VertexIndex * GPUSKIN_RWBUFFER_NUM_FLOATS;
-	uint InputOffset = InputStreamStart + VBOffset;
-	uint OutputOffset = SkinCacheStart + RWOffset;
+	uint InputOffset = InputStreamStart + VertexIndex;
+	uint OutputOffset = SkinCacheStart + VertexIndex;
 
 	// Find offset for skin weight buffer
 	uint WeightOffset = InputWeightStart + (VertexIndex * (InputWeightStride/4));
 
-	FVertexUnpacked	Unpacked = UnpackedVertex(VertexIndex, InputOffset, WeightOffset);
+#if GPUSKIN_MORPH_BLEND
+	FVertexUnpacked	Unpacked = UnpackedVertex(MorphBufferOffset + VertexIndex, VertexIndex, InputOffset, WeightOffset);
+#else
+	FVertexUnpacked	Unpacked = UnpackedVertex(VertexIndex, VertexIndex, InputOffset, WeightOffset);
+#endif
 
 	// Perform the skinning
 	FVertexFactoryIntermediates	Intermediates = (FVertexFactoryIntermediates)0;
@@ -203,12 +233,12 @@ void SkinCacheUpdateBatchCS(uint3 GroupID : SV_GroupID,
 	Intermediates.BlendMatrix[2] = float4(0,0,1,0);
 #endif
 
-	Intermediates.UnpackedPosition.x = asfloat(SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_POSITION + 0]) * MeshExtension.x + MeshOrigin.x;
-	Intermediates.UnpackedPosition.y = asfloat(SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_POSITION + 1]) * MeshExtension.y + MeshOrigin.y;
-	Intermediates.UnpackedPosition.z = asfloat(SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_POSITION + 2]) * MeshExtension.z + MeshOrigin.z;
+	Intermediates.UnpackedPosition.x = PositionInputBuffer[InputOffset * 3 + 0];
+	Intermediates.UnpackedPosition.y = PositionInputBuffer[InputOffset * 3 + 1];
+	Intermediates.UnpackedPosition.z = PositionInputBuffer[InputOffset * 3 + 2];
 
-	float3 LocalTangentX = Unpacked.TangentX;
-	float3 LocalTangentZ = Unpacked.TangentZ;
+	float3 LocalTangentX = Unpacked.TangentX.xyz;
+	float3 LocalTangentZ = Unpacked.TangentZ.xyz;
 
 #if GPUSKIN_MORPH_BLEND
 	{
@@ -220,31 +250,74 @@ void SkinCacheUpdateBatchCS(uint3 GroupID : SV_GroupID,
 		// the base tangent vector (assuming these are normalized)
 		LocalTangentX = normalize( LocalTangentX - (dot(LocalTangentX, LocalTangentZ) * LocalTangentZ) );
 	}
-#endif
-	
+#else
+#if GPUSKIN_APEX_CLOTH
+    float3 ClothTangentX;
+    float3 ClothTangentZ;
+	float TempClothBlendWeight = 0.0f;
+	if( Unpacked.SourceMeshVertIndices.w < 0xFFFF )
+	{ 
+		TempClothBlendWeight = ClothBlendWeight;
+
+		float3 A = float3(ClothPositionsAndNormalsBuffer[Unpacked.SourceMeshVertIndices.x * 3], ClothPositionsAndNormalsBuffer[Unpacked.SourceMeshVertIndices.x * 3 + 1].x);
+		float3 B = float3(ClothPositionsAndNormalsBuffer[Unpacked.SourceMeshVertIndices.y * 3], ClothPositionsAndNormalsBuffer[Unpacked.SourceMeshVertIndices.y * 3 + 1].x);
+		float3 C = float3(ClothPositionsAndNormalsBuffer[Unpacked.SourceMeshVertIndices.z * 3], ClothPositionsAndNormalsBuffer[Unpacked.SourceMeshVertIndices.z * 3 + 1].x);
+
+		float3 NA = float3(ClothPositionsAndNormalsBuffer[Unpacked.SourceMeshVertIndices.x * 3 + 1].y, ClothPositionsAndNormalsBuffer[Unpacked.SourceMeshVertIndices.x * 3 + 2]);
+		float3 NB = float3(ClothPositionsAndNormalsBuffer[Unpacked.SourceMeshVertIndices.y * 3 + 1].y, ClothPositionsAndNormalsBuffer[Unpacked.SourceMeshVertIndices.y * 3 + 2]);
+		float3 NC = float3(ClothPositionsAndNormalsBuffer[Unpacked.SourceMeshVertIndices.z * 3 + 1].y, ClothPositionsAndNormalsBuffer[Unpacked.SourceMeshVertIndices.z * 3 + 2]);
+
+		float3 NormalPosition = Unpacked.NormalBaryCoordsAndDist.x*(A+NA*Unpacked.NormalBaryCoordsAndDist.w)
+								+ Unpacked.NormalBaryCoordsAndDist.y*(B+NB*Unpacked.NormalBaryCoordsAndDist.w)
+								+ Unpacked.NormalBaryCoordsAndDist.z*(C+NC*Unpacked.NormalBaryCoordsAndDist.w);
+
+		float3 TangentPosition = Unpacked.TangentBaryCoordsAndDist.x*(A+NA*Unpacked.TangentBaryCoordsAndDist.w)
+								+ Unpacked.TangentBaryCoordsAndDist.y*(B+NB*Unpacked.TangentBaryCoordsAndDist.w)
+								+ Unpacked.TangentBaryCoordsAndDist.z*(C+NC*Unpacked.TangentBaryCoordsAndDist.w);
+
+	    Intermediates.SimulatedPosition = Unpacked.PositionBaryCoordsAndDist.x*(A+NA*Unpacked.PositionBaryCoordsAndDist.w)
+					             + Unpacked.PositionBaryCoordsAndDist.y*(B+NB*Unpacked.PositionBaryCoordsAndDist.w)
+					             + Unpacked.PositionBaryCoordsAndDist.z*(C+NC*Unpacked.PositionBaryCoordsAndDist.w);
+
+		ClothTangentX = normalize(TangentPosition - Intermediates.SimulatedPosition);
+		ClothTangentZ = normalize(NormalPosition - Intermediates.SimulatedPosition);
+
+		// cloth data are all in world space so need to change into local space
+		ClothTangentX = mul(ClothTangentX, (half3x3)ClothWorldToLocal);
+		ClothTangentZ = mul(ClothTangentZ, (half3x3)ClothWorldToLocal);
+	}
+#endif // GPUSKIN_APEX_CLOTH
+#endif // GPUSKIN_MORPH_BLEND
+
 	float3 SPos = SkinPosition(Intermediates) * SkinCacheDebug;
-		
+
+#if GPUSKIN_APEX_CLOTH
+    float4 TransformedSkinPos = mul(float4(SPos, 1), ClothLocalToWorld);
+    float3 BlendedPos = lerp(TransformedSkinPos.xyz, Intermediates.SimulatedPosition, TempClothBlendWeight);
+    SPos = mul(float4(BlendedPos, 1), ClothWorldToLocal).xyz;
+#endif
+
 	float3 TangentX = normalize(mul((float3x3)Intermediates.BlendMatrix, LocalTangentX));
 	float3 TangentZ = normalize(mul((float3x3)Intermediates.BlendMatrix, LocalTangentZ));
+	
+#if GPUSKIN_APEX_CLOTH
+    TangentX = ClothTangentX * TempClothBlendWeight + TangentX * (1.0f - TempClothBlendWeight);
+    TangentZ = ClothTangentZ * TempClothBlendWeight + TangentZ * (1.0f - TempClothBlendWeight);
+#endif
 
-	SkinCacheBufferUAV[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 0] = SPos.x;
-	SkinCacheBufferUAV[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 1] = SPos.y;
-	SkinCacheBufferUAV[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 2] = SPos.z;
-	// we keep the w component (what is in it?)
-	uint TangentXCompressed = PackS8x3N(TangentX);
-//	uint TangentXCompressed = PackS8x3N(float3(0,0,0));
-	SkinCacheBufferUAV[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_X] = asfloat(TangentXCompressed | SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_TANGENT_X] & 0xff000000);
-	// we keep the w component which contains the sign of tangent basis determinant (left or right handed)
-	uint TangentZCompressed = PackS8x3N(TangentZ.xyz);
-//	uint TangentZCompressed = PackS8x3N(float3(0,0,0));
-	SkinCacheBufferUAV[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z] = asfloat(TangentZCompressed | SkinStreamInputBuffer[ InputOffset + GPUSKIN_VB_OFFSET_TANGENT_Z] & 0xff000000);
+	PositionBufferUAV[OutputOffset * 3 + 0] = SPos.x;
+	PositionBufferUAV[OutputOffset * 3 + 1] = SPos.y;
+	PositionBufferUAV[OutputOffset * 3 + 2] = SPos.z;
+
+	TangentBufferUAV[2 * OutputOffset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_X] = float4((TangentX * 0.5f) + 0.5f, Unpacked.TangentX.w);
+	TangentBufferUAV[2 * OutputOffset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z] = float4((TangentZ * 0.5f) + 0.5f, Unpacked.TangentZ.w);
 
 #if GPUSKIN_DEBUG_PASSTHROUGH
 	// Passthrough debug code
-	SkinCacheBufferUAV[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 0] = asfloat(SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_POSITION + 0]);
-	SkinCacheBufferUAV[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 1] = asfloat(SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_POSITION + 1]);
-	SkinCacheBufferUAV[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 2] = asfloat(SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_POSITION + 2]);
-	SkinCacheBufferUAV[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_X] = asfloat(SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_TANGENT_X]);
-	SkinCacheBufferUAV[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z] = asfloat(SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_TANGENT_Z]);
+	PositionBufferUAV[OutputOffset * 3 + 0] = PositionInputBuffer[InputOffset * 3 + 0];
+	PositionBufferUAV[OutputOffset * 3 + 1] = PositionInputBuffer[InputOffset * 3 + 1];
+	PositionBufferUAV[OutputOffset * 3 + 2] = PositionInputBuffer[InputOffset * 3 + 2];
+	TangentBufferUAV[2 * OutputOffset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_X] = TangentInputBuffer[2 * InputOffset + GPUSKIN_VB_OFFSET_TANGENT_X];
+	TangentBufferUAV[2 * OutputOffset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z] = TangentInputBuffer[2 * InputOffset + GPUSKIN_VB_OFFSET_TANGENT_Z];
 #endif
 }

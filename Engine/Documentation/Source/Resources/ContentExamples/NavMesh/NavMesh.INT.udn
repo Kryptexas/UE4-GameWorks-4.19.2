@@ -7,41 +7,11 @@ Related: Gameplay/AI
 Related: Engine/AI/BehaviorTrees/NodeReference
 Related: Engine/Actors/Volumes
 Version: 4.9
+topic-image:NavMesh_Compact.png
 
 [REGION:banner]
 ![](NavMesh_Header.png)(convert:false)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/NavMesh:title%](NavMesh_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/NavMesh:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/NavMesh:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/NavMesh]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/NavMesh:title%](NavMesh_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/NavMesh:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/NavMesh]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 

@@ -22,7 +22,7 @@ SkillLevel:Intermediate
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 %Globals:OSSelect%
 
@@ -78,13 +78,15 @@ SkillLevel:Intermediate
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windows]
 
 [/EXCERPT:windows]
 [EXCERPT:macos]
 
 [/EXCERPT:macos]
--->
 
-%Steps%
+[/COMMENT]
+
+

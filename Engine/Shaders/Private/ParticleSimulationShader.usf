@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	ParticleSimulationShader.usf: Shaders for simulating particles on the GPU.
@@ -106,13 +106,16 @@ Texture2D CurveTexture;
 SamplerState CurveTextureSampler;
 
 /** Textures from which to sample vector forces. */
-#if MAX_VECTOR_FIELDS != 4
+#if MAX_VECTOR_FIELDS != 4 && MAX_VECTOR_FIELDS != 1
 #error This must match MAX_VECTOR_FIELDS in C++ land
 #endif
 Texture3D VectorFieldTextures0;
+
+#if MAX_VECTOR_FIELDS > 1
 Texture3D VectorFieldTextures1;
 Texture3D VectorFieldTextures2;
 Texture3D VectorFieldTextures3;
+#endif
 //Texture3D VectorFieldTextures4;
 //Texture3D VectorFieldTextures5;
 //Texture3D VectorFieldTextures6;
@@ -121,9 +124,11 @@ Texture3D VectorFieldTextures3;
 //Texture3D VectorFieldTextures9;
 
 SamplerState VectorFieldTexturesSampler0;
+#if MAX_VECTOR_FIELDS > 1
 SamplerState VectorFieldTexturesSampler1;
 SamplerState VectorFieldTexturesSampler2;
 SamplerState VectorFieldTexturesSampler3;
+#endif
 //SamplerState VectorFieldTexturesSampler4;
 //SamplerState VectorFieldTexturesSampler5;
 //SamplerState VectorFieldTexturesSampler6;
@@ -161,10 +166,14 @@ float3 ComputeOrbitVelocity(float Time, float RandomOrbit)
  */
  float3 SampleVectorFieldTexture(int Index, float3 UV)
  {
+#if MAX_VECTOR_FIELDS == 1
+	 return Texture3DSample(VectorFieldTextures0, VectorFieldTexturesSampler0, UV).xyz;
+#else
 	if (Index == 0) return Texture3DSample(VectorFieldTextures0, VectorFieldTexturesSampler0, UV).xyz;
 	if (Index == 1) return Texture3DSample(VectorFieldTextures1, VectorFieldTexturesSampler1, UV).xyz;
 	if (Index == 2) return Texture3DSample(VectorFieldTextures2, VectorFieldTexturesSampler2, UV).xyz;
 	return Texture3DSample(VectorFieldTextures3, VectorFieldTexturesSampler3, UV).xyz;
+#endif
 
 //	if (Index == 3) return Texture3DSample(VectorFieldTextures3, VectorFieldTexturesSampler3, UV).xyz;
 //	if (Index == 4) return Texture3DSample(VectorFieldTextures4, VectorFieldTexturesSampler4, UV).xyz;
@@ -663,6 +672,6 @@ void PixelMain(
 	OutPosition = float4(0,0,0,2.0f);
 	OutVelocity = float4(0,0,0,0);
 }
-
+ 
 #endif // #if PARTICLE_CLEAR_PIXELSHADER
 

@@ -110,7 +110,11 @@ The contents of this file should be:
 	p4.exe=c:\Program Files\Perforce\p4.EXE
 
 
-<!---## ToDo List--->
+[COMMENT:none]
+-## ToDo List-
+[/COMMENT]
 
-<!---* Thread the syncing of pdb files to prevent the appearance of locking up--->
+[COMMENT:none]
+-* Thread the syncing of pdb files to prevent the appearance of locking up-
+[/COMMENT]
 

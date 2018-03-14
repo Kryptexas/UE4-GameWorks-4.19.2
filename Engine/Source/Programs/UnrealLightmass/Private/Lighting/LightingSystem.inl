@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 template<int32 SHOrder>
 TGatheredLightSample<SHOrder> FGatheredLightSampleUtil::AmbientLight(const FLinearColor& Color)
@@ -171,7 +171,7 @@ void FStaticLightingSystem::CalculateApproximateDirectLighting(
 						{
 							DebugRay.End = Intersection.IntersectionVertex.WorldPosition;
 						}
-						DebugOutput.ShadowRays.Add(DebugRay);
+						MappingContext.DebugOutput->ShadowRays.Add(DebugRay);
 					}
 #endif
 

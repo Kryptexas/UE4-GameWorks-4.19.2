@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429247
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:파티클 시스템 참고서
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
@@ -15,75 +15,16 @@ topic-image:particlereference_topic.png
 
 ParticleSystem 클래스나 ParticleEmitter 클래스처럼 파티클 시스템을 이루는 베이스 클래스에 대한 참고 자료입니다.
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		베이스 클래스 테크니컬 레퍼런스
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	*  [](Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleSystemClass) - %Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleSystemClass:Description%
-	*  [](Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleEmitterClass) - %Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleEmitterClass:Description%
-	*  [](Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleModule) - %Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleModule:Description%
-	[/PARAM]
-[/OBJECT]
-
+*  [](Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleSystemClass) - %Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleSystemClass:Description%
+*  [](Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleEmitterClass) - %Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleEmitterClass:Description%
+*  [](Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleModule) - %Engine/Rendering/ParticleSystems/Reference/BaseClasses/ParticleModule:Description%
 
 ## TypeData 모듈
 
 ParticleSystem 에 추가되는 이미터의 기본 타입은 스프라이트 이미터입니다만, TypeData 모듈을 통해 다른 타입의 이미터를 만드는 것도 가능합니다. 이러한 모듈에는 빔, 메시, 리본 등의 여러가지 유형 파티클을 내뿜는 전용 함수성을 제공합니다.
 
 [EXCERPT:Types]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](Engine/Rendering/ParticleSystems/Reference/TypeData/Beam/psys_beam.gif)(w:256 convert:false)](Engine/Rendering/ParticleSystems/Reference/TypeData/Beam)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Rendering/ParticleSystems/Reference/TypeData/Beam)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Rendering/ParticleSystems/Reference/TypeData/Beam#Intro]
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites/GPUSprites.png)(w:256)](Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites#Intro]
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](Engine/Rendering/ParticleSystems/Reference/TypeData/Mesh/LootBucket.png)(w:256)](Engine/Rendering/ParticleSystems/Reference/TypeData/Mesh)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Rendering/ParticleSystems/Reference/TypeData/Mesh)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Rendering/ParticleSystems/Reference/TypeData/Mesh#Intro]
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](Engine/Rendering/ParticleSystems/Reference/TypeData/Ribbon/RibbonSmoke.png)(w:256)](Engine/Rendering/ParticleSystems/Reference/TypeData/Ribbon)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Rendering/ParticleSystems/Reference/TypeData/Ribbon)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Rendering/ParticleSystems/Reference/TypeData/Ribbon#Intro]
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"topic" parent:"Engine/Rendering/ParticleSystems/Reference" tags:"TypeData")]
 [/EXCERPT:Types]
 
 
@@ -365,7 +306,8 @@ ParticleSystem 에 추가되는 이미터의 기본 타입은 스프라이트 �
 
 
 
-<!-------------Random Seed Includes----------------
+[COMMENT:none]
+-----------Random Seed Includes----------------
 #### Includes
 
 [EXCERPT:RandomSeedInfo]
@@ -381,5 +323,6 @@ ParticleSystem 에 추가되는 이미터의 기본 타입은 스프라이트 �
 [/EXCERPT:RandomSeedInfo]
 
 
--------------Random Seed Includes--------------->
+-------------Random Seed Includes-------------
+[/COMMENT]
 

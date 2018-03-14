@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ExrImgMediaReader.h"
 
 #if IMGMEDIA_EXR_SUPPORTED_PLATFORM
 
+#include "Async/Async.h"
 #include "Misc/Paths.h"
 #include "OpenExrWrapper.h"
 #include "UObject/Class.h"
@@ -50,12 +51,37 @@ bool FExrImgMediaReader::ReadFrame(const FString& ImagePath, FImgMediaFrame& Out
 		return false;
 	}
 
-	void* Buffer = FMemory::Malloc(Dim.X * Dim.Y * sizeof(uint16) * 4);
-	
+	// allocate frame buffer
+	const SIZE_T BufferSize = Dim.X * Dim.Y * sizeof(uint16) * 4;
+	void* Buffer = FMemory::Malloc(BufferSize, PLATFORM_CACHE_LINE_SIZE);
+
+	auto BufferDeleter = [BufferSize](void* ObjectToDelete) {
+#if USE_IMGMEDIA_DEALLOC_POOL
+		// free buffers on the thread pool, because memory allocators may perform
+		// expensive operations, such as filling the memory with debug values
+		TFunction<void()> FreeBufferTask = [ObjectToDelete, BufferSize]()
+		{
+#endif
+			FMemory::Free(ObjectToDelete);
+#if USE_IMGMEDIA_DEALLOC_POOL
+		};
+
+		if (GImgMediaThreadPoolSlow != nullptr)
+		{
+			AsyncPool(*GImgMediaThreadPoolSlow, FreeBufferTask);
+		}
+		else
+		{
+			FreeBufferTask();
+		}
+#endif
+	};
+
+	// read frame data
 	InputFile.SetFrameBuffer(Buffer, Dim);
 	InputFile.ReadPixels(0, Dim.Y - 1);
 
-	OutFrame.Data = MakeShareable(Buffer, [](void* ObjectToDelete) { FMemory::Free(ObjectToDelete); });
+	OutFrame.Data = MakeShareable(Buffer, MoveTemp(BufferDeleter));
 	OutFrame.Format = EMediaTextureSampleFormat::FloatRGBA;
 	OutFrame.Stride = Dim.X * sizeof(unsigned short) * 4;
 

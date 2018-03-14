@@ -21,7 +21,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 之前已设好 [行为树](Engine/AI/EnvironmentQuerySystem/QuickStart/9)，并指令 [AI 控制器](Engine/AI/EnvironmentQuerySystem/QuickStart/7) 开始运行，即可进行测试！
 
@@ -45,4 +45,4 @@ BWhnjDIhYwU
 [/OBJECT]
 
 
-%Steps%
+

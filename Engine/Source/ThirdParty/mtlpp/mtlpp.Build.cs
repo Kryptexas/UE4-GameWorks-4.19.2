@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 
 public class MTLPP : ModuleRules
@@ -11,26 +11,41 @@ public class MTLPP : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-			PublicSystemIncludePaths.Add(MTLPPPath + "Source");
+			PublicSystemIncludePaths.Add(MTLPPPath + "src");
+			PublicSystemIncludePaths.Add(MTLPPPath + "interpose");
 			if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 			{
-				PublicAdditionalLibraries.Add(MTLPPPath + "Mac/libmtlppd.a");
+				PublicAdditionalLibraries.Add(MTLPPPath + "lib/Mac/libmtlppd.a");
 			}
 			else
 			{
-				PublicAdditionalLibraries.Add(MTLPPPath + "Mac/libmtlpp.a");
+				PublicAdditionalLibraries.Add(MTLPPPath + "lib/Mac/libmtlpp.a");
 			}
 		}
         else if (Target.Platform == UnrealTargetPlatform.IOS)
         {
-            PublicSystemIncludePaths.Add(MTLPPPath + "Source");
+            PublicSystemIncludePaths.Add(MTLPPPath + "src");
+			PublicSystemIncludePaths.Add(MTLPPPath + "interpose");
             if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
             {
-                PublicAdditionalLibraries.Add(MTLPPPath + "IOS/libmtlppd.a");
+                PublicAdditionalLibraries.Add(MTLPPPath + "lib/IOS/libmtlppd.a");
             }
             else
             {
-                PublicAdditionalLibraries.Add(MTLPPPath + "IOS/libmtlpp.a");
+                PublicAdditionalLibraries.Add(MTLPPPath + "lib/IOS/libmtlpp.a");
+            }
+        }
+        else if (Target.Platform == UnrealTargetPlatform.TVOS)
+        {
+            PublicSystemIncludePaths.Add(MTLPPPath + "src");
+			PublicSystemIncludePaths.Add(MTLPPPath + "interpose");
+            if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
+            {
+                PublicAdditionalLibraries.Add(MTLPPPath + "lib/TVOS/libmtlppd.a");
+            }
+            else
+            {
+                PublicAdditionalLibraries.Add(MTLPPPath + "lib/TVOS/libmtlpp.a");
             }
         }
     }

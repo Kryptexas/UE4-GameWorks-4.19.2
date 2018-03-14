@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraIntegerTypeEditorUtilities.h"
 #include "SNiagaraParameterEditor.h"
 #include "NiagaraTypes.h"
 #include "NiagaraEditorStyle.h"
 
-#include "SSpinBox.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "Widgets/Input/SComboBox.h"
 
 class SNiagaraIntegerParameterEditor : public SNiagaraParameterEditor
 {
@@ -85,7 +86,7 @@ private:
 	int32 IntValue;
 };
 
-TSharedPtr<SNiagaraParameterEditor> FNiagaraEditorIntegerTypeUtilities::CreateParameterEditor() const
+TSharedPtr<SNiagaraParameterEditor> FNiagaraEditorIntegerTypeUtilities::CreateParameterEditor(const FNiagaraTypeDefinition& ParameterType) const
 {
 	return SNew(SNiagaraIntegerParameterEditor);
 }
@@ -95,18 +96,19 @@ bool FNiagaraEditorIntegerTypeUtilities::CanHandlePinDefaults() const
 	return true;
 }
 
-FString FNiagaraEditorIntegerTypeUtilities::GetPinDefaultStringFromValue(const FNiagaraVariable& Variable) const
+FString FNiagaraEditorIntegerTypeUtilities::GetPinDefaultStringFromValue(const FNiagaraVariable& AllocatedVariable) const
 {
-	int32 Value = 0;
-	if (Variable.IsDataAllocated())
-	{
-		Value = Variable.GetValue<FNiagaraInt32>()->Value;
-	}
-	return FString::Printf(TEXT("%i"), Value);
+	checkf(AllocatedVariable.IsDataAllocated(), TEXT("Can not generate a default value string for an unallocated variable."));
+	return Lex::ToString(AllocatedVariable.GetValue<FNiagaraFloat>().Value);
 }
 
-void FNiagaraEditorIntegerTypeUtilities::SetValueFromPinDefaultString(const FString& StringValue, FNiagaraVariable& Variable) const
+bool FNiagaraEditorIntegerTypeUtilities::SetValueFromPinDefaultString(const FString& StringValue, FNiagaraVariable& Variable) const
 {
-	Variable.AllocateData();
-	Variable.GetValue<FNiagaraInt32>()->Value = FCString::Atoi(*StringValue);
+	FNiagaraInt32 IntegerValue;
+	if(Lex::TryParseString(IntegerValue.Value, *StringValue))
+	{
+		Variable.SetValue<FNiagaraInt32>(IntegerValue);
+		return true;
+	}
+	return false;
 }

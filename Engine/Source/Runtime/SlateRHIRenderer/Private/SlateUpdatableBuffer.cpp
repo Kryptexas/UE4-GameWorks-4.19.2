@@ -1,11 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateUpdatableBuffer.h"
 #include "RenderingThread.h"
 
 DECLARE_CYCLE_STAT(TEXT("UpdateInstanceBuffer Time"), STAT_SlateUpdateInstanceBuffer, STATGROUP_Slate);
 
-struct FSlateUpdateInstanceBufferCommand : public FRHICommand<FSlateUpdateInstanceBufferCommand>
+struct FSlateUpdateInstanceBufferCommand final : public FRHICommand<FSlateUpdateInstanceBufferCommand>
 {
 	FVertexBufferRHIRef VertexBufferRHI;
 	const TArray<FVector4>& InstanceData;

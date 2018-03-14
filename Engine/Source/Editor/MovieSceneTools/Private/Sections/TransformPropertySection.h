@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -38,6 +38,7 @@ public:
 protected:
 
 	virtual TOptional<FTransform> GetCurrentValue() const;
+	virtual TOptional<FRotator> GetCurrentRotator() const;
 
 protected:
 

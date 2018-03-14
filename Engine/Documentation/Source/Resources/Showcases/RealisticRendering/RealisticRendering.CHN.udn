@@ -226,7 +226,8 @@ Related: Engine/Rendering/Materials/LayeredMaterials
 
 
 
-<!--Inclusions-----
+[COMMENT:none]
+Inclusions-----
 [EXCERPT:BaseColor]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -388,4 +389,5 @@ Related: Engine/Rendering/Materials/LayeredMaterials
 
 [/EXCERPT:InverseSquared]
 
-------------------->
+-----------------
+[/COMMENT]

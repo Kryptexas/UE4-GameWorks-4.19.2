@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /**
 	Concrete implementation of FAudioDevice for XAudio2
@@ -212,7 +212,17 @@ namespace Audio
 		// Get the wave format to parse there rest of the device details
 		const WAVEFORMATEX& WaveFormatEx = DeviceDetails.OutputFormat.Format;
 		OutInfo.SampleRate = WaveFormatEx.nSamplesPerSec;
-		OutInfo.NumChannels = WaveFormatEx.nChannels;
+		
+		bool bIsMono = (WaveFormatEx.nChannels == 1);
+		// We are going to default to stereo for mono devices, then mix to mono on buffer submission (automatically done by xaudio2)
+		if (bIsMono == 1)
+		{
+			OutInfo.NumChannels = 2;
+		}
+		else
+		{
+			OutInfo.NumChannels = WaveFormatEx.nChannels;
+		}
 
 		// XAudio2 automatically converts the audio format to output device us so we don't need to do any format conversions
 		OutInfo.Format = EAudioMixerStreamDataFormat::Float;
@@ -238,16 +248,18 @@ namespace Audio
 				if (WaveFormatExtensible->dwChannelMask & ChannelTypeMap[ChannelTypeIndex])
 				{
 					OutInfo.OutputChannelArray.Add((EAudioMixerChannel::Type)ChannelTypeIndex);
+					++ChanCount;
 				}
-				else
-				{
-					EAudioMixerChannel::Type ChannelType;
-					bool bSuccess = GetChannelTypeAtIndex(ChanCount, ChannelType);
-					check(bSuccess);
+			}
 
-					OutInfo.OutputChannelArray.Add(ChannelType);
+			if (ChanCount != WaveFormatEx.nChannels)
+			{
+				UE_LOG(LogAudioMixer, Warning, TEXT("Did not find the channel type flags for audio device '%s'. Filling in with default channel type mappings"), *OutInfo.Name);
+				while ((int32)ChanCount < OutInfo.OutputChannelArray.Num())
+				{
+					// Fill in the channel array with speaker types as a guess. This may not be accurate.
+					OutInfo.OutputChannelArray.Add((EAudioMixerChannel::Type)ChanCount++);
 				}
-				++ChanCount;
 			}
 		}
 		else
@@ -260,17 +272,17 @@ namespace Audio
 			}
 		}
 
-		UE_LOG(LogAudioMixerDebug, Log, TEXT("Audio Device Output Speaker Info:"));
-		UE_LOG(LogAudioMixerDebug, Log, TEXT("Name: %s"), *OutInfo.Name);
-		UE_LOG(LogAudioMixerDebug, Log, TEXT("Is Default: %s"), OutInfo.bIsSystemDefault ? TEXT("Yes") : TEXT("No"));
-		UE_LOG(LogAudioMixerDebug, Log, TEXT("Sample Rate: %d"), OutInfo.SampleRate);
-		UE_LOG(LogAudioMixerDebug, Log, TEXT("Channel Count: %d"), OutInfo.NumChannels);
-		UE_LOG(LogAudioMixerDebug, Log, TEXT("Channel Order:"));
+		UE_LOG(LogAudioMixer, Display, TEXT("Audio Device Output Speaker Info:"));
+		UE_LOG(LogAudioMixer, Display, TEXT("Name: %s"), *OutInfo.Name);
+		UE_LOG(LogAudioMixer, Display, TEXT("Is Default: %s"), OutInfo.bIsSystemDefault ? TEXT("Yes") : TEXT("No"));
+		UE_LOG(LogAudioMixer, Display, TEXT("Sample Rate: %d"), OutInfo.SampleRate);
+		UE_LOG(LogAudioMixer, Display, TEXT("Channel Count: %d (was Mono? %s)"), OutInfo.NumChannels, bIsMono ? TEXT("Yes") : TEXT("No"));
+		UE_LOG(LogAudioMixer, Display, TEXT("Channel Order:"));
 		for (int32 i = 0; i < OutInfo.NumChannels; ++i)
 		{
 			if (i < OutInfo.OutputChannelArray.Num())
 			{
-				UE_LOG(LogAudioMixerDebug, Log, TEXT("%d: %s"), i, EAudioMixerChannel::ToString(OutInfo.OutputChannelArray[i]));
+				UE_LOG(LogAudioMixer, Display, TEXT("%d: %s"), i, EAudioMixerChannel::ToString(OutInfo.OutputChannelArray[i]));
 			}
 		}
 #else // #if PLATFORM_WINDOWS

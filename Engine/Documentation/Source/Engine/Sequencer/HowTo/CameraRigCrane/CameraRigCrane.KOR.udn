@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3335256
+﻿INTSourceChangelist:3683933
 Availability: Public
 Title:카메라 릭 크레인에서 찍기
 Crumbs:
@@ -11,6 +11,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine/Sequencer/ReferenceEditor
 tags:Sequencer
+type:how-to
 
 실제 영화 제작시 부드럽게 휩쓰는 스윕 샷을 찍는 방법 중 하나는, 크레인에 카메라를 달아 크레인 이동을 통해 샷을 제어하는 것입니다.
 시퀀서에서 **Camera Rig Crane** (카메라 릭 크레인) 액터를 사용하여 **카메라** 를 붙이면 비슷한 샷을 찍을 수 있습니다. 크레인의 피치, 요, 또는 크레인 암의 길이를 

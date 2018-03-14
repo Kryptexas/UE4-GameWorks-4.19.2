@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "StereoRenderTargetManager.h"
@@ -20,7 +20,7 @@ public:
 
 	/**
 	 * Calculates dimensions of the render target texture for direct rendering of distortion.
-	 * This implementation calculates the size based on the current value of r.ScreenPercentage.
+	 * This implementation calculates the size based on the current value of vr.pixeldensity.
 	 */
 	virtual void CalculateRenderTargetSize(const class FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY) override;
 

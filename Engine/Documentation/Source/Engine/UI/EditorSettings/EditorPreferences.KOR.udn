@@ -1,48 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:에디터 개인설정
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:에디터의 조작법, 뷰포트, 소스 콘트롤 등 여러가지 작동방식에 대한 환경설정 세팅입니다.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UI/EditorSettings:title%](Engine/UI/EditorSettings_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		에디터 세팅
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/EditorSettings:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/EditorSettings]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UI/EditorSettings:title%](Engine/UI/EditorSettings_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Editor Settings
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/EditorSettings:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/EditorSettings]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/UI/EditorSettings_topic.png
 
 [REGION:fullwidth]
 ![](Preferences01.png)
@@ -149,7 +111,8 @@ yvwZUtmW12I
 | **Warning in Seconds** | 초 단위 경고 - 자동저장을 하기 몇 초 전에 경고창을 표시할 것인지 입니다. ![](autosave_warning.png) |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:CameraControls]
 [REGION:simpletable]
 | 옵션 | 설명 |
@@ -201,4 +164,5 @@ yvwZUtmW12I
 | **0.2** | **1.0** |
 [/REGION]
 [/EXCERPT:SelectionHighlight]
--->
+
+[/COMMENT]

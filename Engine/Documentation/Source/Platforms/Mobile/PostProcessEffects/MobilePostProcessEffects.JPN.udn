@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3512328
+﻿INTSourceChangelist:3658441
 Availability:Public
 Title:モバイル プラットフォームでのポストプロセス エフェクトの使用方法
 Crumbs:
@@ -17,34 +17,13 @@ reference-image:Mobile_PostProcessEffect.gif
 モバイルのポストプロセスは、 PC / コンソールでのポストプロセスとは別のコードパスとして実行されます。その結果、依存テクスチャの読み取り速度の低下、ハードウェア機能不足、高いレンダリング負荷、そしてパフォーマンス全般の低下につながります。 
 **[Project Settings (プロジェクト設定)]** で **[Mobile HDR]** を必ず有効にしてください。これから説明する設定では、この設定を有効にしないとエフェクトが機能しません。
 
+[region: lightbox]
+[![](MobileHDR_Enabled.png)(w:400)](MobileHDR_Enabled.png)
+[/region]
 
-[OBJECT:ToggleButtonContent]
-[PARAMLITERAL:category]
-OS
-[/PARAMLITERAL]
-[PARAMLITERAL:id]
-windows
-[/PARAMLITERAL]
-[PARAMLITERAL:active]
-[/PARAMLITERAL]
-[PARAM:content]
-![](MobileHDR_Enabled.png)(w:950)
-[/PARAM]
-[/OBJECT]
-
-[OBJECT:ToggleButtonContent]
-[PARAMLITERAL:category]
-OS
-[/PARAMLITERAL]
-[PARAMLITERAL:id]
-mac
-[/PARAMLITERAL]
-[PARAMLITERAL:active]
-[/PARAMLITERAL]
-[PARAM:content]
-![](MobileHDR_Enabled_Mac.png)(w:950)
-[/PARAM]
-[/OBJECT]
+[region:caption]
+クリックしてフルサイズで表示
+[/region]
 
 ## モバイル デバイスのトーンマッパを有効にする
 モバイル デバイスで Tonemapper Post Processing オプションを使うためには、**r.tonemapperfilm** をデフォルト値の **0** から **1** へ変更する必要があります。アンリアル エンジン (UE4) でトーンマッパの変更や有効無効の切り替えを行うには、以下の手順に従います。 
@@ -66,10 +45,9 @@ UE4 エディタでトーンマッパを有効にするには、まず **Backtic
 トーンマッパを無効にするには、コンソールを開いて、以下のコマンドを入力します。
 *  **r.tonemapperfilm 0** 
 
-[REGION:note]
+[region:note]
 このメソッドでは、このセッションのみにトーンマッパを有効にします。常にトーンマッパを有効にするには、使用するトーンマッパ設定を DefaultEngine.INI に追加する必要があります。
-[/REGION]
-
+[/region]
 
 [REGION:lightbox]
 [![](TM_Console.png)(w:468 h:315)](TM_Console.png)
@@ -80,31 +58,37 @@ UE4 エディタでトーンマッパを有効にするには、まず **Backtic
 [/REGION]
 
 ### .INI ファイルを使ってトーンマッパ フィルムを有効にする
+プロジェクト全体でトーンマッパの有効無効を切り替えるには、プロジェクトの **DefaultEngine.ini** の **[Rendering Settings (レンダリング設定)]** セクションに **r.tonemapperfilm=1** を追加します。
 
-**「DefaultEngine.ini」** ファイルの **[Rendering Settings]** セクションで以下を含むことで、プロジェクト全体で使用するトーンマッパを設定することができます。
+[REGION:lightbox]
+[![](TM_Default_Engine_INI.png)(w:422 h:199)](TM_Default_Engine_INI.png)
+[/REGION]
 
-	r.TonemapperFilm=
+[REGION:caption]
+クリックしてフルサイズで表示
+[/REGION]
 
-DefaultEngine.ini ファイルでの設定方法の例です。
+[REGION:lightbox]
+[![](TM_INI_Location.png)(w:422 h:199)](TM_INI_Location.png)
+[/REGION]
 
-	[/Script/Engine.RendererSettings]
-	;Set whether the filmic tone mapper is enabled.
-	r.TonemapperFilm=1
-
-
+[REGION:caption]
+クリックしてフルサイズで表示
+[/REGION]
 
 ### モバイル デバイス上でトーンマッパを有効にする
+モバイル デバイス上でトーンマッパを有効にするには、**4 本の指** で同時に画面をタップして **コンソール ウィンドウ** を立ち上げます。有効にするには **r.tonemapperfilm 1**、無効にするには **r.tonemapperfilm 0** を入力します。
 
-モバイル デバイス上でトーンマッパを有効にするには、**4 本の指** で同時に画面をタップして **コンソール ウィンドウ** を立ち上げます。次に、
-以下を入力します。 
+[REGION:lightbox]
+[![](TM_Phone_Console.png)(w:640 h:360)](TM_Phone_Console.png)
+[/REGION]
 
-* Enable Filmic Tone Mapper - **r.TonemapperFilm 1**
-* Disable Filmic Tone Mapper - **r.TonemapperFilm 0**
-
-![](TM_Phone_Console.png)(w:640 h:360)
+[REGION:caption]
+クリックしてフルサイズで表示
+[/REGION]
 
 ## モバイルでサポートされているポストプロセス エフェクトと設定
-次のセクションでは、モバイル デバイスでサポートされているポストプロセス エフェクトと設定方法、および映画的なトーンマッパを有効にする必要性について説明します。
+次のセクションでは、モバイル デバイスでサポートされているポストプロセス エフェクトと設定方法、およびトーンマッパを有効にする必要性について説明します。
 
 [REGION:lightbox]
 [![](TM_PostProcess_Settings.png)(w:275 h:355)](TM_PostProcess_Settings.png)
@@ -114,79 +98,109 @@ DefaultEngine.ini ファイルでの設定方法の例です。
 クリックしてフルサイズで表示
 [/REGION]
 
-### White Balance
+### Color Grading
+
+**[Color Grading]** セクションには、画像の色補正に使うプロパティがあります。
+
 |ポストプロセス プロパティ| サポートの有 (Yes) 無 (No)|R.tonemapperfilm 値| 
-|--------------------|-----------|--------------|
+|---------------------|-----------|----------------------|
+| [REGION:tablesection] White Balance [/REGION] |||
 |**Temp**|Yes|1|
 |**Tint**|Yes|1|
-
-### Color Grading
-|ポストプロセス プロパティ| サポートの有 (Yes) 無 (No)|R.tonemapperfilm 値| 
-|--------------------|-----------|--------------|
+| [REGION:tablesection] Global [/REGION] |||
 |**Saturation**|Yes|1|
 |**Contrast**|Yes|1|
 |**Gamma**|Yes|1|
 |**Gain**|Yes|1|
 |**Offset**|Yes|1|
+|**Scene Color Tint**|Yes|1|
+|**Color Grading LUT Intensity**|Yes|1|
+|**Color Grading LUT**|Yes|1|
+| [REGION:tablesection] Shadows [/REGION] |||
+|**Saturation**|Yes|1|
+|**Contrast**|Yes|1|
+|**Gamma**|Yes|1|
+|**Gain**|Yes|1|
+|**Offset**|Yes|1|
+|**Shadows Max**|Yes|1|
+| [REGION:tablesection] Midtones [/REGION] |||
+|**Saturation**|Yes|1|
+|**Contrast**|Yes|1|
+|**Gamma**|Yes|1|
+|**Gain**|Yes|1|
+|**Offset**|Yes|1|
+| [REGION:tablesection] Highlights [/REGION] |||
+|**Saturation**|Yes|1|
+|**Contrast**|Yes|1|
+|**Gamma**|Yes|1|
+|**Gain**|Yes|1|
+|**Offset**|Yes|1|
+|**Highlights Min**|Yes|1|
 
-### Film (フィルム)
+
+### Tonemapper
+
+**[Tonemapper]** セクションには、画像の色域の調整に使うプロパティがあります。
+
+
 |ポストプロセス プロパティ| サポートの有 (Yes) 無 (No)|R.tonemapperfilm 値| 
 |--------------------|-----------|--------------|
-|**Tint**|Yes|0|
-|**Tint Shadow**|Yes|0|
-|**Tint Shadow Blend**|Yes|0|
-|**Tint Shadow Amount**|Yes|0|
-|**Saturation**|Yes|0|
-|**Channel Mixer Red**|Yes|0|
-|**Channel Mixer Green**|Yes|0|
-|**Channel Mixer Blue**|Yes|0|
-|**Contrast**|Yes|0|
-|**Crush Shadows**|Yes|0|
-|**Crush Highlights**|Yes|0|
-|**Dynamic Range**|Yes|0|
 |**Slope**|Yes|1|
 |**Toe**|Yes|1|
 |**Shoulder**|Yes|1|
 |**Black Clip**|Yes|1|
 |**White Clip**|Yes|1|
 
-### Scene Color (シーン カラー)
+### Mobile Tonemapper
+
+**[Mobile Tonemapper]** セクションには、画像の色域の調整に使うモバイル専用のプロパティがあります。
+
 |ポストプロセス プロパティ| サポートの有 (Yes) 無 (No)|R.tonemapperfilm 値| 
 |--------------------|-----------|--------------|
-|**Scene Color Tint**|Yes|1|
-|**Fringe Intensity**|Yes|0 & 1|
+|**Tint**|Yes|0|
+|**Saturation**|Yes|0|
+|**Contrast**|Yes|0|
+|**Tint Shadow**|Yes|0|
+|**Tint Shadow Blend**|Yes|0|
+|**Tint Shadow Amount**|Yes|0|
+|**Channel Mixer Red**|Yes|0|
+|**Channel Mixer Green**|Yes|0|
+|**Channel Mixer Blue**|Yes|0|
+|**Crush Shadows**|Yes|0|
+|**Crush Highlights**|Yes|0|
+|**Dynamic Range**|Yes|0|
+
+
+### Lens
+
+**[Lens]** セクションには、ブルーム (Bloom) および DOF などの機能で画像に様々な視覚的調整を行うためのプロパティがあります。
+
+|ポストプロセス プロパティ| サポートの有 (Yes) 無 (No)|R.tonemapperfilm 値| 
+|--------------------|-----------|--------------|
+| [REGION:tablesection] Image Effects [/REGION] |||
+|**Chromatic Aberation**|Yes|0 & 1|
 |**Vignette Intensity**|Yes|0 & 1|
 |**Grain Jitter**|Yes|0 & 1|
-|**Grain Intensity**|Yes|0 & 1|
 |**Color Grading Intensity**|Yes|1|
-|**Color Grading**|Yes|1|
-
-### Bloom (ブルーム)
-|ポストプロセス プロパティ| サポートの有 (Yes) 無 (No)|R.tonemapperfilm 値| 
-|--------------------|-----------|--------------|
+|[REGION:tablesection] Bloom [/REGION] |||
+|**Method:Standard**|Yes|0 & 1|
+|**Method:Convolution**|No|n/a|
 |**Intensity**|Yes|0 & 1|
 |**Threshold**|Yes|0 & 1|
 |**Size Scale**|Yes|0 & 1|
-|**#1 Size**|No|n/a|
-|**#2 Size**|No|n/a|
-|**#3 Size**|No|n/a|
-|**#4 Size**|No|n/a|
-|**#5 Size**|No|n/a|
-|**#1 Tint**|No|n/a|
-|**#2 Tint**|No|n/a|
-|**#3 Tint**|No|n/a|
-|**#4 Tint**|No|n/a|
-|**#5 Tint**|No|n/a|
-|**#6 Tint**|No|n/a|
+|**#123456 Size**|No|n/a|
+|**#123456 Tint**|No|n/a|
+|**Convolution Scale**|No|n/a|
+|**Convolution Center**|No|n/a|
+|**Convolution Boost**|No|n/a|
+|**Convolution Buffer**|No|n/a|
+|[REGION:tablesection] Dirt Mask [/REGION] |||
+|**Dirt Mask Texture**|Yes|1|
 |**Dirt Mask Intensity**|Yes|1|
 |**Dirt Mask Tint**|Yes|1|
-|**Dirt Mask**|Yes|1|
-
-### 自動露光
-|ポストプロセス プロパティ| サポートの有 (Yes) 無 (No)|R.tonemapperfilm 値| 
-|--------------------|-----------|--------------|
-|**Auto Exposure Histogram**|Yes|0 & 1|
-|**Auto Exposure Basic**|Yes|0 & 1|
+|[REGION:tablesection] Auto Exposure [/REGION] |||
+|**Auto Exposure Histogram**|No|n/a|
+|**Auto Exposure Basic**|No|n/a|
 |**Low Percent**|No|n/a|
 |**High Percent**|No|n/a|
 |**Min Brightness**|No|n/a|
@@ -196,11 +210,19 @@ DefaultEngine.ini ファイルでの設定方法の例です。
 |**Exposure Bias**|Yes|0 & 1|
 |**Histogram Log Min**|No|n/a|
 |**Histogram Log Max**|No|n/a|
-
-### DOF (Depth of field:被写界深度)
-|ポストプロセス プロパティ| サポートの有 (Yes) 無 (No)|R.tonemapperfilm 値| 
-|--------------------|-----------|--------------|
-|**BokehDOF**|Yes|0 |
+|**Low Percent**|No|n/a|
+|**High Percent**|No|n/a|
+|**Histogram Log Min**|No|n/a|
+|**Histogram Log Max**|No|n/a|
+|[REGION:tablesection] Lens Flares [/REGION] |||
+|**Intensity**|No|n/a|
+|**Tint**|No|n/a|
+|**Bokeh Size**|No|n/a|
+|**Threshold**|No|n/a|
+|**Bokeh Shape**|No|n/a|
+|**Tints #012345678**|No|n/a|
+|[REGION:tablesection] Depth of Field [/REGION] |||
+|**BokehDOF**|No|n/a |
 |**GaussianDOF**|Yes|0 |
 |**CircleDOF**|No|n/a |
 |**High Quality Gaussian DoF on Mobile**|Yes|1|
@@ -218,18 +240,65 @@ DefaultEngine.ini ファイルでの設定方法の例です。
 |**Shape**|No|n/a|
 |**Occlusion**|No|n/a|
 |**Color Threshold**|No|n/a|
+|**Size Threshold**|No|n/a|
 |**Sky Distance**|No|n/a|
 |**Vignette Size**|No|n/a|
 
+### Rendering Features
 
-### その他
+**[Rendering Features]** セクションには、カスタム深度やカスタム ステンシルなどの特定のポストプロセス マテリアを使って画像に視覚的な調整を行うためのプロパティがあります。 
+
 |ポストプロセス プロパティ| サポートの有 (Yes) 無 (No)|R.tonemapperfilm 値| 
 |--------------------|-----------|--------------|
-|**Screen Percentage**|No|n/a |
-|**AA Methods**|Yes|0 & 1|
-[region:note]
-AA を有効にすると、テンポラル アンチエイリアシングの特別なモバイル版が適用され、2SGSSAA モードおよび激しい動きが提供されます。 
-[/region]
+| [REGION:tablesection] Post Process Materials [/REGION] |||
+|**Array**|Yes|1|
+| [REGION:tablesection] Ambient Cubemap [/REGION] |||
+|**Tint**|No|n/a|
+|**Intensity**|No|n/a|
+|**Cubemap Texture**|No|n/a|
+| [REGION:tablesection] Ambient Occlusion [/REGION] |||
+|**Intensity**|No|n/a|
+|**Radius**|No|n/a|
+|**Static Fraction**|No|n/a|
+|**Radius in Worldspace**|No|n/a|
+|**Fade Out Distance**|No|n/a|
+|**Fade Out Radius**|No|n/a|
+|**Power**|No|n/a|
+|**Bias**|No|n/a|
+|**Quality**|No|n/a|
+|**Mip Blend**|No|n/a|
+|**Mip Scale**|No|n/a|
+|**Mip Threshold**|No|n/a|
+| [REGION:tablesection] Global Illumination [/REGION] |||
+|**Indirect Lighting Color**|Yes|0 & 1|
+|**Indirect Lighting Intensity**|Yes|0 & 1|
+| [REGION:tablesection] Motion Blur [/REGION] |||
+|**Amount**|No|n/a|
+|**Max**|No|n/a|
+|**Per Object Size**|No|n/a|
+| [REGION:tablesection] Light Propagation Volume [/REGION] |||
+|**Intensity**|No|n/a|
+|**Size**|No|n/a|
+|**Secondary Occlusion Intensity**|No|n/a|
+|**Occlusion Intensity**|No|n/a|
+|**Diffuse Occlusion Exponent**|No|n/a|
+|**Specular Occlusion Exponent**|No|n/a|
+|**Light Injection Bias**|No|n/a|
+|**Secondary Bounce Intensity**|No|n/a|
+|**Geometry Volume Bias**|No|n/a|
+|**Emissive Injection Intensity**|No|n/a|
+|**Occlusion Radius**|No|n/a|
+|**Diffuse Occlusion Intensity**|No|n/a|
+|**Specular Occlusion Intensity**|No|n/a|
+|**Fade Range**|No|n/a|
+|**Directional Occlusion Fade Range**|No|n/a|
+| [REGION:tablesection] Screen Space Reflections [/REGION] |||
+|**Intensity**|No|n/a|
+|**Quality**|No|n/a|
+|**Max Roughness**|No|n/a|
+| [REGION:tablesection] Misc [/REGION] |||
+|**Screen Percentage**|No|n/a|
+
 
 ## カスタム ポストプロセス マテリアル
 
@@ -252,41 +321,14 @@ Blendable Locations の詳細は、[](Engine/Rendering/PostProcessEffects/PostPr
 
 この機能が正しく動作するためには、**Mobile HDR** を有効にしておく必要があります。Mobile HDR は、**[Project Settings]** > **[Engine]** > **[Rendering]** > **[Mobile]** で **[Mobile HDR]** にチェックが入っていれば有効です。
 
-[OBJECT:ToggleButtonContent]
-[PARAMLITERAL:category]
-OS
-[/PARAMLITERAL]
-[PARAMLITERAL:id]
-windows
-[/PARAMLITERAL]
-[PARAMLITERAL:active]
-[/PARAMLITERAL]
-[PARAM:content]
 [REGION:lightbox]
-[![](MobileHDR_Enabled.png)(w:400)](MobileHDR_Enabled.png)
+[![](MobileHDR_Enabled.png)(w:500)](MobileHDR_Enabled.png)
 [/REGION]
-[/PARAM]
-[/OBJECT]
-
-[OBJECT:ToggleButtonContent]
-[PARAMLITERAL:category]
-OS
-[/PARAMLITERAL]
-[PARAMLITERAL:id]
-mac
-[/PARAMLITERAL]
-[PARAMLITERAL:active]
-[/PARAMLITERAL]
-[PARAM:content]
-[REGION:lightbox]
-[![](MobileHDR_Enabled_Mac.png)(w:400)](MobileHDR_Enabled_Mac.png)
-[/REGION]
-[/PARAM]
-[/OBJECT]
 
 [REGION:caption]
 クリックしてフルサイズで表示
 [/REGION]
+
 
 **Custom Depth** ポストプロセス オプションをモバイル レンダリング パスで使うことができるようになりました。カスタム ポストプロセス マテリアルは、**Scene Depth**、**Custom Depth**、**Scene Color** そして **Custom Stencil** からもサンプリングできるようになりました。
 
@@ -296,7 +338,8 @@ mac
 | Custom Depth | Custom Stencil  |
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:customdepth]
 [REGION:raw]
 ![](Custom_Scene_Depth.png)(w:575)
@@ -308,7 +351,8 @@ mac
 ![](Custom_Stencil.png)(w:575)
 [/REGION]
 [/EXCERPT:customstencil]
---->
+-
+[/COMMENT]
 
 
 ## ポストプロセス パフォーマンス全般におけるヒント
@@ -317,12 +361,5 @@ mac
 
 [REGION:note]
 パフォーマンス向上のために、コンソール変数 r.RenderTargetSwitchWorkaround で制御される特別なワークアラウンドを実装しています。**BaseDeviceProfiles.ini** で、
-これが幾つかのデバイスに対して有効になっていることが分かります。一定のパフォーマンス特性をもつデバイスでは、ブルーム エフェクトの外見に若干変化が生じることにご注意ください。コンソール変数ヘルプ テキストで詳細が説明されています。
-
-	r.RenderTargetSwitchWorkaround
-
-レンダー ターゲットの切り替えに関連したパフォーマンスの低下を避けるため、幾つかのモバイル プラットフォーム上で必要とされるワークアラウンドです。
-いくつかのハードウェア上でのみ有効にされます。ブルームの質に多少影響します。通常のコードパスより遅いですが、
-レンダー ターゲットの切り替えの多くを避けるので、それでも速くなります。(デフォルト: 0)
-すべての 32 bit の iOS デバイス上 (DeviceProfiles で実行された) で有効にしてください。
+これが幾つかのデバイスに対して有効になっていることが分かります。一定のパフォーマンス特性をもつデバイスでは、ブルーム エフェクトの外見に若干変化が生じることにご注意ください。 
 [/REGION]

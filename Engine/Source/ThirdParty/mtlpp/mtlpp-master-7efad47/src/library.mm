@@ -2,51 +2,53 @@
  * Copyright 2016-2017 Nikolay Aleksiev. All rights reserved.
  * License: https://github.com/naleksiev/mtlpp/blob/master/LICENSE
  */
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
+#include <Metal/MTLLibrary.h>
 #include "library.hpp"
 #include "device.hpp"
 #include "function_constant_values.hpp"
 #include "argument_encoder.hpp"
-#include <Metal/MTLLibrary.h>
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
     VertexAttribute::VertexAttribute() :
-        ns::Object(ns::Handle{ (__bridge void*)[[MTLVertexAttribute alloc] init] }, false)
+        ns::Object<MTLVertexAttribute*>([[MTLVertexAttribute alloc] init], false)
     {
     }
 
     ns::String VertexAttribute::GetName() const
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge MTLVertexAttribute*)m_ptr name] };
+        return [(MTLVertexAttribute*)m_ptr name];
     }
 
-    uint32_t VertexAttribute::GetAttributeIndex() const
+    NSUInteger VertexAttribute::GetAttributeIndex() const
     {
         Validate();
-        return uint32_t([(__bridge MTLVertexAttribute*)m_ptr attributeIndex]);
+        return NSUInteger([(MTLVertexAttribute*)m_ptr attributeIndex]);
     }
 
     DataType VertexAttribute::GetAttributeType() const
     {
         Validate();
-        return DataType([(__bridge MTLVertexAttribute*)m_ptr attributeType]);
+        return DataType([(MTLVertexAttribute*)m_ptr attributeType]);
     }
 
     bool VertexAttribute::IsActive() const
     {
         Validate();
-        return [(__bridge MTLVertexAttribute*)m_ptr isActive];
+        return [(MTLVertexAttribute*)m_ptr isActive];
     }
 
     bool VertexAttribute::IsPatchData() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return [(__bridge MTLVertexAttribute*)m_ptr isActive];
+        return [(MTLVertexAttribute*)m_ptr isActive];
 #else
         return false;
 #endif
@@ -56,7 +58,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return [(__bridge MTLVertexAttribute*)m_ptr isActive];
+        return [(MTLVertexAttribute*)m_ptr isActive];
 #else
         return false;
 #endif
@@ -64,9 +66,9 @@ namespace mtlpp
 
     Attribute::Attribute() :
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        ns::Object(ns::Handle{ (__bridge void*)[[MTLAttribute alloc] init] }, false)
+        ns::Object<MTLAttribute*>([[MTLAttribute alloc] init], false)
 #else
-        ns::Object(ns::Handle{ nullptr })
+        ns::Object<MTLAttribute*>(nullptr)
 #endif
     {
     }
@@ -75,17 +77,17 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return ns::Handle{ (__bridge void*)[(__bridge MTLAttribute*)m_ptr name] };
+        return [(MTLAttribute*)m_ptr name];
 #else
-        return ns::Handle{ nullptr };
+        return nullptr;
 #endif
     }
 
-    uint32_t Attribute::GetAttributeIndex() const
+    NSUInteger Attribute::GetAttributeIndex() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return uint32_t([(__bridge MTLAttribute*)m_ptr attributeIndex]);
+        return NSUInteger([(MTLAttribute*)m_ptr attributeIndex]);
 #else
         return 0;
 #endif
@@ -95,7 +97,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return DataType([(__bridge MTLAttribute*)m_ptr attributeType]);
+        return DataType([(MTLAttribute*)m_ptr attributeType]);
 #else
         return DataType(0);
 #endif
@@ -105,7 +107,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return [(__bridge MTLAttribute*)m_ptr isActive];
+        return [(MTLAttribute*)m_ptr isActive];
 #else
         return false;
 #endif
@@ -115,7 +117,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return [(__bridge MTLAttribute*)m_ptr isActive];
+        return [(MTLAttribute*)m_ptr isActive];
 #else
         return false;
 #endif
@@ -125,7 +127,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return [(__bridge MTLAttribute*)m_ptr isActive];
+        return [(MTLAttribute*)m_ptr isActive];
 #else
         return false;
 #endif
@@ -133,9 +135,9 @@ namespace mtlpp
 
     FunctionConstant::FunctionConstant() :
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        ns::Object(ns::Handle{ (__bridge void*)[[MTLFunctionConstant alloc] init] }, false)
+        ns::Object<MTLFunctionConstant*>([[MTLFunctionConstant alloc] init], false)
 #else
-        ns::Object(ns::Handle{ nullptr })
+        ns::Object<MTLFunctionConstant*>(nullptr)
 #endif
     {
     }
@@ -144,9 +146,9 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return ns::Handle{ (__bridge void*)[(__bridge MTLFunctionConstant*)m_ptr name] };
+        return [(MTLFunctionConstant*)m_ptr name];
 #else
-        return ns::Handle{ nullptr };
+        return nullptr;
 #endif
     }
 
@@ -154,17 +156,17 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return DataType([(__bridge MTLFunctionConstant*)m_ptr type]);
+        return DataType([(MTLFunctionConstant*)m_ptr type]);
 #else
         return DataType(0);
 #endif
     }
 
-    uint32_t FunctionConstant::GetIndex() const
+    NSUInteger FunctionConstant::GetIndex() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return uint32_t([(__bridge MTLFunctionConstant*)m_ptr index]);
+        return NSUInteger([(MTLFunctionConstant*)m_ptr index]);
 #else
         return 0;
 #endif
@@ -174,7 +176,7 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return [(__bridge MTLFunctionConstant*)m_ptr required];
+        return [(MTLFunctionConstant*)m_ptr required];
 #else
         return false;
 #endif
@@ -184,39 +186,39 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLFunction>)m_ptr label] };
+        return m_table->Label(m_ptr);
 #else
-        return ns::Handle{ nullptr };
+        return nullptr;
 #endif
     }
 
     Device Function::GetDevice() const
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLFunction>)m_ptr device] };
+		return m_table->Device(m_ptr);
     }
 
     FunctionType Function::GetFunctionType() const
     {
         Validate();
-        return FunctionType([(__bridge id<MTLFunction>)m_ptr functionType]);
+		return FunctionType(m_table->FunctionType(m_ptr));
     }
 
     PatchType Function::GetPatchType() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return PatchType([(__bridge id<MTLFunction>)m_ptr patchType]);
+		return PatchType(m_table->PatchType(m_ptr));
 #else
         return PatchType(0);
 #endif
     }
 
-    int32_t Function::GetPatchControlPointCount() const
+    NSInteger Function::GetPatchControlPointCount() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return int32_t([(__bridge id<MTLFunction>)m_ptr patchControlPointCount]);
+		return m_table->PatchControlPointCount(m_ptr);
 #else
         return 0;
 #endif
@@ -225,52 +227,53 @@ namespace mtlpp
     const ns::Array<VertexAttribute> Function::GetVertexAttributes() const
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLFunction>)m_ptr vertexAttributes] };
+		return m_table->VertexAttributes(m_ptr);
     }
 
     const ns::Array<Attribute> Function::GetStageInputAttributes() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLFunction>)m_ptr stageInputAttributes] };
+		return m_table->StageInputAttributes(m_ptr);
 #else
-        return ns::Handle{ nullptr };
+        return nullptr;
 #endif
     }
 
     ns::String Function::GetName() const
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLFunction>)m_ptr name] };
+		return m_table->Name(m_ptr);
     }
 
     ns::Dictionary<ns::String, FunctionConstant> Function::GetFunctionConstants() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLFunction>)m_ptr functionConstantsDictionary] };
+		return m_table->FunctionConstantsDictionary(m_ptr);
 #else
-        return ns::Handle{ nullptr };
+        return nullptr;
 #endif
     }
 	
-	ArgumentEncoder Function::NewArgumentEncoderWithBufferIndex(uint32_t index)
+	ArgumentEncoder Function::NewArgumentEncoderWithBufferIndex(NSUInteger index)
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-		return ns::Handle{ [(__bridge id<MTLFunction>)m_ptr newArgumentEncoderWithBufferIndex:index] };
+		return m_table->NewArgumentEncoderWithBufferIndex(m_ptr, index);
 #else
 		return ArgumentEncoder();
 #endif
 	}
 
-	ArgumentEncoder Function::NewArgumentEncoderWithBufferIndex(uint32_t index, Argument* reflection)
+	ArgumentEncoder Function::NewArgumentEncoderWithBufferIndex(NSUInteger index, Argument* reflection)
 	{
 		Validate();
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
+		
 		MTLArgument* arg = nil;
-		ArgumentEncoder encoder( ns::Handle{ [(__bridge id<MTLFunction>)m_ptr newArgumentEncoderWithBufferIndex:index reflection:reflection ? &arg : nil] } );
-		if (reflection) { *reflection = ns::Handle{ arg }; }
+		ArgumentEncoder encoder(m_table->NewArgumentEncoderWithBufferIndexreflection(m_ptr, index, reflection ? &arg : nil));
+		if (reflection) { *reflection = arg; }
 		return encoder;
 #else
 		return ArgumentEncoder();
@@ -281,27 +284,27 @@ namespace mtlpp
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        [(__bridge id<MTLFunction>)m_ptr setLabel:(__bridge NSString*)label.GetPtr()];
+		m_table->SetLabel(m_ptr, label.GetPtr());
 #endif
     }
 
-    ns::Dictionary<ns::String, ns::String> CompileOptions::GetPreprocessorMacros() const
+    ns::Dictionary<ns::String, ns::Object<NSObject*>> CompileOptions::GetPreprocessorMacros() const
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge MTLCompileOptions*)m_ptr preprocessorMacros] };
+        return [(MTLCompileOptions*)m_ptr preprocessorMacros];
     }
 
     bool CompileOptions::IsFastMathEnabled() const
     {
         Validate();
-        return [(__bridge MTLCompileOptions*)m_ptr fastMathEnabled];
+        return [(MTLCompileOptions*)m_ptr fastMathEnabled];
     }
 
     LanguageVersion CompileOptions::GetLanguageVersion() const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_11, 9_0)
-        return LanguageVersion([(__bridge MTLCompileOptions*)m_ptr languageVersion]);
+        return LanguageVersion([(MTLCompileOptions*)m_ptr languageVersion]);
 #else
         return LanguageVersion::Version1_0;
 #endif
@@ -310,64 +313,60 @@ namespace mtlpp
     void CompileOptions::SetFastMathEnabled(bool fastMathEnabled)
     {
         Validate();
-        [(__bridge MTLCompileOptions*)m_ptr setFastMathEnabled:fastMathEnabled];
+        [(MTLCompileOptions*)m_ptr setFastMathEnabled:fastMathEnabled];
     }
 
-    void CompileOptions::SetLanguagesVersion(LanguageVersion languageVersion)
+    void CompileOptions::SetLanguageVersion(LanguageVersion languageVersion)
     {
         Validate();
-        [(__bridge MTLCompileOptions*)m_ptr setFastMathEnabled:MTLLanguageVersion(languageVersion)];
+        [(MTLCompileOptions*)m_ptr setLanguageVersion:MTLLanguageVersion(languageVersion)];
     }
 
     ns::String Library::GetLabel() const
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLLibrary>)m_ptr label] };
+		return m_table->Label(m_ptr);
     }
 
     void Library::SetLabel(const ns::String& label)
     {
         Validate();
-        [(__bridge id<MTLLibrary>)m_ptr setLabel:(__bridge NSString*)label.GetPtr()];
+		m_table->SetLabel(m_ptr, label.GetPtr());
     }
 
     ns::Array<ns::String> Library::GetFunctionNames() const
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLLibrary>)m_ptr functionNames] };
+		return m_table->FunctionNames(m_ptr);
     }
 
-    Function Library::NewFunction(const ns::String& functionName)
+    Function Library::NewFunction(const ns::String& functionName) const
     {
         Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLLibrary>)m_ptr newFunctionWithName:(__bridge NSString*)functionName.GetPtr()] };
+		return m_table->NewFunctionWithName(m_ptr, functionName.GetPtr());
     }
 
-    Function Library::NewFunction(const ns::String& functionName, const FunctionConstantValues& constantValues, ns::Error* error)
+    Function Library::NewFunction(const ns::String& functionName, const FunctionConstantValues& constantValues, ns::AutoReleasedError* error) const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        NSError* nsError = error ? (__bridge NSError*)error->GetPtr() : nullptr;
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLLibrary>)m_ptr
-                                            newFunctionWithName:(__bridge NSString*)functionName.GetPtr()
-                                            constantValues:(__bridge MTLFunctionConstantValues*)constantValues.GetPtr()
-                                            error:&nsError] };
+		return m_table->NewFunctionWithNameconstantValueserror(m_ptr, functionName.GetPtr(), constantValues.GetPtr(), error ? (NSError**)error->GetInnerPtr() : nullptr);
 #else
-        return ns::Handle{ nullptr };
+        return nullptr;
 #endif
     }
 
-    void Library::NewFunction(const ns::String& functionName, const FunctionConstantValues& constantValues, std::function<void(const Function&, const ns::Error&)> completionHandler)
+    void Library::NewFunction(const ns::String& functionName, const FunctionConstantValues& constantValues, FunctionHandler completionHandler) const
     {
         Validate();
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        [(__bridge id<MTLLibrary>)m_ptr
-             newFunctionWithName:(__bridge NSString*)functionName.GetPtr()
-             constantValues:(__bridge MTLFunctionConstantValues*)constantValues.GetPtr()
-             completionHandler:^(id <MTLFunction> mtlFunction, NSError* error){
-                 completionHandler(ns::Handle{ (__bridge void*)mtlFunction }, ns::Handle{ (__bridge void*)error });
-             }];
+		m_table->NewFunctionWithNameconstantValuescompletionHandler(m_ptr, functionName.GetPtr(), constantValues.GetPtr(), ^(id <MTLFunction> mtlFunction, NSError* error)
+		{
+			completionHandler(mtlFunction, error);
+		});
 #endif
     }
 
 }
+
+MTLPP_END

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PluginHelpers.h"
 #include "GenericPlatform/GenericPlatformFile.h"
@@ -238,7 +238,7 @@ bool FPluginHelpers::FixupPluginTemplateAssets(const FString& PluginName)
 				if (AssetRenameData.Num() > 0)
 				{
 					FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
-					AssetToolsModule.Get().RenameAssets(AssetRenameData);
+					AssetToolsModule.Get().RenameAssetsWithDialog(AssetRenameData);
 				}
 			}
 		}

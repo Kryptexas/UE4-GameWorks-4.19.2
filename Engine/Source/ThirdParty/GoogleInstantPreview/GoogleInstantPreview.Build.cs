@@ -35,7 +35,7 @@ public class GoogleInstantPreview : ModuleRules
                 {
                     PublicDelayLoadDLLs.Add(dll);
                     string dllPath = Path.Combine(IpSharedLibTargetDir, dll);
-                    RuntimeDependencies.Add(new RuntimeDependency(dllPath));
+                    RuntimeDependencies.Add(dllPath);
                 }
             }
             else if (Target.Platform == UnrealTargetPlatform.Mac)
@@ -52,7 +52,7 @@ public class GoogleInstantPreview : ModuleRules
                     
                     string dylibPath = Path.Combine(IpSharedLibTargetDir, dylib);
                     PublicDelayLoadDLLs.Add(dylibPath);
-                    RuntimeDependencies.Add(new RuntimeDependency(dylibPath));
+                    RuntimeDependencies.Add(dylibPath);
                     
                 }
             }

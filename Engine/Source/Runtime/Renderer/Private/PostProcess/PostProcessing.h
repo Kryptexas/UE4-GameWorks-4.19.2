@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessing.h: The center for all post processing activities.
@@ -36,7 +36,7 @@ class FPostProcessVS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessVS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -75,8 +75,12 @@ public:
 
 	bool AllowFullPostProcessing(const FViewInfo& View, ERHIFeatureLevel::Type FeatureLevel);
 
+	void RegisterHMDPostprocessPass(FPostprocessContext& Context, const FEngineShowFlags& EngineShowFlags) const;
+
 	// @param VelocityRT only valid if motion blur is supported
 	void Process(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT);
+
+
 
 	void ProcessES2(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bViewRectSource);
 

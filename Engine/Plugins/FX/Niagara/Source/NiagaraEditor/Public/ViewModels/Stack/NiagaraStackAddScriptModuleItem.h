@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,18 +15,26 @@ class NIAGARAEDITOR_API UNiagaraStackAddScriptModuleItem : public UNiagaraStackA
 	GENERATED_BODY()
 
 public:
-	void Initialize(TSharedRef<FNiagaraSystemViewModel> InSystemViewModel, TSharedRef<FNiagaraEmitterViewModel> InEmitterViewModel, UNiagaraStackEditorData& InStackEditorData, UNiagaraNodeOutput& InOutputNode);
+	void Initialize(TSharedRef<FNiagaraSystemViewModel> InSystemViewModel, TSharedRef<FNiagaraEmitterViewModel> InEmitterViewModel, UNiagaraStackEditorData& InStackEditorData, UNiagaraNodeOutput& InOutputNode, int32 InTargetIndex);
+
+	virtual EDisplayMode GetDisplayMode() const override;
 
 	virtual void GetAvailableParameters(TArray<FNiagaraVariable>& OutAvailableParameterVariables) const override;
 
 	virtual void GetNewParameterAvailableTypes(TArray<FNiagaraTypeDefinition>& OutAvailableTypes) const override;
 
-	virtual TOptional<FString> GetNewParameterNamespace() const override;
+	virtual TOptional<FName> GetNewParameterNamespace() const override;
 
 	virtual ENiagaraScriptUsage GetOutputUsage() const override;
 
-	UNiagaraNodeOutput* GetOrCreateOutputNode() override;
+	virtual UNiagaraNodeOutput* GetOrCreateOutputNode() override;
+
+	virtual int32 GetTargetIndex() const override;
+
+	virtual FName GetItemBackgroundName() const override;
 
 private:
 	TWeakObjectPtr<UNiagaraNodeOutput> OutputNode;
+
+	int32 TargetIndex;
 };

@@ -1,5 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
+//  Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 //
 //  MainViewController.h
 //  UDKRemote
@@ -14,7 +13,9 @@
 @class CMMotionManager;
 @class CMAttitude;
 
-@interface MainViewController : UIViewController <UINavigationControllerDelegate, UIAccelerometerDelegate> 
+#define MAX_NUMBER_PORTS 5
+
+@interface MainViewController : UIViewController <UINavigationControllerDelegate, FlipsideViewControllerDelegate, UIAccelerometerDelegate> 
 {
 @private
 	/** Socket to send touch/tilt data through */
@@ -24,7 +25,7 @@
 	CFSocketRef ReplySocket;
 	
 	/** SocketAddr packaged in a CFDataRef */
-	CFDataRef SocketAddrData;
+	CFDataRef SocketAddrData[MAX_NUMBER_PORTS];
 		
 	/** Have we initialized the acceleration filter yet? */
 	BOOL bHasInitializedFilter;
@@ -40,7 +41,10 @@
 	
 	/** Async infight host resolution object */
 	CFHostRef ResolvingHost;
-	
+
+	/** Run loop source for the reply socket, so we update it when recreating sockets */
+	CFRunLoopSourceRef ReplySource;
+
 	/** Block of data to push across, the bytes will be updated each push */
 	NSMutableData* PushData;
 	
@@ -75,14 +79,15 @@
 /**
  * Flip the view to the back view
  */
-- (IBAction)showInfo;
+-(void)FlipController:(BOOL)bIsAnimated sender:(id)sender;
+- (IBAction)showInfo:(id)sender;
+
 
 /**
  * Resolve a network name to IP address
  */
 - (BOOL)UpdateSocketAddr;
 
-- (void)flipsideViewControllerDidFinish:(FlipsideViewController *)controller;
 
 /**
  * Label properties
@@ -92,12 +97,14 @@
 @property (nonatomic, retain) IBOutlet UILabel* HelpLabel;
 @property (nonatomic, retain) IBOutlet UINavigationController* NavController;
 @property (nonatomic, retain) IBOutlet UIImageView* Background;
+@property (nonatomic, retain) IBOutlet UIButton* InfoButton;
 @property (retain) CMMotionManager* MotionManager;
 @property (retain) CMAttitude* ReferenceAttitude;
 @property (retain) NSTimer* MotionTimer;
 @property (retain) NSTimer* PingTimer;
 @property (retain) NSString* ResolvedAddrString;
 @property (retain) NSMutableData* ReceiveData;
+@property (nonatomic, retain) UIPopoverController *FlipsidePopoverController;
 
 
 @end

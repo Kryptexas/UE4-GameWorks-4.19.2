@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelCollectionModel.h"
 #include "Misc/PackageName.h"
@@ -166,12 +166,10 @@ void FLevelCollectionModel::BindCommands()
 		
 	//lock
 	ActionList.MapAction( Commands.World_LockSelectedLevels,
-		FExecuteAction::CreateSP( this, &FLevelCollectionModel::LockSelectedLevels_Executed  ),
-		FCanExecuteAction::CreateSP( this, &FLevelCollectionModel::AreAnySelectedLevelsEditable ) );
+		FExecuteAction::CreateSP( this, &FLevelCollectionModel::LockSelectedLevels_Executed  ) );
 	
 	ActionList.MapAction( Commands.World_UnockSelectedLevels,
-		FExecuteAction::CreateSP( this, &FLevelCollectionModel::UnlockSelectedLevels_Executed  ),
-		FCanExecuteAction::CreateSP( this, &FLevelCollectionModel::AreAnySelectedLevelsEditable ) );
+		FExecuteAction::CreateSP( this, &FLevelCollectionModel::UnlockSelectedLevels_Executed  ) );
 	
 	ActionList.MapAction( Commands.World_LockAllLevels,
 		FExecuteAction::CreateSP( this, &FLevelCollectionModel::LockAllLevels_Executed  ) );

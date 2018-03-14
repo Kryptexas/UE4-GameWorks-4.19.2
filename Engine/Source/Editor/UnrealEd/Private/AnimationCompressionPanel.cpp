@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimationCompressionPanel.h"
 #include "Modules/ModuleManager.h"
@@ -69,8 +69,10 @@ void SAnimationCompressionPanel::Construct(const FArguments& InArgs)
 	if (AnimSequences.Num() == 1)
 	{
 		UAnimSequence* Seq = AnimSequences[0].Get();
-
-		CompressionHolder->Compression = static_cast<UAnimCompress*>(StaticDuplicateObject(Seq->CompressionScheme, CompressionHolder));
+		if (Seq->CompressionScheme)
+		{
+			CompressionHolder->Compression = static_cast<UAnimCompress*>(StaticDuplicateObject(Seq->CompressionScheme, CompressionHolder));
+		}
 	}
 
 	FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");

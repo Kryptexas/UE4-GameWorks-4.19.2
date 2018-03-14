@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysicsSerializer.cpp
@@ -22,6 +22,7 @@ FByteBulkData* UPhysicsSerializer::GetBinaryData(FName Format, const TArray<FBod
 		return nullptr;
 	}
 
+#if WITH_PHYSX
 #if PLATFORM_MAC
 	return nullptr;	//This is not supported right now
 #endif
@@ -37,7 +38,6 @@ FByteBulkData* UPhysicsSerializer::GetBinaryData(FName Format, const TArray<FBod
 	if (!bContainedData)
 	{
 #if WITH_EDITOR
-#if WITH_PHYSX
 		TArray<uint8> OutData;
 		// Changed from raw pointer to unique pointer to fix static analysis warning, but unclear if this code path is used anymore.
 		TUniquePtr<FDerivedDataPhysXBinarySerializer> DerivedPhysXSerializer(new FDerivedDataPhysXBinarySerializer(Format, Bodies, BodySetups, PhysicalMaterials, FGuid::NewGuid())); //TODO: Maybe it's worth adding this to the DDC. For now there's a lot of complexity with the guid invalidation so I've left it out.
@@ -45,7 +45,6 @@ FByteBulkData* UPhysicsSerializer::GetBinaryData(FName Format, const TArray<FBod
 		{
 
 			DerivedPhysXSerializer->Build(OutData);
-#endif
 			if (OutData.Num())
 			{
 				Result->Lock(LOCK_READ_WRITE);
@@ -61,6 +60,10 @@ FByteBulkData* UPhysicsSerializer::GetBinaryData(FName Format, const TArray<FBod
 	}
 
 	return Result->GetBulkDataSize() > 0 ? Result : nullptr;
+
+#else
+	return nullptr;
+#endif // WITH_PHYSX
 }
 
 void UPhysicsSerializer::Serialize( FArchive& Ar )

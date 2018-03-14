@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3238697
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1. 컴포넌트 만들고 붙이기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
@@ -19,7 +19,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:tip]**언리얼 엔진 4** 가 처음이신 분들은, [%Programming\QuickStart:title% 튜토리얼](Programming\QuickStart) 먼저 살펴보시는 것이 좋습니다. 이 튜토리얼은 프로젝트 생성 및 C++ 코드 추가는 물론, **언리얼 에디터** 에서의 입력 환경설정이 익숙하신 분들을 대상으로 합니다. **Pawn** 클래스 생성이나 입력 환경설정이 익숙치 않으신 경우, [%Programming\Tutorials\PlayerInput:title% 튜토리얼](Programming\Tutorials\PlayerInput) 부터 시작해 보시면 좋습니다.[/REGION]
 
@@ -88,128 +88,119 @@ version:4.9
 			// 기본 플레이어 콘트롤 획득
 			AutoPossessPlayer = EAutoReceiveInput::Player0;
 
-----
 
 새로운 **폰** 에 유용한 **컴포넌트** 를 붙이기만 했는데 벌써 사용자 제어 환경설정이 다 됐습니다. 이제 **언리얼 에디터** 로 돌아옵니다.
 
-[OBJECT:Section]
-    [PARAMLITERAL:id]
-    code
-    [/PARAMLITERAL]
-    [PARAM:heading]
-	    작업중 코드
-    [/PARAM]
-    [PARAM:content]
-		**CollidingPawn.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+## 작업중 코드
+   
+**CollidingPawn.h**
 
-			#pragma once
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-			#include "GameFramework/Pawn.h"
-			#include "CollidingPawn.generated.h"
+	#pragma once
 
-			UCLASS()
-			class HOWTO_COMPONENTS_API ACollidingPawn : public APawn
-			{
-				GENERATED_BODY()
+	#include "GameFramework/Pawn.h"
+	#include "CollidingPawn.generated.h"
 
-			public:
-				// Sets default values for this pawn's properties
-				ACollidingPawn();
+	UCLASS()
+	class HOWTO_COMPONENTS_API ACollidingPawn : public APawn
+	{
+		GENERATED_BODY()
 
-			protected:
-				// Called when the game starts or when spawned
-				virtual void BeginPlay() override;
+	public:
+		// Sets default values for this pawn's properties
+		ACollidingPawn();
+
+	protected:
+		// Called when the game starts or when spawned
+		virtual void BeginPlay() override;
 	
-			public:
-				// Called every frame
-				virtual void Tick( float DeltaSeconds ) override;
+	public:
+		// Called every frame
+		virtual void Tick( float DeltaSeconds ) override;
 
-				// Called to bind functionality to input
-				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+		// Called to bind functionality to input
+		virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
-				UParticleSystemComponent* OurParticleSystem;
-			};
+		UParticleSystemComponent* OurParticleSystem;
+	};
 
-		**CollidingPawn.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+**CollidingPawn.cpp**
 
-			#include "HowTo_Components.h"
-			#include "CollidingPawn.h"
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-			// Sets default values
-			ACollidingPawn::ACollidingPawn()
-			{
- 				// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-				PrimaryActorTick.bCanEverTick = true;
+	#include "HowTo_Components.h"
+	#include "CollidingPawn.h"
 
-				// Our root component will be a sphere that reacts to physics
-				USphereComponent* SphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RootComponent"));
-				RootComponent = SphereComponent;
-				SphereComponent->InitSphereRadius(40.0f);
-				SphereComponent->SetCollisionProfileName(TEXT("Pawn"));
+	// Sets default values
+	ACollidingPawn::ACollidingPawn()
+	{
+ 		// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+		PrimaryActorTick.bCanEverTick = true;
 
-				// Create and position a mesh component so we can see where our sphere is
-				UStaticMeshComponent* SphereVisual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisualRepresentation"));
-				SphereVisual->SetupAttachment(RootComponent);
-				static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereVisualAsset(TEXT("/Game/StarterContent/Shapes/Shape_Sphere.Shape_Sphere"));
-				if (SphereVisualAsset.Succeeded())
-				{
-					SphereVisual->SetStaticMesh(SphereVisualAsset.Object);
-					SphereVisual->SetRelativeLocation(FVector(0.0f, 0.0f, -40.0f));
-					SphereVisual->SetWorldScale3D(FVector(0.8f));
-				}
+		// Our root component will be a sphere that reacts to physics
+		USphereComponent* SphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RootComponent"));
+		RootComponent = SphereComponent;
+		SphereComponent->InitSphereRadius(40.0f);
+		SphereComponent->SetCollisionProfileName(TEXT("Pawn"));
 
-				// Create a particle system that we can activate or deactivate
-				OurParticleSystem = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("MovementParticles"));
-				OurParticleSystem->SetupAttachment(SphereVisual);
-				OurParticleSystem->bAutoActivate = false;
-				OurParticleSystem->SetRelativeLocation(FVector(-20.0f, 0.0f, 20.0f));
-				static ConstructorHelpers::FObjectFinder<UParticleSystem> ParticleAsset(TEXT("/Game/StarterContent/Particles/P_Fire.P_Fire"));
-				if (ParticleAsset.Succeeded())
-				{
-					OurParticleSystem->SetTemplate(ParticleAsset.Object);
-				}
+		// Create and position a mesh component so we can see where our sphere is
+		UStaticMeshComponent* SphereVisual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisualRepresentation"));
+		SphereVisual->SetupAttachment(RootComponent);
+		static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereVisualAsset(TEXT("/Game/StarterContent/Shapes/Shape_Sphere.Shape_Sphere"));
+		if (SphereVisualAsset.Succeeded())
+		{
+			SphereVisual->SetStaticMesh(SphereVisualAsset.Object);
+			SphereVisual->SetRelativeLocation(FVector(0.0f, 0.0f, -40.0f));
+			SphereVisual->SetWorldScale3D(FVector(0.8f));
+		}
 
-				// Use a spring arm to give the camera smooth, natural-feeling motion.
-				USpringArmComponent* SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraAttachmentArm"));
-				SpringArm->SetupAttachment(RootComponent);
-				SpringArm->RelativeRotation = FRotator(-45.f, 0.f, 0.f);
-				SpringArm->TargetArmLength = 400.0f;
-				SpringArm->bEnableCameraLag = true;
-				SpringArm->CameraLagSpeed = 3.0f;
+		// Create a particle system that we can activate or deactivate
+		OurParticleSystem = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("MovementParticles"));
+		OurParticleSystem->SetupAttachment(SphereVisual);
+		OurParticleSystem->bAutoActivate = false;
+		OurParticleSystem->SetRelativeLocation(FVector(-20.0f, 0.0f, 20.0f));
+		static ConstructorHelpers::FObjectFinder<UParticleSystem> ParticleAsset(TEXT("/Game/StarterContent/Particles/P_Fire.P_Fire"));
+		if (ParticleAsset.Succeeded())
+		{
+			OurParticleSystem->SetTemplate(ParticleAsset.Object);
+		}
 
-				// Create a camera and attach to our spring arm
-				UCameraComponent* Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ActualCamera"));
-				Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
+		// Use a spring arm to give the camera smooth, natural-feeling motion.
+		USpringArmComponent* SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraAttachmentArm"));
+		SpringArm->SetupAttachment(RootComponent);
+		SpringArm->RelativeRotation = FRotator(-45.f, 0.f, 0.f);
+		SpringArm->TargetArmLength = 400.0f;
+		SpringArm->bEnableCameraLag = true;
+		SpringArm->CameraLagSpeed = 3.0f;
 
-				// Take control of the default player
-				AutoPossessPlayer = EAutoReceiveInput::Player0;
-			}
+		// Create a camera and attach to our spring arm
+		UCameraComponent* Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ActualCamera"));
+		Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 
-			// Called when the game starts or when spawned
-			void ACollidingPawn::BeginPlay()
-			{
-				Super::BeginPlay();
+		// Take control of the default player
+		AutoPossessPlayer = EAutoReceiveInput::Player0;
+	}
+
+	// Called when the game starts or when spawned
+	void ACollidingPawn::BeginPlay()
+	{
+		Super::BeginPlay();
 	
-			}
+	}
 
-			// Called every frame
-			void ACollidingPawn::Tick( float DeltaTime )
-			{
-				Super::Tick( DeltaTime );
+	// Called every frame
+	void ACollidingPawn::Tick( float DeltaTime )
+	{
+		Super::Tick( DeltaTime );
 
-			}
+	}
 
-			// Called to bind functionality to input
-			void ACollidingPawn::SetupPlayerInputComponent(class UInputComponent* InputComponent)
-			{
-				Super::SetupPlayerInputComponent(InputComponent);
+	// Called to bind functionality to input
+	void ACollidingPawn::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+	{
+		Super::SetupPlayerInputComponent(InputComponent);
 
-			}
+	}
 
 
-    [/PARAM]
-[/OBJECT]
-
-%Steps%

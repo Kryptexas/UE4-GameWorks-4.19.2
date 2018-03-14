@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Kismet/DataTableFunctionLibrary.h"
 #include "Engine/CurveTable.h"
@@ -24,6 +24,16 @@ void UDataTableFunctionLibrary::EvaluateCurveTableRow(UCurveTable* CurveTable, F
 	{
 	    OutResult = EEvaluateCurveTableResult::RowNotFound;
 	}
+}
+
+TArray<FString> UDataTableFunctionLibrary::GetDataTableColumnAsString(const UDataTable* DataTable, FName PropertyName)
+{
+	if (DataTable && PropertyName != NAME_None)
+	{
+		EDataTableExportFlags ExportFlags = EDataTableExportFlags::None;
+		return DataTableUtils::GetColumnDataAsString(DataTable, PropertyName, ExportFlags);
+	}
+	return TArray<FString>();
 }
 
 bool UDataTableFunctionLibrary::Generic_GetDataTableRowFromName(UDataTable* Table, FName RowName, void* OutRowPtr)

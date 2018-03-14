@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayCueInterface.h"
 #include "AbilitySystemStats.h"
@@ -154,6 +154,11 @@ void IGameplayCueInterface::ForwardGameplayCueToParent()
 
 void FActiveGameplayCue::PreReplicatedRemove(const struct FActiveGameplayCueContainer &InArray)
 {
+	if (!InArray.Owner)
+	{
+		return;
+	}
+
 	// We don't check the PredictionKey here like we do in PostReplicatedAdd. PredictionKey tells us
 	// if we were predictely created, but this doesn't mean we will predictively remove ourselves.
 	if (bPredictivelyRemoved == false)
@@ -166,6 +171,11 @@ void FActiveGameplayCue::PreReplicatedRemove(const struct FActiveGameplayCueCont
 
 void FActiveGameplayCue::PostReplicatedAdd(const struct FActiveGameplayCueContainer &InArray)
 {
+	if (!InArray.Owner)
+	{
+		return;
+	}
+
 	InArray.Owner->UpdateTagMap(GameplayCueTag, 1);
 
 	if (PredictionKey.IsLocalClientKey() == false)
@@ -182,6 +192,11 @@ FString FActiveGameplayCue::GetDebugString()
 
 void FActiveGameplayCueContainer::AddCue(const FGameplayTag& Tag, const FPredictionKey& PredictionKey, const FGameplayCueParameters& Parameters)
 {
+	if (!Owner)
+	{
+		return;
+	}
+
 	UWorld* World = Owner->GetWorld();
 
 	// Store the prediction key so the client can investigate it
@@ -196,6 +211,11 @@ void FActiveGameplayCueContainer::AddCue(const FGameplayTag& Tag, const FPredict
 
 void FActiveGameplayCueContainer::RemoveCue(const FGameplayTag& Tag)
 {
+	if (!Owner)
+	{
+		return;
+	}
+
 	for (int32 idx=0; idx < GameplayCues.Num(); ++idx)
 	{
 		FActiveGameplayCue& Cue = GameplayCues[idx];
@@ -208,10 +228,31 @@ void FActiveGameplayCueContainer::RemoveCue(const FGameplayTag& Tag)
 			return;
 		}
 	}
+
+}
+
+void FActiveGameplayCueContainer::RemoveAllCues()
+{
+	if (!Owner)
+	{
+		return;
+	}
+
+	for (int32 idx=0; idx < GameplayCues.Num(); ++idx)
+	{
+		FActiveGameplayCue& Cue = GameplayCues[idx];
+		Owner->UpdateTagMap(Cue.GameplayCueTag, -1);
+		Owner->InvokeGameplayCueEvent(Cue.GameplayCueTag, EGameplayCueEvent::Removed, Cue.Parameters);
+	}
 }
 
 void FActiveGameplayCueContainer::PredictiveRemove(const FGameplayTag& Tag)
 {
+	if (!Owner)
+	{
+		return;
+	}
+
 	for (int32 idx=0; idx < GameplayCues.Num(); ++idx)
 	{
 		FActiveGameplayCue& Cue = GameplayCues[idx];
@@ -229,6 +270,11 @@ void FActiveGameplayCueContainer::PredictiveRemove(const FGameplayTag& Tag)
 
 void FActiveGameplayCueContainer::PredictiveAdd(const FGameplayTag& Tag, FPredictionKey& PredictionKey)
 {
+	if (!Owner)
+	{
+		return;
+	}
+
 	Owner->UpdateTagMap(Tag, 1);	
 	PredictionKey.NewRejectOrCaughtUpDelegate(FPredictionKeyEvent::CreateUObject(Owner, &UAbilitySystemComponent::OnPredictiveGameplayCueCatchup, Tag));
 }
@@ -255,4 +301,15 @@ bool FActiveGameplayCueContainer::NetDeltaSerialize(FNetDeltaSerializeInfo & Del
 	}
 
 	return FastArrayDeltaSerialize<FActiveGameplayCue>(GameplayCues, DeltaParms, *this);
+}
+
+void FActiveGameplayCueContainer::SetOwner(UAbilitySystemComponent* InOwner)
+{
+	Owner = InOwner;
+	
+	// If we already have cues, pretend they were just added
+	for (FActiveGameplayCue& Cue : GameplayCues)
+	{
+		Cue.PostReplicatedAdd(*this);
+	}
 }

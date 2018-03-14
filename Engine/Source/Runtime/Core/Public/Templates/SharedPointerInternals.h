@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -231,7 +231,7 @@ namespace SharedPointerInternals
 		static FORCEINLINE const int32 GetSharedReferenceCount(const FReferenceControllerBase* ReferenceController)
 		{
 			// This reference count may be accessed by multiple threads
-			return static_cast< int32 const volatile& >( ReferenceController->SharedReferenceCount );
+			return FPlatformAtomics::AtomicRead( (int32 volatile*)&ReferenceController->SharedReferenceCount );
 		}
 
 		/** Adds a shared reference to this counter */
@@ -251,7 +251,7 @@ namespace SharedPointerInternals
 			{
 				// Peek at the current shared reference count.  Remember, this value may be updated by
 				// multiple threads.
-				const int32 OriginalCount = static_cast< int32 const volatile& >( ReferenceController->SharedReferenceCount );
+				const int32 OriginalCount = FPlatformAtomics::AtomicRead( (int32 volatile*)&ReferenceController->SharedReferenceCount );
 				if( OriginalCount == 0 )
 				{
 					// Never add a shared reference if the pointer has already expired

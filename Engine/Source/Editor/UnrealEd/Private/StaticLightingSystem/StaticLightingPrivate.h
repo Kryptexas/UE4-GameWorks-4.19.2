@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticLightingPrivate.h: Private static lighting system definitions.
@@ -364,6 +364,9 @@ private:
 	 */
 	void UpdateAutomaticImportanceVolumeBounds( const FBox& MeshBounds );
 
+	/** Populate BuildDataResourcesToKeep from the GUIDs referenced in the given level. */
+	void GatherBuildDataResourcesToKeep(const ULevel* Level);
+
 private:
 
 	/** The lights in the world which the system is building. */
@@ -426,6 +429,9 @@ private:
 
 	/** The lighting scenario that's currently being built, if any.  When valid, any outputs of the lighting build should go into this level's MapBuildData. */
 	ULevel* LightingScenario;
+
+	/** The resource guid for all hidden/excluded levels. Used to keep those level data valid. */
+	TSet<FGuid> BuildDataResourcesToKeep;
 
 	/** A handle on the processor that actually interfacets with Lightmass */
 	class FLightmassProcessor* LightmassProcessor;

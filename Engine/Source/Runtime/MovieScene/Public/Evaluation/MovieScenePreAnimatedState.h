@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -46,13 +46,12 @@ struct MOVIESCENE_API TPreAnimatedToken
 {
 	TPreAnimatedToken(TokenType&& InToken);
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	TPreAnimatedToken(TPreAnimatedToken&&) = default;
 	TPreAnimatedToken& operator=(TPreAnimatedToken&&) = default;
-#else
-	TPreAnimatedToken(TPreAnimatedToken&& RHS);
-	TPreAnimatedToken& operator=(TPreAnimatedToken&& RHS);
-#endif
+
+	/** Non-copyable */
+	TPreAnimatedToken(const TPreAnimatedToken&) = delete;
+	TPreAnimatedToken& operator=(const TPreAnimatedToken&) = delete;
 
 	/** The number of entities that are referencing this token (can be 0 where only global state has been saved) */
 	uint32 EntityRefCount;
@@ -94,14 +93,13 @@ struct MOVIESCENE_API TMovieSceneSavedTokens
 	TMovieSceneSavedTokens(PayloadType&& InPayload)
 		: Payload(MoveTemp(InPayload))
 	{}
-	
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
+
 	TMovieSceneSavedTokens(TMovieSceneSavedTokens&&) = default;
 	TMovieSceneSavedTokens& operator=(TMovieSceneSavedTokens&&) = default;
-#else
-	TMovieSceneSavedTokens(TMovieSceneSavedTokens&& RHS);
-	TMovieSceneSavedTokens& operator=(TMovieSceneSavedTokens&& RHS);
-#endif
+
+	// Non-copyable
+	TMovieSceneSavedTokens(const TMovieSceneSavedTokens&) = delete;
+	TMovieSceneSavedTokens& operator=(const TMovieSceneSavedTokens&) = delete;
 
 	/**
 	 * Called when animation is about to happen to cache of any existing state

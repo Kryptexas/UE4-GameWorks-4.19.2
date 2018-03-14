@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -52,6 +52,12 @@ struct FSoundParseParameters
 	// Volume due to application-level volume scaling (tabbing, master volume)
 	float VolumeApp;
 
+	// Attack time of the source envelope follower
+	int32 EnvelopeFollowerAttackTime;
+
+	// Release time of the source envelope follower
+	int32 EnvelopeFollowerReleaseTime;
+
 	// The multiplier to apply if the sound class desires
 	float InteriorVolumeMultiplier;
 
@@ -83,7 +89,7 @@ struct FSoundParseParameters
 	TArray<FSoundSubmixSendInfo> SoundSubmixSends;
 
 	// The source bus sends to use
-	TArray<FSoundSourceBusSendInfo> SoundSourceBusSends;
+	TArray<FSoundSourceBusSendInfo> SoundSourceBusSends[(int32)EBusSendType::Count];
 
 	// Reverb wet-level parameters
 	EReverbSendMethod ReverbSendMethod;
@@ -153,6 +159,8 @@ struct FSoundParseParameters
 		, DistanceAttenuation(1.f)
 		, VolumeMultiplier(1.f)
 		, VolumeApp(1.f)
+		, EnvelopeFollowerAttackTime(10)
+		, EnvelopeFollowerReleaseTime(100)
 		, InteriorVolumeMultiplier(1.f)
 		, Pitch(1.f)
 		, StartTime(-1.f)
@@ -260,7 +268,7 @@ private:
 	TArray<FSoundSubmixSendInfo> SoundSubmixSendsOverride;
 
 	/** Optional override for the source bus sends for the sound. */
-	TArray<FSoundSourceBusSendInfo> SoundSourceBusSendsOverride;
+	TArray<FSoundSourceBusSendInfo> SoundSourceBusSendsOverride[(int32)EBusSendType::Count];
 
 public:
 	/** Whether or not the sound has checked if it was occluded already. Used to initialize a sound as occluded and bypassing occlusion interpolation. */
@@ -343,6 +351,12 @@ public:
 	/** Whether or not this active sound will update play percentage. Based on set delegates on audio component. */
 	uint8 bUpdatePlayPercentage:1;
 
+	/** Whether or not this active sound will update the envelope value of every wave instance that plays a sound source. Based on set delegates on audio component. */
+	uint8 bUpdateSingleEnvelopeValue:1;
+
+	/** Whether or not this active sound will update the average envelope value of every wave instance that plays a sound source. Based on set delegates on audio component. */
+	uint8 bUpdateMultiEnvelopeValue:1;
+
 public:
 	uint8 UserIndex;
 
@@ -424,6 +438,10 @@ public:
 	float SourceInteriorLPF;
 	float CurrentInteriorVolume;
 	float CurrentInteriorLPF;
+
+	// Envelope follower attack and release time parameters
+	int32 EnvelopeFollowerAttackTime;
+	int32 EnvelopeFollowerReleaseTime;
 
 	TMap<UPTRINT, struct FWaveInstance*> WaveInstances;
 
@@ -511,7 +529,7 @@ public:
 	void GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) const;
 
 	/** Gets the sound source bus sends to use for this sound instance. */
-	void GetSoundSourceBusSends(TArray<FSoundSourceBusSendInfo>& OutSends) const;
+	void GetSoundSourceBusSends(EBusSendType BusSendType, TArray<FSoundSourceBusSendInfo>& OutSends) const;
 
 	/* Determines which listener is the closest to the sound */
 	int32 FindClosestListener( const TArray<struct FListener>& InListeners ) const;
@@ -538,7 +556,7 @@ public:
 	void SetSubmixSend(const FSoundSubmixSendInfo& SubmixSendInfo);
 
 	/** Sets the amount of audio from this active sound to send to the source bus. */
-	void SetSourceBusSend(const FSoundSourceBusSendInfo& SourceBusSendInfo);
+	void SetSourceBusSend(EBusSendType BusSendTyoe, const FSoundSourceBusSendInfo& SourceBusSendInfo);
 
 private:
 	

@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "VisualLoggerTimeSliderController.h"
 #include "Rendering/DrawElements.h"
 #include "Fonts/FontMeasure.h"
+#include "Styling/CoreStyle.h"
 #include "Framework/Application/SlateApplication.h"
 #include "EditorStyleSet.h"
 
@@ -21,7 +22,7 @@ namespace ScrubConstants
 
 
 /** Utility struct for converting between scrub range space and local/absolute screen space */
-struct FScrubRangeToScreen
+struct FVisualLoggerTimeSliderController::FScrubRangeToScreen
 {
 	FVector2D WidgetSize;
 
@@ -104,7 +105,7 @@ void FVisualLoggerTimeSliderController::SetTimesliderArgs(const FVisualLoggerTim
 	TimeSliderArgs = InArgs;
 }
 
-struct FDrawTickArgs
+struct FVisualLoggerTimeSliderController::FDrawTickArgs
 {
 	/** Geometry of the area */
 	FGeometry AllottedGeometry;
@@ -139,7 +140,7 @@ void FVisualLoggerTimeSliderController::DrawTicks( FSlateWindowElementList& OutD
 	// Find out where to start from
 	int32 OffsetNum = FMath::FloorToInt(RangeToScreen.ViewInput.GetLowerBoundValue() / Spacing);
 	
-	FSlateFontInfo SmallLayoutFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8 );
+	FSlateFontInfo SmallLayoutFont = FCoreStyle::GetDefaultFontStyle("Regular", 8);
 
 	TArray<FVector2D> LinePoints;
 	LinePoints.AddUninitialized(2);

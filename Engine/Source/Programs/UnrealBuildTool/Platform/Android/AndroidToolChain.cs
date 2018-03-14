@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -355,6 +355,17 @@ namespace UnrealBuildTool
 			return NDKVersionInt;
 		}
 
+		private bool ValidateNDK(string PlatformsDir, string ApiString)
+		{
+			if (!Directory.Exists(PlatformsDir))
+			{
+				return false;
+			}
+
+			string NDKPlatformDir = Path.Combine(PlatformsDir, ApiString);
+			return Directory.Exists(NDKPlatformDir);
+		}
+
 		public string GetNdkApiLevel()
 		{
 			// ask the .ini system for what version to use
@@ -362,17 +373,32 @@ namespace UnrealBuildTool
 			string NDKLevel;
 			Ini.GetString("/Script/AndroidPlatformEditor.AndroidSDKSettings", "NDKAPILevel", out NDKLevel);
 
+			// check for project override of NDK API level
+			string ProjectNDKLevel;
+			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "NDKAPILevelOverride", out ProjectNDKLevel);
+			ProjectNDKLevel = ProjectNDKLevel.Trim();
+			if (ProjectNDKLevel != "")
+			{
+				NDKLevel = ProjectNDKLevel;
+			}
+
+			string PlatformsDir = Environment.ExpandEnvironmentVariables("%NDKROOT%/platforms");
 			if (NDKLevel == "latest")
 			{
 				// get a list of NDK platforms
-				string PlatformsDir = Environment.ExpandEnvironmentVariables("%NDKROOT%/platforms");
 				if (!Directory.Exists(PlatformsDir))
 				{
-					throw new BuildException("No platforms found in {0}", PlatformsDir);
+					throw new BuildException("No NDK platforms found in {0}", PlatformsDir);
 				}
 
 				// return the largest of them
 				NDKLevel = GetLargestApiLevel(Directory.GetDirectories(PlatformsDir));
+			}
+
+			// validate the platform NDK is installed
+			if (!ValidateNDK(PlatformsDir, NDKLevel))
+			{
+				throw new BuildException("The NDK API requested '{0}' not installed in {1}", NDKLevel, PlatformsDir);
 			}
 
 			return NDKLevel;

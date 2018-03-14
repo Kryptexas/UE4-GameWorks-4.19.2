@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:페이퍼 2D 컴포넌트
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -35,11 +35,13 @@ Paper 2D 컴포넌트는 액터에 2D **스프라이트** 나 **플립북** 을 
 플립북 컴포넌트 구성 및 작업 관련 정보는, [](Engine\Paper2D\Flipbooks\Components) 문서를 참고하세요.
 
 
-<!-- Hidden for now, still experimental
+[COMMENT:none]
+ Hidden for now, still experimental
 ## Paper Tile Map Render Component
 
 The **PaperTileMapRenderComponent** is a standard constructor, called after all reflected properties have been initialized. 
--->
+
+[/COMMENT]
 
 
 

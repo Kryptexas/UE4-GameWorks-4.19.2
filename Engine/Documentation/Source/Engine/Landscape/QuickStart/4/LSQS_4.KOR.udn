@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:4. 랜드스케이프 머티리얼 만들기
 Crumbs:%ROOT%, GettingStarted, Engine/Landscape/QuickStart
@@ -21,7 +21,7 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 
 ## 폴더 셋업
@@ -161,4 +161,4 @@ Landscapes Content Example 프로젝트의 다음 폴더에서 텍스처를 찾�
 [/REGION]
 
 
-%Steps%
+

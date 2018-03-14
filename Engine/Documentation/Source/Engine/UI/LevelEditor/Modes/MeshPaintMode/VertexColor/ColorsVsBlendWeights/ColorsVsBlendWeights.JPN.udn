@@ -26,7 +26,8 @@ _Paint texture_ と _Erase texture_ 間の Swap ボタン ![](button_swap.png) �
 
 
 
-<!--Includes--
+[COMMENT:none]
+Includes--
 
 
 [EXCERPT:TextureCount]
@@ -46,4 +47,5 @@ _Paint texture_ と _Erase texture_ 間の Swap ボタン ![](button_swap.png) �
 
 
 
---End Includes-->
+--End Includes
+[/COMMENT]

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #include "SubmixEffects/SubmixEffectTapDelay.h"
 
 DEFINE_LOG_CATEGORY(LogTapDelay);
@@ -437,4 +437,3 @@ float FTapDelayInterpolationInfo::GetLengthValue()
 {
 	return LengthParam.GetValue();
 }
-

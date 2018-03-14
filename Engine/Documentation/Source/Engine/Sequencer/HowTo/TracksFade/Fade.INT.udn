@@ -10,6 +10,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 
 There may be times when you want to fade in or out scenes within your cinematic. 

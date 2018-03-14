@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealClient.h: Interface definition for platform specific client code.
@@ -125,6 +125,8 @@ public:
 */
 #define MAX_HITPROXYSIZE 200
 
+DECLARE_DELEGATE(FOnScreenshotRequestProcessed);
+
 struct ENGINE_API FScreenshotRequest
 {
 	/**
@@ -174,7 +176,13 @@ struct ENGINE_API FScreenshotRequest
 	 */
 	static TArray<FColor>* GetHighresScreenshotMaskColorArray();
 
+	static FOnScreenshotRequestProcessed& OnScreenshotRequestProcessed()
+	{
+		return ScreenshotProcessedDelegate;
+	}
+
 private:
+	static FOnScreenshotRequestProcessed ScreenshotProcessedDelegate;
 	static bool bIsScreenshotRequested;
 	static FString NextScreenshotName;
 	static FString Filename;
@@ -208,6 +216,7 @@ struct FStatUnitData
 	TArray<float> GameThreadTimes;
 	TArray<float> GPUFrameTimes;
 	TArray<float> FrameTimes;
+	TArray<float> ResolutionFractions;
 #endif //!UE_BUILD_SHIPPING
 
 	FStatUnitData()
@@ -227,6 +236,11 @@ struct FStatUnitData
 		GameThreadTimes.AddZeroed(NumberOfSamples);
 		GPUFrameTimes.AddZeroed(NumberOfSamples);
 		FrameTimes.AddZeroed(NumberOfSamples);
+		ResolutionFractions.Reserve(NumberOfSamples);
+		for (int32 i = 0; i < NumberOfSamples; i++)
+		{
+			ResolutionFractions.Add(-1.0f);
+		}
 #endif //!UE_BUILD_SHIPPING
 	}
 
@@ -448,7 +462,7 @@ public:
 
 	//~ Begin FRenderTarget Interface.
 	virtual FIntPoint GetSizeXY() const override { return FIntPoint(SizeX, SizeY); }
-
+	FIntPoint GetInitialPositionXY() const { return FIntPoint(InitialPositionX, InitialPositionY); }
 	// Accessors.
 	FViewportClient* GetClient() const { return ViewportClient; }
 
@@ -613,6 +627,12 @@ protected:
 
 	/** The RHI viewport. */
 	FViewportRHIRef ViewportRHI;
+
+	/** The initial position of the viewport. */
+	uint32 InitialPositionX;
+
+	/** The initial position of the viewport. */
+	uint32 InitialPositionY;
 
 	/** The width of the viewport. */
 	uint32 SizeX;
@@ -967,6 +987,16 @@ public:
 	 * Optionally do custom handling of a navigation. 
 	 */
 	virtual bool HandleNavigation(const uint32 InUserIndex, TSharedPtr<SWidget> InDestination) { return false; }
+
+	/**
+	 * @return Whether or not the scene canvas should be scaled.  Note: The debug canvas is always scaled 
+	 */
+	virtual bool ShouldDPIScaleSceneCanvas() const { return true; }
+
+	/**
+	 * @return The DPI Scale of this viewport
+	 */
+	virtual float GetDPIScale() const { return 1.0f; }
 };
 
 /** Tracks the viewport client that should process the stat command, can be NULL */
@@ -980,10 +1010,8 @@ class FCommonViewportClient : public FViewportClient
 {
 public:
 	FCommonViewportClient()
-#if WITH_EDITOR
-		: EditorScreenPercentage(100)
-		, bShouldUpdateScreenPercentage(true)
-#endif
+		: CachedDPIScale(1.0f)
+		, bShouldUpdateDPIScale(true)
 	{}
 
 	virtual ~FCommonViewportClient()
@@ -995,29 +1023,26 @@ public:
 		}
 	}
 
-#if WITH_EDITOR
-	/** Tells this viewport to update editor screen percentage when safe */
-	ENGINE_API void RequestUpdateEditorScreenPercentage();
-	/** @return the current screen percentage to be used for scene rendering in this client */
-	ENGINE_API TOptional<float> GetEditorScreenPercentage();
-#endif
+	/** Tells this viewport to update editor dpi scale when needed */
+	ENGINE_API void RequestUpdateDPIScale();
+
+	/** @return the current resolution fraction to be used for scene rendering in this client. */
+	ENGINE_API float GetDPIDerivedResolutionFraction() const;
+
+	/**
+	 * @return The DPI Scale of this viewport
+	 */
+	ENGINE_API virtual float GetDPIScale() const override;
 
 	ENGINE_API void DrawHighResScreenshotCaptureRegion(FCanvas& Canvas);
 
 protected:
 	/** @return the DPI scale of the window that the viewport client is in */
-	virtual float GetViewportClientWindowDPIScale() const { return 1.0; }
+	virtual float UpdateViewportClientWindowDPIScale() const { return 1.0; }
 
 private:
-
-#if WITH_EDITOR
-	/** Screen percentage to apply to the scene view in editor only (to adjust for DPI scale). 
-	 * Note: This is still used in game viewports for PIE
-	 */
-	TOptional<float> EditorScreenPercentage;
-	bool bShouldUpdateScreenPercentage;
-#endif
-
+	mutable float CachedDPIScale;
+	mutable bool bShouldUpdateDPIScale;
 };
 
 

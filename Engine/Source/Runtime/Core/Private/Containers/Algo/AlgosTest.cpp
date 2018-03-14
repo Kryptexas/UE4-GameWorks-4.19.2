@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreTypes.h"
 #include "Misc/AssertionMacros.h"
@@ -263,18 +263,22 @@ bool FAlgosTest::RunTest(const FString& Parameters)
 
 		check(Algo::BinarySearch(StaticArray, 6) == 2);
 		check(Algo::BinarySearch(StaticArray, 5) == INDEX_NONE);
+		check(Algo::BinarySearchBy(StaticArray, 4, FIdentityFunctor()) == 1);
 
 		check(Algo::LowerBound(StaticArray, 6) == 2);
 		check(Algo::LowerBound(StaticArray, 5) == 2);
 		check(Algo::UpperBound(StaticArray, 6) == 5);
 		check(Algo::LowerBound(StaticArray, 7) == 5);
 		check(Algo::LowerBound(StaticArray, 9) == 6);
+		check(Algo::LowerBoundBy(StaticArray, 6, FIdentityFunctor()) == 2);
+		check(Algo::UpperBoundBy(StaticArray, 6, FIdentityFunctor()) == 5);
 
 		// Dynamic array case
 		TArray<int32> IntArray = { 2,2,4,4,6,6,6,8,8 };
 
 		check(Algo::BinarySearch(IntArray, 6) == 4);
 		check(Algo::BinarySearch(IntArray, 5) == INDEX_NONE);
+		check(Algo::BinarySearchBy(IntArray, 4, FIdentityFunctor()) == 2);
 
 		check(Algo::LowerBound(IntArray, 2) == 0);
 		check(Algo::UpperBound(IntArray, 2) == 2);
@@ -284,6 +288,8 @@ bool FAlgosTest::RunTest(const FString& Parameters)
 		check(Algo::UpperBound(IntArray, 5) == 4);
 		check(Algo::LowerBound(IntArray, 7) == 7);
 		check(Algo::LowerBound(IntArray, 9) == 9);
+		check(Algo::LowerBoundBy(IntArray, 6, FIdentityFunctor()) == 4);
+		check(Algo::UpperBoundBy(IntArray, 6, FIdentityFunctor()) == 7);
 	}
 
 	// heapify

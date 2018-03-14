@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3238697
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1. 폰에 카메라 붙이기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerCamera
@@ -20,7 +20,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:tip]**언리얼 엔진 4** 에 처음이신 경우, [%Programming\QuickStart:title% 튜토리얼](Programming\QuickStart) 을 먼저 읽어보세요. 이 튜토리얼은 프로젝트 생성, C++ 코드 추가, 코드 컴파일, **언리얼 엔진** 에디터에서 **액터** 에 **컴포넌트** 추가가 익숙하신 분들을 대상으로 합니다.[/REGION]
 
@@ -58,102 +58,93 @@ version:4.9
 		//기본 플레이어의 제어권을 획득합니다
 		AutoPossessPlayer = EAutoReceiveInput::Player0;
 
-----
-
 이제 카메라를 편하게 제어할 수 있는 간단한 **Pawn** 이 생겼습니다. 다음에는 **언리얼 엔진** 에디터에서 입력 환경설정을 하고 그에 반응하는 코드를 만들겠습니다.
 
-[OBJECT:Section]
-    [PARAMLITERAL:id]
-    code
-    [/PARAMLITERAL]
-    [PARAM:heading]
-	    작업중 코드
-    [/PARAM]
-    [PARAM:content]
-		**PawnWithCamera.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+## 작업중 코드
 
-			#pragma once
+**PawnWithCamera.h**
 
-			#include "GameFramework/Pawn.h"
-			#include "PawnWithCamera.generated.h"
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-			UCLASS()
-			class HOWTO_PLAYERCAMERA_API APawnWithCamera : public APawn
-			{
-				GENERATED_BODY()
+	#pragma once
 
-			public:
-				// Sets default values for this pawn's properties
-				APawnWithCamera();
+	#include "CoreMinimal.h"
+	#include "GameFramework/Pawn.h"
+	#include "PawnWithCamera.generated.h"
 
-			protected:
-				// Called when the game starts or when spawned
-				virtual void BeginPlay() override;
+	UCLASS()
+	class HOWTO_PLAYERCAMERA_API APawnWithCamera : public APawn
+	{
+		GENERATED_BODY()
+
+	public:
+		// Sets default values for this pawn's properties
+		APawnWithCamera();
+
+	protected:
+		// Called when the game starts or when spawned
+		virtual void BeginPlay() override;
 			
-			public:
-				// Called every frame
-				virtual void Tick( float DeltaSeconds ) override;
+	public:
+		// Called every frame
+		virtual void Tick( float DeltaSeconds ) override;
 
-				// Called to bind functionality to input
-				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+		// Called to bind functionality to input
+		virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
-			protected:
-				UPROPERTY(EditAnywhere)
-				USpringArmComponent* OurCameraSpringArm;
-				UCameraComponent* OurCamera;
-			};
+	protected:
+		UPROPERTY(EditAnywhere)
+		USpringArmComponent* OurCameraSpringArm;
+		UCameraComponent* OurCamera;
+	};
 
-		**PawnWithCamera.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+**PawnWithCamera.cpp**
 
-			#include "HowTo_PlayerCamera.h"
-			#include "PawnWithCamera.h"
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-			// Sets default values
-			APawnWithCamera::APawnWithCamera()
-			{
- 				// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-				PrimaryActorTick.bCanEverTick = true;
+	#include "HowTo_PlayerCamera.h"
+	#include "PawnWithCamera.h"
 
-				//Create our components
-				RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
-				OurCameraSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpringArm"));
-				OurCameraSpringArm->SetupAttachment(RootComponent);
-				OurCameraSpringArm->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, 50.0f), FRotator(-60.0f, 0.0f, 0.0f));
-				OurCameraSpringArm->TargetArmLength = 400.f;
-				OurCameraSpringArm->bEnableCameraLag = true;
-				OurCameraSpringArm->CameraLagSpeed = 3.0f;
-				OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("GameCamera"));
-				OurCamera->SetupAttachment(OurCameraSpringArm, USpringArmComponent::SocketName);
+	// Sets default values
+	APawnWithCamera::APawnWithCamera()
+	{
+ 		// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+		PrimaryActorTick.bCanEverTick = true;
 
-				//Take control of the default Player
-				AutoPossessPlayer = EAutoReceiveInput::Player0;
-			}
+		//Create our components
+		RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+		OurCameraSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpringArm"));
+		OurCameraSpringArm->SetupAttachment(RootComponent);
+		OurCameraSpringArm->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, 50.0f), FRotator(-60.0f, 0.0f, 0.0f));
+		OurCameraSpringArm->TargetArmLength = 400.f;
+		OurCameraSpringArm->bEnableCameraLag = true;
+		OurCameraSpringArm->CameraLagSpeed = 3.0f;
+		OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("GameCamera"));
+		OurCamera->SetupAttachment(OurCameraSpringArm, USpringArmComponent::SocketName);
 
-			// Called when the game starts or when spawned
-			void APawnWithCamera::BeginPlay()
-			{
-				Super::BeginPlay();
+		//Take control of the default Player
+		AutoPossessPlayer = EAutoReceiveInput::Player0;
+	}
+
+	// Called when the game starts or when spawned
+	void APawnWithCamera::BeginPlay()
+	{
+		Super::BeginPlay();
 	
-			}
+	}
 
-			// Called every frame
-			void APawnWithCamera::Tick( float DeltaTime )
-			{
-				Super::Tick( DeltaTime );
+	// Called every frame
+	void APawnWithCamera::Tick( float DeltaTime )
+	{
+		Super::Tick( DeltaTime );
 
-			}
+	}
 
-			// Called to bind functionality to input
-			void APawnWithCamera::SetupPlayerInputComponent(class UInputComponent* InputComponent)
-			{
-				Super::SetupPlayerInputComponent(InputComponent);
+	// Called to bind functionality to input
+	void APawnWithCamera::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+	{
+		Super::SetupPlayerInputComponent(InputComponent);
 
-			}
+	}
 
 
-    [/PARAM]
-[/OBJECT]
-
-%Steps%

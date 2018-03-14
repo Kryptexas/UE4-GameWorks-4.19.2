@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "StatsPages/TextureStatsPage.h"
 #include "GameFramework/Actor.h"
@@ -31,7 +31,7 @@ FTextureStatsPage& FTextureStatsPage::Get()
 struct TextureStatsGenerator : public FFindReferencedAssets
 {
 	/** Textures that should be ignored when taking stats */
-	TArray<TWeakObjectPtr<UTexture>> TexturesToIgnore;
+	TArray<TWeakObjectPtr<const UTexture>> TexturesToIgnore;
 
 	/** Map so we can track usage per-actor */
 	TMap<FString, UTextureStats*> EntryMap;
@@ -93,7 +93,7 @@ struct TextureStatsGenerator : public FFindReferencedAssets
 	bool IsTextureValidForStats( const UTexture* Texture ) 
 	{
 		const bool bIsValid = Texture && // texture must exist
-			TexturesToIgnore.Find( Texture ) == INDEX_NONE && // texture is not one that should be ignored
+			TexturesToIgnore.Find( MakeWeakObjectPtr( Texture ) ) == INDEX_NONE && // texture is not one that should be ignored
 			( Texture->IsA( UTexture2D::StaticClass() ) || Texture->IsA( UTextureCube::StaticClass() ) ); // texture is valid texture class for stat purposes
 
 #if 0 // @todo TextureInfoInUE4 UTextureCube::GetFace doesn't exist
@@ -103,7 +103,7 @@ struct TextureStatsGenerator : public FFindReferencedAssets
 			// If the passed in texture is a cube, add all faces of the cube to the ignore list since the cube will account for those
 			for( int32 FaceIdx = 0; FaceIdx < 6; ++FaceIdx )
 			{
-				TexturesToIgnore.Add( CubeTex->GetFace( FaceIdx ) );
+				TexturesToIgnore.Add( MakeWeakObjectPtr( CubeTex->GetFace( FaceIdx ) ) );
 			}
 		}
 #endif
@@ -199,7 +199,7 @@ struct TextureStatsGenerator : public FFindReferencedAssets
 			OutObjects.Add(Entry);
 			EntryMap.Add(InTexture->GetPathName(), Entry);
 
-			Entry->Texture = InTexture;
+			Entry->Texture = MakeWeakObjectPtr(const_cast<UTexture*>(InTexture));
 			Entry->Path = GetTexturePath(InTexture->GetPathName());
 			Entry->Group = (TextureGroup)InTexture->LODGroup;
 
@@ -268,7 +268,7 @@ struct TextureStatsGenerator : public FFindReferencedAssets
 
 		if( InActorUsingTexture != NULL && !Entry->Actors.Contains(InActorUsingTexture) )
 		{
-			Entry->Actors.Add(InActorUsingTexture);
+			Entry->Actors.Add(MakeWeakObjectPtr(const_cast<AActor*>(InActorUsingTexture)));
 			Entry->NumUses++;
 		}
 	}

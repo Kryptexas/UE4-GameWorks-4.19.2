@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -75,14 +75,14 @@ public:
 	 *
 	 * @return Name of the plugin.
 	 */
-	virtual FString GetName() const = 0;
+	virtual const FString& GetName() const = 0;
 
 	/**
 	 * Get a path to the plugin's descriptor
 	 *
 	 * @return Path to the plugin's descriptor.
 	 */
-	virtual FString GetDescriptorFileName() const = 0;
+	virtual const FString& GetDescriptorFileName() const = 0;
 
 	/**
 	 * Get a path to the plugin's directory.
@@ -231,6 +231,13 @@ public:
 	 * @return	Array of the enabled plugins.
 	 */
 	virtual TArray<TSharedRef<IPlugin>> GetEnabledPlugins() = 0;
+
+	/**
+	 * Gets an array of all enabled plugins that can have content.
+	 *
+	 * @return	Array of plugins with IsEnabled() and CanContainContent() both true.
+	 */
+	virtual TArray<TSharedRef<IPlugin>> GetEnabledPluginsWithContent() const = 0;
 
 	/**
 	 * Gets an array of all the discovered plugins.

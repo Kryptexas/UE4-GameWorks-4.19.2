@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -211,12 +211,6 @@ private:
 	/** Handler for when "Migrate Asset" is selected */
 	void ExecuteMigrateAsset();
 
-	/** Handler for ShowReferenceViewer */
-	void ExecuteShowReferenceViewer();
-
-	/** Handler for ShowSizeMap */
-	void ExecuteShowSizeMap();
-
 	/** Handler for GoToAssetCode */
 	void ExecuteGoToCodeForAsset(UClass* SelectedClass);
 
@@ -228,6 +222,12 @@ private:
 
 	/** Handler for CopyReference */
 	void ExecuteCopyReference();
+
+	/** Handler to copy the given text to the clipboard */
+	void ExecuteCopyTextToClipboard(FString InText);
+
+	/** Handler for resetting the localization ID of the current selection */
+	void ExecuteResetLocalizationId();
 
 	/** Handler for Export */
 	void ExecuteExport();
@@ -276,6 +276,12 @@ private:
 
 	/** Handler to remove a single ChunkID assignment from a selection of assets */
 	void ExecuteRemoveChunkID(int32 ChunkID);
+
+	/** Handler to export the selected asset(s) to experimental text format */
+	void ExportSelectedAssetsToText();
+
+	/** Handler to check if we can export the selected asset(s) to experimental text format */
+	bool CanExportSelectedAssetsToText() const;
 
 	/** Handler to check to see if a sync to asset tree command is allowed */
 	bool CanExecuteSyncToAssetTree() const;

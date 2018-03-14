@@ -1,49 +1,9 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:피직스 서브스테핑
 Crumbs: %ROOT%, Engine
 Description: 피직스 서브스테핑이란 무엇인가, 언제 사용하는가에 대한 설명입니다.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Physics:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 
 
 Physics Sub-stepping, 피직스 서브스테핑을 사용하면 퍼포먼스 비용을 추가로 들여 보다 정확하고 안정적인 물리 시뮬레이션을 얻을 수 있습니다. 특히나 래그돌 꿈틀이나 기타 복잡한 피직스 애셋 관련 부분을 향상시킬 수 있습니다.

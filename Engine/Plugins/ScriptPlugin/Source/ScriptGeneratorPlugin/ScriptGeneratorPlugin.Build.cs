@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using System.IO;
 using UnrealBuildTool;
 
@@ -53,15 +53,15 @@ namespace UnrealBuildTool.Rules
 			if (File.Exists(LuaLibPath))
 			{
 				Log.TraceVerbose("ScriptGenerator LUA Integration enabled");
-				Definitions.Add("WITH_LUA=1");
+				PublicDefinitions.Add("WITH_LUA=1");
 			}
 			else
 			{
 				Log.TraceVerbose("ScriptGenerator LUA Integration NOT enabled");
-				Definitions.Add("WITH_LUA=0");
+				PublicDefinitions.Add("WITH_LUA=0");
 			}
 
-			Definitions.Add("HACK_HEADER_GENERATOR=1");
+			PublicDefinitions.Add("HACK_HEADER_GENERATOR=1");
 		}
 	}
 }

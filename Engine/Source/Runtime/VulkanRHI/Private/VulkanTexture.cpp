@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanTexture.cpp: Vulkan texture RHI implementation.
@@ -136,7 +136,7 @@ inline void FVulkanSurface::InternalLockWrite(FVulkanCommandListContext& Context
 	Context.GetCommandBufferManager()->SubmitUploadCmdBuffer(false);
 }
 
-struct FRHICommandLockWriteTexture : public FRHICommand<FRHICommandLockWriteTexture>
+struct FRHICommandLockWriteTexture final : public FRHICommand<FRHICommandLockWriteTexture>
 {
 	FVulkanSurface* Surface;
 	VkImageSubresourceRange SubresourceRange;
@@ -385,7 +385,7 @@ VkImage FVulkanSurface::CreateImage(
 }
 
 
-struct FRHICommandInitialClearTexture : public FRHICommand<FRHICommandInitialClearTexture>
+struct FRHICommandInitialClearTexture final : public FRHICommand<FRHICommandInitialClearTexture>
 {
 	FVulkanSurface* Surface;
 	FClearValueBinding ClearValueBinding;
@@ -456,7 +456,7 @@ FVulkanSurface::FVulkanSurface(FVulkanDevice& InDevice, VkImageViewType Resource
 	}
 	else
 	{
-		Allocation = InDevice.GetMemoryManager().Alloc(MemoryRequirements.size, MemoryRequirements.memoryTypeBits, MemProps, __FILE__, __LINE__);
+		Allocation = InDevice.GetMemoryManager().Alloc(false, MemoryRequirements.size, MemoryRequirements.memoryTypeBits, MemProps, __FILE__, __LINE__);
 		//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("** vkBindImageMemory Buf %p MemHandle %p MemOffset %d Size %u\n"), (void*)Image, (void*)Allocation->GetHandle(), (uint32)0, (uint32)MemoryRequirements.size);
 		VERIFYVULKANRESULT(VulkanRHI::vkBindImageMemory(Device->GetInstanceHandle(), Image, Allocation->GetHandle(), 0));
 	}
@@ -1027,7 +1027,7 @@ static void DoAsyncReallocateTexture2D(FVulkanCommandListContext& Context, FVulk
 	//NewTexture->Surface.bSkipBlockOnUnlock = true;
 }
 
-struct FRHICommandVulkanAsyncReallocateTexture2D : public FRHICommand<FRHICommandVulkanAsyncReallocateTexture2D>
+struct FRHICommandVulkanAsyncReallocateTexture2D final : public FRHICommand<FRHICommandVulkanAsyncReallocateTexture2D>
 {
 	FVulkanCommandListContext& Context;
 	FVulkanTexture2D* OldTexture;
@@ -1105,6 +1105,9 @@ void* FVulkanDynamicRHI::RHILockTexture2D(FTexture2DRHIParamRef TextureRHI,uint3
 		StagingBuffer = &GPendingLockedBuffers.FindOrAdd(FTextureLock(TextureRHI, MipIndex));
 		checkf(!*StagingBuffer, TEXT("Can't lock the same texture twice!"));
 	}
+
+	// No locks for read allowed yet
+	check(LockMode == RLM_WriteOnly);
 
 	uint32 BufferSize = 0;
 	DestStride = 0;
@@ -1483,6 +1486,7 @@ FVulkanTextureBase::FVulkanTextureBase(FVulkanDevice& Device, VkImageViewType Re
 	, PartialView(nullptr)
 	, MSAASurface(nullptr)
 	#endif
+	, bIsAliased(false)
 {
 	if (Surface.ViewFormat == VK_FORMAT_UNDEFINED)
 	{
@@ -1574,6 +1578,7 @@ FVulkanTextureBase::FVulkanTextureBase(FVulkanDevice& Device, VkImageViewType Re
 	#if VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS
 	, MSAASurface(nullptr)
 	#endif
+	, bIsAliased(false)
 {
 	check(InMem == VK_NULL_HANDLE);
 	if (ResourceType != VK_IMAGE_VIEW_TYPE_MAX_ENUM && Surface.Image != VK_NULL_HANDLE)
@@ -1623,10 +1628,12 @@ void FVulkanTextureBase::AliasTextureResources(const FVulkanTextureBase* SrcText
 	check(!Surface.bIsImageOwner);
 	Surface.Image = SrcTexture->Surface.Image;
 	DefaultView.View = SrcTexture->DefaultView.View;
+	DefaultView.Image = SrcTexture->DefaultView.Image;
 
 	if (PartialView != &DefaultView)
 	{
 		PartialView->View = SrcTexture->PartialView->View;
+		PartialView->Image = SrcTexture->PartialView->Image;
 	}
 
 #if VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS
@@ -1635,6 +1642,7 @@ void FVulkanTextureBase::AliasTextureResources(const FVulkanTextureBase* SrcText
 		check(!MSAASurface->bIsImageOwner);
 		MSAASurface->Image = SrcTexture->MSAASurface->Image;
 		MSAAView.View = SrcTexture->MSAAView.View;
+		MSAAView.Image = SrcTexture->MSAAView.Image;
 	}
 #endif
 

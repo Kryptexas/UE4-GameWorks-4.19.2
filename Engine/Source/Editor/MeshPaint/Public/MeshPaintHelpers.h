@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -68,13 +68,15 @@ public:
 	static void SetInstanceColorDataForLOD(UStaticMeshComponent* MeshComponent, int32 LODIndex, const TArray<FColor>& Colors);	
 	
 	/** Sets the specific (LOD Index) per-instance vertex colors for the given StaticMeshComponent to a single Color value */
-	static void SetInstanceColorDataForLOD(UStaticMeshComponent* MeshComponent, int32 LODIndex, const FColor FillColor);
+	static void SetInstanceColorDataForLOD(UStaticMeshComponent* MeshComponent, int32 LODIndex, const FColor FillColor, const FColor MaskColor);
 	
 	/** Fills all vertex colors for all LODs found in the given mesh component with Fill Color */
-	static void FillVertexColors(UMeshComponent* MeshComponent, const FColor FillColor, bool bInstanced = false);
+	static void FillVertexColors(UMeshComponent* MeshComponent, const FColor FillColor, const FColor MaskColor, bool bInstanced = false);
 	
 	/** Sets all vertex colors for a specific LOD level in the SkeletalMesh to FillColor */
-	static void SetColorDataForLOD(USkeletalMesh* SkeletalMesh, int32 LODIndex, const FColor FillColor);
+	static void SetColorDataForLOD(USkeletalMesh* SkeletalMesh, int32 LODIndex, const FColor FillColor, const FColor MaskColor);
+
+	static void ApplyFillWithMask(FColor& InOutColor, const FColor& MaskColor, const FColor& FillColor);
 
 	/** Helper function to import Vertex Colors from a Texture to the specified MeshComponent (makes use of SImportVertexColorsOptions Widget) */
 	static void ImportVertexColorsFromTexture(UMeshComponent* MeshComponent);

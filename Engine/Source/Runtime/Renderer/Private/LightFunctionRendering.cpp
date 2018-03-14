@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightFunctionRendering.cpp: Implementation for rendering light functions.
@@ -36,7 +36,7 @@ public:
 	  * as 'UsedAsLightFunction' in the Material Editor gets compiled into
 	  * the shader cache.
 	  */
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
 		return Material->IsLightFunction() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
@@ -93,7 +93,7 @@ public:
 	  * as 'UsedAsLightFunction' in the Material Editor gets compiled into
 	  * the shader cache.
 	  */
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
 		return Material->IsLightFunction() && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
@@ -108,7 +108,7 @@ public:
 		DeferredParameters.Bind(Initializer.ParameterMap);
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FLightSceneInfo* LightSceneInfo, const FMaterialRenderProxy* MaterialProxy, bool bRenderingPreviewShadowIndicator, float ShadowFadeFraction )
+	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View, const FLightSceneInfo* LightSceneInfo, const FMaterialRenderProxy* MaterialProxy, bool bRenderingPreviewShadowIndicator, float ShadowFadeFraction )
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -324,7 +324,7 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(
 				{
 					if( !bLightAttenuationCleared )
 					{
-						LightSceneInfo->Proxy->SetScissorRect(RHICmdList, View);
+						LightSceneInfo->Proxy->SetScissorRect(RHICmdList, View, View.ViewRect);
 						FSceneRenderTargets::Get(RHICmdList).BeginRenderingLightAttenuation(RHICmdList, true);
 					}
 				}
@@ -372,7 +372,7 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(
 					}
 
 					// Set the light's scissor rectangle.
-					LightSceneInfo->Proxy->SetScissorRect(RHICmdList, View);
+					LightSceneInfo->Proxy->SetScissorRect(RHICmdList, View, View.ViewRect);
 
 					// Render a bounding light sphere.
 					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);

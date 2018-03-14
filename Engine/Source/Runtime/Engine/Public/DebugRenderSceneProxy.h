@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DebugRenderSceneProxy.h: Useful scene proxy for rendering non performance-critical information.
@@ -22,6 +22,8 @@ DECLARE_DELEGATE_TwoParams(FDebugDrawDelegate, class UCanvas*, class APlayerCont
 class FDebugRenderSceneProxy : public FPrimitiveSceneProxy
 {
 public:
+	ENGINE_API SIZE_T GetTypeHash() const override;
+
 	enum EDrawType
 	{
 		SolidMesh = 0,
@@ -197,7 +199,7 @@ public:
 	struct FMesh
 	{
 		TArray<FDynamicMeshVertex>	Vertices;
-		TArray <int32> Indices;
+		TArray <uint32> Indices;
 		FColor Color;
 	};
 

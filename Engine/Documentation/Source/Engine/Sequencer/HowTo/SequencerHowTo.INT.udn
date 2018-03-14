@@ -3,7 +3,7 @@ Title: Sequencer - How To's
 Crumbs: %ROOT%, Engine, Engine\Sequencer
 Description:A How To Guide for creating cinematic sequences with the Sequencer Editor. 
 Related: Engine\Sequencer
-version: 4.15
+version: 4.17
 tags:Sequencer
 
 
@@ -14,41 +14,16 @@ Reference links are also included to provide more detailed documentation of the 
 Refer to the table below for more information and click each link to view its contents. 
 
 ## Beginner
-[REGION:wrapper transparent]
-[](FANCY:Engine\Sequencer\HowTo\ViewportOptions "%Engine\Sequencer\HowTo\ViewportOptions:description%")
-[](FANCY:Engine\Sequencer\HowTo\TracksAudio "%Engine\Sequencer\HowTo\TracksAudio:description%")
-[](FANCY:Engine\Sequencer\HowTo\TracksFade "%Engine\Sequencer\HowTo\TracksFade:description%")
-[](FANCY:Engine\Sequencer\HowTo\TracksPlayRate "%Engine\Sequencer\HowTo\TracksPlayRate:description%")
-[/REGION]
+
+[DIR(output:"fancy" type:"how-to" end:"1" org:"hierarchy" parent:"Engine/Sequencer/HowTo" skill_level:"Beginner")]
 
 ## Intermediate
-[REGION:wrapper transparent]
-[](FANCY:Engine\Sequencer\HowTo\CharacterAnimation "%Engine\Sequencer\HowTo\CharacterAnimation:description%")
-[](FANCY:Engine\Sequencer\HowTo\TracksEvent "%Engine\Sequencer\HowTo\TracksEvent:description%")
-[](FANCY:Engine\Sequencer\HowTo\TracksShot "%Engine\Sequencer\HowTo\TracksShot:description%")
-[](FANCY:Engine\Sequencer\HowTo\TracksCameraCut "%Engine\Sequencer\HowTo\TracksCameraCut:description%")
-[](FANCY:Engine\Sequencer\HowTo\TracksMaterialParameter "%Engine\Sequencer\HowTo\TracksMaterialParameter:description%")
-[](FANCY:Engine\Sequencer\HowTo\CameraRigCrane "%Engine\Sequencer\HowTo\CameraRigCrane:description%")
-[](FANCY:Engine\Sequencer\HowTo\CameraRigRail "%Engine\Sequencer\HowTo\CameraRigRail:description%")
-[](FANCY:Engine\Sequencer\HowTo\CineCameraActors "%Engine\Sequencer\HowTo\CineCameraActors:description%")
-[](FANCY:Engine\Sequencer\HowTo\TriggeringSequences "%Engine\Sequencer\HowTo\TriggeringSequences:description%")
-[](FANCY:Engine\Sequencer\HowTo\BurnIns "%Engine\Sequencer\HowTo\BurnIns:description%")
-[](FANCY:Engine\Sequencer\HowTo\WhenFinished "%Engine\Sequencer\HowTo\WhenFinished:description%")
-[/REGION]
 
-
+[DIR(output:"fancy" type:"how-to" end:"1" org:"hierarchy" parent:"Engine/Sequencer/HowTo" skill_level:"Intermediate")]
 
 ## Advanced
-[REGION:wrapper transparent]
-[](FANCY:Engine\Sequencer\HowTo\AnimateDynamicObjects "%Engine\Sequencer\HowTo\AnimateDynamicObjects:description%")
-[](FANCY:Engine\Sequencer\HowTo\ActorSequence "%Engine\Sequencer\HowTo\ActorSequence:description%")
-[](FANCY:Engine\Sequencer\HowTo\TracksSub "%Engine\Sequencer\HowTo\TracksSub:description%")
-[](FANCY:Engine\Sequencer\HowTo\Spawnables "%Engine\Sequencer\HowTo\Spawnables:description%")
-[](FANCY:Engine\Sequencer\HowTo\SequenceRecorder "%Engine\Sequencer\HowTo\SequenceRecorder:description%")
-[](FANCY:Engine\Sequencer\HowTo\TracksLevelVisibility "%Engine\Sequencer\HowTo\TracksLevelVisibility:description%")
-[](FANCY:Engine\Sequencer\HowTo\CustomBurnIns "%Engine\Sequencer\HowTo\CustomBurnIns:description%")
-[](FANCY:Engine\Sequencer\HowTo\ImportExportEDLs "%Engine\Sequencer\HowTo\ImportExportEDLs:description%")
-[/REGION]
+
+[DIR(output:"fancy" type:"how-to" end:"1" org:"hierarchy" parent:"Engine/Sequencer/HowTo" skill_level:"Advanced")]
 
 
 

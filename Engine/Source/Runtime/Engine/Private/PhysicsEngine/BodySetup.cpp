@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BodySetup.cpp
@@ -35,23 +35,58 @@
 	#include "IPhysXCooking.h"
 #endif
 
-
 #include "PhysicsEngine/PhysDerivedData.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "ProfilingDebugging/CookStats.h"
 #include "AnimPhysObjectVersion.h"
 
+/** Helper for enum output... */
+#ifndef CASE_ENUM_TO_TEXT
+#define CASE_ENUM_TO_TEXT(txt) case txt: return TEXT(#txt);
+#endif
+
+namespace Lex
+{
+	const TCHAR* ToString(ECollisionTraceFlag Enum)
+	{
+		switch (Enum)
+		{
+			FOREACH_ENUM_ECOLLISIONTRACEFLAG(CASE_ENUM_TO_TEXT)
+		}
+		return TEXT("<Unknown ECollisionTraceFlag>");
+	}
+
+	const TCHAR* ToString(EPhysicsType Enum)
+	{
+		switch (Enum)
+		{
+			FOREACH_ENUM_EPHYSICSTYPE(CASE_ENUM_TO_TEXT)
+		}
+		return TEXT("<Unknown EPhysicsType>");
+	}
+
+	const TCHAR* ToString(EBodyCollisionResponse::Type Enum)
+	{
+		switch (Enum)
+		{
+			FOREACH_ENUM_EBODYCOLLISIONRESPONSE(CASE_ENUM_TO_TEXT)
+		}
+		return TEXT("<Unknown EBodyCollisionResponse>");
+	}
+}
 
 
-FCookBodySetupInfo::FCookBodySetupInfo()
-	: TriMeshCookFlags(EPhysXMeshCookFlags::Default)
-	, ConvexCookFlags(EPhysXMeshCookFlags::Default)
-	, bCookNonMirroredConvex(false)
-	, bCookMirroredConvex(false)
-	, bConvexDeformableMesh(false)
-	, bCookTriMesh(false)
-	, bSupportUVFromHitResults(false)
-	, bTriMeshError(false)
+FCookBodySetupInfo::FCookBodySetupInfo() :
+#if WITH_PHYSX
+	TriMeshCookFlags(EPhysXMeshCookFlags::Default) ,
+	ConvexCookFlags(EPhysXMeshCookFlags::Default) ,
+#endif // WITH_PHYSX
+	bCookNonMirroredConvex(false),
+	bCookMirroredConvex(false),
+	bConvexDeformableMesh(false),
+	bCookTriMesh(false),
+	bSupportUVFromHitResults(false),
+	bTriMeshError(false)
 {
 }
 
@@ -69,6 +104,7 @@ namespace PhysXBodySetupCookStats
 
 DEFINE_STAT(STAT_PhysXCooking);
 
+#if WITH_PHYSX
 IPhysXCookingModule* GetPhysXCookingModule(bool bForceLoad)
 {
 	check(IsInGameThread());
@@ -95,6 +131,7 @@ bool IsRuntimeCookingEnabled()
 {
 	return FModuleManager::LoadModulePtr<IPhysXCookingModule>("RuntimePhysXCooking") != nullptr;
 }
+#endif //WITH_PHYSX
 
 
 #if WITH_PHYSX
@@ -117,11 +154,6 @@ static TAutoConsoleVariable<float> CVarMaxContactOffset(
 	ECVF_Default);
 
 
-SIZE_T FBodySetupUVInfo::GetResourceSize() const
-{
-	return GetResourceSizeBytes();
-}
-
 void FBodySetupUVInfo::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const
 {
 	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(IndexBuffer.GetAllocatedSize());
@@ -135,14 +167,6 @@ void FBodySetupUVInfo::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize
 	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(VertUVs.GetAllocatedSize());
 }
 
-SIZE_T FBodySetupUVInfo::GetResourceSizeBytes() const
-{
-	FResourceSizeEx ResSize;
-	GetResourceSizeEx(ResSize);
-	return ResSize.GetTotalMemoryBytes();
-}
-
-
 DEFINE_LOG_CATEGORY(LogPhysics);
 UBodySetup::UBodySetup(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -155,7 +179,9 @@ UBodySetup::UBodySetup(const FObjectInitializer& ObjectInitializer)
 	bGenerateMirroredCollision = true;
 	bGenerateNonMirroredCollision = true;
 	DefaultInstance.SetObjectType(ECC_PhysicsBody);
+#if WITH_EDITORONLY_DATA
 	BuildScale_DEPRECATED = 1.0f;
+#endif
 	BuildScale3D = FVector(1.0f, 1.0f, 1.0f);
 	SetFlags(RF_Transactional);
 	bSharedCookedData = false;
@@ -203,6 +229,8 @@ void UBodySetup::AddCollisionFrom(const FKAggregateGeom& FromAggGeom)
 
 void UBodySetup::GetCookInfo(FCookBodySetupInfo& OutCookInfo, EPhysXMeshCookFlags InCookFlags) const
 {
+#if WITH_PHYSX
+
 	check(IsInGameThread());
 
 	OutCookInfo.OuterDebugName = GetOuter()->GetPathName();
@@ -319,6 +347,8 @@ void UBodySetup::GetCookInfo(FCookBodySetupInfo& OutCookInfo, EPhysXMeshCookFlag
 	}
 
 	OutCookInfo.bSupportUVFromHitResults = UPhysicsSettings::Get()->bSupportUVFromHitResults;
+
+#endif // WITH_PHYSX
 }
 
 void FBodySetupUVInfo::FillFromTriMesh(const FTriMeshCollisionData& TriangleMeshDesc)
@@ -458,12 +488,13 @@ void UBodySetup::CreatePhysicsMeshes()
 #endif //WITH_PHYSX
 }
 
+#if WITH_PHYSX
 void UBodySetup::FinishCreatingPhysicsMeshes(const TArray<PxConvexMesh*>& ConvexMeshes, const TArray<PxConvexMesh*>& ConvexMeshesNegX, const TArray<PxTriangleMesh*>& CookedTriMeshes)
 {
 	check(IsInGameThread());
 	ClearPhysicsMeshes();
 
-#if WITH_PHYSX
+	const FString FullName = GetFullName();
 	if (GetCollisionTraceFlag() != CTF_UseComplexAsSimple)
 	{
 		ensure(!bGenerateNonMirroredCollision || ConvexMeshes.Num() == 0 || ConvexMeshes.Num() == AggGeom.ConvexElems.Num());
@@ -482,13 +513,13 @@ void UBodySetup::FinishCreatingPhysicsMeshes(const TArray<PxConvexMesh*>& Convex
 			if (bGenerateNonMirroredCollision)
 			{
 				ConvexElem.SetConvexMesh(ConvexMeshes[ElementIndex]);
-				FPhysxSharedData::Get().Add(ConvexElem.GetConvexMesh());
+				FPhysxSharedData::Get().Add(ConvexElem.GetConvexMesh(), FullName);
 			}
 
 			if (bGenerateMirroredCollision)
 			{
 				ConvexElem.SetMirroredConvexMesh(ConvexMeshesNegX[ElementIndex]);
-				FPhysxSharedData::Get().Add(ConvexElem.GetMirroredConvexMesh());
+				FPhysxSharedData::Get().Add(ConvexElem.GetMirroredConvexMesh(), FullName);
 			}
 		}
 	}
@@ -497,7 +528,7 @@ void UBodySetup::FinishCreatingPhysicsMeshes(const TArray<PxConvexMesh*>& Convex
 	{
 		check(TriMesh);
 		TriMeshes.Add(TriMesh);
-		FPhysxSharedData::Get().Add(TriMesh);
+		FPhysxSharedData::Get().Add(TriMesh, FullName);
 	}
 
 	// Clear the cooked data
@@ -506,10 +537,9 @@ void UBodySetup::FinishCreatingPhysicsMeshes(const TArray<PxConvexMesh*>& Convex
 		CookedFormatData.FlushData();
 	}
 
-#endif
-
 	bCreatedPhysicsMeshes = true;
 }
+#endif //WITH_PHYSX
 
 void UBodySetup::CreatePhysicsMeshesAsync(FOnAsyncPhysicsCookFinished OnAsyncPhysicsCookFinished)
 {
@@ -527,6 +557,7 @@ void UBodySetup::CreatePhysicsMeshesAsync(FOnAsyncPhysicsCookFinished OnAsyncPhy
 	}
 #endif
 
+#if WITH_PHYSX
 	if(IPhysXCookingModule* PhysXCookingModule = GetPhysXCookingModule())
 	{
 		FPhysXCookHelper* AsyncPhysicsCookHelper = new FPhysXCookHelper(PhysXCookingModule);
@@ -548,8 +579,10 @@ void UBodySetup::CreatePhysicsMeshesAsync(FOnAsyncPhysicsCookFinished OnAsyncPhy
 	{
 		FinishCreatePhysicsMeshesAsync(nullptr, OnAsyncPhysicsCookFinished);
 	}
+#endif // WITH_PHYSX
 }
 
+#if WITH_PHYSX
 void UBodySetup::FinishCreatePhysicsMeshesAsync(FPhysXCookHelper* AsyncPhysicsCookHelper, FOnAsyncPhysicsCookFinished OnAsyncPhysicsCookFinished)
 {
 	if(AsyncPhysicsCookHelper)
@@ -567,6 +600,7 @@ void UBodySetup::FinishCreatePhysicsMeshesAsync(FPhysXCookHelper* AsyncPhysicsCo
 
 	OnAsyncPhysicsCookFinished.ExecuteIfBound();
 }
+#endif // WITH_PHYSX
 
 void UBodySetup::ClearPhysicsMeshes()
 {
@@ -601,7 +635,7 @@ void UBodySetup::ClearPhysicsMeshes()
 	TriMeshes.Empty();
 
 	bCreatedPhysicsMeshes = false;
-#endif
+#endif // WITH_PHYSX
 
 	// Also clear render info
 	AggGeom.FreeRenderInfo();
@@ -643,6 +677,8 @@ bool CalcMeshNegScaleCompensation(const FVector& InScale3D, PxTransform& POutTra
 	return (InScale3D.X * InScale3D.Y * InScale3D.Z) < 0.f;
 }
 
+#endif // WITH_PHYSX
+
 void SetupNonUniformHelper(FVector Scale3D, float& MinScale, float& MinScaleAbs, FVector& Scale3DAbs)
 {
 	// if almost zero, set min scale
@@ -665,6 +701,8 @@ void SetupNonUniformHelper(FVector Scale3D, float& MinScale, float& MinScaleAbs,
 		MinScaleAbs = 0.1f;
 	}
 }
+
+#if WITH_PHYSX
 
 void FBodySetupShapeIterator::GetContactOffsetParams(float& InOutContactOffsetFactor, float& InOutMinContactOffset, float& InOutMaxContactOffset)
 {
@@ -828,7 +866,7 @@ template <> FString FBodySetupShapeIterator::GetDebugName<FKSphylElem>() const
 ////////////////////////////// Convex elements ////////////////////////////
 template <> bool FBodySetupShapeIterator::PopulatePhysXGeometryAndTransform(const FKConvexElem& ConvexElem, PxConvexMeshGeometry& OutGeometry, PxTransform& OutTM) const
 {
-	const bool bUseNegX = CalcMeshNegScaleCompensation(Scale3D, OutTM);
+	const bool bUseNegX = CalcMeshNegScaleCompensation(Scale3D * RelativeTM.GetScale3D(), OutTM);
 
 	PxConvexMesh* UseConvexMesh = bUseNegX ? ConvexElem.GetMirroredConvexMesh() : ConvexElem.GetConvexMesh();
 	if (UseConvexMesh)
@@ -1149,7 +1187,7 @@ void UBodySetup::Serialize(FArchive& Ar)
 			TArray<FName> ActualFormatsToSave;
 			ActualFormatsToSave.Add(Format);
 
-			Ar << bHasCookedCollisionData;
+			FArchive_Serialize_BitfieldBool(Ar, bHasCookedCollisionData);
 
 			FFormatContainer* UseCookedFormatData = bUseRuntimeOnlyCookedData ? &CookedFormatDataRuntimeOnlyOptimization : &CookedFormatData;
 			UseCookedFormatData->Serialize(Ar, this, &ActualFormatsToSave, !bSharedCookedData);
@@ -1159,7 +1197,9 @@ void UBodySetup::Serialize(FArchive& Ar)
 		{
 			if (Ar.UE4Ver() >= VER_UE4_STORE_HASCOOKEDDATA_FOR_BODYSETUP)
 			{
-				Ar << bHasCookedCollisionData;
+				bool bTemp = bHasCookedCollisionData;
+				Ar << bTemp;
+				bHasCookedCollisionData = bTemp;
 			}
 			CookedFormatData.Serialize(Ar, this);
 		}
@@ -1182,10 +1222,12 @@ void UBodySetup::PostLoad()
 		Outer->ConditionalPostLoad();
 	}
 
+#if WITH_EDITORONLY_DATA
 	if ( GetLinkerUE4Version() < VER_UE4_BUILD_SCALE_VECTOR )
 	{
 		BuildScale3D = FVector( BuildScale_DEPRECATED );
 	}
+#endif
 
 	DefaultInstance.FixupData(this);
 
@@ -2060,6 +2102,8 @@ TEnumAsByte<enum ECollisionTraceFlag> UBodySetup::GetCollisionTraceFlag() const
 	return CollisionTraceFlag == ECollisionTraceFlag::CTF_UseDefault ? DefaultFlag : CollisionTraceFlag;
 }
 
+#if WITH_PHYSX
+
 /// @cond DOXYGEN_WARNINGS
 
 template void FBodySetupShapeIterator::ForEachShape(const TArray<FKSphereElem>&, TFunctionRef<void(const FKSphereElem&, const physx::PxSphereGeometry&, const physx::PxTransform&, float)>) const;
@@ -2069,3 +2113,5 @@ template void FBodySetupShapeIterator::ForEachShape(const TArray<FKConvexElem>&,
 template void FBodySetupShapeIterator::ForEachShape(const TArray<physx::PxTriangleMesh*>&, TFunctionRef<void(physx::PxTriangleMesh* const &, const physx::PxTriangleMeshGeometry&, const physx::PxTransform&, float)>) const;
 
 /// @endcond
+
+#endif //WITH_PHYSX

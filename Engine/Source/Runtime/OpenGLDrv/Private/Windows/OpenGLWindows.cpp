@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLWindowsLoader.cpp: Manual loading of OpenGL functions from DLL.
@@ -13,6 +13,7 @@
 
 #define DEFINE_GL_ENTRYPOINTS(Type,Func) Type Func = NULL;
 ENUM_GL_ENTRYPOINTS_ALL(DEFINE_GL_ENTRYPOINTS);
+#undef DEFINE_GL_ENTRYPOINTS
 PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB = NULL;
 
 extern PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT_ProcAddress;	// set in OpenGLDevice.cpp
@@ -197,13 +198,13 @@ static bool PlatformOpenGL3()
 #if (WINVER < 0x0600)
 	return true;
 #else
-	return FParse::Param(FCommandLine::Get(),TEXT("opengl")) || FParse::Param(FCommandLine::Get(),TEXT("opengl3"));
+	return FParse::Param(FCommandLine::Get(),TEXT("opengl3"));
 #endif
 }
 
 static bool PlatformOpenGL4()
 {
-	return FParse::Param(FCommandLine::Get(),TEXT("opengl4"));
+	return FParse::Param(FCommandLine::Get(), TEXT("opengl")) || FParse::Param(FCommandLine::Get(),TEXT("opengl4"));
 }
 
 static void PlatformOpenGLVersionFromCommandLine(int& OutMajorVersion, int& OutMinorVersion)
@@ -480,6 +481,22 @@ bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewpor
 
 	check(Context && Context->DeviceContext);
 
+	if (FOpenGL::IsAndroidGLESCompatibilityModeEnabled())
+	{
+		glDisable(GL_FRAMEBUFFER_SRGB);
+
+		int32 RealSyncInterval = bLockToVsync ? SyncInterval : 0;
+		if (wglSwapIntervalEXT_ProcAddress && Context->SyncInterval != RealSyncInterval)
+		{
+			wglSwapIntervalEXT_ProcAddress(RealSyncInterval);
+			Context->SyncInterval = RealSyncInterval;
+		}
+
+		::SwapBuffers(Context->DeviceContext);
+		REPORT_GL_END_BUFFER_EVENT_FOR_FRAME_DUMP();
+		return true;
+	}
+
 	FScopeLock ScopeLock(Device->ContextUsageGuard);
 	{
 		FPlatformOpenGLContext TempContext = *Context;
@@ -640,6 +657,7 @@ void PlatformResizeGLContext( FPlatformOpenGLDevice* Device, FPlatformOpenGLCont
 	//SetWindowLong(Context->WindowHandle, GWL_STYLE, WindowStyle);
 	//SetWindowLong(Context->WindowHandle, GWL_EXSTYLE, WindowStyleEx);
 
+		if (!FOpenGL::IsAndroidGLESCompatibilityModeEnabled())
 		{
 			FScopeContext ScopeContext(Context);
 
@@ -813,6 +831,7 @@ bool PlatformInitOpenGL()
 			// Initialize entry points required by Unreal from opengl32.dll
 			#define GET_GL_ENTRYPOINTS_DLL(Type,Func) Func = (Type)FPlatformProcess::GetDllExport(OpenGLDLL,TEXT(#Func));
 			ENUM_GL_ENTRYPOINTS_DLL(GET_GL_ENTRYPOINTS_DLL);
+			#undef GET_GL_ENTRYPOINTS_DLL
 
 			// Release the OpenGL DLL.
 			FPlatformProcess::FreeDllHandle(OpenGLDLL);
@@ -821,6 +840,7 @@ bool PlatformInitOpenGL()
 			#define GET_GL_ENTRYPOINTS(Type,Func) Func = (Type)wglGetProcAddress(#Func);
 			ENUM_GL_ENTRYPOINTS(GET_GL_ENTRYPOINTS);
 			ENUM_GL_ENTRYPOINTS_OPTIONAL(GET_GL_ENTRYPOINTS);
+			#undef GET_GL_ENTRYPOINTS
 
 			// Restore warning C4191.
 			#pragma warning(pop)
@@ -830,6 +850,7 @@ bool PlatformInitOpenGL()
 			#define CHECK_GL_ENTRYPOINTS(Type,Func) if (Func == NULL) { bFoundAllEntryPoints = false; UE_LOG(LogRHI, Warning, TEXT("Failed to find entry point for %s"), TEXT(#Func)); }
 			ENUM_GL_ENTRYPOINTS_DLL(CHECK_GL_ENTRYPOINTS);
 			ENUM_GL_ENTRYPOINTS(CHECK_GL_ENTRYPOINTS);
+			#undef CHECK_GL_ENTRYPOINTS
 			checkf(bFoundAllEntryPoints, TEXT("Failed to find all OpenGL entry points."));
 		}
 
@@ -990,6 +1011,14 @@ bool PlatformContextIsCurrent( uint64 QueryContext )
 
 FRHITexture* PlatformCreateBuiltinBackBuffer(FOpenGLDynamicRHI* OpenGLRHI, uint32 SizeX, uint32 SizeY)
 {
+	if (FOpenGL::IsAndroidGLESCompatibilityModeEnabled())
+	{
+		uint32 Flags = TexCreate_RenderTargetable;
+		FOpenGLTexture2D* Texture2D = new FOpenGLTexture2D(OpenGLRHI, 0, GL_RENDERBUFFER, GL_COLOR_ATTACHMENT0, SizeX, SizeY, 0, 1, 1, 1, 1, PF_B8G8R8A8, false, false, Flags, nullptr, FClearValueBinding::Transparent);
+		OpenGLTextureAllocated(Texture2D, Flags);
+		return Texture2D;
+	}
+
 	return NULL;
 }
 

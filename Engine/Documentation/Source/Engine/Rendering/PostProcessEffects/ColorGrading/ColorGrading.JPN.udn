@@ -30,7 +30,8 @@ Version:4.9
 | **Scene Color Tint** | HDR シーンカラーに適用されるフィルター カラー (乗算) です。 [INCLUDE:#SceneColorTint] |
 | **Tonemapper Toe Factor** | トーンマッパに含まれる暗色の微調整を可能にします。値は [0.0, 1.0] の範囲です。 [INCLUDE:#TonemapperToeFactor] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SceneColorTint]
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -52,7 +53,8 @@ Version:4.9
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:TonemapperToeFactor]
--->
+
+[/COMMENT]
 
 ## 色補正
 
@@ -83,7 +85,8 @@ LUT を使用するには、使用するポストプロセスボリュームで 
 | **Color Grading Intensity** | 色補正のエフェクトを制御するスケーリング係数です。 |
 | **Color Grading LUT** | 色補正の色対応表として使用する LUT テクスチャです。[INCLUDE:Engine/Rendering/PostProcessEffects/ColorGrading#ColorGradingLUT]  |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ColorGradingLUT]
 [REGION:imagetable]
 | ![Natural Scene](lut_none.png)(w:265) | ![Greenish Scene](lut_green.png)(w:265) | ![Reddish Scene](lut_red.png)(w:265) |
@@ -91,7 +94,8 @@ LUT を使用するには、使用するポストプロセスボリュームで 
 | ![Neutral LUT](RGBTable16x1.png) | ![Greenish LUT](LUT_Greenish.png) | ![Reddish LUT](LUT_Reddish.png) |
 [/REGION:imagetable]
 [/EXCERPT:ColorGradingLUT]
--->
+
+[/COMMENT]
 
 ### LUT テクスチャの作成
 

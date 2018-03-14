@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Engine.h: Unreal engine public header file.
@@ -46,7 +46,6 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "PrimitiveSceneProxy.h"
 #include "BoneIndices.h"
 #include "ReferenceSkeleton.h"
-#include "SkeletalMeshTypes.h"
 #include "AnimInterpFilter.h"
 #include "Animation/AnimTypes.h"
 #include "CustomBoneIndexArray.h"

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
@@ -23,9 +23,9 @@
 
 struct FK2Node_BaseMCDelegateHelper
 {
-	static FString DelegatePinName;
+	static FName DelegatePinName;
 };
-FString FK2Node_BaseMCDelegateHelper::DelegatePinName(TEXT("Delegate"));
+FName FK2Node_BaseMCDelegateHelper::DelegatePinName(TEXT("Delegate"));
 
 /////// UK2Node_BaseMCDelegate ///////////
 
@@ -41,7 +41,7 @@ void UK2Node_BaseMCDelegate::ValidateNodeDuringCompilation(class FCompilerResult
 	{
 		if(!Property->HasAllPropertyFlags(CPF_BlueprintAssignable))
 		{
-			MessageLog.Error(*FString::Printf(*NSLOCTEXT("K2Node", "BaseMCDelegateNotAssignable", "Event Dispatcher is not 'BlueprintAssignable' @@").ToString()), this);
+			MessageLog.Error(*NSLOCTEXT("K2Node", "BaseMCDelegateNotAssignable", "Event Dispatcher is not 'BlueprintAssignable' @@").ToString(), this);
 		}
 	}
 }
@@ -58,12 +58,11 @@ bool UK2Node_BaseMCDelegate::IsCompatibleWithGraph(const UEdGraph* TargetGraph) 
 UK2Node::ERedirectType UK2Node_BaseMCDelegate::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
 {
 	ERedirectType OrginalResult = Super::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	if ((ERedirectType::ERedirectType_None == OrginalResult) && K2Schema && NewPin && OldPin)
+	if ((ERedirectType::ERedirectType_None == OrginalResult) && NewPin && OldPin)
 	{
-		if ((OldPin->PinType.PinCategory == K2Schema->PC_Delegate) &&
-			(NewPin->PinType.PinCategory == K2Schema->PC_Delegate) &&
-			(FCString::Stricmp(*(NewPin->PinName), *(OldPin->PinName)) == 0))
+		if ((OldPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Delegate) &&
+			(NewPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Delegate) &&
+			(NewPin->PinName == OldPin->PinName))
 		{
 			return ERedirectType_Name;
 		}
@@ -75,28 +74,26 @@ void UK2Node_BaseMCDelegate::AllocateDefaultPins()
 {
 	Super::AllocateDefaultPins();
 
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Then);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Execute);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Then);
 
 	UClass* PropertyOwnerClass = DelegateReference.GetMemberParentClass(GetBlueprintClassFromNode());
 	if (PropertyOwnerClass != nullptr)
 	{
 		PropertyOwnerClass = PropertyOwnerClass->GetAuthoritativeClass();
 	}
-	const auto Blueprint = GetBlueprint();
+	const UBlueprint* Blueprint = GetBlueprint();
 	
 	const bool bUseSelf = Blueprint && (PropertyOwnerClass == Blueprint->GeneratedClass);
 
 	UEdGraphPin* SelfPin = NULL;
 	if (bUseSelf)
 	{
-		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, K2Schema->PSC_Self, nullptr, K2Schema->PN_Self);
+		SelfPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, UEdGraphSchema_K2::PSC_Self, UEdGraphSchema_K2::PN_Self);
 	}
 	else
 	{
-		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, FString(), PropertyOwnerClass, K2Schema->PN_Self);
+		SelfPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, PropertyOwnerClass, UEdGraphSchema_K2::PN_Self);
 	}
 
 	if(SelfPin)
@@ -125,7 +122,7 @@ UFunction* UK2Node_BaseMCDelegate::GetDelegateSignature(bool bForceNotFromSkelCl
 	FMemberReference ReferenceToUse;
 	ReferenceToUse.SetDirect(DelegateReference.GetMemberName(), DelegateReference.GetMemberGuid(), OwnerClass, /*bIsConsideredSelfContext =*/false);
 
-	UMulticastDelegateProperty* DelegateProperty = ReferenceToUse.ResolveMember<UMulticastDelegateProperty>((UClass*)nullptr);
+	UMulticastDelegateProperty* DelegateProperty = ReferenceToUse.ResolveMember<UMulticastDelegateProperty>();
 	return (DelegateProperty != nullptr) ? DelegateProperty->SignatureFunction : nullptr;
 }
 
@@ -186,7 +183,7 @@ void UK2Node_BaseMCDelegate::ExpandNode(class FKismetCompilerContext& CompilerCo
 		{
 			if(MultiSelf->LinkedTo.Num() > 1)
 			{
-				CompilerContext.MessageLog.Error(*FString::Printf(*NSLOCTEXT("K2Node", "BaseMCDelegateMultiArray", "Event Dispatcher does not accept multi-array-self @@").ToString()), this);
+				CompilerContext.MessageLog.Error(*NSLOCTEXT("K2Node", "BaseMCDelegateMultiArray", "Event Dispatcher does not accept multi-array-self @@").ToString(), this);
 			}
 			else
 			{
@@ -256,8 +253,8 @@ void UK2Node_BaseMCDelegate::AutowireNewNode(UEdGraphPin* FromPin)
 					{
 						// If we get here, then the property delegate is also available on the FromPin's class.
 						// Fix up the type by propagating it from the FromPin to our target pin
-						UEdGraphPin* TargetPin = FindPin(K2Schema->PN_Self);
-						TargetPin->PinType.PinSubCategory.Empty();
+						UEdGraphPin* TargetPin = FindPin(UEdGraphSchema_K2::PN_Self);
+						TargetPin->PinType.PinSubCategory = NAME_None;
 						TargetPin->PinType.PinSubCategoryObject = DelegateOwner;
 
 						// And finally, try to establish the connection
@@ -294,9 +291,10 @@ void UK2Node_AddDelegate::AllocateDefaultPins()
 {
 	Super::AllocateDefaultPins();
 
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	if(UEdGraphPin* DelegatePin = CreatePin(EGPD_Input, K2Schema->PC_Delegate, FString(), nullptr, FK2Node_BaseMCDelegateHelper::DelegatePinName, EPinContainerType::None, true, true))
+	UEdGraphNode::FCreatePinParams PinParams;
+	PinParams.bIsReference = true;
+	PinParams.bIsConst = true;
+	if(UEdGraphPin* DelegatePin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Delegate, FK2Node_BaseMCDelegateHelper::DelegatePinName, PinParams))
 	{
 		FMemberReference::FillSimpleMemberReference<UFunction>(GetDelegateSignature(), DelegatePin->PinType.PinSubCategoryMemberReference);
 		DelegatePin->PinFriendlyName = NSLOCTEXT("K2Node", "PinFriendlyDelegatetName", "Event");
@@ -362,9 +360,10 @@ void UK2Node_RemoveDelegate::AllocateDefaultPins()
 {
 	Super::AllocateDefaultPins();
 
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	if(UEdGraphPin* DelegatePin = CreatePin(EGPD_Input, K2Schema->PC_Delegate, FString(), nullptr, FK2Node_BaseMCDelegateHelper::DelegatePinName, EPinContainerType::None, true, true))
+	UEdGraphNode::FCreatePinParams PinParams;
+	PinParams.bIsReference = true;
+	PinParams.bIsConst = true;
+	if(UEdGraphPin* DelegatePin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Delegate, FK2Node_BaseMCDelegateHelper::DelegatePinName, PinParams))
 	{
 		FMemberReference::FillSimpleMemberReference<UFunction>(GetDelegateSignature(), DelegatePin->PinType.PinSubCategoryMemberReference);
 		DelegatePin->PinFriendlyName = NSLOCTEXT("K2Node", "PinFriendlyDelegatetName", "Event");
@@ -407,7 +406,7 @@ bool UK2Node_CallDelegate::CreatePinsForFunctionInputs(const UFunction* Function
 		const bool bIsFunctionInput = !Param->HasAnyPropertyFlags(CPF_OutParm) || Param->HasAnyPropertyFlags(CPF_ReferenceParm);
 		if (bIsFunctionInput)
 		{
-			UEdGraphPin* Pin = CreatePin(EGPD_Input, FString(), FString(), nullptr, Param->GetName());
+			UEdGraphPin* Pin = CreatePin(EGPD_Input, NAME_None, Param->GetFName());
 			const bool bPinGood = K2Schema->ConvertPropertyToPinType(Param, /*out*/ Pin->PinType);
 
 			bAllPinsGood = bAllPinsGood && bPinGood;
@@ -443,7 +442,7 @@ void UK2Node_CallDelegate::ValidateNodeDuringCompilation(class FCompilerResultsL
 	{
 		if(!Property->HasAllPropertyFlags(CPF_BlueprintCallable))
 		{
-			MessageLog.Error(*FString::Printf(*NSLOCTEXT("K2Node", "BaseMCDelegateNotCallable", "Event Dispatcher is not 'BlueprintCallable' @@").ToString()), this);
+			MessageLog.Error(*NSLOCTEXT("K2Node", "BaseMCDelegateNotCallable", "Event Dispatcher is not 'BlueprintCallable' @@").ToString(), this);
 		}
 	}
 }

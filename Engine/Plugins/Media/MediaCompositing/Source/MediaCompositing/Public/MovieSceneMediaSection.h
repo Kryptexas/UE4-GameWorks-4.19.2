@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,7 +6,9 @@
 
 #include "MovieSceneMediaSection.generated.h"
 
+class UMediaSoundComponent;
 class UMediaSource;
+class UMediaTexture;
 
 
 /**
@@ -23,6 +25,14 @@ public:
 	/** The media source proxy to use. */
 	UPROPERTY(EditAnywhere, Category="Media")
 	FString Proxy;
+
+	/** The media sound component that receives the track's audio output. */
+	UPROPERTY(EditAnywhere, Category="Media")
+	UMediaSoundComponent* MediaSoundComponent;
+
+	/** The media texture that receives the track's video output. */
+	UPROPERTY(EditAnywhere, Category="Media")
+	UMediaTexture* MediaTexture;
 
 public:
 
@@ -76,7 +86,7 @@ public:
 
 private:
 
-	/** The source to play with this video track */
+	/** The source to play with this video track. */
 	UPROPERTY(EditAnywhere, Category="Media")
 	UMediaSource* MediaSource;
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "XGEControllerInterface.h"
 #include "Containers/Queue.h"
@@ -236,7 +236,7 @@ bool FXGEControllerModule::IsSupported()
 
 		if (!bFound)
 		{
-			UE_LOG(LogXGEController, Warning, TEXT("Cannot use XGE Controller as Incredibuild is not installed on this machine."));
+			UE_LOG(LogXGEController, Log, TEXT("Cannot use XGE Controller as Incredibuild is not installed on this machine."));
 			XGEControllerVariables::Enabled = 0;
 		}
 		else
@@ -573,6 +573,6 @@ XGECONTROLLER_API IXGEController& IXGEController::Get()
 	return Ref;
 }
 
-IMPLEMENT_MODULE(FXGEControllerModule, XGEControllerModule);
+IMPLEMENT_MODULE(FXGEControllerModule, XGEController);
 
 #endif // WITH_XGE_CONTROLLER

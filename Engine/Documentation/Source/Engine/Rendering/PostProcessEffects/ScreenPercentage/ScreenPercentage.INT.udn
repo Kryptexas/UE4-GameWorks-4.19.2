@@ -1,0 +1,719 @@
+Availability: Docs
+Crumbs: %ROOT%
+Title: Screen Percentage: Dynamic Resolution and Temporal Anti-Aliasing Upsample
+Description: 
+Type: Overview
+SkillLevel: Intermediate
+Version:4.19
+Parent:Engine/Rendering/Postprocessing
+Order:
+Tags:
+
+[TOC(start:2 end:3)]
+
+
+[INTRODUCTION]
+
+
+[REGION:note]
+The release of Unreal Engine 4.19 makes some significant changes to how Screen Percentage works. Most of this will directly affect those developing projects for Virtual Reality (VR) which will break backward comptability in some cases. 
+[/REGION]
+
+
+
+**Screen Percentage** is a [Post Process](Engine/Rendering/PostProcessEffects) technique used to render a lower or higher resolution image than what it is actually being presented as. Being able to adjust the screen percentage can allow your games to maintain a balance between performance and image resolution quality. 
+
+Prior to Unreal Engine 4(UE4) version 4.19, you only had to change the screen percentage, but it has now been split into two types of scaling during the rendering pipeline: Primary and Secondary Spatial Upscaling.
+
+* **Primary Spatial Upscaling** is the same screen percentage that has been used previously. It is based on the idea of rendering a frame at a lower resolution and then upscaling it before the UI is drawn.
+* **Secondary Spatial Upscaling** does a second and final upscale pass, independently of the Primary upscaling pass. This pass can happen if the GPU is not able to keep up with a high DPI (Dots per Inch) monitor and makes Dynamic Resolution changes possible. 
+
+
+
+
+
+
+
+
+
+## Primary Spatial Upscale
+
+The **Primary Spatial Upscale** (or primary screen percentage) works by rendering the screen resolution at a percentage of the screen and then scaling it to fit your current screen resolution. Using a lower screen percentage (or lower resolution) and then upscaling it is called **upsampling**. Or, when the screen percentage is increased (rendering at a higher resolution), it is scaled down to your current screens resolution, which is called **supersampling**. All of this takes place before the user interface (UI) is drawn and can have an impact on performance.
+
+[COMMENT:none]
+- TODO Fix Image in PSD Custom for Easier Translation later -
+[/COMMENT]
+
+![](SpatialUpscalingPipelineComparison.png)(w:900)
+
+The conceptual idea of how screen percentage works for all the buffer render targets that make up the rendered image for a single GPU frame can be shown as follows:
+
+[COMMENT:none]
+- TODO Fix Image in PSD Custom for Easier Translation later -
+[/COMMENT]
+![](NoUpscalingPipeline.png)(w:900)
+
+For each GPU frame, all the render targets use their full resolution throught out the pipeline.
+
+[COMMENT:none]
+- TODO Fix Image in PSD Custom for Easier Translation later -
+[/COMMENT]
+![](SpatialUpscalingPipeline.png)(w:900)
+
+With Spatial Upscaling, anything drawn before the UI is at a lower or higher resolution based on the Screen Percentage used. The screen percentage has been lowered (indicated by the narrower render targets before UI), creating a lower resolution image for the render targets. Spatial Scaling happens befor the UI to scale the image to the screen resolution it will be output to. For example, if the current resolution is set to 1920x1080 and a screen percentage of 83% is used, the render targets will be resized to an approximate resolution of 1600x900 before being upscaled back to 1920x1080. 
+
+
+
+
+
+
+
+### Render Target Upscale Quality
+
+When upscaling the render targets, the quality of the upscale can be defined by using the following console variable: 
+
+	r.Upscale.Quality
+
+It controls the quality in qhich screen percentage and Windowed FullScreen mode scales the 3D rendering.
+
+| Upsample Quality Value | Upsample Result |
+| --- | --- |
+| **0** | Nearest Filtering |
+| **1** | Simple Bilinear |
+| **2** | Directional blur with unsharp mask upsample |
+| **3** | 5-tap Catmull-Rom bicubic, approximating Lanczos 2 (default) |
+| **4** | 13-tap Lanczos 3 |
+| **5** | 36-tap Gaussian-filtered unsharp mask (very expensive, but good for extreme upsampling) |
+
+Alternatively, you can change how the tonemapper pass is handled. The screen percentage upscale is integrated into the tonemapper pass and they are run separately by default. If they are run together, they can be run in the same pass, which is faster but will affect any post process passes that happen after the tonemapper, including post process materials. It can be enabled by using the following command: 
+
+	r.Tonemapper.MergeWithUpscale.Mode
+	
+
+[COMMENT:none]
+- TODO IMAGE - Possible with an image demonstration? -
+[/COMMENT]	
+
+
+
+
+
+
+
+
+
+### Temporal Anti-Aliasing Upsample
+
+In addition to Primary Spatial Upscale, a second upscaling technique is also supported for the primary screen percentage: Temporal Upsample. Instead of performing temporal integration with the Temporal Anti-Aliasing (TAA) and then doing a primary spatial upscale, both happen at the same time in the Temporal Anti-Aliasing Upsample (TAAU) shader. It allows them to converge to sharper images than what a spatial-only upscale could provide but comes at a higher cost since a larger number of post processes run at a higher resolution.
+
+![](TAAUPipeline.png)(w:900)
+
+[REGION:caption]
+TAAU happens earlier in the pipeline causing the render targets that follow to render at a higher resolution, leading to higher costs with sharper images. 
+[/REGION]
+
+It should be noted that with the temporal upsample, the ordering of the different post processes has not changed with the addition of TAAU, it simply replaced TAA. The difference now is that anything that runs after the temporal upsample is ready and aware of the different resolution than those before the upsample. Before 4.19, the resolution was assumed to be the same everywhere in the post processing.
+
+The benefit of moving the temporal upscale up in the pipeline means that arbitrary primary screen percentages can be used with TAAU with minimal user-perceivable changes on the final output sharpness. Before, you had to sometimes use a "magic" number that depended on the display it was being output. This  largely affected Virtual Reality (VR) Head Mounted Displays (HMD), where each one would use their own screen percentage to get the best result. With temporal upscaling, you no longer have to keep track or remember these values to achieve a similar result.
+
+[REGION:note]
+The changes to the final output sharpness does not use a "magic" number, so as the primary screen percentage decreases, the convergence to a clean full-resolution output changes. Therefore, some existing TAA artifacts would be more noticeable. For example, aliasing can become an issue for very thin geometry increasing the probability to miss geometric detail as the primary screen percentage is lowering.
+[/REGION]
+
+#### Enabling Temporal Upsample
+
+To use Temporal Anti-Aliasing Upsample, you'll need to opt into it by using the following console variable: 
+
+	r.TemporalAA.Upsampling 1
+
+A lower primary screen percentage can lose significant detail when using lower resolutions. For example, for something like a chain-link fence or the grill on the front of a car, the detail can become harder to see at farther distances when Temporal Anti-Aliasing is used. Enabling TAAU, this can be reduced while still using a lower screen percentage.
+
+[REGION:imagetable]
+| ![](FenceAsset.png)(w:560) | [INCLUDE:#taau] |
+| --- | --- |
+|||
+[/REGION]
+
+In the comparison, the primary screen percentage has been set to **50** and the camera has been moved to a far enough distance to effectively see how TAA affects high-frequency geometry and materials. The temporal upsample enables this detail to be seen, even when lower resolutions are used to maintain this detail as much as possible.
+
+In this comparison, the Primary Screen Percentage has been set to **50** and the camera has been moved to a far eough distance to see the effect. 
+
+[COMMENT:none]
+-
+[INCLUDE:#taau]
+[EXCERPT:tAAU]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![TemporalAA Upsample | Disabled](TemporalUpsampleDisabled.png)(w:560)
+	[/PARAM]
+	[PARAM:after]
+	![TemporalAA Upsample | Enabled](TemporalUpsampleEnabled.png)(w:560)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:tAAU]
+
+-
+[/COMMENT]
+
+
+#### Additional Examples
+
+
+In this first set of comparisons, a default scene that has only lowered the screen percentage is compared to one using the same screen percentage except it has the temporal upsample enabled. The difference may seem minute for these screenshots but on larger screens the areas with dense geometry or high-frequency textures can regain some lost detail, like with the fencing on the top of the house, or the tree fronds on the trees (close and far ones). 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Screen Percentage: 70 | Temporal AA Upsample: Disabled](Shot3c.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Screen Percentage: 70 | Temporal AA Upsample: Enabled](Shot2c.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+
+In this one, the default screen percentage of 100 without any temporal upsample can be compared to the lower screen percentage that is using temporal upsample. While some specular highlights and some material detail is lost, the temporal upsample does a really good job of maintaining geometry detail even though the screen percentage has been lowered.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Screen Percentage: 100 | Temporal AA Upsample: Disabled ](Shot1c.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Screen Percentage: 70 | Temporal AA Upsample: Enabled ](Shot2c.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+
+
+
+[COMMENT:none]
+-
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Screen Percentage: 70 | Temporal AA Upsample: Disabled](Shot3a.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Screen Percentage: 70 | Temporal AA Upsample: Enabled](Shot2a.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Screen Percentage: 100 | Temporal AA Upsample: Disabled ](Shot1a.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Screen Percentage: 70 | Temporal AA Upsample: Enabled ](Shot2a.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+
+-
+[/COMMENT]
+
+[COMMENT:none]
+---  EXAMPLES OF TAAU UPSCALES
+
+Take examples from Guillaume's pre-doc for comparison shots and add some context
+
+Shot 1 - Primary Screen Percentage = 100% with no extra frills, no TAAU upscaling.
+Shot 2 - Primary Screen Percentage = 70%  with TAA Upsampling enables (uses temporal and spatial upsampling)
+Shot 3 - Primary Screen Percentage = 70%  with TAA Upsampling disabled (default, so no temporal and spatial upsampling) but does use r.Upscale Quality 3 (default value)
+
+--
+[/COMMENT]
+
+
+
+
+
+### Automatic View Texture Mip Bias
+
+Becasue screen percentage causes geometry to render at a lower pixel density, temporal upsample requires more texture information from the Material Domains using **Surface** and **Deferred Decal** to maintain the same output sharpness. For this purpose, the Texture Sample expression can use **Automatic View Mip Bias** 
+
+The Texture Sample expression can use **Automatic View Mip Bias** to toggle whether the texture should be sampled with per-view mip biasing for sharper output with Temporal Anti-Aliasing.
+
+![](AutomaticViewMipBias.png)
+
+For high-frequency textures (like the example below), the automatic mip bias can become problematic at lower screen percentages.
+
+![](HFtexture.png)(w:512)
+
+[COMMENT:none]
+-TODO IMAGE - GRILL OR HIGH FREQUENCY TEXTURE FROM DISTANCE> SET THE IMAGE UP AND ZOOM INTO PART OF THE IMAGE TO SHOW THE GRILL LARGER FOR EASE OF VIEWING. 
+[/COMMENT]
+
+However, if you need to access the mip map level accurately, Automatic View Mip Bias should be unchecked. 
+
+![](AutomaticViewMipBiasUnchecked.png)
+
+[REGION:note]
+Automatic View Mip Bias only happens when TAAU is enabled. Normal Anti-Aliasing methods (TAA, MSAA, and FXAA) won't be able to use this option. 
+[/REGION]
+
+
+
+
+
+
+
+
+#### Performance Permutations  (TODO BASED ON NOTES FROM GUILLAUME)
+
+TODO REWRITE
+
+The temporal upsample comes with a faster shader permutation that is traded against some quality to ship at 60Hz on consoles. This is similar to what is currently achieved with TAA.
+
+
+
+
+
+
+
+Temporal Upsample comes with a faster shader permutation (traded against some quality) minded titles to ship at 60Hz on consoles, like we currently do with TAA (r.postprocessingQuality=3 or r.PostProcessAAQuality=4).
+
+More over, both quality also have their own shader permutations for primary screen percentage ranges: 
+
+
+
+| r.PostProcessAAQuality 3 | r.PostProcessAAQuality 4 | Notes | 
+| --- | --- | --- |
+| 50% | 71% | even faster version because uses smaller LDS tile in memory, targeting temporal upsampling to 4K on desktop and console use-cases. |
+| 71% | 100% | Useful for "normal" DPI rendering on desktop and base consoles.  |
+| 100% | 200% | For giving dynamic resolution the theoretic possibility to go over 100%, if not limited by the GPU memory for render targets.  |
+
+
+
+### Material Improvements
+
+
+There have been some improvements with how Materials use the Scene Texture expression to sample the scene. It has been simplified so that the view size is always equal to that of the render target being used, a new output on the Screen Position expression enables accurate pixel position within the view size, and some things to consider when using post process materials after TAAU.
+
+
+#### View Size is now equal to Render Target Size
+
+The view size will now always equal the render target size in a material. Prior to UE4 4.19, when sampling a scene texture, the material had to work with the complexity of Scene Texture UV, which is different from the Viewport UV. For example, the Screen Position expression would output both of these values and View Property would also expose a Render Target Size that was not necessarily equal to the View Size. That was due to the renderer actually rendering the viewport in possibly larger render targets. 
+
+![](ViewSizeInRT.png)
+[COMMENT:none]
+-TODO IMAGE - Viewport of the view that is captured vs the actual render target size. -
+[/COMMENT]
+
+With that complexity removed, the Material will always behave as if the Render Target Size is equal to the View Size. The Screen Position expression will now always return the Viewport UV and the Scene Texture expression takes the Viewport UV as an input. 
+
+![](ScreenPosViewportUVMat.png)
+[REGION:caption]
+An example setup of how Screen Position returning the ViewportUV size for a Scene Texture expression.
+[/REGION]
+
+
+
+#### Screen Position's high-precision Pixel Position Output
+
+The Screen Position expression now includes a second input for Pixel Position, which is the Viewport UV multiplied by the size of the pass. The size of the pass is always equal to the View Size as you would get with the View Property, unless it's taken from a [post process material running after TAAU](#postprocessmaterialsaftertaau).
+
+Pixel Position is used to give the material the most accurate pixel position within the View Size, which is critical for effects such as custom pixel dithering that is synchronized with TAA. The follow is an example how the Viewport UV is computed: 
+
+![](ScreenPosPixelPosOutput.png)
+
+
+#### Post Process Materials After TAAU
+
+When creating a Post Process Material, you can select the Blendable Location to use. The **After Tonemapping** and **Replacing the Tonemapper** locations are after TAAU in the pipeline, meaning that they are actually running at full resolution and are different from the View Size. 
+
+![](BlendableLocation.png)
+
+The View Property expression's View Size and Render Target Size will still return the resolution of the view before TAAU, even though it's happening after that.To know what the view size and texel UV size are after TAAU, the Scene Texture expression using PostProcessInput0 can use the outputs for **Size** and **InvSize**.
+
+![](ViewProperty.png)
+
+Recomputing Viewport UV from Pixel Position can be done like so:
+
+![](ViewportUVFromPixelPos.png)
+
+Now that Scene Texture expressions only accept Viewport UV, it's possible to sample in any arbitrary scene textures without possible errors while doing UV viewport conversion.
+
+
+
+
+## Secondary Spatial Upscale
+
+In addition to the [Primary Spatial Upscale](#primaryspatialupscale) there is the **Secondary Spatial Upscale** taking place after the [TAAU](#temporalanti-aliasingupsample) pass. For high DPI monitors, the GPU may not be able to keep up depending on scene complexity. For that purpose, the renderer supports using a secondary screen percentage that drives the second and final upscale pass that is independent of the primary screen percentage. 
+
+![](SecondarySpatialUpscale.png)(w:900)
+
+
+
+
+
+
+
+
+
+
+### DPI Editor Viewport Scaling
+
+In the Editor, all the viewports are rendered with a secondary screen percentage that is divided by the operating systems (OS) DPI scale setting. It adjusts the scene scaling (or quality) for high DPI monitors to ensure consistent performance with very large render targets. When it is enabled, the secondary screen percentage will render at the full resolution of the viewport. 
+
+![](DPIEditorViewportScaling.png)
+
+The following command is platform independent but will benefit those projects shipping on console with 4k resolution support more, you can use a static secondary upscale with the following console variable: 
+
+	r.SecondaryScreenPercentage.GameViewport
+
+When enabled, it will override the secondary screen percentage so that it is not dynamic, which would originally change the resolution of the TAAU. When the resolution would change, the scene would become blurier before reconverging after a couple of frames. 
+
+
+
+
+
+
+
+
+
+
+## VR Pixel Density
+
+TODO WRITE LATER
+
+
+(Link to whatever page SamD writes. This section will be very high-level and should probably just contain some snippets from his blog post here: https://docs.google.com/a/epicgames.com/document/d/12cpUby8Fgxuzet92emCtWVyKrXYvScRipDFDRJm1zFw/edit?usp=sharing)
+
+
+
+
+
+
+
+
+## Render Thread Dynamic Resolution
+
+Dynamic resolution enables a heuristic to choose the primary screen percentage according to the previous frames GPU workload. It enables the games resolution to adjust as needed, like when there are too many objects on screen or if an expensive effect enters the frame. Dyanmic Resolution functionality is supported for game builds and while Playing-in-Editor (PIE), but not while editing in the viewport. When dynamic resolution is used with PIE, keep in mind that all the additional cost of the Editor UI and processing must be taken into account for the work the GPU is doing. Game builds would give much more accurate results of what to expect.
+
+[REGION:note]
+The **Stat Raw** command is helpful to see the results of dynamic resolution in your game. You can find more information in the [Using Stats](#usingstats) section of this page. 
+[/REGION]
+
+
+
+
+
+
+
+
+
+
+### Enabling Dynamic Resolution
+
+Dynamic Resolution can be enabled by using a new boolean that has been added to **Game User Settings**. It can be set when using Blueprint or C++.
+
+In **Blueprint**, you can enaable dynamic resolution by using the **Game User Settings** node to opt into the feature like so:
+
+![](DynResBP.png)
+
+In **C++**, the boolean value can be set in `UGameUserSettings` like so:
+
+	GEngine->GetDynamicResolutionState()->SetEnabled(true);
+
+Use **false** for `SetEnabled` to disable it.
+
+[REGION:note]
+Game thread logic has the final programmatic control when to actually enable/disable dynamic resolution, so if it's enabled at runtime using Blueprint that will take precedent over setting it in code.
+[/REGION]	
+
+To restore game user settings to its original state, use the following:
+
+	GEngine->GameUserSettings->ApplyNonResolutionSettings();
+
+#### Controlloing Dynamic Resolution
+
+Once dynamic resolution is enabled, the following console variables can be used to set the minimum and maximum screen percentages to be used and the maximum budget of any given frame before it lowers resolution:
+
+* **r.DynamicRes.MinScreenPercentage** sets the minimal primary screen percentage to use. 
+* **r.DynamicRes.MaxScreenPercentage** sets the maximum primary screen percentage that is used to allocate render targets.
+* **r.DynamicRes.FrameTimeBudget** sets the budget of the frame (in milliseconds).
+
+[REGION:note]
+If you are debugging a scene, you can use the the console variable **r.Test.DynamicRes.EnableOverride** to enable/disable Dynamic Resolution for the scene. This is only available for use with non-Shipping builds.
+[/REGION]
+
+
+
+### Using Stats 
+
+There are several stat screens that you can enable debugging performance with dynamic resolution:
+
+* **Stat Unit** is used to look at the overall frame time as well as the game thread, rendering thread, and GPU times.
+* **Stat UnitGraph** is used to see a graph with the Stat Unit data.
+* **Stat Raw** outputs unfiltered data using Stat UnitGraph.
+
+#### Stat Unit
+
+When **Stat Unit** is called, you can immediately see if dynamic resolution is enabled for your scene by referencing the **DynRes:** line.
+
+![](DynResOFF.png)
+
+Dynamic resolution in the viewport can be enabled for testing and debugging by using the following command: 
+
+	r.Test.DynamicRes.EnableOverride 2
+
+Once enabled, the **DynRes:** label will show the [Primary Screen Percentage](#primaryspatialupscale) and the [Secondary Screen Percentage](#secondaryspatialupscale):	
+	
+![](DynResON.png)
+
+There are two screen percentages used because it happens both on the X and Y axis. The number of pixels drawn by the GPU is actually represented by:
+
+	Screen Percentage x Screen Percentage
+	
+An example would be 1920x1080 or 1280x720.
+
+
+
+
+
+
+#### Stat UnitGraph and Stat Raw
+
+When **Stat UnitGraph** is called, a graph will be drawn to show the [Primary Screen Percentage](#primaryspatialupscale) chosen by dynamic resolution.
+
+![](StatUnitGraph.png)
+
+1. Timings (Filtered or Raw) - 
+1. Target Frame Time Threshold - 
+1. Dynamic Resolution Maximum Screen Percentage - 
+1. Dynamic Primary Screen Percentage Curve - 
+
+The UnitGraph can show the primary screen percentage that is chosen by Dynamic Resolution. However, that curve is proportional to the amount of pixels drawn by the GPU using Screen Percentage x Screen Percentage.
+
+Additionaly, you can get unfiltered (raw) timings in the UnitGraph by using **Stat Raw** to toggle them on. It does require that the UnitGraph already have been enabled to work. The timings section of the graph will change to indicate that it's displaying raw timings.
+
+![](StatRaw.png)
+
+
+
+### Dynamic Resolution Cruising (?)
+
+When using your graph view for your scene, you want to adjust how dynamic resolution works for your project to get the most out of it. The following graph is a simplistic ideal scene model that indicates where each of these console variables work within it and how they can be used to achieve a desired result:
+
+
+![](DynResCruising.png)
+
+
+[COMMENT:none]
+-TODO A BUNCH OF CONSOLE COMMANDS -
+[/COMMENT]
+
+| Reference Number | Console Variable | Description |
+| --- | --- | ---|
+| 1 | **r.DynamicRes.TargetedGPUHeadRoom** | The headroom left for the GPU to increase before going over budget (in percentages of the frame's budget). This will likely depend on the shipping platform or according to what rendering features are enabled. For example, motion blur needs additional room for cost to account for fast rotation of camera movements. |
+| 2 | **r.DynamicRes.MinResolutionChangePeriod** | The minimal number of frames before allowing any resolution changes. It has multiple purposes: better reliability of the heuristic to model the GPU consumption at a given primary screen percentage despite the measurements noise; and to avoid [Temporal Upsample's](#temporalanti-aliasingupsample) input sample offset interferences between per-frame offset jittering and changing resolution that can be responsible for anti-aliasing divergence. |
+| 3 | **r.DynamicRes.HistorySize** | The number of frames in the heuristic's frame history. If it's too short, the history may be too noisy for the heuristic to be reliable, or if it's too long there may be very delayed adaptations. |
+| 4 | **r.DynamicRes.ChangePercentageThreshold** | The minimal changes that are required in percentage to actually resize the allocation. It is useful to not constantly change between a very close resolution size. If the value is too small, it may end up constantly changing the resolution, and if it's too large, it may cause a higher risk to go over the GPU budget. |
+| 5 | **r.DynamicRes.CPUBoundScreenPercentage** | The primary screen percentage that should be targeted when you are bound by the CPU. It's useful to set a lower screen percentage to decrease the resolution on platforms where the CPU and GPU are sharing the same memory bandwidth. |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Screen Resolution Over Budget Panic Switch
+
+There may be times when dynamic resolution will go over budget very quickly, like during a camera cut or when a very expensive viaul effect enters the scene. The heuristic that is used can't predict when this will happen, a "panic" switch is used to quickly lower the resolution when it does to reduce the number of frames that are over budget. If the heuristic finds that N (some number) consecutive frames with the available GPU timings is over budget, it is going to immediately adapt the resolution to combat the over budget GPU timings. It will also perform an automatic history reset so that previously less expensive frames timings do not influence the heuristic for the more expensive frames.
+
+The following console command can be used to control the maximum number of consecutive frames the GPU can be over budget before flipping the "panic" switch to lower the resolution:
+
+	r.DynamicRes.MaxConsecutiveOverbudgetGPUFrameCount
+
+![](OverBudgetPanicGraph.png)
+
+1. This spike represents the frame latency between detection and resolution change caused by the GPU not being synchronized wih the render thread.
+1. Frame ID
+1. Where the resolution change occurs
+1. Panic Detection happens
+
+In this example, the frame jumps over the set budget of 33.3 ms (milliseconds) causing the over budget panic switch to quickly lower the resolution of the scene. 
+
+![](OverBudgetPanicExample.png)
+
+The following captures are taken from the Infiltrator demo (available on the **Learn** tab of the Epic Games Launcher) using the **Stat Raw** command to identify scene behavior when there is a camera cut and when an expensive effect enters the frame.
+
+
+![](CameraCut.png)
+
+1. After the camera cut, the frame becomes significantly more expensive to render.
+1. Dynamic resolution has a panic reaction and quickly lowers the resolution.
+
+
+![](ExpensiveEffect.png)
+
+1. The frame becomes more expensive at the beginning of an expensive visual effect.
+1. Again, dynamic resolution has a panic reaction and lowers the resolution.
+
+
+
+
+
+### VR Non-TAAU Dynamic Resolution (WIP: still needs to be implemented)
+
+TODO WRITE THIS
+
+(This may just go in SamD's doc or at the very least high-level mention and then link to it.)
+
+
+
+For VR when not using TAAU, the renderer avoids making a spatial upscale pass of the eye views before handing this off to the HMD's compositor. The static vr.PixelDensity still defines the resolution of the views for primary screen percentage = 100% and dynamic resolution simply changes the primary screen percentage as normal. 
+
+TODO GRAPH
+
+
+
+
+
+
+
+
+### Testing Content at different Primary Screen Percentages in the Viewport
+
+If your project has enabled dynamic resolution, you'll need to test it and make sure that it doesn't look significantly different than intended when using a lower primary screen percentage. At lower resolutions, some details can be lost and your assets may not retain the look that you intend them to have. For this very reason, all Editor viewport can set a Screen Percentage using a slider for testing. 
+
+![](ScreenPercentageViewportSlider.png)
+
+Use the slider to apply a higher or lower screen percentage to the viewport and check your level content accordinly. Artists, particularly, should use the slider to check their content at the high and low ranges of the screen percentages that will be used for the project. 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Screen Percentage: 100](CompSP1.png)
+	[/PARAM]
+	[PARAM:after]
+	![Screen Percentage: 100](CompSP1.png)
+	[/PARAM]
+[/OBJECT]
+
+When adjusting the screen percentage slider, the viewport (lower-right) will display any slider value that is not equal to 100. This is meant as a reminder that the viewport screen percentage has been changed from it's default resolution.
+
+![](ViewportSPValue.png)
+
+
+When the value is higher than 100, it will be displayed in RED. This indicates that it is more expensive to use and if you are experiencing sluggishness or a decrease in performance, try reseting it to the the default value. 
+
+![](SPViewport_HIGH.png)
+
+When the value is lower than 100, the set screen percentage will be listed as an indicator that it's not the default value for the viewport.
+
+![](SPViewport_LOW.png)
+
+
+
+
+
+### Supported Platforms
+
+Dynamic resolution relies on the RHI's (Rendering Hardware Interface) ability to do reliable timestamp queries. For that reason, dynamic resolution is supported for the following features and platforms while using PIE or while in game. 
+
+
+Windows D3D11
+|  | Editor PIE | Game |
+| --- | --- | --- |
+| **No Game Max FPS** | Yes | Yes |
+| **Game Thread Max FPS** | Yes | Yes |
+| **r.VSyncEditor 1** | No | Work-In-Progress |
+
+
+| RHI | Support |
+| --- | --- |
+| **Windows D3D12** | Same as Windows D3D11 with VSync. |
+| **PlayStation 4** | Yes |
+| **Xbox One D3D12** | Yes |
+| **Switch** | Currently Untested |
+| **Vulkan** | No: Timestamp queries are not yet implemented |
+| **Metal** | Currently Untested |
+| **OpenGL** | No Plans to Implement |
+
+
+
+
+### Replace Dynamic Resolution Heuristic in C++
+
+The engine-provided render thread heuristic is completely self-contained within **DynamicResolution.cpp**. It is architectured so that it allows the heuristic to be fully replaceable by plugins in game code. 
+
+For example, if your project needs to replace the default heuristic because you want to do something like game play code giving hints of what is going to happen in the next frame, you can rewrite the entire heuristic to do just that. By reimplementing `IDynamicResolutionState` and `ISceneViewFamilyScreenPercentage`, you can replace the default dynamic resolution states, like the example below:
+
+	GEngine->ChangeDynamicResolutionStateNextFrame(new FMyGameSpecificDynamicResolutionState());
+
+[REGION:note]
+The renderer will now work with **ResolutionFraction** to avoid the divide by 100 everywhere in the screen percentage math. It is named **fraction** instead of "scale" because the upscale ratio is done by the TAA upsample or the spatial upscale is actually represented by 1 divided by the Resolution Fraction, like so:
+	
+	Resolution Fraction = Screen Percentage/100 = 1/Upscaling Factor
+
+[/REGION]	
+
+
+
+
+### Frequently Asked Questions
+
+The following are some general fequently asked questions regarding Dynamic Resolution:
+
+* Can dynamic resolution be force enabled/disabled in the Editor using the console (**`**)?
+	
+	* Yes. Use the console variable **r.Test.DynamicRes.EnableOverride 2**. 
+	
+* Can the heuristic for dynamic resolution be replaced?
+	
+	* Yes, it was designed to be modular and pluggable in C++. Unreal Engine 4 will only maintain a single heuristic, but the architecture allows for the creation of a standalone custom heuristic with custom game thread events that could be triggered by gameplay code or Sequencer.
+	
+* Does dynamic resolution work with any arbitrary secondary screen percentage?
+
+	* Yes. This can be achieved by using the console variable **r.SecondaryScreenPercentage.GameViewport 1**.
+
+* Is it possible to control the dynamic resolution of the secondard screen percentage?
+
+	* No, it's not possible. If you encounter this, please report to Epic as this is a bug that needs to be resolved.
+	
+* Why is the function in **FPostProcessSettings** for `ScreenPercentage` ignored by dynamic resolution? 
+	
+	* This was part of the previous mechanism where screen percentage could be configured in the settings for a Post Process Volume to manually scale up or down. With dynamic resolution, there is no need to set that any longer since it is automatically handled according to the GPU's workload.
+	
+* Why is there no showflag option for dynamic resolution? 
+		
+	* Because it happens globally and at game thread discretion. The screen percentage showflag will only toggle the [Primary Screen Percentage](#primaryspatialupscale). 
+	
+* Why is dynamic resolution not supported in Editor viewports?
+
+	* While working in the Editor, it can be distracting to have the resolution shifting. While in PIE, dynamic resolution is supported for any viewport. 
+	
+* Can the Primary and Secondary Screen Percentages be accessed in Materials?
+
+	* No they cannot. There shouldn't be a need to do this as the Material is rendering independently of the screen resolution.
+
+
+### Limitations
+
+The following are some limitations of Dynamic Resolution:
+
+* It is not supported for multi-world Play-In-Editor by design. 
+* When TAAU is enabled, it will work with VR. MSAA support will follow in a future release.
+* The API is fully compatible with the mobile renderer. However, there hasn't been an effort to maintain the view size not being equal to the render target buffer size that is set by the primary screen percentage upper bound.
+* Guassian Depth of Field (DoF) and [Distance Field Ambient Occlusion](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) (DFAO) have issues with resolution changes.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

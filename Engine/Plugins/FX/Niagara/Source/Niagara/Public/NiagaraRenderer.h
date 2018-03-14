@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 NiagaraRenderer.h: Base class for Niagara render modules
@@ -80,7 +80,8 @@ public:
 		FPrimitiveViewRelevance Result;
 		bool bHasDynamicData = HasDynamicData();
 
-		Result.bDrawRelevance = bHasDynamicData && SceneProxy->IsShown(View) && View->Family->EngineShowFlags.Particles;
+		//Always draw so our LastRenderTime is updated. We may not have dynamic data if we're disabled from visibility culling.
+		Result.bDrawRelevance = /*bHasDynamicData &&*/ SceneProxy->IsShown(View) && View->Family->EngineShowFlags.Particles;
 		Result.bShadowRelevance = bHasDynamicData && SceneProxy->IsShadowCast(View);
 		Result.bDynamicRelevance = bHasDynamicData;
 		if (bHasDynamicData && View->Family->EngineShowFlags.Bounds)
@@ -123,17 +124,10 @@ public:
 	bool IsEnabled() const {return bEnabled;}
 
 	void SetEnabled(bool bInEnabled) { bEnabled = bInEnabled; }
-
+	
+	const FVector& GetBaseExtents() const {	return BaseExtents; }
 protected:
-	NiagaraRenderer()
-		: CPUTimeMS(0.0f)
-		, bLocalSpace(false)
-		, bEnabled(true)
-		, DynamicDataRender(nullptr)
-	{
-		Material = UMaterial::GetDefaultMaterial(MD_Surface);
-	}
-
+	NiagaraRenderer();
 	virtual ~NiagaraRenderer();
 
 	mutable float CPUTimeMS;
@@ -144,6 +138,8 @@ protected:
 	FMaterialRelevance MaterialRelevance;
 
 	struct FNiagaraDynamicDataBase *DynamicDataRender;
+
+	FVector BaseExtents;
 };
 
 
@@ -189,6 +185,20 @@ private:
 	UNiagaraSpriteRendererProperties *Properties;
 	mutable TUniformBuffer<FPrimitiveUniformShaderParameters> WorldSpacePrimitiveUniformBuffer;
 	class FNiagaraSpriteVertexFactory* VertexFactory;
+
+	int32 PositionOffset;
+	int32 VelocityOffset;
+	int32 RotationOffset;
+	int32 SizeOffset;
+	int32 ColorOffset;
+
+	int32 FacingOffset;
+	int32 AlignmentOffset;
+	int32 SubImageOffset;
+	int32 MaterialParamOffset;
+	int32 CameraOffsetOffset;
+	int32 UVScaleOffset;
+	int32 ParticleRandomOffset;
 };
 
 

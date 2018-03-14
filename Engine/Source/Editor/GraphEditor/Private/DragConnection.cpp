@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "DragConnection.h"
@@ -94,11 +94,26 @@ void FDragConnection::HoverTargetChanged()
 			}
 		}
 	}
+	else if(UEdGraph* CurrentHoveredGraph = GetHoveredGraph())
+	{
+		TArray<UEdGraphPin*> ValidSourcePins;
+		ValidateGraphPinList(/*out*/ ValidSourcePins);
+
+		for (UEdGraphPin* StartingPinObj : ValidSourcePins)
+		{
+			// Let the schema describe the connection we might make
+			FPinConnectionResponse Response = CurrentHoveredGraph->GetSchema()->CanCreateNewNodes(StartingPinObj);
+			if(!Response.Message.IsEmpty())
+			{
+				UniqueMessages.AddUnique(Response);
+			}
+		}
+	}
 
 	// Let the user know the status of dropping now
 	if (UniqueMessages.Num() == 0)
 	{
-		// Display the place a new node icon, we're not over a valid pin
+		// Display the place a new node icon, we're not over a valid pin and have no message from the schema
 		SetSimpleFeedbackMessage(
 			FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.NewNode")),
 			FLinearColor::White,
@@ -140,6 +155,7 @@ void FDragConnection::HoverTargetChanged()
 				+SHorizontalBox::Slot()
 				.AutoWidth()
 				.Padding(3.0f)
+				.VAlign(VAlign_Center)
 				[
 					SNew(SImage) .Image( StatusSymbol )
 				]
@@ -243,7 +259,7 @@ FReply FDragConnection::DroppedOnNode(FVector2D ScreenPosition, FVector2D GraphP
 					bHandledPinDropOnNode = true;
 
 					// Find which pin name to use and drop the pin on the node
-					FString PinName = SourcePin->PinFriendlyName.IsEmpty()? SourcePin->PinName : SourcePin->PinFriendlyName.ToString();
+					const FName PinName = SourcePin->PinFriendlyName.IsEmpty()? SourcePin->PinName : *SourcePin->PinFriendlyName.ToString();
 
 					const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "AddInParam", "Add In Parameter" ) );
 

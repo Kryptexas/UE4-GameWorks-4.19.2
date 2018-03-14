@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FoliageComponent.cpp: Foliage rendering implementation.
@@ -15,9 +15,14 @@
 #include "Engine/StaticMesh.h"
 
 /** Scene proxy class for UInteractiveFoliageComponent. */
-class FInteractiveFoliageSceneProxy : public FStaticMeshSceneProxy
+class FInteractiveFoliageSceneProxy final : public FStaticMeshSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
 
 	FInteractiveFoliageSceneProxy(UInteractiveFoliageComponent* InComponent) :
 		FStaticMeshSceneProxy(InComponent, false),
@@ -64,7 +69,7 @@ FPrimitiveSceneProxy* UInteractiveFoliageComponent::CreateSceneProxy()
 	if(GetStaticMesh() == NULL
 		|| GetStaticMesh()->RenderData == NULL
 		|| GetStaticMesh()->RenderData->LODResources.Num() == 0
-		|| GetStaticMesh()->RenderData->LODResources[0].VertexBuffer.GetNumVertices() == 0)
+		|| GetStaticMesh()->RenderData->LODResources[0].VertexBuffers.StaticMeshVertexBuffer.GetNumVertices() == 0)
 	{
 		return NULL;
 	}

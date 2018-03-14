@@ -48,7 +48,9 @@ Related: Engine/Rendering/LightingAndShadows/Shadows
 [/OBJECT]
 [/VAR]
 
-<!--   Insert path when done [RELATIVE:Resources/ContentExamples/DynamicSceneShadows]--->
+[COMMENT:none]
+   Insert path when done [RELATIVE:Resources/ContentExamples/DynamicSceneShadows]-
+[/COMMENT]
 
 [REGION:banner]
 ![](CascadedShadowMapsBanner.png)

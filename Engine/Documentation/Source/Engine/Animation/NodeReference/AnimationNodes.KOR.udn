@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3467293
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 애니메이션 노드 참고서
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -13,37 +13,24 @@ _AnimationBlueprint_ (애니메이션 블루프린트)는 여러가지 노드를
 스페이스 노드, 변환 노드 등입니다.
 [/EXCERPT:Intro]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-	이벤트 그래프 노드
-	[/PARAM]
-	[PARAM:description]
-	이 그래프의 노트는 들어오는 데이터를 처리하여 차례대로 **애님 그래프** 에서 포즈를 구동시키는 데 사용됩니다.
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/Animation/NodeReference/Events "%Engine/Animation/NodeReference/Events:description%")
-	[/PARAM]
-[/OBJECT]
+## 이벤트 그래프 노드
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-	애님 그래프 노드
-	[/PARAM]
-	[PARAM:description]
-	**이벤트 그래프** 에서 데이터를 사용하는 것으로, 이 그래프의 노드는 캐릭터에 사용할 실제 프레임 단위 포즈를 결정합니다.
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/Animation/NodeReference/Blend "%Engine/Animation/NodeReference/Blend:description%")
-	* [](Engine/Animation/NodeReference/SkeletalControls "%Engine/Animation/NodeReference/SkeletalControls:description%")
-	* [](Engine/Animation/NodeReference/SpaceConversion "%Engine/Animation/NodeReference/SpaceConversion:description%")
-	* [](Engine/Animation/NodeReference/Fabrik "%Engine/Animation/NodeReference/Fabrik:description%")
-	[/PARAM]
-[/OBJECT]
+이 그래프의 노트는 들어오는 데이터를 처리하여 차례대로 **애님 그래프** 에서 포즈를 구동시키는 데 사용됩니다.
 
+[REGION:buttonlist]
+* [](Engine/Animation/NodeReference/Events "%Engine/Animation/NodeReference/Events:description%")
+[/REGION]
+
+## 애님 그래프 노드
+
+**이벤트 그래프** 에서 데이터를 사용하는 것으로, 이 그래프의 노드는 캐릭터에 사용할 실제 프레임 단위 포즈를 결정합니다.
+
+[REGION:buttonlist]
+* [](Engine/Animation/NodeReference/Blend "%Engine/Animation/NodeReference/Blend:description%")
+* [](Engine/Animation/NodeReference/SkeletalControls "%Engine/Animation/NodeReference/SkeletalControls:description%")
+* [](Engine/Animation/NodeReference/SpaceConversion "%Engine/Animation/NodeReference/SpaceConversion:description%")
+* [](Engine/Animation/NodeReference/Fabrik "%Engine/Animation/NodeReference/Fabrik:description%")
+[/REGION]
 
 ## 핀과 프로퍼티
 
@@ -72,15 +59,15 @@ X 와 Y 좌표 핀은 블렌드스페이스의 **Speed** 프로퍼티를 구성�
 이 기능을 사용하려면, **애님 그래프** 안에서 포즈 데이터가 들어있는 노드에 **우클릭** 하고 **Toggle Pose Watch** (포즈 감시 토글)을 선택하면 됩니다. 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-nabapYAeE7c
-[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	nabapYAeE7c
+	[/PARAMLITERAL]
 [/OBJECT]
 
 노드 좌상단 구석의 아이콘을 클릭하여 현재 감시중인 포즈 각각에 다른 색을 지정할 수도 있습니다.

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AI/NavigationSystemHelpers.h"
 #include "Engine/EngineTypes.h"
@@ -49,6 +49,13 @@ namespace NavigationHelper
 			, NavCollision->TriMeshCollision.VertexBuffer, NavCollision->TriMeshCollision.IndexBuffer
 			, NavCollision->ConvexCollision.VertexBuffer, NavCollision->ConvexCollision.IndexBuffer
 			, NavCollision->ConvexShapeIndices);
+#endif // WITH_RECAST
+	}
+
+	void GatherCollision(const FKAggregateGeom& AggGeom, UNavCollision& NavCollision)
+	{
+#if WITH_RECAST
+		FRecastNavMeshGenerator::ExportAggregatedGeometry(AggGeom, NavCollision.ConvexCollision.VertexBuffer, NavCollision.ConvexCollision.IndexBuffer, NavCollision.ConvexShapeIndices);
 #endif // WITH_RECAST
 	}
 
@@ -223,8 +230,13 @@ namespace NavigationHelper
 
 	bool IsBodyNavigationRelevant(const UBodySetup& BodySetup)
 	{
+#if WITH_PHYSX
 		// has any colliding geometry
 		return (BodySetup.AggGeom.GetElementCount() > 0 || BodySetup.TriMeshes.Num() > 0)
+#else
+		// has any colliding geometry
+		return (BodySetup.AggGeom.GetElementCount() > 0)
+#endif
 			// AND blocks any of Navigation-relevant 
 			&& (BodySetup.DefaultInstance.GetResponseToChannel(ECC_Pawn) == ECR_Block || BodySetup.DefaultInstance.GetResponseToChannel(ECC_Vehicle) == ECR_Block)
 			// AND has full colliding capabilities 

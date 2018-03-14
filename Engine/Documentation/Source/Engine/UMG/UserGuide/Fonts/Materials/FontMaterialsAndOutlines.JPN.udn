@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3394420
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:フォントのマテリアルとアウトライン
 Description:色、マテリアル、アウトラインを使って UMG にスタイルを適用する方法例を示します。
@@ -56,7 +56,8 @@ UMG の **Font** で、**[Color and Opacity]** を設定できるだけでなく
 
 ![](UI.png)
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BaseColorGraph]
 [REGION:lightbox]
 [![](BaseColorMatGraph.png)(w:400)](BaseColorMatGraph.png)
@@ -68,7 +69,8 @@ UMG の **Font** で、**[Color and Opacity]** を設定できるだけでなく
 [![](VertexColorMatGraph.png)(w:400)](VertexColorMatGraph.png)
 [/REGION]
 [/EXCERPT]
--->
+
+[/COMMENT]
 ## フォントのアウトライン
 
 フォントのアウトライン用に様々な **Outline Color** やマテリアルを指定することができます。 

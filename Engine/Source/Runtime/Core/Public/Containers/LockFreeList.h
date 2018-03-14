@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,9 +14,14 @@
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogLockFreeList, Log, All);
 
 // what level of checking to perform...normally checkLockFreePointerList but could be ensure or check
-#define checkLockFreePointerList checkSlow
-//#define checkLockFreePointerList(x) ((x)||((*(char*)3) = 0)
-
+#if 1
+	#define checkLockFreePointerList checkSlow
+#else
+	#if PLATFORM_WINDOWS
+		#pragma warning(disable : 4706)
+	#endif
+	#define checkLockFreePointerList(x) ((x)||((*(char*)3) = 0))
+#endif
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 
@@ -198,7 +203,7 @@ struct FIndexedPointer
 	FORCEINLINE void AtomicRead(const FIndexedPointer& Other)
 	{
 		checkLockFreePointerList(IsAligned(&Ptrs, 8) && IsAligned(&Other.Ptrs, 8));
-		Ptrs = uint64(FPlatformAtomics::AtomicRead64((volatile const int64*)&Other.Ptrs));
+		Ptrs = uint64(FPlatformAtomics::AtomicRead((volatile const int64*)&Other.Ptrs));
 		TestCriticalStall();
 	}
 
@@ -281,7 +286,7 @@ public:
 		Head.Init();
 	}
 
-	void Push(TLinkPtr Item)
+	void Push(TLinkPtr Item) TSAN_SAFE
 	{
 		while (true)
 		{
@@ -298,7 +303,7 @@ public:
 		}
 	}
 
-	bool PushIf(TFunctionRef<TLinkPtr(uint64)> AllocateIfOkToPush)
+	bool PushIf(TFunctionRef<TLinkPtr(uint64)> AllocateIfOkToPush) TSAN_SAFE
 	{
 		static_assert(TABAInc > 1, "method should not be used for lists without state");
 		while (true)
@@ -325,7 +330,7 @@ public:
 	}
 
 
-	TLinkPtr Pop()
+	TLinkPtr Pop() TSAN_SAFE
 	{
 		TLinkPtr Item = 0;
 		while (true)
@@ -350,7 +355,7 @@ public:
 		return Item;
 	}
 
-	TLinkPtr PopAll()
+	TLinkPtr PopAll() TSAN_SAFE
 	{
 		TLinkPtr Item = 0;
 		while (true)
@@ -373,7 +378,7 @@ public:
 		return Item;
 	}
 
-	TLinkPtr PopAllAndChangeState(TFunctionRef<uint64(uint64)> StateChange)
+	TLinkPtr PopAllAndChangeState(TFunctionRef<uint64(uint64)> StateChange) TSAN_SAFE
 	{
 		static_assert(TABAInc > 1, "method should not be used for lists without state");
 		TLinkPtr Item = 0;
@@ -425,14 +430,14 @@ public:
 		RootList.Reset();
 	}
 
-	void Push(T* InPayload)
+	void Push(T* InPayload) TSAN_SAFE
 	{
 		TLinkPtr Item = FLockFreeLinkPolicy::AllocLockFreeLink();
 		FLockFreeLinkPolicy::DerefLink(Item)->Payload = InPayload;
 		RootList.Push(Item);
 	}
 
-	bool PushIf(T* InPayload, TFunctionRef<bool(uint64)> OkToPush)
+	bool PushIf(T* InPayload, TFunctionRef<bool(uint64)> OkToPush) TSAN_SAFE
 	{
 		TLinkPtr Item = 0;
 
@@ -462,7 +467,7 @@ public:
 	}
 
 
-	T* Pop()
+	T* Pop() TSAN_SAFE
 	{
 		TLinkPtr Item = RootList.Pop();
 		T* Result = nullptr;
@@ -474,7 +479,7 @@ public:
 		return Result;
 	}
 
-	void PopAll(TArray<T*>& OutArray)
+	void PopAll(TArray<T*>& OutArray) TSAN_SAFE
 	{
 		TLinkPtr Links = RootList.PopAll();
 		while (Links)
@@ -487,7 +492,7 @@ public:
 		}
 	}
 
-	void PopAllAndChangeState(TArray<T*>& OutArray, TFunctionRef<uint64(uint64)> StateChange)
+	void PopAllAndChangeState(TArray<T*>& OutArray, TFunctionRef<uint64(uint64)> StateChange) TSAN_SAFE
 	{
 		TLinkPtr Links = RootList.PopAllAndChangeState(StateChange);
 		while (Links)
@@ -537,7 +542,7 @@ public:
 		Tail.SetPtr(Stub);
 	}
 
-	void Push(T* InPayload)
+	void Push(T* InPayload) TSAN_SAFE
 	{
 		TLinkPtr Item = FLockFreeLinkPolicy::AllocLockFreeLink();
 		FLockFreeLinkPolicy::DerefLink(Item)->Payload = InPayload;
@@ -545,15 +550,16 @@ public:
 		while (true)
 		{
 			LocalTail.AtomicRead(Tail);
-			TLink* LoadTailP = FLockFreeLinkPolicy::DerefLink(LocalTail.GetPtr());
+			TLink* LocalTailP = FLockFreeLinkPolicy::DerefLink(LocalTail.GetPtr());
 			TDoublePtr LocalNext;
-			LocalNext.AtomicRead(LoadTailP->DoubleNext);
+			LocalNext.AtomicRead(LocalTailP->DoubleNext);
 			TDoublePtr TestLocalTail;
 			TestLocalTail.AtomicRead(Tail);
 			if (TestLocalTail == LocalTail)
 			{
 				if (LocalNext.GetPtr())
 				{
+					TestCriticalStall();
 					TDoublePtr NewTail;
 					NewTail.AdvanceCounterAndState(LocalTail, TABAInc);
 					NewTail.SetPtr(LocalNext.GetPtr());
@@ -561,10 +567,11 @@ public:
 				}
 				else
 				{
+					TestCriticalStall();
 					TDoublePtr NewNext;
-					NewNext.AdvanceCounterAndState(LocalNext, 1);
+					NewNext.AdvanceCounterAndState(LocalNext, TABAInc);
 					NewNext.SetPtr(Item);
-					if (LoadTailP->DoubleNext.InterlockedCompareExchange(NewNext, LocalNext))
+					if (LocalTailP->DoubleNext.InterlockedCompareExchange(NewNext, LocalNext))
 					{
 						break;
 					}
@@ -580,7 +587,7 @@ public:
 		}
 	}
 
-	T* Pop()
+	T* Pop() TSAN_SAFE
 	{
 		T* Result = nullptr;
 		TDoublePtr LocalHead;
@@ -609,6 +616,7 @@ public:
 				}
 				else
 				{
+					TestCriticalStall();
 					Result = (T*)FLockFreeLinkPolicy::DerefLink(LocalNext.GetPtr())->Payload;
 					TDoublePtr NewHead;
 					NewHead.AdvanceCounterAndState(LocalHead, TABAInc);
@@ -685,6 +693,11 @@ public:
 			LocalMasterState.AtomicRead(MasterState);
 			NewMasterState.AdvanceCounterAndState(LocalMasterState, 1);
 			ThreadToWake = FindThreadToWake(LocalMasterState.GetPtr());
+#if 0
+			// This block of code is supposed to avoid starting the task thread if the queues are empty.
+			// It does not work. In rare cases no task thread is woken up.
+			// Without this block, it is possible that we do a redundant wake-up, but for task threads, that can happen anyway. 
+			// For named threads, the rare redudnant wakeup seems acceptable.
 			if (ThreadToWake >= 0)
 			{
 				bool bAny = false;
@@ -697,6 +710,7 @@ public:
 					ThreadToWake = -1;
 				}
 			}
+#endif
 			if (ThreadToWake >= 0)
 			{
 				NewMasterState.SetPtr(TurnOffBit(LocalMasterState.GetPtr(), ThreadToWake));
@@ -723,19 +737,32 @@ public:
 				T *Result = PriorityQueues[Index].Pop();
 				if (Result)
 				{
-					return Result;
+					while (true)
+					{
+						TDoublePtr NewMasterState;
+						NewMasterState.AdvanceCounterAndState(LocalMasterState, 1);
+						NewMasterState.SetPtr(LocalMasterState.GetPtr());
+						if (MasterState.InterlockedCompareExchange(NewMasterState, LocalMasterState))
+						{
+							return Result;
+						}
+						LocalMasterState.AtomicRead(MasterState);
+						checkLockFreePointerList(!TestBit(LocalMasterState.GetPtr(), MyThread) || !FPlatformProcess::SupportsMultithreading()); // you should not be stalled if you are asking for a task
+					}
 				}
 			}
 			if (!bAllowStall)
 			{
 				break; // if we aren't stalling, we are done, the queues are empty
 			}
-			TDoublePtr NewMasterState;
-			NewMasterState.AdvanceCounterAndState(LocalMasterState, 1);
-			NewMasterState.SetPtr(TurnOnBit(LocalMasterState.GetPtr(), MyThread));
-			if (MasterState.InterlockedCompareExchange(NewMasterState, LocalMasterState))
 			{
-				break;
+				TDoublePtr NewMasterState;
+				NewMasterState.AdvanceCounterAndState(LocalMasterState, 1);
+				NewMasterState.SetPtr(TurnOnBit(LocalMasterState.GetPtr(), MyThread));
+				if (MasterState.InterlockedCompareExchange(NewMasterState, LocalMasterState))
+				{
+					break;
+				}
 			}
 		}
 		return nullptr;

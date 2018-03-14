@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,6 +12,7 @@
 #include "PrimitiveSceneProxy.h"
 #include "LocalVertexFactory.h"
 #include "Paper2DModule.h"
+#include "DynamicMeshBuilder.h"
 
 class FMeshElementCollector;
 class UBodySetup;
@@ -25,63 +26,13 @@ typedef TMap<const UTexture*, const UTexture*> FPaperRenderSceneProxyTextureOver
 #define UE_EXPAND_IF_WITH_EDITOR(...)
 #endif
 
-//////////////////////////////////////////////////////////////////////////
-// FPaperSpriteVertex
-
 /** A Paper2D sprite vertex. */
-struct PAPER2D_API FPaperSpriteVertex
+struct PAPER2D_API FPaperSpriteTangents
 {
-	FVector Position;
-	FPackedNormal TangentX;
-	FPackedNormal TangentZ;
-	FColor Color;
-	FVector2D TexCoords;
-
-	FPaperSpriteVertex() {}
-
-	FPaperSpriteVertex(const FVector& InPosition, const FVector2D& InTextureCoordinate, const FColor& InColor)
-		: Position(InPosition)
-		, TangentX(PackedNormalX)
-		, TangentZ(PackedNormalZ)
-		, Color(InColor)
-		, TexCoords(InTextureCoordinate)
-	{}
-
-	FPaperSpriteVertex(const FVector& InPosition, const FVector2D& InTextureCoordinate, const FColor& InColor, const FPackedNormal& InTangentX, const FPackedNormal& InTangentZ)
-		: Position(InPosition)
-		, TangentX(InTangentX)
-		, TangentZ(InTangentZ)
-		, Color(InColor)
-		, TexCoords(InTextureCoordinate)
-	{}
-
 	static void SetTangentsFromPaperAxes();
 
 	static FPackedNormal PackedNormalX;
 	static FPackedNormal PackedNormalZ;
-};
-
-//////////////////////////////////////////////////////////////////////////
-// FPaperSpriteVertexBuffer
-
-class FPaperSpriteVertexBuffer : public FVertexBuffer
-{
-public:
-	TArray<FPaperSpriteVertex> Vertices;
-
-	// FRenderResource interface
-	virtual void InitRHI() override;
-	// End of FRenderResource interface
-};
-
-//////////////////////////////////////////////////////////////////////////
-// FPaperSpriteVertexFactory
-
-class FPaperSpriteVertexFactory : public FLocalVertexFactory
-{
-public:
-	FPaperSpriteVertexFactory();
-	void Init(const FPaperSpriteVertexBuffer* VertexBuffer);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -140,7 +91,7 @@ struct PAPER2D_API FSpriteRenderSection
 			const FVector Pos((PaperAxisX * SourceVert.X) + (PaperAxisY * SourceVert.Y) + Record.Destination);
 			const FVector2D UV(SourceVert.Z, SourceVert.W);
 
-			new (Vertices) FPaperSpriteVertex(Pos, UV, VertColor);
+			new (Vertices) FDynamicMeshVertex(Pos, UV, VertColor);
 		}
 	}
 
@@ -149,7 +100,7 @@ struct PAPER2D_API FSpriteRenderSection
 	{
 		const FVector Pos((PaperAxisX * X) + (PaperAxisY * Y) + Origin);
 
-		new (Vertices) FPaperSpriteVertex(Pos, FVector2D(U, V), Color);
+		new (Vertices) FDynamicMeshVertex(Pos, FVector2D(U, V), Color);
 		++NumVertices;
 	}
 
@@ -158,7 +109,7 @@ struct PAPER2D_API FSpriteRenderSection
 	{
 		const FVector Pos((PaperAxisX * X) + (PaperAxisY * Y) + Origin);
 
-		new (Vertices) FPaperSpriteVertex(Pos, FVector2D(U, V), Color, TangentX, TangentZ);
+		new (Vertices) FDynamicMeshVertex(Pos, TangentX, TangentZ, FVector2D(U, V), Color);
 		++NumVertices;
 	}
 };
@@ -169,6 +120,8 @@ struct PAPER2D_API FSpriteRenderSection
 class PAPER2D_API FPaperRenderSceneProxy : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override;
+
 	FPaperRenderSceneProxy(const UPrimitiveComponent* InComponent);
 	virtual ~FPaperRenderSceneProxy();
 
@@ -196,17 +149,13 @@ protected:
 
 	friend class FPaperBatchSceneProxy;
 
-	FVertexFactory* GetPaperSpriteVertexFactory() const;
-
 	void ConvertBatchesToNewStyle(TArray<FSpriteDrawCallRecord>& SourceBatches);
 
 	virtual void DebugDrawCollision(const FSceneView* View, int32 ViewIndex, FMeshElementCollector& Collector, bool bDrawSolid) const;
 	virtual void DebugDrawBodySetup(const FSceneView* View, int32 ViewIndex, FMeshElementCollector& Collector, UBodySetup* BodySetup, const FMatrix& GeomTransform, const FLinearColor& CollisionColor, bool bDrawSolid) const;
 protected:
-	// New style
-	FPaperSpriteVertexBuffer VertexBuffer;
-	FPaperSpriteVertexFactory MyVertexFactory;
 	TArray<FSpriteRenderSection> BatchedSections;
+	TArray<FDynamicMeshVertex> Vertices;
 
 	// Old style
 	TArray<FSpriteDrawCallRecord> BatchedSprites;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
@@ -36,7 +36,7 @@ FString USoftClassProperty::GetCPPTypeCustom(FString* ExtendedTypeText, uint32 C
 FString USoftClassProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 {
 	ExtendedTypeText = FString::Printf(TEXT("TSoftClassPtr<%s%s> "),MetaClass->GetPrefixCPP(),*MetaClass->GetName());
-	return TEXT("SOFTOBJECT");
+	return TEXT("SOFTCLASS");
 }
 
 FString USoftClassProperty::GetCPPTypeForwardDeclaration() const

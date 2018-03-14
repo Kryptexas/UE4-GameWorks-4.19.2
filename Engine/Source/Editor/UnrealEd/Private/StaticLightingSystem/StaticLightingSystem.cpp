@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticLightingSystem.cpp: Bsp light mesh illumination builder code
@@ -23,6 +23,7 @@
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/LightComponentBase.h"
+#include "Components/ReflectionCaptureComponent.h"
 #include "AI/Navigation/NavigationSystem.h"
 #include "Engine/MapBuildDataRegistry.h"
 #include "Components/LightComponent.h"
@@ -50,6 +51,7 @@
 FSwarmDebugOptions GSwarmDebugOptions;
 
 #include "Lightmass/LightmassCharacterIndirectDetailVolume.h"
+#include "Lightmass/VolumetricLightmapDensityVolume.h"
 #include "StaticLighting.h"
 #include "StaticLightingSystem/StaticLightingPrivate.h"
 #include "ModelLight.h"
@@ -399,12 +401,9 @@ void FStaticLightingManager::FinishLightingBuild()
 	{
 		// Everything should be built at this point, dump unbuilt interactions for debugging
 		World->Scene->DumpUnbuiltLightInteractions(*GLog);
-
-		// Update reflection captures now that static lighting has changed
-		// Update sky light first because it's considered direct lighting, sky diffuse will be visible in reflection capture indirect specular
-		World->UpdateAllSkyCaptures();
-		World->UpdateAllReflectionCaptures();
 	}
+
+	GEditor->BuildReflectionCaptures(World);
 }
 
 void FStaticLightingManager::DestroyStaticLightingSystems()
@@ -452,6 +451,8 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 	bool bRebuildDirtyGeometryForLighting = true;
 	bool bForceNoPrecomputedLighting = false;
 
+	GDebugStaticLightingInfo = FDebugLightingOutput();
+
 	{
 		FLightmassStatistics::FScopedGather StartupStatScope(LightmassStatistics.StartupTime);
 
@@ -494,22 +495,27 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 
 			if (ShouldOperateOnLevel(Level))
 			{
-			Level->LightmapTotalSize = 0.0f;
-			Level->ShadowmapTotalSize = 0.0f;
-			ULevelStreaming* LevelStreaming = NULL;
-			if ( World->PersistentLevel != Level )
-			{
-				LevelStreaming = FLevelUtils::FindStreamingLevel( Level );
-			}
-			if (!Options.ShouldBuildLightingForLevel(Level))
-			{
-				if (SkippedLevels.Len() > 0)
+				Level->LightmapTotalSize = 0.0f;
+				Level->ShadowmapTotalSize = 0.0f;
+				ULevelStreaming* LevelStreaming = NULL;
+				if ( World->PersistentLevel != Level )
 				{
-					SkippedLevels += FString(TEXT(", "));
+					LevelStreaming = FLevelUtils::FindStreamingLevel( Level );
 				}
-				SkippedLevels += Level->GetName();
+				if (!Options.ShouldBuildLightingForLevel(Level))
+				{
+					if (SkippedLevels.Len() > 0)
+					{
+						SkippedLevels += FString(TEXT(", "));
+					}
+					SkippedLevels += Level->GetName();
+					GatherBuildDataResourcesToKeep(Level);
+				}
 			}
-		}
+			else if (Level && !Level->bIsLightingScenario && !Level->bIsVisible)
+			{
+				GatherBuildDataResourcesToKeep(Level);
+			}
 		}
 
 		for( int32 LevelIndex = 0 ; LevelIndex < World->StreamingLevels.Num() ; ++LevelIndex )
@@ -626,7 +632,6 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 			{
 				// Clear reference to the selected lightmap
 				GCurrentSelectedLightmapSample.Lightmap = NULL;
-				GDebugStaticLightingInfo = FDebugLightingOutput();
 			}
 			
 			GatherStaticLightingInfo(bRebuildDirtyGeometryForLighting, bForceNoPrecomputedLighting);
@@ -747,7 +752,7 @@ void FStaticLightingSystem::InvalidateStaticLighting()
 
 				if (Level->MapBuildData)
 				{
-					Level->MapBuildData->InvalidateStaticLighting(World);
+					Level->MapBuildData->InvalidateStaticLighting(World, &BuildDataResourcesToKeep);
 				}
 			}
 			if (Level == World->PersistentLevel)
@@ -1477,13 +1482,13 @@ void FStaticLightingSystem::CompleteDeterministicMappings(class FLightmassProces
 				InLightmassProcessor->ProcessMapping(TextureMapping->GetLightingGuid());
 				ApplyTime += FPlatformTime::Seconds() - ApplyStartTime;
 			}
+		}
 
-			CurrentStep++;
+		CurrentStep++;
 
-			if (CurrentStep % ProgressUpdateFrequency == 0)
-			{
-				GWarn->UpdateProgress(CurrentStep , TotalSteps);
-			}
+		if (CurrentStep % ProgressUpdateFrequency == 0)
+		{
+			GWarn->UpdateProgress(CurrentStep , TotalSteps);
 		}
 	}
 
@@ -1943,6 +1948,15 @@ void FStaticLightingSystem::GatherScene()
 		}
 	}
 
+	for (TObjectIterator<AVolumetricLightmapDensityVolume> It; It; ++It)
+	{
+		AVolumetricLightmapDensityVolume* DetailVolume = *It;
+		if (World->ContainsActor(DetailVolume) && !DetailVolume->IsPendingKill() && ShouldOperateOnLevel(DetailVolume->GetLevel()))
+		{
+			LightmassExporter->VolumetricLightmapDensityVolumes.Add(DetailVolume);
+		}
+	}
+
 	for( TObjectIterator<ULightmassPortalComponent> It ; It ; ++It )
 	{
 		ULightmassPortalComponent* LMPortal = *It;
@@ -2236,6 +2250,62 @@ void FStaticLightingSystem::UpdateAutomaticImportanceVolumeBounds( const FBox& M
 	// Note: skyboxes will be excluded if they are properly setup to not cast shadows
 	AutomaticImportanceVolumeBounds += MeshBounds;
 }
+
+void FStaticLightingSystem::GatherBuildDataResourcesToKeep(const ULevel* InLevel)
+{
+	// This is only required is using a lighting scenario, otherwise the build data is saved within the level itself and follows it's inclusion in the lighting build.
+	if (InLevel && LightingScenario)
+	{
+		BuildDataResourcesToKeep.Add(InLevel->LevelBuildDataId);
+
+		for (const UModelComponent * ModelComponent : InLevel->ModelComponents)
+		{
+			if (!ModelComponent) // Skip null models
+			{
+				continue;
+			}
+			ModelComponent->AddMapBuildDataGUIDs(BuildDataResourcesToKeep);
+		}
+
+		for (const AActor* Actor : InLevel->Actors)
+		{
+			if (!Actor) // Skip null actors
+			{
+				continue;
+			}
+
+			for (const UActorComponent* Component : Actor->GetComponents())
+			{
+				if (!Component) // Skip null components
+				{
+					continue;
+				}
+
+				const UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component);
+				if (PrimitiveComponent)
+				{
+					PrimitiveComponent->AddMapBuildDataGUIDs(BuildDataResourcesToKeep);
+					continue;
+				}
+
+				const ULightComponent* LightComponent = Cast<ULightComponent>(Component);
+				if (LightComponent)
+				{
+					BuildDataResourcesToKeep.Add(LightComponent->LightGuid);
+					continue;
+				}
+
+				const UReflectionCaptureComponent* ReflectionCaptureComponent = Cast<UReflectionCaptureComponent>(Component);
+				if (ReflectionCaptureComponent)
+				{
+					BuildDataResourcesToKeep.Add(ReflectionCaptureComponent->MapBuildDataId);
+					continue;
+				}
+			}
+		}
+	}
+}
+
 
 bool FStaticLightingSystem::CanAutoApplyLighting() const
 {

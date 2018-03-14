@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CollisionAnalyzerStyle.h"
 #include "Styling/SlateTypes.h"
@@ -8,7 +8,7 @@
 #define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush( RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
 #define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush( RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
 #define BORDER_BRUSH( RelativePath, ... ) FSlateBorderBrush( RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
-#define TTF_CORE_FONT( RelativePath, ... ) FSlateFontInfo( RootToCoreContentDir( RelativePath, TEXT(".ttf") ), __VA_ARGS__ )
+#define DEFAULT_FONT(...) FCoreStyle::GetDefaultFontStyle(__VA_ARGS__)
 
 TSharedPtr< FCollisionAnalyzerStyle::FStyle > FCollisionAnalyzerStyle::StyleInstance;
 
@@ -20,8 +20,6 @@ FCollisionAnalyzerStyle::FStyle::FStyle()
 
 void FCollisionAnalyzerStyle::FStyle::Initialize()
 {
-
-
 	StyleInstance->SetContentRoot(FPaths::EngineContentDir() / TEXT("Editor/Slate"));
 	StyleInstance->SetCoreContentRoot(FPaths::EngineContentDir() / TEXT("Slate"));
 
@@ -57,7 +55,7 @@ void FCollisionAnalyzerStyle::FStyle::Initialize()
 	StyleInstance->Set("CollisionAnalyzer.Save", new IMAGE_BRUSH("Icons/icon_file_save_40x", Icon24x24));
 	StyleInstance->Set("CollisionAnalyzer.Load", new IMAGE_BRUSH("Icons/icon_file_open_40x", Icon24x24));
 	StyleInstance->Set("Menu.Background", new BOX_BRUSH("Old/Menu_Background", FMargin(8.0f / 64.0f)));
-	StyleInstance->Set("BoldFont", TTF_CORE_FONT("Fonts/Roboto-Bold", 9));
+	StyleInstance->Set("BoldFont", DEFAULT_FONT("Bold", 9));
 
 	FSlateStyleRegistry::RegisterSlateStyle(*StyleInstance.Get());
 }
@@ -83,3 +81,8 @@ TSharedPtr< ISlateStyle > FCollisionAnalyzerStyle::Get()
 {
 	return StyleInstance;
 }
+
+#undef IMAGE_BRUSH
+#undef BOX_BRUSH
+#undef BORDER_BRUSH
+#undef DEFAULT_FONT

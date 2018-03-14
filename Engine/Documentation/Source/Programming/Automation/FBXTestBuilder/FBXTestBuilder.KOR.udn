@@ -1,0 +1,287 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Crumbs: %ROOT%
+Title: FBX Test Builder
+Description: The FBX Automation Test Builder enables you to create tests for FBX files to be used with the Session Frontend for Automation Testing.
+Type: How-To
+SkillLevel:Advanced
+Version:4.17
+Parent:Programming/Automation
+Related:Programming/Automation
+Related:Programming/Automation/ScreenShotComparison
+Related:Programming/Automation/UserGuide
+Order:
+Tags:Programming
+Topic-Image:FBXTestBuilder_Topic.png
+Social-Image:FBXTestBuilder.png
+
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+
+[TOC(start:2 end:3)]
+
+
+As a part of the [Automation System](Programming/Automation), the FBX Test Builder is a plugin that enables you to create your own tests for individual FBX files. The FBX Test Builder creates a Test 
+Plan for a single FBX file that can be used to import or reimport and check against an array of expected results. The Test Plans that are created are stored in a JSON file which shares the same name
+as the FBX file that is being tested except without its extension.
+
+![](FBXTestBuilder.png)
+
+The FBX Test Builder enables you to create your Test Plans that allow you to perform a selected operation on the FBX file and then check against an array of expected results to whether it
+passes or fails the completed tests.
+
+
+## Enabling the Plugin
+
+Before you can start building your FBX automation tests, you will first need to enable the **FBXAutomationTestBuilder** plugin by going to **Edit** > **Plugins** > **Testing**.
+
+[REGION:lightbox]
+[![](EnableFBXTestBuilderPlugin.png)(w:600)](EnableFBXTestBuilderPlugin.png)
+[/REGION]
+[REGION:caption] Click for full size. [/REGION]
+
+After enabling the plugin, you'll need to restart the Engine before you can access it.
+
+[REGION:lightbox]
+[![](Restart.png)(w:600)](Restart.png)
+[/REGION]
+[REGION:caption] Click for full size. [/REGION]
+
+The FBX Test Builder can be accessed by using the file menu to select **Window** > **Automation Tools** > **FBX Test Builder**.
+
+[REGION:lightbox]
+[![](OpenFBXTestBuilder.png)(w:250)](OpenFBXTestBuilder.png)
+[/REGION]
+[REGION:caption] Click for full size. [/REGION]
+
+
+## Building a Test Plan
+
+When you use the FBX Test Builder, it operates by using a selected **Action** (or operation) that will be performed and a series of **Expected Results** that determine whether the test that is 
+performed passes or fails for the given FBX file. This set of actions and results is called a **Test Plan**. 
+
+### Actions
+
+For each Test Plan, there are five key Actions that can be performed and each Action has its criteria for it to be used to perform a test correctly. These Actions and their 
+criteria are outlined below:
+
+![](Actions.png)(w:550)
+
+[REGION:simpletable]
+| Action | Steps |
+| --- | --- |
+| **Import** | [INCLUDE:#import] |
+| **Reimport** | [INCLUDE:#reimport] |
+| **Add LOD (Level of Detail)** | [INCLUDE:#addlod] |
+| **Reimport LOD (Level of Detail)** | [INCLUDE:#reimportlod] |
+| **Import Reload** | [INCLUDE:#importreload] |
+[/REGION]
+
+
+[COMMENT:none]
+-
+[INCLUDE:#importreload]
+[EXCERPT:import]
+* Import the FBX file
+* Verify the expected result
+[/EXCERPT:import]
+
+[EXCERPT:reimport]
+* This must be run after an Import Test Plan where the imported assets were not deleted
+* Reimport the FBX file
+* Verify the expected result
+[/EXCERPT:reimport]
+
+[EXCERPT:addLOD]
+* This must be run after an Import Test Plan where the imported assets were not deleted
+* The FBX file name must be terminated by **_lod00**
+* There must be an FBX file with the same name that is terminated by **_lod0X** (where **X** is greater than **0**)
+* Add a LOD
+* Verify the expected result
+[/EXCERPT:addLOD]
+
+[EXCERPT:reimportLOD]
+* Reimport the previously imported LODs with the **Import** or **Add LOD** Action.
+[/EXCERPT:reimportLOD]
+
+[EXCERPT:importreload]
+* Import the FBX file
+* Save the packages
+* Unload the created UObject from memory
+* Reload the saved packages
+* Verify the expected result
+[/EXCERPT:importreload]
+
+-
+[/COMMENT]
+
+
+### Expected Results
+
+For each Test Plan, a list of **Expected Results** will be evaluated to determine if the test passes or fails.
+
+![](ExpectedResult.png)(w:550)
+
+[REGION:simpletable]
+| Settings | %spacer% | Description |
+| --- | --- | --- |
+| **Expected Presets Type** || The predefined data that should be checked. [INCLUDE:#expectedpresettype] |
+| **Expected Presets Data Integer** || Enter the expected integer value that should be checked for the specified FBX file. |
+| **Expected Presets Data Float** || Enter the expected float value that should be checked for the specified FBX file. |
+| **Expected Presets Data Double** || Enter the expected double value that should be checked for the specified FBX file.  |
+| **Expected Presets Data String** || Enter the expected string value that should be checked for the specified FBX file. |
+[/REGION]
+
+
+[COMMENT:none]
+-
+[INCLUDE:#expectedpresettype]
+[EXCERPT:expectedpresettype]
+| Check Type | Description | Required Data Types |
+| --- | --- | --- |
+| **Error Number** | Data should contain the number of error [int0]. | Integer | 
+| **Warning Number** | Data should contain the number of warning [int0]. | Integer |
+| **Created Static Mesh Number** | Data should contain the number of Static Mesh created [int0]. | Integer |
+| **Created Skeletal Mesh Number** | Data should contain the number of Skeletal Mesh created [int0]. | Integer |
+| **Materials Created Number** | Data should contain the number of Material created [int0] under the target Content folder. | Integer |
+| **Material Slot Imported Name** | Data should be the slot index [int0] and the expected original imported Material Slot Name [string0]. | Integer and String |
+| **Vertex Number** | Data should be the total number of vertices for all LODs [int0]. | Integer |
+| **LOD Number** | Data should be the expected number of LODs [int0.]  | Integer |
+| **Vertex Number LOD** | Data should be the LOD index [int0] and total number of vertices for LOD [int1]. | Two Integers |
+| **Mesh Materials Number** | Data should contain the number of Materials indexed by the mesh [int0]. | Integer |
+| **Mesh LOD Section Number** | Data should be the LOD index [int0] and the expected number of sections for a mesh [int1]. | Two Integers |
+| **Mesh LOD Section Vertex Number** | Data should be the LOD index [int0], section index [int1], and the expected number of vertices [int2]. | Three Integers |
+| **Mesh LOD Section Triangle Number** | Data should be the LOD index [int0], section index [int1], and the expected number of triangles [int2]. | Three Integers |
+| **Mesh LOD Section Material Name** | Data should be the LOD index [int0], section index [int1], and the expected name of the Material [string0]. | Integer and String |
+| **Mesh LOD Section Material Index** | Data should be the LOD index [int0], section index [int1], and the expected Material index of the Mesh's Materials [int2]. |Three Integers |
+| **Mesh LOD Section Material Imported Name** | Data should be the LOD index [int0], section index [int1], and the expected original imported Material Slot Name [string0]. | Two Integers and a String |
+| **LOD UV Channel Number** | Data should be the LOD index [int0] and the number of UV channels [int1] for the specified LOD. | Two Integers |
+| **Bone Number** | Data should contain the number of bones created [int0]. | Integer |
+| **Bone Position** | Data should contain the bone index [int0] and the position XYZ [float0, float1, and float2]. Optionally, you can pass a tolerance value [float3]. | Integer and four Floats |
+| **Animation Frame Number** | Data should contain the number of frames [int0]. | Integer |
+| **Animation Length** | Data should contain the animation length [float0]. | Float |
+[/EXCERPT:expectedpresettype]
+
+-
+[/COMMENT]
+
+
+#### Setting up the Expected Result
+
+For setting up the Expected Result, an example FBX with a box mesh that contains six different materials and textures will be used as the test case. 
+
+![](BoxFBX1.png)(w:750)
+
+1. Click the **Add** (+) button to add an Expected Result and then choose a **Expected Preset Type** that you'd like to use to check. 
+
+	![](ER_AddExpectedResult.png)
+
+1. Choose a **Expected Presets Data** type that corresponds to the Expected Presets Type you want to test. In this example, **Mesh Materials Number** type is selected to check the included
+FBX contains six materials when imported.
+
+	![](ER_SelectExpectedPresetType.png)
+
+1. The **Mesh Materials Number** preset type only expects an integer (use the tooltip for the preset or the table above reference what data is required) that checks the number of Materials being imported. Click the **Expected Presets Data Integer** once 
+to add an expected result check to the array. 
+	
+	![](ER_AddDataTypeInteger.png)
+
+1. For array element 0, enter the number of Materials that should be imported with the FBX. In the case of this example, six Materials are expected.
+
+	![](ER_IntegerValue.png)
+
+1. Make sure to setup the necessary [Import Options](#importoptions) so that everything that is required by the Expected Preset Type you selected is imported correctly. For example, the Box FBX will need to 
+import the materials and textures from the FBX so the options for **Import Materials** and **Import Textures** should be enabled. 
+
+	![](ER_ImportMaterials.png)
+	
+1. Click the **Save JSON** button and the Test Plan will be added to the Session Frontend Automation tab where you can find it under **Engine/Import/FBX/[NameOfTheFBX]**. 
+
+	[REGION:imagetable]
+	| ![](ER_SaveJSON.png) | [REGION:lightbox] [![](ER_AutomationFBXTest.png)(w:700)](ER_AutomationFBXTest.png) [/REGION] [REGION:caption] Click image for full view. [/REGION] |
+	| --- | --- |
+	| FBX Test Editor | Session Frontend Automation Tab |
+	[/REGION]
+	
+1. After running the test, the operation system will test if the **Mesh Materials Number** (6) of the specified LOD(0) match with the imported Asset.	
+
+	[REGION:lightbox]
+	[![](ER_Successful.png)(w:700)](ER_Successful.png)
+	[/REGION]	
+	[REGION:caption] Click image for full view. [/REGION]
+
+	If the test should fail, select the failed test in the Automation tab to see the reason why under the **Automation Test Results** panel.
+
+	[REGION:lightbox]
+	[![](ER_Failure.png)(w:700)](ER_Failure.png)
+	[/REGION]
+	[REGION:caption] Click image for full view. [/REGION]
+
+	[REGION:note]
+	The Message Log will also pop up to indicate whether the test was successful or failed and why it failed regardless of having the Session Frontend window open. 
+	[/REGION]
+
+	
+	
+### Import Options
+
+After having set up the Expected Results Test Plan, you must also make sure that the actions you want to test are set to import/reimport correctly. For example, if you are testing an FBX that imports a set number of 
+Materials, you would want to make sure that **Import Materials** is enabled. These options are the same ones that are available when importing your own assets into the Editor via the Content Browser.
+
+[REGION:imagetable]
+| [REGION:lightbox] [![](ImportOptions.png)(h:400)](ImportOptions.png) [/REGION] [REGION:caption] Click image for full view. [/REGION] | [REGION:lightbox] [![](Engine/Content/FBX/ImportOptions/StaticMeshImportOptions.png)(h:400)](Engine/Content/FBX/ImportOptions/StaticMeshImportOptions.png) [/REGION] [REGION:caption] Click image for full view. [/REGION] |
+| ---- | ---- |
+| FBX Test Builder Import Options | Standard FBX Import Options Window |
+[/REGION]
+
+[REGION:note]
+For more information, see the [FBX Import Options](Engine/Content/FBX/ImportOptions) page.
+[/REGION]
+
+
+## Test Plan Creation Workflow
+
+Follow the steps below to create your Test Plans for FBX testing: 
+
+1. Copy the FBX you want to test to the following location: 
+
+		[UE4Root]/Engine/Content/FBXEditorAutomation
+
+1. Any FBX placed in this folder location will automatically populate the **Select an FBX file** drop-down list.
+
+	![](TestPlan_SelectFBX.png)(w:1000)
+	
+1. Use the **Select a Test Plane** drop-down and choose **Create new plan** or select one that already exists to edit it.
+
+	![](TestPlan_CreateNewPlan.png)(w:1000)
+
+1. Fill in the following sections:
+
+	**General:** 
+
+	![](TestPlan_General.png)
+	
+	* **Test Plan Name** - Give a name to this test plan that you can use to select from the test plan list.
+	* **Action** - Select the type of operation that will be executed on the FBX file, such as import, reimport, add LOD, reimport LOD, or import reload. 
+	* **LOD Index** - If using reimport LOD, enter the LOD index you want to reimport here.
+	* **Delete Folder Assets** - Whether to delete the imported asset at the end of the Test Plan.	
+
+	**Expected Results:**
+	
+	![](TestPlan_ExpectedResult.png)
+		
+	* Set an [Expected Presets Type](#expectedresults) and fill in the necessary data types that are required to complete the test.
+
+	**Import Options:**
+	
+	![](TestPlan_ImportOptions.png)
+
+	* Set the necessary [Import Options](#importoptions) required to successfully import this particular FBX for testing. 
+
+1. Click **Save JSON** button for your test plan to be saved and added to the available tests that will be run for this FBX file during automation testing. 
+
+	![](TestPlan_SaveJSON.png)(w:1000)
+
+
+	

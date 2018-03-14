@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,6 +10,7 @@
 #include "UObject/Linker.h"
 
 class FLinkerPlaceholderBase;
+class ULinkerPlaceholderExportObject;
 struct FScopedSlowTask;
 struct FUntypedBulkData;
 
@@ -229,6 +230,8 @@ private:
 
 	/** Whether we already serialized the package file summary.																*/
 	bool					bHasSerializedPackageFileSummary;
+	/** Whether we already serialized preload dependencies.																*/
+	bool					bHasSerializedPreloadDependencies;
 	/** Whether we already fixed up import map.																				*/
 	bool					bHasFixedUpImportMap;
 	/** Whether we already matched up existing exports.																		*/
@@ -617,6 +620,7 @@ private:
 	 */
 	UClass* GetExportLoadClass(int32 ExportIndex);
 
+#if WITH_EDITORONLY_DATA
 	/** 
 	 * Looks for and loads meta data object from export map.
 	 *
@@ -627,6 +631,7 @@ private:
 	 *         INDEX_NONE otherwise.
 	 */
 	int32 LoadMetaDataFromExportMap(bool bForcePreload);
+#endif
 
 	UObject* CreateImport( int32 Index );
 
@@ -954,9 +959,10 @@ private:
 	 * scenarios involving Blueprinted components.
 	 * 
 	 * @param  ExportIndex    Identifies the export you want deferred.
+	 * @param Outer			The outer of the export to potentially defer
 	 * @return True if the export has been deferred (and should not be loaded).
 	 */
-	bool DeferExportCreation(const int32 ExportIndex);
+	bool DeferExportCreation(const int32 ExportIndex, UObject* Outer);
 
 	/**
 	 * Iterates through this linker's ExportMap, looking for the corresponding
@@ -1026,6 +1032,9 @@ private:
 	 * @param  LoadClass    A fully loaded/serialized class that may have property references to placeholder export objects (in need of fix-up).
 	 */
 	void ResolveDeferredExports(UClass* LoadClass);
+
+	/** Helper function to recursively resolve placeholders that were waiting for their outer */
+	void ResolvedDeferredSubobjects(ULinkerPlaceholderExportObject* OwningPlaceholder);
 
 	/**
 	 * Sometimes we have to instantiate an export object that is of an imported 

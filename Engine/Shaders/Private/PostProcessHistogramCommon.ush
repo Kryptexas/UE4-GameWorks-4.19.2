@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessHistogramCommon.usf: PostProcessing histogram shared functions and structures.
@@ -6,8 +6,11 @@
 
 // [0] .x:ExposureLowPercent/100, .y:EyeAdaptationHighPercent/100, .z:EyeAdaptationMin, .w:EyeAdaptationMax
 // [1] .x:exp2(ExposureOffset), .y:DeltaWorldTime, .zw: EyeAdaptionSpeedUp/Down
-// [2] .x:Histogram multiply, .y:Histogram add, .z:HistogramMinIntensity w:unused
-float4 EyeAdaptationParams[3];
+// [2] .x:Histogram multiply, .y:Histogram add, .z:HistogramMinIntensity w:BasicExposureFocus
+// [3] .y:Calibration Constant
+float4 EyeAdaptationParams[EYE_ADAPTATION_PARAMS_SIZE];
+
+#define AverageLuminanceScale (EyeAdaptationParams[3].y)
 
 // inverse of ComputeLuminanceFromHistogramPosition
 // is executed more often than ComputeLuminanceFromHistogramPosition()
@@ -26,8 +29,6 @@ float ComputeLuminanceFromHistogramPosition(float HistogramPosition)
 {
 	return exp2( (HistogramPosition - EyeAdaptationParams[2].y) / EyeAdaptationParams[2].x );
 }
-
-
 
 #define HISTOGRAM_SIZE 64
 #define HISTOGRAM_TEXEL_SIZE (HISTOGRAM_SIZE / 4)
@@ -126,8 +127,14 @@ float ComputeAverageLuminaneWithoutOutlier(Texture2D HistogramTexture, float Min
 // requires EyeAdaptationParams to be set
 float ComputeEyeAdaptationExposure(Texture2D HistogramTexture)
 {
+#if USE_PREEXPOSURE
+	const float OneOverPreExposure = View.OneOverPreExposure;
+#else
+	const float OneOverPreExposure = 1.f;
+#endif
+
 	float HistogramSum = ComputeHistogramSum(HistogramTexture);
-	float UnclampedAdaptedLuminance = ComputeAverageLuminaneWithoutOutlier(HistogramTexture, HistogramSum * EyeAdaptationParams[0].x, HistogramSum * EyeAdaptationParams[0].y);
+	float UnclampedAdaptedLuminance = OneOverPreExposure * ComputeAverageLuminaneWithoutOutlier(HistogramTexture, HistogramSum * EyeAdaptationParams[0].x, HistogramSum * EyeAdaptationParams[0].y);
 	float ClampedAdaptedLuminance = clamp(UnclampedAdaptedLuminance, EyeAdaptationParams[0].z, EyeAdaptationParams[0].w);
 
 	return ClampedAdaptedLuminance;

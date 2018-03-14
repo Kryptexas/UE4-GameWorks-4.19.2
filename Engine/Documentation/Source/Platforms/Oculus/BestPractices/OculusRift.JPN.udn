@@ -1,60 +1,53 @@
-﻿INTSourceChangelist:2975673
+﻿INTSourceChangelist:3766270
 Availability:Public
 Title:Oculus Rift ベスト プラクティス
 Crumbs:%ROOT%, Platforms, Platforms/Oculus
-Description:Oculus Rift の開発に関する情報
+Description:Oculus Rift 向け UE4 プロジェクト開発におけるベストプラクティス
 Navigation:platform
-Version:4.11
+Version:4.17
 parent:Platforms/Oculus
 type:overview
+order:
+skilllevel:Beginner
 tags:VR
 tags:Oculus Rift
+topic-image:Platforms\Oculus\oculus_bp.png
 
-[TOC(start:2)]
+[TOC(start:1 end:2)]
 
-Oculus Rift とは、ユーザーが見たりプレイしているワールドとゲームに深く没入することができる 
- Head Mounted Display (HMD) のことです。Oculus Rift とアンリアル エンジン 4 (UE4) 向けにコンテンツを開発するために 
-知っておく必要のある情報をこのガイドで紹介していきます。
+Oculus Rift とは、ユーザーが見たりプレイしているワールドとゲームへ深く没入することを可能にするヘッドマウント ディスプレイ (HMD) です。Oculus Rift 向けコンテンツをアンリアル エンジンで開発する場合に知っておくべき情報をまとめました。
 
+## Oculus HMD ターゲット フレーム レート
+
+以下は、Oculus Rift HMD デバイスを使用するために UE4 プロジェクトが満たさなければならないフレームレートです。 
+
+| HMD デバイス  | ターゲット フレーム レート |
+| --- | --- |
+| **Rift Retail** | 90 FPS|
+| **DK2** | 75 FPS|
+| **DK1** | 60 FPS|
 
 ## Oculus Rift サニティ チェック
 
-Oculus Rift がプラグインされ、プラグインが有効になっていると、アンリアル エンジンは自動的に Oculus Rift を使用します。 
-Oculus が動かない場合は、プラグインが有効になっているかどうかをまず確認してください。プラグインは [プラグイン](Programming/Plugins) メニューの  
-[Head Mounted Displays] の下にあります。  
+Oculus HMD が動かない場合は、Oculus プラグインが有効になっているかどうかをまず確認してください。Oculus プラグインは **[Virtual Reality]** セクションの [プラグイン](Programming/Plugins) メニューにあります。  
 
-[REGION:fullwidth]
-![](T_VR_Plug-In_On_00.png)
+[REGION:lightbox]
+[![](T_VR_Plug-In_On_00.png)(w:491)](T_VR_Plug-In_On_00.png)
 [/REGION]
 
-<!-- それでも問題が解決しない場合は、 Oculus Rift が検出されるか確認してください。以下の方法で 
-確認します。
-
-* まず [スタンドアローンゲーム](Engine/UI/LevelEditor/InEditorTesting/Settings#スタンドアローンゲームでプレイ) を起動します。 
-* スタンドアローン ゲームが起動したら、バッククオート (`) キーを使ってアンリアル コンソールを呼び出します。 
-* そして **「showlog」** と入力します。
-* 次に **「ovrversion」** と入力します。
-* 現在の LibOVR のバージョンとビルドした日時は、以下のようにログ ウィンドウに印刷されています。
-	[REGION:fullwidth]
-	![](T_OculusRiftPluginVersionCheck.png)
-	[/REGION]
-* **「Command not recognized: ovrversion」** というメッセージが表示された場合は、以下を確認してください。
-	* プラグインが有効になっているかどうか。 
-	* Windows プラットフォーム上で UE4 を実行しているかどうか。
-	* Oculus Rift がプラグインされているかどうか。
-	* Oculus Rift が正しく動作しているかどうか。
-
-[REGION:tip]
-以上をすべて確認したにもかかわらず問題が解決しない場合、ハードウェアが原因である可能性があります。その場合は 
- [Oculus VR Support](https://support.oculus.com/help/oculus/885981024820727/?ref=hc_fnav) までお問合せください。 
+[REGION:caption]
+クリックしてフルサイズで表示
 [/REGION]
--->
+
+Rift がパッケージ ゲームで動かない場合、**[Start in VR]** にチェックが入っているかを確認してください。**[Start In VR]** の場所は、**[Project Settings]** > **[Description]** > **[Settings]** です。 
+
+![](Rift_Packed_Game.png)
 
 ## Oculus Rift で作業を確認する
 
-Oculus Rift HMD が UE4 Editor ビューポート、またはデフォルトの Play In Editor(PIE) セッションでは動きません。Rift にプロジェクトを表示するには、**[VR Preview (VR プレビュー)]** オプションを使います。[VR Preview] オプションを使用するには、UE4 エディタで以下の操作が必要です。 
+Oculus Rift HMD は UE4 Editor ビューポート、またはデフォルトの Play In Editor (PIE) セッションでは動きません。Rift にプロジェクトを表示するには、**[VR Preview (VR プレビュー)]** オプションを使います。[VR Preview] オプションを使用するには、UE4 エディタで以下の操作が必要です。 
 
-1. メイン ツールバー上にある **[Play (プレイ)]** セクションの [Play (プレイ)] ボタンの横の小さな白い三角をクリックします。 
+1. メイン ツールバー上にある **[Play (プレイ)]** セクションの [Play (プレイ)] ボタン横の小さな白い三角をクリックします。 
 
 	![](Rift_Preview_00.png)
 
@@ -68,6 +61,4 @@ Oculus Rift HMD が UE4 Editor ビューポート、またはデフォルトの 
 
 ## Oculus のリファレンス
 
-Oculus 社は膨大な時間とエネルギーをかけて、 
-どうすればユーザーが Rift 使用時に最高の VR 体験ができるのかを調査してきました。VR ユーザー体験の開発や提供に役立つ情報が満載の [ウェブサイト]( https://developer.oculus.com/) をまだご覧になっていない方は、 
-是非ご確認ください。
+Oculus 社は膨大な時間とエネルギーをかけて、ユーザーが Rift を使って最大限素晴らしい VR 体験ができるように研究しました。Oculus の [ウェブサイト]( https://developer.oculus.com/) を是非ご覧ください。ユーザーに最高の VR 体験を開発および提供するために役立つ様々な情報が載っています。

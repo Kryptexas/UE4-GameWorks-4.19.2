@@ -58,7 +58,8 @@ Use the following controls to paint an X/Y offset map to retopologize your Lands
 In these comparison examples, you can see how the texture stretching has been reduced in these sharp inclines for the lit view and with the wireframe view you can see how the vertices have been redistributed 
 to be more evenly spaced in these steep inclines.  
 
-<!----
+[COMMENT:none]
+--
 
 [EXCERPT:lit]
 [OBJECT:ComparisonSlider]
@@ -82,7 +83,8 @@ to be more evenly spaced in these steep inclines.
 [/OBJECT]
 [/EXCERPT:wireframe]
 
---->
+-
+[/COMMENT]
 
 ### Tool Settings
 

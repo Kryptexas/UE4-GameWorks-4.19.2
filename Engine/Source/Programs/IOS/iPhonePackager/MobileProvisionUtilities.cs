@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+ * Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
  */
 
 using System;
@@ -34,7 +34,7 @@ namespace iPhonePackager
         public string UUID;
         public string Platform;
 
-        public static string FindCompatibleProvision(string CFBundleIdentifier, out bool bNameMatch, bool bCheckCert = true, bool bCheckIdentifier = true)
+        public static string FindCompatibleProvision(string CFBundleIdentifier, out bool bNameMatch, bool bCheckCert = true, bool bCheckIdentifier = true, bool bCheckDistro = true)
 		{
 			bNameMatch = false;
 
@@ -124,7 +124,7 @@ namespace iPhonePackager
                 }
 			}
 
-			Program.Log("Searching for mobile provisions that match the game '{0}' with CFBundleIdentifier='{1}' in '{2}'", GameName, CFBundleIdentifier, Config.ProvisionDirectory);
+			Program.Log("Searching for mobile provisions that match the game '{0}' (distribution: {3}) with CFBundleIdentifier='{1}' in '{2}'", GameName, CFBundleIdentifier, Config.ProvisionDirectory, Config.bForDistribution);
 
 			// check the cache for a provision matching the app id (com.company.Game)
 			// First checking for a contains match and then for a wildcard match
@@ -147,9 +147,18 @@ namespace iPhonePackager
 
                     Program.LogVerbose("  Phase {0} considering provision '{1}' named '{2}'", Phase, DebugName, TestProvision.ProvisionName);
 
-                    // check to see if the platform is the same as what we are looking for
-                    if (!string.IsNullOrEmpty(TestProvision.Platform) && TestProvision.Platform != Config.OSString && !string.IsNullOrEmpty(Config.OSString))
-                        continue;
+					if (TestProvision.ProvisionName == "iOS Team Provisioning Profile: " + CFBundleIdentifier)
+					{
+						Program.LogVerbose("  Failing as provisioning is automatic");
+						continue;
+					}
+
+					// check to see if the platform is the same as what we are looking for
+					if (!string.IsNullOrEmpty(TestProvision.Platform) && TestProvision.Platform != Config.OSString && !string.IsNullOrEmpty(Config.OSString))
+					{
+						//Program.LogVerbose("  Failing platform {0} Config: {1}", TestProvision.Platform, Config.OSString);
+						continue;
+					}
 
                     // Validate the name
                     bool bPassesNameCheck = false;
@@ -201,12 +210,21 @@ namespace iPhonePackager
 					}
 					else
 					{
-						// check to see if we pass the debug check for non-distribution
-						bool bPassesDebugCheck = TestProvision.bDebug;
-						if (!bPassesDebugCheck)
+						if (bCheckDistro)
 						{
-							Program.LogVerbose("  .. Failed debugging check (mode={0}, get-task-allow={1}, #devices={2})", Config.bForDistribution, TestProvision.bDebug, TestProvision.ProvisionedDeviceIDs.Count);
-							continue;
+							bool bPassesDebugCheck = TestProvision.bDebug;
+							if (!bPassesDebugCheck)
+							{
+								Program.LogVerbose("  .. Failed debugging check (mode={0}, get-task-allow={1}, #devices={2})", Config.bForDistribution, TestProvision.bDebug, TestProvision.ProvisionedDeviceIDs.Count);
+								continue;
+							}
+						}
+						else
+						{
+							if (!TestProvision.bDebug)
+							{
+								Config.bForceStripSymbols = true;
+							}
 						}
 					}
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PixelInspectorModule.h"
 #include "Modules/ModuleManager.h"
@@ -86,13 +86,13 @@ bool FPixelInspectorModule::GetViewportRealtime(int32 ViewportUid, bool IsCurren
 	return IsCurrentlyRealtime;
 }
 
-void FPixelInspectorModule::CreatePixelInspectorRequest(FIntPoint ScreenPosition, int32 ViewportUniqueId, FSceneInterface *SceneInterface, bool bInGameViewMode)
+void FPixelInspectorModule::CreatePixelInspectorRequest(FVector2D InspectViewportUV, int32 ViewportUniqueId, FSceneInterface *SceneInterface, bool bInGameViewMode)
 {
 	if (HPixelInspectorWindow.IsValid() == false)
 	{
 		return;
 	}
-	HPixelInspectorWindow->CreatePixelInspectorRequest(ScreenPosition, ViewportUniqueId, SceneInterface, bInGameViewMode);
+	HPixelInspectorWindow->CreatePixelInspectorRequest(InspectViewportUV, ViewportUniqueId, SceneInterface, bInGameViewMode);
 }
 
 void FPixelInspectorModule::SetViewportInformation(int32 ViewportUniqueId, FIntPoint ViewportSize)
@@ -111,6 +111,14 @@ void FPixelInspectorModule::ReadBackSync()
 		return;
 	}
 	HPixelInspectorWindow->ReadBackRequestData();
+}
+
+void FPixelInspectorModule::OnTabClosed(TSharedRef<SDockTab> TabBeingClosed)
+{
+	if (HPixelInspectorWindow.IsValid())
+	{
+		HPixelInspectorWindow->OnWindowClosed();
+	}
 }
 
 void FPixelInspectorModule::RegisterTabSpawner(const TSharedPtr<FWorkspaceItem>& WorkspaceGroup)
@@ -160,7 +168,10 @@ TSharedRef<SDockTab> FPixelInspectorModule::MakePixelInspectorTab(const FSpawnTa
 	TSharedRef<SDockTab> PixelInspectorTab = SNew(SDockTab)
 	.Icon(FPixelInspectorStyle::Get()->GetBrush("PixelInspector.TabIcon"))
 	.TabRole(ETabRole::NomadTab);
+	
 	PixelInspectorTab->SetContent(CreatePixelInspectorWidget());
+	PixelInspectorTab->SetOnTabClosed( SDockTab::FOnTabClosedCallback::CreateRaw( this, &FPixelInspectorModule::OnTabClosed ) );
+	
 	return PixelInspectorTab;
 }
 

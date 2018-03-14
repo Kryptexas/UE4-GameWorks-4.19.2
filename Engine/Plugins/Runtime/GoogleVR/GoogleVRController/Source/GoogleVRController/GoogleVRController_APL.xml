@@ -5,7 +5,7 @@
 	<init>
 		<log text="GoogleVR Controller init"/>
 	</init>
-	
+
 	<!-- optional files or directories to copy to Intermediate/Android/APK -->
 	<resourceCopies>
     <log text="Copying GoogleVR files to staging"/>
@@ -37,7 +37,7 @@
   <!-- optional additions to proguard -->
   <proguardAdditions>
   </proguardAdditions>
-  
+
 	<!-- optional updates applied to AndroidManifest.xml -->
 	<androidManifestUpdates>
     <addPermission android:name="android.permission.INTERNET"/>
@@ -45,13 +45,13 @@
 
   <gameActivityImportAdditions>
   </gameActivityImportAdditions>
-  
+
   <gameActivityClassAdditions>
   </gameActivityClassAdditions>
-  
+
   <gameActivityOnPauseAdditions>
   </gameActivityOnPauseAdditions>
-  
+
   <gameActivityOnResumeAdditions>
   </gameActivityOnResumeAdditions>
 
@@ -60,7 +60,7 @@
 
   <gameActivityOnStartAdditions>
   </gameActivityOnStartAdditions>
-  
+
   <!-- optional libraries to load in GameActivity.java before libUE4.so -->
 	<soLoadLibrary>
         <loadLibrary name="gvr" failmsg="GoogleVR Controller library not loaded and required!" />

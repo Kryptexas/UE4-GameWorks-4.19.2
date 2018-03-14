@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessGBufferHints.usf: PostProcessing shader to show where material have performance issues or are unrealistic
@@ -6,7 +6,6 @@
 
 #include "Common.ush"
 #include "PostProcessCommon.ush"
-#include "PostProcessHistogramCommon.ush"
 #include "DeferredShadingCommon.ush"
 
 // 0: good, 1: heavy performance cost, 2:warning (very uncommon material), 3:error (impossibele material attributes)

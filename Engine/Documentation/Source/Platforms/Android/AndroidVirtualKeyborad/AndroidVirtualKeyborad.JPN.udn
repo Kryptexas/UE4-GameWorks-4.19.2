@@ -1,0 +1,150 @@
+﻿INTSourceChangelist:3677751
+Availability:Docs
+Crumbs: %ROOT%
+Title:Android 仮想キーボード
+Description:Android Virtual Keyboard を UE4 用に設定する方法
+Type:how-to
+SkillLevel:Beginner
+Version:4.17
+Parent:Platforms/Android
+Order:1
+Tags:Android
+
+[TOC(start:1 end:2)]
+
+アンリアル エンジン 4 (UE4) Android ベースのすべてのプロジェクトは、標準ポップアップ ダイアログ入力ボックスまたはオペレーション システム仮想キーボードのいずれかの使用をサポートしています。このドキュメントでは、UE4 プロジェクトで仮想キーボードをセットアップし呼び出す方法を説明します。
+
+[OBJECT:ComparisonSlider]
+    [PARAM:before]
+    ![New Keyboard Input](AVK_New.png)
+    [/PARAM]
+    [PARAM:after]
+    ![Old Keyboard Input](AVK_Old.png)
+    [/PARAM]
+[/OBJECT]
+
+
+## ステップ
+
+プロジェクトで仮想キーボードを有効にするには、以下の手順を行います。
+
+1. **メイン ツールバー** から **[Edit (編集)]** > **[Project Settings (プロジェクト設定)]** オプションをクリックします。
+
+    ![](AVK_01.png)
+
+1. [Project Settings] メニューで **[Platforms]** > **[Android]** を選び **[APKPackaging]** セクションの中の **[Enable improved virtual keyboard (改善された仮想キーボードを有効にする)(実験的)]** オプションの横にあるチェックマーク ボックスをクリックして有効にします。
+
+    [REGION:lightbox]
+    [![](AVK_02.png)(w:546)](AVK_02.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. **[コンテンツ ブラウザ]** を右クリックして **[User Interface]** を選び、**[Widget Blueprint]** オプションをクリックして新しいブループリントに **「Input Text」** という名前を付けます。
+
+    ![](AVK_03.png)
+
+1. Input Text UMG ウィジェットをダブルクリックして開き、**[Palette]** から **TextBox** を UMG グラフへドラッグします。
+
+    [REGION:lightbox]
+    [![](AVK_04.png)(w:546)](AVK_04.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. Canvas パネルの中央にくるように TextBox を配置して **[Compile]** ボタンと **[Save]** ボタンを押します。
+
+    [REGION:lightbox]
+    [![](AVK_05.png)(w:546)](AVK_05.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+    [Region:note]
+    入力エレメントを可視にし、バーチャル キーボードの背後で見えづらくならないように調整するのは各自のアプリケーション側です。提供されている **OnVirtualKeyboardShown** および **OnVirtualKeyboardHidden** イベント ハンドラを使って UI エレメントが仮想キーボードで隠れてしまわないようにしっかり調整してください。
+    [/region]
+
+1. **Level ブループリント** を開き、以下のノードを Event Graph に追加します。
+
+    [REGION:lightbox]
+    [![](AVK_06.png)(w:546)](AVK_06.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+    * **Event Begin Play**
+    * **Create Widget**
+    * **Add to Viewport ** 
+
+1. **Event Begin Play** を **Create Widget ** に接続し Create Widget を **Add Viewport** ノードに接続します。Level ブループリントは下の画像のような状態になります。
+
+    [REGION:lightbox]
+    [![](AVK_07.png)(w:546)](AVK_07.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. 次に Create Widget Blueprint ノードの **Class** 入力に先ほど作成した **InputText** ウィジェット ブリントをつなぎます。
+
+    ![](AVK_08.png)
+
+1. レベルに **「AndroidVirtualKeyboard」** と名前を付けて保存し、[Project Settings] を開いて **[Maps & Modes]** の **[Default Maps]** で、**[Editor Startup Map]** と **[Game Default Map]** に AndroidVirtualKeyboard マップを入力します。
+
+    [REGION:lightbox]
+    [![](AVK_09.png)(w:546)](AVK_09.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. 次にメインメニューから **[Launch]** の隣にある小さな白い三角をクリックして、表示されたリストの中からUE4 プロジェクトをデプロイする Android デバイスを選びます。
+
+    ![](AVK_10.png)
+
+## 最終結果 
+
+プロジェクトを Android デバイスで起動後、テキスト入力ボックスを押せば以下の動画のように Android システム キーボードを使ってテキストを自由に入力できるようになります。
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    Xu-oZzh8WGM
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
+
+
+Android.new keyboard コンソール変数の後に次のいずれかの数字を入れれば、仮想キーボードを無効にすることができます。ユーザーが IME を必要とする言語を使っている場合、仮想キーボードを Android.NewKeyboard コンソール変数を使って無効にすることができます。
+
+|コマンド名|入力 |説明 |
+|---------------------|----------|------------|
+|**Android.NewKeyboard**| 0| UE4 エディタで設定したチェックマーク ボックス 設定を使います。|
+|**Android.NewKeyboard**| 1| 新しいキーボードを強制使用します。|
+|**Android.NewKeyboard**| 2| ダイアログを強制使用します。|
+
+
+
+
+
+

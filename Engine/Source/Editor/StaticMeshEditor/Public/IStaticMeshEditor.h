@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -206,13 +206,15 @@ public:
 	/** Refreshes everything in the Static Mesh Editor. */
 	virtual void RefreshTool() = 0;
 
-	/** 
-	 *	This is called when Apply is pressed in the dialog. Does the actual processing.
-	 *
-	 *	@param	InMaxHullCount			The max hull count allowed. 
-	 *	@param	InMaxHullVerts			The max number of verts per hull allowed. 
-	 */
-	virtual void DoDecomp(float InAccuracy, int32 InMaxHullVerts) = 0;
+	/**
+	*    This is called when Apply is pressed in the dialog. Does the actual processing.
+	*
+	*    @param    InHullCount               The max number of convex hulls allowed
+	*    @param    InMaxHullVerts            The max number of verts per hull allowed.
+	*    @param    InHullPrecision           The voxel precision to use for V-HACD
+	*/
+	virtual void DoDecomp(uint32 InHullCount, int32 InMaxHullVerts, uint32 InHullPrecision) = 0;
+
 
 	/** Retrieves the selected edge set. */
 	virtual TSet< int32 >& GetSelectedEdges() = 0;
@@ -230,6 +232,9 @@ public:
 	virtual void RegisterOnSelectedLODChanged(const FOnSelectedLODChanged &Delegate, bool UnregisterOnRefresh) = 0;
 	/* Unregister callback to free up the ressources */
 	virtual void UnRegisterOnSelectedLODChanged(void* Thing) = 0;
+
+	/* Broadcast when selected LOD changes */
+	virtual void BroadcastOnSelectedLODChanged() = 0;
 };
 
 

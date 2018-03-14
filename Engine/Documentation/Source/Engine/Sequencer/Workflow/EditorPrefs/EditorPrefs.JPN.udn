@@ -34,7 +34,8 @@ tags:Sequencer
 キー補間に関する情報は、[**補間モード**](Engine/UI/CurveEditor) をご覧ください。
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:AutoKeyMode]
 [REGION:simpletable]
 | 値 | 効果 |
@@ -44,9 +45,11 @@ tags:Sequencer
 | **Key None** | どのプロパティも自動キー設定しません。 |
 [/REGION] 
 [/EXCERPT:AutoKeyMode]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:KeyInterp]
 [REGION:simpletable]
 | 値 | 効果 |
@@ -58,7 +61,8 @@ tags:Sequencer
 | **Constant** | キー補間を Constant に設定します。 |
 [/REGION] 
 [/EXCERPT:KeyInterp]
--->
+
+[/COMMENT]
 
 
 ## 全般
@@ -71,7 +75,8 @@ tags:Sequencer
 | **Create Spawnable Cameras** | シーケンサーのツールバーから追加したカメラを [**スポーン可能なもの**](Engine/Sequencer/HowTo/Spawnables) として作成するかを決めます。 |
 | **Level Browser Visible** | **レベル ブラウザ** ウィンドウを表示または非表示にします。 |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Spawn]
 [REGION:simpletable]
 | 値 | 効果 |
@@ -80,7 +85,8 @@ tags:Sequencer
 | **Place in Front of Camera** | パースペクティブ ビューポートでカメラの前にスポーンします。|
 [/REGION] 
 [/EXCERPT:Spawn]
--->
+
+[/COMMENT]
 
 
 ## タイムライン
@@ -99,7 +105,8 @@ tags:Sequencer
 | **Show Combined Keyframes** | 有効にすると、フレームに対して複数のキーが割り当てられているプロパティを表示します。 |
 | **Show Channel Colors** | Location、Rotation、Scale の、XYZ に対して色付けされたラインの表示を切り替えます。  |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Zoom]
 [REGION:simpletable]
 | 値 | 効果 |
@@ -108,7 +115,8 @@ tags:Sequencer
 | **Mouse Position** | タイムラインのマウスの位置でズームイン / ズームアウトされます。 |
 [/REGION] 
 [/EXCERPT:Zoom]
--->
+
+[/COMMENT]
 
 ## スナップ
 

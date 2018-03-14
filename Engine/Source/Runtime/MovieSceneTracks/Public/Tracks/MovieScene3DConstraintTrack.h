@@ -1,10 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "MovieSceneTrack.h"
+#include "MovieSceneObjectBindingID.h"
 #include "MovieScene3DConstraintTrack.generated.h"
 
 /**
@@ -18,6 +19,9 @@ class UMovieScene3DConstraintTrack
 
 public:
 
+	DEPRECATED(4.18, "Constraint guid no longer supported, Use ConstraintBindingID.")
+	virtual void AddConstraint(float Time, float ConstraintEndTime, const FName SocketName, const FName ComponentName, const FGuid& ConstraintId);
+
 	/**
 	 * Adds a constraint.
 	 *
@@ -25,9 +29,9 @@ public:
 	 * @param ConstraintEndTime Set the constraint to end at this time.
 	 * @param SocketName The socket name for the constraint.
 	 * @param ComponentName The name of the component the socket resides in.
-	 * @param ConstraintId The id to the constraint.
+	 * @param FMovieSceneObjectBindingID The object binding id to the constraint.
 	 */
-	virtual void AddConstraint(float Time, float ConstraintEndTime, const FName SocketName, const FName ComponentName, const FGuid& ConstraintId) { }
+	virtual void AddConstraint(float Time, float ConstraintEndTime, const FName SocketName, const FName ComponentName, const FMovieSceneObjectBindingID& ConstraintBindingID) { }
 
 public:
 

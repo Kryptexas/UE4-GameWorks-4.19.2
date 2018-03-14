@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RHICommandListCommandExecutes.inl: RHI Command List execute functions.
@@ -248,12 +248,6 @@ void FRHICommandSetBlendFactor::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(SetBlendFactor);
 	INTERNAL_DECORATOR(RHISetBlendFactor)(BlendFactor);
-}
-
-void FRHICommandSetStreamSourceDEPRECATED::Execute(FRHICommandListBase& CmdList)
-{
-	RHISTAT(SetStreamSource);
-	INTERNAL_DECORATOR(RHISetStreamSource)(StreamIndex, VertexBuffer, Stride, Offset);
 }
 
 void FRHICommandSetStreamSource::Execute(FRHICommandListBase& CmdList)
@@ -649,6 +643,13 @@ void FRHICommandEndDrawingViewport::Execute(FRHICommandListBase& CmdList)
 template<ECmdList CmdListType>
 void FRHICommandPushEvent<CmdListType>::Execute(FRHICommandListBase& CmdList)
 {
+#if	RHI_COMMAND_LIST_DEBUG_TRACES
+	extern CORE_API bool GCommandListOnlyDrawEvents;
+	if (GCommandListOnlyDrawEvents)
+	{
+		return;
+	}
+#endif
 	RHISTAT(PushEvent);
 	INTERNAL_DECORATOR_CONTEXT(RHIPushEvent)(Name, Color);
 }
@@ -658,6 +659,13 @@ template struct FRHICommandPushEvent<ECmdList::ECompute>;
 template<ECmdList CmdListType>
 void FRHICommandPopEvent<CmdListType>::Execute(FRHICommandListBase& CmdList)
 {
+#if	RHI_COMMAND_LIST_DEBUG_TRACES
+	extern CORE_API bool GCommandListOnlyDrawEvents;
+	if (GCommandListOnlyDrawEvents)
+	{
+		return;
+	}
+#endif
 	RHISTAT(PopEvent);
 	INTERNAL_DECORATOR_CONTEXT(RHIPopEvent)();
 }

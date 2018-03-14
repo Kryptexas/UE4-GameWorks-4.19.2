@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -17,9 +17,9 @@ namespace ProxyMaterialUtilities
 	if ( b##a##Texture) \
 	{ \
 		UTexture2D* a##Texture = b##a##Texture ? FMaterialUtilities::CreateTexture(InOuter, AssetBasePath + TEXT("T_") + AssetBaseName + TEXT("_" #a), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::a), FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::a), b, TEXTUREGROUP_HierarchicalLOD, RF_Public | RF_Standalone, c) : nullptr; \
-		OutMaterial->SetTextureParameterValueEditorOnly(#a "Texture", a##Texture); \
+		OutMaterial->SetTextureParameterValueEditorOnly(FMaterialParameterInfo(#a "Texture"), a##Texture); \
 		FStaticSwitchParameter SwitchParameter; \
-		SwitchParameter.ParameterName = "Use" #a; \
+		SwitchParameter.ParameterInfo.Name = "Use" #a; \
 		SwitchParameter.Value = true; \
 		SwitchParameter.bOverride = true; \
 		NewStaticParameterSet.StaticSwitchParameters.Add(SwitchParameter); \
@@ -30,20 +30,20 @@ namespace ProxyMaterialUtilities
 #define TEXTURE_MACRO_VECTOR(a, b, c) TEXTURE_MACRO_BASE(a, b, c)\
 	else\
 	{ \
-		OutMaterial->SetVectorParameterValueEditorOnly(#a "Const", FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::a)[0]); \
+		OutMaterial->SetVectorParameterValueEditorOnly(FMaterialParameterInfo(#a "Const"), FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::a)[0]); \
 	} 
 
 #define TEXTURE_MACRO_VECTOR_LINEAR(a, b, c) TEXTURE_MACRO_BASE(a, b, c)\
 	else\
 	{ \
-		OutMaterial->SetVectorParameterValueEditorOnly(#a "Const", FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::a)[0].ReinterpretAsLinear()); \
+		OutMaterial->SetVectorParameterValueEditorOnly(FMaterialParameterInfo(#a "Const"), FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::a)[0].ReinterpretAsLinear()); \
 	} 
 
 #define TEXTURE_MACRO_SCALAR(a, b, c) TEXTURE_MACRO_BASE(a, b, c)\
 	else \
 	{ \
 		FLinearColor Colour = FlattenMaterial.IsPropertyConstant(EFlattenMaterialProperties::a) ? FLinearColor::FromSRGBColor( FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::a)[0]) : FLinearColor( InMaterialProxySettings.a##Constant, 0, 0, 0 ); \
-		OutMaterial->SetScalarParameterValueEditorOnly(#a "Const", Colour.R ); \
+		OutMaterial->SetScalarParameterValueEditorOnly(FMaterialParameterInfo(#a "Const"), Colour.R); \
 	}
 
 	static const bool CalculatePackedTextureData(const FFlattenMaterial& InMaterial, bool& bOutPackMetallic, bool& bOutPackSpecular, bool& bOutPackRoughness, int32& OutNumSamples, FIntPoint& OutSize)
@@ -213,23 +213,24 @@ namespace ProxyMaterialUtilities
 
 			// Setup switches for whether or not properties will be packed into one texture
 			FStaticSwitchParameter SwitchParameter;
-			SwitchParameter.ParameterName = "PackMetallic";
+			SwitchParameter.ParameterInfo.Name = TEXT("PackMetallic");
 			SwitchParameter.Value = bPackMetallic;
 			SwitchParameter.bOverride = true;
 			NewStaticParameterSet.StaticSwitchParameters.Add(SwitchParameter);
 
-			SwitchParameter.ParameterName = "PackSpecular";
+			SwitchParameter.ParameterInfo.Name = TEXT("PackSpecular");
 			SwitchParameter.Value = bPackSpecular;
 			SwitchParameter.bOverride = true;
 			NewStaticParameterSet.StaticSwitchParameters.Add(SwitchParameter);
 
-			SwitchParameter.ParameterName = "PackRoughness";
+			SwitchParameter.ParameterInfo.Name = TEXT("PackRoughness");
 			SwitchParameter.Value = bPackRoughness;
 			SwitchParameter.bOverride = true;
 			NewStaticParameterSet.StaticSwitchParameters.Add(SwitchParameter);
 
 			// Set up switch and texture values
-			OutMaterial->SetTextureParameterValueEditorOnly("PackedTexture", PackedTexture);
+			FMaterialParameterInfo ParameterInfo(TEXT("PackedTexture"));
+			OutMaterial->SetTextureParameterValueEditorOnly(ParameterInfo, PackedTexture);
 		}
 
 		// Emissive is a special case due to the scaling variable
@@ -239,7 +240,8 @@ namespace ProxyMaterialUtilities
 
 			if (FlattenMaterial.EmissiveScale != 1.0f)
 			{
-				OutMaterial->SetScalarParameterValueEditorOnly("EmissiveScale", FlattenMaterial.EmissiveScale);
+				FMaterialParameterInfo ParameterInfo(TEXT("EmissiveScale"));
+				OutMaterial->SetScalarParameterValueEditorOnly(ParameterInfo, FlattenMaterial.EmissiveScale);
 			}
 		}
 

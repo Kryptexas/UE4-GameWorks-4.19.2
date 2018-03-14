@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -9,8 +9,7 @@ public class TextureEditor : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"MainFrame",
-				"WorkspaceMenuStructure",
-				"PropertyEditor"
+				"WorkspaceMenuStructure"
 			}
 		);
 
@@ -44,8 +43,9 @@ public class TextureEditor : ModuleRules
 				"Slate",
 				"SlateCore",
                 "EditorStyle",
-				"UnrealEd"
-			}
+				"UnrealEd",
+                "PropertyEditor"
+            }
 		);
 	}
 }

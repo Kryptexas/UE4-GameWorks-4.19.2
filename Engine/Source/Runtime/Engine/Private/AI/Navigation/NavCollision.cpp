@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AI/Navigation/NavCollision.h"
 #include "Serialization/MemoryWriter.h"
@@ -151,6 +151,7 @@ bool FDerivedDataNavCollisionCooker::Build( TArray<uint8>& OutData )
 //----------------------------------------------------------------------//
 UNavCollision::UNavCollision(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {	
+	bGatherConvexGeometry = true;
 	bHasConvexGeometry = false;
 	bForceGeometryRebuild = false;
 }
@@ -173,38 +174,62 @@ void UNavCollision::Setup(UBodySetup* BodySetup)
 	// Make sure all are cleared before we start
 	ClearCollision(); 
 		
-	if (ShouldUseConvexCollision())
+	// Find or create cooked navcollision data
+	FByteBulkData* FormatData = GetCookedData(NAVCOLLISION_FORMAT);
+	if (!bForceGeometryRebuild && FormatData)
 	{
-		// Find or create cooked navcollision data
-		FByteBulkData* FormatData = GetCookedData(NAVCOLLISION_FORMAT);
-		if (!bForceGeometryRebuild && FormatData)
+		// if it's not being already processed
+		if (FormatData->IsLocked() == false)
 		{
-			// if it's not being already processed
-			if (FormatData->IsLocked() == false)
-			{
-				// Create physics objects
-				FNavCollisionDataReader CookedDataReader(*FormatData, TriMeshCollision, ConvexCollision, ConvexShapeIndices);
-
-				bHasConvexGeometry = true;
-			}
+			// Create physics objects
+			FNavCollisionDataReader CookedDataReader(*FormatData, TriMeshCollision, ConvexCollision, ConvexShapeIndices);
+			bHasConvexGeometry = true;
 		}
-		else if (FPlatformProperties::RequiresCookedData() == false)
-		{
-			GatherCollision();
-		}
+	}
+	else if (FPlatformProperties::RequiresCookedData() == false)
+	{
+		GatherCollision();
 	}
 }
 
 void UNavCollision::GatherCollision()
 {
+	ClearCollision();
+
 	UStaticMesh* StaticMeshOuter = Cast<UStaticMesh>(GetOuter());
-	// get data from owner
-	if (StaticMeshOuter && StaticMeshOuter->BodySetup)
+	if (bGatherConvexGeometry && StaticMeshOuter && StaticMeshOuter->BodySetup)
 	{
-		ClearCollision();
 		NavigationHelper::GatherCollision(StaticMeshOuter->BodySetup, this);
-		bHasConvexGeometry = true;
 	}
+
+	FKAggregateGeom SimpleGeom;
+	for (int32 Idx = 0; Idx < BoxCollision.Num(); Idx++)
+	{
+		const FNavCollisionBox& BoxInfo = BoxCollision[Idx];
+
+		FKBoxElem BoxElem(BoxInfo.Extent.X * 2.0f, BoxInfo.Extent.Y * 2.0f, BoxInfo.Extent.Z * 2.0f);
+		BoxElem.SetTransform(FTransform(BoxInfo.Offset));
+
+		SimpleGeom.BoxElems.Add(BoxElem);
+	}
+
+	// not really a cylinder, but should be close enough 
+	for (int32 Idx = 0; Idx < CylinderCollision.Num(); Idx++)
+	{
+		const FNavCollisionCylinder& CylinderInfo = CylinderCollision[Idx];
+
+		FKSphylElem SphylElem(CylinderInfo.Radius, CylinderInfo.Height);
+		SphylElem.SetTransform(FTransform(CylinderInfo.Offset));
+
+		SimpleGeom.SphylElems.Add(SphylElem);
+	}
+
+	if (SimpleGeom.GetElementCount())
+	{
+		NavigationHelper::GatherCollision(SimpleGeom, *this);
+	}
+
+	bHasConvexGeometry = (TriMeshCollision.VertexBuffer.Num() > 0) || (ConvexCollision.VertexBuffer.Num() > 0);
 }
 
 void UNavCollision::ClearCollision()
@@ -224,61 +249,53 @@ void UNavCollision::GetNavigationModifier(FCompositeNavModifier& Modifier, const
 
 	const TSubclassOf<UNavArea> UseAreaClass = AreaClass ? AreaClass : UNavigationSystem::GetDefaultObstacleArea();
 
-	Modifier.ReserveForAdditionalAreas(CylinderCollision.Num() + BoxCollision.Num()
-		+ (ConvexCollision.VertexBuffer.Num() > 0 ? ConvexShapeIndices.Num() : 0));
-
-	for (int32 i = 0; i < CylinderCollision.Num(); i++)
+	// rebuild collision data if needed
+	if (!bHasConvexGeometry)
 	{
-		FTransform CylinderToWorld = LocalToWorld;
-		const FVector Origin = CylinderToWorld.TransformPosition(CylinderCollision[i].Offset);
-		CylinderToWorld.SetTranslation(Origin);
-
-		FAreaNavModifier AreaMod(CylinderCollision[i].Radius, CylinderCollision[i].Height, CylinderToWorld, UseAreaClass);
-		AreaMod.SetIncludeAgentHeight(true);
-		Modifier.Add(AreaMod);
+		GatherCollision();
 	}
 
-	for (int32 i = 0; i < BoxCollision.Num(); i++)
+	const int32 NumModifiers = (TriMeshCollision.VertexBuffer.Num() ? 1 : 0) + ConvexShapeIndices.Num();
+	Modifier.ReserveForAdditionalAreas(NumModifiers);
+
+	int32 LastVertIndex = 0;
+	for (int32 Idx = 0; Idx < ConvexShapeIndices.Num(); Idx++)
 	{
-		FTransform BoxToWorld = LocalToWorld;
-		const FVector Origin = BoxToWorld.TransformPosition(BoxCollision[i].Offset);
-		BoxToWorld.SetTranslation(Origin);
+		const int32 FirstVertIndex = LastVertIndex;
+		LastVertIndex = ConvexShapeIndices.IsValidIndex(Idx + 1) ? ConvexShapeIndices[Idx + 1] : ConvexCollision.VertexBuffer.Num();
 
-		FAreaNavModifier AreaMod(BoxCollision[i].Extent, BoxToWorld, UseAreaClass);
-		AreaMod.SetIncludeAgentHeight(true);
-		Modifier.Add(AreaMod);
-	}
-
-	if (ShouldUseConvexCollision())
-	{
-		// rebuild collision data if needed
-		if (!bHasConvexGeometry)
+		// @todo this is a temp fix. A proper fix is making sure ConvexShapeIndices doesn't
+		// contain any duplicates (which is the original cause of UE-52123)
+		if (FirstVertIndex < LastVertIndex)
 		{
-			GatherCollision();
-		}
-
-		if (ConvexCollision.VertexBuffer.Num() > 0)
-		{
-			int32 LastVertIndex = 0;
-
-			for (int32 i = 0; i < ConvexShapeIndices.Num(); i++)
-			{
-				int32 FirstVertIndex = LastVertIndex;
-				LastVertIndex = ConvexShapeIndices.IsValidIndex(i + 1) ? ConvexShapeIndices[i + 1] : ConvexCollision.VertexBuffer.Num();
-
-				FAreaNavModifier AreaMod(ConvexCollision.VertexBuffer, FirstVertIndex, LastVertIndex, ENavigationCoordSystem::Unreal, LocalToWorld, UseAreaClass);
-				AreaMod.SetIncludeAgentHeight(true);
-				Modifier.Add(AreaMod);
-			}
-		}
-
-		if (TriMeshCollision.VertexBuffer.Num() > 0)
-		{
-			FAreaNavModifier AreaMod(TriMeshCollision.VertexBuffer, 0, TriMeshCollision.VertexBuffer.Num() - 1, ENavigationCoordSystem::Unreal, LocalToWorld, UseAreaClass);
+			FAreaNavModifier AreaMod(ConvexCollision.VertexBuffer, FirstVertIndex, LastVertIndex, ENavigationCoordSystem::Unreal, LocalToWorld, UseAreaClass);
 			AreaMod.SetIncludeAgentHeight(true);
 			Modifier.Add(AreaMod);
 		}
 	}
+
+	if (TriMeshCollision.VertexBuffer.Num() > 0)
+	{
+		FAreaNavModifier AreaMod(TriMeshCollision.VertexBuffer, 0, TriMeshCollision.VertexBuffer.Num() - 1, ENavigationCoordSystem::Unreal, LocalToWorld, UseAreaClass);
+		AreaMod.SetIncludeAgentHeight(true);
+		Modifier.Add(AreaMod);
+	}
+}
+
+bool UNavCollision::ExportGeometry(const FTransform& LocalToWorld, FNavigableGeometryExport& GeoExport) const
+{
+	if (bHasConvexGeometry)
+	{
+		GeoExport.ExportCustomMesh(ConvexCollision.VertexBuffer.GetData(), ConvexCollision.VertexBuffer.Num(),
+			ConvexCollision.IndexBuffer.GetData(), ConvexCollision.IndexBuffer.Num(),
+			LocalToWorld);
+
+		GeoExport.ExportCustomMesh(TriMeshCollision.VertexBuffer.GetData(), TriMeshCollision.VertexBuffer.Num(),
+			TriMeshCollision.IndexBuffer.GetData(), TriMeshCollision.IndexBuffer.Num(),
+			LocalToWorld);
+	}
+
+	return bHasConvexGeometry;
 }
 
 void DrawCylinderHelper(FPrimitiveDrawInterface* PDI, const FMatrix& ElemTM, const float Radius, const float Height, const FColor Color)
@@ -348,6 +365,12 @@ void UNavCollision::DrawSimpleGeom(FPrimitiveDrawInterface* PDI, const FTransfor
 
 
 #if WITH_EDITOR
+void UNavCollision::InvalidateCollision()
+{
+	ClearCollision();
+	bForceGeometryRebuild = true;
+}
+
 void UNavCollision::InvalidatePhysicsData()
 {
 	ClearCollision();
@@ -362,7 +385,8 @@ void UNavCollision::Serialize(FArchive& Ar)
 	const int32 VerInitial = 1;
 	const int32 VerAreaClass = 2;
 	const int32 VerConvexTransforms = 3;
-	const int32 VerLatest = VerConvexTransforms;
+	const int32 VerShapeGeoExport = 4;
+	const int32 VerLatest = VerShapeGeoExport;
 
 	// use magic number to determine if serialized stream has version :/
 	const int32 MagicNum = 0xA237F237;
@@ -398,7 +422,11 @@ void UNavCollision::Serialize(FArchive& Ar)
 		UE_LOG(LogNavigation, Fatal, TEXT("This platform requires cooked packages, and NavCollision data was not cooked into %s."), *GetFullName());
 	}
 
-	if (bCooked && ShouldUseConvexCollision())
+	const bool bUseConvexCollisionVer3 = bGatherConvexGeometry || (CylinderCollision.Num() == 0 && BoxCollision.Num() == 0);
+	const bool bUseConvexCollision = bGatherConvexGeometry || (BoxCollision.Num() > 0) || (CylinderCollision.Num() > 0);
+	const bool bProcessCookedData = (Version >= VerShapeGeoExport) ? bUseConvexCollision : bUseConvexCollisionVer3;
+
+	if (bCooked && bProcessCookedData)
 	{
 		if (Ar.IsCooking())
 		{
@@ -420,7 +448,7 @@ void UNavCollision::Serialize(FArchive& Ar)
 		Ar << AreaClass;
 	}
 
-	if (Version < VerConvexTransforms && Ar.IsLoading() && GIsEditor)
+	if (Version < VerShapeGeoExport && Ar.IsLoading() && GIsEditor)
 	{
 		bForceGeometryRebuild = true;
 	}
@@ -447,7 +475,8 @@ void UNavCollision::PostLoad()
 
 FByteBulkData* UNavCollision::GetCookedData(FName Format)
 {
-	if (IsTemplate())
+	const bool bUseConvexCollision = bGatherConvexGeometry || (BoxCollision.Num() > 0) || (CylinderCollision.Num() > 0);
+	if (IsTemplate() || !bUseConvexCollision)
 	{
 		return NULL;
 	}

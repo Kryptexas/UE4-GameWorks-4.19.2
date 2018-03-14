@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,13 +7,13 @@
 #include "Styling/SlateColor.h"
 #include "Misc/App.h"
 #include "Misc/OutputDeviceFile.h"
+
 #include "NetcodeUnitTest.h"
 #include "UnitTestBase.h"
+#include "UnitTask.h"
 
 #include "UnitTest.generated.h"
 
-class FUnitTestEnvironment;
-class SLogWindow;
 
 // @todo #JohnBFeature: For bugtracking/changelist info, consider adding auto-launching of P4/TTP/Browser-JIRA links,
 //				upon double-clicking these entries in the status windows
@@ -22,7 +22,6 @@ class SLogWindow;
 // Forward declarations
 class FUnitTestEnvironment;
 class SLogWindow;
-struct FTCCommonVars;
 
 
 /**
@@ -82,7 +81,7 @@ struct FUnitStatusLog
 /**
  * Base class for all unit tests
  */
-UCLASS(config=UnitTestStats)
+UCLASS(Abstract, config=UnitTestStats)
 class NETCODEUNITTEST_API UUnitTest : public UUnitTestBase
 {
 	GENERATED_UCLASS_BODY()
@@ -90,6 +89,7 @@ class NETCODEUNITTEST_API UUnitTest : public UUnitTestBase
 	friend class UUnitTestManager;
 	friend class FUnitTestEnvironment;
 	friend class UMinimalClient;
+	friend class UUnitTask;
 	friend struct NUTNet;
 
 
@@ -154,6 +154,7 @@ protected:
 	/** The null unit test environment - for unit tests which support all games, due to requiring no game-specific features */
 	static FUnitTestEnvironment* NullUnitEnv;
 
+
 	/** The time of the last NetTick event */
 	double LastNetTick;
 
@@ -182,6 +183,14 @@ protected:
 	bool bFirstTimeStats;
 
 
+	/** UnitTask's which must be run before different stages of the unit test can execute */
+	UPROPERTY()
+	TArray<UUnitTask*> UnitTasks;
+
+	/** Marks the state of met unit task requirement flags and active unit task blocking flags */
+	EUnitTaskFlags UnitTaskState;
+
+
 	// @todo #JohnBRefactor: Merge the two below variables
 	/** Whether or not the unit test has completed */
 	bool bCompleted;
@@ -191,7 +200,7 @@ protected:
 	EUnitTestVerification VerificationState;
 
 private:
-	/** Whether or not the verification state as already logged (prevent spamming in developer mode) */
+	/** Whether or not the verification state was already logged (prevent spamming in developer mode) */
 	bool bVerificationLogged;
 
 protected:
@@ -201,10 +210,6 @@ protected:
 
 	/** The log window associated with this unit test */
 	TSharedPtr<SLogWindow> LogWindow;
-
-	/** Overrides the colour of UNIT_LOG log messages */
-	FSlateColor LogColor;
-
 
 	/** Collects unit test status logs, that have been printed to the summary window */
 	TArray<TSharedPtr<FUnitStatusLog>> StatusLogSummary;
@@ -240,6 +245,14 @@ public:
 	FORCEINLINE FDateTime GetUnitTestDate() const
 	{
 		return UnitTestDate;
+	}
+
+	/**
+	 * Returns the value of UnitTestTimeout
+	 */
+	FORCEINLINE uint32 GetUnitTestTimeout() const
+	{
+		return UnitTestTimeout;
 	}
 
 	/**
@@ -339,7 +352,64 @@ protected:
 	 */
 	void InitializeLogs();
 
+
+	/**
+	 * Determines whether or not a UnitTask is blocking the specified event
+	 *
+	 * @return	Whether or not the specified event is being blocked by a UnitTask
+	 */
+	FORCEINLINE bool IsTaskBlocking(EUnitTaskFlags InFlag)
+	{
+		bool bReturnVal = false;
+
+		check((InFlag & EUnitTaskFlags::BlockMask) == InFlag);
+
+		for (UUnitTask* CurTask : UnitTasks)
+		{
+			if (!!(CurTask->GetUnitTaskFlags() & InFlag))
+			{
+				bReturnVal = true;
+				break;
+			}
+		}
+
+		return bReturnVal;
+	}
+
+	/**
+	 * When events that were pending but blocked by a UnitTask, are unblocked, this function triggers them.
+	 *
+	 * @param ReadyEvents	Blocked events that are ready to be unblocked/triggered
+	 */
+	virtual void UnblockEvents(EUnitTaskFlags ReadyEvents);
+
+	/**
+	 * Triggered when a UnitTask fails unrecoverably during execution
+	 *
+	 * @param InTask	The UnitTask that failed
+	 * @param Reason	The reason for the failure
+	 */
+	virtual void NotifyUnitTaskFailure(UUnitTask* InTask, FString Reason);
+
 public:
+	/**
+	 * Whether or not the unit test has started
+	 *
+	 * @return	Whether or not the unit test has started
+	 */
+	FORCEINLINE bool HasStarted()
+	{
+		return StartTime != 0.0;
+	}
+
+	/**
+	 * Adds a UnitTask to the unit test, during its configuration stage - to be completed before executing the unit test
+	 *
+	 * @param InTask	The task to be added (must already have its flags etc. set)
+	 */
+	void AddTask(UUnitTask* InTask);
+
+
 	/**
 	 * Executes the main unit test
 	 *
@@ -364,21 +434,14 @@ public:
 	virtual void CleanupUnitTest();
 
 
-	/**
-	 * For implementation in subclasses, for helping to track local log entries related to this unit test.
-	 * This covers logs from within the unit test, and (for UClientUnitTest) from processing net packets related to this unit test.
-	 *
-	 * NOTE: The parameters are the same as the unprocessed log 'serialize' parameters, to convert to a string, use:
-	 * FOutputDeviceHelper::FormatLogLine(Verbosity, Category, Data, GPrintLogTimes)
-	 *
-	 * NOTE: Verbosity ELogVerbosity::SetColor is a special category, whose log messages can be ignored.
-	 *
-	 * @param InLogType	The type of local log message this is
-	 * @param Data		The base log message being written
-	 * @param Verbosity	The warning/filter level for the log message
-	 * @param Category	The log message category (LogNet, LogNetTraffic etc.)
-	 */
-	virtual void NotifyLocalLog(ELogType InLogType, const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category);
+	virtual void NotifyLocalLog(ELogType InLogType, const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category)
+		override;
+
+	virtual void NotifyStatusLog(ELogType InLogType, const TCHAR* Data) override;
+
+	virtual bool IsConnectionLogSource(UNetConnection* InConnection) override;
+
+	virtual bool IsTimerLogSource(UObject* InTimerDelegateObject) override;
 
 
 	/**
@@ -407,6 +470,10 @@ public:
 	virtual void GetCommandContextList(TArray<TSharedPtr<FString>>& OutList, FString& OutDefaultContext);
 
 
+	virtual void UnitTick(float DeltaTime) override;
+
+	virtual void NetTick() override;
+
 	virtual void PostUnitTick(float DeltaTime) override;
 
 	virtual bool IsTickable() const override;
@@ -417,14 +484,4 @@ public:
 	 * Triggered upon unit test completion, for outputting that the unit test has completed - plus other unit test state information
 	 */
 	virtual void LogComplete();
-
-
-	/**
-	 * Getters/Setters
-	 */
-
-	FORCEINLINE void SetLogColor(FSlateColor InLogColor=FSlateColor::UseForeground())
-	{
-		LogColor = InLogColor;
-	}
 };

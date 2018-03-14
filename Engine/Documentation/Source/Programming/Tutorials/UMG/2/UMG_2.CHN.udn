@@ -19,7 +19,7 @@ Description:扩展项目的游戏模式以从屏幕中添加和移除菜单。
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 
 1. 我们创建的菜单来自于 **User Widgets（用户控件）** 。 我们需要写一个创建和展示新 **User Widgets（用户控件）** 的函数，然后在游戏启动时调用该函数。 我们还需要追溯已经创建的内容，这样我们可以在稍后移除它。 由于每个项目已经有了自定义的 **Game Mode（游戏模式）** 类，我们可以打开自己的类，它在`HowTo_UMGGameMode.h`中进行定义。 我们需要添加以下函数和属性到类的底部位置：
@@ -90,7 +90,7 @@ Description:扩展项目的游戏模式以从屏幕中添加和移除菜单。
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -118,7 +118,7 @@ Description:扩展项目的游戏模式以从屏幕中添加和移除菜单。
 			}
 
 		**HowTo_UMGGameMode.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -153,7 +153,7 @@ Description:扩展项目的游戏模式以从屏幕中添加和移除菜单。
 			};
 
 		**HowTo_UMGGameMode.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGGameMode.h"
@@ -183,4 +183,4 @@ Description:扩展项目的游戏模式以从屏幕中添加和移除菜单。
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

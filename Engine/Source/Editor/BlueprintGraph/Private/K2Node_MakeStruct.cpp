@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_MakeStruct.h"
 #include "UObject/StructOnScope.h"
@@ -47,11 +47,11 @@ void UK2Node_MakeStruct::FMakeStructPinManager::CustomizePinData(UEdGraphPin* Pi
 
 		// Should pin default value be filled as FText?
 		const bool bIsText = Property->IsA<UTextProperty>();
-		checkSlow(bIsText == ((Schema->PC_Text == Pin->PinType.PinCategory) && !Pin->PinType.IsContainer()));
+		checkSlow(bIsText == ((UEdGraphSchema_K2::PC_Text == Pin->PinType.PinCategory) && !Pin->PinType.IsContainer()));
 
 		const bool bIsObject = Property->IsA<UObjectPropertyBase>();
-		checkSlow(bIsObject == ((Schema->PC_Object == Pin->PinType.PinCategory || Schema->PC_Class == Pin->PinType.PinCategory || 
-			Schema->PC_SoftObject == Pin->PinType.PinCategory || Schema->PC_SoftClass == Pin->PinType.PinCategory) && !Pin->PinType.IsContainer()));
+		checkSlow(bIsObject == ((UEdGraphSchema_K2::PC_Object == Pin->PinType.PinCategory || UEdGraphSchema_K2::PC_Class == Pin->PinType.PinCategory || 
+			UEdGraphSchema_K2::PC_SoftObject == Pin->PinType.PinCategory || UEdGraphSchema_K2::PC_SoftClass == Pin->PinType.PinCategory) && !Pin->PinType.IsContainer()));
 
 		if (Property->HasAnyPropertyFlags(CPF_AdvancedDisplay))
 		{
@@ -118,11 +118,10 @@ UK2Node_MakeStruct::UK2Node_MakeStruct(const FObjectInitializer& ObjectInitializ
 
 void UK2Node_MakeStruct::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-	if(Schema && StructType)
+	if (StructType)
 	{
 		PreloadObject(StructType);
-		CreatePin(EGPD_Output, Schema->PC_Struct, FString(), StructType, StructType->GetName());
+		CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Struct, StructType, StructType->GetFName());
 		
 		bool bHasAdvancedPins = false;
 		{
@@ -177,7 +176,7 @@ void UK2Node_MakeStruct::ValidateNodeDuringCompilation(class FCompilerResultsLog
 			{
 				if (Property->ArrayDim > 1)
 				{
-					const UEdGraphPin* Pin = FindPin(Property->GetName());
+					const UEdGraphPin* Pin = FindPin(Property->GetFName());
 					MessageLog.Warning(*LOCTEXT("StaticArray_Warning", "@@ - the native property is a static array, which is not supported by blueprints").ToString(), Pin);
 				}
 			}
@@ -235,7 +234,7 @@ FLinearColor UK2Node_MakeStruct::GetNodeTitleColor() const
 	if(const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>())
 	{
 		FEdGraphPinType PinType;
-		PinType.PinCategory = K2Schema->PC_Struct;
+		PinType.PinCategory = UEdGraphSchema_K2::PC_Struct;
 		PinType.PinSubCategoryObject = StructType;
 		return K2Schema->GetPinTypeColor(PinType);
 	}
@@ -267,32 +266,12 @@ FNodeHandlingFunctor* UK2Node_MakeStruct::CreateNodeHandler(FKismetCompilerConte
 	return new FKCHandler_MakeStruct(CompilerContext);
 }
 
-UK2Node::ERedirectType UK2Node_MakeStruct::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex)  const
+UK2Node::ERedirectType UK2Node_MakeStruct::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
 {
 	ERedirectType Result = UK2Node::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
 	if ((ERedirectType_None == Result) && DoRenamedPinsMatch(NewPin, OldPin, false))
 	{
 		Result = ERedirectType_Name;
-	}
-	else if ((ERedirectType_None == Result) && NewPin && OldPin)
-	{
-		if ((EGPD_Output == NewPin->Direction) && (EGPD_Output == OldPin->Direction))
-		{
-			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-			if (K2Schema->ArePinTypesCompatible(NewPin->PinType, OldPin->PinType))
-			{
-				Result = ERedirectType_Name;
-			}
-		}
-		else if ((EGPD_Input == NewPin->Direction) && (EGPD_Input == OldPin->Direction))
-		{
-			FName RedirectedPinName = UProperty::FindRedirectedPropertyName(StructType, FName(*OldPin->PinName));
-
-			if (RedirectedPinName != NAME_Name)
-			{
-				Result = ((FCString::Stricmp(*RedirectedPinName.ToString(), *NewPin->PinName) != 0) ? ERedirectType_None : ERedirectType_Name);
-			}
-		}
 	}
 	return Result;
 }
@@ -330,7 +309,7 @@ void UK2Node_MakeStruct::GetMenuActions(FBlueprintActionDatabaseRegistrar& Actio
 		{
 			NodeSpawner = UBlueprintFieldNodeSpawner::Create(NodeClass, Struct);
 			check(NodeSpawner != nullptr);
-			TWeakObjectPtr<UScriptStruct> NonConstStructPtr = Struct;
+			TWeakObjectPtr<UScriptStruct> NonConstStructPtr = MakeWeakObjectPtr(const_cast<UScriptStruct*>(Struct));
 			NodeSpawner->SetNodeFieldDelegate     = UBlueprintFieldNodeSpawner::FSetNodeFieldDelegate::CreateStatic(GetMenuActions_Utils::SetNodeStruct, NonConstStructPtr);
 			NodeSpawner->DynamicUiSignatureGetter = UBlueprintFieldNodeSpawner::FUiSpecOverrideDelegate::CreateStatic(GetMenuActions_Utils::OverrideCategory, NonConstStructPtr);
 		}
@@ -385,16 +364,15 @@ void UK2Node_MakeStruct::Serialize(FArchive& Ar)
 						}
 
 						bMadeAfterOverridePinRemoval = false;
-						UEdGraphPin* Pin = FindPin(Property->GetName());
+						UEdGraphPin* Pin = FindPin(Property->GetFName());
 
 						if (bHadOverridePropertySeparation)
 						{
-							UEdGraphPin* OverridePin = FindPin(OverrideProperty->GetName());
-							const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+							UEdGraphPin* OverridePin = FindPin(OverrideProperty->GetFName());
 							if (OverridePin)
 							{
 								// Override pins are always booleans
-								check(OverridePin->PinType.PinCategory == Schema->PC_Boolean);
+								check(OverridePin->PinType.PinCategory == UEdGraphSchema_K2::PC_Boolean);
 								// If the old override pin's default value was true, then the override should be marked as enabled
 								PropertyEntry.bIsOverrideEnabled = OverridePin->DefaultValue.ToBool();
 								// It had an override pin, so conceptually the override pin is visible
@@ -450,7 +428,7 @@ void UK2Node_MakeStruct::ConvertDeprecatedNode(UEdGraph* Graph, bool bOnlySafeCh
 		UFunction* MakeNodeFunction = nullptr;
 
 		// If any pins need to change their names during the conversion, add them to the map.
-		TMap<FString, FString> OldPinToNewPinMap;
+		TMap<FName, FName> OldPinToNewPinMap;
 
 		if (StructType == TBaseStructure<FRotator>::Get())
 		{

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Title:Behavior Tree ノードのリファレンス：Composites
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:Behavior Tree Composite ノードの説明です。
@@ -39,11 +39,13 @@ Availability:Public
 | **Finish Mode** | [INCLUDE:#subprop1] |
 | **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:subprop1]
 | --- | --- |
 | **Immediate** | メインタスクが終了すると、バックグラウンド ツリーが中止されます。 |
 | **Delayed** | メインタスクが終了すると、バックグラウンド ツリーは終了を許可されます。 |
 [/EXCERPT:subprop1]
--->
+
+[/COMMENT]
 

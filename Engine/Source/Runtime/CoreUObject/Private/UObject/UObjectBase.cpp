@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectBase.cpp: Unreal UObject base class
@@ -74,6 +74,9 @@ UObjectBase::UObjectBase( EObjectFlags InFlags )
 ,	InternalIndex		(INDEX_NONE)
 ,	ClassPrivate		(nullptr)
 ,	OuterPrivate		(nullptr)
+#if ENABLE_STATNAMEDEVENTS
+, StatIDStringStorage(nullptr)
+#endif
 {}
 
 /**
@@ -89,6 +92,9 @@ UObjectBase::UObjectBase(UClass* InClass, EObjectFlags InFlags, EInternalObjectF
 ,	InternalIndex		(INDEX_NONE)
 ,	ClassPrivate		(InClass)
 ,	OuterPrivate		(InOuter)
+#if ENABLE_STATNAMEDEVENTS
+, StatIDStringStorage(nullptr)
+#endif
 {
 	check(ClassPrivate);
 	// Add to global table.
@@ -109,9 +115,14 @@ UObjectBase::~UObjectBase()
 		LowLevelRename(NAME_None);
 		GUObjectArray.FreeUObjectIndex(this);
 	}
+
+#if ENABLE_STATNAMEDEVENTS
+	delete[] StatIDStringStorage;
+	StatIDStringStorage = nullptr;
+#endif
 }
 
-#if STATS
+#if STATS || ENABLE_STATNAMEDEVENTS
 
 void UObjectBase::CreateStatID() const
 {
@@ -156,7 +167,22 @@ void UObjectBase::CreateStatID() const
 		bFirstEntry = false;
 	}
 
+#if STATS
 	StatID = FDynamicStats::CreateStatId<FStatGroup_STATGROUP_UObjects>( LongName );
+#else // ENABLE_STATNAMEDEVENTS
+	const auto& ConversionData = StringCast<PROFILER_CHAR>(*LongName);
+	const int32 NumStorageChars = (ConversionData.Length() + 1);	//length doesn't include null terminator
+
+	PROFILER_CHAR* StoragePtr = new PROFILER_CHAR[NumStorageChars];
+	FMemory::Memcpy(StoragePtr, ConversionData.Get(), NumStorageChars * sizeof(PROFILER_CHAR));
+	
+	if (FPlatformAtomics::InterlockedCompareExchangePointer((void**)&StatIDStringStorage, StoragePtr, nullptr) != nullptr)
+	{
+		delete[] StoragePtr;
+	}
+	
+	StatID = TStatId(StatIDStringStorage);
+#endif
 }
 #endif
 
@@ -568,7 +594,7 @@ FString RemoveClassPrefix(const TCHAR* ClassName)
 
 void UClassCompiledInDefer(FFieldCompiledInInfo* ClassInfo, const TCHAR* Name, SIZE_T ClassSize, uint32 Crc)
 {
-	const FName CPPClassName(Name);
+	const FName CPPClassName = Name;
 #if WITH_HOT_RELOAD
 	// Check for existing classes
 	TMap<FName, FFieldCompiledInInfo*>& DeferMap = GetDeferRegisterClassMap();
@@ -580,7 +606,7 @@ void UClassCompiledInDefer(FFieldCompiledInInfo* ClassInfo, const TCHAR* Name, S
 		checkf(GIsHotReload, TEXT("Trying to recreate class '%s' outside of hot reload!"), *CPPClassName.ToString());
 
 		// Get the native name
-		FString NameWithoutPrefix(RemoveClassPrefix(Name));
+		FString NameWithoutPrefix = RemoveClassPrefix(Name);
 		UClass* ExistingClass = FindObjectChecked<UClass>(ANY_PACKAGE, *NameWithoutPrefix);
 
 		if (ClassInfo->bHasChanged)
@@ -1079,78 +1105,47 @@ const TCHAR* DebugFullName(UObject* Object)
 		return TEXT("None");
 	}
 }
+
+#if WITH_HOT_RELOAD
 namespace
 {
-#if WITH_HOT_RELOAD
-	struct FStructOrEnumCompiledInfo : FFieldCompiledInInfo
+	struct FObjectCompiledInfo
 	{
-		struct FKey
-		{
-			UObject* Outer;
-			FName Name;
-
-			friend bool operator==(const FKey& A, const FKey& B)
-			{
-				return A.Outer == B.Outer && A.Name == B.Name;
-			}
-
-			friend uint32 GetTypeHash(const FKey& Key)
-			{
-				return HashCombine(GetTypeHash(Key.Outer), GetTypeHash(Key.Name));
-			}
-		};
-
 		/** Registered struct info (including size and reflection info) */
-		static TMap<FStructOrEnumCompiledInfo::FKey, FStructOrEnumCompiledInfo*>& GetRegisteredInfo()
+		static TMap<TTuple<UObject*, FName>, FObjectCompiledInfo>& GetRegisteredInfo()
 		{
-			static TMap<FStructOrEnumCompiledInfo::FKey, FStructOrEnumCompiledInfo*> StructOrEnumCompiledInfoMap;
+			static TMap<TTuple<UObject*, FName>, FObjectCompiledInfo> StructOrEnumCompiledInfoMap;
 			return StructOrEnumCompiledInfoMap;
 		}
 
-		FStructOrEnumCompiledInfo(SIZE_T InClassSize, uint32 InCrc)
-			: FFieldCompiledInInfo(InClassSize, InCrc)
+		FObjectCompiledInfo(SIZE_T InClassSize, uint32 InCrc)
+			: Size(InClassSize)
+			, Crc (InCrc)
 		{
 		}
 
-		virtual UClass* Register() const
-		{
-			return nullptr;
-		}
-		virtual const TCHAR* ClassPackage() const override
-		{
-			check(0);
-			return nullptr;
-		}
+		SIZE_T Size;
+		uint32 Crc;
 	};
 
-
-#endif // WITH_HOT_RELOAD
-
 	template <typename TType>
-	TType* FindExistingStructOrEnumIfHotReload(UObject* Outer, const TCHAR* Name, SIZE_T Size, uint32 Crc)
+	TType* FindExistingObjectIfHotReload(UObject* Outer, const TCHAR* Name, SIZE_T Size, uint32 Crc)
 	{
-#if WITH_HOT_RELOAD
-		FStructOrEnumCompiledInfo::FKey Key;
+		TTuple<UObject*, FName> Key(Outer, Name);
 
-		Key.Outer = Outer;
-		Key.Name = Name;
-
-		FStructOrEnumCompiledInfo* Info = nullptr;
-		FStructOrEnumCompiledInfo** ExistingInfo = FStructOrEnumCompiledInfo::GetRegisteredInfo().Find(Key);
-		if (!ExistingInfo)
+		bool bChanged = true;
+		if (FObjectCompiledInfo* Info = FObjectCompiledInfo::GetRegisteredInfo().Find(Key))
 		{
-			// New struct
-			Info = new FStructOrEnumCompiledInfo(Size, Crc);
-			Info->bHasChanged = true;
-			FStructOrEnumCompiledInfo::GetRegisteredInfo().Add(Key, Info);
+			// Hot-reloaded struct
+			bChanged = Info->Size != Size || Info->Crc != Crc;
+
+			Info->Size = Size;
+			Info->Crc  = Crc;
 		}
 		else
 		{
-			// Hot-relaoded struct, check if it has changes
-			Info = *ExistingInfo;
-			Info->bHasChanged = (*ExistingInfo)->Size != Size || (*ExistingInfo)->Crc != Crc;
-			Info->Size = Size;
-			Info->Crc = Crc;
+			// New struct
+			FObjectCompiledInfo::GetRegisteredInfo().Add(Key, FObjectCompiledInfo(Size, Crc));
 		}
 
 		if (!GIsHotReload)
@@ -1158,39 +1153,38 @@ namespace
 			return nullptr;
 		}
 
-		if (!Info->bHasChanged)
+		TType* Existing = FindObject<TType>(Outer, Name);
+		if (!Existing)
 		{
 			// New type added during hot-reload
-			TType* Return = FindObject<TType>(Outer, Name);
-			if (Return)
-			{
-				UE_LOG(LogClass, Log, TEXT("%s HotReload."), Name);
-				return Return;
-			}
 			UE_LOG(LogClass, Log, TEXT("Could not find existing type %s for HotReload. Assuming new"), Name);
+			return nullptr;
 		}
-		else
-		{
-			// Existing type, make sure we destroy the old one
-			TType* Existing = FindObject<TType>(Outer, Name);
-			if (Existing)
-			{
-				// Make sure the old struct is not used by anything
-				Existing->ClearFlags(RF_Standalone | RF_Public);
-				Existing->RemoveFromRoot();
-				const FName OldRename = MakeUniqueObjectName(GetTransientPackage(), Existing->GetClass(), *FString::Printf(TEXT("HOTRELOADED_%s"), Name));
-				Existing->Rename(*OldRename.ToString(), GetTransientPackage());
-			}
-		}
-#endif
 
-		return nullptr;
+		// Existing type, make sure we destroy the old one if it has changed
+		if (bChanged)
+		{
+			// Make sure the old struct is not used by anything
+			Existing->ClearFlags(RF_Standalone | RF_Public);
+			Existing->RemoveFromRoot();
+			const FName OldRename = MakeUniqueObjectName(GetTransientPackage(), Existing->GetClass(), *FString::Printf(TEXT("HOTRELOADED_%s"), Name));
+			Existing->Rename(*OldRename.ToString(), GetTransientPackage());
+			return nullptr;
+		}
+
+		UE_LOG(LogClass, Log, TEXT("%s HotReload."), Name);
+		return Existing;
 	}
 }
+#endif // WITH_HOT_RELOAD
 
 UScriptStruct* FindExistingStructIfHotReloadOrDynamic(UObject* Outer, const TCHAR* StructName, SIZE_T Size, uint32 Crc, bool bIsDynamic)
 {
-	UScriptStruct* Result = FindExistingStructOrEnumIfHotReload<UScriptStruct>(Outer, StructName, Size, Crc);
+#if WITH_HOT_RELOAD
+	UScriptStruct* Result = FindExistingObjectIfHotReload<UScriptStruct>(Outer, StructName, Size, Crc);
+#else
+	UScriptStruct* Result = nullptr;
+#endif
 	if (!Result && bIsDynamic)
 	{
 		Result = Cast<UScriptStruct>(StaticFindObjectFast(UScriptStruct::StaticClass(), Outer, StructName));
@@ -1200,7 +1194,11 @@ UScriptStruct* FindExistingStructIfHotReloadOrDynamic(UObject* Outer, const TCHA
 
 UEnum* FindExistingEnumIfHotReloadOrDynamic(UObject* Outer, const TCHAR* EnumName, SIZE_T Size, uint32 Crc, bool bIsDynamic)
 {
-	UEnum* Result = FindExistingStructOrEnumIfHotReload<UEnum>(Outer, EnumName, Size, Crc);
+#if WITH_HOT_RELOAD
+	UEnum* Result = FindExistingObjectIfHotReload<UEnum>(Outer, EnumName, Size, Crc);
+#else
+	UEnum* Result = nullptr;
+#endif
 	if (!Result && bIsDynamic)
 	{
 		Result = Cast<UEnum>(StaticFindObjectFast(UEnum::StaticClass(), Outer, EnumName));

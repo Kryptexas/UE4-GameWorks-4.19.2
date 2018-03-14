@@ -20,16 +20,18 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 
 While the previous quick start tutorial for Landscape will get you up and running with a Landscape, it barely scratches the surface of what the Landscape tools can actually do. This section aims to show you some Tips and Tricks of using the Landscape Tool as well as some external tools that you can use to generate your Landscape. 
 
 ##Tips & Tricks
 
-<!--Before choosing the size of your Landscape there are many things that you need to consider first like target platform and performance impact. To make things a little easier for you, here is a chart of recommended Landscape component counts and sizes that might help in choosing the best size for your Landscape. 
+[COMMENT:none]
+Before choosing the size of your Landscape there are many things that you need to consider first like target platform and performance impact. To make things a little easier for you, here is a chart of recommended Landscape component counts and sizes that might help in choosing the best size for your Landscape. 
 
-[INCLUDE:Engine/Landscape/Creation#RecommendedLSS]-->
+[INCLUDE:Engine/Landscape/Creation#RecommendedLSS]
+[/COMMENT]
 
 * When using the **Paint Tools**, you might find it easier to paint over what you would like to erase than to try and erase it using **Shift** + **Left Mouse Button**.
 * When using the **Alpha Brush**, remember that you can change what the pattern that the brush uses by selecting a different RGB channels from the **Texture Channel** drop down menu. This is very handy because you can pack up to three different Alpha patterns in a single texture.
@@ -76,4 +78,4 @@ Zbrush is another digital sculpting and painting tool that can be used to genera
 
 
 
-%Steps%
+

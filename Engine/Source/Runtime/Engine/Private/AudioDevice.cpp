@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AudioDevice.h"
 #include "PhysicsEngine/BodyInstance.h"
@@ -229,7 +229,8 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 		Effects = CreateEffectsManager();
 	}
 
-	
+	// Cache any plugin settings objects we have loaded
+	UpdateAudioPluginSettingsObjectCache();
 
 	//Get the requested spatialization plugin and set it up.
 	IAudioSpatializationFactory* SpatializationPluginFactory = AudioPluginUtilities::GetDesiredSpatializationPlugin(AudioPluginUtilities::CurrentPlatform);
@@ -429,6 +430,28 @@ void FAudioDevice::CountBytes(FArchive& Ar)
 	SoundMixModifiers.CountBytes(Ar);
 }
 
+void FAudioDevice::UpdateAudioPluginSettingsObjectCache()
+{
+	PluginSettingsObjects.Reset();
+
+	// Make sure we don't GC 3rd party plugin settings since these live on FSoundAttenuationSettings, which may not live in UObject graph due to overrides.
+	// There shouldn't be many of objects these (on the order of 10s not 100s) so if we find any loaded, don't let GC get them.
+	for (TObjectIterator<USpatializationPluginSourceSettingsBase> It; It; ++It)
+	{
+		PluginSettingsObjects.Add(*It);
+	}
+
+	for (TObjectIterator<UOcclusionPluginSourceSettingsBase> It; It; ++It)
+	{
+		PluginSettingsObjects.Add(*It);
+	}
+
+	for (TObjectIterator<UReverbPluginSourceSettingsBase> It; It; ++It)
+	{
+		PluginSettingsObjects.Add(*It);
+	}
+}
+
 void FAudioDevice::AddReferencedObjects(FReferenceCollector& Collector)
 {	
 	Collector.AddReferencedObject(DefaultBaseSoundMix);
@@ -448,6 +471,12 @@ void FAudioDevice::AddReferencedObjects(FReferenceCollector& Collector)
 	for (FActiveSound* ActiveSound : ActiveSounds)
 	{
 		ActiveSound->AddReferencedObjects(Collector);
+	}
+	
+	// Loop through the cached plugin settings objects and add to the collector
+	for (UObject* PluginSettingsObject : PluginSettingsObjects)
+	{
+		Collector.AddReferencedObject(PluginSettingsObject);
 	}
 }
 
@@ -1104,7 +1133,7 @@ bool FAudioDevice::HandleSoundClassFixup(const TCHAR* Cmd, FOutputDevice& Ar)
 				// unless the assets are renamed immediately
 				RenameData.Reset();
 				RenameData.Add(FAssetRenameData(AssetData.GetAsset(), LongPackagePath, OutAssetName));
-				AssetToolsModule.Get().RenameAssets(RenameData);
+				AssetToolsModule.Get().RenameAssetsWithDialog(RenameData);
 			}		
 		}
 	}
@@ -2186,11 +2215,11 @@ void FAudioDevice::UpdateSoundClassProperties(float DeltaTime)
 			// Work out the fade in portion
 			SoundMixState->InterpValue = (float)((AudioTime - SoundMixState->FadeInStartTime) / (SoundMixState->FadeInEndTime - SoundMixState->FadeInStartTime));
 			SoundMixState->CurrentState = ESoundMixState::FadingIn;
-		}
+		}	
 		else if (AudioTime >= SoundMixState->FadeInEndTime
 			&& (SoundMixState->IsBaseSoundMix
-				|| ((SoundMixState->PassiveRefCount > 0 || SoundMixState->ActiveRefCount > 0) && SoundMixState->FadeOutStartTime < 0.f)
-				|| AudioTime < SoundMixState->FadeOutStartTime)) 
+			|| ((SoundMixState->PassiveRefCount > 0 || SoundMixState->ActiveRefCount > 0) && SoundMixState->FadeOutStartTime < 0.f)
+			|| AudioTime < SoundMixState->FadeOutStartTime))
 		{
 			// .. ensure the full mix is applied between the end of the fade in time and the start of the fade out time
 			// or if SoundMix is the base or active via a passive push - ignores duration.
@@ -2210,7 +2239,6 @@ void FAudioDevice::UpdateSoundClassProperties(float DeltaTime)
 		}
 		else 
 		{
-			check(SoundMixState->EndTime >= 0.f && AudioTime >= SoundMixState->EndTime);
 			// Clear the effect of this SoundMix - may need to revisit for passive
 			SoundMixState->InterpValue = 0.0f;
 			SoundMixState->CurrentState = ESoundMixState::AwaitingRemoval;
@@ -2313,6 +2341,15 @@ void FAudioDevice::SetListener(UWorld* World, const int32 InViewportIndex, const
 		InitializePluginListeners(World);
 		bPluginListenersInitialized = true;
 	}
+
+	if (World)
+	{
+		for (TAudioPluginListenerPtr PluginManager : PluginListeners)
+		{
+			PluginManager->OnTick(World, InViewportIndex, ListenerTransformCopy, InDeltaSeconds);
+		}
+	}
+	
 
 	FAudioDevice* AudioDevice = this;
 	FAudioThread::RunCommandOnAudioThread([AudioDevice, WorldID, InViewportIndex, ListenerTransformCopy, InDeltaSeconds]()
@@ -3097,7 +3134,7 @@ void FAudioDevice::StartSources(TArray<FWaveInstance*>& WaveInstances, int32 Fir
 					// If we failed, then we need to stop the wave instance and add the source back to the free list
 					// This can happen if e.g. the USoundWave pointed to by the WaveInstance is not a valid sound file.
 					// If we don't stop the wave file, it will continue to try initializing the file every frame, which is a perf hit
-					UE_LOG(LogAudio, Warning, TEXT("Failed to start sound source for %s"), (WaveInstance->ActiveSound && WaveInstance->ActiveSound->Sound) ? *WaveInstance->ActiveSound->Sound->GetName() : TEXT("UNKNOWN") );
+					UE_LOG(LogAudio, Log, TEXT("Failed to start sound source for %s"), (WaveInstance->ActiveSound && WaveInstance->ActiveSound->Sound) ? *WaveInstance->ActiveSound->Sound->GetName() : TEXT("UNKNOWN") );
 					Source->Stop();
 				}
 			}
@@ -3106,7 +3143,7 @@ void FAudioDevice::StartSources(TArray<FWaveInstance*>& WaveInstances, int32 Fir
 				// If we've already been initialized, then just update the voice
 				if (Source->IsInitialized())
 				{
-					Source->NotifyPlaybackPercent();
+					Source->NotifyPlaybackData();
 					Source->Update();
 				}
 				// Otherwise, we need still need to initialize
@@ -3149,18 +3186,22 @@ void FAudioDevice::Update(bool bGameTicking)
 	SCOPED_NAMED_EVENT(FAudioDevice_Update, FColor::Blue);
 	if (!IsInAudioThread())
 	{
-
 		FAudioDevice* AudioDevice = this;
 		FAudioThread::RunCommandOnAudioThread([AudioDevice, bGameTicking]()
 		{
 			AudioDevice->Update(bGameTicking);
 		});
 
+		// We process all enqueued commands on the audio device update
+		FAudioThread::ProcessAllCommands();
+
 		return;
 	}
 
 	DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.AudioUpdateTime"), STAT_AudioUpdateTime, STATGROUP_AudioThreadCommands);
 	FScopeCycleCounter AudioUpdateTimeCounter(GET_STATID(STAT_AudioUpdateTime));
+
+	UpdateAudioPluginSettingsObjectCache();
 
 	// Updates the audio device delta time
 	UpdateDeviceDeltaTime();
@@ -3556,7 +3597,7 @@ void FAudioDevice::ProcessingPendingActiveSoundStops(bool bForceDelete)
 	for (int32 i = PendingSoundsToDelete.Num() - 1; i >= 0; --i)
 	{
 		FActiveSound* ActiveSound = PendingSoundsToDelete[i];
-		if (bForceDelete || ActiveSound->CanDelete())
+		if (ActiveSound && (bForceDelete || ActiveSound->CanDelete()))
 		{
 			ActiveSound->bAsyncOcclusionPending = false;
 			PendingSoundsToDelete.RemoveAtSwap(i, 1, false);
@@ -3579,7 +3620,7 @@ void FAudioDevice::ProcessingPendingActiveSoundStops(bool bForceDelete)
 		else
 		{
 			// There was an async operation pending. We need to defer deleting this sound
-			PendingSoundsToDelete.Add(ActiveSound);
+			PendingSoundsToDelete.AddUnique(ActiveSound);
 		}
 	}
 	PendingSoundsToStop.Reset();
@@ -4787,7 +4828,7 @@ void FAudioDevice::DumpActiveSounds() const
 			for (const TPair<UPTRINT, FWaveInstance*>& WaveInstancePair : ActiveSound->WaveInstances)
 			{
 				const FWaveInstance* WaveInstance = WaveInstancePair.Value;
-				UE_LOG(LogAudio, Display, TEXT("   %s (%.3g) (%d) - %.3g"), *WaveInstance->GetName(), WaveInstance->WaveData->GetDuration(), WaveInstance->WaveData->GetResourceSizeBytes(EResourceSizeMode::Inclusive), WaveInstance->GetActualVolume());
+				UE_LOG(LogAudio, Display, TEXT("   %s (%.3g) (%d) - %.3g"), *WaveInstance->GetName(), WaveInstance->WaveData->GetDuration(), WaveInstance->WaveData->GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal), WaveInstance->GetActualVolume());
 			}
 		}
 	}

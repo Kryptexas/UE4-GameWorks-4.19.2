@@ -16,6 +16,13 @@ namespace UnrealBuildTool.Rules
 					"GoogleARCoreBase/Private",
 				}
 			);
+			PublicDependencyModuleNames.AddRange(
+					new string[]
+					{
+						"HeadMountedDisplay",
+						"AugmentedReality",
+					}
+				);
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
@@ -23,17 +30,17 @@ namespace UnrealBuildTool.Rules
 					"Core",
 					"CoreUObject",
 					"Engine",
+					"EngineSettings",
 					"Slate",
 					"SlateCore",
 					"RHI",
 					"RenderCore",
 					"ShaderCore",
-					"HeadMountedDisplay", // For IMotionController interface.
 					"AndroidPermission",
 					"GoogleARCoreRendering",
-					"TangoSDK",
-                    "AugmentedReality"
-                }
+					"GoogleARCoreSDK",
+					"OpenGL"
+				}
 			);
 
 			PrivateIncludePathModuleNames.AddRange(
@@ -49,7 +56,7 @@ namespace UnrealBuildTool.Rules
 				PrivateDependencyModuleNames.Add("Launch");
 
 				// Register Plugin Language
-				AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(ModuleDirectory, "GoogleARCoreBase_APL.xml")));
+				AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(ModuleDirectory, "GoogleARCoreBase_APL.xml"));
 			}
 
 			bFasterWithoutUnity = false;

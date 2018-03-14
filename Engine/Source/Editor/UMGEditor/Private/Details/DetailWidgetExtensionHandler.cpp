@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Details/DetailWidgetExtensionHandler.h"
 #include "Details/SPropertyBinding.h"
@@ -16,7 +16,7 @@ bool FDetailWidgetExtensionHandler::IsPropertyExtendable(const UClass* InObjectC
 		InPropertyHandle.GetOuterObjects(Objects);
 
 		// We don't allow bindings on the CDO.
-		if ( Objects[0]->HasAnyFlags(RF_ClassDefaultObject) )
+		if (Objects[0] != nullptr && Objects[0]->HasAnyFlags(RF_ClassDefaultObject) )
 		{
 			return false;
 		}

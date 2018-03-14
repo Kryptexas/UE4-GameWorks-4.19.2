@@ -5,44 +5,6 @@ Description:This document covers the interface and most commonly used workflows 
 Version: 4.9
 SkillLevel: Advanced
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/AI/EnvironmentQuerySystem/UserGuide:title%](AI_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/AI/EnvironmentQuerySystem/UserGuide:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/AI/EnvironmentQuerySystem/UserGuide:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/AI/EnvironmentQuerySystem/UserGuide]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/AI/EnvironmentQuerySystem/UserGuide:title%](AI_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/AI/EnvironmentQuerySystem/UserGuide:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/AI/EnvironmentQuerySystem/UserGuide:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/AI/EnvironmentQuerySystem/UserGuide]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 ## Enabling the Environment Query System
 
@@ -183,20 +145,14 @@ See the [Environmental Query System Test Pawn](Engine/AI/EnvironmentQuerySystem/
 
 A newly created EnvQueryContext Blueprint will have 4 implementable functions:
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](implementableFunctions.png)(convert:false)
-	[/PARAM]
-	[PARAM:description]
-		* **Provide Single Location**
-		* **Provide Single Actor**
-		* **Provide Locations Set**
-		* **Provide Actors Set**
+* **Provide Single Location**
+* **Provide Single Actor**
+* **Provide Locations Set**
+* **Provide Actors Set**
 
-		Implementing one (or more) of these will enable you to create your own custom Contexts for use within Tests in a Query. Right-click the function or functions you want to implement and select **Implement Function**.
-	[/PARAM]
-[/OBJECT]
+Implementing one (or more) of these will enable you to create your own custom Contexts for use within Tests in a Query. Right-click the function or functions you want to implement and select **Implement Function**.
 
+![](implementableFunctions.png)(convert:false)
 
 ### Provide Single Location
 

@@ -21,7 +21,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 入力マッピングにはアクション マッピングと軸マッピングの 2 種類があります。
 
@@ -77,7 +77,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**MyPawn.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -109,7 +109,7 @@ version:4.9
 			};
 
 		**MyPawn.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_PlayerInput.h"
 			#include "MyPawn.h"
@@ -159,4 +159,4 @@ version:4.9
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

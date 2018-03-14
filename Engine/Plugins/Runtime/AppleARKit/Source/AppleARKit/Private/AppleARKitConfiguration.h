@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,6 +8,8 @@
 #if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 #import <ARKit/ARKit.h>
 #endif // ARKIT_SUPPORT
+
+#include "ARSystem.h"
 
 /**
  * Enum constants for indicating the world alignment.
@@ -43,6 +45,10 @@ enum class EAppleARKitPlaneDetection : uint8
 };
 ENUM_CLASS_FLAGS(EAppleARKitPlaneDetection)
 
+#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+//@todo - JoeG & NickA figure out something more clean than this
+ARConfiguration* ToARConfiguration( UARSessionConfig* SessionConfig, class FAppleARKitConfiguration& InConfiguration );
+#endif //ARKIT_SUPPORT
 
 /**
  * An object to describe and configure the Augmented Reality techniques to be used in a
@@ -52,9 +58,6 @@ class APPLEARKIT_API FAppleARKitConfiguration
 {
 public:
 	
-#if ARKIT_SUPPORT && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
-	static ARConfiguration* ToARConfiguration( const FAppleARKitConfiguration& InConfiguration );
-#endif //ARKIT_SUPPORT
 
 	/**
 	 * Enable or disable light estimation.
@@ -89,5 +92,4 @@ public:
 	};
 	TOptional<FWorldTracking> WorldTracking = FWorldTracking();
 };
-
 

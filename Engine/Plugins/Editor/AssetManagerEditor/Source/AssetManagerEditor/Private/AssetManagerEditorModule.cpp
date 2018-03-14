@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetManagerEditorModule.h"
 #include "ModuleManager.h"
@@ -27,11 +27,13 @@
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Framework/Docking/TabManager.h"
 #include "Framework/Application/SlateApplication.h"
+#include "Framework/Commands/Commands.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Input/SComboButton.h"
 #include "Widgets/SToolTip.h"
 #include "PropertyCustomizationHelpers.h"
-#include "ReferenceViewer.h"
+#include "AssetEditorToolkit.h"
+#include "LevelEditor.h"
 #include "GraphEditorModule.h"
 #include "AssetData.h"
 #include "Engine/World.h"
@@ -45,23 +47,46 @@
 #include "EdGraphUtilities.h"
 #include "EdGraphSchema_K2.h"
 #include "SGraphPin.h"
+#include "AssetManagerEditorCommands.h"
+#include "ReferenceViewer/SReferenceViewer.h"
+#include "ReferenceViewer/SReferenceNode.h"
+#include "ReferenceViewer/EdGraphNode_Reference.h"
+#include "SSizeMap.h"
+#include "Editor.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "DesktopPlatformModule.h"
+#include "Misc/FileHelper.h"
+#include "Misc/MessageDialog.h"
+#include "UObject/ConstructorHelpers.h"
+
 
 #define LOCTEXT_NAMESPACE "AssetManagerEditor"
 
 DEFINE_LOG_CATEGORY(LogAssetManagerEditor);
 
-// Static functions/variables defeined in the interface
+class FAssetManagerGraphPanelNodeFactory : public FGraphPanelNodeFactory
+{
+	virtual TSharedPtr<class SGraphNode> CreateNode(UEdGraphNode* Node) const override
+	{
+		if (UEdGraphNode_Reference* DependencyNode = Cast<UEdGraphNode_Reference>(Node))
+		{
+			return SNew(SReferenceNode, DependencyNode);
+		}
+
+		return nullptr;
+	}
+};
 
 class FAssetManagerGraphPanelPinFactory : public FGraphPanelPinFactory
 {
 	virtual TSharedPtr<class SGraphPin> CreatePin(class UEdGraphPin* InPin) const override
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		if (InPin->PinType.PinCategory == K2Schema->PC_Struct && InPin->PinType.PinSubCategoryObject == TBaseStructure<FPrimaryAssetId>::Get())
+		if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Struct && InPin->PinType.PinSubCategoryObject == TBaseStructure<FPrimaryAssetId>::Get())
 		{
 			return SNew(SPrimaryAssetIdGraphPin, InPin);
 		}
-		if (InPin->PinType.PinCategory == K2Schema->PC_Struct && InPin->PinType.PinSubCategoryObject == TBaseStructure<FPrimaryAssetType>::Get())
+		if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Struct && InPin->PinType.PinSubCategoryObject == TBaseStructure<FPrimaryAssetType>::Get())
 		{
 			return SNew(SPrimaryAssetTypeGraphPin, InPin);
 		}
@@ -69,6 +94,10 @@ class FAssetManagerGraphPanelPinFactory : public FGraphPanelPinFactory
 		return nullptr;
 	}
 };
+
+const FName IAssetManagerEditorModule::ChunkFakeAssetDataPackageName = FName("/Temp/PrimaryAsset/PackageChunk");
+const FName IAssetManagerEditorModule::PrimaryAssetFakeAssetDataPackagePath = FName("/Temp/PrimaryAsset");
+const FPrimaryAssetType IAssetManagerEditorModule::AllPrimaryAssetTypes = FName("AllTypes");
 
 const FName IAssetManagerEditorModule::ResourceSizeName = FName("ResourceSize");
 const FName IAssetManagerEditorModule::DiskSizeName = FName("DiskSize");
@@ -78,9 +107,12 @@ const FName IAssetManagerEditorModule::TotalUsageName = FName("TotalUsage");
 const FName IAssetManagerEditorModule::CookRuleName = FName("CookRule");
 const FName IAssetManagerEditorModule::ChunksName = FName("Chunks");
 
-TSharedRef<SWidget> IAssetManagerEditorModule::MakePrimaryAssetTypeSelector(FOnGetPrimaryAssetDisplayText OnGetDisplayText, FOnSetPrimaryAssetType OnSetType, bool bAllowClear)
+const FString FAssetManagerEditorRegistrySource::EditorSourceName = TEXT("Editor");
+const FString FAssetManagerEditorRegistrySource::CustomSourceName = TEXT("Custom");
+
+TSharedRef<SWidget> IAssetManagerEditorModule::MakePrimaryAssetTypeSelector(FOnGetPrimaryAssetDisplayText OnGetDisplayText, FOnSetPrimaryAssetType OnSetType, bool bAllowClear, bool bAllowAll)
 {
-	FOnGetPropertyComboBoxStrings GetStrings = FOnGetPropertyComboBoxStrings::CreateStatic(&IAssetManagerEditorModule::GeneratePrimaryAssetTypeComboBoxStrings, bAllowClear);
+	FOnGetPropertyComboBoxStrings GetStrings = FOnGetPropertyComboBoxStrings::CreateStatic(&IAssetManagerEditorModule::GeneratePrimaryAssetTypeComboBoxStrings, bAllowClear, bAllowAll);
 	FOnGetPropertyComboBoxValue GetValue = FOnGetPropertyComboBoxValue::CreateLambda([OnGetDisplayText]
 	{
 		return OnGetDisplayText.Execute().ToString();
@@ -129,15 +161,18 @@ TSharedRef<SWidget> IAssetManagerEditorModule::MakePrimaryAssetIdSelector(FOnGet
 	TAttribute<FText> OnGetObjectText = TAttribute<FText>::Create(OnGetDisplayText);
 
 	return SNew(SComboButton)
-	.OnGetMenuContent(OnCreateMenuContent)
-	.ButtonContent()
+		.OnGetMenuContent(OnCreateMenuContent)
+		.ContentPadding(FMargin(2.0f, 2.0f))
+		.ButtonContent()
 		[
 			SNew(STextBlock)
 			.Text(OnGetObjectText)
+			.ToolTipText(OnGetObjectText)
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		];
 }
 
-void IAssetManagerEditorModule::GeneratePrimaryAssetTypeComboBoxStrings(TArray< TSharedPtr<FString> >& OutComboBoxStrings, TArray<TSharedPtr<class SToolTip>>& OutToolTips, TArray<bool>& OutRestrictedItems, bool bAllowClear)
+void IAssetManagerEditorModule::GeneratePrimaryAssetTypeComboBoxStrings(TArray< TSharedPtr<FString> >& OutComboBoxStrings, TArray<TSharedPtr<class SToolTip>>& OutToolTips, TArray<bool>& OutRestrictedItems, bool bAllowClear, bool bAllowAll)
 {
 	UAssetManager& AssetManager = UAssetManager::Get();
 
@@ -151,7 +186,7 @@ void IAssetManagerEditorModule::GeneratePrimaryAssetTypeComboBoxStrings(TArray< 
 	{
 		// Add None
 		OutComboBoxStrings.Add(MakeShared<FString>(FPrimaryAssetType().ToString()));
-		OutToolTips.Add(SNew(SToolTip).Text(LOCTEXT("NoType", "NoType")));
+		OutToolTips.Add(SNew(SToolTip).Text(LOCTEXT("NoType", "None")));
 		OutRestrictedItems.Add(false);
 	}
 
@@ -165,6 +200,14 @@ void IAssetManagerEditorModule::GeneratePrimaryAssetTypeComboBoxStrings(TArray< 
 			Info.bHasBlueprintClasses ? LOCTEXT("Blueprints", " Blueprints") : FText());
 
 		OutToolTips.Add(SNew(SToolTip).Text(TooltipText));
+		OutRestrictedItems.Add(false);
+	}
+
+	if (bAllowAll)
+	{
+		// Add All
+		OutComboBoxStrings.Add(MakeShared<FString>(IAssetManagerEditorModule::AllPrimaryAssetTypes.ToString()));
+		OutToolTips.Add(SNew(SToolTip).Text(LOCTEXT("AllTypes", "All Primary Asset Types")));
 		OutRestrictedItems.Add(false);
 	}
 }
@@ -194,6 +237,49 @@ bool IAssetManagerEditorModule::OnShouldFilterPrimaryAsset(const FAssetData& InA
 	return true;
 }
 
+FAssetData IAssetManagerEditorModule::CreateFakeAssetDataFromChunkId(int32 ChunkID)
+{
+	return CreateFakeAssetDataFromPrimaryAssetId(UAssetManager::CreatePrimaryAssetIdFromChunkId(ChunkID));
+}
+
+int32 IAssetManagerEditorModule::ExtractChunkIdFromFakeAssetData(const FAssetData& InAssetData)
+{
+	return UAssetManager::ExtractChunkIdFromPrimaryAssetId(ExtractPrimaryAssetIdFromFakeAssetData(InAssetData));
+}
+
+FAssetData IAssetManagerEditorModule::CreateFakeAssetDataFromPrimaryAssetId(const FPrimaryAssetId& PrimaryAssetId)
+{
+	FString PackageNameString = PrimaryAssetFakeAssetDataPackagePath.ToString() / PrimaryAssetId.PrimaryAssetType.ToString();
+
+	return FAssetData(*PackageNameString, PrimaryAssetFakeAssetDataPackagePath, PrimaryAssetId.PrimaryAssetName, PrimaryAssetId.PrimaryAssetType);
+}
+
+FPrimaryAssetId IAssetManagerEditorModule::ExtractPrimaryAssetIdFromFakeAssetData(const FAssetData& InAssetData)
+{
+	if (InAssetData.PackagePath == PrimaryAssetFakeAssetDataPackagePath)
+	{
+		return FPrimaryAssetId(InAssetData.AssetClass, InAssetData.AssetName);
+	}
+	return FPrimaryAssetId();
+}
+
+void IAssetManagerEditorModule::ExtractAssetIdentifiersFromAssetDataList(const TArray<FAssetData>& AssetDataList, TArray<FAssetIdentifier>& OutAssetIdentifiers)
+{
+	for (const FAssetData& AssetData : AssetDataList)
+	{
+		FPrimaryAssetId PrimaryAssetId = IAssetManagerEditorModule::ExtractPrimaryAssetIdFromFakeAssetData(AssetData);
+
+		if (PrimaryAssetId.IsValid())
+		{
+			OutAssetIdentifiers.Add(PrimaryAssetId);
+		}
+		else
+		{
+			OutAssetIdentifiers.Add(AssetData.PackageName);
+		}
+	}
+}
+
 // Concrete implementation
 
 class FAssetManagerEditorModule : public IAssetManagerEditorModule
@@ -209,62 +295,96 @@ public:
 	void PerformDependencyClassConsoleCommand(const TArray<FString>& Args);
 	void DumpAssetDependencies(const TArray<FString>& Args);
 
-	/** Opens asset management UI, with selected assets */
-	void OpenAssetManagementUI(TArray<FAssetData> SelectedAssets);
-	void OpenAssetManagementUI(TArray<FName> SelectedAssets);
-
-	FString GetValueForCustomColumn(FAssetData& AssetData, FName ColumnName, ITargetPlatform* TargetPlatform, const FAssetRegistryState* PlatformState) override;
-	void GetAvailableTargetPlatforms(TArray<ITargetPlatform*>& AvailablePlatforms) override;
-	FAssetRegistryState* GetAssetRegistryStateForTargetPlatform(ITargetPlatform* TargetPlatform) override;
+	virtual void OpenAssetAuditUI(TArray<FAssetData> SelectedAssets) override;
+	virtual void OpenAssetAuditUI(TArray<FName> SelectedPackages) override;
+	virtual void OpenReferenceViewerUI(TArray<FAssetIdentifier> SelectedIdentifiers) override;
+	virtual void OpenReferenceViewerUI(TArray<FName> SelectedPackages) override;
+	virtual void OpenSizeMapUI(TArray<FAssetIdentifier> SelectedIdentifiers) override;
+	virtual void OpenSizeMapUI(TArray<FName> SelectedPackages) override;	
+	virtual bool GetStringValueForCustomColumn(const FAssetData& AssetData, FName ColumnName, FString& OutValue) override;
+	virtual bool GetDisplayTextForCustomColumn(const FAssetData& AssetData, FName ColumnName, FText& OutValue) override;
+	virtual bool GetIntegerValueForCustomColumn(const FAssetData& AssetData, FName ColumnName, int64& OutValue) override;
+	virtual bool GetManagedPackageListForAssetData(const FAssetData& AssetData, TSet<FName>& ManagedPackageSet) override;
+	virtual void GetAvailableRegistrySources(TArray<const FAssetManagerEditorRegistrySource*>& AvailableSources) override;
+	virtual const FAssetManagerEditorRegistrySource* GetCurrentRegistrySource(bool bNeedManagementData = false) override;
+	virtual void SetCurrentRegistrySource(const FString& SourceName) override;
+	virtual void RefreshRegistryData() override;
+	virtual bool IsPackageInCurrentRegistrySource(FName PackageName) override;
+	virtual bool FilterAssetIdentifiersForCurrentRegistrySource(TArray<FAssetIdentifier>& AssetIdentifiers, EAssetRegistryDependencyType::Type DependencyType = EAssetRegistryDependencyType::None, bool bForwardDependency = true) override;
+	virtual bool WriteCollection(FName CollectionName, ECollectionShareType::Type ShareType, const TArray<FName>& PackageNames, bool bShowFeedback) override;
 private:
 
 	static bool GetDependencyTypeArg(const FString& Arg, EAssetRegistryDependencyType::Type& OutDepType);
 
 	//Prints all dependency chains from assets in the search path to the target package.
-	static void FindReferenceChains(IAssetRegistry& AssetRegistry, FName TargetPackageName, FName RootSearchPath, EAssetRegistryDependencyType::Type DependencyType);
+	void FindReferenceChains(FName TargetPackageName, FName RootSearchPath, EAssetRegistryDependencyType::Type DependencyType);
 
 	//Prints all dependency chains from the PackageName to any dependency of one of the given class names.
 	//If the package name is a path rather than a package, then it will do this for each package in the path.
-	static void FindClassDependencies(IAssetRegistry& AssetRegistry, FName PackagePath, const TArray<FName>& TargetClasses, EAssetRegistryDependencyType::Type DependencyType);
+	void FindClassDependencies(FName PackagePath, const TArray<FName>& TargetClasses, EAssetRegistryDependencyType::Type DependencyType);
 
-	static bool GetPackageDependencyChain(IAssetRegistry& AssetRegistry, FName SourcePackage, FName TargetPackage, TArray<FName>& VisitedPackages, TArray<FName>& OutDependencyChain, EAssetRegistryDependencyType::Type DependencyType);
-	static void GetPackageDependenciesPerClass(IAssetRegistry& AssetRegistry, FName SourcePackage, const TArray<FName>& TargetClasses, TArray<FName>& VisitedPackages, TArray<FName>& OutDependentPackages, EAssetRegistryDependencyType::Type DependencyType);
+	bool GetPackageDependencyChain(FName SourcePackage, FName TargetPackage, TArray<FName>& VisitedPackages, TArray<FName>& OutDependencyChain, EAssetRegistryDependencyType::Type DependencyType);
+	void GetPackageDependenciesPerClass(FName SourcePackage, const TArray<FName>& TargetClasses, TArray<FName>& VisitedPackages, TArray<FName>& OutDependentPackages, EAssetRegistryDependencyType::Type DependencyType);
 
 	void LogAssetsWithMultipleLabels();
-	void PrintSizeSummaries(const FString& PlatformName);
-	void RecreateCollections();
-	bool CreateOrEmptyCollection(FName CollectionName);
+	bool CreateOrEmptyCollection(FName CollectionName, ECollectionShareType::Type ShareType);
 	void WriteProfileFile(const FString& Extension, const FString& FileContents);
-	void WriteCollection(FName CollectionName, const TArray<FName>& PackageNames);
-	void WriteSizeSortedList(TArray<FName>& PackageNames) const;
+	
 	FString GetSavedAssetRegistryPath(ITargetPlatform* TargetPlatform);
+	void GetAssetDataInPaths(const TArray<FString>& Paths, TArray<FAssetData>& OutAssetData);
+	bool AreLevelEditorPackagesSelected();
+	TArray<FName> GetLevelEditorSelectedAssetPackages();
+	TArray<FName> GetContentBrowserSelectedAssetPackages(FOnContentBrowserGetSelection GetSelectionDelegate);
+	void InitializeRegistrySources(bool bNeedManagementData);
 
 	TArray<IConsoleObject*> AuditCmds;
 
 	static const TCHAR* FindDepChainHelpText;
 	static const TCHAR* FindClassDepHelpText;
-	static const FName AssetManagementTabName;
+	static const FName AssetAuditTabName;
+	static const FName ReferenceViewerTabName;
+	static const FName SizeMapTabName;
 
-	FDelegateHandle ContentBrowserExtenderDelegateHandle;
+	FDelegateHandle ContentBrowserAssetExtenderDelegateHandle;
+	FDelegateHandle ContentBrowserPathExtenderDelegateHandle;
+	FDelegateHandle ContentBrowserCommandExtenderDelegateHandle;
 	FDelegateHandle ReferenceViewerDelegateHandle;
+	FDelegateHandle AssetEditorExtenderDelegateHandle;
+	FDelegateHandle LevelEditorExtenderDelegateHandle;
 
-	TWeakPtr<SDockTab> AssetManagementTab;
-	TWeakPtr<SAssetAuditBrowser> AssetManagementUI;
-	TMap<ITargetPlatform*, FAssetRegistryState> AssetRegistryStateMap;
+	TWeakPtr<SDockTab> AssetAuditTab;
+	TWeakPtr<SDockTab> ReferenceViewerTab;
+	TWeakPtr<SDockTab> SizeMapTab;
+	TWeakPtr<SAssetAuditBrowser> AssetAuditUI;
+	TWeakPtr<SSizeMap> SizeMapUI;
+	TWeakPtr<SReferenceViewer> ReferenceViewerUI;
+	TMap<FString, FAssetManagerEditorRegistrySource> RegistrySourceMap;
+	FAssetManagerEditorRegistrySource* CurrentRegistrySource;
+
+	IAssetRegistry* AssetRegistry;
 	FSandboxPlatformFile* CookedSandbox;
 	FSandboxPlatformFile* EditorCookedSandbox;
+	TSharedPtr<FAssetManagerGraphPanelNodeFactory> AssetManagerGraphPanelNodeFactory;
+	TSharedPtr<FAssetManagerGraphPanelPinFactory> AssetManagerGraphPanelPinFactory;
 
-	void CreateAssetManagerContentBrowserMenu(FMenuBuilder& MenuBuilder, TArray<FAssetData> SelectedAssets);
-	void CreateReferenceViewerMenu(FMenuBuilder& MenuBuilder, TArray<FAssetIdentifier> SelectedAssets);
+	void CreateAssetContextMenu(FMenuBuilder& MenuBuilder);
+	void OnExtendContentBrowserCommands(TSharedRef<FUICommandList> CommandList, FOnContentBrowserGetSelection GetSelectionDelegate);
+	void OnExtendLevelEditorCommands(TSharedRef<FUICommandList> CommandList);
 	TSharedRef<FExtender> OnExtendContentBrowserAssetSelectionMenu(const TArray<FAssetData>& SelectedAssets);
-	TSharedRef<FExtender> OnExtendReferenceViewerSelectionMenu(const TSharedRef<class FUICommandList>, const class UEdGraph* Graph, const class UEdGraphNode* Node, const UEdGraphPin* Pin, bool bConst);
+	TSharedRef<FExtender> OnExtendContentBrowserPathSelectionMenu(const TArray<FString>& SelectedPaths);
+	TSharedRef<FExtender> OnExtendAssetEditor(const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects);
+	TSharedRef<FExtender> OnExtendLevelEditor(const TSharedRef<FUICommandList> CommandList, const TArray<AActor*> SelectedActors);
 
-	TSharedRef<SDockTab> SpawnAssetManagementTab(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> SpawnAssetAuditTab(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> SpawnReferenceViewerTab(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> SpawnSizeMapTab(const FSpawnTabArgs& Args);
 };
 
 const TCHAR* FAssetManagerEditorModule::FindDepChainHelpText = TEXT("Finds all dependency chains from assets in the given search path, to the target package.\n Usage: FindDepChain TargetPackagePath SearchRootPath (optional: -hardonly/-softonly)\n e.g. FindDepChain /game/characters/heroes/muriel/meshes/muriel /game/cards ");
 const TCHAR* FAssetManagerEditorModule::FindClassDepHelpText = TEXT("Finds all dependencies of a certain set of classes to the target asset.\n Usage: FindDepClasses TargetPackagePath ClassName1 ClassName2 etc (optional: -hardonly/-softonly) \n e.g. FindDepChain /game/characters/heroes/muriel/meshes/muriel /game/cards");
-const FName FAssetManagerEditorModule::AssetManagementTabName = TEXT("AssetManagementUI");
+const FName FAssetManagerEditorModule::AssetAuditTabName = TEXT("AssetAudit");
+const FName FAssetManagerEditorModule::ReferenceViewerTabName = TEXT("ReferenceViewer");
+const FName FAssetManagerEditorModule::SizeMapTabName = TEXT("SizeMap");
 
 ///////////////////////////////////////////
 
@@ -275,8 +395,17 @@ void FAssetManagerEditorModule::StartupModule()
 {
 	CookedSandbox = nullptr;
 	EditorCookedSandbox = nullptr;
+	CurrentRegistrySource = nullptr;
 
-	if (!IsRunningCommandlet())
+	// Load the tree map module so we can use it for size map
+	FModuleManager::Get().LoadModule(TEXT("TreeMap"));
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	AssetRegistry = &AssetRegistryModule.Get();
+
+	FAssetManagerEditorCommands::Register();
+
+	if (GIsEditor && !IsRunningCommandlet())
 	{
 		AuditCmds.Add(IConsoleManager::Get().RegisterConsoleCommand(
 			TEXT("AssetManager.AssetAudit"),
@@ -312,29 +441,56 @@ void FAssetManagerEditorModule::StartupModule()
 		PropertyModule.RegisterCustomPropertyTypeLayout("PrimaryAssetId", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FPrimaryAssetIdCustomization::MakeInstance));
 		PropertyModule.NotifyCustomizationModuleChanged();
 
-		// Register Pins
-		TSharedPtr<FAssetManagerGraphPanelPinFactory> AssetManagerGraphPanelPinFactory = MakeShareable(new FAssetManagerGraphPanelPinFactory());
+		// Register Pins and nodes
+		AssetManagerGraphPanelPinFactory = MakeShareable(new FAssetManagerGraphPanelPinFactory());
 		FEdGraphUtilities::RegisterVisualPinFactory(AssetManagerGraphPanelPinFactory);
+
+		AssetManagerGraphPanelNodeFactory = MakeShareable(new FAssetManagerGraphPanelNodeFactory());
+		FEdGraphUtilities::RegisterVisualNodeFactory(AssetManagerGraphPanelNodeFactory);
 
 		// Register content browser hook
 		FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
-		TArray<FContentBrowserMenuExtender_SelectedAssets>& CBMenuExtenderDelegates = ContentBrowserModule.GetAllAssetViewContextMenuExtenders();
+		
+		TArray<FContentBrowserMenuExtender_SelectedAssets>& CBAssetMenuExtenderDelegates = ContentBrowserModule.GetAllAssetViewContextMenuExtenders();
+		CBAssetMenuExtenderDelegates.Add(FContentBrowserMenuExtender_SelectedAssets::CreateRaw(this, &FAssetManagerEditorModule::OnExtendContentBrowserAssetSelectionMenu));
+		ContentBrowserAssetExtenderDelegateHandle = CBAssetMenuExtenderDelegates.Last().GetHandle();
 
-		CBMenuExtenderDelegates.Add(FContentBrowserMenuExtender_SelectedAssets::CreateRaw(this, &FAssetManagerEditorModule::OnExtendContentBrowserAssetSelectionMenu));
-		ContentBrowserExtenderDelegateHandle = CBMenuExtenderDelegates.Last().GetHandle();
+		TArray<FContentBrowserMenuExtender_SelectedPaths>& CBPathExtenderDelegates = ContentBrowserModule.GetAllPathViewContextMenuExtenders();
+		CBPathExtenderDelegates.Add(FContentBrowserMenuExtender_SelectedPaths::CreateRaw(this, &FAssetManagerEditorModule::OnExtendContentBrowserPathSelectionMenu));
+		ContentBrowserPathExtenderDelegateHandle = CBPathExtenderDelegates.Last().GetHandle();
 
-		// Register reference viewer hook
-		FGraphEditorModule& GraphEdModule = FModuleManager::LoadModuleChecked<FGraphEditorModule>(TEXT("GraphEditor"));
-		TArray<FGraphEditorModule::FGraphEditorMenuExtender_SelectedNode>& ReferenceViewerMenuExtenderDelegates = GraphEdModule.GetAllGraphEditorContextMenuExtender();
+		TArray<FContentBrowserCommandExtender>& CBCommandExtenderDelegates = ContentBrowserModule.GetAllContentBrowserCommandExtenders();
+		CBCommandExtenderDelegates.Add(FContentBrowserCommandExtender::CreateRaw(this, &FAssetManagerEditorModule::OnExtendContentBrowserCommands));
+		ContentBrowserCommandExtenderDelegateHandle = CBCommandExtenderDelegates.Last().GetHandle();
 
-		ReferenceViewerMenuExtenderDelegates.Add(FGraphEditorModule::FGraphEditorMenuExtender_SelectedNode::CreateRaw(this, &FAssetManagerEditorModule::OnExtendReferenceViewerSelectionMenu));
-		ReferenceViewerDelegateHandle = ReferenceViewerMenuExtenderDelegates.Last().GetHandle();
+		// Register asset editor hooks
+		TArray<FAssetEditorExtender>& AssetEditorMenuExtenderDelegates = FAssetEditorToolkit::GetSharedMenuExtensibilityManager()->GetExtenderDelegates();
+		AssetEditorMenuExtenderDelegates.Add(FAssetEditorExtender::CreateRaw(this, &FAssetManagerEditorModule::OnExtendAssetEditor));
+		AssetEditorExtenderDelegateHandle = AssetEditorMenuExtenderDelegates.Last().GetHandle();
 
-		// Add nomad tab
-		FGlobalTabmanager::Get()->RegisterNomadTabSpawner(AssetManagementTabName, FOnSpawnTab::CreateRaw(this, &FAssetManagerEditorModule::SpawnAssetManagementTab))
-			.SetDisplayName(LOCTEXT("AssetManagementTitle", "Asset Audit"))
-			.SetTooltipText(LOCTEXT("AssetManagementTooltip", "Open Asset Audit window, allows viewing information about assets."))
+		// Register level editor hooks and commands
+		FLevelEditorModule& LevelEditorModule = FModuleManager::Get().LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+
+		TSharedRef<FUICommandList> CommandList = LevelEditorModule.GetGlobalLevelEditorActions();
+		OnExtendLevelEditorCommands(CommandList);
+
+		TArray<FLevelEditorModule::FLevelViewportMenuExtender_SelectedActors>& LevelEditorMenuExtenderDelegates = LevelEditorModule.GetAllLevelViewportContextMenuExtenders();
+		LevelEditorMenuExtenderDelegates.Add(FLevelEditorModule::FLevelViewportMenuExtender_SelectedActors::CreateRaw(this, &FAssetManagerEditorModule::OnExtendLevelEditor));
+		LevelEditorExtenderDelegateHandle = AssetEditorMenuExtenderDelegates.Last().GetHandle();
+
+		// Add nomad tabs
+		FGlobalTabmanager::Get()->RegisterNomadTabSpawner(AssetAuditTabName, FOnSpawnTab::CreateRaw(this, &FAssetManagerEditorModule::SpawnAssetAuditTab))
+			.SetDisplayName(LOCTEXT("AssetAuditTitle", "Asset Audit"))
+			.SetTooltipText(LOCTEXT("AssetAuditTooltip", "Open Asset Audit window, allows viewing detailed information about assets."))
 			.SetGroup(WorkspaceMenu::GetMenuStructure().GetDeveloperToolsMiscCategory());
+
+		FGlobalTabmanager::Get()->RegisterNomadTabSpawner(ReferenceViewerTabName, FOnSpawnTab::CreateRaw(this, &FAssetManagerEditorModule::SpawnReferenceViewerTab))
+			.SetDisplayName(LOCTEXT("ReferenceViewerTitle", "Reference Viewer"))
+			.SetMenuType(ETabSpawnerMenuType::Hidden);
+
+		FGlobalTabmanager::Get()->RegisterNomadTabSpawner(SizeMapTabName, FOnSpawnTab::CreateRaw(this, &FAssetManagerEditorModule::SpawnSizeMapTab))
+			.SetDisplayName(LOCTEXT("SizeMapTitle", "Size Map"))
+			.SetMenuType(ETabSpawnerMenuType::Hidden);
 	}
 }
 
@@ -358,29 +514,66 @@ void FAssetManagerEditorModule::ShutdownModule()
 	}
 	AuditCmds.Empty();
 
-	if (UObjectInitialized() && FSlateApplication::IsInitialized())
+	if ((GIsEditor && !IsRunningCommandlet()) && UObjectInitialized() && FSlateApplication::IsInitialized())
 	{
 		FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
-		TArray<FContentBrowserMenuExtender_SelectedAssets>& CBMenuExtenderDelegates = ContentBrowserModule.GetAllAssetViewContextMenuExtenders();
-		CBMenuExtenderDelegates.RemoveAll([this](const FContentBrowserMenuExtender_SelectedAssets& Delegate) { return Delegate.GetHandle() == ContentBrowserExtenderDelegateHandle; });
-
+		
+		TArray<FContentBrowserMenuExtender_SelectedAssets>& CBAssetMenuExtenderDelegates = ContentBrowserModule.GetAllAssetViewContextMenuExtenders();
+		CBAssetMenuExtenderDelegates.RemoveAll([this](const FContentBrowserMenuExtender_SelectedAssets& Delegate) { return Delegate.GetHandle() == ContentBrowserAssetExtenderDelegateHandle; });
+		TArray<FContentBrowserMenuExtender_SelectedPaths>& CBPathMenuExtenderDelegates = ContentBrowserModule.GetAllPathViewContextMenuExtenders();
+		CBPathMenuExtenderDelegates.RemoveAll([this](const FContentBrowserMenuExtender_SelectedPaths& Delegate) { return Delegate.GetHandle() == ContentBrowserPathExtenderDelegateHandle; });
+		TArray<FContentBrowserCommandExtender>& CBCommandExtenderDelegates = ContentBrowserModule.GetAllContentBrowserCommandExtenders();
+		CBCommandExtenderDelegates.RemoveAll([this](const FContentBrowserCommandExtender& Delegate) { return Delegate.GetHandle() == ContentBrowserCommandExtenderDelegateHandle; });
+		
 		FGraphEditorModule& GraphEdModule = FModuleManager::LoadModuleChecked<FGraphEditorModule>(TEXT("GraphEditor"));
+		
 		TArray<FGraphEditorModule::FGraphEditorMenuExtender_SelectedNode>& ReferenceViewerMenuExtenderDelegates = GraphEdModule.GetAllGraphEditorContextMenuExtender();
 		ReferenceViewerMenuExtenderDelegates.RemoveAll([this](const FGraphEditorModule::FGraphEditorMenuExtender_SelectedNode& Delegate) { return Delegate.GetHandle() == ReferenceViewerDelegateHandle; });
 
-		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(AssetManagementTabName);
+		TArray<FAssetEditorExtender>& AssetEditorMenuExtenderDelegates = FAssetEditorToolkit::GetSharedMenuExtensibilityManager()->GetExtenderDelegates();
+		AssetEditorMenuExtenderDelegates.RemoveAll([this](const FAssetEditorExtender& Delegate) { return Delegate.GetHandle() == AssetEditorExtenderDelegateHandle; });
 
-		if (AssetManagementTab.IsValid())
+		FLevelEditorModule& LevelEditorModule = FModuleManager::Get().LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+
+		TSharedRef<FUICommandList> CommandList = LevelEditorModule.GetGlobalLevelEditorActions();
+		CommandList->UnmapAction(FAssetManagerEditorCommands::Get().ViewReferences);
+		CommandList->UnmapAction(FAssetManagerEditorCommands::Get().ViewSizeMap);
+		CommandList->UnmapAction(FAssetManagerEditorCommands::Get().ViewAssetAudit);
+
+		TArray<FLevelEditorModule::FLevelViewportMenuExtender_SelectedActors>& LevelEditorMenuExtenderDelegates = LevelEditorModule.GetAllLevelViewportContextMenuExtenders();
+		LevelEditorMenuExtenderDelegates.RemoveAll([this](const FLevelEditorModule::FLevelViewportMenuExtender_SelectedActors& Delegate) { return Delegate.GetHandle() == LevelEditorExtenderDelegateHandle; });
+
+		if (AssetManagerGraphPanelNodeFactory.IsValid())
 		{
-			AssetManagementTab.Pin()->RequestCloseTab();
+			FEdGraphUtilities::UnregisterVisualNodeFactory(AssetManagerGraphPanelNodeFactory);
+		}
+
+		if (AssetManagerGraphPanelPinFactory.IsValid())
+		{
+			FEdGraphUtilities::UnregisterVisualPinFactory(AssetManagerGraphPanelPinFactory);
+		}
+
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(AssetAuditTabName);
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ReferenceViewerTabName);
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(SizeMapTabName);
+
+		if (AssetAuditTab.IsValid())
+		{
+			AssetAuditTab.Pin()->RequestCloseTab();
+		}
+		if (ReferenceViewerTab.IsValid())
+		{
+			ReferenceViewerTab.Pin()->RequestCloseTab();
+		}
+		if (SizeMapTab.IsValid())
+		{
+			SizeMapTab.Pin()->RequestCloseTab();
 		}
 	}
 }
 
-TSharedRef<SDockTab> FAssetManagerEditorModule::SpawnAssetManagementTab(const FSpawnTabArgs& Args)
+TSharedRef<SDockTab> FAssetManagerEditorModule::SpawnAssetAuditTab(const FSpawnTabArgs& Args)
 {
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
 	if (!UAssetManager::IsValid())
 	{
 		return SNew(SDockTab)
@@ -391,157 +584,573 @@ TSharedRef<SDockTab> FAssetManagerEditorModule::SpawnAssetManagementTab(const FS
 			];
 	}
 	
-	return SAssignNew(AssetManagementTab, SDockTab)
+	return SAssignNew(AssetAuditTab, SDockTab)
 		.TabRole(ETabRole::NomadTab)
 		[
-			SAssignNew(AssetManagementUI, SAssetAuditBrowser)
+			SAssignNew(AssetAuditUI, SAssetAuditBrowser)
 		];
 }
 
-void FAssetManagerEditorModule::OpenAssetManagementUI(TArray<FAssetData> SelectedAssets)
+TSharedRef<SDockTab> FAssetManagerEditorModule::SpawnReferenceViewerTab(const FSpawnTabArgs& Args)
 {
-	FGlobalTabmanager::Get()->InvokeTab(AssetManagementTabName);
+	TSharedRef<SDockTab> NewTab = SAssignNew(ReferenceViewerTab, SDockTab)
+		.TabRole(ETabRole::NomadTab);
 
-	if (AssetManagementUI.IsValid())
+	NewTab->SetContent(SAssignNew(ReferenceViewerUI, SReferenceViewer));
+
+	return NewTab;
+}
+
+TSharedRef<SDockTab> FAssetManagerEditorModule::SpawnSizeMapTab(const FSpawnTabArgs& Args)
+{
+	TSharedRef<SDockTab> NewTab = SAssignNew(SizeMapTab, SDockTab)
+		.TabRole(ETabRole::NomadTab);
+
+	NewTab->SetContent(SAssignNew(SizeMapUI, SSizeMap));
+
+	return NewTab;
+}
+
+void FAssetManagerEditorModule::OpenAssetAuditUI(TArray<FAssetData> SelectedAssets)
+{
+	FGlobalTabmanager::Get()->InvokeTab(AssetAuditTabName);
+
+	if (AssetAuditUI.IsValid())
 	{
-		AssetManagementUI.Pin()->AddAssetsToList(SelectedAssets, false);
+		AssetAuditUI.Pin()->AddAssetsToList(SelectedAssets, false);
 	}
 }
 
-void FAssetManagerEditorModule::OpenAssetManagementUI(TArray<FName> SelectedAssets)
+void FAssetManagerEditorModule::OpenAssetAuditUI(TArray<FName> SelectedPackages)
 {
-	FGlobalTabmanager::Get()->InvokeTab(AssetManagementTabName);
+	FGlobalTabmanager::Get()->InvokeTab(AssetAuditTabName);
 
-	if (AssetManagementUI.IsValid())
+	if (AssetAuditUI.IsValid())
 	{
-		AssetManagementUI.Pin()->AddAssetsToList(SelectedAssets, false);
+		AssetAuditUI.Pin()->AddAssetsToList(SelectedPackages, false);
 	}
 }
 
-void FAssetManagerEditorModule::CreateAssetManagerContentBrowserMenu(FMenuBuilder& MenuBuilder, TArray<FAssetData> SelectedAssets)
+void FAssetManagerEditorModule::OpenReferenceViewerUI(TArray<FAssetIdentifier> SelectedIdentifiers)
 {
-	MenuBuilder.AddMenuEntry
-	(
-		LOCTEXT("CodeEditorTabTitle", "Audit Assets"),
-		LOCTEXT("CodeEditorTooltipText", "Opens the Asset Audit UI with these assets."),
-		FSlateIcon(),
-		FUIAction
-		(
-			FExecuteAction::CreateRaw(this, &FAssetManagerEditorModule::OpenAssetManagementUI, SelectedAssets)
-		)
+	if (SelectedIdentifiers.Num() > 0)
+	{
+		TSharedRef<SDockTab> NewTab = FGlobalTabmanager::Get()->InvokeTab(ReferenceViewerTabName);
+		TSharedRef<SReferenceViewer> ReferenceViewer = StaticCastSharedRef<SReferenceViewer>(NewTab->GetContent());
+		ReferenceViewer->SetGraphRootIdentifiers(SelectedIdentifiers);
+	}
+}
+
+void FAssetManagerEditorModule::OpenReferenceViewerUI(TArray<FName> SelectedPackages)
+{
+	TArray<FAssetIdentifier> Identifiers;
+	for (FName Name : SelectedPackages)
+	{
+		Identifiers.Add(FAssetIdentifier(Name));
+	}
+
+	OpenReferenceViewerUI(Identifiers);
+}
+
+void FAssetManagerEditorModule::OpenSizeMapUI(TArray<FName> SelectedPackages)
+{
+	TArray<FAssetIdentifier> Identifiers;
+	for (FName Name : SelectedPackages)
+	{
+		Identifiers.Add(FAssetIdentifier(Name));
+	}
+
+	OpenSizeMapUI(Identifiers);
+}
+
+void FAssetManagerEditorModule::OpenSizeMapUI(TArray<FAssetIdentifier> SelectedIdentifiers)
+{
+	if (SelectedIdentifiers.Num() > 0)
+	{
+		TSharedRef<SDockTab> NewTab = FGlobalTabmanager::Get()->InvokeTab(SizeMapTabName);
+		TSharedRef<SSizeMap> SizeMap = StaticCastSharedRef<SSizeMap>(NewTab->GetContent());
+		SizeMap->SetRootAssetIdentifiers(SelectedIdentifiers);
+	}
+}
+
+void FAssetManagerEditorModule::GetAssetDataInPaths(const TArray<FString>& Paths, TArray<FAssetData>& OutAssetData)
+{
+	// Form a filter from the paths
+	FARFilter Filter;
+	Filter.bRecursivePaths = true;
+	for (const FString& Path : Paths)
+	{
+		new (Filter.PackagePaths) FName(*Path);
+	}
+
+	// Query for a list of assets in the selected paths
+	AssetRegistry->GetAssets(Filter, OutAssetData);
+}
+
+bool FAssetManagerEditorModule::AreLevelEditorPackagesSelected()
+{
+	return GetLevelEditorSelectedAssetPackages().Num() > 0;
+}
+
+TArray<FName> FAssetManagerEditorModule::GetLevelEditorSelectedAssetPackages()
+{
+	TArray<FName> OutAssetPackages;
+	TArray<UObject*> ReferencedAssets;
+	GEditor->GetReferencedAssetsForEditorSelection(ReferencedAssets);
+
+	for (UObject* EditedAsset : ReferencedAssets)
+	{
+		if (EditedAsset && EditedAsset->IsAsset() && !EditedAsset->IsPendingKill())
+		{
+			OutAssetPackages.AddUnique(EditedAsset->GetOutermost()->GetFName());
+		}
+	}
+	return OutAssetPackages;
+}
+
+TArray<FName> FAssetManagerEditorModule::GetContentBrowserSelectedAssetPackages(FOnContentBrowserGetSelection GetSelectionDelegate)
+{
+	TArray<FName> OutAssetPackages;
+	TArray<FAssetData> SelectedAssets;
+	TArray<FString> SelectedPaths;
+
+	if (GetSelectionDelegate.IsBound())
+	{
+		GetSelectionDelegate.Execute(SelectedAssets, SelectedPaths);
+	}
+
+	GetAssetDataInPaths(SelectedPaths, SelectedAssets);
+
+	TArray<FName> PackageNames;
+	for (const FAssetData& AssetData : SelectedAssets)
+	{
+		OutAssetPackages.AddUnique(AssetData.PackageName);
+	}
+
+	return OutAssetPackages;
+}
+
+void FAssetManagerEditorModule::CreateAssetContextMenu(FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.AddMenuEntry(FAssetManagerEditorCommands::Get().ViewReferences);
+	MenuBuilder.AddMenuEntry(FAssetManagerEditorCommands::Get().ViewSizeMap);
+	MenuBuilder.AddMenuEntry(FAssetManagerEditorCommands::Get().ViewAssetAudit);
+}
+
+void FAssetManagerEditorModule::OnExtendContentBrowserCommands(TSharedRef<FUICommandList> CommandList, FOnContentBrowserGetSelection GetSelectionDelegate)
+{
+	// There is no can execute because the focus state is weird during calls to it
+	CommandList->MapAction(FAssetManagerEditorCommands::Get().ViewReferences, 
+		FExecuteAction::CreateLambda([this, GetSelectionDelegate]
+		{
+			OpenReferenceViewerUI(GetContentBrowserSelectedAssetPackages(GetSelectionDelegate));
+		})
+	);
+
+	CommandList->MapAction(FAssetManagerEditorCommands::Get().ViewSizeMap,
+		FExecuteAction::CreateLambda([this, GetSelectionDelegate]
+		{
+			OpenSizeMapUI(GetContentBrowserSelectedAssetPackages(GetSelectionDelegate));
+		})
+	);
+
+	CommandList->MapAction(FAssetManagerEditorCommands::Get().ViewAssetAudit,
+		FExecuteAction::CreateLambda([this, GetSelectionDelegate]
+		{
+			OpenAssetAuditUI(GetContentBrowserSelectedAssetPackages(GetSelectionDelegate));
+		})
 	);
 }
 
-void FAssetManagerEditorModule::CreateReferenceViewerMenu(FMenuBuilder& MenuBuilder, TArray<FAssetIdentifier> SelectedAssets)
+void FAssetManagerEditorModule::OnExtendLevelEditorCommands(TSharedRef<FUICommandList> CommandList)
 {
-	TArray<FName> PackageNames;
-
-	for (FAssetIdentifier Identifier : SelectedAssets)
-	{
-		if (Identifier.PackageName.IsValid())
+	CommandList->MapAction(FAssetManagerEditorCommands::Get().ViewReferences, 
+		FExecuteAction::CreateLambda([this]
 		{
-			PackageNames.Add(Identifier.PackageName);
-		}
-	}
+			OpenReferenceViewerUI(GetLevelEditorSelectedAssetPackages());
+		}),
+		FCanExecuteAction::CreateRaw(this, &FAssetManagerEditorModule::AreLevelEditorPackagesSelected)
+	);
 
-	MenuBuilder.AddMenuEntry
-	(
-		LOCTEXT("CodeEditorTabTitle", "Audit Assets"),
-		LOCTEXT("CodeEditorTooltipText", "Opens the Asset Audit UI with these assets."),
-		FSlateIcon(),
-		FUIAction
-		(
-			FExecuteAction::CreateRaw(this, &FAssetManagerEditorModule::OpenAssetManagementUI, PackageNames)
-		)
+	CommandList->MapAction(FAssetManagerEditorCommands::Get().ViewSizeMap,
+		FExecuteAction::CreateLambda([this]
+		{
+			OpenSizeMapUI(GetLevelEditorSelectedAssetPackages());
+		}),
+		FCanExecuteAction::CreateRaw(this, &FAssetManagerEditorModule::AreLevelEditorPackagesSelected)
+	);
+
+	CommandList->MapAction(FAssetManagerEditorCommands::Get().ViewAssetAudit,
+		FExecuteAction::CreateLambda([this]
+		{
+			OpenAssetAuditUI(GetLevelEditorSelectedAssetPackages());
+		}),
+		FCanExecuteAction::CreateRaw(this, &FAssetManagerEditorModule::AreLevelEditorPackagesSelected)
 	);
 }
 
 TSharedRef<FExtender> FAssetManagerEditorModule::OnExtendContentBrowserAssetSelectionMenu(const TArray<FAssetData>& SelectedAssets)
 {
 	TSharedRef<FExtender> Extender(new FExtender());
-
+	
 	Extender->AddMenuExtension(
-		"AssetContextAdvancedActions",
+		"AssetContextReferences",
 		EExtensionHook::After,
 		nullptr,
-		FMenuExtensionDelegate::CreateRaw(this, &FAssetManagerEditorModule::CreateAssetManagerContentBrowserMenu, SelectedAssets));
+		FMenuExtensionDelegate::CreateRaw(this, &FAssetManagerEditorModule::CreateAssetContextMenu));
 
 	return Extender;
 }
 
-TSharedRef<FExtender> FAssetManagerEditorModule::OnExtendReferenceViewerSelectionMenu(const TSharedRef<class FUICommandList>, const class UEdGraph* Graph, const class UEdGraphNode* Node, const UEdGraphPin* Pin, bool bConst)
+TSharedRef<FExtender> FAssetManagerEditorModule::OnExtendContentBrowserPathSelectionMenu(const TArray<FString>& SelectedPaths)
 {
-	IReferenceViewerModule& ReferenceViewer = IReferenceViewerModule::Get();
+	TSharedRef<FExtender> Extender(new FExtender());
 
-	TArray<FAssetIdentifier> SelectedAssets;
+	Extender->AddMenuExtension(
+		"PathContextBulkOperations",
+		EExtensionHook::After,
+		nullptr,
+		FMenuExtensionDelegate::CreateRaw(this, &FAssetManagerEditorModule::CreateAssetContextMenu));
+
+	return Extender;
+}
+
+TSharedRef<FExtender> FAssetManagerEditorModule::OnExtendAssetEditor(const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects)
+{
+	TArray<FName> PackageNames;
+	for (UObject* EditedAsset : ContextSensitiveObjects)
+	{
+		if (EditedAsset && EditedAsset->IsAsset() && !EditedAsset->IsPendingKill())
+		{
+			PackageNames.AddUnique(EditedAsset->GetOutermost()->GetFName());
+		}
+	}
 
 	TSharedRef<FExtender> Extender(new FExtender());
 
-	if (ReferenceViewer.GetSelectedAssetsForMenuExtender(Graph, Node, SelectedAssets))
+	if (PackageNames.Num() > 0)
 	{
+		// It's safe to modify the CommandList here because this is run as the editor UI is created and the payloads are safe
+		CommandList->MapAction(
+			FAssetManagerEditorCommands::Get().ViewReferences,
+			FExecuteAction::CreateRaw(this, &FAssetManagerEditorModule::OpenReferenceViewerUI, PackageNames));
+
+		CommandList->MapAction(
+			FAssetManagerEditorCommands::Get().ViewSizeMap,
+			FExecuteAction::CreateRaw(this, &FAssetManagerEditorModule::OpenSizeMapUI, PackageNames));
+
+		CommandList->MapAction(
+			FAssetManagerEditorCommands::Get().ViewAssetAudit,
+			FExecuteAction::CreateRaw(this, &FAssetManagerEditorModule::OpenAssetAuditUI, PackageNames));
+
 		Extender->AddMenuExtension(
-			"ContextMenu",
+			"FindInContentBrowser",
 			EExtensionHook::After,
-			nullptr,
-			FMenuExtensionDelegate::CreateRaw(this, &FAssetManagerEditorModule::CreateReferenceViewerMenu, SelectedAssets));
+			CommandList,
+			FMenuExtensionDelegate::CreateRaw(this, &FAssetManagerEditorModule::CreateAssetContextMenu));
 	}
 
 	return Extender;
 }
 
-FString FAssetManagerEditorModule::GetValueForCustomColumn(FAssetData& AssetData, FName ColumnName, ITargetPlatform* TargetPlatform, const FAssetRegistryState* PlatformState)
+TSharedRef<FExtender> FAssetManagerEditorModule::OnExtendLevelEditor(const TSharedRef<FUICommandList> CommandList, const TArray<AActor*> SelectedActors)
 {
-	UAssetManager& AssetManager = UAssetManager::Get();
-	IAssetRegistry& AssetRegistry = AssetManager.GetAssetRegistry();
+	TSharedRef<FExtender> Extender(new FExtender());
 
-	FString ReturnString;
+	// Most of this work is handled in the command list extension
+	if (SelectedActors.Num() > 0)
+	{
+		Extender->AddMenuExtension(
+			"ActorAsset",
+			EExtensionHook::After,
+			CommandList,
+			FMenuExtensionDelegate::CreateRaw(this, &FAssetManagerEditorModule::CreateAssetContextMenu));
+	}
+
+	return Extender;
+}
+
+bool FAssetManagerEditorModule::GetManagedPackageListForAssetData(const FAssetData& AssetData, TSet<FName>& ManagedPackageSet)
+{
+	InitializeRegistrySources(true);
+
+	TSet<FPrimaryAssetId> PrimaryAssetSet;
+	bool bFoundAny = false;
+	int32 ChunkId = IAssetManagerEditorModule::ExtractChunkIdFromFakeAssetData(AssetData);
+	if (ChunkId != INDEX_NONE)
+	{
+		// This is a chunk meta asset
+		const FAssetManagerChunkInfo* FoundChunkInfo = CurrentRegistrySource->ChunkAssignments.Find(ChunkId);
+
+		if (!FoundChunkInfo)
+		{
+			return false;
+		}
+		
+		for (const FAssetIdentifier& AssetIdentifier : FoundChunkInfo->AllAssets)
+		{
+			if (AssetIdentifier.PackageName != NAME_None)
+			{
+				bFoundAny = true;
+				ManagedPackageSet.Add(AssetIdentifier.PackageName);
+			}
+		}
+	}
+	else
+	{
+		FPrimaryAssetId FoundPrimaryAssetId = IAssetManagerEditorModule::ExtractPrimaryAssetIdFromFakeAssetData(AssetData);
+		if (FoundPrimaryAssetId.IsValid())
+		{
+			// Primary asset meta package
+			PrimaryAssetSet.Add(FoundPrimaryAssetId);
+		}
+		else
+		{
+			// Normal asset package
+			FoundPrimaryAssetId = UAssetManager::Get().GetPrimaryAssetIdForData(AssetData);
+
+			if (!FoundPrimaryAssetId.IsValid())
+			{
+				return false;
+			}
+
+			PrimaryAssetSet.Add(FoundPrimaryAssetId);
+		}
+	}
+
+	TArray<FAssetIdentifier> FoundDependencies;
+
+	if (CurrentRegistrySource->RegistryState)
+	{
+		for (const FPrimaryAssetId& PrimaryAssetId : PrimaryAssetSet)
+		{
+			CurrentRegistrySource->RegistryState->GetDependencies(PrimaryAssetId, FoundDependencies, EAssetRegistryDependencyType::Manage);
+		}
+	}
+	
+	for (const FAssetIdentifier& Identifier : FoundDependencies)
+	{
+		if (Identifier.PackageName != NAME_None)
+		{
+			bFoundAny = true;
+			ManagedPackageSet.Add(Identifier.PackageName);
+		}
+	}
+	return bFoundAny;
+}
+
+bool FAssetManagerEditorModule::GetStringValueForCustomColumn(const FAssetData& AssetData, FName ColumnName, FString& OutValue)
+{
+	if (!CurrentRegistrySource || !CurrentRegistrySource->RegistryState)
+	{
+		return false;
+	}
+
+	UAssetManager& AssetManager = UAssetManager::Get();
+
+	if (ColumnName == ManagedResourceSizeName || ColumnName == ManagedDiskSizeName || ColumnName == DiskSizeName || ColumnName == TotalUsageName)
+	{
+		// Get integer, convert to string
+		int64 IntegerValue = 0;
+		if (GetIntegerValueForCustomColumn(AssetData, ColumnName, IntegerValue))
+		{
+			OutValue = Lex::ToString(IntegerValue);
+			return true;
+		}
+	}
+	else if (ColumnName == CookRuleName)
+	{
+		EPrimaryAssetCookRule CookRule;
+
+		CookRule = AssetManager.GetPackageCookRule(AssetData.PackageName);
+
+		switch (CookRule)
+		{
+		case EPrimaryAssetCookRule::AlwaysCook: 
+			OutValue = TEXT("Always");
+			return true;
+		case EPrimaryAssetCookRule::DevelopmentCook: 
+			OutValue = TEXT("Development");
+			return true;
+		case EPrimaryAssetCookRule::NeverCook: 
+			OutValue = TEXT("Never");
+			return true;
+		}
+	}
+	else if (ColumnName == ChunksName)
+	{
+		TArray<int32> FoundChunks;
+		OutValue.Reset();
+
+		if (CurrentRegistrySource->bIsEditor)
+		{
+			// The in-memory data is wrong, ask the asset manager
+			AssetManager.GetPackageChunkIds(AssetData.PackageName, CurrentRegistrySource->TargetPlatform, AssetData.ChunkIDs, FoundChunks);
+		}
+		else
+		{
+			const FAssetData* PlatformData = CurrentRegistrySource->RegistryState->GetAssetByObjectPath(AssetData.ObjectPath);
+			if (PlatformData)
+			{
+				FoundChunks = PlatformData->ChunkIDs;
+			}
+		}
+		
+		FoundChunks.Sort();
+
+		for (int32 Chunk : FoundChunks)
+		{
+			if (!OutValue.IsEmpty())
+			{
+				OutValue += TEXT("+");
+			}
+			OutValue += Lex::ToString(Chunk);
+		}
+		return true;
+	}
+	else
+	{
+		// Get base value of asset tag
+		return AssetData.GetTagValue(ColumnName, OutValue);
+	}
+
+	return false;
+}
+
+bool FAssetManagerEditorModule::GetDisplayTextForCustomColumn(const FAssetData& AssetData, FName ColumnName, FText& OutValue)
+{
+	if (!CurrentRegistrySource || !CurrentRegistrySource->RegistryState)
+	{
+		return false;
+	}
+
+	UAssetManager& AssetManager = UAssetManager::Get();
+
+	if (ColumnName == ManagedResourceSizeName || ColumnName == ManagedDiskSizeName || ColumnName == DiskSizeName || ColumnName == TotalUsageName)
+	{
+		// Get integer, convert to string
+		int64 IntegerValue = 0;
+		if (GetIntegerValueForCustomColumn(AssetData, ColumnName, IntegerValue))
+		{
+			if (ColumnName == TotalUsageName)
+			{
+				OutValue = FText::AsNumber(IntegerValue);
+			}
+			else
+			{
+				// Display size properly
+				OutValue = FText::AsMemory(IntegerValue);
+			}
+			return true;
+		}
+	}
+	else if (ColumnName == CookRuleName)
+	{
+		EPrimaryAssetCookRule CookRule;
+
+		CookRule = AssetManager.GetPackageCookRule(AssetData.PackageName);
+
+		switch (CookRule)
+		{
+		case EPrimaryAssetCookRule::AlwaysCook:
+			OutValue = LOCTEXT("AlwaysCook", "Always");
+			return true;
+		case EPrimaryAssetCookRule::DevelopmentCook:
+			OutValue = LOCTEXT("DevelopmentCook", "Development");
+			return true;
+		case EPrimaryAssetCookRule::NeverCook:
+			OutValue = LOCTEXT("NeverCook", "Never");
+			return true;
+		}
+	}
+	else if (ColumnName == ChunksName)
+	{
+		FString OutString;
+
+		if (GetStringValueForCustomColumn(AssetData, ColumnName, OutString))
+		{
+			OutValue = FText::AsCultureInvariant(OutString);
+			return true;
+		}
+	}
+	else
+	{
+		// Get base value of asset tag
+		return AssetData.GetTagValue(ColumnName, OutValue);
+	}
+
+	return false;
+}
+
+bool FAssetManagerEditorModule::GetIntegerValueForCustomColumn(const FAssetData& AssetData, FName ColumnName, int64& OutValue)
+{
+	if (!CurrentRegistrySource || !CurrentRegistrySource->RegistryState)
+	{
+		return false;
+	}
+
+	UAssetManager& AssetManager = UAssetManager::Get();
 
 	if (ColumnName == ManagedResourceSizeName || ColumnName == ManagedDiskSizeName)
 	{
 		FName SizeTag = (ColumnName == ManagedResourceSizeName) ? ResourceSizeName : DiskSizeName;
+		TSet<FName> AssetPackageSet;
 
-		FPrimaryAssetId PrimaryAssetId = AssetManager.GetPrimaryAssetIdForData(AssetData);
-
-		if (!PrimaryAssetId.IsValid())
+		if (!GetManagedPackageListForAssetData(AssetData, AssetPackageSet))
 		{
 			// Just return exclusive
-			return GetValueForCustomColumn(AssetData, SizeTag, TargetPlatform, PlatformState);
+			return GetIntegerValueForCustomColumn(AssetData, SizeTag, OutValue);
 		}
 
-		TArray<FName> AssetPackageArray;
-		AssetManager.GetManagedPackageList(PrimaryAssetId, AssetPackageArray);
-
 		int64 TotalSize = 0;
+		bool bFoundAny = false;
 
-		for (FName PackageName : AssetPackageArray)
+		for (FName PackageName : AssetPackageSet)
 		{
 			TArray<FAssetData> FoundData;
 			FARFilter AssetFilter;
 			AssetFilter.PackageNames.Add(PackageName);
 			AssetFilter.bIncludeOnlyOnDiskAssets = true;
 
-			if (AssetRegistry.GetAssets(AssetFilter, FoundData) && FoundData.Num() > 0)
+			if (AssetRegistry->GetAssets(AssetFilter, FoundData) && FoundData.Num() > 0)
 			{
 				// Use first one
 				FAssetData& ManagedAssetData = FoundData[0];
 
-				FString DataString = GetValueForCustomColumn(ManagedAssetData, SizeTag, TargetPlatform, PlatformState);
-
 				int64 PackageSize = 0;
-				Lex::FromString(PackageSize, *DataString);
-				TotalSize += PackageSize;
+				if (GetIntegerValueForCustomColumn(ManagedAssetData, SizeTag, PackageSize))
+				{
+					bFoundAny = true;
+					TotalSize += PackageSize;
+				}
 			}
 		}
 
-		ReturnString = Lex::ToString(TotalSize);
+		if (bFoundAny)
+		{
+			OutValue = TotalSize;
+			return true;
+		}
 	}
 	else if (ColumnName == DiskSizeName)
 	{
-		const FAssetPackageData* FoundData = PlatformState ? PlatformState->GetAssetPackageData(AssetData.PackageName) : AssetRegistry.GetAssetPackageData(AssetData.PackageName);
+		const FAssetPackageData* FoundData = CurrentRegistrySource->RegistryState->GetAssetPackageData(AssetData.PackageName);
 
-		if (FoundData)
+		if (FoundData && FoundData->DiskSize >= 0)
 		{
-			ReturnString = Lex::ToString((FoundData->DiskSize + 512) / 1024);
+			OutValue = FoundData->DiskSize;
+			return true;
+		}
+	}
+	else if (ColumnName == ResourceSizeName)
+	{
+		// Resource size can currently only be calculated for loaded assets, so load and check
+		UObject* Asset = AssetData.GetAsset();
+
+		if (Asset)
+		{
+			OutValue = Asset->GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal);
+			return true;
 		}
 	}
 	else if (ColumnName == TotalUsageName)
@@ -562,56 +1171,19 @@ FString FAssetManagerEditorModule::GetValueForCustomColumn(FAssetData& AssetData
 			}
 		}
 
-		ReturnString = Lex::ToString(TotalWeight);
-	}
-	else if (ColumnName == CookRuleName)
-	{
-		EPrimaryAssetCookRule CookRule;
-
-		CookRule = AssetManager.GetPackageCookRule(AssetData.PackageName);
-
-		switch (CookRule)
-		{
-		case EPrimaryAssetCookRule::AlwaysCook: return TEXT("Always");
-		case EPrimaryAssetCookRule::DevelopmentCook: return TEXT("Development");
-		case EPrimaryAssetCookRule::NeverCook: return TEXT("Never");
-		}
-	}
-	else if (ColumnName == ChunksName)
-	{
-		TArray<int32> FoundChunks;
-
-		if (PlatformState)
-		{
-			const FAssetData* PlatformData = PlatformState->GetAssetByObjectPath(AssetData.ObjectPath);
-			if (PlatformData)
-			{
-				FoundChunks = PlatformData->ChunkIDs;
-			}
-		}
-		else
-		{
-			AssetManager.GetPackageChunkIds(AssetData.PackageName, TargetPlatform, AssetData.ChunkIDs, FoundChunks);
-		}
-		
-		FoundChunks.Sort();
-
-		for (int32 Chunk : FoundChunks)
-		{
-			if (!ReturnString.IsEmpty())
-			{
-				ReturnString += TEXT("+");
-			}
-			ReturnString += Lex::ToString(Chunk);
-		}
+		OutValue = TotalWeight;
+		return true;
 	}
 	else
 	{
 		// Get base value of asset tag
-		AssetData.GetTagValue(ColumnName, ReturnString);
+		if (AssetData.GetTagValue(ColumnName, OutValue))
+		{
+			return true;
+		}
 	}
 
-	return ReturnString;
+	return false;
 }
 
 FString FAssetManagerEditorModule::GetSavedAssetRegistryPath(ITargetPlatform* TargetPlatform)
@@ -648,19 +1220,14 @@ FString FAssetManagerEditorModule::GetSavedAssetRegistryPath(ITargetPlatform* Ta
 	FParse::Value(FCommandLine::Get(), TEXT("AssetRegistryFile="), CommandLinePath);
 	CommandLinePath.ReplaceInline(TEXT("[Platform]"), *PlatformName);
 	
-	// First try DevelopmentAssetRegistry.bin, then try AssetRegistry.bin
-	FString CookedAssetRegistry = FPaths::ProjectDir() / TEXT("AssetRegistry.bin");
+	// We can only load DevelopmentAssetRegistry, the normal asset registry doesn't have enough data to be useful
+	FString CookedDevelopmentAssetRegistry = FPaths::ProjectDir() / TEXT("Metadata") / TEXT("DevelopmentAssetRegistry.bin");
 
-	FString CookedPath = CookedSandbox->ConvertToAbsolutePathForExternalAppForWrite(*CookedAssetRegistry).Replace(TEXT("[Platform]"), *PlatformName);
-	FString DevCookedPath = CookedPath.Replace(TEXT("AssetRegistry.bin"), TEXT("DevelopmentAssetRegistry.bin"));
+	FString DevCookedPath = CookedSandbox->ConvertToAbsolutePathForExternalAppForWrite(*CookedDevelopmentAssetRegistry).Replace(TEXT("[Platform]"), *PlatformName);
+	FString DevEditorCookedPath = EditorCookedSandbox->ConvertToAbsolutePathForExternalAppForWrite(*CookedDevelopmentAssetRegistry).Replace(TEXT("[Platform]"), *PlatformName);
+	FString DevSharedCookedPath = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("SharedIterativeBuild"), PlatformName, TEXT("Metadata"), TEXT("DevelopmentAssetRegistry.bin"));
 
-	FString EditorCookedPath = EditorCookedSandbox->ConvertToAbsolutePathForExternalAppForWrite(*CookedAssetRegistry).Replace(TEXT("[Platform]"), *PlatformName);
-	FString DevEditorCookedPath = EditorCookedPath.Replace(TEXT("AssetRegistry.bin"), TEXT("DevelopmentAssetRegistry.bin"));
-
-	FString SharedCookedPath = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("SharedIterativeBuild"), PlatformName, TEXT("Cooked"), TEXT("AssetRegistry.bin"));
-	FString DevSharedCookedPath = SharedCookedPath.Replace(TEXT("AssetRegistry.bin"), TEXT("DevelopmentAssetRegistry.bin"));
-
-	// Try command line, then cooked, then build
+	// Try command line, then cooked, then shared build
 	if (!CommandLinePath.IsEmpty() && IFileManager::Get().FileExists(*CommandLinePath))
 	{
 		return CommandLinePath;
@@ -671,19 +1238,9 @@ FString FAssetManagerEditorModule::GetSavedAssetRegistryPath(ITargetPlatform* Ta
 		return DevCookedPath;
 	}
 
-	if (IFileManager::Get().FileExists(*CookedPath))
-	{
-		return CookedPath;
-	}
-
 	if (IFileManager::Get().FileExists(*DevEditorCookedPath))
 	{
 		return DevEditorCookedPath;
-	}
-
-	if (IFileManager::Get().FileExists(*EditorCookedPath))
-	{
-		return EditorCookedPath;
 	}
 
 	if (IFileManager::Get().FileExists(*DevSharedCookedPath))
@@ -691,58 +1248,326 @@ FString FAssetManagerEditorModule::GetSavedAssetRegistryPath(ITargetPlatform* Ta
 		return DevSharedCookedPath;
 	}
 
-	if (IFileManager::Get().FileExists(*SharedCookedPath))
-	{
-		return SharedCookedPath;
-	}
-
 	return FString();
 }
 
-void FAssetManagerEditorModule::GetAvailableTargetPlatforms(TArray<ITargetPlatform*>& AvailablePlatforms)
+void FAssetManagerEditorModule::GetAvailableRegistrySources(TArray<const FAssetManagerEditorRegistrySource*>& AvailableSources)
 {
-	TArray<ITargetPlatform*> Platforms = GetTargetPlatformManager()->GetTargetPlatforms();
+	InitializeRegistrySources(false);
 
-	for (ITargetPlatform* CheckPlatform : Platforms)
+	for (const TPair<FString, FAssetManagerEditorRegistrySource>& Pair : RegistrySourceMap)
 	{
-		FString RegistryPath = GetSavedAssetRegistryPath(CheckPlatform);
-
-		if (!RegistryPath.IsEmpty())
-		{
-			AvailablePlatforms.Add(CheckPlatform);
-		}
+		AvailableSources.Add(&Pair.Value);
 	}
 }
 
-FAssetRegistryState* FAssetManagerEditorModule::GetAssetRegistryStateForTargetPlatform(ITargetPlatform* TargetPlatform)
+const FAssetManagerEditorRegistrySource* FAssetManagerEditorModule::GetCurrentRegistrySource(bool bNeedManagementData)
 {
-	FAssetRegistryState* FoundRegistry = AssetRegistryStateMap.Find(TargetPlatform);
+	InitializeRegistrySources(bNeedManagementData);
 
-	if (FoundRegistry)
+	return CurrentRegistrySource;
+}
+
+void FAssetManagerEditorModule::SetCurrentRegistrySource(const FString& SourceName)
+{
+	InitializeRegistrySources(false);
+
+	FAssetManagerEditorRegistrySource* NewSource = RegistrySourceMap.Find(SourceName);
+
+	if (NewSource)
 	{
-		return FoundRegistry;
+		CurrentRegistrySource = NewSource;
+
+		if (CurrentRegistrySource->SourceName == FAssetManagerEditorRegistrySource::CustomSourceName)
+		{
+			if (CurrentRegistrySource->RegistryState)
+			{
+				check(!CurrentRegistrySource->bIsEditor);
+
+				delete CurrentRegistrySource->RegistryState;
+				CurrentRegistrySource->RegistryState = nullptr;
+				CurrentRegistrySource->ChunkAssignments.Reset();
+				CurrentRegistrySource->bManagementDataInitialized = false;
+			}
+			CurrentRegistrySource->SourceFilename.Reset();
+
+			IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+			const void* ParentWindowWindowHandle = FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr);
+			const FText Title = LOCTEXT("LoadAssetRegistry", "Load DevelopmentAssetRegistry.bin");
+			const FString FileTypes = TEXT("DevelopmentAssetRegistry.bin|*.bin");
+
+			TArray<FString> OutFilenames;
+			DesktopPlatform->OpenFileDialog(
+				ParentWindowWindowHandle,
+				Title.ToString(),
+				TEXT(""),
+				TEXT("DevelopmentAssetRegistry.bin"),
+				FileTypes,
+				EFileDialogFlags::None,
+				OutFilenames
+			);
+
+			if (OutFilenames.Num() == 1)
+			{
+				CurrentRegistrySource->SourceFilename = OutFilenames[0];
+			}
+			else
+			{
+				CurrentRegistrySource = RegistrySourceMap.Find(FAssetManagerEditorRegistrySource::EditorSourceName);
+			}
+		}
+
+		if (CurrentRegistrySource->RegistryState == nullptr && !CurrentRegistrySource->SourceFilename.IsEmpty() && !CurrentRegistrySource->bIsEditor)
+		{
+			bool bLoaded = false;
+			FArrayReader SerializedAssetData;
+			if (FFileHelper::LoadFileToArray(SerializedAssetData, *CurrentRegistrySource->SourceFilename))
+			{
+				FAssetRegistryState* NewState = new FAssetRegistryState();
+				FAssetRegistrySerializationOptions Options;
+
+				Options.ModifyForDevelopment();
+				NewState->Serialize(SerializedAssetData, Options);
+
+				if (NewState->GetObjectPathToAssetDataMap().Num() > 0)
+				{
+					bLoaded = true;
+					CurrentRegistrySource->RegistryState = NewState;
+				}
+			}
+			if (!bLoaded)
+			{
+				FNotificationInfo Info(FText::Format(LOCTEXT("LoadRegistryFailed", "Failed to load asset registry from {0}!"), FText::FromString(CurrentRegistrySource->SourceFilename)));
+				Info.ExpireDuration = 10.0f;
+				FSlateNotificationManager::Get().AddNotification(Info);
+				CurrentRegistrySource = RegistrySourceMap.Find(FAssetManagerEditorRegistrySource::EditorSourceName);
+			}
+		}
+
+		if (!CurrentRegistrySource->bManagementDataInitialized && CurrentRegistrySource->RegistryState)
+		{
+			CurrentRegistrySource->ChunkAssignments.Reset();
+			if (CurrentRegistrySource->bIsEditor)
+			{
+				// Load chunk list from asset manager
+				if (UAssetManager::IsValid())
+				{
+					CurrentRegistrySource->ChunkAssignments = UAssetManager::Get().GetChunkManagementMap();
+				}
+			}
+			else
+			{
+				// Iterate assets and look for chunks
+				const TMap<FName, const FAssetData*>& AssetDataMap = CurrentRegistrySource->RegistryState->GetObjectPathToAssetDataMap();
+
+				for (const TPair<FName, const FAssetData*>& Pair : AssetDataMap)
+				{
+					const FAssetData& AssetData = *Pair.Value;
+					if (AssetData.ChunkIDs.Num() > 0)
+					{
+						TArray<FAssetIdentifier> ManagerAssets;
+						CurrentRegistrySource->RegistryState->GetReferencers(AssetData.PackageName, ManagerAssets, EAssetRegistryDependencyType::Manage);
+
+						for (int32 ChunkId : AssetData.ChunkIDs)
+						{
+							FPrimaryAssetId ChunkAssetId = UAssetManager::CreatePrimaryAssetIdFromChunkId(ChunkId);
+							
+							FAssetManagerChunkInfo* ChunkAssignmentSet = CurrentRegistrySource->ChunkAssignments.Find(ChunkId);
+
+							if (!ChunkAssignmentSet)
+							{
+								// First time found, read the graph
+								ChunkAssignmentSet = &CurrentRegistrySource->ChunkAssignments.Add(ChunkId);
+								
+								TArray<FAssetIdentifier> ManagedAssets;
+
+								CurrentRegistrySource->RegistryState->GetDependencies(ChunkAssetId, ManagedAssets, EAssetRegistryDependencyType::Manage);
+
+								for (const FAssetIdentifier& ManagedAsset : ManagedAssets)
+								{
+									ChunkAssignmentSet->ExplicitAssets.Add(ManagedAsset);
+								}
+							}
+
+							ChunkAssignmentSet->AllAssets.Add(AssetData.PackageName);
+
+							// Check to see if this was added by a management reference, if not register as an explicit reference
+							bool bAddedFromManager = false;
+							for (const FAssetIdentifier& Manager : ManagerAssets)
+							{
+								if (ChunkAssignmentSet->ExplicitAssets.Find(Manager))
+								{
+									bAddedFromManager = true;
+								}
+							}
+
+							if (!bAddedFromManager)
+							{
+								ChunkAssignmentSet->ExplicitAssets.Add(AssetData.PackageName);
+							}
+						}
+					}
+				}
+			}
+
+			CurrentRegistrySource->bManagementDataInitialized = true;
+		}
+	}
+	else
+	{
+		FNotificationInfo Info(FText::Format(LOCTEXT("LoadRegistryFailed", "Can't find registry source {0}! Reverting to Editor."), FText::FromString(SourceName)));
+		Info.ExpireDuration = 10.0f;
+		FSlateNotificationManager::Get().AddNotification(Info);
+		CurrentRegistrySource = RegistrySourceMap.Find(FAssetManagerEditorRegistrySource::EditorSourceName);
 	}
 
-	FString RegistryPath = GetSavedAssetRegistryPath(TargetPlatform);
-
-	if (RegistryPath.IsEmpty())
+	check(CurrentRegistrySource);
+	
+	// Refresh UI
+	if (AssetAuditUI.IsValid())
 	{
-		return nullptr;
+		AssetAuditUI.Pin()->SetCurrentRegistrySource(CurrentRegistrySource);
+	}
+	if (SizeMapUI.IsValid())
+	{
+		SizeMapUI.Pin()->SetCurrentRegistrySource(CurrentRegistrySource);
+	}
+	if (ReferenceViewerUI.IsValid())
+	{
+		ReferenceViewerUI.Pin()->SetCurrentRegistrySource(CurrentRegistrySource);
+	}
+}
+
+void FAssetManagerEditorModule::RefreshRegistryData()
+{
+	UAssetManager::Get().UpdateManagementDatabase();
+
+	// Rescan registry sources, try to restore the current one
+	FString OldSourceName = CurrentRegistrySource->SourceName;
+
+	CurrentRegistrySource = nullptr;
+	InitializeRegistrySources(false);
+
+	SetCurrentRegistrySource(OldSourceName);
+}
+
+bool FAssetManagerEditorModule::IsPackageInCurrentRegistrySource(FName PackageName)
+{
+	if (CurrentRegistrySource && CurrentRegistrySource->RegistryState && !CurrentRegistrySource->bIsEditor)
+	{
+		const FAssetPackageData* FoundData = CurrentRegistrySource->RegistryState->GetAssetPackageData(PackageName);
+
+		if (!FoundData || FoundData->DiskSize < 0)
+		{
+			return false;
+		}
 	}
 
-	FArrayReader SerializedAssetData;
-	if (FFileHelper::LoadFileToArray(SerializedAssetData, *RegistryPath))
+	// In editor, no packages are filtered
+	return true;
+}
+
+bool FAssetManagerEditorModule::FilterAssetIdentifiersForCurrentRegistrySource(TArray<FAssetIdentifier>& AssetIdentifiers, EAssetRegistryDependencyType::Type DependencyType, bool bForwardDependency)
+{
+	bool bMadeChange = false;
+	if (!CurrentRegistrySource || !CurrentRegistrySource->RegistryState || CurrentRegistrySource->bIsEditor)
 	{
-		FAssetRegistryState& NewState = AssetRegistryStateMap.Add(TargetPlatform);
-		FAssetRegistrySerializationOptions Options;
-		Options.ModifyForDevelopment();
-
-		NewState.Serialize(SerializedAssetData, Options);
-
-		return &NewState;
+		return bMadeChange;
 	}
 
-	return nullptr;
+	for (int32 Index = 0; Index < AssetIdentifiers.Num(); Index++)
+	{
+		FName PackageName = AssetIdentifiers[Index].PackageName;
+
+		if (PackageName != NAME_None)
+		{
+			if (!IsPackageInCurrentRegistrySource(PackageName))
+			{
+				// Remove bad package
+				AssetIdentifiers.RemoveAt(Index);
+
+				if (DependencyType != EAssetRegistryDependencyType::None)
+				{
+					// If this is a redirector replace with references
+					TArray<FAssetData> Assets;
+					AssetRegistry->GetAssetsByPackageName(PackageName, Assets, true);
+
+					for (const FAssetData& Asset : Assets)
+					{
+						if (Asset.IsRedirector())
+						{
+							TArray<FAssetIdentifier> FoundReferences;
+
+							if (bForwardDependency)
+							{
+								CurrentRegistrySource->RegistryState->GetDependencies(PackageName, FoundReferences, DependencyType);
+							}
+							else
+							{
+								CurrentRegistrySource->RegistryState->GetReferencers(PackageName, FoundReferences, DependencyType);
+							}
+
+							AssetIdentifiers.Insert(FoundReferences, Index);
+							break;
+						}
+					}
+				}
+
+				// Need to redo this index, it was either removed or replaced
+				Index--;
+			}
+		}
+	}
+	return bMadeChange;
+}
+
+void FAssetManagerEditorModule::InitializeRegistrySources(bool bNeedManagementData)
+{
+	if (CurrentRegistrySource == nullptr)
+	{
+		// Clear old list
+		RegistrySourceMap.Reset();
+
+		// Add Editor source
+		FAssetManagerEditorRegistrySource EditorSource;
+		EditorSource.SourceName = FAssetManagerEditorRegistrySource::EditorSourceName;
+		EditorSource.bIsEditor = true;
+		EditorSource.RegistryState = AssetRegistry->GetAssetRegistryState();
+
+		RegistrySourceMap.Add(EditorSource.SourceName, EditorSource);
+
+		TArray<ITargetPlatform*> Platforms = GetTargetPlatformManager()->GetTargetPlatforms();
+
+		for (ITargetPlatform* CheckPlatform : Platforms)
+		{
+			FString RegistryPath = GetSavedAssetRegistryPath(CheckPlatform);
+
+			if (!RegistryPath.IsEmpty())
+			{
+				FAssetManagerEditorRegistrySource PlatformSource;
+				PlatformSource.SourceName = CheckPlatform->PlatformName();
+				PlatformSource.SourceFilename = RegistryPath;
+				PlatformSource.TargetPlatform = CheckPlatform;
+
+				RegistrySourceMap.Add(PlatformSource.SourceName, PlatformSource);
+			}
+		}
+
+		// Add Custom source
+		FAssetManagerEditorRegistrySource CustomSource;
+		CustomSource.SourceName = FAssetManagerEditorRegistrySource::CustomSourceName;
+
+		RegistrySourceMap.Add(CustomSource.SourceName, CustomSource);
+
+		// Select the Editor source by default
+		CurrentRegistrySource = RegistrySourceMap.Find(EditorSource.SourceName);
+	}
+	check(CurrentRegistrySource);
+
+	if (bNeedManagementData && !CurrentRegistrySource->bManagementDataInitialized)
+	{
+		SetCurrentRegistrySource(CurrentRegistrySource->SourceName);
+	}
 }
 
 void FAssetManagerEditorModule::PerformAuditConsoleCommand(const TArray<FString>& Args)
@@ -754,16 +1579,6 @@ void FAssetManagerEditorModule::PerformAuditConsoleCommand(const TArray<FString>
 
 	// Now print assets with multiple labels
 	LogAssetsWithMultipleLabels();
-
-	// Load the cooker manifest file for platforms and print summaries
-	FString PlatformName = TEXT("WindowsNoEditor");
-	if (Args.Num() > 0)
-	{
-		PlatformName = Args[0];
-	}
-
-	PrintSizeSummaries(PlatformName);
-	RecreateCollections();
 }
 
 bool FAssetManagerEditorModule::GetDependencyTypeArg(const FString& Arg, EAssetRegistryDependencyType::Type& OutDepType)
@@ -783,9 +1598,6 @@ bool FAssetManagerEditorModule::GetDependencyTypeArg(const FString& Arg, EAssetR
 
 void FAssetManagerEditorModule::PerformDependencyChainConsoleCommand(const TArray<FString>& Args)
 {
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
-
 	if (Args.Num() < 2)
 	{
 		UE_LOG(LogAssetManagerEditor, Display, TEXT("FindDepChain given incorrect number of arguments.  Usage: %s"), FindDepChainHelpText);
@@ -801,14 +1613,11 @@ void FAssetManagerEditorModule::PerformDependencyChainConsoleCommand(const TArra
 		GetDependencyTypeArg(Args[2], DependencyType);
 	}
 
-	FindReferenceChains(AssetRegistry, TargetPath, SearchRoot, DependencyType);
+	FindReferenceChains(TargetPath, SearchRoot, DependencyType);
 }
 
 void FAssetManagerEditorModule::PerformDependencyClassConsoleCommand(const TArray<FString>& Args)
 {
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
-
 	if (Args.Num() < 2)
 	{
 		UE_LOG(LogAssetManagerEditor, Display, TEXT("FindDepClasses given incorrect number of arguments.  Usage: %s"), FindClassDepHelpText);
@@ -831,7 +1640,7 @@ void FAssetManagerEditorModule::PerformDependencyClassConsoleCommand(const TArra
 
 	//determine if the user passed us a package, or a directory
 	TArray<FAssetData> PackageAssets;
-	AssetRegistry.GetAssetsByPackageName(SourcePackagePath, PackageAssets);
+	AssetRegistry->GetAssetsByPackageName(SourcePackagePath, PackageAssets);
 	if (PackageAssets.Num() > 0)
 	{
 		PackagesToSearch.Add(SourcePackagePath);
@@ -839,7 +1648,7 @@ void FAssetManagerEditorModule::PerformDependencyClassConsoleCommand(const TArra
 	else
 	{
 		TArray<FAssetData> AssetsInSearchPath;
-		if (AssetRegistry.GetAssetsByPath(SourcePackagePath, /*inout*/ AssetsInSearchPath, /*bRecursive=*/ true))
+		if (AssetRegistry->GetAssetsByPath(SourcePackagePath, /*inout*/ AssetsInSearchPath, /*bRecursive=*/ true))
 		{
 			for (const FAssetData& AssetData : AssetsInSearchPath)
 			{
@@ -851,11 +1660,11 @@ void FAssetManagerEditorModule::PerformDependencyClassConsoleCommand(const TArra
 	for (FName SourcePackage : PackagesToSearch)
 	{
 		UE_LOG(LogAssetManagerEditor, Verbose, TEXT("FindDepClasses for: %s"), *SourcePackage.ToString());
-		FindClassDependencies(AssetRegistry, SourcePackage, TargetClasses, DependencyType);
+		FindClassDependencies(SourcePackage, TargetClasses, DependencyType);
 	}
 }
 
-bool FAssetManagerEditorModule::GetPackageDependencyChain(IAssetRegistry& AssetRegistry, FName SourcePackage, FName TargetPackage, TArray<FName>& VisitedPackages, TArray<FName>& OutDependencyChain, EAssetRegistryDependencyType::Type DependencyType)
+bool FAssetManagerEditorModule::GetPackageDependencyChain(FName SourcePackage, FName TargetPackage, TArray<FName>& VisitedPackages, TArray<FName>& OutDependencyChain, EAssetRegistryDependencyType::Type DependencyType)
 {
 	//avoid crashing from circular dependencies.
 	if (VisitedPackages.Contains(SourcePackage))
@@ -871,7 +1680,7 @@ bool FAssetManagerEditorModule::GetPackageDependencyChain(IAssetRegistry& AssetR
 	}
 
 	TArray<FName> SourceDependencies;
-	if (AssetRegistry.GetDependencies(SourcePackage, SourceDependencies, DependencyType) == false)
+	if (AssetRegistry->GetDependencies(SourcePackage, SourceDependencies, DependencyType) == false)
 	{
 		return false;
 	}
@@ -880,7 +1689,7 @@ bool FAssetManagerEditorModule::GetPackageDependencyChain(IAssetRegistry& AssetR
 	while (DependencyCounter < SourceDependencies.Num())
 	{
 		const FName& ChildPackageName = SourceDependencies[DependencyCounter];
-		if (GetPackageDependencyChain(AssetRegistry, ChildPackageName, TargetPackage, VisitedPackages, OutDependencyChain, DependencyType))
+		if (GetPackageDependencyChain(ChildPackageName, TargetPackage, VisitedPackages, OutDependencyChain, DependencyType))
 		{
 			OutDependencyChain.Add(SourcePackage);
 			return true;
@@ -891,7 +1700,7 @@ bool FAssetManagerEditorModule::GetPackageDependencyChain(IAssetRegistry& AssetR
 	return false;
 }
 
-void FAssetManagerEditorModule::GetPackageDependenciesPerClass(IAssetRegistry& AssetRegistry, FName SourcePackage, const TArray<FName>& TargetClasses, TArray<FName>& VisitedPackages, TArray<FName>& OutDependentPackages, EAssetRegistryDependencyType::Type DependencyType)
+void FAssetManagerEditorModule::GetPackageDependenciesPerClass(FName SourcePackage, const TArray<FName>& TargetClasses, TArray<FName>& VisitedPackages, TArray<FName>& OutDependentPackages, EAssetRegistryDependencyType::Type DependencyType)
 {
 	//avoid crashing from circular dependencies.
 	if (VisitedPackages.Contains(SourcePackage))
@@ -901,7 +1710,7 @@ void FAssetManagerEditorModule::GetPackageDependenciesPerClass(IAssetRegistry& A
 	VisitedPackages.AddUnique(SourcePackage);
 
 	TArray<FName> SourceDependencies;
-	if (AssetRegistry.GetDependencies(SourcePackage, SourceDependencies, DependencyType) == false)
+	if (AssetRegistry->GetDependencies(SourcePackage, SourceDependencies, DependencyType) == false)
 	{
 		return;
 	}
@@ -910,7 +1719,7 @@ void FAssetManagerEditorModule::GetPackageDependenciesPerClass(IAssetRegistry& A
 	while (DependencyCounter < SourceDependencies.Num())
 	{
 		const FName& ChildPackageName = SourceDependencies[DependencyCounter];
-		GetPackageDependenciesPerClass(AssetRegistry, ChildPackageName, TargetClasses, VisitedPackages, OutDependentPackages, DependencyType);
+		GetPackageDependenciesPerClass(ChildPackageName, TargetClasses, VisitedPackages, OutDependentPackages, DependencyType);
 		++DependencyCounter;
 	}
 
@@ -920,7 +1729,7 @@ void FAssetManagerEditorModule::GetPackageDependenciesPerClass(IAssetRegistry& A
 	Filter.bIncludeOnlyOnDiskAssets = true;
 
 	TArray<FAssetData> PackageAssets;
-	if (AssetRegistry.GetAssets(Filter, PackageAssets))
+	if (AssetRegistry->GetAssets(Filter, PackageAssets))
 	{
 		for (const FAssetData& AssetData : PackageAssets)
 		{
@@ -930,11 +1739,11 @@ void FAssetManagerEditorModule::GetPackageDependenciesPerClass(IAssetRegistry& A
 	}
 }
 
-void FAssetManagerEditorModule::FindReferenceChains(IAssetRegistry& AssetRegistry, FName TargetPackageName, FName RootSearchPath, EAssetRegistryDependencyType::Type DependencyType)
+void FAssetManagerEditorModule::FindReferenceChains(FName TargetPackageName, FName RootSearchPath, EAssetRegistryDependencyType::Type DependencyType)
 {
 	//find all the assets we think might depend on our target through some chain
 	TArray<FAssetData> AssetsInSearchPath;
-	AssetRegistry.GetAssetsByPath(RootSearchPath, /*inout*/ AssetsInSearchPath, /*bRecursive=*/ true);
+	AssetRegistry->GetAssetsByPath(RootSearchPath, /*inout*/ AssetsInSearchPath, /*bRecursive=*/ true);
 
 	//consolidate assets into a unique set of packages for dependency searching. reduces redundant work.
 	TArray<FName> SearchPackages;
@@ -952,7 +1761,7 @@ void FAssetManagerEditorModule::FindReferenceChains(IAssetRegistry& AssetRegistr
 	for (const FName& SearchPackage : SearchPackages)
 	{
 		VisitedPackages.Reset();
-		if (GetPackageDependencyChain(AssetRegistry, SearchPackage, TargetPackageName, VisitedPackages, FoundChains[CurrentFoundChain], DependencyType))
+		if (GetPackageDependencyChain(SearchPackage, TargetPackageName, VisitedPackages, FoundChains[CurrentFoundChain], DependencyType))
 		{
 			++CurrentFoundChain;
 			FoundChains.AddDefaulted(1);
@@ -972,10 +1781,10 @@ void FAssetManagerEditorModule::FindReferenceChains(IAssetRegistry& AssetRegistr
 	}
 }
 
-void FAssetManagerEditorModule::FindClassDependencies(IAssetRegistry& AssetRegistry, FName SourcePackageName, const TArray<FName>& TargetClasses, EAssetRegistryDependencyType::Type DependencyType)
+void FAssetManagerEditorModule::FindClassDependencies(FName SourcePackageName, const TArray<FName>& TargetClasses, EAssetRegistryDependencyType::Type DependencyType)
 {
 	TArray<FAssetData> PackageAssets;
-	if (!AssetRegistry.GetAssetsByPackageName(SourcePackageName, PackageAssets))
+	if (!AssetRegistry->GetAssetsByPackageName(SourcePackageName, PackageAssets))
 	{
 		UE_LOG(LogAssetManagerEditor, Log, TEXT("Couldn't find source package %s. Abandoning class dep search.  "), *SourcePackageName.ToString());
 		return;
@@ -983,7 +1792,7 @@ void FAssetManagerEditorModule::FindClassDependencies(IAssetRegistry& AssetRegis
 
 	TArray<FName> VisitedPackages;
 	TArray<FName> DependencyPackages;
-	GetPackageDependenciesPerClass(AssetRegistry, SourcePackageName, TargetClasses, VisitedPackages, DependencyPackages, DependencyType);
+	GetPackageDependenciesPerClass(SourcePackageName, TargetClasses, VisitedPackages, DependencyPackages, DependencyType);
 
 	if (DependencyPackages.Num() > 0)
 	{
@@ -997,7 +1806,7 @@ void FAssetManagerEditorModule::FindClassDependencies(IAssetRegistry& AssetRegis
 		{
 			TArray<FName> Chain;
 			VisitedPackages.Reset();
-			GetPackageDependencyChain(AssetRegistry, SourcePackageName, DependencyPackage, VisitedPackages, Chain, DependencyType);
+			GetPackageDependencyChain(SourcePackageName, DependencyPackage, VisitedPackages, Chain, DependencyType);
 
 			UE_LOG(LogAssetManagerEditor, Log, TEXT("Chain to package: %s"), *DependencyPackage.ToString());
 			TArray<FAssetData> DepAssets;
@@ -1007,7 +1816,7 @@ void FAssetManagerEditorModule::FindClassDependencies(IAssetRegistry& AssetRegis
 			Filter.ClassNames = TargetClasses;
 			Filter.bIncludeOnlyOnDiskAssets = true;
 
-			if (AssetRegistry.GetAssets(Filter, DepAssets))
+			if (AssetRegistry->GetAssets(Filter, DepAssets))
 			{
 				for (const FAssetData& DepAsset : DepAssets)
 				{
@@ -1042,7 +1851,6 @@ void FAssetManagerEditorModule::WriteProfileFile(const FString& Extension, const
 void FAssetManagerEditorModule::LogAssetsWithMultipleLabels()
 {
 	UAssetManager& Manager = UAssetManager::Get();
-	IAssetRegistry& AssetRegistry = Manager.GetAssetRegistry();
 
 	TMap<FName, TArray<FPrimaryAssetId>> PackageToLabelMap;
 	TArray<FPrimaryAssetId> LabelNames;
@@ -1093,7 +1901,6 @@ void FAssetManagerEditorModule::DumpAssetDependencies(const TArray<FString>& Arg
 	}
 
 	UAssetManager& Manager = UAssetManager::Get();
-	IAssetRegistry& AssetRegistry = Manager.GetAssetRegistry();
 	TArray<FPrimaryAssetTypeInfo> TypeInfos;
 
 	Manager.UpdateManagementDatabase();
@@ -1128,7 +1935,7 @@ void FAssetManagerEditorModule::DumpAssetDependencies(const TArray<FString>& Arg
 			TArray<FAssetIdentifier> FoundDependencies;
 			TArray<FString> DependencyStrings;
 
-			AssetRegistry.GetDependencies(PrimaryAssetId, FoundDependencies, EAssetRegistryDependencyType::Manage);
+			AssetRegistry->GetDependencies(PrimaryAssetId, FoundDependencies, EAssetRegistryDependencyType::Manage);
 
 			for (const FAssetIdentifier& Identifier : FoundDependencies)
 			{
@@ -1161,293 +1968,15 @@ void FAssetManagerEditorModule::DumpAssetDependencies(const TArray<FString>& Arg
 	Manager.WriteCustomReport(FString::Printf(TEXT("PrimaryAssetReferences%s.gv"), *FDateTime::Now().ToString()), ReportLines);
 }
 
-void FAssetManagerEditorModule::PrintSizeSummaries(const FString& PlatformName)
-{
-	// Files that only have one tag
-/*	TMap<UPrimaryAssetLabel*, int64> TotalUniqueSizes;
-
-	TMap<UPrimaryAssetLabel*, TMap<FName, FAssetList>> UniqueSizeAssetsPerClass;
-
-	// Files that are shared across multiple tags (these get N x counted, so OverallExtraSharedSize is the 'only counts once' sum)
-	TMap<UPrimaryAssetLabel*, int64> TotalSharedSizes;
-
-	TMap<UPrimaryAssetLabel*, TMap<FName, FAssetList>> SharedSizeAssetsPerClass;
-
-	// Asset types
-	TMap<FName, FAssetList> TotalAssetSizes;
-
-	// The sum of the files shared across multiple tags
-	int64 OverallExtraSharedSize = 0;
-	TMap<FName, FAssetList> ExtraSharedAssetsPerClass;
-
-	// The files that were cooked but have no tags
-	int64 UntaggedSize = 0;
-	TMap<FName, FAssetList> UntaggedAssetsPerClass;
-
-	// The sum of all files
-	int64 TotalSize = 0;
-
-	// The sum of files that are shared but not owned by any seed
-	int64 SharedAndTaggedButNotOwnedSize = 0;
-	TMap<FName, FAssetList> SharedNotOwnedAssetsPerClass;
-
-	// The sum of all assets
-	int64 TotalAssetSize = 0;
-
-	// Sum everything up
-	for (const auto& CookedAssetKV : CookedAssetSizes)
-	{
-		const FCookedAsset& Asset = CookedAssetKV.Value;
-
-		if (Asset.Size < 0)
-		{
-			UE_LOG(LogAssetManagerEditor, Warning, TEXT("Asset %s has an invalid size %lld (might be a redirector)"), *CookedAssetKV.Key.ToString(), Asset.Size);
-			continue;
-		}
-
-		TotalSize += Asset.Size;
-
-		if (TArray<UPrimaryAssetLabel*>* pTags = TaggedAssets.Find(CookedAssetKV.Key))
-		{
-			TArray<UPrimaryAssetLabel*>& Tags = *pTags;
-			check(Tags.Num() > 0);
-
-			const bool bShared = Tags.Num() > 1;
-			UPrimaryAssetLabel* UniqueOwner = UniqueOwningTags.FindRef(CookedAssetKV.Key);
-
-			for (UPrimaryAssetLabel* Tag : Tags)
-			{
-				if (bShared)
-				{
-					TotalSharedSizes.FindOrAdd(Tag) += Asset.Size;
-					SharedSizeAssetsPerClass.FindOrAdd(Tag).FindOrAdd(Asset.Class).TotalSize += Asset.Size;
-					SharedSizeAssetsPerClass.FindOrAdd(Tag).FindOrAdd(Asset.Class).Assets.Add(CookedAssetKV.Key);
-				}
-
-				if (!bShared || (Tag == UniqueOwner))
-				{
-					TotalUniqueSizes.FindOrAdd(Tag) += Asset.Size;
-					UniqueSizeAssetsPerClass.FindOrAdd(Tag).FindOrAdd(Asset.Class).TotalSize += Asset.Size;
-					UniqueSizeAssetsPerClass.FindOrAdd(Tag).FindOrAdd(Asset.Class).Assets.Add(CookedAssetKV.Key);
-				}
-			}
-
-			if (UniqueOwner != nullptr)
-			{
-				if (!bShared)
-				{
-					check(UniqueOwner == Tags[0]);
-				}
-			}
-			else
-			{
-				if (bShared)
-				{
-					SharedAndTaggedButNotOwnedSize += Asset.Size;
-					SharedNotOwnedAssetsPerClass.FindOrAdd(Asset.Class).TotalSize += Asset.Size;
-					SharedNotOwnedAssetsPerClass.FindOrAdd(Asset.Class).Assets.Add(CookedAssetKV.Key);
-				}
-			}
-
-			if (bShared)
-			{
-				OverallExtraSharedSize += Asset.Size;
-				ExtraSharedAssetsPerClass.FindOrAdd(Asset.Class).TotalSize += Asset.Size;
-				ExtraSharedAssetsPerClass.FindOrAdd(Asset.Class).Assets.Add(CookedAssetKV.Key);
-			}
-		}
-		else
-		{
-			UntaggedSize += Asset.Size;
-			UntaggedAssetsPerClass.FindOrAdd(Asset.Class).TotalSize += Asset.Size;
-			UntaggedAssetsPerClass.FindOrAdd(Asset.Class).Assets.Add(CookedAssetKV.Key);
-		}
-
-		TotalAssetSizes.FindOrAdd(Asset.Class).TotalSize += Asset.Size;
-		TotalAssetSizes.FindOrAdd(Asset.Class).Assets.Add(CookedAssetKV.Key);
-		TotalAssetSize += Asset.Size;
-	}
-
-	TArray<UPrimaryAssetLabel*> TagOrder = AllTags;
-	TagOrder.Sort([](const UPrimaryAssetLabel& A, const UPrimaryAssetLabel& B) { return A.GetPrimaryAssetId().ToString() < B.GetPrimaryAssetId().ToString(); });
-
-	// Print it out (csv)
-	{
-		FString ResultsCSV;
-
-		ResultsCSV += TEXT("TagName,UniqueSizeBytes,SharedSizeBytes\n");
-		for (UPrimaryAssetLabel* Tag : TagOrder)
-		{
-			ResultsCSV += FString::Printf(TEXT("%s,%lld,%lld\n"), *Tag->GetPrimaryAssetId().ToString(), TotalUniqueSizes.FindRef(Tag), TotalSharedSizes.FindRef(Tag));
-		}
-		ResultsCSV += FString::Printf(TEXT("ZZZ_Shared,%lld,%lld\n"), SharedAndTaggedButNotOwnedSize, OverallExtraSharedSize);
-		ResultsCSV += FString::Printf(TEXT("ZZZ_Untagged,%lld,0\n"), UntaggedSize);
-
-		const FString ProfileExtensionCSV = FString::Printf(TEXT("_Tags.%s.csv"), *PlatformName);
-		WriteProfileFile(ProfileExtensionCSV, ResultsCSV);
-	}
-	{
-		FString ResultsCSV;
-
-		ResultsCSV += TEXT("TagName,UniqueSizeBytes\n");
-		for (auto KV : TotalAssetSizes)
-		{
-			ResultsCSV += FString::Printf(TEXT("%s,%lld\n"), *KV.Key.ToString(), KV.Value.TotalSize);
-		}
-
-		const FString ProfileExtensionCSV = FString::Printf(TEXT("_Assets.%s.csv"), *PlatformName);
-		WriteProfileFile(ProfileExtensionCSV, ResultsCSV);
-	}
-
-	// Print it out (html)
-	{
-		const double BytesToMB = 1.0 / (1024.0 * 1024.0);
-		FString ResultsHTML = TEXT("<html><body><table>\n");
-
-		ResultsHTML += TEXT("\t<tr><td>TagName</td><td>UniqueSizeMB</td><td>SharedSizeMB</td></tr>\n");
-		for (UPrimaryAssetLabel* Tag : TagOrder)
-		{
-			double UniqueSize = TotalUniqueSizes.FindRef(Tag) * BytesToMB;
-			double SharedSize = TotalSharedSizes.FindRef(Tag) * BytesToMB;
-			ResultsHTML += FString::Printf(TEXT("\t<tr><td>%s</td><td>%.2f</td><td>%.2f</td></tr>\n"), *Tag->GetPrimaryAssetId().ToString(), UniqueSize, SharedSize);
-		}
-
-		ResultsHTML += FString::Printf(TEXT("\t<tr><td>%s</td><td>%.2f</td><td>%.2f</td></tr>\n"), TEXT("ZZZ_Shared"), SharedAndTaggedButNotOwnedSize * BytesToMB, OverallExtraSharedSize * BytesToMB);
-		ResultsHTML += FString::Printf(TEXT("\t<tr><td>%s</td><td>%.2f</td><td>%.2f</td></tr>\n"), TEXT("ZZZ_Untagged"), UntaggedSize * BytesToMB, 0.0);
-		ResultsHTML += FString::Printf(TEXT("\t<tr><td>%s</td><td>%.2f</td><td>%.2f</td></tr>\n"), TEXT("TotalSize"), TotalSize * BytesToMB, 0.0);
-		ResultsHTML += TEXT("</table></body></html>\n");
-
-		const FString ProfileExtensionHTML = FString::Printf(TEXT("_Tags.%s.html"), *PlatformName);
-		WriteProfileFile(ProfileExtensionHTML, ResultsHTML);
-	}
-	{
-		const double BytesToMB = 1.0 / (1024.0 * 1024.0);
-		FString ResultsHTML = TEXT("<html><body><table>\n");
-
-		ResultsHTML += TEXT("\t<tr><td>AssetClass</td><td>UniqueSizeMB</td></tr>\n");
-		for (auto KV : TotalAssetSizes)
-		{
-			double UniqueSize = KV.Value.TotalSize * BytesToMB;
-			ResultsHTML += FString::Printf(TEXT("\t<tr><td>%s</td><td>%.2f</td></tr>\n"), *KV.Key.ToString(), UniqueSize);
-		}
-
-		ResultsHTML += FString::Printf(TEXT("\t<tr><td>%s</td><td>%.2f</td></tr>\n"), TEXT("TotalSize"), TotalAssetSize * BytesToMB);
-
-		ResultsHTML += TEXT("</table></body></html>\n");
-
-		const FString ProfileExtensionHTML = FString::Printf(TEXT("_Assets.%s.html"), *PlatformName);
-		WriteProfileFile(ProfileExtensionHTML, ResultsHTML);
-	}
-
-	// Print out the asset lists
-	{
-		const double BytesToMB = 1.0 / (1024.0 * 1024.0);
-		FString ResultsHTML = TEXT("<html><body><ul>\n");
-
-		for (UPrimaryAssetLabel* Tag : TagOrder)
-		{
-			double UniqueSize = TotalUniqueSizes.FindRef(Tag) * BytesToMB;
-			double SharedSize = TotalSharedSizes.FindRef(Tag) * BytesToMB;
-			ResultsHTML += FString::Printf(TEXT("\t<li>%s</li><ul><li>Unique (%.2f)</li><ul>\n"), *Tag->GetPrimaryAssetId().ToString(), UniqueSize);
-			for (auto KV : UniqueSizeAssetsPerClass.FindRef(Tag))
-			{
-				ResultsHTML += FString::Printf(TEXT("\t\t<li>%s</li><ul>\n"), *KV.Key.ToString());
-				KV.Value.Assets.Sort([&](const FName& A, const FName& B) { return CookedAssetSizes.FindRef(A).Size > CookedAssetSizes.FindRef(B).Size; });
-				for (auto L : KV.Value.Assets)
-				{
-					ResultsHTML += FString::Printf(TEXT("\t\t<li>%s (%.2f)</li>\n"), *L.ToString(), CookedAssetSizes.FindRef(L).Size * BytesToMB);
-				}
-				ResultsHTML += TEXT("</ul>\n");
-			}
-			ResultsHTML += FString::Printf(TEXT("</ul><li>Shared (%.2f)</li><ul>\n"), SharedSize);
-			for (auto KV : SharedSizeAssetsPerClass.FindRef(Tag))
-			{
-				ResultsHTML += FString::Printf(TEXT("\t\t<li>%s</li><ul>\n"), *KV.Key.ToString());
-				KV.Value.Assets.Sort([&](const FName& A, const FName& B) { return CookedAssetSizes.FindRef(A).Size > CookedAssetSizes.FindRef(B).Size; });
-				for (auto L : KV.Value.Assets)
-				{
-					ResultsHTML += FString::Printf(TEXT("\t\t<li>%s (%.2f)</li>\n"), *L.ToString(), CookedAssetSizes.FindRef(L).Size * BytesToMB);
-				}
-				ResultsHTML += TEXT("</ul>\n");
-			}
-			ResultsHTML += TEXT("</ul></ul>\n");
-		}
-
-		ResultsHTML += FString::Printf(TEXT("\t<li>%s (%.2f)</li><ul>\n"), TEXT("ZZZ_Shared"), SharedAndTaggedButNotOwnedSize * BytesToMB);
-		for (auto KV : SharedNotOwnedAssetsPerClass)
-		{
-			ResultsHTML += FString::Printf(TEXT("\t\t<li>%s (%.2f)</li><ul>\n"), *KV.Key.ToString(), KV.Value.TotalSize * BytesToMB);
-			KV.Value.Assets.Sort([&](const FName& A, const FName& B) { return CookedAssetSizes.FindRef(A).Size > CookedAssetSizes.FindRef(B).Size; });
-			for (auto L : KV.Value.Assets)
-			{
-				ResultsHTML += FString::Printf(TEXT("\t\t<li>%s (%.2f)</li>\n"), *L.ToString(), CookedAssetSizes.FindRef(L).Size * BytesToMB);
-			}
-			ResultsHTML += TEXT("</ul>\n");
-		}
-		ResultsHTML += TEXT("</ul>\n");
-
-		ResultsHTML += FString::Printf(TEXT("\t<li>%s (%.2f)</li><ul>\n"), TEXT("ZZZ_ExtraShared"), OverallExtraSharedSize * BytesToMB);
-		for (auto KV : ExtraSharedAssetsPerClass)
-		{
-			ResultsHTML += FString::Printf(TEXT("\t\t<li>%s (%.2f)</li><ul>\n"), *KV.Key.ToString(), KV.Value.TotalSize * BytesToMB);
-			KV.Value.Assets.Sort([&](const FName& A, const FName& B) { return CookedAssetSizes.FindRef(A).Size > CookedAssetSizes.FindRef(B).Size; });
-			for (auto L : KV.Value.Assets)
-			{
-				ResultsHTML += FString::Printf(TEXT("\t\t<li>%s (%.2f)</li>\n"), *L.ToString(), CookedAssetSizes.FindRef(L).Size * BytesToMB);
-			}
-			ResultsHTML += TEXT("</ul>\n");
-		}
-		ResultsHTML += TEXT("</ul>\n");
-
-		ResultsHTML += FString::Printf(TEXT("\t<li>%s (%.2f)</li><ul>\n"), TEXT("ZZZ_Untagged"), UntaggedSize * BytesToMB);
-		for (auto KV : UntaggedAssetsPerClass)
-		{
-			ResultsHTML += FString::Printf(TEXT("\t\t<li>%s (%.2f)</li><ul>\n"), *KV.Key.ToString(), KV.Value.TotalSize * BytesToMB);
-			KV.Value.Assets.Sort([&](const FName& A, const FName& B) { return CookedAssetSizes.FindRef(A).Size > CookedAssetSizes.FindRef(B).Size; });
-			for (auto L : KV.Value.Assets)
-			{
-				ResultsHTML += FString::Printf(TEXT("\t\t<li>%s (%.2f)</li>\n"), *L.ToString(), CookedAssetSizes.FindRef(L).Size * BytesToMB);
-			}
-			ResultsHTML += TEXT("</ul>\n");
-		}
-		ResultsHTML += TEXT("</ul>\n");
-		ResultsHTML += TEXT("</ul></body></html>\n");
-
-		const FString ProfileExtensionHTML = FString::Printf(TEXT("_TagList.%s.html"), *PlatformName);
-		WriteProfileFile(ProfileExtensionHTML, ResultsHTML);
-	}
-	{
-		const double BytesToMB = 1.0 / (1024.0 * 1024.0);
-		FString ResultsHTML = TEXT("<html><body><ul>\n");
-
-		ResultsHTML += FString::Printf(TEXT("\t<li>%s (%.2f)</li><ul>\n"), TEXT("Asset Classes"), TotalAssetSize * BytesToMB);
-		for (auto KV : TotalAssetSizes)
-		{
-			ResultsHTML += FString::Printf(TEXT("\t\t<li>%s (%.2f)</li><ul>\n"), *KV.Key.ToString(), KV.Value.TotalSize * BytesToMB);
-			KV.Value.Assets.Sort([&](const FName& A, const FName& B) { return CookedAssetSizes.FindRef(A).Size > CookedAssetSizes.FindRef(B).Size; });
-			for (auto L : KV.Value.Assets)
-			{
-				ResultsHTML += FString::Printf(TEXT("\t\t<li>%s (%.2f)</li>\n"), *L.ToString(), CookedAssetSizes.FindRef(L).Size * BytesToMB);
-			}
-			ResultsHTML += TEXT("</ul>\n");
-		}
-		ResultsHTML += TEXT("</ul>\n");
-		ResultsHTML += TEXT("</ul></body></html>\n");
-
-		const FString ProfileExtensionHTML = FString::Printf(TEXT("_AssetsList.%s.html"), *PlatformName);
-		WriteProfileFile(ProfileExtensionHTML, ResultsHTML);
-	}*/
-}
-
-bool FAssetManagerEditorModule::CreateOrEmptyCollection(FName CollectionName)
+bool FAssetManagerEditorModule::CreateOrEmptyCollection(FName CollectionName, ECollectionShareType::Type ShareType)
 {
 	ICollectionManager& CollectionManager = FCollectionManagerModule::GetModule().Get();
 
-	if (CollectionManager.CollectionExists(CollectionName, ECollectionShareType::CST_Local))
+	if (CollectionManager.CollectionExists(CollectionName, ShareType))
 	{
-		return CollectionManager.EmptyCollection(CollectionName, ECollectionShareType::CST_Local);
+		return CollectionManager.EmptyCollection(CollectionName, ShareType);
 	}
-	else if (CollectionManager.CreateCollection(CollectionName, ECollectionShareType::CST_Local, ECollectionStorageMode::Static))
+	else if (CollectionManager.CreateCollection(CollectionName, ShareType, ECollectionStorageMode::Static))
 	{
 		return true;
 	}
@@ -1455,137 +1984,50 @@ bool FAssetManagerEditorModule::CreateOrEmptyCollection(FName CollectionName)
 	return false;
 }
 
-void FAssetManagerEditorModule::WriteCollection(FName CollectionName, const TArray<FName>& PackageNames)
+bool FAssetManagerEditorModule::WriteCollection(FName CollectionName, ECollectionShareType::Type ShareType, const TArray<FName>& PackageNames, bool bShowFeedback)
 {
-	if (CreateOrEmptyCollection(CollectionName))
+	ICollectionManager& CollectionManager = FCollectionManagerModule::GetModule().Get();
+	FText ResultsMessage;
+	bool bSuccess = false;
+
+	TSet<FName> ObjectPathsToAddToCollection;
+	for (FName PackageToAdd : PackageNames)
 	{
-		TArray<FName> AssetNames = PackageNames;
+		const FString PackageString = PackageToAdd.ToString();
+		const FName ObjectPath = *FString::Printf(TEXT("%s.%s"), *PackageString, *FPackageName::GetLongPackageAssetName(PackageString));
+		ObjectPathsToAddToCollection.Add(ObjectPath);
+	}
 
-		// Convert package names to asset names
-		for (FName& Name : AssetNames)
+	if (ObjectPathsToAddToCollection.Num() == 0)
+	{
+		UE_LOG(LogAssetManagerEditor, Log, TEXT("Nothing to add to collection %s"), *CollectionName.ToString());
+		ResultsMessage = FText::Format(LOCTEXT("NothingToAddToCollection", "Nothing to add to collection {0}"), FText::FromName(CollectionName));
+	}
+	else if (CreateOrEmptyCollection(CollectionName, ShareType))
+	{		
+		if (CollectionManager.AddToCollection(CollectionName, ECollectionShareType::CST_Local, ObjectPathsToAddToCollection.Array()))
 		{
-			FString PackageName = Name.ToString();
-			int32 LastPathDelimiter;
-			if (PackageName.FindLastChar(TEXT('/'), /*out*/ LastPathDelimiter))
-			{
-				const FString AssetName = PackageName.Mid(LastPathDelimiter + 1);
-				PackageName = PackageName + FString(TEXT(".")) + AssetName;
-				Name = *PackageName;
-			}
+			UE_LOG(LogAssetManagerEditor, Log, TEXT("Updated collection %s"), *CollectionName.ToString());
+			ResultsMessage = FText::Format(LOCTEXT("CreateCollectionSucceeded", "Updated collection {0}"), FText::FromName(CollectionName));
+			bSuccess = true;
 		}
-
-		ICollectionManager& CollectionManager = FCollectionManagerModule::GetModule().Get();
-		CollectionManager.AddToCollection(CollectionName, ECollectionShareType::CST_Local, AssetNames);
-
-		UE_LOG(LogAssetManagerEditor, Log, TEXT("Updated collection %s"), *CollectionName.ToString());
+		else
+		{
+			UE_LOG(LogAssetManagerEditor, Warning, TEXT("Failed to update collection %s. %s"), *CollectionName.ToString(), *CollectionManager.GetLastError().ToString());
+			ResultsMessage = FText::Format(LOCTEXT("AddToCollectionFailed", "Failed to add to collection {0}. {1}"), FText::FromName(CollectionName), CollectionManager.GetLastError());
+		}
 	}
 	else
 	{
-		UE_LOG(LogAssetManagerEditor, Warning, TEXT("Failed to update collection %s"), *CollectionName.ToString());
+		UE_LOG(LogAssetManagerEditor, Warning, TEXT("Failed to create collection %s. %s"), *CollectionName.ToString(), *CollectionManager.GetLastError().ToString());
+		ResultsMessage = FText::Format(LOCTEXT("CreateCollectionFailed", "Failed to create collection {0}. {0}"), FText::FromName(CollectionName), CollectionManager.GetLastError());
 	}
+
+	if (bShowFeedback)
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, ResultsMessage);
+	}
+
+	return bSuccess;
 }
-
-void FAssetManagerEditorModule::RecreateCollections()
-{
-	ICollectionManager& CollectionManager = FCollectionManagerModule::GetModule().Get();
-
-/*	// Create collections for untagged assets
-	{
-		TArray<FName> UntaggedPaths;
-		UntaggedPaths.Empty(CookedAssetSizes.Num());
-
-		for (auto CookedAssetKV : CookedAssetSizes)
-		{
-			if (!TaggedAssets.Contains(CookedAssetKV.Key))
-			{
-				UntaggedPaths.Add(CookedAssetKV.Key);
-			}
-		}
-		WriteCollection(TEXT("Audit_CookedButUntagged"), UntaggedPaths);
-		WriteSizeSortedList(UntaggedPaths);
-	}
-
-	// Create collections for cooked assets
-	{
-		TArray<FName> CookedPaths;
-		CookedPaths.Empty(CookedAssetSizes.Num());
-
-		for (auto CookedAssetKV : CookedAssetSizes)
-		{
-			CookedPaths.Add(CookedAssetKV.Key);
-		}
-
-		WriteCollection(TEXT("Audit_Cooked"), CookedPaths);
-	}
-
-	// Create a collection for developer folder assets
-	{
-		TArray<FName> DeveloperPaths;
-		DeveloperPaths.Empty(CookedAssetSizes.Num());
-
-		const FString DeveloperFolderPrefix(TEXT("/Game/Developers/"));
-
-		for (auto CookedAssetKV : CookedAssetSizes)
-		{
-			if (CookedAssetKV.Key.ToString().StartsWith(DeveloperFolderPrefix, ESearchCase::CaseSensitive))
-			{
-				DeveloperPaths.Add(CookedAssetKV.Key);
-			}
-		}
-
-		WriteCollection(TEXT("Audit_CookedDeveloperFolders"), DeveloperPaths);
-	}
-
-	// Create a collection for WIP assets
-	{
-		WriteCollection(TEXT("Audit_WorkInProgress"), WorksInProgress.Array());
-	}
-
-	// Create a collection for WIP assets that are incorrectly referenced by non-WIP assets
-	{
-		TArray<FName> HygieneErrors;
-		HygieneErrors.Empty(CookedAssetSizes.Num());
-
-		for (const auto& AssetKV : TaggedAssets)
-		{
-			const FName& AssetName = AssetKV.Key;
-
-			if (WorksInProgress.Contains(AssetName))
-			{
-				// It's a work in progress, see if it's used by any seeds who are *not* a work in progress
-				const TArray<UPrimaryAssetLabel*>& AssetTags = AssetKV.Value;
-
-				bool bUsedByNonWIP = false;
-				for (const UPrimaryAssetLabel* Tag : AssetTags)
-				{
-					if (!Tag->bIncompleteWorkInProgress)
-					{
-						bUsedByNonWIP = true;
-						break;
-					}
-				}
-
-				if (bUsedByNonWIP)
-				{
-					HygieneErrors.Add(AssetName);
-				}
-			}
-		}
-
-		WriteCollection(TEXT("Audit_ErrorUsingWIP"), HygieneErrors);
-	}
-
-	*/
-}
-
-void FAssetManagerEditorModule::WriteSizeSortedList(TArray<FName>& PackageNames) const
-{
-/*	PackageNames.Sort([&](const FName& A, const FName& B) { return CookedAssetSizes.FindRef(A).Size > CookedAssetSizes.FindRef(B).Size; });
-
-	for (const FName& AssetName : PackageNames)
-	{
-		UE_LOG(LogAssetManagerEditor, Log, TEXT("%s,%lld"), *AssetName.ToString(), CookedAssetSizes.FindRef(AssetName).Size);
-	}*/
-}
-
 #undef LOCTEXT_NAMESPACE

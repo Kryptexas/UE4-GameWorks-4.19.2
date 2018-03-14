@@ -12,13 +12,17 @@ tags:Tracing
 tags:Raycast
 topic-image:trace_topic.png
 
-<!-- 公共变量 -->
+[COMMENT:none]
+ 公共变量 
+[/COMMENT]
 
 [VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
 
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-<!-- 总览 -->
+[COMMENT:none]
+ 总览 
+[/COMMENT]
 
 [REGION:fullwidth]
 ![](traceTitle.png)(convert:false)
@@ -57,7 +61,8 @@ topic-image:trace_topic.png
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ts1]
 | **成员** || **定义** |
 | --- | :---:| :--- |
@@ -77,7 +82,8 @@ topic-image:trace_topic.png
 | **Trace Start** || 追踪开始的位置。|
 | **Trace End** || 追踪结束的位置。|
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 ## 形体追踪
 
@@ -127,4 +133,6 @@ topic-image:trace_topic.png
 
 此外追踪还拥有一些小功能，限制其范围的内容，以简化调试。如在静态网格体或过程网格体上启用，它们能对 **复杂碰撞** 进行追踪。如果从 **Actor** 调用这些功能，启用 **Actor** 通过自身进行追踪即可无视所有附加的组件。最后，它们拥有以红色或绿色线条代表追踪的选项，较大的框则代表命中。
 
-<!-- 绘制调试类型、Trace Complex、无视自身 -->
+[COMMENT:none]
+ 绘制调试类型、Trace Complex、无视自身 
+[/COMMENT]

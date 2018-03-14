@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetTypeActions/AssetTypeActions_StaticMesh.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
@@ -91,7 +91,10 @@ void FAssetTypeActions_StaticMesh::GetResolvedSourceFilePaths(const TArray<UObje
 	for (auto& Asset : TypeAssets)
 	{
 		const auto StaticMesh = CastChecked<UStaticMesh>(Asset);
-		StaticMesh->AssetImportData->ExtractFilenames(OutSourceFilePaths);
+		if (StaticMesh->AssetImportData)
+		{
+			StaticMesh->AssetImportData->ExtractFilenames(OutSourceFilePaths);
+		}
 	}
 }
 

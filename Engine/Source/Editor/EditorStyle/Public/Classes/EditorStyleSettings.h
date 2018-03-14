@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -55,7 +55,14 @@ public:
 
 	GENERATED_UCLASS_BODY()
 
+	void Init();
 public:
+	/**
+	 * Enables high dpi support in the editor which will adjust the scale of elements in the UI to account for high DPI monitors
+	 * The editor must be restarted for changes to take effect.
+	 */
+	UPROPERTY(EditAnywhere, Category=UserInterface, meta = (ConfigRestartRequired = true, DisplayName="Enable High DPI Support"))
+	bool bEnableHighDPIAwareness;
 
 	/** The color used to represent selection */
 	UPROPERTY(EditAnywhere, config, Category=Colors, meta=(DisplayName="Selection Color"))
@@ -92,8 +99,6 @@ public:
 	/** Check to reset the window background settings to editor defaults */
 	UPROPERTY(EditAnywhere, config, Category=Colors)
 	bool bResetEditorWindowBackgroundSettings;
-
-public:
 
 	/** Whether to use small toolbar icons without labels or not. */
 	UPROPERTY(EditAnywhere, config, Category=UserInterface)

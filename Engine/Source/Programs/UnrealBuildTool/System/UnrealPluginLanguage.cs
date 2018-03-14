@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -530,6 +530,11 @@ namespace UnrealBuildTool
 		public bool GetTrace() { return bGlobalTrace; }
 		public void SetTrace() { bGlobalTrace = true; }
 		public void ClearTrace() { bGlobalTrace = false; }
+
+		public string GetUPLHash()
+		{
+			return XDoc.ToString().GetHashCode().ToString();
+		}
 
 		public bool MergeXML(XDocument MergeDoc, string PluginDir, List<string> Architectures)
 		{

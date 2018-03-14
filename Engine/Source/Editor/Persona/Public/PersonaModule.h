@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,6 +19,8 @@ class IPersonaToolkit;
 class UAnimBlueprint;
 class USkeletalMeshComponent;
 class UPhysicsAsset;
+class IPinnedCommandList;
+class FWorkflowAllowedTabSet;
 
 extern const FName PersonaAppName;
 
@@ -47,6 +49,12 @@ DECLARE_DELEGATE_OneParam(FOnAnimationSequenceBrowserCreated, const TSharedRef<c
 
 /** Called back when a Persona preview scene is created */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreviewSceneCreated, const TSharedRef<class IPersonaPreviewScene>&);
+
+/** Called back to register tabs */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnRegisterTabs, FWorkflowAllowedTabSet&, TSharedPtr<class FAssetEditorToolkit>);
+
+/** Called back to register common layout extensions */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnRegisterLayoutExtensions, FLayoutExtender&);
 
 /** Initialization parameters for persona toolkits */
 struct FPersonaToolkitArgs
@@ -92,6 +100,18 @@ struct FAnimDocumentArgs
 	FSimpleDelegate OnDespatchAnimNotifiesChanged;
 };
 
+/** Places that viewport text can be placed */
+enum class EViewportCorner : uint8
+{
+	TopLeft,
+	TopRight,
+	BottomLeft,
+	BottomRight,
+};
+
+/** Delegate used to provide custom text for the viewport corners */
+DECLARE_DELEGATE_RetVal_OneParam(FText, FOnGetViewportText, EViewportCorner /*InViewportCorner*/);
+
 /** Arguments used to create a persona viewport tab */
 struct FPersonaViewportArgs
 {
@@ -99,6 +119,7 @@ struct FPersonaViewportArgs
 		: SkeletonTree(InSkeletonTree)
 		, PreviewScene(InPreviewScene)
 		, OnPostUndo(InOnPostUndo)
+		, ContextName(NAME_None)
 		, bShowShowMenu(true)
 		, bShowLODMenu(true)
 		, bShowPlaySpeedMenu(true)
@@ -123,6 +144,12 @@ struct FPersonaViewportArgs
 	
 	/** Menu extenders */
 	TArray<TSharedPtr<FExtender>> Extenders;
+
+	/** Delegate used to customize viewport corner text */
+	FOnGetViewportText OnGetViewportText;
+
+	/** The context in which we are constructed. Used to persist various settings. */
+	FName ContextName;
 
 	/** Whether to show the 'Show' menu */
 	bool bShowShowMenu;
@@ -188,6 +215,9 @@ public:
 	/** Create a persona viewport tab factory */
 	virtual TSharedRef<class FWorkflowTabFactory> CreatePersonaViewportTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const FPersonaViewportArgs& InArgs) const;
 
+	/** Register 4 Persona viewport tab factories */
+	virtual void RegisterPersonaViewportTabFactories(FWorkflowAllowedTabSet& TabSet, const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const FPersonaViewportArgs& InArgs) const;
+
 	/** Create an anim notifies tab factory */
 	virtual TSharedRef<class FWorkflowTabFactory> CreateAnimNotifiesTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, FSimpleMulticastDelegate& InOnChangeAnimNotifies, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectsSelected InOnObjectsSelected) const;
 
@@ -238,7 +268,7 @@ public:
 	virtual void ApplyCompression(TArray<TWeakObjectPtr<class UAnimSequence>>& AnimSequences);
 
 	/** Export to FBX files of the list of animations */
-	virtual void ExportToFBX(TArray<TWeakObjectPtr<class UAnimSequence>>& AnimSequences, USkeletalMesh* SkeletalMesh);
+	virtual bool ExportToFBX(TArray<TWeakObjectPtr<class UAnimSequence>>& AnimSequences, USkeletalMesh* SkeletalMesh);
 
 	/** Add looping interpolation to the list of animations */
 	virtual void AddLoopingInterpolation(TArray<TWeakObjectPtr<class UAnimSequence>>& AnimSequences);
@@ -267,8 +297,33 @@ public:
 	/** Delegate broadcast when a preview scene is created */
 	virtual FOnPreviewSceneCreated& OnPreviewSceneCreated() { return OnPreviewSceneCreatedDelegate; }
 
+	/** Settings for AddCommonToolbarExtensions */
+	struct FCommonToolbarExtensionArgs
+	{
+		FCommonToolbarExtensionArgs()
+			: bPreviewMesh(true)
+			, bPreviewAnimation(true)
+			, bReferencePose(false)
+		{}
+
+		/** Adds a shortcut to setup a preview mesh to override the current display */
+		bool bPreviewMesh;
+
+		/** Adds a shortcut to setup a preview animation to override the current display */
+		bool bPreviewAnimation;
+
+		/** Adds a shortcut to set the character back to reference pose (also clears all bone modifications) */
+		bool bReferencePose;
+	};
+
 	/** Add common toobar extensions */
-	virtual void AddCommonToolbarExtensions(FToolBarBuilder& InToolbarBuilder, TSharedRef<IPersonaToolkit> PersonaToolkit);
+	virtual void AddCommonToolbarExtensions(FToolBarBuilder& InToolbarBuilder, TSharedRef<IPersonaToolkit> PersonaToolkit, const FCommonToolbarExtensionArgs& InArgs = FCommonToolbarExtensionArgs());
+
+	/** Register common layout extensions */
+	virtual FOnRegisterLayoutExtensions& OnRegisterLayoutExtensions() { return OnRegisterLayoutExtensionsDelegate; }
+
+	/** Register common tabs */
+	virtual FOnRegisterTabs& OnRegisterTabs() { return OnRegisterTabsDelegate; }
 
 private:
 	/** When a new anim notify blueprint is created, this will handle post creation work such as adding non-event default nodes */
@@ -301,5 +356,11 @@ private:
 
 	/** Delegate broadcast when a preview scene is created */
 	FOnPreviewSceneCreated OnPreviewSceneCreatedDelegate;
+
+	/** Delegate broadcast to register common layout extensions */
+	FOnRegisterLayoutExtensions OnRegisterLayoutExtensionsDelegate;
+
+	/** Delegate broadcast to register common tabs */
+	FOnRegisterTabs OnRegisterTabsDelegate;
 };
 

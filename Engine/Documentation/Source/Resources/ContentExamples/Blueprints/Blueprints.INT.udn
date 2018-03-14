@@ -10,43 +10,12 @@ Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Blueprints/UserGuide/UserConstructionScript
 Related: Gameplay/HowTo/SetUpInput/Blueprints
 Version: 4.9
-
+topic-image:blueprint_ce_compact.png
 
 
 [REGION:banner]
 ![](BlueprintInput_Header.png)(convert:false)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Blueprints:title%](blueprint_ce_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Blueprints:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Blueprints:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Blueprints]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Blueprints:title%](blueprint_ce_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Blueprints:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Blueprints]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 
@@ -170,7 +139,9 @@ The example given allows you to click-and-drag objects around on screen that rea
 
 More detailed information for this map can be found here: 
 
-<!---* [1.1 Blueprint Mouse Interaction](Resources\ContentExamples\MouseInterface)--->
+[COMMENT:none]
+-* [1.1 Blueprint Mouse Interaction](Resources\ContentExamples\MouseInterface)-
+[/COMMENT]
 
 | Example | What is Demonstrated |
 | ------- | ------------ |
@@ -184,7 +155,9 @@ The **Blueprint_HUD** map provides an example on how to generate HUD elements wi
 
 More detailed information for this map can be found here: 
 
-<!---* [1.1 Blueprints HUD Example](Resources\ContentExamples\Blueprints_HUD\1_1)--->
+[COMMENT:none]
+-* [1.1 Blueprints HUD Example](Resources\ContentExamples\Blueprints_HUD\1_1)-
+[/COMMENT]
 
 | Example | What is Demonstrated |
 | ------- | ------------ |
@@ -224,9 +197,11 @@ The **Dynamic Examples** show how a Spline Component can be updated dynamically 
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BlueprintsCEInstructions]
 You can [open the Blueprints](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Opening) in the Content Example and see how the [Defaults](Engine/Blueprints/Editor\Modes\Defaults), [Components](Engine/Blueprints/UserGuide\Components), and [Graphs](Engine/Blueprints/Editor\Modes\GraphPanel) are set up to create each Blueprint.
 [/EXCERPT:BlueprintsCEInstructions]
 
--->
+
+[/COMMENT]

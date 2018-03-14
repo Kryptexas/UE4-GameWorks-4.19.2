@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -38,16 +38,42 @@ public:
 	virtual ~FPlugin();
 
 	/* IPluginInfo interface */
-	virtual FString GetName() const override;
-	virtual FString GetDescriptorFileName() const override;
+	virtual const FString& GetName() const override
+	{
+		return Name;
+	}
+
+	virtual const FString& GetDescriptorFileName() const override
+	{
+		return FileName;
+	}
+
 	virtual FString GetBaseDir() const override;
 	virtual FString GetContentDir() const override;
 	virtual FString GetMountedAssetPath() const override;
-	virtual bool IsEnabled() const override;
+
+	virtual bool IsEnabled() const override
+	{
+		return bEnabled;
+	}
+
 	virtual bool IsEnabledByDefault() const override;
-	virtual bool IsHidden() const override;
-	virtual bool CanContainContent() const override;
-	virtual EPluginType GetType() const override;
+
+	virtual bool IsHidden() const override
+	{
+		return Descriptor.bIsHidden;
+	}
+
+	virtual bool CanContainContent() const override
+	{
+		return Descriptor.bCanContainContent;
+	}
+
+	virtual EPluginType GetType() const override
+	{
+		return Type;
+	}
+
 	virtual EPluginLoadedFrom GetLoadedFrom() const override;
 	virtual const FPluginDescriptor& GetDescriptor() const override;
 	virtual bool UpdateDescriptor(const FPluginDescriptor& NewDescriptor, FText& OutFailReason) override;
@@ -75,6 +101,7 @@ public:
 	virtual bool CheckModuleCompatibility( TArray<FString>& OutIncompatibleModules ) override;
 	virtual TSharedPtr<IPlugin> FindPlugin(const FString& Name) override;
 	virtual TArray<TSharedRef<IPlugin>> GetEnabledPlugins() override;
+	virtual TArray<TSharedRef<IPlugin>> GetEnabledPluginsWithContent() const override;
 	virtual TArray<TSharedRef<IPlugin>> GetDiscoveredPlugins() override;
 	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const override;
 	virtual void AddPluginSearchPath(const FString& ExtraDiscoveryPath, bool bRefresh = true) override;

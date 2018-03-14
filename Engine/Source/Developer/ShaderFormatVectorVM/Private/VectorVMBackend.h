@@ -1,4 +1,5 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+// .
 
 #pragma once
 
@@ -71,7 +72,7 @@ ECallScalarizeMode get_scalarize_mode(ir_function_signature* in_sig);
 EVectorVMOp get_special_vm_opcode(ir_function_signature* signature);
 
 void vm_matrices_to_vectors(exec_list* instructions, _mesa_glsl_parse_state *state);
-bool do_vec_op_to_scalar(exec_list *instructions);
+bool do_vec_op_to_scalar(exec_list *instructions, _mesa_glsl_parse_state* parse_state);
 bool vm_flatten_branches_to_selects(exec_list *instructions, _mesa_glsl_parse_state *state);
 void vm_to_single_op(exec_list *ir, _mesa_glsl_parse_state *state);
 void vm_merge_ops(exec_list *ir, _mesa_glsl_parse_state *state);
@@ -80,11 +81,13 @@ void vm_propagate_non_expressions_visitor(exec_list* ir, _mesa_glsl_parse_state*
 void vm_gen_bytecode(exec_list *ir, _mesa_glsl_parse_state *state, FVectorVMCompilationOutput& InCompOutput);
 
 
+void DebugDumpIR(struct exec_list* ir, struct _mesa_glsl_parse_state* State);
+
 //////////////////////////////////////////////////////////////////////////
 //Enable verbose debug dumps.
 #define VM_VERBOSE_LOGGING 0
 #if VM_VERBOSE_LOGGING == 2
-#define vm_debug_dump(ir, state) IRDump(ir, state)
+#define vm_debug_dump(ir, state) DebugDumpIR(ir, state)
 #define vm_debug_print dprintf
 #elif VM_VERBOSE_LOGGING == 1
 #define vm_debug_dump(ir, state) 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Misc/ConfigCacheIni.h"
@@ -447,18 +447,23 @@ int32 UEnum::GetIndexByNameString(const FString& InSearchString, EGetByNameFlags
 			SearchEnumEntryString = **FoundNewEnumEntry;
 
 			// Recompute modified name
-			DoubleColonIndex = SearchEnumEntryString.Find(TEXT("::"), ESearchCase::CaseSensitive);
-			if (DoubleColonIndex == INDEX_NONE)
+			int32 NewDoubleColonIndex = SearchEnumEntryString.Find(TEXT("::"), ESearchCase::CaseSensitive);
+			if (NewDoubleColonIndex == INDEX_NONE)
 			{
 				ModifiedEnumEntryString = GenerateFullEnumName(*SearchEnumEntryString);
 			}
 			else
 			{
-				ModifiedEnumEntryString = SearchEnumEntryString.RightChop(DoubleColonIndex + 2);
+				ModifiedEnumEntryString = SearchEnumEntryString.RightChop(NewDoubleColonIndex + 2);
 			}
 		}
 	}
-		
+	else if (DoubleColonIndex != INDEX_NONE)
+	{
+		// If we didn't find a value redirect and our original string was namespaced, we need to fix the namespace now as it may have changed due to enum type redirect
+		SearchEnumEntryString = GenerateFullEnumName(*ModifiedEnumEntryString);
+	}
+
 	// Search for names both with and without namespace
 	FName SearchName = FName(*SearchEnumEntryString);
 	FName ModifiedName = FName(*ModifiedEnumEntryString);
@@ -499,31 +504,36 @@ int64 UEnum::GetValueByNameString(const FString& SearchString, EGetByNameFlags F
 	return INDEX_NONE;
 }
 
+bool UEnum::ContainsExistingMax() const
+{
+	if (GetIndexByName(*GenerateFullEnumName(TEXT("MAX")), EGetByNameFlags::CaseSensitive) != INDEX_NONE)
+	{
+		return true;
+	}
+
+	FName MaxEnumItem = *GenerateFullEnumName(*(GenerateEnumPrefix() + TEXT("_MAX")));
+	if (GetIndexByName(MaxEnumItem, EGetByNameFlags::CaseSensitive) != INDEX_NONE)
+	{
+		return true;
+	}
+
+	return false;
+}
+
 bool UEnum::SetEnums(TArray<TPair<FName, int64>>& InNames, UEnum::ECppForm InCppForm, bool bAddMaxKeyIfMissing)
 {
 	if (Names.Num() > 0)
 	{
 		RemoveNamesFromMasterList();
 	}
-	Names  = InNames;
+	Names   = InNames;
 	CppForm = InCppForm;
 
 	if (bAddMaxKeyIfMissing)
 	{
-		const FString EnumPrefix = GenerateEnumPrefix();
-		checkSlow(EnumPrefix.Len());
-
-		FName MaxEnumItem      = *GenerateFullEnumName(TEXT("MAX"));
-		int32 MaxEnumItemIndex = GetIndexByName(MaxEnumItem, EGetByNameFlags::CaseSensitive);
-
-		if (MaxEnumItemIndex == INDEX_NONE)
+		if (!ContainsExistingMax())
 		{
-			MaxEnumItem      = *GenerateFullEnumName(*(EnumPrefix + TEXT("_MAX")));
-			MaxEnumItemIndex = GetIndexByName(MaxEnumItem, EGetByNameFlags::CaseSensitive);
-		}
-
-		if (MaxEnumItemIndex == INDEX_NONE)
-		{
+			FName MaxEnumItem = *GenerateFullEnumName(*(GenerateEnumPrefix() + TEXT("_MAX")));
 			if (LookupEnumName(MaxEnumItem) != INDEX_NONE)
 			{
 				// the MAX identifier is already being used by another enum

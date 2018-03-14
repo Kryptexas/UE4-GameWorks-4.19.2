@@ -6,41 +6,12 @@ Related: Engine/Blueprints/UserGuide/MathNode
 Related: Engine/Rendering/Materials/Functions
 Related: Engine/Rendering/Materials/ExpressionReference
 Version: 4.9
+topic-image:mathHall_compact.png
 
 [REGION:banner]
 ![](MathHall_Header.png)(convert:false)
 [/REGION]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/MathHall:title%](mathHall_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MathHall:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MathHall:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/MathHall]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/MathHall:title%](mathHall_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MathHall:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/MathHall]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:3)]
 

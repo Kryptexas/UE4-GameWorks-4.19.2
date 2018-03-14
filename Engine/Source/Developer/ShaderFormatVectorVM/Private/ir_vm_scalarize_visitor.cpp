@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ShaderFormatVectorVM.h"
 #include "CoreMinimal.h"
@@ -124,7 +124,7 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 		//Ugh. Make less bad.
 		ir_function* func = const_cast<ir_function*>(in_sig->function());
 
-		void* parent = ralloc_parent(in_sig);
+		//void* parent = ralloc_parent(in_sig);
 		ECallScalarizeMode mode = get_scalarize_mode(in_sig);
 
 		ir_function_signature* new_sig = nullptr;
@@ -134,14 +134,14 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 		}
 		else if (mode == ECallScalarizeMode::SplitParams)
 		{
-			new_sig = new(parent) ir_function_signature(in_sig->return_type);
+			new_sig = new(parse_state) ir_function_signature(in_sig->return_type);
 
 			TFunction<void(const ir_variable*, const glsl_type*, FString)> append_scalar_params = [&](const ir_variable* original, const glsl_type* type, FString Name)
 			{
 				const glsl_type* base_type = type->get_base_type();
 				if (type->is_scalar())
 				{
-					new_sig->parameters.push_tail(new(parent) ir_variable(type, TCHAR_TO_ANSI(*Name), original->mode));
+					new_sig->parameters.push_tail(new(parse_state) ir_variable(type, TCHAR_TO_ANSI(*Name), original->mode));
 				}
 				else if (type->is_vector())
 				{
@@ -187,11 +187,11 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 		}
 		else if (mode == ECallScalarizeMode::SplitCalls)
 		{
-			new_sig = new(parent) ir_function_signature(in_sig->return_type);
+			new_sig = new(parse_state) ir_function_signature(in_sig->return_type->get_base_type());
 			foreach_iter(exec_list_iterator, iter, in_sig->parameters)
 			{
 				ir_variable *var = (ir_variable *)iter.get();
-				new_sig->parameters.push_tail(new(parent) ir_variable(var->type->get_base_type(), var->name, var->mode));
+				new_sig->parameters.push_tail(new(parse_state) ir_variable(var->type->get_base_type(), var->name, var->mode));
 			}
 		}
 
@@ -255,7 +255,7 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 	
 	virtual ir_visitor_status visit_enter(ir_call* call)
 	{
-		void* parent = ralloc_parent(call->callee);
+		//void* parent = ralloc_parent(call->callee);
 		ECallScalarizeMode mode = get_scalarize_mode(call->callee);
 
 		check(call->next && call->prev);
@@ -316,29 +316,29 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 
 				//Clone the call max_component times and visit each param to scalarize them to the right component.				
 				ir_variable* old_dest = call->return_deref->var;
-				void* perm_mem_ctx = ralloc_parent(call);
+				//void* perm_mem_ctx = ralloc_parent(call);
 				for (unsigned i = 0; i < max_components; ++i)
 				{
 					dest_component = i;
 
-					ir_variable* new_dest = new(perm_mem_ctx) ir_variable(old_dest->type->get_base_type(), old_dest->name, ir_var_temporary);
+					ir_variable* new_dest = new(parse_state) ir_variable(old_dest->type->get_base_type(), old_dest->name, ir_var_temporary);
 					call->insert_before(new_dest);
 
 					exec_list new_params;
 					foreach_iter(exec_list_iterator, param_iter, call->actual_parameters)
 					{
 						ir_rvalue* param = (ir_rvalue*)param_iter.get();
-						param = param->clone(perm_mem_ctx, nullptr);
+						param = param->clone(parse_state, nullptr);
 						curr_rval = nullptr;
 						param->accept(this);
 						new_params.push_tail(curr_rval ? curr_rval : param);
 					}
 
-					call->insert_before(new(perm_mem_ctx)ir_call(scalar_sig, new(perm_mem_ctx) ir_dereference_variable(new_dest), &new_params));
+					call->insert_before(new(parse_state)ir_call(scalar_sig, new(parse_state) ir_dereference_variable(new_dest), &new_params));
 
-					ir_dereference* deref = call->return_deref->clone(perm_mem_ctx, nullptr);
+					ir_dereference* deref = call->return_deref->clone(parse_state, nullptr);
 					unsigned write_mask = 1 << dest_component;
-					call->insert_before(new(perm_mem_ctx)ir_assignment(deref, new(perm_mem_ctx) ir_dereference_variable(new_dest), nullptr, write_mask));
+					call->insert_before(new(parse_state)ir_assignment(deref, new(parse_state) ir_dereference_variable(new_dest), nullptr, write_mask));
 				}
 
 				call->remove();
@@ -363,7 +363,7 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 
 		check(assign->next && assign->prev);
 
-		void* perm_mem_ctx = ralloc_parent(assign);
+		//void* perm_mem_ctx = ralloc_parent(assign);
 
 		const glsl_type* type = assign->lhs->type;
 
@@ -401,14 +401,14 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 					comp_assign = NULL;
 				}
 
-				comp_assign = assign->clone(perm_mem_ctx, NULL);
+				comp_assign = assign->clone(parse_state, NULL);
 				check(comp_assign);
 				dest_component = comp_idx;
 
 				if (is_struct)
 				{
 					comp_assign->write_mask = 0;
-					comp_assign->set_lhs(new(perm_mem_ctx)ir_dereference_record(comp_assign->lhs, comp_assign->lhs->type->fields.structure[dest_component].name));
+					comp_assign->set_lhs(new(parse_state)ir_dereference_record(comp_assign->lhs, comp_assign->lhs->type->fields.structure[dest_component].name));
 				}
 				else
 				{
@@ -466,22 +466,26 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 
 	virtual ir_visitor_status visit_enter(ir_dereference_array* array_deref)
 	{
-		void* perm_mem_ctx = ralloc_parent(array_deref);
+		//void* perm_mem_ctx = ralloc_parent(array_deref);
 		const glsl_type* array_type = array_deref->array->type;
 		const glsl_type* type = array_deref->type;
 
 		//Only supporting array derefs for matrices atm.
 		check(array_type->is_matrix());
+		check(type->is_vector());
 
 		//Only support constant matrix indices. Not immediately clear how I'd do non-const access.
 		ir_constant* index = array_deref->array_index->as_constant();
 		check(index->type == glsl_type::uint_type || index->type == glsl_type::int_type);
 		check(index->type->is_scalar());
 
-		unsigned mat_comp = index->type == glsl_type::uint_type ? index->value.u[0] : index->value.i[0];
-		unsigned swiz_comp = mat_comp * array_type->vector_elements + dest_component;
-		ir_dereference_variable* new_deref = new(perm_mem_ctx) ir_dereference_variable(array_deref->variable_referenced());
-		ir_swizzle* swiz = new(perm_mem_ctx) ir_swizzle(new_deref, type->is_scalar() ? 0 : swiz_comp, 0, 0, 0, 1);
+// 		unsigned mat_comp = index->type == glsl_type::uint_type ? index->value.u[0] : index->value.i[0];
+// 		unsigned swiz_comp = mat_comp * array_type->vector_elements + dest_component;
+// 		ir_dereference_variable* new_deref = new(perm_mem_ctx) ir_dereference_variable(array_deref->variable_referenced());
+// 		ir_swizzle* swiz = new(perm_mem_ctx) ir_swizzle(new_deref, type->is_scalar() ? 0 : swiz_comp, 0, 0, 0, 1);
+// 		curr_rval = swiz;
+
+		ir_swizzle* swiz = new(parse_state) ir_swizzle(array_deref, dest_component, 0, 0, 0, 1);
 		curr_rval = swiz;
 
 		return visit_continue_with_parent;
@@ -489,14 +493,14 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 
 	virtual ir_visitor_status visit_enter(ir_dereference_record* deref)
 	{
-		void* perm_mem_ctx = ralloc_parent(deref);
+		//void* perm_mem_ctx = ralloc_parent(deref);
 		const glsl_type* type = deref->type;
 
 		if (type->base_type == GLSL_TYPE_STRUCT)
 		{
 			check(dest_component < type->length);
 
-			ir_dereference_record* rec = new(perm_mem_ctx) ir_dereference_record(deref, type->fields.structure[dest_component].name);
+			ir_dereference_record* rec = new(parse_state) ir_dereference_record(deref, type->fields.structure[dest_component].name);
 			curr_rval = rec;
 		}
 		else
@@ -505,7 +509,7 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 			//check(type->components() >= dest_component || type->is_scalar());
 			unsigned use_component = FMath::Min(type->components(), dest_component);
 
-			ir_swizzle* swiz = new(perm_mem_ctx) ir_swizzle(deref, type->is_scalar() ? 0 : use_component, 0, 0, 0, 1);
+			ir_swizzle* swiz = new(parse_state) ir_swizzle(deref, type->is_scalar() ? 0 : use_component, 0, 0, 0, 1);
 			curr_rval = swiz;
 		}
 
@@ -514,14 +518,14 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 
 	virtual ir_visitor_status visit(ir_dereference_variable *deref)
 	{
-		void* perm_mem_ctx = ralloc_parent(deref);
+		//void* perm_mem_ctx = ralloc_parent(deref);
 		ir_variable* var = deref->variable_referenced();
 		const glsl_type* type = var->type;
 		if (type->base_type == GLSL_TYPE_STRUCT)
 		{
 			check(dest_component < type->length);
 
-			ir_dereference_record* rec = new(perm_mem_ctx) ir_dereference_record(var, type->fields.structure[dest_component].name);
+			ir_dereference_record* rec = new(parse_state) ir_dereference_record(var, type->fields.structure[dest_component].name);
 			curr_rval = rec;
 		}
 		else
@@ -532,7 +536,7 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 				//check(type->components() > dest_component);
 				unsigned use_component = FMath::Min(type->components(), dest_component);
 
-				ir_swizzle* swiz = new(perm_mem_ctx) ir_swizzle(deref, use_component, 0, 0, 0, 1);
+				ir_swizzle* swiz = new(parse_state) ir_swizzle(deref, use_component, 0, 0, 0, 1);
 				curr_rval = swiz;
 			}
 		}

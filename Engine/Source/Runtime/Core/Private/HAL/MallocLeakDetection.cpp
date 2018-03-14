@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MallocLeakDetection.cpp: Helper class to track memory allocations
@@ -19,6 +19,10 @@
 #include "ProfilingDebugging/ProfilingHelpers.h"
 
 #if MALLOC_LEAKDETECTION
+
+#if USE_MALLOC_PROFILER
+#error There is a deadlock that happens when using both the malloc profiler and leakdetection at the same time. Remove this error when it is fixed.
+#endif
 
 /**
  *	Need forced-initialization of this data as it can be used during global
@@ -79,8 +83,6 @@ bool FMallocLeakDetection::IsDisabledForThisThread() const
 
 void FMallocLeakDetection::PushContext(const FString& Context)
 {
-	FMallocLeakDetectionProxy::Get().Lock();
-
 	FScopeLock Lock(&AllocatedPointersCritical);
 
 	TArray<ContextString>* TLContexts = (TArray<ContextString>*)FPlatformTLS::GetTlsValue(FMallocLeakDetectionStatics::Get().ContextsTLSID);
@@ -96,8 +98,6 @@ void FMallocLeakDetection::PushContext(const FString& Context)
 	FCString::Strncpy(Str.Buffer, *Context, 128);
 	TLContexts->Push(Str);
 	bRecursive = false;
-
-	FMallocLeakDetectionProxy::Get().Unlock();
 }
 
 void FMallocLeakDetection::PopContext()

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalRenderPass.cpp: Metal command pass wrapper.
@@ -124,6 +124,8 @@ id<MTLFence> FMetalRenderPass::Submit(EMetalSubmitFlags Flags)
 		
         CurrentEncoder.CommitCommandBuffer(Flags);
     }
+	
+	OutstandingBufferUploads.Empty();
 	
 	check((Flags & (EMetalSubmitFlagsCreateCommandBuffer|EMetalSubmitFlagsAsyncCommandBuffer)) || !CurrentEncoder.GetCommandBuffer());
 	check(!PrologueEncoder.GetCommandBuffer());
@@ -342,7 +344,47 @@ void FMetalRenderPass::DrawPrimitiveIndirect(uint32 PrimitiveType, FMetalVertexB
 void FMetalRenderPass::DrawIndexedPrimitive(id<MTLBuffer> IndexBuffer, uint32 IndexStride, uint32 PrimitiveType, int32 BaseVertexIndex, uint32 FirstInstance,
 											 uint32 NumVertices, uint32 StartIndex, uint32 NumPrimitives, uint32 NumInstances)
 {
+	// We need at least one to cover all use cases
 	NumInstances = FMath::Max(NumInstances,1u);
+	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	{
+		FMetalGraphicsPipelineState* PipelineState = State.GetGraphicsPSO();
+		check(PipelineState != nullptr);
+		FMetalVertexDeclaration* VertexDecl = PipelineState->VertexDeclaration;
+		check(VertexDecl != nullptr);
+		
+		// Set our local copy and try to disprove the passed in value
+		uint32 ClampedNumInstances = NumInstances;
+		uint32 InOutMask = PipelineState->VertexShader->Bindings.InOutMask;
+		
+		// I think it is valid to have no elements in this list
+		for(int VertexElemIdx = 0;VertexElemIdx < VertexDecl->Elements.Num();++VertexElemIdx)
+		{
+			FVertexElement const & VertexElem = VertexDecl->Elements[VertexElemIdx];
+			if(VertexElem.Stride > 0 && VertexElem.bUseInstanceIndex && ((InOutMask & (1 << VertexElemIdx))))
+			{
+				uint32 AvailElementCount = 0;
+				
+				uint32 BufferSize = State.GetVertexBufferSize(VertexElem.StreamIndex);
+				uint32 ElementCount = (BufferSize / VertexElem.Stride);
+				
+				if(ElementCount > FirstInstance)
+				{
+					AvailElementCount = ElementCount - FirstInstance;
+				}
+				
+				ClampedNumInstances = FMath::Clamp<uint32>(ClampedNumInstances, 0, AvailElementCount);
+			}
+		}
+		
+		if(ClampedNumInstances < NumInstances)
+		{
+			// Setting NumInstances to ClampedNumInstances would fix any visual rendering bugs resulting from this bad call but these draw calls are wrong - don't hide the issue
+			UE_LOG(LogMetal, Error, TEXT("Metal DrawIndexedPrimitive requested to draw %d Instances but vertex stream only has %d instance data available."), NumInstances, ClampedNumInstances);
+		}
+	}
+#endif
 	
 	if (!State.GetUsingTessellation())
 	{
@@ -669,13 +711,20 @@ void FMetalRenderPass::CopyFromTextureToBuffer(id<MTLTexture> Texture, uint32 so
 	ConditionalSubmit();
 }
 
-void FMetalRenderPass::CopyFromBufferToTexture(id<MTLBuffer> Buffer, uint32 sourceOffset, uint32 sourceBytesPerRow, uint32 sourceBytesPerImage, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin)
+void FMetalRenderPass::CopyFromBufferToTexture(id<MTLBuffer> Buffer, uint32 sourceOffset, uint32 sourceBytesPerRow, uint32 sourceBytesPerImage, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin, MTLBlitOption options)
 {
 	ConditionalSwitchToBlit();
 	id<MTLBlitCommandEncoder> Encoder = CurrentEncoder.GetBlitCommandEncoder();
 	check(Encoder);
 	
-	[Encoder copyFromBuffer:Buffer sourceOffset:sourceOffset sourceBytesPerRow:sourceBytesPerRow sourceBytesPerImage:sourceBytesPerImage sourceSize:sourceSize toTexture:toTexture destinationSlice:destinationSlice destinationLevel:destinationLevel destinationOrigin:destinationOrigin];
+	if (options == MTLBlitOptionNone)
+	{
+		[Encoder copyFromBuffer:Buffer sourceOffset:sourceOffset sourceBytesPerRow:sourceBytesPerRow sourceBytesPerImage:sourceBytesPerImage sourceSize:sourceSize toTexture:toTexture destinationSlice:destinationSlice destinationLevel:destinationLevel destinationOrigin:destinationOrigin];
+	}
+	else
+	{
+		[Encoder copyFromBuffer:Buffer sourceOffset:sourceOffset sourceBytesPerRow:sourceBytesPerRow sourceBytesPerImage:sourceBytesPerImage sourceSize:sourceSize toTexture:toTexture destinationSlice:destinationSlice destinationLevel:destinationLevel destinationOrigin:destinationOrigin options:options];
+	}
 	ConditionalSubmit();
 }
 
@@ -746,13 +795,20 @@ void FMetalRenderPass::FillBuffer(id<MTLBuffer> Buffer, NSRange Range, uint8 Val
 	ConditionalSubmit();
 }
 
-void FMetalRenderPass::AsyncCopyFromBufferToTexture(id<MTLBuffer> Buffer, uint32 sourceOffset, uint32 sourceBytesPerRow, uint32 sourceBytesPerImage, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin)
+void FMetalRenderPass::AsyncCopyFromBufferToTexture(id<MTLBuffer> Buffer, uint32 sourceOffset, uint32 sourceBytesPerRow, uint32 sourceBytesPerImage, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin, MTLBlitOption options)
 {
 	ConditionalSwitchToAsyncBlit();
 	id<MTLBlitCommandEncoder> Encoder = PrologueEncoder.GetBlitCommandEncoder();
 	check(Encoder);
 	
-	[Encoder copyFromBuffer:Buffer sourceOffset:sourceOffset sourceBytesPerRow:sourceBytesPerRow sourceBytesPerImage:sourceBytesPerImage sourceSize:sourceSize toTexture:toTexture destinationSlice:destinationSlice destinationLevel:destinationLevel destinationOrigin:destinationOrigin];
+	if (options == MTLBlitOptionNone)
+	{
+		[Encoder copyFromBuffer:Buffer sourceOffset:sourceOffset sourceBytesPerRow:sourceBytesPerRow sourceBytesPerImage:sourceBytesPerImage sourceSize:sourceSize toTexture:toTexture destinationSlice:destinationSlice destinationLevel:destinationLevel destinationOrigin:destinationOrigin];
+	}
+	else
+	{
+		[Encoder copyFromBuffer:Buffer sourceOffset:sourceOffset sourceBytesPerRow:sourceBytesPerRow sourceBytesPerImage:sourceBytesPerImage sourceSize:sourceSize toTexture:toTexture destinationSlice:destinationSlice destinationLevel:destinationLevel destinationOrigin:destinationOrigin options:options];
+	}
 }
 
 void FMetalRenderPass::AsyncCopyFromTextureToTexture(id<MTLTexture> Texture, uint32 sourceSlice, uint32 sourceLevel, MTLOrigin sourceOrigin, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin)
@@ -762,6 +818,45 @@ void FMetalRenderPass::AsyncCopyFromTextureToTexture(id<MTLTexture> Texture, uin
 	check(Encoder);
 	
 	[Encoder copyFromTexture:Texture sourceSlice:sourceSlice sourceLevel:sourceLevel sourceOrigin:sourceOrigin sourceSize:sourceSize toTexture:toTexture destinationSlice:destinationSlice destinationLevel:destinationLevel destinationOrigin:destinationOrigin];
+}
+
+void FMetalRenderPass::AsyncCopyFromBufferToBuffer(id<MTLBuffer> SourceBuffer, NSUInteger SourceOffset, id<MTLBuffer> DestinationBuffer, NSUInteger DestinationOffset, NSUInteger Size)
+{
+	bool bSafe = true;
+	
+	NSRange DestRange = NSMakeRange(DestinationOffset, Size);
+	TArray<NSRange>* Ranges = OutstandingBufferUploads.Find(DestinationBuffer);
+	if (!Ranges)
+	{
+		OutstandingBufferUploads.Add(DestinationBuffer, TArray<NSRange>());
+		Ranges = OutstandingBufferUploads.Find(DestinationBuffer);
+	}
+	for (NSRange Range : *Ranges)
+	{
+		if (NSIntersectionRange(Range, DestRange).length > 0)
+		{
+			UE_LOG(LogMetal, Warning, TEXT("AsyncCopyFromBufferToBuffer on overlapping ranges ({%d, %d} vs {%d, %d}) of destination buffer %p."), (uint32)Range.location, (uint32)Range.length, (uint32)DestinationOffset, (uint32)Size, DestinationBuffer);
+			bSafe = false;
+			break;
+		}
+	}
+	
+	// Only issue asynchronously when it is safe to do so - when there are overlapping ranges it isn't.
+	// This is really an engine bug but we need to handle this here for now.
+	if (bSafe)
+	{
+		ConditionalSwitchToAsyncBlit();
+		id<MTLBlitCommandEncoder> Encoder = PrologueEncoder.GetBlitCommandEncoder();
+		check(Encoder);
+		
+		Ranges->Add(DestRange);
+		
+		[Encoder copyFromBuffer:SourceBuffer sourceOffset:SourceOffset toBuffer:DestinationBuffer destinationOffset:DestinationOffset size:Size];
+	}
+	else
+	{
+		CopyFromBufferToBuffer(SourceBuffer, SourceOffset, DestinationBuffer, DestinationOffset, Size);
+	}
 }
 
 void FMetalRenderPass::AsyncGenerateMipmapsForTexture(id<MTLTexture> Texture)
@@ -906,7 +1001,7 @@ void FMetalRenderPass::ConditionalSwitchToTessellation(void)
 		PrologueEncoder.WaitForFence(PassStartFence);
 		PrologueEncoderFence = PrologueEncoder.GetEncoderFence();
 #if METAL_DEBUG_OPTIONS
-		if (GEmitDrawEvents)
+		if (GetEmitDrawEvents())
 		{
 			(*PrologueEncoderFence).label = [NSString stringWithFormat:@"Prologue %@", (*PrologueEncoderFence).label];
 		}
@@ -1016,7 +1111,7 @@ void FMetalRenderPass::ConditionalSwitchToAsyncBlit(void)
 		}
 		PrologueEncoderFence = PrologueEncoder.GetEncoderFence();
 #if METAL_DEBUG_OPTIONS
-		if (GEmitDrawEvents)
+		if (GetEmitDrawEvents())
 		{
 			(*PrologueEncoderFence).label = [NSString stringWithFormat:@"Prologue %@", (*PrologueEncoderFence).label];
 		}
@@ -1097,6 +1192,8 @@ void FMetalRenderPass::PrepareToRender(uint32 PrimitiveType)
 	
 	// Bind shader resources
 	CommitRenderResourceTables();
+    
+    State.SetRenderPipelineState(CurrentEncoder, nullptr);
 }
 
 void FMetalRenderPass::PrepareToTessellate(uint32 PrimitiveType)
@@ -1111,6 +1208,8 @@ void FMetalRenderPass::PrepareToTessellate(uint32 PrimitiveType)
 	
 	// Bind shader resources
 	CommitTessellationResourceTables();
+    
+    State.SetRenderPipelineState(CurrentEncoder, &PrologueEncoder);
 }
 
 void FMetalRenderPass::PrepareToDispatch(void)
@@ -1118,13 +1217,10 @@ void FMetalRenderPass::PrepareToDispatch(void)
 	check(CurrentEncoder.GetCommandBuffer());
 	check(CurrentEncoder.IsComputeCommandEncoderActive());
 	
-	TRefCountPtr<FMetalComputeShader> ComputeShader = State.GetComputeShader();
-	check(ComputeShader);
-
-	CurrentEncoder.SetComputePipelineState(ComputeShader->Pipeline);
-	
 	// Bind shader resources
 	CommitDispatchResourceTables();
+    
+    State.SetComputePipelineState(CurrentEncoder);
 }
 
 void FMetalRenderPass::ConditionalSubmit()

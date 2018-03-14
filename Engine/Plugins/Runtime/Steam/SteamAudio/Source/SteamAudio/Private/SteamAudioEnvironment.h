@@ -7,6 +7,7 @@
 #include "ISteamAudioModule.h"
 #include "phonon.h"
 #include "PhononCommon.h"
+#include "PhononScene.h"
 
 namespace SteamAudio
 {
@@ -24,6 +25,10 @@ namespace SteamAudio
 		IPLhandle Initialize(UWorld* World, FAudioDevice* InAudioDevice);
 		void Shutdown();
 
+		IPLhandle GetSceneHandle() { return PhononScene; };
+
+		IPLhandle GetEnvironmentHandle() { return PhononEnvironment; };
+
 		IPLhandle GetEnvironmentalRendererHandle() { return EnvironmentalRenderer; };
 
 		FCriticalSection* GetEnvironmentCriticalSection() { return &EnvironmentCriticalSection; };
@@ -32,6 +37,7 @@ namespace SteamAudio
 		FCriticalSection EnvironmentCriticalSection;
 		IPLhandle ComputeDevice;
 		IPLhandle PhononScene;
+		FPhononSceneInfo PhononSceneInfo;
 		IPLhandle PhononEnvironment;
 		IPLhandle EnvironmentalRenderer;
 		IPLhandle ProbeManager;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -19,7 +19,7 @@ class UMaterialExpressionFunctionOutput : public UMaterialExpression
 
 	/** The output's name, which will be drawn on the connector in function call expressions that use this function. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MaterialExpressionFunctionOutput)
-	FString OutputName;
+	FName OutputName;
 
 	/** The output's description, which will be used as a tooltip on the connector in function call expressions that use this function. */
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionFunctionOutput, meta=(MultiLine=true))
@@ -57,9 +57,9 @@ class UMaterialExpressionFunctionOutput : public UMaterialExpression
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 #endif // WITH_EDITOR
-	virtual FString GetInputName(int32 InputIndex) const override
+	virtual FName GetInputName(int32 InputIndex) const override
 	{
-		return TEXT("");
+		return NAME_None;
 	}
 #if WITH_EDITOR
 	virtual void GetExpressionToolTip(TArray<FString>& OutToolTip) override;

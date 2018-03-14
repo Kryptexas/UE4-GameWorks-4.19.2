@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,6 +16,8 @@
 #include "Engine/PoseWatch.h"
 #include "Animation/AnimClassInterface.h"
 #include "Animation/AnimBlueprintGeneratedClass.h"
+#include "Logging/TokenizedMessage.h"
+
 #include "AnimInstanceProxy.generated.h"
 
 class UBlendSpaceBase;
@@ -99,6 +101,20 @@ struct ENGINE_API FAnimInstanceProxy
 
 public:
 	FAnimInstanceProxy()
+		: AnimInstanceObject(nullptr)
+		, AnimClassInterface(nullptr)
+		, Skeleton(nullptr)
+		, SkeletalMeshComponent(nullptr)
+		, CurrentDeltaSeconds(0.0f)
+#if WITH_EDITORONLY_DATA
+		, bIsBeingDebugged(false)
+#endif
+		, RootNode(nullptr)
+		, SubInstanceInputNode(nullptr)
+		, SyncGroupWriteIndex(0)
+		, RootMotionMode(ERootMotionMode::NoRootMotionExtraction)
+		, bShouldExtractRootMotion(false)
+		, bBoneCachesInvalidated(false)
 	{
 	}
 
@@ -365,12 +381,10 @@ public:
 	}
 #endif
 
-#if DO_CHECK
 	const FString& GetAnimInstanceName() const 
 	{ 
 		return AnimInstanceName;
 	}
-#endif
 
 	/** Gets the runtime instance of the specified state machine by Name */
 	FAnimNode_StateMachine* GetStateMachineInstanceFromName(FName MachineName);
@@ -408,6 +422,7 @@ public:
 	friend class UAnimSingleNodeInstance;
 	friend class USkeletalMeshComponent;
 	friend struct FAnimNode_SubInstance;
+	friend struct FAnimationBaseContext;
 
 protected:
 	/** Called when our anim instance is being initialized */
@@ -456,6 +471,9 @@ protected:
 	/** Called after update so we can copy any data we need */
 	virtual void PostUpdate(UAnimInstance* InAnimInstance) const;
 
+	/** Called after evaluate so we can do any game thread work we need to */
+	virtual void PostEvaluate(UAnimInstance* InAnimInstance);
+
 	/** Copy any UObjects we might be using. Called Pre-update and pre-evaluate. */
 	virtual void InitializeObjects(UAnimInstance* InAnimInstance);
 
@@ -494,7 +512,7 @@ protected:
 	}
 
 	/** Add anim notifier **/
-	void AddAnimNotifies(const TArray<const FAnimNotifyEvent*>& NewNotifies, const float InstanceWeight);
+	void AddAnimNotifies(const TArray<FAnimNotifyEventReference>& NewNotifies, const float InstanceWeight);
 
 	/** Returns the baked sync group index from the compile step */
 	int32 GetSyncGroupIndexFromName(FName SyncGroupName) const;
@@ -650,6 +668,11 @@ protected:
 	/** Initialize the root node - split into a separate function for backwards compatibility (initialization order) reasons */
 	void InitializeRootNode();
 
+	/** Manually add object references to GC */
+	void AddReferencedObjects(UAnimInstance* InAnimInstance, FReferenceCollector& Collector);
+	/** Allow nodes to register log messages to be processed on the game thread */
+	void LogMessage(FName InLogType, EMessageSeverity::Type InSeverity, const FText& InMessage);
+
 private:
 	/** The component to world transform of the component we are running on */
 	FTransform ComponentTransform;
@@ -691,10 +714,8 @@ private:
 	FString ActorName;
 #endif
 
-#if DO_CHECK
 	/** Anim instance name for debug purposes */
 	FString AnimInstanceName;
-#endif
 
 	/** Anim graph */
 	FAnimNode_Base* RootNode;
@@ -786,4 +807,13 @@ private:
 
 	/** Array of snapshots. Each entry contains a name for finding specific pose snapshots */
 	TArray<FPoseSnapshot> PoseSnapshots;
+
+	/** Logged message queues. Allows nodes to report messages to MessageLog even though they may be running
+	 *  on a worked thread
+	 */
+	typedef TPair<EMessageSeverity::Type, FText> FLogMessageEntry;
+	TMap<FName, TArray<FLogMessageEntry>> LoggedMessagesMap;
+
+	/** Cache of guids generated from previously sent messages so we can stop spam*/
+	TArray<FGuid> PreviouslyLoggedMessages;
 };

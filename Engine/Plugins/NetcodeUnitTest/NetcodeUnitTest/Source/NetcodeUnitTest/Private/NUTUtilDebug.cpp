@@ -1,6 +1,8 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NUTUtilDebug.h"
+
+#include "Misc/OutputDeviceNull.h"
 
 #include "ClientUnitTest.h"
 #include "MinimalClient.h"
@@ -52,6 +54,8 @@ void FScopedLog::InternalConstruct(const TArray<FString>& InLogCategories, UClie
 	}
 
 
+	const TCHAR* TargetVerbosity = bSuppressLogging ? TEXT("None") : TEXT("All");
+
 	// If specified, enable logs remotely
 	if (bRemoteLogging && MinClient != nullptr)
 	{
@@ -65,7 +69,7 @@ void FScopedLog::InternalConstruct(const TArray<FString>& InLogCategories, UClie
 
 			for (auto CurCategory : LogCategories)
 			{
-				Cmd = TEXT("Log ") + CurCategory + TEXT(" All");
+				Cmd = TEXT("Log ") + CurCategory + TEXT(" ") + TargetVerbosity;
 
 				*ControlChanBunch << ControlMsg;
 				*ControlChanBunch << ControlCmd;
@@ -84,12 +88,13 @@ void FScopedLog::InternalConstruct(const TArray<FString>& InLogCategories, UClie
 	// Now enable local logging
 	FString Cmd = TEXT("");
 	UWorld* UnitWorld = (MinClient != nullptr ? MinClient->GetUnitWorld() : nullptr);
+	FOutputDeviceNull NullAr;
 
 	for (FString CurCategory : LogCategories)
 	{
-		Cmd = TEXT("Log ") + CurCategory + TEXT(" All");
+		Cmd = TEXT("Log ") + CurCategory + TEXT(" ") + TargetVerbosity;
 
-		GEngine->Exec(UnitWorld, *Cmd);
+		GEngine->Exec(UnitWorld, *Cmd, NullAr);
 	}
 }
 
@@ -108,12 +113,13 @@ FScopedLog::~FScopedLog()
 	// Reset local logging
 	FString Cmd = TEXT("");
 	UWorld* UnitWorld = (MinClient != nullptr ? MinClient->GetUnitWorld() : nullptr);
+	FOutputDeviceNull NullAr;
 
 	for (int32 i=LogCategories.Num()-1; i>=0; i--)
 	{
 		Cmd = TEXT("Log ") + LogCategories[i] + TEXT(" Default");
 
-		GEngine->Exec(UnitWorld, *Cmd);
+		GEngine->Exec(UnitWorld, *Cmd, NullAr);
 	}
 
 

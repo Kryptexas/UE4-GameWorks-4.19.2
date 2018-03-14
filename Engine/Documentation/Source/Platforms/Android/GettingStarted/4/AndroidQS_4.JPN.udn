@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:3477690
+﻿INTSourceChangelist:3665025
 Availability:Public
-Title:4.レベルのデプロイ方法
+Title:4.レベルのデプロイ
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description: ワンクリック デプロイでレベルを起動する
 version:4.16
@@ -14,30 +14,19 @@ Checkpoint:AndroidQS
 
 
 
-以下のセクションでは、作業中のプロジェクトから Android デバイスへレベルをデプロイして簡単にテストする方法を説明します。 
+このステップでは、作業中のプロジェクトから Android デバイスへレベルをデプロイして簡単にテストする方法を説明します。 
 
 [nav]
 
 [region:note]
-このセクションで作業するためには、Android デバイスが PC に USB で接続されている必要があります。まだの場合は、次のステップへ進む前に準備してください。
+この作業を行うには、Android デバイスが USB で PC に 接続されている必要があります。まだ接続していない場合は、接続を行ってからステップを開始してください。
 [/region]
 
 レベルを Android デバイスにデプロイするためには、Android デバイスがサポートしているテクスチャ フォーマットを知る必要があります。
 Android デバイスが正しく動作するためには、タイプごとに異なるテクスチャ フォーマットが必要だからです。 
-Android ベースのデバイスとサポートしているテクスチャ フォーマットの表がこちらです。
+以下は Android ベースのデバイスとサポートされているテクスチャ フォーマットの対応表です。
 
 [INCLUDE:Platforms/Android/Reference#androidformats]
-
-[REGION:tip]
-	どのテクスチャ フォーマットがサポートされているのか不確かな場合は、ゲームを実行して以下の操作を行うと確認できます。
-
-	1. 画面を指 4 本で一度にタップすると、ダイアログが表示されます。
-	1. このダイアログ ボックスは通常コンソールコマンド (stat fps などの) の入力に使用しますが、ユーザーのデバイスがサポートしているフォーマットも表示します。 
-	1. 表示されたリストの中からデプロイおよびパッケージングに最も適したタイプを選択します。
-
-	![](Available_Texture_Formats.png)
-
-[/REGION:tip]
 
 ## ステップ
 
@@ -46,11 +35,24 @@ Android ベースのデバイスとサポートしているテクスチャ フ�
 
 	![](Correct_Level_Open.png)
 
+	[region:note]
+	UE4.18 の場合、デバイスのパッケージ化とデプロイに **Ant** ではなく Gradle を使用するために、以下の手順で **[Gradle]** のチェックマーク ボックスを有効にする必要があります。**[Project Settings]** > **[Platforms]** > **[Android]** > **[APKPacking]** を選択し、**[Enable Gradle instead of Ant [Experimental]]** オプションをクリックします。UE4.19 の場合は、Gradle がデフォルトで有効になっているため、このオプションは出てきません。
+
+	[REGION:lightbox]
+	[![](Gradle_418_Update.png)(w:519)](Gradle_418_Update.png)
+	[/REGION]
+
+	[REGION:caption]
+	クリックしてフルサイズで表示
+	[/REGION]
+
+	[/region]
+
 1.	**ThirdPersonExampleMap** を開いたら、**メイン ツールバー** の **[Launch]** アイコンの横にある三角をクリックしてオプションを展開します。
 
 	![](Level_Deploy_Options.png)
 
-1. **[Launch]** メニューの **[Devices]** セクションで、リストから使用する Android デバイスをクリックして選択します。
+1. **[Launch]** メニューの **[Devices]** セクションのリストの中から、使用する Android デバイスをクリックして選択します。
 
 	![](launch_rightformat.png)
 
@@ -77,9 +79,27 @@ Android ベースのデバイスとサポートしているテクスチャ フ�
 
 1.	クックおよび起動処理が完了すると、ゲームがデバイス上に自動表示され Apps ドロワーからのアクセスも可能になります。 
 
-	![](Deployed_Project_Android.png)
+	[REGION:lightbox]
+	[![](Deployed_Project_Android.png)(w:500)](Deployed_Project_Android.png)
+	[/REGION]
+
+	[REGION:caption]
+	クリックしてフルサイズで表示
+	[/REGION]
+
+[REGION:tip]
+	サポート対象のテクスチャ フォーマットを確認するには、ゲームを実行して以下の操作を行います。
+
+	1. 画面を指 4 本で一度にタップすると、ダイアログが表示されます。
+	1. このダイアログ ボックスは通常はコンソールコマンド (stat fps などの) の入力に使用しますが、ユーザーのデバイスがサポートしているフォーマットも表示します。 
+	1. このリストの中から、デプロイおよびパッケージ化に最も適しているフォーマット タイプを選択することができます。
+
+	![](Available_Texture_Formats.png)
+[/REGION:tip]
 
 ## 結果
-これが完了すると、作成した UE4 プロジェクトが Android スマートフォンで動作するようになります。
+
+この設定により、作成した UE4 プロジェクトが Android スマートフォンで動作するようになります。
 
 [nav]
+

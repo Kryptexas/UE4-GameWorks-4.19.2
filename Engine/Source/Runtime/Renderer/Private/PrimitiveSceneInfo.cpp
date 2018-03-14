@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrimitiveSceneInfo.cpp: Primitive scene info implementation.
@@ -97,6 +97,8 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FScene
 	LastVisibilityChangeTime(0.0f),
 	Scene(InScene),
 	NumES2DynamicPointLights(0),
+	bIsUsingCustomLODRules(Proxy->IsUsingCustomLODRules()),
+	bIsUsingCustomWholeSceneShadowLODRules(Proxy->IsUsingCustomWholeSceneShadowLODRules()),
 	PackedIndex(INDEX_NONE),
 	ComponentForDebuggingOnly(InComponent),
 	bNeedsStaticMeshUpdate(false),
@@ -140,7 +142,7 @@ FPrimitiveSceneInfo::~FPrimitiveSceneInfo()
 	check(!OctreeId.IsValidId());
 }
 
-void FPrimitiveSceneInfo::AddStaticMeshes(FRHICommandListImmediate& RHICmdList)
+void FPrimitiveSceneInfo::AddStaticMeshes(FRHICommandListImmediate& RHICmdList, bool bAddToStaticDrawLists)
 {
 	// Cache the primitive's static mesh elements.
 	FBatchingSPDI BatchingSPDI(this);
@@ -161,15 +163,19 @@ void FPrimitiveSceneInfo::AddStaticMeshes(FRHICommandListImmediate& RHICmdList)
 		{
 			// Use a separate index into StaticMeshBatchVisibility, since most meshes don't use it
 			Mesh.BatchVisibilityId = Scene->StaticMeshBatchVisibility.AddUninitialized().Index;
+			Scene->StaticMeshBatchVisibility[Mesh.BatchVisibilityId] = true;
 		}
 
-		// By this point, the index buffer render resource must be initialized
-		// Add the static mesh to the appropriate draw lists.
-		Mesh.AddToDrawLists(RHICmdList, Scene);
+		if (bAddToStaticDrawLists)
+		{
+			// By this point, the index buffer render resource must be initialized
+			// Add the static mesh to the appropriate draw lists.
+			Mesh.AddToDrawLists(RHICmdList, Scene);
+		}
 	}
 }
 
-void FPrimitiveSceneInfo::AddToScene(FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists)
+void FPrimitiveSceneInfo::AddToScene(FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists, bool bAddToStaticDrawLists)
 {
 	check(IsInRenderingThread());
 	
@@ -197,7 +203,7 @@ void FPrimitiveSceneInfo::AddToScene(FRHICommandListImmediate& RHICmdList, bool 
 
 	if (bUpdateStaticDrawLists)
 	{
-		AddStaticMeshes(RHICmdList);
+		AddStaticMeshes(RHICmdList, bAddToStaticDrawLists);
 	}
 
 	// create potential storage for our compact info
@@ -221,6 +227,23 @@ void FPrimitiveSceneInfo::AddToScene(FRHICommandListImmediate& RHICmdList, bool 
 	PrimitiveBounds.BoxSphereBounds = BoxSphereBounds;
 	PrimitiveBounds.MinDrawDistanceSq = FMath::Square(Proxy->GetMinDrawDistance());
 	PrimitiveBounds.MaxDrawDistance = Proxy->GetMaxDrawDistance();
+	PrimitiveBounds.MaxCullDistance = PrimitiveBounds.MaxDrawDistance;
+
+	if (LODParentComponentId.IsValid())
+	{
+		static auto CVarChild = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HLOD.MaxDrawDistanceScaleForChildren"));
+		const float MaxDrawDistanceScaleForHLODChildren = CVarChild->GetFloat();
+		const bool bUseMaxDrawDistanceMultiplier = MaxDrawDistanceScaleForHLODChildren != 0.0f;
+		if (bUseMaxDrawDistanceMultiplier)
+		{
+			PrimitiveBounds.MaxCullDistance *= MaxDrawDistanceScaleForHLODChildren;
+		}
+		else
+		{
+			PrimitiveBounds.MaxCullDistance = FLT_MAX;
+		}
+	}
+
 
 	Scene->PrimitiveFlagsCompact[PackedIndex] = FPrimitiveFlagsCompact(Proxy);
 
@@ -326,18 +349,19 @@ void FPrimitiveSceneInfo::RemoveFromScene(bool bUpdateStaticDrawLists)
 	}
 }
 
-void FPrimitiveSceneInfo::UpdateStaticMeshes(FRHICommandListImmediate& RHICmdList)
+void FPrimitiveSceneInfo::UpdateStaticMeshes(FRHICommandListImmediate& RHICmdList, bool bReAddToDrawLists)
 {
-	checkSlow(bNeedsStaticMeshUpdate);
-	bNeedsStaticMeshUpdate = false;
-
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FPrimitiveSceneInfo_UpdateStaticMeshes);
+	bNeedsStaticMeshUpdate = !bReAddToDrawLists;
 
 	// Remove the primitive's static meshes from the draw lists they're currently in, and re-add them to the appropriate draw lists.
 	for (int32 MeshIndex = 0; MeshIndex < StaticMeshes.Num(); MeshIndex++)
 	{
 		StaticMeshes[MeshIndex].RemoveFromDrawLists();
-		StaticMeshes[MeshIndex].AddToDrawLists(RHICmdList, Scene);
+		if (bReAddToDrawLists)
+		{
+			StaticMeshes[MeshIndex].AddToDrawLists(RHICmdList, Scene);
+		}
 	}
 }
 
@@ -602,7 +626,7 @@ void FPrimitiveSceneInfo::UpdatePrecomputedLightingBuffer()
 		// If the PrimitiveInfo has no precomputed lighting buffer, it will fallback to the global Empty buffer.
 		if (!RHISupportsVolumeTextures(Scene->GetFeatureLevel())
 			&& Scene->VolumetricLightmapSceneData.HasData()
-			&& (Proxy->IsMovable() || Proxy->NeedsUnbuiltPreviewLighting())
+			&& (Proxy->IsMovable() || Proxy->NeedsUnbuiltPreviewLighting() || Proxy->GetLightmapType() == ELightmapType::ForceVolumetric)
 			&& Proxy->WillEverBeLit())
 		{
 			IndirectLightingCacheUniformBuffer = CreatePrecomputedLightingUniformBuffer(BufferUsage, Scene->GetFeatureLevel(), NULL, NULL, Proxy->GetBounds().Origin, Scene->GetFrameNumber(), &Scene->VolumetricLightmapSceneData, NULL);
@@ -658,3 +682,25 @@ void FPrimitiveSceneInfo::ClearPrecomputedLightingBuffer(bool bSingleFrameOnly)
 	}
 }
 
+void FPrimitiveSceneInfo::GetStaticMeshesLODRange(int8& OutMinLOD, int8& OutMaxLOD) const
+{
+	OutMinLOD = MAX_int8;
+	OutMaxLOD = 0;
+
+	for (int32 MeshIndex = 0; MeshIndex < StaticMeshes.Num(); ++MeshIndex)
+	{
+		const FMeshBatch&  Mesh = StaticMeshes[MeshIndex];
+		OutMinLOD = FMath::Min(OutMinLOD, Mesh.LODIndex);
+		OutMaxLOD = FMath::Max(OutMaxLOD, Mesh.LODIndex);
+	}
+}
+
+const FMeshBatch* FPrimitiveSceneInfo::GetMeshBatch(int8 InLODIndex) const
+{
+	if (StaticMeshes.IsValidIndex(InLODIndex))
+	{
+		return &StaticMeshes[InLODIndex];
+	}
+
+	return nullptr;
+}

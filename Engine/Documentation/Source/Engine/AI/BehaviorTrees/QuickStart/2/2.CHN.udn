@@ -25,7 +25,7 @@ version:4.9
 [/VAR]
 
 
-%Steps%
+
 [EXCERPT:AICreateNav]
 
 虚幻引擎中的寻路网格物体（NavMesh）拥有诸多功能，便于结合行为树使用。某些功能并非适用于所有游戏的开发，但对多数游戏类型而言，它们都十分实用。此外，自上而下模板已包含一个寻路网格物体边界体积框，随后您也可以选择从一个空白项目开始。
@@ -51,7 +51,7 @@ version:4.9
 	可随时按下 **P** 键显示或隐藏寻路网格物体。
 
 [/EXCERPT:AICreateNav]
-%Steps%
+
 
 [VAR:arrow]![](Engine\AI\EnvironmentQuerySystem\QuickStart\arrow_button.png)[/VAR]
 

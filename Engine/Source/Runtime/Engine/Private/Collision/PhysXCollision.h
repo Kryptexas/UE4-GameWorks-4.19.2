@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=======================================================================================
 	PhysXCollision.h: Collision related data structures/types specific to PhysX
@@ -26,6 +26,14 @@
 
 static_assert(HIT_BUFFER_SIZE > 0, "Invalid PhysX hit buffer size.");
 static_assert(HIT_BUFFER_MAX_SYNC_QUERIES < HIT_BUFFER_SIZE, "Invalid PhysX sync buffer size.");
+
+#if !UE_BUILD_SHIPPING
+#define DETECT_SQ_HITCHES 1
+#endif
+
+#ifndef DETECT_SQ_HITCHES
+#define DETECT_SQ_HITCHES 0
+#endif
 
 // FILTER
 
@@ -62,6 +70,9 @@ public:
 	FPxQueryFilterCallback(const FCollisionQueryParams& InQueryParams)
 		: IgnoreComponents(InQueryParams.GetIgnoredComponents())
 		, IgnoreActors(InQueryParams.GetIgnoredActors())
+#if DETECT_SQ_HITCHES
+		, bRecordHitches(false)
+#endif
 	{
 		PrefilterReturnValue = PxQueryHitType::eNONE;		
 		bIsOverlapQuery = false;
@@ -87,6 +98,18 @@ public:
 		// Currently not used
 		return PxQueryHitType::eBLOCK;
 	}
+
+#if DETECT_SQ_HITCHES
+	// Util struct to record what preFilter was called with
+	struct FPreFilterRecord
+	{
+		FString OwnerComponentReadableName;
+		PxQueryHitType::Enum Result;
+	};
+
+	TArray<FPreFilterRecord> PreFilterHitchInfo;
+	bool bRecordHitches;
+#endif
 };
 
 
@@ -120,8 +143,6 @@ PxFilterData CreateQueryFilterData(const uint8 MyChannel, const bool bTraceCompl
 
 #endif // WITH_PHYX
 
-
-#if UE_WITH_PHYSICS
 
 // RAYCAST
 
@@ -162,8 +183,6 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 /** Function for sweeping a supplied PxGeometry against the world */
 bool GeomSweepMulti(const UWorld* World, const struct FCollisionShape& CollisionShape, const FQuat& Rot, TArray<FHitResult>& OutHits, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
 
-#endif
-
 // Note: Do not use these methods for new code, they are being phased out!
 // These functions do not empty the OutOverlaps/OutHits array; they add items to them.
 #if WITH_PHYSX
@@ -172,7 +191,7 @@ bool GeomOverlapMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const 
 
 DEPRECATED_FORGAME(4.9, "Do not access this function directly, use the generic non-PhysX functions.")
 bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const PxQuat& PGeomRot, TArray<FHitResult>& OutHits, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
-#endif
+#endif // WITH_PHYSX
 
 
 
@@ -257,4 +276,4 @@ private:
 	PxQuat Rotation;
 };
 
-#endif
+#endif // WITH_PHYSX

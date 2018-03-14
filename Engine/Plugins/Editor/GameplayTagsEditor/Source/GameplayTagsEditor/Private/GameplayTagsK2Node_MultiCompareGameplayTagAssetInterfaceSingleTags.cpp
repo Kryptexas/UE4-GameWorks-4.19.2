@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagsK2Node_MultiCompareGameplayTagAssetInterfaceSingleTags.h"
 #include "GameplayTagContainer.h"
@@ -17,21 +17,18 @@ UGameplayTagsK2Node_MultiCompareGameplayTagAssetInterfaceSingleTags::UGameplayTa
 
 void UGameplayTagsK2Node_MultiCompareGameplayTagAssetInterfaceSingleTags::AllocateDefaultPins()
 {
-	PinNames.Empty();
+	PinNames.Reset();
 	for (int32 Index = 0; Index < NumberOfPins; ++Index)
 	{
 		AddPinToSwitchNode();
 	}
 
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	CreatePin(EGPD_Input, K2Schema->PC_Interface, FString(), UGameplayTagAssetInterface::StaticClass(), TEXT("Gameplay Tag Asset Interface"));
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Interface, UGameplayTagAssetInterface::StaticClass(), TEXT("Gameplay Tag Asset Interface"));
 }
 
 void UGameplayTagsK2Node_MultiCompareGameplayTagAssetInterfaceSingleTags::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
-
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 	// Get The input and output pins to our node
 	UEdGraphPin* InPinSwitch = FindPin(TEXT("Gameplay Tag Asset Interface"));
@@ -41,8 +38,8 @@ void UGameplayTagsK2Node_MultiCompareGameplayTagAssetInterfaceSingleTags::Expand
 	// For Each Pin Compare against the Tag container
 	for (int32 Index = 0; Index < NumberOfPins; ++Index)
 	{
-		FString InPinName = TEXT("TagCase_") + FString::FormatAsNumber(Index);
-		FString OutPinName = TEXT("Case_") + FString::FormatAsNumber(Index) + TEXT(" True");
+		const FString InPinName = TEXT("TagCase_") + FString::FormatAsNumber(Index);
+		const FString OutPinName = TEXT("Case_") + FString::FormatAsNumber(Index) + TEXT(" True");
 		UEdGraphPin* InPinCase = FindPin(InPinName);
 		UEdGraphPin* OutPinCase = FindPin(OutPinName);
 
@@ -52,13 +49,13 @@ void UGameplayTagsK2Node_MultiCompareGameplayTagAssetInterfaceSingleTags::Expand
 		PinCallFunction->SetFromFunction(Function);
 		PinCallFunction->AllocateDefaultPins();
 
-		UEdGraphPin *TagContainerPin = PinCallFunction->FindPinChecked(FString(TEXT("TagContainerInterface")));
+		UEdGraphPin *TagContainerPin = PinCallFunction->FindPinChecked(TEXT("TagContainerInterface"));
 		CompilerContext.CopyPinLinksToIntermediate(*InPinSwitch, *TagContainerPin);
 
-		UEdGraphPin *TagPin = PinCallFunction->FindPinChecked(FString(TEXT("Tag")));
+		UEdGraphPin *TagPin = PinCallFunction->FindPinChecked(TEXT("Tag"));
 		CompilerContext.MovePinLinksToIntermediate(*InPinCase, *TagPin);
 		
-		UEdGraphPin *OutPin = PinCallFunction->FindPinChecked(K2Schema->PN_ReturnValue);
+		UEdGraphPin *OutPin = PinCallFunction->FindPinChecked(UEdGraphSchema_K2::PN_ReturnValue);
 
 		if (OutPinCase && OutPin)
 		{
@@ -98,12 +95,13 @@ void UGameplayTagsK2Node_MultiCompareGameplayTagAssetInterfaceSingleTags::GetMen
 
 void UGameplayTagsK2Node_MultiCompareGameplayTagAssetInterfaceSingleTags::AddPinToSwitchNode()
 {
-	FString PinName = GetUniquePinName();
-	FString InPin = TEXT("Tag") + PinName;
-	FString OutPin = PinName + TEXT(" True");
+	const FString PinName = GetUniquePinName();
+	const FName InPin = *(TEXT("Tag") + PinName);
+	const FName OutPin = *(PinName + TEXT(" True"));
 	PinNames.Add(FName(*PinName));
 
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	CreatePin(EGPD_Input, K2Schema->PC_Struct, FString(), FGameplayTag::StaticStruct(), InPin, EPinContainerType::None, true);
-	CreatePin(EGPD_Output, K2Schema->PC_Boolean, FString(), nullptr, OutPin);
+	UEdGraphNode::FCreatePinParams InPinParams;
+	InPinParams.bIsReference = true;
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Struct, FGameplayTag::StaticStruct(), InPin, InPinParams);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Boolean, OutPin);
 }

@@ -4,44 +4,6 @@ Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
 Description:The Environment Query System includes a specialized Pawn that will display real time results of any Environment Query in the editor. This document covers creating and using an EQSTestingPawn.
 version: 4.9
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/AI/EnvironmentQuerySystem/EQSPawn:title%](AI_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/AI/EnvironmentQuerySystem/EQSPawn:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/AI/EnvironmentQuerySystem/EQSPawn:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/AI/EnvironmentQuerySystem/EQSPawn]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/AI/EnvironmentQuerySystem/EQSPawn:title%](AI_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/AI/EnvironmentQuerySystem/EQSPawn:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/AI/EnvironmentQuerySystem/EQSPawn:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/AI/EnvironmentQuerySystem/EQSPawn]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 ![](testingPawnBanner.png)(convert:false)
 
@@ -92,7 +54,8 @@ The **Environment Query System Testing Pawn** (**EQSTestingPawn**) is a speciali
 | **Should be Visible in Game** | Makes the EQSTestingPawn, and its debug visualization, visible in the running game. |
 | **Querying Mode** | [INCLUDE:#eqs1] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:EQS1]
 Changes what the debug view shows.
 
@@ -101,4 +64,5 @@ Changes what the debug view shows.
 | **Single Result** | Shows only the result for the item listed in the **Step to Debug Draw** property. |
 | **All Matching** | Shows the final, filtered and weighted score of the entire Environment Query. |
 [/EXCERPT:EQS1]
--->
+
+[/COMMENT]

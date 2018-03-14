@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Animation/AnimSet.h"
 #include "UObject/UObjectHash.h"
@@ -126,31 +126,6 @@ int32 UAnimSet::GetMeshLinkupIndex(USkeletalMesh* SkelMesh)
 
 	return (*IndexPtr);
 }
-
-
-void UAnimSet::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
-{
-	Super::GetResourceSizeEx(CumulativeResourceSize);
-
-	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Exclusive)
-	{
-		// This object only references others, it doesn't have any real resource bytes
-	}
-	else
-	{
-#if WITH_EDITORONLY_DATA
-		for( int32 i=0; i<Sequences.Num(); i++ )
-		{
-			UAnimSequence* AnimSeq = Sequences[i];
-			if( AnimSeq )
-			{
-				AnimSeq->GetResourceSizeEx(CumulativeResourceSize);
-			}			
-		}
-#endif	//#if WITH_EDITORONLY_DATA
-	}
-}
-
 
 void UAnimSet::ResetAnimSet()
 {

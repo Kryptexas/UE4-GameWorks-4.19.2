@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectArchetype.cpp: Unreal object archetype relationship management
@@ -11,13 +11,13 @@
 #include "UObject/Package.h"
 
 
-UObject* UObject::GetArchetypeFromRequiredInfo(UClass* Class, UObject* Outer, FName Name, EObjectFlags ObjectFlags)
+UObject* GetArchetypeFromRequiredInfoImpl(UClass* Class, UObject* Outer, FName Name, EObjectFlags ObjectFlags, bool bUseUpToDateClass)
 {
 	UObject* Result = NULL;
 	const bool bIsCDO = !!(ObjectFlags&RF_ClassDefaultObject);
 	if (bIsCDO)
 	{
-		Result = Class->GetArchetypeForCDO();
+		Result = bUseUpToDateClass ? Class->GetAuthoritativeClass()->GetArchetypeForCDO() : Class->GetArchetypeForCDO();
 	}
 	else
 	{
@@ -28,7 +28,7 @@ UObject* UObject::GetArchetypeFromRequiredInfo(UClass* Class, UObject* Outer, FN
 			void LockUObjectHashTables();
 			LockUObjectHashTables();
 
-			UObject* ArchetypeToSearch = Outer->GetArchetype();
+			UObject* ArchetypeToSearch = GetArchetypeFromRequiredInfoImpl(Outer->GetClass(), Outer->GetOuter(), Outer->GetFName(), Outer->GetFlags(), bUseUpToDateClass);
 			UObject* MyArchetype = static_cast<UObject*>(FindObjectWithOuter(ArchetypeToSearch, Class, Name));
 			if (MyArchetype)
 			{
@@ -36,8 +36,9 @@ UObject* UObject::GetArchetypeFromRequiredInfo(UClass* Class, UObject* Outer, FN
 			}
 			else if (!!(ObjectFlags&RF_InheritableComponentTemplate) && Outer->IsA<UClass>())
 			{
-				for (UClass* SuperClassArchetype = static_cast<UClass*>(Outer)->GetSuperClass();
-				SuperClassArchetype && SuperClassArchetype->HasAllClassFlags(CLASS_CompiledFromBlueprint);
+				UClass* OuterSuperClass = static_cast<UClass*>(Outer)->GetSuperClass();
+				for (UClass* SuperClassArchetype = bUseUpToDateClass && OuterSuperClass ? OuterSuperClass->GetAuthoritativeClass() : OuterSuperClass;
+					SuperClassArchetype && SuperClassArchetype->HasAllClassFlags(CLASS_CompiledFromBlueprint);
 					SuperClassArchetype = SuperClassArchetype->GetSuperClass())
 				{
 					if (GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
@@ -75,7 +76,7 @@ UObject* UObject::GetArchetypeFromRequiredInfo(UClass* Class, UObject* Outer, FN
 		if (!Result)
 		{
 			// nothing found, I am not a CDO, so this is just the class CDO
-			Result = Class->GetDefaultObject();
+			Result = bUseUpToDateClass ? Class->GetAuthoritativeClass()->GetDefaultObject() : Class->GetDefaultObject();
 		}
 	}
 
@@ -90,4 +91,14 @@ UObject* UObject::GetArchetypeFromRequiredInfo(UClass* Class, UObject* Outer, FN
 	return Result;
 }
 
+UObject* UObject::GetArchetypeFromRequiredInfo(UClass* Class, UObject* Outer, FName Name, EObjectFlags ObjectFlags)
+{
+	bool bUseUpToDateClass = false;
+#if WITH_EDITOR
+	// While compiling we just want to use whatever is in the object hierarchy,
+	// as some instances within the hierarchy may also be compiling:
+	bUseUpToDateClass = Class->GetAuthoritativeClass() == Class && (!GCompilingBlueprint || GIsReinstancing);
+#endif
+	return GetArchetypeFromRequiredInfoImpl(Class, Outer, Name, ObjectFlags, bUseUpToDateClass);
+}
 

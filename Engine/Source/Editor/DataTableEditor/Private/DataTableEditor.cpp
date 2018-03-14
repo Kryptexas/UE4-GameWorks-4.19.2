@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DataTableEditor.h"
 #include "Dom/JsonObject.h"
@@ -20,6 +20,8 @@
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Views/SListView.h"
 #include "SRowEditor.h"
+#include "IDocumentation.h"
+#include "SToolTip.h"
  
 #define LOCTEXT_NAMESPACE "DataTableEditor"
 
@@ -69,6 +71,9 @@ void FDataTableEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& 
 {
 	WorkspaceMenuCategory = InTabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_Data Table Editor", "Data Table Editor"));
 
+	DataTableTabWidget = CreateContentBox();
+	RowEditorTabWidget = CreateRowEditorBox();
+
 	FAssetEditorToolkit::RegisterTabSpawners(InTabManager);
 
 	InTabManager->RegisterTabSpawner(DataTableTabId, FOnSpawnTab::CreateSP(this, &FDataTableEditor::SpawnTab_DataTable))
@@ -86,6 +91,9 @@ void FDataTableEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>
 
 	InTabManager->UnregisterTabSpawner(DataTableTabId);
 	InTabManager->UnregisterTabSpawner(RowEditorTabId);
+
+	DataTableTabWidget.Reset();
+	RowEditorTabWidget.Reset();
 }
 
 FDataTableEditor::FDataTableEditor()
@@ -521,6 +529,17 @@ void FDataTableEditor::RefreshCachedDataTable(const FName InCachedSelection, con
 				.DefaultLabel(ColumnData->DisplayName)
 				.ManualWidth(TAttribute<float>::Create(TAttribute<float>::FGetter::CreateSP(this, &FDataTableEditor::GetColumnWidth, ColumnIndex)))
 				.OnWidthChanged(this, &FDataTableEditor::OnColumnResized, ColumnIndex)
+				[
+					SNew(SBox)
+					.Padding(FMargin(0, 4, 0, 4))
+					.VAlign(VAlign_Fill)
+					.ToolTip(IDocumentation::Get()->CreateToolTip(FDataTableEditorUtils::GetRowTypeInfoTooltipText(ColumnData), nullptr, *FDataTableEditorUtils::VariableTypesTooltipDocLink, FDataTableEditorUtils::GetRowTypeTooltipDocExcerptName(ColumnData)))
+					[
+						SNew(STextBlock)
+						.Justification(ETextJustify::Center)
+						.Text(ColumnData->DisplayName)
+					]
+				]
 			);
 		}
 	}
@@ -731,7 +750,7 @@ TSharedRef<SDockTab> FDataTableEditor::SpawnTab_RowEditor(const FSpawnTabArgs& A
 			.HAlign(HAlign_Fill)
 			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 			[
-				CreateRowEditorBox()
+				RowEditorTabWidget.ToSharedRef()
 			]
 		];
 }
@@ -760,7 +779,7 @@ TSharedRef<SDockTab> FDataTableEditor::SpawnTab_DataTable( const FSpawnTabArgs& 
 			.Padding(2)
 			.BorderImage( FEditorStyle::GetBrush( "ToolPanel.GroupBorder" ) )
 			[
-				CreateContentBox()
+				DataTableTabWidget.ToSharedRef()
 			]
 		];
 }

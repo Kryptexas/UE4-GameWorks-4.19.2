@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Curl/CurlHttpManager.h"
 #include "HAL/PlatformFilemanager.h"
@@ -8,15 +8,17 @@
 #include "Misc/Paths.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/LocalTimestampDirectoryVisitor.h"
+#include "Misc/OutputDeviceRedirector.h"
 #include "Curl/CurlHttpThread.h"
 #include "Curl/CurlHttp.h"
+#include "Http.h"
 #include "Modules/ModuleManager.h"
-
-#if WITH_SSL
-#include "Modules/ModuleManager.h"
-#endif
+#include "Misc/OutputDeviceRedirector.h"
 
 #if WITH_LIBCURL
+
+#include "SocketSubsystem.h"
+#include "IPAddress.h"
 
 #if PLATFORM_WINDOWS
 #include "SslModule.h"
@@ -376,6 +378,21 @@ void FCurlHttpManager::InitCurl()
 			}
 		}
 	}
+#elif PLATFORM_ANDROID
+	// Look for the default machine wide proxy setting
+	if (ProxyAddress.Len() == 0)
+	{
+		extern int32 AndroidThunkCpp_GetMetaDataInt(const FString& Key);
+		extern FString AndroidThunkCpp_GetMetaDataString(const FString& Key);
+
+		FString ProxyHost = AndroidThunkCpp_GetMetaDataString(TEXT("ue4.http.proxy.proxyHost"));
+		int32 ProxyPort = AndroidThunkCpp_GetMetaDataInt(TEXT("ue4.http.proxy.proxyPort"));
+
+		if (ProxyPort != -1 && !ProxyHost.IsEmpty())
+		{
+			ProxyAddress = FString::Printf(TEXT("%s:%d"), *ProxyHost, ProxyPort);
+		}
+	}
 #endif
 
 	if (ProxyAddress.Len() > 0)
@@ -505,6 +522,41 @@ void FCurlHttpManager::InitCurl()
 		}
 	}
 
+	CurlRequestOptions.MaxHostConnections = FHttpModule::Get().GetHttpMaxConnectionsPerServer();
+	if (CurlRequestOptions.MaxHostConnections > 0)
+	{
+		const CURLMcode SetOptResult = curl_multi_setopt(GMultiHandle, CURLMOPT_MAX_HOST_CONNECTIONS, static_cast<long>(CurlRequestOptions.MaxHostConnections));
+		if (SetOptResult != CURLM_OK)
+		{
+			FUTF8ToTCHAR Converter(curl_multi_strerror(SetOptResult));
+			UE_LOG(LogHttp, Warning, TEXT("Failed to set max host connections options (%d), error %d ('%s')"),
+				CurlRequestOptions.MaxHostConnections, (int32)SetOptResult, Converter.Get());
+			CurlRequestOptions.MaxHostConnections = 0;
+		}
+	}
+	else
+	{
+		CurlRequestOptions.MaxHostConnections = 0;
+	}
+
+	TCHAR Home[256] = TEXT("");
+	if (FParse::Value(FCommandLine::Get(), TEXT("MULTIHOMEHTTP="), Home, ARRAY_COUNT(Home)))
+	{
+		ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
+		if (SocketSubsystem)
+		{
+			TSharedRef<FInternetAddr> HostAddr = SocketSubsystem->CreateInternetAddr();
+			HostAddr->SetAnyAddress();
+
+			bool bIsValid = false;
+			HostAddr->SetIp(Home, bIsValid);
+			if (bIsValid)
+			{
+				CurlRequestOptions.LocalHostAddr = FString(Home);
+			}
+		}
+	}
+
 	// print for visibility
 	CurlRequestOptions.Log();
 }
@@ -523,7 +575,7 @@ void FCurlHttpManager::FCurlRequestOptions::Log()
 		);	
 	if (bUseHttpProxy)
 	{
-		UE_LOG(LogInit, Log, TEXT(" - HttpProxyAddress = '%s'"), *CurlRequestOptions.HttpProxyAddress);
+		UE_LOG(LogInit, Log, TEXT(" - HttpProxyAddress = '%s'"), *HttpProxyAddress);
 	}
 
 	UE_LOG(LogInit, Log, TEXT(" - bDontReuseConnections = %s  - Libcurl will %sreuse connections"),
@@ -535,6 +587,13 @@ void FCurlHttpManager::FCurlRequestOptions::Log()
 		(CertBundlePath != nullptr) ? *FString(CertBundlePath) : TEXT("nullptr"),
 		(CertBundlePath != nullptr) ? TEXT("set CURLOPT_CAINFO to it") : TEXT("use whatever was configured at build time.")
 		);
+
+	UE_LOG(LogInit, Log, TEXT(" - MaxHostConnections = %d  - Libcurl will %slimit the number of connections to a host"),
+		MaxHostConnections,
+		(MaxHostConnections == 0) ? TEXT("NOT ") : TEXT("")
+		);
+
+	UE_LOG(LogInit, Log, TEXT(" - LocalHostAddr = %s"), LocalHostAddr.IsEmpty() ? TEXT("Default") : *LocalHostAddr);
 }
 
 
@@ -555,7 +614,5 @@ FHttpThread* FCurlHttpManager::CreateHttpThread()
 {
 	return new FCurlHttpThread();
 }
-
-
 
 #endif //WITH_LIBCURL

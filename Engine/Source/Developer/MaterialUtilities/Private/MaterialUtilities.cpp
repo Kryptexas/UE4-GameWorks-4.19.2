@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #include "MaterialUtilities.h"
 #include "EngineDefines.h"
 #include "ShowFlags.h"
@@ -11,6 +11,7 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "Modules/ModuleManager.h"
 #include "Misc/PackageName.h"
+#include "LegacyScreenPercentageDriver.h"
 
 #include "Materials/MaterialExpressionConstant.h"
 #include "Materials/MaterialExpressionConstant4Vector.h"
@@ -118,23 +119,27 @@ UMaterialInterface* FMaterialUtilities::CreateProxyMaterialAndTextures(UPackage*
 			UTexture* Texture = FMaterialUtilities::CreateTexture(OuterPackage, TEXT("T_") + AssetName + TEXT("_") + TrimmedPropertyName, DataSize, ColorData, CompressionSettings, TEXTUREGROUP_HierarchicalLOD, RF_Public | RF_Standalone, bSRGBEnabled);
 
 			// Set texture parameter value on instance material
-			Material->SetTextureParameterValueEditorOnly(*(TrimmedPropertyName + "Texture"), Texture);
+			FMaterialParameterInfo ParameterInfo(*(TrimmedPropertyName + TEXT("Texture")));
+			Material->SetTextureParameterValueEditorOnly(ParameterInfo, Texture);
+
 			FStaticSwitchParameter SwitchParameter;
-			SwitchParameter.ParameterName = *("Use" + TrimmedPropertyName);
+			SwitchParameter.ParameterInfo.Name = *(TEXT("Use") + TrimmedPropertyName);
 			SwitchParameter.Value = true;
 			SwitchParameter.bOverride = true;
 			NewStaticParameterSet.StaticSwitchParameters.Add(SwitchParameter);
 		}
 		else
 		{
-			// Otherwise set either float4 or float constnat values on instance material
+			// Otherwise set either float4 or float constant values on instance material
+			FMaterialParameterInfo ParameterInfo(*(TrimmedPropertyName + TEXT("Const")));
+
 			if (Property == MP_BaseColor || Property == MP_EmissiveColor)
 			{
-				Material->SetVectorParameterValueEditorOnly(*(TrimmedPropertyName + "Const"), ColorData[0].ReinterpretAsLinear());
+				Material->SetVectorParameterValueEditorOnly(ParameterInfo, ColorData[0].ReinterpretAsLinear());
 			}
 			else
 			{
-				Material->SetScalarParameterValueEditorOnly(*(TrimmedPropertyName + "Const"), ColorData[0].ReinterpretAsLinear().R);
+				Material->SetScalarParameterValueEditorOnly(ParameterInfo, ColorData[0].ReinterpretAsLinear().R);
 			}
 		}
 	}
@@ -144,7 +149,8 @@ UMaterialInterface* FMaterialUtilities::CreateProxyMaterialAndTextures(UPackage*
 	{
 		if (BakeOutput.EmissiveScale != 1.0f)
 		{
-			Material->SetScalarParameterValueEditorOnly("EmissiveScale", BakeOutput.EmissiveScale);
+			FMaterialParameterInfo ParameterInfo(TEXT("EmissiveScale"));
+			Material->SetScalarParameterValueEditorOnly(ParameterInfo, BakeOutput.EmissiveScale);
 		}
 	}
 
@@ -152,13 +158,12 @@ UMaterialInterface* FMaterialUtilities::CreateProxyMaterialAndTextures(UPackage*
 	if (MeshData.TextureCoordinateIndex != 0)
 	{
 		FStaticSwitchParameter SwitchParameter;
-		SwitchParameter.ParameterName = TEXT("UseCustomUV");
+		SwitchParameter.ParameterInfo.Name = TEXT("UseCustomUV");
 		SwitchParameter.Value = true;
 		SwitchParameter.bOverride = true;
-
 		NewStaticParameterSet.StaticSwitchParameters.Add(SwitchParameter);
 
-		SwitchParameter.ParameterName = *("UseUV" + FString::FromInt(MeshData.TextureCoordinateIndex));
+		SwitchParameter.ParameterInfo.Name = *(TEXT("UseUV") + FString::FromInt(MeshData.TextureCoordinateIndex));
 		NewStaticParameterSet.StaticSwitchParameters.Add(SwitchParameter);
 	}
 
@@ -398,7 +403,7 @@ public:
 	{
 		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GMaxRHIFeatureLevel);
 		Material = InMaterialInterface->GetMaterial();
-		Material->AppendReferencedTextures(ReferencedTextures);
+		InMaterialInterface->AppendReferencedTextures(ReferencedTextures);
 		FPlatformMisc::CreateGuid(Id);
 
 		FMaterialResource* Resource = InMaterialInterface->GetMaterialResource(GMaxRHIFeatureLevel);
@@ -428,6 +433,7 @@ public:
 		case MP_AmbientOcclusion: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportAO; break;
 		case MP_EmissiveColor: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportEmissive; break;
 		case MP_Opacity: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportOpacity; break;
+		case MP_OpacityMask: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportOpacity; break;
 		case MP_SubsurfaceColor: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportSubSurfaceColor; break;
 		default:
 			ensureMsgf(false, TEXT("ExportMaterial has no usage for property %i.  Will likely reuse the normal rendering shader and crash later with a parameter mismatch"), (int32)InPropertyToCompile);
@@ -477,19 +483,19 @@ public:
 		}
 	}
 
-	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetVectorValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override
 	{
-		return MaterialInterface->GetRenderProxy(0)->GetVectorValue(ParameterName, OutValue, Context);
+		return MaterialInterface->GetRenderProxy(0)->GetVectorValue(ParameterInfo, OutValue, Context);
 	}
 
-	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetScalarValue(const FMaterialParameterInfo& ParameterInfo, float* OutValue, const FMaterialRenderContext& Context) const override
 	{
-		return MaterialInterface->GetRenderProxy(0)->GetScalarValue(ParameterName, OutValue, Context);
+		return MaterialInterface->GetRenderProxy(0)->GetScalarValue(ParameterInfo, OutValue, Context);
 	}
 
-	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetTextureValue(const FMaterialParameterInfo& ParameterInfo,const UTexture** OutValue, const FMaterialRenderContext& Context) const override
 	{
-		return MaterialInterface->GetRenderProxy(0)->GetTextureValue(ParameterName,OutValue,Context);
+		return MaterialInterface->GetRenderProxy(0)->GetTextureValue(ParameterInfo,OutValue,Context);
 	}
 
 	// Material properties.
@@ -729,7 +735,7 @@ public:
 
 	virtual bool IsVolumetricPrimitive() const override
 	{
-		return false;
+		return Material && Material->MaterialDomain == MD_Volume;
 	}
 private:
 	/** The material interface for this proxy */
@@ -769,6 +775,7 @@ static void RenderSceneToTexture(
 	ViewFamily.EngineShowFlags.SetPostProcessing(true);
 	ViewFamily.EngineShowFlags.SetVisualizeBuffer(true);
 	ViewFamily.EngineShowFlags.SetTonemapper(false);
+	ViewFamily.EngineShowFlags.SetScreenPercentage(false);
 
 	FSceneViewInitOptions ViewInitOptions;
 	ViewInitOptions.SetViewRectangle(FIntRect(0, 0, TargetSize.X, TargetSize.Y));
@@ -781,7 +788,10 @@ static void RenderSceneToTexture(
 	FSceneView* NewView = new FSceneView(ViewInitOptions);
 	NewView->CurrentBufferVisualizationMode = VisualizationMode;
 	ViewFamily.Views.Add(NewView);
-					
+
+	ViewFamily.SetScreenPercentageInterface(new FLegacyScreenPercentageDriver(
+		ViewFamily, /* GlobalResolutionFraction = */ 1.0f, /* AllowPostProcessSettingsScreenPercentage = */ false));
+
 	FCanvas Canvas(RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime, Scene->GetFeatureLevel());
 	Canvas.Clear(FLinearColor::Transparent);
 	GetRendererModule().BeginRenderingViewFamily(&Canvas, &ViewFamily);
@@ -819,7 +829,9 @@ bool FMaterialUtilities::ExportMaterialProperty(UWorld* InWorld, UMaterialInterf
 
 	FIntPoint MaxSize = MaterialProxy->FindMaxTextureSize(InMaterial);
 	FIntPoint OutSize = MaxSize;
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return RenderMaterialPropertyToTexture(MaterialData, InMaterialProperty, bForceGamma, PF_B8G8R8A8, MaxSize, OutSize, OutBMP);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 bool FMaterialUtilities::ExportMaterialProperty(UWorld* InWorld, UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, FIntPoint& OutSize, TArray<FColor>& OutBMP)
@@ -835,7 +847,9 @@ bool FMaterialUtilities::ExportMaterialProperty(UWorld* InWorld, UMaterialInterf
 	FMaterialMergeData MaterialData(InMaterial, nullptr, nullptr, 0, DummyBounds, EmptyTexCoords);
 	const bool bForceGamma = (InMaterialProperty == MP_Normal) || (InMaterialProperty == MP_OpacityMask) || (InMaterialProperty == MP_Opacity);
 	OutSize = MaterialProxy->FindMaxTextureSize(InMaterial);
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return RenderMaterialPropertyToTexture(MaterialData, InMaterialProperty, bForceGamma, PF_B8G8R8A8, OutSize, OutSize, OutBMP);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 bool FMaterialUtilities::ExportMaterialProperty(UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, TArray<FColor>& OutBMP, FIntPoint& OutSize)
@@ -851,7 +865,9 @@ bool FMaterialUtilities::ExportMaterialProperty(UMaterialInterface* InMaterial, 
 	FMaterialMergeData MaterialData(InMaterial, nullptr, nullptr, 0, DummyBounds, EmptyTexCoords);
 	const bool bForceGamma = (InMaterialProperty == MP_Normal) || (InMaterialProperty == MP_OpacityMask) || (InMaterialProperty == MP_Opacity);
 	OutSize = MaterialProxy->FindMaxTextureSize(InMaterial);
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return RenderMaterialPropertyToTexture(MaterialData, InMaterialProperty, bForceGamma, PF_B8G8R8A8, OutSize, OutSize, OutBMP);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 bool FMaterialUtilities::ExportMaterialProperty(UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, FIntPoint InSize, TArray<FColor>& OutBMP)
@@ -867,12 +883,16 @@ bool FMaterialUtilities::ExportMaterialProperty(UMaterialInterface* InMaterial, 
 	FMaterialMergeData MaterialData(InMaterial, nullptr, nullptr, 0, DummyBounds, EmptyTexCoords);
 	const bool bForceGamma = (InMaterialProperty == MP_Normal) || (InMaterialProperty == MP_OpacityMask) || (InMaterialProperty == MP_Opacity);
 	FIntPoint OutSize;
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return RenderMaterialPropertyToTexture(MaterialData, InMaterialProperty, bForceGamma, PF_B8G8R8A8, InSize, OutSize, OutBMP);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 bool FMaterialUtilities::ExportMaterial(UWorld* InWorld, UMaterialInterface* InMaterial, FFlattenMaterial& OutFlattenMaterial)
 {
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return ExportMaterial(InMaterial, OutFlattenMaterial);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 bool FMaterialUtilities::ExportMaterial(UMaterialInterface* InMaterial, FFlattenMaterial& OutFlattenMaterial, struct FExportMaterialProxyCache* ProxyCache)
@@ -881,7 +901,9 @@ bool FMaterialUtilities::ExportMaterial(UMaterialInterface* InMaterial, FFlatten
 	TArray<FVector2D> EmptyTexCoords;
 
 	FMaterialMergeData MaterialData(InMaterial, nullptr, nullptr, 0, DummyBounds, EmptyTexCoords);
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	ExportMaterial(MaterialData, OutFlattenMaterial, ProxyCache);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	return true;
 }
 
@@ -904,7 +926,9 @@ bool FMaterialUtilities::ExportMaterial(UMaterialInterface* InMaterial, const FR
 	MaterialData.LightMap = LightMap;
 	MaterialData.ShadowMap = ShadowMap;
 	MaterialData.Buffer = Buffer;
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	ExportMaterial(MaterialData, OutFlattenMaterial, ProxyCache);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 	return true;
 }
@@ -1515,17 +1539,17 @@ FFlattenMaterial FMaterialUtilities::CreateFlattenMaterialWithSettings(const FMa
 	FFlattenMaterial Material;
 
 	// TODO REMOVE THIS FEATURE?
-	FIntPoint MaximumSize = InMaterialLODSettings.TextureSize;	
+	FIntPoint MaximumSize = FIntPoint::ZeroValue;// InMaterialLODSettings.TextureSize;
 	// If the user is manually overriding the texture size, make sure we have the max texture size to render with
 	if (InMaterialLODSettings.TextureSizingType == TextureSizingType_UseManualOverrideTextureSize)
 	{
-		MaximumSize = (MaximumSize.X < InMaterialLODSettings.DiffuseTextureSize.X) ? MaximumSize : InMaterialLODSettings.DiffuseTextureSize;
-		MaximumSize = (InMaterialLODSettings.bSpecularMap && MaximumSize.X < InMaterialLODSettings.SpecularTextureSize.X) ? MaximumSize : InMaterialLODSettings.SpecularTextureSize;
-		MaximumSize = (InMaterialLODSettings.bMetallicMap && MaximumSize.X < InMaterialLODSettings.MetallicTextureSize.X) ? MaximumSize : InMaterialLODSettings.MetallicTextureSize;
-		MaximumSize = (InMaterialLODSettings.bRoughnessMap && MaximumSize.X < InMaterialLODSettings.RoughnessTextureSize.X) ? MaximumSize : InMaterialLODSettings.RoughnessTextureSize;
-		MaximumSize = (InMaterialLODSettings.bNormalMap && MaximumSize.X < InMaterialLODSettings.NormalTextureSize.X) ? MaximumSize : InMaterialLODSettings.NormalTextureSize;
-		MaximumSize = (InMaterialLODSettings.bEmissiveMap && MaximumSize.X < InMaterialLODSettings.EmissiveTextureSize.X) ? MaximumSize : InMaterialLODSettings.EmissiveTextureSize;
-		MaximumSize = (InMaterialLODSettings.bOpacityMap && MaximumSize.X < InMaterialLODSettings.OpacityTextureSize.X) ? MaximumSize : InMaterialLODSettings.OpacityTextureSize;
+		MaximumSize = (MaximumSize.X < InMaterialLODSettings.DiffuseTextureSize.X) ? InMaterialLODSettings.DiffuseTextureSize : MaximumSize ;
+		MaximumSize = (InMaterialLODSettings.bSpecularMap && (MaximumSize.X < InMaterialLODSettings.SpecularTextureSize.X)) ? InMaterialLODSettings.SpecularTextureSize	:	MaximumSize;
+		MaximumSize = (InMaterialLODSettings.bMetallicMap && (MaximumSize.X < InMaterialLODSettings.MetallicTextureSize.X)) ? InMaterialLODSettings.MetallicTextureSize	:	MaximumSize;
+		MaximumSize = (InMaterialLODSettings.bRoughnessMap && (MaximumSize.X < InMaterialLODSettings.RoughnessTextureSize.X)) ? InMaterialLODSettings.RoughnessTextureSize :	MaximumSize;
+		MaximumSize = (InMaterialLODSettings.bNormalMap && (MaximumSize.X < InMaterialLODSettings.NormalTextureSize.X)) ? InMaterialLODSettings.NormalTextureSize :			MaximumSize;
+		MaximumSize = (InMaterialLODSettings.bEmissiveMap && (MaximumSize.X < InMaterialLODSettings.EmissiveTextureSize.X)) ? InMaterialLODSettings.EmissiveTextureSize :	MaximumSize;
+		MaximumSize = (InMaterialLODSettings.bOpacityMap && (MaximumSize.X < InMaterialLODSettings.OpacityTextureSize.X)) ? InMaterialLODSettings.OpacityTextureSize :		MaximumSize;
 	}
 	
 	if (InMaterialLODSettings.TextureSizingType == TextureSizingType_UseManualOverrideTextureSize)
@@ -1559,15 +1583,17 @@ FFlattenMaterial FMaterialUtilities::CreateFlattenMaterialWithSettings(const FMa
 		Material.SetPropertySize(EFlattenMaterialProperties::Emissive, (InMaterialLODSettings.bEmissiveMap) ? PropertiesSize : FIntPoint::ZeroValue );
 		Material.SetPropertySize(EFlattenMaterialProperties::Opacity, (InMaterialLODSettings.bOpacityMap) ? PropertiesSize : FIntPoint::ZeroValue );
 	}
-	
-	Material.RenderSize = InMaterialLODSettings.TextureSize;
-	Material.SetPropertySize(EFlattenMaterialProperties::Diffuse , InMaterialLODSettings.TextureSize);
-	Material.SetPropertySize(EFlattenMaterialProperties::Specular, (InMaterialLODSettings.bSpecularMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
-	Material.SetPropertySize(EFlattenMaterialProperties::Metallic, (InMaterialLODSettings.bMetallicMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
-	Material.SetPropertySize(EFlattenMaterialProperties::Roughness,  (InMaterialLODSettings.bRoughnessMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
-	Material.SetPropertySize(EFlattenMaterialProperties::Normal,  (InMaterialLODSettings.bNormalMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
-	Material.SetPropertySize(EFlattenMaterialProperties::Emissive,  (InMaterialLODSettings.bEmissiveMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
-	Material.SetPropertySize(EFlattenMaterialProperties::Opacity,  (InMaterialLODSettings.bOpacityMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
+	else if (InMaterialLODSettings.TextureSizingType == TextureSizingType_UseSingleTextureSize)
+	{
+		Material.RenderSize = InMaterialLODSettings.TextureSize;
+		Material.SetPropertySize(EFlattenMaterialProperties::Diffuse, InMaterialLODSettings.TextureSize);
+		Material.SetPropertySize(EFlattenMaterialProperties::Specular, (InMaterialLODSettings.bSpecularMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
+		Material.SetPropertySize(EFlattenMaterialProperties::Metallic, (InMaterialLODSettings.bMetallicMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
+		Material.SetPropertySize(EFlattenMaterialProperties::Roughness, (InMaterialLODSettings.bRoughnessMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
+		Material.SetPropertySize(EFlattenMaterialProperties::Normal, (InMaterialLODSettings.bNormalMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
+		Material.SetPropertySize(EFlattenMaterialProperties::Emissive, (InMaterialLODSettings.bEmissiveMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
+		Material.SetPropertySize(EFlattenMaterialProperties::Opacity, (InMaterialLODSettings.bOpacityMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
+	}
 
 	return Material;
 }
@@ -2498,31 +2524,42 @@ bool FMaterialUtilities::ExportMaterial(struct FMaterialMergeData& InMaterialDat
 	FIntPoint Size;
 	// Compile shaders and render flatten material.
 	Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Diffuse);
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	RenderMaterialPropertyToTexture(InMaterialData, MP_BaseColor, false, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Diffuse));
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Diffuse, Size);
 
 	if (bRenderMetallic)
 	{
 		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Metallic);
-		RenderMaterialPropertyToTexture(InMaterialData, MP_Metallic, false, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Metallic));
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		RenderMaterialPropertyToTexture(InMaterialData, MP_Metallic, false, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, 
+			OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Metallic));
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Metallic, Size);
 	}	
 	if (bRenderSpecular)
 	{
 		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Specular);
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		RenderMaterialPropertyToTexture(InMaterialData, MP_Specular, false, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Specular));
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Specular, Size);
 	}
 	if (bRenderRoughness)
 	{
 		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Roughness);
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		RenderMaterialPropertyToTexture(InMaterialData, MP_Roughness, false, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Roughness));
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Roughness, Size);
 	}
 	if (bRenderNormal)
 	{
 		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Normal);
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		RenderMaterialPropertyToTexture(InMaterialData, MP_Normal, true, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Normal));
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Normal, Size);
 	}
 	else
@@ -2535,22 +2572,28 @@ bool FMaterialUtilities::ExportMaterial(struct FMaterialMergeData& InMaterialDat
 
 	if (bRenderOpacityMask)
 	{
-		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Opacity);
-		RenderMaterialPropertyToTexture(InMaterialData, MP_OpacityMask, true, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity));
-		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Opacity, Size);
+		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::OpacityMask);
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		RenderMaterialPropertyToTexture(InMaterialData, MP_OpacityMask, true, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::OpacityMask));
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
+		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::OpacityMask, Size);
 	}
 	if (bRenderOpacity)
 	{
 		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Opacity);
 		// Number of blend modes, let's UMaterial decide whether it wants this property
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		RenderMaterialPropertyToTexture(InMaterialData, MP_Opacity, true, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity));
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Opacity, Size);
 	}
 	if (bRenderEmissive)
 	{
 		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Emissive);
 		// PF_FloatRGBA is here to be able to render and read HDR image using ReadFloat16Pixels()
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		RenderMaterialPropertyToTexture(InMaterialData, MP_EmissiveColor, false, PF_FloatRGBA, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Emissive));
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		OutFlattenMaterial.EmissiveScale = InMaterialData.EmissiveScale;
 		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Emissive, Size);
 	}	
@@ -2799,7 +2842,7 @@ void FMaterialUtilities::DetermineMaterialImportance(const TArray<UMaterialInter
 	for (UMaterialInterface* Material : InMaterials)
 	{
 		TArray<UTexture*> UsedTextures;
-		Material->GetMaterial()->AppendReferencedTextures(UsedTextures);
+		Material->AppendReferencedTextures(UsedTextures);
 		if (UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>(Material))
 		{
 			for (const FTextureParameterValue& TextureParameter : MaterialInstance->TextureParameterValues)

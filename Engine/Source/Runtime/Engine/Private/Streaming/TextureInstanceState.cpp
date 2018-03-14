@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TextureInstanceState.cpp: Implementation of content streaming classes.
@@ -25,11 +25,12 @@ int32 FTextureInstanceState::AddBounds(const FBoxSphereBounds& Bounds, uint32 Pa
 
 	int BoundsIndex = INDEX_NONE;
 
-	if (FreeBoundIndices.Num())
+	while (!Bounds4Components.IsValidIndex(BoundsIndex) && FreeBoundIndices.Num() > 0)
 	{
 		BoundsIndex = FreeBoundIndices.Pop();
 	}
-	else
+
+	if (!Bounds4Components.IsValidIndex(BoundsIndex))
 	{
 		BoundsIndex = Bounds4.Num() * 4;
 		Bounds4.Push(FBounds4());
@@ -53,8 +54,21 @@ int32 FTextureInstanceState::AddBounds(const FBoxSphereBounds& Bounds, uint32 Pa
 
 void FTextureInstanceState::RemoveBounds(int32 BoundsIndex)
 {
-	check(BoundsIndex != INDEX_NONE);
 	checkSlow(!FreeBoundIndices.Contains(BoundsIndex));
+
+	// Because components can be removed in CheckRegistrationAndUnpackBounds, which iterates on BoundsToUnpack,
+	// here we invalidate the index, instead of removing it, to avoid resizing the array.
+	int32 BoundsToUnpackIndex = INDEX_NONE;
+	if (BoundsToUnpack.Find(BoundsIndex, BoundsToUnpackIndex))
+	{
+		BoundsToUnpack[BoundsToUnpackIndex] = INDEX_NONE;
+	}
+
+	// If the BoundsIndex is out of range, the next code will crash.	
+	if (!ensure(Bounds4Components.IsValidIndex(BoundsIndex)))
+	{
+		return;
+	}
 
 	// If note all indices were freed
 	if (1 + FreeBoundIndices.Num() != Bounds4.Num() * 4)
@@ -75,48 +89,8 @@ void FTextureInstanceState::AddElement(const UPrimitiveComponent* InComponent, c
 {
 	check(InComponent && InTexture);
 
-	FTextureDesc* TextureDesc = TextureMap.Find(InTexture);
-
-	// Since textures are processed per component, if there are already elements for this component-texture,
-	// they will be in the first entries (as we push to head). If such pair use the same bound, merge the texel factors.
-	// The first step is to find if such a duplicate entries exists.
-
-	if (TextureDesc)
-	{
-		int32 ElementIndex = TextureDesc->HeadLink;
-		while (ElementIndex != INDEX_NONE)
-		{
-			FElement& TextureElement = Elements[ElementIndex];
-
-			if (TextureElement.Component == InComponent)
-			{
-				if (TextureElement.BoundsIndex == InBoundsIndex)
-				{
-					if (InTexelFactor >= 0 && TextureElement.TexelFactor >= 0)
-					{
-						// Abort inserting a new element, and merge the 2 entries together.
-						TextureElement.TexelFactor = FMath::Max(TextureElement.TexelFactor, InTexelFactor);
-						TextureElement.bForceLoad |= InForceLoad;
-						return;
-					}
-					else if (InTexelFactor < 0 && TextureElement.TexelFactor < 0)
-					{
-						// Negative are forced resolution.
-						TextureElement.TexelFactor = FMath::Min(TextureElement.TexelFactor, InTexelFactor);
-						TextureElement.bForceLoad |= InForceLoad;
-						return;
-					}
-				}
-
-				// Check the next bounds for this component.
-				ElementIndex = TextureElement.NextTextureLink;
-			}
-			else
-			{
-				break;
-			}
-		}
-	}
+	// Keep Max texel factor up to date.
+	MaxTexelFactor = FMath::Max(InTexelFactor, MaxTexelFactor);
 
 	int32 ElementIndex = INDEX_NONE;
 	if (FreeElementIndices.Num())
@@ -137,6 +111,7 @@ void FTextureInstanceState::AddElement(const UPrimitiveComponent* InComponent, c
 	Element.TexelFactor = InTexelFactor;
 	Element.bForceLoad = InForceLoad;
 
+	FTextureDesc* TextureDesc = TextureMap.Find(InTexture);
 	if (TextureDesc)
 	{
 		FElement& TextureLinkElement = Elements[TextureDesc->HeadLink];
@@ -168,7 +143,7 @@ void FTextureInstanceState::AddElement(const UPrimitiveComponent* InComponent, c
 	// This will happen when not all components could be inserted in the incremental build.
 	if (HasCompiledElements()) 
 	{
-		CompiledTextureMap.FindOrAdd(Element.Texture).Add(FCompiledElement(Element.BoundsIndex, Element.TexelFactor, Element.bForceLoad));
+		CompiledTextureMap.FindOrAdd(Element.Texture).Add(FCompiledElement(Element));
 	}
 }
 
@@ -181,7 +156,7 @@ void FTextureInstanceState::RemoveElement(int32 ElementIndex, int32& NextCompone
 	// Removed compiled elements. This happens when a static component is not registered after the level became visible.
 	if (HasCompiledElements())
 	{
-		verify(CompiledTextureMap.FindChecked(Element.Texture).RemoveSingleSwap(FCompiledElement(Element.BoundsIndex, Element.TexelFactor, Element.bForceLoad), false) == 1);
+		CompiledTextureMap.FindChecked(Element.Texture).RemoveSingleSwap(FCompiledElement(Element), false);
 	}
 
 	// Unlink textures
@@ -226,107 +201,206 @@ void FTextureInstanceState::RemoveElement(int32 ElementIndex, int32& NextCompone
 	}
 }
 
-bool FTextureInstanceState::AddComponent(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext)
+FORCEINLINE bool operator<(const FBoxSphereBounds& Lhs, const FBoxSphereBounds& Rhs)
+{
+	// Check that all bites of the structure are used!
+	check(sizeof(FBoxSphereBounds) == sizeof(FBoxSphereBounds::Origin) + sizeof(FBoxSphereBounds::BoxExtent) + sizeof(FBoxSphereBounds::SphereRadius));
+
+	return FMemory::Memcmp(&Lhs, &Rhs, sizeof(FBoxSphereBounds)) < 0;
+}
+
+void FTextureInstanceState::AddTextureElements(const UPrimitiveComponent* Component, const TArrayView<FStreamingTexturePrimitiveInfo>& TextureInstanceInfos, int32 BoundsIndex, int32*& ComponentLink)
+{
+	// Loop for each texture - texel factor group (a group being of same texel factor sign)
+	for (int32 InfoIndex = 0; InfoIndex < TextureInstanceInfos.Num();)
+	{
+		const FStreamingTexturePrimitiveInfo& Info = TextureInstanceInfos[InfoIndex];
+		float MergedTexelFactor = Info.TexelFactor;
+		int32 NumOfMergedElements = 1;
+
+		// Merge all texel factor >= 0 for the same texture, or all those < 0
+		if (Info.TexelFactor >= 0)
+		{
+			for (int32 NextInfoIndex = InfoIndex + 1; NextInfoIndex < TextureInstanceInfos.Num(); ++NextInfoIndex)
+			{
+				const FStreamingTexturePrimitiveInfo& NextInfo = TextureInstanceInfos[NextInfoIndex];
+				if (NextInfo.Texture == Info.Texture && NextInfo.TexelFactor >= 0)
+				{
+					MergedTexelFactor = FMath::Max(MergedTexelFactor, NextInfo.TexelFactor);
+					++NumOfMergedElements;
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+		else // Info.TexelFactor < 0
+		{
+			for (int32 NextInfoIndex = InfoIndex + 1; NextInfoIndex < TextureInstanceInfos.Num(); ++NextInfoIndex)
+			{
+				const FStreamingTexturePrimitiveInfo& NextInfo = TextureInstanceInfos[NextInfoIndex];
+				if (NextInfo.Texture == Info.Texture && NextInfo.TexelFactor < 0)
+				{
+					MergedTexelFactor = FMath::Min(MergedTexelFactor, NextInfo.TexelFactor);
+					++NumOfMergedElements;
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+		AddElement(Component, Info.Texture, BoundsIndex, MergedTexelFactor, Component->bForceMipStreaming, ComponentLink);
+
+		InfoIndex += NumOfMergedElements;
+	}
+}
+
+EAddComponentResult FTextureInstanceState::AddComponent(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext, float MaxAllowedUIDensity)
 {
 	TArray<FStreamingTexturePrimitiveInfo> TextureInstanceInfos;
 	Component->GetStreamingTextureInfoWithNULLRemoval(LevelContext, TextureInstanceInfos);
 	// Texture entries are guarantied to be relevant here, except for bounds if the component is not registered.
 
+	if (!TextureInstanceInfos.Num())
+	{
+		return EAddComponentResult::Fail;
+	}
+
+	// First check if all entries are below the max allowed UI density, otherwise abort immediately.
+	if (MaxAllowedUIDensity > 0)
+	{
+		for (const FStreamingTexturePrimitiveInfo& Info : TextureInstanceInfos)
+		{
+			if (Info.TexelFactor > MaxAllowedUIDensity)
+			{
+				return EAddComponentResult::Fail_UIDensityConstraint;
+			}
+		}
+	}
+
 	if (!Component->IsRegistered())
 	{
-		// When the components are not registered, every entry must have a valid PackedRelativeBox since the bound is not reliable.
+		// When the components are not registered, the bound will be generated from PackedRelativeBox in CheckRegistrationAndUnpackBounds.
+		// Otherwise, the entry is not usable as we don't know the bound to use. The component will need to be reinstered later, once registered.
 		// it will not be possible to recreate the bounds correctly.
 		for (const FStreamingTexturePrimitiveInfo& Info : TextureInstanceInfos)
 		{
 			if (!Info.PackedRelativeBox)
 			{
-				return false;
+				return EAddComponentResult::Fail;
 			}
 		}
-	}
 
-	if (TextureInstanceInfos.Num())
-	{
-		const UPrimitiveComponent* LODParent = Component->GetLODParentPrimitive();
-
-		// AddElement will handle duplicate texture-bound-component. Here we just have to prevent creating identical bound-component.
-		TArray<int32, TInlineAllocator<12> > BoundsIndices;
+		// Sort by PackedRelativeBox, to identical bounds identical entries together
+		// Sort by Texture to merge duplicate texture entries.
+		// Then sort by TexelFactor, to merge negative entries together.
+		TextureInstanceInfos.Sort([](const FStreamingTexturePrimitiveInfo& Lhs, const FStreamingTexturePrimitiveInfo& Rhs) 
+		{
+			if (Lhs.PackedRelativeBox == Rhs.PackedRelativeBox)
+			{
+				if (Lhs.Texture == Rhs.Texture)
+				{
+					return Lhs.TexelFactor < Rhs.TexelFactor;
+				}
+				return Lhs.Texture < Rhs.Texture;
+			}
+			return Lhs.PackedRelativeBox < Rhs.PackedRelativeBox;
+		});
 
 		int32* ComponentLink = ComponentMap.Find(Component);
-		for (int32 TextureIndex = 0; TextureIndex  < TextureInstanceInfos.Num(); ++TextureIndex)
+
+		// Loop for each bound.
+		for (int32 InfoIndex = 0; InfoIndex < TextureInstanceInfos.Num();)
 		{
-			const FStreamingTexturePrimitiveInfo& Info = TextureInstanceInfos[TextureIndex];
+			const FStreamingTexturePrimitiveInfo& Info = TextureInstanceInfos[InfoIndex];
 
-			int32 BoundsIndex = INDEX_NONE;
-
-			// Find an identical bound, or create a new entry.
+			int32 NumOfBoundReferences = 1;
+			for (int32 NextInfoIndex = InfoIndex + 1; NextInfoIndex < TextureInstanceInfos.Num() && TextureInstanceInfos[NextInfoIndex].PackedRelativeBox == Info.PackedRelativeBox; ++NextInfoIndex)
 			{
-				for (int32 TestIndex = TextureIndex - 1; TestIndex >= 0; --TestIndex)
-				{
-					const FStreamingTexturePrimitiveInfo& TestInfo = TextureInstanceInfos[TestIndex];
-					if (Info.Bounds == TestInfo.Bounds && Info.PackedRelativeBox == TestInfo.PackedRelativeBox && BoundsIndices[TestIndex] != INDEX_NONE)
-					{
-						BoundsIndex = BoundsIndices[TestIndex];
-						break;
-					}
-				}
-
-				if (BoundsIndex == INDEX_NONE)
-				{
-					// In the engine, the MinDistance is computed from the component bound center to the viewpoint.
-					// The streaming computes the distance as the distance from viewpoint to the edge of the texture bound box.
-					// The implementation also handles MinDistance by bounding the distance to it so that if the viewpoint gets closer the screen size will stop increasing at some point.
-					// The fact that the primitive will disappear is not so relevant as this will be handled by the visibility logic, normally streaming one less mip than requested.
-					// The important mather is to control the requested mip by limiting the distance, since at close up, the distance becomes very small and all mips are streamer (even after the 1 mip bias).
-
-					float MinDistance = FMath::Max<float>(0, Component->MinDrawDistance - (Info.Bounds.Origin - Component->Bounds.Origin).Size() - Info.Bounds.SphereRadius);
-					float MinRange = FMath::Max<float>(0, Component->MinDrawDistance);
-					float MaxRange = FLT_MAX;
-					if (LODParent)
-					{
-						// Max distance when HLOD becomes visible.
-						MaxRange = LODParent->MinDrawDistance + (Component->Bounds.Origin - LODParent->Bounds.Origin).Size();
-					}
-					BoundsIndex = AddBounds(Info.Bounds, Info.PackedRelativeBox, Component, Component->LastRenderTimeOnScreen, Component->Bounds.Origin, MinDistance, MinRange, MaxRange);
-				}
-				BoundsIndices.Push(BoundsIndex);
+				++NumOfBoundReferences;
 			}
 
-			// Handle force mip streaming by over scaling the texel factor. 
-			AddElement(Component, Info.Texture, BoundsIndex, Info.TexelFactor, Component->bForceMipStreaming, ComponentLink);
+			const int32 BoundsIndex = AddBounds(FBoxSphereBounds(ForceInit), Info.PackedRelativeBox, Component, Component->LastRenderTimeOnScreen, FVector(ForceInit), 0, 0, FLT_MAX);
+			AddTextureElements(Component, TArrayView<FStreamingTexturePrimitiveInfo>(TextureInstanceInfos.GetData() + InfoIndex, NumOfBoundReferences), BoundsIndex, ComponentLink);
+			BoundsToUnpack.Push(BoundsIndex);
+
+			InfoIndex += NumOfBoundReferences;
 		}
-		return true;
 	}
-	return false;
-}
-
-bool FTextureInstanceState::AddComponentFast(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext)
-{
-	// Dynamic components should only be active if registered
-	check(Component->IsRegistered());
-
-	// Some components don't have any proxy in game.
-	if (Component->SceneProxy)
+	else
 	{
-		TArray<FStreamingTexturePrimitiveInfo> TextureInstanceInfos;
-		Component->GetStreamingTextureInfoWithNULLRemoval(LevelContext, TextureInstanceInfos);
-
-		if (TextureInstanceInfos.Num())
+		// Sort by Bounds, to merge identical bounds entries together
+		// Sort by Texture to merge duplicate texture entries.
+		// Then sort by TexelFactor, to merge negative entries together.
+		TextureInstanceInfos.Sort([](const FStreamingTexturePrimitiveInfo& Lhs, const FStreamingTexturePrimitiveInfo& Rhs) 
 		{
-			int32 BoundsIndex = AddBounds(Component);
-			int32* ComponentLink = ComponentMap.Find(Component);
-			for (const FStreamingTexturePrimitiveInfo& Info : TextureInstanceInfos)
+			if (Lhs.Bounds == Rhs.Bounds)
 			{
-				AddElement(Component, Info.Texture, BoundsIndex, Info.TexelFactor, Component->bForceMipStreaming, ComponentLink);
+				if (Lhs.Texture == Rhs.Texture)
+				{
+					return Lhs.TexelFactor < Rhs.TexelFactor;
+				}
+				return Lhs.Texture < Rhs.Texture;
+			}
+			return Lhs.Bounds < Rhs.Bounds;
+		});
+
+		int32* ComponentLink = ComponentMap.Find(Component);
+		float MinDistance = 0, MinRange = 0, MaxRange = FLT_MAX;
+
+		// Loop for each bound.
+		for (int32 InfoIndex = 0; InfoIndex < TextureInstanceInfos.Num();)
+		{
+			const FStreamingTexturePrimitiveInfo& Info = TextureInstanceInfos[InfoIndex];
+
+			int32 NumOfBoundReferences = 1;
+			for (int32 NextInfoIndex = InfoIndex + 1; NextInfoIndex < TextureInstanceInfos.Num() && TextureInstanceInfos[NextInfoIndex].Bounds == Info.Bounds; ++NextInfoIndex)
+			{
+				++NumOfBoundReferences;
 			}
 
-			return true;
+			GetDistanceAndRange(Component, Info.Bounds, MinDistance, MinRange, MaxRange);
+			const int32 BoundsIndex = AddBounds(Info.Bounds, PackedRelativeBox_Identity, Component, Component->LastRenderTimeOnScreen, Component->Bounds.Origin, MinDistance, MinRange, MaxRange);
+			AddTextureElements(Component, TArrayView<FStreamingTexturePrimitiveInfo>(TextureInstanceInfos.GetData() + InfoIndex, NumOfBoundReferences), BoundsIndex, ComponentLink);
+
+			InfoIndex += NumOfBoundReferences;
 		}
 	}
-	return false;
+	return EAddComponentResult::Success;
 }
 
-void FTextureInstanceState::RemoveComponent(const UPrimitiveComponent* Component, FRemovedTextureArray& RemovedTextures)
+EAddComponentResult FTextureInstanceState::AddComponentIgnoreBounds(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext)
+{
+	check(Component->IsRegistered()); // Must be registered otherwise bounds are invalid.
+
+	TArray<FStreamingTexturePrimitiveInfo> TextureInstanceInfos;
+	Component->GetStreamingTextureInfoWithNULLRemoval(LevelContext, TextureInstanceInfos);
+
+	if (!TextureInstanceInfos.Num())
+	{
+		return EAddComponentResult::Fail;
+	}
+
+	// Sort by Texture to merge duplicate texture entries.
+	// Then sort by TexelFactor, to merge negative entries together.
+	TextureInstanceInfos.Sort([](const FStreamingTexturePrimitiveInfo& Lhs, const FStreamingTexturePrimitiveInfo& Rhs) 
+	{
+		if (Lhs.Texture == Rhs.Texture)
+		{
+			return Lhs.TexelFactor < Rhs.TexelFactor;
+		}
+		return Lhs.Texture < Rhs.Texture;
+	});
+
+	int32* ComponentLink = ComponentMap.Find(Component);
+	AddTextureElements(Component, TextureInstanceInfos, AddBounds(Component), ComponentLink);
+	return EAddComponentResult::Success;
+}
+
+
+void FTextureInstanceState::RemoveComponent(const UPrimitiveComponent* Component, FRemovedTextureArray* RemovedTextures)
 {
 	TArray<int32, TInlineAllocator<12> > RemovedBoundsIndices;
 	int32 ElementIndex = INDEX_NONE;
@@ -344,9 +418,9 @@ void FTextureInstanceState::RemoveComponent(const UPrimitiveComponent* Component
 			RemovedBoundsIndices.AddUnique(BoundsIndex);
 		}
 
-		if (Texture)
+		if (Texture && RemovedTextures)
 		{
-			RemovedTextures.AddUnique(Texture);
+			RemovedTextures->AddUnique(Texture);
 		}
 	};
 
@@ -414,7 +488,7 @@ void FTextureInstanceState::UpdateBounds(const UPrimitiveComponent* Component)
 
 bool FTextureInstanceState::UpdateBounds(int32 BoundIndex)
 {
-	const UPrimitiveComponent* Component = Bounds4Components[BoundIndex];
+	const UPrimitiveComponent* Component = ensure(Bounds4Components.IsValidIndex(BoundIndex)) ? Bounds4Components[BoundIndex] : nullptr;
 	if (Component)
 	{
 		Bounds4[BoundIndex / 4].FullUpdate(BoundIndex % 4, Component->Bounds, Component->LastRenderTimeOnScreen);
@@ -428,7 +502,7 @@ bool FTextureInstanceState::UpdateBounds(int32 BoundIndex)
 
 bool FTextureInstanceState::ConditionalUpdateBounds(int32 BoundIndex)
 {
-	const UPrimitiveComponent* Component = Bounds4Components[BoundIndex];
+	const UPrimitiveComponent* Component = ensure(Bounds4Components.IsValidIndex(BoundIndex)) ? Bounds4Components[BoundIndex] : nullptr;
 	if (Component)
 	{
 		if (Component->Mobility != EComponentMobility::Static)
@@ -460,7 +534,7 @@ bool FTextureInstanceState::ConditionalUpdateBounds(int32 BoundIndex)
 
 void FTextureInstanceState::UpdateLastRenderTime(int32 BoundIndex)
 {
-	const UPrimitiveComponent* Component = Bounds4Components[BoundIndex];
+	const UPrimitiveComponent* Component = ensure(Bounds4Components.IsValidIndex(BoundIndex)) ? Bounds4Components[BoundIndex] : nullptr;
 	if (Component)
 	{
 		Bounds4[BoundIndex / 4].UpdateLastRenderTime(BoundIndex % 4, Component->LastRenderTimeOnScreen);
@@ -488,6 +562,7 @@ uint32 FTextureInstanceState::GetAllocatedSize() const
 int32 FTextureInstanceState::CompileElements()
 {
 	CompiledTextureMap.Empty();
+	MaxTexelFactor = 0;
 
 	// First create an entry for all elements, so that there are no reallocs when inserting each compiled elements.
 	for (TMap<const UTexture2D*, FTextureDesc>::TConstIterator TextureIt(TextureMap); TextureIt; ++TextureIt)
@@ -512,9 +587,14 @@ int32 FTextureInstanceState::CompileElements()
 		CompiledElementCount = 0;
 		for (auto ElementIt = GetElementIterator(Texture); ElementIt; ++ElementIt)
 		{
+			const float TexelFactor = ElementIt.GetTexelFactor();
+			// No need to care about force load as MaxTexelFactor is used to ignore far away levels.
+			MaxTexelFactor = FMath::Max(TexelFactor, MaxTexelFactor);
+
 			CompiledElemements[CompiledElementCount].BoundsIndex = ElementIt.GetBoundsIndex();
-			CompiledElemements[CompiledElementCount].TexelFactor = ElementIt.GetTexelFactor();
-			CompiledElemements[CompiledElementCount].bForceLoad = ElementIt.GetForceLoad();
+			CompiledElemements[CompiledElementCount].TexelFactor = TexelFactor;
+			CompiledElemements[CompiledElementCount].bForceLoad = ElementIt.GetForceLoad();;
+
 			++CompiledElementCount;
 		}
 	}
@@ -523,32 +603,47 @@ int32 FTextureInstanceState::CompileElements()
 
 int32 FTextureInstanceState::CheckRegistrationAndUnpackBounds(TArray<const UPrimitiveComponent*>& RemovedComponents)
 {
-	for (int32 BoundIndex = 0; BoundIndex < Bounds4Components.Num(); ++BoundIndex)
+	for (int32 BoundIndex : BoundsToUnpack)
 	{
-		const UPrimitiveComponent* Component = Bounds4Components[BoundIndex];
-		if (Component)
+		if (Bounds4Components.IsValidIndex(BoundIndex))
 		{
-			if (Component->IsRegistered() && Component->SceneProxy)
+			const UPrimitiveComponent* Component = Bounds4Components[BoundIndex];
+			if (Component)
 			{
-				Bounds4[BoundIndex / 4].UnpackBounds(BoundIndex % 4, Component->Bounds);
-			}
-			else // Here we can remove the component, as the async task is not yet using this.
-			{
-				FRemovedTextureArray RemovedTextures; // Here we don't have to process the removed textures as the data was never used.
-				RemoveComponent(Component, RemovedTextures);
-				RemovedComponents.Add(Component);
+				// At this point the component must be registered. If the proxy is valid, reject any component without one.
+				// This would be hidden primitives, and also editor / debug primitives.
+				if (Component->IsRegistered() && (!Component->IsRenderStateCreated() || Component->SceneProxy))
+				{
+					Bounds4[BoundIndex / 4].UnpackBounds(BoundIndex % 4, Component);
+				}
+				else // Here we can remove the component, as the async task is not yet using this.
+				{
+					RemoveComponent(Component, nullptr);
+					RemovedComponents.Add(Component);
+				}
 			}
 		}
 	}
-	return Bounds4Components.Num();
+
+	const int32 NumSteps = BoundsToUnpack.Num();
+	BoundsToUnpack.Empty();
+	return NumSteps;
 }
 
 bool FTextureInstanceState::MoveBound(int32 SrcBoundIndex, int32 DstBoundIndex)
 {
-	check(!HasCompiledElements()); // Defrag is for the dynamic elements which does not support dynamic compiled elements.
+	check(!HasCompiledElements() && !BoundsToUnpack.Num()); // Defrag is for the dynamic elements which does not support dynamic compiled elements.
 
 	if (Bounds4Components.IsValidIndex(DstBoundIndex) && Bounds4Components.IsValidIndex(SrcBoundIndex) && !Bounds4Components[DstBoundIndex] && Bounds4Components[SrcBoundIndex])
 	{
+		int32 FreeListIndex = FreeBoundIndices.Find(DstBoundIndex);
+		if (FreeListIndex == INDEX_NONE)
+		{
+			return false; // The destination is not free.
+		}
+		// Update the free list.
+		FreeBoundIndices[FreeListIndex] = SrcBoundIndex;
+
 		const UPrimitiveComponent* Component = Bounds4Components[SrcBoundIndex];
 
 		// Update the elements.
@@ -574,16 +669,6 @@ bool FTextureInstanceState::MoveBound(int32 SrcBoundIndex, int32 DstBoundIndex)
 		// Update the component ptrs.
 		Bounds4Components[DstBoundIndex] = Component;
 		Bounds4Components[SrcBoundIndex] = nullptr;
-
-		// Update the free list.
-		for (int32& BoundIndex : FreeBoundIndices)
-		{
-			if (BoundIndex == DstBoundIndex)
-			{
-				BoundIndex = SrcBoundIndex;
-				break;
-			}
-		}
 
 		UpdateBounds(DstBoundIndex); // Update the bounds using the component.
 		Bounds4[SrcBoundIndex / 4].Clear(SrcBoundIndex % 4);	
@@ -618,6 +703,10 @@ void FTextureInstanceState::TrimBounds()
 				{
 					bDefragRangeIsFree = false;
 					break;
+				}
+				else
+				{
+					checkSlow(FreeBoundIndices.Contains(BoundIndex));
 				}
 			}
 
@@ -659,4 +748,3 @@ void FTextureInstanceState::OffsetBounds(const FVector& Offset)
 		}
 	}
 }
-

@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3587677
 Availability:Docs
-Title:1 - Composure Level Setup
+Title:1 - Composure 的必要设置
 Crumbs:%ROOT%
-Description:In this step, we will set up our Project and Editor Layout for Composure Authoring. 
+Description:在这一步中，我们将设置 Composure 的项目和编辑器布局。 
 SkillLevel:Beginner
 Version:4.17
-checkpoint: ComposureQS
+checkpoint:ComposureQS
 parent:Engine/Composure/QuickStart
 type:multi-step
 order:1
@@ -13,48 +13,48 @@ tags:Composure
  
 [NAV]
 
-For this Quick Start, we are going to be re-creating the third shot that comes with the Composure content sample that you will find on the Epic Games Launcher. However before we can start to do this, we are going to need to download a few additional files, create a new level, and make sure that we have the needed Actors and Blueprints. After completing this section, your project will be ready to start compositing computer generated footage with real world footage.
+在这里，我们将重新创建 Epic Games Launcher 上 Composure 内容范例中的第三个镜头。在进行此操作前，我们需要额外下载一些文件、创建一个新关卡，并准备好所需的 Actor 和蓝图。完成该部分中的操作后，您便可以开始在项目中合成电脑生成和真实影像素材。
 
 [region:note]
-To fully follow along with this Quick Start you will need to download and create a new UE4 project that uses the Composure sample. You can use the Composure sample on the learn tab of the Epic Games Launcher. 
+您需要下载并新建一个使用 Composure 的 UE4 项目，以便完全按照快速入门指南中的步骤进行。您可以使用 Epic Games Launcher 中“Learn”选项卡上的 Composure 范例。 
 [/region]
 
 
-## Steps
+## 步骤
 
-1. First, download and extract the following .FBX file which contains the camera animation used for the third shot and nothing else.
+1. 首先下载并解压以下 .FBX 文件，其中包含专用于第三个镜头的相机动画。
 *    **[Shot Three Undistorted Camera](https://epicgames.box.com/s/m5of0mecoeia10bqnmppjp8kuydq0fup)**
 
-1. From the Epic Games launcher, make sure you have downloaded and installed the Composure Sample project. If you already have the Composure sample, go ahead and launch it now.
+1. 从 Epic Games launcher 中下载并安装 Composure Sample 项目。如已拥有 Composure 范例，则可直接运行。
 
-1. Once the Composure sample has loaded go to **Edit** > **Plugins** and then in the **Compositing** section, make sure the **Composure** Plugin is enabled:
+1. Composure 范例加载后，前往 **Edit** > **Plugins**，然后在 **Compositing** 部分中启用 **Composure** 插件。
 
     [REGION:lightbox]
     [![](ComposureQS_S1_1.png)(w:568)](ComposureQS_S1_1.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
     [region:note]
-    If the Composure Plugin has not been enabled, enabling it will require that you restart the UE4 Editor before you can use them.
+    如 Composure 插件尚未启用，启用时需要重启 UE4 编辑器方能正常使用。
     [/region]
 
-1. Next, over in the **Content Browser** create a new folder called **ComposureQS** and then from the Main toolbar go **File** > **New Level** and select the **Empty Level** option. When the level loads, save the new level in the ComposureQS folder with a name of **CQS_Shot_03_Remake**.
+1. 接下来在 **Content Browser** 中创建一个名为 **ComposureQS** 的新文件夹，然后前往主工具栏的 **File** > **New Level**，选择 **Empty Level**。关卡加载后，将新关卡命名为 **CQS_Shot_03_Remake**，并保存到 ComposureQS 文件夹中。
 
     [![](ComposureQS_S1_2.png)(w:946)](ComposureQS_S1_2.png)
 
-1.  Now, locate and open the **Advanced Compositing** map in the Content Browser and double - click on it to open it up.
+1. 在 Content Browser 中找到并打开 **Advanced Compositing**，双击将其打开。
 
-1. Select the following assets that have been placed in the level and when completed, press **CTRL + C** to copy the assets to the clipboard.
+1. 选中已放入关卡的以下资源，完成后按下 **CTRL + C** 将资源复制到剪切板。
 
     [REGION:lightbox]
     [![](ComposureQS_S1_3.png)(w:857)](ComposureQS_S1_3.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
     * **Directional Light**
@@ -64,14 +64,18 @@ To fully follow along with this Quick Start you will need to download and create
     * **Patio Columns Railings Walls**
     * **Patio Roof**
 
-1. Open up the ComposureQS level that was previously saved and then press **CTRL+V** to paste the copied Actors into the level. 
+1. 打开之前保存的 ComposureQS 关卡，然后按下 **CTRL+V** 将复制的 Actor 粘贴到关卡中。 
 
-1. Over in the **World Outliner**, click on the **Sky Light** and in the **Detail** panel under **Light** change the **Source Type Type** to **SLS Specified Cubemap** and in the **Cubemap** input, select the **3D5A2486_Panorama_hdr_orient_CC** .HDR Cubemap.
+1. 在 **World Outliner** 中点击 **Sky Light**，然后在 **Details** 面板下的 **Light** 部分将 **Source Type ** 改为 **SLS Specified Cubemap**，然后在 **Cubemap** 输入中选择 **3D5A2486_Panorama_hdr_orient_CC** .HDR 立方体贴图。
 
     ![](ComposureQS_S1_4.png)
 
-## End Result
+## 最终结果
 
-With the level lighting now setup and all of the needed Actors added to the level, in the next part of this Quick Start we will take a look at adding and setting up the rest of the needed Actors and Blueprints Composure requires to work.
+将关卡灯光设置完成，必需的 Actor 添加到关卡后，下一部分中将添加并设置其他必需的 Actor 和蓝图。
+
+![](ComposureQS_S1_7.png)
+
+
 
 [NAV]

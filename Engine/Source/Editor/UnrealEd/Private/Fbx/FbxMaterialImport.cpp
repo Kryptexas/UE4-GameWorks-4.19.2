@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "HAL/FileManager.h"
@@ -549,7 +549,7 @@ void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, 
 		FBXImportOptions* FbxImportOptions = GetImportOptions();
 
 		FText Error;
-		UMaterialInterface* FoundMaterial = UMaterialImportHelpers::FindExistingMaterialFromSearchLocation(ObjectPath.ToString(), BasePackageName, FbxImportOptions->MaterialSearchLocation, Error);
+		UMaterialInterface* FoundMaterial = UMaterialImportHelpers::FindExistingMaterialFromSearchLocation(MaterialFullName, BasePackageName, FbxImportOptions->MaterialSearchLocation, Error);
 		
 		if (!Error.IsEmpty())
 		{

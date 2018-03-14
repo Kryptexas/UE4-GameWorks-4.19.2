@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429236
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:オーディオ ファイル
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -15,14 +15,8 @@ order:3
 
 [TOC (start:2 end:3)]
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](WAV_TitleIcon.png)(w:200 convert:false) 
-	[/PARAM]
-	[PARAM:description]
-	アンリアル エンジン 4 (UE4) のオーディオ システムには、ゲーム内のサウンドを望ましいものにするツールと機能があります。これはすべてオーディオ ソース ファイルから始まります。Mono またはステレオ ファイルとして、UE4 に迅速にインポートし、作品をさらに生き生きとしたものにします。以下はオーディオ コンテンツの基本要件とインポートのクイック ガイドです。
-	[/PARAM]
-[/OBJECT]
+アンリアル エンジン 4 (UE4) のオーディオ システムには、ゲーム内のサウンドを望ましいものにするツールと機能があります。これはすべてオーディオ ソース ファイルから始まります。Mono またはステレオ ファイルとして、UE4 に迅速にインポートし、作品をさらに生き生きとしたものにします。以下はオーディオ コンテンツの基本要件とインポートのクイック ガイドです。
+
 
 
 ## インポート
@@ -55,7 +49,8 @@ order:3
 
 [/EXCERPT:multiChannelExtensionTable]
 
-<!--
+[COMMENT:none]
+
 
 [REGION:raw]
 |                   | Extension | 4.0 | 5.1 | 6.1 | 7.1 |  
@@ -70,7 +65,8 @@ order:3
 | **BackRight**     | _br       |     |     |     | ![](icon_MatEd_Apply_40x.png)   |  
 [/REGION]
 
--->
+
+[/COMMENT]
 
 圧縮設定を微調整することにより、すべてのプラットフォームに対して同品質を保つことができます。多くのサウンドをテスト後、弊社の音楽担当が XMA 品質の 40 が Ogg Vorbis 品質の 0.15 と同等であると判断しました。 
 

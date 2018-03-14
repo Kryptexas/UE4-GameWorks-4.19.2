@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "EngineGlobals.h"
@@ -7,8 +7,14 @@
 #include "IHeadMountedDisplay.h"
 #include "IXRTrackingSystem.h"
 #include "ISpectatorScreenController.h"
+#include "IXRSystemAssets.h"
+#include "Components/PrimitiveComponent.h"
+#include "Features/IModularFeatures.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUHeadMountedDisplay, Log, All);
+
+/* UHeadMountedDisplayFunctionLibrary
+ *****************************************************************************/
 
 UHeadMountedDisplayFunctionLibrary::UHeadMountedDisplayFunctionLibrary(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -175,39 +181,17 @@ void UHeadMountedDisplayFunctionLibrary::SetClippingPlanes(float Near, float Far
 	}
 }
 
-/** 
- * Sets screen percentage to be used in VR mode.
- *
- * @param ScreenPercentage	(in) Specifies the screen percentage to be used in VR mode. Use 0.0f value to reset to default value.
- */
-void UHeadMountedDisplayFunctionLibrary::SetScreenPercentage(float ScreenPercentage)
-{
-	static const auto ScreenPercentageCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
-	static float SavedValue = 0.f; // TODO: Add a way to ask HMD devices for the "ideal" screen percentage value and use that when resetting
-	if (ScreenPercentage > 0.f)
-	{
-		if (SavedValue <= 0.f)
-		{
-			SavedValue = ScreenPercentageCVar->GetFloat();
-		}
-		ScreenPercentageCVar->Set(ScreenPercentage);
-	}
-	else if (SavedValue > 0.f)
-	{
-		ScreenPercentageCVar->Set(SavedValue);
-		SavedValue = 0.f;
-	}
-}
-
-/** 
- * Returns screen percentage to be used in VR mode.
- *
- * @return (float)	The screen percentage to be used in VR mode.
- */
+/** DEPRECATED - Use GetPixelDensity */
 float UHeadMountedDisplayFunctionLibrary::GetScreenPercentage()
 {
 	static const auto ScreenPercentageTCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
 	return ScreenPercentageTCVar->GetValueOnGameThread();
+}
+
+float UHeadMountedDisplayFunctionLibrary::GetPixelDensity()
+{
+	static const auto PixelDensityTCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("vr.pixeldensity"));
+	return PixelDensityTCVar->GetValueOnGameThread();
 }
 
 void UHeadMountedDisplayFunctionLibrary::SetWorldToMetersScale(UObject* WorldContext, float NewScale)
@@ -253,6 +237,16 @@ TEnumAsByte<EHMDTrackingOrigin::Type> UHeadMountedDisplayFunctionLibrary::GetTra
 	}
 
 	return Origin;
+}
+
+FTransform UHeadMountedDisplayFunctionLibrary::GetTrackingToWorldTransform(UObject* WorldContext)
+{
+	IXRTrackingSystem* TrackingSys = GEngine->XRSystem.Get();
+	if (TrackingSys)
+	{
+		return TrackingSys->GetTrackingToWorldTransform();
+	}
+	return FTransform::Identity;
 }
 
 void UHeadMountedDisplayFunctionLibrary::GetVRFocusState(bool& bUseFocus, bool& bHasFocus)
@@ -327,3 +321,113 @@ void UHeadMountedDisplayFunctionLibrary::SetSpectatorScreenModeTexturePlusEyeLay
 	}
 }
 
+TArray<FXRDeviceId> UHeadMountedDisplayFunctionLibrary::EnumerateTrackedDevices(const FName SystemId, EXRTrackedDeviceType DeviceType)
+{
+	TArray<FXRDeviceId> DeviceListOut;
+
+	// @TODO: It seems certain IXRTrackingSystem's aren't registering themselves with the modular feature framework. Ideally we'd be loop over them instead of picking just one.
+	IXRTrackingSystem* TrackingSys = GEngine->XRSystem.Get();
+	if (TrackingSys)
+	{
+		if (SystemId.IsNone() || TrackingSys->GetSystemName() == SystemId)
+		{
+			TArray<int32> DeviceIds;
+			TrackingSys->EnumerateTrackedDevices(DeviceIds, DeviceType);
+
+			DeviceListOut.Reserve(DeviceListOut.Num() + DeviceIds.Num());
+			for (const int32& DeviceId : DeviceIds)
+			{
+				DeviceListOut.Add(FXRDeviceId(TrackingSys, DeviceId));
+			}
+		}			
+	}
+
+	return DeviceListOut;
+}
+
+void UHeadMountedDisplayFunctionLibrary::GetDevicePose(const FXRDeviceId& XRDeviceId, bool& bIsTracked, FRotator& Orientation, bool& bHasPositionalTracking, FVector& Position)
+{
+	bIsTracked = false;
+	bHasPositionalTracking = false;
+
+	// @TODO: It seems certain IXRTrackingSystem's aren't registering themselves with the modular feature framework. Ideally we'd be loop over them instead of picking just one.
+	IXRTrackingSystem* TrackingSys = GEngine->XRSystem.Get();
+	if (TrackingSys)
+	{
+		if (XRDeviceId.IsOwnedBy(TrackingSys))
+		{
+			FQuat QuatRotation;
+			if (TrackingSys->GetCurrentPose(XRDeviceId.DeviceId, QuatRotation, Position))
+			{
+				bIsTracked = true;
+				bHasPositionalTracking = TrackingSys->HasValidTrackingPosition();
+
+				Orientation = FRotator(QuatRotation);
+			}
+			else
+			{
+				Position = FVector::ZeroVector;
+				Orientation = FRotator::ZeroRotator;
+			}
+		}
+	}
+}
+
+void UHeadMountedDisplayFunctionLibrary::GetDeviceWorldPose(UObject* WorldContext, const FXRDeviceId& XRDeviceId, bool& bIsTracked, FRotator& Orientation, bool& bHasPositionalTracking, FVector& Position)
+{
+	GetDevicePose(XRDeviceId, bIsTracked, Orientation, bHasPositionalTracking, Position);
+
+	const FTransform TrackingToWorld = GetTrackingToWorldTransform(WorldContext);
+	Position = TrackingToWorld.TransformPosition(Position);
+
+	FQuat WorldOrientation = TrackingToWorld.TransformRotation(Orientation.Quaternion());
+	Orientation = WorldOrientation.Rotator();
+}
+
+UPrimitiveComponent* UHeadMountedDisplayFunctionLibrary::AddDeviceVisualizationComponent(AActor* Target, const FXRDeviceId& XRDeviceId, bool bManualAttachment, const FTransform& RelativeTransform)
+{
+	if (!IsValid(Target))
+	{
+		UE_LOG(LogHMD, Warning, TEXT("The target actor is invalid. Therefore you're unable to add a device render component to it."));
+		return nullptr;
+	}
+	UPrimitiveComponent* DeviceProxy = nullptr;
+
+	TArray<IXRSystemAssets*> XRAssetSystems = IModularFeatures::Get().GetModularFeatureImplementations<IXRSystemAssets>(IXRSystemAssets::GetModularFeatureName());
+	for (IXRSystemAssets* AssetSys : XRAssetSystems)
+	{
+		if (!XRDeviceId.IsOwnedBy(AssetSys))
+		{
+			continue;
+		}
+
+		DeviceProxy = AssetSys->CreateRenderComponent(XRDeviceId.DeviceId, Target, RF_StrongRefOnFrame);
+		if (DeviceProxy == nullptr)
+		{
+			UE_LOG(LogHMD, Warning, TEXT("The specified XR device does not have an associated render model."));
+		}
+		break;
+	}
+
+	if (DeviceProxy)
+	{
+		if (!bManualAttachment)
+		{
+			USceneComponent* RootComponent = Target->GetRootComponent();
+			if (RootComponent == nullptr)
+			{
+				Target->SetRootComponent(DeviceProxy);
+			}
+			else
+			{
+				DeviceProxy->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+			}
+		}
+		DeviceProxy->SetRelativeTransform(RelativeTransform);
+	}
+	else
+	{
+		UE_LOG(LogHMD, Warning, TEXT("Failed to find an active XR system with a model for the requested component."));
+	}
+	return DeviceProxy;
+}

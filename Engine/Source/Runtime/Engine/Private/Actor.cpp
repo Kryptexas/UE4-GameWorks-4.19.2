@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameFramework/Actor.h"
 #include "Serialization/AsyncLoading.h"
@@ -128,8 +128,11 @@ void FActorTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, 
 {
 	if (Target && !Target->IsPendingKillOrUnreachable())
 	{
-		FScopeCycleCounterUObject ActorScope(Target);
-		Target->TickActor(DeltaTime*Target->CustomTimeDilation, TickType, *this);	
+		if (TickType != LEVELTICK_ViewportsOnly || Target->ShouldTickIfViewportsOnly())
+		{
+			FScopeCycleCounterUObject ActorScope(Target);
+			Target->TickActor(DeltaTime*Target->CustomTimeDilation, TickType, *this);
+		}
 	}
 }
 
@@ -138,7 +141,7 @@ FString FActorTickFunction::DiagnosticMessage()
 	return Target->GetFullName() + TEXT("[TickActor]");
 }
 
-bool AActor::CheckDefaultSubobjectsInternal()
+bool AActor::CheckDefaultSubobjectsInternal() const
 {
 	bool Result = Super::CheckDefaultSubobjectsInternal();
 	if (Result)
@@ -148,7 +151,7 @@ bool AActor::CheckDefaultSubobjectsInternal()
 	return Result;
 }
 
-bool AActor::CheckActorComponents()
+bool AActor::CheckActorComponents() const
 {
 	DEFINE_LOG_CATEGORY_STATIC(LogCheckComponents, Warning, All);
 
@@ -168,15 +171,6 @@ bool AActor::CheckActorComponents()
 		{
 			UE_LOG(LogCheckComponents, Error, TEXT("Component is a template but I am not. Me = %s, Component = %s"), *this->GetFullName(), *Inner->GetFullName());
 			bResult = false;
-		}
-		UObject* Archetype = Inner->GetArchetype();
-		if (Archetype != Inner->GetClass()->GetDefaultObject())
-		{
-			if (Archetype != GetClass()->GetDefaultSubobjectByName(Inner->GetFName()))
-			{
-				UE_LOG(LogCheckComponents, Error, TEXT("Component archetype is not the CDO nor a default subobject of my class. Me = %s, Component = %s, Archetype = %s"), *this->GetFullName(), *Inner->GetFullName(), *Archetype->GetFullName());
-				bResult = false;
-			}
 		}
 	}
 	for (int32 Index = 0; Index < BlueprintCreatedComponents.Num(); Index++)
@@ -216,7 +210,7 @@ bool AActor::CheckActorComponents()
 void AActor::ResetOwnedComponents()
 {
 #if WITH_EDITOR
-	// Identify any natively-constructed components referenced by properties that either failed to serialize or came in as NULL.
+	// Identify any natively-constructed components referenced by properties that either failed to serialize or came in as nullptr.
 	if(HasAnyFlags(RF_WasLoaded) && NativeConstructedComponentToPropertyMap.Num() > 0)
 	{
 		for (UActorComponent* Component : OwnedComponents)
@@ -259,7 +253,7 @@ void AActor::ResetOwnedComponents()
 
 			if (Component->GetIsReplicated())
 			{
-				ReplicatedComponents.Add(Component);
+				ReplicatedComponents.AddUnique(Component);
 			}
 		}
 	}, true, RF_NoFlags, EInternalObjectFlags::PendingKill);
@@ -300,7 +294,7 @@ void AActor::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 UWorld* AActor::GetWorld() const
 {
 	// CDO objects do not belong to a world
-	// If the actors outer is destroyed or unreachable we are shutting down and the world should be NULL
+	// If the actors outer is destroyed or unreachable we are shutting down and the world should be nullptr
 	if (!HasAnyFlags(RF_ClassDefaultObject) && !GetOuter()->HasAnyFlags(RF_BeginDestroyed) && !GetOuter()->IsUnreachable())
 	{
 		if (ULevel* Level = GetLevel())
@@ -349,7 +343,7 @@ bool AActor::TeleportTo( const FVector& DestLocation, const FRotator& DestRotati
 {
 	SCOPE_CYCLE_COUNTER(STAT_TeleportToTime);
 
-	if(RootComponent == NULL)
+	if(RootComponent == nullptr)
 	{
 		return false;
 	}
@@ -563,7 +557,7 @@ void AActor::PostLoad()
 	Super::PostLoad();
 
 	// add ourselves to our Owner's Children array
-	if (Owner != NULL)
+	if (Owner != nullptr)
 	{
 		checkSlow(!Owner->Children.Contains(this));
 		Owner->Children.Add(this);
@@ -818,15 +812,17 @@ float AActor::GetActorTickInterval() const
 
 bool AActor::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )
 {
-	if (NewOuter)
+	const bool bRenameTest = ((Flags & REN_Test) != 0);
+
+	if (!bRenameTest && NewOuter)
 	{
 		RegisterAllActorTickFunctions(false, true); // unregister all tick functions
 		UnregisterAllComponents();
 	}
 
-	bool bSuccess = Super::Rename( InName, NewOuter, Flags );
+	const bool bSuccess = Super::Rename( InName, NewOuter, Flags );
 
-	if (NewOuter && NewOuter->IsA<ULevel>())
+	if (!bRenameTest && NewOuter && NewOuter->IsA<ULevel>())
 	{
 		UWorld* World = NewOuter->GetWorld();
 		if (World && World->bIsWorldInitialized)
@@ -840,7 +836,7 @@ bool AActor::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags 
 
 UNetConnection* AActor::GetNetConnection() const
 {
-	return Owner ? Owner->GetNetConnection() : NULL;
+	return Owner ? Owner->GetNetConnection() : nullptr;
 }
 
 UPlayer* AActor::GetNetOwningPlayer()
@@ -853,7 +849,7 @@ UPlayer* AActor::GetNetOwningPlayer()
 			return Owner->GetNetOwningPlayer();
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 bool AActor::DestroyNetworkActorHandled()
@@ -866,14 +862,10 @@ void AActor::TickActor( float DeltaSeconds, ELevelTick TickType, FActorTickFunct
 	//root of tick hierarchy
 
 	// Non-player update.
-	const bool bShouldTick = ((TickType!=LEVELTICK_ViewportsOnly) || ShouldTickIfViewportsOnly());
-	if(bShouldTick)
+	// If an Actor has been Destroyed or its level has been unloaded don't execute any queued ticks
+	if (!IsPendingKill() && GetWorld())
 	{
-		// If an Actor has been Destroyed or its level has been unloaded don't execute any queued ticks
-		if (!IsPendingKill() && GetWorld())
-		{
-			Tick(DeltaSeconds);	// perform any tick functions unique to an actor subclass
-		}
+		Tick(DeltaSeconds);	// perform any tick functions unique to an actor subclass
 	}
 }
 
@@ -940,7 +932,7 @@ void AActor::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker
 	DOREPLIFETIME_ACTIVE_OVERRIDE( AActor, AttachmentReplication, RootComponent && !RootComponent->GetIsReplicated() );
 
 	UBlueprintGeneratedClass* BPClass = Cast<UBlueprintGeneratedClass>(GetClass());
-	if (BPClass != NULL)
+	if (BPClass != nullptr)
 	{
 		BPClass->InstancePreReplication(this, ChangedPropertyTracker);
 	}
@@ -1051,7 +1043,7 @@ void AActor::GetSimpleCollisionCylinder(float& CollisionRadius, float& Collision
 
 bool AActor::IsRootComponentCollisionRegistered() const
 {
-	return RootComponent != NULL && RootComponent->IsRegistered() && RootComponent->IsCollisionEnabled();
+	return RootComponent != nullptr && RootComponent->IsRegistered() && RootComponent->IsCollisionEnabled();
 }
 
 bool AActor::IsAttachedTo(const AActor* Other) const
@@ -1180,7 +1172,7 @@ bool AActor::CheckStillInWorld()
 		return false;
 	}
 	// Check if box has poked outside the world
-	else if( ( RootComponent != NULL ) && ( GetRootComponent()->IsRegistered() == true ) )
+	else if( ( RootComponent != nullptr ) && ( GetRootComponent()->IsRegistered() == true ) )
 	{
 		const FBox&	Box = GetRootComponent()->Bounds.GetBox();
 		if(	Box.Min.X < -HALF_WORLD_MAX || Box.Max.X > HALF_WORLD_MAX ||
@@ -1232,7 +1224,7 @@ void AActor::UpdateOverlaps(bool bDoNotifies)
 	USceneComponent* const RootComp = GetRootComponent();
 	if (RootComp)
 	{
-		RootComp->UpdateOverlaps(NULL, bDoNotifies);
+		RootComp->UpdateOverlaps(nullptr, bDoNotifies);
 	}
 }
 
@@ -1416,7 +1408,7 @@ static void MarkOwnerRelevantComponentsDirty(AActor* TheActor)
 	for (int32 i = 0; i < TheActor->Children.Num(); i++)
 	{
 		AActor* Child = TheActor->Children[i];
-		if (Child != NULL && !Child->IsPendingKill())
+		if (Child != nullptr && !Child->IsPendingKill())
 		{
 			MarkOwnerRelevantComponentsDirty(Child);
 		}
@@ -1449,7 +1441,7 @@ void AActor::SetOwner( AActor *NewOwner )
 {
 	if (Owner != NewOwner && !IsPendingKill())
 	{
-		if (NewOwner != NULL && NewOwner->IsOwnedBy(this))
+		if (NewOwner != nullptr && NewOwner->IsOwnedBy(this))
 		{
 			UE_LOG(LogActor, Error, TEXT("SetOwner(): Failed to set '%s' owner of '%s' because it would cause an Owner loop"), *NewOwner->GetName(), *GetName());
 			return;
@@ -1457,7 +1449,7 @@ void AActor::SetOwner( AActor *NewOwner )
 
 		// Sets this actor's parent to the specified actor.
 		AActor* OldOwner = Owner;
-		if( Owner != NULL )
+		if( Owner != nullptr )
 		{
 			// remove from old owner's Children array
 			verifySlow(Owner->Children.Remove(this) == 1);
@@ -1465,7 +1457,7 @@ void AActor::SetOwner( AActor *NewOwner )
 
 		Owner = NewOwner;
 
-		if( Owner != NULL )
+		if( Owner != nullptr )
 		{
 			// add to new owner's Children array
 			checkSlow(!Owner->Children.Contains(this));
@@ -1479,14 +1471,14 @@ void AActor::SetOwner( AActor *NewOwner )
 
 bool AActor::HasNetOwner() const
 {
-	if (Owner == NULL)
+	if (Owner == nullptr)
 	{
 		// all basic AActors are unable to call RPCs without special AActors as their owners (ie APlayerController)
 		return false;
 	}
 
 	// Find the topmost actor in this owner chain
-	AActor* TopOwner = NULL;
+	AActor* TopOwner = nullptr;
 	for (TopOwner = Owner; TopOwner->Owner; TopOwner = TopOwner->Owner)
 	{
 	}
@@ -1497,18 +1489,11 @@ bool AActor::HasNetOwner() const
 void AActor::K2_AttachRootComponentTo(USceneComponent* InParent, FName InSocketName, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */, bool bWeldSimulatedBodies /*=true*/)
 {
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	AttachRootComponentTo(InParent, InSocketName, AttachLocationType, bWeldSimulatedBodies);
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
-}
-
-void AActor::AttachRootComponentTo(USceneComponent* InParent, FName InSocketName, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */, bool bWeldSimulatedBodies /*=false*/)
-{
-	if(RootComponent && InParent)
+if (RootComponent && InParent)
 	{
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		RootComponent->AttachTo(InParent, InSocketName, AttachLocationType, bWeldSimulatedBodies);
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 void AActor::K2_AttachToComponent(USceneComponent* Parent, FName SocketName, EAttachmentRule LocationRule, EAttachmentRule RotationRule, EAttachmentRule ScaleRule, bool bWeldSimulatedBodies)
@@ -1553,13 +1538,6 @@ void AActor::OnRep_AttachmentReplication()
 }
 
 void AActor::K2_AttachRootComponentToActor(AActor* InParentActor, FName InSocketName /*= NAME_None*/, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */, bool bWeldSimulatedBodies /*=true*/)
-{
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	AttachRootComponentToActor(InParentActor, InSocketName, AttachLocationType, bWeldSimulatedBodies);
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
-}
-
-void AActor::AttachRootComponentToActor(AActor* InParentActor, FName InSocketName /*= NAME_None*/, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */, bool bWeldSimulatedBodies /*=false*/)
 {
 	if (RootComponent && InParentActor)
 	{
@@ -1628,11 +1606,6 @@ void AActor::DetachFromActor(const FDetachmentTransformRules& DetachmentRules)
 	}
 }
 
-void AActor::DetachSceneComponentsFromParent(USceneComponent* InParentComponent, bool bMaintainWorldPosition)
-{
-	DetachAllSceneComponents(InParentComponent, bMaintainWorldPosition ? FDetachmentTransformRules::KeepWorldTransform : FDetachmentTransformRules::KeepRelativeTransform);
-}
-
 void AActor::DetachAllSceneComponents(USceneComponent* InParentComponent, const FDetachmentTransformRules& DetachmentRules)
 {
 	if (InParentComponent)
@@ -1673,7 +1646,7 @@ FName AActor::GetAttachParentSocketName() const
 void AActor::GetAttachedActors(TArray<class AActor*>& OutActors) const
 {
 	OutActors.Reset();
-	if (RootComponent != NULL)
+	if (RootComponent != nullptr)
 	{
 		// Current set of components to check
 		TInlineComponentArray<USceneComponent*> CompsToCheck;
@@ -1696,7 +1669,7 @@ void AActor::GetAttachedActors(TArray<class AActor*>& OutActors) const
 				CheckedComps.Add(SceneComp);
 
 				AActor* CompOwner = SceneComp->GetOwner();
-				if (CompOwner != NULL)
+				if (CompOwner != nullptr)
 				{
 					if (CompOwner != this)
 					{
@@ -1709,7 +1682,7 @@ void AActor::GetAttachedActors(TArray<class AActor*>& OutActors) const
 						for (USceneComponent* ChildComp : SceneComp->GetAttachChildren())
 						{
 							// Add any we have not explored yet to the set to check
-							if ((ChildComp != NULL) && !CheckedComps.Contains(ChildComp))
+							if ((ChildComp != nullptr) && !CheckedComps.Contains(ChildComp))
 							{
 								CompsToCheck.Push(ChildComp);
 							}
@@ -1733,15 +1706,7 @@ bool AActor::IsInLevel(const ULevel *TestLevel) const
 
 ULevel* AActor::GetLevel() const
 {
-	for (UObject* Outer = GetOuter(); Outer != nullptr; Outer = Outer->GetOuter())
-	{
-		if (ULevel* Level = Cast<ULevel>(Outer))
-		{
-			return Level;
-		}
-	}
-
-	return nullptr;
+	return GetTypedOuter<ULevel>();
 }
 
 bool AActor::IsInPersistentLevel(bool bIncludeLevelStreamingPersistent) const
@@ -1749,7 +1714,7 @@ bool AActor::IsInPersistentLevel(bool bIncludeLevelStreamingPersistent) const
 	ULevel* MyLevel = GetLevel();
 	UWorld* World = GetWorld();
 	return ( (MyLevel == World->PersistentLevel) || ( bIncludeLevelStreamingPersistent && World->StreamingLevels.Num() > 0 &&
-														Cast<ULevelStreamingPersistent>(World->StreamingLevels[0]) != NULL &&
+														Cast<ULevelStreamingPersistent>(World->StreamingLevels[0]) != nullptr &&
 														World->StreamingLevels[0]->GetLoadedLevel() == MyLevel ) );
 }
 
@@ -1760,10 +1725,10 @@ bool AActor::IsMatineeControlled() const
 	for(auto It(ControllingMatineeActors.CreateConstIterator()); It; It++)
 	{
 		AMatineeActor* ControllingMatineeActor = *It;
-		if(ControllingMatineeActor != NULL)
+		if(ControllingMatineeActor != nullptr)
 		{
 			UInterpGroupInst* GroupInst = ControllingMatineeActor->FindGroupInst(this);
-			if(GroupInst != NULL)
+			if(GroupInst != nullptr)
 			{
 				if(GroupInst->Group && GroupInst->Group->HasMoveTrack())
 				{
@@ -1782,17 +1747,17 @@ bool AActor::IsMatineeControlled() const
 
 bool AActor::IsRootComponentStatic() const
 {
-	return(RootComponent != NULL && RootComponent->Mobility == EComponentMobility::Static);
+	return(RootComponent != nullptr && RootComponent->Mobility == EComponentMobility::Static);
 }
 
 bool AActor::IsRootComponentStationary() const
 {
-	return(RootComponent != NULL && RootComponent->Mobility == EComponentMobility::Stationary);
+	return(RootComponent != nullptr && RootComponent->Mobility == EComponentMobility::Stationary);
 }
 
 bool AActor::IsRootComponentMovable() const
 {
-	return(RootComponent != NULL && RootComponent->Mobility == EComponentMobility::Movable);
+	return(RootComponent != nullptr && RootComponent->Mobility == EComponentMobility::Movable);
 }
 
 FVector AActor::GetTargetLocation(AActor* RequestedBy) const
@@ -1857,7 +1822,7 @@ void AActor::SetNetDormancy(ENetDormancy NewDormancy)
 /** Removes the actor from the NetDriver's dormancy list: forcing at least one more update. */
 void AActor::FlushNetDormancy()
 {
-	if (IsNetMode(NM_Client) || NetDormancy <= DORM_Awake)
+	if (IsNetMode(NM_Client) || NetDormancy <= DORM_Awake || IsPendingKillPending())
 	{
 		return;
 	}
@@ -2153,7 +2118,7 @@ float AActor::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AC
 	{
 		ReceiveAnyDamage(ActualDamage, DamageTypeCDO, EventInstigator, DamageCauser);
 		OnTakeAnyDamage.Broadcast(this, ActualDamage, DamageTypeCDO, EventInstigator, DamageCauser);
-		if (EventInstigator != NULL)
+		if (EventInstigator != nullptr)
 		{
 			EventInstigator->InstigatedAnyDamage(ActualDamage, DamageTypeCDO, this, DamageCauser);
 		}
@@ -2195,20 +2160,13 @@ float AActor::InternalTakePointDamage(float Damage, FPointDamageEvent const& Poi
 	return Damage;
 }
 
-// deprecated
-void AActor::ReceivePointDamage(float Damage, const class UDamageType* DamageType, FVector HitLocation, FVector HitNormal, class UPrimitiveComponent* HitComponent, FName BoneName, FVector ShotFromDirection, class AController* InstigatedBy, AActor* DamageCauser)
-{
-	// Call proper version with a default FHitResult.
-	ReceivePointDamage(Damage, DamageType, HitLocation, HitNormal, HitComponent, BoneName, ShotFromDirection, InstigatedBy, DamageCauser, FHitResult());
-}
-
 /** Util to check if prim comp pointer is valid and still alive */
 extern bool IsPrimCompValidAndAlive(UPrimitiveComponent* PrimComp);
 
 /** Used to determine if it is ok to call a notification on this object */
 bool IsActorValidToNotify(AActor* Actor)
 {
-	return (Actor != NULL) && !Actor->IsPendingKill() && !Actor->GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists);
+	return (Actor != nullptr) && !Actor->IsPendingKill() && !Actor->GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists);
 }
 
 void AActor::InternalDispatchBlockingHit(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp, bool bSelfMoved, FHitResult const& Hit)
@@ -2252,18 +2210,6 @@ FString AActor::GetHumanReadableName() const
 
 void AActor::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
-	// Draw box around Actor being debugged.
-#if ENABLE_DRAW_DEBUG
-	{
-		FVector BoundsOrigin, BoundsExtent;
-		GetActorBounds(true, BoundsOrigin, BoundsExtent);
-
-		// Expand extent a little bit
-		BoundsExtent *= 1.1f;
-		DrawDebugBox(GetWorld(), BoundsOrigin, BoundsExtent, FColor::Green, false, -1.f, 0, 2.f);
-	}
-#endif
-
 	FDisplayDebugManager& DisplayDebugManager = Canvas->DisplayDebugManager;
 	DisplayDebugManager.SetDrawColor(FColor(255, 0, 0));
 
@@ -2308,7 +2254,7 @@ void AActor::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay
 		GetComponentsBoundingCylinder(MyRadius, MyHeight);
 		DisplayDebugManager.DrawString(FString::Printf(TEXT("Collision Radius: %f Height: %f"), MyRadius, MyHeight));
 
-		if ( RootComponent == NULL )
+		if ( RootComponent == nullptr )
 		{
 			DisplayDebugManager.DrawString(FString(TEXT("No RootComponent")));
 		}
@@ -2385,7 +2331,7 @@ APawn* AActor::GetInstigator() const
 
 AController* AActor::GetInstigatorController() const
 {
-	return Instigator ? Instigator->Controller : NULL;
+	return Instigator ? Instigator->Controller : nullptr;
 }
 
 void AActor::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
@@ -2511,7 +2457,7 @@ void AActor::AddOwnedComponent(UActorComponent* Component)
 	{
 		if (Component->GetIsReplicated())
 		{
-			ReplicatedComponents.Add(Component);
+			ReplicatedComponents.AddUnique(Component);
 		}
 
 		if (Component->IsCreatedByConstructionScript())
@@ -2558,7 +2504,7 @@ void AActor::UpdateReplicatedComponent(UActorComponent* Component)
 	checkf(Component->GetOwner() == this, TEXT("UE-9568: Component %s being updated for Actor %s"), *Component->GetPathName(), *GetPathName() );
 	if (Component->GetIsReplicated())
 	{
-		ReplicatedComponents.Add(Component);
+		ReplicatedComponents.AddUnique(Component);
 	}
 	else
 	{
@@ -2572,9 +2518,10 @@ void AActor::UpdateAllReplicatedComponents()
 
 	for (UActorComponent* Component : OwnedComponents)
 	{
-		if (Component != NULL)
+		if (Component != nullptr && Component->GetIsReplicated())
 		{
-			UpdateReplicatedComponent(Component);
+			// We reset the array so no need to add unique
+			ReplicatedComponents.Add(Component);
 		}
 	}
 }
@@ -3057,7 +3004,7 @@ void AActor::SetReplicates(bool bInReplicates)
 	{
 		if (bReplicates == false && bInReplicates == true)
 		{
-			if (UWorld* MyWorld = GetWorld())		// GetWorld will return NULL on CDO, FYI
+			if (UWorld* MyWorld = GetWorld())		// GetWorld will return nullptr on CDO, FYI
 			{
 				MyWorld->AddNetworkActor(this);
 			}
@@ -3179,6 +3126,7 @@ void AActor::BeginPlay()
 		{
 			Component->RegisterAllComponentTickFunctions(true);
 			Component->BeginPlay();
+			ensureMsgf(Component->HasBegunPlay(), TEXT("Failed to route BeginPlay (%s)"), *Component->GetFullName());
 		}
 		else
 		{
@@ -3810,7 +3758,7 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 	bool bIsServer = NetMode == NM_ListenServer || NetMode == NM_DedicatedServer;
 
 	// get the top most function
-	while (Function->GetSuperFunction() != NULL)
+	while (Function->GetSuperFunction() != nullptr)
 	{
 		Function = Function->GetSuperFunction();
 	}
@@ -3856,10 +3804,10 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 	if (Role == ROLE_Authority)
 	{
 		UNetConnection* NetConnection = GetNetConnection();
-		if (NetConnection == NULL)
+		if (NetConnection == nullptr)
 		{
 			UPlayer *ClientPlayer = GetNetOwningPlayer();
-			if (ClientPlayer == NULL)
+			if (ClientPlayer == nullptr)
 			{
 				// Check if a player ever owned this (topmost owner is playercontroller or beacon)
 				if (HasNetOwner())
@@ -3873,7 +3821,7 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 				DEBUG_CALLSPACE(TEXT("GetFunctionCallspace authority non client owner %s %s"), *Function->GetName(), FunctionCallspace::ToString(Callspace));
 				return Callspace;
 			}
-			else if (Cast<ULocalPlayer>(ClientPlayer) != NULL)
+			else if (Cast<ULocalPlayer>(ClientPlayer) != nullptr)
 			{
 				// This is a local player, call locally
 				DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Client local function: %s %s"), *Function->GetName(), FunctionCallspace::ToString(Callspace));
@@ -3915,7 +3863,7 @@ bool AActor::CallRemoteFunction( UFunction* Function, void* Parameters, FOutParm
 	UNetDriver* NetDriver = GetNetDriver();
 	if (NetDriver)
 	{
-		NetDriver->ProcessRemoteFunction(this, Function, Parameters, OutParms, Stack, NULL);
+		NetDriver->ProcessRemoteFunction(this, Function, Parameters, OutParms, Stack, nullptr);
 		return true;
 	}
 
@@ -3947,6 +3895,7 @@ void AActor::DispatchPhysicsCollisionHit(const FRigidBodyCollisionInfo& MyInfo, 
 	Result.Component = OtherInfo.Component;
 	Result.Item = OtherInfo.BodyIndex;
 	Result.BoneName = OtherInfo.BoneName;
+	Result.MyBoneName = MyInfo.BoneName;
 	Result.bBlockingHit = true;
 
 	NotifyHit(MyInfo.Component.Get(), OtherInfo.Actor.Get(), OtherInfo.Component.Get(), true, Result.Location, Result.Normal, RigidCollisionData.TotalNormalImpulse, Result);
@@ -4095,7 +4044,7 @@ bool AActor::IncrementalRegisterComponents(int32 NumComponentsToRegister)
 	}
 	
 	// Register RootComponent first so all other children components can reliably use it (i.e., call GetLocation) when they register
-	if (RootComponent != NULL && !RootComponent->IsRegistered())
+	if (RootComponent != nullptr && !RootComponent->IsRegistered())
 	{
 #if PERF_TRACK_DETAILED_ASYNC_STATS
 		FScopeCycleCounterUObject ContextScope(RootComponent);
@@ -4170,7 +4119,7 @@ bool AActor::IncrementalRegisterComponents(int32 NumComponentsToRegister)
 
 bool AActor::HasValidRootComponent()
 { 
-	return (RootComponent != NULL && RootComponent->IsRegistered()); 
+	return (RootComponent != nullptr && RootComponent->IsRegistered()); 
 }
 
 void AActor::MarkComponentsAsPendingKill()
@@ -4456,7 +4405,7 @@ UMaterialInstanceDynamic* AActor::MakeMIDForMaterial(class UMaterialInterface* P
 	// OR PrimitiveComponent->CreateAndSetMaterialInstanceDynamicFromMaterial
 	// OR UMaterialInstanceDynamic::Create
 
-	return NULL;
+	return nullptr;
 }
 
 float AActor::GetDistanceTo(const AActor* OtherActor) const
@@ -4600,30 +4549,55 @@ float AActor::GetGameTimeSinceCreation()
 
 void AActor::SetNetUpdateTime( float NewUpdateTime )
 {
-	FNetworkObjectInfo* NetActor = GetNetworkObjectInfo();
-
-	if ( NetActor != nullptr )
+	if ( FNetworkObjectInfo* NetActor = FindNetworkObjectInfo() )
 	{
 		// Only allow the next update to be sooner than the current one
 		NetActor->NextUpdateTime = FMath::Min( NetActor->NextUpdateTime, (double)NewUpdateTime );
 	}			
 }
 
-FNetworkObjectInfo* AActor::GetNetworkObjectInfo() const
+FNetworkObjectInfo* AActor::FindOrAddNetworkObjectInfo()
 {
-	UWorld* World = GetWorld();
-
-	if ( World != nullptr )
+	if ( UWorld* World = GetWorld() )
 	{
-		UNetDriver* NetDriver = World->GetNetDriver();
-
-		if ( NetDriver != nullptr )
+		if ( UNetDriver* NetDriver = World->GetNetDriver() )
 		{
-			return NetDriver->GetNetworkObjectInfo( this );
+			return NetDriver->FindOrAddNetworkObjectInfo( this );
 		}
 	}
 
 	return nullptr;
+}
+
+FNetworkObjectInfo* AActor::FindNetworkObjectInfo()
+{
+	if ( UWorld* World = GetWorld() )
+	{
+		if ( UNetDriver* NetDriver = World->GetNetDriver() )
+		{
+			return NetDriver->FindNetworkObjectInfo(this);
+		}
+	}
+
+	return nullptr;
+}
+
+void AActor::PostRename(UObject* OldOuter, const FName OldName)
+{
+	Super::PostRename(OldOuter, OldName);
+
+	if (UWorld* World = GetWorld())
+	{
+		if (UNetDriver* NetDriver = World->GetNetDriver())
+		{
+			NetDriver->NotifyActorRenamed(this, OldName);
+		}
+
+		if (World->DemoNetDriver)
+		{
+			World->DemoNetDriver->NotifyActorRenamed(this, OldName);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraDataInterfaceStaticMesh.h"
 #include "NiagaraEmitterInstance.h"
@@ -155,6 +155,10 @@ bool FNDIStaticMesh_InstanceData::Init(UNiagaraDataInterfaceStaticMesh* Interfac
 		return false;
 	}
 
+#if WITH_EDITOR
+	Mesh->GetOnMeshChanged().AddUObject(SystemInstance->GetComponent(), &UNiagaraComponent::ReinitializeSystem);
+#endif
+
 	bIsAreaWeightedSampling = Mesh->bSupportUniformlyDistributedSampling;
 
 	//Init the instance filter
@@ -283,21 +287,6 @@ bool FNDIStaticMesh_InstanceData::Tick(UNiagaraDataInterfaceStaticMesh* Interfac
 //////////////////////////////////////////////////////////////////////////
 
 
-struct FTransformHandlerNoop
-{
-	FORCEINLINE void Transform(FVector& V, FMatrix& M) {  }
-};
-
-struct FTransformHandlerPosition
-{
-	FORCEINLINE void Transform(FVector& P, FMatrix& M) { P = M.TransformPosition(P); }
-};
-
-struct FTransformHandlerVector
-{
-	FORCEINLINE void Transform(FVector& V, FMatrix& M) { V = M.TransformVector(V).GetUnsafeNormal3(); }
-};
-
 UNiagaraDataInterfaceStaticMesh::UNiagaraDataInterfaceStaticMesh(FObjectInitializer const& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, DefaultMesh(nullptr)
@@ -327,35 +316,37 @@ void UNiagaraDataInterfaceStaticMesh::PostInitProperties()
 
 #endif //WITH_EDITOR
 
+namespace StaticMeshHelpers
+{
+	static const FName RandomSectionName("RandomSection");
+	static const FName RandomTriCoordName("RandomTriCoord");
+	static const FName RandomTriCoordOnSectionName("RandomTriCoordOnSection");
+	static const FName RandomTriCoordVCFilteredName("RandomTriCoordUsingVertexColorFilter");
 
-static const FName RandomSectionName("RandomSection");
-static const FName RandomTriCoordName("RandomTriCoord");
-static const FName RandomTriCoordOnSectionName("RandomTriCoordOnSection");
-static const FName RandomTriCoordVCFilteredName("RandomTriCoordUsingVertexColorFilter");
+	static const FName GetTriPositionName("GetTriPosition");
+	static const FName GetTriNormalName("GetTriNormal");
+	static const FName GetTriTangentsName("GetTriTangents");
 
-static const FName GetTriPositionName("GetTriPosition");
-static const FName GetTriNormalName("GetTriNormal");
-static const FName GetTriTangentsName("GetTriTangents");
+	static const FName GetTriPositionWSName("GetTriPositionWS");
+	static const FName GetTriNormalWSName("GetTriNormalWS");
+	static const FName GetTriTangentsWSName("GetTriTangentsWS");
 
-static const FName GetTriPositionWSName("GetTriPositionWS");
-static const FName GetTriNormalWSName("GetTriNormalWS");
-static const FName GetTriTangentsWSName("GetTriTangentsWS");
+	static const FName GetTriColorName("GetTriColor");
+	static const FName GetTriUVName("GetTriUV");
 
-static const FName GetTriColorName("GetTriColor");
-static const FName GetTriUVName("GetTriUV");
+	static const FName GetTriPositionAndVelocityName("GetTriPositionAndVelocityWS");
 
-static const FName GetTriPositionAndVelocityName("GetTriPositionAndVelocityWS");
-
-/** Temporary solution for exposing the transform of a mesh. Ideally this would be done by allowing interfaces to add to the uniform set for a simulation. */
-static const FName GetMeshLocalToWorldName("GetLocalToWorld");
-static const FName GetMeshLocalToWorldInverseTransposedName("GetMeshLocalToWorldInverseTransposed");
-static const FName GetMeshWorldVelocityName("GetWorldVelocity");
+	/** Temporary solution for exposing the transform of a mesh. Ideally this would be done by allowing interfaces to add to the uniform set for a simulation. */
+	static const FName GetMeshLocalToWorldName("GetLocalToWorld");
+	static const FName GetMeshLocalToWorldInverseTransposedName("GetMeshLocalToWorldInverseTransposed");
+	static const FName GetMeshWorldVelocityName("GetWorldVelocity");
+};
 
 void UNiagaraDataInterfaceStaticMesh::GetFunctions(TArray<FNiagaraFunctionSignature>& OutFunctions)
 {
 	{
 		FNiagaraFunctionSignature Sig;
-		Sig.Name = RandomSectionName;
+		Sig.Name = StaticMeshHelpers::RandomSectionName;
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("StaticMesh")));
 		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("Section")));
 		Sig.bMemberFunction = true;
@@ -366,7 +357,7 @@ void UNiagaraDataInterfaceStaticMesh::GetFunctions(TArray<FNiagaraFunctionSignat
 
 	{
 		FNiagaraFunctionSignature Sig;
-		Sig.Name = RandomTriCoordName;
+		Sig.Name = StaticMeshHelpers::RandomTriCoordName;
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("StaticMesh")));
 		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(FMeshTriCoordinate::StaticStruct()), TEXT("Coord")));
 		//Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("Tri Index")));
@@ -379,7 +370,7 @@ void UNiagaraDataInterfaceStaticMesh::GetFunctions(TArray<FNiagaraFunctionSignat
 
 	{
 		FNiagaraFunctionSignature Sig;
-		Sig.Name = RandomTriCoordVCFilteredName;
+		Sig.Name = StaticMeshHelpers::RandomTriCoordVCFilteredName;
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("StaticMesh")));
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(FNiagaraTypeDefinition::GetFloatDef()), TEXT("Start")));
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(FNiagaraTypeDefinition::GetFloatDef()), TEXT("Range")));
@@ -395,7 +386,7 @@ void UNiagaraDataInterfaceStaticMesh::GetFunctions(TArray<FNiagaraFunctionSignat
 
 	{
 		FNiagaraFunctionSignature Sig;
-		Sig.Name = RandomTriCoordOnSectionName;
+		Sig.Name = StaticMeshHelpers::RandomTriCoordOnSectionName;
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("StaticMesh")));
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("Section")));
 		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(FMeshTriCoordinate::StaticStruct()), TEXT("Coord")));
@@ -409,7 +400,7 @@ void UNiagaraDataInterfaceStaticMesh::GetFunctions(TArray<FNiagaraFunctionSignat
 
 	{
 		FNiagaraFunctionSignature Sig;
-		Sig.Name = GetTriPositionName;
+		Sig.Name = StaticMeshHelpers::GetTriPositionName;
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("StaticMesh")));
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(FMeshTriCoordinate::StaticStruct()), TEXT("Coord")));
 		//Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("Tri Index")));
@@ -424,7 +415,7 @@ void UNiagaraDataInterfaceStaticMesh::GetFunctions(TArray<FNiagaraFunctionSignat
 
 	{
 		FNiagaraFunctionSignature Sig;
-		Sig.Name = GetTriPositionAndVelocityName;
+		Sig.Name = StaticMeshHelpers::GetTriPositionAndVelocityName;
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("StaticMesh")));
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(FMeshTriCoordinate::StaticStruct()), TEXT("Coord")));
 		//Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("Tri Index")));
@@ -440,7 +431,7 @@ void UNiagaraDataInterfaceStaticMesh::GetFunctions(TArray<FNiagaraFunctionSignat
 
 	{
 		FNiagaraFunctionSignature Sig;
-		Sig.Name = GetTriPositionWSName;
+		Sig.Name = StaticMeshHelpers::GetTriPositionWSName;
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("StaticMesh")));
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(FMeshTriCoordinate::StaticStruct()), TEXT("Coord")));
 		//Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("Tri Index")));
@@ -455,7 +446,7 @@ void UNiagaraDataInterfaceStaticMesh::GetFunctions(TArray<FNiagaraFunctionSignat
 
 	{
 		FNiagaraFunctionSignature Sig;
-		Sig.Name = GetTriNormalName;
+		Sig.Name = StaticMeshHelpers::GetTriNormalName;
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("StaticMesh")));
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(FMeshTriCoordinate::StaticStruct()), TEXT("Coord")));
 		//Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("Tri Index")));
@@ -470,7 +461,7 @@ void UNiagaraDataInterfaceStaticMesh::GetFunctions(TArray<FNiagaraFunctionSignat
 
 	{
 		FNiagaraFunctionSignature Sig;
-		Sig.Name = GetTriNormalWSName;
+		Sig.Name = StaticMeshHelpers::GetTriNormalWSName;
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("StaticMesh")));
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(FMeshTriCoordinate::StaticStruct()), TEXT("Coord")));
 		//Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("Tri Index")));
@@ -485,24 +476,7 @@ void UNiagaraDataInterfaceStaticMesh::GetFunctions(TArray<FNiagaraFunctionSignat
 
 	{
 		FNiagaraFunctionSignature Sig;
-		Sig.Name = GetTriTangentsName;
-		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("StaticMesh")));
-		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(FMeshTriCoordinate::StaticStruct()), TEXT("Coord")));
-		//Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("Tri Index")));
-		//Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Bary Coord")));
-
-		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Tangent")));
-		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Binormal")));
-		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Normal")));
-		Sig.bMemberFunction = true;
-		Sig.bRequiresContext = false;
-		//Sig.Owner = *GetFullName();
-		OutFunctions.Add(Sig);
-	}
-
-	{
-		FNiagaraFunctionSignature Sig;
-		Sig.Name = GetTriTangentsWSName;
+		Sig.Name = StaticMeshHelpers::GetTriTangentsName;
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("StaticMesh")));
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(FMeshTriCoordinate::StaticStruct()), TEXT("Coord")));
 		//Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("Tri Index")));
@@ -519,7 +493,24 @@ void UNiagaraDataInterfaceStaticMesh::GetFunctions(TArray<FNiagaraFunctionSignat
 
 	{
 		FNiagaraFunctionSignature Sig;
-		Sig.Name = GetTriColorName;
+		Sig.Name = StaticMeshHelpers::GetTriTangentsWSName;
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("StaticMesh")));
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(FMeshTriCoordinate::StaticStruct()), TEXT("Coord")));
+		//Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("Tri Index")));
+		//Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Bary Coord")));
+
+		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Tangent")));
+		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Binormal")));
+		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Normal")));
+		Sig.bMemberFunction = true;
+		Sig.bRequiresContext = false;
+		//Sig.Owner = *GetFullName();
+		OutFunctions.Add(Sig);
+	}
+
+	{
+		FNiagaraFunctionSignature Sig;
+		Sig.Name = StaticMeshHelpers::GetTriColorName;
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("StaticMesh")));
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(FMeshTriCoordinate::StaticStruct()), TEXT("Coord")));
 		//Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("Tri Index")));
@@ -534,7 +525,7 @@ void UNiagaraDataInterfaceStaticMesh::GetFunctions(TArray<FNiagaraFunctionSignat
 
 	{
 		FNiagaraFunctionSignature Sig;
-		Sig.Name = GetTriUVName;
+		Sig.Name = StaticMeshHelpers::GetTriUVName;
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("StaticMesh")));
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(FMeshTriCoordinate::StaticStruct()), TEXT("Coord")));
 		//Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("Tri Index")));
@@ -550,7 +541,7 @@ void UNiagaraDataInterfaceStaticMesh::GetFunctions(TArray<FNiagaraFunctionSignat
 
 	{
 		FNiagaraFunctionSignature Sig;
-		Sig.Name = GetMeshLocalToWorldName;
+		Sig.Name = StaticMeshHelpers::GetMeshLocalToWorldName;
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("StaticMesh")));
 		//Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(FMeshTriCoordinate::StaticStruct()), TEXT("Coord")));
 		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetMatrix4Def(), TEXT("Transform")));
@@ -562,7 +553,7 @@ void UNiagaraDataInterfaceStaticMesh::GetFunctions(TArray<FNiagaraFunctionSignat
 
 	{
 		FNiagaraFunctionSignature Sig;
-		Sig.Name = GetMeshLocalToWorldInverseTransposedName;
+		Sig.Name = StaticMeshHelpers::GetMeshLocalToWorldInverseTransposedName;
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("StaticMesh")));
 		//Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(FMeshTriCoordinate::StaticStruct()), TEXT("Coord")));
 		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetMatrix4Def(), TEXT("Transform")));
@@ -574,7 +565,7 @@ void UNiagaraDataInterfaceStaticMesh::GetFunctions(TArray<FNiagaraFunctionSignat
 
 	{
 		FNiagaraFunctionSignature Sig;
-		Sig.Name = GetMeshWorldVelocityName;
+		Sig.Name = StaticMeshHelpers::GetMeshWorldVelocityName;
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("StaticMesh")));
 		//Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(FMeshTriCoordinate::StaticStruct()), TEXT("Coord")));
 		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Velocity")));
@@ -617,7 +608,7 @@ struct TTypedMeshVertexAccessor
 	FORCEINLINE FVector GetTangentX(int32 Idx)const { return Verts.VertexTangentX_Typed<TangentT>(Idx); }
 	FORCEINLINE FVector GetTangentY(int32 Idx)const { return Verts.VertexTangentY_Typed<TangentT>(Idx); }
 	FORCEINLINE FVector GetTangentZ(int32 Idx)const { return Verts.VertexTangentZ_Typed<TangentT>(Idx); }
-	FORCEINLINE FVector2D GetUV(int32 Idx, int32 UVSet)const { return Verts.GetVertexUV_Typed<TangentT, UVTypeT>(Idx, UVSet); }
+	FORCEINLINE FVector2D GetUV(int32 Idx, int32 UVSet)const { return Verts.GetVertexUV_Typed<UVTypeT>(Idx, UVSet); }
 };
 
 //External function binder choosing between template specializations based on the mesh's vertex type.
@@ -631,9 +622,9 @@ struct TTypedMeshAccessorBinder
 		UNiagaraDataInterfaceStaticMesh* MeshInterface = CastChecked<UNiagaraDataInterfaceStaticMesh>(Interface);
 		check(InstData->Mesh);
 		FStaticMeshLODResources& Res = InstData->Mesh->RenderData->LODResources[0];
-		if (Res.VertexBuffer.GetUseHighPrecisionTangentBasis())			
+		if (Res.VertexBuffers.StaticMeshVertexBuffer.GetUseHighPrecisionTangentBasis())			
 		{
-			if (Res.VertexBuffer.GetUseFullPrecisionUVs())
+			if (Res.VertexBuffers.StaticMeshVertexBuffer.GetUseFullPrecisionUVs())
 			{
 				return NextBinder::template Bind<ParamTypes..., TTypedMeshVertexAccessor<EStaticMeshVertexTangentBasisType::HighPrecision, EStaticMeshVertexUVType::HighPrecision>>(Interface, BindingInfo, InstanceData);
 			}
@@ -644,7 +635,7 @@ struct TTypedMeshAccessorBinder
 		}
 		else
 		{
-			if (Res.VertexBuffer.GetUseFullPrecisionUVs())
+			if (Res.VertexBuffers.StaticMeshVertexBuffer.GetUseFullPrecisionUVs())
 			{
 				return NextBinder::template Bind<ParamTypes..., TTypedMeshVertexAccessor<EStaticMeshVertexTangentBasisType::Default, EStaticMeshVertexUVType::HighPrecision>>(Interface, BindingInfo, InstanceData);
 			}
@@ -678,94 +669,94 @@ FVMExternalFunction UNiagaraDataInterfaceStaticMesh::GetVMExternalFunction(const
 	bool bNeedsVertMain = true;//Assuming we always need this?
 	
 	FVMExternalFunction Function;
-	if (BindingInfo.Name == RandomSectionName)
+	if (BindingInfo.Name == StaticMeshHelpers::RandomSectionName)
 	{
 		check(BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 1);
 		Function = TUsesAreaWeightingBinder<NDI_FUNC_BINDER(UNiagaraDataInterfaceStaticMesh, RandomSection)>::Bind(this, BindingInfo, InstanceData);
 	}
-	else if (BindingInfo.Name == RandomTriCoordName)
+	else if (BindingInfo.Name == StaticMeshHelpers::RandomTriCoordName)
 	{
 		check(BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 4);
 		Function = TUsesAreaWeightingBinder<NDI_FUNC_BINDER(UNiagaraDataInterfaceStaticMesh, RandomTriCoord)>::Bind(this, BindingInfo, InstanceData);
 	}
 	//TODO: Vertex color filtering needs more work.
-	else if (BindingInfo.Name == RandomTriCoordVCFilteredName)
+	else if (BindingInfo.Name == StaticMeshHelpers::RandomTriCoordVCFilteredName)
 	{
 		InstData->InitVertexColorFiltering();
 		check(BindingInfo.GetNumInputs() == 3 && BindingInfo.GetNumOutputs() == 4);
 		Function = TNDIParamBinder<0, float, TNDIParamBinder<1, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceStaticMesh, RandomTriCoordVertexColorFiltered)>>::Bind(this, BindingInfo, InstanceData);
 	}	
-	else if (BindingInfo.Name == RandomTriCoordOnSectionName)
+	else if (BindingInfo.Name == StaticMeshHelpers::RandomTriCoordOnSectionName)
 	{
 		check(BindingInfo.GetNumInputs() == 2 && BindingInfo.GetNumOutputs() == 4);
 		Function = TUsesAreaWeightingBinder<TNDIParamBinder<0, int32, NDI_FUNC_BINDER(UNiagaraDataInterfaceStaticMesh, RandomTriCoordOnSection)>>::Bind(this, BindingInfo, InstanceData);
 	}
-	if (BindingInfo.Name == GetTriPositionName)
+	if (BindingInfo.Name == StaticMeshHelpers::GetTriPositionName)
 	{
 		check(BindingInfo.GetNumInputs() == 5 && BindingInfo.GetNumOutputs() == 3);
 		bNeedsVertexPositions = true;
-		Function = TNDIExplicitBinder<FTransformHandlerNoop, TNDIParamBinder<0, int32, TNDIParamBinder<1, float, TNDIParamBinder<2, float, TNDIParamBinder<3, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceStaticMesh, GetTriCoordPosition)>>>>>::Bind(this, BindingInfo, InstanceData);
+		Function = TNDIExplicitBinder<FNDITransformHandlerNoop, TNDIParamBinder<0, int32, TNDIParamBinder<1, float, TNDIParamBinder<2, float, TNDIParamBinder<3, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceStaticMesh, GetTriCoordPosition)>>>>>::Bind(this, BindingInfo, InstanceData);
 	}
-	else if (BindingInfo.Name == GetTriPositionWSName)
+	else if (BindingInfo.Name == StaticMeshHelpers::GetTriPositionWSName)
 	{
 		check(BindingInfo.GetNumInputs() == 5 && BindingInfo.GetNumOutputs() == 3);
 		bNeedsVertexPositions = true;
-		Function = TNDIExplicitBinder<FTransformHandlerPosition, TNDIParamBinder<0, int32, TNDIParamBinder<1, float, TNDIParamBinder<2, float, TNDIParamBinder<3, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceStaticMesh, GetTriCoordPosition)>>>>>::Bind(this, BindingInfo, InstanceData);
+		Function = TNDIExplicitBinder<FNDITransformHandler, TNDIParamBinder<0, int32, TNDIParamBinder<1, float, TNDIParamBinder<2, float, TNDIParamBinder<3, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceStaticMesh, GetTriCoordPosition)>>>>>::Bind(this, BindingInfo, InstanceData);
 	}
-	else if (BindingInfo.Name == GetTriNormalName)
+	else if (BindingInfo.Name == StaticMeshHelpers::GetTriNormalName)
 	{
 		check(BindingInfo.GetNumInputs() == 6 && BindingInfo.GetNumOutputs() == 3);
 		bNeedsVertMain = true;
-		Function = TNDIExplicitBinder<FTransformHandlerNoop, TNDIParamBinder<0, int32, TNDIParamBinder<1, float, TNDIParamBinder<2, float, TNDIParamBinder<3, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceStaticMesh, GetTriCoordNormal)>>>>>::Bind(this, BindingInfo, InstanceData);
+		Function = TNDIExplicitBinder<FNDITransformHandlerNoop, TNDIParamBinder<0, int32, TNDIParamBinder<1, float, TNDIParamBinder<2, float, TNDIParamBinder<3, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceStaticMesh, GetTriCoordNormal)>>>>>::Bind(this, BindingInfo, InstanceData);
 	}
-	else if (BindingInfo.Name == GetTriNormalWSName)
+	else if (BindingInfo.Name == StaticMeshHelpers::GetTriNormalWSName)
 	{
 		check(BindingInfo.GetNumInputs() == 5 && BindingInfo.GetNumOutputs() == 3);
 		bNeedsVertMain = true;
-		Function = TNDIExplicitBinder<FTransformHandlerVector, TNDIParamBinder<0, int32, TNDIParamBinder<1, float, TNDIParamBinder<2, float, TNDIParamBinder<3, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceStaticMesh, GetTriCoordNormal)>>>>>::Bind(this, BindingInfo, InstanceData);
+		Function = TNDIExplicitBinder<FNDITransformHandler, TNDIParamBinder<0, int32, TNDIParamBinder<1, float, TNDIParamBinder<2, float, TNDIParamBinder<3, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceStaticMesh, GetTriCoordNormal)>>>>>::Bind(this, BindingInfo, InstanceData);
 	}
-	else if (BindingInfo.Name == GetTriTangentsName)
+	else if (BindingInfo.Name == StaticMeshHelpers::GetTriTangentsName)
 	{
 		check(BindingInfo.GetNumInputs() == 5 && BindingInfo.GetNumOutputs() == 9);
 		bNeedsVertMain = true;
-		Function = TTypedMeshAccessorBinder<TNDIExplicitBinder<FTransformHandlerNoop, TNDIParamBinder<0, int32, TNDIParamBinder<1, float, TNDIParamBinder<2, float, TNDIParamBinder<3, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceStaticMesh, GetTriCoordTangents)>>>>>>::Bind(this, BindingInfo, InstanceData);
+		Function = TTypedMeshAccessorBinder<TNDIExplicitBinder<FNDITransformHandlerNoop, TNDIParamBinder<0, int32, TNDIParamBinder<1, float, TNDIParamBinder<2, float, TNDIParamBinder<3, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceStaticMesh, GetTriCoordTangents)>>>>>>::Bind(this, BindingInfo, InstanceData);
 	}
-	else if (BindingInfo.Name == GetTriTangentsWSName)
+	else if (BindingInfo.Name == StaticMeshHelpers::GetTriTangentsWSName)
 	{
 		check(BindingInfo.GetNumInputs() == 5 && BindingInfo.GetNumOutputs() == 9);
 		bNeedsVertMain = true;
-		Function = TTypedMeshAccessorBinder<TNDIExplicitBinder<FTransformHandlerVector, TNDIParamBinder<0, int32, TNDIParamBinder<1, float, TNDIParamBinder<2, float, TNDIParamBinder<3, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceStaticMesh, GetTriCoordTangents)>>>>>>::Bind(this, BindingInfo, InstanceData);
+		Function = TTypedMeshAccessorBinder<TNDIExplicitBinder<FNDITransformHandler, TNDIParamBinder<0, int32, TNDIParamBinder<1, float, TNDIParamBinder<2, float, TNDIParamBinder<3, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceStaticMesh, GetTriCoordTangents)>>>>>>::Bind(this, BindingInfo, InstanceData);
 	}
-	else if (BindingInfo.Name == GetTriColorName)
+	else if (BindingInfo.Name == StaticMeshHelpers::GetTriColorName)
 	{
 		check(BindingInfo.GetNumInputs() == 5 && BindingInfo.GetNumOutputs() == 4);
 		bNeedsVertexColors = true;
 		Function = TNDIParamBinder<0, int32, TNDIParamBinder<1, float, TNDIParamBinder<2, float, TNDIParamBinder<3, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceStaticMesh, GetTriCoordColor)>>>>::Bind(this, BindingInfo, InstanceData);
 	}
-	else if (BindingInfo.Name == GetTriUVName)
+	else if (BindingInfo.Name == StaticMeshHelpers::GetTriUVName)
 	{
 		check(BindingInfo.GetNumInputs() == 6 && BindingInfo.GetNumOutputs() == 2);
 		bNeedsVertMain = true;
 		Function = TTypedMeshAccessorBinder<TNDIParamBinder<0, int32, TNDIParamBinder<1, float, TNDIParamBinder<2, float, TNDIParamBinder<3, float, TNDIParamBinder<4, int32, NDI_FUNC_BINDER(UNiagaraDataInterfaceStaticMesh, GetTriCoordUV)>>>>>>::Bind(this, BindingInfo, InstanceData);
 	}
-	else if (BindingInfo.Name == GetTriPositionAndVelocityName)
+	else if (BindingInfo.Name == StaticMeshHelpers::GetTriPositionAndVelocityName)
 	{
 		check(BindingInfo.GetNumInputs() == 5 && BindingInfo.GetNumOutputs() == 6);
 		bNeedsVertMain = true;
 		bNeedsVertexPositions = true;
 		Function = TNDIParamBinder<0, int32, TNDIParamBinder<1, float, TNDIParamBinder<2, float, TNDIParamBinder<3, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceStaticMesh, GetTriCoordPositionAndVelocity)>>>>::Bind(this, BindingInfo, InstanceData);
 	}
-	else if (BindingInfo.Name == GetMeshLocalToWorldName)
+	else if (BindingInfo.Name == StaticMeshHelpers::GetMeshLocalToWorldName)
 	{
 		check(BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 16);
 		Function = FVMExternalFunction::CreateUObject(this, &UNiagaraDataInterfaceStaticMesh::GetLocalToWorld);
 	}
-	else if (BindingInfo.Name == GetMeshLocalToWorldInverseTransposedName)
+	else if (BindingInfo.Name == StaticMeshHelpers::GetMeshLocalToWorldInverseTransposedName)
 	{
 		check(BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 16);
 		Function = FVMExternalFunction::CreateUObject(this, &UNiagaraDataInterfaceStaticMesh::GetLocalToWorldInverseTransposed);
 	}
-	else if (BindingInfo.Name == GetMeshWorldVelocityName)
+	else if (BindingInfo.Name == StaticMeshHelpers::GetMeshWorldVelocityName)
 	{
 		check(BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 3);
 		Function = FVMExternalFunction::CreateUObject(this, &UNiagaraDataInterfaceStaticMesh::GetWorldVelocity);
@@ -790,9 +781,9 @@ FVMExternalFunction UNiagaraDataInterfaceStaticMesh::GetVMExternalFunction(const
 	return Function;
 }
 
-bool UNiagaraDataInterfaceStaticMesh::CopyTo(UNiagaraDataInterface* Destination) const
+bool UNiagaraDataInterfaceStaticMesh::CopyToInternal(UNiagaraDataInterface* Destination) const
 {
-	if (!Super::CopyTo(Destination))
+	if (!Super::CopyToInternal(Destination))
 	{
 		return false;
 	}
@@ -827,6 +818,14 @@ bool UNiagaraDataInterfaceStaticMesh::InitPerInstanceData(void* PerInstanceData,
 void UNiagaraDataInterfaceStaticMesh::DestroyPerInstanceData(void* PerInstanceData, FNiagaraSystemInstance* SystemInstance)
 {
 	FNDIStaticMesh_InstanceData* Inst = (FNDIStaticMesh_InstanceData*)PerInstanceData;
+
+#if WITH_EDITOR
+	if (Inst->Mesh)
+	{
+		Inst->Mesh->GetOnMeshChanged().RemoveAll(SystemInstance->GetComponent());
+	}
+#endif
+
 	Inst->~FNDIStaticMesh_InstanceData();
 }
 
@@ -834,29 +833,6 @@ bool UNiagaraDataInterfaceStaticMesh::PerInstanceTick(void* PerInstanceData, FNi
 {
 	FNDIStaticMesh_InstanceData* Inst = (FNDIStaticMesh_InstanceData*)PerInstanceData;
 	return Inst->Tick(this, SystemInstance, InDeltaSeconds);
-}
-
-FORCEINLINE FVector RandomBarycentricCoord(FRandomStream& RandStream)
-{
-	//TODO: This is gonna be slooooow. Move to an LUT possibly or find faster method.
-	//Can probably handle lower quality randoms / uniformity for a decent speed win.
-	float r0 = RandStream.GetFraction();
-	float r1 = RandStream.GetFraction();
-	float sqrt0 = FMath::Sqrt(r0);
-	float sqrt1 = FMath::Sqrt(r1);
-	return FVector(1.0f - sqrt0, sqrt0 * (1.0 - r1), r1 * sqrt0);
-}
-
-template<typename T>
-T BarycentricInterpolate(float BaryX, float BaryY, float BaryZ, T V0, T V1, T V2)
-{
-	return V0 * BaryX + V1 * BaryY + V2 * BaryZ;
-}
-
-// Overload for FVector4 to work around C2719: (formal parameter with requested alignment of 16 won't be aligned)
-FVector4 BarycentricInterpolate(float BaryX, float BaryY, float BaryZ, const FVector4& V0, const FVector4& V1, const FVector4& V2)
-{
-	return V0 * BaryX + V1 * BaryY + V2 * BaryZ;
 }
 
 //RandomSection specializations.
@@ -1093,7 +1069,7 @@ void UNiagaraDataInterfaceStaticMesh::GetTriCoordPosition(FVectorVMContext& Cont
 
 	FStaticMeshLODResources& Res = InstData->Mesh->RenderData->LODResources[0];
 	const FIndexArrayView& Indices = Res.IndexBuffer.GetArrayView();
-	const FPositionVertexBuffer& Positions = Res.PositionVertexBuffer;
+	const FPositionVertexBuffer& Positions = Res.VertexBuffers.PositionVertexBuffer;
 
 	for (int32 i = 0; i < Context.NumInstances; ++i)
 	{
@@ -1103,7 +1079,7 @@ void UNiagaraDataInterfaceStaticMesh::GetTriCoordPosition(FVectorVMContext& Cont
 		int32 Idx2 = Indices[Tri + 2];
 
 		FVector Pos = BarycentricInterpolate(BaryXParam.Get(), BaryYParam.Get(), BaryZParam.Get(), Positions.VertexPosition(Idx0), Positions.VertexPosition(Idx1), Positions.VertexPosition(Idx2));
-		TransformHandler.Transform(Pos, InstData->Transform);
+		TransformHandler.TransformPosition(Pos, InstData->Transform);
 
 		*OutPosX.GetDest() = Pos.X;
 		*OutPosY.GetDest() = Pos.Y;
@@ -1136,7 +1112,7 @@ void UNiagaraDataInterfaceStaticMesh::GetTriCoordNormal(FVectorVMContext& Contex
 
 	FStaticMeshLODResources& Res = InstData->Mesh->RenderData->LODResources[0];
 	const FIndexArrayView& Indices = Res.IndexBuffer.GetArrayView();
-	const FStaticMeshVertexBuffer& Verts = Res.VertexBuffer;
+	const FStaticMeshVertexBuffer& Verts = Res.VertexBuffers.StaticMeshVertexBuffer;
 
 	for (int32 i = 0; i < Context.NumInstances; ++i)
 	{
@@ -1146,7 +1122,7 @@ void UNiagaraDataInterfaceStaticMesh::GetTriCoordNormal(FVectorVMContext& Contex
 		int32 Idx2 = Indices[Tri + 2];
 
 		FVector Norm = BarycentricInterpolate(BaryXParam.Get(), BaryYParam.Get(), BaryZParam.Get(), Verts.VertexTangentZ(Idx0), Verts.VertexTangentZ(Idx1), Verts.VertexTangentZ(Idx2));
-		TransformHandler.Transform(Norm, InstData->Transform);
+		TransformHandler.TransformVector(Norm, InstData->TransformInverseTransposed);
 
 		*OutNormX.GetDest() = Norm.X;
 		*OutNormY.GetDest() = Norm.Y;
@@ -1174,7 +1150,7 @@ void UNiagaraDataInterfaceStaticMesh::GetTriCoordTangents(FVectorVMContext& Cont
 
 	FStaticMeshLODResources& Res = InstData->Mesh->RenderData->LODResources[0];
 	const FIndexArrayView& Indices = Res.IndexBuffer.GetArrayView();
-	const VertexAccessorType Verts(Res.VertexBuffer);
+	const VertexAccessorType Verts(Res.VertexBuffers.StaticMeshVertexBuffer);
 
 	FRegisterHandler<float> OutTangentX(Context);
 	FRegisterHandler<float> OutTangentY(Context);
@@ -1195,9 +1171,9 @@ void UNiagaraDataInterfaceStaticMesh::GetTriCoordTangents(FVectorVMContext& Cont
 		FVector Tangent = BarycentricInterpolate(BaryXParam.Get(), BaryYParam.Get(), BaryZParam.Get(), Verts.GetTangentX(Idx0), Verts.GetTangentX(Idx1), Verts.GetTangentX(Idx2));
 		FVector Binorm = BarycentricInterpolate(BaryXParam.Get(), BaryYParam.Get(), BaryZParam.Get(), Verts.GetTangentY(Idx0), Verts.GetTangentY(Idx1), Verts.GetTangentY(Idx2));
 		FVector Norm = BarycentricInterpolate(BaryXParam.Get(), BaryYParam.Get(), BaryZParam.Get(), Verts.GetTangentZ(Idx0), Verts.GetTangentZ(Idx1), Verts.GetTangentZ(Idx2));
-		TransformHandler.Transform(Tangent, InstData->TransformInverseTransposed);
-		TransformHandler.Transform(Binorm, InstData->TransformInverseTransposed);
-		TransformHandler.Transform(Norm, InstData->TransformInverseTransposed);
+		TransformHandler.TransformVector(Tangent, InstData->TransformInverseTransposed);
+		TransformHandler.TransformVector(Binorm, InstData->TransformInverseTransposed);
+		TransformHandler.TransformVector(Norm, InstData->TransformInverseTransposed);
 		*OutTangentX.GetDest() = Tangent.X;
 		*OutTangentY.GetDest() = Tangent.Y;
 		*OutTangentZ.GetDest() = Tangent.Z;
@@ -1240,7 +1216,7 @@ void UNiagaraDataInterfaceStaticMesh::GetTriCoordColor(FVectorVMContext& Context
 
 	FStaticMeshLODResources& Res = InstData->Mesh->RenderData->LODResources[0];
 	const FIndexArrayView& Indices = Res.IndexBuffer.GetArrayView();
-	const FColorVertexBuffer& Colors = Res.ColorVertexBuffer;
+	const FColorVertexBuffer& Colors = Res.VertexBuffers.ColorVertexBuffer;
 
 	for (int32 i = 0; i < Context.NumInstances; ++i)
 	{
@@ -1282,7 +1258,7 @@ void UNiagaraDataInterfaceStaticMesh::GetTriCoordUV(FVectorVMContext& Context)
 
 	FStaticMeshLODResources& Res = InstData->Mesh->RenderData->LODResources[0];
 	const FIndexArrayView& Indices = Res.IndexBuffer.GetArrayView();
-	const VertexAccessorType Verts(Res.VertexBuffer);
+	const VertexAccessorType Verts(Res.VertexBuffers.StaticMeshVertexBuffer);
 	for (int32 i = 0; i < Context.NumInstances; ++i)
 	{
 		int32 Tri = TriParam.Get();
@@ -1324,7 +1300,7 @@ void UNiagaraDataInterfaceStaticMesh::GetTriCoordPositionAndVelocity(FVectorVMCo
 
 	FStaticMeshLODResources& Res = InstData->Mesh->RenderData->LODResources[0];
 	const FIndexArrayView& Indices = Res.IndexBuffer.GetArrayView();
-	const FPositionVertexBuffer& Positions = Res.PositionVertexBuffer;
+	const FPositionVertexBuffer& Positions = Res.VertexBuffers.PositionVertexBuffer;
 
 	float InvDt = 1.0f / InstData->DeltaSeconds;
 	for (int32 i = 0; i < Context.NumInstances; ++i)
@@ -1448,7 +1424,7 @@ bool FDynamicVertexColorFilterData::Init(FNDIStaticMesh_InstanceData* Owner)
 
 	FStaticMeshLODResources& Res = Owner->Mesh->RenderData->LODResources[0];
 
-	if (Res.ColorVertexBuffer.GetNumVertices() == 0)
+	if (Res.VertexBuffers.ColorVertexBuffer.GetNumVertices() == 0)
 	{
 		UE_LOG(LogNiagara, Log, TEXT("Cannot initialize vertex color filter data for a mesh with no color data - %s"), *Owner->Mesh->GetFullName());
 		return false;
@@ -1472,9 +1448,9 @@ bool FDynamicVertexColorFilterData::Init(FNDIStaticMesh_InstanceData* Owner)
 				uint32 V1Idx = IndexView[TriStartIdx + TriIdx * 3 + 1];
 				uint32 V2Idx = IndexView[TriStartIdx + TriIdx * 3 + 2];
 
-				uint8 MaxR = FMath::Max<uint8>(Res.ColorVertexBuffer.VertexColor(V0Idx).R,
-					FMath::Max<uint8>(Res.ColorVertexBuffer.VertexColor(V1Idx).R,
-						Res.ColorVertexBuffer.VertexColor(V2Idx).R));
+				uint8 MaxR = FMath::Max<uint8>(Res.VertexBuffers.ColorVertexBuffer.VertexColor(V0Idx).R,
+					FMath::Max<uint8>(Res.VertexBuffers.ColorVertexBuffer.VertexColor(V1Idx).R,
+						Res.VertexBuffers.ColorVertexBuffer.VertexColor(V2Idx).R));
 				if (MaxR >= MinVertexColorRed && MaxR < MaxVertexColorRed)
 				{
 					TrianglesSortedByVertexColor.Add(TriStartIdx + TriIdx * 3);

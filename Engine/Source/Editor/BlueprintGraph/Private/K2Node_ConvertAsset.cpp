@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "K2Node_ConvertAsset.h"
@@ -17,8 +17,8 @@
 
 namespace UK2Node_ConvertAssetImpl
 {
-	static const FString InputPinName("Input");
-	static const FString OutputPinName("Output");
+	static const FName InputPinName("Input");
+	static const FName OutputPinName("Output");
 }
 
 UClass* UK2Node_ConvertAsset::GetTargetClass() const
@@ -76,8 +76,8 @@ void UK2Node_ConvertAsset::RefreshPinTypes()
 		const bool bIsAssetClass = bIsConnected ? IsAssetClassType() : false;
 		const bool bIsConvertToAsset = bIsConnected ? IsConvertToAsset() : false;
 
-		FString InputCategory = UEdGraphSchema_K2::PC_Wildcard;
-		FString OutputCategory = UEdGraphSchema_K2::PC_Wildcard;
+		FName InputCategory = UEdGraphSchema_K2::PC_Wildcard;
+		FName OutputCategory = UEdGraphSchema_K2::PC_Wildcard;
 		if (bIsConnected)
 		{
 			if (bIsConvertToAsset)
@@ -92,8 +92,8 @@ void UK2Node_ConvertAsset::RefreshPinTypes()
 			}
 		}
 			
-		InputPin->PinType = FEdGraphPinType(InputCategory, FString(), TargetType, EPinContainerType::None, false, FEdGraphTerminalType() );
-		OutputPin->PinType = FEdGraphPinType(OutputCategory, FString(), TargetType, EPinContainerType::None, false, FEdGraphTerminalType() );
+		InputPin->PinType = FEdGraphPinType(InputCategory, NAME_None, TargetType, EPinContainerType::None, false, FEdGraphTerminalType() );
+		OutputPin->PinType = FEdGraphPinType(OutputCategory, NAME_None, TargetType, EPinContainerType::None, false, FEdGraphTerminalType() );
 
 		PinTypeChanged(InputPin);
 		PinTypeChanged(OutputPin);
@@ -102,7 +102,7 @@ void UK2Node_ConvertAsset::RefreshPinTypes()
 		{
 			TArray<UEdGraphPin*> PinsToUnlink = OutputPin->LinkedTo;
 
-			UClass const* CallingContext = NULL;
+			UClass const* CallingContext = nullptr;
 			if (UBlueprint const* Blueprint = GetBlueprint())
 			{
 				CallingContext = Blueprint->GeneratedClass;
@@ -143,8 +143,8 @@ void UK2Node_ConvertAsset::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 
 void UK2Node_ConvertAsset::AllocateDefaultPins()
 {
-	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Wildcard, FString(), nullptr, UK2Node_ConvertAssetImpl::InputPinName);
-	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Wildcard, FString(), nullptr, UK2Node_ConvertAssetImpl::OutputPinName);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Wildcard, UK2Node_ConvertAssetImpl::InputPinName);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Wildcard, UK2Node_ConvertAssetImpl::OutputPinName);
 }
 
 UK2Node::ERedirectType UK2Node_ConvertAsset::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
@@ -202,9 +202,7 @@ void UK2Node_ConvertAsset::ExpandNode(class FKismetCompilerContext& CompilerCont
 
 			//Connect input to convert
 			UEdGraphPin* InputPin = FindPin(UK2Node_ConvertAssetImpl::InputPinName);
-			const FString ConvertInputName = bIsAssetClass
-				? FString(TEXT("Class"))
-				: FString(TEXT("Object"));
+			const FName ConvertInputName = bIsAssetClass ? FName(TEXT("Class")) : FName(TEXT("Object"));
 			UEdGraphPin* ConvertInput = ConvertToObjectFunc->FindPin(ConvertInputName);
 			bIsErrorFree = InputPin && ConvertInput && CompilerContext.MovePinLinksToIntermediate(*InputPin, *ConvertInput).CanSafeConnect();
 
@@ -234,9 +232,7 @@ void UK2Node_ConvertAsset::ExpandNode(class FKismetCompilerContext& CompilerCont
 
 			//Connect input to convert
 			UEdGraphPin* InputPin = FindPin(UK2Node_ConvertAssetImpl::InputPinName);
-			const FString ConvertInputName = bIsAssetClass
-				? FString(TEXT("SoftClass"))
-				: FString(TEXT("SoftObject"));
+			const FName ConvertInputName = bIsAssetClass ? FName(TEXT("SoftClass")) : FName(TEXT("SoftObject"));
 			UEdGraphPin* ConvertInput = ConvertToObjectFunc->FindPin(ConvertInputName);
 			bIsErrorFree = InputPin && ConvertInput && CompilerContext.MovePinLinksToIntermediate(*InputPin, *ConvertInput).CanSafeConnect();
 

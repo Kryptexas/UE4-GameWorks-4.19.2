@@ -1,5 +1,4 @@
-
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 GPUFastFourierTransform.h: Interface for Fast Fourier Transform (FFT) on GPU.

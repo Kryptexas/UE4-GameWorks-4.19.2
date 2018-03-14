@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilingDebugging/Histogram.h"
 
@@ -11,6 +11,8 @@ void FHistogram::InitLinear(double MinTime, double MaxTime, double BinSize)
 {
 	SumOfAllMeasures = 0.0;
 	CountOfAllMeasures = 0;
+	MinimalMeasurement = DBL_MAX;
+	MaximalMeasurement = -DBL_MAX;
 
 	Bins.Empty();
 
@@ -27,6 +29,8 @@ void FHistogram::InitHitchTracking()
 {
 	SumOfAllMeasures = 0.0;
 	CountOfAllMeasures = 0;
+	MinimalMeasurement = DBL_MAX;
+	MaximalMeasurement = -DBL_MAX;
 
 	Bins.Empty();
 
@@ -48,10 +52,12 @@ void FHistogram::InitHitchTracking()
 	Bins.Add(FBin(5000.0));
 }
 
-void FHistogram::InitFromArray(TArrayView<double> Thresholds)
+void FHistogram::InitFromArray(TArrayView<const double> Thresholds)
 {
 	SumOfAllMeasures = 0.0;
 	CountOfAllMeasures = 0;
+	MinimalMeasurement = DBL_MAX;
+	MaximalMeasurement = -DBL_MAX;
 	Bins.Empty();
 
 	for (int32 Index = 0; Index < Thresholds.Num(); ++Index)
@@ -77,6 +83,8 @@ void FHistogram::Reset()
 	}
 	SumOfAllMeasures = 0.0;
 	CountOfAllMeasures = 0;
+	MinimalMeasurement = DBL_MAX;
+	MaximalMeasurement = -DBL_MAX;
 }
 
 void FHistogram::AddMeasurement(double ValueForBinning, double MeasurementValue)
@@ -98,6 +106,8 @@ void FHistogram::AddMeasurement(double ValueForBinning, double MeasurementValue)
 				++CountOfAllMeasures;
 				Bin.Sum += MeasurementValue;
 				SumOfAllMeasures += MeasurementValue;
+				MinimalMeasurement = FMath::Min(MinimalMeasurement, MeasurementValue);
+				MaximalMeasurement = FMath::Max(MaximalMeasurement, MeasurementValue);
 				return;
 			}
 		}
@@ -108,6 +118,8 @@ void FHistogram::AddMeasurement(double ValueForBinning, double MeasurementValue)
 		++CountOfAllMeasures;
 		LastBin.Sum += MeasurementValue;
 		SumOfAllMeasures += MeasurementValue;
+		MinimalMeasurement = FMath::Min(MinimalMeasurement, MeasurementValue);
+		MaximalMeasurement = FMath::Max(MaximalMeasurement, MeasurementValue);
 	}
 }
 
@@ -123,8 +135,8 @@ void FHistogram::DumpToAnalytics(const FString& ParamNamePrefix, TArray<TPair<FS
 		{
 			FBin& Bin = Bins[BinIdx];
 			FString ParamName = FString::Printf(TEXT("_%.0f_%.0f"), Bin.MinValue, Bin.UpperBound);
-			OutParamArray.Emplace(ParamNamePrefix + ParamName + TEXT("_Count"), Bin.Count);
-			OutParamArray.Emplace(ParamNamePrefix + ParamName + TEXT("_Sum"), Bin.Sum);
+			OutParamArray.Add(TPairInitializer<FString, double>(ParamNamePrefix + ParamName + TEXT("_Count"), Bin.Count));
+			OutParamArray.Add(TPairInitializer<FString, double>(ParamNamePrefix + ParamName + TEXT("_Sum"), Bin.Sum));
 
 			TotalObservations += Bin.Count;
 			TotalSum += Bin.Sum;
@@ -132,8 +144,8 @@ void FHistogram::DumpToAnalytics(const FString& ParamNamePrefix, TArray<TPair<FS
 
 		FBin& LastBin = Bins.Last();
 		FString ParamName = FString::Printf(TEXT("_%.0f_AndAbove"), LastBin.MinValue);
-		OutParamArray.Emplace(ParamNamePrefix + ParamName + TEXT("_Count"), LastBin.Count);
-		OutParamArray.Emplace(ParamNamePrefix + ParamName + TEXT("_Sum"), LastBin.Sum);
+		OutParamArray.Add(TPairInitializer<FString, double>(ParamNamePrefix + ParamName + TEXT("_Count"), LastBin.Count));
+		OutParamArray.Add(TPairInitializer<FString, double>(ParamNamePrefix + ParamName + TEXT("_Sum"), LastBin.Sum));
 
 		TotalObservations += LastBin.Count;
 		TotalSum += LastBin.Sum;
@@ -145,7 +157,33 @@ void FHistogram::DumpToAnalytics(const FString& ParamNamePrefix, TArray<TPair<FS
 	}
 
 	// add an average value for ease of monitoring/analyzing
-	OutParamArray.Emplace(ParamNamePrefix + TEXT("_Average"), AverageObservation);
+	OutParamArray.Add(TPairInitializer<FString, double>(ParamNamePrefix + TEXT("_Average"), AverageObservation));
+}
+
+FString FHistogram::DumpToAnalyticsString() const
+{
+	// Bucket:Count:Sum;Bucket:Count:Sum;...
+	FString Result;
+	if (LIKELY(Bins.Num()))
+	{
+		for (int BinIdx = 0, LastBinIdx = Bins.Num() - 1; BinIdx < LastBinIdx+1; ++BinIdx)
+		{
+			const FBin& Bin = Bins[BinIdx];
+			if (BinIdx != 0)
+			{
+				Result += TEXT(';');
+			}
+			if (BinIdx != LastBinIdx)
+			{
+				Result += FString::Printf(TEXT("%d_%d:%d:%.5f"), (int64)Bin.MinValue, (int64)Bin.UpperBound, Bin.Count, Bin.Sum);
+			}
+			else
+			{
+				Result += FString::Printf(TEXT("%d_AndAbove:%d:%.5f"), (int64)Bin.MinValue, Bin.Count, Bin.Sum);
+			}
+		}
+	}
+	return Result;
 }
 
 void FHistogram::DumpToLog(const FString& HistogramName)

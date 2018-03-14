@@ -73,7 +73,8 @@ Topic-image:HydroErosion_topic.png
 | **Rain Dist Scale** | 应用初始降雨到地表的 noise 过滤器尺寸。Noise 过滤器与位置和比例相关，如不修改 **Rain Dist.Scale**，同一 noise 过滤器将多次应用到相同位置。| 
 | **Detail Smooth** | 勾选后，使用指定的细节平滑值为侵蚀效果执行保留细节的平滑操作。细节平滑值越大，将会移除更多细节；而数值越小，则会保留更多细节。|
 
-<!---
+[COMMENT:none]
+-
 [INCLUDE:#raindist]
 [EXCERPT:raindist]
 |选项 | 描述 |
@@ -82,4 +83,5 @@ Topic-image:HydroErosion_topic.png
 | **Positive** | 此项将在应用区域的所有地方上形成降雨，对高度图形成侵蚀。|
 [/EXCERPT:raindist]
 
---->
+-
+[/COMMENT]

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // This code is modified from that in the Mesa3D Graphics library available at
 // http://mesa3d.org/
@@ -419,46 +419,11 @@ void make_intrinsic_fmod(exec_list *ir, _mesa_glsl_parse_state *state)
 	ir->push_tail(func);
 }
 
-void make_intrinsic_sincos(exec_list *ir, _mesa_glsl_parse_state *state)
+void make_intrinsic_sincos(exec_list *ir, _mesa_glsl_parse_state *state, bool bAddBody)
 {
 	void* ctx = state;
 	ir_function* func = new(ctx)ir_function("sincos");
 
-	for (unsigned Type = GLSL_TYPE_HALF; Type <= GLSL_TYPE_FLOAT; ++Type)
-	{
-		for (unsigned c = 1; c <= 4; ++c)
-		{
-			const glsl_type* genType = glsl_type::get_instance(Type, c, 1);
-			ir_function_signature* sig = new(ctx)ir_function_signature(genType);
-			sig->is_builtin = true;
-			sig->is_defined = true;
-
-			ir_variable* arg0 = make_var(ctx, genType, 0, ir_var_in);
-			ir_variable* arg1 = make_var(ctx, genType, 1, ir_var_out);
-			ir_variable* arg2 = make_var(ctx, genType, 2, ir_var_out);
-			sig->parameters.push_tail(arg0);
-			sig->parameters.push_tail(arg1);
-			sig->parameters.push_tail(arg2);
-
-			ir_expression* sin_expr = new(ctx)ir_expression(ir_unop_sin, genType,
-				new(ctx)ir_dereference_variable(arg0));
-			ir_expression* cos_expr = new(ctx)ir_expression(ir_unop_cos, genType,
-				new(ctx)ir_dereference_variable(arg0));
-			sig->body.push_tail(new(ctx)ir_assignment(new(ctx)ir_dereference_variable(arg1), sin_expr));
-			sig->body.push_tail(new(ctx)ir_assignment(new(ctx)ir_dereference_variable(arg2), cos_expr));
-
-			func->add_signature(sig);
-		}
-	}
-	state->symbols->add_global_function(func);
-	ir->push_tail(func);
-}
-
-void MakeIntrinsicSincos(exec_list *ir, _mesa_glsl_parse_state *state)
-{
-	void* ctx = state;
-	ir_function* func = new(ctx)ir_function("sincos");
-	
 	for (unsigned Type = GLSL_TYPE_HALF; Type <= GLSL_TYPE_FLOAT; ++Type)
 	{
 		for (unsigned c = 1; c <= 4; ++c)
@@ -467,11 +432,23 @@ void MakeIntrinsicSincos(exec_list *ir, _mesa_glsl_parse_state *state)
 			ir_function_signature* sig = new(ctx)ir_function_signature(genType);
 			{
 				sig->is_builtin = true;
-				
+				sig->is_defined = bAddBody;
+
 				ir_variable* arg0 = make_var(ctx, genType, 0, ir_var_in);
 				ir_variable* arg1 = make_var(ctx, genType, 1, ir_var_out);
 				sig->parameters.push_tail(arg0);
 				sig->parameters.push_tail(arg1);
+
+				if (bAddBody)
+				{
+					ir_expression* sin_expr = new(ctx)ir_expression(ir_unop_sin, genType,
+						new(ctx)ir_dereference_variable(arg0));
+					ir_expression* cos_expr = new(ctx)ir_expression(ir_unop_cos, genType,
+						new(ctx)ir_dereference_variable(arg0));
+					sig->body.push_tail(new(ctx)ir_assignment(new(ctx)ir_dereference_variable(arg1), cos_expr));
+					sig->body.push_tail(new(ctx)ir_return(sin_expr));
+				}
+
 				func->add_signature(sig);
 			}
 
@@ -479,25 +456,26 @@ void MakeIntrinsicSincos(exec_list *ir, _mesa_glsl_parse_state *state)
 			{
 				sig2->is_builtin = true;
 				sig2->is_defined = true;
-				
+
 				ir_variable* arg0 = make_var(ctx, genType, 0, ir_var_in);
 				ir_variable* arg1 = make_var(ctx, genType, 1, ir_var_out);
 				ir_variable* arg2 = make_var(ctx, genType, 2, ir_var_out);
 				sig2->parameters.push_tail(arg0);
 				sig2->parameters.push_tail(arg1);
 				sig2->parameters.push_tail(arg2);
-				
+
 				ir_dereference_variable* sin_val = new(ctx)ir_dereference_variable(arg1);
 				exec_list actual_parameter;
 				actual_parameter.push_tail(new(ctx)ir_dereference_variable(arg0));
 				actual_parameter.push_tail(new(ctx)ir_dereference_variable(arg2));
 				ir_call* sincos_call = new(ctx)ir_call(sig, sin_val, &actual_parameter);
 				sig2->body.push_tail(sincos_call);
-				
+
 				func->add_signature(sig2);
 			}
 		}
 	}
+
 	state->symbols->add_global_function(func);
 	ir->push_tail(func);
 }
@@ -1265,19 +1243,20 @@ void make_intrinsic_sm5_functions(exec_list *ir, _mesa_glsl_parse_state *state)
 		{
 			ir_unop_bitcount, ir_unop_msb, ir_unop_lsb, ir_unop_bitreverse
 		};
-		bool use_base_type[] = {
+		bool use_base_type[] =
+		{
 			true, false, false, true
 		};
 
 		for (size_t i = 0; i < sizeof(funcName) / sizeof(char*); i++)
 		{
 			ir_function* func = new(ctx)ir_function(funcName[i]);
-
+			bool bUseBaseType = use_base_type[i];
 			for (int base_type = GLSL_TYPE_UINT; base_type <= GLSL_TYPE_INT; ++base_type)
 			{
 				for (int vec_size = 1; vec_size <= 4; vec_size++)
 				{
-					const glsl_type* type = use_base_type ? glsl_type::get_instance(base_type, vec_size, 1) : glsl_type::get_instance(GLSL_TYPE_INT, vec_size, 1);
+					const glsl_type* type = bUseBaseType ? glsl_type::get_instance(base_type, vec_size, 1) : glsl_type::get_instance(GLSL_TYPE_INT, vec_size, 1);
 					ir_function_signature* sig = new(ctx)ir_function_signature(type);
 					sig->is_builtin = true;
 					sig->is_defined = true;
@@ -1464,14 +1443,7 @@ void _mesa_glsl_initialize_functions(exec_list *ir, _mesa_glsl_parse_state *stat
 	make_intrinsic_genType(ir, state, "tanh", ir_unop_tanh, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_MATRIX, 1);
 	make_intrinsic_genType(ir, state, "atan2", ir_binop_atan2, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_MATRIX, 2);
 	
-	if (!state->LanguageSpec->SupportsSinCosIntrinsic())
-	{
-		make_intrinsic_sincos(ir, state);
-	}
-	else
-	{
-		MakeIntrinsicSincos(ir, state);
-	}
+	make_intrinsic_sincos(ir, state, !state->LanguageSpec->SupportsSinCosIntrinsic());
 
 	// 8.2 Exponential Functions.
 	make_intrinsic_genType(ir, state, "pow", ir_binop_pow, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_MATRIX, 2);

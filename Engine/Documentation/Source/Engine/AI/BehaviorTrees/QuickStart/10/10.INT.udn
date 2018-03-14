@@ -3,24 +3,12 @@ Title: 10. Behavior Tree Basics
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 10. Behavior Tree Basics
 version: 4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:10
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Engine/AI/BehaviorTrees/QuickStart/9 "%Engine/AI/BehaviorTrees/QuickStart/9:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine/AI/BehaviorTrees/QuickStart/11 "%Engine/AI/BehaviorTrees/QuickStart/11:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 The **Root** node starts the tree, and all other nodes connect below it.
 
@@ -52,10 +40,4 @@ While Selector and Sequence nodes will have a number of children under them, the
 
 ![](connected.png)
 
-
-%Steps%
-
-
-
-
-
+[NAV]

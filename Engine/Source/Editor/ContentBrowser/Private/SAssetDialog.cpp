@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SAssetDialog.h"
 #include "Misc/MessageDialog.h"
@@ -32,7 +32,6 @@
 #include "Editor/EditorEngine.h"
 #include "FileManager.h"
 #include "NativeClassHierarchy.h"
-#include "ISizeMapModule.h"
 #include "CoreMinimal.h"
 #include "SourceCodeNavigation.h"
 #include "Editor.h"
@@ -545,67 +544,6 @@ void SAssetDialog::ExecuteExplore()
 	}
 }
 
-void SAssetDialog::ExecuteSizeMap()
-{
-	TArray<FString> SelectedPaths = AssetPicker->GetAssetView()->GetSelectedFolders();
-	TArray<FAssetData> SelectedAssets = AssetPicker->GetAssetView()->GetSelectedAssets();
-
-	TArray<FName> PackageNames;
-
-	if (SelectedPaths.Num() == 0 && SelectedAssets.Num() == 0)
-	{
-		SelectedPaths = PathPicker->GetPaths();
-	}
-
-	if (SelectedPaths.Num() > 0)
-	{
-		// Form a filter from the paths
-		FARFilter Filter;
-		Filter.bRecursivePaths = true;
-		for (int32 PathIdx = 0; PathIdx < SelectedPaths.Num(); ++PathIdx)
-		{
-			const FString& Path = SelectedPaths[PathIdx];
-			new (Filter.PackagePaths) FName(*Path);
-		}
-
-		// Load the asset registry module
-		FAssetRegistryModule& AssetRegistryModule = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-
-		// Query for a list of assets in the selected paths
-		TArray<FAssetData> AssetList;
-		AssetRegistryModule.Get().GetAssets(Filter, AssetList);
-
-		// Form a list of unique package names from the assets
-		TSet<FName> UniquePackageNames;
-		for (int32 AssetIdx = 0; AssetIdx < AssetList.Num(); ++AssetIdx)
-		{
-			UniquePackageNames.Add(AssetList[AssetIdx].PackageName);
-		}
-
-		// Add all unique package names to the output
-		PackageNames.Reserve(UniquePackageNames.Num());
-
-		for (auto PackageIt = UniquePackageNames.CreateConstIterator(); PackageIt; ++PackageIt)
-		{
-			PackageNames.Add((*PackageIt));
-		}
-	}	
-	else
-	{
-		PackageNames.Reserve(SelectedAssets.Num());
-
-		for (auto AssetIt = SelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt)
-		{
-			PackageNames.Add(AssetIt->PackageName);
-		}
-	}
-
-	if (PackageNames.Num() > 0)
-	{
-		ISizeMapModule::Get().InvokeSizeMapModalDialog(PackageNames, FSlateApplication::Get().GetActiveModalWindow());
-	}
-}
-
 bool SAssetDialog::CanExecuteCreateNewFolder() const
 {	
 	// We can only create folders when we have a single path selected
@@ -695,15 +633,6 @@ void SAssetDialog::SetupContextMenuContent(FMenuBuilder& MenuBuilder, const TArr
 							 LOCTEXT("ExploreTooltip", "Finds this folder on disk."), 
 							 FSlateIcon(FEditorStyle::GetStyleSetName(), "SystemWideCommands.FindInContentBrowser"), 
 							 FUIAction(FExecuteAction::CreateSP(this, &SAssetDialog::ExecuteExplore)));
-
-	MenuBuilder.EndSection();
-
-	MenuBuilder.BeginSection("AssetDialogReferences", LOCTEXT("AssetDialogReferencesHeading", "References"));
-
-	MenuBuilder.AddMenuEntry(LOCTEXT("SizeMap", "Size Map..."), 
-							 LOCTEXT("SizeMapOnFolderTooltip", "Shows an interactive map of the approximate memory used by the assets in this folder and everything they reference."), 
-							 FSlateIcon(), 
-							 FUIAction(FExecuteAction::CreateSP(this, &SAssetDialog::ExecuteSizeMap)));
 
 	MenuBuilder.EndSection();
 }

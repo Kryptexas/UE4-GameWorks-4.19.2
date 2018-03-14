@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Toolkits/AssetEditorToolkit.h"
 #include "Widgets/Layout/SBorder.h"
@@ -22,8 +22,6 @@
 #include "CollectionManagerModule.h"
 #include "Widgets/SToolTip.h"
 #include "IDocumentation.h"
-#include "ReferenceViewer.h"
-#include "ISizeMapModule.h"
 #include "IIntroTutorials.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "IAssetTools.h"
@@ -33,7 +31,8 @@
 #define LOCTEXT_NAMESPACE "AssetEditorToolkit"
 
 TWeakPtr< IToolkitHost > FAssetEditorToolkit::PreviousWorldCentricToolkitHostForNewAssetEditor;
-
+TSharedPtr<FExtensibilityManager> FAssetEditorToolkit::SharedMenuExtensibilityManager;
+TSharedPtr<FExtensibilityManager> FAssetEditorToolkit::SharedToolBarExtensibilityManager;
 
 const FName FAssetEditorToolkit::ToolbarTabId( TEXT( "AssetEditorToolkit_Toolbar" ) );
 
@@ -45,7 +44,6 @@ FAssetEditorToolkit::FAssetEditorToolkit()
 {
 	WorkspaceMenuCategory = FWorkspaceItem::NewGroup(LOCTEXT("WorkspaceMenu_BaseAssetEditor", "Asset Editor"));
 }
-
 
 void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, const FName AppIdentifier, const TSharedRef<FTabManager::FLayout>& StandaloneDefaultLayout, const bool bCreateDefaultStandaloneMenu, const bool bCreateDefaultToolbar, UObject* ObjectToEdit, const bool bInIsToolbarFocusable )
 {
@@ -196,7 +194,6 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 
 		NewMajorTab->SetContent
 		( 
-
 			SAssignNew( NewStandaloneHost, SStandaloneAssetEditorToolkitHost, NewTabManager, AppIdentifier )
 			.OnRequestClose(this, &FAssetEditorToolkit::OnRequestClose)
 		);
@@ -204,31 +201,13 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 		// Assign our toolkit host before we setup initial content.  (Important: We must cache this pointer here as SetupInitialContent
 		// will callback into the toolkit host.)
 		ToolkitHost = NewStandaloneHost;
-	}
 
+		StandaloneHost = NewStandaloneHost;
+	}
 
 	check( ToolkitHost.IsValid() );
 	ToolkitManager.RegisterNewToolkit( SharedThis( this ) );
 	
-	if (ToolkitMode == EToolkitMode::Standalone)
-	{
-		TSharedRef<FTabManager::FLayout> LayoutToUse = FLayoutSaveRestore::LoadFromConfig(GEditorLayoutIni, StandaloneDefaultLayout);
-
-		// Actually create the widget content
-		NewStandaloneHost->SetupInitialContent( LayoutToUse, NewMajorTab, bCreateDefaultStandaloneMenu );
-	}
-	StandaloneHost = NewStandaloneHost;
-	
-
-	if (bCreateDefaultToolbar)
-	{
-		GenerateToolbar();
-	}
-	else
-	{
-		Toolbar = SNullWidget::NullWidget;
-	}
-
 	ToolkitCommands->MapAction(
 		FAssetEditorCommonCommands::Get().SaveAsset,
 		FExecuteAction::CreateSP( this, &FAssetEditorToolkit::SaveAsset_Execute ),
@@ -243,17 +222,7 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 		FGlobalEditorCommonCommands::Get().FindInContentBrowser,
 		FExecuteAction::CreateSP( this, &FAssetEditorToolkit::FindInContentBrowser_Execute ),
 		FCanExecuteAction::CreateSP( this, &FAssetEditorToolkit::CanFindInContentBrowser ));
-	
-	ToolkitCommands->MapAction(
-		FGlobalEditorCommonCommands::Get().ViewReferences,
-		FExecuteAction::CreateSP( this, &FAssetEditorToolkit::ViewReferences_Execute ),
-		FCanExecuteAction::CreateSP( this, &FAssetEditorToolkit::CanViewReferences ));
-	
-	ToolkitCommands->MapAction(
-		FGlobalEditorCommonCommands::Get().ViewSizeMap,
-		FExecuteAction::CreateSP( this, &FAssetEditorToolkit::ViewSizeMap_Execute ),
-		FCanExecuteAction::CreateSP( this, &FAssetEditorToolkit::CanViewSizeMap ));
-	
+		
 	ToolkitCommands->MapAction(
 		FGlobalEditorCommonCommands::Get().OpenDocumentation,
 		FExecuteAction::CreateSP( this, &FAssetEditorToolkit::BrowseDocumentation_Execute ) );
@@ -278,6 +247,29 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 				FAssetEditorCommonCommands::Get().SwitchToWorldCentricEditor,
 				FExecuteAction::CreateStatic( &FAssetEditorToolkit::SwitchToWorldCentricEditor_Execute, TWeakPtr< FAssetEditorToolkit >( AsShared() ) ) );
 		}
+	}
+
+	// Create menus
+	if (ToolkitMode == EToolkitMode::Standalone)
+	{
+		AddMenuExtender(GetSharedMenuExtensibilityManager()->GetAllExtenders(ToolkitCommands, EditingObjects));
+
+		TSharedRef<FTabManager::FLayout> LayoutToUse = FLayoutSaveRestore::LoadFromConfig(GEditorLayoutIni, StandaloneDefaultLayout);
+
+		// Actually create the widget content
+		NewStandaloneHost->SetupInitialContent(LayoutToUse, NewMajorTab, bCreateDefaultStandaloneMenu);
+	}
+	
+	// Create toolbars
+	AddToolbarExtender(GetSharedToolBarExtensibilityManager()->GetAllExtenders(ToolkitCommands, EditingObjects));
+
+	if (bCreateDefaultToolbar)
+	{
+		GenerateToolbar();
+	}
+	else
+	{
+		Toolbar = SNullWidget::NullWidget;
 	}
 
 	// NOTE: Currently, the AssetEditorManager will keep a hard reference to our object as we're editing it
@@ -608,7 +600,7 @@ const FSlateBrush* FAssetEditorToolkit::GetDefaultTabIcon() const
 
 	for (UObject* Object : EditingObjects)
 	{
-		if(Object)
+		if (Object)
 		{
 			// Find the first object that has a valid brush
 			const FSlateBrush* ThisAssetBrush = FSlateIconFinder::FindIconBrushForClass(Object->GetClass());
@@ -788,52 +780,6 @@ void FAssetEditorToolkit::BrowseDocumentation_Execute() const
 	IDocumentation::Get()->Open(GetDocumentationLink(), FDocumentationSourceInfo(TEXT("help_menu_asset")));
 }
 
-void FAssetEditorToolkit::ViewReferences_Execute()
-{
-	if (ensure( ViewableObjects.Num() > 0))
-	{
-		IReferenceViewerModule::Get().InvokeReferenceViewerTab(ViewableObjects);
-	}
-}
-
-bool FAssetEditorToolkit::CanViewReferences()
-{
-	ViewableObjects.Empty();
-	for (const auto EditingObject : EditingObjects)
-	{
-		// Don't allow user to perform certain actions on objects that aren't actually assets (e.g. Level Script blueprint objects)
-		if (EditingObject != NULL && EditingObject->IsAsset())
-		{
-			ViewableObjects.Add(EditingObject->GetOuter()->GetFName());
-		}
-	}
-
-	return ViewableObjects.Num() > 0;
-}
-
-void FAssetEditorToolkit::ViewSizeMap_Execute()
-{
-	if (ensure( ViewableObjects.Num() > 0))
-	{
-		ISizeMapModule::Get().InvokeSizeMapTab(ViewableObjects);
-	}
-}
-
-bool FAssetEditorToolkit::CanViewSizeMap()
-{
-	ViewableObjects.Empty();
-	for (const auto EditingObject : EditingObjects)
-	{
-		// Don't allow user to perform certain actions on objects that aren't actually assets (e.g. Level Script blueprint objects)
-		if (EditingObject != NULL && EditingObject->IsAsset())
-		{
-			ViewableObjects.Add(EditingObject->GetOuter()->GetFName());
-		}
-	}
-
-	return ViewableObjects.Num() > 0;
-}
-
 FString FAssetEditorToolkit::GetDocumentationLink() const
 {
 	return FString(TEXT("%ROOT%"));
@@ -955,9 +901,6 @@ void FAssetEditorToolkit::FillDefaultAssetMenuCommands( FMenuBuilder& MenuBuilde
 	// Commands we only want to be accessible when editing an asset should go here 
 	if( IsActuallyAnAsset() )
 	{
-		MenuBuilder.AddMenuEntry( FGlobalEditorCommonCommands::Get().ViewReferences);
-		MenuBuilder.AddMenuEntry( FGlobalEditorCommonCommands::Get().ViewSizeMap);
-
 		// Add a reimport menu entry for each supported editable object
 		for( auto ObjectIter = EditingObjects.CreateConstIterator(); ObjectIter; ++ObjectIter )
 		{
@@ -1123,6 +1066,24 @@ void FAssetEditorToolkit::AddToolbarExtender(TSharedPtr<FExtender> Extender)
 void FAssetEditorToolkit::RemoveToolbarExtender(TSharedPtr<FExtender> Extender)
 {
 	ToolbarExtenders.Remove(Extender);
+}
+
+TSharedPtr<FExtensibilityManager> FAssetEditorToolkit::GetSharedMenuExtensibilityManager()
+{
+	if (!SharedMenuExtensibilityManager.IsValid())
+	{
+		SharedMenuExtensibilityManager = MakeShareable(new FExtensibilityManager);
+	}
+	return SharedMenuExtensibilityManager;
+}
+
+TSharedPtr<FExtensibilityManager> FAssetEditorToolkit::GetSharedToolBarExtensibilityManager()
+{
+	if (!SharedToolBarExtensibilityManager.IsValid())
+	{
+		SharedToolBarExtensibilityManager = MakeShareable(new FExtensibilityManager);
+	}
+	return SharedToolBarExtensibilityManager;
 }
 
 void FAssetEditorToolkit::SetMenuOverlay( TSharedRef<SWidget> Widget )

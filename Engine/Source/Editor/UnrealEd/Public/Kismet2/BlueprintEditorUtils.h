@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,6 +22,7 @@ class FCompilerResultsLog;
 class INameValidatorInterface;
 class UActorComponent;
 class UBlueprintGeneratedClass;
+class UK2Node_Event;
 class UK2Node_Variable;
 class ULevelScriptBlueprint;
 class USCS_Node;
@@ -380,6 +381,9 @@ public:
 	/** Adds an ubergraph page to this blueprint */
 	static void AddUbergraphPage(UBlueprint* Blueprint, class UEdGraph* Graph);
 
+	/** Returns the name of the Ubergraph Function that the provided blueprint uses */
+	static FName GetUbergraphFunctionName(const UBlueprint* ForBlueprint);
+
 	/** Adds a domain-specific graph to this blueprint */
 	static void AddDomainSpecificGraph(UBlueprint* Blueprint, class UEdGraph* Graph);
 
@@ -437,11 +441,10 @@ public:
 	static bool IsGraphReadOnly(UEdGraph* InGraph);
 
 	/** Look to see if an event already exists to override a particular function */
-	static class UK2Node_Event* FindOverrideForFunction(const UBlueprint* Blueprint, const UClass* SignatureClass, FName SignatureName);
+	static UK2Node_Event* FindOverrideForFunction(const UBlueprint* Blueprint, const UClass* SignatureClass, FName SignatureName);
 
 	/** Find the Custom Event if it already exists in the Blueprint */
-	static class UK2Node_Event* FindCustomEventNode(const UBlueprint* Blueprint, FName const CustomName);
-
+	static UK2Node_Event* FindCustomEventNode(const UBlueprint* Blueprint, FName const CustomName);
 
 	/** Returns all nodes in all graphs of the specified class */
 	template< class T > 
@@ -689,7 +692,10 @@ public:
 	 * @param [out]		HiddenPins		Set of pins that should be hidden
 	 * @param [out]		OutInternalPins	Subset of hidden pins that are marked for internal use only rather than marked as hidden (optional)
 	 */
+	DEPRECATED(4.19, "Use version that passes sets by name")
 	static void GetHiddenPinsForFunction(UEdGraph const* Graph, UFunction const* Function, TSet<FString>& HiddenPins, TSet<FString>* OutInternalPins = nullptr);
+
+	static void GetHiddenPinsForFunction(UEdGraph const* Graph, UFunction const* Function, TSet<FName>& HiddenPins, TSet<FName>* OutInternalPins = nullptr);
 
 	/** Makes sure that calls to parent functions are valid, and removes them if not */
 	static void ConformCallsToParentFunctions(UBlueprint* Blueprint);
@@ -936,8 +942,15 @@ public:
 	/** Check blueprint variable metadata keys/values for validity and make adjustments if needed */
 	static void FixupVariableDescription(UBlueprint* Blueprint, FBPVariableDescription& VarDesc);
 
-	/** Validate child blueprint component member variables, member variables, and timelines, and function graphs against the given variable name */
-	static void ValidateBlueprintChildVariables(UBlueprint* InBlueprint, const FName InVariableName);
+	/**
+	  * Validate child blueprint component member variables, member variables, and timelines, and function graphs against the given variable name
+	  *
+	  * @param	InBlueprint					Target blueprint.
+	  * @param	InVariableName				Variable or function name to validate child blueprints against.
+	  * @param	CustomValidationCallback	Optional callback that allows for doing any post-validation tasks.
+	  */
+	static void ValidateBlueprintChildVariables(UBlueprint* InBlueprint, const FName InVariableName,
+		TFunction<void(UBlueprint* InChildBP, const FName InVariableName, bool bValidatedVariable)> PostValidationCallback = TFunction<void(UBlueprint*, FName, bool)>());
 
 	/** Rename a Timeline. If bRenameNodes is true, will also rename any timeline nodes associated with this timeline */
 	static bool RenameTimeline (UBlueprint* Blueprint, const FName OldVarName, const FName NewVarName);

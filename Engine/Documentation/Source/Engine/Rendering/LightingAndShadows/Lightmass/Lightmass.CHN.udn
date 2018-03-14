@@ -47,12 +47,14 @@ Swarm Agent 默认开启时在最小化的状态，它会更新光照构建的�
 
 ## 静态灯光和固定灯光的特性
 
-<!----
+[COMMENT:none]
+--
 在旧的UE3静态光照中，光源没有任何表面区域。所有的光照都当作是从一个单独的点 (或者一个方向，对于定向光源来说)发出来的。
 
 区域阴影通过过滤光照贴图中的阴影效果来进行近似计算，这意味着阴影半影的尖锐程度是由光照贴图分辨率决定的；且在具有相同光照贴图分辨率的所有平面上，半影的大小是一样的。
 
----->
+--
+[/COMMENT]
 
 
 ### 间接漫反射
@@ -109,27 +111,33 @@ Lightmass 在 [**Lightmass 重要体积**](#Lightmass重要体积) 内均匀的 
 
 点击查看 [**间接光照缓存**](Engine/Rendering/LightingAndShadows/IndirectLightingCache) 文档来了解更多内容。
 
-<!----
+[COMMENT:none]
+--
 LightEnvironments 然后在使用这些光照样本的actor的位置上查找间接光照。
 
 以下角色是由楼梯下面的第一次漫反射全局光照照亮的效果。
 
 ![01CharacterLighting.jpg](01CharacterLighting.jpg)(w:720)
----->
+--
+[/COMMENT]
 
 #### 局限性
 
-<!----
+[COMMENT:none]
+--
    * 目前光照样本会占用很多的内存，通过学习更多的关于角色的哪个部分需要详细的间接光照的知识，可以优化样本的放置。
    * 没有使用光照环境的动态地照亮的物体将仅受到直接光照的影响。
----->
+--
+[/COMMENT]
    * 体积中的样本默认设置在大地图下会导致大量的样本数量。这最终会导致间接光照缓存的插值计算时间很长。采用静态光照等级来减少大地图中的样本数量。
    * 在 Lightmass 重要体积 之外的可移动物体将具有黑色的间接光照。
 
-<!----
+[COMMENT:none]
+--
 
 
----->
+--
+[/COMMENT]
 	
 ### 环境遮挡
 
@@ -327,11 +335,13 @@ Photoshop 是在 gamma 空间中显示颜色值，所以 186（.73）事实上�
 Lightmass Solver 的设置基于在光照构建选项（Lighting Build Options）的对话框中所要求的构建质量来自动地进行相应设置。
 产品级（Production）选项将会提供足够好的质量，以至于应用漫反射贴图导致失真都不会被察觉。
 
-<!----
+[COMMENT:none]
+--
 有一个设置对质量有巨大的影响，它便是StaticLightingLevelScale。
 降低缩放因数将会产生更多的间接光照样本，它会以增加构建时间的代价来提高间接光照和阴影的质量。
 在大多数情况下，这仅对增加大关卡的光照缩放因数有用。
----->
+--
+[/COMMENT]
 
 ## 获得最佳的光照构建时间
 
@@ -463,7 +473,8 @@ Lightmass 额设置可以在 **世界设置 World Setting** 中的 **Lightmass**
 | **Diffuse Boost** | 将这个材质的漫反射分布缩放为静态光照。 | 
 | **Export Resolution Scale** | 缩放导出这个材质的属性时所使用的分辨率。这对在需要细节时增加材质的分辨率是有用的。 |
 
-<!----
+[COMMENT:none]
+--
 ### 材质实例常量设置
 
 下面是对于材质中的基本节点的 **Details** 面板中可以调整的 Lightmass 设置的说明。
@@ -477,4 +488,5 @@ Lightmass 额设置可以在 **世界设置 World Setting** 中的 **Lightmass**
    * *Cast Shadow As Masked（投射阴影作为蒙版）* - 如果该项为true，则强制半透明物体投射阴影，就像材质有蒙板一样。
    * *Diffuse Boost(漫反射改进)* -当勾选该项，将覆盖父项的DiffuseBoost。
    * *Export Resolution Scale（导出分辨率缩放比例）* - 当选中该项，则覆盖父项的ExportResolutionScale。
----->
+--
+[/COMMENT]

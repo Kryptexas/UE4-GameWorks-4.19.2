@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RawIndexBuffer.h: Raw index buffer definitions.
@@ -10,8 +10,6 @@
 #include "RHI.h"
 #include "RenderResource.h"
 #include "Containers/DynamicRHIResourceArray.h"
-
-#define DISALLOW_32BIT_INDICES 0
 
 class FRawIndexBuffer : public FIndexBuffer
 {
@@ -31,14 +29,6 @@ public:
 	friend FArchive& operator<<(FArchive& Ar,FRawIndexBuffer& I);
 };
 
-#if DISALLOW_32BIT_INDICES
-
-// if 32 bit indices are disallowed, then use 16 bits in the FRawIndexBuffer16or32
-class FRawIndexBuffer16or32 : public FRawIndexBuffer
-{
-};
-
-#else
 
 class FRawIndexBuffer16or32 : public FIndexBuffer
 {
@@ -69,7 +59,6 @@ public:
 private:
 	bool b32Bit;
 };
-#endif
 
 /**
  * Desired stride when creating a static index buffer.
@@ -243,9 +232,6 @@ public:
 	FRawStaticIndexBuffer16or32(bool InNeedsCPUAccess=false)
 	:	Indices(InNeedsCPUAccess)
 	{
-#if DISALLOW_32BIT_INDICES
-		static_assert(sizeof(INDEX_TYPE) == sizeof(uint16), "DISALLOW_32BIT_INDICES is defined, so you should not use 32-bit indices.");
-#endif
 	}
 
 	/**

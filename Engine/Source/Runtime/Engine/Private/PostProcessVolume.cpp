@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/PostProcessVolume.h"
 #include "Engine/CollisionProfile.h"
@@ -94,20 +94,28 @@ bool APostProcessVolume::CanEditChange(const UProperty* InProperty) const
 			}
 
 			if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, DepthOfFieldDepthBlurAmount) ||
-				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, DepthOfFieldDepthBlurRadius) ||
-				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, DepthOfFieldFstop))
+				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, DepthOfFieldDepthBlurRadius))
 			{
 				return Settings.DepthOfFieldMethod == EDepthOfFieldMethod::DOFM_CircleDOF;
+			}
+
+			if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, DepthOfFieldFstop))
+			{
+				return	( Settings.DepthOfFieldMethod == EDepthOfFieldMethod::DOFM_CircleDOF || 
+					      Settings.AutoExposureMethod == EAutoExposureMethod::AEM_Manual );
+			}
+
+			if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, CameraShutterSpeed) ||
+				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, CameraISO))
+			{
+				return Settings.AutoExposureMethod == EAutoExposureMethod::AEM_Manual;
 			}
 
 			// Parameters supported by both log-average and histogram Auto Exposure
 			if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, AutoExposureMinBrightness) ||
 				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, AutoExposureMaxBrightness) ||
 				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, AutoExposureSpeedUp)       ||
-				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, AutoExposureSpeedDown)     ||
-				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, AutoExposureBias)          ||
-				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, HistogramLogMin)           || 
-				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, HistogramLogMax))
+				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, AutoExposureSpeedDown))
 			{
 				return  ( Settings.AutoExposureMethod == EAutoExposureMethod::AEM_Histogram || 
 					      Settings.AutoExposureMethod == EAutoExposureMethod::AEM_Basic );
@@ -115,11 +123,18 @@ bool APostProcessVolume::CanEditChange(const UProperty* InProperty) const
 
 			// Parameters supported by only the histogram AutoExposure
 			if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, AutoExposureLowPercent)  ||
-				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, AutoExposureHighPercent) )
+				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, AutoExposureHighPercent) ||
+				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, HistogramLogMin)         || 
+				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, HistogramLogMax) )
 			{
 				return Settings.AutoExposureMethod == EAutoExposureMethod::AEM_Histogram;
 			}
 
+			// Parameters supported by only the histogram AutoExposure
+			if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, AutoExposureCalibrationConstant))
+			{
+				return Settings.AutoExposureMethod == EAutoExposureMethod::AEM_Basic;
+			}
 
 			// Parameters that are only used for the Sum of Gaussian bloom / not the texture based fft bloom
 			if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, BloomThreshold) ||

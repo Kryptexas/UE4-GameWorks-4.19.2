@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CascadePreviewViewportClient.h"
 #include "EngineGlobals.h"
@@ -270,7 +270,7 @@ void FCascadeEdPreviewViewportClient::Draw(FViewport* InViewport, FCanvas* Canva
 
 	CascadePreviewScene.AddComponent(LineBatcher,FTransform::Identity);
 
-
+	FVector2D ScaledViewportSize = FVector2D(InViewport->GetSizeXY()) / Canvas->GetDPIScale();
 	FEditorViewportClient::Draw(InViewport, Canvas);
 
 	EngineShowFlags = SavedEngineShowFlags;
@@ -279,8 +279,8 @@ void FCascadeEdPreviewViewportClient::Draw(FViewport* InViewport, FCanvas* Canva
 	{
 		// 'Up' from the lower left...
 		FString strOutput;
-		const int32 XPosition = InViewport->GetSizeXY().X - 5;
-		int32 YPosition = InViewport->GetSizeXY().Y - (GetDrawElement(ParticleMemory) ? 15 : 5);
+		const int32 XPosition = ScaledViewportSize.X - 5;
+		int32 YPosition = ScaledViewportSize.Y - (GetDrawElement(ParticleMemory) ? 15 : 5);
 
 		UParticleSystemComponent* PartComp = CascadePtr.Pin()->GetParticleSystemComponent();
 
@@ -345,7 +345,7 @@ void FCascadeEdPreviewViewportClient::Draw(FViewport* InViewport, FCanvas* Canva
 
 			if (GetDrawElement(ParticleMemory))
 			{
-				YPosition = InViewport->GetSizeXY().Y - 5;
+				YPosition = ScaledViewportSize.Y - 5;
 				FString MemoryOutput = FString::Printf(TEXT("Template: %.0f KByte / Instance: %.0f KByte"), 
 					(float)ParticleSystemRootSize / 1024.0f + (float)ParticleModuleMemSize / 1024.0f,
 					(float)PSysCompRootSize / 1024.0f + (float)PSysCompResourceSize / 1024.0f);
@@ -397,7 +397,7 @@ void FCascadeEdPreviewViewportClient::Draw(FViewport* InViewport, FCanvas* Canva
 
 			if (GetDrawElement(ParticleMemory))
 			{
-				YPosition = InViewport->GetSizeXY().Y - 5;
+				YPosition = ScaledViewportSize.Y - 5;
 				FString MemoryOutput = FString::Printf(TEXT("Template: %.0f KByte / Instance: %.0f KByte"), 
 					(float)ParticleSystemRootSize / 1024.0f + (float)ParticleModuleMemSize / 1024.0f,
 					(float)PSysCompRootSize / 1024.0f + (float)PSysCompResourceSize / 1024.0f);
@@ -416,7 +416,7 @@ void FCascadeEdPreviewViewportClient::Draw(FViewport* InViewport, FCanvas* Canva
 				TextItem.Text = LOCTEXT("SystemCompleted", "Completed");
 				TextItem.bCentreX = true;
 				TextItem.bCentreY = true;
-				Canvas->DrawItem(TextItem, InViewport->GetSizeXY().X * 0.5f, InViewport->GetSizeXY().Y - 10);
+				Canvas->DrawItem(TextItem, ScaledViewportSize.X * 0.5f, ScaledViewportSize.Y - 10);
 				TextItem.bCentreX = false;
 				TextItem.bCentreY = false;
 			}
@@ -448,7 +448,7 @@ void FCascadeEdPreviewViewportClient::Draw(FViewport* InViewport, FCanvas* Canva
 				if(bIsAGPUEmitter)
 				{
 					const int32 XPosition = 5;
-					const int32 YPosition = InViewport->GetSizeXY().Y - 75.0f;
+					const int32 YPosition = ScaledViewportSize.Y - 75.0f;
 					FString strOutput = NSLOCTEXT("Cascade", "NoFixedBounds_Warning", "WARNING: This particle system has no fixed bounding box and contains a GPU emitter.").ToString();
 					TextItem.SetColor( FLinearColor::White );
 					TextItem.Text = FText::FromString( strOutput );
@@ -466,14 +466,14 @@ void FCascadeEdPreviewViewportClient::Draw(FViewport* InViewport, FCanvas* Canva
 		FString DetailModeOutput = FString::Printf(TEXT("DETAIL MODE: %s"), (DetailMode == DM_Medium)? TEXT("MEDIUM"): TEXT("LOW"));
 		TextItem.SetColor( FLinearColor::Red );
 		TextItem.Text = FText::FromString( DetailModeOutput );
-		Canvas->DrawItem( TextItem, 5.0f, InViewport->GetSizeXY().Y - 90.0f );		
+		Canvas->DrawItem( TextItem, 5.0f, ScaledViewportSize.Y - 90.0f );
 	}
 
 	if (GEngine->bEnableEditorPSysRealtimeLOD)
 	{
 		TextItem.SetColor( FLinearColor(0.25f, 0.25f, 1.0f) );
 		TextItem.Text = LOCTEXT("LODPREVIEWMODEENABLED","LOD PREVIEW MODE ENABLED");
-		Canvas->DrawItem( TextItem,  5.0f, InViewport->GetSizeXY().Y - 105.0f );		
+		Canvas->DrawItem( TextItem,  5.0f, ScaledViewportSize.Y - 105.0f );
 	}
 
 	EParticleSignificanceLevel ReqSignificance = CascadePtr.Pin()->GetRequiredSignificance();
@@ -482,7 +482,7 @@ void FCascadeEdPreviewViewportClient::Draw(FViewport* InViewport, FCanvas* Canva
 		FString ReqSigOutput = FString::Printf(TEXT("REQUIRED SIGNIFICANCE: %s"), (ReqSignificance == EParticleSignificanceLevel::Medium) ? TEXT("MEDIUM") : ((ReqSignificance == EParticleSignificanceLevel::High) ? TEXT("HIGH") : TEXT("CRITICAL")));
 		TextItem.SetColor(FLinearColor::Red);
 		TextItem.Text = FText::FromString(ReqSigOutput);
-		Canvas->DrawItem(TextItem, 5.0f, InViewport->GetSizeXY().Y - 120.0f);
+		Canvas->DrawItem(TextItem, 5.0f, ScaledViewportSize.Y - 120.0f);
 	}
 
 	if (bCaptureScreenShot)

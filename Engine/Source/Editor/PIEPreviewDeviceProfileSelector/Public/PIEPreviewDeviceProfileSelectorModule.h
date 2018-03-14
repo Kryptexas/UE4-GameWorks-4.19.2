@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "CoreMinimal.h"
@@ -6,15 +6,19 @@
 #include "PIEPreviewDeviceEnumeration.h"
 #include "RHIDefinitions.h"
 #include "CommandLine.h"
-
+#include "Widgets/SWindow.h"
+#include "Private/PIEPreviewWindowCoreStyle.h"
+#include "Private/PIEPreviewWindow.h"
+#include "IPIEPreviewDeviceModule.h"
 /**
 * Implements the Preview Device Profile Selector module.
 */
-class PIEPREVIEWDEVICEPROFILESELECTOR_API FPIEPreviewDeviceProfileSelectorModule
-	: public IDeviceProfileSelectorModule
+
+class PIEPREVIEWDEVICEPROFILESELECTOR_API FPIEPreviewDeviceModule
+	: public IPIEPreviewDeviceModule
 {
 public:
-	FPIEPreviewDeviceProfileSelectorModule() : bInitialized(false)
+	FPIEPreviewDeviceModule() : bInitialized(false)
 	{
 	}
 
@@ -31,12 +35,15 @@ public:
 	/**
 	* Virtual destructor.
 	*/
-	virtual ~FPIEPreviewDeviceProfileSelectorModule()
+	virtual ~FPIEPreviewDeviceModule()
 	{
 	}
 
-	void ApplyPreviewDeviceState();
-	const FPIEPreviewDeviceContainer& GetPreviewDeviceContainer();
+	virtual void ApplyPreviewDeviceState() override;
+	
+	virtual TSharedRef<SWindow> CreatePIEPreviewDeviceWindow(FVector2D ClientSize, FText WindowTitle, EAutoCenter AutoCenterType, FVector2D ScreenPosition, TOptional<float> MaxWindowWidth, TOptional<float> MaxWindowHeight) override;
+	
+	virtual const FPIEPreviewDeviceContainer& GetPreviewDeviceContainer() ;
 	TSharedPtr<FPIEPreviewDeviceContainerCategory> GetPreviewDeviceRootCategory() const { return EnumeratedDevices.GetRootCategory(); }
 
 	static bool IsRequestingPreviewDevice()
@@ -50,6 +57,8 @@ private:
 	{
 		return TEXT("MobileTargetDevice=");
 	}
+
+	const void GetPreviewDeviceResolution(int32& ScreenWidth, int32& ScreenHeight);
 
 	void InitPreviewDevice();
 	static FString GetDeviceSpecificationContentDir();

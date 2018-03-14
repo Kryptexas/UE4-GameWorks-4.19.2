@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanRHI.cpp: Vulkan device RHI implementation.
@@ -35,17 +35,6 @@ static_assert(VK_API_VERSION >= UE_VK_API_VERSION, "Vulkan SDK is older than the
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#if PLATFORM_ANDROID || PLATFORM_LINUX
-
-// Vulkan function pointers
-
-#define DEFINE_VK_ENTRYPOINTS(Type,Func) Type VulkanDynamicAPI::Func = NULL;
-ENUM_VK_ENTRYPOINTS_ALL(DEFINE_VK_ENTRYPOINTS)
-
-#endif
-
-///////////////////////////////////////////////////////////////////////////////
-
 TAutoConsoleVariable<int32> GRHIThreadCvar(
 	TEXT("r.Vulkan.RHIThread"),
 	1,
@@ -55,9 +44,16 @@ TAutoConsoleVariable<int32> GRHIThreadCvar(
 );
 
 #if VULKAN_CUSTOM_MEMORY_MANAGER_ENABLED
-VkAllocationCallbacks GCallbacks;
+VkAllocationCallbacks GDefaultCallbacks;
+VkAllocationCallbacks GInstrumentedCallbacks;
+VkAllocationCallbacks* GDefaultMemoryAllocator = &GDefaultCallbacks;
+VkAllocationCallbacks* GInstrumentedMemoryAllocator = &GInstrumentedCallbacks;
+#else
+VkAllocationCallbacks* GDefaultMemoryAllocator = nullptr;
+VkAllocationCallbacks* GInstrumentedMemoryAllocator = nullptr;
 #endif
 
+static FCriticalSection GMemMgrCS;
 struct FVulkanMemManager
 {
 	static VKAPI_ATTR void* Alloc(
@@ -66,21 +62,15 @@ struct FVulkanMemManager
 		size_t                                      alignment,
 		VkSystemAllocationScope                           allocScope)
 	{
-		FVulkanMemManager* This = (FVulkanMemManager*)pUserData;
-		This->MaxAllocSize = FMath::Max(This->MaxAllocSize, size);
-		This->UsedMemory += size;
-		void* Data = FMemory::Malloc(size, alignment);
-		This->Allocs.Add(Data, size);
-		return Data;
+		FScopeLock Lock(&GMemMgrCS);
+		return FMemory::Malloc(size, alignment);
 	}
 
 	static VKAPI_ATTR void Free(
 		void*                                       pUserData,
 		void*                                       pMem)
 	{
-		FVulkanMemManager* This = (FVulkanMemManager*)pUserData;
-		size_t Size = This->Allocs.FindAndRemoveChecked(pMem);
-		This->UsedMemory -= Size;
+		FScopeLock Lock(&GMemMgrCS);
 		FMemory::Free(pMem);
 	}
 
@@ -91,14 +81,8 @@ struct FVulkanMemManager
 		size_t										alignment,
 		VkSystemAllocationScope						allocScope)
 	{
-		FVulkanMemManager* This = (FVulkanMemManager*)pUserData;
-		size_t Size = This->Allocs.FindAndRemoveChecked(pOriginal);
-		This->UsedMemory -= Size;
-		void* Data = FMemory::Realloc(pOriginal, size, alignment);
-		This->Allocs.Add(Data, size);
-		This->UsedMemory += size;
-		This->MaxAllocSize = FMath::Max(This->MaxAllocSize, size);
-		return Data;
+		FScopeLock Lock(&GMemMgrCS);
+		return FMemory::Realloc(pOriginal, size, alignment);
 	}
 
 	static VKAPI_ATTR void InternalAllocationNotification(
@@ -119,18 +103,74 @@ struct FVulkanMemManager
 		//@TODO
 	}
 
-	FVulkanMemManager() :
+};
+
+struct FVulkanInstrumentedMemManager : public FVulkanMemManager
+{
+	static VKAPI_ATTR void* Alloc(
+		void*                                       pUserData,
+		size_t                                      size,
+		size_t                                      alignment,
+		VkSystemAllocationScope                     allocScope)
+	{
+		void* Data = FVulkanMemManager::Alloc(pUserData, size, alignment, allocScope);
+
+		FVulkanInstrumentedMemManager* This = (FVulkanInstrumentedMemManager*)pUserData;
+		FScopeLock Lock(&This->MemLock);
+
+		This->MaxAllocSize = FMath::Max(This->MaxAllocSize, size);
+		This->UsedMemory += size;
+		This->Allocs.Add(Data, size);
+		return Data;
+	}
+
+	static VKAPI_ATTR void Free(
+		void*                                       pUserData,
+		void*                                       pMem)
+	{
+		FVulkanMemManager::Free(pUserData, pMem);
+
+		FVulkanInstrumentedMemManager* This = (FVulkanInstrumentedMemManager*)pUserData;
+		FScopeLock Lock(&This->MemLock);
+
+		size_t Size = pMem ? This->Allocs.FindAndRemoveChecked(pMem) : 0;
+		This->UsedMemory -= Size;
+	}
+
+	static VKAPI_ATTR void* Realloc(
+		void*										pUserData,
+		void*										pOriginal,
+		size_t										size,
+		size_t										alignment,
+		VkSystemAllocationScope						allocScope)
+	{
+		void* Data = FVulkanMemManager::Realloc(pUserData, pOriginal, size, alignment, allocScope);
+
+		FVulkanInstrumentedMemManager* This = (FVulkanInstrumentedMemManager*)pUserData;
+		FScopeLock Lock(&This->MemLock);
+
+		size_t Size = pOriginal ? This->Allocs.FindAndRemoveChecked(pOriginal) : 0;
+		This->UsedMemory -= Size;
+		This->Allocs.Add(Data, size);
+		This->UsedMemory += size;
+		This->MaxAllocSize = FMath::Max(This->MaxAllocSize, size);
+		return Data;
+	}
+
+	FVulkanInstrumentedMemManager() :
 		MaxAllocSize(0),
 		UsedMemory(0)
 	{
 	}
 
+	FCriticalSection MemLock;
 	TMap<void*, size_t> Allocs;
 	size_t MaxAllocSize;
 	size_t UsedMemory;
 };
 
-static FVulkanMemManager GVulkanMemMgr;
+static FVulkanMemManager GDefaultVulkanMemMgr;
+static FVulkanInstrumentedMemManager GVulkanInstrumentedMemMgr;
 
 static inline int32 CountSetBits(int32 n)
 {
@@ -146,131 +186,6 @@ static inline int32 CountSetBits(int32 n)
 
 
 DEFINE_LOG_CATEGORY(LogVulkan)
-
-#if PLATFORM_ANDROID || PLATFORM_LINUX
-#include <dlfcn.h>
-
-static void *VulkanLib = nullptr;
-static bool bAttemptedLoad = false;
-
-static bool LoadVulkanLibrary()
-{
-	if (bAttemptedLoad)
-	{
-		return (VulkanLib != nullptr);
-	}
-	bAttemptedLoad = true;
-
-	// try to load libvulkan.so
-#if PLATFORM_LINUX
-	VulkanLib = dlopen("libvulkan.so.1", RTLD_NOW | RTLD_LOCAL);
-#else
-	VulkanLib = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
-#endif
-	if (VulkanLib == nullptr)
-	{
-		return false;
-	}
-
-	bool bFoundAllEntryPoints = true;
-#define CHECK_VK_ENTRYPOINTS(Type,Func) if (VulkanDynamicAPI::Func == NULL) { bFoundAllEntryPoints = false; UE_LOG(LogRHI, Warning, TEXT("Failed to find entry point for %s"), TEXT(#Func)); }
-
-	// Initialize all of the entry points we have to query manually
-#define GET_VK_ENTRYPOINTS(Type,Func) VulkanDynamicAPI::Func = (Type)dlsym(VulkanLib, #Func);
-	ENUM_VK_ENTRYPOINTS_BASE(GET_VK_ENTRYPOINTS);
-	ENUM_VK_ENTRYPOINTS_BASE(CHECK_VK_ENTRYPOINTS);
-	if (!bFoundAllEntryPoints)
-	{
-		dlclose(VulkanLib);
-		VulkanLib = nullptr;
-		return false;
-	}
-
-	ENUM_VK_ENTRYPOINTS_OPTIONAL(GET_VK_ENTRYPOINTS);
-	//ENUM_VK_ENTRYPOINTS_OPTIONAL(CHECK_VK_ENTRYPOINTS);
-
-	return true;
-}
-
-static bool LoadVulkanInstanceFunctions(VkInstance inInstance)
-{
-	bool bFoundAllEntryPoints = true;
-#define CHECK_VK_ENTRYPOINTS(Type,Func) if (VulkanDynamicAPI::Func == NULL) { bFoundAllEntryPoints = false; UE_LOG(LogRHI, Warning, TEXT("Failed to find entry point for %s"), TEXT(#Func)); }
-
-#define GETINSTANCE_VK_ENTRYPOINTS(Type, Func) VulkanDynamicAPI::Func = (Type)VulkanDynamicAPI::vkGetInstanceProcAddr(inInstance, #Func);
-	ENUM_VK_ENTRYPOINTS_INSTANCE(GETINSTANCE_VK_ENTRYPOINTS);
-	ENUM_VK_ENTRYPOINTS_INSTANCE(CHECK_VK_ENTRYPOINTS);
-
-	return bFoundAllEntryPoints;
-}
-
-static void FreeVulkanLibrary()
-{
-	if (VulkanLib != nullptr)
-	{
-#define CLEAR_VK_ENTRYPOINTS(Type,Func) VulkanDynamicAPI::Func = nullptr;
-		ENUM_VK_ENTRYPOINTS_ALL(CLEAR_VK_ENTRYPOINTS);
-
-		dlclose(VulkanLib);
-		VulkanLib = nullptr;
-	}
-	bAttemptedLoad = false;
-}
-
-#elif PLATFORM_WINDOWS
-
-#include "AllowWindowsPlatformTypes.h"
-static HMODULE GVulkanDLLModule = nullptr;
-static bool LoadVulkanLibrary()
-{
-	// Try to load the vulkan dll, as not everyone has the sdk installed
-	GVulkanDLLModule = ::LoadLibraryW(TEXT("vulkan-1.dll"));
-	return GVulkanDLLModule != nullptr;
-}
-
-// Annoyingly, some functions do not have static bindings
-namespace VulkanRHI
-{
-	PFN_vkGetPhysicalDeviceProperties2KHR GVkGetPhysicalDeviceProperties2KHR = nullptr;
-}
-
-static bool LoadVulkanInstanceFunctions(VkInstance inInstance)
-{
-	if (!GVulkanDLLModule)
-	{
-		return false;
-	}
-
-	PFN_vkGetInstanceProcAddr GetInstanceProcAddr =  (PFN_vkGetInstanceProcAddr) FPlatformProcess::GetDllExport(GVulkanDLLModule, TEXT("vkGetInstanceProcAddr"));
-
-	if (!GetInstanceProcAddr)
-	{
-		return false;
-	}
-
-#pragma warning(push)
-#pragma warning(disable : 4191) // warning C4191: 'type cast': unsafe conversion
-
-	VulkanRHI::GVkGetPhysicalDeviceProperties2KHR = (PFN_vkGetPhysicalDeviceProperties2KHR) GetInstanceProcAddr(inInstance, "vkGetPhysicalDeviceProperties2KHR");
-
-#pragma warning(pop) // restore 4191
-
-	return true;
-}
-
-static void FreeVulkanLibrary()
-{
-	if (GVulkanDLLModule != nullptr)
-	{
-		::FreeLibrary(GVulkanDLLModule);
-		GVulkanDLLModule = nullptr;
-	}
-}
-#include "HideWindowsPlatformTypes.h"
-
-#else
-#error Unsupported!
-#endif // PLATFORM_ANDROID
 
 bool FVulkanDynamicRHIModule::IsSupported()
 {
@@ -329,20 +244,23 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	, FrameCounter(0)
 	, GpuProfiler(this, InDevice)
 {
-	FrameTiming = new FVulkanGPUTiming(this, InDevice);
-	FrameTiming->Initialize();
-
 	// Create CommandBufferManager, contain all active buffers
 	CommandBufferManager = new FVulkanCommandBufferManager(InDevice, this);
+
+	FrameTiming = new FVulkanGPUTiming(this, InDevice);
+	FrameTiming->Initialize();
 
 	// Create Pending state, contains pipeline states such as current shader and etc..
 	PendingGfxState = new FVulkanPendingGfxState(Device, *this);
 	PendingComputeState = new FVulkanPendingComputeState(Device, *this);
 
+#if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+#if !VULKAN_USE_DESCRIPTOR_POOL_MANAGER
 	// Add an initial pool
-	FVulkanDescriptorPool* Pool = new FVulkanDescriptorPool(Device);
+	FOLDVulkanDescriptorPool* Pool = new FOLDVulkanDescriptorPool(Device);
 	DescriptorPools.Add(Pool);
-
+#endif
+#endif
 	UniformBufferUploader = new FVulkanUniformBufferUploader(Device, VULKAN_UB_RING_BUFFER_SIZE);
 }
 
@@ -360,11 +278,26 @@ FVulkanCommandListContext::~FVulkanCommandListContext()
 
 	TempFrameAllocationBuffer.Destroy();
 
+#if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	for (auto TypedDescriptorPoolsPair : DescriptorPools)
+	{
+		auto& TypedDescriptorPools = TypedDescriptorPoolsPair.Value;
+		for (int32 Index = 0; Index < TypedDescriptorPools.Num(); ++Index)
+		{
+			delete TypedDescriptorPools[Index];
+		}
+
+		TypedDescriptorPools.Reset(0);
+	}
+#else
 	for (int32 Index = 0; Index < DescriptorPools.Num(); ++Index)
 	{
 		delete DescriptorPools[Index];
 	}
 	DescriptorPools.Reset(0);
+#endif
+#endif
 }
 
 
@@ -381,13 +314,11 @@ FVulkanDynamicRHI::FVulkanDynamicRHI()
 	, bSupportsDebugCallbackExt(false)
 	, MsgCallback(VK_NULL_HANDLE)
 #endif
-	, PresentCount(0)
 {
 	// This should be called once at the start 
 	check(IsInGameThread());
 	check(!GIsThreadedRendering);
 
-	GRHIRequiresEarlyBackBufferRenderTarget = false;
 	GPoolSizeVRAMPercentage = 0;
 	GTexturePoolSize = 0;
 	GConfig->GetInt(TEXT("TextureStreaming"), TEXT("PoolSizeVRAMPercentage"), GPoolSizeVRAMPercentage, GEngineIni);
@@ -395,7 +326,7 @@ FVulkanDynamicRHI::FVulkanDynamicRHI()
 
 void FVulkanDynamicRHI::Init()
 {
-	if (!LoadVulkanLibrary())
+	if (!FVulkanPlatform::LoadVulkanLibrary())
 	{
 #if PLATFORM_LINUX
 		// be more verbose on Linux
@@ -406,6 +337,21 @@ void FVulkanDynamicRHI::Init()
 	}
 
 	InitInstance();
+
+	if (GPoolSizeVRAMPercentage > 0)
+	{
+		const uint64 TotalGPUMemory = Device->GetMemoryManager().GetTotalMemory(true);
+
+		float PoolSize = float(GPoolSizeVRAMPercentage) * 0.01f * float(TotalGPUMemory);
+
+		// Truncate GTexturePoolSize to MB (but still counted in bytes)
+		GTexturePoolSize = int64(FGenericPlatformMath::TruncToFloat(PoolSize / 1024.0f / 1024.0f)) * 1024 * 1024;
+
+		UE_LOG(LogRHI, Log, TEXT("Texture pool is %llu MB (%d%% of %llu MB)"),
+			GTexturePoolSize / 1024 / 1024,
+			GPoolSizeVRAMPercentage,
+			TotalGPUMemory / 1024 / 1024);
+	}
 }
 
 void FVulkanDynamicRHI::Shutdown()
@@ -476,7 +422,7 @@ void FVulkanDynamicRHI::Shutdown()
 	IConsoleManager::Get().UnregisterConsoleObject(DumpMemoryCmd);
 #endif
 
-	FreeVulkanLibrary();
+	FVulkanPlatform::FreeVulkanLibrary();
 
 #if VULKAN_ENABLE_DUMP_LAYER
 	VulkanRHI::FlushDebugWrapperLog();
@@ -501,14 +447,24 @@ void FVulkanDynamicRHI::CreateInstance()
 	InstInfo.pApplicationInfo = &App;
 
 #if VULKAN_CUSTOM_MEMORY_MANAGER_ENABLED
-	GCallbacks.pUserData = &GVulkanMemMgr;
-	GCallbacks.pfnAllocation = &FVulkanMemManager::Alloc;
-	GCallbacks.pfnReallocation = &FVulkanMemManager::Realloc;
-	GCallbacks.pfnFree = &FVulkanMemManager::Free;
-	GCallbacks.pfnInternalAllocation = &FVulkanMemManager::InternalAllocationNotification;
-	GCallbacks.pfnInternalFree = &FVulkanMemManager::InternalFreeNotification;
 
-//@TODO: pass GCallbacks into funcs that take them. currently it's just a nullptr
+	// both callbacks use same static function pointers
+	GDefaultCallbacks.pUserData = &GDefaultVulkanMemMgr;
+	GDefaultCallbacks.pfnAllocation = &FVulkanMemManager::Alloc;
+	GDefaultCallbacks.pfnReallocation = &FVulkanMemManager::Realloc;
+	GDefaultCallbacks.pfnFree = &FVulkanMemManager::Free;
+	GDefaultCallbacks.pfnInternalAllocation = &FVulkanMemManager::InternalAllocationNotification;
+	GDefaultCallbacks.pfnInternalFree = &FVulkanMemManager::InternalFreeNotification;
+
+	GInstrumentedCallbacks.pUserData = &GVulkanInstrumentedMemMgr;
+	GInstrumentedCallbacks.pfnAllocation = &FVulkanInstrumentedMemManager::Alloc;
+	GInstrumentedCallbacks.pfnReallocation = &FVulkanInstrumentedMemManager::Realloc;
+	GInstrumentedCallbacks.pfnFree = &FVulkanInstrumentedMemManager::Free;
+	// note, the instrumented doesn't override these, so it uses the base class one
+	GInstrumentedCallbacks.pfnInternalAllocation = &FVulkanMemManager::InternalAllocationNotification;
+	GInstrumentedCallbacks.pfnInternalFree = &FVulkanMemManager::InternalFreeNotification;
+
+
 #endif
 
 	GetInstanceLayersAndExtensions(InstanceExtensions, InstanceLayers);
@@ -549,7 +505,7 @@ void FVulkanDynamicRHI::CreateInstance()
 
 	VERIFYVULKANRESULT(Result);
 
-	if (!LoadVulkanInstanceFunctions(Instance))
+	if (!FVulkanPlatform::LoadVulkanInstanceFunctions(Instance))
 	{
 		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT(
 			"Failed to find all required Vulkan entry points! Try updating your driver."), TEXT("No Vulkan entry points found!"));
@@ -696,7 +652,6 @@ void FVulkanDynamicRHI::InitInstance()
 		GSupportsQuads = false;	// Not supported in Vulkan
 		GRHISupportsTextureStreaming = true;
 		GSupportsTimestampRenderQueries = !PLATFORM_ANDROID;
-		GRHIRequiresEarlyBackBufferRenderTarget = false;
 		GSupportsGenerateMips = true;
 #if VULKAN_ENABLE_DUMP_LAYER
 		// Disable RHI thread by default if the dump layer is enabled
@@ -777,10 +732,12 @@ void FVulkanDynamicRHI::InitInstance()
 	}
 }
 
+//uint32 GVulkanRHIFrameNumber = 0;
 void FVulkanCommandListContext::RHIBeginFrame()
 {
 	check(IsImmediate());
 	RHIPrivateBeginFrame();
+	//++GVulkanRHIFrameNumber;
 
 	//FRCLog::Printf(FString::Printf(TEXT("FVulkanCommandListContext::RHIBeginFrame()")));
 	PendingGfxState->GetGlobalUniformPool().BeginFrame();
@@ -852,6 +809,9 @@ void FVulkanCommandListContext::RHIEndFrame()
 	Device->GetStagingManager().ProcessPendingFree(false, true);
 	Device->GetResourceHeapManager().ReleaseFreedPages();
 
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	Device->GetDescriptorPoolsManager().GC();
+#endif
 
 	++FrameCounter;
 }
@@ -1011,7 +971,7 @@ FVulkanBuffer::FVulkanBuffer(FVulkanDevice& InDevice, uint32 InSize, VkFlags InU
 	VkMemoryRequirements MemoryRequirements;
 	VulkanRHI::vkGetBufferMemoryRequirements(Device.GetInstanceHandle(), Buf, &MemoryRequirements);
 
-	Allocation = InDevice.GetMemoryManager().Alloc(MemoryRequirements.size, MemoryRequirements.memoryTypeBits, InMemPropertyFlags, File ? File : __FILE__, Line ? Line : __LINE__);
+	Allocation = InDevice.GetMemoryManager().Alloc(false, MemoryRequirements.size, MemoryRequirements.memoryTypeBits, InMemPropertyFlags, File ? File : __FILE__, Line ? Line : __LINE__);
 	check(Allocation);
 	VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkBindBufferMemory(Device.GetInstanceHandle(), Buf, Allocation->GetHandle(), 0));
 }
@@ -1115,10 +1075,29 @@ void FVulkanDescriptorSetsLayoutInfo::AddDescriptor(int32 DescriptorSetIndex, co
 	Hash = FCrc::MemCrc32(&Binding, sizeof(Binding), Hash);
 }
 
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+void FVulkanDescriptorSetsLayoutInfo::CompileTypesUsageID()
+{
+	static TMap<uint32, uint32> GTypesUsageHashMap;
+	static uint32 GUniqueID = 1;
+
+	const uint32 TypesUsageHash = FCrc::MemCrc32(LayoutTypes, sizeof(LayoutTypes));
+
+	uint32* UniqueID = GTypesUsageHashMap.Find(TypesUsageHash);
+	if (UniqueID == nullptr)
+	{
+		TypesUsageID = GTypesUsageHashMap.Add(TypesUsageHash, GUniqueID++);
+	}
+	else
+	{
+		TypesUsageID = *UniqueID;
+	}
+}
+#endif
+
 void FVulkanDescriptorSetsLayout::Compile()
 {
 	check(LayoutHandles.Num() == 0);
-	check(Device);
 
 	// Check if we obey limits
 	const VkPhysicalDeviceLimits& Limits = Device->GetLimits();
@@ -1159,6 +1138,7 @@ void FVulkanDescriptorSetsLayout::Compile()
 
 	LayoutHandles.Empty(SetLayouts.Num());
 
+	//check(Hash == 0);
 	for (FSetLayout& Layout : SetLayouts)
 	{
 		VkDescriptorSetLayoutCreateInfo DescriptorLayoutInfo;
@@ -1168,13 +1148,27 @@ void FVulkanDescriptorSetsLayout::Compile()
 		DescriptorLayoutInfo.bindingCount = Layout.LayoutBindings.Num();
 		DescriptorLayoutInfo.pBindings = Layout.LayoutBindings.GetData();
 
+		//#todo-rco: Need crc support for static samplers!
+		//Hash = FCrc::MemCrc32(Layout.LayoutBindings.GetData(), Layout.LayoutBindings.Num() * sizeof(VkDescriptorSetLayoutBinding), Hash);
+
 		VkDescriptorSetLayout* LayoutHandle = new(LayoutHandles) VkDescriptorSetLayout;
 		VERIFYVULKANRESULT(VulkanRHI::vkCreateDescriptorSetLayout(Device->GetInstanceHandle(), &DescriptorLayoutInfo, nullptr, LayoutHandle));
 	}
+
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	if (TypesUsageID == ~0)
+	{
+		CompileTypesUsageID();
+	}
+
+	DescriptorSetAllocateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+	DescriptorSetAllocateInfo.descriptorSetCount = LayoutHandles.Num();
+	DescriptorSetAllocateInfo.pSetLayouts = LayoutHandles.GetData();
+#endif
 }
 
-
-FVulkanDescriptorSets::FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanDescriptorSetsLayout& InLayout, FVulkanCommandListContext* InContext)
+#if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+FOLDVulkanDescriptorSets::FOLDVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanDescriptorSetsLayout& InLayout, FVulkanCommandListContext* InContext)
 	: Device(InDevice)
 	, Pool(nullptr)
 	, Layout(InLayout)
@@ -1195,9 +1189,13 @@ FVulkanDescriptorSets::FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVul
 		Pool = InContext->AllocateDescriptorSets(DescriptorSetAllocateInfo, InLayout, Sets.GetData());
 		Pool->TrackAddUsage(Layout);
 	}
+
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	INC_DWORD_STAT_BY(STAT_VulkanNumDescSetsTotal, LayoutHandles.Num());
+#endif
 }
 
-FVulkanDescriptorSets::~FVulkanDescriptorSets()
+FOLDVulkanDescriptorSets::~FOLDVulkanDescriptorSets()
 {
 	Pool->TrackRemoveUsage(Layout);
 
@@ -1205,7 +1203,12 @@ FVulkanDescriptorSets::~FVulkanDescriptorSets()
 	{
 		VERIFYVULKANRESULT(VulkanRHI::vkFreeDescriptorSets(Device->GetInstanceHandle(), Pool->GetHandle(), Sets.Num(), Sets.GetData()));
 	}
+
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	DEC_DWORD_STAT_BY(STAT_VulkanNumDescSetsTotal, Sets.Num());
+#endif
 }
+#endif
 
 void FVulkanBufferView::Create(FVulkanBuffer& Buffer, EPixelFormat Format, uint32 InOffset, uint32 InSize)
 {

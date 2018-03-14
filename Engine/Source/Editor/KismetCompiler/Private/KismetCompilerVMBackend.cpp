@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	KismetCompilerVMBackend.cpp
@@ -583,7 +583,7 @@ public:
 			// Additional Validation, since we cannot trust custom k2nodes
 			if (CoerceProperty && ensure(Schema) && ensure(CurrentCompilerContext))
 			{
-			    const bool bSecialCaseSelf = (Term->Type.PinSubCategory == Schema->PN_Self);
+			    const bool bSecialCaseSelf = (Term->Type.PinSubCategory == UEdGraphSchema_K2::PN_Self);
 				if(!bSecialCaseSelf)
 			    {
 				    FEdGraphPinType TrueType;
@@ -702,7 +702,7 @@ public:
 				// circumvented with AutoCreateRefTerm, but when it is a self 
 				// (literal) node we still end up here. So, we try to detect and 
 				// handle that case here.
-				if ((Term->Type.PinSubCategory == Schema->PN_Self) && CoerceProperty && CoerceProperty->HasAnyPropertyFlags(CPF_ReferenceParm))
+				if ((Term->Type.PinSubCategory == UEdGraphSchema_K2::PN_Self) && CoerceProperty && CoerceProperty->HasAnyPropertyFlags(CPF_ReferenceParm))
 				{
 					Writer << EX_Self;
 				}
@@ -831,10 +831,6 @@ public:
 					if (!ensure(bAllowStaticArray || 1 == ArrayDim))
 					{
 						UE_LOG(LogK2Compiler, Error, TEXT("Unsupported static array. Property: %s, Struct: %s"), *GetPathNameSafe(StructProperty), *Struct->GetName());
-					}
-					if(!FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<UUserDefinedStruct>(Struct), StructData))
-					{
-						UE_LOG(LogK2Compiler, Warning, TEXT("MakeStructureDefaultValue parsing error. Property: %s, Struct: %s"), *GetPathNameSafe(StructProperty), *Struct->GetName());
 					}
 
 					// Assume that any errors on the import of the name string have been caught in the function call generation
@@ -980,7 +976,7 @@ public:
 			else if (FLiteralTypeHelper::IsObject(&Term->Type, CoerceProperty) || FLiteralTypeHelper::IsClass(&Term->Type, CoerceProperty))
 			{
 				// Note: This case handles both UObjectProperty and UClassProperty
-				if (Term->Type.PinSubCategory == Schema->PN_Self)
+				if (Term->Type.PinSubCategory == UEdGraphSchema_K2::PN_Self)
 				{
 					Writer << EX_Self;
 				}
@@ -996,7 +992,7 @@ public:
 			}
 			else if (FLiteralTypeHelper::IsInterface(&Term->Type, CoerceProperty))
 			{
-				if (Term->Type.PinSubCategory == Schema->PN_Self)
+				if (Term->Type.PinSubCategory == UEdGraphSchema_K2::PN_Self)
 				{
 					Writer << EX_Self;
 				}
@@ -1009,7 +1005,7 @@ public:
 					ensureMsgf(false, TEXT("It is not possible to express this interface property as a literal value! (%s)"), *CoerceProperty->GetFullName());
 				}
 			}
-			else if (!CoerceProperty && Term->Type.PinCategory.IsEmpty() && (Term->Type.PinSubCategory == Schema->PN_Self))
+			else if (!CoerceProperty && Term->Type.PinCategory.IsNone() && (Term->Type.PinSubCategory == UEdGraphSchema_K2::PN_Self))
 			{
 				Writer << EX_Self;
 			}
@@ -1098,7 +1094,7 @@ public:
 			{
 				FBPTerminal CallbackTargetTerm;
 				CallbackTargetTerm.bIsLiteral = true;
-				CallbackTargetTerm.Type.PinSubCategory = Schema->PN_Self;
+				CallbackTargetTerm.Type.PinSubCategory = UEdGraphSchema_K2::PN_Self;
 				EmitTermExpr(&CallbackTargetTerm, Prop);
 			}
 			else
@@ -1347,14 +1343,14 @@ public:
 
 	void EmitDestinationExpression(FBPTerminal* DestinationExpression)
 	{
-		check(Schema && DestinationExpression && !DestinationExpression->Type.PinCategory.IsEmpty());
+		check(Schema && DestinationExpression && !DestinationExpression->Type.PinCategory.IsNone());
 
 		const bool bIsContainer = DestinationExpression->Type.IsContainer();
-		const bool bIsDelegate = Schema->PC_Delegate == DestinationExpression->Type.PinCategory;
-		const bool bIsMulticastDelegate = Schema->PC_MCDelegate == DestinationExpression->Type.PinCategory;
-		const bool bIsBoolean = Schema->PC_Boolean == DestinationExpression->Type.PinCategory;
-		const bool bIsObj = (Schema->PC_Object == DestinationExpression->Type.PinCategory) || (Schema->PC_Class == DestinationExpression->Type.PinCategory);
-		const bool bIsSoftObject = Schema->PC_SoftObject == DestinationExpression->Type.PinCategory;
+		const bool bIsDelegate = UEdGraphSchema_K2::PC_Delegate == DestinationExpression->Type.PinCategory;
+		const bool bIsMulticastDelegate = UEdGraphSchema_K2::PC_MCDelegate == DestinationExpression->Type.PinCategory;
+		const bool bIsBoolean = UEdGraphSchema_K2::PC_Boolean == DestinationExpression->Type.PinCategory;
+		const bool bIsObj = (UEdGraphSchema_K2::PC_Object == DestinationExpression->Type.PinCategory) || (UEdGraphSchema_K2::PC_Class == DestinationExpression->Type.PinCategory);
+		const bool bIsSoftObject = UEdGraphSchema_K2::PC_SoftObject == DestinationExpression->Type.PinCategory;
 		const bool bIsWeakObjPtr = DestinationExpression->Type.bIsWeakPointer;
 
 		if (bIsContainer)
@@ -1853,46 +1849,51 @@ public:
 		if (SourceNode != NULL)
 		{
 			// Record where this NOP is
-			UEdGraphNode* TrueSourceNode = FunctionContext.MessageLog.GetSourceNode(SourceNode);
+			UEdGraphNode* TrueSourceNode = Cast<UEdGraphNode>(FunctionContext.MessageLog.FindSourceObject(SourceNode));
 			if (TrueSourceNode)
 			{
-				// If this is a debug site for an expanded macro instruction, there should also be a macro source node associated with it
-				UEdGraphNode* MacroSourceNode = CompilerContext.MessageLog.GetSourceTunnelNode(SourceNode);
-				// We need to ensure that macro/composite instances also record the tunnels present at any script location ( including themselves )
-				if (MacroSourceNode == TrueSourceNode && !FBlueprintEditorUtils::IsTunnelInstanceNode(MacroSourceNode))
-				{
-					// The function above will return the given node if not found in the map. In that case there is no associated source macro node, so we clear it.
-					MacroSourceNode = NULL;
-				}
-
-				TArray<TWeakObjectPtr<UEdGraphNode>> MacroInstanceNodes;
 				const bool bInstrumentedBreakpoint = Statement.Type == KCST_InstrumentedWireEntry;
-				bool bBreakpointSite = Statement.Type == KCST_DebugSite || bInstrumentedBreakpoint;
+				const bool bBreakpointSite = Statement.Type == KCST_DebugSite || bInstrumentedBreakpoint;
 
-				if (MacroSourceNode)
+				// If the intermediate node was the result of a tunnel expansion (e.g. macro/composite), gather the chain of tunnel instance
+				// source nodes that were expanded to eventually include the node. This information is used to construct a lookup table that's
+				// used to help determine whether or not the current instruction pointer maps back to a tunnel instance node in a source graph.
+				// For example:
+				//
+				//	A (Macro instance node in top-level source graph)
+				//	|
+				//	+- [...expansion of A...] + B (Composite node in A's macro source graph)
+				//	   |
+				//	   +- [...expansion of B...] + C (Macro instance node in B's collapsed child subgraph)
+				//	      |
+				//        +- [...expansion of C...]
+				//
+				//  The intermediate exec nodes in each expansion set will map back to C through MessageLog.GetIntermediateTunnelInstance().
+				//	Thus, if SourceNode was created as the result of a tunnel instance expansion, it will map back to an outer Tunnel Instance
+				//	node. If the Tunnel Instance node itself was created as the result of a tunnel instance expansion, it will map back to
+				//	another outer Tunnel Instance node as well. This will continue until we run out of Tunnel Instance nodes. The set of Tunnel
+				//	Instance nodes that we find constitutes the full expansion hierarchy. We then map the hierarchy back to their matching
+				//	source nodes and register the set as the Tunnel Instance node chain that's associated with the current instruction offset.
+				//
+				TArray<TWeakObjectPtr<UEdGraphNode>> ExpansionSourceNodes;
+				if (const UEdGraphNode* OuterTunnelInstance = FunctionContext.MessageLog.GetIntermediateTunnelInstance(SourceNode))
 				{
-					// Only associate macro instance node breakpoints with source nodes that are linked to the entry node in an impure macro graph
-					if (bBreakpointSite)
+					do
 					{
-						const UK2Node_MacroInstance* MacroInstanceNode = Cast<const UK2Node_MacroInstance>(TrueSourceNode);
-						if (MacroInstanceNode)
+						// Map the intermediate tunnel instance node back to its original source and add it to the array.
+						if (const UEdGraphNode* ExpansionSourceNode = Cast<UEdGraphNode>(FunctionContext.MessageLog.FindSourceObject(OuterTunnelInstance)))
 						{
-							TArray<const UEdGraphNode*> ValidBreakpointLocations;
-							FKismetDebugUtilities::GetValidBreakpointLocations(MacroInstanceNode, ValidBreakpointLocations);
-							bBreakpointSite = ValidBreakpointLocations.Contains(MacroSourceNode);
+							ExpansionSourceNodes.Add(MakeWeakObjectPtr(const_cast<UEdGraphNode*>(ExpansionSourceNode)));
 						}
-					}
+						
+						// Continue back up the chain until we run out of expansion source nodes (this ensures that we include any nested expansions).
+						OuterTunnelInstance = FunctionContext.MessageLog.GetIntermediateTunnelInstance(OuterTunnelInstance);
 
-					// Gather up all the macro instance nodes that lead to this macro source node
-					UEdGraphNode* IntermediateMacroInstance = CompilerContext.MessageLog.GetIntermediateTunnelInstance(SourceNode);
-					CompilerContext.MessageLog.GetTunnelsActiveForNode(IntermediateMacroInstance, MacroInstanceNodes);
-					if (MacroInstanceNodes.Num())
-					{
-						TrueSourceNode = MacroInstanceNodes[0].Get();
-					}
+					} while (OuterTunnelInstance);
 				}
+
 				// Register the debug information for the node.
-				ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, MacroSourceNode, MacroInstanceNodes, FunctionContext.Function, Offset, bBreakpointSite);
+				ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, ExpansionSourceNodes, FunctionContext.Function, Offset, bBreakpointSite);
 
 				// Track pure node script code range for the current impure (exec) node
 				if (Statement.Type == KCST_InstrumentedPureNodeEntry)
@@ -1908,7 +1909,7 @@ public:
 				else if (Statement.Type == KCST_InstrumentedWireEntry && PureNodeEntryCount > 0)
 				{
 					// Map script code range for the full set of pure node inputs feeding in to the current impure (exec) node at the current offset
-					ClassBeingBuilt->GetDebugData().RegisterPureNodeScriptCodeRange(MacroSourceNode ? MacroSourceNode : TrueSourceNode, FunctionContext.Function, FInt32Range(PureNodeEntryStart, Offset));
+					ClassBeingBuilt->GetDebugData().RegisterPureNodeScriptCodeRange(TrueSourceNode, FunctionContext.Function, FInt32Range(PureNodeEntryStart, Offset));
 
 					// Reset pure node code range tracking.
 					PureNodeEntryCount = 0;

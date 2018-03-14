@@ -28,7 +28,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 In this step we will begin placing [Actors](Engine/Actors) (which are things like lights or geometry for example) into our empty level. 
 We will cover the two most common ways of adding Actors to the level, one of which is through [Place Mode](Engine/UI/LevelEditor/Modes/PlaceMode) and the other is through the [Content Browser](Engine/Content/Browser). 
@@ -118,4 +118,4 @@ You should now have a Level that is populated with several different Actors type
 
 In the next section, you will learn how to edit the Actors you have placed in the level and customize their properties. 
 
-%Steps%
+

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -61,6 +61,7 @@ void* rcAlloc(int size, rcAllocHint hint);
 /// @see rcAlloc
 void rcFree(void* ptr);
 
+void rcMemCpy(void* dst, void* src, int size);
 
 /// A simple dynamic array of integers.
 class rcIntArray
@@ -114,22 +115,41 @@ public:
 template<class T> class rcScopedDelete
 {
 	T* ptr;
+	int size;
 	inline T* operator=(T* p);
 public:
 
 	/// Constructs an instance with a null pointer.
 	inline rcScopedDelete() : ptr(0) {}
-	inline rcScopedDelete(int n) { ptr = (T*)rcAlloc(sizeof(T)*n, RC_ALLOC_TEMP); } 
+	inline rcScopedDelete(int n) { ptr = (T*)rcAlloc(sizeof(T)*n, RC_ALLOC_TEMP); size = n; }
 
 	/// Constructs an instance with the specified pointer.
 	///  @param[in]		p	An pointer to an allocated array.
 	inline rcScopedDelete(T* p) : ptr(p) {}
-	inline ~rcScopedDelete() { rcFree(ptr); }
+	inline ~rcScopedDelete() { rcFree(ptr); ptr = 0; size = 0; }
 
 	/// The root array pointer.
 	///  @return The root array pointer.
 	inline operator T*() { return ptr; }
+
+	/// UE4: resize and copy existing memory (n = element count), doesn't destruct elements!
+	bool resizeGrow(int n);
 };
+
+template<class T>
+bool rcScopedDelete<T>::resizeGrow(int n)
+{
+	if (n > size)
+	{
+		T* newData = (T*)rcAlloc(sizeof(T) * n, RC_ALLOC_TEMP);
+		if (n && newData) rcMemCpy(newData, ptr, sizeof(T) * n);
+		rcFree(ptr);
+		ptr = newData;
+		size = n;
+	}
+
+	return (ptr != 0);
+}
 
 /// A simple helper class used to delete an array of instances of structs,
 ///	that require cleaning up by calling destructor on every instance before release. 

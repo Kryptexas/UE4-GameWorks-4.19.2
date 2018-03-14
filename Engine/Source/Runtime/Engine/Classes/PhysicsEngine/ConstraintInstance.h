@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -565,6 +565,7 @@ public:
 	/** Enable/Disable parent dominates (meaning the parent body cannot be be affected at all by a child) */
 	void EnableParentDominates();
 	void DisableParentDominates();
+
 
 	float GetLastKnownScale() const { return LastKnownScale; }
 

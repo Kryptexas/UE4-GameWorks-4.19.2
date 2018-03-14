@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidOpenGLPrivate.h: Code shared betweeen AndroidOpenGL and AndroidESDeferredOpenGL
@@ -9,7 +9,7 @@
 
 bool GAndroidGPUInfoReady = false;
 
-// call out to JNI to see if the application was packaged for GearVR
+// call out to JNI to see if the application was packaged for Gear VR
 extern bool AndroidThunkCpp_IsGearVRApplication();
 
 class FAndroidGPUInfo
@@ -46,7 +46,7 @@ private:
 #endif
 		}
 #if !PLATFORM_ANDROIDESDEFERRED
-		// Do not create a window surface if the app is for GearVR (use small buffer)
+		// Do not create a window surface if the app is for Gear VR (use small buffer)
 		bool bCreateSurface = !AndroidThunkCpp_IsGearVRApplication();
 		FPlatformMisc::LowLevelOutputDebugString(TEXT("FAndroidGPUInfo"));
 		EGL->InitSurface(bCreateSurface, bCreateSurface);
@@ -96,6 +96,7 @@ private:
 		}
 
 		// all devices support ETC
+		TargetPlatformNames.Add(TEXT("Android_ETC1a"));
 		TargetPlatformNames.Add(TEXT("Android_ETC1"));
 
 		// finally, generic Android

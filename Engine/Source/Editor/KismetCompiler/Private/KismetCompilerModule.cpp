@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	KismetCompilerModule.cpp
@@ -29,6 +29,7 @@
 #include "Engine/UserDefinedStruct.h"
 #include "BlueprintCompilerCppBackendInterface.h"
 #include "IMessageLogListing.h"
+#include "Engine/Engine.h"
 
 DEFINE_LOG_CATEGORY(LogK2Compiler);
 DECLARE_CYCLE_STAT(TEXT("Compile Time"), EKismetCompilerStats_CompileTime, STATGROUP_KismetCompiler);
@@ -121,7 +122,7 @@ void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, 
 		{
 			if ( UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Blueprint) )
 			{
-				FAnimBlueprintCompiler Compiler(AnimBlueprint, Results, CompileOptions, ObjLoaded);
+				FAnimBlueprintCompilerContext Compiler(AnimBlueprint, Results, CompileOptions, ObjLoaded);
 				Compiler.Compile();
 				check(Compiler.NewClass);
 			}

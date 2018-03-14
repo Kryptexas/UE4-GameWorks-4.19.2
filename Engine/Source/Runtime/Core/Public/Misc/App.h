@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -565,6 +565,26 @@ public:
 	}
 
 	/**
+	* Gets idle time overshoot in seconds (the time beyond the wait time we requested for the frame). Only valid when IdleTime is > 0.
+	*
+	* @return Idle time in seconds.
+	*/
+	FORCEINLINE static double GetIdleTimeOvershoot()
+	{
+		return IdleTimeOvershoot;
+	}
+
+	/**
+	* Sets idle time overshoot in seconds (the time beyond the wait time we requested for the frame). Only valid when IdleTime is > 0.
+	*
+	* @param seconds - Idle time in seconds.
+	*/
+	static void SetIdleTimeOvershoot(double Seconds)
+	{
+		IdleTimeOvershoot = Seconds;
+	}
+
+	/**
 	 * Get Volume Multiplier
 	 * 
 	 * @return Current volume multiplier
@@ -670,6 +690,9 @@ private:
 
 	/** Holds time we spent sleeping in UpdateTimeAndHandleMaxTickRate() if our frame time was smaller than one allowed by target FPS. */
 	static double IdleTime;
+
+	/** Holds the amount of IdleTime that was LONGER than we tried to sleep. The OS can't sleep the exact amount of time, so this measures that overshoot. */
+	static double IdleTimeOvershoot;
 
 	/** Use to affect the app volume when it loses focus */
 	static float VolumeMultiplier;

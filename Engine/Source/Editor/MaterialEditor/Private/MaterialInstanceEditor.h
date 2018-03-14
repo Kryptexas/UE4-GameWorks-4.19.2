@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,6 +16,9 @@
 class FCanvas;
 class UMaterialEditorInstanceConstant;
 class UMaterialInterface;
+class UMaterialInstanceConstant;
+class UMaterialFunctionInterface;
+class UMaterialFunctionInstance;
 template <typename ItemType> class SListView;
 
 /**
@@ -27,6 +30,12 @@ public:
 	
 	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
+
+	/** Initializes the editor to use a material. Should be the first thing called. */
+	void InitEditorForMaterial(UMaterialInstance* InMaterial);
+
+	/** Initializes the editor to use a material function. Should be the first thing called. */
+	void InitEditorForMaterialFunction(UMaterialFunctionInstance* InMaterialFunction);
 
 	/**
 	 * Edits the specified material instance object
@@ -94,17 +103,20 @@ public:
 	virtual TSharedPtr<FExtensibilityManager> GetToolBarExtensibilityManager() { return ToolBarExtensibilityManager; }
 
 protected:
+	//~ FAssetEditorToolkit interface
+	virtual void SaveAsset_Execute() override;
+	virtual void SaveAssetAs_Execute() override;
+	virtual bool OnRequestClose() override;
+
 	/** Saves editor settings. */
 	void SaveSettings();
 
 	/** Loads editor settings. */
 	void LoadSettings();
 
-	/** Syncs the GB to the selected parent in the inheritance list. */
-	void SyncSelectedParentToGB();
-
 	/** Opens the editor for the selected parent. */
 	void OpenSelectedParentEditor(UMaterialInterface* InMaterialInterface);
+	void OpenSelectedParentEditor(UMaterialFunctionInterface* InMaterialFunction);
 
 	/** Updated the properties pane */
 	void UpdatePropertyWindow();
@@ -115,6 +127,10 @@ private:
 	/** Binds our UI commands to delegates */
 	void BindCommands();
 
+	/** Command for the apply button */
+	void OnApply();
+	bool OnApplyEnabled() const;
+
 	/** Commands for the ShowAllMaterialParametersEnabled button */
 	void ToggleShowAllMaterialParameters();
 	bool IsShowAllMaterialParametersChecked() const;
@@ -124,16 +140,10 @@ private:
 	bool IsToggleMobileStatsChecked() const;
 
 	/** Commands for the Parents menu */
-	void OnOpenMaterial();
-	void OnShowInContentBrowser();
-
-	/** Commands for the Inheritance list */
-	void OnInheritanceListDoubleClick( TWeakObjectPtr<UMaterialInterface> InMaterialInterface );
-	TSharedPtr<SWidget> OnInheritanceListRightClick();
-	TSharedRef<ITableRow> OnInheritanceListGenerateRow( TWeakObjectPtr<UMaterialInterface> InMaterialInterface, const TSharedRef<STableViewBase>& OwnerTable );
-
-	/** Returns the currently selected item from the parents list */
-	UMaterialInterface* GetSelectedParent() const;
+	void OnOpenMaterial(TWeakObjectPtr<UMaterialInterface> InMaterial);
+	void OnOpenFunction(TWeakObjectPtr<UMaterialFunctionInterface> InFunction);
+	void OnShowMaterialInContentBrowser(TWeakObjectPtr<UMaterialInterface> InMaterial);
+	void OnShowFunctionInContentBrowser(TWeakObjectPtr<UMaterialFunctionInterface> InFunction);
 
 	/** Creates all internal widgets for the tabs to point at */
 	void CreateInternalWidgets();
@@ -141,8 +151,14 @@ private:
 	/** Updates the 3D and UI preview viewport visibility based on material domain */
 	void UpdatePreviewViewportsVisibility();
 
+	void FillToolbar(FToolBarBuilder& ToolbarBuilder);
 	/** Builds the toolbar widget for the material editor */
 	void ExtendToolbar();
+
+	TSharedRef<SWidget> GenerateInheritanceMenu();
+
+	/** If re-initializing for a material function instance re-generate the proxy materials */
+	void ReInitMaterialFunctionProxies();
 
 	//~ Begin IMaterialEditor Interface
 	virtual bool ApproveSetPreviewAsset(UObject* InAsset) override;
@@ -152,6 +168,9 @@ private:
 
 	/**	Spawns the properties tab */
 	TSharedRef<SDockTab> SpawnTab_Properties( const FSpawnTabArgs& Args );
+
+	/**	Spawns the properties tab */
+	TSharedRef<SDockTab> SpawnTab_LayerProperties(const FSpawnTabArgs& Args);
 
 	/**	Spawns the parents tab */
 	TSharedRef<SDockTab> SpawnTab_Parents( const FSpawnTabArgs& Args );
@@ -187,14 +206,17 @@ private:
 	/** Property View */
 	TSharedPtr<class IDetailsView> MaterialInstanceDetails;
 
-	/** Parent View */
-	TSharedPtr<class SListView<TWeakObjectPtr<UMaterialInterface>>> MaterialInstanceParentsList;
+	/** Layer Properties View */
+	TSharedPtr<class SMaterialLayersFunctionsInstanceWrapper> MaterialLayersFunctionsInstance;
+
+	/** List of parents used to populate the inheritance list chain. */
+	TArray< TWeakObjectPtr<UMaterialInterface> > MaterialParentList;
+
+	/** List of parents used to populate the inheritance list chain. */
+	TArray< TWeakObjectPtr<UMaterialFunctionInterface> > FunctionParentList;
 
 	/** Object that stores all of the possible parameters we can edit. */
 	UMaterialEditorInstanceConstant* MaterialEditorInstance;
-
-	/** List of parents used to populate the inheritance list chain. */
-	TArray< TWeakObjectPtr<UMaterialInterface> > ParentList;
 
 	/** Whether or not we should be displaying all the material parameters */
 	bool bShowAllMaterialParameters;
@@ -202,12 +224,21 @@ private:
 	/** Whether to show mobile material stats. */
 	bool bShowMobileStats;
 
+	/** If editing instance of a function instead of a material. */
+	bool bIsFunctionPreviewMaterial;
+
 	TSharedPtr<FExtensibilityManager> MenuExtensibilityManager;
 	TSharedPtr<FExtensibilityManager> ToolBarExtensibilityManager;
+
+	/** */
+	UMaterialFunctionInstance*	MaterialFunctionOriginal;
+	UMaterialFunctionInstance*	MaterialFunctionInstance;
+	UMaterial*					FunctionMaterialProxy; 
+	UMaterialInstanceConstant*	FunctionInstanceProxy; 
 
 	/**	The ids for the tabs spawned by this toolkit */
 	static const FName PreviewTabId;		
 	static const FName PropertiesTabId;	
-	static const FName ParentsTabId;	
+	static const FName LayerPropertiesTabId;
 	static const FName PreviewSettingsTabId;
 };

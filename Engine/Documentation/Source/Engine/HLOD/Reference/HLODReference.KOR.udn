@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3561534
+﻿INTSourceChangelist:3782314
 Availability: Licensee
 Crumbs: %ROOT%
 Title: 계층형 LOD 아웃라이너 참고서
@@ -123,7 +123,8 @@ LOD 액터 옆 화살표로 생성된 HLOD 클러스터에 포함된 씬 액터�
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 [VAR:spacer3]![](%ROOT%/spacer.png)(w:70 convert:false)[/VAR]
 [VAR:spacer4]![](%ROOT%/spacer.png)(w:10 convert:false)[/VAR]
-<!--
+[COMMENT:none]
+
 [EXCERPT:GPM]
 프록시 메시를 생성할 때, 클러스터로 묶인 LOD 를 사용하여 이 **액터** 를 하나의 애셋으로 병합시킵니다. HLOD 레벨에 어떤 세팅을 변경했는지에 따라, 스태틱 메시는 이를 기준으로 생성됩니다. 머티리얼, 라이트맵, 기타 여러가지 프로퍼티에도 영향을 끼칠 수 있습니다.
 
@@ -158,10 +159,12 @@ LOD 액터 옆 화살표로 생성된 HLOD 클러스터에 포함된 씬 액터�
 [/EXCERPT:blendmode]
 
 
--->
+
+[/COMMENT]
 
 
-<!----
+[COMMENT:none]
+--
 [INCLUDE:#materialsettings]
 
 [EXCERPT:materialsettings]
@@ -194,4 +197,5 @@ LOD 액터 옆 화살표로 생성된 HLOD 클러스터에 포함된 씬 액터�
 [/REGION]
 [/EXCERPT:materialsettings]
 
---->
+-
+[/COMMENT]

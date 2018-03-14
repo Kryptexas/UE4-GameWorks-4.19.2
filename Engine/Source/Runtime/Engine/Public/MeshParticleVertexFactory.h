@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MeshParticleVertexFactory.h: Mesh particle vertex factory definitions.
@@ -42,21 +42,13 @@ class ENGINE_API FMeshParticleVertexFactory : public FParticleVertexFactoryBase
 {
 	DECLARE_VERTEX_FACTORY_TYPE(FMeshParticleVertexFactory);
 public:
-
-	struct FDataType
+	FMeshParticleVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
+		: FParticleVertexFactoryBase(InFeatureLevel)
 	{
-		/** The stream to read the vertex position from. */
-		FVertexStreamComponent PositionComponent;
+	}
 
-		/** The streams to read the tangent basis from. */
-		FVertexStreamComponent TangentBasisComponents[2];
-
-		/** The streams to read the texture coordinates from. */
-		TArray<FVertexStreamComponent,TFixedAllocator<MAX_TEXCOORDS> > TextureCoordinates;
-
-		/** The stream to read the vertex  color from. */
-		FVertexStreamComponent VertexColorComponent;
-
+	struct FDataType : public FStaticMeshDataType
+	{
 		/** The stream to read the vertex  color from. */
 		FVertexStreamComponent ParticleColorComponent;
 
@@ -107,7 +99,7 @@ public:
 	/**
 	 * Should we cache the material's shadertype on this platform with this vertex factory? 
 	 */
-	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType);
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType);
 
 
 	/**
@@ -121,6 +113,12 @@ public:
 		// Set a define so we can tell in MaterialTemplate.usf when we are compiling a mesh particle vertex factory
 		OutEnvironment.SetDefine(TEXT("PARTICLE_MESH_FACTORY"),TEXT("1"));
 		OutEnvironment.SetDefine(TEXT("PARTICLE_MESH_INSTANCED"),TEXT("1"));
+
+		const bool ContainsManualVertexFetch = OutEnvironment.GetDefinitions().Contains("MANUAL_VERTEX_FETCH");
+		if (!ContainsManualVertexFetch && RHISupportsManualVertexFetch(Platform))
+		{
+			OutEnvironment.SetDefine(TEXT("MANUAL_VERTEX_FETCH"), TEXT("1"));
+		}
 	}
 	
 	/**
@@ -212,14 +210,14 @@ public:
 		: FMeshParticleVertexFactory(InType, InFeatureLevel, InDynamicVertexStride, InDynamicParameterVertexStride)
 	{}
 
-	FMeshParticleVertexFactoryEmulatedInstancing()
-		: FMeshParticleVertexFactory()
+	FMeshParticleVertexFactoryEmulatedInstancing(ERHIFeatureLevel::Type InFeatureLevel)
+		: FMeshParticleVertexFactory(InFeatureLevel)
 	{}
 
-	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 	{
 		return (Platform == SP_OPENGL_ES2_ANDROID) // Android platforms that might not support hardware instancing
-			&& FMeshParticleVertexFactory::ShouldCache(Platform, Material, ShaderType);
+			&& FMeshParticleVertexFactory::ShouldCompilePermutation(Platform, Material, ShaderType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -230,15 +228,15 @@ public:
 	}
 };
 
-inline FMeshParticleVertexFactory* ConstructMeshParticleVertexFactory()
+inline FMeshParticleVertexFactory* ConstructMeshParticleVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	if (GRHISupportsInstancing)
 	{
-		return new FMeshParticleVertexFactory();
+		return new FMeshParticleVertexFactory(InFeatureLevel);
 	}
 	else
 	{
-		return new FMeshParticleVertexFactoryEmulatedInstancing();
+		return new FMeshParticleVertexFactoryEmulatedInstancing(InFeatureLevel);
 	}
 }
 

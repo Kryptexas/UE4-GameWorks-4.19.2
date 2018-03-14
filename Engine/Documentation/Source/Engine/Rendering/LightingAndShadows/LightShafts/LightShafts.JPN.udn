@@ -94,8 +94,10 @@ Version:4.9
   
 エフェクト (オクルージョンとブルーム) にはそれぞれ負荷がかかるので、希望する方法を 1 つ使用するのが良いでしょう。680GTX で 1080p となり、オクルージョンは「.5ms」、単一ライト上のブルームは「.68ms」です。 
 
-<!-- Redundant Images
+[COMMENT:none]
+ Redundant Images
 [REGION:lightbox]
 [![](2LightShafts.png)(h:250)](2LightShafts.png) [![](5LightShafts.png)(h:250)](5LightShafts.png) 
 [/REGION]
--->
+
+[/COMMENT]

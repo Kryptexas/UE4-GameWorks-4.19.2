@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 RequiredTextureResolutionRendering.h: Declarations used for the viewmode.
@@ -22,7 +22,7 @@ class FRequiredTextureResolutionPS : public FMeshMaterialShader, public IDebugVi
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
 	{
 		return AllowDebugViewPS(DVSM_RequiredTextureResolution, Platform) && 
 			Material->GetFriendlyName().Contains(TEXT("FDebugViewModeMaterialProxy")) && 

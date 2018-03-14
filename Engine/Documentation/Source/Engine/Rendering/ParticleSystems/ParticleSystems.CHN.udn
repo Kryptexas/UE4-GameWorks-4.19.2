@@ -116,37 +116,25 @@ tags:Particles
 [/OBJECT]
 [/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		粒子特效相关的主题
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 粒子特效相关的主题
+
+[REGION:buttonlist]
+
 	* [](Engine/Rendering/ParticleSystems/UserGuide "%Engine/Rendering/ParticleSystems/UserGuide:Description%")
 	* [](Engine/Rendering/ParticleSystems/LODs "%Engine/Rendering/ParticleSystems/LODs:Description%")
 	* [](Engine/Rendering/ParticleSystems/ParticleLights "%Engine/Rendering/ParticleSystems/ParticleLights:Description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		其他相关的主题
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 其他相关的主题
+
+[REGION:buttonlist]
+
 	* [](Engine/Basics/Distributions "%Engine/Basics/Distributions:Description%")
 	* [](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:Description%")
 	* [](Engine/Rendering/ParticleSystems/Optimization "%Engine/Rendering/ParticleSystems/Optimization:Description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

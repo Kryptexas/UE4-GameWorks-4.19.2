@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PathContextMenu.h"
 #include "Misc/MessageDialog.h"
@@ -31,8 +31,6 @@
 #include "ContentBrowserUtils.h"
 #include "SourceControlWindows.h"
 #include "ContentBrowserModule.h"
-#include "ReferenceViewer.h"
-#include "ISizeMapModule.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Widgets/Colors/SColorPicker.h"
 #include "Framework/Commands/GenericCommands.h"
@@ -77,6 +75,11 @@ void FPathContextMenu::SetOnRenameFolderRequested(const FOnRenameFolderRequested
 void FPathContextMenu::SetOnFolderDeleted(const FOnFolderDeleted& InOnFolderDeleted)
 {
 	OnFolderDeleted = InOnFolderDeleted;
+}
+
+void FPathContextMenu::SetOnFolderFavoriteToggled(const FOnFolderFavoriteToggled& InOnFolderFavoriteToggled)
+{
+	OnFolderFavoriteToggled = InOnFolderFavoriteToggled;
 }
 
 void FPathContextMenu::SetSelectedPaths(const TArray<FString>& InSelectedPaths)
@@ -224,6 +227,28 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 					FUIAction( FExecuteAction::CreateSP( this, &FPathContextMenu::ExecutePickColor ) )
 					);
 			}			
+
+			// If this folder is already favorited, show the option to remove from favorites
+			if (ContentBrowserUtils::IsFavoriteFolder(SelectedPaths[0]))
+			{
+				// Remove from favorites
+				MenuBuilder.AddMenuEntry(
+					LOCTEXT("RemoveFromFavorites", "Remove From Favorites"),
+					LOCTEXT("RemoveFromFavoritesTooltip", "Removes this folder from the favorites section."),
+					FSlateIcon(),
+					FUIAction(FExecuteAction::CreateSP(this, &FPathContextMenu::ExecuteFavorite))
+				);
+			}
+			else
+			{
+				// Add to favorites
+				MenuBuilder.AddMenuEntry(
+					LOCTEXT("AddToFavorites", "Add To Favorites"),
+					LOCTEXT("AddToFavoritesTooltip", "Adds this folder to the favorites section for easy access."),
+					FSlateIcon(),
+					FUIAction(FExecuteAction::CreateSP(this, &FPathContextMenu::ExecuteFavorite))
+				);
+			}
 		}
 		MenuBuilder.EndSection();
 
@@ -235,8 +260,7 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 				// Save
 				MenuBuilder.AddMenuEntry(FContentBrowserCommands::Get().SaveAllCurrentFolder, NAME_None,
 					LOCTEXT("SaveFolder", "Save All"),
-					LOCTEXT("SaveFolderTooltip", "Saves all modified assets in this folder."),
-					FSlateIcon()
+					LOCTEXT("SaveFolderTooltip", "Saves all modified assets in this folder.")
 					);
 
 				// Resave
@@ -245,24 +269,7 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 				// Delete
 				MenuBuilder.AddMenuEntry(FGenericCommands::Get().Delete, NAME_None,
 					LOCTEXT("DeleteFolder", "Delete"),
-					LOCTEXT("DeleteFolderTooltip", "Removes this folder and all assets it contains."),
-					FSlateIcon()
-					);
-
-				// Reference Viewer
-				MenuBuilder.AddMenuEntry(
-					LOCTEXT("ReferenceViewer", "Reference Viewer..."),
-					LOCTEXT("ReferenceViewerOnFolderTooltip", "Shows a graph of references for this folder."),
-					FSlateIcon(),
-					FUIAction( FExecuteAction::CreateSP( this, &FPathContextMenu::ExecuteReferenceViewer ) )
-					);
-    
-				// Size Map
-				MenuBuilder.AddMenuEntry(
-					LOCTEXT("SizeMap", "Size Map..."),
-					LOCTEXT("SizeMapOnFolderTooltip", "Shows an interactive map of the approximate memory used by the assets in this folder and everything they reference."),
-					FSlateIcon(),
-					FUIAction( FExecuteAction::CreateSP( this, &FPathContextMenu::ExecuteSizeMap ) )
+					LOCTEXT("DeleteFolderTooltip", "Removes this folder and all assets it contains.")
 					);
 
 				// Fix Up Redirectors in Folder
@@ -554,6 +561,11 @@ void FPathContextMenu::ExecutePickColor()
 	OpenColorPicker(PickerArgs);
 }
 
+void FPathContextMenu::ExecuteFavorite()
+{
+	OnFolderFavoriteToggled.ExecuteIfBound(SelectedPaths);
+}
+
 void FPathContextMenu::NewColorComplete(const TSharedRef<SWindow>& Window)
 {
 	// Save the colors back in the config (ptr should have already updated by the widget)
@@ -692,40 +704,6 @@ void FPathContextMenu::ExecuteDelete()
 			LOCTEXT("FolderDeleteConfirm_No", "Cancel"),
 			ParentContent.Pin().ToSharedRef(),
 			OnYesClicked);
-	}
-}
-
-void FPathContextMenu::ExecuteReferenceViewer()
-{
-	TArray<FString> PackageNamesAsStrings;
-	GetPackageNamesInSelectedPaths(PackageNamesAsStrings);
-
-	TArray<FName> PackageNames;
-	for ( auto PackageNameIt = PackageNamesAsStrings.CreateConstIterator(); PackageNameIt; ++PackageNameIt )
-	{
-		PackageNames.Add(**PackageNameIt);
-	}
-
-	if ( PackageNames.Num() > 0 )
-	{
-		IReferenceViewerModule::Get().InvokeReferenceViewerTab(PackageNames);
-	}
-}
-
-void FPathContextMenu::ExecuteSizeMap()
-{
-	TArray<FString> PackageNamesAsStrings;
-	GetPackageNamesInSelectedPaths(PackageNamesAsStrings);
-
-	TArray<FName> PackageNames;
-	for ( auto PackageNameIt = PackageNamesAsStrings.CreateConstIterator(); PackageNameIt; ++PackageNameIt )
-	{
-		PackageNames.Add(**PackageNameIt);
-	}
-
-	if ( PackageNames.Num() > 0 )
-	{
-		ISizeMapModule::Get().InvokeSizeMapTab(PackageNames);
 	}
 }
 

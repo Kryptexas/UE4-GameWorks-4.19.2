@@ -56,10 +56,10 @@ tags:Blueprints
 ブループリントの重要項目を理解している場合は、アクタのスポーン/破壊、再スポーン (OnDestroyed) 、タイマーの使用などゲームプレイ関連エレメントを説明している [](Gameplay) においてゲームプレイ用のブループリントの操作ガイドがカバーされています。 
 
 
-## Beginner
+## 初心者向け
 [DIR(output:"fancy" type:"how-to" skill:"Beginner" parent:"Engine/Blueprints/BP_HowTo" org:"hierarchy")]
 
-## Intermediate
+## 中級者向け
 [REGION:wrapper transparent]
 [](FANCY:Engine/Blueprints/BP_HowTo/ActorReference "%Engine/Blueprints/BP_HowTo/ActorReference:description%")
 [](FANCY:Engine/Blueprints/BP_HowTo/MakingFunctions "%Engine/Blueprints/BP_HowTo/MakingFunctions:description%")
@@ -77,11 +77,13 @@ tags:Blueprints
 [](FANCY:Engine/Blueprints/BP_HowTo/MacroLibraries "%Engine/Blueprints/BP_HowTo/MacroLibraries:description%")
 [/REGION]
 
-<!-- 重複文章のため、削除 
+[COMMENT:none]
+ 重複文章のため、削除 
 
 | **[](Engine/Blueprints/BP_HowTo/BasicUsage)** | %Engine/Blueprints/BP_HowTo/BasicUsage:description% |
 
--->
+
+[/COMMENT]
 
 
 

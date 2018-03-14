@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidTargetPlatform.inl: Implements the FAndroidTargetPlatform class.
@@ -17,6 +17,7 @@
 #include "Stats/Stats.h"
 #include "Serialization/Archive.h"
 #include "Misc/FileHelper.h"
+#include "Misc/SecureHash.h"
 #include "FileManager.h"
 #include "PlatformFilemanager.h"
 #include "Interfaces/IAndroidDeviceDetectionModule.h"
@@ -76,7 +77,7 @@ static bool SupportsVulkan()
 #elif PLATFORM_MAC
 	GlslangAvailable = true;
 #elif PLATFORM_LINUX
-	GlslangAvailable = false;	// @TODO: change when glslang library compiled for Linux
+	GlslangAvailable = true;
 #endif
 
 	return bSupportsVulkan && GlslangAvailable;
@@ -318,6 +319,7 @@ inline int32 FAndroidTargetPlatform<TPlatformProperties>::CheckRequirements(cons
 		// need to check license was accepted
 		if (!HasLicense())
 		{
+			OutTutorialPath.Empty();
 			CustomizedLogMessage = LOCTEXT("AndroidLicenseNotAcceptedMessageDetail", "SDK License must be accepted in the Android project settings to deploy your app to the device.");
 			bReadyToBuild |= ETargetPlatformReadyStatus::LicenseNotAccepted;
 		}
@@ -445,6 +447,7 @@ inline void FAndroidTargetPlatform<TPlatformProperties>::GetTextureFormats( cons
 		AddTextureFormatIfSupports(AndroidTexFormat::NameDXT5, OutFormats, bIsNonPOT);
 		AddTextureFormatIfSupports(AndroidTexFormat::NameATC_RGBA_I, OutFormats, bIsNonPOT);
 		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoETC2, OutFormats, bIsNonPOT);
+		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoETC1a, OutFormats, bIsNonPOT);
 		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoETC1, OutFormats, bIsNonPOT);
 	}
 	else if (InTexture->CompressionSettings == TC_Displacementmap)
@@ -474,6 +477,7 @@ inline void FAndroidTargetPlatform<TPlatformProperties>::GetTextureFormats( cons
 		AddTextureFormatIfSupports(AndroidTexFormat::NameDXT5, OutFormats, bIsNonPOT);
 		AddTextureFormatIfSupports(AndroidTexFormat::NameATC_RGBA_I, OutFormats, bIsNonPOT);
 		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoETC2, OutFormats, bIsNonPOT);
+		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoETC1a, OutFormats, bIsNonPOT);
 		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoETC1, OutFormats, bIsNonPOT);
 	}
 	else if (InTexture->CompressionNoAlpha)
@@ -482,6 +486,7 @@ inline void FAndroidTargetPlatform<TPlatformProperties>::GetTextureFormats( cons
 		AddTextureFormatIfSupports(AndroidTexFormat::NameDXT1, OutFormats, bIsNonPOT);
 		AddTextureFormatIfSupports(AndroidTexFormat::NameATC_RGB, OutFormats, bIsNonPOT);
 		AddTextureFormatIfSupports(AndroidTexFormat::NameETC2_RGB, OutFormats, bIsNonPOT);
+		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoETC1a, OutFormats, bIsNonPOT);
 		AddTextureFormatIfSupports(AndroidTexFormat::NameETC1, OutFormats, bIsNonPOT);
 	}
 	else if (InTexture->bDitherMipMapAlpha)
@@ -490,6 +495,7 @@ inline void FAndroidTargetPlatform<TPlatformProperties>::GetTextureFormats( cons
 		AddTextureFormatIfSupports(AndroidTexFormat::NameDXT5, OutFormats, bIsNonPOT);
 		AddTextureFormatIfSupports(AndroidTexFormat::NameATC_RGBA_I, OutFormats, bIsNonPOT);
 		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoETC2, OutFormats, bIsNonPOT);
+		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoETC1a, OutFormats, bIsNonPOT);
 		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoETC1, OutFormats, bIsNonPOT);
 	}
 	else
@@ -498,6 +504,7 @@ inline void FAndroidTargetPlatform<TPlatformProperties>::GetTextureFormats( cons
 		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoDXT, OutFormats, bIsNonPOT);
 		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoATC, OutFormats, bIsNonPOT);
 		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoETC2, OutFormats, bIsNonPOT);
+		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoETC1a, OutFormats, bIsNonPOT);
 		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoETC1, OutFormats, bIsNonPOT);
 	}
 }
@@ -533,6 +540,7 @@ inline void FAndroidTargetPlatform<TPlatformProperties>::GetAllTextureFormats(TA
 		AddTextureFormatIfSupports(AndroidTexFormat::NameATC_RGBA_I, OutFormats, bIsNonPOT);
 	
 		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoETC1, OutFormats, bIsNonPOT); 
+		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoETC1a, OutFormats, bIsNonPOT);
 		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoETC2, OutFormats, bIsNonPOT);
 	
 		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoATC, OutFormats, bIsNonPOT);

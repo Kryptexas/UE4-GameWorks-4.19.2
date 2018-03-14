@@ -1,62 +1,169 @@
-﻿INTSourceChangelist:2609124
-Availability:Public
-Title:自動化のユーザーガイド
-Crumbs: %ROOT%, Programming, Programming/Automation
-Description:テスト実行のための自動化システムの使用ガイド
-Version:4.9
+﻿Availability:Public
+Crumbs: %ROOT%
+Title:自動化システムのユーザーガイド
+Description:Description:テストの実行に使用する自動化システムのガイド
+Type:Overview
+SkillLevel:Intermediate
+Version:4.17
+Parent:Programming/Automation
+Order:1
+Tags:Programming
+Topic-image:SessionFrontend_Topic.png
+Social-image:SessionFrontend.png
 
-自動化テストは、 **[Automation]** パネルで設定し、実行されます。
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-## ユーザー インターフェース
+[TOC(start:2 end:3)]
 
-自動化ウィンドウを開くには、エディタを起動して、**Window** メニューから **Session Frontend** を選択、もしくは、[Unreal Frontend](Engine/Deployment/UnrealFrontend) スタンドアローン アプリを実行します。
+
+[REGION:fullwidth]
+![](SessionFrontend.png)
+[/REGION]
+[REGION:caption]
+[Automation] タブをフォーカスした状態の Session Frontend 
+[/REGION]
+
+**[Automation]** タブは、**Session (Unreal) Frontend** の一部です。マシンに接続されているか、ローカル ネットワークにある他のどのデバイスでも自動化テストを実行できるようにこの位置にあります。
+
+Session (Unreal) Frontend にアクセスするには、以下の 2 種類の方法があります。 
+
+* **Session Frontend** - 外部デバイスで自動化を実行する自動化ワーカーとしてローカル エディタを開きます。 
+	* **[Window** > **Developer Tools** > **Session Frontend]** の順に進みます。
+* **Unreal Frontend** - Frontend のスタンドアローン バージョンを開きます。このバージョンには、Session Frontend、 Device Manager、および Project Launcher が含まれます。 
+	* **[UE4 Root Directory]** > **Engine** > **Binaries** > **Win64** > **UnrealFrontend.exe** の順に進みます。
+
+
+## プラグインを有効にする
+
+UE4 の最新バージョンでは、すべての自動化テストは Engine Content フォルダからそのプラグインに移動しました。プラグインを有効にしないと  
+[Automation] タブに表示されません。 
+
+
+[REGION:imagetable]
+| [REGION:lightbox]![](OpenPluginBrowser.png)(h:412)[/REGION] | [REGION:lightbox] [![](PluginsBrowserTesting.png)(w:500)](OpenPluginBrowser.png) [/REGION] |
+| --- | --- |
+| プラグインを有効にするには、**[Edit** > **Plugins** > **Testing]** の順に選択します。 | 自動化テストのプラグイン ブラウザ |
+[/REGION]
+
 
 [REGION:note]
-[セッション ブラウザ](Engine/Deployment/UnrealFrontend#セッションブラウザ) で選択することにより、ローカルエディタを自動化ワーカー ツールとして使用できます。
-外部デバイスのゲーム インスタンスで自動化を実行するには、 **[New Session]** ウィザードを実行してセッションを作成しなくてはいけません。
- 次に、セッションが作成されたらこれを **セッションブラウザ** で選択します。
- またはセッションブラウザにある既存セッションを選択します。
+スタンドアローンの UnrealFrontend を使っている場合、すべての自動化テストは有効にするための追加手順なしに利用することができます。 
 [/REGION]
 
-アクティブなセッションへの接続に成功すると、特定セッションの 
-ドキュメント領域で **[Automation]** タブへ移動することができます。
 
-[REGION:fullwidth]
-![Automation](AutomationPanelInSessionBrowser.jpg)
+## ユーザーインターフェース
+
+Session Frontend を開くと、Console、 Automation、 Screenshot Comparison、 および Profiler などのいくつかのタブを利用できます。すべての自動化テストについて、 
+**[Automation]** タブには、レンダリング機能の比較のための [Screenshot Comparison](Programming/Automation/ScreenShotComparison) タブにある追加機能で必要となる 
+すべての機能があります。
+
+[REGION:lightbox]
+[![](AutomationTab.png)(w:850)](AutomationTab.png)
 [/REGION]
-* 左上部には「アクション」が表示されます。 - テストリストを再生、リフレッシュします。再生ボタンに表示される数字は、 
-実行されるテスト数です。
-* 中央上部にはフィルタが表示されます。 - エラー フィルタ、警告フィルタ、スモークテスト フィルタ、Dev コンテンツ フィルタ、ビジュアル コマンドレット フィルタ、および特定のテストを見つけるための検索ボックスがあります。
-* ツリー内には、テストが高速でデフォルトで有効化されることを意味する星形アイコンがいくつかのテストの隣に表示されます。 
-あるテストには、ATF_SmokeTest とラベル付けされて星形のマークが付きます。  
-* 各テストの結果上部には、プラットフォーム アイコンが表示され、その横にある数字は、 
-テスト実行に対応できるワーカーの数を表します。コンソールに関しては、さまざまなプラットフォームで同時にテストの実行が可能であり、 
-各デバイス タイプに対して複数のカラムがあります。
+[REGION:caption] 画像をクリックしてフルサイズで表示 [/REGION]
 
-
-いくつかのテストを実行後、UI は以下に近い表示となります。
-
-[REGION:fullwidth]
-![Automation](InProgress.jpg)
-[/REGION]
-自動化テストが完了すると、**[エクスポート]** ドロップダウンを使って、
-結果を CSV ファイルへエクスポートすることができます。ここで入手したい詳細を選択することができます。例えば、エラー、警告、ログ、または
-これらの組み合わせなど全てを見ることが出来ます。
 
 [REGION:note]
-*  **[Export Dropdown]** は、レポート生成後しかアクティブになりません。
-*  **[Export Data]** ボタンは、フィルタの基準を満たすレポートが存在する場合のみアクティブになります。
-* エクスポートが成功すると通知が表示されて、
-レポートの保存場所を示します。
+[Automation] タブ ウィンドウに何も表示されていなければ、左側のセッション ブラウズから有効なセッションを選択します。例えば、**[This Application]** で、**[RDU-WD]** という名前のマシンが選択されています。
 [/REGION]
 
-[REGION:fullwidth]
-![Automation](Export.png)
+###セッション ブラウザ
+
+**セッション ブラウザ** では、エディタの特定のインスタンスに接続することができます。セッションを選択すると、 [Automation] ウィンドウに利用可能な自動化テストが表示されます。
+
+![](SessionBrowser.png)
+ 
+ 
+### ツールバー
+
+[Automation] タブのツールバーでは、自動化テストの開始、リフレッシュ、およびエラーや警告のフィルタリングの方法を制御することができます。
+
+[REGION:lightbox]
+[![](AutomationToolbar.png)(w:850)](AutomationToolbar.png)
+[/REGION]
+[REGION:caption] 画像をクリックしてフルサイズで表示 [/REGION]
+
+
+[REGION:simpletable]
+| アイコン | タイトル | %spacer% | 説明 |
+| --- | --- | --- | --- |
+| ![](StartTests.png) || **Start Tests** | 有効になっている現在選択中の自動化テストを開始および停止します。実行するテスト数も、参照のためにボタンの下に一覧表示されています。  |
+| ![](RunLevelTests.png) || **Run Level Test** | 現在、ロードされているレベルがテストマップの場合、このボタンをクリックしてテストを選択し、ただちに実行することができます。 |
+| ![](RefreshTests.png) || **Refresh Tests** | プロジェクトに追加されるテストの Test Name リストをリフレッシュします。 |
+| ![](FindWorkers.png) || **Find Workers** | テスト実行に使用可能なローカル ワーカーを探します。 |
+| ![](Errors.png) || **Errors** | テストを完了しようとしてエラーが発生したテストを表示する [Test] ウィンドウのフィルタを切り替えます。 |
+| ![](Warnings.png) || **Warnings** | テストを完了しようとして警告が発生したテストを表示する [Test] ウィンドウのフィルタを切り替えます。 |
+| ![](DevContent.png) || **Dev Content** | 有効にすると、デベロッパー ディレクトリが、自動化テストに含まれるようになります。 |
+| ![](DeviceGroups.png) || **Device Groups** | マシン名、プラットフォーム、オペレーティング システムのバージョンなど、一連のオプションに従いテストをグループ化することができます。 |
+| ![](Presets.png) || **Preset** | テストと設定を選択して自動化テストの独自のプリセットを追加し、後で再度使用できるようにします。 |
 [/REGION]
 
-また、テスト済みのゲームインスタンスに関する情報を、テスト結果の
-ツールチップから得ることができます。
+ 
+### テスト ウィンドウと結果
 
-[REGION:fullwidth]
-![Automation](TooltipInfo.png)
+[Automation Tests] ウィンドウと [Automation Test Results] パネルには、テストが完了したマシン、実行したテスト数、不合格数など、
+実行したテストに関連する情報が表示されます。 
+
+
+[REGION:lightbox]
+[![](TestsAndResultsPanels.png)(w:850)](TestsAndResultsPanels.png)
 [/REGION]
+[REGION:caption] 画像をクリックしてフルサイズで表示 [/REGION]
+
+[REGION:tip]
+**[Device Groups]** ボタンを使って、自動化テストの実行を新たに開始するときに、結果パネルに表示する情報をどのようにグループ化するかを決めることができます。
+
+![](DeviceGroupsDropdown.png)
+[/REGION]
+
+結果を見る場合、**[Display]** の選択肢を使って、テストの **[Name]** またはテスト完了にかかる **[Time]** を表示させます。 
+
+[REGION:lightbox]
+[![](Display.png)(w:850)](Display.png)
+[/REGION]
+[REGION:caption] 画像をクリックしてフルサイズで表示 [/REGION]
+
+エラーや警告が発生した場合、メインの [Test] ウィンドウから該当するテストをクリックして、特定のエラーや警告を [Results] パネルに表示させることができます。 
+
+[REGION:lightbox]
+[![](FailureMessage.png)(w:850)](FailureMessage.png)
+[/REGION]
+[REGION:caption] 画像をクリックしてフルサイズで表示 [/REGION]
+
+
+### エクスポート
+
+自動化テストが完了すると、**[Export]** ドロップダウンを使って、結果を CSV ファイルにエクスポートすることができます。 
+
+[REGION:lightbox]
+[![](ExportTests.png)(w:850)](ExportTests.png)
+[/REGION]
+[REGION:caption] 画像をクリックしてフルサイズで表示 [/REGION]
+
+エクスポート対象を利用可能なフィルタで選んでから、**[Export Data]** ボタンを選択します。
+
+![](ExportData.png)
+
+データをエクスポートすると、成功の可否を示すポップアップと、CSV ファイルの保存場所が表示されます。
+
+![](ExportDataSuccessful.png)
+
+[REGION:note]
+**[Export]** ドロップダウンは、レポートが生成された場合に限りアクティブになります。**[Export Data]** ボタンはフィルタリングのクライテリアを満たすレポートがあった場合に限り、有効になります。 
+[/REGION]
+
+### コピー
+
+テストが完了すると、**[Automation Test Results]** パネルに表示される任意の行を選択して、**[Copy]** ボタンをクリックして、クリップボードにコピーし、どこにでも貼り付けることができます。
+
+[REGION:lightbox]
+[![](Copy.png)(w:850)](Copy.png)
+[/REGION]
+[REGION:caption] 画像をクリックしてフルサイズで表示 [/REGION]
+
+
+
+
+
+

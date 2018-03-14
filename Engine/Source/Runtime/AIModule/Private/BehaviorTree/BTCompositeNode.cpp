@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTree/BTCompositeNode.h"
 #include "GameFramework/Actor.h"
@@ -10,6 +10,7 @@
 UBTCompositeNode::UBTCompositeNode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "UnknownComposite";
+	bApplyDecoratorScope = false;
 	bUseChildExecutionNotify = false;
 	bUseNodeActivationNotify = false;
 	bUseNodeDeactivationNotify = false;
@@ -176,6 +177,35 @@ void UBTCompositeNode::OnNodeDeactivation(FBehaviorTreeSearchData& SearchData, E
 	for (int32 ServiceIndex = 0; ServiceIndex < Services.Num(); ServiceIndex++)
 	{
 		SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(Services[ServiceIndex], SearchData.OwnerComp.GetActiveInstanceIdx(), EBTNodeUpdateMode::Remove));
+	}
+
+	// optional: remove all decorators if execution flow leaves this composite
+	if (bApplyDecoratorScope)
+	{
+		const uint16 InstanceIdx = SearchData.OwnerComp.GetActiveInstanceIdx();
+		const FBTNodeIndex FromIndex(InstanceIdx, GetExecutionIndex());
+		const FBTNodeIndex ToIndex(InstanceIdx, GetLastExecutionIndex());
+
+		SearchData.OwnerComp.UnregisterAuxNodesInRange(FromIndex, ToIndex);
+
+		// remove all pending updates "Add"
+		for (int32 Idx = SearchData.PendingUpdates.Num() - 1; Idx >= 0; Idx--)
+		{
+			const FBehaviorTreeSearchUpdate& UpdateInfo = SearchData.PendingUpdates[Idx];
+			if (UpdateInfo.Mode == EBTNodeUpdateMode::Add)
+			{
+				const uint16 UpdateNodeIdx = UpdateInfo.AuxNode ? UpdateInfo.AuxNode->GetExecutionIndex() : UpdateInfo.TaskNode->GetExecutionIndex();
+				const FBTNodeIndex UpdateIdx(UpdateInfo.InstanceIndex, UpdateNodeIdx);
+
+				if (FromIndex.TakesPriorityOver(UpdateIdx) && UpdateIdx.TakesPriorityOver(ToIndex))
+				{
+					UE_VLOG(SearchData.OwnerComp.GetOwner(), LogBehaviorTree, Verbose, TEXT("Search node update[canceled]: %s"),
+						*UBehaviorTreeTypes::DescribeNodeHelper(UpdateInfo.AuxNode ? (UBTNode*)UpdateInfo.AuxNode : (UBTNode*)UpdateInfo.TaskNode));
+
+					SearchData.PendingUpdates.RemoveAt(Idx);
+				}
+			}
+		}
 	}
 }
 

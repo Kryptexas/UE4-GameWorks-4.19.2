@@ -1,0 +1,51 @@
+﻿INTSourceChangelist:3782314
+Availability:Public
+Title: 3. 직접 해보기!
+Crumbs:%ROOT%, Platforms/SteamVR
+Description:여기 제공된 방법으로 레벨에 콘텐츠를 추가하여 가다듬고, 추가적인 관련 자료를 읽어봅니다.
+Navigation:platform
+Version: 4.17
+Skilllevel: Beginner
+Platform:SteamVR
+type:multi-step
+parent:Platforms/SteamVR/QuickStart
+order:3
+Checkpoint: SteamVRQS
+tags: SteamVR
+
+[nav]
+
+SteamVR 및 HTC Vive 를 통해 UE4 프로젝트를 볼 수 있게 되었으니, 프로젝트에 다음 항목을 추가해 보시기 바랍니다.
+
+* [이주 툴](Engine/Content/Browser/UserGuide/Migrate/) 을 사용하여 모바일 콘텐츠 예제 중 하나에서 사용중인 프로젝트로 콘텐츠를 이동시킵니다.
+
+* [모션 컨트롤러](Platforms\VR\MotionController) 지원을 추가하여 현실에서처럼 VR 에서도 사용자가 오브젝트를 옮길 수 있도록 합니다.
+
+* [GPU 프로파일러](Engine/Performance/GPU/) 를 사용하면 프로젝트를 만들면서 퍼포먼스 트래킹에 도움이 됩니다.
+
+언리얼 엔진 4 에서 VR 프로젝트를 개발할 때 유용한 정보를 제공해 드리는 부가 자료입니다.
+
+## 문서
+
+[REGION:buttonlist]
+* [](Platforms\VR)
+	* [](Platforms\VR\CheatSheet)
+	* [](Platforms\Oculus\BestPractices)
+* [Oculus Documentation](https://developer.oculus.com/documentation/)
+	* [User Guide](http://static.oculus.com/sdk-downloads/documents/Oculus_User_Guide_0.4.4.pdf)
+	* [Developer Guide](http://static.oculus.com/sdk-downloads/documents/Oculus_Developer_Guide_0.4.4.pdf)
+[/REGION]
+
+## 시도해 볼 콘텐츠
+
+[REGION:imagetable]
+| ![](Platforms\Oculus\QuickStart\6\store_CouchKnights_screenshot_3.png)(w:420) | [![](Platforms\Oculus\QuickStart\6\store_Showdown_screenshot_5.png)(w:420)](https://www.unrealengine.com/marketplace/showdown-demo) |
+| ------------ | ---------------- |
+| 소파의 기사 | 쇼다운 |
+| [![](Platforms\Oculus\QuickStart\6\store_VREditor_screenshot_5.png)(w:420)](Engine/Editor/VR) | [![](Platforms\Oculus\QuickStart\6\store_RoboRecall_screenshot_5.png)(w:420)](Modding/RoboRecall) |
+| VR 모드 |로보 리콜 |
+[/REGION]
+
+[nav]
+
+![]()

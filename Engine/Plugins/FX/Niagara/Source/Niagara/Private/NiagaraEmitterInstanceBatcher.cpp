@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraEmitterInstanceBatcher.h"
 #include "NiagaraScriptExecutionContext.h"
@@ -10,12 +10,12 @@
 #include "ClearQuad.h"
 
 DECLARE_CYCLE_STAT(TEXT("Batching"), STAT_NiagaraBatching, STATGROUP_Niagara);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Niagara GPU Sim"), Stat_GPU_NiagaraSim, STATGROUP_GPU);
+DECLARE_GPU_STAT(NiagaraSim);
 
 
 NiagaraEmitterInstanceBatcher* NiagaraEmitterInstanceBatcher::BatcherSingleton = nullptr;
 uint32 FNiagaraComputeExecutionContext::TickCounter = 0;
-
+FRWBuffer NiagaraEmitterInstanceBatcher::DummyWriteIndexBuffer;
 
 void NiagaraEmitterInstanceBatcher::Queue(FNiagaraComputeExecutionContext *InContext)
 {
@@ -49,9 +49,10 @@ void NiagaraEmitterInstanceBatcher::TickSingle(const FNiagaraComputeExecutionCon
 	check(IsInRenderingThread());
 	Context->MainDataSet->TickRenderThread(ENiagaraSimTarget::GPUComputeSim);
 
-	FNiagaraShader *UpdateShader = Context->RTUpdateScript->GetShader();
+	FNiagaraComputeExecutionContext::TickCounter++;
+
 	FNiagaraShader *SpawnShader = Context->RTSpawnScript->GetShader();
-	if (!UpdateShader || !SpawnShader)
+	if (!SpawnShader)
 	{
 		return;
 	}
@@ -59,9 +60,10 @@ void NiagaraEmitterInstanceBatcher::TickSingle(const FNiagaraComputeExecutionCon
 	uint32 PrevNumInstances = Context->MainDataSet->PrevDataRender().GetNumInstances();
 
 	uint32 EventSpawnTotal = 0;
-	for (int32 i = 0; i < Context->EventHandlerScriptProps.Num(); i++)
+	/*
+	for (int32 i = 0; i < Context->GetEventHandlers().Num(); i++)
 	{
-		const FNiagaraEventScriptProperties &EventHandlerProps = Context->EventHandlerScriptProps[i];
+		const FNiagaraEventScriptProperties &EventHandlerProps = Context->GetEventHandlers()[i];
 		if (EventHandlerProps.ExecutionMode == EScriptExecutionMode::SpawnedParticles && Context->EventSets[i])
 		{
 			uint32 NumEventsToProcess = Context->EventSets[i]->PrevDataRender().GetNumInstances();
@@ -69,6 +71,7 @@ void NiagaraEmitterInstanceBatcher::TickSingle(const FNiagaraComputeExecutionCon
 			EventSpawnTotal += EventSpawnNum;
 		}
 	}
+	*/
 
 
 	// allocate for additional instances spawned and set the new number in the data set, if the new number is greater (meaning if we're spawning in this run)
@@ -91,53 +94,47 @@ void NiagaraEmitterInstanceBatcher::TickSingle(const FNiagaraComputeExecutionCon
 
 	//UE_LOG(LogNiagara, Log, TEXT("Pre sim instances %i"), PrevNumInstances);
 
-	// simulation run
-	RHICmdList.SetComputeShader(UpdateShader->GetComputeShader());
-	SetupDataInterfaceBuffers(Context->UpdateInterfaces, UpdateShader, RHICmdList);
-	SetupEventUAVs(Context, PrevNumInstances, RHICmdList);
-	Run(Context->MainDataSet, 0, PrevNumInstances, UpdateShader, Context->UpdateParams, RHICmdList);
-	UnsetEventUAVs(Context, RHICmdList);
+	// Calc shader parameters
+	uint32 TotalNumInstances = NewNumInstances;
+	uint32 SimulationStartInstance = 0;
+	uint32 SpawnStartInstance = PrevNumInstances;
+
+	// Recreate a clear data set index buffer for the simulation shader to write number of written instances to
+	//
+	{
+		SCOPED_DRAW_EVENT(RHICmdList, NiagaraIndexBufferClear);
+		ClearUAV(RHICmdList, Context->MainDataSet->GetDataSetIndices(), 0);
+	}
+	RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, EResourceTransitionPipeline::EComputeToCompute, Context->MainDataSet->GetDataSetIndices().UAV);
+
+
+	// run shader, sim and spawn in a single dispatch
+	RHICmdList.SetComputeShader(SpawnShader->GetComputeShader());
+	SetupDataInterfaceBuffers(Context->UpdateInterfaces, SpawnShader, RHICmdList);
+	Run(Context->MainDataSet, SimulationStartInstance, SpawnStartInstance, TotalNumInstances, SpawnShader, Context->SpawnParams, RHICmdList, Context->MainDataSet->GetDataSetIndices());
 
 	// resolve data set writes
 	// grabs the number of instances written from the index set during the simulation run
 	//
 	uint32 NumInstancesAfterSim[64];
 	NumInstancesAfterSim[0] = PrevNumInstances;
-	ResolveDatasetWrites(NumInstancesAfterSim, Context);		// this is going to cause a flush; need to place it differently
+	//we may be able to remove this transition if each step isn't dependent on the previous one.
+	RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, Context->MainDataSet->GetDataSetIndices().UAV);
+	ResolveDatasetWrites(NumInstancesAfterSim, Context, Context->MainDataSet->GetDataSetIndices());		// this is going to cause a flush; need to place it differently
 	Context->MainDataSet->CurrDataRender().SetNumInstances(NumInstancesAfterSim[0]);
+	RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, Context->MainDataSet->GetDataSetIndices().UAV);
 
 	// TODO: hack - only updating event set 0 on update scripts now; need to match them to their indices and update them all
+	/*
 	if (Context->UpdateEventWriteDataSets.Num())
-	{
+	{ 
 		Context->UpdateEventWriteDataSets[0]->CurrDataRender().SetNumInstances(NumInstancesAfterSim[1]);
 	}
+	*/
 
-	UE_LOG(LogNiagara, Log, TEXT("After sim instances %i"), NumInstancesAfterSim[0]);
+	//UE_LOG(LogNiagara, Log, TEXT("After sim instances %i"), NumInstancesAfterSim[0]);
 
-	// spawn run
-	// bursts and regular spawn rate happen at once here
-	RHICmdList.SetComputeShader(SpawnShader->GetComputeShader());
-	uint32 SpawnInstances = Context->SpawnRateInstances + Context->BurstInstances + EventSpawnTotal;
-	uint32 NumInstancesAfterSpawn = NumInstancesAfterSim[0] + SpawnInstances;
-	uint32 NumInstancesAfterNonEventSpawn = NumInstancesAfterSim[0] + Context->SpawnRateInstances + Context->BurstInstances;
-	if (SpawnInstances)
-	{
-		Run(Context->MainDataSet, NumInstancesAfterSim[0], Context->SpawnRateInstances + Context->BurstInstances + EventSpawnTotal, SpawnShader, Context->SpawnParams, RHICmdList);
-		Context->MainDataSet->CurrDataRender().SetNumInstances(NumInstancesAfterSpawn);
-
-		//uncomment this to check number of spawn instances versus ones actually processed by the shader
-		uint32 NumInstancesSpawned[64];
-		ResolveDatasetWrites(NumInstancesSpawned, Context);
-		ensure(NumInstancesSpawned[0] == SpawnInstances);
-		UE_LOG(LogNiagara, Log, TEXT("Spawned %i to %i, ran spawn script on %i"), Context->SpawnRateInstances, NumInstancesAfterSpawn, NumInstancesSpawned[0]);
-
-		ensure(NumInstancesAfterNonEventSpawn + EventSpawnTotal == NumInstancesAfterSpawn);
-		ensure(NumInstancesAfterNonEventSpawn + EventSpawnTotal == Context->MainDataSet->CurrDataRender().GetNumInstances());
-	}
-
-
-
-	RunEventHandlers(Context, NumInstancesAfterSim[0], NumInstancesAfterSpawn, NumInstancesAfterNonEventSpawn, RHICmdList);
+	//RunEventHandlers(Context, NumInstancesAfterSim[0], NumInstancesAfterSpawn, NumInstancesAfterNonEventSpawn, RHICmdList);
 
 	// the VF grabs PrevDataRender for drawing, so need to transition
 	RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, Context->MainDataSet->PrevDataRender().GetGPUBufferFloat()->UAV);
@@ -145,16 +142,16 @@ void NiagaraEmitterInstanceBatcher::TickSingle(const FNiagaraComputeExecutionCon
 }
 
 
-void NiagaraEmitterInstanceBatcher::ResolveDatasetWrites(uint32 *OutArray, const FNiagaraComputeExecutionContext *Context) const
+void NiagaraEmitterInstanceBatcher::ResolveDatasetWrites(uint32 *OutArray, const FNiagaraComputeExecutionContext *Context, FRWBuffer &WriteIndexBuffer) const
 {
-	if (Context->MainDataSet->GetDataSetIndices().NumBytes > 0)
+	if (WriteIndexBuffer.NumBytes > 0)
 	{
-		int32 *DataSetInstanceIndexBuffer = static_cast<int32*>(RHILockVertexBuffer(Context->MainDataSet->GetDataSetIndices().Buffer, 0, 64 * sizeof(int32), EResourceLockMode::RLM_ReadOnly));
+		int32 *DataSetInstanceIndexBuffer = static_cast<int32*>(RHILockVertexBuffer(WriteIndexBuffer.Buffer, 0, 64 * sizeof(int32), EResourceLockMode::RLM_ReadOnly));
 		for (uint32 SetIdx = 0; SetIdx < 64; SetIdx++)
 		{
-			OutArray[SetIdx] = DataSetInstanceIndexBuffer[SetIdx];
+			OutArray[SetIdx] = DataSetInstanceIndexBuffer[SetIdx*4+1];
 		}
-		RHIUnlockVertexBuffer(Context->MainDataSet->GetDataSetIndices().Buffer);
+		RHIUnlockVertexBuffer(WriteIndexBuffer.Buffer);
 	}
 }
 
@@ -178,24 +175,24 @@ void NiagaraEmitterInstanceBatcher::SetupDataInterfaceBuffers(const TArray<FNiag
 	}
 }
 
-void NiagaraEmitterInstanceBatcher::Run(FNiagaraDataSet *DataSet, uint32 StartInstance, const uint32 NumInstances, FNiagaraShader *Shader, const TArray<uint8, TAlignedHeapAllocator<16>>  &Params, FRHICommandList &RHICmdList, bool bCopyBeforeStart) const
+void NiagaraEmitterInstanceBatcher::Run(FNiagaraDataSet *DataSet, uint32 Phase0StartInstance, uint32 Phase1StartInstance, const uint32 TotalNumInstances, FNiagaraShader *Shader, const TArray<uint8, TAlignedHeapAllocator<16>>  &Params, FRHICommandList &RHICmdList, const FRWBuffer &WriteIndexBuffer, bool bCopyBeforeStart) const
 {
-	// Recreate a clear data set index buffer for the simulation shader to write number of written instances to
-	//
-	FRWBuffer &InstanceIdxBuf = DataSet->SetupDataSetIndices();
-	ClearUAV(RHICmdList, InstanceIdxBuf, 0);
-	RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, EResourceTransitionPipeline::EComputeToCompute, InstanceIdxBuf.UAV);
+	if (TotalNumInstances == 0)
+	{
+		return;
+	}
+
+	RHICmdList.SetComputeShader(Shader->GetComputeShader());
 
 	// set the shader and data set params 
 	//
-	//RHICmdList.SetComputeShader(Shader->GetComputeShader());
 	DataSet->SetShaderParams(Shader, RHICmdList);
 
 	// set the index buffer uav
 	//
 	if (Shader->OutputIndexBufferParam.IsBound())
 	{
-		RHICmdList.SetUAVParameter(Shader->GetComputeShader(), Shader->OutputIndexBufferParam.GetUAVIndex(), InstanceIdxBuf.UAV);
+		RHICmdList.SetUAVParameter(Shader->GetComputeShader(), Shader->OutputIndexBufferParam.GetUAVIndex(), WriteIndexBuffer.UAV);
 	}
 
 	// set the execution parameters
@@ -204,44 +201,18 @@ void NiagaraEmitterInstanceBatcher::Run(FNiagaraDataSet *DataSet, uint32 StartIn
 	{
 		RHICmdList.SetShaderParameter(Shader->GetComputeShader(), 0, Shader->EmitterTickCounterParam.GetBaseIndex(), Shader->EmitterTickCounterParam.GetNumBytes(), &FNiagaraComputeExecutionContext::TickCounter);
 	}
+
 	uint32 Copy = bCopyBeforeStart ? 1 : 0;
-	RHICmdList.SetShaderParameter(Shader->GetComputeShader(), 0, Shader->CopyInstancesBeforeStartParam.GetBaseIndex(), Shader->CopyInstancesBeforeStartParam.GetNumBytes(), &Copy);
 
-	// Now figure out how many instances each thread needs to simulate and how many thread groups we're running. We do this based on the total number of 
-	// instances we need to run and how many threads per thread group there are as well as the max. number of thread groups (defined in NiagaraCommon.h)
-	//
-	uint32 NumInstancesPerThread = 0;
-	uint32 AdjustedNumInstances = NumInstances;
-	uint32 SimulateStartInstance = StartInstance;
+	RHICmdList.SetShaderParameter(Shader->GetComputeShader(), 0, Shader->StartInstancePhase0Param.GetBaseIndex(), Shader->StartInstancePhase0Param.GetNumBytes(), &Phase0StartInstance);
+	RHICmdList.SetShaderParameter(Shader->GetComputeShader(), 0, Shader->StartInstancePhase1Param.GetBaseIndex(), Shader->StartInstancePhase1Param.GetNumBytes(), &Phase1StartInstance);
+	RHICmdList.SetShaderParameter(Shader->GetComputeShader(), 0, Shader->TotalNumInstancesParam.GetBaseIndex(), Shader->TotalNumInstancesParam.GetNumBytes(), &TotalNumInstances);
 
-	// if the caller requests to copy all instances before StartInstance, set up the params accordingly
-	// spawn events need to do this, for example
-	if (bCopyBeforeStart)
-	{
-		AdjustedNumInstances += StartInstance;
-		StartInstance = 0;
-	}
-
-	RHICmdList.SetShaderParameter(Shader->GetComputeShader(), 0, Shader->SimulateStartInstanceParam.GetBaseIndex(), Shader->SimulateStartInstanceParam.GetNumBytes(), &SimulateStartInstance);
-	RHICmdList.SetShaderParameter(Shader->GetComputeShader(), 0, Shader->StartInstanceParam.GetBaseIndex(), Shader->StartInstanceParam.GetNumBytes(), &StartInstance);
-
-	NumInstancesPerThread = FMath::DivideAndRoundUp(AdjustedNumInstances, NIAGARA_COMPUTE_THREADGROUP_SIZE);
 	uint32 NumThreadGroups = 1;
-	if (AdjustedNumInstances > NIAGARA_COMPUTE_THREADGROUP_SIZE)
+	if (TotalNumInstances > NIAGARA_COMPUTE_THREADGROUP_SIZE)
 	{
-		NumThreadGroups = FMath::Min(NIAGARA_MAX_COMPUTE_THREADGROUPS, FMath::DivideAndRoundUp(AdjustedNumInstances, NIAGARA_COMPUTE_THREADGROUP_SIZE));
-		NumInstancesPerThread = FMath::DivideAndRoundUp(NumInstancesPerThread, NumThreadGroups);
+		NumThreadGroups = FMath::Min(NIAGARA_MAX_COMPUTE_THREADGROUPS, FMath::DivideAndRoundUp(TotalNumInstances, NIAGARA_COMPUTE_THREADGROUP_SIZE));
 	}
-
-	RHICmdList.SetShaderParameter(Shader->GetComputeShader(), 0, Shader->NumInstancesPerThreadParam.GetBaseIndex(), Shader->NumInstancesPerThreadParam.GetNumBytes(), &NumInstancesPerThread);
-	RHICmdList.SetShaderParameter(Shader->GetComputeShader(), 0, Shader->NumInstancesParam.GetBaseIndex(), Shader->NumInstancesParam.GetNumBytes(), &AdjustedNumInstances);
-	RHICmdList.SetShaderParameter(Shader->GetComputeShader(), 0, Shader->NumThreadGroupsParam.GetBaseIndex(), Shader->NumThreadGroupsParam.GetNumBytes(), &NumThreadGroups);
-
-	if (StartInstance > 0)
-	{
-		//UE_LOG(LogNiagara, Log, TEXT("Startinstance %i (%i)    NumInstances %i (%i)   %i/Thread, %i groups"), StartInstance, SimulateStartInstance, NumInstances, AdjustedNumInstances, NumInstancesPerThread, NumThreadGroups);
-	}
-
 
 	// setup script parameters
 	FRHIUniformBufferLayout CBufferLayout(TEXT("Niagara Compute Sim CBuffer"));
@@ -257,10 +228,10 @@ void NiagaraEmitterInstanceBatcher::Run(FNiagaraDataSet *DataSet, uint32 StartIn
 
 	// Dispatch, if anything needs to be done
 	//
-	if (NumInstancesPerThread)
+	if (TotalNumInstances)
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, NiagaraGPUSimulationCS);
-		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_NiagaraSim);
+		SCOPED_GPU_STAT(RHICmdList, NiagaraSim);
 		DispatchComputeShader(RHICmdList, Shader, NumThreadGroups, 1, 1);
 	}
 
@@ -275,9 +246,10 @@ void NiagaraEmitterInstanceBatcher::RunEventHandlers(const FNiagaraComputeExecut
 {
 	// Event handler run
 	//
-	for (int32 EventScriptIdx = 0; EventScriptIdx < Context->EventHandlerScriptProps.Num(); EventScriptIdx++)
+	/*
+	for (int32 EventScriptIdx = 0; EventScriptIdx < Context->GetEventHandlers().Num(); EventScriptIdx++)
 	{
-		const FNiagaraEventScriptProperties &EventHandlerProps = Context->EventHandlerScriptProps[EventScriptIdx];
+		const FNiagaraEventScriptProperties &EventHandlerProps = Context->GetEventHandlers()[EventScriptIdx];
 		FNiagaraDataSet *EventSet = Context->EventSets[EventScriptIdx];
 		if (EventSet)
 		{
@@ -308,7 +280,7 @@ void NiagaraEmitterInstanceBatcher::RunEventHandlers(const FNiagaraComputeExecut
 					RHICmdList.SetShaderResourceViewParameter(EventHandlerShader->GetComputeShader(), IntParam.GetBaseIndex(), EventSet->PrevDataRender().GetGPUBufferInt()->SRV);
 
 					TArray<uint8, TAlignedHeapAllocator<16>>  BlankParams;
-					Run(Context->MainDataSet, 0, NumInstancesAfterNonEventSpawn, EventHandlerShader, BlankParams, RHICmdList);
+					Run(Context->MainDataSet, 0, NumInstancesAfterNonEventSpawn, EventHandlerShader, BlankParams, RHICmdList, DummyWriteIndexBuffer);
 				}
 			}
 
@@ -345,11 +317,12 @@ void NiagaraEmitterInstanceBatcher::RunEventHandlers(const FNiagaraComputeExecut
 					check(NumInstancesAfterNonEventSpawn + EventSpawnNum == Context->MainDataSet->CurrDataRender().GetNumInstances());
 
 					TArray<uint8, TAlignedHeapAllocator<16>>  BlankParams;
-					Run(Context->MainDataSet, NumInstancesAfterNonEventSpawn, EventSpawnNum, EventHandlerShader, BlankParams, RHICmdList, true);
+					Run(Context->MainDataSet, NumInstancesAfterNonEventSpawn, EventSpawnNum, EventHandlerShader, BlankParams, RHICmdList, DummyWriteIndexBuffer, true);
 				}
 			}
 		}
 	}
+	*/
 }
 
 void NiagaraEmitterInstanceBatcher::SetPrevDataStrideParams(const FNiagaraDataSet *Set, FNiagaraShader *Shader, FRHICommandList &RHICmdList) const

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Misc/App.h"
@@ -575,7 +575,9 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 
 				//ignore key down events when the native input was clicked or when the keyboard animation is playing
 				if (AndroidThunkCpp_VirtualInputIgnoreClick(x, y))
+				{
 					return 0;
+				}
 			}
 			if(isActionTargeted)
 			{

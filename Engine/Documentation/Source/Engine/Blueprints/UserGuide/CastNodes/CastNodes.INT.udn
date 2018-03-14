@@ -9,44 +9,7 @@ Parent:Engine/Blueprints/Scripting
 tags:Data Types
 tags:Blueprints
 order:2
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\CastNodes:title%](Engine\Blueprints\UserGuide\CastToNode.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\CastNodes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\CastNodes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\CastNodes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\CastNodes:title%](Engine\Blueprints\UserGuide\CastToNode.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\CastNodes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\CastNodes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\CastNodes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Blueprints/UserGuide/CastToNode.png
 
 
 [TOC (start:2 end:2)]
@@ -65,21 +28,21 @@ On this page, you will learn about some of the use cases for Casting, see an exa
 
 Below are a few examples of when **Blueprint Casting** could be used:
 
-[INCLUDE:Engine\Blueprints\UserGuide\BlueprintCommsUsage#castusage]
+[INCLUDE:Engine/Blueprints/UserGuide/BlueprintCommsUsage#castusage]
 
 ## Setting Up a Cast To Example
 
 The example below shows how you can access one Blueprint from inside another Blueprint by using a Cast To node. 
 
-[INCLUDE:Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#castexample]
+[INCLUDE:Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo#castexample]
 
 ## Target Blueprint Casting
 
-[INCLUDE:Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#targetcasting]
+[INCLUDE:Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo#targetcasting]
 
 ## Other Types of Casting
 
-[INCLUDE:Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#othercasting]
+[INCLUDE:Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo#othercasting]
 
 
 

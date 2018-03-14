@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessTestImage.cpp: Post processing TestImage implementation.
@@ -22,14 +22,14 @@ class FPostProcessTestImagePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessTestImagePS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters,OutEnvironment);
 	}
 
 	/** Default constructor. */
@@ -95,11 +95,10 @@ void FRCPassPostProcessTestImage::Process(FRenderingCompositePassContext& Contex
 {
 	SCOPED_DRAW_EVENT(Context.RHICmdList, TestImage);
 
-	const FSceneView& View = Context.View;
-	const FSceneViewFamily& ViewFamily = *(View.Family);
+	const FSceneViewFamily& ViewFamily = *(Context.View.Family);
 	
-	FIntRect SrcRect = View.UnscaledViewRect;
-	FIntRect DestRect = View.UnscaledViewRect;
+	FIntRect SrcRect = Context.SceneColorViewRect;
+	FIntRect DestRect = Context.SceneColorViewRect;
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
@@ -138,7 +137,7 @@ void FRCPassPostProcessTestImage::Process(FRenderingCompositePassContext& Contex
 		EDRF_UseTriangleOptimization);
 
 	{
-		FRenderTargetTemp TempRenderTarget(View, (const FTexture2DRHIRef&)DestRenderTarget.TargetableTexture);
+		FRenderTargetTemp TempRenderTarget(Context.View, (const FTexture2DRHIRef&)DestRenderTarget.TargetableTexture);
 		FCanvas Canvas(&TempRenderTarget, NULL, ViewFamily.CurrentRealTime, ViewFamily.CurrentWorldTime, ViewFamily.DeltaWorldTime, Context.GetFeatureLevel());
 
 		float X = 30;

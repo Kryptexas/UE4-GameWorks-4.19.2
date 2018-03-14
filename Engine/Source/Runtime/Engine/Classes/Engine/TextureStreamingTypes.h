@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // Structs and defines used for texture streaming build
 
@@ -230,7 +230,8 @@ public:
 };
 
 
-/** A Map that gives the (smallest) texture coordinate scale used when sampling each texture register of a shader.
+/**
+ * A Map that gives the (smallest) texture coordinate scale used when sampling each texture register of a shader.
  * The array index is the register index, and the value, is the coordinate scale.
  * Since a texture resource can be bound to several texture registers, it can related to different indices.
  * This is reflected in UMaterialInterface::GetUsedTexturesAndIndices where each texture is bound to 
@@ -258,5 +259,17 @@ ENGINE_API uint32 PackRelativeBox(const FVector& RefOrigin, const FVector& RefEx
 ENGINE_API uint32 PackRelativeBox(const FBox& RefBox, const FBox& Box);
 ENGINE_API void UnpackRelativeBox(const FBoxSphereBounds& InRefBounds, uint32 InPackedRelBox, FBoxSphereBounds& OutBounds);
 
-
 extern ENGINE_API TAutoConsoleVariable<int32> CVarStreamingUseNewMetrics;
+
+/** Reset the history of the value returned by GetAverageRequiredTexturePoolSize() */
+ENGINE_API void ResetAverageRequiredTexturePoolSize();
+
+/**
+ * Returns the average value of the required texture pool "r.streaming.PoolSize" since engine start or since the last ResetAverageRequiredTexturePoolSize().
+ * This value gives the perfect value for "r.streaming.PoolSize" so that the streamer would always have enough memory to stream in everything.
+ * The requirements are different depending on whether GPoolSizeVRAMPercentage > 0 or not.
+ * When GPoolSizeVRAMPercentage > 0, the non streaming mips are not accounted in the required pool size since StreamingPool = Min(TexturePool, GPoolSizeVRAMPercentage * VRAM - RenderTargets - NonStreamingTexture)
+ * This means that the StreamingPool = TexturePool, unless there is not enough VRAM
+ * Otherwise, when GPoolSizeVRAMPercentage == 0, StreamingPool = TexturePool - NonStreamingTexture. In which case "r.streaming.PoolSize" must account for the size of NonStreamingTexture
+ */
+ENGINE_API int64 GetAverageRequiredTexturePoolSize();

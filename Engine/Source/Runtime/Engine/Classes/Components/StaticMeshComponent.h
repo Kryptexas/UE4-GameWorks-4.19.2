@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,6 +14,7 @@
 #include "PackedNormal.h"
 #include "RawIndexBuffer.h"
 #include "UniquePtr.h"
+#include "Runtime/Launch/Resources/Version.h"
 #include "StaticMeshComponent.generated.h"
 
 class FColorVertexBuffer;
@@ -371,6 +372,7 @@ public:
 	virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn) override;	
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostInitProperties() override;
+	virtual void NotifyObjectReferenceEliminated() const override;
 #if WITH_EDITOR
 	virtual void PostEditUndo() override;
 	virtual void PreEditUndo() override;
@@ -422,6 +424,7 @@ public:
 	virtual int32 GetNumMaterials() const override;
 #if WITH_EDITOR
 	virtual void GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPrimitiveInfo,const TArray<ULightComponent*>& InRelevantLights,const FLightingBuildOptions& Options) override;
+	virtual void AddMapBuildDataGUIDs(TSet<FGuid>& InGUIDs) const override;
 #endif
 	virtual float GetEmissiveBoost(int32 ElementIndex) const override;
 	virtual float GetDiffuseBoost(int32 ElementIndex) const override;
@@ -634,15 +637,10 @@ public:
 
 	void ApplyComponentInstanceData(class FStaticMeshComponentInstanceData* ComponentInstanceData);
 
-	/** Register this component's render data with the scene for SpeedTree wind */
-	void AddSpeedTreeWind();
-
-	/** Unregister this component's render data with the scene for SpeedTree wind */
-	void RemoveSpeedTreeWind();
-
 	virtual void PropagateLightingScenarioChange() override;
 
 	const FMeshMapBuildData* GetMeshMapBuildData(const FStaticMeshComponentLODInfo& LODInfo) const;
+
 
 #if WITH_EDITOR
 	/** Called when the static mesh changes  */

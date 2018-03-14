@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanIndexBuffer.cpp: Vulkan Index buffer RHI implementation.
@@ -97,8 +97,8 @@ FVulkanResourceMultiBuffer::FVulkanResourceMultiBuffer(FVulkanDevice* InDevice, 
 			}
 
 			NumBuffers = bDynamic ? NUM_RENDER_BUFFERS : 1;
+			check(NumBuffers <= ARRAY_COUNT(Buffers));
 
-			Buffers.AddDefaulted(NumBuffers);
 			for (uint32 Index = 0; Index < NumBuffers; ++Index)
 			{
 				Buffers[Index] = InDevice->GetResourceHeapManager().AllocateBuffer(InSize, BufferUsageFlags, BufferMemFlags, __FILE__, __LINE__);
@@ -225,7 +225,7 @@ inline void FVulkanResourceMultiBuffer::InternalUnlock(FVulkanCommandListContext
 	MultiBuffer->GetParent()->GetStagingManager().ReleaseBuffer(Cmd, StagingBuffer);
 }
 
-struct FRHICommandMultiBufferUnlock : public FRHICommand<FRHICommandMultiBufferUnlock>
+struct FRHICommandMultiBufferUnlock final : public FRHICommand<FRHICommandMultiBufferUnlock>
 {
 	VulkanRHI::FPendingBufferLock PendingLock;
 	FVulkanResourceMultiBuffer* MultiBuffer;

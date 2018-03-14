@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OculusHMD_CustomPresent.h"
 #include "OculusHMDPrivateRHI.h"
@@ -35,7 +35,7 @@ public:
 
 
 FVulkanCustomPresent::FVulkanCustomPresent(FOculusHMD* InOculusHMD) :
-	FCustomPresent(InOculusHMD, ovrpRenderAPI_Vulkan, PF_R8G8B8A8, false)
+	FCustomPresent(InOculusHMD, ovrpRenderAPI_Vulkan, PF_R8G8B8A8, false, false)
 {
 }
 
@@ -46,8 +46,8 @@ bool FVulkanCustomPresent::IsUsingCorrectDisplayAdapter() const
 	const void* luid;
 
 	FVulkanDynamicRHI* const DynamicRHI = static_cast<FVulkanDynamicRHI*>(GDynamicRHI);
-	if (OVRP_SUCCESS(ovrp_GetDisplayAdapterId2(&luid)) && 
-		luid && 
+	if (OVRP_SUCCESS(ovrp_GetDisplayAdapterId2(&luid)) &&
+		luid &&
 		DynamicRHI->GetDevice()->GetOptionalExtensions().HasKHRGetPhysicalDeviceProperties2)
 	{
 		const VkPhysicalDeviceIDPropertiesKHR& vkPhysicalDeviceIDProperties = DynamicRHI->GetDevice()->GetDeviceIdProperties();

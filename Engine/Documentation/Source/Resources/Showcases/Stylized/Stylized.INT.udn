@@ -12,48 +12,7 @@ Related: Engine/Landscape
 Related: Engine/Landscape/Editing/Splines
 Related: Engine/Landscape/Materials
 Version: 4.9
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/Showcases/Stylized:title%](Stylized_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/Stylized:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/Stylized:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/Stylized]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/Showcases/Stylized:title%](Stylized_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/Stylized:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/Stylized:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/Stylized]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:Stylized_Topic.png
 
 
 [REGION:fullwidth]
@@ -64,7 +23,6 @@ This showcase demonstrates the creation of a stylized, or cartoony, type of envi
 
 The various elements that bring this environment to life are many, ranging from technical applications of engine features and artistic approaches to textures. For the purposes of this documentation, we will focus on the more technical aspects of the setup, which include Post Processing, the Landscape object, and some special Materials. However, you are strongly encouraged to explore each object's Material and texture setup as well, since there is much that can be gleaned from the artist's approach to this scene.
 
-[REGION:topics third]
 [OBJECT:TopicCompact]
 	[PARAM:image]
 		![%Resources/Showcases/Stylized/PostProcessing:title%](PostProcess.png)
@@ -98,14 +56,15 @@ The various elements that bring this environment to life are many, ranging from 
 		[RELATIVE:Resources/Showcases/Stylized/Materials]
 	[/PARAM]
 [/OBJECT]
-[/REGION]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:InstanceNote]
 [REGION:note]
 Most of the Materials created for this scene are actually applied via a [Material Instance Constant](Engine/Rendering/Materials/MaterialInstances). This allows for rapid property adjustments and tweaks without having to wait for the Material to recompile.
 [/REGION]
 [/EXCERPT:InstanceNote]
 
---->
+-
+[/COMMENT]

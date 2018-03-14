@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -343,20 +343,12 @@ namespace UnrealBuildTool
 			get { return "Local"; }
 		}
 
-		public virtual double AdjustedProcessorCountMultiplier
-		{
-			get { return ProcessorCountMultiplier; }
-		}
-
 		/// <summary>
-		/// Executes the specified actions locally.
+		/// Determines the maximum number of actions to execute in parallel, taking into account the resources available on this machine.
 		/// </summary>
-		/// <returns>True if all the tasks successfully executed, or false if any of them failed.</returns>
-		public override bool ExecuteActions(List<Action> Actions, bool bLogDetailedActionStats)
+		/// <returns>Max number of actions to execute in parallel</returns>
+		public virtual int GetMaxActionsToExecuteInParallel()
 		{
-			// Time to sleep after each iteration of the loop in order to not busy wait.
-			const float LoopSleepTime = 0.1f;
-
 			// Use WMI to figure out physical cores, excluding hyper threading.
 			int NumCores = Utils.GetPhysicalProcessorCount();
 			if (NumCores == -1)
@@ -396,7 +388,20 @@ namespace UnrealBuildTool
 #endif
 
 			MaxActionsToExecuteInParallel = Math.Max(1, Math.Min(MaxActionsToExecuteInParallel, MaxProcessorCount));
+			return MaxActionsToExecuteInParallel;
+		}
 
+		/// <summary>
+		/// Executes the specified actions locally.
+		/// </summary>
+		/// <returns>True if all the tasks successfully executed, or false if any of them failed.</returns>
+		public override bool ExecuteActions(List<Action> Actions, bool bLogDetailedActionStats)
+		{
+			// Time to sleep after each iteration of the loop in order to not busy wait.
+			const float LoopSleepTime = 0.1f;
+
+			// The number of actions to execute in parallel is trying to keep the CPU busy enough in presence of I/O stalls.
+			int MaxActionsToExecuteInParallel = GetMaxActionsToExecuteInParallel();
 			Log.TraceInformation("Performing {0} actions ({1} in parallel)", Actions.Count, MaxActionsToExecuteInParallel);
 
 			Dictionary<Action, ActionThread> ActionThreadDictionary = new Dictionary<Action, ActionThread>();

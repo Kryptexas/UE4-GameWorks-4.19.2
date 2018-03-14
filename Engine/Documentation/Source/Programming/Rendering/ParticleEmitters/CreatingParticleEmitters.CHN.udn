@@ -222,7 +222,8 @@ ParticleEmitterInstance 结构体可以包含以下成员函数，它们可以�
 | [REGION:wrap]`void FParticleSpinnerEmitterInstance::AdjustComponentRotation()`[/REGION] | 	`AdjustComponentRotation()` 函数会更改分量 LocalToWorld 以说明发射器实例旋转量。 [INCLUDE:#AdjustComponentRotation] |
 | [REGION:wrap]`void FParticleSpinnerEmitterInstance::RestoreComponentRotation()`[/REGION] |	`RestoreComponentRotation()` 函数会从组件 LocalToWorld 中删除发射器实例旋转量。 [INCLUDE:#RestoreComponentRotation] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Constructor]
 [REGION:transparenttable]
 | --- | --- |
@@ -377,7 +378,8 @@ ParticleEmitterInstance 结构体可以包含以下成员函数，它们可以�
 	   Component->SetTransformedToWorld();
 	}
 [/EXCERPT:RestoreComponentRotation]
--->
+
+[/COMMENT]
 
 ### 结果
 

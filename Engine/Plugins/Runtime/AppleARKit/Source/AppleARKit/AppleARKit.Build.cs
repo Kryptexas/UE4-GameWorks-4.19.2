@@ -1,3 +1,5 @@
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
 using UnrealBuildTool;
 
 public class AppleARKit : ModuleRules
@@ -43,8 +45,13 @@ public class AppleARKit : ModuleRules
                 "ShaderCore",
                 "HeadMountedDisplay",
                 "IOSRuntimeSettings",
-                "AugmentedReality"
-				// ... add private dependencies that you statically link with here ...	
+                "AugmentedReality",
+                "ProceduralMeshComponent",
+                "LiveLink",
+                "LiveLinkInterface",
+//                "OnlineSubsystem",
+                "Sockets"
+				// ... add private dependencies that you statically link with here ...
 			}
 			);
 		
@@ -58,12 +65,12 @@ public class AppleARKit : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
-			Definitions.Add("ARKIT_SUPPORT=1");
+			PublicDefinitions.Add("ARKIT_SUPPORT=1");
 			PublicFrameworks.Add( "ARKit" );
 		}
 		else
 		{
-			Definitions.Add("ARKIT_SUPPORT=0");
+			PublicDefinitions.Add("ARKIT_SUPPORT=0");
 		}
 	}
 }

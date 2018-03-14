@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AttenuationSettingsCustomizations.h"
 #include "Widgets/Text/STextBlock.h"
@@ -342,18 +342,11 @@ void FSoundAttenuationSettingsCustomization::CustomizeChildren(TSharedRef<IPrope
 	LayoutBuilder.AddPropertyToCategory(bIsSpatializedHandle)
 		.EditCondition(IsAttenuationOverriddenAttribute(), nullptr);
 
-	// Check to see if a spatialization plugin is enabled
-	if (IsAudioPluginEnabled(EAudioPlugin::SPATIALIZATION))
-	{
-		LayoutBuilder.AddPropertyToCategory(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, SpatializationAlgorithm)))
-			.EditCondition(GetIsSpatializationEnabledAttribute(), nullptr);
+	bool bIsAudioMixerEnabled = GetDefault<UAudioSettings>()->IsAudioMixerEnabled();
 
-		if (DoesAudioPluginHaveCustomSettings(EAudioPlugin::SPATIALIZATION))
-		{
-			LayoutBuilder.AddPropertyToCategory(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, SpatializationPluginSettings)))
-				.EditCondition(GetIsSpatializationEnabledAttribute(), nullptr);
-		}
-	}
+	// Check to see if a spatialization plugin is enabled
+	LayoutBuilder.AddPropertyToCategory(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, SpatializationAlgorithm)))
+		.EditCondition(GetIsSpatializationEnabledAttribute(), nullptr);
 
 	LayoutBuilder.AddPropertyToCategory(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OmniRadius)))
 		.EditCondition(GetIsSpatializationEnabledAttribute(), nullptr);
@@ -382,7 +375,7 @@ void FSoundAttenuationSettingsCustomization::CustomizeChildren(TSharedRef<IPrope
 	LayoutBuilder.AddPropertyToCategory(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, LPFFrequencyAtMax)))
 		.EditCondition(GetIsAirAbsorptionEnabledAttribute(), nullptr);
 
-	if (GetDefault<UAudioSettings>()->IsAudioMixerEnabled())
+	if (bIsAudioMixerEnabled)
 	{
 		LayoutBuilder.AddPropertyToCategory(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, HPFFrequencyAtMin)))
 			.EditCondition(GetIsAirAbsorptionEnabledAttribute(), nullptr);
@@ -401,26 +394,15 @@ void FSoundAttenuationSettingsCustomization::CustomizeChildren(TSharedRef<IPrope
 		.Visibility(TAttribute<EVisibility>(this, &FSoundAttenuationSettingsCustomization::IsCustomAirAbsorptionCurveSelected))
 		.EditCondition(GetIsAirAbsorptionEnabledAttribute(), nullptr);
 
-	if (GetDefault<UAudioSettings>()->IsAudioMixerEnabled())
+	if (bIsAudioMixerEnabled)
 	{
 		LayoutBuilder.AddPropertyToCategory(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, CustomHighpassAirAbsorptionCurve)))
 			.Visibility(TAttribute<EVisibility>(this, &FSoundAttenuationSettingsCustomization::IsCustomAirAbsorptionCurveSelected))
 			.EditCondition(GetIsAirAbsorptionEnabledAttribute(), nullptr);
-	}
 
-	// The reverb wet-level mapping is an audio mixer-only feature
-	if (GetDefault<UAudioSettings>()->IsAudioMixerEnabled())
-	{
 		// Add the reverb send enabled handle
 		LayoutBuilder.AddPropertyToCategory(bIsReverbSendEnabledHandle)
 			.EditCondition(IsAttenuationOverriddenAttribute(), nullptr);
-
-		// Check if a reverb plugin is enabled, otherwise don't show this
-		if (DoesAudioPluginHaveCustomSettings(EAudioPlugin::REVERB))
-		{
-			LayoutBuilder.AddPropertyToCategory(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbPluginSettings)))
-				.EditCondition(GetIsReverbSendEnabledAttribute(), nullptr);
-		}
 
 		LayoutBuilder.AddPropertyToCategory(ReverbSendMethodHandle)
 			.EditCondition(GetIsReverbSendEnabledAttribute(), nullptr);
@@ -486,14 +468,6 @@ void FSoundAttenuationSettingsCustomization::CustomizeChildren(TSharedRef<IPrope
 	LayoutBuilder.AddPropertyToCategory(bIsOcclusionEnabledHandle)
 		.EditCondition(IsAttenuationOverriddenAttribute(), nullptr);
 
-	// Hide the occlusion plugin settings slot if there's no occlusion plugin loaded.
-	// Don't show the built-in occlusion settings if we're using 
-	if (GetDefault<UAudioSettings>()->IsAudioMixerEnabled() && DoesAudioPluginHaveCustomSettings(EAudioPlugin::OCCLUSION))
-	{
-		LayoutBuilder.AddPropertyToCategory(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OcclusionPluginSettings)))
-			.EditCondition(GetIsOcclusionEnabledAttribute(), nullptr);
-	}
-
 	LayoutBuilder.AddPropertyToCategory(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OcclusionTraceChannel)))
 		.EditCondition(GetIsOcclusionEnabledAttribute(), nullptr);
 
@@ -509,7 +483,13 @@ void FSoundAttenuationSettingsCustomization::CustomizeChildren(TSharedRef<IPrope
 	LayoutBuilder.AddPropertyToCategory(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, bUseComplexCollisionForOcclusion)))
 		.EditCondition(GetIsOcclusionEnabledAttribute(), nullptr);
 
-	if (PropertyHandles.Num() != 53)
+	if (bIsAudioMixerEnabled)
+	{
+		LayoutBuilder.AddPropertyToCategory(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, PluginSettings)))
+			.EditCondition(IsAttenuationOverriddenAttribute(), nullptr);
+	}
+
+	if (PropertyHandles.Num() != 51)
 	{
 		FString PropertyList;
 		for (auto It(PropertyHandles.CreateConstIterator()); It; ++It)

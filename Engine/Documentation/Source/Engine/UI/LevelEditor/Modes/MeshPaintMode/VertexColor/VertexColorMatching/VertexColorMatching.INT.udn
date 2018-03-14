@@ -27,9 +27,9 @@ This feature will only be available if a mesh needs fixup; otherwise, it will be
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Original Mesh - Fix Before](fix_before.png)(w:850 h:404)
+	![Original Mesh - Fix Before](fix_before.png)(w:850)
 	[/PARAM]
 	[PARAM:after]
-	![Lower Poly Mesh - Fixup applied](fix_after.png)(w:850 h:404)
+	![Lower Poly Mesh - Fixup applied](fix_after.png)(w:850)
 	[/PARAM]
 [/OBJECT]

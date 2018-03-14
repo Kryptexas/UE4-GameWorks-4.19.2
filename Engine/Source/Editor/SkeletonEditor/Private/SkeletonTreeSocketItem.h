@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -38,6 +38,7 @@ public:
 	virtual void ToggleInlineEditorExpansion() override { bInlineEditorExpanded = !bInlineEditorExpanded; }
 	virtual bool IsInlineEditorExpanded() const override { return bInlineEditorExpanded; }
 	virtual FName GetRowItemName() const override { return Socket->SocketName; }
+	virtual bool CanRenameItem() const override { return true; }
 	virtual void RequestRename() override;
 	virtual void OnItemDoubleClicked() override;
 	virtual FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;

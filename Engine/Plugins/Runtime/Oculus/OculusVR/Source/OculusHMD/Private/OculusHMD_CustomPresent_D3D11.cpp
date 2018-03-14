@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OculusHMD_CustomPresent.h"
 #include "OculusHMDPrivateRHI.h"
@@ -31,7 +31,7 @@ public:
 
 
 FD3D11CustomPresent::FD3D11CustomPresent(FOculusHMD* InOculusHMD) :
-	FCustomPresent(InOculusHMD, ovrpRenderAPI_D3D11, PF_B8G8R8A8, true)
+	FCustomPresent(InOculusHMD, ovrpRenderAPI_D3D11, PF_B8G8R8A8, true, true)
 {
 }
 

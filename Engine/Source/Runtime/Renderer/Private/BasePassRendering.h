@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BasePassRendering.h: Base pass rendering definitions.
@@ -24,7 +24,6 @@
 #include "ShaderBaseClasses.h"
 #include "DebugViewModeRendering.h"
 #include "FogRendering.h"
-#include "EditorCompositeParams.h"
 #include "PlanarReflectionRendering.h"
 #include "UnrealEngine.h"
 
@@ -436,9 +435,9 @@ protected:
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return LightMapPolicyType::ShouldCache(Platform, Material, VertexFactoryType);
+		return LightMapPolicyType::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -463,7 +462,7 @@ protected:
 	}
 
 public:
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		static const auto SupportAtmosphericFog = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportAtmosphericFog"));
 		static const auto SupportAllShaderPermutations = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportAllShaderPermutations"));
@@ -471,7 +470,7 @@ public:
 
 		const bool bProjectAllowsAtmosphericFog = !SupportAtmosphericFog || SupportAtmosphericFog->GetValueOnAnyThread() != 0 || bForceAllPermutations;
 
-		bool bShouldCache = Super::ShouldCache(Platform, Material, VertexFactoryType);
+		bool bShouldCache = Super::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
 		bShouldCache &= (bEnableAtmosphericFog && bProjectAllowsAtmosphericFog && IsTranslucentBlendMode(Material->GetBlendMode())) || !bEnableAtmosphericFog;
 
 		return bShouldCache
@@ -502,13 +501,13 @@ protected:
 		FBaseHS(Initializer)
 	{}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Re-use vertex shader gating
 		// Metal requires matching permutations, but no other platform should worry about this complication.
 		return (bEnableAtmosphericFog == false || IsMetalPlatform(Platform))
-			&& FBaseHS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& TBasePassVS<LightMapPolicyType,bEnableAtmosphericFog>::ShouldCache(Platform,Material,VertexFactoryType);
+			&& FBaseHS::ShouldCompilePermutation(Platform, Material, VertexFactoryType)
+			&& TBasePassVS<LightMapPolicyType,bEnableAtmosphericFog>::ShouldCompilePermutation(Platform,Material,VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -537,11 +536,11 @@ protected:
 	{
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Re-use vertex shader gating
-		return FBaseDS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& TBasePassVS<LightMapPolicyType,false>::ShouldCache(Platform,Material,VertexFactoryType);
+		return FBaseDS::ShouldCompilePermutation(Platform, Material, VertexFactoryType)
+			&& TBasePassVS<LightMapPolicyType,false>::ShouldCompilePermutation(Platform,Material,VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -685,6 +684,8 @@ public:
 		HZBTexture.Bind(ParameterMap, TEXT("HZBTexture"));
 		HZBSampler.Bind(ParameterMap, TEXT("HZBSampler"));
 		HZBUvFactorAndInvFactor.Bind(ParameterMap, TEXT("HZBUvFactorAndInvFactor"));
+		PrevScreenPositionScaleBias.Bind(ParameterMap, TEXT("PrevScreenPositionScaleBias"));
+		PrevSceneColorPreExposureInv.Bind(ParameterMap, TEXT("PrevSceneColorPreExposureInv"));
 		PrevSceneColor.Bind(ParameterMap, TEXT("PrevSceneColor"));
 		PrevSceneColorSampler.Bind(ParameterMap, TEXT("PrevSceneColorSampler"));
 	}
@@ -698,6 +699,8 @@ public:
 		Ar << P.HZBTexture;
 		Ar << P.HZBSampler;
 		Ar << P.HZBUvFactorAndInvFactor;
+		Ar << P.PrevScreenPositionScaleBias;
+		Ar << P.PrevSceneColorPreExposureInv;
 		Ar << P.PrevSceneColor;
 		Ar << P.PrevSceneColorSampler;
 		return Ar;
@@ -709,6 +712,8 @@ private:
 	FShaderResourceParameter HZBTexture;
 	FShaderResourceParameter HZBSampler;
 	FShaderParameter HZBUvFactorAndInvFactor;
+	FShaderParameter PrevScreenPositionScaleBias;
+	FShaderParameter PrevSceneColorPreExposureInv;
 	FShaderResourceParameter PrevSceneColor;
 	FShaderResourceParameter PrevSceneColorSampler;
 };
@@ -722,7 +727,7 @@ class TBasePassPixelShaderPolicyParamType : public FMeshMaterialShader, public P
 {
 public:
 
-	// static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	// static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
@@ -746,7 +751,6 @@ public:
 		ReflectionParameters.Bind(Initializer.ParameterMap);
 		TranslucentLightingParameters.Bind(Initializer.ParameterMap);
 		HeightFogParameters.Bind(Initializer.ParameterMap);
-		EditorCompositeParams.Bind(Initializer.ParameterMap);
 		ForwardLightingParameters.Bind(Initializer.ParameterMap);
 	}
 	TBasePassPixelShaderPolicyParamType() {}
@@ -756,8 +760,7 @@ public:
 		const FMaterialRenderProxy* MaterialRenderProxy, 
 		const FMaterial& MaterialResource, 
 		const FViewInfo* View, 
-		EBlendMode BlendMode, 
-		bool bEnableEditorPrimitveDepthTest,
+		EBlendMode BlendMode,
 		ESceneRenderTargetsMode::Type TextureMode,
 		bool bIsInstancedStereo,
 		bool bUseDownsampledTranslucencyViewUniformBuffer)
@@ -770,13 +773,17 @@ public:
 
 		ReflectionParameters.Set(RHICmdList, ShaderRHI, View);
 
-		if (IsTranslucentBlendMode(BlendMode))
+		const bool bTranslucent = IsTranslucentBlendMode(BlendMode);
+
+		if (bTranslucent)
 		{
 			TranslucentLightingParameters.Set(RHICmdList, ShaderRHI, View);
+		}
+
+		if (bTranslucent || IsForwardShadingEnabled(View->FeatureLevel))
+		{
 			HeightFogParameters.Set(RHICmdList, ShaderRHI, View);
 		}
-		
-		EditorCompositeParams.SetParameters(RHICmdList, MaterialResource, View, bEnableEditorPrimitveDepthTest, GetPixelShader());
 
 		ForwardLightingParameters.Set(RHICmdList, ShaderRHI, *View, bIsInstancedStereo);
 	}
@@ -790,7 +797,6 @@ public:
 		Ar << ReflectionParameters;
 		Ar << TranslucentLightingParameters;
 		Ar << HeightFogParameters;
-		Ar << EditorCompositeParams;
 		Ar << ForwardLightingParameters;
 		return bShaderHasOutdatedParameters;
 	}
@@ -799,7 +805,6 @@ private:
 	FBasePassReflectionParameters ReflectionParameters;
 	FTranslucentLightingParameters TranslucentLightingParameters;
 	FHeightFogShaderParameters HeightFogParameters;
-	FEditorCompositingParameters EditorCompositeParams;
 	FForwardLightingParameters ForwardLightingParameters;
 };
 
@@ -814,9 +819,9 @@ class TBasePassPixelShaderBaseType : public TBasePassPixelShaderPolicyParamType<
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return LightMapPolicyType::ShouldCache(Platform,Material,VertexFactoryType);
+		return LightMapPolicyType::ShouldCompilePermutation(Platform,Material,VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -838,7 +843,7 @@ class TBasePassPS : public TBasePassPixelShaderBaseType<LightMapPolicyType>
 	DECLARE_SHADER_TYPE(TBasePassPS,MeshMaterial);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Only compile skylight version for lit materials, and if the project allows them.
 		static const auto SupportStationarySkylight = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportStationarySkylight"));
@@ -856,7 +861,7 @@ public:
 			|| (bProjectSupportsStationarySkylight && (Material->GetShadingModel() != MSM_Unlit));
 		return bCacheShaders
 			&& (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4))
-			&& TBasePassPixelShaderBaseType<LightMapPolicyType>::ShouldCache(Platform, Material, VertexFactoryType);
+			&& TBasePassPixelShaderBaseType<LightMapPolicyType>::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -951,8 +956,7 @@ public:
 		const FMaterial& InMaterialResource, 
 		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
 		EDebugViewShaderMode InDebugViewShaderMode,
-		bool bInEnableReceiveDecalOutput,
-		bool bInEnableEditorPrimitiveDepthTest) : FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode), bEnableReceiveDecalOutput(bInEnableReceiveDecalOutput), bEnableEditorPrimitiveDepthTest(bInEnableEditorPrimitiveDepthTest)
+		bool bInEnableReceiveDecalOutput) : FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode), bEnableReceiveDecalOutput(bInEnableReceiveDecalOutput)
 	{}
 
 	void ApplyDitheredLODTransitionState(FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither);
@@ -961,8 +965,6 @@ protected:
 
 	/** Whether or not outputing the receive decal boolean */
 	uint32 bEnableReceiveDecalOutput : 1;
-	/** Whether or not this policy is compositing editor primitives and needs to depth test against the scene geometry in the base pass pixel shader */
-	uint32 bEnableEditorPrimitiveDepthTest : 1;
 };
 
 /**
@@ -1004,10 +1006,9 @@ public:
 		bool bInEnableAtmosphericFog,
 		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
 		EDebugViewShaderMode InDebugViewShaderMode = DVSM_None,
-		bool bInEnableEditorPrimitiveDepthTest = false,
 		bool bInEnableReceiveDecalOutput = false
 		):
-		FBasePassDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode, bInEnableReceiveDecalOutput, bInEnableEditorPrimitiveDepthTest),
+		FBasePassDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode, bInEnableReceiveDecalOutput),
 		LightMapPolicy(InLightMapPolicy),
 		BlendMode(InBlendMode), 
 		SceneTextureMode(InSceneTextureMode),
@@ -1036,21 +1037,15 @@ public:
 			PixelShader
 			);
 
-#if DO_GUARD_SLOW
-		// Somewhat hacky
-		if (SceneTextureMode == ESceneRenderTargetsMode::DontSet && !bEnableEditorPrimitiveDepthTest && InMaterialResource.IsUsedWithEditorCompositing())
-		{
-			SceneTextureMode = ESceneRenderTargetsMode::DontSetIgnoreBoundByEditorCompositing;
-		}
-#endif
+		BaseVertexShader = VertexShader;
 	}
 
 	// FMeshDrawingPolicy interface.
 
-	FDrawingPolicyMatchResult Matches(const TBasePassDrawingPolicy& Other) const
+	FDrawingPolicyMatchResult Matches(const TBasePassDrawingPolicy& Other, bool bForReals = false) const
 	{
 		DRAWING_POLICY_MATCH_BEGIN
-			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
+			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other, bForReals)) &&
 			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
 			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader) &&
 			DRAWING_POLICY_MATCH(HullShader == Other.HullShader) &&
@@ -1153,7 +1148,7 @@ public:
 		}
 		else
 		{
-			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, BlendMode, bEnableEditorPrimitiveDepthTest, SceneTextureMode, PolicyContext.bIsInstancedStereo, bUseDownsampledTranslucencyViewUniformBuffer);
+			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, BlendMode, SceneTextureMode, PolicyContext.bIsInstancedStereo, bUseDownsampledTranslucencyViewUniformBuffer);
 		}
 	}
 
@@ -1285,14 +1280,10 @@ public:
 	enum { bAllowSimpleElements = true };
 	struct ContextType 
 	{
-		/** Whether or not to perform depth test in the pixel shader */
-		bool bEditorCompositeDepthTest;
-
 		ESceneRenderTargetsMode::Type TextureMode;
 
-		ContextType(bool bInEditorCompositeDepthTest, ESceneRenderTargetsMode::Type InTextureMode)
-			: bEditorCompositeDepthTest( bInEditorCompositeDepthTest )
-			, TextureMode( InTextureMode )
+		ContextType(ESceneRenderTargetsMode::Type InTextureMode)
+			: TextureMode( InTextureMode )
 		{}
 	};
 
@@ -1322,8 +1313,6 @@ public:
 	EBlendMode BlendMode;
 	EMaterialShadingModel ShadingModel;
 	const bool bAllowFog;
-	/** Whether or not to perform depth test in the pixel shader */
-	const bool bEditorCompositeDepthTest;
 	ESceneRenderTargetsMode::Type TextureMode;
 	ERHIFeatureLevel::Type FeatureLevel;
 	const bool bIsInstancedStereo;
@@ -1335,7 +1324,6 @@ public:
 		const FMaterial* InMaterial,
 		const FPrimitiveSceneProxy* InPrimitiveSceneProxy,
 		bool InbAllowFog,
-		bool bInEditorCompositeDepthTest,
 		ESceneRenderTargetsMode::Type InTextureMode,
 		ERHIFeatureLevel::Type InFeatureLevel,
 		const bool InbIsInstancedStereo = false,
@@ -1348,7 +1336,6 @@ public:
 		BlendMode(InMaterial->GetBlendMode()),
 		ShadingModel(InMaterial->GetShadingModel()),
 		bAllowFog(InbAllowFog),
-		bEditorCompositeDepthTest(bInEditorCompositeDepthTest),
 		TextureMode(InTextureMode),
 		FeatureLevel(InFeatureLevel), 
 		bIsInstancedStereo(InbIsInstancedStereo), 
@@ -1363,7 +1350,6 @@ public:
 		const FMaterial* InMaterial,
 		const FPrimitiveSceneProxy* InPrimitiveSceneProxy,
 		bool InbAllowFog,
-		bool bInEditorCompositeDepthTest,
 		ESceneRenderTargetsMode::Type InTextureMode,
 		ERHIFeatureLevel::Type InFeatureLevel, 
 		bool InbIsInstancedStereo = false, 
@@ -1376,7 +1362,6 @@ public:
 		BlendMode(InMaterial->GetBlendMode()),
 		ShadingModel(InMaterial->GetShadingModel()),
 		bAllowFog(InbAllowFog),
-		bEditorCompositeDepthTest(bInEditorCompositeDepthTest),
 		TextureMode(InTextureMode),
 		FeatureLevel(InFeatureLevel),
 		bIsInstancedStereo(InbIsInstancedStereo), 
@@ -1410,7 +1395,7 @@ void ProcessBasePassMeshForSimpleForwardShading(
 			Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_SIMPLE_LIGHTMAP_ONLY_LIGHTING), Parameters.Mesh.LCI);
 		}
 	}
-	if (bIsLitMaterial
+	else if (bIsLitMaterial
 		&& bAllowStaticLighting
 		&& Action.UseVolumetricLightmap()
 		&& Parameters.PrimitiveSceneProxy)
@@ -1540,7 +1525,9 @@ void ProcessBasePassMesh(
 				&& bAllowStaticLighting
 				&& Action.UseVolumetricLightmap()
 				&& Parameters.PrimitiveSceneProxy
-				&& (Parameters.PrimitiveSceneProxy->IsMovable() || Parameters.PrimitiveSceneProxy->NeedsUnbuiltPreviewLighting()))
+				&& (Parameters.PrimitiveSceneProxy->IsMovable() 
+					|| Parameters.PrimitiveSceneProxy->NeedsUnbuiltPreviewLighting() 
+					|| Parameters.PrimitiveSceneProxy->GetLightmapType() == ELightmapType::ForceVolumetric))
 			{
 				Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_PRECOMPUTED_IRRADIANCE_VOLUME_INDIRECT_LIGHTING), Parameters.Mesh.LCI);
 			}

@@ -12,14 +12,9 @@ SkillLevel:Intermediate
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		マチネに Matinee アクタ、プロップ、トラックを追加します。
-	[/PARAM]
-	[PARAM:description]
-	この手順では、**Matinee アクタ** を追加し、シーンで使用するいくつかのプロップを追加します。最後に、**マチネ** で使用するトラックを追加します。
-	[/PARAM]
-[/OBJECT]
+## マチネに Matinee アクタ、プロップ、トラックを追加します。
+
+この手順では、**Matinee アクタ** を追加し、シーンで使用するいくつかのプロップを追加します。最後に、**マチネ** で使用するトラックを追加します。
 
 1. **ツールバー** メニューから、[マチネ] を選択し、**[Add Matinee (マチネ追加)]** ボタンをクリックします。 
 
@@ -82,14 +77,9 @@ SkillLevel:Intermediate
 	![](MHT6_AddFloatMaterialTrack.png)
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Vector Material Parameter マチネ
-	[/PARAM]
-	[PARAM:description]
-	以下の手順では、マチネの **Vector Material Parameter** トラックを使用してプレイヤーが近くにいるときに椅子の色を変更します。 
-	[/PARAM]
-[/OBJECT]
+## Vector Material Parameter マチネ
+
+以下の手順では、マチネの **Vector Material Parameter** トラックを使用してプレイヤーが近くにいるときに椅子の色を変更します。
 
 1. レベル内で椅子を選択し、**[Materials]** の [詳細] パネルでブラウズ (虫眼鏡) アイコンをクリックします。 
 
@@ -208,14 +198,9 @@ SkillLevel:Intermediate
 	_椅子から離れると、ブレンドしてデフォルトのカラーに戻ります。_
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Float Material Parameter マチネ
-	[/PARAM]
-	[PARAM:description]
-	以下の手順では、**マチネ** の **Float Material Parameter** トラックを使用して階段のステップに適用する点滅する **マテリアル** を作成します。 
-	[/PARAM]
-[/OBJECT]
+## Float Material Parameter マチネ
+
+以下の手順では、**マチネ** の **Float Material Parameter** トラックを使用して階段のステップに適用する点滅する **マテリアル** を作成します。
 
 1. **Game/Materials** の コンテンツ ブラウザで **M_Basic_Wall Material** を **右クリック** して、**Create Copy** を選択し、名前を付けます。
 

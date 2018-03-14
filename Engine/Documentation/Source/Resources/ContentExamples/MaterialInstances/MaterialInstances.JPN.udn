@@ -43,7 +43,9 @@ Description:マテリアル インスタンスのサンプル レベル
 [/OBJECT]
 [/VAR]
 
-<!--Insert Path when done [RELATIVE:Resources/ContentExamples/MaterialInstances] -->
+[COMMENT:none]
+Insert Path when done [RELATIVE:Resources/ContentExamples/MaterialInstances] 
+[/COMMENT]
 
 
 [REGION:fullwidth]

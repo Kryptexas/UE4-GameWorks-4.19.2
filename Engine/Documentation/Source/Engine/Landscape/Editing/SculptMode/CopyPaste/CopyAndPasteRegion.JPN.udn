@@ -84,7 +84,8 @@ Topic-image:CopyPaste_Topic.png
 
 
 
-<!---
+[COMMENT:none]
+-
 [INCLUDE:#importexport]
 [EXCERPT:pastemode]
 | 選択 | 説明 |
@@ -104,4 +105,5 @@ Topic-image:CopyPaste_Topic.png
 | **Layer Name** | インポートされたハイトマップ レイヤー名を設定します。 |
 [/EXCERPT:importexport]
 
---->
+-
+[/COMMENT]

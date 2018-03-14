@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessAA.h: Post processing input implementation.
@@ -15,7 +15,7 @@ class FRCPassPostProcessInput : public TRenderingCompositePassBase<0, 1>
 {
 public:
 	// constructor
-	FRCPassPostProcessInput(TRefCountPtr<IPooledRenderTarget>& InData);
+	FRCPassPostProcessInput(const TRefCountPtr<IPooledRenderTarget>& InData);
 
 	// interface FRenderingCompositePass ---------
 

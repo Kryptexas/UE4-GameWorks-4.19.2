@@ -10,6 +10,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 There are some specialized viewports you can enable which will give you the ability to preview your cinematics in real-time.
 This guide will show you where you can access and turn on those viewports and how to enable the Viewport Playback Controls and Viewport Options menus. 

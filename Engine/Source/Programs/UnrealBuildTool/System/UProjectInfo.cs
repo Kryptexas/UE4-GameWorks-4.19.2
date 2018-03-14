@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -140,7 +140,7 @@ namespace UnrealBuildTool
 		{
 			DateTime StartTime = DateTime.Now;
 
-			List<DirectoryReference> DirectoriesToSearch = new List<DirectoryReference>();
+			List<DirectoryInfo> DirectoriesToSearch = new List<DirectoryInfo>();
 
 			// Find all the .uprojectdirs files contained in the root folder and add their entries to the search array
 			string EngineSourceDirectory = Path.GetFullPath(Path.Combine(RootDirectory, "Engine", "Source"));
@@ -156,7 +156,7 @@ namespace UnrealBuildTool
 						DirectoryReference BaseProjectDir = DirectoryReference.Combine(UnrealBuildTool.RootDirectory, TrimLine);
 						if(BaseProjectDir.IsUnderDirectory(UnrealBuildTool.RootDirectory))
 						{
-							DirectoriesToSearch.Add(BaseProjectDir);
+							DirectoriesToSearch.Add(new DirectoryInfo(BaseProjectDir.FullName));
 						}
 						else
 						{
@@ -168,18 +168,18 @@ namespace UnrealBuildTool
 
 			Log.TraceVerbose("\tFound {0} directories to search", DirectoriesToSearch.Count);
 
-			foreach (DirectoryReference DirToSearch in DirectoriesToSearch)
+			foreach (DirectoryInfo DirToSearch in DirectoriesToSearch)
 			{
 				Log.TraceVerbose("\t\tSearching {0}", DirToSearch.FullName);
-				if (DirectoryReference.Exists(DirToSearch))
+				if (DirToSearch.Exists)
 				{
-					foreach (DirectoryReference SubDir in DirectoryReference.EnumerateDirectories(DirToSearch, "*", SearchOption.TopDirectoryOnly))
+					foreach (DirectoryInfo SubDir in DirToSearch.EnumerateDirectories())
 					{
-						Log.TraceVerbose("\t\t\tFound subdir {0}", SubDir.FullName);
-						foreach(FileReference UProjFile in DirectoryReference.EnumerateFiles(SubDir, "*.uproject", SearchOption.TopDirectoryOnly))
+						Log.TraceVerbose("\t\t\tFound subdir {0} ({1})", SubDir.FullName, SubDir.Name);
+						foreach(FileInfo UProjFile in SubDir.EnumerateFiles("*.uproject", SearchOption.TopDirectoryOnly))
 						{
 							Log.TraceVerbose("\t\t\t\t{0}", UProjFile.FullName);
-							AddProject(UProjFile);
+							AddProject(new FileReference(UProjFile));
 						}
 					}
 				}
@@ -216,6 +216,34 @@ namespace UnrealBuildTool
 				Log.TraceInformation("\t\tProject    : " + TargetEntry.Value);
 			}
 		}
+		
+		/// <summary>
+		/// Determine if a plugin is enabled for a given project
+		/// </summary>
+		/// <param name="Project">The project to check</param>
+		/// <param name="PluginName">Name of the plugin to check</param>
+		/// <param name="Platform">The target platform</param>
+		/// <param name="Target"></param>
+		/// <returns>True if the plugin should be enabled for this project</returns>
+		public static bool IsPluginEnabledForProject(string PluginName, ProjectDescriptor Project, UnrealTargetPlatform Platform, TargetType Target)
+		{
+			bool bEnabled = false;
+			if (Project != null && Project.Plugins != null)
+			{
+				foreach (PluginReferenceDescriptor PluginReference in Project.Plugins)
+				{
+					if (String.Compare(PluginReference.Name, PluginName, true) == 0)
+					{
+						// start with whether it's enabled by default
+						bEnabled = PluginReference.bEnabled;
+						bEnabled = PluginReference.IsEnabledForPlatform(Platform) && PluginReference.IsEnabledForTarget(Target);
+						break;
+					}
+				}
+			}
+			return bEnabled;
+		}
+
 
 		/// <summary>
 		/// Returns a list of all the projects

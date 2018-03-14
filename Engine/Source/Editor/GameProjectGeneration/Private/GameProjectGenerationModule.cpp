@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameProjectGenerationModule.h"
 #include "Misc/Paths.h"
@@ -20,6 +20,7 @@ DEFINE_LOG_CATEGORY(LogGameProjectGeneration);
 
 FName FTemplateCategory::BlueprintCategoryName = "Blueprint";
 FName FTemplateCategory::CodeCategoryName = "C++";
+FName FTemplateCategory::EnterpriseCategoryName = "Unreal Studio";
 
 void FGameProjectGenerationModule::StartupModule()
 {
@@ -39,6 +40,13 @@ void FGameProjectGenerationModule::StartupModule()
 		),
 		FEditorStyle::GetBrush("GameProjectDialog.CodeIcon"),
 		FEditorStyle::GetBrush("GameProjectDialog.CodeImage"));
+
+	RegisterTemplateCategory(
+		FTemplateCategory::EnterpriseCategoryName,
+		LOCTEXT("EnterpriseCategory_Name", "Unreal Studio"),
+		LOCTEXT("EnterpriseCategory_Description", "Unreal Studio blueprint templates require no programming knowledge.\nEach template include a basic set of blueprints to use as a starting point for your Unreal Studio project."),
+		FEditorStyle::GetBrush("GameProjectDialog.BlueprintIcon"),
+		FEditorStyle::GetBrush("GameProjectDialog.BlueprintImage"));
 }
 
 

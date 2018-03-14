@@ -96,7 +96,8 @@ With the Material now set up and ready to be used, in the next section, we will 
 
 [NAV]
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:SPMaterial]    
 [OBJECT:Snippet]
     [PARAMLITERAL:id]
@@ -325,4 +326,5 @@ With the Material now set up and ready to be used, in the next section, we will 
     [/PARAM]
 [/OBJECT]
 [/EXCERPT:SPMaterial]
--->
+
+[/COMMENT]

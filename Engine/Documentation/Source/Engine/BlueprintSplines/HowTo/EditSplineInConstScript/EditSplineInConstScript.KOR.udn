@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3112568
+﻿INTSourceChangelist:3782314
 Availability:Docs
 Title:컨스트럭션 스크립트에서 스플라인 컴포넌트 편집하기
 Crumbs: %ROOT%, Engine
@@ -9,45 +9,7 @@ order:3
 social-image:Splines_social.png
 version:4.13
 skilllevel:Intermediate
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/BlueprintSplines/HowTo/EditSplineInConstScript:title%](Engine/BlueprintSplines/Splines_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/BlueprintSplines/HowTo/EditSplineInConstScript:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/BlueprintSplines/HowTo/EditSplineInConstScript:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/BlueprintSplines/HowTo/EditSplineInConstScript]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/BlueprintSplines/HowTo/EditSplineInConstScript:title%](Engine/BlueprintSplines/Splines_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/BlueprintSplines/HowTo/EditSplineInConstScript:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/BlueprintSplines/HowTo/EditSplineInConstScript:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/BlueprintSplines/HowTo/EditSplineInConstScript]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/BlueprintSplines/Splines_topic.png
 
 [VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
 

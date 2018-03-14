@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,6 +7,7 @@
 #include "UObject/Object.h"
 #include "RHIDefinitions.h"
 #include "NiagaraTypes.h"
+#include "NiagaraMergeable.h"
 #include "NiagaraRendererProperties.generated.h"
 /**
 * Emitter properties base class
@@ -20,7 +21,7 @@ class UMaterial;
 class UMaterialInterface;
 
 UCLASS(ABSTRACT)
-class NIAGARA_API UNiagaraRendererProperties : public UObject
+class NIAGARA_API UNiagaraRendererProperties : public UNiagaraMergeable
 {
 	GENERATED_BODY()
 

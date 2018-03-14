@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -252,6 +252,10 @@ struct FAnimNotifyEvent : public FAnimLinkableElement
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AnimNotifyTriggerSettings)
 	bool bTriggerOnDedicatedServer;
 
+	/** If enabled this notify will trigger when the animation is a follower in a sync group (by default only the sync group leaders notifies trigger */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AnimNotifyTriggerSettings)
+	bool bTriggerOnFollower;
+
 #if WITH_EDITORONLY_DATA
 	/** Color of Notify in editor */
 	UPROPERTY()
@@ -277,6 +281,7 @@ struct FAnimNotifyEvent : public FAnimLinkableElement
 		, NotifyFilterType(ENotifyFilterType::NoFiltering)
 		, NotifyFilterLOD(0)
 		, bTriggerOnDedicatedServer(true)
+		, bTriggerOnFollower(false)
 #if WITH_EDITORONLY_DATA
 		, NotifyColor(FColor::Black)
 #endif // WITH_EDITORONLY_DATA
@@ -479,7 +484,7 @@ struct FMarkerSyncData
 };
 
 // Shortcut for the allocator used by animation nodes.
-class FAnimStackAllocator: public TMemStackAllocator<>{};
+typedef TMemStackAllocator<> FAnimStackAllocator;
 
 /** 
  * Structure for all Animation Weight helper functions.
@@ -582,3 +587,35 @@ namespace EAxisOption
 		Custom
 	};
 }
+
+struct FAxisOption
+{
+	static FVector GetAxisVector(const TEnumAsByte<EAxisOption::Type> InAxis, const FVector& CustomAxis)
+	{
+		switch (InAxis)
+		{
+		case EAxisOption::X:
+			return FVector::ForwardVector;
+		case EAxisOption::X_Neg:
+			return -FVector::ForwardVector;
+		case EAxisOption::Y:
+			return FVector::RightVector;
+		case EAxisOption::Y_Neg:
+			return -FVector::RightVector;
+		case EAxisOption::Z:
+			return FVector::UpVector;
+		case EAxisOption::Z_Neg:
+			return -FVector::UpVector;
+		case EAxisOption::Custom:
+			return CustomAxis;
+		}
+
+		return FVector::ForwardVector;
+	}
+
+	static FVector GetAxisVector(const TEnumAsByte<EAxisOption::Type> InAxis)
+	{
+		return GetAxisVector(InAxis, FVector::ForwardVector);
+	}
+};
+

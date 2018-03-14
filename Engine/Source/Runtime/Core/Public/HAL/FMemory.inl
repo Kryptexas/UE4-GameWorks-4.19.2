@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #if !defined(FMEMORY_INLINE_FUNCTION_DECORATOR)
 	#define FMEMORY_INLINE_FUNCTION_DECORATOR 
@@ -27,14 +27,14 @@ FMEMORY_INLINE_FUNCTION_DECORATOR void* FMemory::Malloc(SIZE_T Count, uint32 Ali
 		Ptr = FMEMORY_INLINE_GMalloc->Malloc(Count, Alignment);
 	}
 	// optional tracking of every allocation
-	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, Ptr, Count));
+	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, Ptr, Count, ELLMTag::Untagged, ELLMAllocType::FMalloc));
 	return Ptr;
 }
 
 FMEMORY_INLINE_FUNCTION_DECORATOR void* FMemory::Realloc(void* Original, SIZE_T Count, uint32 Alignment)
 {
 	// optional tracking of every allocation
-	LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, Original, 0));
+	LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, Original, ELLMAllocType::FMalloc));
 
 	void* Ptr;
 	if (!FMEMORY_INLINE_GMalloc)
@@ -49,7 +49,7 @@ FMEMORY_INLINE_FUNCTION_DECORATOR void* FMemory::Realloc(void* Original, SIZE_T 
 	}
 
 	// optional tracking of every allocation
-	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, Ptr, Count));
+	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, Ptr, Count, ELLMTag::Untagged, ELLMAllocType::FMalloc));
 
 	return Ptr;
 }
@@ -63,7 +63,7 @@ FMEMORY_INLINE_FUNCTION_DECORATOR void FMemory::Free(void* Original)
 	}
 
 	// optional tracking of every allocation
-	LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, Original, 0));
+	LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, Original, ELLMAllocType::FMalloc));
 
 	if (!FMEMORY_INLINE_GMalloc)
 	{

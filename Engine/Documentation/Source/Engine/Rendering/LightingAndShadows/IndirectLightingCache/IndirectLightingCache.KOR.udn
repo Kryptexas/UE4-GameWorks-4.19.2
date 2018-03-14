@@ -1,33 +1,28 @@
-﻿INTSourceChangelist:3108692
-Availability:Public
+﻿INTSourceChangelist:3782314
+Availability: Public
+Crumbs: %ROOT%
 Title:간접광 캐시
-Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:빌드되지 않은 씬 미리보기와 다이내믹 오브젝트의 글로벌 일루미네이션에 간접광 샘플 캐시를 사용하는 법에 대한 글입니다.
-Versinon: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/IndirectLightingCache:title%](%ROOT%/Engine/Rendering/LightingAndShadows/IndirectLightingCache/indirectcache_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/ue4_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/IndirectLightingCache:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/IndirectLightingCache:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/IndirectLightingCache]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+Type: Overview
+SkillLevel:Intermediate
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows
+Related:Engine/Rendering/LightingAndShadows/Lightmass
+Related:Engine/Rendering/LightingAndShadows/VolumetricLightmaps
+Order:
+Tags:lighting
+topic-image:indirectcache_topic.png
 
 [REGION:banner]
 ![](indirectcache_banner.png)
 [/REGION]
+
+[REGION:warning]
+언리얼 엔진 버전 4.18 부로 [Volumetric Lightmap](Engine/Rendering/LightingAndShadows/VolumetricLightmaps) (볼류메트릭 라이트맵)이 Indirect Lighting Cache (간접광 라이팅 캐시) 대신 기본 메소드가 되었습니다.
+
+간접광 라이팅 캐시를 다시 사용하려면, **월드 세팅** > **Lightmass Settings** (라이트매스 세팅) > **Volume Lighting Method** (볼륨 라이팅 메소드)에서 **VLM Sparse Volume Lighting Samples** 로 설정하면 됩니다.
+[/REGION]
+
 
 [EXCERPT:LightCache001]
 [Lightmass](Engine/Rendering/LightingAndShadows/Lightmass) (라이트매스)는 스태틱 오브젝트 상의 간접광에 대한 라이트맵을 생성하지만, 캐릭터같은 다이내믹 오브젝트 역시도 

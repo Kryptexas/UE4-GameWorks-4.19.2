@@ -21,13 +21,15 @@ Order:-1
 | **DirectX** | June 2010 |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Labels]
 QA_APPROVED_UE4_BUILD_2014_  
 QA_APPROVED_UE4_BUILD_CURRENT  
 QA_APPROVED_UE4_BUILD_MINIMUM
 [/EXCERPT:Labels]
--->
+
+[/COMMENT]
 
 ## 重要情報
 

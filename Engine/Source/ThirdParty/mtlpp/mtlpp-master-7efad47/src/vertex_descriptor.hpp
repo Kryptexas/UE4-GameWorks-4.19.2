@@ -2,13 +2,16 @@
  * Copyright 2016-2017 Nikolay Aleksiev. All rights reserved.
  * License: https://github.com/naleksiev/mtlpp/blob/master/LICENSE
  */
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
 #include "ns.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -96,43 +99,43 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class VertexBufferLayoutDescriptor : public ns::Object
+    class VertexBufferLayoutDescriptor : public ns::Object<MTLVertexBufferLayoutDescriptor*>
     {
     public:
         VertexBufferLayoutDescriptor();
-        VertexBufferLayoutDescriptor(const ns::Handle& handle) : ns::Object(handle) { }
+        VertexBufferLayoutDescriptor(MTLVertexBufferLayoutDescriptor* handle) : ns::Object<MTLVertexBufferLayoutDescriptor*>(handle) { }
 
-        uint32_t           GetStride() const;
+        NSUInteger           GetStride() const;
         VertexStepFunction GetStepFunction() const;
-        uint32_t           GetStepRate() const;
+        NSUInteger           GetStepRate() const;
 
-        void SetStride(uint32_t stride);
+        void SetStride(NSUInteger stride);
         void SetStepFunction(VertexStepFunction stepFunction);
-        void SetStepRate(uint32_t stepRate);
+        void SetStepRate(NSUInteger stepRate);
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class VertexAttributeDescriptor : public ns::Object
+    class VertexAttributeDescriptor : public ns::Object<MTLVertexAttributeDescriptor*>
     {
     public:
         VertexAttributeDescriptor();
-        VertexAttributeDescriptor(const ns::Handle& handle) : ns::Object(handle) { }
+        VertexAttributeDescriptor(MTLVertexAttributeDescriptor* handle) : ns::Object<MTLVertexAttributeDescriptor*>(handle) { }
 
         VertexFormat GetFormat() const;
-        uint32_t     GetOffset() const;
-        uint32_t     GetBufferIndex() const;
+        NSUInteger     GetOffset() const;
+        NSUInteger     GetBufferIndex() const;
 
         void SetFormat(VertexFormat format);
-        void SetOffset(uint32_t offset);
-        void SetBufferIndex(uint32_t bufferIndex);
+        void SetOffset(NSUInteger offset);
+        void SetBufferIndex(NSUInteger bufferIndex);
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class VertexDescriptor : public ns::Object
+    class VertexDescriptor : public ns::Object<MTLVertexDescriptor*>
     {
     public:
         VertexDescriptor();
-        VertexDescriptor(const ns::Handle& handle) : ns::Object(handle) { }
+        VertexDescriptor(MTLVertexDescriptor* handle) : ns::Object<MTLVertexDescriptor*>(handle) { }
 
         ns::Array<VertexBufferLayoutDescriptor> GetLayouts() const;
         ns::Array<VertexAttributeDescriptor>    GetAttributes() const;
@@ -141,3 +144,5 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 }
+
+MTLPP_END

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -28,6 +28,9 @@ public:
 		return *Typeface;
 	}
 
+	/** Get the font data associated with the primary (first) entry in this typeface */
+	const FFontData* GetPrimaryFontData() const;
+
 	/** Find the font associated with the given name */
 	const FFontData* GetFontData(const FName& InName) const;
 
@@ -41,14 +44,54 @@ public:
 	void GetCachedFontData(TArray<const FFontData*>& OutFontData) const;
 
 private:
+	/** Entry containing a name and the font data associated with that name */
+	struct FCachedFontData
+	{
+		/** Default constructor */
+		FCachedFontData()
+			: Name()
+			, FontData(nullptr)
+		{
+		}
+
+		/** Construct from the given name and font data */
+		FCachedFontData(const FName InName, const FFontData* InFontData)
+			: Name(InName)
+			, FontData(InFontData)
+		{
+		}
+
+		/** Binary search key */
+		static FName BinarySearchKey(const FCachedFontData& InCachedFontData)
+		{
+			return InCachedFontData.Name;
+		}
+
+		/** Sort predicate */
+		static bool KeySortPredicate(const FName& InOne, const FName& InTwo)
+		{
+			// CompareIndexes is much faster than Compare since we don't care about these being sorted alphabetically
+			return InOne.CompareIndexes(InTwo) < 0;
+		}
+
+		/** Sort predicate */
+		static bool SortPredicate(const FCachedFontData& InOne, const FCachedFontData& InTwo)
+		{
+			return KeySortPredicate(InOne.Name, InTwo.Name);
+		}
+
+		/** Name of the font */
+		FName Name;
+
+		/** Data of the font */
+		const FFontData* FontData;
+	};
+
 	/** Typeface we cached data from */
 	const FTypeface* Typeface;
 
-	/** Singular entry, used when we don't have enough data to warrant using a map */
-	const FFontData* SingularFontData;
-
-	/** Mapping between a font name, and its data */
-	TMap<FName, const FFontData*> NameToFontDataMap;
+	/** Array of font data - this is sorted by name for a binary search */
+	TArray<FCachedFontData, TInlineAllocator<1>> CachedFontData;
 
 	/** Scaling factor to apply to this typeface */
 	float ScalingFactor;
@@ -77,7 +120,13 @@ public:
 	/** Get the default typeface for this composite font */
 	FORCEINLINE const FCachedTypefaceData* GetDefaultTypeface() const
 	{
-		return CachedTypefaces[0].Get();
+		return CachedTypefaces[CachedTypeface_DefaultIndex].Get();
+	}
+
+	/** Get the fallback typeface for this composite font */
+	FORCEINLINE const FCachedTypefaceData* GetFallbackTypeface() const
+	{
+		return CachedTypefaces[CachedTypeface_FallbackIndex].Get();
 	}
 
 	/** Get the typeface that should be used for the given character */
@@ -85,6 +134,9 @@ public:
 
 	/** Get all the font data cached by this entry */
 	void GetCachedFontData(TArray<const FFontData*>& OutFontData) const;
+
+	/** Refresh the font ranges used by sub-fonts (should be called when the culture is changed) */
+	void RefreshFontRanges();
 
 private:
 	/** Entry containing a range and the typeface associated with that range */
@@ -104,6 +156,19 @@ private:
 		{
 		}
 
+		/** Binary search key */
+		static int32 BinarySearchKey(const FCachedFontRange& InCachedFontRange)
+		{
+			return InCachedFontRange.Range.GetLowerBoundValue();
+		}
+
+		/** Sort predicate */
+		static bool SortPredicate(const FCachedFontRange& InOne, const FCachedFontRange& InTwo)
+		{
+			check(!InOne.Range.IsEmpty() && !InTwo.Range.IsEmpty());
+			return InOne.Range.GetLowerBoundValue() < InTwo.Range.GetLowerBoundValue();
+		}
+
 		/** Range to use for the typeface */
 		FInt32Range Range;
 
@@ -111,13 +176,21 @@ private:
 		TSharedPtr<FCachedTypefaceData> CachedTypeface;
 	};
 
+	/** Constants for indexing into CachedTypefaces */
+	static const int32 CachedTypeface_DefaultIndex = 0;
+	static const int32 CachedTypeface_FallbackIndex = 1;
+	static const int32 CachedTypeface_FirstSubTypefaceIndex = 2;
+
 	/** Composite font we cached data from */
 	const FCompositeFont* CompositeFont;
 
-	/** Array of cached typefaces - 0 is the default typeface, and the remaining entries are sub-typefaces */
-	TArray<TSharedPtr<FCachedTypefaceData>> CachedTypefaces;
+	/** Array of cached typefaces - 0 is the default typeface, 1 is the fallback typeface, and the remaining entries are sub-typefaces (see the CachedTypeface_X constants above) */
+	TArray<TSharedPtr<FCachedTypefaceData>, TInlineAllocator<2>> CachedTypefaces;
 
-	/** Array of font ranges paired with their associated typefaces - this is sorted in ascending order */
+	/** Array of font ranges paired with their associated typefaces - this is sorted in ascending order for a binary search */
+	TArray<FCachedFontRange> CachedPriorityFontRanges;
+
+	/** Array of font ranges paired with their associated typefaces - this is sorted in ascending order for a binary search */
 	TArray<FCachedFontRange> CachedFontRanges;
 };
 
@@ -130,6 +203,9 @@ class FCompositeFontCache
 public:
 	/** Constructor */
 	FCompositeFontCache(const FFreeTypeLibrary* InFTLibrary);
+
+	/** Destructor */
+	~FCompositeFontCache();
 
 	/** Get the default font data to use for the given font info */
 	const FFontData& GetDefaultFontData(const FSlateFontInfo& InFontInfo);
@@ -160,6 +236,13 @@ private:
 		return (CachedCompositeFont) ? CachedCompositeFont->GetDefaultTypeface() : nullptr;
 	}
 
+	/** Get the fallback typeface for the given composite font */
+	FORCEINLINE const FCachedTypefaceData* GetFallbackCachedTypeface(const FCompositeFont* const InCompositeFont)
+	{
+		const FCachedCompositeFontData* const CachedCompositeFont = GetCachedCompositeFont(InCompositeFont);
+		return (CachedCompositeFont) ? CachedCompositeFont->GetFallbackTypeface() : nullptr;
+	}
+
 	/** Get the typeface that should be used for the given character */
 	FORCEINLINE const FCachedTypefaceData* GetCachedTypefaceForCharacter(const FCompositeFont* const InCompositeFont, const TCHAR InChar)
 	{
@@ -169,6 +252,12 @@ private:
 
 	/** Try and find some font data that best matches the given attributes */
 	const FFontData* GetBestMatchFontForAttributes(const FCachedTypefaceData* const InCachedTypefaceData, const TSet<FName>& InFontAttributes);
+
+	/** Check to see whether the given font data supports rendering the given character */
+	bool DoesFontDataSupportCharacter(const FFontData& InFontData, const TCHAR InChar);
+
+	/** Called after the active culture has changed */
+	void HandleCultureChanged();
 
 	/** FreeType library instance to use */
 	const FFreeTypeLibrary* FTLibrary;

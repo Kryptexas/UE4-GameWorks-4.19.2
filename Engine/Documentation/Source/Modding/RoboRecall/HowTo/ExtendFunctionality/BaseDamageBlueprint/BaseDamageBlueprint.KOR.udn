@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3339965
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:5. 베이스 대미지 블루프린트 생성
 Crumbs:%ROOT%
@@ -12,7 +12,9 @@ topic-image:Modding/RoboRecall/RoboRecall_Topic.png
 social-image:Modding/RoboRecall/RoboRecall_Social.png
 checkpoint:mod_extend
 
-<!-- Location: Modding/RoboRecall/Quickstarts/WeaponMod/5 -->
+[COMMENT:none]
+ Location: Modding/RoboRecall/Quickstarts/WeaponMod/5 
+[/COMMENT]
 
 [NAV]
 
@@ -97,7 +99,8 @@ checkpoint:mod_extend
 
 [NAV]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:snippet]
 	Begin Object Class=K2Node_Event Name="K2Node_Event_3"
 
@@ -391,5 +394,6 @@ checkpoint:mod_extend
 
 	End Object
 [/EXCERPT:snippet]
--->
+
+[/COMMENT]
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -135,6 +135,9 @@ struct FGameplayAbilitySpecDef
 	
 	UPROPERTY(NotReplicated)
 	UObject* SourceObject;
+
+	// SetbyCaller Magnitudes that were passed in to this ability by a GE (GE's that grant abilities). Made available so that 
+	TMap<FGameplayTag, float>	SetByCallerTagMagnitudes;
 
 	/** This handle can be set if the SpecDef is used to create a real FGameplaybilitySpec */
 	UPROPERTY()
@@ -278,6 +281,9 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec : public FFastArraySerializerI
 	/** Handle to GE that granted us (usually invalid) */
 	UPROPERTY(NotReplicated)
 	FActiveGameplayEffectHandle	GameplayEffectHandle;
+
+	/** Passed on SetByCaller magnitudes if this ability was granted by a GE */
+	TMap<FGameplayTag, float> SetByCallerTagMagnitudes;
 
 	/** Returns the primary instance, used for instance once abilities */
 	UGameplayAbility* GetPrimaryInstance() const;

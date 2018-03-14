@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Copyright (C) Microsoft. All rights reserved.
 
 /*=============================================================================
@@ -45,7 +45,9 @@ class FGPUSkinPassthroughVertexFactory;
 class FGPUBaseSkinVertexFactory;
 class FMorphVertexBuffer;
 class FSkeletalMeshObjectGPUSkin;
-struct FSkelMeshSection;
+class FSkeletalMeshVertexClothBuffer;
+struct FClothSimulData;
+struct FSkelMeshRenderSection;
 struct FVertexBufferAndSRV;
 
 // Can the skin cache be used (ie shaders added, etc)
@@ -55,6 +57,26 @@ extern ENGINE_API bool IsGPUSkinCacheAvailable();
 extern ENGINE_API int32 GEnableGPUSkinCache;
 
 class FGPUSkinCacheEntry;
+
+struct FClothSimulEntry
+{
+	FVector Position;
+	FVector Normal;
+
+	/**
+	 * Serializer
+	 *
+	 * @param Ar - archive to serialize with
+	 * @param V - vertex to serialize
+	 * @return archive that was used
+	 */
+	friend FArchive& operator<<(FArchive& Ar, FClothSimulEntry& V)
+	{
+		Ar << V.Position
+		   << V.Normal;
+		return Ar;
+	}
+};
 
 struct FGPUSkinBatchElementUserData
 {
@@ -72,12 +94,8 @@ public:
 		// max 256 bones as we use a byte to index
 		MaxUniformBufferBones = 256,
 		// Controls the output format on GpuSkinCacheComputeShader.usf
-		RWPositionOffsetInFloats = 0,	// float3
-		RWTangentXOffsetInFloats = 3,	// Packed U8x4N
-		RWTangentZOffsetInFloats = 4,	// Packed U8x4N
-
-		// stride in float(4 bytes) in the SkinCache buffer
-		RWStrideInFloats = 5,
+		RWTangentXOffsetInFloats = 0,	// Packed U8x4N
+		RWTangentZOffsetInFloats = 1,	// Packed U8x4N
 
 		// 3 ints for normal, 3 ints for tangent, 1 for orientation = 7, rounded up to 8 as it should result in faster math and caching
 		IntermediateAccumBufferNumInts = 8,
@@ -86,12 +104,13 @@ public:
 	ENGINE_API ~FGPUSkinCache();
 
 	void ProcessEntry(FRHICommandListImmediate& RHICmdList, FGPUBaseSkinVertexFactory* VertexFactory,
-		FGPUSkinPassthroughVertexFactory* TargetVertexFactory, const FSkelMeshSection& BatchElement, FSkeletalMeshObjectGPUSkin* Skin,
-		const FMorphVertexBuffer* MorphVertexBuffer, uint32 FrameNumber, int32 Section, FGPUSkinCacheEntry*& InOutEntry);
+		FGPUSkinPassthroughVertexFactory* TargetVertexFactory, const FSkelMeshRenderSection& BatchElement, FSkeletalMeshObjectGPUSkin* Skin,
+		const FMorphVertexBuffer* MorphVertexBuffer, const FSkeletalMeshVertexClothBuffer* ClothVertexBuffer, const FClothSimulData* SimData,
+		const FMatrix& ClothLocalToWorld, float ClothBlendWeight, uint32 RevisionNumber, int32 Section, FGPUSkinCacheEntry*& InOutEntry);
 
-	static void SetVertexStreams(FGPUSkinCacheEntry* Entry, int32 Section, FRHICommandList& RHICmdList, uint32 FrameNumber,
+	static void SetVertexStreams(FGPUSkinCacheEntry* Entry, int32 Section, FRHICommandList& RHICmdList,
 		class FShader* Shader, const FGPUSkinPassthroughVertexFactory* VertexFactory,
-		uint32 BaseVertexIndex, FShaderParameter PreviousStreamFloatOffset, FShaderResourceParameter PreviousStreamBuffer);
+		uint32 BaseVertexIndex, FShaderResourceParameter PreviousStreamBuffer);
 
 	static void Release(FGPUSkinCacheEntry*& SkinCacheEntry);
 
@@ -120,12 +139,18 @@ public:
 
 	struct FRWBuffersAllocation
 	{
-		FRWBuffersAllocation(uint32 InNumFloatsRequired)
-			: NumFloatsRequired(InNumFloatsRequired)
+		friend struct FRWBufferTracker;
+
+		FRWBuffersAllocation(uint32 InNumVertices, bool InWithTangents)
+			: NumVertices(InNumVertices), WithTangents(InWithTangents)
 		{
 			for (int32 Index = 0; Index < NUM_BUFFERS; ++Index)
 			{
-				RWBuffers[Index].Initialize(sizeof(float), NumFloatsRequired, PF_R32_FLOAT, BUF_Static);
+				RWBuffers[Index].Initialize(4, NumVertices * 3, PF_R32_FLOAT, BUF_Static);
+			}
+			if (WithTangents)
+			{
+				Tangents.Initialize(4, NumVertices * 2, PF_R8G8B8A8, BUF_Static);
 			}
 		}
 
@@ -135,22 +160,38 @@ public:
 			{
 				RWBuffers[Index].Release();
 			}
+			if (WithTangents)
+			{
+				Tangents.Release();
+			}
 		}
 
-		static uint64 CalculateRequiredMemory(uint32 NumFloatsRequired)
+		static uint64 CalculateRequiredMemory(uint32 NumVertices, bool WithTangents)
 		{
-			return sizeof(float) * (uint64)NumFloatsRequired * NUM_BUFFERS;
+			uint64 PositionBufferSize = 4 * 3 * NumVertices * NUM_BUFFERS;
+			uint64 TangentBufferSize = WithTangents ? 2 * 4 * NumVertices : 0;
+			return TangentBufferSize + PositionBufferSize;
 		}
 
 		uint64 GetNumBytes() const
 		{
-			return CalculateRequiredMemory(NumFloatsRequired);
+			return CalculateRequiredMemory(NumVertices, WithTangents);
 		}
 
-		const uint32 NumFloatsRequired;
+		FRWBuffer* GetTangentBuffer()
+		{
+			return WithTangents ? &Tangents : nullptr;
+		}
 
+		void RemoveAllFromTransitionArray(TArray<FUnorderedAccessViewRHIParamRef>& BuffersToTransition);
+
+	private:
 		// Output of the GPU skinning (ie Pos, Normals)
 		FRWBuffer RWBuffers[NUM_BUFFERS];
+
+		FRWBuffer Tangents;
+		const uint32 NumVertices;
+		const bool WithTangents;
 	};
 
 	struct FRWBufferTracker
@@ -190,6 +231,11 @@ public:
 			return nullptr;
 		}
 
+		FRWBuffer* GetTangentBuffer()
+		{
+			return Allocation->GetTangentBuffer();
+		}
+
 		void Advance(const FVertexBufferAndSRV& BoneBuffer1, uint32 Revision1, const FVertexBufferAndSRV& BoneBuffer2, uint32 Revision2)
 		{
 			const FVertexBufferAndSRV* InBoneBuffers[2] = { &BoneBuffer1 , &BoneBuffer2 };
@@ -227,10 +273,10 @@ protected:
 
 	TArray<FRWBuffersAllocation*> Allocations;
 	TArray<FGPUSkinCacheEntry*> Entries;
-	FRWBuffersAllocation* TryAllocBuffer(uint32 NumFloatsRequired);
-	void DoDispatch(FRHICommandListImmediate& RHICmdList, FGPUSkinCacheEntry* SkinCacheEntry, int32 Section, int32 FrameNumber);
+	FRWBuffersAllocation* TryAllocBuffer(uint32 NumVertices, bool WithTangnents);
+	void DoDispatch(FRHICommandListImmediate& RHICmdList, FGPUSkinCacheEntry* SkinCacheEntry, int32 Section, int32 RevisionNumber);
 	void DispatchUpdateSkinTangents(FRHICommandListImmediate& RHICmdList, FGPUSkinCacheEntry* Entry, int32 SectionIndex);
-	void DispatchUpdateSkinning(FRHICommandListImmediate& RHICmdList, FGPUSkinCacheEntry* Entry, int32 Section, uint32 FrameNumber);
+	void DispatchUpdateSkinning(FRHICommandListImmediate& RHICmdList, FGPUSkinCacheEntry* Entry, int32 Section, uint32 RevisionNumber);
 
 	void Cleanup();
 

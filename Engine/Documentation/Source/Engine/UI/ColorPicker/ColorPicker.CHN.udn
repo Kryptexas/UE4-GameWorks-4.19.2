@@ -1,4 +1,4 @@
-Availability: Public
+﻿Availability: Public
 Title:颜色选择器
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:用来互动地选择颜色以指派给actors的颜色属性的工具。
@@ -52,7 +52,8 @@ Description:用来互动地选择颜色以指派给actors的颜色属性的工�
 |  |  |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Properties]
 | 项目| 描述|
 | ---- | ----------- |
@@ -68,7 +69,8 @@ Description:用来互动地选择颜色以指派给actors的颜色属性的工�
 | ![OK Button](button_ok.png) | 关闭选择器并在选择器中指派颜色至属性。|
 | ![Cancel Button](button_cancel.png) | 关闭选择器而不修改属性值。|
 [/EXCERPT:Properties]
--->
+
+[/COMMENT]
 
 ## 主题
 

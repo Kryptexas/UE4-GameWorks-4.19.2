@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+ * Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
  */
 
 using System;
@@ -249,6 +249,9 @@ namespace iPhonePackager
 							case "-tvos":
 								Config.OSString = "TVOS";
 								break;
+							case "-autosigning":
+								Config.bAutomaticSigning = true;
+								break;
 						}
 
 						// get the stage dir path
@@ -277,6 +280,18 @@ namespace iPhonePackager
                                 return false;
                             }
                         }
+						else if (Arg == "-teamID")
+						{
+							// make sure there's at least one more arg
+							if (Arguments.Length > ArgIndex + 1)
+							{
+								Config.TeamID = Arguments[++ArgIndex];
+							}
+							else
+							{
+								return false;
+							}
+						}
 						else if (Arg == "-manifest")
 						{
 							// make sure there's at least one more arg
@@ -486,13 +501,6 @@ namespace iPhonePackager
 			if (GameName.Length == 0)
 			{
 				Error( "Invalid number of arguments" );
-				Program.ReturnCode = (int)ErrorCodes.Error_Arguments;
-				return false;
-			}
-
-			if (Config.bCreateStubSet && Config.bForDistribution)
-			{
-				Error("-createstub and -distribution are mutually exclusive");
 				Program.ReturnCode = (int)ErrorCodes.Error_Arguments;
 				return false;
 			}
@@ -794,17 +802,27 @@ namespace iPhonePackager
 							{
 								Error("Could not find a valid plist file!!", (int)ErrorCodes.Error_InfoPListNotFound);
 							}
-							else if (Provision == null && Cert == null)
+							else if (!Config.bAutomaticSigning)
 							{
-								Error("No Provision or cert found!!", (int)ErrorCodes.Error_ProvisionAndCertificateNotFound);
+								if (Provision == null && Cert == null)
+								{
+									Error("No Provision or cert found!!", (int)ErrorCodes.Error_ProvisionAndCertificateNotFound);
+								}
+								else if (Provision == null)
+								{
+									Error("No Provision found!!", (int)ErrorCodes.Error_ProvisionNotFound);
+								}
+								else if (Cert == null)
+								{
+									Error("No Signing Certificate found!!", (int)ErrorCodes.Error_CertificateNotFound);
+								}
 							}
-							else if (Provision == null)
+							else
 							{
-								Error("No Provision found!!", (int)ErrorCodes.Error_ProvisionNotFound);
-							}
-							else if (Cert == null)
-							{
-								Error("No Signing Certificate found!!", (int)ErrorCodes.Error_CertificateNotFound);
+								if (Config.TeamID == null)
+								{
+									Error("No TeamID for automatic signing!!", (int)ErrorCodes.Error_ProvisionNotFound);
+								}
 							}
 						}
 						break;

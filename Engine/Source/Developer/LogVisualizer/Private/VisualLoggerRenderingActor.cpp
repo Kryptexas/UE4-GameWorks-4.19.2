@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "VisualLoggerRenderingActor.h"
 #include "AI/Navigation/NavigationSystem.h"
@@ -12,9 +12,15 @@
 #include "VisualLoggerRenderingComponent.h"
 
 class UVisualLoggerRenderingComponent;
-class FVisualLoggerSceneProxy : public FDebugRenderSceneProxy
+class FVisualLoggerSceneProxy final : public FDebugRenderSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
+
 	FVisualLoggerSceneProxy(const UVisualLoggerRenderingComponent* InComponent)
 		: FDebugRenderSceneProxy(InComponent)
 	{
@@ -148,8 +154,6 @@ AVisualLoggerRenderingActor::~AVisualLoggerRenderingActor()
 
 void AVisualLoggerRenderingActor::ObjectSelectionChanged(const TArray<FName>& Selection)
 {
-	//PrimaryDebugShapes.Reset();
-
 	if (Selection.Num() > 0)
 	{
 		for (auto CurrentName : Selection)
@@ -169,11 +173,11 @@ void AVisualLoggerRenderingActor::ObjectSelectionChanged(const TArray<FName>& Se
 			}
 		}
 
-		for (auto Element : DebugShapesPerRow)
+		for (TMap<FName, FTimelineDebugShapes>::TIterator It(DebugShapesPerRow); It; ++It)
 		{
-			if (Selection.Find(Element.Key) == INDEX_NONE)
+			if (Selection.Find(It->Key) == INDEX_NONE)
 			{
-				DebugShapesPerRow.Remove(Element.Key);
+				It.RemoveCurrent();
 			}
 		}
 	}

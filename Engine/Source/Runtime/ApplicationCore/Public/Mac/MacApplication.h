@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -207,8 +207,6 @@ public:
 
 	bool IsWorkspaceSessionActive() const { return bIsWorkspaceSessionActive; }
 
-	bool IsHighDPIModeEnabled() const { return bIsHighDPIModeEnabled; }
-
 	void SystemModalMode(bool const bInSystemModalMode) { bSystemModalMode = bInSystemModalMode; }
 
 	const TArray<TSharedRef<FMacWindow>>& GetAllWindows() const { return Windows; }
@@ -226,6 +224,8 @@ public:
 	void OnWindowChangedScreen(TSharedRef<FMacWindow> Window);
 
 	void OnWindowOrderedFront(TSharedRef<FMacWindow> Window);
+
+	void OnWindowActivationChanged(const TSharedRef<FMacWindow>& Window, const EWindowActivation ActivationType);
 
 	static void OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayChangeSummaryFlags Flags, void* UserInfo);
 
@@ -258,6 +258,9 @@ public:
 
 	static float GetPrimaryScreenBackingScaleFactor();
 
+	typedef void (*MenuBarShutdownFuncPtr)();
+	static MenuBarShutdownFuncPtr MenuBarShutdownFunc;
+
 private:
 
 	static NSEvent* HandleNSEvent(NSEvent* Event);
@@ -286,7 +289,6 @@ private:
 	void OnApplicationWillResignActive();
 	void OnWindowsReordered();
 	void OnActiveSpaceDidChange();
-	void OnWindowActivationChanged(const TSharedRef<FMacWindow>& Window, const EWindowActivation ActivationType);
 
 	void ConditionallyUpdateModifierKeys(const FDeferredMacEvent& Event);
 	void HandleModifierChange(NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode);
@@ -365,8 +367,6 @@ private:
 	TSharedPtr<FMacTextInputMethodSystem> TextInputMethodSystem;
 
 	bool bIsWorkspaceSessionActive;
-
-	bool bIsHighDPIModeEnabled;
 
 	/** Notification center observers */
 	id AppActivationObserver;

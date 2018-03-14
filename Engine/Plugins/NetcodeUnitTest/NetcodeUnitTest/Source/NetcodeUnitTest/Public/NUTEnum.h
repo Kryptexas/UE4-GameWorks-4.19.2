@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -72,11 +72,10 @@ enum class EUnitTestFlags : uint32
 	RequirePing				= 0x00000800,	// Whether or not to wait for a ping round-trip, before triggering ExecuteClientUnitTest
 	RequireNUTActor			= 0x00001000,	// Whether or not to wait for the NUTActor, before triggering ExecuteClientUnitTest
 	RequireBeacon			= 0x00002000,	// Whether or not to wait for beacon replication, before triggering ExecuteClientUnitTest
-	RequireMCP				= 0x00004000,	// Whether or not an MCP connection is required, before triggering ExecuteClientUnitTest
-	RequireCustom			= 0x00008000,	// Whether or not ExecuteClientUnitTest will be executed manually, within the unit test
+	RequireCustom			= 0x00004000,	// Whether or not ExecuteClientUnitTest will be executed manually, within the unit test
 
 	RequirementsMask		= RequirePlayerController | RequirePawn | RequirePlayerState | RequirePing | RequireNUTActor |
-								RequireBeacon | RequireMCP | RequireCustom,
+								RequireBeacon | RequireCustom,
 
 	/** Unit test error/crash detection */
 	ExpectServerCrash		= 0x00100000,	// Whether or not this unit test will intentionally crash the server
@@ -85,7 +84,7 @@ enum class EUnitTestFlags : uint32
 	/** Unit test error/crash detection debugging (NOTE: Don't use these in finalized unit tests, unit tests must handle all errors) */
 	IgnoreServerCrash		= 0x00400000,	// Whether or not server crashes should be treated as a unit test failure
 	IgnoreClientCrash		= 0x00800000,	// Whether or not client crashes should be treated as a unit test failure
-	IgnoreDisconnect		= 0x01000000,	// Whether or not minimal/fake client disconnects, should be treated as a unit test failure
+	IgnoreDisconnect		= 0x01000000,	// Whether or not MinimalClient disconnects, should be treated as a unit test failure
 
 	/** Unit test events */
 	NotifyProcessEvent		= 0x02000000,	// Whether or not to trigger 'NotifyProcessEvent' for every executed non-RPC local function

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "UserDefinedStructure/UserDefinedStructEditorData.h"
 #include "Misc/ITransaction.h"
@@ -16,6 +16,19 @@ void FStructVariableDescription::PostSerialize(const FArchive& Ar)
 	if (ContainerType == EPinContainerType::None)
 	{
 		ContainerType = FEdGraphPinType::ToPinContainerType(bIsArray_DEPRECATED, bIsSet_DEPRECATED, bIsMap_DEPRECATED);
+	}
+
+	if (Ar.UE4Ver() < VER_UE4_ADDED_SOFT_OBJECT_PATH)
+	{
+		// Fix up renamed categories
+		if (Category == TEXT("asset"))
+		{
+			Category = TEXT("softobject");
+		}
+		else if (Category == TEXT("assetclass"))
+		{
+			Category = TEXT("softclass");
+		}
 	}
 }
 
@@ -38,11 +51,6 @@ FEdGraphPinType FStructVariableDescription::ToPinType() const
 UUserDefinedStructEditorData::UUserDefinedStructEditorData(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	UUserDefinedStruct* ScriptStruct = GetOwnerStruct();
-	if (ScriptStruct)
-	{
-		DefaultStructInstance.SetPackage(ScriptStruct->GetOutermost());
-	}
 }
 
 uint32 UUserDefinedStructEditorData::GenerateUniqueNameIdForMemberVariable()
@@ -130,31 +138,32 @@ void UUserDefinedStructEditorData::PostLoadSubobjects(FObjectInstancingGraph* Ou
 
 const uint8* UUserDefinedStructEditorData::GetDefaultInstance() const
 {
-	ensure(DefaultStructInstance.IsValid() && DefaultStructInstance.GetStruct() == GetOwnerStruct());
-	return DefaultStructInstance.GetStructMemory();
+	return GetOwnerStruct()->GetDefaultInstance();
 }
 
 void UUserDefinedStructEditorData::RecreateDefaultInstance(FString* OutLog)
 {
-	UStruct* ScriptStruct = GetOwnerStruct();
-	DefaultStructInstance.Recreate(ScriptStruct);
-	uint8* StructData = DefaultStructInstance.GetStructMemory();
-	ensure(DefaultStructInstance.IsValid() && DefaultStructInstance.GetStruct() == ScriptStruct);
-	if (DefaultStructInstance.IsValid() && StructData && ScriptStruct)
+	UUserDefinedStruct* ScriptStruct = GetOwnerStruct();
+	ScriptStruct->DefaultStructInstance.Recreate(ScriptStruct);
+	uint8* StructData = ScriptStruct->DefaultStructInstance.GetStructMemory();
+	ensure(ScriptStruct->DefaultStructInstance.IsValid() && ScriptStruct->DefaultStructInstance.GetStruct() == ScriptStruct);
+	if (ScriptStruct->DefaultStructInstance.IsValid() && StructData)
 	{
 		// When loading, the property's default value may end up being filled with a placeholder. 
 		// This tracker object allows the linker to track the actual object that is being filled in 
 		// so it can calculate an offset to the property and write in the placeholder value:
 		FScopedPlaceholderRawContainerTracker TrackDefaultObject(StructData);
 
-		DefaultStructInstance.SetPackage(ScriptStruct->GetOutermost());
+		ScriptStruct->DefaultStructInstance.SetPackage(ScriptStruct->GetOutermost());
 
 		for (TFieldIterator<UProperty> It(ScriptStruct); It; ++It)
 		{
 			UProperty* Property = *It;
 			if (Property)
 			{
-				FStructVariableDescription* VarDesc = VariablesDescriptions.FindByPredicate(FStructureEditorUtils::FFindByNameHelper<FStructVariableDescription>(Property->GetFName()));
+				FGuid VarGuid = FStructureEditorUtils::GetGuidFromPropertyName(Property->GetFName());
+
+				FStructVariableDescription* VarDesc = VariablesDescriptions.FindByPredicate(FStructureEditorUtils::FFindByGuidHelper<FStructVariableDescription>(VarGuid));
 				if (VarDesc && !VarDesc->CurrentDefaultValue.IsEmpty())
 				{
 					if (!FBlueprintEditorUtils::PropertyValueFromString(Property, VarDesc->CurrentDefaultValue, StructData))
@@ -176,23 +185,9 @@ void UUserDefinedStructEditorData::RecreateDefaultInstance(FString* OutLog)
 
 void UUserDefinedStructEditorData::CleanDefaultInstance()
 {
-	ensure(!DefaultStructInstance.IsValid() || DefaultStructInstance.GetStruct() == GetOwnerStruct());
-	DefaultStructInstance.Destroy();
-}
-
-void UUserDefinedStructEditorData::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	UUserDefinedStructEditorData* This = CastChecked<UUserDefinedStructEditorData>(InThis);
-
-	UStruct* ScriptStruct = This->GetOwnerStruct();
-	ensure(!This->DefaultStructInstance.IsValid() || This->DefaultStructInstance.GetStruct() == ScriptStruct);
-	uint8* StructData = This->DefaultStructInstance.GetStructMemory();
-	if (StructData)
-	{
-		ScriptStruct->SerializeBin(Collector.GetVerySlowReferenceCollectorArchive(), StructData);
-	}
-
-	Super::AddReferencedObjects(This, Collector);
+	UUserDefinedStruct* ScriptStruct = GetOwnerStruct();
+	ensure(!ScriptStruct->DefaultStructInstance.IsValid() || ScriptStruct->DefaultStructInstance.GetStruct() == GetOwnerStruct());
+	ScriptStruct->DefaultStructInstance.Destroy();
 }
 
 #undef LOCTEXT_NAMESPACE

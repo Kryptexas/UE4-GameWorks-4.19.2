@@ -1,48 +1,24 @@
-﻿INTSourceChangelist:2744797
-Title:1. Oculus Developer を登録する
-Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
-Description:必要なプログラムとドキュメントを利用するために Oculus デベロッパーとして登録する
+﻿INTSourceChangelist:3718992
 Availability:Public
-Version:4.9
-SkillLevel:Intermediate
+Crumbs: %ROOT%
+Title:1.Oculus Runtime をダウンロードする
+Description:Oculus Runtime をダウンロードしましょう
+Type:quick start
+SkillLevel:Beginner
+Version:4.17
+Parent:Platforms/Oculus/QuickStart
+Order:1
+Checkpoint:RIFTQS
+Tags:Oculus Rift
+Tags:VR
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Platforms/Oculus/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Platforms/Oculus/QuickStart/2 "%Platforms/Oculus/QuickStart/2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-このセクションでは、まだ未登録の方のために、Oculus デベロッパーとして登録する方法を説明します。 
-Oculus デベロッパーとしての登録は必須ではありませんが、登録すると Oculus フォーラムへの参加および Oculus ストアへのゲームのサブミットが可能になります。
+このセクションでは、アンリアル エンジン 4 と互換性のある最新の Oculusu Runtimes をどこからダウンロードするのか説明します。
 
-%Steps%
+1. [Oculus 社のセットアップ ページ](https://www.oculus.com/en-us/setup/) にアクセスし、ページ中央部にある **[Start  Download]** ボタンを押して Oculus Runtimes をダウンロードしてください。
 
-Oculus アカウントを既にお持ちの方は、[Oculus Developer Center](https://developer.oculus.com/) ページの右上角の人の形をしたアイコンをクリックしてログインします。 
-アカウントをお持ちの方は、次のステップはスキップできます。
-
-![](Oculus_Downloads.png)
-
-[region:note]
-必要とされる Oculus ランタイム ソフトウェアをダウンロードするために Oculus アカウントは必要ありませんが、アカウントを作成すると、フォーラムへの投稿、Oculus Share へのゲームの提出などが可能になります。
-[/region]
-
-Oculus アカウントをお持ちでない方は、ページの右上角の人の形をしたアイコンをクリックしてアカウントを作成すると [Login ページ](https://id.oculus.com/US/en-US/login/) が表示されます。Login ページから以下の方法でアカウントを設定します。
-
-![](2-2-click-the-log-in-link.png)
-
-1. **[Create a free account (無料アカウントを作成)]** をクリックします。
-1. ページに記載されているインストラクションに従って、登録フォームに記入します。
-1. Oculus からメールアドレスと登録を確認するためのリンクを知らせるメールが届きます。
-1. [Oculus Developer Center](https://developer.oculus.com/) に戻り **Log In** リンクをクリックします。
+	![](OR_Download_Runtimes_00.png)
 
 
-%Steps%
+[NAV]

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Linux/LinuxPlatformProcess.h"
 #include "GenericPlatform/GenericPlatformFile.h"
@@ -570,7 +570,28 @@ bool FLinuxPlatformProcess::WritePipe(void* WritePipe, const FString& Message, F
 		*OutWritten = FUTF8ToTCHAR((const ANSICHAR*)Buffer).Get();
 	}
 
+	delete[] Buffer;
 	return (BytesWritten == BytesAvailable);
+}
+
+bool FLinuxPlatformProcess::WritePipe(void* WritePipe, const uint8* Data, const int32 DataLength, int32* OutDataLength)
+{
+	// if there is not a message or WritePipe is null
+	if ((DataLength == 0) || (WritePipe == nullptr))
+	{
+		return false;
+	}
+
+	// write to pipe
+	uint32 BytesWritten = write(*(int*)WritePipe, Data, DataLength);
+
+	// Get written Data Length
+	if (OutDataLength)
+	{
+		*OutDataLength = (int32)BytesWritten;
+	}
+
+	return (BytesWritten == DataLength);
 }
 
 FRunnableThread* FLinuxPlatformProcess::CreateRunnableThread()
@@ -959,19 +980,24 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 		}
 		else
 		{
-			MaxPrio = PrioLimits.rlim_cur;
+			MaxPrio = 20 - PrioLimits.rlim_cur;
 		}
 
 		int NewPrio = TheirCurrentPrio;
+		// This should be in sync with Mac/Windows and Also SetThreadPriority in Linux thread.
+		// The single most important use of that is setting "below normal" priority to ShaderCompileWorker (PrioModifier == -1).
+		// If SCW is run with too low a priority, shader compilation will be longer than needed.
+		int PrioChange = 0;
 		if (PriorityModifier > 0)
 		{
 			// decrease the nice value - will perhaps fail, it's up to the user to run with proper permissions
-			NewPrio -= 10;
+			PrioChange = (PriorityModifier == 1) ? -10 : -15;
 		}
-		else
+		else if (PriorityModifier < 0)
 		{
-			NewPrio += 10;
+			PrioChange = (PriorityModifier == -1) ? 5 : 10;
 		}
+		NewPrio += PrioChange;
 
 		// cap to [RLIMIT_NICE, 19]
 		NewPrio = FMath::Min(19, NewPrio);

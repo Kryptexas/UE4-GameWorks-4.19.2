@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SSingleProperty.h"
 #include "UObject/UnrealType.h"
@@ -143,12 +143,13 @@ void SSingleProperty::SetObject( UObject* InObject )
 	if( ValueNode.IsValid() )
 	{
 		UProperty* Property = ValueNode->GetProperty();
-
+	//TODO MaterialLayers: Remove below commenting
 		bIsAcceptableProperty = true;
 		// not an array property (dynamic or static)
-		bIsAcceptableProperty &= !( Property->IsA( UArrayProperty::StaticClass() ) || (Property->ArrayDim > 1 && ValueNode->GetArrayIndex() == INDEX_NONE) );
+		//bIsAcceptableProperty &= !( Property->IsA( UArrayProperty::StaticClass() ) || (Property->ArrayDim > 1 && ValueNode->GetArrayIndex() == INDEX_NONE) );
 		// not a struct property unless its a built in type like a vector
-		bIsAcceptableProperty &= ( !Property->IsA( UStructProperty::StaticClass() ) || PropertyEditorHelpers::IsBuiltInStructProperty( Property ) );
+		//bIsAcceptableProperty &= ( !Property->IsA( UStructProperty::StaticClass() ) || PropertyEditorHelpers::IsBuiltInStructProperty( Property ) );
+		PropertyHandle = PropertyEditorHelpers::GetPropertyHandle(ValueNode.ToSharedRef(), NotifyHook, PropertyUtilities);
 	}
 
 	if( bIsAcceptableProperty )

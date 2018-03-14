@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DataTableCustomization.h"
 #include "Framework/Application/SlateApplication.h"
@@ -151,7 +151,11 @@ TSharedRef<SWidget> FDataTableCustomizationLayout::GetListContent()
 		+ SVerticalBox::Slot()
 		.FillHeight(1.f)
 		[
-			RowNameComboListView.ToSharedRef()
+			SNew(SBox)
+			.MaxDesiredHeight(600)
+			[
+				RowNameComboListView.ToSharedRef()
+			]
 		];
 }
 

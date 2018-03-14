@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialGraphNode.cpp
@@ -16,6 +16,7 @@
 #include "Materials/MaterialExpressionFontSample.h"
 #include "Materials/MaterialExpressionFunctionInput.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
+#include "Materials/MaterialExpressionMaterialAttributeLayers.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionStaticBool.h"
 #include "Materials/MaterialExpressionStaticBoolParameter.h"
@@ -27,6 +28,7 @@
 #include "Materials/MaterialExpressionTextureProperty.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionViewProperty.h"
+#include "Materials/MaterialExpressionMaterialLayerOutput.h"
 
 #include "MaterialEditorUtilities.h"
 #include "MaterialEditorActions.h"
@@ -34,6 +36,7 @@
 #include "GraphEditorSettings.h"
 #include "Framework/Commands/GenericCommands.h"
 #include "ScopedTransaction.h"
+
 
 #define LOCTEXT_NAMESPACE "MaterialGraphNode"
 
@@ -196,14 +199,14 @@ FText UMaterialGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 FLinearColor UMaterialGraphNode::GetNodeTitleColor() const
 {
 	UMaterial* Material = CastChecked<UMaterialGraph>(GetGraph())->Material;
-
+	const UGraphEditorSettings* Settings = GetDefault<UGraphEditorSettings>();
 	if (bIsPreviewExpression)
 	{
 		// If we are currently previewing a node, its border should be the preview color.
-		return FColor( 70, 100, 200 );
+		return Settings->PreviewNodeTitleColor;
 	}
 
-	const UGraphEditorSettings* Settings = GetDefault<UGraphEditorSettings>();
+
 
 	if (UsesBoolColour(MaterialExpression))
 	{
@@ -230,7 +233,20 @@ FLinearColor UMaterialGraphNode::GetNodeTitleColor() const
 		// Previously FColor(0, 116, 255);
 		return Settings->FunctionCallNodeTitleColor;
 	}
+	else if (MaterialExpression->IsA(UMaterialExpressionMaterialAttributeLayers::StaticClass()))
+	{
+		return Settings->FunctionCallNodeTitleColor;
+	}
+	else if (MaterialExpression->IsA(UMaterialExpressionFunctionInput::StaticClass()))
+	{
+		return Settings->FunctionCallNodeTitleColor;
+	}
 	else if (MaterialExpression->IsA(UMaterialExpressionFunctionOutput::StaticClass()))
+	{
+		// Previously FColor(255, 155, 0);
+		return Settings->ResultNodeTitleColor;
+	}
+	else if (MaterialExpression->IsA(UMaterialExpressionMaterialLayerOutput::StaticClass()))
 	{
 		// Previously FColor(255, 155, 0);
 		return Settings->ResultNodeTitleColor;
@@ -332,7 +348,8 @@ void UMaterialGraphNode::GetContextMenuActions(const FGraphNodeContextMenuBuilde
 				|| MaterialExpression->IsA(UMaterialExpressionConstant3Vector::StaticClass())
 				|| MaterialExpression->IsA(UMaterialExpressionConstant4Vector::StaticClass())
 				|| MaterialExpression->IsA(UMaterialExpressionTextureSample::StaticClass())
-				|| MaterialExpression->IsA(UMaterialExpressionComponentMask::StaticClass()))
+				|| MaterialExpression->IsA(UMaterialExpressionComponentMask::StaticClass())
+				|| MaterialExpression->IsA(UMaterialExpressionMaterialFunctionCall::StaticClass()))
 			{
 				Context.MenuBuilder->BeginSection("MaterialEditorMenu1");
 				{
@@ -425,46 +442,67 @@ void UMaterialGraphNode::GetContextMenuActions(const FGraphNodeContextMenuBuilde
 	}
 }
 
-FString UMaterialGraphNode::GetShortenPinName(const FString& PinName)
+namespace MaterialPinNames
 {
-	FString InputName = PinName;
+	static const FName Coordinates(TEXT("Coordinates"));
+	static const FName UVs(TEXT("UVs"));
+	static const FName TextureObject(TEXT("TextureObject"));
+	static const FName Tex(TEXT("Tex"));
+	static const FName Input(TEXT("Input"));
+	static const FName Exponent(TEXT("Exponent"));
+	static const FName Exp(TEXT("Exp"));
+	static const FName AGreaterThanB(TEXT("AGreaterThanB"));
+	static const FName CompactAGreaterThanB(TEXT("A > B"));
+	static const FName AEqualsB(TEXT("AEqualsB"));
+	static const FName CompactAEqualsB(TEXT("A == B"));
+	static const FName ALessThanB(TEXT("ALessThanB"));
+	static const FName CompactALessThanB(TEXT("A < B"));
+	static const FName MipLevel(TEXT("MipLevel"));
+	static const FName Level(TEXT("Level"));
+	static const FName MipBias(TEXT("MipBias"));
+	static const FName Bias(TEXT("Bias"));
+}
+
+FName UMaterialGraphNode::GetShortenPinName(const FName PinName)
+{
+	FName InputName = PinName;
 
 	// Shorten long expression input names.
-	if (!FCString::Stricmp(*PinName, TEXT("Coordinates")))
+	if (PinName == MaterialPinNames::Coordinates)
 	{
-		InputName = TEXT("UVs");
+		InputName = MaterialPinNames::UVs;
 	}
-	else if (!FCString::Stricmp(*PinName, TEXT("TextureObject")))
+	else if (PinName == MaterialPinNames::TextureObject)
 	{
-		InputName = TEXT("Tex");
+		InputName = MaterialPinNames::Tex;
 	}
-	else if (!FCString::Stricmp(*PinName, TEXT("Input")))
+	else if (PinName == MaterialPinNames::Input)
 	{
-		InputName = TEXT("");
+		InputName = NAME_None;
 	}
-	else if (!FCString::Stricmp(*PinName, TEXT("Exponent")))
+	else if (PinName == MaterialPinNames::Exponent)
 	{
-		InputName = TEXT("Exp");
+		InputName = MaterialPinNames::Exp;
 	}
-	else if (!FCString::Stricmp(*PinName, TEXT("AGreaterThanB")))
+	else if (PinName == MaterialPinNames::AGreaterThanB)
 	{
-		InputName = TEXT("A > B");
+		InputName = MaterialPinNames::CompactAGreaterThanB;
 	}
-	else if (!FCString::Stricmp(*PinName, TEXT("AEqualsB")))
+	else if (PinName == MaterialPinNames::AEqualsB)
 	{
-		InputName = TEXT("A == B");
+		InputName = MaterialPinNames::CompactAEqualsB;
 	}
-	else if (!FCString::Stricmp(*PinName, TEXT("ALessThanB")))
+	else if (PinName == MaterialPinNames::ALessThanB)
 	{
-		InputName = TEXT("A < B");
+		InputName = MaterialPinNames::CompactALessThanB;
 	}
-	else if (!FCString::Stricmp(*PinName, TEXT("MipLevel")))
+	else if (PinName == MaterialPinNames::MipLevel)
 	{
-		InputName = TEXT("Level");
+		InputName = MaterialPinNames::Level;
 	}
-	else if (!FCString::Stricmp(*PinName, TEXT("MipBias")))
+	else if (PinName == MaterialPinNames::MipBias)
 	{
-		InputName = TEXT("Bias");
+		InputName = MaterialPinNames::Bias;
 	}
 
 	return InputName;
@@ -477,16 +515,14 @@ void UMaterialGraphNode::CreateInputPins()
 	for (int32 Index = 0; Index < ExpressionInputs.Num() ; ++Index)
 	{
 		FExpressionInput* Input = ExpressionInputs[Index];
-		FString InputName = MaterialExpression->GetInputName(Index);
+		FName InputName = MaterialExpression->GetInputName(Index);
 
 		InputName = GetShortenPinName(InputName);
 
-		const UMaterialGraphSchema* Schema = CastChecked<UMaterialGraphSchema>(GetSchema());
-		FString PinCategory = MaterialExpression->IsInputConnectionRequired(Index) ? Schema->PC_Required : Schema->PC_Optional;
-		FString PinSubCategory = TEXT("");
+		const FName PinCategory = MaterialExpression->IsInputConnectionRequired(Index) ? UMaterialGraphSchema::PC_Required : UMaterialGraphSchema::PC_Optional;
 
-		UEdGraphPin* NewPin = CreatePin(EGPD_Input, PinCategory, PinSubCategory, nullptr, InputName);
-		if (NewPin->PinName.IsEmpty())
+		UEdGraphPin* NewPin = CreatePin(EGPD_Input, PinCategory, InputName);
+		if (NewPin->PinName.IsNone())
 		{
 			// Makes sure pin has a name for lookup purposes but user will never see it
 			NewPin->PinName = CreateUniquePinName(TEXT("Input"));
@@ -499,36 +535,33 @@ void UMaterialGraphNode::CreateOutputPins()
 {
 	TArray<FExpressionOutput>& Outputs = MaterialExpression->GetOutputs();
 
-	for( int32 Index = 0 ; Index < Outputs.Num() ; ++Index )
+	for (const FExpressionOutput& ExpressionOutput : Outputs)
 	{
-		const FExpressionOutput& ExpressionOutput = Outputs[Index];
-		FString PinCategory = TEXT("");
-		FString PinSubCategory = TEXT("");
-		FString OutputName = TEXT("");
+		FName PinCategory;
+		FName PinSubCategory;
+		FName OutputName;
 
-		const UMaterialGraphSchema* Schema = CastChecked<UMaterialGraphSchema>(GetSchema());
-		
 		if (MaterialExpression->bShowMaskColorsOnPin)
 		{
 			if (ExpressionOutput.Mask)
 			{
-				PinCategory = Schema->PC_Mask;
+				PinCategory = UMaterialGraphSchema::PC_Mask;
 
 				if (ExpressionOutput.MaskR && !ExpressionOutput.MaskG && !ExpressionOutput.MaskB && !ExpressionOutput.MaskA)
 				{
-					PinSubCategory = Schema->PSC_Red;
+					PinSubCategory = UMaterialGraphSchema::PSC_Red;
 				}
 				else if (!ExpressionOutput.MaskR &&  ExpressionOutput.MaskG && !ExpressionOutput.MaskB && !ExpressionOutput.MaskA)
 				{
-					PinSubCategory = Schema->PSC_Green;
+					PinSubCategory = UMaterialGraphSchema::PSC_Green;
 				}
 				else if (!ExpressionOutput.MaskR && !ExpressionOutput.MaskG &&  ExpressionOutput.MaskB && !ExpressionOutput.MaskA)
 				{
-					PinSubCategory = Schema->PSC_Blue;
+					PinSubCategory = UMaterialGraphSchema::PSC_Blue;
 				}
 				else if (!ExpressionOutput.MaskR && !ExpressionOutput.MaskG && !ExpressionOutput.MaskB &&  ExpressionOutput.MaskA)
 				{
-					PinSubCategory = Schema->PSC_Alpha;
+					PinSubCategory = UMaterialGraphSchema::PSC_Alpha;
 				}
 			}
 		}
@@ -538,8 +571,8 @@ void UMaterialGraphNode::CreateOutputPins()
 			OutputName = ExpressionOutput.OutputName;
 		}
 
-		UEdGraphPin* NewPin = CreatePin(EGPD_Output, PinCategory, PinSubCategory, nullptr, OutputName);
-		if (NewPin->PinName.IsEmpty())
+		UEdGraphPin* NewPin = CreatePin(EGPD_Output, PinCategory, PinSubCategory, OutputName);
+		if (NewPin->PinName.IsNone())
 		{
 			// Makes sure pin has a name for lookup purposes but user will never see it
 			NewPin->PinName = CreateUniquePinName(TEXT("Output"));
@@ -811,6 +844,15 @@ FString UMaterialGraphNode::GetDocumentationExcerptName() const
 	// This is done so that the excerpt name in the doc file can be found by find-in-files when searching for the full class name.
 	UClass* MyClass = (MaterialExpression != NULL) ? MaterialExpression->GetClass() : this->GetClass();
 	return FString::Printf(TEXT("%s%s"), MyClass->GetPrefixCPP(), *MyClass->GetName());
+}
+
+bool UMaterialGraphNode::CanUserDeleteNode() const
+{
+	if (MaterialExpression != NULL)
+	{
+		return MaterialExpression->CanUserDeleteExpression();
+	}
+	return true;
 }
 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1.2 - 리플렉션 논메탈릭 머티리얼
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
@@ -10,63 +10,7 @@ Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Resources/Showcases/RealisticRendering
 Related: Engine/Rendering/PostProcessEffects
 Version: 4.9
-
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 예제](Resources/ContentExamples/Reflections/1_1 "%Resources/ContentExamples/Reflections/1_1:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[리플렉션 홈](Resources/ContentExamples/Reflections)
-	[/PARAM]
-	[PARAM:next]
-		[다음 예제](Resources/ContentExamples/Reflections/1_3 "%Resources/ContentExamples/Reflections/1_3:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Reflections/1_2:title%](Reflections_1_2_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Reflections/1_2:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Reflections/1_2:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/Reflections/1_2]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Reflections/1_2:title%](Reflections_1_2_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Reflections/1_2:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Reflections/1_2:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/Reflections/1_2]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Reflections_1_2_Topic.png
 
 
 [REGION:fullwidth]

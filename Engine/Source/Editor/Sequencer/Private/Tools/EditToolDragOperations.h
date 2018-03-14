@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -139,6 +139,9 @@ private:
 
 	/** A handle for the sequencer node tree updated delegate. */
 	FDelegateHandle SequencerNodeTreeUpdatedHandle;
+
+	struct FInitialRowIndex { UMovieSceneSection* Section; int32 RowIndex; };
+	TArray<FInitialRowIndex> InitialRowIndices;
 };
 
 

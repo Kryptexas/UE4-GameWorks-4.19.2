@@ -183,7 +183,8 @@ For a full breakdown of the various settings you can check out the [Post Process
 
 
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:StaticMeshEditor]
 [REGION:lightbox]
 [![](StaticMeshEditor.png)(w:450)](StaticMeshEditor.png)
@@ -195,4 +196,5 @@ For a full breakdown of the various settings you can check out the [Post Process
 [![](SkeletalMeshEditor.png)(w:450)](SkeletalMeshEditor.png)
 [/REGION] 
 [/EXCERPT:SkeletalMeshEditor]
--->
+
+[/COMMENT]

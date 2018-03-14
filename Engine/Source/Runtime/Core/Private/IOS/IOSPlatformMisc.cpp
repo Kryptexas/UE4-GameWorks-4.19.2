@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IOSPlatformMisc.mm: iOS implementations of misc functions
@@ -95,6 +95,43 @@ void FIOSPlatformMisc::PlatformInit()
 void FIOSPlatformMisc::PlatformHandleSplashScreen(bool ShowSplashScreen)
 {
     GShowSplashScreen = ShowSplashScreen;
+}
+
+const TCHAR* FIOSPlatformMisc::GamePersistentDownloadDir()
+{
+    static FString GamePersistentDownloadDir = TEXT("");
+    
+    if (GamePersistentDownloadDir.Len() == 0)
+    {
+        FString BaseProjectDir = ProjectDir();
+        
+        if (BaseProjectDir.Len() > 0)
+        {
+            GamePersistentDownloadDir = BaseProjectDir / TEXT("PersistentDownloadDir");
+        }
+        
+        // create the directory so we can exclude it from iCloud backup
+        FString Result = GamePersistentDownloadDir;
+        Result.ReplaceInline(TEXT("../"), TEXT(""));
+        Result.ReplaceInline(TEXT(".."), TEXT(""));
+        Result.ReplaceInline(FPlatformProcess::BaseDir(), TEXT(""));
+        FString DownloadPath = FString([NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0]) + TEXT("/");
+        Result = DownloadPath + Result;
+        NSURL* URL = [NSURL fileURLWithPath : Result.GetNSString()];
+        if (![[NSFileManager defaultManager] fileExistsAtPath:[URL path]])
+        {
+            [[NSFileManager defaultManager] createDirectoryAtURL:URL withIntermediateDirectories : YES attributes : nil error : nil];
+        }
+        
+        // mark it to not be uploaded
+        NSError *error = nil;
+        BOOL success = [URL setResourceValue : [NSNumber numberWithBool : YES] forKey : NSURLIsExcludedFromBackupKey error : &error];
+        if (!success)
+        {
+            NSLog(@"Error excluding %@ from backup %@",[URL lastPathComponent], error);
+        }
+    }
+    return *GamePersistentDownloadDir;
 }
 
 EAppReturnType::Type FIOSPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )
@@ -1242,8 +1279,8 @@ void FIOSCrashContext::GenerateWindowsErrorReport(char const* WERPath, bool bIsE
         WriteLine(ReportFile, TEXT("</Parameter2>"));
         WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<DeploymentName>%s</DeploymentName>"), FApp::GetDeploymentName()));
         WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsEnsure>%s</IsEnsure>"), bIsEnsure ? TEXT("1") : TEXT("0")));
-        WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsAssert>%s</IsAssert>"), FDebug::bHasAsserted ? TEXT("1") : TEXT("0")));
-        WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<CrashType>%s</CrashType>"), FGenericCrashContext::GetCrashTypeString(bIsEnsure, FDebug::bHasAsserted, GIsGPUCrashed)));
+        WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsAssert>%s</IsAssert>"), FDebug::HasAsserted() ? TEXT("1") : TEXT("0")));
+        WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<CrashType>%s</CrashType>"), FGenericCrashContext::GetCrashTypeString(bIsEnsure, FDebug::HasAsserted(), GIsGPUCrashed)));
         WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<BuildVersion>%s</BuildVersion>"), FApp::GetBuildVersion()));
         WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<EngineModeEx>%s</EngineModeEx>"), FGenericCrashContext::EngineModeExString()));
         

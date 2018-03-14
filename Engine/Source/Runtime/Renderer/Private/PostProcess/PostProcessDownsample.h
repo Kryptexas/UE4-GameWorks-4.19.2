@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessDownsample.h: Post processing down sample implementation.
@@ -33,8 +33,8 @@ public:
 	virtual FComputeFenceRHIParamRef GetComputePassEndFence() const override { return AsyncEndFence; }
 
 private:
-	template <uint32 Method>
-	void SetShader(const FRenderingCompositePassContext& Context, const FPooledRenderTargetDesc* InputDesc);
+	template <uint32 Method, uint32 ManuallyClampUV>
+	void SetShader(const FRenderingCompositePassContext& Context, const FPooledRenderTargetDesc* InputDesc, const FIntPoint& SrcSize, const FIntRect& SrcRect);
 
 	template <uint32 Method, typename TRHICmdList>
 	void DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, const FIntPoint& SrcSize, const FIntRect& DestRect, FUnorderedAccessViewRHIParamRef DestUAV);

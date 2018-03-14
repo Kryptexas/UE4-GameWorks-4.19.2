@@ -21,7 +21,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:lightbox]
 [![](fullEG.png)(w:940 convert:false)](fullEG.png)
@@ -59,7 +59,7 @@ version:4.9
 
 下一步中我们将继续对此图表进行编辑，为 AI 控制器设置初始黑板值。
 
-%Steps%
+
 
 
 

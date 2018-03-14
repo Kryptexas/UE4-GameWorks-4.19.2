@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AI/Navigation/NavLinkRenderingComponent.h"
 #include "EngineGlobals.h"
@@ -128,6 +128,12 @@ FNavLinkRenderingProxy::FNavLinkRenderingProxy(const UPrimitiveComponent* InComp
 			StoreSegmentLinks(LinkOwnerLocalToWorld, SegmentLinks);
 		}
 	}
+}
+
+SIZE_T FNavLinkRenderingProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
 }
 
 void FNavLinkRenderingProxy::StorePointLinks(const FTransform& InLocalToWorld, const TArray<FNavigationLink>& LinksArray)

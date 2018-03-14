@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Hierarchy/SHierarchyViewItem.h"
 #include "Components/NamedSlotInterface.h"
@@ -12,6 +12,7 @@
 #include "EditorFontGlyphs.h"
 #include "Application/SlateApplication.h"
 
+#include "Styling/CoreStyle.h"
 #if WITH_EDITOR
 	#include "EditorStyleSet.h"
 #endif // WITH_EDITOR
@@ -556,7 +557,7 @@ const FSlateBrush* FHierarchyRoot::GetImage() const
 
 FSlateFontInfo FHierarchyRoot::GetFont() const
 {
-	return FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 10);
+	return FCoreStyle::GetDefaultFontStyle("Bold", 10);
 }
 
 void FHierarchyRoot::GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children)
@@ -658,7 +659,7 @@ const FSlateBrush* FNamedSlotModel::GetImage() const
 
 FSlateFontInfo FNamedSlotModel::GetFont() const
 {
-	return FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 10);
+	return FCoreStyle::GetDefaultFontStyle("Bold", 10);
 }
 
 void FNamedSlotModel::GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children)
@@ -940,7 +941,7 @@ FSlateFontInfo FHierarchyWidget::GetFont() const
 		if ( !WidgetTemplate->IsGeneratedName() && WidgetTemplate->bIsVariable )
 		{
 			// TODO UMG Hacky move into style area
-			return FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 10);
+			return FCoreStyle::GetDefaultFontStyle("Bold", 10);
 		}
 	}
 

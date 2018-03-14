@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3505632
+﻿INTSourceChangelist:3782314
 Availability: Docs
 Crumbs: %ROOT%, Engine, Engine/Animation
 Title: 애님그래프 포즈 노드
 Description:포즈 애셋, 애니메이션 블루프린트, 포즈 노드를 사용하여 실행시간에 커브로 구동되는 애니메이션을 재생하는 방법에 대한 설명입니다.
 Type: Reference
 Version: 4.16
-Parent: Engine/Animation
+Parent: Engine/Animation/AnimPose
 Order: 1
 topic-image:PoseNodeTopic.png
 Related: Engine\Animation\AnimHowTo\CreatePoseAsset
@@ -17,7 +17,8 @@ Tags:Animation
 Tags:Animation Blueprint
 Tags:Animation Blending
 
-<!-- Page refactored and split off into two pages, no longer needed
+[COMMENT:none]
+ Page refactored and split off into two pages, no longer needed
 
 [TOC (start:2 end:2)]
 
@@ -126,7 +127,8 @@ Pose Blender 노드는 **포즈 애셋** 을 그래프에 끌어놓을 때 자�
 | **Type** | 유형 - [INCLUDE:Engine\Animation\AnimPose\AnimBPPoseNodes\#typetable] |
 | **Twist Axis** | 트위스트 축 - **Type** 이 **SwingOnly** 로 설정되었을 때 사용할 축입니다 (X, Y, 또는 Z) |
 
-<!--
+[COMMENT]
+
 [EXCERPT:typetable]
 | 옵션 | 설명 |
 | ----------- |------|
@@ -134,7 +136,8 @@ Pose Blender 노드는 **포즈 애셋** 을 그래프에 끌어놓을 때 자�
 | **Swing Only** | 보간에 스윙만 고려합니다. |
 | **Translation** | 부모 기준 이동을 고려합니다. |
 [/EXCERPT:typetable]
--->
+
+[/COMMENT]
 
 자세한 정보는 언리얼 엔진 라이브 스트림 방송 중 애니메이션 관련 부분에서 **Pose Driver** 예제 부분을 참고하시기 바랍니다:
 
@@ -157,7 +160,8 @@ Pose Blender 노드는 **포즈 애셋** 을 그래프에 끌어놓을 때 자�
 [/OBJECT]
  
 
- -->
+ 
+[/COMMENT]
 
 
 

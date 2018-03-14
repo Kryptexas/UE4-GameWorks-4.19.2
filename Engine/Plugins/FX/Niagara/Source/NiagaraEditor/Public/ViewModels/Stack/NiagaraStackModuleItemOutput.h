@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "NiagaraStackEntry.h"
 #include "NiagaraParameterHandle.h"
+#include "NiagaraTypes.h"
 #include "NiagaraStackModuleItemOutput.generated.h"
 
 class UNiagaraNodeFunctionCall;
@@ -22,13 +23,15 @@ public:
 	 * @param InFunctionCallNode The function call node representing the module in the stack graph which owns this Output.
 	 * @param InOutputParameterHandle The Namespace.Name handle for the Output to the owning module.
 	 */
-	void Initialize(TSharedRef<FNiagaraSystemViewModel> InSystemViewModel, TSharedRef<FNiagaraEmitterViewModel> InEmitterViewModel, UNiagaraNodeFunctionCall& InFunctionCallNode, FString InOutputParameterHandle);
+	void Initialize(TSharedRef<FNiagaraSystemViewModel> InSystemViewModel, TSharedRef<FNiagaraEmitterViewModel> InEmitterViewModel, UNiagaraNodeFunctionCall& InFunctionCallNode, FName InOutputParameterHandle,
+		FNiagaraTypeDefinition InOutputType);
 
 	//~ UNiagaraStackEntry interface
 	virtual FText GetDisplayName() const override;
 	virtual FName GetTextStyleName() const override;
 	virtual bool GetCanExpand() const override;
 	virtual int32 GetItemIndentLevel() const override;
+	virtual FText GetTooltipText() const override;
 
 	/** Gets the parameter handle which defined this Output in the module. */
 	const FNiagaraParameterHandle& GetOutputParameterHandle() const;
@@ -45,4 +48,7 @@ private:
 
 	/** The name of this Output for display in the UI. */
 	FText DisplayName;
+
+	/** The niagara type definition for this input. */
+	FNiagaraTypeDefinition OutputType;
 };

@@ -12,11 +12,15 @@ topic-image:Modding/RoboRecall/RoboRecall_Topic.png
 social-image:Modding/RoboRecall/RoboRecall_Social.png
 checkpoint:mod_extend
 
-<!-- Location: Modding/RoboRecall/Quickstarts/WeaponMod/4 -->
+[COMMENT:none]
+ Location: Modding/RoboRecall/Quickstarts/WeaponMod/4 
+[/COMMENT]
 
 [NAV]
 
-<!-- Title Image if Needed Here -->
+[COMMENT:none]
+ Title Image if Needed Here 
+[/COMMENT]
 
 在这步中，我们将覆盖 GrenadeGunPistol 上的 **Grab 事件**，以便确定枪和物体发生碰撞时是否会发生爆炸。
 
@@ -89,7 +93,8 @@ checkpoint:mod_extend
 
 [NAV]
  
-<!--
+[COMMENT:none]
+
 [EXCERPT:snippet]
 	Begin Object Class=K2Node_Event Name="K2Node_Event_7"
 
@@ -307,5 +312,6 @@ checkpoint:mod_extend
 
 	End Object
 [/EXCERPT:snippet]
--->
+
+[/COMMENT]
 

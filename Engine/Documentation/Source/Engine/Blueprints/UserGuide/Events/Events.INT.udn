@@ -6,47 +6,8 @@ version: 4.9
 Parent:Engine/Blueprints/Scripting
 tags:Execution Flow
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide/Events:title%](Engine\Blueprints\UserGuide\Events.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide/Events:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide/Events:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/Events]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide/Events:title%](Engine\Blueprints\UserGuide\Events.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide/Events:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide/Events:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/Events]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-
+tags:Special Nodes
+topic-image:Engine\Blueprints\UserGuide\Events.png
 
 [TOC (start:2)]
 
@@ -70,7 +31,8 @@ single **EventGraph**; though only one of each type may be used.
 For information about using Matinee to create events to be triggered at specific times during the playback of a cinematic sequence, see [](Engine/Matinee\UserGuide\BlueprintComponents).
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:LevelBPOnly]
 [REGION:note]
@@ -84,7 +46,8 @@ This Blueprint Event node executes only on the server. For single player games, 
 [/REGION]
 [/EXCERPT:ServerOnly]
 
--->
+
+[/COMMENT]
 
 ## Event Level Reset
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Sections/MovieSceneCinematicShotSection.h"
 
@@ -8,3 +8,14 @@
 
 UMovieSceneCinematicShotSection::UMovieSceneCinematicShotSection() : UMovieSceneSubSection()
 { }
+
+void UMovieSceneCinematicShotSection::PostLoad()
+{
+	Super::PostLoad();
+
+	if (!DisplayName_DEPRECATED.IsEmpty())
+	{
+		ShotDisplayName = DisplayName_DEPRECATED.ToString();
+		DisplayName_DEPRECATED = FText::GetEmpty();
+	}
+}

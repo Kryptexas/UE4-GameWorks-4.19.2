@@ -13,7 +13,8 @@ topic-image:rendering_topic.png
 
 [INCLUDE:Engine/Rendering/Overview#Intro]
 
-<!--
+[COMMENT:none]
+
 [REGION:features third]
 [OBJECT:Role]
 	[PARAM:icon]
@@ -44,7 +45,8 @@ topic-image:rendering_topic.png
 	[/PARAM]
 [/OBJECT]
 [/REGION]
--->
+
+[/COMMENT]
 
 [DIR(output:"topic" parent:"Engine/Rendering" type:"landing" end:"1")]
 

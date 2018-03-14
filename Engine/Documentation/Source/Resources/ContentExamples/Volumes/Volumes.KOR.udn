@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:볼륨 콘텐츠 예제
 Crumbs: %ROOT%, Resources, Resources/ContentExamples
@@ -9,43 +9,11 @@ Related: Engine/Rendering/LightingAndShadows/LightPropagationVolumes
 Related: Engine/AI/BehaviorTrees/QuickStart/2
 Related: Engine/Actors/Triggers
 Version: 4.9
-
+topic-image:Volumes_Compact.png
 
 [REGION:banner]
 ![](Volumes_Header.png)(convert:false)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Volumes:title%](Volumes_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Volumes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Volumes:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Volumes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Volumes:title%](Volumes_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Volumes:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Volumes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 
 
 **Volumes** 콘텐츠 예제 맵에서는 여러가지 **Volume** 유형을 사용하여 다양한 게임플레이 이펙트 제작, 바운더리 설정, 퍼포먼스 향상 및 (또는) 라이팅 빌드 시간을 감소시키는 법을 알아봅니다.

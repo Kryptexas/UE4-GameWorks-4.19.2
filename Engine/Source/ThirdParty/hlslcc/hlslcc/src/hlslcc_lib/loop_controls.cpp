@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // This code is modified from that in the Mesa3D Graphics library available at
 // http://mesa3d.org/
@@ -133,7 +133,7 @@ int calculate_iterations(ir_rvalue *from, ir_rvalue *to, ir_rvalue *increment, e
 	const int bias[] = { -1, 0, 1 };
 	bool valid_loop = false;
 
-	for (unsigned i = 0; i < Elements(bias); i++)
+	for (unsigned i = 0; i < GetNumArrayElements(bias); i++)
 	{
 		if (increment->type->base_type == GLSL_TYPE_INT)
 		{

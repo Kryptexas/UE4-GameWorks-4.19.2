@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3531998
+﻿INTSourceChangelist:3718578
 Availability:Public
 Title:プロジェクトのパッケージ化
 Crumbs:
@@ -70,15 +70,95 @@ mac
 
 ターゲット ディレクトリが確認されると、選択したプラットフォーム向けにプロジェクトの実際のパッケージ化処理が開始します。パッケージ化は時間がかかることがありバックグラウンドで実行されるため、エディタを継続して使用することができます。エディタの右下隅に、処理の進捗を示すステータス インジケータが表示されます。
 
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 ![](progress.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](progress_MAC.png)
+[/PARAM]
+[/OBJECT]
 
 このステータス インジケータには進行中のパッケージ化処理を中止する **[Cancel]** ボタンがあります。また **[Show Log]** リンクをクリックすることにより、拡張した出力ログ情報を表示させることもできます。この出力ログの情報は、パッケージ化が成功しなかった場合の原因調査に役立ちます。
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 ![](log.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](log_MAC.png)
+[/PARAM]
+[/OBJECT]
 
 エラーや警告など非常に重要なログ情報は通常の **メッセージログ** ウィンドウに記録が残ります。
 
 ![](message_log.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](message_log.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](message_log_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 [REGION:note]
 こうしたウィンドウがいずれも表示されない場合は、 **[Window** > **Developer Tools** > **Output Log** / **Message Log]** オプションからアクセスできます。
@@ -88,11 +168,36 @@ mac
 
 パッケージ化する場合、パッケージ化プロセスの出力用のディレクトリを選ぶように指示されます。パッケージ化したゲームは、プラットフォームに応じたサブディレクトリに配置されます。例えば、 `C:/PackagedOutput/` というディレクトリを選択すると、Windows のビルドが `C:/PackagedOutput/WindowsNoEditor/` に入ります。このサブディレクトリで、パッケージ化済みのゲームがプラットフォームに適したフォーマットで見つかります。例えば、Windows ゲームには、`.exe` ファイルがあります。Android ゲームには、`.bat` インストーラと共に `.apk` ファイルと `.obb` ファイルがあります。iOS ゲームには、`.ipa` ファイルがあります。作成されるファイルの数や種類はターゲット プラットフォームによって異なります。以下の画像は`WindowsNoEditor` サブディレクトリ内の Windows 向けプロジェクトの出力例です。
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 ![](results.png)
+[/PARAM]
+[/OBJECT]
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](results_MAC.png)
+[/PARAM]
+[/OBJECT]
 ## 配布
 
-iOS あるいは Android ゲームを App Store や Google Play Store にサブミットするには、パッケージを Distribution モードで作成する必要があります。そのためには、**[Packaging]** メニューの **[Packaging Settings]** オプションで **[Distribution]** チェックボックスにチェックを入れます。これで最終パッケージが適切に署名されます。
+iOS あるいは Android ゲームを App Store や Google Play Store にサブミットするには、パッケージを Distribution モードで作成する必要があります。そのためには、**[Packaging]** メニューの **[Packaging Settings]** オプションで **[Distribution]** チェックボックスにチェックを入れます。
 
 iOS の場合、Apple の Developer サイトでディストリビューション証明書および モバイル プロビジョニングを作成する必要があります。Development certificate (開発用証明書) と同じようにディストリビューション証明書をインストールして、もう 1 つのファイルの隣に「Distro_」プレフィックスの付いた名前をディストリビューション プロビジョニングに付けます (「Distro_MyProject.mobileprovision」と「MyProject.mobileprovision」ができます)。
 
@@ -112,7 +217,7 @@ Android の場合、`.apk` ファイルに署名するキーを作成し、`Sign
 | **Build Configuration** | コードベースのプロジェクトをコンパイルするビルドのコンフィギュレーションです。コード プロジェクトをデバッグするには、DebugGame を選択します。ブループリントのみのプロジェクトには、このオプションはないことに注意してください。最小限のデバッグ サポートのほとんどの開発で、より優れたパフォーマンスを求める場合は [Development] を選択します。デバッグ情報を持たず、デバッグの機能 (デバッグ形状を描画、画面上にデバッグ メッセージをプリントなど) がない最終的なビルドのシッピングでは、 [Shipping] を選択します。 |
 | **Staging Directory** | パッケージ化したビルドを格納するディレクトリです。ターゲット ディレクトリの選択時に別のディレクトリを選択すると、このオプションは自動的に更新されます。 |
 | **Full Rebuild** | 全コードをコンパイルするか否かを設定します。無効な場合、修正されたコードのみがコンパイルされます。これによりパッケージ化処理が迅速化する場合があります。シッピング ビルドは、ビルド漏れや古いコンテンツを含まないためにも常にフルの再ビルドを実行してください。このオプションはデフォルト設定で有効です。 |
-| **Use Pak File** | 個々のファイルまたは単一パッケージとしてプロジェクトのアセットをパッケージ化処理するか否かを設定します。有効な場合、各ファイル全てをコピーする代わりに、全アセットを単一「.pak」ファイルに格納します。プロジェクトにたくさんのアセットファイルがある場合、「.pak」ファイルを使用した方が配布が容易になる場合があります。多くのファイルを移動する必要がないからです。このオプションはデフォルトで無効になっています。 |
+| **Use Pak File** | 個々のファイルまたは単一パッケージとしてプロジェクトのアセットをパッケージ化処理するか否かを設定します。有効な場合、各ファイル全てをコピーする代わりに、全アセットを単一「.pak」ファイルに格納します。プロジェクトにたくさんのアセットファイルがある場合、Pak ファイルを使用した方が配布が容易になる場合があります。転送する必要があるファイル数が減るからです。このオプションはデフォルトで無効になっています。 |
 | **Generate Chunks** | インストールのストリーミングで使用可能な .pak ファイルのチャンクを生成するかどうかを設定します。|
 | **Build Http Chunk Install Data** | HTTP チャンク インストーラ向けにデータを生成するかどうかを設定します。これにより、ランタイムにインストールするようにウェブ サーバー上でデータをホストすることができます。 |
 | **Http Chunk Install Data Directory** | データをビルドすると保存されるディレクトリです。 |
@@ -125,7 +230,7 @@ Android の場合、`.apk` ファイルに署名するキーを作成し、`Sign
 
 ## コンテンツのクック
 
-デベロッパーとして新規または修正したゲーム コンテンツをイタレーションする時に、まずステージン グディレクトリへ全てをパッケージ化処理し、その後そこから実行するという冗長な処理を行いたくない場合もあることでしょう。そのような場合、[ **File > Cook Content > プラットフォーム名** ] の順に選択してクリックすることで、パッケージ化処理せずに特定のターゲット プラットフォームのコンテンツのみをクックすることも可能です。
+デベロッパーとして新規または修正したゲーム コンテンツをイタレーションする時に、まずステージン グディレクトリへ全てをパッケージ化処理し、その後そこから実行するという冗長な処理を行いたくない場合もあることでしょう。そのような場合、[ **File > Cook Content > [プラットフォーム名]** ] の順に選択してクリックすることで、パッケージ化処理せずに特定のターゲット プラットフォームのコンテンツのみをクックすることも可能です。
 
 この機能は、プロジェクトのローカルのデベロッパーのワークスペースにあるコンテンツを更新し、ステージング ディレクトリにアセットをコピーしません。イタレーションを迅速に行うために、ローカルのデベロッパー ワークスペースから直接ゲームを実行することができます。
 
@@ -134,7 +239,7 @@ Android の場合、`.apk` ファイルに署名するキーを作成し、`Sign
 
 オープン ワールドのゲームではロード時間が短いことが不可欠ですが、あらゆるタイプのゲームでもこれは価値があります。アンリアル エンジンでは、パッケージ化処理中のプロジェクトのロード時間を最適化する方法がいくつかあります。ゲームのロード時間を短縮する推奨方法を以下に示します。プロジェクトのパッケージ化処理方法については、[](Engine/Deployment) セクションをご覧ください。
 
-### Event Driven Loader (EDL) と Asyncronous Loading Thread (ALT) を使用する
+### Event Driven Loader (EDL) と Asynchronous Loading Thread (ALT) を使用する
 
 * **Asynchronous Loading Thread** (ALT) はデフォルトでオフになっていますが、 [Project Settings] メニューの [Engine - Streaming] セクションでオンにすることができます。修正したエンジンでは一部微調整が必要になるかもしれませんが、一般的に ALT はロードを 2 倍速くします。これには事前のロード時間があるゲームと絶えずデータをストリーミングするゲームを含みます。ALT はシリアライズとポスト ローディング コードを 2 つの別個のスレッドで同時に実行することで機能します。その結果、ゲーム コード内の `UObject` クラス コンストラクタ、 `PostInitProperties` 関数、および `Serialize` 関数がスレッドセーフでなければならないという要件が加わります。アクティベートすると、ALT によってローディングが 2 倍速くなります。非同期ローディング (C++) の使用に関する情報は、[](Programming\Assets\AsyncLoading) のページをご覧ください。
 
@@ -146,25 +251,53 @@ Android の場合、`.apk` ファイルに署名するキーを作成し、`Sign
 
 * プロジェクトで .pak ファイルの圧縮を使うには、 [Project Settings (プロジェクト設定)] を開いて [Packaging (パッケージ化処理)] セクションを探します。このセクションで、 [Packaging] の見出しの advanced (詳細) 部分を開いて、表示される [Create compressed cooked packages (圧縮されたクック ページの作成) ] のチェックボックスにチェックを入れます。
 
-* ほとんどのプラットフォームには自動圧縮機能はなく、.pak ファイルを圧縮するとロード時間が一般的に短縮しますが、以下のように考慮すべき特殊なケースがあります。
+* ほとんどのプラットフォームには自動圧縮機能はなく、.pak ファイルを圧縮するとロード時間が短縮しますが、以下のように考慮すべき特殊なケースがあります。
 
 | プラットフォーム | 推奨 |
 | -- | -- |
-| **Sony PlayStation 4** | .pak ファイルを圧縮することは、PlayStation 4 のすべてのタイトルで自動的に適用される圧縮と重複し、実際にはファイル サイズは減らずにロード時間が長くなってしまいます。従って、PlayStation 4 向けのリリースでは、.pak ファイルの圧縮はお勧めしません。 |
-| **Nintendo Switch** | Switch 上の圧縮した .pak ファイルのロードは時間がかかることがあります。これは、データ解凍に時間がかかるためですが、圧縮ファイルから高速にロードすることもあります。Switch 向けタイトルでは、個々のタイトルでロード時間をテストし、ケースバイケースで決定を下すことをお勧めします。 |
+| **Sony PlayStation 4** | .pak ファイルを圧縮することは、PlayStation 4 のすべてのタイトルで自動的に適用される圧縮と重複し、ファイル サイズは減らずにロード時間が長くなってしまいます。従って、PlayStation 4 向けのリリースでは、.pak ファイルの圧縮はお勧めしません。 |
+| **Nintendo Switch** | Switch 上の圧縮した .pak ファイルのロードは時間がかかることがあります。これは、データ解凍に時間がかかるためですが、圧縮ファイルから高速にロードすることもあります。Switch 向けタイトルでは、各タイトルでロード時間をテストし、ケースバイケースで決定を下すことをお勧めします。 |
 | **Microsoft XBoxOne** | XBoxOne プラットフォームでロード時間を可能な限り短縮するには圧縮が必須です。 |
-| **Steam** | Steam ではユーザーがダウンロードしているときにファイルを圧縮します。そのため、最初のダウンロード時間は圧縮されているゲームの .pak ファイルによる影響を受けません。ただし、一般的に Steam の差分パッチ システムの方が圧縮されていないファイルではうまく機能します。圧縮 .pak ファイルはカスタマーのシステムの空間を節約しますが、パッチの場合はダウンロード時間が長くなります。 |
+| **Steam** | Steam ではユーザーがダウンロードしているときにファイルを圧縮します。そのため、最初のダウンロード時間は圧縮されているゲームの .pak ファイルによる影響を受けません。ただし、Steam の差分パッチ システムの方が圧縮されていないファイルの場合はうまく機能します。圧縮 .pak ファイルはカスタマーのシステムの空間を節約しますが、パッチの場合はダウンロード時間が長くなります。 |
 
 ![Project Settings - Compress Pak option](Project_Settings_PakCompression.png)
 [REGION:caption] .pak ファイルの圧縮を有効にするには、このボックスにチェックを入れます。[/REGION]
 
 ### .pak ファイルを順序付けする
 
-* .pak ファイルを適切に順序付けすることは、ロード時間を短縮するうえで重要です。.pak ファイルを最適に順序付けするために、アンリアル エンジンにはデータ アセットを必要とする順序を見つけるツール一式があり、高速にロードするパッケージをビルドします。概念上はこのプロセスはプロファイルによる最適化に似ています。.pak ファイルを順序付けするには以下の手順に従います。
+.pak ファイルを適切に順序付けすることは、ロード時間を短縮するうえで重要です。.pak ファイルを最適に順序付けするために、UE4 にはデータ アセットを必要とする順序を見つけるツール一式があり、高速にロードするパッケージをビルドします。概念上はこのプロセスはプロファイルによる最適化に似ています。.pak ファイルを順序付けするには以下の手順に従います。
 
 1. パッケージ化したゲームを "-fileopenlog" コマンドライン オプションを使ってビルドし実行します。このオプションは、エンジンにファイルを開く順序を記録させます。
 1. ゲームのすべての主要エリアに対して行ないます。すべてのレベル、プレイ可能なキャラクター、武器、ビークルなどをロードします。すべてがロードされたら、ゲームを終了します。
-1. デプロイしたゲームに `GameOpenOrder.log` というファイルがあります。これには .pak ファイルの順序を最適化するために必要な情報があります。例えば、Windows のビルドでは、このファイルは `WindowsNoEditor/(YourGame)/Build/WindowsNoEditor/FileOpenOrder/` にあります。このファイルを `/Build/WindowsNoEditor/FileOpenOrder/` パスの development ディレクトリにコピーします。
+
+1. [OBJECT:ToggleButtonContent]
+    [PARAMLITERAL:category]
+    OS
+    [/PARAMLITERAL]
+    [PARAMLITERAL:id]
+    windows
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
+    [/PARAMLITERAL]
+    [PARAM:content]
+    デプロイしたゲームに `GameOpenOrder.log` というファイルがあります。これには .pak ファイルの順序を最適化するために必要な情報があります。例えば、Windows のビルドでは、このファイルは `WindowsNoEditor/(YourGame)/Build/WindowsNoEditor/FileOpenOrder/` にあります。このファイルを `/Build/WindowsNoEditor/FileOpenOrder/` パスの development ディレクトリにコピーします。
+    [/PARAM]
+    [/OBJECT]
+
+    [OBJECT:ToggleButtonContent]
+    [PARAMLITERAL:category]
+    OS
+    [/PARAMLITERAL]
+    [PARAMLITERAL:id]
+    mac
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
+    [/PARAMLITERAL]
+    [PARAM:content]
+    デプロイしたゲームに `GameOpenOrder.log` というファイルがあります。これには .pak ファイルの順序を最適化するために必要な情報があります。例えば、Mac のビルドでは、このファイルは `MacNoEditor/(YourGame)/Build/WindowsNoEditor/FileOpenOrder/` にあります。このファイルを `/Build/MacNoEditor/FileOpenOrder/` パスの development ディレクトリにコピーします。
+    [/PARAM]
+    [/OBJECT]
+
 1. ログ ファイルができたら、.pak ファイルを再ビルドします。これと今後生成される.pak ファイルはログ ファイルに示されているファイルの順序を使用します。
 
-* 制作環境では、ログ ファイルはソース コントロールにチェックインされ、新しい "-fileopenlog" の実行結果を使って定期的に更新されます。これには、ゲームの出荷準備が整った最終実行が含まれます。
+制作環境では、ログ ファイルはソース コントロールにチェックインされ、新しい "-fileopenlog" の実行結果を使って定期的に更新されます。これには、ゲームの出荷準備が整った最終実行が含まれます。

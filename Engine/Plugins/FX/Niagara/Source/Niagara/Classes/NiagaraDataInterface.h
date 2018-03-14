@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "NiagaraCommon.h"
@@ -6,6 +6,7 @@
 #include "VectorVM.h"
 #include "StaticMeshResources.h"
 #include "Curves/RichCurve.h"
+#include "NiagaraMergeable.h"
 #include "NiagaraDataInterface.generated.h"
 
 class INiagaraCompiler;
@@ -14,8 +15,6 @@ class UCurveLinearColor;
 class UCurveFloat;
 class FNiagaraSystemInstance;
 
-//////////////////////////////////////////////////////////////////////////
-// Some helper classes allowing neat, init time binding of templated vm external functions.
 USTRUCT()
 struct FNiagaraDataInterfaceBufferData
 {
@@ -29,9 +28,24 @@ public:
 		:UniformName(InName)
 	{
 	}
-	FReadBuffer Buffer;
+	FRWBuffer Buffer;
 	FName UniformName;
 };
+
+struct FNDITransformHandlerNoop
+{
+	FORCEINLINE void TransformPosition(FVector& V, FMatrix& M) {  }
+	FORCEINLINE void TransformVector(FVector& V, FMatrix& M) { }
+};
+
+struct FNDITransformHandler
+{
+	FORCEINLINE void TransformPosition(FVector& P, FMatrix& M) { P = M.TransformPosition(P); }
+	FORCEINLINE void TransformVector(FVector& V, FMatrix& M) { V = M.TransformVector(V).GetUnsafeNormal3(); }
+};
+
+//////////////////////////////////////////////////////////////////////////
+// Some helper classes allowing neat, init time binding of templated vm external functions.
 
 // Adds a known type to the parameters
 template<typename DirectType, typename NextBinder>
@@ -79,7 +93,7 @@ struct NDI_FUNC_BINDER(ClassName, FuncName)\
 
 /** Base class for all Niagara data interfaces. */
 UCLASS(abstract, EditInlineNew)
-class NIAGARA_API UNiagaraDataInterface : public UObject
+class NIAGARA_API UNiagaraDataInterface : public UNiagaraMergeable
 {
 	GENERATED_UCLASS_BODY()
 		 
@@ -93,6 +107,7 @@ public:
 
 	/** Ticks the per instance data for this interface, if it has any. */
 	virtual bool PerInstanceTick(void* PerInstanceData, FNiagaraSystemInstance* SystemInstance, float DeltaSeconds) { return false; }
+	virtual bool PerInstanceTickPostSimulate(void* PerInstanceData, FNiagaraSystemInstance* SystemInstance, float DeltaSeconds) { return false; }
 
 	/** 
 	Returns the size of the per instance data for this interface. 0 if this interface has no per instance data. 
@@ -107,7 +122,7 @@ public:
 	virtual FVMExternalFunction GetVMExternalFunction(const FVMExternalFunctionBindingInfo& BindingInfo, void* InstanceData) { return FVMExternalFunction(); };
 
 	/** Copies the contents of this DataInterface to another.*/
-	virtual bool CopyTo(UNiagaraDataInterface* Destination) const;
+	bool CopyTo(UNiagaraDataInterface* Destination) const;
 
 	/** Determines if this DataInterface is the same as another.*/
 	virtual bool Equals(const UNiagaraDataInterface* Other) const;
@@ -117,12 +132,12 @@ public:
 	/** Determines if this type definition matches to a known data interface type.*/
 	static bool IsDataInterfaceType(const FNiagaraTypeDefinition& TypeDef);
 
-	virtual bool GetFunctionHLSL(FString FunctionName, TArray<DIGPUBufferParamDescriptor> &Descriptors, FString &HLSLInterfaceID, FString &OutHLSL)
+	virtual bool GetFunctionHLSL(const FName& DefinitionFunctionName, FString InstanceFunctionName, TArray<FDIGPUBufferParamDescriptor> &Descriptors, FString &HLSLInterfaceID, FString &OutHLSL)
 	{
 		check("Unefined HLSL in data interface. Interfaces need to be able to return HLSL for each function they define in GetFunctions.");
 		return false;
 	}
-	virtual void GetBufferDefinitionHLSL(FString DataInterfaceID, TArray<DIGPUBufferParamDescriptor> &BufferDescriptors, FString &OutHLSL)
+	virtual void GetBufferDefinitionHLSL(FString DataInterfaceID, TArray<FDIGPUBufferParamDescriptor> &BufferDescriptors, FString &OutHLSL)
 	{
 		check("Unefined HLSL in data interface. Interfaces need to define HLSL for uniforms their functions access.");
 	}
@@ -132,10 +147,13 @@ public:
 		return GPUBuffers;
 	}
 
-	virtual void SetupBuffers(TArray<DIGPUBufferParamDescriptor> &BufferDescriptors)
+	virtual void SetupBuffers(FDIBufferDescriptorStore &BufferDescriptors)
 	{
 		check("Undefined buffer setup.");
 	}
+
+protected:
+	virtual bool CopyToInternal(UNiagaraDataInterface* Destination) const;
 
 protected:
 	UPROPERTY()
@@ -152,20 +170,56 @@ protected:
 	bool GPUBufferDirty;
 	UPROPERTY()
 	TArray<float> ShaderLUT;
+	UPROPERTY()
+	float LUTMinTime;
+	UPROPERTY()
+	float LUTMaxTime;
+	UPROPERTY()
+	float LUTInvTimeRange;
+
+	/** Remap a sample time for this curve to 0 to 1 between first and last keys for LUT access.*/
+	FORCEINLINE float NormalizeTime(float T)
+	{
+		return bAllowUnnormalizedLUT ? (T - LUTMinTime) * LUTInvTimeRange : T;
+	}
+
+	/** Remap a 0 to 1 value between the first and last keys to a real sample time for this curve. */
+	FORCEINLINE float UnnormalizeTime(float T)
+	{
+		return bAllowUnnormalizedLUT ? (T / LUTInvTimeRange) + LUTMinTime : T;
+	}
 
 public:
 	UNiagaraDataInterfaceCurveBase()
 		: GPUBufferDirty(false)
+		, LUTMinTime(0.0f)
+		, LUTMaxTime(1.0f)
+		, LUTInvTimeRange(1.0f)
+		, bUseLUT(true)
+		, bAllowUnnormalizedLUT(false)
 	{
 	}
 
 	UNiagaraDataInterfaceCurveBase(FObjectInitializer const& ObjectInitializer)
 		: GPUBufferDirty(false)
+		, LUTMinTime(0.0f)
+		, LUTMaxTime(1.0f)
+		, LUTInvTimeRange(1.0f)
+		, bUseLUT(true)
+		, bAllowUnnormalizedLUT(false)
 	{}
+
+	UPROPERTY(EditAnywhere, Category = "Curve")
+	uint32 bUseLUT : 1;
+	
+	/** Allow the LUT to capture a curve outside the 0 to 1 range. Currently does not work for GPU particles. */
+	UPROPERTY(EditAnywhere, Category = "Curve")
+	uint32 bAllowUnnormalizedLUT : 1;
 
 	enum
 	{
-		CurveLUTWidth = 128
+		CurveLUTWidth = 128,
+		CurveLUTWidthMinusOne = 127,
 	};
 	/** Structure to facilitate getting standardized curve information from a curve data interface. */
 	struct FCurveData
@@ -187,12 +241,12 @@ public:
 	/** Gets information for all of the curves owned by this curve data interface. */
 	virtual void GetCurveData(TArray<FCurveData>& OutCurveData) { }
 
-	virtual bool GetFunctionHLSL(FString FunctionName, TArray<DIGPUBufferParamDescriptor> &Descriptors, FString &HLSLInterfaceID, FString &OutHLSL)
+	virtual bool GetFunctionHLSL(const FName&  DefinitionFunctionName, FString InstanceFunctionName, TArray<FDIGPUBufferParamDescriptor> &Descriptors, FString &HLSLInterfaceID, FString &OutHLSL)
 	{
 		check("Undefined HLSL in data interface. All curve interfaces need to define this function and return SampleCurve code");
 		return false;
 	}
-	virtual void GetBufferDefinitionHLSL(FString DataInterfaceID, TArray<DIGPUBufferParamDescriptor> &BufferDescriptors, FString &OutHLSL)
+	virtual void GetBufferDefinitionHLSL(FString DataInterfaceID, TArray<FDIGPUBufferParamDescriptor> &BufferDescriptors, FString &OutHLSL)
 	{
 		check("Unefined HLSL in data interface. Interfaces need to define HLSL for uniforms their functions access.");
 	}
@@ -201,10 +255,36 @@ public:
 		check("Undefined buffer array access.");
 		return GPUBuffers;
 	}
-	virtual void SetupBuffers(TArray<DIGPUBufferParamDescriptor> &BufferDescriptors)
+	virtual void SetupBuffers(FDIBufferDescriptorStore &BufferDescriptors)
 	{
 		check("Undefined buffer setup.");
 	}
 
+	//UNiagaraDataInterface interface
+	virtual bool Equals(const UNiagaraDataInterface* Other) const override;
 	virtual bool CanExecuteOnTarget(ENiagaraSimTarget Target)const override { return true; }
+
+protected:
+	virtual bool CopyToInternal(UNiagaraDataInterface* Destination) const override;
+	virtual bool CompareLUTS(const TArray<float>& OtherLUT) const;
+	//UNiagaraDataInterface interface END
+};
+
+//External function binder choosing between template specializations based on if a curve should use the LUT over full evaluation.
+template<typename NextBinder>
+struct TCurveUseLUTBinder
+{
+	template<typename... ParamTypes>
+	static FVMExternalFunction Bind(UNiagaraDataInterface* Interface, const FVMExternalFunctionBindingInfo& BindingInfo, void* InstanceData)
+	{
+		UNiagaraDataInterfaceCurveBase* CurveInterface = CastChecked<UNiagaraDataInterfaceCurveBase>(Interface);
+		if (CurveInterface->bUseLUT)
+		{
+			return NextBinder::template Bind<ParamTypes..., TIntegralConstant<bool, true>>(Interface, BindingInfo, InstanceData);
+		}
+		else
+		{
+			return NextBinder::template Bind<ParamTypes..., TIntegralConstant<bool, false>>(Interface, BindingInfo, InstanceData);
+		}
+	}
 };

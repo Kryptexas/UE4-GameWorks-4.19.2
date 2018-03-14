@@ -1,49 +1,12 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:데칼
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
 Description:Decals 예제 레벨에 대한 개요입니다.
 Version: 4.9
 Related: Engine/Actors/DecalActor
-<!---[TOC(start:2 end:2)]--->
+topic-image:Decals_3.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Decals:title%](Decals_3.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Decals:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Decals:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Decals]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Decals:title%](Decals_3.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Decals:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Decals]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-
-
-[REGION:fullwidth]
-
-[/REGION]
 
 **Decals** (데칼) 예제 레벨에 오신 것을 환영합니다! 이 레벨은 데칼이 레벨에서 어떻게 활용되는지에 대한 데모입니다.
 
@@ -63,7 +26,6 @@ Related: Engine/Actors/DecalActor
 
 ## 예제
 
-[REGION:topics third]
 %Resources/ContentExamples/Decals/1_1:TopicCompact%
 %Resources/ContentExamples/Decals/1_2:TopicCompact%
 %Resources/ContentExamples/Decals/1_3:TopicCompact%
@@ -71,10 +33,3 @@ Related: Engine/Actors/DecalActor
 %Resources/ContentExamples/Decals/1_5:TopicCompact%
 %Resources/ContentExamples/Decals/1_6:TopicCompact%
 %Resources/ContentExamples/Decals/1_7:TopicCompact%
-[/REGION]
-
-<!---
-## 관련 글타래 및 추가 참고자료
-
-* [데칼](Engine/Actors/DecalActor)
---->

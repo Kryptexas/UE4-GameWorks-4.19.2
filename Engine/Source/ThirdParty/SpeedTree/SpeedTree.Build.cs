@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 using System.IO;
 
@@ -15,13 +15,16 @@ public class SpeedTree : ModuleRules
 		if (bPlatformAllowed &&
 			Target.bCompileSpeedTree)
 		{
-			Definitions.Add("WITH_SPEEDTREE=1");
-			Definitions.Add("SPEEDTREE_KEY=INSERT_KEY_HERE");
+			PublicDefinitions.Add("WITH_SPEEDTREE=1");
+			PublicDefinitions.Add("SPEEDTREE_KEY=INSERT_KEY_HERE");
 
-			string SpeedTreePath = Target.UEThirdPartySourceDirectory + "SpeedTree/SpeedTreeSDK-v7.0/";
-			PublicIncludePaths.Add(SpeedTreePath + "Include");
+            string SpeedTreePath = Target.UEThirdPartySourceDirectory + "SpeedTree/SpeedTreeSDK-v7.0/";
+            PublicIncludePaths.Add(SpeedTreePath + "Include");
 
-			if (Target.Platform == UnrealTargetPlatform.Win64)
+            string SpeedTree8Path = Target.UEThirdPartySourceDirectory + "SpeedTree/SpeedTree8/";
+            PublicIncludePaths.Add(SpeedTree8Path);
+
+            if (Target.Platform == UnrealTargetPlatform.Win64)
 			{
 				if (Target.WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 || Target.WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2017)
 				{

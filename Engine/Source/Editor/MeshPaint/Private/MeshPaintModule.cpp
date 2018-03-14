@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MeshPaintModule.h"
 #include "Modules/ModuleManager.h"
@@ -16,10 +16,18 @@
 #include "ModuleManager.h"
 #include "PropertyEditorModule.h"
 #include "MeshPaintSettings.h"
+#include "ISettingsModule.h"
 
 
 //////////////////////////////////////////////////////////////////////////
 // FMeshPaintModule
+
+namespace MeshPaintModuleConstants
+{
+	const static FName SettingsContainerName("Editor");
+	const static FName SettingsCategoryName("ContentEditors");
+	const static FName SettingsSectionName("Mesh Paint");
+}
 
 class FMeshPaintModule : public IMeshPaintModule
 {
@@ -36,12 +44,33 @@ public:
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PropertyModule.RegisterCustomClassLayout("VertexColorImportOptions", FOnGetDetailCustomizationInstance::CreateStatic(&FVertexColorImportOptionsCustomization::MakeInstance));
+
+		ISettingsModule* SettingsModule = FModuleManager::LoadModulePtr<ISettingsModule>("Settings");
+		if(SettingsModule)
+		{
+			SettingsModule->RegisterSettings(
+				MeshPaintModuleConstants::SettingsContainerName, 
+				MeshPaintModuleConstants::SettingsCategoryName, 
+				MeshPaintModuleConstants::SettingsSectionName,
+				NSLOCTEXT("MeshPaintModule", "SettingsName", "Mesh Paint"),
+				NSLOCTEXT("MeshPaintModule", "SettingsDesc", "Settings related to mesh painting within the editor."),
+				GetMutableDefault<UMeshPaintSettings>());
+		}
 	}
 
 	virtual void ShutdownModule() override
 	{
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PropertyModule.UnregisterCustomClassLayout("VertexColorImportOptions");
+
+		ISettingsModule* SettingsModule = FModuleManager::LoadModulePtr<ISettingsModule>("Settings");
+		if(SettingsModule)
+		{
+			SettingsModule->UnregisterSettings(
+				MeshPaintModuleConstants::SettingsContainerName,
+				MeshPaintModuleConstants::SettingsCategoryName,
+				MeshPaintModuleConstants::SettingsSectionName);
+		}
 	}
 
 	virtual void RegisterGeometryAdapterFactory(TSharedRef<IMeshPaintGeometryAdapterFactory> Factory) override

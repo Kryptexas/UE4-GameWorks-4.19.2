@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "StandaloneRendererPrivate.h"
 #include "OpenGL/SlateOpenGLRenderer.h"
@@ -8,6 +8,7 @@
 #include "MacApplication.h"
 #include "MacWindow.h"
 #include "MacTextInputMethodSystem.h"
+#include "MacPlatformApplicationMisc.h"
 #include "CocoaTextView.h"
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
@@ -114,7 +115,7 @@ void UnlockGLContext(NSOpenGLContext* Context)
 {
 	if (Framebuffer && [(FCocoaWindow*)[self window] isRenderInitialized] && ViewportRect.IsValid())
 	{
-		const float DPIScaleFactor = (MacApplication && MacApplication->IsHighDPIModeEnabled()) ? self.window.backingScaleFactor : 1.0f;
+		const float DPIScaleFactor = FPlatformApplicationMisc::IsHighDPIModeEnabled() ? self.window.backingScaleFactor : 1.0f;
 		int32 CurrentReadFramebuffer = 0;
 		glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &CurrentReadFramebuffer);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, Framebuffer);
@@ -187,7 +188,7 @@ void FSlateOpenGLContext::Initialize(void* InWindow, const FSlateOpenGLContext* 
 		const NSRect ViewRect = NSMakeRect(0, 0, Window.frame.size.width, Window.frame.size.height);
 		View = [[FSlateCocoaView alloc] initWithFrame:ViewRect context:Context pixelFormat:PixelFormat];
 		[View setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
-		if (MacApplication && MacApplication->IsHighDPIModeEnabled())
+		if (FPlatformApplicationMisc::IsHighDPIModeEnabled())
 		{
 			[View setWantsBestResolutionOpenGLSurface:YES];
 		}

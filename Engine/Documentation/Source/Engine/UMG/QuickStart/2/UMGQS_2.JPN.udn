@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244089
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:2.ヘルス、エネルギー、弾薬を表示する
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
@@ -23,7 +23,7 @@ tags:UMG UI Designer
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 ## ビジュアル：ヘルス、エネルギー、弾薬
 
@@ -63,7 +63,7 @@ tags:UMG UI Designer
 
 	![](Step2_11.png)
 
-1.	**Progress Bars** が含まれている **Vertical Box** を選択し、それも **Fill** に設定します。
+1.	**Progress Bars** が含まれている **Vertical Box** を選択し、それも **Fill** に設定します。 
 
 	![](Step2_12.png)
 
@@ -184,10 +184,10 @@ tags:UMG UI Designer
 	[/OBJECT]
 
 	ヘルス、エネルギー、弾薬の値が HUD に表示されるようになり、Character ブループリントからの現在の値を反映します。**スペース** を押すと、キャラクターがジャンプし、エネルギーが消耗します。**左マウスボタン** を押すと、武器が発砲し、弾薬が減ります。**F** を押すとヘルスを失う原因になります (これは後でダメージ システムに接続可能です)。 
+
 	次のセクションでは、セットアップしたゲームに読み込むために使用できるメインメニューを作成します。 
 
 
-%Steps%
 
 
 

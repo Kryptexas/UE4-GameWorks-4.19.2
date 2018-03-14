@@ -1,6 +1,7 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Sections/MovieScene3DAttachSection.h"
+#include "SequencerObjectVersion.h"
 
 
 UMovieScene3DAttachSection::UMovieScene3DAttachSection( const FObjectInitializer& ObjectInitializer )
@@ -15,15 +16,18 @@ UMovieScene3DAttachSection::UMovieScene3DAttachSection( const FObjectInitializer
 	DetachmentRotationRule = EDetachmentRule::KeepRelative;
 	DetachmentScaleRule = EDetachmentRule::KeepRelative;
 
-	EvalOptions.EnableAndSetCompletionMode(EMovieSceneCompletionMode::RestoreState);
+	EvalOptions.EnableAndSetCompletionMode
+		(GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToProjectDefault ? 
+			EMovieSceneCompletionMode::RestoreState : 
+			EMovieSceneCompletionMode::ProjectDefault);
 }
 
 
-void UMovieScene3DAttachSection::AddAttach( float Time, float SequenceEndTime, const FGuid& InAttachId )
+void UMovieScene3DAttachSection::AddAttach( float Time, float SequenceEndTime, const FMovieSceneObjectBindingID& InAttachBindingID )
 {
 	if (TryModify())
 	{
-		ConstraintId = InAttachId;
+		ConstraintBindingID = InAttachBindingID;
 	}
 }
 

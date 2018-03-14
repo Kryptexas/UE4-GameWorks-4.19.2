@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,6 +16,7 @@
 #include "Map.h"
 #include "SCheckBox.h"
 #include "SSearchBox.h"
+#include "SComboButton.h"
 #include "SMultiLineEditableTextBox.h"
 
 class SNiagaraGeneratedCodeView : public SCompoundWidget
@@ -40,19 +41,18 @@ protected:
 		FText UsageName;
 		FText Hlsl;
 		ENiagaraScriptUsage Usage;
-		int32 UsageIndex;
+		FGuid UsageId;
 
 		TArray<FString> HlslByLines;
-		TSharedPtr<STextBlock> Text;
-		TSharedPtr<STextBlock> TextName;
-		TSharedPtr < SCheckBox > CheckBox;
+		TSharedPtr<SMultiLineEditableText> Text;
 		TSharedPtr<SScrollBar> HorizontalScrollBar;
 		TSharedPtr<SScrollBar> VerticalScrollBar;
 		TSharedPtr<SVerticalBox> Container;
 	};
 
 	TArray<TabInfo> GeneratedCode;
-	TSharedPtr<SHorizontalBox> CheckBoxContainer;
+	TSharedPtr<SComboButton> ScriptNameCombo;
+	TSharedPtr<SHorizontalBox> ScriptNameContainer;
 	TSharedPtr<SVerticalBox> TextBodyContainer;
 	TSharedPtr<SSearchBox> SearchBox;
 	TSharedPtr<STextBlock> SearchFoundMOfNText;
@@ -62,8 +62,8 @@ protected:
 	void SetSearchMofN();
 
 	void SelectedEmitterHandlesChanged();
-	void OnTabChanged(ECheckBoxState State,	uint32 Tab);
-	ECheckBoxState GetTabCheckedState(uint32 Tab) const;
+	void OnTabChanged(uint32 Tab);
+	bool GetTabCheckedState(uint32 Tab) const;
 	EVisibility GetViewVisibility(uint32 Tab) const;
 	bool TabHasScriptData() const;
 	FReply OnCopyPressed();
@@ -71,8 +71,11 @@ protected:
 	void OnSearchTextCommitted(const FText& InFilterText, ETextCommit::Type InCommitType);
 	FReply SearchUpClicked();
 	FReply SearchDownClicked();
-
+	TSharedRef<SWidget> MakeScriptMenu();
 	void DoSearch(const FText& InFilterText);
+	FText GetCurrentScriptNameText() const;
+
+	FText GetSearchText() const;
 
 	uint32 TabState;
 

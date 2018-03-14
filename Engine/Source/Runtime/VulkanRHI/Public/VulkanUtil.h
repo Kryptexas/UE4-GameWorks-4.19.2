@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanUtil.h: Vulkan Utility definitions.
@@ -10,6 +10,7 @@
 
 class FVulkanCmdBuffer;
 class FVulkanRenderQuery;
+class FOLDVulkanRenderQuery;
 class FVulkanCommandListContext;
 
 class FVulkanGPUTiming : public FGPUTiming
@@ -20,9 +21,8 @@ public:
 		, bIsTiming(false)
 		, bEndTimestampIssued(false)
 		, CmdContext(InCmd)
-		, BeginTimer(nullptr)
-		, EndTimer(nullptr)
 	{
+		FMemory::Memzero(Timers);
 	}
 
 	/**
@@ -74,8 +74,18 @@ private:
 	bool bEndTimestampIssued;
 
 	FVulkanCommandListContext* CmdContext;
-	FVulkanRenderQuery* BeginTimer;
-	FVulkanRenderQuery* EndTimer;
+	enum
+	{
+		MaxTimers = 8,
+	};
+	int32 CurrentTimerIndex = 0;
+	int32 NumActiveTimers = 0;
+	struct FBeginEndPair
+	{
+		FOLDVulkanRenderQuery* Begin;
+		FOLDVulkanRenderQuery* End;
+	};
+	FBeginEndPair Timers[MaxTimers];
 };
 
 /** A single perf event node, which tracks information about a appBeginDrawEvent/appEndDrawEvent range. */

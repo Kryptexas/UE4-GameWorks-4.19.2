@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Here are a number of profiling helper functions so we do not have to duplicate a lot of the glue
@@ -17,6 +17,7 @@
 #include "Containers/ArrayView.h"
 
 struct FHistogramBuilder;
+struct FAnalyticsEventAttribute;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogHistograms, Log, All);
 
@@ -32,7 +33,7 @@ struct CORE_API FHistogram
 	void InitHitchTracking();
 
 	/** Inits histogram with the specified bin boundaries, with the final bucket extending to infinity (e.g., passing in 0,5 creates a [0..5) bucket and a [5..infinity) bucket) */
-	void InitFromArray(TArrayView<double> Thresholds);
+	void InitFromArray(TArrayView<const double> Thresholds);
 
 	/** Resets measurements, without resetting the configured bins. */
 	void Reset();
@@ -51,6 +52,9 @@ struct CORE_API FHistogram
 
 	/** Populates array commonly used in analytics events, adding two pairs per bin (count and sum). */
 	void DumpToAnalytics(const FString& ParamNamePrefix, TArray<TPair<FString, double>>& OutParamArray);
+
+	/** Returns a string in a format that can be consumed by an analytics event in the format expected by the analytics backends. Bucket:Count:Sum;Bucket:Count:Sum;...  */
+	FString DumpToAnalyticsString() const;
 
 	/** Gets number of bins. */
 	inline int32 GetNumBins() const
@@ -92,6 +96,24 @@ struct CORE_API FHistogram
 	inline double GetSumOfAllMeasures() const
 	{
 		return SumOfAllMeasures;
+	}
+
+	/** Returns the average of all measurements (essentially a shortcut for Sum/Count). */
+	inline double GetAverageOfAllMeasures() const
+	{
+		return SumOfAllMeasures / (double)CountOfAllMeasures;
+	}
+
+	/** Returns the minimum of all measurements. */
+	inline double GetMinOfAllMeasures() const
+	{
+		return MinimalMeasurement;
+	}
+
+	/** Returns the maximum of all measurements. */
+	inline double GetMaxOfAllMeasures() const
+	{
+		return MaximalMeasurement;
 	}
 
 	FORCEINLINE FHistogram operator-(const FHistogram& Other) const
@@ -167,6 +189,8 @@ protected:
 	/** Quick stats for all bins */
 	double SumOfAllMeasures;
 	int64 CountOfAllMeasures;
+	double MinimalMeasurement;
+	double MaximalMeasurement;
 
 	/** This is exposed as a clean way to build bins while enforcing the condition mentioned above */
 	friend FHistogramBuilder;
@@ -181,6 +205,8 @@ struct FHistogramBuilder
 	{
 		MyHistogram->SumOfAllMeasures = 0.0;
 		MyHistogram->CountOfAllMeasures = 0;
+		MyHistogram->MinimalMeasurement = DBL_MAX;
+		MyHistogram->MaximalMeasurement = -DBL_MAX;
 		MyHistogram->Bins.Reset();
 	}
 

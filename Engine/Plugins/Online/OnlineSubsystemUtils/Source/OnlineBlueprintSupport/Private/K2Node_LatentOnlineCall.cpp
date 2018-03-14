@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_LatentOnlineCall.h"
 #include "UObject/UnrealType.h"
@@ -41,7 +41,7 @@ void UK2Node_LatentOnlineCall::GetMenuActions(FBlueprintActionDatabaseRegistrar&
 		check(NodeSpawner != nullptr);
 		NodeSpawner->NodeClass = NodeClass;
 
-		TWeakObjectPtr<UFunction> FunctionPtr = FactoryFunc;
+		TWeakObjectPtr<UFunction> FunctionPtr = MakeWeakObjectPtr(const_cast<UFunction*>(FactoryFunc));
 		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(GetMenuActions_Utils::SetNodeFunc, FunctionPtr);
 
 		return NodeSpawner;

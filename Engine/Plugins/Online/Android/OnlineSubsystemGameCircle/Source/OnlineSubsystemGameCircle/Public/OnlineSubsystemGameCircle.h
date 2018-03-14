@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -64,6 +64,7 @@ public:
 	virtual FString GetAppId() const override;
 	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 	virtual FText GetOnlineServiceName() const override;
+	virtual bool IsEnabled() const override;
 	//~ End IOnlineSubsystem Interface
 
 	virtual bool Tick(float DeltaTime) override;
@@ -72,12 +73,6 @@ PACKAGE_SCOPE:
 
 	FOnlineSubsystemGameCircle();
 	FOnlineSubsystemGameCircle(FName InInstanceName);
-
-	/**
-	 * Is Online Subsystem Android available for use
-	 * @return true if Android Online Subsystem functionality is available, false otherwise
-	 */
-	bool IsEnabled();
 
 	FOnlineAGSCallbackManager *const GetCallbackManager() const { return AGSCallbackManager.Get(); }
 

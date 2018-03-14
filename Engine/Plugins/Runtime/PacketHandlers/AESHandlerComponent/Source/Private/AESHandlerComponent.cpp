@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AESHandlerComponent.h"
 
@@ -15,7 +15,8 @@ TSharedPtr<HandlerComponent> FAESHandlerComponentModule::CreateComponentInstance
 
 
 FAESHandlerComponent::FAESHandlerComponent()
-	: bEncryptionEnabled(false)
+	: FEncryptionComponent(FName(TEXT("AESHandlerComponent")))
+	, bEncryptionEnabled(false)
 {
 	EncryptionContext = IPlatformCrypto::Get().CreateContext();
 }

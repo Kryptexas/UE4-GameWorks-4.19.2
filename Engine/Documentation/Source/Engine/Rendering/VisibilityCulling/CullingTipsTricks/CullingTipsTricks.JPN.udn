@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: Visibility Culling Tips & Tricks
+﻿INTSourceChangelist:3108692
+Availability:Docs
+Title:ビジビリティ カリングのヒントとコツ
 Crumbs: %ROOT%, Engine, 
-Description: Tips & Tricks you can use to troubleshoot your scenes.
-Version: 4.13
+Description:シーンのトラブルシューティングに活かせるヒントとコツ
+Version:4.13
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -46,24 +46,24 @@ Version: 4.13
 
 
 
-The following are some Tips & Tricks you can use to help you troubleshoot and test your scene when you suspect problems with visibility or occlusion culling.
+ビジビリティ カリングおよびオクルージョン カリング絡みの問題が発生した場合のシーンのトラブルシューティングおよびテストに、以下のヒントとコツが役立ちます。
 
 
-## Visualize Occluded Primitives
+## オクルードされたプリミティブを可視化する
 
-This will enable the visualization mode to draw the bounding boxes of any Actors in your scene that are occluded from the Camera view. A green bounding box indicates the Actor is 
-dynamically occluded and a red bounding box indicates that the Actor is statically occluded when using [Precomputed Visibility Volumes](1_TimH\2_IN_PROGRESS\VisibilityCulling\PrecomputedVisibilityVolume). 
+可視化モードを有効にすると、シーン内でカメラ ビューからオクルードされたすべてのアクタのバウンディングボックスを描画することができます。[Precomputed Visibility Volumes](1_TimH\2_IN_PROGRESS\VisibilityCulling\PrecomputedVisibilityVolume) を使うと、 
+緑のバウンディング ボックスは、アクタが動的にオクルードされていること、赤のバウンディングボックスはアクタが静的にオクルードされていることを表します。 
 
-Use the following console command to enable this visualization: 
+以下のコンソール コマンドを使って、可視化を有効にします。 
 
 	r.VisualizeOccludedPrimitives 1
 
 
 [REGION:note]
-This console command will only work while in the editor and not in PIE or Standalone games.
+このコンソール コマンドはエディタ内のみでしか使用できません。PIE あるいはスタンドアローン式ゲームでは使用できません。
 [/REGION]
 
-In the example below, the visualization of occluded Actors blocked by the wall is compared to the placement of the Actor's with the wall removed. 
+以下の例では、壁によってブロックされている、オクルードされたアクタを可視化したものと、壁を取り除いた時のアクタを配置を比べています。 
 
 [OBJECT:ComparisonSlider]
  [PARAM:before]
@@ -75,11 +75,11 @@ In the example below, the visualization of occluded Actors blocked by the wall i
 [/OBJECT]
 
 
-## Freeze Rendering
+## フリーズ レンダリング
 
-This will toggle the rendering state of the scene from the current Camera perspective while allowing you to freely move around the world.
+ワールド内を自由に移動しながら、現在のカメラ視点からのシーンのレンダリング ステートを切り替えます。
 
-Use the following console command to toggle this mode:
+このモードの切り替えには、次のコンソール コマンドを使います。
 
 	FREEZERENDERING
 
@@ -99,26 +99,22 @@ Use the following console command to toggle this mode:
 
 ## Game View Mode
 
-You can use the keyboard shortcut for **G** or use the main **Viewport Options** down-arrow to select **Game View** to be able to work in the editor and switch between what you would see in game. 
-This is helpful when you do not want to PIE or launch a game but need to check what the game would look like. This is ideal for checking [Cull Distance Volumes](Engine\Rendering\VisibilityCulling\CullDistanceVolume) 
-and [Precomputed Visibility Volumes](Engine\Rendering\VisibilityCulling\PrecomputedVisibilityVolume) since these do not work unless you are in game or using the Game View.
+キーボードのショートカット **G** またはメインの **[Viewport Options]** ドロップダウンから **[Game View]** を選ぶと、エディタで作業することができるようになり、ゲームでの表示との切り替えが可能になります。 
+PIE での作業やゲームの起動をせずにゲームでの見え方を確認したい場合に便利なモードです。ゲーム内にいるか、Game View を使わない限り動作しないモードなので、 
+[Cull Distance Volumes](Engine\Rendering\VisibilityCulling\CullDistanceVolume) および [Precomputed Visibility Volumes](Engine\Rendering\VisibilityCulling\PrecomputedVisibilityVolume) の確認にも理想的なモードです。
 
-For more information on the [Game View](Engine\UI\LevelEditor\Viewports\Basics) mode, you can read about it in this page.
+詳細は、[Game View](Engine\UI\LevelEditor\Viewports\Basics) モードのセクションをご覧ください。
 
 
-<!---
-[OBJECT:TopicButtonList]
- [PARAM:icon]
-  ![](%ROOT%/related_icon.png)(convert:false)
- [/PARAM]
- [PARAM:title]
-  Related Links
- [/PARAM]
- [PARAM:description]
- [/PARAM]
- [PARAM:links]
+[COMMENT:none]
+-
+## 関連リンク
+
+[REGION:buttonlist]
+
   * [](1_TimH\2_IN_PROGRESS\VisibilityCulling\PrecomputedVisibilityVolume)
   * [](1_TimH\2_IN_PROGRESS\VisibilityCulling\CullDistanceVolume)
- [/PARAM]
-[/OBJECT]
---->
+ 
+[/REGION]
+-
+[/COMMENT]

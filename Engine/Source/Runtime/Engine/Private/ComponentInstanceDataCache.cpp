@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ComponentInstanceDataCache.h"
 #include "Serialization/ObjectWriter.h"
@@ -136,7 +136,7 @@ public:
 		InComponent->GetUCSModifiedProperties(PropertiesToSkip);
 
 		UClass* Class = InComponent->GetClass();
-		Class->SerializeTaggedProperties(*this, (uint8*)InComponent, Class, nullptr);
+		Class->SerializeTaggedProperties(*this, (uint8*)InComponent, Class, (uint8*)InComponent->GetArchetype());
 	}
 
 	virtual bool ShouldSkipProperty(const UProperty* InProperty) const override
@@ -487,10 +487,7 @@ void FComponentInstanceDataCache::FindAndReplaceInstances(const TMap<UObject*, U
 
 void FComponentInstanceDataCache::AddReferencedObjects(FReferenceCollector& Collector)
 {
-	TArray<USceneComponent*> SceneComponents;
-	InstanceComponentTransformToRootMap.GenerateKeyArray(SceneComponents);
-
-	Collector.AddReferencedObjects(SceneComponents);
+	Collector.AddReferencedObjects(InstanceComponentTransformToRootMap);
 
 	for (FActorComponentInstanceData* ComponentInstanceData : ComponentsInstanceData)
 	{

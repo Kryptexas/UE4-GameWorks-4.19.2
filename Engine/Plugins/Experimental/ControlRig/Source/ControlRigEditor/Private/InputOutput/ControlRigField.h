@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,7 +22,7 @@ public:
 	virtual FName GetName() const = 0;
 
 	/** Get the string to display on the pin this field generates */
-	virtual FString GetPinString() const = 0;
+	virtual FName GetPinName() const = 0;
 
 	/** Get the name to display for this field */
 	virtual FText GetDisplayNameText() const = 0;
@@ -46,7 +46,7 @@ public:
 	// IControlRigField interface
 	virtual UField* GetField() const override { return Property; }
 	virtual FName GetName() const override { return Property->GetFName(); }
-	virtual FString GetPinString() const override { return GetName().ToString(); }
+	virtual FName GetPinName() const override { return Property->GetFName(); }
 	virtual FText GetDisplayNameText() const override  { return Property->GetDisplayNameText(); }
 	virtual FEdGraphPinType GetPinType() const override  { return PinType; }
 	virtual bool CanBeDisabled() const { return true; }
@@ -71,7 +71,7 @@ public:
 	// IControlRigField interface
 	virtual UField* GetField() const override { return Function; }
 	virtual FName GetName() const override { return Function->GetFName(); }
-	virtual FString GetPinString() const override { return DisplayText.ToString(); }
+	virtual FName GetPinName() const override { return *DisplayText.ToString(); }
 	virtual FText GetDisplayNameText() const override { return DisplayText; }
 	virtual FEdGraphPinType GetPinType() const override { return PinType; }
 	virtual bool CanBeDisabled() const { return false; }

@@ -1,49 +1,57 @@
-﻿INTSourceChangelist:3108692
-Title: 클래스 지정자
-Crumbs:%ROOT%, Programming/UnrealArchitecture/Reference,  Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes
-Description: 클래스가 엔진과 에디터의 다양한 부분과 어떻게 작동하는지를 지정하기 위해 게임플레이 클래스 선언시 사용되는 키워드입니다.
+﻿INTSourceChangelist:3767127
 Availability:Public
-Version: 4.9
+Title: 클래스 지정자
+Crumbs:%ROOT%
+Description: 클래스가 엔진과 에디터의 다양한 부분과 어떻게 작동하는지를 지정하기 위해 UClass 선언시 사용되는 키워드입니다.
+type:reference
+Version: 4.18
+parent:Programming/UnrealArchitecture/Reference/Classes
+order:0
+topic-image:components_topic.png
+tags:UCLASS
+tags:Specifiers
+
 
 [EXCERPT:main]
-클래스를 선언할 때, 선언부에 지정자를 붙이면 클래스가 엔진과 에디터의 다양한 부분과 어떻게 작동하는지를 
-제어할 수 있습니다.
+클래스를 선언할 때, 선언부에 **Class Specifier** (클래스 지정자)를 붙이면 클래스가 엔진과 에디터의 다양한 부분과 어떻게 작동하는지를 제어할 수 있습니다.
 
-[REGION:buttonlist]
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/Abstract) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/AdvancedClassDisplay) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/AutoCollapseCategories) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/AutoExpandCategories) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/Blueprintable) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/BlueprintType) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/ClassGroup) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/CollapseCategories) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/Config) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/Const) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/ConversionRoot) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/CustomConstructor) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/DefaultToInstanced) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/DependsOn)
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/Deprecated) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/DontAutoCollapseCategories) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/DontCollapseCategories)
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/EditInlineNew)
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/HideCategories)
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/HideDropdown)
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/HideFunctions)
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/Intrinsic) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/MinimalAPI) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/NoExport) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/NonTransient) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/NotBlueprintable) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/NotPlaceable) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/PerObjectConfig) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/Placeable) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/ShowCategories) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/ShowFunctions) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/Transient) 
-* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/Within) 
-[/REGION]
+| 클래스 지정자 | 효과 |
+| --- | --- |
+| `Abstract` | **Abstract** (추상) 지정자는 클래스를 "추상 베이스 클래스" 로 선언하여, 사용자가 이 클래스 액터를 월드에 추가하지 못하도록 합니다. 그 자체로는 의미가 없는 클래스에 쓰기 좋습니다. 예를 들어 `ATriggerBase` 베이스 클래스는 추상형이라도 그 서브클래스 `ATriggerBox` 가 추상형이 아니라면 레벨에 배치할 수 있습니다. |
+| `AdvancedClassDisplay` | 이 클래스의 모든 프로퍼티가 **디테일** 패널의 [고급 섹션](Engine/UI/LevelEditor/Details) 에만 표시되도록 합니다. 개별 프로퍼티에서 이 옵션을 덮어쓰려면, 해당 프로퍼티에 `SimpleDisplay` 지정자를 사용하면 됩니다. |
+| `AutoCollapseCategories=(Category1, Category2, ...)` | 이 지정자는 나열된 카테고리에 대해, 부모 클래스 상의 **AutoExpandCategories** 지정자 효과를 무효화시킵니다. |
+| `AutoExpandCategories=(Category1, Category2, ...)` | 이 클래스의 오브젝트에 대해서는 언리얼 에디터 프로퍼티 창에 자동 확장되도록 할 카테고리를 하나 이상 지정합니다. 카테고리 없이 선언된 변수를 자동 확장하려면, 변수를 선언한 클래스 이름을 사용하면 됩니다. |
+| `Blueprintable` | 이 클래스를 블루프린트 생성이 가능한 베이스 클래스로 노출시킵니다. 기본값은 다른 식으로 상속되지 않는 한 `NotBlueprintable` 입니다. 이 지정자는 서브클래스에 상속됩니다. |
+| `BlueprintType` | 이 클래스를 블루프린트에서 변수로 사용할 수 있는 유형으로 노출시킵니다. |
+| `ClassGroup=GroupName` | 언리얼 에디터의 **액터 브라우저** 에서 **그룹 뷰** 옵션을 켰을 때 지정된 `GroupName` 내에서 이 클래스와 그 서브클래스를 포함시킬지 여부를 나타냅니다. |
+| `CollapseCategories` | 이 클래스의 프로퍼티는 언리얼 에디터 프로퍼티 창의 카테고리에 그룹으로 묶이지 않아야 함을 나타냅니다. 이 지정자는 자식 클래스에 전파되지만, 자식 클래스에서 `DontCollapseCategories` 지정자를 사용하여 덮어쓸 수 있습니다. |
+| `Config=ConfigName` | 이 클래스는 환경설정 (`.ini`) 파일에 데이터를 저장할 수 있음을 나타냅니다. `config` 또는 `globalconfig` 지정자로 선언된 클래스 프로퍼티가 있는 경우, 이 지정자는 그 프로퍼티를 해당 이름의 환경설정 파일에 저장하도록 합니다. 이 지정자는 모든 자식 클래스에 전파되며 뮤효화시킬 수 없으나, 자식 클래스에서는 환경설정 파일을 바꿀 수는 있습니다. `config` 지정자에 다른 `ConfigName` 으로 다시 선언해주면 됩니다. 일반적인 `ConfigName` 값은 "Engine", "Editor", "Input", "Game" 입니다. |
+| `Const` | 이 클래스의 모든 프로퍼티와 함수는 `const` 이며 `const` 로 노출됩니다. 이 지정자는 서브클래스에 상속됩니다. |
+| `ConversionRoot` | 루트 변환 시 서브클래스가 계층구조상의 첫 번째 루트 클래스의 자손 클래스로만 변환할 수 있도록 제한합니다. |
+| `CustomConstructor` | 생성자 선언의 자동 생성을 방지합니다. |
+| `DefaultToInstanced` | 이 클래스의 모든 인스턴스는 "instanced" 로 간주합니다. 인스턴스드 클래스(컴포넌트)는 생성 시 복제됩니다. 이 지정자는 서브클래스에 상속됩니다. |
+| `DependsOn=(ClassName1, ClassName2, ...)` | 나열된 모든 클래스는 이 클래스에 앞서 컴파일됩니다. ClassName 은 같은 (또는 기존) 패키지의 클래스를 지정해야 합니다. 다중 종속 클래스 지정은 단일 `DependsOn` 줄을 쉼표로 구분해서, 또는 각 클래스마다 별도의 `DependsOn` 줄을 사용해서 합니다. 컴파일러는 이미 컴파일된 클래스에 있는 것에 대해서만 알고있기 때문에, 다른 클래스에서 선언된 구조체 또는 enum 을 사용하는 클래스의 경우 중요합니다. |
+| `Deprecated` | 이 클래스는 폐기되어서 이 클래스의 오브젝트는 시리얼라이즈에 저장되지 않습니다. 이 지정자는 서브클래스에 상속됩니다. |
+| `DontAutoCollapseCategories=(Category, Category, ...)` | 부모 클래스에서 상속된 나열 카테고리에 대해 `AutoCollapseCategories` 지정자를 무효화시킵니다. |
+| `DontCollapseCategories` | 베이스 클래스에서 상속된 `CollapseCatogories` 지정자를 무효화시킵니다. |
+| `EditInlineNew` | 이 클래스의 오브젝트는 기존 애셋에서 레퍼런싱되는 것과 반대로, 언리얼 에디터 프로퍼티 창에서 생성할 수 있음을 나타냅니다. 기본 작동방식은, 기존 오브젝트로의 레퍼런스만 프로퍼티 창을 통해 할당할 수 있습니다. 이 지정자는 모든 자식 클래스에 전파되며, 자식 클래스에서는 `NotEditInlineNew` 지정자로 덮어쓸 수 있습니다. |
+| `HideCategories=(Category1, Category2, ...)` | 이 클래스의 오브젝트에 대해 언리얼 에디터 프로퍼티 창에서 숨겨야 하는 카테고리를 하나 이상 나열합니다. 카테고리 없이 선언된 프로퍼티를 숨기려면, 변수를 선언한 것과 같은 클래스 이름을 사용하면 됩니다. 이 지정자는 자식 클래스에 전파됩니다. |
+| `HideDropdown` | 이 클래스가 언리얼 에디터 프로퍼티 창에 콤보 박스로 나타나지 않도록 합니다. |
+| `HideFunctions=(Category1, Category2, ...)` | 프로퍼티 뷰어에서 지정된 카테고리의 모든 함수를 숨깁니다. |
+| `HideFunctions=FunctionName` | 프로퍼티 뷰어에서 해당 이름의 함수를 숨깁니다. |
+| `Intrinsic` | 이 클래스는 C++ 에서 바로 전언하여 **언리얼 헤더 툴** 이 생성하는 상용구가 없음을 나타냅니다. 새 클래스에는 사용하지 마세요. |
+| `MinimalAPI` | 클래스의 형 정보만 다른 모슐이 사용할 수 있도록 노출시킵니다. 이 클래스는 형변환이 가능하지만, 그 함수는 (인라인 메소드를 제외하고) 호출할 수 없습니다. 다른 모듈에서 접근할 수 없는 함수 전부가 필요치 않은 클래스에 대해 모든 것을 익스포트하지 않아 컴파일 시간이 향상됩니다. |
+| `NoExport` | 이 클래스의 선언은 헤더 생성기의 자동 생성 C++ 헤더 파일에 포함시키지 말아야 함을 나타냅니다. C++ 클래스 선언은 별도의 헤더 파일에 수동 정의해야 합니다. 네이티브 클래스에만 유효합니다. 새 클래스에는 사용하지 마세요. |
+| `NonTransient` | 베이스 클래스에서 상속된 `Transient` 지정자를 무효화시킵니다. |
+| `NotBlueprintable` | 이 클래스는 블루프린트 생성을 위한 베이스 클래스로 사용할 수 없음을 나타냅니다. 기본값이며, 서브클래스에 상속됩니다. |
+| `NotPlaceable` | 베이스 클래스에서 상속된 `Placeable` 지정자를 무효화시킵니다. 이 클래스의 오브젝트는 에디터의 레벨, UI 씬, 블루프린트에 배치할 수 없음을 나타냅니다. |
+| `PerObjectConfig` | 이 클래스의 환경설정 정보는 오브젝트별로 저장되며, 각 오브젝트에는 `.ini` 파일에 섹션이 있고 그 이름은 오브젝트를 따서 `[ObjectName ClassName]` 포맷으로 합니다. 이 지정자는 자식 클래스에 전파됩니다. |
+| `Placeable` | 이 클래스는 에디터에서 생성할 수 있고 (클래스 유형에 따라) 레벨, UI 씬, 블루프린트에 배치할 수 있음을 나타냅니다. 이 옵션은 모든 자식 클래스에 전파되며, 자식 클래스에서는 `NotPlaceable` 지정자로 덮어쓸 수 있습니다. |
+| `ShowCategories=(Category1, Category2, ...)` | 나열된 카테고리에 대해서 (베이스 클래스에서 상속된) `HideCategories` 지정자를 무효화시킵니다. |
+| `ShowFunctions=(Category1, Category2, ...)` | 프로퍼티 뷰어에서 나열된 카테고리 내 모든 함수를 표시합니다. |
+| `ShowFunctions=FunctionName` | 프로퍼티 뷰어에서 나열된 함수를 표시합니다. |
+| `Transient` | 이 클래스에 속하는 오브젝트는 디스크에 저장되지 않습니다. 플레이어나 창처럼 속성상 지속적이지 않은 네이티브 클래스같은 것과 함께 쓸 때 좋습니다. 이 지정자는 자식 클래스에 전파되며, `NonTransient` 지정자로 덮어쓸 수 있습니다. |
+| `Within=OuterClassName` | 이 클래스의 오브젝트는 `OuterClassName` 오브젝트의 인스턴스 외부에 존재할 수 없습니다. 즉 이 클래스의 오브젝트를 생성하는 것은 `OuterClassName` 인스턴스를 `Outer` 오브젝트로 제공해야 한다는 뜻입니다. |
 
 ## 메타데이터 지정자
 [INCLUDE:Programming/UnrealArchitecture/Reference/Metadata#MetadataUsage]

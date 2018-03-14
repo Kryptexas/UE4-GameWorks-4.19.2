@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/UnrealType.h"
 #include "Engine/UserDefinedStruct.h"
+#include "SharedPointer.h"
 #include "NiagaraTypes.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogNiagara, Log, Verbose);
@@ -45,12 +46,19 @@ struct FNiagaraBool
 	void SetValue(bool bValue) { Value = bValue ? True : False; }
 	bool GetValue() const { return Value != False; }
 
+	/** Sets this niagara bool's raw integer value directly using the special raw integer values expected by the VM and HLSL. */
+	FORCEINLINE void SetRawValue(int32 RawValue) { Value = RawValue; }
+
+	/** Gets this niagara bools raw integer value expected by the VM and HLSL. */
+	FORCEINLINE int32 GetRawValue() const { return Value; }
+
 	bool IsValid() const { return Value == True || Value == False; }
 	
 	FNiagaraBool():Value(False) {}
 	FNiagaraBool(bool bInValue) : Value(bInValue ? True : False) {}
 	FORCEINLINE operator bool() { return GetValue(); }
 
+private:
 	UPROPERTY(EditAnywhere, Category = Parameters)//Parameters? These are used for attrs too. Must be either FNiagaraBool::True or FNiagaraBool::False.
 	int32 Value;
 };
@@ -117,7 +125,7 @@ struct FNiagaraMatrix
 };
 
 /** Data controlling the spawning of particles */
-USTRUCT(meta = (DisplayName = "Spawn Info"))
+USTRUCT(meta = (DisplayName = "Spawn Info", NiagaraClearEachFrame = "true"))
 struct FNiagaraSpawnInfo
 {
 	GENERATED_USTRUCT_BODY();
@@ -226,14 +234,30 @@ enum class ENiagaraExecutionState : uint32
 	Active,
 	/** Run all scripts but suppress any new spawning.*/
 	Inactive,
-	/** Scripts still run but all ticking of emitters is halted.*/
-	Paused,
-	/** Kill immediately.*/
-	Kill,
-	/** Dead*/
-	Dead,
-	/** Internal use only*/
-	Disabled UMETA(Hidden),
+	/** Clear all existing particles and move to inactive.*/
+	InactiveClear,
+	/** Complete. When the system or all emitters are complete the effect is considered finished. */
+	Complete,
+	/** Emitter only. Emitter is disabled. Will not tick or render again until a full re initialization of the system. */
+	Disabled,
+};
+
+USTRUCT()
+struct NIAGARA_API FNiagaraVariableMetaData
+{
+	GENERATED_USTRUCT_BODY()
+public:
+	UPROPERTY(EditAnywhere, Category = "Variable")
+	TMap<FName, FString> PropertyMetaData;
+
+	UPROPERTY(EditAnywhere, Category = "Variable")
+	FText Description;
+
+	UPROPERTY()
+	int32 CallSortPriority;
+
+	UPROPERTY()
+	TArray<TWeakObjectPtr<UObject>> ReferencerNodes;
 };
 
 USTRUCT()
@@ -283,7 +307,11 @@ public:
 
 	FText GetNameText()const
 	{
-		checkf(IsValid(), TEXT("Type definition is not valid."));
+		if (IsValid() == false)
+		{
+			return NSLOCTEXT("NiagaraTypeDefinition", "InvalidNameText", "Invalid (null type)");
+		}
+
 		if (Enum != nullptr)
 		{
 			return  FText::FromString(Enum->GetName());
@@ -298,7 +326,11 @@ public:
 
 	FString GetName()const
 	{
-		checkf(IsValid(), TEXT("Type definition is not valid."));
+		if (IsValid() == false)
+		{
+			return TEXT("Invalid");
+		}
+
 		if (Enum != nullptr)
 		{
 			return  Enum->GetName();
@@ -357,6 +389,12 @@ public:
 		}
 	}
 
+	bool IsFloatPrimitive() const
+	{
+		return Struct == FNiagaraTypeDefinition::GetFloatStruct() || Struct == FNiagaraTypeDefinition::GetVec2Struct() || Struct == FNiagaraTypeDefinition::GetVec3Struct() || Struct == FNiagaraTypeDefinition::GetVec4Struct() ||
+			Struct == FNiagaraTypeDefinition::GetMatrix4Struct() || Struct == FNiagaraTypeDefinition::GetColorStruct();
+ 	}
+
 	bool IsValid() const 
 	{ 
 		return Struct != nullptr;
@@ -406,6 +444,10 @@ public:
 	FString ToString(const uint8* ValueData)const
 	{
 		checkf(IsValid(), TEXT("Type definition is not valid."));
+		if (ValueData == nullptr)
+		{
+			return TEXT("(null)");
+		}
 		return FNiagaraTypeHelper::ToString(ValueData, CastChecked<UScriptStruct>(Struct));
 	}
 
@@ -568,11 +610,13 @@ struct FNiagaraVariable
 	{
 	}
 	
+	/** Check if Name and Type definition are the same. The actual stored value is not checked here.*/
 	bool operator==(const FNiagaraVariable& Other)const
 	{
 		return Name == Other.Name && TypeDef == Other.TypeDef;
 	}
 
+	/** Check if Name and Type definition are not the same. The actual stored value is not checked here.*/
 	bool operator!=(const FNiagaraVariable& Other)const
 	{
 		return !(*this == Other);
@@ -618,19 +662,13 @@ struct FNiagaraVariable
 	}
 
 	template<typename T>
-	T* GetValue()
+	T GetValue() const
 	{
 		check(sizeof(T) == TypeDef.GetSize());
 		check(IsDataAllocated());
-		return (T*)GetData();
-	}
-
-	template<typename T>
-	const T* GetValue() const
-	{
-		check(sizeof(T) == TypeDef.GetSize());
-		check(IsDataAllocated());
-		return (T*)GetData();
+		T Value;
+		FMemory::Memcpy(&Value, GetData(), TypeDef.GetSize());
+		return Value;
 	}
 
 	void SetData(const uint8* Data)
@@ -673,14 +711,41 @@ struct FNiagaraVariable
 		return Ret;
 	}
 
-	bool IsNameValid() const
+	bool IsValid() const
 	{
-		return Name != NAME_None;
+		return Name != NAME_None && TypeDef.IsValid();
 	}
 
 	FORCEINLINE bool IsInNameSpace(FString Namespace) 
 	{
 		return Name.ToString().StartsWith(Namespace + TEXT("."));
+	}
+
+	static FNiagaraVariable ResolveAliases(const FNiagaraVariable& InVar, const TMap<FString, FString>& InAliases, const TCHAR* InJoinSeparator = TEXT("."))
+	{
+		FNiagaraVariable OutVar = InVar;
+
+		FString OutVarStrName = InVar.GetName().ToString();
+		TArray<FString> SplitName;
+		OutVarStrName.ParseIntoArray(SplitName, TEXT("."));
+
+		for (int32 i = 0; i < SplitName.Num() - 1; i++)
+		{
+			TMap<FString, FString>::TConstIterator It = InAliases.CreateConstIterator();
+			while (It)
+			{
+				if (SplitName[i].Equals(It.Key()))
+				{
+					SplitName[i] = It.Value();
+				}
+				++It;
+			}
+		}
+
+		OutVarStrName = FString::Join<FString>(SplitName, InJoinSeparator);
+
+		OutVar.SetName(*OutVarStrName);
+		return OutVar;
 	}
 
 private:

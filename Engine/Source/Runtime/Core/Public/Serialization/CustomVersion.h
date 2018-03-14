@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -79,23 +79,10 @@ private:
 	mutable FName FriendlyName;
 };
 
-struct FCustomVersionKeyFuncs : BaseKeyFuncs<FCustomVersion, FGuid, false>
-{
-	static FORCEINLINE const FGuid& GetSetKey(const FCustomVersion& Element)
-	{
-		return Element.Key;
-	}
-	static FORCEINLINE bool Matches(FGuid A, FGuid B)
-	{
-		return A == B;
-	}
-	static FORCEINLINE uint32 GetKeyHash(FGuid Key)
-	{
-		return FCrc::MemCrc_DEPRECATED(&Key, sizeof(FGuid));
-	}
-};
+typedef TArray<FCustomVersion> FCustomVersionArray;
 
-typedef TSet<FCustomVersion, FCustomVersionKeyFuncs> FCustomVersionSet;
+DEPRECATED(4.19, "FCustomVersionSet renamed to FCustomVersionArray")
+typedef FCustomVersionArray FCustomVersionSet;
 
 class CORE_API FCustomVersionRegistration;
 
@@ -109,7 +96,7 @@ class CORE_API FCustomVersionContainer
 
 public:
 	/** Gets available custom versions in this container. */
-	FORCEINLINE const FCustomVersionSet& GetAllVersions() const
+	FORCEINLINE const FCustomVersionArray& GetAllVersions() const
 	{
 		return Versions;
 	}
@@ -163,7 +150,7 @@ private:
 	static FCustomVersionContainer& GetInstance();
 
 	/** Array containing custom versions. */
-	FCustomVersionSet Versions;
+	FCustomVersionArray Versions;
 };
 
 

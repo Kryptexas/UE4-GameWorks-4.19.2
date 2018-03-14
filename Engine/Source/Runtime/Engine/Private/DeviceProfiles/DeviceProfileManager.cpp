@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DeviceProfiles/DeviceProfileManager.h"
 #include "Misc/ConfigCacheIni.h"
@@ -488,7 +488,7 @@ const FString UDeviceProfileManager::GetActiveProfileName()
 	}
 
 #if WITH_EDITOR
-	if (FPIEPreviewDeviceProfileSelectorModule::IsRequestingPreviewDevice())
+	if (FPIEPreviewDeviceModule::IsRequestingPreviewDevice())
 	{
 		IDeviceProfileSelectorModule* PIEPreviewDeviceProfileSelectorModule = FModuleManager::LoadModulePtr<IDeviceProfileSelectorModule>("PIEPreviewDeviceProfileSelector");
 		if (PIEPreviewDeviceProfileSelectorModule)

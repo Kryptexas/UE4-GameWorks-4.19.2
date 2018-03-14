@@ -109,7 +109,8 @@ Version:4.9
 |**Blueprint Class**|[INCLUDE:#bpclassoptions]|[INCLUDE:#bpclassoptiondesc]|
 |**Code Class**|[INCLUDE:#codeclassoptions]|[INCLUDE:#codeclassoptiondesc]|
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BPClassOptions]
 [REGION:plain_list]
 * **Create Blueprint...**
@@ -138,7 +139,8 @@ Visual Studio でクラス ヘッダ ファイルを開きます。
 * [](Programming\Development\ManagingGameCode\CppClassWizard) を開いて、選択したクラスを親クラスとして持つ新規クラスを作成します。
 [/REGION]
 [/EXCERPT:CodeClassOptionDesc]
--->
+
+[/COMMENT]
 
 ## ドラッグ& ドロップ
 Blueprint クラスのアクタをビューポートにドロップするとアクタがシーンに追加されます。クラスを正常にドラッグすると、掴んでいるクラスがマウスに表示されます。1 度にドラッグできるクラスは 1 つです。

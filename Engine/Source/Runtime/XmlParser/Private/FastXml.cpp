@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "FastXml.h"
 #include "HAL/PlatformFilemanager.h"
@@ -451,11 +451,11 @@ protected:
 										AttributeCount++;
 										Attributes[ AttributeCount ] = Buffer;
 										AttributeCount++;
-										while (*Buffer && *Buffer != *AttributeDelimiter)
+										while(*Buffer && *Buffer != *AttributeDelimiter)
 										{
 											Buffer++;
 										}
-										if (*Buffer == *AttributeDelimiter)
+										if(*Buffer == *AttributeDelimiter)
 										{
 											*Buffer = 0;
 											Buffer++;

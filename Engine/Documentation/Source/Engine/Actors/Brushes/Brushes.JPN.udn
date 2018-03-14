@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429227
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Geometry Brush アクタ
 Crumbs:%ROOT%, Engine, Engine/Actors
@@ -96,7 +96,8 @@ topic-image:Brushes_topic.png
 |![](BSP_Sphere.png)| 後でカスタマイズ可能な球状の Geometry Brush アクタを [Details] パネル内に作成します。以下のオプションがあります。 [INCLUDE:#SphereBuilder] |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BoxBuilder]
 [REGION:simpletable]
 |ボックス ビルダ設定||
@@ -189,7 +190,8 @@ topic-image:Brushes_topic.png
 [/REGION]
 [/EXCERPT:SphereBuilder]
 
---->
+-
+[/COMMENT]
 
 
 ## ブラシの修正

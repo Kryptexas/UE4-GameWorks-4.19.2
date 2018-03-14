@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTree/BehaviorTreeTypes.h"
 #include "GameFramework/Actor.h"
@@ -282,8 +282,10 @@ void FBehaviorTreeSearchData::Reset()
 	PendingUpdates.Reset();
 	SearchStart = FBTNodeIndex();
 	SearchEnd = FBTNodeIndex();
+	RollbackInstanceIdx = INDEX_NONE;
 	bSearchInProgress = false;
 	bPostponeSearch = false;
+	bPreserveActiveNodeMemoryOnRollback = false;
 }
 
 //----------------------------------------------------------------------//
@@ -300,6 +302,12 @@ void FBlackboardKeySelector::ResolveSelectedKey(const UBlackboardData& Blackboar
 
 		SelectedKeyID = BlackboardAsset.GetKeyID(SelectedKeyName);
 		SelectedKeyType = BlackboardAsset.GetKeyType(SelectedKeyID);
+		UE_CLOG(IsSet() == false, LogBehaviorTree, Warning
+			, TEXT("%s> Failed to find key \'%s\' in BB asset %s. BB Key Selector will be set to \'Invalid\'")
+			, *UBehaviorTreeTypes::GetBTLoggingContext()
+			, *SelectedKeyName.ToString()
+			, *BlackboardAsset.GetFullName()
+		);
 	}
 }
 
@@ -413,9 +421,7 @@ void FBlackboardKeySelector::AddNameFilter(UObject* Owner, FName PropertyName)
 //----------------------------------------------------------------------//
 // UBehaviorTreeTypes
 //----------------------------------------------------------------------//
-UBehaviorTreeTypes::UBehaviorTreeTypes(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-{
-}
+FString UBehaviorTreeTypes::BTLoggingContext;
 
 FString UBehaviorTreeTypes::DescribeNodeResult(EBTNodeResult::Type NodeResult)
 {
@@ -467,6 +473,13 @@ FString UBehaviorTreeTypes::GetShortTypeName(const UObject* Ob)
 	}
 
 	return TypeDesc;
+}
+
+void UBehaviorTreeTypes::SetBTLoggingContext(const UBTNode* NewBTLoggingContext)
+{
+	BTLoggingContext = NewBTLoggingContext 
+		? FString::Printf(TEXT("%s[%d]"), *NewBTLoggingContext->GetNodeName(), NewBTLoggingContext->GetExecutionIndex())
+		: TEXT("");
 }
 
 //----------------------------------------------------------------------//

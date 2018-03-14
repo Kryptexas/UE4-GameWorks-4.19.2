@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -6,7 +6,7 @@ public class OnlineSubsystemGooglePlay : ModuleRules
 {
 	public OnlineSubsystemGooglePlay(ReadOnlyTargetRules Target) : base(Target)
     {
-		Definitions.Add("ONLINESUBSYSTEMGOOGLEPLAY_PACKAGE=1");
+		PublicDefinitions.Add("ONLINESUBSYSTEMGOOGLEPLAY_PACKAGE=1");
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PrivateIncludePaths.AddRange(

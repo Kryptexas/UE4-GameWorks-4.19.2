@@ -1,10 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "Engine/EngineTypes.h"
+#include "ArrayView.h"
 #include "OnlineBeacon.h"
 #include "OnlineBeaconClient.generated.h"
 
@@ -43,6 +44,7 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 	GENERATED_UCLASS_BODY()
 
 	//~ Begin AActor Interface
+	virtual void Tick(float DeltaTime) override;
 	virtual bool UseShortConnectTimeout() const override;
 	virtual void OnNetCleanup(UNetConnection* Connection) override;
 	virtual const AActor* GetNetOwner() const override;
@@ -75,6 +77,13 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 	 * @param EncryptionToken the token to use
 	 */
 	void SetEncryptionToken(const FString& InEncryptionToken);
+
+	/**
+	 * Sets the encryption key that will be used for server connections.
+	 *
+	 * @param EncryptionKey the key to use
+	 */
+	void SetEncryptionKey(TArrayView<uint8> InEncryptionKey);
 
 	/**
 	 * Send the packet for triggering the initial join
@@ -171,6 +180,9 @@ private:
 
 	/** Token sent to servers when connecting with an NMT_Hello message. */
 	FString EncryptionToken;
+
+	/** Key used when connecting to servers. */
+	TArray<uint8> EncryptionKey;
 
 	/**
 	 * Setup the connection for encryption with a given key

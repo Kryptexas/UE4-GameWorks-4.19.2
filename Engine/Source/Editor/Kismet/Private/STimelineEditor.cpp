@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "STimelineEditor.h"
@@ -12,6 +12,7 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SSlider.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "Curves/CurveFloat.h"
 #include "Curves/CurveLinearColor.h"
@@ -851,7 +852,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 				. VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Font( FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 14 ) )
+					.Font( FCoreStyle::GetDefaultFontStyle("Regular", 14) )
 					.ColorAndOpacity( FLinearColor(1,1,1,0.5) )
 					.Text( this, &STimelineEditor::GetTimelineName )
 				]
@@ -1540,7 +1541,7 @@ bool STimelineEditor::OnVerifyTrackNameCommit(const FText& TrackName, FText& Out
 			{
 				UEdGraphPin* Pin = *PinIt;
 
-				if (Pin->PinName == TrackName.ToString())
+				if (Pin->PinName == RequestedName)
 				{
 					FFormatNamedArguments Args;
 					Args.Add(TEXT("TrackName"), TrackName);
@@ -1575,10 +1576,10 @@ void STimelineEditor::OnTrackNameCommitted( const FText& StringName, ETextCommit
 			{
 				UEdGraphPin* Pin = TimelineNode->Pins[PinIdx];
 			
-				if (Pin->PinName == TrackBase->TrackName.ToString())
+				if (Pin->PinName == TrackBase->TrackName)
 				{
 					Pin->Modify();
-					Pin->PinName = StringName.ToString();
+					Pin->PinName = RequestedName;
 					break;
 				}
 			}

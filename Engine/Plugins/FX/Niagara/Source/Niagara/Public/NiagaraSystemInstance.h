@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,11 +14,13 @@
 
 class FNiagaraWorldManager;
 class UNiagaraComponent;
+class FNiagaraSystemInstance;
 
 class NIAGARA_API FNiagaraSystemInstance 
 {
 public:
 	DECLARE_MULTICAST_DELEGATE(FOnInitialized);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnComplete, FNiagaraSystemInstance*);
 	
 #if WITH_EDITOR
 	DECLARE_MULTICAST_DELEGATE(FOnReset);
@@ -33,10 +35,11 @@ public:
 	virtual ~FNiagaraSystemInstance();
 
 	/** Initializes this System instance to simulate the supplied System. */
-	void Init(class FNiagaraSystemSimulation* InSystemSimulation, bool bForceReset = false, bool bInForceSolo=false);
+	void Init(TSharedRef<class FNiagaraSystemSimulation, ESPMode::ThreadSafe> InSystemSimulation, bool bInForceSolo=false);
 
 	void Activate(bool bReset = false);
 	void Deactivate(bool bImmediate = false);
+	void Complete();
 
 	//void RebindParameterCollection(UNiagaraParameterCollectionInstance* OldInstance, UNiagaraParameterCollectionInstance* NewInstance);
 	void BindParameters();
@@ -49,13 +52,12 @@ public:
 	/** Defines modes for resetting the System instance. */
 	enum class EResetMode
 	{
-		/** Defers resetting the System instance and simulations until the next tick. */
-		DeferredReset,
-		/** Resets the System instance and simulations immediately. */
-		ImmediateReset,
-		/** same as above, but reinitializes instead of fast resetting */
-		DeferredReInit,
-		ImmediateReInit
+		/** Resets the System instance and simulations. */
+		ResetAll,
+		/** Resets the System instance but not the simualtions */
+		ResetSystem,
+		/** Full reinitialization of the system and emitters.  */
+		ReInit
 	};
 	
 	/** Requests the the simulation be reset on the next tick. */
@@ -64,13 +66,13 @@ public:
 	void ComponentTick(float DeltaSeconds);
 	void PreSimulateTick(float DeltaSeconds);
 	void PostSimulateTick(float DeltaSeconds);
-	void HandleResets();
+	/** Handles completion of the system and returns true if the system is complete. */
+	bool HandleCompletion();
 
-	void Enable();
-	void Disable();
-	
 	ENiagaraExecutionState GetExecutionState() { return ExecutionState; }
 	void SetExecutionState(ENiagaraExecutionState InState);
+
+	FORCEINLINE bool IsComplete()const { return ExecutionState == ENiagaraExecutionState::Complete || ExecutionState == ENiagaraExecutionState::Disabled; }
 
 	/** Gets the simulation for the supplied emitter handle. */
 	TSharedPtr<FNiagaraEmitterInstance> GetSimulationForHandle(const FNiagaraEmitterHandle& EmitterHandle);
@@ -92,11 +94,18 @@ public:
 	/** Gets a multicast delegate which is called whenever this instance is initialized with an System asset. */
 	FOnInitialized& OnInitialized();
 
+	/** Gets a multicast delegate which is called whenever this instance is complete. */
+	FOnComplete& OnComplete();
+
 #if WITH_EDITOR
 	/** Gets a multicast delegate which is called whenever this instance is reset due to external changes in the source System asset. */
 	FOnReset& OnReset();
 
 	FOnDestroyed& OnDestroyed();
+#endif
+
+#if WITH_EDITORONLY_DATA
+	bool GetIsolateEnabled() const;
 #endif
 
 	FName GetIDName() { return IDName; }
@@ -126,15 +135,24 @@ public:
 
 	FORCEINLINE float GetAge()const { return Age; }
 	
-	FORCEINLINE FNiagaraSystemSimulation* GetSystemSimulation()const
+	FORCEINLINE TSharedPtr<FNiagaraSystemSimulation, ESPMode::ThreadSafe> GetSystemSimulation()const
 	{
-		check(SystemSimulation);
+		check(SystemSimulation.IsValid());
 		return SystemSimulation; 
 	}
+
+	FORCEINLINE bool IsActivated() const { return ExecutionState == ENiagaraExecutionState::Active; }
+
+	bool IsReadyToRun() const;
 
 	/** Index of this instance in the system simulation. */
 	int32 SystemInstanceIndex;
 
+	FORCEINLINE bool IsDeactivatedDueToError() const { return bError; }
+
+	FORCEINLINE bool HasTickingEmitters()const { return bHasTickingEmitters; }
+
+	UNiagaraParameterCollectionInstance* GetParameterCollectionInstance(UNiagaraParameterCollection* Collection);
 private:
 	/** Builds the emitter simulations. */
 	void InitEmitters();
@@ -142,7 +160,7 @@ private:
 	/** Resets the System, emitter simulations, and renderers to initial conditions. */
 	void ReInitInternal();
 	/** Resets for restart, assumes no change in emitter setup */
-	void ResetInternal();
+	void ResetInternal(bool bResetSimulations);
 
 	/** Updates the renders for the simulations. Gathers both the EmitterRenderers that were previously set as well as the ones that we  create within.*/
 	void UpdateRenderModules(ERHIFeatureLevel::Type InFeatureLevel, TArray<NiagaraRenderer*>& OutNewRenderers, TArray<NiagaraRenderer*>& OutOldRenderers);
@@ -154,14 +172,14 @@ private:
 	void InitDataInterfaces();
 	
 	/** Perform per-tick updates on data interfaces that need it.*/
-	void TickDataInterfaces(float DeltaSeconds);
+	void TickDataInterfaces(float DeltaSeconds, bool bPostSimulate);
 
 	void TickInstanceParameters(float DeltaSeconds);
 
 	void BindParameterCollections(FNiagaraScriptExecutionContext& ExecContext);
 	
 	UNiagaraComponent* Component;
-	class FNiagaraSystemSimulation *SystemSimulation;
+	TSharedPtr<class FNiagaraSystemSimulation, ESPMode::ThreadSafe> SystemSimulation;
 	FBox SystemBounds;
 
 	/** The age of the System instance. */
@@ -172,6 +190,7 @@ private:
 	TArray< TSharedRef<FNiagaraEmitterInstance> > Emitters;
 
 	FOnInitialized OnInitializedDelegate;
+	FOnComplete OnCompleteDelegate;
 
 #if WITH_EDITOR
 	FOnReset OnResetDelegate;
@@ -191,19 +210,26 @@ private:
 	FNiagaraParameterStore InstanceParameters;
 	
 	FNiagaraParameterDirectBinding<FVector> OwnerPositionParam;
+	FNiagaraParameterDirectBinding<FVector> OwnerScaleParam;
 	FNiagaraParameterDirectBinding<FVector> OwnerVelocityParam;
 	FNiagaraParameterDirectBinding<FVector> OwnerXAxisParam;
 	FNiagaraParameterDirectBinding<FVector> OwnerYAxisParam;
 	FNiagaraParameterDirectBinding<FVector> OwnerZAxisParam;
+
 	FNiagaraParameterDirectBinding<FMatrix> OwnerTransformParam;
 	FNiagaraParameterDirectBinding<FMatrix> OwnerInverseParam;
 	FNiagaraParameterDirectBinding<FMatrix> OwnerTransposeParam;
 	FNiagaraParameterDirectBinding<FMatrix> OwnerInverseTransposeParam;
+	FNiagaraParameterDirectBinding<FMatrix> OwnerTransformNoScaleParam;
+	FNiagaraParameterDirectBinding<FMatrix> OwnerInverseNoScaleParam;
+
 	FNiagaraParameterDirectBinding<float> OwnerDeltaSecondsParam;
 	FNiagaraParameterDirectBinding<float> OwnerInverseDeltaSecondsParam;
 	FNiagaraParameterDirectBinding<float> OwnerMinDistanceToCameraParam;
 	FNiagaraParameterDirectBinding<int32> SystemNumEmittersParam;
 	FNiagaraParameterDirectBinding<int32> SystemNumEmittersAliveParam;
+
+	FNiagaraParameterDirectBinding<float> SystemTimeSinceRenderedParam;
 
 	TArray<FNiagaraParameterDirectBinding<int32>> ParameterNumParticleBindings;
 
@@ -213,17 +239,14 @@ private:
 
 	uint32 bPendingSpawn : 1;
 
-	uint32 bActive : 1;
-
-	/** Flag to ensure the System instance is only reset once per frame. */
-	uint32 bResetPending : 1;
-	uint32 bReInitPending : 1;
-
 	/** Disable ticking and rendering if there was some serious error. */
 	uint32 bError : 1;
 
 	/** Notifier that data interfaces need reinitialization next tick.*/
 	uint32 bDataInterfacesNeedInit : 1;
+
+	/** If this instance has any currently ticking emitters. If false, allows us to skip some work. */
+	uint32 bHasTickingEmitters : 1;
 
 	/* System tick state */
 	ENiagaraExecutionState ExecutionState;

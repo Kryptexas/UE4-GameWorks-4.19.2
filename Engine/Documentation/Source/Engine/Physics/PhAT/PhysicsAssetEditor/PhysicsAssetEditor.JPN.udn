@@ -1,0 +1,64 @@
+﻿INTSourceChangelist:3735117
+Availability:Public
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
+Title:物理アセット エディタのインターフェース
+Description:アンリアル エンジン 4 の物理アセット エディタのコア機能のハイライト 
+Type: landing
+version:4.18
+Parent:Engine/Physics/PhAT
+Related:Engine/Physics/Constraints/ConstraintsReference
+Related:Engine/Physics/PhysicsBodies
+Related:Engine/Animation/Persona/Modes
+Order:1
+tags:Physics
+topic-image:PhysicsEditor_Topic.png
+Social-image:PhysicsAssetEditor.png
+
+
+**物理アセット エディタ** は、UE4 内の [物理アセット](Engine/Animation/Skeleton) の作業に使うツールです。物理アセット エディタは、スケルタルメッシュに関連するボーンやジョイント階層の 
+視覚化や制御を可能にします。また、 
+スケルタルメッシュ ラグドールのコリジョンとシミュレーションに使用する [ボディ](Engine/Physics/PhysicsBodies) と [コンストレイント](Engine/Physics/Constraints/ConstraintsReference) の作成が可能になります。
+
+![](PhysicsAssetEditor.png)
+
+物理アセット エディタのユーザー インターフェースの詳細を説明します。
+
+## 1.ツールバー
+
+物理アセット エディタの [ツールバー](Engine/Animation/Persona/Toolbar) には、物理アセットに加えた変更を保存したり、コンテンツ ブラウザで物理アセットを見つけるためのオプションがあります。 
+特定の物理アセットには **プレビュー メッシュ**、選択したボディには **コリジョンの有効 / /無効**、そして物理アセットラグドールのをテストするための **シミュレーション** 設定が可能になります。ツールバーの右端ある **エディタ ツールバー** で、 
+UE4 の中で様々な [アニメーション ツール](Engine/Animation/Persona/Modes) の切り替えが可能になります。
+
+## 2.Skeleton Tree (スケルトン ツリー)
+
+[スケルトン ツリー](Engine\Physics\PhAT\SkeletonTree) には、現在の Skeleton アセットのスケルタル階層が表示されます。ここで、ボディとコンストレイントの作成を行います。
+
+## 3.コンストレイント グラフ
+
+[コンストレイント グラフ](Engine\Physics\PhAT\Graph) は、コンストレイントを別のボディに作成したスケルタル階層ボディを視覚的に表示することができます。コンストレイント グラフを使うと、 
+メイン ボディ ノード (左) からピンを引き出して独自のコンストレイントを作成したり、
+最後のボディをダブルクリックすると、スケルトン ツリーが次のボディ / コンストレイントの組に移ることができます。割り当てる [物理アニメーションとコンストレイント プロファイル](Engine/Physics/PhAT/ToolsAndProfiles) を 
+選択対象別に [Profile] パネルで確認することができます。
+
+## 4.ビューポート
+
+[ビューポート](Engine/Animation/Persona/Viewport) ウィンドウでは、加えた変更のプレビュー、ボディの位置の調整、物理ラグドールのシミュレーションのプレビューを行うことができます。ビューポートから、
+ライティング モードの変更、スケルトンのボーンの表示、非表示、アニメーションの再生速度の調整、ターンテーブル上でスケルタルメッシュを自動的に回転させてあらゆるアングルから見ることもできます。
+
+## 5.アセットの詳細 / プレビュー シーンの設定
+
+メイン エディタと似ている [Details (詳細)](Engine/UI/LevelEditor/Details) パネルは、主にボディやコンストレイントのような追加エレメントのプロパティを修正するために使用します。例えば、 
+スケルトンにボティまたはコンストレイントを追加し、スケルトン ツリーまたはビューポートで追加したボティまたはコンストレイントをクリックすると、それらの機能に関連するオプションが [Details] パネルに表示されます。
+
+[Preview Scene Settings (プレビュー シーン設定)](Engine/Animation/Persona/PreviewSettings) パネルを使うと、
+レベル内でシーンをセットアップしなくても、複数の背景やライティング シナリオでアセットがどのように見えるかを素早く評価することができます。スケルタルメッシュと特定のアニメーションの中のさまざまな設定を、 
+エディタ内の各 [アニメーション ツール](Engine/Animation/Persona/Modes) のライティングおよび [ポストプロセス エフェクト](Engine/Rendering/PostProcessEffects) と一緒に使えるように定義および適用することができます。
+
+## 6.ツールとプロファイル
+
+[Tools](Engine/Physics/PhAT/ToolsAndProfiles#Toolstab) パネルには、新しいボディまたは選択したボディの生成 / 再生成時に利用可能なオプションが表示されます。これはコンテンツ ブラウザから物理アセットを作成した時のオプションと同じです。 
+それ以外に、スケルタルメッシュがインポートされて **Create Physics Asset** が有効になった時に使用するデフォルト設定があります。
+
+[Profile](Engine/Physics/PhAT/ToolsAndProfiles#profilestab) パネルを使うと、**物理アニメーション** と **コンストレイント** に対して再利用可能なプロファイルを作成することができます。これらのプロファイルを使って、 
+別のボディやコンストレイントにすぐに割り当て可能なデフォルト設定を設定することができます。
+

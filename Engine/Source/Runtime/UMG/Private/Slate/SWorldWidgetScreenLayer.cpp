@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Slate/SWorldWidgetScreenLayer.h"
 #include "Widgets/Layout/SBox.h"
@@ -107,9 +107,7 @@ void SWorldWidgetScreenLayer::Tick(const FGeometry& AllottedGeometry, const doub
 								CanvasSlot->Offset(FMargin(LocalPosition.X, LocalPosition.Y, ComponentDrawSize.X, ComponentDrawSize.Y));
 								CanvasSlot->Anchors(FAnchors(0, 0, 0, 0));
 								CanvasSlot->Alignment(ComponentPivot);
-								// @todo: - DO NOT copy this change to UE4/Main
-								//CanvasSlot->ZOrder(-ViewportPosition.Z);
-								// @todo: - DO NOT copy this change to UE4/Main
+								CanvasSlot->ZOrder(-ViewportPosition.Z);
 							}
 							else
 							{
@@ -117,9 +115,7 @@ void SWorldWidgetScreenLayer::Tick(const FGeometry& AllottedGeometry, const doub
 								CanvasSlot->Offset(FMargin(LocalPosition.X, LocalPosition.Y, DrawSize.X, DrawSize.Y));
 								CanvasSlot->Anchors(FAnchors(0, 0, 0, 0));
 								CanvasSlot->Alignment(Pivot);
-								// @todo: - DO NOT copy this change to UE4/Main
-								//CanvasSlot->ZOrder(-ViewportPosition.Z);
-								// @todo: - DO NOT copy this change to UE4/Main
+								CanvasSlot->ZOrder(-ViewportPosition.Z);
 							}
 						}
 					}

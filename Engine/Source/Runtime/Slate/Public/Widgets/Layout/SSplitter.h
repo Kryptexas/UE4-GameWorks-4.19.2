@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -112,6 +112,7 @@ public:
 		, _ResizeMode( ESplitterResizeMode::FixedPosition )
 		, _PhysicalSplitterHandleSize( 5.0f )
 		, _HitDetectionSplitterHandleSize( 5.0f )
+		, _MinimumSlotHeight( 20.0f )
 		, _OnSplitterFinishedResizing()
 		{
 		}
@@ -128,6 +129,8 @@ public:
 		SLATE_ARGUMENT( float, PhysicalSplitterHandleSize )
 
 		SLATE_ARGUMENT( float, HitDetectionSplitterHandleSize )
+
+		SLATE_ARGUMENT( float, MinimumSlotHeight )
 
 		SLATE_EVENT( FSimpleDelegate, OnSplitterFinishedResizing )
 		
@@ -261,16 +264,16 @@ protected:
 	 * @param Children         A reference to this splitter's children array; we will modify the children's layout values.
 	 * @param ChildGeometries  The arranged children; we need their sizes and positions so that we can perform a resizing.
 	 */
-	static void HandleResizingByMousePosition(EOrientation Orientation, const float PhysicalSplitterHandleSize, const ESplitterResizeMode::Type ResizeMode, int32 DraggedHandle, const FVector2D& LocalMousePos, TPanelChildren<FSlot>& Children, const TArray<FLayoutGeometry>& ChildGeometries );
-	static void HandleResizingDelta(EOrientation Orientation, const float PhysicalSplitterHandleSize, const ESplitterResizeMode::Type ResizeMode, int32 DraggedHandle, float Delta, TPanelChildren<FSlot>& Children, const TArray<FLayoutGeometry>& ChildGeometries);
-	static void HandleResizingBySize(EOrientation Orientation, const float PhysicalSplitterHandleSize, const ESplitterResizeMode::Type ResizeMode, int32 DraggedHandle, const FVector2D& DesiredSize, TPanelChildren<FSlot>& Children, const TArray<FLayoutGeometry>& ChildGeometries);
+	void HandleResizingByMousePosition(EOrientation Orientation, const float PhysicalSplitterHandleSize, const ESplitterResizeMode::Type ResizeMode, int32 DraggedHandle, const FVector2D& LocalMousePos, TPanelChildren<FSlot>& Children, const TArray<FLayoutGeometry>& ChildGeometries );
+	void HandleResizingDelta(EOrientation Orientation, const float PhysicalSplitterHandleSize, const ESplitterResizeMode::Type ResizeMode, int32 DraggedHandle, float Delta, TPanelChildren<FSlot>& Children, const TArray<FLayoutGeometry>& ChildGeometries);
+	void HandleResizingBySize(EOrientation Orientation, const float PhysicalSplitterHandleSize, const ESplitterResizeMode::Type ResizeMode, int32 DraggedHandle, const FVector2D& DesiredSize, TPanelChildren<FSlot>& Children, const TArray<FLayoutGeometry>& ChildGeometries);
 
 	/**
 	 * @param ProposedSize  A size that a child would like to be
 	 *
 	 * @return A size that is clamped against the minimum size allowed for children.
 	 */
-	static float ClampChild( float ProposedSize );
+	float ClampChild( float ProposedSize );
 
 	/**
 	 * Given a mouse position within the splitter, figure out which resize handle we are hovering (if any).
@@ -293,6 +296,8 @@ protected:
 
 	FSimpleDelegate OnSplitterFinishedResizing;
 	FOnGetMaxSlotSize OnGetMaxSlotSize;
+	/** The user is not allowed to make any of the splitter's children smaller than this. */
+	float MinSplitterChildLength;
 
 	/** The thickness of the grip area that the user uses to resize a splitter */
 	float PhysicalSplitterHandleSize;
@@ -501,4 +506,6 @@ private:
 	bool bIsResizing;
 
 	float SplitterHandleSize;
+
+	float MinSplitterChildLength;
 };

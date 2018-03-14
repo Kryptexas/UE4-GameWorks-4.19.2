@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SLevelEditor.h"
 #include "Framework/MultiBox/MultiBoxExtender.h"
@@ -268,13 +268,20 @@ SLevelEditor::~SLevelEditor()
 	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked< FLevelEditorModule >( LevelEditorModuleName );
 	LevelEditorModule.OnNotificationBarChanged().RemoveAll( this );
 	
-	GetMutableDefault<UEditorExperimentalSettings>()->OnSettingChanged().RemoveAll( this );
-	GetMutableDefault<UEditorPerProjectUserSettings>()->OnUserSettingChanged().RemoveAll( this );
+	if(UObjectInitialized())
+	{
+		GetMutableDefault<UEditorExperimentalSettings>()->OnSettingChanged().RemoveAll(this);
+		GetMutableDefault<UEditorPerProjectUserSettings>()->OnUserSettingChanged().RemoveAll(this);
+	}
+
 	FEditorModeRegistry::Get().OnRegisteredModesChanged().RemoveAll( this );
 
 	FEditorDelegates::MapChange.RemoveAll(this);
 
-	GEditor->GetEditorWorldContext(true).RemoveRef(World);
+	if (GEditor)
+	{
+		GEditor->GetEditorWorldContext(true).RemoveRef(World);
+	}
 }
 
 FText SLevelEditor::GetTabTitle() const
@@ -515,6 +522,10 @@ void SLevelEditor::AttachSequencer( TSharedPtr<SWidget> SequencerWidget, TShared
 
 	if( !bIsReentrant )
 	{
+		TSharedRef<SDockTab> Tab = SNew(SDockTab);
+		Tab = InvokeTab("Sequencer");
+
+		// Close the sequence editor after invoking a sequencer tab instead of before so that the existing asset editor doesn't refer to a stale sequencer.
 		if(SequencerAssetEditor.IsValid())
 		{
 			// Closing the window will invoke this method again but we are handling reopening with a new movie scene ourselves
@@ -523,8 +534,6 @@ void SLevelEditor::AttachSequencer( TSharedPtr<SWidget> SequencerWidget, TShared
 			SequencerAssetEditor.Pin()->CloseWindow();
 		}
 
-		TSharedRef<SDockTab> Tab = SNew(SDockTab);
-		Tab = InvokeTab("Sequencer");
 		if(!FGlobalTabmanager::Get()->OnOverrideDockableAreaRestore_Handler.IsBound())
 		{
 			// Don't allow standard tab closing behavior when the override is active

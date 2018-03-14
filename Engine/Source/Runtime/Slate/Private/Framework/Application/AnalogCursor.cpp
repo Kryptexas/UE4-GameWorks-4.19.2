@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Framework/Application/AnalogCursor.h"
 #include "InputCoreTypes.h"
@@ -260,7 +260,7 @@ void FAnalogCursor::ClearAnalogValues()
 	AnalogValues[static_cast<uint8>(EAnalogStick::Right)] = FVector2D::ZeroVector;
 }
 
-void FAnalogCursor::UpdateCursorPosition(FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor, const FVector2D& NewPosition)
+void FAnalogCursor::UpdateCursorPosition(FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor, const FVector2D& NewPosition, bool bForce)
 {
 	//grab the old position
 	const FVector2D OldPosition = Cursor->GetPosition();
@@ -270,7 +270,7 @@ void FAnalogCursor::UpdateCursorPosition(FSlateApplication& SlateApp, TSharedRef
 	int32 NewIntPosY = NewPosition.Y;
 	int32 OldIntPosX = OldPosition.X;
 	int32 OldIntPosY = OldPosition.Y;
-	if (OldIntPosX != NewIntPosX || OldIntPosY != NewIntPosY)
+	if (bForce || OldIntPosX != NewIntPosX || OldIntPosY != NewIntPosY)
 	{
 		//put the cursor in the correct spot
 		Cursor->SetPosition(NewIntPosX, NewIntPosY);

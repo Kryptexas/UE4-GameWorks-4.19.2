@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -56,6 +56,8 @@ struct FAnalyticsEventAttribute
 		case AttrTypeEnum::JsonFragment:
 			return AttrValueString;
 		case AttrTypeEnum::Number:
+			if (AttrValueNumber - FMath::TruncToFloat(AttrValueNumber) == 0.0)
+				return Lex::ToSanitizedString((int64)AttrValueNumber);
 			return Lex::ToSanitizedString(AttrValueNumber);
 		case AttrTypeEnum::Boolean:
 			return Lex::ToString(AttrValueBool);

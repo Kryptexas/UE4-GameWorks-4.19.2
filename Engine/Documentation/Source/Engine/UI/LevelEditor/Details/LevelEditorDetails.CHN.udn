@@ -1,4 +1,4 @@
-Availability:Public
+﻿Availability:Public
 Title:详细信息面板
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:该面板为关卡编辑器中选中的Actor提供了详细信息和自定义工具。
@@ -176,7 +176,8 @@ Actor可以有 _友好的_ 名称，由设计人员直接从编辑器中进行�
 	[RELATIVE:Engine/UI/LevelEditor/Details/Customizations/StaticMeshes]
 	[/PARAM]
 [/OBJECT]
-<!--
+[COMMENT:none]
+
 [OBJECT:TopicCompact]
 	[PARAM:image]
 	![](Engine/UI/LevelEditor/Details/Customizations/SkeletalMeshes/details_sk_topic.png)
@@ -188,7 +189,8 @@ Actor可以有 _友好的_ 名称，由设计人员直接从编辑器中进行�
 	[RELATIVE:Engine/UI/LevelEditor/Details/Customizations/SkeletalMeshes]
 	[/PARAM]
 [/OBJECT]
--->
+
+[/COMMENT]
 [OBJECT:TopicCompact]
 	[PARAM:image]
 	![](Engine/UI/LevelEditor/Details/Customizations/CodeView/code_view_topic.png)

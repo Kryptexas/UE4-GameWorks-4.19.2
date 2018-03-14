@@ -31,7 +31,8 @@ The **Beam Modifier** module allows either the Source or Target of the beam to b
 
 
 
-<!-----------------Beam Modifier Includes--------------
+[COMMENT:none]
+---------------Beam Modifier Includes--------------
 ####Includes
 
 [EXCERPT:ModifierType]
@@ -77,7 +78,8 @@ The **Beam Modifier** module allows either the Source or Target of the beam to b
 
 
 
---------------------End Beam Modifier Includes------------>
+--------------------End Beam Modifier Includes----------
+[/COMMENT]
 
 
 
@@ -122,7 +124,8 @@ The **Beam Noise** module allows for injecting noise along the beam. It provides
 
 
 
-<!----------------------Beam Noise Includes-----------------
+[COMMENT:none]
+--------------------Beam Noise Includes-----------------
 #### Includes
 [EXCERPT:LowFreqNote]
 [REGION:note]
@@ -130,7 +133,8 @@ Currently, low-frequency noise is the only noise supported.
 [/REGION]
 [/EXCERPT:LowFreqNote]
 
------------------------End Beam Noise Includes------------->
+-----------------------End Beam Noise Includes-----------
+[/COMMENT]
 
 ## Source
 
@@ -153,7 +157,8 @@ The **Beam Source** module implements a single source for a beam emitter. (If a 
 
 
 
-<!----------------------Beam Source Includes-----------------
+[COMMENT:none]
+--------------------Beam Source Includes-----------------
 #### Includes
 [EXCERPT:SourceMethod]
 [REGION:simpletable]
@@ -179,7 +184,8 @@ The **Beam Source** module implements a single source for a beam emitter. (If a 
 [/REGION]
 [/EXCERPT:SourceTangentMethod]
 
------------------------End Beam Source Includes------------->
+-----------------------End Beam Source Includes-----------
+[/COMMENT]
 
 
 ## Target
@@ -204,7 +210,8 @@ The **Beam Target** module implements a single target for a beam emitter. (If a 
 
 
 
-<!----------------------Beam Target Includes-----------------
+[COMMENT:none]
+--------------------Beam Target Includes-----------------
 #### Includes
 [EXCERPT:SourceMethodTarget]
 [REGION:simpletable]
@@ -233,6 +240,7 @@ The **Beam Target** module implements a single target for a beam emitter. (If a 
 [/REGION]
 [/EXCERPT:SourceTangentMethodTarget]
 
------------------------End Beam Target Includes------------->
+-----------------------End Beam Target Includes-----------
+[/COMMENT]
 
 

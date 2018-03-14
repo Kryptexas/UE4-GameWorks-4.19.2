@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -73,6 +73,9 @@ public:
 
 	/** Return the name used to attach to this item */
 	virtual FName GetAttachName() const = 0;
+
+	/** @return true if this item can be renamed */
+	virtual bool CanRenameItem() const = 0;
 
 	/** Requests a rename on the the tree row item */
 	virtual void RequestRename() = 0;

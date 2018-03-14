@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:2716482
+﻿INTSourceChangelist:3108692
 Availability:Licensee
 Title:Perforce の自動マージツール
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine, GettingStarted/DownloadingUnrealEngine/Perforce
-Description:Perforce を使用したインテグレーション実施の作業を自動化するスクリプト
+Description:Perforce を使用した統合実施の作業を自動化するスクリプト
 version:4.9
 
 [TOC(start:2)]
 
-Perforce Auto-Merge スクリプトの存在理由は、P4 インテグレーションの実施において厄介かつエラーを招きやすい手順 (つまりマージ) を自動化することにあります。[Perforce 統合に関する FAQ](GettingStarted/DownloadingUnrealEngine/Perforce/Integration) ページで説明したマージに関するいくつかのベストプラクティスを取り入れているため、Unreal Engine Perforce データベースのマージに推奨される手法です。
+Perforce Auto-Merge スクリプトは、P4 の統合 (つまりマージ) に伴う厄介かつエラーを招きやすい手順を自動化することにあります。[Perforce 統合に関する FAQ](GettingStarted/DownloadingUnrealEngine/Perforce/Integration) ページで説明したマージに関するいくつかのベストプラクティスを取り入れているため、Unreal Engine Perforce データベースのマージに推奨される手法です。
 
 
 
@@ -22,10 +22,10 @@ Perforce Auto-Merge スクリプトの存在理由は、P4 インテグレーシ
 
 * 任意のブランチに対して、**Safe Merge** または **NULL Merge** を選択できます (以下に記述)。 
 * 任意のブランチを選択できる General (汎用) ツールがあります (ポップアップ ダイアログ付き)。 
-* 4V または P4Win のカスタムツールエディタで使用しているフォーマットに一致させて独自のカスタムブランチを追加することができます。
+* P4V または P4Win のカスタムツールエディタで使用しているフォーマットに一致させて独自のカスタムブランチを追加することができます。
 
 
-スクリプトの実行時、別ウィンドウに以下のように診断が出力されます (P4Vの場合。P4Win はステータスペインに表示します)
+スクリプトの実行時、別ウィンドウに以下のように診断が出力されます (P4V の場合。P4Win はステータスペインに表示します)
 
 ![P4AutoMergeOutput.jpg](P4AutoMergeOutput.jpg)
 
@@ -46,14 +46,14 @@ Perforce Auto-Merge スクリプトの存在理由は、P4 インテグレーシ
 
 ###Safe マージ
 
-Safe Merge ツールはチェンジリストをマージして、auto-safe 解決を実行します。あるブランチ、または別のブランチで変更されたファイルのどちらかを解決し、両方は解決しません。このタイプの解決法は確実に成功します。このプロセスが終了すると、必要なチェックイン情報が挿入された新しいチェンジリストが完成します。解決するファイル (マージを実行する必要があるファイル) が残っている場合、チェックインの前に手作業で処理する必要があります。
+Safe Merge ツールはチェンジリストをマージして、auto-safe でファイルの解決を行います。あるブランチ、または別のブランチで変更されたファイルのどちらかを解決し、両方は解決しません。このタイプの解決法は確実に成功します。このプロセスが終了すると、必要なチェックイン情報が挿入された新しいチェンジリストが完成します。解決するファイル (マージを実行する必要があるファイル) が残っている場合、チェックインの前に手作業で処理する必要があります。
 
 手動解決の手順については、 [Perforce 統合に関する FAQ](GettingStarted/DownloadingUnrealEngine/Perforce/Integration#Resolve) ページを参照してください。
 
 
 ### NULL マージ
 
-NULL Merge ツールはチェンジリストをマージし、Accept yours (双方の違いを承認) 型の解決を実行します。つまり、ファイルは反映されるだけで、変更されません。これは、変更リストを反映対象として検討するが、双方の変更を組み込まないという決定を明確に示すものです。
+NULL Merge ツールはチェンジリストをマージし、Accept yours (双方の違いを承認) 型の解決を実行します。つまり、ファイルは反映されるだけで、変更されません。これは、変更リストは統合対象として検討されたが、双方の変更を組み込まないという決定を明確に示すものです。
 
 NULL merge に関する詳細は、[Perforce 統合に関する FAQ](GettingStarted/DownloadingUnrealEngine/Perforce/Integration#NullMerge) ページを参照してください。
 
@@ -70,7 +70,7 @@ NULL merge に関する詳細は、[Perforce 統合に関する FAQ](GettingStar
     * オートセーフ式で解決できなかったファイルを解決してチェックインします。
 * NULL Merge (UT3 は例として使用しているにすぎません)：
     * UT3-PC でサブミットしたチェンジリストを **右クリック** 
-    * MergeTo | UT3 PC -> PS3:NULL Merge。 
+    * MergeTo | UT3 PC -> PS3:NULL Merge. 
     * マージが終了すると、ファイルに対して新しいチェンジリストが作成されます。 
     * 全ファイルが NULL マージされます。
     * NULL マージをチェックインします。
@@ -87,11 +87,11 @@ NULL merge に関する詳細は、[Perforce 統合に関する FAQ](GettingStar
 
 * Python の場合:
     * [ActiveState ActivePython](http://www.activestate.com/activepython/) の配布が推奨されています。
-    * スクリプトは現在 Python のバージョン 2.5.2 でテスト中です。
+    * スクリプトは現在 Python のバージョン 2.5.2 でテストされています。
 * P4Python の場合:
     * 最新の P4Python は、 Perforce ウェブサイトの [関連するソフトウェア](http://www.perforce.com/perforce/loadsupp.html) ページからダウンロードできます。 
     * Perforceウェブサイトから [API ドキュメント](http://www.perforce.com/perforce/doc.current/manuals/p4script/p4script.pdf) もダウンロードできます。
-    * スクリプトは現在 P4Python のバージョン 2008.2 でテスト中です。
+    * スクリプトは現在 P4Python のバージョン 2008.2 でテストされています。
 
 
 
@@ -110,7 +110,7 @@ Python および P4Python をインストールしたら、以下を実行しま
 ![P4AutoMergeSetup.jpg](P4AutoMergeSetup.jpg)
 
 
-* 今後、サブミットしたチェンジリストを **右クリック** してツールを選択することができます。
+* そこから、サブミットしたチェンジリストを **右クリック** してツールを選択することができます。
 
 
 
@@ -150,8 +150,8 @@ Python および P4Python をインストールしたら、以下を実行しま
       -b BRANCHSPEC, --branchspec=BRANCHSPEC
                             <Required> 使用する Branchspec。
       -m MERGETYPE, --mergetype=MERGETYPE
-                            有効なオプションを実行するためのマージの種類は、 SAFE と NULL です。
-                            NULL.Default = SAFE
+                            有効なオプションを実行するためのマージの種類は、 SAFE と 
+                            NULL です。Default = SAFE
     
 
 

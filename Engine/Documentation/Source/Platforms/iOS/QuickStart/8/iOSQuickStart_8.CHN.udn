@@ -20,7 +20,7 @@ Availability:Public
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 %Globals:OSSelect%
 
@@ -87,12 +87,14 @@ Availability:Public
 
 	![](game_device.png)
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windows]
 [/EXCERPT:windows]
 [EXCERPT:macos]
 
 [/EXCERPT:macos]
--->
 
-%Steps%
+[/COMMENT]
+
+

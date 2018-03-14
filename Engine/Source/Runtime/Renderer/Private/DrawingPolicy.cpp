@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DrawingPolicy.cpp: Base drawing policy implementation.
@@ -7,6 +7,9 @@
 #include "DrawingPolicy.h"
 #include "SceneUtils.h"
 #include "SceneRendering.h"
+#include "LogMacros.h"
+#include "MaterialShader.h"
+#include "DebugViewModeRendering.h"
 
 int32 GEmitMeshDrawEvent = 0;
 static FAutoConsoleVariableRef CVarEmitMeshDrawEvent(
@@ -64,137 +67,147 @@ void FMeshDrawingPolicy::OnlyApplyDitheredLODTransitionState(FDrawingPolicyRende
 	}
 }
 
-void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo) const
+void FMeshDrawingPolicy::SetInstanceParameters(FRHICommandList& RHICmdList, const FSceneView& View, uint32 InVertexOffset, uint32 InInstanceOffset, uint32 InInstanceCount) const
 {
+	if (UseDebugViewPS() && View.Family->UseDebugViewVSDSHS())
+	{
+		FDebugViewMode::SetInstanceParameters(RHICmdList, VertexFactory, View, MaterialResource, InVertexOffset, InInstanceOffset, InInstanceCount);
+	}
+	else
+	{
+		BaseVertexShader->SetInstanceParameters(RHICmdList, InVertexOffset, InInstanceOffset, InInstanceCount);
+	}
+}
+
+void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FSceneView& View, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo) const
+{
+	DEFINE_LOG_CATEGORY_STATIC(LogFMeshDrawingPolicyDrawMesh, Warning, All);
 	INC_DWORD_STAT(STAT_MeshDrawCalls);
 	SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, MeshEvent, GEmitMeshDrawEvent != 0, TEXT("Mesh Draw"));
 
 	const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
 
-	if (Mesh.UseDynamicData)
+	if (BatchElement.IndexBuffer)
 	{
-		check(Mesh.DynamicVertexData);
+		UE_CLOG(!BatchElement.IndexBuffer->IndexBufferRHI, LogFMeshDrawingPolicyDrawMesh, Fatal,
+			TEXT("FMeshDrawingPolicy::DrawMesh - BatchElement has an index buffer object with null RHI resource (drawing using material \"%s\")"),
+			MaterialRenderProxy ? *MaterialRenderProxy->GetFriendlyName() : TEXT("null"));
+		check(BatchElement.IndexBuffer->IsInitialized());
 
-		if (BatchElement.DynamicIndexData)
+		if (BatchElement.bIsInstanceRuns)
 		{
-			DrawIndexedPrimitiveUP(
-				RHICmdList,
-				Mesh.Type,
-				BatchElement.MinVertexIndex,
-				BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
-				BatchElement.NumPrimitives,
-				BatchElement.DynamicIndexData,
-				BatchElement.DynamicIndexStride,
-				Mesh.DynamicVertexData,
-				Mesh.DynamicVertexStride
-				);
-		}
-		else
-		{
-			DrawPrimitiveUP(
-				RHICmdList,
-				Mesh.Type,
-				BatchElement.NumPrimitives,
-				Mesh.DynamicVertexData,
-				Mesh.DynamicVertexStride
-				);
-		}
-	}
-	else
-	{
-		if(BatchElement.IndexBuffer)
-		{
-			check(BatchElement.IndexBuffer->IsInitialized());
-			if (BatchElement.bIsInstanceRuns)
+			checkSlow(BatchElement.bIsInstanceRuns);
+			if (!GRHISupportsFirstInstance)
 			{
-				checkSlow(BatchElement.bIsInstanceRuns);
-				if (!GRHISupportsFirstInstance)
+				if (GetUsePositionOnlyVS())
 				{
-					if (bUsePositionOnlyVS)
+					for (uint32 Run = 0; Run < BatchElement.NumInstances; Run++)
 					{
-						for (uint32 Run = 0; Run < BatchElement.NumInstances; Run++)
-						{
-							VertexFactory->OffsetPositionInstanceStreams(RHICmdList, BatchElement.InstanceRuns[Run * 2]); 
-							RHICmdList.DrawIndexedPrimitive(
-								BatchElement.IndexBuffer->IndexBufferRHI,
-								Mesh.Type,
-								0,
-								0,
-								BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
-								BatchElement.FirstIndex,
-								BatchElement.NumPrimitives,
-								1 + BatchElement.InstanceRuns[Run * 2 + 1] - BatchElement.InstanceRuns[Run * 2]
-							);
-						}
-					}
-					else
-					{
-						for (uint32 Run = 0; Run < BatchElement.NumInstances; Run++)
-						{
-							VertexFactory->OffsetInstanceStreams(RHICmdList, BatchElement.InstanceRuns[Run * 2]); 
-							RHICmdList.DrawIndexedPrimitive(
-								BatchElement.IndexBuffer->IndexBufferRHI,
-								Mesh.Type,
-								0,
-								0,
-								BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
-								BatchElement.FirstIndex,
-								BatchElement.NumPrimitives,
-								1 + BatchElement.InstanceRuns[Run * 2 + 1] - BatchElement.InstanceRuns[Run * 2]
-							);
-						}
+						const uint32 InstanceCount = (1 + BatchElement.InstanceRuns[Run * 2 + 1] - BatchElement.InstanceRuns[Run * 2]);
+						SetInstanceParameters(RHICmdList, View, BatchElement.BaseVertexIndex, 0, InstanceCount);
+						GetVertexFactory()->OffsetPositionInstanceStreams(RHICmdList, BatchElement.InstanceRuns[Run * 2]);
+
+						RHICmdList.DrawIndexedPrimitive(
+							BatchElement.IndexBuffer->IndexBufferRHI,
+							Mesh.Type,
+							BatchElement.BaseVertexIndex,
+							0,
+							BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
+							BatchElement.FirstIndex,
+							BatchElement.NumPrimitives,
+							InstanceCount * GetInstanceFactor()
+						);
 					}
 				}
 				else
 				{
 					for (uint32 Run = 0; Run < BatchElement.NumInstances; Run++)
 					{
+						uint32 InstanceCount = (1 + BatchElement.InstanceRuns[Run * 2 + 1] - BatchElement.InstanceRuns[Run * 2]);
+						SetInstanceParameters(RHICmdList, View, BatchElement.BaseVertexIndex, 0, InstanceCount);
+						GetVertexFactory()->OffsetInstanceStreams(RHICmdList, BatchElement.InstanceRuns[Run * 2]);
+
 						RHICmdList.DrawIndexedPrimitive(
 							BatchElement.IndexBuffer->IndexBufferRHI,
 							Mesh.Type,
+							BatchElement.BaseVertexIndex,
 							0,
-							BatchElement.InstanceRuns[Run * 2],
 							BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
 							BatchElement.FirstIndex,
 							BatchElement.NumPrimitives,
-							1 + BatchElement.InstanceRuns[Run * 2 + 1] - BatchElement.InstanceRuns[Run * 2]
+							InstanceCount * GetInstanceFactor()
 						);
 					}
 				}
 			}
 			else
 			{
-				// Currently only supporting this path for instanced stereo.
-				const uint32 InstanceCount = (bIsInstancedStereo && !BatchElement.bIsInstancedMesh) ? 2 : BatchElement.NumInstances;
+				for (uint32 Run = 0; Run < BatchElement.NumInstances; Run++)
+				{
+					const uint32 InstanceOffset = BatchElement.InstanceRuns[Run * 2];
+					const uint32 InstanceCount = (1 + BatchElement.InstanceRuns[Run * 2 + 1] - BatchElement.InstanceRuns[Run * 2]);
+					SetInstanceParameters(RHICmdList, View, BatchElement.BaseVertexIndex, InstanceOffset, InstanceCount);
 
-				RHICmdList.DrawIndexedPrimitive(
-					BatchElement.IndexBuffer->IndexBufferRHI,
-					Mesh.Type,
-					0,
-					0,
-					BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
-					BatchElement.FirstIndex,
-					BatchElement.NumPrimitives,
-					InstanceCount
+					RHICmdList.DrawIndexedPrimitive(
+						BatchElement.IndexBuffer->IndexBufferRHI,
+						Mesh.Type,
+						BatchElement.BaseVertexIndex,
+						InstanceOffset,
+						BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
+						BatchElement.FirstIndex,
+						BatchElement.NumPrimitives,
+						InstanceCount * GetInstanceFactor()
 					);
+				}
 			}
 		}
 		else
 		{
-			RHICmdList.DrawPrimitive(
+			if (BatchElement.IndirectArgsBuffer)
+			{
+				RHICmdList.DrawIndexedPrimitiveIndirect(
+					Mesh.Type, 
+					BatchElement.IndexBuffer->IndexBufferRHI, 
+					BatchElement.IndirectArgsBuffer, 
+					0
+				);
+			}
+			else
+			{
+				// Currently only supporting this path for instanced stereo.
+				const uint32 InstanceCount = ((bIsInstancedStereo && !BatchElement.bIsInstancedMesh) ? 2 : BatchElement.NumInstances);
+				SetInstanceParameters(RHICmdList, View, BatchElement.BaseVertexIndex, 0, InstanceCount);
+
+				RHICmdList.DrawIndexedPrimitive(
+					BatchElement.IndexBuffer->IndexBufferRHI,
 					Mesh.Type,
+					BatchElement.BaseVertexIndex,
+					0,
+					BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
 					BatchElement.FirstIndex,
 					BatchElement.NumPrimitives,
-					BatchElement.NumInstances
-					);
+					InstanceCount * GetInstanceFactor()
+				);
+			}
 		}
+	}
+	else
+	{
+		SetInstanceParameters(RHICmdList, View, BatchElement.BaseVertexIndex + BatchElement.FirstIndex, 0, 1);
+
+		RHICmdList.DrawPrimitive(
+			Mesh.Type,
+			BatchElement.BaseVertexIndex + BatchElement.FirstIndex,
+			BatchElement.NumPrimitives,
+			BatchElement.NumInstances
+		);
 	}
 }
 
 void FMeshDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const FMeshDrawingPolicy::ContextDataType PolicyContext) const
 {
 	check(VertexFactory && VertexFactory->IsInitialized());
-	VertexFactory->Set(RHICmdList);
+	VertexFactory->Set(View->GetShaderPlatform(), RHICmdList);
 }
 
 /**

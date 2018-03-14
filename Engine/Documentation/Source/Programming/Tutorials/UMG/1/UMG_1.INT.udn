@@ -19,7 +19,7 @@ version:4.14
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:tip]If you are new to **Unreal Engine 4**, you might want to read our [%Programming\QuickStart:title% tutorial](Programming\QuickStart) first. For this tutorial, we will assume you are familiar with creating a project, adding C++ code to it, and compiling your code. We will also expose functions and properties to **Blueprint**. If you would like to learn more about that, the [%Programming\Tutorials\VariablesTimersEvents:title% tutorial](Programming\Tutorials\VariablesTimersEvents) is a good place to start.[/REGION]
 
@@ -54,43 +54,35 @@ version:4.14
 
 With UMG set up, we can add code to our project's custom **Game Mode** to create and display our game's menus.
 
-[OBJECT:Section]
-    [PARAMLITERAL:id]
-    code
-    [/PARAMLITERAL]
-    [PARAM:heading]
-    Work-In-Progress Code
-    [/PARAM]
-    [PARAM:content]
-		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+## Work-In-Progress Code
 
-			using UnrealBuildTool;
+**HowTo_UMG.Build.cs**
 
-			public class HowTo_UMG : ModuleRules
-			{
-				public HowTo_UMG(TargetInfo Target)
-				{
-					PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "UMG" });
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-					//PrivateDependencyModuleNames.AddRange(new string[] {  });
+	using UnrealBuildTool;
 
-					// Uncomment if you are using Slate UI
-					PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
+	public class HowTo_UMG : ModuleRules
+	{
+		public HowTo_UMG(TargetInfo Target)
+		{
+			PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "UMG" });
+
+			//PrivateDependencyModuleNames.AddRange(new string[] {  });
+
+			// Uncomment if you are using Slate UI
+			PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 		
-					// Uncomment if you are using online features
-					// PrivateDependencyModuleNames.Add("OnlineSubsystem");
-					// if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
-					// {
-					//		if (UEBuildConfiguration.bCompileSteamOSS == true)
-					//		{
-					//			DynamicallyLoadedModuleNames.Add("OnlineSubsystemSteam");
-					//		}
-					// }
-				}
-			}
+			// Uncomment if you are using online features
+			// PrivateDependencyModuleNames.Add("OnlineSubsystem");
+			// if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
+			// {
+			//		if (UEBuildConfiguration.bCompileSteamOSS == true)
+			//		{
+			//			DynamicallyLoadedModuleNames.Add("OnlineSubsystemSteam");
+			//		}
+			// }
+		}
+	}
 
-    [/PARAM]
-[/OBJECT]
 
-%Steps%

@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -24,16 +26,22 @@ namespace UnrealBuildTool
 		/// </summary>
 		Add,
 
-		/// <summary>
-		/// Remove the value to the key (denoted with -X=Y in config files)
-		/// </summary>
-		Remove,
-	}
+        /// <summary>
+        /// Remove the key without having to match value (denoted with !X in config files)
+        /// </summary>
+        RemoveKey,
 
-	/// <summary>
-	/// Contains a pre-parsed raw config line, consisting of action, key and value components.
-	/// </summary>
-	public class ConfigLine
+        /// <summary>
+        /// Remove the matching key and value (denoted with -X=Y in config files)
+        /// </summary>
+        RemoveKeyValue
+
+    }
+
+    /// <summary>
+    /// Contains a pre-parsed raw config line, consisting of action, key and value components.
+    /// </summary>
+    public class ConfigLine
 	{
 		/// <summary>
 		/// The action to take when merging this key/value pair with an existing value
@@ -69,7 +77,7 @@ namespace UnrealBuildTool
 		/// <returns>The original config line</returns>
 		public override string ToString()
 		{
-			string Prefix = (Action == ConfigLineAction.Add)? "+" : (Action == ConfigLineAction.Remove)? "-" : "";
+			string Prefix = (Action == ConfigLineAction.Add)? "+" : (Action == ConfigLineAction.RemoveKey)? "!" : (Action == ConfigLineAction.RemoveKeyValue) ? "-" : "";
 			return String.Format("{0}{1}={2}", Prefix, Key, Value);
 		}
 	}
@@ -239,7 +247,7 @@ namespace UnrealBuildTool
 		{
 			// Find the '=' character separating key and value
 			int EqualsIdx = Line.IndexOf('=', StartIdx, EndIdx - StartIdx);
-			if(EqualsIdx == -1)
+			if(EqualsIdx == -1 && Line[StartIdx] != '!')
 			{
 				return false;
 			}
@@ -247,11 +255,11 @@ namespace UnrealBuildTool
 			// Keep track of the start of the key name
 			int KeyStartIdx = StartIdx;
 
-			// Remove the '+' or '-' prefix, if present
+			// Remove the +/-/! prefix, if present
 			ConfigLineAction Action = DefaultAction;
-			if(Line[KeyStartIdx] == '+' || Line[KeyStartIdx] == '-')
+			if(Line[KeyStartIdx] == '+' || Line[KeyStartIdx] == '-' || Line[KeyStartIdx] == '!')
 			{
-				Action = (Line[KeyStartIdx] == '+')? ConfigLineAction.Add : ConfigLineAction.Remove;
+				Action = (Line[KeyStartIdx] == '+')? ConfigLineAction.Add : (Line[KeyStartIdx] == '!') ? ConfigLineAction.RemoveKey : ConfigLineAction.RemoveKeyValue;
 				KeyStartIdx++;
 				while(Line[KeyStartIdx] == ' ' || Line[KeyStartIdx] == '\t')
 				{
@@ -259,8 +267,15 @@ namespace UnrealBuildTool
 				}
 			}
 
-			// Remove trailing spaces after the name of the key
-			int KeyEndIdx = EqualsIdx;
+            // RemoveKey actions do not require a value
+            if (Action == ConfigLineAction.RemoveKey && EqualsIdx == -1)
+            {
+                Section.Lines.Add(new ConfigLine(Action, Line.Substring(KeyStartIdx).Trim(), ""));
+                return true;
+            }
+
+            // Remove trailing spaces after the name of the key
+            int KeyEndIdx = EqualsIdx;
 			for(; KeyEndIdx > KeyStartIdx; KeyEndIdx--)
 			{
 				if(Line[KeyEndIdx - 1] != ' ' && Line[KeyEndIdx - 1] != '\t')

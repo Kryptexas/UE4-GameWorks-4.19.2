@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MetalRHIPrivate.h"
 #include "MetalProfiler.h"
@@ -420,7 +420,7 @@ void FMetalGPUProfiler::BeginFrame()
 			}*/
 		}
 		
-		if(GEmitDrawEvents)
+		if(GetEmitDrawEvents())
 		{
 			PushEvent(TEXT("FRAME"), FColor(0, 255, 0, 255));
 		}
@@ -432,7 +432,7 @@ void FMetalGPUProfiler::EndFrame()
 {
 	if(--NumNestedFrames == 0)
 	{
-		if(GEmitDrawEvents)
+		if(GetEmitDrawEvents())
 		{
 			PopEvent();
 		}

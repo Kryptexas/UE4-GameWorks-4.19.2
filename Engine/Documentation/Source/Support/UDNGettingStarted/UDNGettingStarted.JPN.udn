@@ -15,21 +15,14 @@ Version:4.9
 	UDN の使用中に発見した全ての問題は質問として投稿してください。ヘルプが必要な方は、下記の **Support Questions (「質問をする」) ** セクションを使用してください。
 [/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		開始する
-	[/PARAM]
-	[PARAM:description]
-		以下のセクションは UDN の共通タスクに関する重要な情報を取り上げています。
-	[/PARAM]
-	[PARAM:links]
+## 開始する
+
+[REGION:buttonlist]
+
 		* [Content Searches](Support\UDNGettingStarted\ContentSearches)
 		* [Support Questions](Support\UDNGettingStarted\SupportQuestions)
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 ## ビデオ

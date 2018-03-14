@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 툴바
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
@@ -42,7 +42,8 @@ tags:Blueprints
 | ![Eject Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_eject.png)							| [INCLUDE:#eject]				|
 | ![Step Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_step.png)								| [INCLUDE:#step]					|
 | ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png)				| [INCLUDE:#debugobject]			| 
-<!--
+[COMMENT:none]
+
 [EXCERPT:CompileSuccessful]
 컴파일에 성공했습니다. 버튼을 클릭하면 편집중인 블루프린트를 컴파일합니다. 컴파일 프로세스의 출력 결과가 메시지 로그의 블루프린트 로그에 표시됩니다. 이 버튼은 디버깅 도중에는 비활성화됩니다.
 [/EXCERPT:CompileSuccessful]
@@ -125,4 +126,5 @@ tags:Blueprints
 
 $ 이름 : 편집중인 블루프린트 이름을 표시합니다. 레벨 블루프린트에는 표시되지 않습니다.
 $ 부모 : 블루프린트의 부모 클래스를 표시합니다. 레벨 블루프린트에는 표시되지 않습니다.
--->
+
+[/COMMENT]

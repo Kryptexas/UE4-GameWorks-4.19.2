@@ -1,22 +1,58 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 namespace UnrealBuildTool.Rules
 {
-	public class WebBrowserWidget : ModuleRules
-	{
-		public WebBrowserWidget(ReadOnlyTargetRules Target) : base(Target)
-		{
-			PublicDependencyModuleNames.AddRange(
-				new string[]
-				{
-					"Core",
-				    "CoreUObject",
-					"WebBrowser",
+    public class WebBrowserWidget : ModuleRules
+    {
+        public WebBrowserWidget(ReadOnlyTargetRules Target) : base(Target)
+        {
+            PublicDependencyModuleNames.AddRange(
+                new string[]
+                {
+                    "Core",
+                    "CoreUObject",
+                    "WebBrowser",
                     "Slate",
                     "SlateCore",
-					"UMG"
-				}
-			);
-		}
-	}
+                    "UMG",
+                    "Engine"
+                }
+            );
+
+            if (Target.bBuildEditor == true)
+            {
+                //@TODO: UnrealEd Needed for the triangulation code used for sprites (but only in editor mode)
+                //@TOOD: Try to move the code dependent on the triangulation code to the editor-only module
+                PrivateIncludePathModuleNames.AddRange(
+                    new string[]
+                    {
+                        "UnrealEd",
+                    }
+                );
+                PrivateDependencyModuleNames.AddRange(
+                    new string[]
+                    {
+                        "UnrealEd",
+                    }
+                );
+            }
+			
+			if (Target.bBuildEditor || Target.Platform == UnrealTargetPlatform.Android)
+			{
+                // WebBrowserTexture required for cooking Android
+                PrivateIncludePathModuleNames.AddRange(
+                    new string[]
+                    {
+                        "WebBrowserTexture",
+                    }
+                );
+                PrivateDependencyModuleNames.AddRange(
+                    new string[]
+                    {
+                        "WebBrowserTexture",
+                    }
+                );
+			}
+        }
+    }
 }

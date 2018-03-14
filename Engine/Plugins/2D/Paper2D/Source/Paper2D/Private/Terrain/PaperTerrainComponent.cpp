@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PaperTerrainComponent.h"
 #include "UObject/ConstructorHelpers.h"
@@ -61,9 +61,15 @@ void FTerrainSegment::RepositionStampsToFillSpace()
 //////////////////////////////////////////////////////////////////////////
 // FPaperTerrainSceneProxy
 
-class FPaperTerrainSceneProxy : public FPaperRenderSceneProxy
+class FPaperTerrainSceneProxy final : public FPaperRenderSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
+
 	FPaperTerrainSceneProxy(const UPaperTerrainComponent* InComponent, const TArray<FPaperTerrainSpriteGeometry>& InDrawingData);
 
 protected:

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:레벨 블루프린트
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
@@ -9,44 +9,7 @@ version: 4.9
 Parent:Engine/Blueprints
 type:overview
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints\UserGuide\Types\LevelBlueprint:title%](Engine/Blueprints/UserGuide/Types/level_blueprint_test_image.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints\UserGuide\Types\LevelBlueprint:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints\UserGuide\Types\LevelBlueprint:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints\UserGuide\Types\LevelBlueprint]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints\UserGuide\Types\LevelBlueprint:title%](Engine/Blueprints/UserGuide/Types/level_blueprint_test_image.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints\UserGuide\Types\LevelBlueprint:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints\UserGuide\Types\LevelBlueprint:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints\UserGuide\Types\LevelBlueprint]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Blueprints/UserGuide/Types/level_blueprint_test_image.png
 
 [TOC (start:2 end:3)]
 
@@ -64,7 +27,7 @@ _레벨 블루프린트_ 는 레벨 스트리밍 과 [마티네](Engine/Matinee)
 를 제어하는 방편이 되기도 하며, 레벨에 놓인 액터에 이벤트를 바인딩하는 데 쓰이기도 합니다.
 [/EXCERPT:Intro]
 
-레벨 블루프린트 UI 관련 상세 정보는, [](Engine/Blueprints\Editor\UIBreakdowns\LevelBPUI) 문서를 참고하세요.
+레벨 블루프린트 UI 관련 상세 정보는, [](Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI) 문서를 참고하세요.
 
 
 ## 기본 레벨 블루프린트
@@ -84,7 +47,7 @@ _레벨 블루프린트_ 는 이 클래스를 기반으로 생성되며, 여기�
 ![](level_blueprint_editor.png)
 [/REGION]
 
-**블루프린트 에디터** 는 [그래프 에디터](Engine/Blueprints/Editor/UIComponents/GraphEditor), **내 블루프린트** 패널, **디테일** 패널만 사용합니다. **클래스 디폴트** 패널은 메뉴 바의 ![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) **클래스 디폴트** 버튼을 사용합니다.
+**블루프린트 에디터** 는 [그래프 에디터](Engine/Blueprints/Editor/UIComponents/GraphEditor), **내 블루프린트** 패널, **디테일** 패널만 사용합니다. **클래스 디폴트** 패널은 메뉴 바의 ![](Engine/Blueprints/UserGuide/Variables/classDefaults_button.png) **클래스 디폴트** 버튼을 사용합니다.
 
 ## 액터 레퍼런싱
 
@@ -119,7 +82,7 @@ _레벨 블루프린트_ 는 이 클래스를 기반으로 생성되며, 여기�
 
 ## 이벤트 추가하기
 
-_레벨 블루프린트_ 에 특정 액터에 대한 [](Engine/Blueprints\UserGuide\Events) 를 추가할 수 있는 방법은 두 가지 있습니다.
+_레벨 블루프린트_ 에 특정 액터에 대한 [](Engine/Blueprints/UserGuide/Events) 를 추가할 수 있는 방법은 두 가지 있습니다.
 
 1. **레벨 뷰포트** 또는 **월드 아웃라이너** 에서 액터를 선택합니다.
 

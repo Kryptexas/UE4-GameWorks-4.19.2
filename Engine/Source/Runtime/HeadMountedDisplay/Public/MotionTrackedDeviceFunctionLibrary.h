@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -57,8 +57,19 @@ class HEADMOUNTEDDISPLAY_API UMotionTrackedDeviceFunctionLibrary : public UBluep
 	 *
 	 * @return (Boolean) true if the specified device is set to be tracked.
 	 */
-	UFUNCTION(BlueprintPure, Category = "Input|MotionTracking")
+	UFUNCTION(BlueprintPure, Category = "Input|MotionTracking", meta = (DeprecatedFunction, DeprecationMessage = "EControllerHand has been deprecated, please use IsMotionTrackingEnabledForSource instead."))
 	static bool IsMotionTrackingEnabledForDevice(int32 PlayerIndex, EControllerHand Hand);
+
+	/**
+	 * Returns true if tracking is enabled for the specified device.
+	 *
+	 * @param PlayerIndex					(in) The index of the player.
+	 * @param SourceName					(in) The tracked device id.
+	 *
+	 * @return (Boolean) true if the specified device is set to be tracked.
+	 */
+	UFUNCTION(BlueprintPure, Category = "Input|MotionTracking")
+	static bool IsMotionTrackingEnabledForSource(int32 PlayerIndex, FName SourceName);
 
 	/**
 	* Returns true if tracking is enabled for the specified device.
@@ -78,8 +89,19 @@ class HEADMOUNTEDDISPLAY_API UMotionTrackedDeviceFunctionLibrary : public UBluep
 	 *
 	 * @return (Boolean) true if the specified device is now set to be tracked.  This could fail due to tracking limits, or on invalid input.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Input|MotionTracking")
+	UFUNCTION(BlueprintCallable, Category = "Input|MotionTracking", meta = (DeprecatedFunction, DeprecationMessage = "EControllerHand has been deprecated, please use EnableMotionTrackingOfSource instead."))
 	static bool EnableMotionTrackingOfDevice(int32 PlayerIndex, EControllerHand Hand);
+
+	/**
+	 * Enable tracking of the specified controller, by player index and tracked device type.
+	 *
+	 * @param PlayerIndex					(in) The index of the player.
+	 * @param SourceName					(in) The device id.
+	 *
+	 * @return (Boolean) true if the specified device is now set to be tracked.  This could fail due to tracking limits, or on invalid input.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Input|MotionTracking")
+	static bool EnableMotionTrackingOfSource(int32 PlayerIndex, FName SourceName);
 
 	/**
 	* Enable tracking of the specified controller, by player index and tracked device type.
@@ -97,8 +119,17 @@ class HEADMOUNTEDDISPLAY_API UMotionTrackedDeviceFunctionLibrary : public UBluep
 	 * @param PlayerIndex					(in) The index of the player.
 	 * @param Hand							(in) The tracked device type.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Input|MotionTracking")
+	UFUNCTION(BlueprintCallable, Category = "Input|MotionTracking", meta = (DeprecatedFunction, DeprecationMessage = "EControllerHand has been deprecated, please use DisableMotionTrackingOfSource instead."))
 	static void DisableMotionTrackingOfDevice(int32 PlayerIndex, EControllerHand Hand);
+
+	/**
+	 * Disable tracking of the specified controller, by player index and tracked device type.
+	 *
+	 * @param PlayerIndex					(in) The index of the player.
+	 * @param SourceName					(in) The tracked device id.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Input|MotionTracking")
+	static void DisableMotionTrackingOfSource(int32 PlayerIndex, FName SourceName);
 
 	/**
 	* Disable tracking of the specified controller, by player index and tracked device type.
@@ -122,4 +153,6 @@ class HEADMOUNTEDDISPLAY_API UMotionTrackedDeviceFunctionLibrary : public UBluep
 	UFUNCTION(BlueprintCallable, Category = "Input|MotionTracking")
 	static void DisableMotionTrackingOfControllersForPlayer(int32 PlayerIndex);
 
+	UFUNCTION(BlueprintCallable, Category = "Input|MotionTracking")
+	static TArray<FName> EnumerateMotionSources();
 };

@@ -82,8 +82,11 @@ Every particle emitter contains this module which contains all the properties th
 
 
 
-<!-- Begin RequiredModule Table Includes -->
-<!--
+[COMMENT:none]
+ Begin RequiredModule Table Includes 
+[/COMMENT]
+[COMMENT:none]
+
 [EXCERPT:ScreenAlign]
 [REGION:simpletable]
 | Flag | Description |
@@ -147,5 +150,8 @@ Every particle emitter contains this module which contains all the properties th
 | _ENM_Cylindrical_ | Normals are generated from a cylinder going through NormalsSphereCenter, in the direction NormalsCylinderDirection. |
 [/REGION]
 [/EXCERPT:NormalsMode]
--->
-<!-- End RequiredModule Includes -->
+
+[/COMMENT]
+[COMMENT:none]
+ End RequiredModule Includes 
+[/COMMENT]

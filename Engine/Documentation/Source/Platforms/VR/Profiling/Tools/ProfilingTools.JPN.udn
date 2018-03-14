@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3260598
+﻿INTSourceChangelist:3769005
 Availability:Public
 Title:VR プロファイリング ツール
 Crumbs:%ROOT%, Platforms
@@ -21,28 +21,36 @@ GPU プロファイリング ツールには、他にもいろいろなオプシ
 
 さらに、GPUView と Nsight の両方を使用すれば、システム関連の問題までも教え込むことができます。 
 
+
 ## Oculus PerfHud
 
-Oculus PerfHud は、エディタでもパッケージ済みビルドでもゲーム内で表示できるので、アプリケーションのスロットル処理以外の CPU および GPU の実時間の検証に役立ちます。画面と値を  
-Oculus の [ドキュメント](https://developer3.oculus.com/documentation/pcsdk/latest/concepts/dg-hud/) と照合すると理解が深まります。
+[Include:Platforms\VR\Profiling\Tools\#OculusPerfHud]
+[COMMENT:none]
+
+[EXCERPT:OculusPerfHud]
+Oculus PerfHud は、エディタまたはパッケージ化されたビルド内でのパフォーマンス情報を表示するためのルーツですアプリケーションによるスロットル処理を除く CPU および GPU の実時間の検証に役立ちます。画面と値を  
+Oculus の [ドキュメント](https://developer3.oculus.com/documentation/pcsdk/latest/concepts/dg-hud/) と照合するとさらに理解が深まります。
 
 通常は **Application Render Timing** 画面のグラフと値を確認します。Oculus コンポジタがそれらを確認して CPU と GPU のタイミングを表示するので、Draw と GPU タイミングの精度が高くなります。
 
-UE4 の PerfHud を有効にするには、コンソールに以下を入力します。
+アンリアル エンジン (UE4) で Oculus PerfHud を使用する手順を説明します。
 
-	hmd setint PerfHudMode N
+1. 最初に `C:\Program Files\Oculus\Support\oculus-diagnostics` を開き、**OculusDebugTool.exe** を探します。
 
-N は以下の通りです。
+    ![](ODT_01.png)
 
-| N | 表示する種類|
-| --- | -----------|
-|	0	| パフォーマンス HUD をオフにします |
-|	1	| パフォーマンス サマリとヘッドルームを表示します |
-|	2	| タイミング情報に関係したレイテンシを表示します |
-|	3	| アプリケーションのレンダリング タイミング情報を表示します |
-|	4	| OVR コンポジタのレンダリング タイミング情報を表示します |
-|	5	| SDK & HMD バージョン情報を表示します |
+1. OculusDebugTool.exe をダブルクリックして開き、**[Visible HUD]** を **[Performance]** オプションに設定します。
 
+    ![](ODT_02.png)
+
+1. UE4 プロジェクトを起動して Oculus Rift HMD を装着すると、Rift に表示されている UE4 プロジェクトに関連するパフォーマンス情報が表示されます。表示内容の種類を変更するには、以下の画像のように [Visible HUD] オプションへの入力内容を変更する必要があります。
+
+	![](Platforms\Oculus\ProfilingPerf\Oculus_Perf_HUD.png)
+
+
+[/EXCERPT:OculusPerfHud]
+
+[/COMMENT]
 ## SteamVR Frame Timing ツール
 
 The SteamVR Frame Timing は、UE4 エディタとパッケージ済みビルドの両方における VR プロジェクトのパフォーマンス状態を確認できるツールです。アプリケーションによるスロットル処理を除く CPU および GPU の実時間の検証に役立ちます。[Valve Developer Community]( https://developer.valvesoftware.com/wiki/SteamVR/Frame_Timing) ページには、 

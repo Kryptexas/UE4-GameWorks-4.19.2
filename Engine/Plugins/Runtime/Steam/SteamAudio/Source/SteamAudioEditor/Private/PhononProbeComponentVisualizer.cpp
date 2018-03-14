@@ -11,9 +11,10 @@ namespace SteamAudio
 {
 	void FPhononProbeComponentVisualizer::DrawVisualization(const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI)
 	{
-		const UPhononProbeComponent* ProbeComponent = Cast<const UPhononProbeComponent>(Component);
+		UPhononProbeComponent* ProbeComponent = const_cast<UPhononProbeComponent*>(Cast<UPhononProbeComponent>(Component));
 		if (ProbeComponent)
 		{
+			FScopeLock ProbeLocationsLock(&ProbeComponent->ProbeLocationsCriticalSection);
 			const FColor Color(0, 153, 255);
 			for (const auto& ProbeLocation : ProbeComponent->ProbeLocations)
 			{

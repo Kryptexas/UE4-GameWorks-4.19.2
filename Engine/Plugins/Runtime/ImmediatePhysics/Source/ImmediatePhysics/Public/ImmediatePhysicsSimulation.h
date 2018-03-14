@@ -1,12 +1,13 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #if WITH_PHYSX
 #include "PhysXPublic.h"
 #include "ImmediatePhysicsD6JointData.h"
-#endif
+#endif // WITH_PHYSX
 
+#include "Engine/EngineTypes.h"
 #include "ImmediatePhysicsActor.h"
 #include "ImmediatePhysicsJoint.h"
 #include "ImmediatePhysicsLinearBlockAllocator.h"
@@ -105,7 +106,6 @@ private:
 	{
 		return RigidBodiesData[ActorDataIndex];
 	}
-#endif
 
 	const FKinematicTarget& GetKinematicTarget(int32 ActorDataIndex) const
 	{
@@ -116,6 +116,7 @@ private:
 	{
 		return KinematicTargets[ActorDataIndex];
 	}
+#endif
 
 	enum class ECreateActorType
 	{
@@ -219,7 +220,7 @@ private:
 	PxU32 NumContactHeaders;
 	PxU32 NumJointHeaders;
 	uint32 NumActiveJoints;
-#endif
+#endif // WITH_PHYSX
 
 	/** Contact pairs generated for this frame */
 	TArray<FContactPair> ContactPairs;
@@ -256,8 +257,10 @@ private:
 
 	friend struct FContactPointRecorder;
 
+#if WITH_PHYSX
 	FCacheAllocator CacheAllocator;
 	FConstraintAllocator ConstraintAllocator;
+#endif // WITH_PHYSX
 };
 
 }

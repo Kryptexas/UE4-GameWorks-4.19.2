@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,6 +12,7 @@ class FUICommandInfo;
 class SWidget;
 class IPropertyHandle;
 class FUICommandList;
+class SEditableTextBox;
 
 class FPhysicsAssetDetailsCustomization : public IDetailCustomization
 {
@@ -28,6 +29,10 @@ public:
 
 private:
 	void BindCommands();
+
+	TSharedRef<SWidget> FillPhysicalAnimationProfileOptions();
+
+	TSharedRef<SWidget> FillConstraintProfilesOptions();
 
 	TSharedRef<SWidget> MakePhysicalAnimationProfilesWidget();
 	
@@ -92,5 +97,9 @@ private:
 
 	TSharedPtr<IPropertyHandle> ConstraintProfilesHandle;
 
-	TSharedPtr<FUICommandList> CommandList;
+	TSharedPtr<IPropertyHandle> AsyncScenePropertyHandle;
+
+	TSharedPtr<SEditableTextBox> PhysicalAnimationProfileNameTextBox;
+
+	TSharedPtr<SEditableTextBox> ConstraintProfileNameTextBox;
 };

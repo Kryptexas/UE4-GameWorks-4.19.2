@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MediaPlayer.h"
 #include "MediaAssetsPrivate.h"
@@ -639,12 +639,6 @@ void UMediaPlayer::BeginDestroy()
 	PlayerFacade->Close();
 
 	Super::BeginDestroy();
-}
-
-
-bool UMediaPlayer::CanBeInCluster() const
-{
-	return false;
 }
 
 

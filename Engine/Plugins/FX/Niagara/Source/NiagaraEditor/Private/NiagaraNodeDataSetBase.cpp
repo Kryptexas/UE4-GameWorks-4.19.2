@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraNodeDataSetBase.h"
 #include "UObject/UnrealType.h"
@@ -8,7 +8,7 @@
 
 #define LOCTEXT_NAMESPACE "UNiagaraNodeDataSetBase"
 
-FString UNiagaraNodeDataSetBase::ConditionVarName = TEXT("__Condition");
+const FName UNiagaraNodeDataSetBase::ConditionVarName(TEXT("__Condition"));
 
 UNiagaraNodeDataSetBase::UNiagaraNodeDataSetBase(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer), ExternalStructAsset(nullptr)
@@ -86,12 +86,12 @@ bool UNiagaraNodeDataSetBase::IsSynchronizedWithStruct(bool bIgnoreConditionVari
 			{
 				const UProperty* Property = *PropertyIt;
 
-				if (bIgnoreConditionVariable && Property->IsA(UBoolProperty::StaticClass()) && Property->GetName().Equals(ConditionVarName))
+				if (bIgnoreConditionVariable && Property->IsA<UBoolProperty>() && Property->GetFName() == ConditionVarName)
 				{
 					continue;
 				}
 
-				const FNiagaraVariable* VarFound = Variables.FindByPredicate([&](const FNiagaraVariable& Var) { return Var.GetName().ToString() == Property->GetName(); });
+				const FNiagaraVariable* VarFound = Variables.FindByPredicate([&](const FNiagaraVariable& Var) { return Var.GetName() == Property->GetFName(); });
 				if (VarFound == nullptr)
 				{
 					bFoundIssues = true;
@@ -146,7 +146,7 @@ bool UNiagaraNodeDataSetBase::IsSynchronizedWithStruct(bool bIgnoreConditionVari
 				for (TFieldIterator<UProperty> PropertyIt(ExternalStructAsset, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 				{
 					const UProperty* Property = *PropertyIt;
-					if (Property->GetName() == Var.GetName().ToString())
+					if (Property->GetFName() == Var.GetName())
 					{
 						bFound = true;
 						break;

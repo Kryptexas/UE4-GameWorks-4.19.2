@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -163,8 +163,8 @@ namespace VectorVM
 	/** Constants. */
 	enum
 	{
-		NumTempRegisters = 100,
-		MaxInputRegisters = 100,
+		NumTempRegisters = 400,
+		MaxInputRegisters = 400,
 		MaxOutputRegisters = MaxInputRegisters,
 		MaxConstants = 256,
 		FirstTempRegister = 0,
@@ -212,12 +212,10 @@ namespace VectorVM
   /**
   * Context information passed around during VM execution.
   */
-struct FVectorVMContext
+struct FVectorVMContext : TThreadSingleton<FVectorVMContext>
 {
 	/** Pointer to the next element in the byte code. */
 	uint8 const* RESTRICT Code;
-	/** Pointer to the table of vector register arrays. */
-	uint8* RESTRICT * RESTRICT RegisterTable;
 	/** Pointer to the constant table. */
 	uint8 const* RESTRICT ConstantTable;
 	/** Pointer to the data set index counter table */
@@ -234,41 +232,36 @@ struct FVectorVMContext
 	int32 StartInstance;
 
 #if STATS
-	TArray<FCycleCounter> StatCounterStack;
-	const TArray<TStatId>& StatScopes;
+	TArray<FCycleCounter, TInlineAllocator<64>> StatCounterStack;
+	const TArray<TStatId>* StatScopes;
 #endif
 
-	/** Initialization constructor. */
-	FVectorVMContext(
-		const uint8* InCode,
-		uint8** InRegisterTable,
+	TArray<uint8, TAlignedHeapAllocator<VECTOR_WIDTH_BYTES>> TempRegTable;
+	uint8 *RESTRICT RegisterTable[VectorVM::MaxRegisters];
+
+	FVectorVMContext();
+
+	void PrepareForExec(
+		uint8*RESTRICT*RESTRICT InputRegisters,
+		uint8*RESTRICT*RESTRICT OutputRegisters,
+		int32 NumInputRegisters,
+		int32 NumOutputRegisters,
 		const uint8* InConstantTable,
 		int32 *InDataSetIndexTable,
 		int32 *InDataSetOffsetTable,
+		int32 InNumSecondaryDatasets,
 		FVMExternalFunction* InExternalFunctionTable,
-		void** InUserPtrTable,
-		int32 InNumInstances,
-		int32 InStartInstance
+		void** InUserPtrTable
 #if STATS
-		, const TArray<TStatId>& InStatScopes
+		, const TArray<TStatId>* InStatScopes
 #endif
-	)
-		: Code(InCode)
-		, RegisterTable(InRegisterTable)
-		, ConstantTable(InConstantTable)
-		, DataSetIndexTable(InDataSetIndexTable)
-		, DataSetOffsetTable(InDataSetOffsetTable)
-		, ExternalFunctionTable(InExternalFunctionTable)
-		, UserPtrTable(InUserPtrTable)
-		, NumInstances(InNumInstances)
-		, StartInstance(InStartInstance)
-#if STATS
-		, StatScopes(InStatScopes)
-#endif
+	);
+
+	void PrepareForChunk(const uint8* InCode, int32 InNumInstances, int32 InStartInstance)
 	{
-#if STATS
-		StatCounterStack.Reserve(StatScopes.Num());
-#endif
+		Code = InCode;
+		NumInstances = InNumInstances;
+		StartInstance = InStartInstance;
 	}
 };
 

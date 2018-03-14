@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,6 +9,16 @@
 #include "EditorUndoClient.h"
 #include "IStaticMeshEditor.h"
 #include "ISocketManager.h"
+#include "TickableEditorObject.h"
+
+// Set USE_ASYNC_DECOMP to zero to go back to the fully synchronous; blocking version of V-HACD
+#ifndef USE_ASYNC_DECOMP
+#define USE_ASYNC_DECOMP 1
+#endif
+
+#if USE_ASYNC_DECOMP
+class IDecomposeMeshToHullsAsync;
+#endif
 
 class FStaticMeshDetails;
 class IDetailsView;
@@ -24,12 +34,11 @@ struct FPropertyChangedEvent;
 /**
  * StaticMesh Editor class
  */
-class FStaticMeshEditor : public IStaticMeshEditor, public FGCObject, public FEditorUndoClient, public FNotifyHook
+class FStaticMeshEditor : public IStaticMeshEditor, public FGCObject, public FEditorUndoClient, public FNotifyHook, public FTickableEditorObject
 {
 public:
 	FStaticMeshEditor()
 		: StaticMesh(NULL)
-		, NumLODLevels(0)
 		, MinPrimSize(0.5f)
 		, OverlapNudge(10.0f)
 		, CurrentViewedUVChannel(0)
@@ -106,7 +115,7 @@ public:
 
 	virtual void RefreshTool() override;
 	virtual void RefreshViewport() override;
-	virtual void DoDecomp(float InAccuracy, int32 InMaxHullVerts) override;
+	virtual void DoDecomp(uint32 InHullCount, int32 InMaxHullVerts, uint32 InHullPrecision) override;
 
 	virtual TSet< int32 >& GetSelectedEdges() override;
 	// End of IStaticMeshEditor
@@ -122,10 +131,6 @@ public:
 
 	/** From FNotifyHook */
 	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) override;
-
-	/** Get the names of the LOD for menus */
-	TArray< TSharedPtr< FString > >& GetLODLevels() { return LODLevels; }
-	const TArray< TSharedPtr< FString > >& GetLODLevels() const { return LODLevels; }
 
 	/** Get the active view mode */
 	virtual EViewModeIndex GetViewMode() const override;
@@ -148,8 +153,39 @@ public:
 		OnSelectedLODChangedResetOnRefresh.RemoveAll(Thing);
 	}
 
+	virtual void BroadcastOnSelectedLODChanged() override
+	{
+		if (OnSelectedLODChanged.IsBound())
+		{
+			OnSelectedLODChanged.Broadcast();
+		}
+	}
+
 	class FStaticMeshEditorViewportClient& GetViewportClient();
 	const class FStaticMeshEditorViewportClient& GetViewportClient() const;
+
+	/** For asynchronous convex decomposition support, this class is tickable in the editor to be able to confirm
+	that the process is completed */
+	virtual bool IsTickableInEditor() const final
+	{
+		return true;
+	}
+
+	/** This is a tickable class */
+	virtual ETickableTickType GetTickableTickType() const final
+	{
+		return ETickableTickType::Always;
+	}
+
+	/** Performs the main 'tick' operation on this class.  The 'tick' step checks to see if there is currently
+	an active asynchronous convex decomopsition task running and, if so, checks to see if it is completed and,
+	if so, gathers the results and releases the interface */
+	virtual void Tick(float DeltaTime) final;
+
+	/** Returns the stat ID for this tickable class */
+	virtual TStatId GetStatId() const final;
+
+
 private:
 	TSharedRef<SDockTab> SpawnTab_Viewport(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Properties(const FSpawnTabArgs& Args);
@@ -174,9 +210,6 @@ private:
 
 	/** A general callback for the combo boxes in the Static Mesh Editor to force a viewport refresh when a selection changes. */
 	void ComboBoxSelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
-
-	/** A callback for when the LOD is selected, forces an update to retrieve UV channels, triangles, vertices among other things. Refreshes the viewport. */
-	void LODLevelsSelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
 
 	/**
 	 *	Sets the editor's current mesh and refreshes various settings to correspond with the new data.
@@ -232,9 +265,6 @@ private:
 
 	/** Replace the generated LODs in the original source mesh with the reduced versions.*/
 	void OnSaveGeneratedLODs();
-
-	/** Rebuilds the LOD combo list and sets it to "auto", a safe LOD level. */
-	void RegenerateLODComboList();
 
 	/** Rebuilds the UV Channel combo list and attempts to set it to the same channel. */
 	TSharedRef<SWidget> GenerateUVChannelComboList();
@@ -313,14 +343,8 @@ private:
 	/** Convex Decomposition widget */
 	TSharedPtr< class SConvexDecomposition> ConvexDecomposition;
 
-	/** Widget for displaying the available LOD. */
-	TSharedPtr< class STextComboBox > LODLevelCombo;
-
 	/** Static mesh editor detail customization */
 	TWeakPtr<class FStaticMeshDetails> StaticMeshDetails;
-
-	/** Named list of LODs for use in menus */
-	TArray< TSharedPtr< FString > > LODLevels;
 
 	/** The currently viewed Static Mesh. */
 	UStaticMesh* StaticMesh;
@@ -333,9 +357,6 @@ private:
 
 	/** The number of used UV channels. */
 	TArray<int32> NumUVChannels;
-
-	/** The number of LOD levels. */
-	int32 NumLODLevels;
 
 	/** Delegates called after an undo operation for child widgets to refresh */
 	FOnPostUndoMulticaster OnPostUndo;	
@@ -353,8 +374,14 @@ private:
 	/** The current UV Channel we are viewing */
 	int32 CurrentViewedUVChannel;
 
+	/** Selected LOD changed delegates */
 	FOnSelectedLODChangedMulticaster OnSelectedLODChanged;
 	FOnSelectedLODChangedMulticaster OnSelectedLODChangedResetOnRefresh;
+
+#if USE_ASYNC_DECOMP
+	/** Instance of the active asynchronous convex decomposition interface. */
+	IDecomposeMeshToHullsAsync        *DecomposeMeshToHullsAsync{ nullptr };
+#endif
 
 	/**	The tab ids for all the tabs used */
 	static const FName ViewportTabId;

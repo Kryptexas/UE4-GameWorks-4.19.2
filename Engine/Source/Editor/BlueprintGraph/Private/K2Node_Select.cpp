@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_Select.h"
 #include "Misc/CoreMisc.h"
@@ -117,11 +117,11 @@ public:
 				LiteralTerm->Type = IndexTerm->Type;
 				LiteralTerm->bIsLiteral = true;
 				const UEnum* NodeEnum = SelectNode->GetEnum();
-				LiteralTerm->Name = NodeEnum ? OptionPins[OptionIdx]->PinName : FString::Printf(TEXT("%d"), OptionIdx); //-V595
+				LiteralTerm->Name = NodeEnum ? OptionPins[OptionIdx]->PinName.ToString() : FString::Printf(TEXT("%d"), OptionIdx); //-V595
 
-				if (!CompilerContext.GetSchema()->DefaultValueSimpleValidation(LiteralTerm->Type, LiteralTerm->Name, LiteralTerm->Name, nullptr, FText()))
+				if (!CompilerContext.GetSchema()->DefaultValueSimpleValidation(LiteralTerm->Type, *LiteralTerm->Name, LiteralTerm->Name, nullptr, FText()))
 				{
-					Context.MessageLog.Error(*FString::Printf(*LOCTEXT("Error_InvalidOptionValue", "Invalid option value '%s' in @@").ToString(), *LiteralTerm->Name), Node);
+					Context.MessageLog.Error(*FText::Format(LOCTEXT("Error_InvalidOptionValueFmt", "Invalid option value '{0}' in @@"), FText::FromString(LiteralTerm->Name)).ToString(), Node);
 					return;
 				}
 				SelectStatement->RHS.Add(LiteralTerm);
@@ -226,7 +226,7 @@ public:
 
 				if (UEnum* NodeEnum = SelectNode->GetEnum())
 				{
-					int32 EnumValue = NodeEnum->GetValueByName(FName(*OptionPins[OptionIdx]->PinName));
+					int32 EnumValue = NodeEnum->GetValueByName(OptionPins[OptionIdx]->PinName);
 					LiteralTerm->Name = FString::Printf(TEXT("%d"), EnumValue);
 				}
 				else
@@ -285,27 +285,26 @@ public:
 					LiteralStringTerm->bIsLiteral = true;
 					LiteralStringTerm->Type.PinCategory = UEdGraphSchema_K2::PC_String;
 
-					FString SelectionNodeType(TEXT("NONE"));
+					FString SelectionNodeType;
 					if (IndexPin)
 					{
-						UEnum* EnumObject = Cast<UEnum>(IndexPin->PinType.PinSubCategoryObject.Get());
-						if (EnumObject != NULL)
+						if (UEnum* EnumObject = Cast<UEnum>(IndexPin->PinType.PinSubCategoryObject.Get()))
 						{
 							SelectionNodeType = EnumObject->GetName();
 						}
 						else
 						{
 							// Not an enum, so just use the basic type
-							SelectionNodeType = IndexPin->PinType.PinCategory;
+							SelectionNodeType = IndexPin->PinType.PinCategory.ToString();
 						}
 					}
-
 					const UEdGraph* OwningGraph = Context.MessageLog.FindSourceObjectTypeChecked<UEdGraph>( SelectNode->GetGraph() );
-					LiteralStringTerm->Name =
-						FString::Printf(*LOCTEXT("SelectNodeIndexWarning", "Graph %s: Selection Node of type %s failed! Out of bounds indexing of the options. There are only %d options available.").ToString(),
-						(OwningGraph) ? *OwningGraph->GetFullName() : TEXT("NONE"),
-						*SelectionNodeType,
-						OptionPins.Num());
+					LiteralStringTerm->Name = FText::Format(
+						LOCTEXT("SelectNodeIndexWarningFmt", "Graph {0}: Selection Node of type {1} failed! Out of bounds indexing of the options. There are only {2} options available."),
+						(OwningGraph) ? FText::FromString(OwningGraph->GetFullName()) : LOCTEXT("SelectNodeIndexWarningNoGraph", "NONE"),
+						(IndexPin) ? FText::FromString(SelectionNodeType) : LOCTEXT("SelectNodeIndexWarningNoPin", "NONE"),
+						OptionPins.Num()
+					).ToString();
 					PrintStatement.RHS.Add(LiteralStringTerm);
 
 					// Hook the IfNot statement's jump target to this statement
@@ -363,17 +362,17 @@ void UK2Node_Select::AllocateDefaultPins()
 
 		if (Enum)
 		{
-			const FString PinName = EnumEntries[Idx].ToString();
+			const FName PinName = EnumEntries[Idx];
 			UEdGraphPin* TempPin = FindPin(PinName);
 			if (!TempPin)
 			{
-				NewPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Wildcard, FString(), nullptr, PinName);
+				NewPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Wildcard, PinName);
 			}
 		}
 		else
 		{
-			const FString PinName = FString::Printf(TEXT("Option %d"), Idx);
-			NewPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Wildcard, FString(), nullptr, PinName);
+			const FName PinName = *FString::Printf(TEXT("Option %d"), Idx);
+			NewPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Wildcard, PinName);
 		}
 
 		if (NewPin)
@@ -394,7 +393,7 @@ void UK2Node_Select::AllocateDefaultPins()
 	CreatePin(EGPD_Input, IndexPinType.PinCategory, IndexPinType.PinSubCategory, IndexPinType.PinSubCategoryObject.Get(), TEXT("Index"));
 
 	// Create the return value
-	UEdGraphPin* ReturnPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Wildcard, FString(), nullptr, UEdGraphSchema_K2::PN_ReturnValue);
+	UEdGraphPin* ReturnPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Wildcard, UEdGraphSchema_K2::PN_ReturnValue);
 	ReturnPin->bDisplayAsMutableRef = UseSelectRef;
 
 	Super::AllocateDefaultPins();
@@ -436,16 +435,17 @@ FText UK2Node_Select::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 UK2Node::ERedirectType UK2Node_Select::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
 {
-	// Check to see if the new pin name matches the old pin name (case insensitive - since the base uses Stricmp() to compare pin names, we also ignore case here).
-	if(Enum != nullptr && NewPinIndex < NumOptionPins && !NewPin->PinName.Equals(OldPin->PinName, ESearchCase::IgnoreCase))
+	// Check to see if the new pin name matches the old pin name.
+	if (Enum && (NewPinIndex < NumOptionPins) && (NewPin->PinName != OldPin->PinName))
 	{
 		// The names don't match, so check for an enum redirect from the old pin name.
-		int32 EnumIndex = Enum->GetIndexByNameString(OldPin->PinName);
+		const int32 EnumIndex = Enum->GetIndexByName(OldPin->PinName);
 		if(EnumIndex != INDEX_NONE)
 		{
 			// Found a redirect. Attempt to match it to the new pin name.
-			FString NewPinName = Enum->GetNameStringByIndex(EnumIndex);
-			if(NewPinName.Equals(NewPin->PinName, ESearchCase::IgnoreCase))
+			// Can't use Enum->GetNameByIndex here because it doesn't do namespace mangling
+			const FString NewPinName = Enum->GetNameStringByIndex(EnumIndex);
+			if (NewPinName == NewPin->PinName.ToString())
 			{
 				// The redirect is a match, so we can reconstruct this pin using the old pin's state.
 				return UK2Node::ERedirectType_Name;
@@ -477,7 +477,7 @@ void UK2Node_Select::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& Ol
 		{
 			OldIndexPin = OldPin;
 		}
-		else if (OldPin->PinName == Schema->PN_ReturnValue)
+		else if (OldPin->PinName == UEdGraphSchema_K2::PN_ReturnValue)
 		{
 			OldReturnPin = OldPin;
 		}
@@ -486,7 +486,7 @@ void UK2Node_Select::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& Ol
 	UEdGraphPin* ReturnPin = GetReturnValuePin();
 	check(ReturnPin);
 
-	if (OldReturnPin && (ReturnPin->PinType.PinCategory == Schema->PC_Wildcard))
+	if (OldReturnPin && (ReturnPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard))
 	{
 		// Always copy type from node prior, if pins have changed those will error at compilation time
 		ReturnPin->PinType = OldReturnPin->PinType;
@@ -499,8 +499,8 @@ void UK2Node_Select::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& Ol
 	if (OldConditionPin)
 	{
 		// Set the index pin type
-		IndexPinType.PinCategory = Schema->PC_Boolean;
-		IndexPinType.PinSubCategory.Reset();
+		IndexPinType.PinCategory = UEdGraphSchema_K2::PC_Boolean;
+		IndexPinType.PinSubCategory = NAME_None;
 		IndexPinType.PinSubCategoryObject = nullptr;
 
 		// Set the pin type and Copy the pin
@@ -512,8 +512,8 @@ void UK2Node_Select::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& Ol
 			PinConnectionListChanged(IndexPin);
 		}
 
-		UEdGraphPin* OptionPin0 = FindPin("Option 0");
-		UEdGraphPin* OptionPin1 = FindPin("Option 1");
+		UEdGraphPin* OptionPin0 = FindPin(TEXT("Option 0"));
+		UEdGraphPin* OptionPin1 = FindPin(TEXT("Option 1"));
 
 		for (UEdGraphPin* OldPin : OldPins)
 		{
@@ -530,11 +530,11 @@ void UK2Node_Select::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& Ol
 
 	// If the index pin has links or a default value but is a wildcard, this is an old int pin so convert it
 	if (OldIndexPin &&
-		IndexPinType.PinCategory == Schema->PC_Wildcard &&
+		IndexPinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard &&
 		(OldIndexPin->LinkedTo.Num() > 0 || !OldIndexPin->DefaultValue.IsEmpty()))
 	{
-		IndexPinType.PinCategory = Schema->PC_Int;
-		IndexPinType.PinSubCategory.Reset();
+		IndexPinType.PinCategory = UEdGraphSchema_K2::PC_Int;
+		IndexPinType.PinSubCategory = NAME_None;
 		IndexPinType.PinSubCategoryObject = nullptr;
 		IndexPin->PinType = IndexPinType;
 	}
@@ -542,12 +542,12 @@ void UK2Node_Select::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& Ol
 	// Set up default values for index and option pins now that the information is available
 	Schema->SetPinAutogeneratedDefaultValueBasedOnType(IndexPin);
 
-	const bool bFillTypeFromReturn = ReturnPin->PinType.PinCategory != Schema->PC_Wildcard;
+	const bool bFillTypeFromReturn = ReturnPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Wildcard;
 	TArray<UEdGraphPin*> OptionPins;
 	GetOptionPins(OptionPins);
 	for (UEdGraphPin* Pin : OptionPins)
 	{
-		const bool bTypeShouldBeFilled = Pin && (Pin->PinType.PinCategory == Schema->PC_Wildcard);
+		const bool bTypeShouldBeFilled = Pin && (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard);
 		if (bTypeShouldBeFilled && bFillTypeFromReturn)
 		{
 			Pin->PinType = ReturnPin->PinType;			
@@ -598,13 +598,11 @@ void UK2Node_Select::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 {
 	Super::NotifyPinConnectionListChanged(Pin);
 
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-
 	// If this is the Enum pin we need to set the enum and reconstruct the node
 	if (Pin == GetIndexPin())
 	{
 		// If the index pin was just linked to another pin
-		if (Pin->LinkedTo.Num() > 0 && Pin->PinType.PinCategory == Schema->PC_Wildcard)
+		if (Pin->LinkedTo.Num() > 0 && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard)
 		{
 			UEdGraphPin* LinkPin = Pin->LinkedTo[0];
 
@@ -621,10 +619,10 @@ void UK2Node_Select::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 		// Grab references to all option pins and the return pin
 		TArray<UEdGraphPin*> OptionPins;
 		GetOptionPins(OptionPins);
-		UEdGraphPin* ReturnPin = FindPin(Schema->PN_ReturnValue);
+		UEdGraphPin* ReturnPin = FindPin(UEdGraphSchema_K2::PN_ReturnValue);
 
 		// See if this pin is one of the wildcard pins
-		bool bIsWildcardPin = (Pin == ReturnPin || OptionPins.Find(Pin) != INDEX_NONE) && Pin->PinType.PinCategory == Schema->PC_Wildcard;
+		bool bIsWildcardPin = (Pin == ReturnPin || OptionPins.Find(Pin) != INDEX_NONE) && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard;
 
 		// If the pin was one of the wildcards we have to handle it specially
 		if (bIsWildcardPin)
@@ -647,10 +645,8 @@ void UK2Node_Select::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 
 UEdGraphPin* UK2Node_Select::GetReturnValuePin() const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	UEdGraphPin* Pin = FindPin(K2Schema->PN_ReturnValue);
-	check(Pin != NULL);
+	UEdGraphPin* Pin = FindPin(UEdGraphSchema_K2::PN_ReturnValue);
+	check(Pin);
 	return Pin;
 }
 
@@ -663,24 +659,22 @@ UEdGraphPin* UK2Node_Select::GetIndexPin() const
 
 UEdGraphPin* UK2Node_Select::GetIndexPinUnchecked() const
 {
-	return FindPin("Index");
+	return FindPin(TEXT("Index"));
 }
 
 void UK2Node_Select::GetOptionPins(TArray<UEdGraphPin*>& OptionPins) const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	OptionPins.Empty();
+	OptionPins.Reset();
 
 	// If the select node is currently dealing with an enum
-	if (IndexPinType.PinCategory == K2Schema->PC_Byte &&
-		IndexPinType.PinSubCategory.IsEmpty() &&
+	if (IndexPinType.PinCategory == UEdGraphSchema_K2::PC_Byte &&
+		IndexPinType.PinSubCategory.IsNone() &&
 		IndexPinType.PinSubCategoryObject != nullptr &&
 		IndexPinType.PinSubCategoryObject->IsA(UEnum::StaticClass()))
 	{
 		for (UEdGraphPin* Pin : Pins)
 		{
-			if (EnumEntries.Contains(FName(*Pin->PinName)))
+			if (EnumEntries.Contains(Pin->PinName))
 			{
 				OptionPins.Add(Pin);
 			}
@@ -688,9 +682,10 @@ void UK2Node_Select::GetOptionPins(TArray<UEdGraphPin*>& OptionPins) const
 	}
 	else
 	{
+		const TCHAR* OptionStr = TEXT("Option");
 		for (UEdGraphPin* Pin : Pins)
 		{
-			if (Pin->PinName.Left(6) == "Option")
+			if (Pin->PinName.ToString().StartsWith(OptionStr))
 			{
 				OptionPins.Add(Pin);
 			}
@@ -702,15 +697,15 @@ void UK2Node_Select::GetConditionalFunction(FName& FunctionName, UClass** Functi
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	if (IndexPinType.PinCategory == K2Schema->PC_Boolean)
+	if (IndexPinType.PinCategory == UEdGraphSchema_K2::PC_Boolean)
 	{
 		FunctionName = GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, EqualEqual_BoolBool);
 	}
-	else if (IndexPinType.PinCategory == K2Schema->PC_Byte)
+	else if (IndexPinType.PinCategory == UEdGraphSchema_K2::PC_Byte)
 	{
 		FunctionName = GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, EqualEqual_ByteByte);
 	}
-	else if (IndexPinType.PinCategory == K2Schema->PC_Int)
+	else if (IndexPinType.PinCategory == UEdGraphSchema_K2::PC_Int)
 	{
 		FunctionName = GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, EqualEqual_IntInt);
 	}
@@ -733,9 +728,9 @@ void UK2Node_Select::AddOptionPinToNode()
 	// We guarantee at least 2 options by default and since we just increased the count
 	// to more than 2, we need to make sure we're now dealing with an index for selection
 	// instead of the default boolean check
-	if (IndexPinType.PinCategory == K2Schema->PC_Boolean)
+	if (IndexPinType.PinCategory == UEdGraphSchema_K2::PC_Boolean)
 	{
-		IndexPinType.PinCategory = K2Schema->PC_Int;
+		IndexPinType.PinCategory = UEdGraphSchema_K2::PC_Int;
 		GetIndexPin()->BreakAllPinLinks();
 	}
 	// We will let the AllocateDefaultPins call handle the actual addition via ReconstructNode
@@ -801,15 +796,13 @@ void UK2Node_Select::NodeConnectionListChanged()
 
 bool UK2Node_Select::CanAddOptionPinToNode() const
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-
-	if (IndexPinType.PinCategory == Schema->PC_Byte &&
+	if (IndexPinType.PinCategory == UEdGraphSchema_K2::PC_Byte &&
 		IndexPinType.PinSubCategoryObject.IsValid() &&
 		IndexPinType.PinSubCategoryObject.Get()->IsA(UEnum::StaticClass()))
 	{
 		return false;
 	}
-	else if (IndexPinType.PinCategory == Schema->PC_Boolean)
+	else if (IndexPinType.PinCategory == UEdGraphSchema_K2::PC_Boolean)
 	{
 		return false;
 	}
@@ -819,14 +812,12 @@ bool UK2Node_Select::CanAddOptionPinToNode() const
 
 bool UK2Node_Select::CanRemoveOptionPinToNode() const
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-
-	if (IndexPinType.PinCategory == Schema->PC_Byte &&
+	if (IndexPinType.PinCategory == UEdGraphSchema_K2::PC_Byte &&
 		(NULL != Cast<UEnum>(IndexPinType.PinSubCategoryObject.Get())))
 	{
 		return false;
 	}
-	else if (IndexPinType.PinCategory == Schema->PC_Boolean)
+	else if (IndexPinType.PinCategory == UEdGraphSchema_K2::PC_Boolean)
 	{
 		return false;
 	}

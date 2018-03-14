@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLVertexBuffer.cpp: OpenGL texture RHI implementation.
@@ -12,6 +12,9 @@
 #include "ShaderCache.h"
 #include "OpenGLDrv.h"
 #include "OpenGLDrvPrivate.h"
+#if PLATFORM_ANDROID
+#include "ThirdParty/Android/detex/AndroidETC.h"
+#endif //PLATFORM_ANDROID
 
 /*-----------------------------------------------------------------------------
 	Texture allocator support.
@@ -1004,7 +1007,7 @@ void TOpenGLTexture<RHIResourceType>::Unlock(uint32 MipIndex,uint32 ArrayIndex)
 		return;
 	}
 #endif
-	
+
 	if ( !bUseClientStorage && FOpenGL::SupportsPixelBuffers() )
 	{
 		// Code path for PBO per slice
@@ -1138,7 +1141,29 @@ void TOpenGLTexture<RHIResourceType>::Unlock(uint32 MipIndex,uint32 ArrayIndex)
 			LockedSize = PixelBuffer->GetSize();
 			LockedBuffer = PixelBuffer->GetLockedBuffer();
 		}
-		if (GLFormat.bCompressed)
+		
+		bool bIsCompressed = GLFormat.bCompressed;
+		GLint internalFormat = GLFormat.InternalFormat[bSRGB];
+#if PLATFORM_ANDROID
+		uint8* DecompressedPointer = nullptr;
+		if (bIsCompressed)
+		{
+			if (!FOpenGL::SupportsETC2() && this->GetFormat() == PF_ETC2_RGBA)
+			{
+				bIsCompressed = false;
+				internalFormat = GL_RGBA;
+
+				DecompressTexture((uint8_t *)LockedBuffer, FMath::Max<uint32>(1, (this->GetSizeX() >> MipIndex)), FMath::Max<uint32>(1, (this->GetSizeY() >> MipIndex)), GLFormat.InternalFormat[bSRGB], &DecompressedPointer);
+				if (!DecompressedPointer)
+				{
+					UE_LOG(LogRHI, Fatal, TEXT("ETC2 texture compression failed for fallback on ETC1 device."));
+				}
+				LockedBuffer = DecompressedPointer;
+			}
+		}
+#endif // PLATFORM_ANDROID
+
+		if (bIsCompressed)
 		{
 			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 			if (GetAllocatedStorageForMip(MipIndex,ArrayIndex))
@@ -1189,7 +1214,7 @@ void TOpenGLTexture<RHIResourceType>::Unlock(uint32 MipIndex,uint32 ArrayIndex)
 				glTexImage2D(
 					bCubemap ? GL_TEXTURE_CUBE_MAP_POSITIVE_X + ArrayIndex : Target,
 					MipIndex,
-					GLFormat.InternalFormat[bSRGB],
+					internalFormat,
 					FMath::Max<uint32>(1,(this->GetSizeX() >> MipIndex)),
 					FMath::Max<uint32>(1,(this->GetSizeY() >> MipIndex)),
 					0,
@@ -1209,6 +1234,12 @@ void TOpenGLTexture<RHIResourceType>::Unlock(uint32 MipIndex,uint32 ArrayIndex)
 			// Unlock "PixelBuffer" and free the temp memory after the texture upload.
 			PixelBuffer->Unlock();
 		}
+#if PLATFORM_ANDROID
+		if (DecompressedPointer)
+		{
+			free(DecompressedPointer);
+		}
+#endif // PLATFORM_ANDROID
 	}
 
 	// No need to restore texture stage; leave it like this,
@@ -2340,6 +2371,7 @@ FTexture2DRHIRef FOpenGLDynamicRHI::RHICreateTexture2DFromResource(EPixelFormat 
 		nullptr,
 		ClearValueBinding);
 
+	Texture2D->SetAliased(true);
 	OpenGLTextureAllocated(Texture2D, TexCreateFlags);
 	return Texture2D;
 }
@@ -2365,6 +2397,7 @@ FTexture2DRHIRef FOpenGLDynamicRHI::RHICreateTexture2DArrayFromResource(EPixelFo
 		nullptr,
 		ClearValueBinding);
 
+	Texture2DArray->SetAliased(true);
 	OpenGLTextureAllocated(Texture2DArray, TexCreateFlags);
 	return Texture2DArray;
 }
@@ -2390,6 +2423,7 @@ FTextureCubeRHIRef FOpenGLDynamicRHI::RHICreateTextureCubeFromResource(EPixelFor
 		nullptr,
 		ClearValueBinding);
 
+	TextureCube->SetAliased(true);
 	OpenGLTextureAllocated(TextureCube, TexCreateFlags);
 	return TextureCube;
 }

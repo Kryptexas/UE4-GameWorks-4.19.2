@@ -4,45 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/B
 Description: Nodes that are used to handle specific functionality of Blueprint Timelines.
 version: 4.9
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Timelines\TimelineNodes:title%](Engine\Blueprints\UserGuide\Timelines.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Timelines\TimelineNodes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Timelines\TimelineNodes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Timelines\TimelineNodes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Timelines\TimelineNodes:title%](Engine\Blueprints\UserGuide\Timelines.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Timelines\TimelineNodes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Timelines\TimelineNodes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Timelines\TimelineNodes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:Engine/Blueprints/UserGuide/Timelines.png
 
 
 ## Get Play Rate

@@ -1,99 +1,119 @@
-﻿INTSourceChangelist:3108692
-Availability:Doc
-Title: VR 퍼포먼스 테스팅
-Crumbs:%ROOT%, Platforms
-Description:
-Navigation:platform
-Version:4.10
-Skilllevel:Advanced
+﻿INTSourceChangelist:3622884
+Availability: Public
+Crumbs: %ROOT%
+Title:VR 퍼포먼스 기능
+Description: VR 용 여러가지 퍼포먼스 최적화 관련 정보입니다.
+Type: Overview
+SkillLevel:Advanced
+Version:4.17
+Parent: Platforms/VR
+Order:4
+Tags:VR
 
 [TOC(start:2)]
 
-## VR 퍼포먼스 개요
-어떤 컴퓨터 부품을 써야 Oculus Rift 나 HTC Vive 같은 가상 현실 머리 장착 디스플레이(HMD)로 숨막히는 영상과 높은 몰입도의 경험을 낼 수 있을 지 알아내는 것은, 
-선택할 수 있는 하드웨어의 종류가 너무 많아 자칫 벅찬 수준을 넘어 부담으로 다가올 수 있습니다.
-이러한 부담감 경감 및 구매하고자 하는 PC 하드웨어가 UE4 탑채 VR 경험을 위한 렌더링 요구사항을 충족하는지 확인해 드리기 위하여, 다음 문서를 취합했습니다.
-이 문서에서는 UE4 에서의 VR 개발 추천 PC 하드웨어 사양과 아울러, 그러한 하드웨어에서 기대할 수 있는 퍼포먼스 유형 관련 세부 정보를 알려드리겠습니다.
-UE4 의 다양한 버전과 여러가지 HMD 및 PC 하드웨어와의 퍼포먼스 트래킹 데이터도 찾아보실 수 있을 것입니다.
+가상 현실(VR)의 높은 렌더링 요구사양으로 인해 새로운 VR 전용 렌더링 모드와 다수의 퍼포먼스 최적화가 언리얼 엔진 4 (UE4)에 도입되었습니다. 여기서는 그 기능 및 UE4 VR 프로젝트에서 사용하는 방법을 살펴보겠습니다.
 
-## VR & UE4 용 추천 PC 하드웨어
 
-VR 의 높은 렌더링 요구치로 인해 VR 실행에 사용되는 PC 는 일정 하드웨어 사양 이상이 충족되어야 가급적 부드러운 VR 경험을 낼 수 있습니다.
-[Oculus](https://www.oculus.com/en-us/blog/powering-the-rift/) 에 따르면, PC 에서 가장 부드러운 VR 경험을 내기 위해서는, 그 PC 의 사양이 다음 요구사항 이상이 되어야 한다고 합니다.
+## VR 인스턴스드 스테레오
 
-* **CPU:** Intel i5-4590 급 이상.
-* **GPU:** NVIDIA GTX 970 / AMD 290 급 이상.
-* **RAM:** 8 GB 이상.
-* **운영 체제:** Windows 7 SP1 이상.
-* **USB 포트:** 최소 USB 3.0 포트 2 개 이상.
-* **HDMI 출력:** 직접 출력 아키텍처를 통해 297MHz 클럭을 지원하는 HDMI 1.3 비디오 출력
+Instanced Stereo Rendering (인스턴스드 스테레오 렌더링)은 UE4 에서 VR 의 퍼포먼스 악영향을 줄이는데 도움을 주고자 도입된 것입니다. 이 기능은 **편집 > 프로젝트 세팅 > 렌더링 > VR** 에서 찾을 수 있는 **Instanced Stereo** (인스턴스드 스테레오) 옵션을 체크하면 켜집니다. 
 
-Oculus 의 추천 하드웨어 사양을 고려하여 다음 컴퓨터 부품 목록을 만들었습니다.
-아래 목록에서 찾을 수 있는 컴퓨터 부품은 각 범주를 얼마나 잘 충족시키는지에 따라 선별되었습니다.
+[REGION:lightbox]
+[![](Platforms\VR\ContentSetup\VR_ISR.png)(w:376)](Platforms\VR\ContentSetup\VR_ISR.png)
+[/REGION]
 
-* Oculus 가 설정한 추천 하드웨어 사양에 밀접하게 일치되는 부품.
-* 그 부품이 받은 긍적적인 소비자 리뷰 횟수.
-* 그 부품의 가격.
+[REGION:caption]
+이미지를 클릭하면 원본을 확인합니다.
+[/REGION]
 
-[region:note]
-참고로 다음 사양을 충족시키지 못하는 하드웨어에서도 VR 실행이 가능은 합니다만, 그리 만족스러운 결과가 나지 못할 수 있으니 추천할 만하지 못합니다.
+**인스턴스드 스테레오** 렌더링을 켜면 엔진을 재시작하고 셰이더를 다시 컴파일해야 합니다.
+ 베이스 패스(pass), 얼리-z 패스는 이 기능이 (직렬 및 병렬 렌더링 패스(path) 둘 다) 켜진 스태틱 메시, 스켈레탈 메시, 스프라이트 파티클, 메시 파티클에 작동합니다.
+ **인스턴스드 스테레오** 는 현재 PC (DirectX)와 PS4 에서 작동하며, 다른 플랫폼은 4.11 릴리즈 이후 지원될 예정입니다.
+ VR 에서 표준 스테레오 렌더링 vs 인스턴스드 스테레오 렌더링 비교 비디오입니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	nmajnglJeyE
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+## 모바일용 VR 멀티뷰 지원
+
+특정 (지원) 모바일 디바이스는 이제 VR 멀티뷰 지원이 가능합니다. 모바일 멀티뷰는 데스크톱 PC 에서 사용할 수 있는 인스턴스드 렌더링과 비슷하며, 모바일 디바이스의 CPU 에서 스테레오 렌더링에 최적화된 패스(path)를 제공하는 방식으로 작동합니다. 이 기능을 켜는 방법은 다음과 같습니다:
+
+[region:warning]
+이 기능의 실험단계 속성상 최신 Mali 기반 GPU 에서만 작동합니다. 이 기능의 완성도가 높아짐에 따라 지원되는 모바일 디바이스가 늘어나면 이 경고는 없어질 것입니다.
 [/region]
 
-### 추천 GPU
-시장에서 선택할 수 있는 비디오 카드 종류는 수없이 많이 있습니다만, VR 을 매끄럽게 돌릴 수 있는 성능의 것은 몇 종류 안됩니다.
-다음 비디오 카드 또는 나열된 것과 동일한 사양의 비디오 카드 중 어느 것이든 UE4 탑재 VR 실행에 충분할 것입니다.
+1. 메인 툴바에서 **편집** > **프로젝트 세팅** 으로 가서 에디터 프로젝트 세팅을 엽니다.
 
-**최소 GPU**
-* [NVIDIA GTX 970 - 4GB VRam](http://www.newegg.com/Product/Product.aspx?Item=N82E16814487136&cm_re=NVIDIA_GTX_970-_-14-487-136-_-Product)
-* [AMD Radeon R9 - 4GB VRam](http://www.newegg.com/Product/Product.aspx?Item=N82E16814150724&cm_re=AMD_Radeon_R9_270-_-14-150-724-_-Product)
+1. 그리고, **엔진** > **렌더링** > **VR** 로 가서 **Mobile Multi-View (Experimental)** 옵션을 찾습니다.
 
-**추천 GPU**
-* [NVIDIA EVGA GeForce GTX 980 - 4GB VRam](http://www.newegg.com/Product/Product.aspx?Item=N82E16814487161&cm_re=NVIDIA_GTX_980-_-14-487-161-_-Product)
-* [AMD Radeon R9 290X - 4GB VRam](http://www.newegg.com/Product/Product.aspx?Item=N82E16814150696&cm_re=AMD_Radeon_R9_290x-_-14-150-696-_-Product)
+1. Mobile Multi-View (Experimental) 이름 옆 박스를 클릭 체크하여 켠 뒤, 효과가 적용되도록 에디터를 재시작합니다.
 
-** 선호 GPU**
-* [NVIDIA GTX Titian - 12GB VRam](http://www.newegg.com/Product/Product.aspx?Item=N82E16814487129)
-* [AMD Radeon R9 390 - 8GB VRam](http://www.newegg.com/Product/Product.aspx?Item=N82E16814202164&cm_re=AMD_Radeon_R9_390X-_-14-202-164-_-Product)
+	[REGION:lightbox]
+	[![](Platforms\VR\ContentSetup\VR_MobileMultiView.png)(w:379)](Platforms\VR\ContentSetup\VR_MobileMultiView.png)
+	[/REGION]
 
-### 추천 CPU
-* **Intel:** [Intel Core i5-4590 Processor](http://www.amazon.com/Intel-i5-4590-BX80646I54590-Processor-Cache/dp/B00J2LIFBY)
-* **AMD:** [AMD FX-9590 Vishera Processor](http://www.newegg.com/Product/Product.aspx?Item=N82E16819113347)
+	[REGION:caption]
+	이미지를 클릭하면 원본을 확인합니다.
+	[/REGION]
 
-### 추천 RAM
-* **8 GB RAM:** [G.SKILL Ripjaws Series](http://www.newegg.com/Product/Product.aspx?Item=N82E16820231314)
+이 기능의 정상 작동을 위해서는, 안드로이드 빌드 세팅을 다음과 같이 구성해 줘야 합니다:
 
-### 추천 하드 드라이브
-* **SSD 하드 드라이브:** [Mushkin 2.5" Internal 256GB SSD](http://www.newegg.com/Product/Product.aspx?Item=N82E16820226688)
-* **표준 하드 드라이브:** [WD 3.5" Internal 7200 RPM 1 TB](http://www.newegg.com/Product/Product.aspx?Item=N82E16822236339&cm_re=1_TB_7200_RMP_drive-_-22-236-339-_-Product)
+* **Android** > **Build** 섹션에 **Support OpenGL ES2** 가 켜졌는지 확인합니다.
+* **Mobile HDR** 및 **Instanced Stereo Rendering** 둘 다 꺼졌는지 확인합니다.
+* 현재 Mobile Multiview 는 최신 Mali 기반 GPU 에서만 작동합니다.
+* 이 기능을 켜고 프로젝트를 패키징했는데 호환 GPU 가 없으면, 실행시간에 꺼집니다.
 
-### 추천 마더보드
-* **Intel 기반 마더보드:** [MSI Z97 PC Intel](http://www.newegg.com/Product/Product.aspx?Item=N82E16813130779&cm_re=Z97_motherboards-_-13-130-779-_-Product)
-* **AMD 기반 마더보드:** [MSI 970A-G46 AMD](http://www.newegg.com/Product/Product.aspx?Item=N82E16813130637&cm_re=socket_am3-_-13-130-637-_-Product)
+## VR 포워드 렌더링
 
-[region:note]
-위와 다른 마더보드를 선택하는 경우, 모든 HMD 에 필수인 USB 3.0 지원 여부를 확인하시기 바랍니다.
-[/region]
+![](Engine\Performance\ForwardRenderer\ForwardRenderingBanner.png)(w:840)
 
-## Oculus VR 퍼포먼스
+[INCLUDE:Engine\Performance\ForwardRenderer#intro]
 
+[REGION:note]
+이 기능 관련 자세한 정보는 [](Engine\Performance\ForwardRenderer) 문서를 참고하세요.
+[/REGION]
 
-## Vive VR 퍼포먼스
+## VR 퍼포먼스 프로파일링
 
+VR 에 너무 비싼 애셋을 추적하기 위해서는, 프로젝트가 수명에 걸쳐 CPU 와 GPU 에서 어떤 작업을 하고있는지 가급적 많이 프로파일링해야 합니다.
 
+* **GPU 프로파일링** - GPU 프로파일러 가동을 위해서는, 프로젝트가 실행중일 때 **CTRL + SHIFT + ,(쉼표 키)** 를 같이 눌러주기만 하면 됩니다. 키를 누른 후, 아래 이미지와 비슷한 새 창이 뜨는 것이 보일 것입니다.
+	![](Platforms\VR\ContentSetup\VR_GPU_Profiler.png)
 
+* **CPU 프로파일러** - 프로젝트가 CPU 에서 무슨 일을 하는지 프로파일링하는 것은 GPU 프로파일링보다 조금 복잡합니다. 자세한 방법은 [](Engine/Performance/Profiler) 문서를 참고하세요.
 
+## VR 포스트 프로세스 세팅
 
+VR 의 높은 렌더링 요구사양으로 인해, 기본으로 켜진 고급 포스트 프로세싱 기능 다수를 끄지 않으면, 프로젝트에 퍼포먼스 문제가 생길 수 있습니다.
+프로젝트에서 고급 기능을 끄는 방법은 다음과 같습니다.
 
+ 1. Post Process(PP) 볼륨이 없으면 레벨에 추가합니다.
+ 1. PP 볼륨을 선택하고, **Post Process Volume** 섹션에서 **Unbound** 옵션을 켜면 PP 볼륨의 세팅이 전체 레벨에 적용됩니다.
 
+	![](Platforms\VR\ContentSetup\VR_PP_Unbound.png)
 
-
-
-
-
-
-
-
-
+ 1. **Post Process Volume** 의 **Settings** 를 펼치고, 각 섹션을 돌아보면서 현재 활성화된 PP 세팅을 끕니다. 먼저 클릭해서 (보통 1.0 인) 기본값에서 **0** 으로 설정하여 기능을 끄는 것입니다.
+	
+	![](Platforms\VR\ContentSetup\VR_Disable_PP_Settings.png)
+	[region:note]
+	이 작업을 할 때는, 모든 섹션을 둘러보면서 모든 프로퍼티를 0 으로 설정하지 않아도 됩니다. 그보다는 렌즈 플레어, 스크린 스페이스 리플렉션, 템포럴 AA, SSAO, 블룸 등 정말 무서워서 퍼포먼스에 악영향을 주는 것들부터 끄면 됩니다.
+	[/region]
 
 
 

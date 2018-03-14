@@ -1,9 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SkeletonTreePhysicsShapeItem.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Images/SImage.h"
 #include "EditorStyleSet.h"
+#include "SInlineEditableTextBlock.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "FSkeletonTreePhysicsShapeItem"
 
@@ -18,26 +20,24 @@ FSkeletonTreePhysicsShapeItem::FSkeletonTreePhysicsShapeItem(USkeletalBodySetup*
 	{
 	case EAggCollisionShape::Sphere:
 		ShapeBrush = FEditorStyle::GetBrush("PhysicsAssetEditor.Tree.Sphere");
-		Label = *FText::Format(LOCTEXT("SphereLabel", "{0} Sphere {1}"), FText::FromName(InBoneName), FText::AsNumber(ShapeIndex)).ToString();
+		DefaultLabel = *FText::Format(LOCTEXT("SphereLabel", "{0} Sphere {1}"), FText::FromName(InBoneName), FText::AsNumber(ShapeIndex)).ToString();
 		break;
 	case EAggCollisionShape::Box:
 		ShapeBrush = FEditorStyle::GetBrush("PhysicsAssetEditor.Tree.Box");
-		Label = *FText::Format(LOCTEXT("BoxLabel", "{0} Box {1}"), FText::FromName(InBoneName), FText::AsNumber(ShapeIndex)).ToString();
+		DefaultLabel = *FText::Format(LOCTEXT("BoxLabel", "{0} Box {1}"), FText::FromName(InBoneName), FText::AsNumber(ShapeIndex)).ToString();
 		break;
 	case EAggCollisionShape::Sphyl:
 		ShapeBrush = FEditorStyle::GetBrush("PhysicsAssetEditor.Tree.Sphyl");
-		Label = *FText::Format(LOCTEXT("CapsuleLabel", "{0} Capsule {1}"), FText::FromName(InBoneName), FText::AsNumber(ShapeIndex)).ToString();
+		DefaultLabel = *FText::Format(LOCTEXT("CapsuleLabel", "{0} Capsule {1}"), FText::FromName(InBoneName), FText::AsNumber(ShapeIndex)).ToString();
 		break;
 	case EAggCollisionShape::Convex:
 		ShapeBrush = FEditorStyle::GetBrush("PhysicsAssetEditor.Tree.Convex");
-		Label = *FText::Format(LOCTEXT("ConvexLabel", "{0} Convex {1}"), FText::FromName(InBoneName), FText::AsNumber(ShapeIndex)).ToString();
+		DefaultLabel = *FText::Format(LOCTEXT("ConvexLabel", "{0} Convex {1}"), FText::FromName(InBoneName), FText::AsNumber(ShapeIndex)).ToString();
 		break;
 	default:
 		check(false);
 		break;
 	}
-
-	RowItemName = *Label.ToString();
 }
 
 void FSkeletonTreePhysicsShapeItem::GenerateWidgetForNameColumn( TSharedPtr< SHorizontalBox > Box, const TAttribute<FText>& FilterText, FIsSelected InIsSelected )
@@ -51,22 +51,112 @@ void FSkeletonTreePhysicsShapeItem::GenerateWidgetForNameColumn( TSharedPtr< SHo
 		.Image(ShapeBrush)
 	];
 
+	TSharedRef<SInlineEditableTextBlock> InlineWidget = SNew(SInlineEditableTextBlock)
+						.ColorAndOpacity(FSlateColor::UseForeground())
+						.Text(this, &FSkeletonTreePhysicsShapeItem::GetNameAsText)
+						.ToolTipText(this, &FSkeletonTreePhysicsShapeItem::GetNameAsText)
+						.HighlightText(FilterText)
+						.Font(FEditorStyle::GetFontStyle("PhysicsAssetEditor.Tree.Font"))
+						.OnTextCommitted(this, &FSkeletonTreePhysicsShapeItem::HandleTextCommitted)
+						.IsSelected(InIsSelected);
+
+	OnRenameRequested.BindSP(&InlineWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode);
+
 	Box->AddSlot()
 	.AutoWidth()
 	.Padding(2, 0, 0, 0)
 	[
-		SNew(STextBlock)
-		.ColorAndOpacity(FSlateColor::UseForeground())
-		.Text(FText::FromName(Label))
-		.HighlightText(FilterText)
-		.Font(FEditorStyle::GetFontStyle("PhysicsAssetEditor.Tree.Font"))
-		.ToolTipText(FText::FromName(Label))
+		InlineWidget
 	];
 }
 
 TSharedRef< SWidget > FSkeletonTreePhysicsShapeItem::GenerateWidgetForDataColumn(const FName& DataColumnName)
 {
 	return SNullWidget::NullWidget;
+}
+
+void FSkeletonTreePhysicsShapeItem::OnItemDoubleClicked()
+{
+	OnRenameRequested.ExecuteIfBound();
+}
+
+void FSkeletonTreePhysicsShapeItem::RequestRename()
+{
+	OnRenameRequested.ExecuteIfBound();
+}
+
+FString FSkeletonTreePhysicsShapeItem::GetNameAsString() const
+{
+	FString StringName;
+
+	switch (ShapeType)
+	{
+	case EAggCollisionShape::Sphere:
+		StringName = BodySetup->AggGeom.SphereElems.IsValidIndex(ShapeIndex) ? BodySetup->AggGeom.SphereElems[ShapeIndex].GetName() : FString();
+		break;
+	case EAggCollisionShape::Box:
+		StringName = BodySetup->AggGeom.BoxElems.IsValidIndex(ShapeIndex) ? BodySetup->AggGeom.BoxElems[ShapeIndex].GetName() : FString();
+		break;
+	case EAggCollisionShape::Sphyl:
+		StringName = BodySetup->AggGeom.SphylElems.IsValidIndex(ShapeIndex) ? BodySetup->AggGeom.SphylElems[ShapeIndex].GetName() : FString();
+		break;
+	case EAggCollisionShape::Convex:
+		StringName = BodySetup->AggGeom.ConvexElems.IsValidIndex(ShapeIndex) ? BodySetup->AggGeom.ConvexElems[ShapeIndex].GetName() : FString();
+		break;
+	}
+
+	if(StringName.IsEmpty())
+	{
+		StringName = DefaultLabel.ToString();
+	}
+
+	return StringName;
+}
+
+FText FSkeletonTreePhysicsShapeItem::GetNameAsText() const
+{
+	return FText::FromString(GetNameAsString());
+}
+
+void FSkeletonTreePhysicsShapeItem::HandleTextCommitted(const FText& InText, ETextCommit::Type InCommitType)
+{
+	if(!InText.IsEmpty())
+	{
+		FScopedTransaction Transaction(LOCTEXT("RenameShapeTransaction", "Rename Shape"));
+
+		BodySetup->Modify();
+
+		switch (ShapeType)
+		{
+		case EAggCollisionShape::Sphere:
+			if(BodySetup->AggGeom.SphereElems.IsValidIndex(ShapeIndex))
+			{
+				BodySetup->AggGeom.SphereElems[ShapeIndex].SetName(InText.ToString());
+			}
+			break;
+		case EAggCollisionShape::Box:
+			if(BodySetup->AggGeom.BoxElems.IsValidIndex(ShapeIndex))
+			{
+				BodySetup->AggGeom.BoxElems[ShapeIndex].SetName(InText.ToString());
+			}
+			break;
+		case EAggCollisionShape::Sphyl:
+			if(BodySetup->AggGeom.SphylElems.IsValidIndex(ShapeIndex))
+			{
+				BodySetup->AggGeom.SphylElems[ShapeIndex].SetName(InText.ToString());
+			}
+			break;
+		case EAggCollisionShape::Convex:
+			if(BodySetup->AggGeom.ConvexElems.IsValidIndex(ShapeIndex))
+			{
+				BodySetup->AggGeom.ConvexElems[ShapeIndex].SetName(InText.ToString());
+			}
+			break;
+		default:
+			check(false);
+			break;
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

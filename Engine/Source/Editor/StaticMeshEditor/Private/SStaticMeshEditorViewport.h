@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,7 +11,7 @@
 #include "Editor/StaticMeshEditor/Private/StaticMeshEditorViewportClient.h"
 #include "AdvancedPreviewScene.h"
 #include "SEditorViewport.h"
-#include "Editor/UnrealEd/Public/SCommonEditorViewportToolbarBase.h"
+#include "SCommonEditorViewportToolbarBase.h"
 
 class IStaticMeshEditor;
 class SVerticalBox;
@@ -54,6 +54,23 @@ public:
 	 *	@param	InForcedLOD			The desired LOD to be forced to.
 	 */
 	void ForceLODLevel(int32 InForcedLOD);
+
+	/**
+	 *
+	 * Query LOD level of static mesh component 
+	 *
+	 */
+	int32 GetLODSelection() const;
+
+	/** Function to get the number of LOD models associated with the preview static mesh*/
+	int32 GetLODModelCount() const;
+
+	/**  LOD model selection checking function*/
+	bool IsLODModelSelected(int32 LODSelectionType) const;
+
+	/**  Function to set LOD model selection*/
+	void OnSetLODModel(int32 LODSelectionType);
+	void OnLODModelChanged();
 
 	/** Retrieves the static mesh component. */
 	UStaticMeshComponent* GetStaticMeshComponent() const;
@@ -154,4 +171,7 @@ private:
 
 	/** Pointer to the vertical box into which the overlay text items are added */
 	TSharedPtr<SVerticalBox> OverlayTextVerticalBox;
+
+	/** Current LOD Selection where 0 is Auto */
+	int32 LODSelection;
 };

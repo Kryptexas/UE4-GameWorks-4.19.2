@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Evaluation/MovieScene3DPathTemplate.h"
 #include "Evaluation/MovieSceneTemplateCommon.h"
@@ -17,8 +17,8 @@ DECLARE_CYCLE_STAT(TEXT("Path Track Token Execute"), MovieSceneEval_PathTrack_To
 struct F3DPathExecutionToken
 	: IMovieSceneExecutionToken
 {
-	F3DPathExecutionToken(FGuid InPathGuid, float InTiming, MovieScene3DPathSection_Axis InFrontAxisEnum, MovieScene3DPathSection_Axis InUpAxisEnum, bool bInFollow, bool bInReverse, bool bInForceUpright) 
-		: PathGuid(InPathGuid)
+	F3DPathExecutionToken(FMovieSceneObjectBindingID InPathBindingID, float InTiming, MovieScene3DPathSection_Axis InFrontAxisEnum, MovieScene3DPathSection_Axis InUpAxisEnum, bool bInFollow, bool bInReverse, bool bInForceUpright) 
+		: PathBindingID(InPathBindingID)
 		, Timing(InTiming)
 		, FrontAxisEnum(InFrontAxisEnum)
 		, UpAxisEnum(InUpAxisEnum)
@@ -125,7 +125,19 @@ struct F3DPathExecutionToken
 	{
 		MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_PathTrack_TokenExecute)
 
-		FMovieSceneEvaluationOperand PathOperand(Operand.SequenceID, PathGuid);
+		FMovieSceneSequenceID SequenceID = Operand.SequenceID;
+		if (PathBindingID.GetSequenceID().IsValid())
+		{
+			if (const FMovieSceneSubSequenceData* SubData = Player.GetEvaluationTemplate().GetHierarchy().FindSubData(SequenceID))
+			{
+				// Ensure that this ID is resolvable from the root, based on the current local sequence ID
+				FMovieSceneObjectBindingID RootBindingID = PathBindingID.ResolveLocalToRoot(SequenceID, Player.GetEvaluationTemplate().GetHierarchy());
+				SequenceID = RootBindingID.GetSequenceID();
+			}
+		}
+
+		// If the transform is set, otherwise use the bound actor's transform
+		FMovieSceneEvaluationOperand PathOperand(SequenceID, PathBindingID.GetGuid());
 		
 		TArrayView<TWeakObjectPtr<>> Objects = Player.FindBoundObjects(PathOperand);
 		if (!Objects.Num())
@@ -167,7 +179,7 @@ struct F3DPathExecutionToken
 		}
 	}
 	
-	FGuid PathGuid;
+	FMovieSceneObjectBindingID PathBindingID;
 	float Timing;
 	MovieScene3DPathSection_Axis FrontAxisEnum;
 	MovieScene3DPathSection_Axis UpAxisEnum;
@@ -177,7 +189,7 @@ struct F3DPathExecutionToken
 };
 
 FMovieScene3DPathSectionTemplate::FMovieScene3DPathSectionTemplate(const UMovieScene3DPathSection& Section)
-	: PathGuid(Section.GetConstraintId())
+	: PathBindingID(Section.GetConstraintBindingID())
 	, TimingCurve(Section.GetTimingCurve())
 	, FrontAxisEnum(Section.GetFrontAxisEnum())
 	, UpAxisEnum(Section.GetUpAxisEnum())
@@ -193,5 +205,5 @@ void FMovieScene3DPathSectionTemplate::Evaluate(const FMovieSceneEvaluationOpera
 		
 	float Timing = TimingCurve.Eval(Context.GetTime());
 
-	ExecutionTokens.Add(F3DPathExecutionToken(PathGuid, Timing, FrontAxisEnum, UpAxisEnum, bFollow, bReverse, bForceUpright));
+	ExecutionTokens.Add(F3DPathExecutionToken(PathBindingID, Timing, FrontAxisEnum, UpAxisEnum, bFollow, bReverse, bForceUpright));
 }

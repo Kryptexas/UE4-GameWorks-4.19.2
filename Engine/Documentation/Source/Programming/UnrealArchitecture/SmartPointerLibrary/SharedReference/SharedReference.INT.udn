@@ -2,7 +2,11 @@ Availability:Public
 Title:Shared References
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/SmartPointerLibrary
 Description:Smart pointer type that cannot be uninitialized or assigned null.
+Type:reference
 Version: 4.9
+Parent:Programming/UnrealArchitecture/SmartPointerLibrary
+Order:
+Tags:Programming
 
 [TOC(start:2)]
 

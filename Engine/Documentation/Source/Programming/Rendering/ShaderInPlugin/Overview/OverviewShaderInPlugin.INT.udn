@@ -1,4 +1,4 @@
-Availability: Docs
+Availability:Public
 Crumbs: %ROOT%
 Title: Overview Shader In Plugins
 Description: Going over creating shaders in Plugins.
@@ -59,7 +59,8 @@ When creating a new Plugin, you should be aware of the following things:
             ]
         }
 
-<!--
+[COMMENT:none]
+
 In the following section, we will take a look at how you create a new Plugin that has shader support in it. 
 
 1. First, make a copy of the **//Engine/Plugins/Developer/BlankPlugin** and rename it to **FooPlugin**.
@@ -101,7 +102,8 @@ In the following section, we will take a look at how you create a new Plugin tha
                 }
             ]
         }
--->
+
+[/COMMENT]
 ## Render Thread
 
 As opposed to game-side API, the RHI render commands are (and should be) enqueued by a dedicated thread: the rendering thread. The rendering thread is a slave thread of the game thread because the latter enqueue FIFO (first in, first out) commands through the ENQUEUE_RENDER_COMMAND to the former. The rendering thread can be 0 or one frame behind the game thread. As a matter of CPU performance, the synchronization between them must be avoided at all cost in production runtime. To make sure your plugin's C++ function is called by the right thread, you can add multiple asserts such as check (IsInGameThread()); or check (IsInRenderingThread()); for improved threading robustness.

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -48,7 +48,7 @@ class UK2Node_Switch : public UK2Node
 	// UK2Node_Switch interface
 
 	/** Gets a unique pin name, the next in the sequence */
-	virtual FString GetUniquePinName() { return FString(); }
+	virtual FName GetUniquePinName() { return NAME_None; }
 
 	/** Gets the pin type from the schema for the subclass */
 	virtual FEdGraphPinType GetPinType() const { check(false); return FEdGraphPinType(); }
@@ -75,9 +75,9 @@ class UK2Node_Switch : public UK2Node
 	BLUEPRINTGRAPH_API UEdGraphPin* GetDefaultPin() const;
 	BLUEPRINTGRAPH_API UEdGraphPin* GetFunctionPin() const;
 
-	BLUEPRINTGRAPH_API static FString	GetSelectionPinName();
+	BLUEPRINTGRAPH_API static FName GetSelectionPinName();
 
-	virtual FString GetPinNameGivenIndex(int32 Index);
+	virtual FName GetPinNameGivenIndex(int32 Index) const;
 
 protected:
 	virtual void CreateSelectionPin() {}

@@ -23,7 +23,8 @@ Description:通过光晕为诸如光照的明亮对象制造发光特效。
 | **#1/#2/#3/#4/#5 Tint(着色）** | 修改每个光溢出的亮度和颜色。 使用黑色不会使得渲染速度加快，但是您可以使用黑色。 |
 | **#1/#2/#3/#4/#5 Size（尺寸）** | 屏幕宽度百分比的尺寸。 它受一些数字的限制。 如果您需要更大的数字，请使用下一个更低分辨率的光溢出（下方的数字更大）。 [INCLUDE:#Size] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Intensity]
 [REGION:imagetable]
 | ![Bloom Intensity - 0](bloom_intensity_0_small.png)(w:250) | ![Bloom Intensity - 1](bloom_intensity_1_small.png)(w:250) | ![Bloom Intensity - 5](bloom_intensity_5_small.png)(w:250) |
@@ -47,7 +48,8 @@ Description:通过光晕为诸如光照的明亮对象制造发光特效。
 | #1 | #2 | #3 | #4 | #5 |
 [/REGION]
 [/EXCERPT:Size]
--->
+
+[/COMMENT]
 
 ##  光溢出泥土蒙板
 

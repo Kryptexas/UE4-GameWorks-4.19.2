@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:5. 라이트 퀄리티와 리플렉션
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
@@ -22,7 +22,7 @@ Version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 아파트에 라이팅 작업이 되었지만, 라이팅 퀄리티 향상을 위해 할 수 있는 작업이 몇 가지 있는데, 우선 **빌드** 옵션부터 시작합니다.
 
@@ -110,7 +110,7 @@ Version: 4.9
 
 이제 우리 작은 아파트에 기본적인 라이팅 작업이 되었습니다. **다음 단계** 에서는 라이트 중 하나를 업데이트하여 약간 더 복잡한 라이트를 만들도록 하겠습니다.
 
-%Steps%
+
 
 
 

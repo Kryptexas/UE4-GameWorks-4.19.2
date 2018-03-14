@@ -1,29 +1,17 @@
-﻿INTSourceChangelist:3376720
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:1 - 必要な設定
-Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\AnimDynamics
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimHowTo, Engine/Animation/AnimHowTo/AnimDynamics
 Description:動的アニメーションを適用するキャラクターをセットアップします。 
 SkillLevel:Advanced
 Version:4.11
 checkpoint: editorqs
+parent:Engine/Animation/AnimHowTo/AnimDynamics
+type:how-to
+type:multi-step
 Order:1
  
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[AnimDynamics の操作ガイド](Engine\Animation\AnimHowTo\AnimDynamics)
-	[/PARAM]
-	[PARAM:next]
-		* [次のステップ](Engine\Animation\AnimHowTo\AnimDynamics\ApplyDynamics "%Engine\Animation\AnimHowTo\AnimDynamics\ApplyDynamics:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 動的アニメーションをキャラクターに適用する前に、適用対象のキャラクターをセットアップする必要があります。 
 テンプレートのキャラクターには、使用できる動的ボーンがありません。従って、テンプレートのキャラクターのアニメーションを、 AnimDynamics で影響を与えることができるボーンを持つ Infinity Blade キャラクターにリターゲットします。 
@@ -61,8 +49,8 @@ Order:1
 	![](4_AssignBones.png)
 
 	以下の表は全体の割り当てを示したものです。 
+		|ノード (リグ) |ボーン (スケルトン) |
 
-	|ノード (リグ) |ボーン (スケルトン) |
 	| ------- | ------------ |
 	| **Root** | b_MF_Root |
 	| **Pelvis** | b_MF_Pelvis |
@@ -147,7 +135,4 @@ WEVotwqetOs
 
 次のステップでは、AnimDynamics ノードを使ってハーネス (harness) とファーネス (furnace) をアニメートしてキャラクターの動きに反応できるようにします。 
 
-%Steps%
-
-
-
+[NAV]

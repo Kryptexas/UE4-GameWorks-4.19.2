@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LevelTick.cpp: Level timer tick function
@@ -114,8 +114,11 @@ DEFINE_STAT(STAT_NetConsiderActorsTime);
 DEFINE_STAT(STAT_NetUpdateUnmappedObjectsTime);
 DEFINE_STAT(STAT_NetInitialDormantCheckTime);
 DEFINE_STAT(STAT_NetPrioritizeActorsTime);
-DEFINE_STAT(STAT_NetReplicateActorsTime);
+DEFINE_STAT(STAT_NetReplicateActorTime);
 DEFINE_STAT(STAT_NetReplicateDynamicPropTime);
+DEFINE_STAT(STAT_NetReplicateDynamicPropCompareTime);
+DEFINE_STAT(STAT_NetReplicateDynamicPropSendTime);
+DEFINE_STAT(STAT_NetReplicateDynamicPropSendBackCompatTime);
 DEFINE_STAT(STAT_NetSkippedDynamicProps);
 DEFINE_STAT(STAT_NetSerializeItemDeltaTime);
 DEFINE_STAT(STAT_NetUpdateGuidToReplicatorMap);
@@ -123,6 +126,9 @@ DEFINE_STAT(STAT_NetReplicateStaticPropTime);
 DEFINE_STAT(STAT_NetBroadcastPostTickTime);
 DEFINE_STAT(STAT_NetRebuildConditionalTime);
 DEFINE_STAT(STAT_PackageMap_SerializeObjectTime);
+
+DECLARE_CYCLE_STAT(TEXT("TickableGameObjects Time"), STAT_TickableGameObjectsTime, STATGROUP_Game);
+
 
 /*-----------------------------------------------------------------------------
 	Externs.
@@ -136,7 +142,6 @@ extern bool GShouldLogOutAFrameOfSetBodyTransform;
 -----------------------------------------------------------------------------*/
 
 /** Static array of tickable objects */
-TArray<FTickableGameObject*> FTickableGameObject::TickableObjects;
 bool FTickableGameObject::bIsTickingObjects = false;
 
 #if LOG_DETAILED_PATHFINDING_STATS
@@ -565,129 +570,134 @@ void UWorld::ProcessLevelStreamingVolumes(FVector* OverrideViewLocation)
 
 	SCOPE_CYCLE_COUNTER( STAT_VolumeStreamingTickTime );
 
-	// Begin by assembling a list of kismet streaming objects that have non-EditorPreVisOnly volumes associated with them.
-	// @todo DB: Cache this, e.g. level startup.
-	TArray<ULevelStreaming*> LevelStreamingObjectsWithVolumes;
-	TMap<ULevelStreaming*,bool> LevelStreamingObjectsWithVolumesOtherThanBlockingLoad;
-	for( int32 LevelIndex = 0 ; LevelIndex < StreamingLevels.Num() ; ++LevelIndex )
-	{
-		ULevelStreaming* LevelStreamingObject = StreamingLevels[LevelIndex];
-		if( LevelStreamingObject )
-		{
-			for ( int32 i = 0 ; i < LevelStreamingObject->EditorStreamingVolumes.Num() ; ++i )
-			{
-				ALevelStreamingVolume* StreamingVolume = LevelStreamingObject->EditorStreamingVolumes[i];
-				if( StreamingVolume 
-				&& !StreamingVolume->bEditorPreVisOnly 
-				&& !StreamingVolume->bDisabled )
-				{
-					LevelStreamingObjectsWithVolumes.Add( LevelStreamingObject );
-					if( StreamingVolume->StreamingUsage != SVB_BlockingOnLoad )
-					{
-						LevelStreamingObjectsWithVolumesOtherThanBlockingLoad.Add( LevelStreamingObject, true );
-					}
-					break;
-				}
-			}
-		}
-	}
-
-	// The set of levels with volumes whose volumes current contain player viewpoints.
-	TMap<ULevelStreaming*,FVisibleLevelStreamingSettings> VisibleLevelStreamingObjects;
-
-	// Iterate over all players and build a list of level streaming objects with
-	// volumes that contain player viewpoints.
 	bool bStreamingVolumesAreRelevant = false;
-	for( FConstPlayerControllerIterator Iterator = GetPlayerControllerIterator(); Iterator; ++Iterator )
+	for (FConstPlayerControllerIterator Iterator = GetPlayerControllerIterator(); Iterator; ++Iterator)
 	{
 		APlayerController* PlayerActor = Iterator->Get();
 		if (PlayerActor->bIsUsingStreamingVolumes)
 		{
 			bStreamingVolumesAreRelevant = true;
+			break;
+		}
+	}
 
-			FVector ViewLocation(0,0,0);
-			// let the caller override the location to check for volumes
-			if (OverrideViewLocation)
+	if (bStreamingVolumesAreRelevant)
+	{
+		// Begin by assembling a list of kismet streaming objects that have non-EditorPreVisOnly volumes associated with them.
+		// @todo DB: Cache this, e.g. level startup.
+		TArray<ULevelStreaming*> LevelStreamingObjectsWithVolumes;
+		TSet<ULevelStreaming*> LevelStreamingObjectsWithVolumesOtherThanBlockingLoad;
+		for (ULevelStreaming* LevelStreamingObject : StreamingLevels)
+		{
+			if( LevelStreamingObject )
 			{
-				ViewLocation = *OverrideViewLocation;
-			}
-			else
-			{
-				FRotator ViewRotation(0,0,0);
-				PlayerActor->GetPlayerViewPoint( ViewLocation, ViewRotation );
-			}
-
-			TMap<AVolume*,bool> VolumeMap;
-
-			// Iterate over streaming levels with volumes and compute whether the
-			// player's ViewLocation is in any of their volumes.
-			for( int32 LevelIndex = 0 ; LevelIndex < LevelStreamingObjectsWithVolumes.Num() ; ++LevelIndex )
-			{
-				ULevelStreaming* LevelStreamingObject = LevelStreamingObjectsWithVolumes[ LevelIndex ];
-
-				// StreamingSettings is an OR of all level streaming settings of volumes containing player viewpoints.
-				FVisibleLevelStreamingSettings StreamingSettings;
-
-				// See if level streaming settings were computed for other players.
-				FVisibleLevelStreamingSettings* ExistingStreamingSettings = VisibleLevelStreamingObjects.Find( LevelStreamingObject );
-				if ( ExistingStreamingSettings )
+				for (ALevelStreamingVolume* StreamingVolume : LevelStreamingObject->EditorStreamingVolumes)
 				{
-					// Stop looking for viewpoint-containing volumes once all streaming settings have been enabled for the level.
-					if ( ExistingStreamingSettings->AllSettingsEnabled() )
+					if( StreamingVolume 
+					&& !StreamingVolume->bEditorPreVisOnly 
+					&& !StreamingVolume->bDisabled )
 					{
-						continue;
+						LevelStreamingObjectsWithVolumes.Add(LevelStreamingObject);
+						if( StreamingVolume->StreamingUsage != SVB_BlockingOnLoad )
+						{
+							LevelStreamingObjectsWithVolumesOtherThanBlockingLoad.Add(LevelStreamingObject);
+						}
+						break;
 					}
+				}
+			}
+		}
 
-					// Initialize the level's streaming settings with settings that were computed for other players.
-					StreamingSettings = *ExistingStreamingSettings;
+		// The set of levels with volumes whose volumes current contain player viewpoints.
+		TMap<ULevelStreaming*,FVisibleLevelStreamingSettings> VisibleLevelStreamingObjects;
+
+		// Iterate over all players and build a list of level streaming objects with
+		// volumes that contain player viewpoints.
+		for( FConstPlayerControllerIterator Iterator = GetPlayerControllerIterator(); Iterator; ++Iterator )
+		{
+			APlayerController* PlayerActor = Iterator->Get();
+			if (PlayerActor->bIsUsingStreamingVolumes)
+			{
+				FVector ViewLocation(0,0,0);
+				// let the caller override the location to check for volumes
+				if (OverrideViewLocation)
+				{
+					ViewLocation = *OverrideViewLocation;
+				}
+				else
+				{
+					FRotator ViewRotation(0,0,0);
+					PlayerActor->GetPlayerViewPoint( ViewLocation, ViewRotation );
 				}
 
-				// For each streaming volume associated with this level . . .
-				for ( int32 i = 0 ; i < LevelStreamingObject->EditorStreamingVolumes.Num() ; ++i )
+				TMap<AVolume*,bool> VolumeMap;
+
+				// Iterate over streaming levels with volumes and compute whether the
+				// player's ViewLocation is in any of their volumes.
+				for( int32 LevelIndex = 0 ; LevelIndex < LevelStreamingObjectsWithVolumes.Num() ; ++LevelIndex )
 				{
-					ALevelStreamingVolume* StreamingVolume = LevelStreamingObject->EditorStreamingVolumes[i];
-					if ( StreamingVolume && !StreamingVolume->bEditorPreVisOnly && !StreamingVolume->bDisabled )
+					ULevelStreaming* LevelStreamingObject = LevelStreamingObjectsWithVolumes[ LevelIndex ];
+
+					// StreamingSettings is an OR of all level streaming settings of volumes containing player viewpoints.
+					FVisibleLevelStreamingSettings StreamingSettings;
+
+					// See if level streaming settings were computed for other players.
+					FVisibleLevelStreamingSettings* ExistingStreamingSettings = VisibleLevelStreamingObjects.Find( LevelStreamingObject );
+					if ( ExistingStreamingSettings )
 					{
-						bool bViewpointInVolume;
-						bool* bResult = VolumeMap.Find(StreamingVolume);
-						if ( bResult )
+						// Stop looking for viewpoint-containing volumes once all streaming settings have been enabled for the level.
+						if ( ExistingStreamingSettings->AllSettingsEnabled() )
 						{
-							// This volume has already been considered for another level.
-							bViewpointInVolume = *bResult;
-						}
-						else
-						{						
-							// Compute whether the viewpoint is inside the volume and cache the result.
-							bViewpointInVolume = StreamingVolume->EncompassesPoint( ViewLocation );								
-						
-							VolumeMap.Add( StreamingVolume, bViewpointInVolume );
-							INC_DWORD_STAT( STAT_VolumeStreamingChecks );
+							continue;
 						}
 
-						if ( bViewpointInVolume )
+						// Initialize the level's streaming settings with settings that were computed for other players.
+						StreamingSettings = *ExistingStreamingSettings;
+					}
+
+					// For each streaming volume associated with this level . . .
+					for ( int32 i = 0 ; i < LevelStreamingObject->EditorStreamingVolumes.Num() ; ++i )
+					{
+						ALevelStreamingVolume* StreamingVolume = LevelStreamingObject->EditorStreamingVolumes[i];
+						if ( StreamingVolume && !StreamingVolume->bEditorPreVisOnly && !StreamingVolume->bDisabled )
 						{
-							// Copy off the streaming settings for this volume.
-							StreamingSettings |= FVisibleLevelStreamingSettings( (EStreamingVolumeUsage) StreamingVolume->StreamingUsage );
-
-							// Update the streaming settings for the level.
-							// This also marks the level as "should be loaded".
-							VisibleLevelStreamingObjects.Add( LevelStreamingObject, StreamingSettings );
-
-							// Stop looking for viewpoint-containing volumes once all streaming settings have been enabled.
-							if ( StreamingSettings.AllSettingsEnabled() )
+							bool bViewpointInVolume;
+							bool* bResult = VolumeMap.Find(StreamingVolume);
+							if ( bResult )
 							{
-								break;
+								// This volume has already been considered for another level.
+								bViewpointInVolume = *bResult;
+							}
+							else
+							{						
+								// Compute whether the viewpoint is inside the volume and cache the result.
+								bViewpointInVolume = StreamingVolume->EncompassesPoint( ViewLocation );								
+						
+								VolumeMap.Add( StreamingVolume, bViewpointInVolume );
+								INC_DWORD_STAT( STAT_VolumeStreamingChecks );
+							}
+
+							if ( bViewpointInVolume )
+							{
+								// Copy off the streaming settings for this volume.
+								StreamingSettings |= FVisibleLevelStreamingSettings( (EStreamingVolumeUsage) StreamingVolume->StreamingUsage );
+
+								// Update the streaming settings for the level.
+								// This also marks the level as "should be loaded".
+								VisibleLevelStreamingObjects.Add( LevelStreamingObject, StreamingSettings );
+
+								// Stop looking for viewpoint-containing volumes once all streaming settings have been enabled.
+								if ( StreamingSettings.AllSettingsEnabled() )
+								{
+									break;
+								}
 							}
 						}
 					}
-				}
-			} // for each streaming level 
-		} // bIsUsingStreamingVolumes
-	} // for each PlayerController
+				} // for each streaming level 
+			} // bIsUsingStreamingVolumes
+		} // for each PlayerController
 
-	// do nothing if no players are using streaming volumes
-	if (bStreamingVolumesAreRelevant)
-	{
 		// Iterate over all streaming levels and set the level's loading status based
 		// on whether it was found to be visible by a level streaming volume.
 		for( int32 LevelIndex = 0 ; LevelIndex < LevelStreamingObjectsWithVolumes.Num() ; ++LevelIndex )
@@ -1181,6 +1191,17 @@ void EndTickDrawEvent(TDrawEvent<FRHICommandList>* TickDrawEvent)
 
 void FTickableGameObject::TickObjects(UWorld* World, const int32 InTickType, const bool bIsPaused, const float DeltaSeconds)
 {
+	SCOPE_CYCLE_COUNTER(STAT_TickableGameObjectsTime);
+
+	TArray<FTickableGameObject*>& PendingTickableObjects = GetPendingTickableObjects();
+	TArray<FTickableObjectEntry>& TickableObjects = GetTickableObjects();
+
+	for (FTickableGameObject* PendingTickable : PendingTickableObjects)
+	{
+		AddTickableObject(TickableObjects, PendingTickable);
+	}
+	PendingTickableObjects.Empty();
+
 	if (TickableObjects.Num() > 0)
 	{
 		check(!bIsTickingObjects);
@@ -1189,12 +1210,12 @@ void FTickableGameObject::TickObjects(UWorld* World, const int32 InTickType, con
 		bool bNeedsCleanup = false;
 		const ELevelTick TickType = (ELevelTick)InTickType;
 
-		for (int32 i = 0; i < TickableObjects.Num(); ++i)
+		for (const FTickableObjectEntry& TickableEntry : TickableObjects)
 		{
-			if (FTickableGameObject* TickableObject = TickableObjects[i])
+			if (FTickableGameObject* TickableObject = static_cast<FTickableGameObject*>(TickableEntry.TickableObject))
 			{
 				// If it is tickable and in this world
-				if (TickableObject->IsTickable() && (TickableObject->GetTickableGameObjectWorld() == World))
+				if (((TickableEntry.TickType == ETickableTickType::Always) || TickableObject->IsTickable()) && (TickableObject->GetTickableGameObjectWorld() == World))
 				{
 					const bool bIsGameWorld = InTickType == LEVELTICK_All || (World && World->IsGameWorld());
 					// If we are in editor and it is editor tickable, always tick
@@ -1206,7 +1227,7 @@ void FTickableGameObject::TickObjects(UWorld* World, const int32 InTickType, con
 						TickableObject->Tick(DeltaSeconds);
 
 						// In case it was removed during tick
-						if (TickableObjects[i] == nullptr)
+						if (TickableEntry.TickableObject == nullptr)
 						{
 							bNeedsCleanup = true;
 						}
@@ -1221,7 +1242,7 @@ void FTickableGameObject::TickObjects(UWorld* World, const int32 InTickType, con
 
 		if (bNeedsCleanup)
 		{
-			TickableObjects.RemoveAll([](FTickableGameObject* Object) { return Object == nullptr; });
+			TickableObjects.RemoveAll([](const FTickableObjectEntry& Entry) { return Entry.TickableObject == nullptr; });
 		}
 
 		bIsTickingObjects = false;
@@ -1529,10 +1550,12 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 
 		FWorldDelegates::OnWorldPostActorTick.Broadcast(this, TickType, DeltaSeconds);
 
+#if WITH_PHYSX
 		if ( PhysicsScene != NULL )
 		{
 			GPhysCommandHandler->Flush();
 		}
+#endif // WITH_PHYSX
 		
 		// All tick is done, execute async trace
 		{

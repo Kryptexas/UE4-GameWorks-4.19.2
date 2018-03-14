@@ -1,0 +1,40 @@
+{
+	"Version": 1,
+	"Name":
+	[
+		{
+			"Language": "en",
+			"Text": "HandheldAugmentedReality"
+		}
+	],
+	"Description":
+	[
+		{
+			"Language": "en",
+			"Text": "This template project is set up for mobile deployment and contains logic for toggling AR mode, handling light estimation, displaying information on found planes and handling hit detection."
+		}
+	],
+	"AssetTypes":
+	[
+		{
+			"Language": "en",
+			"Text": "Static Mesh"
+		}
+	],
+	"SearchTags":
+	[
+		{
+			"Language": "en",
+			"Text": "AR, Mobile, Augmented Reality"
+		}
+	],
+	"ClassTypes": "GameMode, InputComponent",
+	"Category": "BlueprintFeature",
+	"FocusAsset": "/Game/Blueprints/GameFramework/BP_ARPawn.BP_ARPawn",
+	"Thumbnail": "TP_HandheldARBP.png",
+	"Screenshots":
+	[
+		"TP_HandheldARBP_Preview.png"
+	],
+	"SortKey": "TP_HandheldARBP"
+}

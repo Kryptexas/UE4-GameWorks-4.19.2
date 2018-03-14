@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UAnimSingleNodeInstance.cpp: Single Node Tree Instance 
@@ -346,7 +346,7 @@ void UAnimSingleNodeInstance::SetPositionWithPreviousTime(float InPosition, floa
 		{
 			NotifyQueue.Reset(GetSkelMeshComponent());
 
-			TArray<const FAnimNotifyEvent*> Notifies;
+			TArray<FAnimNotifyEventReference> Notifies;
 			SequenceBase->GetAnimNotifiesFromDeltaPositions(InPreviousTime, Proxy.GetCurrentTime(), Notifies);
 			if ( Notifies.Num() > 0 )
 			{

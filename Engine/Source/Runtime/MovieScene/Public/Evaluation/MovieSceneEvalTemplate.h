@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -146,7 +146,7 @@ public:
 	 *
 	 * @param SourceSection 		The source section
 	 */
-	void SetSourceSection(UMovieSceneSection* InSourceSection)
+	void SetSourceSection(const UMovieSceneSection* InSourceSection)
 	{
 		SourceSection = InSourceSection;
 	}
@@ -156,7 +156,7 @@ public:
 	 *
 	 * @return The source section from which this template originated
 	 */
-	UMovieSceneSection* GetSourceSection() const
+	const UMovieSceneSection* GetSourceSection() const
 	{
 		return SourceSection;
 	}
@@ -182,7 +182,7 @@ protected:
 
 	/** The section from which this template originates */
 	UPROPERTY()
-	UMovieSceneSection* SourceSection;
+	const UMovieSceneSection* SourceSection;
 };
 
 /**
@@ -233,14 +233,9 @@ struct FMovieSceneEvalTemplatePtr
 		return *this;
 	}
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	/** Templates are moveable */
 	FMovieSceneEvalTemplatePtr(FMovieSceneEvalTemplatePtr&&) = default;
 	FMovieSceneEvalTemplatePtr& operator=(FMovieSceneEvalTemplatePtr&&) = default;
-#else
-	FMovieSceneEvalTemplatePtr(FMovieSceneEvalTemplatePtr&& RHS) : TInlineValue(MoveTemp(RHS)) {}
-	FMovieSceneEvalTemplatePtr& operator=(FMovieSceneEvalTemplatePtr&& RHS) { static_cast<TInlineValue&>(*this) = MoveTemp(RHS); return *this; }
-#endif
 
 	/** Serialize the template */
 	MOVIESCENE_API bool Serialize(FArchive& Ar);

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "WorldTreeItemTypes.h"
 #include "Templates/Casts.h"
@@ -117,19 +117,15 @@ namespace WorldHierarchy
 	{
 		FText LockToolTip;
 
-		if (!bPersistentLevel)
+		if (GEngine && GEngine->bLockReadOnlyLevels)
 		{
-			//Non-Persistent
-			if (GEngine && GEngine->bLockReadOnlyLevels)
+			if (LevelModel.IsValid() && LevelModel.Pin()->IsFileReadOnly())
 			{
-				if (LevelModel.IsValid() && LevelModel.Pin()->IsFileReadOnly())
-				{
-					LockToolTip = LOCTEXT("ReadOnly_LockButtonToolTip", "Read-Only levels are locked!");
-				}
+				LockToolTip = LOCTEXT("ReadOnly_LockButtonToolTip", "Read-Only levels are locked!");
 			}
-
-			LockToolTip = LOCTEXT("LockButtonToolTip", "Toggle Level Lock");
 		}
+
+		LockToolTip = LOCTEXT("LockButtonToolTip", "Toggle Level Lock");
 
 		return LockToolTip;
 	}
@@ -225,8 +221,7 @@ namespace WorldHierarchy
 
 	bool FLevelModelTreeItem::HasLockControls() const
 	{
-		// The root level cannot be locked
-		return IsLoaded() && Parent.IsValid();
+		return IsLoaded() ;
 	}
 
 	bool FLevelModelTreeItem::HasVisibilityControls() const
@@ -354,16 +349,13 @@ namespace WorldHierarchy
 			LevelModels.Add(LevelModel.Pin());
 		}
 
-		if (!LevelModel.Pin()->IsFileReadOnly())
+		if (bLocked)
 		{
-			if (bLocked)
-			{
-				WorldModel.Pin()->LockLevels(LevelModels);
-			}
-			else
-			{
-				WorldModel.Pin()->UnlockLevels(LevelModels);
-			}
+			WorldModel.Pin()->LockLevels(LevelModels);
+		}
+		else
+		{
+			WorldModel.Pin()->UnlockLevels(LevelModels);
 		}
 	}
 
@@ -784,8 +776,8 @@ namespace WorldHierarchy
 		auto DeleteFolderAction = FExecuteAction::CreateSP(&Hierarchy, &SWorldHierarchyImpl::DeleteFolders, Folders, /*bTransactional*/ true);
 
 		MenuBuilder.AddMenuEntry(LOCTEXT("CreateSubFolder", "Create Subfolder"), FText(), NewFolderIcon, FUIAction(NewFolderAction));
-		MenuBuilder.AddMenuEntry(LOCTEXT("RenameFolder", "Rename"), FText(), FSlateIcon(), FUIAction(RenameFolderAction));
-		MenuBuilder.AddMenuEntry(LOCTEXT("DeleteFolder", "Delete"), FText(), FSlateIcon(), FUIAction(DeleteFolderAction));
+		MenuBuilder.AddMenuEntry(LOCTEXT("RenameFolder", "Rename"), FText(), FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Rename"), FUIAction(RenameFolderAction));
+		MenuBuilder.AddMenuEntry(LOCTEXT("DeleteFolder", "Delete"), FText(), FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Delete"), FUIAction(DeleteFolderAction));
 	}
 
 	FValidationInfo FFolderTreeItem::ValidateDrop(const FDragDropEvent& DragEvent) const

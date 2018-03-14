@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/Text/SlateEditableTextLayout.h"
 #include "Styling/CoreStyle.h"
@@ -12,7 +12,7 @@
 #include "Framework/Text/SlateTextRun.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Framework/Text/SlatePasswordRun.h"
-#include "Widgets/Text/TextBlockLayout.h"
+#include "Widgets/Text/SlateTextBlockLayout.h"
 #include "Framework/Text/TextEditHelper.h"
 #include "Framework/Commands/GenericCommands.h"
 #include "Internationalization/BreakIterator.h"
@@ -267,7 +267,7 @@ void FSlateEditableTextLayout::SetHintText(const TAttribute<FText>& InHintText)
 	if (HintText.IsBound() || !HintText.Get(FText::GetEmpty()).IsEmpty())
 	{
 		HintTextStyle = TextStyle;
-		HintTextLayout = MakeUnique<FTextBlockLayout>(HintTextStyle, TextLayout->GetTextShapingMethod(), TextLayout->GetTextFlowDirection(), CreateSlateTextLayout, HintMarshaller.ToSharedRef(), nullptr);
+		HintTextLayout = MakeUnique<FSlateTextBlockLayout>(HintTextStyle, TextLayout->GetTextShapingMethod(), TextLayout->GetTextFlowDirection(), CreateSlateTextLayout, HintMarshaller.ToSharedRef(), nullptr);
 		HintTextLayout->SetDebugSourceInfo(DebugSourceInfo);
 	}
 	else
@@ -660,7 +660,7 @@ bool FSlateEditableTextLayout::HandleFocusReceived(const FFocusEvent& InFocusEve
 
 	// We need to Tick() while we have focus to keep some things up-to-date
 	OwnerWidget->EnsureActiveTick();
-
+	
 	if (FPlatformApplicationMisc::RequiresVirtualKeyboard())
 	{
 		if (!OwnerWidget->IsTextReadOnly())
@@ -809,9 +809,6 @@ FReply FSlateEditableTextLayout::HandleKeyChar(const FCharacterEvent& InCharacte
 		}
 		break;
 
-	case TCHAR('\t'):	// Tab
-		return FReply::Handled();
-
 	case TCHAR('\n'):	// Newline (Ctrl+Enter), we handle adding new lines via HandleCarriageReturn rather than processing newline characters
 		return FReply::Handled();
 
@@ -943,6 +940,10 @@ FReply FSlateEditableTextLayout::HandleKeyDown(const FKeyEvent& InKeyEvent)
 		FScopedEditableTextTransaction TextTransaction(*this);
 		Reply = BoolToReply(HandleDelete());
 	}
+	else if (Key == EKeys::Tab && OwnerWidget->CanTypeCharacter(TEXT('\t')))
+	{
+		Reply = FReply::Handled();
+	}
 	else if (Key == EKeys::Escape)
 	{
 		Reply = BoolToReply(HandleEscape());
@@ -1062,7 +1063,6 @@ FReply FSlateEditableTextLayout::HandleKeyUp(const FKeyEvent& InKeyEvent)
 FReply FSlateEditableTextLayout::HandleMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& InMouseEvent)
 {
 	FReply Reply = FReply::Unhandled();
-
 	// If the mouse is already captured, then don't allow a new action to be taken
 	if (!OwnerWidget->GetSlateWidget()->HasMouseCapture())
 	{
@@ -3196,7 +3196,8 @@ void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const dou
 
 	// If we're auto-wrapping, we need to hide the scrollbars until the first valid auto-wrap has been performed
 	// If we don't do this, then we can get some nasty layout shuffling as the scrollbars appear for one frame and then vanish again
-	const EVisibility ScrollBarVisiblityOverride = (AutoWrapText.Get() && CachedSize.IsZero()) ? EVisibility::Collapsed : EVisibility::Visible;
+	// We also hide the scrollbars for non-multi-line text widgets
+	const EVisibility ScrollBarVisiblityOverride = ((AutoWrapText.Get() && CachedSize.IsZero()) || !OwnerWidget->IsMultiLineTextEdit()) ? EVisibility::Collapsed : EVisibility::Visible;
 
 	// Try and make sure that the line containing the cursor is in view
 	if (PositionToScrollIntoView.IsSet())
@@ -3337,7 +3338,7 @@ FVector2D FSlateEditableTextLayout::ComputeDesiredSize(float LayoutScaleMultipli
 		MarginValue.Right += CaretWidth;
 
 		const FVector2D HintTextSize = HintTextLayout->ComputeDesiredSize(
-			FTextBlockLayout::FWidgetArgs(HintText, FText::GetEmpty(), WrapTextAt, AutoWrapText, WrappingPolicy, MarginValue, LineHeightPercentage, Justification),
+			FSlateTextBlockLayout::FWidgetArgs(HintText, FText::GetEmpty(), WrapTextAt, AutoWrapText, WrappingPolicy, MarginValue, LineHeightPercentage, Justification),
 			LayoutScaleMultiplier, HintTextStyle
 			);
 

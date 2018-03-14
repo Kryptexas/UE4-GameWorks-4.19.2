@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AIGraphSchema.h"
 #include "Textures/SlateIcon.h"
@@ -227,7 +227,7 @@ void UAIGraphSchema::GetBreakLinkToSubMenuActions(class FMenuBuilder& MenuBuilde
 		FText Title = FText::FromString(TitleString);
 		if (Pin->PinName != TEXT(""))
 		{
-			TitleString = FString::Printf(TEXT("%s (%s)"), *TitleString, *Pin->PinName);
+			TitleString = FString::Printf(TEXT("%s (%s)"), *TitleString, *Pin->PinName.ToString());
 
 			// Add name of connection if possible
 			FFormatNamedArguments Args;
@@ -272,7 +272,7 @@ void UAIGraphSchema::BreakPinLinks(UEdGraphPin& TargetPin, bool bSendsNodeNotifi
 	Super::BreakPinLinks(TargetPin, bSendsNodeNotification);
 }
 
-void UAIGraphSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin)
+void UAIGraphSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) const
 {
 	const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "GraphEd_BreakSinglePinLink", "Break Pin Link"));
 

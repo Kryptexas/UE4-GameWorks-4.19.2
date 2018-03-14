@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CameraController.h: Implements controls for a camera with pseudo-physics
@@ -219,8 +219,9 @@ class FEditorCameraController
 public:
 
 	/** Constructor */
-	FEditorCameraController();
+	UNREALED_API FEditorCameraController();
 
+	UNREALED_API virtual ~FEditorCameraController() {}
 
 	/** Sets the configuration for this camera controller */
 	void SetConfig( const FCameraControllerConfig& InConfig )
@@ -255,7 +256,7 @@ public:
 	 * @param	InOutCameraEuler		[in, out] Camera orientation
 	 * @param	InOutCameraFOV			[in, out] Camera field of view
 	 */
-	void UpdateSimulation(
+	UNREALED_API virtual void UpdateSimulation(
 		const FCameraControllerUserImpulseData& UserImpulseData,
 		const float DeltaTime,
 		const bool bAllowRecoilIfNoImpulse,

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,7 +20,6 @@ protected:
 	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override;
 	//~ End SGraphPin Interface
 
-	FString GetFormattedTypeInValue() const;
 	FText GetTypeInValue() const;
 	virtual void SetTypeInValue(const FText& NewTypeInValue, ETextCommit::Type CommitInfo);
 

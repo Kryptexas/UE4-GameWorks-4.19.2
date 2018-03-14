@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 11. FindPlayer EQS 생성
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
@@ -21,7 +21,7 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 앞의 두 **인바이언먼트 쿼리** 보다 간단한데, AI 주변 1500 유닛 내 TopDownCharacter 전체 목록을 반환한 뒤, AI 가 그 캐릭터를 볼 수 있는지 검사하는 정도이기 때문입니다. 볼 수 있다면, 비헤이비어 트리에서 쓸 ActorToFleeFrom 을 구합니다.
 
@@ -82,4 +82,4 @@ version: 4.9
 그러면 다 된 것입니다!
 
 
-%Steps%
+

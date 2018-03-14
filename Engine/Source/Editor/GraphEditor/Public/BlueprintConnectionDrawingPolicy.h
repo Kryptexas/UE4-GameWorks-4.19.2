@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,6 +9,7 @@
 #include "ConnectionDrawingPolicy.h"
 
 class FSlateWindowElementList;
+class UBlueprint;
 class UEdGraph;
 
 /////////////////////////////////////////////////////
@@ -69,6 +70,13 @@ protected:
 protected:
 	// Should this wire be treated as an execution pin, querying the execution trace for connected nodes to draw it differently?
 	virtual bool TreatWireAsExecutionPin(UEdGraphPin* InputPin, UEdGraphPin* OutputPin) const;
+
+	// Determines the target Blueprint for querying the active debugging context.
+	UBlueprint* GetTargetBlueprint() const;
+
+	// Determines if the given Blueprint context has a valid object for debugging.
+	bool CanBuildRoadmap(UBlueprint* TargetBP) const;
+
 public:
 	FKismetConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float ZoomFactor, const FSlateRect& InClippingRect, FSlateWindowElementList& InDrawElements, UEdGraph* InGraphObj);
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ModelLight.cpp: Unreal model lighting.
@@ -290,6 +290,14 @@ void UModelComponent::ApplyTempElements(bool bLightingWasSuccessful)
 void UModelComponent::GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPrimitiveInfo,const TArray<ULightComponent*>& InRelevantLights,const FLightingBuildOptions& Options)
 {
 	check(0);
+}
+
+void UModelComponent::AddMapBuildDataGUIDs(TSet<FGuid>& InGUIDs) const
+{
+	for (const FModelElement& Element : Elements)
+	{
+		InGUIDs.Add(Element.MapBuildDataId);
+	}
 }
 #endif
 

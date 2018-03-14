@@ -97,7 +97,8 @@ Tags:Sequencer
 
 [NAV]
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:SPMaterial]    
 [OBJECT:Snippet]
     [PARAMLITERAL:id]
@@ -326,4 +327,5 @@ Tags:Sequencer
     [/PARAM]
 [/OBJECT]
 [/EXCERPT:SPMaterial]
--->
+
+[/COMMENT]

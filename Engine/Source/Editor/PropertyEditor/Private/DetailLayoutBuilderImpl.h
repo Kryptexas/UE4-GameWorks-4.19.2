@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -20,7 +20,8 @@ public:
 		TSharedPtr<FComplexPropertyNode>& InRootNode,
 		FClassToPropertyMap& InPropertyMap,
 		const TSharedRef<IPropertyUtilities>& InPropertyUtilities,
-		const TSharedPtr<IDetailsViewPrivate>& InDetailsView);
+		const TSharedPtr<IDetailsViewPrivate>& InDetailsView,
+		bool bIsExternal);
 
 	/** IDetailLayoutBuilder Interface */
 	virtual const IDetailsView* GetDetailsView() const override;

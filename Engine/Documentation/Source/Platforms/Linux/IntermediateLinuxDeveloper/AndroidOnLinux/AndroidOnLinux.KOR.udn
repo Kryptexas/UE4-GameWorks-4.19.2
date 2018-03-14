@@ -4,7 +4,7 @@ Title: Android On Linux Quick Start
 Crumbs:%ROOT%
 Description:Learn how to create, deploy, and package games to Android from Linux.
 Platform:Linux
-Version: 4.14
+Version: 4.17
 type:quick start
 parent:Platforms/Linux
 order: 5
@@ -37,19 +37,9 @@ After working through this tutorial, you'll know the following:
 * How to deploy a level onto your Android device from UE4. 
 * How to package your mobile game for distribution (release). 
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	[DIR(output:"checkpoint" parent:"Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+## Steps
+
+[DIR(output:"checkpoint" parent:"Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux" org:"hierarchy")]
 
 [REGION:call_to_action]
 	[Click to Start](Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux/1 "%Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux/1:title%")

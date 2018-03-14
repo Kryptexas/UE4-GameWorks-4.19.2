@@ -20,35 +20,46 @@
 			"Name": "PlatformCrypto",
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
-			"WhitelistPlatforms": [
-				"Mac",
-				"Win32",
-				"Win64",
-				"Linux",
-				"PS4",
-				"XboxOne"
-			]
+            "WhitelistPlatforms": [
+              "Mac",
+              "Win32",
+              "Win64",
+              "Linux",
+              "PS4",
+              "XboxOne"
+            ],
+            "BlacklistPlatforms": [
+              "Android",
+              "IOS",
+            ]
 		},
 		{
 			"Name": "PlatformCryptoOpenSSL",
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
-			"WhitelistPlatforms": [
-				"Mac",
-				"Win32",
-				"Win64",
-				"Linux",
-				"PS4"
-			]
+            "WhitelistPlatforms": [
+              "Mac",
+              "Win32",
+              "Win64",
+              "Linux",
+              "PS4"
+            ],
+            "BlacklistPlatforms": [
+              "Android",
+              "IOS",
+            ]
 		},
 		{
 			"Name" : "PlatformCryptoBCrypt",
 			"Type" : "Runtime",
 			"LoadingPhase" : "Default",
-			"WhitelistPlatforms" :
-			[
-				"XboxOne"
-			]
+            "WhitelistPlatforms": [
+              "XboxOne"
+            ],
+            "BlacklistPlatforms": [
+              "Android",
+              "IOS",
+            ]
 		}
 	]
 }

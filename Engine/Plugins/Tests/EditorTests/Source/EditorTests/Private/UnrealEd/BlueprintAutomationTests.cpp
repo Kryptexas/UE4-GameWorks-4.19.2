@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "HAL/FileManager.h"
@@ -678,8 +678,8 @@ public:
 			
 			FEdGraphPinType const& PinType = MalformedPin->PinType;
 			// only object pins would reference the unloaded blueprint
-			if (!PinType.PinSubCategoryObject.IsValid() || ((PinType.PinCategory != K2Schema->PC_Object) && 
-				(PinType.PinCategory != K2Schema->PSC_Self) && (PinType.PinCategory != K2Schema->PC_Interface)))
+			if (!PinType.PinSubCategoryObject.IsValid() || ((PinType.PinCategory != UEdGraphSchema_K2::PC_Object) && 
+				(PinType.PinCategory != UEdGraphSchema_K2::PSC_Self) && (PinType.PinCategory != UEdGraphSchema_K2::PC_Interface)))
 			{
 				continue;
 			}

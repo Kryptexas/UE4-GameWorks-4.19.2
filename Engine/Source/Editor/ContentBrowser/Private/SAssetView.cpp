@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SAssetView.h"
 #include "HAL/FileManager.h"
@@ -103,7 +103,7 @@ SAssetView::~SAssetView()
 	}
 
 	// Release all rendering resources being held onto
-	AssetThumbnailPool->ReleaseResources();
+	AssetThumbnailPool.Reset();
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -196,7 +196,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 	bCanShowDevelopersFolder = InArgs._CanShowDevelopersFolder;
 
 	bCanShowCollections = InArgs._CanShowCollections;
-
+	bCanShowFavorites = InArgs._CanShowFavorites;
 	bPreloadAssetsForContextMenu = InArgs._PreloadAssetsForContextMenu;
 
 	SelectionMode = InArgs._SelectionMode;
@@ -220,6 +220,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 
 	OnShouldFilterAsset = InArgs._OnShouldFilterAsset;
 	OnAssetSelected = InArgs._OnAssetSelected;
+	OnAssetSelectionChanged = InArgs._OnAssetSelectionChanged;
 	OnAssetsActivated = InArgs._OnAssetsActivated;
 	OnGetAssetContextMenu = InArgs._OnGetAssetContextMenu;
 	OnGetFolderContextMenu = InArgs._OnGetFolderContextMenu;
@@ -227,9 +228,11 @@ void SAssetView::Construct( const FArguments& InArgs )
 	OnFindInAssetTreeRequested = InArgs._OnFindInAssetTreeRequested;
 	OnAssetRenameCommitted = InArgs._OnAssetRenameCommitted;
 	OnAssetTagWantsToBeDisplayed = InArgs._OnAssetTagWantsToBeDisplayed;
+	OnIsAssetValidForCustomToolTip = InArgs._OnIsAssetValidForCustomToolTip;
 	OnGetCustomAssetToolTip = InArgs._OnGetCustomAssetToolTip;
 	OnVisualizeAssetToolTip = InArgs._OnVisualizeAssetToolTip;
 	OnAssetToolTipClosing = InArgs._OnAssetToolTipClosing;
+	OnGetCustomSourceAssets = InArgs._OnGetCustomSourceAssets;
 	HighlightedText = InArgs._HighlightedText;
 	ThumbnailLabel = InArgs._ThumbnailLabel;
 	AllowThumbnailHintLabel = InArgs._AllowThumbnailHintLabel;
@@ -907,13 +910,7 @@ void SAssetView::ProcessRecentlyLoadedOrChangedAssets()
 						ItemAsAsset->SetAssetData(AssetData);
 
 						// Update the custom column data
-						for (const FAssetViewCustomColumn& Column : CustomColumns)
-						{
-							if (ItemAsAsset->CustomColumnData.Find(Column.ColumnName))
-							{
-								ItemAsAsset->CustomColumnData.Add(Column.ColumnName, Column.OnGetColumnData.Execute(ItemAsAsset->Data, Column.ColumnName));
-							}
-						}
+						ItemAsAsset->CacheCustomColumns(CustomColumns, true, true, true);
 					}
 
 					RefreshList();
@@ -1701,7 +1698,8 @@ bool SAssetView::IsValidSearchToken(const FString& Token) const
 void SAssetView::RefreshSourceItems()
 {
 	// Load the asset registry module
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	static const FName AssetRegistryName(TEXT("AssetRegistry"));
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
 
 	RecentlyLoadedOrChangedAssets.Empty();
 	RecentlyAddedAssets.Empty();
@@ -1792,6 +1790,12 @@ void SAssetView::RefreshSourceItems()
 				}
 			}
 		}
+
+		// Add any custom assets 
+		if (OnGetCustomSourceAssets.IsBound())
+		{
+			OnGetCustomSourceAssets.Execute(Filter, Items);
+		}
 	}
 
 	// If we are showing classes in the asset list...
@@ -1817,21 +1821,27 @@ void SAssetView::RefreshSourceItems()
 	const bool bDisplayEngine = IsShowingEngineContent();
 	const bool bDisplayPlugins = IsShowingPluginContent();
 	const bool bDisplayL10N = IsShowingLocalizedContent();
+	const TArray<TSharedRef<IPlugin>> Plugins = IPluginManager::Get().GetEnabledPluginsWithContent();
 	for (int32 AssetIdx = Items.Num() - 1; AssetIdx >= 0; --AssetIdx)
 	{
 		const FAssetData& Item = Items[AssetIdx];
+		const FString PackagePath = Item.PackagePath.ToString();
 		// Do not show redirectors if they are not the main asset in the uasset file.
 		const bool IsMainlyARedirector = Item.AssetClass == UObjectRedirector::StaticClass()->GetFName() && !Item.IsUAsset();
 		// If this is an engine folder, and we don't want to show them, remove
-		const bool IsHiddenEngineFolder = !bDisplayEngine && ContentBrowserUtils::IsEngineFolder(Item.PackagePath.ToString());
-		// If this is a plugin folder, and we don't want to show them, remove
-		const bool IsAHiddenGameProjectPluginFolder = !bDisplayPlugins && ContentBrowserUtils::IsPluginFolder(Item.PackagePath.ToString(), EPluginLoadedFrom::Project);
-		// If this is an engine plugin folder, and we don't want to show them, remove
-		const bool IsAHiddenEnginePluginFolder = (!bDisplayEngine || !bDisplayPlugins) && ContentBrowserUtils::IsPluginFolder(Item.PackagePath.ToString(), EPluginLoadedFrom::Engine);
+		const bool IsHiddenEngineFolder = !bDisplayEngine && ContentBrowserUtils::IsEngineFolder(PackagePath);
+		// If this is a plugin folder (engine or project), and we don't want to show them, remove
+		bool IsHiddenPluginFolder = false;
+		if (!bDisplayPlugins || !bDisplayEngine)
+		{
+			EPluginLoadedFrom PluginSource;
+			const bool bIsPluginFolder = ContentBrowserUtils::IsPluginFolder(PackagePath, Plugins, &PluginSource);
+			IsHiddenPluginFolder = bIsPluginFolder && (!bDisplayPlugins || (!bDisplayEngine && PluginSource == EPluginLoadedFrom::Engine));
+		}
 		// Do not show localized content folders.
-		const bool IsTheHiddenLocalizedContentFolder = !bDisplayL10N && ContentBrowserUtils::IsLocalizationFolder(Item.PackagePath.ToString());
+		const bool IsTheHiddenLocalizedContentFolder = !bDisplayL10N && ContentBrowserUtils::IsLocalizationFolder(PackagePath);
 
-		const bool ShouldFilterOut = IsMainlyARedirector || IsHiddenEngineFolder || IsAHiddenGameProjectPluginFolder || IsAHiddenEnginePluginFolder || IsTheHiddenLocalizedContentFolder;
+		const bool ShouldFilterOut = IsMainlyARedirector || IsHiddenEngineFolder || IsHiddenPluginFolder || IsTheHiddenLocalizedContentFolder;
 		if (ShouldFilterOut)
 		{
 			Items.RemoveAtSwap(AssetIdx);
@@ -1886,6 +1896,7 @@ void SAssetView::RefreshFilteredItems()
 
 			// Clear custom column data
 			Item->CustomColumnData.Reset();
+			Item->CustomColumnDisplayText.Reset();
 
 			ItemToObjectPath.Add( Item->Data.ObjectPath, Item );
 		}
@@ -2865,6 +2876,19 @@ TSharedRef<SWidget> SAssetView::GetViewButtonContent()
 			NAME_None,
 			EUserInterfaceActionType::ToggleButton
 		);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ShowFavoriteOptions", "Show Favorites"),
+			LOCTEXT("ShowFavoriteOptionToolTip", "Show the favorite folders in the view?"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &SAssetView::ToggleShowFavorites),
+				FCanExecuteAction::CreateSP(this, &SAssetView::IsToggleShowFavoritesAllowed),
+				FIsActionChecked::CreateSP(this, &SAssetView::IsShowingFavorites)
+			),
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton
+		);
 	}
 	MenuBuilder.EndSection();
 
@@ -3172,6 +3196,24 @@ bool SAssetView::IsShowingCollections() const
 	return IsToggleShowCollectionsAllowed() && GetDefault<UContentBrowserSettings>()->GetDisplayCollections();
 }
 
+
+void SAssetView::ToggleShowFavorites()
+{
+	const bool bShowingFavorites = GetDefault<UContentBrowserSettings>()->GetDisplayFavorites();
+	GetMutableDefault<UContentBrowserSettings>()->SetDisplayFavorites(!bShowingFavorites);
+	GetMutableDefault<UContentBrowserSettings>()->PostEditChange();
+}
+
+bool SAssetView::IsToggleShowFavoritesAllowed() const
+{
+	return bCanShowFavorites;
+}
+
+bool SAssetView::IsShowingFavorites() const
+{
+	return IsToggleShowFavoritesAllowed() && GetDefault<UContentBrowserSettings>()->GetDisplayFavorites();
+}
+
 void SAssetView::ToggleShowCppContent()
 {
 	const bool bDisplayCppFolders = GetDefault<UContentBrowserSettings>()->GetDisplayCppFolders();
@@ -3429,6 +3471,7 @@ TSharedRef<ITableRow> SAssetView::MakeListViewWidget(TSharedPtr<FAssetViewItem> 
 			.ThumbnailHintColorAndOpacity( this, &SAssetView::GetThumbnailHintColorAndOpacity )
 			.AllowThumbnailHintLabel( AllowThumbnailHintLabel )
 			.IsSelected( FIsSelected::CreateSP(TableRowWidget.Get(), &STableRow<TSharedPtr<FAssetViewItem>>::IsSelectedExclusively) )
+			.OnIsAssetValidForCustomToolTip(OnIsAssetValidForCustomToolTip)
 			.OnGetCustomAssetToolTip(OnGetCustomAssetToolTip)
 			.OnVisualizeAssetToolTip(OnVisualizeAssetToolTip)
 			.OnAssetToolTipClosing(OnAssetToolTipClosing);
@@ -3516,6 +3559,7 @@ TSharedRef<ITableRow> SAssetView::MakeTileViewWidget(TSharedPtr<FAssetViewItem> 
 			.ThumbnailHintColorAndOpacity( this, &SAssetView::GetThumbnailHintColorAndOpacity )
 			.AllowThumbnailHintLabel( AllowThumbnailHintLabel )
 			.IsSelected( FIsSelected::CreateSP(TableRowWidget.Get(), &STableRow<TSharedPtr<FAssetViewItem>>::IsSelectedExclusively) )
+			.OnIsAssetValidForCustomToolTip(OnIsAssetValidForCustomToolTip)
 			.OnGetCustomAssetToolTip(OnGetCustomAssetToolTip)
 			.OnVisualizeAssetToolTip( OnVisualizeAssetToolTip )
 			.OnAssetToolTipClosing( OnAssetToolTipClosing );
@@ -3535,17 +3579,7 @@ TSharedRef<ITableRow> SAssetView::MakeColumnViewWidget(TSharedPtr<FAssetViewItem
 	}
 
 	// Update the cached custom data
-	if (AssetItem->GetType() == EAssetItemType::Normal)
-	{
-		const TSharedPtr<FAssetViewAsset>& ItemAsAsset = StaticCastSharedPtr<FAssetViewAsset>(AssetItem);
-		for (const FAssetViewCustomColumn& Column : CustomColumns)
-		{
-			if (!ItemAsAsset->CustomColumnData.Find(Column.ColumnName))
-			{
-				ItemAsAsset->CustomColumnData.Add(Column.ColumnName, Column.OnGetColumnData.Execute(ItemAsAsset->Data, Column.ColumnName));
-			}
-		}
-	}
+	AssetItem->CacheCustomColumns(CustomColumns, false, true, false);
 	
 	return
 		SNew( SAssetColumnViewRow, OwnerTable )
@@ -3561,6 +3595,7 @@ TSharedRef<ITableRow> SAssetView::MakeColumnViewWidget(TSharedPtr<FAssetViewItem
 				.HighlightText( HighlightedText )
 				.OnAssetsOrPathsDragDropped(this, &SAssetView::OnAssetsOrPathsDragDropped)
 				.OnFilesDragDropped(this, &SAssetView::OnFilesDragDropped)
+				.OnIsAssetValidForCustomToolTip(OnIsAssetValidForCustomToolTip)
 				.OnGetCustomAssetToolTip(OnGetCustomAssetToolTip)
 				.OnVisualizeAssetToolTip( OnVisualizeAssetToolTip )
 				.OnAssetToolTipClosing( OnAssetToolTipClosing )
@@ -3771,10 +3806,12 @@ void SAssetView::AssetSelectionChanged( TSharedPtr< struct FAssetViewItem > Asse
 		if ( AssetItem.IsValid() && AssetItem->GetType() != EAssetItemType::Folder )
 		{
 			OnAssetSelected.ExecuteIfBound(StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data);
+			OnAssetSelectionChanged.ExecuteIfBound(StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data, SelectInfo);
 		}
 		else
 		{
 			OnAssetSelected.ExecuteIfBound(FAssetData());
+			OnAssetSelectionChanged.ExecuteIfBound(FAssetData(), SelectInfo);
 		}
 	}
 }
@@ -4054,6 +4091,7 @@ void SAssetView::AssetRenameCommit(const TSharedPtr<FAssetViewItem>& Item, const
 	}
 	else if( ItemType == EAssetItemType::Folder )
 	{
+		TArray<FMovedContentFolder> MovedFolders;
 		const TSharedPtr<FAssetViewFolder>& ItemAsFolder = StaticCastSharedPtr<FAssetViewFolder>(Item);
 		if(ItemAsFolder->bNewFolder)
 		{
@@ -4118,6 +4156,7 @@ void SAssetView::AssetRenameCommit(const TSharedPtr<FAssetViewItem>& Item, const
 
 			if(bSuccess)
 			{
+				MovedFolders.Add(FMovedContentFolder(ItemAsFolder->FolderPath, NewPath));
 				// move any assets in our folder
 				TArray<FAssetData> AssetsInFolder;
 				AssetRegistryModule.Get().GetAssetsByPath(*ItemAsFolder->FolderPath, AssetsInFolder, true);
@@ -4135,7 +4174,7 @@ void SAssetView::AssetRenameCommit(const TSharedPtr<FAssetViewItem>& Item, const
 					ContentBrowserUtils::DeleteFolders(FoldersToDelete);
 				}
 			}
-
+			OnFolderPathChanged.ExecuteIfBound(MovedFolders);
 			RequestQuickFrontendListRefresh();
 		}		
 	}
@@ -4473,10 +4512,21 @@ void SAssetView::ExecuteDropMove(TArray<FAssetData> AssetList, TArray<FString> A
 		ContentBrowserUtils::MoveAssets(DroppedObjects, DestinationPath);
 	}
 
+	// Prepare to fixup any asset paths that are favorites
+	TArray<FMovedContentFolder> MovedFolders;
+	for (const FString& OldPath : AssetPaths)
+	{
+		const FString SubFolderName = FPackageName::GetLongPackageAssetName(OldPath);
+		const FString NewPath = DestinationPath + TEXT("/") + SubFolderName;
+		MovedFolders.Add(FMovedContentFolder(OldPath, NewPath));
+	}
+
 	if (AssetPaths.Num() > 0)
 	{
 		ContentBrowserUtils::MoveFolders(AssetPaths, DestinationPath);
 	}
+
+	OnFolderPathChanged.ExecuteIfBound(MovedFolders);
 }
 
 void SAssetView::SetUserSearching(bool bInSearching)

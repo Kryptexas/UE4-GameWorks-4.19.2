@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -21,6 +21,7 @@ public:
 	/** Default constructor. */
 	FAvfMediaAudioSample()
 		: Channels(0)
+		, Duration(0)
 		, Frames(0)
 		, SampleRate(0)
 		, Time(FTimespan::Zero())
@@ -56,7 +57,8 @@ public:
 		uint32 InFrames,
 		uint32 InChannels,
 		uint32 InSampleRate,
-		FTimespan InTime)
+		FTimespan InTime,
+		FTimespan InDuration)
 	{
 		if (InBufferSize == 0)
 		{
@@ -67,10 +69,10 @@ public:
 		Buffer.AddUninitialized(InBufferSize);
 
 		Channels = InChannels;
-		Duration = FTimespan::FromSeconds((float)InFrames / (float)InSampleRate);
 		Frames = InFrames;
 		SampleRate = InSampleRate;
 		Time = InTime;
+		Duration = InDuration;
 
 		return true;
 	}
@@ -96,7 +98,7 @@ public:
 
 	virtual EMediaAudioSampleFormat GetFormat() const override
 	{
-		return EMediaAudioSampleFormat::Int16;
+		return EMediaAudioSampleFormat::Float;
 	}
 
 	virtual uint32 GetFrames() const override

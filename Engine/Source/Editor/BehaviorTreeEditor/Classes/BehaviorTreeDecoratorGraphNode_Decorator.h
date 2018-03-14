@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,6 +7,8 @@
 #include "BehaviorTreeDecoratorGraphNode.h"
 #include "AIGraphTypes.h"
 #include "BehaviorTreeDecoratorGraphNode_Decorator.generated.h"
+
+struct FGraphNodeClassData;
 
 UCLASS()
 class UBehaviorTreeDecoratorGraphNode_Decorator : public UBehaviorTreeDecoratorGraphNode 
@@ -17,7 +19,7 @@ class UBehaviorTreeDecoratorGraphNode_Decorator : public UBehaviorTreeDecoratorG
 	UObject* NodeInstance;
 
 	UPROPERTY()
-	struct FGraphNodeClassData ClassData;
+	FGraphNodeClassData ClassData;
 
 	virtual void PostPlacedNewNode() override;
 	virtual void AllocateDefaultPins() override;
@@ -26,12 +28,13 @@ class UBehaviorTreeDecoratorGraphNode_Decorator : public UBehaviorTreeDecoratorG
 	virtual EBTDecoratorLogic::Type GetOperationType() const override;
 
 	virtual void PostEditImport() override;
+	virtual void PostEditUndo() override;
 	virtual void PrepareForCopying() override;
 	void PostCopyNode();
 	bool RefreshNodeClass();
 	void UpdateNodeClassData();
 
-private:
-
-	void ResetNodeOwner();
+protected:
+	friend class UBehaviorTreeGraphNode_CompositeDecorator;
+	virtual void ResetNodeOwner();
 };

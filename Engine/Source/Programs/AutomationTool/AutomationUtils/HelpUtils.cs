@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -224,6 +224,11 @@ namespace AutomationTool
 				WindowWidth = Console.WindowWidth;
 			}
 			catch
+			{
+				WindowWidth = 240;
+			}
+
+			if(WindowWidth <= 0)
 			{
 				WindowWidth = 240;
 			}

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintActionFilter.h"
 #include "UObject/Interface.h"
@@ -30,6 +30,7 @@
 #include "BlueprintEventNodeSpawner.h"
 #include "BlueprintBoundEventNodeSpawner.h"
 #include "BlueprintBoundNodeSpawner.h"
+#include "Algo/Transform.h"
 // "impure" node types (utilized in BlueprintActionFilterImpl::IsImpure)
 #include "K2Node_MultiGate.h"
 #include "K2Node_Message.h"
@@ -1378,7 +1379,7 @@ static bool BlueprintActionFilterImpl::ArrayFunctionHasParamOfType(const UFuncti
 {
 	UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	TSet<FString> HiddenPins;
+	TSet<FName> HiddenPins;
 	FBlueprintEditorUtils::GetHiddenPinsForFunction(InGraph, ArrayFunction, HiddenPins);
 
 	FName ParamTag = FBlueprintMetadata::MD_ArrayDependentParam;
@@ -1388,13 +1389,14 @@ static bool BlueprintActionFilterImpl::ArrayFunctionHasParamOfType(const UFuncti
 	}
 	const FString& FlaggedParamMetaData = ArrayFunction->GetMetaData(ParamTag);
 
-	TArray<FString> WildcardPinNames;
-	FlaggedParamMetaData.ParseIntoArray(WildcardPinNames, TEXT(","), /*CullEmpty =*/true);
+	TArray<FString> WildcardPinNameStrs;
+	TArray<FName> WildcardPinNames;
+	FlaggedParamMetaData.ParseIntoArray(WildcardPinNameStrs, TEXT(","), /*CullEmpty =*/true);
+	Algo::Transform(WildcardPinNameStrs, WildcardPinNames, [](const FString& NameStr) { return FName(*NameStr); });
 
 	for (TFieldIterator<UProperty> PropIt(ArrayFunction); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
 	{
 		UProperty* FuncParam = *PropIt;
-		const FString ParamName = FuncParam->GetName();
 
 		const bool bIsFunctionInput = !FuncParam->HasAnyPropertyFlags(CPF_OutParm) || FuncParam->HasAnyPropertyFlags(CPF_ReferenceParm);
 		if (bWantOutput == bIsFunctionInput)
@@ -1402,7 +1404,9 @@ static bool BlueprintActionFilterImpl::ArrayFunctionHasParamOfType(const UFuncti
 			continue;
 		}
 
-		if (!WildcardPinNames.Contains(ParamName) || HiddenPins.Contains(ParamName))
+		const FName ParamName = FuncParam->GetFName();
+
+		if (HiddenPins.Contains(ParamName) || !WildcardPinNames.Contains(ParamName))
 		{
 			continue;
 		}
@@ -1420,7 +1424,6 @@ static bool BlueprintActionFilterImpl::ArrayFunctionHasParamOfType(const UFuncti
 				return true;
 			}
 		}
-
 	}
 
 	return false;
@@ -1439,7 +1442,6 @@ static bool BlueprintActionFilterImpl::IsMissmatchedPropertyType(FBlueprintActio
 			bool const bIsGetter   = BlueprintAction.GetNodeClass()->IsChildOf<UK2Node_VariableGet>();
 			bool const bIsSetter   = BlueprintAction.GetNodeClass()->IsChildOf<UK2Node_VariableSet>();
 
-			//K2Schema->ConvertPropertyToPinType(VariableProperty, /*out*/ VariablePin->PinType);
 			for (int32 PinIndex = 0; !bIsFilteredOut && PinIndex < ContextPins.Num(); ++PinIndex)
 			{
 				UEdGraphPin const* ContextPin = ContextPins[PinIndex];
@@ -1457,7 +1459,7 @@ static bool BlueprintActionFilterImpl::IsMissmatchedPropertyType(FBlueprintActio
 					// just iterate over all the pins
 					bIsFilteredOut = !HasMatchingPin(BlueprintAction, ContextPin);
 				}
-				else if (ContextPinType.PinCategory == K2Schema->PC_Exec)
+				else if (ContextPinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
 				{
 					// setters are impure, and therefore should have exec pins
 					bIsFilteredOut = bIsGetter;

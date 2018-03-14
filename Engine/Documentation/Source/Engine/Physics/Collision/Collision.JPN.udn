@@ -24,16 +24,12 @@ Description:コリジョン、コリジョン反応、コリジョン プリセ�
 [/OBJECT]
 [/VAR]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Essentials
-	[/PARAM]
-	[PARAM:links]
+## Essentials
+
+[REGION:buttonlist]
+
 		* [コリジョンの概要](Engine/Physics/Collision/Overview "%Engine/Physics/Collision/Overview:description%")
 		* [コリジョンの操作ガイド](Engine/Physics/Collision/HowTo "%Engine/Physics/Collision/HowTo:description%")
 		* [コリジョン リファレンス](Engine/Physics/Collision/Reference "%Engine/Physics/Collision/Reference:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]

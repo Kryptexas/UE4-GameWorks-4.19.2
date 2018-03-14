@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "K2Node_GetEnumeratorNameAsString.h"
@@ -17,8 +17,8 @@ void UK2Node_GetEnumeratorNameAsString::AllocateDefaultPins()
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
-	CreatePin(EGPD_Input, Schema->PC_Byte, FString(), nullptr, EnumeratorPinName);
-	CreatePin(EGPD_Output, Schema->PC_String, FString(), nullptr, Schema->PN_ReturnValue);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Byte, EnumeratorPinName);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_String, UEdGraphSchema_K2::PN_ReturnValue);
 }
 
 FText UK2Node_GetEnumeratorNameAsString::GetTooltipText() const

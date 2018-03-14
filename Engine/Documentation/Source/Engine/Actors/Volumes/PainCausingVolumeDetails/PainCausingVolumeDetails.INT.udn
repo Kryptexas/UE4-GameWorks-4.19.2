@@ -10,8 +10,6 @@ type:reference
 
 In addition to the properties that can be assigned from a Physics Volume, the Pain Causing Volume also has its own set of specific propteries outlined below.
 
-![](paincausingvolume.png)
-
 | Property | Description |
 | ------- | ------------ |
 | **Pain Causing** | Whether the volume currently causes damage or not. |

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -17,7 +17,7 @@ public:
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material);
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material);
 
 	/** 
 	 * Sets the view projection parameter
@@ -47,7 +47,7 @@ class FSlateMaterialShaderPS : public FMaterialShader
 public:
 
 	/** Only compile shaders used with UI. */
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material);
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material);
 
 	/** Modifies the compilation of this shader. */
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
@@ -86,9 +86,9 @@ public:
 	{ }
 	
 	/** Only compile shaders used with UI. */
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
-		return FSlateMaterialShaderVS::ShouldCache(Platform, Material);
+		return FSlateMaterialShaderVS::ShouldCompilePermutation(Platform, Material);
 	}
 
 	/** Modifies the compilation of this shader. */
@@ -118,9 +118,9 @@ public:
 	{ }
 	
 	/** Only compile shaders used with UI. */
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
-		return FSlateMaterialShaderPS::ShouldCache(Platform,Material);
+		return FSlateMaterialShaderPS::ShouldCompilePermutation(Platform,Material);
 	}
 
 	/** Modifies the compilation of this shader. */

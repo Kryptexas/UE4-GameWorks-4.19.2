@@ -1,0 +1,119 @@
+Availability: Public
+Crumbs: %ROOT%
+Title: Using Particle Collision Mode for Distance Fields
+Description: How to enable your Particle Systems to use Distance Fields for scene collision.
+Type: how-to
+SkillLevel:Intermediate
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference
+Related:Engine/Rendering/ParticleSystems
+Order:1
+Tags:Lighting
+Topic-image:DFParticleCollision_Topic.png
+Social-image:ParticleDF_Topic.png
+
+
+[REGION:fullwidth raw]
+![](DFParticleBanner.png)
+[/REGION]
+
+
+Particle collision in games can be limited when relying on Scene Depth, which can only use what is within the camera view for collision. Scene Depth isn't very accurate at some angles for 
+particles that have longer lifetimes or that are used over a large area. If you're project is using [Mesh Distance Fields](Engine/Rendering/LightingAndShadows/MeshDistanceFields) for your project, 
+the particle's **Collision Mode** can use the whole-scene for collision instead of Scene Depth.
+
+The **Distance Field** Collision Mode offers more reliable collision than the one for **Scene Depth**. However, because the [Global Distance Field](Engine/Rendering/LightingAndShadows/MeshDistanceFields#GlobalDistanceField)
+is used to represent a lower resolution of the whole scene, you may find that particles will pass through thin objects or that sharp corners are rounded when using the Distance Field Collision Mode. In 
+return for the lower resolution, collision with Distance Fields runs very efficiently. Its performance cost is about the same as Scene Depth collision and it works without camera view restriction. The 
+Distance Field collision mode is a Shader Model 5 (SM5) feature. On hardware that doesn't support SM5, the particles collision will automatically fall back to using Scene Depth collision instead.
+
+In this guide, you'll learn how to enable the Collision Mode for Distance Fields in your Particle System.
+
+## Steps
+
+[REGION:note]
+This feature requires that **Generate Mesh Distance Fields** be enabled in your **Project Settings** in the **Rendering** section. See how to [Enable Mesh Distance Fields](Engine/Rendering/LightingAndShadows/MeshDistanceFields#EnablingDistanceFields) 
+here, if you have not done so already.
+[/REGION]
+
+1. In your **Content Browser**, locate and open any **Particle System** or create a new one if you do not have one readily available. 
+	
+	![](ContentBrowser.png)(w:350)
+
+	[REGION:tip]
+	The particle **P_GPU_particles_collision2** asset from [Content Examples](Resources/ContentExamples) is a good example to use as a starting point with minimal setup.
+	[/REGION]	
+
+1. Double-click on your selected Particle System to open the [Cascade Particle Editor](Engine/Rendering/ParticleSystems).
+	
+	![](Cascade.png)(w:900)
+
+	
+1. Once Cascade Particle Editor opens, right-click in the empty space and from the module list, select **Type Data** > **New GPU Sprites**.
+	
+	[REGION:raw]
+	![](AddGPUmodule.png)(w:700)
+	[/REGION]
+	
+1. Right-click again in the empty space and from the module list, select **Collision** > **Collision(Scene Depth)**. 
+
+	[REGION:raw]
+	![](AddCollisionModule.png)(w:700)
+	[/REGION]
+	
+1. Select the **Collision (Scene Depth)** module. Navigate to the **Details** panel and next to **Collision Mode**, use the drop-down to select **Distance Field**.
+	
+	![](DetailsPanelCollisionMode.png)(w:350)
+	
+
+
+## End Result
+
+Now that you've learned how to enable your Particle Systems to use the Collision Mode for Distance Fields, your particle will be able to collide with the entire scene without relying on Scene Depth. 
+This affords you the flexibility in the types of visual effects and lifetimes of those effects that you create, whether they cover a large area or are localized to a small one.
+
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	r_G5AX1uUZ8
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	75
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	73.5
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+In this example, **Distance Fields** collision is used for particle collision. The particles are always blocked by any surface that has a generated Distnace Field whether it's visible within the camera view or not. As
+the camera moves under the tree, collision of particles on the surface of the tree top (out of the camera view) still affects the particles. 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	v3-BijTrwSQ
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	75
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	73.5
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+When **Scene Depth** collision is used for particle collision, the particles are only blocked by what is visible on with the camera view using the Scene Depth buffer. So, as the camera moves under the tree, collision
+of particles on the surface of the tree top (out of camera view) is no longer affecting the particles causing them to fall on the ground in front of the camera even though they should be blocked.
+

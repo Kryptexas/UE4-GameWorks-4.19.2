@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #include "OculusAudioDllManager.h"
 #include "Paths.h"
 
@@ -61,22 +61,26 @@ void FOculusAudioLibraryManager::Shutdown()
 
 bool FOculusAudioLibraryManager::LoadDll()
 {
+#if PLATFORM_WINDOWS
 	if (!FOculusAudioLibraryManager::OculusAudioDllHandle)
 	{
 		FString Path = FPaths::EngineDir() / FString::Printf(TEXT("Binaries/ThirdParty/Oculus/Audio/Win64/"));
 		FPlatformProcess::PushDllDirectory(*Path);
-		FOculusAudioLibraryManager::OculusAudioDllHandle = FPlatformProcess::GetDllHandle(*(Path + "ovraudio64.dll"));
+		FOculusAudioLibraryManager::OculusAudioDllHandle = FPlatformProcess::GetDllHandle(*(Path + "ovraudio64.dll")); // FIXME: support win32
 		FPlatformProcess::PopDllDirectory(*Path);
 		return FOculusAudioLibraryManager::OculusAudioDllHandle != nullptr;
 	}
+#endif
 	return true;
 }
 
 void FOculusAudioLibraryManager::ReleaseDll()
 {
+#if PLATFORM_WINDOWS
 	if (FOculusAudioLibraryManager::NumInstances == 0 && FOculusAudioLibraryManager::OculusAudioDllHandle)
 	{
 		FPlatformProcess::FreeDllHandle(OculusAudioDllHandle);
 		FOculusAudioLibraryManager::OculusAudioDllHandle = nullptr;
 	}
+#endif
 }

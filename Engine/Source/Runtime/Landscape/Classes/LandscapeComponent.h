@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -271,6 +271,9 @@ class ULandscapeComponent : public UPrimitiveComponent
 	UPROPERTY(TextExportTransient)
 	TArray<UMaterialInstanceConstant*> MaterialInstances;
 
+	UPROPERTY(Transient, TextExportTransient)
+	TArray<UMaterialInstanceDynamic*> MaterialInstancesDynamic;
+
 	/** List of layers, and the weightmap and channel they are stored */
 	UPROPERTY()
 	TArray<FWeightmapLayerAllocationInfo> WeightmapLayerAllocations;
@@ -432,6 +435,7 @@ public:
 	virtual int32 GetStaticLightMapResolution() const override;
 	virtual void GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const override;
 	virtual void GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPrimitiveInfo,const TArray<ULightComponent*>& InRelevantLights,const FLightingBuildOptions& Options) override;
+	virtual void AddMapBuildDataGUIDs(TSet<FGuid>& InGUIDs) const override;
 #endif
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
@@ -506,6 +510,12 @@ public:
 	/** Generate mobile data if it's missing or outdated */
 	void CheckGenerateLandscapePlatformData(bool bIsCooking);
 #endif
+
+	LANDSCAPE_API class UMaterialInstance* GetMaterialInstance(int32 InIndex, bool InDynamic = true) const;
+
+	/** Gets the landscape material instance dynamic for this component */
+	UFUNCTION(BlueprintCallable, Category = "Landscape Runtime | Material")
+	class UMaterialInstanceDynamic* GetMaterialInstanceDynamic(int32 InIndex) const;
 
 	/** Get the landscape actor associated with this component. */
 	ALandscape* GetLandscapeActor() const;

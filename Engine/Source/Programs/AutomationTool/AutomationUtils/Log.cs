@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,6 +34,7 @@ namespace AutomationTool
                 bLogTimestamps: CommandUtils.ParseParam(CommandLine, "-Timestamps"),
 				InLogLevel: (UnrealBuildTool.LogEventType)Enum.Parse(typeof(UnrealBuildTool.LogEventType), CommandUtils.ParseParamValue(CommandLine, "-Verbose=", "Log")),
                 bLogSeverity: true,
+				bLogProgramNameWithSeverity: false,
                 bLogSources: true,
 				bLogSourcesToConsole: false,
                 bColorConsoleOutput: true,

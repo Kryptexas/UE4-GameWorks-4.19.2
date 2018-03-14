@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "StaticMeshActorDetails.h"
 #include "Modules/ModuleManager.h"
@@ -84,49 +84,47 @@ void FStaticMeshActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuil
 		]
 	];
 
-	// If experimental feature is enabled addd a Bake Materials button to the SMA's details, this allows baking out the materials for the given instance data
-	if (GetDefault<UEditorExperimentalSettings>()->bAssetMaterialBaking)
-	{
-		TArray<TWeakObjectPtr<UObject>> Objects;
-		DetailBuilder.GetObjectsBeingCustomized(Objects);
-		IDetailCategoryBuilder& MaterialsCategory = DetailBuilder.EditCategory("Materials");
-		FDetailWidgetRow& ButtonRow = MaterialsCategory.AddCustomRow(LOCTEXT("RowLabel", "BakeMaterials"), true);
-		ButtonRow.ValueWidget
+	// This allows baking out the materials for the given instance data	
+	TArray<TWeakObjectPtr<UObject>> Objects;
+	DetailBuilder.GetObjectsBeingCustomized(Objects);
+	IDetailCategoryBuilder& MaterialsCategory = DetailBuilder.EditCategory("Materials");
+	FDetailWidgetRow& ButtonRow = MaterialsCategory.AddCustomRow(LOCTEXT("RowLabel", "BakeMaterials"), true);
+	ButtonRow.ValueWidget
+	[
+		SNew(SHorizontalBox)
+		+SHorizontalBox::Slot()
+		.FillWidth(1.0f)
 		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.FillWidth(1.0f)
-			[
-				SNew(SButton)
-				.Text(LOCTEXT("BakeLabel", "Bake Materials"))
-				.OnClicked_Lambda([Objects]() -> FReply
-				{
-					const IMeshMergeUtilities& MeshMergeUtilities = FModuleManager::Get().LoadModuleChecked<IMeshMergeModule>("MeshMergeUtilities").GetUtilities();
+			SNew(SButton)
+			.Text(LOCTEXT("BakeLabel", "Bake Materials"))
+			.OnClicked_Lambda([Objects]() -> FReply
+			{
+				const IMeshMergeUtilities& MeshMergeUtilities = FModuleManager::Get().LoadModuleChecked<IMeshMergeModule>("MeshMergeUtilities").GetUtilities();
 
-					// Retrieve all currently selected static mesh components
-					TArray<UStaticMeshComponent*> StaticMeshComponents;
-					for (TWeakObjectPtr<UObject> WeakObject : Objects)
+				// Retrieve all currently selected static mesh components
+				TArray<UStaticMeshComponent*> StaticMeshComponents;
+				for (TWeakObjectPtr<UObject> WeakObject : Objects)
+				{
+					if (WeakObject.IsValid())
 					{
-						if (WeakObject.IsValid())
+						UObject* Object = WeakObject.Get();
+						if (AStaticMeshActor* Actor = Cast<AStaticMeshActor>(Object))
 						{
-							UObject* Object = WeakObject.Get();
-							if (AStaticMeshActor* Actor = Cast<AStaticMeshActor>(Object))
-							{
-								StaticMeshComponents.Add(Actor->GetStaticMeshComponent());
-							}
+							StaticMeshComponents.Add(Actor->GetStaticMeshComponent());
 						}
 					}
+				}
 
-					for (UStaticMeshComponent* Component : StaticMeshComponents)
-					{
-						MeshMergeUtilities.BakeMaterialsForComponent(Component);
-					}
+				for (UStaticMeshComponent* Component : StaticMeshComponents)
+				{
+					MeshMergeUtilities.BakeMaterialsForComponent(Component);
+				}
 				
-					return FReply::Handled();
-				})
-			]
-		];		
-	}
+				return FReply::Handled();
+			})
+		]
+	];		
+	
 }
 
 #undef LOCTEXT_NAMESPACE

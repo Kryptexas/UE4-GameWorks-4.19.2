@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintNodeHelpers.h"
 #include "UObject/UnrealType.h"
@@ -276,7 +276,7 @@ namespace BlueprintNodeHelpers
 			UWorld* MyWorld = OwnerOb.GetOwner()->GetWorld();
 			if (MyWorld)
 			{
-				MyWorld->GetLatentActionManager().RemoveActionsForObject(&Ob);
+				MyWorld->GetLatentActionManager().RemoveActionsForObject(MakeWeakObjectPtr(const_cast<UObject*>(&Ob)));
 				MyWorld->GetTimerManager().ClearAllTimersForObject(&Ob);
 			}
 		}

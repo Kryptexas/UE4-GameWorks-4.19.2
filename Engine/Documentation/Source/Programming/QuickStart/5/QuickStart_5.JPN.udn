@@ -21,7 +21,7 @@ Version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 ここまでで学んだ知識を活かして、以下の操作をしてみましょう。
 
@@ -34,4 +34,4 @@ Version:4.9
 * アクタ の詳細については、[アクタ](API:AActor) ページをご覧ください。
 * その他のチュートリアルは、[%Programming/Tutorials:title%](Programming/Tutorials) ページをご覧ください。
 
-%Steps%
+

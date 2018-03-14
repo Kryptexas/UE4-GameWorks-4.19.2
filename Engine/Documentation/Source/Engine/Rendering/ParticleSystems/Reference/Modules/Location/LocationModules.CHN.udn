@@ -85,7 +85,8 @@ LAd89U2b-YY
 
 
 
-<!-------------Bone/Socket Location Includes----------------
+[COMMENT:none]
+-----------Bone/Socket Location Includes----------------
 
 
 [EXCERPT:BoneSelMethod]
@@ -122,7 +123,8 @@ LAd89U2b-YY
 
 
 
--------------End Bone/Socket Location Includes--------------->
+-------------End Bone/Socket Location Includes-------------
+[/COMMENT]
 
 ## Direct Location
 
@@ -154,7 +156,8 @@ LAd89U2b-YY
 
 
 
-<!-------------Emitter Init Loc Includes----------------
+[COMMENT:none]
+-----------Emitter Init Loc Includes----------------
 #### Includes
 
 [EXCERPT:InitLocSelMethod]
@@ -166,7 +169,8 @@ LAd89U2b-YY
 [/REGION]
 [/EXCERPT:InitLocSelMethod]
 
--------------End Emitter Init Loc Includes--------------->
+-------------End Emitter Init Loc Includes-------------
+[/COMMENT]
 
 
 ## Emitter Direct Loc
@@ -213,7 +217,8 @@ sefKMZtdGR0
 
 
 
-<!-------------Cylinder Includes----------------
+[COMMENT:none]
+-----------Cylinder Includes----------------
 #### Includes
 
 [EXCERPT:CylinderHeightAxis]
@@ -226,7 +231,8 @@ sefKMZtdGR0
 [/REGION]
 [/EXCERPT:CylinderHeightAxis]
 
--------------End Cylinder Includes--------------->
+-------------End Cylinder Includes-------------
+[/COMMENT]
 
 ## Cylinder (Seeded)
 
@@ -338,7 +344,8 @@ ZM6GkFxO-b0
 |**Valid Material Indices** | 提供应用至发射粒子的骨骼网格体的材质列表。仅在特定材质需要发射粒子时方有作用。设为空可使材质进行发射。|
 
 
-<!-------------Vert/Surf Location Includes----------------
+[COMMENT:none]
+-----------Vert/Surf Location Includes----------------
 #### Includes
 
 
@@ -360,7 +367,8 @@ ZM6GkFxO-b0
 [/REGION]
 [/EXCERPT:VertSourceType]
 
--------------End Vert/Surf Location Includes--------------->
+-------------End Vert/Surf Location Includes-------------
+[/COMMENT]
 
 
 

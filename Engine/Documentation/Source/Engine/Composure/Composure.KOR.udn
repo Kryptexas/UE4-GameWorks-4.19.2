@@ -1,38 +1,42 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: Composure Editor
+﻿INTSourceChangelist:3782314
+Availability:Public
+Title: 컴포셔 에디터
 Crumbs: %ROOT%, Engine
-Description:Composure is Unreal Engine 4's compositing editor used for compositing digital and real world footage together in real time in Unreal Engine 4. 
+Description:Composure, 컴포셔는 언리얼 엔진 4 에서 디지털 콘텐츠와 현실의 영상을 실시간으로 합성하는 데 사용되는 합성 에디터입니다.
 Type: Landing
 Version: 4.17
 parent:Engine
+order:4
 topic-image:ComposureTopic.png
 related: Engine/Sequencer
 tags:Sequencer
 
 ![](ComposureBanner.png)
 
-The **Composure** Editor can be used in conjunction with the Sequencer Editor to enable real time compositing of computer generated footage with real world footage much like you would see in movies and tv shows. From being able to match Camera Lens Distortion to being able to determine the difference between foreground and background objects, the Composure Editor works similarly to any other compositing software out there; the major difference is that Composure does everything in real time.
+**Composure**, 컴포셔 에디터는 영화나 TV 쇼에서 보던 것처럼 시퀀서 에디터와 함께 사용하여 컴퓨터 생성 영상을 현실의 영상과 합성하는 데 사용됩니다. 카메라 렌즈 디스토션을 맞추는 기능부터 배경과 전경의 오브젝트 사이 차이를 감지하는 기능까지, 컴포셔 에디터는 시중의 다른 합성 소프트웨어와 비슷한 방식으로 작동합니다. 하지만 큰 차이점이라면, 컴포셔는 모든 것을 실시간으로 해낸다는 것입니다.
 
-On this page, you will find links to a number of different documents that cover the different aspects of using Composure in Unreal Engine 4 (UE4).  If you are new to Composure, it is recommended that you first check out the Composure Quick Start to get a better idea of how Composure can be used in conjunction with Sequencer.
+여기서는 언리얼 엔진 4 (UE4) 에서 컴포셔를 사용하는 데 관련된 여러가지 부분을 다루는 다양한 문서에 대한 링크를 찾을 수 있습니다. 컴포셔에 익숙치 않은 경우, 먼저 컴포셔 퀵 스타트를 참고해 보시면 시퀀서와 같이 사용하는 법을 파악할 수 있을 것입니다.
 
-## Starting Out
+## 시작하기
 
 [DIR(output:"topic" parent:"Engine/Composure" org:"hierarchy" end:"1" tags:"Getting Started")]
 
-## Essentials
+[COMMENT:none]
+
+## 필독서
 
 
 
-## Guides
+## 가이드
 
 [DIR(output:"fancy" parent:"Engine/Composure/HowTo" org:"hierarchy" skill_Level:"Beginner")]
 [DIR(output:"fancy" parent:"Engine/Composure/HowTo" org:"hierarchy" skill_Level:"Intermediate")]
 [DIR(output:"fancy" parent:"Engine/Composure/HowTo" org:"hierarchy" skill_Level:"Advanced")]
 
-## Samples
+## 샘플
 
 
+[/COMMENT]
 
 
 

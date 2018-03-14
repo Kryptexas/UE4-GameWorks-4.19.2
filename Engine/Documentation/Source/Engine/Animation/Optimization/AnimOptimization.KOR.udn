@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3782314
+Availability: Public
 Crumbs: %ROOT%, Engine, Engine/Animation
-Title: Animation Optimization
-Description: Describes methods to achieve more performant Animation Blueprints through optimization techniques.
+Title: 애니메이션 최적화
+Description: 애니메이션 블루프린트의 퍼포먼스를 높이는 최적화 기법에 대한 설명입니다.
 Type: Overview
 SkillLevel: Advanced
 Version: 4.16
@@ -16,46 +16,46 @@ Related: Engine/Performance
 
 [TOC (start:2 end:2)]
 
-As you construct your [](Engine/Animation/AnimBlueprints), there are some practices you should keep in mind to ensure the animation in your project runs as smoothly as possible. 
-Some of these are enabled by default while others will require that you consider the approach you take in setting up your Animation Blueprints. 
-While other efforts can be performed through C++ that will also grant you some control over how and when animations are updated, which can lead to improved performance. 
+[](Engine/Animation/AnimBlueprints) 를 만드는 와중에, 프로젝트에서 애니메이션이 최대한 부드럽게 돌아가도록 하기 위해 유념해야 할 것이 몇 가지 있습니다.
+이 중 어떤 것은 기본으로 적용되는 것도 있고, 어떤 것은 애니메이션 블루프린트를 구성할 때 접근법을 고려해야 하는 것도 있습니다.
+C++ 를 통해 애니메이션 업데이트 방법이나 발생 시기도 제어할 수 있도록 해주면, 퍼포먼스를 더욱 향상시킬 수 있습니다.
 
 
-## Multi Threaded Animation Update
+## 멀티 스레드 애니메이션 업데이트
 
-This allows more animation work to run in worker threads and is enabled by default which you can find in your [Project Settings](https://docs.unrealengine.com/latest/INT/Engine/UI/ProjectSettings/): 
+보다 많은 애니메이션 작업을 워커 스레드에서 돌릴 수 있도록 해주는 [프로젝트 세팅](Engine/UI/ProjectSettings) 이며, 기본으로 켜져있습니다:
 
-* Inside the **Project Settings** under **General Settings > Anim Blueprints**, make sure **Allow Multi Threaded Animation Update** is enabled.
+* **프로젝트 세팅** 에서 **General Settings** (일반 세팅) > **Anim Blueprints** (애님 블루프린트** 아래 **Allow Multi Threaded Animation Update** (멀티 스레드 애니메이션 업데이트 허용) 옵션이 켜졌는지 확인합니다.
 
 	![](ProjectSettings.png)
 
-This controls whether by default we allow Animation Blueprint Graph updates to be performed on non-game threads. 
-This also enables some extra checks in the Animation Blueprint compiler that will warn when unsafe operations are being attempted.
-Inside your **Animation Blueprints**, you will also want to make sure that it is set to **Use Multi Threaded Animation Update**.  
+이 옵션은 기본적으로 애니메이션 블루프린트 그래프 업데이트가 게임 스레드 이외에서 이루어질 수 있도록 하는 것입니다.
+또한 애니메이션 블루프린트 컴파일러에 안전하지 않은 연산을 시도할 때 경고를 띄우는 몇 가지 검사도 같이 활성화됩니다.
+**애니메이션 블루프린트** 안에서, **Use Multi Threaded Animation Update** (멀티 스레드 애니메이션 업데이트 사용) 옵션도 켜져있는지 확인하는 것이 좋습니다.
 
-* Inside your Animation Blueprint under the **Class Settings**, make sure that **Use Multi Threaded Animation Update** is enabled. 
+* 애니메이션 블루프린트에서 **클래스 세팅** 아래 **Use Multi Threaded Animation Update** (멀티 스레드 애니메이션 업데이트 사용) 옵션이 켜졌는지 확인합니다.
 
 	![](AnimBPMultiThreadOption.png)
 
-The main driver behind this was to control data access more tightly across threads. To this end, much anim-graph-accessed data has been moved from `UAnimInstance` to a new struct called `FAnimInstanceProxy`. 
-This proxy structure is where the bulk of the data on `UAnimInstance` is found. 
+이 기능의 주된 동력은 여러 스레드에 걸친 데이터 접근 밀도를 높이기 위해서였습니다. 그러기 위해, 다수의 애님 그래프 접근 데이터를 [`UAnimInstance`](https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/Animation/UAnimInstance/index.html) 에서 새로운 구조체 [`FAnimInstanceProxy`](https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/Animation/FAnimInstanceProxy/index.html) 로 옮겼습니다. 
+이 프록시 구조체에 `UAnimInstance` 에서 찾은 다량의 데이터가 있습니다.
 
-In general, the `UAnimInstance` should not be accessed or mutated from within AnimGraph nodes (Update/Evaluate calls) as these can be run on other threads. 
-There are locking wrappers (`GetProxyOnAnyThread` and `GetProxyOnGameThread`) that prevent access to the `FAnimInstanceProxy` while tasks are in-flight.
-The idea is that in the worst case, tasks wait for completion before data is allowed to be read from or written to in the proxy. 
+일반적으로, `UAnimInstance` 는 애님그래프 노드 내에서 (Update/Evaluate 호출로) 접근 또는 치환되어서는 안됩니다. 다른 스레드에서 실행할 수 없기 때문입니다.
+태스크 처리(in-flight) 도중 `FAnimInstanceProxy` 접근을 방지하기 위한 잠금 래퍼가 ([`GetProxyOnAnyThread`](https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/Animation/UAnimInstance/GetProxyOnAnyThread/index.html) 및 [`GetProxyOnGameThread`](https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/Animation/UAnimInstance/GetProxyOnGameThread/index.html)) 있습니다.
+최악의 경우, 태스크 완료를 기다린 후 프록시에서 데이터 읽기 쓰기를 허용한다는 개념입니다.
 
-From the Anim Graph point of view, only the `FAnimInstanceProxy` can be accessed from animation nodes, not the `UAnimInstance`. 
-Data must be exchanged with the proxy for each tick (either through buffering, copying or some other strategy) in `FAnimInstanceProxy::PreUpdate` or `FAnimInstaceProxy::PreEvaluateAnimation`. 
-Any data that then needs to be accessed by external objects should then be exchanged/copied from the proxy in `FAnimInstanceProxy::PoseUpdate`.
+애님 그래프 관점에서는, 애니메이션 노드로부터 `FAnimInstanceProxy` 만 접근 가능하지, `UAnimInstance` 는 아닙니다. 
+매 틱마다 프록시와의 데이터 교환은 (버퍼링이든 복사든 기타 다른 전략을 통해서든) [`FAnimInstanceProxy::PreUpdate`](https://docs.unrealengine.com/latest/INT/API/Editor/AnimGraph/FAnimPreviewInstanceProxy/PreUpdate/index.html) 또는 [`FAnimInstaceProxy::PreEvaluateAnimation`](https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/Animation/FAnimInstanceProxy/PreEvaluateAnimation/index.html) 에서 일어나야 합니다. 
+그 후 외부 오브젝트에서 접근할 필요가 있는 데이터가 있으면 [`FAnimInstanceProxy::PostUpdate`](https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/Animation/FAnimInstanceProxy/PostUpdate/index.html) 에서 프록시를 통해 교환/복사해야 할 것입니다.
 
 [REGION:tip]
-This is in conflict with the general use case of `UAnimInstance` where member variables can be accessed from other classes while tasks are in-flight. 
-As a recommendation, try to not directly access the Anim Instance at all from other classes. Instead, the Anim Instance should pull data from elsewhere. 
+이는 태스크 처리 도중 다른 클래스에서 멤버 변수를 접근할 수 있는 `UAnimInstance` 의 일반적 용도와 충돌이 일어나는 부분입니다.
+다른 클래스에서 애님 인스턴스 직접 접근을 아예 시도조차 않는 것을 추천합니다. 그 대신, 애님 인스턴스는 다른 곳에서 데이터를 끌어와야 합니다.
 [/REGION]
 
-### Example Custom Native AnimInstance 
+### 예제 커스텀 네이티브 AnimInstance
 
-In the code block below is an example of how one would build a custom native AnimInstance class using the new `FAnimInstanceProxy`, granting access to its innards and avoiding copies of shared data between the proxy and the instance: 
+아래 코드 블럭은 새로운 `FAnimInstanceProxy` 를 사용하여 커스텀 네이티브 AnimInstance 클래스를 만드는 예제로, 내부 작업 접근을 허가하고 프록시와 인스턴스 사이 공유 데이터 복사를 피하고 있습니다:
 
 	USTRUCT()
 
@@ -135,135 +135,136 @@ In the code block below is an example of how one would build a custom native Ani
 
 	};
 
-## Animation Fast Path
+## 애니메이션 빠른 경로
 
-**Animation Fast Path** provides a way to optimize variable access inside the **AnimGraph** update. 
-This enables the engine to copy parameters internally rather than executing Blueprint code (which involves making calls into the Blueprint Virtual Machine). 
-The compiler can currently optimize the following constructs: member variables negated boolean member variables and members of a nested structure.
+**Animation Fast Path** (애니메이션 빠른 경로)는 **애님그래프** 업데이트 내 변수 접근을 최적화시킬 수 있는 방편입니다.
+엔진이 블루프린트 코드를 실행(시켜 블루프린트 가상 머신을 호출)하도록 하기 보다는 파라미터를 내부적으로 복사할 수 있도록 해줍니다.
+컴파일러가 현재 최적화시킬 수 있는 구조체는 멤버 변수, 부정 불리언 멤버 변수, 중첩 구조체의 멤버 등입니다.
 
-The Animation Fast Path option is enabled by default inside the **Project Settings**: 
+애니메이션 빠른 경로 옵션은 **프로젝트 세팅** 중 기본으로 켜져있습니다:
 
-* Inside the **Project Settings** under **General Settings** and **Anim Blueprints**, make sure **Optimize Anim Blueprint Member Variable Access** is enabled.
+* **프로젝트 세팅** 의 **General Settings** (일반 세팅) 아래 **Anim Blueprints** (애님 블루프린트)에서 **Optimize Anim Blueprint Member Variable Access** (애님 블루프린트 멤버 변수 접근 최적화) 옵션이 켜졌는지 확인합니다.
 
 	![](FastPathEnabled.png)
 
-To make use of Animation Fath Path, inside the AnimGraph of your Animation Blueprints, ensure that no Blueprint logic is being executed. 
-In the image below, we are reading several float values which are being used to drive multiple Blend Space assets and a Blend resulting in our Final Animation Pose.
-Each node denoted with the lightning icon in the upper right corner are utilizing Fast Path as no logic is being executed. 
+애니메이션 빠른 경로 옵션을 활용하기 위해서는, 애니메이션 블루프린트의 애님 그래프 안에서, 실행중인 블루프린트 로직이 없는지 확인합니다.
+아래 그림에서, 다수의 블렌드 스페이스 애셋을 구동시키는 데 사용되고 있는 플로트 값을 다수 읽어 Blend 를 통해 최종 애니메이션 포즈를 만들고 있습니다.
+각 노드 우상단 구석에 있는 번개 아이콘을 통해 실행중인 로직이 없어 빠른 경로를 활용중임을 알 수 있습니다.
 
 ![](FastPathExample_1.png)
 
-If we were to change this network to include any form of calculation such as the example depicted below, the associated node would no longer be using Fast Path. 
+이 망에 아래 예제와 같은 계산 형태를 추가한다면, 그에 연관된 노드는 더이상 빠른 경로를 사용하지 않을 것입니다.
 
 ![](FastPathExample_2.png)
 
-Above, since we are now executing Blueprint logic to generate the values feeding the **TEST_Blend2D** node, it is no longer using Fast Path (and the lighting icon will be removed).
+위는, 이제 블루프린트 로직을 실행하여 **TEST_Blend2D** 노드에 물려주는 값을 생성하고 있기에, 더이상 빠른 경로를 사용하지 않습니다 (번개 아이콘이 제거됩니다).
 
-### Fast Path Methods
+### 빠른 경로 메소드
 
-In order for your Animation Blueprints to use Fast Path, ensure that they either: 
+애니메이션 블루프린트가 빠른 경로를 사용하도록 하기 위해서 확인할 사항:
 
-**Access Member Variables Directly**
+**Access Member Variables Directly** (멤버 변수 직접 접근)
 
-Below we are using Fast Path by directly accessing and reading the value of our boolean variable to determine our pose. 
+아래는 빠른 경로를 사용하여 불리언 변수 값을 직접 접근하여 읽어서 포즈를 결정하고 있습니다.
 
 ![](AccessDirectly.png)
 
-In the next example, we are not using Fast Path as we are performing logic to determine if the boolean variable is equal to true. 
+다음 예제에서는, 빠른 경로를 사용하지 않고 있는데, 불리언 변수가 true 와 같은지 알아보는 로직을 통하고 있기 때문입니다.
 
 ![](AccessDirectlyBPLogic.png)
 
-**Access Negated Boolean Member Variables**
+**부정 불리언 멤버 변수 접근**
 
-Below we are using Fast Path by reading the value of the negated boolean to determine our pose. 
+아래는 빠른 경로를 사용하여 부정 불리언 값을 읽어 포즈를 결정하고 있습니다.
 
 ![](AccessNegatedBooleans.png)
 
-In the next example, we are not using Fast Path as we are performing logic to determine if the boolean variable is not equal to true. 
+다음 예제에서는, 빠른 경로를 사용하지 않고 있는데, 불리언 변수가 true 와 같지 않은지 알아보는 로직을 통하고 있기 때문입니다.
 
 ![](AccessNegatedBooleansBPLogic.png)
 
-**Access Members of a Nested Struct**
+**중첩 구조체 멤버 접근**
 
-Below we break our rotator variable to directly access our Pitch and Yaw variables to feed our Aim Offset. 
+아래는 로테이터 변수를 분리하여 Pitch 와 Yaw 변수를 직접 접근하여 Aim Offset 에 물려주고 있습니다.
 
 ![](AccessMembersOfStruct.png)
 
-**Access Members Using "Break Struct" Nodes**
+**Break Struct 노드를 사용하여 멤버 접근**
 
-Below we use a Break Struct node to break our rotator variable into XYZ values to feed our Aim Offset. 
+아래는 Break Struct 노드로 로테이터를 XYZ 값으로 분리하여 Aim Offset 에 물려주고 있습니다.
 
 ![](AccessByBreakStruct.png)
 
 [REGION:note]
-Some **Break Struct** nodes like **Break Transform** will not currently use Fast Path as they perform conversions internally rather than simply copying data. 
+몇몇 **Break Struct** 노드 중 **Break Transform** 같은 것은 현재 빠른 경로를 사용하지 않고 있는데, 단순히 데이터를 복사하는 게 아니라 내부적으로 변환을 하기 때문입니다.
 [/REGION]
 
 
 
-### Warn About Blueprint Usage
+### 블루프린트 사용 관련 경고
 
 
-To ensure that your Animation Blueprints are using Fast Path, you can enable the **Warn About Blueprint Usage** option which will cause the compiler to emit warnings to the Compiler Results log whenever a call into the Blueprint Virtual Machine is made from the AnimGraph. 
+애니메이션 블루프린트가 빠른 경로를 사용하는지 확인하기 위해서는, **Warn About Blueprint Usage** (블루프린트 사용 관련 경고) 옵션을 켜면 애님그래프에서 블루프린트 가상 머신으로 호출을 할 때마다 컴파일러가 컴파일러 결과 로그 창에 경고를 내도록 합니다.
 
-* To enable **Warn About Blueprint Usage**, enable the option inside the **Class Settings** of your **Animation Blueprint** under **Optimization**. 
+* **Warn About Blueprint Usage** 옵션은 **애니메이션 블루프린트** 의 **클래스 세팅** 내 **Optimization** (최적화) 아래에서 찾을 수 있습니다. 
 
 	![](WarningOption.png)
 
-	When the compiler identifies any nodes that are not using Fast Path, they will be displayed in the **Compiler Results** log. 
+	컴파일러가 빠른 경로를 사용하지 않는 노드를 확인할 때마다, **컴파일러 결과* 로그에 표시해 줍니다.
 
 	![](ExampleWarningShown.png)
 
-	Above, since we are executing Blueprint logic in our AnimGraph and have the warning option enabled, we get a warning message in the compiler results and can click on it to take us to the offending node. 
-	This can help track down optimizations that need to be made and will enable you to identify the node(s) that may be the source of the problem. 
+	위에서, 애님 그래프에 블루프린트 로직을 실행하고 경고 옵션이 켜져 있어서, 컴파일러 경고 창에 경고 메시지가 뜨며, 그것을 클릭하면 문제가 된 노드로 이동합니다.
+	어떤 최적화가 필요한지 추적하는데 도움이 되며, 문제의 원인이 될 수 있는 노드를 알아낼 수 있습니다.
 
-<!--
+[COMMENT:none]
+
 ## Update Rate Optimization (URO)
 
 WB Note - Omitting this for now as it's slated for improvements in 4.18
 
--->
+
+[/COMMENT]
 
 
-## General Tips
+## 일반 팁
 
-As you start to consider the performance of your animation usage, here are some guidelines that you may want to follow when performing optimizations.
+애니메이션 사용 퍼포먼스를 고려하기 시작하면서, 최적화 작업을 할 때 따르면 좋을 몇 가지 지침입니다.
 
 [REGION:note]
-Based on the size and scope of your project, more invasive changes may be needed however this is generally a good place to start. 
+프로젝트의 규모와 범위에 따라, 조금 더 심한 변화가 필요할 수도 있지만, 일반적으로는 이 정도로 시작하기 좋습니다.
 [/REGION]
 
-* **Make sure that the conditions for Parallel Updates are met**
-	 * In `UAnimInstance::NeedsImmediateUpdate` you can see all the conditions that must be met to avoid the update phase of animation running on the game thread. 
-	If root motion is required for character movement, the parallel update cannot be performed as character movement is not multi threaded. 
-* **Avoid calls into the Blueprint Virtual Machine**
-	* Consider [](Engine/Blueprints/TechnicalGuide/NativizingBlueprints) into C++ code. 
-	* Keep your **Event Graph** in your Animation Blueprints empty. Use a custom `UAnimInstance` and `FAnimInstanceProxy` derived class and do all of your work in the proxy during `FAnimInstanceProxy::Update` or `FAnimInstanceProxy::Evaluate` as these are executed on worker threads. 
-	* Ensure that the nodes within your **Anim Graph** of your Animation Blueprint are structured in a way that they are using [Fast Path](#animationfastpath). 
-	* Ensure that **Optimize Anim Blueprint Member Variable Access** is enabled in the **Project Settings** as this controls whether Animation Blueprint nodes that access member variables of their class directly should use the optimized path that avoids a thunk to the Blueprint VM.
-	* Generally the most costly part of an AnimGraph's execution, avoiding calls to the virtual machine is the key to getting maximum performance out of Animation Blueprints. 
-* **Use Update Rate Optimizations (URO)**
-	* This will prevent your animations from ticking too often. Control over how this is applied is up to your game, but we recommend moving toward ~15Hz and under Update Rates at appropriate distances for many characters, as well as disabling interpolation. 
-	* To enable, set your Skeletal Mesh Component to **Enable Update Rate Optimizations** and refer to `AnimUpdateRateTick()`. 
-		* Optionally, you can also enable **Display Debug Update Rate Optimizations** to enable onscreen debugging of URO being applied. 
-* **Enable Component Use Fixed Skel Bounds**
-	* In your Skeletal Mesh Component, enable the **Component Use Skel Bounds** option. 
-	* This will skip using a physics asset and will instead always use the fixed bounds defined in the Skeletal Mesh. 
-	* This will also skip recalculating bounding volumes for culling for every frame, increasing performance. 
+* **Parallel Updates (병렬 업데이트) 조건이 만족되었는지 확인하세요.**
+	 * 게임 스레드에서 실행중인 애니메이션의 업데이트 페이즈를 피하기 위해 만족해야 하는 모든 조건은 `UAnimInstance::NeedsImmediateUpdate` 에서 확인할 수 있습니다.
+	캐릭터 이동에 루트 모션이 필요한 경우, 캐릭터 이동은 멀티 스레드가 아니라 병렬 업데이트가 불가능합니다.
+* **블루프린트 가상 머신으로의 호출을 피하세요.**
+	* [블루프린트 네이티브화](Engine/Blueprints/TechnicalGuide/NativizingBlueprints) 를 통해 C++ 코드로 변환하는 것을 고려해 보세요.
+	* 애니메이션 블루프린트의 **이벤트 그래프** 를 비워두세요. 커스텀 `UAnimInstance` 및 `FAnimInstanceProxy` 파생 클래스를 사용하고 프록시의 모든 작업은 워커 스레드에서 실행되는 `FAnimInstanceProxy::Update` 나 `FAnimInstanceProxy::Evaluate` 도중에 하세요.
+	* 애니메이션 블루프린트의 **애님 그래프** 내 노드가 빠른 경로를 사용하도록 되어있는지 구조를 확인하세요.
+	* **프로젝트 세팅** 의 **Optimize Anim Blueprint Member Variable Access** (애님 블루프린트 멤버 변수 최적화) 옵션이 켜져있는지 확인하세요. 자기 클래스의 멤버 변수에 직접 접근하는 애니메이션 블루프린트 노드가 블루프린트 가상 머신으로의 썽크를 피하는 최적화된 경로를 사용하는지 여부를 제어해주는 옵션입니다.
+	* 일반적으로 애님 그래프 실행의 가장 비싼 부분인 가장 머신으로의 호출을 피하는 것이 애니메이션 블루프린트의 퍼포먼스를 최대로 뽑아내는 핵심입니다.
+* **업데이트 속도 최적화(URO)를 사용하세요.**
+	* 애니메이션 틱이 너무 자주 발생하지 않도록 해줍니다. 이 옵션을 어떻게 적용할지는 게임에 달려있지만, 다수 캐릭터의 적당한 거리에서 업데이트 속도를 15Hz 미만으로 하고 보간도 끌 것을 추천합니다.
+	* 이 옵션을 켜려면, 스켈레탈 메시 컴포넌트의 **Enable Update Rate Optimizations** (업데이트 속도 최적화 켜기) 옵션을 설정하고 `AnimUpdateRateTick()` 을 레퍼런싱합니다. 
+		* 옵션으로, **Display Debug Update Rate Optimizations** (업데이트 속도 최적화 디버그 표시)를 켜면 적용중인 URO 디버깅 화면 표시를 사용할 수 있습니다.
+* **컴포넌트가 스켈 바운드 사용 옵션을 켜세요.**
+	* 스켈레탈 메시 컴포넌트에서, **Component Use Skel Bounds** (컴포넌트가 스켈 바운드 사용) 옵션을 켜세요.
+	* 피직스 애셋 사용을 생략하는 대신 항상 스켈레탈 메시에 정의된 고정 바운드를 사용합니다.
+	* 모든 프레임의 컬링에 바운딩 볼륨을 재계산하는 것도 생략되어 퍼포먼스가 향상됩니다.
 
-### Other Considerations
+### 기타 고려사항
 
-When [profiling](Engine/Performance) your project, you may see that `FParallelAnimationCompletionTask` is being run for Skeletal Meshes on the main thread after worker threads are done. 
-This will be the bulk of the main thread work that you will see in your profile once the conditions for parallel updates are satisfied and usually consist of a few things, depending on your setup: 
+프로젝트 [프로파일링](Engine/Performance) 작업을 할 때, 워커 스레드가 완료된 이후 메인 스레드에서 스켈레탈 메시에 대해 `FParallelAnimationCompletionTask` 가 실행되는 것이 보일 수 있습니다.
+병렬 업데이트 조건이 만족되면 프로파일에서 보게 될 대량의 메인 스레드 작업으로, 구성에 따라 보통 몇 가지로 구성됩니다:
 
-* Moving your components around, updating physics objects for bones for example. 
-	* Try avoiding updating physics for things that don't actually need it as this will be key to reducing this. 
-* Firing off Animation Notifies.
-	* These should be non-Blueprint, again to avoid calls to the Blueprint VM for efficiency. 
-	* These also need to be performed on the game thread as they can affect the animated object's lifetime. 
-* Interpolation of animation if URO is enabled. 
-	* Future engine versions may allow this to be done on the worker thread in certain circumstances. 
-* Blending of curves if Material or Morph Target curves are in use. 
-	* This could also be moved onto the worker thread, although this will result in minor gains. 
+* 예를 들면 컴포넌트 이동, 본에 대한 피직스 오브젝트 업데이트 입니다.
+	* 피직스가 실제로 필요하지 않은 것에 대한 피직스 업데이트를 피하도록 하는 것이 이 부분을 줄이는 핵심입니다.
+* 애니메이션 노티파이 발동입니다.
+	* 이는 블루프인트가 아니어야 하며, 효율을 위해 블루프린트 가상 머신 호출을 피하기 위해서입니다.
+	* 마찬가지로 애니메이션 오브젝트의 수명에 영향을 줄 수 있으니 게임 스레드에서 해야 하는 부분입니다.
+* URO 가 켜진 경우 애니메이션 보간입니다.
+* 머티리얼 또는 모프 타겟 커브가 사용중인 경우 커브 블렌딩 입니다.
+
 
 	

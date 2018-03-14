@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12VertexBuffer.cpp: D3D vertex buffer RHI implementation.
@@ -50,10 +50,7 @@ void FD3D12VertexBuffer::Rename(FD3D12ResourceLocation& NewResource)
 
 	if (DynamicSRV != nullptr)
 	{
-		// This will force a new descriptor to be created
-		CD3DX12_CPU_DESCRIPTOR_HANDLE Desc;
-		Desc.ptr = 0;
-		DynamicSRV->Rename(ResourceLocation, Desc, 0);
+		DynamicSRV->Rename(ResourceLocation);
 	}
 }
 

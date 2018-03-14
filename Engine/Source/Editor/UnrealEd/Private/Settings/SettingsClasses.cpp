@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "HAL/FileManager.h"
@@ -247,10 +247,14 @@ bool FAutoReimportDirectoryConfig::ParseSourceDirectoryAndMountPoint(FString& So
 		else
 		{
 			// Starts off with a mount point (not case sensitive)
-			MountPoint = TEXT("/") + SourceDirectoryMountPoint + TEXT("/");
-			FString SourceDirectoryLeftChop = SourceDirectory.Left(MountPoint.Len());
-			FString SourceDirectoryRightChop = SourceDirectory.RightChop(MountPoint.Len());
-
+			FString SourceMountPoint = TEXT("/") + SourceDirectoryMountPoint + TEXT("/");
+			if (MountPoint.IsEmpty() || FPackageName::GetPackageMountPoint(MountPoint).IsNone())
+			{
+				//Set the mountPoint
+				MountPoint = SourceMountPoint;
+			}
+			FString SourceDirectoryLeftChop = SourceDirectory.Left(SourceMountPoint.Len());
+			FString SourceDirectoryRightChop = SourceDirectory.RightChop(SourceMountPoint.Len());
 			// Resolve mount point on file system (possibly case sensitive, so re-use original source path)
 			SourceDirectory = FPaths::ConvertRelativePathToFull(
 				FPackageName::LongPackageNameToFilename(SourceDirectoryLeftChop) / SourceDirectoryRightChop);
@@ -575,11 +579,13 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 		FPaths::MakePathRelativeTo(Path, FPlatformProcess::BaseDir());
 		StagingDirectory.Path = Path;
 	}
-	else if (Name == FName(TEXT("ForDistribution")) || Name == FName(TEXT("BuildConfiguration")))
+	else if (Name == FName(TEXT("ForDistribution")))
 	{
 		if (ForDistribution && BuildConfiguration != EProjectPackagingBuildConfigurations::PPBC_Shipping && BuildConfiguration != EProjectPackagingBuildConfigurations::PPBC_ShippingClient)
 		{
 			BuildConfiguration = EProjectPackagingBuildConfigurations::PPBC_Shipping;
+			// force serialization for "Build COnfiguration"
+			UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UProjectPackagingSettings, BuildConfiguration)), GetDefaultConfigFilename());
 		}
 	}
 	else if (Name == FName(TEXT("bGenerateChunks")))
@@ -734,11 +740,7 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 
 bool UProjectPackagingSettings::CanEditChange( const UProperty* InProperty ) const
 {
-	if (InProperty->GetFName() == FName(TEXT("BuildConfiguration")) && ForDistribution)
-	{
-		return false;
-	}
-	else if (InProperty->GetFName() == FName(TEXT("NativizeBlueprintAssets")))
+	if (InProperty->GetFName() == FName(TEXT("NativizeBlueprintAssets")))
 	{
 		return BlueprintNativizationMethod == EProjectPackagingBlueprintNativizationMethod::Exclusive;
 	}

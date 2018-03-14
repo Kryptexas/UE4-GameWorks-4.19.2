@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -29,6 +29,13 @@ protected:
 	virtual bool PaintInternal(const FVector& InCameraOrigin, const FVector& InRayOrigin, const FVector& InRayDirection, EMeshPaintAction PaintAction, float PaintStrength) override;
 
 public:
+
+	/** Mode transition, called by the paint mode as painting is enabled and disabled */
+	void EnterPaintMode();
+	void ExitPaintMode();
+
+	/** Called to update the auto view min/max values  */
+	void RecalculateAutoViewRange();
 
 	/** IMeshPainter interface */
 	virtual void Tick(FEditorViewportClient* ViewportClient, float DeltaTime) override;	
@@ -75,6 +82,9 @@ public:
 	void OnAssetMaskSelectionChanged()
 	{};
 
+	/** Returns custom text to display in the skeletal mesh editor viewport */
+	FText GetViewportText() const { return CachedHoveredClothValueText; }
+
 protected:
 
 	/** Rebuild the list of editable clothing assets from the current mesh */
@@ -113,6 +123,10 @@ protected:
 
 	/** List of commands for the painter, tools can bind to this in activate */
 	TSharedPtr<FUICommandList> CommandList;
+
+	FText CachedHoveredClothValueText;
+
+	FDelegateHandle HoveredTextCallbackHandle;
 
 	/** Our customization class can access private painter state */
 	friend class FClothPaintSettingsCustomization;

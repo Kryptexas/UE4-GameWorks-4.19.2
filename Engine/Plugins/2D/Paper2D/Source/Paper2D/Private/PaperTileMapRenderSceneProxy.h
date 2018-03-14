@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,15 +13,17 @@ class UPaperTileMapComponent;
 //////////////////////////////////////////////////////////////////////////
 // FPaperTileMapRenderSceneProxy
 
-class FPaperTileMapRenderSceneProxy : public FPaperRenderSceneProxy
+class FPaperTileMapRenderSceneProxy final : public FPaperRenderSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override;
+
 	// FPrimitiveSceneProxy interface.
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	// End of FPrimitiveSceneProxy interface.
 
 	// Construct a tile map scene proxy
-	static FPaperTileMapRenderSceneProxy* CreateTileMapProxy(const UPaperTileMapComponent* InComponent, TArray<FSpriteRenderSection>*& OutSections, TArray<FPaperSpriteVertex>*& OutVertices);
+	static FPaperTileMapRenderSceneProxy* CreateTileMapProxy(const UPaperTileMapComponent* InComponent, TArray<FSpriteRenderSection>*& OutSections, TArray<FDynamicMeshVertex>*& OutVertices);
 	
 	// Call this once the tile map sections/vertices are finished
 	void FinishConstruction_GameThread();

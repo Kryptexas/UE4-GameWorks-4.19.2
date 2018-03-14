@@ -255,7 +255,8 @@ order:4
 [/REGION]
 [/EXCERPT:LSREF005]
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:Table0001]
 |  &nbsp;  |    |    |
@@ -274,7 +275,8 @@ order:4
 %SphFalloff%
 %TipFalloff%
 
--->
+
+[/COMMENT]
 
 
 

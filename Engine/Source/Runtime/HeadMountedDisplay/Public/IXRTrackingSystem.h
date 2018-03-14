@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,22 +11,6 @@
 #include "IXRInput.h"
 
 class IXRCamera;
-
-enum class EXRTrackedDeviceType
-{
-	/** Represents a head mounted display */
-	HeadMountedDisplay,
-	/** Represents a controller */
-	Controller,
-	/** Represents a static tracking reference device, such as a Lighthouse or tracking camera */
-	TrackingReference,
-	/** Misc. device types, for future expansion */
-	Other,
-	/** DeviceId is invalid */
-	Invalid = -2,
-	/** Pass to EnumerateTrackedDevices to get all devices regardless of type */
-	Any = -1,
-};
 
 /**
  * Struct representing the properties of an external tracking sensor.
@@ -81,6 +65,15 @@ public:
 	virtual bool DoesSupportPositionalTracking() const = 0;
 
 	/**
+	 * Return true if the default camera implementation should query the current pose at the start of the render frame and apply late update.
+	 * In order to support late update, the plugin should refresh the current pose just before rendering starts.
+	 * A good point to insert the update is in OnBeginRendering_GameThread or OnBeginRendering_RenderThread.
+	 *
+	 * Note that for backwards compatibility with plugins written before 4.19, this method defaults to returning 'true'
+	 */
+	virtual bool DoesSupportLateUpdate() const { return true; }
+
+	/**
 	 * If the system currently has valid tracking positions. If not supported at all, returns false.
 	 */
 	virtual bool HasValidTrackingPosition() = 0;
@@ -111,7 +104,8 @@ public:
 	 * Refresh poses. Tells the system to update the poses for its tracked devices.
 	 * May be called both from the game and the render thread.
 	 */
-	virtual void RefreshPoses() = 0;
+	DEPRECATED(4.19, "This functionality is no longer supported.")
+	virtual void RefreshPoses() {}
 
 	/** 
 	 * Temporary method until Morpheus controller code has been refactored.
@@ -161,6 +155,19 @@ public:
 	 * Returns current tracking origin.
 	 */
 	virtual EHMDTrackingOrigin::Type GetTrackingOrigin() = 0;
+
+	/**
+	 * Returns the system's latest known tracking-to-world transform.
+	 * Useful for translating poses from GetCurrentPose() into unreal world space.
+	 */
+	virtual FTransform GetTrackingToWorldTransform() const = 0;
+
+	/**
+	 * Refreshes the system's known tracking-to-world transform.
+	 * Helpful for clients if they change the world's representation of the XR origin, or if they want to override the system calculated 
+	 * transform - calling this will update the known transform returned by GetTrackingToWorldTransform().
+	 */
+	virtual void UpdateTrackingToWorldTransform(const FTransform& TrackingToWorldOverride) = 0;
 
 	/**
 	 * Get the offset, in device space, of the reported device (screen / eye) position to the center of the head.
@@ -276,4 +283,23 @@ public:
 	* This method is called when game frame ends (called on a game thread).
 	*/
 	virtual bool OnEndGameFrame(FWorldContext& WorldContext) { return false; }
+
+
+	/*** Methods designed to be called from IXRCamera implementations ***/
+
+	/**
+	 * Called just before rendering the current frame on the render thread. Invoked before applying late update, so plugins that want to refresh poses on the
+	 * render thread prior to late update. Use this to perform any initializations prior to rendering.
+	 */
+	virtual void OnBeginRendering_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily) {}
+
+	/**
+	 * Called just before rendering the current frame on the game frame.
+	 */
+	virtual void OnBeginRendering_GameThread() {}
+
+	/**
+	 * Called just after the late update on the render thread passing back the current relative transform.
+	 */
+	virtual void OnLateUpdateApplied_RenderThread(const FTransform& NewRelativeTransform) {}
 };

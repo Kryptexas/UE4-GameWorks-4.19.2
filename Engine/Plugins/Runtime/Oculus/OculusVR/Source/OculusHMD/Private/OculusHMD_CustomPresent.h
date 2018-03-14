@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "OculusHMDPrivate.h"
@@ -34,7 +34,7 @@ namespace OculusHMD
 class FCustomPresent : public FRHICustomPresent
 {
 public:
-	FCustomPresent(class FOculusHMD* InOculusHMD, ovrpRenderAPIType InRenderAPI, EPixelFormat InDefaultPixelFormat, bool InSupportsSRGB);
+	FCustomPresent(class FOculusHMD* InOculusHMD, ovrpRenderAPIType InRenderAPI, EPixelFormat InDefaultPixelFormat, bool InSupportsSRGB, bool InSupportsDepth);
 
 	// FRHICustomPresent
 	virtual void OnBackBufferResize() override;
@@ -62,6 +62,7 @@ public:
 	EPixelFormat GetDefaultPixelFormat() const { return DefaultPixelFormat; }
 	ovrpTextureFormat GetOvrpTextureFormat(EPixelFormat InFormat) const;
 	ovrpTextureFormat GetDefaultOvrpTextureFormat() const { return DefaultOvrpTextureFormat; }
+	ovrpTextureFormat GetDefaultDepthOvrpTextureFormat() const { return DefaultDepthOvrpTextureFormat; }
 	static bool IsSRGB(ovrpTextureFormat InFormat);
 
 	virtual FTextureRHIRef CreateTexture_RenderThread(uint32 InSizeX, uint32 InSizeY, EPixelFormat InFormat, FClearValueBinding InBinding, uint32 InNumMips, uint32 InNumSamples, uint32 InNumSamplesTileMem, ERHIResourceType InResourceType, ovrpTextureHandle InTexture, uint32 TexCreateFlags) = 0;
@@ -73,8 +74,10 @@ protected:
 	FOculusHMD* OculusHMD;
 	ovrpRenderAPIType RenderAPI;
 	EPixelFormat DefaultPixelFormat;
-	ovrpTextureFormat DefaultOvrpTextureFormat;
 	bool bSupportsSRGB;
+	bool bSupportsDepth;
+	ovrpTextureFormat DefaultOvrpTextureFormat;
+	ovrpTextureFormat DefaultDepthOvrpTextureFormat;
 	IRendererModule* RendererModule;
 	FTexture2DRHIRef MirrorTextureRHI;
 };

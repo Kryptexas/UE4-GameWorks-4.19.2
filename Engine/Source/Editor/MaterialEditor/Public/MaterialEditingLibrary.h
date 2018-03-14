@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -36,6 +36,12 @@ public:
 	*	@param	BaseMaterial	Material that MaterialInstance must be based on for Material Instance Editor to be rebuilt
 	*/
 	static void RebuildMaterialInstanceEditors(UMaterial* BaseMaterial);
+
+	/**
+	*	Rebuilds dependent Material Instance Editors
+	*	@param	BaseMaterial	Material that MaterialInstance must be based on for Material Instance Editor to be rebuilt
+	*/
+	static void RebuildMaterialInstanceEditors(UMaterialFunction* BaseFunction);
 
 	///////////// MATERIAL EDITING
 
@@ -126,7 +132,7 @@ public:
 	 *	Will recompile any Materials that use the supplied Material Function.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "MaterialEditing", meta = (HidePin = "PreviewMaterial"))
-	static void UpdateMaterialFunction(UMaterialFunction* MaterialFunction, UMaterial* PreviewMaterial = nullptr);
+	static void UpdateMaterialFunction(UMaterialFunctionInterface* MaterialFunction, UMaterial* PreviewMaterial = nullptr);
 
 
 	//////// MATERIAL INSTANCE CONSTANT EDITING

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:블루프린트의 형변환
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -10,44 +10,7 @@ Parent:Engine/Blueprints/Scripting
 tags:Data Types
 tags:Blueprints
 order:2
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\CastNodes:title%](Engine\Blueprints\UserGuide\CastToNode.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\CastNodes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\CastNodes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\CastNodes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\CastNodes:title%](Engine\Blueprints\UserGuide\CastToNode.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\CastNodes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\CastNodes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\CastNodes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Blueprints/UserGuide/CastToNode.png
 
 
 [TOC (start:2 end:2)]
@@ -66,21 +29,21 @@ order:2
 
 아래는 **블루프린트 형변환** 을 언제 사용하는지에 대한 예제 몇 가지입니다:
 
-[INCLUDE:Engine\Blueprints\UserGuide\BlueprintCommsUsage#castusage]
+[INCLUDE:Engine/Blueprints/UserGuide/BlueprintCommsUsage#castusage]
 
 ## Cast To 예제 셋업
 
 아래 예제는 Cast To 노드를 사용하여 한 블루프린트에서 다른 블루프린트에 접근하는 법을 보여줍니다.
 
-[INCLUDE:Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#castexample]
+[INCLUDE:Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo#castexample]
 
 ## 타겟 블루프린트 형변환
 
-[INCLUDE:Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#targetcasting]
+[INCLUDE:Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo#targetcasting]
 
 ## 기타 형변환 유형
 
-[INCLUDE:Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#othercasting]
+[INCLUDE:Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo#othercasting]
 
 
 

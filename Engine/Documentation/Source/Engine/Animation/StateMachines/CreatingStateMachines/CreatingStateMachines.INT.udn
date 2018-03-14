@@ -6,7 +6,7 @@ version: 4.14
 related:Engine\Animation\StateMachines\EditingStateMachines
 related:Engine\Animation\StateMachines\TransitionRules
 related:Engine\Animation\AnimBlueprints
-
+type:how-to
 
 Before actually creating your [State Machine](Engine\Animation\StateMachines\Overview), it is a good idea to take a little time and plan out exactly which states you will need, as well as the circumstances that will drive transitions between states. This will give you a solid plan of attack for not only the State Machine but also the variables you will need to drive it and which animations will be a part of each state.
 

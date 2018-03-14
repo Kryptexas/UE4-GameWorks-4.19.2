@@ -44,7 +44,8 @@ The purpose of this function is to help setup particles such that they fade away
 [REGION:note]
 	Any input prefixed by "--------" is intended to be a separator in the input list and is not meant to receive actual inputs.
 [/REGION]
-<!---
+[COMMENT:none]
+-
 ### RandomUVs
 
 The RandomUVs function provides a quick and easy way to randomize the texture coordinates of particles as they are born into a particle system. The function uses a DynamicParameter with *U_Offset* and *V_Offset* as as parameter names to move the UV coordinates around. This is set up as a uniform distribution, is calculated at spawn time only, and has a 0-1 distribution per channel.
@@ -60,5 +61,6 @@ The RandomUVs function provides a quick and easy way to randomize the texture co
 
 
 ![RandomUVs](RandomUVs.png)
---->
+-
+[/COMMENT]
 

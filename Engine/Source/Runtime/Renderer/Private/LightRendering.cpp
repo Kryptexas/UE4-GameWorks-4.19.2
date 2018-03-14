@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightRendering.cpp: Light rendering implementation.
@@ -13,7 +13,7 @@
 #include "PipelineStateCache.h"
 #include "ClearQuad.h"
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Lights"), Stat_GPU_Lights, STATGROUP_GPU);
+DECLARE_GPU_STAT(Lights);
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct,TEXT("DeferredLightUniforms"));
 
@@ -45,14 +45,14 @@ class TDeferredLightPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(TDeferredLightPS,Global)
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USE_IES_PROFILE"), (uint32)bUseIESProfile);
 		OutEnvironment.SetDefine(TEXT("RADIAL_ATTENUATION"), (uint32)bRadialAttenuation);
 		OutEnvironment.SetDefine(TEXT("INVERSE_SQUARED_FALLOFF"), (uint32)bInverseSquaredFalloff);
@@ -208,14 +208,14 @@ class TDeferredLightOverlapPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(TDeferredLightOverlapPS,Global)
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("RADIAL_ATTENUATION"), (uint32)bRadialAttenuation);
 	}
 
@@ -291,7 +291,7 @@ void FSceneRenderer::GatherSimpleLights(const FSceneViewFamily& ViewFamily, cons
 void FSceneRenderer::GetLightNameForDrawEvent(const FLightSceneProxy* LightProxy, FString& LightNameWithLevel)
 {
 #if WANTS_DRAW_MESH_EVENTS
-	if (GEmitDrawEvents)
+	if (GetEmitDrawEvents())
 	{
 		FString FullLevelName = LightProxy->GetLevelName().ToString();
 		const int32 LastSlashIndex = FullLevelName.Find(TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
@@ -317,7 +317,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 {
 	SCOPED_NAMED_EVENT(FDeferredShadingSceneRenderer_RenderLights, FColor::Emerald);
 	SCOPED_DRAW_EVENT(RHICmdList, Lights);
-	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Lights);
+	SCOPED_GPU_STAT(RHICmdList, Lights);
 
 
 	bool bStencilBufferDirty = false;	// The stencil buffer should've been cleared to 0 already
@@ -615,7 +615,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 							const FViewInfo& View = Views[ViewIndex];
 							FIntRect ScissorRect;
 
-							if (!LightSceneInfo.Proxy->GetScissorRect(ScissorRect, View))
+							if (!LightSceneInfo.Proxy->GetScissorRect(ScissorRect, View, View.ViewRect))
 							{
 								ScissorRect = View.ViewRect;
 							}
@@ -667,6 +667,8 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 					// Accumulate this light's unshadowed contribution to the translucency lighting volume
 					InjectTranslucentVolumeLighting(RHICmdList, LightSceneInfo, NULL);
 				}
+
+				GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, ScreenShadowMaskTexture);
 
 				SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 

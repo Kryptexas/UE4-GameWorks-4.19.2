@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Commandlets/GatherTextFromSourceCommandlet.h"
 #include "HAL/FileManager.h"
@@ -84,8 +84,8 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 
 	if (SearchDirectoryPaths.Num() == 0)
 	{
-		UE_LOG(LogGatherTextFromSourceCommandlet, Error, TEXT("No search directory paths in section %s."), *SectionName);
-		return -1;
+		UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("No search directory paths in section %s."), *SectionName);
+		return 0;
 	}
 
 	// ExcludePathFilters
@@ -120,8 +120,8 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 
 	if (FileNameFilters.Num() == 0)
 	{
-		UE_LOG(LogGatherTextFromSourceCommandlet, Error, TEXT("No source filters in section %s"), *SectionName);
-		return -1;
+		UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("No source filters in section %s"), *SectionName);
+		return 0;
 	}
 
 	//Ensure all filters are unique.
@@ -199,8 +199,8 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 			SourceFileSearchFiltersString += FString(SourceFileSearchFiltersString.IsEmpty() ? TEXT("") : TEXT(", ")) + Filter;
 		}
 
-		UE_LOG(LogGatherTextFromSourceCommandlet, Error, TEXT("The GatherTextFromSource commandlet couldn't find any source files matching (%s) in the specified directories:\n%s"), *SourceFileSearchFiltersString, *SpecifiedDirectoriesString);
-		return -1;
+		UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("The GatherTextFromSource commandlet couldn't find any source files matching (%s) in the specified directories:\n%s"), *SourceFileSearchFiltersString, *SpecifiedDirectoriesString);
+		return 0;
 	}
 
 	// Add any manifest dependencies if they were provided

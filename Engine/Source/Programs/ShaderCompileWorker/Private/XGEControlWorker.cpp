@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Async.h"
 #include "PlatformNamedPipe.h"
@@ -214,7 +214,7 @@ int32 XGEController_Main(int ArgC, TCHAR* ArgV[])
 	while (!FPlatformMisc::IsDebuggerPresent())
 		FPlatformProcess::Sleep(1.0f);
 
-	FPlatformMisc::DebugBreak();
+	UE_DEBUG_BREAK();
 #endif
 
 	int32 ReturnCode = 0;

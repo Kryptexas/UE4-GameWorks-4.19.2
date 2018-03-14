@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessTonemap.h: Post processing tone mapping implementation, can add bloom.
@@ -114,7 +114,7 @@ class TPostProcessTonemapVS : public FGlobalShader
 	// This class is in the header so that Temporal AA can share this vertex shader.
 	DECLARE_SHADER_TYPE(TPostProcessTonemapVS,Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -126,8 +126,8 @@ public:
 	FPostProcessPassParameters PostprocessParameter;
 	FShaderResourceParameter EyeAdaptation;
 	FShaderParameter GrainRandomFull;
-	FShaderParameter FringeUVParams;
 	FShaderParameter DefaultEyeExposure;
+	FShaderParameter ScreenPosToScenePixel;
 
 	/** Initialization constructor. */
 	TPostProcessTonemapVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -136,14 +136,12 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		EyeAdaptation.Bind(Initializer.ParameterMap, TEXT("EyeAdaptation"));
 		GrainRandomFull.Bind(Initializer.ParameterMap, TEXT("GrainRandomFull"));
-		FringeUVParams.Bind(Initializer.ParameterMap, TEXT("FringeUVParams"));
 		DefaultEyeExposure.Bind(Initializer.ParameterMap, TEXT("DefaultEyeExposure"));
+		ScreenPosToScenePixel.Bind(Initializer.ParameterMap, TEXT("ScreenPosToScenePixel"));
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		
 		// Compile time template-based conditional
 		OutEnvironment.SetDefine(TEXT("EYEADAPTATION_EXPOSURE_FIX"), (uint32)bUseAutoExposure);
 	}
@@ -189,29 +187,20 @@ public:
 		if (!bUseAutoExposure)
 		{
 			// Compute a CPU-based default.  NB: reverts to "1" if SM5 feature level is not supported
-			float DefaultEyeExposureValue = FRCPassPostProcessEyeAdaptation::ComputeExposureScaleValue(Context.View);
+			float FixedExposure = FRCPassPostProcessEyeAdaptation::GetFixedExposure(Context.View);
 			// Load a default value 
-			SetShaderValue(Context.RHICmdList, ShaderRHI, DefaultEyeExposure, DefaultEyeExposureValue);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, DefaultEyeExposure, FixedExposure);
 		}
 
 		{
-			// for scene color fringe
-			// from percent to fraction
-			float Offset = Context.View.FinalPostProcessSettings.SceneFringeIntensity * 0.01f;
-			//FVector4 Value(1.0f - Offset * 0.5f, 1.0f - Offset, 0.0f, 0.0f);
-
-			// Wavelength of primaries in nm
-			const float PrimaryR = 611.3f;
-			const float PrimaryG = 549.1f;
-			const float PrimaryB = 464.3f;
-
-			// Simple lens chromatic aberration is roughly linear in wavelength
-			float ScaleR = 0.007f * ( PrimaryR - PrimaryB );
-			float ScaleG = 0.007f * ( PrimaryG - PrimaryB );
-			FVector4 Value( 1.0f / ( 1.0f + Offset * ScaleG ), 1.0f / ( 1.0f + Offset * ScaleR ), 0.0f, 0.0f);
-
-			// we only get bigger to not leak in content from outside
-			SetShaderValue(Context.RHICmdList, ShaderRHI, FringeUVParams, Value);
+			FIntPoint ViewportOffset = Context.SceneColorViewRect.Min;
+			FIntPoint ViewportExtent = Context.SceneColorViewRect.Size();
+			FVector4 ScreenPosToScenePixelValue(
+				ViewportExtent.X * 0.5f,
+				-ViewportExtent.Y * 0.5f,
+				ViewportExtent.X * 0.5f - 0.5f + ViewportOffset.X,
+				ViewportExtent.Y * 0.5f - 0.5f + ViewportOffset.Y);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ScreenPosToScenePixel, ScreenPosToScenePixelValue);
 		}
 	}
 	
@@ -219,7 +208,7 @@ public:
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << GrainRandomFull << EyeAdaptation << FringeUVParams << DefaultEyeExposure;
+		Ar << PostprocessParameter << GrainRandomFull << EyeAdaptation << DefaultEyeExposure << ScreenPosToScenePixel;
 
 		return bShaderHasOutdatedParameters;
 	}

@@ -17,8 +17,11 @@ Version:4.9
 | **Collapsed** | 如为 _true_, 则 ParticleEmitter 在级联的发射器列表中为重叠状态。双击 ParticleEmitter 段可切换该属性。|
 
 
-<!-- Begin ParticleEmitter Table Includes -->
-<!--
+[COMMENT:none]
+ Begin ParticleEmitter Table Includes 
+[/COMMENT]
+[COMMENT:none]
+
 [EXCERPT:RenderMode]
 [REGION:simpletable]
 | 模式 | 描述 |
@@ -29,5 +32,8 @@ Version:4.9
 | `ERM_None` | 不对发射器的粒子执行渲染。|
 [/REGION]
 [/EXCERPT:RenderMode]
--->
-<!-- End ParticleEmitter Includes -->
+
+[/COMMENT]
+[COMMENT:none]
+ End ParticleEmitter Includes 
+[/COMMENT]

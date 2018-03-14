@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SSceneOutliner.h"
@@ -579,8 +579,12 @@ namespace SceneOutliner
 		}
 		FEditorDelegates::MapChange.RemoveAll( this );
 		FEditorDelegates::NewCurrentLevel.RemoveAll( this );
-		GEngine->OnLevelActorListChanged().RemoveAll( this );
-		GEditor->UnregisterForUndo( this );
+
+		if(GEngine)
+		{
+			GEngine->OnLevelActorListChanged().RemoveAll(this);
+			GEditor->UnregisterForUndo(this);
+		}
 
 		SearchBoxFilter->OnChanged().RemoveAll( this );
 		Filters->OnChanged().RemoveAll( this );
@@ -714,9 +718,9 @@ namespace SceneOutliner
 						LOCTEXT("ChooseWorldToolTip", "Display actors for this world."),
 						FSlateIcon(),
 						FUIAction(
-						FExecuteAction::CreateSP( this, &SSceneOutliner::OnSelectWorld, TWeakObjectPtr<UWorld>(World) ),
+						FExecuteAction::CreateSP( this, &SSceneOutliner::OnSelectWorld, MakeWeakObjectPtr(World) ),
 						FCanExecuteAction(),
-						FIsActionChecked::CreateSP( this, &SSceneOutliner::IsWorldChecked, TWeakObjectPtr<UWorld>(World) )
+						FIsActionChecked::CreateSP( this, &SSceneOutliner::IsWorldChecked, MakeWeakObjectPtr(World) )
 						),
 						NAME_None,
 						EUserInterfaceActionType::RadioButton

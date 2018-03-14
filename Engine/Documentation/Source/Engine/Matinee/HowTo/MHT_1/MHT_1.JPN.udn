@@ -7,18 +7,12 @@ Version:4.9
 SkillLevel:Beginner
 
 
----
 以下の手順では、トリガー ボリュームに出入りする場合に、開閉する単純なドアを作成します。 
 
 [EXCERPT:ProjectStart]
-[OBJECT:TopicList]
-	[PARAM:title]
-		プロジェクトを作成します。
-	[/PARAM]
-	[PARAM:description]
-	このセクションでは、プロジェクトをセットアップします。 
-	[/PARAM]
-[/OBJECT]
+## プロジェクトを作成します。
+
+このセクションでは、プロジェクトをセットアップします。 
 
 1. **[Unreal Project Browser]** ウィンドウから **新規プロジェクト** を作成し、**Blueprint Third Person** テンプレートを使用します。 
 
@@ -31,14 +25,9 @@ SkillLevel:Beginner
 1. 上記をそれぞれ定義して、**[Create Project]** をクリックして新規プロジェクトを作成します。 
 [/EXCERPT:ProjectStart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		ドアとトリガーを配置する
-	[/PARAM]
-	[PARAM:description]
-	このステップでは、ドアを配置し、ドアのトリガーを追加します。
-	[/PARAM]
-[/OBJECT]
+ドアとトリガーを配置する
+
+このステップでは、ドアを配置し、ドアのトリガーを追加します。
 
 1. **コンテンツブラウザ** で **「Props」** フォルダを探して選択し、**SM_DoorFrame** スタティックメッシュを見つけます。 
 
@@ -94,14 +83,9 @@ SkillLevel:Beginner
 
 1. これでドアとトリガーが配置されました。次に、それを開閉するために **Matinee** アクタを追加します。 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Matinee アクタを追加する
-	[/PARAM]
-	[PARAM:description]
-	このステップでは **Matinee** アクタを追加し、**キーフレーム** を設定しドアを開閉します。 
-	[/PARAM]
-[/OBJECT]
+Matinee アクタを追加する
+
+このステップでは **Matinee** アクタを追加し、**キーフレーム** を設定しドアを開閉します。 
 
 1. **ツールバー** メニューから、**[マチネ]** を選択し、**[Add Matinee (マチネ追加)]** ボタンをクリックします。 
 
@@ -166,14 +150,9 @@ SkillLevel:Beginner
 1. マチネ シーケンスのセットアップが完了しました。次のステップでは、マチネ を **トリガー** に接続して終了します。 
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		**マチネ** を **TriggerBox** に接続する
-	[/PARAM]
-	[PARAM:description]
-	このステップでは、**マチネ** を **TriggerBox** に接続し、トリガーに入るときに開き、トリガーを出るときに閉じるようにします。
-	[/PARAM]
-[/OBJECT]
+**マチネ** を **TriggerBox** に接続する
+
+このステップでは、**マチネ** を **TriggerBox** に接続し、トリガーに入るときに開き、トリガーを出るときに閉じるようにします。
 
 1. **[ツールバー]** メニューから、**ブループリント** を選択し、**[Open Level Blueprint]** ボタンをクリックします。 
 
@@ -238,8 +217,6 @@ SkillLevel:Beginner
 	Z2son2Wcgbo
 	[/PARAMLITERAL]
 	[/OBJECT]
-
----
 
 
 

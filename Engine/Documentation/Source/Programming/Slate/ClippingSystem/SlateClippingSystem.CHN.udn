@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3618359
+Availability:Public
 Crumbs: %ROOT%
-Title: Slate Clipping System
-Description: An overview of the Clipping System for Slate in Unreal Engine 4.
-Type: Overview
+Title:Slate 裁剪系统
+Description:虚幻引擎 4 中 Slate 裁剪系统的总览。
+Type:Overview
 SkillLevel:Advanced
 Version:4.17
 Parent:Programming/Slate
+Related:Engine/UMG/UserGuide/Clipping
 Order:1
 Tags:Programming
 Tags:Slate
@@ -20,100 +21,100 @@ Tags:UMG UI Designer
 [TOC(start:2 end:3)]
 
 [REGION:warning]
-With the release of Unreal Engine 4.17, the new Slate Clipping System will break backwards compatibility for versions 4.16 and earlier that update. See the [Conversion Guide](#conversionguide) section of this 
-page to update your project. 
+虚幻引擎 4.17 版本发布后，全新的 Slate 裁剪系统打破了对 4.16 及更老版本的反向兼容。请参考此页面的 [转换指南](#conversionguidefrom4stop16andearlierto4stop17andlater) 部分更新项目。 
 [/REGION]
 
-The Unreal Engine 4 (UE4) uses Slate's clipping system to restrict graphics or text to a region of your screen. This is done by creating a clipping rectangle (or "clipping rect") around the 
-objects and panels that are created. This system is used throughout the Editor and the UMG UI Designer tools. Slate enables users to move panels and resize them as needed in the Editor, 
-and the clipping system enables the text and graphics to be confined to their clipping rect. With UMG, this enables better render transforms that clip appropriately for your UI. 
 
-## What's New
 
-With the release of Unreal Engine 4.17, the clipping system has been overhauled to be much more flexible than it was in previous versions. This creates the potential to add more rendering effects for tool systems like [UMG](Engine/UMG/UserGuide) to use in your game's UI. The clipping system used in prior engine versions was limited and based entirely around axis-aligned boxes for clipping, which lead to noticeable difficulties with render transforms, generally around edges, like the example below.
+
+虚幻引擎 4（UE4）的 Slate 裁剪系统可将图像或文本限制到画面的一个区域中。其实现方式是围绕创建的物体和面板创建一个裁剪矩形（或称裁剪 rect）。编辑器和 UMG UI 设计器工具均使用该系统。用户可根据需求利用 Slate 在编辑器中移动面板并调整其大小，裁剪系统则将文字和图像限制在裁剪 rect 中。结合 UMG 可实现更佳的渲染变形，对 UI 进行适当的裁剪。 
+
+## 全新内容
+
+虚幻引擎 4.17 版本对裁剪系统进行了极大修改，比旧版本更灵活。这也创造了给更多可能，使 [UMG](Engine/UMG/UserGuide) 之类的工具系统能够添加更多渲染效果，用于项目的 UI 中。旧版本中的裁剪系统功能有限，布局空间仅为轴对齐，会导致难以渲染变形（常围绕边缘），如下例所示：
 
 [REGION:imagetable]
 | --- | --- | --- | --- | --- | --- |
 | ![](OldClippingIssue1.png)(w:350) | | | | | ![](OldClippingIssue2.png)(w:350) |
 [/REGION]
 
-The comparison list below will give you a general overview of what has changed:
+在上图中，控件已旋转，但裁剪 rect（白点）却并未旋转。这样一来，即使图像位于 Canvas 面板边界中，也无法被渲染。 
+
+以下列表说明了裁剪系统 1.0 和 2.0 版本之间的区别：
 
 [REGION:simpletable]
-| Clipping 1.0 | Clipping 2.0 |
+| Clipping 1.0（4.16 及更旧版本） | Clipping 2.0（4.17 及更新版本） |
 | ------------ | ------------ |
 | [INCLUDE:#clipping1] | [INCLUDE:#clipping2] |  
 [/REGION]
 
-Because the new system supports clipping in the render space of the widgets instead of requiring axis alignment, the system no longer needs to be concerned with clipping issues (left), and instead clips the outermost widget. Now, any transform that is applied to the inner widgets will be correctly clipped at the edges (right).
+新系统支持在控件的渲染空间中进行裁剪，不需要轴对齐；使用系统时不再需要担心裁剪问题（左图），而是会直接裁剪掉最外侧的控件。新版本中，应用到内部控件的变形将在边缘被正确裁剪（右图）。
 
 [REGION:imagetable]
 | ![](ClippingOld.png)(w:350) | | | | | ![](ClippingNew.png)(w:350) |
 | --- | --- | --- | --- | --- | --- |
-| 4.16 and earlier clipping and transforms. ||||| 4.17 and later, clipping applied at edges |
-|  ||||| along with transforms to the children. |
+| 4.16 与更旧版本中的裁剪和变形。||||| 在 4.17 与更新版本中应用到边缘上的裁剪 |
+|  ||||| 以及子项的变形。|
 [/REGION]
 
-
-For the most part, you shouldn't need to worry about changing the clipping state of a widget. If you were to consider game UI as an example, you wouldn't really need to adjust the widget in UMG and mostly would change this for something like a scroll panel, or in cases, like the Editor, where you can't control the length of the text and need to clip it for resizing the windows or parts of the panel.
+多数情况下您都无需担心控件裁剪状态的变化。以游戏 UI 为例，您无需调整 UMG 中的控件，而多数情况下都需要对其进行修改，如滚动面板或编辑器，在这些区域中用户无法控制文本长度，需要对其进行裁剪，调整窗口或面板某个部分的大小。
 
 ![](ClippingExamples.png)(w:500)
 
-Here are a few examples of what you might see with various clipping setups:
+此处的几个例子说明了不同裁剪设置的效果：
 
-* Left - No clipping is enabled on the button or the text.
-* Center - Clipping is enabled on the text
-* Right - Clipping is enabled on the button.
+* 左图 - 按键或文本上未启用裁剪。
+* 中图 - 文本上已启用裁剪。
+* 右图 - 按键上已启用裁剪。
 
-Take note of the difference it makes when clipping is assigned to different objects. Since the system clips to bounds, things like padding do not factor in here, so if the button is set to clip (right), the 
-contents will run all the way to the edge before they clip, whereas if the text is responsible for clipping (center), then the text clips based on things like the button content padding that 
-reduces the space the text has to fit into.
+请参考裁剪应用到不同对象上时的变化。因为系统裁剪到边界，所以填补之类的因素此处无需考虑。如果按键启用裁剪（右图），那么内容将在切断发生之前向边缘移动。如果文本负责处理裁剪（中图），那么文本将基于按键内容填补之类进行裁剪，缩减文本填入的空间。
 
-In addition to the simple axis-aligned examples of clipping, the system also supports arbitrary clipping quads that are stacked on top of each other. 
+除简单的轴对齐裁剪外，系统还支持相互堆叠的任意裁剪四边形。 
 
 ![](TransformClipping.png)(w:400)
 [REGION:caption]  [/REGION]
 
-While this example is extreme, being able to combine multiple arbitrary clipping zones together is a prerequisite to being able to introduce 3D transforms and projections, since any widget being
-clipped with a projection would need to perform clipping in projected space. 
+举一个较为极端的例子，组合多个任意矩形是使用 3D 变形和投射的先决条件，因为被投射裁剪的控件需要在投射空间中执行裁剪。 
 
-<!--- 
+[COMMENT:none]
+- 
 
 [EXCERPT:clipping1]
-* Axis-aligned clipping - Only functions in layout space
-* Every Widget gets clipped
-* All clipping is done in the pixel shader (requires 6 floats per vertex)
-* Allowed batching across clipping rects, since the rects are part of the batch data
-* Render Transforms are "special" in that they allow rendering outside the clipping rect provided by the parent, with side effects when the layout rect is clipped
+* 轴对齐裁剪 - 只在布局空间中发挥作用
+* 每个控件均被裁剪
+* 所有裁剪均在像素着色器中完成（要求每个顶点六个浮点）
+* 允许对多个裁剪 rect 进行批处理，因为这些 rect 是批数据的一部分
+* 渲染变形较为“特殊”，因为它们允许在父项所提供的裁剪 rect 之外进行渲染，而布局 rect 被裁剪掉后会存在不良后果
 [/EXCERPT:clipping1]
 
 
 [EXCERPT:clipping2]
-* A clipping that is an arbitrary quad
-	* Axis-aligned clipping zone using Scissor Rects to clip - which avoids unnecessary pixel shader operations
-	* Complex clipping zones use the stencil buffer to compose an arbitrary stack of clipping zones into the stencil buffer that is then used to clip draw calls
-* Very few widgets clip now (by default), consisting mostly of scroll panels and editable text fields
-	* Render Transforms are no longer "special", so any transform can allow you to render outside of another widget, provided it doesn't clip.
-* Slate can no longer batch across clipping zones. This frees up 6 floats in the Slate vertex format, and no longer need to clip in the pixel shader
+* 任意四边形的裁剪
+	* 使用 Scissor Rects 进行裁剪的轴对齐裁剪区，可避免不必要的像素着色器运算
+	* 复杂的裁剪区使用模板缓存将裁剪区的任意堆叠组成模板缓存，然后用于裁剪绘制调用
+* 只有少数几个控件会（默认）进行裁剪，主要是滚动面板和可编辑文本域
+	* 渲染变形不再“特殊”，只要变形不进行裁剪，便允许用户在另一个控件之外进行渲染。
+* Slate 无法对裁剪区进行批处理。这使得 Slate 顶点格式中不要求 6 个浮点，不再需要在像素着色器中进行裁剪
 [/EXCERPT:clipping2]
 
----->
+--
+[/COMMENT]
+
+(#conversionguidefrom4stop16andearlierto4stop17andlater)
+## 从 4.16 及更旧版本转换到 4.17 及更新版本的指南
+
+4.17 版本中对 Slate 裁剪系统进行的修改会破坏对旧版本的兼容性，因此您需要根据以下部分的说明来更新项目，避免出现转换问题，同时了解在项目中对控件进行调试的新方法。
 
 
-## Conversion Guide
+### 启用控件裁剪
 
-The changes to the Slate clipping system in 4.17 will break compatibility with previous versions, so you'll want to use the sections below to update your project to avoid any conversion issues and to learn about the new methods you can use to debug widgets in your project.
-
-
-### Enabling Clipping of Widgets
-
-For all your UMG Widgets, you can adjust the **Clipping** property located in the **Details** panel of the selected Widget.
+对于所有 UMG 控件而言，用户可以调整所选控件 **Details** 面板中的 **Clipping** 属性。
 
 ![](UMGClippingProperty.png)(w:600)
 
-You can read more about [Clipping with UMG UI Designer](Engine/UMG/UserGuide/Clipping) here.
+您可在此了解关于 [用 UMG UI 设计器进行裁剪](Engine/UMG/UserGuide/Clipping) 的更多内容。
 
-To enable clipping in your code, you'll set the clipping property for `EWidgetClipping` to one of the following states:
+如需在代码中启用裁剪，需要将 `EWidgetClipping` 的裁剪属性设为以下其中一个状态：
 
 * Inherit
 * ClipToBounds
@@ -121,7 +122,7 @@ To enable clipping in your code, you'll set the clipping property for `EWidgetCl
 * ClipToBoundsAlways
 * OnDemand
 
-Here's a code example: 
+请参考以下代码范例： 
 
 	SNew( SBorder )
 	.Clipping(EWidgetClipping::ClipToBounds)
@@ -130,52 +131,49 @@ Here's a code example:
 	]
 
 
-### Deprecated APIs
+### 弃用的 API
 
-The following APIs have been deprecated. For 4.16 and earlier versions where you may have needed these, consider if you would even need to use these now. Since not every widget clips, you may no longer need any
-code that was possibly "tricking" the clipping system to allow you to move the clipping zone.
+以下 API 在 4.16 之后的版本中弃用。如果您的项目曾使用这些 API，则需要考虑现在是否仍然需要它们。并非每个控件都执行裁剪，因此您也许不再需要那些用于移动裁剪区的代码。
 
-* `FSlateDrawElement::Make___(...)` - We no longer pass a clipping rect into every draw call, so you only need to remove the function call, and you'll automatically be using the new version.
-* `SScissorRectBox` - This is no longer necessary since every axis-aligned clipping rect is now a scissor rect. Make sure to delete these and make replace the job it was doing by making its most direct child widget have clipping enabled.
+* `FSlateDrawElement::Make___(...)` - 无需再将裁剪 rect 传入每个绘制调用，因此只需要移除函数调用即可自动使用新版本。
+* `SScissorRectBox` - 这已不再需要，因为每个轴对齐的裁剪 rect 现在均是 scissor rect。使其最直接的子控件启用裁剪，将这些内容删除并替换之前进行的任务。
 
 
-### Custom Clipping
+### 自定义裁剪
 
-There are cases where you may need to clip internally in your widget. For example, an `SProgressBar` may need to clip the progress bar drawing at arbitrary locations based on its progress. In order to add your own clipping, you would do the following in `OnPaint`:
+在一些情况下您可能需要在控件内部进行裁剪。举例而言，`SProgressBar` 可能需要基于进度条的进度对任意位置的进度条绘制进行裁剪。添加裁剪需要在 `OnPaint` 中执行以下操作：
 
 	OutDrawElements.PushClip(FSlateClippingZone(AllottedGeometry));
 
-	//TODO Do your drawing here, or child widget paint calls.
+	//TODO 在此进行绘制，否则将调用子控件绘制。
 
 	OutDrawElements.PopClip();
 
-The `FSlateClippingZone` is the arbitrary clipping area in window space that can be initialized using several methods that should allow for a straightforward conversion of your existing code.
+`FSlateClippingZone` 是窗口空间中的任意裁剪区域，可使用数种方法开启，对已有代码进行直接转换。
 
-If you also need your custom clipping to affect Hit Testing, you will need to push your clipping zone onto the Hit Test Grid by setting up the following:
+如果还需要自定义裁剪影响 Hit Testing，则需要进行以下设置，将裁剪区推到 Hit Test Grid 上：
 
 	OutDrawElements.PushClip(FSlateClippingZone(AllottedGeometry));
 	Args.GetGrid().PushClip(FSlateClippingZone(GetCachedGeometry()));
 
-	//TODO Do your drawing here, or child widget paint calls.
+	//TODO 在此进行绘制，否则将调用子控件绘制。
 
 	OutDrawElements.PopClip();
 	Args.GetGrid().PopClip();
 
 [REGION:note]
-The clipping rect for the Hit Test Grid is using cached geometry, instead of the AllotedGeometry. In `OnPaint`, `AllotedGeometry` is in window space, while the Hit Test Grid is in desktop space, so you have
-to use geometry that you'd get in Tick.
+命中测试网格的裁剪 rect 使用缓存的几何体，而并非 AllotedGeometry。在 `OnPaint` 中，`AllotedGeometry` 处于窗口空间中，而 Hit Test Grid 处于桌面空间中，因此必须使用 Tick 中获得的几何体。
 [/REGION]
 
-### Wrapped Clipping States
+### 包裹裁剪状态
 
-In some instances, a widget that has a clipping state isn't going to be responsible for clipping. For example, the `SScrollBox` lets you publically change the clipping state like any other widget, however, when the `SScrollBox` was constructed, it set `bClippingProxy` to `true`. This makes it so that when Slate goes to render that widget, it will ignore its clipping state.
+在一些情况下，拥有裁剪状态的控件不负责进行裁剪。例如 `SScrollBox` 能让用户公开修改和其他控件相似的裁剪状态，然而当 `SScrollBox` 构造后，它会把 `bClippingProxy` 设为 `true`。因此 Slate 渲染此控件时将忽略其裁剪状态。
 
-Internally, the `SScrollBox` informs another nested widget that it needs to clip, or perform whatever clipping state it was told to do. Additionally, when users change the clipping state, the 
-`SScrollBox` overrides the `SWidget` function called `OnClippingChanged` so that it knows when to mirror the new clipping state to the nested private widgets. 
+在内部，`SScrollBox` 告知另一个嵌套控件其需要进行裁剪或执行被告知的裁剪状态。此外，用户修改裁剪状态时，`SScrollBox` 将覆盖名为 `OnClippingChanged` 的 `SWidget` 函数，使其了解合适将新的裁剪状态镜像到嵌套私有控件上。 
 
-### Culling Changes
+## 剔除修改
 
-Although clipping is performed in render space, the engine still performs culling using a simple bounding box. However, that box is based on the bounding box of the render-transformed clipping zone. Additionally, clipping and culling might become more nuanced over time, so if you have a custom panel and were doing `MyClippingRect.IntersectionWith` in order to identify and cull widgets that can't possibly be drawn, you should now use the `SWidget` function `IsChildWidgetCulled`. The following is an example of this:
+虽然裁剪在渲染空间中执行，引擎仍然使用简单的边界框执行剔除。然而该框是基于渲染变形裁剪区的边界框。此外，裁剪和剔除可能随时间出现更多细微差别。如果您有一个自定义面板，执行 `MyClippingRect.IntersectionWith` 识别并剔除无法被绘制的控件，则需要使用 `SWidget` 函数 `IsChildWidgetCulled`。请参考下例：
 
 	for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 	{
@@ -183,15 +181,15 @@ Although clipping is performed in render space, the engine still performs cullin
 
 		if (!IsChildWidgetCulled(MyCullingRect, CurWidget))
 		{
-			// Paint this widget.
+			// 绘制此控件。
 		}
 	}
 
 [REGION:warning]
-Any place where you're taking in `MyClippingRect` in your OnPaint call should be renamed to `MyCullingRect`.
+将 `MyClippingRect` 纳入 OnPaint 调用之处都需要被重命名为 `MyCullingRect`。
 [/REGION]
 
-Even with the changes to the clipping system, Slate's culling approach hasn't changed. In the example below, you'll need to keep in mind that if the parent widget (blue) is culled when outside the clipping zone (green), the child widget (yellow) will also be culled, even if it has a transform that allows it to render entirely outside of the bounds of the parent. This is true even when the clipping property **Clip to Bounds - Without Intersecting** is enabled, since the flag would only be checked by the direct parent widget.
+虽然裁剪系统有所修改，但 Slate 的剔除方法仍未改变。您需要注意，如果下例中的父控件（蓝色）在裁剪区（绿色）外被剔除，则子控件（黄色）也将被剔除。即使其拥有变形，能够在父项边界外进行整体渲染，也同样如此。裁剪属性 **Clip to Bounds - Without Intersecting** 启用时情况也是如此，因为标记只会被直接的父控件所勾选。
 
 
 [OBJECT:ComparisonSlider]
@@ -204,50 +202,51 @@ Even with the changes to the clipping system, Slate's culling approach hasn't ch
 [/OBJECT]
 
 
-## Debugging Clipping
+## 调试裁剪
 
-The **Widget Reflector** has been updated to indicate the clipping state for selected widgets inside the Editor.
+**Widget Reflector** 在编辑器中显示所选控件的裁剪状态。
 
 [REGION:fullwidth]
 ![](WidgetReflector.png)
 [/REGION]
-[REGION:caption]A text block has been selected using the Widget Reflector that indicates the Clipping state to be set to On Demand.[/REGION]
+[REGION:caption]使用 Widget Reflector 选中一个文本块，说明裁剪状态被设为 On Demand。[/REGION]
 
-To open the **Widget Reflector** you can navigate to the file menu > **Window** > **Developer Tools** > **Widget Reflector**.
+打开 **Widget Reflector** 的方法是：前往 File 菜单，选择 **Window** > **Developer Tools** > **Widget Reflector**。
 
-The following console variables can be used to debug clipping and culling states for any widget in the Editor:
+以下控制台变量可用于调试编辑器中任意控件的裁剪和剔除状态：
 
 [REGION:simpletable]
-| Console Variable | Description |
+| 控制台变量 | 描述 |
 | --- | --- |
-| **Slate.ShowClipping** | When enabled, this shows yellow outlines for all axis-aligned clipping rects (Scissor Rects) and red outlines for all stencil clipping quads. [INCLUDE:#showclipping] |
-| **Slate.DebugCulling** | When enabled, this helps you to better understand how the culling in a panel is working or why it isn't working correctly. It disables clipping on the GPU, but everything continues as normal, so it enables you to see all the things rendering outside the bounds of clip zones and see if they are being culled when you expect them to be. |
-| **Slate.EnableDrawEvents** | When enabled, draw events will be enabled so that when you're debugging with RenderDoc or something similar that it's easier to understand the batches or clipping state transitions. This is enabled by default when using a Debug build. |
-||
+| **Slate.ShowClipping** | 启用后，这将显示所有轴对齐裁剪 rect（Scissor Rects）的黄色轮廓，以及全部模板裁剪四边形的红色轮廓。[INCLUDE:#showclipping] |
+| **Slate.DebugCulling** | 启用后，这将有助于您更好地理解剔除在面板中的工作原理，以及其未能正常工作的原因。它在 GPU 上禁用裁剪，但一切均照常进行，因此您能够看到所有内容在裁剪区边界外渲染，并确定它们是否根据需求被剔除。|
+| **Slate.EnableDrawEvents** | 启用后，绘制事件将被启用。对 RenderDoc 或相似内容进行调试时便更容易理解批处理或裁剪状态转换。使用调试版本时此变量默认启用。|
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 
 [EXCERPT:showclipping]
 [REGION:lightbox]
 [![](ShowClipping.png)(w:200)](ShowClipping.png)
 [/REGION]
-[REGION:caption] Click image for full size view. [/REGION]
+[REGION:caption]点击图片查看全图。 [/REGION]
 [/EXCERPT:showclipping]
 
 [EXCERPT:debugculling]
 [REGION:lightbox]
 [![](Slate_Culling.png)(w:250)](Slate_Culling.png)
 [/REGION]
-[REGION:caption] Click image for full size view. [/REGION]
+[REGION:caption]点击图片查看全图。 [/REGION]
 [/EXCERPT:debugculling]
 
 [EXCERPT:drawevents]
 [REGION:lightbox]
 [![](Slate_Culling.png)(w:250)](Slate_Culling.png)
 [/REGION]
-[REGION:caption] Click image for full size view. [/REGION]
-[/EXCERPT:drawevents]--->
+[REGION:caption]点击图片查看全图。 [/REGION]
+[/EXCERPT:drawevents]-
+[/COMMENT]
 
 
 

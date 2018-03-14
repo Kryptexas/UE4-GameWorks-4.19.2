@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SpriteEditor/SpriteDetailsCustomization.h"
 #include "Materials/MaterialInterface.h"
@@ -160,7 +160,7 @@ void FSpriteDetailsCustomization::BuildRenderingSection(IDetailCategoryBuilder& 
 					[
 						SNew(STextBlock)
 						.Font(FEditorStyle::GetFontStyle("TinyText"))
-						.Text(this, &FSpriteDetailsCustomization::GetRenderingHeaderContentText, TWeakObjectPtr<UPaperSprite>(SpriteBeingEdited))
+						.Text(this, &FSpriteDetailsCustomization::GetRenderingHeaderContentText, MakeWeakObjectPtr(SpriteBeingEdited))
 						.ToolTipText(TypesOfMaterialsTooltip)
 					]
 				]

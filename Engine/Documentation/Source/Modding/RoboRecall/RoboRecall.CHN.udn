@@ -25,7 +25,8 @@ social-image:RoboRecall_Social.png
 
 [DIR(end:"1" output:"topic" org:"hierarchy" parent:"Modding/RoboRecall" tags:"!Getting Started" type:"reference")]
 
-<!--
+[COMMENT:none]
+
 
 内容列表：
 
@@ -45,5 +46,6 @@ social-image:RoboRecall_Social.png
 
 * Robo Recall 参考
 
--->
+
+[/COMMENT]
 

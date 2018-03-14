@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Evaluation/MovieSceneSkeletalAnimationTemplate.h"
 
@@ -32,30 +32,39 @@ void ResetAnimSequencerInstance(UObject& ObjectToRestore, IMovieScenePlayer& Pla
 
 struct FStopPlayingMontageTokenProducer : IMovieScenePreAnimatedTokenProducer
 {
-	TWeakObjectPtr<UAnimMontage> TempMontage;
+	TWeakObjectPtr<UAnimInstance> TempInstance;
+	int32 TempMontageInstanceId;
 
-	FStopPlayingMontageTokenProducer(TWeakObjectPtr<UAnimMontage> InTempMontage) : TempMontage(InTempMontage) {}
+	FStopPlayingMontageTokenProducer(TWeakObjectPtr<UAnimInstance> InTempInstance, int32 InTempMontageInstanceId)
+	: TempInstance(InTempInstance)
+	, TempMontageInstanceId(InTempMontageInstanceId){}
 
 	virtual IMovieScenePreAnimatedTokenPtr CacheExistingState(UObject& Object) const
 	{
 		struct FToken : IMovieScenePreAnimatedToken
 		{
-			TWeakObjectPtr<UAnimMontage> WeakMontage;
+			TWeakObjectPtr<UAnimInstance> WeakInstance;
+			int32 MontageInstanceId;
 
-			FToken(TWeakObjectPtr<UAnimMontage> InMontage) : WeakMontage(InMontage) {}
+			FToken(TWeakObjectPtr<UAnimInstance> InWeakInstance, int32 InMontageInstanceId) 
+			: WeakInstance(InWeakInstance)
+			, MontageInstanceId(InMontageInstanceId) {}
 
 			virtual void RestoreState(UObject& ObjectToRestore, IMovieScenePlayer& Player) override
 			{
-				UAnimInstance* AnimInstance = CastChecked<UAnimInstance>(&ObjectToRestore);
-				UAnimMontage* Montage = WeakMontage.Get();
-				if (AnimInstance && Montage)
+				UAnimInstance* AnimInstance = WeakInstance.Get();
+				if (AnimInstance)
 				{
-					AnimInstance->Montage_Stop(0.f, Montage);
+					FAnimMontageInstance* MontageInstance = AnimInstance->GetMontageInstanceForID(MontageInstanceId);
+					if (MontageInstance)
+					{
+						MontageInstance->Stop(FAlphaBlend(0.f), false);
+					}
 				}
 			}
 		};
 
-		return FToken(TempMontage);
+		return FToken(TempInstance, TempMontageInstanceId);
 	}
 };
 
@@ -122,6 +131,13 @@ struct FMinimalAnimParameters
 	FObjectKey Section;
 };
 
+/** Montage player per section data */
+struct FMontagePlayerPerSectionData 
+{
+	TWeakObjectPtr<UAnimMontage> Montage;
+	int32 MontageInstanceId;
+};
+
 namespace MovieScene
 {
 	struct FBlendedAnimation
@@ -145,8 +161,14 @@ namespace MovieScene
 
 		static FMovieSceneBlendingActuatorID GetActuatorTypeID()
 		{
-			static FMovieSceneAnimTypeID TypeID = TMovieSceneAnimTypeID<FComponentAnimationActuator>();
+			static FMovieSceneAnimTypeID TypeID = TMovieSceneAnimTypeID<FComponentAnimationActuator, 0>();
 			return FMovieSceneBlendingActuatorID(TypeID);
+		}
+
+		static FMovieSceneAnimTypeID GetAnimControlTypeID()
+		{
+			static FMovieSceneAnimTypeID TypeID = TMovieSceneAnimTypeID<FComponentAnimationActuator, 2>();
+			return TypeID;
 		}
 
 		virtual FBlendedAnimation RetrieveCurrentValue(UObject* InObject, IMovieScenePlayer* Player) const
@@ -165,8 +187,7 @@ namespace MovieScene
 				return;
 			}
 
-			static FMovieSceneAnimTypeID AnimTypeID = TMovieSceneAnimTypeID<FComponentAnimationActuator>();
-			OriginalStack.SavePreAnimatedState(Player, *SkeletalMeshComponent, AnimTypeID, FPreAnimatedAnimationTokenProducer());
+			OriginalStack.SavePreAnimatedState(Player, *SkeletalMeshComponent, GetAnimControlTypeID(), FPreAnimatedAnimationTokenProducer());
 
 			UAnimCustomInstance::BindToSkeletalMeshComponent<UAnimSequencerInstance>(SkeletalMeshComponent);
 
@@ -241,18 +262,25 @@ namespace MovieScene
 				// Set position and weight
 				SequencerInst->UpdateAnimTrack(InAnimSequence, GetTypeHash(AnimTypeID), InPosition, Weight, bFireNotifies);
 			}
-			else
+			else if (UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance())
 			{
-				TWeakObjectPtr<UAnimMontage> Montage = FAnimMontageInstance::SetMatineeAnimPositionInner(SlotName, SkeletalMeshComponent, InAnimSequence, InPosition, bLooping);
+				FMontagePlayerPerSectionData* SectionData = MontageData.Find(Section);
 
-				// Ensure the sequence is not stopped
-				UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
-				if (AnimInst && Montage.IsValid())
+				int32 InstanceId = (SectionData) ? SectionData->MontageInstanceId : INDEX_NONE;
+				TWeakObjectPtr<UAnimMontage> Montage = FAnimMontageInstance::SetSequencerMontagePosition(SlotName, SkeletalMeshComponent, InstanceId, InAnimSequence, InPosition, Weight, bLooping);
+
+				if (Montage.IsValid())
 				{
-					FMovieSceneAnimTypeID SlotTypeID = MontageSlotAnimationIDs.GetAnimTypeID(SlotName);
-					Player.SavePreAnimatedState(*AnimInst, SlotTypeID, FStopPlayingMontageTokenProducer(Montage));
+					FMontagePlayerPerSectionData& DataContainer = MontageData.FindOrAdd(Section);
+					DataContainer.Montage = Montage;
+					DataContainer.MontageInstanceId = InstanceId;
 
-					AnimInst->Montage_Resume(Montage.Get());
+					FMovieSceneAnimTypeID SlotTypeID = SectionToAnimationIDs.GetAnimTypeID(Section);
+					Player.SavePreAnimatedState(*Montage.Get(), SlotTypeID, FStopPlayingMontageTokenProducer(AnimInst, InstanceId));
+
+					// make sure it's playing
+					FAnimMontageInstance* Instance = AnimInst->GetMontageInstanceForID(InstanceId);
+					Instance->bPlaying = true;
 				}
 			}
 		}
@@ -274,43 +302,36 @@ namespace MovieScene
 				// Set position and weight
 				SequencerInst->UpdateAnimTrack(InAnimSequence, GetTypeHash(AnimTypeID), InPosition, Weight, bFireNotifies);
 			}
-			else
+			else if (UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance())
 			{
-				TWeakObjectPtr<UAnimMontage> Montage = FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(SlotName, SkeletalMeshComponent, InAnimSequence, InPosition, bLooping, bFireNotifies, DeltaTime);
+				FMontagePlayerPerSectionData* SectionData = MontageData.Find(Section);
 
-				// add to montage
-				// if we are not playing, make sure we dont continue (as skeletal meshes can still tick us onwards)
-				UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
-				if (AnimInst)
+				int32 InstanceId = (SectionData)? SectionData->MontageInstanceId : INDEX_NONE;
+				TWeakObjectPtr<UAnimMontage> Montage = FAnimMontageInstance::PreviewSequencerMontagePosition(SlotName, SkeletalMeshComponent, InstanceId, InAnimSequence, InPosition, Weight, bLooping, bFireNotifies);
+
+				if (Montage.IsValid())
 				{
-					if (Montage.IsValid())
-					{
-						// Unique anim type ID per slot
-						FMovieSceneAnimTypeID SlotTypeID = MontageSlotAnimationIDs.GetAnimTypeID(SlotName);
-						Player.SavePreAnimatedState(*AnimInst, SlotTypeID, FStopPlayingMontageTokenProducer(Montage));
+					FMontagePlayerPerSectionData& DataContainer = MontageData.FindOrAdd(Section);
+					DataContainer.Montage = Montage;
+					DataContainer.MontageInstanceId = InstanceId;
 
-						if (bPlaying)
-						{
-							AnimInst->Montage_Resume(Montage.Get());
-						}
-						else
-						{
-							AnimInst->Montage_Pause(Montage.Get());
-						}
-					}
+					FMovieSceneAnimTypeID AnimTypeID = SectionToAnimationIDs.GetAnimTypeID(InAnimSequence);
+					Player.SavePreAnimatedState(*Montage.Get(), AnimTypeID, FStopPlayingMontageTokenProducer(AnimInst, InstanceId));
 
-					if (bResetDynamics)
-					{
-						// make sure we reset any simulations
-						AnimInst->ResetDynamics();
-					}
+					FAnimMontageInstance* Instance = AnimInst->GetMontageInstanceForID(InstanceId);
+					Instance->bPlaying = bPlaying;
+				}
+	
+				if (bResetDynamics)
+				{
+					// make sure we reset any simulations
+					AnimInst->ResetDynamics();
 				}
 			}
 		}
 
-
-		TMovieSceneAnimTypeIDContainer<FName> MontageSlotAnimationIDs;
 		TMovieSceneAnimTypeIDContainer<FObjectKey> SectionToAnimationIDs;
+		TMap<FObjectKey, FMontagePlayerPerSectionData> MontageData;
 	};
 
 }	// namespace MovieScene

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Sections/MovieScene3DTransformSectionRecorder.h"
 #include "Misc/ScopedSlowTask.h"
@@ -40,9 +40,10 @@ bool FMovieScene3DTransformSectionRecorderFactory::CanRecordObject(UObject* InOb
 	}
 }
 
-void FMovieScene3DTransformSectionRecorder::CreateSection(UObject* InObjectToRecord, UMovieScene* InMovieScene, const FGuid& Guid, float Time) 
+void FMovieScene3DTransformSectionRecorder::CreateSection(UObject* InObjectToRecord, UMovieScene* InMovieScene, const FGuid& InGuid, float Time) 
 {
 	ObjectToRecord = InObjectToRecord;
+	Guid = InGuid;
 	bWasAttached = false;
 		
 	MovieScene = InMovieScene;
@@ -55,7 +56,8 @@ void FMovieScene3DTransformSectionRecorder::CreateSection(UObject* InObjectToRec
 
 		const bool bUnwindRotation = false;
 
-		DefaultTransform = GetTransformToRecord();
+		DefaultTransform = FTransform::Identity;
+		GetTransformToRecord(DefaultTransform);
 		FVector EulerRotation = DefaultTransform.GetRotation().Rotator().Euler();
 
 		MovieSceneSection->SetDefault(FTransformKey(EKey3DTransformChannel::Translation, EAxis::X, DefaultTransform.GetTranslation().X, bUnwindRotation));
@@ -228,6 +230,12 @@ void FMovieScene3DTransformSectionRecorder::FinalizeSection()
 	MovieSceneSection->GetScaleCurve(EAxis::Y).SetKeys(ScaleYKeys);
 	MovieSceneSection->GetScaleCurve(EAxis::Z).SetKeys(ScaleZKeys);
 
+	FTransform FirstTransform = FTransform::Identity;
+	if (BufferedTransforms.Num())
+	{
+		FirstTransform = BufferedTransforms[0].Transform;
+	}
+
 	BufferedTransforms.Empty();
 
 	SlowTask.EnterProgressFrame();
@@ -278,6 +286,16 @@ void FMovieScene3DTransformSectionRecorder::FinalizeSection()
 	}
 
 	SlowTask.EnterProgressFrame();
+
+	// If recording a spawnable, update the spawnable object template to the first keyframe
+	if (MovieScene.IsValid() && Guid.IsValid())
+	{
+		FMovieSceneSpawnable* Spawnable = MovieScene->FindSpawnable(Guid);
+		if (Spawnable)
+		{
+			Spawnable->SpawnTransform = FirstTransform;
+		}
+	}
 }
 
 void FMovieScene3DTransformSectionRecorder::Record(float CurrentTime)
@@ -298,19 +316,24 @@ void FMovieScene3DTransformSectionRecorder::Record(float CurrentTime)
 		if(bRecording)
 		{
 			// don't record from the transform of the component/actor if we are synchronizing with an animation
-			if(!AnimRecorder.IsValid())
+			if (!AnimRecorder.IsValid())
 			{
-				BufferedTransforms.Add(FBufferedTransformKey(GetTransformToRecord(), CurrentTime));
+				FTransform TransformToRecord;
+				if (GetTransformToRecord(TransformToRecord))
+				{
+					BufferedTransforms.Add(FBufferedTransformKey(TransformToRecord, CurrentTime));
+				}
 			}
 		}
 	}
 }
 
-FTransform FMovieScene3DTransformSectionRecorder::GetTransformToRecord()
+bool FMovieScene3DTransformSectionRecorder::GetTransformToRecord(FTransform& TransformToRecord)
 {
 	if(USceneComponent* SceneComponent = Cast<USceneComponent>(ObjectToRecord.Get()))
 	{
-		return SceneComponent->GetRelativeTransform();
+		TransformToRecord = SceneComponent->GetRelativeTransform();
+		return true;
 	}
 	else if(AActor* Actor = Cast<AActor>(ObjectToRecord.Get()))
 	{
@@ -326,8 +349,22 @@ FTransform FMovieScene3DTransformSectionRecorder::GetTransformToRecord()
 			bCaptureWorldSpaceTransform = !FSequenceRecorder::Get().FindRecording(AttachParent->GetOwner());
 		}
 
-		return (bCaptureWorldSpaceTransform || !RootComponent) ? Actor->ActorToWorld() : RootComponent->GetRelativeTransform();
+		if (!RootComponent)
+		{
+			return false;
+		}
+
+		if (bCaptureWorldSpaceTransform)
+		{
+			TransformToRecord = Actor->ActorToWorld();
+			return true;
+		}
+		else
+		{
+			TransformToRecord = RootComponent->GetRelativeTransform();
+			return true;
+		}
 	}
 
-	return FTransform::Identity;
+	return false;
 }

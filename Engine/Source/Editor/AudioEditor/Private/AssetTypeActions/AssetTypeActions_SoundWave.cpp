@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetTypeActions/AssetTypeActions_SoundWave.h"
 #include "Factories/DialogueWaveFactory.h"
@@ -217,14 +217,17 @@ TSharedPtr<SWidget> FAssetTypeActions_SoundWave::GetThumbnailOverlay(const FAsse
 {
 	auto OnGetDisplayBrushLambda = [this, AssetData]() -> const FSlateBrush*
 	{
-		UObject* Asset = AssetData.GetAsset();
-		if (Asset)
+		if(AssetData.IsAssetLoaded())
 		{
-			USoundBase* Sound = CastChecked<USoundBase>(AssetData.GetAsset());
-
-			if (IsSoundPlaying(Sound))
+			UObject* Asset = AssetData.GetAsset();
+			if (Asset)
 			{
-				return FEditorStyle::GetBrush("MediaAsset.AssetActions.Stop.Large");
+				USoundBase* Sound = CastChecked<USoundBase>(AssetData.GetAsset());
+
+				if (IsSoundPlaying(Sound))
+				{
+					return FEditorStyle::GetBrush("MediaAsset.AssetActions.Stop.Large");
+				}
 			}
 		}
 
@@ -247,10 +250,13 @@ TSharedPtr<SWidget> FAssetTypeActions_SoundWave::GetThumbnailOverlay(const FAsse
 
 	auto OnToolTipTextLambda = [this, AssetData]() -> FText
 	{
-		USoundBase* Sound = CastChecked<USoundBase>(AssetData.GetAsset());
-		if (IsSoundPlaying(Sound))
+		if(AssetData.IsAssetLoaded())
 		{
-			return LOCTEXT("Blueprint_StopSoundToolTip", "Stop selected Sound Wave");
+			USoundBase* Sound = CastChecked<USoundBase>(AssetData.GetAsset());
+			if (IsSoundPlaying(Sound))
+			{
+				return LOCTEXT("Blueprint_StopSoundToolTip", "Stop selected Sound Wave");
+			}
 		}
 
 		return LOCTEXT("Blueprint_PlaySoundToolTip", "Play selected Sound Wave");
@@ -264,18 +270,24 @@ TSharedPtr<SWidget> FAssetTypeActions_SoundWave::GetThumbnailOverlay(const FAsse
 
 	auto OnGetVisibilityLambda = [this, Box, AssetData]() -> EVisibility
 	{
-		UObject* Asset = AssetData.GetAsset();
-		if (Asset)
+		if(AssetData.IsAssetLoaded())
 		{
-			USoundBase* Sound = CastChecked<USoundBase>(Asset);
-			if (Box.IsValid())
+			UObject* Asset = AssetData.GetAsset();
+			if (Asset)
 			{
-				if (Box->IsHovered() || IsSoundPlaying(Sound))
+				USoundBase* Sound = CastChecked<USoundBase>(Asset);
+				if (Box.IsValid())
 				{
-					return EVisibility::Visible;
+					if (Box->IsHovered() || IsSoundPlaying(Sound))
+					{
+						return EVisibility::Visible;
+					}
 				}
-
 			}
+		}
+		else if (Box.IsValid() && Box->IsHovered())
+		{
+			return EVisibility::Visible;
 		}
 
 		return EVisibility::Hidden;

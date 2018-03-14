@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Abilities/Tasks/AbilityTask_WaitTargetData.h"
 #include "EngineGlobals.h"
@@ -272,7 +272,7 @@ void UAbilityTask_WaitTargetData::OnTargetDataReadyCallback(const FGameplayAbili
 		if (!TargetActor->ShouldProduceTargetDataOnServer)
 		{
 			FGameplayTag ApplicationTag; // Fixme: where would this be useful?
-			AbilitySystemComponent->ServerSetReplicatedTargetData(GetAbilitySpecHandle(), GetActivationPredictionKey(), Data, ApplicationTag, AbilitySystemComponent->ScopedPredictionKey);
+			AbilitySystemComponent->CallServerSetReplicatedTargetData(GetAbilitySpecHandle(), GetActivationPredictionKey(), Data, ApplicationTag, AbilitySystemComponent->ScopedPredictionKey);
 		}
 		else if (ConfirmationType == EGameplayTargetingConfirmation::UserConfirmed)
 		{

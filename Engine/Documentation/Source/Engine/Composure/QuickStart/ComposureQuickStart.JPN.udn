@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3580568
-Availability:Docs
+﻿INTSourceChangelist:3782314
+Availability:Public
 Crumbs: %ROOT%
 Title:Composure クイックスタート
 Description:Composure について学習し、作業を開始します。
@@ -50,19 +50,9 @@ order:1
 *	Composure を使用するショットを作成する方法 
 
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	[DIR(output:"checkpoint" parent:"Engine/Composure/QuickStart" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+## ステップ
+
+[DIR(output:"checkpoint" parent:"Engine/Composure/QuickStart" org:"hierarchy")]
 
 [REGION:call_to_action]
 	[クリックして開始](Engine\Composure\QuickStart\1 "%Engine/Composure/QuickStart/1:title%")

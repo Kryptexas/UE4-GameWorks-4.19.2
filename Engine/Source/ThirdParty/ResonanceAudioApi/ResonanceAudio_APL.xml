@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--Resonance Audio plugin additions-->
+<root xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- init section is always evaluated once per architecture -->
+  <init>
+    <log text="Resonance Audio init"/>
+  </init>
+
+   <!--optional files or directories to copy to Intermediate/Android/APK-->
+  <resourceCopies>
+    <log text="Copying Resonance Audio files to staging : $S(BuildDir)"/>
+    <isArch arch="armeabi-v7a">
+      <copyFile src="$S(EngineDir)/Source/ThirdParty/ResonanceAudioApi/lib/android/armv7/libvraudio.so"
+          dst="$S(BuildDir)/libs/armeabi-v7a/libvraudio.so" />
+    </isArch>
+
+    <isArch arch="arm64-v8a">
+      <copyFile src="$S(EngineDir)/Source/ThirdParty/ResonanceAudioApi/lib/android/arm64/libvraudio.so"
+          dst="$S(BuildDir)/libs/arm64-v8a/libvraudio.so" />
+    </isArch>
+  </resourceCopies>
+</root>

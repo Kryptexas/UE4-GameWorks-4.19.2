@@ -64,7 +64,8 @@ Checkpoint:AndroidQS
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsSetup]
 
 [region:note]
@@ -157,7 +158,8 @@ Checkpoint:AndroidQS
 [EXCERPT:LinuxSetup]
 [INCLUDE:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux/5#AndroidLinux_5]
 [/EXCERPT:LinuxSetup]
--->
+
+[/COMMENT]
 
 ## 結果
 これが完了すると、.BAT ファイルによって Android スマートフォンにデプロイすることができる UE4 プロジェクトを含む .APK ファイルが作成されます。

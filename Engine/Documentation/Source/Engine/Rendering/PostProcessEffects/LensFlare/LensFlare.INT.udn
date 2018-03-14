@@ -31,7 +31,8 @@ The **Lens Flare** effect is an image-based technique that simulates the scatter
 
 
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:Tint]
 [OBJECT:ComparisonSlider]
@@ -76,4 +77,5 @@ The **Lens Flare** effect is an image-based technique that simulates the scatter
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:BokehShape]
--->
+
+[/COMMENT]

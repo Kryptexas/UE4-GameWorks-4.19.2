@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "OculusHMDPrivate.h"
@@ -22,10 +22,8 @@ public:
 	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 private:
 	FAutoConsoleCommand UpdateOnRenderThreadCommand;
-	FAutoConsoleCommand PixelDensityCommand;
 	FAutoConsoleCommand PixelDensityMinCommand;
 	FAutoConsoleCommand PixelDensityMaxCommand;
-	FAutoConsoleCommand PixelDensityAdaptiveCommand;
 	FAutoConsoleCommand HQBufferCommand;
 	FAutoConsoleCommand HQDistortionCommand;
 	FAutoConsoleCommand ShowGlobalMenuCommand;
@@ -37,10 +35,7 @@ private:
 	FAutoConsoleCommand StatsCommand;
 	FAutoConsoleCommand CubemapCommand;
 	FAutoConsoleCommand ShowSettingsCommand;
-	FAutoConsoleCommand ResetSettingsCommand;
 	FAutoConsoleCommand IPDCommand;
-	FAutoConsoleCommand FCPCommand;
-	FAutoConsoleCommand NCPCommand;
 #endif // !UE_BUILD_SHIPPING
 };
 

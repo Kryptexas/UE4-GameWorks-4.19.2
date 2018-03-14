@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagsEditorModule.h"
 #include "Misc/Paths.h"
@@ -29,6 +29,8 @@
 #include "HAL/PlatformFilemanager.h"
 #include "Stats/StatsMisc.h"
 #include "GameplayTagReferenceHelperDetails.h"
+#include "UObject/UObjectHash.h"
+#include "GameplayTagReferenceHelperDetails.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTagEditor"
 
@@ -57,7 +59,7 @@ public:
 			PropertyModule.NotifyCustomizationModuleChanged();
 		}
 
-		TSharedPtr<FGameplayTagsGraphPanelPinFactory> GameplayTagsGraphPanelPinFactory = MakeShareable( new FGameplayTagsGraphPanelPinFactory() );
+		TSharedPtr<FGameplayTagsGraphPanelPinFactory> GameplayTagsGraphPanelPinFactory = MakeShareable(new FGameplayTagsGraphPanelPinFactory());
 		FEdGraphUtilities::RegisterVisualPinFactory(GameplayTagsGraphPanelPinFactory);
 
 		TSharedPtr<FGameplayTagsGraphPanelNodeFactory> GameplayTagsGraphPanelNodeFactory = MakeShareable(new FGameplayTagsGraphPanelNodeFactory());
@@ -71,13 +73,13 @@ public:
 				LOCTEXT("GameplayTagSettingsName", "GameplayTags"),
 				LOCTEXT("GameplayTagSettingsNameDesc", "GameplayTag Settings"),
 				GetMutableDefault<UGameplayTagsSettings>()
-				);
+			);
 
 			SettingsModule->RegisterSettings("Project", "Project", "GameplayTags Developer",
 				LOCTEXT("GameplayTagDeveloperSettingsName", "GameplayTags Developer"),
 				LOCTEXT("GameplayTagDeveloperSettingsNameDesc", "GameplayTag Developer Settings"),
 				GetMutableDefault<UGameplayTagsDeveloperSettings>()
-				);
+			);
 		}
 
 		GameplayTagPackageName = FGameplayTag::StaticStruct()->GetOutermost()->GetFName();
@@ -85,12 +87,13 @@ public:
 
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 		AssetRegistryModule.Get().OnEditSearchableName(GameplayTagPackageName, GameplayTagStructName).BindRaw(this, &FGameplayTagsEditorModule::OnEditGameplayTag);
-		
+
 		// Hook into notifications for object re-imports so that the gameplay tag tree can be reconstructed if the table changes
 		if (GIsEditor)
 		{
-			AssetImportHandle = FEditorDelegates::OnAssetPostImport.AddRaw(this, &FGameplayTagsEditorModule::OnObjectReimported);
-			SettingsChangedHandle = IGameplayTagsModule::OnTagSettingsChanged.AddRaw(this, &FGameplayTagsEditorModule::OnEditorSettingsChanged);
+			FEditorDelegates::OnAssetPostImport.AddRaw(this, &FGameplayTagsEditorModule::OnObjectReimported);
+			IGameplayTagsModule::OnTagSettingsChanged.AddRaw(this, &FGameplayTagsEditorModule::OnEditorSettingsChanged);
+			UPackage::PackageSavedEvent.AddRaw(this, &FGameplayTagsEditorModule::OnPackageSaved);
 		}
 	}
 
@@ -109,29 +112,22 @@ public:
 	{
 		// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 		// we call this function before unloading the module.
-	
+
 		if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 		{
 			SettingsModule->UnregisterSettings("Project", "Project", "GameplayTags");
 			SettingsModule->UnregisterSettings("Project", "Project", "GameplayTags Developer");
 		}
 
-		if (AssetImportHandle.IsValid())
-		{
-			FEditorDelegates::OnAssetPostImport.Remove(AssetImportHandle);
-		}
-
-		if (SettingsChangedHandle.IsValid())
-		{
-			IGameplayTagsModule::OnTagSettingsChanged.Remove(SettingsChangedHandle);
-		}
+		FEditorDelegates::OnAssetPostImport.RemoveAll(this);
+		IGameplayTagsModule::OnTagSettingsChanged.RemoveAll(this);
+		UPackage::PackageSavedEvent.RemoveAll(this);
 
 		FAssetRegistryModule* AssetRegistryModule = FModuleManager::FModuleManager::GetModulePtr<FAssetRegistryModule>("AssetRegistry");
 		if (AssetRegistryModule)
 		{
 			AssetRegistryModule->Get().OnEditSearchableName(GameplayTagPackageName, GameplayTagStructName).Unbind();
 		}
-
 	}
 
 	void OnEditorSettingsChanged()
@@ -141,6 +137,37 @@ public:
 
 		// Attempt to migrate the settings if needed
 		MigrateSettings();
+	}
+
+	void OnPackageSaved(const FString& PackageFileName, UObject* PackageObj)
+	{
+		if (GIsEditor && !IsRunningCommandlet())
+		{
+			UGameplayTagsManager& Manager = UGameplayTagsManager::Get();
+
+			bool bRefreshGameplayTagTree = false;
+
+			TArray<UObject*> Objects;
+			const bool bIncludeNestedObjects = false;
+			GetObjectsWithOuter(PackageObj, Objects, bIncludeNestedObjects);
+			for (UObject* Entry : Objects)
+			{
+				if (UDataTable* DataTable = Cast<UDataTable>(Entry))
+				{
+					if (Manager.GameplayTagTables.Contains(DataTable))
+					{
+						bRefreshGameplayTagTree = true;
+						break;
+					}
+				}
+			}
+
+			// Re-construct the gameplay tag tree if a data table is saved (presumably with modifications).
+			if (bRefreshGameplayTagTree)
+			{
+				Manager.EditorRefreshGameplayTagTree();
+			}
+		}
 	}
 
 	bool OnEditGameplayTag(const FAssetIdentifier& AssetId)

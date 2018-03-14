@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetRegistryGenerator.h"
 #include "HAL/FileManager.h"
@@ -33,6 +33,10 @@
 DEFINE_LOG_CATEGORY_STATIC(LogAssetRegistryGenerator, Log, All);
 
 #define LOCTEXT_NAMESPACE "AssetRegistryGenerator"
+
+#if WITH_EDITOR
+#include "HAL/ThreadHeartBeat.h"
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 // Static functions
@@ -359,7 +363,7 @@ bool FAssetRegistryGenerator::LoadPreviousAssetRegistry(const FString& Filename)
 {
 	// First try development asset registry
 	FArrayReader SerializedAssetData;
-	
+
 	if (IFileManager::Get().FileExists(*Filename) && FFileHelper::LoadFileToArray(SerializedAssetData, *Filename))
 	{
 		FAssetRegistrySerializationOptions Options;
@@ -414,7 +418,8 @@ bool FAssetRegistryGenerator::SaveManifests(FSandboxPlatformFile* InSandboxFile)
 
 		if (!bUseAssetManager)
 		{
-			GenerateAssetChunkInformationCSV(FPaths::Combine(*FPaths::ProjectLogDir(), TEXT("ChunkLists")));
+			// In new flow, this is written later
+			GenerateAssetChunkInformationCSV(FPaths::Combine(*FPaths::ProjectLogDir(), TEXT("ChunkLists")), true);
 		}
 	}
 
@@ -436,6 +441,14 @@ void FAssetRegistryGenerator::Initialize(const TArray<FName> &InStartupPackages)
 	StartupPackages.Append(InStartupPackages);
 
 	FAssetRegistrySerializationOptions SaveOptions;
+
+	// If the asset registry is still doing it's background scan, we need to wait for it to finish and tick it so that the results are flushed out
+	while (AssetRegistry.IsLoadingAssets())
+	{
+		AssetRegistry.Tick(-1.0f);
+		FThreadHeartBeat::Get().HeartBeat();
+		FPlatformProcess::SleepNoStats(0.0001f);
+	}
 
 	ensureMsgf(!AssetRegistry.IsLoadingAssets(), TEXT("Cannot initialize asset registry generator while asset registry is still scanning source assets "));
 
@@ -478,9 +491,9 @@ void FAssetRegistryGenerator::ComputePackageDifferences(TSet<FName>& ModifiedPac
 			}
 			else
 			{
-				ModifiedPackages.Add(PackageName);
-			}
+			ModifiedPackages.Add(PackageName);
 		}
+	}
 	}
 
 	for (const TPair<FName, const FAssetPackageData*>& PackagePair : PreviousState.GetAssetPackageDataMap())
@@ -583,8 +596,8 @@ void FAssetRegistryGenerator::BuildChunkManifest(const TSet<FName>& InCookedPack
 			FoundIDList->AddUnique(ChunkID);
 		}
 
-		// Now clear the original chunk id list. We will fill it with real IDs when cooking.
-		AssetData.ChunkIDs.Empty();
+			// Now clear the original chunk id list. We will fill it with real IDs when cooking.
+			AssetData.ChunkIDs.Empty();
 
 		// Update whether the owner package contains a map
 		if (AssetData.GetClass()->IsChildOf(UWorld::StaticClass()) || AssetData.GetClass()->IsChildOf(ULevel::StaticClass()))
@@ -676,32 +689,31 @@ void FAssetRegistryGenerator::BuildChunkManifest(const TSet<FName>& InCookedPack
 
 }
 
-void FAssetRegistryGenerator::AddAssetToFileOrderRecursive(FAssetData* InAsset, TArray<FName>& OutFileOrder, TArray<FName>& OutEncounteredNames, const TMap<FName, FAssetData*>& InAssets, const TArray<FName>& InTopLevelAssets)
+void FAssetRegistryGenerator::AddAssetToFileOrderRecursive(const FName& InPackageName, TArray<FName>& OutFileOrder, TSet<FName>& OutEncounteredNames, const TSet<FName>& InPackageNameSet, const TSet<FName>& InTopLevelAssets)
 {
-	if (!OutEncounteredNames.Contains(InAsset->PackageName))
+	if (!OutEncounteredNames.Contains(InPackageName))
 	{
-		OutEncounteredNames.Add(InAsset->PackageName);
+		OutEncounteredNames.Add(InPackageName);
 
 		TArray<FName> Dependencies;
-		AssetRegistry.GetDependencies(InAsset->PackageName, Dependencies, EAssetRegistryDependencyType::Hard);
+		AssetRegistry.GetDependencies(InPackageName, Dependencies, EAssetRegistryDependencyType::Hard);
 
-		for (auto DependencyName : Dependencies)
+		for (FName DependencyName : Dependencies)
 		{
-			if (InAssets.Contains(DependencyName) && !OutFileOrder.Contains(DependencyName))
+			if (InPackageNameSet.Contains(DependencyName))
 			{
 				if (!InTopLevelAssets.Contains(DependencyName))
 				{
-					auto Dependency = InAssets[DependencyName];
-					AddAssetToFileOrderRecursive(Dependency, OutFileOrder, OutEncounteredNames, InAssets, InTopLevelAssets);
+					AddAssetToFileOrderRecursive(DependencyName, OutFileOrder, OutEncounteredNames, InPackageNameSet, InTopLevelAssets);
 				}
 			}
 		}
 
-		OutFileOrder.Add(InAsset->PackageName);
+		OutFileOrder.Add(InPackageName);
 	}
 }
 
-bool FAssetRegistryGenerator::SaveAssetRegistry(const FString& SandboxPath, bool bSerializeDevelopmentAssetRegistry )
+bool FAssetRegistryGenerator::SaveAssetRegistry(const FString& SandboxPath, bool bSerializeDevelopmentAssetRegistry)
 {
 	UE_LOG(LogAssetRegistryGenerator, Display, TEXT("Saving asset registry."));
 	const TMap<FName, const FAssetData*>& ObjectToDataMap = State.GetObjectPathToAssetDataMap();
@@ -729,8 +741,16 @@ bool FAssetRegistryGenerator::SaveAssetRegistry(const FString& SandboxPath, bool
 
 		// Save the generated registry
 		FString PlatformSandboxPath = SandboxPath.Replace(TEXT("[Platform]"), *TargetPlatform->PlatformName());
-		PlatformSandboxPath.ReplaceInline(TEXT("AssetRegistry.bin"), TEXT("DevelopmentAssetRegistry.bin"));
+		PlatformSandboxPath.ReplaceInline(TEXT("AssetRegistry.bin"), TEXT("Metadata/DevelopmentAssetRegistry.bin"));
 		FFileHelper::SaveArrayToFile(SerializedAssetRegistry, *PlatformSandboxPath);
+
+		if (bGenerateChunks && bUseAssetManager)
+		{
+			FString ChunkListsPath = PlatformSandboxPath.Replace(TEXT("/DevelopmentAssetRegistry.bin"), TEXT(""));
+
+			// Write out CSV file with chunking information
+			GenerateAssetChunkInformationCSV(ChunkListsPath, false);
+		}
 	}
 
 	if (SaveOptions.bSerializeAssetRegistry)
@@ -757,13 +777,13 @@ bool FAssetRegistryGenerator::SaveAssetRegistry(const FString& SandboxPath, bool
 
 bool FAssetRegistryGenerator::WriteCookerOpenOrder()
 {
-	TMap<FName, FAssetData*> PackageNameToDataMap;
-	TArray<FName> MapList;
+	TSet<FName> PackageNameSet;
+	TSet<FName> MapList;
 	const TMap<FName, const FAssetData*>& ObjectToDataMap = State.GetObjectPathToAssetDataMap();
 	for (const TPair<FName, const FAssetData*>& Pair : ObjectToDataMap)
 	{
 		FAssetData* AssetData = const_cast<FAssetData*>(Pair.Value);
-		PackageNameToDataMap.Add(AssetData->PackageName, AssetData);
+		PackageNameSet.Add(AssetData->PackageName);
 
 		// REPLACE WITH PRIORITY
 
@@ -773,108 +793,73 @@ bool FAssetRegistryGenerator::WriteCookerOpenOrder()
 		}
 	}
 
-	FString CookerFileOrderString = CreateCookerFileOrderString(PackageNameToDataMap, MapList);
-
-	if (CookerFileOrderString.Len())
+	FString CookerFileOrderString;
 	{
-		auto OpenOrderFilename = FString::Printf(TEXT("%sBuild/%s/FileOpenOrder/CookerOpenOrder.log"), *FPaths::ProjectDir(), *TargetPlatform->PlatformName());
-		FFileHelper::SaveStringToFile(CookerFileOrderString, *OpenOrderFilename);
-	}
+		TArray<FName> TopLevelMapPackageNames;
+		TArray<FName> TopLevelPackageNames;
 
-	return true;
-}
-
-/** Helper function which reroots a sandbox path to the staging area directory which UnrealPak expects */
-inline void ConvertFilenameToPakFormat(FString& InOutPath)
-{
-	auto ProjectDir = FPaths::ProjectDir();
-	auto EngineDir = FPaths::EngineDir();
-	auto GameName = FApp::GetProjectName();
-
-	if (InOutPath.Contains(ProjectDir))
-	{
-		FPaths::MakePathRelativeTo(InOutPath, *ProjectDir);
-		InOutPath = FString::Printf(TEXT("../../../%s/%s"), GameName, *InOutPath);
-	}
-	else if (InOutPath.Contains(EngineDir))
-	{
-		FPaths::MakePathRelativeTo(InOutPath, *EngineDir);
-		InOutPath = FPaths::Combine(TEXT("../../../Engine/"), *InOutPath);
-	}
-}
-
-FString FAssetRegistryGenerator::CreateCookerFileOrderString(const TMap<FName, FAssetData*>& InAssetData, const TArray<FName>& InTopLevelAssets)
-{
-	FString FileOrderString;
-	TArray<FAssetData*> TopLevelMapNodes;
-	TArray<FAssetData*> TopLevelNodes;
-
-	for (auto Asset : InAssetData)
-	{
-		auto PackageName = Asset.Value->PackageName;
-		TArray<FName> Referencers;
-		AssetRegistry.GetReferencers(PackageName, Referencers);
-
-		bool bIsTopLevel = true;
-		bool bIsMap = InTopLevelAssets.Contains(PackageName);
-
-		if (!bIsMap && Referencers.Num() > 0)
+		for (FName PackageName : PackageNameSet)
 		{
-			for (auto ReferencerName : Referencers)
+			TArray<FName> Referencers;
+			AssetRegistry.GetReferencers(PackageName, Referencers, EAssetRegistryDependencyType::Hard);
+
+			bool bIsTopLevel = true;
+			bool bIsMap = MapList.Contains(PackageName);
+
+			if (!bIsMap && Referencers.Num() > 0)
 			{
-				if (InAssetData.Contains(ReferencerName))
+				for (auto ReferencerName : Referencers)
 				{
-					bIsTopLevel = false;
-					break;
+					if (PackageNameSet.Contains(ReferencerName))
+					{
+						bIsTopLevel = false;
+						break;
+					}
+				}
+			}
+
+			if (bIsTopLevel)
+			{
+				if (bIsMap)
+				{
+					TopLevelMapPackageNames.Add(PackageName);
+				}
+				else
+				{
+					TopLevelPackageNames.Add(PackageName);
 				}
 			}
 		}
 
-		if (bIsTopLevel)
+		TArray<FName> FileOrder;
+		TSet<FName> EncounteredNames;
+		for (FName PackageName : TopLevelPackageNames)
 		{
-			if (bIsMap)
-			{
-				TopLevelMapNodes.Add(Asset.Value);
-			}
-			else
-			{
-				TopLevelNodes.Add(Asset.Value);
-			}
+			AddAssetToFileOrderRecursive(PackageName, FileOrder, EncounteredNames, PackageNameSet, MapList);
+		}
+
+		for (FName PackageName : TopLevelMapPackageNames)
+		{
+			AddAssetToFileOrderRecursive(PackageName, FileOrder, EncounteredNames, PackageNameSet, MapList);
+		}
+
+		int32 CurrentIndex = 0;
+		for (FName PackageName : FileOrder)
+		{
+			bool bIsMap = MapList.Contains(PackageName);
+			FString Filename = FPackageName::LongPackageNameToFilename(PackageName.ToString(), bIsMap ? FPackageName::GetMapPackageExtension() : FPackageName::GetAssetPackageExtension());
+			FString Line = FString::Printf(TEXT("\"%s\" %i\n"), *Filename, CurrentIndex++);
+			CookerFileOrderString.Append(Line);
 		}
 	}
 
-	TopLevelMapNodes.Sort([&InTopLevelAssets](const FAssetData& A, const FAssetData& B)
+	if (CookerFileOrderString.Len())
 	{
-		auto IndexA = InTopLevelAssets.Find(A.PackageName);
-		auto IndexB = InTopLevelAssets.Find(B.PackageName);
-		return IndexA < IndexB;
-	});
-
-	TArray<FName> FileOrder;
-	TArray<FName> EncounteredNames;
-	for (auto Asset : TopLevelNodes)
-	{
-		AddAssetToFileOrderRecursive(Asset, FileOrder, EncounteredNames, InAssetData, InTopLevelAssets);
+		FString OpenOrderFilename = FString::Printf(TEXT("%sBuild/%s/FileOpenOrder/CookerOpenOrder.log"), *FPaths::ProjectDir(), *TargetPlatform->PlatformName());
+		FFileHelper::SaveStringToFile(CookerFileOrderString, *OpenOrderFilename);
 	}
 
-	for (auto Asset : TopLevelMapNodes)
-	{
-		AddAssetToFileOrderRecursive(Asset, FileOrder, EncounteredNames, InAssetData, InTopLevelAssets);
-	}
-
-	int32 CurrentIndex = 0;
-	for (auto PackageName : FileOrder)
-	{
-		auto Asset = InAssetData[PackageName];
-		bool bIsMap = InTopLevelAssets.Contains(Asset->PackageName);
-		auto Filename = FPackageName::LongPackageNameToFilename(Asset->PackageName.ToString(), bIsMap ? FPackageName::GetMapPackageExtension() : FPackageName::GetAssetPackageExtension());
-
-		ConvertFilenameToPakFormat(Filename);
-		auto Line = FString::Printf(TEXT("\"%s\" %i\n"), *Filename, CurrentIndex++);
-		FileOrderString.Append(Line);
-	}
-
-	return FileOrderString;
+	return true;
 }
 
 bool FAssetRegistryGenerator::GetPackageDependencyChain(FName SourcePackage, FName TargetPackage, TSet<FName>& VisitedPackages, TArray<FName>& OutDependencyChain)
@@ -959,7 +944,7 @@ bool FAssetRegistryGenerator::GatherAllPackageDependencies(FName PackageName, TA
 	return true;
 }
 
-bool FAssetRegistryGenerator::GenerateAssetChunkInformationCSV(const FString& OutputPath)
+bool FAssetRegistryGenerator::GenerateAssetChunkInformationCSV(const FString& OutputPath, bool bWriteIndividualFiles)
 {
 	FString TmpString;
 	FString CSVString;
@@ -969,29 +954,31 @@ bool FAssetRegistryGenerator::GenerateAssetChunkInformationCSV(const FString& Ou
 	CSVString = HeaderText;
 
 	const TMap<FName, const FAssetData*>& ObjectToDataMap = State.GetObjectPathToAssetDataMap();
+	TArray<const FAssetData*> AssetDataList;
+	for (const TPair<FName, const FAssetData*> Pair : ObjectToDataMap)
+	{
+		AssetDataList.Add(Pair.Value);
+	}
+
+	// Sort list so it's consistent over time
+	AssetDataList.Sort([](const FAssetData& A, const FAssetData& B)
+	{
+		return A.ObjectPath < B.ObjectPath;
+	});
+
 	for (int32 ChunkID = 0, ChunkNum = FinalChunkManifests.Num(); ChunkID < ChunkNum; ++ChunkID)
 	{
 		FString PerChunkManifestCSV = HeaderText;
-		for (const TPair<FName, const FAssetData*> Pair : ObjectToDataMap)
+		for (const FAssetData* AssetDataPtr : AssetDataList)
 		{
-			const FAssetData& AssetData = *Pair.Value;
+			const FAssetData& AssetData = *AssetDataPtr;
 			// Add only assets that have actually been cooked and belong to any chunk
 			if (AssetData.ChunkIDs.Num() > 0)
 			{
-				FString Fullname;
-				if (AssetData.ChunkIDs.Contains(ChunkID) && FPackageName::DoesPackageExist(*AssetData.PackageName.ToString(), nullptr, &Fullname))
+				const FAssetPackageData* PackageData = State.GetAssetPackageData(AssetData.PackageName);
+				if (AssetData.ChunkIDs.Contains(ChunkID) && PackageData && PackageData->DiskSize >= 0)
 				{
-					auto FileSize = IFileManager::Get().FileSize(*FPackageName::LongPackageNameToFilename(*AssetData.PackageName.ToString(), FPackageName::GetAssetPackageExtension()));
-					if (FileSize == INDEX_NONE)
-					{
-						FileSize = IFileManager::Get().FileSize(*FPackageName::LongPackageNameToFilename(*AssetData.PackageName.ToString(), FPackageName::GetMapPackageExtension()));
-					}
-
-					if (FileSize == INDEX_NONE)
-					{
-						FileSize = 0;
-					}
-
+					int64 FileSize = PackageData->DiskSize;
 					FString SoftChain;
 					bool bHardChunk = false;
 					if (ChunkID < ChunkManifests.Num())
@@ -1035,7 +1022,10 @@ bool FAssetRegistryGenerator::GenerateAssetChunkInformationCSV(const FString& Ou
 			}
 		}
 
-		FFileHelper::SaveStringToFile(PerChunkManifestCSV, *FPaths::Combine(*OutputPath, *FString::Printf(TEXT("Chunks%dInfo.csv"), ChunkID)));
+		if (bWriteIndividualFiles)
+		{
+			FFileHelper::SaveStringToFile(PerChunkManifestCSV, *FPaths::Combine(*OutputPath, *FString::Printf(TEXT("Chunks%dInfo.csv"), ChunkID)));
+		}
 	}
 
 	return FFileHelper::SaveStringToFile(CSVString, *FPaths::Combine(*OutputPath, TEXT("AllChunksInfo.csv")));
@@ -1205,7 +1195,7 @@ void FAssetRegistryGenerator::FixupPackageDependenciesForChunks(FSandboxPlatform
 	}
 
 	const FChunkDependencyTreeNode* ChunkDepGraph = DependencyInfo->GetOrBuildChunkDependencyGraph(ChunkManifests.Num() - 1);
-	// Once complete, Add any remaining assets (that are not assigned to a chunk) to the first chunk.
+	//Once complete, Add any remaining assets (that are not assigned to a chunk) to the first chunk.
 	if (FinalChunkManifests.Num() == 0)
 	{
 		FinalChunkManifests.Add(nullptr);

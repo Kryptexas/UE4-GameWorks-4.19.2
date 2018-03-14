@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -30,9 +30,12 @@ public:
 	virtual void Compile(class FHlslNiagaraTranslator* Translator, TArray<int32>& Outputs);
 
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const;
+
+	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
+
 protected:
 	virtual void OnNewTypedPinAdded(UEdGraphPin* NewPin); 
-	virtual void OnPinRenamed(UEdGraphPin* RenamedPin) override;
+	virtual void OnPinRenamed(UEdGraphPin* RenamedPin, const FString& OldName) override;
 	UEdGraphPin* PinPendingRename;
 
 };

@@ -1,7 +1,7 @@
 Availability:Public
 Title: Animation Blueprints
 Crumbs: %ROOT%, Engine, Engine/Animation
-Description:Animation Blueprints are visual scripts created in Persona that allow for the creation and control of complex animation behaviors.
+Description:Animation Blueprints are visual scripts that are used for the creation and control of complex animation behaviors.
 Related: Engine/Blueprints/Overview
 Related: Engine/Content/FBX/Animations
 Related: Engine/Content/Types/SkeletalMeshes
@@ -9,8 +9,8 @@ Related: Engine/Animation/PhysicallyDrivenAnimation
 Related: Engine/Animation/StateMachines
 Related: Gameplay/AI
 Related: Engine/Content/Tools/MayaRiggingTool
-version: 4.14
-type:landing
+version: 4.18
+type:Overview
 tags:Animation
 tags:Animation Blueprint
 tags:Blueprints
@@ -18,10 +18,15 @@ tags:State Machine
 tags:Assets
 topic-image:Engine/Animation/Overview/AnimationBlueprintTopic.png
 
+[COMMENT:none]
+
 [REGION:banner]
 ![](AnimationBlueprint.png)
 [/REGION]
 
+[/COMMENT]
+
+[TOC(start:2 end:2)]
 
 [EXCERPT:Intro]
 An **Animation Blueprint** is a specialized [Blueprint](Engine/Blueprints) that controls the animation of a [Skeletal Mesh.](Engine/Content/Types/SkeletalMeshes) 
@@ -34,7 +39,7 @@ An example of an **Animation Blueprint** is demonstrated on the [Animation Conte
 
 ## Creating and Navigating Animation Blueprints
 
-Before jumping into how Animation Blueprints work, it's best to understand how to create them. Additionally, you should take some time to familiarize yourself with the Animation Blueprint Interface. 
+Before jumping into how Animation Blueprints work, it's best to understand how to create them and the Animation Blueprint Interface. 
 
 [REGION:topics half]
 %Engine\Animation\AnimBlueprints\Creation:TopicCompact%
@@ -43,13 +48,9 @@ Before jumping into how Animation Blueprints work, it's best to understand how t
 
 ## Working with Animation Blueprints
 
-Now that you've created your Animation Blueprint (also, having learned the Animation Blueprint Interface), it's time to consider what you want to work on first.
-
 [EXCERPT:Graphs]
 There are two main components in an Animation Blueprint that work together to create the final animation 
-for each frame. Specifically, the **EventGraph** performs updates to values that are then used in the **AnimGraph** 
-to drive State Machines, BlendSpaces or other nodes; allowing blending between multiple AnimationSequences or poses 
-that can fire off notifications to other systems, enabling dynamic animation-driven effects.
+for each frame. Specifically, the **EventGraph** performs updates to values that are then used in the **AnimGraph** to drive State Machines, BlendSpaces or other nodes; enabling blending between multiple Animation Sequences or poses that can fire off notifications to other systems, and enabling dynamic animation-driven effects.
 [/EXCERPT:Graphs]
 
 [REGION:topics half]
@@ -64,7 +65,7 @@ When creating Animation Blueprints for various characters, it's not uncommon to 
 For example, suppose you have physical animation, or [AnimDynamics](Engine\Animation\AnimHowTo\AnimDynamics), applied to one character and you want to apply it to another. 
 With the **Sub Anim Instance** node, you can create a reference to a separate Animation Blueprint to access and include all of its logic within another Animation Blueprint. 
 
-This can be used to break up large Animation Blueprints into separate, smaller blueprints that can then be included in other Animation Blueprints. 
+This can be used to break up large Animation Blueprints into separate, smaller Blueprints that can then be included in other Animation Blueprints. 
 For example, you could have one Animation Blueprint strictly for "Locomotion", and a Sub Anim Instance that handles physics-based animation. 
 Member variables of a Sub Animation Blueprint can also be exposed as input pins inside of their parent Animation Blueprint, enabling **Sub-Graph Input** nodes to expose **In Pose** to the Sub Anim Instance (see the example shown below).
 
@@ -81,13 +82,13 @@ See [Using Sub Anim Instances](https://docs.unrealengine.com/latest/INT/Engine/A
 
 ## Working with Child Animation Blueprints
 
-When creating and setting up characters and Animation Blueprints, there may be situations where you have multiple characters that are similar, but have entirely different animations for different states. 
+When creating and setting up characters and Animation Blueprints, there may be situations where you have multiple characters that are similar but have entirely different animations for different states. 
 Rather than creating Animation Blueprints for each of those characters, you may be able to use a **Child Animation Blueprint** of a pre-existing Animation Blueprint and override the animation assets that you want to replace. 
 The Child Animation Blueprint will inherit everything from the parent, enabling you to specify which animations should be overridden via the **Asset Override Editor**. 
 
 For example, suppose you have two humanoid characters, where one is a human and the other is a werewolf. Both characters can walk, run, jump, and crawl. 
 However, their motions may be entirely different. The logic of moving between those motions is the same, but the motions themselves are different. 
-It's perfectly fine to create two different Animation Blueprints, but to save some time, you can create a Child Animation Blueprint and selectively choose which animations to override. 
+It's perfectly fine to create two different Animation Blueprints but to save some time, you can create a Child Animation Blueprint and selectively choose which animations to override. 
 
 [REGION:note]
 See [Animation Blueprint Override](Engine/Animation/AnimHowTo/AnimBPOverride) for an example of creating and overriding an Animation Blueprint with a Child Animation Blueprint.
@@ -104,6 +105,48 @@ By assigning a Post Process Anim Blueprint to a Skeletal Mesh, you can create An
 [REGION:note]
 Please see the [Post Process Anim Blueprint](https://docs.unrealengine.com/latest/INT/Engine/Animation/Persona/MeshDetails/index.html#skeletalmesh) section of the Mesh Details page for more information.
 [/REGION]
+
+## Live Editing of Animation Blueprints
+
+[REGION:warning]
+This feature is currently experimental and some aspects may not function as expected. 
+[/REGION]
+
+Animation Blueprints can be edited and recompiled in real-time while playing in the Editor which may improve your iteration times as you no longer need to stop to apply changes. 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	Ec_MIz_mcuM
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+[REGION:caption]
+In the video above, we make changes to our character's State Machine during a Play in Editor session. 
+[/REGION]
+
+You can enable live editing by enabling the **Enable Live Recompilation Of Animation Blueprints** option in the **General - Experimental** section under **Tools**. 
+
+![](LiveEditing.png)
+
+You will need to define an Animation Blueprint instance to debug using the [Debug Filter](Engine/Blueprints/Editor/UIComponents/Toolbar) inside your Animation Blueprint. 
+
+![](DebugOption.png)
+
+After selecting an Animation Blueprint instance to debug, the Animation Blueprint Editor will reflect whatever animation state your character is in from your Level. 
+
+
 
 
 

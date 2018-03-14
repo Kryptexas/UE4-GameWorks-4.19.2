@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HModel.cpp: HModel implementation
@@ -110,8 +110,8 @@ bool HModel::ResolveSurface(const FSceneView* View,int32 X,int32 Y,uint32& OutSu
 						float SizeX = View->UnscaledViewRect.Width();
 						float SizeY = View->UnscaledViewRect.Height();
 						Vertices[VertexIndex] = FVector4(
-							View->ViewRect.Min.X + (0.5f + ScreenPosition.X * 0.5f * InvW) * SizeX,
-							View->ViewRect.Min.Y + (0.5f - ScreenPosition.Y * 0.5f * InvW) * SizeY,
+							View->UnscaledViewRect.Min.X + (0.5f + ScreenPosition.X * 0.5f * InvW) * SizeX,
+							View->UnscaledViewRect.Min.Y + (0.5f - ScreenPosition.Y * 0.5f * InvW) * SizeY,
 							ScreenPosition.Z,
 							InvW
 							);

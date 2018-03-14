@@ -1,97 +1,97 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:Slate Sleeping and Active Timers
+﻿INTSourceChangelist:3108692
+Availability:Public
+Title:スレートのスリープ タイマー / アクティブ タイマー
 Crumbs:%ROOT%, Programming, Programming/Slate
-Description: The Active Timer system allows Slate to enter a Sleep state when no UI needs to update.
+Description:この機能では、新しい「アクティブ タイマー」システムをスレートに導入することで、UI を更新する必要がない場合に「スリープ」状態にすることができます。
 Version:4.9
 
 [TOC (start:2)]
 
-Slate is an "immediate mode" UI framework, meaning it redraws the entire UI each frame. This is great for very dynamic interfaces that are rich with graphics and animations, but results 
-in unnecessary processor usage when nothing in the UI needs to change. Using the Active Timer system in Slate allows it to enter a 
-Sleep state when no UI needs to update. The Active Timer feature should be utilized when working on editor UI, but not when working on UI for a game with a real-time viewport. 
+スレートとは「直接モード」の UI フレームワークです。つまり、フレームごとに UI 全体を作りかえます。グラフィックとアニメーションをふんだんに使用しているかなり動的なインターフェースには向いていますが、 
+UI に変更がない場合は無駄にプロセッサを使うだけになってしまいます。スレートでアクティブ タイマーを使用すると、 
+UI を更新する必要がない場合に「スリープ」状態になります。アクティブ タイマー機能は、エディタ UI での作業中に使用しますが、リアルアイム ビューポートのあるゲームの場合は UI での作業でも使用しません。 
 
-Slate sleeps whenever both of the following are true for a given frame:
-* There is no user action, and
-* No active timer need to execute
+スレートは、以下の両方が所定のフレームに対して true の場合、スリープになります。
+* ユーザー アクションがない
+* アクティブ タイマーを実行する必要がない
 
-A user action is any mouse movement, click, or key press. 
+ユーザー アクションとは、マウスの移動、クリック、キーの押下を指します。 
 
-The following diagram illustrates how the Slate application now ticks each frame:
+下図は、スレート アプリケーションがフレームごとにティックする様子を表したものです。
 
 [REGION:raw]
 ![](image00.png)
 [/REGION:raw]
 
 
-This diagram shows how the editor's processor time changes once Slate sleeping is implemented.
+この図は、エディタのプロセッサの処理時間の推移を表したものです。
 
 ![](image01.png)
 
-## Active Timers
-An active timer is a delegate function explicitly registered by a widget that causes a Slate tick/paint pass upon execution, even in the absence of user action (thus the "active" nature of the timer). 
-Active timers will continue to execute indefinitely at the frequency determined by their execution period until unregistered.
+## アクティブ タイマー
+アクティブ タイマーはウィジェットに明示的に登録されたデリゲート機能で、ユーザー アクション (タイマーの「アクティブな」性質) がない場合でも、実行時にスレート ティック / ペイント パスを引き起こします。 
+アクティブ タイマーは、登録が削除されるまで、実行期間によって定義された頻度で無限に実行し続けます。
 
-The original `Tick()` function is still present as a "passive" tick. It will be called by Slate as before, but only when Slate is awake. At some point in the future, it may be renamed to `PassiveTick()`
-while `Tick()` is deprecated to more clearly reflect this. 
+オリジナルの `Tick()` 関数は「passive」ティックとして存在しています。これまでのようにスレートに呼び出されますが、スレートが起きている場合のみです。今後 `PassiveTick()` と名称変更する可能性がありますので、
+`Tick()` は非推奨です。 
 
-To register an active timer:
-1. Define a function with the following signature:			
+アクティブ タイマーの登録は以下の手順で行います。
+1. 以下のシグネチャを使って関数を定義します。			
 	`EActiveTimerReturnType Foo(double InCurrentTime, float InDeltaTime)`
-1. Bind it to an `FWidgetActiveTimerDelegate`.
-1. Pass the delegate and the time period between timer executions (0 to call every frame) to `SWidget::RegisterActiveTimer()`.
+1. それを `FWidgetActiveTimerDelegate` にバインドします。
+1. デリゲートと `SWidget::RegisterActiveTimer()` へのタイマー実行 (フレームごとの呼び出しは 0) の勘間隔をパスします。
 
-There are three methods that can be used to unregister an active timer.
-* Return `EActiveTimerReturnType::Stop` from the delegate.
-* Pass the `FActiveTimerHandle` that was returned by `SWidget::RegisterActiveTimer()` to `SWidget::UnRegisterActiveTick()`.
-* Destroy the widget that the active timer is registered under.
+アクティブ タイマーの登録削除は、以下の 3 通りの方法で行います。
+* `EActiveTimerReturnType::Stop` をデリゲートから戻す
+* `SWidget::RegisterActiveTimer()` から戻された`FActiveTimerHandle` と `SWidget::UnRegisterActiveTick()` へパスする
+* アクティブ タイマーが登録されているウィジェットを廃止する
 
 
 [REGION:note]
-Currently active timers are an all-or-nothing situation, so if a single active timer needs to execute, all of Slate will be ticked. Furthermore, there is no limit to the number of active timers 
-a widget can have registered concurrently. This can be extremely useful, but also introduces the possibility of duplicate registrations. To prevent them, track registration status in one of the 
-following ways:
-* Keep a flag in the widget to track whether the active timer is registered.
-	* Search "bIsActiveTimerRegistered" in the UE4 codebase for examples.
-* Store a weak pointer to the `FActiveTimerHandle` returned by `RegisterActiveTimer()` and only register when it's invalid.
-	* Search "TWeakPtr<FActiveTimerHandle> ActiveTimerHandle" in the UE4 codebase for examples.
-	* To save memory, only use this method if the active timer ever needs to be explicitly unregistered.
+現時点ではアクティブ タイマーは全部かゼロかの状況なので、単一のアクティブ タイマーを実行するとスレートのすべてがティックされます。さらに、 
+ウィジェットが同時登録可能なアクティブ タイマー数に制限はありません。非常に便利な機能ですが、複製登録が発生する可能性があります。それを防ぐために、 
+以下のいずれかの方法で登録ステータスをトラックします。
+* アクティブ タイマーが登録されているかどうかをトラックするためにウィジェットでフラグを維持する
+	* UE4 コードベースで例えば `bIsActiveTimerRegistered` を検索する
+* `RegisterActiveTimer()` から戻された `FActiveTimerHandle` に弱いポインタを格納し、無効な場合のみ登録する
+	* UE4 コードベースで例えば `TWeakPtr<FActiveTimerHandle> ActiveTimerHandle` を検索する
+	* メモリ節約のために、アクティブ タイマーの登録削除がどうしても必要な場合のみ、このメソッドを使用してください。
 [/REGION]
 
-## Common Use Cases
+## 一般的なユースケース
 
-For the following common use cases, here are some suggested active timer setups:
+以下の一般的なユースケースに対して、お勧めのアクティブ タイマーのセットアップ方法を説明します。
 
-* **When triggering some action:**
-	* Register an active timer w/ period 0 that always returns `EActiveTimerReturnType::Stop`.
-* **When performing some sort of animation or interpolation that is not controlled by an [FCurveSequence](#fcurvesequenceandactivetimers):**
-	1. When inertial scrolling begins, register an active timer with period 0 to update the scroll each frame.
-	1. Until the destination is reached, return `EActiveTimerReturnType::Continue`.
-	1. Upon reaching the target destination, return `EActiveTimerReturnType::Stop` to unregister.
+* **アクションをトリガーする場合**
+	* `EActiveTimerReturnType::Stop` を常に戻す間隔を 0 にしてアクティブ タイマーを登録します。
+* **[FCurveSequence](#FCurveSequenceおよびアクティブタイマー) で制御されないアニメーションや補間を行う場合**
+	1. 慣性スクロールが開始されると、間隔が 0 であるアクティブ タイマーを登録することによって、毎フレーム スクロースを更新できるようにします。
+	1. 目的に到達するまで、`EActiveTimerReturnType::Continue` を戻し続けます。
+	1. ターゲットの目的に到達したら、`EActiveTimerReturnType::Stop` を戻して登録削除をします。
 	[REGION:tip]
-	An example of this is inertial scrolling; see `SScrollBox` for an example.
+	例となるのが、慣例のスクロールです。`SScrollBox` を参照してください。
 	[/REGION]
-* **When taking action after a delay, like opening a different sub-menu, or docking a tab:**
-	* Register with a positive non-zero delay
+* **別のサブメニューを開いたり、タブをドッキングさせたりして、遅延後にアクションを取る場合**
+	* ゼロではない正の値の遅延で登録します。
 	[REGION:note]
-	The period on an active timer cannot be changed once registered. To "reset" the delay before execution, the active timer must be explicitly unregistered and re-registered.
+	アクティブ タイマーの時間間隔は一回登録すると変更はできません。実行前に遅延をリセットするには、アクティブ タイマーを明示的に登録削除して、再登録しなければなりません。
 	[/REGION]
-* **When performing an action periodically and indefinitely:**
-	* Register with a positive non-zero period and just keep returning `EActiveTimerReturnType::Continue`.
+* **アクションを定期的かつ無制限に実行する場合**
+	* ゼロではない正の間隔で登録して、 `EActiveTimerReturnType::Continue` を返し続けます。
 
 
-## FCurveSequence and Active Timers
-The API of `FCurveSequence` has been updated to simplify the process of registering active ticks when a widget is being animated.
-Playing the sequence now requires a reference to the widget that will be animated by it.
-An empty active tick is automatically registered on behalf of the passed widget for the duration of the sequence playback.
-Whether the sequence should loop is now specified when playing the sequence. However, doing so will register the active tick indefinitely, so use it with caution. 
-Whether looping or not, the active tick will unregister when calling `Pause()`, `JumpToStart()`, or `JumpToEnd()`.
+## FCurveSequence およびアクティブ タイマー
+`FCurveSequence` の API がアップデートされ、ウィジェットのアニメート中のアクティブ ティックの登録処理が簡素化されました。
+シーケンスのプレイには、アニメート元であるウィジェットへの参照が必要になりました。
+シーケンスの再生中、パスされたウィジェットの代わりに空のアクティブ ティックが自動的に登録されます。
+シーケンスを再生すると、シーケンスのループが指定されるようになりました。ただし、これによりアクティブ ティックが無制限に登録されるので、注意して使用してください。 
+ループの有無に関わらず、アクティブ ティックは `Pause()`、`JumpToStart()`、`JumpToEnd()` を呼び出すと登録削除されます。
 
-## Testing Slate Sleeping
+## スレート スリープのテスティング
 
-There are two console variables related to Slate sleeping:
-* `Slate.AllowSlateToSleep` controls whether Slate can ever enter a sleep state. It is currently enabled by default.
-* `Slate.SleepBufferPostInput` specifies some amount of time following the last user action that Slate will continue to stay awake. It defaults to 0. This should only be used for debugging, as it may not be a permanent feature of the sleep system. 
+スレートのスリープ機能には、関連するコンソール変数が 2 つあります。
+* `Slate.AllowSlateToSleep` は、スレートをスリープ ステートにできるかどうかを調整します。この変数はデフォルトで有効になっています。
+* `Slate.SleepBufferPostInput` は、スレートを起きている状態を維持させる最後のユーザー アクション後の時間を指定します。デフォルトは 0 です。スリープ システムの恒久機能ではないので、デバッグ処理のみに使用します。 
 
-Since the goal is to make Slate that can sleep indistinguishable from Slate that never sleeps, it can be hard to tell if Slate is sleeping. Currently, the best way to monitor this is to show the editor frame rate 
-(**Editor Settings->Miscellaneous->Show Frame Rate and Memory**). When it freezes, Slate is sleeping.
+目標としているスリープ状態が可能なスレートは、絶対にスリープ状態にならないスレートとは区別ができないため、スレートがスリープ状態なのか判断は難しいです。現在、これをモニターする最善の方法は、 
+エディタ フレームレート (**[Editor Settings]->[Miscellaneous]->[Show Frame Rate and Memory]**) を表示することです。フリーズすると、スレートはスリープになります。

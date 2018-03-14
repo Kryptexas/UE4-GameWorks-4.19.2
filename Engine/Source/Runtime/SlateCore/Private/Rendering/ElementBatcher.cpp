@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Rendering/ElementBatcher.h"
 #include "Fonts/SlateFontInfo.h"
@@ -40,7 +40,7 @@ FSlateElementBatcher::~FSlateElementBatcher()
 void FSlateElementBatcher::AddElements(FSlateWindowElementList& WindowElementList)
 {
 	SLATE_CYCLE_COUNTER_SCOPE(GSlateAddElements);
-	FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::AddElements");
+	SCOPED_NAMED_EVENT_TEXT("Slate::AddElements", FColor::Magenta);
 
 	SCOPE_CYCLE_COUNTER(STAT_SlateAddElements);
 
@@ -69,8 +69,6 @@ void FSlateElementBatcher::AddElements(FSlateWindowElementList& WindowElementLis
 	SET_DWORD_STAT(STAT_SlateNumPrebatchElements, NumDrawnBatchesStat);
 	SET_DWORD_STAT(STAT_SlateNumBoxElements, NumDrawnBoxesStat);
 	SET_DWORD_STAT(STAT_SlateNumTextElements, NumDrawnTextsStat);
-
-	FPlatformMisc::EndNamedEvent();
 }
 
 void FSlateElementBatcher::AddElements(const TArray<FSlateDrawElement>& DrawElements, const FVector2D& ViewportSize)

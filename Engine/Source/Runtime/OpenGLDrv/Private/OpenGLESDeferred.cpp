@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGL3.cpp: OpenGL 3.2 implementation.
@@ -151,6 +151,9 @@ bool FOpenGLESDeferred::bRequiresGLFragCoordVaryingLimitHack = false;
 
 /* This hack fixes an issue with SGX540 compiler which can get upset with some operations that mix highp and mediump */
 bool FOpenGLESDeferred::bRequiresTexture2DPrecisionHack = false;
+
+/* This is a hack to add a round() function when not available to a shader compiler */
+bool FOpenGLES2Deferred::bRequiresRoundFunctionHack = true;
 
 /* This is to avoid a bug in Adreno drivers that define GL_ARM_shader_framebuffer_fetch_depth_stencil even when device does not support this extension  */
 bool FOpenGLESDeferred::bRequiresARMShaderFramebufferFetchDepthStencilUndef = false;

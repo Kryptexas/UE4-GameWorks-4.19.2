@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AsyncLoading.h: Unreal async loading definitions.
@@ -484,6 +484,14 @@ struct FAsyncPackage : FGCObject
 	/** Removes all objects from the list and clears async loading flags */
 	void EmptyReferencedObjects();
 
+	/** Returns the UPackage wrapped by this, if it is valid */
+	UPackage* GetLoadedPackage();
+
+#if WITH_EDITOR
+	/** Gets all assets loaded by this async package, used in the editor */
+	void GetLoadedAssets(TArray<FWeakObjectPtr>& AssetList);
+#endif
+
 private:	
 
 	struct FCompletionCallback
@@ -551,6 +559,8 @@ private:
 	bool						bLoadHasFinished;
 	/** True if threaded loading has finished for this package */
 	bool						bThreadedLoadingFinished;
+	/** True if this package was created by this async package */
+	bool						bCreatedLinkerRoot;
 	/** The time taken when we started the tick.														*/
 	double						TickStartTime;
 	/** Last object work was performed on. Used for debugging/ logging purposes.						*/
@@ -622,7 +632,7 @@ public:
 	int64 CurrentBlockBytes;
 	TSet<int32> ExportsInThisBlock;
 
-	TMultiMap<FName, FPackageIndex> ObjectNameToImportOrExport;
+	TMap<TPair<FName, FPackageIndex>, FPackageIndex> ObjectNameWithOuterToExport;
 
 	TSet<FWeakAsyncPackagePtr> PackagesIMayBeWaitingForBeforePostload; // these need to be reexamined and perhaps deleted or collapsed
 

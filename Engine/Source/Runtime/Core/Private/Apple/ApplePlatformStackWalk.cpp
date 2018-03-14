@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ApplePlatformStackWalk.mm: Apple implementations of stack walk functions
@@ -152,24 +152,22 @@ static void AsyncSafeProgramCounterToSymbolInfo( uint64 ProgramCounter, FProgram
 	FCStringAnsi::Strcpy(out_SymbolInfo.ModuleName, DylibName);
 }
 
-void FApplePlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32 MaxDepth, void* Context )
+uint32 FApplePlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32 MaxDepth, void* Context )
 {
 	// Make sure we have place to store the information before we go through the process of raising
 	// an exception and handling it.
 	if( BackTrace == NULL || MaxDepth == 0 )
 	{
-		return;
+		return 0;
 	}
 
 #if PLATFORM_MAC
 	if(Context)
 	{
-		int i = plcrashreporter_backtrace((void**)BackTrace, MaxDepth);
-		
-		return;
+		return plcrashreporter_backtrace((void**)BackTrace, MaxDepth);
 	}
 #endif
-	backtrace((void**)BackTrace, MaxDepth);
+	return backtrace((void**)BackTrace, MaxDepth);
 }
 
 bool FApplePlatformStackWalk::ProgramCounterToHumanReadableString( int32 CurrentCallDepth, uint64 ProgramCounter, ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, FGenericCrashContext* Context )

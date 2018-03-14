@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388666
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 3.1 - 게임에 발사체 추가
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
@@ -21,7 +21,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 캐릭터 구성을 마쳤으니, 이제 발사체 무기를 구현하여 발사하면 단순한 수류탄같은 발사체가 화면 중앙에서 발사되어 월드에 충돌할 때까지 날아가도록 만들겠습니다. 이번 단계에서는 프로젝타일에 쓸 입력을 추가하고 새 코드 클래스를 만들도록 하겠습니다.
 
@@ -663,4 +663,3 @@ Version: 4.15
 	이 단계의 목적은 다음 단계로 넘어가기 전 빌드 오류를 잡아내기 위함입니다.
 	[/REGION]
 
-%Steps%

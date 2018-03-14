@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -314,6 +314,9 @@ private:
 	/** Makes the allow edits menu for the toolbar. */
 	TSharedRef<SWidget> MakeAllowEditsMenu();
 
+	/** Makes the playback speed menu for the toolbar. */
+	void FillPlaybackSpeedMenu(FMenuBuilder& InMenuBuilder);
+
 public:	
 
 	/** Makes a time range widget with the specified inner content */
@@ -430,6 +433,9 @@ private:
 
 	EVisibility GetDebugVisualizerVisibility() const;
 	
+	void SetPlaybackSpeed(float InPlaybackSpeed);
+	float GetPlaybackSpeed() const;
+
 public:
 	/** On Paste Command */
 	void OnPaste();

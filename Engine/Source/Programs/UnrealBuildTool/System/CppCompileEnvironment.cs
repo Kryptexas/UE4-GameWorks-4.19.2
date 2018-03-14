@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -117,6 +117,11 @@ namespace UnrealBuildTool
 		/// Use run time type information
 		/// </summary>
 		public bool bUseRTTI = false;
+
+		/// <summary>
+		/// Enable inlining.
+		/// </summary>
+		public bool bUseInlining = false;
 
 		/// <summary>
 		/// Use AVX instructions
@@ -244,6 +249,26 @@ namespace UnrealBuildTool
 		/// </summary>
 		public bool bAllowLTCG;
 
+        /// <summary>
+        /// Whether to enable Profile Guided Optimization (PGO) instrumentation in this build.
+        /// </summary>
+        public bool bPGOProfile;
+        
+        /// <summary>
+        /// Whether to optimize this build with Profile Guided Optimization (PGO).
+        /// </summary>
+        public bool bPGOOptimize;
+
+        /// <summary>
+        /// Platform specific directory where PGO profiling data is stored.
+        /// </summary>
+        public string PGODirectory;
+
+        /// <summary>
+        /// Platform specific filename where PGO profiling data is saved.
+        /// </summary>
+        public string PGOFilenamePrefix;
+
 		/// <summary>
 		/// Whether to log detailed timing info from the compiler
 		/// </summary>
@@ -295,6 +320,11 @@ namespace UnrealBuildTool
 		public bool bHackHeaderGenerator;
 
 		/// <summary>
+		/// Whether to hide symbols by default
+		/// </summary>
+		public bool bHideSymbolsByDefault;
+
+		/// <summary>
 		/// Default constructor.
 		/// </summary>
         public CppCompileEnvironment(CppPlatform Platform, CppConfiguration Configuration, string Architecture, CPPHeaders Headers)
@@ -320,6 +350,7 @@ namespace UnrealBuildTool
 			PrecompiledHeaderIncludeFilename = Other.PrecompiledHeaderIncludeFilename;
 			PrecompiledHeaderAction = Other.PrecompiledHeaderAction;
 			bUseRTTI = Other.bUseRTTI;
+			bUseInlining = Other.bUseInlining;
 			bUseAVX = Other.bUseAVX;
 			bFasterWithoutUnity = Other.bFasterWithoutUnity;
 			MinSourceFilesForUnityBuildOverride = Other.MinSourceFilesForUnityBuildOverride;
@@ -344,6 +375,10 @@ namespace UnrealBuildTool
 			bSupportEditAndContinue = Other.bSupportEditAndContinue;
 			bUseIncrementalLinking = Other.bUseIncrementalLinking;
 			bAllowLTCG = Other.bAllowLTCG;
+			bPGOOptimize = Other.bPGOOptimize;
+			bPGOProfile = Other.bPGOProfile;
+			PGOFilenamePrefix = Other.PGOFilenamePrefix;
+			PGODirectory = Other.PGODirectory;
 			bPrintTimingInfo = Other.bPrintTimingInfo;
 			bAllowRemotelyCompiledPCHs = Other.bAllowRemotelyCompiledPCHs;
 			IncludePaths = new CppIncludePaths(Other.IncludePaths);
@@ -354,6 +389,7 @@ namespace UnrealBuildTool
 			PrecompiledHeaderFile = Other.PrecompiledHeaderFile;
 			Headers = Other.Headers;
 			bHackHeaderGenerator = Other.bHackHeaderGenerator;
+			bHideSymbolsByDefault = Other.bHideSymbolsByDefault;
 		}
 	}
 }

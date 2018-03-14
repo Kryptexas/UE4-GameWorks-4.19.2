@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -32,7 +32,7 @@ public:
 	/**
 	 * Creates a new debug canvas and enqueues the previous one for deletion
 	 */
-	void InitDebugCanvas(UWorld* InWorld);
+	void InitDebugCanvas(FViewportClient* ViewportClient, UWorld* InWorld);
 
 	/** 
 	* Releases rendering resources

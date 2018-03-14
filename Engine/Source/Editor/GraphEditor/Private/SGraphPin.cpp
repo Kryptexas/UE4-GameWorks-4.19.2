@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SGraphPin.h"
@@ -361,7 +361,7 @@ FReply SGraphPin::OnPinMouseDown( const FGeometry& SenderGeometry, const FPointe
 				struct FLinkedToPinInfo
 				{
 					// Pin name string
-					FString PinName;
+					FName PinName;
 
 					// A weak reference to the node object that owns the pin
 					TWeakObjectPtr<UEdGraphNode> OwnerNodePtr;
@@ -371,7 +371,7 @@ FReply SGraphPin::OnPinMouseDown( const FGeometry& SenderGeometry, const FPointe
 				TArray<FLinkedToPinInfo> LinkedToPinInfoArray;
 				for (UEdGraphPin* Pin : GetPinObj()->LinkedTo)
 				{
-					if (auto PinWidget = PinToPinWidgetMap.Find(Pin))
+					if (TSharedRef<SGraphPin>* PinWidget = PinToPinWidgetMap.Find(Pin))
 					{
 						check((*PinWidget)->OwnerNodePtr.IsValid());
 

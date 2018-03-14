@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SGraphNode_BehaviorTree.h"
@@ -8,6 +8,7 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/SToolTip.h"
 #include "BehaviorTree/BTNode.h"
+#include "BehaviorTree/BTCompositeNode.h"
 #include "BehaviorTreeGraph.h"
 #include "BehaviorTreeGraphNode.h"
 #include "BehaviorTreeGraphNode_Composite.h"
@@ -256,12 +257,15 @@ FSlateColor SGraphNode_BehaviorTree::GetBackgroundColor() const
 	else if (Cast<UBehaviorTreeGraphNode_Task>(GraphNode))
 	{
 		check(BTGraphNode);
-		const bool bIsSpecialTask = Cast<UBTTask_RunBehavior>(BTGraphNode->NodeInstance) != NULL;
+		const bool bIsSpecialTask = Cast<UBTTask_RunBehavior>(BTGraphNode->NodeInstance) != nullptr;
 		NodeColor = bIsSpecialTask ? BehaviorTreeColors::NodeBody::TaskSpecial : BehaviorTreeColors::NodeBody::Task;
 	}
 	else if (Cast<UBehaviorTreeGraphNode_Composite>(GraphNode))
 	{
-		NodeColor = BehaviorTreeColors::NodeBody::Composite;
+		check(BTGraphNode);
+		UBTCompositeNode* CompositeNodeInstance = Cast<UBTCompositeNode>(BTGraphNode->NodeInstance);
+		const bool bIsScoped = CompositeNodeInstance && CompositeNodeInstance->IsApplyingDecoratorScope();
+		NodeColor = bIsScoped ? BehaviorTreeColors::NodeBody::CompositeScoped : BehaviorTreeColors::NodeBody::Composite;
 	}
 	else if (Cast<UBehaviorTreeGraphNode_Service>(GraphNode))
 	{

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #ifndef STUBBED
@@ -28,3 +28,11 @@ Seek-free defines.
 -----------------------------------------------------------------------------*/
 
 #define STANDALONE_SEEKFREE_SUFFIX	TEXT("_SF")
+
+
+/*-----------------------------------------------------------------------------
+Enabling formatting string type checking on varargs.  Intended to be defined
+on permanently when all usage is fixed.
+-----------------------------------------------------------------------------*/
+
+#define USE_FORMAT_STRING_TYPE_CHECKING 0

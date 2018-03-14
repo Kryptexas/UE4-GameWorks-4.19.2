@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -33,7 +33,7 @@ class UBlueprintMaterialTextureNodesBPLibrary : public UBlueprintFunctionLibrary
 	* Samples a texel from a Texture 2D with VectorDisplacement Compression
 	*/
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Texture2D Sample UV Editor Only", Keywords = "Read Texture UV"), Category = Rendering)
-		static FLinearColor Texture2D_SampleUV_EditorOnly(UTexture2D* Texture, FVector2D UV, const int Mip);
+		static FLinearColor Texture2D_SampleUV_EditorOnly(UTexture2D* Texture, FVector2D UV);
 
 	/**
 	* Samples an array of values from a Texture Render Target 2D. Currently only 4 channel formats are supported.

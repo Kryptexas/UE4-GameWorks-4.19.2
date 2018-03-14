@@ -21,7 +21,8 @@ Description:对场景曝光进行自动调整以模拟人眼对亮度变化的�
 | **Speed Down** （减速） | 从明亮环境到黑暗环境后对环境的适应速度。 |
 | **Exposure Offset** （曝光偏移）| 控制曝光设置的偏移。 该值有对数意义： [INCLUDE:#ExposureOffset] 分数值，例如1.5，或示例以外的数字也同样可行。 如果眼部适应被激活，该值会被添加到自动曝光中。 |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ExposureOffset]
 [REGION:simpletable]
 | 值 | 效果 |
@@ -33,7 +34,8 @@ Description:对场景曝光进行自动调整以模拟人眼对亮度变化的�
 | 2 |四倍亮度|
 [/REGION]
 [/EXCERPT:ExposureOffset]
--->
+
+[/COMMENT]
 
 人眼适应基于[柱形图](#柱形图)并使用如下方式：
 

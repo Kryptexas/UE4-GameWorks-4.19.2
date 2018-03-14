@@ -25,7 +25,7 @@ SkillLevel:Beginner
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 生産性を上げる方法の 1 つは、端末から実行できるカスタム シェル スクリプトを書くことです。Linux でシェル スクリプトを書けるのであれば、 
 UE4 の設定とビルドを自動処理するように書いてみてください。
@@ -48,4 +48,3 @@ UE4 ですぐにプロジェクトを作成する方法は、以下のチュー�
 *	[](Programming/QuickStart)
 *	[](Engine/QuickStart)
 
-%Steps%

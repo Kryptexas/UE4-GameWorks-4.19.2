@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2677278
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:プロジェクトをテンプレートに変換する
 Crumbs: %ROOT%, Engine, Engine/Basics/Projects
@@ -6,28 +6,28 @@ Description:既存のプロジェクトをテンプレートに変換するた�
 version:4.9
 
 [EXCERPT:ConvertDesc]
-既存のプロジェクトをテンプレートに変換するには、以下の手順に従います。
+既存のプロジェクトをテンプレートに変換するには以下の手順に従います。
 
 
-1.	プロジェクト フォルダを適切なテンプレート ディレクトリに移動します。
-| エンジンのバージョン | パス | 
+1.	プロジェクトのフォルダを適切な Templates ディレクトリに移動します。
+|Engine Version | Path | 
 |---------------|------|
 | Launcher | C:\Program Files\Unreal Engine\[Version]\Templates |
 | Source | [ForkLocation]\UE4\Templates |
-1.	Templates\\[ProjectName]\Config\DefaultGame.ini を開き、**ProjectName** 変数を追加または更新します。
+1.	Templates\\[ProjectName]\Config\DefaultGame.ini を開くか、**ProjectName** 変数を追加または更新します。
 
 		[/Script/EngineSettings.GeneralProjectSettings]
 		ProjectID=E6468D0243A591234122E38F92DB28F4
 		ProjectName=MyTestTemplate
 1.	Templates\TP_FirstPerson\Config\TemplateDefs.ini を Templates\\[ProjectName]\Config\TemplateDefs.ini. にコピーします。TP_FirstPerson の代わりに任意の既存テンプレート フォルダを使用することができます。
-1.	Templates\\[ProjectName]\Config\TemplateDefs.ini を開き、その **LocalizedDisplayNames** と **LocalizedDescriptions** 変数を更新します。
+1.	Templates\\[ProjectName]\Config\TemplateDefs.ini を開き、その **LocalizedDisplayNames** 変数と **LocalizedDescriptions** 変数を更新します。
 
 		[/Script/GameProjectGeneration.TemplateProjectDefs]
 		LocalizedDisplayNames=(Language="en",Text="My Test Template")
 		LocalizedDescriptions=(Language="en",Text="A project including starter content and a first person character set up in Blueprints.")
 1.	Templates\\[ProjectName]\\[ProjectName].png にアイコン ファイルを追加することもできます。
 
-これで、New Project ダイアログにこの新規テンプレートが表示されます。 
+新しいテンプレートが New Project ダイアログに表示されます。 
 
 [REGION:note]
 新しいテンプレートを見るには、New Project ダイアログを閉じて開くだけです。しかし、既存テンプレートに変更を加えると (例えば、LocalizedDisplayNames) 、 

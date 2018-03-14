@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraEditorStyle.h"
 
@@ -7,6 +7,7 @@
 #include "Slate/SlateGameResources.h"
 #include "Styling/SlateStyleRegistry.h"
 #include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
 
 TSharedPtr< FSlateStyleSet > FNiagaraEditorStyle::NiagaraEditorStyleInstance = NULL;
 
@@ -35,14 +36,13 @@ FName FNiagaraEditorStyle::GetStyleSetName()
 #define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush( Style->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
 #define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush( Style->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
 #define BORDER_BRUSH( RelativePath, ... ) FSlateBorderBrush( Style->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
-#define TTF_FONT( RelativePath, ... ) FSlateFontInfo( Style->RootToContentDir( RelativePath, TEXT(".ttf") ), __VA_ARGS__ )
-#define OTF_FONT( RelativePath, ... ) FSlateFontInfo( Style->RootToContentDir( RelativePath, TEXT(".otf") ), __VA_ARGS__ )
-#define TTF_CORE_FONT( RelativePath, ... ) FSlateFontInfo( FPaths::EngineContentDir()  / "Slate" / RelativePath + TEXT(".ttf"), __VA_ARGS__ )
 #define BOX_CORE_BRUSH( RelativePath, ... ) FSlateBoxBrush( FPaths::EngineContentDir() / "Editor/Slate" / RelativePath + TEXT(".png"), __VA_ARGS__ )
+#define DEFAULT_FONT(...) FCoreStyle::GetDefaultFontStyle(__VA_ARGS__)
 
 const FVector2D Icon16x16(16.0f, 16.0f);
 const FVector2D Icon20x20(20.0f, 20.0f);
 const FVector2D Icon40x40(40.0f, 40.0f);
+const FVector2D Icon64x64(64.0f, 64.0f);
 
 TSharedRef< FSlateStyleSet > FNiagaraEditorStyle::Create()
 {
@@ -55,7 +55,7 @@ TSharedRef< FSlateStyleSet > FNiagaraEditorStyle::Create()
 
 	// Stats
 	FTextBlockStyle CategoryText = FTextBlockStyle(NormalText)
-		.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 10))
+		.SetFont(DEFAULT_FONT("Regular", 10))
 		.SetShadowOffset(FVector2D(0, 1))
 		.SetShadowColorAndOpacity(FLinearColor(0, 0, 0, 0.9f));
 
@@ -63,12 +63,12 @@ TSharedRef< FSlateStyleSet > FNiagaraEditorStyle::Create()
 
 	// Emitter Header
 	FTextBlockStyle HeadingText = FTextBlockStyle(NormalText)
-		.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 14))
+		.SetFont(DEFAULT_FONT("Regular", 14))
 		.SetShadowOffset(FVector2D(0, 1))
 		.SetShadowColorAndOpacity(FLinearColor(0, 0, 0, 0.9f));
 
 	FEditableTextBoxStyle HeadingEditableTextBox = FEditableTextBoxStyle(NormalEditableTextBox)
-		.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 14));
+		.SetFont(DEFAULT_FONT("Regular", 14));
 
 	Style->Set("NiagaraEditor.HeadingEditableTextBox", HeadingEditableTextBox);
 
@@ -77,14 +77,14 @@ TSharedRef< FSlateStyleSet > FNiagaraEditorStyle::Create()
 		.SetEditableTextBoxStyle(HeadingEditableTextBox));
 
 	FTextBlockStyle TabText = FTextBlockStyle(NormalText)
-		.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 12))
+		.SetFont(DEFAULT_FONT("Regular", 12))
 		.SetShadowOffset(FVector2D(0, 1))
 		.SetShadowColorAndOpacity(FLinearColor(0, 0, 0, 0.9f));
 	
 	Style->Set("NiagaraEditor.AttributeSpreadsheetTabText", TabText);
 	
 	// Parameters
-	FSlateFontInfo ParameterFont = TTF_CORE_FONT("Fonts/Roboto-Regular", 8);
+	FSlateFontInfo ParameterFont = DEFAULT_FONT("Regular", 8);
 
 	Style->Set("NiagaraEditor.ParameterFont", ParameterFont);
 
@@ -110,13 +110,13 @@ TSharedRef< FSlateStyleSet > FNiagaraEditorStyle::Create()
 	// Code View
 	{
 		Style->Set("NiagaraEditor.CodeView.Checkbox.Text", FTextBlockStyle(NormalText)
-			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 12))
+			.SetFont(DEFAULT_FONT("Bold", 12))
 			.SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, 0.9f))
 			.SetShadowOffset(FVector2D(1, 1))
 			.SetShadowColorAndOpacity(FLinearColor(0, 0, 0, 0.9f)));
 
 		const int32 LogFontSize = 9;
-		FSlateFontInfo LogFont = TTF_CORE_FONT("Fonts/DroidSansMono", LogFontSize);
+		FSlateFontInfo LogFont = DEFAULT_FONT("Mono", LogFontSize);
 		FTextBlockStyle NormalLogText = FTextBlockStyle(NormalText)
 			.SetFont(LogFont)
 			.SetColorAndOpacity(FLinearColor(FColor(0xffffffff)))
@@ -125,7 +125,7 @@ TSharedRef< FSlateStyleSet > FNiagaraEditorStyle::Create()
 	}
 
 	// Selected Emitter
-	FSlateFontInfo SelectedEmitterUnsupportedSelectionFont = TTF_CORE_FONT("Fonts/Roboto", 10);
+	FSlateFontInfo SelectedEmitterUnsupportedSelectionFont = DEFAULT_FONT("Regular", 10);
 	FTextBlockStyle SelectedEmitterUnsupportedSelectionText = FTextBlockStyle(NormalText)
 		.SetFont(SelectedEmitterUnsupportedSelectionFont)
 		.SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f))
@@ -162,16 +162,19 @@ TSharedRef< FSlateStyleSet > FNiagaraEditorStyle::Create()
 	Style->Set("NiagaraEditor.AssetColors.ParameterCollection", FLinearColor(1.0f, 1.0f, 0.3f));
 	Style->Set("NiagaraEditor.AssetColors.ParameterCollectionInstance", FLinearColor(1.0f, 1.0f, 0.7f));
 
+	// Script factory thumbnails
+	Style->Set("NiagaraEditor.Thumbnails.DynamicInputs", new IMAGE_BRUSH("Icons/NiagaraScriptDynamicInputs_64x", Icon64x64));
+	Style->Set("NiagaraEditor.Thumbnails.Functions", new IMAGE_BRUSH("Icons/NiagaraScriptFunction_64x", Icon64x64));
+	Style->Set("NiagaraEditor.Thumbnails.Modules", new IMAGE_BRUSH("Icons/NiagaraScriptModules_64x", Icon64x64));
+
 	return Style;
 }
 
 #undef IMAGE_BRUSH
 #undef BOX_BRUSH
 #undef BORDER_BRUSH
-#undef TTF_FONT
-#undef OTF_FONT
-#undef TTF_CORE_FONT
 #undef BOX_CORE_BRUSH
+#undef DEFAULT_FONT
 
 void FNiagaraEditorStyle::ReloadTextures()
 {

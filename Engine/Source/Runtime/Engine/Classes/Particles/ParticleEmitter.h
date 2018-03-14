@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // ParticleEmitter
@@ -86,7 +86,9 @@ struct FParticleBurst
 };
 
 DECLARE_STATS_GROUP(TEXT("Emitters"), STATGROUP_Emitters, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Emitters"), STATGROUP_EmittersRT, STATCAT_Advanced);
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("STAT_EmittersStatGroupTester"), STAT_EmittersStatGroupTester, STATGROUP_Emitters, ENGINE_API);
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("STAT_EmittersRTStatGroupTester"), STAT_EmittersRTStatGroupTester, STATGROUP_EmittersRT, ENGINE_API);
 
 UCLASS(hidecategories=Object, editinlinenew, abstract, MinimalAPI)
 class UParticleEmitter : public UObject
@@ -379,6 +381,7 @@ class UParticleEmitter : public UObject
 
 	/** Stat id of this object, 0 if nobody asked for it yet */
 	STAT(mutable TStatId StatID;)
+	STAT(mutable TStatId StatIDRT;)
 		
 	/**
 	* Returns the stat ID of the object...
@@ -395,6 +398,22 @@ class UParticleEmitter : public UObject
 				CreateStatID();
 			}
 			return StatID;
+		}
+#endif
+		return TStatId(); // not doing stats at the moment, or ever
+	}
+
+	FORCEINLINE TStatId GetStatIDRT(bool bForDeferredUse = false) const
+	{
+#if STATS
+		// this is done to avoid even registering stats for a disabled group (unless we plan on using it later)
+		if (bForDeferredUse || FThreadStats::IsCollectingData(GET_STATID(STAT_EmittersRTStatGroupTester)))
+		{
+			if (!StatIDRT.IsValidStat())
+			{
+				CreateStatID();
+			}
+			return StatIDRT;
 		}
 #endif
 		return TStatId(); // not doing stats at the moment, or ever

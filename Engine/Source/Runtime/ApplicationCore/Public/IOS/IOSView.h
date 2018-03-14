@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -52,6 +52,7 @@ struct FKeyboardConfig
 #if HAS_METAL
 	// global metal device
 	id<MTLDevice> MetalDevice;
+	id<CAMetalDrawable> PanicDrawable;
 #endif
 
 	// are we using the Metal API?

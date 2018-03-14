@@ -76,7 +76,8 @@ Topic-image:HydroErosion_topic.png
 | **Rain Dist Scale** | 降り始めの雨をサーフェスへ適用するノイズ フィルターの大きさです。ノイズ フィルターは位置とスケールに結びつくので、**Rain Dist. Scale** を変えない限り、同じフィルターが同じ位置に繰り返し適用されます。 | 
 | **Detail Smooth** | このオプションがチェックされると、指定した詳細スムージング値を使って、詳細度を維持したままのスムージングを侵食エフェクトに対して実行します。詳細スムージング値が大きくなると詳細度が下がり、詳細スムージング値が小さくなると詳細度が保たれます。 |
 
-<!---
+[COMMENT:none]
+-
 [INCLUDE:#raindist]
 [EXCERPT:raindist]
 | 選択 | 説明 |
@@ -85,4 +86,5 @@ Topic-image:HydroErosion_topic.png
 | **Positive** | 適用した領域全体に雨が降って見えるように、ハイトマップを侵食します。  |
 [/EXCERPT:raindist]
 
---->
+-
+[/COMMENT]

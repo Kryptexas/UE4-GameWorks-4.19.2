@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ObjectTools.h: Object-related utilities
@@ -402,6 +402,11 @@ namespace ObjectTools
 
 	/** Converts all invalid object name characters to _ */
 	UNREALED_API FString SanitizeObjectName(const FString& InObjectName);
+	/** Converts all invalid object path characters to _ */
+	UNREALED_API FString SanitizeObjectPath(const FString& InObjectPath);
+	/** Converts all specified invalid characters to _ */
+	UNREALED_API FString SanitizeInvalidChars(const FString& InObjectName, const FString& InvalidChars);
+
 
 	/**
 	 * Populates two strings with all of the file types and extensions the provided factory supports.
@@ -600,6 +605,9 @@ namespace ThumbnailTools
 	/** Standard thumbnail height setting used by generation */
 	const int32 DefaultThumbnailSize=256;
 
-	/** If the given asset has a custom thumbnail cached or on the disk. */
-	UNREALED_API bool AssetHasCustomThumbnail(const FAssetData& InAssetData);
+	/** Returns true if the given asset has a custom thumbnail cached or on the disk. */
+	UNREALED_API bool AssetHasCustomThumbnail(const FString& InAssetDataFullName);
+	UNREALED_API bool AssetHasCustomThumbnail(const FString& InAssetDataFullName, FObjectThumbnail& OutThumbnail);
+	/** Returns true if the given asset has a custom thumbnail cached or on the disk and if the thumbnail was captured from a viewport. */
+	UNREALED_API bool AssetHasCustomCreatedThumbnail(const FString& InAssetDataFullName);
 }

@@ -22,7 +22,7 @@ Version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. **Visual Studio** では、**[Solution Explorer]** ペインを使って、新規に作成した C++ ファイルを検索します。このサンプルでは、ファイル名を「FloatingActor.cpp」と「FloatingActor.h」にして、「QuickStart」プロジェクトに保存します。
 
@@ -116,7 +116,7 @@ Version:4.9
     [/PARAM]
     [PARAM:content]
 		**FloatingActor.h**
-			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc.All Rights Reserved.
 
 			#pragma once
 
@@ -143,7 +143,7 @@ Version:4.9
 			};
 
 		**FloatingActor.cpp**
-			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc.All Rights Reserved.
 
 			#include "QuickStart.h"
 			#include "FloatingActor.h"
@@ -178,4 +178,4 @@ Version:4.9
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

@@ -25,7 +25,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 With the project open and ready to go, the first thing you may notice is the [Viewport](Engine/UI/LevelEditor/Viewports) in the center of the Unreal Editor. 
 
@@ -60,4 +60,4 @@ You will be moving the camera around quite a bit as you are building your levels
 
 In the Next Step, we will create a **New Level** so that we can build our own sample area and start populating it with assets. 
 
-%Steps%
+

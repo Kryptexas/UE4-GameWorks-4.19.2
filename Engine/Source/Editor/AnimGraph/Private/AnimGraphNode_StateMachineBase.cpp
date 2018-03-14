@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphNode_StateMachineBase.h"
 #include "EdGraph/EdGraph.h"
@@ -158,6 +158,12 @@ void UAnimGraphNode_StateMachineBase::PostPasteNode()
 	if(ParentGraph->SubGraphs.Find(EditorStateMachineGraph) == INDEX_NONE)
 	{
 		ParentGraph->SubGraphs.Add(EditorStateMachineGraph);
+	}
+
+	for (UEdGraphNode* GraphNode : EditorStateMachineGraph->Nodes)
+	{
+		GraphNode->CreateNewGuid();
+		GraphNode->PostPasteNode();
 	}
 
 	// Find an interesting name

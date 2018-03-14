@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,9 +8,9 @@
 
 struct FMovieSceneEmptyStruct;
 
-/** Serialize the template */
+/** Serialize an inline value that has a GetScriptStruct method */
 template<typename T, uint8 N>
-bool SerializeEvaluationTemplate(TInlineValue<T, N>& Impl, FArchive& Ar)
+bool SerializeInlineValue(TInlineValue<T, N>& Impl, FArchive& Ar)
 {
 	Ar.UsingCustomVersion(FMovieSceneEvaluationCustomVersion::GUID);
 	
@@ -31,7 +31,7 @@ bool SerializeEvaluationTemplate(TInlineValue<T, N>& Impl, FArchive& Ar)
 		{
 #if !WITH_EDITORONLY_DATA
 			// We only throw this warning in cooked builds as that is the only place where this deserialized data matters
-			UE_LOG(LogMovieScene, Warning, TEXT("Unknown or invalid track type (%s) found in serialized data. This track will no longer work. Please recompile template data."), *TypeName);
+			UE_LOG(LogMovieScene, Warning, TEXT("Unknown or invalid type (%s) found in serialized data. This will no longer work. Please recompile template data."), *TypeName);
 #endif
 			// If it wasn't found, just deserialize an empty struct instead, and set ourselves to default
 			FMovieSceneEmptyStruct Empty;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,7 +22,7 @@ class UMaterialInterface;
 class USlateBrushAsset;
 class UTexture2D;
 
-UCLASS()
+UCLASS(meta=(ScriptName="WidgetLibrary"))
 class UMG_API UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
@@ -47,7 +47,7 @@ public:
 
 	/** Setup an input mode that allows only the UI to respond to user input. */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Input", meta=(DisplayName="Set Input Mode UI Only"))
-	static void SetInputMode_UIOnlyEx(APlayerController* Target, UWidget* InWidgetToFocus = nullptr, EMouseLockMode InMouseLockMode = EMouseLockMode::DoNotLock);
+	static void SetInputMode_UIOnlyEx(APlayerController* PlayerController, UWidget* InWidgetToFocus = nullptr, EMouseLockMode InMouseLockMode = EMouseLockMode::DoNotLock);
 
 	/** Setup an input mode that allows only the UI to respond to user input, and if the UI doesn't handle it player input / player controller gets a chance. */
 	DEPRECATED(4.13, "Locking the mouse to the viewport is now controlled by an enum. Call SetInputMode_GameAndUIEx instead")
@@ -56,11 +56,11 @@ public:
 
 	/** Setup an input mode that allows only the UI to respond to user input, and if the UI doesn't handle it player input / player controller gets a chance. */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Input", meta = (DisplayName = "Set Input Mode Game And UI"))
-	static void SetInputMode_GameAndUIEx(APlayerController* Target, UWidget* InWidgetToFocus = nullptr, EMouseLockMode InMouseLockMode = EMouseLockMode::DoNotLock, bool bHideCursorDuringCapture = true);
+	static void SetInputMode_GameAndUIEx(APlayerController* PlayerController, UWidget* InWidgetToFocus = nullptr, EMouseLockMode InMouseLockMode = EMouseLockMode::DoNotLock, bool bHideCursorDuringCapture = true);
 
 	/** Setup an input mode that allows only player input / player controller to respond to user input. */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Input")
-	static void SetInputMode_GameOnly(APlayerController* Target);
+	static void SetInputMode_GameOnly(APlayerController* PlayerController);
 
 	/** */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Focus")
@@ -315,7 +315,7 @@ public:
 	 * Gets the amount of padding that needs to be added when accounting for the safe zone on TVs.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Widget|Safe Zone", meta=( WorldContext="WorldContextObject" ))
-	static void GetSafeZonePadding(UObject* WorldContextObject, FVector2D& SafePadding, FVector2D& SafePaddingScale, FVector2D& SpillOverPadding);
+	static void GetSafeZonePadding(UObject* WorldContextObject, FVector4& SafePadding, FVector2D& SafePaddingScale, FVector4& SpillOverPadding);
 
 	/**
 	 * Loads or sets a hardware cursor from the content directory in the game.

@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3454520
+﻿INTSourceChangelist:3688188
 Availability:Public
 Title: 인터페이스
-Crumbs:
+Crumbs:%ROOT%
 Description:인터페이스 생성 및 구현 관련 참고서입니다.
 Tags: Programming
 Version: 4.14
@@ -64,7 +64,12 @@ Type:overview
 
 ### 인터페이스 지정자
 
-[INCLUDE:Programming/UnrealArchitecture/Reference/Interfaces/Specifiers#main(offset:1)]
+| 인터페이스 지정자 | 의미 |
+| --- | --- |
+| `BlueprintType` | 이 클래스를 블루프린트에서 변수로 사용할 수 있는 유형으로 노출합니다. |
+| `DependsOn=(ClassName1, ClassName2, ...)` | 나열된 모든 클래스는 이 클래스에 앞서 컴파일됩니다. ClassName 은 같은 (또는 기존) 패키지의 클래스를 지정해야 합니다. 쉼표로 구분되는 단일 `DependsOn` 줄, 또는 각 클래스마다 별도의 `DependsOn` 줄을 사용하여 다중 종속 클래스를 지정할 수 있습니다. 컴파일러는 이미 컴파일된 클래스에 있는 것만 알기때문에, 다른 클래스에 선언된 구조체 또는 열거형을 사용할 때는 중요합니다. |
+| `MinimalAPI` | 클래스의 형 정보만 다른 모듈에서 사용할 수 있도록 익스포트하게 만듭니다. 클래스는 형변환 가능하지만, 그 클래스의 함수는 (인라인 메소드를 제외하고) 호출할 수 없습니다. 그러면 다른 모듈에서 접근할 수 없는 함수가 모두 필요치 않은 클래스에 대해 모든 것을 익스포트하지 않아 컴파일 시간이 빨라집니다. |
+
 
 ## C++ 로 인터페이스 구현
 

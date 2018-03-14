@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -65,6 +65,7 @@ public class Engine : ModuleRules
 				"SlateCore",
 				"Slate",
 				"InputCore",
+				"Messaging",
 				"MessagingCommon",
 				"RenderCore",
 				"RHI",
@@ -342,17 +343,14 @@ public class Engine : ModuleRules
 			DynamicallyLoadedModuleNames.Add("PhysXCooking");
 		}
 
-		if(Target.bCompilePhysX)
-		{
-			// Engine public headers need to know about some types (enums etc.)
-			PublicIncludePathModuleNames.Add("ClothingSystemRuntimeInterface");
-			PublicDependencyModuleNames.Add("ClothingSystemRuntimeInterface");
+		// Engine public headers need to know about some types (enums etc.)
+		PublicIncludePathModuleNames.Add("ClothingSystemRuntimeInterface");
+		PublicDependencyModuleNames.Add("ClothingSystemRuntimeInterface");
 
-			if (Target.bBuildEditor)
-			{
-				PrivateDependencyModuleNames.Add("ClothingSystemEditorInterface");
-				PrivateIncludePathModuleNames.Add("ClothingSystemEditorInterface");
-			}
+		if (Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.Add("ClothingSystemEditorInterface");
+			PrivateIncludePathModuleNames.Add("ClothingSystemEditorInterface");
 		}
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
@@ -413,18 +411,33 @@ public class Engine : ModuleRules
 		if (Target.bCompileRecast)
 		{
 			PrivateDependencyModuleNames.Add("Navmesh");
-			Definitions.Add("WITH_RECAST=1");
+			PublicDefinitions.Add("WITH_RECAST=1");
 		}
 		else
 		{
 			// Because we test WITH_RECAST in public Engine header files, we need to make sure that modules
 			// that import this also have this definition set appropriately.  Recast is a private dependency
 			// module, so it's definitions won't propagate to modules that import Engine.
-			Definitions.Add("WITH_RECAST=0");
+			PublicDefinitions.Add("WITH_RECAST=0");
 		}
+/*
+		ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, System.IO.DirectoryReference.FromFile(Target.ProjectFile), Target.Platform);
+		bool bLocalVectorFieldOnly = false;
+		Ini.GetBool("/Script/Engine.RendererSettings", "bGPUParticlesLocalVFOnly", out bLocalVectorFieldOnly);
+		if (bLocalVectorFieldOnly)
+		{
+			PublicDefinitions.Add("GPUPARTICLE_LOCAL_VF_ONLY=1");
+		}
+		else
+		{
+			PublicDefinitions.Add("GPUPARTICLE_LOCAL_VF_ONLY=0");
+		}
+*/
+
+		PublicDefinitions.Add("GPUPARTICLE_LOCAL_VF_ONLY=0");
 
 		// Add a reference to the stats HTML files referenced by UEngine::DumpFPSChartToHTML. Previously staged by CopyBuildToStagingDirectory.
-		if(Target.bBuildEditor || Target.Configuration != UnrealTargetConfiguration.Shipping)
+    if (Target.bBuildEditor || Target.Configuration != UnrealTargetConfiguration.Shipping)
 		{
 			RuntimeDependencies.Add("$(EngineDir)/Content/Stats/...", StagedFileType.UFS);
 		}

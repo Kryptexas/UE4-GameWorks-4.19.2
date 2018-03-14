@@ -1,9 +1,16 @@
 ﻿INTSourceChangelist:3056363
-Availability:Public
+Availability: Public
+Crumbs: %ROOT%
 Title: 骨架控制器
-Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
 Description: 动画节点可以直接操作目标骨架的骨骼并可以对其应用解算器。
-version: 4.12
+Type: Landing
+Version: 4.16
+Parent: Engine/Animation/NodeReference
+Order: 1
+Tags:Animation
+Tags:Animation Blending
+Tags:Skeletal Controls
+topic-image:SkeletalControlTopicCompact.png
 
 [REGION:banner]
 ![Skeletal Control](skelcontrol_banner.png)(convert:false)
@@ -26,6 +33,13 @@ version: 4.12
 | [REGION:tablesection]**输出引脚**[/REGION] ||
 | **Pose (Blank)** | 在应用 Transform（变换） 后的最终姿势。|
 
+[EXCERPT:LODThresh]
+![](perf.png)
+
+| Property | Description |
+| --- | --- |
+| **LOD Threshold** | This is the max Level of Detail (LOD) that this node is permitted to run on. For example: if you have LOD Threshold set to 2, it will run until LOD 2, but disable itself once the component's LOD becomes 3. |
+[/EXCERPT]
 
 ## 组件空间
 
@@ -39,30 +53,11 @@ version: 4.12
 
 Below are links to additional pages with information about each of the Skeletal Control Nodes within the AnimGraph. 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	Skeletal Control
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine\Animation\NodeReference\SkeletalControls\AnimDynamics "%Engine\Animation\NodeReference\SkeletalControls\AnimDynamics:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\ApplyPercentRotation "%Engine\Animation\NodeReference\SkeletalControls\ApplyPercentRotation:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController "%Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController:description%")		
-		* [](Engine\Animation\NodeReference\SkeletalControls\CopyBone "%Engine\Animation\NodeReference\SkeletalControls\CopyBone:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting "%Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\LookAt "%Engine\Animation\NodeReference\SkeletalControls\LookAt:description%")		
-		* [](Engine\Animation\NodeReference\SkeletalControls\SpringController "%Engine\Animation\NodeReference\SkeletalControls\SpringController:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\TransformBone "%Engine\Animation\NodeReference\SkeletalControls\TransformBone:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\TrailController "%Engine\Animation\NodeReference\SkeletalControls\TrailController:description%")		
-		* [](Engine\Animation\NodeReference\SkeletalControls\TwistCorrective "%Engine\Animation\NodeReference\SkeletalControls\TwistCorrective:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK "%Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\ObserveBone "%Engine\Animation\NodeReference\SkeletalControls\ObserveBone:description%")		
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"topiccompact" parent:"Engine/Animation/NodeReference/SkeletalControls" org:"hierarchy" end:"1")]
 
-<!--
+
+[COMMENT:none]
+
 [REGION:topics third]
 %Engine\Animation\NodeReference\SkeletalControls\AnimDynamics:TopicCompact%
 %Engine\Animation\NodeReference\SkeletalControls\ApplyPercentRotation:TopicCompact%
@@ -77,4 +72,5 @@ Below are links to additional pages with information about each of the Skeletal 
 %Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK:TopicCompact%
 %Engine\Animation\NodeReference\SkeletalControls\ObserveBone:TopicCompact%
 [/REGION]
--->
+
+[/COMMENT]

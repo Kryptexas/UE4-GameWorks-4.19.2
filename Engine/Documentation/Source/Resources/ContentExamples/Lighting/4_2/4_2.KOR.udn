@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:4.2 - 역제곱 감쇠
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
@@ -30,7 +30,7 @@ Version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [VAR:Topic]
 [OBJECT:TopicCompact]

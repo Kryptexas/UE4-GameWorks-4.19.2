@@ -87,7 +87,8 @@ Sky Light (スカイライト) の **可動性** は **Static (静的)** ある�
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [REGION:lightbox]
 
 [![](skyLightEx_01.png)(w:884)](skyLightEx_01.png) [![](skyLightEx_02.png)(w:884)](skyLightEx_02.png)
@@ -95,7 +96,8 @@ Sky Light (スカイライト) の **可動性** は **Static (静的)** ある�
 [/REGION]
 
 _このシーンは、異なる HDR スカイボックス キューブマップを指定して固定スカイライトでリットされています。_
--->
+
+[/COMMENT]
 
 ## Static Sky Light (静的スカイライト)
 
@@ -118,13 +120,15 @@ _このシーンは、異なる HDR スカイボックス キューブマップ�
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [REGION:lightbox]
 
 [![](skyLightEx_03.png)(w:462)](skyLightEx_03.png) [![](skyLightEx_04.png)(w:462)](skyLightEx_04.png)
 
 [/REGION]
--->
+
+[/COMMENT]
 _ 1 枚目の画像は AO のみを適用したスカイライトです。2 枚目の画像はベント法線オクルージョンを使用したスカイライトです。ライティングが差し込む場所でクラックの表面がどのように一致しているかに注目してください。_ 
 
 注記：**Static (静的)** または **Stationary Mobility (固定可動性)** のあるコンポーネントとライトのみがキャプチャされ、固定スカイライトのあるライティングに使用されます。
@@ -140,7 +144,8 @@ _ 1 枚目の画像は AO のみを適用したスカイライトです。2 枚�
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [REGION:lightbox]
 
 [![](0Original.jpg)(w:884)](0Original.jpg) [![](0SkyLightGI.jpg)(w:884)](0SkyLightGI.jpg)
@@ -148,7 +153,8 @@ _ 1 枚目の画像は AO のみを適用したスカイライトです。2 枚�
 [/REGION]
 
 _上: 直接ライティングのみ、下：Stationary Skylight (固定スカイライト) 用にライトマスで計算された直接ライティングとディフューズ GI_
--->
+
+[/COMMENT]
 
 ## Movable Skylight (可動スカイライト)
 

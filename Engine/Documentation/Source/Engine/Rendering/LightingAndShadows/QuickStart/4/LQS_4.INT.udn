@@ -22,7 +22,7 @@ Version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 In this section, we are going to add a stylized light above our entryway by using a **Spot Light**. 
 
@@ -95,7 +95,7 @@ We could have used a [**Sky Light**](Engine/Rendering/LightingAndShadows/LightTy
 
 In the **Next Step** we will improve the quality of our lights and add reflective lighting to our apartment. 	
 
-%Steps%
+
 
 
 

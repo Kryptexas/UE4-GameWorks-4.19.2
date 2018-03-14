@@ -3,9 +3,9 @@ Crumbs: %ROOT%
 Title: Use the Gear VR Touchpad Buttons
 Description: Setting up the Gear VR Motion Controller Touchpad buttons
 Type: how-to
-SkillLevel: Intermidate
+SkillLevel:Intermediate
 Version: 4.17
-Parent: Platforms/GearVR/HowTo
+Parent: Platforms/GearVR
 Order: 2
 Tags: GearVR
 topic-image:Platforms\GearVR\HowTo\GearVR_How_To_Header.png
@@ -14,14 +14,14 @@ prereq: Platforms\GearVR\QuickStart
 prereq: Platforms\GearVR\HowTo\CameraSetup
 prereq: Platforms\GearVR\HowTo\MotionController
 
-The Gear VR Motion Controller(MC) has some different buttons and a touch pad that can be setup to handle a wide variety of different input tasks in UE4. In the following How - To we will take a look at how to setup and use the Touchpad and the five different buttons that it offers.
+The Gear VR Motion Controller(MC) has some different buttons and a touchpad that can be setup to handle a wide variety of different input tasks in UE4. In the following How - To we will take a look at how to setup and use the touchpad and the five different buttons that it offers.
 
 [region:note]
 In this How - To we will be starting with a Pawn that already has a VR Camera and Motion Controller support added to it. If you do not have this setup, please check out the documents listed in the **Prerequisite Topics** list at the top of this page.
 [/region]
 
 
-## Gear VR Motion Controller Touchpad Button Setup
+## Steps
 
 1. First, open up your Player Pawn Blueprint and from the **Component** tab, add a new **Text Render** component, called **FaceButtonPressed** and make sure that it is parented to the **Motion Controller** component like in the image below.
 
@@ -45,11 +45,11 @@ In this How - To we will be starting with a Pawn that already has a VR Camera an
     |**Vertical Alignment**| Text Center|
     |**World Size** | 13.0|
 
-1. Next, we need to create a new Text variable that will store and display what button is currently being pressed on the Motion Controller Touchpad. To accomplish this go to the **Variables** list and create a new  **Text** variable called **ButtonText**. 
+1. Next, we need to create a new Text variable that will store and display what button is currently being pressed on the Motion Controller touchpad. To accomplish this go to the **Variables** list and create a new  **Text** variable called **ButtonText**. 
 
     ![](HTGVRTouchpad_02.png)
 
-1. The GearVR Motion Controller Touchpad has five buttons that can be used. Four of the five buttons are activated by pressing in one of the four cardinal directions ( North South East and West) on the Touchpad. The fifth button is triggered when a user touches the surface of the Touchpad. To set this up in our Blueprint, add the following five **Motion Controller (R) FaceButton** Event nodes to the Event Graph.
+1. The GearVR Motion Controller touchpad has five buttons that can be used. Four of the five buttons are activated by pressing in one of the four cardinal directions ( North South East and West) on the touchpad. The fifth button is triggered when a user touches the surface of the touchpad. To set this up in our Blueprint, add the following five **Motion Controller (R) FaceButton** Event nodes to the Event Graph.
 
     [REGION:lightbox]
     [![](HTGVRTouchpad_03.png)(w:579)](HTGVRTouchpad_03.png)
@@ -67,7 +67,7 @@ In this How - To we will be starting with a Pawn that already has a VR Camera an
     |**Motion Controller (R) FaceButton4**|N/A|
     |**Motion Controller (R) FaceButton6**|N/A|
 
-1. Now we are going to setup the logic for displaying which button on the Touchpad was pressed. To accomplish this, first, drag the **ButtonText** variable into the Event Graph and choose the **Set** option as we want to set the text that is displayed.
+1. Now we are going to setup the logic for displaying which button on the touchpad was pressed. To accomplish this, first, drag the **ButtonText** variable into the Event Graph and choose the **Set** option as we want to set the text that is displayed.
 
     [REGION:lightbox]
     [![](HTGVRTouchpad_04.png)(w:579)](HTGVRTouchpad_04.png)
@@ -99,7 +99,7 @@ In this How - To we will be starting with a Pawn that already has a VR Camera an
     Click for full image.
     [/REGION]
 
-1. Next, we need to connect the Set Button Text node to the Set Text node so that the text input in the Set Button Text node will be displayed when the Touchpad button is pressed. To accomplish this, connect both outputs on the Set Button Text node to the available inputs on the Set Text node and when completed your Blueprint should look like the following. 
+1. Next, we need to connect the Set Button Text node to the Set Text node so that the text input in the Set Button Text node will be displayed when the touchpad button is pressed. To accomplish this, connect both outputs on the Set Button Text node to the available inputs on the Set Text node and when completed your Blueprint should look like the following. 
 
     [REGION:lightbox]
     [![](HTGVRTouchpad_07.png)(w:850)](HTGVRTouchpad_07.png)
@@ -137,28 +137,30 @@ In this How - To we will be starting with a Pawn that already has a VR Camera an
     [REGION:caption]
     Click for full image.
     [/REGION]
-    
-1. Compile and save your Blueprint and then use the Launch On button to deploy and launch the project to your Samsung Galaxy Note smartphone. When the project is deployed to your phone, put your phone in the Gear VR HMD and pick up the Motion Controller. Now when you press in any of the cardinal directions on the Touchpad, the button you pressed should be displayed like in the following video.
+  
+## End Result
 
-    [OBJECT:EmbeddedVideo]
-        [PARAMLITERAL:videoid]
-        TH9x-aX5sEc
-        [/PARAMLITERAL]
-        [PARAMLITERAL:width]
-        100
-        [/PARAMLITERAL]
-        [PARAMLITERAL:height]
-        56.25
-        [/PARAMLITERAL]
-        [PARAMLITERAL:units]
-        %
-        [/PARAMLITERAL]
-        [PARAMLITERAL:type]
-        simple
-        [/PARAMLITERAL]
-    [/OBJECT]
+Compile and save your Blueprint and then use the Launch On button to deploy and launch the project to your Samsung Galaxy Note smartphone. When the project is deployed to your phone, put your phone in the Gear VR HMD and pick up the Motion Controller. Now when you press in any of the cardinal directions on the touchpad, the button you pressed should be displayed like in the following video.
 
-## UE4 Project Downloads
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	TH9x-aX5sEc
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+### UE4 Project Downloads
 
 Below you will find a link to where you can download the UE4 project that was used to create this example. 
 
@@ -166,7 +168,8 @@ Below you will find a link to where you can download the UE4 project that was us
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:MCButtonsF]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -289,9 +292,11 @@ Below you will find a link to where you can download the UE4 project that was us
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:MCButtonsF]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:MCButtons]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -468,7 +473,8 @@ Below you will find a link to where you can download the UE4 project that was us
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:MCButtons]
--->
+
+[/COMMENT]
 
 
 

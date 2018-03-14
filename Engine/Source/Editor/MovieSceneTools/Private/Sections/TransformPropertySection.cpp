@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Sections/TransformPropertySection.h"
 #include "FloatCurveKeyArea.h"
@@ -146,6 +146,15 @@ void FTransformSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const
 						TransformSection->SetMask(TransformSection->GetMask().GetChannels() | ChannelsToToggle);
 					}
 
+					// Restore pre-animated state for the bound objects so that inactive channels will return to their default values.
+					for (TWeakObjectPtr<> WeakObject : SequencerPtr->FindBoundObjects(InObjectBinding, SequencerPtr->GetFocusedTemplateID()))
+					{
+						if (UObject* Object = WeakObject.Get())
+						{
+							SequencerPtr->RestorePreAnimatedState();
+						}
+					}
+
 					SequencerPtr->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemsChanged);
 				}
 			),
@@ -242,6 +251,22 @@ TOptional<FTransform> FTransformSection::GetCurrentValue() const
 	return TOptional<FTransform>();
 }
 
+TOptional<FRotator> FTransformSection::GetCurrentRotator() const
+{
+	TSharedPtr<ISequencer> Sequencer = WeakSequencer.Pin();
+	if (ensure(PropertyBindings.IsSet()) && Sequencer.IsValid())
+	{
+		for (TWeakObjectPtr<> WeakObject : Sequencer->FindBoundObjects(ObjectBinding, Sequencer->GetFocusedTemplateID()))
+		{
+			if (UObject* Object = WeakObject.Get())
+			{
+				return PropertyBindings->GetCurrentValue<FTransform>(*Object).GetRotation().Rotator();
+			}
+		}
+	}
+	return TOptional<FRotator>();
+}
+
 TOptional<float> FTransformSection::GetTranslationValue(EAxis::Type Axis) const
 {
 	FTransform Transform = GetCurrentValue().Get(FTransform::Identity);
@@ -256,12 +281,19 @@ TOptional<float> FTransformSection::GetTranslationValue(EAxis::Type Axis) const
 
 TOptional<float> FTransformSection::GetRotationValue(EAxis::Type Axis) const
 {
-	FTransform Transform = GetCurrentValue().Get(FTransform::Identity);
+	TOptional<FRotator> Rotator = GetCurrentRotator();
+
+	if (!Rotator.IsSet())
+	{
+		FTransform Transform = GetCurrentValue().Get(FTransform::Identity);
+		Rotator = Transform.GetRotation().Rotator();
+	}
+
 	switch (Axis)
 	{
-	case EAxis::X:		return Transform.GetRotation().Rotator().Roll;
-	case EAxis::Y:		return Transform.GetRotation().Rotator().Pitch;
-	case EAxis::Z:		return Transform.GetRotation().Rotator().Yaw;
+	case EAxis::X:		return Rotator.GetValue().Roll;
+	case EAxis::Y:		return Rotator.GetValue().Pitch;
+	case EAxis::Z:		return Rotator.GetValue().Yaw;
 	}
 	return TOptional<float>();
 }

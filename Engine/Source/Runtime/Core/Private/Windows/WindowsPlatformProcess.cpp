@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Windows/WindowsPlatformProcess.h"
 #include "HAL/PlatformMisc.h"
@@ -12,6 +12,7 @@
 #include "Misc/Parse.h"
 #include "Containers/StringConv.h"
 #include "Containers/UnrealString.h"
+#include "Containers/Set.h"
 #include "Misc/SingleThreadEvent.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Paths.h"
@@ -41,10 +42,6 @@
 #include "Windows/WindowsPlatformMisc.h"
 
 #pragma comment(lib, "psapi.lib")
-
-static bool ReadLibraryImportsFromMemory(const IMAGE_DOS_HEADER *Header, TArray<FString> &ImportNames);
-static const void *MapRvaToPointer(const IMAGE_DOS_HEADER *Header, const IMAGE_NT_HEADERS *NtHeader, size_t Rva);
-
 
 // static variables
 TArray<FString> FWindowsPlatformProcess::DllDirectoryStack;
@@ -680,10 +677,12 @@ bool FWindowsPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params
 	}
 	else
 	{
+		DWORD ErrorCode = GetLastError();
+
 		// if CreateProcess failed, we should return a useful error code, which GetLastError will have
 		if (OutReturnCode)
 		{
-			*OutReturnCode = GetLastError();
+			*OutReturnCode = ErrorCode;
 		}
 		if (bRedirectOutput)
 		{
@@ -692,6 +691,18 @@ bool FWindowsPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params
 				verify(::CloseHandle(WritablePipes[PipeIndex]));
 			}
 		}
+
+		TCHAR ErrorMessage[512];
+		FWindowsPlatformMisc::GetSystemErrorMessage(ErrorMessage, 512, ErrorCode);
+
+		UE_LOG(LogWindows, Warning, TEXT("CreateProc failed: %s (0x%08x)"), ErrorMessage, ErrorCode);
+		if (ErrorCode == ERROR_NOT_ENOUGH_MEMORY || ErrorCode == ERROR_OUTOFMEMORY)
+		{
+			// These errors are common enough that we want some available memory information
+			FPlatformMemoryStats Stats = FPlatformMemory::GetStats();
+			UE_LOG(LogWindows, Warning, TEXT("Mem used: %.2f MB, OS Free %.2f MB"), Stats.UsedPhysical / 1048576.0f, Stats.AvailablePhysical / 1048576.0f);
+		}
+		UE_LOG(LogWindows, Warning, TEXT("URL: %s %s"), URL, Params);
 	}
 
 	if (bRedirectOutput)
@@ -801,6 +812,10 @@ const TCHAR* FWindowsPlatformProcess::BaseDir()
 			TempResult = TempResult.Replace(TEXT("\\"), TEXT("/"));
 			FCString::Strcpy(Result, *TempResult);
 			int32 StringLength = FCString::Strlen(Result);
+			int32 NumSubDirectories = 0;
+#ifdef ENGINE_BASE_DIR_ADJUST
+			NumSubDirectories = ENGINE_BASE_DIR_ADJUST;
+#endif
 			if (StringLength > 0)
 			{
 				--StringLength;
@@ -808,7 +823,10 @@ const TCHAR* FWindowsPlatformProcess::BaseDir()
 				{
 					if (Result[StringLength - 1] == TEXT('/') || Result[StringLength - 1] == TEXT('\\'))
 					{
-						break;
+						if(--NumSubDirectories < 0)
+						{
+							break;
+						}
 					}
 				}
 			}
@@ -1286,6 +1304,28 @@ bool FWindowsPlatformProcess::WritePipe(void* WritePipe, const FString& Message,
 		*OutWritten = FUTF8ToTCHAR((const ANSICHAR*)Buffer).Get();
 	}
 
+	delete[] Buffer;
+	return bIsWritten;
+}
+
+bool FWindowsPlatformProcess::WritePipe(void* WritePipe, const uint8* Data, const int32 DataLength, int32* OutDataLength)
+{
+	// if there is not a message or WritePipe is null
+	if ((DataLength == 0) || (WritePipe == nullptr))
+	{
+		return false;
+	}
+
+	// write to pipe
+	uint32 BytesWritten = 0;
+	bool bIsWritten = !!WriteFile(WritePipe, Data, DataLength, (::DWORD*)&BytesWritten, nullptr);
+
+	// Get written Data Length
+	if (OutDataLength)
+	{
+		*OutDataLength = (int32)BytesWritten;
+	}
+
 	return bIsWritten;
 }
 
@@ -1417,6 +1457,187 @@ bool FWindowsPlatformProcess::Daemonize()
 	return true;
 }
 
+/**
+ * Maps a relative virtual address (RVA) to an address in memory.
+ *
+ * @param Header Pointer to the executable base
+ * @param NtHeader Pointer to the NT header information in the image
+ * @param Rva The RVA to to map
+ *
+ * @return Pointer to the data at this RVA
+ */
+static const void *MapRvaToPointer(const IMAGE_DOS_HEADER *Header, const IMAGE_NT_HEADERS *NtHeader, size_t Rva)
+{
+	const IMAGE_SECTION_HEADER *SectionHeaders = (const IMAGE_SECTION_HEADER*)(NtHeader + 1);
+	for(size_t SectionIdx = 0; SectionIdx < NtHeader->FileHeader.NumberOfSections; SectionIdx++)
+	{
+		const IMAGE_SECTION_HEADER *SectionHeader = SectionHeaders + SectionIdx;
+		if(Rva >= SectionHeader->VirtualAddress && Rva < SectionHeader->VirtualAddress + SectionHeader->SizeOfRawData)
+		{
+			return (const BYTE*)Header + SectionHeader->PointerToRawData + (Rva - SectionHeader->VirtualAddress);
+		}
+	}
+	return NULL;
+}
+
+/**
+ * Reads a list of import names from a portable executable file in memory.
+ *
+ * @param Header Pointer to the executable base
+ * @param ImportNames Array to receive the list of imported PE file names
+ */
+static bool ReadLibraryImportsFromMemory(const IMAGE_DOS_HEADER *Header, TArray<FString> &ImportNames)
+{
+	bool bResult = false;
+	if(Header->e_magic == IMAGE_DOS_SIGNATURE)
+	{
+		IMAGE_NT_HEADERS *NtHeader = (IMAGE_NT_HEADERS*)((BYTE*)Header + Header->e_lfanew);
+		if(NtHeader->Signature == IMAGE_NT_SIGNATURE)
+		{
+			// Find the import directory header
+			IMAGE_DATA_DIRECTORY *ImportDirectoryEntry = &NtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+
+			// Enumerate the imports
+			IMAGE_IMPORT_DESCRIPTOR *ImportDescriptors = (IMAGE_IMPORT_DESCRIPTOR*)MapRvaToPointer(Header, NtHeader, ImportDirectoryEntry->VirtualAddress);
+			for(size_t ImportIdx = 0; ImportIdx * sizeof(IMAGE_IMPORT_DESCRIPTOR) < ImportDirectoryEntry->Size; ImportIdx++)
+			{
+				IMAGE_IMPORT_DESCRIPTOR *ImportDescriptor = ImportDescriptors + ImportIdx;
+				if(ImportDescriptor->Name != 0)
+				{
+					const char *ImportName = (const char*)MapRvaToPointer(Header, NtHeader, ImportDescriptor->Name);
+					ImportNames.Add(ImportName);
+				}
+			}
+
+			bResult = true;
+		}
+	}
+	return bResult;
+}
+
+/**
+ * Reads a list of import names from a portable executable file.
+ *
+ * @param FileName Path to the library
+ * @param ImportNames Array to receive the list of imported PE file names
+ */
+static bool ReadLibraryImports(const TCHAR* FileName, TArray<FString>& ImportNames)
+{
+	bool bResult = false;
+
+	// Open the DLL using a file mapping, so we don't need to map any more than is necessary
+	HANDLE NewFileHandle = CreateFile(FileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if(NewFileHandle != INVALID_HANDLE_VALUE)
+	{
+		HANDLE NewFileMappingHandle = CreateFileMapping(NewFileHandle, NULL, PAGE_READONLY, 0, 0, NULL);
+		if(NewFileMappingHandle != NULL)
+		{
+			void* NewData = MapViewOfFile(NewFileMappingHandle, FILE_MAP_READ, 0, 0, 0);
+			if(NewData != NULL)
+			{
+				const IMAGE_DOS_HEADER* Header = (const IMAGE_DOS_HEADER*)NewData;
+				bResult = ReadLibraryImportsFromMemory(Header, ImportNames);
+				UnmapViewOfFile(NewData);
+			}
+			CloseHandle(NewFileMappingHandle);
+		}
+		CloseHandle(NewFileHandle);
+	}
+
+	return bResult;
+}
+
+/**
+ * Resolve an individual import.
+ *
+ * @param ImportName Name of the imported module
+ * @param SearchPaths Search directories to scan for imports
+ * @param OutFileName On success, receives the path to the imported file
+ * @return true if an import was found.
+ */
+static bool ResolveImport(const FString& Name, const TArray<FString>& SearchPaths, FString& OutFileName)
+{
+	// Look for the named DLL on any of the search paths
+	for(int Idx = 0; Idx < SearchPaths.Num(); Idx++)
+	{
+		FString FileName = SearchPaths[Idx] / Name;
+		if(FPaths::FileExists(FileName))
+		{
+			OutFileName = FPaths::ConvertRelativePathToFull(FileName);
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Resolve all the imports for the given library, searching through a set of directories.
+ *
+ * @param FileName Path to the library to load
+ * @param SearchPaths Search directories to scan for imports
+ * @param ImportFileNames Array which is filled with a list of the resolved imports found in the given search directories
+ * @param VisitedImportNames Array which stores a list of imports which have been checked
+ */
+static void ResolveMissingImportsRecursive(const FString& FileName, const TArray<FString>& SearchPaths, TArray<FString>& ImportFileNames, TSet<FString>& VisitedImportNames)
+{
+	// Read the imports for this library
+	TArray<FString> ImportNames;
+	if(ReadLibraryImports(*FileName, ImportNames))
+	{
+		// Find all the imports that haven't already been resolved
+		for(int Idx = 0; Idx < ImportNames.Num(); Idx++)
+		{
+			const FString &ImportName = ImportNames[Idx];
+			if(!VisitedImportNames.Contains(ImportName))
+			{
+				// Prevent checking this import again
+				VisitedImportNames.Add(ImportName);
+
+				// Try to resolve this import
+				if(GetModuleHandle(*ImportName) == NULL)
+				{
+					FString ImportFileName;
+					if(ResolveImport(*ImportName, SearchPaths, ImportFileName))
+					{
+						ResolveMissingImportsRecursive(ImportFileName, SearchPaths, ImportFileNames, VisitedImportNames);
+						ImportFileNames.Add(ImportFileName);
+					}
+				}
+			}
+		}
+	}
+}
+
+/**
+ * Log diagnostic messages showing missing imports for module.
+ *
+ * @param FileName Path to the library to load
+ * @param SearchPaths Search directories to scan for imports
+ */
+static void LogImportDiagnostics(const FString& FileName, const TArray<FString>& SearchPaths)
+{
+	TArray<FString> ImportNames;
+	if(ReadLibraryImports(*FileName, ImportNames))
+	{
+		bool bIncludeSearchPaths = false;
+		for(const FString& ImportName : ImportNames)
+		{
+			if(GetModuleHandle(*ImportName) == nullptr)
+			{
+				UE_LOG(LogWindows, Log, TEXT("  Missing import: %s"), *ImportName);
+				bIncludeSearchPaths = true;
+			}
+		}
+		if(bIncludeSearchPaths)
+		{
+			for (const FString& SearchPath : SearchPaths)
+			{
+				UE_LOG(LogWindows, Log, TEXT("  Looked in: %s"), *SearchPath);
+			}
+		}
+	}
+}
+
 void *FWindowsPlatformProcess::LoadLibraryWithSearchPaths(const FString& FileName, const TArray<FString>& SearchPaths)
 {
 	// Make sure the initial module exists. If we can't find it from the path we're given, it's probably a system dll.
@@ -1428,11 +1649,11 @@ void *FWindowsPlatformProcess::LoadLibraryWithSearchPaths(const FString& FileNam
 
 		// Create a list of files which we've already checked for imports. Don't add the initial file to this list to improve the resolution of dependencies for direct circular dependencies of this
 		// module; by allowing the module to be visited twice, any mutually depended on DLLs will be visited first.
-		TArray<FString> VisitedImportNames;
+		TSet<FString> VisitedImportNames;
 
 		// Find a list of all the DLLs that need to be loaded
 		TArray<FString> ImportFileNames;
-		ResolveImportsRecursive(*FullFileName, SearchPaths, ImportFileNames, VisitedImportNames);
+		ResolveMissingImportsRecursive(*FullFileName, SearchPaths, ImportFileNames, VisitedImportNames);
 
 		// Load all the missing dependencies first
 		for (int32 Idx = 0; Idx < ImportFileNames.Num(); Idx++)
@@ -1471,141 +1692,6 @@ void *FWindowsPlatformProcess::LoadLibraryWithSearchPaths(const FString& FileNam
 		}
 	}
 	return Handle;
-}
-
-void FWindowsPlatformProcess::ResolveImportsRecursive(const FString& FileName, const TArray<FString>& SearchPaths, TArray<FString>& ImportFileNames, TArray<FString>& VisitedImportNames)
-{
-	// Read the imports for this library
-	TArray<FString> ImportNames;
-	if(ReadLibraryImports(*FileName, ImportNames))
-	{
-		// Find all the imports that haven't already been resolved
-		for(int Idx = 0; Idx < ImportNames.Num(); Idx++)
-		{
-			const FString &ImportName = ImportNames[Idx];
-			if(!VisitedImportNames.Contains(ImportName))
-			{
-				// Prevent checking this import again
-				VisitedImportNames.Add(ImportName);
-
-				// Try to resolve this import
-				FString ImportFileName;
-				if(ResolveImport(*ImportName, SearchPaths, ImportFileName))
-				{
-					ResolveImportsRecursive(ImportFileName, SearchPaths, ImportFileNames, VisitedImportNames);
-					ImportFileNames.Add(ImportFileName);
-				}
-			}
-		}
-	}
-}
-
-bool FWindowsPlatformProcess::ResolveImport(const FString& Name, const TArray<FString>& SearchPaths, FString& OutFileName)
-{
-	// Look for the named DLL on any of the search paths
-	for(int Idx = 0; Idx < SearchPaths.Num(); Idx++)
-	{
-		FString FileName = SearchPaths[Idx] / Name;
-		if(FPaths::FileExists(FileName))
-		{
-			OutFileName = FPaths::ConvertRelativePathToFull(FileName);
-			return true;
-		}
-	}
-	return false;
-}
-
-bool FWindowsPlatformProcess::ReadLibraryImports(const TCHAR* FileName, TArray<FString>& ImportNames)
-{
-	bool bResult = false;
-
-	// Open the DLL using a file mapping, so we don't need to map any more than is necessary
-	HANDLE NewFileHandle = CreateFile(FileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if(NewFileHandle != INVALID_HANDLE_VALUE)
-	{
-		HANDLE NewFileMappingHandle = CreateFileMapping(NewFileHandle, NULL, PAGE_READONLY, 0, 0, NULL);
-		if(NewFileMappingHandle != NULL)
-		{
-			void* NewData = MapViewOfFile(NewFileMappingHandle, FILE_MAP_READ, 0, 0, 0);
-			if(NewData != NULL)
-			{
-				const IMAGE_DOS_HEADER* Header = (const IMAGE_DOS_HEADER*)NewData;
-				bResult = ReadLibraryImportsFromMemory(Header, ImportNames);
-				UnmapViewOfFile(NewData);
-			}
-			CloseHandle(NewFileMappingHandle);
-		}
-		CloseHandle(NewFileHandle);
-	}
-
-	return bResult;
-}
-
-bool ReadLibraryImportsFromMemory(const IMAGE_DOS_HEADER *Header, TArray<FString> &ImportNames)
-{
-	bool bResult = false;
-	if(Header->e_magic == IMAGE_DOS_SIGNATURE)
-	{
-		IMAGE_NT_HEADERS *NtHeader = (IMAGE_NT_HEADERS*)((BYTE*)Header + Header->e_lfanew);
-		if(NtHeader->Signature == IMAGE_NT_SIGNATURE)
-		{
-			// Find the import directory header
-			IMAGE_DATA_DIRECTORY *ImportDirectoryEntry = &NtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
-
-			// Enumerate the imports
-			IMAGE_IMPORT_DESCRIPTOR *ImportDescriptors = (IMAGE_IMPORT_DESCRIPTOR*)MapRvaToPointer(Header, NtHeader, ImportDirectoryEntry->VirtualAddress);
-			for(size_t ImportIdx = 0; ImportIdx * sizeof(IMAGE_IMPORT_DESCRIPTOR) < ImportDirectoryEntry->Size; ImportIdx++)
-			{
-				IMAGE_IMPORT_DESCRIPTOR *ImportDescriptor = ImportDescriptors + ImportIdx;
-				if(ImportDescriptor->Name != 0)
-				{
-					const char *ImportName = (const char*)MapRvaToPointer(Header, NtHeader, ImportDescriptor->Name);
-					ImportNames.Add(ImportName);
-				}
-			}
-
-			bResult = true;
-		}
-	}
-	return bResult;
-}
-
-const void *MapRvaToPointer(const IMAGE_DOS_HEADER *Header, const IMAGE_NT_HEADERS *NtHeader, size_t Rva)
-{
-	const IMAGE_SECTION_HEADER *SectionHeaders = (const IMAGE_SECTION_HEADER*)(NtHeader + 1);
-	for(size_t SectionIdx = 0; SectionIdx < NtHeader->FileHeader.NumberOfSections; SectionIdx++)
-	{
-		const IMAGE_SECTION_HEADER *SectionHeader = SectionHeaders + SectionIdx;
-		if(Rva >= SectionHeader->VirtualAddress && Rva < SectionHeader->VirtualAddress + SectionHeader->SizeOfRawData)
-		{
-			return (const BYTE*)Header + SectionHeader->PointerToRawData + (Rva - SectionHeader->VirtualAddress);
-		}
-	}
-	return NULL;
-}
-
-void FWindowsPlatformProcess::LogImportDiagnostics(const FString& FileName, const TArray<FString>& SearchPaths)
-{
-	TArray<FString> ImportNames;
-	if(ReadLibraryImports(*FileName, ImportNames))
-	{
-		bool bIncludeSearchPaths = false;
-		for(const FString& ImportName : ImportNames)
-		{
-			if(GetModuleHandle(*ImportName) == nullptr)
-			{
-				UE_LOG(LogWindows, Log, TEXT("  Missing import: %s"), *ImportName);
-				bIncludeSearchPaths = true;
-			}
-		}
-		if(bIncludeSearchPaths)
-		{
-			for (const FString& SearchPath : SearchPaths)
-			{
-				UE_LOG(LogWindows, Log, TEXT("  Looked in: %s"), *SearchPath);
-			}
-		}
-	}
 }
 
 FWindowsPlatformProcess::FProcEnumerator::FProcEnumerator()

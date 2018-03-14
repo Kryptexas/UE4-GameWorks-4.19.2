@@ -1,0 +1,35 @@
+﻿INTSourceChangelist:3622565
+Availability:Public
+Crumbs: %ROOT% 
+Title:Gear VR 指南
+Description:如何结合 UE4 使用 Gear VR 的详细步骤指南。
+Type: how-to
+Version:4.17
+Parent:Platforms/GearVR
+Order:1
+Tags:VR
+topic-image:GearVR_How_To_Header.png
+
+Gear VR 指南中包含详细的步骤教程，指导用户如何结合 UE4 使用 Gear VR。
+
+## 初级
+
+Gear VR 初级指南将说明如何设置 UE4 项目摄像机，使其兼容 Gear VR 头戴显示器；此外还将说明如何缩小 Gear VR 项目的大小。
+
+[DIR(end:"1" output:"topic" type:"how-to" tags:"Basics" parent:"Platforms/GearVR")]
+
+## 中级
+
+Gear VR 中级指南将说明如何使用 Gear VR 控制器和设置 Gear VR 全局菜单。
+
+[DIR(end:"1" output:"topic" type:"how-to" tags:"GearVR" parent:"Platforms/GearVR")]
+
+## 高级
+
+Gear VR 高级指南将说明如何对 Gear VR 项目进行调试。 
+
+[DIR(end:"1" output:"topic" type:"how-to" tags:"GearVR" parent:"Platforms/GearVR")]
+
+
+
+

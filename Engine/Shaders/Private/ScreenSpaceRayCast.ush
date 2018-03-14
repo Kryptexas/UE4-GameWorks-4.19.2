@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,6 +18,9 @@
 #endif
 
 float4 HZBUvFactorAndInvFactor;
+
+// Equivalent of View.ScreenPositionScaleBias, but for SSR.
+float4 PrevScreenPositionScaleBias;
 
 float4 SampleDepthTexture( Texture2D Texture, SamplerState Sampler, float Level, float4 SampleUV0, float4 SampleUV1 )
 {
@@ -449,20 +452,35 @@ float4 RayCastCheap( Texture2D Texture, SamplerState Sampler, float3 R, float Sc
 	return float4( HitUVz, MinHitTime );
 }
 
-float2 ReprojectHit( float3 HitUVz )
+float ComputeHitVignetteFromScreenPos(float2 ScreenPos)
 {
-	// Camera motion for pixel (in ScreenPos space).
-	float4 ThisClip = float4( (HitUVz.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy, HitUVz.z, 1 );
-	float4 PrevClip = mul( ThisClip, View.ClipToPrevClip );
-	float2 PrevScreen = PrevClip.xy / PrevClip.w;
-	float2 PrevUV = PrevScreen.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
-	return PrevUV;
+	float2 Vignette = saturate(abs(ScreenPos) * 5 - 4);
+	
+	//PrevScreen sometimes has NaNs or Infs.  DX11 is protected because saturate turns NaNs -> 0.
+	//Do a SafeSaturate so other platforms get the same protection.
+	return SafeSaturate(1.0 - dot(Vignette, Vignette));
 }
 
-float2 ReprojectHit( Texture2D Texture, SamplerState Sampler, float3 HitUVz )
+void ReprojectHit( float3 HitUVz, out float2 OutPrevUV, out float OutVignette)
 {
+	//return HitUVz.xy;
 	// Camera motion for pixel (in ScreenPos space).
-	float4 ThisClip = float4( (HitUVz.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy, HitUVz.z, 1 );
+	float2 ThisScreen = (HitUVz.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
+	float4 ThisClip = float4( ThisScreen, HitUVz.z, 1 );
+	float4 PrevClip = mul( ThisClip, View.ClipToPrevClip );
+	float2 PrevScreen = PrevClip.xy / PrevClip.w;
+	float2 PrevUV = PrevScreen.xy * PrevScreenPositionScaleBias.xy + PrevScreenPositionScaleBias.zw;
+
+	OutVignette = min(ComputeHitVignetteFromScreenPos(ThisScreen), ComputeHitVignetteFromScreenPos(PrevScreen));
+	OutPrevUV = PrevUV;
+}
+
+void ReprojectHit( Texture2D Texture, SamplerState Sampler, float3 HitUVz, out float2 OutPrevUV, out float OutVignette)
+{
+	//return HitUVz.xy;
+	// Camera motion for pixel (in ScreenPos space).
+	float2 ThisScreen = (HitUVz.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
+	float4 ThisClip = float4( ThisScreen, HitUVz.z, 1 );
 	float4 PrevClip = mul( ThisClip, View.ClipToPrevClip );
 	float2 PrevScreen = PrevClip.xy / PrevClip.w;
 
@@ -472,8 +490,10 @@ float2 ReprojectHit( Texture2D Texture, SamplerState Sampler, float3 HitUVz )
 		PrevScreen = ThisClip.xy - DecodeVelocityFromTexture( Velocity );
 	}
 
-	float2 PrevUV = PrevScreen.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
-	return PrevUV;
+	float2 PrevUV = PrevScreen.xy * PrevScreenPositionScaleBias.xy + PrevScreenPositionScaleBias.zw;
+	
+	OutVignette = min(ComputeHitVignetteFromScreenPos(ThisScreen), ComputeHitVignetteFromScreenPos(PrevScreen));
+	OutPrevUV = PrevUV;
 }
 
 float4 SampleScreenColor( Texture2D Texture, SamplerState Sampler, float2 UV )
@@ -481,19 +501,11 @@ float4 SampleScreenColor( Texture2D Texture, SamplerState Sampler, float2 UV )
 	float4 OutColor;
 
 	OutColor.rgb = Texture.SampleLevel( Sampler, UV, 0 ).rgb;
-	OutColor.a = 1;
-
-	// Off screen masking
-	float2 ScreenPos = ( UV - View.ScreenPositionScaleBias.wz ) / View.ScreenPositionScaleBias.xy;
-	float2 Vignette = saturate( abs( ScreenPos ) * 5 - 4 );
-		
-	//PrevScreen sometimes has NaNs or Infs.  DX11 is protected because saturate turns NaNs -> 0.
-	//Do a SafeSaturate so other platforms get the same protection.
-	OutColor *= SafeSaturate( 1.0 - dot( Vignette, Vignette ) );
-
 	// Transform NaNs to black, transform negative colors to black.
 	OutColor.rgb = -min(-OutColor.rgb, 0.0);
-
+	
+	OutColor.a = 1;
+	
 	return OutColor;
 }
 

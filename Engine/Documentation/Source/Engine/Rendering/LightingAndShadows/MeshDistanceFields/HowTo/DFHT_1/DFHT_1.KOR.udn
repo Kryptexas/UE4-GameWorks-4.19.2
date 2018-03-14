@@ -1,0 +1,91 @@
+﻿INTSourceChangelist:3716175
+Availability: Public
+Crumbs: %ROOT%
+Title:레이 트레이스 디스턴스 필드 소프트 섀도 사용법
+Description:언리얼 엔진 4 에서 레이 트레이스 디스턴스 필드 소프트 섀도 구성 및 사용법입니다.
+Type: how-to
+SkillLevel:Beginner
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields
+Related:Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference
+Order:1
+Tags:Lighting
+Topic-image:DistanceField_Topic.png
+Social-image:CSMAndDF.png.png
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:135 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+ 
+
+[REGION:fullwidth raw]
+![](RTDFBanner.png)
+[/REGION]
+
+게임 개발을 할 때, 씬에 다이내믹 라이팅을 쓰는 것이 가장 적합한 상황인 경우가 있습니다. 거대한 오픈 월드의 경우 프리컴퓨티드 라이팅 효율이 떨어지거나 타겟 시스템의 리소스에 맞추기 힘든 경우가 그렇습니다. 
+**Ray Traced Distance Field Soft Shadows** (레이 트레이스 디스턴스 필드 소프트 섀도)는 줄여서 **Distance Field Shadows** (디스턴스 필드 섀도)라고도 하는데, 
+[디렉셔널 라이트](Engine/Rendering/LightingAndShadows/LightTypes/Directional) 에 전통적인 **캐스케이드 섀도 맵** (CSM) 을 썼을 때보다 먼 거리의 섀도잉이 가능합니다.
+
+여기서는 디렉셔널 / 포인트 / 스포트 라이트를 포함해서 여러가지 [라이트 유형](Engine/Rendering/LightingAndShadows/LightTypes) 에 대해 디스턴스 필드 섀도우를 켜는 방법을 배워봅니다.
+
+
+## 단계
+
+[REGION:note]
+이 기능은 **프로젝트 세팅** 의 **Rendering** 섹션에서 **Generate Mesh Distance Fields** 옵션을 켜야 합니다. [메시 디스턴스 필드를 켜는](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 방법은 
+문서를 참고하세요.
+[/REGION]
+
+1. 우선 **모드** 창으로 이동한 뒤 **라이트** 섹션에서 **디렉셔널**, **스포트**, **포인트** 라이트를 끌어 메인 뷰포트에 놓습니다.
+
+	![](AddLightType.png)(w:900)
+	
+	[REGION:note]
+	라이트 액터에 디스턴스 필드 섀도를 켜는 목적이라면, 프로세스는 같습니다. 이 가이드의 다른 부분에서 해당 라이트 유형 전용 프로퍼티에 대해 다루겠습니다.
+	[/REGION]
+
+1. 라이트를 선택한 채 **디테일** 패널로 이동하여 **모빌리티** 를 **무버블** 또는 **스테이셔너리** 로 설정합니다.
+	
+	![](TransformMobility.png)(w:450)
+
+1. 이제 **디테일** 패널에서 스크롤을 내려 **Distance Field Shadows** 섹션으로 가 **RayTraced Distance Field Shadows** 옵션을 켭니다.
+
+	[Region:imagetable]
+	|![](DirectionalLightDFSettings.png)(w:450)|![](PointSpotLightSettingsDF.png)(w:450)|
+	|---|---|
+	| 디렉셔널 라이트 | 스포트/포인트 라이트 |
+	[/Region]
+	
+	[REGION:note]
+	이 옵션이 회색으로 탈색되어 있으면, 먼저 프로젝트 세팅에서 **Generate Mesh Distance Fields** 옵션을 켰는지, 그리고 라이트의 모빌리티가 **무버블** 또는 **스테이셔너리** 로 되어있는지 확인하시기 바랍니다.
+	[/REGION]
+
+## 최종 결과
+
+라이트를 무버블 또는 스테이셔너리로 설정하고 **Ray Traced Distance Field Shadowing** 옵션을 켰으면, 라이트가 자동으로 사용하기 시작합니다. 디렉셔널 라이트의 경우, 
+캐스케이드 섀도우 맵의 **Dynamic Shadow Distance** 값 이후 거리에 디스턴스 필드 섀도잉이 켜질 것입니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Cascaded Shadow Maps Only](CSMOnly.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Cascaded Shadow Maps | and | Distance Field Shadows](CSMAndDF.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+
+이 포트나이트 테스트 레벨에서, 캐스케이드 섀도우 맵(CSM) **Dynamic Shadow Distance** (다이내믹 섀도우 거리)는 카메라로부터 4,500 cm (센티미터)이고, Distance Field Shadowing 옵션이 켜지면 그 거리 이후 섀도잉을 처리합니다.
+CSM 섀도잉 메소드만 사용하는 경우, (법원 기둥같은) 원거리 오브젝트에 빛샘 현상이 발생하는데, 섀도우 거리 안에 있지 않기 때문입니다. 그보다 멀리 있는 오브젝트 역시 제대로 그림자를 받지 못할 것입니다.
+
+[REGION:tip]
+디렉셔널 라이트를 사용할 때는, 캐스케이드 섀도우 맵의 **Dynamic Shadow Distance Moveable Light** 슬라이더를 **0** 으로 설정해야 메시 디스턴스 필드에서 생성되는 그림자만 보이게 됩니다.
+시각화 뷰 모드를 사용하는 것 말고도 씬을 진단하여 추가로 발생할 수 있는 디스턴스 필드 퀄리티 문제를 진단할 수 있는 유용한 방법입니다.
+[/REGION]
+
+## 부가 라이트 세팅
+
+[](Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference) 문서에서 [디렉셔널 라이트](Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference) 및 [포인트/스포트 라이트](Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference) 에 대한 
+[](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) 전용 세팅을 참고해 보시기 바랍니다. 
+이 세팅을 통해 그림자의 농도나 그림자를 드리울 수 있는 최대 거리와 같은 씬의 미적인 부분에 대한 제어가 가능합니다. 카메라에서 가장 멀리 있는 LOD (레벨 오브 디테일) 메시에서 
+발생되는 씬의 셀프 섀도잉 부작용을 줄이는 데 사용할 수 있는 디렉셔널 라이트 전용 글로절 조정 옵션도 몇 가지 있습니다.

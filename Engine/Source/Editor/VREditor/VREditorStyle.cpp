@@ -1,9 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "VREditorStyle.h"
 #include "SlateTypes.h"
 #include "EditorStyleSet.h"
 #include "Styling/SlateStyleRegistry.h"
+#include "Styling/CoreStyle.h"
 #include "SUniformGridPanel.h"
 #include "Brushes/SlateImageBrush.h"
 #include "Brushes/SlateBoxBrush.h"
@@ -50,9 +51,7 @@ FName FVREditorStyle::GetNumpadStyleSetName()
 #define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush( Style->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
 #define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush( Style->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
 #define BORDER_BRUSH( RelativePath, ... ) FSlateBorderBrush( Style->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
-#define TTF_FONT( RelativePath, ... ) FSlateFontInfo( Style->RootToContentDir( RelativePath, TEXT(".ttf") ), __VA_ARGS__ )
-#define OTF_FONT( RelativePath, ... ) FSlateFontInfo( Style->RootToContentDir( RelativePath, TEXT(".otf") ), __VA_ARGS__ )
-#define TTF_CORE_FONT(RelativePath, ...) FSlateFontInfo(Style->RootToCoreContentDir(RelativePath, TEXT(".ttf") ), __VA_ARGS__)
+#define DEFAULT_FONT(...) FCoreStyle::GetDefaultFontStyle(__VA_ARGS__)
 
 const FVector2D Icon14x14(14.0f, 14.0f);
 const FVector2D Icon16x16(16.0f, 16.0f);
@@ -77,13 +76,13 @@ TSharedRef< FSlateStyleSet > FVREditorStyle::Create()
 
 	const FTextBlockStyle NormalText = FEditorStyle::GetWidgetStyle<FTextBlockStyle>("NormalText");
 	Style->Set("VREditorStyle.Label", FTextBlockStyle(NormalText)
-		.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 7)));
+		.SetFont(DEFAULT_FONT("Regular", 7)));
 
 	// Headings will have a font outline
 	FFontOutlineSettings HeadingOutline;
 	HeadingOutline.OutlineColor = FLinearColor(0.2f, 0.2f, 0.2f, 0.5f);
 	HeadingOutline.OutlineSize = 1;
-	FSlateFontInfo HeadlineFont = TTF_CORE_FONT("Fonts/Roboto-Regular", 10);
+	FSlateFontInfo HeadlineFont = DEFAULT_FONT("Regular", 10);
 	HeadlineFont.OutlineSettings = HeadingOutline;
 
 	Style->Set("VREditorStyle.Heading", FTextBlockStyle(NormalText)
@@ -94,7 +93,7 @@ TSharedRef< FSlateStyleSet > FVREditorStyle::Create()
 	FFontOutlineSettings HelperOutline;
 	HelperOutline.OutlineColor = FLinearColor( 0.2f, 0.2f, 0.2f, 0.5f );
 	HelperOutline.OutlineSize = 3;
-	FSlateFontInfo HelperFont = TTF_CORE_FONT( "Fonts/Roboto-Regular", 24 );
+	FSlateFontInfo HelperFont = DEFAULT_FONT( "Regular", 24 );
 	HelperFont.OutlineSettings = HelperOutline;
 
 	Style->Set( "VREditorStyle.HelperText", FTextBlockStyle( NormalText )
@@ -141,7 +140,7 @@ TSharedRef< FSlateStyleSet > FVREditorStyle::Create()
 	RadialOutline.OutlineColor = FLinearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	RadialOutline.OutlineSize = 1;
 
-	FSlateFontInfo RadialFont = TTF_CORE_FONT("Fonts/Roboto-Regular", 8);
+	FSlateFontInfo RadialFont = DEFAULT_FONT("Regular", 8);
 	RadialFont.OutlineSettings = RadialOutline;
 	Style->Set("VRRadialStyle.Label", FTextBlockStyle(NormalText)
 		.SetFont(RadialFont)
@@ -149,14 +148,14 @@ TSharedRef< FSlateStyleSet > FVREditorStyle::Create()
 
 	Style->Set("VRRadialStyle.InactiveFont", FSlateFontInfo(RadialFont));
 
-	FSlateFontInfo ActiveRadialFont = TTF_CORE_FONT("Fonts/Roboto-Regular", 10);
+	FSlateFontInfo ActiveRadialFont = DEFAULT_FONT("Regular", 10);
 	FFontOutlineSettings ActiveRadialOutline;
 	ActiveRadialOutline.OutlineColor = FLinearColor::Black;
 	ActiveRadialOutline.OutlineSize = 1;
 	ActiveRadialFont.OutlineSettings = ActiveRadialOutline;
 	Style->Set("VRRadialStyle.ActiveFont", FSlateFontInfo(ActiveRadialFont));
 	
-	FSlateFontInfo NumpadRadialFont = TTF_CORE_FONT("Fonts/Roboto-Regular", 24);
+	FSlateFontInfo NumpadRadialFont = DEFAULT_FONT("Regular", 24);
 	NumpadRadialFont.OutlineSettings = RadialOutline;
 	Style->Set("VRNumpadRadialStyle.Label", FTextBlockStyle(NormalText)
 		.SetFont(NumpadRadialFont)
@@ -248,6 +247,4 @@ const ISlateStyle& FVREditorStyle::Get()
 #undef IMAGE_BRUSH
 #undef BOX_BRUSH
 #undef BORDER_BRUSH
-#undef TTF_FONT
-#undef OTF_FONT
-#undef TTF_CORE_FONT
+#undef DEFAULT_FONT

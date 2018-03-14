@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessHMD.cpp: Post processing for HMD devices.
@@ -60,7 +60,7 @@ class FPostProcessHMDVS : public FGlobalShader
 	FShaderParameter EyeRotationStart;
 	FShaderParameter EyeRotationEnd;
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -108,7 +108,7 @@ class FPostProcessHMDPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessHMDPS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -162,7 +162,7 @@ void FRCPassPostProcessHMD::Process(FRenderingCompositePassContext& Context)
 		return;
 	}
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	
 	const FIntRect SrcRect = View.ViewRect;

@@ -1,7 +1,11 @@
-﻿using System;
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -94,6 +98,10 @@ namespace UnrealBuildTool
 		/// </summary>
 		private static bool bLogSeverity = false;
 		/// <summary>
+		/// When true, warnings and errors will have a prefix suitable for display by MSBuild (avoiding error messages showing as (EXEC : Error : ")
+		/// </summary>
+		private static bool bLogProgramNameWithSeverity = false;
+		/// <summary>
 		/// When true, logs will have the calling mehod prepended to the output as MethodName:
 		/// </summary>
 		private static bool bLogSources = false;
@@ -163,16 +171,18 @@ namespace UnrealBuildTool
 		/// <param name="bLogTimestamps">If true, the timestamp from Log init time will be prepended to all logs.</param>
 		/// <param name="InLogLevel"></param>
 		/// <param name="bLogSeverity">If true, warnings and errors will have a WARNING: and ERROR: prefix to them. </param>
+		/// <param name="bLogProgramNameWithSeverity">If true, includes the program name with any severity prefix</param>
 		/// <param name="bLogSources">If true, logs will have the originating method name prepended to them.</param>
 		/// <param name="bLogSourcesToConsole">If true, console output will have the originating method name appended to it.</param>
 		/// <param name="bColorConsoleOutput"></param>
 		/// <param name="TraceListeners">Collection of trace listeners to attach to the Trace.Listeners, in addition to the Default listener. The existing listeners (except the Default listener) are cleared first.</param>
-		public static void InitLogging(bool bLogTimestamps, LogEventType InLogLevel, bool bLogSeverity, bool bLogSources, bool bLogSourcesToConsole, bool bColorConsoleOutput, IEnumerable<TraceListener> TraceListeners)
+		public static void InitLogging(bool bLogTimestamps, LogEventType InLogLevel, bool bLogSeverity, bool bLogProgramNameWithSeverity, bool bLogSources, bool bLogSourcesToConsole, bool bColorConsoleOutput, IEnumerable<TraceListener> TraceListeners)
 		{
 			bIsInitialized = true;
 			Timer = (bLogTimestamps && Timer == null) ? Stopwatch.StartNew() : null;
 			Log.LogLevel = InLogLevel;
 			Log.bLogSeverity = bLogSeverity;
+			Log.bLogProgramNameWithSeverity = bLogProgramNameWithSeverity;
 			Log.bLogSources = bLogSources;
 			Log.bLogSourcesToConsole = bLogSourcesToConsole;
 			Log.bColorConsoleOutput = bColorConsoleOutput;
@@ -219,7 +229,7 @@ namespace UnrealBuildTool
 			switch (Severity)
 			{
 				case LogEventType.Fatal:
-					return "FATAL: ";
+					return "FATAL ERROR: ";
 				case LogEventType.Error:
 					return "ERROR: ";
 				case LogEventType.Warning:
@@ -262,6 +272,12 @@ namespace UnrealBuildTool
 			string SourcePrefix = (bForConsole ? bLogSourcesToConsole : bLogSources) ? string.Format("{0}: ", GetSource(StackFramesToSkip)) : "";
 			string SeverityPrefix = (bLogSeverity && ((Options & LogFormatOptions.NoSeverityPrefix) == 0)) ? GetSeverityPrefix(Verbosity) : "";
 
+			// Include the executable name when running inside MSBuild. If unspecified, MSBuild re-formats them with an "EXEC :" prefix.
+			if(SeverityPrefix.Length > 0 && bLogProgramNameWithSeverity)
+			{
+				SeverityPrefix = String.Format("{0}: {1}", Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location), SeverityPrefix);
+			}
+
 			// If there are no extra args, don't try to format the string, in case it has any format control characters in it (our LOCTEXT strings tend to).
 			string[] Lines = ((Args.Length > 0) ? String.Format(Format, Args) : Format).TrimEnd(' ', '\t', '\r', '\n').Split('\n');
 
@@ -270,7 +286,13 @@ namespace UnrealBuildTool
 
 			if (Lines.Length > 1)
 			{
-				string Padding = new string(' ', SeverityPrefix.Length);
+				int PaddingLength = 0;
+				while(PaddingLength < Lines[0].Length && Char.IsWhiteSpace(Lines[0][PaddingLength]))
+				{
+					PaddingLength++;
+				}
+
+				string Padding = new string(' ', SeverityPrefix.Length) + Lines[0].Substring(0, PaddingLength);
 				for (int Idx = 1; Idx < Lines.Length; Idx++)
 				{
 					FormattedLines.Add(String.Format("{0}{1}{2}{3}{4}", TimePrefix, SourcePrefix, Indent, Padding, Lines[Idx].TrimEnd('\r')));

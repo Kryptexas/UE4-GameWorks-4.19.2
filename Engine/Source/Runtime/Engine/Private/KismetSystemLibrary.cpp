@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Kismet/KismetSystemLibrary.h"
 #include "HAL/IConsoleManager.h"
@@ -6,6 +6,7 @@
 #include "Misc/CommandLine.h"
 #include "Misc/App.h"
 #include "Misc/EngineVersion.h"
+#include "Misc/Paths.h"
 #include "Misc/RuntimeErrors.h"
 #include "UObject/GCObject.h"
 #include "EngineGlobals.h"
@@ -89,6 +90,21 @@ FString UKismetSystemLibrary::GetEngineVersion()
 FString UKismetSystemLibrary::GetGameName()
 {
 	return FString(FApp::GetProjectName());
+}
+
+FString UKismetSystemLibrary::GetProjectDirectory()
+{
+	return FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
+}
+
+FString UKismetSystemLibrary::GetProjectContentDirectory()
+{
+	return FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
+}
+
+FString UKismetSystemLibrary::GetProjectSavedDirectory()
+{
+	return FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir());
 }
 
 FString UKismetSystemLibrary::GetGameBundleId()
@@ -268,6 +284,41 @@ void UKismetSystemLibrary::ExecuteConsoleCommand(UObject* WorldContextObject, co
 		TargetPC->ConsoleCommand(Command, true);
 	}
 }
+
+float UKismetSystemLibrary::GetConsoleVariableFloatValue(UObject* WorldContextObject, const FString& VariableName)
+{
+	float Value = 0.0f;
+
+	TConsoleVariableData<float>* Variable = IConsoleManager::Get().FindTConsoleVariableDataFloat(*VariableName);
+	if (Variable)
+	{
+		Value = Variable->GetValueOnGameThread();
+	}
+	else
+	{
+		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("Failed to find console variable '%s'."), *VariableName);
+	}
+
+	return Value;
+}
+
+int32 UKismetSystemLibrary::GetConsoleVariableIntValue(UObject* WorldContextObject, const FString& VariableName)
+{
+	int32 Value = 0;
+
+	TConsoleVariableData<int32>* Variable = IConsoleManager::Get().FindTConsoleVariableDataInt(*VariableName);
+	if (Variable)
+	{
+		Value = Variable->GetValueOnGameThread();
+	}
+	else
+	{
+		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("Failed to find console variable '%s'."), *VariableName);
+	}
+
+	return Value;
+}
+
 
 void UKismetSystemLibrary::QuitGame(UObject* WorldContextObject, class APlayerController* SpecificPlayer, TEnumAsByte<EQuitPreference::Type> QuitPreference)
 {
@@ -2410,11 +2461,10 @@ void UKismetSystemLibrary::LoadAsset(UObject* WorldContextObject, TSoftObjectPtr
 	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 	{
 		FLatentActionManager& LatentManager = World->GetLatentActionManager();
-		if (LatentManager.FindExistingAction<FLoadAssetAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr)
-		{
-			FLoadAssetAction* NewAction = new FLoadAssetAction(Asset.ToSoftObjectPath(), OnLoaded, LatentInfo);
-			LatentManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, NewAction);
-		}
+
+		// We always spawn a new load even if this node already queued one, the outside node handles this case
+		FLoadAssetAction* NewAction = new FLoadAssetAction(Asset.ToSoftObjectPath(), OnLoaded, LatentInfo);
+		LatentManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, NewAction);
 	}
 }
 
@@ -2440,11 +2490,10 @@ void UKismetSystemLibrary::LoadAssetClass(UObject* WorldContextObject, TSoftClas
 	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 	{
 		FLatentActionManager& LatentManager = World->GetLatentActionManager();
-		if (LatentManager.FindExistingAction<FLoadAssetClassAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr)
-		{
-			FLoadAssetClassAction* NewAction = new FLoadAssetClassAction(AssetClass.ToSoftObjectPath(), OnLoaded, LatentInfo);
-			LatentManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, NewAction);
-		}
+
+		// We always spawn a new load even if this node already queued one, the outside node handles this case
+		FLoadAssetClassAction* NewAction = new FLoadAssetClassAction(AssetClass.ToSoftObjectPath(), OnLoaded, LatentInfo);
+		LatentManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, NewAction);
 	}
 }
 

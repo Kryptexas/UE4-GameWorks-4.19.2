@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -25,7 +25,7 @@ public:
 	void ResetMaterial();
 
 	/** @return The material render proxy */
-	FMaterialRenderProxy* GetRenderProxy() const { return MaterialObject->GetRenderProxy(false, false); }
+	FMaterialRenderProxy* GetRenderProxy() const { return MaterialObject ? MaterialObject->GetRenderProxy(false, false) : nullptr; }
 
 	/** @return the material object */
 	const UMaterialInterface* GetMaterialObject() const { return MaterialObject; }
@@ -35,7 +35,7 @@ public:
 	const class UMaterialInterface* MaterialObject;
 #if !UE_BUILD_SHIPPING
 	// Used to guard against crashes when the material object is deleted.  This is expensive so we do not do it in shipping
-	TWeakObjectPtr<UMaterialInterface> MaterialObjectWeakPtr;
+	TWeakObjectPtr<const UMaterialInterface> MaterialObjectWeakPtr;
 	FName MaterialName;
 #endif
 	/** Slate proxy used for batching the material */

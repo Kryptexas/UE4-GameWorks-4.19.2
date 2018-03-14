@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BPVariableDragDropAction.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
@@ -48,7 +48,7 @@ void FKismetVariableDragDropAction::GetLinksThatWillBreak(	UEdGraphNode* Node, U
 		{
 			FEdGraphPinType NewPinType;
 			Schema->ConvertPropertyToPinType(NewVariableProperty,NewPinType);
-			if(UEdGraphPin* Pin = VarNodeUnderCursor->FindPin(VarNodeUnderCursor->GetVarNameString()))
+			if(UEdGraphPin* Pin = VarNodeUnderCursor->FindPin(VarNodeUnderCursor->GetVarName()))
 			{
 				for(TArray<class UEdGraphPin*>::TIterator i(Pin->LinkedTo);i;i++)
 				{
@@ -128,7 +128,7 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 	else if (PinUnderCursor)
 	{
 		FFormatNamedArguments Args;
-		Args.Add(TEXT("PinUnderCursor"), FText::FromString(PinUnderCursor->PinName));
+		Args.Add(TEXT("PinUnderCursor"), FText::FromName(PinUnderCursor->PinName));
 		Args.Add(TEXT("VariableName"), FText::FromString(VariableString));
 
 		if (CanVariableBeDropped(VariableProperty, *PinUnderCursor->GetOwningNode()->GetGraph()))
@@ -151,7 +151,7 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 				Schema->ConvertPropertyToPinType(VariableProperty, VariablePinType);
 				const bool bTypeMatch = Schema->ArePinTypesCompatible(VariablePinType, PinUnderCursor->PinType) || bIsExecPin;
 
-				Args.Add(TEXT("PinUnderCursor"), FText::FromString(PinUnderCursor->PinName));
+				Args.Add(TEXT("PinUnderCursor"), FText::FromName(PinUnderCursor->PinName));
 
 				if (bTypeMatch && bCanWriteIfNeeded)
 				{
@@ -278,7 +278,7 @@ FReply FKismetVariableDragDropAction::DroppedOnNode(FVector2D ScreenPosition, FV
 
 		if(CanVariableBeDropped(VariableProperty, *TargetNode->GetGraph()))
 		{
-			const FString OldVarName = TargetNode->GetVarNameString();
+			const FName OldVarName = TargetNode->GetVarName();
 			const UEdGraphSchema_K2* Schema = Cast<const UEdGraphSchema_K2>(TargetNode->GetSchema());
 
 			TArray<class UEdGraphPin*> BadLinks;
@@ -307,7 +307,7 @@ FReply FKismetVariableDragDropAction::DroppedOnNode(FVector2D ScreenPosition, FV
 				FEdGraphPinType NewPinType;
 				Schema->ConvertPropertyToPinType(VariableProperty,NewPinType);
 
-				Pin->PinName = VariableName.ToString();
+				Pin->PinName = VariableName;
 				Pin->PinType = NewPinType;
 
 				//break bad links

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "FoliageEdMode.h"
 #include "SceneView.h"
@@ -314,6 +314,11 @@ void FEdModeFoliage::AddReferencedObjects(FReferenceCollector& Collector)
 	FEdMode::AddReferencedObjects(Collector);
 
 	Collector.AddReferencedObject(SphereBrushComponent);
+
+	for (FFoliageMeshUIInfoPtr MeshUIInfo : FoliageMeshList)
+	{
+		Collector.AddReferencedObject(MeshUIInfo->Settings);
+	}
 }
 
 /** FEdMode: Called when the mode is entered */
@@ -323,6 +328,8 @@ void FEdModeFoliage::Enter()
 
 	// register for any objects replaced
 	GEditor->OnObjectsReplaced().AddRaw(this, &FEdModeFoliage::OnObjectsReplaced);
+	FEditorDelegates::EndPIE.AddRaw(this, &FEdModeFoliage::OnEndPIE);
+
 
 	// Clear any selection in case the instanced foliage actor is selected
 	GEditor->SelectNone(true, true);
@@ -505,10 +512,40 @@ void FEdModeFoliage::Exit()
 		}
 	}
 
+	FEditorDelegates::EndPIE.RemoveAll(this);
+
 	FoliageMeshList.Empty();
 
 	// Call base Exit method to ensure proper cleanup
 	FEdMode::Exit();
+}
+
+EFoliageEditingState FEdModeFoliage::GetEditingState() const
+{
+	UWorld* World = GetWorld();
+
+	if (GEditor->bIsSimulatingInEditor)
+	{
+		return EFoliageEditingState::SIEWorld;
+	}
+	else if (GEditor->PlayWorld != NULL)
+	{
+		return EFoliageEditingState::PIEWorld;
+	}
+	else if (World == nullptr)
+	{
+		return EFoliageEditingState::Unknown;
+	}
+
+	return EFoliageEditingState::Enabled;
+}
+
+void FEdModeFoliage::OnEndPIE(const bool bIsSimulating)
+{
+	if (bIsSimulating)
+	{
+		PopulateFoliageMeshList();
+	}
 }
 
 void FEdModeFoliage::OnVRHoverUpdate(UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled)
@@ -790,6 +827,11 @@ void FEdModeFoliage::OnObjectsReplaced(const TMap<UObject*, UObject*>& Replaceme
 
 void FEdModeFoliage::Tick(FEditorViewportClient* ViewportClient, float DeltaTime)
 {
+	if (!IsEditingEnabled())
+	{
+		return;
+	}
+
 	if (bToolActive)
 	{
 		ApplyBrush(ViewportClient);
@@ -922,7 +964,7 @@ bool FEdModeFoliage::MouseMove(FEditorViewportClient* ViewportClient, FViewport*
 {
 	// Use mouse capture if there's no other interactor currently tracing brush
 	UVREditorMode* VREditorMode = Cast<UVREditorMode>( GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( GetWorld() )->FindExtension( UVREditorMode::StaticClass() ) );
-	if (VREditorMode == nullptr || !VREditorMode->IsActive())
+	if (IsEditingEnabled() && (VREditorMode == nullptr || !VREditorMode->IsActive()))
 	{
 		// Compute a world space ray from the screen space mouse coordinates
 		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
@@ -2464,16 +2506,16 @@ void FEdModeFoliage::ApplyPaintBucket_Add(AActor* Actor)
 			if (StaticMeshComponent->LODData.Num() > 0)
 			{
 				InstanceMeshLODInfo = StaticMeshComponent->LODData.GetData();
-				bHasInstancedColorData = InstanceMeshLODInfo->PaintedVertices.Num() == LODModel.VertexBuffer.GetNumVertices();
+				bHasInstancedColorData = InstanceMeshLODInfo->PaintedVertices.Num() == LODModel.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices();
 			}
 
-			const bool bHasColorData = bHasInstancedColorData || LODModel.ColorVertexBuffer.GetNumVertices();
+			const bool bHasColorData = bHasInstancedColorData || LODModel.VertexBuffers.ColorVertexBuffer.GetNumVertices();
 
 			// Get the raw triangle data for this static mesh
 			FTransform LocalToWorld = StaticMeshComponent->GetComponentTransform();
 			FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
-			const FPositionVertexBuffer& PositionVertexBuffer = LODModel.PositionVertexBuffer;
-			const FColorVertexBuffer& ColorVertexBuffer = LODModel.ColorVertexBuffer;
+			const FPositionVertexBuffer& PositionVertexBuffer = LODModel.VertexBuffers.PositionVertexBuffer;
+			const FColorVertexBuffer& ColorVertexBuffer = LODModel.VertexBuffers.ColorVertexBuffer;
 
 			if (USplineMeshComponent* SplineMesh = Cast<USplineMeshComponent>(StaticMeshComponent))
 			{
@@ -2607,10 +2649,10 @@ bool FEdModeFoliage::GetStaticMeshVertexColorForHit(const UStaticMeshComponent* 
 	if (InStaticMeshComponent->LODData.Num() > 0)
 	{
 		InstanceMeshLODInfo = InStaticMeshComponent->LODData.GetData();
-		bHasInstancedColorData = InstanceMeshLODInfo->PaintedVertices.Num() == LODModel.VertexBuffer.GetNumVertices();
+		bHasInstancedColorData = InstanceMeshLODInfo->PaintedVertices.Num() == LODModel.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices();
 	}
 
-	const FColorVertexBuffer& ColorVertexBuffer = LODModel.ColorVertexBuffer;
+	const FColorVertexBuffer& ColorVertexBuffer = LODModel.VertexBuffers.ColorVertexBuffer;
 
 	// no vertex color data
 	if (!bHasInstancedColorData && ColorVertexBuffer.GetNumVertices() == 0)
@@ -2620,7 +2662,7 @@ bool FEdModeFoliage::GetStaticMeshVertexColorForHit(const UStaticMeshComponent* 
 
 	// Get the raw triangle data for this static mesh
 	FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
-	const FPositionVertexBuffer& PositionVertexBuffer = LODModel.PositionVertexBuffer;
+	const FPositionVertexBuffer& PositionVertexBuffer = LODModel.VertexBuffers.PositionVertexBuffer;
 
 	int32 SectionFirstTriIndex = 0;
 	for (TArray<FStaticMeshSection>::TConstIterator SectionIt(LODModel.Sections); SectionIt; ++SectionIt)
@@ -2817,7 +2859,7 @@ void FEdModeFoliage::PopulateFoliageMeshList()
 	FoliageMeshList.Empty();
 
 	// Collect set of all available foliage types
-	UWorld* World = GetWorld();
+	UWorld* World = GEditor->GetEditorWorldContext().World();
 	ULevel* CurrentLevel = World->GetCurrentLevel();
 	const int32 NumLevels = World->GetNumLevels();
 
@@ -3270,6 +3312,11 @@ void FEdModeFoliage::ReallocateClusters(UFoliageType* Settings)
 /** FEdMode: Called when a key is pressed */
 bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
 {
+	if (!IsEditingEnabled())
+	{
+		return false;
+	}
+
 	if (Event != IE_Released)
 	{
 		if (UICommandList->ProcessCommandBindings(Key, FSlateApplication::Get().GetModifierKeys(), false/*Event == IE_Repeat*/))
@@ -3425,6 +3472,11 @@ void FEdModeFoliage::ForceRealTimeViewports(const bool bEnable, const bool bStor
 
 bool FEdModeFoliage::HandleClick(FEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click)
 {
+	if (!IsEditingEnabled())
+	{
+		return false;
+	}
+
 	if (UISettings.GetSelectToolSelected())
 	{
 		if (HitProxy && HitProxy->IsA(HInstancedStaticMeshInstance::StaticGetType()))

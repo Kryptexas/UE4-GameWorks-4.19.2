@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,6 +11,7 @@ class IDetailLayoutBuilder;
 class SHorizontalBox;
 class IPropertyHandle;
 class IDetailLayoutBuilder;
+class IPropertyUtilities;
 
 class FBrushDetails : public IDetailCustomization
 {
@@ -44,5 +45,5 @@ private:
 	/** Container widget for the geometry mode tools */
 	TSharedPtr< SHorizontalBox > GeometryToolsContainer;
 
-	IDetailLayoutBuilder* DetailLayout;
+	TWeakPtr<IPropertyUtilities> PropertyUtils;
 };

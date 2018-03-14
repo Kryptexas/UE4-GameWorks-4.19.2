@@ -105,7 +105,7 @@ Blueprint Map を新規作成するには、以下の操作を行います。
 	変数名はやや杓子定規的な感じがしますが、変数名の `MyStringIntegerMap` の場合、Map が Integer 型の値と関連付けられた String 型キーを持つことを説明している点に注目する価値はあります。
 	[/REGION]
 
-1.	いま、`MyStringIntegerMap` は単一の **String** 変数の状態です。`MyStringIntegerMap` を **Map** コンテナに変換するには、アクタの **[Details (詳細)]** パネルの **Variable Type** ラベルの右側にある**[Variable Type (変数タイプ)] ボタンをクリックします。
+1.	いま、`MyStringIntegerMap` は単一の **String** 変数の状態です。`MyStringIntegerMap` を **Map** コンテナに変換するには、アクタの **[Details (詳細)]** パネルの **Variable Type** ラベルの右側にある **[Variable Type (変数タイプ)] ボタンをクリックします。
 
 	[REGION:lightbox]
 		[![](creatingMaps_Step7.png)(w:600)](creatingMaps_Step7.png)
@@ -135,7 +135,7 @@ Blueprint Map を新規作成するには、以下の操作を行います。
 クリックしてフルサイズで表示
 [/REGION]
 
-1.	`MyStringIntegerMap を編集するには、ブループリントの **[Compile]** ボタンをクリックします。
+1.	`MyStringIntegerMap` を編集するには、ブループリントの **[Compile]** ボタンをクリックします。
 
 	[REGION:lightbox]
 		[![](creatingMaps_Step11.png)(w:600)](creatingMaps_Step11.png)

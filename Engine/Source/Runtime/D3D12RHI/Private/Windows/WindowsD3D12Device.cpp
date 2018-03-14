@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	WindowsD3D12Device.cpp: Windows D3D device RHI implementation.
@@ -8,6 +8,7 @@
 #include "Modules/ModuleManager.h"
 #include "AllowWindowsPlatformTypes.h"
 	#include <delayimp.h>
+	#include "amd_ags.h"
 #include "HideWindowsPlatformTypes.h"
 
 #include "HardwareInfo.h"
@@ -71,6 +72,8 @@ namespace RHIConsoleVariables
 }
 using namespace D3D12RHI;
 
+static bool bIsQuadBufferStereoEnabled = false;
+
 /** This function is used as a SEH filter to catch only delay load exceptions. */
 static bool IsDelayLoadException(PEXCEPTION_POINTERS ExceptionPointers)
 {
@@ -124,6 +127,15 @@ static D3D_FEATURE_LEVEL GetAllowedD3DFeatureLevel()
 		RHIConsoleVariables::FeatureSetLimit == 10)
 	{
 		AllowedFeatureLevel = D3D_FEATURE_LEVEL_10_0;
+	}
+
+	if (bIsQuadBufferStereoEnabled)
+	{
+		if (AllowedFeatureLevel == D3D_FEATURE_LEVEL_10_0)
+		{
+			UE_LOG(LogD3D12RHI, Warning, TEXT("D3D Feature Level overriden from 10.0 to 11.1 due to quad_buffer_stereo"));
+		}
+		AllowedFeatureLevel = D3D_FEATURE_LEVEL_11_1;
 	}
 	return AllowedFeatureLevel;
 }
@@ -495,6 +507,17 @@ void FD3D12DynamicRHI::Init()
 
 	const DXGI_ADAPTER_DESC& AdapterDesc = GetAdapter().GetD3DAdapterDesc();
 
+	// Need to set GRHIVendorId before calling IsRHIDevice* functions
+	GRHIVendorId = AdapterDesc.VendorId;
+
+	// Initialize the AMD AGS utility library, when running on an AMD device
+	if (IsRHIDeviceAMD())
+	{
+		check(AmdAgsContext == nullptr);
+		// agsInit should be called before D3D device creation
+		agsInit(&AmdAgsContext, nullptr, nullptr);
+	}
+
 	// Create a device chain for each of the adapters we have choosen. This could be a single discrete card,
 	// a set discrete cards linked together (i.e. SLI/Crossfire) an Integrated device or any combination of the above
 	for (FD3D12Adapter*& Adapter : ChosenAdapters)
@@ -503,10 +526,27 @@ void FD3D12DynamicRHI::Init()
 		Adapter->InitializeDevices();
 	}
 
+	uint32 AmdSupportedExtensionFlags = 0;
+	if (AmdAgsContext)
+	{
+		// Initialize AMD driver extensions
+		agsDriverExtensionsDX12_Init(AmdAgsContext, GetAdapter().GetD3DDevice(), &AmdSupportedExtensionFlags);
+	}
+
+	// Warn if we are trying to use RGP frame markers but are either running on a non-AMD device
+	// or using an older AMD driver without RGP marker support
+	if (GEmitRgpFrameMarkers && !IsRHIDeviceAMD())
+	{
+		UE_LOG(LogD3D12RHI, Warning, TEXT("Attempting to use RGP frame markers on a non-AMD device."));
+	}
+	else if (GEmitRgpFrameMarkers && (AmdSupportedExtensionFlags & AGS_DX12_EXTENSION_USER_MARKERS) == 0)
+	{
+		UE_LOG(LogD3D12RHI, Warning, TEXT("Attempting to use RGP frame markers without driver support. Update AMD driver."));
+	}
+
 	GTexturePoolSize = 0;
 
 	GRHIAdapterName = AdapterDesc.Description;
-	GRHIVendorId = AdapterDesc.VendorId;
 	GRHIDeviceId = AdapterDesc.DeviceId;
 	GRHIDeviceRevision = AdapterDesc.Revision;
 
@@ -621,7 +661,6 @@ void FD3D12DynamicRHI::Init()
 	FHardwareInfo::RegisterHardwareInfo(NAME_RHI, TEXT("D3D12"));
 
 	GRHISupportsTextureStreaming = true;
-	GRHIRequiresEarlyBackBufferRenderTarget = false;
 	GRHISupportsFirstInstance = true;
 
 	// Indicate that the RHI needs to use the engine's deferred deletion queue.

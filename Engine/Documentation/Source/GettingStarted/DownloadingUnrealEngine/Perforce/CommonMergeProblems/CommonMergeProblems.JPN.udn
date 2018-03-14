@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2716501
+﻿INTSourceChangelist:3108692
 Availability:Licensee
-Title: 一般的なマージの問題
+Title:一般的なマージの問題
 Crumbs:%ROOT%, Engine, Programming, Programming/Basics, GettingStarted/DownloadingUnrealEngine/Perforce
 Description:エンジンの新規ビルドをマージする際によく発生する問題の説明
 version:4.9
@@ -26,7 +26,7 @@ version:4.9
 
 コードドロップのマージでは、Araxis Merge のフォルダの比較 (二方向と三方向の両方) が、現行プロジェクトと最近の QA 承認ビルド (場合によっては過去の QA 承認ビルド) との比較に役立ちます。この方法を使用すると、 QA 承認ビルドと現行プロジェクトで何が進化したかを確認することができます。
 
-マージの際に、 Perforce などのバージョン管理システムでのブランチングは有用です。すべてのマージ関連の変更を別個のブランチで作業することにより、完全にマージした変更を統合する準備が整う まで (通常、リグレッション テストを実施し、すべての問題が解決した後まで) ベース ブランチをクリーンに保ちます。
+マージの際に、 Perforce などのバージョン管理システムでのブランチングは有用です。マージ関連のすべての変更を別のブランチで行うことで、完全にマージした変更を統合する準備が整うまで (通常、リグレッション テストを実施し、すべての問題が解決した後まで) ベース ブランチをクリーンに保ちます。
 
 もちろん、このエンジンで作業する場合は、何もかもをベースに詰め込むよりも、モジュール式アプローチをとる方法が常にベストプラクティスです。できる限りベースをクリーンに保つことが、マージ関連のバグを減らすことになります。
 
@@ -61,7 +61,7 @@ version:4.9
 
 理想としては、何もかもを定義せずに、汎用のビルドを持つことができたらと思うでしょうが、それは必ずしも可能ではありません。
 
-しかし、こうしたテクニックはマージ作業を今までよりもかなりやりやすくするはずです。
+しかし、こうしたテクニックはマージ作業をかなりやりやすくするはずです。
 
 
 
@@ -77,29 +77,29 @@ version:4.9
 1. 新しい QA ビルドがでたらダウンロードし、デポにサブミットします。 
 
 	ファイルの追加 / 削除 / 編集のすべてのサブミットを行う場合、以下のコマンドを使用するのが良い方法です。
-
-		REM PURPOSE: デフォルトのクライアントスペックにあるデフォルトのチェンジリストが空であることを確認してください。
+	REM PURPOSE: デフォルトのクライアントスペックにあるデフォルトのチェンジリストが空であることを確認してください。
 
 		REM takes 2 variables
+
 		REM %1 == the hard drive PATH (under the depot root) to the dir with the new version (e.g. c:/foo/bar/baz)
 		REM %2 == the depot path to the build (e.g. //depot_foo/bar/baz/...
-
 		REM USAGE:  p4ModifiedFiles.bat c:/foo/bar/baz //depot_foo/bar/baz/...
 
 		REM save state
+
 		set MODFILES_FIND_ORIG=%MODFILES_FIND%
 		set MODFILES_FIND=C:\bin\cygwin\bin\find.exe
-
 		REM find all of the new files and add them
+
 		%MODFILES_FIND% %1 -type f | p4 -x - add
-
 		REM open all changed files for edit
+
 		p4 diff -se %2 | p4 -x - edit
-
 		REM open all removed files for delete
-		p4 diff -sd %2 | p4 -x - delete
 
+		p4 diff -sd %2 | p4 -x - delete
 		REM restore state
+
 		set MODFILES_FIND=%MODFILES_FIND_ORIG%
 
 1. Perforce の統合 (`p4 integ`) を使用して、//depot/UE4Builds/... から Perforce のご利用のエンジンに統合します (例、 //depot/MyEngine/...) 。
@@ -130,9 +130,9 @@ Safe Automatic Resolveあなたのファイル (上記参照先の説明によ�
 FooClass.h ファイルの DECLARE_NATIVE_TYPE() マクロにあるクラスの "not a class or namespace name" エラー。問題となっているクラスは、その上位で FooClasses.h ファイルで宣言されています。しかし、おそらくこのファイルがインクルードされる場合、有効な #defines が原因で、この宣言を見ていません。
 
 **原因:**
-LaunchEngineLoop.cpp  (NAMES_ONLY が定義されている) に含まれる自動生成されたヘッダは、プリコンパイルされたヘッダ (NAMES_ONLY が定義されていない) には含まれておらず、コンパイル エラーが発生しました。
+LaunchEngineLoop.cpp (NAMES_ONLY が定義されている) に含まれる自動生成されたヘッダは、プリコンパイルされたヘッダ (NAMES_ONLY が定義されていない) には含まれておらず、コンパイル エラーが発生しました。
 
-**修正 / ワークアラウンド:**
+**修正 / 回避策:**
 NAMES_ONLY を定義した状態でプリコンパイルしたヘッダに自動生成したヘッダを含みます。
 
 
@@ -145,12 +145,12 @@ NAMES_ONLY を定義した状態でプリコンパイルしたヘッダに自動
 ライセンシーと Epic が同じ値で列挙型変数を追加しました。
 
 **原因:**
-列挙型変数は、名前ではなく値によってシリアライゼーションされます。
+列挙型変数は、名前ではなく値によってシリアライズされます。
 
-**修正 / ワークアラウンド:**
-ワークアラウンドの 1 つとして、コンテンツをパッチするコマンドレットを作成する方法があります。しかし、これはエラーを発生しがちな時間がかかるタスクです。ライセンシーにとってより良い短期的なワークアラウンドは、列挙型変数を埋め込むことです。これは、 C++ で、列挙型変数でオフセットを指定して簡単に行うことができます。しかし、ブループリントでは、エントリの埋め込みは手作業で行わなければなりません。 
+**修正 / 回避策:**
+回避策の 1 つとして、コンテンツをパッチするコマンドレットを作成する方法があります。しかし、これはエラーを発生しがちな時間がかかるタスクです。ライセンシーにとってより良い短期的な回避策は、列挙型変数にパディングすることです。これは、 C++ で、列挙型変数でオフセットを指定して簡単に行うことができます。しかし、ブループリントでは、エントリのパディングは手作業で行わなければなりません。 
  
-この問題に対する解決は、すべての列挙型変数を値によってではなく、 FNames としてシリアライゼーションするエンジン レベルの変更です。未処理タスク:41337です。この変更をすると列挙型変数の名前変更がむずかしくなります。ただ、このケールは一般的ではありません。
+この問題の解決策は、値毎ではなく、すべての列挙型変数を FName としてシリアライズするエンジン レベルの変更を加えることです。未処理タスク:41337です。この変更をすると列挙型変数の名前変更がむずかしくなります。ただ、このケースは一般的ではありません。
 
 
 参照: [https://udn.epicgames.com/lists/showpost.php?list=unprog3&id=21598](https://udn.epicgames.com/lists/showpost.php?list=unprog3&id=21598)

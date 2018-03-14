@@ -1,22 +1,30 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ImgMediaLoaderWork.h"
 #include "ImgMediaPrivate.h"
 
 #include "Misc/ScopeLock.h"
 
-#include "IImgMediaLoader.h"
 #include "IImgMediaReader.h"
+#include "ImgMediaLoader.h"
+
+
+/** Time spent abandoning worker threads. */
+DECLARE_CYCLE_STAT(TEXT("ImgMedia Loader Abadon Work"), STAT_ImgMedia_LoaderAbandonWork, STATGROUP_Media);
+
+/** Time spent finalizing worker threads. */
+DECLARE_CYCLE_STAT(TEXT("ImgMedia Loader Finalize Work"), STAT_ImgMedia_LoaderFinalizeWork, STATGROUP_Media);
+
+/** Time spent reading image frames in worker threads. */
+DECLARE_CYCLE_STAT(TEXT("ImgMedia Loader Read Frame"), STAT_ImgMedia_LoaderReadFrame, STATGROUP_Media);
 
 
 /* FImgMediaLoaderWork structors
  *****************************************************************************/
 
-FImgMediaLoaderWork::FImgMediaLoaderWork(IImgMediaLoader& InOwner, const TSharedRef<IImgMediaReader, ESPMode::ThreadSafe>& InReader)
-	: AutoDelete(false)
-	, Done(false)
-	, FrameNumber(INDEX_NONE)
-	, Owner(InOwner)
+FImgMediaLoaderWork::FImgMediaLoaderWork(const TSharedRef<FImgMediaLoader, ESPMode::ThreadSafe>& InOwner, const TSharedRef<IImgMediaReader, ESPMode::ThreadSafe>& InReader)
+	: FrameNumber(INDEX_NONE)
+	, OwnerPtr(InOwner)
 	, Reader(InReader)
 { }
 
@@ -26,26 +34,8 @@ FImgMediaLoaderWork::FImgMediaLoaderWork(IImgMediaLoader& InOwner, const TShared
 
 void FImgMediaLoaderWork::Initialize(int32 InFrameNumber, const FString& InImagePath)
 {
-	check(!AutoDelete);
-
 	FrameNumber = InFrameNumber;
 	ImagePath = InImagePath;
-	Done = false;
-}
-
-
-void FImgMediaLoaderWork::DeleteWhenDone()
-{
-	FScopeLock Lock(&CriticalSection);
-
-	if (Done)
-	{
-		delete this;
-	}
-	else
-	{
-		AutoDelete = true;
-	}
 }
 
 
@@ -54,7 +44,9 @@ void FImgMediaLoaderWork::DeleteWhenDone()
 
 void FImgMediaLoaderWork::Abandon()
 {
-	// not supported
+	SCOPE_CYCLE_COUNTER(STAT_ImgMedia_LoaderAbandonWork);
+
+	Finalize(nullptr);
 }
 
 
@@ -68,6 +60,8 @@ void FImgMediaLoaderWork::DoThreadedWork()
 	}
 	else
 	{
+		SCOPE_CYCLE_COUNTER(STAT_ImgMedia_LoaderReadFrame);
+
 		// read the image frame
 		Frame = new FImgMediaFrame();
 
@@ -78,16 +72,26 @@ void FImgMediaLoaderWork::DoThreadedWork()
 		}
 	}
 
-	// notify owner, or shut down
-	FScopeLock Lock(&CriticalSection);
+	SCOPE_CYCLE_COUNTER(STAT_ImgMedia_LoaderFinalizeWork);
 
-	if (AutoDelete)
+	Finalize(Frame);
+}
+
+
+/* FImgMediaLoaderWork implementation
+ *****************************************************************************/
+
+void FImgMediaLoaderWork::Finalize(FImgMediaFrame* Frame)
+{
+	TSharedPtr<FImgMediaLoader, ESPMode::ThreadSafe> Owner = OwnerPtr.Pin();
+
+	if (Owner.IsValid())
 	{
-		delete this;
+		Owner->NotifyWorkComplete(*this, FrameNumber, MakeShareable(Frame));
 	}
 	else
 	{
-		Done = true;
-		Owner.NotifyWorkComplete(*this, FrameNumber, MakeShareable(Frame));
+		delete Frame;
+		delete this; // owner is gone, self destruct!
 	}
 }

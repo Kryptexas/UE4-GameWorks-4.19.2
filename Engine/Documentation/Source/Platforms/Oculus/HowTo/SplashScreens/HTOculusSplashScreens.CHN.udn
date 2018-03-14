@@ -1,0 +1,124 @@
+﻿INTSourceChangelist:3697586
+Availability:Public
+Crumbs: %ROOT%, Platforms
+Title:使用 Oculus Rift 的启动画面
+Description:设置 VR 中加载关卡时的启动画面
+Type: how-to
+Skilllevel:Intermediate
+Version:4.17
+Parent:Platforms/Oculus
+Order:2
+tags:Oculus
+
+在 UE4 VR 项目中变更关卡时有大量数据被卸载和加载，因此用户可能会遇到一些帧率问题。为掩盖加载新关卡时可能出现的帧率问题，可显示一个过渡画面或影片。以下指南将说明如何在 UE4 项目中设置并调用过渡画面。
+
+[REGION:note]
+以下指南将使用添加了触摸控制器和 Guardian 支持的站立 VR Pawn。如您不明确设置方法，请参考以下两个指南：
+
+* [**设置 Oculus Rift 站立式摄像机**](Platforms\Oculus\HowTo\StandingCamera)
+* [**设置 Oculus Rift 触摸控制器**](Platforms/VR/UsingTouchControllers)
+* [**设置 Guardian 系统**](Platforms\Oculus\HowTo\GuardianSystem)
+[/REGION]
+
+## 设置 Oculus 加载过渡画面
+
+[region:note]
+ * 请注意，以下是以最简单的方式在设置 VR 过渡画面。每个项目的需求均有所不同，但 VR 过渡画面的整体设置均十分相似。
+ * 针对此指南，您需要下载、解压并导入以下 zip 文件中包含的两个文件，**[Oculus 过渡画面源文件](OclusSplashScreenSourceContent.zip)**
+[/region]
+
+
+1. 打开 VRPawn 并前往 **事件图表**。在事件图表中点击右键，搜索并添加以下蓝图节点：
+
+    * Event Begin Play
+    * Set Tracking Origin
+    * Enable Auto Loading Splash Screen
+    * Add Loading Splash Screen
+    * Hide Splash Screen
+
+    [REGION:lightbox]
+    [![](HTSplashScreen_00.png)(w:446)](HTSplashScreen_00.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
+
+1. 我们需要在关卡加载时调用过渡画面，因此需要首先启动过渡画面的自动加载，然后设置过渡画面的内容。最后我们需要隐藏过渡画面，以便在之后需要时调用。对 VRPawn 事件图表中的节点进行设置，使其与下图相符： 
+
+    [REGION:lightbox]
+    [![](HTSplashScreen_01.png)(w:772)](HTSplashScreen_01.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
+
+    [REGION:note]
+    勾选 **Enable Auto Loading Splash Screen** 上的 **Auto Show Enabled** 属性，之后关卡加载时便会自动调用过渡画面。
+    [/REGION]
+
+1. **Add Loading Splash Screen** 节点中有一个 **Texture** 输出，控制调用此节点时将显示的纹理或影片。将 **T_UE4_Logo_00** 或其他纹理设为使用的纹理。
+    
+    [REGION:lightbox]
+    [![](HTSplashScreen_02.png)(w:353)](HTSplashScreen_02.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
+
+    [REGION:note]
+    将纹理设为过渡画面的图像时，最好将纹理压缩设置设为 **UserInterface2D** 并启用 **Never Stream** 选项，确保过渡画面以最高精度显示。
+    [/REGION]
+
+1. 将以下三个节点连接到 VRPawn 事件图表，以便显示和隐藏过渡画面。设置完成后应与下图相同：
+
+    * Motion Controller (L)Trigger
+    * Show Loading Splash Screen
+    * Hide Loading Splash Screen
+
+    [REGION:lightbox]
+    [![](HTSplashScreen_03.png)(w:467)](HTSplashScreen_03.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
+
+    [REGION:note]
+    可以用此方式显示过渡画面，但也可将此功能添加到关卡蓝图，使关卡加载后便会出现过渡画面，直到关卡加载完成。 
+    [/REGION]
+
+1. 操作完成后，VRPawn 蓝图与下图相似。此时便可戴上头戴显示器，手持触摸控制器，站在 VR 交互区中央。
+
+    [REGION:lightbox]
+    [![](HTSplashScreen_04.png)(w:467)](HTSplashScreen_04.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
+
+1. 现在按下触摸控制器上的左扳机键后，场景应变黑，并出现 UE4 Logo 或您选择的图像。松开触摸控制器左扳机键将返回关卡，显示以下视频中的画面。
+
+    [OBJECT:EmbeddedVideo]
+        [PARAMLITERAL:width]
+        640
+        [/PARAMLITERAL]
+        [PARAMLITERAL:height]
+        360
+        [/PARAMLITERAL]
+        [PARAMLITERAL:videoid]
+        H_APZ1h8H5o
+        [/PARAMLITERAL]
+    [/OBJECT]
+
+## UE4 项目下载
+可使用以下链接下载用于创建此例的 UE4 项目。
+
+* [**Oculus Rift 过渡画面范例项目**](https://epicgames.box.com/s/1rirqbohl7inchgnssznuam7ylalrzk4)
+
+
+
+

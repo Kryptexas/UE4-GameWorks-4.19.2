@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Factories.h: Unreal Engine factory types.
@@ -99,8 +99,6 @@ class FMorphTargetBinaryImport
 public:
 	/** for outputing warnings */
 	FFeedbackContext* Warn;
-	/** raw mesh data used for calculating differences */
-	FMorphMeshRawSource BaseMeshRawData;
 	/** base mesh lod entry to use */
 	int32 BaseLODIndex;
 	/** the base mesh */

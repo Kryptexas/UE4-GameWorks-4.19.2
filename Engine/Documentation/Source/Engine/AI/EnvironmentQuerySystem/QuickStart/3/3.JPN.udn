@@ -1,29 +1,17 @@
-﻿INTSourceChangelist:2653041
+﻿INTSourceChangelist:3717042
 Availability:Public
 Title:3.Nav Mesh ボリュームを作成する
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description:AI が歩き回れるように Nav Mesh ボリュームを作成します。
-バージョン：4.9
+version:4.9
+parent:Engine/AI/EnvironmentQuerySystem/QuickStart
+type:quick start
+type:multi-step
+order:3
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Engine/AI/EnvironmentQuerySystem/QuickStart/2 "%Engine/AI/EnvironmentQuerySystem/QuickStart/2:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine/AI/EnvironmentQuerySystem/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine/AI/EnvironmentQuerySystem/QuickStart/4 "%Engine/AI/EnvironmentQuerySystem/QuickStart/4:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 [INCLUDE:Engine/AI/BehaviorTrees/QuickStart/2#aicreatenav]
 
-%Steps%
+[NAV]
 

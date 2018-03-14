@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -38,8 +38,6 @@ namespace physx
 	class PxTriangleMeshGeometry;
 }
 
-enum class EPhysXMeshCookFlags : uint8;
-
 DECLARE_CYCLE_STAT_EXTERN(TEXT("PhysX Cooking"), STAT_PhysXCooking, STATGROUP_Physics, );
 
 
@@ -63,10 +61,7 @@ struct FBodySetupUVInfo
 	}
 
 	/** Get resource size of UV info */
-	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-	SIZE_T GetResourceSize() const;
 	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const;
-	SIZE_T GetResourceSizeBytes() const;
 
 	void FillFromTriMesh(const FTriMeshCollisionData& TriMeshCollisionData);
 };
@@ -79,11 +74,13 @@ struct ENGINE_API FCookBodySetupInfo
 	/** Trimesh data for cooking */
 	FTriMeshCollisionData TriangleMeshDesc;
 
+#if WITH_PHYSX
 	/** Trimesh cook flags */
 	EPhysXMeshCookFlags TriMeshCookFlags;
 
 	/** Convex cook flags */
 	EPhysXMeshCookFlags ConvexCookFlags;
+#endif // WITH_PHYSX
 
 	/** Vertices of NonMirroredConvex hulls */
 	TArray<TArray<FVector>> NonMirroredConvexVertices;
@@ -148,47 +145,52 @@ class UBodySetup : public UObject
 	 *	This is useful for bones that should always be physics, even when blending physics in and out for hit reactions (eg cloth or pony-tails).
 	 */
 	UPROPERTY()
-	uint32 bAlwaysFullAnimWeight_DEPRECATED:1;
+	uint8 bAlwaysFullAnimWeight_DEPRECATED:1;
 
 	/** 
 	 *	Should this BodySetup be considered for the bounding box of the PhysicsAsset (and hence SkeletalMeshComponent).
 	 *	There is a speed improvement from having less BodySetups processed each frame when updating the bounds.
 	 */
 	UPROPERTY(EditAnywhere, Category=BodySetup)
-	uint32 bConsiderForBounds:1;
+	uint8 bConsiderForBounds:1;
 
 	/** 
 	 *	If true, the physics of this mesh (only affects static meshes) will always contain ALL elements from the mesh - not just the ones enabled for collision. 
 	 *	This is useful for forcing high detail collisions using the entire render mesh.
 	 */
 	UPROPERTY(Transient)
-	uint32 bMeshCollideAll:1;
+	uint8 bMeshCollideAll:1;
 
 	/**
 	*	If true, the physics triangle mesh will use double sided faces when doing scene queries.
 	*	This is useful for planes and single sided meshes that need traces to work on both sides.
 	*/
 	UPROPERTY(EditAnywhere, Category=Physics)
-	uint32 bDoubleSidedGeometry : 1;
+	uint8 bDoubleSidedGeometry : 1;
 
 	/**	Should we generate data necessary to support collision on normal (non-mirrored) versions of this body. */
 	UPROPERTY()
-	uint32 bGenerateNonMirroredCollision:1;
+	uint8 bGenerateNonMirroredCollision:1;
 
 	/** Whether the cooked data is shared by multiple body setups. This is needed for per poly collision case where we don't want to duplicate cooked data, but still need multiple body setups for in place geometry changes */
 	UPROPERTY()
-	uint32 bSharedCookedData : 1;
+	uint8 bSharedCookedData : 1;
 
 	/** 
 	 *	Should we generate data necessary to support collision on mirrored versions of this mesh. 
 	 *	This halves the collision data size for this mesh, but disables collision on mirrored instances of the body.
 	 */
 	UPROPERTY()
-	uint32 bGenerateMirroredCollision:1;
+	uint8 bGenerateMirroredCollision:1;
 
-	/** Physical material to use for simple collision on this body. Encodes information about density, friction etc. */
-	UPROPERTY(EditAnywhere, Category=Physics, meta=(DisplayName="Simple Collision Physical Material"))
-	class UPhysicalMaterial* PhysMaterial;
+	/** Flag used to know if we have created the physics convex and tri meshes from the cooked data yet */
+	uint8 bCreatedPhysicsMeshes:1;
+
+	/** Indicates whether this setup has any cooked collision data. */
+	uint8 bHasCookedCollisionData:1;
+
+	/** Indicates that we will never use convex or trimesh shapes. This is an optimization to skip checking for binary data. */
+	uint8 bNeverNeedsCookedCollisionData:1;
 
 	/** Collision Type for this body. This eventually changes response to collision to others **/
 	UPROPERTY(EditAnywhere, Category=Collision)
@@ -200,26 +202,24 @@ class UBodySetup : public UObject
 
 	ENGINE_API TEnumAsByte<enum ECollisionTraceFlag> GetCollisionTraceFlag() const;
 
-	/** Default properties of the body instance, copied into objects on instantiation, was URB_BodyInstance */
-	UPROPERTY(EditAnywhere, Category=Collision, meta=(FullyExpand = "true"))
-	struct FBodyInstance DefaultInstance;
+	/** Physical material to use for simple collision on this body. Encodes information about density, friction etc. */
+	UPROPERTY(EditAnywhere, Category=Physics, meta=(DisplayName="Simple Collision Physical Material"))
+	class UPhysicalMaterial* PhysMaterial;
 
 	/** Custom walkable slope setting for this body. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Physics)
 	struct FWalkableSlopeOverride WalkableSlopeOverride;
 
+#if WITH_EDITORONLY_DATA
 	UPROPERTY()
 	float BuildScale_DEPRECATED;
-
-	/** Build scale for this body setup (static mesh settings define this value) */
-	UPROPERTY()
-	FVector BuildScale3D;
-
-	/** GUID used to uniquely identify this setup so it can be found in the DDC */
-	FGuid BodySetupGuid;
+#endif
 
 	/** Cooked physics data for each format */
 	FFormatContainer CookedFormatData;
+
+	/** GUID used to uniquely identify this setup so it can be found in the DDC */
+	FGuid BodySetupGuid;
 
 private:
 #if WITH_EDITOR
@@ -234,9 +234,6 @@ private:
 
 public:
 
-	/** Cooked physics data override. This is needed in cases where some other body setup has the cooked data and you don't want to own it or copy it. See per poly skeletal mesh */
-	FFormatContainer* CookedFormatDataOverride;
-
 #if WITH_PHYSX
 	/** Physics triangle mesh, created from cooked data in CreatePhysicsMeshes */
 	TArray<physx::PxTriangleMesh*> TriMeshes;
@@ -245,16 +242,17 @@ public:
 	/** Additional UV info, if available. Used for determining UV for a line trace impact. */
 	FBodySetupUVInfo UVInfo;
 
-	/** Flag used to know if we have created the physics convex and tri meshes from the cooked data yet */
-	bool bCreatedPhysicsMeshes;
+	/** Default properties of the body instance, copied into objects on instantiation, was URB_BodyInstance */
+	UPROPERTY(EditAnywhere, Category=Collision, meta=(FullyExpand = "true"))
+	FBodyInstance DefaultInstance;
 
-	/** Indicates whether this setup has any cooked collision data. */
-	bool bHasCookedCollisionData;
+	/** Cooked physics data override. This is needed in cases where some other body setup has the cooked data and you don't want to own it or copy it. See per poly skeletal mesh */
+	FFormatContainer* CookedFormatDataOverride;
 
-	/** Indicates that we will never use convex or trimesh shapes. This is an optimization to skip checking for binary data. */
-	bool bNeverNeedsCookedCollisionData;
+	/** Build scale for this body setup (static mesh settings define this value) */
+	UPROPERTY()
+	FVector BuildScale3D;
 
-public:
 	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void BeginDestroy() override;
@@ -287,9 +285,11 @@ public:
 	ENGINE_API void CreatePhysicsMeshesAsync(FOnAsyncPhysicsCookFinished OnAsyncPhysicsCookFinished);
 
 private:
+#if WITH_PHYSX
 	/** Finalize game thread data before calling back user's delegate */
 	void FinishCreatePhysicsMeshesAsync(FPhysXCookHelper* AsyncPhysicsCookHelper, FOnAsyncPhysicsCookFinished OnAsyncPhysicsCookFinished);
-	
+#endif // WITH_PHYSX
+
 	/**
 	* Given a format name returns its cooked data.
 	*
@@ -301,8 +301,10 @@ private:
 
 public:
 
+#if WITH_PHYSX
 	/** Finish creating the physics meshes and update the body setup data with cooked data */
 	ENGINE_API void FinishCreatingPhysicsMeshes(const TArray<physx::PxConvexMesh*>& ConvexMeshes, const TArray<physx::PxConvexMesh*>& ConvexMeshesNegX, const TArray<physx::PxTriangleMesh*>& TriMeshes);
+#endif // WITH_PHYSX
 
 	/** Returns the volume of this element */
 	ENGINE_API virtual float GetVolume(const FVector& Scale) const;
@@ -409,6 +411,7 @@ public:
 /** Helper struct for iterating over shapes in a body setup.*/
 struct ENGINE_API FBodySetupShapeIterator
 {
+#if WITH_PHYSX
 	FBodySetupShapeIterator(const UBodySetup& InBodySetup, FVector& InScale3D, const FTransform& InRelativeTM);
 
 	/** Iterates over the elements array and creates the needed geometry and local pose. Note that this memory is on the stack so it's illegal to use it by reference outside the lambda */
@@ -423,6 +426,7 @@ private:
 	template <typename ElemType, typename GeomType> bool PopulatePhysXGeometryAndTransform(const ElemType& Elem, GeomType& Geom, physx::PxTransform& OutTM) const;
 	template <typename GeomType> float ComputeContactOffset(const GeomType& Geom) const;
 	template <typename ElemType> FString GetDebugName() const;
+#endif //WITH_PHYSX
 
 private:
 	const UBodySetup& BodySetup;
@@ -439,6 +443,8 @@ private:
 	float MaxContactOffset;
 };
 
+#if WITH_PHYSX
+
 /// @cond DOXYGEN_WARNINGS
 
 //Explicit export of template instantiation 
@@ -450,23 +456,4 @@ extern template ENGINE_API void FBodySetupShapeIterator::ForEachShape(const TArr
 
 /// @endcond
 
-
-struct ENGINE_API FAsyncPhysicsCookHelper
-{
-	FAsyncPhysicsCookHelper(class IPhysXCookingModule* InPhysXCookingModule, const FCookBodySetupInfo& InCookInfo);
-
-	void CreatePhysicsMeshesAsync_Concurrent(FSimpleDelegateGraphTask::FDelegate FinishDelegate);
-
-	void CreatePhysicsMeshes_Concurrent();
-
-	void CreateConvexElements(const TArray<TArray<FVector>>& Elements, TArray<physx::PxConvexMesh*>& OutConvexMeshes, bool bFlipped);
-
-	FCookBodySetupInfo CookInfo;
-	IPhysXCookingModule* PhysXCookingModule;
-
-	//output
-	TArray<physx::PxConvexMesh*> OutNonMirroredConvexMeshes;
-	TArray<physx::PxConvexMesh*> OutMirroredConvexMeshes;
-	TArray<physx::PxTriangleMesh*> OutTriangleMeshes;
-	FBodySetupUVInfo OutUVInfo;
-};
+#endif //WITH_PHYSX

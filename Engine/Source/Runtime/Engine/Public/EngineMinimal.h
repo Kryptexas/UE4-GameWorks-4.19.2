@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EngineMinimal.h: Commonly used include for developing projects with UE4
@@ -42,7 +42,6 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "PrimitiveSceneProxy.h"
 #include "BoneIndices.h"
 #include "ReferenceSkeleton.h"
-#include "SkeletalMeshTypes.h"
 #include "AnimInterpFilter.h"
 #include "Animation/AnimTypes.h"
 #include "CustomBoneIndexArray.h"
@@ -114,4 +113,3 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Sound/SoundBase.h"
 #include "Sound/SoundWave.h"
-

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 //#include "OrionGame.h"
 #include "PerformanceMonitor.h"
@@ -11,6 +11,7 @@
 #include "EngineGlobals.h"
 #include "Engine/GameViewportClient.h"
 #include "ConfigCacheIni.h"
+#include "AutomationTest.h"
 
 #define SUPER_DETAILED_AUTOMATION_STATS 1
 PERFORMANCEMONITOR_API int ExportedInt;
@@ -19,7 +20,11 @@ FPerformanceMonitorModule::FPerformanceMonitorModule()
 {
 	bRecording = false;
 	FileToLogTo = nullptr;
-	TimeBetweenRecords = 1.0f;
+	for (int i = 0; i < 10; i++)
+	{
+		bNewFrameDataReady[i] = false;
+	}
+	TimeBetweenRecords = 0.01f;
 	TestTimeOut = 0.f;
 }
 
@@ -65,11 +70,16 @@ void FPerformanceMonitorModule::Init()
 void FPerformanceMonitorModule::GetDataFromStatsThread(int64 CurrentFrame)
 {
 #if STATS
-	if (!bNewFrameDataReady && CurrentFrame >= 0)
+	// We store 10 frames in the buffer at any given time.
+	for (int i = 0; i < 10; i++)
 	{
-		FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
-		ReceivedFramePayload = Stats.GetCondensedHistory(CurrentFrame);
-		bNewFrameDataReady = true;
+		if (!bNewFrameDataReady[i] && CurrentFrame >= 0)
+		{
+			FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
+			ReceivedFramePayload[i] = Stats.GetCondensedHistory(CurrentFrame);
+			bNewFrameDataReady[i] = true;
+			return;
+		}
 	}
 #endif
 }
@@ -182,6 +192,8 @@ void FPerformanceMonitorModule::StartRecordingPerfTimers(FString FileNameToUse, 
 		GLog->Log(TEXT("PerformanceMonitor"), ELogVerbosity::Warning, TEXT("Please set a file name."));
 		LogFileName = TEXT("UnnamedPerfData");
 	}
+	// Make sure we're not holding over any 
+	ReceivedFramePayload->Empty();
 
 	if (LogFileName != FileNameToUse)
 	{
@@ -256,7 +268,7 @@ void FPerformanceMonitorModule::StartRecordingPerfTimers(FString FileNameToUse, 
 		}
 	}
 	FThreadStats::MasterEnableAdd(1);
-
+	FAutomationTestFramework::Get().SetCaptureStack(false);
 	FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
 	// Set up our delegate to gather data from the stats thread for safe consumption on game thread.
 	Stats.NewFrameDelegate.AddRaw(this, &FPerformanceMonitorModule::GetDataFromStatsThread);
@@ -302,11 +314,44 @@ void FPerformanceMonitorModule::StartRecordingPerfTimers(FString FileNameToUse, 
 
 void FPerformanceMonitorModule::RecordFrame()
 {
-	if (!bRecording || !bNewFrameDataReady)
+	if (!bRecording)
 	{
 		return;
 	}
-	GetStatsBreakdown();
+	for (const FWorldContext& WorldContext : GEngine->GetWorldContexts())
+	{
+		if (WorldContext.WorldType == EWorldType::Game || WorldContext.WorldType == EWorldType::PIE)
+		{
+			UWorld* World = WorldContext.World();
+			const FStatUnitData* StatUnitData = World->GetGameViewport()->GetStatUnitData();
+			check(StatUnitData);
+			TArray<float> ArrayForStatName = GeneratedStats.FindOrAdd(TEXT("FrameTime"));
+			ArrayForStatName.Add(StatUnitData->RawFrameTime);
+			GeneratedStats.Emplace(TEXT("FrameTime"), ArrayForStatName);
+			ArrayForStatName = GeneratedStats.FindOrAdd(TEXT("RenderThreadTime"));
+			ArrayForStatName.Add(StatUnitData->RawRenderThreadTime);
+			GeneratedStats.Emplace(TEXT("RenderThreadTime"), ArrayForStatName);
+			ArrayForStatName = GeneratedStats.FindOrAdd(TEXT("GameThreadTime"));
+			ArrayForStatName.Add(StatUnitData->RawGameThreadTime);
+			GeneratedStats.Emplace(TEXT("GameThreadTime"), ArrayForStatName);
+			ArrayForStatName = GeneratedStats.FindOrAdd(TEXT("GPUFrameTime"));
+			ArrayForStatName.Add(StatUnitData->RawGPUFrameTime);
+			GeneratedStats.Emplace(TEXT("GPUFrameTime"), ArrayForStatName);
+
+			ArrayForStatName = GeneratedStats.FindOrAdd(TEXT("GlobalRenderThreadTime"));
+			ArrayForStatName.Add(FGenericPlatformTime::ToMilliseconds(GRenderThreadTime));
+			GeneratedStats.Emplace(TEXT("GlobalRenderThreadTime"), ArrayForStatName);
+			ArrayForStatName = GeneratedStats.FindOrAdd(TEXT("GlobalGameThreadTime"));
+			ArrayForStatName.Add(FGenericPlatformTime::ToMilliseconds(GGameThreadTime));
+			GeneratedStats.Emplace(TEXT("GlobalGameThreadTime"), ArrayForStatName);
+			ArrayForStatName = GeneratedStats.FindOrAdd(TEXT("GlobalGPUFrameTime"));
+			ArrayForStatName.Add(FGenericPlatformTime::ToMilliseconds(GGPUFrameTime));
+			GeneratedStats.Emplace(TEXT("GlobalGPUFrameTime"), ArrayForStatName);
+
+			break;
+		}
+	}
+	//GetStatsBreakdown();
 	if (TestTimeOut && (FPlatformTime::Seconds() - TestTimeOut > TimeOfTestStart))
 	{
 		StopRecordingPerformanceTimers();
@@ -316,54 +361,41 @@ void FPerformanceMonitorModule::RecordFrame()
 
 void FPerformanceMonitorModule::GetStatsBreakdown()
 {
-#if STATS
-	FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
-	int curFrame = Stats.GetLatestValidFrame();
-	if (curFrame >= 0)
-	{
-		for (const FWorldContext& WorldContext : GEngine->GetWorldContexts())
-		{
-			if (WorldContext.WorldType == EWorldType::Game || WorldContext.WorldType == EWorldType::PIE)
-			{
-				UWorld* World = WorldContext.World();		
-				const FStatUnitData* StatUnitData = World->GetGameViewport()->GetStatUnitData();
-				check(StatUnitData);
-				TArray<float> ArrayForStatName = GeneratedStats.FindOrAdd(TEXT("FrameTime"));
-				ArrayForStatName.Add(StatUnitData->RawFrameTime);
-				GeneratedStats.Emplace(TEXT("FrameTime"), ArrayForStatName);
-				ArrayForStatName = GeneratedStats.FindOrAdd(TEXT("RenderThreadTime"));
-				ArrayForStatName.Add(StatUnitData->RawRenderThreadTime);
-				GeneratedStats.Emplace(TEXT("RenderThreadTime"), ArrayForStatName);
-				ArrayForStatName = GeneratedStats.FindOrAdd(TEXT("GameThreadTime"));
-				ArrayForStatName.Add(StatUnitData->RawGameThreadTime);
-				GeneratedStats.Emplace(TEXT("GameThreadTime"), ArrayForStatName);
-				ArrayForStatName = GeneratedStats.FindOrAdd(TEXT("GPUFrameTime"));
-				ArrayForStatName.Add(StatUnitData->RawGPUFrameTime);
-				GeneratedStats.Emplace(TEXT("GPUFrameTime"), ArrayForStatName);
-				break;
-			}
-		}
+#if STATS		
 		TArray<FString> StatsCoveredThisFrame = DesiredStats;
-		for (int j = 0; j < ReceivedFramePayload.Num(); j++)
+		for (int i = 0; i < 10; i++)
 		{
-			FStatMessage TempMessage = ReceivedFramePayload[j];
-			FName StatFName = TempMessage.NameAndInfo.GetShortName();
-			if (!StatFName.IsValid())
+			if (bNewFrameDataReady[i])
 			{
-				return;
-			}
-			FString StatName = StatFName.ToString();
-			if (StatsCoveredThisFrame.Contains(StatName))
-			{
-				TArray<float> ArrayForStatName = GeneratedStats.FindOrAdd(StatName);
-				ArrayForStatName.Add(FPlatformTime::ToMilliseconds(TempMessage.GetValue_Duration()));
-				GeneratedStats.Emplace(StatName, ArrayForStatName);
-				StatsCoveredThisFrame.Remove(StatName);
+				for (int j = 0; j < ReceivedFramePayload[i].Num(); j++)
+				{
+					TArray<float> ArrayForStatName;
+					FStatMessage TempMessage = ReceivedFramePayload[i][j];
+
+
+					FName StatFName = TempMessage.NameAndInfo.GetShortName();
+					if (!StatFName.IsValid())
+					{
+						return;
+					}
+
+					FString StatName = StatFName.ToString();
+					if (StatsCoveredThisFrame.Contains(StatName))
+					{
+						ArrayForStatName = GeneratedStats.FindOrAdd(StatName);
+						ArrayForStatName.Add(FPlatformTime::ToMilliseconds(TempMessage.GetValue_Duration()));
+						GeneratedStats.Emplace(StatName, ArrayForStatName);
+						StatsCoveredThisFrame.Remove(StatName);
+					}
+					if (!StatsCoveredThisFrame.Num())
+					{
+						continue;
+					}
+				}
+				ReceivedFramePayload[i].Empty();
+				bNewFrameDataReady[i] = false;
 			}
 		}
-		ReceivedFramePayload.Empty();
-		bNewFrameDataReady = false;
-	}
 #endif
 }
 
@@ -391,6 +423,7 @@ void FPerformanceMonitorModule::StopRecordingPerformanceTimers()
 		GLog->Log(TEXT("FTestPerfRecorder"), ELogVerbosity::Warning, TEXT("Tried to End Recording when we haven't started recording! Don't do that."));
 		return;
 	}
+
 	RecordData();
 	FThreadStats::MasterEnableSubtract(1);
 	FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
@@ -406,6 +439,7 @@ void FPerformanceMonitorModule::StopRecordingPerformanceTimers()
 	{
 		FileToLogTo->Close();
 	}
+	FAutomationTestFramework::Get().SetCaptureStack(true);
 
 
 	if (bExitOnCompletion)
@@ -475,8 +509,6 @@ float FPerformanceMonitorModule::GetAverageOfArray(TArray<float>ArrayToAvg, FStr
 void FPerformanceMonitorModule::RecordData()
 {
 #if STATS
-
-
 	FString StringToPrint = FString::Printf(TEXT("Interval (s),%0.4f\n"), TimeBetweenRecords);
 	FileToLogTo->Serialize(TCHAR_TO_ANSI(*StringToPrint), StringToPrint.Len());
 	for (TMap<FString, TArray<float>>::TConstIterator ThreadedItr(GeneratedStats); ThreadedItr; ++ThreadedItr)
@@ -495,12 +527,17 @@ void FPerformanceMonitorModule::RecordData()
 	for (TMap<FString, TArray<float>>::TConstIterator ThreadedItr(GeneratedStats); ThreadedItr; ++ThreadedItr)
 	{
 		StringToPrint = ThreadedItr.Key();
+		if (StringToPrint == TEXT("TimeSinceStart"))
+		{
+			continue;
+		}
 		TArray<float> StatValues = ThreadedItr.Value();
 		float StatMin = FMath::Min(StatValues);
 		float StatMax = FMath::Max(StatValues);
 		float StatAvg = GetAverageOfArray(StatValues, ThreadedItr.Key());
 		int ActiveFrames = StatValues.Num();
-		for (int i = 0; i < StatValues.Num(); i++)
+		// Skip 0 frame because it tends to be the hitchiest frame.
+		for (int i = 1; i < StatValues.Num(); i++)
 		{
 			if (!StatValues[i])
 			{

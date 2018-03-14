@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "K2Node_VariableGet.h"
@@ -111,19 +111,16 @@ void UK2Node_VariableGet::CreateNonPurePins(TArray<UEdGraphPin*>* InOldPinsPtr)
 		}
 		// If there is no property and we are given some old pins to look at, find the old value pin and use the type there
 		// This allows nodes to be pasted into other BPs without access to the property
-		else if(InOldPinsPtr)
+		else if (InOldPinsPtr)
 		{
 			// find old variable pin and use the type.
-			const FString PinName = GetVarNameString();
-			for(auto Iter = InOldPinsPtr->CreateConstIterator(); Iter; ++Iter)
+			const FName PinName = GetVarName();
+			for (const UEdGraphPin* Pin : *InOldPinsPtr)
 			{
-				if(const UEdGraphPin* Pin = *Iter)
+				if (Pin && PinName == Pin->PinName)
 				{
-					if(PinName == Pin->PinName)
-					{
-						PinType = Pin->PinType;
-						break;
-					}
+					PinType = Pin->PinType;
+					break;
 				}
 			}
 
@@ -132,13 +129,13 @@ void UK2Node_VariableGet::CreateNonPurePins(TArray<UEdGraphPin*>* InOldPinsPtr)
 		if (IsValidTypeForNonPure(PinType))
 		{
 			// Input - Execution Pin
-			CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
+			CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Execute);
 
 			// Output - Execution Pins
-			UEdGraphPin* ValidPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Then);
+			UEdGraphPin* ValidPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Then);
 			ValidPin->PinFriendlyName = LOCTEXT("Valid", "Is Valid");
 
-			UEdGraphPin* InvalidPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Else);
+			UEdGraphPin* InvalidPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Else);
 			InvalidPin->PinFriendlyName = LOCTEXT("Invalid", "Is Not Valid");
 		}
 		else
@@ -272,7 +269,7 @@ FText UK2Node_VariableGet::GetTooltipText() const
 FText UK2Node_VariableGet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	// If there is only one variable being read, the title can be made the variable name
-	FString OutputPinName;
+	FName OutputPinName;
 	int32 NumOutputsFound = 0;
 
 	for (int32 PinIndex = 0; PinIndex < Pins.Num(); ++PinIndex)
@@ -306,7 +303,7 @@ FText UK2Node_VariableGet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	else if (CachedNodeTitle.IsOutOfDate(this))
 	{
 		FFormatNamedArguments Args;
-		Args.Add(TEXT("PinName"), FText::FromString(OutputPinName));
+		Args.Add(TEXT("PinName"), FText::FromName(OutputPinName));
 		// FText::Format() is slow, so we cache this to save on performance
 		CachedNodeTitle.SetCachedText(FText::Format(LOCTEXT("GetPinName", "Get {PinName}"), Args), this);
 	}
@@ -320,7 +317,7 @@ FNodeHandlingFunctor* UK2Node_VariableGet::CreateNodeHandler(FKismetCompilerCont
 
 bool UK2Node_VariableGet::IsValidTypeForNonPure(const FEdGraphPinType& InPinType)
 {
-	return !InPinType.IsContainer() && (InPinType.PinCategory == UObject::StaticClass()->GetName() ||InPinType.PinCategory == UClass::StaticClass()->GetName());
+	return !InPinType.IsContainer() && (InPinType.PinCategory == UEdGraphSchema_K2::PC_Object || InPinType.PinCategory == UEdGraphSchema_K2::PC_Class || InPinType.PinCategory == UEdGraphSchema_K2::PC_SoftObject || InPinType.PinCategory == UEdGraphSchema_K2::PC_SoftClass);
 }
 
 void UK2Node_VariableGet::GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const
@@ -484,13 +481,21 @@ void UK2Node_VariableGet::ExpandNode(class FKismetCompilerContext& CompilerConte
 		UK2Node_CallFunction* IsValidFunction = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
 
 		// Based on if the type is an "Object" or a "Class" changes which function to use
-		if (ValuePin->PinType.PinCategory == UObject::StaticClass()->GetName())
+		if (ValuePin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object)
 		{
 			IsValidFunction->SetFromFunction(UKismetSystemLibrary::StaticClass()->FindFunctionByName(GET_MEMBER_NAME_CHECKED(UKismetSystemLibrary, IsValid)));
 		}
-		else if (ValuePin->PinType.PinCategory == UClass::StaticClass()->GetName())
+		else if (ValuePin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class)
 		{
 			IsValidFunction->SetFromFunction(UKismetSystemLibrary::StaticClass()->FindFunctionByName(GET_MEMBER_NAME_CHECKED(UKismetSystemLibrary, IsValidClass)));
+		}
+		else if (ValuePin->PinType.PinCategory == UEdGraphSchema_K2::PC_SoftObject)
+		{
+			IsValidFunction->SetFromFunction(UKismetSystemLibrary::StaticClass()->FindFunctionByName(GET_MEMBER_NAME_CHECKED(UKismetSystemLibrary, IsValidSoftObjectReference)));
+		}
+		else if (ValuePin->PinType.PinCategory == UEdGraphSchema_K2::PC_SoftClass)
+		{
+			IsValidFunction->SetFromFunction(UKismetSystemLibrary::StaticClass()->FindFunctionByName(GET_MEMBER_NAME_CHECKED(UKismetSystemLibrary, IsValidSoftClassReference)));
 		}
 		IsValidFunction->AllocateDefaultPins();
 		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(IsValidFunction, this);

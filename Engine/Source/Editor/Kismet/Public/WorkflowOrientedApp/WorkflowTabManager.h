@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -65,13 +65,15 @@ public:
 	/** Returns TRUE if the payload used by this TabInfo is the same as passed in */
 	bool PayloadMatches(const TSharedPtr<FTabPayload> TestPayload) const;
 
+	static bool PayloadMatches(TSharedPtr<FTabPayload> A, TSharedPtr<FTabPayload> B);
+
 	/**
 	 * Adds history data to immediately after the current location in the history list, wiping out any history after in the process
 	 *
 	 * @param InHistoryNode		The history node to add
 	 * @param bInSaveHistory	TRUE if history should be saved
 	 */
-	void AddTabHistory(TSharedPtr< struct FGenericTabHistory > InHistoryNode, bool bInSaveHistory = true);
+	void AddTabHistory(TSharedPtr< struct FGenericTabHistory > InHistoryNode, bool bInSaveHistory = true, bool bPrevTabMatches = false);
 
 	/** Single step forward in history */
 	FReply OnGoForwardInHistory();
@@ -158,13 +160,16 @@ public:
 	 *
 	 * @param InTab				The tab to update with the history data
 	 */
-	virtual void EvokeHistory(TSharedPtr<FTabInfo> InTabInfo)
+	virtual void EvokeHistory(TSharedPtr<FTabInfo> InTabInfo, bool bPrevTabMatches)
 	{
 		FWorkflowTabSpawnInfo SpawnInfo;
 		SpawnInfo.Payload = Payload;
 		SpawnInfo.TabInfo = InTabInfo;
 
-		FactoryPtr.Pin()->UpdateTab(InTabInfo->GetTab().Pin(), SpawnInfo, FactoryPtr.Pin()->CreateTabBody(SpawnInfo));
+		if(!bPrevTabMatches)
+		{	
+			FactoryPtr.Pin()->UpdateTab(InTabInfo->GetTab().Pin(), SpawnInfo, FactoryPtr.Pin()->CreateTabBody(SpawnInfo));
+		}
 	}
 
 	/** Saves any important information from the payload into the history node */

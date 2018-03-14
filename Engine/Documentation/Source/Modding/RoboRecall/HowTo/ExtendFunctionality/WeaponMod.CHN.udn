@@ -13,7 +13,9 @@ social-image:RoboRecallModding_Guns_Social.png
 skilllevel:Intermediate
 checkpoint:mod_extend
 
-<!-- Location: Modding/RoboRecall/Quickstarts/WeaponMod-->
+[COMMENT:none]
+ Location: Modding/RoboRecall/Quickstarts/WeaponMod
+[/COMMENT]
 
 ![](RoboRecallModding_Guns.png)
 

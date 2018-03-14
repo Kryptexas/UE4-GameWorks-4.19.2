@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -17,7 +17,7 @@ public class OpenGLDrv : ModuleRules
 				"RHI",
 				"RenderCore",
 				"ShaderCore",
-				"UtilityShaders",
+				"UtilityShaders"
 			}
 			);
 
@@ -48,6 +48,11 @@ public class OpenGLDrv : ModuleRules
 					"TaskGraph"
                 }
 			);
+		}
+		
+		if (Target.Platform == UnrealTargetPlatform.Android)
+		{
+			PrivateDependencyModuleNames.Add("detex");
 		}
 
 		if(Target.Platform != UnrealTargetPlatform.Win32 && Target.Platform != UnrealTargetPlatform.Win64 &&

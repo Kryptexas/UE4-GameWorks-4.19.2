@@ -1,17 +1,17 @@
-﻿INTSourceChangelist:3521824
+﻿INTSourceChangelist:3723511
 Availability:Public
-Title:3.Google VR プロジェクトのパッケージ化およびデプロイ方法
+Title:3.Google VR プロジェクトのパッケージング化とデプロイ方法
 Crumbs:%ROOT%, Platforms/GoogleVR
 Description:Google VR で使用できる UE4 プロジェクトのパックとデプロイ方法
 Navigation:platform
 Skilllevel:Intermediate
-Version:4.16
+Version:4.17
 Parent:Platforms/GoogleVR/QuickStart
 order:3
 type:multi-step
 tags:VR
 tags:Google VR
-
+Checkpoint:GoogleVRQS
 [NAV]
 
 次のセクションでは、UE4 プロジェクトをパッケージ化して、Google VR デバイスで動作するようにします。
@@ -19,6 +19,8 @@ tags:Google VR
 [region:note]
 次のステップに進む前に、使用する Android スマートフォンが USB で開発用 PC に接続されていることを確認してください。また、ADB がスマートフォンを承認済みデバイスとして認識するようにしてください。確認方法が分からない、または ADB がデバイスを認識しない場合は、[Android デバイスの設定方法](https://docs.unrealengine.com/latest/INT/Platforms/Android/GettingStarted/2/) を参照してください。
 [/region]
+
+## ステップ
 
 1. パッケージ化を開始するには、**メイン ツールバー** で **[File]** > **[Package Project]** > **[Android]** > **[Android (ASTC)]** を選択します。
 
@@ -73,5 +75,9 @@ tags:Google VR
 
     表示されたメニューから、VR デバイスの横にある QR コードをスキャンして、UE4 が VR デバイスと互換性のある画像を出力していることを確認することができます。
     [/region]
+
+## 最終結果
+
+完了すると、Google VR を使って UE4 プロジェクトを表示できるようになります。
 
 [NAV]

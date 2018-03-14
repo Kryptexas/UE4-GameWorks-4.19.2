@@ -1,6 +1,7 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "EditorObjectsTracker.h"
+#include "UObject/Class.h"
 #include "UObject/Package.h"
 
 void FEditorObjectTracker::AddReferencedObjects( FReferenceCollector& Collector )

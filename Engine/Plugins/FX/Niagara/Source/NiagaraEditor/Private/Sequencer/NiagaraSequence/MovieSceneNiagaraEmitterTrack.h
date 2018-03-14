@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -32,6 +32,8 @@ public:
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
 	virtual TRange<float> GetSectionBoundaries() const override;
 	virtual FName GetTrackName() const override;
+	/** Gets the unique id for the emitter handle that was associated with this track; used for copy/paste detection */
+	FGuid GetEmitterHandleId() const;
 
 private:
 	void EmitterPropertyChanged();
@@ -39,8 +41,12 @@ private:
 	void SynchronizeWithEmitterHandle();
 
 private:
-	TSharedPtr<FNiagaraEmitterHandleViewModel> EmitterHandleViewModel;
+	TWeakPtr<FNiagaraEmitterHandleViewModel> EmitterHandleViewModel;
 
 	UPROPERTY()
 	TArray<UMovieSceneSection*> Sections;
+
+	// Used for detecting copy/paste 
+	UPROPERTY()
+	FGuid EmitterHandleId;
 };

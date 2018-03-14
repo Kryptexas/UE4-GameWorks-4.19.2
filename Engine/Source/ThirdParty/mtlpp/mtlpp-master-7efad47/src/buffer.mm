@@ -2,57 +2,66 @@
  * Copyright 2016-2017 Nikolay Aleksiev. All rights reserved.
  * License: https://github.com/naleksiev/mtlpp/blob/master/LICENSE
  */
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
+#include <Metal/MTLBuffer.h>
 #include "buffer.hpp"
 #include "texture.hpp"
-#include <Metal/MTLBuffer.h>
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
-    uint32_t Buffer::GetLength() const
+	Buffer::Buffer(ns::Protocol<id<MTLBuffer>>::type handle)
+	: Resource((ns::Protocol<id<MTLResource>>::type)handle)
+	{
+	}
+	
+    NSUInteger Buffer::GetLength() const
     {
         Validate();
-        return uint32_t([(__bridge id<MTLBuffer>)m_ptr length]);
+		return (NSUInteger)((IMPTable<id<MTLBuffer>, void>*)m_table)->Length((id<MTLBuffer>)m_ptr);
     }
 
     void* Buffer::GetContents()
     {
         Validate();
-        return [(__bridge id<MTLBuffer>)m_ptr contents];
+		return ((IMPTable<id<MTLBuffer>, void>*)m_table)->Contents((id<MTLBuffer>)m_ptr);
     }
 
     void Buffer::DidModify(const ns::Range& range)
     {
         Validate();
 #if MTLPP_PLATFORM_MAC
-        [(__bridge id<MTLBuffer>)m_ptr didModifyRange:NSMakeRange(range.Location, range.Length)];
+		((IMPTable<id<MTLBuffer>, void>*)m_table)->DidModifyRange((id<MTLBuffer>)m_ptr, NSMakeRange(range.Location, range.Length));
 #endif
     }
 
-    Texture Buffer::NewTexture(const TextureDescriptor& descriptor, uint32_t offset, uint32_t bytesPerRow)
+    Texture Buffer::NewTexture(const TextureDescriptor& descriptor, NSUInteger offset, NSUInteger bytesPerRow)
     {
         Validate();
-		if (@available(macOS 10.13, iOS 8.0, *))
-		{
-			MTLTextureDescriptor* mtlTextureDescriptor = (__bridge MTLTextureDescriptor*)descriptor.GetPtr();
-			return ns::Handle{ (__bridge void*)[(__bridge id<MTLBuffer>)m_ptr newTextureWithDescriptor:mtlTextureDescriptor offset:offset bytesPerRow:bytesPerRow] };
-		}
-        return ns::Handle{ nullptr };
+#if MTLPP_IS_AVAILABLE(10_12, 8_0)
+		MTLTextureDescriptor* mtlTextureDescriptor = (MTLTextureDescriptor*)descriptor.GetPtr();
+		return ((IMPTable<id<MTLBuffer>, void>*)m_table)->NewTextureWithDescriptorOffsetBytesPerRow((id<MTLBuffer>)m_ptr, mtlTextureDescriptor, offset, bytesPerRow);
+#else
+        return nullptr;
+#endif
     }
 
     void Buffer::AddDebugMarker(const ns::String& marker, const ns::Range& range)
     {
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        [(__bridge id<MTLBuffer>)m_ptr addDebugMarker:(__bridge NSString*)marker.GetPtr() range:NSMakeRange(range.Location, range.Length)];
+		((IMPTable<id<MTLBuffer>, void>*)m_table)->AddDebugMarkerRange((id<MTLBuffer>)m_ptr, marker.GetPtr(), NSMakeRange(range.Location, range.Length));
 #endif
     }
 
     void Buffer::RemoveAllDebugMarkers()
     {
 #if MTLPP_IS_AVAILABLE(10_12, 10_0)
-        [(__bridge id<MTLBuffer>)m_ptr removeAllDebugMarkers];
+		((IMPTable<id<MTLBuffer>, void>*)m_table)->RemoveAllDebugMarkers((id<MTLBuffer>)m_ptr);
 #endif
     }
 }
+
+MTLPP_END

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 using System;
 using System.IO;
@@ -19,6 +19,6 @@ public class FakeIt : ModuleRules
         // The including module will also need these enabled
         bUseRTTI = true;
         bEnableExceptions = true;
-        Definitions.Add("WITH_FAKEIT=1");
+        PublicDefinitions.Add("WITH_FAKEIT=1");
     }
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,6 +10,7 @@ class AActor;
 class UBodySetup;
 class UNavCollision;
 struct FCompositeNavModifier;
+struct FKAggregateGeom;
 
 template<typename InElementType> class TNavStatArray;
 
@@ -56,6 +57,9 @@ namespace NavigationHelper
 
 	void GatherCollision(UBodySetup* RigidBody, TNavStatArray<FVector>& OutVertexBuffer, TNavStatArray<int32>& OutIndexBuffer, const FTransform& ComponentToWorld = FTransform::Identity);
 	void GatherCollision(UBodySetup* RigidBody, UNavCollision* NavCollision);
+
+	/** gather collisions from aggregated geom, convex and tri mesh elements are not supported - use override with full UBodySetup param instead */
+	void GatherCollision(const FKAggregateGeom& AggGeom, UNavCollision& NavCollision);
 
 	DECLARE_DELEGATE_ThreeParams(FNavLinkProcessorDelegate, FCompositeNavModifier*, const AActor*, const TArray<FNavigationLink>&);
 	DECLARE_DELEGATE_ThreeParams(FNavLinkSegmentProcessorDelegate, FCompositeNavModifier*, const AActor*, const TArray<FNavigationSegmentLink>&);

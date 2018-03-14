@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanUtil.cpp: Vulkan Utility implementation.
@@ -24,7 +24,8 @@ void FVulkanGPUTiming::PlatformStaticInitialize(void* UserData)
 	FVulkanGPUTiming* Caller = (FVulkanGPUTiming*)UserData;
 	if (Caller && Caller->Device)
 	{
- 		bool bSupportsTimestamps = (Caller->Device->GetDeviceProperties().limits.timestampComputeAndGraphics == VK_TRUE);
+		const VkPhysicalDeviceLimits& Limits = Caller->Device->GetDeviceProperties().limits;
+		bool bSupportsTimestamps = (Limits.timestampComputeAndGraphics == VK_TRUE);
 		if (!bSupportsTimestamps)
 		{
 			UE_LOG(LogVulkanRHI, Warning, TEXT("Timestamps not supported on Device"));
@@ -46,8 +47,11 @@ void FVulkanGPUTiming::Initialize()
 	// Now initialize the queries for this timing object.
 	if ( GIsSupported )
 	{
-		BeginTimer = new FVulkanRenderQuery(CmdContext->GetDevice(), RQT_AbsoluteTime);
-		EndTimer = new FVulkanRenderQuery(CmdContext->GetDevice(), RQT_AbsoluteTime);
+		for (int32 Index = 0; Index < MaxTimers; ++Index)
+		{
+			Timers[Index].Begin = new FOLDVulkanRenderQuery(CmdContext->GetDevice(), RQT_AbsoluteTime);
+			Timers[Index].End = new FOLDVulkanRenderQuery(CmdContext->GetDevice(), RQT_AbsoluteTime);
+		}
 	}
 }
 
@@ -56,17 +60,13 @@ void FVulkanGPUTiming::Initialize()
  */
 void FVulkanGPUTiming::Release()
 {
-	if (BeginTimer)
+	for (int32 Index = 0; Index < MaxTimers; ++Index)
 	{
-		delete BeginTimer;
-		BeginTimer = nullptr;
+		delete Timers[Index].Begin;
+		delete Timers[Index].End;
 	}
 
-	if (EndTimer)
-	{
-		delete EndTimer;
-		EndTimer = nullptr;
-	}
+	FMemory::Memzero(Timers);
 }
 
 /**
@@ -77,11 +77,13 @@ void FVulkanGPUTiming::StartTiming(FVulkanCmdBuffer* CmdBuffer)
 	// Issue a timestamp query for the 'start' time.
 	if ( GIsSupported && !bIsTiming )
 	{
+		CurrentTimerIndex = (CurrentTimerIndex + 1) % MaxTimers;
+		NumActiveTimers = FMath::Min(NumActiveTimers + 1, (int32)MaxTimers);
 		if (CmdBuffer == nullptr)
 		{
 			CmdBuffer = CmdContext->GetCommandBufferManager()->GetActiveCmdBuffer();
 		}
-		CmdContext->EndRenderQueryInternal(CmdBuffer, BeginTimer);
+		CmdContext->EndRenderQueryInternal(CmdBuffer, Timers[CurrentTimerIndex].Begin);
 		bIsTiming = true;
 	}
 }
@@ -99,7 +101,7 @@ void FVulkanGPUTiming::EndTiming(FVulkanCmdBuffer* CmdBuffer)
 		{
 			CmdBuffer = CmdContext->GetCommandBufferManager()->GetActiveCmdBuffer();
 		}
-		CmdContext->EndRenderQueryInternal(CmdBuffer, EndTimer);
+		CmdContext->EndRenderQueryInternal(CmdBuffer, Timers[CurrentTimerIndex].End);
 		bIsTiming = false;
 		bEndTimestampIssued = true;
 	}
@@ -116,18 +118,62 @@ uint64 FVulkanGPUTiming::GetTiming(bool bGetCurrentResultsAndBlock)
 	if (GIsSupported)
 	{
 		uint64 BeginTime, EndTime;
-		if (BeginTimer->GetResult(CmdContext->GetDevice(), BeginTime, bGetCurrentResultsAndBlock))
+		int32 TimerIndex = CurrentTimerIndex;
+		if (!bGetCurrentResultsAndBlock)
 		{
-			if (EndTimer->GetResult(CmdContext->GetDevice(), EndTime, bGetCurrentResultsAndBlock))
+			// Go backwards through the list
+			for (int32 Index = 1; Index < NumActiveTimers; ++Index)
 			{
-				return (EndTime - BeginTime) ;
+				{
+					check(Device == CmdContext->GetDevice());
+					if (Timers[TimerIndex].Begin->GetResult(Device, BeginTime, false))
+					{
+						if (Timers[TimerIndex].End->GetResult(Device, EndTime, false))
+						{
+							if (BeginTime < EndTime)
+							{
+								return (EndTime - BeginTime);
+							}
+						}
+						else
+						{
+							int i = 0;
+							++i;
+						}
+					}
+				}
+
+				// Go back
+				TimerIndex = (TimerIndex + MaxTimers - 1) % MaxTimers;
+			}
+		}
+
+		if (bGetCurrentResultsAndBlock)
+		{
+			TimerIndex = CurrentTimerIndex;
+			if (Timers[TimerIndex].Begin->GetResult(Device, BeginTime, true))
+			{
+				if (Timers[TimerIndex].End->GetResult(Device, EndTime, true))
+				{
+					if (BeginTime < EndTime)
+					{
+						return (EndTime - BeginTime);
+					}
+				}
+				else
+				{
+					checkf(0, TEXT("Could not wait for End timer query result!"));
+				}
+			}
+			else
+			{
+				checkf(0, TEXT("Could not wait for Begin timer query result!"));
 			}
 		}
 	}
 
 	return 0;
 }
-
 
 static double ConvertTiming(uint64 Delta)
 {
@@ -152,7 +198,7 @@ float FVulkanEventNodeFrame::GetRootTimingResults()
 	double RootResult = 0.0f;
 	if (RootEventTiming.IsSupported())
 	{
-		const uint64 GPUTiming = RootEventTiming.GetTiming(false);
+		const uint64 GPUTiming = RootEventTiming.GetTiming(true);
 
 		RootResult = ConvertTiming(GPUTiming);
 	}
@@ -167,7 +213,6 @@ float FVulkanEventNode::GetTiming()
 	if (Timing.IsSupported())
 	{
 		const uint64 GPUTiming = Timing.GetTiming(true);
-
 		Result = ConvertTiming(GPUTiming);
 	}
 
@@ -193,7 +238,7 @@ void FVulkanGPUProfiler::BeginFrame()
 	// if we are starting a hitch profile or this frame is a gpu profile, then save off the state of the draw events
 	if (bLatchedGProfilingGPU || (!bPreviousLatchedGProfilingGPUHitches && bLatchedGProfilingGPUHitches))
 	{
-		bOriginalGEmitDrawEvents = GEmitDrawEvents;
+		bOriginalGEmitDrawEvents = GetEmitDrawEvents();
 	}
 
 	if (bLatchedGProfilingGPU || bLatchedGProfilingGPUHitches)
@@ -206,7 +251,7 @@ void FVulkanGPUProfiler::BeginFrame()
 		}
 		else
 		{
-			GEmitDrawEvents = true;  // thwart an attempt to turn this off on the game side
+			SetEmitDrawEvents(true);  // thwart an attempt to turn this off on the game side
 			bTrackingEvents = true;
 			CurrentEventNodeFrame = new FVulkanEventNodeFrame(CmdContext, Device);
 			CurrentEventNodeFrame->StartFrame();
@@ -216,11 +261,11 @@ void FVulkanGPUProfiler::BeginFrame()
 	{
 		// hitch profiler is turning off, clear history and restore draw events
 		GPUHitchEventNodeFrames.Empty();
-		GEmitDrawEvents = bOriginalGEmitDrawEvents;
+		SetEmitDrawEvents(bOriginalGEmitDrawEvents);
 	}
 	bPreviousLatchedGProfilingGPUHitches = bLatchedGProfilingGPUHitches;
 
-	if (GEmitDrawEvents)
+	if (GetEmitDrawEvents())
 	{
 		PushEvent(TEXT("FRAME"), FColor(0, 255, 0, 255));
 	}
@@ -228,7 +273,7 @@ void FVulkanGPUProfiler::BeginFrame()
 
 void FVulkanGPUProfiler::EndFrameBeforeSubmit()
 {
-	if (GEmitDrawEvents)
+	if (GetEmitDrawEvents())
 	{
 		// Finish all open nodes
 		// This is necessary because timestamps must be issued before SubmitDone(), and SubmitDone() happens in RHIEndDrawingViewport instead of RHIEndFrame
@@ -259,7 +304,7 @@ void FVulkanGPUProfiler::EndFrame()
 		{
 			CmdContext->GetDevice()->SubmitCommandsAndFlushGPU();
 
-			GEmitDrawEvents = bOriginalGEmitDrawEvents;
+			SetEmitDrawEvents(bOriginalGEmitDrawEvents);
 			UE_LOG(LogRHI, Warning, TEXT(""));
 			UE_LOG(LogRHI, Warning, TEXT(""));
 			check(CurrentEventNodeFrame);
@@ -342,6 +387,19 @@ namespace VulkanRHI
 		VKERRORCASE(VK_ERROR_OUT_OF_DATE_KHR); break;
 		VKERRORCASE(VK_ERROR_INCOMPATIBLE_DISPLAY_KHR); break;
 		VKERRORCASE(VK_ERROR_VALIDATION_FAILED_EXT); break;
+#if VK_HEADER_VERSION >= 13
+		VKERRORCASE(VK_ERROR_INVALID_SHADER_NV); break;
+#endif
+#if VK_HEADER_VERSION >= 24
+		VKERRORCASE(VK_ERROR_FRAGMENTED_POOL); break;
+#endif
+#if VK_HEADER_VERSION >= 39
+		VKERRORCASE(VK_ERROR_OUT_OF_POOL_MEMORY_KHR); break;
+#endif
+#if VK_HEADER_VERSION >= 65
+		VKERRORCASE(VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR); break;
+		VKERRORCASE(VK_ERROR_NOT_PERMITTED_EXT); break;
+#endif
 #undef VKERRORCASE
 		default:
 			break;
@@ -365,8 +423,6 @@ DEFINE_STAT(STAT_VulkanDrawCallPrepareTime);
 DEFINE_STAT(STAT_VulkanDispatchCallPrepareTime);
 DEFINE_STAT(STAT_VulkanGetOrCreatePipeline);
 DEFINE_STAT(STAT_VulkanGetDescriptorSet);
-DEFINE_STAT(STAT_VulkanCreateUniformBufferTime);
-//DEFINE_STAT(STAT_VulkanCreatePipeline);
 DEFINE_STAT(STAT_VulkanPipelineBind);
 DEFINE_STAT(STAT_VulkanNumBoundShaderState);
 DEFINE_STAT(STAT_VulkanNumRenderPasses);
@@ -386,19 +442,22 @@ DEFINE_STAT(STAT_VulkanUAVUpdateTime);
 DEFINE_STAT(STAT_VulkanDeletionQueue);
 DEFINE_STAT(STAT_VulkanQueueSubmit);
 DEFINE_STAT(STAT_VulkanQueuePresent);
+DEFINE_STAT(STAT_VulkanNumQueries);
 DEFINE_STAT(STAT_VulkanWaitQuery);
+DEFINE_STAT(STAT_VulkanWaitFence);
 DEFINE_STAT(STAT_VulkanResetQuery);
 DEFINE_STAT(STAT_VulkanWaitSwapchain);
 DEFINE_STAT(STAT_VulkanAcquireBackBuffer);
 DEFINE_STAT(STAT_VulkanStagingBuffer);
+DEFINE_STAT(STAT_VulkanVkCreateDescriptorPool);
+DEFINE_STAT(STAT_VulkanNumDescPools);
+DEFINE_STAT(STAT_VulkanDescriptorSetAllocator);
 #if VULKAN_ENABLE_AGGRESSIVE_STATS
-DEFINE_STAT(STAT_VulkanApplyDSResources);
 DEFINE_STAT(STAT_VulkanUpdateDescriptorSets);
 DEFINE_STAT(STAT_VulkanNumUpdateDescriptors);
 DEFINE_STAT(STAT_VulkanNumDescSets);
-DEFINE_STAT(STAT_VulkanSetShaderParamTime);
 DEFINE_STAT(STAT_VulkanSetUniformBufferTime);
 DEFINE_STAT(STAT_VulkanVkUpdateDS);
-DEFINE_STAT(STAT_VulkanClearDirtyDSState);
 DEFINE_STAT(STAT_VulkanBindVertexStreamsTime);
 #endif
+DEFINE_STAT(STAT_VulkanNumDescSetsTotal);

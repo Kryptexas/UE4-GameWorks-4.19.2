@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -8,23 +8,11 @@
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 
+#include "MergeProxyUtils/Utils.h"
+
 class FMeshMergingTool;
 class IDetailsView;
 class UMeshMergingSettingsObject;
-
-/** Data structure used to keep track of the selected mesh components, and whether or not they should be incorporated in the merge */
-struct FMergeComponentData
-{
-	FMergeComponentData(UPrimitiveComponent* InPrimComponent)
-		: PrimComponent(InPrimComponent)
-		, bShouldIncorporate( true )
-	{}
-
-	/** Component extracted from selected actors */
-	TWeakObjectPtr<UPrimitiveComponent> PrimComponent;
-	/** Flag determining whether or not this component should be incorporated into the merge */
-	bool bShouldIncorporate;
-};
 
 /*-----------------------------------------------------------------------------
    SMeshMergingDialog
@@ -45,11 +33,11 @@ public:
 
 	/** SWidget functions */
 	void Construct(const FArguments& InArgs, FMeshMergingTool* InTool);	
-	
+
 	/** Getter functionality */
-	const TArray<TSharedPtr<FMergeComponentData>>& GetSelectedComponents() const { return SelectedComponents; }
+	const TArray<TSharedPtr<FMergeComponentData>>& GetSelectedComponents() const { return ComponentSelectionControl.SelectedComponents; }
 	/** Get number of selected meshes */
-	const int32 GetNumSelectedMeshComponents() const { return NumSelectedMeshComponents; }
+	const int32 GetNumSelectedMeshComponents() const { return ComponentSelectionControl.NumSelectedMeshComponents; }
 
 	/** Resets the state of the UI and flags it for refreshing */
 	void Reset();
@@ -83,12 +71,11 @@ private:
 private:
 	/** Owning mesh merging tool */
 	FMeshMergingTool* Tool;
-	/** List of mesh components extracted from editor selection */
-	TArray<TSharedPtr<FMergeComponentData>> SelectedComponents;
-	/** List view ui element */
-	TSharedPtr<SListView<TSharedPtr<FMergeComponentData>>> ComponentsListView;
-	/** Map of keeping track of checkbox states for each selected component (used to restore state when listview is refreshed) */
-	TMap<UPrimitiveComponent*, ECheckBoxState> StoredCheckBoxStates;
+
+
+
+	FComponentSelectionControl ComponentSelectionControl;
+
 	/** Settings view ui element ptr */
 	TSharedPtr<IDetailsView> SettingsView;
 	/** Cached pointer to mesh merging setting singleton object */
@@ -96,6 +83,4 @@ private:
 	/** List view state tracking data */
 	bool bRefreshListView;
 
-	/** Number of selected static mesh components */
-	int32 NumSelectedMeshComponents;
 };

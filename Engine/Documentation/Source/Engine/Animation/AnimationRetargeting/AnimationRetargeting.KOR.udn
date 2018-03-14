@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3467293
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 애니메이션 리타게팅
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -94,7 +94,9 @@ topic-image:AnimationgRetargeting_topic.png
 
 ## 리타게팅 셋업하기
 
-<!---Establishing animation retargeting on your --->
+[COMMENT:none]
+-Establishing animation retargeting on your -
+[/COMMENT]
 
 위의 _리타게팅 작동 방식_ 부분에서 언급했듯이, 먼저 해 줘야 하는 작업은 스켈레톤 내 본에 대해서 **본 트랜슬레이션 리타게팅** 모드 구성을 해 주는 것입니다.
 
@@ -135,12 +137,14 @@ topic-image:AnimationgRetargeting_topic.png
 [/REGION]
 
 
-<!----
+[COMMENT:none]
+--
 
 If you are creating all of your animations for a single Skeletal Mesh and retargeting them to some other variations, then the information presented so far will get you a nice retargeted result. The reason it works is that using just one original Skeletal Mesh as the base is like a one-way connection, from the original to all the variations. But what happens if you need special animations just for the variants?
 
 Consider if we needed a special set of animations for our tall character, such as a different idle animation. An animator could take that Skeletal Mesh, create the necessary animation, then import it using the same Skeleton asset as before, but there is now a problem. Since the original proportions of the Skeleton asset were based off the Base Character's proportions, the animation will be distorted.
 
---->
+-
+[/COMMENT]
 
 

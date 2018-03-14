@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:이펙트 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -10,44 +10,11 @@ Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 Version: 4.9
+topic-image:effects_compact.png
 
-
-[REGION:banner]
-![](Effects_Header.png)(convert:false)
-[/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/EffectsGallery:title%](effects_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/EffectsGallery:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/EffectsGallery:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/EffectsGallery]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/EffectsGallery:title%](effects_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/EffectsGallery:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/EffectsGallery]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-<!---[TOC(start:2 end:2)]--->
+[COMMENT:none]
+-[TOC(start:2 end:2)]-
+[/COMMENT]
 
 
 

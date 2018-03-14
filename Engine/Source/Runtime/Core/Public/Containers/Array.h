@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -1068,37 +1068,54 @@ public:
 	friend FArchive& operator<<(FArchive& Ar, TArray& A)
 	{
 		A.CountBytes(Ar);
-		if (sizeof(ElementType) == 1)
+
+		// For net archives, limit serialization to 16MB, to protect against excessive allocation
+		const int32 MaxNetArraySerialize = (16 * 1024 * 1024) / sizeof(ElementType);
+		int32 SerializeNum = (Ar.IsLoading() ? 0 : A.ArrayNum);
+
+		Ar << SerializeNum;
+
+		check(SerializeNum >= 0);
+
+		if (!Ar.IsError() && SerializeNum >= 0 && ensure(!Ar.IsNetArchive() || SerializeNum <= MaxNetArraySerialize))
 		{
-			// Serialize simple bytes which require no construction or destruction.
-			Ar << A.ArrayNum;
-			check(A.ArrayNum >= 0);
-			if ((A.ArrayNum || A.ArrayMax) && Ar.IsLoading())
+			if (sizeof(ElementType) == 1)
 			{
-				A.ResizeForCopy(A.ArrayNum, A.ArrayMax);
+				A.ArrayNum = SerializeNum;
+
+				// Serialize simple bytes which require no construction or destruction.
+				if ((A.ArrayNum || A.ArrayMax) && Ar.IsLoading())
+				{
+					A.ResizeForCopy(A.ArrayNum, A.ArrayMax);
+				}
+
+				Ar.Serialize(A.GetData(), A.Num());
 			}
-			Ar.Serialize(A.GetData(), A.Num());
-		}
-		else if (Ar.IsLoading())
-		{
-			// Load array.
-			int32 NewNum = 0;
-			Ar << NewNum;
-			A.Empty(NewNum);
-			for (int32 i = 0; i < NewNum; i++)
+			else if (Ar.IsLoading())
 			{
-				Ar << *::new(A)ElementType;
+				// Required for resetting ArrayNum
+				A.Empty(SerializeNum);
+
+				for (int32 i=0; i<SerializeNum; i++)
+				{
+					Ar << *::new(A) ElementType;
+				}
+			}
+			else
+			{
+				A.ArrayNum = SerializeNum;
+
+				for (int32 i=0; i<A.ArrayNum; i++)
+				{
+					Ar << A[i];
+				}
 			}
 		}
 		else
 		{
-			// Save array.
-			Ar << A.ArrayNum;
-			for (int32 i = 0; i < A.ArrayNum; i++)
-			{
-				Ar << A[i];
-			}
+			Ar.SetError();
 		}
+
 		return Ar;
 	}
 
@@ -1241,7 +1258,26 @@ public:
 	void InsertZeroed(int32 Index, int32 Count = 1)
 	{
 		InsertUninitialized(Index, Count);
-		FMemory::Memzero((uint8*)AllocatorInstance.GetAllocation() + Index * sizeof(ElementType), Count * sizeof(ElementType));
+		FMemory::Memzero(GetData() + Index, Count * sizeof(ElementType));
+	}
+
+	/**
+	 * Inserts a zeroed element into the array at given location.
+	 *
+	 * Caution, InsertZeroed_GetRef() will create an element without calling the
+	 * constructor and this is not appropriate for element types that require
+	 * a constructor to function properly.
+	 *
+	 * @param Index Tells where to insert the new element.
+	 * @return A reference to the newly-inserted element.
+	 * @see Insert_GetRef, InsertDefaulted_GetRef
+	 */
+	ElementType& InsertZeroed_GetRef(int32 Index)
+	{
+		InsertUninitialized(Index, 1);
+		ElementType* Ptr = GetData() + Index;
+		FMemory::Memzero(Ptr, sizeof(ElementType));
+		return *Ptr;
 	}
 
 	/**
@@ -1255,7 +1291,23 @@ public:
 	void InsertDefaulted(int32 Index, int32 Count = 1)
 	{
 		InsertUninitialized(Index, Count);
-		DefaultConstructItems<ElementType>((uint8*)AllocatorInstance.GetAllocation() + Index * sizeof(ElementType), Count);
+		DefaultConstructItems<ElementType>(GetData() + Index, Count);
+	}
+
+	/**
+	 * Inserts a default-constructed element into the array at a given
+	 * location.
+	 *
+	 * @param Index Tells where to insert the new element.
+	 * @return A reference to the newly-inserted element.
+	 * @see Insert_GetRef, InsertZeroed_GetRef
+	 */
+	ElementType& InsertDefaulted_GetRef(int32 Index)
+	{
+		InsertUninitialized(Index, 1);
+		ElementType* Ptr = GetData() + Index;
+		DefaultConstructItems<ElementType>(Ptr, 1);
+		return *Ptr;
 	}
 
 	/**
@@ -1267,15 +1319,11 @@ public:
 	 */
 	int32 Insert(std::initializer_list<ElementType> InitList, const int32 InIndex)
 	{
-		InsertUninitialized(InIndex, (int32)InitList.size());
+		int32 NumNewElements = (int32)InitList.size();
 
-		ElementType* Data = (ElementType*)AllocatorInstance.GetAllocation();
+		InsertUninitialized(InIndex, NumNewElements);
+		ConstructItems<ElementType>(GetData() + InIndex, InitList.begin(), NumNewElements);
 
-		int32 Index = InIndex;
-		for (const ElementType& Element : InitList)
-		{
-			new (Data + Index++) ElementType(Element);
-		}
 		return InIndex;
 	}
 
@@ -1286,19 +1334,37 @@ public:
 	 * @param InIndex Tells where to insert the new elements.
 	 * @returns Location at which the item was inserted.
 	 */
-	int32 Insert(const TArray<ElementType>& Items, const int32 InIndex)
+	template <typename OtherAllocator>
+	int32 Insert(const TArray<ElementType, OtherAllocator>& Items, const int32 InIndex)
 	{
-		check(this != &Items);
+		check((const void*)this != (const void*)&Items);
 
-		InsertUninitialized(InIndex, Items.Num());
+		int32 NumNewElements = Items.Num();
 
-		ElementType* Data = (ElementType*)AllocatorInstance.GetAllocation();
+		InsertUninitialized(InIndex, NumNewElements);
+		ConstructItems<ElementType>(GetData() + InIndex, Items.GetData(), NumNewElements);
 
-		int32 Index = InIndex;
-		for (auto It = Items.CreateConstIterator(); It; ++It)
-		{
-			new (Data + Index++) ElementType(*It);
-		}
+		return InIndex;
+	}
+
+	/**
+	 * Inserts given elements into the array at given location.
+	 *
+	 * @param Items Array of elements to insert.
+	 * @param InIndex Tells where to insert the new elements.
+	 * @returns Location at which the item was inserted.
+	 */
+	template <typename OtherAllocator>
+	int32 Insert(TArray<ElementType, OtherAllocator>&& Items, const int32 InIndex)
+	{
+		check((const void*)this != (const void*)&Items);
+
+		int32 NumNewElements = Items.Num();
+
+		InsertUninitialized(InIndex, NumNewElements);
+		RelocateConstructItems<ElementType>(GetData() + InIndex, Items.GetData(), NumNewElements);
+		Items.ArrayNum = 0;
+
 		return InIndex;
 	}
 
@@ -1371,6 +1437,47 @@ public:
 		InsertUninitialized(Index, 1);
 		new(GetData() + Index) ElementType(Item);
 		return Index;
+	}
+
+	/**
+	 * Inserts a given element into the array at given location. Move semantics
+	 * version.
+	 *
+	 * @param Item The element to insert.
+	 * @param Index Tells where to insert the new element.
+	 * @return A reference to the newly-inserted element.
+	 * @see Add, Remove
+	 */
+	ElementType& Insert_GetRef(ElementType&& Item, int32 Index)
+	{
+		CheckAddress(&Item);
+
+		// construct a copy in place at Index (this new operator will insert at 
+		// Index, then construct that memory with Item)
+		InsertUninitialized(Index, 1);
+		ElementType* Ptr = GetData() + Index;
+		new(Ptr) ElementType(MoveTempIfPossible(Item));
+		return *Ptr;
+	}
+
+	/**
+	 * Inserts a given element into the array at given location.
+	 *
+	 * @param Item The element to insert.
+	 * @param Index Tells where to insert the new element.
+	 * @return A reference to the newly-inserted element.
+	 * @see Add, Remove
+	 */
+	ElementType& Insert_GetRef(const ElementType& Item, int32 Index)
+	{
+		CheckAddress(&Item);
+
+		// construct a copy in place at Index (this new operator will insert at 
+		// Index, then construct that memory with Item)
+		InsertUninitialized(Index, 1);
+		ElementType* Ptr = GetData() + Index;
+		new(Ptr) ElementType(Item);
+		return *Ptr;
 	}
 
 private:
@@ -1738,6 +1845,21 @@ public:
 	}
 
 	/**
+	 * Constructs a new item at the end of the array, possibly reallocating the whole array to fit.
+	 *
+	 * @param Args	The arguments to forward to the constructor of the new item.
+	 * @return A reference to the newly-inserted element.
+	 */
+	template <typename... ArgsType>
+	FORCEINLINE ElementType& Emplace_GetRef(ArgsType&&... Args)
+	{
+		const int32 Index = AddUninitialized(1);
+		ElementType* Ptr = GetData() + Index;
+		new(Ptr) ElementType(Forward<ArgsType>(Args)...);
+		return *Ptr;
+	}
+
+	/**
 	 * Constructs a new item at a specified index, possibly reallocating the whole array to fit.
 	 *
 	 * @param Index	The index to add the item at.
@@ -1751,6 +1873,22 @@ public:
 	}
 
 	/**
+	 * Constructs a new item at a specified index, possibly reallocating the whole array to fit.
+	 *
+	 * @param Index	The index to add the item at.
+	 * @param Args	The arguments to forward to the constructor of the new item.
+	 * @return A reference to the newly-inserted element.
+	 */
+	template <typename... ArgsType>
+	FORCEINLINE ElementType& EmplaceAt_GetRef(int32 Index, ArgsType&&... Args)
+	{
+		InsertUninitialized(Index, 1);
+		ElementType* Ptr = GetData() + Index;
+		new(Ptr) ElementType(Forward<ArgsType>(Args)...);
+		return *Ptr;
+	}
+
+	/**
 	 * Adds a new item to the end of the array, possibly reallocating the whole array to fit.
 	 *
 	 * Move semantics version.
@@ -1759,7 +1897,11 @@ public:
 	 * @return Index to the new item
 	 * @see AddDefaulted, AddUnique, AddZeroed, Append, Insert
 	 */
-	FORCEINLINE int32 Add(ElementType&& Item) { CheckAddress(&Item); return Emplace(MoveTempIfPossible(Item)); }
+	FORCEINLINE int32 Add(ElementType&& Item)
+	{
+		CheckAddress(&Item);
+		return Emplace(MoveTempIfPossible(Item));
+	}
 
 	/**
 	 * Adds a new item to the end of the array, possibly reallocating the whole array to fit.
@@ -1768,7 +1910,39 @@ public:
 	 * @return Index to the new item
 	 * @see AddDefaulted, AddUnique, AddZeroed, Append, Insert
 	 */
-	FORCEINLINE int32 Add(const ElementType& Item) { CheckAddress(&Item); return Emplace(Item); }
+	FORCEINLINE int32 Add(const ElementType& Item)
+	{
+		CheckAddress(&Item);
+		return Emplace(Item);
+	}
+
+	/**
+	 * Adds a new item to the end of the array, possibly reallocating the whole array to fit.
+	 *
+	 * Move semantics version.
+	 *
+	 * @param Item The item to add
+	 * @return A reference to the newly-inserted element.
+	 * @see AddDefaulted_GetRef, AddUnique_GetRef, AddZeroed_GetRef, Insert_GetRef
+	 */
+	FORCEINLINE ElementType& Add_GetRef(ElementType&& Item)
+	{
+		CheckAddress(&Item);
+		return Emplace_GetRef(MoveTempIfPossible(Item));
+	}
+
+	/**
+	 * Adds a new item to the end of the array, possibly reallocating the whole array to fit.
+	 *
+	 * @param Item The item to add
+	 * @return A reference to the newly-inserted element.
+	 * @see AddDefaulted_GetRef, AddUnique_GetRef, AddZeroed_GetRef, Insert_GetRef
+	 */
+	FORCEINLINE ElementType& Add_GetRef(const ElementType& Item)
+	{
+		CheckAddress(&Item);
+		return Emplace_GetRef(Item);
+	}
 
 	/**
 	 * Adds new items to the end of the array, possibly reallocating the whole
@@ -1790,6 +1964,25 @@ public:
 	}
 
 	/**
+	 * Adds a new item to the end of the array, possibly reallocating the whole
+	 * array to fit. The new item will be zeroed.
+	 *
+	 * Caution, AddZeroed_GetRef() will create elements without calling the
+	 * constructor and this is not appropriate for element types that require
+	 * a constructor to function properly.
+	 *
+	 * @return A reference to the newly-inserted element.
+	 * @see Add_GetRef, AddDefaulted_GetRef, AddUnique_GetRef, Insert_GetRef
+	 */
+	ElementType& AddZeroed_GetRef()
+	{
+		const int32 Index = AddUninitialized(1);
+		ElementType* Ptr = GetData() + Index;
+		FMemory::Memzero(Ptr, sizeof(ElementType));
+		return *Ptr;
+	}
+
+	/**
 	 * Adds new items to the end of the array, possibly reallocating the whole
 	 * array to fit. The new items will be default-constructed.
 	 *
@@ -1802,6 +1995,21 @@ public:
 		const int32 Index = AddUninitialized(Count);
 		DefaultConstructItems<ElementType>((uint8*)AllocatorInstance.GetAllocation() + Index * sizeof(ElementType), Count);
 		return Index;
+	}
+
+	/**
+	 * Add a new item to the end of the array, possibly reallocating the whole
+	 * array to fit. The new item will be default-constructed.
+	 *
+	 * @return A reference to the newly-inserted element.
+	 * @see Add_GetRef, AddZeroed_GetRef, AddUnique_GetRef, Insert_GetRef
+	 */
+	ElementType& AddDefaulted_GetRef()
+	{
+		const int32 Index = AddUninitialized(1);
+		ElementType* Ptr = GetData() + Index;
+		DefaultConstructItems<ElementType>(Ptr, 1);
+		return *Ptr;
 	}
 
 private:
@@ -2608,6 +2816,7 @@ struct TIsZeroConstructType<TArray<InElementType, Allocator>>
 template <typename InElementType, typename Allocator>
 struct TContainerTraits<TArray<InElementType, Allocator> > : public TContainerTraitsBase<TArray<InElementType, Allocator> >
 {
+	static_assert(TAllocatorTraits<Allocator>::SupportsMove, "TArray no longer supports move-unaware allocators");
 	enum { MoveWillEmptyContainer = TAllocatorTraits<Allocator>::SupportsMove };
 };
 

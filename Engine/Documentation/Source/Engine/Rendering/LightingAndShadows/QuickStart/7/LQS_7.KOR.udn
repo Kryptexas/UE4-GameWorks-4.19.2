@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:7. 직접 해 보기!
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
@@ -21,7 +21,7 @@ Version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 
 이번 퀵스타트 가이드에서 지금까지 배운 내용을 토대로, 다음 작업을 해 봅니다:
@@ -67,6 +67,7 @@ Version: 4.9
 * 블루프린트 관련 추가 정보: [](Engine\Blueprints)
 
 
-%Steps%
+
+
 
 

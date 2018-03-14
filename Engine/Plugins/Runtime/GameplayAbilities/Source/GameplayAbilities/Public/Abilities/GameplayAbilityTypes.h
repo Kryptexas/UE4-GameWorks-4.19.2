@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -253,6 +253,9 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityRepAnimMontage
 	UPROPERTY()
 	uint8 ForcePlayBit : 1;
 
+	UPROPERTY()
+	uint8 SkipPositionCorrection : 1;
+
 	FGameplayAbilityRepAnimMontage()
 		: AnimMontage(NULL),
 		PlayRate(0.f),
@@ -260,7 +263,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityRepAnimMontage
 		BlendTime(0.f),
 		NextSectionID(0),
 		IsStopped(true),
-		ForcePlayBit(0)
+		ForcePlayBit(0),
+		SkipPositionCorrection(false)
 	{
 	}
 
@@ -354,7 +358,7 @@ struct GAMEPLAYABILITIES_API FGameplayEventData
 DECLARE_MULTICAST_DELEGATE_OneParam(FGameplayEventMulticastDelegate, const FGameplayEventData*);
 
 /** Ability Ended Data */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FAbilityEndedData
 {
 	GENERATED_USTRUCT_BODY()
@@ -449,3 +453,54 @@ DECLARE_MULTICAST_DELEGATE(FAbilitySystemComponentPredictionKeyClear);
 
 /** Generic delegate for ability 'events'/notifies */
 DECLARE_MULTICAST_DELEGATE_OneParam(FGenericAbilityDelegate, UGameplayAbility*);
+
+// ----------------------------------------------------
+
+/** This struct holds state to batch server RPC calls: ServerTryActivateAbility, ServerSetReplicatedTargetData, ServerEndAbility.  */
+USTRUCT()
+struct FServerAbilityRPCBatch
+{
+	GENERATED_BODY()
+
+	FServerAbilityRPCBatch() 
+		: InputPressed(false), Ended(false), Started(false)
+	{
+	}
+
+	UPROPERTY()
+	FGameplayAbilitySpecHandle	AbilitySpecHandle;
+
+	UPROPERTY()
+	FPredictionKey	PredictionKey;
+
+	UPROPERTY()
+	FGameplayAbilityTargetDataHandle	TargetData;
+
+	UPROPERTY()
+	bool InputPressed;
+
+	UPROPERTY()
+	bool Ended;
+
+	/** Safety bool to make sure ServerTryActivate was called exactly one time in a batch */
+	UPROPERTY(NotReplicated)
+	bool Started;
+
+	// To allow FindByKey etc
+	bool operator==(const FGameplayAbilitySpecHandle& InHandle) const
+	{
+		return AbilitySpecHandle == InHandle;
+	}
+};
+
+/** Helper struct for defining ServerRPC batch windows. If null ASC is passed in, this becomes a noop. */
+struct GAMEPLAYABILITIES_API FScopedServerAbilityRPCBatcher
+{
+	FScopedServerAbilityRPCBatcher(UAbilitySystemComponent* InASC, FGameplayAbilitySpecHandle InAbilityHandle);
+	~FScopedServerAbilityRPCBatcher();
+
+private:
+
+	UAbilitySystemComponent* ASC;
+	FGameplayAbilitySpecHandle AbilityHandle;
+};

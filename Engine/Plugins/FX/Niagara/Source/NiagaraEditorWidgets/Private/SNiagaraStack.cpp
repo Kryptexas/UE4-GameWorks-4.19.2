@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SNiagaraStack.h"
 
@@ -27,6 +27,8 @@
 #include "ViewModels/Stack/NiagaraStackErrorItem.h"
 #include "ViewModels/Stack/NiagaraStackStruct.h"
 #include "ViewModels/Stack/NiagaraStackParameterStoreEntry.h"
+#include "ViewModels/Stack/NiagaraStackEmitterSpawnScriptItemGroup.h"
+#include "ViewModels/Stack/NiagaraStackEventScriptItemGroup.h"
 #include "FrontendFilterBase.h"
 #include "Framework/Commands/UIAction.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
@@ -47,6 +49,7 @@
 #include "SlateApplication.h"
 #include "Widgets/Colors/SSimpleGradient.h"
 #include "Widgets/Text/SInlineEditableTextBlock.h"
+#include "Widgets/Input/SCheckBox.h"
 #include "NiagaraNodeAssignment.h"
 #include "UObjectGlobals.h"
 #include "NiagaraDataInterface.h"
@@ -60,6 +63,7 @@
 #include "EdGraph/EdGraph.h"
 #include "Toolkits/AssetEditorManager.h"
 #include "NiagaraEditorUtilities.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraStack"
 
@@ -97,6 +101,7 @@ public:
 				.IsReadOnly(this, &SNiagaraStackFunctionInputName::GetIsNameReadOnly)
 				.IsSelected(this, &SNiagaraStackFunctionInputName::GetIsNameWidgetSelected)
 				.OnTextCommitted(this, &SNiagaraStackFunctionInputName::OnNameTextCommitted)
+				.ToolTipText_UObject(FunctionInput, &UNiagaraStackFunctionInput::GetTooltipText, UNiagaraStackFunctionInput::EValueMode::Local)
 			]
 			// Pin
 			+ SHorizontalBox::Slot()
@@ -168,7 +173,7 @@ private:
 
 	void OnNameTextCommitted(const FText& InText, ETextCommit::Type InCommitType)
 	{
-		FunctionInput->RenameInput(InText.ToString());
+		FunctionInput->RenameInput(*InText.ToString());
 	}
 
 private:
@@ -240,6 +245,7 @@ public:
 				[
 					SNew(SBox)
 					.Visibility(this, &SNiagaraStackFunctionInputValue::GetValueWidgetVisibility, UNiagaraStackFunctionInput::EValueMode::Linked)
+					.ToolTipText_UObject(InFunctionInput, &UNiagaraStackFunctionInput::GetTooltipText, UNiagaraStackFunctionInput::EValueMode::Linked)
 					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
@@ -325,6 +331,27 @@ public:
 					.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 				]
 			]
+
+			// Reset to base Button
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(3, 0, 0, 0)
+			[
+				SNew(SButton)
+				.IsFocusable(false)
+				.ToolTipText(LOCTEXT("ResetToBaseToolTip", "Reset this input to the value defined by the parent emitter"))
+				.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+				.ContentPadding(0)
+				.Visibility(this, &SNiagaraStackFunctionInputValue::GetResetToBaseButtonVisibility)
+				.OnClicked(this, &SNiagaraStackFunctionInputValue::ResetToBaseButtonPressed)
+				.Content()
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+					.ColorAndOpacity(FSlateColor(FLinearColor::Green))
+				]
+			]
 		];
 	}
 
@@ -341,10 +368,10 @@ private:
 		if (DisplayedLocalValueStruct.IsValid())
 		{
 			FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::GetModuleChecked<FNiagaraEditorModule>("NiagaraEditor");
-			TSharedPtr<INiagaraEditorTypeUtilities> TypeEditorUtilities = NiagaraEditorModule.GetTypeUtilities(FNiagaraTypeDefinition((UScriptStruct*)DisplayedLocalValueStruct->GetStruct()));
+			TSharedPtr<INiagaraEditorTypeUtilities> TypeEditorUtilities = NiagaraEditorModule.GetTypeUtilities(FunctionInput->GetInputType());
 			if (TypeEditorUtilities.IsValid() && TypeEditorUtilities->CanCreateParameterEditor())
 			{
-				TSharedPtr<SNiagaraParameterEditor> ParameterEditor = TypeEditorUtilities->CreateParameterEditor();
+				TSharedPtr<SNiagaraParameterEditor> ParameterEditor = TypeEditorUtilities->CreateParameterEditor(FunctionInput->GetInputType());
 				ParameterEditor->UpdateInternalValueFromStruct(DisplayedLocalValueStruct.ToSharedRef());
 				ParameterEditor->SetOnBeginValueChange(SNiagaraParameterEditor::FOnValueChange::CreateSP(
 					this, &SNiagaraStackFunctionInputValue::ParameterBeginValueChange));
@@ -423,7 +450,7 @@ private:
 
 	FText GetLinkedValueHandleText() const
 	{
-		return FText::FromString(FunctionInput->GetLinkedValueHandle().GetParameterHandleString());
+		return FText::FromName(FunctionInput->GetLinkedValueHandle().GetParameterHandleString());
 	}
 
 	FText GetDataValueText() const
@@ -556,10 +583,10 @@ private:
 			MenuBuilder.BeginSection(NAME_None, SectionDisplayText);
 			for (const FNiagaraParameterHandle& Handle : Handles)
 			{
-				FText HandleDisplayName = FText::FromString(FName::NameToDisplayString(Handle.GetName(), false));
+				FText HandleDisplayName = FText::FromString(FName::NameToDisplayString(Handle.GetName().ToString(), false));
 				MenuBuilder.AddMenuEntry(
 					HandleDisplayName,
-					FText::Format(MapInputFormat, FText::FromString(Handle.GetParameterHandleString())),
+					FText::Format(MapInputFormat, FText::FromName(Handle.GetParameterHandleString())),
 					FSlateIcon(),
 					FUIAction(FExecuteAction::CreateSP(this, &SNiagaraStackFunctionInputValue::ParameterHandleSelected, Handle)));
 			}
@@ -574,10 +601,10 @@ private:
 		MenuBuilder.BeginSection(NAME_None, LOCTEXT("OtherSection", "Other"));
 		for (const FNiagaraParameterHandle OtherHandle : OtherHandles)
 		{
-			FText HandleDisplayName = FText::FromString(FName::NameToDisplayString(OtherHandle.GetParameterHandleString(), false));
+			FText HandleDisplayName = FText::FromString(FName::NameToDisplayString(OtherHandle.GetParameterHandleString().ToString(), false));
 			MenuBuilder.AddMenuEntry(
 				HandleDisplayName,
-				FText::Format(MapInputFormat, FText::FromString(OtherHandle.GetParameterHandleString())),
+				FText::Format(MapInputFormat, FText::FromName(OtherHandle.GetParameterHandleString())),
 				FSlateIcon(),
 				FUIAction(FExecuteAction::CreateSP(this, &SNiagaraStackFunctionInputValue::ParameterHandleSelected, OtherHandle)));
 		}
@@ -589,24 +616,27 @@ private:
 		}
 
 		// Read from new attribute
-		TArray<FString> AvailableNamespaces;
+		TArray<FName> AvailableNamespaces;
 		FunctionInput->GetNamespacesForNewParameters(AvailableNamespaces);
 
 		TArray<FString> InputNames;
 		for (int32 i = FunctionInput->GetInputParameterHandlePath().Num() - 1; i >= 0; i--)
 		{
-			InputNames.Add(FunctionInput->GetInputParameterHandlePath()[i].GetName());
+			InputNames.Add(FunctionInput->GetInputParameterHandlePath()[i].GetName().ToString());
 		}
-		FString InputName = FString::Join(InputNames, TEXT("."));
+		FName InputName = *FString::Join(InputNames, TEXT("."));
 
-		for (const FString& AvailableNamespace : AvailableNamespaces)
+		for (const FName AvailableNamespace : AvailableNamespaces)
 		{
 			FNiagaraParameterHandle HandleToRead(AvailableNamespace, InputName);
 			bool bCanExecute = AvailableHandles.Contains(HandleToRead) == false;
 
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("AvailableNamespace"), FText::FromName(AvailableNamespace));
+
 			MenuBuilder.AddMenuEntry(
-				FText::Format(LOCTEXT("ReadLabelFormat", "Read from new {0} parameter"), FText::FromString(AvailableNamespace)),
-				FText::Format(LOCTEXT("ReadToolTipFormat", "Read this input from a new parameter in the {0} namespace."), FText::FromString(AvailableNamespace)), 
+				FText::Format(LOCTEXT("ReadLabelFormat", "Read from new {AvailableNamespace} parameter"), Args),
+				FText::Format(LOCTEXT("ReadToolTipFormat", "Read this input from a new parameter in the {AvailableNamespace} namespace."), Args), 
 				FSlateIcon(),
 				FUIAction(
 					FExecuteAction::CreateSP(this, &SNiagaraStackFunctionInputValue::ParameterHandleSelected, HandleToRead),
@@ -650,6 +680,24 @@ private:
 	FReply ResetButtonPressed() const
 	{
 		FunctionInput->Reset();
+		return FReply::Handled();
+	}
+
+	EVisibility GetResetToBaseButtonVisibility() const
+	{
+		if (FunctionInput->EmitterHasBase())
+		{
+			return FunctionInput->CanResetToBase() ? EVisibility::Visible : EVisibility::Hidden;
+		}
+		else
+		{
+			return EVisibility::Collapsed;
+		}
+	}
+
+	FReply ResetToBaseButtonPressed() const
+	{
+		FunctionInput->ResetToBase();
 		return FReply::Handled();
 	}
 
@@ -821,10 +869,11 @@ private:
 		if (DisplayedValueStruct.IsValid())
 		{
 			FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::GetModuleChecked<FNiagaraEditorModule>("NiagaraEditor");
-			TSharedPtr<INiagaraEditorTypeUtilities> TypeEditorUtilities = NiagaraEditorModule.GetTypeUtilities(FNiagaraTypeDefinition((UScriptStruct*)DisplayedValueStruct->GetStruct()));
+			FNiagaraTypeDefinition ParameterType = FNiagaraTypeDefinition((UScriptStruct*)DisplayedValueStruct->GetStruct());
+			TSharedPtr<INiagaraEditorTypeUtilities> TypeEditorUtilities = NiagaraEditorModule.GetTypeUtilities(ParameterType);
 			if (TypeEditorUtilities.IsValid() && TypeEditorUtilities->CanCreateParameterEditor())
 			{
-				TSharedPtr<SNiagaraParameterEditor> ParameterEditor = TypeEditorUtilities->CreateParameterEditor();
+				TSharedPtr<SNiagaraParameterEditor> ParameterEditor = TypeEditorUtilities->CreateParameterEditor(ParameterType);
 				ParameterEditor->UpdateInternalValueFromStruct(DisplayedValueStruct.ToSharedRef());
 				ParameterEditor->SetOnBeginValueChange(SNiagaraParameterEditor::FOnValueChange::CreateSP(
 					this, &SNiagaraStackParameterStoreEntryValue::ParameterBeginValueChange));
@@ -1047,6 +1096,7 @@ public:
 
 	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged) override
 	{
+		Object->GetOwningObject()->PostEditChange();
 	}
 
 private:
@@ -1062,46 +1112,92 @@ public:
 	void Construct(const FArguments& InArgs, UNiagaraStackAddModuleItem& InAddModuleItem)
 	{
 		AddModuleItem = &InAddModuleItem;
+
+		FSlateColor TextColor;
+		FSlateColor BackgroundColor;
+		float Padding;
+		FName TextStyleName;
+		FName FontStyleName;
+		FText ToolTipText;
+		if (AddModuleItem->GetDisplayMode() == UNiagaraStackAddModuleItem::EDisplayMode::Standard)
+		{
+			TextColor = FSlateColor::UseForeground();
+			BackgroundColor = FSlateColor(FLinearColor::Transparent);
+			Padding = 3;
+			TextStyleName = "NormalText.Important";
+			FontStyleName = "FontAwesome.10";
+			ToolTipText = LOCTEXT("AddModuleToolTip", "Add new module");
+		}
+		else // Compact
+		{
+			TextColor = FSlateColor(FLinearColor::Black);
+			BackgroundColor = FSlateColor(FLinearColor::White);
+			Padding = 0;
+			TextStyleName = "NormalText";
+			FontStyleName = "FontAwesome.7";
+			ToolTipText = LOCTEXT("InsertModuleToolTip", "Insert new module");
+		}
+
 		ChildSlot
 		[
-			SNew(SComboButton)
+			SAssignNew(AddModuleButton, SComboButton)
 			.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
-			.ForegroundColor(FSlateColor::UseForeground())
+			.ToolTipText(ToolTipText)
+			.ForegroundColor(TextColor)
 			.HasDownArrow(false)
 			.OnGetMenuContent(this, &SNiagaraStackAddModuleItem::GetAddModuleMenu)
-			.ContentPadding(3)
-			.HAlign(HAlign_Center)
-			.VAlign(VAlign_Center)
+			.ContentPadding(Padding)
 			.ButtonContent()
 			[
-				SNew(STextBlock)
-				.TextStyle(FEditorStyle::Get(), "NormalText.Important")
-				.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
-				.Text(FText::FromString(FString(TEXT("\xf067"))) /*fa-plus*/)
-				.ToolTipText(LOCTEXT("AddModuleToolTip", "Add new module"))
+				SNew(SBorder)
+				.BorderImage(FEditorStyle::GetBrush("WhiteBrush"))
+				.BorderBackgroundColor(BackgroundColor)
+				.Visibility(this, &SNiagaraStackAddModuleItem::GetButtonContentVisibility)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.TextStyle(FEditorStyle::Get(), TextStyleName)
+					.Font(FEditorStyle::Get().GetFontStyle(FontStyleName))
+					.Text(FText::FromString(FString(TEXT("\xf067"))) /*fa-plus*/)
+				]
 			]
 		];
 	}
 
 private:
+	EVisibility GetButtonContentVisibility() const 
+	{
+		if (AddModuleItem->GetDisplayMode() == UNiagaraStackAddModuleItem::EDisplayMode::Standard)
+		{
+			return EVisibility::Visible;
+		}
+		else
+		{
+			return IsHovered() ? EVisibility::Visible : EVisibility::Hidden;
+		}
+	}
+
 	TSharedRef<SWidget> GetAddModuleMenu()
 	{
 		FGraphActionMenuBuilder MenuBuilder;
+		TSharedPtr<SGraphActionMenu> AddModuleMenu;
 
-		return SNew (SBorder)
+		TSharedRef<SBorder> MenuWidget =  SNew(SBorder)
 			.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
 			.Padding(5)
 			[
 				SNew(SBox)
 				[
-					SNew(SGraphActionMenu)
+					SAssignNew(AddModuleMenu, SGraphActionMenu)
 					.OnActionSelected(this, &SNiagaraStackAddModuleItem::OnActionSelected)
-					.OnCreateWidgetForAction(SGraphActionMenu::FOnCreateWidgetForAction::CreateSP(this, &SNiagaraStackAddModuleItem::OnCreateWidgetForAction))
 					.OnCollectAllActions(this, &SNiagaraStackAddModuleItem::CollectAllActions)
 					.AutoExpandActionMenu(false)
 					.ShowFilterTextBox(true)
 				]
 			];
+		AddModuleButton->SetMenuContentWidgetToFocus(AddModuleMenu->GetFilterTextBox()->AsShared()); 
+		return MenuWidget;
 	}
 
 
@@ -1172,7 +1268,7 @@ private:
 		}
 
 		// Generate actions for setting new typed parameters.
-		TOptional<FString> NewParameterNamespace = AddModuleItem->GetNewParameterNamespace();
+		TOptional<FName> NewParameterNamespace = AddModuleItem->GetNewParameterNamespace();
 		if (NewParameterNamespace.IsSet())
 		{
 			TArray<FNiagaraTypeDefinition> AvailableTypes;
@@ -1184,26 +1280,26 @@ private:
 				FText CategoryName = LOCTEXT("CreateNewParameterCategory", "Create New Parameter");
 
 				FNiagaraParameterHandle NewParameterHandle(NewParameterNamespace.GetValue(), *(TEXT("New") + AvailableType.GetName()));
-				FNiagaraVariable NewParameter(AvailableType, *NewParameterHandle.GetParameterHandleString());
+				FNiagaraVariable NewParameter(AvailableType, NewParameterHandle.GetParameterHandleString());
 				TSharedPtr<FNiagaraStackGraphSchemaAction> NewNodeAction(new FNiagaraStackGraphSchemaAction(CategoryName, NameText, Tooltip, 0, FText(),
 					FNiagaraStackGraphSchemaAction::FOnPerformStackAction::CreateUObject(AddModuleItem, &UNiagaraStackAddModuleItem::AddParameterModule, NewParameter, true)));
 				OutAllActions.AddAction(NewNodeAction);
 			}
 		}
-	}
 
-	TSharedRef<SWidget> OnCreateWidgetForAction(struct FCreateWidgetForActionData* const InCreateData)
-	{
-		return SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				SNew(STextBlock)
-				.Text(InCreateData->Action->GetMenuDescription())
-				.ToolTipText(InCreateData->Action->GetTooltipDescription())
-			];
-	}
+		const ENiagaraScriptUsage AddModuleOutputUsage = AddModuleItem->GetOutputUsage();
+		if (AddModuleOutputUsage != ENiagaraScriptUsage::EmitterSpawnScript && AddModuleOutputUsage != ENiagaraScriptUsage::EmitterUpdateScript)
+		{
+			// Generate actions for material
+			FText NameText = LOCTEXT("MaterialParameterCategory", "Create Dynamic Parameters");
+			FText Tooltip = LOCTEXT("MaterialParameterTooltip", "Description: Create dynamic material parameters.");
+			FText CategoryName = LOCTEXT("MaterialParameter", "Material");
 
+			TSharedPtr<FNiagaraStackGraphSchemaAction> NewNodeAction(new FNiagaraStackGraphSchemaAction(CategoryName, NameText, Tooltip, 0, FText(),
+				FNiagaraStackGraphSchemaAction::FOnPerformStackAction::CreateUObject(AddModuleItem, &UNiagaraStackAddModuleItem::AddMaterialParameterModule)));
+			OutAllActions.AddAction(NewNodeAction);
+		}
+	}
 
 	void OnActionSelected(const TArray< TSharedPtr<FEdGraphSchemaAction> >& SelectedActions, ESelectInfo::Type InSelectionType)
 	{
@@ -1226,6 +1322,7 @@ private:
 
 private:
 	UNiagaraStackAddModuleItem* AddModuleItem;
+	TSharedPtr<SComboButton> AddModuleButton;
 };
 
 class SNiagaraStackAddRendererItem : public SCompoundWidget
@@ -1306,6 +1403,14 @@ public:
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
+			.Padding(0, 0, 2, 0)
+			.AutoWidth()
+			[
+				SNew(SCheckBox)
+				.IsChecked(this, &SNiagaraStackModuleItem::GetCheckState)
+				.OnCheckStateChanged(this, &SNiagaraStackModuleItem::OnCheckStateChanged)
+			]
+			+ SHorizontalBox::Slot()
 			.Padding(1)
 			[
 				SNew(STextBlock)
@@ -1321,6 +1426,7 @@ public:
 				.IsFocusable(false)
 				.ForegroundColor(FNiagaraEditorWidgetsStyle::Get().GetColor(ModuleItem->GetItemForegroundName()))
 				.ToolTipText(LOCTEXT("UpToolTip", "Move this module up the stack"))
+				.Visibility(this, &SNiagaraStackModuleItem::GetEditButtonVisibility)
 				.OnClicked(this, &SNiagaraStackModuleItem::MoveUpClicked)
 				.Content()
 				[
@@ -1337,6 +1443,7 @@ public:
 				.IsFocusable(false)
 				.ForegroundColor(FNiagaraEditorWidgetsStyle::Get().GetColor(ModuleItem->GetItemForegroundName()))
 				.ToolTipText(LOCTEXT("DownToolTip", "Move this module down the stack"))
+				.Visibility(this, &SNiagaraStackModuleItem::GetEditButtonVisibility)
 				.OnClicked(this, &SNiagaraStackModuleItem::MoveDownClicked)
 				.Content()
 				[
@@ -1352,7 +1459,25 @@ public:
 				.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
 				.IsFocusable(false)
 				.ForegroundColor(FNiagaraEditorWidgetsStyle::Get().GetColor(ModuleItem->GetItemForegroundName()))
+				.ToolTipText(LOCTEXT("RefreshTooltip", "Refresh this module"))
+				.Visibility(this, &SNiagaraStackModuleItem::GetRefreshVisibility)
+				.OnClicked(this, &SNiagaraStackModuleItem::RefreshClicked)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+					.Text(FText::FromString(FString(TEXT("\xf021"))))
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SButton)
+				.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+				.IsFocusable(false)
+				.ForegroundColor(FNiagaraEditorWidgetsStyle::Get().GetColor(ModuleItem->GetItemForegroundName()))
 				.ToolTipText(LOCTEXT("DeleteToolTip", "Delete this module"))
+				.Visibility(this, &SNiagaraStackModuleItem::GetEditButtonVisibility)
 				.OnClicked(this, &SNiagaraStackModuleItem::DeleteClicked)
 				.Content()
 				[
@@ -1378,6 +1503,26 @@ public:
 	}
 
 private:
+	ECheckBoxState GetCheckState() const
+	{
+		return ModuleItem->GetIsEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+
+	void OnCheckStateChanged(ECheckBoxState InCheckState)
+	{
+		ModuleItem->SetIsEnabled(InCheckState == ECheckBoxState::Checked);
+	}
+
+	EVisibility GetEditButtonVisibility() const
+	{
+		return ModuleItem->CanMoveAndDelete() ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
+	EVisibility GetRefreshVisibility() const
+	{
+		return ModuleItem->CanRefresh() ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
 	FReply MoveUpClicked()
 	{
 		ModuleItem->MoveUp();
@@ -1393,6 +1538,12 @@ private:
 	FReply DeleteClicked()
 	{
 		ModuleItem->Delete();
+		return FReply::Handled();
+	}
+
+	FReply RefreshClicked()
+	{
+		ModuleItem->Refresh();
 		return FReply::Handled();
 	}
 
@@ -1414,7 +1565,6 @@ public:
 			[
 				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
-				.Padding(1)
 				[
 					SNew(STextBlock)
 					.TextStyle(FNiagaraEditorWidgetsStyle::Get(), "NiagaraEditor.Stack.GroupText")
@@ -1520,6 +1670,7 @@ public:
 				.ToolTipText_UObject(RendererItem, &UNiagaraStackEntry::GetTooltipText)
 				.Text_UObject(RendererItem, &UNiagaraStackEntry::GetDisplayName)
 			]
+			// Delete button
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			[
@@ -1527,7 +1678,8 @@ public:
 				.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
 				.IsFocusable(false)
 				.ForegroundColor(FNiagaraEditorWidgetsStyle::Get().GetColor(RendererItem->GetItemForegroundName()))
-				.ToolTipText(LOCTEXT("DeleteToolTip", "Delete this Renderer"))
+				.ToolTipText(LOCTEXT("DeleteRendererToolTip", "Delete this Renderer"))
+				.Visibility(this, &SNiagaraStackRendererItem::GetDeleteButtonVisibility)
 				.OnClicked(this, &SNiagaraStackRendererItem::DeleteClicked)
 				.Content()
 				[
@@ -1536,13 +1688,56 @@ public:
 					.Text(FText::FromString(FString(TEXT("\xf1f8"))))
 				]
 			]
+			// Reset to base Button
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(3, 0, 0, 0)
+			[
+				SNew(SButton)
+				.IsFocusable(false)
+				.ToolTipText(LOCTEXT("ResetRendererToBaseToolTip", "Reset this renderer to the state defined by the parent emitter"))
+				.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+				.ContentPadding(0)
+				.Visibility(this, &SNiagaraStackRendererItem::GetResetToBaseButtonVisibility)
+				.OnClicked(this, &SNiagaraStackRendererItem::ResetToBaseButtonClicked)
+				.Content()
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+					.ColorAndOpacity(FSlateColor(FLinearColor::Green))
+				]
+			]
 		];
 	}
 
 private:
+	EVisibility GetDeleteButtonVisibility() const
+	{
+		return RendererItem->CanDelete() ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
 	FReply DeleteClicked()
 	{
 		RendererItem->Delete();
+		return FReply::Handled();
+	}
+
+	EVisibility GetResetToBaseButtonVisibility() const
+	{
+		if (RendererItem->CanHaveBase())
+		{
+			return RendererItem->CanResetToBase() ? EVisibility::Visible : EVisibility::Hidden;
+		}
+		else
+		{
+			return EVisibility::Collapsed;
+		}
+	}
+
+	FReply ResetToBaseButtonClicked()
+	{
+		RendererItem->ResetToBase();
 		return FReply::Handled();
 	}
 
@@ -1610,6 +1805,126 @@ private:
 	UNiagaraStackItemExpander* ItemExpander;
 	FText ExpandedToolTipText;
 	FText CollapsedToolTipText;
+};
+
+class SNiagaraStackEmitterPropertiesItem : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SNiagaraStackEmitterPropertiesItem) { }
+	SLATE_END_ARGS();
+
+	void Construct(const FArguments& InArgs, UNiagaraStackEmitterPropertiesItem& InEmitterPropertiesItem)
+	{
+		EmitterPropertiesItem = &InEmitterPropertiesItem;
+
+		ChildSlot
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(1)
+			[
+				SNew(STextBlock)
+				.TextStyle(FNiagaraEditorWidgetsStyle::Get(), "NiagaraEditor.Stack.ItemText")
+				.ToolTipText_UObject(EmitterPropertiesItem, &UNiagaraStackEntry::GetTooltipText)
+				.Text_UObject(EmitterPropertiesItem, &UNiagaraStackEntry::GetDisplayName)
+			]
+			// Reset to base Button
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(3, 0, 0, 0)
+			[
+				SNew(SButton)
+				.IsFocusable(false)
+				.ToolTipText(LOCTEXT("ResetEmitterPropertiesToBaseToolTip", "Reset the emitter properties to the state defined by the parent emitter"))
+				.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+				.ContentPadding(0)
+				.Visibility(this, &SNiagaraStackEmitterPropertiesItem::GetResetToBaseButtonVisibility)
+				.OnClicked(this, &SNiagaraStackEmitterPropertiesItem::ResetToBaseButtonClicked)
+				.Content()
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+					.ColorAndOpacity(FSlateColor(FLinearColor::Green))
+				]
+			]
+		];
+	}
+
+private:
+	EVisibility GetResetToBaseButtonVisibility() const
+	{
+		return EmitterPropertiesItem->CanResetToBase() ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
+	FReply ResetToBaseButtonClicked()
+	{
+		EmitterPropertiesItem->ResetToBase();
+		return FReply::Handled();
+	}
+
+private:
+	UNiagaraStackEmitterPropertiesItem* EmitterPropertiesItem;
+};
+
+class SNiagaraStackEventHandlerPropertiesItem : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SNiagaraStackEventHandlerPropertiesItem) { }
+	SLATE_END_ARGS();
+
+	void Construct(const FArguments& InArgs, UNiagaraStackEventHandlerPropertiesItem& InEventHandlerPropertiesItem)
+	{
+		EventHandlerPropertiesItem = &InEventHandlerPropertiesItem;
+
+		ChildSlot
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(1)
+			[
+				SNew(STextBlock)
+				.TextStyle(FNiagaraEditorWidgetsStyle::Get(), "NiagaraEditor.Stack.ItemText")
+				.ToolTipText_UObject(EventHandlerPropertiesItem, &UNiagaraStackEntry::GetTooltipText)
+				.Text_UObject(EventHandlerPropertiesItem, &UNiagaraStackEntry::GetDisplayName)
+			]
+			// Reset to base Button
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(3, 0, 0, 0)
+			[
+				SNew(SButton)
+				.IsFocusable(false)
+				.ToolTipText(LOCTEXT("ResetEventHandlerPropertiesToBaseToolTip", "Reset the event handler properties to the state defined by the parent emitter"))
+				.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+				.ContentPadding(0)
+				.Visibility(this, &SNiagaraStackEventHandlerPropertiesItem::GetResetToBaseButtonVisibility)
+				.OnClicked(this, &SNiagaraStackEventHandlerPropertiesItem::ResetToBaseButtonClicked)
+				.Content()
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+					.ColorAndOpacity(FSlateColor(FLinearColor::Green))
+				]
+			]
+		];
+	}
+
+private:
+	EVisibility GetResetToBaseButtonVisibility() const
+	{
+		return EventHandlerPropertiesItem->CanResetToBase() ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
+	FReply ResetToBaseButtonClicked()
+	{
+		EventHandlerPropertiesItem->ResetToBase();
+		return FReply::Handled();
+	}
+
+private:
+	UNiagaraStackEventHandlerPropertiesItem* EventHandlerPropertiesItem;
 };
 
 class SNiagaraStackTableRow : public STableRow<UNiagaraStackEntry*>
@@ -1776,8 +2091,9 @@ private:
 	{
 		if (StackEntry->GetCanExpand())
 		{
+			// TODO Cache this and refresh the cache when the entries structure changes.
 			TArray<UNiagaraStackEntry*> Children;
-			StackEntry->GetChildren(Children);
+			StackEntry->GetFilteredChildren(Children);
 			return Children.Num() > 0
 				? EVisibility::Visible
 				: EVisibility::Hidden;
@@ -1864,7 +2180,7 @@ void SNiagaraStack::PrimeTreeExpansion()
 		if (EntryToProcess->GetIsExpanded())
 		{
 			StackTree->SetItemExpansion(EntryToProcess, true);
-			EntryToProcess->GetChildren(EntriesToProcess);
+			EntryToProcess->GetFilteredChildren(EntriesToProcess);
 		}
 	}
 }
@@ -1995,6 +2311,16 @@ TSharedRef<SWidget> SNiagaraStack::ConstructNameWidgetForItem(UNiagaraStackEntry
 		UNiagaraStackItemExpander* ItemExpander = CastChecked<UNiagaraStackItemExpander>(Item);
 		return SNew(SNiagaraStackItemExpander, *ItemExpander);
 	}
+	else if (Item->GetClass()->IsChildOf(UNiagaraStackEmitterPropertiesItem::StaticClass()))
+	{
+		UNiagaraStackEmitterPropertiesItem* PropertiesItem = CastChecked<UNiagaraStackEmitterPropertiesItem>(Item);
+		return SNew(SNiagaraStackEmitterPropertiesItem, *PropertiesItem);
+	}
+	else if (Item->GetClass()->IsChildOf(UNiagaraStackEventHandlerPropertiesItem::StaticClass()))
+	{
+		UNiagaraStackEventHandlerPropertiesItem* PropertiesItem = CastChecked<UNiagaraStackEventHandlerPropertiesItem>(Item);
+		return SNew(SNiagaraStackEventHandlerPropertiesItem, *PropertiesItem);
+	}
 	else
 	{
 		return SNew(STextBlock)
@@ -2036,7 +2362,7 @@ TSharedPtr<SWidget> SNiagaraStack::ConstructValueWidgetForItem(UNiagaraStackEntr
 
 void SNiagaraStack::OnGetChildren(UNiagaraStackEntry* Item, TArray<UNiagaraStackEntry*>& Children)
 {
-	Item->GetChildren(Children);
+	Item->GetFilteredChildren(Children);
 }
 
 float SNiagaraStack::GetNameColumnWidth() const

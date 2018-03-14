@@ -21,7 +21,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. **アンリアルエディタ** へ戻って、プロジェクトの入力設定を行います。設定値は **Edit (編集)** ドロップダウン メニューの **Project Settings (プロジェクト設定)** にあります。
 
@@ -74,7 +74,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**CollidingPawn.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -103,7 +103,7 @@ version:4.9
 			};
 
 		**CollidingPawn.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawn.h"
@@ -183,4 +183,4 @@ version:4.9
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

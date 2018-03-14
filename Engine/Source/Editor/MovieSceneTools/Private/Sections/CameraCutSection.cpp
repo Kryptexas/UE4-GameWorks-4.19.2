@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Sections/CameraCutSection.h"
 #include "Sections/MovieSceneCameraCutSection.h"
@@ -12,6 +12,7 @@
 #include "ScopedTransaction.h"
 #include "MovieSceneSequence.h"
 #include "MovieSceneCommonHelpers.h"
+#include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
 #include "EditorStyleSet.h"
 #include "EngineUtils.h"
 
@@ -105,7 +106,7 @@ void FCameraCutSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const
 
 			MenuBuilder.AddMenuEntry(
 				FText::Format(LOCTEXT("SetCameraMenuEntryTextFormat", "{0}"), ActorLabel),
-				FText::Format(LOCTEXT("SetCameraMenuEntryTooltipFormat", "Assign {0} to this camera cut"), ActorLabel),
+				FText::Format(LOCTEXT("SetCameraMenuEntryTooltipFormat", "Assign {0} to this camera cut"), FText::FromString(EachCamera->GetPathName())),
 				FSlateIcon(),
 				FUIAction(FExecuteAction::CreateRaw(this, &FCameraCutSection::HandleSetCameraMenuEntryExecute, EachCamera))
 			);
@@ -125,7 +126,18 @@ const AActor* FCameraCutSection::GetCameraForFrame(float Time) const
 
 	if (CameraCutSection && Sequencer.IsValid())
 	{
-		for (TWeakObjectPtr<>& Object : Sequencer->FindBoundObjects(CameraCutSection->GetCameraGuid(), Sequencer->GetFocusedTemplateID()))
+		FMovieSceneSequenceID SequenceID = Sequencer->GetFocusedTemplateID();
+		if (CameraCutSection->GetCameraBindingID().GetSequenceID().IsValid())
+		{
+			if (const FMovieSceneSubSequenceData* SubData = Sequencer->GetEvaluationTemplate().GetHierarchy().FindSubData(SequenceID))
+			{
+				// Ensure that this ID is resolvable from the root, based on the current local sequence ID
+				FMovieSceneObjectBindingID RootBindingID = CameraCutSection->GetCameraBindingID().ResolveLocalToRoot(SequenceID, Sequencer->GetEvaluationTemplate().GetHierarchy());
+				SequenceID = RootBindingID.GetSequenceID();
+			}
+		}
+
+		for (TWeakObjectPtr<>& Object : Sequencer->FindBoundObjects(CameraCutSection->GetCameraBindingID().GetGuid(), SequenceID))
 		{
 			if (AActor* Actor = Cast<AActor>(Object.Get()))
 			{
@@ -133,7 +145,7 @@ const AActor* FCameraCutSection::GetCameraForFrame(float Time) const
 			}
 		}
 
-		FMovieSceneSpawnable* Spawnable = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->FindSpawnable(CameraCutSection->GetCameraGuid());
+		FMovieSceneSpawnable* Spawnable = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->FindSpawnable(CameraCutSection->GetCameraBindingID().GetGuid());
 		if (Spawnable)
 		{
 			return Cast<AActor>(Spawnable->GetObjectTemplate());

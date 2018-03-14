@@ -1,0 +1,251 @@
+﻿INTSourceChangelist:3661537
+Availability:Public
+Crumbs: %ROOT%, Platforms
+Title:设置 Gear VR 的摄像机
+Description:设置兼容 Gear VR 的 UE4 摄像机。
+Type: how-to
+SkillLevel:Beginner
+Version:4.17
+Parent:Platforms/GearVR
+Order:2
+Tags:Basics
+topic-image:HT_GearVR_Camera_Setup_Topic_Image.png
+prereq:Platforms\GearVR\Prerequisites
+prereq:Platforms\GearVR\QuickStart
+
+![](Hero_Image.png)(w:1000)
+
+无论 Gear VR 项目是站立式或坐立式体验，用户摄像机的设置方式均相同。以下指南将讲述如何设置用于 Gear VR 头戴显示器的 UE4 摄像机。
+
+
+## Gear VR 体验的项目和基础摄像机设置 
+
+以下说明讲述项目设置要求，以及如何创建 Gear VR 所需的 Pawn 蓝图。
+
+1. 首先用以下设置新建一个 UE4 项目，设置输入后，按下 **Create Project** 键创建项目。
+
+    * Blueprint 
+    * Blank Project
+    * Mobile / Tablet
+    * Scalable 3D or 2D
+    * No Starter Content
+    * 项目保存路径
+    * 项目命名
+
+    [REGION:lightbox]
+    [![](HT_GearVR_Camera_Setup_00.png)(w:555)](HT_GearVR_Camera_Setup_00.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
+
+1. 项目加载后在 **Content Browser** 中点击右键，前往菜单中的 **Create Basic Asset** 部分，选择 **Blueprint Class** 选项。
+
+    [REGION:lightbox]
+    [![](Platforms\Oculus\HowTo\StandingCamera\HT_Rift_Camera_Setup_01.png)(w:150)](Platforms\Oculus\HowTo\StandingCamera\HT_Rift_Camera_Setup_01.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
+
+1. 从 **Pick Parent Class** 窗口中选择 **Pawn** 选项，然后将其命名为 **GearVR_Pawn**。
+
+    [REGION:lightbox]
+    [![](HT_GearVR_Camera_Setup_01.png)(w:555)](HT_GearVR_Camera_Setup_01.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
+
+1. 打开 GearVR_Pawn 蓝图，然后前往 **Viewport** 标签的 **Component** 部分。使用 **Add Component** 按钮添加以下两个组件并设置以下命名，并将 VRCamera 设为 VRCameraRoot 的子项：
+    
+    * Scene - VRCameraRoot
+    * Camera - VRCamera
+
+    ![](HT_GearVR_Camera_Setup_02.png)
+
+    [region:note]
+    无论您使用的是何种 VR 头戴显示器，Epic 都推荐以此方式设置 VR 摄像机。因为它能在不实际移动摄像机的情况下实现摄像机位置的偏移。
+    [/region]
+
+VR 玩家的基础蓝图创建完毕后，下一部分我们将说明如何设置此蓝图，使其兼容 Gear VR。
+
+## 步骤
+
+以下讲述如何进行 Gear VR 体验的摄像机设置。
+
+
+1. 首先打开 **GearVR_Pawn** 蓝图，然后在 **事件图表** 中从 **Event Begin Play** 节点连出引线，显示 Executable Actions 列表，搜索 **Set Tracking Origin** 节点，点击并将其添加到事件图表。
+
+    [REGION:lightbox]
+    [![](Platforms\Oculus\HowTo\SeatedCamera\HT_Rift_Camera_Setup_09.png)(w:555)](Platforms\Oculus\HowTo\SeatedCamera\HT_Rift_Camera_Setup_09.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
+
+1. 将 Set Tracking Origin 节点的 **Origin** 设为 **Eye Level**。
+    
+    [REGION:lightbox]
+    [![](Platforms\Oculus\HowTo\SeatedCamera\HT_Rift_Camera_Setup_10.png)(w:555)](Platforms\Oculus\HowTo\SeatedCamera\HT_Rift_Camera_Setup_10.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
+
+1. 在蓝图编辑器的 **Variables** 部分下新建一个名为 **CameraHeight** 的 **矢量** 变量，并将 **Z** 轴值设为 **180**。
+
+    ![](HT_GearVR_Camera_Setup_03.png)
+
+    [region:note]
+    在 CameraHeight 中设置的数据应该和用户在真实环境中的站立高度相等，以厘米为单位。
+    [/region]
+
+1. 从 Set Tracking Origin 节点的输出连出引线，搜索 **Set Relative Location** 节点，选择 **SetRelativeLocation(VRCameraRoot)** 选项。
+
+    [REGION:lightbox]
+    [![](HT_GearVR_Camera_Setup_04.png)(w:342)](HT_GearVR_Camera_Setup_04.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
+
+1. 将 **CameraHeight** 变量连接到 Set Relative Location 节点上的 **New Location** 输入，然后按下 Compile 按钮。操作完成后，事件图表应与下图相似。
+
+    [REGION:fullwidth]
+    [INCLUDE:Platforms\GearVR\HowTo\CameraSetup\#GearVRCamera]
+    [/REGION]
+
+    [region:tip]
+    点击上图左上角并按下 CRTL + C 即可复制完成的蓝图。复制后前往蓝图事件按下 CTRL + V 进行粘贴。 
+    [/region]
+
+1. 将 **GearVR_Pawn** 蓝图从 Content Browser 拖入关卡，将其放置在尽量靠近地面的位置。
+
+    [REGION:lightbox]
+    [![](HT_GearVR_Camera_Setup_06.png)(w:555)](HT_GearVR_Camera_Setup_06.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
+
+1. 选中 GearVR_Pawn 蓝图，然后在 **Pawn** 设置下的 **Details** 面板中将 **Auto Possess Player** 从 **Disabled** 设为 **Player 0**。
+
+    [REGION:lightbox]
+    [![](HT_GearVR_Camera_Setup_07.png)(w:181)](HT_GearVR_Camera_Setup_07.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
+
+1. 最后前往 **主工具栏** 并点击 **Launch Options** 旁的白色小三角形，然后从列表中选择您的 Android 设备，开始打包并部署到该设备。
+
+    ![](HT_GearVR_Camera_Setup_08.png)
+
+## 最终结果 
+
+UE4 项目部署后，将智能手机放入 Gear VR 头戴显示器并移动头部，将会看到以下视频中的效果。 
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    JdeI2jTS8V8
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
+
+## UE4 项目下载
+
+可使用以下链接下载用于创建此例的 UE4 项目。 
+
+* [**Gear VR 摄像机范例项目**](https://epicgames.box.com/s/wd0o3iakpi5dt8zt8rxm427148ogmx7w)
+
+[COMMENT:none]
+
+[EXCERPT:GearVRCamera]	
+[OBJECT:Snippet]
+	[PARAMLITERAL:id]
+		GearVRCamera
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+		blueprint
+	[/PARAMLITERAL]
+	[PARAM:image]
+		[REGION:lightbox]
+		[![](HT_GearVR_Camera_Setup_05.png)(w:1000)](HT_GearVR_Camera_Setup_05.png)
+		[/REGION]
+	[/PARAM]
+	[PARAM:snippet]
+			BEGIN OBJECT
+							Begin Object Class=/Script/BlueprintGraph.K2Node_Event Name="K2Node_Event_0"
+			   EventReference=(MemberParent=Class'/Script/Engine.Actor',MemberName="ReceiveBeginPlay")
+			   bOverrideFunction=True
+			   bCommentBubblePinned=True
+			   NodeGuid=C59E43604E42C7F4DAD48BA1137C7EB9
+			   CustomProperties Pin (PinId=FE39330745F60B4B61B9138BA2E683E1,PinName="OutputDelegate",Direction="EGPD_Output",PinType.PinCategory="delegate",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(MemberParent=Class'/Script/Engine.Actor',MemberName="ReceiveBeginPlay"),PinType.PinValueType=(),PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=CFFCA1684C5D4AA0653641B0BB601A74,PinName="then",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_77 7227CDD94FDBCC1F02D6258FDC30999A,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			End Object
+			Begin Object Class=/Script/BlueprintGraph.K2Node_CallFunction Name="K2Node_CallFunction_77"
+			   FunctionReference=(MemberParent=Class'/Script/Engine.HeadMountedDisplayFunctionLibrary',MemberName="SetTrackingOrigin")
+			   NodePosX=224
+			   NodeComment="PS4"
+			   NodeGuid=42D9B736496D2754CE4A38880F53497B
+			   CustomProperties Pin (PinId=7227CDD94FDBCC1F02D6258FDC30999A,PinName="execute",PinToolTip="\nExec",PinType.PinCategory="exec",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_Event_0 CFFCA1684C5D4AA0653641B0BB601A74,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=6F56A02B45E8A67EEE79388CF61A44BC,PinName="then",PinToolTip="\nExec",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_46 FE5D38794B000B7752514CAFCC5316E4,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=5E2D303F41CB55A5DAC09B8A4032EA14,PinName="self",PinFriendlyName=NSLOCTEXT("K2Node", "Target", "Target"),PinToolTip="Target\nHead Mounted Display Function Library Reference",PinType.PinCategory="object",PinType.PinSubCategory="",PinType.PinSubCategoryObject=Class'/Script/Engine.HeadMountedDisplayFunctionLibrary',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultObject="/Script/Engine.Default__HeadMountedDisplayFunctionLibrary",PersistentGuid=00000000000000000000000000000000,bHidden=True,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=C82F35534E48B3A5FF212CB4CAAEFD61,PinName="Origin",PinToolTip="Origin\nEHMDTrackingOrigin Enum",PinType.PinCategory="byte",PinType.PinSubCategory="",PinType.PinSubCategoryObject=Enum'/Script/Engine.EHMDTrackingOrigin',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="Eye",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			End Object
+			Begin Object Class=/Script/BlueprintGraph.K2Node_CallFunction Name="K2Node_CallFunction_46"
+			   FunctionReference=(MemberParent=Class'/Script/Engine.SceneComponent',MemberName="K2_SetRelativeLocation")
+			   NodePosX=560
+			   NodePosY=-16
+			   NodeGuid=74BC1E504ADBB3371F22AB8555888796
+			   CustomProperties Pin (PinId=FE5D38794B000B7752514CAFCC5316E4,PinName="execute",PinToolTip="\nExec",PinType.PinCategory="exec",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_77 6F56A02B45E8A67EEE79388CF61A44BC,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=1C7A9A54494AE23B7164B7B8725F5D52,PinName="then",PinToolTip="\nExec",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=0811E84B4E91F1030D8FE3BAC770A247,PinName="self",PinFriendlyName=NSLOCTEXT("K2Node", "Target", "Target"),PinToolTip="Target\nScene Component Reference",PinType.PinCategory="object",PinType.PinSubCategory="",PinType.PinSubCategoryObject=Class'/Script/Engine.SceneComponent',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_VariableGet_20 14EFDA2C47FF2DF1F58E7A9BA401135E,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=C2D0A283497566CAFA793CB992D07158,PinName="NewLocation",PinToolTip="New Location\nVector \n\nNew location of the component relative to its parent.",PinType.PinCategory="struct",PinType.PinSubCategory="",PinType.PinSubCategoryObject=ScriptStruct'/Script/CoreUObject.Vector',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="0, 0, 0",AutogeneratedDefaultValue="0, 0, 0",LinkedTo=(K2Node_VariableGet_40 7FE7B76D4888DB151FF54EAB9D25F826,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=3D1069744CC4C94F298F3980C2A0F289,PinName="bSweep",PinToolTip="Sweep\nBoolean\n\nWhether we sweep to the destination location, triggering overlaps along the way and stopping short of the target if blocked by something. Only the root component is swept and checked for blocking collision, child components move without sweeping. If collision is off, this has no effect.",PinType.PinCategory="bool",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="false",AutogeneratedDefaultValue="false",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=63A901EA42073DA211529DBD9BDB4FF8,PinName="SweepHitResult",PinToolTip="Sweep Hit Result\nHit Result Structure\n\nHit result from any impact if sweep is true.",Direction="EGPD_Output",PinType.PinCategory="struct",PinType.PinSubCategory="",PinType.PinSubCategoryObject=ScriptStruct'/Script/Engine.HitResult',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=03544D8C4FC9FC037BE82CB2780E14A1,PinName="bTeleport",PinToolTip="Teleport\nBoolean\n\nWhether we teleport the physics state (if physics collision is enabled for this object). If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location). If false, physics velocity is updated based on the change in position (affecting ragdoll parts). If CCD is on and not teleporting, this will affect objects along the entire sweep volume.",PinType.PinCategory="bool",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="false",AutogeneratedDefaultValue="false",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			End Object
+			Begin Object Class=/Script/BlueprintGraph.K2Node_VariableGet Name="K2Node_VariableGet_20"
+			   VariableReference=(MemberName="VRCameraRoot",bSelfContext=True)
+			   NodePosX=304
+			   NodePosY=144
+			   NodeGuid=B62CB0404A6FE2645BBEDCA2875DCA91
+			   CustomProperties Pin (PinId=14EFDA2C47FF2DF1F58E7A9BA401135E,PinName="VRCameraRoot",Direction="EGPD_Output",PinType.PinCategory="object",PinType.PinSubCategory="",PinType.PinSubCategoryObject=Class'/Script/Engine.SceneComponent',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_46 0811E84B4E91F1030D8FE3BAC770A247,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=4018F2114B5E254238969EA5B9138178,PinName="self",PinFriendlyName=NSLOCTEXT("K2Node", "Target", "Target"),PinType.PinCategory="object",PinType.PinSubCategory="",PinType.PinSubCategoryObject=BlueprintGeneratedClass'/Game/GearVR_Pawn.GearVR_Pawn_C',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=True,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			End Object
+			Begin Object Class=/Script/BlueprintGraph.K2Node_VariableGet Name="K2Node_VariableGet_40"
+			   VariableReference=(MemberName="CameraHeight",MemberGuid=E6EDE9F147066500D13B0DA9CDB12D84,bSelfContext=True)
+			   NodePosX=320
+			   NodePosY=224
+			   NodeGuid=F6D021224B52F52FB98C4295DDB0F6E6
+			   CustomProperties Pin (PinId=7FE7B76D4888DB151FF54EAB9D25F826,PinName="CameraHeight",Direction="EGPD_Output",PinType.PinCategory="struct",PinType.PinSubCategory="",PinType.PinSubCategoryObject=ScriptStruct'/Script/CoreUObject.Vector',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,AutogeneratedDefaultValue="0, 0, 0",LinkedTo=(K2Node_CallFunction_46 C2D0A283497566CAFA793CB992D07158,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=1FB8519E4FFBB7EC464F1BB843BC179D,PinName="self",PinFriendlyName=NSLOCTEXT("K2Node", "Target", "Target"),PinType.PinCategory="object",PinType.PinSubCategory="",PinType.PinSubCategoryObject=BlueprintGeneratedClass'/Game/GearVR_Pawn.GearVR_Pawn_C',PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.bIsMap=False,PinType.bIsSet=False,PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=True,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			End Object
+
+			END OBJECT
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:GearVRCamera]
+
+[/COMMENT]

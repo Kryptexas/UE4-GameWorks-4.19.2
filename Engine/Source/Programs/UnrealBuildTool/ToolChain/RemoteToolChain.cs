@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections;
@@ -490,7 +490,7 @@ namespace UnrealBuildTool
 					KeyProcess.StartInfo.WorkingDirectory = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Build", "BatchFiles").FullName;
 					KeyProcess.StartInfo.FileName = "MakeAndInstallSSHKey.bat";
 					KeyProcess.StartInfo.Arguments = string.Format(
-						"\"{0}\" {1} \"{2}\" {3} {4} \"{5}\" \"{6}\" \"{7}\"",
+                        "\"{0}\" {1} \"{2}\" \"{3}\" {4} \"{5}\" \"{6}\" \"{7}\"",
 						ResolvedSSHExe,
 						RemoteServerPort,
 						ResolvedRSyncExe,
@@ -549,6 +549,18 @@ namespace UnrealBuildTool
 
 			// connect to server
 			if (InitializeRemoteExecution(Target.bFlushBuildDirOnRemoteMac) == RemoteToolChainErrorCode.NoError)
+			{
+				// Setup root directory to use.
+				SetUserDevRootFromServer();
+			}
+		}
+
+		public void SetUpGlobalEnvironment(bool bFlushBuildDirOnRemoteMac)
+		{
+			ParseProjectSettings();
+
+			// connect to server
+			if (InitializeRemoteExecution(bFlushBuildDirOnRemoteMac) == RemoteToolChainErrorCode.NoError)
 			{
 				// Setup root directory to use.
 				SetUserDevRootFromServer();
@@ -944,8 +956,8 @@ namespace UnrealBuildTool
 
 				// --exclude='*'  ??? why???
 				RsyncProcess.StartInfo.FileName = ResolvedRSyncExe;
-				RsyncProcess.StartInfo.Arguments = string.Format(
-					"-vzae \"{0}\" --rsync-path=\"mkdir -p {2} && rsync\" --chmod=ug=rwX,o=rxX --delete --files-from=\"{4}\" --include-from=\"{5}\" --include='*/' --exclude='*.o' --exclude='Timestamp' '{1}' {6}@{3}:'{2}'",
+                RsyncProcess.StartInfo.Arguments = string.Format(
+                    "-vzrltgoDe \"{0}\" --rsync-path=\"mkdir -p {2} && rsync\" --chmod=ug=rwX,o=rxX --delete --files-from=\"{4}\" --include-from=\"{5}\" --include='*/' --exclude='*.o' --exclude='Timestamp' '{1}' \"{6}@{3}\":'{2}'",
 					ResolvedRsyncAuthentication,
 					CygRootPath,
 					RemotePath,
@@ -988,7 +1000,7 @@ namespace UnrealBuildTool
 			// make simple rsync commandline to send a file
 			RsyncProcess.StartInfo.FileName = ResolvedRSyncExe;
 			RsyncProcess.StartInfo.Arguments = string.Format(
-				"-zae \"{0}\" --rsync-path=\"mkdir -p {1} && rsync\" --chmod=ug=rwX,o=rxX '{2}' {3}@{4}:'{1}/{5}'",
+                "-zrltgoDe \"{0}\" --rsync-path=\"mkdir -p {1} && rsync\" --chmod=ug=rwX,o=rxX '{2}' \"{3}@{4}\":'{1}/{5}'",
 				ResolvedRsyncAuthentication,
 				RemoteDir,
 				ConvertPathToCygwin(LocalPath),
@@ -1022,7 +1034,7 @@ namespace UnrealBuildTool
 			// make simple rsync commandline to send a file
 			RsyncProcess.StartInfo.FileName = ResolvedRSyncExe;
 			RsyncProcess.StartInfo.Arguments = string.Format(
-				"-zae \"{0}\" {2}@{3}:'{4}' \"{1}\"",
+                "-zrltgoDe \"{0}\" \"{2}@{3}\":'{4}' \"{1}\"",
 				ResolvedRsyncAuthentication,
 				ConvertPathToCygwin(LocalPath),
 				RSyncUsername,
@@ -1083,7 +1095,7 @@ namespace UnrealBuildTool
 
 			SSHProcess.StartInfo.FileName = ResolvedSSHExe;
 			SSHProcess.StartInfo.Arguments = string.Format(
-				"-o BatchMode=yes {0} {1}@{2} \"{3}\"",
+				"-o BatchMode=yes {0} \"{1}@{2}\" \"{3}\"",
 //				"-o CheckHostIP=no {0} {1}@{2} \"{3}\"",
 				ResolvedSSHAuthentication,
 				RSyncUsername,

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalIndexBuffer.cpp: Metal Index buffer RHI implementation.
@@ -7,6 +7,7 @@
 #include "MetalRHIPrivate.h"
 #include "MetalProfiler.h"
 #include "MetalCommandBuffer.h"
+#include "MetalCommandQueue.h"
 #include "Containers/ResourceArray.h"
 #include "RenderUtils.h"
 
@@ -14,6 +15,7 @@
 FMetalIndexBuffer::FMetalIndexBuffer(uint32 InStride, uint32 InSize, uint32 InUsage)
 	: FRHIIndexBuffer(InStride, InSize, InUsage)
 	, Buffer(nil)
+	, CPUBuffer(nil)
 	, LinearTexture(nil)
 	, LockOffset(0)
 	, LockSize(0)
@@ -37,57 +39,74 @@ FMetalIndexBuffer::~FMetalIndexBuffer()
 
 	INC_DWORD_STAT_BY(STAT_MetalIndexMemFreed, GetSize());
 	SafeReleasePooledBuffer(Buffer);
+	
+	if (CPUBuffer)
+	{
+		SafeReleasePooledBuffer(CPUBuffer);
+	}
 }
 
 void FMetalIndexBuffer::Alloc(uint32 InSize)
 {
-	check(!Buffer);
-
-	MTLStorageMode Mode = BUFFER_STORAGE_MODE;
-	Buffer = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), InSize, Mode));
-	INC_DWORD_STAT_BY(STAT_MetalIndexMemAlloc, InSize);
+	bool const bUsePrivateMem = !(GetUsage() & BUF_Volatile) && FMetalCommandQueue::SupportsFeature(EMetalFeaturesEfficientBufferBlits);
 	
-	if (FMetalCommandQueue::SupportsFeature(EMetalFeaturesLinearTextures) && (GetUsage() & (BUF_UnorderedAccess|BUF_ShaderResource)))
+	if (!Buffer)
 	{
-		check(!LinearTexture);
-
-		MTLPixelFormat MTLFormat = IndexType == MTLIndexTypeUInt32 ? MTLPixelFormatR32Uint : MTLPixelFormatR16Uint;
-		uint32 NumElements = (Buffer.length / GetStride());
-		uint32 SizeX = NumElements;
-		uint32 SizeY = 1;
-		if (NumElements > GMaxTextureDimensions)
+		MTLStorageMode Mode = (bUsePrivateMem ? MTLStorageModePrivate : BUFFER_STORAGE_MODE);
+		Buffer = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), InSize, Mode));
+		INC_DWORD_STAT_BY(STAT_MetalIndexMemAlloc, InSize);
+			
+		if (FMetalCommandQueue::SupportsFeature(EMetalFeaturesLinearTextures) && (GetUsage() & (BUF_UnorderedAccess|BUF_ShaderResource)))
 		{
-			uint32 Dimension = GMaxTextureDimensions;
-			while((NumElements % Dimension) != 0)
+			check(!LinearTexture);
+		
+			MTLPixelFormat MTLFormat = IndexType == MTLIndexTypeUInt32 ? MTLPixelFormatR32Uint : MTLPixelFormatR16Uint;
+			uint32 NumElements = (Buffer.length / GetStride());
+			uint32 SizeX = NumElements;
+			uint32 SizeY = 1;
+			if (NumElements > GMaxTextureDimensions)
 			{
-				check(Dimension >= 1);
-				Dimension = (Dimension >> 1);
+				uint32 Dimension = GMaxTextureDimensions;
+				while((NumElements % Dimension) != 0)
+				{
+					check(Dimension >= 1);
+					Dimension = (Dimension >> 1);
+				}
+				SizeX = Dimension;
+				SizeY = NumElements / Dimension;
+				check(SizeX <= GMaxTextureDimensions);
+				check(SizeY <= GMaxTextureDimensions);
 			}
-			SizeX = Dimension;
-			SizeY = NumElements / Dimension;
-			check(SizeX <= GMaxTextureDimensions);
-			check(SizeY <= GMaxTextureDimensions);
+			
+			MTLTextureDescriptor* Desc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLFormat width:SizeX height:SizeY mipmapped:NO];
+			
+			id<FMTLBufferExtensions> BufferWithExtraAPI = (id<FMTLBufferExtensions>)Buffer;
+			Desc.resourceOptions = (BufferWithExtraAPI.storageMode << MTLResourceStorageModeShift) | (BufferWithExtraAPI.cpuCacheMode << MTLResourceCPUCacheModeShift);
+			Desc.storageMode = BufferWithExtraAPI.storageMode;
+			Desc.cpuCacheMode = BufferWithExtraAPI.cpuCacheMode;
+			if (GetUsage() & BUF_ShaderResource)
+			{
+				Desc.usage |= MTLTextureUsageShaderRead;
+			}
+			if (GetUsage() & BUF_UnorderedAccess)
+			{
+				Desc.usage |= MTLTextureUsageShaderWrite;
+			}
+			
+			check(((SizeX*GetStride()) % 1024) == 0);
+			
+			LinearTexture = [BufferWithExtraAPI newTextureWithDescriptor:Desc offset: 0 bytesPerRow: SizeX*GetStride()];
+			check(LinearTexture);
 		}
-		
-		MTLTextureDescriptor* Desc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLFormat width:SizeX height:SizeY mipmapped:NO];
-		
-		id<FMTLBufferExtensions> BufferWithExtraAPI = (id<FMTLBufferExtensions>)Buffer;
-		Desc.resourceOptions = (BufferWithExtraAPI.storageMode << MTLResourceStorageModeShift) | (BufferWithExtraAPI.cpuCacheMode << MTLResourceCPUCacheModeShift);
-		Desc.storageMode = BufferWithExtraAPI.storageMode;
-		Desc.cpuCacheMode = BufferWithExtraAPI.cpuCacheMode;
-		if (GetUsage() & BUF_ShaderResource)
+	}
+	
+	if (bUsePrivateMem)
+	{
+		if(CPUBuffer)
 		{
-			Desc.usage |= MTLTextureUsageShaderRead;
+			SafeReleasePooledBuffer(CPUBuffer);
 		}
-		if (GetUsage() & BUF_UnorderedAccess)
-		{
-			Desc.usage |= MTLTextureUsageShaderWrite;
-		}
-		
-		check(((SizeX*GetStride()) % 1024) == 0);
-		
-		LinearTexture = [BufferWithExtraAPI newTextureWithDescriptor:Desc offset: 0 bytesPerRow: SizeX*GetStride()];
-		check(LinearTexture);
+		CPUBuffer = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), InSize, MTLStorageModeShared));
 	}
 }
 
@@ -115,6 +134,16 @@ void* FMetalIndexBuffer::Lock(EResourceLockMode LockMode, uint32 Offset, uint32 
 		LockOffset = Offset;
 		LockSize = Size;
 	}
+	else if (CPUBuffer)
+	{
+		SCOPE_CYCLE_COUNTER(STAT_MetalBufferPageOffTime);
+		
+		// Synchronise the buffer with the CPU
+		GetMetalDeviceContext().CopyFromBufferToBuffer(Buffer, 0, CPUBuffer, 0, Buffer.length);
+		
+		//kick the current command buffer.
+		GetMetalDeviceContext().SubmitCommandBufferAndWait();
+	}
 #if PLATFORM_MAC
 	else if(Buffer.storageMode == MTLStorageModeManaged)
 	{
@@ -128,13 +157,20 @@ void* FMetalIndexBuffer::Lock(EResourceLockMode LockMode, uint32 Offset, uint32 
 	}
 #endif
 	
-	return ((uint8*)[Buffer contents]) + Offset;
+	id<MTLBuffer>& theBufferToUse = CPUBuffer ? CPUBuffer : Buffer;
+	
+	return ((uint8*)[theBufferToUse contents]) + Offset;
 }
 
 void FMetalIndexBuffer::Unlock()
 {
+	if (LockSize && CPUBuffer)
+	{
+		// Synchronise the buffer with the GPU
+		GetMetalDeviceContext().AsyncCopyFromBufferToBuffer(CPUBuffer, 0, Buffer, 0, Buffer.length);
+	}
 #if PLATFORM_MAC
-	if(LockSize && Buffer.storageMode == MTLStorageModeManaged)
+	else if(LockSize && Buffer.storageMode == MTLStorageModeManaged)
 	{
 		[Buffer didModifyRange:NSMakeRange(LockOffset, LockSize)];
 	}
@@ -187,10 +223,67 @@ void FMetalDynamicRHI::RHIUnlockIndexBuffer(FIndexBufferRHIParamRef IndexBufferR
 	}
 }
 
+struct FMetalRHICommandInitialiseIndexBuffer : public FRHICommand<FMetalRHICommandInitialiseIndexBuffer>
+{
+	id<MTLBuffer> CPUBuffer;
+	id<MTLBuffer> Buffer;
+	
+	FORCEINLINE_DEBUGGABLE FMetalRHICommandInitialiseIndexBuffer(id<MTLBuffer> InCPUBuffer, id<MTLBuffer> InBuffer)
+	: CPUBuffer(InCPUBuffer)
+	, Buffer(InBuffer)
+	{
+	}
+	
+	virtual ~FMetalRHICommandInitialiseIndexBuffer() {}
+	
+	void Execute(FRHICommandListBase& CmdList)
+	{
+		GetMetalDeviceContext().AsyncCopyFromBufferToBuffer(CPUBuffer, 0, Buffer, 0, Buffer.length);
+	}
+};
+
 FIndexBufferRHIRef FMetalDynamicRHI::CreateIndexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 Stride, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
 {
 	@autoreleasepool {
-	return GDynamicRHI->RHICreateIndexBuffer(Stride, Size, InUsage, CreateInfo);
+		// make the RHI object, which will allocate memory
+		FMetalIndexBuffer* IndexBuffer = new FMetalIndexBuffer(Stride, Size, InUsage);
+		
+		if (CreateInfo.ResourceArray)
+		{
+			check(Size == CreateInfo.ResourceArray->GetResourceDataSize());
+			
+			if (IndexBuffer->CPUBuffer)
+			{
+				FMemory::Memzero(IndexBuffer->CPUBuffer.contents, IndexBuffer->CPUBuffer.length);
+				
+				FMemory::Memcpy(IndexBuffer->CPUBuffer.contents, CreateInfo.ResourceArray->GetResourceData(), Size);
+				
+				if (RHICmdList.Bypass() || !IsRunningRHIInSeparateThread())
+				{
+					FMetalRHICommandInitialiseIndexBuffer UpdateCommand(IndexBuffer->CPUBuffer, IndexBuffer->Buffer);
+					UpdateCommand.Execute(RHICmdList);
+				}
+				else
+				{
+					new (RHICmdList.AllocCommand<FMetalRHICommandInitialiseIndexBuffer>()) FMetalRHICommandInitialiseIndexBuffer(IndexBuffer->CPUBuffer, IndexBuffer->Buffer);
+				}
+			}
+			else
+			{
+				// make a buffer usable by CPU
+				void* Buffer = RHILockIndexBuffer(IndexBuffer, 0, Size, RLM_WriteOnly);
+				
+				// copy the contents of the given data into the buffer
+				FMemory::Memcpy(Buffer, CreateInfo.ResourceArray->GetResourceData(), Size);
+				
+				RHIUnlockIndexBuffer(IndexBuffer);
+			}
+			
+			// Discard the resource array's contents.
+			CreateInfo.ResourceArray->Discard();
+		}
+		
+		return IndexBuffer;
 	}
 }
 

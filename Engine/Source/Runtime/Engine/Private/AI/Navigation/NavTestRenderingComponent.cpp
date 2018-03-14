@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AI/Navigation/NavTestRenderingComponent.h"
 #include "EngineGlobals.h"
@@ -13,6 +13,12 @@ static const FColor NavMeshRenderColor_OpenSet(255,128,0,255);
 static const FColor NavMeshRenderColor_ClosedSet(255,196,0,255);
 static const uint8 NavMeshRenderAlpha_Modifed = 255;
 static const uint8 NavMeshRenderAlpha_NonModified = 64;
+
+SIZE_T FNavTestSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
+}
 
 FNavTestSceneProxy::FNavTestSceneProxy(const UNavTestRenderingComponent* InComponent)
 	: FDebugRenderSceneProxy(InComponent)
@@ -97,7 +103,7 @@ void FNavTestSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>&
 				if (ClosedSetIndices.Num())
 				{
 					const FColoredMaterialRenderProxy *MeshColorInstance = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), NavMeshRenderColor_ClosedSet);						
-					FDynamicMeshBuilder	MeshBuilder;
+					FDynamicMeshBuilder	MeshBuilder(View->GetFeatureLevel());
 					MeshBuilder.AddVertices(ClosedSetVerts);
 					MeshBuilder.AddTriangles(ClosedSetIndices);
 					MeshBuilder.GetMesh(FMatrix::Identity, MeshColorInstance, GetDepthPriorityGroup(View), false, false, ViewIndex, Collector);
@@ -106,7 +112,7 @@ void FNavTestSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>&
 				if (OpenSetIndices.Num())
 				{
 					const FColoredMaterialRenderProxy *MeshColorInstance = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), NavMeshRenderColor_OpenSet);						
-					FDynamicMeshBuilder	MeshBuilder;
+					FDynamicMeshBuilder	MeshBuilder(View->GetFeatureLevel());
 					MeshBuilder.AddVertices(OpenSetVerts);
 					MeshBuilder.AddTriangles(OpenSetIndices);
 					MeshBuilder.GetMesh(FMatrix::Identity, MeshColorInstance, GetDepthPriorityGroup(View), false, false, ViewIndex, Collector);

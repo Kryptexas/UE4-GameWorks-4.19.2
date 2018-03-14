@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimViewportMenuCommands.h"
 
@@ -8,7 +8,9 @@ void FAnimViewportMenuCommands::RegisterCommands()
 {
 	UI_COMMAND( PreviewSceneSettings, "Preview Scene Settings...", "The Advanced Preview Settings tab will let you alter the preview scene's settings.", EUserInterfaceActionType::Button, FInputChord());
 
-	UI_COMMAND( CameraFollow, "Camera Follow", "Follow the bound of the mesh ", EUserInterfaceActionType::ToggleButton, FInputChord() );
+	UI_COMMAND( CameraFollowNone, "Free Camera", "Camera is free to move", EUserInterfaceActionType::RadioButton, FInputChord() );
+	UI_COMMAND( CameraFollowBounds, "Follow Bounds", "Camera follows the bounbds of the mesh", EUserInterfaceActionType::RadioButton, FInputChord() );
+	UI_COMMAND( CameraFollowBone, "Follow Bone", "Camera follows a specified bone", EUserInterfaceActionType::RadioButton, FInputChord() );
 
 	UI_COMMAND( SetCPUSkinning, "CPU Skinning", "Toggles display of CPU skinning in the Preview Pane.", EUserInterfaceActionType::ToggleButton, FInputChord());
 	UI_COMMAND( SetShowNormals, "Normals", "Toggles display of vertex normals in the Preview Pane.", EUserInterfaceActionType::ToggleButton, FInputChord() );

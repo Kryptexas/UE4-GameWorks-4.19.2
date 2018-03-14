@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DataReplication.h:
@@ -11,6 +11,7 @@
 #include "UObject/CoreNet.h"
 #include "Engine/EngineTypes.h"
 #include "UObject/UnrealType.h"
+#include "GCObject.h"
 
 class FNetFieldExportGroup;
 class FOutBunch;
@@ -92,14 +93,15 @@ class ENGINE_API FObjectReplicator
 {
 public:
 	FObjectReplicator() : 
-		ObjectClass( NULL ), 
+		ObjectClass(nullptr),
+		ObjectPtr(nullptr),
 		bLastUpdateEmpty( false ), 
 		bOpenAckCalled( false ),
 		bForceUpdateUnmapped( false ),
-		Connection( NULL ),
-		OwningChannel( NULL ),
-		RepState( NULL ),
-		RemoteFunctions( NULL )
+		Connection(nullptr),
+		OwningChannel(nullptr),
+		RepState(nullptr),
+		RemoteFunctions(nullptr)
 	{ }
 
 	~FObjectReplicator() 
@@ -109,7 +111,7 @@ public:
 
 	UClass *										ObjectClass;
 	FNetworkGUID									ObjectNetGUID;
-	TWeakObjectPtr< UObject >						ObjectPtr;
+	UObject*										ObjectPtr;
 
 	TArray<FPropertyRetirement>						Retirement;					// Property retransmission.
 	TMap<int32, TSharedPtr<INetDeltaBaseState> >	RecentCustomDeltaState;		// This is the delta state we need to compare with when determining what to send to a client for custom delta properties
@@ -216,8 +218,8 @@ public:
 
 	void UpdateUnmappedObjects( bool & bOutHasMoreUnmapped );
 
-	FORCEINLINE UObject *	GetObject() const { return ObjectPtr.Get(); }
-	FORCEINLINE void		SetObject( UObject* NewObj ) { ObjectPtr = TWeakObjectPtr<UObject>( NewObj ); }
+	FORCEINLINE UObject *	GetObject() const { return ObjectPtr; }
+	FORCEINLINE void		SetObject( UObject* NewObj ) { ObjectPtr = NewObj; }
 
 	FORCEINLINE void PreNetReceive()		
 	{ 

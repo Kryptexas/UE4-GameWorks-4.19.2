@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PhysicsAssetEditorMode.h"
 #include "PhysicsAssetEditor.h"
@@ -17,6 +17,9 @@
 #include "ModuleManager.h"
 #include "MultiBoxBuilder.h"
 #include "PhysicsAssetEditorToolsSummoner.h"
+#include "UICommandList_Pinnable.h"
+#include "IPersonaViewport.h"
+#include "IPinnedCommandList.h"
 
 #define LOCTEXT_NAMESPACE "PhysicsAssetEditorMode"
 
@@ -44,7 +47,7 @@ FPhysicsAssetEditorMode::FPhysicsAssetEditorMode(TSharedRef<FWorkflowCentricAppl
 	{
 		const FPhysicsAssetEditorCommands& Actions = FPhysicsAssetEditorCommands::Get();
 
-		InMenuBuilder.PushCommandList(PhysicsAssetEditorPtr.Pin()->GetToolkitCommands());
+		InMenuBuilder.PushCommandList(PhysicsAssetEditorPtr.Pin()->GetViewportCommandList().ToSharedRef());
 
 		InMenuBuilder.BeginSection("PhysicsAssetShowCommands", LOCTEXT("PhysicsShowCommands", "Physics Rendering"));
 		{
@@ -77,36 +80,11 @@ FPhysicsAssetEditorMode::FPhysicsAssetEditorMode(TSharedRef<FWorkflowCentricAppl
 				static void BuildCollisionRenderModeMenu(FMenuBuilder& InSubMenuBuilder, TWeakPtr<FPhysicsAssetEditor> PhysicsAssetEditorPtr)
 				{
 					const FPhysicsAssetEditorCommands& Commands = FPhysicsAssetEditorCommands::Get();
-
+				
 					InSubMenuBuilder.BeginSection("PhysicsAssetEditorCollisionRenderSettings", LOCTEXT("CollisionRenderSettingsHeader", "Body Drawing"));
 					{
 						InSubMenuBuilder.AddMenuEntry(Commands.RenderOnlySelectedSolid);
-
-						UPhysicsAssetEditorOptions* Options = PhysicsAssetEditorPtr.Pin()->GetSharedData()->EditorOptions;
-
-						TSharedPtr<SWidget> CollisionOpacityWidget = 
-							SNew(SBox)
-							.HAlign(HAlign_Right)
-							[
-								SNew(SBox)
-								.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
-								.WidthOverride(100.0f)
-								[
-									SNew(SSpinBox<float>)
-									.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
-									.MinValue(0.0f)
-									.MaxValue(1.0f)
-									.Value_Lambda([Options]() { return Options->CollisionOpacity; })
-									.OnValueChanged_Lambda([Options](float InValue) { Options->CollisionOpacity = InValue; })
-									.OnValueCommitted_Lambda([Options](float InValue, ETextCommit::Type InCommitType) 
-									{ 
-										Options->CollisionOpacity = InValue; 
-										Options->SaveConfig(); 
-									})
-								]
-							];
-
-						InSubMenuBuilder.AddWidget(CollisionOpacityWidget.ToSharedRef(), LOCTEXT("CollisionOpacityLabel", "Collision Opacity"));
+						InSubMenuBuilder.AddWidget(PhysicsAssetEditorPtr.Pin()->MakeCollisionOpacityWidget(), LOCTEXT("CollisionOpacityLabel", "Collision Opacity"));
 					}
 					InSubMenuBuilder.EndSection();
 
@@ -134,28 +112,8 @@ FPhysicsAssetEditorMode::FPhysicsAssetEditorMode(TSharedRef<FWorkflowCentricAppl
 					InSubMenuBuilder.BeginSection("PhysicsAssetEditorConstraints", LOCTEXT("ConstraintHeader", "Constraints"));
 					{
 						InSubMenuBuilder.AddMenuEntry(Commands.DrawConstraintsAsPoints);
-
-						UPhysicsAssetEditorOptions* Options = PhysicsAssetEditorPtr.Pin()->GetSharedData()->EditorOptions;
-
-						TSharedPtr<SWidget> ConstraintScaleWidget = 
-							SNew(SBox)
-							.HAlign(HAlign_Right)
-							[
-								SNew(SBox)
-								.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
-								.WidthOverride(100.0f)
-								[
-									SNew(SSpinBox<float>)
-									.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
-									.MinValue(0.0f)
-									.MaxValue(4.0f)
-									.Value_Lambda([Options]() { return Options->ConstraintDrawSize; })
-									.OnValueChanged_Lambda([Options](float InValue) { Options->ConstraintDrawSize = InValue; })
-									.OnValueCommitted_Lambda([Options](float InValue, ETextCommit::Type InCommitType) { Options->ConstraintDrawSize = InValue; Options->SaveConfig(); })
-								]
-							];
-
-						InSubMenuBuilder.AddWidget(ConstraintScaleWidget.ToSharedRef(), LOCTEXT("ConstraintScaleLabel", "Constraint Scale"));
+						InSubMenuBuilder.AddMenuEntry(Commands.RenderOnlySelectedConstraints);
+						InSubMenuBuilder.AddWidget(PhysicsAssetEditorPtr.Pin()->MakeConstraintScaleWidget(), LOCTEXT("ConstraintScaleLabel", "Constraint Scale"));
 					}
 					InSubMenuBuilder.EndSection();
 
@@ -202,8 +160,8 @@ FPhysicsAssetEditorMode::FPhysicsAssetEditorMode(TSharedRef<FWorkflowCentricAppl
 
 	TArray<TSharedPtr<FExtender>> ViewportExtenders;
 	ViewportExtenders.Add(MakeShared<FExtender>());
-	ViewportExtenders[0]->AddMenuExtension("AnimViewportGeneralShowFlags", EExtensionHook::After, PhysicsAssetEditor->GetToolkitCommands(), FMenuExtensionDelegate::CreateLambda(ExtendShowMenu));
-	ViewportExtenders[0]->AddMenuExtension("AnimViewportShowMenu", EExtensionHook::After, PhysicsAssetEditor->GetToolkitCommands(), FMenuExtensionDelegate::CreateLambda(ExtendMenuBar));
+	ViewportExtenders[0]->AddMenuExtension("AnimViewportSceneElements", EExtensionHook::Before, PhysicsAssetEditor->GetToolkitCommands(), FMenuExtensionDelegate::CreateLambda(ExtendShowMenu));
+	ViewportExtenders[0]->AddMenuExtension("AnimViewportPhysicsMenu", EExtensionHook::After, PhysicsAssetEditor->GetToolkitCommands(), FMenuExtensionDelegate::CreateLambda(ExtendMenuBar));
 
 
 	FPersonaViewportArgs ViewportArgs(InSkeletonTree, InPreviewScene, PhysicsAssetEditor->OnPostUndo);
@@ -212,6 +170,32 @@ FPhysicsAssetEditorMode::FPhysicsAssetEditorMode(TSharedRef<FWorkflowCentricAppl
 	ViewportArgs.bShowTurnTable = false;
 	ViewportArgs.bShowPhysicsMenu = true;
 	ViewportArgs.Extenders = ViewportExtenders;
+	ViewportArgs.OnViewportCreated = FOnViewportCreated::CreateLambda([this](const TSharedRef<IPersonaViewport>& InViewport)
+	{
+		// Setup bindings with the recent commands bar
+		TWeakPtr<IPersonaViewport> WeakViewport = InViewport;
+		InViewport->GetPinnedCommandList()->BindCommandList(PhysicsAssetEditorPtr.Pin()->GetViewportCommandList().ToSharedRef());
+		InViewport->GetPinnedCommandList()->RegisterCustomWidget(IPinnedCommandList::FOnGenerateCustomWidget::CreateSP(PhysicsAssetEditorPtr.Pin().Get(), &FPhysicsAssetEditor::MakeConstraintScaleWidget), TEXT("ConstraintScaleWidget"), LOCTEXT("ConstraintScaleLabel", "Constraint Scale"));
+		InViewport->GetPinnedCommandList()->RegisterCustomWidget(IPinnedCommandList::FOnGenerateCustomWidget::CreateSP(PhysicsAssetEditorPtr.Pin().Get(), &FPhysicsAssetEditor::MakeCollisionOpacityWidget), TEXT("CollisionOpacityWidget"), LOCTEXT("CollisionOpacityLabel", "Collision Opacity"));
+	});
+	ViewportArgs.OnGetViewportText = FOnGetViewportText::CreateLambda([this](EViewportCorner InViewportCorner)
+	{
+		if(InViewportCorner == EViewportCorner::TopLeft)
+		{
+			TSharedPtr<FPhysicsAssetEditorSharedData> SharedData = PhysicsAssetEditorPtr.Pin()->GetSharedData();
+
+			// Write body/constraint count at top.
+			return FText::Format(
+				NSLOCTEXT("UnrealEd", "BodiesConstraints_F", "{0} Bodies, {1} Considered for bounds ({2}%), {3} Constraints"),
+				FText::AsNumber(SharedData->PhysicsAsset->SkeletalBodySetups.Num()),
+				FText::AsNumber(SharedData->PhysicsAsset->BoundsBodies.Num()),
+				FText::AsNumber(static_cast<float>(SharedData->PhysicsAsset->BoundsBodies.Num()) / static_cast<float>(SharedData->PhysicsAsset->SkeletalBodySetups.Num()) * 100.0f),
+				FText::AsNumber(SharedData->PhysicsAsset->ConstraintSetup.Num()));
+		}
+
+		return FText();
+	});
+	ViewportArgs.ContextName = TEXT("PhysicsAssetEditor.Viewport");
 
 	TabFactories.RegisterFactory(PersonaModule.CreatePersonaViewportTabFactory(InHostingApp, ViewportArgs));
 
@@ -289,6 +273,11 @@ FPhysicsAssetEditorMode::FPhysicsAssetEditorMode(TSharedRef<FWorkflowCentricAppl
 				)
 			)
 		);
+
+	PersonaModule.OnRegisterTabs().Broadcast(TabFactories, InHostingApp);
+	LayoutExtender = MakeShared<FLayoutExtender>();
+	PersonaModule.OnRegisterLayoutExtensions().Broadcast(*LayoutExtender.Get());
+	TabLayout->ProcessExtensions(*LayoutExtender.Get());
 }
 
 void FPhysicsAssetEditorMode::RegisterTabFactories(TSharedPtr<FTabManager> InTabManager)

@@ -7,43 +7,11 @@ Related: Engine/Rendering/Materials/ExpressionReference
 Related: Engine/Rendering/Materials/Functions/Reference/PivotPainter
 Related: Engine/Rendering/Materials/Functions/Creating
 Version: 4.9
+topic-image:pivotPainter_compact.png
 
 [REGION:banner]
 ![](PivotPainter_Header.png)(convert:false)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/PivotPainter:title%](pivotPainter_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/PivotPainter:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/PivotPainter:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/PivotPainter]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/PivotPainter:title%](pivotPainter_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/PivotPainter:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/PivotPainter]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
 
 The [Pivot Painter Tool](Engine\Content\Tools\PivotPainter) is a MAXScript that stores model pivot and rotation information in the model's vertex data. That information can then be referenced inside of Unreal Engine 4's shader system to create interactive effects. 
 

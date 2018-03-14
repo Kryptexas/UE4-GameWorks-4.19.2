@@ -1,0 +1,173 @@
+﻿INTSourceChangelist:3689112
+Availability:Public
+Title:キャプチャしたライブ映像のプレイ方法
+Crumbs:%ROOT%, Engine
+Description:キャプチャしたライブ映像を抽出し、メディア フレームワーク ツールを使って UE4 でプレイする方法		
+Type: how-to
+SkillLevel:Advanced
+Version:4.18
+Parent:Engine/MediaFramework/HowTo
+Order:3
+Tags:Media Framework
+Tags:Video Playback
+Related:Engine\MediaFramework
+
+アンリアル エンジン 4 のメディア フレームワークは、エンジン内でプレイ可能なメディア形式として、ビデオ /オーディオのキャプチャ デバイスに対応しています。 
+例えば、ウェブカムから送られてくるライブ映像を受け取り、スタティックメッシュ上あるいは HUD の一部として UE4 で直接プレイすることができます。 
+あるいは、プロジェクトをモバイル デバイスにデプロイして、フロントまたはバックカメラから送られた映像を抽出し、アプリケーションの中で再生することができます。 
+
+このサンプルを使って、キャプチャ映像を受け取り、それをゲームプレイ中に HUD の一部として表示していきます。 
+
+![](WebCamHero.png)
+
+## ステップ
+
+[REGION:note]
+この操作ガイドでは **Starter Content Enabled (スターター コンテンツを有効にした状態)** で **Blueprint Third Person Template** プロジェクトを使います。
+コンピューターにはウェブカムも搭載する必要があります。 
+[/REGION]
+
+1.	**[Sources]** パネルを展開して **[Movies」** という名前のフォルダを作成したら、その中に **Media Player** と、関連づけられている **Media Texture** アセットを **「MediaPlayer」** という名前で作成します。 
+
+	![](WebCam_01.png)
+
+1.	**MediaPlayer** アセットを開いて **[Media URL]** フィールドの横をクリックし **[Capture Devices]** を展開します。カメラはこの **[Video]** の中に入っています。 
+
+	![](WebCam_02.png)
+
+	[REGION:note]
+	パソコンの設定によっては、キャプチャ デバイスの数と表示される名前がこのスクリーンショットとは異なる場合があります。 
+	[/REGION]
+
+	ビデオ キャプチャ デバイスを選択すると、カメラからの映像がメディア エディタ プレイヤーに表示されます。 
+
+1.	Media URL 欄に表示されている **Media URL** 文字列をハイライトしてコピーします。 
+
+	![](WebCam_03.png)
+
+	[REGION:note]
+	パソコンの設定によっては、表示される URL 文字列がこのスクリーンショットとは異なる場合があります。 
+	[/REGION]
+
+1.	**コンテンツ ブラウザ** を右クリックし、**[User Interface]** の **[Widget Blueprint]** を選択して **「HUD」** と名前を付けます。 
+
+	![](WebCam_04.png)
+
+	ユーザー インターフェースの **メディア テクスチャ** を使って、ウェブカムで撮った映像を HUD でピクチャ イン ピクチャで表示してみましょう。 
+
+1.	**HUD** ウィジェット ブループリントを開いたら **[Palette]** ウィンドウから **画像** をグラフにドラッグして好きなサイズに変更します。 
+
+	![](WebCam_05.png)
+
+	サンプルはウィンドウを左上隅に置いていますが、場所は自由に選ぶことができます。 
+
+1.	**画像** 選択したら、**[Details]** パネルの **[Brush]** で、**[Image]** をステップ 1 で作成した **[MediaPlayer_Video]** メディア テクスチャに設定します。 
+
+	![](WebCam_06.png)
+
+1.	**HUD** ウィジェット ブループリントを閉じて、メイン ツールバーの **[Blueprints]** をクリックし **[Open Level Blueprint]** を選択します。 
+
+	![](WebCam_07.png)
+
+	メディア ソースを直接開かずにメディア URL をコピーしていますが、ランタイム時にプレイするためにはメディア ソースを開いておく必要があります。 
+
+1.	**[MyBlueprint]** パネルで **Media Player Reference** 型の **[MediaPlayer]** という変数を作成し、**MyPlayer** に割り当てます。 
+
+	![](WebCam_08.png)
+
+	[REGION:note]
+	Media Player 変数の **デフォルト値** を割り当てる前に **[Compile]** をクリックしてブループリントをコンパイルする必要があります。 
+	[/REGION]
+
+1.	**Ctrl** を押しながら **MediaPlayer** 変数をグラフへドラッグし、右クリックして **Event BeginPlay** ノードを追加します。 
+
+	![](WebCam_09.png)
+
+	アクションの実行先となるメディア プレイヤーへの参照およびゲーム プレイの開始を知らせる [イベント](Engine/Blueprints/UserGuide/Events/) を作成しました。 
+
+1.	右クリックして **Create Widget** ノード (**HUD** を **クラス** として) を追加し、**Return Value** の出力を以下のように **Add to Viewport** に接続します。 
+
+	![](WebCam_10.png)
+
+	ここで、ゲームの開始時を指示し、HUD ウィジェット ブループリントを作成し、プレイヤーのビューポートに追加します。 
+
+1.	グラフの **Media Player** ノードを引き出し **Open URL** にステップ 3 でコピーした URL をペーストして以下のように接続します。 
+
+	![](WebCam_11.png)
+
+	ここでエディタをプレイすると、ウェブカムからの映像がさきほど配置した HUD 上に表示されます。 
+
+	![](WebCam_12.png)
+
+	このサンプルではメディア URL を指定して開きましたが、メディア URL が分からない場合もあります。 
+	この機能を使うと、プロジェクトをパッケージ化および配布して、エンドユーザーの接続先キャプチャ デバイス情報を取得して、そのどれかを使用することができます。 
+	あるいは、プロジェクトをモバイル デバイスにデプロイして、フロントまたはバックカメラから取得した映像ををメディア ソースとして使うと良いかもしれません。 
+	**Enumerate Capture Devices** 関数を使って搭載したすべてのキャプチャ デバイスを戻し、デバイス情報を取得します。 
+
+1.	グラフを右クリックして **Enumerate Video Capture Devices** 関数を追加します。 
+
+	![](WebCam_13.png)
+
+	オーディオ / ビデオ / ウェブカム キャプチャ デバイス用の列挙型の値があります (モバイル デバイスにウェブカムを使う場合はフロント / バックカメラの取得が可能です)。 
+
+1.	**Filter** ピンを引き出して **Make Bitmask** ノードを使用します。 
+
+	![](WebCam_14.png)
+
+	Make Bitmask ノードを使って、デバイスの特定のサブセットのフィルタリングを行うことができます。 
+
+1.	**Make Bitmask** ノードを選択して、**[Details]** パネルで **[Bitmask Enum]** を **[EMediaVideoCaptureDeviceFilter]** に変更し、フィルタリングでそれぞを有効にします。 
+
+	![](WebCam_14b.png)
+
+	有効にしたそれぞれのオプションをフィルタリングしてキャプチャ デバイスを戻している様子です (いらないものを省いて、戻されたデバイスのリストを小さくすることができます)。 
+
+1.	**Out Devices** から **Get Copy** ノードに接続し、ピンを引き出し、**Break MediaCpatureDevice** ノードを以下のように **Open URL** に接続します。 
+
+	[REGION:lightbox]
+	[![](WebCam_16.png)](WebCam_16.png)
+	[/REGION]
+
+	[REGION:caption]
+	画像をクリックしてフルサイズで表示 
+	[/REGION]
+
+	すると、先に使用可能なデバイスを見つけ、Open URL を使って再生するソースを開くための URL を戻します。 
+
+1.	レベル ブループリントを **コンパイル** して終了します。メイン ツールバーの **[Play]** ボタンをクリックしてエディタでプレイします。 
+
+## 最終結果
+
+エディタでプレイすると、カメラから送られてきた映像はエンジンで実行され、HUD に表示されます。 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	Y8ixEPgho5U
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+モバイル デバイスでフロント / バックカメラを取得するには、次の手順に従います。 
+
+* **Enumerate Video Capture Devices** ノードを使って **Bitmask Enum** を **EMediaWebcamCaptureDeviceFilter** オプションに設定します。 
+* **Make Bitmask** ノードで、取得したいカメラにフラグを立てます。 
+
+![](WebCam_15.png)
+
+
+
+
+
+
+

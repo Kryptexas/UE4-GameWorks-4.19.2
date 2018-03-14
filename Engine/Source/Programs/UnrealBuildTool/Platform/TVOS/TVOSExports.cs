@@ -1,3 +1,5 @@
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,21 +26,38 @@ namespace UnrealBuildTool
 		public static void GetProvisioningData(FileReference InProject, bool Distribution, out string MobileProvision, out string SigningCertificate, out string TeamUUID, out bool bAutomaticSigning)
 		{
 			IOSProjectSettings ProjectSettings = ((TVOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.TVOS)).ReadProjectSettings(InProject);
-
-			IOSProvisioningData Data = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.TVOS)).ReadProvisioningData(ProjectSettings, Distribution);
-			if(Data == null)
+			if (ProjectSettings == null)
 			{
 				MobileProvision = null;
 				SigningCertificate = null;
 				TeamUUID = null;
 				bAutomaticSigning = false;
+				return;
+			}
+			if (ProjectSettings.bAutomaticSigning)
+			{
+				MobileProvision = null;
+				SigningCertificate = null;
+				TeamUUID = ProjectSettings.TeamID;
+				bAutomaticSigning = true;
 			}
 			else
 			{
-				MobileProvision = Data.MobileProvision;
-				SigningCertificate = Data.SigningCertificate;
-				TeamUUID = Data.TeamUUID;
-				bAutomaticSigning = ProjectSettings.bAutomaticSigning;
+				IOSProvisioningData Data = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.TVOS)).ReadProvisioningData(ProjectSettings, Distribution);
+				if (Data == null)
+				{
+					MobileProvision = null;
+					SigningCertificate = null;
+					TeamUUID = ProjectSettings.TeamID;
+					bAutomaticSigning = true;
+				}
+				else
+				{
+					MobileProvision = Data.MobileProvision;
+					SigningCertificate = Data.SigningCertificate;
+					TeamUUID = Data.TeamUUID;
+					bAutomaticSigning = false;
+				}
 			}
 		}
 

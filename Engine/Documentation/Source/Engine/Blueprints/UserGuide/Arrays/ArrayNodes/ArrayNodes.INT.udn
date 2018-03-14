@@ -6,48 +6,9 @@ version: 4.9
 parent:Engine/Blueprints/Scripting
 tags:Arrays and Structures
 tags:Blueprints
+tags:Special Nodes
 order:2
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Arrays\ArrayNodes:title%](Engine\Blueprints\UserGuide\ArrayNodes.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Arrays\ArrayNodes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Arrays\ArrayNodes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Arrays\ArrayNodes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Arrays\ArrayNodes:title%](Engine\Blueprints\UserGuide\ArrayNodes.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Arrays\ArrayNodes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Arrays\ArrayNodes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Arrays\ArrayNodes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-
+topic-image:Engine\Blueprints\UserGuide\ArrayNodes.png
 
 
 ## Add Item

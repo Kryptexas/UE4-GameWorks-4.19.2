@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/WidgetComponent.h"
 #include "PrimitiveViewRelevance.h"
@@ -265,9 +265,15 @@ private:
 
 
 /** Represents a billboard sprite to the scene manager. */
-class FWidget3DSceneProxy : public FPrimitiveSceneProxy
+class FWidget3DSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
+
 	/** Initialization constructor. */
 	FWidget3DSceneProxy( UWidgetComponent* InComponent, ISlate3DRenderer& InRenderer )
 		: FPrimitiveSceneProxy( InComponent )
@@ -331,7 +337,7 @@ public:
 
 					for ( int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++ )
 					{
-						FDynamicMeshBuilder MeshBuilder;
+						FDynamicMeshBuilder MeshBuilder(Views[ViewIndex]->GetFeatureLevel());
 
 						if ( VisibilityMap & ( 1 << ViewIndex ) )
 						{
@@ -366,7 +372,7 @@ public:
 
 					for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 					{
-						FDynamicMeshBuilder MeshBuilder;
+						FDynamicMeshBuilder MeshBuilder(Views[ViewIndex]->GetFeatureLevel());
 
 						if (VisibilityMap & (1 << ViewIndex))
 						{
@@ -636,9 +642,15 @@ FPrimitiveSceneProxy* UWidgetComponent::CreateSceneProxy()
 
 #if WITH_EDITOR
 	// make something so we can see this component in the editor
-	class FWidgetBoxProxy : public FPrimitiveSceneProxy
+	class FWidgetBoxProxy final : public FPrimitiveSceneProxy
 	{
 	public:
+		SIZE_T GetTypeHash() const override
+		{
+			static size_t UniquePointer;
+			return reinterpret_cast<size_t>(&UniquePointer);
+		}
+
 		FWidgetBoxProxy(const UWidgetComponent* InComponent)
 			: FPrimitiveSceneProxy(InComponent)
 			, BoxExtents(1.f, InComponent->GetDrawSize().X / 2.0f, InComponent->GetDrawSize().Y / 2.0f)
@@ -1083,13 +1095,14 @@ void UWidgetComponent::RemoveWidgetFromScreen()
 			TSharedPtr<IGameLayerManager> LayerManager = ViewportClient->GetGameLayerManager();
 			if ( LayerManager.IsValid() )
 			{
-				ULocalPlayer* TargetPlayer = GetOwnerPlayer();
-
-				TSharedPtr<IGameLayer> Layer = LayerManager->FindLayerForPlayer(TargetPlayer, SharedLayerName);
-				if ( Layer.IsValid() )
+				if (ULocalPlayer* TargetPlayer = GetOwnerPlayer())
 				{
-					TSharedPtr<FWorldWidgetScreenLayer> ScreenLayer = StaticCastSharedPtr<FWorldWidgetScreenLayer>(Layer);
-					ScreenLayer->RemoveComponent(this);
+					TSharedPtr<IGameLayer> Layer = LayerManager->FindLayerForPlayer(TargetPlayer, SharedLayerName);
+					if (Layer.IsValid())
+					{
+						TSharedPtr<FWorldWidgetScreenLayer> ScreenLayer = StaticCastSharedPtr<FWorldWidgetScreenLayer>(Layer);
+						ScreenLayer->RemoveComponent(this);
+					}
 				}
 			}
 		}
@@ -1284,7 +1297,20 @@ void UWidgetComponent::SetOwnerPlayer(ULocalPlayer* LocalPlayer)
 
 ULocalPlayer* UWidgetComponent::GetOwnerPlayer() const
 {
-	return OwnerPlayer ? OwnerPlayer : GEngine->GetLocalPlayerFromControllerId(GetWorld(), 0);
+	if (OwnerPlayer)
+	{
+		return OwnerPlayer;
+	}
+	
+	if (UWorld* LocalWorld = GetWorld())
+	{
+		UGameInstance* GameInstance = LocalWorld->GetGameInstance();
+		check(GameInstance);
+
+		return GameInstance->GetFirstGamePlayer();
+	}
+
+	return nullptr;
 }
 
 void UWidgetComponent::SetWidget(UUserWidget* InWidget)

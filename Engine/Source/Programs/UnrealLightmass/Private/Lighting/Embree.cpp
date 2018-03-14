@@ -1,9 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Embree.h"
 #include "LightingSystem.h"
 #include "UnrealLightmass.h"
- 
+#include "HAL/PlatformTime.h"
+
 // #pragma optimize( "", off )
 // #define EMBREE_INLINE
 
@@ -342,6 +343,13 @@ void EmbreeFilterFunc(void* UserPtr, RTCRay& InRay)
 		return;
 	}
 
+	// Only collide with surface domain materials
+	if (!Proc.Desc.SurfaceDomain)
+	{
+		Proc.Invalidate();
+		return;
+	}
+
 	// No collision with translucent primitives.
 	if (Proc.Desc.Translucent && !(Proc.Ray.bDirectShadowingRay && Proc.Desc.CastShadowAsMasked))
 	{
@@ -383,11 +391,16 @@ void EmbreeFilterFunc4(const void* valid, void* UserPtr, RTCRay4& InRay)
 {
 	FEmbreeRay4& EmbreeRay4 = (FEmbreeRay4&)InRay;
 
+	const FEmbreeGeometry* TestGeometry = (FEmbreeGeometry*)UserPtr;
+
 	for (int32 i = 0; i < 4; i++)
 	{
-		FEmbreeRay SingleRay = EmbreeRay4.BuildSingleRay(i);
-		EmbreeFilterFunc(UserPtr, SingleRay);
-		EmbreeRay4.SetFromSingleRay(SingleRay, i);
+		if (EmbreeRay4.primID[i] != uint32(-1) && EmbreeRay4.geomID[i] == TestGeometry->GeomID)
+		{
+			FEmbreeRay SingleRay = EmbreeRay4.BuildSingleRay(i);
+			EmbreeFilterFunc(UserPtr, SingleRay);
+			EmbreeRay4.SetFromSingleRay(SingleRay, i);
+		}
 	}
 }
 
@@ -434,6 +447,7 @@ FEmbreeGeometry::FEmbreeGeometry(
 		Desc.StaticAndOpaqueMask = !Mesh->IsMasked(ElementIndex) && !Mesh->IsTranslucent(ElementIndex) && !Mesh->bMovable;;
 		Desc.TwoSidedMask = Mesh->IsTwoSided(ElementIndex) || Mesh->IsCastingShadowAsTwoSided();
 		Desc.Translucent = Mesh->IsTranslucent(ElementIndex);
+		Desc.SurfaceDomain = Mesh->IsSurfaceDomain(ElementIndex);
 		Desc.IndirectlyShadowedOnly = Mesh->IsIndirectlyShadowedOnly(ElementIndex);
 		Desc.Masked = Mesh->IsMasked(ElementIndex);
 		Desc.CastShadowAsMasked = Mesh->IsCastingShadowsAsMasked(ElementIndex);
@@ -509,6 +523,14 @@ FEmbreeAggregateMesh::FEmbreeAggregateMesh(const FScene& InScene):
 
 	EmbreeScene = rtcDeviceNewScene(InScene.EmbreeDevice, RTC_SCENE_STATIC, (RTCAlgorithmFlags)AlgorithmFlags);
 	check(rtcDeviceGetError(EmbreeDevice) == RTC_NO_ERROR);
+
+	if (InScene.GeneralSettings.bUseEmbreePacketTracing)
+	{
+#if RTCORE_VERSION_MAJOR >= 2 && RTCORE_VERSION_MINOR >= 14
+		ssize_t SupportsPacketTracing = rtcDeviceGetParameter1i(EmbreeDevice, RTC_CONFIG_INTERSECT4);
+		check(SupportsPacketTracing);
+#endif
+	}
 }
 
 FEmbreeAggregateMesh::~FEmbreeAggregateMesh()
@@ -553,8 +575,13 @@ void FEmbreeAggregateMesh::AddMesh(const FStaticLightingMesh* Mesh, const FStati
 
 void FEmbreeAggregateMesh::PrepareForRaytracing()
 {
+	const double StartTime = FPlatformTime::Seconds();
+
 	rtcCommit(EmbreeScene);
 	check(rtcDeviceGetError(EmbreeDevice) == RTC_NO_ERROR);
+
+	const float Buildtime = FPlatformTime::Seconds() - StartTime;
+	UE_LOG(LogLightmass, Log, TEXT("Embree Build %.1fs"), Buildtime);
 }
 
 void FEmbreeAggregateMesh::DumpStats() const 

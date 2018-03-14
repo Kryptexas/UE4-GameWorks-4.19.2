@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -143,6 +143,20 @@ FORCEINLINE void FFloat16::Set(float FP32Value)
 		// Set to 0.
 		Components.Exponent = 0;
 		Components.Mantissa = 0;
+
+         // Exponent unbias the single, then bias the halfp
+         const int32 NewExp = FP32.Components.Exponent - 127 + 15;
+ 
+         if ( (14 - NewExp) <= 24 ) // Mantissa might be non-zero
+         {
+             uint32 Mantissa = FP32.Components.Mantissa | 0x800000; // Hidden 1 bit
+             Components.Mantissa = Mantissa >> (14 - NewExp);
+			 // Check for rounding
+             if ( (Mantissa >> (13 - NewExp)) & 1 )
+			 {
+                 Encoded++; // Round, might overflow into exp bit, but this is OK
+			 }
+         }
 	}
 	// Check for INF or NaN, or too high value
 	else if (FP32.Components.Exponent >= 143)		// Too large exponent? (31+127-15)

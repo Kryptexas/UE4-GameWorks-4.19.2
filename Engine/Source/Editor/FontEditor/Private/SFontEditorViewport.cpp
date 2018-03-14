@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SFontEditorViewport.h"
 #include "Fonts/SlateFontInfo.h"
@@ -30,11 +30,12 @@
    FFontEditorViewportClient
 -----------------------------------------------------------------------------*/
 
-class FFontEditorViewportClient : public FViewportClient
+class FFontEditorViewportClient : public FCommonViewportClient
 {
 public:
 	/** Constructor */
 	FFontEditorViewportClient(TWeakPtr<SFontEditorViewport> InFontEditorViewport);
+	~FFontEditorViewportClient();
 
 	/** FLevelEditorViewportClient interface */
 	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
@@ -57,6 +58,8 @@ public:
 	float GetViewportVerticalScrollBarRatio() const;
 	float GetViewportHorizontalScrollBarRatio() const;
 
+	/** FViewport interface */
+	virtual float UpdateViewportClientWindowDPIScale() const override;
 private:
 	/** Updates the states of the scrollbars */
 	void UpdateScrollBars();
@@ -67,6 +70,7 @@ private:
 	/** Returns the positions of the scrollbars relative to the font textures */
 	FVector2D GetViewportScrollBarPositions() const;
 
+	void HandleWindowDPIScaleChanged(TSharedRef<SWindow> Window);
 private:
 	/** Pointer back to the Font viewport control that owns us */
 	TWeakPtr<SFontEditorViewport> FontEditorViewportPtr;
@@ -97,6 +101,16 @@ FFontEditorViewportClient::FFontEditorViewportClient(TWeakPtr<SFontEditorViewpor
 	BackgroundColor = FColor::Black;
 	ForegroundColor = FColor::White;
 	bDrawFontMetrics = false;
+
+	FSlateApplication::Get().OnWindowDPIScaleChanged().AddRaw(this, &FFontEditorViewportClient::HandleWindowDPIScaleChanged);
+}
+
+FFontEditorViewportClient::~FFontEditorViewportClient()
+{
+	if (FSlateApplication::IsInitialized())
+	{
+		FSlateApplication::Get().OnWindowDPIScaleChanged().RemoveAll(this);
+	}
 }
 
 void FFontEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
@@ -198,7 +212,7 @@ void FFontEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		// And draw the text with the foreground color
 		if (Font->FontCacheType == EFontCacheType::Runtime)
 		{
-			static const float FontScale = 1.0f;
+			static const float FontScale = Canvas->GetDPIScale();
 
 			TSharedRef<FSlateFontCache> FontCache = FSlateApplication::Get().GetRenderer()->GetFontCache();
 
@@ -560,6 +574,21 @@ float FFontEditorViewportClient::GetViewportHorizontalScrollBarRatio() const
 	return WidgetWidth / Width;
 }
 
+float FFontEditorViewportClient::UpdateViewportClientWindowDPIScale() const
+{
+	float DPIScale = 1.f;
+	if (FontEditorViewportPtr.IsValid())
+	{
+		TSharedPtr<SWindow> WidgetWindow = FSlateApplication::Get().FindWidgetWindow(FontEditorViewportPtr.Pin().ToSharedRef());
+		if (WidgetWindow.IsValid())
+		{
+			DPIScale = WidgetWindow->GetNativeWindow()->GetDPIScaleFactor();
+		}
+	}
+
+	return DPIScale;
+}
+
 void FFontEditorViewportClient::UpdateScrollBars()
 {
 	if (FontEditorViewportPtr.Pin()->GetVerticalScrollBar().IsValid() && FontEditorViewportPtr.Pin()->GetHorizontalScrollBar().IsValid())
@@ -671,6 +700,15 @@ FVector2D FFontEditorViewportClient::GetViewportScrollBarPositions() const
 	return Positions;
 }
 
+
+void FFontEditorViewportClient::HandleWindowDPIScaleChanged(TSharedRef<SWindow> Window)
+{
+	RequestUpdateDPIScale();
+	if (FontEditorViewportPtr.IsValid())
+	{
+		FontEditorViewportPtr.Pin()->RefreshViewport();
+	}
+}
 
 SFontEditorViewport::~SFontEditorViewport()
 {

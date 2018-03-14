@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraComponentDetails.h"
 #include "PropertyHandle.h"
@@ -79,7 +79,7 @@ public:
 	virtual void GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder) override
 	{
 		TArray<FNiagaraVariable> Parameters;
-		FNiagaraParameterStore& ParamStore = Component->GetInitialParameters();
+		FNiagaraParameterStore& ParamStore = Component->GetOverrideParameters();
 		ParamStore.GetParameters(Parameters);
 
 		FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::GetModuleChecked<FNiagaraEditorModule>("NiagaraEditor");
@@ -106,11 +106,14 @@ public:
 			else 
 			{
 				int32 DataInterfaceOffset = ParamStore.IndexOf(Parameter);
-				UObject* DefaultValueObject = ParamStore.DataInterfaces[DataInterfaceOffset];
+				UObject* DefaultValueObject = ParamStore.GetDataInterfaces()[DataInterfaceOffset];
 
 				TArray<UObject*> Objects;
 				Objects.Add(DefaultValueObject);
-				Row = ChildrenBuilder.AddExternalObjects(Objects, Parameter.GetName());
+
+				TOptional<bool> bAllowChildrenOverride(true);
+				TOptional<bool> bCreateCategoryNodesOverride(false);
+				Row = ChildrenBuilder.AddExternalObjectProperty(Objects, NAME_None, Parameter.GetName(), bAllowChildrenOverride, bCreateCategoryNodesOverride); 
 
 				CustomValueWidget =
 					SNew(STextBlock)
@@ -222,14 +225,14 @@ private:
 
 	void OnParameterChanged(FNiagaraVariable Var)
 	{
-		Component->GetInitialParameters().OnParameterChange();
-		Component->SetParameterValueOverriddenLocally(Var.GetName(), true);
+		Component->GetOverrideParameters().OnParameterChange();
+		Component->SetParameterValueOverriddenLocally(Var, true);
 	}
 
 	void OnDataInterfaceChanged(FNiagaraVariable Var)
 	{
-		Component->GetInitialParameters().OnInterfaceChange();
-		Component->SetParameterValueOverriddenLocally(Var.GetName(), true);
+		Component->GetOverrideParameters().OnInterfaceChange();
+		Component->SetParameterValueOverriddenLocally(Var, true);
 	}
 
 	bool DoesParameterDifferFromDefault(const FNiagaraVariable& Var)
@@ -241,7 +244,7 @@ private:
 	{
 		FScopedTransaction ScopedTransaction(LOCTEXT("ResetParameterValue", "Reset parameter value to system defaults."));
 		Component->Modify();
-		Component->SetParameterValueOverriddenLocally(Parameter.GetName(), false);
+		Component->SetParameterValueOverriddenLocally(Parameter, false);
 		return FReply::Handled();
 	}
 
@@ -426,7 +429,7 @@ void FNiagaraComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 	DetailBuilder.EditCategory(ScriptCategoryName);
 
- 	TSharedPtr<IPropertyHandle> LocalOverridesPropertyHandle = DetailBuilder.GetProperty(TEXT("Parameters"));
+ 	TSharedPtr<IPropertyHandle> LocalOverridesPropertyHandle = DetailBuilder.GetProperty(TEXT("OverrideParameters"));
  	if (LocalOverridesPropertyHandle.IsValid())
  	{
  		LocalOverridesPropertyHandle->MarkHiddenByCustomization();
@@ -465,11 +468,11 @@ void FNiagaraComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		OnResetDelegateHandle = SystemInstance->OnReset().AddSP(this, &FNiagaraComponentDetails::OnSystemInstanceReset);
 		OnInitDelegateHandle = SystemInstance->OnInitialized().AddSP(this, &FNiagaraComponentDetails::OnSystemInstanceReset);
 		SystemInstance->OnDestroyed().AddSP(this, &FNiagaraComponentDetails::OnSystemInstanceDestroyed);
-		FNiagaraParameterStore* ParamStore = &Component->GetInitialParameters();
+		FNiagaraParameterStore* ParamStore = &Component->GetOverrideParameters();
 		UNiagaraScript* ScriptSpawn = Component->GetAsset()->GetSystemSpawnScript();
 		UNiagaraScript* ScriptUpdate = Component->GetAsset()->GetSystemUpdateScript();
 		
-		IDetailCategoryBuilder& InputParamCategory = DetailBuilder.EditCategory(ParamCategoryName, LOCTEXT("ParamCategoryName", "Parameters"));
+		IDetailCategoryBuilder& InputParamCategory = DetailBuilder.EditCategory(ParamCategoryName, LOCTEXT("ParamCategoryName", "Override Parameters"));
 		//InputParamCategory.HeaderContent(SNew(SAddParameterButton, InputCollectionViewModel));
 		InputParamCategory.AddCustomBuilder(MakeShared<FNiagaraComponentNodeBuilder>(Component, ScriptSpawn, ScriptUpdate));
 	}

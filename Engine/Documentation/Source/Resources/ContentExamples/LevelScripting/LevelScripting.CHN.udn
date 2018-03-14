@@ -41,7 +41,9 @@ Description:关卡脚本示例关卡概述
 [/OBJECT]
 [/VAR]
 
-<!--Insert path when done! [RELATIVE:Resources/ContentExamples/LevelScripting]-->
+[COMMENT:none]
+Insert path when done! [RELATIVE:Resources/ContentExamples/LevelScripting]
+[/COMMENT]
 
 欢迎来到 **关卡脚本** 示例关卡！
 

@@ -17,10 +17,10 @@ Wheeled Vehicle Movement 컴포넌트를 상속하는 컴포넌트에 대한 개
 SimpleWheeledVehicleMovement 컴포넌트 셋업 및 사용을 위해서는, 먼저 [비히클 사용 안내서](Engine/Physics/Vehicles/VehicleUserGuide) 대로 먼저 완성을 해야 합니다. 
 이 방법을 통해 비히클이 제대로 셋업되었는지 확인한 후 계속해 주세요:
 
-* [휠 비히클 블루프린트 생성](Engine/Physics/Vehicles/VehicleUserGuide/#휠비히클블루프린트생성)
-* [TireType 데이터 애셋 생성](Engine/Physics/Vehicles/VehicleUserGuide/#TireType데이터애셋생성)
-* [애니메이션 블루프린트 생성](Engine/Physics/Vehicles/VehicleUserGuide/#애니메이션블루프린트생성)
-* [애니메이션 블루프린트 편집](Engine/Physics/Vehicles/VehicleUserGuide/#애니메이션블루프린트편집)
+* [휠 비히클 블루프린트 생성](Engine/Physics/Vehicles/VehicleUserGuide)
+* [TireType 데이터 애셋 생성](Engine/Physics/Vehicles/VehicleUserGuide)
+* [애니메이션 블루프린트 생성](Engine/Physics/Vehicles/VehicleUserGuide)
+* [애니메이션 블루프린트 편집](Engine/Physics/Vehicles/VehicleUserGuide)
 
 ### 심플 휠 비히클 블루프린트 생성
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/EditableTextBox.h"
 #include "UObject/ConstructorHelpers.h"
@@ -20,7 +20,7 @@ UEditableTextBox::UEditableTextBox(const FObjectInitializer& ObjectInitializer)
 
 	if (!IsRunningDedicatedServer())
 	{
-		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
+		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(*UWidget::GetDefaultFontName());
 		Font_DEPRECATED = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
 	}
 
@@ -36,6 +36,7 @@ UEditableTextBox::UEditableTextBox(const FObjectInitializer& ObjectInitializer)
 	ClearKeyboardFocusOnCommit = Defaults._ClearKeyboardFocusOnCommit.Get();
 	SelectAllTextOnCommit = Defaults._SelectAllTextOnCommit.Get();
 	AllowContextMenu = Defaults._AllowContextMenu.Get();
+	VirtualKeyboardDismissAction = Defaults._VirtualKeyboardDismissAction.Get();
 
 	WidgetStyle = *Defaults._Style;
 }
@@ -60,7 +61,9 @@ TSharedRef<SWidget> UEditableTextBox::RebuildWidget()
 		.AllowContextMenu(AllowContextMenu)
 		.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
 		.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
-		.VirtualKeyboardType(EVirtualKeyboardType::AsKeyboardType(KeyboardType.GetValue()));
+		.VirtualKeyboardType(EVirtualKeyboardType::AsKeyboardType(KeyboardType.GetValue()))
+		.VirtualKeyboardDismissAction(VirtualKeyboardDismissAction)
+		.Justification(Justification);
 
 	return MyEditableTextBlock.ToSharedRef();
 }
@@ -84,6 +87,8 @@ void UEditableTextBox::SynchronizeProperties()
 	MyEditableTextBlock->SetClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit);
 	MyEditableTextBlock->SetSelectAllTextOnCommit(SelectAllTextOnCommit);
 	MyEditableTextBlock->SetAllowContextMenu(AllowContextMenu);
+	MyEditableTextBlock->SetVirtualKeyboardDismissAction(VirtualKeyboardDismissAction);
+	MyEditableTextBlock->SetJustification(Justification);
 
 	ShapedTextOptions.SynchronizeShapedTextProperties(*MyEditableTextBlock);
 }

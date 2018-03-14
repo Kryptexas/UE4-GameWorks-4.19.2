@@ -1,5 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,12 +25,14 @@ class UMaterialExpressionVectorParameter : public UMaterialExpressionParameter
 	//~ End UMaterialExpression Interface
 
 	/** Return whether this is the named parameter, and fill in its value */
-	bool IsNamedParameter(FName InParameterName, FLinearColor& OutValue) const;
+	bool IsNamedParameter(const FMaterialParameterInfo& ParameterInfo, FLinearColor& OutValue) const;
 
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual bool SetParameterValue(FName InParameterName, FLinearColor InValue);
+
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;	
 #endif
+
+	virtual bool IsUsedAsChannelMask() {return false;}
 };
-
-
 

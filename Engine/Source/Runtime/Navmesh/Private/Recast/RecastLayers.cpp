@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -32,7 +32,7 @@ struct rcLayerRegionMonotone
 	rcIntArray layers;
 	unsigned short ymin, ymax;
 	unsigned short layerId;		// Layer ID
-	unsigned char base : 1;			// Flag indicating if the region is the base of merged regions.
+	unsigned char base : 1;		// Flag indicating if the region is the base of merged regions.
 	unsigned char remap : 1;
 };
 
@@ -100,16 +100,18 @@ struct rcLayerSweepSpan
 };
 
 static bool CollectLayerRegionsMonotone(rcContext* ctx, rcCompactHeightfield& chf, const int borderSize,
-										unsigned short* srcReg, rcLayerRegionMonotone*& regs, int& nregs)
+	unsigned short* srcReg, rcLayerRegionMonotone*& regs, int& nregs)
 {
 	const int w = chf.width;
 	const int h = chf.height;
 
-	const int nsweeps = chf.width;
-	rcScopedDelete<rcLayerSweepSpan> sweeps = (rcLayerSweepSpan*)rcAlloc(sizeof(rcLayerSweepSpan)*nsweeps, RC_ALLOC_TEMP);
+	// assume 8 unique layers on each place along row
+	const int32 MaxSweeps = w * 8;
+
+	rcScopedDelete<rcLayerSweepSpan> sweeps(MaxSweeps);
 	if (!sweeps)
 	{
-		ctx->log(RC_LOG_ERROR, "CollectLayerRegionsMonotone: Out of memory 'sweeps' (%d).", nsweeps);
+		ctx->log(RC_LOG_ERROR, "CollectLayerRegionsMonotone: Out of memory 'sweeps' (%d).", MaxSweeps);
 		return false;
 	}
 
@@ -117,17 +119,19 @@ static bool CollectLayerRegionsMonotone(rcContext* ctx, rcCompactHeightfield& ch
 	rcIntArray prev(256);
 	unsigned short regId = 0;
 
-	for (int y = borderSize; y < h-borderSize; ++y)
+	for (int y = borderSize; y < h - borderSize; ++y)
 	{
-		prev.resize(regId+1);
-		memset(&prev[0],0,sizeof(int)*regId);
+		prev.resize(regId + 1);
+		memset(&prev[0], 0, sizeof(int)*regId);
 		unsigned short sweepId = 0;
+		unsigned int MaxSpanCount = 0;
 
-		for (int x = borderSize; x < w-borderSize; ++x)
+		for (int x = borderSize; x < w - borderSize; ++x)
 		{
-			const rcCompactCell& c = chf.cells[x+y*w];
+			const rcCompactCell& c = chf.cells[x + y*w];
+			MaxSpanCount = rcMax(MaxSpanCount, c.count);
 
-			for (int i = (int)c.index, ni = (int)(c.index+c.count); i < ni; ++i)
+			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
 			{
 				const rcCompactSpan& s = chf.spans[i];
 				if (chf.areas[i] == RC_NULL_AREA) continue;
@@ -139,7 +143,8 @@ static bool CollectLayerRegionsMonotone(rcContext* ctx, rcCompactHeightfield& ch
 				{
 					const int ax = x + rcGetDirOffsetX(0);
 					const int ay = y + rcGetDirOffsetY(0);
-					const int ai = (int)chf.cells[ax+ay*w].index + rcGetCon(s, 0);
+					const int ai = (int)chf.cells[ax + ay*w].index + rcGetCon(s, 0);
+
 					if (chf.areas[ai] != RC_NULL_AREA && srcReg[ai] != 0xffff)
 						sid = srcReg[ai];
 				}
@@ -147,16 +152,25 @@ static bool CollectLayerRegionsMonotone(rcContext* ctx, rcCompactHeightfield& ch
 				if (sid == 0xffff)
 				{
 					sid = sweepId++;
-					sweeps[sid].nei = 0xffff;
-					sweeps[sid].ns = 0;
+					if (sid < MaxSweeps)
+					{
+						sweeps[sid].nei = 0xffff;
+						sweeps[sid].ns = 0;
+					}
+					else
+					{
+						ctx->log(RC_LOG_ERROR, "CollectLayerRegionsMonotone: Layer split is too complex, skipping tile! x:%d y:%d spansTotal:%d spansCurrent:%d spansMax:%d", x, y, chf.spanCount, c.count, MaxSpanCount);
+						return false;
+					}
 				}
 
 				// -y
-				if (rcGetCon(s,3) != RC_NOT_CONNECTED)
+				if (rcGetCon(s, 3) != RC_NOT_CONNECTED)
 				{
 					const int ax = x + rcGetDirOffsetX(3);
 					const int ay = y + rcGetDirOffsetY(3);
-					const int ai = (int)chf.cells[ax+ay*w].index + rcGetCon(s, 3);
+					const int ai = (int)chf.cells[ax + ay*w].index + rcGetCon(s, 3);
+
 					const unsigned short nr = srcReg[ai];
 					if (nr != 0xffff)
 					{
@@ -199,10 +213,10 @@ static bool CollectLayerRegionsMonotone(rcContext* ctx, rcCompactHeightfield& ch
 		}
 
 		// Remap local sweep ids to region ids.
-		for (int x = borderSize; x < w-borderSize; ++x)
+		for (int x = borderSize; x < w - borderSize; ++x)
 		{
-			const rcCompactCell& c = chf.cells[x+y*w];
-			for (int i = (int)c.index, ni = (int)(c.index+c.count); i < ni; ++i)
+			const rcCompactCell& c = chf.cells[x + y*w];
+			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
 			{
 				if (srcReg[i] != 0xffff)
 					srcReg[i] = sweeps[srcReg[i]].id;
@@ -233,10 +247,10 @@ static bool CollectLayerRegionsMonotone(rcContext* ctx, rcCompactHeightfield& ch
 	{
 		for (int x = 0; x < w; ++x)
 		{
-			const rcCompactCell& c = chf.cells[x+y*w];
+			const rcCompactCell& c = chf.cells[x + y*w];
 			lregs.resize(0);
 
-			for (int i = (int)c.index, ni = (int)(c.index+c.count); i < ni; ++i)
+			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
 			{
 				const rcCompactSpan& s = chf.spans[i];
 				const unsigned short ri = srcReg[i];
@@ -255,7 +269,8 @@ static bool CollectLayerRegionsMonotone(rcContext* ctx, rcCompactHeightfield& ch
 					{
 						const int ax = x + rcGetDirOffsetX(dir);
 						const int ay = y + rcGetDirOffsetY(dir);
-						const int ai = (int)chf.cells[ax+ay*w].index + rcGetCon(s, dir);
+						const int ai = (int)chf.cells[ax + ay*w].index + rcGetCon(s, dir);
+
 						const unsigned short rai = srcReg[ai];
 						if (rai != 0xffff && rai != ri)
 							addUnique(regs[ri].neis, rai);
@@ -266,9 +281,9 @@ static bool CollectLayerRegionsMonotone(rcContext* ctx, rcCompactHeightfield& ch
 
 			// Update overlapping regions.
 			const int nlregs = lregs.size();
-			for (int i = 0; i < nlregs-1; ++i)
+			for (int i = 0; i < nlregs - 1; ++i)
 			{
-				for (int j = i+1; j < nlregs; ++j)
+				for (int j = i + 1; j < nlregs; ++j)
 				{
 					if (lregs[i] != lregs[j])
 					{
@@ -292,11 +307,10 @@ static bool CollectLayerRegionsChunky(rcContext* ctx, rcCompactHeightfield& chf,
 	const int w = chf.width;
 	const int h = chf.height;
 
-	const int nsweeps = chunkSize;
-	rcScopedDelete<rcLayerSweepSpan> sweeps = (rcLayerSweepSpan*)rcAlloc(sizeof(rcLayerSweepSpan)*nsweeps, RC_ALLOC_TEMP);
+	rcScopedDelete<rcLayerSweepSpan> sweeps(chunkSize);
 	if (!sweeps)
 	{
-		ctx->log(RC_LOG_ERROR, "CollectLayerRegionsChunky: Out of memory 'sweeps' (%d).", nsweeps);
+		ctx->log(RC_LOG_ERROR, "CollectLayerRegionsChunky: Out of memory 'sweeps' (%d).", chunkSize);
 		return false;
 	}
 
@@ -341,8 +355,17 @@ static bool CollectLayerRegionsChunky(rcContext* ctx, rcCompactHeightfield& chf,
 						if (sid == 0xffff)
 						{
 							sid = sweepId++;
-							sweeps[sid].nei = 0xffff;
-							sweeps[sid].ns = 0;
+							// UE4: multiple spans per single X row may result in more sweeps than originally allocated
+							if (sweeps.resizeGrow(sid + 1))
+							{
+								sweeps[sid].nei = 0xffff;
+								sweeps[sid].ns = 0;
+							}
+							else
+							{
+								ctx->log(RC_LOG_ERROR, "CollectLayerRegionsChunky: Out of memory 'sweeps' resize (%d).", sid + 1);
+								return false;
+							}
 						}
 
 						// -y
@@ -526,7 +549,7 @@ static bool SplitAndStoreLayerRegions(rcContext* ctx, rcCompactHeightfield& chf,
 					continue;
 				// Skip if the height range would become too large.
 				const int ymin = rcMin(root.ymin, regn.ymin);
-				const int ymax = rcMin(root.ymax, regn.ymax);
+				const int ymax = rcMax(root.ymax, regn.ymax);
 				if ((ymax - ymin) >= 255)
 					continue;
 
@@ -571,7 +594,7 @@ static bool SplitAndStoreLayerRegions(rcContext* ctx, rcCompactHeightfield& chf,
 					continue;
 				// Skip if the height range would become too large.
 				const int ymin = rcMin(ri.ymin, rj.ymin);
-				const int ymax = rcMin(ri.ymax, rj.ymax);
+				const int ymax = rcMax(ri.ymax, rj.ymax);
 				if ((ymax - ymin) >= 255)
 					continue;
 
@@ -1192,7 +1215,7 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 					continue;
 				// Skip if the height range would become too large.
 				const int ymin = rcMin(reg.ymin, regn.ymin);
-				const int ymax = rcMin(reg.ymax, regn.ymax);
+				const int ymax = rcMax(reg.ymax, regn.ymax);
 				if ((ymax - ymin) >= 255)
 					continue;
 
@@ -1233,7 +1256,7 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 					continue;
 				// Skip if the height range would become too large.
 				const int ymin = rcMin(ri.ymin, rj.ymin);
-				const int ymax = rcMin(ri.ymax, rj.ymax);
+				const int ymax = rcMax(ri.ymax, rj.ymax);
 				if ((ymax - ymin) >= 255)
 					continue;
 

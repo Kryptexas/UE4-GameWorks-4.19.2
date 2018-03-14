@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 StreamingTexture.h: Definitions of classes used for texture streaming.
@@ -76,7 +76,7 @@ struct FStreamingTexture
 	FORCEINLINE bool IsMaxResolutionAffectedByGlobalBias() const 
 	{
 		// In editor, forced stream in should never have reduced mips as they can be edited.
-		return LODGroup != TEXTUREGROUP_HierarchicalLOD && !bIsTerrainTexture && !(Texture && Texture->bIgnoreStreamingMipBias) && !(GIsEditor && bForceFullyLoadHeuristic); 
+		return LODGroup != TEXTUREGROUP_HierarchicalLOD && !bIsTerrainTexture && !bIgnoreStreamingMipBias && !(GIsEditor && bForceFullyLoadHeuristic); 
 	}
 
 	FORCEINLINE bool HasUpdatePending(bool bIsStreamingPaused, bool bHasViewPoint) const 
@@ -118,7 +118,7 @@ struct FStreamingTexture
 
 
 	/***********************************************************************************
-	 * Cached dynamic members that need constant update => UPDATES IN UpdateCachedInfo()
+	 * Cached dynamic members that need constant update => UPDATES IN UpdateDynamicData()
 	 ***********************************************************************************/
 
 	/** Whether the texture is ready to be streamed in/out (cached from IsReadyForStreaming()). */
@@ -126,6 +126,9 @@ struct FStreamingTexture
 
 	/** Whether the texture should be forcibly fully loaded. */
 	uint32			bForceFullyLoad : 1;
+
+	/** Whether the texture resolution should be affected by the memory budget. */
+	uint32			bIgnoreStreamingMipBias : 1;
 
 	/** Cached number of mip-maps in memory (including the base mip) */
 	int32			ResidentMips;

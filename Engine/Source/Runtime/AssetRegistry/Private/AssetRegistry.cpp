@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetRegistry.h"
 #include "Misc/CommandLine.h"
@@ -78,7 +78,7 @@ UAssetRegistryImpl::UAssetRegistryImpl(const FObjectInitializer& ObjectInitializ
 	// If in the editor, we scan all content right now
 	// If in the game, we expect user to make explicit sync queries using ScanPathsSynchronous
 	// If in a commandlet, we expect the commandlet to decide when to perform a synchronous scan
-	if(GIsEditor && !IsRunningCommandlet())
+	if (GIsEditor && !IsRunningCommandlet())
 	{
 		bInitialSearchCompleted = false;
 		SearchAllAssets(false);
@@ -86,40 +86,33 @@ UAssetRegistryImpl::UAssetRegistryImpl(const FObjectInitializer& ObjectInitializ
 	// for platforms that require cooked data, we attempt to load a premade asset registry
 	else if (FPlatformProperties::RequiresCookedData())
 	{
-		bool bLoadedDevelopment = false;
 		// load the cooked data
 		FArrayReader SerializedAssetData;
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		// Allow loading development asset registry
-		FString DevAssetRegistryFilename = (FPaths::ProjectDir() / TEXT("DevelopmentAssetRegistry.bin"));
-		if (FParse::Param(FCommandLine::Get(), TEXT("LoadDevAssetRegistry")) && IFileManager::Get().FileExists(*DevAssetRegistryFilename) && FFileHelper::LoadFileToArray(SerializedAssetData, *DevAssetRegistryFilename))
-		{
-			SerializationOptions.ModifyForDevelopment();
-
-			Serialize(SerializedAssetData);
-			bLoadedDevelopment = true;
-		}
-#endif
 		FString AssetRegistryFilename = (FPaths::ProjectDir() / TEXT("AssetRegistry.bin"));
-		if (SerializationOptions.bSerializeAssetRegistry && !bLoadedDevelopment && IFileManager::Get().FileExists(*AssetRegistryFilename) && FFileHelper::LoadFileToArray(SerializedAssetData, *AssetRegistryFilename))
+		if (SerializationOptions.bSerializeAssetRegistry && IFileManager::Get().FileExists(*AssetRegistryFilename) && FFileHelper::LoadFileToArray(SerializedAssetData, *AssetRegistryFilename))
 		{
 			// serialize the data with the memory reader (will convert FStrings to FNames, etc)
 			Serialize(SerializedAssetData);
 		}
-		TArray<TSharedRef<IPlugin>> PakPlugins = IPluginManager::Get().GetPluginsWithPakFile();
-		for (TSharedRef<IPlugin> PakPlugin : PakPlugins)
+
+		TArray<TSharedRef<IPlugin>> ContentPlugins = IPluginManager::Get().GetEnabledPlugins();
+		for (TSharedRef<IPlugin> ContentPlugin : ContentPlugins)
 		{
-			if (FFileHelper::LoadFileToArray(SerializedAssetData, *(PakPlugin->GetBaseDir() / TEXT("AssetRegistry.bin"))))
+			if (ContentPlugin->CanContainContent())
 			{
-				SerializedAssetData.Seek(0);
-				Serialize(SerializedAssetData);
+				FString PluginAssetRegistry = ContentPlugin->GetBaseDir() / TEXT("AssetRegistry.bin");
+				if (IFileManager::Get().FileExists(*PluginAssetRegistry) && FFileHelper::LoadFileToArray(SerializedAssetData, *PluginAssetRegistry))
+				{
+					SerializedAssetData.Seek(0);
+					Serialize(SerializedAssetData);
+				}
 			}
 		}
 	}
 
 	// Report startup time. This does not include DirectoryWatcher startup time.
-	UE_LOG(LogAssetRegistry, Log, TEXT( "FAssetRegistry took %0.4f seconds to start up" ), FPlatformTime::Seconds() - StartupStartTime );
+	UE_LOG(LogAssetRegistry, Log, TEXT("FAssetRegistry took %0.4f seconds to start up"), FPlatformTime::Seconds() - StartupStartTime);
 
 #if WITH_EDITOR
 	// In-game doesn't listen for directory changes
@@ -131,11 +124,11 @@ UAssetRegistryImpl::UAssetRegistryImpl(const FObjectInitializer& ObjectInitializ
 		if (DirectoryWatcher)
 		{
 			TArray<FString> RootContentPaths;
-			FPackageName::QueryRootContentPaths( RootContentPaths );
-			for( TArray<FString>::TConstIterator RootPathIt( RootContentPaths ); RootPathIt; ++RootPathIt )
+			FPackageName::QueryRootContentPaths(RootContentPaths);
+			for (TArray<FString>::TConstIterator RootPathIt(RootContentPaths); RootPathIt; ++RootPathIt)
 			{
 				const FString& RootPath = *RootPathIt;
-				const FString& ContentFolder = FPackageName::LongPackageNameToFilename( RootPath );
+				const FString& ContentFolder = FPackageName::LongPackageNameToFilename(RootPath);
 
 				// This could be due to a plugin that specifies it contains content, yet has no content yet. PluginManager
 				// Mounts these folders anyway which results in then being returned from QueryRootContentPaths
@@ -149,7 +142,7 @@ UAssetRegistryImpl::UAssetRegistryImpl(const FObjectInitializer& ObjectInitializ
 		}
 	}
 
-	
+
 
 	if (GConfig)
 	{
@@ -184,7 +177,7 @@ void UAssetRegistryImpl::InitializeSerializationOptions(FAssetRegistrySerializat
 	PlatformEngineIni.GetBool(TEXT("AssetRegistry"), TEXT("bSerializePackageData"), Options.bSerializePackageData);
 	PlatformEngineIni.GetBool(TEXT("AssetRegistry"), TEXT("bUseAssetRegistryTagsWhitelistInsteadOfBlacklist"), Options.bUseAssetRegistryTagsWhitelistInsteadOfBlacklist);
 	PlatformEngineIni.GetBool(TEXT("AssetRegistry"), TEXT("bFilterAssetDataWithNoTags"), Options.bFilterAssetDataWithNoTags);
-		
+
 	TArray<FString> FilterlistItems;
 	if (Options.bUseAssetRegistryTagsWhitelistInsteadOfBlacklist)
 	{
@@ -214,7 +207,7 @@ void UAssetRegistryImpl::InitializeSerializationOptions(FAssetRegistrySerializat
 		FString ClassName;
 		FString TagName;
 
-		for(const FString& Token : Tokens)
+		for (const FString& Token : Tokens)
 		{
 			FString KeyString;
 			FString ValueString;
@@ -290,7 +283,7 @@ void UAssetRegistryImpl::RefreshNativeClasses()
 UAssetRegistryImpl::~UAssetRegistryImpl()
 {
 	// Make sure the asset search thread is closed
-	if ( BackgroundAssetSearch.IsValid() )
+	if (BackgroundAssetSearch.IsValid())
 	{
 		BackgroundAssetSearch->EnsureCompletion();
 		BackgroundAssetSearch.Reset();
@@ -305,7 +298,7 @@ UAssetRegistryImpl::~UAssetRegistryImpl()
 	if (GIsEditor)
 	{
 		// If the directory module is still loaded, unregister any delegates
-		if ( FModuleManager::Get().IsModuleLoaded("DirectoryWatcher") )
+		if (FModuleManager::Get().IsModuleLoaded("DirectoryWatcher"))
 		{
 			FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::GetModuleChecked<FDirectoryWatcherModule>("DirectoryWatcher");
 			IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
@@ -313,12 +306,12 @@ UAssetRegistryImpl::~UAssetRegistryImpl()
 			if (DirectoryWatcher)
 			{
 				TArray<FString> RootContentPaths;
-				FPackageName::QueryRootContentPaths( RootContentPaths );
-				for( TArray<FString>::TConstIterator RootPathIt( RootContentPaths ); RootPathIt; ++RootPathIt )
+				FPackageName::QueryRootContentPaths(RootContentPaths);
+				for (TArray<FString>::TConstIterator RootPathIt(RootContentPaths); RootPathIt; ++RootPathIt)
 				{
 					const FString& RootPath = *RootPathIt;
-					const FString& ContentFolder = FPackageName::LongPackageNameToFilename( RootPath );
-					DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle( ContentFolder, OnDirectoryChangedDelegateHandles.FindRef(ContentFolder));
+					const FString& ContentFolder = FPackageName::LongPackageNameToFilename(RootPath);
+					DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle(ContentFolder, OnDirectoryChangedDelegateHandles.FindRef(ContentFolder));
 					OnDirectoryChangedDelegateHandles.Remove(ContentFolder);
 				}
 			}
@@ -356,10 +349,10 @@ void UAssetRegistryImpl::SearchAllAssets(bool bSynchronousSearch)
 	// mounted content directories for one or more plugins.	Also keep in mind that plugins may become loaded later on.  We'll listen
 	// for that via a delegate, and add those directories to scan later as them come in.
 	TArray<FString> PathsToSearch;
-	FPackageName::QueryRootContentPaths( PathsToSearch );
+	FPackageName::QueryRootContentPaths(PathsToSearch);
 
 	// Start the asset search (synchronous in commandlets)
-	if ( bSynchronousSearch )
+	if (bSynchronousSearch)
 	{
 #if WITH_EDITOR
 		if (IsLoadingAssets())
@@ -391,7 +384,7 @@ void UAssetRegistryImpl::SearchAllAssets(bool bSynchronousSearch)
 		}
 #endif
 	}
-	else if ( !BackgroundAssetSearch.IsValid() )
+	else if (!BackgroundAssetSearch.IsValid())
 	{
 		// if the BackgroundAssetSearch is already valid then we have already called it before
 		BackgroundAssetSearch = MakeShareable(new FAssetDataGatherer(PathsToSearch, TArray<FString>(), bSynchronousSearch, EAssetDataCacheMode::UseMonolithicCache));
@@ -420,7 +413,7 @@ bool UAssetRegistryImpl::HasAssets(const FName PackagePath, const bool bRecursiv
 	return bHasAssets;
 }
 
-bool UAssetRegistryImpl::GetAssetsByPackageName(FName PackageName, TArray<FAssetData>& OutAssetData, bool bIncludeOnlyOnDiskAssets ) const
+bool UAssetRegistryImpl::GetAssetsByPackageName(FName PackageName, TArray<FAssetData>& OutAssetData, bool bIncludeOnlyOnDiskAssets) const
 {
 	FARFilter Filter;
 	Filter.PackageNames.Add(PackageName);
@@ -457,7 +450,7 @@ bool UAssetRegistryImpl::GetAssets(const FARFilter& InFilter, TArray<FAssetData>
 	double GetAssetsStartTime = FPlatformTime::Seconds();
 
 	// Verify filter input. If all assets are needed, use GetAllAssets() instead.
-	if ( !FAssetRegistryState::IsFilterValid(InFilter, true) || InFilter.IsEmpty() )
+	if (!FAssetRegistryState::IsFilterValid(InFilter, true) || InFilter.IsEmpty())
 	{
 		return false;
 	}
@@ -479,11 +472,11 @@ bool UAssetRegistryImpl::GetAssets(const FARFilter& InFilter, TArray<FAssetData>
 	const int32 NumFilterClasses = FilterClassNames.Num();
 	const int32 NumFilterObjectPaths = FilterObjectPaths.Num();
 
-	if ( !Filter.bIncludeOnlyOnDiskAssets )
+	if (!Filter.bIncludeOnlyOnDiskAssets)
 	{
 		auto FilterInMemoryObjectLambda = [&](const UObject* Obj)
 		{
-			if ( Obj->IsAsset() )
+			if (Obj->IsAsset())
 			{
 				UPackage* InMemoryPackage = Obj->GetOutermost();
 
@@ -499,20 +492,20 @@ bool UAssetRegistryImpl::GetAssets(const FARFilter& InFilter, TArray<FAssetData>
 
 				PackagesToSkip.Add(PackageName);
 
-				if ( NumFilterPackageNames && !FilterPackageNames.Contains(PackageName) )
+				if (NumFilterPackageNames && !FilterPackageNames.Contains(PackageName))
 				{
 					return;
 				}
 
 				// Object Path
-				if ( NumFilterObjectPaths && !FilterObjectPaths.Contains(ObjectPath) )
+				if (NumFilterObjectPaths && !FilterObjectPaths.Contains(ObjectPath))
 				{
 					return;
 				}
 
 				// Package path
 				const FName PackagePath = FName(*FPackageName::GetLongPackagePath(InMemoryPackage->GetName()));
-				if ( NumFilterPackagePaths && !FilterPackagePaths.Contains(PackagePath) )
+				if (NumFilterPackagePaths && !FilterPackagePaths.Contains(PackagePath))
 				{
 					return;
 				}
@@ -569,13 +562,13 @@ bool UAssetRegistryImpl::GetAssets(const FARFilter& InFilter, TArray<FAssetData>
 		};
 
 		// Iterate over all in-memory assets to find the ones that pass the filter components
-		if(NumFilterClasses)
+		if (NumFilterClasses)
 		{
 			TArray<UObject*> InMemoryObjects;
 			for (FName ClassName : FilterClassNames)
 			{
 				UClass* Class = FindObjectFast<UClass>(nullptr, ClassName, false, true, RF_NoFlags);
-				if(Class != nullptr)
+				if (Class != nullptr)
 				{
 					GetObjectsOfClass(Class, InMemoryObjects, false, RF_NoFlags);
 				}
@@ -602,15 +595,15 @@ bool UAssetRegistryImpl::GetAssets(const FARFilter& InFilter, TArray<FAssetData>
 	return true;
 }
 
-FAssetData UAssetRegistryImpl::GetAssetByObjectPath( const FName ObjectPath, bool bIncludeOnlyOnDiskAssets ) const
+FAssetData UAssetRegistryImpl::GetAssetByObjectPath(const FName ObjectPath, bool bIncludeOnlyOnDiskAssets) const
 {
 	if (!bIncludeOnlyOnDiskAssets)
 	{
-		UObject* Asset = FindObject<UObject>( nullptr, *ObjectPath.ToString() );
+		UObject* Asset = FindObject<UObject>(nullptr, *ObjectPath.ToString());
 
-		if ( Asset != nullptr )
+		if (Asset != nullptr)
 		{
-			return FAssetData( Asset );
+			return FAssetData(Asset);
 		}
 	}
 
@@ -743,9 +736,9 @@ bool UAssetRegistryImpl::GetAncestorClassNames(FName ClassName, TArray<FName>& O
 	// And add all in-memory classes at request time
 	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 	{
-		if ( !ClassIt->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists) )
+		if (!ClassIt->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists))
 		{
-			if ( ClassIt->GetSuperClass() )
+			if (ClassIt->GetSuperClass())
 			{
 				InheritanceMap.Add(ClassIt->GetFName(), ClassIt->GetSuperClass()->GetFName());
 			}
@@ -757,7 +750,7 @@ bool UAssetRegistryImpl::GetAncestorClassNames(FName ClassName, TArray<FName>& O
 	}
 
 	// Make sure the requested class is in the inheritance map
-	if ( !InheritanceMap.Contains(ClassName) )
+	if (!InheritanceMap.Contains(ClassName))
 	{
 		return false;
 	}
@@ -766,13 +759,13 @@ bool UAssetRegistryImpl::GetAncestorClassNames(FName ClassName, TArray<FName>& O
 	FName* CurrentClassName = &ClassName;
 	const uint32 MaxInheritanceDepth = 65536;
 	uint32 CurrentInheritanceDepth = 0;
-	while ( CurrentInheritanceDepth < MaxInheritanceDepth && CurrentClassName != nullptr )
+	while (CurrentInheritanceDepth < MaxInheritanceDepth && CurrentClassName != nullptr)
 	{
 		CurrentClassName = InheritanceMap.Find(*CurrentClassName);
 
-		if ( CurrentClassName )
+		if (CurrentClassName)
 		{
-			if ( *CurrentClassName == NAME_None )
+			if (*CurrentClassName == NAME_None)
 			{
 				// No parent, we are at the root
 				CurrentClassName = nullptr;
@@ -785,12 +778,12 @@ bool UAssetRegistryImpl::GetAncestorClassNames(FName ClassName, TArray<FName>& O
 		CurrentInheritanceDepth++;
 	}
 
-	if ( CurrentInheritanceDepth == MaxInheritanceDepth )
+	if (CurrentInheritanceDepth == MaxInheritanceDepth)
 	{
 		UE_LOG(LogAssetRegistry, Error, TEXT("IsChildClass exceeded max inheritance depth. There is probably an infinite loop of parent classes."));
 		return false;
 	}
-	else 
+	else
 	{
 		return true;
 	}
@@ -805,7 +798,7 @@ void UAssetRegistryImpl::GetAllCachedPaths(TArray<FString>& OutPathList) const
 {
 	TSet<FName> PathList;
 	CachedPathTree.GetAllPaths(PathList);
-	
+
 	OutPathList.Empty(PathList.Num());
 	for (FName PathName : PathList)
 	{
@@ -817,7 +810,7 @@ void UAssetRegistryImpl::GetSubPaths(const FString& InBasePath, TArray<FString>&
 {
 	TSet<FName> PathList;
 	CachedPathTree.GetSubPaths(FName(*InBasePath), PathList, bInRecurse);
-	
+
 	OutPathList.Empty(PathList.Num());
 	for (FName PathName : PathList)
 	{
@@ -827,25 +820,25 @@ void UAssetRegistryImpl::GetSubPaths(const FString& InBasePath, TArray<FString>&
 
 void UAssetRegistryImpl::RunAssetsThroughFilter(TArray<FAssetData>& AssetDataList, const FARFilter& Filter) const
 {
-	if ( !Filter.IsEmpty() )
+	if (!Filter.IsEmpty())
 	{
 		TSet<FName> RequestedClassNames;
-		if ( Filter.bRecursiveClasses && Filter.ClassNames.Num() > 0 )
+		if (Filter.bRecursiveClasses && Filter.ClassNames.Num() > 0)
 		{
 			// First assemble a full list of requested classes from the ClassTree
 			// GetSubClasses includes the base classes
 			GetSubClasses(Filter.ClassNames, Filter.RecursiveClassesExclusionSet, RequestedClassNames);
 		}
 
-		for ( int32 AssetDataIdx = AssetDataList.Num() - 1; AssetDataIdx >= 0; --AssetDataIdx )
+		for (int32 AssetDataIdx = AssetDataList.Num() - 1; AssetDataIdx >= 0; --AssetDataIdx)
 		{
 			const FAssetData& AssetData = AssetDataList[AssetDataIdx];
 
 			// Package Names
-			if ( Filter.PackageNames.Num() > 0 )
+			if (Filter.PackageNames.Num() > 0)
 			{
 				bool bPassesPackageNames = false;
-				for ( int32 NameIdx = 0; NameIdx < Filter.PackageNames.Num(); ++NameIdx )
+				for (int32 NameIdx = 0; NameIdx < Filter.PackageNames.Num(); ++NameIdx)
 				{
 					if (Filter.PackageNames[NameIdx] == AssetData.PackageName)
 					{
@@ -854,7 +847,7 @@ void UAssetRegistryImpl::RunAssetsThroughFilter(TArray<FAssetData>& AssetDataLis
 					}
 				}
 
-				if ( !bPassesPackageNames )
+				if (!bPassesPackageNames)
 				{
 					AssetDataList.RemoveAt(AssetDataIdx);
 					continue;
@@ -862,19 +855,19 @@ void UAssetRegistryImpl::RunAssetsThroughFilter(TArray<FAssetData>& AssetDataLis
 			}
 
 			// Package Paths
-			if ( Filter.PackagePaths.Num() > 0 )
+			if (Filter.PackagePaths.Num() > 0)
 			{
 				bool bPassesPackagePaths = false;
-				if ( Filter.bRecursivePaths )
+				if (Filter.bRecursivePaths)
 				{
 					FString AssetPackagePath = AssetData.PackagePath.ToString();
-					for ( int32 PathIdx = 0; PathIdx < Filter.PackagePaths.Num(); ++PathIdx )
+					for (int32 PathIdx = 0; PathIdx < Filter.PackagePaths.Num(); ++PathIdx)
 					{
 						const FString Path = Filter.PackagePaths[PathIdx].ToString();
-						if ( AssetPackagePath.StartsWith(Path) )
+						if (AssetPackagePath.StartsWith(Path))
 						{
 							// Only match the exact path or a path that starts with the target path followed by a slash
-							if ( Path.Len() == 1 || Path.Len() == AssetPackagePath.Len() || AssetPackagePath.Mid(Path.Len(), 1) == TEXT("/") )
+							if (Path.Len() == 1 || Path.Len() == AssetPackagePath.Len() || AssetPackagePath.Mid(Path.Len(), 1) == TEXT("/"))
 							{
 								bPassesPackagePaths = true;
 								break;
@@ -885,7 +878,7 @@ void UAssetRegistryImpl::RunAssetsThroughFilter(TArray<FAssetData>& AssetDataLis
 				else
 				{
 					// Non-recursive. Just request data for each requested path.
-					for ( int32 PathIdx = 0; PathIdx < Filter.PackagePaths.Num(); ++PathIdx )
+					for (int32 PathIdx = 0; PathIdx < Filter.PackagePaths.Num(); ++PathIdx)
 					{
 						if (Filter.PackagePaths[PathIdx] == AssetData.PackagePath)
 						{
@@ -895,7 +888,7 @@ void UAssetRegistryImpl::RunAssetsThroughFilter(TArray<FAssetData>& AssetDataLis
 					}
 				}
 
-				if ( !bPassesPackagePaths )
+				if (!bPassesPackagePaths)
 				{
 					AssetDataList.RemoveAt(AssetDataIdx);
 					continue;
@@ -903,11 +896,11 @@ void UAssetRegistryImpl::RunAssetsThroughFilter(TArray<FAssetData>& AssetDataLis
 			}
 
 			// ObjectPaths
-			if ( Filter.ObjectPaths.Num() > 0 )
+			if (Filter.ObjectPaths.Num() > 0)
 			{
 				bool bPassesObjectPaths = Filter.ObjectPaths.Contains(AssetData.ObjectPath);
 
-				if ( !bPassesObjectPaths )
+				if (!bPassesObjectPaths)
 				{
 					AssetDataList.RemoveAt(AssetDataIdx);
 					continue;
@@ -915,10 +908,10 @@ void UAssetRegistryImpl::RunAssetsThroughFilter(TArray<FAssetData>& AssetDataLis
 			}
 
 			// Classes
-			if ( Filter.ClassNames.Num() > 0 )
+			if (Filter.ClassNames.Num() > 0)
 			{
 				bool bPassesClasses = false;
-				if ( Filter.bRecursiveClasses )
+				if (Filter.bRecursiveClasses)
 				{
 					// Now check against each discovered class
 					for (FName ClassName : RequestedClassNames)
@@ -933,7 +926,7 @@ void UAssetRegistryImpl::RunAssetsThroughFilter(TArray<FAssetData>& AssetDataLis
 				else
 				{
 					// Non-recursive. Just request data for each requested classes.
-					for ( int32 ClassIdx = 0; ClassIdx < Filter.ClassNames.Num(); ++ClassIdx )
+					for (int32 ClassIdx = 0; ClassIdx < Filter.ClassNames.Num(); ++ClassIdx)
 					{
 						if (Filter.ClassNames[ClassIdx] == AssetData.AssetClass)
 						{
@@ -943,7 +936,7 @@ void UAssetRegistryImpl::RunAssetsThroughFilter(TArray<FAssetData>& AssetDataLis
 					}
 				}
 
-				if ( !bPassesClasses )
+				if (!bPassesClasses)
 				{
 					AssetDataList.RemoveAt(AssetDataIdx);
 					continue;
@@ -951,21 +944,21 @@ void UAssetRegistryImpl::RunAssetsThroughFilter(TArray<FAssetData>& AssetDataLis
 			}
 
 			// Tags and values
-			if ( Filter.TagsAndValues.Num() > 0 )
+			if (Filter.TagsAndValues.Num() > 0)
 			{
 				bool bPassesTags = false;
 				for (auto FilterTagIt = Filter.TagsAndValues.CreateConstIterator(); FilterTagIt; ++FilterTagIt)
 				{
 					const FString* Value = AssetData.TagsAndValues.Find(FilterTagIt.Key());
 
-					if ( Value != nullptr && (*Value) == FilterTagIt.Value() )
+					if (Value != nullptr && (*Value) == FilterTagIt.Value())
 					{
 						bPassesTags = true;
 						break;
 					}
 				}
 
-				if ( !bPassesTags )
+				if (!bPassesTags)
 				{
 					AssetDataList.RemoveAt(AssetDataIdx);
 					continue;
@@ -977,46 +970,46 @@ void UAssetRegistryImpl::RunAssetsThroughFilter(TArray<FAssetData>& AssetDataLis
 
 void UAssetRegistryImpl::ExpandRecursiveFilter(const FARFilter& InFilter, FARFilter& ExpandedFilter) const
 {
-	 TSet<FName> FilterPackagePaths;
-	 TSet<FName> FilterClassNames;
-	 const int32 NumFilterPackagePaths = InFilter.PackagePaths.Num();
-	 const int32 NumFilterClasses = InFilter.ClassNames.Num();
+	TSet<FName> FilterPackagePaths;
+	TSet<FName> FilterClassNames;
+	const int32 NumFilterPackagePaths = InFilter.PackagePaths.Num();
+	const int32 NumFilterClasses = InFilter.ClassNames.Num();
 
-	 ExpandedFilter = InFilter;
+	ExpandedFilter = InFilter;
 
-	 for (int32 PathIdx = 0; PathIdx < NumFilterPackagePaths; ++PathIdx)
-	 {
-		 FilterPackagePaths.Add(InFilter.PackagePaths[PathIdx]);
-	 }
+	for (int32 PathIdx = 0; PathIdx < NumFilterPackagePaths; ++PathIdx)
+	{
+		FilterPackagePaths.Add(InFilter.PackagePaths[PathIdx]);
+	}
 
-	 if (InFilter.bRecursivePaths)
-	 {
-		 // Add subpaths to all the input paths to the list
-		 for (int32 PathIdx = 0; PathIdx < NumFilterPackagePaths; ++PathIdx)
-		 {
-			 CachedPathTree.GetSubPaths(InFilter.PackagePaths[PathIdx], FilterPackagePaths);
-		 }
-	 }
+	if (InFilter.bRecursivePaths)
+	{
+		// Add subpaths to all the input paths to the list
+		for (int32 PathIdx = 0; PathIdx < NumFilterPackagePaths; ++PathIdx)
+		{
+			CachedPathTree.GetSubPaths(InFilter.PackagePaths[PathIdx], FilterPackagePaths);
+		}
+	}
 
-	 ExpandedFilter.bRecursivePaths = false;
-	 ExpandedFilter.PackagePaths = FilterPackagePaths.Array();
+	ExpandedFilter.bRecursivePaths = false;
+	ExpandedFilter.PackagePaths = FilterPackagePaths.Array();
 
-	 if (InFilter.bRecursiveClasses)
-	 {
-		 // GetSubClasses includes the base classes
-		 GetSubClasses(InFilter.ClassNames, InFilter.RecursiveClassesExclusionSet, FilterClassNames);
-	 }
-	 else
-	 {
-		 for (int32 ClassIdx = 0; ClassIdx < NumFilterClasses; ++ClassIdx)
-		 {
-			 FilterClassNames.Add(InFilter.ClassNames[ClassIdx]);
-		 }
-	 }
+	if (InFilter.bRecursiveClasses)
+	{
+		// GetSubClasses includes the base classes
+		GetSubClasses(InFilter.ClassNames, InFilter.RecursiveClassesExclusionSet, FilterClassNames);
+	}
+	else
+	{
+		for (int32 ClassIdx = 0; ClassIdx < NumFilterClasses; ++ClassIdx)
+		{
+			FilterClassNames.Add(InFilter.ClassNames[ClassIdx]);
+		}
+	}
 
-	 ExpandedFilter.ClassNames = FilterClassNames.Array();
-	 ExpandedFilter.bRecursiveClasses = false;
-	 ExpandedFilter.RecursiveClassesExclusionSet.Empty();
+	ExpandedFilter.ClassNames = FilterClassNames.Array();
+	ExpandedFilter.bRecursiveClasses = false;
+	ExpandedFilter.RecursiveClassesExclusionSet.Empty();
 }
 
 EAssetAvailability::Type UAssetRegistryImpl::GetAssetAvailability(const FAssetData& AssetData) const
@@ -1065,9 +1058,9 @@ float UAssetRegistryImpl::GetAssetAvailabilityProgress(const FAssetData& AssetDa
 	EChunkProgressReportingType::Type ChunkReportType = GetChunkAvailabilityProgressType(ReportType);
 
 	bool IsPercentageComplete = (ChunkReportType == EChunkProgressReportingType::PercentageComplete) ? true : false;
-	check (ReportType == EAssetAvailabilityProgressReportingType::PercentageComplete || ReportType == EAssetAvailabilityProgressReportingType::ETA);
+	check(ReportType == EAssetAvailabilityProgressReportingType::PercentageComplete || ReportType == EAssetAvailabilityProgressReportingType::ETA);
 
-	float BestProgress = MAX_FLT;	
+	float BestProgress = MAX_FLT;
 
 	// check all chunks to see which has the best time remaining
 	for (int32 ChunkId : AssetData.ChunkIDs)
@@ -1080,7 +1073,7 @@ float UAssetRegistryImpl::GetAssetAvailabilityProgress(const FAssetData& AssetDa
 			Progress = 100.0f - Progress;
 		}
 
-		if( Progress <= 0.0f )
+		if (Progress <= 0.0f)
 		{
 			BestProgress = 0.0f;
 			break;
@@ -1096,13 +1089,13 @@ float UAssetRegistryImpl::GetAssetAvailabilityProgress(const FAssetData& AssetDa
 	if (IsPercentageComplete)
 	{
 		BestProgress = 100.0f - BestProgress;
-	}	
+	}
 	return BestProgress;
 }
 
 bool UAssetRegistryImpl::GetAssetAvailabilityProgressTypeSupported(EAssetAvailabilityProgressReportingType::Type ReportType) const
 {
-	IPlatformChunkInstall* ChunkInstall = FPlatformMisc::GetPlatformChunkInstall();	
+	IPlatformChunkInstall* ChunkInstall = FPlatformMisc::GetPlatformChunkInstall();
 	return ChunkInstall->GetProgressReportingTypeSupported(GetChunkAvailabilityProgressType(ReportType));
 }
 
@@ -1133,7 +1126,7 @@ void UAssetRegistryImpl::ScanPathsSynchronous(const TArray<FString>& InPaths, bo
 	ScanPathsAndFilesSynchronous(InPaths, TArray<FString>(), bForceRescan, EAssetDataCacheMode::UseModularCache);
 }
 
-void UAssetRegistryImpl::ScanFilesSynchronous(const TArray<FString>& InFilePaths, bool bForceRescan) 
+void UAssetRegistryImpl::ScanFilesSynchronous(const TArray<FString>& InFilePaths, bool bForceRescan)
 {
 	ScanPathsAndFilesSynchronous(TArray<FString>(), InFilePaths, bForceRescan, EAssetDataCacheMode::UseModularCache);
 }
@@ -1159,7 +1152,7 @@ void UAssetRegistryImpl::PrioritizeSearchPath(const FString& PathToPrioritize)
 
 void UAssetRegistryImpl::AssetCreated(UObject* NewAsset)
 {
-	if ( ensure(NewAsset) && NewAsset->IsAsset() )
+	if (ensure(NewAsset) && NewAsset->IsAsset())
 	{
 		// Add the newly created object to the package file cache because its filename can already be
 		// determined by its long package name.
@@ -1188,10 +1181,10 @@ void UAssetRegistryImpl::AssetCreated(UObject* NewAsset)
 
 void UAssetRegistryImpl::AssetDeleted(UObject* DeletedAsset)
 {
-	if ( ensure(DeletedAsset) && DeletedAsset->IsAsset() )
+	if (ensure(DeletedAsset) && DeletedAsset->IsAsset())
 	{
 		UPackage* DeletedObjectPackage = DeletedAsset->GetOutermost();
-		if ( DeletedObjectPackage != nullptr )
+		if (DeletedObjectPackage != nullptr)
 		{
 			const FString PackageName = DeletedObjectPackage->GetName();
 
@@ -1199,14 +1192,14 @@ void UAssetRegistryImpl::AssetDeleted(UObject* DeletedAsset)
 			// If the UPackage object is GCed, it will be considered 'Unloaded' which will cause it to
 			// be fully loaded from disk when save is invoked.
 			// We want to keep the package around so we can save it empty or delete the file.
-			if ( UPackage::IsEmptyPackage( DeletedObjectPackage, DeletedAsset ) )
+			if (UPackage::IsEmptyPackage(DeletedObjectPackage, DeletedAsset))
 			{
-				AddEmptyPackage( DeletedObjectPackage->GetFName() );
+				AddEmptyPackage(DeletedObjectPackage->GetFName());
 
 				// If there is a package metadata object, clear the standalone flag so the package can be truly emptied upon GC
-				if ( UMetaData* MetaData = DeletedObjectPackage->GetMetaData() )
+				if (UMetaData* MetaData = DeletedObjectPackage->GetMetaData())
 				{
-					MetaData->ClearFlags( RF_Standalone );
+					MetaData->ClearFlags(RF_Standalone);
 				}
 			}
 		}
@@ -1231,7 +1224,7 @@ void UAssetRegistryImpl::AssetDeleted(UObject* DeletedAsset)
 
 void UAssetRegistryImpl::AssetRenamed(const UObject* RenamedAsset, const FString& OldObjectPath)
 {
-	if ( ensure(RenamedAsset) && RenamedAsset->IsAsset() )
+	if (ensure(RenamedAsset) && RenamedAsset->IsAsset())
 	{
 		// Add the renamed object to the package file cache because its filename can already be
 		// determined by its long package name.
@@ -1245,11 +1238,11 @@ void UAssetRegistryImpl::AssetRenamed(const UObject* RenamedAsset, const FString
 		// We want to keep track of empty packages so we can properly merge cached assets with in-memory assets
 		FString OldPackageName;
 		FString OldAssetName;
-		if ( OldObjectPath.Split(TEXT("."), &OldPackageName, &OldAssetName) )
+		if (OldObjectPath.Split(TEXT("."), &OldPackageName, &OldAssetName))
 		{
 			UPackage* OldPackage = FindPackage(nullptr, *OldPackageName);
 
-			if ( UPackage::IsEmptyPackage(OldPackage) )
+			if (UPackage::IsEmptyPackage(OldPackage))
 			{
 				AddEmptyPackage(OldPackage->GetFName());
 			}
@@ -1318,7 +1311,7 @@ void UAssetRegistryImpl::Tick(float DeltaTime)
 	int32 NumFilesToSearch = 0;
 	int32 NumPathsToSearch = 0;
 	bool bIsDiscoveringFiles = false;
-	if ( BackgroundAssetSearch.IsValid() )
+	if (BackgroundAssetSearch.IsValid())
 	{
 		bIsSearching = BackgroundAssetSearch->GetAndTrimSearchResults(BackgroundAssetResults, BackgroundPathResults, BackgroundDependencyResults, BackgroundCookedPackageNamesWithoutAssetDataResults, SearchTimes, NumFilesToSearch, NumPathsToSearch, bIsDiscoveringFiles);
 	}
@@ -1330,24 +1323,24 @@ void UAssetRegistryImpl::Tick(float DeltaTime)
 	}
 
 	// Add discovered paths
-	if ( BackgroundPathResults.Num() )
+	if (BackgroundPathResults.Num())
 	{
 		PathDataGathered(TickStartTime, BackgroundPathResults);
 	}
 
 	// Process the asset results
 	const bool bHadAssetsToProcess = BackgroundAssetResults.Num() > 0 || BackgroundDependencyResults.Num() > 0;
-	if ( BackgroundAssetResults.Num() )
+	if (BackgroundAssetResults.Num())
 	{
 		// Mark the first amortize time
-		if ( AmortizeStartTime == 0 )
+		if (AmortizeStartTime == 0)
 		{
 			AmortizeStartTime = FPlatformTime::Seconds();
 		}
 
 		AssetSearchDataGathered(TickStartTime, BackgroundAssetResults);
 
-		if ( BackgroundAssetResults.Num() == 0 )
+		if (BackgroundAssetResults.Num() == 0)
 		{
 			TotalAmortizeTime += FPlatformTime::Seconds() - AmortizeStartTime;
 			AmortizeStartTime = 0;
@@ -1355,13 +1348,13 @@ void UAssetRegistryImpl::Tick(float DeltaTime)
 	}
 
 	// Add dependencies
-	if ( BackgroundDependencyResults.Num() )
+	if (BackgroundDependencyResults.Num())
 	{
 		DependencyDataGathered(TickStartTime, BackgroundDependencyResults);
 	}
 
 	// Load cooked packages that do not have asset data
-	if ( BackgroundCookedPackageNamesWithoutAssetDataResults.Num() )
+	if (BackgroundCookedPackageNamesWithoutAssetDataResults.Num())
 	{
 		CookedPackageNamesWithoutAssetDataGathered(TickStartTime, BackgroundCookedPackageNamesWithoutAssetDataResults);
 	}
@@ -1374,14 +1367,14 @@ void UAssetRegistryImpl::Tick(float DeltaTime)
 			State.CachedAssetsByObjectPath.Num() - BackgroundDependencyResults.Num(),					// NumAssetsProcessedByAssetRegistry
 			NumFilesToSearch + BackgroundDependencyResults.Num(),								// NumAssetsPendingDataLoad
 			bIsDiscoveringFiles																	// bIsDiscoveringAssetFiles
-			);
+		);
 		FileLoadProgressUpdatedEvent.Broadcast(ProgressUpdateData);
 	}
 
 	// If completing an initial search, refresh the content browser
-	if ( NumFilesToSearch == 0 && NumPathsToSearch == 0 && !bIsSearching && BackgroundPathResults.Num() == 0 && BackgroundAssetResults.Num() == 0 && BackgroundDependencyResults.Num() == 0 && BackgroundCookedPackageNamesWithoutAssetDataResults.Num() == 0 )
+	if (NumFilesToSearch == 0 && NumPathsToSearch == 0 && !bIsSearching && BackgroundPathResults.Num() == 0 && BackgroundAssetResults.Num() == 0 && BackgroundDependencyResults.Num() == 0 && BackgroundCookedPackageNamesWithoutAssetDataResults.Num() == 0)
 	{
-		if ( !bInitialSearchCompleted )
+		if (!bInitialSearchCompleted)
 		{
 #if WITH_EDITOR
 			// update redirectors
@@ -1447,13 +1440,13 @@ uint32 UAssetRegistryImpl::GetAllocatedSize(bool bLogDetailed) const
 		UE_LOG(LogAssetRegistry, Log, TEXT("AssetRegistry Static Size: %dk"), StaticSize / 1024);
 		UE_LOG(LogAssetRegistry, Log, TEXT("AssetRegistry Search Size: %dk"), SearchSize / 1024);
 	}
-	
-	return StaticSize + StaticSize + SearchSize;
+
+	return StateSize + StaticSize + SearchSize;
 }
 
-void UAssetRegistryImpl::LoadPackageRegistryData(FArchive& Ar, TArray<FAssetData*> &AssetDataList ) const
+void UAssetRegistryImpl::LoadPackageRegistryData(FArchive& Ar, TArray<FAssetData*> &AssetDataList) const
 {
-	
+
 	FPackageReader Reader;
 	Reader.OpenPackageFile(&Ar);
 
@@ -1502,6 +1495,11 @@ void UAssetRegistryImpl::InitializeTemporaryAssetRegistryState(FAssetRegistrySta
 	const TMap<FName, FAssetData*>& DataToUse = OverrideData.Num() > 0 ? OverrideData : State.CachedAssetsByObjectPath;
 
 	OutState.InitializeFromExisting(DataToUse, State.CachedDependsNodes, State.CachedPackageData, Options, bRefreshExisting);
+}
+
+const FAssetRegistryState* UAssetRegistryImpl::GetAssetRegistryState() const
+{
+	return &State;
 }
 
 void UAssetRegistryImpl::ScanPathsAndFilesSynchronous(const TArray<FString>& InPaths, const TArray<FString>& InSpecificFiles, bool bForceRescan, EAssetDataCacheMode AssetDataCacheMode)
@@ -1568,7 +1566,7 @@ void UAssetRegistryImpl::ScanPathsAndFilesSynchronous(const TArray<FString>& InP
 		AssetDataCacheMode = EAssetDataCacheMode::UseModularCache;
 	}
 
-	if ( PathsToScan.Num() > 0 || FilesToScan.Num() > 0 )
+	if (PathsToScan.Num() > 0 || FilesToScan.Num() > 0)
 	{
 		// Start the sync asset search
 		FAssetDataGatherer AssetSearch(PathsToScan, FilesToScan, /*bSynchronous=*/true, AssetDataCacheMode);
@@ -1802,14 +1800,14 @@ void UAssetRegistryImpl::DependencyDataGathered(const double TickStartTime, TBac
 					Node->AddDependency(DependsNode, EAssetRegistryDependencyType::SearchableName);
 					DependsNode->AddReferencer(Node);
 				}
-			}	
+			}
 		}
 
 		// Doubly-link all new dependencies for this package
 		for (auto NewDependsIt : PackageDependencies)
 		{
 			FDependsNode* DependsNode = State.CreateOrFindDependsNode(NewDependsIt.Key);
-			
+
 			if (DependsNode != nullptr)
 			{
 				const FAssetIdentifier& Identifier = DependsNode->GetIdentifier();
@@ -1837,7 +1835,7 @@ void UAssetRegistryImpl::DependencyDataGathered(const double TickStartTime, TBac
 		}
 
 		// Check to see if we have run out of time in this tick
-		if ( !bFlushFullBuffer && (FPlatformTime::Seconds() - TickStartTime) > MaxSecondsPerFrame)
+		if (!bFlushFullBuffer && (FPlatformTime::Seconds() - TickStartTime) > MaxSecondsPerFrame)
 		{
 			break;
 		}
@@ -1876,13 +1874,13 @@ void UAssetRegistryImpl::AddEmptyPackage(FName PackageName)
 
 bool UAssetRegistryImpl::RemoveEmptyPackage(FName PackageName)
 {
-	return CachedEmptyPackages.Remove( PackageName ) > 0;
+	return CachedEmptyPackages.Remove(PackageName) > 0;
 }
 
 bool UAssetRegistryImpl::AddAssetPath(FName PathToAdd)
 {
 	if (CachedPathTree.CachePath(PathToAdd))
-	{		
+	{
 		PathAddedEvent.Broadcast(PathToAdd.ToString());
 		return true;
 	}
@@ -1892,12 +1890,12 @@ bool UAssetRegistryImpl::AddAssetPath(FName PathToAdd)
 
 bool UAssetRegistryImpl::RemoveAssetPath(FName PathToRemove, bool bEvenIfAssetsStillExist)
 {
-	if ( !bEvenIfAssetsStillExist )
+	if (!bEvenIfAssetsStillExist)
 	{
 		// Check if there were assets in the specified folder. You can not remove paths that still contain assets
 		TArray<FAssetData> AssetsInPath;
 		GetAssetsByPath(PathToRemove, AssetsInPath, true);
-		if ( AssetsInPath.Num() > 0 )
+		if (AssetsInPath.Num() > 0)
 		{
 			// At least one asset still exists in the path. Fail the remove.
 			return false;
@@ -1934,7 +1932,7 @@ void UAssetRegistryImpl::AddAssetData(FAssetData* AssetData)
 	{
 		const FString GeneratedClass = AssetData->GetTagValueRef<FString>("GeneratedClass");
 		const FString ParentClass = AssetData->GetTagValueRef<FString>("ParentClass");
-		if ( !GeneratedClass.IsEmpty() && !ParentClass.IsEmpty() )
+		if (!GeneratedClass.IsEmpty() && !ParentClass.IsEmpty())
 		{
 			const FName GeneratedClassFName = *ExportTextPathToObjectName(GeneratedClass);
 			const FName ParentClassFName = *ExportTextPathToObjectName(ParentClass);
@@ -1972,7 +1970,7 @@ bool UAssetRegistryImpl::RemoveAssetData(FAssetData* AssetData)
 {
 	bool bRemoved = false;
 
-	if ( ensure(AssetData) )
+	if (ensure(AssetData))
 	{
 		// Notify subscribers
 		AssetRemovedEvent.Broadcast(*AssetData);
@@ -1981,7 +1979,7 @@ bool UAssetRegistryImpl::RemoveAssetData(FAssetData* AssetData)
 		if (ClassGeneratorNames.Contains(AssetData->AssetClass))
 		{
 			const FString OldGeneratedClass = AssetData->GetTagValueRef<FString>("GeneratedClass");
-			if ( !OldGeneratedClass.IsEmpty() )
+			if (!OldGeneratedClass.IsEmpty())
 			{
 				const FName OldGeneratedClassFName = *ExportTextPathToObjectName(OldGeneratedClass);
 				CachedInheritanceMap.Remove(OldGeneratedClassFName);
@@ -2010,15 +2008,15 @@ void UAssetRegistryImpl::RemovePackageData(const FName PackageName)
 
 void UAssetRegistryImpl::AddPathToSearch(const FString& Path)
 {
-	if ( BackgroundAssetSearch.IsValid() )
+	if (BackgroundAssetSearch.IsValid())
 	{
 		BackgroundAssetSearch->AddPathToSearch(Path);
 	}
 }
 
-void UAssetRegistryImpl::AddFilesToSearch (const TArray<FString>& Files)
+void UAssetRegistryImpl::AddFilesToSearch(const TArray<FString>& Files)
 {
-	if ( BackgroundAssetSearch.IsValid() )
+	if (BackgroundAssetSearch.IsValid())
 	{
 		BackgroundAssetSearch->AddFilesToSearch(Files);
 	}
@@ -2122,7 +2120,7 @@ void UAssetRegistryImpl::ProcessLoadedAssetsToUpdateCache(const double TickStart
 	for (LoadedAssetIndex = 0; LoadedAssetIndex < LoadedAssetsToProcess.Num(); ++LoadedAssetIndex)
 	{
 		UObject* LoadedAsset = LoadedAssetsToProcess[LoadedAssetIndex].Get();
-		
+
 		if (!LoadedAsset)
 		{
 			// This could be null, in which case it already got freed, ignore
@@ -2241,7 +2239,7 @@ void UAssetRegistryImpl::ScanModifiedAssetFiles(const TArray<FString>& InFilePat
 	}
 }
 
-void UAssetRegistryImpl::OnContentPathMounted( const FString& InAssetPath, const FString& FileSystemPath )
+void UAssetRegistryImpl::OnContentPathMounted(const FString& InAssetPath, const FString& FileSystemPath)
 {
 	// Sanitize
 	FString AssetPath = InAssetPath;
@@ -2252,7 +2250,7 @@ void UAssetRegistryImpl::OnContentPathMounted( const FString& InAssetPath, const
 	}
 
 	// Add this to our list of root paths to process
-	AddPathToSearch( AssetPath );
+	AddPathToSearch(AssetPath);
 
 	// Listen for directory changes in this content path
 #if WITH_EDITOR
@@ -2265,7 +2263,7 @@ void UAssetRegistryImpl::OnContentPathMounted( const FString& InAssetPath, const
 		{
 			// If the path doesn't exist on disk, make it so the watcher will work.
 			IFileManager::Get().MakeDirectory(*FileSystemPath);
-			DirectoryWatcher->RegisterDirectoryChangedCallback_Handle( FileSystemPath, IDirectoryWatcher::FDirectoryChanged::CreateUObject(this, &UAssetRegistryImpl::OnDirectoryChanged), OnContentPathMountedOnDirectoryChangedDelegateHandle);
+			DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(FileSystemPath, IDirectoryWatcher::FDirectoryChanged::CreateUObject(this, &UAssetRegistryImpl::OnDirectoryChanged), OnContentPathMountedOnDirectoryChangedDelegateHandle);
 		}
 	}
 #endif // WITH_EDITOR
@@ -2276,7 +2274,7 @@ void UAssetRegistryImpl::OnContentPathDismounted(const FString& InAssetPath, con
 {
 	// Sanitize
 	FString AssetPath = InAssetPath;
-	if ( AssetPath.EndsWith(TEXT("/")) )
+	if (AssetPath.EndsWith(TEXT("/")))
 	{
 		// We don't want a trailing slash here as it could interfere with RemoveAssetPath
 		AssetPath = AssetPath.LeftChop(1);
@@ -2289,16 +2287,16 @@ void UAssetRegistryImpl::OnContentPathDismounted(const FString& InAssetPath, con
 		const bool bRecurse = true;
 		GetSubPaths(AssetPath, PathList, bRecurse);
 		PathList.Add(AssetPath);
-		for ( const FString& Path : PathList )
+		for (const FString& Path : PathList)
 		{
 			TArray<FAssetData*>* AssetsInPath = State.CachedAssetsByPath.Find(FName(*Path));
-			if ( AssetsInPath )
+			if (AssetsInPath)
 			{
 				AllAssetDataToRemove.Append(*AssetsInPath);
 			}
 		}
 
-		for ( FAssetData* AssetData : AllAssetDataToRemove )
+		for (FAssetData* AssetData : AllAssetDataToRemove)
 		{
 			RemoveAssetData(AssetData);
 		}
@@ -2338,12 +2336,12 @@ void UAssetRegistryImpl::GetSubClasses(const TArray<FName>& InClassNames, const 
 	{
 		UClass* Class = *ClassIt;
 
-		if ( !Class->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists) )
+		if (!Class->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists))
 		{
-			if ( Class->GetSuperClass() )
+			if (Class->GetSuperClass())
 			{
-				TSet<FName>& ChildClasses = ReverseInheritanceMap.FindOrAdd( Class->GetSuperClass()->GetFName() );
-				ChildClasses.Add( Class->GetFName() );
+				TSet<FName>& ChildClasses = ReverseInheritanceMap.FindOrAdd(Class->GetSuperClass()->GetFName());
+				ChildClasses.Add(Class->GetFName());
 			}
 
 			// Add any implemented interfaces to the reverse inheritance map
@@ -2365,13 +2363,13 @@ void UAssetRegistryImpl::GetSubClasses(const TArray<FName>& InClassNames, const 
 	for (auto ClassNameIt = CachedInheritanceMap.CreateConstIterator(); ClassNameIt; ++ClassNameIt)
 	{
 		const FName ClassName = ClassNameIt.Key();
-		if ( !InMemoryClassNames.Contains(ClassName) )
+		if (!InMemoryClassNames.Contains(ClassName))
 		{
 			const FName ParentClassName = ClassNameIt.Value();
-			if ( ParentClassName != NAME_None )
+			if (ParentClassName != NAME_None)
 			{
-				TSet<FName>& ChildClasses = ReverseInheritanceMap.FindOrAdd( ParentClassName );
-				ChildClasses.Add( ClassName );
+				TSet<FName>& ChildClasses = ReverseInheritanceMap.FindOrAdd(ParentClassName);
+				ChildClasses.Add(ClassName);
 			}
 		}
 	}
@@ -2385,7 +2383,7 @@ void UAssetRegistryImpl::GetSubClasses(const TArray<FName>& InClassNames, const 
 
 void UAssetRegistryImpl::GetSubClasses_Recursive(FName InClassName, TSet<FName>& SubClassNames, const TMap<FName, TSet<FName>>& ReverseInheritanceMap, const TSet<FName>& ExcludedClassNames) const
 {
-	if ( ExcludedClassNames.Contains(InClassName) )
+	if (ExcludedClassNames.Contains(InClassName))
 	{
 		// This class is in the exclusion list. Exclude it.
 	}
@@ -2394,7 +2392,7 @@ void UAssetRegistryImpl::GetSubClasses_Recursive(FName InClassName, TSet<FName>&
 		SubClassNames.Add(InClassName);
 
 		const TSet<FName>* FoundSubClassNames = ReverseInheritanceMap.Find(InClassName);
-		if ( FoundSubClassNames )
+		if (FoundSubClassNames)
 		{
 			for (FName ClassName : (*FoundSubClassNames))
 			{
@@ -2456,24 +2454,25 @@ void UAssetRegistryImpl::SetManageReferences(const TMultiMap<FAssetIdentifier, F
 	}
 
 	TSet<FDependsNode*> Visited;
-	TArray<FDependsNode*> NodesToManage;
+	TMap<FDependsNode*, EAssetRegistryDependencyType::Type> NodesToManage;
+	TArray<FDependsNode*> NodesToHardReference;
 	TArray<FDependsNode*> NodesToRecurse;
 
 	// For each explicitly set asset
-	for (const TPair<FDependsNode*, TArray<FDependsNode *>>& Pair : ExplicitMap)
+	for (const TPair<FDependsNode*, TArray<FDependsNode *>>& ExplicitPair : ExplicitMap)
 	{
-		FDependsNode* BaseManagedNode = Pair.Key;
-		const TArray<FDependsNode*>& ManagerNodes = Pair.Value;
+		FDependsNode* BaseManagedNode = ExplicitPair.Key;
+		const TArray<FDependsNode*>& ManagerNodes = ExplicitPair.Value;
 
 		for (FDependsNode* ManagerNode : ManagerNodes)
-		{	
+		{
 			Visited.Reset();
 			NodesToManage.Reset();
 			NodesToRecurse.Reset();
-			
+
 			FDependsNode* SourceNode = ManagerNode;
 
-			auto IterateFunction = [&ManagerNode, &SourceNode, &ShouldSetManager, &NodesToManage, &NodesToRecurse, &Visited, &ExplicitMap, &ExistingManagedNodes](FDependsNode* TargetNode, EAssetRegistryDependencyType::Type DependencyType)
+			auto IterateFunction = [&ManagerNode, &SourceNode, &ShouldSetManager, &NodesToManage, &NodesToHardReference, &NodesToRecurse, &Visited, &ExplicitMap, &ExistingManagedNodes](FDependsNode* TargetNode, EAssetRegistryDependencyType::Type DependencyType)
 			{
 				// Only recurse if we haven't already visited, and this node passes recursion test
 				if (!Visited.Contains(TargetNode))
@@ -2489,7 +2488,8 @@ void UAssetRegistryImpl::SetManageReferences(const TMultiMap<FAssetIdentifier, F
 						return;
 					}
 
-					NodesToManage.Push(TargetNode);
+					EAssetRegistryDependencyType::Type ManageType = (Flags & EAssetSetManagerFlags::IsDirectSet) ? EAssetRegistryDependencyType::HardManage : EAssetRegistryDependencyType::SoftManage;
+					NodesToManage.Add(TargetNode, ManageType);
 
 					if (Result == EAssetSetManagerResult::SetAndRecurse)
 					{
@@ -2515,14 +2515,10 @@ void UAssetRegistryImpl::SetManageReferences(const TMultiMap<FAssetIdentifier, F
 				}
 			}
 
-			// Now set all the dependencies
-			while (NodesToManage.Num())
+			for (TPair<FDependsNode*, EAssetRegistryDependencyType::Type>& ManagePair : NodesToManage)
 			{
-				// Pull off end of array, order doesn't matter
-				FDependsNode* ManagedNode = NodesToManage.Pop();
-
-				ManagerNode->AddDependency(ManagedNode, EAssetRegistryDependencyType::Manage);
-				ManagedNode->AddReferencer(ManagerNode);
+				ManagePair.Key->AddReferencer(ManagerNode);
+				ManagerNode->AddDependency(ManagePair.Key, ManagePair.Value);
 			}
 		}
 	}

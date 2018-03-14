@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EditorComponents.h"
@@ -207,8 +207,8 @@ void FGridWidget::DrawNewGrid(const FSceneView* View, FPrimitiveDrawInterface* P
 	{
 		// screenspace size looks better in 2d
 
-		float ScaleX = View->ViewMatrices.GetProjectionMatrix().M[0][0] * View->ViewRect.Width();
-		float ScaleY = View->ViewMatrices.GetProjectionMatrix().M[1][1] * View->ViewRect.Height();
+		float ScaleX = View->ViewMatrices.GetProjectionMatrix().M[0][0] * View->UnscaledViewRect.Width();
+		float ScaleY = View->ViewMatrices.GetProjectionMatrix().M[1][1] * View->UnscaledViewRect.Height();
 
 		float Scale = FMath::Min(ScaleX, ScaleY);
 
@@ -295,7 +295,7 @@ void FGridWidget::DrawNewGrid(const FSceneView* View, FPrimitiveDrawInterface* P
 
 		float Scale = FMath::Min(ScaleX, ScaleY);
 
-		Scale *= View->ViewRect.Width();
+		Scale *= View->UnscaledViewRect.Width();
 
 		// We render a larger grid if we are zoomed out more (good precision at any scale)
 		Radii *= 1.0f / Scale;
@@ -523,7 +523,7 @@ void FEditorCommonDrawHelper::DrawGridSection(float ViewportGridY,FVector* A,FVe
 	// todo
 	int32 Exponent = GEditor->IsGridSizePowerOfTwo() ? 8 : 10;
 
-	const float SizeX = View->ViewRect.Width();
+	const float SizeX = View->UnscaledViewRect.Width();
 	const float Zoom = (1.0f / View->ViewMatrices.GetProjectionMatrix().M[0][0]) * 2.0f / SizeX;
 	const float Dist = SizeX * Zoom / ViewportGridY;
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GlobalShader.h: Shader manager definitions.
@@ -37,6 +37,20 @@ private:
 	TArray<FShaderPipelineTypeDependency> ShaderPipelineTypeDependencies;
 };
 
+struct FGlobalShaderPermutationParameters
+{
+	// Shader platform to compile to.
+	const EShaderPlatform Platform;
+
+	/** Unique permutation identifier of the global shader type. */
+	const int32 PermutationId;
+
+	FGlobalShaderPermutationParameters(EShaderPlatform InPlatform, int32 InPermutationId)
+		: Platform(InPlatform)
+		, PermutationId(InPermutationId)
+	{ }
+};
+
 /**
  * A shader meta type for the simplest shaders; shaders which are not material or vertex factory linked.
  * There should only a single instance of each simple shader type.
@@ -48,23 +62,24 @@ public:
 
 	typedef FShader::CompiledShaderInitializerType CompiledShaderInitializerType;
 	typedef FShader* (*ConstructCompiledType)(const CompiledShaderInitializerType&);
-	typedef bool (*ShouldCacheType)(EShaderPlatform);
-	typedef void (*ModifyCompilationEnvironmentType)(EShaderPlatform, FShaderCompilerEnvironment&);
+	typedef bool (*ShouldCompilePermutationType)(const FGlobalShaderPermutationParameters&);
+	typedef void (*ModifyCompilationEnvironmentType)(const FGlobalShaderPermutationParameters&, FShaderCompilerEnvironment&);
 
 	FGlobalShaderType(
 		const TCHAR* InName,
 		const TCHAR* InSourceFilename,
 		const TCHAR* InFunctionName,
 		uint32 InFrequency,
+		int32 InTotalPermutationCount,
 		ConstructSerializedType InConstructSerializedRef,
 		ConstructCompiledType InConstructCompiledRef,
 		ModifyCompilationEnvironmentType InModifyCompilationEnvironmentRef,
-		ShouldCacheType InShouldCacheRef,
+		ShouldCompilePermutationType InShouldCompilePermutationRef,
 		GetStreamOutElementsType InGetStreamOutElementsRef
 		):
-		FShaderType(EShaderTypeForDynamicCast::Global, InName, InSourceFilename, InFunctionName, InFrequency, InConstructSerializedRef, InGetStreamOutElementsRef),
+		FShaderType(EShaderTypeForDynamicCast::Global, InName, InSourceFilename, InFunctionName, InFrequency, InTotalPermutationCount, InConstructSerializedRef, InGetStreamOutElementsRef),
 		ConstructCompiledRef(InConstructCompiledRef),
-		ShouldCacheRef(InShouldCacheRef),
+		ShouldCompilePermutationRef(InShouldCompilePermutationRef),
 		ModifyCompilationEnvironmentRef(InModifyCompilationEnvironmentRef)
 	{
 		checkf(FPaths::GetExtension(InSourceFilename) == TEXT("usf"),
@@ -78,9 +93,9 @@ public:
 	 * @param Platform - The platform to check.
 	 * @return True if this shader type should be cached.
 	 */
-	bool ShouldCache(EShaderPlatform Platform) const
+	bool ShouldCompilePermutation(EShaderPlatform Platform, int32 PermutationId) const
 	{
-		return (*ShouldCacheRef)(Platform);
+		return (*ShouldCompilePermutationRef)(FGlobalShaderPermutationParameters(Platform, PermutationId));
 	}
 
 	/**
@@ -88,15 +103,15 @@ public:
 	 * @param Platform - Platform to compile for.
 	 * @param Environment - The shader compile environment that the function modifies.
 	 */
-	void SetupCompileEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& Environment)
+	void SetupCompileEnvironment(EShaderPlatform Platform, int32 PermutationId, FShaderCompilerEnvironment& Environment)
 	{
 		// Allow the shader type to modify its compile environment.
-		(*ModifyCompilationEnvironmentRef)(Platform, Environment);
+		(*ModifyCompilationEnvironmentRef)(FGlobalShaderPermutationParameters(Platform, PermutationId), Environment);
 	}
 
 private:
 	ConstructCompiledType ConstructCompiledRef;
-	ShouldCacheType ShouldCacheRef;
+	ShouldCompilePermutationType ShouldCompilePermutationRef;
 	ModifyCompilationEnvironmentType ModifyCompilationEnvironmentRef;
 };
 
@@ -127,7 +142,7 @@ public:
 	typedef void (*ModifyCompilationEnvironmentType)(EShaderPlatform, FShaderCompilerEnvironment&);
 
 	// FShader interface.
-	SHADERCORE_API static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment) {}
+	SHADERCORE_API static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment) {}
 };
 
 /**
@@ -138,7 +153,7 @@ class FNULLPS : public FGlobalShader
 	DECLARE_EXPORTED_SHADER_TYPE(FNULLPS,Global, SHADERCORE_API);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -187,3 +202,61 @@ inline TShaderMap<FGlobalShaderType>* GetGlobalShaderMap(ERHIFeatureLevel::Type 
 	return GetGlobalShaderMap(GShaderPlatformForFeatureLevel[FeatureLevel]); 
 }
 
+
+/** DECLARE_GLOBAL_SHADER and IMPLEMENT_GLOBAL_SHADER setup a global shader class's boiler plate. They are meant to be used like so:
+ *
+ * class FMyGlobalShaderPS : public FGlobalShader
+ * {
+ *		// Setup the shader's boiler plate.
+ *		DECLARE_GLOBAL_SHADER(FMyGlobalShaderPS);
+ *
+ *		// Setup the shader's permutation domain. If no dimensions, can do FPermutationDomain = FShaderPermutationNone.
+ *		using FPermutationDomain = TShaderPermutationDomain<DIMENSIONS...>;
+ *
+ *		// ...
+ * };
+ *
+ * // Instantiates global shader's global variable that will take care of compilation process of the shader. This needs imperatively to be
+ * done in a .cpp file regardless of whether FMyGlobalShaderPS is in a header or not.
+ * IMPLEMENT_GLOBAL_SHADER(FMyGlobalShaderPS, "/Engine/Private/MyShaderFile.usf", "MainPS", SF_Pixel);
+ */
+#define DECLARE_GLOBAL_SHADER(ShaderClass) \
+	public: \
+	\
+	using ShaderMetaType = FGlobalShaderType; \
+	\
+	static ShaderMetaType StaticType; \
+	\
+	static FShader* ConstructSerializedInstance() { return new ShaderClass(); } \
+	static FShader* ConstructCompiledInstance(const ShaderMetaType::CompiledShaderInitializerType& Initializer) \
+	{ return new ShaderClass(Initializer); } \
+	\
+	virtual uint32 GetTypeSize() const override { return sizeof(*this); } \
+	\
+	static bool ShouldCompilePermutationImpl(const FGlobalShaderPermutationParameters& Parameters) \
+	{ \
+		return ShaderClass::ShouldCompilePermutation(Parameters); \
+	} \
+	\
+	static void ModifyCompilationEnvironmentImpl( \
+		const FGlobalShaderPermutationParameters& Parameters, \
+		FShaderCompilerEnvironment& OutEnvironment) \
+	{ \
+		FPermutationDomain PermutationVector(Parameters.PermutationId); \
+		PermutationVector.ModifyCompilationEnvironment(OutEnvironment); \
+		ShaderClass::ModifyCompilationEnvironment(Parameters, OutEnvironment); \
+	}
+
+#define IMPLEMENT_GLOBAL_SHADER(ShaderClass,SourceFilename,FunctionName,Frequency) \
+	ShaderClass::ShaderMetaType ShaderClass::StaticType( \
+		TEXT(#ShaderClass), \
+		TEXT(SourceFilename), \
+		TEXT(FunctionName), \
+		Frequency, \
+		ShaderClass::FPermutationDomain::PermutationCount, \
+		ShaderClass::ConstructSerializedInstance, \
+		ShaderClass::ConstructCompiledInstance, \
+		ShaderClass::ModifyCompilationEnvironmentImpl, \
+		ShaderClass::ShouldCompilePermutationImpl, \
+		ShaderClass::GetStreamOutElements \
+		)

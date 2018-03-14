@@ -1,139 +1,166 @@
 Availability:Public
-Title: Rewind & Fast Forward Playback
+Title: Control Playback with Blueprints
 Crumbs:%ROOT%, Engine
-Description:Example of how you can control playback of your media assets.
-parent:Engine/MediaFramework/HowTo
-order:3
-checkpoint: editorqs
-Version: 4.15
+Description:Example of how you can fast forward, rewind, pause and resume playback of your videos in Blueprint. 
+Type: how-to
 SkillLevel: Intermediate
+Version: 4.18
+Parent: Engine/MediaFramework/HowTo
+Order: 3
+Tags: Media Framework
+Tags: Video Playback
 Related: Engine\MediaFramework
 
-In addition to playing a video with Media Framework, you can grant players the ability to control the Playback Rate to rewind, pause or fast forward videos. 
-In this how-to we allow the player to press a button to rewind, a different button to fast forward and another button to play a video playing in the level similar to below. 
+Along with playing videos inside your Unreal Engine 4 based projects, you can enable players to control the playback of your videos with a series of [Blueprint](Engine/Blueprints) nodes. 
 
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-s6rTrV5-Mdo
-[/PARAMLITERAL]
-[/OBJECT]
+In this how-to, we provide a way for the Player to control playback of a video by creating the ability to fast-forward, rewind, pause, stop and resume playback of a video in progress
+
+![](FinalHero.png)
+
+[REGION:note]
+Not all player Plug-ins may support fast foward and/or reverse playback. Please refer to the [](Engine/MediaFramework/TechReference) page for more information. 
+[/REGION]
 
 ## Steps
 
 [REGION:note]
 For this how-to we are using the **Blueprint Third Person Template** project with **Starter Content** enabled.
-You will also need a few [Supported Video Files](Engine\MediaFramework\TechReference) saved on our computer that you want to add to the playlist for playback. You can use your own or **Right-click** and download this [Sample Video](Infiltrator Demo.mp4). 
+You will also need a video for playback, you can use your own or right-click and download this [Sample Video.](Infiltrator Demo.mp4)
 [/REGION]
 
-1.	In your project create a folder called **Movies**, then in explorer add your video to the **Movies** folder. 
+1.	In the **Content Browser** expand the **Sources** panel and create a folder called **Movies** then right-click on it and select **Show in Explorer**. 
 
 	![](ControllingPlayback_01.png)
 
-1.	Create a **File Media Source** (or any other source asset) and point the asset to your video. 
+1.	Drag the Sample Video (or your supported video) into the **Content/Movies** folder of your project on your computer.
 
 	![](ControllingPlayback_02.png)
 
-1.	Create a **Media Player** asset called **VideoPlayer** and associated **Media Sound Wave** and **Media Texture** assets.
+	[REGION:warning]
+	In order to ensure that your video content is packaged and deployed with your project, your content must reside in the **Content/Movies** folder of your project. 
+	[/REGION]
+
+1.	Inside your project, create a **Media Player** and associated **Media Texture** asset called **MediaPlayer** and **MediaPlayer_Video** respectively. 
+
+1.	Create a **File Media Source** asset called **Video** and inside it, point the **File Path** to the video added in **Step 2**. 
 
 	![](ControllingPlayback_03.png)
 
-1.	Inside the **Media Player** asset, uncheck the **Play on Open** option. 
+1.	Open your **Media Player** asset and disable the **Play on Open** option. 
 
 	![](ControllingPlayback_04.png)
 
-1.	In the **Content Browser** under **StarterContent/Shapes** drag a **Shape_Plane** into the level.  
+	In this example, we are going to give playback control to the Player, rather than automatically start playback once we open our Media Source. 
 
-	![](ControllingPlayback_05.png)
+1.	In the Main Editor from the **Modes** panel under **Basic**, drag a **Plane** into the level and resize as desired. 
 
-1.	Use the **Translate (W)**, **Rotation (E)** and **Scale (R)** tools to adjust the size and location of the Static Mesh as desired. 
+1.	Drag the **MediaPlayer_Video** texture onto the **Plane**, then in the **Details** panel for the Plane, add a **Media Sound Component** set to use your **Media Player** asset. 
 
-1.	Hold **Ctrl** then select both the **Sound Wave** and **Media Texture** assets and drop them on top of the **Static Mesh** in the level. 
+	[REGION:lightbox]
+	[![](ControllingPlayback_05.png)(w:600)](ControllingPlayback_05.png)
+	[/REGION]
+
+	[REGION:caption]Click for full image.[/REGION]
+
+1.	From the Main Toolbar, click the **Blueprints** button then select **Open Level Blueprint**. 
 
 	![](ControllingPlayback_06.png)
 
-	This will automatically create a **Material** and apply it to the Static Mesh. 
+1.	In the **Level Blueprint**, create a variable called **MediaPlayer** of the **Media Player Object Reference** type and set it to point to your **MediaPlayer** asset. 
 
-1.	From the Toolbar, click the **Blueprints** button and **Open Level Blueprint**. 
+1.	Hold **Ctrl** and drag the **MediaPlayer** variable into the graph and use **Open Source** and **Event Begin Play** to open your **Video** File Media Source asset. 
 
 	![](ControllingPlayback_07.png)
 
-1.	Add a **Variable** of the **Media Player Reference** type called **MediaPlayer** and set it to your **VideoPlayer** Media Player asset. 
+1.	Add an **Up** keyboard event connected to a **Flip Flop** and off your **Media Player** variable, use **Play** and **Pause** as shown below. 
 
 	![](ControllingPlayback_08.png)
 
+	When the Player presses the **Up** arrow keyboard key, the Media Source will start playing while pressing a second time will pause the video. 
+
 	[REGION:note]
-	You may need to **Compile** before you can assign the **Default Value**. 
+	Pausing corresponds to setting the Play Rate to 0.0, however not all Media Sources support pausing (for example, Web Cam and other video capture hardware sources. 
+	You can use the **Can Pause** Blueprint node to determine if a Media Source supports pausing. 
 	[/REGION]
 
-1.	Add an **Event Begin Play** node, your **Media Player** variable and use **Open Source** to open the **MyVideo** File Media Source asset.
+1.	Add **Left** and **Right** keyboard events, then off your **Media Player** variable use **Set Rate** with the left key at **-2** and the right key at **2**. 
 
 	![](ControllingPlayback_09.png)
 
-1.	Add a **2** Keyboard Event with **Pressed** set to **Play** the **MediaPlayer** asset. 
+	This will enable the Player to press the left arrow keyboard key to set the Play Rate of the video to -2 (playing the video in reverse at double speed as a value of 1.0 is normal forward playback). 
+	When pressing the right arrow keyboard key, the video will fast forward at double the normal playback speed. You could add additional Blueprint logic to determine the number of times the Player presses the rewind or fast-forward keys and increase or decrease the Play Rate from 2x to 4x or 6x speeds or higher.
+
+	[REGION:note]
+	Even if Play Rates other than 1.0 are supported by the Player Plug-in, the actual playback rates that can be selected will also depend on the Media Source in use. 
+	You can check supported rates with the **Get Forward Rates** or **Get Reverse Rates** Blueprint nodes or use the **Support Rate** function and input a rate to determine if it is supported. 
+
+	![](SupportRates.jpg)
+
+	There is a distinction between **Thinned** and **Unthinned** rates. Thinned means that some frames will be skipped at this rate while Unthinned means that allf rames will be decoded at this rate. 
+
+	[/REGION]
+
+1.	Add a **Down** keyboard event connected to a **Flip Flop**, then off a **Media Player** reference, use the **Get Time** function call. 
 
 	![](ControllingPlayback_10.png)
 
-1.	Add **1** and **3** Keyboard Events both using **Set Rate** off the **MediaPlayer** asset and adjust each node's **Rate** value. 
+	The **Get Time** function call will return the current playback time which we will store and use when we want to reopen and resume playback of our video. 
+
+1.	Right-click on the **Return Value** of the **Get Time** node and promote it to a variable called **Stop Time**, then connect all nodes to a **Close** function call as shown. 
 
 	![](ControllingPlayback_11.png)
 
-	By setting Rate to **-1.0** this will play the video in reverse while a Rate of **2.0** doubles the forward playback speed, scrubbing forward. 
+	This will close the Media Player when pressing the down arrow keyboard key, but store the current time in which the Media Player was stopped to a variable. 
 
-	[REGION:warning]
-	Currently you may experience audio synch loss when issuing commands to the Media Player asset. You can insert short delays between commands to allow the player has time to process them. We are aware of these issues and are investigating possible fixes to accompany future engine updates. 
-	[/REGION]
+1.	Off the **B** pin of the **Flip Flop** use the **Open Source** node and set the **Media Source** to your **Video** Media Source. 
 
-1.	Close the **Level Blueprint** and click the **Play** button to play in the editor. 
+	![](ControllingPlayback_12.png)
 
+	This will re-open your video but will open it from the beginning of the video which we will address in the next few steps. 
+
+1.	Drag off the **Media Player** reference and use the **Assign On Media Opened** Event Dispatcher and connect as shown. 
+
+	![](ControllingPlayback_13.png)
+
+	This will create an [Event Dispatcher](Engine/Blueprints/UserGuide/EventDispatcher/) that will call the connected Event only when the Media Source has been fully opened. 
+	When issuing commands to a Media Player, it's a good practice to do so in this manner as it ensures that the Media Source has been opened before attempting to tell it to do something. 
+	If we were to issue a command to the Media Player directly after opening it, there is no guarantee that the Media Source has been opened fully and can receive commands which may cause the command to fail. 
+
+1.	Off your **Media Player** reference, call the **Seek** function followed by the **Play** function. 
+
+1.	Connect the **Stop Time** variable to the **Time** pin on the **Seek** node and connect the **Seek** and **Play** nodes to the **OnMediaOpened** event as shown. 
+
+	![](ControllingPlayback_14.png)
+
+	Now when the Player presses the down arrow key, the current time is stored before closing the Media Player. 
+	When pressing down again, the **Video** Media Source is opened and when it becomes fully opened, the video moves to the specified **Stop Time** before playing the video (resuming playback). 
+
+1.	Close the **Level Blueprint** and click the **Play** button from the Main Toolbar to play in the Editor. 
 
 ## End Result
 
+You will now be able to use the **Up**, **Down**, **Left**, and **Right** arrow keys to control the playback of the video. 
+
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-s6rTrV5-Mdo
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	jNDpBQFRVQw
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
-When playing in the editor, the video playback will not initially start when the level is loaded. When the player presses the **2** key, the video will start playing. 
-Pressing the **1** key, the video will start to rewind while pressing the **3** key fast forwards the video.
-The rate at which we rewind or fast forward is determined by the **Rate** value on the **Set Rate** node. Adjust those values to speed up the play back rate when going in reverse or forward. 
+Pressing **Up** will play/pause the video, pressing **Down** will close/re-open the video, pressing **Left** will rewind and pressing **Right** will fast forward. 
 
-While our example uses keyboard presses, you could use the same functionality within a User Interface built with UMG where the player clicks on a button to issue commands. 
-
-## Other Considerations
-
-The availability of some advanced playback features depends on the Media Source, as well as the used player plug-in. 
-For example, not all Media Sources allow for seeking or changing the playback rate, and not all player plug-ins implement support for these features yet. 
-
-Some combinations of Media Sources and players allow for rate changes, but only for certain rate ranges, or the playback may be thinned (i.e. frames will skipped = choppy). 
-Some playback features can be queried via Blueprint, for example CanPause, GetForwardRates, GetReverseRates. 
-All playback functions (Play, Rewind, Pause, SetRate, etc.) provide a Boolean return value indicating success or failure of the desired operation.
-
-There is also currently a limitation in the WmfMedia player plug-in for Windows that prevents chained calls of playback functions. For example if you string together a chain of commands like Play -> SetRate -> Pause -> SetRate -> Play like so: 
-
-[REGION:lightbox]
-[![](ExampleChain.png)](ExampleChain.png)
-[/REGION]
-
-_Click for full view._
-
-Your state machine for the Media Player will likely break and the only way to recover would be to re-open the Media Source or Playlist. 
-
-If you wish to chain calls, one possible workaround is to insert Delay nodes between each call in order to give the player enough time to process the current command. 
-
-![](ExampleChainDelays.png)
 
 
 

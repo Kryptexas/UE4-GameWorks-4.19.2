@@ -12,11 +12,15 @@ topic-image:Modding/RoboRecall/RoboRecall_Topic.png
 social-image:Modding/RoboRecall/RoboRecall_Social.png
 checkpoint:mod_extend
 
-<!-- Location: Modding/RoboRecall/Quickstarts/WeaponMod/7 -->
+[COMMENT:none]
+ Location: Modding/RoboRecall/Quickstarts/WeaponMod/7 
+[/COMMENT]
 
 [NAV]
 
-<!-- Title Image if Needed Here -->
+[COMMENT:none]
+ Title Image if Needed Here 
+[/COMMENT]
 
 自定义手枪设置完成后，可在中心关卡加载时点击 **Play**，然后通过 mod 菜单启用 GrenadeGunPistol。现在便可使用 Gun Range 将枪掷向目标，发生爆炸！
 

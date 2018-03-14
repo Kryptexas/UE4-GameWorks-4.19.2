@@ -13,4 +13,6 @@ APaperCharacter类似于ACharacter，但使用的是UPaperFlipbookComponent而�
 [/VAR]
 [/EXCERPT:APaperCharacter]
 
-<!-- ToDo: 纸张角色链接。 --->
+[COMMENT:none]
+ ToDo: 纸张角色链接。 -
+[/COMMENT]

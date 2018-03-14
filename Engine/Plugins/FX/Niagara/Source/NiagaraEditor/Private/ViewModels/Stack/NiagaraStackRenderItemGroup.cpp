@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraStackRenderItemGroup.h"
 #include "NiagaraStackRendererItem.h"
@@ -7,6 +7,7 @@
 #include "NiagaraEmitterViewModel.h"
 #include "NiagaraEmitter.h"
 #include "NiagaraEmitterEditorData.h"
+#include "NiagaraSystemViewModel.h"
 
 FText UNiagaraStackRenderItemGroup::GetDisplayName() const
 {
@@ -21,7 +22,7 @@ void UNiagaraStackRenderItemGroup::SetDisplayName(FText InDisplayName)
 void UNiagaraStackRenderItemGroup::RefreshChildrenInternal(const TArray<UNiagaraStackEntry*>& CurrentChildren, TArray<UNiagaraStackEntry*>& NewChildren)
 {
 	int32 RendererIndex = 0;
-	for (UNiagaraRendererProperties* RendererProperties : GetEmitterViewModel()->GetEmitter()->RendererProperties)
+	for (UNiagaraRendererProperties* RendererProperties : GetEmitterViewModel()->GetEmitter()->GetRenderers())
 	{
 		UNiagaraStackRendererItem* RendererItem = FindCurrentChildOfTypeByPredicate<UNiagaraStackRendererItem>(CurrentChildren,
 			[=](UNiagaraStackRendererItem* CurrentRendererItem) { return CurrentRendererItem->GetRendererProperties() == RendererProperties; });
@@ -45,6 +46,8 @@ void UNiagaraStackRenderItemGroup::RefreshChildrenInternal(const TArray<UNiagara
 
 		NewChildren.Add(RendererItem);
 		NewChildren.Add(RendererSpacer);
+
+		RendererIndex++;
 	}
 
 	UNiagaraStackAddRendererItem* AddRendererItem = NewObject<UNiagaraStackAddRendererItem>(this);
@@ -55,6 +58,7 @@ void UNiagaraStackRenderItemGroup::RefreshChildrenInternal(const TArray<UNiagara
 
 void UNiagaraStackRenderItemGroup::ChildModifiedGroupItems()
 {
+	GetSystemViewModel()->RefreshAll();
 	RefreshChildren();
 }
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,7 +7,7 @@
 /** Data which is generated from the hlsl by the VectorVMBackend and fed back into the */
 struct FVectorVMCompilationOutput
 {
-	FVectorVMCompilationOutput() {}
+	FVectorVMCompilationOutput(): NumOps(0){}
 
 	TArray<uint8> ByteCode;
 
@@ -24,6 +24,9 @@ struct FVectorVMCompilationOutput
 		FCalledVMFunction() :NumOutputs(0) {}
 	};
 	TArray<FCalledVMFunction> CalledVMFunctionTable;
+
+	FString AssemblyAsString;
+	uint32 NumOps;
 
 	FString Errors;
 };

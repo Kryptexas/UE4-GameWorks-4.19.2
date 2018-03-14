@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Fonts/SlateTextShaper.h"
 #include "Fonts/FontCacheCompositeFont.h"
@@ -315,7 +315,13 @@ void FSlateTextShaper::PerformKerningOnlyTextShaping(const TCHAR* InText, const 
 		const int32 TextEndIndex = InTextStart + InTextLen;
 		for (; RunningTextIndex < TextEndIndex; ++RunningTextIndex)
 		{
-			const TCHAR CurrentChar = InText[RunningTextIndex];
+			TCHAR CurrentChar = InText[RunningTextIndex];
+
+			// Substitute whitespace characters with spaces since not all fonts support all kinds of whitespace characters (but we don't care since we don't render them anyway)
+			if (FText::IsWhitespace(CurrentChar))
+			{
+				CurrentChar = TEXT(' ');
+			}
 
 			// First try with the actual character
 			float SubFontScalingFactor = 1.0f;
@@ -369,7 +375,8 @@ void FSlateTextShaper::PerformKerningOnlyTextShaping(const TCHAR* InText, const 
 
 				if (!InsertSubstituteGlyphs(InText, CurrentCharIndex, InFontInfo, InFontScale, ShapedGlyphFaceData, OutGlyphsToRender))
 				{
-					const bool bIsWhitespace = FText::IsWhitespace(CurrentChar);
+					const bool bIsZeroWidthSpace = CurrentChar == TEXT('\u200B');
+					const bool bIsWhitespace = bIsZeroWidthSpace || FText::IsWhitespace(CurrentChar);
 
 					uint32 GlyphIndex = FT_Get_Char_Index(KerningOnlyTextSequenceEntry.FaceAndMemory->GetFace(), CurrentChar);
 
@@ -380,6 +387,7 @@ void FSlateTextShaper::PerformKerningOnlyTextShaping(const TCHAR* InText, const 
 					}
 
 					int16 XAdvance = 0;
+					if (!bIsZeroWidthSpace)
 					{
 						FT_Fixed CachedAdvanceData = 0;
 						if (FTAdvanceCache->FindOrCache(KerningOnlyTextSequenceEntry.FaceAndMemory->GetFace(), GlyphIndex, GlyphFlags, InFontInfo.Size, FinalFontScale, CachedAdvanceData))
@@ -393,7 +401,7 @@ void FSlateTextShaper::PerformKerningOnlyTextShaping(const TCHAR* InText, const 
 					ShapedGlyphEntry.FontFaceData = ShapedGlyphFaceData;
 					ShapedGlyphEntry.GlyphIndex = GlyphIndex;
 					ShapedGlyphEntry.SourceIndex = CurrentCharIndex;
-					ShapedGlyphEntry.XAdvance = XAdvance;
+					ShapedGlyphEntry.XAdvance = bIsZeroWidthSpace ? 0 : XAdvance;
 					ShapedGlyphEntry.YAdvance = 0;
 					ShapedGlyphEntry.XOffset = 0;
 					ShapedGlyphEntry.YOffset = 0;
@@ -462,7 +470,13 @@ void FSlateTextShaper::PerformHarfBuzzTextShaping(const TCHAR* InText, const int
 		const int32 TextEndIndex = InTextStart + InTextLen;
 		for (; RunningTextIndex < TextEndIndex; ++RunningTextIndex)
 		{
-			const TCHAR CurrentChar = InText[RunningTextIndex];
+			TCHAR CurrentChar = InText[RunningTextIndex];
+
+			// Substitute whitespace characters with spaces since not all fonts support all kinds of whitespace characters (but we don't care since we don't render them anyway)
+			if (FText::IsWhitespace(CurrentChar))
+			{
+				CurrentChar = TEXT(' ');
+			}
 
 			// First try with the actual character
 			float SubFontScalingFactor = 1.0f;
@@ -618,17 +632,18 @@ void FSlateTextShaper::PerformHarfBuzzTextShaping(const TCHAR* InText, const int
 					const TCHAR CurrentChar = InText[CurrentCharIndex];
 					if (!InsertSubstituteGlyphs(InText, CurrentCharIndex, InFontInfo, InFontScale, ShapedGlyphFaceData, OutGlyphsToRender))
 					{
-						const bool bIsWhitespace = FText::IsWhitespace(CurrentChar);
+						const bool bIsZeroWidthSpace = CurrentChar == TEXT('\u200B');
+						const bool bIsWhitespace = bIsZeroWidthSpace || FText::IsWhitespace(CurrentChar);
 
 						const int32 CurrentGlyphEntryIndex = OutGlyphsToRender.AddDefaulted();
 						FShapedGlyphEntry& ShapedGlyphEntry = OutGlyphsToRender[CurrentGlyphEntryIndex];
 						ShapedGlyphEntry.FontFaceData = ShapedGlyphFaceData;
 						ShapedGlyphEntry.GlyphIndex = HarfBuzzGlyphInfo.codepoint;
 						ShapedGlyphEntry.SourceIndex = CurrentCharIndex;
-						ShapedGlyphEntry.XAdvance = FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.x_advance);
-						ShapedGlyphEntry.YAdvance = -FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.y_advance);
-						ShapedGlyphEntry.XOffset = FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.x_offset);
-						ShapedGlyphEntry.YOffset = -FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.y_offset);
+						ShapedGlyphEntry.XAdvance = bIsZeroWidthSpace ? 0 : FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.x_advance);
+						ShapedGlyphEntry.YAdvance = bIsZeroWidthSpace ? 0 : -FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.y_advance);
+						ShapedGlyphEntry.XOffset = bIsZeroWidthSpace ? 0 : FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.x_offset);
+						ShapedGlyphEntry.YOffset = bIsZeroWidthSpace ? 0 : -FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.y_offset);
 						ShapedGlyphEntry.Kerning = 0;
 						ShapedGlyphEntry.NumCharactersInGlyph = 0; // Filled in later once we've processed each cluster
 						ShapedGlyphEntry.NumGraphemeClustersInGlyph = 0; // Filled in later once we have an accurate character count
@@ -790,22 +805,22 @@ bool FSlateTextShaper::InsertSubstituteGlyphs(const TCHAR* InText, const int32 I
 		}
 #endif // WITH_FREETYPE
 
-		// We insert (up-to) 4 space glyphs in-place of a tab character
+		// We insert a spacer glyph with (up-to) the width of 4 space glyphs in-place of a tab character
 		const int32 NumSpacesToInsert = 4 - (OutGlyphsToRender.Num() % 4);
-		for (int32 SpaceIndex = 0; SpaceIndex < NumSpacesToInsert; ++SpaceIndex)
+		if (NumSpacesToInsert > 0)
 		{
 			const int32 CurrentGlyphEntryIndex = OutGlyphsToRender.AddDefaulted();
 			FShapedGlyphEntry& ShapedGlyphEntry = OutGlyphsToRender[CurrentGlyphEntryIndex];
 			ShapedGlyphEntry.FontFaceData = InShapedGlyphFaceData;
 			ShapedGlyphEntry.GlyphIndex = SpaceGlyphIndex;
 			ShapedGlyphEntry.SourceIndex = InCharIndex;
-			ShapedGlyphEntry.XAdvance = SpaceXAdvance;
+			ShapedGlyphEntry.XAdvance = SpaceXAdvance * NumSpacesToInsert;
 			ShapedGlyphEntry.YAdvance = 0;
 			ShapedGlyphEntry.XOffset = 0;
 			ShapedGlyphEntry.YOffset = 0;
 			ShapedGlyphEntry.Kerning = 0;
-			ShapedGlyphEntry.NumCharactersInGlyph = (SpaceIndex == 0) ? 1 : 0;
-			ShapedGlyphEntry.NumGraphemeClustersInGlyph = (SpaceIndex == 0) ? 1 : 0;
+			ShapedGlyphEntry.NumCharactersInGlyph = 1;
+			ShapedGlyphEntry.NumGraphemeClustersInGlyph = 1;
 			ShapedGlyphEntry.TextDirection = TextBiDi::ETextDirection::LeftToRight;
 			ShapedGlyphEntry.bIsVisible = false;
 		}

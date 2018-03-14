@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // This code is modified from that in the Mesa3D Graphics library available at
 // http://mesa3d.org/
@@ -294,8 +294,11 @@ void lower_instructions_visitor::add_mul_to_fma(ir_expression* expr)
 {
 	if ((expr->operands[0] && expr->operands[0]->type == expr->type && !expr->operands[0]->type->is_matrix()) && (expr->operands[1] && expr->operands[1]->type == expr->type && !expr->operands[1]->type->is_matrix()))
 	{
-		ir_expression* lhs = expr->operands[0]->as_expression();
-		ir_expression* rhs = expr->operands[1]->as_expression();
+		ir_swizzle* lhs_swizzle = expr->operands[0]->as_swizzle();
+		ir_swizzle* rhs_swizzle = expr->operands[1]->as_swizzle();
+		
+		ir_expression* lhs = (lhs_swizzle ? lhs_swizzle->val : expr->operands[0])->as_expression();
+		ir_expression* rhs = (rhs_swizzle ? rhs_swizzle->val : expr->operands[1])->as_expression();
 		
 		bool const lhsMul = (lhs && lhs->operation == ir_binop_mul);
 		bool const rhsMul = (rhs && rhs->operation == ir_binop_mul);
@@ -306,6 +309,12 @@ void lower_instructions_visitor::add_mul_to_fma(ir_expression* expr)
 				ir_rvalue* mullhs_operand = lhs->operands[0]->clone(ralloc_parent(expr), NULL);
 				ir_rvalue* mulrhs_operand = lhs->operands[1]->clone(ralloc_parent(expr), NULL);
 				ir_rvalue* add_operand = expr->operands[1];
+				
+				if (lhs_swizzle)
+				{
+					mullhs_operand = new(ralloc_parent(expr))ir_swizzle(mullhs_operand, lhs_swizzle->mask);
+					mulrhs_operand = new(ralloc_parent(expr))ir_swizzle(mulrhs_operand, lhs_swizzle->mask);
+				}
 				
 				expr->operation = ir_ternop_fma;
 				expr->operands[0] = mullhs_operand;
@@ -320,6 +329,12 @@ void lower_instructions_visitor::add_mul_to_fma(ir_expression* expr)
 				ir_rvalue* mullhs_operand = rhs->operands[0]->clone(ralloc_parent(expr), NULL);
 				ir_rvalue* mulrhs_operand = rhs->operands[1]->clone(ralloc_parent(expr), NULL);
 				ir_rvalue* add_operand = expr->operands[0];
+				
+				if (rhs_swizzle)
+				{
+					mullhs_operand = new(ralloc_parent(expr))ir_swizzle(mullhs_operand, rhs_swizzle->mask);
+					mulrhs_operand = new(ralloc_parent(expr))ir_swizzle(mulrhs_operand, rhs_swizzle->mask);
+				}
 				
 				expr->operation = ir_ternop_fma;
 				expr->operands[0] = mullhs_operand;

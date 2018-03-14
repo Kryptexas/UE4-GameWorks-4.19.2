@@ -1,10 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SOutputLog.h"
 #include "Framework/Text/TextRange.h"
 #include "Framework/Text/IRun.h"
 #include "Framework/Text/TextLayout.h"
-#include "HAL/IConsoleManager.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Misc/OutputDeviceHelper.h"
 #include "SlateOptMacros.h"
 #include "Textures/SlateIcon.h"
@@ -21,11 +21,143 @@
 #include "EditorStyleSettings.h"
 #include "EngineGlobals.h"
 #include "Editor.h"
+#include "Toolkits/GlobalEditorCommonCommands.h"
 #include "Engine/LocalPlayer.h"
 #include "GameFramework/GameStateBase.h"
 #include "Widgets/Input/SSearchBox.h"
+#include "Features/IModularFeatures.h"
 
 #define LOCTEXT_NAMESPACE "SOutputLog"
+
+ FName FConsoleCommandExecutor::StaticName()
+ {
+	 static const FName CmdExecName = TEXT("Cmd");
+	 return CmdExecName;
+ }
+
+ FName FConsoleCommandExecutor::GetName() const
+ {
+	 return StaticName();
+ }
+
+FText FConsoleCommandExecutor::GetDisplayName() const
+{
+	return LOCTEXT("ConsoleCommandExecutorDisplayName", "Cmd");
+}
+
+FText FConsoleCommandExecutor::GetDescription() const
+{
+	return LOCTEXT("ConsoleCommandExecutorDescription", "Execute Unreal Console Commands");
+}
+
+FText FConsoleCommandExecutor::GetHintText() const
+{
+	return LOCTEXT("ConsoleCommandExecutorHintText", "Enter Console Command");
+}
+
+void FConsoleCommandExecutor::GetAutoCompleteSuggestions(const TCHAR* Input, TArray<FString>& Out)
+{
+	auto OnConsoleVariable = [&Out](const TCHAR *Name, IConsoleObject* CVar)
+	{
+#if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if (CVar->TestFlags(ECVF_Cheat))
+		{
+			return;
+		}
+#endif // (UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if (CVar->TestFlags(ECVF_Unregistered))
+		{
+			return;
+		}
+
+		Out.Add(Name);
+	};
+
+	IConsoleManager::Get().ForEachConsoleObjectThatContains(FConsoleObjectVisitor::CreateLambda(OnConsoleVariable), Input);
+}
+
+void FConsoleCommandExecutor::GetExecHistory(TArray<FString>& Out)
+{
+	IConsoleManager::Get().GetConsoleHistory(TEXT(""), Out);
+}
+
+bool FConsoleCommandExecutor::Exec(const TCHAR* Input)
+{
+	IConsoleManager::Get().AddConsoleHistoryEntry(TEXT(""), Input);
+
+	bool bWasHandled = false;
+	UWorld* World = nullptr;
+	UWorld* OldWorld = nullptr;
+
+	// The play world needs to handle these commands if it exists
+	if (GIsEditor && GEditor->PlayWorld && !GIsPlayInEditorWorld)
+	{
+		World = GEditor->PlayWorld;
+		OldWorld = SetPlayInEditorWorld(GEditor->PlayWorld);
+	}
+
+	ULocalPlayer* Player = GEngine->GetDebugLocalPlayer();
+	if (Player)
+	{
+		UWorld* PlayerWorld = Player->GetWorld();
+		if (!World)
+		{
+			World = PlayerWorld;
+		}
+		bWasHandled = Player->Exec(PlayerWorld, Input, *GLog);
+	}
+
+	if (!World)
+	{
+		World = GEditor->GetEditorWorldContext().World();
+	}
+	if (World)
+	{
+		if (!bWasHandled)
+		{
+			AGameModeBase* const GameMode = World->GetAuthGameMode();
+			AGameStateBase* const GameState = World->GetGameState();
+			if (GameMode && GameMode->ProcessConsoleExec(Input, *GLog, nullptr))
+			{
+				bWasHandled = true;
+			}
+			else if (GameState && GameState->ProcessConsoleExec(Input, *GLog, nullptr))
+			{
+				bWasHandled = true;
+			}
+		}
+
+		if (!bWasHandled && !Player)
+		{
+			if (GIsEditor)
+			{
+				bWasHandled = GEditor->Exec(World, Input, *GLog);
+			}
+			else
+			{
+				bWasHandled = GEngine->Exec(World, Input, *GLog);
+			}
+		}
+	}
+
+	// Restore the old world of there was one
+	if (OldWorld)
+	{
+		RestoreEditorWorld(OldWorld);
+	}
+
+	return bWasHandled;
+}
+
+bool FConsoleCommandExecutor::AllowHotKeyClose() const
+{
+	return true;
+}
+
+bool FConsoleCommandExecutor::AllowMultiLine() const
+{
+	return false;
+}
 
 /** Expression context to test the given messages against the current text filter */
 class FLogFilter_TextFilterExpressionContext : public ITextFilterExpressionContext
@@ -47,122 +179,9 @@ private:
 	const FLogMessage* Message;
 };
 
-/** Custom console editable text box whose only purpose is to prevent some keys from being typed */
-class SConsoleEditableTextBox : public SEditableTextBox
-{
-public:
-	SLATE_BEGIN_ARGS( SConsoleEditableTextBox ) {}
-		
-		/** Hint text that appears when there is no text in the text box */
-		SLATE_ATTRIBUTE(FText, HintText)
-
-		/** Called whenever the text is changed interactively by the user */
-		SLATE_EVENT(FOnTextChanged, OnTextChanged)
-
-		/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
-		SLATE_EVENT(FOnTextCommitted, OnTextCommitted)
-
-	SLATE_END_ARGS()
-
-
-	void Construct( const FArguments& InArgs )
-	{
-		SetStyle(&FCoreStyle::Get().GetWidgetStyle< FEditableTextBoxStyle >("NormalEditableTextBox"));
-
-		SBorder::Construct(SBorder::FArguments()
-			.BorderImage(this, &SConsoleEditableTextBox::GetConsoleBorder)
-			.BorderBackgroundColor(Style->BackgroundColor)
-			.ForegroundColor(Style->ForegroundColor)
-			.Padding(Style->Padding)
-			[
-				SAssignNew( EditableText, SConsoleEditableText )
-				.HintText( InArgs._HintText )
-				.OnTextChanged( InArgs._OnTextChanged )
-				.OnTextCommitted( InArgs._OnTextCommitted )
-			] );
-	}
-
-private:
-	class SConsoleEditableText : public SEditableText
-	{
-	public:
-		SLATE_BEGIN_ARGS( SConsoleEditableText ) {}
-			/** The text that appears when there is nothing typed into the search box */
-			SLATE_ATTRIBUTE(FText, HintText)
-			/** Called whenever the text is changed interactively by the user */
-			SLATE_EVENT(FOnTextChanged, OnTextChanged)
-
-			/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
-			SLATE_EVENT(FOnTextCommitted, OnTextCommitted)
-		SLATE_END_ARGS()
-
-		void Construct( const FArguments& InArgs )
-		{
-			SEditableText::Construct
-			( 
-				SEditableText::FArguments()
-				.HintText( InArgs._HintText )
-				.OnTextChanged( InArgs._OnTextChanged )
-				.OnTextCommitted( InArgs._OnTextCommitted ) 
-				.ClearKeyboardFocusOnCommit( false )
-				.IsCaretMovedWhenGainFocus( false ) 
-				.MinDesiredWidth( 400.0f )
-			);
-		}
-
-		virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
-		{
-			// Special case handling.  Intercept the tilde key.  It is not suitable for typing in the console
-			if( InKeyEvent.GetKey() == EKeys::Tilde )
-			{
-				return FReply::Unhandled();
-			}
-			else
-			{
-				return SEditableText::OnKeyDown( MyGeometry, InKeyEvent );
-			}
-		}
-
-		virtual FReply OnKeyChar( const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent )
-		{
-			// Special case handling.  Intercept the tilde key.  It is not suitable for typing in the console
-			if( InCharacterEvent.GetCharacter() != 0x60 )
-			{
-				return SEditableText::OnKeyChar( MyGeometry, InCharacterEvent );
-			}
-			else
-			{
-				return FReply::Unhandled();
-			}
-		}
-
-	};
-
-	/** @return Border image for the text box based on the hovered and focused state */
-	const FSlateBrush* GetConsoleBorder() const
-	{
-		if (EditableText->HasKeyboardFocus())
-		{
-			return &Style->BackgroundImageFocused;
-		}
-		else
-		{
-			if (EditableText->IsHovered())
-			{
-				return &Style->BackgroundImageHovered;
-			}
-			else
-			{
-				return &Style->BackgroundImageNormal;
-			}
-		}
-	}
-
-};
-
 SConsoleInputBox::SConsoleInputBox()
-	: SelectedSuggestion(-1)
-	, bIgnoreUIUpdate(false)
+	: bIgnoreUIUpdate(false)
+	, bHasTicked(false)
 {
 }
 
@@ -171,41 +190,87 @@ void SConsoleInputBox::Construct( const FArguments& InArgs )
 {
 	OnConsoleCommandExecuted = InArgs._OnConsoleCommandExecuted;
 	ConsoleCommandCustomExec = InArgs._ConsoleCommandCustomExec;
+	OnCloseConsole = InArgs._OnCloseConsole;
+
+	PreferredCommandExecutorName = FConsoleCommandExecutor::StaticName();
+	if (!ConsoleCommandCustomExec.IsBound()) // custom execs always show the default executor in the UI (which has the selector disabled)
+	{
+		FString PreferredCommandExecutorStr;
+		if (GConfig->GetString(TEXT("OutputLog"), TEXT("PreferredCommandExecutor"), PreferredCommandExecutorStr, GEditorPerProjectIni))
+		{
+			PreferredCommandExecutorName = *PreferredCommandExecutorStr;
+		}
+	}
+	SyncActiveCommandExecutor();
+
+	IModularFeatures::Get().OnModularFeatureRegistered().AddSP(this, &SConsoleInputBox::OnCommandExecutorRegistered);
+	IModularFeatures::Get().OnModularFeatureUnregistered().AddSP(this, &SConsoleInputBox::OnCommandExecutorUnregistered);
 
 	ChildSlot
 	[
 		SAssignNew( SuggestionBox, SMenuAnchor )
-			.Placement( InArgs._SuggestionListPlacement )
+		.Placement( InArgs._SuggestionListPlacement )
+		[
+			SNew(SHorizontalBox)
+
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(FMargin(0.0f, 0.0f, 4.0f, 0.0f))
 			[
-				SAssignNew(InputText, SConsoleEditableTextBox)
-					.OnTextCommitted(this, &SConsoleInputBox::OnTextCommitted)
-					.HintText( NSLOCTEXT( "ConsoleInputBox", "TypeInConsoleHint", "Enter console command" ) )
-					.OnTextChanged(this, &SConsoleInputBox::OnTextChanged)
-			]
-			.MenuContent
-			(
-				SNew(SBorder)
-				.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
-				.Padding( FMargin(2) )
+				SNew(SComboButton)
+				.IsEnabled(this, &SConsoleInputBox::IsCommandExecutorMenuEnabled)
+				.ComboButtonStyle(FEditorStyle::Get(), "GenericFilters.ComboButtonStyle")
+				.ForegroundColor(FLinearColor::White)
+				.ContentPadding(0)
+				.OnGetMenuContent(this, &SConsoleInputBox::GetCommandExecutorMenuContent)
+				.ButtonContent()
 				[
-					SNew(SBox)
-					.HeightOverride(250) // avoids flickering, ideally this would be adaptive to the content without flickering
-					[
-						SAssignNew(SuggestionListView, SListView< TSharedPtr<FString> >)
-							.ListItemsSource(&Suggestions)
-							.SelectionMode( ESelectionMode::Single )							// Ideally the mouse over would not highlight while keyboard controls the UI
-							.OnGenerateRow(this, &SConsoleInputBox::MakeSuggestionListItemWidget)
-							.OnSelectionChanged(this, &SConsoleInputBox::SuggestionSelectionChanged)
-							.ItemHeight(18)
-					]
+					SNew(STextBlock)
+					.Text(this, &SConsoleInputBox::GetActiveCommandExecutorDisplayName)
 				]
-			)
+			]
+
+			+SHorizontalBox::Slot()
+			[
+				SAssignNew(InputText, SMultiLineEditableTextBox)
+				.Font(FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("Log.Normal").Font)
+				.HintText(this, &SConsoleInputBox::GetActiveCommandExecutorHintText)
+				.AllowMultiLine(this, &SConsoleInputBox::GetActiveCommandExecutorAllowMultiLine)
+				.OnTextCommitted(this, &SConsoleInputBox::OnTextCommitted)
+				.OnTextChanged(this, &SConsoleInputBox::OnTextChanged)
+				.OnKeyCharHandler(this, &SConsoleInputBox::OnKeyCharHandler)
+				.OnKeyDownHandler(this, &SConsoleInputBox::OnKeyDownHandler)
+				.OnIsTypedCharValid(FOnIsTypedCharValid::CreateLambda([](const TCHAR InCh) { return true; })) // allow tabs to be typed into the field
+				.ClearKeyboardFocusOnCommit(false)
+				.ModiferKeyForNewLine(EModifierKey::Shift)
+			]
+		]
+		.MenuContent
+		(
+			SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
+			.Padding( FMargin(2) )
+			[
+				SNew(SBox)
+				.HeightOverride(250) // avoids flickering, ideally this would be adaptive to the content without flickering
+				[
+					SAssignNew(SuggestionListView, SListView< TSharedPtr<FString> >)
+					.ListItemsSource(&Suggestions.SuggestionsList)
+					.SelectionMode( ESelectionMode::Single )							// Ideally the mouse over would not highlight while keyboard controls the UI
+					.OnGenerateRow(this, &SConsoleInputBox::MakeSuggestionListItemWidget)
+					.OnSelectionChanged(this, &SConsoleInputBox::SuggestionSelectionChanged)
+					.ItemHeight(18)
+				]
+			]
+		)
 	];
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SConsoleInputBox::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
+	bHasTicked = true;
+
 	if (!GIntraFrameDebuggingGameThread && !IsEnabled())
 	{
 		SetEnabled(true);
@@ -224,27 +289,24 @@ void SConsoleInputBox::SuggestionSelectionChanged(TSharedPtr<FString> NewValue, 
 		return;
 	}
 
-	for(int32 i = 0; i < Suggestions.Num(); ++i)
+	Suggestions.SelectedSuggestion = Suggestions.SuggestionsList.IndexOfByPredicate([&NewValue](const TSharedPtr<FString>& InSuggestion)
 	{
-		if(NewValue == Suggestions[i])
-		{
-			SelectedSuggestion = i;
-			MarkActiveSuggestion();
+		return InSuggestion == NewValue;
+	});
 
-			// If the user selected this suggestion by clicking on it, then go ahead and close the suggestion
-			// box as they've chosen the suggestion they're interested in.
-			if( SelectInfo == ESelectInfo::OnMouseClick )
-			{
-				SuggestionBox->SetIsOpen( false );
-			}
+	MarkActiveSuggestion();
 
-			// Ideally this would set the focus back to the edit control
-//			FWidgetPath WidgetToFocusPath;
-//			FSlateApplication::Get().GeneratePathToWidgetUnchecked( InputText.ToSharedRef(), WidgetToFocusPath );
-//			FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
-			break;
-		}
+	// If the user selected this suggestion by clicking on it, then go ahead and close the suggestion
+	// box as they've chosen the suggestion they're interested in.
+	if( SelectInfo == ESelectInfo::OnMouseClick )
+	{
+		SuggestionBox->SetIsOpen( false );
 	}
+
+	// Ideally this would set the focus back to the edit control
+//	FWidgetPath WidgetToFocusPath;
+//	FSlateApplication::Get().GeneratePathToWidgetUnchecked( InputText.ToSharedRef(), WidgetToFocusPath );
+//	FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
 }
 
 
@@ -252,61 +314,24 @@ TSharedRef<ITableRow> SConsoleInputBox::MakeSuggestionListItemWidget(TSharedPtr<
 {
 	check(Text.IsValid());
 
-	FString Left, Mid, Right, TempRight, Combined;
-
-	if(Text->Split(TEXT("\t"), &Left, &TempRight))
-	{
-		if (TempRight.Split(TEXT("\t"), &Mid, &Right))
-		{
-			Combined = Left + Mid + Right;
-		}
-		else
-		{
-			Combined = Left + Right;
-		}
-	}
-	else
-	{
-		Combined = *Text;
-	}
-
-	FText HighlightText = FText::FromString(Mid);
+	FString SanitizedText = *Text;
+	SanitizedText.ReplaceInline(TEXT("\r\n"), TEXT("\n"), ESearchCase::CaseSensitive);
+	SanitizedText.ReplaceInline(TEXT("\r"), TEXT(" "), ESearchCase::CaseSensitive);
+	SanitizedText.ReplaceInline(TEXT("\n"), TEXT(" "), ESearchCase::CaseSensitive);
 
 	return
 		SNew(STableRow< TSharedPtr<FString> >, OwnerTable)
 		[
 			SNew(SBox)
-			.WidthOverride(300)			// to enforce some minimum width, ideally we define the minimum, not a fixed width
+			.MinDesiredWidth(300)
 			[
 				SNew(STextBlock)
-				.Text(FText::FromString(Combined))
-				.TextStyle( FEditorStyle::Get(), "Log.Normal")
-				.HighlightText(HighlightText)
+				.Text(FText::FromString(SanitizedText))
+				.TextStyle(FEditorStyle::Get(), "Log.Normal")
+				.HighlightText(Suggestions.SuggestionsHighlight)
 			]
 		];
 }
-
-class FConsoleVariableAutoCompleteVisitor 
-{
-public:
-	// @param Name must not be 0
-	// @param CVar must not be 0
-	static void OnConsoleVariable(const TCHAR *Name, IConsoleObject* CVar,TArray<FString>& Sink)
-	{
-#if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if(CVar->TestFlags(ECVF_Cheat))
-		{
-			return;
-		}
-#endif // (UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if(CVar->TestFlags(ECVF_Unregistered))
-		{
-			return;
-		}
-
-		Sink.Add(Name);
-	}
-};
 
 void SConsoleInputBox::OnTextChanged(const FText& InText)
 {
@@ -319,29 +344,14 @@ void SConsoleInputBox::OnTextChanged(const FText& InText)
 	if(!InputTextStr.IsEmpty())
 	{
 		TArray<FString> AutoCompleteList;
-
-		// console variables
+		
+		if (ActiveCommandExecutor)
 		{
-			IConsoleManager::Get().ForEachConsoleObjectThatContains(
-				FConsoleObjectVisitor::CreateStatic< TArray<FString>& >(
-				&FConsoleVariableAutoCompleteVisitor::OnConsoleVariable,
-				AutoCompleteList ), *InputTextStr);
+			ActiveCommandExecutor->GetAutoCompleteSuggestions(*InputTextStr, AutoCompleteList);
 		}
 
 		AutoCompleteList.Sort();
-
-		for(uint32 i = 0; i < (uint32)AutoCompleteList.Num(); ++i)
-		{
-			FString &ref = AutoCompleteList[i];
-			int32 Start = ref.Find(InputTextStr);
-
-			if (Start != INDEX_NONE)
-			{
-				ref = ref.Left(Start) + TEXT("\t") + ref.Mid(Start, InputTextStr.Len()) + TEXT("\t") + ref.RightChop(Start + InputTextStr.Len());
-			}
-		}
-
-		SetSuggestions(AutoCompleteList, false);
+		SetSuggestions(AutoCompleteList, FText::FromString(InputTextStr));
 	}
 	else
 	{
@@ -355,8 +365,6 @@ void SConsoleInputBox::OnTextCommitted( const FText& InText, ETextCommit::Type C
 	{
 		if (!InText.IsEmpty())
 		{
-			IConsoleManager::Get().AddConsoleHistoryEntry( *InText.ToString() );
-
 			// Copy the exec text string out so we can clear the widget's contents.  If the exec command spawns
 			// a new window it can cause the text box to lose focus, which will result in this function being
 			// re-entered.  We want to make sure the text string is empty on re-entry, so we'll clear it out
@@ -365,78 +373,24 @@ void SConsoleInputBox::OnTextCommitted( const FText& InText, ETextCommit::Type C
 			// Clear the console input area
 			bIgnoreUIUpdate = true;
 			InputText->SetText(FText::GetEmpty());
+			ClearSuggestions();
 			bIgnoreUIUpdate = false;
 			
 			// Exec!
 			if (ConsoleCommandCustomExec.IsBound())
 			{
+				IConsoleManager::Get().AddConsoleHistoryEntry(TEXT(""), *ExecString);
 				ConsoleCommandCustomExec.Execute(ExecString);
 			}
-			else
+			else if (ActiveCommandExecutor)
 			{
-				bool bWasHandled = false;
-				UWorld* World = NULL;
-				UWorld* OldWorld = NULL;
-
-				// The play world needs to handle these commands if it exists
-				if( GIsEditor && GEditor->PlayWorld && !GIsPlayInEditorWorld )
-				{
-					World = GEditor->PlayWorld;
-					OldWorld = SetPlayInEditorWorld( GEditor->PlayWorld );
-				}
-				
-				ULocalPlayer* Player = GEngine->GetDebugLocalPlayer();
-				if( Player )
-				{
-					UWorld* PlayerWorld = Player->GetWorld();
-					if( !World )
-					{
-						World = PlayerWorld;
-					}
-					bWasHandled = Player->Exec( PlayerWorld, *ExecString, *GLog );
-				}
-					
-				if( !World )
-				{
-					World = GEditor->GetEditorWorldContext().World();
-				}
-				if( World )
-				{
-					if( !bWasHandled )
-					{					
-						AGameModeBase* const GameMode = World->GetAuthGameMode();
-						AGameStateBase* const GameState = World->GetGameState();
-						if( GameMode && GameMode->ProcessConsoleExec( *ExecString, *GLog, NULL ) )
-						{
-							bWasHandled = true;
-						}
-						else if (GameState && GameState->ProcessConsoleExec(*ExecString, *GLog, NULL))
-						{
-							bWasHandled = true;
-						}
-					}
-
-					if( !bWasHandled && !Player)
-					{
-						if( GIsEditor )
-						{
-							bWasHandled = GEditor->Exec( World, *ExecString, *GLog );
-						}
-						else
-						{
-							bWasHandled = GEngine->Exec( World, *ExecString, *GLog );
-						}	
-					}
-				}
-				// Restore the old world of there was one
-				if( OldWorld )
-				{
-					RestoreEditorWorld( OldWorld );
-				}
+				ActiveCommandExecutor->Exec(*ExecString);
 			}
 		}
-
-		ClearSuggestions();
+		else
+		{
+			ClearSuggestions();
+		}
 
 		OnConsoleCommandExecuted.ExecuteIfBound();
 	}
@@ -448,54 +402,32 @@ FReply SConsoleInputBox::OnPreviewKeyDown(const FGeometry& MyGeometry, const FKe
 	{
 		if(KeyEvent.GetKey() == EKeys::Up || KeyEvent.GetKey() == EKeys::Down)
 		{
-			if(KeyEvent.GetKey() == EKeys::Up)
-			{
-				if(SelectedSuggestion < 0)
-				{
-					// from edit control to end of list
-					SelectedSuggestion = Suggestions.Num() - 1;
-				}
-				else
-				{
-					// got one up, possibly back to edit control
-					--SelectedSuggestion;
-				}
-			}
-
-			if(KeyEvent.GetKey() == EKeys::Down)
-			{
-				if(SelectedSuggestion < Suggestions.Num() - 1)
-				{
-					// go one down, possibly from edit control to top
-					++SelectedSuggestion;
-				}
-				else
-				{
-					// back to edit control
-					SelectedSuggestion = -1;
-				}
-			}
-
+			Suggestions.StepSelectedSuggestion(KeyEvent.GetKey() == EKeys::Up ? -1 : +1);
 			MarkActiveSuggestion();
 
 			return FReply::Handled();
 		}
 		else if (KeyEvent.GetKey() == EKeys::Tab)
 		{
-			if (Suggestions.Num())
+			if (Suggestions.HasSuggestions())
 			{
-				if (SelectedSuggestion >= 0 && SelectedSuggestion < Suggestions.Num())
+				if (Suggestions.HasSelectedSuggestion())
 				{
 					MarkActiveSuggestion();
 					OnTextCommitted(InputText->GetText(), ETextCommit::OnEnter);
 				}
 				else
 				{
-					SelectedSuggestion = 0;
+					Suggestions.SelectedSuggestion = 0;
 					MarkActiveSuggestion();
 				}
 			}
 
+			return FReply::Handled();
+		}
+		else if (KeyEvent.GetKey() == EKeys::Escape)
+		{
+			SuggestionBox->SetIsOpen(false);
 			return FReply::Handled();
 		}
 	}
@@ -503,16 +435,46 @@ FReply SConsoleInputBox::OnPreviewKeyDown(const FGeometry& MyGeometry, const FKe
 	{
 		if(KeyEvent.GetKey() == EKeys::Up)
 		{
-			TArray<FString> History;
-
-			IConsoleManager::Get().GetConsoleHistory(History);
-
-			SetSuggestions(History, true);
-			
-			if(Suggestions.Num())
+			// If the command field isn't empty we need you to have pressed Control+Up to summon the history (to make sure you're not just using caret navigation)
+			const bool bIsMultiLine = GetActiveCommandExecutorAllowMultiLine();
+			const bool bShowHistory = InputText->GetText().IsEmpty() || KeyEvent.IsControlDown();
+			if (bShowHistory)
 			{
-				SelectedSuggestion = Suggestions.Num() - 1;
-				MarkActiveSuggestion();
+				TArray<FString> History;
+				if (ActiveCommandExecutor)
+				{
+					ActiveCommandExecutor->GetExecHistory(History);
+				}
+
+				SetSuggestions(History, FText::GetEmpty());
+				
+				if(Suggestions.HasSuggestions())
+				{
+					Suggestions.StepSelectedSuggestion(-1);
+					MarkActiveSuggestion();
+				}
+			}
+
+			// Need to always handle this for single-line controls to avoid them invoking widget navigation
+			if (!bIsMultiLine || bShowHistory)
+			{
+				return FReply::Handled();
+			}
+		}
+		else if (KeyEvent.GetKey() == EKeys::Escape)
+		{
+			if (InputText->GetText().IsEmpty())
+			{
+				OnCloseConsole.ExecuteIfBound();
+			}
+			else
+			{
+				// Clear the console input area
+				bIgnoreUIUpdate = true;
+				InputText->SetText(FText::GetEmpty());
+				bIgnoreUIUpdate = false;
+
+				ClearSuggestions();
 			}
 
 			return FReply::Handled();
@@ -522,33 +484,36 @@ FReply SConsoleInputBox::OnPreviewKeyDown(const FGeometry& MyGeometry, const FKe
 	return FReply::Unhandled();
 }
 
-void SConsoleInputBox::SetSuggestions(TArray<FString>& Elements, bool bInHistoryMode)
+void SConsoleInputBox::SetSuggestions(TArray<FString>& Elements, FText Highlight)
 {
 	FString SelectionText;
-	if (SelectedSuggestion >= 0 && SelectedSuggestion < Suggestions.Num())
+	if (Suggestions.HasSelectedSuggestion())
 	{
-		SelectionText = *Suggestions[SelectedSuggestion];
+		SelectionText = *Suggestions.GetSelectedSuggestion();
 	}
 
-	SelectedSuggestion = -1;
-	Suggestions.Empty();
-	SelectedSuggestion = -1;
+	Suggestions.Reset();
+	Suggestions.SuggestionsHighlight = Highlight;
 
-	for(uint32 i = 0; i < (uint32)Elements.Num(); ++i)
+	for(int32 i = 0; i < Elements.Num(); ++i)
 	{
-		Suggestions.Add(MakeShareable(new FString(Elements[i])));
+		Suggestions.SuggestionsList.Add(MakeShared<FString>(Elements[i]));
 
 		if (Elements[i] == SelectionText)
 		{
-			SelectedSuggestion = i;
+			Suggestions.SelectedSuggestion = i;
 		}
 	}
+	SuggestionListView->RequestListRefresh();
 
-	if(Suggestions.Num())
+	if(Suggestions.HasSuggestions())
 	{
 		// Ideally if the selection box is open the output window is not changing it's window title (flickers)
 		SuggestionBox->SetIsOpen(true, false);
-		SuggestionListView->RequestScrollIntoView(Suggestions.Last());
+		if (Suggestions.HasSelectedSuggestion())
+		{
+			SuggestionListView->RequestScrollIntoView(Suggestions.GetSelectedSuggestion());
+		}
 	}
 	else
 	{
@@ -564,12 +529,14 @@ void SConsoleInputBox::OnFocusLost( const FFocusEvent& InFocusEvent )
 void SConsoleInputBox::MarkActiveSuggestion()
 {
 	bIgnoreUIUpdate = true;
-	if(SelectedSuggestion >= 0)
+	if (Suggestions.HasSelectedSuggestion())
 	{
-		SuggestionListView->SetSelection(Suggestions[SelectedSuggestion]);
-		SuggestionListView->RequestScrollIntoView(Suggestions[SelectedSuggestion]);	// Ideally this would only scroll if outside of the view
+		TSharedPtr<FString> SelectedSuggestion = Suggestions.GetSelectedSuggestion();
 
-		InputText->SetText(FText::FromString(GetSelectionText()));
+		SuggestionListView->SetSelection(SelectedSuggestion);
+		SuggestionListView->RequestScrollIntoView(SelectedSuggestion);	// Ideally this would only scroll if outside of the view
+
+		InputText->SetText(FText::FromString(*SelectedSuggestion));
 	}
 	else
 	{
@@ -580,18 +547,172 @@ void SConsoleInputBox::MarkActiveSuggestion()
 
 void SConsoleInputBox::ClearSuggestions()
 {
-	SelectedSuggestion = -1;
 	SuggestionBox->SetIsOpen(false);
-	Suggestions.Empty();
+	Suggestions.Reset();
 }
 
-FString SConsoleInputBox::GetSelectionText() const
+void SConsoleInputBox::OnCommandExecutorRegistered(const FName& Type, class IModularFeature* ModularFeature)
 {
-	FString ret = *Suggestions[SelectedSuggestion];
-	
-	ret = ret.Replace(TEXT("\t"), TEXT(""));
+	if (Type == IConsoleCommandExecutor::ModularFeatureName())
+	{
+		SyncActiveCommandExecutor();
+	}
+}
 
-	return ret;
+void SConsoleInputBox::OnCommandExecutorUnregistered(const FName& Type, class IModularFeature* ModularFeature)
+{
+	if (Type == IConsoleCommandExecutor::ModularFeatureName() && ModularFeature == ActiveCommandExecutor)
+	{
+		SyncActiveCommandExecutor();
+	}
+}
+
+void SConsoleInputBox::SyncActiveCommandExecutor()
+{
+	TArray<IConsoleCommandExecutor*> CommandExecutors = IModularFeatures::Get().GetModularFeatureImplementations<IConsoleCommandExecutor>(IConsoleCommandExecutor::ModularFeatureName());
+	ActiveCommandExecutor = nullptr;
+
+	// First try and match from the active name
+	for (IConsoleCommandExecutor* CommandExecutor : CommandExecutors)
+	{
+		if (CommandExecutor->GetName() == PreferredCommandExecutorName)
+		{
+			ActiveCommandExecutor = CommandExecutor;
+			break;
+		}
+	}
+
+	// Failing that, fallback to the default name
+	if (!ActiveCommandExecutor && PreferredCommandExecutorName != FConsoleCommandExecutor::StaticName())
+	{
+		for (IConsoleCommandExecutor* CommandExecutor : CommandExecutors)
+		{
+			if (CommandExecutor->GetName() == FConsoleCommandExecutor::StaticName())
+			{
+				ActiveCommandExecutor = CommandExecutor;
+				break;
+			}
+		}
+	}
+}
+
+void SConsoleInputBox::SetActiveCommandExecutor(const FName InExecName)
+{
+	GConfig->SetString(TEXT("OutputLog"), TEXT("PreferredCommandExecutor"), *InExecName.ToString(), GEditorPerProjectIni);
+	PreferredCommandExecutorName = InExecName;
+	SyncActiveCommandExecutor();
+}
+
+FText SConsoleInputBox::GetActiveCommandExecutorDisplayName() const
+{
+	if (ActiveCommandExecutor)
+	{
+		return ActiveCommandExecutor->GetDisplayName();
+	}
+	return FText::GetEmpty();
+}
+
+FText SConsoleInputBox::GetActiveCommandExecutorHintText() const
+{
+	if (ActiveCommandExecutor)
+	{
+		return ActiveCommandExecutor->GetHintText();
+	}
+	return FText::GetEmpty();
+}
+
+bool SConsoleInputBox::GetActiveCommandExecutorAllowMultiLine() const
+{
+	if (ActiveCommandExecutor)
+	{
+		return ActiveCommandExecutor->AllowMultiLine();
+	}
+	return false;
+}
+
+bool SConsoleInputBox::IsCommandExecutorMenuEnabled() const
+{
+	return !ConsoleCommandCustomExec.IsBound(); // custom execs always show the default executor in the UI (which has the selector disabled)
+}
+
+TSharedRef<SWidget> SConsoleInputBox::GetCommandExecutorMenuContent()
+{
+	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/true, nullptr);
+
+	MenuBuilder.BeginSection("CmdExecEntries");
+	{
+		TArray<IConsoleCommandExecutor*> CommandExecutors = IModularFeatures::Get().GetModularFeatureImplementations<IConsoleCommandExecutor>(IConsoleCommandExecutor::ModularFeatureName());
+		CommandExecutors.Sort([](IConsoleCommandExecutor& LHS, IConsoleCommandExecutor& RHS)
+		{
+			return LHS.GetDisplayName().CompareTo(RHS.GetDisplayName()) < 0;
+		});
+
+		for (const IConsoleCommandExecutor* CommandExecutor : CommandExecutors)
+		{
+			const bool bIsActiveCmdExec = ActiveCommandExecutor == CommandExecutor;
+
+			MenuBuilder.AddMenuEntry(
+				CommandExecutor->GetDisplayName(),
+				CommandExecutor->GetDescription(),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(this, &SConsoleInputBox::SetActiveCommandExecutor, CommandExecutor->GetName()),
+					FCanExecuteAction::CreateLambda([] { return true; }),
+					FIsActionChecked::CreateLambda([bIsActiveCmdExec] { return bIsActiveCmdExec; })
+					),
+				NAME_None,
+				EUserInterfaceActionType::RadioButton
+			);
+		}
+	}
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
+}
+
+FReply SConsoleInputBox::OnKeyDownHandler(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+{
+	const FInputChord OpenConsoleChord = *FGlobalEditorCommonCommands::Get().OpenConsoleCommandBox->GetActiveChord(EMultipleKeyBindingIndex::Primary);
+	const FInputChord InputChord = FInputChord(InKeyEvent.GetKey(), EModifierKey::FromBools(InKeyEvent.IsControlDown(), InKeyEvent.IsAltDown(), InKeyEvent.IsShiftDown(), InKeyEvent.IsCommandDown()));
+
+	// Intercept the "open console" key
+	if ((!ActiveCommandExecutor || ActiveCommandExecutor->AllowHotKeyClose()) 
+		&& OpenConsoleChord == InputChord)
+	{
+		OnCloseConsole.ExecuteIfBound();
+		return FReply::Handled();
+	}
+	
+	return FReply::Unhandled();
+}
+
+FReply SConsoleInputBox::OnKeyCharHandler(const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent)
+{
+	// A printable key may be used to open the console, so consume all characters before our first Tick
+	if (!bHasTicked)
+	{
+		return FReply::Handled();
+	}
+
+	const FInputChord OpenConsoleChord = *FGlobalEditorCommonCommands::Get().OpenConsoleCommandBox->GetActiveChord(EMultipleKeyBindingIndex::Primary);
+
+	const uint32* KeyCode = nullptr;
+	const uint32* CharCode = nullptr;
+	FInputKeyManager::Get().GetCodesFromKey(OpenConsoleChord.Key, KeyCode, CharCode);
+	check(CharCode);
+
+	// Intercept the "open console" key
+	if ((!ActiveCommandExecutor || ActiveCommandExecutor->AllowHotKeyClose())
+		&& InCharacterEvent.GetCharacter() == (TCHAR)*CharCode
+		&& OpenConsoleChord.NeedsControl() == InCharacterEvent.IsControlDown()
+		&& OpenConsoleChord.NeedsAlt() == InCharacterEvent.IsAltDown()
+		&& OpenConsoleChord.NeedsShift() == InCharacterEvent.IsShiftDown()
+		&& OpenConsoleChord.NeedsCommand() == InCharacterEvent.IsCommandDown())
+	{
+		return FReply::Handled();
+	}
+	
+	return FReply::Unhandled();
 }
 
 TSharedRef< FOutputLogTextLayoutMarshaller > FOutputLogTextLayoutMarshaller::Create(TArray< TSharedPtr<FLogMessage> > InMessages, FLogFilter* InFilter)
@@ -784,6 +905,7 @@ void SOutputLog::Construct( const FArguments& InArgs )
 
 	MessagesTextMarshaller = FOutputLogTextLayoutMarshaller::Create(InArgs._Messages, &Filter);
 
+
 	MessagesTextBox = SNew(SMultiLineEditableTextBox)
 		.Style(FEditorStyle::Get(), "Log.TextBox")
 		.TextStyle(FEditorStyle::Get(), "Log.Normal")
@@ -796,89 +918,87 @@ void SOutputLog::Construct( const FArguments& InArgs )
 
 	ChildSlot
 	[
-		SNew(SVerticalBox)
-
-		// Console output and filters
-		+SVerticalBox::Slot()
+		SNew(SBorder)
+		.Padding(3)
+		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 		[
-			SNew(SBorder)
-			.Padding(3)
-			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			SNew(SVerticalBox)
+
+			// Output Log Filter
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(FMargin(0.0f, 0.0f, 0.0f, 4.0f))
 			[
-				SNew(SVerticalBox)
-
-				// Output Log Filter
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(FMargin(0.0f, 0.0f, 0.0f, 4.0f))
-				[
-					SNew(SHorizontalBox)
+				SNew(SHorizontalBox)
 			
-					+SHorizontalBox::Slot()
-					.AutoWidth()
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SComboButton)
+					.ComboButtonStyle(FEditorStyle::Get(), "GenericFilters.ComboButtonStyle")
+					.ForegroundColor(FLinearColor::White)
+					.ContentPadding(0)
+					.ToolTipText(LOCTEXT("AddFilterToolTip", "Add an output log filter."))
+					.OnGetMenuContent(this, &SOutputLog::MakeAddFilterMenu)
+					.HasDownArrow(true)
+					.ContentPadding(FMargin(1, 0))
+					.ButtonContent()
 					[
-						SNew(SComboButton)
-						.ComboButtonStyle(FEditorStyle::Get(), "GenericFilters.ComboButtonStyle")
-						.ForegroundColor(FLinearColor::White)
-						.ContentPadding(0)
-						.ToolTipText(LOCTEXT("AddFilterToolTip", "Add an output log filter."))
-						.OnGetMenuContent(this, &SOutputLog::MakeAddFilterMenu)
-						.HasDownArrow(true)
-						.ContentPadding(FMargin(1, 0))
-						.ButtonContent()
+						SNew(SHorizontalBox)
+
+						+SHorizontalBox::Slot()
+						.AutoWidth()
 						[
-							SNew(SHorizontalBox)
+							SNew(STextBlock)
+							.TextStyle(FEditorStyle::Get(), "GenericFilters.TextStyle")
+							.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.9"))
+							.Text(FText::FromString(FString(TEXT("\xf0b0"))) /*fa-filter*/)
+						]
 
-							+SHorizontalBox::Slot()
-							.AutoWidth()
-							[
-								SNew(STextBlock)
-								.TextStyle(FEditorStyle::Get(), "GenericFilters.TextStyle")
-								.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.9"))
-								.Text(FText::FromString(FString(TEXT("\xf0b0"))) /*fa-filter*/)
-							]
-
-							+SHorizontalBox::Slot()
-							.AutoWidth()
-							.Padding(2, 0, 0, 0)
-							[
-								SNew(STextBlock)
-								.TextStyle(FEditorStyle::Get(), "GenericFilters.TextStyle")
-								.Text(LOCTEXT("Filters", "Filters"))
-							]
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.Padding(2, 0, 0, 0)
+						[
+							SNew(STextBlock)
+							.TextStyle(FEditorStyle::Get(), "GenericFilters.TextStyle")
+							.Text(LOCTEXT("Filters", "Filters"))
 						]
 					]
-
-					+SHorizontalBox::Slot()
-					.Padding(4, 1, 0, 0)
-					[
-						SAssignNew(FilterTextBox, SSearchBox)
-						.HintText(LOCTEXT("SearchLogHint", "Search Log"))
-						.OnTextChanged(this, &SOutputLog::OnFilterTextChanged)
-						.OnTextCommitted(this, &SOutputLog::OnFilterTextCommitted)
-						.DelayChangeNotificationsWhileTyping(true)
-					]
 				]
 
-				// Output log area
-				+SVerticalBox::Slot()
-				.FillHeight(1)
+				+SHorizontalBox::Slot()
+				.Padding(4, 1, 0, 0)
 				[
-					MessagesTextBox.ToSharedRef()
+					SAssignNew(FilterTextBox, SSearchBox)
+					.HintText(LOCTEXT("SearchLogHint", "Search Log"))
+					.OnTextChanged(this, &SOutputLog::OnFilterTextChanged)
+					.OnTextCommitted(this, &SOutputLog::OnFilterTextCommitted)
+					.DelayChangeNotificationsWhileTyping(true)
 				]
 			]
-		]
 
-		// The console input box
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(FMargin(0.0f, 4.0f, 0.0f, 0.0f))
-		[
-			SNew(SConsoleInputBox)
-			.OnConsoleCommandExecuted(this, &SOutputLog::OnConsoleCommandExecuted)
+			// Output log area
+			+SVerticalBox::Slot()
+			.FillHeight(1)
+			[
+				MessagesTextBox.ToSharedRef()
+			]
 
-			// Always place suggestions above the input line for the output log widget
-			.SuggestionListPlacement(MenuPlacement_AboveAnchor)
+			// The console input box
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(FMargin(0.0f, 4.0f, 0.0f, 0.0f))
+			[
+				SNew(SBox)
+				.MaxDesiredHeight(180.0f)
+				[
+					SNew(SConsoleInputBox)
+					.OnConsoleCommandExecuted(this, &SOutputLog::OnConsoleCommandExecuted)
+
+					// Always place suggestions above the input line for the output log widget
+					.SuggestionListPlacement(MenuPlacement_AboveAnchor)
+				]
+			]
 		]
 	];
 
@@ -1165,7 +1285,7 @@ void SOutputLog::MakeSelectCategoriesSubMenu(FMenuBuilder& MenuBuilder)
 		{
 			MenuBuilder.AddMenuEntry(
 				FText::AsCultureInvariant(Category.ToString()),
-				FText::Format(LOCTEXT("Category_Tooltip", "Filter the Output Log to show Category: %s"), FText::AsCultureInvariant(Category.ToString())),
+				FText::Format(LOCTEXT("Category_Tooltip", "Filter the Output Log to show category: {0}"), FText::AsCultureInvariant(Category.ToString())),
 				FSlateIcon(),
 				FUIAction(FExecuteAction::CreateSP(this, &SOutputLog::CategoriesSingle_Execute, Category),
 				FCanExecuteAction::CreateLambda([] { return true; }),

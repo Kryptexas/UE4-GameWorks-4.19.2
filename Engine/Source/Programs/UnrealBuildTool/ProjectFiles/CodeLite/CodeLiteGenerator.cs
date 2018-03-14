@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -19,15 +19,33 @@ namespace UnrealBuildTool
 		}
 	}
 
+	enum CodeliteProjectFileFormat
+	{
+		CodeLite9,
+		CodeLite10
+	}
+
 	class CodeLiteGenerator : ProjectFileGenerator
 	{
 		public string SolutionExtension = ".workspace";
 		public string CodeCompletionFileName = "CodeCompletionFolders.txt";
 		public string CodeCompletionPreProcessorFileName = "CodeLitePreProcessor.txt";
+		CodeliteProjectFileFormat ProjectFileFormat = CodeliteProjectFileFormat.CodeLite10;
 
-		public CodeLiteGenerator(FileReference InOnlyGameProject)
+		public CodeLiteGenerator(FileReference InOnlyGameProject, string[] Arguments)
 			: base(InOnlyGameProject)
 		{
+			foreach(string Argument in Arguments)
+			{
+				if(Argument.Equals("-cl10", StringComparison.InvariantCultureIgnoreCase))
+				{
+					ProjectFileFormat = CodeliteProjectFileFormat.CodeLite10;
+				}
+				else if (Argument.Equals("-cl9", StringComparison.InvariantCultureIgnoreCase))
+				{
+					ProjectFileFormat = CodeliteProjectFileFormat.CodeLite9;
+				}
+			}
 		}
 
 		//
@@ -128,6 +146,10 @@ namespace UnrealBuildTool
 			//
 			// Write project file information into CodeLite's workspace file.
 			//
+			XElement CodeLiteWorkspaceTargetEngine = null;
+			XElement CodeLiteWorkspaceTargetPrograms = null;
+			XElement CodeLiteWorkspaceTargetGame = null;
+
 			foreach (var CurProject in AllProjectFiles)
 			{
 				var ProjectExtension = CurProject.ProjectFilePath.GetExtension();
@@ -142,7 +164,7 @@ namespace UnrealBuildTool
 
 				//
 				// Iterate through all targets.
-				// 
+				//
 				foreach (ProjectTarget CurrentTarget in CurProject.ProjectTargets)
 				{
 					string[] tmp = CurrentTarget.ToString().Split('.');
@@ -157,10 +179,74 @@ namespace UnrealBuildTool
 					CodeLiteWorkspaceProject.Add(CodeLiteWorkspaceProjectName);
 					CodeLiteWorkspaceProject.Add(CodeLiteWorkspaceProjectPath);
 					CodeLiteWorkspaceProject.Add(CodeLiteWorkspaceProjectActive);
-					CodeLiteWorkspace.Add(CodeLiteWorkspaceProject);
+
+					//
+					// For CodeLite 10 we can use virtual folder to group projects.
+					//
+					if (ProjectFileFormat == CodeliteProjectFileFormat.CodeLite10)
+					{
+						if ((CurrentTarget.TargetRules.Type == TargetType.Client) ||
+						    (CurrentTarget.TargetRules.Type == TargetType.Server) ||
+						    (CurrentTarget.TargetRules.Type == TargetType.Editor) ||
+						    (CurrentTarget.TargetRules.Type == TargetType.Game))
+						{
+							if (ProjectName.Equals("UE4Client") ||
+								ProjectName.Equals("UE4Server") ||
+								ProjectName.Equals("UE4Game") ||
+								ProjectName.Equals("UE4Editor"))
+							{
+								if (CodeLiteWorkspaceTargetEngine == null)
+								{
+									CodeLiteWorkspaceTargetEngine = new XElement("VirtualDirectory");
+									XAttribute CodeLiteWorkspaceTargetEngineName = new XAttribute("Name", "Engine");
+									CodeLiteWorkspaceTargetEngine.Add(CodeLiteWorkspaceTargetEngineName);
+								}
+								CodeLiteWorkspaceTargetEngine.Add(CodeLiteWorkspaceProject);
+							}
+							else
+							{
+								if (CodeLiteWorkspaceTargetGame == null)
+								{
+									CodeLiteWorkspaceTargetGame = new XElement("VirtualDirectory");
+									XAttribute CodeLiteWorkspaceTargetGameName = new XAttribute("Name", "Game");
+									CodeLiteWorkspaceTargetGame.Add(CodeLiteWorkspaceTargetGameName);
+								}
+								CodeLiteWorkspaceTargetGame.Add(CodeLiteWorkspaceProject);
+							}
+						}
+						else if (CurrentTarget.TargetRules.Type == TargetType.Program)
+						{
+							if (CodeLiteWorkspaceTargetPrograms == null)
+							{
+								CodeLiteWorkspaceTargetPrograms = new XElement("VirtualDirectory");
+								XAttribute CodeLiteWorkspaceTargetProgramsName = new XAttribute("Name", "Programs");
+								CodeLiteWorkspaceTargetPrograms.Add(CodeLiteWorkspaceTargetProgramsName);
+							}
+							CodeLiteWorkspaceTargetPrograms.Add(CodeLiteWorkspaceProject);
+						}
+					}
+					else if (ProjectFileFormat == CodeliteProjectFileFormat.CodeLite9)
+					{
+						CodeLiteWorkspace.Add(CodeLiteWorkspaceProject);
+					}
 				}
 			}
-
+			if (ProjectFileFormat == CodeliteProjectFileFormat.CodeLite10)
+			{
+				
+				if (CodeLiteWorkspaceTargetEngine != null)
+				{
+					CodeLiteWorkspace.Add(CodeLiteWorkspaceTargetEngine);
+				}
+				if (CodeLiteWorkspaceTargetPrograms != null)
+				{
+					CodeLiteWorkspace.Add(CodeLiteWorkspaceTargetPrograms);
+				}
+				if (CodeLiteWorkspaceTargetGame != null)
+				{
+					CodeLiteWorkspace.Add(CodeLiteWorkspaceTargetGame);
+				}
+			}
 			//
 			// We need to create the configuration matrix. That will assign the project configuration to 
 			// the samge workspace configuration.

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -45,6 +45,12 @@ struct ILanguageSpec
     
     // Whether the backend allows reads from non-scalar UAVs
     virtual bool AllowsImageLoadsForNonScalar() const { return true; }
+	
+	// GLSL doesn't allow non-comparison sampling operations on shadow/depth textures, but that's not universally true
+	virtual bool AllowsAllTextureOperationsOnDepthTextures() const { return false; }
+    
+    // Whether the language allows "invariant *Buffer<T> N" to specify that the buffer N is strongly typed as T to optimise access performance.
+    virtual bool AllowsInvariantBufferTypes() const { return false; }
 };
 
 enum

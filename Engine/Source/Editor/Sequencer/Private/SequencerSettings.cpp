@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerSettings.h"
 #include "KeyParams.h"
@@ -31,6 +31,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	CurveValueSnapInterval = 10.0f;
 	bSnapCurveValueToInterval = true;
 	bLabelBrowserVisible = false;
+	bShowSelectedNodesOnly = false;
 	bRewindOnRecord = true;
 	ZoomPosition = ESequencerZoomPosition::SZP_CurrentTime;
 	bAutoScrollEnabled = false;
@@ -414,6 +415,22 @@ void USequencerSettings::SetLabelBrowserVisible(bool Visible)
 	{
 		bLabelBrowserVisible = Visible;
 		SaveConfig();
+	}
+}
+
+bool USequencerSettings::GetShowSelectedNodesOnly() const
+{
+	return bShowSelectedNodesOnly;
+}
+
+void USequencerSettings::SetShowSelectedNodesOnly(bool Visible)
+{
+	if (bShowSelectedNodesOnly != Visible)
+	{
+		bShowSelectedNodesOnly = Visible;
+		SaveConfig();
+
+		OnShowSelectedNodesOnlyChangedEvent.Broadcast();
 	}
 }
 

@@ -3,35 +3,20 @@ Title: 2. Create a Nav Mesh Bounds Volume
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 2. Create a Nav Mesh Bounds Volume
 version: 4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:2
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Engine/AI/BehaviorTrees/QuickStart/1 "%Engine/AI/BehaviorTrees/QuickStart/1:title%")
-	[/PARAM]
-	[PARAM:coloroverride]
-		#000000
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine/AI/BehaviorTrees/QuickStart/3 "%Engine/AI/BehaviorTrees/QuickStart/3:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-
-%Steps%
 [EXCERPT:AICreateNav]
 
 The NavMesh in Unreal has a number of functions that work well with Behavior Trees, and while it may not be necessary depending on the game you are making, it will help in a number of game types. Also, the Top Down template already includes a Nav Mesh Bounds Volume, but you may choose to start in a completely blank project at a later date.
 
 ## Steps
 
-1. [REGION:raw]**Modes** panel %arrow% **Volumes** %arrow% **Volumes**.[/REGION]
+1. [REGION:raw]**Modes** panel > **Volumes** > **Volumes**.[/REGION]
 
 1. Click and drag a **Nav Mesh Bounds Volume** into the map.
 
@@ -50,9 +35,9 @@ The NavMesh in Unreal has a number of functions that work well with Behavior Tre
 	You can press the **P** key at any time to show or hide the NavMesh.
 
 [/EXCERPT:AICreateNav]
-%Steps%
 
-[VAR:arrow]![](Engine\AI\EnvironmentQuerySystem\QuickStart\arrow_button.png)[/VAR]
+[NAV]
+
 
 
 

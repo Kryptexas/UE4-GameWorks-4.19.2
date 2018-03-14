@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -61,6 +61,9 @@ namespace Audio
 		float GetSampleRate() const { return SampleRate; }
 		int32 GetNumChannels() const { return NumChannels; }
 		void InitSampleRate(const float InSampleRate) { SampleRate = InSampleRate; }
+
+		// Called on a buffer before it starts generating audio. Only used for the case of a procedural sound wave.
+		void OnBeginGenerate();
 
 	private:
 

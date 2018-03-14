@@ -1,27 +1,15 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3717040
 Availability:Public
 Title:7. AI Controller ブループリント:ブラックボードの初期値
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:ステップ 7AI Controller ブループリント:ブラックボードの初期値
 version:4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:7
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Engine/AI/BehaviorTrees/QuickStart/6 "%Engine/AI/BehaviorTrees/QuickStart/6:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine/AI/BehaviorTrees/QuickStart/8 "%Engine/AI/BehaviorTrees/QuickStart/8:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 [REGION:lightbox]
 [![](fullEG.png)(w:940 convert:false)](fullEG.png)
@@ -75,9 +63,4 @@ version:4.9
 
 次のステップでは、引き続きグラフを編集し、このグラフに追加して AI Controller に望ましいビヘイビア ツリーを実行させます。
 
-%Steps%
-
-
-
-
-
+[NAV]

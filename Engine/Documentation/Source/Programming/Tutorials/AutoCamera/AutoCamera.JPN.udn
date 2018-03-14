@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429264
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:ゲーム制御のカメラ
 Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
@@ -7,40 +7,6 @@ version:4.9
 type:how-to
 type:landing
 skilllevel:Beginner
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](newclass_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Programming\Tutorials\AutoCamera:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming\Tutorials\AutoCamera]
-	[/PARAM]
-	[PARAM:description]
-		%Programming\Tutorials\AutoCamera:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](newclass_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Programming\Tutorials\AutoCamera:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming\Tutorials\AutoCamera]
-	[/PARAM]
-	[PARAM:description]
-		%Programming\Tutorials\AutoCamera:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 このチュートリアルでは、カメラのアクティベート方法、またあるカメラから別のカメラへアクティブなカメラを切り替える方法を紹介します。
 
@@ -56,22 +22,14 @@ skilllevel:Beginner
 	[/PARAMLITERAL]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Programming\Tutorials\AutoCamera\1 "%Programming\Tutorials\AutoCamera\1:description%")
-	* [](Programming\Tutorials\AutoCamera\2 "%Programming\Tutorials\AutoCamera\2:description%")
-	* [](Programming\Tutorials\AutoCamera\3 "%Programming\Tutorials\AutoCamera\3:description%")
-	* [](Programming\Tutorials\AutoCamera\4 "%Programming\Tutorials\AutoCamera\4:description%")
-	[/PARAM]
-[/OBJECT]
+## ステップ
+
+[REGION:buttonlist]
+* [](Programming\Tutorials\AutoCamera\1 "%Programming\Tutorials\AutoCamera\1:description%")
+* [](Programming\Tutorials\AutoCamera\2 "%Programming\Tutorials\AutoCamera\2:description%")
+* [](Programming\Tutorials\AutoCamera\3 "%Programming\Tutorials\AutoCamera\3:description%")
+* [](Programming\Tutorials\AutoCamera\4 "%Programming\Tutorials\AutoCamera\4:description%")
+[/REGION]
 
 
 

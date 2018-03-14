@@ -3,7 +3,11 @@ Title:Hardware & Software Specifications
 SEO-Title:Hardware & Software Specifications
 Crumbs: %ROOT%, GettingStarted
 Description:Minimum and recommended hardware specifications and necessary software for developing with Unreal Engine.
-version: 4.9
+version: 4.18
+Type:reference
+Parent:GettingStarted
+Order:
+Tags:Specifications
 
 %Globals:OSSelect_Linux%
 
@@ -57,7 +61,8 @@ Unreal Engine has some specific hardware and software requirements for running t
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsMinHardware]
 |||
 | -------- | --- |
@@ -69,10 +74,10 @@ Unreal Engine has some specific hardware and software requirements for running t
 [EXCERPT:MacOSMinHardware]
 |||
 | -------- | --- |
-| **Operating System** | Mac OS X 10.10.5  |
+| **Operating System** | macOS 10.13 High Sierra  |
 | **Processor** | Quad-core Intel, 2.5 GHz or faster |
 | **Memory** | 8 GB RAM |
-| **Video Card** | OpenGL 4.1 compatible graphics card |
+| **Video Card** | Metal 1.2 Compatible Graphics Card |
 [/EXCERPT:MacOSMinHardware]
 [EXCERPT:LinuxMinHardware]
 |||
@@ -82,7 +87,8 @@ Unreal Engine has some specific hardware and software requirements for running t
 | **Memory** | 16 GB RAM |
 | **Video Card** | 	NVIDIA GeForce 470 GTX or higher with latest NVIDIA binary drivers |
 [/EXCERPT:LinuxMinHardware]
--->
+
+[/COMMENT]
 
 
 [PUBLISH:Licensee]
@@ -144,7 +150,8 @@ Below are the requirements for running the engine or editor.
 [/REGION]
 [/PUBLISH:Licensee]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsMinSoftware]
 | Running the Engine ||
 | -------- | --- |
@@ -156,7 +163,7 @@ Below are the requirements for running the engine or editor.
 [EXCERPT:MacOSMinSoftware]
 | Running the Engine ||
 | -------- | --- |
-| **Operating System** | Mac OS X 10.10.5  |
+| **Operating System** | macOS 10.12.6 Sierra  |
 [/EXCERPT:MacOSMinSoftware]
 
 [EXCERPT:LinuxMinSoftware]
@@ -177,7 +184,8 @@ UE4's crash reporting feature requires you to have **Windows Error Reporting** e
 [Visual Studio C++ 2015 Redist](https://www.microsoft.com/en-us/download/details.aspx?id=48145)
 [/EXCERPT:VCRuntime]
 
--->
+
+[/COMMENT]
 
 
 The requirements for programmers developing with the engine are listed below.
@@ -223,7 +231,8 @@ The requirements for programmers developing with the engine are listed below.
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsMinDevelopment]
 | Developing with the Engine ||
 | -------- | --- |
@@ -235,7 +244,7 @@ The requirements for programmers developing with the engine are listed below.
 [EXCERPT:MacOSMinDevelopment]
 | Developing with the Engine ||
 | -------- | --- |
-| **Xcode Version** | 7.2.1 |
+| **Xcode Version** | 9.0 [REGION:note]If you need to verify that you're running the correct version of Xcode, run the following command from the terminal window: `sudo xcode-select -s /Applications/Xcode-beta.app/Contents/Developer`[/REGION] |
 [/EXCERPT:MacOSMinDevelopment]
 [EXCERPT:LinuxMinDevelopment]
 | Developing with the Engine ||
@@ -246,9 +255,11 @@ The requirements for programmers developing with the engine are listed below.
 | **IDE** | QtCreator 3.1 or KDevelop 4.6|
 | **Build System** | CMake 2.8 |
 [/EXCERPT:LinuxMinDevelopment]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:VS]
 Visual Studio 2015 Professional or Visual Studio 2015 Community:
 
@@ -256,7 +267,8 @@ Visual Studio 2015 Professional or Visual Studio 2015 Community:
 * [Community](https://www.visualstudio.com/en-us/products/visual-studio-community-vs.aspx)
 
 [/EXCERPT:VS]
--->
+
+[/COMMENT]
 
 [PUBLISH:Licensee]
 ## Graphics Card Drivers

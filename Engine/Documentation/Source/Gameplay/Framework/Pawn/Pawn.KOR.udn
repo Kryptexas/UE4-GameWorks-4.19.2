@@ -20,7 +20,7 @@ topic-image:Gameplay/Framework/pawn_lander.png
 **Pawn** 클래스는 플레이어나 AI 가 제어할 수 있는 모든 액터의 베이스 클래스입니다. Pawn 은 월드 내 플레이어나 AI 개체에 대한 물리적 표현입니다.
 이는 플레이어나 AI 개체의 시각적인 모습 뿐만 아니라, 콜리전이나 기타 물리적 반응과 같은 측면에서 월드와의 상호작용 방식도 Pawn 이 규정한다는 뜻입니다. 
 특정 유형 게임에서는 게임 내에 눈에 보이는 플레이어 메시나 아바타가 없기에 헛갈릴 수가 있습니다. 그와는 무관하게 Pawn 은 여전히 
-게임 내 플레이어나 개체의 물리적 위치, 방향 등을 나타냅니다. [**Character**](Programming/Gameplay/Framework\Pawn\Character) (캐릭터)는 걸어다닐 수 있는 능력을 지닌 특수 유형 Pawn 을 말합니다.
+게임 내 플레이어나 개체의 물리적 위치, 방향 등을 나타냅니다. [**Character**](Gameplay/Framework\Pawn\Character) (캐릭터)는 걸어다닐 수 있는 능력을 지닌 특수 유형 Pawn 을 말합니다.
 
 기본적으로 [**Controller**](Gameplay/Framework/Controller) 와 Pawn 에는 1:1 대응 관계가 있습니다. 즉 각 콘트롤러는 어느 때고 단 하나의 폰만을 제어합니다. 
 마찬가지로 게임플레이 도중 스폰된 폰이 자동적으로 콘트롤러에 빙의(possess)되지는 않습니다.

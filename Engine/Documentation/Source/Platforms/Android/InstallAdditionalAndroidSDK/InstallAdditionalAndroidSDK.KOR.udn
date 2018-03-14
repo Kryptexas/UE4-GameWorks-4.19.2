@@ -1,0 +1,181 @@
+﻿INTSourceChangelist:3782314
+Availability: Public
+Crumbs: %ROOT%
+Title: Android SDK 추가 설치
+Description: Android SDK 를 추가로 설치하는 방법입니다.
+Type: how-to
+SkillLevel: advanced
+Version: 4.17
+parent:Platforms/Android
+Order: 1
+Tags: Android
+
+개발 대상 안드로이드 디바이스 유형에 따라 언리얼 엔진 4 프로젝트의 실행을 위해 Android SDK 를 추가로 설치해야 할 수도 있습니다. 여기서는 Android SDK 를 추가 설치하는 법에 대해 살펴봅니다.
+
+%Globals:osselect_linux%
+
+[OBJECT:ToggleButtonContent]
+    [PARAMLITERAL:category]
+    OS
+    [/PARAMLITERAL]
+    [PARAMLITERAL:id]
+    windows
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
+    active_button_content
+    [/PARAMLITERAL]
+    [PARAM:content]
+    [INCLUDE:#WindowsSetup]
+    [/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+    [PARAMLITERAL:category]
+    OS
+    [/PARAMLITERAL]
+    [PARAMLITERAL:id]
+    mac
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
+    [/PARAMLITERAL]
+    [PARAM:content]
+    [INCLUDE:#MacOSSetup]
+    [/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+    [PARAMLITERAL:category]
+    OS
+    [/PARAMLITERAL]
+    [PARAMLITERAL:id]
+    linux
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
+    [/PARAMLITERAL]
+    [PARAM:content]
+    [INCLUDE:#LinuxSetup]
+    [/PARAM]
+[/OBJECT]
+
+
+
+[COMMENT:none]
+
+[EXCERPT:WindowsSetup]
+## 단계
+
+Android SDK 를 추가 설치하려면, 먼저 **Android SDK Manager** 를 열어야 합니다.
+
+1. PC 에서 **NVPACK\android-sdk-windows\tools** 폴더를 찾습니다.
+
+    ![](AddSDK_01.png)
+
+1. **Android.bat** 파일을 찾아 더블클릭하여 엽니다.
+
+     ![](AddSDK_02.png)
+
+1. **Android SDK Manager** 로드 후 **Deselect All** (모두 선택해제) 옵션을 선택하여 필요한 SDK 를 설치 해제하지 않도록 합니다.
+
+     ![](AddSDK_04.png)
+
+1. 설치하고자 하는 Android API 버전을 찾아 옵션을 펼칩니다. 이 예제에서는 **Android 7.1.1 (API 25)** 를 사용할 것이므로, Android 7.1.1 (API 25) 섹션 아래 **SDK Platform** 옆 박스를 클릭하여 체크합니다.
+
+     ![](AddSDK_05.png)
+
+1. **Install 1 package** 버튼을 눌러 다운로드와 설치를 시작합니다.
+
+     ![](AddSDK_06.png)
+
+
+## 최종 결과
+
+완료되면, **Status** 가 체크 표시된 폴더 아이콘으로 변경되어, 설치되었음을 나타냅니다.
+
+![](AddSDK_07.png)
+
+[/EXCERPT:WindowsSetup]
+
+
+[EXCERPT:MacOSSetup]
+## 단계
+
+Android SDK 를 추가 설치하려면, 먼저 **Android SDK Manager** 를 열어야 합니다.
+
+1. 맥에서 **NVPACK\android-sdk-windows\tools** 폴더를 찾습니다.
+
+    ![](MACSDK_01.png)
+
+1. **Android** 파일을 찾아 더블클릭하여 엽니다.
+
+     ![](MACSDK_02.png)
+
+    [region:note]
+    Android 업데이터를 실행하는 데 다음과 같은 오류가 뜨면, Apple 웹사이트에서 [Java](https://support.apple.com/kb/dl1572?locale=en_US) 다음 버전을 설치해야 합니다.
+
+    ![](MACSDK_07.png)
+
+    * [**Java for OS X 2017-001**](https://support.apple.com/kb/dl1572?locale=en_US)
+    [/region]
+    
+1. **Android SDK Manager** 로드 후 **Deselect All** (모두 선택해제)하여 필요한 SDK 를 설치해제하지 않도록 합니다.
+
+     ![](MACSDK_03.png)
+
+1. 설치하고자 하는 Android API 버전을 찾아 **SDK Platform** 옆 박스를 클릭하여 체크하면 다운로드 및 설치 대상이 됩니다.
+
+     ![](MACSDK_04.png)
+
+1. **Install 1 package** 버튼을 누르면 다운로드와 설치가 시작됩니다.
+
+     ![](MACSDK_05.png)
+
+
+## 최종 결과
+
+완료되면, **Status** 가 체크 표시된 폴더 아이콘으로 변경되어, 설치되었음을 나타냅니다.
+
+![](MACSDK_06.png)
+
+[/EXCERPT:MacOSSetup]
+
+
+[EXCERPT:LinuxSetup]
+## 단계
+
+Android SDK 를 추가 설치하려면, 먼저 **Android SDK Manager** 를 열어야 합니다.
+
+1. PC 에서 **NVPACK\android-sdk-linux\tools** 폴더를 찾습니다.
+
+    ![](LinuxSDK_01.png)
+
+1. **Android** 파일을 더블클릭하여 엽니다.
+
+    ![](LinuxSDK_02.png)
+
+1. **Android SDK Manager** 로드 후 **Deselect All** (모두 선택해제) 옵션을 선택하여 필요한 SDK 가 설치해제되지 않도록 합니다.
+
+    ![](LinuxSDK_03.png)
+
+1. 설치하고자 하는 Android API 버전을 찾아 옵션을 펼칩니다. 예제에서는 **Android 8.1.0 (API 27)** 를 사용할 것이므로, Android 8.1.0 (API 27) 섹션 아래 **SDK Platform** 옆 박스를 클릭하여 체크합니다.
+
+    ![](LinuxSDK_04.png)
+
+1. **Install 1 package** 버튼을 누르면 다운로드와 설치가 시작됩니다.
+
+     ![](LinuxSDK_05.png)
+
+
+## 최종 결과
+
+완료되면, **Status** 가 체크 표시된 폴더 아이콘으로 변경되어, 설치되었음을 나타냅니다.
+
+![](LinuxSDK_06.png)
+
+[/EXCERPT:LinuxSetup]
+
+[/COMMENT]
+
+
+
+
+

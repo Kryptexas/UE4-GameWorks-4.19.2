@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	MacPlatformMisc.h: Mac platform misc functions
@@ -120,6 +120,7 @@ struct CORE_API FMacPlatformMisc : public FApplePlatformMisc
 		FGPUDescriptor& operator=(FGPUDescriptor const& Other);
 		TMap<FString, float> GetPerformanceStatistics() const;
 		
+		uint64 RegistryID;
 		uint32 PCIDevice; // This is really an io_registry_entry_t which is a mach port name
 		NSString* GPUName;
 		NSString* GPUMetalBundle;
@@ -145,6 +146,8 @@ struct CORE_API FMacPlatformMisc : public FApplePlatformMisc
 
 	/** Updates variables in GMacAppInfo that cannot be initialized before PlatformPostInit() */
 	static void PostInitMacAppInfoUpdate();
+
+	static CGDisplayModeRef GetSupportedDisplayMode(CGDirectDisplayID DisplayID, uint32 Width, uint32 Height);
 };
 
 typedef FMacPlatformMisc FPlatformMisc;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -17,12 +17,16 @@ public:
 	/** Default constructor. */
 	explicit FSlateDrawBuffer( )
 		: Locked(0)
+		, ResourceVersion(0)
 	{ }
 
 public:
 
 	/** Removes all data from the buffer. */
 	void ClearBuffer();
+
+	/** Updates renderer resource version to allow the draw buffer to clean up cached resources */
+	void UpdateResourceVersion(uint32 NewResourceVersion);
 
 	/**
 	 * Creates a new FSlateWindowElementList and returns a reference to it so it can have draw elements added to it
@@ -65,6 +69,9 @@ protected:
 
 	// 1 if this buffer is locked, 0 otherwise.
 	volatile int32 Locked;
+
+	// Last recorded version from the render. The WindowElementListsPool is emptied when this changes.
+	uint32 ResourceVersion;
 
 public:
 	FVector2D ViewOffset;

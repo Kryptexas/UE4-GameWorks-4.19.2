@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTrackEditor.h"
 #include "CoreMinimal.h"
@@ -73,6 +73,10 @@ void FMovieSceneTrackEditor::AnimatablePropertyChanged( FOnKeyProperty OnKeyProp
 			else if (KeyPropertyResult.bTrackModified)
 			{
 				Sequencer.Pin()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
+			}
+			else if (KeyPropertyResult.bKeyCreated)
+			{
+				Sequencer.Pin()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
 			}
 
 			UpdatePlaybackRange();

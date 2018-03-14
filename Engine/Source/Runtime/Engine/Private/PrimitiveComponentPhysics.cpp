@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Stats/Stats.h"
@@ -580,6 +580,20 @@ float UPrimitiveComponent::CalculateMass(FName)
 	return 0.0f;
 }
 
+void UPrimitiveComponent::SetUseCCD(bool bInUseCCD, FName BoneName)
+{
+	FBodyInstance* BI = GetBodyInstance(BoneName);
+	if (BI)
+	{
+		BI->SetUseCCD(bInUseCCD);
+	}
+}
+
+void UPrimitiveComponent::SetAllUseCCD(bool bInUseCCD)
+{
+	SetUseCCD(bInUseCCD, NAME_None);
+}
+
 void UPrimitiveComponent::PutRigidBodyToSleep(FName BoneName)
 {
 	FBodyInstance* BI = GetBodyInstance(BoneName);
@@ -838,18 +852,14 @@ void UPrimitiveComponent::UnWeldFromParent()
 		{
 			bool bRootIsBeingDeleted = RootComponent->IsPendingKillOrUnreachable();
 			const FBodyInstance* PrevWeldParent = NewRootBI->WeldParent;
-			if (!bRootIsBeingDeleted)
-			{
-				//create new root
-				RootBI->UnWeld(NewRootBI);	//don't bother fixing up shapes if RootComponent is about to be deleted
-			}
-
+			RootBI->UnWeld(NewRootBI);
+			
 			FPlatformAtomics::InterlockedExchangePtr((void**)&NewRootBI->WeldParent, nullptr);
 
 			bool bHasBodySetup = GetBodySetup() != nullptr;
 
 			//if BodyInstance hasn't already been created we need to initialize it
-			if (bHasBodySetup && NewRootBI->IsValidBodyInstance() == false)
+			if (!bRootIsBeingDeleted && bHasBodySetup && NewRootBI->IsValidBodyInstance() == false)
 			{
 				bool bPrevAutoWeld = NewRootBI->bAutoWeld;
 				NewRootBI->bAutoWeld = false;
@@ -884,7 +894,7 @@ void UPrimitiveComponent::UnWeldFromParent()
 			}
 
 			//If the new root body is simulating, we need to apply the weld on the children
-			if(NewRootBI->IsInstanceSimulatingPhysics())
+			if(!bRootIsBeingDeleted && NewRootBI->IsInstanceSimulatingPhysics())
 			{
 				NewRootBI->ApplyWeldOnChildren();
 			}

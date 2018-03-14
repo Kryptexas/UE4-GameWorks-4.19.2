@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
@@ -457,23 +457,47 @@ void UMapProperty::AddReferencedObjects(UObject* InThis, FReferenceCollector& Co
 	Super::AddReferencedObjects(This, Collector);
 }
 
-FString UMapProperty::GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const
+FString UMapProperty::GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& KeyTypeText, const FString& InKeyExtendedTypeText, const FString& ValueTypeText, const FString& InValueExtendedTypeText) const
 {
-	checkSlow(KeyProp);
-	checkSlow(ValueProp);
-
 	if (ExtendedTypeText)
 	{
-		FString KeyExtendedTypeText;
-		FString KeyTypeText = KeyProp->GetCPPType(&KeyExtendedTypeText, CPPExportFlags & ~CPPF_ArgumentOrReturnValue); // we won't consider map keys to be "arguments or return values"
+		// if property type is a template class, add a space between the closing brackets
+		FString KeyExtendedTypeText = InKeyExtendedTypeText;
+		if ((KeyExtendedTypeText.Len() && KeyExtendedTypeText.Right(1) == TEXT(">"))
+			|| (!KeyExtendedTypeText.Len() && KeyTypeText.Len() && KeyTypeText.Right(1) == TEXT(">")))
+		{
+			KeyExtendedTypeText += TEXT(" ");
+		}
 
-		FString ValueExtendedTypeText;
-		FString ValueTypeText = ValueProp->GetCPPType(&ValueExtendedTypeText, CPPExportFlags & ~CPPF_ArgumentOrReturnValue); // we won't consider map values to be "arguments or return values"
+		// if property type is a template class, add a space between the closing brackets
+		FString ValueExtendedTypeText = InValueExtendedTypeText;
+		if ((ValueExtendedTypeText.Len() && ValueExtendedTypeText.Right(1) == TEXT(">"))
+			|| (!ValueExtendedTypeText.Len() && ValueTypeText.Len() && ValueTypeText.Right(1) == TEXT(">")))
+		{
+			ValueExtendedTypeText += TEXT(" ");
+		}
 
 		*ExtendedTypeText = FString::Printf(TEXT("<%s%s,%s%s>"), *KeyTypeText, *KeyExtendedTypeText, *ValueTypeText, *ValueExtendedTypeText);
 	}
 
 	return TEXT("TMap");
+}
+
+FString UMapProperty::GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const
+{
+	checkSlow(KeyProp);
+	checkSlow(ValueProp);
+
+	FString KeyTypeText, KeyExtendedTypeText;
+	FString ValueTypeText, ValueExtendedTypeText;
+
+	if (ExtendedTypeText)
+	{
+		KeyTypeText = KeyProp->GetCPPType(&KeyExtendedTypeText, CPPExportFlags & ~CPPF_ArgumentOrReturnValue); // we won't consider map keys to be "arguments or return values"
+		ValueTypeText = ValueProp->GetCPPType(&ValueExtendedTypeText, CPPExportFlags & ~CPPF_ArgumentOrReturnValue); // we won't consider map values to be "arguments or return values"
+	}
+
+	return GetCPPTypeCustom(ExtendedTypeText, CPPExportFlags, KeyTypeText, KeyExtendedTypeText, ValueTypeText, ValueExtendedTypeText);
 }
 
 FString UMapProperty::GetCPPTypeForwardDeclaration() const
@@ -621,24 +645,42 @@ const TCHAR* UMapProperty::ImportText_Internal(const TCHAR* Buffer, void* Data, 
 		return Buffer + 1;
 	}
 
-	int32 Index = 0;
+	uint8* TempPairStorage   = (uint8*)FMemory::Malloc(MapLayout.ValueOffset + ValueProp->ElementSize);
+	KeyProp  ->InitializeValue(TempPairStorage);
+	ValueProp->InitializeValue(TempPairStorage + MapLayout.ValueOffset);
+
+	bool bSuccess = false;
+	ON_SCOPE_EXIT
+	{
+		ValueProp->DestroyValue(TempPairStorage + MapLayout.ValueOffset);
+		KeyProp  ->DestroyValue(TempPairStorage);
+		FMemory::Free(TempPairStorage);
+
+		// If we are returning because of an error, remove any already-added elements from the map before returning
+		// to ensure we're not left with a partial state.
+		if (!bSuccess)
+		{
+			MapHelper.EmptyValues();
+		}
+	};
+
 	for (;;)
 	{
-		MapHelper.AddUninitializedValue();
-		MapHelper.ConstructItem(Index);
-		uint8* PairPtr = MapHelper.GetPairPtrWithoutCheck(Index);
-
 		if (*Buffer++ != TCHAR('('))
 		{
 			return nullptr;
 		}
 
 		// Parse the key
-		Buffer = KeyProp->ImportText(Buffer, PairPtr, PortFlags | PPF_Delimited, Parent, ErrorText);
+		SkipWhitespace(Buffer);
+		Buffer = KeyProp->ImportText(Buffer, TempPairStorage, PortFlags | PPF_Delimited, Parent, ErrorText);
 		if (!Buffer)
 		{
 			return nullptr;
 		}
+
+		// Skip this element if it's already in the map
+		bool bSkip = MapHelper.FindMapIndexWithKey(TempPairStorage) != INDEX_NONE;
 
 		SkipWhitespace(Buffer);
 		if (*Buffer++ != TCHAR(','))
@@ -648,7 +690,7 @@ const TCHAR* UMapProperty::ImportText_Internal(const TCHAR* Buffer, void* Data, 
 
 		// Parse the value
 		SkipWhitespace(Buffer);
-		Buffer = ValueProp->ImportText(Buffer, PairPtr + MapLayout.ValueOffset, PortFlags | PPF_Delimited, Parent, ErrorText);
+		Buffer = ValueProp->ImportText(Buffer, TempPairStorage + MapLayout.ValueOffset, PortFlags | PPF_Delimited, Parent, ErrorText);
 		if (!Buffer)
 		{
 			return nullptr;
@@ -660,20 +702,31 @@ const TCHAR* UMapProperty::ImportText_Internal(const TCHAR* Buffer, void* Data, 
 			return nullptr;
 		}
 
+		if (!bSkip)
+		{
+			int32  Index   = MapHelper.AddDefaultValue_Invalid_NeedsRehash();
+			uint8* PairPtr = MapHelper.GetPairPtrWithoutCheck(Index);
+
+			// Copy over imported key and value from temporary storage
+			KeyProp  ->CopyCompleteValue_InContainer(PairPtr, TempPairStorage);
+			ValueProp->CopyCompleteValue_InContainer(PairPtr, TempPairStorage);
+		}
+
+		SkipWhitespace(Buffer);
 		switch (*Buffer++)
 		{
 			case TCHAR(')'):
 				MapHelper.Rehash();
+				bSuccess = true;
 				return Buffer;
 
 			case TCHAR(','):
+				SkipWhitespace(Buffer);
 				break;
 
 			default:
 				return nullptr;
 		}
-
-		++Index;
 	}
 }
 

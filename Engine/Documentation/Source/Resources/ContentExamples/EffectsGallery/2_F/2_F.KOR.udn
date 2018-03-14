@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:2.6 - 볼류메트릭 파티클 이펙트에 대한 라이팅된 반투명
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
@@ -11,63 +11,7 @@ Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 Version: 4.9
-
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 예제](Resources/ContentExamples/EffectsGallery/2_E "%Resources/ContentExamples/EffectsGallery/2_E:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[이펙트 갤러리 홈](Resources/ContentExamples/EffectsGallery)
-	[/PARAM]
-	[PARAM:next]
-		[다음 예제](Resources/ContentExamples/EffectsGallery/2_G "%Resources/ContentExamples/EffectsGallery/2_G:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources\ContentExamples\EffectsGallery\2_F:title%](%ROOT%\Resources\ContentExamples\EffectsGallery\2_F\2_FTopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources\ContentExamples\EffectsGallery\2_F:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources\ContentExamples\EffectsGallery\2_F:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources\ContentExamples\EffectsGallery\2_F]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources\ContentExamples\EffectsGallery\2_F:title%](%ROOT%\Resources\ContentExamples\EffectsGallery\2_F\2_FTopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources\ContentExamples\EffectsGallery\2_F:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources\ContentExamples\EffectsGallery\2_F:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources\ContentExamples\EffectsGallery\2_F]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:2_FTopic.png
 
 [REGION:fullwidth]
 ![](image070.png)

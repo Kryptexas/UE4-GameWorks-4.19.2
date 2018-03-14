@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244012
+﻿INTSourceChangelist:3683933
 Availability:Public
 Title:カスタムの Burn In を適用する
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -11,6 +11,7 @@ checkpoint: editorqs
 Related:Engine/Sequencer/Overview
 Related:Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 シネマティックスを出力する場合、時刻、ショット、フレーム情報などを含む [デフォルトのバーンイン](Engine\Sequencer\HowTo\BurnIns) の設定の範囲を超えて追加の情報や機能を与えることができます。 
 [UMG](Engine/UMG) と [](Engine/Blueprints) を使うと、カスタム バーンインとオーバーレイの機能を作成することができます。 
@@ -27,7 +28,7 @@ tags:Sequencer
 
 	![](Custom01.png)
 
-1.	**コンテンツ ブラウザ** 内で右クリックして、**LevelSequenceBurnInInitSettings** 型の **Blueprint クラス** を作成します。Burn In Options 内で設定するすべてのものが保持されるため、この新しいブループリントに、**CustomSettings** という名前を付けます。 
+1.	**コンテンツ ブラウザ** 内で右クリックして、**LevelSequenceBurnInInitSettings** タイプの **Blueprint クラス** を作成します。Burn In Options 内で設定するすべてのものが保持されるため、この新しいブループリントに、**CustomSettings** という名前を付けます。 
 
 	![](Custom02.png) 
 
@@ -73,7 +74,7 @@ tags:Sequencer
 
 1.	**Ctrl** を押しながら、**Displayed Text** をドラッグして、**[My Blueprint]** パネルから、 **Options** 変数をドラッグします。 
 
-1.	**Displayed Text** から **Set Font** にドラッグします。次に **Options** からドラッグして、**Custom Font** を get し、以下のように接続します。 
+1.	**Displayed Text** から **Set Font** にドラッグします。次に **Options** からドラッグして、**Custom Font** を取得し、以下のように接続します。 
 
 	![](Custom11.png)
 
@@ -83,7 +84,7 @@ tags:Sequencer
 
 	これで Text Widget に対してコンテンツ (表示されるテキスト) を更新する機能がバインドされます。 
 
-1.	開いたグラフで、 **Ctrl** キーを押しながら、**Options** をドラッグして、そこから **Custom Text** を get し、以下のように接続します。 
+1.	開いたグラフで、 **Ctrl** キーを押しながら、**Options** をドラッグして、そこから **Custom Text** を取得し、以下のように接続します。 
 
 	![](Custom13.png)
 

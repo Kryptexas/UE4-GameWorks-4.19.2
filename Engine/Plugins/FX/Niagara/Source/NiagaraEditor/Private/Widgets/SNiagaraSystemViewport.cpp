@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SNiagaraSystemViewport.h"
 #include "Widgets/Layout/SBox.h"
@@ -16,6 +16,7 @@
 #include "NiagaraEditorCommands.h"
 #include "EditorViewportCommands.h"
 #include "AdvancedPreviewScene.h"
+#include "ImageUtils.h"
 
 /** Viewport Client for the preview viewport */
 class FNiagaraSystemViewportClient : public FEditorViewportClient
@@ -31,11 +32,18 @@ public:
 	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass = eSSP_FULL) override;
 	
 	void SetShowGrid(bool bShowGrid);
+
+	virtual void SetIsSimulateInEditorViewport(bool bInIsSimulateInEditorViewport)override;
+
+	TSharedPtr<SNiagaraSystemViewport> NiagaraViewport;
+	bool bCaptureScreenShot;
 };
 
 FNiagaraSystemViewportClient::FNiagaraSystemViewportClient(FAdvancedPreviewScene& InPreviewScene, const TSharedRef<SNiagaraSystemViewport>& InNiagaraEditorViewport)
 	: FEditorViewportClient(nullptr, &InPreviewScene, StaticCastSharedRef<SEditorViewport>(InNiagaraEditorViewport))
 {
+	NiagaraViewport = InNiagaraEditorViewport;
+
 	// Setup defaults for the common draw helper.
 	DrawHelper.bDrawPivot = false;
 	DrawHelper.bDrawWorldBox = false;
@@ -53,6 +61,10 @@ FNiagaraSystemViewportClient::FNiagaraSystemViewportClient(FAdvancedPreviewScene
 	
 	OverrideNearClipPlane(1.0f);
 	bUsingOrbitCamera = true;
+	bCaptureScreenShot = false;
+
+	//This seems to be needed to get the correct world time in the preview.
+	SetIsSimulateInEditorViewport(true);
 }
 
 
@@ -67,15 +79,54 @@ void FNiagaraSystemViewportClient::Tick(float DeltaSeconds)
 	}
 }
 
-
 void FNiagaraSystemViewportClient::Draw(FViewport* InViewport,FCanvas* Canvas)
 {
+	if (NiagaraViewport.IsValid() && NiagaraViewport->GetDrawElement(SNiagaraSystemViewport::EDrawElements::Bounds))
+	{
+		EngineShowFlags.SetBounds(true);
+		EngineShowFlags.Game = 1;
+	}
+	else
+	{
+		EngineShowFlags.SetBounds(false);
+		EngineShowFlags.Game = 0;
+	}
+
 	FEditorViewportClient::Draw(InViewport, Canvas);
+
+	if (bCaptureScreenShot)
+	{
+		UNiagaraSystem* ParticleSystem = NiagaraViewport->GetPreviewComponent()->GetAsset();
+		int32 SrcWidth = InViewport->GetSizeXY().X;
+		int32 SrcHeight = InViewport->GetSizeXY().Y;
+		// Read the contents of the viewport into an array.
+		TArray<FColor> OrigBitmap;
+		if (InViewport->ReadPixels(OrigBitmap))
+		{
+			check(OrigBitmap.Num() == SrcWidth * SrcHeight);
+
+			// Resize image to enforce max size.
+			TArray<FColor> ScaledBitmap;
+			int32 ScaledWidth = 512;
+			int32 ScaledHeight = 512;
+			FImageUtils::ImageResize(SrcWidth, SrcHeight, OrigBitmap, ScaledWidth, ScaledHeight, ScaledBitmap, true);
+
+			// Compress.
+			FCreateTexture2DParameters Params;
+			Params.bDeferCompression = true;
+			ParticleSystem->ThumbnailImage = FImageUtils::CreateTexture2D(ScaledWidth, ScaledHeight, ScaledBitmap, ParticleSystem, TEXT("ThumbnailTexture"), RF_NoFlags, Params);
+
+			ParticleSystem->ThumbnailImageOutOfDate = false;
+			ParticleSystem->MarkPackageDirty();
+		}
+
+		bCaptureScreenShot = false;
+	}
 }
 
 bool FNiagaraSystemViewportClient::ShouldOrbitCamera() const
 {
-	return true;
+	return bUsingOrbitCamera;
 }
 
 
@@ -99,13 +150,32 @@ void FNiagaraSystemViewportClient::SetShowGrid(bool bShowGrid)
 	DrawHelper.bDrawGrid = bShowGrid;
 }
 
+void FNiagaraSystemViewportClient::SetIsSimulateInEditorViewport(bool bInIsSimulateInEditorViewport)
+{
+	bIsSimulateInEditorViewport = bInIsSimulateInEditorViewport;
+
+// 	if (bInIsSimulateInEditorViewport)
+// 	{
+// 		TSharedRef<FPhysicsManipulationEdModeFactory> Factory = MakeShareable(new FPhysicsManipulationEdModeFactory);
+// 		FEditorModeRegistry::Get().RegisterMode(FBuiltinEditorModes::EM_Physics, Factory);
+// 	}
+// 	else
+// 	{
+// 		FEditorModeRegistry::Get().UnregisterMode(FBuiltinEditorModes::EM_Physics);
+// 	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+
 void SNiagaraSystemViewport::Construct(const FArguments& InArgs)
 {
+	DrawFlags = 0;
 	bShowGrid = false;
 	bShowBackground = false;
 	PreviewComponent = nullptr;
 	AdvancedPreviewScene = MakeShareable(new FAdvancedPreviewScene(FPreviewScene::ConstructionValues()));
-	
+	AdvancedPreviewScene->SetFloorVisibility(false);
+
 	SEditorViewport::Construct( SEditorViewport::FArguments() );
 }
 
@@ -117,12 +187,42 @@ SNiagaraSystemViewport::~SNiagaraSystemViewport()
 	}
 }
 
+void SNiagaraSystemViewport::CreateThumbnail()
+{
+	if (SystemViewportClient.IsValid() && PreviewComponent != nullptr)
+	{
+		SystemViewportClient->bCaptureScreenShot = true;
+	}
+}
+
+
 void SNiagaraSystemViewport::AddReferencedObjects( FReferenceCollector& Collector )
 {
 	if (PreviewComponent != nullptr)
 	{
 		Collector.AddReferencedObject(PreviewComponent);
 	}
+}
+
+
+bool SNiagaraSystemViewport::GetDrawElement(EDrawElements Element) const
+{
+	return (DrawFlags & Element) != 0;
+}
+
+void SNiagaraSystemViewport::ToggleDrawElement(EDrawElements Element)
+{
+	DrawFlags = DrawFlags ^ Element;
+}
+
+bool SNiagaraSystemViewport::IsToggleOrbitChecked() const
+{
+	return SystemViewportClient->bUsingOrbitCamera;
+}
+
+void SNiagaraSystemViewport::ToggleOrbit()
+{
+	SystemViewportClient->ToggleOrbitCamera(!SystemViewportClient->bUsingOrbitCamera);
 }
 
 void SNiagaraSystemViewport::RefreshViewport()
@@ -198,6 +298,12 @@ void SNiagaraSystemViewport::BindCommands()
 		FExecuteAction::CreateSP( this, &SNiagaraSystemViewport::TogglePreviewBackground ),
 								  FCanExecuteAction(),
 								  FIsActionChecked::CreateSP( this, &SNiagaraSystemViewport::IsTogglePreviewBackgroundChecked ) );
+
+	CommandList->MapAction(
+		Commands.ToggleOrbit,
+		FExecuteAction::CreateSP(this, &SNiagaraSystemViewport::ToggleOrbit),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SNiagaraSystemViewport::IsToggleOrbitChecked));
 								  
 }
 

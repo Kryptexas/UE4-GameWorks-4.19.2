@@ -5,14 +5,12 @@ Description:Instructions on how to deploy projects from UE4 to use with the Sams
 Version: 4.16
 Skilllevel: Intermediate
 tags:VR
-tags:GearVR
+tags:Gear VR
 type:multi-step
 parent:Platforms/GearVR/QuickStart
 order:3
 Checkpoint:GearVRQS
-Related: Platforms\GearVR\Prerequisites
-Related: Platforms\GearVR\BestPractices
-Related: Platforms\GearVR\Debugging
+prereq:Platforms\GearVR\Prerequisites\
 
 [nav]
 
@@ -21,6 +19,11 @@ In the following part of the Gear VR Quick Start, we will go over how to launch 
 ## Steps
 
 1. First, make sure that your Samsung Galaxy Smartphone is connected to your development PC via a USB cable and that your PC can see the device using the **ADB** command **ADB Devices**.
+
+	[region:note]
+	If you are not sure how to do this, make sure to check out the[Gear VR Prerequisites](Platforms\GearVR\Prerequisites\) for more information. 
+	[/region]
+
 
 1. From the Main Toolbar, click on the small white triangle next to the **Launch** icon, to open the **Options for Launching on a Device**.
 
@@ -57,7 +60,7 @@ In the following part of the Gear VR Quick Start, we will go over how to launch 
     [/REGION]
 
     [region:note]
-    To see detailed information about what is currently happing during the packing process, click on the **Show Output Log** link in the progress window.
+    To see detailed information about what is currently happening during the packing process, click on the **Show Output Log** link in the progress window.
     [/region]
 
 1. When the packing and installing process has completed, a notification will be displayed, and a sound will be played. You can then put your device in your Gear VR HMD and when you put it on you should something similar to the following video.

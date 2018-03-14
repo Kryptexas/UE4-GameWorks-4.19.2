@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -73,15 +73,49 @@ public:
 	static UNREALED_API bool SaveMap(UWorld* World, const FString& AssetPath);
 
 	/**
-	 * Looks at all currently loaded packages and saves them if their "bDirty" flag is set, optionally prompting the user to select which packages to save)
+	 * Save all packages.
+	 * Assume all dirty packages should be saved and check out from source control (if enabled).
+	 *
+	 * @param		PackagesToSave				The list of packages to save.  Both map and content packages are supported
+	 * @param		bCheckDirty					If true, only packages that are dirty in PackagesToSave will be saved
+	 * @return									true on success, false on fail.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Editor Loading and Saving")
+	static UNREALED_API bool SavePackages(const TArray<UPackage*>& PackagesToSave, bool bOnlyDirty);
+
+	/**
+	* Save all packages. Optionally prompting the user to select which packages to save.
+	* Prompt the user to select which dirty packages to save and check them out from source control (if enabled).
+	*
+	* @param		PackagesToSave				The list of packages to save.  Both map and content packages are supported
+	* @param		bCheckDirty					If true, only packages that are dirty in PackagesToSave will be saved
+	* @return									true on success, false on fail.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Editor Loading and Saving")
+	static UNREALED_API bool SavePackagesWithDialog(const TArray<UPackage*>& PackagesToSave, bool bOnlyDirty);
+
+	/**
+	 * Looks at all currently loaded packages and saves them if their "bDirty" flag is set.
+	 * Assume all dirty packages should be saved and check out from source control (if enabled).
 	 *
 	 * @param	bSaveMapPackages			true if map packages should be saved
 	 * @param	bSaveContentPackages		true if we should save content packages.
-	 * @param	bPromptUserToSave			true if we should prompt the user to save dirty packages we found and check them out from source control(if enabled). False to assume all dirty packages should be saved and checked out
 	 * @return								true on success, false on fail.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Editor Loading and Saving")
-	static UNREALED_API bool SaveDirtyPackages(const bool bSaveMapPackages, const bool bSaveContentPackages, const bool bPromptUser);
+	static UNREALED_API bool SaveDirtyPackages(const bool bSaveMapPackages, const bool bSaveContentPackages);
+
+	/**
+	 * Looks at all currently loaded packages and saves them if their "bDirty" flag is set.
+	 * Prompt the user to select which dirty packages to save and check them out from source control (if enabled).
+	 *
+
+	 * @param	bSaveMapPackages			true if map packages should be saved
+	 * @param	bSaveContentPackages		true if we should save content packages.
+	 * @return								true on success, false on fail.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Editor Loading and Saving")
+	static UNREALED_API bool SaveDirtyPackagesWithDialog(const bool bSaveMapPackages, const bool bSaveContentPackages);
 
 	/**
 	 * Saves the active level, prompting the use for checkout if necessary.

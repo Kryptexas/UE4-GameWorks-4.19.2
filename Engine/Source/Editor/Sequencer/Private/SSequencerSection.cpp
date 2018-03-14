@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SSequencerSection.h"
 #include "Rendering/DrawElements.h"
@@ -1209,7 +1209,9 @@ void SSequencerSection::PaintKeys( FSequencerSectionPainter& InPainter, const FW
 
 			// Count the number of overlapping keys
 			int32 NumOverlaps = 0;
-			while (KeyIndex + 1 < KeysInRange.Num() && FMath::IsNearlyEqual(TimeToPixelConverter.TimeToPixel(KeysInRange[KeyIndex+1].Time), KeyPosition, PixelOverlapThreshold))
+			while (KeyIndex < KeysInRange.Num() && 
+					( (KeyIndex + 1 < KeysInRange.Num() && FMath::IsNearlyEqual(TimeToPixelConverter.TimeToPixel(KeysInRange[KeyIndex+1].Time), KeyPosition, PixelOverlapThreshold)) ||
+					  (KeyIndex > 1 && FMath::IsNearlyEqual(TimeToPixelConverter.TimeToPixel(KeysInRange[KeyIndex-1].Time), KeyPosition, PixelOverlapThreshold)) ))
 			{
 				++KeyIndex;
 				++NumOverlaps;

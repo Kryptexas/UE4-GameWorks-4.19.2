@@ -93,7 +93,8 @@ UE4 iOS プロジェクトでこの事象が起こらないようにするには
 Min Desired Frame Rate を変更し、[Drop Detail (省略を省く)] のチェックを外したら、 
 プロジェクトを iOS モバイル デバイスに再クックまたは再デプロイするとパーティクル コリジョンが機能しているか確認します。 
 
-<!-----------
+[COMMENT:none]
+---------
 
 #### Includes
 
@@ -118,4 +119,5 @@ Min Desired Frame Rate を変更し、[Drop Detail (省略を省く)] のチェ�
 [/EXCERPT:CollisionCompletionOption]
 
 
-------->
+-----
+[/COMMENT]

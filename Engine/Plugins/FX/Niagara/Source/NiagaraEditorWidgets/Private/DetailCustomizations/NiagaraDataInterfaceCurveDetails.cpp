@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraDataInterfaceCurveDetails.h"
 #include "NiagaraCurveOwner.h"
@@ -27,8 +27,8 @@ public:
 
 public:
 	SLATE_BEGIN_ARGS(SNiagaraResizeBox)
-		: _ContentHeight(50)
-		, _HandleHeight(5)
+		: _HandleHeight(5)
+		, _ContentHeight(50)
 		, _HandleColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.0f))
 		, _HandleHighlightColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.5f))
 	{}
@@ -232,6 +232,8 @@ public:
 		];
 
 		CurveEditor->SetCurveOwner(CurveOwner.Get());
+		// Allow users to scroll over the widget in the editor using the scroll wheel (unless it has keyboard focus, in which case it will zoom in/out)
+		CurveEditor->SetRequireFocusToZoom(true);
 	}
 
 private:
@@ -281,6 +283,15 @@ void FNiagaraDataInterfaceCurveDetailsBase::CustomizeDetails(IDetailLayoutBuilde
 
 	TArray<TSharedRef<IPropertyHandle>> CurveProperties;
 	GetCurveProperties(DetailBuilder, CurveProperties);
+
+	// Make sure all property handles are valid.
+	for (TSharedRef<IPropertyHandle> CurveProperty : CurveProperties)
+	{
+		if (CurveProperty->IsValidHandle() == false)
+		{
+			return;
+		}
+	}
 
 	for (TSharedRef<IPropertyHandle> CurveProperty : CurveProperties)
 	{

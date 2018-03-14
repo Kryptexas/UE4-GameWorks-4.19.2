@@ -30,7 +30,8 @@ Unreal Engine to familiarize you with what they are and why you would use them.
 | **AmbientSound**  | ![](Shared/Icons/Source/icon_class_AmbientSound_40px.png)(convert:false) | **Ambient Sound Actors** are used to play sounds - in the form of Sound Cues - within the world. These sounds can be looping or non-looping and have spatialization and attenuation, though all of this must be set up in the SoundCue and is not exposed on the Ambient Sound Actor itself. |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Trigger]
 [REGION:imagetable]
 | ![](Engine/Actors/Triggers/box_trigger.png)(w:180) | ![](Engine/Actors/Triggers/capsule_trigger.png)(w:180) | ![](Engine/Actors/Triggers/sphere_trigger.png)(w:180) |
@@ -38,4 +39,5 @@ Unreal Engine to familiarize you with what they are and why you would use them.
 | Box Trigger | Capsule Trigger | Sphere Trigger |
 [/REGION]
 [/EXCERPT:Trigger]
--->
+
+[/COMMENT]

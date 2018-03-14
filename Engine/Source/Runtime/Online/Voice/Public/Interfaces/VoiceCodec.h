@@ -1,10 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Stats/Stats.h"
 #include "VoicePackage.h"
+#include "Net/VoiceConfig.h"
 
 /** Stats for voice codec */
 DECLARE_STATS_GROUP(TEXT("Voice"), STATGROUP_Voice, STATCAT_Advanced);
@@ -20,14 +21,7 @@ DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Dec_NumChannels"), STAT_Decode_NumCh
 DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("Dec_CompRatio"), STAT_Decode_CompressionRatio, STATGROUP_Voice, );
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Dec_OutSize"), STAT_Decode_OutSize, STATGROUP_Voice, );
 
-/** Encoding hints for compression */
-enum class EAudioEncodeHint : uint8
-{
-	/** Best for most VoIP applications where listening quality and intelligibility matter most */
-	VoiceEncode_Voice,
-	/** Best for broadcast/high-fidelity application where the decoded audio should be as close as possible to the input */
-	VoiceEncode_Audio
-};
+
 
 /**
  * Interface for encoding raw voice for transmission over the wire

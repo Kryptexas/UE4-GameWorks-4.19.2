@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Concurrent;
@@ -31,6 +31,7 @@ namespace UnrealGameSync
 		PerforceConnection Perforce;
 		readonly string BranchClientPath;
 		readonly string SelectedClientFileName;
+		readonly string SelectedLocalFileName;
 		readonly string SelectedProjectIdentifier;
 		Thread WorkerThread;
 		int PendingMaxChangesValue;
@@ -48,11 +49,12 @@ namespace UnrealGameSync
 		public event Action OnUpdateMetadata;
 		public event Action OnStreamChange;
 
-		public PerforceMonitor(PerforceConnection InPerforce, string InBranchClientPath, string InSelectedClientFileName, string InSelectedProjectIdentifier, string InLogPath)
+		public PerforceMonitor(PerforceConnection InPerforce, string InBranchClientPath, string InSelectedClientFileName, string InSelectedLocalFilename, string InSelectedProjectIdentifier, string InLogPath)
 		{
 			Perforce = InPerforce;
 			BranchClientPath = InBranchClientPath;
 			SelectedClientFileName = InSelectedClientFileName;
+			SelectedLocalFileName = InSelectedLocalFilename;
 			SelectedProjectIdentifier = InSelectedProjectIdentifier;
 			PendingMaxChangesValue = 100;
 			LastChangeByCurrentUser = -1;
@@ -198,6 +200,10 @@ namespace UnrealGameSync
 				DepotPaths.Add(String.Format("{0}/*", BranchClientPath));
 				DepotPaths.Add(String.Format("{0}/Engine/...", BranchClientPath));
 				DepotPaths.Add(String.Format("{0}/...", PerforceUtils.GetClientOrDepotDirectoryName(SelectedClientFileName)));
+				if (Utility.IsEnterpriseProject(SelectedLocalFileName))
+				{
+					DepotPaths.Add(String.Format("{0}/Enterprise/...", BranchClientPath));
+				}
 			}
 
 			// Read any new changes
@@ -305,7 +311,7 @@ namespace UnrealGameSync
 			// Update them in batches
 			foreach(int QueryChangeNumber in QueryChangeNumbers)
 			{
-				string[] CodeExtensions = { ".cs", ".h", ".cpp", ".usf", ".ush" };
+				string[] CodeExtensions = { ".cs", ".h", ".cpp", ".usf", ".ush", ".uproject", ".uplugin" };
 
 				// If there's something to check for, find all the content changes after this changelist
 				PerforceDescribeRecord DescribeRecord;

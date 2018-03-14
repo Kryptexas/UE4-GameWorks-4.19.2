@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 D3D12DescriptorCache.h: D3D12 State application functionality
@@ -490,7 +490,7 @@ private:
 		TRefCountPtr<ID3D12DescriptorHeap> Heap;
 		FD3D12CLSyncPoint SyncPoint;
 
-		PoolEntry()
+		PoolEntry() 
 		{}
 
 		PoolEntry(const PoolEntry& InPoolEntry) : Heap(InPoolEntry.Heap), SyncPoint(InPoolEntry.SyncPoint)
@@ -500,7 +500,6 @@ private:
 		{
 			Heap = InPoolEntry.Heap;
 			SyncPoint = InPoolEntry.SyncPoint;
-
 			return *this;
 		}
 	};
@@ -552,9 +551,11 @@ public:
 	// end Descriptor Slot Reservation stuff
 
 	// null views
-	TRefCountPtr<FD3D12ShaderResourceView> pNullSRV;
-	TRefCountPtr<FD3D12UnorderedAccessView> pNullUAV;
-	TRefCountPtr<FD3D12RenderTargetView> pNullRTV;
+
+	FD3D12DescriptorHandleSRV* pNullSRV;
+	FD3D12DescriptorHandleRTV* pNullRTV;
+	FD3D12DescriptorHandleUAV* pNullUAV;
+
 #if USE_STATIC_ROOT_SIGNATURE
 	FD3D12ConstantBufferView* pNullCBV;
 #endif

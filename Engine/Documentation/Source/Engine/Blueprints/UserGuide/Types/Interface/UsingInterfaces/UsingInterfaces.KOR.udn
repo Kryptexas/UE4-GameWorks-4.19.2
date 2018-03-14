@@ -1,48 +1,11 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:블루프린트 인터페이스 구현하기
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types/Interface
 Description:블루프린트 인터페이스는, 블루프린트에서 유형이 다른 타겟 블루프린트의 함수도, 같은 인터페이스를 구현하기만 한다면 호출할 수 있도록 해 줍니다.
 Version: 4.9
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Blueprints/UserGuide/using_interface_topic.png
 
 [TOC (start:2)]
 
@@ -78,7 +41,7 @@ _블루프린트 인터페이스_ 는 물론 네이티브 (C++) 코드로 정의
 	![](InterfacesListPopulated.png)
 
 [REGION:tip]
-	_Implemented Interfaces_ (구현된 인터페이스) 목록에 있는 인터페이스 옆 ![](button_X_Remove.png) 버튼을 클릭해서 제거할 수도 있습니다. 블루프린트 인터페이스를 일반 블루프린트 함수로 이주시킬 수도 있습니다. 자세한 정보는 [](Engine/Blueprints\UserGuide\BlueprintComms\InterfaceMigration) 문서를 참고하시기 바랍니다.
+	_Implemented Interfaces_ (구현된 인터페이스) 목록에 있는 인터페이스 옆 ![](button_X_Remove.png) 버튼을 클릭해서 제거할 수도 있습니다. 블루프린트 인터페이스를 일반 블루프린트 함수로 이주시킬 수도 있습니다. 자세한 정보는 [](Engine/Blueprints/UserGuide/BlueprintComms/InterfaceMigration) 문서를 참고하시기 바랍니다.
 [/REGION]
 
 [REGION:note]

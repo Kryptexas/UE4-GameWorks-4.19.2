@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelEditorContextMenu.h"
 #include "Misc/Attribute.h"
@@ -172,19 +172,19 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 
 		MenuBuilder.BeginSection("ComponentControl", LOCTEXT("ComponentControlHeading", "Component"));
 		{
-			auto OwnerActor = GEditor->GetSelectedActors()->GetTop<AActor>();
-			check(OwnerActor);
-
-			MenuBuilder.AddMenuEntry(
-				FLevelEditorCommands::Get().SelectComponentOwnerActor,
-				NAME_None,
-				FText::Format(LOCTEXT("SelectComponentOwner", "Select Owner [{0}]"), FText::FromString(OwnerActor->GetHumanReadableName())),
-				TAttribute<FText>(),
-				FSlateIconFinder::FindIconForClass(OwnerActor->GetClass())
+			AActor* OwnerActor = GEditor->GetSelectedActors()->GetTop<AActor>();
+			if(OwnerActor)
+			{
+				MenuBuilder.AddMenuEntry(
+					FLevelEditorCommands::Get().SelectComponentOwnerActor,
+					NAME_None,
+					FText::Format(LOCTEXT("SelectComponentOwner", "Select Owner [{0}]"), FText::FromString(OwnerActor->GetHumanReadableName())),
+					TAttribute<FText>(),
+					FSlateIconFinder::FindIconForClass(OwnerActor->GetClass())
 				);
+			}
 
 			MenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().FocusViewportToSelection);
-
 
 			const FVector* ClickLocation = &GEditor->ClickLocation;
 			FUIAction GoHereAction;
@@ -264,10 +264,6 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 						);
 
 				}
-
-				MenuBuilder.AddMenuEntry(FGlobalEditorCommonCommands::Get().ViewReferences);
-				MenuBuilder.AddMenuEntry(FGlobalEditorCommonCommands::Get().ViewSizeMap);
-
 			}
 			MenuBuilder.EndSection();
 		}

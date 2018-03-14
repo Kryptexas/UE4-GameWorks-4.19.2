@@ -42,7 +42,8 @@ version:4.9
 
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-<!--
+[COMMENT:none]
+
 注意：在能够与分析工具信息进行核对前均为移除状态。StatsViewer 不存在于 P4 或二进制版本中。
 | **stat StartFile** **stat StopFile** | 生成一个可离线分析的 .ue4stats 文件（使用位于 UE4\Engine\Binaries\DotNET\StatsViewer 的 StatsViewer 工具）。由于上一帧的负担过重，可能出现 GPU 停滞。
 
@@ -75,7 +76,8 @@ version:4.9
 
 [/EXCERPT]
 
--->
+
+[/COMMENT]
 
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,7 +26,7 @@ class UK2Node_CastByteToEnum : public UK2Node
 	UPROPERTY()
 	bool bSafe;
 
-	static const FString ByteInputPinName;
+	static const FName ByteInputPinName;
 
 	//~ Begin UEdGraphNode Interface
 	virtual void AllocateDefaultPins() override;

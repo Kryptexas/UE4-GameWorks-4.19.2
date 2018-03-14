@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "VoiceCaptureWindows.h"
 #include "VoicePrivate.h"
@@ -70,39 +70,6 @@ struct FVoiceCaptureWindowsVars
 	}
 };
 
-/** Calculate silence in an audio buffer by using a RMS threshold */
-template<typename T>
-bool IsSilence(T* Buffer, int32 BuffSize)
-{
-	if (BuffSize == 0)
-	{
-		return true;
-	} 
-
-	const int32 IterSize = BuffSize / sizeof(T);
-
-	double Total = 0.0f;
-	for (int32 i = 0; i < IterSize; i++) 
-	{
-		Total += Buffer[i];
-	}
-
-	const double Average = Total / IterSize;
-
-	double SumMeanSquare = 0.0f;
-	double Diff = 0.0f;
-	for (int32 i = 0; i < IterSize; i++) 
-	{
-		Diff = (Buffer[i] - Average);
-		SumMeanSquare += (Diff * Diff);
-	}
-
-	double AverageMeanSquare = SumMeanSquare / IterSize;
-
-	static double Threshold = 75.0 * 75.0;
-	return AverageMeanSquare < Threshold;
-}
-
 FVoiceCaptureWindows::FVoiceCaptureWindows() :
 	CV(nullptr),
 	LastCaptureTime(0.0),
@@ -141,6 +108,17 @@ bool FVoiceCaptureWindows::Init(const FString& DeviceName, int32 SampleRate, int
 	{
 		return CreateCaptureBuffer(VoiceDev->DefaultVoiceCaptureDevice.DeviceName, SampleRate, NumChannels);
 	}
+
+   	// init the sample counter to 0 on init
+	SampleCounter = 0; 
+	CachedSampleStart = 0;
+	MicLevelDetector.Init(SampleRate, MicSilenceDetectionConfig::AttackTime, MicSilenceDetectionConfig::ReleaseTime, MicSilenceDetectionConfig::LevelDetectionMode, MicSilenceDetectionConfig::IsAnalog);
+	
+	const int32 AttackInSamples = SampleRate * MicSilenceDetectionConfig::AttackTime * 0.001f;
+	LookaheadBuffer.Init(AttackInSamples + 1);
+	LookaheadBuffer.SetDelay(AttackInSamples);
+
+	bIsMicActive = false;
 
 	return CreateCaptureBuffer(DeviceName, SampleRate, NumChannels);
 }
@@ -215,7 +193,7 @@ bool FVoiceCaptureWindows::CreateCaptureBuffer(const FString& DeviceName, int32 
 		// Buffer setup
 		CV->VoiceCaptureBufferDesc.dwSize = sizeof(DSCBUFFERDESC);
 		CV->VoiceCaptureBufferDesc.dwFlags = 0;
-		CV->VoiceCaptureBufferDesc.dwBufferBytes = CV->WavFormat.nAvgBytesPerSec / 2; // .5 sec buffer
+		CV->VoiceCaptureBufferDesc.dwBufferBytes = CV->WavFormat.nAvgBytesPerSec / 2; // 0.5 sec buffer
 		CV->VoiceCaptureBufferDesc.dwReserved = 0;
 		CV->VoiceCaptureBufferDesc.lpwfxFormat = &CV->WavFormat;
 		CV->VoiceCaptureBufferDesc.dwFXCount = 0;
@@ -276,9 +254,13 @@ bool FVoiceCaptureWindows::CreateCaptureBuffer(const FString& DeviceName, int32 
 		return false;
 	}
 
-	UncompressedAudioBuffer.Empty(CV->VoiceCaptureBufferDesc.dwBufferBytes);
+	UncompressedAudioBuffer.Init(0, CV->VoiceCaptureBufferDesc.dwBufferBytes);
 	check(UncompressedAudioBuffer.Max() >= (int32)CV->VoiceCaptureBufferCaps8.dwBufferBytes);
 
+	NumInputChannels = CV->WavFormat.nChannels;
+
+	ReleaseBuffer.Init((int32)CV->VoiceCaptureBufferCaps8.dwBufferBytes);
+	ReleaseBuffer.SetDelay(1);
 	return true;
 }
 
@@ -419,16 +401,115 @@ void FVoiceCaptureWindows::ProcessData()
 
 			CaptureLength = FMath::Min(CaptureLength, (DWORD)UncompressedAudioBuffer.Max());
 			CaptureLength2 = FMath::Min(CaptureLength2, (DWORD)UncompressedAudioBuffer.Max() - CaptureLength);
+			
 
-			UncompressedAudioBuffer.AddUninitialized(CaptureLength + CaptureLength2);
+			UncompressedAudioBuffer.AddUninitialized(CaptureLength + CaptureLength2 + (ReleaseBuffer.GetBufferCount() * sizeof(int16)));
+			
 
-			uint8* AudioBuffer = UncompressedAudioBuffer.GetData() + Offset;
-			FMemory::Memcpy(AudioBuffer, CaptureData, CaptureLength);
+			int16* AudioBuffer = (int16*)(UncompressedAudioBuffer.GetData() + Offset);
+			int16* InputBuffer = (int16*)CaptureData;
+			
+			//First, if we have any cached audio from an onset mid-buffer, copy it in:
+			int32 SamplesPushedToUncompressedAudioBuffer = ReleaseBuffer.PopBufferedAudio(AudioBuffer, ReleaseBuffer.GetBufferCount());
+			AudioBuffer += SamplesPushedToUncompressedAudioBuffer;
+			
+			bool bMicReleased = false;
 
-			if (CaptureData2 && CaptureLength2 > 0)
+			CurrentSampleStart = CachedSampleStart;
+			const int32 TotalNumFrames = CaptureLength / sizeof(int16);
+
+			//Begin looping through the first buffer:
+			for (int32 FrameIndex = 0; FrameIndex < TotalNumFrames; FrameIndex += NumInputChannels)
 			{
-				FMemory::Memcpy(AudioBuffer + CaptureLength, CaptureData2, CaptureLength2);
+				int16 Temp = 0;
+
+				for (int32 ChannelIndex = 0; ChannelIndex < NumInputChannels; ChannelIndex++)
+				{
+					Temp += InputBuffer[FrameIndex + ChannelIndex];
+				}
+
+				MicLevelDetector.ProcessAudio(Temp);
+				LookaheadBuffer.ProcessSample(Temp, Temp);
+
+				bIsMicActive = MicLevelDetector.GetCurrentValue() > MicSilenceDetectionConfig::Threshold;
+
+				if (bIsMicActive)
+				{
+					if (bMicReleased)
+					{
+						ReleaseBuffer.PushSample(Temp);
+
+						if (!bSampleStartCached)
+						{
+							CachedSampleStart = SampleCounter;
+							bSampleStartCached = true;
+						}
+					}
+					else
+					{
+						AudioBuffer[FrameIndex] = Temp;
+						SamplesPushedToUncompressedAudioBuffer++;
+					}
+				}
+				else
+				{
+					bMicReleased = true;
+				}
+				SampleCounter++;
 			}
+
+			//Set up second buffer and loop through that:
+			AudioBuffer += CaptureLength;
+			InputBuffer = (int16*)CaptureData2;
+			const int32 TotalNumFrames2 = CaptureLength2 / sizeof(int16);
+			for (int32 FrameIndex = 0; FrameIndex < TotalNumFrames2; FrameIndex += NumInputChannels)
+			{
+				int16 Temp = 0;
+				
+				for (int32 ChannelIndex = 0; ChannelIndex < NumInputChannels; ChannelIndex++)
+				{
+					CA_SUPPRESS(6385);
+					Temp += InputBuffer[FrameIndex + ChannelIndex];
+				}
+				
+				MicLevelDetector.ProcessAudio(Temp);
+				LookaheadBuffer.ProcessSample(Temp, Temp);
+
+				bIsMicActive = MicLevelDetector.GetCurrentValue() > MicSilenceDetectionConfig::Threshold;
+
+				if (bIsMicActive)
+				{
+					if (bMicReleased)
+					{
+						ReleaseBuffer.PushSample(Temp);
+
+						if (!bSampleStartCached)
+						{
+							CachedSampleStart = SampleCounter;
+							bSampleStartCached = true;
+						}
+					}
+					else
+					{
+						AudioBuffer[FrameIndex] = Temp;
+						SamplesPushedToUncompressedAudioBuffer++;
+					}
+				}
+				else
+				{
+					bMicReleased = true;
+				}
+				SampleCounter++;
+			}
+
+			if (!bSampleStartCached)
+			{
+				CachedSampleStart = SampleCounter;
+			}
+
+			bSampleStartCached = false;
+
+			UncompressedAudioBuffer.SetNum(Offset + (SamplesPushedToUncompressedAudioBuffer * sizeof(int16)), false);
 
 			CA_SUPPRESS(6385);
 			CV->VoiceCaptureBuffer8->Unlock(CaptureData, OriginalCaptureLength, CaptureData2, OriginalCaptureLength2);
@@ -437,18 +518,18 @@ void FVoiceCaptureWindows::ProcessData()
 			CV->NextCaptureOffset = (CV->NextCaptureOffset + CaptureLength) % CV->VoiceCaptureBufferCaps8.dwBufferBytes;
 			CV->NextCaptureOffset = (CV->NextCaptureOffset + CaptureLength2) % CV->VoiceCaptureBufferCaps8.dwBufferBytes;
 
-			// If Offset > 0 then we know a previous check guarantees it's not silent data
-			if (Offset == 0 && IsSilence((int16*)AudioBuffer, UncompressedAudioBuffer.Num()))
-			{
-				VoiceCaptureState = EVoiceCaptureState::NoData;
-				UncompressedAudioBuffer.Empty(UncompressedAudioBuffer.Max());
-			}
-			else
+			
+			if (SamplesPushedToUncompressedAudioBuffer > 0)
 			{
 				VoiceCaptureState = EVoiceCaptureState::Ok;
 			}
+			else
+			{
+				VoiceCaptureState = EVoiceCaptureState::NoData;
+			}
 
 #if !UE_BUILD_SHIPPING
+			// TODO: look at actually using something like this for time stamping
 			const double NewTime = FPlatformTime::Seconds();
 			UE_LOG(LogVoiceCapture, VeryVerbose, TEXT("LastCapture: %f %s"), (NewTime - LastCaptureTime) * 1000.0, EVoiceCaptureState::ToString(VoiceCaptureState));
 			LastCaptureTime = NewTime;
@@ -462,29 +543,30 @@ void FVoiceCaptureWindows::ProcessData()
 	}
 }
 
-EVoiceCaptureState::Type FVoiceCaptureWindows::GetVoiceData(uint8* OutVoiceBuffer, const uint32 InVoiceBufferSize, uint32& OutAvailableVoiceData)
+EVoiceCaptureState::Type FVoiceCaptureWindows::GetVoiceData(uint8* OutVoiceBuffer, const uint32 InVoiceBufferSize, uint32& OutBytesWritten, uint64& OutSampleClockCounter)
 {
 	EVoiceCaptureState::Type NewMicState = VoiceCaptureState;
-	OutAvailableVoiceData = 0;
+	OutBytesWritten = 0;
 
 	if (VoiceCaptureState == EVoiceCaptureState::Ok ||
 		VoiceCaptureState == EVoiceCaptureState::Stopping)
 	{
-		check(UncompressedAudioBuffer.Num() <= (int32)CV->VoiceCaptureBufferCaps8.dwBufferBytes);
 
-		OutAvailableVoiceData = UncompressedAudioBuffer.Num();
-		if (InVoiceBufferSize >= OutAvailableVoiceData)
+		if (InVoiceBufferSize >= (uint32) UncompressedAudioBuffer.Num())
 		{
-			FMemory::Memcpy(OutVoiceBuffer, UncompressedAudioBuffer.GetData(), OutAvailableVoiceData);
+			OutBytesWritten = UncompressedAudioBuffer.Num();
+			FMemory::Memcpy(OutVoiceBuffer, UncompressedAudioBuffer.GetData(), OutBytesWritten);
 			VoiceCaptureState = EVoiceCaptureState::NoData;
-			UncompressedAudioBuffer.Empty(UncompressedAudioBuffer.Max());
+			UncompressedAudioBuffer.Reset();
+
+			OutSampleClockCounter = CurrentSampleStart;
 		}
 		else
 		{
 			NewMicState = EVoiceCaptureState::BufferTooSmall;
 		}
 	}
-
+	check(OutBytesWritten > 0);
 	return NewMicState;
 }
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,7 +22,7 @@ class UK2Node_EnumLiteral : public UK2Node, public INodeDependingOnEnumInterface
 	UPROPERTY()
 	UEnum* Enum;
 
-	static BLUEPRINTGRAPH_API const FString& GetEnumInputPinName();
+	static BLUEPRINTGRAPH_API const FName GetEnumInputPinName();
 
 	//~ Begin UEdGraphNode Interface
 	virtual void AllocateDefaultPins() override;

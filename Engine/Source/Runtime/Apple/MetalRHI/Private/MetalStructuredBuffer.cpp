@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "MetalRHIPrivate.h"
@@ -14,7 +14,7 @@ FMetalStructuredBuffer::FMetalStructuredBuffer(uint32 Stride, uint32 Size, FReso
 	check((Size % Stride) == 0);
 
 	MTLStorageMode Mode = BUFFER_STORAGE_MODE;
-	Buffer = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), Size, Mode));
+	Buffer = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), Size+Stride, Mode));
 	
 	if (ResourceArray)
 	{

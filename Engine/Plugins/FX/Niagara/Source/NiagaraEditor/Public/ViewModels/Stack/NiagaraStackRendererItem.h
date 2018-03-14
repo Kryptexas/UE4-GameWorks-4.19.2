@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -25,7 +25,15 @@ public:
 
 	virtual FText GetDisplayName() const override;
 
+	bool CanDelete() const;
+
 	void Delete();
+
+	bool CanHaveBase() const;
+
+	bool CanResetToBase() const;
+
+	void ResetToBase();
 
 	virtual FName GetItemBackgroundName() const override;
 	virtual int32 GetErrorCount() const override;
@@ -37,13 +45,21 @@ public:
 	static bool AddMissingVariable(UNiagaraEmitter* Emitter, const FNiagaraVariable& Variable);
 
 protected:
+	virtual void BeginDestroy() override;
+
 	virtual void RefreshChildrenInternal(const TArray<UNiagaraStackEntry*>& CurrentChildren, TArray<UNiagaraStackEntry*>& NewChildren) override;
 
 private:
 	void RendererExpandedChanged();
 
+	void RendererChanged();
+
 private:
-	UNiagaraRendererProperties* RendererProperties;
+	TWeakObjectPtr<UNiagaraRendererProperties> RendererProperties;
+
+	bool bHasBaseRenderer;
+
+	mutable TOptional<bool> bCanResetToBase;
 
 	TArray<FNiagaraVariable> MissingAttributes;
 

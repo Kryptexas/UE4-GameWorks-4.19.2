@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -801,11 +801,9 @@ public:
 	 */
 	static bool FindKeysForLegacyTranslation(const TSharedRef<const FInternationalizationManifest>& InManifest, const TSharedPtr<const FInternationalizationArchive>& InNativeArchive, const FString& InNamespace, const FString& InSource, const TSharedPtr<FLocMetadataObject> InKeyMetadataObj, TArray<FString>& OutKeys);
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	/** Publicly movable */
 	FLocTextHelper(FLocTextHelper&&) = default;
 	FLocTextHelper& operator=(FLocTextHelper&&) = default;
-#endif // PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 
 private:
 	/** Non-copyable */

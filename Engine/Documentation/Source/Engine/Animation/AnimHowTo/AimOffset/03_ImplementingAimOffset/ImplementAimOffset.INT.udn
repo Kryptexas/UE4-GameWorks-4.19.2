@@ -4,27 +4,14 @@ Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:In this step, we add the Aim Offset to our Animation Blueprint and hook it up to our existing Anim Graph. 
 version: 4.14
 skilllevel: Advanced
+parent:Engine/Animation/AnimHowTo/AimOffset
 type:how-to
+type:multi-step
+order:3
 tags:Animation
 tags:Aim Offset
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous](Engine\Animation\AnimHowTo\AimOffset\02_CreatingAimOffset\)
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Creating an Aim Offset - Home ](Engine\Animation\AnimHowTo\AimOffset)
-	[/PARAM]
-	[PARAM:next]
-		[Next](Engine\Animation\AnimHowTo\AimOffset\04_FinishingUp)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 In this step, we add the Aim Offset to our Animation Blueprint and hook it up to our existing Anim Graph. 
 
@@ -108,41 +95,4 @@ In this step, we add the Aim Offset to our Animation Blueprint and hook it up to
 We are just about done with our setup, in the next step, we will tie everything together and test out our character's ability to aim. 
 
 
-%Steps%
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+[NAV]

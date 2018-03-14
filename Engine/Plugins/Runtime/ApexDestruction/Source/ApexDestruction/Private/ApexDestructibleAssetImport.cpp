@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ApexDestructibleAssetImport.cpp:
@@ -14,9 +14,7 @@
 
 
 #if WITH_EDITOR
-
 #include "Modules/ModuleManager.h"
-#include "SkeletalMeshTypes.h"
 #include "Engine/SkeletalMesh.h"
 #include "Materials/Material.h"
 #include "Factories/Factory.h"
@@ -33,6 +31,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogApexDestructibleAssetImport, Log, All);
 #include "UObject/UObjectHash.h"
 #include "UObject/UObjectIterator.h"
 #include "ComponentReregisterContext.h"
+#include "Rendering/SkeletalMeshModel.h"
 #include "DestructibleMesh.h"
 #include "Factories/FbxSkeletalMeshImportData.h"
 
@@ -320,14 +319,19 @@ static void ImportMaterialsForSkelMesh(FSkeletalMeshImportData &ImportData, cons
 
 	// Create material slots
 	UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
-	if (DefaultMaterial)
+	if (DefaultMaterial && ApexRenderMesh != nullptr)
 	{
-		for (uint32 MatIndex = 0; MatIndex < SubmeshCount; MatIndex++)
+		TArray<FString> Materials;
+		for (uint32 SubmeshIdx = 0; SubmeshIdx < SubmeshCount; SubmeshIdx++)
 		{
-			ImportData.Materials.Add( VMaterial() );
-
-			ImportData.Materials.Last().Material = DefaultMaterial;
-			ImportData.Materials.Last().MaterialImportName = DefaultMaterial->GetName();
+			FString MaterialName = ApexRenderMesh->getMaterialName(SubmeshIdx);
+			if (!Materials.Contains(MaterialName))
+			{
+				Materials.Add(MaterialName);
+				ImportData.Materials.Add(VMaterial());
+				ImportData.Materials.Last().Material = DefaultMaterial;
+				ImportData.Materials.Last().MaterialImportName = DefaultMaterial->GetName();
+			}
 		}
 	}
 }
@@ -483,6 +487,9 @@ static bool FillSkelMeshImporterFromApexDestructibleAsset(FSkeletalMeshImportDat
 	bHaveAllNormals = true;
 	bHaveAllTangents = true;
 
+	uint32_t MaterialCount = 0;
+	TMap<FString, int32> MaterialMap = TMap<FString, int32>();
+
 	// APEX render meshes are organized by submesh (render elements)
 	// Looping through submeshes first, can be done either way
 	for (uint32 SubmeshIndex = 0; SubmeshIndex < ApexRenderMesh->getSubmeshCount(); ++SubmeshIndex)
@@ -498,6 +505,19 @@ static bool FillSkelMeshImporterFromApexDestructibleAsset(FSkeletalMeshImportDat
 			// Empty submesh, but the mesh as a whole may be valid, keep looking for more submeshes.
 			continue;
 		}
+
+		FString MaterialName(ApexRenderMesh->getMaterialName(SubmeshIndex));
+ 		uint32 MaterialIndex = 0;
+ 		if (!MaterialMap.Contains(MaterialName))
+ 		{
+ 			MaterialMap.Add(MaterialName, MaterialCount);
+ 			MaterialIndex = MaterialCount;
+ 			MaterialCount++;
+ 		}
+ 		else
+ 		{
+ 			MaterialIndex = MaterialMap[MaterialName];
+ 		}
 
 		// Get VB data semantic indices:
 
@@ -605,7 +625,7 @@ static bool FillSkelMeshImporterFromApexDestructibleAsset(FSkeletalMeshImportDat
 				Triangle.SmoothingGroups = 255; 
 
 				// Material index
-				Triangle.MatIndex = SubmeshIndex;
+				Triangle.MatIndex = MaterialIndex;
 				Triangle.AuxMatIndex = 0;
 
 				// Per-vertex
@@ -842,10 +862,10 @@ bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, apex::Destruc
 	// process bone influences from import data
 	ProcessImportMeshInfluences(*SkelMeshImportDataPtr);
 
-	FSkeletalMeshResource& DestructibleMeshResource = *DestructibleMesh.GetImportedResource();
+	FSkeletalMeshModel& DestructibleMeshResource = *DestructibleMesh.GetImportedModel();
 	check(DestructibleMeshResource.LODModels.Num() == 0);
 	DestructibleMeshResource.LODModels.Empty();
-	new(DestructibleMeshResource.LODModels)FStaticLODModel();
+	new(DestructibleMeshResource.LODModels)FSkeletalMeshLODModel();
 
 	DestructibleMesh.LODInfo.Empty();
 	DestructibleMesh.LODInfo.AddZeroed();
@@ -858,7 +878,7 @@ bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, apex::Destruc
 	// Store whether or not this mesh has vertex colors
 	DestructibleMesh.bHasVertexColors = SkelMeshImportDataPtr->bHasVertexColors;
 
-	FStaticLODModel& LODModel = DestructibleMeshResource.LODModels[0];
+	FSkeletalMeshLODModel& LODModel = DestructibleMeshResource.LODModels[0];
 	
 	LODModel.ActiveBoneIndices.Add(0);
 
@@ -877,7 +897,6 @@ bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, apex::Destruc
 		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
 
 		IMeshUtilities::MeshBuildOptions BuildOptions;
-		BuildOptions.bKeepOverlappingVertices = false;
 		BuildOptions.bComputeNormals = !bHaveNormals;
 		BuildOptions.bComputeTangents = !bHaveTangents;
 
@@ -886,14 +905,6 @@ bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, apex::Destruc
 		{
 			DestructibleMesh.MarkPendingKill();
 			return false;
-		}
-
-		// Presize the per-section shadow casting array with the number of sections in the imported LOD.
-		const int32 NumSections = LODModel.Sections.Num();
-
-		for ( int32 SectionIndex = 0 ; SectionIndex < NumSections ; ++SectionIndex )
-		{
-			DestructibleMesh.LODInfo[0].TriangleSortSettings.AddZeroed();
 		}
 
 		if (ExistDestMeshDataPtr)
@@ -971,13 +982,17 @@ bool BuildDestructibleMeshFromFractureSettings(UDestructibleMesh& DestructibleMe
 
 		for (int32 MaterialIndex = 0; MaterialIndex < DestructibleMesh.Materials.Num(); ++MaterialIndex)
 		{
-			if (MaterialIndex < OverrideMaterials.Num())	//if user has overridden materials use it
+			if(MaterialIndex < OverrideMaterials.Num() && OverrideMaterials[MaterialIndex])//if user has overridden materials use it
 			{
 				DestructibleMesh.Materials[MaterialIndex].MaterialInterface = OverrideMaterials[MaterialIndex];
+				DestructibleMesh.Materials[MaterialIndex].ImportedMaterialSlotName = OverrideMaterials[MaterialIndex]->GetFName();
+				DestructibleMesh.Materials[MaterialIndex].MaterialSlotName = OverrideMaterials[MaterialIndex]->GetFName();
 			}
 			else
 			{
 				DestructibleMesh.Materials[MaterialIndex].MaterialInterface = DestructibleMesh.FractureSettings->Materials[MaterialIndex];
+				DestructibleMesh.Materials[MaterialIndex].ImportedMaterialSlotName = DestructibleMesh.FractureSettings->Materials[MaterialIndex]->GetFName();
+				DestructibleMesh.Materials[MaterialIndex].MaterialSlotName = DestructibleMesh.FractureSettings->Materials[MaterialIndex]->GetFName();
 			}
 
 		}
@@ -996,7 +1011,7 @@ bool BuildDestructibleMeshFromFractureSettings(UDestructibleMesh& DestructibleMe
 
 	return Success;
 }
-
+    #endif
 UDestructibleMesh* ImportDestructibleMeshFromApexDestructibleAsset(UObject* InParent, apex::DestructibleAsset& ApexDestructibleAsset, FName Name, EObjectFlags Flags, FSkeletalMeshImportData* OutData, EDestructibleImportOptions::Type Options)
 {
 	// The APEX Destructible Asset contains an APEX Render Mesh Asset, get a pointer to this
@@ -1020,13 +1035,8 @@ UDestructibleMesh* ImportDestructibleMeshFromApexDestructibleAsset(UObject* InPa
 	if(DestructibleMesh)
 	{
 		// we found an existing mesh (reimport), clean up LODModels for the import process
-		if(FSkeletalMeshResource* ImportedResource = DestructibleMesh->GetImportedResource())
+		if(FSkeletalMeshModel* ImportedResource = DestructibleMesh->GetImportedModel())
 		{
-			for(FStaticLODModel& LODModel : ImportedResource->LODModels)
-			{
-				LODModel.ReleaseResources();
-			}
-
 			// Although we flushed above to make sure the resources weren't being used, we need
 			// to flush again as the call to Empty below will call destructors on the lod models.
 			// The renderer must release the resources before that happens.
@@ -1076,4 +1086,3 @@ UDestructibleMesh* ImportDestructibleMeshFromApexDestructibleAsset(UObject* InPa
 }
 
 #endif // WITH_APEX
-#endif

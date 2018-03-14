@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,6 +15,7 @@ class FOnlineSessionSteam;
 class FOnlineSharedCloudSteam;
 class FOnlineUserCloudSteam;
 class FOnlineVoiceSteam;
+class FOnlinePresenceSteam;
 
 /** Forward declarations of all interface classes */
 typedef TSharedPtr<class FOnlineSessionSteam, ESPMode::ThreadSafe> FOnlineSessionSteamPtr;
@@ -26,6 +27,7 @@ typedef TSharedPtr<class FOnlineLeaderboardsSteam, ESPMode::ThreadSafe> FOnlineL
 typedef TSharedPtr<class FOnlineVoiceSteam, ESPMode::ThreadSafe> FOnlineVoiceSteamPtr;
 typedef TSharedPtr<class FOnlineExternalUISteam, ESPMode::ThreadSafe> FOnlineExternalUISteamPtr;
 typedef TSharedPtr<class FOnlineAchievementsSteam, ESPMode::ThreadSafe> FOnlineAchievementsSteamPtr;
+typedef TSharedPtr<class FOnlinePresenceSteam, ESPMode::ThreadSafe> FOnlinePresenceSteamPtr;
 
 /**
  *	OnlineSubsystemSteam - Implementation of the online subsystem for STEAM services
@@ -83,6 +85,9 @@ protected:
 	/** Interface for achievements */
 	FOnlineAchievementsSteamPtr AchievementsInterface;
 
+	/** Interface for presence */
+	FOnlinePresenceSteamPtr PresenceInterface;
+
 	/** Online async task runnable */
 	class FOnlineAsyncTaskManagerSteam* OnlineAsyncTaskThreadRunnable;
 
@@ -108,6 +113,7 @@ PACKAGE_SCOPE:
 		LeaderboardsInterface(nullptr),
 		VoiceInterface(nullptr),
 		ExternalUIInterface(nullptr),
+		PresenceInterface(nullptr),
 		OnlineAsyncTaskThreadRunnable(nullptr),
 		OnlineAsyncTaskThread(nullptr)
 	{}
@@ -127,18 +133,13 @@ PACKAGE_SCOPE:
 		LeaderboardsInterface(nullptr),
 		VoiceInterface(nullptr),
 		ExternalUIInterface(nullptr),
+		PresenceInterface(nullptr),
 		OnlineAsyncTaskThreadRunnable(nullptr),
 		OnlineAsyncTaskThread(nullptr)
 	{}
 
 	/** Critical sections for thread safe operation of the cloud files */
 	FCriticalSection UserCloudDataLock;
-
-	/**
-	 * Is Steam available for use
-	 * @return true if Steam is available, false otherwise
-	 */
-	bool IsEnabled();
 
 	/**
 	 *	Initialize the client side APIs for Steam 
@@ -242,6 +243,7 @@ public:
 	virtual bool Init() override;
 	virtual bool Shutdown() override;
 	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
+	virtual bool IsEnabled() const override;
 	virtual FString GetAppId() const override;
 	virtual FText GetOnlineServiceName() const override;
 

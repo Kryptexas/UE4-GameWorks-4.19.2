@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "STransformViewportToolbar.h"
@@ -409,6 +409,34 @@ TSharedRef<SWidget> STransformViewportToolBar::FillCameraSpeedMenu()
 				.Text(this, &STransformViewportToolBar::GetCameraSpeedLabel )
 				.Font( FEditorStyle::GetFontStyle( TEXT( "MenuItem.Font" ) ) )
 			]
+		] // Camera Speed Scalar
+		+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(FMargin(8.0f, 2.0f, 60.0f, 2.0f))
+			.HAlign(HAlign_Left)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("MouseSettingsCamSpeedScalar", "Camera Speed Scalar"))
+				.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+			]
+		+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(FMargin(8.0f, 4.0f))
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+			.FillWidth(1)
+			.Padding(FMargin(0.0f, 2.0f))
+			[
+				SAssignNew(CamSpeedScalarBox, SSpinBox<float>)
+				.MinValue(1)
+ 			    .MaxValue(TNumericLimits<int32>::Max())
+			    .MinSliderValue(1)
+			    .MaxSliderValue(128)
+				.Value(this, &STransformViewportToolBar::GetCamSpeedScalarBoxValue)
+				.OnValueChanged(this, &STransformViewportToolBar::OnSetCamSpeedScalarBoxValue)
+				.ToolTipText(LOCTEXT("CameraSpeedScalar_ToolTip", "Scalar to increase camera movement range"))
+			]
 		]
 	];
 
@@ -484,6 +512,7 @@ float STransformViewportToolBar::GetCamSpeedSliderPosition() const
 	return SliderPos;
 }
 
+
 void STransformViewportToolBar::OnSetCamSpeed(float NewValue)
 {
 	auto ViewportPin = Viewport.Pin();
@@ -491,6 +520,39 @@ void STransformViewportToolBar::OnSetCamSpeed(float NewValue)
 	{
 		const int32 SpeedSetting = NewValue * ((float)FEditorViewportClient::MaxCameraSpeeds - 1) + 1;
 		ViewportPin->GetViewportClient()->SetCameraSpeedSetting(SpeedSetting);
+	}
+}
+
+FText STransformViewportToolBar::GetCameraSpeedScalarLabel() const
+{
+	auto ViewportPin = Viewport.Pin();
+	if (ViewportPin.IsValid() && ViewportPin->GetViewportClient().IsValid())
+	{
+		return FText::AsNumber(ViewportPin->GetViewportClient()->GetCameraSpeedScalar());
+	}
+
+	return FText();
+}
+
+float STransformViewportToolBar::GetCamSpeedScalarBoxValue() const
+{
+	float CamSpeedScalar = 1.f;
+
+	auto ViewportPin = Viewport.Pin();
+	if (ViewportPin.IsValid() && ViewportPin->GetViewportClient().IsValid())
+	{
+		CamSpeedScalar = (ViewportPin->GetViewportClient()->GetCameraSpeedScalar());
+	}
+
+	return CamSpeedScalar;
+}
+
+void STransformViewportToolBar::OnSetCamSpeedScalarBoxValue(float NewValue)
+{
+	auto ViewportPin = Viewport.Pin();
+	if (ViewportPin.IsValid() && ViewportPin->GetViewportClient().IsValid())
+	{		
+		ViewportPin->GetViewportClient()->SetCameraSpeedScalar(NewValue);
 	}
 }
 

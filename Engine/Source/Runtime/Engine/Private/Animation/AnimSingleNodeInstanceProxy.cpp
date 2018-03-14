@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Animation/AnimSingleNodeInstanceProxy.h"
 #include "AnimationRuntime.h"
@@ -388,15 +388,12 @@ void FAnimNode_SingleNode::Evaluate_AnyThread(FPoseContext& Output)
 				FAnimExtractContext ExtractContext;
 				ExtractContext.PoseCurves.AddZeroed(TotalPoses);
 
-				for (const auto& PoseName : PoseNames)
+				for (int32 PoseIndex = 0; PoseIndex <PoseNames.Num(); ++PoseIndex)
 				{
+					const FSmartName& PoseName = PoseNames[PoseIndex];
 					if (PoseName.UID != SmartName::MaxUID)
 					{
-						int32 PoseIndex = PoseNames.Find(PoseName);
-						if (PoseIndex != INDEX_NONE)
-						{
-							ExtractContext.PoseCurves[PoseIndex] = Output.Curve.Get(PoseName.UID);
-						}
+						ExtractContext.PoseCurves[PoseIndex] = Output.Curve.Get(PoseName.UID);
 					}
 				}
 
@@ -418,10 +415,24 @@ void FAnimNode_SingleNode::Evaluate_AnyThread(FPoseContext& Output)
 
 					if (PoseAsset->GetAnimationPose(LocalCurrentPose.Pose, LocalCurrentPose.Curve, ExtractContext))
 					{
-						TArray<float> BoneWeights;
-						BoneWeights.AddZeroed(LocalCurrentPose.Pose.GetNumBones());
+						TArray<float> BoneBlendWeights;
+
+						const TArray<FName>& TrackNames = PoseAsset->GetTrackNames();
+						const FBoneContainer& BoneContainer = Output.Pose.GetBoneContainer();
+						const TArray<FBoneIndexType>& RequiredBoneIndices = BoneContainer.GetBoneIndicesArray();
+						BoneBlendWeights.AddZeroed(RequiredBoneIndices.Num());
+
+						for (const auto& TrackName : TrackNames)
+						{
+							int32 MeshBoneIndex = BoneContainer.GetPoseBoneIndexForBoneName(TrackName);
+							FCompactPoseBoneIndex CompactBoneIndex = BoneContainer.MakeCompactPoseIndex(FMeshPoseBoneIndex(MeshBoneIndex));
+							if (CompactBoneIndex != INDEX_NONE)
+							{
+								BoneBlendWeights[CompactBoneIndex.GetInt()] = 1.f;
+							}
+						}
 						// once we get it, we have to blend by weight
-						FAnimationRuntime::BlendTwoPosesTogetherPerBone(LocalCurrentPose.Pose, LocalSourcePose.Pose, LocalCurrentPose.Curve, LocalSourcePose.Curve, BoneWeights, Output.Pose, Output.Curve);
+						FAnimationRuntime::BlendTwoPosesTogetherPerBone(LocalSourcePose.Pose, LocalCurrentPose.Pose, LocalSourcePose.Curve, LocalCurrentPose.Curve, BoneBlendWeights, Output.Pose, Output.Curve);
 					}
 				}
 			}

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // Core includes.
 #include "Misc/Paths.h"
@@ -158,6 +158,11 @@ FString FPaths::EnterpriseDir()
 FString FPaths::EnterprisePluginsDir()
 {
 	return EnterpriseDir() + TEXT("Plugins/");
+}
+
+FString FPaths::EnterpriseFeaturePackDir()
+{
+	return FPaths::EnterpriseDir() + TEXT("FeaturePacks/");
 }
 
 FString FPaths::RootDir()
@@ -741,15 +746,24 @@ bool FPaths::IsDrive(const FString& InPath)
 	return false;
 }
 
+#if WITH_EDITOR
+FString FPaths::RootPrefix = TEXT("root:/");
+#endif // WITH_EDITOR
+
 bool FPaths::IsRelative(const FString& InPath)
 {
 	// The previous implementation of this function seemed to handle normalized and unnormalized paths, so this one does too for legacy reasons.
-
-	const bool IsRooted = InPath.StartsWith(TEXT("\\"), ESearchCase::CaseSensitive)	||					// Root of the current directory on Windows. Also covers "\\" for UNC or "network" paths.
-						  InPath.StartsWith(TEXT("/"), ESearchCase::CaseSensitive)	||					// Root of the current directory on Windows, root on UNIX-likes.  Also covers "\\", considering normalization replaces "\\" with "//".						
-						  InPath.StartsWith(TEXT("root:/"), ESearchCase::IgnoreCase) ||					// Feature packs use this
-						  (InPath.Len() >= 2 && FChar::IsAlpha(InPath[0]) && InPath[1] == TEXT(':'));	// Starts with "<DriveLetter>:"
-
+	const uint32 PathLen = InPath.Len();
+	const bool IsRooted = PathLen &&
+		((InPath[0] == '/') ||												// Root of the current directory on Windows, root on UNIX-likes.  Also covers "\\", considering normalization replaces "\\" with "//".
+		(PathLen >= 2 && (													// Check it's safe to access InPath[1]!
+			((InPath[0] == '\\') && (InPath[1] == '\\'))					// Root of the current directory on Windows. Also covers "\\" for UNC or "network" paths.
+			|| (InPath[1] == ':' && FChar::IsAlpha(InPath[0]))				// Starts with "<DriveLetter>:"
+#if WITH_EDITOR
+			|| (InPath.StartsWith(RootPrefix, ESearchCase::IgnoreCase))		// Feature packs use this
+#endif // WITH_EDITOR
+			))
+		);
 	return !IsRooted;
 }
 
@@ -852,7 +866,7 @@ void FPaths::MakeStandardFilename(FString& InPath)
 
 	FString WithSlashes = InPath.Replace(TEXT("\\"), TEXT("/"), ESearchCase::CaseSensitive);
 
-	FString RootDirectory = FPaths::ConvertRelativePathToFull(FPaths::RootDir());
+	FString RootDirectory = FPaths::RootDir();
 
 	// look for paths that cannot be made relative, and are therefore left alone
 	// UNC (windows) network path

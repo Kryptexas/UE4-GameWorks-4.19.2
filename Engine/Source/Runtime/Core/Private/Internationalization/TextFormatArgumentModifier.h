@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,7 +9,9 @@
 
 struct FPrivateTextFormatArguments;
 
-template<typename KeyType,typename ValueType,typename SetAllocator ,typename KeyFuncs > class TMap;
+/// @cond DOXYGEN_WARNINGS
+template<typename KeyType, typename ValueType, typename SetAllocator, typename KeyFuncs > class TMap;
+/// @endcond
 
 /**
  * Plural form argument modifier.

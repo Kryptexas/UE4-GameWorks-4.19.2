@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraBoolTypeEditorUtilities.h"
 #include "NiagaraTypes.h"
@@ -59,7 +59,7 @@ private:
 	bool bBoolValue;
 };
 
-TSharedPtr<SNiagaraParameterEditor> FNiagaraEditorBoolTypeUtilities::CreateParameterEditor() const
+TSharedPtr<SNiagaraParameterEditor> FNiagaraEditorBoolTypeUtilities::CreateParameterEditor(const FNiagaraTypeDefinition& ParameterType) const
 {
 	return SNew(SNiagaraBoolParameterEditor);
 }
@@ -69,25 +69,21 @@ bool FNiagaraEditorBoolTypeUtilities::CanHandlePinDefaults() const
 	return true;
 }
 
-FString FNiagaraEditorBoolTypeUtilities::GetPinDefaultStringFromValue(const FNiagaraVariable& Variable) const
+FString FNiagaraEditorBoolTypeUtilities::GetPinDefaultStringFromValue(const FNiagaraVariable& AllocatedVariable) const
 {
-	bool bValue = false;
-	if (Variable.IsDataAllocated())
-	{
-		bValue = Variable.GetValue<FNiagaraBool>()->GetValue();
-	}
-	return bValue ? TEXT("true") : TEXT("false");
+	checkf(AllocatedVariable.IsDataAllocated(), TEXT("Can not generate a default value string for an unallocated variable."));
+	return Lex::ToString(AllocatedVariable.GetValue<FNiagaraBool>().GetValue());
 }
 
-void FNiagaraEditorBoolTypeUtilities::SetValueFromPinDefaultString(const FString& StringValue, FNiagaraVariable& Variable) const
+bool FNiagaraEditorBoolTypeUtilities::SetValueFromPinDefaultString(const FString& StringValue, FNiagaraVariable& Variable) const
 {
-	Variable.AllocateData();
-	if (StringValue == TEXT("true"))
+	bool bBoolValue;
+	if (Lex::TryParseString(bBoolValue, *StringValue))
 	{
-		Variable.GetValue<FNiagaraBool>()->SetValue(true);
+		FNiagaraBool BoolValue;
+		BoolValue.SetValue(bBoolValue);
+		Variable.SetValue<FNiagaraBool>(BoolValue);
+		return true;
 	}
-	else
-	{
-		Variable.GetValue<FNiagaraBool>()->SetValue(false);
-	}
+	return false;
 }

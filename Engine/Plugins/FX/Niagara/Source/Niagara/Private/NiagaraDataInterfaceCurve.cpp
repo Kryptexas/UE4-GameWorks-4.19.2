@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraDataInterfaceCurve.h"
 #include "Curves/CurveVector.h"
 #include "Curves/CurveLinearColor.h"
 #include "Curves/CurveFloat.h"
 #include "NiagaraTypes.h"
+#include "NiagaraCustomVersion.h"
 
 
 UNiagaraDataInterfaceCurve::UNiagaraDataInterfaceCurve(FObjectInitializer const& ObjectInitializer)
@@ -39,21 +40,21 @@ void UNiagaraDataInterfaceCurve::PostEditChangeProperty(struct FPropertyChangedE
 			Modify();
 			Curve = CurveAsset->FloatCurve;
 		}
-		UpdateLUT();
 	}
+	UpdateLUT();
 }
 
 #endif
 
-bool UNiagaraDataInterfaceCurve::CopyTo(UNiagaraDataInterface* Destination) const 
+bool UNiagaraDataInterfaceCurve::CopyToInternal(UNiagaraDataInterface* Destination) const 
 {
-	if (!Super::CopyTo(Destination))
+	if (!Super::CopyToInternal(Destination))
 	{
 		return false;
 	}
 	CastChecked<UNiagaraDataInterfaceCurve>(Destination)->Curve = Curve;
 	CastChecked<UNiagaraDataInterfaceCurve>(Destination)->UpdateLUT();
-
+	ensure(CompareLUTS(CastChecked<UNiagaraDataInterfaceCurve>(Destination)->ShaderLUT));
 	return true;
 }
 
@@ -86,13 +87,45 @@ void UNiagaraDataInterfaceCurve::GetFunctions(TArray<FNiagaraFunctionSignature>&
 	OutFunctions.Add(Sig);
 }
 
+void UNiagaraDataInterfaceCurve::PostLoad()
+{
+	Super::PostLoad();
+	const int32 NiagaraVer = GetLinkerCustomVersion(FNiagaraCustomVersion::GUID);
+
+	if (NiagaraVer < FNiagaraCustomVersion::CurveLUTNowOnByDefault)
+	{
+		UpdateLUT();
+	}
+
+	TArray<float> OldLUT = ShaderLUT;
+	UpdateLUT();
+
+	if (!CompareLUTS(OldLUT))
+	{
+		UE_LOG(LogNiagara, Log, TEXT("PostLoad LUT generation is out of sync. Please investigate. %s"), *GetPathName());
+	}
+}
+
 
 void UNiagaraDataInterfaceCurve::UpdateLUT()
 {
 	ShaderLUT.Empty();
+	if (bAllowUnnormalizedLUT && Curve.GetNumKeys() > 0)
+	{
+		LUTMinTime = Curve.GetFirstKey().Time;
+		LUTMaxTime = Curve.GetLastKey().Time;
+		LUTInvTimeRange = 1.0f / (LUTMaxTime - LUTMinTime);
+	}
+	else
+	{
+		LUTMinTime = 0.0f;
+		LUTMaxTime = 1.0f;
+		LUTInvTimeRange = 1.0f;
+	}
+
 	for (uint32 i = 0; i < CurveLUTWidth; i++)
 	{
-		float X = i / (float)CurveLUTWidth;
+		float X = UnnormalizeTime(i / (float)CurveLUTWidth);
 		float C = Curve.Eval(X);
 		ShaderLUT.Add(C);
 	}
@@ -103,10 +136,10 @@ void UNiagaraDataInterfaceCurve::UpdateLUT()
 // the HLSL in the spirit of a static switch
 // TODO: need a way to identify each specific function here
 // 
-bool UNiagaraDataInterfaceCurve::GetFunctionHLSL(FString FunctionName, TArray<DIGPUBufferParamDescriptor> &Descriptors, FString &HLSLInterfaceID, FString &OutHLSL)
+bool UNiagaraDataInterfaceCurve::GetFunctionHLSL(const FName& DefinitionFunctionName, FString InstanceFunctionName, TArray<FDIGPUBufferParamDescriptor> &Descriptors, FString &HLSLInterfaceID, FString &OutHLSL)
 {
 	FString BufferName = Descriptors[0].BufferParamName;
-	OutHLSL += TEXT("void ") + FunctionName + TEXT("(in float In_X, out float Out_Value) \n{\n");
+	OutHLSL += TEXT("void ") + InstanceFunctionName + TEXT("(in float In_X, out float Out_Value) \n{\n");
 	OutHLSL += TEXT("\t Out_Value = ") + BufferName + TEXT("[(int)(clamp(In_X, 0.0, 1.0) *") + FString::FromInt(CurveLUTWidth) + TEXT(") ];");
 	OutHLSL += TEXT("\n}\n");
 	return true;
@@ -119,21 +152,21 @@ bool UNiagaraDataInterfaceCurve::GetFunctionHLSL(FString FunctionName, TArray<DI
 // 3. store buffer declaration hlsl in OutHLSL
 // multiple buffers can be defined at once here
 //
-void UNiagaraDataInterfaceCurve::GetBufferDefinitionHLSL(FString DataInterfaceID, TArray<DIGPUBufferParamDescriptor> &BufferDescriptors, FString &OutHLSL)
+void UNiagaraDataInterfaceCurve::GetBufferDefinitionHLSL(FString DataInterfaceID, TArray<FDIGPUBufferParamDescriptor> &BufferDescriptors, FString &OutHLSL)
 {
 	FString BufferName = "CurveLUT" + DataInterfaceID;
 	OutHLSL += TEXT("Buffer<float> ") + BufferName + TEXT(";\n");
 
-	BufferDescriptors.Add(DIGPUBufferParamDescriptor(BufferName, 0));		// add a descriptor for shader parameter binding
+	BufferDescriptors.Add(FDIGPUBufferParamDescriptor(BufferName, 0));		// add a descriptor for shader parameter binding
 
 }
 
 // called after translate, to setup buffers matching the buffer descriptors generated during hlsl translation
 // need to do this because the script used during translate is a clone, including its DIs
 //
-void UNiagaraDataInterfaceCurve::SetupBuffers(TArray<DIGPUBufferParamDescriptor> &BufferDescriptors)
+void UNiagaraDataInterfaceCurve::SetupBuffers(FDIBufferDescriptorStore &BufferDescriptors)
 {
-	for (DIGPUBufferParamDescriptor &Desc : BufferDescriptors)
+	for (FDIGPUBufferParamDescriptor &Desc : BufferDescriptors.Descriptors)
 	{
 		FNiagaraDataInterfaceBufferData BufferData(*Desc.BufferParamName);	// store off the data for later use
 		GPUBuffers.Add(BufferData);
@@ -152,7 +185,7 @@ TArray<FNiagaraDataInterfaceBufferData> &UNiagaraDataInterfaceCurve::GetBufferDa
 
 		FNiagaraDataInterfaceBufferData &GPUBuffer = GPUBuffers[0];
 		GPUBuffer.Buffer.Release();
-		GPUBuffer.Buffer.Initialize(sizeof(float), CurveLUTWidth * 4, EPixelFormat::PF_R32_FLOAT);	// always allocate for up to 64 data sets
+		GPUBuffer.Buffer.Initialize(sizeof(float), CurveLUTWidth * 4, EPixelFormat::PF_R32_FLOAT, BUF_Static);	// always allocate for up to 64 data sets
 		uint32 BufferSize = ShaderLUT.Num() * sizeof(float);
 		int32 *BufferData = static_cast<int32*>(RHILockVertexBuffer(GPUBuffer.Buffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly));
 		FPlatformMemory::Memcpy(BufferData, ShaderLUT.GetData(), BufferSize);
@@ -170,7 +203,7 @@ FVMExternalFunction UNiagaraDataInterfaceCurve::GetVMExternalFunction(const FVME
 {
 	if (BindingInfo.Name == TEXT("SampleCurve") && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 1)
 	{
-		return TNDIParamBinder<0, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceCurve, SampleCurve)>::Bind(this, BindingInfo, InstanceData);
+		return TCurveUseLUTBinder<TNDIParamBinder<0, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceCurve, SampleCurve)>>::Bind(this, BindingInfo, InstanceData);
 	}
 	else
 	{
@@ -180,7 +213,21 @@ FVMExternalFunction UNiagaraDataInterfaceCurve::GetVMExternalFunction(const FVME
 	}
 }
 
-template<typename XParamType>
+template<>
+float UNiagaraDataInterfaceCurve::SampleCurveInternal<TIntegralConstant<bool, true>>(float X)
+{
+	float NormalizedX = NormalizeTime(X);
+	int32 AccessIdx = FMath::Clamp<int32>(FMath::TruncToInt(NormalizedX * CurveLUTWidthMinusOne), 0, CurveLUTWidthMinusOne) * CurveLUTNumElems;
+	return ShaderLUT[AccessIdx];
+}
+
+template<>
+float UNiagaraDataInterfaceCurve::SampleCurveInternal<TIntegralConstant<bool, false>>(float X)
+{
+	return Curve.Eval(X);
+}
+
+template<typename UseLUT, typename XParamType>
 void UNiagaraDataInterfaceCurve::SampleCurve(FVectorVMContext& Context)
 {
 	XParamType XParam(Context);
@@ -188,7 +235,7 @@ void UNiagaraDataInterfaceCurve::SampleCurve(FVectorVMContext& Context)
 
 	for (int32 i = 0; i < Context.NumInstances; ++i)
 	{
-		*OutSample.GetDest() = Curve.Eval(XParam.Get());
+		*OutSample.GetDest() = SampleCurveInternal<UseLUT>(XParam.Get());
 		XParam.Advance();
 		OutSample.Advance();
 	}

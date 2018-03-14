@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -7,9 +7,12 @@
 #include "UObject/ObjectMacros.h"
 #include "EngineDefines.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "DelegateCombinations.h"
 #include "DebugSkelMeshComponent.generated.h"
 
 class Error;
+
+DECLARE_DELEGATE_RetVal(FText, FGetExtendedViewportText);
 
 USTRUCT()
 struct FSelectedSocketInfo
@@ -64,6 +67,7 @@ namespace EPersonaTurnTableMode
 // FDebugSkelMeshSceneProxy
 
 class UDebugSkelMeshComponent;
+class FSkeletalMeshRenderData;
 
 class FDebugSkelMeshDynamicData
 {
@@ -99,11 +103,13 @@ public:
 class FDebugSkelMeshSceneProxy : public FSkeletalMeshSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override;
+
 	/**
 	* Constructor.
 	* @param	Component - skeletal mesh primitive being added
 	*/
-	FDebugSkelMeshSceneProxy(const UDebugSkelMeshComponent* InComponent, FSkeletalMeshResource* InSkelMeshResource, const FColor& InWireframeOverlayColor = FColor::White);
+	FDebugSkelMeshSceneProxy(const UDebugSkelMeshComponent* InComponent, FSkeletalMeshRenderData* InSkelMeshRenderData, const FColor& InWireframeOverlayColor = FColor::White);
 
 	virtual ~FDebugSkelMeshSceneProxy()
 	{}
@@ -362,18 +368,20 @@ class UNREALED_API UDebugSkelMeshComponent : public USkeletalMeshComponent
 	TArray<FAnimNotifyErrors> AnimNotifyErrors;
 	virtual void ReportAnimNotifyError(const FText& Error, UObject* InSourceNotify) override;
 	virtual void ClearAnimNotifyErrors(UObject* InSourceNotify) override;
-#endif
 
-	enum ESectionDisplayMode
-	{
-		None = -1,
-		ShowAll,
-		ShowOnlyClothSections,
-		HideOnlyClothSections,
-		NumSectionDisplayMode
-	};
-	/** Draw All/ Draw only clothing sections/ Hide only clothing sections */
-	int32 SectionsDisplayMode;
+	/** 
+	 * Extended viewport text delegate handling. Registering a delegate allows external
+	 * objects to place custom text in the anim tools viewports.
+	 */
+	FDelegateHandle RegisterExtendedViewportTextDelegate(const FGetExtendedViewportText& InDelegate);
+	void UnregisterExtendedViewportTextDelegate(const FDelegateHandle& InDelegateHandle);
+	const TArray<FGetExtendedViewportText>& GetExtendedViewportTextDelegates() const { return ExtendedViewportTextDelegates; }
+
+private:
+	TArray<FGetExtendedViewportText> ExtendedViewportTextDelegates;
+public:
+
+#endif
 
 	/** 
 	 * toggle visibility between cloth sections and non-cloth sections for all LODs
@@ -390,8 +398,6 @@ class UNREALED_API UDebugSkelMeshComponent : public USkeletalMeshComponent
 	 */
 	IClothingSimulation* GetMutableClothingSimulation();
 
-	int32 FindCurrentSectionDisplayMode();
-
 	/** to avoid clothing reset while modifying properties in Persona */
 	virtual void CheckClothTeleport() override;
 
@@ -404,7 +410,8 @@ class UNREALED_API UDebugSkelMeshComponent : public USkeletalMeshComponent
 	/** The currently selected mask inside the above LOD to be painted */
 	int32 SelectedClothingLodMaskForPainting;
 
-	void ToggleMeshSectionForCloth(FGuid InClothGuid);
+	/** Find a section using a clothing asset with the given GUID and set its visiblity */
+	void SetMeshSectionVisibilityForCloth(FGuid InClothGuid, bool bVisibility);
 
 	// fixes up the disabled flags so clothing is enabled and originals are disabled as
 	// ToggleMeshSectionForCloth will make these get out of sync

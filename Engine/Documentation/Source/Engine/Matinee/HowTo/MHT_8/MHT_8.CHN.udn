@@ -11,14 +11,9 @@ SkillLevel:Intermediate
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		添加 Matinee Actor 和道具
-	[/PARAM]
-	[PARAM:description]
-	在这步中，我们将添加用于此场景的 **Matinee Actor** 和资源。
-	[/PARAM]
-[/OBJECT]
+## 添加 Matinee Actor 和道具
+
+在这步中，我们将添加用于此场景的 **Matinee Actor** 和资源。
 
 1. 在 **工具栏** 菜单中选择 **Matinee** 并点击 **Add Matinee** 按钮。 
 
@@ -96,14 +91,9 @@ SkillLevel:Intermediate
 
 	_我们将通过 Matinee 控制 Actors 的可视性以及其默认隐藏的属性。_
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		向 Matinee 添加资源并设置轨迹
-	[/PARAM]
-	[PARAM:description]
-	在这步中，我们将把所有资源添加到 **Matinee**，并定义用于驱动序列的轨迹。 
-	[/PARAM]
-[/OBJECT]
+## 向 Matinee 添加资源并设置轨迹
+
+在这步中，我们将把所有资源添加到 **Matinee**，并定义用于驱动序列的轨迹。
 
 1. 在 **World Outliner** 或视口中 **选择** Matinee，然后在 Details 面板中选择 **Open Matinee**，打开后将其最小化。 
 
@@ -154,14 +144,9 @@ SkillLevel:Intermediate
 	![](MHT8_MatineeFinished.png)
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		在蓝图中使用 Matinee Actor
-	[/PARAM]
-	[PARAM:description]
-	在这步中，**爆炸** 事件在 **Matinee** 序列中被调用时将触发事件，**Matinee** 结束后开启粒子效果。
-	[/PARAM]
-[/OBJECT]
+## 在蓝图中使用 Matinee Actor
+
+在这步中，**爆炸** 事件在 **Matinee** 序列中被调用时将触发事件，**Matinee** 结束后开启粒子效果。
 
 1.	在关卡视口或 World Outliner 中选择 **MatineeActor**，然后在主工具栏点击 **Blueprints** 按钮并选择 **Open Level Blueprint**。 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -39,8 +39,6 @@ class FAvfMediaTracks
 		bool Loaded;
 		FString Name;
 		NSObject* Output;
-		AVAssetReader* Reader;
-		AudioConverterRef Converter;
 		int32 StreamIndex;
 	};
 
@@ -70,13 +68,6 @@ public:
 	void Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo);
 
 	/**
-	 * Process audio frames.
-	 *
-	 * @see ProcessCaptions, ProcessVideo
-	 */
-	void ProcessAudio();
-
-	/**
 	 * Process caption frames.
 	 *
 	 * Called by the caption track delegate to provide the attributed strings
@@ -99,20 +90,6 @@ public:
 	/** Reset the stream collection. */
 	void Reset();
 
-	/**
-	 * Notify tracks that playback is seeking.
-	 *
-	 * @param Time The time to seek to.
-	 */
-	void Seek(const FTimespan& Time);
-
-	/**
-	 * Notify tracks that playback rate was changed.
-	 *
-	 * @param Rate The new playback rate.
-	 */
-	void SetRate(float Rate);
-	
 public:
 
 	//~ IMediaTracks interface
@@ -142,26 +119,17 @@ private:
 
 private:
 
-	/** Whether the audio is currently paused. */
-	bool AudioPaused;
-
 	/** Audio sample object pool. */
 	FAvfMediaAudioSamplePool* AudioSamplePool;
 
 	/** Synchronizes write access to track arrays, selections & sinks. */
 	mutable FCriticalSection CriticalSection;
 
-	/** The last audio sample provided to the sink. */
-	CMTime LastAudioSampleTime;
-
 	/** The player item containing the track information. */
 	AVPlayerItem* PlayerItem;
 
 	/** The media sample queue. */
 	FMediaSamples& Samples;
-	
-	/** Seek to this time. */
-	double SeekTime;
 
 	/** Index of the selected audio track. */
 	int32 SelectedAudioTrack;
@@ -177,7 +145,4 @@ private:
 	
 	/** Object to sample video frames */
 	TSharedPtr<FAvfMediaVideoSampler, ESPMode::ThreadSafe> VideoSampler;
-		
-	/** Has been played with fast/slow rate? */
-	bool Zoomed;
 };

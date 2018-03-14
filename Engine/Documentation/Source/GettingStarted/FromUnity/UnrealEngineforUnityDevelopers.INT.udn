@@ -261,76 +261,72 @@ Here is a cool feature in UE4:  Your new Actor Blueprint Class can have its own 
 In addition to Blueprint Classes supporting visual scripting, UE4 also supports C++ Classes implemented with code.  Here are both, side-by-side.
 
 
-| Unity C# | UE4 C++ |
-| --- | --- | 
-|[INCLUDE:GettingStarted/FromUnity#csharp_unity]| [INCLUDE:GettingStarted/FromUnity#cpp_ue4] | 
+| Unity C# | UE4 C++ | UE4 Blueprint |
+| --- | --- | --- |
+|[INCLUDE:GettingStarted/FromUnity#csharp_unity]| [INCLUDE:GettingStarted/FromUnity#cpp_ue4] |[REGION:lightbox][![](image_28.png)(w:220)](image_28.png)[/REGION]|
+																							   
+[COMMENT:none]
 
-
-<!--
 [EXCERPT:csharp_Unity]
-	using UnityEngine;
-	using System.Collections;
+		using UnityEngine;
+		using System.Collections;
 
-	public class MyComponent : MonoBehaviour
-	{
-		int Count;
-
-	    // Use this for initialization.
-		void Start ()
+		public class MyComponent : MonoBehaviour
 		{
-			Count = 0;
-	    }
+			int Count;
 
-	    // Update is called once per frame.
-		void Update () 
-		{
+			// Use this for initialization.
+			void Start ()
+			{
+				Count = 0;
+			}
 
-			Count = Count + 1;
-			Debug.Log(Count);
+			// Update is called once per frame.
+			void Update () 
+			{
+
+				Count = Count + 1;
+				Debug.Log(Count);
+			}
 		}
-	}
 [/EXCERPT:csharp_Unity]
 
 [EXCERPT:cpp_UE4]
-	#pragma once
-	#include "GameFramework/Actor.h"
-	#include "MyActor.generated.h"
+		#pragma once
+		#include "GameFramework/Actor.h"
+		#include "MyActor.generated.h"
 
-	UCLASS()
-	class AMyActor : public AActor
-	{
-		GENERATED_BODY()
-		int Count;
-
-		// Sets default values for this actor's properties.
-		AMyActor() 
+		UCLASS()
+		class AMyActor : public AActor
 		{
-			// Allows Tick() to be called
-			PrimaryActorTick.bCanEverTick = true;  
-		}
+			GENERATED_BODY()
+			int Count;
 
-		// Called when the game starts or when spawned.
-		void BeginPlay()
-		{
-			Super::BeginPlay();
-			Count = 0;
-		}
+			// Sets default values for this actor's properties.
+			AMyActor() 
+			{
+				// Allows Tick() to be called
+				PrimaryActorTick.bCanEverTick = true;  
+			}
+
+			// Called when the game starts or when spawned.
+			void BeginPlay()
+			{
+				Super::BeginPlay();
+				Count = 0;
+			}
     
-		// Called every frame.
-		void Tick(float DeltaSeconds)
-		{
-			Super::Tick(DeltaSeconds);
-			Count = Count + 1;
-			GLog->Log(FString::FromInt(Count));
-		}
-	};
+			// Called every frame.
+			void Tick(float DeltaSeconds)
+			{
+				Super::Tick(DeltaSeconds);
+				Count = Count + 1;
+				GLog->Log(FString::FromInt(Count));
+			}
+		};
 [/EXCERPT:cpp_UE4]
--->
 
-
-| UE4 Blueprint | 
-| --- |
-|![](image_28.png)| 
+[/COMMENT] 
 
 ### UE4 Blueprint Classes can be extended
 
@@ -441,6 +437,7 @@ But remember, in UE4 you can write code right on the Actor itself rather than on
 Similar to Unity's Start, OnDestroy, and Update functions, we have a similar set of methods for Actors in UE4:
 
 **C++** : 
+
 	UCLASS()
 	class AMyActor : public AActor
 	{
@@ -463,6 +460,7 @@ Similar to Unity's Start, OnDestroy, and Update functions, we have a similar set
 Components in UE4 contain different functions.  Here is a simple example:
 
 **C++** : 
+
 	UCLASS()
 	class UMyComponent : public UActorComponent
 	{
@@ -621,19 +619,21 @@ UE4 C++:
 |[INCLUDE:GettingStarted/FromUnity#gameobject_unity]| [INCLUDE:GettingStarted/FromUnity#gameobject_cpp] | [INCLUDE:GettingStarted/FromUnity#gameobject_bp] |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:gameObject_Unity]
-	Destroy(MyGameObject);
+		Destroy(MyGameObject);
 [/EXCERPT:gameObject_Unity]
 
 [EXCERPT:gameObject_CPP]
-	MyActor->Destroy();
+		MyActor->Destroy();
 [/EXCERPT:gameObject_CPP]
 
 [EXCERPT:gameObject_bp]
 ![](image_23.png)
 [/EXCERPT:gameObject_bp]
--->
+
+[/COMMENT]
 
 
 
@@ -647,13 +647,14 @@ UE4 C++:
 |[INCLUDE:GettingStarted/FromUnity#destroy_unity]| [INCLUDE:GettingStarted/FromUnity#destroy_cpp] | [INCLUDE:GettingStarted/FromUnity#destroy_bp] |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:destroy_Unity]
-	Destroy(MyGameObject, 1);
+		Destroy(MyGameObject, 1);
 [/EXCERPT:destroy_Unity]
 
 [EXCERPT:destroy_CPP]
-	MyActor->SetLifeSpan(1);
+		MyActor->SetLifeSpan(1);
 [/EXCERPT:destroy_CPP]
 
 [EXCERPT:destroy_bp]
@@ -663,7 +664,8 @@ UE4 C++:
 
 _Click for full view._
 [/EXCERPT:destroy_bp]
--->
+
+[/COMMENT]
 
 
 #### Disabling GameObjects / Actors
@@ -675,20 +677,21 @@ _Click for full view._
 |[INCLUDE:GettingStarted/FromUnity#disable_unity]| [INCLUDE:GettingStarted/FromUnity#disable_cpp] | [INCLUDE:GettingStarted/FromUnity#disable_bp] |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:disable_Unity]
-	MyGameObject.SetActive(false);
+		MyGameObject.SetActive(false);
 [/EXCERPT:disable_Unity]
 
 [EXCERPT:disable_CPP]
-	// Hides visible components
-	MyActor->SetActorHiddenInGame(true);
+		// Hides visible components
+		MyActor->SetActorHiddenInGame(true);
 
-	// Disables collision components
-	MyActor->SetActorEnableCollision(false);
+		// Disables collision components
+		MyActor->SetActorEnableCollision(false);
 
-	// Stops the Actor from ticking
-	MyActor->SetActorTickEnabled(false);
+		// Stops the Actor from ticking
+		MyActor->SetActorTickEnabled(false);
 [/EXCERPT:disable_CPP]
 
 [EXCERPT:disable_bp]
@@ -698,7 +701,8 @@ _Click for full view._
 
 _Click for full view._
 [/EXCERPT:disable_bp]
--->
+
+[/COMMENT]
 
 #### Accessing the GameObject / Actor from Component
 
@@ -709,15 +713,16 @@ _Click for full view._
 | [INCLUDE:GettingStarted/FromUnity#go1_unity] | [INCLUDE:GettingStarted/FromUnity#go1_cpp] | [INCLUDE:GettingStarted/FromUnity#go1_bp] |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:go1_Unity]
-	GameObject ParentGO = 
-	MyComponent.gameObject; 
+		GameObject ParentGO = 
+		MyComponent.gameObject; 
 [/EXCERPT:go1_Unity]
 
 [EXCERPT:go1_CPP]
-	 AActor* ParentActor = 
-	 MyComponent->GetOwner();
+		 AActor* ParentActor = 
+		 MyComponent->GetOwner();
 [/EXCERPT:go1_CPP]
 
 [EXCERPT:go1_bp]
@@ -726,18 +731,21 @@ _Click for full view._
 [/REGION]
 _Click for full view._
 [/EXCERPT:go1_bp]
--->
+
+[/COMMENT]
 
 
 #### Accessing a Component from the GameObject / Actor
 
-<!--
+[COMMENT:none]
+
 | Method | Sample |
 | --- | --- |
 | Unity | [INCLUDE:GettingStarted/FromUnity#go2_unity]| 
 | C++ | [INCLUDE:GettingStarted/FromUnity#go2_cpp] | 
 | Blueprint | [INCLUDE:GettingStarted/FromUnity#go2_bp] | 
--->
+
+[/COMMENT]
 
 **Unity** 
 	MyComponent MyComp = gameObject.GetComponent<MyComponent>();
@@ -754,13 +762,14 @@ _Click for full view._
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:go2_Unity]
-	MyComponent MyComp = gameObject.GetComponent<MyComponent>();
+		MyComponent MyComp = gameObject.GetComponent<MyComponent>();
 [/EXCERPT:go2_Unity]
 
 [EXCERPT:go2_CPP]
-	 UMyComponent* MyComp = Cast<UMyComponent>(MyActor->GetComponentByClass(UMyComponent::StaticClass()));
+		UMyComponent* MyComp = Cast<UMyComponent>(MyActor->GetComponentByClass(UMyComponent::StaticClass()));
 [/EXCERPT:go2_CPP]
 
 [EXCERPT:go2_bp]
@@ -769,7 +778,8 @@ _Click for full view._
 [/REGION]
 _Click for full view._
 [/EXCERPT:go2_bp]
--->
+
+[/COMMENT]
 
 
 #### Finding GameObjects / Actors

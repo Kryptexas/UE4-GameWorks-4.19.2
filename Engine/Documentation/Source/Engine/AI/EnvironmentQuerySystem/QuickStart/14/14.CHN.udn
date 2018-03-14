@@ -20,7 +20,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 本页面讲述熟悉环境查询系统基础后可进行的一些优化。
 
@@ -35,22 +35,18 @@ version:4.9
 * 您知道可以在蓝图中自行创建生成器吗？有更好 AI 藏身点的寻找方法。
 * [REGION:raw] ' 键（单引号）可打开游戏性调试工具的一个 host。在 **Editor Preferences** %arrow% **Gameplay Debugger** 中查看所有可用选项[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/docs_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		AI
-	[/PARAM]
-	[PARAM:links]
+## AI
+
+[REGION:buttonlist]
+
 	* [](Engine/AI/EnvironmentQuerySystem/EQSPawn "%Engine/AI/EnvironmentQuerySystem/EQSPawn:description%")
 	* [](Engine/AI/EnvironmentQuerySystem/NodeReference "%Engine/AI/EnvironmentQuerySystem/NodeReference:description%")
 	* [](Engine/AI/EnvironmentQuerySystem/UserGuide "%Engine/AI/EnvironmentQuerySystem/UserGuide:description%")
 	* [Behavior Trees](Engine/AI/BehaviorTrees "%Engine/AI/BehaviorTrees:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
-%Steps%
+
 
 [VAR:arrow]![](Engine\AI\EnvironmentQuerySystem\QuickStart\arrow_button.png)[/VAR]

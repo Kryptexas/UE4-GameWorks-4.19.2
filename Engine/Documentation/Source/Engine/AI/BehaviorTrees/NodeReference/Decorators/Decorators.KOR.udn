@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 비헤이비어 트리 노드 참고서 - 데코레이터
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
@@ -24,7 +24,8 @@ Blackboard, 블랙보드 노드는 주어진 블랙보드 키에 값이 설정�
 | **Blackboard Key**| 블랙보드 키 - 검사할 키 입니다. Object 처럼 `None` 반환이 가능한 데이터 유형에 가장 유용한데, 다른 유형은 (0, false, {0,0,0}, 등등) 초기화된 값을 반환할 수가 있기 때문입니다. |
 | **Node Name** | 노드 이름 - 비헤이비어 트리 그래프에 표시할 노드 이름입니다. |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:subprop2]
 | --- | --- |
 | **On Result Change** | 결과 변경시 - 조건이 변경되었을 때만 재평가합니다. |
@@ -44,7 +45,8 @@ Blackboard, 블랙보드 노드는 주어진 블랙보드 키에 값이 설정�
 | **Is Set** | 설정 되었는지? - 값이 설정되었는가? 입니다. |
 | **Is Not Set** | 설정되지 않았는지? - 값이 설정되지 않았는가? 입니다. |
 [/EXCERPT:subprop4]
--->
+
+[/COMMENT]
 
 ## Compare Blackboard Entries
 
@@ -60,13 +62,15 @@ Compare Blackboard Entries, 블랙보드 항목 비교 노드는 두 블랙보�
 | **Observer Aborts** | 관찰자 중단 - [INCLUDE:#subprop3] |
 | **Node Name** | 노드 이름 - 비헤이비어 트리 그래프에 표시할 노드 이름입니다. |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:subprop5]
 | --- | --- |
 | **Is Equal To** | 동일한지 - 두 키가 서로 같은가? 입니다. |
 | **Is Not Equal To** | 동일하지 않은지 - 두 키가 서로 다른가? 입니다. |
 [/EXCERPT:subprop5]
--->
+
+[/COMMENT]
 
 ## Composite
 
@@ -138,14 +142,16 @@ Does Path Exist, 경로 존재 여부 노드는 블랙보드 키 A 와 블랙보
 | **Filter Class** | 필터 클래스 - 어느 내비게이션 데이터를 사용할지 입니다. None 으로 설정되면 기본 내비게이션 데이터가 사용됩니다. |
 | **Node Name** | 노드 이름 - 비헤이비어 트리 그래프에 표시할 노드 이름입니다. |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:subprop6]
 | --- | --- |
 | **NavMesh Raycast 2D** | 내비메시 레이캐스트 2D - 정말 빠릅니다. |
 | **Hierarchical Query** | 계층구조식 쿼리 - 빠릅니다. |
 | **Regular Path Finding** | 일반 길찾기 - 느립니다. |
 [/EXCERPT:subprop6]
--->
+
+[/COMMENT]
 
 ## Force Success
 

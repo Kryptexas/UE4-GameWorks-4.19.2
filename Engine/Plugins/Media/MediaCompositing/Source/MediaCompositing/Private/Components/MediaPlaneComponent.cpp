@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MediaPlaneComponent.h"
 
@@ -29,6 +29,9 @@
 #include "Components/SceneCaptureComponent2D.h"
 #include "MediaPlaneFrustumComponent.h"
 #include "MediaPlaneComponent.h"
+#include "StaticMeshResources.h"
+#include "MediaTexture.h"
+#include "MediaPlayer.h"
 
 namespace
 {
@@ -79,45 +82,6 @@ namespace
 		return ProjectionMatrix;
 	}
 
-	class FMediaPlaneVertexBuffer : public FVertexBuffer
-	{
-	public:
-
-		TArray<FDynamicMeshVertex> Vertices;
-
-		virtual void InitRHI() override
-		{
-			FRHIResourceCreateInfo CreateInfo;
-			void* VertexBufferData = nullptr;
-			VertexBufferRHI = RHICreateAndLockVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex),BUF_Static,CreateInfo, VertexBufferData);
-
-			// Copy the vertex data into the vertex buffer.
-			FMemory::Memcpy(VertexBufferData,Vertices.GetData(),Vertices.Num() * sizeof(FDynamicMeshVertex));
-			RHIUnlockVertexBuffer(VertexBufferRHI);
-		}
-	};
-
-	struct FMediaPlaneVertexFactory : public FLocalVertexFactory
-	{
-		/** Initialization */
-		void Init(const FMediaPlaneVertexBuffer* VertexBuffer)
-		{
-			check(IsInRenderingThread())
-
-			FDataType NewData;
-			NewData.PositionComponent = 			STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,Position,VET_Float3);
-			NewData.TangentBasisComponents[0] = 	STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,TangentX,VET_PackedNormal);
-			NewData.TangentBasisComponents[1] = 	STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,TangentZ,VET_PackedNormal);
-			NewData.ColorComponent = 				STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,Color,VET_Color);
-
-			NewData.TextureCoordinates.Add(
-				FVertexStreamComponent(VertexBuffer,STRUCT_OFFSET(FDynamicMeshVertex,TextureCoordinate),sizeof(FDynamicMeshVertex),VET_Float2)
-				);
-
-			SetData(NewData);
-		}
-	};
-
 	class FMediaPlaneIndexBuffer : public FIndexBuffer
 	{
 	public:
@@ -143,6 +107,7 @@ namespace
 		/** Initialization constructor. */
 		FMediaPlaneSceneProxy(UMediaPlaneComponent* InComponent)
 			: FPrimitiveSceneProxy(InComponent)
+			, VertexFactory(GetScene().GetFeatureLevel(), "FMediaPlaneSceneProxy")
 		{
 			AActor* Owner = InComponent->GetOwner();
 			if (Owner)
@@ -170,37 +135,43 @@ namespace
 
 		~FMediaPlaneSceneProxy()
 		{
-			VertexBuffer.ReleaseResource();
+			VertexBuffers.PositionVertexBuffer.ReleaseResource();
+			VertexBuffers.StaticMeshVertexBuffer.ReleaseResource();
+			VertexBuffers.ColorVertexBuffer.ReleaseResource();
 			IndexBuffer.ReleaseResource();
 			VertexFactory.ReleaseResource();
+		}
+
+		SIZE_T GetTypeHash() const
+		{
+			static size_t UniquePointer;
+			return reinterpret_cast<size_t>(&UniquePointer);
 		}
 
 		virtual void CreateRenderThreadResources() override
 		{
 			BuildMesh();
-
-			VertexFactory.Init(&VertexBuffer);
-
-			VertexBuffer.InitResource();
 			IndexBuffer.InitResource();
-			VertexFactory.InitResource();
 		}
 
 		void BuildMesh()
 		{
-			VertexBuffer.Vertices.Empty(4);
-			VertexBuffer.Vertices.AddUninitialized(4);
+			TArray<FDynamicMeshVertex> Vertices;
+			Vertices.Empty(4);
+			Vertices.AddUninitialized(4);
 
 			// Set up the sprite vertex positions and texture coordinates.
-			VertexBuffer.Vertices[0].Position  = FVector(0, -1.f,  1.f);
-			VertexBuffer.Vertices[1].Position  = FVector(0, -1.f, -1.f);
-			VertexBuffer.Vertices[2].Position  = FVector(0,  1.f,  1.f);
-			VertexBuffer.Vertices[3].Position  = FVector(0,  1.f, -1.f);
+			Vertices[0].Position = FVector(0, -1.f, 1.f);
+			Vertices[1].Position = FVector(0, -1.f, -1.f);
+			Vertices[2].Position = FVector(0, 1.f, 1.f);
+			Vertices[3].Position = FVector(0, 1.f, -1.f);
 
-			VertexBuffer.Vertices[0].TextureCoordinate = FVector2D(0,0);
-			VertexBuffer.Vertices[1].TextureCoordinate = FVector2D(0,1);
-			VertexBuffer.Vertices[2].TextureCoordinate = FVector2D(1,0);
-			VertexBuffer.Vertices[3].TextureCoordinate = FVector2D(1,1);
+			Vertices[0].TextureCoordinate[0] = FVector2D(0, 0);
+			Vertices[1].TextureCoordinate[0] = FVector2D(0, 1);
+			Vertices[2].TextureCoordinate[0] = FVector2D(1, 0);
+			Vertices[3].TextureCoordinate[0] = FVector2D(1, 1);
+			
+			VertexBuffers.InitFromDynamicVertex(&VertexFactory, Vertices);
 
 			IndexBuffer.Indices.Empty(6);
 			IndexBuffer.Indices.AddUninitialized(6);
@@ -317,9 +288,9 @@ namespace
 	private:
 		UMaterialInterface* Material;
 		FMaterialRelevance MaterialRelevance;
-		FMediaPlaneVertexBuffer VertexBuffer;
+		FStaticMeshVertexBuffers VertexBuffers;
 		FMediaPlaneIndexBuffer IndexBuffer;
-		FMediaPlaneVertexFactory VertexFactory;
+		FLocalVertexFactory VertexFactory;
 	};
 }
 
@@ -331,6 +302,7 @@ FMediaPlaneParameters::FMediaPlaneParameters()
 	, FixedSize(100,100)
 	, RenderTexture(nullptr)
 	, DynamicMaterial(nullptr)
+	, MediaTexture(nullptr)
 {
 }
 
@@ -390,7 +362,7 @@ void UMediaPlaneComponent::SetMediaPlane(FMediaPlaneParameters NewPlane)
 	UpdateMaterialParametersForMedia();
 }
 
-void UMediaPlaneComponent::OnRenderTextureChanged()
+void UMediaPlaneComponent::OnMediaTextureChanged()
 {
 	UpdateMaterialParametersForMedia();
 }
@@ -428,9 +400,16 @@ void UMediaPlaneComponent::UpdateTransformScale()
 	}
 }
 
+void UMediaPlaneComponent::SetMediaTexture(UTexture* Texture)
+{
+	Plane.MediaTexture = Texture;
+
+	UpdateMaterialParametersForMedia();
+}
+
 void UMediaPlaneComponent::UpdateMaterialParametersForMedia()
 {
-	if (!Plane.TextureParameterName.IsNone() && Plane.Material && Plane.RenderTexture)
+	if (!Plane.TextureParameterName.IsNone() && Plane.Material && Plane.MediaTexture)
 	{
 		if (!Plane.DynamicMaterial)
 		{
@@ -438,7 +417,7 @@ void UMediaPlaneComponent::UpdateMaterialParametersForMedia()
 			Plane.DynamicMaterial->SetFlags(RF_Transient);
 		}
 
-		Plane.DynamicMaterial->SetTextureParameterValue(Plane.TextureParameterName, Plane.RenderTexture);
+		Plane.DynamicMaterial->SetTextureParameterValue(Plane.TextureParameterName, Plane.MediaTexture);
 	}
 	else
 	{

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "JsonObjectConverter.h"
 #include "Internationalization/Culture.h"
@@ -622,12 +622,12 @@ bool FJsonObjectConverter::JsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue
 		return false;
 	}
 
-	bool bArrayProperty = Property->IsA<UArrayProperty>();
+	bool bArrayOrSetProperty = Property->IsA<UArrayProperty>() || Property->IsA<USetProperty>();
 	bool bJsonArray = JsonValue->Type == EJson::Array;
 
 	if (!bJsonArray)
 	{
-		if (bArrayProperty)
+		if (bArrayOrSetProperty)
 		{
 			UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Attempted to import TArray from non-array JSON key"));
 			return false;			
@@ -642,7 +642,7 @@ bool FJsonObjectConverter::JsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue
 	}
 
 	// In practice, the ArrayDim == 1 check ought to be redundant, since nested arrays of UPropertys are not supported
-	if (bArrayProperty && Property->ArrayDim == 1)
+	if (bArrayOrSetProperty && Property->ArrayDim == 1)
 	{
 		// Read into TArray
 		return ConvertScalarJsonValueToUProperty(JsonValue, Property, OutValue, CheckFlags, SkipFlags);

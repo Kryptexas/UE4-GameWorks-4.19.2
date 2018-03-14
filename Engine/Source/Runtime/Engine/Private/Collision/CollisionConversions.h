@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Utilities to convert from PhysX result structs to Unreal ones
 
 #pragma once 
@@ -102,8 +102,6 @@ bool ConvertOverlapResults(int32 NumOverlaps,  PxOverlapHit* POverlapResults, co
 #endif // WITH_PHYX
 
 
-#if UE_WITH_PHYSICS
-
 struct FCompareFHitResultTime
 {
 	FORCEINLINE bool operator()(const FHitResult& A, const FHitResult& B) const
@@ -118,5 +116,3 @@ struct FCompareFHitResultTime
 		return A.Time < B.Time;
 	}
 };
-
-#endif

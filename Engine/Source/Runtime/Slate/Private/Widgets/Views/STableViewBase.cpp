@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/Views/STableViewBase.h"
 #include "Rendering/DrawElements.h"
@@ -618,7 +618,11 @@ void STableViewBase::RequestListRefresh()
 		bItemsNeedRefresh = true;
 		RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &STableViewBase::EnsureTickToRefresh));
 	}
-	ItemsPanel->SetRefreshPending(true);
+
+	if (ItemsPanel.IsValid())
+	{
+		ItemsPanel->SetRefreshPending(true);
+	}
 }
 
 bool STableViewBase::IsPendingRefresh() const
@@ -679,10 +683,12 @@ float STableViewBase::ScrollBy(const FGeometry& MyGeometry, float ScrollByAmount
 	return ScrollTo( ClampedScrollOffsetInItems );
 }
 
-float STableViewBase::ScrollTo( float InScrollOffset )
+float STableViewBase::ScrollTo( float InScrollOffset)
 {
 	const float NewScrollOffset = FMath::Clamp( InScrollOffset, -10.0f, GetNumItemsBeingObserved()+10.0f );
 	float AmountScrolled = FMath::Abs( ScrollOffset - NewScrollOffset );
+
+	EndInertialScrolling();
 	SetScrollOffset( NewScrollOffset );
 	
 	if ( bWasAtEndOfList && NewScrollOffset >= ScrollOffset )
@@ -706,6 +712,11 @@ void STableViewBase::SetScrollOffset( const float InScrollOffset )
 		OnTableViewScrolled.ExecuteIfBound( ScrollOffset );
 		RequestListRefresh();
 	}
+}
+
+void STableViewBase::EndInertialScrolling()
+{
+	InertialScrollManager.ClearScrollVelocity();
 }
 
 void STableViewBase::AddScrollOffset(const float InScrollOffsetDelta, bool RefreshList)
@@ -824,13 +835,15 @@ float STableViewBase::GetScrollRateInItems() const
 
 void STableViewBase::ScrollToTop()
 {
-	SetScrollOffset( 0 );
+	EndInertialScrolling();
+	SetScrollOffset(0);
 	RequestListRefresh();
 }
 
 void STableViewBase::ScrollToBottom()
 {
-	SetScrollOffset( GetNumItemsBeingObserved() );
+	EndInertialScrolling();
+	SetScrollOffset(GetNumItemsBeingObserved());
 	RequestListRefresh();
 }
 

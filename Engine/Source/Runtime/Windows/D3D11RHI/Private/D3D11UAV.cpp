@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "D3D11RHIPrivate.h"
 
@@ -247,4 +247,12 @@ void FD3D11DynamicRHI::RHIClearTinyUAV(FUnorderedAccessViewRHIParamRef Unordered
 	Direct3DDeviceIMContext->ClearUnorderedAccessViewUint(UnorderedAccessView->View, Values);
 	
 	GPUProfilingData.RegisterGPUWork(1);
+}
+
+void FD3D11DynamicRHI::RHIBindDebugLabelName(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const TCHAR* Name)
+{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	FD3D11UnorderedAccessView* UAV = ResourceCast(UnorderedAccessViewRHI);
+	UAV->View->SetPrivateData(WKPDID_D3DDebugObjectName, FCString::Strlen(Name) + 1, TCHAR_TO_ANSI(Name));
+#endif
 }

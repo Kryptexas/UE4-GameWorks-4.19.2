@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Import data and options used when importing a static mesh from fbx
@@ -14,7 +14,6 @@
 UENUM()
 enum class EFbxExportCompatibility : uint8
 {
-	FBX_2010,
 	FBX_2011,
 	FBX_2012,
 	FBX_2013,

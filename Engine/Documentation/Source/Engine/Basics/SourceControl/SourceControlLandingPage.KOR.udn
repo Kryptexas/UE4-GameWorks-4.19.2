@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3454520
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 언리얼 엔진 4 에서의 협업
 Crumbs: %ROOT%, Engine
@@ -13,21 +13,7 @@ order:29
 기존 버전으로 되돌릴 수도 있습니다.
 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		소스 콘트롤 소프트웨어
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine\Basics\SourceControl\InEditor "%Engine\Basics\SourceControl\InEditor:description%")
-	* [](Engine\Basics\SourceControl\Perforce "%Engine\Basics\SourceControl\Perforce:description%")
-	* [](Engine\Basics\SourceControl\SVN "%Engine\Basics\SourceControl\SVN:description%")
-
-	[/PARAM]
-[/OBJECT]
-
+## 소스 콘트롤 소프트웨어
+	
+[DIR(output:"topic" parent:"Engine/Basics/SourceControl")]
 

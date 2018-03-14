@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429227
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:포그 이펙트
 Crumbs: %ROOT%, Engine
@@ -6,46 +6,7 @@ Description:포그를 사용하여 월드의 환경을 조성하고 분위기를
 parent:Engine/Rendering
 order:6
 type:landing
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors/FogEffects:title%](Engine/Actors/FogEffects/fog_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/FogEffects:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/FogEffects:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/FogEffects]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors/FogEffects:title%](Engine/Actors/FogEffects/fog_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/FogEffects:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/FogEffects:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/FogEffects]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:fog_topic.png
 
 [REGION:banner]
 ![Fog Effects](fog_landing_banner.png)

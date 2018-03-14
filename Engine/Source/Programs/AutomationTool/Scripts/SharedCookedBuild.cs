@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -85,16 +85,16 @@ public class SharedCookedBuild
 
 
 
-		string CookedBuildCookedDirectory = Path.Combine(CookedBuildPath, "Cooked");
-		CookedBuildCookedDirectory = Path.GetFullPath(CookedBuildCookedDirectory);
-		string LocalBuildCookedDirectory = Path.Combine(LocalPath, "Cooked");
-		LocalBuildCookedDirectory = Path.GetFullPath(LocalBuildCookedDirectory);
-		if (Directory.Exists(CookedBuildCookedDirectory))
+		string CookedBuildMetadataDirectory = Path.Combine(CookedBuildPath, "Metadata");
+		CookedBuildMetadataDirectory = Path.GetFullPath(CookedBuildMetadataDirectory);
+		string LocalBuildMetadataDirectory = Path.Combine(LocalPath, "Metadata");
+		LocalBuildMetadataDirectory = Path.GetFullPath(LocalBuildMetadataDirectory);
+		if (Directory.Exists(CookedBuildMetadataDirectory))
 		{
-			foreach (string FileName in Directory.EnumerateFiles(CookedBuildCookedDirectory, "*.*", SearchOption.AllDirectories))
+			foreach (string FileName in Directory.EnumerateFiles(CookedBuildMetadataDirectory, "*.*", SearchOption.AllDirectories))
 			{
 				string SourceFileName = Path.GetFullPath(FileName);
-				string DestFileName = SourceFileName.Replace(CookedBuildCookedDirectory, LocalBuildCookedDirectory);
+				string DestFileName = SourceFileName.Replace(CookedBuildMetadataDirectory, LocalBuildMetadataDirectory);
 				Directory.CreateDirectory(Path.GetDirectoryName(DestFileName));
 				File.Copy(SourceFileName, DestFileName);
 			}

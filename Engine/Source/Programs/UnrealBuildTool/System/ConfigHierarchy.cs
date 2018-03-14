@@ -1,3 +1,5 @@
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,6 +35,11 @@ namespace UnrealBuildTool
 		Encryption,
 
 		/// <summary>
+		/// BaseCrypto.ini, DefaultCrypto.ini, etc..
+		/// </summary>
+		Crypto,
+
+		/// <summary>
 		/// BaseEditorSettings.ini, DefaultEditorSettings.ini, etc...
 		/// </summary>
 		EditorSettings,
@@ -58,8 +65,15 @@ namespace UnrealBuildTool
 			{
 				foreach(ConfigLine Line in FileSection.Lines)
 				{
-					// Find or create the values for this key
-					List<string> Values;
+                    if (Line.Action == ConfigLineAction.RemoveKey)
+                    {
+                        KeyToValue.Remove(Line.Key);
+                        continue;
+                    }
+
+                    // Find or create the values for this key
+                    List<string> Values;
+
 					if(KeyToValue.TryGetValue(Line.Key, out Values))
 					{
 						// Update the existing list
@@ -72,7 +86,7 @@ namespace UnrealBuildTool
 						{
 							Values.Add(Line.Value);
 						}
-						else if(Line.Action == ConfigLineAction.Remove)
+                        else if (Line.Action == ConfigLineAction.RemoveKeyValue)
 						{
 							Values.RemoveAll(x => x.Equals(Line.Value, StringComparison.InvariantCultureIgnoreCase));
 						}
@@ -157,11 +171,16 @@ namespace UnrealBuildTool
 		/// </summary>
 		Dictionary<string, ConfigHierarchySection> NameToSection = new Dictionary<string, ConfigHierarchySection>(StringComparer.InvariantCultureIgnoreCase);
 
-		/// <summary>
-		/// Construct a config hierarchy from the given files
-		/// </summary>
-		/// <param name="Files">Set of files to include (in order)</param>
-		public ConfigHierarchy(IEnumerable<ConfigFile> Files)
+        /// <summary>
+        /// Lock for NameToSection
+        /// </summary>
+        System.Threading.ReaderWriterLockSlim NameToSectionLock = new System.Threading.ReaderWriterLockSlim();
+
+        /// <summary>
+        /// Construct a config hierarchy from the given files
+        /// </summary>
+        /// <param name="Files">Set of files to include (in order)</param>
+        public ConfigHierarchy(IEnumerable<ConfigFile> Files)
 		{
 			this.Files = Files.ToArray();
 		}
@@ -173,26 +192,47 @@ namespace UnrealBuildTool
 		/// <returns>The merged config section</returns>
 		public ConfigHierarchySection FindSection(string SectionName)
 		{
-			ConfigHierarchySection Section;
-			if(!NameToSection.TryGetValue(SectionName, out Section))
-			{
-				// Find all the raw sections from the file hierarchy
-				List<ConfigFileSection> RawSections = new List<ConfigFileSection>();
-				foreach(ConfigFile File in Files)
-				{
-					ConfigFileSection RawSection;
-					if(File.TryGetSection(SectionName, out RawSection))
-					{
-						RawSections.Add(RawSection);
-					}
-				}
+            ConfigHierarchySection Section;
+            try
+            {
+                // Acquire a read lock and do a quick check for the config section
+                NameToSectionLock.EnterUpgradeableReadLock();
+                if (!NameToSection.TryGetValue(SectionName, out Section))
+                {
+                    try
+                    {
+                        // Acquire a write lock and add the config section if another thread didn't just complete it
+                        NameToSectionLock.EnterWriteLock();
+                        if (!NameToSection.TryGetValue(SectionName, out Section))
+                        {
+                            // Find all the raw sections from the file hierarchy
+                            List<ConfigFileSection> RawSections = new List<ConfigFileSection>();
+                            foreach (ConfigFile File in Files)
+                            {
+                                ConfigFileSection RawSection;
+                                if (File.TryGetSection(SectionName, out RawSection))
+                                {
+                                    RawSections.Add(RawSection);
+                                }
+                            }
 
-				// Merge them together and add it to the cache
-				Section = new ConfigHierarchySection(RawSections);
-				NameToSection.Add(SectionName, Section);
-			}
-			return Section;
-		}
+                            // Merge them together and add it to the cache
+                            Section = new ConfigHierarchySection(RawSections);
+                            NameToSection.Add(SectionName, Section);
+                        }                        
+                    }
+                    finally
+                    {
+                        NameToSectionLock.ExitWriteLock();
+                    }
+                }
+            }
+            finally
+            {
+                NameToSectionLock.ExitUpgradeableReadLock();
+            }
+            return Section;
+        }
 
 		/// <summary>
 		/// Legacy function for ease of transition from ConfigCacheIni to ConfigHierarchy. Gets a bool with the given key name.

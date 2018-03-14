@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*-----------------------------------------------------------------------------
 	Data structures only used for importing skeletal meshes and animations.
@@ -9,7 +9,6 @@
 #include "CoreMinimal.h"
 #include "Containers/IndirectArray.h"
 #include "ReferenceSkeleton.h"
-#include "SkeletalMeshTypes.h"
 #include "Engine/SkeletalMesh.h"
 
 class UAssetImportData;
@@ -18,6 +17,113 @@ class UPhysicsAsset;
 class USkeletalMeshSocket;
 class USkeleton;
 class UThumbnailInfo;
+class FSkeletalMeshLODModel;
+
+
+struct FMeshWedge
+{
+	uint32			iVertex;			// Vertex index.
+	FVector2D		UVs[MAX_TEXCOORDS];	// UVs.
+	FColor			Color;			// Vertex color.
+	friend FArchive &operator<<(FArchive& Ar, FMeshWedge& T)
+	{
+		Ar << T.iVertex;
+		for (int32 UVIdx = 0; UVIdx < MAX_TEXCOORDS; ++UVIdx)
+		{
+			Ar << T.UVs[UVIdx];
+		}
+		Ar << T.Color;
+		return Ar;
+	}
+};
+template <> struct TIsPODType<FMeshWedge> { enum { Value = true }; };
+
+struct FMeshFace
+{
+	// Textured Vertex indices.
+	uint32		iWedge[3];
+	// Source Material (= texture plus unique flags) index.
+	uint16		MeshMaterialIndex;
+
+	FVector	TangentX[3];
+	FVector	TangentY[3];
+	FVector	TangentZ[3];
+
+	// 32-bit flag for smoothing groups.
+	uint32   SmoothingGroups;
+};
+template <> struct TIsPODType<FMeshFace> { enum { Value = true }; };
+
+// A bone: an orientation, and a position, all relative to their parent.
+struct VJointPos
+{
+	FTransform	Transform;
+
+	// For collision testing / debug drawing...
+	float       Length;
+	float       XSize;
+	float       YSize;
+	float       ZSize;
+};
+
+template <> struct TIsPODType<VJointPos> { enum { Value = true }; };
+
+
+
+// Textured triangle.
+struct VTriangle
+{
+	// Point to three vertices in the vertex list.
+	uint32   WedgeIndex[3];
+	// Materials can be anything.
+	uint8    MatIndex;
+	// Second material from exporter (unused)
+	uint8    AuxMatIndex;
+	// 32-bit flag for smoothing groups.
+	uint32   SmoothingGroups;
+
+	FVector	TangentX[3];
+	FVector	TangentY[3];
+	FVector	TangentZ[3];
+
+
+	VTriangle& operator=(const VTriangle& Other)
+	{
+		this->AuxMatIndex = Other.AuxMatIndex;
+		this->MatIndex = Other.MatIndex;
+		this->SmoothingGroups = Other.SmoothingGroups;
+		this->WedgeIndex[0] = Other.WedgeIndex[0];
+		this->WedgeIndex[1] = Other.WedgeIndex[1];
+		this->WedgeIndex[2] = Other.WedgeIndex[2];
+		this->TangentX[0] = Other.TangentX[0];
+		this->TangentX[1] = Other.TangentX[1];
+		this->TangentX[2] = Other.TangentX[2];
+
+		this->TangentY[0] = Other.TangentY[0];
+		this->TangentY[1] = Other.TangentY[1];
+		this->TangentY[2] = Other.TangentY[2];
+
+		this->TangentZ[0] = Other.TangentZ[0];
+		this->TangentZ[1] = Other.TangentZ[1];
+		this->TangentZ[2] = Other.TangentZ[2];
+
+		return *this;
+	}
+};
+template <> struct TIsPODType<VTriangle> { enum { Value = true }; };
+
+struct FVertInfluence
+{
+	float Weight;
+	uint32 VertIndex;
+	FBoneIndexType BoneIndex;
+	friend FArchive &operator<<(FArchive& Ar, FVertInfluence& F)
+	{
+		Ar << F.Weight << F.VertIndex << F.BoneIndex;
+		return Ar;
+	}
+};
+template <> struct TIsPODType<FVertInfluence> { enum { Value = true }; };
 
 // Raw data material.
 struct VMaterial
@@ -100,37 +206,6 @@ struct VPoint
 	FVector	Point; // Change into packed integer later IF necessary, for 3x size reduction...
 };
 
-//
-// FSavedCustomSortSectionInfo - saves and restores custom triangle order for a single section of the skeletal mesh.
-//
-struct FSavedCustomSortSectionInfo
-{
-	FSavedCustomSortSectionInfo(USkeletalMesh* ExistingSkelMesh, int32 LODModelIndex, int32 InSectionIdx);
-
-	void Restore(USkeletalMesh* NewSkelMesh, int32 LODModelIndex, TArray<int32>& UnmatchedSections);
-
-	int32 SavedSectionIdx;
-	int32 SavedNumTriangles;
-	ETriangleSortOption SavedSortOption;
-	ETriangleSortAxis SavedCustomLeftRightAxis;
-	FName SavedCustomLeftRightBoneName;
-	TArray<FVector> SavedVertices;
-	TArray<uint32> SavedIndices;
-};
-
-
-//
-// Class to save and restore the custom sorting for all sections not marked TRISORT_None
-//
-struct FSavedCustomSortInfo
-{
-public:
-	void Save(USkeletalMesh* ExistingSkelMesh, int32 LODModelIndex);
-	void Restore(USkeletalMesh* NewSkeletalMesh, int32 LODModelIndex);
-private:
-	TArray<FSavedCustomSortSectionInfo> SortSectionInfos;
-};
-
 struct ExistingMeshLodSectionData
 {
 	ExistingMeshLodSectionData(FName InImportedMaterialSlotName, bool InbCastShadow, bool InbRecomputeTangents)
@@ -146,10 +221,8 @@ struct ExistingMeshLodSectionData
 struct ExistingSkelMeshData
 {
 	TArray<USkeletalMeshSocket*>			ExistingSockets;
-	TIndirectArray<FStaticLODModel>			ExistingLODModels;
+	TIndirectArray<FSkeletalMeshLODModel>	ExistingLODModels;
 	TArray<FSkeletalMeshLODInfo>			ExistingLODInfo;
-	TArray<FMultiSizeIndexContainerData>	ExistingIndexBufferData;
-	TArray<FMultiSizeIndexContainerData>	ExistingAdjacencyIndexBufferData;
 	FReferenceSkeleton						ExistingRefSkeleton;
 	TArray<FSkeletalMaterial>				ExistingMaterials;
 	bool									bSaveRestoreMaterials;
@@ -162,7 +235,6 @@ struct ExistingSkelMeshData
 	bool									bExistingUseFullPrecisionUVs;
 
 	TArray<FBoneMirrorExport>				ExistingMirrorTable;
-	FSavedCustomSortInfo					ExistingSortInfo;
 
 	TWeakObjectPtr<UAssetImportData>		ExistingAssetImportData;
 	TWeakObjectPtr<UThumbnailInfo>			ExistingThumbnailInfo;
@@ -176,6 +248,8 @@ struct ExistingSkelMeshData
 	//The last import material data (fbx original data before user changes)
 	TArray<FName> LastImportMaterialOriginalNameData;
 	TArray<TArray<FName>> LastImportMeshLodSectionMaterialData;
+
+	FSkeletalMeshSamplingInfo				ExistingSamplingInfo;
 };
 
 /**
@@ -254,5 +328,18 @@ public:
 
 	/** extra data used for importing extra weight/bone influences */
 	FSkeletalMeshImportData RawMeshInfluencesData;
+	int32 MaxBoneCountPerChunk;
+};
+
+/**
+* Data needed for importing an extra set of vertex influences
+*/
+struct FSkelMeshExtraInfluenceImportData
+{
+	FReferenceSkeleton		RefSkeleton;
+	TArray<FVertInfluence> Influences;
+	TArray<FMeshWedge> Wedges;
+	TArray<FMeshFace> Faces;
+	TArray<FVector> Points;
 	int32 MaxBoneCountPerChunk;
 };

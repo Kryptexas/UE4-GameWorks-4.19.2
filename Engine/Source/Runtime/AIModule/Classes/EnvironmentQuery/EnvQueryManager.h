@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -168,7 +168,7 @@ class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 	virtual void Tick(float DeltaTime) override;
 
 	/** [FTickableGameObject] always tick, unless it's the default object */
-	virtual bool IsTickable() const override { return HasAnyFlags(RF_ClassDefaultObject) == false; }
+	virtual ETickableTickType GetTickableTickType() const override { return (HasAnyFlags(RF_ClassDefaultObject) ? ETickableTickType::Never : ETickableTickType::Always); }
 
 	/** [FTickableGameObject] tick stats */
 	virtual TStatId GetStatId() const override;

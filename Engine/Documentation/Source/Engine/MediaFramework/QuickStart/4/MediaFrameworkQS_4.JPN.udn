@@ -1,0 +1,102 @@
+﻿INTSourceChangelist:3725599
+Availability:Public
+Crumbs: %ROOT%
+Title:4 - TV ブループリントの設定 - コンストラクション スクリプト
+Description:このステップでは、コンストラクション スクリプトを使用して、エディタ内で TV ブループリントに対する変更を行ういくつかのパラメータを設定します。 
+SkillLevel:Beginner
+Version:4.18
+checkpoint: mediaframeworkqs
+parent:Engine\MediaFramework\QuickStart
+type:multi-step
+order:4
+tags:Media Framework
+tags:Blueprints
+ 
+[NAV]
+
+TV ブループリントのコンポーネントの定義が完了しました。このステップでは [コンストラクション スクリプト](Engine/Blueprints/UserGuide/UserConstructionScript) を設定して、レベル内に配置した時に TV のコンテンツを変更できるようにします。
+
+## ステップ
+
+1. **TV_Blueprint** の中のメイン ツールバーの下の **[Construction Script]** タブをクリックします。 
+
+	![](Construct_01.png)
+
+1. グラフを右クリックして **Create Dynamic Material Instance** ノードを追加します。**[Parent]** を **[M_TV_Inst]** に設定して、以下のように接続します。 
+
+	![](Construct_02.png)
+
+	TV に適用しているマテリアル内の Media Texture を変更するために、まずマテリアルごとに [動的マテリアル インスタンス](Engine/Rendering/Materials/MaterialInstances) を作成して TV に割り当てます。 
+
+1.	**Create Dynamic Material Instance** ノードの **Return Value** を右クリックし、**Promote To Variable** を選択して **TV_MID** と名前を付けます。 
+
+	![](Construct_03.png)
+
+	TV MID は、作成した動的マテリアルへの参照を格納します。設定の後半で使用することができます。
+
+1.	**[Components]** ウィンドウで **TV_Mesh** を選択し、グラフを右クリックして **[Set Material (TV_Mesh)]** を選択します。
+
+	![](Construct_04.png)
+
+	これで TV and a Set Material ノードに参照が追加され、動的マテリアルの割り当てが可能になりました。
+
+1.	**TV_MID** 変数を **[My Blueprint]** パネルから **Set Material** ノードの **Material** ピンにドラッグして、以下のように接続します。
+
+	![](Construct_05.png)
+
+1.	**TV_MID** ノードのピンを引き出して以下のように **Set Texture Parameter Value** ノードにつなげます。
+
+	![](Construct_06.png)
+
+1.	**[Parameter Name]** を **「TV_Texture」** とし、**Value** を右クリックします。**Promote to Variable** を選択して **「Texture for TV」** と名前を付けます。
+
+	![](Construct_07.png)
+
+	変数になったので、TV ごとにサンプリングする Media Texture を定義することができるようになりました。 
+
+1.	**[Components]** ウィンドウから **Media Sound** アセットをグラフにドラッグし、ピンを引き出して **Set Media Player** につなげます。
+
+	![](Construct_08.png)
+
+1.	**Media Player** ピンを右クリックして、**Promote to Variable** を選択します。この新しい変数に **「Media Player for Sound」** と名前を付けて、以下のように接続します。 
+
+	![](Construct_09.png)
+
+	テクスチャを設定した場合と同じように、この変数を使って TV ごとにどの Medhia Player を Media Sound に関連づけるか定義することができます。 
+
+	今、グラフ全体はこのようになっています。
+
+	[REGION:lightbox]
+	[![](Construct_10.png)](Construct_10.png)
+	[/REGION]
+
+	[REGION:caption]
+	クリックしてフルサイズで表示 
+	[/REGION]
+
+1.	**[My Blueprint]** パネルで **TextureForTV** 変数を選択し、**Instance Editable** として設定して **MediaPlayer_01_Video** Media Texture に割り当てます。 
+
+	![](Construct_11.png)
+
+	ここでは、Texture を使うように Default Value を定義し、[Instance Editable] を有効にすることで、このブループリントの各インスタンスに対して値を変更できるようにします。 
+
+	[REGION:note]
+	**Media Texture** の [Default Value] を設定するために、メイン ツールバーから **[Compile]** ボタンをクリックする必要があるかもしれません。 
+	[/REGION]
+
+1.	**[My Blueprint]** パネルで **MediaPlayerForSound** 変数を選択し、**Instance Editable** として設定して **MediaPlayer_01** Media Player に割り当てます。 
+
+	![](Construct_12.png)
+
+	前のステップと同じ要領で、Default Value を割り当て、インスタンスごとにこの値を変更できるようにします。 
+
+	[REGION:note]
+	**Media Player** の [Default Value] を設定するために、メイン ツールバーから **[Compile]** ボタンをクリックする必要があるかもしれません。 
+	[/REGION]
+
+## 最終結果
+
+Media Sound, Media Texture を定義できるように TV ブループリントが設定されました。次のステップでは、Media Player アセットをレベルに配置する TV に関連づけていきます。これらのアセットに対して変数を作成し Instance Editable に設定することで、TV 上に配置するすべてのコンテンツは変更可能になり、プレイヤーによる TV のオン / オフ機能は再利用することができる柔軟性が与えられます。
+
+[NAV]
+

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -82,6 +82,9 @@ UITextFieldDelegate>
 
 /** The time delay (in seconds) between idle timer enable requests and actually enabling the idle timer */
 @property (readonly) float IdleTimerEnablePeriod;
+
+// parameters passed from openURL
+@property (nonatomic, retain) NSMutableArray* savedOpenUrlParameters;
 
 #if !UE_BUILD_SHIPPING && !PLATFORM_TVOS
 	/** Properties for managing the console */

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SkeletalMeshEditor.h"
 #include "Modules/ModuleManager.h"
@@ -20,6 +20,7 @@
 #include "IAssetFamily.h"
 #include "PersonaCommonCommands.h"
 #include "EngineUtils.h"
+#include "Rendering/SkeletalMeshModel.h"
 
 #include "Animation/DebugSkelMeshComponent.h"
 #include "ClothingAsset.h"
@@ -98,6 +99,7 @@ void FSkeletalMeshEditor::InitSkeletalMeshEditor(const EToolkitMode::Type Mode, 
 	FSkeletonTreeArgs SkeletonTreeArgs;
 	SkeletonTreeArgs.OnSelectionChanged = FOnSkeletonTreeSelectionChanged::CreateSP(this, &FSkeletalMeshEditor::HandleSelectionChanged);
 	SkeletonTreeArgs.PreviewScene = PreviewScene;
+	SkeletonTreeArgs.ContextName = GetToolkitFName();
 
 	ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::GetModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
 	SkeletonTree = SkeletonEditorModule.CreateSkeletonTree(PersonaToolkit->GetSkeleton(), SkeletonTreeArgs);
@@ -176,31 +178,32 @@ void FSkeletalMeshEditor::ExtendToolbar()
 
 	ToolbarExtender = MakeShareable(new FExtender);
 
-
 	// extend extra menu/toolbars
-	struct Local
+	auto FillToolbar = [this](FToolBarBuilder& ToolbarBuilder)
 	{
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder)
-		{
-			ToolbarBuilder.BeginSection("Mesh");
-			{
-				ToolbarBuilder.AddToolBarButton(FSkeletalMeshEditorCommands::Get().ReimportMesh);
-			}
-			ToolbarBuilder.EndSection();
+		FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
+		FPersonaModule::FCommonToolbarExtensionArgs Args;
+		Args.bPreviewMesh = false;
+		PersonaModule.AddCommonToolbarExtensions(ToolbarBuilder, PersonaToolkit.ToSharedRef(), Args);
 
-			ToolbarBuilder.BeginSection("Selection");
-			{
-				ToolbarBuilder.AddToolBarButton(FSkeletalMeshEditorCommands::Get().MeshSectionSelection);
-			}
-			ToolbarBuilder.EndSection();
+		ToolbarBuilder.BeginSection("Mesh");
+		{
+			ToolbarBuilder.AddToolBarButton(FSkeletalMeshEditorCommands::Get().ReimportMesh);
 		}
+		ToolbarBuilder.EndSection();
+
+		ToolbarBuilder.BeginSection("Selection");
+		{
+			ToolbarBuilder.AddToolBarButton(FSkeletalMeshEditorCommands::Get().MeshSectionSelection);
+		}
+		ToolbarBuilder.EndSection();
 	};
 
 	ToolbarExtender->AddToolBarExtension(
 		"Asset",
 		EExtensionHook::After,
 		GetToolkitCommands(),
-		FToolBarExtensionDelegate::CreateStatic(&Local::FillToolbar)
+		FToolBarExtensionDelegate::CreateLambda(FillToolbar)
 		);
 
 	AddToolbarExtender(ToolbarExtender);
@@ -244,28 +247,6 @@ void FSkeletalMeshEditor::FillMeshClickMenu(FMenuBuilder& MenuBuilder, HActor* H
 	const int32 LodIndex = MeshComp->PredictedLODLevel;
 	const int32 SectionIndex = HitProxy->SectionIndex;
 
-	// Potentially we should display a different index if we have a clothing asset
-	int32 DisplaySectionIndex = SectionIndex;
-	USkeletalMesh* Mesh = GetPersonaToolkit()->GetPreviewMesh();
-	if(Mesh && Mesh->GetImportedResource())
-	{
-		if(FSkeletalMeshResource* Resource = Mesh->GetImportedResource())
-		{
-			if(Resource->LODModels.IsValidIndex(LodIndex))
-			{
-				if(Resource->LODModels[LodIndex].Sections.IsValidIndex(SectionIndex))
-				{
-					FSkelMeshSection& Section = Resource->LODModels[LodIndex].Sections[SectionIndex];
-
-					if(Section.CorrespondClothSectionIndex != INDEX_NONE)
-					{
-						DisplaySectionIndex = Section.CorrespondClothSectionIndex;
-					}
-				}
-			}
-		}
-	}
-
 	TSharedRef<SWidget> InfoWidget = SNew(SBox)
 		.HAlign(HAlign_Fill)
 		.VAlign(VAlign_Fill)
@@ -283,7 +264,7 @@ void FSkeletalMeshEditor::FillMeshClickMenu(FMenuBuilder& MenuBuilder, HActor* H
 				[
 					SNew(STextBlock)
 					.Font(FEditorStyle::GetFontStyle("CurveEd.LabelFont"))
-				.Text(FText::Format(LOCTEXT("MeshClickMenu_SectionInfo", "LOD{0} - Section {1}"), LodIndex, DisplaySectionIndex))
+				.Text(FText::Format(LOCTEXT("MeshClickMenu_SectionInfo", "LOD{0} - Section {1}"), LodIndex, SectionIndex))
 				]
 			]
 		];
@@ -451,6 +432,16 @@ void FSkeletalMeshEditor::OnCreateClothingAssetMenuItemClicked(FSkeletalMeshClot
 				Mesh->AddClothingAsset(NewClothingAsset);
 			}
 		}
+
+		//Make sure no section is isolated or highlighted
+		UDebugSkelMeshComponent * MeshComponent = GetPersonaToolkit()->GetPreviewScene()->GetPreviewMeshComponent();
+		if(MeshComponent)
+		{
+			MeshComponent->SetSelectedEditorSection(INDEX_NONE);
+			MeshComponent->SetSelectedEditorMaterial(INDEX_NONE);
+			MeshComponent->SetMaterialPreview(INDEX_NONE);
+			MeshComponent->SetSectionPreview(INDEX_NONE);
+		}
 	}
 }
 
@@ -465,19 +456,17 @@ bool FSkeletalMeshEditor::CanApplyClothing(int32 InLodIndex, int32 InSectionInde
 
 	if(Mesh->MeshClothingAssets.Num() > 0)
 	{
-		FSkeletalMeshResource* MeshResource = Mesh->GetImportedResource();
+	FSkeletalMeshModel* MeshResource = Mesh->GetImportedModel();
 
-		if(MeshResource->LODModels.IsValidIndex(InLodIndex))
+	if(MeshResource->LODModels.IsValidIndex(InLodIndex))
+	{
+		FSkeletalMeshLODModel& LodModel = MeshResource->LODModels[InLodIndex];
+
+		if(LodModel.Sections.IsValidIndex(InSectionIndex))
 		{
-			FStaticLODModel& LodModel = MeshResource->LODModels[InLodIndex];
-
-			if(LodModel.Sections.IsValidIndex(InSectionIndex))
-			{
-				FSkelMeshSection& Section = LodModel.Sections[InSectionIndex];
-
-				return Section.CorrespondClothSectionIndex == INDEX_NONE;
-			}
+			return !LodModel.Sections[InSectionIndex].HasClothingData();
 		}
+	}
 	}
 
 	return false;
@@ -487,17 +476,15 @@ bool FSkeletalMeshEditor::CanRemoveClothing(int32 InLodIndex, int32 InSectionInd
 {
 	USkeletalMesh* Mesh = GetPersonaToolkit()->GetPreviewMesh();
 
-	FSkeletalMeshResource* MeshResource = Mesh->GetImportedResource();
+	FSkeletalMeshModel* MeshResource = Mesh->GetImportedModel();
 
 	if(MeshResource->LODModels.IsValidIndex(InLodIndex))
 	{
-		FStaticLODModel& LodModel = MeshResource->LODModels[InLodIndex];
+		FSkeletalMeshLODModel& LodModel = MeshResource->LODModels[InLodIndex];
 
 		if(LodModel.Sections.IsValidIndex(InSectionIndex))
 		{
-			FSkelMeshSection& Section = LodModel.Sections[InSectionIndex];
-
-			return Section.CorrespondClothSectionIndex != INDEX_NONE;
+			return LodModel.Sections[InSectionIndex].HasClothingData();
 		}
 	}
 
@@ -508,17 +495,17 @@ bool FSkeletalMeshEditor::CanCreateClothing(int32 InLodIndex, int32 InSectionInd
 {
 	USkeletalMesh* Mesh = GetPersonaToolkit()->GetPreviewMesh();
 
-	FSkeletalMeshResource* MeshResource = Mesh->GetImportedResource();
+	FSkeletalMeshModel* MeshResource = Mesh->GetImportedModel();
 
 	if(MeshResource->LODModels.IsValidIndex(InLodIndex))
 	{
-		FStaticLODModel& LodModel = MeshResource->LODModels[InLodIndex];
+		FSkeletalMeshLODModel& LodModel = MeshResource->LODModels[InLodIndex];
 
 		if(LodModel.Sections.IsValidIndex(InSectionIndex))
 		{
 			FSkelMeshSection& Section = LodModel.Sections[InSectionIndex];
 
-			return Section.CorrespondClothSectionIndex == INDEX_NONE;
+			return !Section.HasClothingData();
 		}
 	}
 
@@ -655,16 +642,10 @@ bool FSkeletalMeshEditor::IsMeshSectionSelectionChecked() const
 
 void FSkeletalMeshEditor::HandleMeshClick(HActor* HitProxy, const FViewportClick& Click)
 {
-	USkeletalMesh* Mesh = GetPersonaToolkit()->GetPreviewMesh();
-
-	if(Mesh)
-	{
-		Mesh->SelectedEditorSection = HitProxy->SectionIndex;
-	}
-
 	USkeletalMeshComponent* Component = GetPersonaToolkit()->GetPreviewMeshComponent();
 	if (Component)
 	{
+		Component->SetSelectedEditorSection(HitProxy->SectionIndex);
 		Component->PushSelectionToProxy();
 	}
 

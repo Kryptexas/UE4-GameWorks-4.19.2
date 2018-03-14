@@ -1,0 +1,93 @@
+﻿INTSourceChangelist:3659545
+Availability:Public
+Crumbs:%ROOT%
+Title:ベント法線マップ
+Description:UE4 におけるベント法線マップの使用方法の概要 
+Type:Overview
+Version:4.17
+Parent:Engine/Rendering/LightingAndShadows
+Order:
+Tags:Rendering
+Tags:Lighting
+Topic-Image:BentNormalTopic.png
+Social-Image:BentNormalSocial.png
+SkillLevel:Advanced
+
+
+[TOC(start:1 end:2)]
+
+
+[OBJECT:ComparisonSlider]
+    [PARAM:before]
+    ![Non Bent Normal](No_BentNormal_00.png)(w:1100)
+    [/PARAM]
+    [PARAM:after]
+    ![Bent Normal](BentNormal_00.png)
+    [/PARAM]
+[/OBJECT]
+
+アンリアル エンジン 4 (UE4) でベント法線マップを使用すると、ライティングおよびシェーディングに対するマテリアルの反応を改善することができます。このページには、UE4 プロジェクトでベント法線を使用する上で必要なすべての情報が提供されています。
+
+## ベント法線を使用するメリット
+UE4 プロジェクトでベント法線を使うと以下のようなメリットがあります。
+
+* ベント法線の最大の効果は、ライトビルドの後に発生するライト漏れの量を減らすことができます。 
+* アンビエント オクルージョン (AO) と一緒に使用すると、間接ライティングに対して法線ではなくベント法線を使うことで Diffuse 間接ライトが GI (グローバルイルミネーション) に一致するため、Diffuse 間接ライティングが改善されます。
+* ベント法線の使用時は、ディティール法線が消えてしまっていないか注意深く確認してください。
+
+
+[OBJECT:ComparisonSlider]
+    [PARAM:before]
+    ![Diffuse indirect lighting using AO](BentNormalAoLighting.png)
+    [/PARAM]
+    [PARAM:after]
+    ![Diffuse indirect lighting using Bent normal ](BentNormalLighting.png)
+    [/PARAM]
+[/OBJECT]
+
+## ベント法線の作成
+
+ベント法線で最高の質感を出し、UE4 によるベント法線マップの計算方法の推測と一致させるために、ベント法線マップの作成時には以下の情報を忠実に守ってください。
+
+* ベント法線マップを作成する時には必ず **余弦分布** を使ってください。 
+
+* [Substance Designer 6](https://www.allegorithmic.com/blog/substance-designer-6-unleashed-now-scan-processing-and-new-nodes) を使って、法線や AO マップを生成する要領でベント法線マップを生成することができます。
+
+* ベント法線マップを作成する時には、キャラクターが T-Pose になっていることを確認してください。
+
+* ベント法線と AO には同じ **距離** 設定を使用します。
+
+* ベント法線は法線マップと同じ空間に存在します。以下の表で詳細を確認してください。
+    |ワールド空間のタイプ| 法線マップのタイプ | ベント法線のタイプ|
+    |-----------------|----------------------------|---------------------------|
+    |World|World | World|
+    |Tangent|Tangent|Tangent|
+
+## UE4 でベント法線を使用する
+
+UE4 マテリアル内にベント法線マップを使用する方法は、法線マップのセットアップおよび使用方法と非常によく似ています。**Bent Normal** カスタム出力ノードをマテリアル グラフに接続して、ベント法線マップを下の画像のように接続するだけです。また、AO マップの入力が **Ambient Occlusion** 入力に接続するようにしてください。
+
+[REGION:lightbox]
+[![](BentNormalMaterialSetup.png)(w:349)](BentNormalMaterialSetup.png)
+[/REGION]
+
+[REGION:caption]
+クリックしてフルサイズで表示
+[/REGION]
+
+## リフレクション オクルージョン
+
+ベント法線マップは従来とは別のパワフルな使い方もできます。それが、リフレクション オクルージョン / スペキュラ オクルージョンです。アンビエント オクルージョン (AO) マップを使用する時は、Diffuse 間接ライトを遮ろうとします。リフレクション オクルージョンも同じコンセプトですが、Specular 間接ライトを遮ろうとします。これは、スペキュラ ローブを可視部分のコーン (このコーンは、半球のうちでオクルードされていない部分を示し、コーンの軸としてのベント法線およびコーンの角度としての AO 量によって記述される) と交差させることによって計算されるものです。これにより、スペキュラ ライトの漏れが大幅に減ります。SSR データが使用できない場合は特にそうです。
+
+最後に、マルチバウンスの近似値をオクルージョンに追加しました。最初のバウンスの AO またはリフレクション オクルージョンではなく、複数回のバウンスの反射の近似値を使います。このため、明るいマテリアルは暗さが少なくなり、色付きマテリアルはさらに高彩度化します。 
+
+[OBJECT:ComparisonSlider]
+    [PARAM:before]
+    ![AO](ReflectionBNAO.png)
+    [/PARAM]
+    [PARAM:after]
+    ![Bent Normal](ReflectionBN.png)
+    [/PARAM]
+[/OBJECT]
+
+

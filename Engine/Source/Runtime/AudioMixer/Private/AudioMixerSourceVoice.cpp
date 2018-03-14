@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AudioMixerSourceVoice.h"
 #include "AudioMixerSource.h"
@@ -146,12 +146,11 @@ namespace Audio
 		}
 	}
 
-	void FMixerSourceVoice::SetChannelMap(TArray<float>& InChannelMap, const bool bInIs3D, const bool bInIsCenterChannelOnly)
+	void FMixerSourceVoice::SetChannelMap(ESubmixChannelFormat InChannelType, TArray<float>& InChannelMap, const bool bInIs3D, const bool bInIsCenterChannelOnly)
 	{
 		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
 
-		ChannelMap = InChannelMap;
-		SourceManager->SetChannelMap(SourceId, InChannelMap, bInIs3D, bInIsCenterChannelOnly);
+		SourceManager->SetChannelMap(SourceId, InChannelType, InChannelMap, bInIs3D, bInIsCenterChannelOnly);
 	}
 
 	void FMixerSourceVoice::SetSpatializationParams(const FSpatializationParams& InParams)
@@ -239,13 +238,20 @@ namespace Audio
 		return SourceManager->GetNumFramesPlayed(SourceId);
 	}
 
-	void FMixerSourceVoice::MixOutputBuffers(AlignedFloatBuffer& OutWetBuffer, const float SendLevel) const
+	float FMixerSourceVoice::GetEnvelopeValue() const
+	{
+		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
+
+		return SourceManager->GetEnvelopeValue(SourceId);
+	}
+
+	void FMixerSourceVoice::MixOutputBuffers(const ESubmixChannelFormat InSubmixChannelType, const float SendLevel, AlignedFloatBuffer& OutWetBuffer) const
 	{
 		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 
 		check(!bOutputToBusOnly);
 
-		return SourceManager->MixOutputBuffers(SourceId, OutWetBuffer, SendLevel);
+		return SourceManager->MixOutputBuffers(SourceId, InSubmixChannelType, SendLevel, OutWetBuffer);
 	}
 
 	void FMixerSourceVoice::SetSubmixSendInfo(FMixerSubmixPtr Submix, const float SendLevel)

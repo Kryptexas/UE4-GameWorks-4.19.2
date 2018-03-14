@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 /**
@@ -166,10 +166,10 @@ public:
 	};
 
 	void			CleanReferences();
-	bool			SupportsObject( const UObject* Object ) const;
+	bool			SupportsObject( const UObject* Object, const TWeakObjectPtr<UObject>* WeakObjectPtr=nullptr /** Optional: pass in existing weakptr to prevent this function from constructing one internally */ ) const;
 	bool			IsDynamicObject( const UObject* Object );
 	bool			IsNetGUIDAuthority() const;
-	FNetworkGUID	GetOrAssignNetGUID( const UObject* Object );
+	FNetworkGUID	GetOrAssignNetGUID( const UObject* Object, const TWeakObjectPtr<UObject>* WeakObjectPtr=nullptr /** Optional: pass in existing weakptr to prevent this function from constructing one internally */ );
 	FNetworkGUID	GetNetGUID( const UObject* Object ) const;
 	FNetworkGUID	AssignNewNetGUID_Server( const UObject* Object );
 	void			RegisterNetGUID_Internal( const FNetworkGUID& NetGUID, const FNetGuidCacheObject& CacheObject );
@@ -181,6 +181,7 @@ public:
 	bool			IsGUIDRegistered( const FNetworkGUID& NetGUID ) const;
 	bool			IsGUIDLoaded( const FNetworkGUID& NetGUID ) const;
 	bool			IsGUIDBroken( const FNetworkGUID& NetGUID, const bool bMustBeRegistered ) const;
+	bool			IsGUIDNoLoad( const FNetworkGUID& NetGUID ) const;
 	FString			FullNetGUIDPath( const FNetworkGUID& NetGUID ) const;
 	void			GenerateFullNetGUIDPath_r( const FNetworkGUID& NetGUID, FString& FullPath ) const;
 	bool			ShouldIgnorePackageMismatch() const;
@@ -189,6 +190,7 @@ public:
 	void			SetNetworkChecksumMode( const ENetworkChecksumMode NewMode );
 	void			SetAsyncLoadMode( const EAsyncLoadMode NewMode );
 	bool			ShouldAsyncLoad() const;
+	bool			CanClientLoadObject( const UObject* Object, const FNetworkGUID& NetGUID ) const;
 
 	void			AsyncPackageCallback(const FName& PackageName, UPackage * Package, EAsyncLoadingResult::Type Result);
 	

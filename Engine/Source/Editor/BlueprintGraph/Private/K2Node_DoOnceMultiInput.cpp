@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_DoOnceMultiInput.h"
 #include "Textures/SlateIcon.h"
@@ -22,13 +22,13 @@ UK2Node::ERedirectType UK2Node_DoOnceMultiInput::DoPinsMatchForReconstruction(co
 {
 	// Temp work around: remove whitespaces from pin names before doing string comparison.
 
-	FString NewName = NewPin->PinName;
-	FString OldName = OldPin->PinName;
+	FString NewName = NewPin->PinName.ToString();
+	FString OldName = OldPin->PinName.ToString();
 
 	NewName.ReplaceInline(TEXT(" "), TEXT(""));
 	OldName.ReplaceInline(TEXT(" "), TEXT(""));
 	
-	if (NewName.Equals(OldName, ESearchCase::IgnoreCase))
+	if (NewName == OldName)
 	{
 		// Make sure we're not dealing with a menu node
 		UEdGraph* OuterGraph = GetGraph();
@@ -88,20 +88,19 @@ UEdGraphPin* UK2Node_DoOnceMultiInput::FindOutPin() const
 
 UEdGraphPin* UK2Node_DoOnceMultiInput::FindSelfPin() const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	for(int32 PinIdx=0; PinIdx<Pins.Num(); PinIdx++)
+	for (UEdGraphPin* Pin : Pins)
 	{
-		if(Pins[PinIdx]->PinName == K2Schema->PN_Self)
+		if (Pin->PinName == UEdGraphSchema_K2::PN_Self)
 		{
-			return Pins[PinIdx];
+			return Pin;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 bool UK2Node_DoOnceMultiInput::CanAddPin() const
 {
-	return (NumAdditionalInputs) < GetMaxInputPinsNum();
+	return (NumAdditionalInputs < GetMaxInputPinsNum());
 }
 
 bool UK2Node_DoOnceMultiInput::CanRemovePin(const UEdGraphPin* Pin) const
@@ -182,20 +181,18 @@ void UK2Node_DoOnceMultiInput::AllocateDefaultPins()
 {
 	Super::AllocateDefaultPins();
 
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 	FText InputPinAName = GetNameForPin(0, true);
-	UEdGraphPin* InputPinA = CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, InputPinAName.BuildSourceString());
+	UEdGraphPin* InputPinA = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, NAME_None, nullptr, *InputPinAName.BuildSourceString());
 	InputPinA->PinFriendlyName = InputPinAName;
 
 	FText OutputPinAName = GetNameForPin(0, false);
-	UEdGraphPin* OutputPinA = CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, OutputPinAName.BuildSourceString());
+	UEdGraphPin* OutputPinA = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, NAME_None, nullptr, *OutputPinAName.BuildSourceString());
 	OutputPinA->PinFriendlyName = OutputPinAName;
 
-	UEdGraphPin* DoOnceResetIn = CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, TEXT("Reset In"));
+	UEdGraphPin* DoOnceResetIn = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, NAME_None, nullptr, TEXT("Reset In"));
 	DoOnceResetIn->PinFriendlyName = LOCTEXT("DoOnceResetIn", "Reset In");
 
-	UEdGraphPin* DoOnceResetOut = CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, TEXT("Reset Out"));
+	UEdGraphPin* DoOnceResetOut = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, NAME_None, nullptr, TEXT("Reset Out"));
 	DoOnceResetOut->PinFriendlyName = LOCTEXT("DoOnceResetOut", "Reset Out");
 
 	for (int32 i = 0; i < NumAdditionalInputs; ++i)
@@ -209,14 +206,14 @@ void UK2Node_DoOnceMultiInput::AddPinsInner(int32 AdditionalPinIndex)
 	{
 		const FEdGraphPinType InputType = GetInType();
 		FText InputPinName = GetNameForPin(AdditionalPinIndex, true);
-		UEdGraphPin* InputPin = CreatePin(EGPD_Input, InputType, InputPinName.BuildSourceString());
+		UEdGraphPin* InputPin = CreatePin(EGPD_Input, InputType, *InputPinName.BuildSourceString());
 		InputPin->PinFriendlyName = InputPinName;
 	}
 
 	{
 		const FEdGraphPinType OutputType = GetOutType();
 		FText OutputPinName = GetNameForPin(AdditionalPinIndex, false);
-		UEdGraphPin* OutputPin = CreatePin(EGPD_Output, OutputType, OutputPinName.BuildSourceString());
+		UEdGraphPin* OutputPin = CreatePin(EGPD_Output, OutputType, *OutputPinName.BuildSourceString());
 		OutputPin->PinFriendlyName = OutputPinName;
 	}
 }
@@ -257,7 +254,7 @@ void UK2Node_DoOnceMultiInput::RemoveInputPin(UEdGraphPin* Pin)
 				UEdGraphPin* LocalPin = Pins[PinIndex];
 				if(LocalPin && (LocalPin != OutPin) && (LocalPin != SelfPin))
 				{
-					const FString PinName = GetNameForPin(NameIndex + NumBaseInputs, true).BuildSourceString();  // FIXME
+					const FName PinName = *GetNameForPin(NameIndex + NumBaseInputs, true).BuildSourceString();  // FIXME
 					if(PinName != LocalPin->PinName)
 					{
 						LocalPin->Modify();
@@ -323,7 +320,7 @@ void UK2Node_DoOnceMultiInput::ExpandNode(FKismetCompilerContext& CompilerContex
 
 	// Create the node
 	UK2Node_TemporaryVariable* TempVarNode = SourceGraph->CreateIntermediateNode<UK2Node_TemporaryVariable>();
-	TempVarNode->VariableType.PinCategory = Schema->PC_Boolean;
+	TempVarNode->VariableType.PinCategory = UEdGraphSchema_K2::PC_Boolean;
 	TempVarNode->AllocateDefaultPins();
 	CompilerContext.MessageLog.NotifyIntermediateObjectCreation(TempVarNode, this);
 	// Give a reference of the variable node to the multi gate node
@@ -347,7 +344,7 @@ void UK2Node_DoOnceMultiInput::ExpandNode(FKismetCompilerContext& CompilerContex
 		AssignmentNode->GetVariablePin()->MakeLinkTo(TempVarNode->GetVariablePin());
 		AssignmentNode->GetValuePin()->PinType = TempVarNode->GetVariablePin()->PinType;
 			
-		if (!ExecPin->PinName.Contains(TEXT("Reset"))) // Fixme this wont work for localization
+		if (!ExecPin->PinName.ToString().Contains(TEXT("Reset"))) // Fixme this wont work for localization
 		{
 			// BranchNode
 			UK2Node_IfThenElse* BranchNode = SourceGraph->CreateIntermediateNode<UK2Node_IfThenElse>();

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,37 +6,6 @@
 #include "TypeHash.h" 
 #include "UObject/NameTypes.h"
 #include "Delegates/DelegateSettings.h"
-
-/**
- * Types of delegate instances
- */
-namespace EDelegateInstanceType
-{
-	enum Type
-	{
-		/** Member function pointer to method in (fast, not thread-safe) shared pointer-based class */
-		SharedPointerMethod,
-
-		/** Member function pointer to method in (conditionally thread-safe) shared pointer-based class */
-		ThreadSafeSharedPointerMethod,
-
-		/** Raw C++ member function pointer (pointer to class method) */
-		RawMethod,
-
-		/** UFunction delegate */
-		UFunction,
-
-		/** Member function pointer to method in UObject-based class */
-		UObjectMethod,
-
-		/** Raw C++ static function pointer */
-		Raw,
-
-		/** C++ functor, e.g. Lambda */
-		Functor,
-	};
-}
-
 
 /**
  * Class representing an handle to a delegate.
@@ -117,47 +86,11 @@ public:
 #endif
 
 	/**
-	 * Returns the name of the UFunction that this delegate instance is bound to.
-	 *
-	 * Deprecated.
-	 *
-	 * @return Name of the function, or NAME_None if not bound to a UFunction.
-	 */
-	virtual FName GetFunctionName( ) const = 0;
-
-	/**
 	 * Returns the UObject that this delegate instance is bound to.
 	 *
 	 * @return Pointer to the UObject, or nullptr if not bound to a UObject.
 	 */
 	virtual UObject* GetUObject( ) const = 0;
-
-	/**
-	 * Returns raw pointer to the delegate method.
-	 *
-	 * Deprecated.
-	 *
-	 * @return Raw pointer to the delegate method.
-	 */
-	virtual const void* GetRawMethodPtr( ) const = 0;
-
-	/**
-	 * Returns raw pointer to UserObject,
-	 *
-	 * Deprecated.
-	 *
-	 * @return Raw pointer to UserObject.
-	 */
-	virtual const void* GetRawUserObject( ) const = 0;
-
-	/**
-	 * Returns the type of delegate instance
-	 *
-	 * Deprecated.
-	 *
-	 * @return Delegate instance type
-	 */
-	virtual EDelegateInstanceType::Type GetType( ) const = 0;
 
 	/**
 	 * Returns true if this delegate is bound to the specified UserObject,

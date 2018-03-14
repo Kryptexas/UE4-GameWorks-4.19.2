@@ -26,13 +26,13 @@ Of course, in every release we work hard to deliver important new features for r
 
 Sequencer combines the power of a non-linear editor with 3D animation editing to allow you to produce in-game cinematics as well as a sequence of shots for film, television, and previsualization.
 
-![image alt text](image_0.jpg)(w:929 h:809 convert:false)
+![image alt text](image_0.jpg)(w:929 convert:false)
 
 ### Non-Linear Workflow
 
 Sequencer’s non-linear workflow gives you the ability to compose and edit your shots in a creative and iterative fashion.  You can easily make changes to a particular shot, like change the color of a light or add a fog element, and rollback to a previous take to experiment with how your sequence comes together.  It’s also designed so that multiple artists can work on multiple shots simultaneously. Check out the Subway Sequencer Project on the Learn Tab of the Launcher to see Sequencer in action.
 
-![image alt text](image_1.gif)(w:929 h:686 convert:false)
+![image alt text](image_1.gif)(w:929 convert:false)
 
 * Rearrange shots like a traditional non-linear editing package.
 
@@ -44,7 +44,7 @@ Sequencer’s non-linear workflow gives you the ability to compose and edit your
 
 ### Intuitive User Interface
 
-The user interface design is inspired by the best of Matinee and traditional 3D software packages.  The interface allows you to view, edit, and organize your animation data in a clear and concise manner. 3D content creators will find the interface intuitive and familiar. ![image alt text](image_2.jpg)(w:929 h:542 convert:false).
+The user interface design is inspired by the best of Matinee and traditional 3D software packages.  The interface allows you to view, edit, and organize your animation data in a clear and concise manner. 3D content creators will find the interface intuitive and familiar. ![image alt text](image_2.jpg)(w:929 convert:false).
 
 * Automatic track creation based on actor type.
 
@@ -64,7 +64,7 @@ The user interface design is inspired by the best of Matinee and traditional 3D 
 
 A new cinematic camera actor coupled with new camera rig actors provide filmmakers as well as novices with the ability to create realistic camera shots with ease.  A new streamlined viewport allows you to view a sequence of shots for dailies in filmmaking. 
 
-![image alt text](image_3.jpg)(w:929 h:529 convert:false)
+![image alt text](image_3.jpg)(w:929 convert:false)
 
 * Cinematic Camera Actor with properties to mimic real-world cameras.
 
@@ -88,7 +88,7 @@ A new cinematic camera actor coupled with new camera rig actors provide filmmake
 
 Sequence recording allows you to record gameplay and immediately place the recorded elements into your shot. You can even make a recording while playing back a previous recording.
 
-![image alt text](image_4.gif)(w:929 h:697 convert:false)
+![image alt text](image_4.gif)(w:929 convert:false)
 
 * Record gameplay into skeletal animation, transform, event, and audio tracks.
 
@@ -106,15 +106,15 @@ Here are some links with lots of additional information about Sequencer:
 
 The new "VR Editor" mode allows you to navigate and edit levels while immersed in virtual reality!  You can select and move objects, and even grab the "world" itself and freely drag, rotate or scale your entire level!  With motion controllers in VR, you have one-to-one control over objects and your perspective.
 
-![image alt text](image_5.jpg)(w:929 h:610 convert:false)
+![image alt text](image_5.jpg)(w:929 convert:false)
 
 You can access familiar editor features like Content Browser while in VR, and use the transform gizmo to precisely place objects.  Snapping tools help you get everything lined up perfectly.
 
-![image alt text](image_6.gif)(w:652 h:473 convert:false)
+![image alt text](image_6.gif)(w:652 convert:false)
 
 If you grab the world with both hands and pull, you can scale the world really big.  This makes it easy to inspect and edit fine details of your level.
 
-![image alt text](image_7.gif)(w:652 h:473 convert:false)
+![image alt text](image_7.gif)(w:652 convert:false)
 
 This feature is an early preview, so you'll need to turn on "Enable VR Editing" under the Experimental/VR section of Editor Preferences.  Afterwards, a new "VR Mode" toolbar button will appear that allows you to instantly toggle into VR at any time!  You can use VR Editor in any project you want, or check out the new "VR-Basic" map (accessible through the File -> New option) for a simple playground to experiment within.
 
@@ -138,7 +138,7 @@ Here are some links with lots of additional information about Unreal’s VR Edit
 
 ## New: Daydream VR Support
 
-![image alt text](image_8.png)(w:400 h:266 convert:false)
+![image alt text](image_8.png)(w:400 convert:false)
 
 We're happy to announce that 4.12 support Google's new Daydream platform!  Daydream is an exciting new mobile VR platform that brings high quality VR experiences to Daydream-certified phones.  UE4 includes full support for the platform, including the motion controller that comes with every Daydream set.
 
@@ -150,11 +150,11 @@ To enable support, go to the Plugins window in the editor, and enable "Google VR
 
 We now have support for real-time planar reflections!  
 
-![image alt text](image_9.png)(w:929 h:485 convert:false)
+![image alt text](image_9.png)(w:929 convert:false)
 
 These work by rendering the scene again from the direction of the reflection, so there’s a significant cost to using this feature.  However, the reflection quality is much more reliable than with Screen Space Reflections.
 
-![image alt text](image_10.png)(w:540 h:384 convert:false)
+![image alt text](image_10.png)(w:540 convert:false)
 
 Left: **Screen Space Reflections with off-screen leaking**, Right:** Planar Reflections**
 
@@ -174,7 +174,7 @@ This is a new feature and has a number of limitations:
 
 For this release, we’ve added various new rendering features to allow for highly realistic surface reflections!
 
-![image alt text](image_11.jpg)(w:929 h:518 convert:false)
+![image alt text](image_11.jpg)(w:929 convert:false)
 
 We wanted to achieve very high quality, crisp reflections in order to achieve more realistic car paints among other things. This required improvements to several areas from how we process and encode geometry data to enabling high resolution reflection captures of the scene. 
 
@@ -190,7 +190,7 @@ We wanted to achieve very high quality, crisp reflections in order to achieve mo
 
 You can now use multiple normal maps with Clear Coat materials to achieve realistic shading for surfaces like carbon fiber.
 
-![image alt text](image_12.png)(w:929 h:229 convert:false)
+![image alt text](image_12.png)(w:929 convert:false)
 Left:** Old UE4 Clear Coat**,  Center:** New UE4 Clear Coat with Bottom Normal**, Right:** Actual Photograph**
 
 The Clear Coat shading model now has the option to specify a second normal map for the surface below the clearcoat layer. This allows us to more accurately model complex materials such as carbon fiber which have a different geometric surface than the clearcoat layer.
@@ -203,7 +203,7 @@ To use it, you must place a *Clear Coat Bottom Normal* node in the material grap
 
 Thanks to the efforts of the OSVR team, UE4 now supports OSVR out of the box!  
 
-![image alt text](image_13.png)(w:929 h:232 convert:false)
+![image alt text](image_13.png)(w:929 convert:false)
 
 The OSVR software platform allows a wide variety of VR and AR devices and peripherals to talk through a common layer to the engine.  For more information about the platform and supported devices, please visit [http://www.osvr.org/](http://www.osvr.org/)
 
@@ -211,7 +211,7 @@ The OSVR software platform allows a wide variety of VR and AR devices and periph
 
 An early preview of mobile rendering using the Vulkan graphics API is available in this release.
 
-![image alt text](image_14.jpg)(w:793 h:384 convert:false)
+![image alt text](image_14.jpg)(w:793 convert:false)
 
 The above screenshot shows the Vulkan-rendered ProtoStar demo from the Samsung Galaxy S7 Unpacked event. Currently only mobile rendering features have been implemented.
 
@@ -219,17 +219,17 @@ The above screenshot shows the Vulkan-rendered ProtoStar demo from the Samsung G
 
 The filmic tonemapper with color grading now works on mobile devices!
 
-![image alt text](image_15.gif)(w:800 h:394 convert:false)
+![image alt text](image_15.gif)(w:800 convert:false)
 
 Higher quality Gaussian depth-of-field is now supported on mobile devices with ES3.1 support!
 
-![image alt text](image_16.png)(w:798 h:392 convert:false)
+![image alt text](image_16.png)(w:798 convert:false)
 
 ## New: Improved Shadows for Mobile
 
 Dynamic cascaded shadow maps for a single stationary light is now supported in the mobile renderer!
 
-![image alt text](image_17.gif)(w:480 h:360 convert:false)
+![image alt text](image_17.gif)(w:480 convert:false)
 
 A stationary directional light can now cast whole-scene dynamic CSM shadows from just movable objects, blending correctly with precomputed shadows cast by the static objects in the scene. CSM shadows do not exhibit the double shadowing you see with modulated shadows and this technique is also faster when casting shadows for multiple objects. 
 
@@ -241,7 +241,7 @@ A stationary directional light can now cast whole-scene dynamic CSM shadows from
 
 GPU particles with vector fields now work on high end mobile devices!
 
-![image alt text](image_18.jpg)(w:628 h:628 convert:false)
+![image alt text](image_18.jpg)(w:628 convert:false)
 
 * This feature requires a mobile device that supports 32-bit floating point render targets with MRT support.
 
@@ -253,7 +253,7 @@ GPU particles with vector fields now work on high end mobile devices!
 
 To reduce the VM overhead that goes into executing Blueprints, we’ve added a feature that lets you package Blueprints into native source code. This feature is still experimental and should not yet be relied upon for shipping games, but please try it out and send us feedback!
 
-![image alt text](image_19.jpg)(w:900 h:485 convert:false)
+![image alt text](image_19.jpg)(w:900 convert:false)
 
 * This is enabled in the editor through your project’s Packaging Settings: Experimental => Nativize Blueprint Assets.
 
@@ -271,7 +271,7 @@ To reduce the VM overhead that goes into executing Blueprints, we’ve added a f
 
 The scalability system has a new Foliage scalability setting. Landscape grass and foliage density can be reduced automatically based on the current scalability setting, and the setting is able to be changed at runtime, so games can implement a foliage detail setting slider.
 
-![image alt text](image_20.gif)(w:929 h:522 convert:false)
+![image alt text](image_20.gif)(w:929 convert:false)
 
 Landscape Grass is automatically included in the foliage scalability, but Foliage must opt-in via the "Enable Density Scaling" option in the Scalability section on the FoliageType. It should typically be enabled for “detail” foliage without collision, such as small rocks and bushes. It should be disabled for foliage types with collision such as trees, as the collision for removed instances will continue to exist in the game.
 
@@ -281,7 +281,7 @@ The density scaling to apply to grass and foliage at each scalability level is c
 
 The UMG Web Browser widget is now supported on iOS!
 
-![image alt text](image_21.png)(w:929 h:252 convert:false)
+![image alt text](image_21.png)(w:929 convert:false)
 
 Chromium is used for the web browser widget on desktop platforms, but both iOS and Android use native WebKit controls aligned to match your UMG layout, which keeps executable size to a minimum and increases performance. 
 
@@ -289,7 +289,7 @@ Chromium is used for the web browser widget on desktop platforms, but both iOS a
 
 We have added a new Twist Corrective node that can drive curve values, such as Morph Targets, based on the twist of one bone relative to another. As an example, when the neck is twisted too far to the right or left you can apply a Morph Target to the neck in order to create a more natural look.
 
-![image alt text](image_22.jpg)(w:488 h:257 convert:false) ![image alt text](image_23.jpg)(w:342 h:257 convert:false)
+![image alt text](image_22.jpg)(w:488 convert:false) ![image alt text](image_23.jpg)(w:342 convert:false)
 
 You can specify the Base Frame and Twist Frame using bone name and local axis, and a Twist Normal as the axis of twist. Angle Delta of range [Ref Pose Delta Angle, Max Angle] will be mapped to [Mapped Ranged Min, Mapped Ranged Max] using a named curve.
 
@@ -297,7 +297,7 @@ You can specify the Base Frame and Twist Frame using bone name and local axis, a
 
 With Full Scene Importing you can now take that environment you’ve already constructed in Max / Maya / Blender and import the entire scene into a level in the editor. 
 
-![image alt text](image_24.jpg)(w:201 h:477 convert:false) ![image alt text](image_25.png)(w:572 h:470 convert:false)
+![image alt text](image_24.jpg)(w:201 convert:false) ![image alt text](image_25.png)(w:572 convert:false)
 
  A new Scene FBX asset is created for your environment so that you can re-import it allowing iteration on the environment as well.  An early version was available in 4.11 supporting only scenes containing static meshes. The 4.12 version is more complete including the ability to import scenes that include skeletal meshes..
 
@@ -307,19 +307,19 @@ To try out the feature, just go to File > Import Scene, and select an FBX enviro
 
 You can now easily merge mesh actors together right in the level viewport.  This allows you to reduce draw calls to get better performance.
 
-![image alt text](image_26.jpg)(w:353 h:209 convert:false) ![image alt text](image_27.jpg)(w:320 h:209 convert:false)
+![image alt text](image_26.jpg)(w:353 convert:false) ![image alt text](image_27.jpg)(w:320 convert:false)
 
 Example of merging static meshes, *left* before view in Level viewport / *right *after view in the Static Mesh Editor
 
 The Merge Actor functionality is no longer an experimental feature of the Engine, and can now be found under *Window/Developer/Miscellaneous*.  The UI panel has been extended and updated to support the latest changes made to the merging path for the Hierarchical LOD System. 
 
-![image alt text](image_28.jpg)(w:464 h:532 convert:false)
+![image alt text](image_28.jpg)(w:464 convert:false)
 
 ## New: Pixel Inspector
 
 The new Pixel Inspector tool lets you click on a pixel in the scene and visualize the material and rendering state that contributed to its color.
 
-![image alt text](image_29.jpg)(w:769 h:410 convert:false)
+![image alt text](image_29.jpg)(w:769 convert:false)
 
 Have you ever asked yourself why a pixel in the scene has a strange color? What about a tool that will tell you what material input is driving a pixel's color? The Pixel Inspector tool is here to help! 
 
@@ -329,7 +329,7 @@ The Pixel Inspector tool can be found under Developer Tools in the toolbar.  Cli
 
 In every release, we update the engine to support the latest SDK releases from platform partners.  This release brings updates to console platforms as well as HTML5 and Android.
 
-![image alt text](image_30.png)(w:929 h:396 convert:false)
+![image alt text](image_30.png)(w:929 convert:false)
 
 * Xbox One: Upgraded to March 2016 XDK.
 
@@ -343,7 +343,7 @@ In every release, we update the engine to support the latest SDK releases from p
 
 Integer properties can now be declared as being a bitmask, and optionally associated with an enum which encapsulates bitflag values.  These work in both C++ and Blueprints!
 
-![image alt text](image_31.jpg)(w:900 h:485 convert:false)
+![image alt text](image_31.jpg)(w:900 convert:false)
 
 * Native properties can be marked with "Bitmask" metadata, whereas variables added in the Blueprint editor have a “Bitmask” checkbox.
 
@@ -355,7 +355,7 @@ Integer properties can now be declared as being a bitmask, and optionally associ
 
 When working on console titles, it is important that UI is not too close to the edges of the TV screen. We have added a simple tool to help ensure this is not the case.
 
- ![image alt text](image_32.jpg)(w:929 h:524 convert:false)
+ ![image alt text](image_32.jpg)(w:929 convert:false)
 
 To use, either edit your DefaultEngine.ini and add the following to [SystemSettings] or type them in the command console:
 
@@ -385,21 +385,21 @@ On platforms that don't natively support safe zones, you can simulate a safe zon
 
 You can now embed an AnimComposite within another AnimMontage or AnimComposite, allowing you to create your own animation asset in a more flexible way. In the image below, TEST_Montage contains TEST_AnimComposite, which itself contains a number of other animation sequences. 
 
-![image alt text](image_33.jpg)(w:929 h:144 convert:false)
+![image alt text](image_33.jpg)(w:929 convert:false)
 
-![image alt text](image_34.jpg)(w:929 h:92 convert:false)
+![image alt text](image_34.jpg)(w:929 convert:false)
 
 ## New: Selective LOD for Collision Mesh
 
 You can now choose which LOD of a Static Mesh to use for ‘complex’ (per-poly) collision. This allows you to import or generate a simpler collision representation for a mesh, where using ‘simple’ (convex hull) collision is not appropriate. This can improve behaviour and performance, and greatly reduce memory usage on high-poly meshes.
 
-![image alt text](image_35.jpg)(w:586 h:740 convert:false)
+![image alt text](image_35.jpg)(w:586 convert:false)
 
 ## New: Default Collision for Meshes
 
 Static Mesh Component now supports Default Collision, which means they will use collision settings from the StaticMesh asset. This makes it easier to specify collision information in a central place without having to remember to update each individual instance as you place them in the map. An example might be a sky dome mesh, where you can now disable collision on the asset, and each instance will default to having collision disabled.
 
-![image alt text](image_36.jpg)(w:366 h:349 convert:false)
+![image alt text](image_36.jpg)(w:366 convert:false)
 
 You can still override this on per-instance basis if desired by changing the setting on the StaticMeshComponent to something other than Default.
 
@@ -431,7 +431,7 @@ UE4 Sound Mixes are a powerful tool for dynamically adjusting sound class proper
 
 With 4.12, sound mixes can now dynamically override their sound class adjustments from Blueprints using a new Blueprint function, "Set Sound Mix Class Override".
 
-![image alt text](image_37.jpg)(w:296 h:322 convert:false)
+![image alt text](image_37.jpg)(w:296 convert:false)
 
 The sound class adjustment values inside the sound mix will interpolate to the given values over the specified fade-in time. If the specified sound class doesn’t exist inside the sound mix, the sound class will append to the sound mix and interpolate to the target values from 1.0 (i.e. from un-applied to applied). This feature will enable sound designers to tightly integrate sound-mix volumes to dynamic gameplay events or game state. . For example, it’s now possible to tightly couple the properties of sound classes to any game state: how fast a car is driving, precise locations in a map, actor health-levels, fear-level of a player, etc. With this feature, it’s also possible to write a volume preferences panel for a game in Slate without having to write C++ code to manually override sound class volumes and write to static asset data.
 
@@ -441,7 +441,7 @@ To remove the override, use the new Blueprint function, "Clear Sound Mix Class O
 
 4.12 improves our built-in support for audio localization (via dialogue wave and dialogue voice assets) to the point where you’re now encouraged to try and it out and provide feedback.
 
-![image alt text](image_38.jpg)(w:478 h:577 convert:false)
+![image alt text](image_38.jpg)(w:478 convert:false)
 
 * Spoken text is now gathered from dialogue wave assets and included in your PO files for translation along with your other asset based text.
 

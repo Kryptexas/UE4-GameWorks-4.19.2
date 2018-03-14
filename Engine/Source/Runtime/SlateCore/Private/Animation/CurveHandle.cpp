@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Animation/CurveHandle.h"
 #include "Animation/CurveSequence.h"
@@ -42,7 +42,7 @@ float FCurveHandle::GetLerp( ) const
 /* FCurveHandle static functions
  *****************************************************************************/
 
-float FCurveHandle::ApplyEasing( float Time, ECurveEaseFunction::Type EaseFunction )
+float FCurveHandle::ApplyEasing( float Time, ECurveEaseFunction EaseFunction )
 {
 	// Currently we always use normalized distances
 	const float Distance = 1.0f;
@@ -108,7 +108,7 @@ float FCurveHandle::ApplyEasing( float Time, ECurveEaseFunction::Type EaseFuncti
 
 		default:
 			// Unrecognized curve easing function type
-			checkf(0, *LOCTEXT("CurveFunction_Error", "Unrecognized curve easing function type [%i] for FCurveHandle").ToString(), (int)EaseFunction);
+			checkf(0, TEXT("Unrecognized curve easing function type [%i] for FCurveHandle"), (int)EaseFunction);
 			break;
 	}
 

@@ -1,39 +1,39 @@
 Availability: Public
 Crumbs: %ROOT%, Platforms
-Title:Set Up a Seated Camera for Steam VR
-Description:Setting up the UE4 camera to work with a seated Steam VR experience.
+Title:Set Up a Seated Camera for SteamVR
+Description:Setting up the UE4 camera to work with a seated SteamVR experience.
 Type: how-to
 Skilllevel:Beginner
 Version:4.17
-Parent:Platforms/SteamVR/HowTo
-Order: 2
+Parent:Platforms/SteamVR
+Order: 1
 tags:Basics
 topic-image:Platforms\SteamVR\SteamVRDevelopment_topic.png
 
-One of the first things you will need to think about when starting to develop any UE4 powered VR experience to be used with the Steam VR is deciding whether the experience will be a seated one or a standing one. In the following How - To we will take a look at how to setup your UE4 projects VR camera for a seated Steam VR experience.
+![](Platforms\VR\ContentSetup\VR_Seated_Experiance.png)
 
-## Pawn Setup for a Seated Steam VR Experience 
+One of the first things you will need to think about when starting to develop any UE4 powered VR experience to be used with the SteamVR is deciding whether the experience will be a seated one or a standing one. In the following How - To we will take a look at how to set up your UE4 projects VR camera for a seated SteamVR experience.
 
-Below you will find instructions on how to setup up any Pawn to work with a seated Steam VR experience.
+## Steps
+
+Below you will find instructions setting up a Pawn to work with a seated SteamVR experience.
 
 1. First, open up or create a new Pawn Blueprint and then go to the **Component** section of the **Viewport** tab. From there add the following two components with the following names, making sure that the VRCamera is a child of VRCameraRoot:
-    
-    * **Scene** - VRCameraRoot
-    * **Camera** - VRCamera
+
+    [REGION:simpletable]
+	|Component Name| Value |
+    |--------|------------|
+    |** Scene**|VRCameraRoot|
+    |**Camera**|VRCamera|
+	[/region]
 
 	![](HT_SteamVR_Camera_Setup_00.png)
 
     [region:note]
-    No matter what VR HMD you are using, this is the Epic recommend way to set up a VR camera as it allows you to offset the position of the camera without having to move the actual camera.
+    No matter what VR HMD you are using, this is the Epic recommended way to set up a VR camera as it allows you to offset the position of the camera without having to move the actual camera.
     [/region]
 
-With that completed, the initial setup for the VR Camera is now completed, in the next sections, we will go through setting the needed Blueprint logic for a seated Steam VR experience.
-
-## Blueprint Setup for Seated Steam VR Experience 
-
-Below you will find instructions on how to setup the Blueprint logic for a seated Steam VR experience.  
-
-1. First, open up the Pawn Blueprint if not already open and in the **Event Graph** drag off the **Event Begin Play** node to show the Executable Actions list. In the list search for the **Set Tracking Origin** node and click on it to add it to the Event Graph.
+1. Next, open up the Pawn Blueprint if not already open and in the **Event Graph** drag off the **Event Begin Play** node to show the Executable Actions list. In the list search for the **Set Tracking Origin** node and click on it to add it to the Event Graph.
 
     [REGION:lightbox]
     [![](HT_Rift_Camera_Setup_09.png)(w:555)](HT_Rift_Camera_Setup_09.png)
@@ -58,7 +58,7 @@ Below you will find instructions on how to setup the Blueprint logic for a seate
     ![](HT_Rift_Camera_Setup_05.png)
 
     [region:note]
-    For a seated Steam VR experience, you will always want to set the height of the camera to match the real world seated height of the user in Centimeters. 
+    For a seated SteamVR experience, you will always want to set the height of the camera to match the real world seated height of the user in Centimeters. 
     [/region]
 
 1. Then, drag off the output of the Set Tracking Origin node and search for the **Set Relative Location** node, selecting the **SetRelativeLocation(VRCameraRoot)** option.
@@ -71,14 +71,14 @@ Below you will find instructions on how to setup the Blueprint logic for a seate
     Click for full image.
     [/REGION]
 
-1. Connect the **ViveCameraHeight** variable to the **New Location** input on the Set Relative Location node and then press the Compile button and when completed your Event Graph should look like the following image.
+1. Connect the **ViveCameraHeight** variable to the **New Location** input on the Set Relative Location node and then press the **Compile** button and when completed your Event Graph should look like the following image.
 
     [REGION:fullwidth]
     [INCLUDE:Platforms\SteamVR\HowTo\SeatedCamera\#SteamVRSittingVRCamera]
     [/REGION]
 
     [region:tip]
-    You can copy the completed Blueprint by clicking on the upper left-hand corner of above and pressing CRTL + C to copy the graph. Once copied, go to your Blueprints event and press CTRL + V to paste it in. 
+    You can copy the completed Blueprint by clicking on the upper left-hand corner of above and pressing **CRTL + C** to copy the graph. Once copied, go to your Blueprints event and press **CTRL + V** to paste it in. 
     [/region]
 
 1. Drag the Pawn Blueprint from the Content Browser to a level, making sure that it is placed at 0,0,0 in the level.
@@ -100,32 +100,35 @@ Below you will find instructions on how to setup the Blueprint logic for a seate
     Click for full image.
     [/REGION]
 
-1. Finally, go to the **Main Toolbar** and change the **Play Mode** to **VR Preview** and then press the **Play** button. When you put your HTC Vive HMD on and view the level while sitting down, you should see something similar to the following video. 
+## End Result
 
-    [OBJECT:EmbeddedVideo]
-        [PARAMLITERAL:videoid]
-        sO87nTNTATY
-        [/PARAMLITERAL]
-        [PARAMLITERAL:width]
-        100
-        [/PARAMLITERAL]
-        [PARAMLITERAL:height]
-        56.25
-        [/PARAMLITERAL]
-        [PARAMLITERAL:units]
-        %
-        [/PARAMLITERAL]
-        [PARAMLITERAL:type]
-        simple
-        [/PARAMLITERAL]
-    [/OBJECT]
+Finally, go to the **Main Toolbar** and change the **Play Mode** to **VR Preview** and then press the **Play** button. When you put your HTC Vive HMD on and view the level while sitting down, you should see something similar to the following video. 
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    sO87nTNTATY
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
 
 ## UE4 Project Downloads
 Below you will find a link to where you can download the UE4 project that was used to create this example. 
 
-* [**Steam VR Seated VR Camera Example Project**](https://epicgames.box.com/s/zxsa658v6t2m917ar1joze2vql5lwprd)
+* [**SteamVR Seated VR Camera Example Project**](https://epicgames.box.com/s/zxsa658v6t2m917ar1joze2vql5lwprd)
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:SteamVRSittingVRCamera]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -209,4 +212,5 @@ Below you will find a link to where you can download the UE4 project that was us
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:SteamVRSittingVRCamera]
--->
+
+[/COMMENT]

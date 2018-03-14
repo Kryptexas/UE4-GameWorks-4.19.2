@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Factories/FbxSceneImportOptionsSkeletalMesh.h"
 #include "Factories/FbxSkeletalMeshImportData.h"
@@ -14,7 +14,9 @@ UFbxSceneImportOptionsSkeletalMesh::UFbxSceneImportOptionsSkeletalMesh(const FOb
 	, bPreserveSmoothingGroups(false)
 	, bImportMeshesInBoneHierarchy(true)
 	, bImportMorphTargets(false)
-	, bKeepOverlappingVertices(false)
+	, ThresholdPosition(THRESH_POINTS_ARE_SAME)
+	, ThresholdTangentNormal(THRESH_NORMALS_ARE_SAME)
+	, ThresholdUV(THRESH_UVS_ARE_SAME)
 	, bImportAnimations(true)
 	, AnimationLength(EFbxSceneVertexColorImportOption::Replace)
 	, FrameImportRange(0, 0)
@@ -30,7 +32,9 @@ void UFbxSceneImportOptionsSkeletalMesh::FillSkeletalMeshInmportData(UFbxSkeleta
 	check(SkeletalMeshImportData != nullptr);
 	SkeletalMeshImportData->bImportMeshesInBoneHierarchy = bImportMeshesInBoneHierarchy;
 	SkeletalMeshImportData->bImportMorphTargets = bImportMorphTargets;
-	SkeletalMeshImportData->bKeepOverlappingVertices = bKeepOverlappingVertices;
+	SkeletalMeshImportData->ThresholdPosition = ThresholdPosition;
+	SkeletalMeshImportData->ThresholdTangentNormal = ThresholdTangentNormal;
+	SkeletalMeshImportData->ThresholdUV = ThresholdUV;
 	SkeletalMeshImportData->bPreserveSmoothingGroups = bPreserveSmoothingGroups;
 	SkeletalMeshImportData->bUpdateSkeletonReferencePose = bUpdateSkeletonReferencePose;
 	SkeletalMeshImportData->bUseT0AsRefPose = bUseT0AsRefPose;

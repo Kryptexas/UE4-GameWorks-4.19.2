@@ -4,26 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/Matinee
 Description:Guide to using the Matinee editor to animate properties and Actors in-game.
 Version: 4.9
 SkillLevel:Beginner
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Matinee/UserGuide:title%](Engine/Matinee_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/cine_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Matinee Editor
-	[/PARAM]
-	[PARAM:description]
-		Guide to using the Matinee editor to animate properties and Actors in-game.
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Matinee/UserGuide]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Matinee_topic.png
 
 [REGION:fullwidth]
 ![](MatineeOverview.png)(w:800)
@@ -273,5 +254,7 @@ You can also use individual function nodes to do any of the following with Matin
 
 You can find these function nodes in the **Palette**, under Matinee.
 
-<!----For more information about Matinee and Blueprints, see *link*.----->
+[COMMENT:none]
+--For more information about Matinee and Blueprints, see *link*.---
+[/COMMENT]
 

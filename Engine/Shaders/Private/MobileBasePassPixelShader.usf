@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MobileBasePassPixelShader.usf: Base pass pixel shader used with forward shading
@@ -16,6 +16,9 @@
 #include "ShadowFilteringCommon.ush"
 #include "DynamicLightingCommon.ush"
 #include "PlanarReflectionShared.ush"
+
+// Add fading CSM plane:
+#define FADE_CSM 1
 
 #if MAX_DYNAMIC_POINT_LIGHTS > 0
 #if VARIABLE_NUM_DYNAMIC_POINT_LIGHTS
@@ -208,7 +211,7 @@ float4 GetPlanarReflection(float3 WorldPosition, float3 WorldNormal, float Rough
 	PlanarReflection.rgb *= PlanarReflection.rgb;
 	// the capture has applied exposure scale so need to cancel that.
 #if !MATERIALBLENDING_MODULATE
-	PlanarReflection.rgb /= ResolvedView.ExposureScale;
+	PlanarReflection.rgb /= ResolvedView.PreExposure;
 #endif
 #endif
 	return PlanarReflection;
@@ -237,44 +240,6 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 #endif
 }
 #endif //!FULLY_ROUGH
-
-#if USE_EDITOR_COMPOSITING
-bool bEnableEditorPrimitiveDepthTest;
-// depth in the red channel in DeviceZ
-Texture2D		FilteredSceneDepthTexture;
-SamplerState	FilteredSceneDepthTextureSampler;
-#endif
-
-
-#if USE_EDITOR_COMPOSITING && (MOBILE_EMULATION)
-// @return 0:translucent..1:opaque
-float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
-{
-	float Ret = 1;
-
-	// Depth test manually if compositing editor primitives since the depth buffer is different (MSAA only)
-	BRANCH
-		if (bEnableEditorPrimitiveDepthTest)
-		{
-			bool bIsPerspective = (ResolvedView.ViewToClip._m33 < 1.0f);
-
-			// dejitter the sample position and make a filtered lookup - for planes this allows to reconstruct a much less jittery depth comparison function, it however doesn't fix silhuetes
-			float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SvPosition.xy - ResolvedView.TemporalAAParams.zw) * ResolvedView.BufferSizeAndInvSize.zw, 0).r;
-
-			float PixelDeviceZ = MaterialParameters.SvPosition.z;
-
-			// Soft Bias with DeviceZ for best quality
-			const float DeviceDepthFade = 0.00005f;
-
-			// 0.5f is to bias around the actual value, 1 or 0 are another option
-			Ret = saturate(0.5f - (DeviceZ - PixelDeviceZ) / DeviceDepthFade);
-		}
-
-	// Note: multiple returns cause strange HLSL compiler error for CV_Coverage in later code
-	return Ret;
-}
-#endif
-
 
 half3 FrameBufferBlendOp(half4 Source)
 {
@@ -492,6 +457,13 @@ void Main(
 				#else
 					#error Unsupported MOBILE_CSM_QUALITY value.
 				#endif
+
+				#if FADE_CSM
+					float Fade = saturate(MaterialParameters.ScreenPosition.w * MobileDirectionalLight.DirectionalLightDistanceFadeMAD.x + MobileDirectionalLight.DirectionalLightDistanceFadeMAD.y);
+					// lerp out shadow based on fade params.
+					ShadowMap = lerp(ShadowMap, 1.0, Fade * Fade);
+				#endif
+
 				#if MOVABLE_DIRECTIONAL_LIGHT
 					Shadow = ShadowMap;
 				#else
@@ -625,8 +597,8 @@ void Main(
 	#endif
 
 	#if !MATERIALBLENDING_MODULATE && OUTPUT_GAMMA_SPACE
-		// MobileHDR applies ExposureScale in tonemapper
-		OutColor.rgb *= ResolvedView.ExposureScale;
+		// MobileHDR applies PreExposure in tonemapper
+		OutColor.rgb *= ResolvedView.PreExposure;
 	#endif
 
 #if USE_EDITOR_COMPOSITING && (MOBILE_EMULATION)
@@ -636,8 +608,6 @@ void Main(
 		// some material might have an opacity value
 		OutColor.a = GetMaterialMaskInputRaw(PixelMaterialInputs);
 	#endif
-		// we output premultiplied alpha to we have to darken all 4 channels
-	OutColor *= ClipForEditorPrimitives(MaterialParameters);
 	clip(OutColor.a - GetMaterialOpacityMaskClipValue());
 #else
 	#if ES2_PROFILE && !OUTPUT_GAMMA_SPACE && !MATERIALDOMAIN_UI

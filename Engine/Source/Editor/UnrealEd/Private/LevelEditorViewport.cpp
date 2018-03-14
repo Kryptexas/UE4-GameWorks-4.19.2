@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "LevelEditorViewport.h"
@@ -1440,16 +1440,20 @@ FTrackingTransaction::FTrackingTransaction()
 	: TransCount(0)
 	, ScopedTransaction(NULL)
 	, TrackingTransactionState(ETransactionState::Inactive)
-{}
+{
+	USelection::SelectionChangedEvent.AddRaw(this, &FTrackingTransaction::OnEditorSelectionChanged);
+}
 
 FTrackingTransaction::~FTrackingTransaction()
 {
 	End();
+	USelection::SelectionChangedEvent.RemoveAll(this);
 }
 
 void FTrackingTransaction::Begin(const FText& Description)
 {
 	End();
+	
 	ScopedTransaction = new FScopedTransaction( Description );
 
 	TrackingTransactionState = ETransactionState::Active;
@@ -1461,6 +1465,14 @@ void FTrackingTransaction::Begin(const FText& Description)
 	{
 		AActor* Actor = CastChecked<AActor>(*It);
 
+		// Some tracking transactions, such as a duplication operation into a sublevel do not modify the selected Actors
+		// Store the initial package dirty state so we can restore if necessary
+		UPackage* Package = Actor->GetOutermost();
+		if (!InitialPackageDirtyStates.Contains(Package))
+		{
+			InitialPackageDirtyStates.Add(Package, Package->IsDirty());
+		}
+		
 		Actor->Modify();
 
 		if (UActorGroupingUtils::IsGroupingActive())
@@ -1476,7 +1488,7 @@ void FTrackingTransaction::Begin(const FText& Description)
 
 	// Modify unique group actors
 	for (AGroupActor* GroupActor : GroupActors)
-	{
+	{		
 		GroupActor->Modify();
 	}
 
@@ -1495,6 +1507,7 @@ void FTrackingTransaction::End()
 		ScopedTransaction = NULL;
 	}
 	TrackingTransactionState = ETransactionState::Inactive;
+	InitialPackageDirtyStates.Empty();
 }
 
 void FTrackingTransaction::Cancel()
@@ -1522,6 +1535,40 @@ void FTrackingTransaction::PromotePendingToActive()
 		PendingDescription = FText();
 	}
 }
+
+void FTrackingTransaction::OnEditorSelectionChanged(UObject* NewSelection)
+{
+	if (!InitialPackageDirtyStates.Num())
+	{
+		return;
+	}
+
+	checkf(TrackingTransactionState == ETransactionState::Active, TEXT("Inactive tracking transaction contains package states"));
+
+	// The selection has changed due to a duplication or other operation
+	// So, restore dirty state on any package which is no longer selected
+	TArray<UPackage*> SelectedPackages;
+	for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
+	{
+		AActor* Actor = static_cast<AActor*>(*It);
+		checkSlow(Actor->IsA(AActor::StaticClass()));
+		SelectedPackages.AddUnique(Actor->GetOutermost());
+	}
+
+	for (const auto& Entry : InitialPackageDirtyStates)
+	{
+		// If no Actors in the package are currently selected, restore unmodified package state
+		UPackage* Package = Entry.Key;
+		if (!SelectedPackages.Contains(Package) && !Entry.Value && Package->IsDirty())
+		{
+			Package->SetDirtyFlag(false);
+		}
+	}
+
+	InitialPackageDirtyStates.Empty();
+
+}
+
 
 FLevelEditorViewportClient::FLevelEditorViewportClient(const TSharedPtr<SLevelViewport>& InLevelViewport)
 	: FEditorViewportClient(&GLevelEditorModeTools(), nullptr, StaticCastSharedPtr<SEditorViewport>(InLevelViewport))
@@ -1591,11 +1638,21 @@ FLevelEditorViewportClient::~FLevelEditorViewportClient()
 	FEditorSupportDelegates::CleanseEditor.RemoveAll(this);
 	FEditorDelegates::PreBeginPIE.RemoveAll(this);
 
-	// Remove our move delegate
-	GEngine->OnActorMoved().RemoveAll(this);
+	if(GEngine)
+	{
+		// Remove our move delegate
+		GEngine->OnActorMoved().RemoveAll(this);
 
-	// make sure all actors have this view removed from their visibility bits
-	GEditor->Layers->RemoveViewFromActorViewVisibility( this );
+		// make sure all actors have this view removed from their visibility bits
+		GEditor->Layers->RemoveViewFromActorViewVisibility(this);
+
+		GEditor->LevelViewportClients.Remove(this);
+
+		GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().RemoveAll(this);
+
+
+		RemoveReferenceToWorldContext(GEditor->GetEditorWorldContext());
+	}
 
 	//make to clean up the global "current" & "last" clients when we delete the active one.
 	if (GCurrentLevelEditingViewportClient == this)
@@ -1606,12 +1663,6 @@ FLevelEditorViewportClient::~FLevelEditorViewportClient()
 	{
 		GLastKeyLevelEditingViewportClient = NULL;
 	}
-
-	GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().RemoveAll(this);
-
-	GEditor->LevelViewportClients.Remove(this);
-
-	RemoveReferenceToWorldContext(GEditor->GetEditorWorldContext());
 }
 
 void FLevelEditorViewportClient::InitializeVisibilityFlags()
@@ -2760,7 +2811,7 @@ void FLevelEditorViewportClient::TrackingStopped()
 	// Don't do this if AddDelta was never called.
 	if( bDidAnythingActuallyChange && MouseDeltaTracker->HasReceivedDelta() )
 	{
-		for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
+		for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It) 
 		{
 			AActor* Actor = static_cast<AActor*>( *It );
 			checkSlow(Actor->IsA(AActor::StaticClass()));
@@ -3246,7 +3297,7 @@ void FLevelEditorViewportClient::SetMatineeActorLock(AActor* Actor)
 	ActorLockedByMatinee = Actor;
 }
 
-bool FLevelEditorViewportClient::IsActorLocked(const TWeakObjectPtr<AActor> InActor) const
+bool FLevelEditorViewportClient::IsActorLocked(const TWeakObjectPtr<const AActor> InActor) const
 {
 	return (InActor.IsValid() && GetActiveActorLock() == InActor);
 }
@@ -3743,12 +3794,11 @@ EMouseCursor::Type FLevelEditorViewportClient::GetCursor(FViewport* InViewport,i
 {
 	EMouseCursor::Type CursorType = FEditorViewportClient::GetCursor(InViewport,X,Y);
 
-	HHitProxy* HitProxy = InViewport->GetHitProxy(X,Y);
-
 	// Don't select widget axes by mouse over while they're being controlled by a mouse drag.
-	if( InViewport->IsCursorVisible() && !bWidgetAxisControlledByDrag && !HitProxy )
+	if( InViewport->IsCursorVisible() && !bWidgetAxisControlledByDrag)
 	{
-		if( HoveredObjects.Num() > 0 )
+		HHitProxy* HitProxy = InViewport->GetHitProxy(X, Y);
+		if( !HitProxy && HoveredObjects.Num() > 0 )
 		{
 			ClearHoverFromObjects();
 			Invalidate( false, false );
@@ -4136,7 +4186,7 @@ void FLevelEditorViewportClient::DrawBrushDetails(const FSceneView* View, FPrimi
 			if (Brush->Brush && (FActorEditorUtils::IsABuilderBrush(Brush) || Brush->IsVolumeBrush()) && ModeTools->GetSelectedActors()->IsSelected(Brush))
 			{
 				// Build a mesh by basically drawing the triangles of each 
-				FDynamicMeshBuilder MeshBuilder;
+				FDynamicMeshBuilder MeshBuilder(View->GetFeatureLevel());
 				int32 VertexOffset = 0;
 
 				for (int32 PolyIdx = 0; PolyIdx < Brush->Brush->Polys->Element.Num(); ++PolyIdx)
@@ -4198,7 +4248,7 @@ void FLevelEditorViewportClient::DrawBrushDetails(const FSceneView* View, FPrimi
 							const FVector& PolyVertex = poly->Vertices[VertexIndex];
 							const FVector WorldLocation = BrushTransform.TransformPosition(PolyVertex);
 
-							const float Scale = View->WorldToScreen(WorldLocation).W * (4.0f / View->ViewRect.Width() / View->ViewMatrices.GetProjectionMatrix().M[0][0]);
+							const float Scale = View->WorldToScreen(WorldLocation).W * (4.0f / View->UnscaledViewRect.Width() / View->ViewMatrices.GetProjectionMatrix().M[0][0]);
 
 							const FColor Color(Brush->GetWireColor());
 							PDI->SetHitProxy(new HBSPBrushVert(Brush, &poly->Vertices[VertexIndex]));
@@ -4470,6 +4520,15 @@ void FLevelEditorViewportClient::SetCameraSpeedSetting(int32 SpeedSetting)
 	GetMutableDefault<ULevelEditorViewportSettings>()->CameraSpeed = SpeedSetting;
 }
 
+float FLevelEditorViewportClient::GetCameraSpeedScalar() const
+{
+	return GetDefault<ULevelEditorViewportSettings>()->CameraSpeedScalar;
+}
+
+void FLevelEditorViewportClient::SetCameraSpeedScalar(float SpeedScalar)
+{	
+	GetMutableDefault<ULevelEditorViewportSettings>()->CameraSpeedScalar = SpeedScalar;
+}
 
 bool FLevelEditorViewportClient::OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion)
 {

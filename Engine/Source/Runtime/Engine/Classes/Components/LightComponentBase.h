@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -28,8 +28,6 @@ class ENGINE_API ULightComponentBase : public USceneComponent
 
 	/** 
 	 * Total energy that the light emits.  
-	 * For point/spot lights with inverse squared falloff, this is in units of lumens.  1700 lumens corresponds to a 100W lightbulb. 
-	 * For other lights, this is just a brightness multiplier. 
 	 */
 	UPROPERTY(BlueprintReadOnly, interp, Category=Light, meta=(DisplayName = "Intensity", UIMin = "0.0", UIMax = "20.0"))
 	float Intensity;

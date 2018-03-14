@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -8,7 +8,7 @@ public class Kiss_FFT : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		Definitions.Add("WITH_KISSFFT=1");
+		PublicDefinitions.Add("WITH_KISSFFT=1");
 
 		// Compile and link with kissFFT
 		string Kiss_FFTPath = Target.UEThirdPartySourceDirectory + "Kiss_FFT/kiss_fft129";

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -85,9 +85,13 @@ class FChatMessage
 public:
 	virtual ~FChatMessage() {}
 
+	/** @return the user id the message is from */
 	virtual const TSharedRef<const FUniqueNetId>& GetUserId() const = 0;
+	/** @return the nickname of the user the message is from */
 	virtual const FString& GetNickname() const = 0;
+	/** @return the body of the message */
 	virtual const FString& GetBody() const = 0;
+	/** @return the timestamp for the message */
 	virtual const FDateTime& GetTimestamp() const = 0;
 };
 
@@ -344,6 +348,17 @@ public:
 	 * @return true if found
 	 */
 	virtual bool GetLastMessages(const FUniqueNetId& UserId, const FChatRoomId& RoomId, int32 NumMessages, TArray< TSharedRef<FChatMessage> >& OutMessages) = 0;
+
+	/** 
+	 * Check if a message is from the local user
+	 * 
+	 * @param UserId local user id
+	 * @param Message message to check
+	 * @param bIncludeExternalInstances relevant when multiple logins on the same account name are possible.  Use false if we want to restrict to the current (this) instance of the game, true if we want to include instances running in other processes
+	 * 
+	 * @return true if the message is from the local user, false if not
+	 */
+	virtual bool IsMessageFromLocalUser(const FUniqueNetId& UserId, const FChatMessage& Message, const bool bIncludeExternalInstances) = 0;
 
 	/**
 	 * Dump state information about chat rooms

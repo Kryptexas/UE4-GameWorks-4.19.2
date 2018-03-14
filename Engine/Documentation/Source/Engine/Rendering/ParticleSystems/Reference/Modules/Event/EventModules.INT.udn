@@ -27,7 +27,8 @@ The **Event Generator** module will generate an event (or multiple events) based
 
 
 
-<!-------------Event Generator Includes----------------
+[COMMENT:none]
+-----------Event Generator Includes----------------
 #### Includes
 
 [EXCERPT:EventGenType]
@@ -44,7 +45,8 @@ The **Event Generator** module will generate an event (or multiple events) based
 [/EXCERPT:EventGenType]
 
 
--------------End Event Generator Includes--------------->
+-------------End Event Generator Includes-------------
+[/COMMENT]
 
 
 ## Event Receiver Kill All (EventRcvr KillAll)
@@ -61,7 +63,8 @@ The **Event Generator** module will generate an event (or multiple events) based
 
 
 
-<!-------------Event Generator Includes----------------
+[COMMENT:none]
+-----------Event Generator Includes----------------
 #### Includes
 
 [EXCERPT:EventRecType]
@@ -78,7 +81,8 @@ The **Event Generator** module will generate an event (or multiple events) based
 [/EXCERPT:EventRecType]
 
 
--------------End Event Generator Includes--------------->
+-------------End Event Generator Includes-------------
+[/COMMENT]
 
 ## Event Receiver Spawn (EventRcvr Spawn)
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_GenericCreateObject.h"
 #include "Kismet/GameplayStatics.h"
@@ -71,6 +71,9 @@ void UK2Node_GenericCreateObject::ExpandNode(class FKismetCompilerContext& Compi
 	CallCreateNode->FunctionReference.SetExternalMember(GET_FUNCTION_NAME_CHECKED(UGameplayStatics, SpawnObject), UGameplayStatics::StaticClass());
 	CallCreateNode->AllocateDefaultPins();
 
+	// store off the class to spawn before we mutate pin connections:
+	UClass* ClassToSpawn = GetClassToSpawn();
+	
 	bool bSucceeded = true;
 	//connect exe
 	{
@@ -109,7 +112,7 @@ void UK2Node_GenericCreateObject::ExpandNode(class FKismetCompilerContext& Compi
 
 	//assign exposed values and connect then
 	{
-		UEdGraphPin* LastThen = FKismetCompilerUtilities::GenerateAssignmentNodes(CompilerContext, SourceGraph, CallCreateNode, this, CallResultPin, GetClassToSpawn());
+		UEdGraphPin* LastThen = FKismetCompilerUtilities::GenerateAssignmentNodes(CompilerContext, SourceGraph, CallCreateNode, this, CallResultPin, ClassToSpawn);
 		UEdGraphPin* SpawnNodeThen = GetThenPin();
 		bSucceeded &= SpawnNodeThen && LastThen && CompilerContext.MovePinLinksToIntermediate(*SpawnNodeThen, *LastThen).CanSafeConnect();
 	}
@@ -130,7 +133,7 @@ void UK2Node_GenericCreateObject::EarlyValidation(class FCompilerResultsLog& Mes
 	UClass* ClassToSpawn = GetClassToSpawn();
 	if (!FK2Node_GenericCreateObject_Utils::CanSpawnObjectOfClass(ClassToSpawn, bAllowAbstract))
 	{
-		MessageLog.Error(*FString::Printf(*LOCTEXT("GenericCreateObject_WrongClass", "Cannot construct objects of type '%s' in @@").ToString(), *GetPathNameSafe(ClassToSpawn)), this);
+		MessageLog.Error(*FText::Format(LOCTEXT("GenericCreateObject_WrongClassFmt", "Cannot construct objects of type '{0}' in @@"), FText::FromString(GetPathNameSafe(ClassToSpawn))).ToString(), this);
 	}
 
 	UEdGraphPin* OuterPin = GetOuterPin();

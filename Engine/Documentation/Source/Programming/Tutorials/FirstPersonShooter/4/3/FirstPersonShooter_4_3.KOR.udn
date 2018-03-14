@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388665
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 4.3 - 애니메이션 스테이트 머신 추가
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
@@ -22,7 +22,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 이번 단계에서는 새로 만든 변수를 활용하는 스테이트 머신을 구성해 보겠습니다.
 
@@ -44,4 +44,3 @@ Version: 4.15
 
 1.	"Arms State Machine" 노드를 **더블클릭** 하여 그래프를 편집용으로 엽니다.
 
-%Steps%

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightComponent.cpp: LightComponent implementation.
@@ -226,6 +226,7 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	, bCastTranslucentShadows(InLightComponent->CastTranslucentShadows)
 	, bCastVolumetricShadow(InLightComponent->bCastVolumetricShadow)
 	, bCastShadowsFromCinematicObjectsOnly(InLightComponent->bCastShadowsFromCinematicObjectsOnly)
+	, bForceCachedShadowsForMovablePrimitives(InLightComponent->bForceCachedShadowsForMovablePrimitives)
 	, bAffectTranslucentLighting(InLightComponent->bAffectTranslucentLighting)
 	, bUsedAsAtmosphereSunLight(InLightComponent->IsUsedAsAtmosphereSunLight())
 	, bAffectDynamicIndirectLighting(InLightComponent->bAffectDynamicIndirectLighting)
@@ -371,6 +372,7 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 	MaxDrawDistance = 0.0f;
 	MaxDistanceFadeRange = 0.0f;
 	bAddedToSceneVisible = false;
+	bForceCachedShadowsForMovablePrimitives = false;
 }
 
 bool ULightComponent::AffectsPrimitive(const UPrimitiveComponent* Primitive) const
@@ -482,10 +484,7 @@ bool ULightComponent::CanEditChange(const UProperty* InProperty) const
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, LightFunctionMaterial)
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, LightFunctionScale)
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, LightFunctionFadeDistance)
-			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, DisabledBrightness)
-			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, IESTexture)
-			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, bUseIESBrightness)
-			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, IESBrightnessScale))
+			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, DisabledBrightness))
 		{
 			if (Mobility == EComponentMobility::Static)
 			{
@@ -618,7 +617,8 @@ void ULightComponent::UpdateLightSpriteTexture()
 			bAffectsWorld &&
 			CastShadows &&
 			CastStaticShadows &&
-			PreviewShadowMapChannel == INDEX_NONE)
+			PreviewShadowMapChannel == INDEX_NONE &&
+			(GetWorld() && !GetWorld()->IsPreviewWorld()))
 		{
 			UTexture2D* SpriteTexture = NULL;
 			SpriteTexture = LoadObject<UTexture2D>(NULL, TEXT("/Engine/EditorResources/LightIcons/S_LightError.S_LightError"));
@@ -911,6 +911,16 @@ void ULightComponent::SetShadowBias(float NewValue)
 		&& ShadowBias != NewValue)
 	{
 		ShadowBias = NewValue;
+		MarkRenderStateDirty();
+	}
+}
+
+void ULightComponent::SetForceCachedShadowsForMovablePrimitives(bool bNewValue)
+{
+	if (AreDynamicDataChangesAllowed()
+		&& bForceCachedShadowsForMovablePrimitives != bNewValue)
+	{
+		bForceCachedShadowsForMovablePrimitives = bNewValue;
 		MarkRenderStateDirty();
 	}
 }

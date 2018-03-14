@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 블루프린트 개요
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -7,47 +7,8 @@ version: 4.9
 parent:Engine/Blueprints
 order:2
 tags:Blueprints
+topic-image:blueprint_topic.png
 
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/Overview:title%](blueprint_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Overview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/Overview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Overview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/Overview:title%](blueprint_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Overview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/Overview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Overview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC (start:2)]
 
@@ -146,7 +107,8 @@ _블루프린트_ 의 함수성 정의는 여러가지 요소를 사용하여 �
 
 [/EXCERPT:Sections]
 
-<!--
+[COMMENT:none]
+
 ### 블루프린트 모드
 
 블루프린트의 모드는 창에 어떤 것이 보이는지를 결정합니다. 레벨 블루프린트에는 그래프 모드 하나 뿐이지만, 블루프린트 클래스에는 세 가지 모드가 있습니다:
@@ -156,4 +118,5 @@ _블루프린트_ 의 함수성 정의는 여러가지 요소를 사용하여 �
 * **[컴포넌트 모드](Engine/Blueprints\Editor\Modes\Components)** - 블루프린트를 이루는 컴포넌트를 추가, 제거, 변경하는 곳입니다.
 
 블루프린트 클래스 모드 관련 상세 정보는 [](Engine/Blueprints\Editor\Modes) 문서를 참고하시기 바랍니다.
--->
+
+[/COMMENT]

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraStackAddEventScriptItem.h"
 #include "NiagaraNodeOutput.h"
@@ -41,29 +41,21 @@ UNiagaraNodeOutput* UNiagaraStackAddEventScriptItem::GetOrCreateOutputNode()
 	// The stack should not have been created if any of these are null, so bail out if it happens somehow rather than try to handle all of these cases.
 	checkf(Emitter != nullptr && Source != nullptr && Graph != nullptr, TEXT("Stack created for invalid emitter or graph."));
 
-	// Check that there isn't already an event output at the new index before making any changes so that we can early out and don't leave the change
-	// half completed.
-	if(ensureMsgf(Graph->FindOutputNode(ENiagaraScriptUsage::ParticleEventScript, Emitter->EventHandlerScriptProps.Num()) == nullptr,
-		TEXT("Invalid Stack Graph - While creating a new event handler an event script output node already existed with the new index.")))
-	{
-		Emitter->Modify();
-		FNiagaraEventScriptProperties EventScriptProperties;
-		EventScriptProperties.Script = NewObject<UNiagaraScript>(Emitter, MakeUniqueObjectName(Emitter, UNiagaraScript::StaticClass(), "EventScript"), EObjectFlags::RF_Transactional);
-		EventScriptProperties.Script->SetUsage(ENiagaraScriptUsage::ParticleEventScript);
-		EventScriptProperties.Script->SetSource(Source);
+	Emitter->Modify();
+	FNiagaraEventScriptProperties EventScriptProperties;
+	EventScriptProperties.Script = NewObject<UNiagaraScript>(Emitter, MakeUniqueObjectName(Emitter, UNiagaraScript::StaticClass(), "EventScript"), EObjectFlags::RF_Transactional);
+	EventScriptProperties.Script->SetUsage(ENiagaraScriptUsage::ParticleEventScript);
+	EventScriptProperties.Script->SetUsageId(FGuid::NewGuid());
+	EventScriptProperties.Script->SetSource(Source);
+	Emitter->AddEventHandler(EventScriptProperties);
 
-		int32 Index = Emitter->EventHandlerScriptProps.Add(EventScriptProperties);
-		Emitter->EventHandlerScriptProps[Index].Script->SetUsageIndex(Index); // synchronize usage index with entry in array
+	UNiagaraNodeOutput* OutputNode = FNiagaraStackGraphUtilities::ResetGraphForOutput(*Graph, ENiagaraScriptUsage::ParticleEventScript, EventScriptProperties.Script->GetUsageId());
 
-		UNiagaraNodeOutput* OutputNode = FNiagaraStackGraphUtilities::ResetGraphForOutput(*Graph, ENiagaraScriptUsage::ParticleEventScript, Index);
+	// Set the emitter here so that the internal state of the view model is updated.
+	// TODO: Move the logic for managing event handlers into the emitter view model or script view model.
+	GetEmitterViewModel()->GetSharedScriptViewModel()->SetScripts(Emitter);
 
-		// Set the emitter here so that the internal state of the view model is updated.
-		// TODO: Move the logic for managing event handlers into the emitter view model or script view model.
-		GetEmitterViewModel()->GetSharedScriptViewModel()->SetScripts(Emitter);
-
-		return OutputNode;
-	}
-	return nullptr;
+	return OutputNode;
 }
 
 FText UNiagaraStackAddEventScriptItem::GetInsertTransactionText() const

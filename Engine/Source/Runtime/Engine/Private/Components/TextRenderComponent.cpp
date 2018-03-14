@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/TextRenderComponent.h"
 #include "UObject/ConstructorHelpers.h"
@@ -23,6 +23,7 @@
 #include "DynamicMeshBuilder.h"
 #include "Engine/TextRenderActor.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "StaticMeshResources.h"
 
 #define LOCTEXT_NAMESPACE "TextRenderComponent"
 
@@ -118,70 +119,6 @@ struct FTextIterator
 			Ch = CurrentPosition[0];
 			return true;
 		}
-	}
-};
-
-// ---------------------------------------------------------------
-
-/** Vertex Buffer */
-class FTextRenderVertexBuffer : public FVertexBuffer 
-{
-public:
-	TArray<FDynamicMeshVertex> Vertices;
-
-	virtual void InitRHI() override
-	{
-		FRHIResourceCreateInfo CreateInfo;
-		void* VertexBufferData = nullptr;
-		VertexBufferRHI = RHICreateAndLockVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex),BUF_Static,CreateInfo, VertexBufferData);
-
-		// Copy the vertex data into the vertex buffer.		
-		FMemory::Memcpy(VertexBufferData,Vertices.GetData(),Vertices.Num() * sizeof(FDynamicMeshVertex));
-		RHIUnlockVertexBuffer(VertexBufferRHI);
-	}
-};
-
-/** Index Buffer */
-class FTextRenderIndexBuffer : public FIndexBuffer 
-{
-public:
-	TArray<uint16> Indices;
-
-	void InitRHI()
-	{
-		FRHIResourceCreateInfo CreateInfo;
-		void* Buffer = nullptr;
-		IndexBufferRHI = RHICreateAndLockIndexBuffer(sizeof(uint16), Indices.Num() * sizeof(uint16), BUF_Static, CreateInfo, Buffer);
-
-		// Copy the index data into the index buffer.		
-		FMemory::Memcpy(Buffer, Indices.GetData(), Indices.Num() * sizeof(uint16));
-		RHIUnlockIndexBuffer(IndexBufferRHI);
-	}
-};
-
-/** Vertex Factory */
-class FTextRenderVertexFactory : public FLocalVertexFactory
-{
-public:
-
-	FTextRenderVertexFactory()
-	{}
-
-	/** Initialization */
-	void Init(const FTextRenderVertexBuffer* VertexBuffer)
-	{
-		check(IsInRenderingThread())
-
-		// Initialize the vertex factory's stream components.
-		FDataType NewData;
-		NewData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,Position,VET_Float3);
-		NewData.TextureCoordinates.Add(
-			FVertexStreamComponent(VertexBuffer,STRUCT_OFFSET(FDynamicMeshVertex,TextureCoordinate),sizeof(FDynamicMeshVertex),VET_Float2)
-			);
-		NewData.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,TangentX,VET_PackedNormal);
-		NewData.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,TangentZ,VET_PackedNormal);
-		NewData.ColorComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, Color, VET_Color);
-		SetData(NewData);
 	}
 };
 
@@ -387,7 +324,7 @@ public:
 			if (!GIsRequestingExit && NumFontPages > 0)
 			{
 				TArray<FGuid> FontParameterIds;
-				InMaterial->GetMaterial()->GetAllFontParameterNames(FontParameters, FontParameterIds);
+				InMaterial->GetAllFontParameterInfo(FontParameters, FontParameterIds);
 
 				if (FontParameters.Num() > 0)
 				{
@@ -397,9 +334,9 @@ public:
 
 						// If the user provided a custom MID, we can't do anything but use that single MID for page 0
 						UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(InMaterial);
-						for (const FName FontParameterName : FontParameters)
+						for (const FMaterialParameterInfo FontParameterInfo : FontParameters)
 						{
-							MID->SetFontParameterValue(FontParameterName, InFont, 0);
+							MID->SetFontParameterValue(FontParameterInfo, InFont, 0);
 						}
 						MIDs.Add(MID);
 					}
@@ -409,9 +346,9 @@ public:
 						for (int32 FontPageIndex = 0; FontPageIndex < NumFontPages; ++FontPageIndex)
 						{
 							UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create(InMaterial, nullptr);
-							for (const FName FontParameterName : FontParameters)
+							for (const FMaterialParameterInfo FontParameterInfo : FontParameters)
 							{
-								MID->SetFontParameterValue(FontParameterName, InFont, FontPageIndex);
+								MID->SetFontParameterValue(FontParameterInfo, InFont, FontPageIndex);
 							}
 							MIDs.Add(MID);
 						}
@@ -432,14 +369,14 @@ public:
 
 				if (!bIsStale)
 				{
-					TArray<FName> FontParameterNames;
+					TArray<FMaterialParameterInfo> FontParameterInfo;
 					TArray<FGuid> FontParameterIds;
-					InMaterial->GetMaterial()->GetAllFontParameterNames(FontParameterNames, FontParameterIds);
+					InMaterial->GetAllFontParameterInfo(FontParameterInfo, FontParameterIds);
 
-					bIsStale = FontParameters.Num() != FontParameterNames.Num();
+					bIsStale = FontParameters.Num() != FontParameterInfo.Num();
 					for (int32 FontParamIndex = 0; !bIsStale && FontParamIndex < FontParameters.Num(); ++FontParamIndex)
 					{
-						bIsStale = FontParameters[FontParamIndex] != FontParameterNames[FontParamIndex];
+						bIsStale = FontParameters[FontParamIndex] != FontParameterInfo[FontParamIndex];
 					}
 				}
 			}
@@ -449,7 +386,7 @@ public:
 
 
 		TArray<UMaterialInstanceDynamic*> MIDs;
-		TArray<FName> FontParameters;
+		TArray<FMaterialParameterInfo> FontParameters;
 		bool bIsCustomMID;
 	};
 
@@ -622,9 +559,15 @@ FTextRenderComponentMIDCache* FTextRenderComponentMIDCache::InstancePtr = nullpt
 // ------------------------------------------------------
 
 /** Represents a URenderTextComponent to the scene manager. */
-class FTextRenderSceneProxy : public FPrimitiveSceneProxy
+class FTextRenderSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
+
 	// constructor / destructor
 	FTextRenderSceneProxy(UTextRenderComponent* Component);
 	virtual ~FTextRenderSceneProxy();
@@ -659,9 +602,9 @@ private:
 	};
 
 	FMaterialRelevance MaterialRelevance;
-	FTextRenderVertexBuffer VertexBuffer;
-	FTextRenderIndexBuffer IndexBuffer;
-	FTextRenderVertexFactory VertexFactory;
+	FStaticMeshVertexBuffers VertexBuffers;
+	FDynamicMeshIndexBuffer16 IndexBuffer;
+	FLocalVertexFactory VertexFactory;
 	TArray<FTextBatch> TextBatches;
 	const FColor TextRenderColor;
 	UMaterialInterface* TextMaterial;
@@ -679,6 +622,7 @@ private:
 
 FTextRenderSceneProxy::FTextRenderSceneProxy( UTextRenderComponent* Component) :
 	FPrimitiveSceneProxy(Component),
+	VertexFactory(GetScene().GetFeatureLevel(), "FTextRenderSceneProxy"),
 	TextRenderColor(Component->TextRenderColor),
 	Font(Component->Font),
 	Text(Component->Text),
@@ -734,21 +678,20 @@ void FTextRenderSceneProxy::CreateRenderThreadResources()
 		return;
 	}
 
-	if(BuildStringMesh(VertexBuffer.Vertices, IndexBuffer.Indices))
+	TArray<FDynamicMeshVertex> OutVertices;
+	if(BuildStringMesh(OutVertices, IndexBuffer.Indices))
 	{
-		// Init vertex factory
-		VertexFactory.Init(&VertexBuffer);
-
+		VertexBuffers.InitFromDynamicVertex(&VertexFactory, OutVertices);
 		// Enqueue initialization of render resources
-		VertexBuffer.InitResource();
 		IndexBuffer.InitResource();
-		VertexFactory.InitResource();
 	}
 }
 
 void FTextRenderSceneProxy::ReleaseRenderThreadResources()
 {
-	VertexBuffer.ReleaseResource();
+	VertexBuffers.PositionVertexBuffer.ReleaseResource();
+	VertexBuffers.StaticMeshVertexBuffer.ReleaseResource();
+	VertexBuffers.ColorVertexBuffer.ReleaseResource();
 	IndexBuffer.ReleaseResource();
 	VertexFactory.ReleaseResource();
 }

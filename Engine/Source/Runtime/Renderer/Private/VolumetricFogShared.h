@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VolumetricFogShared.h
@@ -99,7 +99,7 @@ public:
 
 		if (UnjitteredPrevWorldToClip.IsBound())
 		{
-			FMatrix UnjitteredViewProjectionMatrix = View.PrevViewMatrices.GetViewMatrix() * View.PrevViewMatrices.ComputeProjectionNoAAMatrix();
+			FMatrix UnjitteredViewProjectionMatrix = View.PrevViewInfo.ViewMatrices.GetViewMatrix() * View.PrevViewInfo.ViewMatrices.ComputeProjectionNoAAMatrix();
 			SetShaderValue(RHICmdList, ShaderRHI, UnjitteredPrevWorldToClip, UnjitteredViewProjectionMatrix);
 		}
 

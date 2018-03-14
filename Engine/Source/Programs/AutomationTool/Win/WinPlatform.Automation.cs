@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -128,7 +128,7 @@ public abstract class BaseWinPlatform : Platform
 				}
 
 				// Update the resources in the new file
-				using(ModuleResourceUpdate Update = new ModuleResourceUpdate(IntermediateFile.FullName, true))
+				using(ModuleResourceUpdate Update = new ModuleResourceUpdate(IntermediateFile.FullName, false))
 				{
 					const int IconResourceId = 101;
 					if(GroupIcon != null) Update.SetIcons(IconResourceId, GroupIcon);
@@ -203,7 +203,7 @@ public abstract class BaseWinPlatform : Platform
 		return false; // !String.IsNullOrEmpty(Params.StageCommandline) || !String.IsNullOrEmpty(Params.RunCommandline) || (!Params.IsCodeBasedProject && Params.NoBootstrapExe);
 	}
 
-	public override List<string> GetDebugFileExtentions()
+	public override List<string> GetDebugFileExtensions()
 	{
 		return new List<string> { ".pdb", ".map" };
 	}
@@ -232,28 +232,33 @@ public abstract class BaseWinPlatform : Platform
 			DirectoryReference BaseAppLocalDependenciesPath = Path.IsPathRooted(ExpandedAppLocalDir) ? new DirectoryReference(CombinePaths(ExpandedAppLocalDir, PlatformDir)) : DirectoryReference.Combine(SC.ProjectRoot, ExpandedAppLocalDir, PlatformDir);
 			if (DirectoryReference.Exists(BaseAppLocalDependenciesPath))
 			{
-				StagedDirectoryReference ProjectBinaryPath = new StagedDirectoryReference(SC.ProjectBinariesFolder.MakeRelativeTo(SC.ProjectRoot.ParentDirectory));
-				StagedDirectoryReference EngineBinaryPath = new StagedDirectoryReference(CombinePaths("Engine", "Binaries", PlatformDir));
-
-				Log("Copying AppLocal dependencies from {0} to {1} and {2}", BaseAppLocalDependenciesPath, ProjectBinaryPath, EngineBinaryPath);
-
-
-
-				// Stage files in subdirs
-				foreach (DirectoryReference DependencyDirectory in DirectoryReference.EnumerateDirectories(BaseAppLocalDependenciesPath))
-				{	
-					SC.StageFiles(StagedFileType.NonUFS, DependencyDirectory, StageFilesSearch.TopDirectoryOnly, ProjectBinaryPath);
-					SC.StageFiles(StagedFileType.NonUFS, DependencyDirectory, StageFilesSearch.TopDirectoryOnly, EngineBinaryPath);
-				}
-				
-				// stage loose files here
-				SC.StageFiles(StagedFileType.NonUFS, BaseAppLocalDependenciesPath, StageFilesSearch.AllDirectories, ProjectBinaryPath);
-				SC.StageFiles(StagedFileType.NonUFS, BaseAppLocalDependenciesPath, StageFilesSearch.AllDirectories, EngineBinaryPath);
+				StageAppLocalDependenciesToDir(SC, BaseAppLocalDependenciesPath, StagedDirectoryReference.Combine("Engine", "Binaries", PlatformDir));
+				StageAppLocalDependenciesToDir(SC, BaseAppLocalDependenciesPath, StagedDirectoryReference.Combine(SC.RelativeProjectRootForStage, "Binaries", PlatformDir));
 			}
 			else
 			{
 				LogWarning("Unable to deploy AppLocalDirectory dependencies. No such path: {0}", BaseAppLocalDependenciesPath);
 			}
+		}
+	}
+
+	static void StageAppLocalDependenciesToDir(DeploymentContext SC, DirectoryReference BaseAppLocalDependenciesPath, StagedDirectoryReference StagedBinariesDir)
+	{
+		// Check if there are any executables being staged in this directory. Usually we only need to stage runtime dependencies next to the executable, but we may be staging
+		// other engine executables too (eg. CEF)
+		List<StagedFileReference> FilesInTargetDir = SC.FilesToStage.NonUFSFiles.Keys.Where(x => x.IsUnderDirectory(StagedBinariesDir) && (x.CanonicalName.EndsWith(".exe") || x.CanonicalName.EndsWith(".dll"))).ToList();
+		if(FilesInTargetDir.Count > 0)
+		{
+			Log("Copying AppLocal dependencies from {0} to {1}", BaseAppLocalDependenciesPath, StagedBinariesDir);
+
+			// Stage files in subdirs
+			foreach (DirectoryReference DependencyDirectory in DirectoryReference.EnumerateDirectories(BaseAppLocalDependenciesPath))
+			{	
+				SC.StageFiles(StagedFileType.NonUFS, DependencyDirectory, StageFilesSearch.TopDirectoryOnly, StagedBinariesDir);
+			}
+				
+			// stage loose files here
+			SC.StageFiles(StagedFileType.NonUFS, BaseAppLocalDependenciesPath, StageFilesSearch.AllDirectories, StagedBinariesDir);
 		}
 	}
 

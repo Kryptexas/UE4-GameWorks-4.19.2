@@ -6,45 +6,7 @@ version: 4.9
 Parent:Engine/Blueprints
 type:overview
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide/RandomStreams:title%](Engine\Blueprints\UserGuide\random_stream.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide/RandomStreams:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide/RandomStreams:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/RandomStreams]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide/RandomStreams:title%](Engine\Blueprints\UserGuide\random_stream.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide/RandomStreams:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide/RandomStreams:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/RandomStreams]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:Engine/Blueprints/UserGuide/random_stream.png
 
 
 [TOC (start:2)]
@@ -63,7 +25,7 @@ RandomStreams are available as a special type of struct variable in Blueprints. 
 
 ![RandomStream Variable](variable.png)
 
-See [Creating Variables](Engine/Blueprints/UserGuide\Variables#CreatingVariables) for complete instructions on how to add new variables inside Blueprint Classes or Level Blueprints.
+See [Creating Variables](Engine/Blueprints/UserGuide/Variables#CreatingVariables) for complete instructions on how to add new variables inside Blueprint Classes or Level Blueprints.
 
 ## RandomStream Functions
 
@@ -102,7 +64,8 @@ So, modifying the Initial Seed of a RandomStream will cause the values produced 
 suits your needs. A new Initial Seed is generated per-instance of the Blueprint. This means each time an instance of the Blueprint is placed in the world or a duplicate of an existing 
 instance is made, each RandomStream variable belonging to the Blueprint is given a new Initial Seed value. So, each instance will be different and can be tweaked to create the exact desired result.
 
-<!--
+[COMMENT:none]
+
 Same Blueprint, Different Playthroughs
 
 LogBlueprintUserMessages: HHTTHTHTHH
@@ -126,7 +89,8 @@ Different Instances of the Same Blueprint, seed set randomly
 LogBlueprintUserMessages: TTTTHTTHTT
 
 LogBlueprintUserMessages: HTHTHTTHTT
--->
+
+[/COMMENT]
 
 
 ### Modifying the Initial Seed
@@ -142,6 +106,8 @@ The **Set Random Stream Seed** node can be useful when you have one Blueprint th
 It will override the Initial Seed being randomly set when the Blueprint is placed in a level. 
 
 
-<!--### Resetting a Random Stream-->
+[COMMENT:none]
+### Resetting a Random Stream
+[/COMMENT]
 
 

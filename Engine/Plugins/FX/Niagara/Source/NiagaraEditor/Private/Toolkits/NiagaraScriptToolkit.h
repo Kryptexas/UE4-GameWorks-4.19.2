@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -77,7 +77,7 @@ private:
 	void ExtendToolbar();
 
 	/** Compiles the script. */
-	void CompileScript();
+	void CompileScript(bool bForce);
 
 	/** Refreshes the nodes in the script graph, updating the pins to match external changes. */
 	void RefreshNodes();

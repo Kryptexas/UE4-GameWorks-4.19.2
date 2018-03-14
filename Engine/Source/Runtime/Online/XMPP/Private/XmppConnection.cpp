@@ -1,12 +1,12 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "XmppConnection.h"
 #include "Misc/Guid.h"
 
 enum class XMPP_RESOURCE_VERSION : uint8
 {
-	INITIAL = 2,
-	ADDED_PLATFORMUSERID,
+	INITIAL = 1,
+	ADDED_PLATFORMUSERID = 2,
 	
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

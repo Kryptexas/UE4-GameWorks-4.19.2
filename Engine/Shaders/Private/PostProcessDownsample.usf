@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessDownsample.usf: PostProcessing down sample.
@@ -18,13 +18,25 @@ void MainDownsampleVS(
 	DrawRectangle(InPosition, UV, OutPosition, OutUV);
 }
 
+
+float4 BufferBilinearUVMinMax;
+
+float4 SampleInput0(float2 BufferUV)
+{
+	#if MANUALLY_CLAMP_UV
+		BufferUV = clamp(BufferUV, BufferBilinearUVMinMax.xy, BufferBilinearUVMinMax.zw);
+	#endif
+	return Texture2DSampleLevel(PostprocessInput0, PostprocessInput0Sampler, BufferUV, 0);
+}
+
+
 float4 DownsampleCommon(in float2 InUV, in float2 Offset)
 {
 	float4 OutColor;
 
 #if METHOD == 0
 	// Output: low quality, 1 filtered sample
-	OutColor = Texture2DSampleLevel(PostprocessInput0, PostprocessInput0Sampler, InUV, 0);
+	OutColor = SampleInput0(InUV);
 
 #elif METHOD == 1
 	// Output: float4(RGBA), 4 filtered samples	
@@ -40,7 +52,7 @@ float4 DownsampleCommon(in float2 InUV, in float2 Offset)
 
 	UNROLL for(uint i = 0; i < 4; ++i)
 	{
-		Sample[i] = Texture2DSampleLevel(PostprocessInput0, PostprocessInput0Sampler, UV[i], 0);
+		Sample[i] = SampleInput0(UV[i]);
 	}
 
 	OutColor = (Sample[0] + Sample[1] + Sample[2] + Sample[3]) * 0.25f;
@@ -61,7 +73,7 @@ float4 DownsampleCommon(in float2 InUV, in float2 Offset)
 
 	UNROLL for(uint i = 0; i < 4; ++i)
 	{
-		Sample[i] = Texture2DSampleLevel(PostprocessInput0, PostprocessInput0Sampler, UV[i], 0).rgb;
+		Sample[i] = SampleInput0(UV[i]).rgb;
 	}
 
 	// todo: this still leaks as we need to mask in focus pixels

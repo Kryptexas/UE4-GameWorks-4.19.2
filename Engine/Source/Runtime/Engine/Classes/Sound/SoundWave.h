@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -41,8 +41,11 @@ enum EDecompressionType
  */
 struct FStreamedAudioChunk
 {
-	/** Size of the chunk of data in bytes */
+	/** Size of the chunk of data in bytes including zero padding */
 	int32 DataSize;
+
+	/** Size of the audio data. */
+	int32 AudioDataSize;
 
 	/** Bulk data if stored in the package. */
 	FByteBulkData BulkData;
@@ -166,6 +169,10 @@ class ENGINE_API USoundWave : public USoundBase
 	UPROPERTY(EditAnywhere, Category=Sound)
 	uint32 bVirtualizeWhenSilent:1;
 
+	/** Whether or not this source is ambisonics file format. */
+	UPROPERTY(EditAnywhere, Category = Sound)
+	uint32 bIsAmbisonics : 1;
+
 	/** Whether this SoundWave was decompressed from OGG. */
 	uint32 bDecompressedFromOgg:1;
 
@@ -242,6 +249,8 @@ class ENGINE_API USoundWave : public USoundBase
 	
 #endif // WITH_EDITORONLY_DATA
 
+protected:
+
 	/** Curves associated with this sound wave */
 	UPROPERTY(EditAnywhere, Category = SoundWave, AdvancedDisplay)
 	class UCurveTable* Curves;
@@ -314,6 +323,7 @@ public:
 	virtual float GetMaxAudibleDistance() override;
 	virtual float GetDuration() override;
 	virtual float GetSubtitlePriority() const override;
+	virtual bool IsAllowedVirtual() const override;
 	//~ End USoundBase Interface.
 
 	/**
@@ -399,6 +409,28 @@ public:
 	 * Change the guid and flush all compressed data
 	 */ 
 	void InvalidateCompressedData();
+
+	/** Returns curves associated with this sound wave */
+	virtual class UCurveTable* GetCurveData() const override { return Curves; }
+
+#if WITH_EDITOR
+	/** These functions are required for support for some custom details/editor functionality.*/
+
+	/** Returns internal curves associated with this sound wave */
+	class UCurveTable* GetInternalCurveData() const { return InternalCurves; }
+
+	/** Returns whether this sound wave has internal curves. */
+	bool HasInternalCurves() const { return InternalCurves != nullptr; }
+
+	/** Sets the curve data for this sound wave. */
+	void SetCurveData(UCurveTable* InCurves) { Curves = InCurves; }
+
+	/** Sets the internal curve data for this sound wave. */
+	void SetInternalCurveData(UCurveTable* InCurves) { InternalCurves = InCurves; }
+
+	/** Gets the member name for the Curves property of the USoundWave object. */
+	static FName GetCurvePropertyName() { return GET_MEMBER_NAME_CHECKED(USoundWave, Curves); }
+#endif
 
 	/**
 	 * Checks whether sound has been categorised as streaming

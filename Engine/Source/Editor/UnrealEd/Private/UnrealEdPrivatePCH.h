@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -551,7 +551,6 @@
 #include "Animation/AnimLinkableElement.h"
 #include "Animation/PreviewAssetAttachComponent.h"
 #include "BoneContainer.h"
-#include "SkeletalMeshTypes.h"
 #include "GPUSkinPublicDefs.h"
 #include "Engine/SkeletalMesh.h"
 #include "EngineGlobals.h"

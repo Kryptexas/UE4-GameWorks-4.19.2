@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanMemory.h: Vulkan Memory RHI definitions.
@@ -7,7 +7,7 @@
 #pragma once 
 
 // Enable to store file & line of every mem & resource allocation
-#define VULKAN_MEMORY_TRACK_FILE_LINE	(UE_BUILD_DEBUG)
+#define VULKAN_MEMORY_TRACK_FILE_LINE	0
 
 // Enable to save the callstack for every mem and resource allocation
 #define VULKAN_MEMORY_TRACK_CALLSTACK	0
@@ -22,14 +22,12 @@ namespace VulkanRHI
 
 	enum
 	{
+		GPU_ONLY_HEAP_PAGE_SIZE = 8 * 1024 * 1024,
+		STAGING_HEAP_PAGE_SIZE = 8 * 1024 * 1024,
 #if PLATFORM_ANDROID
 		NUM_FRAMES_TO_WAIT_BEFORE_RELEASING_TO_OS = 3,
-		GPU_ONLY_HEAP_PAGE_SIZE = 64 * 1024 * 1024,
-		STAGING_HEAP_PAGE_SIZE = 16 * 1024 * 1024,
 #else
-		NUM_FRAMES_TO_WAIT_BEFORE_RELEASING_TO_OS = 20,
-		GPU_ONLY_HEAP_PAGE_SIZE = 256 * 1024 * 1024,
-		STAGING_HEAP_PAGE_SIZE = 64 * 1024 * 1024,
+		NUM_FRAMES_TO_WAIT_BEFORE_RELEASING_TO_OS = 10,
 #endif
 	};
 
@@ -144,7 +142,7 @@ namespace VulkanRHI
 		}
 
 		void FlushMappedMemory(VkDeviceSize InOffset, VkDeviceSize InSize);
-		void InvalidateMappedMemory();
+		void InvalidateMappedMemory(VkDeviceSize InOffset, VkDeviceSize InSize);
 
 		inline VkDeviceMemory GetHandle() const
 		{
@@ -256,13 +254,15 @@ namespace VulkanRHI
 			return MemoryProperties;
 		}
 
-		FDeviceMemoryAllocation* Alloc(VkDeviceSize AllocationSize, uint32 MemoryTypeIndex, const char* File, uint32 Line);
 
-		inline FDeviceMemoryAllocation* Alloc(VkDeviceSize AllocationSize, uint32 MemoryTypeBits, VkMemoryPropertyFlags MemoryPropertyFlags, const char* File, uint32 Line)
+		// bCanFail means an allocation failing is not a fatal error, just returns nullptr
+		FDeviceMemoryAllocation* Alloc(bool bCanFail, VkDeviceSize AllocationSize, uint32 MemoryTypeIndex, const char* File, uint32 Line);
+
+		inline FDeviceMemoryAllocation* Alloc(bool bCanFail, VkDeviceSize AllocationSize, uint32 MemoryTypeBits, VkMemoryPropertyFlags MemoryPropertyFlags, const char* File, uint32 Line)
 		{
 			uint32 MemoryTypeIndex = ~0;
 			VERIFYVULKANRESULT(this->GetMemoryTypeFromProperties(MemoryTypeBits, MemoryPropertyFlags, &MemoryTypeIndex));
-			return Alloc(AllocationSize, MemoryTypeIndex, File, Line);
+			return Alloc(bCanFail, AllocationSize, MemoryTypeIndex, File, Line);
 		}
 
 		// Sets the Allocation to nullptr
@@ -298,7 +298,7 @@ namespace VulkanRHI
 		};
 
 		TArray<FHeapInfo> HeapInfos;
-		void PrintMemInfo();
+		void SetupAndPrintMemInfo();
 	};
 
 	class FOldResourceHeap;
@@ -350,6 +350,11 @@ namespace VulkanRHI
 		inline void FlushMappedMemory()
 		{
 			DeviceMemoryAllocation->FlushMappedMemory(AllocationOffset, AllocationSize);
+		}
+
+		inline void InvalidateMappedMemory()
+		{
+			DeviceMemoryAllocation->InvalidateMappedMemory(AllocationOffset, AllocationSize);
 		}
 
 		void BindBuffer(FVulkanDevice* Device, VkBuffer Buffer);
@@ -778,6 +783,18 @@ namespace VulkanRHI
 			bool bMapped = (MemoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 			if (!ResourceTypeHeaps[TypeIndex])
 			{
+				if ((MemoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) == VK_MEMORY_PROPERTY_HOST_CACHED_BIT)
+				{
+					// Try non-cached flag
+					MemoryPropertyFlags = MemoryPropertyFlags & ~VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+				}
+
+				if ((MemoryPropertyFlags & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) == VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT)
+				{
+					// Try non-lazy flag
+					MemoryPropertyFlags = MemoryPropertyFlags & ~VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT;
+				}
+
 				// Try another heap type
 				uint32 OriginalTypeIndex = TypeIndex;
 				if (DeviceMemoryManager->GetMemoryTypeFromPropertiesExcluding(MemoryReqs.memoryTypeBits, MemoryPropertyFlags, TypeIndex, &TypeIndex) != VK_SUCCESS)
@@ -792,19 +809,6 @@ namespace VulkanRHI
 #endif
 					UE_LOG(LogVulkanRHI, Fatal, TEXT("Missing memory type index %d (originally requested %d), MemSize %d, MemPropTypeBits %u, MemPropertyFlags %u, %s(%d)"), TypeIndex, OriginalTypeIndex, (uint32)MemoryReqs.size, (uint32)MemoryReqs.memoryTypeBits, (uint32)MemoryPropertyFlags, ANSI_TO_TCHAR(File), Line);
 				}
-			}
-
-			if (!ResourceTypeHeaps[TypeIndex]->IsHostCachedSupported())
-			{
-				//remove host cached bit if device does not support it
-				//it should only affect perf
-				MemoryPropertyFlags = MemoryPropertyFlags & ~VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
-			}
-			if (!ResourceTypeHeaps[TypeIndex]->IsLazilyAllocatedSupported())
-			{
-				//remove lazily bit if device does not support it
-				//it should only affect perf
-				MemoryPropertyFlags = MemoryPropertyFlags & ~VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT;
 			}
 
 			FOldResourceAllocation* Allocation = ResourceTypeHeaps[TypeIndex]->AllocateResource(MemoryReqs.size, MemoryReqs.alignment, false, bMapped, File, Line); //-V595
@@ -892,6 +896,11 @@ namespace VulkanRHI
 		inline void FlushMappedMemory()
 		{
 			ResourceAllocation->FlushMappedMemory();
+		}
+
+		inline void InvalidateMappedMemory()
+		{
+			ResourceAllocation->InvalidateMappedMemory();
 		}
 
 	protected:
@@ -1208,6 +1217,7 @@ namespace VulkanRHI
 			bool TryAlloc(uint32 InSize, uint32 InAlignment, FTempAllocInfo& OutInfo);
 		};
 		FFrameEntry Entries[NUM_RENDER_BUFFERS];
+		FCriticalSection CS;
 
 		friend class FVulkanCommandListContext;
 	};

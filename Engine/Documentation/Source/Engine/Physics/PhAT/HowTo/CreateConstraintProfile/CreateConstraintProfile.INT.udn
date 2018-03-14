@@ -6,8 +6,7 @@ parent:Engine/Physics/PhAT/HowTo
 order:1
 Version: 4.13
 skilllevel:Intermediate
-related:Videos/PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f/N1tDjbFXeOo
-topic-image::Engine/Physics/physics_topic.png
+topic-image:Engine/Physics/physics_topic.png
 
 In this How-To, we'll cover the basics of creating a **Constraint Profile** and adding **Physics Constraints** to it.
 
@@ -61,5 +60,23 @@ In this How-To, we'll cover the basics of creating a **Constraint Profile** and 
 
 The **Physics Asset** will have a profile that can be called upon from Blueprint or C++ to change its **Physical Constraint** properties.
 
+## Additional Resources
 
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	N1tDjbFXeOo
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
 

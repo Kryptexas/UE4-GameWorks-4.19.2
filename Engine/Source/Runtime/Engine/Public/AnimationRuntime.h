@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimationRuntime.h: Skeletal mesh animation utilities
@@ -170,7 +170,7 @@ public:
 		const FCompactPose& SourcePose2,
 		const FBlendedCurve& SourceCurve1,
 		const FBlendedCurve& SourceCurve2,
-		const TArray<float> WeightsOfSource2,
+		const TArray<float>& WeightsOfSource2,
 		/*out*/ FCompactPose& ResultPose,
 		/*out*/ FBlendedCurve& ResultCurve);
 
@@ -310,19 +310,18 @@ public:
 	static void AccumulateMeshSpaceRotationAdditiveToLocalPose(FCompactPose& BasePose, const FCompactPose& MeshSpaceRotationAdditive, FBlendedCurve& BaseCurve, const FBlendedCurve& AdditiveCurve, float Weight) { AccumulateAdditivePose(BasePose, MeshSpaceRotationAdditive, BaseCurve, AdditiveCurve, Weight, EAdditiveAnimationType::AAT_RotationOffsetMeshSpace); }
 
 
-	/** Lerp for BoneTransforms. Stores results in A. Performs A = Lerp(A, B, Alpha);
-	* @param A : In/Out FCompactPose.
-	* @param B : B In FCompactPose.
-	* @param Alpha : Alpha.
-	*/
+	/** Lerp for FCompactPose. Stores results in PoseA. Performs PoseA = Lerp(PoseA, PoseB, Alpha); */
 	static void LerpPoses(FCompactPose& PoseA, const FCompactPose& PoseB, FBlendedCurve& CurveA, const FBlendedCurve& CurveB, float Alpha);
 
-	/** Lerp for BoneTransforms. Stores results in A. Performs A = Lerp(A, B, Alpha);
-	* @param A : In/Out FCompactPose.
-	* @param B : B In FCompactPose.
-	* @param Alpha : Alpha.
-	*/
+	/** Lerp for FCompactPose. Stores results in PoseA. 
+	 * For each bone performs BoneA[i] = Lerp(BoneA[i], BoneB[i], Alpha * PerBoneWeights[i]);
+	 */
 	static void LerpPosesPerBone(FCompactPose& PoseA, const FCompactPose& PoseB, FBlendedCurve& CurveA, const FBlendedCurve& CurveB, float Alpha, const TArray<float>& PerBoneWeights);
+
+	/** Lerp for FCompactPose. Stores results in PoseA. Performs PoseA = Lerp(PoseA, PoseB, Alpha);
+	 * on reduced set of bones defined in BoneIndices list.
+	 */
+	static void LerpPosesWithBoneIndexList(FCompactPose& PoseA, const FCompactPose& PoseB, FBlendedCurve& CurveA, const FBlendedCurve& CurveB, float Alpha, const TArray<FCompactPoseBoneIndex>& BoneIndices);
 
 	/** Lerp for BoneTransforms. Stores results in A. Performs A = Lerp(A, B, Alpha);
 	 * @param A : In/Out transform array.
@@ -405,6 +404,8 @@ public:
 	static FTransform GetComponentSpaceTransformRefPose(const FReferenceSkeleton& RefSkeleton, int32 BoneIndex);
 	static FTransform GetComponentSpaceTransform(const FReferenceSkeleton& RefSkeleton, const TArray<FTransform> &BoneSpaceTransforms, int32 BoneIndex);
 	static void FillUpComponentSpaceTransforms(const FReferenceSkeleton& RefSkeleton, const TArray<FTransform> &BoneSpaceTransforms, TArray<FTransform> &ComponentSpaceTransforms);
+	static void MakeSkeletonRefPoseFromMesh(const USkeletalMesh* InMesh, const USkeleton* InSkeleton, TArray<FTransform>& OutBoneBuffer);
+
 #if WITH_EDITOR
 	static void FillUpComponentSpaceTransformsRefPose(const USkeleton* Skeleton, TArray<FTransform> &ComponentSpaceTransforms);
 	static void FillUpComponentSpaceTransformsRetargetBasePose(const USkeleton* Skeleton, TArray<FTransform> &ComponentSpaceTransforms);

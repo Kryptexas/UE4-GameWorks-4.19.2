@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -21,6 +21,9 @@ class UMaterialExpressionCustomOutput : public UMaterialExpression
 #if WITH_EDITOR
 	// Allow custom outputs to generate their own source code
 	virtual bool HasCustomSourceOutput() { return false; }
+	virtual bool AllowMultipleCustomOutputs() { return false; }
+	virtual bool NeedsCustomOutputDefines() { return true; }
+	virtual bool ShouldCompileBeforeAttributes() { return false; }
 #endif
 };
 

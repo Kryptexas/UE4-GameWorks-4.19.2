@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:랜드스케이프 스플라인
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
@@ -127,7 +127,8 @@ version: 4.9
 
 ### 스플라인 선분 프로퍼티
 
-<!--
+[COMMENT:none]
+
 
 아래 프로퍼티 표 속의 표입니다.
 
@@ -151,7 +152,8 @@ version: 4.9
 | Up Axis        | 윗 축 - **스플라인 메시** 의 윗 방향 축을 선택합니다.
 [/EXCERPT:SplineSegProp002]
 
--->
+
+[/COMMENT]
 
 | 프로퍼티 | 설명 |
 | ------- | ---- |

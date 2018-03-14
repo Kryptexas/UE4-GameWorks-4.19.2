@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/SWidgetReflector.h"
 #include "Rendering/DrawElements.h"
@@ -852,7 +852,7 @@ TSharedRef<SDockTab> SWidgetReflector::SpawnWidgetHierarchyTab(const FSpawnTabAr
 							.ToolTipText(LOCTEXT("VisibilityTooltip", "Visibility"))
 						]
 
-						+ SHeaderRow::Column("Focusable")
+						+ SHeaderRow::Column(SReflectorTreeWidgetItem::NAME_Focusable)
 						.DefaultLabel(LOCTEXT("Focusable", "Focusable?"))
 						.FixedWidth(125.0f)
 						.HAlignHeader(HAlign_Center)

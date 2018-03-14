@@ -1,10 +1,13 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
+
+#include "UnitLogging.h"
+
 #include "UnitTestBase.generated.h"
 
 /**
@@ -14,7 +17,7 @@
  * NOTE: All wrapped functions/events, begin with 'UT'
  */
 UCLASS()
-class NETCODEUNITTEST_API UUnitTestBase : public UObject
+class NETCODEUNITTEST_API UUnitTestBase : public UObject, public FUnitLogInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -39,19 +42,19 @@ public:
 	}
 
 	/**
+	 * Tick function that runs at a tickrate of ~60 fps, for interacting with netcode
+	 * (high UnitTick tickrate, can lead to net buffer overflows)
+	 */
+	virtual void NetTick()
+	{
+	}
+
+	/**
 	 * For cleanup actions that should occur after the primary tick function is called
 	 *
 	 * @param DeltaTime		The time passed since the previous tick
 	 */
 	virtual void PostUnitTick(float DeltaTime)
-	{
-	}
-
-	/**
-	 * Tick function that runs at a tickrate of ~60 fps, for interacting with netcode
-	 * (high UnitTick tickrate, can lead to net buffer overflows)
-	 */
-	virtual void NetTick()
 	{
 	}
 

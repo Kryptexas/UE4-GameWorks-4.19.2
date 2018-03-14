@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraMeshRendererProperties.h"
 #include "NiagaraRendererMeshes.h"
@@ -19,9 +19,32 @@ void UNiagaraMeshRendererProperties::GetUsedMaterials(TArray<UMaterialInterface*
 {
 	if (ParticleMesh)
 	{
-		for(FStaticMaterial& Mat : ParticleMesh->StaticMaterials)
+		const FStaticMeshLODResources& LODModel = ParticleMesh->RenderData->LODResources[0];
+		if (bOverrideMaterials)
 		{
-			OutMaterials.Add(Mat.MaterialInterface);
+			for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
+			{
+				const FStaticMeshSection& Section = LODModel.Sections[SectionIndex];
+				UMaterialInterface* ParticleMeshMaterial = ParticleMesh->GetMaterial(Section.MaterialIndex);
+
+				if (Section.MaterialIndex >= 0 && OverrideMaterials.Num() > Section.MaterialIndex && OverrideMaterials[Section.MaterialIndex] != nullptr)
+				{
+					OutMaterials.Add(OverrideMaterials[Section.MaterialIndex]);
+				}
+				else
+				{
+					OutMaterials.Add(ParticleMeshMaterial);
+				}
+			}
+		}
+		else
+		{
+			for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
+			{
+				const FStaticMeshSection& Section = LODModel.Sections[SectionIndex];
+				UMaterialInterface* ParticleMeshMaterial = ParticleMesh->GetMaterial(Section.MaterialIndex);
+				OutMaterials.Add(ParticleMeshMaterial);
+			}
 		}
 	}
 }
@@ -30,9 +53,9 @@ void UNiagaraMeshRendererProperties::GetUsedMaterials(TArray<UMaterialInterface*
 
 bool UNiagaraMeshRendererProperties::IsMaterialValidForRenderer(UMaterial* Material, FText& InvalidMessage)
 {
-	if (Material->bUsedWithMeshParticles == false)
+	if (Material->bUsedWithNiagaraMeshParticles == false)
 	{
-		InvalidMessage = NSLOCTEXT("NiagaraMeshRendererProperties", "InvalidMaterialMessage", "The material isn't marked as \"Used with mesh particles\"");
+		InvalidMessage = NSLOCTEXT("NiagaraMeshRendererProperties", "InvalidMaterialMessage", "The material isn't marked as \"Used with Niagara Mesh particles\"");
 		return false;
 	}
 	return true;

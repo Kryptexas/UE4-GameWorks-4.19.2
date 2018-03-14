@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AudioMixerSource.h"
 #include "AudioMixerDevice.h"
@@ -37,6 +37,7 @@ namespace Audio
 		, bUsingHRTFSpatialization(false)
 		, bIs3D(false)
 		, bDebugMode(false)
+		, bIsVorbis(false)
 	{
 		// Create the source voice buffers
 		for (int32 i = 0; i < Audio::MAX_BUFFERS_QUEUED; ++i)
@@ -66,6 +67,9 @@ namespace Audio
 			NumFrames = NumBytes / (InWaveInstance->WaveData->NumChannels * sizeof(int16));
 		}
 
+		// Unfortunately, we need to know if this is a vorbis source since channel maps are different for 5.1 vorbis files
+		bIsVorbis = InWaveInstance->WaveData->bDecompressedFromOgg;
+
 		// Reset our releasing bool
 		bIsReleasing = false;
 
@@ -88,9 +92,22 @@ namespace Audio
 			InitParams.NumInputFrames = NumFrames;
 			InitParams.SourceVoice = MixerSourceVoice;
 			InitParams.bUseHRTFSpatialization = UseObjectBasedSpatialization();
+			InitParams.bIsAmbisonics = InWaveInstance->bIsAmbisonics;
+			if (InitParams.bIsAmbisonics)
+			{
+				checkf(InitParams.NumInputChannels == 4, TEXT("Only allow 4 channel source if file is ambisonics format."));
+			}
 			InitParams.AudioComponentUserID = InWaveInstance->ActiveSound->GetAudioComponentUserID();
 
+			InitParams.AudioComponentID = InWaveInstance->ActiveSound->GetAudioComponentID();
+
+			InitParams.EnvelopeFollowerAttackTime = InWaveInstance->EnvelopeFollowerAttackTime;
+			InitParams.EnvelopeFollowerReleaseTime = InWaveInstance->EnvelopeFollowerReleaseTime;
+
 			InitParams.SourceEffectChainId = 0;
+
+			// Source manager needs to know if this is a vorbis source for rebuilding speaker maps
+			InitParams.bIsVorbis = bIsVorbis;
 
 			if (InitParams.NumInputChannels <= 2)
 			{
@@ -120,17 +137,17 @@ namespace Audio
 				InitParams.bOutputToBusOnly = InWaveInstance->bOutputToBusOnly;
 
 				// If this source is sending its audio to a bus
-				if (InWaveInstance->SoundSourceBusSends.Num() > 0)
+				for (int32 BusSendType = 0; BusSendType < (int32)EBusSendType::Count; ++BusSendType)
 				{
 					// And add all the source bus sends
-					for (FSoundSourceBusSendInfo& SendInfo : InWaveInstance->SoundSourceBusSends)
+					for (FSoundSourceBusSendInfo& SendInfo : InWaveInstance->SoundSourceBusSends[BusSendType])
 					{
 						if (SendInfo.SoundSourceBus != nullptr)
 						{
 							FMixerBusSend BusSend;
 							BusSend.BusId = SendInfo.SoundSourceBus->GetUniqueID();
 							BusSend.SendLevel = SendInfo.SendLevel;
-							InitParams.BusSends.Add(BusSend);
+							InitParams.BusSends[BusSendType].Add(BusSend);
 						}
 					}
 				}
@@ -143,36 +160,48 @@ namespace Audio
 				// We'll only be using non-default submix sends (e.g. reverb).
 				if (!(InWaveInstance->SpatializationMethod == ESoundSpatializationAlgorithm::SPATIALIZATION_HRTF && MixerDevice->bSpatializationIsExternalSend))
 				{
-					// If we've overridden which submix we're sending the sound, then add that as the first send
-					if (InWaveInstance->SoundSubmix != nullptr)
+					// If this sound is an ambisonics file, we preempt the normal base submix routing and only send to master ambisonics submix
+					if (InWaveInstance->bIsAmbisonics)
 					{
 						FMixerSourceSubmixSend SubmixSend;
-						SubmixSend.Submix = MixerDevice->GetSubmixInstance(InWaveInstance->SoundSubmix);
+						SubmixSend.Submix = MixerDevice->GetMasterAmbisonicsSubmix();
 						SubmixSend.SendLevel = 1.0f;
 						SubmixSend.bIsMainSend = true;
 						InitParams.SubmixSends.Add(SubmixSend);
 					}
 					else
 					{
-						// Send the voice to the EQ submix if it's enabled
-						const bool bIsEQDisabled = GetDefault<UAudioSettings>()->bDisableMasterEQ;
-						if (!bIsEQDisabled && IsEQFilterApplied())
+						// If we've overridden which submix we're sending the sound, then add that as the first send
+						if (InWaveInstance->SoundSubmix != nullptr)
 						{
-							// Default the submix to use to use the master submix if none are set
 							FMixerSourceSubmixSend SubmixSend;
-							SubmixSend.Submix = MixerDevice->GetMasterEQSubmix();
+							SubmixSend.Submix = MixerDevice->GetSubmixInstance(InWaveInstance->SoundSubmix);
 							SubmixSend.SendLevel = 1.0f;
 							SubmixSend.bIsMainSend = true;
 							InitParams.SubmixSends.Add(SubmixSend);
 						}
 						else
 						{
-							// Default the submix to use to use the master submix if none are set
-							FMixerSourceSubmixSend SubmixSend;
-							SubmixSend.Submix = MixerDevice->GetMasterSubmix();
-							SubmixSend.SendLevel = 1.0f;
-							SubmixSend.bIsMainSend = true;
-							InitParams.SubmixSends.Add(SubmixSend);
+							// Send the voice to the EQ submix if it's enabled
+							const bool bIsEQDisabled = GetDefault<UAudioSettings>()->bDisableMasterEQ;
+							if (!bIsEQDisabled && IsEQFilterApplied())
+							{
+								// Default the submix to use to use the master submix if none are set
+								FMixerSourceSubmixSend SubmixSend;
+								SubmixSend.Submix = MixerDevice->GetMasterEQSubmix();
+								SubmixSend.SendLevel = 1.0f;
+								SubmixSend.bIsMainSend = true;
+								InitParams.SubmixSends.Add(SubmixSend);
+							}
+							else
+							{
+								// Default the submix to use to use the master submix if none are set
+								FMixerSourceSubmixSend SubmixSend;
+								SubmixSend.Submix = MixerDevice->GetMasterSubmix();
+								SubmixSend.SendLevel = 1.0f;
+								SubmixSend.bIsMainSend = true;
+								InitParams.SubmixSends.Add(SubmixSend);
+							}
 						}
 					}
 				}
@@ -189,6 +218,14 @@ namespace Audio
 						InitParams.SubmixSends.Add(SubmixSend);
 					}
 				}
+			}
+
+			// Loop through all submix sends to figure out what speaker maps this source is using
+			for (FMixerSourceSubmixSend& Send : InitParams.SubmixSends)
+			{
+				ESubmixChannelFormat SubmixChannelType = Send.Submix->GetSubmixChannels();
+				ChannelMaps[(int32)SubmixChannelType].bUsed = true;
+				ChannelMaps[(int32)SubmixChannelType].ChannelMap.Reset();
 			}
 
 			// Check to see if this sound has been flagged to be in debug mode
@@ -245,8 +282,6 @@ namespace Audio
 				}
 
 				bInitialized = true;
-
-				ChannelMap.Reset();
 
 				Update();
 
@@ -309,11 +344,10 @@ namespace Audio
 			EBufferType::Type BufferType = MixerBuffer->GetType();
 			bResourcesNeedFreeing = (BufferType == EBufferType::PCMRealTime || BufferType == EBufferType::Streaming);
 
-			// Not all wave data types have PCM data size at this point (e.g. procedural sound waves)
-			if (InWaveInstance->WaveData->RawPCMDataSize > 0)
+			// Not all wave data types have a non-zero duration
+			if (InWaveInstance->WaveData->Duration > 0)
 			{
-				int32 NumBytes = InWaveInstance->WaveData->RawPCMDataSize;
-				NumTotalFrames = NumBytes / (Buffer->NumChannels * sizeof(int16));
+				NumTotalFrames = InWaveInstance->WaveData->Duration * InWaveInstance->WaveData->SampleRate;
 				check(NumTotalFrames > 0);
 			}
 
@@ -483,18 +517,32 @@ namespace Audio
 
 	float FMixerSource::GetPlaybackPercent() const
 	{
-		if (NumTotalFrames > 0)
+		if (MixerSourceVoice && NumTotalFrames > 0)
 		{
 			int64 NumFrames = MixerSourceVoice->GetNumFramesPlayed();
 			AUDIO_MIXER_CHECK(NumTotalFrames > 0);
-			return (float)NumFrames / NumTotalFrames;
+			float PlaybackPercent = (float)NumFrames / NumTotalFrames;
+			if (WaveInstance->LoopingMode == LOOP_Never)
+			{
+				PlaybackPercent = FMath::Min(PlaybackPercent, 1.0f);
+			}
+			return PlaybackPercent;
 		}
 		else
 		{
 			// If we don't have any frames, that means it's a procedural sound wave, which means
 			// that we're never going to have a playback percentage.
-			return 0.0f;
+			return 1.0f;
 		}
+	}
+
+	float FMixerSource::GetEnvelopeValue() const
+	{
+		if (MixerSourceVoice)
+		{
+			return MixerSourceVoice->GetEnvelopeValue();
+		}
+		return 0.0f;
 	}
 
 	void FMixerSource::SubmitPCMBuffers()
@@ -731,6 +779,14 @@ namespace Audio
 		}
 	}
 
+	void FMixerSource::OnBeginGenerate()
+	{
+		if (MixerBuffer)
+		{
+			MixerBuffer->OnBeginGenerate();
+		}
+	}
+
 	void FMixerSource::OnSourceBufferEnd()
 	{
 		FScopeLock Lock(&RenderThreadCritSect);
@@ -823,6 +879,14 @@ namespace Audio
 		bBuffersToFlush = false;
 		bLoopCallback = false;
 		bResourcesNeedFreeing = false;
+		NumTotalFrames = 0;
+
+		// Reset the source's channel maps
+		for (int32 i = 0; i < (int32)ESubmixChannelFormat::Count; ++i)
+		{
+			ChannelMaps[i].bUsed = false;
+			ChannelMaps[i].ChannelMap.Reset();
+		}
 	}
 
 	void FMixerSource::UpdatePitch()
@@ -901,6 +965,7 @@ namespace Audio
 		if (bReverbApplied)
 		{
 			float ReverbSendLevel = 0.0f;
+			ChannelMaps[(int32)ESubmixChannelFormat::Device].bUsed = true;
 
 			if (WaveInstance->ReverbSendMethod == EReverbSendMethod::Manual)
 			{
@@ -939,10 +1004,14 @@ namespace Audio
 
 		for (FSoundSubmixSendInfo& SendInfo : WaveInstance->SoundSubmixSends)
 		{
-			if (SendInfo.SoundSubmix)
+			if (SendInfo.SoundSubmix != nullptr)
 			{
 				FMixerSubmixPtr SubmixInstance = MixerDevice->GetSubmixInstance(SendInfo.SoundSubmix);
 				MixerSourceVoice->SetSubmixSendInfo(SubmixInstance, SendInfo.SendLevel);
+
+				// Make sure we flag that we're using this submix sends since these can be dynamically added from BP
+				// If we don't flag this then these channel maps won't be generated for this channel format
+				ChannelMaps[(int32)SendInfo.SoundSubmix->ChannelFormat].bUsed = true;
 			}
 		}
 	}
@@ -953,18 +1022,31 @@ namespace Audio
 
 		SetLFEBleed();
 
-		bool bChanged = false;
+		int32 NumOutputDeviceChannels = MixerDevice->GetNumDeviceChannels();
+		const FAudioPlatformDeviceInfo& DeviceInfo = MixerDevice->GetPlatformDeviceInfo();
 
-		check(Buffer);
-		bChanged = ComputeChannelMap(Buffer->NumChannels);
-
-		if (bChanged)
+		// Compute a new speaker map for each possible output channel mapping for the source
+		for (int32 i = 0; i < (int32)ESubmixChannelFormat::Count; ++i)
 		{
-			MixerSourceVoice->SetChannelMap(ChannelMap, bIs3D, WaveInstance->bCenterChannelOnly);
+			FChannelMapInfo& ChannelMapInfo = ChannelMaps[i];
+			if (ChannelMapInfo.bUsed)
+			{
+				ESubmixChannelFormat ChannelType = (ESubmixChannelFormat)i;
+
+				// We don't need to compute speaker maps for ambisonics channel maps since we're not doing downmixing on ambisonics sources
+				if (ChannelType != ESubmixChannelFormat::Ambisonics)
+				{
+					check(Buffer);
+					if (ComputeChannelMap(ChannelType, Buffer->NumChannels, ChannelMapInfo.ChannelMap))
+					{
+						MixerSourceVoice->SetChannelMap(ChannelType, ChannelMapInfo.ChannelMap, bIs3D, WaveInstance->bCenterChannelOnly);
+					}
+				}
+			}
 		}
 	}
 
-	bool FMixerSource::ComputeMonoChannelMap()
+	bool FMixerSource::ComputeMonoChannelMap(const ESubmixChannelFormat SubmixChannelType, TArray<float>& OutChannelMap)
 	{
 		if (UseObjectBasedSpatialization())
 		{
@@ -975,20 +1057,20 @@ namespace Audio
 			}
 
 			// Treat the source as if it is a 2D stereo source
-			return ComputeStereoChannelMap();
+			return ComputeStereoChannelMap(SubmixChannelType, OutChannelMap);
 		}
 		else if (WaveInstance->bUseSpatialization && (!FMath::IsNearlyEqual(WaveInstance->AbsoluteAzimuth, PreviousAzimuth, 0.01f) || MixerSourceVoice->NeedsSpeakerMap()))
 		{
 			// Don't need to compute the source channel map if the absolute azimuth hasn't changed much
 			PreviousAzimuth = WaveInstance->AbsoluteAzimuth;
-			ChannelMap.Reset();
-			MixerDevice->Get3DChannelMap(WaveInstance, WaveInstance->AbsoluteAzimuth, SpatializationParams.NormalizedOmniRadius, ChannelMap);
+			OutChannelMap.Reset();
+			MixerDevice->Get3DChannelMap(SubmixChannelType, WaveInstance, WaveInstance->AbsoluteAzimuth, SpatializationParams.NormalizedOmniRadius, OutChannelMap);
 			return true;
 		}
-		else if (!ChannelMap.Num())
+		else if (!OutChannelMap.Num())
 		{
 			// Only need to compute the 2D channel map once
-			MixerDevice->Get2DChannelMap(1, MixerDevice->GetNumDeviceChannels(), WaveInstance->bCenterChannelOnly, ChannelMap);
+			MixerDevice->Get2DChannelMap(bIsVorbis, SubmixChannelType, 1, WaveInstance->bCenterChannelOnly, OutChannelMap);
 			return true;
 		}
 
@@ -996,7 +1078,7 @@ namespace Audio
 		return false;
 	}
 
-	bool FMixerSource::ComputeStereoChannelMap()
+	bool FMixerSource::ComputeStereoChannelMap(const ESubmixChannelFormat InSubmixChannelType, TArray<float>& OutChannelMap)
 	{
 		if (!UseObjectBasedSpatialization() && WaveInstance->bUseSpatialization && (!FMath::IsNearlyEqual(WaveInstance->AbsoluteAzimuth, PreviousAzimuth, 0.01f) || MixerSourceVoice->NeedsSpeakerMap()))
 		{
@@ -1023,37 +1105,35 @@ namespace Audio
 			}
 
 			// Reset the channel map, the stereo spatialization channel mapping calls below will append their mappings
-			ChannelMap.Reset();
+			OutChannelMap.Reset();
 
-			MixerDevice->Get3DChannelMap(WaveInstance, LeftAzimuth, SpatializationParams.NormalizedOmniRadius, ChannelMap);
-			MixerDevice->Get3DChannelMap(WaveInstance, RightAzimuth, SpatializationParams.NormalizedOmniRadius, ChannelMap);
+			MixerDevice->Get3DChannelMap(InSubmixChannelType, WaveInstance, LeftAzimuth, SpatializationParams.NormalizedOmniRadius, OutChannelMap);
+			MixerDevice->Get3DChannelMap(InSubmixChannelType, WaveInstance, RightAzimuth, SpatializationParams.NormalizedOmniRadius, OutChannelMap);
 
-			int32 NumDeviceChannels = MixerDevice->GetNumDeviceChannels();
-			check(ChannelMap.Num() == 2 * NumDeviceChannels);
 			return true;
 		}
-		else if (!ChannelMap.Num())
+		else if (!OutChannelMap.Num())
 		{
-			MixerDevice->Get2DChannelMap(2, MixerDevice->GetNumDeviceChannels(), WaveInstance->bCenterChannelOnly, ChannelMap);
+			MixerDevice->Get2DChannelMap(bIsVorbis, InSubmixChannelType, 2, WaveInstance->bCenterChannelOnly, OutChannelMap);
 			return true;
 		}
 
 		return false;
 	}
 
-	bool FMixerSource::ComputeChannelMap(const int32 NumChannels)
+	bool FMixerSource::ComputeChannelMap(const ESubmixChannelFormat InSubmixChannelType, const int32 NumSourceChannels, TArray<float>& OutChannelMap)
 	{
-		if (NumChannels == 1)
+		if (NumSourceChannels == 1)
 		{
-			return ComputeMonoChannelMap();
+			return ComputeMonoChannelMap(InSubmixChannelType, OutChannelMap);
 		}
-		else if (NumChannels == 2)
+		else if (NumSourceChannels == 2)
 		{
-			return ComputeStereoChannelMap();
+			return ComputeStereoChannelMap(InSubmixChannelType, OutChannelMap);
 		}
-		else if (!ChannelMap.Num())
+		else if (!OutChannelMap.Num())
 		{
-			MixerDevice->Get2DChannelMap(NumChannels, MixerDevice->GetNumDeviceChannels(), WaveInstance->bCenterChannelOnly, ChannelMap);
+			MixerDevice->Get2DChannelMap(bIsVorbis, InSubmixChannelType, NumSourceChannels, WaveInstance->bCenterChannelOnly, OutChannelMap);
 			return true;
 		}
 		return false;

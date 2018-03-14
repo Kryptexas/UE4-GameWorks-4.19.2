@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -126,6 +126,9 @@ public:
 
 		/** Delegate for when a list of files is dropped on this folder (if it is a folder) from an external source */
 		SLATE_EVENT( FOnFilesDragDropped, OnFilesDragDropped )
+
+		/** Delegate to call (if bound) to check if it is valid to get a custom tooltip for this view item */
+		SLATE_EVENT(FOnIsAssetValidForCustomToolTip, OnIsAssetValidForCustomToolTip)
 
 		/** Delegate to call (if bound) to get a custom tooltip for this view item */
 		SLATE_EVENT( FOnGetCustomAssetToolTip, OnGetCustomAssetToolTip )
@@ -295,6 +298,9 @@ protected:
 	/** Called when any asset item is destroyed. Used in thumbnail management */
 	FOnItemDestroyed OnItemDestroyed;
 
+	/** Called to test if it is valid to make a custom tool tip for that asset */
+	FOnIsAssetValidForCustomToolTip OnIsAssetValidForCustomToolTip;
+
 	/** Called if bound to get a custom asset item tooltip */
 	FOnGetCustomAssetToolTip OnGetCustomAssetToolTip;
 
@@ -412,6 +418,9 @@ public:
 		/** Delegate for when a list of files is dropped on this folder (if it is a folder) from an external source */
 		SLATE_EVENT( FOnFilesDragDropped, OnFilesDragDropped )
 
+		/** Delegate to call (if bound) to check if it is valid to get a custom tooltip for this view item */
+		SLATE_EVENT(FOnIsAssetValidForCustomToolTip, OnIsAssetValidForCustomToolTip)
+
 		/** Delegate to request a custom tool tip if necessary */
 		SLATE_EVENT(FOnGetCustomAssetToolTip, OnGetCustomAssetToolTip)
 
@@ -520,6 +529,9 @@ public:
 		/** Delegate for when a list of files is dropped on this folder (if it is a folder) from an external source */
 		SLATE_EVENT( FOnFilesDragDropped, OnFilesDragDropped )
 
+		/** Delegate to call (if bound) to check if it is valid to get a custom tooltip for this view item */
+		SLATE_EVENT(FOnIsAssetValidForCustomToolTip, OnIsAssetValidForCustomToolTip)
+
 		/** Delegate to request a custom tool tip if necessary */
 		SLATE_EVENT(FOnGetCustomAssetToolTip, OnGetCustomAssetToolTip)
 
@@ -596,6 +608,9 @@ public:
 
 		/** Delegate for when a list of files is dropped on this folder (if it is a folder) from an external source */
 		SLATE_EVENT( FOnFilesDragDropped, OnFilesDragDropped )
+
+		/** Delegate to call (if bound) to check if it is valid to get a custom tooltip for this view item */
+		SLATE_EVENT(FOnIsAssetValidForCustomToolTip, OnIsAssetValidForCustomToolTip)
 
 		/** Delegate to request a custom tool tip if necessary */
 		SLATE_EVENT( FOnGetCustomAssetToolTip, OnGetCustomAssetToolTip)

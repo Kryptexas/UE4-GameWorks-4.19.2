@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Kismet/KismetTextLibrary.h"
 #include "Internationalization/TextFormatter.h"
@@ -169,11 +169,12 @@ FText UKismetTextLibrary::Conv_ByteToText(uint8 Value)
 	return FText::AsNumber(Value, &FNumberFormattingOptions::DefaultNoGrouping());
 }
 
-FText UKismetTextLibrary::Conv_IntToText(int32 Value, bool bUseGrouping/* = true*/, int32 MinimumIntegralDigits/* = 1*/, int32 MaximumIntegralDigits/* = 324*/)
+FText UKismetTextLibrary::Conv_IntToText(int32 Value, bool bAlwaysSign/* = false*/, bool bUseGrouping/* = true*/, int32 MinimumIntegralDigits/* = 1*/, int32 MaximumIntegralDigits/* = 324*/)
 {
 	// Only update the values that need to be changed from the default FNumberFormattingOptions, 
 	// as this lets us use the default formatter if possible (which is a performance win!)
 	FNumberFormattingOptions NumberFormatOptions;
+	NumberFormatOptions.AlwaysSign = bAlwaysSign;
 	NumberFormatOptions.UseGrouping = bUseGrouping;
 	NumberFormatOptions.MinimumIntegralDigits = MinimumIntegralDigits;
 	NumberFormatOptions.MaximumIntegralDigits = MaximumIntegralDigits;
@@ -181,9 +182,10 @@ FText UKismetTextLibrary::Conv_IntToText(int32 Value, bool bUseGrouping/* = true
 	return FText::AsNumber(Value, &NumberFormatOptions);
 }
 
-FText UKismetTextLibrary::Conv_FloatToText(float Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bUseGrouping/* = true*/, int32 MinimumIntegralDigits/* = 1*/, int32 MaximumIntegralDigits/* = 324*/, int32 MinimumFractionalDigits/* = 0*/, int32 MaximumFractionalDigits/* = 3*/)
+FText UKismetTextLibrary::Conv_FloatToText(float Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bAlwaysSign/* = false*/, bool bUseGrouping/* = true*/, int32 MinimumIntegralDigits/* = 1*/, int32 MaximumIntegralDigits/* = 324*/, int32 MinimumFractionalDigits/* = 0*/, int32 MaximumFractionalDigits/* = 3*/)
 {
 	FNumberFormattingOptions NumberFormatOptions;
+	NumberFormatOptions.AlwaysSign = bAlwaysSign;
 	NumberFormatOptions.UseGrouping = bUseGrouping;
 	NumberFormatOptions.RoundingMode = RoundingMode;
 	NumberFormatOptions.MinimumIntegralDigits = MinimumIntegralDigits;
@@ -201,9 +203,10 @@ FText UKismetTextLibrary::AsCurrencyBase(int32 BaseValue, const FString& Currenc
 
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
 // FIXME: we need to deprecate this kismet api too
-FText UKismetTextLibrary::AsCurrency_Integer(int32 Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bUseGrouping/* = true*/, int32 MinimumIntegralDigits/* = 1*/, int32 MaximumIntegralDigits/* = 324*/, int32 MinimumFractionalDigits/* = 0*/, int32 MaximumFractionalDigits/* = 3*/, const FString& CurrencyCode)
+FText UKismetTextLibrary::AsCurrency_Integer(int32 Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bAlwaysSign/* = false*/, bool bUseGrouping/* = true*/, int32 MinimumIntegralDigits/* = 1*/, int32 MaximumIntegralDigits/* = 324*/, int32 MinimumFractionalDigits/* = 0*/, int32 MaximumFractionalDigits/* = 3*/, const FString& CurrencyCode)
 {
 	FNumberFormattingOptions NumberFormatOptions;
+	NumberFormatOptions.AlwaysSign = bAlwaysSign;
 	NumberFormatOptions.UseGrouping = bUseGrouping;
 	NumberFormatOptions.RoundingMode = RoundingMode;
 	NumberFormatOptions.MinimumIntegralDigits = MinimumIntegralDigits;
@@ -212,9 +215,10 @@ FText UKismetTextLibrary::AsCurrency_Integer(int32 Value, TEnumAsByte<ERoundingM
 	NumberFormatOptions.MaximumFractionalDigits = MaximumFractionalDigits;
 	return FText::AsCurrency(Value, CurrencyCode, &NumberFormatOptions);
 }
-FText UKismetTextLibrary::AsCurrency_Float(float Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bUseGrouping/* = true*/, int32 MinimumIntegralDigits/* = 1*/, int32 MaximumIntegralDigits/* = 324*/, int32 MinimumFractionalDigits/* = 0*/, int32 MaximumFractionalDigits/* = 3*/, const FString& CurrencyCode)
+FText UKismetTextLibrary::AsCurrency_Float(float Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bAlwaysSign/* = false*/, bool bUseGrouping/* = true*/, int32 MinimumIntegralDigits/* = 1*/, int32 MaximumIntegralDigits/* = 324*/, int32 MinimumFractionalDigits/* = 0*/, int32 MaximumFractionalDigits/* = 3*/, const FString& CurrencyCode)
 {
 	FNumberFormattingOptions NumberFormatOptions;
+	NumberFormatOptions.AlwaysSign = bAlwaysSign;
 	NumberFormatOptions.UseGrouping = bUseGrouping;
 	NumberFormatOptions.RoundingMode = RoundingMode;
 	NumberFormatOptions.MinimumIntegralDigits = MinimumIntegralDigits;
@@ -225,9 +229,10 @@ FText UKismetTextLibrary::AsCurrency_Float(float Value, TEnumAsByte<ERoundingMod
 }
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
-FText UKismetTextLibrary::AsPercent_Float(float Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bUseGrouping/* = true*/, int32 MinimumIntegralDigits/* = 1*/, int32 MaximumIntegralDigits/* = 324*/, int32 MinimumFractionalDigits/* = 0*/, int32 MaximumFractionalDigits/* = 3*/)
+FText UKismetTextLibrary::AsPercent_Float(float Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bAlwaysSign/* = false*/, bool bUseGrouping/* = true*/, int32 MinimumIntegralDigits/* = 1*/, int32 MaximumIntegralDigits/* = 324*/, int32 MinimumFractionalDigits/* = 0*/, int32 MaximumFractionalDigits/* = 3*/)
 {
 	FNumberFormattingOptions NumberFormatOptions;
+	NumberFormatOptions.AlwaysSign = bAlwaysSign;
 	NumberFormatOptions.UseGrouping = bUseGrouping;
 	NumberFormatOptions.RoundingMode = RoundingMode;
 	NumberFormatOptions.MinimumIntegralDigits = MinimumIntegralDigits;

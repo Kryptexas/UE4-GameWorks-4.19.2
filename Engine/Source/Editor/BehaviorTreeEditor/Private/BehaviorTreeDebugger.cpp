@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeDebugger.h"
 #include "GameFramework/Actor.h"
@@ -311,7 +311,7 @@ void FBehaviorTreeDebugger::OnTreeStarted(const UBehaviorTreeComponent& OwnerCom
 	if (!TreeInstance.IsValid() && TreeAsset && TreeAsset == &InTreeAsset)
 	{
 		ClearDebuggerState();
-		TreeInstance = &OwnerComp;
+		TreeInstance = MakeWeakObjectPtr(const_cast<UBehaviorTreeComponent*>(&OwnerComp));
 
 		UpdateDebuggerViewOnInstanceChange();
 	}

@@ -25,7 +25,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 まず最初に、このガイドで作業する [プロジェクト](Engine/Basics/Projects) を作成する必要があります。 
 以降のステップでは、アンリアル エンジン 4 の [プロジェクト ブラウザ](Engine/Basics/Projects/Browser) を使ってプロジェクトを作成していきます。
@@ -52,5 +52,5 @@ checkpoint: editorqs
 
 次のステップでは、アンリアル エディタ内の **ビューポート** の基本的な制御について説明します。 
 
-%Steps%
+
 

@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine\Animation\AnimMontage
 Title: Using Animation Montages
 Description:Describes how Animation Montages can be played back at runtime.
@@ -9,7 +9,6 @@ Parent: Engine\Animation\AnimMontage
 Order: 1
 Tags: Animation
 Tags: Animation Montage
-Tags: Animation Assets
 topic-image:PlayMontage.png
 social-image:PlayMontage.png
 Related: Engine/Content/Types/SkeletalMeshes
@@ -22,7 +21,6 @@ Related: Engine/Animation/AnimBlueprints
 
 After [creating a Montage](Engine\Animation\AnimMontage\Creation) and [editing the Montage](Engine\Animation\AnimMontage\Editor), you will probably want to play your Montage at runtime. 
 You can have your Montage automatically start playing by assigning it to a **Skeletal Mesh** or, for more flexibility, you may want to set up a **Blueprint Script** or C++ code that will call your Montage or Sections within your Montage to start playing based on gameplay conditions. 
-
 
 ## Using Anim to Play on a Skeletal Mesh
 

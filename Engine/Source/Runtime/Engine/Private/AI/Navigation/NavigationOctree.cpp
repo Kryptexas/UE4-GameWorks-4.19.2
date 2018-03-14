@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AI/NavigationOctree.h"
 #include "AI/Navigation/NavRelevantInterface.h"
@@ -67,9 +67,10 @@ void FNavigationOctree::DemandLazyDataGathering(FNavigationRelevantData& Element
 
 	if (bShrink)
 	{
+		// validate exported data
 		// shrink arrays before counting memory
 		// it will be reallocated when adding to octree and RemoveNode will have different value returned by GetAllocatedSize()
-		ElementData.Shrink();
+		ElementData.ValidateAndShrink();
 	}
 
 	const int32 ElementMemoryChange = ElementData.GetGeometryAllocatedSize() - OrgElementMemory;
@@ -122,9 +123,10 @@ void FNavigationOctree::AddNode(UObject* ElementOb, INavRelevantInterface* NavEl
 		}
 	}
 
+	// validate exported data
 	// shrink arrays before counting memory
 	// it will be reallocated when adding to octree and RemoveNode will have different value returned by GetAllocatedSize()
-	Element.Shrink();
+	Element.ValidateAndShrink();
 
 	const int32 ElementMemory = Element.GetAllocatedSize();
 	NodesMemory += ElementMemory;
@@ -146,9 +148,10 @@ void FNavigationOctree::AppendToNode(const FOctreeElementId& Id, INavRelevantInt
 		NavElement->GetNavigationData(*Element.Data);
 	}
 
+	// validate exported data
 	// shrink arrays before counting memory
 	// it will be reallocated when adding to octree and RemoveNode will have different value returned by GetAllocatedSize()
-	Element.Shrink();
+	Element.ValidateAndShrink();
 
 	const int32 OrgElementMemory = OrgData.GetAllocatedSize();
 	const int32 NewElementMemory = Element.GetAllocatedSize();
@@ -195,6 +198,12 @@ const FNavigationRelevantData* FNavigationOctree::GetDataForID(const FOctreeElem
 // FNavigationRelevantData
 //----------------------------------------------------------------------//
 
+bool FNavigationRelevantData::FCollisionDataHeader::IsValid(const uint8* RawData, int32 RawDataSize)
+{
+	const int32 HeaderSize = sizeof(FCollisionDataHeader);
+	return (RawDataSize == 0) || ((RawDataSize >= HeaderSize) && (((const FCollisionDataHeader*)RawData)->DataSize == RawDataSize));
+}
+
 bool FNavigationRelevantData::HasPerInstanceTransforms() const
 {
 	return NavDataPerInstanceTransformDelegate.IsBound();
@@ -213,6 +222,18 @@ void FNavigationRelevantData::Shrink()
 	CollisionData.Shrink();
 	VoxelData.Shrink();
 	Modifiers.Shrink();
+}
+
+bool FNavigationRelevantData::IsCollisionDataValid() const
+{
+	const bool bIsValid = FCollisionDataHeader::IsValid(CollisionData.GetData(), CollisionData.Num());
+	if (!ensure(bIsValid))
+	{
+		UE_LOG(LogNavigation, Error, TEXT("NavOctree element has corrupted collision data! Owner:%s Bounds:%s"), *GetNameSafe(GetOwner()), *Bounds.ToString());
+		return false;
+	}
+
+	return true;
 }
 
 //----------------------------------------------------------------------//

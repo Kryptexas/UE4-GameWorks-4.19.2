@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OculusNetConnection.h"
 #include "OnlineSubsystemOculusPrivate.h"
@@ -42,6 +42,9 @@ void UOculusNetConnection::InitLocalConnection(UNetDriver* InDriver, class FSock
 		// Use the default packet size/overhead unless overridden by a child class
 		InMaxPacket == 0 ? MAX_PACKET_SIZE : InMaxPacket,
 		0);
+
+	auto OculusAddr = FInternetAddrOculus(InURL);
+	PeerID = OculusAddr.GetID();
 }
 
 void UOculusNetConnection::InitRemoteConnection(UNetDriver* InDriver, class FSocket* InSocket, const FURL& InURL, const class FInternetAddr& InRemoteAddr, EConnectionState InState, int32 InMaxPacket, int32 InPacketOverhead)
@@ -86,8 +89,6 @@ void UOculusNetConnection::LowLevelSend(void* Data, int32 CountBytes, int32 Coun
 
 	const uint8* DataToSend = reinterpret_cast<uint8*>(Data);
 
-	UE_LOG(LogNetTraffic, VeryVerbose, TEXT("Low level send to: %llu Count: %d"), PeerID, CountBytes);
-
 	// Process any packet modifiers
 	if (Handler.IsValid() && !Handler->GetRawSend())
 	{
@@ -112,6 +113,7 @@ void UOculusNetConnection::LowLevelSend(void* Data, int32 CountBytes, int32 Coun
 
 	if (!bBlockSend && CountBytes > 0)
 	{
+		UE_LOG(LogNetTraffic, VeryVerbose, TEXT("Low level send to: %llu Count: %d"), PeerID, CountBytes);
 		ovr_Net_SendPacket(PeerID, static_cast<size_t>(CountBytes), DataToSend, (InternalAck) ? ovrSend_Reliable : ovrSend_Unreliable);
 	}
 }

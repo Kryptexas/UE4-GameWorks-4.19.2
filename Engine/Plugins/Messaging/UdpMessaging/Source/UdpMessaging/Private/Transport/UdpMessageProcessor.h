@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -148,6 +148,16 @@ public:
 	 * @return true if the message was queued up, false otherwise.
 	 */
 	bool EnqueueOutboundMessage(const TSharedRef<FUdpSerializedMessage, ESPMode::ThreadSafe>& SerializedMessage, const FGuid& Recipient);
+
+	/**
+	 * Get the event used to signal the message processor that work is available.
+	 *
+	 * @return The event.
+	 */
+	const TSharedPtr<FEvent, ESPMode::ThreadSafe>& GetWorkEvent() const
+	{
+		return WorkEvent;
+	}
 
 public:
 
@@ -319,11 +329,6 @@ protected:
 
 private:
 
-	/** Handles message data state changes. */
-	void HandleSerializedMessageStateChanged();
-
-private:
-
 	/** Holds the queue of outbound messages. */
 	TQueue<FInboundSegment, EQueueMode::Mpsc> InboundSegments;
 
@@ -366,7 +371,7 @@ private:
 	FRunnableThread* Thread;
 
 	/** Holds an event signaling that inbound messages need to be processed. */
-	FEvent* WorkEvent;
+	TSharedPtr<FEvent, ESPMode::ThreadSafe> WorkEvent;
 
 private:
 

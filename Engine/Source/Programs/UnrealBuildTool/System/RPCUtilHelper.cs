@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections;
@@ -332,7 +332,7 @@ namespace UnrealBuildTool
 			{
 				// Zip source directory
 				string SourceWorkingDir = Path.GetDirectoryName(Source).Replace("\\", "/");
-				string ZipCommand = "zip -0 -r -y -T " + SourceDirName + ".zip " + SourceDirName;
+				string ZipCommand = "zip -0 -r -y -x .DS_Store -T " + SourceDirName + ".zip " + SourceDirName;
 				Command(SourceWorkingDir, ZipCommand, "", null);
 
 				// Download the zip file

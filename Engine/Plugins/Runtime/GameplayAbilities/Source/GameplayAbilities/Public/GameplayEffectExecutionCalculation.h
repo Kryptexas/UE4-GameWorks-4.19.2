@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -107,12 +107,12 @@ public:
 
 	/** 
 	 *	Returns all modifiers for a given captured def. Note the returned list is a direct reference to the internal list stored in the attribute aggregators (possibly a snapshot copy or possibly the "real" ones).
-	 *	Also note the modifiers returned or NOT qualified! You will still want to qualifiy them on an FAggregatorEvaluateParameters yourself. (Having this function internally do it would onyl be possible if this function
-	 *	returned a copy of the mod list which is something we would like to avoid).
+	 *	Also note that all modifiers are returned, even ones that do not qualify for the given InEvalParams. You will still need to check ::Qualifies() on the mods themselves to see if they "count".
+	 *  (we are returning a direct reference to the internal mod list, so we do not want to remove them or force a copy).
 	 *	
-	 *	Consider using ForEachQualifiedAttributeMod when you want to "do something for every qualifier mod"
+	 *	Consider using ForEachQualifiedAttributeMod when you want to "do something for every qualifier mod".
 	 */
-	bool AttemptGatherAttributeMods(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutModMap) const;
+	bool AttemptGatherAttributeMods(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, const FAggregatorEvaluateParameters& InEvalParams, OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutModMap) const;
 
 	/** Runs given TFunction on every qualifier mod for a given AttributeCaptureDefinition */
 	bool ForEachQualifiedAttributeMod(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, const FAggregatorEvaluateParameters& InEvalParams, TFunction< void(EGameplayModEvaluationChannel, EGameplayModOp::Type, const FAggregatorMod&) >) const;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShowFlags.h: Show Flag Definitions.
@@ -389,6 +389,7 @@ private:
 		SetRequiredTextureResolution(false);
 		SetMotionBlur(InitMode != ESFIM_Editor);
 		SetBones(false);
+		SetScreenPercentage(InitMode != ESFIM_Editor);
 	}
 
 

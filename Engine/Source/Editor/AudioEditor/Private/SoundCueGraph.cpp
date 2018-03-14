@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SoundCueGraph/SoundCueGraph.h"
 #include "SoundCueGraph/SoundCueGraphSchema.h"
@@ -159,7 +159,7 @@ public:
 		{
 			if (InputPins[i])
 			{
-				InputPins[i]->PinName = SoundNode->GetInputPinName(i).ToString();
+				InputPins[i]->PinName = *SoundNode->GetInputPinName(i).ToString();
 			}
 		}
 	}

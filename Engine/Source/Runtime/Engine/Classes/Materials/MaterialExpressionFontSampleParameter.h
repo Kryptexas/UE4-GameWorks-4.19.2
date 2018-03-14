@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -10,6 +10,7 @@
 #include "MaterialExpressionFontSampleParameter.generated.h"
 
 class UFont;
+struct FMaterialParameterInfo;
 
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionFontSampleParameter : public UMaterialExpressionFontSample
@@ -27,6 +28,12 @@ class UMaterialExpressionFontSampleParameter : public UMaterialExpressionFontSam
 	/** The name of the parameter Group to display in MaterialInstance Editor. Default is None group */
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionFontSampleParameter)
 	FName Group;
+
+#if WITH_EDITORONLY_DATA
+	/** Controls where the this parameter is displayed in a material instance parameter list. The lower the number the higher up in the parameter list. */
+	UPROPERTY(EditAnywhere, Category = MaterialExpressionFontSampleParameter)
+	int32 SortPriority;
+#endif
 
 	//~ Begin UMaterialExpression Interface
 #if WITH_EDITOR
@@ -46,7 +53,11 @@ class UMaterialExpressionFontSampleParameter : public UMaterialExpressionFontSam
 	//~ End UMaterialExpression Interface
 	
 	/** Return whether this is the named parameter, and fill in its value */
-	bool IsNamedParameter(FName InParameterName, UFont*& OutFontValue, int32& OutFontPage) const;
+	bool IsNamedParameter(const FMaterialParameterInfo& ParameterInfo, UFont*& OutFontValue, int32& OutFontPage) const;
+
+#if WITH_EDITOR
+	bool SetParameterValue(FName InParameterName, UFont* InFontValue, int32 InFontPage);
+#endif
 
 	/**
 	*	Sets the default Font if none is set
@@ -58,7 +69,7 @@ class UMaterialExpressionFontSampleParameter : public UMaterialExpressionFontSam
 		return ExpressionGUID;
 	}
 
-	void GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const;
+	void GetAllParameterInfo(TArray<FMaterialParameterInfo> &OutParameterInfo, TArray<FGuid> &OutParameterIds, const FMaterialParameterInfo& InBaseParameterInfo) const;
 };
 
 

@@ -73,19 +73,3 @@ type:landing
 [/PUBLISH:Rocket]
 
 [DIR(end:"1" output:"role" org:"hierarchy" parent:"%ROOT%" type:"landing")]
-
-<!--
-[REGION:frontpage]
-	[REGION:features third]
-	%GettingStarted:role%
-	%Engine/Editor:role%
-	%Engine:role%
-	%Programming:topicrole%
-	%Engine/Blueprints:role%
-	%Gameplay:role%
-	%Resources:role%
-	%Platforms:role%
-	%Support/Builds:role%
-	[/REGION]
-[/REGION]
--->

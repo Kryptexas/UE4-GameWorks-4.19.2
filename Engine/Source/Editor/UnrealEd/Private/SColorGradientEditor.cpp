@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SColorGradientEditor.h"
 #include "Fonts/SlateFontInfo.h"
@@ -16,6 +16,7 @@
 #include "Widgets/Layout/SBox.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Widgets/Input/SEditableTextBox.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "Editor.h"
 #include "Widgets/Input/SSpinBox.h"
@@ -261,7 +262,7 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 				
 			// Draw the text centered in the color region
 			{
-				FVector2D StringSize = FontMeasureService->Measure( GradientColorMessage, FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8 ) );
+				FVector2D StringSize = FontMeasureService->Measure(GradientColorMessage, FCoreStyle::GetDefaultFontStyle("Regular", 8));
 				FPaintGeometry PaintGeom = ColorMarkAreaGeometry.ToPaintGeometry(FSlateLayoutTransform(FVector2D((ColorMarkAreaGeometry.GetLocalSize().X - StringSize.X) * 0.5f, 1.0f)));
 
 				FSlateDrawElement::MakeText
@@ -270,7 +271,7 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 					LayerId,
 					PaintGeom,
 					GradientColorMessage,
-					FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8 ),
+					FCoreStyle::GetDefaultFontStyle("Regular", 8),
 					DrawEffects,
 					FLinearColor( .5f, .5f, .5f, .85f )
 				);	
@@ -278,7 +279,7 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 
 			// Draw the text centered in the alpha region
 			{
-				FVector2D StringSize = FontMeasureService->Measure( GradientAlphaMessage, FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8 ) );
+				FVector2D StringSize = FontMeasureService->Measure(GradientAlphaMessage, FCoreStyle::GetDefaultFontStyle("Regular", 8));
 				FPaintGeometry PaintGeom = AlphaMarkAreaGeometry.ToPaintGeometry(FSlateLayoutTransform(FVector2D((AlphaMarkAreaGeometry.GetLocalSize().X - StringSize.X) * 0.5f, 1.0f)));
 
 				FSlateDrawElement::MakeText
@@ -287,7 +288,7 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 					LayerId,
 					PaintGeom,
 					GradientAlphaMessage,
-					FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8 ),
+					FCoreStyle::GetDefaultFontStyle("Regular", 8),
 					DrawEffects,
 					FLinearColor( .5f, .5f, .5f, .85f )
 				);	

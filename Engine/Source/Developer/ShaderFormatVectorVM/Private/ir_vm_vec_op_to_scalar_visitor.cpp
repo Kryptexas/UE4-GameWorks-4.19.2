@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "ShaderFormatVectorVM.h"
@@ -25,9 +25,12 @@ PRAGMA_POP
 //Additional helper during scalaization to split any special vector expressions such as dot into their scalar operations.
 class ir_vec_op_to_scalar_visitor : public ir_hierarchical_visitor
 {
+	_mesa_glsl_parse_state* state;
+
 public:
-	ir_vec_op_to_scalar_visitor()
+	ir_vec_op_to_scalar_visitor(_mesa_glsl_parse_state* in_state)
 	{
+		state = in_state;
 		this->made_progress = false;
 	}
 
@@ -37,7 +40,7 @@ public:
 
 		check(base_ir->next && base_ir->prev);
 
-		void* parent = ralloc_parent(base_ir);
+		//void* parent = ralloc_parent(base_ir);
 		/* Avoid making a temporary if we don't need to to avoid aliasing. */
 		if (deref &&
 			deref->variable_referenced() != result->variable_referenced())
@@ -48,7 +51,7 @@ public:
 		/* Otherwise, store the operand in a temporary generally if it's
 		* not a dereference.
 		*/
-		ir_variable *var = new(parent)ir_variable(rval->type,
+		ir_variable *var = new(state)ir_variable(rval->type,
 			"vec_op_to_scalar",
 			ir_var_temporary);
 		base_ir->insert_before(var);
@@ -56,9 +59,9 @@ public:
 		/* Note that we use this dereference for the assignment.  That means
 		* that others that want to use op[i] have to clone the deref.
 		*/
-		deref = new(parent)ir_dereference_variable(var);
+		deref = new(state)ir_dereference_variable(var);
 
-		ir_assignment *assign = new(parent)ir_assignment(deref, rval);
+		ir_assignment *assign = new(state)ir_assignment(deref, rval);
 		check(assign->write_mask > 0);
 		base_ir->insert_before(assign);
 		return deref;
@@ -93,7 +96,7 @@ public:
 
 	ir_visitor_status visit_leave(ir_assignment * orig_assign)
 	{
-		void* parent = ralloc_parent(base_ir);
+		//void* parent = ralloc_parent(base_ir);
 		ir_expression *orig_expr = orig_assign->rhs->as_expression();
 		ir_dereference *op[2] = {nullptr, nullptr};
 
@@ -143,23 +146,23 @@ void ir_vec_op_to_scalar_visitor::do_dot(ir_dereference *result, ir_dereference 
 	ir_expression *expr;
 	check(base_ir->next && base_ir->prev);
 	check(a->type == b->type);
-	void* parent = ralloc_parent(base_ir);
+	//void* parent = ralloc_parent(base_ir);
 
-	expr = new(parent)ir_expression(ir_binop_mul, a->type->get_base_type(),
-		new(parent)ir_swizzle(a, 0, 0, 0, 0, 1),
-		new(parent)ir_swizzle(b, 0, 0, 0, 0, 1));
+	expr = new(state)ir_expression(ir_binop_mul, a->type->get_base_type(),
+		new(state)ir_swizzle(a, 0, 0, 0, 0, 1),
+		new(state)ir_swizzle(b, 0, 0, 0, 0, 1));
 
 	for (unsigned comp = 1; comp < a->type->vector_elements; comp++)
 	{
-		expr = new(parent)ir_expression(ir_binop_add, a->type->get_base_type(),
+		expr = new(state)ir_expression(ir_binop_add, a->type->get_base_type(),
 			expr,
-			new(parent)ir_expression(ir_binop_mul, a->type->get_base_type(),
-				new(parent)ir_swizzle(a, comp, 0, 0, 0, 1),
-				new(parent)ir_swizzle(b, comp, 0, 0, 0, 1))
+			new(state)ir_expression(ir_binop_mul, a->type->get_base_type(),
+				new(state)ir_swizzle(a, comp, 0, 0, 0, 1),
+				new(state)ir_swizzle(b, comp, 0, 0, 0, 1))
 		);
 	}
 
-	assign = new(parent)ir_assignment(result, expr);
+	assign = new(state)ir_assignment(result, expr);
 	check(assign->write_mask > 0);
 	base_ir->insert_before(assign);
 }
@@ -174,23 +177,23 @@ void ir_vec_op_to_scalar_visitor::do_cross(ir_dereference *result, ir_dereferenc
 	const glsl_type* type = a->type;
 	const glsl_type* basetype = a->type->get_base_type();
 
-	void* parent = ralloc_parent(base_ir);
+	//void* parent = ralloc_parent(base_ir);
 
-#define GETX(v) (new(parent)ir_swizzle(v, 0, 0, 0, 0, 1))
-#define GETY(v) (new(parent)ir_swizzle(v, 1, 0, 0, 0, 1))
-#define GETZ(v) (new(parent)ir_swizzle(v, 2, 0, 0, 0, 1))
-#define MUL(A,B)  (new(parent)ir_expression(ir_binop_mul, basetype, A, B))
-#define SUB(A,B)  (new(parent)ir_expression(ir_binop_sub, basetype, A, B))
+#define GETX(v) (new(state)ir_swizzle(v, 0, 0, 0, 0, 1))
+#define GETY(v) (new(state)ir_swizzle(v, 1, 0, 0, 0, 1))
+#define GETZ(v) (new(state)ir_swizzle(v, 2, 0, 0, 0, 1))
+#define MUL(A,B)  (new(state)ir_expression(ir_binop_mul, basetype, A, B))
+#define SUB(A,B)  (new(state)ir_expression(ir_binop_sub, basetype, A, B))
 
-	assign = new(parent)ir_assignment(result, SUB(MUL(GETY(a), GETZ(b)), MUL(GETZ(a), GETY(b))));
+	assign = new(state)ir_assignment(result, SUB(MUL(GETY(a), GETZ(b)), MUL(GETZ(a), GETY(b))));
 	assign->write_mask = 1;
 	base_ir->insert_before(assign);
 
-	assign = new(parent)ir_assignment(result, SUB(MUL(GETZ(a), GETX(b)), MUL(GETX(a), GETZ(b))));
+	assign = new(state)ir_assignment(result, SUB(MUL(GETZ(a), GETX(b)), MUL(GETX(a), GETZ(b))));
 	assign->write_mask = 1 << 1;
 	base_ir->insert_before(assign);
 
-	assign = new(parent)ir_assignment(result, SUB(MUL(GETX(a), GETY(b)), MUL(GETY(a), GETX(b))));
+	assign = new(state)ir_assignment(result, SUB(MUL(GETX(a), GETY(b)), MUL(GETY(a), GETX(b))));
 	assign->write_mask = 1 << 2;
 	base_ir->insert_before(assign);
 
@@ -208,28 +211,28 @@ void ir_vec_op_to_scalar_visitor::do_normalize(ir_dereference *result, ir_derefe
 	check(base_ir->next && base_ir->prev);
 	check(a->type->is_vector());
 
-	void* parent = ralloc_parent(base_ir);
+	//void* parent = ralloc_parent(base_ir);
 
 	//generate the dot of a with itself.
-	expr = new(parent)ir_expression(ir_binop_mul, a->type->get_base_type(),
-		new(parent)ir_swizzle(a, 0, 0, 0, 0, 1),
-		new(parent)ir_swizzle(a, 0, 0, 0, 0, 1));
+	expr = new(state)ir_expression(ir_binop_mul, a->type->get_base_type(),
+		new(state)ir_swizzle(a, 0, 0, 0, 0, 1),
+		new(state)ir_swizzle(a, 0, 0, 0, 0, 1));
 
 	for (unsigned comp = 1; comp < a->type->vector_elements; comp++)
 	{
-		expr = new(parent)ir_expression(ir_binop_add, a->type->get_base_type(),
+		expr = new(state)ir_expression(ir_binop_add, a->type->get_base_type(),
 			expr,
-			new(parent)ir_expression(ir_binop_mul, a->type->get_base_type(),
-				new(parent)ir_swizzle(a, comp, 0, 0, 0, 1),
-				new(parent)ir_swizzle(a, comp, 0, 0, 0, 1))
+			new(state)ir_expression(ir_binop_mul, a->type->get_base_type(),
+				new(state)ir_swizzle(a, comp, 0, 0, 0, 1),
+				new(state)ir_swizzle(a, comp, 0, 0, 0, 1))
 		);
 	}
 
 	//Generate the length and divide a by it.
-	ir_expression* inv_len = new(parent)ir_expression(ir_unop_rsq, a->type->get_base_type(), expr);
-	expr = new(parent)ir_expression(ir_binop_mul, a->type, a, inv_len);
+	ir_expression* inv_len = new(state)ir_expression(ir_unop_rsq, a->type->get_base_type(), expr);
+	expr = new(state)ir_expression(ir_binop_mul, a->type, a, inv_len);
 
-	assign = new(parent)ir_assignment(result, expr);
+	assign = new(state)ir_assignment(result, expr);
 	check(assign->write_mask > 0);
 	base_ir->insert_before(assign);
 }
@@ -241,25 +244,25 @@ void ir_vec_op_to_scalar_visitor::do_length(ir_dereference *result, ir_dereferen
 	check(base_ir->next && base_ir->prev);
 	check(a->type->is_vector());
 
-	void* parent = ralloc_parent(base_ir);
+	//void* parent = ralloc_parent(base_ir);
 
 	//generate the dot of a with itself.
-	expr = new(parent)ir_expression(ir_binop_mul, a->type->get_base_type(),
-		new(parent)ir_swizzle(a, 0, 0, 0, 0, 1),
-		new(parent)ir_swizzle(a, 0, 0, 0, 0, 1));
+	expr = new(state)ir_expression(ir_binop_mul, a->type->get_base_type(),
+		new(state)ir_swizzle(a, 0, 0, 0, 0, 1),
+		new(state)ir_swizzle(a, 0, 0, 0, 0, 1));
 
 	for (unsigned comp = 1; comp < a->type->vector_elements; comp++)
 	{
-		expr = new(parent)ir_expression(ir_binop_add, a->type->get_base_type(),
+		expr = new(state)ir_expression(ir_binop_add, a->type->get_base_type(),
 			expr,
-			new(parent)ir_expression(ir_binop_mul, a->type->get_base_type(),
-				new(parent)ir_swizzle(a, comp, 0, 0, 0, 1),
-				new(parent)ir_swizzle(a, comp, 0, 0, 0, 1))
+			new(state)ir_expression(ir_binop_mul, a->type->get_base_type(),
+				new(state)ir_swizzle(a, comp, 0, 0, 0, 1),
+				new(state)ir_swizzle(a, comp, 0, 0, 0, 1))
 		);
 	}
 
-	expr = new(parent)ir_expression(ir_unop_sqrt, a->type->get_base_type(), expr);
-	assign = new(parent)ir_assignment(result, expr);
+	expr = new(state)ir_expression(ir_unop_sqrt, a->type->get_base_type(), expr);
+	assign = new(state)ir_assignment(result, expr);
 	check(assign->write_mask > 0);
 	base_ir->insert_before(assign);
 }
@@ -282,9 +285,9 @@ static bool vec_op_to_scalar_predicate(ir_instruction *ir)
 	return false;
 }
 
-bool do_vec_op_to_scalar(exec_list *instructions)
+bool do_vec_op_to_scalar(exec_list *instructions, _mesa_glsl_parse_state* parse_state)
 {
-	ir_vec_op_to_scalar_visitor v;
+	ir_vec_op_to_scalar_visitor v(parse_state);
 
 	do_expression_flattening(instructions, vec_op_to_scalar_predicate);
 

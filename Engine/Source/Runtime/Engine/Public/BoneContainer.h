@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -373,8 +373,7 @@ struct FBoneReference
 
 	bool operator==(const FBoneReference& Other) const
 	{
-		// faster to compare, and BoneName won't matter
-		return BoneIndex == Other.BoneIndex;
+		return BoneName == Other.BoneName;
 	}
 	/** Initialize Bone Reference, return TRUE if success, otherwise, return false **/
 	ENGINE_API bool Initialize(const FBoneContainer& RequiredBones);
@@ -400,6 +399,12 @@ struct FBoneReference
 	ENGINE_API bool IsValidToEvaluate() const
 	{
 		return (!bUseSkeletonIndex && CachedCompactPoseIndex != INDEX_NONE);
+	}
+
+	void InvalidateCachedBoneIndex()
+	{
+		BoneIndex = INDEX_NONE;
+		CachedCompactPoseIndex = FCompactPoseBoneIndex(INDEX_NONE);
 	}
 
 	FMeshPoseBoneIndex GetMeshPoseIndex(const FBoneContainer& RequiredBones) const

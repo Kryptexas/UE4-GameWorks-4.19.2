@@ -3,11 +3,14 @@ Title:Mesh Paint Overview
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor
 Description:A down-and-dirty quick guide to getting your feet wet with Mesh Paint Mode.
 Version: 4.9
+parent:Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor
+type:overview
+order:1
+skilllevel:Beginner
+topic-image:MeshPaintMode_Active.png
 
-[REGION:headerimage]
 [REGION:fullwidth]
 	![](MeshPaintMode_Active.png)
-[/REGION]
 [/REGION]
 
 [EXCERPT:Intro]

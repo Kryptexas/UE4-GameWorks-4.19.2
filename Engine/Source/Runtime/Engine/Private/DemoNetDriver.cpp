@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UDemoNetDriver.cpp: Simulated network driver for recording and playing back game sessions.
@@ -32,6 +32,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
 #include "HAL/LowLevelMemTracker.h"
+#include "Stats/StatsMisc.h"
 
 DEFINE_LOG_CATEGORY( LogDemo );
 
@@ -56,6 +57,7 @@ static TAutoConsoleVariable<int32> CVarForceDisableAsyncPackageMapLoading( TEXT(
 static TAutoConsoleVariable<int32> CVarDemoUseNetRelevancy( TEXT( "demo.UseNetRelevancy" ), 0, TEXT( "If 1, will enable relevancy checks and distance culling, using all connected clients as reference." ) );
 static TAutoConsoleVariable<float> CVarDemoCullDistanceOverride( TEXT( "demo.CullDistanceOverride" ), 0.0f, TEXT( "If > 0, will represent distance from any viewer where actors will stop being recorded." ) );
 static TAutoConsoleVariable<float> CVarDemoRecordHzWhenNotRelevant( TEXT( "demo.RecordHzWhenNotRelevant" ), 2.0f, TEXT( "Record at this frequency when actor is not relevant." ) );
+static TAutoConsoleVariable<int32> CVarLoopDemo(TEXT("demo.Loop"), 0, TEXT("<1> : play replay from beginning once it reaches the end / <0> : stop replay at the end"));
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<int32> CVarDemoForceFailure( TEXT( "demo.ForceFailure" ), 0, TEXT( "" ) );
@@ -578,7 +580,7 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 
 	if (GetDuplicateLevelID() == -1)
 	{
-		if ( bAsyncLoadWorld )
+		if ( bAsyncLoadWorld && GetWorld()->WorldType != EWorldType::PIE ) // Editor doesn't support async map travel
 		{
 			LevelNamesAndTimes = PlaybackDemoHeader.LevelNamesAndTimes;
 
@@ -766,8 +768,14 @@ void UDemoNetDriver::TickFlushAsyncEndOfFrame(float DeltaSeconds)
 	}
 }
 
+/** Accounts for the network time we spent in the demo driver. */
+double GTickFlushDemoDriverTimeSeconds = 0.0;
+
 void UDemoNetDriver::TickFlushInternal( float DeltaSeconds )
 {
+	GTickFlushDemoDriverTimeSeconds = 0.0;
+	FSimpleScopeSecondsCounter ScopedTimer(GTickFlushDemoDriverTimeSeconds);
+
 	// Set the context on the world for this driver's level collection.
 	const int32 FoundCollectionIndex = World ? World->GetLevelCollections().IndexOfByPredicate([this](const FLevelCollection& Collection)
 	{
@@ -1155,7 +1163,7 @@ float UDemoNetDriver::GetCheckpointSaveMaxMSPerFrame() const
 
 void UDemoNetDriver::AddNewLevel(const FString& NewLevelName)
 {
-	LevelNamesAndTimes.Add(FLevelNameAndTime(NewLevelName, ReplayStreamer->GetTotalDemoTime()));
+	LevelNamesAndTimes.Add(FLevelNameAndTime(UWorld::RemovePIEPrefix(NewLevelName), ReplayStreamer->GetTotalDemoTime()));
 }
 
 void UDemoNetDriver::SaveCheckpoint()
@@ -2337,6 +2345,27 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 		// We're busy processing tasks, return
 		return;
 	}
+	
+	// If the ExitAfterReplay option is set, automatically shut down at the end of the replay.
+	// Use AtEnd() of the archive instead of checking DemoCurrentTime/DemoTotalTime, because the DemoCurrentTime may never catch up to DemoTotalTime.
+	if (FArchive* const StreamingArchive = ReplayStreamer->GetStreamingArchive())
+	{
+		const bool bIsAtEnd = StreamingArchive->AtEnd() && (PlaybackPackets.Num() == 0 || (DemoCurrentTime + DeltaSeconds >= DemoTotalTime));
+		if (!ReplayStreamer->IsLive() && bIsAtEnd)
+		{
+			OnDemoFinishPlaybackDelegate.Broadcast();
+
+			if (FParse::Param(FCommandLine::Get(), TEXT("ExitAfterReplay")))
+			{
+				FPlatformMisc::RequestExit(false);
+			}
+
+			if (CVarLoopDemo.GetValueOnGameThread() > 0)
+			{
+				GotoTimeInSeconds(0.0f);
+			}
+		}
+	}
 
 	// Make sure there is data available to read
 	// If we're at the end of the demo, just pause channels and return
@@ -2880,10 +2909,10 @@ bool UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 		
 		FNetGuidCacheObject& CacheObject = GuidCache->ObjectLookup.FindOrAdd( PreservedEntry.NetGUID );
 
-		CacheObject.Object = PreservedEntry.Actor;
+		CacheObject.Object = MakeWeakObjectPtr(const_cast<AActor*>(PreservedEntry.Actor));
 		check( CacheObject.Object != NULL );
 		CacheObject.bNoLoad = true;
-		GuidCache->NetGUIDLookup.Add( PreservedEntry.Actor, PreservedEntry.NetGUID );
+		GuidCache->NetGUIDLookup.Add( MakeWeakObjectPtr( const_cast<AActor*>( PreservedEntry.Actor ) ), PreservedEntry.NetGUID );
 	}
 
 	if ( GotoCheckpointArchive->TotalSize() == 0 || GotoCheckpointArchive->TotalSize() == INDEX_NONE )
@@ -3080,7 +3109,7 @@ bool UDemoNetDriver::ShouldReceiveRepNotifiesForObject(UObject* Object) const
 
 void UDemoNetDriver::AddNonQueuedActorForScrubbing(AActor const* Actor)
 {
-	UActorChannel const* const* const FoundChannel = ServerConnection->ActorChannels.Find(Actor);
+	UActorChannel const* const* const FoundChannel = ServerConnection->ActorChannels.Find(MakeWeakObjectPtr(const_cast<AActor*>(Actor)));
 	if (FoundChannel != nullptr && *FoundChannel != nullptr)
 	{
 		FNetworkGUID const ActorGUID = (*FoundChannel)->ActorNetGUID;
@@ -3228,12 +3257,12 @@ void UDemoNetConnection::HandleClientPlayer( APlayerController* PC, UNetConnecti
 	}
 }
 
-bool UDemoNetConnection::ClientHasInitializedLevelFor(const UObject* TestObject) const
+bool UDemoNetConnection::ClientHasInitializedLevelFor(const AActor* TestActor) const
 {
 	// We save all currently streamed levels into the demo stream so we can force the demo playback client
 	// to stay in sync with the recording server
 	// This may need to be tweaked or re-evaluated when we start recording demos on the client
-	return ( GetDriver()->DemoFrameNum > 2 || Super::ClientHasInitializedLevelFor( TestObject ) );
+	return ( GetDriver()->DemoFrameNum > 2 || Super::ClientHasInitializedLevelFor( TestActor ) );
 }
 
 TSharedPtr<FObjectReplicator> UDemoNetConnection::CreateReplicatorForNewActorChannel(UObject* Object)

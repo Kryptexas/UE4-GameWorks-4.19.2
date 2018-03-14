@@ -27,12 +27,26 @@
 
 #pragma once
 
+// These are the version numbers used to version the API between Ansel SDK and the driver.
+// The driver provides backwards compatibility to all MINOR versions that are equal or lower
+// but requires matching MAJOR version. This effectively means that MAJOR version number will *not*
+// change because this would mean that a newer driver would stop supporting older Ansel SDKs.
+// The driver does however not provide forwards compatibility, i.e. when a new interface or change 
+// in behavior is introduced between Ansel SDK and the driver the MINOR version is incremented. This
+// means that new driver supporting this new MINOR version is required. To track this relationship 
+// we use the MINIMUM_DRIVER_VERSION define. When you increment MINOR version you need to adjust the
+// MINIMUM_DRIVER_VERSION as well. While a public driver hasn't been finalized use our internal 
+// release tags to identify it (like 378.GA2).
 #define ANSEL_SDK_PRODUCT_VERSION_MAJOR 1
-#define ANSEL_SDK_PRODUCT_VERSION_MINOR 0
-#define ANSEL_SDK_BUILD_NUMBER 937
+#define ANSEL_SDK_PRODUCT_VERSION_MINOR 4
+#define ANSEL_SDK_MINIMUM_DRIVER_VERSION "384.76"
 
-// The line below is automatically updated by build agents. Please don't touch.
-#define ANSEL_SDK_COMMIT_HASH 0x2b190f38
+// The lines below are automatically updated by build agents. Please don't touch.
+// The BUILD_NUMBER and COMMIT_HASH are useful in uniquely identifying a build of the Ansel SDK.
+// Changes to the customer facing API can be tracked with these since they are automatically 
+// updated every time a change is made.
+#define ANSEL_SDK_BUILD_NUMBER 295
+#define ANSEL_SDK_COMMIT_HASH 0xb92d0fac
 
 #define ANSEL_SDK_VERSION ( uint64_t(ANSEL_SDK_PRODUCT_VERSION_MAJOR) << 48 | uint64_t(ANSEL_SDK_PRODUCT_VERSION_MINOR) << 32 \
                            | ANSEL_SDK_COMMIT_HASH )

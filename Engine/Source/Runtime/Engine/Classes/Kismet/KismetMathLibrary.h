@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -126,7 +126,7 @@ struct ENGINE_API FVectorSpringState
 	}
 };
 
-UCLASS(meta=(BlueprintThreadSafe))
+UCLASS(meta=(BlueprintThreadSafe, ScriptName="MathLibrary"))
 class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
@@ -617,17 +617,7 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Float")
 	static float Lerp(float A, float B, float Alpha);
 	
-	/**
-	* Returns the fraction (alpha) of the range B-A that corresponds to Value, e.g.,
-	*	inputs A = 0, B = 8, Value = 3 : outputs Return Value = 3/8, indicating Value is 3/8 from A to B 
-	*	inputs A = 8, B = 0, Value = 3 : outputs Return Value = 5/8, indicating Value is 5/8 from A to B
-	* Named InverseLerp because Lerp( A, B, InverseLerp(A, B, Value) ) == Value
-	* @param A The "from" value this float could be, usually but not necessarily a minimum. Returned as 0.
-	* @param B The "to" value this float could be, usually but not necessarily a maximum. Returned as 1.
-	* @param Value A value intended to be normalized relative to B-A
-	* @return A normalized alpha value considering A and B.
-	*/
-	UFUNCTION(BlueprintPure, meta = (Keywords = "percentage normalize range"), Category = "Math|Float")
+	DEPRECATED(4.19, "Use NormalizeToRange instead")
 	static float InverseLerp(float A, float B, float Value);
 
 	/** Easeing  between A and B using a specified easing function */
@@ -797,6 +787,10 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/** Returns the length of the FVector */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "VectorLength", Keywords="magnitude"), Category="Math|Vector")
 	static float VSize(FVector A);
+
+	/** Returns the length of the FVector's in XY components. */
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "VectorLengthXY", Keywords="magnitude"), Category="Math|Vector")
+	static float VSizeXY(FVector A);
 
 	/** Returns the length of a 2d FVector. */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "Vector2dLength", Keywords="magnitude"), Category="Math|Vector2D")

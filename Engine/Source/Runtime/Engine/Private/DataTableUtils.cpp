@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DataTableUtils.h"
 #include "UObject/UnrealType.h"
 #include "UObject/TextProperty.h"
+#include "Engine/DataTable.h"
 #include "Engine/UserDefinedEnum.h"
 #include "Engine/UserDefinedStruct.h"
 #include "Policies/PrettyJsonPrintPolicy.h"
@@ -427,7 +428,8 @@ FName DataTableUtils::MakeValidName(const FString& InString)
 
 bool DataTableUtils::IsSupportedTableProperty(const UProperty* InProp)
 {
-	return(	InProp->IsA(UIntProperty::StaticClass()) || 
+	return( InProp &&
+			(InProp->IsA(UIntProperty::StaticClass()) || 
 			InProp->IsA(UNumericProperty::StaticClass()) ||
 			InProp->IsA(UDoubleProperty::StaticClass()) ||
 			InProp->IsA(UFloatProperty::StaticClass()) ||
@@ -441,7 +443,7 @@ bool DataTableUtils::IsSupportedTableProperty(const UProperty* InProp)
 			InProp->IsA(UArrayProperty::StaticClass()) ||
 			InProp->IsA(USetProperty::StaticClass()) ||
 			InProp->IsA(UMapProperty::StaticClass()) ||
-			InProp->IsA(UEnumProperty::StaticClass())
+			InProp->IsA(UEnumProperty::StaticClass()))
 			);
 }
 
@@ -477,4 +479,29 @@ FString DataTableUtils::GetPropertyDisplayName(const UProperty* Prop, const FStr
 #else  // WITH_EDITOR
 	return DefaultName;
 #endif // WITH_EDITOR
+}
+
+TArray<FString> DataTableUtils::GetColumnDataAsString(const UDataTable* InTable, const FName& PropertyName, const EDataTableExportFlags InDTExportFlags)
+{
+	TArray<FString> Result;
+	if (!ensure(InTable))
+	{
+		return Result;
+	}
+	if (!ensure(PropertyName != NAME_None))
+	{
+		return Result;
+	}
+
+	UProperty* ColumnProperty = InTable->FindTableProperty(PropertyName);
+	if (ColumnProperty)
+	{
+		for (auto RowIt = InTable->RowMap.CreateConstIterator(); RowIt; ++RowIt)
+		{
+			uint8* RowData = RowIt.Value();
+			Result.Add(GetPropertyValueAsString(ColumnProperty, RowData, InDTExportFlags));
+		}
+	}
+
+	return Result;
 }

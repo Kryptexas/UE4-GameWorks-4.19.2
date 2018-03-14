@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -63,9 +63,16 @@ public:
 	FText GetCompileStatusTooltip() const;
 
 	/** Compiles the system script. */
-	void CompileSystem();
+	void CompileSystem(bool bForce);
 
 protected:
+	void OnToggleBounds();
+	bool IsToggleBoundsChecked() const;
+	void OnToggleBoundsSetFixedBounds();
+
+	void ToggleDrawOption(int32 Element);
+	bool IsDrawOptionEnabled(int32 Element) const;
+
 	//~ FAssetEditorToolkit interface
 	virtual void GetSaveableObjects(TArray<UObject*>& OutObjects) const override;
 	virtual void SaveAsset_Execute() override;
@@ -76,7 +83,7 @@ private:
 	void InitializeInternal(const EToolkitMode::Type Mode, const TSharedPtr<class IToolkitHost>& InitToolkitHost);
 
 	void UpdateOriginalEmitter();
-	static void UpdateExistingEmitters(TArray<UNiagaraEmitter*> AffectedEmitters);
+	void UpdateExistingEmitters();
 
 	TSharedRef<SDockTab> SpawnTab_Viewport(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_CurveEd(const FSpawnTabArgs& Args);
@@ -100,17 +107,17 @@ private:
 	static TSharedRef<SWidget> GenerateCompileMenuContent();
 
 	void EmitterAssetSelected(const FAssetData& AssetData);
-	void ToggleUnlockToChanges();
-	bool IsToggleUnlockToChangesChecked();
-
-	FText GetEmitterLockToChangesLabel() const;
-	FText GetEmitterLockToChangesLabelTooltip() const;
-	FSlateIcon GetEmitterLockToChangesIcon() const;
 
 	static void ToggleCompileEnabled();
 	static bool IsAutoCompileEnabled();
 
+	void OnApply();
+	bool OnApplyEnabled() const;
+
 private:
+	TSharedRef<SWidget> GenerateBoundsMenuContent(TSharedRef<FUICommandList> InCommandList);
+	void OnSaveThumbnailImage();
+
 	/** The System being edited in system mode, or the placeholder system being edited in emitter mode. */
 	UNiagaraSystem* System;
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/StreamableManager.h"
 #include "UObject/WeakObjectPtr.h"
@@ -77,9 +77,9 @@ public:
 		// When DelegatesToCall falls out of scope it may delete the referenced handles
 	}
 
-	virtual bool IsTickable() const override
+	virtual ETickableTickType GetTickableTickType() const override
 	{
-		return true;
+		return ETickableTickType::Always;
 	}
 
 	virtual bool IsTickableWhenPaused() const override

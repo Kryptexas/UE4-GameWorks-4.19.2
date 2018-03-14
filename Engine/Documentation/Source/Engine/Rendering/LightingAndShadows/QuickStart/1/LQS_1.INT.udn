@@ -21,7 +21,7 @@ Version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:note]
 For this tutorial series, we are using a new **Blank** project with **Starter Content** enabled. Please see the [](Engine/Basics/Projects/Browser) page for information on creating new projects, using templates and defining project settings (including **Starter Content**). 
@@ -141,6 +141,6 @@ Inside your **Blank** project (with **Starter Content**), follow the steps below
 Our simple apartment is complete with a small bathroom and an opening for a patio. In the **Next Step** we will begin lighting it. 
 
 
-%Steps%
+
 
 

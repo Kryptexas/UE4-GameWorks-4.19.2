@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AudioMixerDevice.h"
 #include "AudioMixerSource.h"
@@ -25,8 +25,6 @@ namespace Audio
 
 	FMixerDevice::FMixerDevice(IAudioMixerPlatformInterface* InAudioMixerPlatform)
 		: AudioMixerPlatform(InAudioMixerPlatform)
-		, NumSpatialChannels(0)
-		, OmniPanFactor(0.0f)
 		, AudioClockDelta(0.0)
 		, AudioClock(0.0)
 		, SourceManager(this)
@@ -185,6 +183,17 @@ namespace Audio
 					SpatializationPluginInterface->Initialize(PluginInitializationParams);
 				}
 
+				// Create a new ambisonics mixer.
+				IAudioSpatializationFactory* SpatializationPluginFactory = AudioPluginUtilities::GetDesiredSpatializationPlugin(AudioPluginUtilities::CurrentPlatform);
+				if (SpatializationPluginFactory != nullptr)
+				{
+					AmbisonicsMixer = SpatializationPluginFactory->CreateNewAmbisonicsMixer(this);
+					if (AmbisonicsMixer.IsValid())
+					{
+						AmbisonicsMixer->Initialize(PluginInitializationParams);
+					}
+				}
+
 				if (OcclusionInterface.IsValid())
 				{
 					OcclusionInterface->Initialize(PluginInitializationParams);
@@ -234,6 +243,11 @@ namespace Audio
 			AudioMixerPlatform->CloseAudioStream();
 			AudioMixerPlatform->TeardownHardware();
 		}
+
+		if (AmbisonicsMixer.IsValid())
+		{
+			AmbisonicsMixer->Shutdown();
+		}
 	}
 
 	void FMixerDevice::UpdateHardware()
@@ -248,11 +262,21 @@ namespace Audio
 			// Initialize some data that depends on speaker configuration, etc.
 			InitializeChannelAzimuthMap(PlatformInfo.NumChannels);
 
+			// Update the channel device count in case it changed
 			SourceManager.UpdateDeviceChannelCount(PlatformInfo.NumChannels);
 
 			// Audio rendering was suspended in CheckAudioDeviceChange if it changed.
 			AudioMixerPlatform->ResumePlaybackOnNewDevice();
 		}
+
+		ListenerTransforms.Reset();
+		for (FListener& Listener : Listeners)
+		{
+			ListenerTransforms.Add(Listener.Transform);
+		}
+
+		// Update listener transforms, some effects use the listener transform data
+		SourceManager.SetListenerTransforms(ListenerTransforms);
 	}
 
 	double FMixerDevice::GetAudioTime() const
@@ -360,7 +384,7 @@ namespace Audio
 			SCOPE_CYCLE_COUNTER(STAT_AudioMixerSubmixes);
 
 			// Process the audio output from the master submix
-			MasterSubmix->ProcessAudio(Output);
+			MasterSubmix->ProcessAudio(ESubmixChannelFormat::Device, Output);
 		}
 
 		// Do any debug output performing
@@ -419,6 +443,16 @@ namespace Audio
 			USoundSubmix* EQSubmix = NewObject<USoundSubmix>(USoundSubmix::StaticClass(), TEXT("Master EQ Submix"));
 			EQSubmix->AddToRoot();
 			FMixerDevice::MasterSubmixes.Add(EQSubmix);
+
+			// Master ambisonics
+			USoundSubmix* AmbisonicsSubmix = NewObject<USoundSubmix>(USoundSubmix::StaticClass(), TEXT("Master Ambisonics Submix"));
+			AmbisonicsSubmix->AddToRoot();
+			AmbisonicsSubmix->ChannelFormat = ESubmixChannelFormat::Ambisonics;
+			if (AmbisonicsMixer.IsValid())
+			{
+				AmbisonicsSubmix->AmbisonicsPluginSettings = AmbisonicsMixer->GetDefaultSettings();
+			}
+			FMixerDevice::MasterSubmixes.Add(AmbisonicsSubmix);
 		}
 
 		// Register and setup the master submixes so that the rest of the submixes can hook into these core master submixes
@@ -427,13 +461,18 @@ namespace Audio
 		{
 			for (int32 i = 0; i < EMasterSubmixType::Count; ++i)
 			{
-				MasterSubmixInstances.Add(FMixerSubmixPtr(new FMixerSubmix(this)));
+				FMixerSubmixPtr MixerSubmix = FMixerSubmixPtr(new FMixerSubmix(this));
+				MixerSubmix->Init(FMixerDevice::MasterSubmixes[i]);
+
+				MasterSubmixInstances.Add(MixerSubmix);
 			}
 
 			FMixerSubmixPtr MasterSubmixInstance = MasterSubmixInstances[EMasterSubmixType::Master];
+			
 			FSoundEffectSubmixInitData InitData;
 			InitData.SampleRate = GetSampleRate();
 
+	
 			// Setup the master reverb plugin
 			if (ReverbPluginInterface.IsValid())
 			{
@@ -485,6 +524,11 @@ namespace Audio
 			MasterEQSubmix->AddSoundEffectSubmix(EQPresetId, MakeShareable(EQEffectSubmix));
 			MasterEQSubmix->SetParentSubmix(MasterSubmixInstance);
 			MasterSubmixInstance->AddChildSubmix(MasterEQSubmix);
+
+			// Add the ambisonics master submix
+			FMixerSubmixPtr MasterAmbisonicsSubmix = MasterSubmixInstances[EMasterSubmixType::Ambisonics];
+			MasterAmbisonicsSubmix->SetParentSubmix(MasterEQSubmix);
+			MasterEQSubmix->AddChildSubmix(MasterAmbisonicsSubmix);
 		}
 
 		// Now register all the non-core submixes
@@ -523,14 +567,59 @@ namespace Audio
 				// ChildSubmix lists can contain null entries.
 				if (ChildSubmix)
 				{
-					FMixerSubmixPtr ChildSubmixInstance = GetSubmixInstance(ChildSubmix);
-					SubmixInstance->ChildSubmixes.Add(ChildSubmixInstance->GetId(), ChildSubmixInstance);
+					FChildSubmixInfo ChildSubmixInfo;
+					ChildSubmixInfo.SubmixPtr = GetSubmixInstance(ChildSubmix);
+					ChildSubmixInfo.bNeedsAmbisonicsEncoding = true;
+					SubmixInstance->ChildSubmixes.Add(ChildSubmixInfo.SubmixPtr->GetId(), ChildSubmixInfo);
 				}
 			}
 
 			// Perform any other initialization on the submix instance
 			SubmixInstance->Init(SoundSubmix);
 		}
+
+		TArray<EAudioMixerChannel::Type> StereoChannelTypes;
+		StereoChannelTypes.Add(EAudioMixerChannel::FrontLeft);
+		StereoChannelTypes.Add(EAudioMixerChannel::FrontRight);
+		ChannelArrays.Add(ESubmixChannelFormat::Stereo, StereoChannelTypes);
+
+		TArray<EAudioMixerChannel::Type> QuadChannelTypes;
+		QuadChannelTypes.Add(EAudioMixerChannel::FrontLeft);
+		QuadChannelTypes.Add(EAudioMixerChannel::FrontRight);
+		QuadChannelTypes.Add(EAudioMixerChannel::SideLeft);
+		QuadChannelTypes.Add(EAudioMixerChannel::SideRight);
+		ChannelArrays.Add(ESubmixChannelFormat::Quad, QuadChannelTypes);
+
+		TArray<EAudioMixerChannel::Type> FiveDotOneTypes;
+		FiveDotOneTypes.Add(EAudioMixerChannel::FrontLeft);
+		FiveDotOneTypes.Add(EAudioMixerChannel::FrontRight);
+		FiveDotOneTypes.Add(EAudioMixerChannel::FrontCenter);
+		FiveDotOneTypes.Add(EAudioMixerChannel::LowFrequency);
+		FiveDotOneTypes.Add(EAudioMixerChannel::SideLeft);
+		FiveDotOneTypes.Add(EAudioMixerChannel::SideRight);
+		ChannelArrays.Add(ESubmixChannelFormat::FiveDotOne, FiveDotOneTypes);
+
+		TArray<EAudioMixerChannel::Type> SevenDotOneTypes;
+		SevenDotOneTypes.Add(EAudioMixerChannel::FrontLeft);
+		SevenDotOneTypes.Add(EAudioMixerChannel::FrontRight);
+		SevenDotOneTypes.Add(EAudioMixerChannel::FrontCenter);
+		SevenDotOneTypes.Add(EAudioMixerChannel::LowFrequency);
+		SevenDotOneTypes.Add(EAudioMixerChannel::BackLeft);
+		SevenDotOneTypes.Add(EAudioMixerChannel::BackRight);
+		SevenDotOneTypes.Add(EAudioMixerChannel::SideLeft);
+		SevenDotOneTypes.Add(EAudioMixerChannel::SideRight);
+		ChannelArrays.Add(ESubmixChannelFormat::SevenDotOne, SevenDotOneTypes);
+
+		TArray<EAudioMixerChannel::Type> FirstOrderAmbisonicsTypes;
+		FirstOrderAmbisonicsTypes.Add(EAudioMixerChannel::FrontLeft);
+		FirstOrderAmbisonicsTypes.Add(EAudioMixerChannel::FrontRight);
+		FirstOrderAmbisonicsTypes.Add(EAudioMixerChannel::FrontCenter);
+		FirstOrderAmbisonicsTypes.Add(EAudioMixerChannel::LowFrequency);
+		FirstOrderAmbisonicsTypes.Add(EAudioMixerChannel::BackLeft);
+		FirstOrderAmbisonicsTypes.Add(EAudioMixerChannel::BackRight);
+		FirstOrderAmbisonicsTypes.Add(EAudioMixerChannel::SideLeft);
+		FirstOrderAmbisonicsTypes.Add(EAudioMixerChannel::SideRight);
+		ChannelArrays.Add(ESubmixChannelFormat::Ambisonics, FirstOrderAmbisonicsTypes);
 	}
 	
  	FAudioPlatformSettings FMixerDevice::GetPlatformSettings() const
@@ -566,6 +655,11 @@ namespace Audio
 	FMixerSubmixPtr FMixerDevice::GetMasterEQSubmix()
 	{
 		return MasterSubmixInstances[EMasterSubmixType::EQ];
+	}
+
+	FMixerSubmixPtr FMixerDevice::GetMasterAmbisonicsSubmix()
+	{
+		return MasterSubmixInstances[EMasterSubmixType::Ambisonics];
 	}
 
 	void FMixerDevice::AddMasterSubmixEffect(uint32 SubmixEffectId, FSoundEffectSubmix* SoundEffectSubmix)
@@ -771,13 +865,16 @@ namespace Audio
 		return SourceManager.GetNumActiveSources();
 	}
 
-	void FMixerDevice::Get3DChannelMap(const FWaveInstance* InWaveInstance, float EmitterAzimith, float NormalizedOmniRadius, TArray<float>& OutChannelMap)
+	void FMixerDevice::Get3DChannelMap(const ESubmixChannelFormat InSubmixType, const FWaveInstance* InWaveInstance, float EmitterAzimith, float NormalizedOmniRadius, TArray<float>& OutChannelMap)
 	{
 		// If we're center-channel only, then no need for spatial calculations, but need to build a channel map
 		if (InWaveInstance->bCenterChannelOnly)
 		{
-			// If we only have stereo channels
-			if (NumSpatialChannels == 2)
+			int32 NumOutputChannels = GetNumChannelsForSubmixFormat(InSubmixType);
+			const TArray<EAudioMixerChannel::Type>& ChannelArray = GetChannelArrayForSubmixChannelType(InSubmixType);
+
+			// If we are only spatializing to stereo output
+			if (NumOutputChannels == 2)
 			{
 				// Equal volume in left + right channel with equal power panning
 				static const float Pan = 1.0f / FMath::Sqrt(2.0f);
@@ -786,7 +883,7 @@ namespace Audio
 			}
 			else
 			{
-				for (EAudioMixerChannel::Type Channel : PlatformInfo.OutputChannelArray)
+				for (EAudioMixerChannel::Type Channel : ChannelArray)
 				{
 					float Pan = (Channel == EAudioMixerChannel::FrontCenter) ? 1.0f : 0.0f;
 					OutChannelMap.Add(Pan);
@@ -800,6 +897,9 @@ namespace Audio
 
 		const FChannelPositionInfo* PrevChannelInfo = nullptr;
 		const FChannelPositionInfo* NextChannelInfo = nullptr;
+
+		const TArray<FChannelPositionInfo>* CurrentChannelAzimuthPositionsPtr = ChannelAzimuthPositions.Find(InSubmixType);
+		const TArray<FChannelPositionInfo>& CurrentChannelAzimuthPositions = *CurrentChannelAzimuthPositionsPtr;
 
 		for (int32 i = 0; i < CurrentChannelAzimuthPositions.Num(); ++i)
 		{
@@ -864,14 +964,19 @@ namespace Audio
 			OmniAmount = 1.0f - 1.0f / NormalizedOmniRadSquared;
 		}
 
-		// OmniPan is the amount of pan to use if fully omni-directional
-		AUDIO_MIXER_CHECK(NumSpatialChannels > 0);
-
 		// Build the output channel map based on the current platform device output channel array 
 
-		float DefaultEffectivePan = !OmniAmount ? 0.0f : FMath::Lerp(0.0f, OmniPanFactor, OmniAmount);
+		int32 NumSpatialChannels = CurrentChannelAzimuthPositions.Num();
+		if (CurrentChannelAzimuthPositions.Num() > 4)
+		{
+			NumSpatialChannels--;
+		}
+		float OmniPanFactor = 1.0f / FMath::Sqrt(NumSpatialChannels);
 
-		for (EAudioMixerChannel::Type Channel : PlatformInfo.OutputChannelArray)
+		float DefaultEffectivePan = !OmniAmount ? 0.0f : FMath::Lerp(0.0f, OmniPanFactor, OmniAmount);
+		const TArray<EAudioMixerChannel::Type>& ChannelArray = GetChannelArrayForSubmixChannelType(InSubmixType);
+
+		for (EAudioMixerChannel::Type Channel : ChannelArray)
 		{
 			float EffectivePan = DefaultEffectivePan;
 
@@ -896,38 +1001,18 @@ namespace Audio
 
 			AUDIO_MIXER_CHECK(EffectivePan >= 0.0f && EffectivePan <= 1.0f);
 			OutChannelMap.Add(EffectivePan);
-
 		}
 	}
 
-	void FMixerDevice::SetChannelAzimuth(EAudioMixerChannel::Type ChannelType, int32 Azimuth)
+	uint32 FMixerDevice::GetNewUniqueAmbisonicsStreamID()
 	{
-		if (ChannelType >= EAudioMixerChannel::TopCenter)
-		{
-			UE_LOG(LogAudioMixer, Warning, TEXT("Unsupported mixer channel type: %s"), EAudioMixerChannel::ToString(ChannelType));
-			return;
-		}
-
-		if (Azimuth < 0 || Azimuth >= 360)
-		{
-			UE_LOG(LogAudioMixer, Warning, TEXT("Supplied azimuth is out of range: %d [0, 360)"), Azimuth);
-			return;
-		}
-
-		DefaultChannelAzimuthPosition[ChannelType].Azimuth = Azimuth;
+		static uint32 AmbisonicsStreamIDCounter = 0;
+		return ++AmbisonicsStreamIDCounter;
 	}
 
-
-
-	int32 FMixerDevice::GetAzimuthForChannelType(EAudioMixerChannel::Type ChannelType)
+	const TArray<FTransform>* FMixerDevice::GetListenerTransforms()
 	{
-		if (ChannelType >= EAudioMixerChannel::TopCenter)
-		{
-			UE_LOG(LogAudioMixer, Warning, TEXT("Unsupported mixer channel type: %s"), EAudioMixerChannel::ToString(ChannelType));
-			return 0;
-		}
-
-		return DefaultChannelAzimuthPosition[ChannelType].Azimuth;
+		return SourceManager.GetListenerTransforms();
 	}
 
 	int32 FMixerDevice::GetDeviceSampleRate() const

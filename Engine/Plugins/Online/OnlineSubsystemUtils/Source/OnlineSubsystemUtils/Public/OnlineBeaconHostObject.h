@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -69,6 +69,11 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconHostObject : public AActor
 	 * Do any necessary cleanup.
 	 */
 	virtual void Unregister();
+
+	/**
+	 * @return the number of connections currently with this beacon host
+	 */
+	int32 GetNumClientActors() const { return ClientActors.Num(); }
 
 protected:
 

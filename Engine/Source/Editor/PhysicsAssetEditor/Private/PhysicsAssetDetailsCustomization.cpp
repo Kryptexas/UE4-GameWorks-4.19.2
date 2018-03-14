@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PhysicsAssetDetailsCustomization.h"
 #include "SCompoundWidget.h"
@@ -23,6 +23,7 @@
 #include "SEditableTextBox.h"
 #include "PropertyHandle.h"
 #include "PhysicsAssetEditorActions.h"
+#include "Customizations/SkeletalMeshCustomizationHelpers.h"
 
 #define LOCTEXT_NAMESPACE "PhysicsAssetDetailsCustomization"
 
@@ -33,14 +34,13 @@ TSharedRef<IDetailCustomization> FPhysicsAssetDetailsCustomization::MakeInstance
 
 void FPhysicsAssetDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
 {
-	CommandList = MakeShared<FUICommandList>();
-
 	BindCommands();
 
 	DetailLayout.HideCategory(TEXT("Profiles"));
 
 	PhysicalAnimationProfilesHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UPhysicsAsset, PhysicalAnimationProfiles));
 	ConstraintProfilesHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UPhysicsAsset, ConstraintProfiles));
+	AsyncScenePropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UPhysicsAsset, bUseAsyncScene));
 
 	DetailLayout.EditCategory(TEXT("Physical Animation Profiles"))
 	.AddProperty(PhysicalAnimationProfilesHandle)
@@ -57,11 +57,27 @@ void FPhysicsAssetDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 	[
 		MakeConstraintProfilesWidget()
 	];
+
+	DetailLayout.HideProperty(AsyncScenePropertyHandle);
+	DetailLayout.EditCategory(TEXT("Physics"))
+	.AddCustomRow(AsyncScenePropertyHandle->GetPropertyDisplayName(), true)
+	.Visibility(EVisibility::Visible)
+	.NameContent()
+	[
+		AsyncScenePropertyHandle->CreatePropertyNameWidget()
+	]
+	.ValueContent()
+	.HAlign(HAlign_Fill)
+	[
+		SkeletalMeshCustomizationHelpers::CreateAsyncSceneValueWidgetWithWarning(AsyncScenePropertyHandle)
+	];
 }
 
 void FPhysicsAssetDetailsCustomization::BindCommands()
 {
 	const FPhysicsAssetEditorCommands& Commands = FPhysicsAssetEditorCommands::Get();
+
+	TSharedPtr<FUICommandList> CommandList = PhysicsAssetEditorPtr.Pin()->GetToolkitCommands();
 
 	CommandList->MapAction(
 		Commands.NewPhysicalAnimationProfile,
@@ -124,10 +140,13 @@ void FPhysicsAssetDetailsCustomization::BindCommands()
 	);
 }
 
-static TSharedRef< SWidget > FillPhysicalAnimationProfileOptions(TSharedRef<FUICommandList> InCommandList, TSharedPtr<FPhysicsAssetEditorSharedData> SharedData)
+TSharedRef< SWidget > FPhysicsAssetDetailsCustomization::FillPhysicalAnimationProfileOptions()
 {
+	TSharedPtr<FPhysicsAssetEditorSharedData> SharedData = PhysicsAssetEditorPtr.Pin()->GetSharedData();
+	TSharedPtr<FUICommandList> CommandList = PhysicsAssetEditorPtr.Pin()->GetToolkitCommands();
+
 	const bool bShouldCloseWindowAfterMenuSelection = true;
-	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, InCommandList);
+	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, CommandList);
 
 	const FPhysicsAssetEditorCommands& Commands = FPhysicsAssetEditorCommands::Get();
 
@@ -235,10 +254,13 @@ static TSharedRef< SWidget > FillPhysicalAnimationProfileOptions(TSharedRef<FUIC
 	return MenuBuilder.MakeWidget();
 }
 
-static TSharedRef< SWidget > FillConstraintProfilesOptions(TSharedRef<FUICommandList> InCommandList, TSharedPtr<FPhysicsAssetEditorSharedData> SharedData)
+TSharedRef< SWidget > FPhysicsAssetDetailsCustomization::FillConstraintProfilesOptions()
 {
+	TSharedPtr<FPhysicsAssetEditorSharedData> SharedData = PhysicsAssetEditorPtr.Pin()->GetSharedData();
+	TSharedPtr<FUICommandList> CommandList = PhysicsAssetEditorPtr.Pin()->GetToolkitCommands();
+
 	const bool bShouldCloseWindowAfterMenuSelection = true;
-	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, InCommandList);
+	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, CommandList);
 
 	const FPhysicsAssetEditorCommands& Commands = FPhysicsAssetEditorCommands::Get();
 
@@ -342,31 +364,37 @@ static TSharedRef< SWidget > FillConstraintProfilesOptions(TSharedRef<FUICommand
 
 void FPhysicsAssetDetailsCustomization::HandlePhysicalAnimationProfileNameCommitted(const FText& InText, ETextCommit::Type InCommitType)
 {
+	PhysicalAnimationProfileNameTextBox->SetError(FText::GetEmpty());
+
 	if(InCommitType != ETextCommit::OnCleared)
 	{
-		
-
 		TSharedPtr<FPhysicsAssetEditorSharedData> SharedData = PhysicsAssetEditorPtr.Pin()->GetSharedData();
 
 		int32 PhysicalAnimationProfileIndex = INDEX_NONE;
 		SharedData->PhysicsAsset->PhysicalAnimationProfiles.Find(SharedData->PhysicsAsset->CurrentPhysicalAnimationProfileName, PhysicalAnimationProfileIndex);
 		if(PhysicalAnimationProfileIndex != INDEX_NONE)
 		{
-			TSharedPtr<IPropertyHandle> ChildHandle = PhysicalAnimationProfilesHandle->GetChildHandle(PhysicalAnimationProfileIndex);
+			FName NewName = *InText.ToString();
+			if(!SharedData->PhysicsAsset->GetPhysicalAnimationProfileNames().Contains(NewName))
+			{
+				TSharedPtr<IPropertyHandle> ChildHandle = PhysicalAnimationProfilesHandle->GetChildHandle(PhysicalAnimationProfileIndex);
 
-			const FScopedTransaction Transaction(LOCTEXT("RenamePhysicalAnimationProfile", "Rename Physical Animation Profile"));
+				const FScopedTransaction Transaction(LOCTEXT("RenamePhysicalAnimationProfile", "Rename Physical Animation Profile"));
 
-			const FName OldProfileName = SharedData->PhysicsAsset->CurrentPhysicalAnimationProfileName;
+				const FName OldProfileName = SharedData->PhysicsAsset->CurrentPhysicalAnimationProfileName;
 
-			SharedData->PhysicsAsset->Modify();
-			SharedData->PhysicsAsset->CurrentPhysicalAnimationProfileName = *InText.ToString();
-			ChildHandle->SetValue( SharedData->PhysicsAsset->CurrentPhysicalAnimationProfileName);
+				SharedData->PhysicsAsset->Modify();
+				SharedData->PhysicsAsset->CurrentPhysicalAnimationProfileName = NewName;
+				ChildHandle->SetValue( SharedData->PhysicsAsset->CurrentPhysicalAnimationProfileName);
+			}
 		}
 	}
 }
 
 void FPhysicsAssetDetailsCustomization::HandleConstraintProfileNameCommitted(const FText& InText, ETextCommit::Type InCommitType)
 {
+	ConstraintProfileNameTextBox->SetError(FText::GetEmpty());
+
 	if(InCommitType != ETextCommit::OnCleared)
 	{
 		TSharedPtr<FPhysicsAssetEditorSharedData> SharedData = PhysicsAssetEditorPtr.Pin()->GetSharedData();
@@ -375,15 +403,19 @@ void FPhysicsAssetDetailsCustomization::HandleConstraintProfileNameCommitted(con
 		SharedData->PhysicsAsset->ConstraintProfiles.Find(SharedData->PhysicsAsset->CurrentConstraintProfileName, ConstraintProfileIndex);
 		if(ConstraintProfileIndex != INDEX_NONE)
 		{
-			TSharedPtr<IPropertyHandle> ChildHandle = ConstraintProfilesHandle->GetChildHandle(ConstraintProfileIndex);
+			FName NewName = *InText.ToString();
+			if(!SharedData->PhysicsAsset->GetConstraintProfileNames().Contains(NewName))
+			{
+				TSharedPtr<IPropertyHandle> ChildHandle = ConstraintProfilesHandle->GetChildHandle(ConstraintProfileIndex);
 
-			const FScopedTransaction Transaction(LOCTEXT("RenameConstraintProfile", "Rename Constraint Profile"));
+				const FScopedTransaction Transaction(LOCTEXT("RenameConstraintProfile", "Rename Constraint Profile"));
 
-			const FName OldProfileName = SharedData->PhysicsAsset->CurrentConstraintProfileName;
+				const FName OldProfileName = SharedData->PhysicsAsset->CurrentConstraintProfileName;
 
-			SharedData->PhysicsAsset->Modify();
-			SharedData->PhysicsAsset->CurrentConstraintProfileName = *InText.ToString();
-			ChildHandle->SetValue(SharedData->PhysicsAsset->CurrentConstraintProfileName);
+				SharedData->PhysicsAsset->Modify();
+				SharedData->PhysicsAsset->CurrentConstraintProfileName = NewName;
+				ChildHandle->SetValue(SharedData->PhysicsAsset->CurrentConstraintProfileName);
+			}
 		}
 	}
 }
@@ -401,10 +433,12 @@ TSharedRef<SWidget> FPhysicsAssetDetailsCustomization::CreateProfileButton(const
 		.ToolTipText(InCommand->GetDescription())
 		.IsEnabled_Lambda([this, LocalCommandPtr]()
 		{
+			TSharedPtr<FUICommandList> CommandList = PhysicsAssetEditorPtr.Pin()->GetToolkitCommands();
 			return CommandList->CanExecuteAction(LocalCommandPtr.Pin().ToSharedRef());
 		})
 		.OnClicked(FOnClicked::CreateLambda([this, LocalCommandPtr]()
 		{
+			TSharedPtr<FUICommandList> CommandList = PhysicsAssetEditorPtr.Pin()->GetToolkitCommands();
 			return CommandList->ExecuteAction(LocalCommandPtr.Pin().ToSharedRef()) ? FReply::Handled() : FReply::Unhandled();
 		}))
 		[
@@ -445,7 +479,7 @@ TSharedRef<SWidget> FPhysicsAssetDetailsCustomization::MakePhysicalAnimationProf
 		[
 			SNew(SComboButton)
 			.ButtonStyle(FEditorStyle::Get(), "ToolBar.Button")
-			.OnGetMenuContent_Static(&FillPhysicalAnimationProfileOptions, CommandList.ToSharedRef(), PhysicsAssetEditorPtr.Pin()->GetSharedData())
+			.OnGetMenuContent(this, &FPhysicsAssetDetailsCustomization::FillPhysicalAnimationProfileOptions)
 			.ForegroundColor(FEditorStyle::GetSlateColor("DefaultForeground"))
 			.ButtonContent()
 			[
@@ -465,7 +499,7 @@ TSharedRef<SWidget> FPhysicsAssetDetailsCustomization::MakePhysicalAnimationProf
 					.FillWidth(1.0f)
 					.Padding(0.0f, 0.0f, 2.0f, 0.0f)
 					[
-						SNew(SEditableTextBox)
+						SAssignNew(PhysicalAnimationProfileNameTextBox, SEditableTextBox)
 						.Text_Lambda([LocalPhysicsAssetEditorPtr]()
 						{
 							return FText::FromName(LocalPhysicsAssetEditorPtr.Pin()->GetSharedData()->PhysicsAsset->CurrentPhysicalAnimationProfileName);
@@ -473,6 +507,19 @@ TSharedRef<SWidget> FPhysicsAssetDetailsCustomization::MakePhysicalAnimationProf
 						.IsEnabled_Lambda([LocalPhysicsAssetEditorPtr]()
 						{
 							return LocalPhysicsAssetEditorPtr.Pin()->GetSharedData()->PhysicsAsset->CurrentPhysicalAnimationProfileName != NAME_None;
+						})
+						.OnTextChanged_Lambda([this, LocalPhysicsAssetEditorPtr](const FText& InText)
+						{
+							FName ProfileAsName = *InText.ToString();
+							if(LocalPhysicsAssetEditorPtr.Pin()->GetSharedData()->PhysicsAsset->CurrentPhysicalAnimationProfileName != ProfileAsName &&
+								LocalPhysicsAssetEditorPtr.Pin()->GetSharedData()->PhysicsAsset->GetPhysicalAnimationProfileNames().Contains(ProfileAsName))
+							{
+								PhysicalAnimationProfileNameTextBox->SetError(FText::Format(LOCTEXT("ProfileExists", "Profile '{0}' already exists"), InText));
+							}
+							else
+							{
+								PhysicalAnimationProfileNameTextBox->SetError(FText::GetEmpty());
+							}
 						})
 						.Style(FEditorStyle::Get(), "PhysicsAssetEditor.Profiles.EditableTextBoxStyle")
 						.OnTextCommitted(FOnTextCommitted::CreateSP(this, &FPhysicsAssetDetailsCustomization::HandlePhysicalAnimationProfileNameCommitted))
@@ -519,7 +566,7 @@ TSharedRef<SWidget> FPhysicsAssetDetailsCustomization::MakeConstraintProfilesWid
 		[
 			SNew(SComboButton)
 			.ButtonStyle(FEditorStyle::Get(), "ToolBar.Button")
-			.OnGetMenuContent_Static(&FillConstraintProfilesOptions, CommandList.ToSharedRef(), PhysicsAssetEditorPtr.Pin()->GetSharedData())
+			.OnGetMenuContent(this, &FPhysicsAssetDetailsCustomization::FillConstraintProfilesOptions)
 			.ForegroundColor(FEditorStyle::GetSlateColor("DefaultForeground"))
 			.ButtonContent()
 			[
@@ -539,7 +586,7 @@ TSharedRef<SWidget> FPhysicsAssetDetailsCustomization::MakeConstraintProfilesWid
 					.FillWidth(1.0f)
 					.Padding(0.0f, 0.0f, 2.0f, 0.0f)
 					[
-						SNew(SEditableTextBox)
+						SAssignNew(ConstraintProfileNameTextBox, SEditableTextBox)
 						.Text_Lambda([LocalPhysicsAssetEditorPtr]()
 						{
 							return FText::FromName(LocalPhysicsAssetEditorPtr.Pin()->GetSharedData()->PhysicsAsset->CurrentConstraintProfileName);
@@ -547,6 +594,19 @@ TSharedRef<SWidget> FPhysicsAssetDetailsCustomization::MakeConstraintProfilesWid
 						.IsEnabled_Lambda([LocalPhysicsAssetEditorPtr]()
 						{
 							return LocalPhysicsAssetEditorPtr.Pin()->GetSharedData()->PhysicsAsset->CurrentConstraintProfileName != NAME_None;
+						})
+						.OnTextChanged_Lambda([this, LocalPhysicsAssetEditorPtr](const FText& InText)
+						{
+							FName ProfileAsName = *InText.ToString();
+							if(LocalPhysicsAssetEditorPtr.Pin()->GetSharedData()->PhysicsAsset->CurrentConstraintProfileName != ProfileAsName &&
+								LocalPhysicsAssetEditorPtr.Pin()->GetSharedData()->PhysicsAsset->GetConstraintProfileNames().Contains(ProfileAsName))
+							{
+								ConstraintProfileNameTextBox->SetError(FText::Format(LOCTEXT("ProfileExists", "Profile '{0}' already exists"), InText));
+							}
+							else
+							{
+								ConstraintProfileNameTextBox->SetError(FText::GetEmpty());
+							}
 						})
 						.Style(FEditorStyle::Get(), "PhysicsAssetEditor.Profiles.EditableTextBoxStyle")
 						.OnTextCommitted(FOnTextCommitted::CreateSP(this, &FPhysicsAssetDetailsCustomization::HandleConstraintProfileNameCommitted))

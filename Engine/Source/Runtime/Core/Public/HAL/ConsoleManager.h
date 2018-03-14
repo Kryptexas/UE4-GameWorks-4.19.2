@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -71,8 +71,8 @@ public:
 	virtual void ForEachConsoleObjectThatStartsWith(const FConsoleObjectVisitor& Visitor, const TCHAR* ThatStartsWith) const override;
 	virtual void ForEachConsoleObjectThatContains(const FConsoleObjectVisitor& Visitor, const TCHAR* ThatContains) const override;
 	virtual bool ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevice& Ar, UWorld* InWorld) override;
-	virtual void AddConsoleHistoryEntry(const TCHAR* Input) override;
-	virtual void GetConsoleHistory(TArray<FString>& Out) override;
+	virtual void AddConsoleHistoryEntry(const TCHAR* Key, const TCHAR* Input) override;
+	virtual void GetConsoleHistory(const TCHAR* Key, TArray<FString>& Out) override;
 	virtual bool IsNameRegistered(const TCHAR* Name) const override;	
 	virtual void RegisterThreadPropagation(uint32 ThreadId, IConsoleThreadPropagation* InCallback) override;
 	virtual void UnregisterConsoleObject( IConsoleObject* Object, bool bKeepState) override;
@@ -83,8 +83,8 @@ private: // ----------------------------------------------------
 	// [name] = pointer (pointer must not be 0)
 	TMap<FString, IConsoleObject*> ConsoleObjects;
 
-	TArray<FString>	HistoryEntries;
 	bool bHistoryWasLoaded;
+	TMap<FString, TArray<FString>>	HistoryEntriesMap;
 	TArray<FConsoleCommandDelegate>	ConsoleVariableChangeSinks;
 
 	IConsoleThreadPropagation* ThreadPropagationCallback;
@@ -134,9 +134,9 @@ private: // ----------------------------------------------------
 	 */
 	void UnregisterConsoleObject(const TCHAR* Name, bool bKeepState);
 
-	// clears HistoryEntries and reads it from the .ini file
+	// reads HistoryEntriesMap from the .ini file (if not already loaded)
 	void LoadHistoryIfNeeded();
 
-	// clears HistoryEntries and writes it the .ini file
+	// writes HistoryEntriesMap to the .ini file
 	void SaveHistory();
 };

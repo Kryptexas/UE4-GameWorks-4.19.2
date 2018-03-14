@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialShader.h: Material shader definitions.
@@ -43,6 +43,21 @@ extern void UpdateMaterialShaderCompilingStats(const FMaterial* Material);
  */
 extern ENGINE_API void DumpMaterialStats( EShaderPlatform Platform );
 
+struct FMaterialShaderPermutationParameters
+{
+	// Shader platform to compile to.
+	const EShaderPlatform Platform;
+
+	// Material to compile.
+	const FMaterial* Material;
+
+	FMaterialShaderPermutationParameters(EShaderPlatform InPlatform, const FMaterial* InMaterial)
+		: Platform(InPlatform)
+		, Material(InMaterial)
+	{
+	}
+};
+
 /**
  * A shader meta type for material-linked shaders.
  */
@@ -64,13 +79,14 @@ public:
 			FVertexFactoryType* InVertexFactoryType,
 			const FString& InDebugDescription
 			)
-		: FGlobalShaderType::CompiledShaderInitializerType(InType,CompilerOutput,InResource,InMaterialShaderMapHash,InShaderPipeline,InVertexFactoryType)
+		: FGlobalShaderType::CompiledShaderInitializerType(InType,/** PermutationId = */ 0,CompilerOutput,InResource,InMaterialShaderMapHash,InShaderPipeline,InVertexFactoryType)
 		, UniformExpressionSet(InUniformExpressionSet)
 		, DebugDescription(InDebugDescription)
 		{}
 	};
+
 	typedef FShader* (*ConstructCompiledType)(const CompiledShaderInitializerType&);
-	typedef bool (*ShouldCacheType)(EShaderPlatform,const FMaterial*);
+	typedef bool (*ShouldCompilePermutationType)(EShaderPlatform,const FMaterial*);
 	typedef void (*ModifyCompilationEnvironmentType)(EShaderPlatform, const FMaterial*, FShaderCompilerEnvironment&);
 
 	FMaterialShaderType(
@@ -78,20 +94,22 @@ public:
 		const TCHAR* InSourceFilename,
 		const TCHAR* InFunctionName,
 		uint32 InFrequency,
+		int32 InTotalPermutationCount,
 		ConstructSerializedType InConstructSerializedRef,
 		ConstructCompiledType InConstructCompiledRef,
 		ModifyCompilationEnvironmentType InModifyCompilationEnvironmentRef,
-		ShouldCacheType InShouldCacheRef,
+		ShouldCompilePermutationType InShouldCompilePermutationRef,
 		GetStreamOutElementsType InGetStreamOutElementsRef
 		):
-		FShaderType(EShaderTypeForDynamicCast::Material, InName, InSourceFilename, InFunctionName, InFrequency, InConstructSerializedRef, InGetStreamOutElementsRef),
+		FShaderType(EShaderTypeForDynamicCast::Material, InName, InSourceFilename, InFunctionName, InFrequency, InTotalPermutationCount, InConstructSerializedRef, InGetStreamOutElementsRef),
 		ConstructCompiledRef(InConstructCompiledRef),
-		ShouldCacheRef(InShouldCacheRef),
+		ShouldCompilePermutationRef(InShouldCompilePermutationRef),
 		ModifyCompilationEnvironmentRef(InModifyCompilationEnvironmentRef)
 	{
 		checkf(FPaths::GetExtension(InSourceFilename) == TEXT("usf"),
 			TEXT("Incorrect virtual shader path extension for material shader '%s': Only .usf files should be compiled."),
 			InSourceFilename);
+		check(InTotalPermutationCount == 1);
 	}
 
 	/**
@@ -137,7 +155,7 @@ public:
 	 */
 	bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material) const
 	{
-		return (*ShouldCacheRef)(Platform,Material);
+		return (*ShouldCompilePermutationRef)(Platform,Material);
 	}
 
 protected:
@@ -155,6 +173,6 @@ protected:
 
 private:
 	ConstructCompiledType ConstructCompiledRef;
-	ShouldCacheType ShouldCacheRef;
+	ShouldCompilePermutationType ShouldCompilePermutationRef;
 	ModifyCompilationEnvironmentType ModifyCompilationEnvironmentRef;
 };

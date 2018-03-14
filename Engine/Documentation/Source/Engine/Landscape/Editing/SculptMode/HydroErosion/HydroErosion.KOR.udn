@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3482403
+﻿INTSourceChangelist:3782314
 Availability: Public
 Crumbs: %ROOT%
 Title: 수성 침식
@@ -76,7 +76,8 @@ Topic-image:HydroErosion_topic.png
 | **Rain Dist Scale** | 강우 분포 스케일 - 표면에 초기 강우 지역을 적용하기 위한 노이즈 필터 크기입니다. 노이즈 필터는 위치와 스케일에 관계되며, **Rain Dist. Scale** 옵션을 변경하지 않는 한 같은 위치에 같은 필터를 여러 번 적용합니다. |
 | **Detail Smooth** | 디테일 스무드 - 체크하면 지정된 디테일 보존 값을 사용하여 침식 효과에 디테일 보존 스무딩을 적용합니다. 디테일 스무딩 값이 크면 제거되는 디테일이, 작으면 보존되는 디테일이 많아집니다. |
 
-<!---
+[COMMENT:none]
+-
 [INCLUDE:#raindist]
 [EXCERPT:raindist]
 |선택 | 설명 |
@@ -85,4 +86,5 @@ Topic-image:HydroErosion_topic.png
 | **Positive** | 포지티브 - 하이트맵 부분 침식을 적용 영역 모든 부분에 비가 내린 것처럼 처리합니다. |
 [/EXCERPT:raindist]
 
---->
+-
+[/COMMENT]

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Collision/CollisionConversions.h"
 #include "Engine/World.h"
@@ -376,7 +376,7 @@ static void SetHitResultFromShapeAndFaceIndex(const PxShape* PShape,  const PxRi
 	{
 		//Custom payload case
 		OwningComponent = CustomPayload->GetOwningComponent().Get();
-		if(OwningComponent->bMultiBodyOverlap)
+		if(OwningComponent && OwningComponent->bMultiBodyOverlap)
 		{
 			OutResult.Item = CustomPayload->GetItemIndex();
 			OutResult.BoneName = CustomPayload->GetBoneName();
@@ -422,10 +422,9 @@ EConvertQueryResult ConvertQueryImpactHit(const UWorld* World, const PxLocationH
 #if WITH_EDITOR
 	if(bReturnFaceIndex && World->IsGameWorld())
 	{
-		if(!ensure(UPhysicsSettings::Get()->bSuppressFaceRemapTable == false))
+		if(UPhysicsSettings::Get()->bSuppressFaceRemapTable)
 		{
-			UE_LOG(LogPhysics, Error, TEXT("A scene query is relying on face indices, but bSuppressFaceRemapTable is true."));
-			bReturnFaceIndex = false;
+			bReturnFaceIndex = false;	//The editor uses the remap table, so we modify this to get the same results as you would in a cooked build
 		}
 	}
 #endif
@@ -904,7 +903,7 @@ static bool ConvertOverlappedShapeToImpactHit(const UWorld* World, const PxLocat
 
 	// Return start location as 'safe location'
 	OutResult.Location = P2UVector(QueryTM.p);
-	OutResult.ImpactPoint = OutResult.Location; // @todo not really sure of a better thing to do here...
+	OutResult.ImpactPoint = P2UVector(PHit.position);
 
 	OutResult.TraceStart = StartLoc;
 	OutResult.TraceEnd = EndLoc;

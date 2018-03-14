@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessBloom.usf: PostProcessing bloom
@@ -150,7 +150,15 @@ void MainVS(
 // -----------------------------
 float4 BloomSetupCommon(float2 UV, float Threshold, float ExposureScale)
 {
-	half4 SceneColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
+#if USE_PREEXPOSURE
+	const float OneOverPreExposure = View.OneOverPreExposure;
+	const float PreExposure = View.PreExposure;
+#else
+	const float OneOverPreExposure = 1.f;
+	const float PreExposure = View.PreExposure;
+#endif
+
+	half4 SceneColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV) * OneOverPreExposure; 
 
 	// clamp to avoid artifacts from exceeding fp16 through framebuffer blending of multiple very bright lights
 	SceneColor.rgb = min(float3(256 * 256, 256 * 256, 256 * 256), SceneColor.rgb);

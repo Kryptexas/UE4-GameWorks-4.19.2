@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Implements a volume texture atlas for caching indirect lighting on a per-object basis
@@ -435,7 +435,7 @@ void FIndirectLightingCache::StartUpdateCachePrimitivesTask(FScene* Scene, FScen
 void FIndirectLightingCache::FinalizeCacheUpdates(FScene* Scene, FSceneRenderer& Renderer, FILCUpdatePrimTaskData& TaskData)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateIndirectLightingCacheFinalize);	
-	FTaskGraphInterface::Get().WaitUntilTaskCompletes(TaskData.TaskRef, ENamedThreads::RenderThread_Local);
+	FTaskGraphInterface::Get().WaitUntilTaskCompletes(TaskData.TaskRef, ENamedThreads::GetRenderThread_Local());
 	FinalizeUpdateInternal_RenderThread(Scene, Renderer, TaskData.OutBlocksToUpdate, TaskData.OutTransitionsOverTimeToUpdate);
 }
 
@@ -476,7 +476,7 @@ void FIndirectLightingCache::ProcessPrimitiveUpdate(FScene* Scene, FViewInfo& Vi
 	if (!bPrecomputedLightingBufferWasDirty && PrimitiveSceneInfo->NeedsPrecomputedLightingBufferUpdate())
 	{
 		// Since the update can be executed on a threaded job (see GILCUpdatePrimTaskEnabled), no reallocation must happen here.
-		checkSlow(View.DirtyPrecomputedLightingBufferPrimitives.Num() < View.DirtyPrecomputedLightingBufferPrimitives.Max());
+		check(View.DirtyPrecomputedLightingBufferPrimitives.Num() < View.DirtyPrecomputedLightingBufferPrimitives.Max());
 		View.DirtyPrecomputedLightingBufferPrimitives.Push(PrimitiveSceneInfo);
 	}
 }
@@ -906,6 +906,9 @@ void FIndirectLightingCache::UpdateBlock(FScene* Scene, FViewInfo* DebugDrawingV
 
 	BlockInfo.Block.bHasEverBeenUpdated = true;
 }
+
+template class TSHVector<2>;
+template class TSHVector<3>;
 
 template <int32 SHOrder>
 static void ReduceSHRinging(TSHVectorRGB<SHOrder>& IncidentRadiance)

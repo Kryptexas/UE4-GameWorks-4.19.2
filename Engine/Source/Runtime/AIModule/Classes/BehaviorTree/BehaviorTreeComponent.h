@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,6 +20,7 @@ class UBTNode;
 class UBTTask_RunBehavior;
 class UBTTask_RunBehaviorDynamic;
 class UBTTaskNode;
+struct FScopedBehaviorTreeLock;
 
 struct FBTNodeExecutionInfo
 {
@@ -58,17 +59,11 @@ struct FBTPendingExecutionInfo
 	/** if set, request can't be executed */
 	uint32 bLocked : 1;
 
-	/** if set, active task is in the middle of Abort call */
-	uint32 bAborting : 1;
-
-	FBTPendingExecutionInfo() : NextTask(NULL), bOutOfNodes(false), bLocked(false), bAborting(false) {}
+	FBTPendingExecutionInfo() : NextTask(NULL), bOutOfNodes(false), bLocked(false) {}
 	bool IsSet() const { return (NextTask || bOutOfNodes) && !bLocked; }
 
 	void Lock() { bLocked = true; }
 	void Unlock() { bLocked = false; }
-
-	void OnAbortStart() { bAborting = true; }
-	void OnAbortProcessed() { bAborting = false; }
 };
 
 struct FBTTreeStartInfo
@@ -149,8 +144,11 @@ public:
 	/** unregister all aux nodes less important than given index */
 	void UnregisterAuxNodesUpTo(const FBTNodeIndex& Index);
 
+	/** unregister all aux nodes between given execution index range: FromIndex < AuxIndex < ToIndex */
+	void UnregisterAuxNodesInRange(const FBTNodeIndex& FromIndex, const FBTNodeIndex& ToIndex);
+
 	/** unregister all aux nodes in branch of tree */
-	void UnregisterAuxNodesInBranch(const UBTCompositeNode* Node);
+	void UnregisterAuxNodesInBranch(const UBTCompositeNode* Node, bool bApplyImmediately = true);
 
 	/** BEGIN UActorComponent overrides */
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
@@ -268,6 +266,12 @@ protected:
 	/** index of last active instance on stack */
 	uint16 ActiveInstanceIdx;
 
+	/** if set, StopTree calls will be deferred */
+	uint8 StopTreeLock;
+
+	/** if set, StopTree will be called at the end of tick */
+	uint8 bDeferredStopTree : 1;
+
 	/** loops tree execution */
 	uint8 bLoopExecution : 1;
 
@@ -335,6 +339,9 @@ protected:
 	/** apply pending tree initialization */
 	void ProcessPendingInitialize();
 
+	/** restore state of tree to state before search */
+	void RollbackSearchChanges();
+
 	/** make a snapshot for debugger */
 	void StoreDebuggerExecutionStep(EBTExecutionSnap::Type SnapType);
 
@@ -370,6 +377,7 @@ protected:
 	friend UBTTask_RunBehaviorDynamic;
 	friend FBehaviorTreeDebugger;
 	friend FBehaviorTreeInstance;
+	friend FScopedBehaviorTreeLock;
 };
 
 //////////////////////////////////////////////////////////////////////////

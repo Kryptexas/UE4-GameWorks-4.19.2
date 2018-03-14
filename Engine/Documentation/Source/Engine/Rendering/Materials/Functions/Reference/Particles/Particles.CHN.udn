@@ -44,7 +44,8 @@ Version:4.9
 [REGION:note]
 	任何以 "--------" 作为前缀的输入无非是输入列表中的分隔符，而不会接收实际输入。
 [/REGION]
-<!---
+[COMMENT:none]
+-
 ### RandomUVs（随机 UV）
 
 RandomUVs（随机 UV）函数提供了一种快捷方便的方法，在粒子系统中生成粒子时将这些粒子的纹理坐标随机化。此函数使用以 *U_Offset* 和 *V_Offset* 作为参数名称的“动态参数”来移动 UV 坐标。这设置为统一分布，仅在产生时进行计算，并且每个通道均采用 0-1 分布。
@@ -60,5 +61,6 @@ RandomUVs（随机 UV）函数提供了一种快捷方便的方法，在粒子�
 
 
 ![RandomUVs（随机 UV）](RandomUVs.png)
---->
+-
+[/COMMENT]
 

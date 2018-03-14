@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "VisualLoggerCameraController.h"
 #include "Engine/World.h"
@@ -116,7 +116,7 @@ void AVisualLoggerCameraController::DisableCamera(UWorld* InWorld)
 	check(InWorld);
 	for (FConstPlayerControllerIterator Iterator = InWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
 	{
-		AVisualLoggerCameraController* VLogCam = Cast<AVisualLoggerCameraController>(*Iterator);
+		AVisualLoggerCameraController* VLogCam = Cast<AVisualLoggerCameraController>(Iterator->Get());
 		if (VLogCam && VLogCam->OriginalPlayer)
 		{
 			VLogCam->OriginalPlayer->SwitchController(VLogCam->OriginalControllerRef);
@@ -133,7 +133,7 @@ bool AVisualLoggerCameraController::IsEnabled(UWorld* InWorld)
 	{
 		for (FConstPlayerControllerIterator Iterator = InWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
-			AVisualLoggerCameraController* VLogCam = Cast<AVisualLoggerCameraController>(*Iterator);
+			AVisualLoggerCameraController* VLogCam = Cast<AVisualLoggerCameraController>(Iterator->Get());
 			if (VLogCam && VLogCam->OriginalControllerRef && VLogCam->OriginalPlayer)
 			{
 				return true;

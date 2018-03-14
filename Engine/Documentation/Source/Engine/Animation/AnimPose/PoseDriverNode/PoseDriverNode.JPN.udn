@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3603049
-Availability:Docs
+﻿INTSourceChangelist:3782314
+Availability:Public
 Crumbs: %ROOT%, Engine, Engine/Animation
 Title:Pose Driver
 Description: Pose Driver を使って、ボーンの動きに応じて Pose アセットまたは Curve 値を操作する方法を説明します。
@@ -73,7 +73,8 @@ Pose Driver ノードを **Animation ブループリント** に追加するに�
 
 	![](BlankDetails.png)
 
-## Pose Targets
+	## Pose Targets
+
 
 Pose Targets では、Pose アセットからポーズを、またはPose Driver ノードで操作するカーブを指定します。 
 
@@ -95,7 +96,7 @@ Pose Targets は、Pose アセットを使用する代わりに、[](Engine/Anim
 
 Pose アセットを使用する代わりにカーブ データを使用するには以下の手順に従います。 
 
-1.	**Pose Driver** ノードの **[Details]** パネルの **Pose Driver** セクションで、**Drive Output** を **Drive Curves** に変更します。 
+1.	**Pose Driver** ノードの **[Details]** パネルの **Pose Driver** セクションで、**[Drive Output]** を **[Drive Curves]** に変更します。 
 
 	![](DriveOutputSetting.png)
 
@@ -103,7 +104,7 @@ Pose アセットを使用する代わりにカーブ データを使用する�
 
 	![](CompileButton.png)
 
-1.	**Add Target** ボタンをクリックして、操作対象のカーブを追加します。
+1.	**[Add Target]** ボタンをクリックして、操作対象のカーブを追加します。
 
 	![](AddTarget.png)
 
@@ -129,7 +130,8 @@ Pose アセットを使用する代わりにカーブ データを使用する�
 | **Drive Source** | トランスフォームのどの部分を読み出すかです。**Rotation** または **Translation** のいずれかになります。 | 
 | **Drive Output** | ポーズまたはカーブを操作するかどうかです。 | 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:rbftable]
 | オプション| 説明 |
 | ----------- |------|
@@ -139,7 +141,8 @@ Pose アセットを使用する代わりにカーブ データを使用する�
 | **Twist Axis** | **Distance Method** が **Swing Angle** に設定されている場合に使用する軸です。 | 
 | **Weight Threshold** | このウェイトよりも低い場合、ターゲットからの寄与を戻しません。 | 
 [/EXCERPT:rbftable]
--->
+
+[/COMMENT]
 
 
 ## 設定と関連性

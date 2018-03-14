@@ -1,4 +1,6 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
+using System.IO;
 
 namespace UnrealBuildTool.Rules
 {
@@ -9,14 +11,17 @@ namespace UnrealBuildTool.Rules
             PrivateIncludePathModuleNames.AddRange(
                 new string[]
 				{
-					"TargetPlatform",
-					"XAudio2"
+					"TargetPlatform"
 				}
 				);
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
-					"OculusAudio/Private",
+					// Relative to Engine\Plugins\Runtime\Oculus\OculusAudio\Source
+                    "../../../../../Source/ThirdParty/Oculus/LibOVRAudio/LibOVRAudio/include",
+
+                    "OculusAudio/Private",
+                    "../../../../../Source/Runtime/AudioMixer/Private"
  					// ... add other private include paths required here ...
 				}
 				);
@@ -27,17 +32,29 @@ namespace UnrealBuildTool.Rules
 					"Core",
 					"CoreUObject",
 					"Engine",
-					"XAudio2"
+                    "AudioMixer"
 				}
 				);
 
             if (Target.Platform == UnrealTargetPlatform.Win64)
             {
-				PrivateDependencyModuleNames.AddRange(new string[] { "LibOVRAudio" });
-				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Oculus/Audio/Win64/ovraudio64.dll"));
+
+                PrivateIncludePathModuleNames.Add("XAudio2");
+                PrivateDependencyModuleNames.AddRange(new string[] { "XAudio2", "LibOVRAudio" });
+				RuntimeDependencies.Add("$(EngineDir)/Binaries/ThirdParty/Oculus/Audio/Win64/ovraudio64.dll");
+
+                AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11Audio");
             }
 
-            AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11Audio");
+            if (Target.Platform == UnrealTargetPlatform.Android)
+            {
+                // AndroidPlugin
+                {
+                    string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
+                    AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(PluginPath, "OculusAudio_APL.xml"));
+                    PublicAdditionalLibraries.Add("ThirdParty/Oculus/LibOVRAudio/LibOVRAudio/lib/armeabi-v7a/libovraudio32.so");
+                }
+            }
 		}
 	}
 }

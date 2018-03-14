@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -281,6 +281,10 @@ public:
 	/** Overrides the lightmap resolution defined in the static mesh */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings, meta=(DisplayName="Light Map Resolution", EditCondition="bOverrideLightMapRes"))
 	int32 OverriddenLightMapRes;
+
+	/** Controls the type of lightmap used for this component. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=InstanceSettings)
+	ELightmapType LightmapType;
 
 	/**
 	 * If enabled, foliage will render a pre-pass which allows it to occlude other primitives, and also allows 

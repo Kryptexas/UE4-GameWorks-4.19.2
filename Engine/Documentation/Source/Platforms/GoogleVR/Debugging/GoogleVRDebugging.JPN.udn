@@ -1,0 +1,82 @@
+﻿INTSourceChangelist:3763976
+Availability:Public
+Title:Google VR のパフォーマンス調整
+Description:IGoogle VR 用アプリケーションのパフォーマンスの確認方法
+Navigation:platform
+Crumbs:%ROOT%
+Platform:Google VR
+Related:Platforms/Mobile/Performance
+Related:Engine/Performance
+Related:Engine/Performance/StatCommands
+Related:Platforms/Mobile/Textures
+Related:Platforms/Mobile/Materials
+Related:Engine/Rendering/Materials/MaterialProperties/BlendModes
+Related:Engine/Rendering/Materials/CustomizedUVs
+Skilllevel:Intermediate
+Version:4.17
+type:overview
+parent:Platforms/GoogleVR
+tags:VR
+tags:GoogleVR
+
+[TOC(start:1 end:3)]
+
+このページでは、Google VR プロジェクトのパフォーマンス問題の検出方法について説明します。
+
+## Google Daydream Performance HUD
+
+
+![](GoogleDaydreamPerfHUD.png)
+
+[region:note]
+Daydream Performance HUD は、Google VR SDK 1.60 以上でビルドされたすべての Daydream アプリケーションに対して有効にされたパフォーマンス オーバーレイです。
+[/region]
+
+Google Daydream にはパフォーマンス オーバーレイがついています。これを有効にすると、パフォーマンス問題の発生時に、すぐに詳細を確認することができます。このオーバーレイを有効にすると、以下の統計情報も表示されます。
+
+* **アプリケーション フレーム サブミット レートおよび GPU でフレームがブロックされているかどうか**
+* **非同期リプロジェクション統計情報**
+* **処理メモリー使用量**
+* **デバイスのサーマル スロットリングまでの温度 (�C)**
+
+### Performance HUD を有効にする方法
+
+Performance HUD を有効にするには、以下の手順に従います。
+
+1. Daydream アプリケーションを起動したら、スマートフォンの上部右側の歯車アイコンをタップして、VR 設定を開きます。
+
+	![](GVDP_00.png)
+
+1. [Build Version] を **6** 回タップすると、[Developer Options] の項目が表示されます。
+
+	[REGION:lightbox]
+	[![](GVDP_01.png)(w:320)](GVDP_01.png)
+	[/REGION]
+
+	[REGION:caption]
+	クリックしてフルサイズで表示
+	[/REGION]
+
+1. [Developer Options] > [Enable performance heads-up display] を選択します。このオプションを有効にすると、**[Enable performance monitoring]** オプションも有効になります。
+
+	[REGION:lightbox]
+	[![](GVDP_02.png)(w:320)](GVDP_02.png)
+	[/REGION]
+
+	[REGION:caption]
+	クリックしてフルサイズで表示
+	[/REGION]
+
+4. 次に VR アプリケーションを起動すると以下の画像のようにパフォーマンス オーバーレイが表示されます。
+
+	[REGION:lightbox]
+	[![](GoogleDaydreamPerfHUD.png)(w:720)](GoogleDaydreamPerfHUD.png)
+	[/REGION]
+
+	[REGION:caption]
+	クリックしてフルサイズで表示
+	[/REGION]
+
+	[region:note]
+	Performance HUD の使い方の詳細は、[Google VR パフォーマンス HUD](https://developers.google.com/vr/tools/perfhud) を確認してください。
+	[/region]

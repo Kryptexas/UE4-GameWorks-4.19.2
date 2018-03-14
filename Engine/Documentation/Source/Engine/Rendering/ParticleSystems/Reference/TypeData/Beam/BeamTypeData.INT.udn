@@ -1,9 +1,12 @@
 Availability:Public
 Title:Beam Type Data
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
-Description:The Beam Type Data module is useful for creating effects such as beams of energy of electricity.
+Description:The Beam type data module indicates that the emitter should output beams - connecting particles to form a stream between a source point and a target point.
 Version: 4.9
 tags:Particles
+tags:TypeData
+order:1
+topic-image:psys_beam.gif
 
 
 [EXCERPT:Intro]
@@ -51,8 +54,11 @@ The **Beam** type data module has the following properties:
 | **Render Tessellation** | If _true_, the tessellated path between the source and target will be rendered. Used for debugging in Cascade. |
 
 
-<!-- Begin Beam Includes -->
-<!--
+[COMMENT:none]
+ Begin Beam Includes 
+[/COMMENT]
+[COMMENT:none]
+
 [EXCERPT:BeamMethod]
 [REGION:simpletable]
 | Method | Description |
@@ -89,8 +95,11 @@ The **Beam** type data module has the following properties:
 [/REGION:simpletable]
 [/EXCERPT:TaperMethod]
 
--->
-<!-- End Beam Includes -->
+
+[/COMMENT]
+[COMMENT:none]
+ End Beam Includes 
+[/COMMENT]
 
 
 

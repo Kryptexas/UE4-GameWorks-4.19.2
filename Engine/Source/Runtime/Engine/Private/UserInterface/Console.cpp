@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Interaction.cpp: See .UC for for info
@@ -37,12 +37,6 @@ static const FName NAME_Open = FName(TEXT("Open"));
 
 UConsole::FRegisterConsoleAutoCompleteEntries UConsole::RegisterConsoleAutoCompleteEntries;
 
-static TAutoConsoleVariable<float> CVarConsoleTextScale(
-	TEXT("r.ConsoleTextScale"),
-	1.0,
-	TEXT("Sets the scale of the debug text.\n"),
-	ECVF_Default);
-
 namespace ConsoleDefs
 {
 	/** Colors */
@@ -63,12 +57,12 @@ public:
 	// @param CVar must not be 0
 	static void OnConsoleVariable(const TCHAR *Name, IConsoleObject* CVar,TArray<struct FAutoCompleteCommand>& Sink)
 	{
-#if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if DISABLE_CHEAT_CVARS
 		if(CVar->TestFlags(ECVF_Cheat))
 		{
 			return;
 		}
-#endif // (UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif // DISABLE_CHEAT_CVARS
 		if(CVar->TestFlags(ECVF_Unregistered))
 		{
 			return;
@@ -1156,7 +1150,6 @@ bool UConsole::InputKey_Open( int32 ControllerId, FKey Key, EInputEvent Event, f
 
 void UConsole::PostRender_Console_Open(UCanvas* Canvas)
 {
-	float DebugTextScale = CVarConsoleTextScale.GetValueOnAnyThread();
 	// the height of the buffer will be 75% of the height of the screen
 	float Height = FMath::FloorToFloat(Canvas->ClipY * 0.75f);
 
@@ -1183,8 +1176,6 @@ void UConsole::PostRender_Console_Open(UCanvas* Canvas)
 	// determine the height of the text
 	float xl, yl;
 	Canvas->StrLen(Font, TEXT("M"),xl,yl);
-    xl *= DebugTextScale;
-    yl *= DebugTextScale;
 	// Background
 	FLinearColor BackgroundColor = ConsoleDefs::AutocompleteBackgroundColor.ReinterpretAsLinear();
 	BackgroundColor.A = ConsoleSettings->BackgroundOpacityPercentage / 100.0f;
@@ -1203,7 +1194,6 @@ void UConsole::PostRender_Console_Open(UCanvas* Canvas)
 	if(Scrollback.Num())
 	{
 		FCanvasTextItem ConsoleText( FVector2D( LeftPos,TopPos+Height-5-yl ), FText::FromString(TEXT("")), GEngine->GetLargeFont(), ConsoleSettings->InputColor );
-		ConsoleText.Scale = FVector2D(DebugTextScale, DebugTextScale);
 		// change the text color to white
 		ConsoleText.SetColor( FLinearColor::White );
 
@@ -1305,7 +1295,6 @@ void UConsole::PostRender_Console(UCanvas* Canvas)
 void UConsole::PostRender_InputLine(UCanvas* Canvas, FIntPoint UserInputLinePos)
 {
 	float xl, yl;
-	float DebugTextScale = CVarConsoleTextScale.GetValueOnAnyThread();
 
 	const FString TypedInputText = FString::Printf(TEXT("%s%s"), *ConsoleDefs::LeadingInputText, *TypedStr);
 	const FString PrecompletedInputText = !PrecompletedInputLine.IsEmpty() ? PrecompletedInputLine.RightChop(TypedStr.Len()) : FString();
@@ -1314,8 +1303,6 @@ void UConsole::PostRender_InputLine(UCanvas* Canvas, FIntPoint UserInputLinePos)
 	UFont* Font = GEngine->GetSmallFont();
 	// determine the size of the input line
 	Canvas->StrLen(Font, TypedInputText, xl, yl);
-	yl *= DebugTextScale;
-	xl *= DebugTextScale;
 
 	float ClipX = Canvas->ClipX;
 	float ClipY = Canvas->ClipY;
@@ -1352,7 +1339,6 @@ void UConsole::PostRender_InputLine(UCanvas* Canvas, FIntPoint UserInputLinePos)
 	FText Str = FText::FromString( TypedInputText );
 	FCanvasTextItem ConsoleText( FVector2D( UserInputLinePos.X,UserInputLinePos.Y-3-yl ), Str , GEngine->GetLargeFont(), ConsoleSettings->InputColor );
 	ConsoleText.EnableShadow(FLinearColor::Black);
-	ConsoleText.Scale = FVector2D(DebugTextScale, DebugTextScale);
 	Canvas->DrawItem( ConsoleText );
 
 	// Precompleted remainder of the typed string (faded out)
@@ -1373,8 +1359,6 @@ void UConsole::PostRender_InputLine(UCanvas* Canvas, FIntPoint UserInputLinePos)
 		}
 
 		Canvas->StrLen(Font, *ConsoleDefs::LeadingInputText, xl, yl);
-		yl *= DebugTextScale;
-		xl *= DebugTextScale;
 		float y = UserInputLinePos.Y - 6.0f - (yl * 2.0f);
 
 		// Set the background color/texture of the auto-complete section
@@ -1418,7 +1402,7 @@ void UConsole::PostRender_InputLine(UCanvas* Canvas, FIntPoint UserInputLinePos)
 		}
 
 		// background rectangle behind auto completion
-		float MaxWidth = (MaxLeftWidth + MaxRightWidth) * DebugTextScale;
+		float MaxWidth = (MaxLeftWidth + MaxRightWidth);
 		float Height = AutoCompleteElements.Num() * yl;
 		int32 Border = 4;
 
@@ -1478,8 +1462,6 @@ void UConsole::PostRender_InputLine(UCanvas* Canvas, FIntPoint UserInputLinePos)
 
 			float DescriptionWidth, DescriptionHeight;
 			Canvas->StrLen(Font, AutoCompleteElement.GetRight(), DescriptionWidth, DescriptionHeight);
-			DescriptionWidth *= DebugTextScale;
-			DescriptionHeight *= DebugTextScale;
 			float DescriptionX = UserInputLinePos.X + xl + ConsoleDefs::AutocompleteGap;
 			float DescriptionOverflow = DescriptionX + MaxLeftWidth + DescriptionWidth - Canvas->SizeX;
 
@@ -1518,8 +1500,6 @@ void UConsole::PostRender_InputLine(UCanvas* Canvas, FIntPoint UserInputLinePos)
 	// determine the cursor position
 	const FString TypedInputTextUpToCursor = FString::Printf(TEXT("%s%s"), *ConsoleDefs::LeadingInputText, *TypedStr.Left(TypedStrPos));
 	Canvas->StrLen(Font, TypedInputTextUpToCursor,xl,yl);
-	yl *= DebugTextScale;
-	xl *= DebugTextScale;
 	// draw the cursor
 	ConsoleText.SetColor( ConsoleDefs::CursorColor );
 	ConsoleText.Text = FText::FromString( FString(TEXT("_")) );

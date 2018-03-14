@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SpriterImporterFactory.h"
 #include "SpriterImporterLog.h"
@@ -340,10 +340,10 @@ UObject* USpriterImporterFactory::FactoryCreateText(UClass* InClass, UObject* In
 			USkeleton* EntitySkeleton = CastChecked<USkeleton>(CreateNewAsset(USkeleton::StaticClass(), TargetSkeletonPath, TargetSkeletonName, Flags));
 
 			// Initialize the mesh asset
-			FSkeletalMeshResource* ImportedResource = SkeletalMesh->GetImportedResource();
-			check(ImportedResource->LODModels.Num() == 0);
-			ImportedResource->LODModels.Empty();
-			FStaticLODModel& LODModel = *new (ImportedResource->LODModels) FStaticLODModel();
+			FSkeletalMeshModel* ImportedModel = SkeletalMesh->GetImportedModel();
+			check(ImportedModel->LODModels.Num() == 0);
+			ImportedModel->LODModels.Empty();
+			FSkeletalMeshLODModel& LODModel = *new (ImportedModel->LODModels) FSkeletalMeshLODModel();
 
 			SkeletalMesh->LODInfo.Empty();
 			SkeletalMesh->LODInfo.AddZeroed();

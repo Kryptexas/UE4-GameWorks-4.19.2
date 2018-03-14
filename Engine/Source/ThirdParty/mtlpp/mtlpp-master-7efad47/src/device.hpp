@@ -2,16 +2,20 @@
  * Copyright 2016-2017 Nikolay Aleksiev. All rights reserved.
  * License: https://github.com/naleksiev/mtlpp/blob/master/LICENSE
  */
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+#include "imp_Device.hpp"
 #include "types.hpp"
 #include "pixel_format.hpp"
 #include "resource.hpp"
 #include "library.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -36,9 +40,10 @@ namespace mtlpp
     class CompileOptions;
     class RenderPipelineDescriptor;
     class RenderPassDescriptor;
-    class RenderPipelineReflection;
+    class AutoReleasedRenderPipelineReflection;
+	class TileRenderPipelineDescriptor;
     class ComputePipelineDescriptor;
-    class ComputePipelineReflection;
+    class AutoReleasedComputePipelineReflection;
     class CommandQueueDescriptor;
     class HeapDescriptor;
 
@@ -58,6 +63,7 @@ namespace mtlpp
 		iOS_GPUFamily1_v4         MTLPP_AVAILABLE_IOS(11_0)  = 8,
 		iOS_GPUFamily2_v4         MTLPP_AVAILABLE_IOS(11_0)  = 9,
 		iOS_GPUFamily3_v3         MTLPP_AVAILABLE_IOS(11_0)  = 10,
+		iOS_GPUFamily4_v1 		  MTLPP_AVAILABLE_IOS(11_0)  = 11,
 
         macOS_GPUFamily1_v1         MTLPP_AVAILABLE_MAC(8_0)   = 10000,
 
@@ -71,6 +77,7 @@ namespace mtlpp
         tvOS_GPUFamily1_v2        MTLPP_AVAILABLE_TVOS(10_0) = 30001,
 		
 		tvOS_GPUFamily1_v3        MTLPP_AVAILABLE_TVOS(11_0) = 30002,
+		tvOS_GPUFamily2_v1 		MTLPP_AVAILABLE_TVOS(11_0) = 30003,
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
@@ -99,45 +106,54 @@ namespace mtlpp
 
     struct SizeAndAlign
     {
-        uint32_t Size;
-        uint32_t Align;
+        NSUInteger Size;
+        NSUInteger Align;
     };
 	
-	class ArgumentDescriptor : public ns::Object
+	class ArgumentDescriptor : public ns::Object<MTLArgumentDescriptor*>
 	{
 	public:
 		ArgumentDescriptor();
-		ArgumentDescriptor(const ns::Handle& handle) : ns::Object(handle) {}
+		ArgumentDescriptor(MTLArgumentDescriptor* handle) : ns::Object<MTLArgumentDescriptor*>(handle) {}
 		
 		DataType GetDataType() const;
-		uint32_t GetIndex() const;
-		uint32_t GetArrayLength() const;
+		NSUInteger GetIndex() const;
+		NSUInteger GetArrayLength() const;
 		ArgumentAccess GetAccess() const;
 		TextureType GetTextureType() const;
-		uint32_t GetConstantBlockAlignment() const;
+		NSUInteger GetConstantBlockAlignment() const;
 	}
 	MTLPP_AVAILABLE(10_13, 11_0);
+	
+	typedef std::function<void(const ns::Ref<Device>&, ns::String const&)> DeviceHandler;
+	typedef std::function<void (void* pointer, NSUInteger length)> BufferDeallocHandler;
+	typedef std::function<void(const Library&, const ns::AutoReleasedError&)> LibraryHandler;
+	typedef std::function<void(const RenderPipelineState&, const ns::AutoReleasedError&)> RenderPipelineStateHandler;
+	typedef std::function<void(const RenderPipelineState&, const AutoReleasedRenderPipelineReflection&, const ns::AutoReleasedError&)> RenderPipelineStateReflectionHandler;
+	typedef std::function<void(const ComputePipelineState&, const ns::AutoReleasedError&)> ComputePipelineStateHandler;
+	typedef std::function<void(const ComputePipelineState&, const AutoReleasedComputePipelineReflection&, const ns::AutoReleasedError&)> ComputePipelineStateReflectionHandler;
 
-    class Device : public ns::Object
+	class Device : public ns::Object<ns::Protocol<id<MTLDevice>>::type>
     {
     public:
         Device() { }
-        Device(const ns::Handle& handle) : ns::Object(handle) { }
+        Device(ns::Protocol<id<MTLDevice>>::type handle, bool const bRetain = true) : ns::Object<ns::Protocol<id<MTLDevice>>::type>(handle, bRetain) { }
 
 		static ns::String GetWasAddedNotification() MTLPP_AVAILABLE_MAC(10_13);
 		static ns::String GetRemovalRequestedNotification() MTLPP_AVAILABLE_MAC(10_13);
 		static ns::String GetWasRemovedNotification() MTLPP_AVAILABLE_MAC(10_13);
 		
-		static ns::Array<Device> CopyAllDevicesWithObserver(ns::Object observer, std::function<void(const Device&, ns::String const&)> handler) MTLPP_AVAILABLE_MAC(10_13);
-		static void RemoveDeviceObserver(ns::Object observer) MTLPP_AVAILABLE_MAC(10_13);
+		static ns::Array<ns::Ref<Device>> CopyAllDevicesWithObserver(ns::Object<id <NSObject>> observer, DeviceHandler handler) MTLPP_AVAILABLE_MAC(10_13);
+		static void RemoveDeviceObserver(ns::Object<id <NSObject>> observer) MTLPP_AVAILABLE_MAC(10_13);
 		
-        static Device CreateSystemDefaultDevice() MTLPP_AVAILABLE(10_11, 8_0);
-        static ns::Array<Device> CopyAllDevices() MTLPP_AVAILABLE(10_11, NA);
+        static ns::Ref<Device> CreateSystemDefaultDevice() MTLPP_AVAILABLE(10_11, 8_0);
+        static ns::Array<ns::Ref<Device>> CopyAllDevices() MTLPP_AVAILABLE(10_11, NA);
 
         ns::String GetName() const;
         Size       GetMaxThreadsPerThreadgroup() const MTLPP_AVAILABLE(10_11, 9_0);
         bool       IsLowPower() const MTLPP_AVAILABLE_MAC(10_11);
         bool       IsHeadless() const MTLPP_AVAILABLE_MAC(10_11);
+		bool       IsRemovable() const MTLPP_AVAILABLE_MAC(10_13);
         uint64_t   GetRecommendedMaxWorkingSetSize() const MTLPP_AVAILABLE_MAC(10_12);
         bool       IsDepth24Stencil8PixelFormatSupported() const MTLPP_AVAILABLE_MAC(10_11);
 		
@@ -151,41 +167,45 @@ namespace mtlpp
 		uint64_t GetCurrentAllocatedSize() const MTLPP_AVAILABLE(10_13, 11_0);
 
         CommandQueue NewCommandQueue();
-        CommandQueue NewCommandQueue(uint32_t maxCommandBufferCount);
+        CommandQueue NewCommandQueue(NSUInteger maxCommandBufferCount);
         SizeAndAlign HeapTextureSizeAndAlign(const TextureDescriptor& desc) MTLPP_AVAILABLE(10_13, 10_0);
-        SizeAndAlign HeapBufferSizeAndAlign(uint32_t length, ResourceOptions options) MTLPP_AVAILABLE(10_13, 10_0);
+        SizeAndAlign HeapBufferSizeAndAlign(NSUInteger length, ResourceOptions options) MTLPP_AVAILABLE(10_13, 10_0);
         Heap NewHeap(const HeapDescriptor& descriptor) MTLPP_AVAILABLE(10_13, 10_0);
-        Buffer NewBuffer(uint32_t length, ResourceOptions options);
-        Buffer NewBuffer(const void* pointer, uint32_t length, ResourceOptions options);
-        Buffer NewBuffer(void* pointer, uint32_t length, ResourceOptions options, std::function<void (void* pointer, uint32_t length)> deallocator);
+        Buffer NewBuffer(NSUInteger length, ResourceOptions options);
+        Buffer NewBuffer(const void* pointer, NSUInteger length, ResourceOptions options);
+        Buffer NewBuffer(void* pointer, NSUInteger length, ResourceOptions options, BufferDeallocHandler deallocator);
         DepthStencilState NewDepthStencilState(const DepthStencilDescriptor& descriptor);
         Texture NewTexture(const TextureDescriptor& descriptor);
-		Texture NewTextureWithDescriptor(const TextureDescriptor& descriptor, ns::IOSurface& iosurface, uint32_t plane) MTLPP_AVAILABLE(10_11, NA);
+		Texture NewTextureWithDescriptor(const TextureDescriptor& descriptor, ns::IOSurface& iosurface, NSUInteger plane) MTLPP_AVAILABLE(10_11, NA);
         SamplerState NewSamplerState(const SamplerDescriptor& descriptor);
         Library NewDefaultLibrary();
-		Library NewDefaultLibraryWithBundle(const ns::Bundle& bundle, ns::Error* error) MTLPP_AVAILABLE(10_12, 10_0);
-        Library NewLibrary(const ns::String& filepath, ns::Error* error);
-        Library NewLibrary(const char* source, const CompileOptions& options, ns::Error* error);
-		Library NewLibrary(ns::URL const& url, ns::Error* error) MTLPP_AVAILABLE(10_13, 11_0);
-        void NewLibrary(const char* source, const CompileOptions& options, std::function<void(const Library&, const ns::Error&)> completionHandler);
-        RenderPipelineState NewRenderPipelineState(const RenderPipelineDescriptor& descriptor, ns::Error* error);
-        RenderPipelineState NewRenderPipelineState(const RenderPipelineDescriptor& descriptor, PipelineOption options, RenderPipelineReflection* outReflection, ns::Error* error);
-        void NewRenderPipelineState(const RenderPipelineDescriptor& descriptor, std::function<void(const RenderPipelineState&, const ns::Error&)> completionHandler);
-        void NewRenderPipelineState(const RenderPipelineDescriptor& descriptor, PipelineOption options, std::function<void(const RenderPipelineState&, const RenderPipelineReflection&, const ns::Error&)> completionHandler);
-        ComputePipelineState NewComputePipelineState(const Function& computeFunction, ns::Error* error);
-        ComputePipelineState NewComputePipelineState(const Function& computeFunction, PipelineOption options, ComputePipelineReflection& outReflection, ns::Error* error);
-        void NewComputePipelineState(const Function& computeFunction, std::function<void(const ComputePipelineState&, const ns::Error&)> completionHandler);
-        void NewComputePipelineState(const Function& computeFunction, PipelineOption options, std::function<void(const ComputePipelineState&, const ComputePipelineReflection&, const ns::Error&)> completionHandler);
-        ComputePipelineState NewComputePipelineState(const ComputePipelineDescriptor& descriptor, PipelineOption options, ComputePipelineReflection* outReflection, ns::Error* error);
-        void NewComputePipelineState(const ComputePipelineDescriptor& descriptor, PipelineOption options, std::function<void(const ComputePipelineState&, const ComputePipelineReflection&, const ns::Error&)> completionHandler) MTLPP_AVAILABLE(10_11, 9_0);
+		Library NewDefaultLibraryWithBundle(const ns::Bundle& bundle, ns::AutoReleasedError* error) MTLPP_AVAILABLE(10_12, 10_0);
+        Library NewLibrary(const ns::String& filepath, ns::AutoReleasedError* error);
+        Library NewLibrary(const char* source, const CompileOptions& options, ns::AutoReleasedError* error);
+		Library NewLibrary(ns::URL const& url, ns::AutoReleasedError* error) MTLPP_AVAILABLE(10_13, 11_0);
+        void NewLibrary(const char* source, const CompileOptions& options, LibraryHandler completionHandler);
+        RenderPipelineState NewRenderPipelineState(const RenderPipelineDescriptor& descriptor, ns::AutoReleasedError* error);
+        RenderPipelineState NewRenderPipelineState(const RenderPipelineDescriptor& descriptor, PipelineOption options, AutoReleasedRenderPipelineReflection* outReflection, ns::AutoReleasedError* error);
+        void NewRenderPipelineState(const RenderPipelineDescriptor& descriptor, RenderPipelineStateHandler completionHandler);
+        void NewRenderPipelineState(const RenderPipelineDescriptor& descriptor, PipelineOption options, RenderPipelineStateReflectionHandler completionHandler);
+        ComputePipelineState NewComputePipelineState(const Function& computeFunction, ns::AutoReleasedError* error);
+        ComputePipelineState NewComputePipelineState(const Function& computeFunction, PipelineOption options, AutoReleasedComputePipelineReflection& outReflection, ns::AutoReleasedError* error);
+        void NewComputePipelineState(const Function& computeFunction, ComputePipelineStateHandler completionHandler);
+        void NewComputePipelineState(const Function& computeFunction, PipelineOption options, ComputePipelineStateReflectionHandler completionHandler);
+        ComputePipelineState NewComputePipelineState(const ComputePipelineDescriptor& descriptor, PipelineOption options, AutoReleasedComputePipelineReflection* outReflection, ns::AutoReleasedError* error);
+        void NewComputePipelineState(const ComputePipelineDescriptor& descriptor, PipelineOption options, ComputePipelineStateReflectionHandler completionHandler) MTLPP_AVAILABLE(10_11, 9_0);
         Fence NewFence() MTLPP_AVAILABLE(NA, 10_0);
         bool SupportsFeatureSet(FeatureSet featureSet) const;
-        bool SupportsTextureSampleCount(uint32_t sampleCount) const MTLPP_AVAILABLE(10_11, 9_0);
-		uint32_t GetMinimumTextureAlignmentForPixelFormat(PixelFormat format) const MTLPP_AVAILABLE(10_13, 11_0);
-		uint32_t GetMaxThreadgroupMemoryLength() const MTLPP_AVAILABLE(10_13, 11_0);
+        bool SupportsTextureSampleCount(NSUInteger sampleCount) const MTLPP_AVAILABLE(10_11, 9_0);
+		NSUInteger GetMinimumLinearTextureAlignmentForPixelFormat(PixelFormat format) const MTLPP_AVAILABLE(10_13, 11_0);
+		NSUInteger GetMaxThreadgroupMemoryLength() const MTLPP_AVAILABLE(10_13, 11_0);
 		bool AreProgrammableSamplePositionsSupported() const MTLPP_AVAILABLE(10_13, 11_0);
-		void GetDefaultSamplePositions(SamplePosition* positions, uint32_t count) MTLPP_AVAILABLE(10_13, 11_0);
+		void GetDefaultSamplePositions(SamplePosition* positions, NSUInteger count) MTLPP_AVAILABLE(10_13, 11_0);
 		ArgumentEncoder NewArgumentEncoderWithArguments(ns::Array<ArgumentDescriptor> const& arguments) MTLPP_AVAILABLE(10_13, 11_0);
+		RenderPipelineState NewRenderPipelineState(const TileRenderPipelineDescriptor& descriptor, PipelineOption options, AutoReleasedRenderPipelineReflection* outReflection, ns::AutoReleasedError* error) MTLPP_AVAILABLE_IOS(11_0);
+		void NewRenderPipelineState(const TileRenderPipelineDescriptor& descriptor, PipelineOption options, RenderPipelineStateReflectionHandler completionHandler) MTLPP_AVAILABLE_IOS(11_0);
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 }
+
+MTLPP_END

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -21,6 +21,7 @@ public:
 		, _OnBlendProfileSelected()
 		, _AllowNew(true)
 		, _AllowClear(true)
+		, _AllowRemove(true)
 	{}
 		// Initial blend profile selected
 		SLATE_ARGUMENT(UBlendProfile*, InitialProfile)
@@ -30,6 +31,8 @@ public:
 		SLATE_ARGUMENT(bool, AllowNew)
 		// Allow the option to clear the profile selection
 		SLATE_ARGUMENT(bool, AllowClear)
+		// Allow the option to delete from the skeleton
+		SLATE_ARGUMENT(bool, AllowRemove)
 		// Is this a standalone blend profile picker?
 		SLATE_ARGUMENT(bool, Standalone)
 	SLATE_END_ARGS()
@@ -70,6 +73,7 @@ private:
 	bool bShowNewOption;
 	bool bShowClearOption;
 	bool bIsStandalone;
+	bool bAllowRemove;
 
 	FName SelectedProfileName;
 

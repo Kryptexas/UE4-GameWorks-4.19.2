@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "RenderUtils.h"
 #include "Containers/ResourceArray.h"
@@ -128,6 +128,9 @@ FPixelFormatInfo	GPixelFormats[PF_MAX] =
 	{ TEXT("XGXR8"),			1,			1,			1,			4,			4,				0,				1,				PF_XGXR8 			},
 	{ TEXT("R8G8B8A8_UINT"),	1,			1,			1,			4,			4,				0,				1,				PF_R8G8B8A8_UINT	},
 	{ TEXT("R8G8B8A8_SNORM"),	1,			1,			1,			4,			4,				0,				1,				PF_R8G8B8A8_SNORM	},
+
+	{ TEXT("R16G16B16A16_UINT"),1,			1,			1,			8,			4,				0,				1,				PF_R16G16B16A16_UNORM },
+	{ TEXT("R16G16B16A16_SINT"),1,			1,			1,			8,			4,				0,				1,				PF_R16G16B16A16_SNORM },
 };
 
 static struct FValidatePixelFormats
@@ -920,12 +923,12 @@ RENDERCORE_API FIndexBufferRHIRef& GetUnitCubeIndexBuffer()
 	return GUnitCubeIndexBuffer.IndexBufferRHI;
 }
 
-RENDERCORE_API void QuantizeSceneBufferSize(int32& InOutBufferSizeX, int32& InOutBufferSizeY)
+RENDERCORE_API void QuantizeSceneBufferSize(const FIntPoint& InBufferSize, FIntPoint& OutBufferSize)
 {
 	// Ensure sizes are dividable by DividableBy to get post processing effects with lower resolution working well
 	const uint32 DividableBy = 4;
 
 	const uint32 Mask = ~(DividableBy - 1);
-	InOutBufferSizeX = (InOutBufferSizeX + DividableBy - 1) & Mask;
-	InOutBufferSizeY = (InOutBufferSizeY + DividableBy - 1) & Mask;
+	OutBufferSize.X = (InBufferSize.X + DividableBy - 1) & Mask;
+	OutBufferSize.Y = (InBufferSize.Y + DividableBy - 1) & Mask;
 }

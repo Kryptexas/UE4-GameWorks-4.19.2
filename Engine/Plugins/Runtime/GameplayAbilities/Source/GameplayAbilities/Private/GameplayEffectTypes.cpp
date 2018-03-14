@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayEffectTypes.h"
 #include "GameFramework/Pawn.h"
@@ -126,7 +126,7 @@ void FGameplayEffectContext::SetAbility(const UGameplayAbility* InGameplayAbilit
 {
 	if (InGameplayAbility)
 	{
-		AbilityInstanceNotReplicated = InGameplayAbility;
+		AbilityInstanceNotReplicated = MakeWeakObjectPtr(const_cast<UGameplayAbility*>(InGameplayAbility));
 		AbilityCDO = InGameplayAbility->GetClass()->GetDefaultObject<UGameplayAbility>();
 		AbilityLevel = InGameplayAbility->GetAbilityLevel();
 	}
@@ -186,7 +186,7 @@ bool FGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 		{
 			RepBits |= 1 << 2;
 		}
-		if (SourceObject.IsValid())
+		if (bReplicateSourceObject && SourceObject.IsValid())
 		{
 			RepBits |= 1 << 3;
 		}

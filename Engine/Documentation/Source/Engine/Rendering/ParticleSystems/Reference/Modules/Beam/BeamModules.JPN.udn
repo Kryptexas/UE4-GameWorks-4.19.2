@@ -31,7 +31,8 @@ Version:4.9
 
 
 
-<!-----------------Beam Modifier Includes--------------
+[COMMENT:none]
+---------------Beam Modifier Includes--------------
 #### Includes
 
 [EXCERPT:ModifierType]
@@ -77,7 +78,8 @@ Version:4.9
 
 
 
--------------------End Beam Modifier Includes------------>
+-------------------End Beam Modifier Includes----------
+[/COMMENT]
 
 
 
@@ -122,7 +124,8 @@ Beam Noise モジュールはビームと一緒にノイズの投入を有効に
 
 
 
-<!----------------------Beam Noise Includes-----------------
+[COMMENT:none]
+--------------------Beam Noise Includes-----------------
 #### Includes
 [EXCERPT:LowFreqNote]
 [REGION:note]
@@ -130,7 +133,8 @@ Beam Noise モジュールはビームと一緒にノイズの投入を有効に
 [/REGION]
 [/EXCERPT:LowFreqNote]
 
-----------------------End Beam Noise Includes------------->
+----------------------End Beam Noise Includes-----------
+[/COMMENT]
 
 ## ソース
 
@@ -153,7 +157,8 @@ Beam Source モジュールはビームエミッタに対しソースを 1 つ�
 
 
 
-<!----------------------Beam Source Includes-----------------
+[COMMENT:none]
+--------------------Beam Source Includes-----------------
 #### Includes
 [EXCERPT:SourceMethod]
 [REGION:simpletable]
@@ -179,7 +184,8 @@ Beam Source モジュールはビームエミッタに対しソースを 1 つ�
 [/REGION]
 [/EXCERPT:SourceTangentMethod]
 
------------------------End Beam Source Includes------------->
+-----------------------End Beam Source Includes-----------
+[/COMMENT]
 
 
 ##ターゲット
@@ -204,7 +210,8 @@ Beam Source モジュールはビームエミッタに対しソースを 1 つ�
 
 
 
-<!----------------------Beam Target Includes-----------------
+[COMMENT:none]
+--------------------Beam Target Includes-----------------
 #### Includes
 [EXCERPT:SourceMethodTarget]
 [REGION:simpletable]
@@ -233,6 +240,7 @@ Beam Source モジュールはビームエミッタに対しソースを 1 つ�
 [/REGION]
 [/EXCERPT:SourceTangentMethodTarget]
 
------------------------End Beam Target Includes------------->
+-----------------------End Beam Target Includes-----------
+[/COMMENT]
 
 

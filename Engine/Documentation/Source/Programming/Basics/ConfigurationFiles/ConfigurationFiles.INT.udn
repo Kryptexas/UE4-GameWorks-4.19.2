@@ -14,7 +14,7 @@ Engine configuration files are used for object and variable default values. User
 are created when you create a new blank project with the **Project Wizard**. New projects that begin with templates may also generate DefaultEditor.ini and DefaultInput.ini configuration files
 if needed.  
 
-The SaveConfig() function can be called on a class with the  [](Programming\UnrealArchitecture\Reference\Classes\Specifiers\Config) class specifier.  This saves any properties marked with the 
+The SaveConfig() function can be called on a class with the  [Config](Programming\UnrealArchitecture\Reference\Classes\Specifiers) class specifier.  This saves any properties marked with the 
 **Config** property specifier to the appropriate configuration file. Generally, variables saved by **SaveConfig()** are in a section title
 which follows the format [(package).(classname)].  For instance, the [/Script/Engine.Engine] section in DefaultEngine.ini points to the Engine class stored within the Engine package.
 There are some exceptions with hard-coded section names.

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -409,11 +409,17 @@ struct FBehaviorTreeSearchData
 	/** search unique number */
 	int32 SearchId;
 
+	/** active instance index to rollback to */
+	int32 RollbackInstanceIdx;
+
 	/** if set, current search will be restarted in next tick */
 	uint32 bPostponeSearch : 1;
 
 	/** set when task search is in progress */
 	uint32 bSearchInProgress : 1;
+
+	/** if set, active node state/memory won't be rolled back */
+	uint32 bPreserveActiveNodeMemoryOnRollback : 1;
 
 	/** adds update info to PendingUpdates array, removing all previous updates for this node */
 	void AddUniqueUpdate(const FBehaviorTreeSearchUpdate& UpdateInfo);
@@ -425,7 +431,7 @@ struct FBehaviorTreeSearchData
 	void Reset();
 
 	FBehaviorTreeSearchData(UBehaviorTreeComponent& InOwnerComp) 
-		: OwnerComp(InOwnerComp), bPostponeSearch(false), bSearchInProgress(false)
+		: OwnerComp(InOwnerComp), RollbackInstanceIdx(INDEX_NONE), bPostponeSearch(false), bSearchInProgress(false), bPreserveActiveNodeMemoryOnRollback(false)
 	{}
 
 private:
@@ -514,7 +520,11 @@ public:
 UCLASS(Abstract)
 class AIMODULE_API UBehaviorTreeTypes : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+
+	static FString BTLoggingContext;
+
+public:
 
 	static FString DescribeNodeHelper(const UBTNode* Node);
 
@@ -526,4 +536,10 @@ class AIMODULE_API UBehaviorTreeTypes : public UObject
 
 	/** returns short name of object's class (BTTaskNode_Wait -> Wait) */
 	static FString GetShortTypeName(const UObject* Ob);
+	
+	static FString GetBTLoggingContext() { return BTLoggingContext; }
+	
+	// @param NewBTLoggingContext the object which name's will be added to some of the BT logging
+	// 	pass nullptr to clear
+	static void SetBTLoggingContext(const UBTNode* NewBTLoggingContext);
 };

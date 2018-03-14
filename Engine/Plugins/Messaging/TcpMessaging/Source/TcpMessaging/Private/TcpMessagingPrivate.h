@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,6 +15,9 @@ DECLARE_LOG_CATEGORY_EXTERN(LogTcpMessaging, Log, All);
 
 /** Defines the maximum number of recipients a message can have. */
 #define TCP_MESSAGING_MAX_RECIPIENTS 1024
+
+/** Defines the desired size of socket send buffers (in bytes). */
+#define TCP_MESSAGING_SEND_BUFFER_SIZE 2 * 1024 * 1024
 
 /** Defines the desired size of socket receive buffers (in bytes). */
 #define TCP_MESSAGING_RECEIVE_BUFFER_SIZE 2 * 1024 * 1024

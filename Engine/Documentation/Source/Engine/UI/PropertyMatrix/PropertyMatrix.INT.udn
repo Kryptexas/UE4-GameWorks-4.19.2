@@ -3,45 +3,8 @@ Title:Property Matrix
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:Tool for viewing and editing multiple properties of multiple actors at the same time.
 Version: 4.9
+topic-image:Engine/UI/PropertyMatrix_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UI/PropertyMatrix:title%](Engine/UI/PropertyMatrix_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/PropertyMatrix:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/PropertyMatrix:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/PropertyMatrix]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UI/PropertyMatrix:title%](Engine/UI/PropertyMatrix_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/PropertyMatrix:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/PropertyMatrix:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/PropertyMatrix]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:fullwidth]
 [OBJECT:ToggleButtonContent]
@@ -88,7 +51,8 @@ property editor that displays all properties for the current selection set in th
 | Bulk Fine-Grain Object Comparison  | [INCLUDE:#BulkComparison] |
 | Deep Property and Array Support  | [INCLUDE:#PropertySupport] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BulkEditing]
 
 * Easier workflow for setting a series of varying values to a bunch of objects, without sacrificing 
@@ -110,7 +74,8 @@ the ability to set the property on a bunch of objects to the same value.
 * Even handles ARRAY INDICES.
 
 [/EXCERPT:PropertySupport]
--->
+
+[/COMMENT]
 
 ## Accessing the Property Matrix
 

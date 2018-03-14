@@ -11,45 +11,7 @@ skilllevel:Beginner
 related:Engine/BlueprintSplines/HowTo/EditSplineComponentInEditor
 related:Engine/BlueprintSplines/HowTo/EditSplineInConstScript
 tags:Splines
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/BlueprintSplines/HowTo/AddSplineComponent:title%](Engine/BlueprintSplines/Splines_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/BlueprintSplines/HowTo/AddSplineComponent:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/BlueprintSplines/HowTo/AddSplineComponent:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/BlueprintSplines/HowTo/AddSplineComponent]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/BlueprintSplines/HowTo/AddSplineComponent:title%](Engine/BlueprintSplines/Splines_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/BlueprintSplines/HowTo/AddSplineComponent:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/BlueprintSplines/HowTo/AddSplineComponent:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/BlueprintSplines/HowTo/AddSplineComponent]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/BlueprintSplines/Splines_topic.png
 
 
 This page will take you through the steps necessary to add a **Blueprint Spline Component** or **Blueprint Spline Mesh Component** to any Blueprint you have available. Both of these components require that your Blueprint inherits from any class that can trace its linage back to **Actor** (Pawn, Character, etc.).

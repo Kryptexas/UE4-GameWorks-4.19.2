@@ -15,4 +15,6 @@ class STEAMAUDIO_API UPhononProbeComponent : public USceneComponent
 public:
 	UPROPERTY()
 	TArray<FVector> ProbeLocations;
+
+	FCriticalSection ProbeLocationsCriticalSection;
 };

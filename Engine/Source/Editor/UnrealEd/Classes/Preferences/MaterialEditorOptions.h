@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /**
  *
@@ -21,10 +21,6 @@ class UNREALED_API UMaterialEditorOptions : public UObject
 	/** If true, render grid the preview scene. */
 	UPROPERTY(EditAnywhere, config, Category=Options)
 	uint32 bShowGrid:1;
-
-	/** If true, render background object in the preview scene. */
-	UPROPERTY(EditAnywhere, config, Category=Options)
-	uint32 bShowBackground:1;
 
 	/** If true, don't render connectors that are not connected to anything. */
 	UPROPERTY(EditAnywhere, config, Category=Options)

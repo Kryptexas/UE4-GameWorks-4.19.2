@@ -3,40 +3,7 @@ Title:Spring Controller
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
 Description:Describes the Spring Controller which is used to limit how far a bone can stretch from its reference pose before force is applied in the opposite direction.
 version: 4.12
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\SpringController:title%](Engine\Animation\NodeReference\SkeletalControls\SpringController\node_springcontroller.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\SpringController:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\SpringController]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\SpringController:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\SpringController:title%](Engine\Animation\NodeReference\SkeletalControls\SpringController\node_springcontroller.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\SpringController:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\SpringController]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\SpringController:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:node_springcontroller.png
 
 The **Spring Controller** applies a control node that can be used to limit how far a bone can stretch from 
 its reference pose position while applying force in the opposite direction.

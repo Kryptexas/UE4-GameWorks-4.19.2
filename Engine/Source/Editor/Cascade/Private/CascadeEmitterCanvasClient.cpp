@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CascadeEmitterCanvasClient.h"
 #include "Framework/Commands/UIAction.h"
@@ -32,9 +32,10 @@
 #include "CanvasTypes.h"
 #include "Engine/Font.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/TextureRenderTarget2D.h"
 
 
-FCascadeEmitterCanvasClient::FCascadeEmitterCanvasClient(TWeakPtr<FCascade> InCascade, TWeakPtr<SCascadeEmitterCanvas> InCascadeViewport)
+FCascadeEmitterCanvasClient::FCascadeEmitterCanvasClient(TSharedPtr<FCascade> InCascade, TWeakPtr<SCascadeEmitterCanvas> InCascadeViewport)
 	: FEditorViewportClient(nullptr)
 	, CascadePtr(InCascade)
 	, CascadeViewportPtr(InCascadeViewport)
@@ -1129,7 +1130,40 @@ void FCascadeEmitterCanvasClient::DrawHeaderBlock(int32 Index, int32 XPos, UPart
 					// If there is an object configured to handle it, draw the thumbnail
 					if (RenderInfo != NULL && RenderInfo->Renderer != NULL)
 					{
-						RenderInfo->Renderer->Draw(MaterialInterface, ThumbPos.X, ThumbPos.Y, ThumbSize, ThumbSize, InViewport, Canvas);
+						FParticleEmitterThumbnail& Thumbnail = CascadePtr.Pin()->GetEmitterToThumbnailMap().FindOrAdd(Emitter);
+
+						float DPIScale = Canvas->GetDPIScale();
+						int32 ScaledSize = FMath::RoundToInt(ThumbSize*DPIScale);
+
+						// Thumbnail size
+						FIntPoint ThumbnailSize(ScaledSize, ScaledSize);
+
+						const bool bNeedsResize = !Thumbnail.Texture || Thumbnail.Texture->GetSurfaceWidth() != ScaledSize || Thumbnail.Texture->GetSurfaceHeight() != ScaledSize;
+
+						if (bNeedsResize)
+						{
+							if (!Thumbnail.Texture)
+							{
+								static const FName CascadeEmitterThumbnailName(TEXT("CascadeEmitterThumbnail"));
+								Thumbnail.Texture = NewObject<UTextureRenderTarget2D>(GetTransientPackage(), MakeUniqueObjectName(GetTransientPackage(), UTextureRenderTarget2D::StaticClass(), CascadeEmitterThumbnailName));
+							}
+
+							Thumbnail.Texture->InitCustomFormat(ScaledSize, ScaledSize, EPixelFormat::PF_B8G8R8A8, true);
+
+						}
+
+						// Always redraw for now to match legacy behavior.  Could cache for more efficiency. 
+						const bool bNeedsRerender = true;// bNeedsResize || Thumbnail.Material != MaterialInterface;
+
+						if (bNeedsRerender)
+						{
+							Thumbnail.Material = MaterialInterface;
+							// Re-render
+							FCanvas ThumbnailCanvas(Thumbnail.Texture->GameThread_GetRenderTargetResource(), nullptr, GetWorld(), GetWorld()->FeatureLevel, FCanvas::CDM_DeferDrawing, ShouldDPIScaleSceneCanvas() ? GetDPIScale() : 1.0f);
+							RenderInfo->Renderer->Draw(MaterialInterface, 0, 0, ScaledSize, ScaledSize, Thumbnail.Texture->GameThread_GetRenderTargetResource(), &ThumbnailCanvas);
+						}
+
+						Canvas->DrawTile(ThumbPos.X - Origin2D.X, ThumbPos.Y - Origin2D.Y, ThumbSize, ThumbSize, 0.f, 0.f, 1.f, 1.f, FLinearColor::White, Thumbnail.Texture->GameThread_GetRenderTargetResource(), false);
 					}
 				}
 				else
@@ -1357,8 +1391,12 @@ void FCascadeEmitterCanvasClient::DrawModule(int32 XPos, int32 YPos, UParticleEm
 void FCascadeEmitterCanvasClient::DrawModule(FCanvas* Canvas, UParticleModule* Module, FColor ModuleBkgColor, UParticleEmitter* Emitter)
 {
 	if (Canvas->IsHitTesting())
+	{
 		Canvas->SetHitProxy(new HCascadeEdModuleProxy(Emitter, Module));
+	}
+
 	Canvas->DrawTile(-1, -1, EmitterWidth+1, ModuleHeight+2, 0.f, 0.f, 0.f, 0.f, FLinearColor::Black);
+
 	if (Canvas->IsHitTesting())
 	{
 		Canvas->SetHitProxy(NULL);
@@ -2250,4 +2288,19 @@ bool FCascadeEmitterCanvasClient::IsModuleTypeDataPairSuitableForModuleMenu(FStr
 	}
 
 	return true;
+}
+
+float FCascadeEmitterCanvasClient::UpdateViewportClientWindowDPIScale()  const
+{
+	float DPIScale = 1.f;
+	if (CascadeViewportPtr.IsValid())
+	{
+		TSharedPtr<SWindow> WidgetWindow = FSlateApplication::Get().FindWidgetWindow(CascadeViewportPtr.Pin().ToSharedRef());
+		if (WidgetWindow.IsValid())
+		{
+			DPIScale = WidgetWindow->GetNativeWindow()->GetDPIScaleFactor();
+		}
+	}
+
+	return DPIScale;
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -44,12 +44,16 @@ public:
 
 private:
 	bool CanUseSourceControl() const;
+	bool IsComparingAgainstPlatformFallback() const;
 
 	TSharedRef<SWidget> BuildAddedView();
 	TSharedRef<SWidget> BuildComparisonPreview();
 
 	bool CanAddNew() const;
 	FReply AddNew();
+
+	bool CanAddPlatformSpecificNew() const;
+	FReply AddPlatformSpecificNew();
 
 	bool CanReplace() const;
 	FReply Replace();
@@ -74,5 +78,6 @@ private:
 	FIntPoint CachedActualImageSize;
 
 	TSharedPtr<SAsyncImage> ApprovedImageWidget;
+	TSharedPtr<SAsyncImage> DeltaImageWidget;
 	TSharedPtr<SAsyncImage> UnapprovedImageWidget;
 };

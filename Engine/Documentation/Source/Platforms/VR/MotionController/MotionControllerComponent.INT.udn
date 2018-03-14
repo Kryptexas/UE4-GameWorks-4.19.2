@@ -129,7 +129,8 @@ Make sure to note that there are seperate inputs for both the Left and Right Mot
 
 ![](MC_Left_Right.png)
 
-<!--
+[COMMENT:none]
+
 ## Using Motion Controllers
 
 In the following section, we will set the Motion Controllers up so that when you press the trigger button on the **Right-Handed** Motion Controller, a Blueprint containing a Static Mesh is spawned into the world, while pressing the trigger button on the **Left-Handed** Motion Controller will remove the mesh from the world. 
@@ -217,7 +218,8 @@ In the following section, we will set the Motion Controllers up so that when you
         VXUowSUKT9I
         [/PARAMLITERAL]
     [/OBJECT]
--->
+
+[/COMMENT]
 
 ## Training Streams
 

@@ -24,7 +24,7 @@ SkillLevel:Advanced
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在最后这部分中，我们将控件蓝图作为 **控件** 组件添加到 Actor 并定义玩家按下 **Enter** 键时的出现的效果，检查输入的文本是否与 **GoalText** 相同。一切就绪后便可以测试最终效果。如代码正确，屏幕上将显示 **Success**；如代码不正确，将显示 **Wrong Code**。  
 

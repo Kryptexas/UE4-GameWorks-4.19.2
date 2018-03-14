@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -25,6 +25,7 @@ struct APPLICATIONCORE_API FMacPlatformApplicationMisc : public FGenericPlatform
     static void UpdateCocoaButtons();
 	static struct FLinearColor GetScreenPixelColor(const FVector2D& InScreenPos, float InGamma = 1.0f);
 	static float GetDPIScaleFactorAtPoint(float X, float Y);
+	static bool IsHighDPIModeEnabled() { return bIsHighResolutionCapable && IsHighDPIAwarenessEnabled(); }
 	static void PumpMessages(bool bFromMainLoop);
 	static void ClipboardCopy(const TCHAR* Str);
 	static void ClipboardPaste(class FString& Dest);
@@ -37,6 +38,8 @@ struct APPLICATIONCORE_API FMacPlatformApplicationMisc : public FGenericPlatform
 	static bool bChachedMacMenuStateNeedsUpdate;
     
     static bool bMacApplicationModalMode;
+
+	static bool bIsHighResolutionCapable;
 
 	static id<NSObject> CommandletActivity;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CocoaWindow.h"
 #include "MacApplication.h"
@@ -26,6 +26,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	bDisplayReconfiguring = false;
 	bRenderInitialized = false;
 	bIsBeingOrderedFront = false;
+	bIsBeingResized = false;
 	Opacity = 0.0f;
 
 	id NewSelf = [super initWithContentRect:ContentRect styleMask:Style backing:BufferingType defer:Flag];
@@ -113,7 +114,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 		{
 			[self makeKeyWindow];
 		}
-		
+
 		bIsBeingOrderedFront = false;
 	}
 }
@@ -266,7 +267,16 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 	if (MacApplication)
 	{
-		MacApplication->DeferEvent(Notification);
+		GameThreadCall(^{
+			if (MacApplication) // Another check because game thread may destroy MacApplication before it gets here
+			{
+				TSharedPtr<FMacWindow> Window = MacApplication->FindWindowByNSWindow(self);
+				if (Window.IsValid())
+				{
+					MacApplication->OnWindowActivationChanged(Window.ToSharedRef(), EWindowActivation::Activate);
+				}
+			}
+		}, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode, UE4CloseEventMode ], true);
 	}
 }
 
@@ -278,7 +288,16 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 	if (MacApplication)
 	{
-		MacApplication->DeferEvent(Notification);
+		GameThreadCall(^{
+			if (MacApplication) // Another check because game thread may destroy MacApplication before it gets here
+			{
+				TSharedPtr<FMacWindow> Window = MacApplication->FindWindowByNSWindow(self);
+				if (Window.IsValid())
+				{
+					MacApplication->OnWindowActivationChanged(Window.ToSharedRef(), EWindowActivation::Deactivate);
+				}
+			}
+		}, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode, UE4CloseEventMode ], true);
 	}
 }
 
@@ -447,7 +466,9 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	bZoomed = [self isZoomed];
 	if (MacApplication)
 	{
+		bIsBeingResized = true;
 		MacApplication->DeferEvent(Notification);
+		bIsBeingResized = false;
 	}
 }
 

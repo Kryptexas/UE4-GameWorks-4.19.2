@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Slate/SlateVectorArtData.h"
 #include "RawIndexBuffer.h"
@@ -22,7 +22,7 @@ static void StaticMeshToSlateRenderData(const UStaticMesh& DataSource, TArray<FS
 	{
 		// Populate Vertex Data
 		{
-			const uint32 NumVerts = LOD.PositionVertexBuffer.GetNumVertices();
+			const uint32 NumVerts = LOD.VertexBuffers.PositionVertexBuffer.GetNumVertices();
 			OutSlateVerts.Empty();
 			OutSlateVerts.Reserve(NumVerts);
 
@@ -36,27 +36,27 @@ static void StaticMeshToSlateRenderData(const UStaticMesh& DataSource, TArray<FS
 			for (uint32 i = 0; i < NumVerts; ++i)
 			{
 				// Copy Position
-				const FVector& Position = LOD.PositionVertexBuffer.VertexPosition(i);
+				const FVector& Position = LOD.VertexBuffers.PositionVertexBuffer.VertexPosition(i);
 				OutExtentMin.X = FMath::Min(Position.X, OutExtentMin.X);
 				OutExtentMin.Y = FMath::Min(Position.Y, OutExtentMin.Y);
 				OutExtentMax.X = FMath::Max(Position.X, OutExtentMax.X);
 				OutExtentMax.Y = FMath::Max(Position.Y, OutExtentMax.Y);
 				
 				// Copy Color
-				FColor Color = (LOD.ColorVertexBuffer.GetNumVertices() > 0) ? LOD.ColorVertexBuffer.VertexColor(i) : FColor::White;
+				FColor Color = (LOD.VertexBuffers.ColorVertexBuffer.GetNumVertices() > 0) ? LOD.VertexBuffers.ColorVertexBuffer.VertexColor(i) : FColor::White;
 				
 				// Copy all the UVs that we have, and as many as we can fit.
-				const FVector2D& UV0 = (TexCoordsPerVertex > 0) ? LOD.VertexBuffer.GetVertexUV(i, 0) : FVector2D(1, 1);
+				const FVector2D& UV0 = (TexCoordsPerVertex > 0) ? LOD.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(i, 0) : FVector2D(1, 1);
 
-				const FVector2D& UV1 = (TexCoordsPerVertex > 1) ? LOD.VertexBuffer.GetVertexUV(i, 1) : FVector2D(1, 1);
+				const FVector2D& UV1 = (TexCoordsPerVertex > 1) ? LOD.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(i, 1) : FVector2D(1, 1);
 
-				const FVector2D& UV2 = (TexCoordsPerVertex > 2) ? LOD.VertexBuffer.GetVertexUV(i, 2) : FVector2D(1, 1);
+				const FVector2D& UV2 = (TexCoordsPerVertex > 2) ? LOD.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(i, 2) : FVector2D(1, 1);
 
-				const FVector2D& UV3 = (TexCoordsPerVertex > 3) ? LOD.VertexBuffer.GetVertexUV(i, 3) : FVector2D(1, 1);
+				const FVector2D& UV3 = (TexCoordsPerVertex > 3) ? LOD.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(i, 3) : FVector2D(1, 1);
 
-				const FVector2D& UV4 = (TexCoordsPerVertex > 4) ? LOD.VertexBuffer.GetVertexUV(i, 4) : FVector2D(1, 1);
+				const FVector2D& UV4 = (TexCoordsPerVertex > 4) ? LOD.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(i, 4) : FVector2D(1, 1);
 
-				const FVector2D& UV5 = (TexCoordsPerVertex > 5) ? LOD.VertexBuffer.GetVertexUV(i, 5) : FVector2D(1, 1);
+				const FVector2D& UV5 = (TexCoordsPerVertex > 5) ? LOD.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(i, 5) : FVector2D(1, 1);
 
 				OutSlateVerts.Add(FSlateMeshVertex(
 					FVector2D(Position.X, Position.Y),
@@ -90,8 +90,8 @@ static void StaticMeshToSlateRenderData(const UStaticMesh& DataSource, TArray<FS
 			{
 				for (int32 b = 0; b < NumIndexes; b += 3)
 				{
-					const float VertADepth = LOD.PositionVertexBuffer.VertexPosition(OutIndexes[a]).Z;
-					const float VertBDepth = LOD.PositionVertexBuffer.VertexPosition(OutIndexes[b]).Z;
+					const float VertADepth = LOD.VertexBuffers.PositionVertexBuffer.VertexPosition(OutIndexes[a]).Z;
+					const float VertBDepth = LOD.VertexBuffers.PositionVertexBuffer.VertexPosition(OutIndexes[b]).Z;
 					if ( VertADepth < VertBDepth )
 					{
 						// Swap the order in which triangles will be drawn

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "K2Node_CastByteToEnum.h"
@@ -12,7 +12,7 @@
 #include "EditorCategoryUtils.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 
-const FString UK2Node_CastByteToEnum::ByteInputPinName = TEXT("Byte");
+const FName UK2Node_CastByteToEnum::ByteInputPinName(TEXT("Byte"));
 
 UK2Node_CastByteToEnum::UK2Node_CastByteToEnum(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -24,16 +24,14 @@ void UK2Node_CastByteToEnum::ValidateNodeDuringCompilation(class FCompilerResult
 	Super::ValidateNodeDuringCompilation(MessageLog);
 	if (!Enum)
 	{
-		MessageLog.Error(*FString::Printf(*NSLOCTEXT("K2Node", "CastByteToNullEnumError", "Undefined Enum in @@").ToString()), this);
+		MessageLog.Error(*NSLOCTEXT("K2Node", "CastByteToNullEnumError", "Undefined Enum in @@").ToString(), this);
 	}
 }
 
 void UK2Node_CastByteToEnum::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-	
-	CreatePin(EGPD_Input, Schema->PC_Byte, FString(), nullptr, ByteInputPinName);
-	CreatePin(EGPD_Output, Schema->PC_Byte, FString(), Enum, Schema->PN_ReturnValue);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Byte, ByteInputPinName);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Byte, Enum, UEdGraphSchema_K2::PN_ReturnValue);
 }
 
 FText UK2Node_CastByteToEnum::GetTooltipText() const
@@ -100,7 +98,7 @@ void UK2Node_CastByteToEnum::ExpandNode(class FKismetCompilerContext& CompilerCo
 		// FUNCTION INPUT BYTE PIN
 		UEdGraphPin* OrgInputPin = FindPinChecked(ByteInputPinName);
 		UEdGraphPin* FunctionIndexPin = CallValidation->FindPinChecked(TEXT("EnumeratorValue"));
-		check(EGPD_Input == FunctionIndexPin->Direction && Schema->PC_Byte == FunctionIndexPin->PinType.PinCategory);
+		check(EGPD_Input == FunctionIndexPin->Direction && UEdGraphSchema_K2::PC_Byte == FunctionIndexPin->PinType.PinCategory);
 		CompilerContext.MovePinLinksToIntermediate(*OrgInputPin, *FunctionIndexPin);
 
 		// UNSAFE CAST NODE
@@ -116,8 +114,8 @@ void UK2Node_CastByteToEnum::ExpandNode(class FKismetCompilerContext& CompilerCo
 		Schema->TryCreateConnection(CastInputPin, FunctionReturnPin);
 
 		// OPUTPUT PIN
-		UEdGraphPin* OrgReturnPin = FindPinChecked(Schema->PN_ReturnValue);
-		UEdGraphPin* NewReturnPin = UsafeCast->FindPinChecked(Schema->PN_ReturnValue);
+		UEdGraphPin* OrgReturnPin = FindPinChecked(UEdGraphSchema_K2::PN_ReturnValue);
+		UEdGraphPin* NewReturnPin = UsafeCast->FindPinChecked(UEdGraphSchema_K2::PN_ReturnValue);
 		CompilerContext.MovePinLinksToIntermediate(*OrgReturnPin, *NewReturnPin);
 
 		BreakAllNodeLinks();
@@ -146,9 +144,8 @@ public:
 
 		FBPTerminal** ValueSource = Context.NetMap.Find(Net);
 		check(ValueSource && *ValueSource);
-		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-		UEdGraphPin* OutPin = Node->FindPinChecked(Schema->PN_ReturnValue);
-		if (ensure(Context.NetMap.Find(OutPin) == NULL))
+		UEdGraphPin* OutPin = Node->FindPinChecked(UEdGraphSchema_K2::PN_ReturnValue);
+		if (ensure(Context.NetMap.Find(OutPin) == nullptr))
 		{
 			// We need to copy here to avoid passing in a reference to an element inside the map. The array
 			// that owns the map members could be reallocated, causing the reference to become stale.
@@ -197,7 +194,7 @@ void UK2Node_CastByteToEnum::GetMenuActions(FBlueprintActionDatabaseRegistrar& A
 	{
 		UBlueprintFieldNodeSpawner* NodeSpawner = UBlueprintFieldNodeSpawner::Create(NodeClass, InEnum);
 		check(NodeSpawner != nullptr);
-		TWeakObjectPtr<UEnum> NonConstEnumPtr = InEnum;
+		TWeakObjectPtr<UEnum> NonConstEnumPtr = MakeWeakObjectPtr(const_cast<UEnum*>(InEnum));
 		NodeSpawner->SetNodeFieldDelegate = UBlueprintFieldNodeSpawner::FSetNodeFieldDelegate::CreateStatic(GetMenuActions_Utils::SetNodeEnum, NonConstEnumPtr);
 
 		return NodeSpawner;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -32,9 +32,8 @@ public:
 	 */
 	virtual IStereoLayers* GetStereoLayers() override;
 
-	virtual bool GetHMDDistortionEnabled() const override;
-	virtual void BeginRendering_RenderThread(const FTransform& NewRelativeTransform, FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily) override;
-	virtual void BeginRendering_GameThread() override;
+	virtual bool GetHMDDistortionEnabled(EShadingPath ShadingPath) const override;
+	virtual void OnLateUpdateApplied_RenderThread(const FTransform& NewRelativeTransform) override;
 
 	virtual void CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation) override;
 	virtual void InitCanvasFromView(FSceneView* InView, UCanvas* Canvas) override;
@@ -79,4 +78,14 @@ protected:
 	friend class FDefaultStereoLayers;
 
 	TUniquePtr<FDefaultSpectatorScreenController> SpectatorScreenController;
+
+	// Sane pixel density values
+	static constexpr float PixelDensityMin = 0.1f;
+	static constexpr float PixelDensityMax = 2.0f;
+
+	/**
+	 * CVar sink for pixel density
+	 */
+	static void CVarSinkHandler();
+	static FAutoConsoleVariableSink CVarSink;
 };

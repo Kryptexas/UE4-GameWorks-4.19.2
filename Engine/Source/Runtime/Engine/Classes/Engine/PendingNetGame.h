@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -44,6 +44,14 @@ class UPendingNetGame :
 	 * @param WeakConnection the connection related to the encryption request
 	 */
 	void FinalizeEncryptedConnection(const FEncryptionKeyResponse& Response, TWeakObjectPtr<UNetConnection> WeakConnection);
+
+	/**
+	 * Set the encryption key for the connection. This doesn't cause outgoing packets to be encrypted,
+	 * but it allows the connection to decrypt any incoming packets if needed.
+	 *
+	 * @param Response response from the game containing its encryption key or an error message
+	 */
+	ENGINE_API void SetEncryptionKey(const FEncryptionKeyResponse& Response);
 
 public:
 	/** URL associated with this level. */

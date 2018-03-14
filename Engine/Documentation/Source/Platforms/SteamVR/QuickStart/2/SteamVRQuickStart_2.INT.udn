@@ -5,15 +5,16 @@ Description: Setting up SteamVR and UE4 to work together
 Navigation:platform
 Version: 4.17
 Skilllevel: Beginner
+Platform:SteamVR
 type:multi-step
 parent:Platforms/SteamVR/QuickStart
 order:2
-Checkpoint:SteamVRQS
-Tags: SteamVR
+Checkpoint: SteamVRQS
+tags: SteamVR
 
 [nav]
 
-In the following section, we will go over how to setup a new Unreal Engine 4 (UE4) project to work with SteamVR.
+In the following section, we will go over how to set up a new Unreal Engine 4 (UE4) project to work with SteamVR.
 
 ## Steps
 
@@ -22,7 +23,7 @@ If you have not done so already, make sure to run the SteamVR **Room Setup** to 
 Failing to do this could result in SteamVR and UE4 not working correctly together.
 [/region]
 
-1. Create a new blank Blueprint base project with hardware set to **Mobile / Tablet**, graphics set to **Scalable 3D or 2D** and **No Starter Content**.
+1. Create a new blank Blueprint-base project with hardware set to **Mobile / Tablet**, graphics set to **Scalable 3D or 2D** and **No Starter Content**.
 
 	[REGION:lightbox]
 	[![](T_CreateNewProject.png)(w:555)](T_CreateNewProject.png)
@@ -32,7 +33,7 @@ Failing to do this could result in SteamVR and UE4 not working correctly togethe
 	Click for full image.
 	[/REGION]
 
-1. Once the project loads click on the small triangle next to the **Play** button and then from the menu that is displayed, select the **VR Preview** option. 
+1. Once the project loads, click on the small triangle next to the **Play** button and then from the menu that is displayed, select the **VR Preview** option. 
 	
 	![](Check_VR_Working_00.png)
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	ApplePlatformMisc.h: Apple platform misc functions
@@ -18,6 +18,12 @@
 
 #ifndef WITH_SIMULATOR
 #define WITH_SIMULATOR 0
+#endif
+
+#if UE_BUILD_SHIPPING
+#define UE_DEBUG_BREAK() ((void)0)
+#else
+#define UE_DEBUG_BREAK() (FApplePlatformMisc::DebugBreakInternal())
 #endif
 
 #ifdef __OBJC__
@@ -66,7 +72,7 @@ struct CORE_API FApplePlatformMisc : public FGenericPlatformMisc
 
 		return ( Info.kp_proc.p_flag & P_TRACED ) != 0;
 	}
-	FORCEINLINE static void DebugBreak()
+	FORCEINLINE static void DebugBreakInternal()
 	{
 		if( IsDebuggerPresent() )
 		{
@@ -86,16 +92,22 @@ struct CORE_API FApplePlatformMisc : public FGenericPlatformMisc
 	}
 #endif
 
+	DEPRECATED(4.19, "FPlatformMisc::DebugBreak is deprecated. Use the UE_DEBUG_BREAK() macro instead.")
+	FORCEINLINE static void DebugBreak()
+	{
+		UE_DEBUG_BREAK();
+	}
+
 	/** Break into debugger. Returning false allows this function to be used in conditionals. */
+	DEPRECATED(4.19, "FPlatformMisc::DebugBreakReturningFalse is deprecated. Use the (UE_DEBUG_BREAK(), false) expression instead.")
 	FORCEINLINE static bool DebugBreakReturningFalse()
 	{
-#if !UE_BUILD_SHIPPING
-		DebugBreak();
-#endif
+		UE_DEBUG_BREAK();
 		return false;
 	}
 
 	/** Prompts for remote debugging if debugger is not attached. Regardless of result, breaks into debugger afterwards. Returns false for use in conditionals. */
+	DEPRECATED(4.19, "FPlatformMisc::DebugBreakAndPromptForRemoteReturningFalse() is deprecated.")
 	FORCEINLINE static bool DebugBreakAndPromptForRemoteReturningFalse(bool bIsEnsure = false)
 	{
 #if !UE_BUILD_SHIPPING
@@ -104,7 +116,7 @@ struct CORE_API FApplePlatformMisc : public FGenericPlatformMisc
 			PromptForRemoteDebugging(bIsEnsure);
 		}
 
-		DebugBreak();
+		UE_DEBUG_BREAK();
 #endif
 
 		return false;

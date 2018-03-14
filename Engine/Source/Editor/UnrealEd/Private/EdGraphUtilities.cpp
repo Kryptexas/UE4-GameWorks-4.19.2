@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EdGraphUtilities.h"
@@ -426,7 +426,7 @@ void FEdGraphUtilities::CopyCommonState(UEdGraphNode* OldNode, UEdGraphNode* New
 	NewNode->NodeComment = OldNode->NodeComment;
 }
 
-bool FEdGraphUtilities::IsSetParam(const UFunction* Function, const FString& ParameterName)
+bool FEdGraphUtilities::IsSetParam(const UFunction* Function, const FName ParameterName)
 {
 	if (Function == nullptr)
 	{
@@ -444,20 +444,25 @@ bool FEdGraphUtilities::IsSetParam(const UFunction* Function, const FString& Par
 		RawMetaData.ParseIntoArray(SetParamPinGroups, TEXT(","), true);
 	}
 
-	for (FString& Entry : SetParamPinGroups)
+	if (SetParamPinGroups.Num() > 0)
 	{
 		TArray<FString> GroupEntries;
-		Entry.ParseIntoArray(GroupEntries, TEXT("|"), true);
-		if (GroupEntries.Contains(ParameterName))
+		const FString ParameterNameStr = ParameterName.ToString();
+		for (const FString& Entry : SetParamPinGroups)
 		{
-			return true;
+			GroupEntries.Reset();
+			Entry.ParseIntoArray(GroupEntries, TEXT("|"), true);
+			if (GroupEntries.Contains(ParameterNameStr))
+			{
+				return true;
+			}
 		}
 	}
 
 	return false;
 }
 
-bool FEdGraphUtilities::IsMapParam(const UFunction* Function, const FString& ParameterName)
+bool FEdGraphUtilities::IsMapParam(const UFunction* Function, const FName ParameterName)
 {
 	if (Function == nullptr)
 	{
@@ -472,11 +477,14 @@ bool FEdGraphUtilities::IsMapParam(const UFunction* Function, const FString& Par
 		return false;
 	}
 
-	const auto PipeSeparatedStringContains = [ParameterName](const FString& List)
+	TArray<FString> GroupEntries;
+	const FString ParameterNameStr = ParameterName.ToString();
+
+	const auto PipeSeparatedStringContains = [&GroupEntries, &ParameterNameStr](const FString& List)
 	{
-		TArray<FString> GroupEntries;
+		GroupEntries.Reset();
 		List.ParseIntoArray(GroupEntries, TEXT("|"), true);
-		if (GroupEntries.Contains(ParameterName))
+		if (GroupEntries.Contains(ParameterNameStr))
 		{
 			return true;
 		}
@@ -488,7 +496,7 @@ bool FEdGraphUtilities::IsMapParam(const UFunction* Function, const FString& Par
 		|| PipeSeparatedStringContains(MapKeyParamMetaData);
 }
 
-bool FEdGraphUtilities::IsArrayDependentParam(const UFunction* Function, const FString& ParameterName)
+bool FEdGraphUtilities::IsArrayDependentParam(const UFunction* Function, const FName ParameterName)
 {
 	if (Function == nullptr)
 	{
@@ -504,7 +512,7 @@ bool FEdGraphUtilities::IsArrayDependentParam(const UFunction* Function, const F
 	TArray<FString> TypeDependentPinNames;
 	DependentPinMetaData.ParseIntoArray(TypeDependentPinNames, TEXT(","), true);
 
-	return TypeDependentPinNames.Contains(ParameterName);
+	return TypeDependentPinNames.Contains(ParameterName.ToString());
 }
 
 UEdGraphPin* FEdGraphUtilities::FindArrayParamPin(const UFunction* Function, const UEdGraphNode* Node)
@@ -631,17 +639,15 @@ void FWeakGraphPinPtr::operator=(const class UEdGraphPin* Pin)
 
 UEdGraphPin* FWeakGraphPinPtr::Get()
 {
-	UEdGraphNode* Node = NodeObjectPtr.Get();
-	if(Node != NULL)
+	if (UEdGraphNode* Node = NodeObjectPtr.Get())
 	{
 		// If pin is no longer valid or has a different owner, attempt to fix up the reference
 		UEdGraphPin* Pin = PinReference.Get();
-		if(Pin == NULL || Pin->GetOuter() != Node)
+		if (Pin == nullptr || Pin->GetOuter() != Node)
 		{
-			for(auto PinIter = Node->Pins.CreateConstIterator(); PinIter; ++PinIter)
+			for (UEdGraphPin* TestPin : Node->Pins)
 			{
-				UEdGraphPin* TestPin = *PinIter;
-				if(TestPin->PinName.Equals(PinName))
+				if (TestPin->PinName == PinName)
 				{
 					Pin = TestPin;
 					PinReference = Pin;
@@ -653,5 +659,5 @@ UEdGraphPin* FWeakGraphPinPtr::Get()
 		return Pin;
 	}
 
-	return NULL;
+	return nullptr;
 }

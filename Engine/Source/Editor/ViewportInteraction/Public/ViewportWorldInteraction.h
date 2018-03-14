@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -33,6 +33,7 @@ namespace ViewportWorldActionTypes
 // Forward declare the GizmoHandleTypes
 enum class EGizmoHandleTypes : uint8;
 class IViewportInteractableInterface;
+class UViewportInteractionAssetContainer;
 class UViewportInteractor;
 
 UCLASS()
@@ -319,11 +320,15 @@ public:
 		bShouldSuppressCursor = bInShouldSuppressCursor;
 	};
 
+	/** Getters and setters for whether or not to show the cursor on the viewport */
+	bool ShouldForceCursor() const;
+	void SetForceCursor(const bool bInShouldForceCursor);
+
 	/** Gets the container for all the assets of ViewportInteraction. */
-	const class UViewportInteractionAssetContainer& GetAssetContainer() const;
+	const UViewportInteractionAssetContainer& GetAssetContainer() const;
 
 	/** Static function to load the asset container */
-	static const class UViewportInteractionAssetContainer& LoadAssetContainer();
+	static const UViewportInteractionAssetContainer& LoadAssetContainer();
 
 	/** Plays sound at location. */
 	void PlaySound(USoundBase* SoundBase, const FVector& InWorldLocation, const float InVolume = 1.0f);
@@ -475,10 +480,10 @@ public:
 	/** Gets the color from color type */
 	FLinearColor GetColor(const EColors Color, const float Multiplier = 1.f) const;
 
-	/** The path of the asset container */
-	static const FString AssetContainerPath;
-
 private:
+
+	/** The path of the asset container */
+	static const TCHAR* AssetContainerPath;
 
 	// All the colors for this mode
 	TArray<FLinearColor> Colors;
@@ -701,12 +706,15 @@ private:
 	/** Whether or not to show the cursor on the viewport */
 	bool bShouldSuppressCursor;
 
+	/** Whether or not to force the cursor on the viewport */
+	bool bShouldForceCursor;
+
 	/** The current tick number */
 	uint32 CurrentTickNumber;
 
 	/** Container of assets */
 	UPROPERTY()
-	class UViewportInteractionAssetContainer* AssetContainer;
+	const UViewportInteractionAssetContainer* AssetContainer;
 
 	/** If we want to skip playing the sound when refreshing the transform gizmo next time */
 	bool bPlayNextRefreshTransformGizmoSound;

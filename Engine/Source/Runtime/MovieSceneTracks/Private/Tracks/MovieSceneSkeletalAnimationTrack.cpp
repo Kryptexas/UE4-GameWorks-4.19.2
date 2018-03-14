@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Tracks/MovieSceneSkeletalAnimationTrack.h"
 #include "MovieSceneEvaluationCustomVersion.h"
@@ -140,23 +140,23 @@ FText UMovieSceneSkeletalAnimationTrack::GetDefaultDisplayName() const
 
 #endif
 
-TInlineValue<FMovieSceneSegmentCompilerRules> UMovieSceneSkeletalAnimationTrack::GetRowCompilerRules() const
+FMovieSceneTrackRowSegmentBlenderPtr UMovieSceneSkeletalAnimationTrack::GetRowSegmentBlender() const
 {
 	// Apply an upper bound exclusive blend
-	struct FSkeletalAnimationRowCompilerRules : FMovieSceneSegmentCompilerRules
+	struct FSkeletalAnimationRowCompilerRules : FMovieSceneTrackRowSegmentBlender
 	{
 		bool bUseLegacySectionIndexBlend;
 		FSkeletalAnimationRowCompilerRules(bool bInUseLegacySectionIndexBlend) : bUseLegacySectionIndexBlend(bInUseLegacySectionIndexBlend) {}
 
-		virtual void BlendSegment(FMovieSceneSegment& Segment, const TArrayView<const FMovieSceneSectionData>& SourceData) const
+		virtual void Blend(FSegmentBlendData& BlendData) const override
 		{
 			// Run the default high pass filter for overlap priority
-			MovieSceneSegmentCompiler::BlendSegmentHighPass(Segment, SourceData);
+			MovieSceneSegmentCompiler::FilterOutUnderlappingSections(BlendData);
 
 			if (bUseLegacySectionIndexBlend)
 			{
 				// Weed out based on array index (legacy behaviour)
-				MovieSceneSegmentCompiler::BlendSegmentLegacySectionOrder(Segment, SourceData);
+				MovieSceneSegmentCompiler::BlendSegmentLegacySectionOrder(BlendData);
 			}
 		}
 	};

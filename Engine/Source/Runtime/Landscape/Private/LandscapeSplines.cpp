@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LandscapeSpline.cpp
@@ -51,9 +51,15 @@ IMPLEMENT_HIT_PROXY(HLandscapeSplineProxy_Tangent, HLandscapeSplineProxy);
 
 /** Represents a ULandscapeSplinesComponent to the scene manager. */
 #if WITH_EDITOR
-class FLandscapeSplinesSceneProxy : public FPrimitiveSceneProxy
+class FLandscapeSplinesSceneProxy final : public FPrimitiveSceneProxy
 {
 private:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
+
 	const FLinearColor	SplineColor;
 
 	const UTexture2D*	ControlPointSprite;
@@ -607,7 +613,7 @@ void ULandscapeSplinesComponent::CheckForErrors()
 	Super::CheckForErrors();
 
 	UWorld* ThisOuterWorld = GetTypedOuter<UWorld>();
-	check(ThisOuterWorld->WorldType == EWorldType::Editor);
+	check(IsRunningCommandlet() || ThisOuterWorld->WorldType == EWorldType::Editor);
 
 	TSet<UWorld*> OutdatedWorlds;
 	TMap<UWorld*, FForeignWorldSplineData*> ForeignWorldSplineDataMapCache;

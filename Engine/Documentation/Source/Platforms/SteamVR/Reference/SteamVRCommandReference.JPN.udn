@@ -1,0 +1,70 @@
+﻿INTSourceChangelist:3769397
+Availability:Public
+Crumbs:%ROOT%, Platforms
+Title:SteamVR コマンドのリファレンス
+Description:SteamVR で使用可能な各種コマンドの概要です。
+Type:reference
+Version:4.17
+Parent:Platforms/SteamVR
+Order:2
+tags:VR
+topic-image:Platforms\SteamVR\SteamVRDevelopment_topic.png
+related:Engine/Performance/GPU/ 
+related:Engine/Performance/CPU/
+related:Platforms/VR/VRSpectatorScreen/
+
+以下の INI およびコンソール コマンドを使って、UE4 と SteamVR がインタラクトする方法を調節することができます。 
+
+[COMMENT:none]
+
+## SteamVR VR Mirror Mode
+
+VR Mirror は、VR を使っていない人が VR ユーザーの見ているものを共有できるビューポート ウィンドウ名です。SteamVR を使用する場合、VR Mirror の表示を変える方法が何通りかあります。 
+以下は、VR Mirror モードを変更するコマンド、および VR Mirror がどのように変更するかの説明です。
+
+[REGION:note]
+以下のコマンドを入力するには、Backtick **`** キーを押して UE4 コンソールを開き、次の番号の前に **VR.MirrorMode** を入力します。
+[/REGION]
+
+
+|コマンド|説明|イメージ|
+|-----------|-------------------|----------------|
+| **VR.SpectatorScreenMode 0** | VR Mirror を無効にします。||N/A|
+| **VR.SpectatorScreenMode 1** | 歪みのない片目分の映像を表示します。|[REGION:lightbox][![](SteamVRCR_00.png)(w:160)](SteamVRCR_00.png)[/REGION]|
+| **VR.SpectatorScreenMode 2** | 歪みのない両目の映像をステレオ表示します。|[REGION:lightbox][![](SteamVRCR_01.png)(w:160)](SteamVRCR_01.png)[/REGION]|
+| **VR.SpectatorScreenMode 3** | 画面合わせてトリミングされた長方形に片目分の映像を表示します。|[REGION:lightbox][![](SteamVRCR_02.png)(w:160)](SteamVRCR_02.png)[/REGION]|
+| **VR.SpectatorScreenMode 4** | 片目分の映像をステレオ表示します。|[REGION:lightbox][![](SteamVRCR_03.png)(w:160)](SteamVRCR_03.png)[/REGION]|
+| **VR.SpectatorScreenMode 7** | 別のテクスチャを表示するオプションを使ってトリミングされた長方形に片目分の映像を表示します。|[REGION:lightbox][![](SteamVRCR_04.png)(w:160)](SteamVRCR_04.png)[/REGION]|
+
+[/COMMENT]
+
+|コマンド|説明|
+|-----------|-------------------|
+|**vr.SteamVR.AdaptiveDebugGPUTime**|テスティング用に GPU のフレーム タイミング (ミリ秒) で追加します。|
+|**vr.SteamVR.AdaptiveGPUTimeThreshold**|GPU フレーム時間を安定させるための時間 (ms) です。|
+|**vr.SteamVR.PixelDensityAdaptiveDebugCycle**|ゼロでない場合、適応可能なピクセル密度は最大から最小のピクセル密度へ循環して、最大に飛びます。|
+|**vr.SteamVR.PixelDensityAdaptiveDebugOutput**|ゼロでない場合、適応可能なピクセル密度はデバッグ情報をログに出力します。|
+|**vr.SteamVR.PixelDensityAdaptivePostProcess**|ゼロでない場合、適応可能な密度が変化すると、バッファをクリアするためにいくつかのフレームに対してテンポラル アンチエイリアシング (TAA) を無効にします。|
+|**vr.SteamVR.PixelDensityMax**|浮動小数点表現での最大ピクセル密度|
+|**vr.SteamVR.PixelDensityMin**|浮動小数点表現での最小ピクセル密度|
+|**vr.SteamVR.ShowDebug**|	ゼロでない場合、キャンバスにデバッグ情報を描画します。|
+|**vr.SteamVR.UsePostPresentHandoff**|	 PostPresentHandoff を使用するかどうかを設定します。true にすると使用可能な GPU 時間が増えます。。ただし、シーンでアクティブにされている SceneCaptureComponent2D または WidgetComponents に依存しません。依存すると、非同期再投影が中断します。|
+|**vr.SteamVR.UseVisibleAreaMesh**|ゼロでない場合、SteamVR は非表示領域のメッシュの最適化だけでなく、表示領域のメッシュも使用します。これは、プラットフォームのベータ バージョンで問題になる場合があります。|
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

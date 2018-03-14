@@ -22,7 +22,9 @@ HTTP 流送器 REST API 的功能是将回放从游戏服务器流送到回放�
 
 #### 语法
 
-<!-- From StartStreaming(): -->
+[COMMENT:none]
+ From StartStreaming(): 
+[/COMMENT]
 
 	<Server URL>replay/<Session Name Override>?app=<Replay Version AppString>&version=<Replay Network Version>&cl=<Replay CL>&friendlyName=<Platform Friendly Name>
 	
@@ -60,7 +62,9 @@ HTTP 流送器 REST API 的功能是将回放从游戏服务器流送到回放�
 
 #### 语法
 
-<!-- From UploadHeader(): -->
+[COMMENT:none]
+ From UploadHeader(): 
+[/COMMENT]
 
 	<Server URL>replay/<Session Name>/file/replay.header?numChunks=<Stream Chunk Index>&time=<Total Demo Time In MS>
 	
@@ -96,7 +100,9 @@ HTTP 流送器 REST API 的功能是将回放从游戏服务器流送到回放�
 
 #### 语法
 
-<!-- From FlushStream(): -->
+[COMMENT:none]
+ From FlushStream(): 
+[/COMMENT]
 
 	<Server URL>replay/<Session Name>/file/stream.<Stream Chunk Index>?numChunks=<Total Chunks>&time=<Total Demo Time In MS>&mTime1=<Start Time In MS>&mTime2=<End Time In MS>&absSize=<Total Uploaded Bytes>
 
@@ -132,7 +138,9 @@ HTTP 流送器 REST API 的功能是将回放从游戏服务器流送到回放�
 
 #### 语法
 
-<!-- From AddOrUpdateEvent(): -->
+[COMMENT:none]
+ From AddOrUpdateEvent(): 
+[/COMMENT]
 
 	<Server URL>replay/<Session Name>/event?group=<Group Name>&time1=<Event Time In MS>&time2=<Event Time In MS>&meta=<Meta Tag>&incrementSize=false
 ~~~
@@ -164,7 +172,9 @@ HTTP 流送器 REST API 的功能是将回放从游戏服务器流送到回放�
 
 #### 语法
 
-<!-- From StopUploading(): -->
+[COMMENT:none]
+ From StopUploading(): 
+[/COMMENT]
 
 	<Server URL>replay/<Session Name>/stopUploading?numChunks=<Total Num Chunks>&time=<Total Time In MS>&absSize=<Total Bytes Uploaded>
 	
@@ -195,7 +205,9 @@ HTTP 流送器 REST API 的功能是将回放从游戏服务器流送到回放�
 
 #### 语法
 
-<!-- From StartStreaming(): -->
+[COMMENT:none]
+ From StartStreaming(): 
+[/COMMENT]
 
 	<Server URL>replay/<Session Name>/startDownloading?user=<User Name>
 			
@@ -231,7 +243,9 @@ HTTP 流送器 REST API 的功能是将回放从游戏服务器流送到回放�
 
 #### 语法
 
-<!-- From DownloadHeader(): -->
+[COMMENT:none]
+ From DownloadHeader(): 
+[/COMMENT]
 
 	<Server URL>replay/<Session Name>/file/replay.header
 				
@@ -259,7 +273,9 @@ HTTP 流送器 REST API 的功能是将回放从游戏服务器流送到回放�
 
 #### 语法
 
-<!-- From EnumerateCheckpoints(): -->
+[COMMENT:none]
+ From EnumerateCheckpoints(): 
+[/COMMENT]
 	
 	<Server URL>replay/<Session Name>/event?group=checkpoint
 				
@@ -302,7 +318,9 @@ HTTP 流送器 REST API 的功能是将回放从游戏服务器流送到回放�
 
 #### 语法
 
-<!-- From ConditionallyDownloadNextChunk(): -->
+[COMMENT:none]
+ From ConditionallyDownloadNextChunk(): 
+[/COMMENT]
 
 	<Server URL>replay/<Session Name>/file/stream.<Stream Chunk Index>
 					
@@ -349,7 +367,9 @@ HTTP 流送器 REST API 的功能是将回放从游戏服务器流送到回放�
 
 #### 语法
 
-<!-- From EnumerateEvents(): -->
+[COMMENT:none]
+ From EnumerateEvents(): 
+[/COMMENT]
 	
 	<Server URL>replay/<Session Name>/event?group=<Group Name>"
 						
@@ -381,7 +401,9 @@ HTTP 流送器 REST API 的功能是将回放从游戏服务器流送到回放�
 
 #### 语法
 
-<!-- From RefreshViewer(): -->
+[COMMENT:none]
+ From RefreshViewer(): 
+[/COMMENT]
 	
 	<Server URL>replay/<Session Name>/viewer/<Viewer Name>
 ~~~
@@ -411,7 +433,9 @@ HTTP 流送器 REST API 的功能是将回放从游戏服务器流送到回放�
 
 #### 语法
 
-<!-- From EnumerateStreams(): -->
+[COMMENT:none]
+ From EnumerateStreams(): 
+[/COMMENT]
 
 	<Server URL>replay?app=<Replay Version AppString>&cl=<Replay CL>&version=<Replay Network Version>&meta=<Meta Tag>&user=<User Name>&recent=<In Recent Viewer>"
 								
@@ -460,7 +484,9 @@ HTTP 流送器 REST API 的功能是将回放从游戏服务器流送到回放�
 
 #### 语法
 
-<!-- From SearchEvents(): -->
+[COMMENT:none]
+ From SearchEvents(): 
+[/COMMENT]
 
 	<ServerURL>event?group=<Event Group>
 								
@@ -504,7 +530,9 @@ HTTP 流送器 REST API 的功能是将回放从游戏服务器流送到回放�
 
 #### 语法
 
-<!-- From RequestEventData(): -->
+[COMMENT:none]
+ From RequestEventData(): 
+[/COMMENT]
 	
 	<Server URL>event/<Event Name>
 								

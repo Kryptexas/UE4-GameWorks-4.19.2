@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:3200922
+﻿INTSourceChangelist:3717083
 Availability:Public
 Title: 애디티브 vs 풀 바디
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:포즈 애셋에 애디티브와 풀 바디 세팅이 끼치는 영향에 대한 설명입니다.
+Parent: Engine/Animation/AnimPose
 Related: Engine\Animation\AnimHowTo\CreatePoseAsset
 Related: Engine\Animation\AnimHowTo\CurveDrivenAnimation
 Related: Engine\Animation\AnimPose\AnimBPPoseNodes

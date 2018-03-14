@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemFacebook.h"
 #include "OnlineSubsystemFacebookPrivate.h"
@@ -39,9 +39,6 @@ bool FOnlineSubsystemFacebook::Shutdown()
 
 bool FOnlineSubsystemFacebook::IsEnabled() const
 {
+	// Overridden due to different platform implementations of IsEnabled
 	return FOnlineSubsystemFacebookCommon::IsEnabled();
 }
-
-
-
-

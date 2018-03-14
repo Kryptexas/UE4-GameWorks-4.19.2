@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Linker.cpp: Unreal object linker.
@@ -417,12 +417,22 @@ static void LogGetPackageLinkerError(FArchive* LinkerArchive, const TCHAR* InFil
 
 			if(InFilename != NULL && InOuter != NULL)
 			{
+				FString PackageName;
+				if (!FPackageName::TryConvertFilenameToLongPackageName(InFilename, PackageName))
+				{
+					PackageName = InFilename;
+				}
+				FString OuterPackageName;
+				if (!FPackageName::TryConvertFilenameToLongPackageName(InOuter->GetPathName(), OuterPackageName))
+				{
+					OuterPackageName = InOuter->GetPathName();
+				}
 				// Output the summary error & the filename link. This might be something like "..\Content\Foo.upk Out of Memory"
 				TSharedRef<FTokenizedMessage> Message = LoadErrors.Error();
-				Message->AddToken(FAssetNameToken::Create(FPackageName::FilenameToLongPackageName(InFilename)));
+				Message->AddToken(FAssetNameToken::Create(PackageName));
 				Message->AddToken(FTextToken::Create(FText::FromString(TEXT(":"))));
 				Message->AddToken(FTextToken::Create(InSummaryErrorMessage));
-				Message->AddToken(FAssetNameToken::Create(FPackageName::FilenameToLongPackageName(InOuter->GetPathName())));
+				Message->AddToken(FAssetNameToken::Create(OuterPackageName));
 			}
 
 			Local::OutputErrorDetail(LinkerArchive, NAME_LoadErrors);
@@ -730,9 +740,12 @@ void ResetLoadersForSave(UObject* InOuter, const TCHAR *Filename)
 	// This is the loader corresponding to the package we're saving.
 	if( Loader )
 	{
-		// Before we save the package, make sure that we load up any thumbnails that aren't already
-		// in memory so that they won't be wiped out during this save
-		Loader->SerializeThumbnails();
+		if (!Package->HasAnyPackageFlags(PKG_FilterEditorOnly))
+		{
+			// Before we save the package, make sure that we load up any thumbnails that aren't already
+			// in memory so that they won't be wiped out during this save
+			Loader->SerializeThumbnails();
+		}
 
 		// Compare absolute filenames to see whether we're trying to save over an existing file.
 		if( FPaths::ConvertRelativePathToFull(Filename) == FPaths::ConvertRelativePathToFull( Loader->Filename ) )

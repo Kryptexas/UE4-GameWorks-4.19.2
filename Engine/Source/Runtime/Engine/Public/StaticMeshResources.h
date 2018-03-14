@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticMesh.h: Static mesh class definition.
@@ -210,15 +210,36 @@ protected:
 	FStaticMeshLODResources* Owner;
 };
 
-/** Rendering resources needed to render an individual static mesh LOD. */
-struct FStaticMeshLODResources
+
+struct FDynamicMeshVertex;
+struct FModelVertex;
+
+struct FStaticMeshVertexBuffers
 {
 	/** The buffer containing vertex data. */
-	FStaticMeshVertexBuffer VertexBuffer;
+	FStaticMeshVertexBuffer StaticMeshVertexBuffer;
 	/** The buffer containing the position vertex data. */
 	FPositionVertexBuffer PositionVertexBuffer;
 	/** The buffer containing the vertex color data. */
 	FColorVertexBuffer ColorVertexBuffer;
+
+	/* This is a temporary function to refactor and convert old code, do not copy this as is and try to build your data as SoA from the beginning.*/
+	void ENGINE_API InitWithDummyData(FLocalVertexFactory* VertexFactory, uint32 NumVerticies, uint32 NumTexCoords = 1, uint32 LightMapIndex = 0);
+
+	/* This is a temporary function to refactor and convert old code, do not copy this as is and try to build your data as SoA from the beginning.*/
+	void ENGINE_API InitFromDynamicVertex(FLocalVertexFactory* VertexFactory, TArray<FDynamicMeshVertex>& Vertices, uint32 NumTexCoords = 1, uint32 LightMapIndex = 0);
+
+	/* This is a temporary function to refactor and convert old code, do not copy this as is and try to build your data as SoA from the beginning.*/
+	void ENGINE_API InitModelBuffers(TArray<FModelVertex>& Vertices);
+
+	/* This is a temporary function to refactor and convert old code, do not copy this as is and try to build your data as SoA from the beginning.*/
+	void ENGINE_API InitModelVF(FLocalVertexFactory* VertexFactory);
+};
+
+/** Rendering resources needed to render an individual static mesh LOD. */
+struct FStaticMeshLODResources
+{
+	FStaticMeshVertexBuffers VertexBuffers;
 
 	/** Index buffer resource for rendering. */
 	FRawStaticIndexBuffer IndexBuffer;
@@ -232,12 +253,6 @@ struct FStaticMeshLODResources
 	FRawStaticIndexBuffer WireframeIndexBuffer;
 	/** Index buffer containing adjacency information required by tessellation. */
 	FRawStaticIndexBuffer AdjacencyIndexBuffer;
-
-	/** The vertex factory used when rendering this mesh. */
-	FLocalVertexFactory VertexFactory;
-
-	/** The vertex factory used when rendering this mesh with vertex colors. This is lazy init.*/
-	FLocalVertexFactory VertexFactoryOverrideColorVertexBuffer;
 
 	/** Sections for this LOD. */
 	TArray<FStaticMeshSection> Sections;
@@ -267,9 +282,6 @@ struct FStaticMeshLODResources
 
 	uint32 DepthOnlyNumTriangles;
 
-	struct FSplineMeshVertexFactory* SplineVertexFactory;
-	struct FSplineMeshVertexFactory* SplineVertexFactoryOverrideColorVertexBuffer;
-
 #if STATS
 	uint32 StaticMeshIndexMemory;
 #endif
@@ -295,15 +307,43 @@ struct FStaticMeshLODResources
 	ENGINE_API int32 GetNumVertices() const;
 
 	ENGINE_API int32 GetNumTexCoords() const;
+};
+
+struct ENGINE_API FStaticMeshVertexFactories
+{
+	FStaticMeshVertexFactories(ERHIFeatureLevel::Type InFeatureLevel)
+		: VertexFactory(InFeatureLevel, "FStaticMeshVertexFactories")
+		, VertexFactoryOverrideColorVertexBuffer(InFeatureLevel, "FStaticMeshVertexFactories_Override")
+		, SplineVertexFactory(nullptr)
+		, SplineVertexFactoryOverrideColorVertexBuffer(nullptr)
+	{}
+
+	~FStaticMeshVertexFactories();
+
+	/** The vertex factory used when rendering this mesh. */
+	FLocalVertexFactory VertexFactory;
+
+	/** The vertex factory used when rendering this mesh with vertex colors. This is lazy init.*/
+	FLocalVertexFactory VertexFactoryOverrideColorVertexBuffer;
+
+	struct FSplineMeshVertexFactory* SplineVertexFactory;
+
+	struct FSplineMeshVertexFactory* SplineVertexFactoryOverrideColorVertexBuffer;
 
 	/**
-	 * Initializes a vertex factory for rendering this static mesh
-	 *
-	 * @param	InOutVertexFactory				The vertex factory to configure
-	 * @param	InParentMesh					Parent static mesh
-	 * @param	bInOverrideColorVertexBuffer	If true, make a vertex factory ready for per-instance colors
-	 */
-	void InitVertexFactory(FLocalVertexFactory& InOutVertexFactory, UStaticMesh* InParentMesh, bool bInOverrideColorVertexBuffer);
+	* Initializes a vertex factory for rendering this static mesh
+	*
+	* @param	InOutVertexFactory				The vertex factory to configure
+	* @param	InParentMesh					Parent static mesh
+	* @param	bInOverrideColorVertexBuffer	If true, make a vertex factory ready for per-instance colors
+	*/
+	void InitVertexFactory(const FStaticMeshLODResources& LodResources, FLocalVertexFactory& InOutVertexFactory, const UStaticMesh* InParentMesh, bool bInOverrideColorVertexBuffer);
+
+	/** Initializes all rendering resources. */
+	void InitResources(const FStaticMeshLODResources& LodResources, const UStaticMesh* Parent);
+
+	/** Releases all rendering resources. */
+	void ReleaseResources();
 };
 
 /**
@@ -317,6 +357,7 @@ public:
 
 	/** Per-LOD resources. */
 	TIndirectArray<FStaticMeshLODResources> LODResources;
+	TIndirectArray<FStaticMeshVertexFactories> LODVertexFactories;
 
 	/** Screen size to switch LODs */
 	float ScreenSize[MAX_STATIC_MESH_LODS];
@@ -356,16 +397,13 @@ public:
 	void Serialize(FArchive& Ar, UStaticMesh* Owner, bool bCooked);
 
 	/** Initialize the render resources. */
-	void InitResources(UStaticMesh* Owner);
+	void InitResources(ERHIFeatureLevel::Type InFeatureLevel, UStaticMesh* Owner);
 
 	/** Releases the render resources. */
 	ENGINE_API void ReleaseResources();
 
 	/** Compute the size of this resource. */
-	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-	SIZE_T GetResourceSize() const;
 	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const;
-	SIZE_T GetResourceSizeBytes() const;
 
 	/** Allocate LOD resources. */
 	ENGINE_API void AllocateLODResources(int32 NumLODs);
@@ -459,11 +497,12 @@ private:
 class ENGINE_API FStaticMeshSceneProxy : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override;
 
 	/** Initialization constructor. */
 	FStaticMeshSceneProxy(UStaticMeshComponent* Component, bool bForceLODsShareStaticLighting);
 
-	virtual ~FStaticMeshSceneProxy() {}
+	virtual ~FStaticMeshSceneProxy();
 
 	/** Gets the number of mesh batches required to represent the proxy, aside from section needs. */
 	virtual int32 GetNumMeshBatches() const
@@ -530,7 +569,6 @@ public:
 #endif
 
 protected:
-
 	/** Information used by the proxy about a single LOD of the mesh. */
 	class FLODInfo : public FLightCacheInterface
 	{
@@ -579,7 +617,7 @@ protected:
 		const FRawStaticIndexBuffer* PreCulledIndexBuffer;
 
 		/** Initialization constructor. */
-		FLODInfo(const UStaticMeshComponent* InComponent, int32 InLODIndex, bool bLODsShareStaticLighting);
+		FLODInfo(const UStaticMeshComponent* InComponent, const TIndirectArray<FStaticMeshVertexFactories>& InLODVertexFactories, int32 InLODIndex, bool bLODsShareStaticLighting);
 
 		bool UsesMeshModifyingMaterials() const { return bUsesMeshModifyingMaterials; }
 
@@ -587,7 +625,6 @@ protected:
 		virtual FLightInteraction GetInteraction(const FLightSceneProxy* LightSceneProxy) const override;
 
 	private:
-
 		TArray<FGuid> IrrelevantLights;
 
 		/** True if any elements in this LOD use mesh-modifying materials **/
@@ -664,254 +701,65 @@ protected:
 	 * Returns the LOD mask for a view, this is like the ordinary LOD but can return two values for dither fading
 	 */
 	FLODMask GetLODMask(const FSceneView* View) const;
+
+private:
+	void AddSpeedTreeWind();
+	void RemoveSpeedTreeWind();
 };
 
 /*-----------------------------------------------------------------------------
 	FStaticMeshInstanceData
 -----------------------------------------------------------------------------*/
 
-template <class FloatType>
-struct FInstanceStream
-{
-	FVector4 InstanceOrigin;  // per-instance random in w 
-	FloatType InstanceTransform1[4];  // hitproxy.r + 256 * selected in .w
-	FloatType InstanceTransform2[4]; // hitproxy.g in .w
-	FloatType InstanceTransform3[4]; // hitproxy.b in .w
-	int16 InstanceLightmapAndShadowMapUVBias[4]; 
-	bool IsUsed;
-
-	FORCEINLINE void SetInstance(const FMatrix& Transform, float RandomInstanceID)
-	{
-		const FMatrix* RESTRICT rTransform = (const FMatrix* RESTRICT)&Transform;
-		FInstanceStream* RESTRICT Me = (FInstanceStream* RESTRICT)this;
-
-		Me->InstanceOrigin.X = rTransform->M[3][0];
-		Me->InstanceOrigin.Y = rTransform->M[3][1];
-		Me->InstanceOrigin.Z = rTransform->M[3][2];
-		Me->InstanceOrigin.W = RandomInstanceID;
-
-		Me->InstanceTransform1[0] = Transform.M[0][0];
-		Me->InstanceTransform1[1] = Transform.M[0][1];
-		Me->InstanceTransform1[2] = Transform.M[0][2];
-		Me->InstanceTransform1[3] = FloatType();
-
-		Me->InstanceTransform2[0] = Transform.M[1][0];
-		Me->InstanceTransform2[1] = Transform.M[1][1];
-		Me->InstanceTransform2[2] = Transform.M[1][2];
-		Me->InstanceTransform2[3] = FloatType();
-
-		Me->InstanceTransform3[0] = Transform.M[2][0];
-		Me->InstanceTransform3[1] = Transform.M[2][1];
-		Me->InstanceTransform3[2] = Transform.M[2][2];
-		Me->InstanceTransform3[3] = FloatType();
-
-		Me->InstanceLightmapAndShadowMapUVBias[0] = 0;
-		Me->InstanceLightmapAndShadowMapUVBias[1] = 0;
-		Me->InstanceLightmapAndShadowMapUVBias[2] = 0;
-		Me->InstanceLightmapAndShadowMapUVBias[3] = 0;
-
-		Me->IsUsed = true;
-	}
-
-	FORCEINLINE void GetInstanceTransform(FMatrix& Transform) const
-	{
-		Transform.M[3][0] = InstanceOrigin.X;
-		Transform.M[3][1] = InstanceOrigin.Y;
-		Transform.M[3][2] = InstanceOrigin.Z;
-
-		Transform.M[0][0] = InstanceTransform1[0];
-		Transform.M[0][1] = InstanceTransform1[1];
-		Transform.M[0][2] = InstanceTransform1[2];
-
-		Transform.M[1][0] = InstanceTransform2[0];
-		Transform.M[1][1] = InstanceTransform2[1];
-		Transform.M[1][2] = InstanceTransform2[2];
-
-		Transform.M[2][0] = InstanceTransform3[0];
-		Transform.M[2][1] = InstanceTransform3[1];
-		Transform.M[2][2] = InstanceTransform3[2];
-
-		Transform.M[0][3] = 0.f;
-		Transform.M[1][3] = 0.f;
-		Transform.M[2][3] = 0.f;
-		Transform.M[3][3] = 0.f;
-	}
-
-	FORCEINLINE void GetInstanceShaderValues(FVector4 OutInstanceTransform[3], FVector4& OutInstanceLightmapAndShadowMapUVBias, FVector4& OutInstanceOrigin) const
-	{
-		OutInstanceLightmapAndShadowMapUVBias = FVector4(
-			float(InstanceLightmapAndShadowMapUVBias[0]),
-			float(InstanceLightmapAndShadowMapUVBias[1]),
-			float(InstanceLightmapAndShadowMapUVBias[2]),
-			float(InstanceLightmapAndShadowMapUVBias[3]));
-			
-		OutInstanceTransform[0] = FVector4(
-			(float)InstanceTransform1[0],
-			(float)InstanceTransform1[1],
-			(float)InstanceTransform1[2],
-			(float)InstanceTransform1[3]);
-
-		OutInstanceTransform[1] = FVector4(
-			(float)InstanceTransform2[0],
-			(float)InstanceTransform2[1],
-			(float)InstanceTransform2[2],
-			(float)InstanceTransform2[3]);
-		
-		OutInstanceTransform[2] = FVector4(
-			(float)InstanceTransform3[0],
-			(float)InstanceTransform3[1],
-			(float)InstanceTransform3[2],
-			(float)InstanceTransform3[3]);
-
-		OutInstanceOrigin = InstanceOrigin;
-	}
-
-	FORCEINLINE void SetInstance(const FMatrix& Transform, float RandomInstanceID, const FVector2D& LightmapUVBias, const FVector2D& ShadowmapUVBias, FColor HitProxyColor, bool bSelected)
-	{
-		const FMatrix* RESTRICT rTransform = (const FMatrix* RESTRICT)&Transform;
-		FInstanceStream* RESTRICT Me = (FInstanceStream* RESTRICT)this;
-		const FVector2D* RESTRICT rLightmapUVBias = (const FVector2D* RESTRICT)&LightmapUVBias;
-		const FVector2D* RESTRICT rShadowmapUVBias = (const FVector2D* RESTRICT)&ShadowmapUVBias;
-
-		Me->InstanceOrigin.X = rTransform->M[3][0];
-		Me->InstanceOrigin.Y = rTransform->M[3][1];
-		Me->InstanceOrigin.Z = rTransform->M[3][2];
-		Me->InstanceOrigin.W = RandomInstanceID;
-
-		Me->InstanceTransform1[0] = Transform.M[0][0];
-		Me->InstanceTransform1[1] = Transform.M[0][1];
-		Me->InstanceTransform1[2] = Transform.M[0][2];
-		Me->InstanceTransform1[3] = ((float)HitProxyColor.R) + (bSelected ? 256.f : 0.0f);
-
-		Me->InstanceTransform2[0] = Transform.M[1][0];
-		Me->InstanceTransform2[1] = Transform.M[1][1];
-		Me->InstanceTransform2[2] = Transform.M[1][2];
-		Me->InstanceTransform2[3] = (float)HitProxyColor.G;
-
-		Me->InstanceTransform3[0] = Transform.M[2][0];
-		Me->InstanceTransform3[1] = Transform.M[2][1];
-		Me->InstanceTransform3[2] = Transform.M[2][2];
-		Me->InstanceTransform3[3] = (float)HitProxyColor.B;
-
-		Me->InstanceLightmapAndShadowMapUVBias[0] = FMath::Clamp<int32>(FMath::TruncToInt(rLightmapUVBias->X  * 32767.0f), MIN_int16, MAX_int16);
-		Me->InstanceLightmapAndShadowMapUVBias[1] = FMath::Clamp<int32>(FMath::TruncToInt(rLightmapUVBias->Y  * 32767.0f), MIN_int16, MAX_int16);
-		Me->InstanceLightmapAndShadowMapUVBias[2] = FMath::Clamp<int32>(FMath::TruncToInt(rShadowmapUVBias->X * 32767.0f), MIN_int16, MAX_int16);
-		Me->InstanceLightmapAndShadowMapUVBias[3] = FMath::Clamp<int32>(FMath::TruncToInt(rShadowmapUVBias->Y * 32767.0f), MIN_int16, MAX_int16);
-
-		Me->IsUsed = true;
-	}
-
-	FORCEINLINE void SetInstance(const FMatrix& Transform, float RandomInstanceID, const FVector2D& LightmapUVBias, const FVector2D& ShadowmapUVBias)
-	{
-		const FMatrix* RESTRICT rTransform = (const FMatrix* RESTRICT)&Transform;
-		FInstanceStream* RESTRICT Me = (FInstanceStream* RESTRICT)this;
-		const FVector2D* RESTRICT rLightmapUVBias = (const FVector2D* RESTRICT)&LightmapUVBias;
-		const FVector2D* RESTRICT rShadowmapUVBias = (const FVector2D* RESTRICT)&ShadowmapUVBias;
-
-		Me->InstanceOrigin.X = rTransform->M[3][0];
-		Me->InstanceOrigin.Y = rTransform->M[3][1];
-		Me->InstanceOrigin.Z = rTransform->M[3][2];
-		Me->InstanceOrigin.W = RandomInstanceID;
-
-		Me->InstanceTransform1[0] = Transform.M[0][0];
-		Me->InstanceTransform1[1] = Transform.M[0][1];
-		Me->InstanceTransform1[2] = Transform.M[0][2];
-		Me->InstanceTransform1[3] = FloatType();
-
-		Me->InstanceTransform2[0] = Transform.M[1][0];
-		Me->InstanceTransform2[1] = Transform.M[1][1];
-		Me->InstanceTransform2[2] = Transform.M[1][2];
-		Me->InstanceTransform2[3] = FloatType();
-
-		Me->InstanceTransform3[0] = Transform.M[2][0];
-		Me->InstanceTransform3[1] = Transform.M[2][1];
-		Me->InstanceTransform3[2] = Transform.M[2][2];
-		Me->InstanceTransform3[3] = FloatType();
-
-		Me->InstanceLightmapAndShadowMapUVBias[0] = FMath::Clamp<int32>(FMath::TruncToInt(rLightmapUVBias->X  * 32767.0f), MIN_int16, MAX_int16);
-		Me->InstanceLightmapAndShadowMapUVBias[1] = FMath::Clamp<int32>(FMath::TruncToInt(rLightmapUVBias->Y  * 32767.0f), MIN_int16, MAX_int16);
-		Me->InstanceLightmapAndShadowMapUVBias[2] = FMath::Clamp<int32>(FMath::TruncToInt(rShadowmapUVBias->X * 32767.0f), MIN_int16, MAX_int16);
-		Me->InstanceLightmapAndShadowMapUVBias[3] = FMath::Clamp<int32>(FMath::TruncToInt(rShadowmapUVBias->Y * 32767.0f), MIN_int16, MAX_int16);
-
-		Me->IsUsed = true;
-	}
-
-	FORCEINLINE void NullifyInstance()
-	{
-		// Nullify Instance & Editor data
-		FInstanceStream* RESTRICT Me = (FInstanceStream* RESTRICT)this;
-		Me->InstanceTransform1[0] = FloatType();
-		Me->InstanceTransform1[1] = FloatType();
-		Me->InstanceTransform1[2] = FloatType();
-		Me->InstanceTransform1[3] = FloatType();
-
-		Me->InstanceTransform2[0] = FloatType();
-		Me->InstanceTransform2[1] = FloatType();
-		Me->InstanceTransform2[2] = FloatType();
-		Me->InstanceTransform2[3] = FloatType();
-
-		Me->InstanceTransform3[0] = FloatType();
-		Me->InstanceTransform3[1] = FloatType();
-		Me->InstanceTransform3[2] = FloatType();
-		Me->InstanceTransform3[3] = FloatType();
-
-		Me->IsUsed = false;
-	}
-
-	FORCEINLINE void SetInstanceEditorData(FColor HitProxyColor, bool bSelected)
-	{
-		FInstanceStream* RESTRICT Me = (FInstanceStream* RESTRICT)this;
-		
-		Me->InstanceTransform1[3] = ((float)HitProxyColor.R) + (bSelected ? 256.f : 0.0f);
-		Me->InstanceTransform2[3] = (float)HitProxyColor.G;
-		Me->InstanceTransform3[3] = (float)HitProxyColor.B;
-
-		Me->IsUsed = true;
-	}
-	
-	friend FArchive& operator<<( FArchive& Ar, FInstanceStream& V )
-	{
-		return Ar 
-			<< V.InstanceOrigin.X 
-			<< V.InstanceOrigin.Y
-			<< V.InstanceOrigin.Z
-			<< V.InstanceOrigin.W
-
-			<< V.InstanceTransform1[0]
-			<< V.InstanceTransform1[1]
-			<< V.InstanceTransform1[2]
-			<< V.InstanceTransform1[3]
-
-			<< V.InstanceTransform2[0]
-			<< V.InstanceTransform2[1]
-			<< V.InstanceTransform2[2]
-			<< V.InstanceTransform2[3]
-
-			<< V.InstanceTransform3[0]
-			<< V.InstanceTransform3[1]
-			<< V.InstanceTransform3[2]
-			<< V.InstanceTransform3[3]
-
-			<< V.InstanceLightmapAndShadowMapUVBias[0]
-			<< V.InstanceLightmapAndShadowMapUVBias[1]
-			<< V.InstanceLightmapAndShadowMapUVBias[2]
-			<< V.InstanceLightmapAndShadowMapUVBias[3];
-	}
-};
-
-typedef FInstanceStream<FFloat16>	FInstanceStream16;
-typedef FInstanceStream<float>		FInstanceStream32;
-
 /** The implementation of the static mesh instance data storage type. */
-class FStaticMeshInstanceData :
-	public FStaticMeshVertexDataInterface
+class FStaticMeshInstanceData
 {
+	template<typename F>
+	struct FInstanceTransformMatrix
+	{
+		F InstanceTransform1[4];
+		F InstanceTransform2[4];
+		F InstanceTransform3[4];
+
+		friend FArchive& operator<<(FArchive& Ar, FInstanceTransformMatrix& V)
+		{
+			return Ar
+				<< V.InstanceTransform1[0]
+				<< V.InstanceTransform1[1]
+				<< V.InstanceTransform1[2]
+				<< V.InstanceTransform1[3]
+
+				<< V.InstanceTransform2[0]
+				<< V.InstanceTransform2[1]
+				<< V.InstanceTransform2[2]
+				<< V.InstanceTransform2[3]
+
+				<< V.InstanceTransform3[0]
+				<< V.InstanceTransform3[1]
+				<< V.InstanceTransform3[2]
+				<< V.InstanceTransform3[3];
+		}
+
+	};
+
+	struct FInstanceLightMapVector
+	{
+		int16 InstanceLightmapAndShadowMapUVBias[4];
+
+		friend FArchive& operator<<(FArchive& Ar, FInstanceLightMapVector& V)
+		{
+			return Ar
+				<< V.InstanceLightmapAndShadowMapUVBias[0]
+				<< V.InstanceLightmapAndShadowMapUVBias[1]
+				<< V.InstanceLightmapAndShadowMapUVBias[2]
+				<< V.InstanceLightmapAndShadowMapUVBias[3];
+		}
+	};
+
 public:
 	FStaticMeshInstanceData()
-		: InstanceStream16(false)
-		, InstanceStream32(false)
-		, bUseHalfFloat(PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || GVertexElementTypeSupport.IsSupported(VET_Half2))
 	{
+
 	}
 	/**
 	 * Constructor
@@ -919,271 +767,461 @@ public:
 	 * @param bSupportsVertexHalfFloat - true if device has support for half float in vertex arrays
 	 */
 	FStaticMeshInstanceData(bool InNeedsCPUAccess, bool bInUseHalfFloat)
-		: InstanceStream16(InNeedsCPUAccess)
-		, InstanceStream32(InNeedsCPUAccess)
-		, bUseHalfFloat(bInUseHalfFloat)
+		: bUseHalfFloat(PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bInUseHalfFloat)
+		, bNeedsCPUAccess(InNeedsCPUAccess)
 	{
-	}
+		InstanceOriginData = new TStaticMeshVertexData<FVector4>(bNeedsCPUAccess);
+		InstanceLightmapData = new TStaticMeshVertexData<FInstanceLightMapVector>(bNeedsCPUAccess);
 
-	SIZE_T GetResourceSize() const
-	{
-		return SIZE_T(NumInstances()) * SIZE_T(GetStride());
-	}
-
-	static SIZE_T GetResourceSize(int32 InNumInstances, bool bInUseHalfFloat)
-	{
-		return SIZE_T(InNumInstances) * SIZE_T(bInUseHalfFloat ? sizeof(FInstanceStream16) : sizeof(FInstanceStream32));
-	}
-
-	SIZE_T GetResourceSize(int32 InNumInstances)
-	{
-		return SIZE_T(InNumInstances) * SIZE_T(bUseHalfFloat ? sizeof(FInstanceStream16) : sizeof(FInstanceStream32));
-	}
-
-	/**
-	 * Resizes the vertex data buffer, discarding any data which no longer fits.
-	 * @param NumVertices - The number of vertices to allocate the buffer for.
-	 */
-	virtual void ResizeBuffer(uint32 NumInstances) override
-	{
-		checkf(0, TEXT("ArrayType::Add is not supported on all platforms"));
-	}
-
-	virtual uint32 GetStride() const override
-	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
+		if (bUseHalfFloat)
 		{
-			return sizeof(FInstanceStream16);
+			InstanceTransformData = new TStaticMeshVertexData<FInstanceTransformMatrix<FFloat16>>(bNeedsCPUAccess);
 		}
 		else
 		{
-			return sizeof(FInstanceStream32);
+			InstanceTransformData = new TStaticMeshVertexData<FInstanceTransformMatrix<float>>(bNeedsCPUAccess);
 		}
-	}
-	virtual uint8* GetDataPointer() override
-	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			return (uint8*)&(InstanceStream16)[0];
-		}
-		else
-		{
-			return (uint8*)&(InstanceStream32)[0];
-		}
-	}
-	virtual FResourceArrayInterface* GetResourceArray() override
-	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			return &InstanceStream16;
-		}
-		else
-		{
-			return &InstanceStream32;
-		}
-	}
-	virtual void Serialize(FArchive& Ar) override
-	{
-		InstanceStream16.BulkSerialize(Ar);
-		InstanceStream32.BulkSerialize(Ar);
 	}
 
-	void AllocateInstances(int32 NumInstances, bool DestroyExistingInstances)
+	~FStaticMeshInstanceData()
 	{
+		delete InstanceOriginData;
+		delete InstanceLightmapData;
+		delete InstanceTransformData;
+	}
+
+	static size_t GetResourceSize(int32 InNumInstances, bool bInUseHalfFloat)
+	{
+		return size_t(InNumInstances) * ((bInUseHalfFloat ? sizeof(FInstanceTransformMatrix<FFloat16>) : sizeof(FInstanceTransformMatrix<float>)) + sizeof(FInstanceLightMapVector) + sizeof(FVector4));
+	}
+
+	void Serialize(FArchive& Ar)
+	{
+		InstanceOriginData->Serialize(Ar);
+		InstanceLightmapData->Serialize(Ar);
+		InstanceTransformData->Serialize(Ar);
+	}
+
+	void AllocateInstances(int32 InNumInstances, bool DestroyExistingInstances)
+	{
+		int32 Delta = InNumInstances - NumInstances;
+		NumInstances = InNumInstances;
+
+		if (DestroyExistingInstances)
+		{
+			InstanceOriginData->Empty(NumInstances);
+			InstanceLightmapData->Empty(NumInstances);
+			InstanceTransformData->Empty(NumInstances);
+		}
+
 		// We cannot write directly to the data on all platforms,
 		// so we make a TArray of the right type, then assign it
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
+		InstanceOriginData->ResizeBuffer(NumInstances);
+		InstanceOriginDataPtr = InstanceOriginData->GetDataPointer();
+
+		InstanceLightmapData->ResizeBuffer(NumInstances);
+		InstanceLightmapDataPtr = InstanceLightmapData->GetDataPointer();
+
+		InstanceTransformData->ResizeBuffer(NumInstances);
+		InstanceTransformDataPtr = InstanceTransformData->GetDataPointer();
+
+		if (Delta > 0)
 		{
-			if (DestroyExistingInstances)
+			for (int32 i = 0; i < Delta; ++i)
 			{
-				InstanceStream16.Empty(NumInstances);
-			}
-
-			int32 DeltaToAdd = NumInstances - InstanceStream16.Num();
-
-			if (DeltaToAdd > 0)
-			{
-				InstanceStream16.AddUninitialized(DeltaToAdd);
-			}
-		}
-		else
-		{
-			if (DestroyExistingInstances)
-			{
-				InstanceStream32.Empty(NumInstances);
-			}
-
-			int32 DeltaToAdd = NumInstances - InstanceStream32.Num();
-
-			if (DeltaToAdd > 0)
-			{
-				InstanceStream32.AddUninitialized(DeltaToAdd);
+				InstancesUsage.Add(false);
 			}
 		}
 	}
 
-	FORCEINLINE void GetInstanceTransform(int32 InstanceIndex, FMatrix& Transform) const
+	FORCEINLINE_DEBUGGABLE int32 IsValidIndex(int32 Index) const
 	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			InstanceStream16[InstanceIndex].GetInstanceTransform(Transform);
-		}
-		else
-		{
-			InstanceStream32[InstanceIndex].GetInstanceTransform(Transform);
-		}
+		return InstanceOriginData->IsValidIndex(Index);
 	}
 
-	FORCEINLINE void GetInstanceShaderValues(int32 InstanceIndex, FVector4 InstanceTransform[3], FVector4& InstanceLightmapAndShadowMapUVBias, FVector4& InstanceOrigin) const
+	FORCEINLINE_DEBUGGABLE void GetInstanceTransform(int32 InstanceIndex, FMatrix& Transform) const
 	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
+		FVector4 TransformVec[3];
+		if (bUseHalfFloat)
 		{
-			InstanceStream16[InstanceIndex].GetInstanceShaderValues(InstanceTransform, InstanceLightmapAndShadowMapUVBias, InstanceOrigin);
+			GetInstanceTransformInternal<FFloat16>(InstanceIndex, TransformVec);
 		}
 		else
 		{
-			InstanceStream32[InstanceIndex].GetInstanceShaderValues(InstanceTransform, InstanceLightmapAndShadowMapUVBias, InstanceOrigin);
+			GetInstanceTransformInternal<float>(InstanceIndex, TransformVec);
 		}
+
+		Transform.M[0][0] = TransformVec[0][0];
+		Transform.M[0][1] = TransformVec[0][1];
+		Transform.M[0][2] = TransformVec[0][2];
+		Transform.M[0][3] = 0.f;
+
+		Transform.M[1][0] = TransformVec[1][0];
+		Transform.M[1][1] = TransformVec[1][1];
+		Transform.M[1][2] = TransformVec[1][2];
+		Transform.M[1][3] = 0.f;
+
+		Transform.M[2][0] = TransformVec[2][0];
+		Transform.M[2][1] = TransformVec[2][1];
+		Transform.M[2][2] = TransformVec[2][2];
+		Transform.M[2][3] = 0.f;
+
+		FVector4 Origin;
+		GetInstanceOriginInternal(InstanceIndex, Origin);
+
+		Transform.M[3][0] = Origin.X;
+		Transform.M[3][1] = Origin.Y;
+		Transform.M[3][2] = Origin.Z;
+		Transform.M[3][3] = 0.f;
+	}
+
+	FORCEINLINE_DEBUGGABLE void GetInstanceShaderValues(int32 InstanceIndex, FVector4 (&InstanceTransform)[3], FVector4& InstanceLightmapAndShadowMapUVBias, FVector4& InstanceOrigin) const
+	{
+		if (bUseHalfFloat)
+		{
+			GetInstanceTransformInternal<FFloat16>(InstanceIndex, InstanceTransform);
+		}
+		else
+		{
+			GetInstanceTransformInternal<float>(InstanceIndex, InstanceTransform);
+		}
+		GetInstanceLightMapDataInternal(InstanceIndex, InstanceLightmapAndShadowMapUVBias);
+		GetInstanceOriginInternal(InstanceIndex, InstanceOrigin);
 	}
 
 	FORCEINLINE int32 GetNextAvailableInstanceIndex() const
 	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			for (int32 i = 0; i < InstanceStream16.Num(); ++i)
-			{
-				if (!InstanceStream16[i].IsUsed)
-				{
-					return i;
-				}
-			}
-		}
-		else
-		{
-			for (int32 i = 0; i < InstanceStream32.Num(); ++i)
-			{
-				if (!InstanceStream32[i].IsUsed)
-				{
-					return i;
-				}
-			}
-		}
-
-		return INDEX_NONE;
+		return InstancesUsage.Find(false);
 	}
 
-	FORCEINLINE void SetInstance(int32 InstanceIndex, const FMatrix& Transform, float RandomInstanceID)
+	FORCEINLINE_DEBUGGABLE void SetInstance(int32 InstanceIndex, const FMatrix& Transform, float RandomInstanceID)
 	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
+		FVector4 Origin(Transform.M[3][0], Transform.M[3][1], Transform.M[3][2], RandomInstanceID);
+		SetInstanceOriginInternal(InstanceIndex, Origin);
+
+		FVector4 InstanceTransform[3];
+		InstanceTransform[0] = FVector4(Transform.M[0][0], Transform.M[0][1], Transform.M[0][2], 0.0f);
+		InstanceTransform[1] = FVector4(Transform.M[1][0], Transform.M[1][1], Transform.M[1][2], 0.0f);
+		InstanceTransform[2] = FVector4(Transform.M[2][0], Transform.M[2][1], Transform.M[2][2], 0.0f);
+
+		if (bUseHalfFloat)
 		{
-			InstanceStream16[InstanceIndex].SetInstance(Transform, RandomInstanceID);
+			SetInstanceTransformInternal<FFloat16>(InstanceIndex, InstanceTransform);
 		}
 		else
 		{
-			InstanceStream32[InstanceIndex].SetInstance(Transform, RandomInstanceID);
+			SetInstanceTransformInternal<float>(InstanceIndex, InstanceTransform);
 		}
+
+		SetInstanceLightMapDataInternal(InstanceIndex, FVector4(0, 0, 0, 0));
+
+		InstancesUsage[InstanceIndex] = true;
 	}
 	
-	FORCEINLINE void SetInstance(int32 InstanceIndex, const FMatrix& Transform, float RandomInstanceID, const FVector2D& LightmapUVBias, const FVector2D& ShadowmapUVBias)
+	FORCEINLINE_DEBUGGABLE void SetInstance(int32 InstanceIndex, const FMatrix& Transform, float RandomInstanceID, const FVector2D& LightmapUVBias, const FVector2D& ShadowmapUVBias)
 	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
+		FVector4 Origin(Transform.M[3][0], Transform.M[3][1], Transform.M[3][2], RandomInstanceID);
+		SetInstanceOriginInternal(InstanceIndex, Origin);
+
+		FVector4 InstanceTransform[3];
+		InstanceTransform[0] = FVector4(Transform.M[0][0], Transform.M[0][1], Transform.M[0][2], 0.0f);
+		InstanceTransform[1] = FVector4(Transform.M[1][0], Transform.M[1][1], Transform.M[1][2], 0.0f);
+		InstanceTransform[2] = FVector4(Transform.M[2][0], Transform.M[2][1], Transform.M[2][2], 0.0f);
+
+		if (bUseHalfFloat)
 		{
-			InstanceStream16[InstanceIndex].SetInstance(Transform, RandomInstanceID, LightmapUVBias, ShadowmapUVBias);
+			SetInstanceTransformInternal<FFloat16>(InstanceIndex, InstanceTransform);
 		}
 		else
 		{
-			InstanceStream32[InstanceIndex].SetInstance(Transform, RandomInstanceID, LightmapUVBias, ShadowmapUVBias);
+			SetInstanceTransformInternal<float>(InstanceIndex, InstanceTransform);
 		}
+
+		SetInstanceLightMapDataInternal(InstanceIndex, FVector4(LightmapUVBias.X, LightmapUVBias.Y, ShadowmapUVBias.X, ShadowmapUVBias.Y));
+
+		InstancesUsage[InstanceIndex] = true;
+	}
+
+	FORCEINLINE void SetInstance(int32 InstanceIndex, const FMatrix& Transform, const FVector2D& LightmapUVBias, const FVector2D& ShadowmapUVBias)
+	{
+		FVector4 OldOrigin;
+		GetInstanceOriginInternal(InstanceIndex, OldOrigin);
+
+		FVector4 NewOrigin(Transform.M[3][0], Transform.M[3][1], Transform.M[3][2], OldOrigin.Component(3));
+		SetInstanceOriginInternal(InstanceIndex, NewOrigin);
+
+		FVector4 InstanceTransform[3];
+		InstanceTransform[0] = FVector4(Transform.M[0][0], Transform.M[0][1], Transform.M[0][2], 0.0f);
+		InstanceTransform[1] = FVector4(Transform.M[1][0], Transform.M[1][1], Transform.M[1][2], 0.0f);
+		InstanceTransform[2] = FVector4(Transform.M[2][0], Transform.M[2][1], Transform.M[2][2], 0.0f);
+
+		if (bUseHalfFloat)
+		{
+			SetInstanceTransformInternal<FFloat16>(InstanceIndex, InstanceTransform);
+		}
+		else
+		{
+			SetInstanceTransformInternal<float>(InstanceIndex, InstanceTransform);
+		}
+
+		SetInstanceLightMapDataInternal(InstanceIndex, FVector4(LightmapUVBias.X, LightmapUVBias.Y, ShadowmapUVBias.X, ShadowmapUVBias.Y));
+
+		InstancesUsage[InstanceIndex] = true;
 	}
 	
-	FORCEINLINE void NullifyInstance(int32 InstanceIndex)
+	FORCEINLINE_DEBUGGABLE void NullifyInstance(int32 InstanceIndex)
 	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
+		SetInstanceOriginInternal(InstanceIndex, FVector4(0, 0, 0, 0));
+
+		FVector4 InstanceTransform[3];
+		InstanceTransform[0] = FVector4(0, 0, 0, 0);
+		InstanceTransform[1] = FVector4(0, 0, 0, 0);
+		InstanceTransform[2] = FVector4(0, 0, 0, 0);
+
+		if (bUseHalfFloat)
 		{
-			InstanceStream16[InstanceIndex].NullifyInstance();
+			SetInstanceTransformInternal<FFloat16>(InstanceIndex, InstanceTransform);
 		}
 		else
 		{
-			InstanceStream32[InstanceIndex].NullifyInstance();
+			SetInstanceTransformInternal<float>(InstanceIndex, InstanceTransform);
+		}
+
+		SetInstanceLightMapDataInternal(InstanceIndex, FVector4(0, 0, 0, 0));
+
+		InstancesUsage[InstanceIndex] = false;
+	}
+
+	FORCEINLINE_DEBUGGABLE void SetInstanceEditorData(int32 InstanceIndex, FColor HitProxyColor, bool bSelected)
+	{
+		FVector4 InstanceTransform[3];
+		if (bUseHalfFloat)
+		{
+			GetInstanceTransformInternal<FFloat16>(InstanceIndex, InstanceTransform);
+			InstanceTransform[0][3] = ((float)HitProxyColor.R) + (bSelected ? 256.f : 0.0f);
+			InstanceTransform[1][3] = (float)HitProxyColor.G;
+			InstanceTransform[2][3] = (float)HitProxyColor.B;
+			SetInstanceTransformInternal<FFloat16>(InstanceIndex, InstanceTransform);
+		}
+		else
+		{
+			GetInstanceTransformInternal<float>(InstanceIndex, InstanceTransform);
+			InstanceTransform[0][3] = ((float)HitProxyColor.R) + (bSelected ? 256.f : 0.0f);
+			InstanceTransform[1][3] = (float)HitProxyColor.G;
+			InstanceTransform[2][3] = (float)HitProxyColor.B;
+			SetInstanceTransformInternal<float>(InstanceIndex, InstanceTransform);
+		}
+
+		InstancesUsage[InstanceIndex] = true;
+	}
+
+	FORCEINLINE_DEBUGGABLE void SwapInstance(int32 Index1, int32 Index2)
+	{
+		if (bUseHalfFloat)
+		{
+			FInstanceTransformMatrix<FFloat16>* ElementData = reinterpret_cast<FInstanceTransformMatrix<FFloat16>*>(InstanceTransformDataPtr);
+			check((void*)((&ElementData[Index1]) + 1) <= (void*)(InstanceTransformDataPtr + InstanceTransformData->GetResourceSize()));
+			check((void*)((&ElementData[Index1]) + 0) >= (void*)(InstanceTransformDataPtr));
+			check((void*)((&ElementData[Index2]) + 1) <= (void*)(InstanceTransformDataPtr + InstanceTransformData->GetResourceSize()));
+			check((void*)((&ElementData[Index2]) + 0) >= (void*)(InstanceTransformDataPtr));
+
+			FInstanceTransformMatrix<FFloat16> TempStore = ElementData[Index1];
+			ElementData[Index1] = ElementData[Index2];
+			ElementData[Index2] = TempStore;
+		}
+		else
+		{
+			FInstanceTransformMatrix<float>* ElementData = reinterpret_cast<FInstanceTransformMatrix<float>*>(InstanceTransformDataPtr);
+			check((void*)((&ElementData[Index1]) + 1) <= (void*)(InstanceTransformDataPtr + InstanceTransformData->GetResourceSize()));
+			check((void*)((&ElementData[Index1]) + 0) >= (void*)(InstanceTransformDataPtr));
+			check((void*)((&ElementData[Index2]) + 1) <= (void*)(InstanceTransformDataPtr + InstanceTransformData->GetResourceSize()));
+			check((void*)((&ElementData[Index2]) + 0) >= (void*)(InstanceTransformDataPtr));
+			
+			FInstanceTransformMatrix<float> TempStore = ElementData[Index1];
+			ElementData[Index1] = ElementData[Index2];
+			ElementData[Index2] = TempStore;
+		}
+		{
+
+			FVector4* ElementData = reinterpret_cast<FVector4*>(InstanceOriginDataPtr);
+			check((void*)((&ElementData[Index1]) + 1) <= (void*)(InstanceOriginDataPtr + InstanceOriginData->GetResourceSize()));
+			check((void*)((&ElementData[Index1]) + 0) >= (void*)(InstanceOriginDataPtr));
+			check((void*)((&ElementData[Index2]) + 1) <= (void*)(InstanceOriginDataPtr + InstanceOriginData->GetResourceSize()));
+			check((void*)((&ElementData[Index2]) + 0) >= (void*)(InstanceOriginDataPtr));
+
+			FVector4 TempStore = ElementData[Index1];
+			ElementData[Index1] = ElementData[Index2];
+			ElementData[Index2] = TempStore;
+		}
+		{
+			FInstanceLightMapVector* ElementData = reinterpret_cast<FInstanceLightMapVector*>(InstanceLightmapDataPtr);
+			check((void*)((&ElementData[Index1]) + 1) <= (void*)(InstanceLightmapDataPtr + InstanceLightmapData->GetResourceSize()));
+			check((void*)((&ElementData[Index1]) + 0) >= (void*)(InstanceLightmapDataPtr));
+			check((void*)((&ElementData[Index2]) + 1) <= (void*)(InstanceLightmapDataPtr + InstanceLightmapData->GetResourceSize()));
+			check((void*)((&ElementData[Index2]) + 0) >= (void*)(InstanceLightmapDataPtr));
+			
+			FInstanceLightMapVector TempStore = ElementData[Index1];
+			ElementData[Index1] = ElementData[Index2];
+			ElementData[Index2] = TempStore;
 		}
 	}
 
-	FORCEINLINE void SetInstanceEditorData(int32 InstanceIndex, FColor HitProxyColor, bool bSelected)
+	FORCEINLINE_DEBUGGABLE int32 GetNumInstances() const
 	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			InstanceStream16[InstanceIndex].SetInstanceEditorData(HitProxyColor, bSelected);
-		}
-		else
-		{
-			InstanceStream32[InstanceIndex].SetInstanceEditorData(HitProxyColor, bSelected);
-		}
+		return NumInstances;
 	}
 
-	FORCEINLINE uint8* GetInstanceWriteAddress(int32 InstanceIndex)
+	FORCEINLINE_DEBUGGABLE size_t GetResourceSize() const
 	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			return (uint8*)(InstanceStream16.GetData() + InstanceIndex);
-		}
-		else
-		{
-			return (uint8*)(InstanceStream32.GetData() + InstanceIndex);
-		}
+		return (size_t)InstanceOriginData->GetResourceSize() + (size_t)InstanceTransformData->GetResourceSize() + (size_t)InstanceLightmapData->GetResourceSize();
 	}
 
-	FORCEINLINE int32 IsValidIndex(int32 Index) const
+	FORCEINLINE_DEBUGGABLE bool GetAllowCPUAccess() const
 	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			return InstanceStream16.IsValidIndex(Index);
-		}
-		else
-		{
-			return InstanceStream32.IsValidIndex(Index);
-		}
+		return bNeedsCPUAccess;
 	}
 
-	FORCEINLINE int32 NumInstances() const
+	FORCEINLINE_DEBUGGABLE bool GetTranslationUsesHalfs() const
 	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			return InstanceStream16.Num();
-		}
-		else
-		{
-			return InstanceStream32.Num();
-		}
+		return bUseHalfFloat;
 	}
 
-	FORCEINLINE bool GetAllowCPUAccess() const
+	FORCEINLINE_DEBUGGABLE FResourceArrayInterface* GetOriginResourceArray()
 	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			return InstanceStream16.GetAllowCPUAccess();
-		}
-		else
-		{
-			return InstanceStream32.GetAllowCPUAccess();
-		}
+		return InstanceOriginData->GetResourceArray();
 	}
 
-	FORCEINLINE void SetAllowCPUAccess(bool bInNeedsCPUAccess)
+	FORCEINLINE_DEBUGGABLE FResourceArrayInterface* GetTransformResourceArray()
 	{
-		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
-		{
-			return InstanceStream16.SetAllowCPUAccess(bInNeedsCPUAccess);
-		}
-		else
-		{
-			return InstanceStream32.SetAllowCPUAccess(bInNeedsCPUAccess);
-		}
+		return InstanceTransformData->GetResourceArray();
+	}
+
+	FORCEINLINE_DEBUGGABLE FResourceArrayInterface* GetLightMapResourceArray()
+	{
+		return InstanceLightmapData->GetResourceArray();
+	}
+
+	FORCEINLINE_DEBUGGABLE uint32 GetOriginStride()
+	{
+		return InstanceOriginData->GetStride();
+	}
+
+	FORCEINLINE_DEBUGGABLE uint32 GetTransformStride()
+	{
+		return InstanceTransformData->GetStride();
+	}
+
+	FORCEINLINE_DEBUGGABLE uint32 GetLightMapStride()
+	{
+		return InstanceLightmapData->GetStride();
 	}
 
 private:
-	TResourceArray<FInstanceStream16, VERTEXBUFFER_ALIGNMENT> InstanceStream16;
-	TResourceArray<FInstanceStream32, VERTEXBUFFER_ALIGNMENT> InstanceStream32;
-	const bool bUseHalfFloat;
+	template<typename T>
+	FORCEINLINE_DEBUGGABLE void GetInstanceTransformInternal(int32 InstanceIndex, FVector4 (&Transform)[3]) const
+	{
+		FInstanceTransformMatrix<T>* ElementData = reinterpret_cast<FInstanceTransformMatrix<T>*>(InstanceTransformDataPtr);
+		check((void*)((&ElementData[InstanceIndex]) + 1) <= (void*)(InstanceTransformDataPtr + InstanceTransformData->GetResourceSize()));
+		check((void*)((&ElementData[InstanceIndex]) + 0) >= (void*)(InstanceTransformDataPtr));
+		
+		Transform[0][0] = ElementData[InstanceIndex].InstanceTransform1[0];
+		Transform[0][1] = ElementData[InstanceIndex].InstanceTransform1[1];
+		Transform[0][2] = ElementData[InstanceIndex].InstanceTransform1[2];
+		Transform[0][3] = ElementData[InstanceIndex].InstanceTransform1[3];
+		
+		Transform[1][0] = ElementData[InstanceIndex].InstanceTransform2[0];
+		Transform[1][1] = ElementData[InstanceIndex].InstanceTransform2[1];
+		Transform[1][2] = ElementData[InstanceIndex].InstanceTransform2[2];
+		Transform[1][3] = ElementData[InstanceIndex].InstanceTransform2[3];
+		
+		Transform[2][0] = ElementData[InstanceIndex].InstanceTransform3[0];
+		Transform[2][1] = ElementData[InstanceIndex].InstanceTransform3[1];
+		Transform[2][2] = ElementData[InstanceIndex].InstanceTransform3[2];
+		Transform[2][3] = ElementData[InstanceIndex].InstanceTransform3[3];
+	}
+
+	FORCEINLINE_DEBUGGABLE void GetInstanceOriginInternal(int32 InstanceIndex, FVector4 &Origin) const
+	{
+		FVector4* ElementData = reinterpret_cast<FVector4*>(InstanceOriginDataPtr);
+		check((void*)((&ElementData[InstanceIndex]) + 1) <= (void*)(InstanceOriginDataPtr + InstanceOriginData->GetResourceSize()));
+		check((void*)((&ElementData[InstanceIndex]) + 0) >= (void*)(InstanceOriginDataPtr));
+
+		Origin = ElementData[InstanceIndex];
+	}
+
+	FORCEINLINE_DEBUGGABLE void GetInstanceLightMapDataInternal(int32 InstanceIndex, FVector4 &LightmapData) const
+	{
+		FInstanceLightMapVector* ElementData = reinterpret_cast<FInstanceLightMapVector*>(InstanceLightmapDataPtr);
+		check((void*)((&ElementData[InstanceIndex]) + 1) <= (void*)(InstanceLightmapDataPtr + InstanceLightmapData->GetResourceSize()));
+		check((void*)((&ElementData[InstanceIndex]) + 0) >= (void*)(InstanceLightmapDataPtr));
+
+		LightmapData = FVector4
+		(
+			float(ElementData[InstanceIndex].InstanceLightmapAndShadowMapUVBias[0]) / 32767.0f, 
+			float(ElementData[InstanceIndex].InstanceLightmapAndShadowMapUVBias[1]) / 32767.0f,
+			float(ElementData[InstanceIndex].InstanceLightmapAndShadowMapUVBias[2]) / 32767.0f,
+			float(ElementData[InstanceIndex].InstanceLightmapAndShadowMapUVBias[3]) / 32767.0f
+		);
+	}
+
+	template<typename T>
+	FORCEINLINE_DEBUGGABLE void SetInstanceTransformInternal(int32 InstanceIndex, FVector4(Transform)[3]) const
+	{
+		FInstanceTransformMatrix<T>* ElementData = reinterpret_cast<FInstanceTransformMatrix<T>*>(InstanceTransformDataPtr);
+		check((void*)((&ElementData[InstanceIndex]) + 1) <= (void*)(InstanceTransformDataPtr + InstanceTransformData->GetResourceSize()));
+		check((void*)((&ElementData[InstanceIndex]) + 0) >= (void*)(InstanceTransformDataPtr));
+
+		ElementData[InstanceIndex].InstanceTransform1[0] = Transform[0][0];
+		ElementData[InstanceIndex].InstanceTransform1[1] = Transform[0][1];
+		ElementData[InstanceIndex].InstanceTransform1[2] = Transform[0][2];
+		ElementData[InstanceIndex].InstanceTransform1[3] = Transform[0][3];
+
+		ElementData[InstanceIndex].InstanceTransform2[0] = Transform[1][0];
+		ElementData[InstanceIndex].InstanceTransform2[1] = Transform[1][1];
+		ElementData[InstanceIndex].InstanceTransform2[2] = Transform[1][2];
+		ElementData[InstanceIndex].InstanceTransform2[3] = Transform[1][3];
+
+		ElementData[InstanceIndex].InstanceTransform3[0] = Transform[2][0];
+		ElementData[InstanceIndex].InstanceTransform3[1] = Transform[2][1];
+		ElementData[InstanceIndex].InstanceTransform3[2] = Transform[2][2];
+		ElementData[InstanceIndex].InstanceTransform3[3] = Transform[2][3];
+	}
+
+	FORCEINLINE_DEBUGGABLE void SetInstanceOriginInternal(int32 InstanceIndex, const FVector4& Origin) const
+	{
+		FVector4* ElementData = reinterpret_cast<FVector4*>(InstanceOriginDataPtr);
+		check((void*)((&ElementData[InstanceIndex]) + 1) <= (void*)(InstanceOriginDataPtr + InstanceOriginData->GetResourceSize()));
+		check((void*)((&ElementData[InstanceIndex]) + 0) >= (void*)(InstanceOriginDataPtr));
+
+		ElementData[InstanceIndex] = Origin;
+	}
+
+	FORCEINLINE_DEBUGGABLE void SetInstanceLightMapDataInternal(int32 InstanceIndex, const FVector4& LightmapData) const
+	{
+		FInstanceLightMapVector* ElementData = reinterpret_cast<FInstanceLightMapVector*>(InstanceLightmapDataPtr);
+		check((void*)((&ElementData[InstanceIndex]) + 1) <= (void*)(InstanceLightmapDataPtr + InstanceLightmapData->GetResourceSize()));
+		check((void*)((&ElementData[InstanceIndex]) + 0) >= (void*)(InstanceLightmapDataPtr));
+
+		ElementData[InstanceIndex].InstanceLightmapAndShadowMapUVBias[0] = FMath::Clamp<int32>(FMath::TruncToInt(LightmapData.X * 32767.0f), MIN_int16, MAX_int16);
+		ElementData[InstanceIndex].InstanceLightmapAndShadowMapUVBias[1] = FMath::Clamp<int32>(FMath::TruncToInt(LightmapData.Y * 32767.0f), MIN_int16, MAX_int16);
+		ElementData[InstanceIndex].InstanceLightmapAndShadowMapUVBias[2] = FMath::Clamp<int32>(FMath::TruncToInt(LightmapData.Z * 32767.0f), MIN_int16, MAX_int16);
+		ElementData[InstanceIndex].InstanceLightmapAndShadowMapUVBias[3] = FMath::Clamp<int32>(FMath::TruncToInt(LightmapData.W * 32767.0f), MIN_int16, MAX_int16);
+	}
+
+	FStaticMeshVertexDataInterface* InstanceOriginData = nullptr;
+	uint8* InstanceOriginDataPtr = nullptr;
+
+	FStaticMeshVertexDataInterface* InstanceTransformData = nullptr;
+	uint8* InstanceTransformDataPtr = nullptr;
+
+	FStaticMeshVertexDataInterface* InstanceLightmapData = nullptr;
+	uint8* InstanceLightmapDataPtr = nullptr;	
+
+	TBitArray<> InstancesUsage;
+
+	int32 NumInstances = 0;
+	const bool bUseHalfFloat = false;
+	const bool bNeedsCPUAccess = false;
 };
 	
 #if WITH_EDITOR
@@ -1197,7 +1235,7 @@ private:
  */
 ENGINE_API void RemapPaintedVertexColors(
 	const TArray<FPaintedVertex>& InPaintedVertices,
-	const FColorVertexBuffer& InOverrideColors,
+	const FColorVertexBuffer* InOverrideColors,
 	const FPositionVertexBuffer& OldPositions,
 	const FStaticMeshVertexBuffer& OldVertexBuffer,
 	const FPositionVertexBuffer& NewPositions,	

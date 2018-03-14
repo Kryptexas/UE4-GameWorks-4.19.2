@@ -2,12 +2,14 @@
  * Copyright 2016-2017 Nikolay Aleksiev. All rights reserved.
  * License: https://github.com/naleksiev/mtlpp/blob/master/LICENSE
  */
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+#include "imp_Heap.hpp"
 #include "ns.hpp"
 #include "device.hpp"
 #include "resource.hpp"
@@ -15,42 +17,46 @@
 #include "texture.hpp"
 #include "types.hpp"
 
+MTLPP_BEGIN
+
 namespace mtlpp
 {
-    class HeapDescriptor : public ns::Object
+    class HeapDescriptor : public ns::Object<MTLHeapDescriptor*>
     {
     public:
-        HeapDescriptor(const ns::Handle& handle) : ns::Object(handle) { }
+        HeapDescriptor(MTLHeapDescriptor* handle) : ns::Object<MTLHeapDescriptor*>(handle) { }
 
-        uint32_t     GetSize() const;
+        NSUInteger     GetSize() const;
         StorageMode  GetStorageMode() const;
         CpuCacheMode GetCpuCacheMode() const;
 
-        void SetSize(uint32_t size) const;
+        void SetSize(NSUInteger size) const;
         void SetStorageMode(StorageMode storageMode) const;
         void SetCpuCacheMode(CpuCacheMode cpuCacheMode) const;
     }
     MTLPP_AVAILABLE(10_13, 10_0);
 
-    class Heap : public ns::Object
+    class Heap : public ns::Object<ns::Protocol<id<MTLHeap>>::type>
     {
     public:
-        Heap(const ns::Handle& handle) : ns::Object(handle) { }
+        Heap(ns::Protocol<id<MTLHeap>>::type handle) : ns::Object<ns::Protocol<id<MTLHeap>>::type>(handle) { }
 
         ns::String   GetLabel() const;
         Device       GetDevice() const;
         StorageMode  GetStorageMode() const;
         CpuCacheMode GetCpuCacheMode() const;
-        uint32_t     GetSize() const;
-        uint32_t     GetUsedSize() const;
-		uint32_t	 GetCurrentAllocatedSize() const MTLPP_AVAILABLE(10_13, 11_0);
+        NSUInteger     GetSize() const;
+        NSUInteger     GetUsedSize() const;
+		NSUInteger	 GetCurrentAllocatedSize() const MTLPP_AVAILABLE(10_13, 11_0);
 
         void SetLabel(const ns::String& label);
 
-        uint32_t MaxAvailableSizeWithAlignment(uint32_t alignment);
-        Buffer NewBuffer(uint32_t length, ResourceOptions options);
+        NSUInteger MaxAvailableSizeWithAlignment(NSUInteger alignment);
+        Buffer NewBuffer(NSUInteger length, ResourceOptions options);
         Texture NewTexture(const TextureDescriptor& desc);
         PurgeableState SetPurgeableState(PurgeableState state);
     }
     MTLPP_AVAILABLE(10_13, 10_0);
 }
+
+MTLPP_END

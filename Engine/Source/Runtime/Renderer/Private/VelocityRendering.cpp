@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VelocityRendering.cpp: Velocity rendering implementation.
@@ -17,6 +17,7 @@
 #include "DeferredShadingRenderer.h"
 #include "ScenePrivate.h"
 #include "PostProcess/ScreenSpaceReflections.h"
+#include "UnrealEngine.h"
 
 // Changing this causes a full shader recompile
 static TAutoConsoleVariable<int32> CVarBasePassOutputsVelocity(
@@ -44,7 +45,7 @@ RENDERER_API TAutoConsoleVariable<int32> CVarAllowMotionBlurInVR(
 	0,
 	TEXT("For projects with motion blur enabled, this allows motion blur to be enabled even while in VR."));
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Render Velocities"), Stat_GPU_RenderVelocities, STATGROUP_GPU);
+DECLARE_GPU_STAT_NAMED(RenderVelocities, TEXT("Render Velocities"));
 
 bool IsParallelVelocity()
 {
@@ -92,12 +93,12 @@ public:
 	bool SupportsVelocity() const
 	{
 		return PreviousLocalToWorld.IsBound() || 
-			GPUSkinCachePreviousBuffer.IsBound() || 
+			GPUSkinCachePreviousPositionBuffer.IsBound() ||
 			PrevTransformBuffer.IsBound() || 
 			(PrevTransform0.IsBound() && PrevTransform1.IsBound() && PrevTransform2.IsBound());
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		//Only compile the velocity shaders for the default material or if it's masked,
 		return ((Material->IsSpecialEngineMaterial() || !Material->WritesEveryPixel() 
@@ -114,7 +115,7 @@ protected:
 		FMeshMaterialShader(Initializer)
 	{
 		PreviousLocalToWorld.Bind(Initializer.ParameterMap,TEXT("PreviousLocalToWorld"));
-		GPUSkinCachePreviousBuffer.Bind(Initializer.ParameterMap, TEXT("GPUSkinCachePreviousBuffer"));
+		GPUSkinCachePreviousPositionBuffer.Bind(Initializer.ParameterMap, TEXT("GPUSkinCachePreviousPositionBuffer"));
 		PrevTransform0.Bind(Initializer.ParameterMap, TEXT("PrevTransform0"));
 		PrevTransform1.Bind(Initializer.ParameterMap, TEXT("PrevTransform1"));
 		PrevTransform2.Bind(Initializer.ParameterMap, TEXT("PrevTransform2"));
@@ -130,7 +131,7 @@ protected:
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
 
 		Ar << PreviousLocalToWorld;
-		Ar << GPUSkinCachePreviousBuffer;
+		Ar << GPUSkinCachePreviousPositionBuffer;
 		Ar << PrevTransform0;
 		Ar << PrevTransform1;
 		Ar << PrevTransform2;
@@ -143,7 +144,7 @@ protected:
 
 private:
 	FShaderParameter PreviousLocalToWorld;
-	FShaderResourceParameter GPUSkinCachePreviousBuffer;
+	FShaderResourceParameter GPUSkinCachePreviousPositionBuffer;
 	FShaderParameter PrevTransform0;
 	FShaderParameter PrevTransform1;
 	FShaderParameter PrevTransform2;
@@ -166,10 +167,10 @@ protected:
 
 	FVelocityHS() {}
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return FBaseHS::ShouldCache(Platform, Material, VertexFactoryType) &&
-				FVelocityVS::ShouldCache(Platform, Material, VertexFactoryType); // same rules as VS
+		return FBaseHS::ShouldCompilePermutation(Platform, Material, VertexFactoryType) &&
+				FVelocityVS::ShouldCompilePermutation(Platform, Material, VertexFactoryType); // same rules as VS
 	}
 };
 
@@ -193,10 +194,10 @@ protected:
 
 	FVelocityDS() {}
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
 	{
-		return FBaseDS::ShouldCache(Platform, Material, VertexFactoryType) &&
-				FVelocityVS::ShouldCache(Platform, Material, VertexFactoryType); // same rules as VS
+		return FBaseDS::ShouldCompilePermutation(Platform, Material, VertexFactoryType) &&
+				FVelocityVS::ShouldCompilePermutation(Platform, Material, VertexFactoryType); // same rules as VS
 	}
 };
 
@@ -210,7 +211,7 @@ class FVelocityPS : public FMeshMaterialShader
 {
 	DECLARE_SHADER_TYPE(FVelocityPS,MeshMaterial);
 public:
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		//Only compile the velocity shaders for the default material or if it's masked,
 		return ((Material->IsSpecialEngineMaterial() || !Material->WritesEveryPixel() 
@@ -284,8 +285,8 @@ FVelocityDrawingPolicy::FVelocityDrawingPolicy(
 		&& InVertexFactory->GetType()->SupportsTessellationShaders() 
 		&& MaterialTessellationMode != MTM_NoTessellation)
 	{
-		bool HasHullShader = MeshShaderIndex->HasShader(&FVelocityHS::StaticType);
-		bool HasDomainShader = MeshShaderIndex->HasShader(&FVelocityDS::StaticType);
+		bool HasHullShader = MeshShaderIndex->HasShader(&FVelocityHS::StaticType, /* PermutationId = */ 0);
+		bool HasDomainShader = MeshShaderIndex->HasShader(&FVelocityDS::StaticType, /* PermutationId = */ 0);
 
 		HullShader = HasHullShader ? MeshShaderIndex->GetShader<FVelocityHS>() : NULL;
 		DomainShader = HasDomainShader ? MeshShaderIndex->GetShader<FVelocityDS>() : NULL;
@@ -305,13 +306,14 @@ FVelocityDrawingPolicy::FVelocityDrawingPolicy(
 	if (!VertexShader)
 	{
 		check(!PixelShader);
-		bool bHasVertexShader = MeshShaderIndex->HasShader(&FVelocityVS::StaticType);
-		bool bHasPixelShader = MeshShaderIndex->HasShader(&FVelocityPS::StaticType);
+		bool bHasVertexShader = MeshShaderIndex->HasShader(&FVelocityVS::StaticType, /* PermutationId = */ 0);
+		bool bHasPixelShader = MeshShaderIndex->HasShader(&FVelocityPS::StaticType, /* PermutationId = */ 0);
 
 		check((bHasVertexShader && bHasPixelShader) || (!bHasVertexShader && !bHasPixelShader));
 		VertexShader = bHasVertexShader ? MeshShaderIndex->GetShader<FVelocityVS>() : nullptr;
 		PixelShader = bHasPixelShader ? MeshShaderIndex->GetShader<FVelocityPS>() : nullptr;
 	}
+	BaseVertexShader = VertexShader;
 }
 
 bool FVelocityDrawingPolicy::SupportsVelocity() const
@@ -569,10 +571,10 @@ bool FVelocityDrawingPolicyFactory::DrawDynamicMesh(
 					DrawingPolicy.SetInstancedEyeIndex(RHICmdList, DrawCountIter);
 
 					TDrawEvent<FRHICommandList> MeshEvent;
-					BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent);
+					BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent, EnumHasAnyFlags(EShowMaterialDrawEventTypes(GShowMaterialDrawEventTypes), EShowMaterialDrawEventTypes::Velocity));
 
 					DrawingPolicy.SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, DrawRenderStateLocal, FMeshDrawingPolicy::ElementDataType(), FVelocityDrawingPolicy::ContextDataType());
-					DrawingPolicy.DrawMesh(RHICmdList, Mesh, BatchElementIndex, bIsInstancedStereo);
+					DrawingPolicy.DrawMesh(RHICmdList, View, Mesh, BatchElementIndex, bIsInstancedStereo);
 				}
 			}
 			return true;
@@ -694,7 +696,7 @@ static void BeginVelocityRendering(FRHICommandList& RHICmdList, TRefCountPtr<IPo
 	}
 }
 
-static void SetVelocitiesState(FRHICommandList& RHICmdList, const FViewInfo& View, FDrawingPolicyRenderState& DrawRenderState, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
+static void SetVelocitiesState(FRHICommandList& RHICmdList, const FViewInfo& View, const FSceneRenderer* SceneRender, FDrawingPolicyRenderState& DrawRenderState, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
 	const FIntPoint BufferSize = FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY();
 	const FIntPoint VelocityBufferSize = BufferSize;		// full resolution so we can reuse the existing full res z buffer
@@ -711,19 +713,19 @@ static void SetVelocitiesState(FRHICommandList& RHICmdList, const FViewInfo& Vie
 	{
 		if (View.bIsMultiViewEnabled)
 		{
-			const uint32 LeftMinX = View.Family->Views[0]->ViewRect.Min.X;
-			const uint32 LeftMaxX = View.Family->Views[0]->ViewRect.Max.X;
-			const uint32 RightMinX = View.Family->Views[1]->ViewRect.Min.X;
-			const uint32 RightMaxX = View.Family->Views[1]->ViewRect.Max.X;
+			const uint32 LeftMinX = SceneRender->Views[0].ViewRect.Min.X;
+			const uint32 LeftMaxX = SceneRender->Views[0].ViewRect.Max.X;
+			const uint32 RightMinX = SceneRender->Views[1].ViewRect.Min.X;
+			const uint32 RightMaxX = SceneRender->Views[1].ViewRect.Max.X;
 			
-			const uint32 LeftMaxY = View.Family->Views[0]->ViewRect.Max.Y;
-			const uint32 RightMaxY = View.Family->Views[1]->ViewRect.Max.Y;
+			const uint32 LeftMaxY = SceneRender->Views[0].ViewRect.Max.Y;
+			const uint32 RightMaxY = SceneRender->Views[1].ViewRect.Max.Y;
 			
 			RHICmdList.SetStereoViewport(LeftMinX, RightMinX, 0, 0, 0.0f, LeftMaxX, RightMaxX, LeftMaxY, RightMaxY, 1.0f);
 		}
 		else
 		{
-			const uint32 MaxX = View.Family->InstancedStereoWidth * VelocityBufferSize.X / BufferSize.X;
+			const uint32 MaxX = SceneRender->InstancedStereoWidth * VelocityBufferSize.X / BufferSize.X;
 			const uint32 MaxY = View.ViewRect.Max.Y * VelocityBufferSize.Y / BufferSize.Y;
 			RHICmdList.SetViewport(0, 0, 0.0f, MaxX, MaxY, 1.0f);
 		}
@@ -741,9 +743,16 @@ DECLARE_CYCLE_STAT(TEXT("Velocity"), STAT_CLP_Velocity, STATGROUP_ParallelComman
 class FVelocityPassParallelCommandListSet : public FParallelCommandListSet
 {
 	TRefCountPtr<IPooledRenderTarget>& VelocityRT;
+
 public:
-	FVelocityPassParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext, TRefCountPtr<IPooledRenderTarget>& InVelocityRT)
-		: FParallelCommandListSet(GET_STATID(STAT_CLP_Velocity), InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
+	FVelocityPassParallelCommandListSet(
+		const FViewInfo& InView,
+		const FSceneRenderer* InSceneRenderer,
+		FRHICommandListImmediate& InParentCmdList,
+		bool bInParallelExecute,
+		bool bInCreateSceneContext,
+		TRefCountPtr<IPooledRenderTarget>& InVelocityRT)
+		: FParallelCommandListSet(GET_STATID(STAT_CLP_Velocity), InView, InSceneRenderer, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
 		, VelocityRT(InVelocityRT)
 	{
 		SetStateOnCommandList(ParentCmdList);
@@ -758,7 +767,7 @@ public:
 	{
 		FParallelCommandListSet::SetStateOnCommandList(CmdList);
 		BeginVelocityRendering(CmdList, VelocityRT, false);
-		SetVelocitiesState(CmdList, View, DrawRenderState, VelocityRT);
+		SetVelocitiesState(CmdList, View, SceneRenderer, DrawRenderState, VelocityRT);
 	}
 };
 
@@ -779,6 +788,7 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInnerParallel(FRHICommandLis
 		if (View.ShouldRenderView())
 		{
 			FVelocityPassParallelCommandListSet ParallelCommandListSet(View,
+				this,
 				RHICmdList,
 				CVarRHICmdVelocityPassDeferredContexts.GetValueOnRenderThread() > 0,
 				CVarRHICmdFlushRenderThreadTasksVelocityPass.GetValueOnRenderThread() == 0 && CVarRHICmdFlushRenderThreadTasks.GetValueOnRenderThread() == 0,
@@ -813,7 +823,7 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInnerParallel(FRHICommandLis
 
 					FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
-					FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderVelocityDynamicThreadTask>::CreateTask(ParallelCommandListSet.GetPrereqs(), ENamedThreads::RenderThread)
+					FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderVelocityDynamicThreadTask>::CreateTask(ParallelCommandListSet.GetPrereqs(), ENamedThreads::GetRenderThread())
 						.ConstructAndDispatchWhenReady(*this, *CmdList, View, ParallelCommandListSet.DrawRenderState, Start, Last);
 
 					ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
@@ -835,7 +845,7 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInner(FRHICommandListImmedia
 
 		if (View.ShouldRenderView())
 		{
-			SetVelocitiesState(RHICmdList, View, DrawRenderState, VelocityRT);
+			SetVelocitiesState(RHICmdList, View, this, DrawRenderState, VelocityRT);
 
 			// Draw velocities for movable static meshes.
 			if (!View.IsInstancedStereoPass())
@@ -890,7 +900,7 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 	}
 
 	SCOPED_DRAW_EVENT(RHICmdList, RenderVelocities);
-	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_RenderVelocities);
+	SCOPED_GPU_STAT(RHICmdList, RenderVelocities);
 
 	FPooledRenderTargetDesc Desc = FVelocityRendering::GetRenderTargetDesc();
 	GRenderTargetPool.FindFreeElement(RHICmdList, Desc, VelocityRT, TEXT("Velocity"));

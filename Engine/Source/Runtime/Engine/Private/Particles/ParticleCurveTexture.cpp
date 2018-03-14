@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	ParticleCurveTexture.cpp: Texture used to hold particle curves.
@@ -56,9 +56,9 @@ class FParticleCurveInjectionVS : public FGlobalShader
 
 public:
 
-	static bool ShouldCache( EShaderPlatform Platform )
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return SupportsGPUParticles(Platform);
+		return SupportsGPUParticles(Parameters.Platform);
 	}
 
 	/** Default constructor. */
@@ -96,14 +96,9 @@ class FParticleCurveInjectionPS : public FGlobalShader
 
 public:
 
-	static bool ShouldCache( EShaderPlatform Platform )
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return SupportsGPUParticles(Platform);
-	}
-
-	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
-	{
-		FGlobalShader::ModifyCompilationEnvironment( Platform, OutEnvironment );
+		return SupportsGPUParticles(Parameters.Platform);
 	}
 
 	/** Default constructor. */

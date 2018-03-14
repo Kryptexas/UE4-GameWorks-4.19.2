@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388665
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 4.4.1 - Idle <-> Run 양방향 트랜지션 추가
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4, Programming/Tutorials/FirstPersonShooter/4/4
@@ -22,7 +22,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 이번 단계에서는 Idle (빈둥) 상태에서 Run (달리기) 상태로의 양방향 트랜지션(전환)을 추가, 캐릭터가 이동을 시작하면 스테이트 머신이 **Idle** 에서 **Run** 으로 전환되도록 하겠습니다.
 
@@ -56,4 +56,3 @@ Version: 4.15
 
 	![](IsNotRunningtoResult.png)
 
-%Steps%

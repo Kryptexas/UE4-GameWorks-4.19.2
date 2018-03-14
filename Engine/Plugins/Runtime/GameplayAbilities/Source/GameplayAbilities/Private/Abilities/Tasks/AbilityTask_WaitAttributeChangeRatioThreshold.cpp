@@ -1,9 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Abilities/Tasks/AbilityTask_WaitAttributeChangeRatioThreshold.h"
 #include "TimerManager.h"
 
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 
 
 UAbilityTask_WaitAttributeChangeRatioThreshold::UAbilityTask_WaitAttributeChangeRatioThreshold(const FObjectInitializer& ObjectInitializer)
@@ -15,7 +16,7 @@ UAbilityTask_WaitAttributeChangeRatioThreshold::UAbilityTask_WaitAttributeChange
 	LastAttributeDenominatorValue = 1.f;
 }
 
-UAbilityTask_WaitAttributeChangeRatioThreshold* UAbilityTask_WaitAttributeChangeRatioThreshold::WaitForAttributeChangeRatioThreshold(UGameplayAbility* OwningAbility, FGameplayAttribute AttributeNumerator, FGameplayAttribute AttributeDenominator, TEnumAsByte<EWaitAttributeChangeComparison::Type> ComparisonType, float ComparisonValue, bool bTriggerOnce)
+UAbilityTask_WaitAttributeChangeRatioThreshold* UAbilityTask_WaitAttributeChangeRatioThreshold::WaitForAttributeChangeRatioThreshold(UGameplayAbility* OwningAbility, FGameplayAttribute AttributeNumerator, FGameplayAttribute AttributeDenominator, TEnumAsByte<EWaitAttributeChangeComparison::Type> ComparisonType, float ComparisonValue, bool bTriggerOnce, AActor* OptionalExternalOwner)
 {
 	UAbilityTask_WaitAttributeChangeRatioThreshold* MyTask = NewAbilityTask<UAbilityTask_WaitAttributeChangeRatioThreshold>(OwningAbility);
 	MyTask->AttributeNumerator = AttributeNumerator;
@@ -23,16 +24,17 @@ UAbilityTask_WaitAttributeChangeRatioThreshold* UAbilityTask_WaitAttributeChange
 	MyTask->ComparisonType = ComparisonType;
 	MyTask->ComparisonValue = ComparisonValue;
 	MyTask->bTriggerOnce = bTriggerOnce;
+	MyTask->ExternalOwner = OptionalExternalOwner ? UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OptionalExternalOwner) : nullptr;
 
 	return MyTask;
 }
 
 void UAbilityTask_WaitAttributeChangeRatioThreshold::Activate()
 {
-	if (AbilitySystemComponent)
+	if (UAbilitySystemComponent* ASC = GetFocusedASC())
 	{
-		LastAttributeNumeratorValue = AbilitySystemComponent->GetNumericAttribute(AttributeNumerator);
-		LastAttributeDenominatorValue = AbilitySystemComponent->GetNumericAttribute(AttributeDenominator);
+		LastAttributeNumeratorValue = ASC->GetNumericAttribute(AttributeNumerator);
+		LastAttributeDenominatorValue = ASC->GetNumericAttribute(AttributeDenominator);
 		bMatchedComparisonLastAttributeChange = DoesValuePassComparison(LastAttributeNumeratorValue, LastAttributeDenominatorValue);
 
 		// Broadcast OnChange immediately with current value
@@ -41,9 +43,14 @@ void UAbilityTask_WaitAttributeChangeRatioThreshold::Activate()
 			OnChange.Broadcast(bMatchedComparisonLastAttributeChange, LastAttributeDenominatorValue != 0.f ? LastAttributeNumeratorValue/LastAttributeDenominatorValue : 0.f);
 		}
 
-		OnNumeratorAttributeChangeDelegateHandle = AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeNumerator).AddUObject(this, &UAbilityTask_WaitAttributeChangeRatioThreshold::OnNumeratorAttributeChange);
-		OnDenominatorAttributeChangeDelegateHandle = AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeDenominator).AddUObject(this, &UAbilityTask_WaitAttributeChangeRatioThreshold::OnDenominatorAttributeChange);
+		OnNumeratorAttributeChangeDelegateHandle = ASC->GetGameplayAttributeValueChangeDelegate(AttributeNumerator).AddUObject(this, &UAbilityTask_WaitAttributeChangeRatioThreshold::OnNumeratorAttributeChange);
+		OnDenominatorAttributeChangeDelegateHandle = ASC->GetGameplayAttributeValueChangeDelegate(AttributeDenominator).AddUObject(this, &UAbilityTask_WaitAttributeChangeRatioThreshold::OnDenominatorAttributeChange);
 	}
+}
+
+UAbilitySystemComponent* UAbilityTask_WaitAttributeChangeRatioThreshold::GetFocusedASC()
+{
+	return ExternalOwner ? ExternalOwner : AbilitySystemComponent;
 }
 
 void UAbilityTask_WaitAttributeChangeRatioThreshold::OnAttributeChange()
@@ -125,10 +132,10 @@ bool UAbilityTask_WaitAttributeChangeRatioThreshold::DoesValuePassComparison(flo
 
 void UAbilityTask_WaitAttributeChangeRatioThreshold::OnDestroy(bool AbilityEnded)
 {
-	if (AbilitySystemComponent)
+	if (UAbilitySystemComponent* ASC = GetFocusedASC())
 	{
-		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeNumerator).Remove(OnNumeratorAttributeChangeDelegateHandle);
-		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeDenominator).Remove(OnDenominatorAttributeChangeDelegateHandle);
+		ASC->GetGameplayAttributeValueChangeDelegate(AttributeNumerator).Remove(OnNumeratorAttributeChangeDelegateHandle);
+		ASC->GetGameplayAttributeValueChangeDelegate(AttributeDenominator).Remove(OnDenominatorAttributeChangeDelegateHandle);
 	}
 
 	Super::OnDestroy(AbilityEnded);

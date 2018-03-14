@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "NodeFactory.h"
@@ -232,51 +232,51 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 
 	if (const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(InPin->GetSchema()))
 	{
-		if (InPin->PinType.PinCategory == K2Schema->PC_Boolean)
+		if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Boolean)
 		{
 			return SNew(SGraphPinBool, InPin);
 		}
-		else if (InPin->PinType.PinCategory == K2Schema->PC_Text)
+		else if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Text)
 		{
 			return SNew(SGraphPinText, InPin);
 		}
-		else if (InPin->PinType.PinCategory == K2Schema->PC_Exec)
+		else if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
 		{
 			return SNew(SGraphPinExec, InPin);
 		}
-		else if (InPin->PinType.PinCategory == K2Schema->PC_Object)
+		else if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object)
 		{
 			return SNew(SGraphPinObject, InPin);
 		}
-		else if (InPin->PinType.PinCategory == K2Schema->PC_Interface)
+		else if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Interface)
 		{
 			return SNew(SGraphPinObject, InPin);
 		}
-		else if (InPin->PinType.PinCategory == K2Schema->PC_SoftObject)
+		else if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_SoftObject)
 		{
 			return SNew(SGraphPinObject, InPin);
 		}
-		else if (InPin->PinType.PinCategory == K2Schema->PC_Class)
+		else if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class)
 		{
 			return SNew(SGraphPinClass, InPin);
 		}
-		else if (InPin->PinType.PinCategory == K2Schema->PC_SoftClass)
+		else if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_SoftClass)
 		{
 			return SNew(SGraphPinClass, InPin);
 		}
-		else if (InPin->PinType.PinCategory == K2Schema->PC_Int)
+		else if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Int)
 		{
 			return SNew(SGraphPinInteger, InPin);
 		}
-		else if (InPin->PinType.PinCategory == K2Schema->PC_Float)
+		else if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Float)
 		{
-			return SNew(SGraphPinNum, InPin);
+			return SNew(SGraphPinNum<float>, InPin);
 		}
-		else if (InPin->PinType.PinCategory == K2Schema->PC_String || InPin->PinType.PinCategory == K2Schema->PC_Name)
+		else if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_String || InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Name)
 		{
 			return SNew(SGraphPinString, InPin);
 		}
-		else if (InPin->PinType.PinCategory == K2Schema->PC_Struct)
+		else if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Struct)
 		{
 			// If you update this logic you'll probably need to update UEdGraphSchema_K2::ShouldHidePinDefaultValue!
 			UScriptStruct* ColorStruct = TBaseStructure<FLinearColor>::Get();
@@ -305,7 +305,7 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 				return SNew(SGraphPinCollisionProfile, InPin);
 			}
 		}
-		else if (InPin->PinType.PinCategory == K2Schema->PC_Byte)
+		else if (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Byte)
 		{
 			// Check for valid enum object reference
 			if ((InPin->PinType.PinSubCategoryObject != NULL) && (InPin->PinType.PinSubCategoryObject->IsA(UEnum::StaticClass())))
@@ -317,11 +317,11 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 				return SNew(SGraphPinInteger, InPin);
 			}
 		}
-		else if ((InPin->PinType.PinCategory == K2Schema->PC_Wildcard) && (InPin->PinType.PinSubCategory == K2Schema->PSC_Index))
+		else if ((InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard) && (InPin->PinType.PinSubCategory == UEdGraphSchema_K2::PSC_Index))
 		{
 			return SNew(SGraphPinIndex, InPin);
 		}
-		else if(InPin->PinType.PinCategory == K2Schema->PC_MCDelegate)
+		else if(InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_MCDelegate)
 		{
 			return SNew(SGraphPinString, InPin);
 		}
@@ -329,7 +329,7 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 
 	if (const UMaterialGraphSchema* MaterialGraphSchema = Cast<const UMaterialGraphSchema>(InPin->GetSchema()))
 	{
-		if (InPin->PinType.PinCategory == MaterialGraphSchema->PC_MaterialInput)
+		if (InPin->PinType.PinCategory == UMaterialGraphSchema::PC_MaterialInput)
 		{
 			return SNew(SGraphPinMaterialInput, InPin);
 		}
@@ -345,42 +345,46 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 
 FConnectionDrawingPolicy* FNodeFactory::CreateConnectionPolicy(const UEdGraphSchema* Schema, int32 InBackLayerID, int32 InFrontLayerID, float ZoomFactor, const FSlateRect& InClippingRect, FSlateWindowElementList& InDrawElements, UEdGraph* InGraphObj)
 {
-    FConnectionDrawingPolicy* ConnectionDrawingPolicy;
+	FConnectionDrawingPolicy* ConnectionDrawingPolicy;
 
-    // First give the schema a chance to provide the connection drawing policy
-    ConnectionDrawingPolicy = Schema->CreateConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
+	// First give the schema a chance to provide the connection drawing policy
+	ConnectionDrawingPolicy = Schema->CreateConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
 
-    // First give a shot to the registered connection factories
-    if (!ConnectionDrawingPolicy)
-    {
-        for (auto FactoryIt = FEdGraphUtilities::VisualPinConnectionFactories.CreateIterator(); FactoryIt; ++FactoryIt)
-        {
-            TSharedPtr<FGraphPanelPinConnectionFactory> FactoryPtr = *FactoryIt;
-            if (FactoryPtr.IsValid())
-            {
-                ConnectionDrawingPolicy = FactoryPtr->CreateConnectionPolicy(Schema, InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
-            }
-        }
-    }
+	// First give a shot to the registered connection factories
+	if (!ConnectionDrawingPolicy)
+	{
+		for (TSharedPtr<FGraphPanelPinConnectionFactory> FactoryPtr : FEdGraphUtilities::VisualPinConnectionFactories)
+		{
+			if (FactoryPtr.IsValid())
+			{
+				ConnectionDrawingPolicy = FactoryPtr->CreateConnectionPolicy(Schema, InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
 
-    // If neither the schema nor the factory provides a policy, try the hardcoded ones
-    //@TODO: Fold all of this code into registered factories for the various schemas!
-    if (!ConnectionDrawingPolicy)
-    {
+				if (ConnectionDrawingPolicy)
+				{
+					break;
+				}
+			}
+		}
+	}
+
+	// If neither the schema nor the factory provides a policy, try the hardcoded ones
+	//@TODO: Fold all of this code into registered factories for the various schemas!
+	if (!ConnectionDrawingPolicy)
+	{
 		if (Schema->IsA(UEdGraphSchema_K2::StaticClass()))
-        {
-            ConnectionDrawingPolicy = new FKismetConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
-        }
-        else if (Schema->IsA(UMaterialGraphSchema::StaticClass()))
-        {
-            ConnectionDrawingPolicy = new FMaterialGraphConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
-        }
-        else
-        {
-            ConnectionDrawingPolicy = new FConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements);
-        }
-    }
+		{
+			ConnectionDrawingPolicy = new FKismetConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
+		}
+		else if (Schema->IsA(UMaterialGraphSchema::StaticClass()))
+		{
+			ConnectionDrawingPolicy = new FMaterialGraphConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
+		}
+		else
+		{
+			ConnectionDrawingPolicy = new FConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements);
+		}
+	}
 
-    // If we never picked a custom policy, use the uncustomized standard policy
-    return ConnectionDrawingPolicy;
+	// If we never picked a custom policy, use the uncustomized standard policy
+	return ConnectionDrawingPolicy;
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimTransitionNodeDetails.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
@@ -238,6 +238,8 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 			Args.InitialProfile = CurrentProfile;
 			Args.OnBlendProfileSelected = FOnBlendProfileSelected::CreateSP(this, &FAnimTransitionNodeDetails::OnBlendProfileChanged, BlendProfileHandle);
 			Args.bAllowNew = false;
+			Args.bAllowClear = true;
+			Args.bAllowRemove = false;
 
 			CrossfadeCategory.AddProperty(BlendProfileHandle).CustomWidget(true)
 				.NameContent()

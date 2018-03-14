@@ -1,15 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "MovieSceneSequenceID.h"
 #include "Guid.h"
 
+#include "MovieSceneEvaluationOperand.generated.h"
+
 /**
  * Structure that describes an object that is to be animated. Used as an abstraction of the actual objects bound to object bindings.
  */
+USTRUCT()
 struct FMovieSceneEvaluationOperand
 {
+	GENERATED_BODY()
+
 	/**
 	 * Default Construction
 	 */
@@ -46,8 +51,10 @@ struct FMovieSceneEvaluationOperand
 	}
 
 	/** A GUID relating to either a posessable, or a spawnable binding */
+	UPROPERTY()
 	FGuid ObjectBindingID;
 
 	/** The ID of the sequence within which the object binding resides */
+	UPROPERTY()
 	FMovieSceneSequenceID SequenceID;
 };

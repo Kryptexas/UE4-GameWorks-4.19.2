@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "K2Node_MakeArray.h"
@@ -20,7 +20,7 @@
 
 namespace MakeArrayLiterals
 {
-	static const FString OutputPinName = FString(TEXT("Array"));
+	static const FName OutputPinName(TEXT("Array"));
 };
 
 #define LOCTEXT_NAMESPACE "MakeArrayNode"
@@ -56,7 +56,7 @@ FText UK2Node_MakeArray::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return LOCTEXT("NodeTitle", "Make Array");
 }
 
-FString UK2Node_MakeArray::GetOutputPinName() const
+FName UK2Node_MakeArray::GetOutputPinName() const
 {
 	return MakeArrayLiterals::OutputPinName;
 }

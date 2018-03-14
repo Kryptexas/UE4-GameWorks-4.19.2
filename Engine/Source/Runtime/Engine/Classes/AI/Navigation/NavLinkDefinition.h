@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -21,7 +21,7 @@ namespace ENavLinkDirection
 	};
 }
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct ENGINE_API FNavigationLinkBase
 {
 	GENERATED_USTRUCT_BODY()
@@ -34,7 +34,7 @@ struct ENGINE_API FNavigationLinkBase
 	UPROPERTY(EditAnywhere, Category=Default, meta=(ClampMin = "0.0", DisplayName="Right Project Height"))
 	float MaxFallDownLength;
 
-	UPROPERTY(EditAnywhere, Category=Default)
+	UPROPERTY(EditAnywhere, Category=Default, BlueprintReadWrite)
 	TEnumAsByte<ENavLinkDirection::Type> Direction;
 
 	/** ID passed to navigation data generator */
@@ -157,8 +157,6 @@ struct ENGINE_API FNavigationLinkBase
 #endif // WITH_EDITOR
 
 private:
-	uint32 bAreaClassInitialized : 1;
-
 	/** Area type of this link (empty = default) */
 	UPROPERTY(EditAnywhere, Category = Default)
 	TSubclassOf<class UNavArea> AreaClass;
@@ -183,7 +181,7 @@ struct ENGINE_API FNavigationLink : public FNavigationLinkBase
 	UPROPERTY(EditAnywhere, Category=Default, BlueprintReadWrite, meta=(MakeEditWidget=""))
 	FVector Left;
 
-	UPROPERTY(EditAnywhere, Category=Default, meta=(MakeEditWidget=""))
+	UPROPERTY(EditAnywhere, Category=Default, BlueprintReadWrite, meta=(MakeEditWidget=""))
 	FVector Right;
 
 	FNavigationLink()

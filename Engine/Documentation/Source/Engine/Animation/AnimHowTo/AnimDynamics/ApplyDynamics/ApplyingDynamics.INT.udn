@@ -1,27 +1,15 @@
 Availability: Public
 Title:2 - Applying AnimDynamics
-Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\AnimDynamics
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimHowTo, Engine/Animation/AnimHowTo/AnimDynamics
 Description:In this step we apply AnimDynamics to the harness and furnace the character is carrying so it reacts to movement.
 version: 4.12
 skilllevel: Advanced
+parent:Engine/Animation/AnimHowTo/AnimDynamics
+type:how-to
+type:multi-step
 Order: 2
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Engine\Animation\AnimHowTo\AnimDynamics\Setup "%Engine\Animation\AnimHowTo\AnimDynamics\Setup:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[AnimDynamics How-to](Engine\Animation\AnimHowTo\AnimDynamics)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 Now that our character is set up with an **Animation Blueprint** and has bones that we want to dynamically animate, we can do so from the **AnimGraph** of our **Animation Blueprint** with the **AnimDynamics** node. 
 
@@ -68,7 +56,7 @@ In our example, the character is carrying a large furnace around their neck that
 	The **Setup** and **Constraint** sections are where you define the movement and range of movement for the bone driven by AnimDynamics. The **Box Extent** provides the inertia, the **Local Joint Offset** defines the pivot point and **Angular Limits** provide the rotational range of movement (which is indicated by the preview visualization options when enabled). 
 
 	[REGION:note]
-	Please see [**AnimDynamics**](Engine\Animation\NodeReference\SkeletalControls) section of Skeletal Controls for more information on Setup and Constraint settings. 
+	Please see [**AnimDynamics**](Engine/Animation/NodeReference/SkeletalControls) section of Skeletal Controls for more information on Setup and Constraint settings. 
 	[/REGION]
 
 1.	Click **Compile** and notice how the harness object tilts to the side. 
@@ -103,22 +91,17 @@ In our example, the character is carrying a large furnace around their neck that
 You should now see that the furnace for our example character bounces around as the character moves based on our constraint settings. 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-w7c3i2vpcUc
-[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	w7c3i2vpcUc
+	[/PARAMLITERAL]
 [/OBJECT]
 
 Feel free to experiment with the **Box Extent** and **Local Joint Offset** values in the **Setup** section as well as the **Linear** and **Angular Limits** in the **Constraints** section to see how it alters the movement of our bones affected by AnimDynamics.
 
-
-%Steps%
-
-
-
-
+[NAV]

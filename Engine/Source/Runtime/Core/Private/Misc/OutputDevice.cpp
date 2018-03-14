@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Misc/OutputDevice.h"
 #include "Containers/UnrealString.h"
@@ -55,16 +55,16 @@ void FOutputDevice::Log( const FText& T )
 	Formatted printing and messages.
 -----------------------------------------------------------------------------*/
 
-VARARG_BODY( void, FOutputDevice::CategorizedLogf, const TCHAR*, VARARG_EXTRA(const class FName& Category) VARARG_EXTRA(ELogVerbosity::Type Verbosity)  )
+void FOutputDevice::CategorizedLogfImpl(const FName& Category, ELogVerbosity::Type Verbosity, const TCHAR* Fmt, ...)
 {
 	GROWABLE_LOGF(Serialize(Buffer, Verbosity, Category))
 }
-VARARG_BODY( void, FOutputDevice::Logf, const TCHAR*, VARARG_EXTRA(ELogVerbosity::Type Verbosity) )
+void FOutputDevice::LogfImpl(ELogVerbosity::Type Verbosity, const TCHAR* Fmt, ...)
 {
 	// call serialize with the final buffer
 	GROWABLE_LOGF(Serialize(Buffer, Verbosity, NAME_None))
 }
-VARARG_BODY( void, FOutputDevice::Logf, const TCHAR*, VARARG_NONE )
+void FOutputDevice::LogfImpl(const TCHAR* Fmt, ...)
 {
 	FScopedCategoryAndVerbosityOverride::FOverride* TLS = FScopedCategoryAndVerbosityOverride::GetTLSCurrent();
 	GROWABLE_LOGF(Serialize(Buffer, TLS->Verbosity, TLS->Category))

@@ -57,32 +57,36 @@ class TObjectReflection {
 public:
     TObjectReflection(const TString& pName, const TType& pType, int pOffset, int pGLDefineType, int pSize, int pIndex) :
         name(pName), offset(pOffset),
-        glDefineType(pGLDefineType), size(pSize), index(pIndex), type(pType.clone()) { }
-
-    void dump() const {
-        printf("%s: offset %d, type %x, size %d, index %d, binding %d\n",
-               name.c_str(), offset, glDefineType, size, index, getBinding() );
-    }
+        glDefineType(pGLDefineType), size(pSize), index(pIndex), counterIndex(-1), type(pType.clone()) { }
 
     const TType* const getType() const { return type; }
+    int getBinding() const
+    {
+        if (type == nullptr || !type->getQualifier().hasBinding())
+            return -1;
+        return type->getQualifier().layoutBinding;
+    }
+    void dump() const
+    {
+        printf("%s: offset %d, type %x, size %d, index %d, binding %d",
+               name.c_str(), offset, glDefineType, size, index, getBinding() );
+
+        if (counterIndex != -1)
+            printf(", counter %d", counterIndex);
+
+        printf("\n");
+    }
+    static TObjectReflection badReflection() { return TObjectReflection(); }
 
     TString name;
     int offset;
     int glDefineType;
     int size;         // data size in bytes for a block, array size for a (non-block) object that's an array
     int index;
+    int counterIndex;
 
-    static TObjectReflection badReflection() { return TObjectReflection(); }
-
-//#Epic - Expose missing functionality
-	int getBinding() const {
-        if (type == nullptr || type->getQualifier().layoutBinding == TQualifier::layoutBindingEnd)
-            return -1;
-        return type->getQualifier().layoutBinding;
-    }
 protected:
-
-	TObjectReflection() : offset(-1), glDefineType(-1), size(-1), index(-1), type(nullptr) { }
+    TObjectReflection() : offset(-1), glDefineType(-1), size(-1), index(-1), type(nullptr) { }
 
     const TType* type;
 };
@@ -141,6 +145,9 @@ public:
             return it->second;
     }
 
+    // see getIndex(const char*)
+    int getIndex(const TString& name) const { return getIndex(name.c_str()); }
+
     // Thread local size
     unsigned getLocalSize(int dim) const { return dim <= 2 ? localSize[dim] : 0; }
 
@@ -149,6 +156,7 @@ public:
 protected:
     friend class glslang::TReflectionTraverser;
 
+    void buildCounterIndices();
     void buildAttributeReflection(EShLanguage, const TIntermediate&);
 
     // Need a TString hash: typedef std::unordered_map<TString, int> TNameToIndex;

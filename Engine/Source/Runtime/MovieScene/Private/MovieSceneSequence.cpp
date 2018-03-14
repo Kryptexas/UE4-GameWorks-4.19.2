@@ -1,20 +1,18 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneSequence.h"
-#include "Compilation/MovieSceneEvaluationTemplateGenerator.h"
 #include "Evaluation/MovieSceneEvaluationCustomVersion.h"
+#include "Evaluation/MovieSceneSequenceTemplateStore.h"
 #include "MovieScene.h"
 #include "EditorObjectVersion.h"
+#include "Tracks/MovieSceneSubTrack.h"
+#include "Sections/MovieSceneSubSection.h"
+#include "Compilation/MovieSceneCompiler.h"
 
 UMovieSceneSequence::UMovieSceneSequence(const FObjectInitializer& Init)
 	: Super(Init)
 {
 	bParentContextsAreSignificant = false;
-
-	TemplateParameters.bForEditorPreview = false;
-#if WITH_EDITORONLY_DATA
-	EvaluationTemplate.Initialize(*this);
-#endif
 }
 
 #if WITH_EDITORONLY_DATA
@@ -22,7 +20,8 @@ void UMovieSceneSequence::PostDuplicate(bool bDuplicateForPIE)
 {
 	if (bDuplicateForPIE)
 	{
-		EvaluationTemplate.Regenerate(TemplateParameters);
+		FMovieSceneSequencePrecompiledTemplateStore Store;
+		FMovieSceneCompiler::Compile(*this, Store);
 	}
 
 	Super::PostDuplicate(bDuplicateForPIE);
@@ -33,7 +32,7 @@ void UMovieSceneSequence::PostLoad()
 {
 #if WITH_EDITORONLY_DATA
 	// Wipe compiled data on editor load to ensure we don't try and iteratively compile previously saved content. In a cooked game, this will contain our up-to-date compiled template.
-	EvaluationTemplate = FCachedMovieSceneEvaluationTemplate(*this);
+	PrecompiledEvaluationTemplate = FMovieSceneEvaluationTemplate();
 #endif
 
 	Super::PostLoad();
@@ -47,21 +46,17 @@ void UMovieSceneSequence::Serialize(FArchive& Ar)
 #if WITH_EDITORONLY_DATA
 	if (Ar.IsCooking() && !HasAnyFlags(RF_ClassDefaultObject))
 	{
-		EvaluationTemplate.Regenerate(TemplateParameters);
+		FMovieSceneSequencePrecompiledTemplateStore Store;
+		FMovieSceneCompiler::Compile(*this, Store);
 	}
 	else if (Ar.IsSaving())
 	{
 		// Don't save template data unless we're cooking
-		EvaluationTemplate = FCachedMovieSceneEvaluationTemplate(*this);
+		PrecompiledEvaluationTemplate = FMovieSceneEvaluationTemplate();
 	}
 #endif
 	
 	Super::Serialize(Ar);
-}
-
-void UMovieSceneSequence::GenerateEvaluationTemplate(FMovieSceneEvaluationTemplate& Template, const FMovieSceneTrackCompilationParams& Params, FMovieSceneSequenceTemplateStore& Store)
-{
-	FMovieSceneEvaluationTemplateGenerator(*this, Template, Store).Generate(Params);
 }
 
 FGuid UMovieSceneSequence::FindPossessableObjectId(UObject& Object, UObject* Context) const

@@ -59,7 +59,7 @@ UnrealBuildTool 现在是从 RulesModule.dll 中获取需要编译生成项目�
 
 以下是 ShaderCompileWorker.Target.cs 的完整示例：
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	using UnrealBuildTool;
 	using System.Collections.Generic;

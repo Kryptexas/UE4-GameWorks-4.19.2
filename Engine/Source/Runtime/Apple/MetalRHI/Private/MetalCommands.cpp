@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalCommands.cpp: Metal RHI commands implementation.
@@ -91,12 +91,6 @@ MTLPrimitiveType TranslatePrimitiveType(uint32 PrimitiveType)
 		}
 		default:				UE_LOG(LogMetal, Fatal, TEXT("Unsupported primitive type %d"), (int32)PrimitiveType); return MTLPrimitiveTypeTriangle;
 	}
-}
-
-void FMetalRHICommandContext::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI,uint32 Stride,uint32 Offset)
-{
-	
-	NOT_SUPPORTED("RHISetStreamSource with Stride is invalid on MetalRHI - Stride must be correctly configured on the vertex-declaration.");
 }
 
 void FMetalRHICommandContext::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI,uint32 Offset)
@@ -273,7 +267,10 @@ void FMetalRHICommandContext::RHISetUAVParameter(FComputeShaderRHIParamRef Compu
 
 void FMetalRHICommandContext::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 UAVIndex,FUnorderedAccessViewRHIParamRef UAVRHI, uint32 InitialCount)
 {
-	NOT_SUPPORTED("RHISetUAVParameter");
+	@autoreleasepool {
+		FMetalUnorderedAccessView* UAV = ResourceCast(UAVRHI);
+		Context->GetCurrentState().SetShaderUnorderedAccessView(SF_Compute, UAVIndex, UAV);
+	}
 }
 
 
@@ -634,9 +631,8 @@ void FMetalDynamicRHI::RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32 
 void FMetalRHICommandContext::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
 {
 	@autoreleasepool {
+	bool bHasTarget = (RenderTargetsInfo.DepthStencilRenderTarget.Texture != nullptr);
 	FMetalContext* Manager = Context;
-	
-
 	if (Context->GetCommandQueue().SupportsFeature(EMetalFeaturesGraphicsUAVs))
 	{
 		for (uint32 i = 0; i < RenderTargetsInfo.NumUAVs; i++)
@@ -645,6 +641,7 @@ void FMetalRHICommandContext::RHISetRenderTargetsAndClear(const FRHISetRenderTar
 			{
 				FMetalUnorderedAccessView* UAV = ResourceCast(RenderTargetsInfo.UnorderedAccessView[i].GetReference());
 				Context->GetCurrentState().SetShaderUnorderedAccessView(SF_Pixel, i, UAV);
+				bHasTarget = true;
 			}
 		}
 	}
@@ -652,22 +649,31 @@ void FMetalRHICommandContext::RHISetRenderTargetsAndClear(const FRHISetRenderTar
 	{
 		checkf(RenderTargetsInfo.NumUAVs == 0, TEXT("Calling SetRenderTargets with UAVs is not supported in this Metal standard"));
 	}
-
-	Manager->SetRenderTargetsInfo(RenderTargetsInfo);
-
-	// Set the viewport to the full size of render target 0.
-	if (RenderTargetsInfo.ColorRenderTarget[0].Texture)
+	
+	for (uint32 i = 0; bHasTarget == false && i < RenderTargetsInfo.NumColorRenderTargets; i++)
 	{
-		const FRHIRenderTargetView& RenderTargetView = RenderTargetsInfo.ColorRenderTarget[0];
-		FMetalSurface* RenderTarget = GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
+		bHasTarget = (RenderTargetsInfo.ColorRenderTarget[i].Texture != nullptr);
+	}
 
-		uint32 Width = FMath::Max((uint32)(RenderTarget->Texture.width >> RenderTargetView.MipIndex), (uint32)1);
-		uint32 Height = FMath::Max((uint32)(RenderTarget->Texture.height >> RenderTargetView.MipIndex), (uint32)1);
+	// Ignore any attempt to "clear" the render-targets as that is senseless with the way MetalRHI has to try and coalesce passes.
+	if (bHasTarget)
+	{
+		Manager->SetRenderTargetsInfo(RenderTargetsInfo);
 
-		RHISetViewport(0, 0, 0.0f, Width, Height, 1.0f);
-    }
-    
-    FShaderCache::SetRenderTargets(Context->GetCurrentState().GetShaderCacheStateObject(), RenderTargetsInfo.NumColorRenderTargets, RenderTargetsInfo.ColorRenderTarget, &RenderTargetsInfo.DepthStencilRenderTarget);
+		// Set the viewport to the full size of render target 0.
+		if (RenderTargetsInfo.ColorRenderTarget[0].Texture)
+		{
+			const FRHIRenderTargetView& RenderTargetView = RenderTargetsInfo.ColorRenderTarget[0];
+			FMetalSurface* RenderTarget = GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
+
+			uint32 Width = FMath::Max((uint32)(RenderTarget->Texture.width >> RenderTargetView.MipIndex), (uint32)1);
+			uint32 Height = FMath::Max((uint32)(RenderTarget->Texture.height >> RenderTargetView.MipIndex), (uint32)1);
+
+			RHISetViewport(0, 0, 0.0f, Width, Height, 1.0f);
+		}
+		
+		FShaderCache::SetRenderTargets(Context->GetCurrentState().GetShaderCacheStateObject(), RenderTargetsInfo.NumColorRenderTargets, RenderTargetsInfo.ColorRenderTarget, &RenderTargetsInfo.DepthStencilRenderTarget);
+	}
 	}
 }
 

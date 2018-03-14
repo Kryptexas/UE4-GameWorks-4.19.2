@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -43,8 +43,11 @@ class UFunctionalTestingManager : public UBlueprintFunctionLibrary
 	 * @return true if any tests have been triggered
 	 */
 	UFUNCTION(BlueprintCallable, Category="FunctionalTesting", meta=(WorldContext="WorldContextObject", CallableWithoutWorldContext ) )
-	static bool RunAllFunctionalTests(UObject* WorldContextObject, bool bNewLog = true, bool bRunLooped = false, bool bWaitForNavigationBuildFinish = true, FString FailedTestsReproString = TEXT(""));
-		
+	static bool RunAllFunctionalTests(UObject* WorldContextObject, bool bNewLog = true, bool bRunLooped = false, FString FailedTestsReproString = TEXT(""));
+
+	DEPRECATED(4.18, "This function is deprecated and is no longer used. Please use the version without the bWaitForNavigationBuildFinish parameter.")
+	static bool RunAllFunctionalTests(UObject* WorldContextObject, bool bNewLog, bool bRunLooped, bool bWaitForNavigationBuildFinish, FString FailedTestsReproString = TEXT("")) { return RunAllFunctionalTests(WorldContextObject, bNewLog, bRunLooped, FailedTestsReproString); }
+
 	bool IsRunning() const { return bIsRunning; }
 	bool IsFinished() const { return bFinished; }
 	bool IsLooped() const { return bLooped; }

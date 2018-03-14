@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "UObject/LinkerLoad.h"
 #include "HAL/FileManager.h"
@@ -780,6 +780,7 @@ FLinkerLoad::FLinkerLoad(UPackage* InParent, const TCHAR* InFilename, uint32 InL
 , DependsMapIndex(0)
 , ExportHashIndex(0)
 , bHasSerializedPackageFileSummary(false)
+, bHasSerializedPreloadDependencies(false)
 , bHasFixedUpImportMap(false)
 , bHasFoundExistingExports(false)
 , bHasFinishedInitialization(false)
@@ -1165,7 +1166,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 		else
 		{
 			bool bAllSavedVersionsMatch = true;
-			const FCustomVersionSet&  PackageCustomVersions = Summary.GetCustomVersionContainer().GetAllVersions();
+			const FCustomVersionArray&  PackageCustomVersions = Summary.GetCustomVersionContainer().GetAllVersions();
 			for (auto It = PackageCustomVersions.CreateConstIterator(); It; ++It)
 			{
 				const FCustomVersion& SerializedCustomVersion = *It;
@@ -1222,8 +1223,10 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 			// Propagate package flags
 			LinkerRootPackage->SetPackageFlagsTo(NewPackageFlags);
 
+#if WITH_EDITORONLY_DATA
 			// Propagate package folder name
 			LinkerRootPackage->SetFolderName(*Summary.FolderName);
+#endif
 
 			// Propagate streaming install ChunkID
 			LinkerRootPackage->SetChunkIDs(Summary.ChunkIDs);
@@ -1636,7 +1639,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePreloadDependencies()
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FLinkerLoad::SerializePreloadDependencies"), STAT_LinkerLoad_SerializePreloadDependencies, STATGROUP_LinkerLoad);
 
 	// Skip serializing depends map if this is the editor or the data is missing
-	if (Summary.PreloadDependencyCount < 1 || Summary.PreloadDependencyOffset <= 0)
+	if (bHasSerializedPreloadDependencies || Summary.PreloadDependencyCount < 1 || Summary.PreloadDependencyOffset <= 0)
 	{
 		return LINKER_Loaded;
 	}
@@ -1651,6 +1654,9 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePreloadDependencies()
 		*this << Idx;
 		PreloadDependencies.Add(Idx);
 	}
+
+	bHasSerializedPreloadDependencies = true;
+
 	// Return whether we finished this step and it's safe to start with the next.
 	return !IsTimeLimitExceeded(TEXT("serialize preload dependencies")) ? LINKER_Loaded : LINKER_TimedOut;
 }
@@ -1839,15 +1845,11 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FinalizeCreation()
 
 		if (GEventDrivenLoaderEnabled && AsyncRoot)
 		{
-			for (int32 ImportIndex = 0; ImportIndex < ImportMap.Num(); ++ImportIndex)
-			{
-				FPackageIndex Index = FPackageIndex::FromImport(ImportIndex);
-				AsyncRoot->ObjectNameToImportOrExport.Add(Imp(Index).ObjectName, Index);
-			}
 			for (int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
 			{
 				FPackageIndex Index = FPackageIndex::FromExport(ExportIndex);
-				AsyncRoot->ObjectNameToImportOrExport.Add(Exp(Index).ObjectName, Index);
+				const FObjectExport& Export = Exp(Index);
+				AsyncRoot->ObjectNameWithOuterToExport.Add(TPair<FName, FPackageIndex>(Export.ObjectName, Export.OuterIndex), Index);
 			}
 		}
 
@@ -2778,6 +2780,7 @@ UClass* FLinkerLoad::GetExportLoadClass(int32 Index)
 	return ExportClass;
 }
 
+#if WITH_EDITORONLY_DATA
 int32 FLinkerLoad::LoadMetaDataFromExportMap(bool bForcePreload)
 {
 	UMetaData* MetaData = nullptr;
@@ -2786,7 +2789,7 @@ int32 FLinkerLoad::LoadMetaDataFromExportMap(bool bForcePreload)
 	// Try to find MetaData and load it first as other objects can depend on it.
 	for (int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
 	{
-		if (ExportMap[ExportIndex].ObjectName == NAME_PackageMetaData)
+		if (ExportMap[ExportIndex].ObjectName == NAME_PackageMetaData && ExportMap[ExportIndex].OuterIndex.IsNull())
 		{
 			MetaData = Cast<UMetaData>(CreateExportAndPreload(ExportIndex, bForcePreload));
 			MetaDataIndex = ExportIndex;
@@ -2799,7 +2802,7 @@ int32 FLinkerLoad::LoadMetaDataFromExportMap(bool bForcePreload)
 	{
 		for (int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
 		{
-			if (ExportMap[ExportIndex].ObjectName == *UMetaData::StaticClass()->GetName())
+			if (ExportMap[ExportIndex].ObjectName == *UMetaData::StaticClass()->GetName() && ExportMap[ExportIndex].OuterIndex.IsNull())
 			{
 				UObject* Object = CreateExportAndPreload(ExportIndex, bForcePreload);
 				Object->Rename(*FName(NAME_PackageMetaData).ToString(), NULL, REN_ForceNoResetLoaders);
@@ -2819,6 +2822,7 @@ int32 FLinkerLoad::LoadMetaDataFromExportMap(bool bForcePreload)
 
 	return MetaDataIndex;
 }
+#endif
 
 /**
  * Loads all objects in package.
@@ -2852,10 +2856,12 @@ void FLinkerLoad::LoadAllObjects(bool bForcePreload)
 	// MetaData object index in this package.
 	int32 MetaDataIndex = INDEX_NONE;
 
+#if WITH_EDITORONLY_DATA
 	if(!FPlatformProperties::RequiresCookedData())
 	{
 		MetaDataIndex = LoadMetaDataFromExportMap(bForcePreload);
 	}
+#endif
 	
 #if USE_STABLE_LOCALIZATION_KEYS
 	if (GIsEditor && (LoadFlags & LOAD_ForDiff))
@@ -3521,6 +3527,10 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 		UClass* LoadClass = GetExportLoadClass(Index);
 		if( !LoadClass && !Export.ClassIndex.IsNull() ) // Hack to load packages with classes which do not exist.
 		{
+			Export.bExportLoadFailed = true;
+
+			FString OuterName = Export.OuterIndex.IsNull() ? LinkerRoot->GetFullName() : GetFullImpExpName(Export.OuterIndex);
+			UE_CLOG(Export.ObjectFlags & EObjectFlags::RF_Public, LogLinker, Warning, TEXT("Unable to load %s with outer %s because its class does not exist"), *Export.ObjectName.ToString(), *OuterName);
 			return NULL;
 		}
 
@@ -3630,8 +3640,27 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 			// Remove RF_MarkAsNative;
 			Export.ObjectFlags = EObjectFlags(Export.ObjectFlags & ~RF_MarkAsNative);
 		}
+		
+		// Find or create the object's Outer.
+		UObject* ThisParent = NULL;
+		if( !Export.OuterIndex.IsNull() )
+		{
+			ThisParent = IndexToObject(Export.OuterIndex);
+		}
+		else if( Export.bForcedExport )
+		{
+			// Create the forced export in the TopLevel instead of LinkerRoot. Please note that CreatePackage
+			// will find and return an existing object if one exists and only create a new one if there doesn't.
+			Export.Object = CreatePackage( NULL, *Export.ObjectName.ToString() );
+			check(Export.Object);
+			FUObjectThreadContext::Get().ForcedExportCount++;
+		}
+		else
+		{
+			ThisParent = LinkerRoot;
+		}
 
-		if ( !LoadClass->HasAnyClassFlags(CLASS_Intrinsic) )
+		if ( !LoadClass->HasAnyClassFlags(CLASS_Intrinsic) || Cast<ULinkerPlaceholderExportObject>(ThisParent))
 		{
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 			if (LoadClass->HasAnyFlags(RF_NeedLoad))
@@ -3640,7 +3669,7 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 			}
 			else if ((Export.Object == nullptr) && !(Export.ObjectFlags & RF_ClassDefaultObject))
 			{
-				bool const bExportWasDeferred = DeferExportCreation(Index);
+				bool const bExportWasDeferred = DeferExportCreation(Index, ThisParent);
 				if (bExportWasDeferred)
 				{
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
@@ -3701,26 +3730,6 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 			Arguments.Add(TEXT("ClassName"), FText::FromString(LoadClass->GetPathName()));
 			//@todo - should this actually be an assertion?
 			LoadErrors.Warning(FText::Format(LOCTEXT("LoadingTransientInstance", "Attempting to load an instance of a transient class from disk - Package:'{PackageName}'  Object:'{ObjectName}'  Class:'{ClassName}'"), Arguments));
-		}
-
-		
-		// Find or create the object's Outer.
-		UObject* ThisParent = NULL;
-		if( !Export.OuterIndex.IsNull() )
-		{
-			ThisParent = IndexToObject(Export.OuterIndex);
-		}
-		else if( Export.bForcedExport )
-		{
-			// Create the forced export in the TopLevel instead of LinkerRoot. Please note that CreatePackage
-			// will find and return an existing object if one exists and only create a new one if there doesn't.
-			Export.Object = CreatePackage( NULL, *Export.ObjectName.ToString() );
-			check(Export.Object);
-			FUObjectThreadContext::Get().ForcedExportCount++;
-		}
-		else
-		{
-			ThisParent = LinkerRoot;
 		}
 
 		// If loading the object's Outer caused the object to be loaded or if it was a forced export package created

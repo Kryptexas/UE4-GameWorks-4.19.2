@@ -1,6 +1,7 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Sections/MovieSceneSlomoSection.h"
+#include "SequencerObjectVersion.h"
 
 
 /* UMovieSceneSlomoSection structors
@@ -12,5 +13,8 @@ UMovieSceneSlomoSection::UMovieSceneSlomoSection()
 	SetIsInfinite(true);
 	GetFloatCurve().SetDefaultValue(1.0f);
 
-	EvalOptions.EnableAndSetCompletionMode(EMovieSceneCompletionMode::RestoreState);
+	EvalOptions.EnableAndSetCompletionMode
+		(GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToProjectDefault ? 
+			EMovieSceneCompletionMode::RestoreState : 
+			EMovieSceneCompletionMode::ProjectDefault);
 }

@@ -19,7 +19,7 @@ Description:在虚幻引擎中配置输入
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:note]有两种输入映射类型： 动作映射和坐标轴映射。
 <br>您可以把 **Action Mappings** （动作映射）想象成"是或否"的输入，类似于鼠标按键或摇杆按键。 当在短时间内按键、松开、双击或按住不放时，它们会进行该项操作的汇报。 离散事件的动作，诸如跳跃、射击或与物体互动都可以使用这种类型的映射。
@@ -72,7 +72,7 @@ Description:在虚幻引擎中配置输入
     [/PARAM]
     [PARAM:content]
 		**MyPawn.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -102,7 +102,7 @@ Description:在虚幻引擎中配置输入
 			};
 
 		**MyPawn.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_PlayerInput.h"
 			#include "MyPawn.h"
@@ -152,4 +152,4 @@ Description:在虚幻引擎中配置输入
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

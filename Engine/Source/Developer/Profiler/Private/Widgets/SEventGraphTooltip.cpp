@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/SEventGraphTooltip.h"
 #include "Misc/Paths.h"
 #include "Fonts/SlateFontInfo.h"
+#include "Styling/CoreStyle.h"
 #include "Misc/Attribute.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SBoxPanel.h"
@@ -20,9 +21,9 @@
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 TSharedPtr<SToolTip> SEventGraphTooltip::GetTableCellTooltip( const TSharedPtr<FEventGraphSample> EventSample )
 {
-	const FSlateFontInfo TitleFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 10 );
-	const FSlateFontInfo DescriptionFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8 );
-	const FSlateFontInfo DescriptionFontB( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 8 );
+	const FSlateFontInfo TitleFont = FCoreStyle::GetDefaultFontStyle("Bold", 10);
+	const FSlateFontInfo DescriptionFont = FCoreStyle::GetDefaultFontStyle("Regular", 8);
+	const FSlateFontInfo DescriptionFontB = FCoreStyle::GetDefaultFontStyle("Bold", 8);
 
 	const FLinearColor ThreadColor(5.0f,0.0f,0.0f,1.0f);
 	const FLinearColor DefaultColor(1.0f,1.0f,1.0f,1.0f);
@@ -88,7 +89,7 @@ TSharedPtr<SToolTip> SEventGraphTooltip::GetTableCellTooltip( const TSharedPtr<F
 								.Text( LOCTEXT("HotPathInformation", "Hot path, should be investigated for bottlenecks") )
 								//.TextStyle( FEditorStyle::Get(), TEXT("Profiler.TooltipBold") )
 								.ColorAndOpacity( ColorAndOpacity )
-								.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8 ) )
+								.Font( FCoreStyle::GetDefaultFontStyle("Regular", 8) )
 								.ShadowOffset( FVector2D(1.0f, 1.0f) )
 								.ShadowColorAndOpacity( FLinearColor(0.f,0.f,0.f,0.5f) )
 							]

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "Slate/SceneViewport.h"
@@ -367,6 +367,12 @@ void FSceneViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FS
 			//check(Window.IsValid());
 			if ( Window->IsViewportSizeDrivenByWindow() )
 			{
+				if (ViewportWidget.Pin()->ShouldRenderDirectly())
+				{
+					InitialPositionX = FMath::Max(0.0f, AllottedGeometry.AbsolutePosition.X);
+					InitialPositionY = FMath::Max(0.0f, AllottedGeometry.AbsolutePosition.Y);
+				}
+
 				ResizeViewport(FMath::Max(0, DrawSize.X), FMath::Max(0, DrawSize.Y), Window->GetWindowMode());
 			}
 		}
@@ -534,7 +540,7 @@ FReply FSceneViewport::AcquireFocusAndCapture(FIntPoint MousePosition)
 		APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
 		const bool bShouldShowMouseCursor = PC && PC->ShouldShowMouseCursor();
 
-		if ( ViewportClient->HideCursorDuringCapture() )
+		if ( ViewportClient->HideCursorDuringCapture() && bShouldShowMouseCursor )
 		{
 			bCursorHiddenDueToCapture = true;
 			MousePosBeforeHiddenDueToCapture = MousePosition;
@@ -1069,6 +1075,8 @@ void FSceneViewport::OnFocusLost( const FFocusEvent& InFocusEvent )
 				}
 			});
 		}
+
+		UE_LOG(LogSlate, Log, TEXT("FSceneViewport::OnFocusLost() reason %d"), (int32)InFocusEvent.GetCause());
 	}
 }
 
@@ -1496,7 +1504,7 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 		}
 	}
 
-	DebugCanvasDrawer->InitDebugCanvas(GetClient()->GetWorld());
+	DebugCanvasDrawer->InitDebugCanvas(GetClient(), GetClient()->GetWorld());
 
 	// Note: ViewportRHI is only updated on the game thread
 
@@ -1555,11 +1563,6 @@ void FSceneViewport::BeginRenderFrame(FRHICommandListImmediate& RHICmdList)
 		// Get the backbuffer render target to render directly to it
 		RenderTargetTextureRenderThreadRHI = RHICmdList.GetViewportBackBuffer(ViewportRHI);
 		RenderThreadSlateTexture->SetRHIRef(RenderTargetTextureRenderThreadRHI, RenderTargetTextureRenderThreadRHI->GetSizeX(), RenderTargetTextureRenderThreadRHI->GetSizeY());
-		if (GRHIRequiresEarlyBackBufferRenderTarget)
-		{
-			// unused set render targets are bad on Metal
-			SetRenderTarget(RHICmdList, RenderTargetTextureRenderThreadRHI, FTexture2DRHIRef(), true);
-		}
 	}
 }
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,6 +14,7 @@ class ISkeletonTreeBuilder;
 class ISkeletonTreeItem;
 class FMenuBuilder;
 class FExtender;
+class IPinnedCommandList;
 
 // Called when an item is selected/deselected
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSkeletonTreeSelectionChangedMulticast, const TArrayView<TSharedPtr<ISkeletonTreeItem>>& /* InSelectedItems */, ESelectInfo::Type /* SelectInfo */);
@@ -44,6 +45,7 @@ struct FSkeletonTreeArgs
 {
 	FSkeletonTreeArgs()
 		: Mode(ESkeletonTreeMode::Editor)
+		, ContextName(TEXT("SkeletonTree"))
 		, bShowBlendProfiles(true)
 		, bShowFilterMenu(true)
 		, bAllowMeshOperations(true)
@@ -75,6 +77,9 @@ struct FSkeletonTreeArgs
 
 	/** The mode that this skeleton tree is in */
 	ESkeletonTreeMode Mode;
+
+	/** Context name used to persist settings */
+	FName ContextName;
 
 	/** Whether to show the blend profiles editor for the skeleton being displayed */
 	bool bShowBlendProfiles;
@@ -148,9 +153,13 @@ public:
 	/** Get the search box widget, if any, for this tree */
 	virtual TSharedPtr<SWidget> GetSearchWidget() const = 0;
 
+	/** Get the pinned commands widget, if any, for this tree */
+	virtual TSharedPtr<IPinnedCommandList> GetPinnedCommandList() const = 0;
+
 	DEPRECATED(4.17, "Please use RegisterOnSelectionChanged")
 	virtual void RegisterOnObjectSelected(const FOnObjectSelected& Delegate) = 0;
 
 	DEPRECATED(4.17, "Please use UnregisterOnSelectionChanged")
 	virtual void UnregisterOnObjectSelected(SWidget* Widget) = 0;
+
 };

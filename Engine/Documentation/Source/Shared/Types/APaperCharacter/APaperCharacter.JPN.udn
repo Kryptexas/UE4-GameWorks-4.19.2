@@ -13,4 +13,6 @@ APaperCharacter は ACharacter のように振る舞いますが、 USkeletalMes
 [/VAR]
 [/EXCERPT:APaperCharacter]
 
-<!-- ToDo:Paper Character link. --->
+[COMMENT:none]
+ ToDo:Paper Character link. -
+[/COMMENT]

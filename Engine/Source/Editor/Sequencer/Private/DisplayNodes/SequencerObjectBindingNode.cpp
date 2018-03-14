@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DisplayNodes/SequencerObjectBindingNode.h"
 #include "Modules/ModuleManager.h"
@@ -195,6 +195,14 @@ void FSequencerObjectBindingNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateLambda([=]{ GetSequencer().ExportFBX(); })
+			));
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("Export to Camera Anim", "Export to Camera Anim..."),
+			LOCTEXT("ExportToCameraAnimTooltip", "Exports the animation to a camera anim asset"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateLambda([=]{ GetSequencer().ExportToCameraAnim(); })
 			));
 	}
 

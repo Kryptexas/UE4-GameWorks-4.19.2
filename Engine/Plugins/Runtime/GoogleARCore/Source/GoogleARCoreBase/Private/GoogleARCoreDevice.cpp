@@ -8,102 +8,39 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Engine/World.h" // for FWorldDelegates
 #include "Engine/Engine.h"
-#include "GoogleARCoreHMD.h"
+#include "GeneralProjectSettings.h"
+#include "GoogleARCoreXRTrackingSystem.h"
 #include "GoogleARCoreAndroidHelper.h"
 #include "GoogleARCoreBaseLogCategory.h"
 
 #if PLATFORM_ANDROID
 #include "AndroidApplication.h"
-
-#include "tango_client_api2.h"
-#include "tango_support_api.h"
 #endif
 
 #include "GoogleARCorePermissionHandler.h"
 
-namespace
+namespace 
 {
-#if PLATFORM_ANDROID
-	/** Keys for setting configuration values in the Tango client library. */
-	struct TangoConfigKeys
+	EGoogleARCoreFunctionStatus ToARCoreFunctionStatus(EGoogleARCoreAPIStatus Status)
 	{
-		static constexpr const char* ENABLE_MOTION_TRACKING = "config_enable_motion_tracking";
-		static constexpr const char* ENABLE_MOTION_TRACKING_AUTO_RECOVERY = "config_enable_auto_recovery";
-		static constexpr const char* ENABLE_LOW_LATENCY_IMU_INTEGRATION = "config_enable_low_latency_imu_integration";
-		static constexpr const char* ENABLE_DEPTH = "config_enable_depth";
-		static constexpr const char* ENABLE_FEATURE_POINTCLOUD = "config_experimental_enable_depth_from_vio";
-		static constexpr const char* ENABLE_PLANE_DETECTION = "config_experimental_enable_plane_detection";
-		static constexpr const char* ENABLE_COLOR = "config_enable_color_camera";
-		static constexpr const char* ENABLE_HIGH_RATE_POSE = "config_high_rate_pose";
-		static constexpr const char* ENABLE_SMOOTH_POSE = "config_smooth_pose";
-		static constexpr const char* DEPTH_MODE = "config_depth_mode";
-		static constexpr const char* ENABLE_DRIFT_CORRECTION = "config_enable_drift_correction";
-		static constexpr const char* ENABLE_CLOUD_ADF = "config_experimental_use_cloud_adf";
-		static constexpr const char* DEPTH_CAMERA_FRAMERATE = "config_runtime_depth_framerate";
-		static constexpr const char* ENABLE_LEARNING_MODE = "config_enable_learning_mode";
-		static constexpr const char* LOAD_AREA_DESCRIPTION_UUID = "config_load_area_description_UUID";
-	};
-
-	bool SetTangoAPIConfigBool(TangoConfig Config, const char* Key, bool Value)
-	{
-		TangoErrorType SetConfigResult;
-		SetConfigResult = TangoConfig_setBool(Config, Key, Value);
-		if (SetConfigResult != TANGO_SUCCESS)
+		switch (Status)
 		{
-			UE_LOG(LogGoogleARCore, Warning, TEXT("Failed to set Tango configuration %s to value of %d"), *FString(Key), Value);
+		case EGoogleARCoreAPIStatus::AR_SUCCESS:
+			return EGoogleARCoreFunctionStatus::Success;
+		case EGoogleARCoreAPIStatus::AR_ERROR_NOT_TRACKING:
+			return EGoogleARCoreFunctionStatus::NotTracking;
+		case EGoogleARCoreAPIStatus::AR_ERROR_SESSION_PAUSED:
+			return EGoogleARCoreFunctionStatus::SessionPaused;
+		case EGoogleARCoreAPIStatus::AR_ERROR_RESOURCE_EXHAUSTED:
+			return EGoogleARCoreFunctionStatus::ResourceExhausted;
+		case EGoogleARCoreAPIStatus::AR_ERROR_NOT_YET_AVAILABLE:
+			return EGoogleARCoreFunctionStatus::NotAvailable;
+		default:
+			ensureMsgf(false, TEXT("Unknown conversion from EGoogleARCoreAPIStatus %d to EGoogleARCoreFunctionStatus."), static_cast<int>(Status));
+			return EGoogleARCoreFunctionStatus::Unknown;
 		}
-		else
-		{
-			UE_LOG(LogGoogleARCore, Log, TEXT("Set Tango configuration %s to value of %d"), *FString(Key), Value);
-		}
-		return SetConfigResult == TANGO_SUCCESS;
 	}
-
-	bool SetTangoAPIConfigString(TangoConfig Config, const char* Key, const FString& InValue)
-	{
-		const char* Value = TCHAR_TO_UTF8(*InValue);
-		TangoErrorType SetConfigResult;
-		SetConfigResult = TangoConfig_setString(Config, Key, Value);
-		if (SetConfigResult != TANGO_SUCCESS)
-		{
-			UE_LOG(LogGoogleARCore, Warning, TEXT("Failed to set Tango configuration %s to value of %s"), *FString(Key), *InValue);
-		}
-		else
-		{
-			UE_LOG(LogGoogleARCore, Log, TEXT("Set Tango configuration %s to value of %s"), *FString(Key), *InValue);
-		}
-		return SetConfigResult == TANGO_SUCCESS;
-	}
-
-	bool SetTangoAPIConfigInt32(TangoConfig Config, const char* Key, int32 Value)
-	{
-		TangoErrorType SetConfigResult;
-		SetConfigResult = TangoConfig_setInt32(Config, Key, Value);
-		if (SetConfigResult != TANGO_SUCCESS)
-		{
-			UE_LOG(LogGoogleARCore, Warning, TEXT("Failed to set Tango configuration %s to value of %d"), *FString(Key), Value);
-		}
-		else
-		{
-			UE_LOG(LogGoogleARCore, Log, TEXT("Set Tango configuration %s to value of %d"), *FString(Key), Value);
-		}
-		return SetConfigResult == TANGO_SUCCESS;
-	}
-
-	void SetupClientAPIConfigForCurrentSettings(void* InOutLowLevelConfig, const FGoogleARCoreSessionConfig& TangoConfig)
-	{
-		SetTangoAPIConfigBool(InOutLowLevelConfig, TangoConfigKeys::ENABLE_LOW_LATENCY_IMU_INTEGRATION, true);
-		// We always enable feature point for now.
-		SetTangoAPIConfigBool(InOutLowLevelConfig, TangoConfigKeys::ENABLE_FEATURE_POINTCLOUD, true);
-		SetTangoAPIConfigBool(InOutLowLevelConfig, TangoConfigKeys::ENABLE_COLOR, true);
-		SetTangoAPIConfigBool(InOutLowLevelConfig, TangoConfigKeys::ENABLE_DRIFT_CORRECTION, true);
-		SetTangoAPIConfigInt32(InOutLowLevelConfig, TangoConfigKeys::DEPTH_MODE, (int32)TANGO_POINTCLOUD_XYZC);
-		SetTangoAPIConfigBool(InOutLowLevelConfig, TangoConfigKeys::ENABLE_PLANE_DETECTION, TangoConfig.PlaneDetectionMode != EGoogleARCorePlaneDetectionMode::None);
-	}
-#endif
 }
-
-static bool bTangoSupportLibraryIntialized = false;
 
 FGoogleARCoreDevice* FGoogleARCoreDevice::GetInstance()
 {
@@ -112,170 +49,70 @@ FGoogleARCoreDevice* FGoogleARCoreDevice::GetInstance()
 }
 
 FGoogleARCoreDevice::FGoogleARCoreDevice()
-	: bIsARCoreSupported(false)
-	, bNeedToCreateTangoObject(true)
-	, bTangoIsBound(false)
-	, bTangoIsRunning(false)
+	: PassthroughCameraTexture(nullptr)
+	, PassthroughCameraTextureId(-1)
+	, bIsARCoreSessionRunning(false)
 	, bForceLateUpdateEnabled(false)
-	, bTangoConfigChanged(false)
-	, bAreaDescriptionPermissionRequested(false)
+	, bSessionConfigChanged(false)
 	, bAndroidRuntimePermissionsRequested(false)
 	, bAndroidRuntimePermissionsGranted(false)
-	, bStartTangoTrackingRequested(false)
-	, bShouldTangoRestart(false)
+	, bPermissionDeniedByUser(false)
+	, bStartSessionRequested(false)
+	, bShouldSessionRestart(false)
+	, bARCoreInstallRequested(false)
+	, bARCoreInstalled(false)
 	, WorldToMeterScale(100.0f)
 	, PermissionHandler(nullptr)
 	, bDisplayOrientationChanged(false)
-#if PLATFORM_ANDROID
-	, LowLevelTangoConfig(nullptr)
-#endif
+	, CurrentSessionStatus(EARSessionStatus::NotStarted)
 {
 }
 
-// Tango Service Bind/Unbind
-void FGoogleARCoreDevice::OnModuleLoaded()
+EGoogleARCoreAvailability FGoogleARCoreDevice::CheckARCoreAPKAvailability()
 {
-#if PLATFORM_ANDROID
-	if (!FGoogleARCoreAndroidHelper::IsARCoreSupported())
+	return FGoogleARCoreAPKManager::CheckARCoreAPKAvailability();
+}
+
+EGoogleARCoreAPIStatus FGoogleARCoreDevice::RequestInstall(bool bUserRequestedInstall, EGoogleARCoreInstallStatus& OutInstallStatus)
+{
+	return FGoogleARCoreAPKManager::RequestInstall(bUserRequestedInstall, OutInstallStatus);
+}
+
+bool FGoogleARCoreDevice::GetIsTrackingTypeSupported(EARSessionType SessionType)
+{
+	if (SessionType == EARSessionType::World)
 	{
-		UE_LOG(LogGoogleARCore, Log, TEXT("Google ARCore isn't supported on this device. GoogleARCore functionality will be disabled!"));
-		bIsARCoreSupported = false;
-	}
-	else if (!FGoogleARCoreAndroidHelper::IsTangoCorePresent())
-	{
-		UE_LOG(LogGoogleARCore, Warning, TEXT("ARCore APK isn't installed on this device. GoogleARCore functionality will be disabled! Install the ARCore APK to fix this!"));
-		bIsARCoreSupported = false;
+		return true;
 	}
 	else
 	{
-		bIsARCoreSupported = true;
+		return false;
 	}
-#endif
+}
+
+void FGoogleARCoreDevice::OnModuleLoaded()
+{
 	// Init display orientation.
 	OnDisplayOrientationChanged();
-	ProjectTangoConfig = GetDefault<UGoogleARCoreEditorSettings>()->DefaultSessionConfig;
-	RequestTangoConfig = ProjectTangoConfig;
-	TangoARCameraManager.SetDefaultCameraOverlayMaterial(GetDefault<UGoogleARCoreCameraOverlayMaterialLoader>()->DefaultCameraOverlayMaterial);
 
-	if (bIsARCoreSupported)
-	{
-		FWorldDelegates::OnWorldTickStart.AddRaw(this, &FGoogleARCoreDevice::OnWorldTickStart);
-	}
+	FWorldDelegates::OnWorldTickStart.AddRaw(this, &FGoogleARCoreDevice::OnWorldTickStart);
 }
 
 void FGoogleARCoreDevice::OnModuleUnloaded()
 {
-	if (bIsARCoreSupported)
-	{
-		FWorldDelegates::OnWorldTickStart.RemoveAll(this);
-	}
+	FWorldDelegates::OnWorldTickStart.RemoveAll(this);
+	// clear the unique ptr.
+	ARCoreSession.Reset();
 }
 
-void FGoogleARCoreDevice::TangoEventRouter(void*, const struct TangoEvent* Event)
+bool FGoogleARCoreDevice::GetIsARCoreSessionRunning()
 {
-	FGoogleARCoreDevice::GetInstance()->OnTangoEvent(Event);
+	return bIsARCoreSessionRunning;
 }
 
-static double UnassignedTimestamp = -1.0;
-static FThreadSafeCounter64 AnchorsEarliestTimestampChanged(reinterpret_cast<int64&>(UnassignedTimestamp));
-void FGoogleARCoreDevice::OnTangoEvent(const struct TangoEvent* InEvent)
+EARSessionStatus FGoogleARCoreDevice::GetSessionStatus()
 {
-#if PLATFORM_ANDROID
-	if (InEvent != nullptr)
-	{
-		//UE_LOG(LogGoogleARCore, Log, TEXT("TangoEvent type: %d, key: %s, value: %s"), InEvent->type, *FString(InEvent->event_key), *FString(InEvent->event_value));
-		switch (InEvent->type)
-		{
-		case TANGO_EVENT_GENERAL:
-			FString EventKey = InEvent->event_key;
-			FString EventValue = InEvent->event_value;
-			if (EventKey == "EXPERIMENTAL_PoseHistoryChanged")
-			{
-				double EarliestTimestamp = FCString::Atod(*EventValue);
-				UE_LOG(LogGoogleARCore, Log, TEXT("Map Resolve! EarlistTimestamp: %f"), EarliestTimestamp);
-				AnchorsEarliestTimestampChanged.Set(reinterpret_cast<int64&>(EarliestTimestamp));
-			}
-		}
-	}
-#endif
-}
-
-#if PLATFORM_ANDROID
-// Handling Tango service bound/unbound events.
-void FGoogleARCoreDevice::OnTangoServiceBound()
-{
-	if (TangoService_connectOnTangoEvent(&FGoogleARCoreDevice::TangoEventRouter) != TANGO_SUCCESS)
-	{
-		UE_LOG(LogGoogleARCore, Error, TEXT("connectOnTangoEvent failed"));
-		return;
-	}
-	UE_LOG(LogGoogleARCore, Log, TEXT("Tango Service Bound successfully!"));
-
-	bTangoIsBound = true;
-	bTangoIsRunning = false;
-
-	OnTangoServiceBoundDelegate.Broadcast();
-}
-#endif
-
-bool FGoogleARCoreDevice::GetIsGoogleARCoreSupported()
-{
-	return bIsARCoreSupported;
-}
-
-bool FGoogleARCoreDevice::GetIsTangoBound()
-{
-	return bTangoIsBound;
-}
-
-bool FGoogleARCoreDevice::GetIsTangoRunning()
-{
-	return bTangoIsBound && bTangoIsRunning;
-}
-
-#if PLATFORM_ANDROID
-TangoConfig FGoogleARCoreDevice::GetCurrentLowLevelTangoConfig()
-{
-	return LowLevelTangoConfig;
-}
-#endif
-
-void FGoogleARCoreDevice::UpdateTangoConfiguration(const FGoogleARCoreSessionConfig& InMapConfiguration)
-{
-	RequestTangoConfig = InMapConfiguration;
-	bTangoConfigChanged = !(RequestTangoConfig == LastKnownConfig);
-	UE_LOG(LogGoogleARCore, Log, TEXT("ARCore session configuration updated."));
-}
-
-void FGoogleARCoreDevice::ResetTangoConfiguration()
-{
-	RequestTangoConfig = ProjectTangoConfig;
-	bTangoConfigChanged = !(RequestTangoConfig == LastKnownConfig);
-	UE_LOG(LogGoogleARCore, Log, TEXT("ARCore session configuration reset to the project setting."));
-}
-
-void FGoogleARCoreDevice::GetCurrentSessionConfig(FGoogleARCoreSessionConfig& OutCurrentTangoConfig)
-{
-	if (GetIsTangoRunning())
-	{
-		// Return the last known config if the session is running.
-		OutCurrentTangoConfig = LastKnownConfig;
-	}
-	else
-	{
-		// otherwise, return the requested config
-		OutCurrentTangoConfig = RequestTangoConfig;
-	}
-}
-
-EGoogleARCoreReferenceFrame FGoogleARCoreDevice::GetCurrentBaseFrame()
-{
-	return GetBaseFrame(LastKnownConfig);
-}
-
-EGoogleARCoreReferenceFrame FGoogleARCoreDevice::GetBaseFrame(FGoogleARCoreSessionConfig TangoConfig)
-{
-	return EGoogleARCoreReferenceFrame::START_OF_SERVICE;
+	return CurrentSessionStatus;
 }
 
 float FGoogleARCoreDevice::GetWorldToMetersScale()
@@ -283,18 +120,47 @@ float FGoogleARCoreDevice::GetWorldToMetersScale()
 	return WorldToMeterScale;
 }
 
-void FGoogleARCoreDevice::StartTrackingSession()
+// This function will be called by public function to start AR core session request.
+void FGoogleARCoreDevice::StartARCoreSessionRequest(UARSessionConfig* SessionConfig)
 {
-	if (bTangoIsRunning)
+	UE_LOG(LogGoogleARCore, Log, TEXT("Start ARCore session requested"));
+
+	if (bIsARCoreSessionRunning)
 	{
-		UE_LOG(LogGoogleARCore, Error, TEXT("ARCore tracking session already exist. Please call StopTrackingSession before you start a new one."));
-		return;
+		if (SessionConfig == AccessSessionConfig())
+		{
+			UE_LOG(LogGoogleARCore, Warning, TEXT("ARCore session is already running with the requested ARCore config. Request aborted."));
+			bStartSessionRequested = false;
+			return;
+		}
+
+		PauseARCoreSession();
 	}
-	UE_LOG(LogGoogleARCore, Log, TEXT("Start ARCore tracking session requested"));
-	//Create Tango Java Object
-	bStartTangoTrackingRequested = true;
+
+	if (bStartSessionRequested)
+	{
+		UE_LOG(LogGoogleARCore, Warning, TEXT("ARCore session is already starting. This will overriding the previous session config with the new one."))
+	}
+
+	bStartSessionRequested = true;
+	// Re-request permission if necessary
+	bPermissionDeniedByUser = false;
+	bARCoreInstallRequested = false;
+
+	// Try recreating the ARCoreSession to fix the fatal error.
+	if (CurrentSessionStatus == EARSessionStatus::FatalError)
+	{
+		UE_LOG(LogGoogleARCore, Warning, TEXT("Reset ARCore session due to fatal error detected."));
+		ResetARCoreSession();
+	}
 }
 
+bool FGoogleARCoreDevice::GetStartSessionRequestFinished()
+{
+	return !bStartSessionRequested;
+}
+
+// Note that this function will only be registered when ARCore is supported.
 void FGoogleARCoreDevice::OnWorldTickStart(ELevelTick TickType, float DeltaTime)
 {
 	WorldToMeterScale = GWorld->GetWorldSettings()->WorldToMeters;
@@ -304,118 +170,103 @@ void FGoogleARCoreDevice::OnWorldTickStart(ELevelTick TickType, float DeltaTime)
 		Func();
 	}
 
-	if (bTangoConfigChanged)
+	if (!bIsARCoreSessionRunning && bStartSessionRequested)
 	{
-		UE_LOG(LogGoogleARCore, Log, TEXT("ARCore Session Config Changed"));
-		if (bTangoIsRunning)
+		if (!bARCoreInstalled)
 		{
-			StopTrackingSession();
-		}
-		bTangoConfigChanged = false;
-	}
+			EGoogleARCoreInstallStatus InstallStatus = EGoogleARCoreInstallStatus::Installed;
+			EGoogleARCoreAPIStatus Status = FGoogleARCoreAPKManager::RequestInstall(!bARCoreInstallRequested, InstallStatus);
 
-	if (!bTangoIsRunning && (RequestTangoConfig.bAutoConnect || bStartTangoTrackingRequested))
-	{
-		if (bNeedToCreateTangoObject)
-		{
-			// Invalidate runtime permissions
-			bAndroidRuntimePermissionsRequested = false;
-			bAndroidRuntimePermissionsGranted = false;
-			if (!BindTangoServiceAndCheckPermission(RequestTangoConfig))
+			if (Status != EGoogleARCoreAPIStatus::AR_SUCCESS)
 			{
-				UE_LOG(LogGoogleARCore, Error, TEXT("Failed to create tracking session: Tango Core is not up to date"));
+				bStartSessionRequested = false;
+				CurrentSessionStatus = EARSessionStatus::NotSupported;
 			}
-		}
-
-		if (bTangoIsBound && (!RequestTangoConfig.bAutoRequestRuntimePermissions || bAndroidRuntimePermissionsGranted))
-		{
-			if (StartSession(RequestTangoConfig))
+			else if (InstallStatus == EGoogleARCoreInstallStatus::Installed)
 			{
-				bStartTangoTrackingRequested = false;
-				EGoogleARCoreReferenceFrame CurrentBaseFrame = GetCurrentBaseFrame();
-				UE_LOG(LogGoogleARCore, Log, TEXT("Current Base Frame: %d"), (int32)CurrentBaseFrame);
-				TangoMotionManager.UpdateBaseFrame(CurrentBaseFrame);
-				TangoPointCloudManager.UpdateBaseFrame(CurrentBaseFrame);
-			}
-		}
-	}
-	if (bTangoIsRunning)
-	{
-		// Update motion tracking
-		TangoMotionManager.UpdateTangoPoses();
-
-		// Update ARCamera
-		TangoARCameraManager.UpdateCameraParameters(bDisplayOrientationChanged);
-		TangoARCameraManager.UpdateCameraImageBuffer();
-		TangoARCameraManager.UpdateLightEstimation();
-
-		// Update point cloud
-		TangoPointCloudManager.UpdatePointCloud();
-
-		// Update Anchors
-		if (ARAnchorManager)
-		{
-			int64 Value = AnchorsEarliestTimestampChanged.GetValue();
-			double EarliestTimestamp = reinterpret_cast<double&>(Value);
-			ARAnchorManager->UpdateARAnchors(TangoMotionManager.IsTrackingValid(), TangoMotionManager.IsRelocalized(), EarliestTimestamp);
-			AnchorsEarliestTimestampChanged.Set(reinterpret_cast<int64&>(UnassignedTimestamp));
-		}
-
-		// Update Planes
-		if (PlaneManager && LastKnownConfig.PlaneDetectionMode != EGoogleARCorePlaneDetectionMode::None)
-		{
-			PlaneManager->UpdatePlanes(DeltaTime);
-		}
-
-		bDisplayOrientationChanged = false;
-	}
-}
-
-bool FGoogleARCoreDevice::BindTangoServiceAndCheckPermission(const FGoogleARCoreSessionConfig& ConfigurationData)
-{
-	// Create Tango Java object
-	FGoogleARCoreAndroidHelper::CreateTangoObject();
-	bNeedToCreateTangoObject = false;
-
-	if (ConfigurationData.bAutoRequestRuntimePermissions)
-	{
-		if (!bAndroidRuntimePermissionsRequested)
-		{
-			TArray<FString> RuntimePermissions;
-			TArray<FString> NeededPermissions;
-			GetRequiredRuntimePermissionsForConfiguration(ConfigurationData, RuntimePermissions);
-			if (RuntimePermissions.Num() > 0)
-			{
-				for (int32 i = 0; i < RuntimePermissions.Num(); i++)
-				{
-					if (!UTangoAndroidPermissionHandler::CheckRuntimePermission(RuntimePermissions[i]))
-					{
-						NeededPermissions.Add(RuntimePermissions[i]);
-					}
-				}
-			}
-			if (NeededPermissions.Num() > 0)
-			{
-				bAndroidRuntimePermissionsGranted = false;
-				bAndroidRuntimePermissionsRequested = true;
-				if (PermissionHandler == nullptr)
-				{
-					PermissionHandler = NewObject<UTangoAndroidPermissionHandler>();
-					PermissionHandler->AddToRoot();
-				}
-				PermissionHandler->RequestRuntimePermissions(NeededPermissions);
+				bARCoreInstalled = true;
 			}
 			else
 			{
-				bAndroidRuntimePermissionsGranted = true;
+				bARCoreInstallRequested = true;
+			}
+		}
+
+		else if (bPermissionDeniedByUser)
+		{
+			CurrentSessionStatus = EARSessionStatus::PermissionNotGranted;
+			bStartSessionRequested = false;
+		}
+		else
+		{
+			CheckAndRequrestPermission(*AccessSessionConfig());
+			// Either we don't need to request permission or the permission request is done.
+			// Queue the session start task on UiThread
+			if (!bAndroidRuntimePermissionsRequested)
+			{
+				StartSessionWithRequestedConfig();
 			}
 		}
 	}
 
-	return true;
+	if (bIsARCoreSessionRunning)
+	{
+		// Update ARFrame
+		FVector2D ViewportSize(1, 1);
+		if (GEngine && GEngine->GameViewport)
+		{
+			ViewportSize = GEngine->GameViewport->Viewport->GetSizeXY();
+		}
+		ARCoreSession->SetDisplayGeometry(FGoogleARCoreAndroidHelper::GetDisplayRotation(), ViewportSize.X, ViewportSize.Y);
+		EGoogleARCoreAPIStatus Status = ARCoreSession->Update(WorldToMeterScale);
+		if (Status == EGoogleARCoreAPIStatus::AR_ERROR_FATAL)
+		{
+			ARCoreSession->Pause();
+			bIsARCoreSessionRunning = false;
+			CurrentSessionStatus = EARSessionStatus::FatalError;
+		}
+		else
+		{
+			CameraBlitter.DoBlit(PassthroughCameraTextureId, FIntPoint(1080, 1920));
+		}
+	}
 }
 
-// Called from blueprint library
+void FGoogleARCoreDevice::CheckAndRequrestPermission(const UARSessionConfig& ConfigurationData)
+{
+	if (!bAndroidRuntimePermissionsRequested)
+	{
+		TArray<FString> RuntimePermissions;
+		TArray<FString> NeededPermissions;
+		GetRequiredRuntimePermissionsForConfiguration(ConfigurationData, RuntimePermissions);
+		if (RuntimePermissions.Num() > 0)
+		{
+			for (int32 i = 0; i < RuntimePermissions.Num(); i++)
+			{
+				if (!UARCoreAndroidPermissionHandler::CheckRuntimePermission(RuntimePermissions[i]))
+				{
+					NeededPermissions.Add(RuntimePermissions[i]);
+				}
+			}
+		}
+		if (NeededPermissions.Num() > 0)
+		{
+			bAndroidRuntimePermissionsGranted = false;
+			bAndroidRuntimePermissionsRequested = true;
+			if (PermissionHandler == nullptr)
+			{
+				PermissionHandler = NewObject<UARCoreAndroidPermissionHandler>();
+				PermissionHandler->AddToRoot();
+			}
+			PermissionHandler->RequestRuntimePermissions(NeededPermissions);
+		}
+		else
+		{
+			bAndroidRuntimePermissionsGranted = true;
+		}
+	}
+}
+
 void FGoogleARCoreDevice::HandleRuntimePermissionsGranted(const TArray<FString>& RuntimePermissions, const TArray<bool>& Granted)
 {
 	bool bGranted = true;
@@ -424,168 +275,306 @@ void FGoogleARCoreDevice::HandleRuntimePermissionsGranted(const TArray<FString>&
 		if (!Granted[i])
 		{
 			bGranted = false;
-			UE_LOG(LogGoogleARCore, Error, TEXT("Android runtime permission denied: %s"), *RuntimePermissions[i]);
+			UE_LOG(LogGoogleARCore, Warning, TEXT("Android runtime permission denied: %s"), *RuntimePermissions[i]);
 		}
 		else
 		{
 			UE_LOG(LogGoogleARCore, Log, TEXT("Android runtime permission granted: %s"), *RuntimePermissions[i]);
 		}
 	}
+	bAndroidRuntimePermissionsRequested = false;
 	bAndroidRuntimePermissionsGranted = bGranted;
+
+	if (!bGranted)
+	{
+		bPermissionDeniedByUser = true;
+	}
 }
 
-bool FGoogleARCoreDevice::StartSession(const FGoogleARCoreSessionConfig& ConfigurationData)
+void FGoogleARCoreDevice::StartSessionWithRequestedConfig()
 {
-	UE_LOG(LogGoogleARCore, Log, TEXT("Start ARCore tracking..."));
+	bStartSessionRequested = false;
 
-#if PLATFORM_ANDROID
-	TangoConfig TangoConfiguration = TangoService_getConfig(TANGO_CONFIG_DEFAULT);
-
-	if (TangoConfiguration != nullptr)
+	// Allocate passthrough camera texture if necessary.
+	if (PassthroughCameraTexture == nullptr)
 	{
-		// Apply settings . . .
-		SetupClientAPIConfigForCurrentSettings(TangoConfiguration, ConfigurationData);
+		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+			UpdateCameraImageUV,
+			FGoogleARCoreDevice*, ARCoreDevicePtr, this,
+			{
+				ARCoreDevicePtr->AllocatePassthroughCameraTexture_RenderThread();
+			}
+		);
+		FlushRenderingCommands();
+	}
 
-		// Start Tango.
-		TangoErrorType ConnectError;
+	if (!ARCoreSession.IsValid())
+	{
+		ARCoreSession = FGoogleARCoreSession::CreateARCoreSession();
+		EGoogleARCoreAPIStatus SessionCreateStatus = ARCoreSession->GetSessionCreateStatus();
+		if (SessionCreateStatus != EGoogleARCoreAPIStatus::AR_SUCCESS)
 		{
-			if (bTangoIsRunning)
+			ensureMsgf(false, TEXT("Failed to create ARCore session with error status: %d"), (int)SessionCreateStatus);
+			if (SessionCreateStatus != EGoogleARCoreAPIStatus::AR_ERROR_FATAL)
 			{
-				UE_LOG(LogGoogleARCore, Log, TEXT("Could not start ARCore session because there is already a session running!"));
-				TangoConfig_free(TangoConfiguration);
-				return false;
+				CurrentSessionStatus = EARSessionStatus::NotSupported;
 			}
-
-			if (!TangoMotionManager.OnTrackingSessionStarted(GetBaseFrame(ConfigurationData)))
+			else
 			{
-				UE_LOG(LogGoogleARCore, Error, TEXT("Failed to connect Tango On PoseAvailable"));
-				TangoConfig_free(TangoConfiguration);
-				return false;
+				CurrentSessionStatus = EARSessionStatus::FatalError;
 			}
-
-			if (!TangoARCameraManager.ConnectTangoColorCamera())
-			{
-				UE_LOG(LogGoogleARCore, Error, TEXT("Failed to connect Tango Color Camera"));
-				TangoConfig_free(TangoConfiguration);
-				return false;
-			}
-
-			if (!TangoPointCloudManager.ConnectPointCloud(TangoConfiguration))
-			{
-				UE_LOG(LogGoogleARCore, Error, TEXT("Failed to connect Tango Point Cloud"));
-				TangoConfig_free(TangoConfiguration);
-				return false;
-			}
-
-			if (GEngine->XRSystem.IsValid())
-			{
-				FGoogleARCoreHMD* TangoHMD = static_cast<FGoogleARCoreHMD*>(GEngine->XRSystem.Get());
-				if (TangoHMD)
-				{
-					TangoHMD->ConfigTangoHMD(ConfigurationData.bLinkCameraToGoogleARDevice, ConfigurationData.bEnablePassthroughCameraRendering, true);
-				}
-				else
-				{
-					UE_LOG(LogGoogleARCore, Error, TEXT("ERROR: GoogleARHMD is not available."));
-				}
-			}
-			TangoARCameraManager.SetSyncGameFramerateWithCamera(ConfigurationData.bSyncGameFrameRateWithPassthroughCamera);
+			ARCoreSession.Reset();
+			return;
 		}
-
-		ConnectError = TangoService_connect(this, TangoConfiguration);
-
-		if (ConnectError != TANGO_SUCCESS)
-		{
-			UE_LOG(LogGoogleARCore, Error, TEXT("Starting Tango failed with TangoErrorType of %d"), ConnectError);
-			return false;
-		}
-
-		if (LowLevelTangoConfig != nullptr)
-		{
-			TangoConfig_free(LowLevelTangoConfig);
-		}
-
-		LowLevelTangoConfig = TangoConfiguration;
-		FString ConfigString(TangoConfig_toString(TangoConfiguration));
-		UE_LOG(LogGoogleARCore, Log, TEXT("Tango Config: %s"), *ConfigString);
-	}
-	else
-	{
-		UE_LOG(LogGoogleARCore, Error, TEXT("Could not allocate Tango configuration object, cannot start Tango."));
-		return false;
+		ARCoreSession->SetARSystem(ARSystem.ToSharedRef());
 	}
 
-	UE_LOG(LogGoogleARCore, Log, TEXT("ARCore tracking session started successfully"));
-
-	if (!bTangoSupportLibraryIntialized)
-	{
-		TangoSupport_initialize(
-			TangoService_getPoseAtTime,
-			TangoService_getCameraIntrinsics);
-		bTangoSupportLibraryIntialized = true;
-	}
-
-	if (!ARAnchorManager)
-	{
-		ARAnchorManager = NewObject<UGoogleARCoreAnchorManager>();
-		ARAnchorManager->AddToRoot();
-	}
-
-	if (!PlaneManager)
-	{
-		PlaneManager = NewObject<UGoogleARCorePlaneManager>();
-		PlaneManager->AddToRoot();
-	}
-
-	ARAnchorManager->OnTrackingSessionStarted();
-
-	LastKnownConfig = ConfigurationData;
-	bTangoIsRunning = true;
-	return true;
-#endif
-	return false;
+	StartSession();
 }
 
-void FGoogleARCoreDevice::StopTrackingSession()
+void FGoogleARCoreDevice::StartSession()
 {
-	UE_LOG(LogGoogleARCore, Log, TEXT("Stop ARCore tracking session"));
-	if (!bTangoIsRunning)
+	UARSessionConfig* RequestedConfig = AccessSessionConfig();
+
+	if (RequestedConfig->GetSessionType() != EARSessionType::World)
 	{
-		UE_LOG(LogGoogleARCore, Log, TEXT("Could not stop ARCore tracking session because there is no running tracking session!"));
+		UE_LOG(LogGoogleARCore, Warning, TEXT("Start AR failed: Unsupported AR tracking type %d for GoogleARCore"), static_cast<int>(RequestedConfig->GetSessionType()));
+		CurrentSessionStatus = EARSessionStatus::UnsupportedConfiguration;
 		return;
 	}
 
-	// Set service bound to false since we need to recreate a tango java object when start a new tracking session.
-	bTangoIsRunning = false;
-	bTangoIsBound = false;
+	EGoogleARCoreAPIStatus Status = ARCoreSession->ConfigSession(*RequestedConfig);
+
+	if (Status != EGoogleARCoreAPIStatus::AR_SUCCESS)
+	{
+		UE_LOG(LogGoogleARCore, Error, TEXT("ARCore Session start failed with error status %d"), static_cast<int>(Status));
+		CurrentSessionStatus = EARSessionStatus::UnsupportedConfiguration;
+		return;
+	}
+
+	check(PassthroughCameraTextureId != -1);
+	ARCoreSession->SetCameraTextureId(PassthroughCameraTextureId);
+
+	Status = ARCoreSession->Resume();
+
+	if (Status != EGoogleARCoreAPIStatus::AR_SUCCESS)
+	{
+		UE_LOG(LogGoogleARCore, Error, TEXT("ARCore Session start failed with error status %d"), static_cast<int>(Status));
+		check(Status == EGoogleARCoreAPIStatus::AR_ERROR_FATAL);
+		// If we failed here, the only reason would be fatal error.
+		CurrentSessionStatus = EARSessionStatus::FatalError;
+		return;
+	}
+
+	if (GEngine->XRSystem.IsValid())
+	{
+		FGoogleARCoreXRTrackingSystem* ARCoreTrackingSystem = static_cast<FGoogleARCoreXRTrackingSystem*>(GEngine->XRSystem.Get());
+		if (ARCoreTrackingSystem)
+		{
+			const bool bMatchFOV = RequestedConfig->ShouldRenderCameraOverlay();
+			ARCoreTrackingSystem->ConfigARCoreXRCamera(bMatchFOV, RequestedConfig->ShouldRenderCameraOverlay());
+		}
+		else
+		{
+			UE_LOG(LogGoogleARCore, Error, TEXT("ERROR: GoogleARCoreXRTrackingSystem is not available."));
+		}
+	}
+
+	bIsARCoreSessionRunning = true;
+	CurrentSessionStatus = EARSessionStatus::Running;
+	UE_LOG(LogGoogleARCore, Log, TEXT("ARCore session started successfully."));
+}
+
+void FGoogleARCoreDevice::SetARSystem(TSharedPtr<FARSystemBase, ESPMode::ThreadSafe> InARSystem)
+{
+	check(InARSystem.IsValid());
+	ARSystem = InARSystem;
+}
+
+TSharedPtr<FARSystemBase, ESPMode::ThreadSafe> FGoogleARCoreDevice::GetARSystem()
+{
+	return ARSystem;
+}
+
+void FGoogleARCoreDevice::PauseARCoreSession()
+{
+	UE_LOG(LogGoogleARCore, Log, TEXT("Stopping ARCore session."));
+	if (!bIsARCoreSessionRunning)
+	{
+		if(bStartSessionRequested)
+		{
+			bStartSessionRequested = false;
+		}
+		else
+		{
+			UE_LOG(LogGoogleARCore, Log, TEXT("Could not stop ARCore tracking session because there is no running tracking session!"));
+		}
+		return;
+	}
+
+	EGoogleARCoreAPIStatus Status = ARCoreSession->Pause();
+
+	if (Status == EGoogleARCoreAPIStatus::AR_ERROR_FATAL)
+	{
+		CurrentSessionStatus = EARSessionStatus::FatalError;
+	}
+
+	bIsARCoreSessionRunning = false;
+	CurrentSessionStatus = EARSessionStatus::NotStarted;
+	UE_LOG(LogGoogleARCore, Log, TEXT("ARCore session stopped"));
+}
+
+void FGoogleARCoreDevice::ResetARCoreSession()
+{
+	ARCoreSession.Reset();
+	CurrentSessionStatus = EARSessionStatus::NotStarted;
+}
+
+void FGoogleARCoreDevice::AllocatePassthroughCameraTexture_RenderThread()
+{
+	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+	FRHIResourceCreateInfo CreateInfo;
+
+	PassthroughCameraTexture = RHICmdList.CreateTextureExternal2D(1, 1, PF_R8G8B8A8, 1, 1, 0, CreateInfo);
+
+	void* NativeResource = PassthroughCameraTexture->GetNativeResource();
+	check(NativeResource);
+	PassthroughCameraTextureId = *reinterpret_cast<uint32*>(NativeResource);
+}
+
+FTextureRHIRef FGoogleARCoreDevice::GetPassthroughCameraTexture()
+{
+	return PassthroughCameraTexture;
+}
+
+FMatrix FGoogleARCoreDevice::GetPassthroughCameraProjectionMatrix(FIntPoint ViewRectSize) const
+{
+	if (!bIsARCoreSessionRunning)
+	{
+		return FMatrix::Identity;
+	}
+	return ARCoreSession->GetLatestFrame()->GetProjectionMatrix();
+}
+
+void FGoogleARCoreDevice::GetPassthroughCameraImageUVs(const TArray<float>& InUvs, TArray<float>& OutUVs) const
+{
+	if (!bIsARCoreSessionRunning)
+	{
+		return;
+	}
+	ARCoreSession->GetLatestFrame()->TransformDisplayUvCoords(InUvs, OutUVs);
+}
+
+EGoogleARCoreTrackingState FGoogleARCoreDevice::GetTrackingState() const
+{
+	if (!bIsARCoreSessionRunning)
+	{
+		return EGoogleARCoreTrackingState::StoppedTracking;
+	}
+	return ARCoreSession->GetLatestFrame()->GetCameraTrackingState();
+}
+
+FTransform FGoogleARCoreDevice::GetLatestPose() const
+{
+	if (!bIsARCoreSessionRunning)
+	{
+		return FTransform::Identity;
+	}
+	return ARCoreSession->GetLatestFrame()->GetCameraPose();
+}
+
+EGoogleARCoreFunctionStatus FGoogleARCoreDevice::GetLatestPointCloud(UGoogleARCorePointCloud*& OutLatestPointCloud) const
+{
+	if (!bIsARCoreSessionRunning)
+	{
+		return EGoogleARCoreFunctionStatus::SessionPaused;
+	}
+
+	return ToARCoreFunctionStatus(ARCoreSession->GetLatestFrame()->GetPointCloud(OutLatestPointCloud));
+}
+
+EGoogleARCoreFunctionStatus FGoogleARCoreDevice::AcquireLatestPointCloud(UGoogleARCorePointCloud*& OutLatestPointCloud) const
+{
+	if (!bIsARCoreSessionRunning)
+	{
+		return EGoogleARCoreFunctionStatus::SessionPaused;
+	}
+
+	return ToARCoreFunctionStatus(ARCoreSession->GetLatestFrame()->AcquirePointCloud(OutLatestPointCloud));
+}
 
 #if PLATFORM_ANDROID
-	TangoPointCloudManager.DisconnectPointCloud();
-
-	TangoARCameraManager.DisconnectTangoColorCamera();
-
-	if (PlaneManager)
+EGoogleARCoreFunctionStatus FGoogleARCoreDevice::GetLatestCameraMetadata(const ACameraMetadata*& OutCameraMetadata) const
+{
+	if (!bIsARCoreSessionRunning)
 	{
-		PlaneManager->EmptyPlanes();
+		return EGoogleARCoreFunctionStatus::SessionPaused;
 	}
 
-	if (ARAnchorManager)
-	{
-		ARAnchorManager->OnTrackingSessionEnded();
-	}
-
-	TangoMotionManager.OnTrackingSessionStopped();
-
-	TangoService_disconnect();
-
-	if (LowLevelTangoConfig != nullptr)
-	{
-		TangoConfig_free(LowLevelTangoConfig);
-		LowLevelTangoConfig = nullptr;
-	}
+	return ToARCoreFunctionStatus(ARCoreSession->GetLatestFrame()->GetCameraMetadata(OutCameraMetadata));
+}
 #endif
+FGoogleARCoreLightEstimate FGoogleARCoreDevice::GetLatestLightEstimate() const
+{
+	if (!bIsARCoreSessionRunning)
+	{
+		return FGoogleARCoreLightEstimate();
+	}
 
-	bNeedToCreateTangoObject = true;
+	return ARCoreSession->GetLatestFrame()->GetLightEstimate();
+}
+
+void FGoogleARCoreDevice::ARLineTrace(const FVector2D& ScreenPosition, EGoogleARCoreLineTraceChannel TraceChannels, TArray<FARTraceResult>& OutHitResults)
+{
+	if (!bIsARCoreSessionRunning)
+	{
+		return;
+	}
+	OutHitResults.Empty();
+	ARCoreSession->GetLatestFrame()->ARLineTrace(ScreenPosition, TraceChannels, OutHitResults);
+}
+
+EGoogleARCoreFunctionStatus FGoogleARCoreDevice::CreateARPin(const FTransform& PinToWorldTransform, UARTrackedGeometry* TrackedGeometry, USceneComponent* ComponentToPin, const FName DebugName, UARPin*& OutARAnchorObject)
+{
+	if (!bIsARCoreSessionRunning)
+	{
+		return EGoogleARCoreFunctionStatus::SessionPaused;
+	}
+
+	const FTransform& TrackingToAlignedTracking = ARSystem->GetAlignmentTransform();
+	const FTransform PinToTrackingTransform = PinToWorldTransform.GetRelativeTransform(ARSystem->GetTrackingToWorldTransform()).GetRelativeTransform(TrackingToAlignedTracking);
+
+	EGoogleARCoreFunctionStatus Status = ToARCoreFunctionStatus(ARCoreSession->CreateARAnchor(PinToTrackingTransform, TrackedGeometry, ComponentToPin, DebugName, OutARAnchorObject));
+
+	return Status;
+}
+
+void FGoogleARCoreDevice::RemoveARPin(UARPin* ARAnchorObject)
+{
+	if (!bIsARCoreSessionRunning)
+	{
+		return;
+	}
+
+	ARCoreSession->DetachAnchor(ARAnchorObject);
+}
+
+void FGoogleARCoreDevice::GetAllARPins(TArray<UARPin*>& ARCoreAnchorList)
+{
+	if (!bIsARCoreSessionRunning)
+	{
+		return;
+	}
+	ARCoreSession->GetAllAnchors(ARCoreAnchorList);
+}
+
+void FGoogleARCoreDevice::GetUpdatedARPins(TArray<UARPin*>& ARCoreAnchorList)
+{
+	if (!bIsARCoreSessionRunning)
+	{
+		return;
+	}
+	ARCoreSession->GetLatestFrame()->GetUpdatedAnchors(ARCoreAnchorList);
 }
 
 // Functions that are called on Android lifecycle events.
@@ -599,25 +588,22 @@ void FGoogleARCoreDevice::OnApplicationDestroyed()
 
 void FGoogleARCoreDevice::OnApplicationPause()
 {
-	UE_LOG(LogGoogleARCore, Log, TEXT("OnPause Called"));
-	bShouldTangoRestart = bTangoIsRunning;
-	if (bTangoIsRunning)
+	UE_LOG(LogGoogleARCore, Log, TEXT("OnPause Called: %d"), bIsARCoreSessionRunning);
+	bShouldSessionRestart = bIsARCoreSessionRunning;
+	if (bIsARCoreSessionRunning)
 	{
-		StopTrackingSession();
+		PauseARCoreSession();
 	}
 }
 
 void FGoogleARCoreDevice::OnApplicationResume()
 {
-	UE_LOG(LogGoogleARCore, Log, TEXT("OnResume Called: %d"), bShouldTangoRestart);
-	if (bShouldTangoRestart)
+	UE_LOG(LogGoogleARCore, Log, TEXT("OnResume Called: %d"), bShouldSessionRestart);
+	// Try to ask for permission if it is denied by user.
+	if (bShouldSessionRestart)
 	{
-		bShouldTangoRestart = false;
-		UpdateTangoConfiguration(LastKnownConfig);
-		RunOnGameThread([this]() -> void {
-			// Assign the request to restart Tango Tracking when service is bound;
-			bStartTangoTrackingRequested = true;
-		});
+		bShouldSessionRestart = false;
+		StartSession();
 	}
 }
 
@@ -629,27 +615,16 @@ void FGoogleARCoreDevice::OnApplicationStart()
 {
 }
 
+// TODO: we probably don't need this.
 void FGoogleARCoreDevice::OnDisplayOrientationChanged()
 {
 	FGoogleARCoreAndroidHelper::UpdateDisplayRotation();
 	bDisplayOrientationChanged = true;
 }
 
-void FGoogleARCoreDevice::OnAreaDescriptionPermissionResult(bool bWasGranted)
+UARSessionConfig* FGoogleARCoreDevice::AccessSessionConfig() const
 {
-	UE_LOG(LogGoogleARCore, Log, TEXT("OnAreaPermissionResult Called: %d"), bWasGranted);
-	RunOnGameThread([]() -> void {
-		// @TODO: fire event to user so they can take action if denied
-	});
+	return (ARSystem.IsValid())
+		? &ARSystem->AccessSessionConfig()
+		: nullptr;
 }
-
-int32 FGoogleARCoreDevice::GetDepthCameraFrameRate()
-{
-	return 0;
-}
-
-bool FGoogleARCoreDevice::SetDepthCameraFrameRate(int32 NewFrameRate)
-{
-	return false;
-}
-

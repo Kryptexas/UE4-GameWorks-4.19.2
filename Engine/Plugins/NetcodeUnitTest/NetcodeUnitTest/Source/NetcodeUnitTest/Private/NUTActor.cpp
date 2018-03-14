@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NUTActor.h"
 #include "Misc/CommandLine.h"
@@ -52,9 +52,7 @@ void ANUTActor::PostActorCreated()
 		HookNetDriver(NUTUtil::GetActiveNetDriver(CurWorld));
 	}
 
-	int32 Dud = 0;
-
-	if (FParse::Value(FCommandLine::Get(), TEXT("BeaconPort="), Dud) && Dud != 0)
+	if (FParse::Param(FCommandLine::Get(), TEXT("NUTMonitorBeacon")))
 	{
 		bMonitorForBeacon = true;
 	}
@@ -103,189 +101,191 @@ bool ANUTActor::NotifyControlMessage(UNetConnection* Connection, uint8 MessageTy
 
 		ENUTControlCommand CmdType;
 		FString Command;
-		FNetControlMessage<NMT_NUTControl>::Receive(Bunch, CmdType, Command);
 
-		// Console command
-		if (CmdType == ENUTControlCommand::Command_NoResult || CmdType == ENUTControlCommand::Command_SendResult)
+		if (FNetControlMessage<NMT_NUTControl>::Receive(Bunch, CmdType, Command))
 		{
-			UE_LOG(LogUnitTest, Log, TEXT("NMT_NUTControl: Executing command: %s"), *Command);
-
-			FStringOutputDevice CmdResult;
-			CmdResult.SetAutoEmitLineTerminator(true);
-
-			bool bCmdSuccess = false;
-
-			bCmdSuccess = GEngine->Exec(GetWorld(), *Command, CmdResult);
-
-			UE_LOG(LogUnitTest, Log, TEXT("NMT_NUTControl: Command result: %s"), *CmdResult);
-
-
-			bool bSendResult = CmdType == ENUTControlCommand::Command_SendResult;
-
-			if (bSendResult)
+			// Console command
+			if (CmdType == ENUTControlCommand::Command_NoResult || CmdType == ENUTControlCommand::Command_SendResult)
 			{
-				ENUTControlCommand ReturnCmdType = (bCmdSuccess ? ENUTControlCommand::CommandResult_Success :
-										ENUTControlCommand::CommandResult_Failed);
+				UE_LOG(LogUnitTest, Log, TEXT("NMT_NUTControl: Executing command: %s"), *Command);
 
-				FNetControlMessage<NMT_NUTControl>::Send(Connection, ReturnCmdType, CmdResult);
-			}
-		}
-		// Console command result
-		else if (CmdType == ENUTControlCommand::CommandResult_Failed || CmdType == ENUTControlCommand::CommandResult_Success)
-		{
-			bool bCmdSuccess = CmdType == ENUTControlCommand::CommandResult_Success;
+				FStringOutputDevice CmdResult;
+				CmdResult.SetAutoEmitLineTerminator(true);
 
-			if (bCmdSuccess)
-			{
-				UE_LOG(LogUnitTest, Log, TEXT("NMT_NUTControl: Got command result:"));
-				UE_LOG(LogUnitTest, Log, TEXT("%s"), *Command);
-			}
-			else
-			{
-				UE_LOG(LogUnitTest, Log, TEXT("NMT_NUTControl: Failed to execute command"));
-			}
-		}
-		// Ping request
-		else if (CmdType == ENUTControlCommand::Ping)
-		{
-			ENUTControlCommand TempCmdType = ENUTControlCommand::Pong;
-			FString Dud;
+				bool bCmdSuccess = false;
 
-			FNetControlMessage<NMT_NUTControl>::Send(Connection, TempCmdType, Dud);
-		}
-		// Pong reply - this should only be implemented by custom unit tests; hence the assert
-		else if (CmdType == ENUTControlCommand::Pong)
-		{
-			UNIT_ASSERT(false);
-		}
-		// Custom implemented events, with the result triggered through 'NotifyEvent'
-		else if (CmdType == ENUTControlCommand::WatchEvent)
-		{
-			// NOTE: Only the last NetConnection to request a WatchEvent, will receive notifications
-			EventWatcher = Connection;
+				bCmdSuccess = GEngine->Exec(GetWorld(), *Command, CmdResult);
 
-			// Watch for the end of seamless travel
-			if (Command == TEXT("SeamlessTravelEnd"))
-			{
-				FCoreUObjectDelegates::PostLoadMapWithWorld.AddStatic(&ANUTActor::NotifyPostLoadMap);
-			}
-		}
-		// Event watch notification - should only be implemented by custom unit tests
-		else if (CmdType == ENUTControlCommand::NotifyEvent)
-		{
-			UNIT_ASSERT(false);
-		}
-		// Create an actor instance (the 'summon' console command, doesn't work without a cheat manager)
-		else if (CmdType == ENUTControlCommand::Summon)
-		{
-			const TCHAR* Cmd = *Command;
-			FString SpawnClassName = FParse::Token(Cmd, false);
-			bool bForceBeginPlay = FParse::Param(Cmd, TEXT("ForceBeginPlay"));
+				UE_LOG(LogUnitTest, Log, TEXT("NMT_NUTControl: Command result: %s"), *CmdResult);
 
-			// Hack specifically for getting the GameplayDebugger working - think the mainline code is broken
-			bool bGameplayDebuggerHack = FParse::Param(Cmd, TEXT("GameplayDebuggerHack"));
 
-			UClass* SpawnClass = FindObject<UClass>(NULL, *SpawnClassName);
+				bool bSendResult = CmdType == ENUTControlCommand::Command_SendResult;
 
-			if (SpawnClass != nullptr)
-			{
-				FActorSpawnParameters SpawnParms;
-				SpawnParms.Owner = GetOwner();
-
-				AActor* NewActor = GetWorld()->SpawnActor<AActor>(SpawnClass, SpawnParms);
-
-				if (NewActor != nullptr)
+				if (bSendResult)
 				{
-					UE_LOG(LogUnitTest, Log, TEXT("Successfully summoned actor of class '%s'"), *SpawnClassName);
+					ENUTControlCommand ReturnCmdType = (bCmdSuccess ? ENUTControlCommand::CommandResult_Success :
+						ENUTControlCommand::CommandResult_Failed);
 
-					if (bForceBeginPlay && !NewActor->HasActorBegunPlay())
+					FNetControlMessage<NMT_NUTControl>::Send(Connection, ReturnCmdType, CmdResult);
+				}
+			}
+			// Console command result
+			else if (CmdType == ENUTControlCommand::CommandResult_Failed || CmdType == ENUTControlCommand::CommandResult_Success)
+			{
+				bool bCmdSuccess = CmdType == ENUTControlCommand::CommandResult_Success;
+
+				if (bCmdSuccess)
+				{
+					UE_LOG(LogUnitTest, Log, TEXT("NMT_NUTControl: Got command result:"));
+					UE_LOG(LogUnitTest, Log, TEXT("%s"), *Command);
+				}
+				else
+				{
+					UE_LOG(LogUnitTest, Log, TEXT("NMT_NUTControl: Failed to execute command"));
+				}
+			}
+			// Ping request
+			else if (CmdType == ENUTControlCommand::Ping)
+			{
+				ENUTControlCommand TempCmdType = ENUTControlCommand::Pong;
+				FString Dud;
+
+				FNetControlMessage<NMT_NUTControl>::Send(Connection, TempCmdType, Dud);
+			}
+			// Pong reply - this should only be implemented by custom unit tests; hence the assert
+			else if (CmdType == ENUTControlCommand::Pong)
+			{
+				UNIT_ASSERT(false);
+			}
+			// Custom implemented events, with the result triggered through 'NotifyEvent'
+			else if (CmdType == ENUTControlCommand::WatchEvent)
+			{
+				// NOTE: Only the last NetConnection to request a WatchEvent, will receive notifications
+				EventWatcher = Connection;
+
+				// Watch for the end of seamless travel
+				if (Command == TEXT("SeamlessTravelEnd"))
+				{
+					FCoreUObjectDelegates::PostLoadMapWithWorld.AddStatic(&ANUTActor::NotifyPostLoadMap);
+				}
+			}
+			// Event watch notification - should only be implemented by custom unit tests
+			else if (CmdType == ENUTControlCommand::NotifyEvent)
+			{
+				UNIT_ASSERT(false);
+			}
+			// Create an actor instance (the 'summon' console command, doesn't work without a cheat manager)
+			else if (CmdType == ENUTControlCommand::Summon)
+			{
+				const TCHAR* Cmd = *Command;
+				FString SpawnClassName = FParse::Token(Cmd, false);
+				bool bForceBeginPlay = FParse::Param(Cmd, TEXT("ForceBeginPlay"));
+
+				// Hack specifically for getting the GameplayDebugger working - think the mainline code is broken
+				bool bGameplayDebuggerHack = FParse::Param(Cmd, TEXT("GameplayDebuggerHack"));
+
+				UClass* SpawnClass = FindObject<UClass>(NULL, *SpawnClassName);
+
+				if (SpawnClass != nullptr)
+				{
+					FActorSpawnParameters SpawnParms;
+					SpawnParms.Owner = GetOwner();
+
+					AActor* NewActor = GetWorld()->SpawnActor<AActor>(SpawnClass, SpawnParms);
+
+					if (NewActor != nullptr)
 					{
-						UE_LOG(LogUnitTest, Log, TEXT("Forcing call to 'BeginPlay' on newly spawned actor."));
+						UE_LOG(LogUnitTest, Log, TEXT("Successfully summoned actor of class '%s'"), *SpawnClassName);
 
-						NewActor->DispatchBeginPlay();
-					}
+						if (bForceBeginPlay && !NewActor->HasActorBegunPlay())
+						{
+							UE_LOG(LogUnitTest, Log, TEXT("Forcing call to 'BeginPlay' on newly spawned actor."));
 
-					if (bGameplayDebuggerHack)
-					{
-						// Assign the LocalPlayerOwner property, to the PC owning this NUTActor, using reflection (to avoid dependency)
-						UObjectProperty* LocalPlayerOwnerProp =
+							NewActor->DispatchBeginPlay();
+						}
+
+						if (bGameplayDebuggerHack)
+						{
+							// Assign LocalPlayerOwner property, to the PC owning this NUTActor, using reflection (to avoid dependency)
+							UObjectProperty* LocalPlayerOwnerProp =
 								FindField<UObjectProperty>(NewActor->GetClass(), TEXT("LocalPlayerOwner"));
 
-						if (LocalPlayerOwnerProp != NULL)
-						{
-							LocalPlayerOwnerProp->SetObjectPropertyValue(
-								LocalPlayerOwnerProp->ContainerPtrToValuePtr<UObject*>(NewActor), GetOwner());
-						}
-						else
-						{
-							UE_LOG(LogUnitTest, Log, TEXT("WARNING: Failed to find 'LocalPlayerOwner' property. Unit test broken."));
-						}
+							if (LocalPlayerOwnerProp != NULL)
+							{
+								LocalPlayerOwnerProp->SetObjectPropertyValue(
+									LocalPlayerOwnerProp->ContainerPtrToValuePtr<UObject*>(NewActor), GetOwner());
+							}
+							else
+							{
+								UE_LOG(LogUnitTest, Log, TEXT("WARNING: Failed to find 'LocalPlayerOwner'. Unit test broken."));
+							}
 
-						// Also hack-disable ticking, so that the replicator doesn't spawn a second replicator
-						NewActor->SetActorTickEnabled(false);
+							// Also hack-disable ticking, so that the replicator doesn't spawn a second replicator
+							NewActor->SetActorTickEnabled(false);
+						}
+					}
+					else
+					{
+						UE_LOG(LogUnitTest, Log, TEXT("SpawnActor failed for class '%s'"), *Command);
 					}
 				}
 				else
 				{
-					UE_LOG(LogUnitTest, Log, TEXT("SpawnActor failed for class '%s'"), *Command);
+					UE_LOG(LogUnitTest, Log, TEXT("Could not find actor class '%s'"), *Command);
 				}
 			}
-			else
+			// Suspend the game, until a resume request is received (used for giving time, to attach a debugger)
+			else if (CmdType == ENUTControlCommand::SuspendProcess)
 			{
-				UE_LOG(LogUnitTest, Log, TEXT("Could not find actor class '%s'"), *Command);
-			}
-		}
-		// Suspend the game, until a resume request is received (used for giving time, to attach a debugger)
-		else if (CmdType == ENUTControlCommand::SuspendProcess)
-		{
 #if PLATFORM_WINDOWS
-			UE_LOG(LogUnitTest, Log, TEXT("Suspend start."));
+				UE_LOG(LogUnitTest, Log, TEXT("Suspend start."));
 
 
-			// Setup a named pipe, to monitor for the resume request
-			FString ResumePipeName = FString::Printf(TEXT("%s%u"), NUT_SUSPEND_PIPE, FPlatformProcess::GetCurrentProcessId());
-			FPlatformNamedPipe ResumePipe;
-			bool bPipeCreated = ResumePipe.Create(ResumePipeName, true, false);
+				// Setup a named pipe, to monitor for the resume request
+				FString ResumePipeName = FString::Printf(TEXT("%s%u"), NUT_SUSPEND_PIPE, FPlatformProcess::GetCurrentProcessId());
+				FPlatformNamedPipe ResumePipe;
+				bool bPipeCreated = ResumePipe.Create(ResumePipeName, true, false);
 
-			if (bPipeCreated)
-			{
-				if (!ResumePipe.OpenConnection())
+				if (bPipeCreated)
 				{
-					UE_LOG(LogUnitTest, Log, TEXT("WARNING: Failed to open pipe connection."));
-				}
-			}
-			else
-			{
-				UE_LOG(LogUnitTest, Log, TEXT("WARNING: Failed to create resume pipe."));
-			}
-
-
-
-			// Spin/sleep (effectively suspended) until a resume request is received
-			while (true)
-			{
-				if (bPipeCreated && ResumePipe.IsReadyForRW())
-				{
-					int32 ResumeVal = 0;
-
-					if (ResumePipe.ReadInt32(ResumeVal) && !!ResumeVal)
+					if (!ResumePipe.OpenConnection())
 					{
-						UE_LOG(LogUnitTest, Log, TEXT("Got resume request."));
-						break;
+						UE_LOG(LogUnitTest, Log, TEXT("WARNING: Failed to open pipe connection."));
 					}
 				}
+				else
+				{
+					UE_LOG(LogUnitTest, Log, TEXT("WARNING: Failed to create resume pipe."));
+				}
 
 
-				FPlatformProcess::Sleep(1.0f);
-			}
+
+				// Spin/sleep (effectively suspended) until a resume request is received
+				while (true)
+				{
+					if (bPipeCreated && ResumePipe.IsReadyForRW())
+					{
+						int32 ResumeVal = 0;
+
+						if (ResumePipe.ReadInt32(ResumeVal) && !!ResumeVal)
+						{
+							UE_LOG(LogUnitTest, Log, TEXT("Got resume request."));
+							break;
+						}
+					}
 
 
-			ResumePipe.Destroy();
+					FPlatformProcess::Sleep(1.0f);
+				}
 
-			UE_LOG(LogUnitTest, Log, TEXT("Suspend end."));
+
+				ResumePipe.Destroy();
+
+				UE_LOG(LogUnitTest, Log, TEXT("Suspend end."));
 #else
-			UE_LOG(LogUnitTest, Log, TEXT("Suspend/Resume is only supported in Windows."));
+				UE_LOG(LogUnitTest, Log, TEXT("Suspend/Resume is only supported in Windows."));
 #endif
+			}
 		}
 
 		bHandledMessage = true;
@@ -440,7 +440,7 @@ void ANUTActor::UpdateOwner()
 			if (PC != NULL && PC != GetOwner() && Cast<UNetConnection>(PC->Player) != NULL)
 			{
 				UE_LOG(LogUnitTest, Log, TEXT("Setting NUTActor owner to: %s (%s)"), *PC->GetName(),
-					*GameState->PlayerArray[i]->PlayerName);
+					*GameState->PlayerArray[i]->GetPlayerName());
 
 				// Reset LastAliveTime, to give client a chance to send initial 'alive' RPC
 				LastAliveTime = CurWorld->RealTimeSeconds;
@@ -523,8 +523,7 @@ void ANUTActor::UnitSeamlessTravel(FString Dest/*=TEXT(" ")*/)
 		bool bOldUseSeamlessTravel = GameMode->bUseSeamlessTravel;
 		GameMode->bUseSeamlessTravel = true;
 
-		Dest.TrimEndInline();
-		if (Dest.IsEmpty())
+		if (Dest.TrimStartAndEnd().IsEmpty())
 		{
 			GetWorld()->ServerTravel(TEXT("?restart"));
 		}
@@ -548,8 +547,7 @@ void ANUTActor::UnitTravel(FString Dest/*=TEXT(" ")*/)
 		bool bOldUseSeamlessTravel = GameMode->bUseSeamlessTravel;
 		GameMode->bUseSeamlessTravel = false;
 
-		Dest.TrimEndInline();
-		if (Dest.IsEmpty())
+		if (Dest.TrimStartAndEnd().IsEmpty())
 		{
 			GetWorld()->ServerTravel(TEXT("?restart"));
 		} 
@@ -639,7 +637,7 @@ void ANUTActor::ServerClientPing_Implementation()
 		for (UNetConnection* CurConn : CurNetDriver->ClientConnections)
 		{
 			// Based on UNetDriver::IsLevelInitializeForActor
-			bNotLoaded = !(CurConn->ClientWorldPackageName == CurWorld->GetOutermost()->GetFName() &&
+			bNotLoaded = !(CurConn->GetClientWorldPackageName() == CurWorld->GetOutermost()->GetFName() &&
 										CurConn->ClientHasInitializedLevelFor(this));
 
 			// Also trigger if there is no PlayerController yet set for the connection

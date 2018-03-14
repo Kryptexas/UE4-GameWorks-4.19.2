@@ -5,39 +5,7 @@ Description:Tips and tricks to help you make decisions about when to use Bluepri
 version: 4.9
 parent:Engine/Blueprints
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-	![](Engine/Blueprints/BestPractices_Topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\BestPractices:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\BestPractices:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Engine\Blueprints\BestPractices]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-	![](Engine/Blueprints/BestPractices_Topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\BestPractices:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\BestPractices:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Engine\Blueprints\BestPractices]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:BestPractices_Topic.png
 
 [TOC(start:2)]
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SoundSubmixGraph/SoundSubmixGraphSchema.h"
 #include "SoundSubmixGraph/SoundSubmixGraphNode.h"
@@ -45,7 +45,7 @@ void USoundSubmixGraphSchema::GetBreakLinkToSubMenuActions(class FMenuBuilder& M
 		FText Title = FText::FromString( TitleString );
 		if (Pin->PinName != TEXT(""))
 		{
-			TitleString = FString::Printf(TEXT("%s (%s)"), *TitleString, *Pin->PinName);
+			TitleString = FString::Printf(TEXT("%s (%s)"), *TitleString, *Pin->PinName.ToString());
 
 			// Add name of connection if possible
 			FFormatNamedArguments Args;
@@ -210,7 +210,7 @@ void USoundSubmixGraphSchema::BreakPinLinks(UEdGraphPin& TargetPin, bool bSendsN
 	}
 }
 
-void USoundSubmixGraphSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin)
+void USoundSubmixGraphSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) const
 {
 	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "GraphEd_BreakSinglePinLink", "Break Pin Link") );
 	Super::BreakSinglePinLink(SourcePin, TargetPin);

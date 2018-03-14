@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 namespace UnrealBuildTool.Rules
 {
@@ -39,11 +39,11 @@ namespace UnrealBuildTool.Rules
 				(Target.Platform == UnrealTargetPlatform.Mac))
 			{
 				AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL", "libWebSockets", "zlib");
-				Definitions.Add("ENABLE_HTTP_FOR_NFS=1");
+				PublicDefinitions.Add("ENABLE_HTTP_FOR_NFS=1");
 			}
 			else
 			{
-				Definitions.Add("ENABLE_HTTP_FOR_NFS=0");
+				PublicDefinitions.Add("ENABLE_HTTP_FOR_NFS=0");
 			}
 
 			PrecompileForTargets = PrecompileTargetsType.None;

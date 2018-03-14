@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GoogleHelper.h"
 #include "OnlineSubsystemGooglePrivate.h"
@@ -135,7 +135,8 @@ bool GetAuthTokenFromGoogleUser(GIDGoogleUser* user, FAuthTokenGoogle& OutAuthTo
 - (void)signIn:(GIDSignIn *)signIn didSignInForUser:(GIDGoogleUser *)user withError:(NSError *)error
 {
 	FGoogleSignInData SignInData;
-	SignInData.ErrorStr = MoveTemp(FString([error localizedDescription]));
+	FString Description = FString([error localizedDescription]);
+	SignInData.ErrorStr = MoveTemp(Description);
 
 	UE_LOG(LogOnline, Display, TEXT("signIn didSignInForUser GID:%p User:%p Error:%s"), signIn, user, *SignInData.ErrorStr);
 	[self printAuthStatus];
@@ -177,7 +178,8 @@ bool GetAuthTokenFromGoogleUser(GIDGoogleUser* user, FAuthTokenGoogle& OutAuthTo
 - (void)signIn:(GIDSignIn *)signIn didDisconnectWithUser:(GIDGoogleUser *)user withError:(NSError *)error
 {
 	FGoogleSignOutData SignOutData;
-	SignOutData.ErrorStr = MoveTemp(FString([error localizedDescription]));
+	FString Description = FString([error localizedDescription]);
+	SignOutData.ErrorStr = MoveTemp(Description);
 	SignOutData.Response = SignOutData.ErrorStr.IsEmpty() ? EGoogleLoginResponse::RESPONSE_OK : EGoogleLoginResponse::RESPONSE_ERROR;
 
 	[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)

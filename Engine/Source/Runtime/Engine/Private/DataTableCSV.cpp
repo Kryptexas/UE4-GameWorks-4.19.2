@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DataTableCSV.h"
 #include "UObject/UnrealType.h"
@@ -84,6 +84,9 @@ bool FDataTableExporterCSV::WriteStructEntry(const void* InRowData, UProperty* I
 }
 
 
+#endif // WITH_EDITOR
+
+
 FDataTableImporterCSV::FDataTableImporterCSV(UDataTable& InDataTable, FString InCSVData, TArray<FString>& OutProblems)
 	: DataTable(&InDataTable)
 	, CSVData(MoveTemp(InCSVData))
@@ -167,11 +170,6 @@ bool FDataTableImporterCSV::ReadTable()
 		DataTable->RowStruct->InitializeStruct(RowData);
 		// And be sure to call DestroyScriptStruct later
 
-		if (auto UDStruct = Cast<const UUserDefinedStruct>(DataTable->RowStruct))
-		{
-			UDStruct->InitializeDefaultValue(RowData);
-		}
-
 		// Add to row map
 		DataTable->RowMap.Add(RowName, RowData);
 
@@ -205,4 +203,3 @@ bool FDataTableImporterCSV::ReadTable()
 	return true;
 }
 
-#endif // WITH_EDITOR

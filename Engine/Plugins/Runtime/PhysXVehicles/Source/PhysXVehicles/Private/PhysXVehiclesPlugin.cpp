@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "PhysicsPublic.h"
@@ -16,7 +16,9 @@ private:
 
 	void UpdatePhysXMaterial(UPhysicalMaterial* PhysicalMaterial)
 	{
+#if WITH_PHYSX
 		FPhysXVehicleManager::UpdateTireFrictionTable();
+#endif // WITH_PHYSX
 	}
 
 	void PhysicsAssetChanged(const UPhysicsAsset* InPhysAsset)
@@ -41,7 +43,9 @@ private:
 		// Only create PhysXVehicleManager in the sync scene
 		if (SceneType == PST_Sync)
 		{
+#if WITH_PHYSX
 			new FPhysXVehicleManager(PhysScene, SceneType);
+#endif // WITH_PHYSX
 		}
 	}
 
@@ -49,6 +53,7 @@ private:
 	{
 		if (SceneType == PST_Sync)
 		{
+#if WITH_PHYSX
 			FPhysXVehicleManager* VehicleManager = FPhysXVehicleManager::GetVehicleManagerFromScene(PhysScene);
 			if (VehicleManager != nullptr)
 			{
@@ -56,6 +61,7 @@ private:
 				delete VehicleManager;
 				VehicleManager = nullptr;
 			}
+#endif // WITH_PHYSX
 		}
 	}
 
@@ -68,7 +74,9 @@ public:
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override
 	{
+#if WITH_PHYSX
 		PxInitVehicleSDK(*GPhysXSDK);
+#endif // WITH_PHYSX
 
 		OnUpdatePhysXMaterialHandle = FPhysicsDelegates::OnUpdatePhysXMaterial.AddRaw(this, &FPhysXVehiclesPlugin::UpdatePhysXMaterial);
 		OnPhysicsAssetChangedHandle = FPhysicsDelegates::OnPhysicsAssetChanged.AddRaw(this, &FPhysXVehiclesPlugin::PhysicsAssetChanged);
@@ -83,10 +91,12 @@ public:
 		FPhysicsDelegates::OnPhysSceneInit.Remove(OnPhysSceneInitHandle);
 		FPhysicsDelegates::OnPhysSceneTerm.Remove(OnPhysSceneTermHandle);
 
+#if WITH_PHYSX
 		if (GPhysXSDK != NULL)
 		{
 			PxCloseVehicleSDK();
 		}
+#endif // WITH_PHYSX
 	}
 };
 

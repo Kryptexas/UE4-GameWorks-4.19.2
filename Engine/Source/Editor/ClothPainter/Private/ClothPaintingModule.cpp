@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ClothPaintingModule.h"
 
@@ -173,13 +173,18 @@ TSharedPtr<SClothPaintTab> FClothPaintingModule::GetActiveClothTab(TWeakPtr<ISke
 		TabManager->InvokeTab(FTabId(FClothPaintTabSummoner::TabName));
 	}
 
-	TSharedPtr<SDockTab> Tab = TabManager->FindExistingLiveTab(FTabId(FClothPaintTabSummoner::TabName));
-
-	if(Tab.IsValid())
+	// If we can't summon this tab we will have spawned a placeholder which we can not cast as done below,
+	// there is no valid active clothing tab so return nullptr
+	if(TabManager->CanSpawnTab(FClothPaintTabSummoner::TabName))
 	{
-		TSharedPtr<SWidget> TabContent = Tab->GetContent();
-		TSharedPtr<SClothPaintTab> ClothingTab = StaticCastSharedPtr<SClothPaintTab>(TabContent);
-		return ClothingTab;
+		TSharedPtr<SDockTab> Tab = TabManager->FindExistingLiveTab(FTabId(FClothPaintTabSummoner::TabName));
+
+		if(Tab.IsValid())
+		{
+			TSharedPtr<SWidget> TabContent = Tab->GetContent();
+			TSharedPtr<SClothPaintTab> ClothingTab = StaticCastSharedPtr<SClothPaintTab>(TabContent);
+			return ClothingTab;
+		}
 	}
 
 	return nullptr;

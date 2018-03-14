@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MixedRealityBillboard.h"
 #include "Camera/CameraComponent.h"
@@ -12,6 +12,9 @@
 #include "Engine/LocalPlayer.h"
 #include "GameFramework/PlayerController.h"
 #include "Materials/MaterialInstance.h"
+#include "IXRTrackingSystem.h"
+#include "HeadMountedDisplayFunctionLibrary.h" // for GetDeviceWorldPose()
+#include "IXRCamera.h"
 
 /* MixedRealityProjection_Impl
  *****************************************************************************/
@@ -86,30 +89,36 @@ UMixedRealityBillboard::UMixedRealityBillboard(const FObjectInitializer& ObjectI
 //------------------------------------------------------------------------------
 void UMixedRealityBillboard::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
-	if (AActor* Owner = GetOwner())
+	FVector ViewOffset = FVector::ForwardVector * (GNearClippingPlane + 0.01f);
+	if (GEngine->XRSystem.IsValid())
 	{
-		USceneComponent* AttachComponent = Owner->GetRootComponent()->GetAttachParent();
-		if ( /*ensure*/(AttachComponent) )
+		IIdentifiableXRDevice* HMDDevice = GEngine->XRSystem->GetXRCamera().Get();
+		if (HMDDevice != nullptr)
 		{
-			// assume we're being driven by AMixedRealityBillboardActor, attached to a UMixedRealityCaptureComponent
-			const FVector CaptureFwdVec = AttachComponent->GetForwardVector();
-			const FVector CaptureOrigin = AttachComponent->GetComponentLocation();
+			FVector  HMDPos;
+			FRotator HMDRot;
 
-			ResetRelativeTransform();
-			FVector TargetWorldPos = GetComponentLocation();
+			bool bHasTracking = false, bHasPositionalTracking = false;
+			UHeadMountedDisplayFunctionLibrary::GetDeviceWorldPose(/*WorldContext =*/this, HMDDevice, /*[out]*/bHasTracking, /*[out]*/HMDRot, /*[out]*/bHasPositionalTracking, /*[out]*/HMDPos);
 
-			const FVector ToTargetVect   = TargetWorldPos - CaptureOrigin;
-			const FVector FwdProjection  = CaptureFwdVec * (/*DotProduct: */CaptureFwdVec | ToTargetVect);
-			const FVector RelativeOffset = FwdProjection - ToTargetVect;
+			if (bHasPositionalTracking)
+			{
+				// ASSUMPTION: this is positioned (attached) directly relative to some view
+				USceneComponent* MRViewComponent = GetAttachParent();
+				if (ensure(MRViewComponent))
+				{
+					const FVector ViewWorldPos = MRViewComponent->GetComponentLocation();
+					const FVector ViewToHMD = (HMDPos - ViewWorldPos);
+					const FVector ViewFacingDir = MRViewComponent->GetForwardVector();
 
-			SetRelativeLocationAndRotation(RelativeOffset, FRotator::ZeroRotator);
-		}
-		// @HACK: to work around UE-48605
-		else if (Owner->IsA<AMixedRealityProjectionActor>())
-		{
-			Owner->Destroy();
+					const float HMDDepth = (/*DotProduct: */ViewFacingDir | ViewToHMD);
+					ViewOffset = FVector::ForwardVector * HMDDepth;
+				}
+			}
 		}
 	}
+
+	SetRelativeLocationAndRotation(ViewOffset, FRotator::ZeroRotator);
 }
 
 /* AMixedRealityBillboardActor
@@ -153,6 +162,7 @@ AMixedRealityProjectionActor::AMixedRealityProjectionActor(const FObjectInitiali
 	// actor (hidden in the editor via UMixedRealityBillboard::GetHiddenEditorViews)
 	ProjectionComponent->bOnlyOwnerSee = !bIsEditorInst;
 	ProjectionComponent->SetComponentTickEnabled(false);
+	ProjectionComponent->SetRelativeLocation(FVector::ForwardVector * (GNearClippingPlane + 0.01f));
 }
 
 //------------------------------------------------------------------------------
@@ -169,30 +179,13 @@ void AMixedRealityProjectionActor::BeginPlay()
 		}
 	}
 
-	SetActorRelativeLocation(FVector::ForwardVector * (GNearClippingPlane + 0.01f));
+	ProjectionComponent->SetRelativeLocation(FVector::ForwardVector * (GNearClippingPlane + 0.01f));
 }
 
 //------------------------------------------------------------------------------
 void AMixedRealityProjectionActor::Tick(float DeltaSeconds)
 {
-	if (!AttachTarget.IsValid())
-	{
-		APawn* TargetPawn = MixedRealityProjection_Impl::FindTargetPlayer(this);
-		SetDepthTarget(TargetPawn);
-	}
-
-	if (!AttachTarget.IsValid())
-	{
-		if (USceneComponent* AttachComponent = GetRootComponent()->GetAttachParent())
-		{
-			SetActorRelativeLocation(FVector::ForwardVector * (GNearClippingPlane + 0.01f));
-		}
-	}
-	else
-	{
-		FVector WorldPos = AttachTarget->GetComponentLocation();
-		RootComponent->SetWorldLocation(WorldPos);
-	}
+	Super::Tick(DeltaSeconds);
 }
 
 //------------------------------------------------------------------------------

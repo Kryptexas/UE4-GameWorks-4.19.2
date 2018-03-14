@@ -1,61 +1,166 @@
-Availability:Public
-Title: Automation User Guide
-Crumbs: %ROOT%, Programming, Programming/Automation
-Description:Guide to using the automation system for running tests.
-Version: 4.9
+Availability: Public
+Crumbs: %ROOT%
+Title: Automation System User Guide
+Description: A guide to using the Automation System for Running Tests.
+Type: Overview
+SkillLevel:Intermediate
+Version:4.17
+Parent:Programming/Automation
+Order:1
+Tags:Programming
+Topic-image:SessionFrontend_Topic.png
+Social-image:SessionFrontend.png
 
-Automation tests are configured and run from the **Automation** panel.
+[TOC(start:2 end:3)]
+
+
+[REGION:fullwidth]
+![](SessionFrontend.png)
+[/REGION]
+[REGION:caption]
+Session Frontend with the Automation tab in focus.
+[/REGION]
+
+The **Automation** tab is part of the **Session (Unreal) Frontend**. It's located here because it enables you to run automation tests on any other devices that are connected to your machine or are on your local network.
+
+There are two ways you can access the frontend suite: 
+
+* **Session Frontend** - Opens the local Editor as an automation worker to run automation on external devices. 
+	* Navigate to **Window** > **Developer Tools** > **Session Frontend**
+* **Unreal Frontend** - Opens a standalone version of the Frontend that includes the Session Frontend, Device Manager, and Project Launcher. 
+	* Navigate to your **[UE4 Root Directory]** > **Engine** > **Binaries** > **Win64** > **UnrealFrontend.exe**
+
+
+## Enabling Plugins
+
+In the latest versions of Unreal Engine 4, all the Automation Tests have been moved from the Engine Content folder to their plugins that must be enabled before they will be visible in the 
+Automation tab. 
+
+
+[REGION:imagetable]
+| [REGION:lightbox]![](OpenPluginBrowser.png)(h:412)[/REGION] | [REGION:lightbox] [![](PluginsBrowserTesting.png)(w:500)](OpenPluginBrowser.png) [/REGION] |
+| --- | --- |
+| To enable the plugins, select **Edit** > **Plugins** > **Testing**. | Plugins Browser with Automation Tests |
+[/REGION]
+
+
+[REGION:note]
+If you're using the standalone Unreal Frontend, all the automation tests will be available without any additional steps to enable it. 
+[/REGION]
+
 
 ## User Interface
 
-To summon the automation window, you will need to launch the Editor and select **Session Frontend** from the **Window** menu, or run the [Unreal Frontend](Engine/Deployment/UnrealFrontend) standalone app.
+When you open the Session Frontend, you'll have access to a few tabs, such as the Console, Automation, Screenshot Comparison, and Profiler. For all your automation testing needs, the 
+**Automation** tab will house all of the functionality you need with some additional functionality falling under the [Screenshot Comparison](Programming/Automation/ScreenShotComparison) tab 
+for rendering functionality comparison.
+
+[REGION:lightbox]
+[![](AutomationTab.png)(w:850)](AutomationTab.png)
+[/REGION]
+[REGION:caption] Click image for full view. [/REGION]
+
 
 [REGION:note]
-You can use your local editor as an automation worker by selecting it in the [Session Browser](Engine/Deployment/UnrealFrontend#SessionBrowser).
-To run automation on external devices  game instances, you will need to create a session by running the
- **New Session** wizard, and then select your new session in the **Session Browser** when it has been created, or select an
- existing session that has been discovered in the **Session Browser**.
+If you do not see anything listed in the Automation tab window, select an active session from the Session Browse on the left. For example, under **This Application** the machine named **RDU-WD** is selected.
 [/REGION]
 
-Once you have successfully connected to an active session, you will be able to go to the **Automation** tab 
-in the document area for a particular session:
+### Session Browser
 
-[REGION:fullwidth]
-![Automation](AutomationPanelInSessionBrowser.jpg)
+The **Sessions Browser** enables you to connect to specific instances of the Editor. You will only see the Automation window populate with the available automation tests once a session has been selected.
+
+![](SessionBrowser.png)
+ 
+ 
+### Toolbar
+
+The toolbar in the Automation tab enables you to control how you start, refresh, and filter errors and warnings for your automation tests.
+
+[REGION:lightbox]
+[![](AutomationToolbar.png)(w:850)](AutomationToolbar.png)
 [/REGION]
-* Upper left are the "actions" - Play and refresh test list.  The number over the play button is how many 
-tests will be executed.
-* Upper middle are the filters - Error Filter, Warnings Filter, Smoke Tests Filter, Dev Content Filter, Visual Commandlet Filter, and then a search box to find specific tests.
-* In the tree, a star icon can be found next to some tests which means the test is fast and should be enabled by default. 
-A test is marked by a star by being labeled as ATF_SmokeTest.  
-* The icon above the results of each test is the platform icon and the number next to it 
-represents how many workers are available to carry out the selected tests.  In the case of consoles, we will be able to run 
-tests on many different platforms simultaneously and there will be multiple columns for each type of device.
+[REGION:caption] Click image for full view. [/REGION]
 
 
-After running a few tests, the UI will appear more like the following:
-
-[REGION:fullwidth]
-![Automation](InProgress.jpg)
+[REGION:simpletable]
+| Icon | Title | Description |
+| --- | --- | --- |
+| ![](StartTests.png) | **Start Tests** | Starts and stops the currently selected automation test(s) that are enabled. The number of tests that will be run is also listed under the button for reference.  |
+| ![](RunLevelTests.png) | **Run Level Test** | If the currently loaded level is a test map, you can click this button to select the tests and run it immediately. |
+| ![](RefreshTests.png) | **Refresh Tests** | This will refresh the Test Name list for any test that is added to the project. |
+| ![](FindWorkers.png) | **Find Workers** | This will find local workers that can be used to perform the tests. |
+| ![](Errors.png) | **Errors** | Toggles a filter for the Test window that displays any tests that ran into an error while attempting to complete. |
+| ![](Warnings.png) | **Warnings** | Toggles a filter for the Test window that displays any tests that ran into a warning while attempting to complete. |
+| ![](DevContent.png) | **Dev Content** | When enabled, developer directories will be included for automation tests. |
+| ![](DeviceGroups.png) | **Device Groups** | Enables you to group the tests based on a series of options, such as the machine name, platform, operating system version, and much more. |
+| ![](Presets.png) | **Preset** | Enables you to add your own presets for automation tests with the selected tests and settings so that you can use them again at a later date. |
 [/REGION]
-Once the tests have been completed, it is possible to export the results to a CSV file via tha **Export**
-dropdown. Here you can select the detail you are interested. Everything, status, errors, warnings, logs, or
-any combination of the above.
+
+ 
+### Tests Window and Results
+
+In the Automation Tests Window and the Automation Test Results panel, you'll find information relevant to the tests that have been run, such as the Machine that it was completed, number
+of tests that were run, the number of fails, and much more. 
+
+
+[REGION:lightbox]
+[![](TestsAndResultsPanels.png)(w:850)](TestsAndResultsPanels.png)
+[/REGION]
+[REGION:caption] Click image for full view. [/REGION]
+
+[REGION:tip]
+You can use the **Device Groups** button to determine how information should be grouped in the results panel when starting a new run of automation tests.
+
+![](DeviceGroupsDropdown.png)
+[/REGION]
+
+When looking at the results, use the **Display** selection to show the **Name** of the test or the **Time** the test took to complete. 
+
+[REGION:lightbox]
+[![](Display.png)(w:850)](Display.png)
+[/REGION]
+[REGION:caption] Click image for full view. [/REGION]
+
+When you get an error or warning, you can click on the test from the main Test window to show the specific error / warning in the Results panel. 
+
+[REGION:lightbox]
+[![](FailureMessage.png)(w:850)](FailureMessage.png)
+[/REGION]
+[REGION:caption] Click image for full view. [/REGION]
+
+
+### Export
+
+Once the tests have been completed, it is possible to export the results to a CSV file via the **Export** drop-down. 
+
+[REGION:lightbox]
+[![](ExportTests.png)(w:850)](ExportTests.png)
+[/REGION]
+[REGION:caption] Click image for full view. [/REGION]
+
+Choose from the available filters that you'd like to export and then select the **Export Data** button.
+
+![](ExportData.png)
+
+When your data is exported, a pop-up will indicate if it was successful and the save location of the CSV file.
+
+![](ExportDataSuccessful.png)
 
 [REGION:note]
-* The **Export Dropdown** will only be active once reports have been generated.
-* The **Export Data** button will only become active if there are reports that meet the filter criteria.
-* A notification will be displayed if the export was successful, and will indicate where the report was
-saved.
+The **Export** drop-down will only be active once reports have been generated, and the **Export Data** button will only become active if there are reports that meet the filter criteria. 
 [/REGION]
 
-[REGION:fullwidth]
-![Automation](Export.png)
-[/REGION]
+### Copy
 
-In addition, it is possible to get information about the game instance a test was run on via a tooltip
-on the test result.
+Once the tests have been completed, you can select any lines that appear in the **Automation Test Results** panel and click the **Copy** button to copy them to your clipboard and paste elsewhere.
 
-[REGION:fullwidth]
-![Automation](TooltipInfo.png)
+[REGION:lightbox]
+[![](Copy.png)(w:850)](Copy.png)
 [/REGION]
+[REGION:caption] Click image for full view. [/REGION]
+
+
+
+
+
+

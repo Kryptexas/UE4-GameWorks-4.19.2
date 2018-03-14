@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SGraphPanel.h"
@@ -1614,7 +1614,7 @@ void SGraphPanel::OnGraphChanged(const FEdGraphEditAction& EditAction)
 
 			for (const UEdGraphNode* Node : EditAction.Nodes)
 			{
-				TWeakObjectPtr<UEdGraphNode> NodePtr = Node;
+				TWeakObjectPtr<UEdGraphNode> NodePtr = MakeWeakObjectPtr(const_cast<UEdGraphNode*>(Node));
 				RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateStatic(RemoveNodeDelegateWrapper, this, NodePtr));
 			}
 		}
@@ -1633,7 +1633,7 @@ void SGraphPanel::OnGraphChanged(const FEdGraphEditAction& EditAction)
 
 			for (const UEdGraphNode* Node : EditAction.Nodes)
 			{
-				TWeakObjectPtr<UEdGraphNode> NodePtr = Node;
+				TWeakObjectPtr<UEdGraphNode> NodePtr = MakeWeakObjectPtr(const_cast<UEdGraphNode*>(Node));
 				RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateStatic(AddNodeDelegateWrapper, this, NodePtr, EditAction.bUserInvoked));
 			}
 		}
@@ -1656,7 +1656,8 @@ void SGraphPanel::OnGraphChanged(const FEdGraphEditAction& EditAction)
 			TSet< TWeakObjectPtr<UEdGraphNode> > NodePtrSet;
 			for (const UEdGraphNode* Node : EditAction.Nodes)
 			{
-				NodePtrSet.Add(Node);
+				TWeakObjectPtr<UEdGraphNode> NodePtr = MakeWeakObjectPtr(const_cast<UEdGraphNode*>(Node));
+				NodePtrSet.Add(NodePtr);
 			}
 
 			RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateStatic(SelectNodeDelegateWrapper, this, NodePtrSet));

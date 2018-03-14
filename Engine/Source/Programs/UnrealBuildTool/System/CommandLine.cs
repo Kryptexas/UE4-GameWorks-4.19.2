@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -53,31 +55,34 @@ namespace UnrealBuildTool
 		{
 			// Build a mapping from name to field and attribute for this object
 			Dictionary<string, Parameter> PrefixToParameter = new Dictionary<string, Parameter>(StringComparer.InvariantCultureIgnoreCase);
-			foreach(FieldInfo FieldInfo in TargetObject.GetType().GetFields(BindingFlags.Instance | BindingFlags.GetField | BindingFlags.GetProperty | BindingFlags.Public | BindingFlags.NonPublic))
+			for(Type TargetType = TargetObject.GetType(); TargetType != typeof(object); TargetType = TargetType.BaseType)
 			{
-				IEnumerable<CommandLineAttribute> Attributes = FieldInfo.GetCustomAttributes<CommandLineAttribute>();
-				foreach(CommandLineAttribute Attribute in Attributes)
+				foreach(FieldInfo FieldInfo in TargetType.GetFields(BindingFlags.Instance | BindingFlags.GetField | BindingFlags.GetProperty | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
 				{
-					string Prefix = Attribute.Prefix;
-					if(Prefix == null)
+					IEnumerable<CommandLineAttribute> Attributes = FieldInfo.GetCustomAttributes<CommandLineAttribute>();
+					foreach(CommandLineAttribute Attribute in Attributes)
 					{
-						if(FieldInfo.FieldType == typeof(bool))
+						string Prefix = Attribute.Prefix;
+						if(Prefix == null)
 						{
-							Prefix = String.Format("-{0}", FieldInfo.Name);
+							if(FieldInfo.FieldType == typeof(bool))
+							{
+								Prefix = String.Format("-{0}", FieldInfo.Name);
+							}
+							else
+							{
+								Prefix = String.Format("-{0}=", FieldInfo.Name);
+							}
 						}
 						else
 						{
-							Prefix = String.Format("-{0}=", FieldInfo.Name);
+							if(FieldInfo.FieldType != typeof(bool) && !Attribute.ValueAfterSpace && Attribute.Value == null && !Prefix.EndsWith("="))
+							{
+								Prefix = Prefix + "=";
+							}
 						}
+						PrefixToParameter.Add(Prefix, new Parameter { Prefix = Prefix, Attribute = Attribute, FieldInfo = FieldInfo });
 					}
-					else
-					{
-						if(FieldInfo.FieldType != typeof(bool) && !Attribute.ValueAfterSpace && Attribute.Value == null && !Prefix.EndsWith("="))
-						{
-							Prefix = Prefix + "=";
-						}
-					}
-					PrefixToParameter.Add(Prefix, new Parameter { Prefix = Prefix, Attribute = Attribute, FieldInfo = FieldInfo });
 				}
 			}
 

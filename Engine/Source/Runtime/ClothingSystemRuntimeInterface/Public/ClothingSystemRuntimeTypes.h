@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,10 +16,13 @@ struct FClothSimulData
 	}
 
 	// Positions of the simulation mesh particles
-	TArray<FVector4> Positions;
+	TArray<FVector> Positions;
 
 	// Normals at the simulation mesh particles
-	TArray<FVector4> Normals;
+	TArray<FVector> Normals;
+
+	// Transform applied per position/normal element when loaded
+	FTransform Transform;
 };
 
 enum class EClothingTeleportMode : uint8

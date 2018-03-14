@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SGraphNode.h"
 #include "EdGraph/EdGraph.h"
@@ -1062,13 +1062,11 @@ void SGraphNode::CreateAdvancedViewArrow(TSharedPtr<SVerticalBox> MainBox)
 
 bool SGraphNode::ShouldPinBeHidden(const UEdGraphPin* InPin) const
 {
-	const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(GraphNode->GetSchema());
-
 	bool bHideNoConnectionPins = false;
 	bool bHideNoConnectionNoDefaultPins = false;
 
 	// Not allowed to hide exec pins 
-	const bool bCanHidePin = (K2Schema && (InPin->PinType.PinCategory != K2Schema->PC_Exec));
+	const bool bCanHidePin = (InPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Exec);
 
 	if (OwnerGraphPanelPtr.IsValid() && bCanHidePin)
 	{
@@ -1078,7 +1076,7 @@ bool SGraphNode::ShouldPinBeHidden(const UEdGraphPin* InPin) const
 
 	const bool bIsOutputPin = InPin->Direction == EGPD_Output;
 	const bool bPinHasDefaultValue = !InPin->DefaultValue.IsEmpty() || (InPin->DefaultObject != NULL);
-	const bool bIsSelfTarget = K2Schema && (InPin->PinType.PinCategory == K2Schema->PC_Object) && (InPin->PinName == K2Schema->PN_Self);
+	const bool bIsSelfTarget = (InPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object) && (InPin->PinName == UEdGraphSchema_K2::PN_Self);
 	const bool bPinHasValidDefault = !bIsOutputPin && (bPinHasDefaultValue || bIsSelfTarget);
 	const bool bPinHasConections = InPin->LinkedTo.Num() > 0;
 
@@ -1115,7 +1113,7 @@ void SGraphNode::CreatePinWidgets()
 			, *GraphNode->GetNodeTitle(ENodeTitleType::ListView).ToString()
 			, *GraphNode->GetPathName()
 			, (CurPin->Direction == EEdGraphPinDirection::EGPD_Input) ? TEXT("input") : TEXT("output")
-			,  CurPin->PinFriendlyName.IsEmpty() ? *CurPin->PinName : *CurPin->PinFriendlyName.ToString()
+			,  CurPin->PinFriendlyName.IsEmpty() ? *CurPin->PinName.ToString() : *CurPin->PinFriendlyName.ToString()
 			,  CurPin->GetOuter() ? *CurPin->GetOuter()->GetClass()->GetName() : TEXT("UNKNOWN")
 			,  CurPin->GetOuter() ? *CurPin->GetOuter()->GetPathName() : TEXT("NULL")) )
 		{

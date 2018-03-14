@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,7 +7,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "KismetStringLibrary.generated.h"
 
-UCLASS(meta=(BlueprintThreadSafe))
+UCLASS(meta=(BlueprintThreadSafe, ScriptName="StringLibrary"))
 class ENGINE_API UKismetStringLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

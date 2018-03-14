@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ClientUnitTest.h"
 
@@ -22,10 +22,14 @@
 
 UClass* UClientUnitTest::OnlineBeaconClass = FindObject<UClass>(ANY_PACKAGE, TEXT("OnlineBeaconClient"));
 
-// @todo #JohnBMultiFakeClient: Eventually, move >all< of the minimal/headless client handling code, into a new/separate class,
-//				so that a single unit test can have multiple minimal clients on a server.
-//				This would be useful for licensees, for doing load testing:
-//				https://udn.unrealengine.com/questions/247014/clientserver-automation.html
+// @todo #JohnB: Create a unit test for load-testing servers, using multiple instances of the minimal client,
+//					as a feature for engine testing and licensees in general (and to flesh-out support for multiple min clients,
+//					in the unit test code).
+//					Pass this on to QA for testing as a feature, once done.
+
+
+// @todo #JohnB: IMPORTANT: unit tests need to detect when the wrong net driver is enabled in config,
+//					to prevent blocking of unit tests without an intelligible error.
 
 /**
  * UClientUnitTest
@@ -35,6 +39,7 @@ UClientUnitTest::UClientUnitTest(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, UnitTestFlags(EUnitTestFlags::None)
 	, MinClientFlags(EMinClientFlags::None)
+	, MinClientClass(UMinimalClient::StaticClass())
 	, BaseServerURL(TEXT(""))
 	, BaseServerParameters(TEXT(""))
 	, BaseClientURL(TEXT(""))
@@ -47,7 +52,7 @@ UClientUnitTest::UClientUnitTest(const FObjectInitializer& ObjectInitializer)
 	, ClientHandle(nullptr)
 	, bBlockingServerDelay(false)
 	, bBlockingClientDelay(false)
-	, bBlockingFakeClientDelay(false)
+	, bBlockingMinClientDelay(false)
 	, NextBlockingTimeout(0.0)
 	, MinClient(nullptr)
 	, bTriggerredInitialConnect(false)
@@ -59,14 +64,23 @@ UClientUnitTest::UClientUnitTest(const FObjectInitializer& ObjectInitializer)
 	, UnitBeacon(nullptr)
 	, bReceivedPong(false)
 	, bPendingNetworkFailure(false)
-	, bDetectedMCPOnline(false)
-	, bSentBunch(false)
 {
 }
 
+void UClientUnitTest::NotifyAlterMinClient(FMinClientParms& Parms)
+{
+	UUnitTask* CurTask = UnitTasks.Num() > 0 ? UnitTasks[0] : nullptr;
+
+	if (CurTask != nullptr && !!(CurTask->GetUnitTaskFlags() & EUnitTaskFlags::AlterMinClient))
+	{
+		CurTask->NotifyAlterMinClient(Parms);
+	}
+}
 
 void UClientUnitTest::NotifyMinClientConnected()
 {
+	UnitTaskState |= EUnitTaskFlags::RequireMinClient;
+
 	if (HasAllRequirements())
 	{
 		ResetTimeout(TEXT("ExecuteClientUnitTest (NotifyMinClientConnected)"));
@@ -219,7 +233,7 @@ void UClientUnitTest::NotifyNetworkFailure(ENetworkFailure::Type FailureType, co
 {
 	if (!!(UnitTestFlags & EUnitTestFlags::AutoReconnect))
 	{
-		UNIT_LOG(ELogType::StatusImportant, TEXT("Detected fake client disconnect when AutoReconnect is enabled. Reconnecting."));
+		UNIT_LOG(ELogType::StatusImportant, TEXT("Detected minimal client disconnect when AutoReconnect is enabled. Reconnecting."));
 
 		TriggerAutoReconnect();
 	}
@@ -237,6 +251,7 @@ void UClientUnitTest::NotifyNetworkFailure(ENetworkFailure::Type FailureType, co
 				{
 					LogMsg += TEXT(".");
 
+					// @todo #JohnB: Should this only be a warning if automation is not running? Otherwise should be normal log
 					UNIT_LOG(ELogType::StatusWarning, TEXT("%s"), *LogMsg);
 					UNIT_STATUS_LOG(ELogType::StatusWarning | ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
 
@@ -261,17 +276,12 @@ void UClientUnitTest::NotifyNetworkFailure(ENetworkFailure::Type FailureType, co
 			}
 		}
 
-		// Shut down the fake client now (relevant for developer mode)
+		// Shut down the minimal client now (relevant for developer mode)
 		if (VerificationState != EUnitTestVerification::Unverified)
 		{
 			CleanupMinimalClient();
 		}
 	}
-}
-
-void UClientUnitTest::NotifySocketSendRawPacket(void* Data, int32 Count, bool& bBlockSend)
-{
-	bSentBunch = !bBlockSend;
 }
 
 void UClientUnitTest::ReceivedControlBunch(FInBunch& Bunch)
@@ -287,23 +297,25 @@ void UClientUnitTest::ReceivedControlBunch(FInBunch& Bunch)
 			{
 				ENUTControlCommand CmdType;
 				FString Command;
-				FNetControlMessage<NMT_NUTControl>::Receive(Bunch, CmdType, Command);
 
-				if (!!(UnitTestFlags & EUnitTestFlags::RequirePing) && !bReceivedPong && CmdType == ENUTControlCommand::Pong)
+				if (FNetControlMessage<NMT_NUTControl>::Receive(Bunch, CmdType, Command))
 				{
-					bReceivedPong = true;
-
-					ResetTimeout(TEXT("ReceivedControlBunch - Ping"));
-
-					if (HasAllRequirements())
+					if (!!(UnitTestFlags & EUnitTestFlags::RequirePing) && !bReceivedPong && CmdType == ENUTControlCommand::Pong)
 					{
-						ResetTimeout(TEXT("ExecuteClientUnitTest (ReceivedControlBunch - Ping)"));
-						ExecuteClientUnitTest();
+						bReceivedPong = true;
+
+						ResetTimeout(TEXT("ReceivedControlBunch - Ping"));
+
+						if (HasAllRequirements())
+						{
+							ResetTimeout(TEXT("ExecuteClientUnitTest (ReceivedControlBunch - Ping)"));
+							ExecuteClientUnitTest();
+						}
 					}
-				}
-				else
-				{
-					NotifyNUTControl(CmdType, Command);
+					else
+					{
+						NotifyNUTControl(CmdType, Command);
+					}
 				}
 			}
 			else
@@ -366,6 +378,8 @@ void UClientUnitTest::NotifyReceiveRPC(AActor* Actor, UFunction* Function, void*
 
 void UClientUnitTest::NotifyProcessLog(TWeakPtr<FUnitTestProcess> InProcess, const TArray<FString>& InLogLines)
 {
+	Super::NotifyProcessLog(InProcess, InLogLines);
+
 	// Get partial log messages that indicate startup progress/completion
 	const TArray<FString>* ServerStartProgressLogs = nullptr;
 	const TArray<FString>* ServerReadyLogs = nullptr;
@@ -400,7 +414,7 @@ void UClientUnitTest::NotifyProcessLog(TWeakPtr<FUnitTestProcess> InProcess, con
 
 	if (ServerHandle.IsValid() && InProcess.HasSameObject(ServerHandle.Pin().Get()))
 	{
-		// If launching a server, delay joining by the fake client, until the server has fully setup, and reset the unit test timeout,
+		// If launching a server, delay joining by the minimal client until the server has fully setup, and reset the unit test timeout,
 		// each time there is a server log event, that indicates progress in starting up
 		if (!!(UnitTestFlags & EUnitTestFlags::LaunchServer))
 		{
@@ -410,27 +424,36 @@ void UClientUnitTest::NotifyProcessLog(TWeakPtr<FUnitTestProcess> InProcess, con
 			{
 				if (ServerReadyLogs->ContainsByPredicate(SearchInLogLine))
 				{
-					// Fire off fake client connection
+					UnitTaskState |= EUnitTaskFlags::RequireServer;
+
+					// Fire off minimal client connection
 					if (UnitConn == nullptr)
 					{
+						FString LogMsg = TEXT("Detected successful server startup, launching minimal client.");
 						bool bBlockingProcess = IsBlockingProcessPresent(true);
+						bool bBlockingTask = IsTaskBlocking(EUnitTaskFlags::BlockMinClient);
 
 						if (bBlockingProcess)
 						{
-							FString LogMsg = TEXT("Detected successful server startup, delaying fake client due to blocking process.");
+							LogMsg = TEXT("Detected successful server startup, delaying minimal client due to blocking process.");
 
-							UNIT_LOG(ELogType::StatusImportant, TEXT("%s"), *LogMsg);
-							UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
-
-							bBlockingFakeClientDelay = true;
+							bBlockingMinClientDelay = true;
 						}
-						else
+						else if (bBlockingTask)
 						{
-							FString LogMsg = TEXT("Detected successful server startup, launching fake client.");
+							LogMsg = TEXT("Detected successful server startup, delaying minimal client due to blocking task.");
+						}
 
-							UNIT_LOG(ELogType::StatusImportant, TEXT("%s"), *LogMsg);
-							UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
+						if (bBlockingTask)
+						{
+							UnitTaskState |= EUnitTaskFlags::BlockMinClient;
+						}
 
+						UNIT_LOG(ELogType::StatusImportant, TEXT("%s"), *LogMsg);
+						UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
+
+						if (!bBlockingProcess && !bBlockingTask)
+						{
 							ConnectMinimalClient();
 						}
 					}
@@ -448,20 +471,6 @@ void UClientUnitTest::NotifyProcessLog(TWeakPtr<FUnitTestProcess> InProcess, con
 				if (ServerTimeoutResetLogs->ContainsByPredicate(SearchInLogLine))
 				{
 					ResetTimeout(FString(TEXT("ServerTimeoutReset: ")) + MatchedLine, true, 60);
-				}
-			}
-		}
-
-		if (!!(UnitTestFlags & EUnitTestFlags::RequireMCP) && !bDetectedMCPOnline)
-		{
-			for (FString CurLine : InLogLines)
-			{
-				if (CurLine.Contains(TEXT("MCP: Service status updated")) && CurLine.Contains(TEXT("-> [Connected]")))
-				{
-					UNIT_LOG(ELogType::StatusImportant, TEXT("Successfully detected MCP online status."));
-
-					bDetectedMCPOnline = true;
-					break;
 				}
 			}
 		}
@@ -505,16 +514,16 @@ void UClientUnitTest::NotifyProcessFinished(TWeakPtr<FUnitTestProcess> InProcess
 			bool bProcessError = false;
 			FString UpdateMsg;
 
-			// If the server just finished, cleanup the fake client
+			// If the server just finished, cleanup the minimal client
 			if (bServerFinished)
 			{
-				FString LogMsg = TEXT("Server process has finished, cleaning up fake client.");
+				FString LogMsg = TEXT("Server process has finished, cleaning up minimal client.");
 
 				UNIT_LOG(ELogType::StatusImportant, TEXT("%s"), *LogMsg);
 				UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
 
 
-				// Immediately cleanup the fake client (don't wait for end-of-life cleanup in CleanupUnitTest)
+				// Immediately cleanup the minimal client (don't wait for end-of-life cleanup in CleanupUnitTest)
 				CleanupMinimalClient();
 
 
@@ -710,61 +719,19 @@ bool UClientUnitTest::SendNUTControl(ENUTControlCommand CommandType, FString Com
 bool UClientUnitTest::SendRPCChecked(UObject* Target, const TCHAR* FunctionName, void* Parms, int16 ParmsSize,
 										int16 ParmsSizeCorrection/*=0*/)
 {
-	bool bSuccess = false;
-	UFunction* TargetFunc = Target->FindFunction(FName(FunctionName));
-
-	PreSendRPC();
-
-	if (TargetFunc != nullptr)
-	{
-		if (TargetFunc->ParmsSize == ParmsSize + ParmsSizeCorrection)
-		{
-			if (MinClient->GetConn()->IsNetReady(false))
-			{
-				Target->ProcessEvent(TargetFunc, Parms);
-			}
-			else
-			{
-				UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to send RPC '%s', network saturated."), FunctionName);
-			}
-		}
-		else
-		{
-			UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to send RPC '%s', mismatched parameters: '%i' vs '%i' (%i - %i)."),
-						FunctionName, TargetFunc->ParmsSize, ParmsSize + ParmsSizeCorrection, ParmsSize, -ParmsSizeCorrection);
-		}
-	}
-	else
-	{
-		UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to send RPC, could not find RPC: %s"), FunctionName);
-	}
-
-	bSuccess = PostSendRPC(FunctionName, Target);
-
-	return bSuccess;
+	return MinClient->SendRPCChecked(Target, FunctionName, Parms, ParmsSize, ParmsSizeCorrection);
 }
 
 bool UClientUnitTest::SendRPCChecked(UObject* Target, FFuncReflection& FuncRefl)
 {
-	bool bSuccess = false;
-
-	if (FuncRefl.IsValid())
-	{
-		bSuccess = SendRPCChecked(Target, *FuncRefl.Function->GetName(), FuncRefl.GetParms(), FuncRefl.Function->ParmsSize);
-	}
-	else
-	{
-		UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to send RPC '%s', function reflection failed."), FuncRefl.FunctionName);
-	}
-
-	return bSuccess;
+	return MinClient->SendRPCChecked(Target, FuncRefl);
 }
 
 bool UClientUnitTest::SendUnitRPCChecked_Internal(UObject* Target, FString RPCName)
 {
 	bool bSuccess = false;
 
-	PreSendRPC();
+	MinClient->PreSendRPC();
 
 	if (UnitNUTActor.IsValid())
 	{
@@ -778,137 +745,14 @@ bool UClientUnitTest::SendUnitRPCChecked_Internal(UObject* Target, FString RPCNa
 		UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), LogMsg);
 	}
 
-	bSuccess = PostSendRPC(RPCName, UnitNUTActor.Get());
+	bSuccess = MinClient->PostSendRPC(RPCName, UnitNUTActor.Get());
 
 	return bSuccess;
 }
 
-void UClientUnitTest::PreSendRPC()
+void UClientUnitTest::OnRPCFailure()
 {
-	// Flush before and after, so no queued data is counted as a send, and so that the queued RPC is immediately sent and detected
-	MinClient->GetConn()->FlushNet();
-
-	bSentBunch = false;
-}
-
-bool UClientUnitTest::PostSendRPC(FString RPCName, UObject* Target/*=nullptr*/)
-{
-	bool bSuccess = false;
-	UActorComponent* TargetComponent = Cast<UActorComponent>(Target);
-	AActor* TargetActor = (TargetComponent != nullptr ? TargetComponent->GetOwner() : Cast<AActor>(Target));
-	UNetConnection* UnitConn = MinClient->GetConn();
-	UChannel* TargetChan = UnitConn->ActorChannels.FindRef(TargetActor);
-
-	UnitConn->FlushNet();
-
-	// Just hack-erase bunch overflow tracking for this actors channel
-	if (TargetChan != nullptr)
-	{
-		TargetChan->NumOutRec = 0;
-	}
-
-	// If sending failed, trigger an overall unit test failure
-	if (!bSentBunch)
-	{
-		FString LogMsg = FString::Printf(TEXT("Failed to send RPC '%s', unit test needs update."), *RPCName);
-
-		// If specific/known failure cases are encountered, append them to the log message, to aid debugging
-		// (try to enumerate all possible cases)
-		if (TargetActor != nullptr)
-		{
-			FString LogAppend = TEXT("");
-			UWorld* TargetWorld = TargetActor->GetWorld();
-
-			if (IsGarbageCollecting())
-			{
-				LogAppend += TEXT(", IsGarbageCollecting() returned TRUE");
-			}
-
-			if (TargetWorld == nullptr)
-			{
-				LogAppend += TEXT(", TargetWorld == nullptr");
-			}
-			else if (!TargetWorld->AreActorsInitialized() && !GAllowActorScriptExecutionInEditor)
-			{
-				LogAppend += TEXT(", AreActorsInitialized() returned FALSE");
-			}
-
-			if (TargetActor->IsPendingKill())
-			{
-				LogAppend += TEXT(", IsPendingKill() returned TRUE");
-			}
-
-			UFunction* TargetFunc = TargetActor->FindFunction(FName(*RPCName));
-
-			if (TargetFunc == nullptr)
-			{
-				LogAppend += TEXT(", TargetFunc == nullptr");
-			}
-			else
-			{
-				int32 Callspace = TargetActor->GetFunctionCallspace(TargetFunc, nullptr, nullptr);
-
-				if (!(Callspace & FunctionCallspace::Remote))
-				{
-					LogAppend += FString::Printf(TEXT(", GetFunctionCallspace() returned non-remote, value: %i (%s)"), Callspace,
-													FunctionCallspace::ToString((FunctionCallspace::Type)Callspace));
-				}
-			}
-
-			if (TargetActor->GetNetDriver() == nullptr)
-			{
-				FName TargetNetDriver = TargetActor->GetNetDriverName();
-
-				LogAppend += FString::Printf(TEXT(", GetNetDriver() returned nullptr - NetDriverName: %s"),
-												*TargetNetDriver.ToString());
-
-				if (TargetNetDriver == NAME_GameNetDriver && TargetWorld != nullptr && TargetWorld->GetNetDriver() == nullptr)
-				{
-					LogAppend += FString::Printf(TEXT(", TargetWorld->GetNetDriver() returned nullptr - World: %s"),
-													*TargetWorld->GetFullName());
-				}
-			}
-
-			UNetConnection* TargetConn = TargetActor->GetNetConnection();
-
-			if (TargetConn == nullptr)
-			{
-				LogAppend += TEXT(", GetNetConnection() returned nullptr");
-			}
-			else if (!TargetConn->IsNetReady(0))
-			{
-				LogAppend += TEXT(", IsNetReady() returned FALSE");
-			}
-
-			if (TargetChan == nullptr)
-			{
-				LogAppend += TEXT(", TargetChan == nullptr");
-			}
-			else if (TargetChan->OpenPacketId.First == INDEX_NONE)
-			{
-				LogAppend += TEXT(", Channel not open");
-			}
-
-
-			if (LogAppend.Len() > 0)
-			{
-				LogMsg += FString::Printf(TEXT(" (%s)"), *LogAppend.Mid(2));
-			}
-		}
-
-		UNIT_LOG(ELogType::StatusFailure, TEXT("%s"), *LogMsg);
-		UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
-
-		VerificationState = EUnitTestVerification::VerifiedNeedsUpdate;
-
-		bSuccess = false;
-	}
-	else
-	{
-		bSuccess = true;
-	}
-
-	return bSuccess;
+	VerificationState = EUnitTestVerification::VerifiedNeedsUpdate;
 }
 
 void UClientUnitTest::SendGenericExploitFailLog()
@@ -1002,11 +846,6 @@ EUnitTestFlags UClientUnitTest::GetMetRequirements()
 		ReturnVal |= EUnitTestFlags::RequireBeacon;
 	}
 
-	if (!!(UnitTestFlags & EUnitTestFlags::RequireMCP) && bDetectedMCPOnline)
-	{
-		ReturnVal |= EUnitTestFlags::RequireMCP;
-	}
-
 	// ExecuteClientUnitTest should be triggered manually - unless you override HasAllCustomRequirements
 	if (!!(UnitTestFlags & EUnitTestFlags::RequireCustom) && HasAllCustomRequirements())
 	{
@@ -1020,7 +859,7 @@ bool UClientUnitTest::HasAllRequirements(bool bIgnoreCustom/*=false*/)
 {
 	bool bReturnVal = true;
 
-	// The fake client creation/connection is now delayed, so need to wait for that too
+	// The minimal client creation/connection is now delayed, so need to wait for that too
 	if (MinClient == nullptr || !MinClient->IsConnected())
 	{
 		bReturnVal = false;
@@ -1080,25 +919,9 @@ void UClientUnitTest::ResetTimeout(FString ResetReason, bool bResetConnTimeout/*
 
 	Super::ResetTimeout(ResetReason, bResetConnTimeout, MinDuration);
 
-	if (bResetConnTimeout)
+	if (bResetConnTimeout && MinClient != nullptr)
 	{
-		ResetConnTimeout((float)(FMath::Max(MinDuration, UnitTestTimeout)));
-	}
-}
-
-void UClientUnitTest::ResetConnTimeout(float Duration)
-{
-	UNetConnection* UnitConn = (MinClient != nullptr ? MinClient->GetConn() : nullptr);
-	UNetDriver* UnitDriver = (UnitConn != nullptr ? UnitConn->Driver : nullptr);
-
-	if (UnitConn != nullptr && UnitConn->State != USOCK_Closed && UnitDriver != nullptr)
-	{
-		// @todo #JohnBHack: This is a slightly hacky way of setting the timeout to a large value, which will be overridden by newly
-		//				received packets, making it unsuitable for most situations (except crashes - but that could still be subject
-		//				to a race condition)
-		double NewLastReceiveTime = UnitDriver->Time + Duration;
-
-		UnitConn->LastReceiveTime = FMath::Max(NewLastReceiveTime, UnitConn->LastReceiveTime);
+		MinClient->ResetConnTimeout((float)(FMath::Max(MinDuration, UnitTestTimeout)));
 	}
 }
 
@@ -1204,15 +1027,16 @@ bool UClientUnitTest::ConnectMinimalClient(const TCHAR* InNetID/*=nullptr*/)
 
 
 	Hooks.ReceiveRPCDel.BindUObject(this, &UClientUnitTest::NotifyReceiveRPC);
+	Hooks.RPCFailureDel.BindUObject(this, &UClientUnitTest::OnRPCFailure);
 
 
 	FMinClientParms Parms;
 
 	Parms.MinClientFlags = CurMinClientFlags;
-	Parms.Owner = this;
 	Parms.ServerAddress = ServerAddress;
 	Parms.BeaconAddress = BeaconAddress;
 	Parms.BeaconType = ServerBeaconType;
+	Parms.Timeout = UnitTestTimeout;
 
 	if (InNetID != nullptr)
 	{
@@ -1221,7 +1045,12 @@ bool UClientUnitTest::ConnectMinimalClient(const TCHAR* InNetID/*=nullptr*/)
 
 	Parms.AllowedClientRPCs = AllowedClientRPCs;
 
-	MinClient = NewObject<UMinimalClient>();
+	NotifyAlterMinClient(Parms);
+
+	MinClient = NewObject<UMinimalClient>(GetTransientPackage(), MinClientClass);
+
+	MinClient->SetInterface(this);
+
 	bSuccess = MinClient->Connect(Parms, Hooks);
 
 	if (bSuccess)
@@ -1259,6 +1088,7 @@ void UClientUnitTest::CleanupMinimalClient()
 	if (MinClient != nullptr)
 	{
 		MinClient->Cleanup();
+		MinClient = nullptr;
 	}
 
 	UnitPC = nullptr;
@@ -1289,14 +1119,11 @@ void UClientUnitTest::StartUnitTestServer()
 		UNIT_LOG(ELogType::StatusImportant, TEXT("%s"), *LogMsg);
 		UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
 
-		// Determine the new server port
-		int DefaultPort = 0;
-		GConfig->GetInt(TEXT("URL"), TEXT("Port"), DefaultPort, GEngineIni);
+		// Determine the new server ports
+		int32 ServerPort = 0;
+		int32 ServerBeaconPort = 0;
 
-		// Increment the server port used by 10, for every unit test
-		static int ServerPortOffset = 0;
-		int ServerPort = DefaultPort + 50 + (++ServerPortOffset * 10);
-		int ServerBeaconPort = ServerPort + 5;
+		GetNextServerPorts(ServerPort, ServerBeaconPort);
 
 
 		// Setup the launch URL
@@ -1304,7 +1131,7 @@ void UClientUnitTest::StartUnitTestServer()
 
 		if (!!(UnitTestFlags & EUnitTestFlags::BeaconConnect))
 		{
-			ServerParameters += FString::Printf(TEXT(" -BeaconPort=%i"), ServerBeaconPort);
+			ServerParameters += FString::Printf(TEXT(" -BeaconPort=%i -NUTMonitorBeacon"), ServerBeaconPort);
 		}
 
 		ServerHandle = StartUE4UnitTestProcess(ServerParameters);
@@ -1316,6 +1143,16 @@ void UClientUnitTest::StartUnitTestServer()
 			if (!!(UnitTestFlags & EUnitTestFlags::BeaconConnect))
 			{
 				BeaconAddress = FString::Printf(TEXT("127.0.0.1:%i"), ServerBeaconPort);
+			}
+			else
+			{
+				int32 FoundBeaconPort = 0;
+
+				// Detect BeaconPort values injected into the server commandline, by the UnitTestEnvironment
+				if (FParse::Value(*ServerParameters, TEXT("BeaconPort="), FoundBeaconPort) && FoundBeaconPort != 0)
+				{
+					BeaconAddress = FString::Printf(TEXT("127.0.0.1:%i"), FoundBeaconPort);
+				}
 			}
 
 			auto CurHandle = ServerHandle.Pin();
@@ -1352,15 +1189,38 @@ FString UClientUnitTest::ConstructServerParameters()
 	// NOTE: Without '-CrashForUAT'/'-unattended' the auto-reporter can pop up
 	// NOTE: Without '-UseAutoReporter' the crash report executable is launched
 	// NOTE: Without '?bIsLanMatch', the Steam net driver will be active, when OnlineSubsystemSteam is in use
-	FString Parameters = FString(FApp::GetProjectName()) + TEXT(" ") + BaseServerURL + TEXT("?bIsLanMatch") + TEXT(" -server ") +
+	FString Parameters = FPaths::GetProjectFilePath() + TEXT(" ") + BaseServerURL + TEXT("?bIsLanMatch") + TEXT(" -server ") +
 							BaseServerParameters + ServerLogParam +
-							TEXT(" -forcelogflush -stdout -AllowStdOutLogVerbosity -ddc=noshared") +
-							TEXT(" -unattended -CrashForUAT -UseAutoReporter");
+							TEXT(" -forcelogflush -stdout -FullStdOutLogOutput -ddc=noshared") +
+							TEXT(" -unattended -CrashForUAT -UseAutoReporter -NUTServer")
+		
+							// @todo #JohnB: Remove eventually, or wrap with CL #if's, based on when FullStdOutLogOutput was added
+							//TEXT(" -AllowStdOutLogVerbosity")
+							;
 
 							// Removed this, to support detection of shader compilation, based on shader compiler .exe
 							//TEXT(" -NoShaderWorker");
 
 	return Parameters;
+}
+
+void UClientUnitTest::GetNextServerPorts(int32& OutServerPort, int32& OutBeaconPort, bool bAdvance/*=true*/)
+{
+	// Determine the new server port
+	int32 DefaultPort = 0;
+	GConfig->GetInt(TEXT("URL"), TEXT("Port"), DefaultPort, GEngineIni);
+
+	// Increment the server port used by 10, for every unit test
+	static int32 ServerPortOffset = 0;
+	int32 CurPortOffset = ServerPortOffset + 10;
+
+	if (bAdvance)
+	{
+		ServerPortOffset = CurPortOffset;
+	}
+
+	OutServerPort = DefaultPort + 50 + CurPortOffset;
+	OutBeaconPort = OutServerPort + 5;
 }
 
 TWeakPtr<FUnitTestProcess> UClientUnitTest::StartUnitTestClient(FString ConnectIP, bool bMinimized/*=true*/)
@@ -1409,7 +1269,7 @@ FString UClientUnitTest::ConstructClientParameters(FString ConnectIP)
 	// NOTE: In the absence of "-ddc=noshared", a VPN connection can cause UE4 to take a long time to startup
 	// NOTE: Without '-CrashForUAT'/'-unattended' the auto-reporter can pop up
 	// NOTE: Without '-UseAutoReporter' the crash report executable is launched
-	FString Parameters = FString(FApp::GetProjectName()) + TEXT(" ") + ConnectIP + BaseClientURL + TEXT(" -game ") + BaseClientParameters +
+	FString Parameters = FPaths::GetProjectFilePath() + TEXT(" ") + ConnectIP + BaseClientURL + TEXT(" -game ") + BaseClientParameters +
 							ClientLogParam + TEXT(" -forcelogflush -stdout -AllowStdOutLogVerbosity -ddc=noshared -nosplash") +
 							TEXT(" -unattended -CrashForUAT -nosound -UseAutoReporter");
 
@@ -1439,7 +1299,7 @@ void UClientUnitTest::PrintUnitTestProcessErrors(TSharedPtr<FUnitTestProcess> In
 
 void UClientUnitTest::UnitTick(float DeltaTime)
 {
-	if (bBlockingServerDelay || bBlockingClientDelay || bBlockingFakeClientDelay)
+	if (bBlockingServerDelay || bBlockingClientDelay || bBlockingMinClientDelay)
 	{
 		bool bBlockingProcess = IsBlockingProcessPresent();
 
@@ -1469,20 +1329,31 @@ void UClientUnitTest::UnitTick(float DeltaTime)
 				NextBlockingTimeout = FPlatformTime::Seconds() + 10.0;
 			}
 
-			if (bBlockingFakeClientDelay && !IsWaitingOnTimeout())
+			if (bBlockingMinClientDelay && !IsWaitingOnTimeout())
 			{
-				ConnectMinimalClient();
+				if (!IsTaskBlocking(EUnitTaskFlags::BlockMinClient))
+				{
+					ConnectMinimalClient();
+				}
 
-				bTriggerredInitialConnect = true;
-				bBlockingFakeClientDelay = false;
+				bBlockingMinClientDelay = false;
 				NextBlockingTimeout = FPlatformTime::Seconds() + 10.0;
 			}
 		}
 	}
 
-	if (MinClient != nullptr && MinClient->IsTickable())
+	if (MinClient != nullptr)
 	{
-		MinClient->UnitTick(DeltaTime);
+		if (MinClient->IsTickable())
+		{
+			MinClient->UnitTick(DeltaTime);
+		}
+
+		// Prevent net connection timeout in developer mode
+		if (bDeveloperMode)
+		{
+			MinClient->ResetConnTimeout(120.f);
+		}
 	}
 
 	if (!!(UnitTestFlags & EUnitTestFlags::RequireNUTActor) && !bUnitNUTActorSetup && UnitNUTActor.IsValid() &&
@@ -1495,12 +1366,6 @@ void UClientUnitTest::UnitTick(float DeltaTime)
 			ResetTimeout(TEXT("ExecuteClientUnitTest (bUnitNUTActorSetup)"));
 			ExecuteClientUnitTest();
 		}
-	}
-
-	// Prevent net connection timeout in developer mode
-	if (bDeveloperMode)
-	{
-		ResetConnTimeout(120.f);
 	}
 
 	Super::UnitTick(DeltaTime);
@@ -1523,7 +1388,7 @@ bool UClientUnitTest::IsTickable() const
 {
 	bool bReturnVal = Super::IsTickable();
 
-	bReturnVal = bReturnVal || bDeveloperMode || bBlockingServerDelay || bBlockingClientDelay || bBlockingFakeClientDelay ||
+	bReturnVal = bReturnVal || bDeveloperMode || bBlockingServerDelay || bBlockingClientDelay || bBlockingMinClientDelay ||
 					(MinClient != nullptr && MinClient->IsTickable()) || bPendingNetworkFailure;
 
 	return bReturnVal;
@@ -1558,5 +1423,30 @@ void UClientUnitTest::LogComplete()
 
 		UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to meet unit test requirements: %s"), *UnmetStr);
 	}
+}
+
+void UClientUnitTest::UnblockEvents(EUnitTaskFlags ReadyEvents)
+{
+	Super::UnblockEvents(ReadyEvents);
+
+	if (!!(ReadyEvents & EUnitTaskFlags::BlockMinClient))
+	{
+		if (!bBlockingMinClientDelay)
+		{
+			ConnectMinimalClient();
+		}
+	}
+}
+
+bool UClientUnitTest::IsConnectionLogSource(UNetConnection* InConnection)
+{
+	bool bReturnVal = Super::IsConnectionLogSource(InConnection);
+
+	if (!bReturnVal && MinClient != nullptr && MinClient->GetConn() == InConnection)
+	{
+		bReturnVal = true;
+	}
+
+	return bReturnVal;
 }
 

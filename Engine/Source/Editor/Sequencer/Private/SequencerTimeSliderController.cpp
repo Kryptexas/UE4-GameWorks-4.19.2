@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerTimeSliderController.h"
 #include "Fonts/SlateFontInfo.h"
@@ -7,6 +7,7 @@
 #include "Layout/WidgetPath.h"
 #include "Framework/Application/MenuStack.h"
 #include "Fonts/FontMeasure.h"
+#include "Styling/CoreStyle.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Textures/SlateIcon.h"
 #include "Framework/Commands/UIAction.h"
@@ -30,7 +31,7 @@ namespace ScrubConstants
 }
 
 /** Utility struct for converting between scrub range space and local/absolute screen space */
-struct FScrubRangeToScreen
+struct FSequencerTimeSliderController::FScrubRangeToScreen
 {
 	FVector2D WidgetSize;
 
@@ -112,7 +113,7 @@ float FSequencerTimeSliderController::DetermineOptimalSpacing(float InPixelsPerI
 	return Spacing;
 }
 
-struct FDrawTickArgs
+struct FSequencerTimeSliderController::FDrawTickArgs
 {
 	/** Geometry of the area */
 	FGeometry AllottedGeometry;
@@ -159,7 +160,7 @@ void FSequencerTimeSliderController::DrawTicks( FSlateWindowElementList& OutDraw
 	// Find out where to start from
 	int32 OffsetNum = FMath::FloorToInt(RangeToScreen.ViewInput.GetLowerBoundValue() / Spacing);
 	
-	FSlateFontInfo SmallLayoutFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8 );
+	FSlateFontInfo SmallLayoutFont = FCoreStyle::GetDefaultFontStyle("Regular", 8);
 
 	TArray<FVector2D> LinePoints;
 	LinePoints.AddUninitialized(2);
@@ -343,7 +344,7 @@ int32 FSequencerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, con
 			FrameString = FString::Printf( TEXT("%.2f"), Time );
 		}
 
-		FSlateFontInfo SmallLayoutFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 );
+		FSlateFontInfo SmallLayoutFont = FCoreStyle::GetDefaultFontStyle("Regular", 10);
 
 		const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 		FVector2D TextSize = FontMeasureService->Measure(FrameString, SmallLayoutFont);
@@ -618,7 +619,10 @@ FReply FSequencerTimeSliderController::OnMouseButtonUp( SWidget& WidgetOwner, co
 			}
 
 			// return unhandled in case our parent wants to use our right mouse button to open a context menu
-			return FReply::Unhandled().ReleaseMouseCapture();
+			if (DistanceDragged == 0.f)
+			{
+				return FReply::Unhandled().ReleaseMouseCapture();
+			}
 		}
 		
 		bPanning = false;

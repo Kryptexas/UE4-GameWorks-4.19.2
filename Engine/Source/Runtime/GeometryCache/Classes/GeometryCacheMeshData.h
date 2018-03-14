@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -77,7 +77,7 @@ struct FGeometryCacheMeshData
 			{
 				FDynamicMeshVertex& Vertex = Mesh.Vertices[VertexIndex];
 				Ar << Vertex.Position;
-				Ar << Vertex.TextureCoordinate;
+				Ar << Vertex.TextureCoordinate[0];
 				Ar << Vertex.TangentX;
 				Ar << Vertex.TangentZ;
 				Ar << Vertex.Color;
@@ -85,7 +85,38 @@ struct FGeometryCacheMeshData
 		}
 		else if(NumVertices)
 		{
-			Ar.SerializeCompressed(&Mesh.Vertices[0], Mesh.Vertices.Num()*Mesh.Vertices.GetTypeSize(), COMPRESS_ZLIB);
+			if (Ar.CustomVer(FGeometryObjectVersion::GUID) < FGeometryObjectVersion::DynamicMeshVertexLayoutChange)
+			{
+				struct FDummyVertex
+				{
+					FVector Position;
+					FVector2D TextureCoordinate;
+					FPackedNormal TangentX;
+					FPackedNormal TangentZ;
+					FColor Color;
+				};
+
+				TArray<FDummyVertex> DummyVertices;
+				DummyVertices.AddUninitialized(NumVertices);
+
+				Ar.SerializeCompressed(&DummyVertices[0], DummyVertices.Num()*DummyVertices.GetTypeSize(), COMPRESS_ZLIB);
+
+				for (int32 VertexIndex = 0; VertexIndex < NumVertices; ++VertexIndex)
+				{
+					FDynamicMeshVertex& Vertex = Mesh.Vertices[VertexIndex];
+					const FDummyVertex& DummyVertex = DummyVertices[VertexIndex];
+
+					Vertex.Position = DummyVertex.Position;
+					Vertex.TextureCoordinate[0] = DummyVertex.TextureCoordinate;
+					Vertex.TangentX = DummyVertex.TangentX;
+					Vertex.TangentZ = DummyVertex.TangentZ;
+					Vertex.Color = DummyVertex.Color;
+				}
+			}
+			else
+			{
+				Ar.SerializeCompressed(&Mesh.Vertices[0], Mesh.Vertices.Num()*Mesh.Vertices.GetTypeSize(), COMPRESS_ZLIB);
+			}			
 		}
 
 	
@@ -94,12 +125,6 @@ struct FGeometryCacheMeshData
 		Ar << Mesh.Indices;	
 
 		return Ar;
-	}
-
-	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-	SIZE_T GetResourceSize() const
-	{
-		return GetResourceSizeBytes();
 	}
 
 	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const
@@ -112,12 +137,5 @@ struct FGeometryCacheMeshData
 		CumulativeResourceSize.AddUnknownMemoryBytes(sizeof(BoundingBox));
 		CumulativeResourceSize.AddUnknownMemoryBytes(Indices.Num() * sizeof(uint32));
 		CumulativeResourceSize.AddUnknownMemoryBytes(sizeof(Indices));
-	}
-
-	SIZE_T GetResourceSizeBytes() const
-	{
-		FResourceSizeEx ResSize;
-		GetResourceSizeEx(ResSize);
-		return ResSize.GetTotalMemoryBytes();
 	}
 };

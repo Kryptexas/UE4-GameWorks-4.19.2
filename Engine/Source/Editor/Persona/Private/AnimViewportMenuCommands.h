@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,8 +26,14 @@ public:
 	/** Open settings for the preview scene */
 	TSharedPtr< FUICommandInfo > PreviewSceneSettings;
 	
-	/** Select camera follow */
-	TSharedPtr< FUICommandInfo > CameraFollow;
+	/** Select camera follow mode off */
+	TSharedPtr< FUICommandInfo > CameraFollowNone;
+
+	/** Select camera follow mode to follow bounds */
+	TSharedPtr< FUICommandInfo > CameraFollowBounds;
+
+	/** Select camera follow mode to follow a named bone */
+	TSharedPtr< FUICommandInfo > CameraFollowBone;
 
 	/** Show vertex normals */
 	TSharedPtr< FUICommandInfo > SetCPUSkinning;

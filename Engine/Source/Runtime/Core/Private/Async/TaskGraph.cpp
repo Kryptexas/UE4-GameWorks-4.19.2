@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "CoreTypes.h"
@@ -47,11 +47,25 @@ static int32 GNumWorkerThreadsToIgnore = 0;
 
 namespace ENamedThreads
 {
-	CORE_API Type RenderThread = ENamedThreads::GameThread; // defaults to game and is set and reset by the render thread itself
-	CORE_API Type RenderThread_Local = ENamedThreads::GameThread_Local; // defaults to game local and is set and reset by the render thread itself
+	CORE_API TAtomic<Type> FRenderThreadStatics::RenderThread(ENamedThreads::GameThread); // defaults to game and is set and reset by the render thread itself
+	CORE_API TAtomic<Type> FRenderThreadStatics::RenderThread_Local(ENamedThreads::GameThread_Local); // defaults to game local and is set and reset by the render thread itself
 	CORE_API int32 bHasBackgroundThreads = CREATE_BACKGROUND_TASK_THREADS;
 	CORE_API int32 bHasHighPriorityThreads = CREATE_HIPRI_TASK_THREADS;
 }
+
+static int32 GIgnoreThreadToDoGatherOn = 0;
+static FAutoConsoleVariableRef CVarIgnoreThreadToDoGatherOn(
+	TEXT("TaskGraph.IgnoreThreadToDoGatherOn"),
+	GIgnoreThreadToDoGatherOn,
+	TEXT("If 1, then we ignore the hint provided with SetGatherThreadForDontCompleteUntil and just run it on AnyHiPriThreadHiPriTask.")
+);
+
+static int32 GTestDontCompleteUntilForAlreadyComplete = 1;
+static FAutoConsoleVariableRef CVarTestDontCompleteUntilForAlreadyComplete(
+	TEXT("TaskGraph.TestDontCompleteUntilForAlreadyComplete"),
+	GTestDontCompleteUntilForAlreadyComplete,
+	TEXT("If 1, then we before spawning a gather task, we just check if all of the subtasks are complete, and in that case we can skip the gather.")
+);
 
 #if CREATE_HIPRI_TASK_THREADS || CREATE_BACKGROUND_TASK_THREADS
 	static void ThreadSwitchForABTest(const TArray<FString>& Args)
@@ -585,7 +599,7 @@ public:
 			StallStatId = GET_STATID(STAT_TaskGraph_GameStalls);
 			bCountAsStall = true;
 		}
-		else if (ThreadId == ENamedThreads::RenderThread)
+		else if (ThreadId == ENamedThreads::GetRenderThread())
 		{
 			if (QueueIndex > 0)
 			{
@@ -871,6 +885,7 @@ private:
 		}
 #endif
 		verify(++Queue.RecursionGuard == 1);
+		bool bDidStall = false;
 		while (1)
 		{
 			FBaseGraphTask* Task = FindWork();
@@ -889,6 +904,7 @@ private:
 				{
 					FScopeCycleCounter Scope(StallStatId);
 					Queue.StallRestartEvent->Wait(MAX_uint32, bCountAsStall);
+					bDidStall = true;
 				}
 				if (Queue.QuitForShutdown || !FPlatformProcess::SupportsMultithreading())
 				{
@@ -906,6 +922,14 @@ private:
 				continue;
 			}
 			TestRandomizedThreads();
+#if PLATFORM_XBOXONE || PLATFORM_WINDOWS
+			// the Win scheduler is ill behaved and will sometimes let BG tasks run even when other tasks are ready....kick the scheduler between tasks
+			if (!bDidStall && PriorityIndex == (ENamedThreads::BackgroundThreadPriority >> ENamedThreads::ThreadPriorityShift))
+			{
+				FPlatformProcess::Sleep(0);
+			}
+#endif
+			bDidStall = false;
 			Task->Execute(NewTasks, ENamedThreads::Type(ThreadId));
 			TestRandomizedThreads();
 			if (Queue.bStallForTuning)
@@ -1103,9 +1127,9 @@ public:
 			{
 				Name = FString::Printf(TEXT("TaskGraphThreadBP %d"), ThreadIndex - (LastExternalThread + 1));
 				ThreadPri = TPri_Lowest;
-				if (PLATFORM_PS4)
+				// If the platform defines FPlatformAffinity::GetTaskGraphBackgroundTaskMask then use it
+				if ( FPlatformAffinity::GetTaskGraphBackgroundTaskMask() != 0xFFFFFFFFFFFFFFFF )
 				{
-					// hack, use the audio affinity mask, since this might include the 7th core
 					Affinity = FPlatformAffinity::GetTaskGraphBackgroundTaskMask();
 				}
 			}
@@ -1114,8 +1138,9 @@ public:
 				Name = FString::Printf(TEXT("TaskGraphThreadNP %d"), ThreadIndex - (LastExternalThread + 1));
 				ThreadPri = TPri_BelowNormal; // we want normal tasks below normal threads like the game thread
 			}
-
-#if ( UE_BUILD_SHIPPING || UE_BUILD_TEST )
+#if WITH_EDITOR
+			uint32 StackSize = 1024 * 1024;
+#elif ( UE_BUILD_SHIPPING || UE_BUILD_TEST )
 			uint32 StackSize = 384 * 1024;
 #else
 			uint32 StackSize = 512 * 1024;
@@ -1477,7 +1502,7 @@ private:
 	enum
 	{
 		/** Compile time maximum number of threads. Didn't really need to be a compile time constant, but task thread are limited by MAX_LOCK_FREE_LINKS_AS_BITS **/
-		MAX_THREADS = 22 * (CREATE_HIPRI_TASK_THREADS + CREATE_BACKGROUND_TASK_THREADS + 1) + ENamedThreads::ActualRenderingThread + 1,
+		MAX_THREADS = 26 * (CREATE_HIPRI_TASK_THREADS + CREATE_BACKGROUND_TASK_THREADS + 1) + ENamedThreads::ActualRenderingThread + 1,
 		MAX_THREAD_PRIORITIES = 3
 	};
 
@@ -1578,13 +1603,37 @@ void FGraphEvent::DispatchSubsequents(TArray<FBaseGraphTask*>& NewTasks, ENamedT
 		// need to save this first and empty the actual tail of the task might be recycled faster than it is cleared.
 		FGraphEventArray TempEventsToWaitFor;
 		Exchange(EventsToWaitFor, TempEventsToWaitFor);
-		// create the Gather...this uses a special version of private CreateTask that "assumes" the subsequent list (which other threads might still be adding too).
-		DECLARE_CYCLE_STAT(TEXT("FNullGraphTask.DontCompleteUntil"),
-			STAT_FNullGraphTask_DontCompleteUntil,
-			STATGROUP_TaskGraphTasks);
 
-		TGraphTask<FNullGraphTask>::CreateTask(FGraphEventRef(this), &TempEventsToWaitFor, CurrentThreadIfKnown).ConstructAndDispatchWhenReady(GET_STATID(STAT_FNullGraphTask_DontCompleteUntil), ENamedThreads::AnyHiPriThreadHiPriTask);
-		return;
+		bool bSpawnGatherTask = true;
+
+		if (GTestDontCompleteUntilForAlreadyComplete)
+		{
+			bSpawnGatherTask = false;
+			for (FGraphEventRef& Item : TempEventsToWaitFor)
+			{
+				if (!Item->IsComplete())
+				{
+					bSpawnGatherTask = true;
+					break;
+				}
+			}
+		}
+
+		if (bSpawnGatherTask)
+		{
+			// create the Gather...this uses a special version of private CreateTask that "assumes" the subsequent list (which other threads might still be adding too).
+			DECLARE_CYCLE_STAT(TEXT("FNullGraphTask.DontCompleteUntil"),
+			STAT_FNullGraphTask_DontCompleteUntil,
+				STATGROUP_TaskGraphTasks);
+
+			ENamedThreads::Type LocalThreadToDoGatherOn = ENamedThreads::AnyHiPriThreadHiPriTask;
+			if (!GIgnoreThreadToDoGatherOn)
+			{
+				LocalThreadToDoGatherOn = ThreadToDoGatherOn;
+			}
+			TGraphTask<FNullGraphTask>::CreateTask(FGraphEventRef(this), &TempEventsToWaitFor, CurrentThreadIfKnown).ConstructAndDispatchWhenReady(GET_STATID(STAT_FNullGraphTask_DontCompleteUntil), LocalThreadToDoGatherOn);
+			return;
+		}
 	}
 
 	SubsequentList.PopAllAndClose(NewTasks);
@@ -1718,9 +1767,14 @@ void FTaskGraphInterface::BroadcastSlow_OnlyUseForSpecialPurposes(bool bDoTaskTh
 	{
 		Tasks.Add(TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::SetTaskPriority(ENamedThreads::RHIThread, ENamedThreads::HighTaskPriority), nullptr, nullptr, nullptr));
 	}
-	if (ENamedThreads::RenderThread != ENamedThreads::GameThread)
+	ENamedThreads::Type RenderThread = ENamedThreads::GetRenderThread();
+	if (RenderThread != ENamedThreads::GameThread)
 	{
-		Tasks.Add(TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::SetTaskPriority(ENamedThreads::RenderThread, ENamedThreads::HighTaskPriority), nullptr, nullptr, nullptr));
+		Tasks.Add(TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::SetTaskPriority(RenderThread, ENamedThreads::HighTaskPriority), nullptr, nullptr, nullptr));
+	}
+	if (FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::AudioThread))
+	{
+		Tasks.Add(TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::SetTaskPriority(ENamedThreads::AudioThread, ENamedThreads::HighTaskPriority), nullptr, nullptr, nullptr));
 	}
 	Tasks.Add(TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::GameThread_Local, nullptr, nullptr, nullptr));
 	if (bDoTaskThreads)
@@ -2473,6 +2527,91 @@ static FAutoConsoleCommand TestLockFreeCmd(
 	TEXT("Test lock free lists"),
 	FConsoleCommandWithArgsDelegate::CreateStatic(&TestLockFree)
 	);
+
+
+class FForegroundGraphTask : public FCustomStatIDGraphTaskBase
+{
+public:
+	FORCEINLINE FForegroundGraphTask(uint64 InCycles)
+		: FCustomStatIDGraphTaskBase(TStatId())
+		, StartCycles(InCycles)
+	{
+	}
+	static FORCEINLINE ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::AnyHiPriThreadHiPriTask;
+	}
+
+	static FORCEINLINE ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::FireAndForget; }
+	void FORCENOINLINE DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		float Latency = float(double(FPlatformTime::Cycles64() - StartCycles) * FPlatformTime::GetSecondsPerCycle64() * 1000.0 * 1000.0);
+		//UE_LOG(LogTemp, Display, TEXT("Latency %6.2fus"), Latency);
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Latency %6.2fus\r\n"), Latency);
+	}
+private:
+	uint64 StartCycles;
+};
+
+class FBackgroundGraphTask : public FCustomStatIDGraphTaskBase
+{
+public:
+	FORCEINLINE FBackgroundGraphTask(bool InPri)
+		: FCustomStatIDGraphTaskBase(TStatId())
+	{
+	}
+	FORCEINLINE ENamedThreads::Type GetDesiredThread()
+	{
+		return Pri ? ENamedThreads::AnyNormalThreadNormalTask : ENamedThreads::AnyBackgroundThreadNormalTask;
+	}
+
+	static FORCEINLINE ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::FireAndForget; }
+	void FORCENOINLINE DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		while (true)
+		{
+			uint32 RunningCrc = 0;
+			for (int32 Index = 0; Index < 1000000; Index++)
+			{
+				FCrc::MemCrc32(this, sizeof(*this), RunningCrc);
+			}
+			TGraphTask<FForegroundGraphTask>::CreateTask().ConstructAndDispatchWhenReady(FPlatformTime::Cycles64());
+		}
+	}
+private:
+	bool Pri;
+};
+
+static void TestLowToHighPri(const TArray<FString>& Args)
+{
+	UE_LOG(LogTemp, Display, TEXT("Starting latency test...."));
+
+#if 0
+	const int NumBackgroundTasks = 32;
+	const int NumNormalTasks = 32;
+	for (int32 Index = 0; Index < NumBackgroundTasks; Index++)
+	{
+		TGraphTask<FBackgroundGraphTask>::CreateTask().ConstructAndDispatchWhenReady(false);
+	}
+	for (int32 Index = 0; Index < NumNormalTasks; Index++)
+	{
+		TGraphTask<FBackgroundGraphTask>::CreateTask().ConstructAndDispatchWhenReady(true);
+	}
+	while (true)
+	{
+		FPlatformProcess::Sleep(25.0f);
+	}
+#else
+	TGraphTask<FBackgroundGraphTask>::CreateTask().ConstructAndDispatchWhenReady(false);
+#endif
+}
+
+static FAutoConsoleCommand TestLowToHighPriCmd(
+	TEXT("TaskGraph.TestLowToHighPri"),
+	TEXT("Test latency of high priority tasks when low priority tasks are saturating the CPU"),
+	FConsoleCommandWithArgsDelegate::CreateStatic(&TestLowToHighPri)
+);
+
 
 #if WITH_DEV_AUTOMATION_TESTS
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "D3D12RHIPrivate.h"
 
@@ -23,7 +23,7 @@ inline FD3D12UnorderedAccessView* CreateUAV(D3D12_UNORDERED_ACCESS_VIEW_DESC& De
 			Device->GetParentAdapter()->CreateBuffer(D3D12_HEAP_TYPE_DEFAULT, Node, Node, 4, &CounterResource, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 		}
 
-		return new FD3D12UnorderedAccessView(Device, &Desc, &Resource->ResourceLocation, CounterResource);
+		return new FD3D12UnorderedAccessView(Device, Desc, Resource->ResourceLocation, CounterResource);
 	});
 }
 

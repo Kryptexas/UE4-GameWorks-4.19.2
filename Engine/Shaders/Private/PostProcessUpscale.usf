@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessUpscale.usf: PostProcessing shader to upscale
@@ -15,6 +15,9 @@ float UpscaleSoftness;
 // .x:HalfFOV .y:tan(HalfFov) .z:CylinderDistortion(0=none, 1:full) .w:Correction to scale Y the same as X is scaled in the center
 float3 PaniniParams;
 
+// Min and max UV coordingate for input scene color.
+float4 SceneColorBilinearUVMinMax;
+
 // to avoid compiler errors on the PS
 #ifndef TESS_RECT_X
 	#define TESS_RECT_X 1
@@ -23,6 +26,26 @@ float3 PaniniParams;
 	#define TESS_RECT_Y 1
 #endif
 
+
+// Do a smoothstep(x) = 3 x^2 - 2 x^3
+float2 GetSmoothstepUV(float2 LinearUV, float2 TextureSize, float2 TextureInvSize)
+{
+	// Top left cornered pixel coordinate to sample.
+	float2 PixelCoord = LinearUV * TextureSize - 0.5;
+
+	// Index of the top left pixel used in the bilinear interpolation.
+	float2 TopLeftPixelCoord = floor(PixelCoord);
+
+	// Interpolation factors in the 2x2 quad.
+	float2 PixelInterp = PixelCoord - TopLeftPixelCoord;
+	
+	// New interpolation factors in the 2x2 quad with smoothstep.
+	float2 SmoothPixelInterp = PixelInterp * PixelInterp * (3 - 2 * PixelInterp);
+	//SmoothPixelInterp = PixelInterp;
+
+	// Returns new UV coordinate.
+	return TextureInvSize * (TopLeftPixelCoord + SmoothPixelInterp + 0.5);
+}
 
 float Luma(float3 Color) 
 {
@@ -83,6 +106,13 @@ void MainVS(
 	OutTexCoord.zw =  OutPosition.xy;
 }
 
+float3 SampleSceneColorRGB(float2 BufferUV)
+{
+	#if MANUALLY_CLAMP_UV
+		BufferUV = clamp(BufferUV, SceneColorBilinearUVMinMax.xy, SceneColorBilinearUVMinMax.zw);
+	#endif
+	return PostprocessInput0.SampleLevel(PostprocessInput0Sampler, BufferUV, 0).rgb;
+}
 
 void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition : SV_POSITION, out float4 OutColor : SV_Target0)
 {
@@ -95,22 +125,19 @@ void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition :
 	#else
 		OutColor = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UVAndScreenPos.xy, 0, int2(0, 0));
 	#endif
-#endif
 
-#if METHOD == 1
+#elif METHOD == 1
 	// Bilinear (fast, aliasing)
-	float2 UV = UVAndScreenPos.xy;
-	OutColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
-#endif
+	OutColor.rgb = SampleSceneColorRGB(UVAndScreenPos.xy);
 
-#if METHOD == 2
+#elif METHOD == 2
 	// Directional blur with unsharp mask upsample.
 	float2 UV = UVAndScreenPos.xy;
 	float X = 0.5;
-	float3 ColorNW = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV + float2(-X, -X) * PostprocessInput0Size.zw, 0).rgb;
-	float3 ColorNE = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV + float2( X, -X) * PostprocessInput0Size.zw, 0).rgb;
-	float3 ColorSW = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV + float2(-X,  X) * PostprocessInput0Size.zw, 0).rgb;
-	float3 ColorSE = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV + float2( X,  X) * PostprocessInput0Size.zw, 0).rgb;
+	float3 ColorNW = SampleSceneColorRGB(UV + float2(-X, -X) * PostprocessInput0Size.zw);
+	float3 ColorNE = SampleSceneColorRGB(UV + float2( X, -X) * PostprocessInput0Size.zw);
+	float3 ColorSW = SampleSceneColorRGB(UV + float2(-X,  X) * PostprocessInput0Size.zw);
+	float3 ColorSE = SampleSceneColorRGB(UV + float2( X,  X) * PostprocessInput0Size.zw);
 	OutColor.rgb = (ColorNW * 0.25) + (ColorNE * 0.25) + (ColorSW * 0.25) + (ColorSE * 0.25);
 	
 	float LumaNW = Luma(ColorNW);
@@ -127,19 +154,22 @@ void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition :
 	// avoid NaN on zero vectors by adding 2^-24 (float ulp when length==1, and also minimum representable half)
 	IsoBrightnessDir = IsoBrightnessDir * (0.125 * rsqrt(dot(IsoBrightnessDir, IsoBrightnessDir) + 6e-8));
 
-	float3 ColorN = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV - IsoBrightnessDir * PostprocessInput0Size.zw, 0).rgb;
-	float3 ColorP = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV + IsoBrightnessDir * PostprocessInput0Size.zw, 0).rgb;
+	float3 ColorN = SampleSceneColorRGB(UV - IsoBrightnessDir * PostprocessInput0Size.zw);
+	float3 ColorP = SampleSceneColorRGB(UV + IsoBrightnessDir * PostprocessInput0Size.zw);
 
 	float UnsharpMask = 0.25;
 	OutColor.rgb = (ColorN + ColorP) * ((UnsharpMask + 1.0) * 0.5) - (OutColor.rgb * UnsharpMask);
-#endif
 
-#if METHOD == 3
+#elif METHOD == 3
 	// Bicubic Catmull-Rom in five samples
-	OutColor = Texture2DSampleBicubic(PostprocessInput0, PostprocessInput0Sampler, UVAndScreenPos.xy, PostprocessInput0Size.xy);
-#endif
+	FCatmullRomSamples Samples = GetBicubic2DCatmullRomSamples(UVAndScreenPos.xy, PostprocessInput0Size.xy, PostprocessInput0Size.zw);
+	for (uint i = 0; i < Samples.Count; i++)
+	{
+		OutColor.rgb += SampleSceneColorRGB(Samples.UV[i]) * Samples.Weight[i];
+	}
+	OutColor *= Samples.FinalMultiplier;
 
-#if METHOD == 4
+#elif METHOD == 4
 	{
 		// Lanczos 3
 		float2 UV = UVAndScreenPos.xy * PostprocessInput0Size.xy;
@@ -175,29 +205,28 @@ void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition :
 		OutColor = 0;
 
 		// 5x5 footprint with corners dropped to give 13 texture taps
-		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[0].x, Sample[2].y), 0).rgb, 1) * Weight[0].x * Weight[2].y;
+		OutColor += float4(SampleSceneColorRGB(float2(Sample[0].x, Sample[2].y)), 1) * Weight[0].x * Weight[2].y;
 
-		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[1].x, Sample[1].y), 0).rgb, 1) * Weight[1].x * Weight[1].y;
-		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[1].x, Sample[2].y), 0).rgb, 1) * Weight[1].x * Weight[2].y;
-		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[1].x, Sample[3].y), 0).rgb, 1) * Weight[1].x * Weight[3].y;
+		OutColor += float4(SampleSceneColorRGB(float2(Sample[1].x, Sample[1].y)), 1) * Weight[1].x * Weight[1].y;
+		OutColor += float4(SampleSceneColorRGB(float2(Sample[1].x, Sample[2].y)), 1) * Weight[1].x * Weight[2].y;
+		OutColor += float4(SampleSceneColorRGB(float2(Sample[1].x, Sample[3].y)), 1) * Weight[1].x * Weight[3].y;
 
-		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[2].x, Sample[0].y), 0).rgb, 1) * Weight[2].x * Weight[0].y;
-		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[2].x, Sample[1].y), 0).rgb, 1) * Weight[2].x * Weight[1].y;
-		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[2].x, Sample[2].y), 0).rgb, 1) * Weight[2].x * Weight[2].y;
-		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[2].x, Sample[3].y), 0).rgb, 1) * Weight[2].x * Weight[3].y;
-		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[2].x, Sample[4].y), 0).rgb, 1) * Weight[2].x * Weight[4].y;
+		OutColor += float4(SampleSceneColorRGB(float2(Sample[2].x, Sample[0].y)), 1) * Weight[2].x * Weight[0].y;
+		OutColor += float4(SampleSceneColorRGB(float2(Sample[2].x, Sample[1].y)), 1) * Weight[2].x * Weight[1].y;
+		OutColor += float4(SampleSceneColorRGB(float2(Sample[2].x, Sample[2].y)), 1) * Weight[2].x * Weight[2].y;
+		OutColor += float4(SampleSceneColorRGB(float2(Sample[2].x, Sample[3].y)), 1) * Weight[2].x * Weight[3].y;
+		OutColor += float4(SampleSceneColorRGB(float2(Sample[2].x, Sample[4].y)), 1) * Weight[2].x * Weight[4].y;
 
-		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[3].x, Sample[1].y), 0).rgb, 1) * Weight[3].x * Weight[1].y;
-		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[3].x, Sample[2].y), 0).rgb, 1) * Weight[3].x * Weight[2].y;
-		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[3].x, Sample[3].y), 0).rgb, 1) * Weight[3].x * Weight[3].y;
+		OutColor += float4(SampleSceneColorRGB(float2(Sample[3].x, Sample[1].y)), 1) * Weight[3].x * Weight[1].y;
+		OutColor += float4(SampleSceneColorRGB(float2(Sample[3].x, Sample[2].y)), 1) * Weight[3].x * Weight[2].y;
+		OutColor += float4(SampleSceneColorRGB(float2(Sample[3].x, Sample[3].y)), 1) * Weight[3].x * Weight[3].y;
 
-		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[4].x, Sample[2].y), 0).rgb, 1) * Weight[4].x * Weight[2].y;
+		OutColor += float4(SampleSceneColorRGB(float2(Sample[4].x, Sample[2].y)), 1) * Weight[4].x * Weight[2].y;
 
 		OutColor /= OutColor.w;
 	}
-#endif
 
-#if METHOD == 5
+#elif METHOD == 5
 	{
 		// Gaussian filtered unsharp mask
 		float2 UV = UVAndScreenPos.xy * PostprocessInput0Size.xy;
@@ -219,7 +248,7 @@ void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition :
 				float2 Offset = UV - Texel;
 				float OffsetSq = 2 * dot(Offset, Offset);	// texel loop is optimized for variance = 0.5
 				float Weight = exp(-0.5 * OffsetSq);
-				float4 Sample = Weight * float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, Texel * PostprocessInput0Size.zw, 0).rgb, 1);
+				float4 Sample = Weight * float4(SampleSceneColorRGB(Texel * PostprocessInput0Size.zw), 1);
 
 				OutColor += Sample;
 				Laplacian += Sample.rgb * (OffsetSq - 2);
@@ -230,6 +259,12 @@ void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition :
 
 		float UnsharpScale = UpscaleSoftness * (1 - PostprocessInput0Size.x * PostprocessInput0Size.y * ViewportSize.z * ViewportSize.w);
 		OutColor.rgb -= UnsharpScale * Laplacian;
+	}
+
+#elif METHOD == 6
+	// smooth step.
+	{
+		OutColor.rgb = SampleSceneColorRGB(GetSmoothstepUV(UVAndScreenPos.xy, PostprocessInput0Size.xy, PostprocessInput0Size.zw));
 	}
 #endif
 

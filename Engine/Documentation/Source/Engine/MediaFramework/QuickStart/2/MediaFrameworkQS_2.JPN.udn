@@ -1,0 +1,72 @@
+﻿INTSourceChangelist:3692913
+Availability:Public
+Crumbs: %ROOT%
+Title:2 - メディア テクスチャとマテリアルの設定
+Description:このステップでは、映像の再生に使用するメディア テクスチャとマテリアルを設定します。 
+SkillLevel:Beginner
+Version:4.18
+checkpoint: mediaframeworkqs
+parent:Engine\MediaFramework\QuickStart
+type:multi-step
+order:2
+tags:Media Framework
+tags:Materials
+ 
+[NAV]
+
+前のステップでは、コンテンツをインポートし、このガイドで使用するアセットのいくつかを作成しました。次は、映像の再生に使用するマテリアルを作成してみます。[マテリアル](Engine/Rendering/Materials) にメディア テクスチャを組みんで、コンテンツがテレビ画面に正しく収める作業が必要になります。
+
+## ステップ
+
+1.	**「TV」** フォルダの **M_TV_Inst** マテリアルを開き **M_TV_Inst** ノードの **Base Color** ピンにアタッチされている **Vector Parameter** ノードを削除します。
+
+1.	グラフを右クリックし、**Texture Sample** ノードを追加します。**[Details]** パネルで、**[Sampler Type]** を **[External]** に設定します。
+
+	![](TVMaterial_01.png)
+
+	 **Texture Object Parameter** を使って入力するので、**[Texture]** 入力フィールドは空の状態にしておきます。こうしておくと、どの **Media Texture** をブループリントを使ってサンプリングするのかオーバーライドすることができるようになります。**[Sampler Type]** 入力フィールドで Media Textures を **[External]** に設定します。映像の再生とデコードが最適化されて効率が上がり、新しい External Texture API が使用されます。
+
+1.	グラフ内を右クリックして **Param Tex Object** ノードを追加し**Texture Sample** ノードの **Tex** ピンに接続します。
+
+1.	**Param Tex Object** ノードで、**TV_Texture** を **Parameter Name** として使い、**[Texture]** 入力フィールドに **[MediaPlayer_01_Video]** を設定します。
+
+	![](TVMaterial_02.png)
+
+	[Texture] 入力フィールドで Media Texture の使用を設定すると、**[Sampler Type]** 入力フィールドが自動的に **[External]** に変わります。
+
+1.	グラフを右クリックして **TexCoord** ノードを追加したら、**Texture Sample** の **UVs** ピンに接続します。**[VTiling]** プロパティを **[2.0]** に設定します。
+
+	![](TVMaterial_03.png)
+
+	[TexCoord](https://docs.unrealengine.com/latest/INT/Engine/Rendering/Materials/ExpressionReference/Coordinates/#texturecoordinate) に使われている値は、このマテリアルを適用しようとするメッシュによって変わります。数回試した結果、この例の場合はこの値が適切であることが分かりました。
+
+1.	右クリックして別の **Texture Sample** ノードを追加し、 **[Texture]** プロパティを **[T_TV_M2]** テクスチャに設定します。 
+
+	![](TVMaterial_04.png)
+
+1.	追加した **Texture Sample** の **緑** チャンネルを引き出し、**LinearInterpolate** ノードを使って **Alpha** チャネルに接続します。 
+
+	![](TVMaterial_05.png)
+
+	このテクスチャを使ってテレビ画面をメッシュの他の部分から分離させて、映像を画面だけに適用させることができます。 
+
+1.	**1** キーを押して左クリックして定数ノードを追加し、**Lerp** ノードの **B** ピンに接続して、残りのノードを以下のように接続します。 
+
+	![](TVMaterial_06.png)
+
+
+## 最終結果
+
+
+TV Material が設定されて映像をプレイする準備が整いました。**SM_TV** スタティックメッシュを開くと、画面が白くなっています。 
+
+![](TVMaterial_07.png)(w:740)
+
+心配する必要はありません。**Media Player** アセットを開いて映像をプレイすると **SM_TV** スタティックメッシュが再度開いてテレビで映像がプレイされます。 
+
+![](TVMaterial_08.png)(w:740)
+
+テレビがエディタ内でコンテンツをプレイしている間、レベル内でこのスタティックメッシュをリリースしゲームをプレイすると、コンテンツはランタイム時にテレビでプレイされません。コンテンツにランタイム時に開いて再生を開始するよう指示する手段が必要ですが、これについては操作ガイドの後半で説明します。その前にまず、レベル デザイナーにエディタ内でテレビに表示されるコンテンツを指定する手段、およびプレイヤーがボタンを押してテレビのオンオフができるようにブループリントを設定する必要があります。
+
+[NAV]
+

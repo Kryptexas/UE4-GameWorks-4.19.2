@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,6 +6,7 @@
 #include "UObject/CoreOnline.h"
 #include "Net/VoiceDataCommon.h"
 #include "OnlineSubsystemUtilsPackage.h"
+#include "VoiceConfig.h"
 
 #define DEBUG_VOICE_PACKET_ENCODING 0
 
@@ -21,6 +22,7 @@ PACKAGE_SCOPE:
 	TArray<uint8> Buffer;
 	/** The current amount of space used in the buffer for this packet */
 	uint16 Length;
+	uint64 SampleCount; // this is a "sample accurate" representation of the audio data, used for interleaving silent buffers, etc.
 
 public:
 	/** Zeros members and validates the assumptions */
@@ -28,8 +30,8 @@ public:
 		Sender(NULL),
 		Length(0)
 	{
-		Buffer.Empty(MAX_VOICE_DATA_SIZE);
-		Buffer.AddUninitialized(MAX_VOICE_DATA_SIZE);
+		Buffer.Empty(UVOIPStatics::GetMaxVoiceDataSize());
+		Buffer.AddUninitialized(UVOIPStatics::GetMaxVoiceDataSize());
 	}
 
 	/** Should only be used by TSharedPtr and FVoiceData */
@@ -50,6 +52,7 @@ public:
 	virtual TSharedPtr<const FUniqueNetId> GetSender() override;
 	virtual bool IsReliable() override { return false; }
 	virtual void Serialize(class FArchive& Ar) override;
+	virtual uint64 GetSampleCounter() const override { return SampleCount; }
 	//~ End FVoicePacket interface
 };
 

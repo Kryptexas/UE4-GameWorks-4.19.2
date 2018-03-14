@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
  =============================================================================*/
@@ -80,23 +80,23 @@ static FClipSMVertex GetVert(const UStaticMesh* StaticMesh, int32 VertIndex)
 {
 	FClipSMVertex Result;
 	FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[0];
-	Result.Pos = LODModel.PositionVertexBuffer.VertexPosition(VertIndex);
-	Result.TangentX = LODModel.VertexBuffer.VertexTangentX(VertIndex);
-	Result.TangentY = LODModel.VertexBuffer.VertexTangentY(VertIndex);
-	Result.TangentZ = LODModel.VertexBuffer.VertexTangentZ(VertIndex);
-	const int32 NumUVs = LODModel.VertexBuffer.GetNumTexCoords();
+	Result.Pos = LODModel.VertexBuffers.PositionVertexBuffer.VertexPosition(VertIndex);
+	Result.TangentX = LODModel.VertexBuffers.StaticMeshVertexBuffer.VertexTangentX(VertIndex);
+	Result.TangentY = LODModel.VertexBuffers.StaticMeshVertexBuffer.VertexTangentY(VertIndex);
+	Result.TangentZ = LODModel.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(VertIndex);
+	const int32 NumUVs = LODModel.VertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords();
 	for(int32 UVIndex = 0;UVIndex < NumUVs;UVIndex++)
 	{
-		Result.UVs[UVIndex] = LODModel.VertexBuffer.GetVertexUV(VertIndex,UVIndex);
+		Result.UVs[UVIndex] = LODModel.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(VertIndex,UVIndex);
 	}
 	for(int32 UVIndex = NumUVs;UVIndex < ARRAY_COUNT(Result.UVs);UVIndex++)
 	{
 		Result.UVs[UVIndex] = FVector2D::ZeroVector;
 	}
 	Result.Color = FColor( 255, 255, 255 );
-	if( LODModel.ColorVertexBuffer.GetNumVertices() > 0 )
+	if( LODModel.VertexBuffers.ColorVertexBuffer.GetNumVertices() > 0 )
 	{
-		Result.Color = LODModel.ColorVertexBuffer.VertexColor(VertIndex);
+		Result.Color = LODModel.VertexBuffers.ColorVertexBuffer.VertexColor(VertIndex);
 	}
 	return Result;
 }
@@ -143,7 +143,7 @@ void FGeomTools::GetClippableStaticMeshTriangles(TArray<FClipSMTriangle>& OutCli
 
 			// Copy the triangle's attributes.
 			ClipTriangle.MaterialIndex = Section.MaterialIndex;
-			ClipTriangle.NumUVs = RenderData.VertexBuffer.GetNumTexCoords();
+			ClipTriangle.NumUVs = RenderData.VertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords();
 			ClipTriangle.SmoothingMask = 0;
 			ClipTriangle.bOverrideTangentBasis = true;
 

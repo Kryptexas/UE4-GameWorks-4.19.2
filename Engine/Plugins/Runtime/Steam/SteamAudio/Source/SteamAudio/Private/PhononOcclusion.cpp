@@ -15,7 +15,8 @@
 namespace SteamAudio
 {
 	FPhononOcclusion::FPhononOcclusion()
-		: EnvironmentalRenderer(nullptr)
+		: Environment(nullptr)
+		, EnvironmentalRenderer(nullptr)
 		, EnvironmentCriticalSectionHandle(nullptr)
 	{
 		InputAudioFormat.channelLayout = IPL_CHANNELLAYOUT_MONO;
@@ -61,7 +62,7 @@ namespace SteamAudio
 
 	void FPhononOcclusion::OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, const uint32 NumChannels, UOcclusionPluginSourceSettingsBase* InSettings)
 	{
-		if (!EnvironmentalRenderer)
+		if (!Environment || !EnvironmentalRenderer)
 		{
 			UE_LOG(LogSteamAudio, Error, TEXT("Unable to find environmental renderer for occlusion. Audio will not be occluded. Make sure to export the scene."));
 			return;
@@ -103,7 +104,7 @@ namespace SteamAudio
 	{
 		FDirectSoundSource& DirectSoundSource = DirectSoundSources[InputData.SourceId];
 
-		if (!EnvironmentalRenderer)
+		if (!Environment || !EnvironmentalRenderer)
 		{
 			FMemory::Memcpy(OutputData.AudioBuffer.GetData(), InputData.AudioBuffer->GetData(), InputData.AudioBuffer->Num() * sizeof(float));
 			return;
@@ -128,7 +129,7 @@ namespace SteamAudio
 
 	void FPhononOcclusion::UpdateDirectSoundSources(const FVector& ListenerPosition, const FVector& ListenerForward, const FVector& ListenerUp)
 	{
-		if (!EnvironmentalRenderer || !EnvironmentCriticalSectionHandle)
+		if (!Environment || !EnvironmentalRenderer || !EnvironmentCriticalSectionHandle)
 		{
 			return;
 		}
@@ -141,7 +142,7 @@ namespace SteamAudio
 
 			if (DirectSoundSource.bNeedsUpdate)
 			{
-				IPLDirectSoundPath DirectSoundPath = iplGetDirectSoundPath(EnvironmentalRenderer, SteamAudio::UnrealToPhononIPLVector3(ListenerPosition),
+				IPLDirectSoundPath DirectSoundPath = iplGetDirectSoundPath(Environment, SteamAudio::UnrealToPhononIPLVector3(ListenerPosition),
 					SteamAudio::UnrealToPhononIPLVector3(ListenerForward, false), SteamAudio::UnrealToPhononIPLVector3(ListenerUp, false),
 					DirectSoundSource.Position, DirectSoundSource.Radius * SteamAudio::SCALEFACTOR,
 					static_cast<IPLDirectOcclusionMode>(DirectSoundSource.DirectOcclusionMode),
@@ -151,6 +152,11 @@ namespace SteamAudio
 				DirectSoundSource.bNeedsUpdate = false;
 			}
 		}
+	}
+
+	void FPhononOcclusion::SetEnvironment(IPLhandle InEnvironment)
+	{
+		Environment = InEnvironment;
 	}
 
 	void FPhononOcclusion::SetEnvironmentalRenderer(IPLhandle InEnvironmentalRenderer)

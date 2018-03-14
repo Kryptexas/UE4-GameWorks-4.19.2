@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Misc/Paths.h"
@@ -196,6 +196,7 @@ void FEndPhysicsTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickT
 			STAT_FSimpleDelegateGraphTask_FinishPhysicsSim,
 			STATGROUP_TaskGraphTasks);
 
+		MyCompletionGraphEvent->SetGatherThreadForDontCompleteUntil(ENamedThreads::GameThread);
 		MyCompletionGraphEvent->DontCompleteUntil(
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 				FSimpleDelegateGraphTask::FDelegate::CreateUObject(Target, &UWorld::FinishPhysicsSim),
@@ -209,6 +210,7 @@ void FEndPhysicsTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickT
 		Target->FinishPhysicsSim();
 	}
 
+#if WITH_PHYSX
 #if PHYSX_MEMORY_VALIDATION
 	static int32 Frequency = 0;
 	if (Frequency++ > 10)
@@ -217,6 +219,7 @@ void FEndPhysicsTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickT
 		GPhysXAllocator->ValidateHeaders();
 	}
 #endif
+#endif // WITH_PHYSX 
 }
 
 FString FEndPhysicsTickFunction::DiagnosticMessage()
@@ -322,7 +325,7 @@ void InitGamePhys()
 	ApexDesc.resourceCallback		= &GApexResourceCallback;	// The resource callback is how APEX asks the application to find assets when it needs them
 
 #if PLATFORM_MAC
-	FString DylibFolder = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/");
+	FString DylibFolder = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX3/");
 	ANSICHAR* DLLLoadPath = (ANSICHAR*)FMemory::Malloc(DylibFolder.Len() + 1);
 	FCStringAnsi::Strcpy(DLLLoadPath, DylibFolder.Len() + 1, TCHAR_TO_UTF8(*DylibFolder));
 	ApexDesc.dllLoadPath = DLLLoadPath;
@@ -465,7 +468,7 @@ void TermGamePhys()
 	// @todo delete FPhysXOutputStream
 
 	PhysDLLHelper::UnloadPhysXModules();
-#endif
+#endif // WITH_PHYSX
 }
 
 /** 

@@ -5,7 +5,8 @@ Description:Information profiling the performance of your UE4 Rift projects.
 Navigation:platform
 Platform:Oculus
 Version: 4.16
-type:landing
+type:overview
+Skilllevel:Advanced
 parent:Platforms/Oculus
 order:2
 tags:Performance and Profiling

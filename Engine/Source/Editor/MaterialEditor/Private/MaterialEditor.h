@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -35,6 +35,7 @@ class UFactory;
 class UMaterialEditorOptions;
 class UMaterialExpressionComment;
 class UMaterialInstance;
+struct FGraphAppearanceInfo;
 
 /**
  * Class for rendering previews of material expressions in the material editor's linked object viewport.
@@ -108,29 +109,29 @@ public:
 		}
 	}
 
-	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetVectorValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override
 	{
 		if (Expression.IsValid() && Expression->Material)
 		{
-			return Expression->Material->GetRenderProxy(0)->GetVectorValue(ParameterName, OutValue, Context);
+			return Expression->Material->GetRenderProxy(0)->GetVectorValue(ParameterInfo, OutValue, Context);
 		}
 		return false;
 	}
 
-	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetScalarValue(const FMaterialParameterInfo& ParameterInfo, float* OutValue, const FMaterialRenderContext& Context) const override
 	{
 		if (Expression.IsValid() && Expression->Material)
 		{
-			return Expression->Material->GetRenderProxy(0)->GetScalarValue(ParameterName, OutValue, Context);
+			return Expression->Material->GetRenderProxy(0)->GetScalarValue(ParameterInfo, OutValue, Context);
 		}
 		return false;
 	}
 
-	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetTextureValue(const FMaterialParameterInfo& ParameterInfo,const UTexture** OutValue, const FMaterialRenderContext& Context) const override
 	{
 		if (Expression.IsValid() && Expression->Material)
 		{
-			return Expression->Material->GetRenderProxy(0)->GetTextureValue(ParameterName, OutValue, Context);
+			return Expression->Material->GetRenderProxy(0)->GetTextureValue(ParameterInfo, OutValue, Context);
 		}
 		return false;
 	}
@@ -271,7 +272,8 @@ public:
 		const FMaterialResource* MaterialResource,
 		const TArray<FString>& CompileErrors,
 		int32 &DrawPositionY,
-		bool bDrawInstructions);
+		bool bDrawInstructions,
+		bool bGeneratedNewShaders = false);
 	
 	/**
 	 * Draws messages on the specified viewport and canvas.
@@ -302,9 +304,10 @@ public:
 	void UpdatePreviewMaterial(bool bForce=false);
 
 	/**
-	 * Updates the original material with the changes made in the editor
-	 */
-	void UpdateOriginalMaterial();
+	* Updates the original material with the changes made in the editor
+	* @return true if the update was successful.  False if update was canceled (eg attempted to update Default Material with errors, which would cause a crash).
+	*/
+	bool UpdateOriginalMaterial();
 
 	/**
 	 * Updates list of Material Info used to show stats
@@ -324,9 +327,9 @@ public:
 	// FTickableGameObject interface
 	virtual void Tick(float DeltaTime) override;
 
-	virtual bool IsTickable() const override
+	virtual ETickableTickType GetTickableTickType() const override
 	{
-		return true;
+		return ETickableTickType::Always;
 	}
 
 	virtual bool IsTickableWhenPaused() const override
@@ -522,7 +525,12 @@ private:
 	/** Copies all the HLSL Code View code to the clipboard */
 	FReply CopyCodeViewTextToClipboard();
 
-
+	/**
+	* Rebuilds dependant Material Instance Editors
+	* @param		MatInst	Material Instance to search dependent editors and force refresh of them.
+	*/
+	//void RebuildMaterialInstanceEditors();
+	
 	/**
 	 * Binds our UI commands to delegates
 	 */
@@ -629,7 +637,7 @@ private:
 	 * Refreshes material expression previews.  Refreshes all previews if bAlwaysRefreshAllPreviews is true.
 	 * Otherwise, refreshes only those previews that have a bRealtimePreview of true.
 	 */
-	void RefreshExpressionPreviews();
+	void RefreshExpressionPreviews(bool bForceRefreshAll = false);
 
 	/**
 	 * Refreshes the preview for the specified material expression.  Does nothing if the specified expression
@@ -656,6 +664,9 @@ private:
 
 	/** Create new graph editor widget */
 	TSharedRef<class SGraphEditor> CreateGraphEditorWidget();
+
+	/** Gets the current Material Graph's appearance */
+	FGraphAppearanceInfo GetGraphAppearance() const;
 
 	/**
 	 * Deletes any disconnected material expressions.
@@ -685,6 +696,8 @@ private:
 	TSharedRef<SDockTab> SpawnTab_Stats(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Find(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_PreviewSettings(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> SpawnTab_ParameterDefaults(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> SpawnTab_LayerProperties(const FSpawnTabArgs& Args);
 
 	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent);
 private:
@@ -693,6 +706,9 @@ private:
 
 	/** Property View */
 	TSharedPtr<class IDetailsView> MaterialDetailsView;
+
+	/** Parameters View */
+	TSharedPtr<class IDetailsView> MaterialParametersView;
 
 	/** New Graph Editor */
 	TSharedPtr<class SGraphEditor> GraphEditor;
@@ -723,6 +739,9 @@ private:
 
 	/** Find results log as well as the search filter */
 	TSharedPtr<class SFindInMaterial> FindResults;
+
+	/** Layer Properties View */
+	TSharedPtr<class SMaterialLayersFunctionsMaterialWrapper> MaterialLayersFunctionsInstance;
 
 	/** The current transaction. */
 	FScopedTransaction* ScopedTransaction;
@@ -772,4 +791,9 @@ private:
 	static const FName StatsTabId;
 	static const FName FindTabId;
 	static const FName PreviewSettingsTabId;
+	static const FName ParameterDefaultsTabId;
+	static const FName LayerPropertiesTabId;
+
+	/** Object that stores all of the possible parameters we can edit. */
+	class UMaterialEditorPreviewParameters* MaterialEditorInstance;
 };

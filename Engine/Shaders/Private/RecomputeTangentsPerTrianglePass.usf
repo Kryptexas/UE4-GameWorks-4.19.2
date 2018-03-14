@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RecomputeTangentsPerTrianglePass.usf: Recompute Skin Tangents
@@ -7,6 +7,10 @@
 #include "RecomputeTangentsCommon.ush"
 #include "FastMath.ush"
 
+#if MERGE_DUPLICATED_VERTICES 
+Buffer<uint> DuplicatedIndices;
+Buffer<uint> DuplicatedIndicesIndices;
+#endif
 struct FVertexData
 {
 	// vertex index in the vertexbuffer
@@ -43,35 +47,20 @@ FVertexData GetVertex(uint VertexIndex)
 	Ret.VertexIndex = VertexIndex;
 
 	{
-		// start offset within GPUSkinCacheBuffer[]
-		uint OutputOffset = VertexIndex * GPUSKIN_RWBUFFER_NUM_FLOATS + SkinCacheStart;
+		uint OutputOffset = VertexIndex + SkinCacheStart;
 	
-		Ret.Position.x = GPUSkinCacheBuffer[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 0];
-		Ret.Position.y = GPUSkinCacheBuffer[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 1];
-		Ret.Position.z = GPUSkinCacheBuffer[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_POSITION + 2];
+		Ret.Position.x = GPUPositionCacheBuffer[3 * OutputOffset + 0];
+		Ret.Position.y = GPUPositionCacheBuffer[3 * OutputOffset + 1];
+		Ret.Position.z = GPUPositionCacheBuffer[3 * OutputOffset + 2];
 
-		// Read the original sign as the tangent spaced might be flipped
-		uint W = asuint(GPUSkinCacheBuffer[OutputOffset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z]) & 0xff000000;
+		float W = GPUTangentCacheBuffer[2 * OutputOffset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z].w;
 		Ret.OriginalOrientation = (W == 0) ? 1 : -1;
 	}
 
 	{
-		uint FloatsPerVertex = InputStreamStride / 4;
-		uint InputOffset = VertexIndex * FloatsPerVertex + InputStreamStart;
+		uint InputOffset = VertexIndex + InputStreamStart;
 
-		if(FULL_PRECISION_UV)
-		{
-			// float precision
-			Ret.UV.x = asfloat(SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_UVS + 0]);
-			Ret.UV.y = asfloat(SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_UVS + 1]);
-		}
-		else
-		{
-			// half precision
-			uint IntUV = SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_UVS + 0];
-			Ret.UV.x = f16tof32(IntUV & 0xffff);
-			Ret.UV.y = f16tof32(IntUV >> 16);
-		}
+		Ret.UV = UVsInputBuffer[InputOffset];
 	}
 
 	return Ret;
@@ -94,8 +83,7 @@ void MainCS(
 
 			UNROLL for(uint CornerId = 0; CornerId < 3; ++CornerId)
 			{
-				uint FloatsPerVertex = InputStreamStride / 4;
-				uint VertexIndex = IndexBuffer[TriangleIndexBufferStart + CornerId] - InputStreamStart / FloatsPerVertex;
+				uint VertexIndex = IndexBuffer[TriangleIndexBufferStart + CornerId] - InputStreamStart;
 
 				Corner[CornerId] = GetVertex(VertexIndex);
 			}
@@ -195,6 +183,26 @@ void MainCS(
 				InterlockedAdd(IntermediateAccumBufferUAV[Index + 5], IntTangentX.z);
 				// Orientation
 				InterlockedAdd(IntermediateAccumBufferUAV[Index + 6], IntOrientation);
+                
+#if MERGE_DUPLICATED_VERTICES 
+                uint DupVertexIndicesLength = DuplicatedIndicesIndices[2 * VertexIndex];
+                uint DupIndexStart = DuplicatedIndicesIndices[2 * VertexIndex + 1];
+                for(uint DupIndexOffset = 0; DupIndexOffset < DupVertexIndicesLength; ++DupIndexOffset)
+                {
+                    uint DupVertexIndex = DuplicatedIndices[DupIndexStart + DupIndexOffset];
+                    uint DupIndex = DupVertexIndex * INTERMEDIATE_ACCUM_BUFFER_NUM_INTS;
+                    // TangentZ
+                    InterlockedAdd(IntermediateAccumBufferUAV[DupIndex + 0], IntTangentZ.x);
+                    InterlockedAdd(IntermediateAccumBufferUAV[DupIndex + 1], IntTangentZ.y);
+                    InterlockedAdd(IntermediateAccumBufferUAV[DupIndex + 2], IntTangentZ.z);
+                    // TangentX
+                    InterlockedAdd(IntermediateAccumBufferUAV[DupIndex + 3], IntTangentX.x);
+                    InterlockedAdd(IntermediateAccumBufferUAV[DupIndex + 4], IntTangentX.y);
+                    InterlockedAdd(IntermediateAccumBufferUAV[DupIndex + 5], IntTangentX.z);
+                    // Orientation
+                    InterlockedAdd(IntermediateAccumBufferUAV[DupIndex + 6], IntOrientation);
+                }
+#endif
 			}
 		}
 	}

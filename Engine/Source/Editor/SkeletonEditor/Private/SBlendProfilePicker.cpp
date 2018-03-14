@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SBlendProfilePicker.h"
 #include "Fonts/SlateFontInfo.h"
@@ -35,6 +35,8 @@ public:
 		SLATE_EVENT( FExecuteAction, OnOpenClickedDelegate )
 		/** Called to when the button remove an entry is clicked */
 		SLATE_EVENT( FExecuteAction, OnRemoveClickedDelegate )
+		/** Whether to show the remove button */
+		SLATE_ARGUMENT(bool, AllowRemove)
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs )
@@ -44,6 +46,8 @@ public:
 		OnRemoveClickedDelegate = InArgs._OnRemoveClickedDelegate;
 
 		FSlateFontInfo MenuEntryFont = FEditorStyle::GetFontStyle( "Menu.Label.Font" );
+
+		TSharedPtr<SOverlay> Overlay;
 
 		ChildSlot
 		[
@@ -57,7 +61,7 @@ public:
 			.HAlign(HAlign_Fill)
 			.ContentPadding( FMargin(4.0, 2.0) )
 			[
-				SNew( SOverlay )
+				SAssignNew(Overlay, SOverlay)
 
 				+SOverlay::Slot()
 				.Padding( FMargin( 12.0, 0.0 ) )
@@ -69,20 +73,23 @@ public:
 					.ColorAndOpacity( TAttribute<FSlateColor>::Create( TAttribute<FSlateColor>::FGetter::CreateRaw( this, &SBlendProfileMenuEntry::InvertOnHover ) ) )
 					.Text( DisplayName )
 				]
+			]
+		];
 
-				+SOverlay::Slot()
-				.Padding( FMargin( 0.0, 0.0 ) )
+		if(InArgs._AllowRemove)
+		{
+			Overlay->AddSlot()
+				.Padding(FMargin(0.0, 0.0))
 				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Right)
 				[
 					SNew(SButton)
-					.ContentPadding( FMargin(4.0, 0.0) )
-					.ButtonStyle( FEditorStyle::Get(), "Docking.Tab.CloseButton" )
-					.ToolTipText( FText::Format( LOCTEXT("RemoveBlendProfileToolTipFmt", "Remove {0}"), DisplayName ) )
+					.ContentPadding(FMargin(4.0, 0.0))
+					.ButtonStyle(FEditorStyle::Get(), "Docking.Tab.CloseButton")
+					.ToolTipText(FText::Format(LOCTEXT("RemoveBlendProfileToolTipFmt", "Remove {0}"), DisplayName))
 					.OnClicked(this, &SBlendProfileMenuEntry::OnRemove)
-				]
-			]
-		];
+				];
+		}
 	}
 
 	FReply OnOpen()
@@ -125,6 +132,7 @@ void SBlendProfilePicker::Construct(const FArguments& InArgs, TSharedRef<class I
 	bShowClearOption = InArgs._AllowClear;
 	bIsStandalone = InArgs._Standalone;
 	EditableSkeleton = InEditableSkeleton;
+	bAllowRemove = InArgs._AllowRemove;
 
 	UEditorEngine* Editor = Cast<UEditorEngine>(GEngine);
 	if (Editor != nullptr)
@@ -263,7 +271,8 @@ TSharedRef<SWidget> SBlendProfilePicker::GetMenuContent()
 					SNew(SBlendProfileMenuEntry)
 						.LabelOverride(FText::FromString(Profile->GetName()))
 						.OnOpenClickedDelegate(FExecuteAction::CreateSP(this, &SBlendProfilePicker::OnProfileSelected, Profile->GetFName()))
-						.OnRemoveClickedDelegate(FExecuteAction::CreateSP(this, &SBlendProfilePicker::OnProfileRemoved, Profile->GetFName())),
+						.OnRemoveClickedDelegate(FExecuteAction::CreateSP(this, &SBlendProfilePicker::OnProfileRemoved, Profile->GetFName()))
+						.AllowRemove(bAllowRemove),
 					FText(),
 					true
 				);

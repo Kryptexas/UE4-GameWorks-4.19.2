@@ -10,6 +10,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine/Sequencer/ReferenceEditor
 tags:Sequencer
+type:how-to
 
 [EXCERPT:intro]
 When creating and rendering out cinematic movies, you may want to include overlays with information about the scene you are viewing such as the name of the shot, the date, time or frame information. 
@@ -19,7 +20,7 @@ Often times you will see this process as part of real world movie making to prov
 
 **Sequencer** allows you to apply burn ins to your rendered out movies and provides a default burn in with general information about the shot. 
 In this guide we take a look at how to enable the default burn in options when rendering out your cinematics. 
-
+ 
 
 [REGION:note]
 For this how-to we are using the **Blueprint Third Person Template** project and have created a small sample cinematic.

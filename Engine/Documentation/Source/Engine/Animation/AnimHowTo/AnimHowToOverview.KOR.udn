@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3462657
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:애니메이션 비법
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -37,12 +37,14 @@ UE4 의 애니메이션이 처음이거나 다양한 툴 사용법을 배우고�
 | [](Engine\Animation\AnimHowTo\AnimBPOverride) | %Engine\Animation\AnimHowTo\AnimBPOverride:description% |
 
 
-<!-- Convert these to Quick Starts
+[COMMENT:none]
+ Convert these to Quick Starts
 | [](Engine\Animation\AnimHowTo\AimOffset) | %Engine\Animation\AnimHowTo\AimOffset:description% |Beginner|
 
 Split this into two How To's
 | [](Engine\Animation\AnimHowTo\Retargeting) | %Engine\Animation\AnimHowTo\Retargeting:description% |Intermediate|
--->
+
+[/COMMENT]
 
 
 

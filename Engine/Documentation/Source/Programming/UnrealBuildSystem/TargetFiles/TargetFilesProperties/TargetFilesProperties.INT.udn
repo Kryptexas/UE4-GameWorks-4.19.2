@@ -2,7 +2,7 @@ Availability: NoPublish
 Title: Build Configuration Properties Page
 Crumbs:
 Description: This is a procedurally generated markdown page.
-Version: 4.18
+Version: 4.19
 
 ### Read-Only Properties
 
@@ -58,8 +58,6 @@ $ bCompileAPEX (Boolean): Whether to include PhysX APEX support.
 
 $ bCompileNvCloth (Boolean): Whether to include NvCloth.
 
-$ bCompileBox2D (Boolean): Whether to include Box2D support.
-
 $ bCompileICU (Boolean): Whether to include ICU unicode/i18n support in Core.
 
 $ bCompileCEF3 (Boolean): Whether to compile CEF3 support.
@@ -96,6 +94,8 @@ $ bCompileSpeedTree (Boolean): Whether to compile SpeedTree support.
 
 $ bForceEnableExceptions (Boolean): Enable exceptions for all modules.
 
+$ bUseInlining (Boolean): Enable inlining for all modules.
+
 $ bForceEnableObjCExceptions (Boolean): Enable exceptions for all modules.
 
 $ bForceEnableRTTI (Boolean): Enable RTTI for all modules.
@@ -129,6 +129,8 @@ $ bForceCompilePerformanceAutomationTests (Boolean): Whether to compile performa
 $ bEventDrivenLoader (Boolean): If true, event driven loader will be used in cooked builds. @todoio This needs to be replaced by a runtime solution after async loading refactor.
 
 $ bUseXGEController (Boolean): Whether the XGE controller worker and modules should be included in the engine build. These are required for distributed shader compilation using the XGE interception interface.
+
+$ bIWYU (Boolean): Enables "include what you use" by default for modules in this target. Changes the default PCH mode for any module in this project to PCHUsageModule.UseExplicitOrSharedPCHs.
 
 $ bEnforceIWYU (Boolean): Enforce "include what you use" rules; warns if monolithic headers (Engine.h, UnrealEd.h, etc...) are used, and checks that source files include their matching header first.
 
@@ -188,6 +190,10 @@ $ bUseIncrementalLinking (Boolean): Whether to use incremental linking or not. I
 
 $ bAllowLTCG (Boolean): Whether to allow the use of link time code generation (LTCG).
 
+$ bPGOProfile (Boolean): Whether to enable Profile Guided Optimization (PGO) instrumentation in this build.
+
+$ bPGOOptimize (Boolean): Whether to optimize this build with Profile Guided Optimization (PGO).
+
 $ bAllowASLRInShipping (Boolean): Whether to allow the use of ASLR (address space layout randomization) if supported. Only applies to shipping builds.
 
 $ bSupportEditAndContinue (Boolean): Whether to support edit and continue.  Only works on Microsoft compilers in 32-bit compiles.
@@ -231,6 +237,10 @@ $ bFormalBuild (Boolean): Indicates that this is a formal build, intended for di
 $ bFlushBuildDirOnRemoteMac (Boolean): Whether to clean Builds directory on a remote Mac before building.
 
 $ bPrintToolChainTimingInfo (Boolean): Whether to write detailed timing info from the compiler and linker.
+
+$ bHideSymbolsByDefault (Boolean): Whether to hide symbols by default on POSIX platforms
+
+$ bAllowGeneratedIniWhenCooked (Boolean): Whether to load generated ini files in cooked build
 
 $ PCHOutputDirectory (String): The directory to put precompiled header files in. Experimental setting to allow using a path on a faster drive. Defaults to the standard output directory if not set.
 

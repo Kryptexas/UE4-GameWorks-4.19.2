@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SNiagaraSelectedEmitterHandle.h"
 #include "SNiagaraEmitterHeader.h"
@@ -19,6 +19,7 @@ void SNiagaraSelectedEmitterHandle::Construct(const FArguments& InArgs, TSharedR
 {
 	SystemViewModel = InSystemViewModel;
 	SystemViewModel->OnSelectedEmitterHandlesChanged().AddRaw(this, &SNiagaraSelectedEmitterHandle::SelectedEmitterHandlesChanged);
+	SystemViewModel->OnEmitterHandleViewModelsChanged().AddRaw(this, &SNiagaraSelectedEmitterHandle::EmitterHandleViewModelsChanged);
 	StackViewModel = NewObject<UNiagaraStackViewModel>();
 	FNiagaraEditorModule NiagaraEditorModule = FModuleManager::GetModuleChecked<FNiagaraEditorModule>(TEXT("NiagaraEditor"));
 
@@ -81,6 +82,11 @@ void SNiagaraSelectedEmitterHandle::RefreshEmitterWidgets()
 }
 
 void SNiagaraSelectedEmitterHandle::SelectedEmitterHandlesChanged()
+{
+	RefreshEmitterWidgets();
+}
+
+void SNiagaraSelectedEmitterHandle::EmitterHandleViewModelsChanged()
 {
 	RefreshEmitterWidgets();
 }

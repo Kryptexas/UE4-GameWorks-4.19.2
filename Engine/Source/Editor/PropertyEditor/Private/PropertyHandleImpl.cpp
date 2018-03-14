@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyHandleImpl.h"
 #include "GameFramework/Actor.h"
@@ -1268,7 +1268,6 @@ void FPropertyValueImpl::AddChild()
 					{
 						FScriptArrayHelper	ArrayHelper(Array, Addr);
 						Index = ArrayHelper.AddValue();
-						FPropertyNode::AdditionalInitializationUDS(Array->Inner, ArrayHelper.GetRawPtr(Index));
 					}
 					else if (Set)
 					{
@@ -1276,7 +1275,6 @@ void FPropertyValueImpl::AddChild()
 						Index = SetHelper.AddDefaultValue_Invalid_NeedsRehash();
 						SetHelper.Rehash();
 
-						FPropertyNode::AdditionalInitializationUDS(Set->ElementProp, SetHelper.GetElementPtr(Index));
 					}
 					else if (Map)
 					{
@@ -1285,8 +1283,6 @@ void FPropertyValueImpl::AddChild()
 						MapHelper.Rehash();
 
 						uint8* PairPtr = MapHelper.GetPairPtr(Index);
-						FPropertyNode::AdditionalInitializationUDS(Map->KeyProp, Map->KeyProp->ContainerPtrToValuePtr<uint8>(PairPtr));
-						FPropertyNode::AdditionalInitializationUDS(Map->ValueProp, Map->ValueProp->ContainerPtrToValuePtr<uint8>(PairPtr));
 					}
 
 					ArrayIndicesPerObject[i].Add(NodeProperty->GetName(), Index);
@@ -1531,8 +1527,6 @@ void FPropertyValueImpl::InsertChild( TSharedPtr<FPropertyNode> ChildNodeToInser
 		}
 
 		ArrayHelper.InsertValues(Index, 1 );
-
-		FPropertyNode::AdditionalInitializationUDS(ArrayProperty->Inner, ArrayHelper.GetRawPtr(Index));
 
 		//set up indices for the coming events
 		TArray< TMap<FString,int32> > ArrayIndicesPerObject;
@@ -1854,8 +1848,6 @@ void FPropertyValueImpl::MoveElementTo(int32 OriginalIndex, int32 NewIndex)
 
 			ArrayHelper.InsertValues(Index, 1);
 
-			FPropertyNode::AdditionalInitializationUDS(ArrayProperty->Inner, ArrayHelper.GetRawPtr(Index));
-
 			//set up indices for the coming events
 			TArray< TMap<FString, int32> > ArrayIndicesPerObject;
 			for (int32 ObjectIndex = 0; ObjectIndex < ReadAddresses.Num(); ++ObjectIndex)
@@ -1927,8 +1919,6 @@ void FPropertyValueImpl::MoveElementTo(int32 OriginalIndex, int32 NewIndex)
 
 						FScriptArrayHelper	ArrayHelper(Array, Addr);
 						Index = ArrayHelper.AddValue();
-						FPropertyNode::AdditionalInitializationUDS(Array->Inner, ArrayHelper.GetRawPtr(Index));
-						
 
 						ArrayIndicesPerObject[i].Add(NodeProperty->GetName(), Index);
 					}
@@ -2299,6 +2289,14 @@ FText FPropertyHandleBase::GetPropertyDisplayName() const
 {
 	return Implementation->GetDisplayName();
 }
+
+void FPropertyHandleBase::SetPropertyDisplayName(FText InDisplayName)
+{
+	if (Implementation->GetPropertyNode().IsValid())
+	{
+		Implementation->GetPropertyNode()->SetDisplayNameOverride(InDisplayName);
+	}
+}
 	
 void FPropertyHandleBase::ResetToDefault()
 {
@@ -2323,11 +2321,11 @@ void FPropertyHandleBase::MarkHiddenByCustomization()
 	}
 }
 
-void FPropertyHandleBase::MarkResetToDefaultCustomized()
+void FPropertyHandleBase::MarkResetToDefaultCustomized(bool bCustomized/* = true*/)
 {
 	if (Implementation->GetPropertyNode().IsValid())
 	{
-		Implementation->GetPropertyNode()->SetNodeFlags(EPropertyNodeFlags::HasCustomResetToDefault, true);
+		Implementation->GetPropertyNode()->SetNodeFlags(EPropertyNodeFlags::HasCustomResetToDefault, bCustomized);
 	}
 }
 
@@ -2621,13 +2619,18 @@ void FPropertyHandleBase::OnCustomResetToDefault(const FResetToDefaultOverride& 
 {
 	if (OnCustomResetToDefault.OnResetToDefaultClicked().IsBound())
 	{
-		Implementation->GetPropertyNode()->NotifyPreChange(Implementation->GetPropertyNode()->GetProperty(), Implementation->GetPropertyUtilities()->GetNotifyHook());
-
+		if (Implementation->GetPropertyUtilities().IsValid() && Implementation->GetPropertyUtilities()->GetNotifyHook() != nullptr)
+		{
+			Implementation->GetPropertyNode()->NotifyPreChange(Implementation->GetPropertyNode()->GetProperty(), Implementation->GetPropertyUtilities()->GetNotifyHook());
+		}
 		OnCustomResetToDefault.OnResetToDefaultClicked().Execute(SharedThis(this));
 
 		// Call PostEditchange on all the objects
 		FPropertyChangedEvent ChangeEvent(Implementation->GetPropertyNode()->GetProperty());
-		Implementation->GetPropertyNode()->NotifyPostChange(ChangeEvent, Implementation->GetPropertyUtilities()->GetNotifyHook());
+		if (Implementation->GetPropertyUtilities().IsValid() && Implementation->GetPropertyUtilities()->GetNotifyHook() != nullptr)
+		{
+			Implementation->GetPropertyNode()->NotifyPostChange(ChangeEvent, Implementation->GetPropertyUtilities()->GetNotifyHook());
+		}
 	}
 }
 
@@ -3733,14 +3736,13 @@ FPropertyAccess::Result FPropertyHandleObject::SetValue( UObject* const& NewValu
 
 FPropertyAccess::Result FPropertyHandleObject::SetValue( const UObject* const& NewValue, EPropertyValueSetFlags::Type Flags )
 {
-	UProperty* Property = Implementation->GetPropertyNode()->GetProperty();
+	const TSharedPtr<FPropertyNode>& PropertyNode = Implementation->GetPropertyNode();
 
 	bool bResult = false;
-	// Instanced references can not be set this way (most likely editinlinenew )
-	if( !Property->HasAnyPropertyFlags(CPF_InstancedReference) )
+	if (!PropertyNode->HasNodeFlags(EPropertyNodeFlags::EditInlineNew))
 	{
 		FString ObjectPathName = NewValue ? NewValue->GetPathName() : TEXT("None");
-		bResult = Implementation->SendTextToObjectProperty( ObjectPathName, Flags );
+		bResult = Implementation->SendTextToObjectProperty(ObjectPathName, Flags);
 	}
 
 	return bResult ? FPropertyAccess::Success : FPropertyAccess::Fail;
@@ -3761,13 +3763,12 @@ FPropertyAccess::Result FPropertyHandleObject::GetValue(FAssetData& OutValue) co
 
 FPropertyAccess::Result FPropertyHandleObject::SetValue(const FAssetData& NewValue, EPropertyValueSetFlags::Type Flags)
 {
-	UProperty* Property = Implementation->GetPropertyNode()->GetProperty();
+	const TSharedPtr<FPropertyNode>& PropertyNode = Implementation->GetPropertyNode();
 
 	bool bResult = false;
-	// Instanced references can not be set this way (most likely editinlinenew )
-	if (!Property->HasAnyPropertyFlags(CPF_InstancedReference))
+	if (!PropertyNode->HasNodeFlags(EPropertyNodeFlags::EditInlineNew))
 	{
-		if ( !Property->IsA( USoftObjectProperty::StaticClass() ) )
+		if (!PropertyNode->GetProperty()->IsA(USoftObjectProperty::StaticClass()))
 		{
 			// Make sure the asset is loaded if we are not a string asset reference.
 			NewValue.GetAsset();
@@ -4182,6 +4183,7 @@ FPropertyAccess::Result FPropertyHandleArray::AddItem()
 	if( IsEditable() )
 	{
 		Implementation->AddChild();
+		Implementation->GetPropertyNode()->RebuildChildren();
 		Result = FPropertyAccess::Success;
 	}
 

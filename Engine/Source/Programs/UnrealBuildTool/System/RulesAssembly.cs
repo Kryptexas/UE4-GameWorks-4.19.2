@@ -1,3 +1,5 @@
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -306,19 +308,11 @@ namespace UnrealBuildTool
 
 				// Call the constructor
 				ConstructorInfo Constructor = RulesObjectType.GetConstructor(new Type[] { typeof(ReadOnlyTargetRules) });
-				if(Constructor != null)
+				if(Constructor == null)
 				{
-					Constructor.Invoke(RulesObject, new object[] { Target });
+					throw new BuildException("No valid constructor found for {0}.", ModuleName);
 				}
-				else
-				{
-					ConstructorInfo DeprecatedConstructor = RulesObjectType.GetConstructor(new Type[] { typeof(TargetInfo) });
-					if(DeprecatedConstructor == null)
-					{
-						throw new Exception("No valid constructor found.");
-					}	
-					DeprecatedConstructor.Invoke(RulesObject, new object[] { new TargetInfo(Target) });
-				}
+				Constructor.Invoke(RulesObject, new object[] { Target });
 			}
 			catch (Exception Ex)
 			{
@@ -361,6 +355,7 @@ namespace UnrealBuildTool
 			typeof(TargetRules).GetField("Configuration").SetValue(RulesObject, TargetInfo.Configuration);
 			typeof(TargetRules).GetField("Architecture").SetValue(RulesObject, TargetInfo.Architecture);
 			typeof(TargetRules).GetField("ProjectFile").SetValue(RulesObject, TargetInfo.ProjectFile);
+			typeof(TargetRules).GetField("Version").SetValue(RulesObject, TargetInfo.Version);
 
 			// Find the constructor
 			ConstructorInfo Constructor = RulesObjectType.GetConstructor(new Type[] { typeof(TargetInfo) });
@@ -391,12 +386,13 @@ namespace UnrealBuildTool
 		/// <param name="Configuration">The configuration the target is being built for</param>
 		/// <param name="Architecture">The architecture the target is being built for</param>
 		/// <param name="ProjectFile">The project containing the target being built</param>
+		/// <param name="Version">The current build version</param>
 		/// <param name="bInEditorRecompile">Whether this is an editor recompile, where we need to guess the name of the editor target</param>
 		/// <returns>The build target rules for the specified target</returns>
-		public TargetRules CreateTargetRules(string TargetName, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string Architecture, FileReference ProjectFile, bool bInEditorRecompile)
+		public TargetRules CreateTargetRules(string TargetName, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string Architecture, FileReference ProjectFile, ReadOnlyBuildVersion Version, bool bInEditorRecompile)
 		{
 			FileReference TargetFileName;
-			return CreateTargetRules(TargetName, Platform, Configuration, Architecture, ProjectFile, bInEditorRecompile, out TargetFileName);
+			return CreateTargetRules(TargetName, Platform, Configuration, Architecture, ProjectFile, Version, bInEditorRecompile, out TargetFileName);
 		}
 
 		/// <summary>
@@ -407,10 +403,11 @@ namespace UnrealBuildTool
 		/// <param name="Configuration">Configuration being compiled</param>
 		/// <param name="Architecture">Architecture being built</param>
 		/// <param name="ProjectFile">Path to the project file for this target</param>
+		/// <param name="Version">The current build version</param>
 		/// <param name="bInEditorRecompile">Whether this is an editor recompile, where we need to guess the name of the editor target</param>
 		/// <param name="TargetFileName">The original source file name of the Target.cs file for this target</param>
 		/// <returns>The build target rules for the specified target</returns>
-		public TargetRules CreateTargetRules(string TargetName, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string Architecture, FileReference ProjectFile, bool bInEditorRecompile, out FileReference TargetFileName)
+		public TargetRules CreateTargetRules(string TargetName, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string Architecture, FileReference ProjectFile, ReadOnlyBuildVersion Version, bool bInEditorRecompile, out FileReference TargetFileName)
 		{
 			// Make sure the target file is known to us
 			bool bFoundTargetName = TargetNameToTargetFile.ContainsKey(TargetName);
@@ -437,7 +434,7 @@ namespace UnrealBuildTool
 				}
 				else
 				{
-					return Parent.CreateTargetRules(TargetName, Platform, Configuration, Architecture, ProjectFile, bInEditorRecompile, out TargetFileName);
+					return Parent.CreateTargetRules(TargetName, Platform, Configuration, Architecture, ProjectFile, Version, bInEditorRecompile, out TargetFileName);
 				}
 			}
 
@@ -448,7 +445,7 @@ namespace UnrealBuildTool
 			string TargetTypeName = TargetName + "Target";
 
 			// The build module must define a type named '<TargetName>Target' that derives from our 'TargetRules' type.  
-			TargetRules RulesObject = CreateTargetRulesInstance(TargetTypeName, new TargetInfo(TargetName, Platform, Configuration, Architecture, ProjectFile));
+			TargetRules RulesObject = CreateTargetRulesInstance(TargetTypeName, new TargetInfo(TargetName, Platform, Configuration, Architecture, ProjectFile, Version));
 			if (bInEditorRecompile)
 			{
 				// Make sure this is an editor module.
@@ -481,7 +478,7 @@ namespace UnrealBuildTool
 										// We have found a target in the same source folder that is not the original target found.
 										// See if it is the editor project
 										string CheckTargetTypeName = CheckEntry.Key + "Target";
-										TargetRules CheckRulesObject = CreateTargetRulesInstance(CheckTargetTypeName, new TargetInfo(CheckEntry.Key, Platform, Configuration, Architecture, ProjectFile));
+										TargetRules CheckRulesObject = CreateTargetRulesInstance(CheckTargetTypeName, new TargetInfo(CheckEntry.Key, Platform, Configuration, Architecture, ProjectFile, Version));
 										if (CheckRulesObject != null)
 										{
 											if (CheckRulesObject.Type == TargetType.Editor)

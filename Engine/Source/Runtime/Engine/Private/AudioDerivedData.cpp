@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #include "AudioDerivedData.h"
 #include "Interfaces/IAudioFormat.h"
 #include "Misc/CommandLine.h"
@@ -37,7 +37,7 @@ Derived data key generation.
 
 // If you want to bump this version, generate a new guid using
 // VS->Tools->Create GUID and paste it here. https://www.guidgen.com works too.
-#define STREAMEDAUDIO_DERIVEDDATA_VER		TEXT("8486fd5b8a934260a6f44cf2642acada")
+#define STREAMEDAUDIO_DERIVEDDATA_VER		TEXT("D49DE2F2186442EA803E44CA4F77FAA1")
 
 /**
  * Computes the derived data key suffix for a SoundWave's Streamed Audio.
@@ -285,15 +285,29 @@ class FStreamedAudioCacheDerivedDataWorker : public FNonAbandonableTask
 				CompressedData->GetCopy(&BufferData, false);
 				TArray<TArray<uint8>> ChunkBuffers;
 
-				if (AudioFormat->SplitDataForStreaming(CompressedBuffer, ChunkBuffers))
+				// Set the ideal chunk size to be 256k to optimize for data reads on console
+				static const int32 MaxChunkSize = 256 * 1024;
+
+				if (AudioFormat->SplitDataForStreaming(CompressedBuffer, ChunkBuffers, MaxChunkSize))
 				{
 					for (int32 ChunkIndex = 0; ChunkIndex < ChunkBuffers.Num(); ++ChunkIndex)
 					{
+						// Zero pad the reallocation if the chunk isn't precisely the max chunk size to keep the reads aligned to MaxChunkSize
+						const int32 AudioDataSize = ChunkBuffers[ChunkIndex].Num();
+						const int32 ZeroPadBytes = FMath::Max(MaxChunkSize - AudioDataSize, 0);
+
 						FStreamedAudioChunk* NewChunk = new(DerivedData->Chunks) FStreamedAudioChunk();
-						NewChunk->DataSize = ChunkBuffers[ChunkIndex].Num();
+
+						// Store both the audio data size and the data size so decoders will know what portion of the bulk data is real audio
+						NewChunk->AudioDataSize = AudioDataSize;
+						NewChunk->DataSize = AudioDataSize + ZeroPadBytes;
+
 						NewChunk->BulkData.Lock(LOCK_READ_WRITE);
-						void* NewChunkData = NewChunk->BulkData.Realloc(ChunkBuffers[ChunkIndex].Num());
-						FMemory::Memcpy(NewChunkData, ChunkBuffers[ChunkIndex].GetData(), ChunkBuffers[ChunkIndex].Num());
+
+						void* NewChunkData = NewChunk->BulkData.Realloc(NewChunk->DataSize);
+						FMemory::Memcpy(NewChunkData, ChunkBuffers[ChunkIndex].GetData(), AudioDataSize);
+						FMemory::Memzero((uint8*)NewChunkData + AudioDataSize, ZeroPadBytes);
+
 						NewChunk->BulkData.Unlock();
 					}
 				}
@@ -302,6 +316,7 @@ class FStreamedAudioCacheDerivedDataWorker : public FNonAbandonableTask
 					// Could not split so copy compressed data into a single chunk
 					FStreamedAudioChunk* NewChunk = new(DerivedData->Chunks) FStreamedAudioChunk();
 					NewChunk->DataSize = CompressedBuffer.Num();
+					NewChunk->AudioDataSize = NewChunk->DataSize;
 					NewChunk->BulkData.Lock(LOCK_READ_WRITE);
 					void* NewChunkData = NewChunk->BulkData.Realloc(CompressedBuffer.Num());
 					FMemory::Memcpy(NewChunkData, CompressedBuffer.GetData(), CompressedBuffer.Num());
@@ -1022,7 +1037,7 @@ void USoundWave::SerializeCookedPlatformData(FArchive& Ar)
 
 		FName PlatformFormat = Ar.CookingTarget()->GetWaveFormat(this);
 		FString DerivedDataKey;
-		GetStreamedAudioDerivedDataKey(*this, PlatformFormat, DerivedDataKey);
+		GetStreamedAudioDerivedDataKeySuffix(*this, PlatformFormat, DerivedDataKey);
 
 		FStreamedAudioPlatformData *PlatformDataToSave = CookedPlatformData.FindRef(DerivedDataKey);
 
@@ -1099,7 +1114,7 @@ void USoundWave::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPl
 
 		// If source data is resident in memory then allow the streamed audio to be built
 		// in a background thread.
-		if (GetCompressedData(PlatformFormat)->IsBulkDataLoaded())
+		if (GetCompressedData(PlatformFormat) && GetCompressedData(PlatformFormat)->IsBulkDataLoaded())
 		{
 			CacheFlags |= EStreamedAudioCacheFlags::AllowAsyncBuild;
 		}

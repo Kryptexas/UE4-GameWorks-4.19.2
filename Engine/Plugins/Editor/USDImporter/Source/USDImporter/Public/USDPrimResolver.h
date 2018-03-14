@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "UObject/Object.h"
+#include "CoreMinimal.h"
 #include "SubclassOf.h"
 #include "USDPrimResolver.generated.h"
 
@@ -13,19 +14,21 @@ struct FUsdImportContext;
 struct FUsdGeomData;
 struct FUSDSceneImportContext;
 
-struct FUsdPrimToImport
+struct FUsdAssetPrimToImport
 {
-	FUsdPrimToImport()
+	FUsdAssetPrimToImport()
 		: Prim(nullptr)
-		, NumLODs(0)
+		, NumLODs(1)
 		, CustomPrimTransform(FMatrix::Identity)
 	{}
 
+	/** The prim that represents the root most prim of the mesh asset being created */
 	IUsdPrim* Prim;
+	/** Each prim in this list represents a list of prims which have LODs at a specific lod index */
+	TArray<IUsdPrim*> MeshPrims;
 	int32 NumLODs;
 	FMatrix CustomPrimTransform;
-
-	const FUsdGeomData* GetGeomData(int32 LODIndex, double Time) const;
+	FString AssetPath;
 };
 
 struct FActorSpawnData
@@ -33,7 +36,6 @@ struct FActorSpawnData
 	FActorSpawnData()
 		: ActorPrim(nullptr)
 		, AttachParentPrim(nullptr)
-		, MeshPrim(nullptr)
 	{}
 
 	FMatrix WorldTransform;
@@ -41,8 +43,8 @@ struct FActorSpawnData
 	IUsdPrim* ActorPrim;
 	/** The prim that represents the parent of this actor for attachment (not necessarily the parent of this prim) */
 	IUsdPrim* AttachParentPrim;
-	/** The prim that represents the mesh to import and apply to this actor */
-	IUsdPrim* MeshPrim;
+	/** List of assets under this actor to create */
+	TArray<FUsdAssetPrimToImport> AssetsToImport;
 	FString ActorClassName;
 	FString AssetPath;
 	FName ActorName;
@@ -57,17 +59,27 @@ class UUSDPrimResolver : public UObject
 public:
 	virtual void Init();
 
-	virtual void FindPrimsToImport(FUsdImportContext& ImportContext, TArray<FUsdPrimToImport>& OutPrimsToImport);
+	virtual void FindMeshAssetsToImport(FUsdImportContext& ImportContext, IUsdPrim* StartPrim, TArray<FUsdAssetPrimToImport>& OutAssetsToImport, bool bRecursive = true) const;
 
-	virtual void FindActorsToSpawn(FUSDSceneImportContext& ImportContext, TArray<FActorSpawnData>& OutActorSpawnDatas);
+	/**
+	 * Finds any mesh children of a parent prim
+	 *
+	 * @param ImportContext		Contextual information about the current import
+	 * @param ParentPrim		The parent prim to find children from
+	 * @param bOnlyLODRoots		Only return prims which are parents of LOD meshes (i.e the prim has an LOD variant set)
+	 * @param OutMeshChilden	Flattened list of descendant prims with geometry
+	 */
+	virtual void FindMeshChildren(FUsdImportContext& ImportContext, IUsdPrim* ParentPrim, bool bOnlyLODRoots, TArray<IUsdPrim*>& OutMeshChildren) const;
 
+	virtual void FindActorsToSpawn(FUSDSceneImportContext& ImportContext, TArray<FActorSpawnData>& OutActorSpawnDatas) const;
+
+	
 	virtual AActor* SpawnActor(FUSDSceneImportContext& ImportContext, const FActorSpawnData& SpawnData);
 
 	virtual TSubclassOf<AActor> FindActorClass(FUSDSceneImportContext& ImportContext, const FActorSpawnData& SpawnData) const;
 
 protected:
-	void FindPrimsToImport_Recursive(FUsdImportContext& ImportContext, IUsdPrim* Prim, TArray<FUsdPrimToImport>& OutTopLevelPrims);
-	virtual void FindActorsToSpawn_Recursive(FUSDSceneImportContext& ImportContext, IUsdPrim* Prim, IUsdPrim* ParentPrim, TArray<FActorSpawnData>& OutSpawnDatas);
+	virtual void FindActorsToSpawn_Recursive(FUSDSceneImportContext& ImportContext, IUsdPrim* Prim, IUsdPrim* ParentPrim, TArray<FActorSpawnData>& OutSpawnDatas) const;
 	bool IsValidPathForImporting(const FString& TestPath) const;
 protected:
 	IAssetRegistry* AssetRegistry;

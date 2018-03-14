@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraScriptOutputCollectionViewModel.h"
 #include "NiagaraScript.h"
@@ -67,7 +67,7 @@ FNiagaraScriptOutputCollectionViewModel::FNiagaraScriptOutputCollectionViewModel
 
 	if (Source)
 	{
-		Graph = Cast<UNiagaraScriptSource>(Source)->NodeGraph;
+		Graph = Source->NodeGraph;
 		bCanHaveNumericParameters = false;
 		
 		OutputNode = Graph->FindOutputNode(ENiagaraScriptUsage::ParticleSpawnScript);
@@ -173,7 +173,7 @@ void FNiagaraScriptOutputCollectionViewModel::AddParameter(TSharedPtr<FNiagaraTy
 	}
 
 	FScopedTransaction ScopedTransaction(LOCTEXT("AddScriptOutput", "Add script output"));
-	FName OutputName = FNiagaraEditorUtilities::GetUniqueName(FName(TEXT("NewOutput")), GetParameterNames());
+	FName OutputName = FNiagaraUtilities::GetUniqueName(FName(TEXT("NewOutput")), GetParameterNames());
 	for (UNiagaraNodeOutput* OtherOutputNode : OutputNodes)
 	{
 		OtherOutputNode->Modify();
@@ -297,7 +297,7 @@ void FNiagaraScriptOutputCollectionViewModel::OnParameterNameChanged(FName OldNa
 	// If the new name matches a current output name, rename it to something unique.
 	if (CurrentNames.Contains(ParameterVariable->GetName()))
 	{
-		ParameterVariable->SetName(FNiagaraEditorUtilities::GetUniqueName(ParameterVariable->GetName(), CurrentNames));
+		ParameterVariable->SetName(FNiagaraUtilities::GetUniqueName(ParameterVariable->GetName(), CurrentNames));
 	}
 	
 	OutputNode->NotifyOutputVariablesChanged();

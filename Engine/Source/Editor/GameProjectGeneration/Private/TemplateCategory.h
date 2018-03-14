@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,7 +8,7 @@ struct FSlateBrush;
 
 struct FTemplateCategory
 {
-	static FName BlueprintCategoryName, CodeCategoryName;
+	static FName BlueprintCategoryName, CodeCategoryName, EnterpriseCategoryName;
 
 	/** Localised name of this category */
 	FText Name;

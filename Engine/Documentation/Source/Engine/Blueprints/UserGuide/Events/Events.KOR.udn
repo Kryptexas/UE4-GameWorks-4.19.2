@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:이벤트
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
@@ -7,47 +7,8 @@ version: 4.9
 Parent:Engine/Blueprints/Scripting
 tags:Execution Flow
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide/Events:title%](Engine\Blueprints\UserGuide\Events.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide/Events:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide/Events:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/Events]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide/Events:title%](Engine\Blueprints\UserGuide\Events.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide/Events:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide/Events:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/Events]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-
+tags:Special Nodes
+topic-image:Engine\Blueprints\UserGuide\Events.png
 
 [TOC (start:2)]
 
@@ -71,7 +32,8 @@ _Blueprint_ 에서 이러한 이벤트에 접근하여 새로운 함수성을 �
 마티네를 사용해서 시네마틱 시퀀스 재생 도중의 특정 시간에 이벤트를 발동시키는 방법은, [](Engine/Matinee\UserGuide\BlueprintComponents) 문서를 참고하세요.
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:LevelBPOnly]
 [REGION:note]
@@ -85,7 +47,8 @@ _Blueprint_ 에서 이러한 이벤트에 접근하여 새로운 함수성을 �
 [/REGION]
 [/EXCERPT:ServerOnly]
 
--->
+
+[/COMMENT]
 
 ## Event Level Reset
 

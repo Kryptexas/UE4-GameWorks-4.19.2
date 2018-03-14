@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameFramework/PlayerMuteList.h"
 #include "Engine/World.h"
@@ -29,8 +29,6 @@ static inline void RemoveIdFromMuteList(TArray< TSharedRef<const FUniqueNetId> >
 
 void FPlayerMuteList::ServerMutePlayer(APlayerController* OwningPC, const FUniqueNetIdRepl& MuteId)
 {
-	UWorld* World = OwningPC->GetWorld();
-
 	const TSharedPtr<const FUniqueNetId>& PlayerIdToMute = MuteId.GetUniqueNetId();
 
 	// Don't reprocess if they are already muted
@@ -43,11 +41,11 @@ void FPlayerMuteList::ServerMutePlayer(APlayerController* OwningPC, const FUniqu
 	OwningPC->ClientMutePlayer(MuteId);
 
 	// Find the muted player's player controller so it can be notified
-	APlayerController* OtherPC = GetPlayerControllerFromNetId(World, *PlayerIdToMute);
+	APlayerController* OtherPC = OwningPC->GetPlayerControllerForMuting(MuteId);
 	if (OtherPC != NULL)
 	{
 		// Update their packet filter list too
-		OtherPC->MuteList.ClientMutePlayer(OtherPC, OwningPC->PlayerState->UniqueId);
+		AddIdToMuteList(OtherPC->MuteList.VoicePacketFilter, OwningPC->PlayerState->UniqueId.GetUniqueNetId());
 
 		// Tell the other PC to mute this one
 		OtherPC->ClientMutePlayer(OwningPC->PlayerState->UniqueId);
@@ -56,15 +54,13 @@ void FPlayerMuteList::ServerMutePlayer(APlayerController* OwningPC, const FUniqu
 
 void FPlayerMuteList::ServerUnmutePlayer(APlayerController* OwningPC, const FUniqueNetIdRepl& UnmuteId)
 {
-	UWorld* World = OwningPC->GetWorld();
-
 	const TSharedPtr<const FUniqueNetId>& PlayerIdToUnmute = UnmuteId.GetUniqueNetId();
 
 	// If the player was found, remove them from our explicit list
 	RemoveIdFromMuteList(VoiceMuteList, PlayerIdToUnmute);
 
 	// Find the muted player's player controller so it can be notified
-	APlayerController* OtherPC = GetPlayerControllerFromNetId(World, *PlayerIdToUnmute);
+	APlayerController* OtherPC = OwningPC->GetPlayerControllerForMuting(UnmuteId);
 	if (OtherPC != NULL)
 	{
 		FUniqueNetIdRepl& OwningPlayerId = OwningPC->PlayerState->UniqueId;
@@ -190,7 +186,7 @@ FString DumpMutelistState(UWorld* World)
 		for(FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
 			APlayerController* PlayerController = Iterator->Get();
-			Output += FString::Printf(TEXT("Player: %s\n"), PlayerController->PlayerState ? *PlayerController->PlayerState->PlayerName : TEXT("NONAME"));
+			Output += FString::Printf(TEXT("Player: %s\n"), PlayerController->PlayerState ? *PlayerController->PlayerState->GetPlayerName() : TEXT("NONAME"));
 			Output += FString::Printf(TEXT("VoiceChannel: %d\n"), PlayerController->MuteList.VoiceChannelIdx);
 			Output += FString::Printf(TEXT("Handshake: %s\n"), PlayerController->MuteList.bHasVoiceHandshakeCompleted ? TEXT("true") : TEXT("false"));
 			

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,6 +11,8 @@
 #include "WidgetNavigation.generated.h"
 
 class UWidget;
+
+DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(UWidget*, FCustomWidgetNavigationDelegate, EUINavigation, Navigation);
 
 /**
  *
@@ -29,6 +31,11 @@ public:
 
 	UPROPERTY()
 	TWeakObjectPtr<UWidget> Widget;
+
+	UPROPERTY()
+	FCustomWidgetNavigationDelegate CustomDelegate;
+
+	void Resolve(class UUserWidget* Outer, class UWidgetTree* WidgetTree);
 };
 
 /**
@@ -77,7 +84,7 @@ public:
 #endif
 
 	/** Resolve widget names */
-	void ResolveExplictRules(class UWidgetTree* WidgetTree);
+	void ResolveRules(class UUserWidget* Outer, class UWidgetTree* WidgetTree);
 
 	/** Updates a slate metadata object to match this configured navigation ruleset. */
 	void UpdateMetaData(TSharedRef<FNavigationMetaData> MetaData);

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Windows/WindowsWindow.h"
 #include "Math/UnrealMathUtility.h"
@@ -269,6 +269,13 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 		::SetWindowPos(HWnd, nullptr, 0, 0, 0, 0, SetWindowPositionFlags);
 
 		AdjustWindowRegion( ClientWidth, ClientHeight );
+	}
+	else if (Definition->HasOSWindowBorder)
+	{
+		if (!Definition->HasCloseButton)
+		{
+			EnableMenuItem(GetSystemMenu(HWnd, false), SC_CLOSE, MF_GRAYED);
+		}
 	}
 
 	if ( IsRegularWindow() )

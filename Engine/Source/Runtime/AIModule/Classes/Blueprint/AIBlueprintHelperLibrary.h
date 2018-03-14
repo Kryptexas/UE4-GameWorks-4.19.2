@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /**
  * This kismet library is used for helper functions primarily used in the kismet compiler for AI related nodes
@@ -20,7 +20,7 @@ class UAnimInstance;
 class UBehaviorTree;
 class UBlackboardComponent;
 
-UCLASS()
+UCLASS(meta=(ScriptName="AIHelperLibrary"))
 class AIMODULE_API UAIBlueprintHelperLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

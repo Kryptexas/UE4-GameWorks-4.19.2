@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MacMenu.h"
 #include "Framework/Application/SlateApplication.h"
@@ -83,7 +83,20 @@ static FCriticalSection GCachedMenuStateCS;
 
 }
 
+- (void)dealloc
+{
+	FScopeLock Lock(&GCachedMenuStateCS);
+	GCachedMenuState.Remove(self);
+	[super dealloc];
+}
+
 @end
+
+void FSlateMacMenu::CleanupOnShutdown()
+{
+	FScopeLock Lock(&GCachedMenuStateCS);
+	GCachedMenuState.Reset();
+}
 
 void FSlateMacMenu::UpdateWithMultiBox(const TSharedPtr< FMultiBox > MultiBox)
 {
@@ -119,7 +132,7 @@ void FSlateMacMenu::UpdateWithMultiBox(const TSharedPtr< FMultiBox > MultiBox)
 			for (int32 Index = 0; Index < MenuBlocks.Num(); Index++)
 			{
 				TSharedRef<const FMenuEntryBlock> Block = StaticCastSharedRef<const FMenuEntryBlock>(MenuBlocks[Index]);
-				FMacMenu* Menu = [[FMacMenu alloc] initWithMenuEntryBlock:Block];
+				FMacMenu* Menu = [[[FMacMenu alloc] initWithMenuEntryBlock:Block] autorelease];
 				NSString* Title = FSlateMacMenu::GetMenuItemTitle(Block);
 				[Menu setTitle:Title];
 
@@ -202,7 +215,7 @@ void FSlateMacMenu::UpdateMenu(FMacMenu* Menu)
 
 					if (MenuItemState.IsSubMenu)
 					{
-						FMacMenu* SubMenu = [[FMacMenu alloc] initWithMenuEntryBlock:MenuItemState.Block];
+						FMacMenu* SubMenu = [[[FMacMenu alloc] initWithMenuEntryBlock:MenuItemState.Block] autorelease];
 						[MenuItem setSubmenu:SubMenu];
 					}
 
@@ -281,10 +294,16 @@ void FSlateMacMenu::UpdateMenu(FMacMenu* Menu)
 
 void FSlateMacMenu::UpdateCachedState()
 {
+	if (FMacApplication::MenuBarShutdownFunc == nullptr)
+	{
+		FMacApplication::MenuBarShutdownFunc = &FSlateMacMenu::CleanupOnShutdown;
+	}
+
 	bool bShouldUpdate = false;
 
 	// @todo: Ideally this would ask global tab manager if there's any active tab, but that cannot be done reliably at the moment
 	// so instead we assume that as long as there's any visible, regular window open, we do have some menu to show/update.
+	if(!GIsSlowTask)
 	{
 		MacApplication->GetWindowsArrayMutex().Lock();
 		const TArray<TSharedRef<FMacWindow>>&AllWindows = MacApplication->GetAllWindows();
@@ -312,34 +331,38 @@ void FSlateMacMenu::UpdateCachedState()
 			TSharedRef<SWidget> Widget = SNullWidget::NullWidget;
 			if (!Menu.MultiBox.IsValid())
 			{
-				if (Menu.MenuEntryBlock->MenuBuilder.IsBound())
+				TSharedPtr<const FMenuEntryBlock> MenuEntryBlock = Menu.MenuEntryBlock.Pin();
+				if (MenuEntryBlock.IsValid())
 				{
-					Widget = Menu.MenuEntryBlock->MenuBuilder.Execute();
-				}
-				else
-				{
-					const bool bShouldCloseWindowAfterMenuSelection = true;
-					FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, Menu.MenuEntryBlock->GetActionList(), Menu.MenuEntryBlock->Extender);
+					if (MenuEntryBlock->MenuBuilder.IsBound())
 					{
-						// Have the menu fill its contents
-						Menu.MenuEntryBlock->EntryBuilder.ExecuteIfBound(MenuBuilder);
+						Widget = MenuEntryBlock->MenuBuilder.Execute();
 					}
-					Widget = MenuBuilder.MakeWidget();
-				}
+					else
+					{
+						const bool bShouldCloseWindowAfterMenuSelection = true;
+						FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, MenuEntryBlock->GetActionList(), MenuEntryBlock->Extender);
+						{
+							// Have the menu fill its contents
+							MenuEntryBlock->EntryBuilder.ExecuteIfBound(MenuBuilder);
+						}
+						Widget = MenuBuilder.MakeWidget();
+					}
 
-				if (Widget->GetType() == FName(TEXT("SMultiBoxWidget")))
-				{
-					Menu.MultiBox = TSharedPtr<const FMultiBox>(StaticCastSharedRef<SMultiBoxWidget>(Widget)->GetMultiBox());
-				}
-				else
-				{
-					UE_LOG(LogMac, Warning, TEXT("Unsupported type of menu widget in FSlateMacMenu::UpdateCachedState(): %s"), *Widget->GetType().ToString());
+					if (Widget->GetType() == FName(TEXT("SMultiBoxWidget")))
+					{
+						Menu.MultiBox = TSharedPtr<const FMultiBox>(StaticCastSharedRef<SMultiBoxWidget>(Widget)->GetMultiBox());
+					}
+					else
+					{
+						UE_LOG(LogMac, Warning, TEXT("Unsupported type of menu widget in FSlateMacMenu::UpdateCachedState(): %s"), *Widget->GetType().ToString());
+					}
 				}
 			}
 
 			if (Menu.MultiBox.IsValid())
 			{
-				const TArray<TSharedRef<const FMultiBlock>>& MenuBlocks = Menu.MultiBox->GetBlocks();
+				const TArray<TSharedRef<const FMultiBlock>>& MenuBlocks = Menu.MultiBox.Pin()->GetBlocks();
 				for (int32 Index = MenuState->Num(); MenuBlocks.Num() > MenuState->Num(); Index++)
 				{
 					MenuState->Add(FMacMenuItemState());
@@ -357,6 +380,7 @@ void FSlateMacMenu::UpdateCachedState()
 						ItemState.KeyEquivalent = [FSlateMacMenu::GetMenuItemKeyEquivalent(Block, &ItemState.KeyModifiers) retain];
 						if (!ItemState.Icon)
 						{
+							SCOPED_AUTORELEASE_POOL;
 							ItemState.Icon = [FSlateMacMenu::GetMenuItemIcon(Block) retain];
 						}
 						ItemState.IsSubMenu = Block->bIsSubMenu;
@@ -452,7 +476,7 @@ NSImage* FSlateMacMenu::GetMenuItemIcon(const TSharedRef<const FMenuEntryBlock>&
 		{
 			FSlateBrush const* IconBrush = Icon.GetIcon();
 			FName ResourceName = IconBrush->GetResourceName();
-			MenuImage = [[NSImage alloc] initWithContentsOfFile:ResourceName.ToString().GetNSString()];
+			MenuImage = [[[NSImage alloc] initWithContentsOfFile:ResourceName.ToString().GetNSString()] autorelease];
 			if (MenuImage)
 			{
 				[MenuImage setSize:NSMakeSize(16.0f, 16.0f)];

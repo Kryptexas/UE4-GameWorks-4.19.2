@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /** 
  * This is the definition for a skeleton, used to animate USkeletalMesh
@@ -112,7 +112,7 @@ struct FReferencePose
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
-	USkeletalMesh*	ReferenceMesh;
+	TSoftObjectPtr<USkeletalMesh> SourceReferenceMesh;
 #endif
 
 	/**
@@ -729,8 +729,6 @@ public:
 	ENGINE_API virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	ENGINE_API virtual void PostInitProperties() override;
 	ENGINE_API virtual void Serialize(FArchive& Ar) override;
-
-	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 	/** 
 	 * Create RefLocalPoses from InSkelMesh. Note InSkelMesh cannot be null and this function will assert if it is.

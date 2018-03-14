@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,13 +18,17 @@ class NiagaraRenderer;
 class UNiagaraSystem;
 class UNiagaraParameterCollection;
 class UNiagaraParameterCollectionInstance;
+class FNiagaraSystemSimulation;
+
+// Called when the particle system is done
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNiagaraSystemFinished, class UNiagaraComponent*, PSystem);
 
 /**
 * UNiagaraComponent is the primitive component for a Niagara System.
 * @see ANiagaraActor
 * @see UNiagaraSystem
 */
-UCLASS(ClassGroup = (Rendering, Common), hidecategories = (Object, "Components|Activation"), editinlinenew, meta = (BlueprintSpawnableComponent))
+UCLASS(ClassGroup = (Rendering, Common), hidecategories = Object, hidecategories = Physics, hidecategories = Collision, showcategories = Trigger, editinlinenew, meta = (BlueprintSpawnableComponent))
 class NIAGARA_API UNiagaraComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -50,8 +54,8 @@ private:
 	TODO: This should be a minimal set of explicitly override parameters similar to how parameter collection instances override their collections store. 
 	Should expose anything in the "User" namespace.
 	*/
- 	UPROPERTY(EditAnywhere, Category = Parameters)
- 	FNiagaraParameterStore InitialParameters;
+	UPROPERTY(EditAnywhere, Category = Parameters)
+	FNiagaraParameterStore OverrideParameters;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
@@ -77,6 +81,12 @@ private:
 	/** The delta time used when seeking to the desired age.  This is only relevant when using the DesiredAge age update mode. */
 	float SeekDelta;
 
+	UPROPERTY()
+	uint32 bAutoDestroy : 1;
+
+	UPROPERTY()
+	uint32 bRenderingEnabled : 1;
+
 	//~ Begin UActorComponent Interface.
 protected:
 	virtual void OnRegister() override;
@@ -84,6 +94,16 @@ protected:
 	virtual void SendRenderDynamicData_Concurrent() override;
 	virtual void BeginDestroy() override;
 public:
+	/**
+	* True if we should automatically attach to AutoAttachParent when activated, and detach from our parent when completed.
+	* This overrides any current attachment that may be present at the time of activation (deferring initial attachment until activation, if AutoAttachParent is null).
+	* When enabled, detachment occurs regardless of whether AutoAttachParent is assigned, and the relative transform from the time of activation is restored.
+	* This also disables attachment on dedicated servers, where we don't actually activate even if bAutoActivate is true.
+	* @see AutoAttachParent, AutoAttachSocketName, AutoAttachLocationType
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Attachment)
+		uint32 bAutoManageAttachment : 1;
+
 
 	virtual void Activate(bool bReset = false)override;
 	virtual void Deactivate()override;
@@ -100,10 +120,12 @@ public:
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const override;
 	//~ End UPrimitiveComponent Interface
 
-	class FNiagaraSystemSimulation* GetSystemSimulation();
+	TSharedPtr<FNiagaraSystemSimulation, ESPMode::ThreadSafe> GetSystemSimulation();
 
+	void OnSystemComplete();
 	void DestroyInstance();
 
+		UFUNCTION(BlueprintCallable, Category = Niagara, meta = (DisplayName = "Set Niagara System Asset"))
 	void SetAsset(UNiagaraSystem* InAsset);
 	UNiagaraSystem* GetAsset() const { return Asset; }
 
@@ -129,12 +151,15 @@ public:
 	when using the DesiredAge age update mode. */
 	void SetSeekDelta(float InSeekDelta);
 
+	void SetAutoDestroy(bool bInAutoDestroy) { bAutoDestroy = bInAutoDestroy; }
 	FNiagaraSystemInstance* GetSystemInstance() const;
-	
-	void OnSystemDisabled();
 
 	/** Returns true if this component forces it's instances to run in "Solo" mode. A sub optimal path required in some situations. */
 	bool ForcesSolo()const;
+
+	/** Sets a Niagara FLinearColor parameter by name, overriding locally if necessary.*/
+	UFUNCTION(BlueprintCallable, Category = Niagara, meta = (DisplayName = "Set Niagara Variable (LinearColor)"))
+	void SetNiagaraVariableLinearColor(const FString& InVariableName, const FLinearColor& InValue);
 
 	/** Sets a Niagara Vector3 parameter by name, overriding locally if necessary.*/
 	UFUNCTION(BlueprintCallable, Category = Niagara, meta = (DisplayName = "Set Niagara Variable (Vector4)"))
@@ -156,6 +181,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Niagara, meta = (DisplayName = "Set Niagara Variable (Bool)"))
 	void SetNiagaraVariableBool(const FString& InVariableName, bool InValue);
 
+	UFUNCTION(BlueprintCallable, Category = Niagara, meta = (DisplayName = "Set Niagara Variable (Actor)"))
+	void SetNiagaraVariableActor(const FString& InVariableName, AActor* Actor) {} // TODO sckime ?????? fix this!!!!
+
 	/** Debug accessors for getting positions in blueprints. */
 	UFUNCTION(BlueprintCallable, Category = Niagara, meta = (DisplayName = "Get Niagara Emitter Positions"))
 	TArray<FVector> GetNiagaraParticlePositions_DebugOnly(const FString& InEmitterName);
@@ -167,6 +195,7 @@ public:
 	/** Debug accessors for getting a FVector attribute array in blueprints. */
 	UFUNCTION(BlueprintCallable, Category = Niagara, meta = (DisplayName = "Get Niagara Emitter Vec3 Attrib"))
 	TArray<FVector> GetNiagaraParticleValueVec3_DebugOnly(const FString& InEmitterName, const FString& InValueName);
+
 	/** Resets the System to it's initial pre-simulated state. */
 	UFUNCTION(BlueprintCallable, Category = Niagara, meta = (DisplayName = "Reset System"))
 	void ResetSystem();
@@ -192,17 +221,82 @@ public:
 	virtual bool SynchronizeWithSourceSystem();
 
 	bool IsParameterValueOverriddenLocally(const FName& InParamName);
-	void SetParameterValueOverriddenLocally(const FName& InParamName, bool bInOverridden);
+	void SetParameterValueOverriddenLocally(const FNiagaraVariable& InParam, bool bInOverridden);
 	
 	FOnSystemInstanceChanged& OnSystemInstanceChanged() { return OnSystemInstanceChangedDelegate; }
 #endif
 
-	FNiagaraParameterStore& GetInitialParameters() { return InitialParameters; }
+	FNiagaraParameterStore& GetOverrideParameters() { return OverrideParameters; }
 
 	//~ End UObject Interface.
-	
-	UPROPERTY()
-	bool bRenderingEnabled;
+
+	// Called when the particle system is done
+	UPROPERTY(BlueprintAssignable)
+	FOnNiagaraSystemFinished OnSystemFinished;
+
+public:
+	/**
+	 * Component we automatically attach to when activated, if bAutoManageAttachment is true.
+	 * If null during registration, we assign the existing AttachParent and defer attachment until we activate.
+	 * @see bAutoManageAttachment
+	 */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Attachment, meta=(EditCondition="bAutoManageAttachment"))
+	TWeakObjectPtr<USceneComponent> AutoAttachParent;
+
+	/**
+	 * Socket we automatically attach to on the AutoAttachParent, if bAutoManageAttachment is true.
+	 * @see bAutoManageAttachment
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attachment, meta=(EditCondition="bAutoManageAttachment"))
+	FName AutoAttachSocketName;
+
+	/**
+	 * Options for how we handle our location when we attach to the AutoAttachParent, if bAutoManageAttachment is true.
+	 * @see bAutoManageAttachment, EAttachmentRule
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attachment, meta = (EditCondition = "bAutoManageAttachment"))
+	EAttachmentRule AutoAttachLocationRule;
+
+	/**
+	 * Options for how we handle our rotation when we attach to the AutoAttachParent, if bAutoManageAttachment is true.
+	 * @see bAutoManageAttachment, EAttachmentRule
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attachment, meta = (EditCondition = "bAutoManageAttachment"))
+	EAttachmentRule AutoAttachRotationRule;
+
+	/**
+	 * Options for how we handle our scale when we attach to the AutoAttachParent, if bAutoManageAttachment is true.
+	 * @see bAutoManageAttachment, EAttachmentRule
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attachment, meta = (EditCondition = "bAutoManageAttachment"))
+	EAttachmentRule AutoAttachScaleRule;
+
+
+	/**
+	 * Set AutoAttachParent, AutoAttachSocketName, AutoAttachLocationRule, AutoAttachRotationRule, AutoAttachScaleRule to the specified parameters. Does not change bAutoManageAttachment; that must be set separately.
+	 * @param  Parent			Component to attach to. 
+	 * @param  SocketName		Socket on Parent to attach to.
+	 * @param  LocationRule		Option for how we handle our location when we attach to Parent.
+	 * @param  RotationRule		Option for how we handle our rotation when we attach to Parent.
+	 * @param  ScaleRule		Option for how we handle our scale when we attach to Parent.
+	 * @see bAutoManageAttachment, AutoAttachParent, AutoAttachSocketName, AutoAttachLocationRule, AutoAttachRotationRule, AutoAttachScaleRule
+	 */
+	UFUNCTION(BlueprintCallable, Category = Niagara)
+	void SetAutoAttachmentParameters(USceneComponent* Parent, FName SocketName, EAttachmentRule LocationRule, EAttachmentRule RotationRule, EAttachmentRule ScaleRule);
+
+private:
+
+	/** Did we auto attach during activation? Used to determine if we should restore the relative transform during detachment. */
+	uint32 bDidAutoAttach : 1;
+
+	/** Restore relative transform from auto attachment and optionally detach from parent (regardless of whether it was an auto attachment). */
+	void CancelAutoAttachment(bool bDetachFromParent);
+
+
+	/** Saved relative transform before auto attachment. Used during detachment to restore the transform if we had automatically attached. */
+	FVector SavedAutoAttachRelativeLocation;
+	FRotator SavedAutoAttachRelativeRotation;
+	FVector SavedAutoAttachRelativeScale3D;
 };
 
 
@@ -213,9 +307,10 @@ public:
 /**
 * Scene proxy for drawing niagara particle simulations.
 */
-class FNiagaraSceneProxy : public FPrimitiveSceneProxy
+class FNiagaraSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override;
 
 	FNiagaraSceneProxy(const UNiagaraComponent* InComponent);
 	~FNiagaraSceneProxy();

@@ -10,6 +10,7 @@ type:quick start
 type:landing
 tags:VR
 tags:SteamVR
+tags:Getting Started
 order:2
 Checkpoint:SteamVRQS
 
@@ -17,13 +18,14 @@ Checkpoint:SteamVRQS
 
 ## Goals
 
-The Steam VR Quick Start will walk you through how to setup your development PC and Steam VR to work with the Vive Head Mounted Display headset.
+The Steam VR Quick Start will walk you through how to setup your development PC and SteamVR to work with the Vive Head Mounted Display (HMD) headset.
 
 ## Objectives
-* Create a new UE4 project that is targeted towards Steam VR development.
-* Setting the required project settings so your project can be used with Steam VR.
+* Create a new UE4 project that is targeted towards SteamVR development.
+* Setting the required project settings so your project can be used with SteamVR.
 
-[DIR(output:"checkpoint" parent:"Platforms/SteamVR/QuickStart")]
+## Steps
+[DIR(output:"checkpoint" parent:"Platforms/SteamVR/QuickStart" tags:"SteamVR")]
 
 [REGION:call_to_action]
  [Click to Start](Platforms/SteamVR/QuickStart/1 "%Platforms/SteamVR/QuickStart/1:title%")

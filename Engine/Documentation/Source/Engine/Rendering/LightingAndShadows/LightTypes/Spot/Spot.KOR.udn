@@ -1,48 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:스포트 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
 Description:스포트 라이트에 대한 기초입니다.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightTypes/Spot:title%](SpotLight_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightTypes/Spot:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightTypes/Spot:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightTypes/Spot]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightTypes/Spot:title%](SpotLight_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightTypes/Spot:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightTypes/Spot:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightTypes/Spot]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:SpotLight_Topic.png
 
 [REGION:fullwidth raw]
 ![](Engine/Rendering/LightingAndShadows/Basics\PL_Banner.png)
@@ -58,26 +20,9 @@ Version: 4.9
 
 
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-	![](Spotlight_Stationary.png)(w:150 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	**스태틱** - (왼쪽 그림) 게임에서 변경할 수 없는 라이트라는 뜻입니다. 렌더링에 가장 빠른 방법으로, 라이팅을 구을 수 있습니다.
-
-	**스테이셔너리** - (역시 왼쪽 그림) 스태틱 지오메트리에서의 반사광과 그림자만 **라이트매스** 로 굽고, 다른 모든 라이팅은 다이내믹이 되는 라이트입니다. 이 세팅은 게임에서 라이트의 색과 강도를 변경할 수 있지만 이동할 수는 없으며, 라이팅을 부분적으로 굽는 것이 가능합니다.
-	[/PARAM]
-[/OBJECT]
-[/EXCERPT:Intro]
-
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](Spotlight_Movable.png)(w:150 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	**무버블** - (왼쪽 그림) 라이트가 완전히 동적이어서 다이내믹 섀도잉이 가능하다는 뜻입니다. 렌더링 속도 측면에서는 가장 느리지만, 게임플레이 도중 유연성이 가장 높습니다.
-	[/PARAM]
-[/OBJECT]
+* **스태틱** - (왼쪽 그림) 게임에서 변경할 수 없는 라이트라는 뜻입니다. 렌더링에 가장 빠른 방법으로, 라이팅을 구을 수 있습니다.
+* **스테이셔너리** - (역시 왼쪽 그림) 스태틱 지오메트리에서의 반사광과 그림자만 **라이트매스** 로 굽고, 다른 모든 라이팅은 다이내믹이 되는 라이트입니다. 이 세팅은 게임에서 라이트의 색과 강도를 변경할 수 있지만 이동할 수는 없으며, 라이팅을 부분적으로 굽는 것이 가능합니다.
+* **무버블** - (왼쪽 그림) 라이트가 완전히 동적이어서 다이내믹 섀도잉이 가능하다는 뜻입니다. 렌더링 속도 측면에서는 가장 느리지만, 게임플레이 도중 유연성이 가장 높습니다.
 
 아래 레벨 안에 배치된 **스포트 라이트** 두 예제를 통해 라이트의 반경과 원뿔 유효 범위 결정 방식을 알 수 있습니다:
 

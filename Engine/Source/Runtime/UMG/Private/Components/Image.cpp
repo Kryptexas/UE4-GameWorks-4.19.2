@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/Image.h"
 #include "Slate/SlateBrushAsset.h"
@@ -94,6 +94,7 @@ void UImage::SetBrush(const FSlateBrush& InBrush)
 	if ( MyImage.IsValid() )
 	{
 		MyImage->SetImage(&Brush);
+		MyImage->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 	}
 }
 
@@ -104,6 +105,7 @@ void UImage::SetBrushFromAsset(USlateBrushAsset* Asset)
 	if ( MyImage.IsValid() )
 	{
 		MyImage->SetImage(&Brush);
+		MyImage->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 	}
 }
 
@@ -116,15 +118,23 @@ void UImage::SetBrushFromTexture(UTexture2D* Texture, bool bMatchSize)
 		Texture->bIgnoreStreamingMipBias = true;
 	}
 
-	if (bMatchSize && Texture)
+	if (bMatchSize)
 	{
-		Brush.ImageSize.X = Texture->GetSizeX();
-		Brush.ImageSize.Y = Texture->GetSizeY();
+		if (Texture)
+		{
+			Brush.ImageSize.X = Texture->GetSizeX();
+			Brush.ImageSize.Y = Texture->GetSizeY();
+		}
+		else
+		{
+			Brush.ImageSize = FVector2D(0, 0);
+		}
 	}
 
 	if ( MyImage.IsValid() )
 	{
 		MyImage->SetImage(&Brush);
+		MyImage->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 	}
 }
 
@@ -141,6 +151,7 @@ void UImage::SetBrushFromTextureDynamic(UTexture2DDynamic* Texture, bool bMatchS
 	if (MyImage.IsValid())
 	{
 		MyImage->SetImage(&Brush);
+		MyImage->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 	}
 }
 
@@ -153,6 +164,7 @@ void UImage::SetBrushFromMaterial(UMaterialInterface* Material)
 	if ( MyImage.IsValid() )
 	{
 		MyImage->SetImage(&Brush);
+		MyImage->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 	}
 }
 

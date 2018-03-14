@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessVisualizeGBuffer.usf: PostProcessing shader to visualize the GBuffer
@@ -7,7 +7,6 @@
 #include "Common.ush"
 #include "PostProcessCommon.ush"
 #include "DeferredShadingCommon.ush"
-#include "PostProcessHistogramCommon.ush"
 
 /** Main pixel shader function */
 void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition : SV_POSITION, out float4 OutColor : SV_Target0)

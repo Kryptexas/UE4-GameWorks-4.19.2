@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:지오메트리 편집 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -6,59 +6,16 @@ Description:Geometry Editing 콘텐츠 예제 맵에 대한 개요입니다.
 Related: Engine/Actors/Brushes
 Related: Engine/UI/LevelEditor/Modes
 Version: 4.9
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Brushes:title%](Resources/ContentExamples/Brushes/BSP_TopicCompact.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Brushes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Brushes:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Brushes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Brushes:title%](Resources/ContentExamples/Brushes/BSP_TopicCompact.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Brushes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Brushes:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Brushes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:BSP_TopicCompact.png
 
 
 [REGION:fullwidth]
 ![](BSP_Header.png)
 [/REGION]
 
-<!---[TOC(start:2 end:2)]--->
-
-
 
 언리얼 엔진 4 에서 레벨을 구성하는 지오메트리를 만드는 방법은 여러가지 있습니다. 일반적으로 말해서 지오메트리 생성은 [스태틱 메시](Engine/Content\Types\StaticMeshes) 를 사용하는 것이 (퍼포먼스 측면에서) 낫습니다.
+그렇게 봤을 때, 스태틱 메시를 제작하는 데는 3D 모델링 소프트웨어가 필요하므로, **지오메트리 편집** 툴을 사용하면 게임플레이 프로토타입에 쓸 레벨 윤곽 작업을 빠르게 할 수 있습니다.
 
 이 글에서는 **Geometry_Editing** 맵과, 지오메트리가 존재하는 영역을 정의하기 위해 **더하기** 및 **빼기** 브러시를 사용하여 레벨 윤곽 작업을 시작하는 방법에 대해 알아보겠습니다. 예제 끝무렵에는 브러시만 가지고 집을 만드는 방법을 배울 수 있을 것이며, 레벨 윤곽 작업을 직접 시작할 수 있을 만큼의 지식이 쌓였을 것입니다.
 

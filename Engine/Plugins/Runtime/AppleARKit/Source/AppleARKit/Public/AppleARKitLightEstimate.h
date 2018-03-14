@@ -1,3 +1,5 @@
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
 // UE4
@@ -45,4 +47,11 @@ struct APPLEARKIT_API FAppleARKitLightEstimate
 	 */
 	UPROPERTY( BlueprintReadOnly, Category="AppleARKit|Light Estimate" )
 	float AmbientIntensity;
+	
+	/**
+	 * Color Temperature in Kelvin of light
+	 *
+	 */
+	UPROPERTY( BlueprintReadOnly, Category="AppleARKit|Light Estimate" )
+	float AmbientColorTemperatureKelvin;
 };

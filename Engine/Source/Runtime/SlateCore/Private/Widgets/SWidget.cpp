@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/SWidget.h"
 #include "Types/PaintArgs.h"
@@ -81,6 +81,8 @@ struct FScopeCycleCounterSWidget
 
 #endif
 
+DEFINE_STAT(STAT_SlateVeryVerboseStatGroupTester);
+
 void SWidget::CreateStatID() const
 {
 #if STATS
@@ -111,6 +113,7 @@ SWidget::SWidget()
 #endif
 	, EnabledState(true)
 	, Visibility(EVisibility::Visible)
+	, RenderOpacity(1.0f)
 	, RenderTransform()
 	, RenderTransformPivot(FVector2D::ZeroVector)
 #if SLATE_DEFERRED_DESIRED_SIZE
@@ -142,11 +145,12 @@ SWidget::~SWidget()
 }
 
 void SWidget::Construct(
-	const TAttribute<FText> & InToolTipText ,
-	const TSharedPtr<IToolTip> & InToolTip ,
-	const TAttribute< TOptional<EMouseCursor::Type> > & InCursor,
-	const TAttribute<bool> & InEnabledState ,
-	const TAttribute<EVisibility> & InVisibility,
+	const TAttribute<FText>& InToolTipText,
+	const TSharedPtr<IToolTip>& InToolTip,
+	const TAttribute< TOptional<EMouseCursor::Type> >& InCursor,
+	const TAttribute<bool>& InEnabledState,
+	const TAttribute<EVisibility>& InVisibility,
+	const float InRenderOpacity,
 	const TAttribute<TOptional<FSlateRenderTransform>>& InTransform,
 	const TAttribute<FVector2D>& InTransformPivot,
 	const FName& InTag,
@@ -174,12 +178,18 @@ void SWidget::Construct(
 	Cursor = InCursor;
 	EnabledState = InEnabledState;
 	Visibility = InVisibility;
+	RenderOpacity = InRenderOpacity;
 	RenderTransform = InTransform;
 	RenderTransformPivot = InTransformPivot;
 	Tag = InTag;
 	bForceVolatile = InForceVolatile;
 	Clipping = InClipping;
 	MetaData = InMetaData;
+}
+
+void SWidget::SWidgetConstruct(const TAttribute<FText>& InToolTipText, const TSharedPtr<IToolTip>& InToolTip, const TAttribute< TOptional<EMouseCursor::Type> >& InCursor, const TAttribute<bool>& InEnabledState, const TAttribute<EVisibility>& InVisibility, const float InRenderOpacity, const TAttribute<TOptional<FSlateRenderTransform>>& InTransform, const TAttribute<FVector2D>& InTransformPivot, const FName& InTag, const bool InForceVolatile, const EWidgetClipping InClipping, const TArray<TSharedRef<ISlateMetaData>>& InMetaData)
+{
+	Construct(InToolTipText, InToolTip, InCursor, InEnabledState, InVisibility, InRenderOpacity, InTransform, InTransformPivot, InTag, InForceVolatile, InClipping, InMetaData);
 }
 
 FReply SWidget::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent)
@@ -845,6 +855,9 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	bool bClipToBounds, bAlwaysClip, bIntersectClipBounds;
 	FSlateRect CullingBounds = CalculateCullingAndClippingRules(AllottedGeometry, MyCullingRect, bClipToBounds, bAlwaysClip, bIntersectClipBounds);
 
+	FWidgetStyle ContentWidgetStyle = FWidgetStyle(InWidgetStyle)
+		.BlendOpacity(RenderOpacity);
+
 	// If this paint pass is to cache off our geometry, but we're a volatile widget,
 	// record this widget as volatile in the draw elements so that we get our own tick/paint 
 	// pass later when the layout cache draws.
@@ -852,7 +865,7 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	{
 		const int32 VolatileLayerId = LayerId + 1;
 		OutDrawElements.QueueVolatilePainting(
-			FSlateWindowElementList::FVolatilePaint(SharedThis(this), Args, AllottedGeometry, CullingBounds, OutDrawElements.GetClippingState(), VolatileLayerId, InWidgetStyle, bParentEnabled));
+			FSlateWindowElementList::FVolatilePaint(SharedThis(this), Args, AllottedGeometry, CullingBounds, OutDrawElements.GetClippingState(), VolatileLayerId, ContentWidgetStyle, bParentEnabled));
 
 		return VolatileLayerId;
 	}
@@ -896,7 +909,7 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	}
 
 	// Paint the geometry of this widget.
-	int32 NewLayerID = OnPaint(UpdatedArgs, AllottedGeometry, CullingBounds, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	int32 NewLayerID = OnPaint(UpdatedArgs, AllottedGeometry, CullingBounds, OutDrawElements, LayerId, ContentWidgetStyle, bParentEnabled);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (GShowClipping && bClipToBounds)
@@ -995,12 +1008,15 @@ void SWidget::ExecuteActiveTimers(double CurrentTime, float DeltaTime)
 		}
 		else
 		{
-			if (FSlateApplicationBase::IsInitialized())
+			// Possible that execution unregistered the timer 
+			if (ActiveTimers.IsValidIndex(i))
 			{
-				FSlateApplicationBase::Get().UnRegisterActiveTimer(ActiveTimers[i]);
+				if (FSlateApplicationBase::IsInitialized())
+				{
+					FSlateApplicationBase::Get().UnRegisterActiveTimer(ActiveTimers[i]);
+				}
+				ActiveTimers.RemoveAt(i);
 			}
-			
-			ActiveTimers.RemoveAt(i);
 		}
 	}
 }

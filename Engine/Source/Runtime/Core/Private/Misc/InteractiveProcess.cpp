@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Misc/InteractiveProcess.h"
 #include "HAL/RunnableThread.h"
@@ -143,7 +143,7 @@ void FInteractiveProcess::ProcessOutput(const FString& Output)
 void FInteractiveProcess::SendMessageToProcessIf()
 {
 	// If there is not a message
-	if (MessagesToProcess.IsEmpty() == true)
+	if (StringMessagesToProcess.IsEmpty() == true && DataMessagesToProcess.IsEmpty() == true)
 	{
 		return;
 	}
@@ -160,29 +160,50 @@ void FInteractiveProcess::SendMessageToProcessIf()
 		return;
 	}
 
-	// A string for original message and one for written message
-	FString WrittenMessage, Message;
-	MessagesToProcess.Dequeue(Message);
-
-	FPlatformProcess::WritePipe(WritePipeParent, Message, &WrittenMessage);
-
-	UE_LOG(LogInteractiveProcess, Log, TEXT("Parent Process -> Original Message: %s , Written Message: %s"), *Message, *WrittenMessage);
-
-	if (WrittenMessage.Len() == 0)
+	if (!StringMessagesToProcess.IsEmpty())
 	{
-		UE_LOG(LogInteractiveProcess, Error, TEXT("Writing message through pipe failed"));
-		return;
-	}
-	else if (Message.Len() > WrittenMessage.Len())
+		// A string for original message and one for written message
+		FString WrittenMessage, Message;
+		StringMessagesToProcess.Dequeue(Message);
+
+		FPlatformProcess::WritePipe(WritePipeParent, Message, &WrittenMessage);
+
+		UE_LOG(LogInteractiveProcess, Log, TEXT("Parent Process -> Original Message: %s , Written Message: %s"), *Message, *WrittenMessage);
+
+		if (WrittenMessage.Len() == 0)
+		{
+			UE_LOG(LogInteractiveProcess, Error, TEXT("Writing message through pipe failed"));
+			return;
+		}
+		else if (Message.Len() > WrittenMessage.Len())
+		{
+			UE_LOG(LogInteractiveProcess, Error, TEXT("Writing some part of the message through pipe failed"));
+			return;
+		}
+	} 
+	else if (!DataMessagesToProcess.IsEmpty())
 	{
-		UE_LOG(LogInteractiveProcess, Error, TEXT("Writing some part of the message through pipe failed"));
-		return;
+		TArray<uint8> DataMessage;
+		DataMessagesToProcess.Dequeue(DataMessage);
+
+		const bool bWritten = FPlatformProcess::WritePipe(WritePipeParent, DataMessage.GetData(), DataMessage.Num());
+
+		if (!bWritten)
+		{
+			UE_LOG(LogInteractiveProcess, Error, TEXT("Writing message through pipe failed"));
+			return;
+		}
 	}
 }
 
 void FInteractiveProcess::SendWhenReady(const FString &Message)
 {
-	MessagesToProcess.Enqueue(Message);
+	StringMessagesToProcess.Enqueue(Message);
+}
+
+void FInteractiveProcess::SendWhenReady(const TArray<uint8> &Data)
+{
+	DataMessagesToProcess.Enqueue(Data);
 }
 
 // FRunnable interface

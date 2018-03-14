@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -103,6 +103,7 @@ public:
 	TMap<FGuid,class FStaticMesh*>&									GetStaticMeshes()			{ return StaticMeshes; }
 	TMap<FGuid,class FFluidSurfaceStaticLightingTextureMapping*>&	GetFluidMappings()			{ return FluidMappings; }
 	TMap<FGuid,class FLandscapeStaticLightingTextureMapping*>&		GetLandscapeMappings()		{ return LandscapeMappings; }
+	TMap<FGuid,class FStaticLightingGlobalVolumeMapping*>&				GetVolumeMappings()			{ return VolumeMappings; }
 	TMap<FSHAHash,class FMaterial*>&								GetMaterials()				{ return Materials; }
 
 private:
@@ -118,6 +119,7 @@ private:
 	TMap<FGuid,class FBSPSurfaceStaticLighting*>					BSPTextureMappings;	
 	TMap<FGuid,class FFluidSurfaceStaticLightingTextureMapping*>	FluidMappings;
 	TMap<FGuid,class FLandscapeStaticLightingTextureMapping*>		LandscapeMappings;
+	TMap<FGuid,class FStaticLightingGlobalVolumeMapping*>			VolumeMappings;
 	TMap<FSHAHash,class FMaterial*>									Materials;
 
 	float LevelScale;

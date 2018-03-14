@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AvfMediaTracks.h"
 #include "AvfMediaPrivate.h"
@@ -18,7 +18,9 @@
 
 #import <AudioToolbox/AudioToolbox.h>
 
-#define AUDIO_PLAYBACK_VIA_ENGINE (PLATFORM_MAC && 0)
+#define AUDIO_PLAYBACK_VIA_ENGINE (PLATFORM_MAC)
+
+NS_ASSUME_NONNULL_BEGIN
 
 /* FAVPlayerItemLegibleOutputPushDelegate
  *****************************************************************************/
@@ -50,22 +52,243 @@
 
 @end
 
+#if AUDIO_PLAYBACK_VIA_ENGINE
+/*
+ * Audio Tap Handling callbacks see:
+ * https://rymc.io/2014/01/08/recording-live-audio-streams-on-ios/
+ * https://chritto.wordpress.com/2013/01/07/processing-avplayers-audio-with-mtaudioprocessingtap/
+ *
+ **/
+
+struct AudioTrackTapContextData
+{
+	AudioStreamBasicDescription ProcessingFormat;
+	AudioStreamBasicDescription DestinationFormat;
+	FMediaSamples&				SampleQueue;
+	FAvfMediaAudioSamplePool*	AudioSamplePool;
+	bool						bActive;
+	
+	AudioTrackTapContextData(FMediaSamples& InSampleQueue, FAvfMediaAudioSamplePool* InAudioSamplePool, AudioStreamBasicDescription const & InDestinationFormat)
+	: SampleQueue(InSampleQueue)
+	, AudioSamplePool(InAudioSamplePool)
+	, bActive(false)
+	{
+		FMemory::Memcpy(&DestinationFormat, &InDestinationFormat, sizeof(AudioStreamBasicDescription));
+	}
+};
+
+static void AudioTrackTapInit(MTAudioProcessingTapRef __nonnull TapRef, void * __nullable Userdata, void * __nullable * __nonnull TapStorageOut)
+{
+	// Just pass this through
+	*TapStorageOut = Userdata;
+}
+
+static void AudioTrackTapPrepare(MTAudioProcessingTapRef __nonnull TapRef, CMItemCount MaxFrames, const AudioStreamBasicDescription * __nonnull ProcessingFormat)
+{
+	AudioTrackTapContextData* ContextData = (AudioTrackTapContextData*)MTAudioProcessingTapGetStorage(TapRef);
+	if(ContextData)
+	{
+		FMemory::Memcpy(&ContextData->ProcessingFormat,ProcessingFormat,sizeof(AudioStreamBasicDescription));
+		ContextData->bActive = true;
+	}
+}
+
+static void AudioTrackTapProcess(MTAudioProcessingTapRef __nonnull TapRef,
+								 CMItemCount NumberFrames,
+								 MTAudioProcessingTapFlags Flags,
+								 AudioBufferList * __nonnull BufferListInOut,
+								 CMItemCount * __nonnull NumberFramesOut,
+								 MTAudioProcessingTapFlags * __nonnull FlagsOut)
+{
+	CMTimeRange TimeRange;
+	OSStatus Status = MTAudioProcessingTapGetSourceAudio(TapRef, NumberFrames, BufferListInOut, FlagsOut, &TimeRange, NumberFramesOut);
+	
+	// For this use case this flag should not be set if it is then we need to do something about it - force end the tap
+	check((Flags & kMTAudioProcessingTapFlag_EndOfStream) == 0);
+	
+	if(Status == noErr)
+	{
+		AudioTrackTapContextData* Ctx = (AudioTrackTapContextData*) MTAudioProcessingTapGetStorage(TapRef);
+		
+		// If we haven't got this then something has gone wrong
+		// Could call through to AvfMediaTracks to do this processing but that would require exposing the function call definitation
+		// in the public interface to AvfMediaTracks which seems wrong - plus we save the extra function call in time critical code!
+		check(Ctx);
+		
+		if(Ctx->bActive)
+		{
+			// Compute required buffer size
+			uint32 BufferSize = (NumberFrames * ((Ctx->DestinationFormat.mBitsPerChannel / 8))) * Ctx->DestinationFormat.mChannelsPerFrame;
+			
+			//setup reasonable defaults as time range can be invalid - especially at the start of the audio track
+			FTimespan StartTime(0);
+			FTimespan Duration(((int64)NumberFrames * ETimespan::TicksPerSecond) / (int64)Ctx->DestinationFormat.mSampleRate);
+			
+			// If valid set time stamps give by the system
+			if((TimeRange.start.flags & kCMTimeFlags_Valid) != 0)
+			{
+				StartTime = (TimeRange.start.value * ETimespan::TicksPerSecond) / TimeRange.start.timescale;
+			}
+			
+			// On pause the duration from system can be different from computed
+			if((TimeRange.duration.flags & kCMTimeFlags_Valid) != 0)
+			{
+				Duration = (TimeRange.duration.value * ETimespan::TicksPerSecond) / TimeRange.duration.timescale;
+			}
+			
+			// Don't add zero duration sample buffers to to the sink
+			if(Duration.GetTicks() != 0)
+			{
+				// Get a media audio sample buffer from the pool
+				const TSharedRef<FAvfMediaAudioSample, ESPMode::ThreadSafe> AudioSample = Ctx->AudioSamplePool->AcquireShared();
+				if (AudioSample->Initialize(BufferSize,
+											NumberFrames,
+											Ctx->DestinationFormat.mChannelsPerFrame,
+											Ctx->DestinationFormat.mSampleRate,
+											StartTime,
+											Duration))
+				{
+					if((Ctx->ProcessingFormat.mFormatFlags & kAudioFormatFlagIsFloat) != 0)
+					{
+						float* DestBuffer = (float*)AudioSample->GetMutableBuffer();
+						const uint32 BufferCount = BufferListInOut->mNumberBuffers;
+						
+						// We need to have the same amount of buffers as the channel count
+						check(BufferCount == Ctx->DestinationFormat.mChannelsPerFrame);
+						
+						// Interleave the seperate channel buffers into one buffer
+						for(uint32 b = 0; b < BufferCount;++b)
+						{
+							AudioBuffer& Buffer = BufferListInOut->mBuffers[b];
+							
+							// We don't handle source processing interleaved formats - if this number equals mChannelPerFrame then we could just blit the data across in one go
+							check(Buffer.mNumberChannels == 1);
+							
+							// Make sure each channel buffer has the right about of data for the number of frames and processing format
+							check(Buffer.mDataByteSize == NumberFrames * (Ctx->DestinationFormat.mBitsPerChannel / 8));
+							
+							float* SrcBuffer = (float*)Buffer.mData;
+							
+							// Perform interleave copy
+							for(uint32 f = 0;f < NumberFrames;++f)
+							{
+								uint32 idx = b + (f * BufferCount);
+								DestBuffer[idx] = SrcBuffer[f];
+							}
+							
+							// Done with this source buffer clear it - otherwise AVPlayer will also play this audio -  we could seet a volume of 0 on the AudioMixInputParameters
+							// But that could be dangerous as OS may optimise out somethings at runtime for 0 volume tracks in the future
+							FMemory::Memset(Buffer.mData, 0, Buffer.mDataByteSize);
+						}
+					}
+					else
+					{
+						// Processing format should always be float however...
+						// If we encounter this case (kAudioFormatFlagIsSignedInteger) we need to use sint16 audio sample type on FAvfMediaAudioSample
+						// i.e. make FAvfMediaAudioSample sample type settable, the engine should convert to float internally as that is it's preferred format now
+						check(false);
+					}
+					
+					Ctx->SampleQueue.AddAudio(AudioSample);
+				}
+			}
+		}
+	}
+}
+
+static void AudioTrackTapUnPrepare(MTAudioProcessingTapRef __nonnull TapRef)
+{
+	// NOP
+}
+
+static void AudioTrackTapFinalize(MTAudioProcessingTapRef __nonnull TapRef)
+{
+	AudioTrackTapContextData* Context = (AudioTrackTapContextData*)MTAudioProcessingTapGetStorage(TapRef);
+	if(Context)
+	{
+		delete Context;
+		Context = nullptr;
+	}
+}
+
+static void AudioTrackTapShutdownCurrentAudioTrackProcessing(AVPlayerItem* PlayerItem)
+{
+	SCOPED_AUTORELEASE_POOL;
+
+	check(PlayerItem);
+	
+	if(PlayerItem.audioMix != nil)
+	{
+		MTAudioProcessingTapRef TapNodeRef = ((AVMutableAudioMixInputParameters*)PlayerItem.audioMix.inputParameters[0]).audioTapProcessor;
+		
+		PlayerItem.audioMix = nil;
+		
+		if(TapNodeRef)
+		{
+			AudioTrackTapContextData* Ctx = (AudioTrackTapContextData*) MTAudioProcessingTapGetStorage(TapNodeRef);
+			check(Ctx);
+			
+			Ctx->bActive = false;
+		}
+	}
+}
+
+static void AudioTrackTapInitializeForAudioTrack(FMediaSamples& InSampleQueue, FAvfMediaAudioSamplePool* InAudioSamplePool, AudioStreamBasicDescription const & InDestinationFormat, AVPlayerItem* PlayerItem, AVAssetTrack* AssetTrack)
+{
+	SCOPED_AUTORELEASE_POOL;
+
+	check(InAudioSamplePool);
+	check(PlayerItem);
+	
+	AudioTrackTapShutdownCurrentAudioTrackProcessing(PlayerItem);
+	
+	if(AssetTrack != nil)
+	{
+		MTAudioProcessingTapCallbacks Callbacks;
+		
+		Callbacks.version = kMTAudioProcessingTapCallbacksVersion_0;
+		Callbacks.clientInfo = new AudioTrackTapContextData(InSampleQueue, InAudioSamplePool, InDestinationFormat);
+		Callbacks.init = AudioTrackTapInit;
+		Callbacks.prepare = AudioTrackTapPrepare;
+		Callbacks.process = AudioTrackTapProcess;
+		Callbacks.unprepare = AudioTrackTapUnPrepare;
+		Callbacks.finalize = AudioTrackTapFinalize;
+		
+		MTAudioProcessingTapRef TapNodeRef = nullptr;
+		
+		OSStatus ErrorState = MTAudioProcessingTapCreate(kCFAllocatorDefault, &Callbacks, kMTAudioProcessingTapCreationFlag_PreEffects, &TapNodeRef);
+		
+		if (ErrorState == noErr && TapNodeRef != nullptr)
+		{
+			AVMutableAudioMixInputParameters* InputParams = [AVMutableAudioMixInputParameters audioMixInputParametersWithTrack:AssetTrack];
+			
+			InputParams.audioTapProcessor = TapNodeRef;
+			InputParams.trackID = AssetTrack.trackID;
+			
+			AVMutableAudioMix* AudioMix = [AVMutableAudioMix audioMix];
+			AudioMix.inputParameters = @[InputParams];
+			
+			PlayerItem.audioMix = AudioMix;
+
+			CFRelease(TapNodeRef);
+		}
+	}
+}
+
+#endif //AUDIO_PLAYBACK_VIA_ENGINE
+
 
 /* FAvfMediaTracks structors
  *****************************************************************************/
 
 FAvfMediaTracks::FAvfMediaTracks(FMediaSamples& InSamples)
-	: AudioPaused(false)
-	, AudioSamplePool(new FAvfMediaAudioSamplePool)
+	: AudioSamplePool(new FAvfMediaAudioSamplePool)
 	, PlayerItem(nullptr)
 	, Samples(InSamples)
-	, SeekTime(-1.0)
 	, SelectedAudioTrack(INDEX_NONE)
 	, SelectedCaptionTrack(INDEX_NONE)
 	, SelectedVideoTrack(INDEX_NONE)
-	, Zoomed(false)
 {
-	LastAudioSampleTime = kCMTimeZero;
 	VideoSampler = MakeShared<FAvfMediaVideoSampler, ESPMode::ThreadSafe>(Samples);
 }
 
@@ -130,7 +353,7 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo)
 
 	FScopeLock Lock(&CriticalSection);
 
-	PlayerItem = InPlayerItem;
+	PlayerItem = [InPlayerItem retain];
 
 	// initialize tracks
 	NSArray* PlayerTracks = PlayerItem.tracks;
@@ -154,40 +377,8 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo)
 			Track = &AudioTracks[TrackIndex];
 			
 			Track->Name = FString::Printf(TEXT("Audio Track %i"), TrackIndex);
-			Track->Converter = nullptr;
-			
-#if AUDIO_PLAYBACK_VIA_ENGINE
-			// create asset reader
-			AVAssetReader* Reader = [[AVAssetReader alloc] initWithAsset: [AssetTrack asset] error:&Error];
-			
-			if (Error != nil)
-			{
-				FString ErrorStr([Error localizedDescription]);
-				UE_LOG(LogAvfMedia, Error, TEXT("Failed to create asset reader for track %i: %s"), AssetTrack.trackID, *ErrorStr);
-				
-				continue;
-			}
-
-			NSMutableDictionary* OutputSettings = [NSMutableDictionary dictionary];
-			[OutputSettings setObject : [NSNumber numberWithInt : kAudioFormatLinearPCM] forKey : (NSString*)AVFormatIDKey];
-			
-			AVAssetReaderTrackOutput* AudioReaderOutput = [[AVAssetReaderTrackOutput alloc] initWithTrack:AssetTrack outputSettings:OutputSettings];
-			check(AudioReaderOutput);
-			
-			AudioReaderOutput.alwaysCopiesSampleData = NO;
-			AudioReaderOutput.supportsRandomAccess = YES;
-			
-			// Assign the track to the reader.
-			[Reader addOutput:AudioReaderOutput];
-
-			Track->Output = AudioReaderOutput;
-			Track->Loaded = [Reader startReading];
-			Track->Reader = Reader;
-#else
 			Track->Output = [PlayerTrack retain];
 			Track->Loaded = true;
-			Track->Reader = nil;
-#endif
 
 			CMFormatDescriptionRef DescRef = (CMFormatDescriptionRef)[AssetTrack.formatDescriptions objectAtIndex:0];
 			const AudioStreamBasicDescription* Desc = CMAudioFormatDescriptionGetStreamBasicDescription(DescRef);
@@ -227,8 +418,6 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo)
 			Track->Name = FString::Printf(TEXT("Caption Track %i"), TrackIndex);
 			Track->Output = Output;
 			Track->Loaded = true;
-			Track->Reader = nil;
-			Track->Converter = nullptr;
 		}
 		else if ([MediaType isEqualToString:AVMediaTypeTimecode])
 		{
@@ -280,8 +469,6 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo)
 			Track->Name = FString::Printf(TEXT("Video Track %i"), TrackIndex);
 			Track->Output = Output;
 			Track->Loaded = true;
-			Track->Reader = nil;
-			Track->Converter = nullptr;
 
 			CMFormatDescriptionRef DescRef = (CMFormatDescriptionRef)[AssetTrack.formatDescriptions objectAtIndex:0];
 			CMVideoCodecType CodecType = CMFormatDescriptionGetMediaSubType(DescRef);
@@ -305,120 +492,6 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo)
 		++StreamIndex;
 	}
 }
-
-
-void FAvfMediaTracks::ProcessAudio()
-{
-	FScopeLock Lock(&CriticalSection);
-
-#if AUDIO_PLAYBACK_VIA_ENGINE
-	if (!AudioTracks.IsValidIndex(SelectedAudioTrack) || !PlayerItem || PlayerItem.status != AVPlayerItemStatusReadyToPlay || CMTimeCompare(PlayerItem.duration, CMTimeMakeWithSeconds(0.0, 1000)) < 1)
-	{
-		return;
-	}
-
-	CMTime CurrentTime = [PlayerItem currentTime];
-
-	ESyncStatus Sync = Default;
-
-	AVAssetReaderTrackOutput* AudioReaderOutput = (AVAssetReaderTrackOutput*)AudioTracks[SelectedAudioTrack].Output;
-	check(AudioReaderOutput);
-
-	while (Sync < Ready)
-	{
-		float Delta = CMTimeGetSeconds(LastAudioSampleTime) - CMTimeGetSeconds(CurrentTime);
-
-		if ((Delta <= 1.0f) && (Delta > 0.0f))
-		{
-			Sync = Ready;
-
-			break;
-		}
-
-		Sync = Behind;
-
-		CMSampleBufferRef LatestSamples = [AudioReaderOutput copyNextSampleBuffer];
-
-		if (!LatestSamples)
-		{
-			break;
-		}
-
-		CMTime FrameTimeStamp = CMSampleBufferGetPresentationTimeStamp(LatestSamples);
-		CMTime Duration = CMSampleBufferGetOutputDuration(LatestSamples);
-		CMTime FinalTimeStamp = CMTimeAdd(FrameTimeStamp, Duration);
-		CMTime Seek = CMTimeMakeWithSeconds(SeekTime, 1000);
-
-		if ((SeekTime < 0.0f) || (CMTimeCompare(Seek, FrameTimeStamp) >= 0 && CMTimeCompare(Seek, FinalTimeStamp) < 0))
-		{
-			SeekTime = -1.0f;
-
-			CMItemCount NumSamples = CMSampleBufferGetNumSamples(LatestSamples);
-			CMFormatDescriptionRef Format = CMSampleBufferGetFormatDescription(LatestSamples);
-			check(Format);
-
-			const AudioStreamBasicDescription* ASBD = CMAudioFormatDescriptionGetStreamBasicDescription(Format);
-			check(ASBD);
-
-			CMBlockBufferRef Buffer = CMSampleBufferGetDataBuffer(LatestSamples);
-			check(Buffer);
-
-			// create & add sample to queue
-			uint32 InputLength = CMBlockBufferGetDataLength(Buffer);
-
-			if (InputLength)
-			{
-				uint32 OutputLength = (NumSamples * TargetDesc.mBytesPerPacket);
-				FTrack& AudioTrack = AudioTracks[SelectedAudioTrack];
-
-				auto AudioSample = MakeShared<FAvfMediaAudioSample, ESPMode::ThreadSafe>();
-
-				if (!AudioSample->Initialize(
-					OutputLength,
-					NumSamples,
-					TargetDesc.mChannelsPerFrame,
-					TargetDesc.mSampleRate,
-					FTimespan::FromSeconds(CMTimeGetSeconds(FrameTimeStamp))))
-				{
-					continue;
-				}
-
-				if (FMemory::Memcmp(ASBD, &TargetDesc, sizeof(AudioStreamBasicDescription)) != 0)
-				{
-					// conversion to 16-bit PCM required
-					uint8* Data = new uint8[InputLength];
-
-					OSErr Err = CMBlockBufferCopyDataBytes(Buffer, 0, InputLength, Data);
-					check(Err == noErr);
-
-					if (AudioTrack.Converter == nullptr)
-					{
-						OSStatus CAErr = AudioConverterNew(ASBD, &TargetDesc, &AudioTrack.Converter);
-						check(CAErr == noErr);
-					}
-
-					OSStatus CAErr = AudioConverterConvertBuffer(AudioTrack.Converter, InputLength, Data, &OutputLength, AudioSample->GetMutableBuffer());
-					check(CAErr == noErr);
-
-					delete[] Data;
-				}
-				else
-				{
-					// data is already in 16-bit PCM
-					OSErr Err = CMBlockBufferCopyDataBytes(Buffer, 0, OutputLength, AudioSample->GetMutableBuffer());
-					check(Err == noErr);
-				}
-
-				Samples.AddAudio(AudioSample);
-				LastAudioSampleTime = FinalTimeStamp;
-			}
-		}
-
-		CFRelease(LatestSamples);
-	}
-#endif
-}
-
 
 void FAvfMediaTracks::ProcessCaptions(AVPlayerItemLegibleOutput* Output, NSArray<NSAttributedString*>* Strings, NSArray* NativeSamples, CMTime ItemTime)
 {
@@ -522,14 +595,7 @@ void FAvfMediaTracks::Reset()
 
 	for (FTrack& Track : AudioTracks)
 	{
-		if (Track.Converter)
-		{
-			OSStatus CAErr = AudioConverterDispose(Track.Converter);
-			check(CAErr == noErr);
-		}
-
 		[Track.Output release];
-		[Track.Reader release];
 	}
 
 	for (FTrack& Track : CaptionTracks)
@@ -538,94 +604,27 @@ void FAvfMediaTracks::Reset()
 
 		[Output.delegate release];
 		[Track.Output release];
-		[Track.Reader release];
 	}
 
 	for (FTrack& Track : VideoTracks)
 	{
 		[Track.Output release];
-		[Track.Reader release];
 	}
 
 	AudioTracks.Empty();
 	CaptionTracks.Empty();
 	VideoTracks.Empty();
 	
-	LastAudioSampleTime = kCMTimeZero;
-	AudioPaused = false;
-	SeekTime = -1.0;
-	Zoomed = false;
-}
-
-
-void FAvfMediaTracks::Seek(const FTimespan& Time)
-{
+	if(PlayerItem != nil)
+	{
 #if AUDIO_PLAYBACK_VIA_ENGINE
-	FScopeLock Lock(&CriticalSection);
-
-	if (SelectedAudioTrack != INDEX_NONE)
-	{
-		return;
-	}
-
-	double LastSampleTime = CMTimeGetSeconds(LastAudioSampleTime);
-	SeekTime = Time.GetTotalSeconds();
-
-	if (SeekTime >= LastSampleTime)
-	{
-		return;
-	}
-
-	AVAssetReaderTrackOutput* AudioReaderOutput = (AVAssetReaderTrackOutput*)AudioTracks[SelectedAudioTrack].Output;
-	check(AudioReaderOutput);
-
-	LastAudioSampleTime = CMTimeMakeWithSeconds(0, 1000);
-
-	CMSampleBufferRef LatestSamples = nullptr;
-	while ((LatestSamples = [AudioReaderOutput copyNextSampleBuffer]))
-	{
-		if (LatestSamples)
-		{
-			CFRelease(LatestSamples);
-		}
-	}
-
-	CMTime Start = CMTimeMakeWithSeconds(SeekTime, 1000);
-	CMTime Duration = PlayerItem.asset.duration;
-	Duration = CMTimeSubtract(Duration, Start);
-
-	CMTimeRange TimeRange = CMTimeRangeMake(Start, Duration);
-	NSValue* Value = [NSValue valueWithBytes : &TimeRange objCType : @encode(CMTimeRange)];
-	NSArray* Array = @[ Value ];
-
-	[AudioReaderOutput resetForReadingTimeRanges : Array];
+		AudioTrackTapShutdownCurrentAudioTrackProcessing(PlayerItem);
 #endif
-}
-
-
-void FAvfMediaTracks::SetRate(float Rate)
-{
-	FScopeLock Lock(&CriticalSection);
-
-	// Can only play sensible audio at full rate forward - when seeking, scrubbing or reversing we can't supply
-	// the correct samples.
-	const bool bNearOne = FMath::IsNearlyEqual(Rate, 1.0f);	
-	const bool bWasPaused = AudioPaused;
-		
-	AudioPaused = !bNearOne;
-		
-#if AUDIO_PLAYBACK_VIA_ENGINE
-	if (!AudioPaused && Zoomed)
-	{
-		CMTime CurrentTime = [PlayerItem currentTime];
-		FTimespan Time = FTimespan::FromSeconds(CMTimeGetSeconds(CurrentTime));
-		Seek(Time);
+		[PlayerItem release];
 	}
-#endif
-		
-	Zoomed = !bNearOne;
+	
+	PlayerItem = nil;
 }
-
 
 /* IMediaTracks interface
  *****************************************************************************/
@@ -643,7 +642,7 @@ bool FAvfMediaTracks::GetAudioTrackFormat(int32 TrackIndex, int32 FormatIndex, F
 	CMFormatDescriptionRef DescRef = (CMFormatDescriptionRef)[AudioTracks[TrackIndex].AssetTrack.formatDescriptions objectAtIndex : 0];
 	AudioStreamBasicDescription const* Desc = CMAudioFormatDescriptionGetStreamBasicDescription(DescRef);
 
-	OutFormat.BitsPerSample = 16;
+	OutFormat.BitsPerSample = 32;
 	OutFormat.NumChannels = (Desc != nullptr) ? Desc->mChannelsPerFrame : 0;
 	OutFormat.SampleRate = (Desc != nullptr) ? Desc->mSampleRate : 0;
 	OutFormat.TypeName = TEXT("PCM"); // @todo trepka: fix me (should be input type, not output type)
@@ -817,7 +816,6 @@ bool FAvfMediaTracks::GetVideoTrackFormat(int32 TrackIndex, int32 FormatIndex, F
 	return true;
 }
 
-
 bool FAvfMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackIndex)
 {
 	FScopeLock Lock(&CriticalSection);
@@ -833,32 +831,13 @@ bool FAvfMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackIndex)
 			if (SelectedAudioTrack != INDEX_NONE)
 			{
 				UE_LOG(LogAvfMedia, VeryVerbose, TEXT("Disabling audio track %i"), SelectedAudioTrack);
-
-#if AUDIO_PLAYBACK_VIA_ENGINE
-				AVAssetReaderTrackOutput* AudioReaderOutput = (AVAssetReaderTrackOutput*)AudioTracks[SelectedAudioTrack].Output;
-				check(AudioReaderOutput);
-
-				CMSampleBufferRef LatestSamples = nullptr;
-
-				while ((LatestSamples = [AudioReaderOutput copyNextSampleBuffer]))
-				{
-					if (LatestSamples)
-					{
-						CFRelease(LatestSamples);
-					}
-				}
-
-				CMTimeRange TimeRange = CMTimeRangeMake(kCMTimeZero, PlayerItem.asset.duration);
-				NSValue* Value = [NSValue valueWithBytes : &TimeRange objCType : @encode(CMTimeRange)];
-				NSArray* Array = @[ Value ];
-
-				[AudioReaderOutput resetForReadingTimeRanges : Array];
-
-#else
+				
 				AVPlayerItemTrack* PlayerTrack = (AVPlayerItemTrack*)AudioTracks[SelectedAudioTrack].Output;
 				check(PlayerTrack);
-
 				PlayerTrack.enabled = NO;
+				
+#if AUDIO_PLAYBACK_VIA_ENGINE
+				AudioTrackTapShutdownCurrentAudioTrackProcessing(PlayerItem);
 #endif
 
 				SelectedAudioTrack = INDEX_NONE;
@@ -881,26 +860,29 @@ bool FAvfMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackIndex)
 			if (SelectedAudioTrack != INDEX_NONE)
 			{
 				const FTrack& SelectedTrack = AudioTracks[SelectedAudioTrack];
-				
+				PlayerItem.tracks[SelectedTrack.StreamIndex].enabled = YES;
+
 #if AUDIO_PLAYBACK_VIA_ENGINE
 				CMFormatDescriptionRef DescRef = (CMFormatDescriptionRef)[SelectedTrack.AssetTrack.formatDescriptions objectAtIndex : 0];
 				AudioStreamBasicDescription const* ASBD = CMAudioFormatDescriptionGetStreamBasicDescription(DescRef);
-
+				
 				TargetDesc.mSampleRate = ASBD->mSampleRate;
 				TargetDesc.mFormatID = kAudioFormatLinearPCM;
-				TargetDesc.mFormatFlags = kAudioFormatFlagIsSignedInteger | kLinearPCMFormatFlagIsPacked;
-				TargetDesc.mBytesPerPacket = ASBD->mChannelsPerFrame * sizeof(int16);
+				TargetDesc.mFormatFlags = kAudioFormatFlagIsFloat | kAudioFormatFlagsNativeEndian | kAudioFormatFlagIsPacked;
 				TargetDesc.mFramesPerPacket = 1;
-				TargetDesc.mBytesPerFrame = ASBD->mChannelsPerFrame * sizeof(int16);
+				TargetDesc.mBytesPerFrame = ASBD->mChannelsPerFrame * sizeof(float);
+				TargetDesc.mBytesPerPacket = TargetDesc.mBytesPerFrame * TargetDesc.mFramesPerPacket;
 				TargetDesc.mChannelsPerFrame = ASBD->mChannelsPerFrame;
-				TargetDesc.mBitsPerChannel = 16;
+				TargetDesc.mBitsPerChannel = 32;
 				TargetDesc.mReserved = 0;
-#else
+				
+				AudioTrackTapInitializeForAudioTrack(Samples, AudioSamplePool, TargetDesc, PlayerItem, SelectedTrack.AssetTrack);
+#endif
+				
 				AVPlayerItemTrack* PlayerTrack = (AVPlayerItemTrack*)SelectedTrack.Output;
 				check(PlayerTrack);
 
 				PlayerTrack.enabled = YES;
-#endif
 			}
 		}
 		break;
@@ -1045,3 +1027,4 @@ bool FAvfMediaTracks::SetTrackFormat(EMediaTrackType TrackType, int32 TrackIndex
 	}
 }
 
+NS_ASSUME_NONNULL_END

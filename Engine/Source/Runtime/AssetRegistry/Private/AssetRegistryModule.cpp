@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "AssetRegistryModule.h"
@@ -9,7 +9,7 @@ IMPLEMENT_MODULE( FAssetRegistryModule, AssetRegistry );
 
 void FAssetRegistryModule::StartupModule()
 {
-	AssetRegistry = GetDefault<UAssetRegistryImpl>();
+	AssetRegistry = MakeWeakObjectPtr(const_cast<UAssetRegistryImpl*>(GetDefault<UAssetRegistryImpl>()));
 	ConsoleCommands = new FAssetRegistryConsoleCommands(*this);
 }
 

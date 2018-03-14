@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -81,7 +81,20 @@ public:
 	 */
 	virtual EVisibility GetTransformToolbarVisibility() const;
 
+	/** Build the exposure menu using EV100 settings */
+	TSharedRef<SWidget> BuildFixedEV100Menu()  const;
+
 protected:
+
+	/** Called by the fixed EV100 slider to get the fixed EV100 value */
+	float OnGetFixedEV100Value() const;
+
+	/** Called when fixed EV100 slider is adjusted */
+	void OnFixedEV100ValueChanged( float NewValue );
+
+	/** Called to know whether the fixed EV100 slider is enabled. */
+	bool IsFixedEV100Enabled() const;
+
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() = 0;
 
 	// Implement this to add a viewport toolbar to the inside top of the viewport
@@ -131,20 +144,11 @@ protected:
 	 */
 	bool IsShowFlagEnabled( uint32 EngineShowFlagIndex ) const;
 
-	/**
-	 * Changes the exposure setting for this viewport
-	 *
-	 * @param ID	The ID of the new exposure setting
-	 */
-	void ChangeExposureSetting( int32 ID );
+	/** Changes the auto exposure setting for this viewport */
+	void ChangeExposureSetting();
 
-	/**
-	 * Checks if an exposure setting is selected
-	 * 
-	 * @param ID	The ID of the exposure setting to check
-	 * @return		true if the exposure setting is checked
-	 */
-	bool IsExposureSettingSelected( int32 ID ) const;
+	/** Checks if auto exposure setting is selected */
+	bool IsExposureSettingSelected() const;
 	
 	virtual void OnScreenCapture();
 	virtual void OnScreenCaptureForProjectThumbnail();

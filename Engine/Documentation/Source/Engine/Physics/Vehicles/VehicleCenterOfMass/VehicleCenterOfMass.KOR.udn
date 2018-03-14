@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3469385
+﻿INTSourceChangelist:3782314
 Crumbs:%ROOT%
 Title: 비히클 질량 중심
 Description: 비히클 관련 Center of Mass, 질량 중심의 작동방식 개요입니다.
@@ -34,13 +34,15 @@ Tags: Vehicles
 	[/PARAM]
 [/OBJECT]
 
-<!---
+[COMMENT:none]
+-
 [REGION:imagetable]
 | ![언더스티어](Understeering.png)(w:450) | ![오버스티어](Oversteering.png)(w:450) |
 | --- | --- |
 | 언더스티어 | 오버스티어 |
 [/REGION]
---->
+-
+[/COMMENT]
 
 또 질량 중심 배치 위치를 고려할 때, 비히클이 공중에 있을 때에도 영향을 준다는 점 언급해 둘 가치가 있겠습니다. 이 예제에서는 질량 중심을 낮춘 뒤 차량 배후 가까이 이동시켰습니다. 땅에 낮게 붙어 있어 빠른 고속 도달이 가능하므로, 질량 중심을 차량 낮은 배후 위치에 설정하면 특히나 점프할 때 안정화에 도움이 됩니다!
 
@@ -50,7 +52,8 @@ Tags: Vehicles
 | 질량 중심: X: 0, Y: 0, Z: 0 | 질량 중심: X: -25, Y: 0, Z: -10 |
 [/REGION]
 
-<!--- 
+[COMMENT:none]
+- 
 
 [EXCERPT:originalCoM]
 [OBJECT:EmbeddedVideo]
@@ -79,7 +82,8 @@ Tags: Vehicles
 	[/PARAMLITERAL]
 [/OBJECT]
 [/EXCERPT:adjustedCoM]
---->
+-
+[/COMMENT]
 
 ## 질량 중심 디버깅
 

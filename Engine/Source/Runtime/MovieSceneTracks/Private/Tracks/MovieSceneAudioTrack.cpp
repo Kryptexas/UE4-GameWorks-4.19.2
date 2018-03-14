@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Tracks/MovieSceneAudioTrack.h"
 #include "Audio.h"
@@ -138,20 +138,20 @@ bool UMovieSceneAudioTrack::IsAMasterTrack() const
 }
 
 
-TInlineValue<FMovieSceneSegmentCompilerRules> UMovieSceneAudioTrack::GetRowCompilerRules() const
+FMovieSceneTrackRowSegmentBlenderPtr UMovieSceneAudioTrack::GetRowSegmentBlender() const
 {
-	struct FCompilerRules : FMovieSceneSegmentCompilerRules
+	struct FBlender : FMovieSceneTrackRowSegmentBlender
 	{
-		virtual void BlendSegment(FMovieSceneSegment& Segment, const TArrayView<const FMovieSceneSectionData>& SourceData) const
+		virtual void Blend(FSegmentBlendData& BlendData) const override
 		{
 			// Run the default high pass filter for overlap priority
-			MovieSceneSegmentCompiler::BlendSegmentHighPass(Segment, SourceData);
+			MovieSceneSegmentCompiler::FilterOutUnderlappingSections(BlendData);
 
 			// Weed out based on array index (legacy behaviour)
-			MovieSceneSegmentCompiler::BlendSegmentLegacySectionOrder(Segment, SourceData);
+			MovieSceneSegmentCompiler::BlendSegmentLegacySectionOrder(BlendData);
 		}
 	};
-	return FCompilerRules();
+	return FBlender();
 }
 
 

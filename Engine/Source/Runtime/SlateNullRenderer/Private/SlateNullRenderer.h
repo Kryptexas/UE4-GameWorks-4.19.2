@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,7 +15,7 @@ struct Rect;
 class FSlateNullRenderer : public FSlateRenderer
 {
 public:
-	explicit FSlateNullRenderer(const TSharedRef<FSlateFontServices>& InSlateFontServices);
+	FSlateNullRenderer(const TSharedRef<FSlateFontServices>& InSlateFontServices, const TSharedRef<FSlateShaderResourceManager>& InResourceManager);
 
 	/** FSlateRenderer interface */
 	virtual bool Initialize() override;
@@ -25,6 +25,7 @@ public:
 	virtual void RequestResize( const TSharedPtr<SWindow>& Window, uint32 NewWidth, uint32 NewHeight ) override;
 	virtual void CreateViewport( const TSharedRef<SWindow> Window ) override;
 	virtual void UpdateFullscreenState( const TSharedRef<SWindow> Window, uint32 OverrideResX, uint32 OverrideResY ) override;
+	virtual void SetSystemResolution(uint32 Width, uint32 Height) override {}
 	virtual void RestoreSystemResolution(const TSharedRef<SWindow> InWindow) override;
 	virtual void DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer ) override;
 	virtual void ReleaseDynamicResource( const FSlateBrush& InBrush ) override;
@@ -38,4 +39,7 @@ public:
 	virtual int32 RegisterCurrentScene(FSceneInterface* Scene) override;
 	virtual int32 GetCurrentSceneIndex() const override;
 	virtual void ClearScenes() override;
+
+private:
+	TSharedPtr<FSlateShaderResourceManager> ResourceManager;
 };

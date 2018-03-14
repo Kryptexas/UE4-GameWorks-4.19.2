@@ -7,19 +7,13 @@ Version:4.9
 SkillLevel:Intermediate
 
 
----
 在以下步骤中我们将创建使用多个摄像机角度的简短序列。 
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		添加 Matinee，摄像机和道具
-	[/PARAM]
-	[PARAM:description]
-	在这步中，我们将添加 **Matinee Actor**、**摄像机** 和作为镜头目标的道具。 
-	[/PARAM]
-[/OBJECT]
+添加 Matinee，摄像机和道具
+
+在这步中，我们将添加 **Matinee Actor**、**摄像机** 和作为镜头目标的道具。 
 
 1. 在 **工具栏** 菜单中选择 **Matinee** 并点击 **Add Matinee** 按钮。 
 
@@ -58,14 +52,9 @@ SkillLevel:Intermediate
 	![](MHT3_ChairRotated.png)
 		
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		在 Matinee 中创建摄像机序列
-	[/PARAM]
-	[PARAM:description]
-	在这步中我们将为每个 **摄像机** 指定运动，并将它们衔接到 **Matinee**。 
-	[/PARAM]
-[/OBJECT]
+在 Matinee 中创建摄像机序列
+
+在这步中我们将为每个 **摄像机** 指定运动，并将它们衔接到 **Matinee**。 
 
 1. 打开 Matinee 窗口（如已关闭，可选择 **Matinee**，然后在 **Details** 面板中选择 **Open Matinee** 重新打开）。 
 
@@ -174,14 +163,9 @@ SkillLevel:Intermediate
 	![](MHT3_CamerasDone.png)
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		利用导演轨迹创建镜头切换
-	[/PARAM]
-	[PARAM:description]
-	在这步中我们将添加一个 **导演轨迹（Director Track）**，用于处理所有的镜头切换。 
-	[/PARAM]
-[/OBJECT]
+利用导演轨迹创建镜头切换
+
+在这步中我们将添加一个 **导演轨迹（Director Track）**，用于处理所有的镜头切换。 
 
 1. 打开 Matinee 窗口（如已关闭，可选择 **Matinee**，然后在 **Details** 面板中选择 **Open Matinee** 重新打开）。 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Transport/TcpMessageTransportConnection.h"
 #include "Serialization/ArrayWriter.h"
@@ -71,8 +71,8 @@ FTcpMessageTransportConnection::FTcpMessageTransportConnection(FSocket* InSocket
 	, RecvMessageDataRemaining(0)
 {
 	int32 NewSize = 0;
-	Socket->SetReceiveBufferSize(2*1024*1024, NewSize);
-	Socket->SetSendBufferSize(2*1024*1024, NewSize);
+	Socket->SetReceiveBufferSize(TCP_MESSAGING_RECEIVE_BUFFER_SIZE, NewSize);
+	Socket->SetSendBufferSize(TCP_MESSAGING_SEND_BUFFER_SIZE, NewSize);
 }
 
 FTcpMessageTransportConnection::~FTcpMessageTransportConnection()
@@ -183,7 +183,10 @@ uint32 FTcpMessageTransportConnection::Run()
 				    UE_LOG(LogTcpMessaging, Verbose, TEXT("Connection to '%s' failed, retrying..."), *RemoteEndpoint.ToString());
 				    FPlatformProcess::Sleep(ConnectionRetryDelay);
     
-				    Socket = FTcpSocketBuilder(TEXT("FTcpMessageTransport.RemoteConnection"));
+				    Socket = FTcpSocketBuilder(TEXT("FTcpMessageTransport.RemoteConnection"))
+						.WithSendBufferSize(TCP_MESSAGING_SEND_BUFFER_SIZE)
+						.WithReceiveBufferSize(TCP_MESSAGING_RECEIVE_BUFFER_SIZE);
+
 				    if (Socket && Socket->Connect(RemoteEndpoint.ToInternetAddr().Get()))
 				    {
 					    bSentHeader = false;

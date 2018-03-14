@@ -1,0 +1,25 @@
+{
+	"FileVersion": 3,
+	"Version": 180,
+	"VersionName": "0.18",
+	"FriendlyName": "DatasmithContent",
+	"Description": "Content for Datasmith Importer.",
+	"Category": "Unreal Studio",
+	"CreatedBy": "Epic Games, Inc.",
+	"CreatedByURL": "http://epicgames.com",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"EnabledByDefault" : true,
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"Installed": false,
+	"Modules" :
+	[
+		{
+			"Name" : "DatasmithContent",
+			"Type" : "Runtime",
+			"LoadingPhase" : "Default"
+		}
+	]
+}

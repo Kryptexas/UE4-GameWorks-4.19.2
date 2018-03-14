@@ -19,7 +19,7 @@ Description:应用代码以控制具有输入的pawn和相机。
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. 现在游戏已经有了我们可以使用的输入映射，让我们设置一些成员变量来存储我们接收到的数据吧。 在更新中，我们需要了解移动和鼠标查看坐标轴的值，每个都是二维的向量。 我们还想要了解是否应向放大或缩小的视图方向移动，以及我们目前距离这两种状态有多少距离。 为了完成这项目标，我们应该添加以下代码到`PawnWithCamera.h`中的类定义：
 
@@ -154,7 +154,7 @@ Description:应用代码以控制具有输入的pawn和相机。
     [/PARAM]
     [PARAM:content]
 		**PawnWithCamera.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -200,7 +200,7 @@ Description:应用代码以控制具有输入的pawn和相机。
 			};
 
 		**PawnWithCamera.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_PlayerCamera.h"
 			#include "PawnWithCamera.h"
@@ -333,4 +333,4 @@ Description:应用代码以控制具有输入的pawn和相机。
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -288,6 +288,10 @@ namespace AutomationTool
 			"rsa.modulus",
 			"rsa.publicexp",
 			"aes.key",
+			"SigningPublicExponent",
+			"SigningModulus",
+			"SigningPrivateExponent",
+			"EncryptionKey"
 		};
 
 		private static void FilterIniFile(string SourceName, string TargetName)

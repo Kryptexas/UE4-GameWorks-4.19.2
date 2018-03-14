@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1. 필수 구성
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
@@ -22,7 +22,7 @@ Version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:note]
 이번 튜토리얼 시리즈에서는 **시작용 콘텐츠** 를 포함한 **공백** 프로젝트를 새로 만들어 사용하겠습니다. 새 프로젝트 생성, 템플릿 사용, 프로젝트 세팅 정의 (및 **시작용 콘텐츠** 포함) 관련 정보는 [](Engine/Basics/Projects/Browser) 문서를 참고하세요.
@@ -142,6 +142,6 @@ Version: 4.9
 작은 화장실과 테라스용 공간이 있는 간단한 아파트가 완성되었습니다. **다음 단계** 에서는 라이팅 작업을 시작하겠습니다.
 
 
-%Steps%
+
 
 

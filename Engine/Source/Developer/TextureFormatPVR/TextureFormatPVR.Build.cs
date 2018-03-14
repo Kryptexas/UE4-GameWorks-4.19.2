@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -11,11 +11,11 @@ public class TextureFormatPVR : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
 		{
-			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/ImgTec/PVRTexToolCLI.exe"));
+			RuntimeDependencies.Add("$(EngineDir)/Binaries/ThirdParty/ImgTec/PVRTexToolCLI.exe");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac /*|| Target.Platform == UnrealTargetPlatform.Linux*/)
 		{
-			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/ImgTec/PVRTexToolCLI"));
+			RuntimeDependencies.Add("$(EngineDir)/Binaries/ThirdParty/ImgTec/PVRTexToolCLI");
 		}
 
 		//if (Target.bCompileLeanAndMeanUE == false)

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SeparateTranslucency.usf: 
@@ -28,7 +28,7 @@ float4 BilinearUpsampling(float2 UV, Texture2D LowResTex)
 float4 NearestDepthNeighborUpsampling(float2 Position, float2 UV, Texture2D LowResTex, float2 LowResTexelSize)
 {
 //@todo - support for all platforms, just skip the GatherRed optimization where not supported
-#if (SM5_PROFILE && !(METAL_SM5_PROFILE ||  METAL_MRT_PROFILE || PS4_PROFILE))
+#if (SM5_PROFILE && !(METAL_SM5_PROFILE || METAL_SM5_NOTESS_PROFILE || METAL_MRT_PROFILE || PS4_PROFILE))
 
 	// The relative depth comparison breaks down at larger distances and incorrectly causes point sampling on the skybox pixels
 	float MaxOperationDepth = 2000000.0f;

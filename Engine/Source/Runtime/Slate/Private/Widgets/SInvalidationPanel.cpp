@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/SInvalidationPanel.h"
 #include "Rendering/DrawElements.h"
@@ -85,6 +85,8 @@ void SInvalidationPanel::Construct( const FArguments& InArgs )
 	RootCacheNode = nullptr;
 	LastUsedCachedNodeIndex = 0;
 	LastHitTestIndex = 0;
+	LastLayerId = 0;
+	LastClippingIntersectionSize = FVector2D::ZeroVector;
 
 	bCacheRelativeTransforms = InArgs._CacheRelativeTransforms;
 
@@ -118,8 +120,13 @@ bool SInvalidationPanel::IsCachingNeeded() const
 }
 #endif
 
-bool SInvalidationPanel::IsCachingNeeded(FSlateWindowElementList& OutDrawElements, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect) const
+bool SInvalidationPanel::IsCachingNeeded(FSlateWindowElementList& OutDrawElements, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, int32 LayerId) const
 {
+	if (LastLayerId != LayerId)
+	{
+		return true;
+	}
+	
 	if (bCacheRelativeTransforms)
 	{
 		// If the container we're in has changed in either scale or the rotation matrix has changed, 
@@ -167,7 +174,17 @@ bool SInvalidationPanel::IsCachingNeeded(FSlateWindowElementList& OutDrawElement
 	{
 		return true;
 	}
-	
+
+	if (bCacheRelativeTransforms)
+	{
+		bool bOverlapping;
+		FVector2D IntersectionSize = AllottedGeometry.GetLayoutBoundingRect().IntersectionWith(MyCullingRect, bOverlapping).GetSize();
+		if (!LastClippingIntersectionSize.Equals(IntersectionSize, 1.0f))
+		{
+			return true;
+		}
+	}
+		
 	return false;
 }
 
@@ -264,14 +281,13 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 	if ( GetCanCache() )
 	{
 		//SCOPE_CYCLE_COUNTER(STAT_InvalidationTime);
+		//SCOPED_NAMED_EVENT_TEXT("Slate::InvalidationPanel::Paint", FColor::Magenta);
 
-		//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::InvalidationPanel::Paint");
-
-		const bool bWasCachingNeeded = IsCachingNeeded() || IsCachingNeeded(OutDrawElements, AllottedGeometry, MyCullingRect);
+		const bool bWasCachingNeeded = IsCachingNeeded() || IsCachingNeeded(OutDrawElements, AllottedGeometry, MyCullingRect, LayerId);
 
 		if ( bWasCachingNeeded )
 		{
-			//FPlatformMisc::BeginNamedEvent(FColor::Red, "Slate::Invalidation");
+			//SCOPED_NAMED_EVENT_TEXT("Slate::Invalidation", FColor::Red);
 
 			SInvalidationPanel* MutableThis = const_cast<SInvalidationPanel*>( this );
 			TSharedRef<SInvalidationPanel> SharedMutableThis = SharedThis(MutableThis);
@@ -305,6 +321,8 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 				bParentEnabled);
 
 			{
+				CachedResources.Reset();
+
 				const TArray<FSlateDrawElement>& CachedElements = CachedWindowElements->GetDrawElements();
 				const int32 CachedElementCount = CachedElements.Num();
 				for ( int32 Index = 0; Index < CachedElementCount; Index++ )
@@ -354,10 +372,14 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 
 			LastAllottedGeometry = AllottedGeometry;
 			LastClipRectSize = MyCullingRect.GetSize().RoundToVector();
+			LastLayerId = LayerId;
+
+			if (bCacheRelativeTransforms)
+			{
+				LastClippingIntersectionSize = AllottedGeometry.GetLayoutBoundingRect().IntersectionWith(MyCullingRect).GetSize();
+			}
 
 			bIsInvalidating = false;
-
-			//FPlatformMisc::EndNamedEvent();
 		}
 		else
 		{
@@ -370,13 +392,13 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 			AbsoluteDeltaPosition = AllottedGeometry.GetAccumulatedRenderTransform().GetTranslation() - CachedAbsolutePosition;
 		}
 
-		//FPlatformMisc::BeginNamedEvent(FColor::Yellow, "Slate::RecordHitTestGeometry");
 		
-
+		{
+			//SCOPED_NAMED_EVENT_TEXT("Slate::RecordHitTestGeometry", FColor::Yellow);
 
 		// The hit test grid is actually populated during the initial cache phase, so don't bother
 		// recording the hit test geometry on the same frame that we regenerate the cache.
-		if ( bWasCachingNeeded == false )
+			if (bWasCachingNeeded == false)
 		{
 			INC_DWORD_STAT_BY(STAT_SlateNumCachedElements, CachedWindowElements->GetDrawElements().Num());
 
@@ -386,7 +408,7 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 		{
 			INC_DWORD_STAT_BY(STAT_SlateNumInvalidatedElements, CachedWindowElements->GetDrawElements().Num());
 		}
-		//FPlatformMisc::EndNamedEvent();
+		}
 
 		int32 OutMaxChildLayer = CachedMaxChildLayer;
 
@@ -402,15 +424,22 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 		// Paint the volatile elements
 		if ( CachedWindowElements.IsValid() )
 		{
-			//FPlatformMisc::BeginNamedEvent(FColor::Red, *FReflectionMetaData::GetWidgetDebugInfo(this));
+			//SCOPED_NAMED_EVENT_TEXT(*FReflectionMetaData::GetWidgetDebugInfo(this), FColor::Red);
 
 			const TArray<TSharedPtr<FSlateWindowElementList::FVolatilePaint>>& VolatileElements = CachedWindowElements->GetVolatileElements();
 			INC_DWORD_STAT_BY(STAT_SlateNumVolatileWidgets, VolatileElements.Num());
-
-			int32 VolatileLayerId = CachedWindowElements->PaintVolatile(OutDrawElements, Args.GetCurrentTime(), Args.GetDeltaTime(), AbsoluteDeltaPosition * AllottedGeometry.Scale);
+			
+			int32 VolatileLayerId = 0;
+			if (bCacheRenderData)
+			{
+				VolatileLayerId = CachedWindowElements->PaintVolatile(OutDrawElements, Args.GetCurrentTime(), Args.GetDeltaTime(), AbsoluteDeltaPosition);
+			}
+			else
+			{
+				VolatileLayerId = CachedWindowElements->PaintVolatileRootLayer(OutDrawElements, Args.GetCurrentTime(), Args.GetDeltaTime(), AbsoluteDeltaPosition);
+			}
+			
 			OutMaxChildLayer = FMath::Max(OutMaxChildLayer, VolatileLayerId);
-
-			//FPlatformMisc::EndNamedEvent();
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -508,8 +537,6 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 		}
 
 #endif
-
-		//FPlatformMisc::EndNamedEvent();
 
 		return OutMaxChildLayer;
 	}

@@ -29,7 +29,7 @@ type:how-to
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Before we get started, there are a couple assets that we'll need to create as part of our project setup.
 
@@ -67,4 +67,4 @@ For this how-to, we are using the **Blueprint Third Person Template**. However, 
 
 With our project setup done, next we will start working on the HealthBar Widget Blueprint which is the piece of UI that we want to be draggable. 
 
-%Steps%
+

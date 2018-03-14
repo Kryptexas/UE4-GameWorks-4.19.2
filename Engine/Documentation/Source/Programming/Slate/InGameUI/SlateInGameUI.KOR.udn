@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 게임내 슬레이트 사용하기
 Crumbs:%ROOT%, Programming, Programming/Slate
@@ -10,13 +10,17 @@ Slate (슬레이트) 위젯은 게임내에서 HUD 나 메뉴같은 기타 UI �
 일반적으로는 하나 이상의 _컨테이너_ 위젯을 만들며, 그 각각은 UI 의 특정 부분을 담당하는 
 여러가지 유형의 위젯으로 구성될 수 있습니다.
 
-<!-- HUD widget w/ menu overlay -->
+[COMMENT:none]
+ HUD widget w/ menu overlay 
+[/COMMENT]
 
 예를 들어 게임 HUD 에 하나의 커다란 위젯이, 메인 메뉴, 옵션 메뉴, 일시정지 메뉴, 점수판 등에 여러개의 위젯이 
 있을 수 있습니다. 여기서 이들 위젯 각각은 여러가지 커스텀 위젯, 라벨, 텍스트 박스, 이미지, 기타 엘리먼트 유형의 
 조합으로 만들 수도 있을 것입니다.
 
-<!-- container widget breakdown -->
+[COMMENT:none]
+ container widget breakdown 
+[/COMMENT]
 
 그 후 이들 컨테이너 위젯 각각을 게임 내 상황에 따라 추가 또는 제거하면 됩니다:
 

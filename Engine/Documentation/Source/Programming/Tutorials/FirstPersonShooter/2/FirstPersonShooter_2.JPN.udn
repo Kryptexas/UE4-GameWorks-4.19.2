@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:2 - キャラクターを実装する
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter
@@ -28,23 +28,15 @@ _このセクションの最後まで終了すると、上の画面のように�
 * カメラビューの変更
 * First Person Mesh をキャラクターに追加
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Programming/Tutorials/FirstPersonShooter/2/1"%Programming/Tutorials/FirstPersonShooter/2/1:description%")
-	* [](Programming/Tutorials/FirstPersonShooter/2/2"%Programming/Tutorials/FirstPersonShooter/2/2:description%")
-	* [](Programming/Tutorials/FirstPersonShooter/2/3"%Programming/Tutorials/FirstPersonShooter/2/3:description%")
-	* [](Programming/Tutorials/FirstPersonShooter/2/4"%Programming/Tutorials/FirstPersonShooter/2/4:description%")
-	* [](Programming/Tutorials/FirstPersonShooter/2/5"%Programming/Tutorials/FirstPersonShooter/2/5:description%")
-	* [](Programming/Tutorials/FirstPersonShooter/2/6"%Programming/Tutorials/FirstPersonShooter/2/6:description%")
-	* [](Programming/Tutorials/FirstPersonShooter/2/7"%Programming/Tutorials/FirstPersonShooter/2/7:description%")
-	* [](Programming/Tutorials/FirstPersonShooter/2/8"%Programming/Tutorials/FirstPersonShooter/2/8:description%")
-	[/PARAM]
-[/OBJECT]
+## ステップ
+
+[REGION:buttonlist]
+* [](Programming/Tutorials/FirstPersonShooter/2/1"%Programming/Tutorials/FirstPersonShooter/2/1:description%")
+* [](Programming/Tutorials/FirstPersonShooter/2/2"%Programming/Tutorials/FirstPersonShooter/2/2:description%")
+* [](Programming/Tutorials/FirstPersonShooter/2/3"%Programming/Tutorials/FirstPersonShooter/2/3:description%")
+* [](Programming/Tutorials/FirstPersonShooter/2/4"%Programming/Tutorials/FirstPersonShooter/2/4:description%")
+* [](Programming/Tutorials/FirstPersonShooter/2/5"%Programming/Tutorials/FirstPersonShooter/2/5:description%")
+* [](Programming/Tutorials/FirstPersonShooter/2/6"%Programming/Tutorials/FirstPersonShooter/2/6:description%")
+* [](Programming/Tutorials/FirstPersonShooter/2/7"%Programming/Tutorials/FirstPersonShooter/2/7:description%")
+* [](Programming/Tutorials/FirstPersonShooter/2/8"%Programming/Tutorials/FirstPersonShooter/2/8:description%")
+[/REGION]

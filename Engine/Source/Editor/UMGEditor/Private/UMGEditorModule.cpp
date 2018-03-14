@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorModule.h"
 #include "Modules/ModuleManager.h"
@@ -30,6 +30,8 @@
 #include "UMGEditorProjectSettings.h"
 #include "ISettingsModule.h"
 #include "SequencerSettings.h"
+
+#include "BlueprintEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -74,6 +76,8 @@ public:
 		// Register asset types
 		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_WidgetBlueprint()));
+
+		FKismetCompilerContext::RegisterCompilerForBP(UWidgetBlueprint::StaticClass(), &UWidgetBlueprint::GetCompilerForWidgetBP );
 
 		// Register with the sequencer module that we provide auto-key handlers.
 		ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");

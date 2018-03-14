@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GitSourceControlOperations.h"
 #include "Misc/Paths.h"
@@ -20,10 +20,15 @@ bool FGitConnectWorker::Execute(FGitSourceControlCommand& InCommand)
 {
 	check(InCommand.Operation->GetName() == GetName());
 
+	// Check Git Availability
 	if (0 < InCommand.PathToGitBinary.Len() && GitSourceControlUtils::CheckGitAvailability(InCommand.PathToGitBinary))
 	{
-		InCommand.bCommandSuccessful = GitSourceControlUtils::RunCommand(TEXT("status"), InCommand.PathToGitBinary, InCommand.PathToRepositoryRoot, TArray<FString>(), TArray<FString>(), InCommand.InfoMessages, InCommand.ErrorMessages);
-		if(!InCommand.bCommandSuccessful || InCommand.ErrorMessages.Num() > 0 || InCommand.InfoMessages.Num() == 0)
+		// Now update the status of assets in Content/ directory and also Config files
+		TArray<FString> ProjectDirs;
+		ProjectDirs.Add(FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir()));
+		ProjectDirs.Add(FPaths::ConvertRelativePathToFull(FPaths::ProjectConfigDir()));
+		InCommand.bCommandSuccessful = GitSourceControlUtils::RunUpdateStatus(InCommand.PathToGitBinary, InCommand.PathToRepositoryRoot, ProjectDirs, InCommand.ErrorMessages, States);
+		if(!InCommand.bCommandSuccessful || InCommand.ErrorMessages.Num() > 0)
 		{
 			StaticCastSharedRef<FConnect>(InCommand.Operation)->SetErrorText(LOCTEXT("NotAGitRepository", "Failed to enable Git source control. You need to initialize the project as a Git repository first."));
 			InCommand.bCommandSuccessful = false;
@@ -40,7 +45,7 @@ bool FGitConnectWorker::Execute(FGitSourceControlCommand& InCommand)
 
 bool FGitConnectWorker::UpdateStates() const
 {
-	return false;
+	return GitSourceControlUtils::UpdateCachedStates(States);
 }
 
 static FText ParseCommitResults(const TArray<FString>& InResults)
@@ -92,7 +97,7 @@ bool FGitCheckInWorker::Execute(FGitSourceControlCommand& InCommand)
 			}
 
 			Operation->SetSuccessMessage(ParseCommitResults(InCommand.InfoMessages));
-			UE_LOG(LogSourceControl, Log, TEXT("FGitCheckInWorker: commit successful"));
+			UE_LOG(LogSourceControl, Log, TEXT("commit successful: %s"), *InCommand.InfoMessages[0]);
 		}
 	}
 
@@ -151,6 +156,36 @@ bool FGitDeleteWorker::UpdateStates() const
 	return GitSourceControlUtils::UpdateCachedStates(States);
 }
 
+
+// Get lists of Missing files (ie "deleted"), Existing files, and "other than Added" Existing files
+void GetMissingVsExistingFiles(const TArray<FString>& InFiles, TArray<FString>& OutMissingFiles, TArray<FString>& OutAllExistingFiles, TArray<FString>& OutOtherThanAddedExistingFiles)
+{
+	FGitSourceControlModule& GitSourceControl = FModuleManager::GetModuleChecked<FGitSourceControlModule>("GitSourceControl");
+	FGitSourceControlProvider& Provider = GitSourceControl.GetProvider();
+
+	TArray<TSharedRef<ISourceControlState, ESPMode::ThreadSafe>> LocalStates;
+	Provider.GetState(InFiles, LocalStates, EStateCacheUsage::Use);
+	for(const auto& State : LocalStates)
+	{
+		if(FPaths::FileExists(State->GetFilename()))
+		{
+			if(State->IsAdded())
+			{
+				OutAllExistingFiles.Add(State->GetFilename());
+			}
+			else
+			{
+				OutOtherThanAddedExistingFiles.Add(State->GetFilename());
+				OutAllExistingFiles.Add(State->GetFilename());
+			}
+		}
+		else
+		{
+			OutMissingFiles.Add(State->GetFilename());
+		}
+	}
+}
+
 FName FGitRevertWorker::GetName() const
 {
 	return "Revert";
@@ -158,14 +193,26 @@ FName FGitRevertWorker::GetName() const
 
 bool FGitRevertWorker::Execute(FGitSourceControlCommand& InCommand)
 {
-	// reset any changes already added in index
-	{
-		InCommand.bCommandSuccessful = GitSourceControlUtils::RunCommand(TEXT("reset"), InCommand.PathToGitBinary, InCommand.PathToRepositoryRoot, TArray<FString>(), InCommand.Files, InCommand.InfoMessages, InCommand.ErrorMessages);
-	}
+	// Filter files by status to use the right "revert" commands on them
+	TArray<FString> MissingFiles;
+	TArray<FString> AllExistingFiles;
+	TArray<FString> OtherThanAddedExistingFiles;
+	GetMissingVsExistingFiles(InCommand.Files, MissingFiles, AllExistingFiles, OtherThanAddedExistingFiles);
 
-	// revert any changes in working copy
+	if(MissingFiles.Num() > 0)
 	{
-		InCommand.bCommandSuccessful = GitSourceControlUtils::RunCommand(TEXT("checkout"), InCommand.PathToGitBinary, InCommand.PathToRepositoryRoot, TArray<FString>(), InCommand.Files, InCommand.InfoMessages, InCommand.ErrorMessages);
+		// "Added" files that have been deleted needs to be removed from source control
+		InCommand.bCommandSuccessful = GitSourceControlUtils::RunCommand(TEXT("rm"), InCommand.PathToGitBinary, InCommand.PathToRepositoryRoot, TArray<FString>(), MissingFiles, InCommand.InfoMessages, InCommand.ErrorMessages);
+	}
+	if(AllExistingFiles.Num() > 0)
+	{
+		// reset any changes already added to the index
+		InCommand.bCommandSuccessful = GitSourceControlUtils::RunCommand(TEXT("reset"), InCommand.PathToGitBinary, InCommand.PathToRepositoryRoot, TArray<FString>(), AllExistingFiles, InCommand.InfoMessages, InCommand.ErrorMessages);
+	}
+	if(OtherThanAddedExistingFiles.Num() > 0)
+	{
+		// revert any changes in working copy (this would fails if the asset was in "Added" state, since after "reset" it is now "untracked")
+		InCommand.bCommandSuccessful = GitSourceControlUtils::RunCommand(TEXT("checkout"), InCommand.PathToGitBinary, InCommand.PathToRepositoryRoot, TArray<FString>(), OtherThanAddedExistingFiles, InCommand.InfoMessages, InCommand.ErrorMessages);
 	}
 
 	// now update the status of our files
@@ -190,7 +237,7 @@ bool FGitSyncWorker::Execute(FGitSourceControlCommand& InCommand)
    // (this cannot work if any local files are modified but not commited)
    {
       TArray<FString> Parameters;
-      Parameters.Add(TEXT("--rebase"));
+      Parameters.Add(TEXT("--rebase origin HEAD"));
       InCommand.bCommandSuccessful = GitSourceControlUtils::RunCommand(TEXT("pull"), InCommand.PathToGitBinary, InCommand.PathToRepositoryRoot, Parameters, TArray<FString>(), InCommand.InfoMessages, InCommand.ErrorMessages);
    }
 

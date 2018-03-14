@@ -9,6 +9,9 @@
 #include "PhononOcclusion.h"
 #include "PhononReverb.h"
 #include "PhononPluginManager.h"
+#include "PhononReverbSourceSettings.h"
+#include "PhononOcclusionSourceSettings.h"
+#include "PhononSpatializationSourceSettings.h"
 #include "AudioPluginUtilities.h"
 #include "AudioDevice.h"
 
@@ -28,7 +31,7 @@ namespace SteamAudio
 
 		virtual bool SupportsPlatform(EAudioPlatform Platform) override
 		{
-			if (Platform == EAudioPlatform::Windows)
+			if (Platform == EAudioPlatform::Windows || Platform == EAudioPlatform::Android)
 			{
 				return true;
 			}
@@ -40,7 +43,10 @@ namespace SteamAudio
 
 		virtual TAudioSpatializationPtr CreateNewSpatializationPlugin(FAudioDevice* OwningDevice) override;
 
-		virtual bool HasCustomSpatializationSetting() const override { return true; }
+		virtual UClass* GetCustomSpatializationSettingsClass() const override
+		{ 
+			return UPhononOcclusionSourceSettings::StaticClass(); 
+		}
 	};
 
 	class FReverbPluginFactory : public IAudioReverbFactory
@@ -66,7 +72,10 @@ namespace SteamAudio
 
 		virtual TAudioReverbPtr CreateNewReverbPlugin(FAudioDevice* OwningDevice) override;
 
-		virtual bool HasCustomReverbSetting() const override { return true; }
+		virtual UClass* GetCustomReverbSettingsClass() const
+		{
+			return UPhononReverbSourceSettings::StaticClass();
+		}
 	};
 
 	class FOcclusionPluginFactory : public IAudioOcclusionFactory
@@ -80,7 +89,7 @@ namespace SteamAudio
 
 		virtual bool SupportsPlatform(EAudioPlatform Platform) override
 		{
-			if (Platform == EAudioPlatform::Windows)
+			if (Platform == EAudioPlatform::Windows || Platform == EAudioPlatform::Android)
 			{
 				return true;
 			}
@@ -92,7 +101,10 @@ namespace SteamAudio
 
 		virtual TAudioOcclusionPtr CreateNewOcclusionPlugin(FAudioDevice* OwningDevice) override;
 
-		virtual bool HasCustomOcclusionSetting() const override { return true; }
+		virtual UClass* GetCustomOcclusionSettingsClass() const
+		{
+			return UPhononOcclusionSourceSettings::StaticClass();
+		}
 	};
 
 	/************************************************************************/

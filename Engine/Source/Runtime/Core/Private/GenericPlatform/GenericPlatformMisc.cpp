@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GenericPlatform/GenericPlatformMisc.h"
 #include "Misc/AssertionMacros.h"
@@ -26,8 +26,10 @@
 #include "HAL/ExceptionHandling.h"
 #include "GenericPlatform/GenericPlatformCrashContext.h"
 #include "GenericPlatform/GenericPlatformDriver.h"
+#include "ProfilingDebugging/ExternalProfiler.h"
 
 #include "Misc/UProjectInfo.h"
+#include "Culture.h"
 
 #if UE_ENABLE_ICU
 	THIRD_PARTY_INCLUDES_START
@@ -355,6 +357,39 @@ void FGenericPlatformMisc::RaiseException(uint32 ExceptionCode)
 #endif
 }
 
+void FGenericPlatformMisc::BeginNamedEvent(const struct FColor& Color, const ANSICHAR* Text)
+{
+	//If there's an external profiler attached, trigger its scoped event.
+	FExternalProfiler* CurrentProfiler = FActiveExternalProfilerBase::GetActiveProfiler();
+
+	if (CurrentProfiler != NULL)
+	{
+		CurrentProfiler->StartScopedEvent(ANSI_TO_TCHAR(Text));
+	}
+}
+
+void FGenericPlatformMisc::BeginNamedEvent(const struct FColor& Color, const TCHAR* Text)
+{
+	//If there's an external profiler attached, trigger its scoped event.
+	FExternalProfiler* CurrentProfiler = FActiveExternalProfilerBase::GetActiveProfiler();
+
+	if (CurrentProfiler != NULL)
+	{
+		CurrentProfiler->StartScopedEvent(Text);
+	}
+}
+
+void FGenericPlatformMisc::EndNamedEvent()
+{
+	//If there's an external profiler attached, trigger its scoped event.
+	FExternalProfiler* CurrentProfiler = FActiveExternalProfilerBase::GetActiveProfiler();
+
+	if (CurrentProfiler != NULL)
+	{
+		CurrentProfiler->EndScopedEvent();
+	}
+}
+
 bool FGenericPlatformMisc::SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue)
 {
 	check(!InStoreId.IsEmpty());
@@ -448,7 +483,7 @@ void FGenericPlatformMisc::LocalPrint( const TCHAR* Str )
 #if PLATFORM_USE_LS_SPEC_FOR_WIDECHAR
 	printf("%ls", Str);
 #else
-	printf("%s", Str);
+	wprintf(TEXT("%s"), Str);
 #endif
 }
 
@@ -563,50 +598,50 @@ const TCHAR* FGenericPlatformMisc::RootDir()
 	if (Path.Len() == 0)
 	{
 		FString TempPath = FPaths::EngineDir();
-		int32 chopPos = TempPath.Find(TEXT("/Engine"));
+		int32 chopPos = TempPath.Find(TEXT("/Engine"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
 		if (chopPos != INDEX_NONE)
 		{
 			TempPath = TempPath.Left(chopPos + 1);
-			TempPath = FPaths::ConvertRelativePathToFull(TempPath);
-			Path = TempPath;
 		}
 		else
 		{
-			Path = FPlatformProcess::BaseDir();
+			TempPath = FPlatformProcess::BaseDir();
 
 			// if the path ends in a separator, remove it
-			if( Path.Right(1)==TEXT("/") )
+			if (TempPath.Right(1) == TEXT("/"))
 			{
-				Path = Path.LeftChop( 1 );
+				TempPath = TempPath.LeftChop(1);
 			}
 
 			// keep going until we've removed Binaries
 #if IS_MONOLITHIC && !IS_PROGRAM
-			int32 pos = Path.Find(*FString::Printf(TEXT("/%s/Binaries"), FApp::GetProjectName()));
+			int32 pos = TempPath.Find(*FString::Printf(TEXT("/%s/Binaries"), FApp::GetProjectName()));
 #else
-			int32 pos = Path.Find(TEXT("/Engine/Binaries"), ESearchCase::IgnoreCase);
+			int32 pos = TempPath.Find(TEXT("/Engine/Binaries"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
 #endif
-			if ( pos != INDEX_NONE )
+			if (pos != INDEX_NONE)
 			{
-				Path = Path.Left(pos + 1);
+				TempPath = TempPath.Left(pos + 1);
 			}
 			else
 			{
-				pos = Path.Find(TEXT("/../Binaries"), ESearchCase::IgnoreCase);
-				if ( pos != INDEX_NONE )
+				pos = TempPath.Find(TEXT("/../Binaries"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+				if (pos != INDEX_NONE)
 				{
-					Path = Path.Left(pos + 1) + TEXT("../../");
+					TempPath = TempPath.Left(pos + 1) + TEXT("../../");
 				}
 				else
 				{
-					while( Path.Len() && Path.Right(1)!=TEXT("/") )
+					while (TempPath.Len() && TempPath.Right(1) != TEXT("/"))
 					{
-						Path = Path.LeftChop( 1 );
+						TempPath = TempPath.LeftChop(1);
 					}
 				}
-
 			}
 		}
+
+		Path = FPaths::ConvertRelativePathToFull(TempPath);
+		FPaths::RemoveDuplicateSlashes(Path);
 	}
 	return *Path;
 }
@@ -916,6 +951,12 @@ FString FGenericPlatformMisc::GetDefaultLocale()
 #endif
 }
 
+FString FGenericPlatformMisc::GetTimeZoneId()
+{
+	// ICU will calculate this correctly for most platforms (if enabled)
+	return FString();
+}
+
 FText FGenericPlatformMisc::GetFileManagerName()
 {
 	return NSLOCTEXT("GenericPlatform", "FileManagerName", "File Manager");
@@ -995,8 +1036,11 @@ const TCHAR* FGenericPlatformMisc::GetEngineMode()
 
 TArray<FString> FGenericPlatformMisc::GetPreferredLanguages()
 {
-	// not implemented by default
-	return TArray<FString>();
+	// Determine what out current culture is, and grab the most appropriate set of subtitles for it
+	FInternationalization& Internationalization = FInternationalization::Get();
+
+	TArray<FString> PrioritizedCultureNames = Internationalization.GetPrioritizedCultureNames(Internationalization.GetCurrentCulture()->GetName());
+	return PrioritizedCultureNames;
 }
 
 FString FGenericPlatformMisc::GetLocalCurrencyCode()

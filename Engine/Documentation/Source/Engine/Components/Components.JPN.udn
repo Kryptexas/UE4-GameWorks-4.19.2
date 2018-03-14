@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429239
+﻿INTSourceChangelist:3680928
 Availability:Public
 Title:コンポーネント
 Crumbs:%ROOT%, Engine
@@ -27,7 +27,7 @@ topic-image:components_topic.png
 これが該当しない場合、ワールドにある一台の Car が動くと、全ての Car の車輪が回転します。これは明らかに望まれる動作ではありません。デフォルトのコンポーネントのインスタンス化は、アクタへ固有のサブオブジェクトを迅速に追加するプロセスを簡素化します。
 
 [REGION:note]
-コンポーネントをインスタンス化しないと、全てのコンポーネント変数は [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Instanced) プロパティ指定子を使用して宣言する必要があります。 
+コンポーネントをインスタンス化しないと、全てのコンポーネントの変数は `Instanced` [プロパティ指定子](Programming/UnrealArchitecture/Reference/Properties/Specifiers) を使用して宣言する必要があります。 
 [/REGION]
 
 ## コンポーネントのタイプ

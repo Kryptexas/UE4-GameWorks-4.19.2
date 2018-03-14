@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 D3D12Stats.cpp:RHI Stats and timing implementation.
@@ -27,7 +27,7 @@ namespace D3D12RHI
 		// if we are starting a hitch profile or this frame is a gpu profile, then save off the state of the draw events
 		if (bLatchedGProfilingGPU || (!bPreviousLatchedGProfilingGPUHitches && bLatchedGProfilingGPUHitches))
 		{
-			bOriginalGEmitDrawEvents = GEmitDrawEvents;
+			bOriginalGEmitDrawEvents = GetEmitDrawEvents();
 		}
 
 		if (bLatchedGProfilingGPU || bLatchedGProfilingGPUHitches)
@@ -40,7 +40,7 @@ namespace D3D12RHI
 			}
 			else
 			{
-				GEmitDrawEvents = true;  // thwart an attempt to turn this off on the game side
+				SetEmitDrawEvents(true);  // thwart an attempt to turn this off on the game side
 				bTrackingEvents = true;
 				CurrentEventNodeFrame = new FD3D12EventNodeFrame(GetParentAdapter());
 				CurrentEventNodeFrame->StartFrame();
@@ -50,13 +50,13 @@ namespace D3D12RHI
 		{
 			// hitch profiler is turning off, clear history and restore draw events
 			GPUHitchEventNodeFrames.Empty();
-			GEmitDrawEvents = bOriginalGEmitDrawEvents;
+			SetEmitDrawEvents(bOriginalGEmitDrawEvents);
 		}
 		bPreviousLatchedGProfilingGPUHitches = bLatchedGProfilingGPUHitches;
 
 		FrameTiming.StartTiming();
 
-		if (GEmitDrawEvents)
+		if (GetEmitDrawEvents())
 		{
 			PushEvent(TEXT("FRAME"), FColor(0, 255, 0, 255));
 		}
@@ -65,7 +65,7 @@ namespace D3D12RHI
 
 void FD3DGPUProfiler::EndFrame(FD3D12DynamicRHI* InRHI)
 {
-	if (GEmitDrawEvents)
+	if (GetEmitDrawEvents())
 	{
 		PopEvent();
 		check(StackDepth == 0);
@@ -102,7 +102,7 @@ void FD3DGPUProfiler::EndFrame(FD3D12DynamicRHI* InRHI)
 	{
 		if (bTrackingEvents)
 		{
-			GEmitDrawEvents = bOriginalGEmitDrawEvents;
+			SetEmitDrawEvents(bOriginalGEmitDrawEvents);
 			UE_LOG(LogD3D12RHI, Log, TEXT(""));
 			UE_LOG(LogD3D12RHI, Log, TEXT(""));
 			CurrentEventNodeFrame->DumpEventTree();
@@ -269,6 +269,19 @@ void UpdateBufferStats(FD3D12ResourceLocation* ResourceLocation, bool bAllocatin
 		{
 			INC_MEMORY_STAT_BY(STAT_StructuredBufferMemory, RequestedSize);
 		}
+
+#if PLATFORM_WINDOWS
+		// this is a work-around on Windows. Due to the fact that there is no way
+		// to hook the actual d3d allocations it is very difficult to track memory
+		// in the normal way. The problem is that some buffers are allocated from
+		// the allocators and some are allocated from the device. Ideally this
+		// tracking would be moved to where the actual d3d resource is created and
+		// released and the tracking could be re-enabled in the buddy allocator.
+		// The problem is that the releasing of resources happens in a generic way
+		// (see FD3D12ResourceLocation) 
+		LLM_SCOPED_PAUSE_TRACKING_WITH_ENUM_AND_AMOUNT(ELLMTag::Meshes, RequestedSize, ELLMTracker::Default, ELLMAllocType::None);
+		LLM_SCOPED_PAUSE_TRACKING_WITH_ENUM_AND_AMOUNT(ELLMTag::GraphicsPlatform, RequestedSize, ELLMTracker::Platform, ELLMAllocType::None);
+#endif
 	}
 	else
 	{
@@ -288,5 +301,11 @@ void UpdateBufferStats(FD3D12ResourceLocation* ResourceLocation, bool bAllocatin
 		{
 			DEC_MEMORY_STAT_BY(STAT_StructuredBufferMemory, RequestedSize);
 		}
+
+#if PLATFORM_WINDOWS
+		// this is a work-around on Windows. See comment above.
+		LLM_SCOPED_PAUSE_TRACKING_WITH_ENUM_AND_AMOUNT(ELLMTag::Meshes, -(int64)RequestedSize, ELLMTracker::Default, ELLMAllocType::None);
+		LLM_SCOPED_PAUSE_TRACKING_WITH_ENUM_AND_AMOUNT(ELLMTag::GraphicsPlatform, -(int64)RequestedSize, ELLMTracker::Platform, ELLMAllocType::None);
+#endif
 	}
 }

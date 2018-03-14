@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UAnimCustomInstance.cpp: Single Node Tree Instance 
@@ -43,6 +43,12 @@ void UAnimCustomInstance::UnbindFromSkeletalMeshComponent(USkeletalMeshComponent
 		InSkeletalMeshComponent->RefreshBoneTransforms();
 		InSkeletalMeshComponent->RefreshSlaveComponents();
 		InSkeletalMeshComponent->UpdateComponentToWorld();
+	}
+
+	// if not game world, don't clean this up
+	if (InSkeletalMeshComponent->GetWorld()->IsGameWorld() == false)
+	{
+		InSkeletalMeshComponent->ClearMotionVector();
 	}
 }
 

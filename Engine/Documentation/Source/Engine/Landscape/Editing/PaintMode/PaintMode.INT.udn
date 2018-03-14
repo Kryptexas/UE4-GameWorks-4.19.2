@@ -78,10 +78,10 @@ The Smooth tool smooths the layer weight. The strength determines the amount of 
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Landscape Smooth Layer Before](Landscape_Smooth_Layer_Before.jpg)(w:900 h:500)
+	![Landscape Smooth Layer Before](Landscape_Smooth_Layer_Before.jpg)(w:900)
 	[/PARAM]
 	[PARAM:after]
-	![Landscape Smooth Layer After](Landscape_Smooth_Layer_After.jpg)(w:900 h:500)
+	![Landscape Smooth Layer After](Landscape_Smooth_Layer_After.jpg)(w:900)
 	[/PARAM]
 [/OBJECT]
 
@@ -101,11 +101,13 @@ The Flatten tool directly sets the selected layer's weight to the value of the *
 | --- | --- |
 | **Flatten Mode** | Determines whether the tool will increase or decrease the application of the selected layer's weight, or do both. |
 
-<!----
+[COMMENT:none]
+--
 | **Use Slope Flatten** | If checked, flattens along a Landscape's existing slope. |
 | **Pick Value Per Apply** | If checked, constantly selects new values to flatten toward, instead of only using the first clicked point. |
 | **Flatten Target** | Sets the target value toward which to flatten. |
----->
+--
+[/COMMENT]
 
 
 ### Noise
@@ -133,7 +135,7 @@ The layers defined in the Landscape Material automatically populate the list of 
 
 Whichever layer is selected is the one you can apply to the Landscape with the Painting Tools, according to the tools' options and settings, and to the [brush](Engine\Landscape\Editing\Brushes) you are using.
 
-![Landscape_Layers.jpg](Landscape_Layers.jpg)(w:900 h:389)
+![Landscape_Layers.jpg](Landscape_Layers.jpg)(w:900)
 
 [REGION:note]
 Many of the Painting Tools are similar to the Sculpting Tools, and you use them similarly, but to manipulate the application of layers instead of the heightmap.
@@ -161,7 +163,9 @@ You can either create a layer info object from the layer itself, or reuse an exi
 ![](WeightBlended_NonWeightBlended.png)
 1. Choose the location to save the layer info object.
 
-<!-- what's the difference between weight-blended and non weight-blended? -->
+[COMMENT:none]
+ what's the difference between weight-blended and non weight-blended? 
+[/COMMENT]
 
 After their creation, layer info objects exist as assets in the **Content Browser**, such as the following:
 

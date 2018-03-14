@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AudioMixer.h"
 #include "AudioMixerDevice.h"
@@ -264,6 +264,7 @@ namespace Audio
 			// If we're faded out, then just zero the data.
 			FPlatformMemory::Memzero((void*)BufferDataPtr, sizeof(BufferType)*NumFrames);
 		}
+
 		FadeParam.Reset();
 	}
 
@@ -357,6 +358,7 @@ namespace Audio
 		CurrentBufferReadIndex = 0;
 		CurrentBufferWriteIndex = 1;
 
+		OutputBuffers.Reset();
 		OutputBuffers.AddDefaulted(NumOutputBuffers);
 		for (int32 Index = 0; Index < NumOutputBuffers; ++Index)
 		{

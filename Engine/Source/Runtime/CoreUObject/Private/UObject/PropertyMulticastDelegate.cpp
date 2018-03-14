@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
@@ -73,33 +73,40 @@ void UMulticastDelegateProperty::InstanceSubobjects(void* Data, void const* Defa
 
 bool UMulticastDelegateProperty::Identical( const void* A, const void* B, uint32 PortFlags ) const
 {
-	bool bResult = false;
-
 	FMulticastScriptDelegate* DA = (FMulticastScriptDelegate*)A;
 	FMulticastScriptDelegate* DB = (FMulticastScriptDelegate*)B;
 	
-	if( DB == NULL )
+	if (!DB)
 	{
-		bResult = DA->InvocationList.Num() == 0;
+		return DA->InvocationList.Num() == 0;
 	}
-	else if ( DA->InvocationList.Num() == DB->InvocationList.Num() )
+
+	const FMulticastScriptDelegate::FInvocationList& ListA = DA->InvocationList;
+	const FMulticastScriptDelegate::FInvocationList& ListB = DB->InvocationList;
+
+	int32 ListASize = ListA.Num();
+	if (ListASize != ListB.Num())
 	{
-		bResult = true;
-		for( int32 CurInvocationIndex = 0; CurInvocationIndex < DA->InvocationList.Num(); ++CurInvocationIndex )
+		return false;
+	}
+
+	for (int32 CurInvocationIndex = 0; CurInvocationIndex != ListASize; ++CurInvocationIndex)
+	{
+		const FScriptDelegate& BindingA = ListA[CurInvocationIndex];
+		const FScriptDelegate& BindingB = ListB[CurInvocationIndex];
+
+		if (BindingA.GetUObject() != BindingB.GetUObject())
 		{
-			const FScriptDelegate& InvocationA = DA->InvocationList[ CurInvocationIndex ];
-			const FScriptDelegate& InvocationB = DB->InvocationList[ CurInvocationIndex ];
-			
-			if( InvocationA.GetUObject() != InvocationB.GetUObject() ||
-				!( (PortFlags&PPF_DeltaComparison) != 0 && ( InvocationA.GetUObject() == NULL || InvocationB.GetUObject() == NULL ) ) )
-			{
-				bResult = false;
-				break;
-			}
+			return false;
+		}
+
+		if (BindingA.GetFunctionName() != BindingB.GetFunctionName())
+		{
+			return false;
 		}
 	}
 
-	return bResult;
+	return true;
 }
 
 void UMulticastDelegateProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const
@@ -158,6 +165,12 @@ FString UMulticastDelegateProperty::GetCPPType( FString* ExtendedTypeText/*=NULL
 		}
 	}
 	return FString(TEXT("F")) + UnmangledFunctionName;
+}
+
+
+FString UMulticastDelegateProperty::GetCPPTypeForwardDeclaration() const
+{
+	return FString();
 }
 
 

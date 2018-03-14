@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ApexDestructionEditorModule.h"
 #include "Misc/PackageName.h"
@@ -28,7 +28,7 @@
 #include "PropertyEditorModule.h"
 #include "DestructibleMeshDetails.h"
 
-IMPLEMENT_MODULE( FDestructibleMeshEditorModule, DestructibleMeshEditor );
+IMPLEMENT_MODULE( FDestructibleMeshEditorModule, ApexDestructionEditor );
 
 #define LOCTEXT_NAMESPACE "DestructibleMeshEditor"
 

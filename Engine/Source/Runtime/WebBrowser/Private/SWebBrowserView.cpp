@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SWebBrowserView.h"
 #include "Misc/CommandLine.h"
@@ -72,6 +72,7 @@ SWebBrowserView::~SWebBrowserView()
 	if (SlateParentWindowPtr.IsValid())
 	{
 		SlateParentWindowPtr.Pin()->GetOnWindowDeactivatedEvent().RemoveAll(this);
+		SlateParentWindowPtr.Pin()->GetOnWindowActivatedEvent().RemoveAll(this);
 	}
 }
 
@@ -199,6 +200,25 @@ void SWebBrowserView::Construct(const FArguments& InArgs, const TSharedPtr<IWebB
 	{
 		OnLoadError.ExecuteIfBound();
 	}
+}
+
+int32 SWebBrowserView::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+{
+	int32 Layer = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	
+	// Cache a reference to our parent window, if we didn't already reference it.
+	if (!SlateParentWindowPtr.IsValid())
+	{
+		TSharedPtr<SWindow> ParentWindow = OutDrawElements.GetWindow();
+
+		SlateParentWindowPtr = ParentWindow;
+		if (BrowserWindow.IsValid())
+		{
+			BrowserWindow->SetParentWindow(ParentWindow);
+		}
+	}
+
+	return Layer;
 }
 
 void SWebBrowserView::HandleWindowDeactivated()
@@ -342,11 +362,6 @@ bool SWebBrowserView::IsInitialized() const
 
 void SWebBrowserView::SetupParentWindowHandlers()
 {
-	if (!SlateParentWindowPtr.IsValid())
-	{
-		SlateParentWindowPtr = FSlateApplication::Get().FindWidgetWindow(SharedThis(this));
-	}
-
 	if (SlateParentWindowPtr.IsValid() && BrowserWindow.IsValid())
 	{
 		SlateParentWindowPtr.Pin()->GetOnWindowDeactivatedEvent().AddSP(this, &SWebBrowserView::HandleWindowDeactivated);

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Templates/WidgetTemplateClass.h"
 
@@ -20,7 +20,7 @@ FWidgetTemplateClass::FWidgetTemplateClass()
 }
 
 FWidgetTemplateClass::FWidgetTemplateClass(TSubclassOf<UWidget> InWidgetClass)
-	: WidgetClass(InWidgetClass)
+	: WidgetClass(InWidgetClass.Get())
 {
 	Name = WidgetClass->GetDisplayNameText();
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapeEditorDetailCustomization_TargetLayers.h"
 #include "IDetailChildrenBuilder.h"
@@ -944,14 +944,14 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnExportLayer(const TShared
 
 		if (Target->TargetType == ELandscapeToolTargetType::Heightmap)
 		{
-			SaveDialogTitle = *LOCTEXT("ExportHeightmap", "Export Landscape Heightmap").ToString();
-			DefaultFileName = TEXT("Heightmap.png");
+			SaveDialogTitle = LOCTEXT("ExportHeightmap", "Export Landscape Heightmap").ToString();
+			DefaultFileName = TEXT("Heightmap");
 			FileTypes = LandscapeEditorModule.GetHeightmapExportDialogTypeString();
 		}
 		else //if (Target->TargetType == ELandscapeToolTargetType::Weightmap)
 		{
-			SaveDialogTitle = *FText::Format(LOCTEXT("ExportLayer", "Export Landscape Layer: {0}"), FText::FromName(LayerInfoObj->LayerName)).ToString();
-			DefaultFileName = *FString::Printf(TEXT("%s.png"), *(LayerInfoObj->LayerName.ToString()));
+			SaveDialogTitle = FText::Format(LOCTEXT("ExportLayer", "Export Landscape Layer: {0}"), FText::FromName(LayerInfoObj->LayerName)).ToString();
+			DefaultFileName = LayerInfoObj->LayerName.ToString();
 			FileTypes = LandscapeEditorModule.GetWeightmapExportDialogTypeString();
 		}
 

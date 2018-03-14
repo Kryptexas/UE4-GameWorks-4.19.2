@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "Containers/UnrealString.h"
+#include "UObject/NameTypes.h"
 
 class UNiagaraNodeFunctionCall;
 struct FNiagaraVariable;
@@ -12,9 +13,9 @@ class NIAGARAEDITOR_API FNiagaraParameterHandle
 public:
 	FNiagaraParameterHandle();
 
-	FNiagaraParameterHandle(const FString& InParameterHandleString);
+	FNiagaraParameterHandle(FName InParameterHandleString);
 
-	FNiagaraParameterHandle(const FString& InNamespace, const FString& InName);
+	FNiagaraParameterHandle(FName InNamespace, FName InName);
 
 	bool operator==(const FNiagaraParameterHandle& Other) const;
 
@@ -24,19 +25,19 @@ public:
 
 	static FNiagaraParameterHandle CreateEmitterParameterHandle(const FNiagaraVariable& EmitterVariable);
 
-	static FNiagaraParameterHandle CreateParticleAttributeParameterHandle(const FString& InName);
+	static FNiagaraParameterHandle CreateParticleAttributeParameterHandle(const FName InName);
 
-	static FNiagaraParameterHandle CreateModuleParameterHandle(const FString& InName);
+	static FNiagaraParameterHandle CreateModuleParameterHandle(const FName InName);
 
 	static FNiagaraParameterHandle CreateInitialParameterHandle(const FNiagaraParameterHandle& Handle);
 
 	bool IsValid() const;
 
-	const FString& GetParameterHandleString() const;
+	const FName GetParameterHandleString() const;
 
-	const FString& GetName() const;
+	const FName GetName() const;
 
-	const FString& GetNamespace() const;
+	const FName GetNamespace() const;
 
 	bool IsEngineHandle() const;
 
@@ -49,16 +50,16 @@ public:
 	bool IsModuleHandle() const;
 
 public:
-	static const FString UserNamespace;
-	static const FString EngineNamespace;
-	static const FString SystemNamespace;
-	static const FString EmitterNamespace;
-	static const FString ParticleAttributeNamespace;
-	static const FString ModuleNamespace;
+	static const FName UserNamespace;
+	static const FName EngineNamespace;
+	static const FName SystemNamespace;
+	static const FName EmitterNamespace;
+	static const FName ParticleAttributeNamespace;
+	static const FName ModuleNamespace;
 	static const FString InitialPrefix;
 
 private:
-	FString ParameterHandleString;
-	FString Name;
-	FString Namespace;
+	FName ParameterHandleName;
+	FName Name;
+	FName Namespace;
 };

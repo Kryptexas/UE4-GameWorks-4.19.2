@@ -1,0 +1,39 @@
+﻿INTSourceChangelist:3622826
+Availability:Public
+Title:4. 직접 해보기!
+Crumbs:%ROOT%, Platforms/GoogleVR
+Description:이 안내서에 제공된 방법을 사용하여, 추가 콘텐츠로 레벨을 다듬고 관련된 추가 자료를 소개해 드립니다.
+Navigation:platform
+Skilllevel: Intermediate
+Version: 4.17
+Parent:Platforms/GoogleVR/QuickStart
+order:4
+type:multi-step
+tags:VR
+tags:Google VR
+Checkpoint: GoogleVRQS
+
+[NAV]
+
+안드로이드 기반 스마트폰에 UE4 프로젝트를 디플로이하고 Google VR HMD 로 볼 수 있게 되었으니, 다음과 같은 부분을 추가해 봅시다.
+
+* [이주 툴](Engine/Content/Browser/UserGuide/Migrate/) 을 사용하여 모바일 콘텐츠 예제 중 하나에 있는 콘텐츠를 자신의 프로젝트로 이주시킵니다.
+
+* [기본 디바이스 프로파일](Platforms/Mobile/Performance/TipsAndTricks) 세팅을 조절하여 프로젝트를 안드로이드 기반 스마트폰에 디플로이했을 때 최대한의 속도로 실행되도록 합니다.
+
+* [GPU 프로파일러](Engine/Performance/GPU/) 를 사용하면 프로젝트를 제작하는 과정에서 퍼포먼스 트래킹이 수월해집니다.
+
+
+
+이 퀵 스타트에서 다룬 부분 관련 자세한 내용은:
+
+* Android SDK 구성 관련 상세 정보: [](Platforms/Android/GettingStarted/1/)
+
+* UE4 개발용으로 안드로이드 디바이스를 구성하는 방법 관련 상세 정보: [](Platforms/Android/GettingStarted/2/)
+
+* 안드로이드 디바이스가 지원하는 피처 관련 상세 정보: [](Platforms/Android/DeviceCompatibility/)
+
+* 프로젝트의 패키지 크기 감소 관련 상세 정보: [](Platforms/Android/ReducingAPKSize/)
+
+
+[NAV]

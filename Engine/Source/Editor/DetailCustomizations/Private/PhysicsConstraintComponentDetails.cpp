@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PhysicsConstraintComponentDetails.h"
 #include "Layout/Visibility.h"
@@ -28,6 +28,7 @@
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "Widgets/Input/SNumericEntryBox.h"
 #include "ScopedTransaction.h"
+#include "SRichTextBlock.h"
 
 #define LOCTEXT_NAMESPACE "PhysicsConstraintComponentDetails"
 namespace ConstraintDetails
@@ -877,7 +878,7 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 		}
 	}
 
-	DetailBuilder.EditCategory("Constraint");	//Create this category first so it's at the top
+	IDetailCategoryBuilder& ConstraintCategory = DetailBuilder.EditCategory("Constraint");	//Create this category first so it's at the top
 	DetailBuilder.EditCategory("Constraint Behavior");	//Create this category first so it's at the top
 
 	TSharedPtr<IPropertyHandle> ProfileInstance = ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, ProfileInstance));
@@ -887,6 +888,47 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 	AddAngularDrive(DetailBuilder, ConstraintInstance, ProfileInstance);
 
 	AddConstraintBehaviorProperties(DetailBuilder, ConstraintInstance, ProfileInstance);	//Now we've added all the complex UI, just dump the rest into Constraint category
+
+	if(bInPhat)
+	{
+		ConstraintCategory.HeaderContent(
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SRichTextBlock)
+				.DecoratorStyleSet(&FEditorStyle::Get())
+				.Text_Lambda([Objects]()
+				{
+					if (Objects.Num() > 0)
+					{
+						if (UPhysicsConstraintTemplate* Constraint = Cast<UPhysicsConstraintTemplate>(Objects[0].Get()))
+						{
+							FName CurrentProfileName = Constraint->GetCurrentConstraintProfileName();
+							if(CurrentProfileName != NAME_None)
+							{
+								if(Constraint->ContainsConstraintProfile(CurrentProfileName))
+								{
+									return FText::Format(LOCTEXT("ProfileFormatAssigned", "Assigned to Profile: <RichTextBlock.Bold>{0}</>"), FText::FromName(CurrentProfileName));
+								}
+								else
+								{
+									return FText::Format(LOCTEXT("ProfileFormatNotAssigned", "Not Assigned to Profile: <RichTextBlock.Bold>{0}</>"), FText::FromName(CurrentProfileName));
+								}
+							}
+							else
+							{
+								return LOCTEXT("ProfileFormatNone", "Current Profile: <RichTextBlock.Bold>None</>");
+							}
+						}
+					}
+
+					return FText();
+				})
+			]);
+	}
 }
 
 

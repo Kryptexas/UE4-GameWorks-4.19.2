@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraParameterCollectionToolkit.h"
 #include "NiagaraEditorModule.h"
@@ -170,23 +170,29 @@ TSharedRef<SDockTab> FNiagaraParameterCollectionToolkit::SpawnTab_Main(const FSp
 
 	TSharedRef<SVerticalBox> Contents = SNew(SVerticalBox);
 
-	if (!Instance->IsDefaultInstance())
+
+	FDetailsViewArgs DetailArgs;
+	DetailArgs.bAllowSearch = false;
+
+	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	FDetailsViewArgs DetailsViewArgs(false, false, true, FDetailsViewArgs::HideNameArea, true, ParameterCollectionViewModel.Get());
+	TSharedRef<IDetailsView> DetailsView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
+
+	if (Instance->IsDefaultInstance())
 	{
-		FDetailsViewArgs DetailArgs;
-		DetailArgs.bAllowSearch = false;
-
-		FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		FDetailsViewArgs DetailsViewArgs(false, false, true, FDetailsViewArgs::HideNameArea, true, ParameterCollectionViewModel.Get());
-		TSharedRef<IDetailsView> DetailsView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
-		DetailsView->SetObject(Instance);
-
-		Contents->AddSlot()
-			.AutoHeight()
-			.Padding(FMargin(0.0f, 2.0f))
-			[
-				DetailsView
-			];
+		DetailsView->SetObject(Collection);
 	}
+	else
+	{
+		DetailsView->SetObject(Instance);
+	}
+
+	Contents->AddSlot()
+		.AutoHeight()
+		.Padding(FMargin(0.0f, 2.0f))
+		[
+			DetailsView
+		];
 
 	Contents->AddSlot()
 		.AutoHeight()

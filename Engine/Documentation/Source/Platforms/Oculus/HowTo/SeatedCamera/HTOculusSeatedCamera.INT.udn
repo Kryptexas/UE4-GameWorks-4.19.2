@@ -5,21 +5,27 @@ Description:Setting up the UE4 camera to work with a seated Oculus Rift experien
 Type: how-to
 Skilllevel:Beginner
 Version:4.17
-Parent:Platforms/Oculus/HowTo
-Order: 2
+Parent: Platforms/Oculus
+Order: 1
 tags:Basics
 topic-image:HT_Rift_Camera_Setup_Topic_Image.png
 
-One of the first things you will need to think about when starting to develop any UE4 powered VR experience to be used with the Oculus Rift is deciding whether the experience will be a seated one or a standing one. In the following How - To we will take a look at how to setup your UE4 projects VR camera for a seated Oculus Rift experience.
+![](Platforms\VR\ContentSetup\VR_Seated_Experiance.png)
 
-## Pawn Setup for a Seated Rift Experience 
+One of the first things you will need to think about when starting to develop any Unreal Enging 4 (UE4) powered VR experience to be used with the Oculus Rift is deciding whether the experience will be a seated one or a standing one. In the following How - To we will take a look at how to setup your UE4 projects VR camera for a seated Oculus Rift VR experience.
 
-Below you will find instructions on how to setup up any Pawn to work with a seated Oculus Rift experience.
+## Steps
+
+Below you will find instructions on setting up a Pawn to work with a seated Oculus Rift experience.
 
 1. First, open up or create a new Pawn Blueprint and then go to the **Component** section of the **Viewport** tab. From there add the following two components with the following names, making sure that the VRCamera is a child of VRCameraRoot:
     
-    * **Scene** - VRCameraRoot
-    * **Camera** - VRCamera
+    [REGION:simpletable]
+	|Component Name| Value |
+    |--------|------------|
+    |** Scene**|VRCameraRoot|
+    |**Camera**|VRCamera|
+	[/region]
 
     [REGION:lightbox]
     [![](HT_Rift_Camera_Setup_03.png)(w:224)](HT_Rift_Camera_Setup_03.png)
@@ -35,13 +41,7 @@ Below you will find instructions on how to setup up any Pawn to work with a seat
     No matter what VR HMD you are using, this is the Epic recommend way to set up a VR camera as it allows you to offset the position of the camera without having to move the actual camera.
     [/region]
 
-With that completed, the initial setup for the VR Camera is now completed, in the next sections, we will go through setting the needed Blueprint logic for a seated Oculus Rift experience.
-
-## Blueprint Setup for Seated Rift Experience 
-
-Below you will find instructions on how to setup the Blueprint logic for a seated Oculus Rift experience.  
-
-1. First, open up the Pawn Blueprint if not already open and in the **Event Graph** drag off the **Event Begin Play** node to show the Executable Actions list. In the list search for the **Set Tracking Origin** node and click on it to add it to the Event Graph.
+1. In the Pawn Blueprint go to the **Event Graph** and drag off the **Event Begin Play** node to show the Executable Actions list. In the list search for the **Set Tracking Origin** node and click on it to add it to the Event Graph.
 
     [REGION:lightbox]
     [![](HT_Rift_Camera_Setup_09.png)(w:555)](HT_Rift_Camera_Setup_09.png)
@@ -108,32 +108,35 @@ Below you will find instructions on how to setup the Blueprint logic for a seate
     Click for full image.
     [/REGION]
 
-1. Finally, go to the **Main Toolbar** and change the **Play Mode** to **VR Preview** and then press the **Play** button. When you put your Oculus Rift HMD on and view the level while sitting down, you should see something similar to the following video. 
+## End Result
 
-    [OBJECT:EmbeddedVideo]
-        [PARAMLITERAL:videoid]
-        ErQoJ2n5EpI
-        [/PARAMLITERAL]
-        [PARAMLITERAL:width]
-        100
-        [/PARAMLITERAL]
-        [PARAMLITERAL:height]
-        56.25
-        [/PARAMLITERAL]
-        [PARAMLITERAL:units]
-        %
-        [/PARAMLITERAL]
-        [PARAMLITERAL:type]
-        simple
-        [/PARAMLITERAL]
-    [/OBJECT]
+Finally, go to the **Main Toolbar** and change the **Play Mode** to **VR Preview** and then press the **Play** button. When you put your Oculus Rift HMD on and view the level while sitting down, you should see something similar to the following video. 
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    ErQoJ2n5EpI
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
 
 ## UE4 Project Downloads
 Below you will find a link to where you can download the UE4 project that was used to create this example. 
 
 * [**Oculus Rift Seated VR Camera Example Project**](https://epicgames.box.com/s/jrhmrpvtk84jrrw05m5ma5rvcs35zm3g)
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:OculusSittingVRCamera]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -227,4 +230,5 @@ Below you will find a link to where you can download the UE4 project that was us
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:OculusSittingVRCamera]
--->
+
+[/COMMENT]

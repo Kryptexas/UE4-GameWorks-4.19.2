@@ -20,7 +20,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 可以利用这个简单的树实现多种功能，发挥创意动手试试吧！
 
@@ -37,35 +37,27 @@ version:4.9
 * 将 **场景查询系统** 整合进行为树，以选择站立或四处移动的地点。
 * 将 AI 角色巡逻时的移动速度设为步行速度，追逐玩家时的移动速度设为跑步速度。
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/docs_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		AI
-	[/PARAM]
-	[PARAM:links]
+## AI
+
+[REGION:buttonlist]
+
 	* [行为树](Engine/AI/BehaviorTrees "%Engine/AI/BehaviorTrees:description%")
 	* [行为树用户指南](Engine/AI/BehaviorTrees/UserGuide "%Engine/AI/BehaviorTrees/UserGuide:description%")
 	* [行为树节点参考](Engine/AI/BehaviorTrees/NodeReference "%Engine/AI/BehaviorTrees/NodeReference:description%")
 	* [](Engine/AI/EnvironmentQuerySystem "%Engine/AI/EnvironmentQuerySystem:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		外部链接
-	[/PARAM]
-	[PARAM:links]
+## 外部链接
+
+[REGION:buttonlist]
+
 	* [次时代游戏 AI 行为树](http://aigamedev.com/insider/presentation/behavior-trees/ “AIGameDev.com 推出的这个视频将助您了解行为树的好处和功能。免费完成网站注册即可观看。”)
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
-%Steps%
+
 
 
 

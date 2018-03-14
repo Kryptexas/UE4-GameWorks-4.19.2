@@ -1,60 +1,29 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreTypes.h"
 #include "Misc/AssertionMacros.h"
 #include "Templates/UnrealTypeTraits.h"
-#include "Templates/TypeCompatibleBytes.h"
-#include "Templates/MemoryOps.h"
+#include "IntegerSequence.h"
 
 /** An array with a static number of elements. */
-template<typename TElement,uint32 NumElements,uint32 Alignment = alignof(TElement)>
-class TStaticArray
+template<typename TElement, uint32 NumElements, uint32 Alignment = alignof(TElement)>
+class alignas(Alignment) TStaticArray
 {
 public:
+	TStaticArray() 
+		: Storage()
+	{}
 
-	/** Default constructor. */
-	TStaticArray()
-	{
-		// Call the default constructor for each element using the in-place new operator.
-		for(uint32 ElementIndex = 0;ElementIndex < NumElements;++ElementIndex)
-		{
-			new(&(*this)[ElementIndex]) TElement;
-		}
-	}
+	explicit TStaticArray(const TElement& DefaultElement) 
+		: Storage(TMakeIntegerSequence<uint32, NumElements>(), DefaultElement)
+	{}
 
-	/** Move constructor. */
-	TStaticArray(TStaticArray&& Other)
-	{
-		MoveConstructItems((void*)Elements, (const TElement*)Other.Elements, NumElements);
-	}
-
-	/** Copy constructor. */
-	TStaticArray(const TStaticArray& Other)
-	{
-		ConstructItems<TElement>((void*)Elements, (const TElement*)Other.Elements, NumElements);
-	}
-
-	/** Move assignment operator. */
-	TStaticArray& operator=(TStaticArray&& Other)
-	{
-		MoveAssignItems((TElement*)Elements, (const TElement*)Other.Elements, NumElements);
-		return *this;
-	}
-	
-	/** Assignment operator. */
-	TStaticArray& operator=(const TStaticArray& Other)
-	{
-		CopyAssignItems((TElement*)Elements, (const TElement*)Other.Elements, NumElements);
-		return *this;
-	}
-
-	/** Destructor. */
-	~TStaticArray()
-	{
-		DestructItems((TElement*)Elements, NumElements);
-	}
+	TStaticArray(TStaticArray&& Other) = default;
+	TStaticArray(const TStaticArray& Other) = default;
+	TStaticArray& operator=(TStaticArray&& Other) = default;
+	TStaticArray& operator=(const TStaticArray& Other) = default;
 
 	/** Serializer. */
 	friend FArchive& operator<<(FArchive& Ar,TStaticArray& StaticArray)
@@ -70,13 +39,13 @@ public:
 	TElement& operator[](uint32 Index)
 	{
 		check(Index < NumElements);
-		return *(TElement*)&Elements[Index];
+		return Storage.Elements[Index].Element;
 	}
 
 	const TElement& operator[](uint32 Index) const
 	{
 		check(Index < NumElements);
-		return *(const TElement*)&Elements[Index];
+		return Storage.Elements[Index].Element;
 	}
 
 	// Comparisons.
@@ -119,166 +88,35 @@ public:
 	}
 
 private:
-	TAlignedBytes<sizeof(TElement),Alignment> Elements[NumElements];
-};
 
-/** A shortcut for initializing a TStaticArray with 2 elements. */
-template<typename TElement>
-class TStaticArray2 : public TStaticArray<TElement,2>
-{
-	typedef TStaticArray<TElement,2> Super;
-
-public:
-
-	TStaticArray2(
-		typename TCallTraits<TElement>::ParamType In0,
-		typename TCallTraits<TElement>::ParamType In1
-		)
+	struct alignas(Alignment) TArrayStorageElementAligned
 	{
-		(*this)[0] = In0;
-		(*this)[1] = In1;
-	}
+		TArrayStorageElementAligned() {}
+		TArrayStorageElementAligned(const TElement& InElement)
+			: Element(InElement)
+		{
+		}
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
+		TElement Element;
+	};
 
-	TStaticArray2(TStaticArray2&&) = default;
-	TStaticArray2(const TStaticArray2&) = default;
-	TStaticArray2& operator=(TStaticArray2&&) = default;
-	TStaticArray2& operator=(const TStaticArray2&) = default;
-
-#else
-
-	FORCEINLINE TStaticArray2(TStaticArray2&& Other)
-		: Super((Super&&)Other)
+	struct TArrayStorage
 	{
-	}
+		TArrayStorage()
+			: Elements()
+		{
+		}
 
-	FORCEINLINE TStaticArray2(const TStaticArray2& Other)
-		: Super((const Super&)Other)
-	{
-	}
+		template<uint32... Indices>
+		TArrayStorage(TIntegerSequence<uint32, Indices...>, const TElement& DefaultElement)
+			: Elements { ((void)Indices, DefaultElement)... } //Integer Sequence pack expansion duplicates DefaultElement NumElements times and the comma operator throws away the index
+		{
+		}
 
-	FORCEINLINE TStaticArray2& operator=(TStaticArray2&& Other)
-	{
-		(Super&)*this = (Super&&)Other;
-		return *this;
-	}
+		TArrayStorageElementAligned Elements[NumElements];
+	};
 
-	FORCEINLINE TStaticArray2& operator=(const TStaticArray2& Other)
-	{
-		(Super&)*this = (const Super&)Other;
-		return *this;
-	}
-
-#endif
-};
-
-/** A shortcut for initializing a TStaticArray with 3 elements. */
-template<typename TElement>
-class TStaticArray3 : public TStaticArray<TElement,3>
-{
-	typedef TStaticArray<TElement,3> Super;
-
-public:
-
-	TStaticArray3(
-		typename TCallTraits<TElement>::ParamType In0,
-		typename TCallTraits<TElement>::ParamType In1,
-		typename TCallTraits<TElement>::ParamType In2
-		)
-	{
-		(*this)[0] = In0;
-		(*this)[1] = In1;
-		(*this)[2] = In2;
-	}
-
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-
-	TStaticArray3(TStaticArray3&&) = default;
-	TStaticArray3(const TStaticArray3&) = default;
-	TStaticArray3& operator=(TStaticArray3&&) = default;
-	TStaticArray3& operator=(const TStaticArray3&) = default;
-
-#else
-
-	FORCEINLINE TStaticArray3(TStaticArray3&& Other)
-		: Super((Super&&)Other)
-	{
-	}
-
-	FORCEINLINE TStaticArray3(const TStaticArray3& Other)
-		: Super((const Super&)Other)
-	{
-	}
-
-	FORCEINLINE TStaticArray3& operator=(TStaticArray3&& Other)
-	{
-		(Super&)*this = (Super&&)Other;
-		return *this;
-	}
-
-	FORCEINLINE TStaticArray3& operator=(const TStaticArray3& Other)
-	{
-		(Super&)*this = (const Super&)Other;
-		return *this;
-	}
-
-#endif
-};
-
-/** A shortcut for initializing a TStaticArray with 4 elements. */
-template<typename TElement>
-class TStaticArray4 : public TStaticArray<TElement,4>
-{
-	typedef TStaticArray<TElement,4> Super;
-
-public:
-
-	TStaticArray4(
-		typename TCallTraits<TElement>::ParamType In0,
-		typename TCallTraits<TElement>::ParamType In1,
-		typename TCallTraits<TElement>::ParamType In2,
-		typename TCallTraits<TElement>::ParamType In3
-		)
-	{
-		(*this)[0] = In0;
-		(*this)[1] = In1;
-		(*this)[2] = In2;
-		(*this)[3] = In3;
-	}
-
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-
-	TStaticArray4(TStaticArray4&&) = default;
-	TStaticArray4(const TStaticArray4&) = default;
-	TStaticArray4& operator=(TStaticArray4&&) = default;
-	TStaticArray4& operator=(const TStaticArray4&) = default;
-
-#else
-
-	FORCEINLINE TStaticArray4(TStaticArray4&& Other)
-		: Super((Super&&)Other)
-	{
-	}
-
-	FORCEINLINE TStaticArray4(const TStaticArray4& Other)
-		: Super((const Super&)Other)
-	{
-	}
-
-	FORCEINLINE TStaticArray4& operator=(TStaticArray4&& Other)
-	{
-		(Super&)*this = (Super&&)Other;
-		return *this;
-	}
-
-	FORCEINLINE TStaticArray4& operator=(const TStaticArray4& Other)
-	{
-		(Super&)*this = (const Super&)Other;
-		return *this;
-	}
-
-#endif
+	TArrayStorage Storage;
 };
 
 /** Creates a static array filled with the specified value. */

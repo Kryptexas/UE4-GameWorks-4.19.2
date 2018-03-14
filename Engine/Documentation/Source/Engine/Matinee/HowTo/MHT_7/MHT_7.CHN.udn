@@ -12,14 +12,9 @@ SkillLevel:Intermediate
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		添加 Matinee Actor 和道具
-	[/PARAM]
-	[PARAM:description]
-	在这步中，我们将添加 **Matinee Actor**，一个 **骨骼网格体 Actor**，并创建一个供角色跳跃的平台。  
-	[/PARAM]
-[/OBJECT]
+## 添加 Matinee Actor 和道具
+
+在这步中，我们将添加 **Matinee Actor**，一个 **骨骼网格体 Actor**，并创建一个供角色跳跃的平台。
 
 1. 在 **工具栏** 菜单中选择 **Matinee** 并点击 **Add Matinee** 按钮。 
 
@@ -58,14 +53,9 @@ SkillLevel:Intermediate
 	![](BoxHeightGray.jpg)
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		为 Matinee 添加 Actor 并添加轨迹
-	[/PARAM]
-	[PARAM:description]
-	在这步中，我们将添加 **SK_Mannequin** 到 **Matinee**，并添加用于序列的轨迹。 
-	[/PARAM]
-[/OBJECT]
+## 为 Matinee 添加 Actor 并添加轨迹
+
+在这步中，我们将添加 **SK_Mannequin** 到 **Matinee**，并添加用于序列的轨迹。
 
 1. 从 World Outliner 选择 **MatineActor**，然后点击 **Open Matinee** 按钮。 
 
@@ -88,14 +78,9 @@ SkillLevel:Intermediate
 	![](MHT7_MoveEndMarker.png)
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		添加运动和动画
-	[/PARAM]
-	[PARAM:description]
-	在这步中，我们将为角色设置运动和动画，使其跳到方块上方。 
-	[/PARAM]
-[/OBJECT]
+## 添加运动和动画
+
+在这步中，我们将为角色设置运动和动画，使其跳到方块上方。
 
 1. 打开 Matinee，点击运动轨迹，然后将 **时间条** 移至 **3.00** 处，再按下 **Enter** 键添加一个关键帧。 
 
@@ -174,14 +159,9 @@ SkillLevel:Intermediate
 	_序列后部颜色较深的部分表明动画设为循环。_
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		添加音效并完成 Matinee
-	[/PARAM]
-	[PARAM:description]
-	在这步中，我们将使用 sound tracks 添加音效并完成序列。 
-	[/PARAM]
-[/OBJECT]
+## 添加音效并完成 Matinee
+
+在这步中，我们将使用 sound tracks 添加音效并完成序列。
 
 1. 最小化 Matinee 窗口，然后在 Content Browser 的 **Game/Audio** 文件夹中点击 **Explosion01** 资源。 
 

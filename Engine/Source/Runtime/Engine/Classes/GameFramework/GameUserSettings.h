@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -91,6 +91,14 @@ public:
 	UFUNCTION(BlueprintPure, Category=Settings)
 	bool IsVSyncEnabled() const;
 
+	/** Sets the user setting for dynamic resolution. See UGameUserSettings::bUseDynamicResolution. */
+	UFUNCTION(BlueprintCallable, Category = Settings)
+	void SetDynamicResolutionEnabled(bool bEnable);
+
+	/** Returns the user setting for dynamic resolution. */
+	UFUNCTION(BlueprintPure, Category = Settings)
+	bool IsDynamicResolutionEnabled() const;
+
 	/** Checks if the Screen Resolution user setting is different from current */
 	UFUNCTION(BlueprintPure, Category=Settings)
 	bool IsScreenResolutionDirty() const;
@@ -102,6 +110,10 @@ public:
 	/** Checks if the vsync user setting is different from current system setting */
 	UFUNCTION(BlueprintPure, Category=Settings)
 	bool IsVSyncDirty() const;
+
+	/** Checks if the dynamic resolution user setting is different from current system setting */
+	UFUNCTION(BlueprintPure, Category = Settings)
+	bool IsDynamicResolutionDirty() const;
 
 	/** Mark current video mode settings (fullscreenmode/resolution) as being confirmed by the user */
 	UFUNCTION(BlueprintCallable, Category=Settings)
@@ -305,6 +317,10 @@ public:
 	UPROPERTY(config)
 	bool bUseVSync;
 
+	/** Whether to use dynamic resolution or not. (public to allow UI to connect to it) */
+	UPROPERTY(config)
+	bool bUseDynamicResolution;
+
 	// cached for the UI, current state if stored in console variables
 	Scalability::FQualityLevels ScalabilityQuality;
 
@@ -454,6 +470,12 @@ protected:
 
 	/** Sets the frame rate limit CVar to the passed in value, 0.0 indicates no limit */
 	static void SetFrameRateLimitCVar(float InLimit);
+
+	/** Sets the sync interval limit CVar forc consoles 0-3 */
+	static void SetSyncIntervalCVar(int32 InInterval);
+
+	/** Sets the input latency mode 0 and 2 */
+	static void SetSyncTypeCVar(int32 InInterval);
 
 	/** Returns the effective frame rate limit (by default it returns the FrameRateLimit member) */
 	virtual float GetEffectiveFrameRateLimit();

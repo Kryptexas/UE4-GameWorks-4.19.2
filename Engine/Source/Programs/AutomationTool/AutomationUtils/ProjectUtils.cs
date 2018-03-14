@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -127,22 +127,6 @@ namespace AutomationTool
 			return ProjectClientBinariesPath;
 		}
 
-		private static bool HasIcons(DirectoryReference ProjectDirectoryName)
-		{
-			string IconDir = ProjectDirectoryName.ToString() + "/Build/IOS/Resources/Graphics";
-
-			if (Directory.Exists(IconDir))
-			{
-				FileInfo[] Files = (new DirectoryInfo(IconDir).GetFiles("Icon*.*", SearchOption.AllDirectories));
-				if (Files.Length > 0)
-				{
-					return true;
-				}
-			}
-
-			return false;
-		}
-
 		private static bool RequiresTempTarget(FileReference RawProjectPath, List<UnrealTargetPlatform> ClientTargetPlatforms, bool AssetNativizationRequested)
 		{
 			// check to see if we already have a Target.cs file
@@ -177,10 +161,8 @@ namespace AutomationTool
 			{
 				foreach (UnrealTargetPlatform ClientPlatform in ClientTargetPlatforms)
 				{
-					String EncryptionKey;
-					String[] SigningKeys;
-					EncryptionAndSigning.ParseEncryptionIni(RawProjectPath.Directory, ClientPlatform, out SigningKeys, out EncryptionKey);
-					if (SigningKeys != null || !string.IsNullOrEmpty(EncryptionKey))
+					EncryptionAndSigning.CryptoSettings Settings = EncryptionAndSigning.ParseCryptoSettings(RawProjectPath.Directory, ClientPlatform);
+					if (Settings.IsAnyEncryptionEnabled() || Settings.bEnablePakSigning)
 					{
 						return true;
 					}
@@ -225,14 +207,6 @@ namespace AutomationTool
 					{
 						RetVal = true;
 						break;
-					}
-					else if (TargetPlatformType == UnrealTargetPlatform.IOS)
-					{
-						if (HasIcons(RawProjectPath.Directory))
-						{
-							RetVal = true;
-							break;
-						}
 					}
 
 					// find if there are any plugins enabled or disabled which differ from the default
@@ -534,11 +508,12 @@ namespace AutomationTool
 			foreach (Type TargetType in AllCompiledTypes)
 			{
 				// Find TargetRules but skip all "UE4Editor", "UE4Game" targets.
-				if (typeof(TargetRules).IsAssignableFrom(TargetType))
+				if (typeof(TargetRules).IsAssignableFrom(TargetType) && !TargetType.IsAbstract)
 				{
 					string TargetName = GetTargetName(TargetType);
 
-					TargetInfo DummyTargetInfo = new TargetInfo(TargetName, BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development, "", Properties.RawProjectPath);
+					ReadOnlyBuildVersion Version = new ReadOnlyBuildVersion(BuildVersion.ReadDefault());
+					TargetInfo DummyTargetInfo = new TargetInfo(TargetName, BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development, "", Properties.RawProjectPath, Version);
 
 					// Create an instance of this type
 					CommandUtils.LogVerbose("Creating target rules object: {0}", TargetType.Name);

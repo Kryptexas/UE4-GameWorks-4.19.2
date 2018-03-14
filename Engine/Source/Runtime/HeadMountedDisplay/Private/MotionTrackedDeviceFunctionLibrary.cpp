@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MotionTrackedDeviceFunctionLibrary.h"
 #include "EngineGlobals.h"
@@ -7,6 +7,7 @@
 #include "IMotionController.h"
 #include "IMotionTrackingSystemManagement.h"
 #include "MotionControllerComponent.h"
+#include "XRMotionControllerBase.h" // for GetHandEnumForSourceName()
 
 DEFINE_LOG_CATEGORY_STATIC(LogMotionTracking, Log, All);
 
@@ -14,7 +15,6 @@ UMotionTrackedDeviceFunctionLibrary::UMotionTrackedDeviceFunctionLibrary(const F
 	: Super(ObjectInitializer)
 {
 }
-
 
 bool UMotionTrackedDeviceFunctionLibrary::IsMotionTrackedDeviceCountManagementNecessary()
 {
@@ -71,16 +71,31 @@ bool UMotionTrackedDeviceFunctionLibrary::EnableMotionTrackingOfDevice(int32 Pla
 		return true;
 	}
 }
+
+bool UMotionTrackedDeviceFunctionLibrary::EnableMotionTrackingOfSource(int32 PlayerIndex, FName SourceName)
+{
+	EControllerHand Hand = EControllerHand::Special_11;
+	if (FXRMotionControllerBase::GetHandEnumForSourceName(SourceName, Hand))
+	{
+		if (IModularFeatures::Get().IsModularFeatureAvailable(IMotionTrackingSystemManagement::GetModularFeatureName()))
+		{
+			IMotionTrackingSystemManagement& MotionTrackingSystemManagement = IModularFeatures::Get().GetModularFeature<IMotionTrackingSystemManagement>(IMotionTrackingSystemManagement::GetModularFeatureName());
+			return MotionTrackingSystemManagement.EnableMotionTrackingOfDevice(PlayerIndex, Hand);
+		}
+	}
+
+	// Return true if TrackingManagement is not available.  
+	// It isn't available because we don't need to manage it like this, because everything is always tracked.
+	return true;
+}
+
 bool UMotionTrackedDeviceFunctionLibrary::EnableMotionTrackingForComponent(UMotionControllerComponent* MotionControllerComponent)
 {
 	if (MotionControllerComponent == nullptr)
 	{
 		return false;
 	}
-
-	int32 PlayerIndex = MotionControllerComponent->PlayerIndex;
-	EControllerHand Hand = MotionControllerComponent->Hand;
-	return EnableMotionTrackingOfDevice(PlayerIndex, Hand);
+	return EnableMotionTrackingOfSource(MotionControllerComponent->PlayerIndex, MotionControllerComponent->MotionSource);
 }
 
 void UMotionTrackedDeviceFunctionLibrary::DisableMotionTrackingOfDevice(int32 PlayerIndex, EControllerHand Hand)
@@ -91,16 +106,27 @@ void UMotionTrackedDeviceFunctionLibrary::DisableMotionTrackingOfDevice(int32 Pl
 		MotionTrackingSystemManagement.DisableMotionTrackingOfDevice(PlayerIndex, Hand);
 	}
 }
+
+void UMotionTrackedDeviceFunctionLibrary::DisableMotionTrackingOfSource(int32 PlayerIndex, FName SourceName)
+{
+	EControllerHand Hand = EControllerHand::Special_11;
+	if (FXRMotionControllerBase::GetHandEnumForSourceName(SourceName, Hand))
+	{
+		if (IModularFeatures::Get().IsModularFeatureAvailable(IMotionTrackingSystemManagement::GetModularFeatureName()))
+		{
+			IMotionTrackingSystemManagement& MotionTrackingSystemManagement = IModularFeatures::Get().GetModularFeature<IMotionTrackingSystemManagement>(IMotionTrackingSystemManagement::GetModularFeatureName());
+			MotionTrackingSystemManagement.DisableMotionTrackingOfDevice(PlayerIndex, Hand);
+		}
+	}
+}
+
 void UMotionTrackedDeviceFunctionLibrary::DisableMotionTrackingForComponent(const UMotionControllerComponent* MotionControllerComponent)
 {
 	if (MotionControllerComponent == nullptr)
 	{
 		return;
 	}
-
-	int32 PlayerIndex = MotionControllerComponent->PlayerIndex;
-	EControllerHand Hand = MotionControllerComponent->Hand;
-	DisableMotionTrackingOfDevice(PlayerIndex, Hand);
+	DisableMotionTrackingOfSource(MotionControllerComponent->PlayerIndex, MotionControllerComponent->MotionSource);
 }
 
 bool UMotionTrackedDeviceFunctionLibrary::IsMotionTrackingEnabledForDevice(int32 PlayerIndex, EControllerHand Hand)
@@ -117,16 +143,31 @@ bool UMotionTrackedDeviceFunctionLibrary::IsMotionTrackingEnabledForDevice(int32
 		return true;
 	}
 }
+
+bool UMotionTrackedDeviceFunctionLibrary::IsMotionTrackingEnabledForSource(int32 PlayerIndex, FName SourceName)
+{
+	EControllerHand Hand = EControllerHand::Special_11;
+	if (FXRMotionControllerBase::GetHandEnumForSourceName(SourceName, Hand))
+	{
+		if (IModularFeatures::Get().IsModularFeatureAvailable(IMotionTrackingSystemManagement::GetModularFeatureName()))
+		{
+			IMotionTrackingSystemManagement& MotionTrackingSystemManagement = IModularFeatures::Get().GetModularFeature<IMotionTrackingSystemManagement>(IMotionTrackingSystemManagement::GetModularFeatureName());
+			return MotionTrackingSystemManagement.IsMotionTrackingEnabledForDevice(PlayerIndex, Hand);
+		}
+	}
+
+	// Return true if TrackingManagement is not available.  
+	// It isn't available because we don't need to manage it like this, because everything is always tracked.
+	return true;
+}
+
 bool UMotionTrackedDeviceFunctionLibrary::IsMotionTrackingEnabledForComponent(const UMotionControllerComponent* MotionControllerComponent)
 {
 	if (MotionControllerComponent == nullptr)
 	{
 		return false;
 	}
-
-	int32 PlayerIndex = MotionControllerComponent->PlayerIndex;
-	EControllerHand Hand = MotionControllerComponent->Hand;
-	return IsMotionTrackingEnabledForDevice(PlayerIndex, Hand);
+	return IsMotionTrackingEnabledForSource(MotionControllerComponent->PlayerIndex, MotionControllerComponent->MotionSource);
 }
 
 void UMotionTrackedDeviceFunctionLibrary::DisableMotionTrackingOfAllControllers()
@@ -145,5 +186,28 @@ void UMotionTrackedDeviceFunctionLibrary::DisableMotionTrackingOfControllersForP
 		IMotionTrackingSystemManagement& MotionTrackingSystemManagement = IModularFeatures::Get().GetModularFeature<IMotionTrackingSystemManagement>(IMotionTrackingSystemManagement::GetModularFeatureName());
 		return MotionTrackingSystemManagement.DisableMotionTrackingOfControllersForPlayer(PlayerIndex);
 	}
+}
+
+TArray<FName> UMotionTrackedDeviceFunctionLibrary::EnumerateMotionSources()
+{
+	TArray<FName> SourceList;
+
+	TArray<IMotionController*> MotionControllers = IModularFeatures::Get().GetModularFeatureImplementations<IMotionController>(IMotionController::GetModularFeatureName());
+	for (IMotionController* MotionController : MotionControllers)
+	{
+		if (MotionController)
+		{
+			TArray<FMotionControllerSource> MotionSources;
+			MotionController->EnumerateSources(MotionSources);
+
+			SourceList.Reserve(SourceList.Num() + MotionSources.Num());
+			for (const FMotionControllerSource& Source : MotionSources)
+			{
+				SourceList.AddUnique(Source.SourceName);
+			}
+		}
+	}
+
+	return SourceList;
 }
 

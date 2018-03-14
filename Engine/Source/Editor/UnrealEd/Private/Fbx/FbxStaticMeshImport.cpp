@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Static mesh creation from FBX data.
@@ -1572,7 +1572,165 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 	return StaticMesh;
 }
 
-void UnFbx::FFbxImporter::PostImportStaticMesh(UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray)
+void ReorderMaterialAfterImport(UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray)
+{
+	if (StaticMesh == nullptr)
+	{
+		return;
+	}
+	TArray<FString> MeshMaterials;
+	for (int32 MeshIndex = 0; MeshIndex < MeshNodeArray.Num(); MeshIndex++)
+	{
+		FbxNode* Node = MeshNodeArray[MeshIndex];
+		if (Node->GetMesh())
+		{
+			int32 MaterialCount = Node->GetMaterialCount();
+
+			for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; MaterialIndex++)
+			{
+				//Get the original fbx import name
+				FbxSurfaceMaterial *FbxMaterial = Node->GetMaterial(MaterialIndex);
+				FString FbxMaterialName = FbxMaterial ? ANSI_TO_TCHAR(FbxMaterial->GetName()) : TEXT("None");
+				if (!MeshMaterials.Contains(FbxMaterialName))
+				{
+					MeshMaterials.Add(FbxMaterialName);
+				}
+			}
+		}
+	}
+
+	//There is no material in the fbx node
+	if (MeshMaterials.Num() < 1)
+	{
+		return;
+	}
+
+	//If there is some skinxx material name we will reorder the material to follow the skinxx workflow instead of the fbx order
+	bool IsUsingSkinxxWorkflow = true;
+	TArray<FString> MeshMaterialsSkinXX;
+	MeshMaterialsSkinXX.AddZeroed(MeshMaterials.Num());
+	for (int32 FbxMaterialIndex = 0; FbxMaterialIndex < MeshMaterials.Num(); ++FbxMaterialIndex)
+	{
+		const FString &FbxMaterialName = MeshMaterials[FbxMaterialIndex];
+		//If we have all skinxx material name we have to re-order to skinxx workflow
+		int32 Offset = FbxMaterialName.Find(TEXT("_SKIN"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+		if (Offset == INDEX_NONE)
+		{
+			IsUsingSkinxxWorkflow = false;
+			MeshMaterialsSkinXX.Empty();
+			break;
+		}
+		int32 SkinIndex = INDEX_NONE;
+		// Chop off the material name so we are left with the number in _SKINXX
+		FString SkinXXNumber = FbxMaterialName.Right(FbxMaterialName.Len() - (Offset + 1)).RightChop(4);
+		if (SkinXXNumber.IsNumeric())
+		{
+			SkinIndex = FPlatformString::Atoi(*SkinXXNumber);
+		}
+
+		if (SkinIndex >= MeshMaterialsSkinXX.Num())
+		{
+			MeshMaterialsSkinXX.AddZeroed((SkinIndex + 1) - MeshMaterialsSkinXX.Num());
+		}
+		if (MeshMaterialsSkinXX.IsValidIndex(SkinIndex))
+		{
+			MeshMaterialsSkinXX[SkinIndex] = FbxMaterialName;
+		}
+		else
+		{
+			//Cannot reorder this item
+			IsUsingSkinxxWorkflow = false;
+			MeshMaterialsSkinXX.Empty();
+			break;
+		}
+	}
+
+	if (IsUsingSkinxxWorkflow)
+	{
+		//Shrink the array to valid entry, in case the skinxx has some hole like _skin[01, 02, 04, 05...]
+		for (int32 FbxMaterialIndex = MeshMaterialsSkinXX.Num() - 1; FbxMaterialIndex >= 0; --FbxMaterialIndex)
+		{
+			const FString &FbxMaterial = MeshMaterialsSkinXX[FbxMaterialIndex];
+			if (FbxMaterial.IsEmpty())
+			{
+				MeshMaterialsSkinXX.RemoveAt(FbxMaterialIndex);
+			}
+		}
+		//Replace the fbx ordered materials by the skinxx ordered material
+		MeshMaterials = MeshMaterialsSkinXX;
+	}
+
+	//Reorder the StaticMaterials array to reflect the order in the fbx file
+	//So we make sure the order reflect the material ID in the DCCs
+	FMeshSectionInfoMap OldSectionInfoMap = StaticMesh->SectionInfoMap;
+	TArray<int32> FbxRemapMaterials;
+	TArray<FStaticMaterial> NewStaticMaterials;
+	for (int32 FbxMaterialIndex = 0; FbxMaterialIndex < MeshMaterials.Num(); ++FbxMaterialIndex)
+	{
+		const FString &FbxMaterial = MeshMaterials[FbxMaterialIndex];
+		int32 FoundMaterialIndex = INDEX_NONE;
+		for (int32 BuildMaterialIndex = 0; BuildMaterialIndex < StaticMesh->StaticMaterials.Num(); ++BuildMaterialIndex)
+		{
+			FStaticMaterial &BuildMaterial = StaticMesh->StaticMaterials[BuildMaterialIndex];
+			if (FbxMaterial.Compare(BuildMaterial.ImportedMaterialSlotName.ToString()) == 0)
+			{
+				FoundMaterialIndex = BuildMaterialIndex;
+				break;
+			}
+		}
+
+		if (FoundMaterialIndex != INDEX_NONE)
+		{
+			FbxRemapMaterials.Add(FoundMaterialIndex);
+			NewStaticMaterials.Add(StaticMesh->StaticMaterials[FoundMaterialIndex]);
+		}
+	}
+	//Add the materials not used by the LOD 0 at the end of the array. The order here is irrelevant since it can be used by many LOD other then LOD 0 and in different order
+	for (int32 BuildMaterialIndex = 0; BuildMaterialIndex < StaticMesh->StaticMaterials.Num(); ++BuildMaterialIndex)
+	{
+		const FStaticMaterial &StaticMaterial = StaticMesh->StaticMaterials[BuildMaterialIndex];
+		bool bFoundMaterial = false;
+		for (const FStaticMaterial &BuildMaterial : NewStaticMaterials)
+		{
+			if (StaticMaterial == BuildMaterial)
+			{
+				bFoundMaterial = true;
+				break;
+			}
+		}
+		if (!bFoundMaterial)
+		{
+			FbxRemapMaterials.Add(BuildMaterialIndex);
+			NewStaticMaterials.Add(StaticMaterial);
+		}
+	}
+
+	StaticMesh->StaticMaterials.Empty();
+	for (const FStaticMaterial &BuildMaterial : NewStaticMaterials)
+	{
+		StaticMesh->StaticMaterials.Add(BuildMaterial);
+	}
+
+	//Remap the material instance of the staticmaterial array and remap the material index of all sections
+	for (int32 LODResoureceIndex = 0; LODResoureceIndex < StaticMesh->RenderData->LODResources.Num(); ++LODResoureceIndex)
+	{
+		FStaticMeshLODResources& LOD = StaticMesh->RenderData->LODResources[LODResoureceIndex];
+		int32 NumSections = LOD.Sections.Num();
+		for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
+		{
+			FMeshSectionInfo Info = OldSectionInfoMap.Get(LODResoureceIndex, SectionIndex);
+			int32 RemapIndex = FbxRemapMaterials.Find(Info.MaterialIndex);
+			if (StaticMesh->StaticMaterials.IsValidIndex(RemapIndex))
+			{
+				Info.MaterialIndex = RemapIndex;
+				StaticMesh->SectionInfoMap.Set(LODResoureceIndex, SectionIndex, Info);
+				StaticMesh->OriginalSectionInfoMap.Set(LODResoureceIndex, SectionIndex, Info);
+			}
+		}
+	}
+}
+
+void UnFbx::FFbxImporter::PostImportStaticMesh(UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray, int32 LODIndex)
 {
 	if (StaticMesh == nullptr)
 	{
@@ -1703,160 +1861,10 @@ void UnFbx::FFbxImporter::PostImportStaticMesh(UStaticMesh* StaticMesh, TArray<F
 	}
 
 	//If there is less the 2 materials in the fbx file there is no need to reorder them
-	if (StaticMesh->StaticMaterials.Num() < 2)
+	//If we have import a LOD other then the base, the material array cannot be sorted, because only the base LOD reorder the material array
+	if (LODIndex == 0 && StaticMesh->StaticMaterials.Num() > 1)
 	{
-		return;
-	}
-
-	TArray<FString> MeshMaterials;
-	for (int32 MeshIndex = 0; MeshIndex < MeshNodeArray.Num(); MeshIndex++)
-	{
-		FbxNode* Node = MeshNodeArray[MeshIndex];
-		if (Node->GetMesh())
-		{
-			int32 MaterialCount = Node->GetMaterialCount();
-
-			for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; MaterialIndex++)
-			{
-				//Get the original fbx import name
-				FbxSurfaceMaterial *FbxMaterial = Node->GetMaterial(MaterialIndex);
-				FString FbxMaterialName = FbxMaterial ? ANSI_TO_TCHAR(FbxMaterial->GetName()) : TEXT("None");
-				if (!MeshMaterials.Contains(FbxMaterialName))
-				{
-					MeshMaterials.Add(FbxMaterialName);
-				}
-			}
-		}
-	}
-
-	//There is no material in the fbx node
-	if (MeshMaterials.Num() < 1)
-	{
-		return;
-	}
-
-	//If there is some skinxx material name we will reorder the material to follow the skinxx workflow instead of the fbx order
-	bool IsUsingSkinxxWorkflow = true;
-	TArray<FString> MeshMaterialsSkinXX;
-	MeshMaterialsSkinXX.AddZeroed(MeshMaterials.Num());
-	for (int32 FbxMaterialIndex = 0; FbxMaterialIndex < MeshMaterials.Num(); ++FbxMaterialIndex)
-	{
-		const FString &FbxMaterialName = MeshMaterials[FbxMaterialIndex];
-		//If we have all skinxx material name we have to re-order to skinxx workflow
-		int32 Offset = FbxMaterialName.Find(TEXT("_SKIN"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-		if (Offset == INDEX_NONE)
-		{
-			IsUsingSkinxxWorkflow = false;
-			MeshMaterialsSkinXX.Empty();
-			break;
-		}
-		int32 SkinIndex = INDEX_NONE;
-		// Chop off the material name so we are left with the number in _SKINXX
-		FString SkinXXNumber = FbxMaterialName.Right(FbxMaterialName.Len() - (Offset + 1)).RightChop(4);
-		if (SkinXXNumber.IsNumeric())
-		{
-			SkinIndex = FPlatformString::Atoi(*SkinXXNumber);
-		}
-
-		if (SkinIndex >= MeshMaterialsSkinXX.Num())
-		{
-			MeshMaterialsSkinXX.AddZeroed((SkinIndex + 1) - MeshMaterialsSkinXX.Num());
-		}
-		if (MeshMaterialsSkinXX.IsValidIndex(SkinIndex))
-		{
-			MeshMaterialsSkinXX[SkinIndex] = FbxMaterialName;
-		}
-		else
-		{
-			//Cannot reorder this item
-			IsUsingSkinxxWorkflow = false;
-			MeshMaterialsSkinXX.Empty();
-			break;
-		}
-	}
-
-	if (IsUsingSkinxxWorkflow)
-	{
-		//Shrink the array to valid entry, in case the skinxx has some hole like _skin[01, 02, 04, 05...]
-		for (int32 FbxMaterialIndex = MeshMaterialsSkinXX.Num() - 1; FbxMaterialIndex >= 0; --FbxMaterialIndex)
-		{
-			const FString &FbxMaterial = MeshMaterialsSkinXX[FbxMaterialIndex];
-			if (FbxMaterial.IsEmpty())
-			{
-				MeshMaterialsSkinXX.RemoveAt(FbxMaterialIndex);
-			}
-		}
-		//Replace the fbx ordered materials by the skinxx ordered material
-		MeshMaterials = MeshMaterialsSkinXX;
-	}
-
-	//Reorder the StaticMaterials array to reflect the order in the fbx file
-	//So we make sure the order reflect the material ID in the DCCs
-	FMeshSectionInfoMap OldSectionInfoMap = StaticMesh->SectionInfoMap;
-	TArray<int32> FbxRemapMaterials;
-	TArray<FStaticMaterial> NewStaticMaterials;
-	for (int32 FbxMaterialIndex = 0; FbxMaterialIndex < MeshMaterials.Num(); ++FbxMaterialIndex)
-	{
-		const FString &FbxMaterial = MeshMaterials[FbxMaterialIndex];
-		int32 FoundMaterialIndex = INDEX_NONE;
-		for (int32 BuildMaterialIndex = 0; BuildMaterialIndex < StaticMesh->StaticMaterials.Num(); ++BuildMaterialIndex)
-		{
-			FStaticMaterial &BuildMaterial = StaticMesh->StaticMaterials[BuildMaterialIndex];
-			if (FbxMaterial.Compare(BuildMaterial.ImportedMaterialSlotName.ToString()) == 0)
-			{
-				FoundMaterialIndex = BuildMaterialIndex;
-				break;
-			}
-		}
-		
-		if (FoundMaterialIndex != INDEX_NONE)
-		{
-			FbxRemapMaterials.Add(FoundMaterialIndex);
-			NewStaticMaterials.Add(StaticMesh->StaticMaterials[FoundMaterialIndex]);
-		}
-	}
-	//Add the materials not used by the LOD 0 at the end of the array. The order here is irrelevant since it can be used by many LOD other then LOD 0 and in different order
-	for (int32 BuildMaterialIndex = 0; BuildMaterialIndex < StaticMesh->StaticMaterials.Num(); ++BuildMaterialIndex)
-	{
-		const FStaticMaterial &StaticMaterial = StaticMesh->StaticMaterials[BuildMaterialIndex];
-		bool bFoundMaterial = false;
-		for (const FStaticMaterial &BuildMaterial : NewStaticMaterials)
-		{
-			if (StaticMaterial == BuildMaterial)
-			{
-				bFoundMaterial = true;
-				break;
-			}
-		}
-		if (!bFoundMaterial)
-		{
-			FbxRemapMaterials.Add(BuildMaterialIndex);
-			NewStaticMaterials.Add(StaticMaterial);
-		}
-	}
-
-	StaticMesh->StaticMaterials.Empty();
-	for (const FStaticMaterial &BuildMaterial : NewStaticMaterials)
-	{
-		StaticMesh->StaticMaterials.Add(BuildMaterial);
-	}
-
-	//Remap the material instance of the staticmaterial array and remap the material index of all sections
-	for (int32 LODResoureceIndex = 0; LODResoureceIndex < StaticMesh->RenderData->LODResources.Num(); ++LODResoureceIndex)
-	{
-		FStaticMeshLODResources& LOD = StaticMesh->RenderData->LODResources[LODResoureceIndex];
-		int32 NumSections = LOD.Sections.Num();
-		for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
-		{
-			FMeshSectionInfo Info = OldSectionInfoMap.Get(LODResoureceIndex, SectionIndex);
-			int32 RemapIndex = FbxRemapMaterials.Find(Info.MaterialIndex);
-			if (StaticMesh->StaticMaterials.IsValidIndex(RemapIndex))
-			{
-				Info.MaterialIndex = RemapIndex;
-				StaticMesh->SectionInfoMap.Set(LODResoureceIndex, SectionIndex, Info);
-				StaticMesh->OriginalSectionInfoMap.Set(LODResoureceIndex, SectionIndex, Info);
-			}
-		}
+		ReorderMaterialAfterImport(StaticMesh, MeshNodeArray);
 	}
 }
 
@@ -1927,7 +1935,7 @@ static void FindMeshSockets( FbxNode* StartNode, TArray<FbxSocketNode>& OutFbxSo
 		// Find null attributes, they cold be sockets
 		FbxNodeAttribute* Attribute = StartNode->GetNodeAttribute();
 
-		if( Attribute != NULL && Attribute->GetAttributeType() == FbxNodeAttribute::eNull )
+		if( Attribute != NULL && (Attribute->GetAttributeType() == FbxNodeAttribute::eNull || Attribute->GetAttributeType() == FbxNodeAttribute::eSkeleton))
 		{
 			// Is this prefixed correctly? If so it is a socket
 			FString SocketName = UTF8_TO_TCHAR( StartNode->GetName() );

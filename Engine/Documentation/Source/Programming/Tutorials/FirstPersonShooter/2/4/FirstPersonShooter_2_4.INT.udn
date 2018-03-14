@@ -21,7 +21,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 During this step, we're going to add the ability for our character to look around and steer with the mouse.
 
@@ -107,4 +107,3 @@ If you want to perform additional processing, such as adding support for sensiti
 
 1.	Press the Escape key or click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
-%Steps%

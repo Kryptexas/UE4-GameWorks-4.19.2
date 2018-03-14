@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3567323
+Availability:Docs
 Crumbs: %ROOT%
-Title: Create a New Global Shader as a Plugin
-Description: Creating and setting up a new Global shader via a Plugin.
+Title:将一个新全局着色器创建为插件
+Description:通过插件创建并设置一个新的全局着色器。
 Type: how-to
-SkillLevel: Advanced
-Version: 4.17
-Parent: Programming/Rendering/ShaderInPlugin
+SkillLevel:Advanced
+Version:4.17
+Parent:Programming/Rendering/ShaderInPlugin
 Order:1
 Tags:Rendering
 Tags:Render Targets
@@ -14,36 +14,31 @@ Tags:Plugin
 Checkpoint:shaderqs
 
 
-The Unreal Engine 4 (UE4) Plugin system allows anyone to add a wide range of new functionality to UE4 without the need to recompile and distribute the entire engine. In the following How - To we will recreate the Lens Distortion global shader plugin to demonstrate how you would go about implementing a global shader that is controllable via Blueprints.
+虚幻引擎 4 插件系统能帮助用户添加大量新功能，而无需重编译和发布整个引擎。在以下指南中，我们将重建光学变形（Lens Distortion）全局着色器，展示如何实现可由蓝图进行控制的全局着色器。
 
 [REGION:lightbox]
 [![](HT_Hero_Image.png)(w:600)](HT_Hero_Image.png)
 [/REGION]
 
 [REGION:caption]
-Click for full image.
+点击查看全图。
 [/REGION]
 
 [region:note]
-For this example, we will be re-creating the existing Lens Distortion plugin that can be found in **Engine\Plugins\Compositing\LensDistortion** to a new Plugin called **Foo** to demonstrate how you would implement this workflow.
+在此例中，我们将重建现有的 Lens Distortion 插件（位于 **Engine\Plugins\Compositing\LensDistortion** 中），将其改为名为 **Foo** 的新插件，展示此工作流的实现过程。
 [/region]
 
-The Shaders in Plugins Quick Start will walk you through creating and using global shader as a Plugin. 
+Shaders in 插件快速入门将指导您创建全局着色器并用作插件。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Programming\Rendering\ShaderInPlugin\QuickStart\1 "%Programming\Rendering\ShaderInPlugin\QuickStart\1:description%")
-	* [](Programming\Rendering\ShaderInPlugin\QuickStart\2 "%Programming\Rendering\ShaderInPlugin\QuickStart\2:description%")
-	[/PARAM]
-[/OBJECT]
-Programming\Rendering\ShaderInPlugin\QuickStart\2
+## 步骤
+
+[REGION:buttonlist]
+
+	[DIR(output:"checkpoint" parent:"Programming\Rendering\ShaderInPlugin\QuickStart" org:"hierarchy")]
+	
+[/REGION]
 
 
+[REGION:call_to_action]
+	[Click to Start](Programming\Rendering\ShaderInPlugin\QuickStart\1 "%Programming\Rendering\ShaderInPlugin\QuickStart\1:title%")
+[/REGION]

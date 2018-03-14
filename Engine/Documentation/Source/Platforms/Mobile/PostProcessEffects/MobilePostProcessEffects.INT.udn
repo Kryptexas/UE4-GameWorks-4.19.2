@@ -3,7 +3,7 @@ Title:Post Process Effects on Mobile Platforms
 Crumbs:
 Description:Using Post Process Effects on mobile games.
 Platform:Mobile
-Version: 4.16
+Version: 4.17
 parent:Platforms/Mobile
 order:5
 type:overview
@@ -39,17 +39,17 @@ To use the Tonemapper Post Processing options on Mobile Devices, you will need t
 
 ### Enabling Tonemapper Film via the Console
 You can enable the Tonemapper in the UE4 Editor by first opening up the console by pressing the **Backtick key(`)** and then entering the following command:
-* **r.tonemapperfilm 1** 
+* ** r.Mobile.TonemapperFilm 1** 
 
 To disable the Tonemapper, open up the console and enter the following command:
-*  **r.tonemapperfilm 0**. 
+*  ** r.Mobile.TonemapperFilm 0**
 
 [region:note]
 This method will enable the Tonemapper only for this session. If you want the Tonemapper to always be on you will need to add the Tonemapper settings you want to use to the DefaultEngine.INI.
 [/region]
 
 [REGION:lightbox]
-[![](TM_Console.png)(w:468 h:315)](TM_Console.png)
+[![](TM_Console.png)(w:468)](TM_Console.png)
 [/REGION]
 
 [REGION:caption]
@@ -60,7 +60,7 @@ Click for full image.
 To enable or disable the Tonemapper project wide you will need to add **r.tonemapperfilm=1** to the **Rendering Settings** section of your project's **DefaultEngine.ini** file.
 
 [REGION:lightbox]
-[![](TM_Default_Engine_INI.png)(w:422 h:199)](TM_Default_Engine_INI.png)
+[![](TM_Default_Engine_INI.png)(w:422)](TM_Default_Engine_INI.png)
 [/REGION]
 	
 [REGION:caption]
@@ -68,7 +68,7 @@ Click for full image.
 [/REGION]
 
 [REGION:lightbox]
-[![](TM_INI_Location.png)(w:422 h:199)](TM_INI_Location.png)
+[![](TM_INI_Location.png)(w:422)](TM_INI_Location.png)
 [/REGION]
 	
 [REGION:caption]
@@ -79,7 +79,7 @@ Click for full image.
 To enable or disable the Tonemapper on a Mobile Device you will need to tap the screen with **four fingers** at the same time to bring up the **Console Window** and then input **r.tonemapperfilm 1** to enable the Tonemapper or **r.tonemapperfilm 0** to disable the Tonemapper.
 
 [REGION:lightbox]
-[![](TM_Phone_Console.png)(w:640 h:360)](TM_Phone_Console.png)
+[![](TM_Phone_Console.png)(w:640)](TM_Phone_Console.png)
 [/REGION]
 	
 [REGION:caption]
@@ -90,7 +90,7 @@ Click for full image.
 In the following section we will go over what Post Process Effects and settings are supported on Mobile devices, as well as whether they require the tonemapper to be enabled.
 
 [REGION:lightbox]
-[![](TM_PostProcess_Settings.png)(w:275 h:355)](TM_PostProcess_Settings.png)
+[![](TM_PostProcess_Settings.png)(w:275)](TM_PostProcess_Settings.png)
 [/REGION]
 	
 [REGION:caption]
@@ -221,7 +221,7 @@ In the **Lens** section, you'll find the supported properties that enable you to
 |**Bokeh Shape**|No|n/a|
 |**Tints #012345678**|No|n/a|
 |[REGION:tablesection] Depth of Field [/REGION] |||
-|**BokehDOF**|Yes|0 |
+|**BokehDOF**|No|n/a |
 |**GaussianDOF**|Yes|0 |
 |**CircleDOF**|No|n/a |
 |**High Quality Gaussian DoF on Mobile**|Yes|1|
@@ -337,7 +337,8 @@ You now use **Custom Depth** Post Process option with the Mobile Rendering path.
 | Custom Depth | Custom Stencil  |
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:customdepth]
 [REGION:raw]
 ![](Custom_Scene_Depth.png)(w:575)
@@ -349,7 +350,8 @@ You now use **Custom Depth** Post Process option with the Mobile Rendering path.
 ![](Custom_Stencil.png)(w:575)
 [/REGION]
 [/EXCERPT:customstencil]
---->
+-
+[/COMMENT]
 
 
 ## General Post Process Performance Tips

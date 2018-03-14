@@ -21,7 +21,7 @@ SkillLevel:Advanced
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在这个最后一节中，我们通过添加**Prone**状态以及到/从它的过渡，完成**State Machine**。 
 
@@ -111,7 +111,7 @@ SkillLevel:Advanced
 
 还有几种可以添加到该状态机的其它状态（死亡、刷新等），或者你可以将现有动作换成自己的动作。不论是哪个情况，你现在应该了解如何在**Blueprints**中设置人物动作，用**Animation Blueprint**定义动画状态，以及如何通过**Blend Spaces**混合动画。 
 
-%Steps%
+
 
 
 

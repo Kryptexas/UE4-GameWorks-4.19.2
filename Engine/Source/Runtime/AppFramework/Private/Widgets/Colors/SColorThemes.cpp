@@ -1,10 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/Colors/SColorThemes.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Layout/ArrangedChildren.h"
 #include "Application/SlateWindowHelper.h"
 #include "SlateOptMacros.h"
+#include "Styling/CoreStyle.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SEditableTextBox.h"
@@ -232,7 +233,7 @@ void SThemeColorBlock::Construct(const FArguments& InArgs )
 
 	DistanceDragged = 0;
 
-	const FSlateFontInfo SmallLayoutFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 9 );
+	const FSlateFontInfo SmallLayoutFont = FCoreStyle::GetDefaultFontStyle("Regular", 9);
 
 	TSharedPtr<SToolTip> ColorTooltip =
 		SNew(SToolTip)
@@ -699,7 +700,7 @@ void SThemeColorBlocksBar::Construct(const FArguments& InArgs)
 			.Content()
 			[
 				SNew(STextBlock)
-					.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8))
+					.Font(FCoreStyle::GetDefaultFontStyle("Regular", 8))
 					.Text(InArgs._EmptyText)
 			];
 	}
@@ -731,7 +732,7 @@ void SColorThemeBar::Construct(const FArguments& InArgs)
 					[
 						SAssignNew(ThemeNameText, STextBlock)
 							.Text(this, &SColorThemeBar::GetThemeName)
-							.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10))
+							.Font(FCoreStyle::GetDefaultFontStyle("Regular", 10))
 					]
 
 				+ SHorizontalBox::Slot()
@@ -782,7 +783,7 @@ void SColorThemesViewer::Construct(const FArguments& InArgs)
 
 	LoadColorThemesFromIni();
 
-	const FSlateFontInfo SmallLayoutFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 );
+	const FSlateFontInfo SmallLayoutFont = FCoreStyle::GetDefaultFontStyle("Regular", 10);
 
 	// different menus that could be visible for the color themes menu
 	// standard menu with "new", "rename" and "delete"

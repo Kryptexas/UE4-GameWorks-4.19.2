@@ -69,7 +69,7 @@ The following table details the **Layer Blend node's** inputs and outputs.
 
 
 When using certain combinations of layer blend modes you could end up with black spots all over your Landscape where different layers meet. This problem is especially prevalent when using the LB_HeightBlend mode for multiple Landscape layers. LB_HeightBlend works by modulating the blend factor, or weight, for the layer using the specified height value. When you have multiple layers painted on an area and they all are set to LB_HeightBlend, it is possible that all the layers painted in a particular area will simultaneously have a 0 height value, so the desired blend factor for each layer becomes 0. Because there is no implicit or explicit ordering, the result will be black spots because no layers will have any contribution to that area. The situation is worse when you are blending a Normal map, because it results in a Normal value of (0,0,0) which is not valid and will cause rendering problems with the lighting. The solution to this problem is to use **LB_AlphaBlend** for one of the layers like in the following example. 
-![LB_HeightBlend Problem](HeightBlendProblem.jpg)(w:800 h:238)
+![LB_HeightBlend Problem](HeightBlendProblem.jpg)(w:800)
 
 In the left image, all layers are LB_HeightBlend, causing some areas to be black. On the right, the red "1" layer has been changed to use LB_AlphaBlend, which solves the problem.
 
@@ -187,8 +187,10 @@ Because Layer names must be unique, it is a best practice to give each layer a d
 
 1. In the **Details** panel, change the **Parameter Name** to a descriptive name for the layer, for example, "Rock".
 
-	![Layer Name](Landscape_Mat_ParamName.png)<br/>
-	After you enter a **Parameter Name**, it will be updated on the node itself.<br/>
+	![Layer Name](Landscape_Mat_ParamName.png)
+
+	After you enter a **Parameter Name**, it will be updated on the node itself.
+
 	![](Landscape_Layer_Weight_Named_Layer.png)
 
 1. Add additional **LandscapeLayerWeight** nodes, until you have one for each layer that you want your Material to have. In this example, we are going to be using just two **LandscapeLayerWeight** nodes.
@@ -293,11 +295,13 @@ You can use the same Material for your Landscape Material and your Landscape Hol
 
 	![](Landscape_BaseNodeOpacity.png)
 
-	<!--
+	[COMMENT:none]
+
 	[REGION:tip]
 	If you are using a separate Material for your Landscape hole you need to make sure that you also have a texture feeding into the Base Color slot or when you try and make parts of your Landscape invisible you will end up turning parts of your Landscape black.
 	[/REGION]
-	-->
+	
+[/COMMENT]
 
 1. Next, search for and add a **LandscapeVisibilityMask** node to the Material Graph and connect its output to the **Opacity Mask** input.
 
@@ -358,11 +362,13 @@ You can assign a different Material to act as the **Landscape Hole Material**, w
 For information about using Landscape Hole Materials, see [Using Opacity Masking to Create a Hole](Engine\Landscape\Editing\SculptMode\#UsingOpacityMaskingtoCreateaHole).
 [/REGION]
 
-<!--
-![Landscape_Material_Default.png](Landscape_Material_Default.png)(w:900 h:327)
+[COMMENT:none]
 
-![Landscape_Material_Viewport.png](Landscape_Material_Viewport.png)(w:900 h:327)
--->
+![Landscape_Material_Default.png](Landscape_Material_Default.png)(w:900)
+
+![Landscape_Material_Viewport.png](Landscape_Material_Viewport.png)(w:900)
+
+[/COMMENT]
 
 ## Tessellation and Displacement
 

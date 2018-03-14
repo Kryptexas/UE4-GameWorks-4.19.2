@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+ * Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
  */
 
 using System;
@@ -160,7 +160,7 @@ namespace iPhonePackager
 
 			SSHProcess.StartInfo.FileName = SSHExePath;
 			SSHProcess.StartInfo.Arguments = string.Format(
-				"{0} {1}@{2} \"{3}\"",
+				"{0} \"{1}@{2}\" \"{3}\"",
 				SSHAuthentication,
 				SSHUser,
 				RemoteMac,
@@ -260,7 +260,7 @@ namespace iPhonePackager
 			// make simple rsync commandline to send a file
 			RsyncProcess.StartInfo.FileName = RSyncExePath;
 			RsyncProcess.StartInfo.Arguments = string.Format(
-				"-zae \"ssh {0}\" --rsync-path=\"mkdir -p {1} && rsync\" --chmod=ug=rwX,o=rxX '{2}' {3}@{4}:'{1}/{5}'",
+                "-zrltgoDe \"ssh {0}\" --rsync-path=\"mkdir -p {1} && rsync\" --chmod=ug=rwX,o=rxX '{2}' \"{3}@{4}\":'{1}/{5}'",
 				SSHAuthentication,
 				RemoteDir,
 				ConvertPathToCygwin(LocalPath),
@@ -316,7 +316,7 @@ namespace iPhonePackager
 			// make simple rsync commandline to send a file
 			RsyncProcess.StartInfo.FileName = RSyncExePath;
 			RsyncProcess.StartInfo.Arguments = string.Format(
-				"-zae \"ssh {0}\" {2}@{3}:'{4}' \"{1}\"",
+                "-zrltgoDe \"ssh {0}\" \"{2}@{3}\":'{4}' \"{1}\"",
 				SSHAuthentication,
 				ConvertPathToCygwin(LocalPath),
 				SSHUser,

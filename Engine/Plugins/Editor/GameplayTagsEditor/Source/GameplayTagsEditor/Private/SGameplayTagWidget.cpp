@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SGameplayTagWidget.h"
 #include "Misc/ConfigCacheIni.h"
@@ -27,7 +27,7 @@
 #include "SAddNewGameplayTagWidget.h"
 #include "SRenameGameplayTagDialog.h"
 #include "AssetData.h"
-#include "Editor/ReferenceViewer/Public/ReferenceViewer.h"
+#include "AssetManagerEditorModule.h"
 #include "Framework/Commands/UIAction.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 
@@ -681,7 +681,7 @@ TSharedRef<SWidget> SGameplayTagWidget::MakeTagActionsMenu(TSharedPtr<FGameplayT
 	}
 
 	// Search for References
-	if (IReferenceViewerModule::IsAvailable())
+	if (IAssetManagerEditorModule::IsAvailable())
 	{
 		FExecuteAction SearchForReferencesAction = FExecuteAction::CreateSP(this, &SGameplayTagWidget::OnSearchForReferences, InTagNode);
 
@@ -717,14 +717,14 @@ void SGameplayTagWidget::OnDeleteTag(TSharedPtr<FGameplayTagNode> InTagNode)
 
 void SGameplayTagWidget::OnSearchForReferences(TSharedPtr<FGameplayTagNode> InTagNode)
 {
-	if (InTagNode.IsValid() && IReferenceViewerModule::IsAvailable())
+	if (InTagNode.IsValid() && IAssetManagerEditorModule::IsAvailable())
 	{
-		IReferenceViewerModule& ReferenceViewer = IReferenceViewerModule::Get();
+		IAssetManagerEditorModule& ManagerEditorModule = IAssetManagerEditorModule::Get();
 
 		TArray<FAssetIdentifier> AssetIdentifiers;
 		AssetIdentifiers.Add(FAssetIdentifier(FGameplayTag::StaticStruct(), InTagNode->GetCompleteTagName()));
 
-		ReferenceViewer.InvokeReferenceViewerTab(AssetIdentifiers);
+		ManagerEditorModule.OpenReferenceViewerUI(AssetIdentifiers);
 	}
 }
 

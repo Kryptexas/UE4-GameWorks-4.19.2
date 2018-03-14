@@ -98,11 +98,13 @@ Flatten 工具直接将所选图层的权重设为 **Tool Strength** 滑条的�
 | --- | --- |
 | **Flatten Mode** | 决定工具将增加或减少（或两者皆执行）对所选图层权重的应用。|
 
-<!----
+[COMMENT:none]
+--
 | **Use Slope Flatten** | 勾选后将沿地形现有的斜坡进行扁平。|
 | **Pick Value Per Apply** | 勾选后，将固定选择新数值进行扁平，而非只使用首个点击点。|
 | **Flatten Target** | 设置进行扁平的目标值。|
----->
+--
+[/COMMENT]
 
 
 ### Noise
@@ -159,7 +161,9 @@ Flatten 工具直接将所选图层的权重设为 **Tool Strength** 滑条的�
 ![](WeightBlended_NonWeightBlended.png)
 1. 选择图层信息物体的保存位置。
 
-<!-- 混合权重与非混合权重之间的区别是什么？ -->
+[COMMENT:none]
+ 混合权重与非混合权重之间的区别是什么？ 
+[/COMMENT]
 
 创建图层信息物体后，它被视为 **Content Browser** 中的资源，如下图所示：
 

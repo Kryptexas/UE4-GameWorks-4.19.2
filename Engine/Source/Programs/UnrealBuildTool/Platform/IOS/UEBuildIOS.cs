@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -143,6 +143,12 @@ namespace UnrealBuildTool
 		public readonly bool bAutomaticSigning = false;
 
 		/// <summary>
+		/// The IOS Team ID
+		/// </summary>
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "IOSTeamID")]
+		public readonly string TeamID = "";
+
+		/// <summary>
 		/// true to change FORCEINLINE to a regular INLINE.
 		/// </summary>
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDisableForceInline")]
@@ -263,6 +269,7 @@ namespace UnrealBuildTool
 		public string SigningCertificate;
 		public string MobileProvision;
         public string MobileProvisionUUID;
+        public string MobileProvisionName;
         public string TeamUUID;
 		public bool bHaveCertificate = false;
 
@@ -396,6 +403,16 @@ namespace UnrealBuildTool
 							TeamUUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
 						}
 					}
+                    idx = AllText.IndexOf("<key>Name</key>");
+                    if (idx > 0)
+                    {
+                        idx = AllText.IndexOf("<string>", idx);
+                        if (idx > 0)
+                        {
+                            idx += "<string>".Length;
+                            MobileProvisionName = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
+                        }
+                    }
 				}
 
 				if (string.IsNullOrEmpty(MobileProvisionUUID) || string.IsNullOrEmpty(TeamUUID))
@@ -475,7 +492,8 @@ namespace UnrealBuildTool
 			Target.bBuildEditor = false;
 			Target.bBuildDeveloperTools = false;
 			Target.bCompileAPEX = false;
-			Target.bCompileSimplygon = false;
+            Target.bCompileNvCloth = false;
+            Target.bCompileSimplygon = false;
             Target.bCompileSimplygonSSF = false;
 			Target.bBuildDeveloperTools = false;
 		}
@@ -618,23 +636,7 @@ namespace UnrealBuildTool
 		{
 			IOSToolChain.PostCodeGeneration(Manifest);
 		}
-
-		public bool HasIcons(DirectoryReference ProjectDirectoryName)
-		{
-			string IconDir = (((ProjectDirectoryName != null) ? ProjectDirectoryName.ToString() : (string.IsNullOrEmpty(UnrealBuildTool.GetRemoteIniPath()) ? UnrealBuildTool.EngineDirectory.ToString() : UnrealBuildTool.GetRemoteIniPath()))) + "/Build/" + (this.Platform == UnrealTargetPlatform.IOS ? "IOS" : "TVOS") + "/Resources/Graphics";
-
-			if (Directory.Exists(IconDir))
-			{
-				FileInfo[] Files = (new DirectoryInfo(IconDir).GetFiles("Icon*.*", SearchOption.AllDirectories));
-				if (Files.Length > 0)
-				{
-					return true;
-				}
-			}
-
-			return false;
-		}
-
+		
 		/// <summary>
 		/// Check for the default configuration
 		/// return true if the project uses the default build config
@@ -656,12 +658,6 @@ namespace UnrealBuildTool
 			// look up iOS specific settings
 			if (!DoProjectSettingsMatchDefault(Platform, ProjectDirectoryName, "/Script/IOSRuntimeSettings.IOSRuntimeSettings",
 					BoolKeys, null, StringKeys))
-			{
-				return false;
-			}
-
-			// check to see if we need to build an asset catalog
-			if (HasIcons(ProjectDirectoryName))
 			{
 				return false;
 			}
@@ -786,7 +782,7 @@ namespace UnrealBuildTool
 			CompileEnvironment.Definitions.Add("USE_NULL_RHI=0");
 			CompileEnvironment.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
 
-			IOSProjectSettings ProjectSettings = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS)).ReadProjectSettings(Target.ProjectFile);
+			IOSProjectSettings ProjectSettings = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(Target.Platform)).ReadProjectSettings(Target.ProjectFile);
 			if (ProjectSettings.bNotificationsEnabled)
 			{
 				CompileEnvironment.Definitions.Add("NOTIFICATIONS_ENABLED=1");

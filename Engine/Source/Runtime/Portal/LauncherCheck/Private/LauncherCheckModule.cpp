@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Templates/UnrealTemplate.h"
@@ -8,8 +8,8 @@
 #include "Misc/CommandLine.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
+#include "HAL/PlatformProcess.h"
 #include "ILauncherCheckModule.h"
-
 
 #if defined(WITH_LAUNCHERCHECK) && WITH_LAUNCHERCHECK
 
@@ -38,7 +38,7 @@ public:
 	*/
 	bool IsEnabled() const
 	{
-		return FParse::Param(FCommandLine::Get(), TEXT("NoEpicPortal")) == false;
+		return FParse::Param(FCommandLine::Get(), TEXT("NoEpicPortal")) == false && FParse::Param(FCommandLine::Get(), TEXT("q")) == false;
 	}
 
 public:

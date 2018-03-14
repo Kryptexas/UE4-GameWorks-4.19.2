@@ -1,10 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelSequenceActor.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/Texture2D.h"
 #include "Components/BillboardComponent.h"
 #include "LevelSequenceBurnIn.h"
+#include "DefaultLevelSequenceInstanceData.h"
 
 #if WITH_EDITOR
 	#include "PropertyCustomizationHelpers.h"
@@ -45,6 +46,10 @@ ALevelSequenceActor::ALevelSequenceActor(const FObjectInitializer& Init)
 
 	BindingOverrides = Init.CreateDefaultSubobject<UMovieSceneBindingOverrides>(this, "BindingOverrides");
 	BurnInOptions = Init.CreateDefaultSubobject<ULevelSequenceBurnInOptions>(this, "BurnInOptions");
+	DefaultInstanceData = Init.CreateDefaultSubobject<UDefaultLevelSequenceInstanceData>(this, "InstanceData");
+
+	bOverrideInstanceData = false;
+
 	PrimaryActorTick.bCanEverTick = true;
 	bAutoPlay = false;
 }
@@ -214,10 +219,16 @@ void ALevelSequenceActor::InitializePlayer()
 
 	if (GetWorld()->IsGameWorld() && (LevelSequenceAsset != nullptr))
 	{
-		PlaybackSettings.BindingOverrides = BindingOverrides;
+		FMovieSceneSequencePlaybackSettings PlaybackSettingsCopy = PlaybackSettings;
+
+		PlaybackSettingsCopy.BindingOverrides = BindingOverrides;
+		if (bOverrideInstanceData)
+		{
+			PlaybackSettingsCopy.InstanceData = DefaultInstanceData;
+		}
 
 		SequencePlayer = NewObject<ULevelSequencePlayer>(this, "AnimationPlayer");
-		SequencePlayer->Initialize(LevelSequenceAsset, GetWorld(), PlaybackSettings);
+		SequencePlayer->Initialize(LevelSequenceAsset, GetWorld(), PlaybackSettingsCopy);
 		SequencePlayer->SetEventReceivers(TArray<UObject*>(AdditionalEventReceivers));
 
 		RefreshBurnIn();

@@ -1,27 +1,30 @@
-﻿INTSourceChangelist:3451711
+﻿INTSourceChangelist:3769005
 Availability:Public
 Title:4.応用編
 Crumbs:%ROOT%, Platforms/GearVR
-Description:このガイドで説明した方法を使って、追加のコンテンツでレベルにさらに磨きをかけます。関連トピックスのドキュメントも紹介します。 
+Description:操作ガイドで説明した内容を踏まえて、プラスアルファしたコンテンツを使ってレベルアップを目指します。関連トピックスのドキュメントも紹介します。 
 Navigation:platform
-Version:4.16
+Version:4.17
 Skilllevel:Intermediate
 tags:VR
-tags:GearVR
+tags:Gear VR
 type:multi-step
 parent:Platforms/GearVR/QuickStart
 order:4
 Checkpoint:GearVRQS
+Related:Platforms\GearVR\Prerequisites
+Related:Platforms\GearVR\BestPractices
+Related:Platforms\GearVR\Debugging
 
 [nav]
 
-Android のスマートフォンに UE4 プロジェクトをデプロイし、Gear VR HMD を使って表示したら、以下の項目を追加してみましょう。
+UE4 プロジェクトをデプロイし Gear VR HMD で表示したら、プロジェクトを使って次のことをやってみましょう。
 
 * [Migrate ツール](Engine/Content/Browser/UserGuide/Migrate/) を使って、コンテンツをモバイル コンテンツ サンプルから使用するプロジェクトに移動します。
 
 * Android スマートフォンへデプロイした時に、プロジェクトができるだけ速く実行するように [Default Device Profiles](Platforms/Mobile/Performance/TipsAndTricks) の設定を変更します。
 
-* [GPU Profiler](Engine/Performance/GPU/) を使って、ビルド中にプロジェクト パフォーマンスをトラックします。
+* [GPU Profiler](Engine/Performance/GPU/) を使うと、プロジェクト パフォーマンスをビルド中でも簡単にトラックすることができます。
 
 
 
@@ -29,7 +32,7 @@ Android のスマートフォンに UE4 プロジェクトをデプロイし、G
 
 * Android SDK の設定に関する詳細は、[Android SDK をインストールする](Platforms/Android/GettingStarted/1/) をご覧ください。
 
-* UE4 用 Android SDK の設定に関する詳細は、[Android デバイスを設定する](Platforms/Android/GettingStarted/2/) をご覧ください。
+* UE4 開発用に Android SDK を設定する方法の詳細は、[Android デバイスを設定する](Platforms/Android/GettingStarted/2/) をご覧ください。
 
 * Android デバイスがサポートする機能に関する詳細は [Android デバイスの互換性](Platforms/Android/DeviceCompatibility/) をご覧ください。
 

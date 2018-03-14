@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraNodeInput.h"
 #include "UObject/UnrealType.h"
@@ -12,16 +12,17 @@
 #include "NiagaraDataInterface.h"
 #include "SNiagaraGraphNodeInput.h"
 #include "NiagaraEditorUtilities.h"
-
+#include "NiagaraEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraNodeInput"
 
+DECLARE_CYCLE_STAT(TEXT("NiagaraEditor - UNiagaraNodeInput - SortNodes"), STAT_NiagaraEditor_UNiagaraNodeInput_SortNodes, STATGROUP_NiagaraEditor);
 
 UNiagaraNodeInput::UNiagaraNodeInput(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, DataInterface(nullptr)
-	, Usage(ENiagaraInputNodeUsage::Undefined)	
+	, Usage(ENiagaraInputNodeUsage::Undefined)
 	, CallSortPriority(0)
+	, DataInterface(nullptr)
 {
 	bCanRenameNode = true;
 }
@@ -62,8 +63,23 @@ void UNiagaraNodeInput::PostEditChangeProperty(struct FPropertyChangedEvent& Pro
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
+void UNiagaraNodeInput::PostLoad()
+{
+	Super::PostLoad();
+	if (DataInterface != nullptr)
+	{
+		DataInterface->OnChanged().AddUObject(this, &UNiagaraNodeInput::DataInterfaceChanged);
+	}
+}
+
 void UNiagaraNodeInput::BuildParameterMapHistory(FNiagaraParameterMapHistoryBuilder& OutHistory, bool bRecursive)
 {
+	if (!IsNodeEnabled() && OutHistory.GetIgnoreDisabled())
+	{
+		RouteParameterMapAroundMe(OutHistory, bRecursive);
+		return;
+	}
+
 	if (Input.GetType() == FNiagaraTypeDefinition::GetParameterMapDef())
 	{
 		int32 ParamMapIdx = OutHistory.FindMatchingParameterMapFromContextInputs(Input);
@@ -157,7 +173,7 @@ FName UNiagaraNodeInput::GenerateUniqueName(const UNiagaraGraph* Graph, FName& P
 		}
 	}
 
-	return FNiagaraEditorUtilities::GetUniqueName(ProposedName, FNiagaraEditorUtilities::GetSystemConstantNames().Union(InputNames));
+	return FNiagaraUtilities::GetUniqueName(ProposedName, FNiagaraEditorUtilities::GetSystemConstantNames().Union(InputNames));
 }
 
 bool UNiagaraNodeInput::VerifyNodeRenameTextCommit(const FText& NewText, UNiagaraNode* NodeBeingChanged, FText& OutErrorMessage)
@@ -266,7 +282,7 @@ void UNiagaraNodeInput::OnRenameNode(const FString& NewName)
 		Node->Input.SetName(FName(*NewName));
 		if (DataInterface != nullptr)
 		{
-			Node->DataInterface->Rename(*NewName);
+			Node->GetDataInterface()->Rename(*NewName);
 		}
 		Node->ReallocatePins();
 	}
@@ -370,7 +386,7 @@ void UNiagaraNodeInput::AutowireNewNode(UEdGraphPin* FromPin)
 
 			if (NumMatches == 0)
 			{
-				FString PinName = FromPin->PinFriendlyName.IsEmpty() ? FromPin->PinName : FromPin->PinFriendlyName.ToString();
+				const FString PinName = FromPin->PinFriendlyName.IsEmpty() ? FromPin->PinName.ToString() : FromPin->PinFriendlyName.ToString();
 				if (UNiagaraNodeOp* OpNode = Cast<UNiagaraNodeOp>(FromPin->GetOwningNode()))
 				{
 					const FNiagaraOpInfo* OpInfo = FNiagaraOpInfo::GetOpInfo(OpNode->OpName);
@@ -389,7 +405,7 @@ void UNiagaraNodeInput::AutowireNewNode(UEdGraphPin* FromPin)
 					CandidateName = (*PinName);
 				}
 
-				Input.SetName(FNiagaraEditorUtilities::GetUniqueName(CandidateName, FNiagaraEditorUtilities::GetSystemConstantNames().Union(InputNames)));
+				Input.SetName(FNiagaraUtilities::GetUniqueName(CandidateName, FNiagaraEditorUtilities::GetSystemConstantNames().Union(InputNames)));
 				CallSortPriority = HighestSortPriority + 1;
 			}
 			ReallocatePins();
@@ -419,6 +435,12 @@ void UNiagaraNodeInput::NotifyExposureOptionsChanged()
 
 void UNiagaraNodeInput::Compile(class FHlslNiagaraTranslator* Translator, TArray<int32>& Outputs)
 {
+	if (!IsNodeEnabled())
+	{
+		Outputs.Add(INDEX_NONE);
+		return;
+	}
+
 	int32 FunctionParam = INDEX_NONE;
 	if (IsExposed() && Translator->GetFunctionParameter(Input, FunctionParam))
 	{
@@ -434,7 +456,7 @@ void UNiagaraNodeInput::Compile(class FHlslNiagaraTranslator* Translator, TArray
 				if (Usage == ENiagaraInputNodeUsage::Parameter && DataInterface != nullptr)
 				{
 					check(Input.GetType().GetClass());
-					Outputs.Add(Translator->RegisterDataInterface(Input, DataInterface));
+					Outputs.Add(Translator->RegisterDataInterface(Input, DataInterface, false));
 					return;
 				}
 				else
@@ -453,7 +475,7 @@ void UNiagaraNodeInput::Compile(class FHlslNiagaraTranslator* Translator, TArray
 		if (DataInterface)
 		{
 			check(Input.GetType().GetClass());
-			Outputs.Add(Translator->RegisterDataInterface(Input, DataInterface)); break;
+			Outputs.Add(Translator->RegisterDataInterface(Input, DataInterface, false)); break;
 		}
 		else
 		{
@@ -470,6 +492,8 @@ void UNiagaraNodeInput::Compile(class FHlslNiagaraTranslator* Translator, TArray
 
 void UNiagaraNodeInput::SortNodes(TArray<UNiagaraNodeInput*>& InOutNodes)
 {
+	SCOPE_CYCLE_COUNTER(STAT_NiagaraEditor_UNiagaraNodeInput_SortNodes);
+
 	auto SortVars = [](UNiagaraNodeInput& A, UNiagaraNodeInput& B)
 	{
 		if (A.CallSortPriority < B.CallSortPriority)
@@ -485,6 +509,36 @@ void UNiagaraNodeInput::SortNodes(TArray<UNiagaraNodeInput*>& InOutNodes)
 		return A.Input.GetName().ToString() < B.Input.GetName().ToString();
 	};
 	InOutNodes.Sort(SortVars);
+}
+
+UNiagaraDataInterface* UNiagaraNodeInput::GetDataInterface() const
+{
+	return DataInterface;
+}
+
+void UNiagaraNodeInput::SetDataInterface(UNiagaraDataInterface* InDataInterface)
+{
+	if (DataInterface != nullptr)
+	{
+		DataInterface->OnChanged().RemoveAll(this);
+	}
+	DataInterface = InDataInterface;
+	if (DataInterface != nullptr)
+	{
+		DataInterface->OnChanged().AddUObject(this, &UNiagaraNodeInput::DataInterfaceChanged);
+	}
+	DataInterfaceChanged();
+}
+
+void UNiagaraNodeInput::DataInterfaceChanged()
+{
+	// Don't use GetNiagaraGraph() here since this may be called on a temporary node which isn't
+	// in a proper graph yet.
+	UNiagaraGraph* NiagaraGraph = Cast<UNiagaraGraph>(GetGraph());
+	if (NiagaraGraph != nullptr)
+	{
+		NiagaraGraph->NotifyGraphDataInterfaceChanged();
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

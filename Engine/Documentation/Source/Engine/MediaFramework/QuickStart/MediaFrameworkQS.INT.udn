@@ -1,0 +1,54 @@
+Availability:Public
+Title: Media Framework Quick Start
+Crumbs: %ROOT%, Engine
+Description: A guide on how to quickly add and play videos inside your game levels with the Media Framework tools. 
+Navigation:topic
+parent:Engine/MediaFramework
+order:1
+Version: 4.18
+type:quick start
+checkpoint:mediaframeworkqs
+tags:Media Framework
+topic-image:MediaFrameworkTopic.png
+
+![](MediaFrameworkHero.png)
+
+_At the end of this guide, you will have multiple TVs playing different content in your level that you can turn on or off when standing next to them._
+
+## Goals
+
+In the Media Framework Quick Start guide, we walk through setting up a television (TV) that can play videos inside your level. 
+We also set the TV up with Blueprints so the content on the TV can be changed and multiple TVs can be placed in the level, each with different content on them, if desired. 
+If you are new to the Media Framework tools, or want to know how to play videos on Static Meshes inside your levels, this guide is for you. 
+
+[REGION:note]
+This guide includes some setup using [](Engine/Rendering/Materials) and [Blueprints](Engine/Blueprints) to achieve the effect of a video playing on a TV. 
+Some prior knowledge of these topics is recommended but not required. 
+[/REGION]
+
+## Objectives
+
+After going through this tutorial, developers will know the following:
+
+*	How to import Media and use different Media Sources. 
+*	How to create a Material incorporating a Media Texture used to play media files. 
+*	How to start, stop, and pause playback of media using Blueprint. 
+*	How to create a TV Blueprint where you can specify what Media Source to use. 
+
+## Steps
+
+[DIR(output:"checkpoint" parent:"Engine\MediaFramework\QuickStart" org:"hierarchy")]
+
+[REGION:call_to_action]
+	[Click to Start](Engine\MediaFramework\QuickStart/1 "%Engine\MediaFramework\QuickStart/1:title%")
+[/REGION]
+
+
+
+
+
+
+
+
+
+

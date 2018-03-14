@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244012
+﻿INTSourceChangelist:3683933
 Availability: Public
 Title:스포너블 생성
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -11,6 +11,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 **마티네** 에서는 시네마틱의 모든 콘텐츠가 레벨 안에 있어서 마티네에 "빙의" 되어야지만 각 액터의 제어권을 획득하여 명령을 내릴 수가 있었습니다. 
 시퀀서 안에서도 그런 기능은 존재하지만, 시퀀서가 빙의할 필요는 없이 필요할 때 스폰되도록 하려는 액터가 있는 경우 **스포너블** 이란 개념도 있습니다.

@@ -1,6 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MixedRealityConfigurationSaveGame.h"
+
+UMixedRealityCalibrationData::UMixedRealityCalibrationData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{}
 
 UMixedRealityConfigurationSaveGame::UMixedRealityConfigurationSaveGame(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

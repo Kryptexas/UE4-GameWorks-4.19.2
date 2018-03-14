@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightRendering.h: Light rendering declarations.
@@ -12,6 +12,8 @@
 #include "GlobalShader.h"
 #include "ShadowRendering.h"
 #include "SceneRendering.h"
+
+FTextureRHIRef& GetEyeAdaptation(FRHICommandList& RHICmdList, const FSceneView& View);
 
 template<typename ShaderRHIParamRef>
 void SetSimpleDeferredLightParameters(
@@ -86,9 +88,14 @@ class TDeferredLightVS : public FGlobalShader
 	DECLARE_SHADER_TYPE(TDeferredLightVS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return bRadialLight ? IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) : true;
+		return bRadialLight ? IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4) : true;
+	}
+
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 	}
 
 	TDeferredLightVS()	{}
@@ -121,7 +128,9 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 	//~ End FShader Interface
+
 private:
+
 	FStencilingGeometryShaderParameters StencilingGeometryParameters;
 };
 

@@ -94,19 +94,25 @@ These arguments can be passed to either the game or the editor, depending on the
 * `COOKPACKAGES`: Tag to specify cooking packages.
 * `CRASHREPORTS`: Always report crashes of the engine.
 * `D3DDEBUG`: Use a d3d debug device.
+[COMMENT:none]
+
 * `DEBUG`: Tells the engine to send debug info to the debugger, or build debug packages during script compile. 
+
+[/COMMENT]
 * `DEVCON`: Disable secure connections for developers. (uses unencrypted sockets)
 * `DUMPFILEIOSTATS`: Track and log File IO statistics.
-* `DUMPUDKSURVEY`: Simply dump UDK hardware survey. No upload.
+[COMMENT:none]
+
 * `FATALSCRIPTWARNINGS`: Treat script warnings from debugging as fatal.
 * `FINAL_RELEASE`: Set the FINAL_RELEASE macro for script compiling.
+
+[/COMMENT]
 * `FIXEDSEED`: Initialize the random number generator with a fixed value, 0.
 * `FIXUPTANGENTS`: Fix legacy tangents in distributions automatically.
 * `FORCELOGFLUSH`: Force a log flush after each line.
 * `FORCEPVRTC`: Force pvrtc texture compression for mobile platform.
 * `FORCESOUNDRECOOK`: Force a complete re-cook of all sounds.
 * `GENERICBROWSER`: Use the Generic Browser.
-* `INCLUDEUTGAMECONTENT`: Set UTGameContent packages to be loaded.
 * `INSTALLED`: For development purposes, run the game as if installed.
 * `INSTALLFW` / `UNINSTALLFW`: Set whether the handling of the firewall integration should be performed.
 * `INSTALLGE`: Add the game to the **Game Explorer**.
@@ -120,13 +126,21 @@ These arguments can be passed to either the game or the editor, depending on the
 * `NOINNEREXCEPTION`: Disables the exception handler within native C++.
 * `NOLOADSTARTUPPACKAGES`: Force startup packages not to be loaded. You can use this if objects in a startup package must be deleted from within the editor.
 * `NOLOGTIMES`: Do not print time with log output.  (Same as setting LogTimes=False in the [LogFiles] section of *Engine.ini)
+[COMMENT:none]
+
 * `NOMODAUTOLOAD`: Do not automatically load mod classes.
+
+[/COMMENT]
 * `NOPAUSE`: Close the log window automatically on exit.
 * `NOPAUSEONSUCCESS`: Close the log window automatically on exit as long as no errors were present.
 * `NORC`: Disable the remote control. Used for dedicated servers.
 * `NOVERIFYGC`: Do not verify garbage compiler assumptions.
 * `NOWRITE`: Disable output to log.
+[COMMENT:none]
+
 * `OUTPUTHEADERS`: Force output of headers on script patch export. 
+
+[/COMMENT]
 * `SEEKFREELOADING`: Only use cooked data.
 * `SEEKFREEPACKAGEMAP`: Override the package map with the seekfree (cooked) version.
 * `SEEKFREELOADINGPCCONSOLE`: Only use cooked data for PC console mode.
@@ -140,7 +154,7 @@ These arguments can be passed to either the game or the editor, depending on the
 * `UNINSTALLGE`: Remove the game from the **Game Explorer**.
 * `USEUNPUBLISHED`: Force packages in the Unpublished folder to be used. (deprecated?)
 * `VADEBUG`: Use the Visual Studio debugger interface.
-* `VERBOSE`: Set script compiler to use verbose output.
+* `VERBOSE`: Set compiler to use verbose output.
 * `VERIFYGC`: Force garbage compiler assumptions to be verified.
 * `WARNINGSASERRORS`: Treat warnings as errors
 
@@ -220,7 +234,7 @@ These arguments can be passed to either the game or the editor, depending on the
 * `REGENERATEINIS`: forces .ini files to be regenerated.
 
 
-Another command line argument may be used to temporarily override which INIs are loaded by the game or editor. For example, if a custom 'MyGame.ini' is to be used instead of 'UDKGame.ini', the argument would be (i.e., -GAMEINI=MyGame.ini). This table lists the arguments used to override the different INI files used in UE4:
+Another command line argument may be used to temporarily override which INIs are loaded by the game or editor. For example, if a custom 'MyGame.ini' is to be used instead of 'MyOldGame.ini', the argument would be (i.e., -GAMEINI=MyGame.ini). This table lists the arguments used to override the different INI files used in UE4:
 
 | Commandline Argument | INI Override |
 | --- | --- |

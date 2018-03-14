@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -437,29 +437,17 @@ public:
 			CopyAndReseat(Other, Other.Ptr);
 		}
 
+	#else
+
+		TFunctionRef(const TFunctionRef&) = default;
+
 	#endif
 
 	// We delete the assignment operators because we don't want it to be confused with being related to
 	// regular C++ reference assignment - i.e. calling the assignment operator of whatever the reference
 	// is bound to - because that's not what TFunctionRef does, nor is it even capable of doing that.
-	#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-
-		#if !ENABLE_TFUNCTIONREF_VISUALIZATION
-			TFunctionRef(const TFunctionRef&) = default;
-		#endif
-		TFunctionRef& operator=(const TFunctionRef&) const = delete;
-		~TFunctionRef()                                    = default;
-
-	#else
-
-		// We mark copy assignment as private.  We don't define the others because it's mostly likely
-		// that this code path is only for VC and the compiler will still generate the others fine anyway,
-		// despite such behavior being deprecated.
-		private:
-			TFunctionRef& operator=(const TFunctionRef&) const;
-		public:
-
-	#endif
+	TFunctionRef& operator=(const TFunctionRef&) const = delete;
+	~TFunctionRef() = default;
 
 private:
 	/**

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UCContentCommandlets.cpp: Various commmandlets.
@@ -20,7 +20,6 @@
 #include "UObject/MetaData.h"
 #include "Misc/PackageName.h"
 #include "Misc/EngineVersion.h"
-#include "Misc/StartupPackages.h"
 #include "Misc/RedirectCollector.h"
 #include "Engine/EngineTypes.h"
 #include "Materials/Material.h"
@@ -36,6 +35,7 @@
 #include "Commandlets/WrangleContentCommandlet.h"
 #include "EngineGlobals.h"
 #include "Particles/ParticleEmitter.h"
+#include "GameFramework/WorldSettings.h"
 #include "Engine/StaticMesh.h"
 #include "AssetData.h"
 #include "Engine/Brush.h"
@@ -61,6 +61,12 @@ DEFINE_LOG_CATEGORY(LogContentCommandlet);
 #include "LightingBuildOptions.h"
 // For preloading FFindInBlueprintSearchManager
 #include "FindInBlueprintManager.h"
+#include "IHierarchicalLODUtilities.h"
+#include "HierarchicalLODUtilitiesModule.h"
+#include "HierarchicalLOD.h"
+#include "HierarchicalLODProxyProcessor.h"
+#include "GenericPlatform/GenericPlatformProcess.h"
+#include "HAL/ThreadManager.h"
 
 /**-----------------------------------------------------------------------------
  *	UResavePackages commandlet.
@@ -188,9 +194,53 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 		}
 	}
 
+	if (bShouldBuildHLOD && !bExplicitPackages)
+	{
+		bool bWaitingForMapToSkipTo = !HLODSkipToMap.IsEmpty();
+
+		const UHierarchicalLODSettings* Settings = GetDefault<UHierarchicalLODSettings>();
+		for (const FDirectoryPath& Path : Settings->DirectoriesForHLODCommandlet)
+		{
+			TArray<FString> FilesInPackageFolder;			
+			FPackageName::FindPackagesInDirectory(FilesInPackageFolder, *FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir(), Path.Path));
+			for (int32 FileIndex = 0; FileIndex < FilesInPackageFolder.Num(); FileIndex++)
+			{
+				FString PackageFile(FilesInPackageFolder[FileIndex]);
+				FPaths::MakeStandardFilename(PackageFile);
+
+				if( bWaitingForMapToSkipTo )
+				{
+					if( FPaths::GetBaseFilename( PackageFile ) == FPaths::GetBaseFilename( HLODSkipToMap ) )
+					{
+						bWaitingForMapToSkipTo = false;
+					}
+				}
+
+				if( !bWaitingForMapToSkipTo )
+				{
+					PackageNames.AddUnique(*PackageFile);
+					bExplicitPackages = true;
+				}
+			}
+		}
+
+		for (const FFilePath& FilePath : Settings->MapsToBuild)
+		{
+			FString Path = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir(), FilePath.FilePath);
+			FString OutPath;
+			if (FPackageName::DoesPackageExist(Path, nullptr, &OutPath))
+			{				
+				PackageNames.AddUnique(*OutPath);
+				bExplicitPackages = true;
+			}
+		}		
+	}
+
 	// ... if not, load in all packages
 	if( !bExplicitPackages )
 	{
+		UE_LOG( LogContentCommandlet, Display, TEXT( "No maps found to save when building HLODs, checking Project Settings for Directory or Asset Path(s)" ) );
+
 		uint8 PackageFilter = NORMALIZE_DefaultFlags;
 		if ( Switches.Contains(TEXT("SKIPMAPS")) )
 		{
@@ -781,7 +831,37 @@ int32 UResavePackagesCommandlet::Main( const FString& Params )
 	bShouldBuildTextureStreaming = Switches.Contains(TEXT("buildtexturestreaming"));
 	/** determine if we can skip the version changelist check */
 	bIgnoreChangelist = Switches.Contains(TEXT("IgnoreChangelist"));
-	if ( bShouldBuildLighting )
+
+	/** determine if we are building lighting for the map packages on the pass. **/
+	bShouldBuildHLOD = Switches.Contains(TEXT("BuildHLOD"));
+	FString HLODOptions;
+	FParse::Value(*Params, TEXT("BuildOptions="), HLODOptions);	
+	bGenerateClusters = HLODOptions.Contains("Clusters");
+	bGenerateMeshProxies = HLODOptions.Contains("Proxies");
+	bForceClusterGeneration = HLODOptions.Contains("ForceClusters");
+	bForceProxyGeneration = HLODOptions.Contains("ForceProxies");
+	bForceEnableHLODForLevel = HLODOptions.Contains("ForceEnableHLOD");
+	bForceSingleClusterForLevel = HLODOptions.Contains("ForceSingleCluster");
+
+	ForceHLODSetupAsset = FString();
+	FParse::Value(*Params, TEXT("ForceHLODSetupAsset="), ForceHLODSetupAsset);
+
+	HLODSkipToMap = FString();
+	FParse::Value(*Params, TEXT("SkipToMap="), HLODSkipToMap);
+
+	bForceUATEnvironmentVariableSet = false;
+	if (bShouldBuildHLOD)
+	{
+		TCHAR MutexVariableValue = 0;
+		FPlatformMisc::GetEnvironmentVariable(TEXT("uebp_UATMutexNoWait"), &MutexVariableValue, 1);
+		if (MutexVariableValue != 1)
+		{
+			FPlatformMisc::SetEnvironmentVar(TEXT("uebp_UATMutexNoWait"), TEXT("1"));
+			bForceUATEnvironmentVariableSet = true;
+		}
+	}
+
+	if ( bShouldBuildLighting || bShouldBuildHLOD)
 	{
 		check( Switches.Contains(TEXT("AllowCommandletRendering")) );
 		GarbageCollectionFrequency = 1;
@@ -935,8 +1015,13 @@ int32 UResavePackagesCommandlet::Main( const FString& Params )
 		SourceControlProvider.Close();
 	}
 
-	UE_LOG(LogContentCommandlet, Display, TEXT( "[REPORT] %d/%d packages required resaving" ), PackagesRequiringResave, PackageNames.Num() );
+	if (bForceUATEnvironmentVariableSet)
+	{
+		FPlatformMisc::SetEnvironmentVar(TEXT("uebp_UATMutexNoWait"), TEXT("0"));		
+	}
 
+	UE_LOG(LogContentCommandlet, Display, TEXT( "[REPORT] %d/%d packages required resaving" ), PackagesRequiringResave, PackageNames.Num() );
+	
 
 	return 0;
 }
@@ -1098,16 +1183,9 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 	}
 	ABrush::OnRebuildDone();
 
-	if (bShouldBuildLighting || bShouldBuildTextureStreaming)
+	if (bShouldBuildLighting || bShouldBuildTextureStreaming || bShouldBuildHLOD)
 	{
 		bool bShouldProceedWithRebuild = true;
-
-		static bool bHasLoadedStartupPackages = false;
-		if (bHasLoadedStartupPackages == false)
-		{
-			// make sure all possible script/startup packages are loaded
-			bHasLoadedStartupPackages = FStartupPackages::LoadAll();
-		}
 
 		// Setup the world.
 		World->WorldType = EWorldType::Editor;
@@ -1224,6 +1302,95 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 				FEditorBuildUtils::EditorBuildTextureStreaming(World);
 			}
 
+			if (bShouldBuildHLOD)
+			{
+				UE_LOG( LogContentCommandlet, Display, TEXT( "Generating HLOD data for %s" ), *World->GetOutermost()->GetName() );
+
+				if( !ForceHLODSetupAsset.IsEmpty() )
+				{
+					TSubclassOf<UHierarchicalLODSetup> NewHLODSetupAsset = LoadClass<UHierarchicalLODSetup>( NULL, *ForceHLODSetupAsset, NULL, LOAD_None, NULL );
+					if( NewHLODSetupAsset != nullptr )
+					{
+						GWorld->GetWorldSettings()->HLODSetupAsset = NewHLODSetupAsset;
+					}
+					else
+					{
+						UE_LOG( LogContentCommandlet, Fatal, TEXT( "Could not find HLOD Setup Asset specified with the -ForceHLODSetupAsset option: %s" ), *ForceHLODSetupAsset );
+					}
+				}
+
+				// Force HLOD support on for this level if we were asked to
+				if( bForceEnableHLODForLevel )
+				{
+					GWorld->GetWorldSettings()->bEnableHierarchicalLODSystem = true;
+				}
+
+				// Use a single cluster for all actors in the level if we were asked to
+				if( bForceSingleClusterForLevel )
+				{
+					GWorld->GetWorldSettings()->bGenerateSingleClusterForLevel = true;
+				}
+
+				FHierarchicalLODBuilder Builder(GWorld);
+
+				if (bForceClusterGeneration)
+				{
+					Builder.ClearHLODs();
+					Builder.PreviewBuild();
+				}
+				else if (bGenerateClusters)
+				{
+					Builder.PreviewBuild();
+				}
+
+				if (bGenerateMeshProxies || bForceProxyGeneration)
+				{
+					Builder.BuildMeshesForLODActors(bForceProxyGeneration);
+				}
+
+				FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+				FHierarchicalLODProxyProcessor* Processor = Module.GetProxyProcessor();
+
+				while (Processor->IsProxyGenerationRunning())
+				{
+					FTicker::GetCoreTicker().Tick(FApp::GetDeltaTime());
+					FThreadManager::Get().Tick();
+					FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
+					FPlatformProcess::Sleep(0.1f);
+				}
+
+				IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
+				for (const ULevel* Level : GWorld->GetLevels())
+				{
+					// Only meshes for clusters that are in a visible level
+					if (Level->bIsVisible)
+					{
+						UPackage* HLODPackage = Utilities->CreateOrRetrieveLevelHLODPackage(Level);
+						FString HLODDataFilename;
+						if (FPackageName::TryConvertLongPackageNameToFilename(HLODPackage->GetName(), HLODDataFilename, FPackageName::GetAssetPackageExtension()))
+						{
+							if (IFileManager::Get().FileExists(*HLODDataFilename))
+							{
+								if (CheckoutFile(HLODDataFilename, true))
+								{
+									SublevelFilenames.Add(HLODDataFilename);
+								}
+
+								SavePackageHelper(HLODPackage, HLODDataFilename);
+							}
+							else
+							{
+								SavePackageHelper(HLODPackage, HLODDataFilename);
+								if (CheckoutFile(HLODDataFilename, true))
+								{
+									SublevelFilenames.Add(HLODDataFilename);
+								}
+							}
+						}
+					}
+				}
+			}
+
 			if (bShouldBuildLighting)
 			{
 				FLightingBuildOptions LightingOptions;
@@ -1246,7 +1413,7 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 			}
 			auto SaveMapBuildData = [this, &SublevelFilenames](ULevel* InLevel)
 			{
-				if (InLevel && InLevel->MapBuildData && bShouldBuildLighting)
+				if (InLevel && InLevel->MapBuildData && ( bShouldBuildLighting || bShouldBuildHLOD) )
 				{
 					UPackage* MapBuildDataPackage = InLevel->MapBuildData->GetOutermost();
 					FString MapBuildDataPackageName = MapBuildDataPackage->GetName();
@@ -1655,30 +1822,7 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 		{
 			PackagesToFullyLoad = *PackagesToFullyLoadSection;
 		}
-
-		// make sure all possible script/startup packages are loaded
-		FStartupPackages::LoadAll();
-
-		// verify that all startup packages have been loaded
-		if (StartupPackages)
-		{
-			for (FConfigSectionMap::TConstIterator It(*StartupPackages); It; ++It)
-			{
-				if (It.Key() == TEXT("Package"))
-				{
-					PackagesToFullyLoad.Add(*It.Key().ToString(), *It.Value().GetValue());
-					if ( FindPackage(NULL, *It.Value().GetValue()) )
-					{
-						UE_LOG(LogContentCommandlet, Warning, TEXT("Startup package '%s' was loaded"), *It.Value().GetValue());
-					}
-					else
-					{
-						UE_LOG(LogContentCommandlet, Warning, TEXT("Startup package '%s' was not loaded during FStartupPackages::LoadAll..."), *It.Value().GetValue());
-					}
-				}
-			}
-		}
-
+		
 		if (bShouldLoadAllMaps)
 		{
 			TArray<FString> AllPackageFilenames;

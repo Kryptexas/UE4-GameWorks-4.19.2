@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SPerforceSourceControlSettings.h"
 #include "PerforceSourceControlPrivate.h"
@@ -262,6 +262,16 @@ FString SPerforceSourceControlSettings::GetPassword()
 		return PasswordTextBox.Pin()->GetText().ToString();
 	}
 	return FString();
+}
+
+void SPerforceSourceControlSettings::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	// When a dialog is up, the editor stops ticking, and we take over:
+	if( FSlateApplication::Get().GetActiveModalWindow().IsValid())
+	{
+		ISourceControlModule::Get().Tick();
+	}
+	return SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime );
 }
 
 FText SPerforceSourceControlSettings::GetPortText() const

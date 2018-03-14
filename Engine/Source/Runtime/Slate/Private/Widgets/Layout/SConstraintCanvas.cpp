@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/Layout/SConstraintCanvas.h"
 #include "Types/PaintArgs.h"
@@ -191,7 +191,7 @@ void SConstraintCanvas::ArrangeLayeredChildren(const FGeometry& AllottedGeometry
 
 int32 SConstraintCanvas::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	//FPlatformMisc::BeginNamedEvent(FColor::Orange, "SConstraintCanvas");
+	SCOPED_NAMED_EVENT_TEXT("SConstraintCanvas", FColor::Orange);
 
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
 	FArrangedChildLayers ChildLayers;
@@ -220,8 +220,6 @@ int32 SConstraintCanvas::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 			MaxLayerId = FMath::Max(MaxLayerId, CurWidgetsMaxLayerId);
 		}
 	}
-
-	//FPlatformMisc::EndNamedEvent();
 
 	return MaxLayerId;
 }

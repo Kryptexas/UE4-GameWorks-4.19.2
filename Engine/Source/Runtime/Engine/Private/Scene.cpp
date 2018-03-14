@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/Scene.h"
 
@@ -282,7 +282,7 @@ static void DoPostProcessSettingsSanityCheck()
 
 	{
 		TMap<FString, FString> RenameMap;
-		VerifyPostProcessingProperties(TEXT("AutoExposure"),
+		VerifyPostProcessingProperties(TEXT("Exposure"),
 			TArray<const UStruct*>({
 				FCameraExposureSettings::StaticStruct()}),
 			RenameMap);
@@ -348,6 +348,9 @@ FPostProcessSettings::FPostProcessSettings()
 	ColorCorrectionShadowsMax = 0.09f;
 	ColorCorrectionHighlightsMin = 0.5f;
 
+	BlueCorrection = 0.6f;
+	ExpandGamut = 1.0f;
+
 	// default values:
 	FilmWhitePoint = FLinearColor(1.0f, 1.0f, 1.0f);
 	FilmSaturation = 1.0f;
@@ -408,6 +411,9 @@ FPostProcessSettings::FPostProcessSettings()
 	LPVGeometryVolumeBias = 0.384f;
 	LPVEmissiveInjectionIntensity = 1.0f;
 	// next value might get overwritten by r.DefaultFeature.AutoExposure.Method
+	CameraShutterSpeed = 60.f;
+	CameraISO = 100.f;
+	AutoExposureCalibrationConstant = 16.f;
 	AutoExposureMethod = AEM_Histogram;
 	AutoExposureLowPercent = 80.0f;
 	AutoExposureHighPercent = 98.3f;

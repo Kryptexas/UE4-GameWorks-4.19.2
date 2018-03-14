@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "STutorialLoading.h"
 #include "Fonts/SlateFontInfo.h"
@@ -7,6 +7,7 @@
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Text/STextBlock.h"
 #include "EditorStyleSet.h"
+#include "Styling/CoreStyle.h"
 #include "Widgets/Images/SThrobber.h"
 
 #define LOCTEXT_NAMESPACE "Tutorials"
@@ -39,7 +40,7 @@ void STutorialLoading::Construct(const FArguments& InArgs)
 						.ShadowColorAndOpacity(FLinearColor::Black)
 						.ColorAndOpacity(FLinearColor::White)
 						.ShadowOffset(FIntPoint(-1, 1))
-						.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 16))
+						.Font(FCoreStyle::GetDefaultFontStyle("Regular", 16))
 						.Text(LOCTEXT("LoadingContentTut", "Loading Tutorial Content"))
 					]
 			]

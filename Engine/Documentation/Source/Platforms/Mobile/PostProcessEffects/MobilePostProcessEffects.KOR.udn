@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3603366
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:모바일 플랫폼에서의 포스트 프로세스 이펙트
 Crumbs:
 Description:모바일 게임에서 포스트 프로세스 이펙트 사용하기 입니다.
 Platform:Mobile
-Version: 4.16
+Version: 4.17
 parent:Platforms/Mobile
 order:5
 type:overview
@@ -40,10 +40,10 @@ reference-image:Mobile_PostProcessEffect.gif
 
 ### 콘솔을 통한 톤매퍼 필름 켜기
 UE4 에디터에서 톤매퍼를 켜는 방법은, 먼저 **물결표** (`) 키를 눌러 콘솔을 열고 다음 명령을 입력합니다.
-* **r.tonemapperfilm 1** 
+* ** r.Mobile.TonemapperFilm 1** 
 
 톤매퍼를 끄려면, 콘솔을 열고 다음 명령을 입력합니다.
-*  **r.tonemapperfilm 0**. 
+*  ** r.Mobile.TonemapperFilm 0**
 
 [region:note]
 이 방법으로 켜고 끄는 톤매퍼는 해당 세션에서만 적용됩니다. 톤매퍼를 항상 켜려면 DefaultEngine.ini 에 사용하려는 톤매퍼 세팅을 추가해 줘야 합니다.
@@ -222,7 +222,7 @@ UE4 에디터에서 톤매퍼를 켜는 방법은, 먼저 **물결표** (`) 키�
 |**Bokeh Shape**|아니오|n/a|
 |**Tints #012345678**|아니오|n/a|
 |[REGION:tablesection] Depth of Field 뎁스 오브 필드 [/REGION] |||
-|**BokehDOF**|예|0 |
+|**BokehDOF**|아니오|n/a |
 |**GaussianDOF**|예|0 |
 |**CircleDOF**|아니오|n/a |
 |**High Quality Gaussian DoF on Mobile**|예|1|
@@ -338,7 +338,8 @@ UE4 에디터에서 톤매퍼를 켜는 방법은, 먼저 **물결표** (`) 키�
 | 커스텀 뎁스 | 커스텀 스텐실 |
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:customdepth]
 [REGION:raw]
 ![](Custom_Scene_Depth.png)(w:575)
@@ -350,7 +351,8 @@ UE4 에디터에서 톤매퍼를 켜는 방법은, 먼저 **물결표** (`) 키�
 ![](Custom_Stencil.png)(w:575)
 [/REGION]
 [/EXCERPT:customstencil]
---->
+-
+[/COMMENT]
 
 
 ## 일반적인 포스트 프로세스 퍼포먼스 팁

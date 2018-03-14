@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -74,6 +74,7 @@ public:
 		: Resolution(ForceInit)
 		, Delay(0.2f)
 		, bDisableNoisyRenderingFeatures(true)
+		, bDisableTonemapping(true)
 		, VisualizeBuffer(NAME_None)
 		, Tolerance(EComparisonTolerance::Zero)
 		, ToleranceAmount()
@@ -88,6 +89,7 @@ public:
 		: Resolution(ForceInit)
 		, Delay(0.2f)
 		, bDisableNoisyRenderingFeatures(true)
+		, bDisableTonemapping(true)
 		, VisualizeBuffer(NAME_None)
 		, Tolerance(InTolerance)
 		, ToleranceAmount()
@@ -113,12 +115,19 @@ public:
 	float Delay;
 
 	/**
-	 * Disables Anti-Aliasing, Motion Blur, Screen Space Reflections, Eye Adaptation and Contact Shadows,
-	 * because those features contribute a lot to the noise in the final rendered image.  If you're explicitly
-	 * looking for changes 
+	 * Disables Anti-Aliasing, Motion Blur, Screen Space Reflections, Eye Adaptation, Tonemapper and Contact
+	 * Shadows, because those features contribute a lot to the noise in the final rendered image.  If you're
+	 * explicitly looking for changes 
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Screenshot")
 	bool bDisableNoisyRenderingFeatures;
+
+	/**
+	 * Disables Eye Adaptation and swaps Tonemapper to fixed gamma curve. Should generally be on unless
+	 * testing tonemapping or other post-processing results
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Screenshot")
+	bool bDisableTonemapping;
 
 	/**
 	 * Allows you to screenshot a buffer other than the default final lit scene image.  Useful if you're

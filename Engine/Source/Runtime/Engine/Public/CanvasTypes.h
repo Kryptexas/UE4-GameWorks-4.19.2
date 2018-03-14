@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Canvas.h: Unreal canvas definition.
@@ -12,6 +12,7 @@
 #include "HitProxies.h"
 #include "BatchedElements.h"
 #include "RendererInterface.h"
+#include "StaticMeshResources.h"
 #include "CanvasTypes.generated.h"
 
 class FCanvasItem;
@@ -228,12 +229,12 @@ public:
 	/**
 	* Constructor.
 	*/
-	ENGINE_API FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyConsumer, UWorld* InWorld, ERHIFeatureLevel::Type InFeatureLevel, ECanvasDrawMode DrawMode = CDM_DeferDrawing);
+	ENGINE_API FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyConsumer, UWorld* InWorld, ERHIFeatureLevel::Type InFeatureLevel, ECanvasDrawMode DrawMode = CDM_DeferDrawing, float InDPIScale = 1.0f);
 
 	/**
 	* Constructor. For situations where a world is not available, but time information is
 	*/
-	ENGINE_API FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyConsumer, float InRealTime, float InWorldTime, float InWorldDeltaTime, ERHIFeatureLevel::Type InFeatureLevel);
+	ENGINE_API FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyConsumer, float InRealTime, float InWorldTime, float InWorldDeltaTime, ERHIFeatureLevel::Type InFeatureLevel, float InDPIScale = 1.0f);
 
 	/**
 	* Destructor.
@@ -253,7 +254,7 @@ public:
 	* @param GlowInfo - info for optional glow effect when using depth field rendering
 	* @return Returns a pointer to a FBatchedElements object.
 	*/
-	ENGINE_API FBatchedElements* GetBatchedElements(EElementType InElementType, FBatchedElementParameters* InBatchedElementParameters = NULL, const FTexture* Texture = NULL, ESimpleElementBlendMode BlendMode = SE_BLEND_MAX, const FDepthFieldGlowInfo& GlowInfo = FDepthFieldGlowInfo());
+	ENGINE_API FBatchedElements* GetBatchedElements(EElementType InElementType, FBatchedElementParameters* InBatchedElementParameters = NULL, const FTexture* Texture = NULL, ESimpleElementBlendMode BlendMode = SE_BLEND_MAX, const FDepthFieldGlowInfo& GlowInfo = FDepthFieldGlowInfo(), bool bApplyDPIScale = true);
 
 	/**
 	* Generates a new FCanvasTileRendererItem for the current sortkey and adds it to the sortelement list of items to render
@@ -584,6 +585,7 @@ public:
 
 	FORCEINLINE FIntPoint GetParentCanvasSize() const { return ParentSize; }
 
+	float GetDPIScale() const { return  bStereoRendering ? 1.0f : DPIScale; }
 public:
 	/** Private class for handling word wrapping behavior. */
 	TSharedPtr<FCanvasWordWrapper> WordWrapper;
@@ -638,6 +640,8 @@ private:
 	FIntPoint ParentSize;
 
 	ECanvasDrawMode DrawMode;
+
+	float DPIScale;
 
 	bool GetOrthoProjectionMatrices(float InDrawDepth, FMatrix OutOrthoProjection[2]);
 
@@ -725,8 +729,8 @@ public:
 	* @param ShadowColor - Shadow color to draw underneath the text (ignored for distance field fonts)
 	* @return total size in pixels of text drawn
 	*/
-	ENGINE_API int32 DrawShadowedString( float StartX, float StartY, const TCHAR* Text, const UFont* Font, const FLinearColor& Color, const float TextScale = 1.0f, const FLinearColor& ShadowColor = FLinearColor::Black );
-
+	ENGINE_API int32 DrawShadowedString( float StartX, float StartY, const TCHAR* Text, const UFont* Font, const FLinearColor& Color, const FLinearColor& ShadowColor = FLinearColor::Black );
+	
 	ENGINE_API int32 DrawShadowedText( float StartX, float StartY, const FText& Text, const UFont* Font, const FLinearColor& Color, const FLinearColor& ShadowColor = FLinearColor::Black );
 
 	ENGINE_API void WrapString( FTextSizingParameters& Parameters, const float InCurX, const TCHAR* const pText, TArray<FWrappedStringElement>& out_Lines, FCanvasWordWrapper::FWrappedLineData* const OutWrappedLineData = nullptr);
@@ -974,22 +978,19 @@ public:
 	/** 
 	* Init constructor 
 	*/
-	FCanvasTileRendererItem( 
+	FCanvasTileRendererItem(ERHIFeatureLevel::Type InFeatureLevel,
 		const FMaterialRenderProxy* InMaterialRenderProxy=NULL,
 		const FCanvas::FTransformEntry& InTransform=FCanvas::FTransformEntry(FMatrix::Identity),
 		bool bInFreezeTime=false)
 		// this data is deleted after rendering has completed
-		:	Data(new FRenderData(InMaterialRenderProxy,InTransform))
+		:	Data(new FRenderData(InFeatureLevel,InMaterialRenderProxy,InTransform))
 		,	bFreezeTime(bInFreezeTime)
 	{}
 
 	/**
 	* Destructor to delete data in case nothing rendered
 	*/
-	virtual ~FCanvasTileRendererItem()
-	{
-		delete Data;
-	}
+	virtual ~FCanvasTileRendererItem();	
 
 	/**
 	* FCanvasTileRendererItem instance accessor
@@ -1050,17 +1051,45 @@ public:
 	{
 		return Data->AddTile(X,Y,SizeX,SizeY,U,V,SizeU,SizeV,HitProxyId,InColor);
 	};
-	
+
 private:
-	class FRenderData
+	class FTileVertexFactory : public FLocalVertexFactory
 	{
 	public:
-		FRenderData(
-			const FMaterialRenderProxy* InMaterialRenderProxy=NULL,
-			const FCanvas::FTransformEntry& InTransform=FCanvas::FTransformEntry(FMatrix::Identity) )
-			:	MaterialRenderProxy(InMaterialRenderProxy)
-			,	Transform(InTransform)
-		{}
+		/** Default constructor. */
+		FTileVertexFactory(ERHIFeatureLevel::Type InFeatureLevel);
+	};
+
+	class FTileMesh : public FRenderResource
+	{
+	public:
+		FTileMesh(FTileVertexFactory* VertexFactory);
+
+		/** The mesh element. */
+		FMeshBatch MeshElement;
+
+		virtual void InitRHI() override;
+		virtual void ReleaseRHI() override;
+	private:
+		FTileVertexFactory* VertexFactory;
+	};
+
+	class FRenderData
+	{
+		friend class FCanvasTileRendererItem;
+
+	private:
+		/** The buffer containing vertex data. */
+		FStaticMeshVertexBuffers StaticMeshVertexBuffers;
+		FTileVertexFactory VertexFactory;
+		FTileMesh TileMesh;
+
+	public:
+
+		FRenderData(ERHIFeatureLevel::Type InFeatureLevel,
+			const FMaterialRenderProxy* InMaterialRenderProxy = nullptr,
+			const FCanvas::FTransformEntry& InTransform = FCanvas::FTransformEntry(FMatrix::Identity));
+		
 		const FMaterialRenderProxy* MaterialRenderProxy;
 		FCanvas::FTransformEntry Transform;
 
@@ -1088,6 +1117,9 @@ private:
 	FRenderData* Data;	
 
 	const bool bFreezeTime;
+
+	typedef FRenderData::FTileInst FTileInst;
+	void InitTileBuffers(FLocalVertexFactory* VertexFactory, TArray<FTileInst>& Tiles, const FSceneView& View, bool bNeedsToSwitchVerticalAxis);
 };
 
 /**
@@ -1099,12 +1131,12 @@ public:
 	/**
 	* Init constructor
 	*/
-	FCanvasTriangleRendererItem(
+	FCanvasTriangleRendererItem(ERHIFeatureLevel::Type InFeatureLevel,
 		const FMaterialRenderProxy* InMaterialRenderProxy = NULL,
 		const FCanvas::FTransformEntry& InTransform = FCanvas::FTransformEntry(FMatrix::Identity),
 		bool bInFreezeTime = false)
 		// this data is deleted after rendering has completed
-		: Data(new FRenderData(InMaterialRenderProxy, InTransform))
+		: Data(new FRenderData(InFeatureLevel, InMaterialRenderProxy, InTransform))
 		, bFreezeTime(bInFreezeTime)
 	{}
 
@@ -1189,17 +1221,41 @@ public:
 	}
 
 private:
-	class FRenderData
+	class FTriangleVertexFactory : public FLocalVertexFactory
 	{
 	public:
-		FRenderData(
-			const FMaterialRenderProxy* InMaterialRenderProxy = NULL,
-			const FCanvas::FTransformEntry& InTransform = FCanvas::FTransformEntry(FMatrix::Identity))
-			: MaterialRenderProxy(InMaterialRenderProxy)
-			, Transform(InTransform)
-		{}
+		/** Default constructor. */
+		FTriangleVertexFactory(ERHIFeatureLevel::Type InFeatureLevel);
+	};
+
+	/**
+	* Mesh used to render triangles.
+	*/
+	class FTriangleMesh : public FRenderResource
+	{
+	public:
+		FTriangleMesh(FTriangleVertexFactory* VertexFactory);
+
+		/** The mesh element. */
+		FMeshBatch TriMeshElement;
+		virtual void InitRHI() override;
+		virtual void ReleaseRHI() override;
+	private:
+		FTriangleVertexFactory* VertexFactory;
+	};
+
+	class FRenderData
+	{
+		friend class FCanvasTriangleRendererItem;
+
+	private:
 		const FMaterialRenderProxy* MaterialRenderProxy;
 		FCanvas::FTransformEntry Transform;
+
+		/** The buffer containing vertex data. */
+		FStaticMeshVertexBuffers StaticMeshVertexBuffers;
+		FTriangleVertexFactory VertexFactory;
+		FTriangleMesh TriMesh;
 
 		struct FTriangleInst
 		{
@@ -1207,6 +1263,17 @@ private:
 			FHitProxyId HitProxyId;
 		};
 		TArray<FTriangleInst> Triangles;
+
+	public:
+		FRenderData(ERHIFeatureLevel::Type InFeatureLevel,
+			const FMaterialRenderProxy* InMaterialRenderProxy = NULL,
+			const FCanvas::FTransformEntry& InTransform = FCanvas::FTransformEntry(FMatrix::Identity))
+			: MaterialRenderProxy(InMaterialRenderProxy)
+			, Transform(InTransform)
+			, VertexFactory(InFeatureLevel)
+			, TriMesh(&VertexFactory)
+		{
+		}
 
 		FORCEINLINE int32 AddTriangle(const FCanvasUVTri& Tri, FHitProxyId HitProxyId)
 		{
@@ -1231,6 +1298,9 @@ private:
 	FRenderData* Data;
 
 	const bool bFreezeTime;
+
+	typedef FRenderData::FTriangleInst FTriangleInst;
+	void InitTriangleBuffers(FLocalVertexFactory* VertexFactory, TArray<FTriangleInst>& Triangles, const FSceneView& View, bool bNeedsToSwitchVerticalAxis);
 };
 
 /**
@@ -1242,6 +1312,6 @@ private:
 * @param YL - out height
 * @param Text - string of text to be measured
 */
-extern ENGINE_API void StringSize( const UFont* Font, int32& XL, int32& YL, const TCHAR* Text );
+extern ENGINE_API void StringSize( const UFont* Font, int32& XL, int32& YL, const TCHAR* Text);
 
 

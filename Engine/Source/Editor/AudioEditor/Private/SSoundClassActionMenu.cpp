@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SSoundClassActionMenu.h"
 #include "EdGraph/EdGraph.h"
@@ -9,6 +9,7 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "EditorStyleSet.h"
+#include "Styling/CoreStyle.h"
 #include "SoundClassGraph/SoundClassGraphSchema.h"
 
 #define LOCTEXT_NAMESPACE "SSoundClassActionMenu"
@@ -37,7 +38,7 @@ void SSoundClassActionMenuItem::Construct(const FArguments& InArgs, TSharedPtr<F
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Font(FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 9 ))
+					.Font(FCoreStyle::GetDefaultFontStyle("Regular", 9))
 					.Text(InAction->GetMenuDescription())
 					.HighlightText(InArgs._HighlightText)
 				]
@@ -45,7 +46,7 @@ void SSoundClassActionMenuItem::Construct(const FArguments& InArgs, TSharedPtr<F
 	}
 	else
 	{
-		TSharedRef<SWidget> NewSoundClassWidget = CreateNewSoundClassWidget(InAction->GetMenuDescription(), InAction->GetTooltipDescription(), FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 9), InAction);
+		TSharedRef<SWidget> NewSoundClassWidget = CreateNewSoundClassWidget(InAction->GetMenuDescription(), InAction->GetTooltipDescription(), FCoreStyle::GetDefaultFontStyle("Regular", 9), InAction);
 		// Promote requires 2 'slots'
 		this->ChildSlot
 			[

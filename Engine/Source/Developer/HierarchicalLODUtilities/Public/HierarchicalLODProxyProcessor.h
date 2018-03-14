@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -37,6 +37,8 @@ public:
 	
 	/** Returns the callback delegate which will be passed onto ProxyLOD function */
 	FCreateProxyDelegate& GetCallbackDelegate();
+		
+	bool IsProxyGenerationRunning() const;
 protected:
 	/** Called when the map has changed*/
 	void OnMapChange(uint32 MapFlags);

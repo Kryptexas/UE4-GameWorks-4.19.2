@@ -1,10 +1,16 @@
-﻿INTSourceChangelist:2721340
+﻿INTSourceChangelist:3682737
 Availability:Public
 Title:自動化システムの概要
-Crumbs: %ROOT%, Programming
+Crumbs: %ROOT%
+type:overview
 Description:ユニットテスト、機能テスト、コンテンツ負荷テストのために使用する自動化システムの概要
+skilllevel:Intermediate
+parent:Programming
 Navigation:topic
-version:4.9
+version:4.17
+order:0
+tags:Automation
+tags:Testing
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -47,31 +53,22 @@ version:4.9
 [/VAR]
 
 [EXCERPT:Intro]
-**自動化システム** には、ユニット テスト、機能テスト、およびコンテンツ負荷テストを行うための機能があります。 
-これらは **Unreal Message Bus** の威力を活用し、 
-安定性を高めます。
+自動化システムには、 **Unreal Message Bus** の威力を活かしたユニット テスト、機能テスト、およびコンテンツ負荷テストを行うための機能があります。
 
-自動化システムは、自動化テストを一回以上行うことで機能します。自動化テストは、 
-目的または機能に応じてカテゴリに分けられます。
+自動化システムは、**自動化テスト** を一回以上行うことで機能します。目的または機能に応じて様々なカテゴリに分けられます。
 [/EXCERPT:Intro]
 
-$ ユニットテスト :API レベルの検証テスト。たとえば、「TimespanTest.cpp」または「DateTimeTest.cpp」を参照してください。
-$ 機能テスト :PIE 作業などのシステムレベルの検証テストでは、インゲームの統計作業や 
-解像度の変更作業を検証します。たとえば、「EditorAutomationTests.cpp」 または「EngineAutomationTests.cpp 」を参照してください。 
-$ スモークテスト :スモーク テストは、実装者によって速さが保証されるものと考えられます。高速なテストであることを意図しており、 
-エディタ、ゲーム、またはコマンドレットが開始すると _毎回_ 実行されます。デフォルトで、 
-[ユーザーインターフェース](Programming/Automation/UserGuide#ユーザーインターフェース) で選択することもできます。
+$ ユニット テスト :API レベルの検証テスト。たとえば、`TimespanTest.cpp` または `DateTimeTest.cpp`を参照してください。
+$ 機能テスト :システム レベルの検証テスト。インゲームの統計情報が正確に報告されているか、解像度の変更が機能しているかなど、Play-In-Editor の機能が期待どおりであるかの検証も含みます。たとえば、`EditorAutomationTests.cpp` または `EngineAutomationTests.cpp`を参照してください。
+$ スモークテスト :エディタ、ゲーム、またはコマンドレットが開始すると _毎回_ 実行されるように十分な速さにすることを意図しています。[UI](Programming/Automation/UserGuide#ユーザーインターフェース) でもデフォルトで選択されます。
 
 	[REGION:warning]
-		全てのスモーク テストは、1 秒 以内の終了を意図しています。ユニット テストもしくは高速な機能テストのみをスモーク テストとしてマークしてください。
+		全てのスモーク テストは、1 秒以内に終了することを意図しています。ユニット テストもしくは迅速な機能テストのみをスモーク テストとしてマークしてください。
 	[/REGION]
 
-$ コンテンツ負荷テスト :クラッシュを避けるために特定のシステムを徹底的にテストします。 
-たとえば、全てのマップの読み込みや、全てのブループリントの読み込みやコンパイルなどがあります。例として「EditorAutomationTests.cpp」 または「EngineAutomationTests.cpp 」を 
-参照してください。
+$ コンテンツ負荷テスト :すべてのマップのロード、またはすべてのブループリントのロードとコンパイルなど、クラッシュを避けるために特定のシステムを徹底的にテストします。たとえば、`EditorAutomationTests.cpp` または `EngineAutomationTests.cpp`を参照してください。
 
-$ スクリーンショットの比較：スクリーンショットの比較ツールは、QA が迅速にスクリーンショットを比較し、 
-潜在的なレンダリングの問題を特定します。[スクリーン ショット ツールのリファレンス](Programming/Automation/ScreenShotComparison) を参照してください。
+$ スクリーンショットの比較ツール :スクリーンショットの比較ツールは、迅速にスクリーンショットを比較し、レンダリングに関する問題を特定します。詳細は、 [スクリーン ショット ツールのリファレンス](Programming/Automation/ScreenShotComparison) をご覧ください。
 
 [REGION:topics half]
 [OBJECT:Topic]

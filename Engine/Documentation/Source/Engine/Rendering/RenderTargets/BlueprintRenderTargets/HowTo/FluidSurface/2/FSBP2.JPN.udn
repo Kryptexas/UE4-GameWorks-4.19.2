@@ -82,7 +82,8 @@ checkpoint:FSB
 必要なアセットの設定はこれで完了です。次のセクションで、Fluid Surface ブループリントを作成するために各要素を連動させる方法を説明します。
 [NAV]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:HeightSim]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -2130,5 +2131,6 @@ checkpoint:FSB
 [/OBJECT]
 [/EXCERPT:ForceSplat]
 
--->
+
+[/COMMENT]
 

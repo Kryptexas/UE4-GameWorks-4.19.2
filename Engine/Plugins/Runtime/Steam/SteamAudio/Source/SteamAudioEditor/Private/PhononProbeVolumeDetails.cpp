@@ -5,6 +5,8 @@
 #include "PhononProbeVolumeDetails.h"
 
 #include "PhononCommon.h"
+#include "SteamAudioEditorModule.h"
+#include "SteamAudioSettings.h"
 
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"
@@ -46,7 +48,7 @@ namespace SteamAudio
 
 	FText FPhononProbeVolumeDetails::GetTotalDataSize()
 	{
-		return GetKBTextFromByte(PhononProbeVolume->ProbeBoxDataSize);
+		return PrettyPrintedByte(PhononProbeVolume->ProbeDataSize);
 	}
 
 	void FPhononProbeVolumeDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
@@ -101,7 +103,7 @@ namespace SteamAudio
 			BakedDataBuilder->OnGenerateArrayElementWidget(FOnGenerateArrayElementWidget::CreateSP(this, &FPhononProbeVolumeDetails::OnGenerateBakedDataInfo));
 			DetailLayout.EditCategory("ProbeVolumeStatistics").AddProperty(GET_MEMBER_NAME_CHECKED(APhononProbeVolume, NumProbes));
 
-			auto ProbeDataSize = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(APhononProbeVolume, ProbeBoxDataSize));
+			auto ProbeDataSize = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(APhononProbeVolume, ProbeDataSize));
 			TAttribute<FText> TotalDataSize = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &FPhononProbeVolumeDetails::GetTotalDataSize));
 		
 			DetailLayout.EditCategory("ProbeVolumeStatistics").AddProperty(ProbeDataSize).CustomWidget()
@@ -143,7 +145,7 @@ namespace SteamAudio
 					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
-						.Text(GetKBTextFromByte(BakedDataInfo.Size))
+						.Text(PrettyPrintedByte(BakedDataInfo.Size))
 						.Font(IDetailLayoutBuilder::GetDetailFont())
 					]
 				]
@@ -158,10 +160,10 @@ namespace SteamAudio
 	void FPhononProbeVolumeDetails::OnClearBakedDataClicked(const int32 ArrayIndex)
 	{
 		IPLhandle ProbeBox = nullptr;
-		iplLoadProbeBox(PhononProbeVolume->GetProbeBoxData(), PhononProbeVolume->GetProbeBoxDataSize(), &ProbeBox);
+		PhononProbeVolume->LoadProbeBoxFromDisk(&ProbeBox);
 		iplDeleteBakedDataByName(ProbeBox, TCHAR_TO_ANSI(*PhononProbeVolume->BakedDataInfo[ArrayIndex].Name.ToString().ToLower()));
 		PhononProbeVolume->BakedDataInfo.RemoveAt(ArrayIndex);
-		PhononProbeVolume->UpdateProbeBoxData(ProbeBox);
+		PhononProbeVolume->UpdateProbeData(ProbeBox);
 		iplDestroyProbeBox(&ProbeBox);
 	}
 
@@ -173,34 +175,76 @@ namespace SteamAudio
 		// Grab a copy of the volume ptr as it will be destroyed if user clicks off of volume in GUI
 		auto PhononProbeVolumeHandle = PhononProbeVolume.Get();
 
-		// Load the scene
-		UWorld* World = GEditor->LevelViewportClients[0]->GetWorld();
-		IPLhandle PhononScene = nullptr;
-		TArray<IPLhandle> PhononStaticMeshes;
-		SteamAudio::LoadScene(World, &PhononScene, &PhononStaticMeshes);
-
-		AsyncTask(ENamedThreads::AnyNormalThreadNormalTask, [=]()
+		Async<void>(EAsyncExecution::Thread, [PhononProbeVolumeHandle]()
 		{
+			// Load the scene
+			UWorld* World = GEditor->LevelViewportClients[0]->GetWorld();
+			IPLhandle PhononScene = nullptr;
+			FPhononSceneInfo PhononSceneInfo;
+
+			IPLSimulationSettings SimulationSettings;
+			SimulationSettings.sceneType = IPL_SCENETYPE_PHONON;
+			SimulationSettings.irDuration = GetDefault<USteamAudioSettings>()->IndirectImpulseResponseDuration;
+			SimulationSettings.ambisonicsOrder = GetDefault<USteamAudioSettings>()->IndirectImpulseResponseOrder;
+			SimulationSettings.maxConvolutionSources = 1024; // FIXME
+			SimulationSettings.numBounces = GetDefault<USteamAudioSettings>()->BakedBounces;
+			SimulationSettings.numRays = GetDefault<USteamAudioSettings>()->BakedRays;
+			SimulationSettings.numDiffuseSamples = GetDefault<USteamAudioSettings>()->BakedSecondaryRays;
+
+			GGenerateProbesTickable->SetDisplayText(NSLOCTEXT("SteamAudio", "Loading scene...", "Loading scene..."));
+
+			// Attempt to load from disk, otherwise export
+			if (!LoadSceneFromDisk(World, nullptr, SimulationSettings, &PhononScene, PhononSceneInfo))
+			{
+				TArray<IPLhandle> PhononStaticMeshes;
+
+				if (!CreateScene(World, &PhononScene, &PhononStaticMeshes, PhononSceneInfo.NumTriangles))
+				{
+					GGenerateProbesTickable->QueueWorkItem(FWorkItem([](FText& DisplayText) {
+						DisplayText = NSLOCTEXT("SteamAudio", "Unable to create scene.", "Unable to create scene.");
+					}, SNotificationItem::CS_Fail, true));
+					return;
+				}
+
+				//iplFinalizeScene(PhononScene, FinalizeSceneProgressCallback);
+				iplFinalizeScene(PhononScene, nullptr);
+				PhononSceneInfo.DataSize = iplSaveFinalizedScene(PhononScene, nullptr);
+				bool SaveSceneSuccessful = SaveFinalizedSceneToDisk(World, PhononScene, PhononSceneInfo);
+
+				if (SaveSceneSuccessful)
+				{
+					FSteamAudioEditorModule* Module = &FModuleManager::GetModuleChecked<FSteamAudioEditorModule>("SteamAudioEditor");
+					if (Module != nullptr)
+					{
+						Module->SetCurrentPhononSceneInfo(PhononSceneInfo);
+					}
+				}
+
+				for (IPLhandle PhononStaticMesh : PhononStaticMeshes)
+				{
+					iplDestroyStaticMesh(&PhononStaticMesh);
+				}
+			}
+
 			// Place probes
 			IPLhandle SceneCopy = PhononScene;
 			TArray<IPLSphere> ProbeSpheres;
 			PhononProbeVolumeHandle->PlaceProbes(PhononScene, GenerateProbesProgressCallback, ProbeSpheres);
 			PhononProbeVolumeHandle->BakedDataInfo.Empty();
 
-			// Release Phonon resources
-			for (IPLhandle PhononStaticMesh : PhononStaticMeshes)
-			{
-				iplDestroyStaticMesh(&PhononStaticMesh);
-			}
+			// Clean up
 			iplDestroyScene(&SceneCopy);
 
 			// Update probe component with new probe locations
-			auto& ProbeLocations = PhononProbeVolumeHandle->GetPhononProbeComponent()->ProbeLocations;
-			ProbeLocations.Empty();
-			ProbeLocations.SetNumUninitialized(ProbeSpheres.Num());
-			for (auto i = 0; i < ProbeSpheres.Num(); ++i)
 			{
-				ProbeLocations[i] = SteamAudio::PhononToUnrealFVector(SteamAudio::FVectorFromIPLVector3(ProbeSpheres[i].center));
+				FScopeLock ScopeLock(&PhononProbeVolumeHandle->PhononProbeComponent->ProbeLocationsCriticalSection);
+				auto& ProbeLocations = PhononProbeVolumeHandle->GetPhononProbeComponent()->ProbeLocations;
+				ProbeLocations.Empty();
+				ProbeLocations.SetNumUninitialized(ProbeSpheres.Num());
+				for (auto i = 0; i < ProbeSpheres.Num(); ++i)
+				{
+					ProbeLocations[i] = SteamAudio::PhononToUnrealFVector(SteamAudio::FVectorFromIPLVector3(ProbeSpheres[i].center));
+				}
 			}
 			
 			// Notify UI that we're done

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -39,88 +39,136 @@ namespace MovieSceneSegmentCompiler
 		return TOptional<FMovieSceneSegment>();
 	}
 
-	static void BlendSegmentHighPass(FMovieSceneSegment& Segment, const TArrayView<const FMovieSceneSectionData>& SourceData)
+	static bool AlwaysEvaluateSection(const FMovieSceneSectionData& InSectionData)
 	{
-		if (!Segment.Impls.Num())
+		return InSectionData.Section->GetBlendType().IsValid() || EnumHasAnyFlags(InSectionData.Flags, ESectionEvaluationFlags::PreRoll | ESectionEvaluationFlags::PostRoll);
+	}
+
+	static void FilterOutUnderlappingSections(FSegmentBlendData& BlendData)
+	{
+		if (!BlendData.Num())
 		{
 			return;
 		}
 
-		int32 HighestPriority = TNumericLimits<int32>::Lowest();
-		for (const FSectionEvaluationData& Impl : Segment.Impls)
+		int32 HighestOverlap = TNumericLimits<int32>::Lowest();
+		for (const FMovieSceneSectionData& SectionData : BlendData)
 		{
-			const FMovieSceneSectionData& SectionData = SourceData[Impl.ImplIndex];
-			if (!SectionData.BlendType.IsValid() &&
-				!SectionData.EvalData.IsPreRoll() &&
-				!SectionData.EvalData.IsPostRoll())
+			if (!AlwaysEvaluateSection(SectionData))
 			{
-				HighestPriority = FMath::Max(HighestPriority, SectionData.Priority);
+				HighestOverlap = FMath::Max(HighestOverlap, SectionData.Section->GetOverlapPriority());
 			}
 		}
 
 		// Remove anything that's not the highest priority, (excluding pre/postroll sections)
-		for (int32 RemoveAtIndex = Segment.Impls.Num() - 1; RemoveAtIndex >= 0; --RemoveAtIndex)
+		for (int32 RemoveAtIndex = BlendData.Num() - 1; RemoveAtIndex >= 0; --RemoveAtIndex)
 		{
-			const FMovieSceneSectionData& SectionData = SourceData[Segment.Impls[RemoveAtIndex].ImplIndex];
-			if (SectionData.Priority != HighestPriority &&
-				!SectionData.BlendType.IsValid() &&
-				!SectionData.EvalData.IsPreRoll() && 
-				!SectionData.EvalData.IsPostRoll())
+			const FMovieSceneSectionData& SectionData = BlendData[RemoveAtIndex];
+			if (SectionData.Section->GetOverlapPriority() != HighestOverlap && !AlwaysEvaluateSection(SectionData))
 			{
-				Segment.Impls.RemoveAt(RemoveAtIndex, 1, false);
+				BlendData.RemoveAt(RemoveAtIndex, 1, false);
+			}
+		}
+	}
+
+	static void ChooseLowestRowIndex(FSegmentBlendData& BlendData)
+	{
+		if (!BlendData.Num())
+		{
+			return;
+		}
+
+		int32 LowestRowIndex = TNumericLimits<int32>::Max();
+		for (const FMovieSceneSectionData& SectionData : BlendData)
+		{
+			if (!AlwaysEvaluateSection(SectionData))
+			{
+				LowestRowIndex = FMath::Min(LowestRowIndex, SectionData.Section->GetRowIndex());
+			}
+		}
+
+		// Remove anything that's not the highest priority, (excluding pre/postroll sections)
+		for (int32 RemoveAtIndex = BlendData.Num() - 1; RemoveAtIndex >= 0; --RemoveAtIndex)
+		{
+			const FMovieSceneSectionData& SectionData = BlendData[RemoveAtIndex];
+			if (SectionData.Section->GetRowIndex() > LowestRowIndex && !AlwaysEvaluateSection(SectionData))
+			{
+				BlendData.RemoveAt(RemoveAtIndex, 1, false);
 			}
 		}
 	}
 
 	// Reduces the evaluated sections to only the section that resides last in the source data. Legacy behaviour from various track instances.
-	static void BlendSegmentLegacySectionOrder(FMovieSceneSegment& Segment, const TArrayView<const FMovieSceneSectionData>& SourceData)
+	static void BlendSegmentLegacySectionOrder(FSegmentBlendData& BlendData)
 	{
-		if (Segment.Impls.Num() <= 1)
+		if (BlendData.Num() > 1)
 		{
-			return;
+			Algo::SortBy(BlendData, &FMovieSceneSectionData::TemplateIndex);
+			BlendData.RemoveAt(1, BlendData.Num() - 1, false);
 		}
-
-		Segment.Impls.Sort(
-			[&](const FSectionEvaluationData& A, const FSectionEvaluationData& B)
-			{
-				return A.ImplIndex > B.ImplIndex;
-			}
-		);
-		Segment.Impls.SetNum(1, false);
 	}
 }
 
-class FMovieSceneAdditiveCameraRules : public FMovieSceneSegmentCompilerRules
+/** Default track row segment blender for all tracks */
+struct FDefaultTrackRowSegmentBlender : FMovieSceneTrackRowSegmentBlender
 {
-public:
-	FMovieSceneAdditiveCameraRules(const UMovieSceneTrack* InTrack)
-		: Sections(InTrack->GetAllSections())
+	virtual void Blend(FSegmentBlendData& BlendData) const override
 	{
+		// By default we only evaluate the section with the highest Z-Order if they overlap on the same row
+		MovieSceneSegmentCompiler::FilterOutUnderlappingSections(BlendData);
+	}
+};
+
+/** Track segment blender that evaluates the nearest segment in empty space */
+struct FEvaluateNearestSegmentBlender : FMovieSceneTrackSegmentBlender
+{
+	FEvaluateNearestSegmentBlender()
+	{
+		bCanFillEmptySpace = true;
 	}
 
-	virtual void BlendSegment(FMovieSceneSegment& Segment, const TArrayView<const FMovieSceneSectionData>& SourceData) const
+	virtual TOptional<FMovieSceneSegment> InsertEmptySpace(const TRange<float>& Range, const FMovieSceneSegment* PreviousSegment, const FMovieSceneSegment* NextSegment) const
+	{
+		return MovieSceneSegmentCompiler::EvaluateNearestSegment(Range, PreviousSegment, NextSegment);
+	}
+};
+
+struct FMovieSceneAdditiveCameraTrackBlender : public FMovieSceneTrackSegmentBlender
+{
+	virtual void Blend(FSegmentBlendData& BlendData) const override
 	{
 		// sort by start time to match application order of player camera
-		Segment.Impls.Sort(
-			[&](FSectionEvaluationData A, FSectionEvaluationData B){
-				UMovieSceneSection* SectionA = Sections[SourceData[A.ImplIndex].EvalData.ImplIndex];
-				UMovieSceneSection* SectionB = Sections[SourceData[B.ImplIndex].EvalData.ImplIndex];
-
-				if (SectionA->IsInfinite())
-				{
-					return true;
-				}
-				else if (SectionB->IsInfinite())
-				{
-					return false;
-				}
-				else
-				{
-					return SectionA->GetStartTime() < SectionB->GetStartTime();
-				}
-			}
-		);
+		BlendData.Sort(SortByStartTime);
 	}
 
-	const TArray<UMovieSceneSection*>& Sections;
+private:
+
+	MOVIESCENE_API static bool SortByStartTime(const FMovieSceneSectionData& A, const FMovieSceneSectionData& B);
 };
+
+
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+
+/** Track row segment blender that acts as a proxy to an instance of the legacy FMovieSceneSegmentCompilerRules */
+template<typename BaseType>
+struct TLegacyTrackRowSegmentBlender : BaseType
+{
+	TLegacyTrackRowSegmentBlender(TInlineValue<FMovieSceneSegmentCompilerRules>&& InRules)
+		: LegacyRules(MoveTemp(InRules))
+	{}
+
+	~TLegacyTrackRowSegmentBlender()
+	{}
+
+	TLegacyTrackRowSegmentBlender(TLegacyTrackRowSegmentBlender&&) = default;
+
+	virtual void Blend(FSegmentBlendData& BlendData) const override
+	{
+		return LegacyRules->Blend(BlendData);
+	}
+
+private:
+	TInlineValue<FMovieSceneSegmentCompilerRules> LegacyRules;
+};
+
+PRAGMA_ENABLE_DEPRECATION_WARNINGS

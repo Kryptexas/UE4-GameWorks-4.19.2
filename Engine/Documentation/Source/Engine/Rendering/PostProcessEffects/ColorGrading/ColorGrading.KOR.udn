@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3604419
+﻿INTSourceChangelist:3782314
 Availability: Public
 Crumbs: %ROOT%
 Title:컬러 그레이딩 및 필름 톤매퍼
@@ -7,26 +7,29 @@ Type: Overview
 SkillLevel:Beginner
 Version:4.16
 Parent:Engine/Rendering/PostProcessEffects
+related:Engine/Rendering/PostProcessEffects/UsingLUTs
 Order:4
 Tags:Post Process
-Topic-image:ColorGrading_Topic.png
+Topic-image:ColorGrading_Overview.png
 Social-image:ColorGrading_Overview.png
 
 [VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
-[VAR:spacer3]![](%ROOT%/spacer.png)(w:0 convert:false)[/VAR]
+[VAR:spacer3]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-[TOC(start:2 end:2)]
 
-언리얼 엔진에서 용어 **컬러 그레이딩** (Color Grading) 은 *톤 매핑* (HDR 에서 LDR 로 변형) 및 그에 따른 *색 보정* (LDR 에서 스크린 컬러로 변형) 기능을 포함합니다. (HDR/LDR = High/Low Dynamic Range)
+[TOC(start:2 end:3)]
 
 ![](ColorGrading_Overview.png)
 [REGION:caption] 컬러 그레이딩 툴은 씬의 외양과 톤을 바꿀 수 있도록 해줍니다. 이 예제에서는 다양한 씬 컬러를 사용한 씬을 보여주고 있습니다. [/REGION]
 
+언리얼 엔진에서, **Color Grading** (컬러 그레이딩)이란 용어는 [하이 다이내믹 레인지 (HDR) 디스플레이 출력](Engine/Rendering/HDRDisplayOutput) 과 함께 사용되는 톤 매핑 함수(HDR 에서 LDR 로 변환) 에 더해 
+이미지의 색 보정(LDR 컬러에서 스크린 컬러로 변환) 처리까지 아우릅니다.
+
 ## 톤 매핑
 
 [EXCERPT:ToneMapping_Desc]
-**Tone Mapping** (톤 매핑) 함수의 목적은 HDR (하이 다이내믹 레인지) 컬러 큰 범위를 디스플레이가 출력할 수 있는 LDR (로우 다이내믹 레인지) 컬러 작은 범위로 매핑시키는 것입니다. 포스트 프로세싱 도중 보통 렌더링 이후 벌어지는
+**Tone Mapping** (톤 매핑) 함수의 목적은 하이 다이내믹 레인지(HDR) 컬러 큰 범위를 디스플레이가 출력할 수 있는 로우 다이내믹 레인지(LDR) 컬러의 작은 범위로 매핑시키는 것입니다. 포스트 프로세싱 도중 보통 렌더링 이후 벌어지는
 포스트 프로세싱 마지막 단계입니다. 톤 매핑 프로세스는 필름이 빛에 반응하는 것을 시뮬레이션하기 위한 방편으로 생각해 볼 수 있습니다.
 [/EXCERPT:ToneMapping_Desc]
 
@@ -53,7 +56,7 @@ S 커브가 영화 필름에 더욱 잘 맞아 전반적인 외양이 나아보�
 
 차이를 바로 느낄 수 있는 부분은 블룸(Bloom)과 노출 수준(Exposure Level)입니다.
 
-#### 물리적으로 정확한 이미시브
+#### 물리적으로 정확한 이미시브와 블룸
 
 이미시브 값이 이제 물리적으로 정확하여, 현실 세계에서 컬러 라이트의 작동 방식과 비슷하게 이미시브 파워가 상승하면 컬러도 밝아집니다. 컬러에 톤 매핑이 적용되면서,
 최종 컬러가 필름 / 센서 채도를 넘칠 정도로 밝으면 하얗게 변할 것입니다.
@@ -67,19 +70,19 @@ S 커브가 영화 필름에 더욱 잘 맞아 전반적인 외양이 나아보�
 	[/PARAM]
 [/OBJECT]
 
+
+
 이 예제에서 "예전" 톤 매퍼와 새로운 필름 톤 매퍼를 비교하고 있습니다. 이미시브 파워가 충분히 높으면, 색이 하얘지기 시작합니다. 
 예전 톤 매퍼에서는 머티리얼 일부의 채도가 심하게 높아져 디테일이 사라지던 것과는 다릅니다. 심지어 블룸이 있는 이 씬의 물리적 정확도가 유지될 뿐만 아니라 
-채도가 심하게 높아지지도 않아, 
-반사되는 주 컬러 값이 유지됩니다.
+채도가 심하게 높아지지도 않아, 반사되는 주 컬러 값이 유지됩니다.
 
 #### 노출 수준
 
-노출 수준이 이제 물리적으로 정확하여 셰이프가 계속 유지됩니다.
+노출 수준이 이제 물리적으로 정확하여 디테일을 잃지 않고 모양이 유지됩니다.
 
 ![](Exposure_Default.png)(w:500)
-[REGION:caption] 이 예제는 기본 Exposure Bias 값 0 을 사용하고 있습니다. [/REGION]
 
-아래 예제에서, Exposure Bias 를 3 으로 올렸습니다. 이미지가 위의 기본값 0 보다 8 배 밝아진다는 뜻입니다.
+이 예제에는, 다양한 색은 물론 러프니스와 메탈릭 값도 각기 다른 머티리얼들이 있습니다. Exposure Bias 역시 0 으로 설정되어 있습니다.
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -90,19 +93,17 @@ S 커브가 영화 필름에 더욱 잘 맞아 전반적인 외양이 나아보�
 	[/PARAM]
 [/OBJECT]
 
-노출 수준 값이 높아질 수록 필름 / "예전" 톤 매퍼 간의 차이가 명확해집니다. 필름 톤 매퍼의 구체는 더욱 밝은데도 불구하고 
-컬러와 셰이딩 셰이프가 계속 유지되어 보입니다. "예전" 톤 매퍼를 사용하는 구체는 컬러가 셰이딩과 블렌딩되기 시작합니다. 그 구체가 단색으로 정말 밝아지기는 하지만, 
-노출 값이 높다고만은 할 수 없습니다. 필름 톤 매퍼는 이 부분을 고려하여 노출 값을 올렸을 때 실제 카메라와 비슷한 효과를 내도록 하고 
-있습니다.
+이 비교에서, Exposure Bias 를 3 으로 올리니 "예전" 톤 매퍼 구현에 비해 필름 톤 매퍼의 반응이 정말 잘 드러나 보입니다. 또한, 3 이라는 값의 뜻은 위의 예전 예제에 표시된 0 이라는 기본값보다 처리된 이미지가 8 배 밝다는 뜻입니다.
 
-### 톤 매퍼 프로퍼티
+노출 수준 값이 높아질 수록 필름 / "예전" 톤 매퍼 간의 차이가 명확해집니다. 필름 톤 매퍼의 구체는 더욱 밝은데도 불구하고 컬러와 셰이딩 셰이프가 계속 유지되어 보입니다. "예전" 톤 매퍼를 사용하는 구체는 컬러가 셰이딩과 블렌딩되기 시작합니다. 그 구체가 단색으로 정말 밝아지기는 하지만, 노출 값이 높다고만은 할 수 없습니다. 반면 필름 톤 매퍼는 이 부분을 고려하여 노출 값을 올렸을 때 실제 카메라와 비슷한 효과를 내도록 하고 있습니다.
 
-Post Process Volume 의 **Tone Mapper** 섹션에는 ACES 표준 필름에 맞는 프로퍼티를 찾을 수 있습니다. 이 톤 매퍼 컨트롤을 조절하면 프로젝트에 다른 영화같은 같은 
-느낌을 모방할 수 있습니다.
+### 톤매퍼 세팅
+
+Post Process Volume 의 **Tone Mapper** 섹션에는 ACES 표준 필름에 맞는 프로퍼티를 찾을 수 있습니다. 이 톤 매퍼 컨트롤을 조절하면 프로젝트에 다른 영화같은 같은 느낌을 모방할 수 있습니다.
 
 [REGION:note]
 이 프로퍼티들은 특정한 외양을 위해 프로젝트 단위로만 사용하고, 동적으로 또는 샷 단위로 변경하지는 않는 것이 좋습니다. 미적인 조정을 가하는 데는 
-[컬러 그레이딩 프로퍼티](#색보정프로퍼티) 를 사용해야 합니다.
+[컬러 그레이딩](#색보정프로퍼티) 프로퍼티를 사용해야 합니다.
 [/REGION]
 
 ![](ToneMapperProperties.png)(w:500)
@@ -119,11 +120,12 @@ Post Process Volume 의 **Tone Mapper** 섹션에는 ACES 표준 필름에 맞�
 [/REGION]
 
 [REGION:note]
-위와 같은 실시간 그래프에서 다른 톤 매퍼 값을 테스트하려면, [여기](https://www.desmos.com/calculator/h8rbdpawxj) 에서 가능합니다.
+위와 같은 실시간 그래프에서 다른 톤 매퍼 값을 테스트하려면, [UE4 톤매퍼 예제](https://www.desmos.com/calculator/h8rbdpawxj) 기본 구성에서 가능합니다.
 [/REGION]
 
 
-<!--- Tone Mapper Properties Excerpts ---
+[COMMENT:none]
+- Tone Mapper Properties Excerpts ---
 
 
 [EXCERPT:slopetable]
@@ -276,7 +278,8 @@ Post Process Volume 의 **Tone Mapper** 섹션에는 ACES 표준 필름에 맞�
 [/OBJECT]
 [/EXCERPT:whiteclipimage]
 
---- End Tone Mapper Properties Excerpts --->
+--- End Tone Mapper Properties Excerpts -
+[/COMMENT]
 
 
 ## 색 보정
@@ -284,9 +287,9 @@ Post Process Volume 의 **Tone Mapper** 섹션에는 ACES 표준 필름에 맞�
 Color correction (색 보정) 또는 컬러 그레이딩은 씬의 라이트 전반적인 색을 변경 또는 강화시키는 데 사용됩니다. HDR 디스플레이의 출현으로, 
 어떤 디스플레이 유형에서도 색이 제대로 표시되도록 하기 위해 처리 전 원래 색을 보존하는 것이 가장 중요해 졌습니다.
 
-과거에, 색 보정은 룩업 테이블(LUT)을 통해 구현하여, sRGB 컬러 스페이스에서 모니터에 출력되는 최종색 및 LDR 에서 일어나는 일이었습니다.
+과거에, 색 보정은 [룩업 테이블 (LUT)](Engine/Rendering/PostProcessEffects/UsingLUTs) 을 통해 구현하여, sRGB 컬러 스페이스에서 모니터에 출력되는 최종색 및 LDR 에서 일어나는 일이었습니다.
 이는 HDR 디스플레이 작업을 할 때 문제가 생기는데, LUT 는 조정 대상이 되는 현재 지원 디스플레이 시점에서의 스냅샷일 뿐이라 
-HDR 디스플레이에서 같은 이펙트에 사용할 수 없기 때문입니다. 이러한 문제를 줄이기 위해, [색 보정 컨트롤](#색보정컨트롤) 은 흔히 Scene Referred Linear Space 라는 곳에서 작동하여, 
+HDR 디스플레이에서 같은 이펙트에 사용할 수 없기 때문입니다. 이러한 문제 해결을 위해, [색 보정 프로퍼티](#색보정프로퍼티) 는 흔히 Scene Referred Linear Space 라는 곳에서 작동하여, 
 톤 매퍼 적용 전 모든 컬러를 캡처합니다. 즉 하나의 HDR 디스플레이에서만 색 조정 작업을 해 주면 
 HDR 이든 LDR 이든 상관 없이 어떤 유형의 출력 디스플레이에도 똑같아 보이도록 만들 수 있다는 뜻입니다.
 
@@ -298,7 +301,7 @@ HDR 이든 LDR 이든 상관 없이 어떤 유형의 출력 디스플레이에�
 
 Post Process Volume 의 **Color Grading** 섹션에서는 씬의 미적인 부분을 제어할 수 있는 프로퍼티를 찾을 수 있습니다.
 
-#### 색 보정 컨트롤
+#### 세팅
 
 [REGION:imagetable]
 | ![](RGBColorWheel.png)(w:500) | ![](HSVColorWheel.png)(w:500) |
@@ -316,7 +319,6 @@ Post Process Volume 의 **Color Grading** 섹션에서는 씬의 미적인 부�
 [/REGION]
 
 ![](ColorGradingProperties.png)(w:500)
-
 
 [REGION:raw]
 | 프로퍼티 | %spacer2% | 설명 |
@@ -360,53 +362,49 @@ Post Process Volume 의 **Color Grading** 섹션에서는 씬의 미적인 부�
 
 Post Process Volume 의 컬러 그레이딩 툴 작업을 할 때 갖춰두면 좋은 습관이 몇 가지 있습니다.
 
-* **Tone Mapper** (톤 매퍼)는 프로젝트 단위 외양을 내는 데 설정해야 합니다. 이상적으로, 이 프로퍼티는 매우 절대적으로 샷 단위 또는 동적으로 조정해서는 안됩니다. 그 용도로는 **Color Grading** (컬러 그레이딩) 프로퍼티를 사용해야 합니다.
-* **Global** (글로벌) 색 보정 프로퍼티부터 사용해서 씬의 첫 단계 작업을 한 뒤 다른 프로퍼티를 건드립니다. 컬러 그레이딩 변경 대대수는 이 프로퍼티 안에서 일어날 것입니다.
-* 씬의 노출을 조정하는 데 **Gain** (이득) 프로퍼티를 사용하는 것은 좋지 않으며, 다른 색에 대한 미세 조정을 하는 데 사용해야 합니다. 그 대신 **Lens** (렌즈) > **Auto-Exposure** (자동 노출) 섹션의 **Exposure Bias** 를 사용하세요.
-* **Offset** 을 조금 사용하여 그늘지거나 어두운 지역을 약간 밝게 만들어 주세요. 약간 뿌옇게 또는 블룸이 더욱 강해 보이게 만들려는 경우 값을 높게 설정하면 되며, 반대로 씬이 너무 뿌옇거나 블룸이 너무 센 경우 값을 낮춰 씬에서 색을 빼주면 됩니다.
-* 룩업 테이블(LUT)을 사용하여 씬에 색을 입히는 것 보다, 그 작업은 톤 매핑 이후에 일어나므로, **Color Grading** 프로퍼티를 사용하여 원하는 외양을 만드는 것이 (LDR 이든 HDR 이든) 출력하는 모든 디스플레이에 일관성있게 표시됩니다.
+* **Tone Mapper** (톤 매퍼)는 프로젝트 단위 외양을 내는 데 설정해야 합니다. 이상적으로, 이 프로퍼티는 매우 절대적으로 샷 단위 또는 동적으로 조정해서는 안됩니다. 
+그 용도로는 **Color Grading** (컬러 그레이딩) 프로퍼티를 사용해야 합니다.
+
+* **Global** (글로벌) 색 보정 프로퍼티부터 사용해서 씬의 첫 단계 작업을 한 뒤 다른 프로퍼티를 사용하세요. 컬러 그레이딩 변경 대대수는 
+이 프로퍼티로 이루어져야 합니다.
+
+* 씬의 노출을 조정하는 데 **Gain** (이득) 프로퍼티를 사용하는 것은 좋지 않으며, 다른 색에 대한 미세 조정을 하는 데 사용해야 합니다. 그 대신 **Lens** (렌즈) > **Auto-Exposure** (자동 노출) 섹션의 
+**Exposure Bias** 를 사용하세요.
+
+* **Offset** 을 조금 사용하여 그늘지거나 어두운 지역을 약간 밝게 만들어 주세요. 약간 뿌옇게 또는 블룸이 더욱 강해 보이게 만들려는 경우 값을 높게 설정하면 되며, 
+반대로 씬이 너무 뿌옇거나 블룸이 너무 센 경우 값을 낮춰 씬에서 색을 빼주면 됩니다.
+
+* 룩업 테이블(LUT)을 사용하여 씬에 색을 입히는 것 보다, 그 작업은 톤 매핑 이후에 일어나므로, **Color Grading** 프로퍼티를 사용하여 원하는 외양을 만드는 것이 
+(LDR 이든 HDR 이든) 출력하는 모든 디스플레이에 일관성있게 표시됩니다. 하지만 LUT 로 톤을 설정하여 외양을 빠르게 확인한 뒤 색 보정을 통해 비슷한 외양을 내도록 하는 것이 
+좋을 수 있습니다.
 
 
-## 룩업 테이블 (LUT)
+## 교육 스트리밍 자료
 
-[REGION:note]
-Post Process Volume 의 **Color Grading** 섹션에서 사용할 수 있는 최신 Color Correction (색 보정) 툴을 LUT 생성 대신 사용해야 합니다. 룩업 테이블은 HDR 에 대한 표현이 아니고, 
-이미지 처리에 대한 조정은 톤 매핑이 이미 발생한 이후 일어나기 때문에 제대로 표시되지 않습니다.
-[/REGION]
-
-룩업 테이블(LUT)은 Post Process Volume 에서 색 보정을 하는 데 사용할 수 있습니다. 1차원 룩업 테이블을 셋 사용하는 대신, 3차원 룩업 테이블을 하나 사용하는데, 그래야 보다 세련된 
-(채도감소(desaturation)같은) 색 변환이 가능하기 때문입니다. 다음 이미지는 16x16x16 무채색 LUT 를 256x16 텍스처로 펼친 것입니다:
-
-
-[REGION:imagetable]
-| ![Neutral LUT](RGBTable16x1.png)(w:350)  | ![Sepia Tone LUT](LUT_Sepia.png)(w:350) |
-| --- | --- |
-| 무채색 LUT | 세피아 톤 LUT |
-[/REGION]
-
-LUT 가 변경되면, 위 예제에서 세피아 톤 LUT 와 비슷해 보일 수 있습니다.
-
-### 주
-
-프로젝트에 LUT 를 사용할 때는 주의해야 할 점이 몇 가지 있습니다.
-
-* LUT 작업은 모니터에 출력된 sRGB 스페이스의 최종 이미지 컬러와 LDR 에서 일어나므로, 당시 지원한 디스플레이에서 찍은 스냅샷일 뿐 실제 출력되는 디스플레이에서도 반드시 똑같아 보이지는 않습니다.
-* LUT 를 사용하면 일관성이 손실되는데 그 이유는 색 보정이 HDR 디스플레이에서는 작동하지 않기 때문입니다. Post Process Volume 의 Color Grading 프로퍼티는 모두 **Scene Referred Linear Space** 라는 곳에서 일어납니다. 이 작업은 톤 매핑 전 그리고 특정 디스플레이의 컬러 스페이스로 변환하기 전에 일어나므로 색에 일관성이 있다는 뜻입니다. 예를 들어, sRGB 가 아닌 Rec709 를 사용하는 TV 에 출력을 하고자 하는 경우, LUT 를 사용한다면 색 보정이 그대로 적용되지 않는데, 그 이유는 이미지를 디스플레이에 출력한 이후 색 보정이 일어나기 때문입니다. 그런 이유로, 색 보정 이미지 처리를 하는 방편에서 LUT 가 제거되고 있는 것입니다.
-* LUT 로 현재 디스플레이에서 프로젝트에 어떤 외양을 낼것인지 빠르게 목표로 삼고, Color Grading 프로퍼티로 비슷한 외양을 내어 출력되는 다른 디스플레이에서 일관성을 확보하는 식으로 사용하면 좋습니다.
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	A-wectYNfRQ
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	50
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
 
 
-### LUT 텍스처 사용
 
-LUT 를 활용하려면, 다음 프로퍼티로 LUT 텍스처를 같이 사용하고자 하는 Post Process Volumn 에 할당하고 그 세기를 조절하면 됩니다.
 
-[REGION:raw]
-| 프로퍼티 | %spacer2% | 설명 |
-| -------- | --------- | ----------- |
-| **Color Grading LUT Intensity** || 컬러 그레이딩 LUT 세기 - 색 보정 효과를 제어하는 스케일 인수입니다. |
-| **Color Grading LUT** || 컬러 그레이딩 LUT - 색 보정의 룩업 테이블로 사용할 LUT 텍스처입니다. [INCLUDE:Engine/Rendering/PostProcessEffects/ColorGrading#ColorGradingLUT] |
-[/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ColorGradingLUT]
 [REGION:imagetable]
 | [INCLUDE:#colorgradingnone] | [INCLUDE:#colorgradinggreen] | [INCLUDE:#colorgradingred] |
@@ -435,124 +433,5 @@ LUT 를 활용하려면, 다음 프로퍼티로 LUT 텍스처를 같이 사용�
 [/REGION]
 [REGION:caption]이미지를 클릭하면 원본을 확인합니다.[/REGION]
 [/EXCERPT:colorgradingred]
--->
 
-### 자체 LUT 텍스처 제작
-
-자체 LUT 텍스처를 제작하기 위해서는, 먼저 (Photoshop 또는 GIMP 같은) 이미지 편집 프로그램이 필요합니다. 이 데모 목적 상,
-에픽게임즈 런처의 학습 탭에서 받을 수 있는 **Sun Temple** (태양의 사원) 프로젝트와 Photoshop 을 사용해서 LUT 를 만들겠습니다.
-
-1. 언리얼 엔진 4 프로젝트에서 조정하고자 하는 씬을 대표하는 스크린 샷을 몇 장 찍습니다. 에디터의 [스크린샷 툴](Engine/Basics/Screenshots) 을 사용하여 
-색 보정을 적용하는 데 사용할 이미지를 캡처할 수 있습니다.
-	
-	![](LUT1.png)(w:600)
-
-1. 캡처한 스크린샷을 Photoshop 에서 열어 Adjustments 탭에서 별도의 **Adjustment Layers** 를 추가합니다. 클릭한 뒤 **Layers** 패널에 추가해 주면 됩니다.
-
-	[REGION:lightbox]
-	[![](LUT2.png)(w:600)](LUT2.png)
-	[/REGION]
-	[REGION:caption]이미지를 클릭하면 원본을 확인합니다.[/REGION]
-
-1. **Adjustments** 패널에서, 최종 이미지에 대해 조정하고자 하는 것들을 추가합니다. 이 예제에서는 **Vibrance** 와 **Brightness/Contrast** 를 조정하겠습니다. 
-조정 레이어를 선택하면 패널에서 조정할 수 있는 옵션이 보입니다. 보이지 않으면 레이어에 우클릭하고 **Edit Adjustment** 를 선택하면 됩니다.
-
-	![](LUT3.png)(w:600)
-
-1. 원하는 외양이 나도록 adjustment 를 사용하여 이미지를 수정합니다.
-	 
-	[OBJECT:ComparisonSlider]
-		[PARAM:before]
-		![Before](LUT1.png)(w:600)
-		[/PARAM]
-		[PARAM:after]
-		![After](LUT4.png)(w:600)
-		[/PARAM]
-	[/OBJECT]
-
-	이 예제에서, 추가된 adjustment 레이어에 트윅 작업을 딱 두 번 하기 전과 후의 차이를 확인할 수 있습니다.
-
-1. 몇몇 컬러 값 조정을 마쳤으니, 이 조정을 무채색(neutral) 256x16 LUT 에 복사합니다.
-
-	[REGION:note]
-	사용할 수 있는 것이 없는 경우, 이 페이지의 RGBTable16x1.png 이미지를 사용해도 되지만, 복사/붙여넣기를 하지는 마십시오. 모니터에 표시된 이미지가 원본 그대로를 대표하는 것은 아니기 때문입니다.
-	* [LUT 텍스처 예제](RGBTable16x1.png) - **우클릭** 후 **다른 이름으로 저장**
-	[/REGION]
-
-	Adjustment layer 를 끌어 무채색 LUT 텍스처에 놓기만 해도 효과가 적용됩니다.
-
-	[OBJECT:EmbeddedVideo]
-		[PARAMLITERAL:width]
-		600
-		[/PARAMLITERAL]
-		[PARAMLITERAL:height]
-		320
-		[/PARAMLITERAL]
-		[PARAMLITERAL:videoid]
-		IFFgPsML1yc
-		[/PARAMLITERAL]
-	[/OBJECT]
-
-1. 다음 **File** > **Save As** 메뉴를 선택한 뒤 새 LUT 를 저장할 이름을 선택합니다.
-1. 별도로 수정하여 작업할 LUT 가 생겼으니, 그 파일을 끌어 UE4 의 **콘텐츠 브라우저** 에 놓거나, 콘텐츠 브라우저의 **임포트** 버튼을 사용하여 
-임포트합니다.
-	
-	![](LUT5.png)(w:600)
-1. LUT 를 사용하기에 앞서, 더블클릭하여 텍스처 에디터에서 열어본 뒤 프로퍼티를 다음과 같이 설정하면 좋을 것입니다:
-
-	[REGION:imagetable]
-	| ![](LUT6.png)(w:450) | [INCLUDE:#textureproperties] |
-	| --- | --- |
-	|||
-	[/REGION]
-
-1. 그런 다음 임포트한 LUT 텍스처를 Post Process Volume 의 **Color Grading LUT** 텍스처 슬롯에 할당합니다.
-	
-	[REGION:imagetable]
-	| ![](LUT8.png)(w:500) | [INCLUDE:#finalcomparison] |
-	| --- | --- |
-	|||
-	[/REGION]
-
-<!---
-[INCLUDE:#textureproperties]
-[EXCERPT:textureproperties]
-* Mip Gen Settings: **NoMipMaps**
-* Texture Group: **Color Lookup Table**
-[/EXCERPT:textureproperties]
-
-[INCLUDE:#finalcomparison]
-
-[EXCERPT:finalcomparison]
-[OBJECT:ComparisonSlider]
-	[PARAM:before]
-	![Default](LUT1.png)(w:600)
-	[/PARAM]
-	[PARAM:after]
-	![With Created LUT](LUT7.png)(w:600)
-	[/PARAM]
-[/OBJECT]
-[/EXCERPT:finalcomparison]
-
---->
-
-
-## 스트리밍 교육 자료
-
-[OBJECT:EmbeddedVideo]
-	[PARAMLITERAL:videoid]
-	A-wectYNfRQ
-	[/PARAMLITERAL]
-	[PARAMLITERAL:width]
-	50
-	[/PARAMLITERAL]
-	[PARAMLITERAL:height]
-	28.125
-	[/PARAMLITERAL]
-	[PARAMLITERAL:units]
-	%
-	[/PARAMLITERAL]
-	[PARAMLITERAL:type]
-	simple
-	[/PARAMLITERAL]
-[/OBJECT]
+[/COMMENT]

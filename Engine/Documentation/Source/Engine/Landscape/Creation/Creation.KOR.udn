@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3347993
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:랜드스케이프 만들기
 Crumbs: %ROOT%, Engine, Engine/Landscape
@@ -6,45 +6,7 @@ Description:랜드스케이프 터레인을 새로 만드는 방법 안내서입
 version: 4.9
 parent:Engine/Landscape
 order:2
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Landscape/Creation:title%](landscape_create_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Landscape/Creation:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Landscape/Creation:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Landscape/Creation]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Landscape/Creation:title%](landscape_create_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Landscape/Creation:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Landscape/Creation:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Landscape/Creation]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:landscape_create_topic.png
 
 [TOC(start:2)]
 
@@ -60,9 +22,11 @@ order:2
 랜드스케이프 툴 실전 예제는 [](Resources\ContentExamples\Landscapes) 콘텐츠 예제를 살펴보세요.
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 레벨 에디터 패널 커스터마이징 관련 상세 정보는 [](Engine/UI/InterfaceOverview) 문서를 참고하세요.
--->
+
+[/COMMENT]
 
 ## 랜드스케이프 툴 열기
 

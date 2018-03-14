@@ -36,7 +36,8 @@ Tags:Sequencer
 
 [DIR(end:"1" output:"listbutton" parent:"Platforms/VR/StereoPanoramicCapture" type:"!quick start")]
 
-<!--
+[COMMENT:none]
+
 ## 开始
 
 立体全景采集快速入门指南将为您讲述如何设置 UE4 项目，以便采集和查看立体图像。
@@ -55,4 +56,5 @@ Tags:Sequencer
 
 [DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/VR/StereoPanoramicCapture")]
 
--->
+
+[/COMMENT]

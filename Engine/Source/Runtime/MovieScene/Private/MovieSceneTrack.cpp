@@ -1,13 +1,14 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTrack.h"
+#include "MovieScene.h"
 #include "Evaluation/MovieSceneSegment.h"
 #include "Compilation/MovieSceneSegmentCompiler.h"
 #include "Compilation/MovieSceneCompilerRules.h"
+#include "Compilation/IMovieSceneTemplateGenerator.h"
 
 #include "Evaluation/MovieSceneEvaluationTrack.h"
 #include "Evaluation/MovieSceneEvaluationTemplate.h"
-#include "Evaluation/MovieSceneLegacyTrackInstanceTemplate.h"
 
 #include "MovieSceneEvaluationCustomVersion.h"
 
@@ -102,66 +103,68 @@ void UMovieSceneTrack::UpdateEasing()
 				MaxEaseOut = MaxEaseIn = Max * 0.25f;
 			}
 
-			CurrentSection->Modify();
-			CurrentSection->Easing.AutoEaseInTime = FMath::Clamp(MaxEaseIn, 0.f, Max);
-			CurrentSection->Easing.AutoEaseOutTime = FMath::Clamp(MaxEaseOut, 0.f, Max);
+			// Only modify the section if the ease in or out times have actually changed
+			MaxEaseIn = FMath::Clamp(MaxEaseIn, 0.f, Max);
+			MaxEaseOut = FMath::Clamp(MaxEaseOut, 0.f, Max);
+
+			if (CurrentSection->Easing.AutoEaseInTime != MaxEaseIn || CurrentSection->Easing.AutoEaseOutTime != MaxEaseOut)
+			{
+				CurrentSection->Modify();
+
+				CurrentSection->Easing.AutoEaseInTime = MaxEaseIn;
+				CurrentSection->Easing.AutoEaseOutTime = MaxEaseOut;
+			}
 		}
 	}
 }
 
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
-TSharedPtr<IMovieSceneTrackInstance> UMovieSceneTrack::CreateLegacyInstance() const
-{
-	// Ugly const cast required due to lack of const-correctness in old system
-	return const_cast<UMovieSceneTrack*>(this)->CreateInstance();
-}
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
-
 TInlineValue<FMovieSceneSegmentCompilerRules> UMovieSceneTrack::GetRowCompilerRules() const
 {
-	// By default we only evaluate the section with the highest Z-Order if they overlap on the same row
-	struct FDefaultCompilerRules : FMovieSceneSegmentCompilerRules
-	{
-		virtual void BlendSegment(FMovieSceneSegment& Segment, const TArrayView<const FMovieSceneSectionData>& SourceData) const
-		{
-			MovieSceneSegmentCompiler::BlendSegmentHighPass(Segment, SourceData);
-		}
-	};
-	return FDefaultCompilerRules();
+	return TInlineValue<FMovieSceneSegmentCompilerRules>();
 }
 
 TInlineValue<FMovieSceneSegmentCompilerRules> UMovieSceneTrack::GetTrackCompilerRules() const
 {
-	struct FRoundToNearstSectionRules : FMovieSceneSegmentCompilerRules
-	{
-		virtual TOptional<FMovieSceneSegment> InsertEmptySpace(const TRange<float>& Range, const FMovieSceneSegment* PreviousSegment, const FMovieSceneSegment* NextSegment) const
-		{
-			return MovieSceneSegmentCompiler::EvaluateNearestSegment(Range, PreviousSegment, NextSegment);
-		}
-	};
+	return TInlineValue<FMovieSceneSegmentCompilerRules>();
+}
 
-	// Evaluate according to bEvalNearestSection preference
-	if (EvalOptions.bCanEvaluateNearestSection && EvalOptions.bEvalNearestSection)
+FMovieSceneTrackRowSegmentBlenderPtr UMovieSceneTrack::GetRowSegmentBlender() const
+{
+	// Handle legacy row compiler rules
+	TInlineValue<FMovieSceneSegmentCompilerRules> LegacyRules = GetRowCompilerRules();
+	if (LegacyRules.IsValid())
 	{
-		return FRoundToNearstSectionRules();
+		return TLegacyTrackRowSegmentBlender<FMovieSceneTrackRowSegmentBlender>(MoveTemp(LegacyRules));
 	}
 	else
 	{
-		return FMovieSceneSegmentCompilerRules();
+		return FDefaultTrackRowSegmentBlender();
 	}
 }
+
+FMovieSceneTrackSegmentBlenderPtr UMovieSceneTrack::GetTrackSegmentBlender() const
+{
+	// Handle legacy track compiler rules
+	TInlineValue<FMovieSceneSegmentCompilerRules> LegacyRules = GetTrackCompilerRules();
+	if (LegacyRules.IsValid())
+	{
+		return TLegacyTrackRowSegmentBlender<FMovieSceneTrackSegmentBlender>(MoveTemp(LegacyRules));
+	}
+	else if (EvalOptions.bCanEvaluateNearestSection && EvalOptions.bEvalNearestSection)
+	{
+		return FEvaluateNearestSegmentBlender();
+	}
+	else
+	{
+		return FMovieSceneTrackSegmentBlenderPtr();
+	}
+}
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 void UMovieSceneTrack::GenerateTemplate(const FMovieSceneTrackCompilerArgs& Args) const
 {
 	FMovieSceneEvaluationTrack NewTrackTemplate(Args.ObjectBindingId);
-
-	// Legacy path
-	if (CreateLegacyInstance().IsValid())
-	{
-		NewTrackTemplate.DefineAsSingleTemplate(FMovieSceneLegacyTrackInstanceTemplate(this));
-		Args.Generator.AddLegacyTrack(MoveTemp(NewTrackTemplate), *this);
-		return;
-	}
 
 	if (Compile(NewTrackTemplate, Args) != EMovieSceneCompileResult::Success)
 	{
@@ -175,109 +178,16 @@ FMovieSceneEvaluationTrack UMovieSceneTrack::GenerateTrackTemplate() const
 {
 	FMovieSceneEvaluationTrack TrackTemplate = FMovieSceneEvaluationTrack(FGuid());
 
-	// Legacy path
-	if (CreateLegacyInstance().IsValid())
+	// For this path, we don't have a generator, so we just pass through a stub
+	struct FTemplateGeneratorStub : IMovieSceneTemplateGenerator
 	{
-		TrackTemplate.DefineAsSingleTemplate(FMovieSceneLegacyTrackInstanceTemplate(this));
-	}
-	else
-	{
-		// For this path, we don't have a generator, so we just pass through a stub
-		struct FTemplateGeneratorStub : IMovieSceneTemplateGenerator
-		{
-			virtual void AddOwnedTrack(FMovieSceneEvaluationTrack&& InTrackTemplate, const UMovieSceneTrack& SourceTrack) override {}
-			virtual void AddSharedTrack(FMovieSceneEvaluationTrack&& InTrackTemplate, FMovieSceneSharedDataId SharedId, const UMovieSceneTrack& SourceTrack) override {}
-			virtual void AddLegacyTrack(FMovieSceneEvaluationTrack&& InTrackTemplate, const UMovieSceneTrack& SourceTrack) override {}
-			virtual void AddExternalSegments(TRange<float> RootRange, TArrayView<const FMovieSceneEvaluationFieldSegmentPtr> SegmentPtrs, ESectionEvaluationFlags Flags) override {}
-			virtual FMovieSceneSequenceTransform GetSequenceTransform(FMovieSceneSequenceIDRef InSequenceID) const override { return FMovieSceneSequenceTransform(); }
-			virtual void AddSubSequence(FMovieSceneSubSequenceData SequenceData, FMovieSceneSequenceIDRef ParentID, FMovieSceneSequenceID SpecificID) override { }
-		} Generator;
+		virtual void AddOwnedTrack(FMovieSceneEvaluationTrack&& InTrackTemplate, const UMovieSceneTrack& SourceTrack) override {}
+	} Generator;
 
-		FMovieSceneSequenceTemplateStore Store;
-		Compile(TrackTemplate, FMovieSceneTrackCompilerArgs(Generator, Store));
-	}
+	Compile(TrackTemplate, FMovieSceneTrackCompilerArgs(Generator));
+
 	return TrackTemplate;
 }
-
-struct FSegmentRemapper
-{
-	explicit FSegmentRemapper(bool bInAllowEmptySegments)
-		: bAllowEmptySegments(bInAllowEmptySegments)
-	{}
-
-	void ProcessSegments(const TArray<FMovieSceneSegment>& SourceSegments, FMovieSceneEvaluationTrack& OutTrack, const TFunctionRef<FMovieSceneEvalTemplatePtr(int32)>& TemplateFactory)
-	{
-		NewSegments.Reset(SourceSegments.Num());
-		NewIndices.Reset();
-
-		for (const FMovieSceneSegment& Segment : SourceSegments)
-		{
-			AddSegment(Segment, OutTrack, TemplateFactory);
-		}
-
-		OutTrack.SetSegments(MoveTemp(NewSegments));
-	}
-
-	void AddSegment(const FMovieSceneSegment& SourceSegment, FMovieSceneEvaluationTrack& OutTrack, const TFunctionRef<FMovieSceneEvalTemplatePtr(int32)>& TemplateFactory)
-	{
-		FMovieSceneSegment NewSegment;
-		NewSegment.Range = SourceSegment.Range;
-
-		for (const FSectionEvaluationData& EvalData : SourceSegment.Impls)
-		{
-			EnsureIndexIsValid(EvalData.ImplIndex);
-
-			// Ensure all our templates have been added to the track
-			if (NewIndices[EvalData.ImplIndex] == NotCreatedYet)
-			{
-				FMovieSceneEvalTemplatePtr NewTemplate = TemplateFactory(EvalData.ImplIndex);
-				if (NewTemplate.IsValid())
-				{
-					NewIndices[EvalData.ImplIndex] = OutTrack.AddChildTemplate(MoveTemp(NewTemplate));
-				}
-				else
-				{
-					NewIndices[EvalData.ImplIndex] = NullTemplate;
-				}
-			}
-
-			if (NewIndices[EvalData.ImplIndex] == NullTemplate)
-			{
-				continue;
-			}
-
-			FSectionEvaluationData NewData = EvalData;
-			NewData.ImplIndex = NewIndices[EvalData.ImplIndex];
-			NewSegment.Impls.Add(NewData);
-		}
-
-		if (bAllowEmptySegments || NewSegment.Impls.Num())
-		{
-			NewSegments.Add(NewSegment);
-		}
-	}
-
-private:
-	bool bAllowEmptySegments;
-
-	static const int32 NotCreatedYet;
-	static const int32 NullTemplate;
-
-	TArray<FMovieSceneSegment> NewSegments;
-	TArray<int32> NewIndices;
-
-	void EnsureIndexIsValid(int32 InSourceIndex)
-	{
-		NewIndices.Reserve(InSourceIndex + 1);
-		for (int32 Index = NewIndices.Num(); Index < InSourceIndex + 1; ++Index)
-		{
-			NewIndices.Add(NotCreatedYet);
-		}
-	}
-};
-
-const int32 FSegmentRemapper::NotCreatedYet = -1;
-const int32 FSegmentRemapper::NullTemplate = -2;
 
 EMovieSceneCompileResult UMovieSceneTrack::Compile(FMovieSceneEvaluationTrack& OutTrack, const FMovieSceneTrackCompilerArgs& Args) const
 {
@@ -287,36 +197,43 @@ EMovieSceneCompileResult UMovieSceneTrack::Compile(FMovieSceneEvaluationTrack& O
 
 	if (Result == EMovieSceneCompileResult::Unimplemented)
 	{
-		// Default implementation
-		const TArray<UMovieSceneSection*>& AllSections = GetAllSections();
-		
-		TInlineValue<FMovieSceneSegmentCompilerRules> RowCompilerRules = GetRowCompilerRules();
-		FMovieSceneTrackCompiler::FRows TrackRows(AllSections, RowCompilerRules.GetPtr(nullptr));
-
-		FMovieSceneTrackCompiler Compiler;
-		TInlineValue<FMovieSceneSegmentCompilerRules> Rules = GetTrackCompilerRules();
-		FMovieSceneTrackEvaluationField EvaluationField = Compiler.Compile(TrackRows.Rows, Rules.GetPtr(nullptr));
-
-		const bool bAllowEmptySegments = Rules.IsValid() && Rules->AllowEmptySegments(); 
-
-		FSegmentRemapper Remapper(bAllowEmptySegments);
-		Remapper.ProcessSegments(EvaluationField.Segments, OutTrack,
-			[&](int32 SectionIndex){
-				FMovieSceneEvalTemplatePtr NewTemplate = CreateTemplateForSection(*AllSections[SectionIndex]);
-				if (NewTemplate.IsValid())
-				{
-					NewTemplate->SetCompletionMode(AllSections[SectionIndex]->EvalOptions.CompletionMode);
-					NewTemplate->SetSourceSection(AllSections[SectionIndex]);
-				}
-				return NewTemplate;
+		for (const UMovieSceneSection* Section : GetAllSections())
+		{
+			if (!Section->IsActive())
+			{
+				continue;
 			}
-		);
 
+			FMovieSceneEvalTemplatePtr NewTemplate = CreateTemplateForSection(*Section);
+			if (NewTemplate.IsValid())
+			{
+				NewTemplate->SetCompletionMode(Section->EvalOptions.CompletionMode == EMovieSceneCompletionMode::ProjectDefault ? Args.DefaultCompletionMode : Section->EvalOptions.CompletionMode);
+				NewTemplate->SetSourceSection(Section);
+
+				int32 TemplateIndex = OutTrack.AddChildTemplate(MoveTemp(NewTemplate));
+
+				const TRange<float> SectionRange = Section->IsInfinite() ? TRange<float>::All() : Section->GetRange();
+				OutTrack.AddTreeData(SectionRange, FSectionEvaluationData(TemplateIndex, ESectionEvaluationFlags::None));
+
+				if (!SectionRange.GetLowerBound().IsOpen() && Section->GetPreRollTime() > 0)
+				{
+					TRange<float> PreRollRange(SectionRange.GetLowerBoundValue() - Section->GetPreRollTime(), TRangeBound<float>::FlipInclusion(SectionRange.GetLowerBoundValue()));
+					OutTrack.AddTreeData(PreRollRange, FSectionEvaluationData(TemplateIndex, ESectionEvaluationFlags::PreRoll));
+				}
+
+				if (!SectionRange.GetUpperBound().IsOpen() && Section->GetPostRollTime() > 0)
+				{
+					TRange<float> PostRollRange(TRangeBound<float>::FlipInclusion(SectionRange.GetUpperBoundValue()), SectionRange.GetUpperBoundValue() + Section->GetPostRollTime());
+					OutTrack.AddTreeData(PostRollRange, FSectionEvaluationData(TemplateIndex, ESectionEvaluationFlags::PostRoll));
+				}
+			}
+		}
 		Result = EMovieSceneCompileResult::Success;
 	}
 
 	if (Result == EMovieSceneCompileResult::Success)
 	{
+		OutTrack.SetSourceTrack(this);
 		PostCompile(OutTrack, Args);
 	}
 

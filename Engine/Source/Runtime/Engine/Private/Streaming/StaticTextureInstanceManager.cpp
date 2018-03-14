@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticTextureInstanceManager.cpp: Implementation of content streaming classes.
@@ -81,17 +81,17 @@ void FStaticTextureInstanceManager::Refresh(float Percentage)
 	}
 }
 
-bool FStaticTextureInstanceManager::Add(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext)
+EAddComponentResult FStaticTextureInstanceManager::Add(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext, float MaxAllowedUIDensity)
 {
 	if (!AsyncView)
 	{
 		FTextureInstanceState* State = StateSync.SyncAndGetState();
-		return State->AddComponent(Component, LevelContext);
+		return State->AddComponent(Component, LevelContext, MaxAllowedUIDensity);
 	}
-	return false;
+	return EAddComponentResult::Fail;
 }
 
-void FStaticTextureInstanceManager::Remove(const UPrimitiveComponent* Component, FRemovedTextureArray& RemovedTextures)
+void FStaticTextureInstanceManager::Remove(const UPrimitiveComponent* Component, FRemovedTextureArray* RemovedTextures)
 {
 	FTextureInstanceState* State = StateSync.SyncAndGetState();
 	// If the view is shared, we are limited to clearing the references (no realloc)

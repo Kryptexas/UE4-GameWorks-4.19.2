@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Crumbs: %ROOT%, Engine, Engine/Animation
 Title: Animation Optimization
 Description: Describes methods to achieve more performant Animation Blueprints through optimization techniques.
@@ -216,12 +216,14 @@ To ensure that your Animation Blueprints are using Fast Path, you can enable the
 	Above, since we are executing Blueprint logic in our AnimGraph and have the warning option enabled, we get a warning message in the compiler results and can click on it to take us to the offending node. 
 	This can help track down optimizations that need to be made and will enable you to identify the node(s) that may be the source of the problem. 
 
-<!--
+[COMMENT:none]
+
 ## Update Rate Optimization (URO)
 
 WB Note - Omitting this for now as it's slated for improvements in 4.18
 
--->
+
+[/COMMENT]
 
 
 ## General Tips

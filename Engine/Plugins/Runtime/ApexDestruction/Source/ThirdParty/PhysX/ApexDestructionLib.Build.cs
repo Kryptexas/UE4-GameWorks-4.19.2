@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System;
@@ -81,9 +81,9 @@ public class ApexDestructionLib : ModuleRules
 
         string ApexVersion = "APEX_1.4";
 
-        string APEXDir = Target.UEThirdPartySourceDirectory + "PhysX/" + ApexVersion + "/";
+        string APEXDir = Target.UEThirdPartySourceDirectory + "PhysX3/" + ApexVersion + "/";
 
-        string APEXLibDir = Target.UEThirdPartySourceDirectory + "PhysX/Lib";
+        string APEXLibDir = Target.UEThirdPartySourceDirectory + "PhysX3/Lib";
 
         PublicSystemIncludePaths.AddRange(
             new string[] {
@@ -115,7 +115,7 @@ public class ApexDestructionLib : ModuleRules
                 "APEX_Destructible{0}_x64.dll",
             };
 
-            string ApexBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/Win64/VS{0}/", Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
+            string ApexBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX3/Win64/VS{0}/", Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
             foreach (string RuntimeDependency in RuntimeDependenciesX64)
             {
                 string FileName = ApexBinariesDir + String.Format(RuntimeDependency, LibrarySuffix);
@@ -137,7 +137,7 @@ public class ApexDestructionLib : ModuleRules
                 "APEX_Destructible{0}_x86.dll",
             };
 
-            string ApexBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/Win32/VS{0}/", Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
+            string ApexBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX3/Win32/VS{0}/", Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
             foreach (string RuntimeDependency in RuntimeDependenciesX86)
             {
                 string FileName = ApexBinariesDir + String.Format(RuntimeDependency, LibrarySuffix);
@@ -153,22 +153,23 @@ public class ApexDestructionLib : ModuleRules
                 "/libAPEX_Destructible{0}.dylib"
             };
 
-            string PhysXBinariesDir = Target.UEThirdPartyBinariesDirectory + "PhysX/Mac";
+            string PhysXBinariesDir = Target.UEThirdPartyBinariesDirectory + "PhysX3/Mac";
             foreach (string Lib in DynamicLibrariesMac)
             {
                 string LibraryPath = PhysXBinariesDir + String.Format(Lib, LibrarySuffix);
                 PublicDelayLoadDLLs.Add(LibraryPath);
-                RuntimeDependencies.Add(new RuntimeDependency(LibraryPath));
+                RuntimeDependencies.Add(LibraryPath);
             }
         }
         else if (Target.Platform == UnrealTargetPlatform.Linux)
         {
             if (Target.Architecture.StartsWith("x86_64"))
             {
-                APEXLibDir += "/Linux/" + Target.Architecture;
-                ApexLibraries.Add("APEX_Destructible{0}");
-                LibraryFormatString = APEXLibDir + "/lib{0}" + ".a";
-            }
+				string PhysXBinariesDir = Target.UEThirdPartyBinariesDirectory + "PhysX3/Linux/" + Target.Architecture;
+				string LibraryPath = PhysXBinariesDir + String.Format("/libAPEX_Destructible{0}.so", LibrarySuffix);
+				PublicAdditionalLibraries.Add(LibraryPath);
+				RuntimeDependencies.Add(LibraryPath);
+			}
         }
         else if (Target.Platform == UnrealTargetPlatform.PS4)
         {

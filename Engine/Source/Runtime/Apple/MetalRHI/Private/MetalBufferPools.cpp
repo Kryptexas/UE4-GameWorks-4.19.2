@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MetalRHIPrivate.h"
 
@@ -83,7 +83,7 @@ void FRingBuffer::Shrink()
 	
 	if ((GFrameNumberRenderThread - LastFrameChange) >= 120 && NecessarySize < ThreeQuarterSize && NecessarySize < Buffer->Buffer.length)
 	{
-		UE_LOG(LogMetal, Display, TEXT("Shrinking RingBuffer from %u to %u as max. usage is %u at frame %lld]"), (uint32)Buffer->Buffer.length, ThreeQuarterSize, FrameMax, GFrameNumberRenderThread);
+		UE_LOG(LogMetal, Verbose, TEXT("Shrinking RingBuffer from %u to %u as max. usage is %u at frame %lld]"), (uint32)Buffer->Buffer.length, ThreeQuarterSize, FrameMax, GFrameNumberRenderThread);
 		
 		TSharedPtr<FMetalRingBuffer, ESPMode::ThreadSafe> NewBuffer = MakeShared<FMetalRingBuffer, ESPMode::ThreadSafe>();
 		NewBuffer->Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:ThreeQuarterSize options:((MTLResourceOptions)BUFFER_CACHE_MODE|Options)];

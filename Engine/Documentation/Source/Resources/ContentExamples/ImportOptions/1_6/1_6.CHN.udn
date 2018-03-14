@@ -57,7 +57,9 @@ Related: Engine/Content/FBX/Materials
 ![](CE_1_6_001.png)
 [/REGION]
 
-<!-- This information isn't represented anywhere but in this document, it needs to be moved to the content pipeline docs -->
+[COMMENT:none]
+ This information isn't represented anywhere but in this document, it needs to be moved to the content pipeline docs 
+[/COMMENT]
 
 
 需要对动画进行循环的 **骨架网格物体** 且同时在世界中停留在同一位置？您可以通过把 **骨架网格物体** 拖曳到世界中，并随后拖曳您想要在此 **骨架网格物体** 上播放的动画来完成。

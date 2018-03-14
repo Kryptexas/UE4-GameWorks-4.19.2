@@ -21,7 +21,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. カスタム仕様の **Pawn Movement コンポーネント** を使用するために、まずコンポーネントを追跡する **Pawn** クラスを追加します。"OurParticleSystem" 変数を追加した付近の、CollidingPawn.h のクラス定義下部に以下のコードを追加します。
 
@@ -116,7 +116,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**CollidingPawn.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -153,7 +153,7 @@ version:4.9
 			};
 
 		**CollidingPawn.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawn.h"
@@ -276,7 +276,7 @@ version:4.9
 			}
 
 		**CollidingPawnMovementComponent.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -296,7 +296,7 @@ version:4.9
 			};
 
 		**CollidingPawnMovementComponent.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawnMovementComponent.h"
@@ -330,4 +330,4 @@ version:4.9
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

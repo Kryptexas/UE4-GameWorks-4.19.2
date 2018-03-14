@@ -1,47 +1,322 @@
 Availability: Public
-Title:Sky Lights
-Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
-Description:The basics of Sky Lights.
-Version: 4.9
+Crumbs: %ROOT%
+Title: Sky Light
+Description: An overview of Sky Lights in Unreal Engine 4.
+Type: Overview
+SkillLevel:Beginner
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows
+Related:Engine/Rendering/LightingAndShadows/Lightmass
+Related:Engine/Rendering/LightingAndShadows/LightTypes
+Related:Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion
+Order:
+Tags:lighting
+Topic-Image:SkyLight_Topic.png
+Social-Image:SkyLight_1.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightTypes/SkyLight:title%](SkyLight_Topic.png)
+[REGION:fullwidth raw]
+![](Skylight_Header.png)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+
+
+The Sky Light captures the distant parts of your level and applies that to the scene as a light. That means the sky’s appearance and its lighting/reflections will match, even if your sky is 
+coming from atmosphere, or layered clouds on top of a skybox, or distant mountains. You can also manually specify a cubemap to use. 
+
+## Scene Capture
+
+The Sky Light will only capture the scene under certain circumstances: 
+
+* For **Static Sky Lights**, updates automatically happen when building lighting.
+* For **Stationary** or **Movable Sky Lights**, updates happen once on load and only updates further when **Recapture Sky** is called. This can be done via the **Details** panel or via Blueprint call in-game.
+
+[REGION:note]
+If you change the texture that the skybox is using, it will not automatically know to update. You’ll be required to use one of the methods above for it to update.
+[/REGION]
+
+A Sky Light should be used instead of the Ambient Cubemap to represent the sky's light because Sky Lights support local shadowing, which prevents indoor areas from getting lit by the sky.
+
+
+## Mobility
+
+Similarly to other [Light Types](Engine/Rendering/LightingAndShadows/LightTypes), the Sky Light can be set to one of the following **Mobilities**:
+
+[REGION:raw]
+![](skylightIcon.png)
+[/REGION]
+
+[REGION:simpletable]
+| Mobility  | Description |
+| --- | --- |
+| **Static**  | Lighting cannot be changed while in game. This is the fastest method for rendering and allows for baked lighting.  |
+| **Stationary**  | When lighting is built, shadowing and light bounces will only be captured from static geometry. All other lighting will be dynamic. This setting also allows for the light to change color, intensity, and the cubemap in-game, but it does not move and allows for partially baked lighting.  |
+| **Movable**  | Lighting can be moved and changed in-game as needed. |
+[/REGION]
+
+
+### Static Sky Light
+
+A Sky Light set to **Static** will be baked completely into the lightmap for static objects in the level and therefore costs nothing. When edits are made to the light's properties, the changes will not be visible
+until lighting has been rebuilt for the level. 
+
+**For mobile development, this is the only kind of Sky Light that is supported.**
+
+[REGION:note]
+When using a Static Sky Light, only Actors and Lights in the level that have their mobility set to **Static** or **Stationary** will be captured and used for lighting. Furthermore, only the emissive contribution 
+of Materials can be captured with a Static Sky Light in order to avoid a feedback loop. For this reason, make sure any skybox has a Material that is set to **Unlit**.
+[/REGION]
+
+### Stationary Sky Light
+
+A Sky Light set to **Stationary** gets baked shadowing from [Lightmass](Engine/Rendering/LightingAndShadows/Lightmass) just like one set to Static. Once you place a Stationary Sky Light in your level, 
+you have to rebuild lighting at least once to generate and display the baked shadowing.
+
+Like other [Stationary Lights](Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights), some properties can be changed at runtime via **Blueprints** or **Sequencer**. This means that you can adjust
+the **Intensity** or **Color** of the Sky Light without needing to rebuild lighting for the entire level. However, the indirect lighting is baked into the lightmap and cannot be modified at runtime. The amount of 
+indirect lighting can be controlled by using **Indirect Lighting Intensity**.
+
+[REGION:note]
+When using a Stationary Sky Light, only Actors and Lights in the level that have their mobility set to **Static** or **Stationary** will be captured and used for lighting. Furthermore, only the emissive contribution 
+of Materials can be captured with a Stationary Sky Light in order to avoid a feedback loop. For this reason, make sure any skybox has a Material that is set to **Unlit**.
+[/REGION]
+
+
+### Movable Sky Light
+
+A Sky Light set to **Movable** does not use any form of precomputation. It captures components and lights of any mobility when setup to capture the scene.
+
+
+#### Distance Field Ambient Occlusion
+
+[REGION:warning]
+This feature is not on by default but can be enabled by using [Distance Field](Engine/Rendering/LightingAndShadows/MeshDistanceFields) features.
+[/REGION]
+
+Shadowing for a Movable Sky Light is provided by [Distance Field Ambient Occlusion](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) from Signed Distance Field Volumes
+that are generated around each rigid object. Distance Field Ambient Occlusion supports dynamic scene changes where the rigid meshes can be moved or hidden, and it will affect the occlusion. 
+
+[REGION:lightbox]
+[![](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion/DFAOView.png)(w:550)](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion/DFAOView.png)
+[/REGION]
+[REGION:caption] Click image for full size. [/REGION]
+
+
+[REGION:note]
+Check out the [How to use Distance Field Ambient Occlusion](Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo/DFHT_2) page for more information and examples.
+[/REGION]
+
+
+
+## Precomputed Sky Light
+
+When using baked lighting with a Static or Stationary Sky Light, the lighting and shadowing data will be stored in lightmaps. The sections below discuss some of these features supported by 
+[Lightmass](Engine/Rendering/LightingAndShadows/Lightmass).
+
+
+### Improved Static Sky Light Directionality
+
+Prior to Unreal Engine 4.18, Static Sky Lights used to be represented by Lightmass with a 3rd Order Spherical Harmonic which didn't capture the detail that could be present in a sunrise or sunset. 
+A filtered cubemap is used now which results in a higher resolution by default. Lightmass will also select the appropriate [MIP of the cubemap texture](Engine/Content/Types/Textures/Properties#levelofdetail) 
+based on the size of the Final Gather rays to avoid any aliasing.
+
+[REGION:tip]
+To see an example of this type of interaction, go to **Engine Content** > **MapTemplates** > **Sky** and select **SunsetAmbientCubemap** as it will show a great example.
+[/REGION]
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Third Order Spherical Harmonic | (Before) ](SkyLight_2.png)(w:1000)
 	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightTypes/SkyLight:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightTypes/SkyLight:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight]
+	[PARAM:after]
+	![Filtered Cubemap | (After)](SkyLight_1.png)(w:1000)
 	[/PARAM]
 [/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightTypes/SkyLight:title%](SkyLight_Topic.png)
+[REGION:caption]  [/REGION]
+[REGION:caption]
+An exmaple of the improvement using the starting office level from Epic's [Robo Recall](Modding/RoboRecall). 
+[/REGION]
+
+The biggest difference can be seen in heavily occluded scenes with a Sky Light cubemap that has a lot of brightness and color variations. 
+
+#### Camera Obscura
+
+With the improved directionality of Static Sky Lights, it is now possible to recreate a pinhole camera effect ([Camera Obscura](https://en.wikipedia.org/wiki/Camera_obscura)) with a small enough opening. 
+The smaller the opening, the more directional sky lighting will become. 
+
+[REGION:imagetable]
+| [REGION:lightbox] [![](CO_Cubemap.png)(h:265)](CO_Cubemap.png) [/REGION] | [REGION:lightbox] [![](CO_Result.png)(h:265)](CO_Result.png) [/REGION]  |
+| ---- | ---- |
+| Sky Light Source Cubemap | Resulting Light Build |
+| _Click image for full size._ | _Click image for full size._ |
+[/REGION]
+
+### Bent Normal for Stationary Sky Lights
+
+For Stationary Sky Lights, where lighting is baked separately from lighting, the shadowing that Lightmass bakes stores the directional occlusion information in what is called a **Bent Normal**. This is 
+the direction from the texel to the most un-occluded direction. Areas that are mostly occluded use this direction for sky lighting instead of the surface normal, which improves quality in cracks. 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Static Sky Light Ambient Occlusion Only](1SkyLightAOOnly.png)(w:700)
 	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightTypes/SkyLight:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightTypes/SkyLight:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight]
+	[PARAM:after]
+	![Stationary Sky Light with Bent Normal](1SkyLightBentNormal.png)(w:700)
 	[/PARAM]
 [/OBJECT]
-[/VAR]
+
+[REGION:note]
+For additional information visit the [Bent Normal Map](Engine/Rendering/LightingAndShadows/BentNormalMaps) page.
+[/REGION]
+
+
+
+
+
+
+### Multi-Bounce
+
+Multiple bounces of indirect light from Sky Lights is supported by adjusting the **Num Sky Lighting Bounces** setting in **World Settings** > **Lightmass**. 
+
+![](LightmassSettings.png)
+[REGION:caption] Setting for the number of sky light bounces to use. [/REGION]
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Number of Bounces: 1](SkyLight_4.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Number of Bounces: 10](SkyLight_3.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+
+For multiple skylight bounces to be noticeable, your Materials need to have a high diffuse value in most cases. For example, with a diffuse value of .18 (18% grey), the second sky light bounce will only contribute
+18^3 = 0.006 of the light's emitted energy, which is very subtle. With a diffuse value of 0.5, the second skylight bounce will contribute 0.125 of the light's emitted energy and be noticeable.
+
+[REGION:warning]
+Each added bounce increases non-distributed build times, so use with care when not using Swarm distribution.
+[/REGION]
+
+[COMMENT:none]
+-
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Number of Bounces: 1](SkyLight_6.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![Number of Bounces: 10](SkyLight_5.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+-
+[/COMMENT]
+
+## Properties
+
+The properties of a Sky Light component are broken up into two categories: Light and Sky Light. These can be accessed from the Actor **Details** panel.
+
+![](SkyLightSettings.png)
+
+### Light
+
+The following settings are common between all [Light Types](Engine/Rendering/LightingAndShadows/LightTypes).
+
+[REGION:raw]
+| Property | Description |
+| --- | --- |
+| **Intensity** | Total energy that the light emits. |
+| **Light Color** | Specify the color the light emits. |
+| **Affects World** | Whether the light can affect the world, or whether it is disabled. |
+| **Cast Shadows** | Whether the light should cast any shadows. |
+| **Casts Static Shadows** | Whether the light should cast shadows from static objects. Also, requires Cast Shadows to be set to True. |
+| **Casts Dynamic Shadows** | Whether the light should cast shadows from dynamic objects. Also, requires Cast Shadows to be set to True. |
+| **Indirect Lighting Intensity** | Scales the indirect lighting contribution from this light. A value of 0 disables any global illumination (GI) from this light. |
+| **Volumetric Scattering Intensity** | Intensity of the volumetric scattering from this light. This scales Intensity and Light Color. |
+| **Cast Volumetric Shadow** | Whether the light shadows Volumetric Fog. |
+[/REGION]
+
+### Sky Light
+
+The following settings are specific to Sky Lights.
+
+[REGION:raw]
+| Property | Description |
+| --- | --- |
+| **Source Type** | Whether to capture the distant scene and use it as the light source or to use the specified cubemap. When capturing the scene, anything further than SkyDistanceThreshold from the Sky Light position will be included.  [INCLUDE:#sourcetype] |
+| **Cubemap** | Specify the Cubemap to use for sky lighting if Source Type is set to SLS_SpecifiedCubemap. |
+| **Source Cubemap Angle** | The angle to rotate the source cubemap when Source Type is set to SLS Specified Cubemap. |
+| **Cubemap Resolution** | Maximum resolution for the very top processed cubemap MIP. It also must be a power of 2 texture. |
+| **Sky Distance Threshold** | Distance from the Sky Light at which any geometry should be treated as part of the sky (also used by Reflection Captures). |
+| **Capture Emissive Only** | Only capture emissive Materials. Skips all lighting making the capture cheaper. This is recommended when using Capture Every Frame. |
+| **Lower Hemisphere is Solid Color** | Whether all lighting from the lower hemisphere should be set to zero. This is useful to prevent leaking from the lower hemisphere. |
+| **Recapture Scene** | When the Sky Light Actor is set to SLS_CapturedScene, this will recapture the image the Sky Light is using to light the scene. |
+[/REGION]
+
+
+[COMMENT:none]
+-
+
+[EXCERPT:sourcetype]
+| --- | --- |
+| **SLS Captured Scene** | Construct the sky light from the captured scene. Anything further than Sky Distance Threshold from the sky light position will be included. |
+| **SLS Specified Cubemap** | Construct the sky light from the specified cubemap. |
+[/EXCERPT:sourcetype]
+-
+[/COMMENT]
+
+
+## Shadowing from Movable Objects
+
+Soft shadowing from movable objects onto the environment can be achieved using [Capsule Shadows](Engine/Rendering/LightingAndShadows/CapsuleShadows) for Skeletal Meshes or 
+[Distance Field Indirect Shadowing](Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo/DFHT_4) for rigid meshes. These require a separate setup to work properly.
+
+## Limitations
+
+These features would be useful with Sky Lights but are not yet implemented: 
+
+* Dynamic recapturing of the scene for Stationary and Movable versions. There is a Blueprint function on the Sky Light Component called RecaptureSky() which can be used. However, that will cause a hitch.
+	
+	![](RecaptureSkyLightBP.png)(w:700)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[COMMENT:none]
+-
+
 
 [REGION:fullwidth raw]
 ![](Skylight_Header.png)
@@ -60,20 +335,8 @@ A Sky Light should be used instead of the **Ambient Cubemap** to represent the s
 
 The Sky Light can be set to either **Static** or **Stationary** for its **Mobility**:
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](skylight_icon.png)(convert:false) 
-	[/PARAM]
-	[PARAM:description]
-	**Static** - (pictured left) which means that the light cannot be changed in game. This is the fastest method for rendering and allows for baked lighting.
-	
-	**Stationary** - (also pictured left) which means the light will only have its shadowing and bounced lighting from static geometry baked by **Lightmass**, all other lighting will be dynamic. This setting also allows for the light to change color and intensity in game, but, it does not move and allows partial baked lighting. 
-	[/PARAM]
-[/OBJECT]
-
-[REGION:raw]
-![](spacer.png)
-[/REGION]
+* **Static** - (pictured left) which means that the light cannot be changed in game. This is the fastest method for rendering and allows for baked lighting.
+* 	**Stationary** - (also pictured left) which means the light will only have its shadowing and bounced lighting from static geometry baked by **Lightmass**, all other lighting will be dynamic. This setting also allows for the light to change color and intensity in game, but, it does not move and allows partial baked lighting. 
 
 Pictured below are example images from a scene which utilizes a Sky Light.
 
@@ -94,7 +357,8 @@ Pictured below are example images from a scene which utilizes a Sky Light.
 [/REGION]
 
 _This scene was lit with only a Stationary Sky light, by specifying different HDR skybox cubemaps._
--->
+
+[/COMMENT]
 
 ## Static Sky Light
 
@@ -117,13 +381,15 @@ The Sky Light shadowing that **Lightmass** bakes stores directional occlusion in
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [REGION:lightbox]
 
 [![](skyLightEx_03.png)(w:462)](skyLightEx_03.png) [![](skyLightEx_04.png)(w:462)](skyLightEx_04.png)
 
 [/REGION]
--->
+
+[/COMMENT]
 _The first image shows Sky Light with AO only. The second image shows Sky Light with bent normal occlusion.  Notice how surfaces in cracks 'agree' on where the lighting is coming from._
 
 Note: Only components and lights with **Static** or **Stationary Mobility** will be captured and used for lighting with a Stationary Sky Light.
@@ -139,7 +405,8 @@ Like all types of **Stationary Lights**, the color of the direct lighting can be
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [REGION:lightbox]
 
 [![](0Original.jpg)(w:884)](0Original.jpg) [![](0SkyLightGI.jpg)(w:884)](0SkyLightGI.jpg)
@@ -147,7 +414,8 @@ Like all types of **Stationary Lights**, the color of the direct lighting can be
 [/REGION]
 
 _Top: Direct lighting only, Bottom: Direct lighting and Diffuse GI computed by Lightmass for a Stationary Skylight._
--->
+
+[/COMMENT]
 
 ## Movable Skylight
 
@@ -184,3 +452,4 @@ The properties of a Sky Light are broken up into 2 categories: Light and Sky Lig
 | **Lower Hemisphere is Black** | Whether all lighting from the lower hemisphere should be set to zero.  This is useful to prevent leaking from the lower hemisphere. |
 | **Recapture Scene** | When the Sky Light Actor is set to `SLS_CapturedScene`, this will recapture the image the Sky Light is using to light the scene. |
 
+---->

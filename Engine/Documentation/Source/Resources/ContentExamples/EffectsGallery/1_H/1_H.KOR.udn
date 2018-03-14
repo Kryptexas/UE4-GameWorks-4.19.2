@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1.8 - 반투명 파티클 그림자 드리우기
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
@@ -11,62 +11,7 @@ Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 Version: 4.9
-
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 예제](Resources/ContentExamples/EffectsGallery/1_G "%Resources/ContentExamples/EffectsGallery/1_G:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[이펙트 갤러리 홈](Resources/ContentExamples/EffectsGallery)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources\ContentExamples\EffectsGallery\1_H:title%](%ROOT%\Resources\ContentExamples\EffectsGallery\1_H\1_HTopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources\ContentExamples\EffectsGallery\1_H:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources\ContentExamples\EffectsGallery\1_H:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources\ContentExamples\EffectsGallery\1_H]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources\ContentExamples\EffectsGallery\1_H:title%](%ROOT%\Resources\ContentExamples\EffectsGallery\1_H\1_HTopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources\ContentExamples\EffectsGallery\1_H:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources\ContentExamples\EffectsGallery\1_H:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources\ContentExamples\EffectsGallery\1_H]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:1_HTopic.png
 
 [REGION:fullwidth]
 ![](image038.png)

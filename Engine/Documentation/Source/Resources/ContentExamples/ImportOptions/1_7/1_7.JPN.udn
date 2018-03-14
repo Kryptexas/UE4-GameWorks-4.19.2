@@ -29,7 +29,7 @@ Version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -79,11 +79,13 @@ Version:4.9
 	[/PARAM]
 [/OBJECT]
 
-<!---
+[COMMENT:none]
+-
 [REGION:lightbox]
 [![](CE_1_7_001.png)(h:330)](CE_1_7_001.png) [![](CE_1_7_002.png)(h:330)](CE_1_7_002.png)
 [/REGION]
---->
+-
+[/COMMENT]
 
 [INCLUDE:Engine/Content\FBX\MorphTargets#FBX_morph]
 

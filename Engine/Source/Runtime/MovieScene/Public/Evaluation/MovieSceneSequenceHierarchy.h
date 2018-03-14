@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,10 +6,14 @@
 #include "UObject/ObjectMacros.h"
 #include "Evaluation/MovieSceneSequenceTransform.h"
 #include "Evaluation/MovieSceneSectionParameters.h"
+#include "SoftObjectPath.h"
 #include "MovieSceneSequenceID.h"
+#include "MovieSceneSequenceInstanceData.h"
+#include "ArrayView.h"
 #include "MovieSceneSequenceHierarchy.generated.h"
 
 class UMovieSceneSequence;
+class UMovieSceneSubSection;
 struct FMovieSceneSequenceID;
 
 /**
@@ -23,51 +27,38 @@ struct FMovieSceneSubSequenceData
 	/**
 	 * Default constructor for serialization
 	 */
-	FMovieSceneSubSequenceData()
-		: Sequence(nullptr)
-	{}
+	MOVIESCENE_API FMovieSceneSubSequenceData();
 
 	/**
 	 * Construction from a movie scene sequence, and a sub section name, and its valid play range
 	 */
-	FMovieSceneSubSequenceData(UMovieSceneSequence& InSequence, FMovieSceneSequenceID InDeterministicSequenceID
-#if WITH_EDITORONLY_DATA
-		, FName InSectionPath
-		, TRange<float> InValidPlayRange
-#endif
-		)
-		: Sequence(&InSequence)
-		, SequenceKeyObject(nullptr)
-		, DeterministicSequenceID(InDeterministicSequenceID)
-		, PreRollRange(TRange<float>::Empty())
-		, PostRollRange(TRange<float>::Empty())
-		, HierarchicalBias(0)
-#if WITH_EDITORONLY_DATA
-		, SectionPath(InSectionPath)
-		, ValidPlayRange(InValidPlayRange)
-#endif
-	{}
+	MOVIESCENE_API FMovieSceneSubSequenceData(const UMovieSceneSubSection& InSubSection);
+
+	/**
+	 * Get this sub sequence's sequence asset, potentially loading it through its soft object path
+	 */
+	MOVIESCENE_API UMovieSceneSequence* GetSequence() const;
+
+	/**
+	 * Get this sub sequence's sequence asset if it is already loaded, will not attempt to load the sequence if not
+	 */
+	MOVIESCENE_API UMovieSceneSequence* GetLoadedSequence() const;
 
 	/** The sequence that the sub section references */
-	UPROPERTY()
-	UMovieSceneSequence* Sequence;
-
-	/** The key object that the sub section uses. Usually either the sequence or the section. */
-	UPROPERTY()
-	const UObject* SequenceKeyObject;
+	UPROPERTY(meta=(AllowedClasses="MovieSceneSequence"))
+	FSoftObjectPath Sequence;
 
 	/** Transform that transforms a given time from the sequences outer space, to its authored space. */
 	UPROPERTY()
 	FMovieSceneSequenceTransform RootToSequenceTransform;
 
-	/** Cached signature of the evaluation template */
-	UPROPERTY()
-	FGuid SourceSequenceSignature;
-
-	/** This sequence's deterministic sequence ID. Used in editor to reduce the risk of collisions on recompilation */ 
+	/** This sequence's deterministic sequence ID. Used in editor to reduce the risk of collisions on recompilation. */ 
 	UPROPERTY()
 	FMovieSceneSequenceID DeterministicSequenceID;
 
+	/** This sub sequence's playback range according to its parent sub section. Clamped recursively during template generation */
+	UPROPERTY()
+	FFloatRange PlayRange;
 
 	/** The sequence preroll range considering the start offset */
 	UPROPERTY()
@@ -81,16 +72,21 @@ struct FMovieSceneSubSequenceData
 	UPROPERTY()
 	int32 HierarchicalBias;
 
+	/** Instance data that should be used for any tracks contained immediately within this sub sequence */
+	UPROPERTY()
+	FMovieSceneSequenceInstanceDataPtr InstanceData;
+
 #if WITH_EDITORONLY_DATA
 
 	/** This sequence's path within its movie scene */
 	UPROPERTY()
 	FName SectionPath;
-
-	/** This sub sequence's valid bounds according to its parent sub section. Clamped recursively during template generation */
-	UPROPERTY()
-	FFloatRange ValidPlayRange;
 #endif
+
+private:
+
+	/** Cached version of the sequence to avoid resolving it every time */
+	mutable TWeakObjectPtr<UMovieSceneSequence> CachedSequence;
 };
 
 /**
@@ -133,7 +129,7 @@ struct FMovieSceneSequenceHierarchy
 
 	FMovieSceneSequenceHierarchy()
 	{
-		Hierarchy.Add(MovieSceneSequenceID::Root.GetInternalValue(), FMovieSceneSequenceHierarchyNode(MovieSceneSequenceID::Invalid));
+		Hierarchy.Add(MovieSceneSequenceID::Root, FMovieSceneSequenceHierarchyNode(MovieSceneSequenceID::Invalid));
 	}
 
 	/**
@@ -144,7 +140,7 @@ struct FMovieSceneSequenceHierarchy
 	 */
 	const FMovieSceneSequenceHierarchyNode* FindNode(FMovieSceneSequenceIDRef SequenceID) const
 	{
-		return Hierarchy.Find(SequenceID.GetInternalValue());
+		return Hierarchy.Find(SequenceID);
 	}
 
 	/**
@@ -155,7 +151,7 @@ struct FMovieSceneSequenceHierarchy
 	 */
 	FMovieSceneSequenceHierarchyNode* FindNode(FMovieSceneSequenceIDRef SequenceID)
 	{
-		return Hierarchy.Find(SequenceID.GetInternalValue());
+		return Hierarchy.Find(SequenceID);
 	}
 
 	/**
@@ -166,7 +162,7 @@ struct FMovieSceneSequenceHierarchy
 	 */
 	const FMovieSceneSubSequenceData* FindSubData(FMovieSceneSequenceIDRef SequenceID) const
 	{
-		return SubSequences.Find(SequenceID.GetInternalValue());
+		return SubSequences.Find(SequenceID);
 	}
 
 	/**
@@ -177,7 +173,7 @@ struct FMovieSceneSequenceHierarchy
 	 */
 	FMovieSceneSubSequenceData* FindSubData(FMovieSceneSequenceIDRef SequenceID)
 	{
-		return SubSequences.Find(SequenceID.GetInternalValue());
+		return SubSequences.Find(SequenceID);
 	}
 
 	/**
@@ -187,20 +183,9 @@ struct FMovieSceneSequenceHierarchy
 	 * @param ThisSequenceID 		The sequence ID of the sequence the data relates to
 	 * @param ParentID 				The parent ID of this sequence data
 	 */
-	void Add(const FMovieSceneSubSequenceData& Data, FMovieSceneSequenceIDRef ThisSequenceID, FMovieSceneSequenceIDRef ParentID)
-	{
-		SubSequences.Add(ThisSequenceID.GetInternalValue(), Data);
+	void Add(const FMovieSceneSubSequenceData& Data, FMovieSceneSequenceIDRef ThisSequenceID, FMovieSceneSequenceIDRef ParentID);
 
-		FMovieSceneSequenceHierarchyNode Node(ParentID);
-		Hierarchy.Add(ThisSequenceID.GetInternalValue(), Node);
-
-		if (ParentID != MovieSceneSequenceID::Invalid)
-		{
-			FMovieSceneSequenceHierarchyNode* Parent = Hierarchy.Find(ParentID.GetInternalValue());
-			check(Parent);
-			Parent->Children.Add(ThisSequenceID);
-		}
-	}
+	void Remove(TArrayView<const FMovieSceneSequenceID> SequenceIDs);
 
 	/** Access to all the subsequence data */
 	const TMap<FMovieSceneSequenceID, FMovieSceneSubSequenceData>& AllSubSequenceData() const
@@ -212,9 +197,9 @@ private:
 
 	/** Map of all (recursive) sub sequences found in this template, keyed on sequence ID */
 	UPROPERTY()
-	TMap<uint32, FMovieSceneSubSequenceData> SubSequences;
+	TMap<FMovieSceneSequenceID, FMovieSceneSubSequenceData> SubSequences;
 
 	/** Structural information describing the structure of the sequence */
 	UPROPERTY()
-	TMap<uint32, FMovieSceneSequenceHierarchyNode> Hierarchy;
+	TMap<FMovieSceneSequenceID, FMovieSceneSequenceHierarchyNode> Hierarchy;
 };

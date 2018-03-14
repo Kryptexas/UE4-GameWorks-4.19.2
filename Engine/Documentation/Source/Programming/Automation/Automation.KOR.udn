@@ -1,50 +1,143 @@
-﻿INTSourceChangelist:3108692
-Availability:Public
-Title:자동화 시스템 개요
-Crumbs: %ROOT%, Programming
-Description:유닛 테스팅, 피처 테스팅, 콘텐츠 스트레스 테스팅에 사용되는 자동화 시스템 개요입니다.
+﻿INTSourceChangelist:3782314
+Availability: Public
+Crumbs: %ROOT%
+Title: 자동화 시스템 개요
+Description: 유닛 테스팅, 피처 테스팅, 콘텐츠 스트레스 테스팅에 사용되는 자동화 시스템 개요입니다.
+Type: Landing
+Version:4.17
+Parent:Programming
+Order:
+Tags:Programming
 Navigation:topic
-version: 4.9
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Programming/Automation:title%](automation_ui.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/gear_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Programming/Automation:title%
-	[/PARAM]
-	[PARAM:description]
-		%Programming/Automation:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/Automation]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Programming/Automation:title%](automation_ui.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/gear_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Programming/Automation:title%
-	[/PARAM]
-	[PARAM:description]
-		%Programming/Automation:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/Automation]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[TOC(start:2 end:2)]
+
+
+
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:82 convert:false)[/VAR]
+
+
+ 
+
+Automation System (자동화 시스템)은 Functional Testing Framework (펑셔널 테스트 프레임워크) 위에 만들어진 것으로, 하나 이상의 자동화 테스트를 하는 식으로 이루어지는 게임플레이 레벨 테스트를 하기 위해 디자인된 것입니다. 
+작성된 대부분의 테스트는 펑셔널(기능적) 테스트, 로우 레벨 코어 또는 에디터 테스트로 자동화 프레임워크 시스템을 사용하여 작성해야 하는 것입니다.
+이렇게 작성된 테스트는 목적과 기능에 따라 다음과 같은 카테고리로 나눌 수 있습니다:
+
+[REGION:simpletable]
+| 테스트 유형 | %spacer2% | 설명 |
+| --------- | ---- | ----------- |
+| **Unit** || 유닛 - API 레벨 인증 테스트입니다. 예제는 **TimespanTest.cpp**, **DateTimeTest.cpp** 파일을 확인하세요. | 
+| **Feature** || 피처 - 시스템 레벨 인증으로, PIE 또는 게임 내 통계 작동 및 해상도 변경 작동 확인과 같은 것입니다. 예제는 **EditorAutomationTests.cpp**, **EngineAutomationTests.cpp** 파일을 확인하세요. | 
+| **Smoke** || 스모크 - 구현한 사람이 속도를 약속한 것으로 간주되는 테스트입니다. 빠를 것으로 기대되므로 에디터, 게임, 커맨드렛 시작시마다 실행시킬 수 있습니다. [UI](Programming/Automation/UserGuide) 에서 선택되기도 합니다. [REGION:warning] 모든 스모크 테스트는 1 초 안에 끝나야 합니다. 유닛 테스트나 빠른 피처 테스트만 스모크 테스트로 마킹하세요. [/REGION] | 
+| **Content Stress** || 콘텐츠 스트레스 - 특정 시스템 크래시를 피하기 위한 보다 철저한 테스트로, 모든 맵 로드나 모든 블루프린트를 로드하여 컴파일하는 등의 작업입니다. 예제는 **EditorAutomationTests.cpp**, **EngineAutomationTests.cpp** 파일을 확인하세요. | 
+| **Screenshot Comparison** || 스크린샷 비교 - QA 테스트 시 스크린샷을 빠르게 비교하여 각기 다른 버전이나 빌드 사이 발생할 수 있는 렌더링 이슈를 알아내도록 합니다. | 
+[/REGION]
+
+
+## 자동화 테스트 플러그인으로 이동
+
+오랫동안 자동화 테스트는 엔진 및 에디터 곳곳에 퍼져 있었기에, 타이틀을 출시할 때 포함되어 버리곤 했었습니다. 이와 같은 부분을 이제 별도의 플러그인으로 이동시켜 
+개별적으로 활성화시킬 수 있게 되었습니다. 즉 테스트가 플러그인에 위치해 있으므로, 컴파일할 때 패키지 빌드에 포함시킬지 선택할 수 있다는 뜻이기도 합니다. 플러그인은 콘텐츠를 저장할 수도 있으므로 
+더이상 Engine Content 폴더에 유지시킬 필요도 없어졌습니다.
+
+이 변화로 인해 앞으로 생성할 테스트 유형은 저장 위치를 명시해 줘야 합니다. 각 테스트 별 저장 플러그인 위치는 아래 표를 참고하세요:
+
+[REGION:simpletable]
+| 테스트 유형 | 저장할 플러그인 위치 |
+| --------- | ----------- |
+| **Unit** | 유닛 - 계속해서 코드와 같은 모듈에 저장해도 됩니다. |
+| **Project Agnostic Runtime Tests** | 프로젝트 무관 에디터 테스트 - RuntimeTests Plugin |
+| **Project Agnostic Editor Tests** | 프로젝트 무관 에디터 테스트 - EditorTests Plugin |
+| **Functional Tests** | 펑셔널 테스트 - EngineTest Game 폴더 | 
+[/REGION]
+
+[REGION:note]
+아직 플러그인으로 이동시키지 못하고 엔진에 남아있는 테스트가 있습니다. 차차 별도의 플러그인으로 이동되면 
+**플러그인 브라우저** 의 **Testing** 아래에서 확인할 수 있을 것입니다.
+[/REGION]
+
+### 자동화 테스트 플러그인 활성화
+
+여러가지 다양한 테스트용 플러그인 활성화를 위해서는, 파일 메뉴의 **창** > **Plugins** (플러그인) 을 선택하여 플러그인 브라우저 창을 엽니다.
+
+![](EnablePlugins.png)(w:350)
+
+왼쪽 패널에서 **Testing** 카테고리를 선택 후 사용하고자 하는 테스트 플러그인을 켭니다.
+
+[REGION:lightbox]
+[![](PluginsBrowser.png)(w:625)](PluginsBrowser.png)
+[/REGION]
+[REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION]
+
+선택한 후에는 에디터 재시작 확인 창이 뜹니다. **지금 재시작** 버튼을 클릭합니다.
+
+![](RestartTheEditor.png)
+
+
+## 테스트 디자인 지침
+
+에픽에서 게임 또는 프로젝트를 테스트할 때 따르는 일반적인 지침은 다음과 같습니다:
+
+* 게임 또는 에디터의 상태를 가정하지 마세요. 테스트가 잘못될 수도 있고 머신에 따라 달라질 수도 있습니다.
+* 디스크의 파일 상태를 발견한 그대로 놔두세요. 테스트가 파일을 생성했다면, 테스트 완료 후 그 파일을 지우세요. (앞으로 옵션을 통해 생성된 파일을 자동으로 지울 수 있도록 바뀔 수 있습니다).
+* 지난 번 테스트를 했을 때 안좋은 상태로 남아있었다 가정하세요. 테스트 시작 전 생성 파일을 삭제하려 하는 습관을 들이는 것이 좋습니다.
+
+## 자동화 테스트 실행
+
+1. 프로젝트를 엽니다.
+1. 테스트에 사용하고자 하는 플러그인을 활성화시키고 에디터를 재시작합니다.
+
+1. 에디터에서 **창** > **Test Automation** (테스트 자동화)로 갑니다. 
+	
+	[REGION:lightbox]
+	[![](TestAutomation.png)(h:300)](TestAutomation.png)
+	[/REGION]
+	[REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION]
+
+	[REGION:note]
+	이 메뉴 옵션은 자동화 테스트 플러그인을 최소 하나 활성화시켜야 보입니다.
+	[/REGION]
+
+1. 세션 프론트엔드의 자동화 탭 **Test Name** (테스트 이름) 열 아래 다음 옵션을 켭니다:
+	
+	[REGION:lightbox]
+	[![](AutomationWindow.png)(w:600)](AutomationWindow.png)
+	[/REGION]
+	[REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION]
+	
+	* Editor
+	* Project
+	* System
+
+1. 자동화 탭 툴바에서 **Start Tests** (테스트 시작) 버튼을 클릭합니다.
+
+	[REGION:lightbox]
+	[![](StartTests.png)(w:600)](StartTests.png)
+	[/REGION]
+	[REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION]
+	
+	테스트가 진행되면서 Test Name 창에 진행상황 막대가 표시됩니다.
+
+	[REGION:lightbox]
+	[![](RunningTests.png)(w:600)](RunningTests.png)
+	[/REGION]
+	[REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION]
+
+
+## 요점
+
+**Automation System** (자동화 시스템)은 **Unreal Message Bus** (언리얼 메시지 버스) 활용을 통한 향상된 안전성으로 유닛 테스트, 피처 테스트, 콘텐츠 스트레스 테스트를 할 수 있습니다.
+
+[DIR(output:"topiccompact" parent:"Programming/Automation" org:"hierarchy" tags:"Programming" end:"1")]
+
+
+
+
+[COMMENT:none]
+-
 
 [EXCERPT:Intro]
 **Automation System** (자동화 시스템)은 안정성 향상을 위해 **Unreal Message Bus** (언리얼 메시지 버스)를 
@@ -62,9 +155,7 @@ $ Smoke Tests : 스모크 테스트란 구현자가 기약한 속도가 나는�
 또는 커맨드렛 시작시 _매번_ 실행하기 위해서는 빨라야 합니다. 이들은 또한 
 [UI](Programming/Automation/UserGuide#유저인터페이스) 에 기본적으로 선택되기도 합니다.
 	
-	[REGION:warning]
-		모든 스모크 테스트는 **1 초** 이내에 완료되어야 정상입니다. Unit Test 와 빠른 Feature Test 만 Smoke Test 로 마킹하세요.
-	[/REGION]
+	[REGION:warning] 모든 스모크 테스트는 **1 초** 이내에 완료되어야 정상입니다. Unit Test 와 빠른 Feature Test 만 Smoke Test 로 마킹하세요. [/REGION]
 
 $ Content Stress Tests : 특정 시스템의 크래시를 방지하기 위한 좀 더 철저한 테스트, 이를테면 모든 맵을 로드하거나 
 모든 블루프린트 컴파일 등입니다. 예제는 `EditorAutomationTests.cpp` 나 `EngineAutomationTests.cpp` 를
@@ -73,40 +164,8 @@ $ Content Stress Tests : 특정 시스템의 크래시를 방지하기 위한 �
 $ 스크린샷 비교: 스크린샷 비교 툴을 통해 QA 팀이 스크린샷을 비교하여 렌더링 문제가 있을 수 있는 부분을 빠르게 알아낼 수 
 있습니다. [스크린샷 툴 참고서](Programming/Automation/ScreenShotComparison).
 
-[REGION:topics half]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Programming/Automation/TechnicalGuide:title%](automation_tech.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/gear_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Programming/Automation/TechnicalGuide:title%
-	[/PARAM]
-	[PARAM:description]
-		%Programming/Automation/TechnicalGuide:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/Automation/TechnicalGuide]
-	[/PARAM]
-[/OBJECT]
-	
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Programming/Automation/UserGuide:title%](automation_ui.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/gear_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Programming/Automation/UserGuide:title%
-	[/PARAM]
-	[PARAM:description]
-		%Programming/Automation/UserGuide:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/Automation/UserGuide]
-	[/PARAM]
-[/OBJECT]
-[/REGION]
+
+[DIR(output:"topiccompact" parent:"Programming/Automation" org:"hierarchy" tags:"Programming" end:"1")]
+
+-
+[/COMMENT]

@@ -5,46 +5,7 @@ Description:An introductory document on the Layered Materials technique in UE4.
 Version: 4.9
 SkillLevel: Intermediate
 tags:Materials
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](%ROOT%/Resources/Tutorials/Materials/CreatingLayeredMaterials/layered_tutorial_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Tutorials/Materials/CreatingLayeredMaterials:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Tutorials/Materials/CreatingLayeredMaterials:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Tutorials/Materials/CreatingLayeredMaterials]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](%ROOT%/Resources/Tutorials/Materials/CreatingLayeredMaterials/layered_tutorial_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Tutorials/Materials/CreatingLayeredMaterials:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Tutorials/Materials/CreatingLayeredMaterials:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Tutorials/Materials/CreatingLayeredMaterials]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:layered_tutorial_topic.png
 
 [REGION:fullwidth]
 ![](SnowyStuff.png)

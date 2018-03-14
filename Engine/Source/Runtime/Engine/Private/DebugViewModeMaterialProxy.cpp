@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 DebugViewModeMaterialProxy.cpp : Contains definitions the debug view mode material shaders.
@@ -119,7 +119,7 @@ FDebugViewModeMaterialProxy::FDebugViewModeMaterialProxy(UMaterialInterface* InM
 {
 	SetQualityLevelProperties(QualityLevel, false, FeatureLevel);
 	Material = InMaterialInterface->GetMaterial();
-	Material->AppendReferencedTextures(ReferencedTextures);
+	MaterialInterface->AppendReferencedTextures(ReferencedTextures);
 
 	FMaterialResource* Resource = InMaterialInterface->GetMaterialResource(FeatureLevel);
 
@@ -159,19 +159,19 @@ const FMaterial* FDebugViewModeMaterialProxy::GetMaterial(ERHIFeatureLevel::Type
 	}
 }
 
-bool FDebugViewModeMaterialProxy::GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
+bool FDebugViewModeMaterialProxy::GetVectorValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 {
-	return MaterialInterface->GetRenderProxy(0)->GetVectorValue(ParameterName, OutValue, Context);
+	return MaterialInterface->GetRenderProxy(0)->GetVectorValue(ParameterInfo, OutValue, Context);
 }
 
-bool FDebugViewModeMaterialProxy::GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const
+bool FDebugViewModeMaterialProxy::GetScalarValue(const FMaterialParameterInfo& ParameterInfo, float* OutValue, const FMaterialRenderContext& Context) const
 {
-	return MaterialInterface->GetRenderProxy(0)->GetScalarValue(ParameterName, OutValue, Context);
+	return MaterialInterface->GetRenderProxy(0)->GetScalarValue(ParameterInfo, OutValue, Context);
 }
 
-bool FDebugViewModeMaterialProxy::GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const
+bool FDebugViewModeMaterialProxy::GetTextureValue(const FMaterialParameterInfo& ParameterInfo,const UTexture** OutValue, const FMaterialRenderContext& Context) const
 {
-	return MaterialInterface->GetRenderProxy(0)->GetTextureValue(ParameterName,OutValue,Context);
+	return MaterialInterface->GetRenderProxy(0)->GetTextureValue(ParameterInfo,OutValue,Context);
 }
 
 EMaterialDomain FDebugViewModeMaterialProxy::GetMaterialDomain() const

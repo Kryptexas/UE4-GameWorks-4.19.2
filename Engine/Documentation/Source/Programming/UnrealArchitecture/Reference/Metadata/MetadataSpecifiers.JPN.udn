@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3244824
+﻿INTSourceChangelist:3688188
 Title:メタデータ指定子
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
-Description:エンジンおよびエディタの様々な部分で動作を指定するためにクラス、関数、インターフェースを宣言する場合に使用するメタデータ キーワード
+Description:エンジンおよびエディタの様々な側面での動作を指定するためにクラス、関数、インターフェースを宣言する場合に使用するメタデータ キーワード
 Availability:Public
 Version:4.9
 
@@ -12,30 +12,142 @@ Version:4.9
 メタデータ指定子の使用方法は一般的なクラス、関数、インターフェースでは異なります。
 [/EXCERPT:MetadataUsage]
 
-メタデータ指定子を使うには、以下のように `UCLASS`、`UINTERFACE`、または `UFUNCTION` のマクロで使用します。
+クラス、インターフェース、関数、プロパティを宣言するときに、エンジンやエディタの様々な側面の動作についての宣言に指定子を追加することができます。メタデータ指定子を使うには、以下のように `UCLASS`、`UINTERFACE`、または `UFUNCTION` のマクロで `meta` という言葉を使用します。
 
-    UCLASS(meta=(BlueprintSpawnableComponent))
+    {UCLASS/UINTERFACE/USTRUCT/UFUNCTION/UPROPERTY}(meta=(MetaTag1="Value1", MetaTag2, ..))
+
+[REGION:Note]メタデータは、エディタのビルド実行時に C++ コードによってアクセス可能ですが、出荷される製品には存在しません。ゲーム ロジックではメタデータは使わないようにします。[/REGION]
+
 
 ## クラス メタデータ指定子
+
 [EXCERPT:ClassMetadata]
 クラスは以下のメタタグ指定子を使用することができます。
-* [](Programming\UnrealArchitecture\Reference\Metadata\BlueprintSpawnableComponent)
+
+| クラス メタ タグ | 効果 |
+| --- | --- |
+| `BlueprintSpawnableComponent` | このコンポーネント クラスが存在する場合、ブループリントでスポーン可能です。
+| `BlueprintThreadSafe` |ブループリント関数ライブラリでのみ有効です。この指定子は Animation ブループリントのノンゲーム スレッドでこのクラスの関数を呼び出し可能とマーク付けします。 |
+| `ChildCannotTick` | Actor クラスと Component クラスで使用されます。ネイティブ クラスがティックできない場合、このアクタまたはコンポーネントを元にしてブループリントが生成したクラスは、`bCanBlueprintsTickByDefault` が true であっても決してティックできません。
+| `ChildCanTick` | Actor クラスと Component クラスで使用されます。ネイティブ クラスがティックできない場合、`bCanBlueprintsTickByDefault` が false であっても、このアクタまたはコンポーネントを元にしたブループリントが生成したクラスでは、`bCanEverTick` がオーバーライドされます。 |
+| `DeprecatedNode` | ビヘイビア ツリー ノードで、クラスが非推奨であることを示し、コンパイル時に警告が表示されます。 |
+| `DeprecationMessage="Message Text"` | クラスが非推奨である場合、そのクラスを使用するブループリントをコンパイルしようとすると、このメッセージが標準の非推奨警告に追加されます。 |
+| `DisplayName="Blueprint Node Name"` | ブループリント内のこのノード名は、コードが生成する名前の代わりにここで指定する値で置き換えられます。 |
+| `DontUseGenericSpawnObject` | ブループリントで Generic Create Object ノードを使用するクラスのオブジェクトをスポーンしないでください。この指定子は、アクタでも Actor コンポーネントでもない BluprintType クラスの場合に限り、有用です。 |
+| `ExposedAsyncProxy` | **Async Task** ノードでこのクラスのプロキシ オブジェクトを公開します。 |
+| `IgnoreCategoryKeywordsInSubclasses` | クラスの最初のサブクラスが継承されるすべての `ShowCategories` と `HideCategories` の指定子を無視するようにします。. |
+| `IsBlueprintBase="true/false"` | このクラスがブループリントを作成するために使用可能 (または使用不可) の基本クラスであることを示します。 `UCLASS` の指定子、 `Blueprintable` や `NotBlueprintable` と同様です。 |
+| `KismetHideOverrides="Event1, Event2, .."` | オーバーライドできないブループリントのイベント リストです。 |
+| `ProhibitedInterfaces="Interface1, Interface2, .."` | クラスと互換性がないインターフェースのリストです。 |
+| `RestrictedToClasses="Class1, Class2, .."` |  Blueprint Function Library クラスが使用し、リストに名前があるクラスに使用を制限します。 |
+| `ShortToolTip` | 親クラスのピッカー ダイアログなどフル ツールチップでは長すぎる場合に短いツールチップを使います。 |
+| `ShowWorldContextPin` | このクラスが所有するグラフに配置されたブループリント ノードが、ワールド コンテキストのピンを通常は非表示であっても表示しなければならないことを示します。このクラスのオブジェクトはワールド コンテキストとして使うことはできないからです。 |
+| `UsesHierarchy` | クラスが階層データを使うことを示します。[Details ] パネルで階層編集機能をインスタンス化するために使用されます。 |
+| `ToolTip` | コード コメントから自動的に生成されたツールチップをオーバーライドします。 |
+
 [/EXCERPT:ClassMetadata]
-
-
-## 関数メタデータ指定子
-[EXCERPT:FunctionMetadata]
-関数は以下のメタタグ指定子を使用することができます。
-* [](Programming\UnrealArchitecture\Reference\Metadata\BlueprintInternalUseOnly)
-* [](Programming\UnrealArchitecture\Reference\Metadata\BlueprintProtected)
-* [](Programming\UnrealArchitecture\Reference\Metadata\DeprecatedFunction)
-* [](Programming\UnrealArchitecture\Reference\Metadata\DeprecationMessage)
-* [](Programming\UnrealArchitecture\Reference\Metadata\UnsafeDuringActorConstruction)
-[/EXCERPT:FunctionMetadata]
 
 
 ## インターフェース メタデータ指定子
 [EXCERPT:InterfaceMetadata]
 インターフェースは以下のメタタグ指定子を使用することができます。
-* [](Programming\UnrealArchitecture\Reference\Metadata\CannotImplementInterfaceBlueprint)
+
+| インターフェース メタ タグ | 効果 |
+| --- | --- |
+| `CannotImplementInterfaceInBlueprint` | このインターフェースは **ブループリント** で実装することはできません (例えば、公開されない C++ メンバ メソッドのみを持ちます)。[`BlueprintImplementableEvent` または `BlueprintNativeEvent`](Programming/UnrealArchitecture/Reference/Functions/Specifiers) ではない関数を定義するインターフェースは、`CannotImplementInterfaceInBlueprint` として宣言しなければなりません |
+
 [/EXCERPT:InterfaceMetadata]
+
+
+## 構造体メタデータ指定子
+[EXCERPT:StructMetadata]
+構造体は以下のメタタグ指定子を使用することができます。
+
+| 構造体メタ タグ | 効果 |
+| --- | --- |
+| `HasNativeBreak="Module.Class.Function"` | この構造体はカスタムのBreak Struct ノードを持つことを示します。モジュール、クラス、および関数の名前を指定しなければなりません。 |
+| `HasNativeMake="Module.Class.Function"` | この構造体はカスタムの Make Struct ノードを持つことを示します。モジュール、クラス、および関数の名前を指定しなければなりません。 |
+| `HiddenByDefault` | Make Struct ノードと Break Struct ノードのピンはデフォルトで非表示になっています。 |
+| `ShortToolTip` | 親クラスのピッカー ダイアログなどフル ツールチップでは長すぎる場合に短いツールチップを使います。 |
+| `ToolTip` | コード コメントから自動的に生成されたツールチップをオーバーライドします。 |
+
+[/EXCERPT:StructMetadata]
+
+
+## 関数メタデータ指定子
+
+[EXCERPT:FunctionMetadata]
+
+| 関数メタ タグ | 効果 |
+| --- | --- |
+| `AdvancedDisplay="Parameter1, Parameter2, .."` | コンマで区切られたパラメータのリストが詳細ピンとして表示されます (UI の展開が必要)。 |
+| `AdvancedDisplay=N` | `N` を数字で置き換えて、N 番めより後のすべてのパラメータが詳細ピンとして表示されます (UI の展開が必要)。例:'AdvancedDisplay=2' は、最初の 2 つのパラメータを除いて advanced としてマーク付けします) |
+| `ArrayParm="Parameter1, Parameter2, .."` | `BlueprintCallable` 関数で Call Array Function ノードを使用し、リストされているパラメータをワイルドカード配列のプロパティとして扱うかを示します。 |
+| `ArrayTypeDependentParams="Parameter"` | `ArrayParm` を使用する場合、この指定子は `ArrayParm` リストにあるすべてのパラメータの型を決めるパラメータを示します。 |
+| `AutoCreateRefTerm="Parameter1, Parameter2, .."` | リストされているパラメータは参照によって渡されますが、ピンが接続されていなければ自動作成されるデフォルトを持ちます。これはブループリントの便利な機能です。 |
+| `BlueprintAutocast` | ブループリント関数ライブラリから静的な `BlueprintPure` 関数によってのみ使用されます。Cast ノードが自動的に戻り型と関数の最初のパラメータの型に追加されます。 |
+| `BlueprintInternalUseOnly` | この関数は内部実装の詳細です。他の関数やノードを実装するために使われます。グラフ内で直接公開されることはありません。 |
+| `BlueprintProtected` | この関数は、ブループリントで所有しているオブジェクトでのみ呼び出し可能です。他のインスタンス上での呼び出しはできません。 |
+| `CallableWithoutWorldContext` | `WorldContext` ピンを持つ `BlueprintCallable` 関数のために使われ、そのクラスが `GetWorld` 関数を実装していなくても呼び出し可能であることを示します。 |
+| `CommutativeAssociativeBinaryOperator` | `BlueprintCallable` 関数が、Commutative Associative Binary ノードを使用すべきであることを示します。このノードにはピン名がありませんが、追加の入力ピンを作成する "Add Pin" ボタンがあります。 |
+| `CompactNodeTitle="Name"` | `BlueprintCallable` 関数をコンパクト表示モードで表示することを示し、モード内で表示する名前を指定します。 |
+| `CustomStructureParam="Parameter1, Parameter2, ..")` | リストされているパラメータはすべてワイルドカードとして扱われます。この指定子は `UFUNCTION`-レベル指定子、`CustomThunk` を必要とし、カスタム `exec` 関数をユーザーが指定する必要があります。この関数では、パラメータの型をチェック可能で、型に基づき適切な関数呼び出しを行うことができます。ベースとなる `UFUNCTION` は呼び出されません。呼び出された場合はアサートするかエラーを出力します。 |
+| `DefaultToSelf` | `BlueprintCallable` 関数では、オブジェクトのプロパティの名前付けしたデフォルト値は、ノードの self コンテキストになります。 |
+| `DeprecatedFunction` | ブループリントでこの関数を参照すると、関数が非推奨であることを示すコンパイルに関する警告が出ます。`DeprecationMessage` メタデータ指定子を使って非推奨の警告メッセージに追加することができます (例、非推奨の関数を置き換える旨の指示を表示)。 |
+| `DeprecationMessage`="Message Text" | 関数が非推奨であると、それを使用するブループリントをコンパイルしようとすると、このメッセージが標準の非推奨の警告に追加されます。 |
+| `DisplayName="Blueprint Node Name"` | ブループリント内のこのノード名は、コードが生成する名前の代わりにここで指定する値で置き換えられます。 |
+| `ExpandEnumAsExecs="Parameter"` | `BlueprintCallable` 関数で、ある入力実行ピンがパラメータが使用する `enum` で各エントリに対して作成されることを示します。この名前付けしたパラメータは `UENUM` タグでエンジンが認識する列挙型でなければなりません。 |
+| `HidePin="Parameter"` | `BlueprintCallable` 関数で、このパラメータ ピンをユーザーから見えないようにします。この方法では関数毎にひとつのパラメータ ピンのみを非表示にできることに注意してください。 |
+| `KeyWords="Set Of Keywords"` | ブループリント グラフで関数を呼び出すノードを配置する場合など、この関数を検索するときに使用可能なキーワード一式を指定します。 |
+| `Latent` | 潜在的 (latent) アクションを示します。潜在的アクショには、`FLatentActionInfo` 型のパラメータをひとつ持ち、このパラメータは `LatentInfo` 指定子で名前付けされます。 |
+| `LatentInfo="Parameter"` | Latent `BlueprintCallable` 関数では、どれが LatentInfo パラメータであるかを示します。 |
+| `MaterialParameterCollectionFunction` | `BlueprintCallable` 関数では、マテリアル オーバーライド ノードを使わないことを示します。 |
+| `NativeBreakFunc` | `BlueprintCallable` 関数では、標準の Break Struct ノードと同じように表示されることを示します。 |
+| `NotBlueprintThreadSafe` | ブループリント関数ライブラリでのみ有効です。この関数は、所有しているクラスの一般的な `BlueprintThreadSafe` メタデータの例外として扱われます。 |
+| `ShortToolTip` | 親クラスのピッカー ダイアログなどフル ツールチップでは長すぎる場合に短いツールチップを使います。 |
+| `ToolTip` | コード コメントから自動的に生成されたツールチップをオーバーライドします。 |
+| `UnsafeDuringActorConstruction` | この関数はアクタの構築中には安全に呼び出すことはできません。
+| `WorldContext="Parameter"` | `BlueprintCallable` 関数によって使用され、オペレーションが起こるワールドをどのパラメータが決めるかを示します。 |
+
+[COMMENT:none]
+- Undocumented:HideSpawnParams -
+[/COMMENT]
+
+[/EXCERPT:FunctionMetadata]
+
+## プロパティ メタデータ指定子
+
+[EXCERPT:PropertyMetadata]
+| プロパティ メタ タグ | 効果 |
+| --- | --- |
+| `AllowAbstract="true/false"` | `Subclass` と `SoftClass` のプロパティで使用されます。クラス ピッカーで抽象クラス型を表示するかを示します。 |
+| `AllowedClasses="Class1, Class2, .."` | `FSoftObjectPath` プロパティで使われます。アセット ピッカーに表示されるクラスの型を示すコンマで区切られたリストです。 |
+| `AllowPreserveRatio` | `FVector` プロパティで使われます。このプロパティを [Details (詳細)] パネルに表示するときに、ratio のロックが追加されます。 |
+| `ArrayClamp="ArrayProperty"` | integer のプロパティに使用されます。UI に入力する有効な値を 0 と配列のプロパティの名前の長さにクランプします。 |
+| `AssetBundles` | `SoftObjectPtr` または `SoftObjectPath` のプロパティで使用します。Primary Data Assets 内で使用されるバンドル名のリストで、参照がどのバンドルの一部であるかを指定します。 |
+| `BlueprintBaseOnly` | `Subclass` と `SoftClass` のプロパティで使用されます。クラス ピッカーで Blueprint クラスのみを表示するかを示します。 |
+| `BlueprintCompilerGeneratedDefaults` | ブループリントのコンパイラによってプロパティのデフォルトが生成されて、コンパイル後に `CopyPropertiesForUnrelatedObjects` 関数が呼び出されてもコピーされません。|
+| `ClampMin="N"` | float と integer のプロパティに使用されます。プロパティに入力可能な最小値、`N` を指定します。 |
+| `ClampMax="N"` | float と integer のプロパティに使用されます。プロパティに入力可能な最大値、`N` を指定します。 |
+| `ConfigHierarchyEditable` | このプロパティは、 config (`.ini`) ファイルにシリアル化されて、 config 階層のどこにでも設定することができます。 |
+| `ContentDir` | `FDirectoryPath` プロパティによって使用されます。このパスは、`Content` フォルダ内のスレート スタイルのディレクトリ ピッカーを使って選ぶことができます。 |
+| `DisplayName="Property Name"` | コードが生成する名前の代わりになるプロパティの表示名です。 |
+| `DisplayThumbnail="true"` | プロパティがアセット タイプであることを示し、選択したアセットのサムネイルを表示します。 |
+| `EditCondition="BooleanPropertyName"` | このプロパティの編集を無効にするかどうかを示すために使うブール プロパティに名前を付けます。プロパティ名の前に "!" を付けるとテストが反転します。 |
+| `EditFixedOrder` | ドラッグすることで配列の要素の順番が変わるのを防ぎます。 |
+| `ExactClass="true"` | `AllowedClasses` と合わせて `FSoftObjectPath` プロパティで使用されます。`AllowedClasses` で指定されているものと同じクラスだけを使用可能か、サブクラスも有効であるかを示します。 |
+| `ExposeFunctionCategories="Category1, Category2, .."` | ブループリント エディタで関数リストを構築するときに関数を公開するカテゴリのリストを指定します。 |
+| `ExposeOnSpawn="true"` | このクラスのタイプで Spawn Actor ノードでこのプロパティを公開するかを指定します。 |
+| `FilePathFilter="filetype"` | `FFilePath` プロパティによって使用されます。ファイル ピッカーで表示するパス フィルタを示します。共通の値として、"uasset" と "umap" 値を含みますが、他にも使える値があります。 |
+| `HideAlphaChannel` | `FColor` プロパティと `FLinearColor` プロパティで使用されます。詳細で、プロパティ ウィジェットを表示するときに `Alpha` プロパティが非表示になることを示します。 |
+| `HideViewOptions` | `Subclass` と `SoftClass` のプロパティで使用されます。クラス ピッカーで表示オプションを変更する機能を隠します。 |
+| `InlineEditConditionToggle` | 他のプロパティで切り替わり、単独では表示されない編集条件として、ブール プロパティはインラインでのみ表示されることを表します。 |
+| `LongPackageName` | `FDirectoryPath` プロパティによって使用されます。パスを長いパッケージ名に変換します。 |
+| `MakeEditWidget` | Transform プロパティ、Rotator プロパティ、または Transforms、Rotators の配列で使用されます。移動可能なウィジェットとしてプロパティがビューポートに公開されることを示します。 |
+
+
+[COMMENT:none]
+- Undocumented:FixedIncrement (deprecated) -
+[/COMMENT]
+
+[/EXCERPT:PropertyMetadata]

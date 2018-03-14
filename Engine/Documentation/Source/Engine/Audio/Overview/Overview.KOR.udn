@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429236
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:오디오 시스템 개요
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -7,45 +7,8 @@ version: 4.12
 parent:Engine/Audio
 type:overview
 order:1
+topic-image:Engine/Audio/audio_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Audio/Overview:title%](Engine/Audio/audio_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Audio/Overview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Audio/Overview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Audio/Overview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Audio/Overview:title%](Engine/Audio/audio_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Audio/Overview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Audio/Overview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Audio/Overview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2)]
 

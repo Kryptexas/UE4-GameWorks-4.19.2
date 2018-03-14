@@ -2,70 +2,41 @@
  * Copyright 2016-2017 Nikolay Aleksiev. All rights reserved.
  * License: https://github.com/naleksiev/mtlpp/blob/master/LICENSE
  */
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
-    struct Origin
+	struct Origin : public MTLPPOrigin
     {
-        inline Origin(uint32_t x, uint32_t y, uint32_t z) :
-            X(x),
-            Y(y),
-            Z(z)
-        { }
-
-        uint32_t X;
-        uint32_t Y;
-        uint32_t Z;
+        inline Origin(NSUInteger X, NSUInteger Y, NSUInteger Z) { x = X; y = Y; z = Z; }
     };
 
-    struct Size
+    struct Size  : public MTLPPSize
     {
-        inline Size(uint32_t width, uint32_t height, uint32_t depth) :
-            Width(width),
-            Height(height),
-            Depth(depth)
-        { }
-
-        uint32_t Width;
-        uint32_t Height;
-        uint32_t Depth;
+		inline Size(NSUInteger Width, NSUInteger Height, NSUInteger Depth) { width = Width; height = Height; depth = Depth; }
     };
 
-    struct Region
+	struct Region : public MTLPPRegion
     {
-        inline Region(uint32_t x, uint32_t width) :
-            Origin(x, 0, 0),
-            Size(width, 1, 1)
-        { }
+        inline Region(NSUInteger x, NSUInteger width) { origin = {x, 0, 0}; size = {width, 1, 1}; }
 
-        inline Region(uint32_t x, uint32_t y, uint32_t width, uint32_t height) :
-            Origin(x, y, 0),
-            Size(width, height, 1)
-        { }
+        inline Region(NSUInteger x, NSUInteger y, NSUInteger width, NSUInteger height) { origin = {x, y, 0}; size = {width, height, 1}; }
 
-        inline Region(uint32_t x, uint32_t y, uint32_t z, uint32_t width, uint32_t height, uint32_t depth) :
-            Origin(x, y, z),
-            Size(width, height, depth)
-        { }
-
-        Origin Origin;
-        Size   Size;
+        inline Region(NSUInteger x, NSUInteger y, NSUInteger z, NSUInteger width, NSUInteger height, NSUInteger depth) { origin = {x, y, z}; size = {width, height, depth}; }
     };
 	
-	struct SamplePosition
+	struct SamplePosition : public MTLPPSamplePosition
 	{
-		inline SamplePosition(float a, float b)
-		: x(a)
-		, y(b)
-		{}
-		
-		float x;
-		float y;
+		inline SamplePosition(float a, float b) { x = a; y = b; }
 	} MTLPP_AVAILABLE(10_13, 11_0);
 }
+
+MTLPP_END

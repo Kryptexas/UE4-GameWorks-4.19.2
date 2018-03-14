@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429247
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:캐스케이드 파티클 에디터 참고서
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
@@ -9,26 +9,6 @@ parent:Engine/Rendering/ParticleSystems
 order:2
 type:reference
 topic-image:cascade_topic.png
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/ParticleSystems/Cascade:title%](cascade_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/ParticleSystems/Cascade:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/ParticleSystems/Cascade:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/ParticleSystems/Cascade]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC (start:2 end:3)]
 
@@ -303,30 +283,29 @@ topic-image:cascade_topic.png
 
 이미터 패널를 사용중일 때는, 그 안에서 찾을 수 있는 이미터의 기본적인 해부 구조를 이해하는 것이 중요합니다. 간단히 분석해 보면:
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![EmitterCallout.png](EmitterCallout.png)(w:400)
-	[/PARAM]
-	[PARAM:description]
-	[INCLUDE:#Emitters]
-	[/PARAM]
-[/OBJECT]
+![EmitterCallout.png](EmitterCallout.png)(w:400)
 
-<!--
+[INCLUDE:#Emitters]
+
+[COMMENT:none]
+
 [EXCERPT:Emitters]
 1. **이미터 열** - 하나의 열마다 별도의 이미터를 나타냅니다.
 2. **이미터 블록** - 각 이미터 상단의 박스에는 이미터 유형이나 이름, 기타 주요 프로퍼티 등 이미터 자체에 대한 주요 프로퍼티와 콘트롤이 들어갑니다.
 3. **모듈 리스트** - 이미터 블록에서부터 아래는, 이 이미터의 외양과 행위를 정의하는 모든 모듈 리스트입니다. 모든 이미터에는 **Required** (필수) 모듈이 있으며, 그 뒤로 계속해서 행위를 정의하는 모듈이 몇이든 따라붙게 됩니다.
 [/EXCERPT:Emitters]
--->
+
+[/COMMENT]
 
 [REGION:raw]
 ![](Engine\Rendering\LightingAndShadows\LightTypes\Point\spacer.png)
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 이미터 사용법 관련 자세한 정보는 TODO Working with Emitters 부분을 참고해 주시기 바랍니다.
--->
+
+[/COMMENT]
 
 파티클 모듈 관련 자세한 정보는 [모듈 참고서](Engine/Rendering/ParticleSystems/Reference) 를 확인해 주시기 바랍니다.
 
@@ -350,7 +329,8 @@ topic-image:cascade_topic.png
 [/REGION]
 
 
-<!--
+[COMMENT:none]
+
 #### LOSE ME
 The emitter block is shown below:
 
@@ -386,7 +366,8 @@ The final button is only present on modules that can render a 3D representation 
 ![CASC_Cross.jpg](CASC_Cross.jpg)/ ![CASC_None.jpg](CASC_None.jpg)
 
 The left image indicates that the 3D _preview_ should be drawn. The right indicates it is currently disabled.
--->
+
+[/COMMENT]
 
 ### 커브 에디터
 

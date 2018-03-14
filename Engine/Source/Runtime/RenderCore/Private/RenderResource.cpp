@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RenderResource.cpp: Render resource implementation.
@@ -11,6 +11,14 @@
 
 /** Whether to enable mip-level fading or not: +1.0f if enabled, -1.0f if disabled. */
 float GEnableMipLevelFading = 1.0f;
+
+// The maximum number of transient vertex buffer bytes to allocate before we start panic logging who is doing the allocations
+int32 GMaxVertexBytesAllocatedPerFrame = 32 * 1024 * 1024;
+
+FAutoConsoleVariableRef CVarMaxVertexBytesAllocatedPerFrame(
+	TEXT("r.MaxVertexBytesAllocatedPerFrame"),
+	GMaxVertexBytesAllocatedPerFrame,
+	TEXT("The maximum number of transient vertex buffer bytes to allocate before we start panic logging who is doing the allocations"));
 
 TLinkedList<FRenderResource*>*& FRenderResource::GetResourceList()
 {
@@ -93,7 +101,7 @@ void FRenderResource::InitResourceFromPossiblyParallelRendering()
 
 			static FORCEINLINE ENamedThreads::Type GetDesiredThread()
 			{
-				return ENamedThreads::RenderThread_Local;
+				return ENamedThreads::GetRenderThread_Local();
 			}
 
 			static FORCEINLINE ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::FireAndForget; }
@@ -123,9 +131,8 @@ FRenderResource::~FRenderResource()
 
 void BeginInitResource(FRenderResource* Resource)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		InitCommand,
-		FRenderResource*,Resource,Resource,
+	ENQUEUE_RENDER_COMMAND(InitCommand)(
+		[Resource](FRHICommandListImmediate& RHICmdList)
 		{
 			Resource->InitResource();
 		});
@@ -133,9 +140,8 @@ void BeginInitResource(FRenderResource* Resource)
 
 void BeginUpdateResourceRHI(FRenderResource* Resource)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		UpdateCommand,
-		FRenderResource*,Resource,Resource,
+	ENQUEUE_RENDER_COMMAND(UpdateCommand)(
+		[Resource](FRHICommandListImmediate& RHICmdList)
 		{
 			Resource->UpdateRHI();
 		});
@@ -382,6 +388,7 @@ struct FDynamicVertexBufferPool
 };
 
 FGlobalDynamicVertexBuffer::FGlobalDynamicVertexBuffer()
+	: TotalAllocatedSinceLastCommit(0)
 {
 	Pool = new FDynamicVertexBufferPool();
 }
@@ -395,6 +402,12 @@ FGlobalDynamicVertexBuffer::~FGlobalDynamicVertexBuffer()
 FGlobalDynamicVertexBuffer::FAllocation FGlobalDynamicVertexBuffer::Allocate(uint32 SizeInBytes)
 {
 	FAllocation Allocation;
+
+	TotalAllocatedSinceLastCommit += SizeInBytes;
+	if (IsRenderAlarmLoggingEnabled())
+	{
+		UE_LOG(LogRendererCore, Warning, TEXT("FGlobalDynamicVertexBuffer::Allocate(%u), will have allocated %u total this frame"), SizeInBytes, TotalAllocatedSinceLastCommit);
+	}
 
 	FDynamicVertexBuffer* VertexBuffer = Pool->CurrentVertexBuffer;
 	if (VertexBuffer == NULL || VertexBuffer->AllocatedByteCount + SizeInBytes > VertexBuffer->BufferSize)
@@ -438,6 +451,11 @@ FGlobalDynamicVertexBuffer::FAllocation FGlobalDynamicVertexBuffer::Allocate(uin
 	return Allocation;
 }
 
+bool FGlobalDynamicVertexBuffer::IsRenderAlarmLoggingEnabled() const
+{
+	return GMaxVertexBytesAllocatedPerFrame > 0 && TotalAllocatedSinceLastCommit >= (size_t)GMaxVertexBytesAllocatedPerFrame;
+}
+
 void FGlobalDynamicVertexBuffer::Commit()
 {
 	for (int32 BufferIndex = 0, NumBuffers = Pool->VertexBuffers.Num(); BufferIndex < NumBuffers; ++BufferIndex)
@@ -449,6 +467,7 @@ void FGlobalDynamicVertexBuffer::Commit()
 		}
 	}
 	Pool->CurrentVertexBuffer = NULL;
+	TotalAllocatedSinceLastCommit = 0;
 }
 
 FGlobalDynamicVertexBuffer& FGlobalDynamicVertexBuffer::Get()

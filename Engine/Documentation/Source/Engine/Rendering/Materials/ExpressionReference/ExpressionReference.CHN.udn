@@ -179,7 +179,8 @@ Version:4.9
 		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/Particles]
 	[/PARAM]
 [/OBJECT]
-<!---
+[COMMENT:none]
+-
 [OBJECT:TopicCompact]
 	[PARAM:image]
 		![%Engine/Rendering/Materials/ExpressionReference/Parameters:title%](exp_parameter.png)
@@ -191,7 +192,8 @@ Version:4.9
 		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/SpeedTree]
 	[/PARAM]
 [/OBJECT]
---->
+-
+[/COMMENT]
 [OBJECT:TopicCompact]
 	[PARAM:image]
 		![%Engine/Rendering/Materials/ExpressionReference/Landscape:title%](exp_landscape.png)
@@ -414,12 +416,14 @@ Version:4.9
 * [ParticleSubUV（粒子子 UV）](Engine/Rendering/Materials\ExpressionReference\Particles#ParticleSubUV)
 * [TextureSampleParameterSubUV（纹理取样参数子 UV）](Engine/Rendering/Materials\ExpressionReference\Particles#TextureSampleParameterSubUV)
 [/REGION]
-<!---
+[COMMENT:none]
+-
 [**速度树**](Engine/Rendering/Materials\ExpressionReference\SpeedTree)
 [REGION:indentedlist]
 * [SpeedTree（速度树）](Engine/Rendering/Materials\ExpressionReference\SpeedTree#SpeedTree)
 [/REGION]
---->
+-
+[/COMMENT]
 [**地形**](Engine/Rendering/Materials\ExpressionReference\Landscape)
 [REGION:indentedlist]
 * [LanscapeLayerBlend（景观层混合）](Engine/Rendering/Materials\ExpressionReference\Landscape#LandscapeLayerBlend)
@@ -432,7 +436,9 @@ Version:4.9
 * [FontSample（字体取样）](Engine/Rendering/Materials\ExpressionReference\Textures#FontSample)
 * [FontSampleParameter（字体取样参数）](Engine/Rendering/Materials\ExpressionReference\Textures#FontSampleParameter)
 * [SceneColor（场景颜色）](Engine/Rendering/Materials\ExpressionReference\Textures#SceneColor)
-<!--* [SceneTexture（场景纹理）](Engine/Rendering/Materials\ExpressionReference\Textures#SceneTexture)-->
+[COMMENT:none]
+* [SceneTexture（场景纹理）](Engine/Rendering/Materials\ExpressionReference\Textures#SceneTexture)
+[/COMMENT]
 * [TextureObject（纹理对象）](Engine/Rendering/Materials\ExpressionReference\Textures#TextureObject)
 * [TextureSample（纹理取样）](Engine/Rendering/Materials\ExpressionReference\Textures#TextureSample)
 [/REGION]
@@ -448,7 +454,9 @@ Version:4.9
 * [DepthOfFieldFunction（视野深度函数）](Engine/Rendering/Materials\ExpressionReference\Utility#DepthOfFieldFunction)
 * [Desaturation（去饱和度）](Engine/Rendering/Materials\ExpressionReference\Utility#Desaturation)
 * [Distance（距离）](Engine/Rendering/Materials\ExpressionReference\Utility#Distance)
-<!--* [FeatureLevelSwitch（功能级别开关）](Engine/Rendering/Materials\ExpressionReference\Utility#FeatureLevelSwitch)-->
+[COMMENT:none]
+* [FeatureLevelSwitch（功能级别开关）](Engine/Rendering/Materials\ExpressionReference\Utility#FeatureLevelSwitch)
+[/COMMENT]
 * [Fresnel（菲涅尔）](Engine/Rendering/Materials\ExpressionReference\Utility#Fresnel)
 * [LightmassReplace（光照系统替换）](Engine/Rendering/Materials\ExpressionReference\Utility#LightmassReplace)
 * [LinearInterpolate（线性插值）](Engine/Rendering/Materials\ExpressionReference\Utility#LinearInterpolate)

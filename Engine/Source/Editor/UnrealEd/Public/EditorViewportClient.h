@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -956,6 +956,12 @@ public:
 	/** Get the camera speed setting for this viewport */
 	virtual int32 GetCameraSpeedSetting() const;
 
+	/** Get the camera speed scalar for this viewport */
+	virtual float GetCameraSpeedScalar() const;
+
+	/** Set the camera speed scalar for this viewport */
+	virtual void SetCameraSpeedScalar(float SpeedScalar);
+
 	/** Editor mode tool manager being used for this viewport client */
 	FEditorModeTools* GetModeTools() const
 	{
@@ -965,6 +971,11 @@ public:
 	/** Get the editor viewport widget */
 	TSharedPtr<SEditorViewport> GetEditorViewportWidget() const { return EditorViewportWidget.Pin(); }
 
+	/**
+	 * Computes a matrix to use for viewport location and rotation
+	 */
+	virtual FMatrix CalcViewRotationMatrix(const FRotator& InViewRotation) const;
+
 protected:
 
 	/** true if this window is allowed to be possessed by cinematic tools for previewing sequences in real-time */
@@ -972,6 +983,9 @@ protected:
 
 	/** Camera speed setting */
 	int32 CameraSpeedSetting;
+
+	/** Camera speed scalar */
+	float CameraSpeedScalar;
 
 public:
 
@@ -1052,6 +1066,45 @@ public:
 	 */
 	bool IsFlightCameraActive() const;
 
+	/** Delegate handler fired when a show flag is toggled */
+	virtual void HandleToggleShowFlag(FEngineShowFlags::EShowFlag EngineShowFlagIndex);
+
+	/** Delegate handler fired to determine the state of a show flag */
+	virtual bool HandleIsShowFlagEnabled(FEngineShowFlags::EShowFlag EngineShowFlagIndex) const;
+
+	/**
+	 * Changes the buffer visualization mode for this viewport
+	 *
+	 * @param InName	The ID of the required visualization mode
+	 */
+	void ChangeBufferVisualizationMode( FName InName );
+
+	/**
+	 * Checks if a buffer visualization mode is selected
+	 * 
+	 * @param InName	The ID of the required visualization mode
+	 * @return	true if the supplied buffer visualization mode is checked
+	 */
+	bool IsBufferVisualizationModeSelected( FName InName ) const;
+	
+	/** @return True if PreviewResolutionFraction is supported. */
+	bool SupportsPreviewResolutionFraction() const;
+
+	/** @return preview screen percentage for UI. */
+	int32 GetPreviewScreenPercentage() const;
+
+	/** Set preview screen percentage on UI behalf. */
+	void SetPreviewScreenPercentage(int32 PreviewScreenPercentage);
+
+	/** @return True if DPI preview is supported. */
+	bool SupportsLowDPIPreview() const;
+
+	/** @return whether previewing for low DPI. */
+	bool IsLowDPIPreview();
+
+	/** Set whether previewing for low DPI. */
+	void SetLowDPIPreview(bool LowDPIPreview);
+	
 protected:
 	/** Invalidates the viewport widget (if valid) to register its active timer */
 	void InvalidateViewportWidget();
@@ -1072,9 +1125,8 @@ protected:
 	/** Invalidates this and other linked viewports (anything viewing the same scene) */
 	virtual void RedrawAllViewportsIntoThisScene();
 
-
 	/** FCommonViewportClient interface */
-	virtual float GetViewportClientWindowDPIScale() const override;
+	virtual float UpdateViewportClientWindowDPIScale() const override;
 
 	/**
 	 * Used to store the required cursor visibility states and override cursor appearance
@@ -1105,6 +1157,9 @@ protected:
 	/** Setup the cursor visibility state we require and store in RequiredCursorVisibiltyAndAppearance struct */
 	void UpdateRequiredCursorVisibility();
 	
+	/** Sets the required hardware and software cursor. */
+	void SetRequiredCursor(const bool bHardwareCursorVisible, const bool bSoftwareCursorVisible);
+
 	/** 
 	 * Apply the required cursor visibility states from the RequiredCursorVisibiltyAndAppearance struct 
 	 * @param	View				True - Set the position of the software cursor if being made visible. This defaults to FALSE.
@@ -1296,7 +1351,7 @@ public:
 	FSceneViewStateReference ViewState;
 
 	/** Viewport view state when stereo rendering is enabled */
-	FSceneViewStateReference StereoViewState;
+	TArray<FSceneViewStateReference> StereoViewStates;
 
 	/** A set of flags that determines visibility for various scene elements. */
 	FEngineShowFlags		EngineShowFlags;
@@ -1508,6 +1563,23 @@ protected:
 	TArray<FString> EnabledStats;
 
 private:
+	/** Controles resolution fraction for previewing in editor viewport at different screen percentage. */
+	float PreviewResolutionFraction;
+
+	// DPI mode for scene rendering.
+	enum class ESceneDPIMode
+	{
+		// Uses Editor.OverrideDPIBasedEditorViewportScaling.
+		EditorDefault,
+
+		// Force emulating low DPI.
+		EmulateLowDPI,
+
+		// Force using high dpi.
+		HighDPI
+	};
+	ESceneDPIMode SceneDPIMode;
+
 	/* View mode to set when this viewport is of type LVT_Perspective */
 	EViewModeIndex PerspViewModeIndex;
 

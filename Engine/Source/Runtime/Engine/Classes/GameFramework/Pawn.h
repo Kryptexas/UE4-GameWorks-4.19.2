@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -37,21 +37,20 @@ UCLASS(config=Game, BlueprintType, Blueprintable, hideCategories=(Navigation), m
 class ENGINE_API APawn : public AActor, public INavAgentInterface
 {
 	GENERATED_BODY()
+
 public:
-	/**
-	* Default UObject constructor.
-	*/
+	/** Default UObject constructor. */
 	APawn(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker ) override;
 
 	/** Return our PawnMovementComponent, if we have one. By default, returns the first PawnMovementComponent found. Native classes that create their own movement component should override this method for more efficiency. */
-	UFUNCTION(BlueprintCallable, meta=(Tooltip="Return our PawnMovementComponent, if we have one."), Category="Pawn")
+	UFUNCTION(BlueprintCallable, meta=(Tooltip="Return our PawnMovementComponent, if we have one."), Category=Pawn)
 	virtual UPawnMovementComponent* GetMovementComponent() const;
 
 	/** Return PrimitiveComponent we are based on (standing on, attached to, and moving on). */
-	virtual UPrimitiveComponent* GetMovementBase() const { return NULL; }
+	virtual UPrimitiveComponent* GetMovementBase() const { return nullptr; }
 
 	/** If true, this Pawn's pitch will be updated to match the Controller's ControlRotation pitch, if controlled by a PlayerController. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Pawn)
@@ -74,11 +73,13 @@ public:
 	uint32 bCanAffectNavigationGeneration : 1;
 
 private:
-	/* Whether this Pawn's input handling is enabled.  Pawn must still be possessed to get input even if this is true */
+	/** Whether this Pawn's input handling is enabled.  Pawn must still be possessed to get input even if this is true */
 	uint32 bInputEnabled:1;
 
-public:
+	/** Used to prevent re-entry of OutsideWorldBounds event. */
+	uint32 bProcessingOutsideWorldBounds : 1;
 
+public:
 	/** Base eye height above collision center. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)
 	float BaseEyeHeight;
@@ -98,13 +99,9 @@ public:
 	UPROPERTY(EditAnywhere, Category=Pawn)
 	EAutoPossessAI AutoPossessAI;
 
-	/**
-	 * Default class to use when pawn is controlled by AI.
-	 */
+	/** Default class to use when pawn is controlled by AI. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="AI Controller Class"), Category=Pawn)
 	TSubclassOf<AController> AIControllerClass;
-
-public:
 
 	/**
 	 * Return our PawnNoiseEmitterComponent, if any. Default implementation returns the first PawnNoiseEmitterComponent found in the components array.
@@ -120,12 +117,12 @@ public:
 	 * @param NoiseLocation - Position of noise source.  If zero vector, use the actor's location.
 	 * @param bUseNoiseMakerLocation - If true, use the location of the NoiseMaker rather than NoiseLocation.  If false, use NoiseLocation.
 	 * @param NoiseMaker - Which actor is the source of the noise.  Not to be confused with the Noise Instigator, which is responsible for the noise (and is the pawn on which this function is called).  If not specified, the pawn instigating the noise will be used as the NoiseMaker
-	*/
+	 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=AI)
-	void PawnMakeNoise(float Loudness, FVector NoiseLocation, bool bUseNoiseMakerLocation = true, AActor* NoiseMaker = NULL);
+	void PawnMakeNoise(float Loudness, FVector NoiseLocation, bool bUseNoiseMakerLocation = true, AActor* NoiseMaker = nullptr);
 
 	/** If Pawn is possessed by a player, points to his playerstate.  Needed for network play as controllers are not replicated to clients. */
-	UPROPERTY(replicatedUsing=OnRep_PlayerState, BlueprintReadOnly, Category="Pawn")
+	UPROPERTY(replicatedUsing=OnRep_PlayerState, BlueprintReadOnly, Category=Pawn)
 	APlayerState* PlayerState;
 
 	/** Replicated so we can see where remote clients are looking. */
@@ -159,33 +156,32 @@ public:
 	 */
 	void SetRemoteViewPitch(float NewRemoteViewPitch);
 
-	/** Called when our Controller no longer possesses us.	 */
+	/** Called when our Controller no longer possesses us. */
 	virtual void UnPossessed();
 
-	/** Return Physics Volume for this Pawn **/
+	/** Return Physics Volume for this Pawn */
 	virtual APhysicsVolume* GetPawnPhysicsVolume() const;
 
 	/** Gets the owning actor of the Movement Base Component on which the pawn is standing. */
-	UFUNCTION(BlueprintPure, Category="Pawn")
+	UFUNCTION(BlueprintPure, Category=Pawn)
 	static AActor* GetMovementBaseActor(const APawn* Pawn);
 
-	virtual bool IsBasedOnActor(const AActor* Other) const override;
-
+	/** Return true if yaw is within AllowedYawError of desired yaw */
 	virtual bool ReachedDesiredRotation();
 
 	/** @return The half-height of the default Pawn, scaled by the component scale. By default returns the half-height of the RootComponent, regardless of whether it is registered or collidable. */
 	virtual float GetDefaultHalfHeight() const;
 
 	/** See if this actor is currently being controlled */
-	UFUNCTION(BlueprintCallable, Category="Pawn")
+	UFUNCTION(BlueprintCallable, Category=Pawn)
 	bool IsControlled() const;
 
 	/** Returns controller for this actor. */
-	UFUNCTION(BlueprintCallable, Category="Pawn")
+	UFUNCTION(BlueprintCallable, Category=Pawn)
 	AController* GetController() const;
 
 	/** Get the rotation of the Controller, often the 'view' rotation of this Pawn. */
-	UFUNCTION(BlueprintCallable, Category="Pawn")
+	UFUNCTION(BlueprintCallable, Category=Pawn)
 	FRotator GetControlRotation() const;
 
 	/** Called when Controller is replicated */
@@ -195,9 +191,6 @@ public:
 	/** PlayerState Replication Notification Callback */
 	UFUNCTION()
 	virtual void OnRep_PlayerState();
-
-	/** used to prevent re-entry of OutsideWorldBounds event. */
-	uint32 bProcessingOutsideWorldBounds:1;
 
 	//~ Begin AActor Interface.
 	virtual FVector GetVelocity() const override;
@@ -224,32 +217,37 @@ public:
 	virtual void EnableInput(APlayerController* PlayerController) override;
 	virtual void DisableInput(APlayerController* PlayerController) override;
 	virtual void TeleportSucceeded(bool bIsATest) override;
+	virtual bool IsBasedOnActor(const AActor* Other) const override;
 
 	/** Overridden to defer to the RootComponent's CanCharacterStepUpOn setting if it is explicitly Yes or No. If set to Owner, will return Super::CanBeBaseForCharacter(). */
 	virtual bool CanBeBaseForCharacter(APawn* APawn) const override;
 	//~ End AActor Interface
 
-	/** Use SetCanAffectNavigationGeneration to change this value at runtime.
-	 *	Note that calling this function at runtime will result in any navigation change only if runtime navigation generation is enabled. */
+	/**
+	 * Use SetCanAffectNavigationGeneration to change this value at runtime.
+	 * Note that calling this function at runtime will result in any navigation change only if runtime navigation generation is enabled.
+	 */
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation", meta=(AdvancedDisplay="bForceUpdate"))
 	void SetCanAffectNavigationGeneration(bool bNewValue, bool bForceUpdate = false);
 
-	/** update all components relevant for navigation generators to match bCanAffectNavigationGeneration flag */
+	/** Update all components relevant for navigation generators to match bCanAffectNavigationGeneration flag */
 	virtual void UpdateNavigationRelevance() {}
 
 	//~ Begin INavAgentInterface Interface
 	virtual const FNavAgentProperties& GetNavAgentPropertiesRef() const override;
 	/** Basically retrieved pawn's location on navmesh */
-	UFUNCTION(BlueprintCallable, Category="Pawn")
+	UFUNCTION(BlueprintCallable, Category=Pawn)
 	virtual FVector GetNavAgentLocation() const override { return GetActorLocation() - FVector(0.f, 0.f, BaseEyeHeight); }
 	virtual void GetMoveGoalReachTest(const AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const override;
 	//~ End INavAgentInterface Interface
 
-	/** updates MovementComponent's parameters used by navigation system */
+	/** Updates MovementComponent's parameters used by navigation system */
 	void UpdateNavAgent();
 
-	/** @return true if we are in a state to take damage (checked at the start of TakeDamage.
-	*   Subclasses may check this as well if they override TakeDamage and don't want to potentially trigger TakeDamage actions by checking if it returns zero in the super class. */
+	/**
+	 * Return true if we are in a state to take damage (checked at the start of TakeDamage.
+	 * Subclasses may check this as well if they override TakeDamage and don't want to potentially trigger TakeDamage actions by checking if it returns zero in the super class.
+	 */
 	virtual bool ShouldTakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) const;
 
 #if WITH_EDITOR
@@ -266,28 +264,29 @@ public:
 	/** Set BaseEyeHeight based on current state. */
 	virtual void RecalculateBaseEyeHeight();
 
+	/** Whether this Pawn's input handling is enabled.  Pawn must still be possessed to get input even if this is true */
 	bool InputEnabled() const { return bInputEnabled; }
 
 	/** 
 	 * Called when this Pawn is possessed. Only called on the server (or in standalone).
-	 *	@param C The controller possessing this pawn
+	 *@param C The controller possessing this pawn
 	 */
 	virtual void PossessedBy(AController* NewController);
 
 	/** Event called when the Pawn is possessed by a Controller (normally only occurs on the server/standalone). */
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "Possessed"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName= "Possessed"))
 	void ReceivePossessed(AController* NewController);
 
 	/** Event called when the Pawn is no longer possessed by a Controller. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "Unpossessed"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName= "Unpossessed"))
 	void ReceiveUnpossessed(AController* OldController);
 
 	/** @return true if controlled by a local (not network) Controller.	 */
-	UFUNCTION(BlueprintPure, Category="Pawn")
+	UFUNCTION(BlueprintPure, Category=Pawn)
 	virtual bool IsLocallyControlled() const;
   
 	/** @return true if controlled by a human player (possessed by a PlayerController).	 */
-	UFUNCTION(BlueprintPure, Category="Pawn")
+	UFUNCTION(BlueprintPure, Category=Pawn)
 	virtual bool IsPlayerControlled() const;
 	
 	/**
@@ -304,10 +303,10 @@ public:
 	 * If we have a controller, by default we aim at the player's 'eyes' direction
 	 * that is by default the Pawn rotation for AI, and camera (crosshair) rotation for human players.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Pawn")
+	UFUNCTION(BlueprintCallable, Category=Pawn)
 	virtual FRotator GetBaseAimRotation() const;
 
-	/** return true if player is viewing this Pawn in FreeCam */
+	/** @return true if player is viewing this Pawn in FreeCam */
 	virtual bool InFreeCam() const;
 
 	/** Tell client that the Pawn is begin restarted. Calls Restart(). */
@@ -317,15 +316,15 @@ public:
 	virtual void FaceRotation(FRotator NewControlRotation, float DeltaTime = 0.f);
 
 	/** Call this function to detach safely pawn from its controller, knowing that we will be destroyed soon.	 */
-	UFUNCTION(BlueprintCallable, Category="Pawn", meta=(Keywords = "Delete"))
+	UFUNCTION(BlueprintCallable, Category=Pawn, meta=(Keywords = "Delete"))
 	virtual void DetachFromControllerPendingDestroy();
 
 	/** Spawn default controller for this Pawn, and get possessed by it. */
-	UFUNCTION(BlueprintCallable, Category="Pawn")
+	UFUNCTION(BlueprintCallable, Category=Pawn)
 	virtual void SpawnDefaultController();
 
 protected:
-	/** Get the controller instigating the damage. If the damage is caused by the world and the supplied controller is NULL or is this pawn's controller, uses LastHitBy as the instigator. */
+	/** Get the controller instigating the damage. If the damage is caused by the world and the supplied controller is nullptr or is this pawn's controller, uses LastHitBy as the instigator. */
 	virtual AController* GetDamageInstigator(AController* InstigatedBy, const UDamageType& DamageType) const;
 
 	/** Creates an InputComponent that can be used for custom input bindings. Called upon possession by a PlayerController. Return null if you don't want one. */
@@ -413,7 +412,6 @@ public:
 	virtual bool IsMoveInputIgnored() const;
 
 protected:
-
 	/**
 	 * Accumulated control input vector, stored in world space. This is the pending input, which is cleared (zeroed) once consumed.
 	 * @see GetPendingMovementInputVector(), AddMovementInput()
@@ -441,21 +439,13 @@ public:
 	/** Internal function meant for use only within Pawn or by a PawnMovementComponent. LastControlInputVector is updated with initial value of ControlInputVector. Returns ControlInputVector and resets it to zero. */
 	FVector Internal_ConsumeMovementInputVector();
 
-public:
-
 	/** Add an Actor to ignore by Pawn's movement collision */
 	void MoveIgnoreActorAdd(AActor* ActorToIgnore);
 
 	/** Remove an Actor to ignore by Pawn's movement collision */
 	void MoveIgnoreActorRemove(AActor* ActorToIgnore);
 
-public:
-
 	// DEPRECATED FUNCTIONS
-
-	/** Deprecated, misleading name and redundant */
-	DEPRECATED(4.14, "ClientSetRotation is deprecated. Call ClientSetRotation on the PlayerController directly")
-	virtual void ClientSetRotation(FRotator NewRotation);
 
 	/** (Deprecated) Launch Character with LaunchVelocity  */
 	DEPRECATED(4.8, "LaunchPawn is deprecated. For Characters, use LaunchCharacter() instead.")
@@ -463,11 +453,7 @@ public:
 	void LaunchPawn(FVector LaunchVelocity, bool bXYOverride, bool bZOverride);
 
 	/** (Deprecated) Return the input vector in world space. */
-	DEPRECATED(4.5, "GetMovementInputVector() has been deprecated, use either GetPendingMovementInputVector() or GetLastMovementInputVector().")
-	FVector GetMovementInputVector() const;
-
-	/** (Deprecated) Return the input vector in world space. */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(DeprecatedFunction, DisplayName="GetMovementInputVector", DeprecationMessage="GetMovementInputVector has been deprecated, use either GetPendingMovementInputVector or GetLastMovementInputVector"))
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(DeprecatedFunction, DisplayName="GetMovementInputVector", ScriptName="GetMovementInputVector", DeprecationMessage="GetMovementInputVector has been deprecated, use either GetPendingMovementInputVector or GetLastMovementInputVector"))
 	FVector K2_GetMovementInputVector() const;	
 };
 

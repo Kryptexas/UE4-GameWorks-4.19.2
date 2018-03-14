@@ -44,9 +44,11 @@ Related: Engine/Audio/DistanceModelAttenuation
 [/OBJECT]
 [/VAR]
 
-<!---
+[COMMENT:none]
+-
 [TOC(start:2 end:2)]
---->
+-
+[/COMMENT]
 
 
 ## 概述
@@ -73,7 +75,8 @@ Related: Engine/Audio/DistanceModelAttenuation
 | **1.9 Audio Volume** （音频体积）|音频受 **音频体积** 的影响，其效果仅在玩家位于体积内时才能听到（例如当您在体积内时，您听到的对话播放和声音如同您在礼堂内所听到的那样。 当您在体积外时，对话正常播放）。 |
 | **1.10 Audio Volume using Ambient Zone** （使用环境区域的音频体积）| 两种声音受到 **环境区域** 的影响，一种声音被放置在 **音频体积** 内，而另一种则不是。 体积内的声音在 **音频体积** 外时较轻，但在 **音频体积** 内时较响，而体积外的声音在 **音频体积** 内时较轻，但在 **音频体积** 外时较响（例如，当晚间从内部环境移动到外部环境时的音频）。 |
 
-<!--
+[COMMENT:none]
+
 ### Sound Cue Node Usage
 The **Sound Cue Node Usage** section covers more in-depth usage of the **Sound Cue Editor** including: combining multiple **Sound Waves**, selective **Attenuation**, **Random** and **Delayed** playback of **Sound Waves**, and **Modulation**. 
 
@@ -211,4 +214,5 @@ The **Audio_Speaker_Test** map demonstrates how to setup audio for multichannel 
 In this map, you can test out playing music from the Left Front, Center, Right Front, Left Rear, and Right Rear Speakers as well as from a Subwoofer. 
 You can play them individually or in any combination to hear the different effects. 
 
--->
+
+[/COMMENT]

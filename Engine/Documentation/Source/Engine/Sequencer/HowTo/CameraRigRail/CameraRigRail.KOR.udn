@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244012
+﻿INTSourceChangelist:3683933
 Availability: Public
 Title:카메라 릭 레일에서 찍기
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -11,6 +11,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 **Camera Rig Rail** (카메라 릭 레일) 액터를 사용하여 카메라를 붙여 이동하도록 하면, 날아 들어가는 360 도 샷을 찍을 수 있습니다.
 레일의 경로는 시퀀서에서 [**스플라인 컴포넌트**](Engine/Components/Shapes/) 를 사용하여 정의할 수 있으며, 시퀀서에서 카메라가 언제쯤 레일 상의 어느 위치에 있을지 그 위치를 키프레임 설정할 수 있습니다.

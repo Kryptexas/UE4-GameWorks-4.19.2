@@ -1,0 +1,51 @@
+﻿INTSourceChangelist:3782314
+Availability:Public
+Title:3.応用編
+Crumbs:%ROOT%, Platforms/SteamVR
+Description:このガイドで説明した方法を使って、追加のコンテンツでレベルにさらに磨きをかけます。関連トピックスのドキュメントも紹介します。 
+Navigation:platform
+Version:4.17
+Skilllevel:Beginner
+Platform:SteamVR
+type:multi-step
+parent:Platforms/SteamVR/QuickStart
+order:3
+Checkpoint:SteamVRQS
+tags:SteamVR
+
+[nav]
+
+SteamVR および HTC Vive を使って UE4 プロジェクトを表示することができるようになりました。それでは以下の項目をプロジェクトに追加してみましょう。
+
+* [Migrate ツール](Engine/Content/Browser/UserGuide/Migrate/) を使って、コンテンツをモバイル コンテンツ サンプルから使用するプロジェクトに移動します。
+
+* [Motion Controllers](Platforms\VR\MotionController) に対するサポートを追加して、ユーザーが現実世界にいる時と同じように VR の中でオブジェクトを動かせるようにします。
+
+* [GPU Profiler](Engine/Performance/GPU/) を使って、ビルドをしながらプロジェクト パフォーマンスをトラックしやすします。
+
+アンリアル エンジン 4 で VR プロジェクトを開発するために役立つ情報が記載されているリソースを紹介します。
+
+## ドキュメンテーション
+
+[REGION:buttonlist]
+* [](Platforms\VR)
+	* [](Platforms\VR\CheatSheet)
+	* [](Platforms\Oculus\BestPractices)
+* [Oculus ドキュメント](https://developer.oculus.com/documentation/)
+	* [ユーザーガイド](http://static.oculus.com/sdk-downloads/documents/Oculus_User_Guide_0.4.4.pdf)
+	* [デベロッパー ガイド](http://static.oculus.com/sdk-downloads/documents/Oculus_Developer_Guide_0.4.4.pdf)
+[/REGION]
+
+## お試しコンテンツ
+
+[REGION:imagetable]
+| ![](Platforms\Oculus\QuickStart\6\store_CouchKnights_screenshot_3.png)(w:420) | [![](Platforms\Oculus\QuickStart\6\store_Showdown_screenshot_5.png)(w:420)](https://www.unrealengine.com/marketplace/showdown-demo) |
+| ------------ | ---------------- |
+| CouchKnights | Showdown |
+| [![](Platforms\Oculus\QuickStart\6\store_VREditor_screenshot_5.png)(w:420)](https://docs.unrealengine.com/latest/INT/Engine/Editor/VR/index.html) | [![](Platforms\Oculus\QuickStart\6\store_RoboRecall_screenshot_5.png)(w:420)](https://docs.unrealengine.com/latest/INT/Modding/RoboRecall/) |
+| VR Mode |Robo Recall |
+[/REGION]
+
+[nav]
+
+![]()

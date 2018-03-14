@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelViewportLayoutOnePane.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
@@ -52,7 +52,7 @@ TSharedRef<SWidget> FLevelViewportLayoutOnePane::MakeViewportLayout(const FStrin
 	Args.ParentLayout = AsShared();
 	Args.ParentLevelEditor = ParentLevelEditor;
 	Args.IsEnabled = FSlateApplication::Get().GetNormalExecutionAttribute();
-	Args.bRealtime = true;
+	Args.bRealtime = !FPlatformMisc::IsRemoteSession();
 	Args.ConfigKey = ViewportKey;
 	Args.ViewportType = LVT_Perspective;
 	TSharedRef<IViewportLayoutEntity> Viewport = LevelEditor.FactoryViewport(*ViewportType, Args);

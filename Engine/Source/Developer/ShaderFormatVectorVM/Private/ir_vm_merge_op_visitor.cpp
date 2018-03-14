@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ShaderFormatVectorVM.h"
 #include "CoreMinimal.h"
@@ -96,7 +96,7 @@ public:
 					ir_assignment* assign = mul_assignments[mul_idx];
 					if (assign->lhs->type->is_float())
 					{
-						ir_rvalue* mul_operand = assign->rhs->clone(ralloc_parent(expr), NULL);
+						ir_rvalue* mul_operand = assign->rhs->clone(state, NULL);
 						ir_rvalue* add_operand = equiv_operand == 0 ? expr->operands[1] : expr->operands[0];
 
 						expr->operands[0] = mul_operand;
@@ -144,7 +144,7 @@ public:
 						inner_val = neg_expr->operands[0];
 						check(inner_val);
 
-						ir_rvalue* neg_operand = inner_val->clone(ralloc_parent(expr), NULL);
+						ir_rvalue* neg_operand = inner_val->clone(state, NULL);
 						ir_rvalue* add_operand = equiv_operand == 0 ? expr->operands[1] : expr->operands[0];
 
 						expr->operation = ir_binop_sub;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 AsyncTextureStreaming.h: Definitions of classes used for texture streaming async task.
@@ -67,6 +67,12 @@ private:
 
 	/** Time since last full update. Used to know if something is immediately visible. */
 	float LastUpdateTime;
+
+	/** Sorted list of all static instances. The sorting is based on MaxLevelTextureScreenSize. */
+	TArray<int32> StaticInstancesViewIndices;
+
+	/** List of all static instances that were rejected. */
+	TArray<int32> CulledStaticInstancesViewIndices;
 };
 
 struct FCompareTextureByRetentionPriority // Bigger retention priority first.
@@ -147,6 +153,11 @@ public:
 	{
 		StreamingData.ReleaseViews();
 	}
+
+protected:
+
+	/** Ensures that no temporary streaming boost are active which could interfere with texture streaming bias in undesirable ways. */
+	bool AllowPerTextureMipBiasChanges() const;
 
 private:
 

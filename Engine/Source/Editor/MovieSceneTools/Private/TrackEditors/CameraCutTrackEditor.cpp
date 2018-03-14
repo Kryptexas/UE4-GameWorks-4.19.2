@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "TrackEditors/CameraCutTrackEditor.h"
 #include "Widgets/SBoxPanel.h"
@@ -19,6 +19,8 @@
 #include "SceneOutlinerPublicTypes.h"
 #include "SceneOutlinerModule.h"
 #include "TrackEditorThumbnail/TrackEditorThumbnailPool.h"
+#include "MovieSceneObjectBindingIDPicker.h"
+#include "MovieSceneToolHelpers.h"
 #include "DragAndDrop/ActorDragDropGraphEdOp.h"
 
 #define LOCTEXT_NAMESPACE "FCameraCutTrackEditor"
@@ -56,6 +58,7 @@ void FCameraCutTrackCommands::RegisterCommands()
 {
 	UI_COMMAND( ToggleLockCamera, "Toggle Lock Camera", "Toggle locking the viewport to the camera cut track.", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control, EKeys::L) );
 }
+
 
 /* FCameraCutTrackEditor structors
  *****************************************************************************/
@@ -208,7 +211,7 @@ bool FCameraCutTrackEditor::OnAllowDrop(const FDragDropEvent& DragDropEvent, UMo
 
 	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
 
-	if (!Operation.IsValid() && !Operation->IsOfType<FActorDragDropGraphEdOp>() )
+	if (!Operation.IsValid() || !Operation->IsOfType<FActorDragDropGraphEdOp>() )
 	{
 		return false;
 	}
@@ -242,7 +245,7 @@ FReply FCameraCutTrackEditor::OnDrop(const FDragDropEvent& DragDropEvent, UMovie
 
 	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
 
-	if (!Operation.IsValid() && !Operation->IsOfType<FActorDragDropGraphEdOp>() )
+	if (!Operation.IsValid() || !Operation->IsOfType<FActorDragDropGraphEdOp>() )
 	{
 		return FReply::Unhandled();
 	}
@@ -280,7 +283,7 @@ FKeyPropertyResult FCameraCutTrackEditor::AddKeyInternal( float KeyTime, const F
 	UMovieSceneCameraCutTrack* CameraCutTrack = FindOrCreateCameraCutTrack();
 	const TArray<UMovieSceneSection*>& AllSections = CameraCutTrack->GetAllSections();
 
-	CameraCutTrack->AddNewCameraCut(ObjectGuid, KeyTime);
+	CameraCutTrack->AddNewCameraCut(FMovieSceneObjectBindingID(ObjectGuid, MovieSceneSequenceID::Root), KeyTime);
 	KeyPropertyResult.bTrackModified = true;
 
 	return KeyPropertyResult;
@@ -341,44 +344,97 @@ TSharedRef<SWidget> FCameraCutTrackEditor::HandleAddCameraCutComboButtonGetMenuC
 {
 	FMenuBuilder MenuBuilder(true, nullptr);
 
-	using namespace SceneOutliner;
+	auto CreateNewCamera =
+		[this](FMenuBuilder& SubMenuBuilder)
+		{
+			using namespace SceneOutliner;
 
-	SceneOutliner::FInitializationOptions InitOptions;
+			SceneOutliner::FInitializationOptions InitOptions;
+			{
+				InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
+				InitOptions.bShowHeaderRow = false;
+				InitOptions.bFocusSearchBoxWhenOpened = true;
+				InitOptions.bShowTransient = true;
+				InitOptions.bShowCreateNewFolder = false;
+				// Only want the actor label column
+				InitOptions.ColumnMap.Add(FBuiltInColumnTypes::Label(), FColumnInfo(EColumnVisibility::Visible, 0));
+
+				// Only display Actors that we can attach too
+				InitOptions.Filters->AddFilterPredicate( SceneOutliner::FActorFilterPredicate::CreateRaw(this, &FCameraCutTrackEditor::IsCameraPickable) );
+			}		
+
+			// Actor selector to allow the user to choose a parent actor
+			FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>( "SceneOutliner" );
+
+			TSharedRef< SWidget > MenuWidget = 
+				SNew(SHorizontalBox)
+
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SBox)
+					.MaxDesiredHeight(400.0f)
+					.WidthOverride(300.0f)
+					[
+						SceneOutlinerModule.CreateSceneOutliner(
+							InitOptions,
+							FOnActorPicked::CreateSP(this, &FCameraCutTrackEditor::HandleAddCameraCutComboButtonMenuEntryExecute )
+							)
+					]
+				];
+			SubMenuBuilder.AddWidget(MenuWidget, FText::GetEmpty(), false);
+		};
+
+	TSharedPtr<ISequencer> SequencerPtr = GetSequencer();
+
+	// Always recreate the binding picker to ensure we have the correct sequence ID
+	BindingIDPicker = MakeShared<FTrackEditorBindingIDPicker>(SequencerPtr->GetFocusedTemplateID(), SequencerPtr);
+	BindingIDPicker->OnBindingPicked().AddRaw(this, &FCameraCutTrackEditor::CreateNewSectionFromBinding);
+
+	FText ExistingBindingText = LOCTEXT("ExistingBinding", "Existing Binding");
+	FText NewBindingText = LOCTEXT("NewBinding", "New Binding");
+
+	const bool bHasExistingBindings = !BindingIDPicker->IsEmpty();
+	if (bHasExistingBindings)
 	{
-		InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
-		InitOptions.bShowHeaderRow = false;
-		InitOptions.bFocusSearchBoxWhenOpened = true;
-		InitOptions.bShowTransient = true;
-		InitOptions.bShowCreateNewFolder = false;
-		// Only want the actor label column
-		InitOptions.ColumnMap.Add(FBuiltInColumnTypes::Label(), FColumnInfo(EColumnVisibility::Visible, 0));
+		MenuBuilder.AddSubMenu(
+			NewBindingText,
+			LOCTEXT("NewBinding_Tip", "Add a new camera cut by creating a new binding to an object in the world."),
+			FNewMenuDelegate::CreateLambda(CreateNewCamera)
+		);
 
-		// Only display Actors that we can attach too
-		InitOptions.Filters->AddFilterPredicate( SceneOutliner::FActorFilterPredicate::CreateSP(this, &FCameraCutTrackEditor::IsCameraPickable) );
-	}		
-
-	// Actor selector to allow the user to choose a parent actor
-	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>( "SceneOutliner" );
-
-	TSharedRef< SWidget > MenuWidget = 
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		[
-			SNew(SBox)
-			.MaxDesiredHeight(400.0f)
-			.WidthOverride(300.0f)
-			[
-				SceneOutlinerModule.CreateSceneOutliner(
-					InitOptions,
-					FOnActorPicked::CreateSP(this, &FCameraCutTrackEditor::HandleAddCameraCutComboButtonMenuEntryExecute )
-					)
-			]
-		];
-
-	MenuBuilder.AddWidget(MenuWidget, FText::GetEmpty(), false);
+		MenuBuilder.BeginSection(NAME_None, ExistingBindingText);
+		{
+			BindingIDPicker->GetPickerMenu(MenuBuilder);
+		}
+		MenuBuilder.EndSection();
+	}
+	else
+	{
+		MenuBuilder.BeginSection(NAME_None, NewBindingText);
+		{
+			CreateNewCamera(MenuBuilder);
+		}
+		MenuBuilder.EndSection();
+	}
+	
 	return MenuBuilder.MakeWidget();
+}
+
+
+void FCameraCutTrackEditor::CreateNewSectionFromBinding(FMovieSceneObjectBindingID InBindingID)
+{
+	auto CreateNewSection = [this, InBindingID](float KeyTime)
+	{
+		FKeyPropertyResult KeyPropertyResult;
+
+		FindOrCreateCameraCutTrack()->AddNewCameraCut(InBindingID, KeyTime);
+		KeyPropertyResult.bTrackModified = true;
+
+		return KeyPropertyResult;
+	};
+
+	AnimatablePropertyChanged(FOnKeyProperty::CreateLambda(CreateNewSection));
 }
 
 

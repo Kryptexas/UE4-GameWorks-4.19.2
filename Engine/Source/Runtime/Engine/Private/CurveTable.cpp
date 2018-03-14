@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/CurveTable.h"
 #include "Serialization/JsonReader.h"
@@ -10,6 +10,9 @@
 DEFINE_LOG_CATEGORY(LogCurveTable);
 
 DECLARE_CYCLE_STAT(TEXT("CurveTableRowHandle Eval"),STAT_CurveTableRowHandleEval,STATGROUP_Engine);
+
+
+int32 UCurveTable::GlobalCachedCurveID = 1;
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -80,6 +83,19 @@ void UCurveTable::Serialize( FArchive& Ar )
 			// Save out data
 			FRichCurve* Curve = RowIt.Value();
 			FRichCurve::StaticStruct()->SerializeTaggedProperties(Ar, (uint8*)Curve, FRichCurve::StaticStruct(), NULL);
+		}
+	}
+	else if (Ar.IsCountingMemory())
+	{
+		RowMap.CountBytes(Ar);
+
+		const size_t SizeOfDirectCurveAllocs = sizeof(FRichCurve) * RowMap.Num();
+		Ar.CountBytes(SizeOfDirectCurveAllocs, SizeOfDirectCurveAllocs);
+
+		for (auto RowIt = RowMap.CreateConstIterator(); RowIt; ++RowIt)
+		{
+			FRichCurve* Curve = RowIt.Value();
+			Curve->Keys.CountBytes(Ar);
 		}
 	}
 }
@@ -309,6 +325,10 @@ void UCurveTable::EmptyTable()
 
 	// Finally empty the map
 	RowMap.Empty();
+
+	// AttributeSets can cache pointers to curves in this table, so we'll need to make sure they've
+	// all been invalidated properly, since we just blew them away.
+	UCurveTable::InvalidateAllCachedCurves();
 }
 
 
@@ -397,6 +417,29 @@ TArray<FString> UCurveTable::CreateTableFromCSVString(const FString& InString, E
 	}
 
 	Modify(true);
+	return OutProblems;
+}
+
+TArray<FString> UCurveTable::CreateTableFromOtherTable(const UCurveTable* InTable)
+{
+	// Array used to store problems about table creation
+	TArray<FString> OutProblems;
+
+	if (InTable == nullptr)
+	{
+		OutProblems.Add(TEXT("No input table provided"));
+		return OutProblems;
+	}
+
+	for (TMap<FName, FRichCurve*>::TConstIterator RowMapIter(InTable->RowMap.CreateConstIterator()); RowMapIter; ++RowMapIter)
+	{
+		FRichCurve* NewCurve = new FRichCurve();
+		FRichCurve* InCurve = RowMapIter.Value();
+		TArray<FRichCurveKey> CurveKeys = InCurve->GetCopyOfKeys();
+		NewCurve->SetKeys(CurveKeys);
+		RowMap.Add(RowMapIter.Key(), NewCurve);
+	}
+	
 	return OutProblems;
 }
 
@@ -542,6 +585,10 @@ bool UCurveTable::IsValidCurve(FRichCurveEditInfo CurveInfo)
 	return false;
 }
 
+void UCurveTable::InvalidateAllCachedCurves()
+{
+	GlobalCachedCurveID++;
+}
 
 
 TArray<const UObject*> UCurveTable::GetOwners() const
@@ -555,18 +602,18 @@ TArray<const UObject*> UCurveTable::GetOwners() const
 //////////////////////////////////////////////////////////////////////////
 
 
-FRichCurve* FCurveTableRowHandle::GetCurve(const FString& ContextString) const
+FRichCurve* FCurveTableRowHandle::GetCurve(const FString& ContextString, bool WarnIfNotFound) const
 {
 	if(CurveTable == NULL)
 	{
 		if (RowName != NAME_None)
 		{
-			UE_LOG(LogCurveTable, Warning, TEXT("FCurveTableRowHandle::FindRow : No CurveTable for row %s (%s)."), *RowName.ToString(), *ContextString);
+			UE_CLOG(WarnIfNotFound, LogCurveTable, Warning, TEXT("FCurveTableRowHandle::FindRow : No CurveTable for row %s (%s)."), *RowName.ToString(), *ContextString);
 		}
 		return NULL;
 	}
 
-	return CurveTable->FindCurve(RowName, ContextString);
+	return CurveTable->FindCurve(RowName, ContextString, WarnIfNotFound);
 }
 
 float FCurveTableRowHandle::Eval(float XValue,const FString& ContextString) const

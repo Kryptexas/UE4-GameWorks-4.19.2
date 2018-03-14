@@ -66,7 +66,8 @@ Ntf5chUK4jM
 |[REGION:tablesection]Location[/REGION]||
 | **SelectionMethod** | 从发射器选择引力器目标粒子所使用的方法。可为下列之一：[INCLUDE:#SelectionMethod]|
 
-<!------Attractor Particle Includes--------------
+[COMMENT:none]
+----Attractor Particle Includes--------------
 
 [EXCERPT:SelectionMethod]
 [REGION:simpletable]
@@ -77,7 +78,8 @@ Ntf5chUK4jM
 [/REGION]
 [/EXCERPT:SelectionMethod]
 
---------End Attractor Particle Includes---------->
+--------End Attractor Particle Includes--------
+[/COMMENT]
 
 
 ## Point Attractor

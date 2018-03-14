@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -28,6 +28,7 @@ class UStaticMeshComponent;
 class USkeletalMeshComponent;
 class UStaticMesh;
 class UPackage;
+class UWorld;
 class FString;
 enum class EFlattenMaterialProperties : uint8;
 
@@ -74,4 +75,15 @@ public:
 	*	@param	OutAssetsToSync			Result assets - mesh, material
 	*/
 	virtual void CreateProxyMesh(const TArray<AActor*>& InActors, const struct FMeshProxySettings& InMeshProxySettings, UPackage* InOuter, const FString& InProxyBasePackageName, const FGuid InGuid, const FCreateProxyDelegate& InProxyCreatedDelegate, const bool bAllowAsync = false, const float ScreenSize = 1.0f) const = 0;
+	
+	/**
+	*	Merges list of static meshes into single proxy mesh
+	*
+	*	@param	InComponents		    List of meshes to merge
+	*	@param	InProxySettings			Merge settings
+	*	@param	InOuter					Package for a generated assets, if NULL new packages will be created for each asset
+	*	@param	ProxyBasePackageName	Will be used for naming generated assets, in case InOuter is not specified ProxyBasePackageName will be used as long package name for creating new packages
+	*	@param	OutAssetsToSync			Result assets - mesh, material
+	*/
+	virtual void CreateProxyMesh(const TArray<UStaticMeshComponent*>& InComponents, const struct FMeshProxySettings& InMeshProxySettings, UPackage* InOuter, const FString& InProxyBasePackageName, const FGuid InGuid, const FCreateProxyDelegate& InProxyCreatedDelegate, const bool bAllowAsync = false, const float ScreenSize = 1.0f) const = 0;
 };

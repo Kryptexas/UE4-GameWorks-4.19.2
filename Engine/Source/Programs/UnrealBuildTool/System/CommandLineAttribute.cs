@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -11,7 +13,7 @@ namespace UnrealBuildTool
 	/// Attribute to indicate the name of a command line argument
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Field, AllowMultiple = true)]
-	class CommandLineAttribute : Attribute
+	public class CommandLineAttribute : Attribute
 	{
 		/// <summary>
 		/// Prefix for the option, with a leading '-' and trailing '=' character if a value is expected.

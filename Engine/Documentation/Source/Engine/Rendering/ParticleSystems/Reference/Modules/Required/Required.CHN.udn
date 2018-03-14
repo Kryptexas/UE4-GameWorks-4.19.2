@@ -82,8 +82,11 @@ Version:4.9
 
 
 
-<!-- Begin RequiredModule Table Includes -->
-<!--
+[COMMENT:none]
+ Begin RequiredModule Table Includes 
+[/COMMENT]
+[COMMENT:none]
+
 [EXCERPT:ScreenAlign]
 [REGION:simpletable]
 | 标记 | 描述 |
@@ -147,5 +150,8 @@ Version:4.9
 | _ENM_Cylindrical_ | 法线从一个穿过 NormalsSphereCenter，方向为 NormalsCylinderDirection 的圆柱体产生。|
 [/REGION]
 [/EXCERPT:NormalsMode]
--->
-<!-- End RequiredModule Includes -->
+
+[/COMMENT]
+[COMMENT:none]
+ End RequiredModule Includes 
+[/COMMENT]

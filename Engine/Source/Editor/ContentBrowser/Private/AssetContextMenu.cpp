@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetContextMenu.h"
 #include "Templates/SubclassOf.h"
@@ -7,6 +7,7 @@
 #include "Textures/SlateIcon.h"
 #include "Engine/Blueprint.h"
 #include "Misc/MessageDialog.h"
+#include "HAL/PlatformApplicationMisc.h"
 #include "HAL/FileManager.h"
 #include "Misc/ScopedSlowTask.h"
 #include "UObject/UObjectIterator.h"
@@ -21,7 +22,7 @@
 #include "Components/ActorComponent.h"
 #include "GameFramework/Actor.h"
 #include "UnrealClient.h"
-#include "Materials/MaterialFunction.h"
+#include "Materials/MaterialFunctionInstance.h"
 #include "Materials/Material.h"
 #include "ISourceControlOperation.h"
 #include "SourceControlOperations.h"
@@ -43,9 +44,6 @@
 #include "PropertyEditorModule.h"
 #include "Toolkits/GlobalEditorCommonCommands.h"
 #include "ConsolidateWindow.h"
-#include "ReferenceViewer.h"
-#include "ISizeMapModule.h"
-
 #include "ReferencedAssetsUtils.h"
 #include "Internationalization/PackageLocalizationUtil.h"
 
@@ -60,6 +58,7 @@
 #include "EditorClassUtils.h"
 
 #include "Internationalization/Culture.h"
+#include "Internationalization/TextPackageNamespaceUtil.h"
 #include "Widgets/Colors/SColorPicker.h"
 #include "Framework/Commands/GenericCommands.h"
 #include "Framework/Notifications/NotificationManager.h"
@@ -67,6 +66,7 @@
 #include "Engine/LevelStreaming.h"
 #include "ContentBrowserCommands.h"
 
+#include "PackageHelperFunctions.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -242,24 +242,6 @@ bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 	int32 NumAssetItems, NumClassItems;
 	ContentBrowserUtils::CountItemTypes(SelectedAssets, NumAssetItems, NumClassItems);
 
-	FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
-
-	// Can any of the selected assets be localized?
-	bool bAnyLocalizableAssetsSelected = false;
-	for (const FAssetData& Asset : SelectedAssets)
-	{
-		TSharedPtr<IAssetTypeActions> AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(Asset.GetClass()).Pin();
-		if (AssetTypeActions.IsValid())
-		{
-			bAnyLocalizableAssetsSelected = AssetTypeActions->CanLocalize();
-		}
-
-		if (bAnyLocalizableAssetsSelected)
-		{
-			break;
-		}
-	}
-
 	MenuBuilder.BeginSection("CommonAssetActions", LOCTEXT("CommonAssetActionsMenuHeading", "Common"));
 	{
 		// Edit
@@ -316,12 +298,12 @@ bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 				FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions")
 				);
 
-			if (bAnyLocalizableAssetsSelected && NumClassItems == 0)
+			if (NumClassItems == 0)
 			{
 				// Asset Localization sub-menu
 				MenuBuilder.AddSubMenu(
 					LOCTEXT("LocalizationSubMenuLabel", "Asset Localization"),
-					LOCTEXT("LocalizationSubMenuToolTip", "View or create localized variants of this asset"),
+					LOCTEXT("LocalizationSubMenuToolTip", "Manage the localization of this asset"),
 					FNewMenuDelegate::CreateSP(this, &FAssetContextMenu::MakeAssetLocalizationSubMenu),
 					FUIAction(),
 					NAME_None,
@@ -421,23 +403,41 @@ void FAssetContextMenu::MakeAssetActionsSubMenu(FMenuBuilder& MenuBuilder)
 	// MOVE ACTIONS
 	MenuBuilder.BeginSection("AssetContextMoveActions", LOCTEXT("AssetContextMoveActionsMenuHeading", "Move"));
 	{
-		// Export
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("Export", "Export..."),
-			LOCTEXT("ExportTooltip", "Export the selected assets to file."),
-			FSlateIcon(),
-			FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteExport ) )
-			);
-
-		// Bulk Export
-		if (SelectedAssets.Num() > 1)
+		bool bHasExportableAssets = false;
+		for (const FAssetData& AssetData : SelectedAssets)
 		{
+			const UObject* Object = AssetData.GetAsset();
+			if (Object)
+			{
+				const UPackage* Package = Object->GetOutermost();
+				if (!Package->HasAnyPackageFlags(EPackageFlags::PKG_DisallowExport))
+				{
+					bHasExportableAssets = true;
+					break;
+				}
+			}
+		}
+
+		if (bHasExportableAssets)
+		{
+			// Export
 			MenuBuilder.AddMenuEntry(
-				LOCTEXT("BulkExport", "Bulk Export..."),
-				LOCTEXT("BulkExportTooltip", "Export the selected assets to file in the selected directory"),
+				LOCTEXT("Export", "Export..."),
+				LOCTEXT("ExportTooltip", "Export the selected assets to file."),
 				FSlateIcon(),
-				FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteBulkExport ) )
+				FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteExport ) )
 				);
+
+			// Bulk Export
+			if (SelectedAssets.Num() > 1)
+			{
+				MenuBuilder.AddMenuEntry(
+					LOCTEXT("BulkExport", "Bulk Export..."),
+					LOCTEXT("BulkExportTooltip", "Export the selected assets to file in the selected directory"),
+					FSlateIcon(),
+					FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteBulkExport ) )
+					);
+			}
 		}
 
 		// Migrate
@@ -482,7 +482,7 @@ void FAssetContextMenu::MakeAssetActionsSubMenu(FMenuBuilder& MenuBuilder)
 		// Materials can't be bulk edited currently as they require very special handling because of their dependencies with the rendering thread, and we'd have to hack the property matrix too much.
 		for (auto& Asset : SelectedAssets)
 		{
-			if (Asset.AssetClass == UMaterial::StaticClass()->GetFName() || Asset.AssetClass == UMaterialInstanceConstant::StaticClass()->GetFName() || Asset.AssetClass == UMaterialFunction::StaticClass()->GetFName())
+			if (Asset.AssetClass == UMaterial::StaticClass()->GetFName() || Asset.AssetClass == UMaterialInstanceConstant::StaticClass()->GetFName() || Asset.AssetClass == UMaterialFunction::StaticClass()->GetFName() || Asset.AssetClass == UMaterialFunctionInstance::StaticClass()->GetFName())
 			{
 				bCanUsePropertyMatrix = false;
 				break;
@@ -531,6 +531,53 @@ void FAssetContextMenu::MakeAssetActionsSubMenu(FMenuBuilder& MenuBuilder)
 		}
 	}
 	MenuBuilder.EndSection();
+
+	if (GetDefault<UEditorExperimentalSettings>()->bTextAssetFormatSupport)
+	{
+		MenuBuilder.BeginSection("AssetContextTextAssetFormatActions", LOCTEXT("AssetContextTextAssetFormatActionsHeading", "Text Assets"));
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("ExportToTextFormat", "Export to text format"),
+				LOCTEXT("ExportToTextFormatTooltip", "Exports the selected asset(s) to the experimental text asset format"),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(this, &FAssetContextMenu::ExportSelectedAssetsToText))
+			);
+		}
+		MenuBuilder.EndSection();
+	}
+}
+
+void FAssetContextMenu::ExportSelectedAssetsToText()
+{
+	FString FailedPackage;
+	for (const FAssetData& Asset : SelectedAssets)
+	{
+		UPackage* Package = Asset.GetPackage();
+		FString Filename = FPackageName::LongPackageNameToFilename(Package->GetPathName(), FPackageName::GetTextAssetPackageExtension());
+		if (!SavePackageHelper(Package, Filename))
+		{
+			FailedPackage = Package->GetPathName();
+			break;
+		}
+	}
+
+	if (FailedPackage.Len() > 0)
+	{
+		FNotificationInfo Info(LOCTEXT("ExportedTextAssetFailed", "Exported selected asset(s) failed"));
+		Info.ExpireDuration = 3.0f;
+		FSlateNotificationManager::Get().AddNotification(Info);
+	}
+	else
+	{
+		FNotificationInfo Info(LOCTEXT("ExportedTextAssetsSuccessfully", "Exported selected asset(s) successfully"));
+		Info.ExpireDuration = 3.0f;
+		FSlateNotificationManager::Get().AddNotification(Info);
+	}
+}
+
+bool FAssetContextMenu::CanExportSelectedAssetsToText() const
+{
+	return true;
 }
 
 bool FAssetContextMenu::CanExecuteAssetActions() const
@@ -662,6 +709,35 @@ void FAssetContextMenu::MakeAssetLocalizationSubMenu(FMenuBuilder& MenuBuilder)
 			}
 		}
 	}
+
+#if USE_STABLE_LOCALIZATION_KEYS
+	// Add the Localization ID options
+	{
+		MenuBuilder.BeginSection(NAME_None, LOCTEXT("LocalizationIdHeading", "Localization ID"));
+		{
+			// Show the localization ID if we have a single asset selected
+			if (SelectedAssets.Num() == 1)
+			{
+				const FString LocalizationId = TextNamespaceUtil::GetPackageNamespace(SelectedAssets[0].GetAsset());
+				MenuBuilder.AddMenuEntry(
+					FText::Format(LOCTEXT("CopyLocalizationIdFmt", "ID: {0}"), LocalizationId.IsEmpty() ? LOCTEXT("EmptyLocalizationId", "None") : FText::FromString(LocalizationId)),
+					LOCTEXT("CopyLocalizationIdTooltip", "Copy the localization ID to the clipboard."),
+					FSlateIcon(),
+					FUIAction(FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteCopyTextToClipboard, LocalizationId))
+					);
+			}
+
+			// Always show the reset localization ID option
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("ResetLocalizationId", "Reset Localization ID"),
+				LOCTEXT("ResetLocalizationIdTooltip", "Reset the localization ID. Note: This will re-key all the text within this asset."),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteResetLocalizationId))
+				);
+		}
+		MenuBuilder.EndSection();
+	}
+#endif // USE_STABLE_LOCALIZATION_KEYS
 
 	// If we found source assets for localized assets, then we can show the Source Asset options
 	if (SourceAssetsState.CurrentAssets.Num() > 0)
@@ -859,24 +935,6 @@ bool FAssetContextMenu::AddReferenceMenuOptions(FMenuBuilder& MenuBuilder)
 			LOCTEXT("CopyReferenceTooltip", "Copies reference paths for the selected assets to the clipboard."),
 			FSlateIcon(),
 			FUIAction( FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteCopyReference ) )
-			);
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("ReferenceViewer", "Reference Viewer..."),
-			LOCTEXT("ReferenceViewerTooltip", "Shows a graph of references for this asset."),
-			FSlateIcon(),
-			FUIAction(
-				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteShowReferenceViewer )
-				)
-			);
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("SizeMap", "Size Map..."),
-			LOCTEXT("SizeMapTooltip", "Shows an interactive map of the approximate memory used by this asset and everything it references."),
-			FSlateIcon(),
-			FUIAction(
-				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteShowSizeMap )
-				)
 			);
 	}
 	MenuBuilder.EndSection();
@@ -1084,6 +1142,8 @@ bool FAssetContextMenu::AddSourceControlMenuOptions(FMenuBuilder& MenuBuilder)
 
 void FAssetContextMenu::FillSourceControlSubMenu(FMenuBuilder& MenuBuilder)
 {
+	MenuBuilder.BeginSection("AssetSourceControlActions", LOCTEXT("AssetSourceControlActionsMenuHeading", "Source Control"));
+
 	if( CanExecuteSCCMerge() )
 	{
 		MenuBuilder.AddMenuEntry(
@@ -1194,6 +1254,8 @@ void FAssetContextMenu::FillSourceControlSubMenu(FMenuBuilder& MenuBuilder)
 			)
 		);
 	}
+
+	MenuBuilder.EndSection();
 }
 
 bool FAssetContextMenu::CanExecuteSourceControlActions() const
@@ -1571,7 +1633,7 @@ struct WorldReferenceGenerator : public FFindReferencedAssets
 		}
 	}
 
-	void Generate( const UObject* AssetToFind, TArray< TWeakObjectPtr<UObject> >& OutObjects )
+	void Generate( const UObject* AssetToFind, TArray< TWeakObjectPtr<const UObject> >& OutObjects )
 	{
 		// Don't examine visited objects
 		if (!AssetToFind->HasAnyMarks(OBJECTMARK_TagExp))
@@ -1618,7 +1680,7 @@ void FAssetContextMenu::ExecuteFindAssetInWorld()
 
 		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 
-		TArray< TWeakObjectPtr<UObject> > OutObjects;
+		TArray< TWeakObjectPtr<const UObject> > OutObjects;
 		WorldReferenceGenerator ObjRefGenerator;
 
 		SlowTask.EnterProgressFrame();
@@ -1641,7 +1703,7 @@ void FAssetContextMenu::ExecuteFindAssetInWorld()
 			// Select referencing actors
 			for (int32 ActorIdx = 0; ActorIdx < OutObjects.Num(); ++ActorIdx)
 			{
-				GEditor->SelectActor(CastChecked<AActor>(OutObjects[ActorIdx].Get()), InSelected, Notify);
+				GEditor->SelectActor(const_cast<AActor*>(CastChecked<AActor>(OutObjects[ActorIdx].Get())), InSelected, Notify);
 			}
 
 			GEditor->NoteSelectionChange();
@@ -1967,34 +2029,6 @@ void FAssetContextMenu::ExecuteMigrateAsset()
 	AssetToolsModule.Get().MigratePackages( PackageNames );
 }
 
-void FAssetContextMenu::ExecuteShowReferenceViewer()
-{
-	TArray<FName> PackageNames;
-	for ( auto AssetIt = SelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt )
-	{
-		PackageNames.Add(AssetIt->PackageName);
-	}
-
-	if ( PackageNames.Num() > 0 )
-	{
-		IReferenceViewerModule::Get().InvokeReferenceViewerTab(PackageNames);
-	}
-}
-
-void FAssetContextMenu::ExecuteShowSizeMap()
-{
-	TArray<FName> PackageNames;
-	for ( auto AssetIt = SelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt )
-	{
-		PackageNames.Add(AssetIt->PackageName);
-	}
-
-	if ( PackageNames.Num() > 0 )
-	{
-		ISizeMapModule::Get().InvokeSizeMapTab(PackageNames);
-	}
-}
-
 void FAssetContextMenu::ExecuteGoToCodeForAsset(UClass* SelectedClass)
 {
 	if (SelectedClass)
@@ -2028,6 +2062,33 @@ void FAssetContextMenu::ExecuteGoToDocsForAsset(UClass* SelectedClass, const FSt
 void FAssetContextMenu::ExecuteCopyReference()
 {
 	ContentBrowserUtils::CopyAssetReferencesToClipboard(SelectedAssets);
+}
+
+void FAssetContextMenu::ExecuteCopyTextToClipboard(FString InText)
+{
+	FPlatformApplicationMisc::ClipboardCopy(*InText);
+}
+
+void FAssetContextMenu::ExecuteResetLocalizationId()
+{
+#if USE_STABLE_LOCALIZATION_KEYS
+	const FText ResetLocalizationIdMsg = LOCTEXT("ResetLocalizationIdMsg", "This will reset the localization ID of the selected assets and cause all text within them to lose their existing translations.\n\nAre you sure you want to do this?");
+	if (FMessageDialog::Open(EAppMsgType::YesNo, ResetLocalizationIdMsg) != EAppReturnType::Yes)
+	{
+		return;
+	}
+
+	for (const FAssetData& AssetData : SelectedAssets)
+	{
+		UObject* Asset = AssetData.GetAsset();
+		if (Asset)
+		{
+			Asset->Modify();
+			TextNamespaceUtil::ClearPackageNamespace(Asset);
+			TextNamespaceUtil::EnsurePackageNamespace(Asset);
+		}
+	}
+#endif // USE_STABLE_LOCALIZATION_KEYS
 }
 
 void FAssetContextMenu::ExecuteExport()
@@ -2589,6 +2650,10 @@ void FAssetContextMenu::CacheCanExecuteVars()
 				if ( SourceControlState->CanCheckIn() )
 				{
 					bCanExecuteSCCCheckIn = true;
+				}
+
+				if (SourceControlState->CanRevert())
+				{
 					bCanExecuteSCCRevert = true;
 				}
 			}

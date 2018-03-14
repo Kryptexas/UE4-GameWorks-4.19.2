@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AndroidJNI.h"
 #include "ExceptionHandling.h"
@@ -89,7 +89,7 @@ void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 	AndroidThunkJava_HasActiveWiFiConnection = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_HasActiveWiFiConnection", "()Z", bIsOptional);
 	AndroidThunkJava_GetAndroidId = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_GetAndroidId", "()Ljava/lang/String;", bIsOptional);
 
-	// this is optional - only inserted if GearVR plugin enabled
+	// this is optional - only inserted if Gear VR plugin enabled
 	AndroidThunkJava_IsGearVRApplication = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_IsGearVRApplication", "()Z", true);
 
 	// this is optional - only inserted if GCM plugin enabled
@@ -556,7 +556,7 @@ void AndroidThunkCpp_ShowHiddenAlertDialog()
 	}
 }
 
-// call out to JNI to see if the application was packaged for GearVR
+// call out to JNI to see if the application was packaged for Gear VR
 bool AndroidThunkCpp_IsGearVRApplication()
 {
 	static int32 IsGearVRApplication = -1;

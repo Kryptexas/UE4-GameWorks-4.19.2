@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -31,6 +31,8 @@ class UGameplayModMagnitudeCalculation;
 struct FActiveGameplayEffectsContainer;
 struct FGameplayEffectModCallbackData;
 struct FGameplayEffectSpec;
+struct FAggregatorEvaluateParameters;
+struct FAggregatorMod;
 
 /** Enumeration outlining the possible gameplay effect magnitude calculation policies. */
 UENUM()
@@ -295,6 +297,9 @@ public:
 
 	/** Returns the DataName associated with this magnitude if it is set by caller */
 	bool GetSetByCallerDataNameIfPossible(FName& OutDataName) const;
+
+	/** Returns SetByCaller data structure, for inspection purposes */
+	const FSetByCallerFloat& GetSetByCallerFloat() const { return SetByCallerMagnitude; }
 
 	/** Returns the custom magnitude calculation class, if any, for this magnitude. Only applies to CustomMagnitudes */
 	TSubclassOf<UGameplayModMagnitudeCalculation> GetCustomMagnitudeCalculationClass() const;
@@ -761,8 +766,8 @@ struct GAMEPLAYABILITIES_API FGameplayEffectAttributeCaptureSpec
 	 */
 	bool AttemptAddAggregatorModsToAggregator(OUT FAggregator& OutAggregatorToAddTo) const;
 	
-	/** Gathers made for a given capture. Note that these mods are unqualified and direct references (not copies). Only use this if you know what you are doing. */
-	bool AttemptGatherAttributeMods(OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutModMap) const;
+	/** Gathers made for a given capture. Note all mods are returned but only some will be qualified (use Qualified() func to determine) */
+	bool AttemptGatherAttributeMods(const FAggregatorEvaluateParameters& InEvalParams, OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutModMap) const;
 	
 	/** Simple accessor to backing capture definition */
 	const FGameplayEffectAttributeCaptureDefinition& GetBackingDefinition() const;
@@ -907,6 +912,12 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 
 	// Initialize the spec as a linked spec. The original spec's context is preserved except for the original GE asset tags, which are stripped out
 	void InitializeFromLinkedSpec(const UGameplayEffect* InDef, const FGameplayEffectSpec& OriginalSpec);
+
+	// Copies SetbyCallerMagnitudes from OriginalSpec into this
+	void CopySetByCallerMagnitudes(const FGameplayEffectSpec& OriginalSpec);
+
+	// Copies SetbuCallerMagnitudes, but only if magnitudes don't exist in our map (slower but preserves data)
+	void MergeSetByCallerMagnitudes(const TMap<FGameplayTag, float>& Magnitudes);
 
 	/**
 	 * Determines if the spec has capture specs with valid captures for all of the specified definitions.
@@ -1085,11 +1096,11 @@ public:
 	UPROPERTY()
 	TArray<FGameplayAbilitySpecDef> GrantedAbilitySpecs;
 
-private:
-
 	/** Map of set by caller magnitudes */
 	TMap<FName, float>			SetByCallerNameMagnitudes;
 	TMap<FGameplayTag, float>	SetByCallerTagMagnitudes;
+
+private:
 	
 	UPROPERTY()
 	FGameplayEffectContextHandle EffectContext; // This tells us how we got here (who / what applied us)
@@ -1218,6 +1229,9 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffect : public FFastArraySerializer
 	/** Refreshes the cached StartWorldTime for this effect. To be used when the server/client world time delta changes significantly to keep the start time in sync. */
 	void RecomputeStartWorldTime(const FActiveGameplayEffectsContainer& InArray);
 
+	/** Refreshes the cached StartWorldTime for this effect. To be used when the server/client world time delta changes significantly to keep the start time in sync. */
+	void RecomputeStartWorldTime(const float WorldTime, const float ServerWorldTime);
+
 	bool operator==(const FActiveGameplayEffect& Other)
 	{
 		return Handle == Other.Handle;
@@ -1258,18 +1272,13 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffect : public FFastArraySerializer
 	/** Last StackCount that the client had. Used to tell if the stackcount has changed in PostReplicatedChange */
 	int32 ClientCachedStackCount;
 
-	FOnActiveGameplayEffectRemoved OnRemovedDelegate;
-	FOnActiveGameplayEffectRemoved_Info OnRemoved_InfoDelegate;
-
-	FOnActiveGameplayEffectStackChange OnStackChangeDelegate;
-
-	FOnActiveGameplayEffectTimeChange OnTimeChangeDelegate;
-
 	FTimerHandle PeriodHandle;
-
 	FTimerHandle DurationHandle;
 
 	FActiveGameplayEffect* PendingNext;
+	
+	/** All the bindable events for this active effect (bundled to allow easier non-const access to these events via the ASC) */
+	FActiveGameplayEffectEvents EventSet;
 };
 
 DECLARE_DELEGATE_RetVal_OneParam(bool, FActiveGameplayEffectQueryCustomMatch, const FActiveGameplayEffect&);
@@ -1580,7 +1589,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms);
 
-	void Uninitialize();	
+	void Uninitialize();
 
 	// ------------------------------------------------
 
@@ -1594,8 +1603,8 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 
 	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FGameplayEffectQuery& Query) const;
 
-	float GetActiveEffectsEndTime(const FGameplayEffectQuery& Query) const;
-	bool GetActiveEffectsEndTimeAndDuration(const FGameplayEffectQuery& Query, float& EndTime, float& Duration) const;
+	float GetActiveEffectsEndTime(const FGameplayEffectQuery& Query, TArray<AActor*>& Instigators) const;
+	bool GetActiveEffectsEndTimeAndDuration(const FGameplayEffectQuery& Query, float& EndTime, float& Duration, TArray<AActor*>& Instigators) const;
 
 	/** Returns an array of all of the active gameplay effect handles */
 	TArray<FActiveGameplayEffectHandle> GetAllActiveEffectHandles() const;
@@ -1610,6 +1619,8 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	 * @return Count of the effects matching the specified query
 	 */
 	int32 GetActiveEffectCount(const FGameplayEffectQuery& Query, bool bEnforceOnGoingCheck = true) const;
+
+	bool IsServerWorldTimeAvailable() const;
 
 	float GetServerWorldTime() const;
 
@@ -1644,6 +1655,9 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	
 	FORCEINLINE ConstIterator CreateConstIterator() const { return ConstIterator(*this);	}
 	FORCEINLINE Iterator CreateIterator() { return Iterator(*this);	}
+
+	/** Recomputes the start time for all active abilities */
+	void RecomputeStartWorldTimes(const float WorldTime, const float ServerWorldTime);
 
 private:
 

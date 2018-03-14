@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ZeroLoad.h"
 #include "HAL/PlatformTime.h"
@@ -8,13 +8,19 @@
 DEFINE_LOG_CATEGORY_STATIC(LogZeroLoad, Log, All);
 
 FZeroLoad::FZeroLoad(double InTickRate)
-	:	TickRate(InTickRate)
+	: TickRate(InTickRate)
 {
+	TickTimeHistogram.InitHitchTracking();
+}
+
+FZeroLoad::FZeroLoad(double InTickRate, const TArray<double>& FrameTimeHistogramBucketsMs)
+	: TickRate(InTickRate)
+{
+	TickTimeHistogram.InitFromArray(FrameTimeHistogramBucketsMs);
 }
 
 bool FZeroLoad::Init()
 {
-	TickTimeHistogram.InitHitchTracking();
 	HitchMessagesToBeLogged.Empty();	// unguarded since nothing else should be accessing it at this point
 
 	return true;

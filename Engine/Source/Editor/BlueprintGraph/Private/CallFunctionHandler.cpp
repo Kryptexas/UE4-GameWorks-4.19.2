@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CallFunctionHandler.h"
 #include "UObject/MetaData.h"
@@ -109,7 +109,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 						
 							int32 LatentUUID = CompilerContext.MessageLog.CalculateStableIdentifierForLatentActionManager(LatentInfoPin->GetOwningNode());
 
-							const FString ExecutionFunctionName = CompilerContext.GetSchema()->FN_ExecuteUbergraphBase.ToString() + TEXT("_") + Context.Blueprint->GetName();
+							const FString ExecutionFunctionName = UEdGraphSchema_K2::FN_ExecuteUbergraphBase.ToString() + TEXT("_") + Context.Blueprint->GetName();
 							(*Term)->Name = FString::Printf(TEXT("(Linkage=%s,UUID=%s,ExecutionFunction=%s,CallbackTarget=None)"), *FString::FromInt(INDEX_NONE), *FString::FromInt(LatentUUID), *ExecutionFunctionName);
 
 							// Record the UUID in the debugging information
@@ -148,7 +148,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 			for (int32 i = 0; !bFoundParam && (i < RemainingPins.Num()); ++i)
 			{
 				UEdGraphPin* PinMatch = RemainingPins[i];
-				if (FCString::Stricmp(*Property->GetName(), *PinMatch->PinName) == 0)
+				if (Property->GetFName() == PinMatch->PinName)
 				{
 					// Found a corresponding pin, does it match in type and direction?
 					if (FKismetCompilerUtilities::IsTypeCompatibleWithProperty(PinMatch, Property, CompilerContext.MessageLog, CompilerContext.GetSchema(), Context.NewClass))
@@ -182,7 +182,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 
 											// Import the literal text to a dummy struct to verify it's well-formed
 											FImportTextErrorContext ErrorPipe(CompilerContext.MessageLog, Node);
-											StructProperty->ImportText(*((*Term)->Name), StructData, 0, NULL, &ErrorPipe);
+											StructProperty->ImportText(*((*Term)->Name), StructData, 0, nullptr, &ErrorPipe);
 											if(ErrorPipe.NumErrors > 0)
 											{
 												bMatchedAllParams = false;
@@ -211,7 +211,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 									ClassTerm->bIsLiteral = true;
 									ClassTerm->Source     = Node;
 									ClassTerm->ObjectLiteral = InterfaceClass;
-									ClassTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Class;
+									ClassTerm->Type.PinCategory = UEdGraphSchema_K2::PC_Class;
 
 									// insert a cast op before a call to the function (and replace
 									// the param with the result from the cast)
@@ -285,7 +285,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 		// At this point, we should have consumed all pins.  If not, there are extras that need to be removed.
 		for (int32 i = 0; i < RemainingPins.Num(); ++i)
 		{
-			CompilerContext.MessageLog.Error(*FText::Format(LOCTEXT("PinMismatchParameter_ErrorFmt", "Pin @@ named {0} doesn't match any parameters of function {1}"), FText::FromString(RemainingPins[i]->PinName), FText::FromString(Function->GetName())).ToString(), RemainingPins[i]);
+			CompilerContext.MessageLog.Error(*FText::Format(LOCTEXT("PinMismatchParameter_ErrorFmt", "Pin @@ named {0} doesn't match any parameters of function {1}"), FText::FromName(RemainingPins[i]->PinName), FText::FromString(Function->GetName())).ToString(), RemainingPins[i]);
 		}
 
 		if (NumErrorsAtStart == CompilerContext.MessageLog.NumErrors)
@@ -407,6 +407,15 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 				}
 
 				AdditionalCompiledStatementHandling(Context, Node, Statement);
+
+				if(Statement.Type == KCST_CallFunction && Function->HasAnyFunctionFlags(FUNC_Delegate))
+				{
+					CompilerContext.MessageLog.Error(*LOCTEXT("CallingDelegate_Error", "@@ is trying to call a delegate function - delegates cannot be called directly").ToString(), Node);
+					// Sanitize the statement, this would have ideally been detected earlier but we need
+					// to run AdditionalCompiledStatementHandling to satisify the DelegateNodeHandler
+					// implementation:
+					Statement.Type = KCST_CallDelegate;
+				}
 			}
 
 			// Create the exit from this node if there is one
@@ -475,14 +484,12 @@ UClass* FKCHandler_CallFunction::GetTrueCallingClass(FKismetFunctionContext& Con
 {
 	if (SelfPin)
 	{
-		UEdGraphSchema_K2 const* K2Schema = CompilerContext.GetSchema();
-
 		// TODO: here FBlueprintCompiledStatement::GetScopeFromPinType should be called, but since FEdGraphPinType::PinSubCategory is not always initialized properly that function works wrong
 		// return Cast<UClass>(Context.GetScopeFromPinType(SelfPin->PinType, Context.NewClass));
 		FEdGraphPinType& Type = SelfPin->PinType;
-		if ((Type.PinCategory == K2Schema->PC_Object) || (Type.PinCategory == K2Schema->PC_Class) || (Type.PinCategory == K2Schema->PC_Interface))
+		if ((Type.PinCategory == UEdGraphSchema_K2::PC_Object) || (Type.PinCategory == UEdGraphSchema_K2::PC_Class) || (Type.PinCategory == UEdGraphSchema_K2::PC_Interface))
 		{
-			if (!Type.PinSubCategory.IsEmpty() && (Type.PinSubCategory != K2Schema->PSC_Self))
+			if (!Type.PinSubCategory.IsNone() && (Type.PinSubCategory != UEdGraphSchema_K2::PSC_Self))
 			{
 				return Cast<UClass>(Type.PinSubCategoryObject.Get());
 			}
@@ -493,24 +500,23 @@ UClass* FKCHandler_CallFunction::GetTrueCallingClass(FKismetFunctionContext& Con
 
 void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node)
 {
-	UEdGraphSchema_K2 const* K2Schema = CompilerContext.GetSchema();
-
 	if (UFunction* Function = FindFunction(Context, Node))
 	{
-		TArray<FString> DefaultToSelfParamNames;
-		TArray<FString> RequiresSetValue;
+		TArray<FName> DefaultToSelfParamNames;
+		TArray<FName> RequiresSetValue;
 
 		if (Function->HasMetaData(FBlueprintMetadata::MD_DefaultToSelf))
 		{
-			const FString& DefaltToSelfPinName = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
+			const FName DefaltToSelfPinName = *Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
 
 			DefaultToSelfParamNames.Add(DefaltToSelfPinName);
 		}
 		if (Function->HasMetaData(FBlueprintMetadata::MD_WorldContext))
 		{
+			UEdGraphSchema_K2 const* K2Schema = CompilerContext.GetSchema();
 			const bool bHasIntrinsicWorldContext = !K2Schema->IsStaticFunctionGraph(Context.SourceGraph) && FBlueprintEditorUtils::ImplentsGetWorld(Context.Blueprint);
 
-			const FString& WorldContextPinName = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
+			const FName WorldContextPinName = *Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
 
 			if (bHasIntrinsicWorldContext)
 			{
@@ -532,10 +538,10 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 				if (DefaultToSelfParamNames.Contains(Pin->PinName) && FKismetCompilerUtilities::ValidateSelfCompatibility(Pin, Context))
 				{
 					ensure(Pin->PinType.PinSubCategoryObject != nullptr);
-					ensure((Pin->PinType.PinCategory == K2Schema->PC_Object) || (Pin->PinType.PinCategory == K2Schema->PC_Interface));
+					ensure((Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object) || (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Interface));
 
 					FBPTerminal* Term = Context.RegisterLiteral(Pin);
-					Term->Type.PinSubCategory = CompilerContext.GetSchema()->PN_Self;
+					Term->Type.PinSubCategory = UEdGraphSchema_K2::PN_Self;
 					Context.NetMap.Add(Pin, Term);
 				}
 				else if (RequiresSetValue.Contains(Pin->PinName))
@@ -556,8 +562,8 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 		// if we have an object plugged into an interface pin, let's create a 
 		// term that'll be used as an intermediate, holding the result of a cast 
 		// from object to interface
-		if (((Pin->PinType.PinCategory == K2Schema->PC_Interface) && (Pin->LinkedTo[0]->PinType.PinCategory == K2Schema->PC_Object)) ||
-			((Pin->PinType.PinCategory == K2Schema->PC_Object) && (Pin->LinkedTo[0]->PinType.PinCategory == K2Schema->PC_Interface)))
+		if (((Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Interface) && (Pin->LinkedTo[0]->PinType.PinCategory == UEdGraphSchema_K2::PC_Object)) ||
+			((Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object) && (Pin->LinkedTo[0]->PinType.PinCategory == UEdGraphSchema_K2::PC_Interface)))
 		{
 			FBPTerminal* InterfaceTerm = Context.CreateLocalTerminal();
 			InterfaceTerm->CopyFromPin(Pin, Context.NetNameMap->MakeValidName(Pin) + TEXT("_CastInput"));
@@ -594,7 +600,6 @@ UFunction* FKCHandler_CallFunction::FindFunction(FKismetFunctionContext& Context
 void FKCHandler_CallFunction::Transform(FKismetFunctionContext& Context, UEdGraphNode* Node)
 {
 	// Add an object reference pin for this call
-	//UEdGraphPin* OperatingOn = Node->CreatePin(EGPD_Input, Schema->PC_Object, TEXT(""), TEXT("OperatingContext"));
 
 	if (IsCalledFunctionPure(Node))
 	{
@@ -681,8 +686,8 @@ void FKCHandler_CallFunction::Compile(FKismetFunctionContext& Context, UEdGraphN
 	if (SelfPin && (SelfPin->LinkedTo.Num() == 0))
 	{
 		FEdGraphPinType SelfType;
-		SelfType.PinCategory = CompilerContext.GetSchema()->PC_Object;
-		SelfType.PinSubCategory = CompilerContext.GetSchema()->PSC_Self;
+		SelfType.PinCategory = UEdGraphSchema_K2::PC_Object;
+		SelfType.PinSubCategory = UEdGraphSchema_K2::PSC_Self;
 
 		if (!CompilerContext.GetSchema()->ArePinTypesCompatible(SelfType, SelfPin->PinType, Context.NewClass) && (SelfPin->DefaultObject == NULL))
 		{
@@ -699,7 +704,7 @@ void FKCHandler_CallFunction::CheckIfFunctionIsCallable(UFunction* Function, FKi
 	// Verify that the function is a Blueprint callable function (in case a BlueprintCallable specifier got removed)
 	if (!Function->HasAnyFunctionFlags(FUNC_BlueprintCallable) && (Function->GetOuter() != Context.NewClass))
 	{
-		if (!IsCalledFunctionFinal(Node) && Function->GetName().Find(CompilerContext.GetSchema()->FN_ExecuteUbergraphBase.ToString()))
+		if (!IsCalledFunctionFinal(Node) && Function->GetName().Find(UEdGraphSchema_K2::FN_ExecuteUbergraphBase.ToString()))
 		{
 			CompilerContext.MessageLog.Error(*FText::Format(NSLOCTEXT("KismetCompiler", "ShouldNotCallFromBlueprint_ErrorFmt", "Function '{0}' called from @@ should not be called from a Blueprint"), FText::FromString(Function->GetName())).ToString(), Node);
 		}

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Blueprint/WidgetBlueprintGeneratedClass.h"
 #include "Blueprint/WidgetNavigation.h"
@@ -167,7 +167,7 @@ void UWidgetBlueprintGeneratedClass::InitializeWidgetStatic(UUserWidget* UserWid
 	UE_LOG(LogUMG, Warning, TEXT("Widget Class %s - Slow Static Duplicate Object."), *InClass->GetName());
 #endif
 
-	UserWidget->WidgetGeneratedByClass = InClass;
+	UserWidget->WidgetGeneratedByClass = MakeWeakObjectPtr(const_cast<UClass*>(InClass));
 
 #if WITH_EDITOR
 	UserWidget->WidgetGeneratedBy = InClass->ClassGeneratedBy;
@@ -199,7 +199,7 @@ void UWidgetBlueprintGeneratedClass::InitializeWidgetStatic(UUserWidget* UserWid
 				return;
 			}
 
-			Widget->WidgetGeneratedByClass = InClass;
+			Widget->WidgetGeneratedByClass = MakeWeakObjectPtr(const_cast<UClass*>(InClass));
 
 #if WITH_EDITOR
 			Widget->WidgetGeneratedBy = InClass->ClassGeneratedBy;
@@ -220,7 +220,7 @@ void UWidgetBlueprintGeneratedClass::InitializeWidgetStatic(UUserWidget* UserWid
 			// Initialize Navigation Data
 			if (Widget->Navigation)
 			{
-				Widget->Navigation->ResolveExplictRules(ClonedTree);
+				Widget->Navigation->ResolveRules(UserWidget, ClonedTree);
 			}
 
 #if WITH_EDITOR

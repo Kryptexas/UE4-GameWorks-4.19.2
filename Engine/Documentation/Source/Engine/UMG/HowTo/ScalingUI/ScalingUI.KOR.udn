@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244089
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:다양한 디바이스용 스케일 UI
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -10,45 +10,7 @@ Related: Resources\SampleGames\UnrealMatch3
 Version: 4.10
 SkillLevel: Intermediate
 tags:UMG UI Designer
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UMG/HowTo/ScalingUI:title%](UIScaling.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UMG/HowTo/ScalingUI:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UMG/HowTo/ScalingUI:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UMG/HowTo/ScalingUI]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UMG/HowTo/ScalingUI:title%](UIScaling.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UMG/HowTo/ScalingUI:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UMG/HowTo/ScalingUI:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UMG/HowTo/ScalingUI]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:UIScaling.png
 
 [REGION:note]
 이 글은 [](Engine/UMG) 에 대한 일반적인 이해가 있는 분들을 대상으로 합니다.

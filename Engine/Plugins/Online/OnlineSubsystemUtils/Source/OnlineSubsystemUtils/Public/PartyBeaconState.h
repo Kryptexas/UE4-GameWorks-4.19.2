@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -160,6 +160,8 @@ namespace ETeamAssignmentMethod
 	extern ONLINESUBSYSTEMUTILS_API const FName BestFit;
 	/** Assign random team */
 	extern ONLINESUBSYSTEMUTILS_API const FName Random;
+	/** Manually assign the team */
+	extern ONLINESUBSYSTEMUTILS_API const FName Manual;
 }
 
 /** A single player reservation */

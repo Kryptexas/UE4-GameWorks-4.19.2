@@ -120,7 +120,8 @@ topic-image:Engine/Physics/physics_topic.png
 
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:lockpos]
 
 [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockTranslation" output:"block")]
@@ -163,4 +164,5 @@ topic-image:Engine/Physics/physics_topic.png
 | **None** | 无约束。|
 [/REGION]
 [/EXCERPT]
--->
+
+[/COMMENT]

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 
@@ -208,7 +208,9 @@ enum EPixelFormat
 	PF_XGXR8,
 	PF_R8G8B8A8_UINT,
 	/** SNORM (-1..1), corresponds to FFixedRGBASigned8. */
-	PF_R8G8B8A8_SNORM, 
+	PF_R8G8B8A8_SNORM,
+	PF_R16G16B16A16_UNORM,
+	PF_R16G16B16A16_SNORM,
 	PF_MAX,
 };
 

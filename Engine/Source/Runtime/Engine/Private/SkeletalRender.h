@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalRender.h: Definitions and inline code for rendering SkeletalMeshComponet
@@ -7,62 +7,38 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "SkeletalMeshTypes.h"
+#include "BoneIndices.h"
 
 class USkinnedMeshComponent;
+class FSkeletalMeshRenderData;
 
 // smallest blend weight for vertex anims
 extern const float MinMorphTargetBlendWeight;
 // largest blend weight for vertex anims
 extern const float MaxMorphTargetBlendWeight;
 
-/** 
-* Stores the data for updating instanced weights
-* Created by the game thread and sent to the rendering thread as an update 
-*/
-class FDynamicUpdateVertexInfluencesData
-{
-public:
-	/**
-	* Constructor
-	*/
-	FDynamicUpdateVertexInfluencesData(
-		int32 InLODIdx,
-		const TArray<FBoneIndexPair>& InBonePairs,
-		bool InbResetInfluences )
-		:	LODIdx(InLODIdx)
-		,	BonePairs(InBonePairs)
-		,	bResetInfluences(InbResetInfluences)
-	{
-	}
-
-	/** LOD this update is for */
-	int32 LODIdx;
-	/** set of bone pairs used to find vertices that need to have their weights updated */
-	TArray<FBoneIndexPair> BonePairs;
-	/** resets the array of instanced weights/bones using the ones from the base mesh defaults before udpating */
-	bool bResetInfluences;
-};
 
 /**
 * Utility function that fills in the array of ref-pose to local-space matrices using 
 * the mesh component's updated space bases
 * @param	ReferenceToLocal - matrices to update
 * @param	SkeletalMeshComponent - mesh primitive with updated bone matrices
-* @param	SkeletalMeshResource - resource for which to compute RefToLocal matrices
+* @param	InSkeletalMeshRenderData - resource for which to compute RefToLocal matrices
 * @param	LODIndex - each LOD has its own mapping of bones to update
 * @param	ExtraRequiredBoneIndices - any extra bones apart from those active in the LOD that we'd like to update
 */
-ENGINE_API void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinnedMeshComponent* InMeshComponent, const FSkeletalMeshResource* InSkeletalMeshResource, int32 LODIndex, const TArray<FBoneIndexType>* ExtraRequiredBoneIndices=NULL );
+ENGINE_API void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinnedMeshComponent* InMeshComponent, const FSkeletalMeshRenderData* InSkeletalMeshRenderData, int32 LODIndex, const TArray<FBoneIndexType>* ExtraRequiredBoneIndices=NULL );
 
 /**
- * Utility function that calculates the local-space origin and bone direction vectors for the
- * current pose for any TRISORT_CustomLeftRight sections.
- * @param	OutCustomLeftRightVectors - origin and direction vectors to update
- * @param	SkeletalMeshComponent - mesh primitive with updated bone matrices
- * @param	LODIndex - current LOD
- */
-void UpdateCustomLeftRightVectors( TArray<FTwoVectors>& OutCustomLeftRightVectors, const USkinnedMeshComponent* InMeshComponent, const FSkeletalMeshResource* InSkeletalMeshResource, int32 LODIndex );
+* Utility function that fills in the array of ref-pose to local-space matrices using 
+* the mesh component's updated previous space bases
+* @param	ReferenceToLocal - matrices to update
+* @param	SkeletalMeshComponent - mesh primitive with updated bone matrices
+* @param	InSkeletalMeshRenderData - resource for which to compute RefToLocal matrices
+* @param	LODIndex - each LOD has its own mapping of bones to update
+* @param	ExtraRequiredBoneIndices - any extra bones apart from those active in the LOD that we'd like to update
+*/
+ENGINE_API void UpdatePreviousRefToLocalMatrices(TArray<FMatrix>& ReferenceToLocal, const USkinnedMeshComponent* InMeshComponent, const FSkeletalMeshRenderData* InSkeletalMeshRenderData, int32 LODIndex, const TArray<FBoneIndexType>* ExtraRequiredBoneIndices = NULL);
 
 extern ENGINE_API const VectorRegister		VECTOR_PACK_127_5;
 extern ENGINE_API const VectorRegister		VECTOR4_PACK_127_5;

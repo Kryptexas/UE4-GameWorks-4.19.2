@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnParticleEmitterInstances.h: 
@@ -616,27 +616,9 @@ public:
 		OutMax = 0;
 	}
 	
-	/**
-	 * Returns the size of the object/ resource for display to artists/ LDs in the Editor.
-	 *
-	 * @param	Mode	Specifies which resource size should be displayed. ( see EResourceSizeMode::Type )
-	 * @return  Size of resource as to be displayed to artists/ LDs in the Editor.
-	 */
-	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode)
-	{
-		return GetResourceSizeBytes(Mode);
-	}
-
+	/** Returns resource size, similar to UObject function */
 	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 	{
-	}
-
-	SIZE_T GetResourceSizeBytes(EResourceSizeMode::Type Mode)
-	{
-		FResourceSizeEx ResSize = FResourceSizeEx(Mode);
-		GetResourceSizeEx(ResSize);
-		return ResSize.GetTotalMemoryBytes();
 	}
 
 	/**
@@ -737,7 +719,7 @@ public:
 	Ticks the emitter's material overrides.
 	@return True if there were material overrides. Otherwise revert to default behaviour.
 	*/
-	virtual bool Tick_MaterialOverrides();
+	virtual void Tick_MaterialOverrides(int32 EmitterIndex);
 
 	/**
 	* True if this emitter emits in local space
@@ -908,7 +890,7 @@ struct ENGINE_API FParticleMeshEmitterInstance : public FParticleEmitterInstance
 	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel) override;
 	virtual bool IsDynamicDataRequired(UParticleLODLevel* CurrentLODLevel) override;
 
-	virtual bool Tick_MaterialOverrides() override;
+	virtual void Tick_MaterialOverrides(int32 EmitterIndex) override;
 
 	/**
 	 *	Retrieves replay data for the emitter

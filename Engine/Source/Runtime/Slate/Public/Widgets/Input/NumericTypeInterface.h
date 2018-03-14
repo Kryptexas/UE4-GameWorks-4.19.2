@@ -1,11 +1,14 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Algo/Find.h"
+#include "Templates/IsIntegral.h"
 #include "Templates/ValueOrError.h"
 #include "Misc/ExpressionParserTypes.h"
 #include "Math/BasicMathExpressionEvaluator.h"
+#include "Internationalization/FastDecimalFormat.h"
 
 enum class EUnit : uint8;
 
@@ -30,7 +33,11 @@ struct TDefaultNumericTypeInterface : INumericTypeInterface<NumericType>
 	/** Convert the type to/from a string */
 	virtual FString ToString(const NumericType& Value) const override
 	{
-		return Lex::ToSanitizedString(Value);
+		static const FNumberFormattingOptions NumberFormattingOptions = FNumberFormattingOptions()
+			.SetUseGrouping(false)
+			.SetMinimumFractionalDigits(TIsIntegral<NumericType>::Value ? 0 : 1)
+			.SetMaximumFractionalDigits(TIsIntegral<NumericType>::Value ? 0 : 6);
+		return FastDecimalFormat::NumberToString(Value, ExpressionParser::GetLocalizedNumberFormattingRules(), NumberFormattingOptions);
 	}
 	virtual TOptional<NumericType> FromString(const FString& InString, const NumericType& InExistingValue) override
 	{
@@ -48,9 +55,16 @@ struct TDefaultNumericTypeInterface : INumericTypeInterface<NumericType>
 	/** Check whether the typed character is valid */
 	virtual bool IsCharacterValid(TCHAR InChar) const override
 	{
-		static FString ValidChars(TEXT("1234567890()-+=\\/.,*^%%"));
-		int32 OutUnused;
-		return ValidChars.FindChar(InChar, OutUnused);
+		auto IsValidLocalizedCharacter = [InChar]() -> bool
+		{
+			const FDecimalNumberFormattingRules& NumberFormattingRules = ExpressionParser::GetLocalizedNumberFormattingRules();
+			return InChar == NumberFormattingRules.GroupingSeparatorCharacter
+				|| InChar == NumberFormattingRules.DecimalSeparatorCharacter
+				|| Algo::Find(NumberFormattingRules.DigitCharacters, InChar) != 0;
+		};
+
+		static const FString ValidChars = TEXT("1234567890()-+=\\/.,*^%%");
+		return InChar != 0 && (ValidChars.GetCharArray().Contains(InChar) || IsValidLocalizedCharacter());
 	}
 };
 
@@ -65,7 +79,7 @@ template<typename> struct FNumericUnit;
 template<typename NumericType>
 struct TNumericUnitTypeInterface : TDefaultNumericTypeInterface<NumericType>
 {
-	/** The underlying units which the numeric type are specfied in. */
+	/** The underlying units which the numeric type are specified in. */
 	const EUnit UnderlyingUnits;
 
 	/** Optional units that this type interface will be fixed on */
@@ -85,8 +99,4 @@ struct TNumericUnitTypeInterface : TDefaultNumericTypeInterface<NumericType>
 
 	/** Set up this interface to use a fixed display unit based on the specified value */
 	void SetupFixedDisplay(const NumericType& InValue);
-
-private:
-	/** Called when the global unit settings have changed, if this type interface is using the default input units */
-	void OnGlobalUnitSettingChanged();
 };

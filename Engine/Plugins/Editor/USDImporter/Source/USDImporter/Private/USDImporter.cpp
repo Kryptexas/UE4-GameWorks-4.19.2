@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "USDImporter.h"
 #include "ScopedSlowTask.h"
@@ -20,6 +20,7 @@
 #include "SlateApplication.h"
 #include "FileManager.h"
 #include "USDImporterProjectSettings.h"
+#include "USDPrimResolverKind.h"
 
 
 
@@ -139,29 +140,13 @@ private:
 };
 
 
-
-const FUsdGeomData* FUsdPrimToImport::GetGeomData(int32 LODIndex, double Time) const
-{
-	if (NumLODs == 0)
-	{
-		return Prim->GetGeometryData(Time);
-	}
-	else
-	{
-		IUsdPrim* Child = Prim->GetLODChild(LODIndex);
-		return Child->GetGeometryData(Time);
-	}
-}
-
 UUSDImporter::UUSDImporter(const FObjectInitializer& Initializer)
 	: Super(Initializer)
 {
 }
 
-UObject* UUSDImporter::ImportMeshes(FUsdImportContext& ImportContext, const TArray<FUsdPrimToImport>& PrimsToImport)
+TArray<UObject*> UUSDImporter::ImportMeshes(FUsdImportContext& ImportContext, const TArray<FUsdAssetPrimToImport>& PrimsToImport)
 {
-	IUsdPrim* RootPrim = ImportContext.RootPrim;
-
 	FScopedSlowTask SlowTask(1.0f, LOCTEXT("ImportingUSDMeshes", "Importing USD Meshes"));
 	SlowTask.Visibility = ESlowTaskVisibility::ForceVisible;
 	int32 MeshCount = 0;
@@ -177,7 +162,7 @@ UObject* UUSDImporter::ImportMeshes(FUsdImportContext& ImportContext, const TArr
 
 	const FString& ContentDirectoryLocation = ImportContext.ImportPathName;
 
-	for (const FUsdPrimToImport& PrimToImport : PrimsToImport)
+	for (const FUsdAssetPrimToImport& PrimToImport : PrimsToImport)
 	{
 		FString FinalPackagePathName = ContentDirectoryLocation;
 		SlowTask.EnterProgressFrame(1.0f / PrimsToImport.Num(), FText::Format(LOCTEXT("ImportingUSDMesh", "Importing Mesh {0} of {1}"), MeshCount + 1, PrimsToImport.Num()));
@@ -187,17 +172,25 @@ UObject* UUSDImporter::ImportMeshes(FUsdImportContext& ImportContext, const TArr
 		bool bShouldImport = false;
 
 		// when importing only one mesh we just use the existing package and name created
-		if (PrimsToImport.Num() > 1 || ImportContext.ImportOptions->bGenerateUniquePathPerUSDPrim)
 		{
-			FString RawPrimName = USDToUnreal::ConvertString(PrimToImport.Prim->GetPrimName());
-			FString MeshName = RawPrimName;
+
+			const FString RawPrimName = USDToUnreal::ConvertString(PrimToImport.Prim->GetPrimName());
+			FString MeshName = ObjectTools::SanitizeObjectName(RawPrimName);
 
 			if (ImportContext.ImportOptions->bGenerateUniquePathPerUSDPrim)
 			{
 				FString USDPath = USDToUnreal::ConvertString(PrimToImport.Prim->GetPrimPath());
 				USDPath.RemoveFromStart(TEXT("/"));
 				USDPath.RemoveFromEnd(RawPrimName);
-				FinalPackagePathName /= USDPath;
+				FinalPackagePathName /= (USDPath / MeshName);
+			}
+			else if (FPackageName::IsValidObjectPath(PrimToImport.AssetPath))
+			{
+				FinalPackagePathName = PrimToImport.AssetPath;
+			}
+			else if (!PrimToImport.AssetPath.IsEmpty())
+			{
+				FinalPackagePathName /= PrimToImport.AssetPath;
 			}
 			else
 			{
@@ -213,11 +206,12 @@ UObject* UUSDImporter::ImportMeshes(FUsdImportContext& ImportContext, const TArr
 				{
 					ExistingNamesToCount.Add(MeshName, 1);
 				}
+
+				FinalPackagePathName / MeshName;
 			}
 
-			MeshName = ObjectTools::SanitizeObjectName(MeshName);
 
-			NewPackageName = PackageTools::SanitizePackageName(FinalPackagePathName / MeshName);
+			NewPackageName = PackageTools::SanitizePackageName(FinalPackagePathName);
 		
 			// Once we've already imported it we dont need to import it again
 			if(!ImportContext.PathToImportAssetMap.Contains(NewPackageName))
@@ -227,15 +221,15 @@ UObject* UUSDImporter::ImportMeshes(FUsdImportContext& ImportContext, const TArr
 				Package->FullyLoad();
 
 				ImportContext.Parent = Package;
-				ImportContext.ObjectName = MeshName;
+				ImportContext.ObjectName = FPackageName::GetShortName(FinalPackagePathName);
 
 				bShouldImport = true;
 			}
+			else
+			{
+				ImportContext.AddErrorMessage(EMessageSeverity::Warning, FText::Format(LOCTEXT("DuplicateMeshFound", "The mesh path '{0}' was found more than once.  Duplicates will be ignored"), FText::FromString(NewPackageName)));
+			}
 
-		}
-		else
-		{
-			bShouldImport = true;
 		}
 
 		if(bShouldImport)
@@ -253,11 +247,13 @@ UObject* UUSDImporter::ImportMeshes(FUsdImportContext& ImportContext, const TArr
 		}
 	}
 
-	// Return the first one on success.  
-	return ImportContext.PathToImportAssetMap.Num() ? ImportContext.PathToImportAssetMap.CreateIterator().Value() : nullptr;
+	TArray<UObject*> ImportedAssets;
+	ImportContext.PathToImportAssetMap.GenerateValueArray(ImportedAssets);
+
+	return ImportedAssets;
 }
 
-UObject* UUSDImporter::ImportSingleMesh(FUsdImportContext& ImportContext, EUsdMeshImportType ImportType, const FUsdPrimToImport& PrimToImport)
+UObject* UUSDImporter::ImportSingleMesh(FUsdImportContext& ImportContext, EUsdMeshImportType ImportType, const FUsdAssetPrimToImport& PrimToImport)
 {
 	UObject* NewMesh = nullptr;
 
@@ -329,7 +325,7 @@ void FUsdImportContext::Init(UObject* InParent, const FString& InName, IUsdStage
 	TSubclassOf<UUSDPrimResolver> ResolverClass = GetDefault<UUSDImporterProjectSettings>()->CustomPrimResolver;
 	if (!ResolverClass)
 	{
-		ResolverClass = UUSDPrimResolver::StaticClass();
+		ResolverClass = UUSDPrimResolverKind::StaticClass();
 	}
 
 	PrimResolver = NewObject<UUSDPrimResolver>(GetTransientPackage(), ResolverClass);

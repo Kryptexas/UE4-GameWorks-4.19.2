@@ -12,11 +12,15 @@ topic-image:Modding/RoboRecall/RoboRecall_Topic.png
 social-image:Modding/RoboRecall/RoboRecall_Social.png
 checkpoint:mod_extend
 
-<!-- Location: Modding/RoboRecall/Quickstarts/WeaponMod/3 -->
+[COMMENT:none]
+ Location: Modding/RoboRecall/Quickstarts/WeaponMod/3 
+[/COMMENT]
 
 [NAV]
 
-<!-- Title Image if Needed Here -->
+[COMMENT:none]
+ Title Image if Needed Here 
+[/COMMENT]
 
 自定义手枪需要了解新的溶解材质，以便对其加以利用。可将此材质指定到自定义手枪强制使用。
 

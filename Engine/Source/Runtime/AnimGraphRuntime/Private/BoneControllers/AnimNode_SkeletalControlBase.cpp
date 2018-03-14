@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BoneControllers/AnimNode_SkeletalControlBase.h"
 #include "Animation/AnimInstanceProxy.h"
@@ -65,9 +65,14 @@ void FAnimNode_SkeletalControlBase::UpdateInternal(const FAnimationUpdateContext
 {
 }
 
-void FAnimNode_SkeletalControlBase::Update_AnyThread(const FAnimationUpdateContext& Context)
+void FAnimNode_SkeletalControlBase::UpdateComponentPose_AnyThread(const FAnimationUpdateContext& Context)
 {
 	ComponentPose.Update(Context);
+}
+
+void FAnimNode_SkeletalControlBase::Update_AnyThread(const FAnimationUpdateContext& Context)
+{
+	UpdateComponentPose_AnyThread(Context);
 
 	ActualAlpha = 0.f;
 	if (IsLODEnabled(Context.AnimInstanceProxy, LODThreshold))
@@ -96,37 +101,42 @@ bool ContainsNaN(const TArray<FBoneTransform> & BoneTransforms)
 	return false;
 }
 
+void FAnimNode_SkeletalControlBase::EvaluateComponentPose_AnyThread(FComponentSpacePoseContext& Output)
+{
+	// Evaluate the input
+	ComponentPose.EvaluateComponentSpace(Output);
+}
+
 void FAnimNode_SkeletalControlBase::EvaluateComponentSpaceInternal(FComponentSpacePoseContext& Context)
 {
 }
 
 void FAnimNode_SkeletalControlBase::EvaluateComponentSpace_AnyThread(FComponentSpacePoseContext& Output)
 {
-	// Evaluate the input
-	ComponentPose.EvaluateComponentSpace(Output);
+	EvaluateComponentPose_AnyThread(Output);
 
 #if WITH_EDITORONLY_DATA
 	// save current pose before applying skeletal control to compute the exact gizmo location in AnimGraphNode
 	ForwardedPose.CopyPose(Output.Pose);
 #endif // #if WITH_EDITORONLY_DATA
+	// this is to ensure Source data does not contain NaN
+	ensure(Output.ContainsNaN() == false);
 
 	// Apply the skeletal control if it's valid
 	if (FAnimWeight::IsRelevant(ActualAlpha) && IsValidToEvaluate(Output.AnimInstanceProxy->GetSkeleton(), Output.AnimInstanceProxy->GetRequiredBones()))
 	{
 		EvaluateComponentSpaceInternal(Output);
 
-		USkeletalMeshComponent* Component = Output.AnimInstanceProxy->GetSkelMeshComponent();
-
 		BoneTransforms.Reset(BoneTransforms.Num());
 		EvaluateSkeletalControl_AnyThread(Output, BoneTransforms);
-
-		checkSlow(!ContainsNaN(BoneTransforms));
 
 		if (BoneTransforms.Num() > 0)
 		{
 			const float BlendWeight = FMath::Clamp<float>(ActualAlpha, 0.f, 1.f);
 			Output.Pose.LocalBlendCSBoneTransforms(BoneTransforms, BlendWeight);
 		}
+
+		// we check NaN when you get out of this function in void FComponentSpacePoseLink::EvaluateComponentSpace(FComponentSpacePoseContext& Output)
 	}
 }
 

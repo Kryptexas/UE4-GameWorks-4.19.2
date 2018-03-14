@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_Message.h"
 #include "Engine/LevelScriptActor.h"
@@ -62,9 +62,9 @@ void UK2Node_Message::AllocateDefaultPins()
 	if (MessageNodeFunction && MessageNodeFunction->HasAnyFunctionFlags(FUNC_BlueprintPure))
 	{
 		// Input - Execution Pin
-		CreatePin(EGPD_Input,  UEdGraphSchema_K2::PC_Exec, FString(), nullptr, UEdGraphSchema_K2::PN_Execute);
+		CreatePin(EGPD_Input,  UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Execute);
 		// Output - Execution Pin
-		CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, FString(), nullptr, UEdGraphSchema_K2::PN_Then);
+		CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Then);
 	}
 
 	Super::AllocateDefaultPins();
@@ -72,8 +72,7 @@ void UK2Node_Message::AllocateDefaultPins()
 
 UEdGraphPin* UK2Node_Message::CreateSelfPin(const UFunction* Function)
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	UEdGraphPin* SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, FString(), UObject::StaticClass(), K2Schema->PN_Self);
+	UEdGraphPin* SelfPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, UObject::StaticClass(), UEdGraphSchema_K2::PN_Self);
 	SelfPin->bDefaultValueIsIgnored = true;
 	return SelfPin;
 }
@@ -161,7 +160,7 @@ void UK2Node_Message::ExpandNode(class FKismetCompilerContext& CompilerContext, 
 		// Make sure our interface is valid
 		if (FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode()) == NULL)
 		{
-			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("MessageNodeInvalid_Error", "Message node @@ has an invalid interface.").ToString()), this);
+			CompilerContext.MessageLog.Error(*LOCTEXT("MessageNodeInvalid_Error", "Message node @@ has an invalid interface.").ToString(), this);
 			return;
 		}
 
@@ -174,7 +173,7 @@ void UK2Node_Message::ExpandNode(class FKismetCompilerContext& CompilerContext, 
 
 		if (MessageNodeFunction == NULL)
 		{
-			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("MessageNodeInvalidFunction_Error", "Unable to find function with name %s for Message node @@.").ToString(), *(FunctionReference.GetMemberName().ToString())), this);
+			CompilerContext.MessageLog.Error(*FText::Format(LOCTEXT("MessageNodeInvalidFunction_ErrorFmt", "Unable to find function with name {0} for Message node @@."), FText::FromString(FunctionReference.GetMemberName().ToString())).ToString(), this);
 			return;
 		}
 
@@ -182,7 +181,7 @@ void UK2Node_Message::ExpandNode(class FKismetCompilerContext& CompilerContext, 
 		UEdGraphPin* MessageSelfPin = Schema->FindSelfPin(*this, EGPD_Input);
 		if( !MessageSelfPin || MessageSelfPin->LinkedTo.Num() == 0 )
 		{
-			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("MessageNodeSelfPin_Error", "Message node @@ must have a valid target or reference to self.").ToString()), this);
+			CompilerContext.MessageLog.Error(*LOCTEXT("MessageNodeSelfPin_Error", "Message node @@ must have a valid target or reference to self.").ToString(), this);
 			return;
 		}
 
@@ -256,7 +255,7 @@ void UK2Node_Message::ExpandNode(class FKismetCompilerContext& CompilerContext, 
 		for( int32 i = 0; i < Pins.Num(); i++ )
 		{
 			UEdGraphPin* CurrentPin = Pins[i];
-			if( CurrentPin && (CurrentPin->PinType.PinCategory != Schema->PC_Exec) && (CurrentPin->PinName != Schema->PN_Self) )
+			if( CurrentPin && (CurrentPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Exec) && (CurrentPin->PinName != UEdGraphSchema_K2::PN_Self) )
 			{
 				// Try to find a match for the pin on the function call node
 				UEdGraphPin* FunctionCallPin = FunctionCallNode->FindPin(CurrentPin->PinName);

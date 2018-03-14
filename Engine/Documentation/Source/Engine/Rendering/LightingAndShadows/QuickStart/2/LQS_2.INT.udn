@@ -22,7 +22,7 @@ SkillLevel: Beginner
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 With our basic apartment setup created in the previous step, we will now add the overall level lighting. 
 
@@ -108,6 +108,6 @@ Let's **Build** the game so that we get a better representation of what our ligh
 
 With our atmospheric lighting set up, in the **Next Step** we'll add some lights inside our apartment to light up the dark areas. 
 	
-%Steps%
+
 
 

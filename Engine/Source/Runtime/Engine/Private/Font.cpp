@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Font.cpp: Unreal font code.
@@ -358,55 +358,32 @@ void UFont::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
 	Super::GetResourceSizeEx(CumulativeResourceSize);
 
-	switch(FontCacheType)
+	// Nested Textures/FontFaces get included with the general subobject inclusion for EstimatedTotal
+	// We do need to handle nested lazy load data
+
+	if (FontCacheType == EFontCacheType::Runtime && CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::EstimatedTotal)
 	{
-	case EFontCacheType::Offline:
+		auto GetTypefaceResourceSize = [&CumulativeResourceSize](const FTypeface& Typeface)
 		{
-			for (UTexture2D* Texture : Textures)
+			for (const FTypefaceEntry& TypefaceEntry : Typeface.Fonts)
 			{
-				if (Texture)
+				const UFontFace* FontFace = Cast<const UFontFace>(TypefaceEntry.Font.GetFontFaceAsset());
+				if (!FontFace && TypefaceEntry.Font.GetLoadingPolicy() == EFontLoadingPolicy::LazyLoad)
 				{
-					Texture->GetResourceSizeEx(CumulativeResourceSize);
-				}
-			}
-		}
-		break;
-
-	case EFontCacheType::Runtime:
-		{
-			auto GetTypefaceResourceSize = [&CumulativeResourceSize](const FTypeface& Typeface)
-			{
-				for (const FTypefaceEntry& TypefaceEntry : Typeface.Fonts)
-				{
-					const UFontFace* FontFace = Cast<const UFontFace>(TypefaceEntry.Font.GetFontFaceAsset());
-					if (FontFace)
+					const int64 FileSize = IFileManager::Get().FileSize(*TypefaceEntry.Font.GetFontFilename());
+					if (FileSize > 0)
 					{
-						const_cast<UFontFace*>(FontFace)->GetResourceSizeEx(CumulativeResourceSize);
-					}
-					else if (TypefaceEntry.Font.GetLoadingPolicy() == EFontLoadingPolicy::LazyLoad)
-					{
-						const int64 FileSize = IFileManager::Get().FileSize(*TypefaceEntry.Font.GetFontFilename());
-						if (FileSize > 0)
-						{
-							CumulativeResourceSize.AddDedicatedSystemMemoryBytes(FileSize);
-						}
+						CumulativeResourceSize.AddDedicatedSystemMemoryBytes(FileSize);
 					}
 				}
-			};
-
-			if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive)
-			{
-				// Sum the contained font data sizes
-				GetTypefaceResourceSize(CompositeFont.DefaultTypeface);
-				for (const FCompositeSubFont& SubTypeface : CompositeFont.SubTypefaces)
-				{
-					GetTypefaceResourceSize(SubTypeface.Typeface);
-				}
 			}
-		}
-		break;
+		};
 
-	default:
-		break;
+		// Sum the contained font data sizes
+		GetTypefaceResourceSize(CompositeFont.DefaultTypeface);
+		for (const FCompositeSubFont& SubTypeface : CompositeFont.SubTypefaces)
+		{
+			GetTypefaceResourceSize(SubTypeface.Typeface);
+		}
 	}
 }

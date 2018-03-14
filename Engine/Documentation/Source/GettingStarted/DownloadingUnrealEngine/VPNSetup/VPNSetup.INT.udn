@@ -75,7 +75,7 @@ Be sure to disconnect from any existing VPN sessions you have open!
 	* China - [](https://chinavpn.epicgames.com)
 	* Europe - [](https://eurovpn.epicgames.com)
 
-	![vpn_webpage_login.jpg](vpn_webpage_login.jpg)(w:800 h:427)
+	![vpn_webpage_login.jpg](vpn_webpage_login.jpg)(w:800)
 
 	[REGION:note]
 	You may receive a certificate warning if you use one of the old host names.  Please use vpn.epicgames.com to avoid this warning.
@@ -83,31 +83,31 @@ Be sure to disconnect from any existing VPN sessions you have open!
 
 1. **Double-Click** on the bottom of the window where it says Internet or Internet zone and then click on "Trusted" and click Add and add this site to your trusted zones.
 
-	![vpn_ie_trusted.jpg](vpn_ie_trusted.jpg)(w:423 h:541)
+	![vpn_ie_trusted.jpg](vpn_ie_trusted.jpg)(w:423)
 
 1. Login with your existing VPN account info.
 
-	![vpn_login_details.jpg](vpn_login_details.jpg)(w:350 h:175)
+	![vpn_login_details.jpg](vpn_login_details.jpg)(w:350)
 
 1. The installation process should begin automatically.
 
 	If using Internet Explorer, the ActiveX control will need to be installed. Follow the instructions to allow it to be installed.
 
-	![vpn_webpage_activex.jpg](vpn_webpage_activex.jpg)(w:500 h:373)
+	![vpn_webpage_activex.jpg](vpn_webpage_activex.jpg)(w:500)
 
 1. The wizard will continue through the process once the ActiveX control is installed. Java is used to complete the installation and must be installed as well.
 
-	![vpn_webpage_setup.jpg](vpn_webpage_setup.jpg)(w:500 h:373)
+	![vpn_webpage_setup.jpg](vpn_webpage_setup.jpg)(w:500)
 
 1. The installer will be downloaded.
 
-	![vpn_webpage_download.jpg](vpn_webpage_download.jpg)(w:425 h:160)
+	![vpn_webpage_download.jpg](vpn_webpage_download.jpg)(w:425)
 
 	**Note:** If using Vista or Windows 7, you will be prompted to allow the installation.
 
 1. Once the installation is complete, it should auto-connect; and an icon will appear in your Task Tray.
 
-	![vpn_webpage_connected.jpg](vpn_webpage_connected.jpg)(w:500 h:373)
+	![vpn_webpage_connected.jpg](vpn_webpage_connected.jpg)(w:500)
 
 	
 [/EXCERPT:Browser]
@@ -159,7 +159,7 @@ Connecting to the VPN with AnyConnect is a straightforward process.
 [EXCERPT:AnyConnect]
 1. Run the AnyConnect VPN Client.
 
-	![vpn_anyconnect.jpg](vpn_anyconnect.jpg)(w:333 h:465)
+	![vpn_anyconnect.jpg](vpn_anyconnect.jpg)(w:333)
 
 1. Enter the _vpn.epicgames.com_ url into the **Connect to:** field:
 
@@ -167,7 +167,7 @@ Connecting to the VPN with AnyConnect is a straightforward process.
 
 1. Press the **Enter** key to display the authentication fields:
 
-	![vpn_anyconnect_login.jpg](vpn_anyconnect_login.jpg)(w:333 h:465)
+	![vpn_anyconnect_login.jpg](vpn_anyconnect_login.jpg)(w:333)
 
 1. Enter your VPN connection information (username and password) into the fields:
 

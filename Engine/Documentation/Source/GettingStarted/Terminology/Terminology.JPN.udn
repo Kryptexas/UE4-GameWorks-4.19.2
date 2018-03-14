@@ -59,7 +59,8 @@ version:4.9
 |![](playerstate_topic.png)(w:300 h:140)|[INCLUDE:GettingStarted\Terminology#playerstate]|
 
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:projects]
 **プロジェクト**
 
@@ -184,4 +185,5 @@ version:4.9
 詳細は、以下をご覧ください。[](Gameplay/Framework/QuickReference)
 [/EXCERPT:playerstate]
 
---->	
+-
+[/COMMENT]	

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalRenderGPUSkin.h: GPU skinned mesh object and resource definitions
@@ -10,12 +10,14 @@
 #include "ProfilingDebugging/ResourceSize.h"
 #include "RenderResource.h"
 #include "ShaderParameters.h"
-#include "SkeletalMeshTypes.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "GlobalShader.h"
+#include "GPUSkinCache.h"
 #include "GPUSkinVertexFactory.h"
 #include "SkeletalRenderPublic.h"
 #include "ClothingSystemRuntimeTypes.h"
+#include "SkeletalMeshRenderData.h"
+#include "SkeletalMeshLODRenderData.h"
 
 class FGPUSkinCache;
 
@@ -54,17 +56,18 @@ public:
 	*/
 	void InitDynamicSkelMeshObjectDataGPUSkin(
 		USkinnedMeshComponent* InMeshComponent,
-		FSkeletalMeshResource* InSkeletalMeshResource,
+		FSkeletalMeshRenderData* InSkeletalMeshRenderData,
 		int32 InLODIndex,
 		const TArray<FActiveMorphTarget>& InActiveMorphTargets,
-		const TArray<float>& InMorphTargetWeights
+		const TArray<float>& InMorphTargetWeights, 
+		bool bUpdatePreviousBoneTransform
 		);
 
 	/** ref pose to local space transforms */
 	TArray<FMatrix> ReferenceToLocal;
 
-	/** origin and direction vectors for TRISORT_CustomLeftRight sections */
-	TArray<FTwoVectors> CustomLeftRightVectors;
+	/** Previous ref pose to local space transform */
+	TArray<FMatrix> PreviousReferenceToLocal;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) 
 	/** component space bone transforms*/
@@ -77,11 +80,16 @@ public:
 	TArray<FActiveMorphTarget> ActiveMorphTargets;
 	/** All morph target weights on this mesh */
 	TArray<float> MorphTargetWeights;
+	/** All section ID impacted by active morph target on this mesh */
+	TArray<int32> SectionIdsUseByActiveMorphTargets;
 	/** number of active morph targets with weights > 0 */
 	int32 NumWeightedActiveMorphTargets;
 
 	/** data for updating cloth section */
 	TMap<int32, FClothSimulData> ClothingSimData;
+
+    /** store transform of the cloth object **/
+    FMatrix ClothObjectLocalToWorld;
 
 	/** a weight factor to blend between simulated positions and skinned positions */	
 	float ClothBlendWeight;
@@ -94,28 +102,13 @@ public:
 	*/
 	bool ActiveMorphTargetsEqual(const TArray<FActiveMorphTarget>& CompareActiveMorphTargets, const TArray<float>& CompareMorphTargetWeights);
 	
-	/**
-	* Returns the size of memory allocated by render data
-	*/
-	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-	SIZE_T GetResourceSize()
-	{
-		return GetResourceSizeBytes();
-	}
-
+	/** Returns the size of memory allocated by render data */
 	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 	{
 		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(*this));
 		
 		CumulativeResourceSize.AddUnknownMemoryBytes(ReferenceToLocal.GetAllocatedSize());
 		CumulativeResourceSize.AddUnknownMemoryBytes(ActiveMorphTargets.GetAllocatedSize());
-	}
-
-	SIZE_T GetResourceSizeBytes()
-	{
-		FResourceSizeEx ResSize;
-		GetResourceSizeEx(ResSize);
-		return ResSize.GetTotalMemoryBytes();
 	}
 
 	/** Update Simulated Positions & Normals from APEX Clothing actor */
@@ -148,17 +141,17 @@ public:
 
 	/** 
 	* Constructor
-	* @param	InSkelMesh - parent mesh containing the static model data for each LOD
-	* @param	InLODIdx - index of LOD model to use from the parent mesh
+	* @param	InSkelMeshRenderData	- render data containing the data for each LOD
+	* @param	InLODIdx				- index of LOD model to use from the parent mesh
 	*/
-	FMorphVertexBuffer(FSkeletalMeshResource* InSkelMeshResource, int32 InLODIdx)
+	FMorphVertexBuffer(FSkeletalMeshRenderData* InSkelMeshRenderData, int32 InLODIdx)
 		:	bHasBeenUpdated(false)	
 		,	bNeedsInitialClear(true)
 		,	LODIdx(InLODIdx)
-		,	SkelMeshResource(InSkelMeshResource)
+		,	SkelMeshRenderData(InSkelMeshRenderData)
 	{
-		check(SkelMeshResource);
-		check(SkelMeshResource->LODModels.IsValidIndex(LODIdx));
+		check(SkelMeshRenderData);
+		check(SkelMeshRenderData->LODRenderData.IsValidIndex(LODIdx));
 		bUsesComputeShader = false;
 	}
 	/** 
@@ -194,10 +187,10 @@ public:
 		if (VertexBufferRHI)
 		{
 			// LOD of the skel mesh is used to find number of vertices in buffer
-			FStaticLODModel& LodModel = SkelMeshResource->LODModels[LODIdx];
+			FSkeletalMeshLODRenderData& LodData = SkelMeshRenderData->LODRenderData[LODIdx];
 
 			// Create the buffer rendering resource
-			ResourceSize += LodModel.NumVertices * sizeof(FMorphGPUSkinVertex);
+			ResourceSize += LodData.GetNumVertices() * sizeof(FMorphGPUSkinVertex);
 		}
 
 		return ResourceSize;
@@ -213,10 +206,10 @@ public:
 		if (VertexBufferRHI)
 		{
 			// LOD of the skel mesh is used to find number of vertices in buffer
-			FStaticLODModel& LodModel = SkelMeshResource->LODModels[LODIdx];
+			FSkeletalMeshLODRenderData& LodData = SkelMeshRenderData->LODRenderData[LODIdx];
 
 			// Create the buffer rendering resource
-			ResourceSize += LodModel.NumVertices * sizeof(FMorphGPUSkinVertex);
+			ResourceSize += LodData.GetNumVertices() * sizeof(FMorphGPUSkinVertex);
 		}
 
 		return ResourceSize;
@@ -240,8 +233,10 @@ public:
 		return UAVValue;
 	}
 
-	FStaticLODModel* GetStaticLODModel() const { return &SkelMeshResource->LODModels[LODIdx]; }
-
+	FSkeletalMeshLODRenderData* GetLODRenderData() const { return &SkelMeshRenderData->LODRenderData[LODIdx]; }
+	
+	// section ids that are using this Morph buffer
+	TArray<int32> SectionIds;
 protected:
 	// guaranteed only to be valid if the vertex buffer is valid
 	FShaderResourceViewRHIRef SRVValue;
@@ -255,7 +250,7 @@ private:
 	/** index to the SkelMeshResource.LODModels */
 	int32	LODIdx;
 	// parent mesh containing the source data, never 0
-	FSkeletalMeshResource* SkelMeshResource;
+	FSkeletalMeshRenderData* SkelMeshRenderData;
 };
 
 /**
@@ -265,15 +260,14 @@ class FSkeletalMeshObjectGPUSkin : public FSkeletalMeshObject
 {
 public:
 	/** @param	InSkeletalMeshComponent - skeletal mesh primitive we want to render */
-	FSkeletalMeshObjectGPUSkin(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource, ERHIFeatureLevel::Type InFeatureLevel);
+	FSkeletalMeshObjectGPUSkin(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshRenderData* InSkelMeshRenderData, ERHIFeatureLevel::Type InFeatureLevel);
 	virtual ~FSkeletalMeshObjectGPUSkin();
 
 	//~ Begin FSkeletalMeshObject Interface
 	virtual void InitResources(USkinnedMeshComponent* InMeshComponent) override;
 	virtual void ReleaseResources() override;
-	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights) override;
-	void UpdateDynamicData_RenderThread(FGPUSkinCache* GPUSkinCache, FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataGPUSkin* InDynamicData, FSceneInterface* Scene, uint32 FrameNumberToPrepare);
-	virtual void UpdateRecomputeTangent(int32 MaterialIndex, int32 LODIndex, bool bRecomputeTangent) override;
+	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights, bool bUpdatePreviousBoneTransform) override;
+	void UpdateDynamicData_RenderThread(FGPUSkinCache* GPUSkinCache, FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataGPUSkin* InDynamicData, FSceneInterface* Scene, uint32 FrameNumberToPrepare, uint32 RevisionNumber);
 	virtual void PreGDMECallback(FGPUSkinCache* GPUSkinCache, uint32 FrameNumber) override;
 	virtual const FVertexFactory* GetSkinVertexFactory(const FSceneView* View, int32 LODIndex,int32 ChunkIdx) const override;
 	virtual void CacheVertices(int32 LODIndex, bool bForce) const override {}
@@ -293,7 +287,6 @@ public:
 		}
 	}
 
-	virtual const FTwoVectors& GetCustomLeftRightVectors(int32 SectionIndex) const override;
 	virtual bool HaveValidDynamicData() override
 	{ 
 		return ( DynamicData!=NULL ); 
@@ -323,22 +316,14 @@ public:
 	/** 
 	 * Vertex buffers that can be used for GPU skinning factories 
 	 */
-	class FVertexFactoryBuffers
+	struct FVertexFactoryBuffers
 	{
-	public:
-		FVertexFactoryBuffers()
-			: VertexBufferGPUSkin(NULL)
-			, SkinWeightVertexBuffer(NULL)
-			, ColorVertexBuffer(NULL)
-			, MorphVertexBuffer(NULL)
-			, APEXClothVertexBuffer(NULL)
-		{}
-
-		FSkeletalMeshVertexBuffer* VertexBufferGPUSkin;
-		FSkinWeightVertexBuffer* SkinWeightVertexBuffer;
-		FColorVertexBuffer*	ColorVertexBuffer;
-		FMorphVertexBuffer* MorphVertexBuffer;
-		FSkeletalMeshVertexClothBuffer*	APEXClothVertexBuffer;
+		FStaticMeshVertexBuffers* StaticVertexBuffers = nullptr;
+		FSkinWeightVertexBuffer* SkinWeightVertexBuffer = nullptr;
+		FColorVertexBuffer*	ColorVertexBuffer = nullptr;
+		FMorphVertexBuffer* MorphVertexBuffer = nullptr;
+		FSkeletalMeshVertexClothBuffer*	APEXClothVertexBuffer = nullptr;
+		uint32 NumVertices = 0;
 	};
 
 private:
@@ -369,7 +354,7 @@ private:
 		 * @param VertexBuffers - available vertex buffers to reference in vertex factory streams
 		 * @param Sections - relevant section information (either original or from swapped influence)
 		 */
-		void InitVertexFactories(const FVertexFactoryBuffers& VertexBuffers, const TArray<FSkelMeshSection>& Sections, ERHIFeatureLevel::Type FeatureLevel);
+		void InitVertexFactories(const FVertexFactoryBuffers& VertexBuffers, const TArray<FSkelMeshRenderSection>& Sections, ERHIFeatureLevel::Type FeatureLevel);
 		/** 
 		 * Release default vertex factory resources for this LOD 
 		 */
@@ -380,7 +365,7 @@ private:
 		 * @param VertexBuffers - available vertex buffers to reference in vertex factory streams
 		 * @param Sections - relevant section information (either original or from swapped influence)
 		 */
-		void InitMorphVertexFactories(const FVertexFactoryBuffers& VertexBuffers, const TArray<FSkelMeshSection>& Sections, bool bInUsePerBoneMotionBlur, ERHIFeatureLevel::Type InFeatureLevel);
+		void InitMorphVertexFactories(const FVertexFactoryBuffers& VertexBuffers, const TArray<FSkelMeshRenderSection>& Sections, bool bInUsePerBoneMotionBlur, ERHIFeatureLevel::Type InFeatureLevel);
 		/** 
 		 * Release morph vertex factory resources for this LOD 
 		 */
@@ -391,7 +376,7 @@ private:
 		 * @param VertexBuffers - available vertex buffers to reference in vertex factory streams
 		 * @param Sections - relevant section information (either original or from swapped influence)
 		 */
-		void InitAPEXClothVertexFactories(const FVertexFactoryBuffers& VertexBuffers, const TArray<FSkelMeshSection>& Sections, ERHIFeatureLevel::Type InFeatureLevel);
+		void InitAPEXClothVertexFactories(const FVertexFactoryBuffers& VertexBuffers, const TArray<FSkelMeshRenderSection>& Sections, ERHIFeatureLevel::Type InFeatureLevel);
 		/** 
 		 * Release morph vertex factory resources for this LOD 
 		 */
@@ -430,10 +415,10 @@ private:
 	/** vertex data for rendering a single LOD */
 	struct FSkeletalMeshObjectLOD
 	{
-		FSkeletalMeshObjectLOD(FSkeletalMeshResource* InSkelMeshResource,int32 InLOD)
-		:	SkelMeshResource(InSkelMeshResource)
+		FSkeletalMeshObjectLOD(FSkeletalMeshRenderData* InSkelMeshRenderData,int32 InLOD)
+		:	SkelMeshRenderData(InSkelMeshRenderData)
 		,	LODIndex(InLOD)
-		,	MorphVertexBuffer(InSkelMeshResource,LODIndex)
+		,	MorphVertexBuffer(InSkelMeshRenderData,LODIndex)
 		,	MeshObjectWeightBuffer(nullptr)
 		,	MeshObjectColorBuffer(nullptr)
 		{
@@ -466,27 +451,14 @@ private:
 		/**
 		 * @return memory in bytes of size of the resources for this LOD
 		 */
-		DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-		SIZE_T GetResourceSize()
-		{
-			return GetResourceSizeBytes();
-		}
-
 		void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 		{
 			CumulativeResourceSize.AddUnknownMemoryBytes(MorphVertexBuffer.GetResourceSize());
 			CumulativeResourceSize.AddUnknownMemoryBytes(GPUSkinVertexFactories.GetResourceSize());
 		}
 
-		SIZE_T GetResourceSizeBytes()
-		{
-			FResourceSizeEx ResSize;
-			GetResourceSizeEx(ResSize);
-			return ResSize.GetTotalMemoryBytes();
-		}
-
-		FSkeletalMeshResource* SkelMeshResource;
-		// index into FSkeletalMeshResource::LODModels[]
+		FSkeletalMeshRenderData* SkelMeshRenderData;
+		// index into FSkeletalMeshRenderData::LODRenderData[]
 		int32 LODIndex;
 
 		/** Vertex buffer that stores the morph target vertex deltas. Updated on the CPU */
@@ -508,14 +480,14 @@ private:
 		 * @param MorphTargetWeights - All Morph weights
 		 */
 		void UpdateMorphVertexBufferCPU(const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights);
-		void UpdateMorphVertexBufferGPU(FRHICommandListImmediate& RHICmdList, const TArray<float>& MorphTargetWeights, const FMorphTargetVertexInfoBuffers& MorphTargetVertexInfoBuffers);
+		void UpdateMorphVertexBufferGPU(FRHICommandListImmediate& RHICmdList, const TArray<float>& MorphTargetWeights, const FMorphTargetVertexInfoBuffers& MorphTargetVertexInfoBuffers, const TArray<int32>& SectionIdsUseByActiveMorphTargets);
 
 		/**
 		 * Determine the current vertex buffers valid for this LOD
 		 *
 		 * @param OutVertexBuffers output vertex buffers
 		 */
-		void GetVertexBuffers(FVertexFactoryBuffers& OutVertexBuffers,FStaticLODModel& LODModel);
+		void GetVertexBuffers(FVertexFactoryBuffers& OutVertexBuffers, FSkeletalMeshLODRenderData& LODData);
 
 		// Temporary arrays used on UpdateMorphVertexBuffer(); these grow to the max and are not thread safe.
 		static TArray<float> MorphAccumulatedWeightArray;
@@ -531,7 +503,7 @@ private:
 	*/
 	void ReleaseMorphResources();
 
-	void ProcessUpdatedDynamicData(FGPUSkinCache* GPUSkinCache, FRHICommandListImmediate& RHICmdList, uint32 FrameNumberToPrepare, bool bMorphNeedsUpdate);
+	void ProcessUpdatedDynamicData(FGPUSkinCache* GPUSkinCache, FRHICommandListImmediate& RHICmdList, uint32 FrameNumberToPrepare, uint32 RevisionNumber, bool bMorphNeedsUpdate);
 
 	void WaitForRHIThreadFenceForDynamicData();
 
@@ -552,6 +524,9 @@ private:
 
 	/** true if the morph resources have been initialized */
 	bool bMorphResourcesInitialized;
+
+	/** last updated bone transform revision number */
+	uint32 LastBoneTransformRevisionNumber;
 };
 
 
@@ -568,7 +543,8 @@ public:
 		MorphVertexBufferParameter.Bind(Initializer.ParameterMap, TEXT("MorphVertexBuffer"));
 
 		MorphTargetWeightParameter.Bind(Initializer.ParameterMap, TEXT("MorphTargetWeight"));
-		OffsetAndSizeParameter.Bind(Initializer.ParameterMap, TEXT("OffsetAndSize"));
+		ThreadOffsetsParameter.Bind(Initializer.ParameterMap, TEXT("ThreadOffsets"));
+		GlobalDispatchOffsetParameter.Bind(Initializer.ParameterMap, TEXT("GlobalDispatchOffset"));
 		PositionScaleParameter.Bind(Initializer.ParameterMap, TEXT("PositionScale"));
 
 		VertexIndicesParameter.Bind(Initializer.ParameterMap, TEXT("VertexIndicies"));
@@ -582,7 +558,8 @@ public:
 		Ar << MorphVertexBufferParameter;
 
 		Ar << MorphTargetWeightParameter;
-		Ar << OffsetAndSizeParameter;
+		Ar << ThreadOffsetsParameter;
+		Ar << GlobalDispatchOffsetParameter;
 		Ar << PositionScaleParameter;
 
 		Ar << VertexIndicesParameter;
@@ -591,14 +568,14 @@ public:
 	}
 
 	void SetParameters(FRHICommandList& RHICmdList, const FVector4& LocalScale, const FMorphTargetVertexInfoBuffers& MorphTargetVertexInfoBuffers, FMorphVertexBuffer& MorphVertexBuffer);
-	void SetOffsetAndSize(FRHICommandList& RHICmdList, uint32 Offset, uint32 Size, float Weight);
+	void SetOffsetAndSize(FRHICommandList& RHICmdList, uint32 StartIndex, const FMorphTargetVertexInfoBuffers& MorphTargetVertexInfoBuffers, const TArray<float>& MorphTargetWeights);
 
 	void Dispatch(FRHICommandList& RHICmdList, uint32 Size);
 	void EndAllDispatches(FRHICommandList& RHICmdList);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
 protected:
@@ -606,6 +583,8 @@ protected:
 
 	FShaderParameter MorphTargetWeightParameter;
 	FShaderParameter OffsetAndSizeParameter;
+	FShaderParameter ThreadOffsetsParameter;
+	FShaderParameter GlobalDispatchOffsetParameter;
 	FShaderParameter PositionScaleParameter;
 
 	FShaderResourceParameter VertexIndicesParameter;
@@ -623,9 +602,11 @@ public:
 		: FGlobalShader(Initializer)
 	{
 		MorphVertexBufferParameter.Bind(Initializer.ParameterMap, TEXT("MorphVertexBuffer"));
+		MorphPermutationBufferParameter.Bind(Initializer.ParameterMap, TEXT("MorphPermutations"));
 
 		MorphTargetWeightParameter.Bind(Initializer.ParameterMap, TEXT("MorphTargetWeight"));
-		MorphWorkItemsParameter.Bind(Initializer.ParameterMap, TEXT("MorphWorkItems"));
+		ThreadOffsetsParameter.Bind(Initializer.ParameterMap, TEXT("ThreadOffsets"));
+		GlobalDispatchOffsetParameter.Bind(Initializer.ParameterMap, TEXT("GlobalDispatchOffset"));
 		PositionScaleParameter.Bind(Initializer.ParameterMap, TEXT("PositionScale"));
 	}
 
@@ -634,27 +615,33 @@ public:
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << MorphVertexBufferParameter;
+		Ar << MorphPermutationBufferParameter;
 
 		Ar << MorphTargetWeightParameter;
-		Ar << MorphWorkItemsParameter;
+		Ar << ThreadOffsetsParameter;
+		Ar << GlobalDispatchOffsetParameter;
 		Ar << PositionScaleParameter;
 
 		return bShaderHasOutdatedParameters;
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, uint32 NumVerticies, const FVector4& LocalScale, const float AccumulatedWeight, FMorphVertexBuffer& MorphVertexBuffer);
+	void SetParameters(FRHICommandList& RHICmdList, const FVector4& LocalScale, const FMorphTargetVertexInfoBuffers& MorphTargetVertexInfoBuffers, FMorphVertexBuffer& MorphVertexBuffer);
+	void SetOffsetAndSize(FRHICommandList& RHICmdList, uint32 StartIndex, const FMorphTargetVertexInfoBuffers& MorphTargetVertexInfoBuffers, const TArray<float>& InverseAccumulatedWeights);
 
-	void Dispatch(FRHICommandList& RHICmdList, uint32 NumVerticies, const FVector4& LocalScale, const float AccumulatedWeight, FMorphVertexBuffer& MorphVertexBuffer);
+	void Dispatch(FRHICommandList& RHICmdList, uint32 NumVerticies);
+	void EndAllDispatches(FRHICommandList& RHICmdList);
 
 protected:
 	FShaderResourceParameter MorphVertexBufferParameter;
+	FShaderResourceParameter MorphPermutationBufferParameter;
 
 	FShaderParameter MorphTargetWeightParameter;
-	FShaderParameter MorphWorkItemsParameter;
+	FShaderParameter ThreadOffsetsParameter;
+	FShaderParameter GlobalDispatchOffsetParameter;
 	FShaderParameter PositionScaleParameter;
 };

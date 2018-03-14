@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanDevice.cpp: Vulkan device RHI implementation.
@@ -10,6 +10,7 @@
 #include "VulkanContext.h"
 #include "Misc/Paths.h"
 #include "HAL/FileManager.h"
+#include "VulkanPlatform.h"
 
 TAutoConsoleVariable<int32> GRHIAllowAsyncComputeCvar(
 	TEXT("r.Vulkan.AllowAsyncCompute"),
@@ -379,6 +380,12 @@ void FVulkanDevice::SetupFormats()
 	MapFormatSupport(PF_R32G32B32A32_UINT, VK_FORMAT_R32G32B32A32_UINT);
 	SetComponentMapping(PF_R32G32B32A32_UINT, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
 
+	MapFormatSupport(PF_R16G16B16A16_SNORM, VK_FORMAT_R16G16B16A16_SNORM);
+	SetComponentMapping(PF_R16G16B16A16_SNORM, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+
+	MapFormatSupport(PF_R16G16B16A16_UNORM, VK_FORMAT_R16G16B16A16_UNORM);
+	SetComponentMapping(PF_R16G16B16A16_UNORM, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+
 	MapFormatSupport(PF_R8G8, VK_FORMAT_R8G8_UNORM);
 	SetComponentMapping(PF_R8G8, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ZERO);
 
@@ -388,77 +395,81 @@ void FVulkanDevice::SetupFormats()
 	MapFormatSupport(PF_R32_FLOAT, VK_FORMAT_R32_SFLOAT);
 	SetComponentMapping(PF_R32_FLOAT, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ZERO);
 
-#if PLATFORM_DESKTOP
-	MapFormatSupport(PF_DXT1, VK_FORMAT_BC1_RGB_UNORM_BLOCK);	// Also what OpenGL expects (RGBA instead RGB, but not SRGB)
-	SetComponentMapping(PF_DXT1, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_ONE);
-
-	MapFormatSupport(PF_DXT3, VK_FORMAT_BC2_UNORM_BLOCK);
-	SetComponentMapping(PF_DXT3, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
-
-	MapFormatSupport(PF_DXT5, VK_FORMAT_BC3_UNORM_BLOCK);
-	SetComponentMapping(PF_DXT5, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
-
-	MapFormatSupport(PF_BC4, VK_FORMAT_BC4_UNORM_BLOCK);
-	SetComponentMapping(PF_BC4, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
-
-	MapFormatSupport(PF_BC5, VK_FORMAT_BC5_UNORM_BLOCK);
-	SetComponentMapping(PF_BC5, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
-
-	MapFormatSupport(PF_BC6H, VK_FORMAT_BC6H_UFLOAT_BLOCK);
-	SetComponentMapping(PF_BC6H, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
-
-	MapFormatSupport(PF_BC7, VK_FORMAT_BC7_UNORM_BLOCK);
-	SetComponentMapping(PF_BC7, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
-#elif PLATFORM_ANDROID
-	MapFormatSupport(PF_ASTC_4x4, VK_FORMAT_ASTC_4x4_UNORM_BLOCK);
-	if (GPixelFormats[PF_ASTC_4x4].Supported)
+	if (FVulkanPlatform::SupportsBCTextureFormats())
 	{
-		SetComponentMapping(PF_ASTC_4x4, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+		MapFormatSupport(PF_DXT1, VK_FORMAT_BC1_RGB_UNORM_BLOCK);	// Also what OpenGL expects (RGBA instead RGB, but not SRGB)
+		SetComponentMapping(PF_DXT1, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_ONE);
+
+		MapFormatSupport(PF_DXT3, VK_FORMAT_BC2_UNORM_BLOCK);
+		SetComponentMapping(PF_DXT3, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+
+		MapFormatSupport(PF_DXT5, VK_FORMAT_BC3_UNORM_BLOCK);
+		SetComponentMapping(PF_DXT5, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+
+		MapFormatSupport(PF_BC4, VK_FORMAT_BC4_UNORM_BLOCK);
+		SetComponentMapping(PF_BC4, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+
+		MapFormatSupport(PF_BC5, VK_FORMAT_BC5_UNORM_BLOCK);
+		SetComponentMapping(PF_BC5, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+
+		MapFormatSupport(PF_BC6H, VK_FORMAT_BC6H_UFLOAT_BLOCK);
+		SetComponentMapping(PF_BC6H, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+
+		MapFormatSupport(PF_BC7, VK_FORMAT_BC7_UNORM_BLOCK);
+		SetComponentMapping(PF_BC7, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
 	}
 
-	MapFormatSupport(PF_ASTC_6x6, VK_FORMAT_ASTC_6x6_UNORM_BLOCK);
-	if (GPixelFormats[PF_ASTC_6x6].Supported)
+	if (FVulkanPlatform::SupportsASTCTextureFormats())
 	{
-		SetComponentMapping(PF_ASTC_6x6, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
-	}
+		MapFormatSupport(PF_ASTC_4x4, VK_FORMAT_ASTC_4x4_UNORM_BLOCK);
+		if (GPixelFormats[PF_ASTC_4x4].Supported)
+		{
+			SetComponentMapping(PF_ASTC_4x4, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+		}
 
-	MapFormatSupport(PF_ASTC_8x8, VK_FORMAT_ASTC_8x8_UNORM_BLOCK);
-	if (GPixelFormats[PF_ASTC_8x8].Supported)
-	{
-		SetComponentMapping(PF_ASTC_8x8, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
-	}
+		MapFormatSupport(PF_ASTC_6x6, VK_FORMAT_ASTC_6x6_UNORM_BLOCK);
+		if (GPixelFormats[PF_ASTC_6x6].Supported)
+		{
+			SetComponentMapping(PF_ASTC_6x6, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+		}
 
-	MapFormatSupport(PF_ASTC_10x10, VK_FORMAT_ASTC_10x10_UNORM_BLOCK);
-	if (GPixelFormats[PF_ASTC_10x10].Supported)
-	{
-		SetComponentMapping(PF_ASTC_10x10, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
-	}
+		MapFormatSupport(PF_ASTC_8x8, VK_FORMAT_ASTC_8x8_UNORM_BLOCK);
+		if (GPixelFormats[PF_ASTC_8x8].Supported)
+		{
+			SetComponentMapping(PF_ASTC_8x8, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+		}
 
-	MapFormatSupport(PF_ASTC_12x12, VK_FORMAT_ASTC_12x12_UNORM_BLOCK);
-	if (GPixelFormats[PF_ASTC_12x12].Supported)
-	{
-		SetComponentMapping(PF_ASTC_12x12, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
-	}
+		MapFormatSupport(PF_ASTC_10x10, VK_FORMAT_ASTC_10x10_UNORM_BLOCK);
+		if (GPixelFormats[PF_ASTC_10x10].Supported)
+		{
+			SetComponentMapping(PF_ASTC_10x10, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+		}
 
-	// ETC1 is a subset of ETC2 R8G8B8.
-	MapFormatSupport(PF_ETC1, VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK);
-	if (GPixelFormats[PF_ETC1].Supported)
-	{
-		SetComponentMapping(PF_ETC1, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_ONE);
-	}
-	
-	MapFormatSupport(PF_ETC2_RGB, VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK);
-	if (GPixelFormats[PF_ETC2_RGB].Supported)
-	{
-		SetComponentMapping(PF_ETC2_RGB, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_ONE);
-	}
+		MapFormatSupport(PF_ASTC_12x12, VK_FORMAT_ASTC_12x12_UNORM_BLOCK);
+		if (GPixelFormats[PF_ASTC_12x12].Supported)
+		{
+			SetComponentMapping(PF_ASTC_12x12, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+		}
 
-	MapFormatSupport(PF_ETC2_RGBA, VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK);
-	if (GPixelFormats[PF_ETC2_RGB].Supported)
-	{
-		SetComponentMapping(PF_ETC2_RGBA, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+		// ETC1 is a subset of ETC2 R8G8B8.
+		MapFormatSupport(PF_ETC1, VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK);
+		if (GPixelFormats[PF_ETC1].Supported)
+		{
+			SetComponentMapping(PF_ETC1, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_ONE);
+		}
+
+		MapFormatSupport(PF_ETC2_RGB, VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK);
+		if (GPixelFormats[PF_ETC2_RGB].Supported)
+		{
+			SetComponentMapping(PF_ETC2_RGB, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_ONE);
+		}
+
+		MapFormatSupport(PF_ETC2_RGBA, VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK);
+		if (GPixelFormats[PF_ETC2_RGB].Supported)
+		{
+			SetComponentMapping(PF_ETC2_RGBA, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+		}
 	}
-#endif
 }
 
 void FVulkanDevice::MapFormatSupport(EPixelFormat UEFormat, VkFormat VulkanFormat)
@@ -574,6 +585,10 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 
 	StagingManager.Init(this);
 
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	DescriptorPoolsManager = new FVulkanDescriptorPoolsManager();
+	DescriptorPoolsManager->Init(this);
+#endif
 	PipelineStateCache = new FVulkanPipelineStateCache(this);
 
 	TArray<FString> CacheFilenames;
@@ -636,6 +651,11 @@ void FVulkanDevice::Destroy()
 	VulkanRHI::vkDestroyImageView(GetInstanceHandle(), DefaultImageView, nullptr);
 	DefaultImageView = VK_NULL_HANDLE;
 
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	delete DescriptorPoolsManager;
+	DescriptorPoolsManager = nullptr;
+#endif
+
 	delete DefaultSampler;
 	DefaultSampler = nullptr;
 
@@ -651,19 +671,19 @@ void FVulkanDevice::Destroy()
 	delete ImmediateContext;
 	ImmediateContext = nullptr;
 
-	for (FVulkanQueryPool* QueryPool : OcclusionQueryPools)
+	for (FOLDVulkanQueryPool* QueryPool : OcclusionQueryPools)
 	{
 		QueryPool->Destroy();
 		delete QueryPool;
 	}
-	OcclusionQueryPools.SetNum(0, false);
 
-	for (FVulkanQueryPool* QueryPool : TimestampQueryPools)
+	for (FOLDVulkanQueryPool* QueryPool : TimestampQueryPools)
 	{
 		QueryPool->Destroy();
 		delete QueryPool;
 	}
 	TimestampQueryPools.SetNum(0, false);
+	OcclusionQueryPools.SetNum(0, false);
 
 	delete PipelineStateCache;
 	PipelineStateCache = nullptr;

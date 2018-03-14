@@ -11,6 +11,8 @@ set DOCUMENTS=%6
 set CYGWIN_DOCUMENTS=%7
 set ENGINE=%~8
 
+set USER=%USER:"=%
+
 set KEY_DIR=%DOCUMENTS%\Unreal Engine\UnrealBuildTool\SSHKeys\%MACHINE%\%USER%
 set KEY_PATH=%DOCUMENTS%\Unreal Engine\UnrealBuildTool\SSHKeys\%MACHINE%\%USER%\RemoteToolChainPrivate.key
 set CYGWIN_KEY_PATH=%CYGWIN_DOCUMENTS%/Unreal Engine/UnrealBuildTool/SSHKeys/%MACHINE%/%USER%/RemoteToolChainPrivate.key
@@ -31,7 +33,7 @@ echo.
 
 pause
 
-%SSH% -p %SSHPORT% %USER%@%MACHINE% "if [[ ! -e .ssh ]]; then mkdir .ssh; fi && cd .ssh && if [[ -e authorized_keys ]]; then cp -f authorized_keys authorized_keys_UEBackup; fi && ssh-keygen -t rsa -f RemoteToolChain && mv -f RemoteToolChain.pub RemoteToolChainPublic.key && mv -f RemoteToolChain RemoteToolChainPrivate.key && cat RemoteToolChainPublic.key >> authorized_keys";
+%SSH% -p %SSHPORT% "%USER%@%MACHINE%" "if [[ ! -e .ssh ]]; then mkdir .ssh; fi && cd .ssh && if [[ -e authorized_keys ]]; then cp -f authorized_keys authorized_keys_UEBackup; fi && ssh-keygen -t rsa -f RemoteToolChain && mv -f RemoteToolChain.pub RemoteToolChainPublic.key && mv -f RemoteToolChain RemoteToolChainPrivate.key && cat RemoteToolChainPublic.key >> authorized_keys";
 
 echo.
 echo ================================================================================
@@ -50,7 +52,7 @@ pause
 
 mkdir "%KEY_DIR%" 2> NUL
 pushd %SSHDIR%
-%RSYNC% -az -e '%SSH% -p %SSHPORT%' %USER%@%MACHINE%:.ssh/RemoteToolChainPrivate.key "%CYGWIN_KEY_PATH%"
+%RSYNC% -az -e '%SSH% -p %SSHPORT%' "%USER%@%MACHINE%":.ssh/RemoteToolChainPrivate.key "%CYGWIN_KEY_PATH%"
 popd
 
 echo.

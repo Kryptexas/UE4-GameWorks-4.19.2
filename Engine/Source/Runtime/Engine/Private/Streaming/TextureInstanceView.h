@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 TextureInstanceView.h: Definitions of classes used for texture streaming.
@@ -54,8 +54,8 @@ public:
 		/** Sphere radii for the bounding sphere of 4 texture instances */
 		FVector4 Radius;
 
-		/** The relative box the bound was computed with */
-		FUintVector4 PackedRelativeBox;
+		/** The relative box the bound was computed with. Aligned to be interpreted as FVector4  */
+		MS_ALIGN(16) FUintVector4 PackedRelativeBox;
 
 		/** Minimal distance (between the bounding sphere origin and the view origin) for which this entry is valid */
 		FVector4 MinDistanceSq;
@@ -69,7 +69,7 @@ public:
 
 
 		void Set(int32 Index, const FBoxSphereBounds& Bounds, uint32 InPackedRelativeBox, float LastRenderTime, const FVector& RangeOrigin, float MinDistance, float MinRange, float MaxRange);
-		void UnpackBounds(int32 Index, const FBoxSphereBounds& Bounds);
+		void UnpackBounds(int32 Index, const UPrimitiveComponent* Component);
 		void FullUpdate(int32 Index, const FBoxSphereBounds& Bounds, float LastRenderTime);
 		FORCEINLINE void UpdateLastRenderTime(int32 Index, float LastRenderTime);
 
@@ -104,7 +104,7 @@ public:
 	struct FCompiledElement
 	{
 		FCompiledElement() {}
-		FCompiledElement(int32 InBoundsIndex, float InTexelFactor, bool InForceLoad) : BoundsIndex(InBoundsIndex), TexelFactor(InTexelFactor), bForceLoad(InForceLoad) {}
+		FCompiledElement(const FElement& InElement) : BoundsIndex(InElement.BoundsIndex), TexelFactor(InElement.TexelFactor), bForceLoad(InElement.bForceLoad) {}
 
 		int32 BoundsIndex;
 		float TexelFactor;
@@ -177,6 +177,8 @@ public:
 		TMap<const UTexture2D*, FTextureDesc>::TConstIterator MapIt;
 	};
 
+	FTextureInstanceView() : MaxTexelFactor(FLT_MAX) {}
+
 	FORCEINLINE int32 NumBounds4() const { return Bounds4.Num(); }
 	FORCEINLINE const FBounds4& GetBounds4(int32 Bounds4Index ) const {  return Bounds4[Bounds4Index]; }
 
@@ -193,6 +195,10 @@ public:
 	static TRefCountPtr<FTextureInstanceView> CreateViewWithUninitializedBounds(const FTextureInstanceView* RefView);
 	static void SwapData(FTextureInstanceView* Lfs, FTextureInstanceView* Rhs);
 
+	float GetMaxTexelFactor() const { return MaxTexelFactor; }
+
+	static void GetDistanceAndRange(const UPrimitiveComponent* Component, const FBoxSphereBounds& TextureInstanceBounds, float& MinDistance, float& MinRange, float& MaxRange);
+
 protected:
 
 	TArray<FBounds4> Bounds4;
@@ -203,6 +209,9 @@ protected:
 
 	// CompiledTextureMap is used to iterate more quickly on each elements by avoiding the linked list indirections.
 	TMap<const UTexture2D*, TArray<FCompiledElement> > CompiledTextureMap;
+
+	/** Max texel factor across all elements. Used for early culling */
+	float MaxTexelFactor;
 };
 
 // Data used to compute visibility
@@ -210,9 +219,9 @@ class FTextureInstanceAsyncView
 {
 public:
 
-	FTextureInstanceAsyncView() {}
+	FTextureInstanceAsyncView() : MaxLevelTextureScreenSize(MAX_FLT) {}
 
-	FTextureInstanceAsyncView(const FTextureInstanceView* InView) : View(InView) {}
+	FTextureInstanceAsyncView(const FTextureInstanceView* InView) : View(InView), MaxLevelTextureScreenSize(MAX_FLT) {}
 
 	void UpdateBoundSizes_Async(const TArray<FStreamingViewInfo>& ViewInfos, float LastUpdateTime, const FTextureStreamingSettings& Settings);
 
@@ -224,6 +233,8 @@ public:
 
 	// Release the data now as this is expensive.
 	void OnTaskDone() { BoundsViewInfo.Empty(); }
+
+	float GetMaxLevelTextureScreenSize() const { return MaxLevelTextureScreenSize; }
 
 private:
 
@@ -243,6 +254,9 @@ private:
 	// Normalized Texel Factors for each bounds and view. This is the data built by ComputeBoundsViewInfos
 	// @TODO : store data for different views continuously to improve reads.
 	TArray<FBoundsViewInfo> BoundsViewInfo;
+
+	/** The max possible size (conservative) across all elements of this view. */
+	float MaxLevelTextureScreenSize;
 
 	void ProcessElement(const FBoundsViewInfo& BoundsVieWInfo, float TexelFactor, bool bForceLoad, float& MaxSize, float& MaxSize_VisibleOnly) const;
 };

@@ -3,9 +3,7 @@ Title:1 - Required Setup
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
 Description:In this step we will set up our Project and Editor Layout for Cinematic Authoring. 
 SkillLevel:Beginner
-Version:4.12
-Related:Engine\Sequencer
-Related:Engine\Sequencer\Overview
+Version:4.18
 checkpoint: sequencerqs
 parent:Engine/Sequencer/QuickStart
 type:multi-step
@@ -35,16 +33,14 @@ For the duration of this guide, we are using the **Blueprint Third Person Templa
 	![](SequencerQS_1_2.png)
 
 	[REGION:tip]
-	You can **Right-click** on the **Content** folder and create a new folder to store all your Level Sequences. 
+	You can right-click on the **Content** folder and create a new folder to store all your Level Sequences. 
 	[/REGION]
 
 	The **Sequencer Editor** will open automatically which you can [drag-and-dock](Engine/UI/InterfaceOverview/) to other windows. 
 
 	![](SequencerQS_1_2b.png)
 
-	Above we have docked the Sequencer Editor next to the **Content Browser**. This allows us to either click the **Content Browser** tab to see the Content Browser or click the **Sequencer** tab to open the Sequencer Editor. 
-
-1.	In the **Content Browser**, **Right-click** on the **Master** Level Sequence and choose **Duplicate**. Name the new Level Sequence **Shot01**. 
+1.	In the **Content Browser**, right-click on the **Master** Level Sequence and choose **Duplicate** and name it **Shot01**. 
 
 	![](SequencerQS_1_3.png)
 
@@ -54,11 +50,11 @@ For the duration of this guide, we are using the **Blueprint Third Person Templa
 
 	![](SequencerQS_1_4.png)
 
-1.	In the Viewport window, click the **Viewport Options** button and under **Layout** select the **Vertical Two Panes** option. 
+1.	In the Viewport window, click the **Viewport Options** button and under **Layout** then select the **Vertical Two Panes** option. 
 
 	![](SequencerQS_1_5.png)
 
-1.	In the left Viewport, click the **View Mode** button then select **Perspective**. 
+1.	In the right Viewport, click the **View Mode** button then select **Perspective**. 
 
 	![](SequencerQS_1_6.png)
 
@@ -66,13 +62,18 @@ For the duration of this guide, we are using the **Blueprint Third Person Templa
 
 	![](SequencerQS_1_7.png)
 
-1.	In the right Viewport, press **G** then press **Ctrl+Shift+T**. Pressing the **G** key enters [Game View](Engine/UI/LevelEditor/Viewports/Basics) which hides all editor icons and represents what the game (or cinematic) will look like. 
-	Pressing **Ctrl+Shift+T** toggles the display of the Viewport Toolbar (which includes things like grid snapping, view modes and transform gizmos which you may not need for a cinematic preview). 
+	This will enable us to use a Cinematic Preview and see a near-final result of what our scene will look like as we edit it. 
+
+1.	In the right Viewport, press the **G** key then press **Ctrl+Shift+T**. 
 
 	![](SequencerQS_1_8.png)
 
+	Pressing the **G** key enters [Game View](Engine/UI/LevelEditor/Viewports/Basics) which hides all editor icons and represents what the game (or cinematic) will look like. 
+	Pressing **Ctrl+Shift+T** toggles the display of the Viewport Toolbar across the top of the Cinematic Viewport. 
+	This will hide things like the grid snapping, view modes and transform gizmo options which you may not need for a cinematic preview. 
+
 	[REGION:tip]
-	You can press **G** again to re-enable the editor icons or press **Ctrl+Shift+T** to display the Viewport Toolbar again. 
+	You can press the **G** key again to re-enable the editor icons or press **Ctrl+Shift+T** again to display the Viewport Toolbar. 
 	[/REGION]
 		
 
@@ -84,5 +85,6 @@ We have created our **Master** Level Sequence and our first **Shot** as well as 
 Up next we will work on our first shot, add a camera and adjust focus as well as generate movement for the camera.
 
 [NAV]
+
 
 

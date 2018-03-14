@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateMaterialShader.h"
 #include "Materials/Material.h"
@@ -23,7 +23,7 @@ void FSlateMaterialShaderVS::ModifyCompilationEnvironment(EShaderPlatform Platfo
 	FMaterialShader::ModifyCompilationEnvironment( Platform, Material, OutEnvironment );
 }
 
-bool FSlateMaterialShaderVS::ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+bool FSlateMaterialShaderVS::ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 {
 	return Material->GetMaterialDomain() == MD_UI;
 }
@@ -58,7 +58,7 @@ bool FSlateMaterialShaderVS::Serialize(FArchive& Ar)
 }
 
 
-bool FSlateMaterialShaderPS::ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+bool FSlateMaterialShaderPS::ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 {
 	return Material->GetMaterialDomain() == MD_UI;
 }

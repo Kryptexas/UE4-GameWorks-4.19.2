@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SoundCueGraph/SoundCueGraphNode.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
@@ -36,7 +36,7 @@ void USoundCueGraphNode::PostLoad()
 	for (int32 Index = 0; Index < Pins.Num(); ++Index)
 	{
 		UEdGraphPin* Pin = Pins[Index];
-		if (Pin->PinName.IsEmpty())
+		if (Pin->PinName.IsNone())
 		{
 			// Makes sure pin has a name for lookup purposes but user will never see it
 			if (Pin->Direction == EGPD_Input)
@@ -60,8 +60,8 @@ void USoundCueGraphNode::SetSoundNode(USoundNode* InSoundNode)
 
 void USoundCueGraphNode::CreateInputPin()
 {
-	UEdGraphPin* NewPin = CreatePin(EGPD_Input, TEXT("SoundNode"), FString(), nullptr, SoundNode->GetInputPinName(GetInputCount()).ToString());
-	if (NewPin->PinName.IsEmpty())
+	UEdGraphPin* NewPin = CreatePin(EGPD_Input, TEXT("SoundNode"), *SoundNode->GetInputPinName(GetInputCount()).ToString());
+	if (NewPin->PinName.IsNone())
 	{
 		// Makes sure pin has a name for lookup purposes but user will never see it
 		NewPin->PinName = CreateUniquePinName(TEXT("Input"));

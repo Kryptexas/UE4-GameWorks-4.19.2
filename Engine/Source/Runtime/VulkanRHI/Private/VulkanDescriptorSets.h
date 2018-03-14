@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanPipelineState.h: Vulkan pipeline state definitions.
@@ -9,6 +9,8 @@
 #include "VulkanConfiguration.h"
 #include "VulkanMemory.h"
 #include "VulkanGlobalUniformBuffer.h"
+
+class FVulkanCommandBufferPool;
 
 // Information for the layout of descriptor sets; does not hold runtime objects
 class FVulkanDescriptorSetsLayoutInfo
@@ -35,7 +37,6 @@ public:
 	}
 
 	void AddBindingsForStage(VkShaderStageFlagBits StageFlags, EDescriptorSetStage DescSet, const FVulkanCodeHeader& CodeHeader);
-	void AddDescriptor(int32 DescriptorSetIndex, const VkDescriptorSetLayoutBinding& Descriptor, int32 BindingIndex);
 
 	friend uint32 GetTypeHash(const FVulkanDescriptorSetsLayoutInfo& In)
 	{
@@ -49,6 +50,12 @@ public:
 			return false;
 		}
 
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+		if (In.TypesUsageID != TypesUsageID)
+		{
+			return false;
+		}
+#endif
 		for (int32 Index = 0; Index < In.SetLayouts.Num(); ++Index)
 		{
 			int32 NumBindings = SetLayouts[Index].LayoutBindings.Num();
@@ -70,14 +77,35 @@ public:
 	{
 		FMemory::Memcpy(LayoutTypes, Info.LayoutTypes, sizeof(LayoutTypes));
 		Hash = Info.Hash;
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+		TypesUsageID = Info.TypesUsageID;
+#endif
 		SetLayouts = Info.SetLayouts;
 	}
 
+	inline const uint32* GetLayoutTypes() const
+	{
+		return LayoutTypes;
+	}
+
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	inline uint32 GetTypesUsageID() const
+	{
+		return TypesUsageID;
+	}
+#endif
 protected:
 	uint32 LayoutTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
 	TArray<FSetLayout> SetLayouts;
 
 	uint32 Hash = 0;
+
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	uint32 TypesUsageID = ~0;
+
+	void CompileTypesUsageID();
+#endif
+	void AddDescriptor(int32 DescriptorSetIndex, const VkDescriptorSetLayoutBinding& Descriptor, int32 BindingIndex);
 
 	friend class FVulkanPipelineStateCache;
 };
@@ -97,25 +125,54 @@ public:
 		return LayoutHandles;
 	}
 
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	inline const VkDescriptorSetAllocateInfo& GetAllocateInfo() const
+	{
+		return DescriptorSetAllocateInfo;
+	}
+#endif
+
+	inline uint32 GetHash() const
+	{
+		return Hash;
+	}
+
 private:
 	FVulkanDevice* Device;
-
+	//uint32 Hash = 0;
 	TArray<VkDescriptorSetLayout> LayoutHandles;
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo;
+#endif
 };
 
-class FVulkanDescriptorPool
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+typedef TArray<VkDescriptorSet, TInlineAllocator<SF_Compute>> FVulkanDescriptorSetArray;
+#else
+class FOLDVulkanDescriptorPool
 {
 public:
-	FVulkanDescriptorPool(FVulkanDevice* InDevice);
-	~FVulkanDescriptorPool();
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	FOLDVulkanDescriptorPool(FVulkanDevice* InDevice, const FVulkanDescriptorSetsLayout& Layout);
+#else
+	FOLDVulkanDescriptorPool(FVulkanDevice* InDevice);
+#endif
+	~FOLDVulkanDescriptorPool();
 
 	inline VkDescriptorPool GetHandle() const
 	{
 		return DescriptorPool;
 	}
 
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	inline bool CanAllocate(const FVulkanDescriptorSetsLayout& InLayout) const
+#else
 	inline bool CanAllocate(const FVulkanDescriptorSetsLayout& Layout) const
+#endif
 	{
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+		return MaxDescriptorSets > NumAllocatedDescriptorSets + InLayout.GetLayouts().Num();
+#else
 		for (uint32 TypeIndex = VK_DESCRIPTOR_TYPE_BEGIN_RANGE; TypeIndex < VK_DESCRIPTOR_TYPE_END_RANGE; ++TypeIndex)
 		{
 			if (NumAllocatedTypes[TypeIndex] +	(int32)Layout.GetTypesUsed((VkDescriptorType)TypeIndex) > MaxAllocatedTypes[TypeIndex])
@@ -123,8 +180,8 @@ public:
 				return false;
 			}
 		}
-
 		return true;
+#endif
 	}
 
 	void TrackAddUsage(const FVulkanDescriptorSetsLayout& Layout);
@@ -135,6 +192,11 @@ public:
 		return NumAllocatedDescriptorSets == 0;
 	}
 
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	void Reset();
+	bool AllocateDescriptorSets(const VkDescriptorSetAllocateInfo& InDescriptorSetAllocateInfo, VkDescriptorSet* OutSets);
+#endif
+
 private:
 	FVulkanDevice* Device;
 
@@ -143,18 +205,157 @@ private:
 	uint32 PeakAllocatedDescriptorSets;
 
 	// Tracks number of allocated types, to ensure that we are not exceeding our allocated limit
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	const FVulkanDescriptorSetsLayout& Layout;
+#else
 	int32 MaxAllocatedTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
 	int32 NumAllocatedTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
 	int32 PeakAllocatedTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
-
+#endif
 	VkDescriptorPool DescriptorPool;
+
+	friend class FVulkanCommandListContext;
 };
 
-// The actual descriptor sets for a given pipeline
-class FVulkanDescriptorSets
+
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+class FVulkanTypedDescriptorPoolSet
+{
+	typedef TList<FOLDVulkanDescriptorPool*> FPoolList;
+
+	FOLDVulkanDescriptorPool* GetFreePool(bool bForceNewPool = false);
+	FOLDVulkanDescriptorPool* PushNewPool();
+
+protected:
+	friend class FVulkanDescriptorPoolSet;
+
+	FVulkanTypedDescriptorPoolSet(FVulkanDevice* InDevice, class FVulkanDescriptorPoolSet* InOwner, const FVulkanDescriptorSetsLayout& InLayout)
+		: Device(InDevice)
+		, Owner(InOwner)
+		, Layout(InLayout)
+	{
+		PushNewPool();
+	};
+
+	~FVulkanTypedDescriptorPoolSet();
+
+	void Reset();
+
+public:
+	bool AllocateDescriptorSets(const FVulkanDescriptorSetsLayout& Layout, VkDescriptorSet* OutSets);
+
+	class FVulkanDescriptorPoolSet* GetOwner() const
+	{
+		return Owner;
+	}
+
+private:
+	FVulkanDevice* Device;
+	class FVulkanDescriptorPoolSet* Owner;
+	const FVulkanDescriptorSetsLayout& Layout;
+
+	FPoolList* PoolListHead = nullptr;
+	FPoolList* PoolListCurrent = nullptr;
+};
+
+class FVulkanDescriptorPoolSet
 {
 public:
-	~FVulkanDescriptorSets();
+	FVulkanDescriptorPoolSet(FVulkanDevice* InDevice)
+		: Device(InDevice)
+		, LastFrameUsed(GFrameNumberRenderThread)
+		, bUsed(true)
+	{
+	}
+
+	~FVulkanDescriptorPoolSet();
+
+	FVulkanTypedDescriptorPoolSet* AcquirePoolSet(const FVulkanDescriptorSetsLayout& Layout);
+
+	void Reset();
+
+	void SetUsed(bool bInUsed)
+	{
+		bUsed = bInUsed;
+		LastFrameUsed = bUsed ? GFrameNumberRenderThread : LastFrameUsed;
+	}
+
+	bool IsUnused() const
+	{
+		return !bUsed;
+	}
+
+	uint32 GetLastFrameUsed() const
+	{
+		return LastFrameUsed;
+	}
+
+private:
+	FVulkanDevice* Device;
+
+	TMap<uint32, FVulkanTypedDescriptorPoolSet*> DescriptorPools;
+
+	uint32 LastFrameUsed;
+	bool bUsed;
+};
+
+class FVulkanDescriptorPoolsManager
+{
+	class FVulkanAsyncPoolSetDeletionWorker : public FNonAbandonableTask
+	{
+		FVulkanDescriptorPoolSet* PoolSet;
+
+	public:
+		FVulkanAsyncPoolSetDeletionWorker(FVulkanDescriptorPoolSet* InPoolSet)
+			: PoolSet(InPoolSet)
+		{};
+
+		void DoWork()
+		{
+			check(PoolSet != nullptr);
+
+			delete PoolSet;
+
+			PoolSet = nullptr;
+		}
+
+		void SetPoolSet(FVulkanDescriptorPoolSet* InPoolSet)
+		{
+			check(PoolSet == nullptr);
+			PoolSet = InPoolSet;
+		}
+
+		FORCEINLINE TStatId GetStatId() const
+		{
+			RETURN_QUICK_DECLARE_CYCLE_STAT(FVulkanAsyncPoolSetDeletionWorker, STATGROUP_ThreadPoolAsyncTasks);
+		}
+	};
+
+public:
+	~FVulkanDescriptorPoolsManager();
+
+	void Init(FVulkanDevice* InDevice)
+	{
+		Device = InDevice;
+	}
+
+	FVulkanDescriptorPoolSet& AcquirePoolSet();
+	void GC();
+
+private:
+	FVulkanDevice* Device = nullptr;
+	FAsyncTask<FVulkanAsyncPoolSetDeletionWorker>* AsyncDeletionTask = nullptr;
+
+	FCriticalSection CS;
+	TArray<FVulkanDescriptorPoolSet*> PoolSets;
+};
+#endif
+
+// The actual descriptor sets for a given pipeline
+class FOLDVulkanDescriptorSets
+{
+public:
+	~FOLDVulkanDescriptorSets();
 
 	typedef TArray<VkDescriptorSet, TInlineAllocator<SF_Compute>> FDescriptorSetArray;
 
@@ -173,17 +374,18 @@ public:
 	}
 
 private:
-	FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanDescriptorSetsLayout& InLayout, FVulkanCommandListContext* InContext);
+	FOLDVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanDescriptorSetsLayout& InLayout, FVulkanCommandListContext* InContext);
 
 	FVulkanDevice* Device;
-	FVulkanDescriptorPool* Pool;
+	FOLDVulkanDescriptorPool* Pool;
 	const FVulkanDescriptorSetsLayout& Layout;
 	FDescriptorSetArray Sets;
 
-	friend class FVulkanDescriptorPool;
-	friend class FVulkanDescriptorSetRingBuffer;
+	friend class FOLDVulkanDescriptorPool;
+	friend class FOLDVulkanDescriptorSetRingBuffer;
 	friend class FVulkanCommandListContext;
 };
+#endif
 
 // This container holds the actual VkWriteDescriptorSet structures; a Compute pipeline uses the arrays 'as-is', whereas a 
 // Gfx PSO will have one big array and chunk it depending on the stage (eg Vertex, Pixel).
@@ -216,6 +418,11 @@ public:
 		return DescriptorSetLayout.GetLayouts().Num() > 0;
 	}
 
+	inline uint32 GetDescriptorSetLayoutHash() const
+	{
+		return DescriptorSetLayout.GetHash();
+	}
+
 protected:
 	FVulkanDescriptorSetsLayout DescriptorSetLayout;
 	VkPipelineLayout PipelineLayout;
@@ -239,12 +446,13 @@ protected:
 	friend class FVulkanPipelineStateCache;
 };
 
+#if !VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
 // This class handles allocating/reusing descriptor sets per command list for a specific pipeline layout (each context holds one of this)
-class FVulkanDescriptorSetRingBuffer : public VulkanRHI::FDeviceChild
+class FOLDVulkanDescriptorSetRingBuffer : public VulkanRHI::FDeviceChild
 {
 public:
-	FVulkanDescriptorSetRingBuffer(FVulkanDevice* InDevice);
-	virtual ~FVulkanDescriptorSetRingBuffer();
+	FOLDVulkanDescriptorSetRingBuffer(FVulkanDevice* InDevice);
+	virtual ~FOLDVulkanDescriptorSetRingBuffer();
 
 	void Reset()
 	{
@@ -258,12 +466,12 @@ public:
 	}
 
 protected:
-	FVulkanDescriptorSets* CurrDescriptorSets;
+	FOLDVulkanDescriptorSets* CurrDescriptorSets;
 
 	struct FDescriptorSetsPair
 	{
 		uint64 FenceCounter;
-		FVulkanDescriptorSets* DescriptorSets;
+		FOLDVulkanDescriptorSets* DescriptorSets;
 
 		FDescriptorSetsPair()
 			: FenceCounter(0)
@@ -286,11 +494,12 @@ protected:
 	};
 	TArray<FDescriptorSetsEntry*> DescriptorSetsEntries;
 
-	FVulkanDescriptorSets* RequestDescriptorSets(FVulkanCommandListContext* Context, FVulkanCmdBuffer* CmdBuffer, const FVulkanLayout& Layout);
+	FOLDVulkanDescriptorSets* RequestDescriptorSets(FVulkanCommandListContext* Context, FVulkanCmdBuffer* CmdBuffer, const FVulkanLayout& Layout);
 
 	friend class FVulkanComputePipelineState;
 	friend class FVulkanGfxPipelineState;
 };
+#endif
 
 // This class encapsulates updating VkWriteDescriptorSet structures (but doesn't own them), and their flags for dirty ranges; it is intended
 // to be used to access a sub-region of a long array of VkWriteDescriptorSet (ie FVulkanDescriptorSetWriteContainer)
@@ -416,3 +625,80 @@ protected:
 	friend class FVulkanComputePipelineState;
 	friend class FVulkanGfxPipelineState;
 };
+
+#if VULKAN_USE_PER_PIPELINE_DESCRIPTOR_POOLS
+namespace VulkanRHI
+{
+	class FDescriptorSetsAllocator : public VulkanRHI::FDeviceChild
+	{
+	public:
+		FDescriptorSetsAllocator(FVulkanDevice* InDevice, const FVulkanLayout& InLayout, uint32 InNumAllocationsPerPool);
+		~FDescriptorSetsAllocator();
+
+		TArrayView<VkDescriptorSet> Allocate(const FVulkanLayout& Layout, uint32 InNumAllocations/*, FVulkanCmdBuffer* CmdBuffer*/);
+		void Reset(FVulkanCmdBuffer* CmdBuffer);
+		inline void SetFence(FVulkanCmdBuffer* InCmdBuffer, uint64 InCurrentFence)
+		{
+			CurrentCmdBuffer = InCmdBuffer;
+			CurrentFence = InCurrentFence;
+		}
+
+	protected:
+		FVulkanCmdBuffer* CurrentCmdBuffer = nullptr;
+		uint64 CurrentFence = 0;
+
+		struct FPoolEntry
+		{
+			VkDescriptorPool Pool = VK_NULL_HANDLE;
+
+			// We don't use a TArray as these get copied by value!
+			VkDescriptorSet* Sets;
+			int32 MaxSets = 0;
+
+			FPoolEntry() = default;
+
+			FPoolEntry(const FPoolEntry& In)
+				: Pool(In.Pool)
+				, Sets(In.Sets)
+				, MaxSets(In.MaxSets)
+			{
+			}
+		};
+
+		struct FFreePoolEntry : public FPoolEntry
+		{
+			uint32 LastUsedFrame = 0;
+
+			FFreePoolEntry() = default;
+
+			FFreePoolEntry(const FPoolEntry& In)
+				: FPoolEntry(In)
+			{
+			}
+		};
+
+		struct FFencedPoolEntry : public FPoolEntry
+		{
+			int32 NumUsedSets = 0;
+			FVulkanCmdBuffer* CmdBuffer = nullptr;
+			uint64 Fence = 0;
+
+			FFencedPoolEntry() = default;
+
+			FFencedPoolEntry(const FPoolEntry& In)
+				: FPoolEntry(In)
+			{
+			}
+		};
+		TArray<FFencedPoolEntry> UsedEntries;
+		TArray<FFreePoolEntry> FreeEntries;
+
+		FFencedPoolEntry* CreatePool(const FVulkanLayout& Layout);
+
+		VkDescriptorPoolCreateInfo CreateInfo;
+		TArray<VkDescriptorPoolSize> CreateInfoTypes;
+		uint32 NumAllocationsPerPool = 0;
+		friend class FVulkanCommandBufferPool;
+	};
+}
+#endif

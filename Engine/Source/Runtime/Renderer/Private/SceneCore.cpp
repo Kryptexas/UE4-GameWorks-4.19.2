@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneCore.cpp: Core scene implementation.
@@ -193,7 +193,7 @@ FLightPrimitiveInteraction::FLightPrimitiveInteraction(
 		if (PrimitiveSceneInfo->Proxy->HasStaticLighting()
 			&& PrimitiveSceneInfo->Proxy->CastsStaticShadow()
 			// Don't mark unbuilt for movable primitives which were built with lightmaps but moved into a new light's influence
-			&& !PrimitiveSceneInfo->Proxy->LightAsIfStatic()
+			&& PrimitiveSceneInfo->Proxy->GetLightmapType() != ELightmapType::ForceSurface
 			&& (LightSceneInfo->Proxy->HasStaticLighting() || (LightSceneInfo->Proxy->HasStaticShadowing() && !bInIsShadowMapped)))
 		{
 			// Update the game thread's counter of number of uncached static lighting interactions.
@@ -423,6 +423,11 @@ FStaticMesh::~FStaticMesh()
 {
 	// Remove this static mesh from the scene's list.
 	PrimitiveSceneInfo->Scene->StaticMeshes.RemoveAt(Id);
+
+	if (BatchVisibilityId != INDEX_NONE)
+	{
+		PrimitiveSceneInfo->Scene->StaticMeshBatchVisibility.RemoveAt(BatchVisibilityId);
+	}
 
 	// This is cheaper than calling RemoveFromDrawLists, since it 
 	// doesn't unlink meshes which are about to be destroyed

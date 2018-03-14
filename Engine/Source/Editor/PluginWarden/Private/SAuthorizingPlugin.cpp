@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SAuthorizingPlugin.h"
 #include "Misc/MessageDialog.h"
@@ -8,6 +8,7 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Input/SButton.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "Editor.h"
 #include "Widgets/Images/SThrobber.h"
@@ -30,6 +31,7 @@ void SAuthorizingPlugin::Construct(const FArguments& InArgs, const TSharedRef<SW
 	PluginItemId = InPluginItemId;
 	PluginOfferId = InPluginOfferId;
 	AuthorizedCallback = InAuthorizedCallback;
+	UnauthorizedErrorHandling = IPluginWardenModule::EUnauthorizedErrorHandling::ShowMessageOpenStore;
 
 	InParentWindow->SetOnWindowClosed(FOnWindowClosed::CreateSP(this, &SAuthorizingPlugin::OnWindowClosed));
 	bUserInterrupted = true;
@@ -66,7 +68,7 @@ void SAuthorizingPlugin::Construct(const FArguments& InArgs, const TSharedRef<SW
 					[
 						SNew(STextBlock)
 						.Text(this, &SAuthorizingPlugin::GetWaitingText)
-						.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 12))
+						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12))
 					]
 				]
 
@@ -87,6 +89,12 @@ void SAuthorizingPlugin::Construct(const FArguments& InArgs, const TSharedRef<SW
 	PortalWindowService = ServiceLocator->GetServiceRef<IPortalApplicationWindow>();
 	PortalUserService = ServiceLocator->GetServiceRef<IPortalUser>();
 	PortalUserLoginService = ServiceLocator->GetServiceRef<IPortalUserLogin>();
+}
+
+void SAuthorizingPlugin::SetUnauthorizedOverride(const FText & InUnauthorizedMessageOverride, IPluginWardenModule::EUnauthorizedErrorHandling InUnauthorizedErrorHandling)
+{
+	UnauthorizedMessageOverride = InUnauthorizedMessageOverride;
+	UnauthorizedErrorHandling = InUnauthorizedErrorHandling;
 }
 
 FText SAuthorizingPlugin::GetWaitingText() const
@@ -376,11 +384,32 @@ void SAuthorizingPlugin::OnWindowClosed(const TSharedRef<SWindow>& InWindow)
 			}
 			case EPluginAuthorizationState::Unauthorized:
 			{
-				FText FailureMessage = FText::Format(LOCTEXT("UnathorizedFailure", "It doesn't look like you've purchased {0}.\n\nWould you like to see the store page?"), PluginFriendlyName);
-				EAppReturnType::Type Response = FMessageDialog::Open(EAppMsgType::YesNo, FailureMessage);
-				if ( Response == EAppReturnType::Yes )
+				FText FailureMessage = UnauthorizedMessageOverride;
+				if (FailureMessage.IsEmpty())
 				{
-					ShowStorePageForPlugin();
+					FailureMessage = FText::Format(LOCTEXT("UnathorizedFailure", "It doesn't look like you've purchased {0}.\n\nWould you like to see the store page?"), PluginFriendlyName);
+				}
+
+				switch (UnauthorizedErrorHandling)
+				{
+				case IPluginWardenModule::EUnauthorizedErrorHandling::ShowMessageOpenStore:
+				{
+					EAppReturnType::Type Response = FMessageDialog::Open(EAppMsgType::YesNo, FailureMessage);
+					if (Response == EAppReturnType::Yes)
+					{
+						ShowStorePageForPlugin();
+					}
+					break;
+				}
+				case IPluginWardenModule::EUnauthorizedErrorHandling::ShowMessage:
+				{
+					FMessageDialog::Open(EAppMsgType::Ok, FailureMessage);
+					break;
+				}
+				case IPluginWardenModule::EUnauthorizedErrorHandling::Silent:
+				default:
+					// Do nothing
+					break;
 				}
 				break;
 			}

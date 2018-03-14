@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessParameters.h: Shader base classes
@@ -96,6 +96,7 @@ private:
 	FShaderParameter PostprocessInputSizeParameter[ePId_Input_MAX];
 	FShaderParameter PostProcessInputMinMaxParameter[ePId_Input_MAX];
 	FShaderParameter ScreenPosToPixel;
+	FShaderParameter SceneColorBufferUVViewport;
 	FShaderResourceParameter BilinearTextureSampler0;
 	FShaderResourceParameter BilinearTextureSampler1;
 

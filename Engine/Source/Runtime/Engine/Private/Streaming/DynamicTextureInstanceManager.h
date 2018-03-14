@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 DynamicTextureInstanceManager.h: Definitions of classes used for texture streaming.
@@ -21,6 +21,7 @@ public:
 
 	/** Contructor. */
 	FDynamicTextureInstanceManager();
+	~FDynamicTextureInstanceManager() { StateSync.Sync(); }
 
 	void RegisterTasks(TextureInstanceTask::FDoWorkTask& AsyncTask);
 
@@ -45,10 +46,10 @@ public:
 	void Refresh(float Percentage) final override;
 
 	/** Add a component streaming data, the LevelContext gives support for precompiled data. */
-	 bool Add(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext) final override;
+	EAddComponentResult Add(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext, float MaxAllowedUIDensity = 0) final override;
 
 	/** Remove a component, the RemoveTextures is the list of textures not referred anymore. */
-	 void Remove(const UPrimitiveComponent* Component, FRemovedTextureArray& RemovedTextures) final override;
+	 void Remove(const UPrimitiveComponent* Component, FRemovedTextureArray* RemovedTextures) final override;
 
 	/** Notify the manager that an async view will be requested on the next frame. */
 	void PrepareAsyncView() final override;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -158,7 +158,7 @@ namespace Algo
 	template <typename RangeType, typename ValueType, typename ProjectionType>
 	FORCEINLINE int32 UpperBoundBy(RangeType& Range, const ValueType& Value, ProjectionType Projection)
 	{
-		return AlgoImpl::UpperBoundInternal(GetData(Range), GetNum(Range), Value, Projection);
+		return AlgoImpl::UpperBoundInternal(GetData(Range), GetNum(Range), Value, Projection, TLess<>());
 	}
 
 	/**

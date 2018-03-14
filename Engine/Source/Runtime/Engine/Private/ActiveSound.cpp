@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ActiveSound.h"
 #include "EngineDefines.h"
@@ -54,6 +54,8 @@ FActiveSound::FActiveSound()
 #endif
 	, bEnableLowPassFilter(false)
 	, bUpdatePlayPercentage(false)
+	, bUpdateSingleEnvelopeValue(false)
+	, bUpdateMultiEnvelopeValue(false)
 	, UserIndex(0)
 	, bIsOccluded(false)
 	, bAsyncOcclusionPending(false)
@@ -86,6 +88,8 @@ FActiveSound::FActiveSound()
 	, SourceInteriorLPF(MAX_FILTER_FREQUENCY)
 	, CurrentInteriorVolume(1.f)
 	, CurrentInteriorLPF(MAX_FILTER_FREQUENCY)
+	, EnvelopeFollowerAttackTime(10)
+	, EnvelopeFollowerReleaseTime(100)
 	, ClosestListenerPtr(nullptr)
 	, InternalFocusFactor(1.0f)
 {
@@ -243,10 +247,10 @@ void FActiveSound::SetSubmixSend(const FSoundSubmixSendInfo& SubmixSendInfo)
 	SoundSubmixSendsOverride.Add(SubmixSendInfo);
 }
 
-void FActiveSound::SetSourceBusSend(const FSoundSourceBusSendInfo& SourceBusSendInfo)
+void FActiveSound::SetSourceBusSend(EBusSendType BusSendType, const FSoundSourceBusSendInfo& SourceBusSendInfo)
 {
 	// Override send level if the source bus send is already included in active sound
-	for (FSoundSourceBusSendInfo& Info : SoundSourceBusSendsOverride)
+	for (FSoundSourceBusSendInfo& Info : SoundSourceBusSendsOverride[(int32)BusSendType])
 	{
 		if (Info.SoundSourceBus == SourceBusSendInfo.SoundSourceBus)
 		{
@@ -256,7 +260,7 @@ void FActiveSound::SetSourceBusSend(const FSoundSourceBusSendInfo& SourceBusSend
 	}
 
 	// Otherwise, add it to the source bus send overrides
-	SoundSourceBusSendsOverride.Add(SourceBusSendInfo);
+	SoundSourceBusSendsOverride[(int32)BusSendType].Add(SourceBusSendInfo);
 }
 
 void FActiveSound::GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) const
@@ -288,15 +292,15 @@ void FActiveSound::GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) c
 	}
 }
 
-void FActiveSound::GetSoundSourceBusSends(TArray<FSoundSourceBusSendInfo>& OutSends) const
+void FActiveSound::GetSoundSourceBusSends(EBusSendType BusSendType, TArray<FSoundSourceBusSendInfo>& OutSends) const
 {
 	if (Sound)
 	{
 		// Get the base sends
-		Sound->GetSoundSourceBusSends(OutSends);
+		Sound->GetSoundSourceBusSends(BusSendType, OutSends);
 
 		// Loop through the overrides, which may append or override the existing send
-		for (const FSoundSourceBusSendInfo& SendInfo : SoundSourceBusSendsOverride)
+		for (const FSoundSourceBusSendInfo& SendInfo : SoundSourceBusSendsOverride[(int32)BusSendType])
 		{
 			bool bOverridden = false;
 			for (FSoundSourceBusSendInfo& OutSendInfo : OutSends)
@@ -375,8 +379,35 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	// Cache the closest listener ptr 
 	ClosestListenerPtr = &Listeners[ClosestListenerIndex];
 
-	// The apparent max distance factors the actual max distance of the sound scaled with the distance scale due to focus effects
-	float ApparentMaxDistance = MaxDistance * FocusDistanceScale;
+	bool bPerformDistanceCheckOptimization = true;
+
+	// If we have an attenuation node, we can't know until we evaluate the sound cue if it's audio output going to be audible via a distance check
+	if (Sound->HasAttenuationNode() || 
+		(AudioDevice->VirtualSoundsEnabled() && (Sound->IsAllowedVirtual() || (bHandleSubtitles && bHasExternalSubtitles))) ||
+		(bHasAttenuationSettings && (AttenuationSettings.FocusDistanceScale != 1.0f || AttenuationSettings.NonFocusDistanceScale != 1.0f)))
+	{
+		bPerformDistanceCheckOptimization = false;
+	}
+	else
+	{
+		// Check the global focus settings... if it's doing a distance scale, we can't optimize due to distance
+		const FGlobalFocusSettings& FocusSettings = AudioDevice->GetGlobalFocusSettings();
+		if (FocusSettings.FocusDistanceScale != 1.0f || FocusSettings.NonFocusDistanceScale != 1.0f)
+		{
+			bPerformDistanceCheckOptimization = false;
+		}
+	}
+
+	// Early out if the sound is further away than we could possibly hear it, but only do this for non-virtualizable sounds.
+	if (bPerformDistanceCheckOptimization)
+	{
+		// The apparent max distance factors the actual max distance of the sound scaled with the distance scale due to focus effects
+		float ApparentMaxDistance = MaxDistance * FocusDistanceScale;
+		if (!FAudioDevice::LocationIsAudible(Transform.GetLocation(), ClosestListenerPtr->Transform, ApparentMaxDistance))
+		{
+			return;
+		}
+	}
 
 	FSoundParseParameters ParseParams;
 	ParseParams.Transform = Transform;
@@ -407,10 +438,18 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	GetSoundSubmixSends(ParseParams.SoundSubmixSends);
 
 	ParseParams.bOutputToBusOnly = Sound->bOutputToBusOnly;
-	GetSoundSourceBusSends(ParseParams.SoundSourceBusSends);
+
+	for (int32 BusSendType = 0; BusSendType < (int32)EBusSendType::Count; ++BusSendType)
+	{
+		GetSoundSourceBusSends((EBusSendType)BusSendType, ParseParams.SoundSourceBusSends[BusSendType]);
+	}
 
 	// Set up the base source effect chain. 
 	ParseParams.SourceEffectChain = Sound->SourceEffectChain;
+
+	// Setup the envelope attack and release times
+	ParseParams.EnvelopeFollowerAttackTime = EnvelopeFollowerAttackTime;
+	ParseParams.EnvelopeFollowerReleaseTime = EnvelopeFollowerReleaseTime;
 
 	if (bApplyInteriorVolumes)
 	{
@@ -475,6 +514,41 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 				}
 			}
 		}
+
+		// Check to see if we need to broadcast the envelope value of sounds playing with this active sound
+		if (bUpdateMultiEnvelopeValue && AudioComponentID > 0)
+		{
+			int32 NumWaveInstances = ThisSoundsWaveInstances.Num();
+
+			// Add up the envelope value for every wave instance so we get a sum of the envelope value for all sources.
+			float EnvelopeValueSum = 0.0f;
+			float MaxEnvelopeValue = 0.0f;
+			for (FWaveInstance* WaveInstance : ThisSoundsWaveInstances)
+			{
+				const float WaveInstanceEnvelopeValue = WaveInstance->GetEnvelopeValue();
+				EnvelopeValueSum += WaveInstanceEnvelopeValue;
+				MaxEnvelopeValue = FMath::Max(WaveInstanceEnvelopeValue, MaxEnvelopeValue);
+			}
+
+			// Now divide by the number of instances to get the average
+			float AverageEnvelopeValue = EnvelopeValueSum / NumWaveInstances;
+			uint64 AudioComponentIDCopy = AudioComponentID;
+			FAudioThread::RunCommandOnGameThread([AudioComponentIDCopy, AverageEnvelopeValue, MaxEnvelopeValue, NumWaveInstances]()
+			{
+				if (UAudioComponent* AudioComponent = UAudioComponent::GetAudioComponentFromID(AudioComponentIDCopy))
+				{
+					if (AudioComponent->OnAudioMultiEnvelopeValue.IsBound())
+					{
+						AudioComponent->OnAudioMultiEnvelopeValue.Broadcast(AverageEnvelopeValue, MaxEnvelopeValue, NumWaveInstances);
+					}
+
+					if (AudioComponent->OnAudioMultiEnvelopeValueNative.IsBound())
+					{
+						AudioComponent->OnAudioMultiEnvelopeValueNative.Broadcast(AudioComponent, AverageEnvelopeValue, MaxEnvelopeValue, NumWaveInstances);
+					}
+				}
+			});
+		}
 	}
 
 	InWaveInstances.Append(ThisSoundsWaveInstances);
@@ -526,15 +600,34 @@ FWaveInstance* FActiveSound::FindWaveInstance( const UPTRINT WaveInstanceHash )
 
 void FActiveSound::UpdateAdjustVolumeMultiplier(const float DeltaTime)
 {
+	// Choose min/max bound and clamp dt to prevent unwanted spikes in volume
+	float MinValue = 0.0f;
+	float MaxValue = 0.0f;
+	if (CurrentAdjustVolumeMultiplier < TargetAdjustVolumeMultiplier)
+	{
+		MinValue = CurrentAdjustVolumeMultiplier;
+		MaxValue = TargetAdjustVolumeMultiplier;
+	}
+	else
+	{
+		MinValue = TargetAdjustVolumeMultiplier;
+		MaxValue = CurrentAdjustVolumeMultiplier;
+	}
+
+	float DeltaTimeValue = FMath::Min(DeltaTime, 0.5f);
+
 	// keep stepping towards our target until we hit our stop time
 	if (PlaybackTime < TargetAdjustVolumeStopTime)
 	{
-		CurrentAdjustVolumeMultiplier += (TargetAdjustVolumeMultiplier - CurrentAdjustVolumeMultiplier) * DeltaTime / (TargetAdjustVolumeStopTime - PlaybackTime);
+		CurrentAdjustVolumeMultiplier += (TargetAdjustVolumeMultiplier - CurrentAdjustVolumeMultiplier) * DeltaTimeValue / (TargetAdjustVolumeStopTime - PlaybackTime);
 	}
 	else
 	{
 		CurrentAdjustVolumeMultiplier = TargetAdjustVolumeMultiplier;
 	}
+
+	// Apply final clamp
+	CurrentAdjustVolumeMultiplier = FMath::Clamp(CurrentAdjustVolumeMultiplier, MinValue, MaxValue);
 } 
 
 void FActiveSound::OcclusionTraceDone(const FTraceHandle& TraceHandle, FTraceDatum& TraceDatum)
@@ -1100,11 +1193,11 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 		{
 			// Update attenuation data in-case it hasn't been updated
 			AudioDevice->GetAttenuationListenerData(ListenerData, SoundTransform, *Settings, &Listener.Transform);
-			ParseParams.DistanceAttenuation = Settings->AttenuationEval(ListenerData.AttenuationDistance, Settings->FalloffDistance, FocusDistanceScale);
+			ParseParams.DistanceAttenuation *= Settings->AttenuationEval(ListenerData.AttenuationDistance, Settings->FalloffDistance, FocusDistanceScale);
 		}
 		else
 		{
-			ParseParams.DistanceAttenuation = Settings->Evaluate(SoundTransform, ListenerLocation, FocusDistanceScale);
+			ParseParams.DistanceAttenuation *= Settings->Evaluate(SoundTransform, ListenerLocation, FocusDistanceScale);
 		}
 	}
 
@@ -1112,9 +1205,20 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 	if (Settings->bEnableOcclusion)
 	{
 		// If we've got a occlusion plugin settings, then the plugin will handle occlusion calculations
-		if (Settings->OcclusionPluginSettings)
+		if (Settings->PluginSettings.OcclusionPluginSettingsArray.Num())
 		{
-			ParseParams.OcclusionPluginSettings = Settings->OcclusionPluginSettings;
+			UClass* PluginClass = GetAudioPluginCustomSettingsClass(EAudioPlugin::OCCLUSION);
+			if (PluginClass)
+			{
+				for (UOcclusionPluginSourceSettingsBase* SettingsBase : Settings->PluginSettings.OcclusionPluginSettingsArray)
+				{
+					if (SettingsBase != nullptr && SettingsBase->IsA(PluginClass))
+					{
+						ParseParams.OcclusionPluginSettings = SettingsBase;
+						break;
+					}
+				}
+			}
 		}
 		else if (Volume > 0.0f && !AudioDevice->IsAudioDeviceMuted())
 		{
@@ -1122,15 +1226,45 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 			CheckOcclusion(ClosestListenerPtr->Transform.GetTranslation(), ParseParams.Transform.GetTranslation(), Settings);
 
 			// Apply the volume attenuation due to occlusion (using the interpolating dynamic parameter)
-			ParseParams.VolumeMultiplier *= CurrentOcclusionVolumeAttenuation.GetValue();
+			ParseParams.DistanceAttenuation *= CurrentOcclusionVolumeAttenuation.GetValue();
 
 			ParseParams.bIsOccluded = bIsOccluded;
 			ParseParams.OcclusionFilterFrequency = CurrentOcclusionFilterFrequency.GetValue();
 		}
 	}
 
-	ParseParams.SpatializationPluginSettings = Settings->SpatializationPluginSettings;
-	ParseParams.ReverbPluginSettings = Settings->ReverbPluginSettings;
+	// Figure out which attenuation settings to use
+	if (Settings->PluginSettings.SpatializationPluginSettingsArray.Num() > 0)
+	{
+		UClass* PluginClass = GetAudioPluginCustomSettingsClass(EAudioPlugin::SPATIALIZATION);
+		if (PluginClass)
+		{
+			for (USpatializationPluginSourceSettingsBase* SettingsBase : Settings->PluginSettings.SpatializationPluginSettingsArray)
+			{
+				if (SettingsBase != nullptr && SettingsBase->IsA(PluginClass))
+				{
+					ParseParams.SpatializationPluginSettings = SettingsBase;
+					break;
+				}
+			}
+		}
+	}
+
+	if (Settings->PluginSettings.ReverbPluginSettingsArray.Num() > 0)
+	{
+		UClass* PluginClass = GetAudioPluginCustomSettingsClass(EAudioPlugin::REVERB);
+		if (PluginClass)
+		{
+			for (UReverbPluginSourceSettingsBase* SettingsBase : Settings->PluginSettings.ReverbPluginSettingsArray)
+			{
+				if (SettingsBase != nullptr && SettingsBase->IsA(PluginClass))
+				{
+					ParseParams.ReverbPluginSettings = SettingsBase;
+					break;
+				}
+			}
+		}
+	}
 
 	// Attenuate with the absorption filter if necessary
 	if (Settings->bAttenuateWithLPF)

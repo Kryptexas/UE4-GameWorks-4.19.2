@@ -1,13 +1,17 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GoogleARCoreXRCamera.h"
-#include "GoogleARCoreHMD.h"
+#include "GoogleARCoreXRTrackingSystem.h"
 #include "SceneView.h"
+#include "GoogleARCorePassthroughCameraRenderer.h"
 
-FGoogleARCoreXRCamera::FGoogleARCoreXRCamera(const FAutoRegister& AutoRegister, FGoogleARCoreHMD& InTangoSystem, int32 InDeviceID)
-: FDefaultXRCamera(AutoRegister, &InTangoSystem, InDeviceID)
-, TangoSystem(InTangoSystem)
+FGoogleARCoreXRCamera::FGoogleARCoreXRCamera(const FAutoRegister& AutoRegister, FGoogleARCoreXRTrackingSystem& InARCoreSystem, int32 InDeviceID)
+	: FDefaultXRCamera(AutoRegister, &InARCoreSystem, InDeviceID)
+	, GoogleARCoreTrackingSystem(InARCoreSystem)
+	, bMatchDeviceCameraFOV(false)
+	, bEnablePassthroughCameraRendering_RT(false)
 {
+	PassthroughRenderer = new FGoogleARCorePassthroughCameraRenderer();
 }
 
 void FGoogleARCoreXRCamera::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView)
@@ -17,83 +21,58 @@ void FGoogleARCoreXRCamera::SetupView(FSceneViewFamily& InViewFamily, FSceneView
 
 void FGoogleARCoreXRCamera::SetupViewProjectionMatrix(FSceneViewProjectionData& InOutProjectionData)
 {
-	if (TangoSystem.TangoDeviceInstance->GetIsTangoRunning() && TangoSystem.bARCameraEnabled)
+	if (GoogleARCoreTrackingSystem.ARCoreDeviceInstance->GetIsARCoreSessionRunning() && bMatchDeviceCameraFOV)
 	{
 		FIntRect ViewRect = InOutProjectionData.GetViewRect();
-		InOutProjectionData.ProjectionMatrix = TangoSystem.TangoDeviceInstance->TangoARCameraManager.CalculateColorCameraProjectionMatrix(ViewRect.Size());
+		InOutProjectionData.ProjectionMatrix = GoogleARCoreTrackingSystem.ARCoreDeviceInstance->GetPassthroughCameraProjectionMatrix(ViewRect.Size());
 	}
 }
 
 void FGoogleARCoreXRCamera::BeginRenderViewFamily(FSceneViewFamily& InViewFamily)
 {
-	if (TangoSystem.TangoDeviceInstance->GetIsTangoRunning() && TangoSystem.bARCameraEnabled)
-	{
-		TangoSystem.TangoDeviceInstance->TangoARCameraManager.OnBeginRenderView();
-	}
+	PassthroughRenderer->InitializeOverlayMaterial();
 }
 
 void FGoogleARCoreXRCamera::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView)
 {
-	// Late Update Camera Poses
-	if (TangoSystem.TangoDeviceInstance->GetIsTangoRunning() && TangoSystem.bLateUpdateEnabled && TangoSystem.bLateUpdatePoseIsValid)
-	{
-		const FTransform OldLocalCameraTransform(InView.BaseHmdOrientation, InView.BaseHmdLocation);
-		const FTransform OldWorldCameraTransform(InView.ViewRotation, InView.ViewLocation);
-		const FTransform CameraParentTransform = OldLocalCameraTransform.Inverse() * OldWorldCameraTransform;
-		const FTransform NewWorldCameraTransform = TangoSystem.LateUpdatePose.Pose * CameraParentTransform;
-
-		InView.ViewLocation = NewWorldCameraTransform.GetLocation();
-		InView.ViewRotation = NewWorldCameraTransform.Rotator();
-		InView.UpdateViewMatrix();
-	}
 }
 
 void FGoogleARCoreXRCamera::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily)
 {
-	FGoogleARCoreHMD& TS = TangoSystem;
+	FGoogleARCoreXRTrackingSystem& TS = GoogleARCoreTrackingSystem;
 
-	if (TS.TangoDeviceInstance->GetIsTangoRunning() && TS.bLateUpdateEnabled)
+	if (TS.ARCoreDeviceInstance->GetIsARCoreSessionRunning() && bEnablePassthroughCameraRendering_RT)
 	{
-		if (TS.bARCameraEnabled)
-		{
-			// If Ar camera enabled, we need to sync the camera pose with the camera image timestamp.
-			TS.TangoDeviceInstance->TangoARCameraManager.LateUpdateColorCameraTexture_RenderThread();
-
-			double Timestamp = TS.TangoDeviceInstance->TangoARCameraManager.GetColorCameraImageTimestamp();
-
-			TS.bLateUpdatePoseIsValid = TS.TangoDeviceInstance->TangoMotionManager.GetPoseAtTime_Blocking(EGoogleARCoreReferenceFrame::CAMERA_COLOR, Timestamp, TS.LateUpdatePose);
-
-			if (!TS.bLateUpdatePoseIsValid)
-			{
-				UE_LOG(LogGoogleARCoreHMD, Warning, TEXT("Failed to late update tango color camera pose at timestamp %f."), Timestamp);
-			}
-		}
-		else
-		{
-			// If we are not using Ar camera mode, we just need to late update the camera pose to the latest tango device pose.
-			TS.bLateUpdatePoseIsValid = TS.TangoDeviceInstance->TangoMotionManager.GetPoseAtTime(EGoogleARCoreReferenceFrame::DEVICE, 0, TS.LateUpdatePose);
-		}
-
-		if (TS.bLateUpdatePoseIsValid)
-		{
-			const FSceneView* MainView = InViewFamily.Views[0];
-			const FTransform OldRelativeTransform(MainView->BaseHmdOrientation, MainView->BaseHmdLocation);
-
-			// @todo viewext re-enable
-			//ApplyLateUpdate(InViewFamily.Scene, OldRelativeTransform, LateUpdatePose.Pose);
-		}
+		PassthroughRenderer->InitializeRenderer_RenderThread(TS.ARCoreDeviceInstance->GetPassthroughCameraTexture());
 	}
 }
 
-void FGoogleARCoreXRCamera::PostRenderMobileBasePass_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView)
+void FGoogleARCoreXRCamera::PostRenderBasePass_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView)
 {
-	if (TangoSystem.TangoDeviceInstance->GetIsTangoRunning() && TangoSystem.bARCameraEnabled && TangoSystem.bColorCameraRenderingEnabled)
+	if (GoogleARCoreTrackingSystem.ARCoreDeviceInstance->GetIsARCoreSessionRunning() && bEnablePassthroughCameraRendering_RT)
 	{
-		TangoSystem.TangoDeviceInstance->TangoARCameraManager.RenderColorCameraOverlay_RenderThread(RHICmdList, InView);
+		TArray<float> TransformedUVs;
+		GoogleARCoreTrackingSystem.ARCoreDeviceInstance->GetPassthroughCameraImageUVs(PassthroughRenderer->OverlayQuadUVs, TransformedUVs);
+
+		PassthroughRenderer->UpdateOverlayUVCoordinate_RenderThread(TransformedUVs);
+		PassthroughRenderer->RenderVideoOverlay_RenderThread(RHICmdList, InView);
 	}
 }
 
 bool FGoogleARCoreXRCamera::IsActiveThisFrame(class FViewport* InViewport) const
 {
-	return TangoSystem.IsHeadTrackingAllowed();
+	return GoogleARCoreTrackingSystem.IsHeadTrackingAllowed();
+}
+
+void FGoogleARCoreXRCamera::ConfigXRCamera(bool bInMatchDeviceCameraFOV, bool bInEnablePassthroughCameraRendering)
+{
+	bMatchDeviceCameraFOV = bInMatchDeviceCameraFOV;
+	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+		ConfigXRCamera,
+		FGoogleARCoreXRCamera*, ARCoreXRCamera, this,
+		bool, bInEnablePassthroughCameraRendering, bInEnablePassthroughCameraRendering,
+		{
+			ARCoreXRCamera->bEnablePassthroughCameraRendering_RT = bInEnablePassthroughCameraRendering;
+		}
+	);
 }

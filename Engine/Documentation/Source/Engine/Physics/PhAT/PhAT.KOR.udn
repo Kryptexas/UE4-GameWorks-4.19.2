@@ -1,51 +1,105 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
-Title:PhAT, 피직스 애셋 툴
-Crumbs: %ROOT%, Engine, Engine/Physics
-Description: 스켈레탈 메시의 피지컬 시뮬레이션과 콜리전에 사용되는 피직스 바디와 조인트 셋업에 사용되는 피직스 애셋 툴입니다.
-Version: 4.9
+Crumbs: %ROOT%
+Title: 피직스 애셋 에디터
+Description: 스켈레탈 메시용 콜리전과 피직컬 시뮬레이션에 사용되는 피직스 바디와 컨스트레인트 구성을 위한 에디터입니다.
+Type: Landing
+Type:overview
+Version:4.18
+Parent:Engine/Physics
+Related:Engine/Physics/FrictionRestitutionAndDamping
+Related:Engine/Physics/PhysicalMaterials
+Related:Engine/Physics/Tracing
+Related:Engine/Physics/SimpleVsComplex
+Order:
+Tags:Physics
 
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/PhAT:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:fullwidth]
-![](phat.png)
+![](PhysicsAssetEditor.png)
 [/REGION]
 
 
-언리얼 **피직스 애셋 툴** (Physics Asset Tool, **PhAT**) 은 스켈레탈 메시에 대한 피직스 애셋 조작용으로 특별히 디자인된 언리얼 에디터 통합 툴입니다.
+**Physics Asset Editor** (피직스 애셋 에디터)는 언리얼 엔진 4 의 [애니메이션 에디터](Engine/Animation/Persona/Modes) 일부인 통합 에디터입니다. [스켈레탈 메시](Engine/Content/Types/SkeletalMeshes) 용 
+**피직스 애셋** 전문 조작 툴입니다. 
 
-## PhAT 열기
+[REGION:raw]
+![](PhysicsAssetCB.png)
+[/REGION]
 
-PhAT 피직스 에디터는 피직스 애셋에 더블클릭하거나 콘텐츠 브라우저에서 피직스 애셋에 우클릭하여 뜨는 맥락 메뉴를 통해 열 수 있습니다. 어느 식으로든 해당 피직스 애셋이 PhAT 피직스 에디터에 편집가능한 상태로 열리게 됩니다.
+**Physics Asset** (피직스 애셋)은 스켈레탈 메시에 사용되는 콜리전과 피직스를 정의하는 데 사용됩니다. 이는 리짓 바디와 컨스트레인트 세트를 통해 하나의 래그돌을 구성하며, 이는 
+인간형 래그돌에만 국한되지 않습니다. 바디와 컨스트레인트를 사용하는 어떤 피지컬 시뮬레이션에도 사용 가능합니다. 하나의 스켈레탈 메시에는 하나의 피직스 애셋만 허용되므로, 
+다수의 스켈레탈 메시 컴포넌트에 대해 켜고 끌 수 있습니다.
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		피지컬 머티리얼 관련
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/Physics/PhAT/HowTo "%Engine/Physics/PhAT/HowTo:Description%")
-		* [](Engine/Physics/PhAT/Reference "%Engine/Physics/PhAT/Reference:Description%")
-	[/PARAM]
-[/OBJECT]
+[REGION:imagetable]
+| ![](HumanoidPA.png)(h:600) | ![](VehiclePA.png)(h:600) |
+| --- | --- |
+| 캐릭터 피직스 애셋 | 비히클 피직스 애셋 |
+[/REGION]
+
+피직스 애셋은 스켈레탈 메시의 시뮬레이션을 위해 구성하는 것입니다. 그 사용 예는 두 가지인데, 하나는 인간형 캐릭터이고 다른 하나는 에픽의 데모 비히클 게임의 Buggy 입니다.
+
+
+## 피직스 애셋 생성
+
+스켈레탈 메시용 피직스 애셋을 생성할 수 있는 방법은 두 가지입니다:
+
+* **Create Physics Asset** (피직스 애셋 생성) 옵션을 켜고 임포트하는 방법.
+
+	[REGION:lightbox]
+	[![](Import.png)(h:400)](Import.png)
+	[/REGION]
+	[REGION:caption] 클릭하면 이미지 원본을 확인합니다. [/REGION]
+
+* **콘텐츠 브라우저** 에서 사용할 스켈레탈 메시를 선택하여 피직스 애셋을 생성하는 방법.
+	
+	[REGION:lightbox]
+	[![](CreatePA_CB.png)(w:575) ](CreatePA_CB.png)
+	[/REGION]
+	[REGION:caption] 클릭하면 이미지 원본을 확인합니다. [/REGION]
+	
+	피직스 애셋을 처음 선택할 때, 바디와 컨스트레인트 생성 방식을 설정하는 창이 열립니다:
+
+	![](PhysicsAssetGenerationProperties.png)
+
+
+## 피직스 애셋 에디터 열기
+
+피직스 애셋 에디터를 여는 방법은 몇 가지 있습니다:
+
+* **콘텐츠 브라우저** 에서 피직스 애셋을 더블클릭하는 방법.
+[COMMENT:none]
+-
+[REGION:lightbox]
+[![](OpenFromCB.png)(w:300)](OpenFromCB.png)
+[/REGION]
+-
+[/COMMENT]
+* 우클릭 맥락 메뉴에서 **편집...** 을 선택하는 방법.
+
+	[REGION:lightbox]
+	[![](RightClickOpen.png)(w:300)](RightClickOpen.png)
+	[/REGION]
+
+* [애니메이션 에디터](Engine/Animation/Persona/Modes) 의 선택 탭에서 **피직스** 탭을 선택하는 방법.
+
+	![](PhysicsAssetEditorTab.png)
+
+	**피직스** 탭 옆 아래 **화살표** 를 사용하면 콘텐츠 브라우저에서 현재 열린 스켈레톤을 사용하는 피직스 애셋을 선택할 수 있습니다.
+
+	![](PhysicsAssetSelectionDropDown.png)
+
+
+## 필독서
+
+[DIR(output:"topiccompact" parent:"Engine/Physics/PhAT" org:"hierarchy" type:"landing,overview,reference,quick start" tags:"physics" end:"1")]
+[DIR(output:"topiccompact" parent:"Engine/Physics" org:"hierarchy" type:"landing" tags:"physics" tags:"constraints" end:"1")]
+[DIR(output:"topiccompact" parent:"Engine/Physics" org:"hierarchy" type:"landing" tags:"physics" tags:"bodies" end:"1")]
+
+## 안내서
+[DIR(output:"topiccompact" parent:"Engine/Physics/PhAT" org:"hierarchy" type:"how-to" tags:"physics" end:"1")]
+
+
+
+
+

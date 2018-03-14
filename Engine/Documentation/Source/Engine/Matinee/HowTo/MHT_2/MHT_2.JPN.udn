@@ -6,20 +6,13 @@ Description:A 地点から B 地点へ自動的に移動する 2 種類のリフ
 Version:4.9
 SkillLevel:Intermediate
 
-
----
 以下の手順では、あるポイントから別のポイントに自動的に移動する 2 つのリフトを作成します。
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		リフトを作成する
-	[/PARAM]
-	[PARAM:description]
-	このステップでは、基本的形状を使用してリフトとプラットフォームを作成します。 
-	[/PARAM]
-[/OBJECT]
+リフトを作成する
+
+このステップでは、基本的形状を使用してリフトとプラットフォームを作成します。 
 
 1. **コンテンツ ブラウザ** の **「Shapes」** フォルダで、**Shape_Cube** をレベル内の **PlayerStart** の前にドラッグします。 
 
@@ -57,15 +50,9 @@ SkillLevel:Intermediate
 
 	![](MHT2_LastCubeAdded.png)
 
+マチネを追加し、最初のリフトを移動する
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		マチネを追加し、最初のリフトを移動する
-	[/PARAM]
-	[PARAM:description]
-	このステップでは **マチネ** を追加し、最初のリフトに対して **Movement Track** を作成します。 
-	[/PARAM]
-[/OBJECT]
+このステップでは **マチネ** を追加し、最初のリフトに対して **Movement Track** を作成します。 
 
 1. **ツールバー** メニューから、**[マチネ]** を選択し、**[Add Matinee]** ボタンをクリックします。 
 
@@ -156,14 +143,9 @@ SkillLevel:Intermediate
 	[/OBJECT]
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		カーブ エディタを使用して 2 つめのリフトを移動する
-	[/PARAM]
-	[PARAM:description]
-	この手順では、**カーブエディタ** 内でキーフレームを調整することで 2 つめのリフトを移動させます。 
-	[/PARAM]
-[/OBJECT]
+カーブ エディタを使用して 2 つめのリフトを移動する
+
+この手順では、**カーブエディタ** 内でキーフレームを調整することで 2 つめのリフトを移動させます。 
 
 1. **ワールド アウトライナー** から **Matinee アクタ** を選択し、[詳細] パネルで **[Open Matinee (マチネを開く)]** オプションを選択します。 
 
@@ -269,15 +251,3 @@ SkillLevel:Intermediate
 	-6dlhjG9JP4
 	[/PARAMLITERAL]
 	[/OBJECT]
-	---
-
-
-
-
-
-
-
-
-
-
-

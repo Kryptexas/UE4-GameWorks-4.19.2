@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimationSettings.h: Declares the AnimationSettings class.
@@ -93,6 +93,10 @@ class ENGINE_API UAnimationSettings : public UDeveloperSettings
 	/** If true, animation track data will be stripped from dedicated server cooked data */
 	UPROPERTY(config, EditAnywhere, Category = Performance)
 	bool bStripAnimationDataOnDedicatedServer;
+
+	/** If true, pre-4.19 behavior of zero-ticking animations during skeletal mesh init */
+	UPROPERTY(config, EditAnywhere, Category = Performance)
+	bool bTickAnimationOnSkeletalMeshInit;
 
 public:
 	static UAnimationSettings * Get() { return CastChecked<UAnimationSettings>(UAnimationSettings::StaticClass()->GetDefaultObject()); }

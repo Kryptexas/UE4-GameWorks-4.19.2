@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BasePassCommon.usf: Base pass definitions used by both vertex and pixel shader
@@ -10,10 +10,16 @@
 // Translucent materials need to compute fogging in the forward shading pass
 // Materials that read from scene color skip getting fogged, because the contents of the scene color lookup have already been fogged
 // This is not foolproof, as any additional color the material adds will then not be fogged correctly
-#define TRANSLUCENCY_NEEDS_BASEPASS_FOGGING	(ENABLE_TRANSLUCENCY_FOGGING && MATERIALBLENDING_ANY_TRANSLUCENT && !MATERIAL_USES_SCENE_COLOR_COPY)
-#define OPAQUE_NEEDS_BASEPASS_FOGGING		(!MATERIALBLENDING_ANY_TRANSLUCENT && VERTEX_FOGGING_FOR_OPAQUE && FORWARD_SHADING)
-#define NEEDS_BASEPASS_VERTEX_FOGGING		(TRANSLUCENCY_NEEDS_BASEPASS_FOGGING && !COMPUTE_FOG_PER_PIXEL || OPAQUE_NEEDS_BASEPASS_FOGGING)
-#define NEEDS_BASEPASS_PIXEL_FOGGING		(TRANSLUCENCY_NEEDS_BASEPASS_FOGGING && COMPUTE_FOG_PER_PIXEL)
+#define TRANSLUCENCY_NEEDS_BASEPASS_FOGGING	(MATERIAL_ENABLE_TRANSLUCENCY_FOGGING && MATERIALBLENDING_ANY_TRANSLUCENT && !MATERIAL_USES_SCENE_COLOR_COPY)
+// With forward shading, fog always needs to be computed in the base pass to work correctly with MSAA
+#define OPAQUE_NEEDS_BASEPASS_FOGGING		(!MATERIALBLENDING_ANY_TRANSLUCENT && FORWARD_SHADING)
+
+#define NEEDS_BASEPASS_VERTEX_FOGGING		(TRANSLUCENCY_NEEDS_BASEPASS_FOGGING && !MATERIAL_COMPUTE_FOG_PER_PIXEL || OPAQUE_NEEDS_BASEPASS_FOGGING && PROJECT_VERTEX_FOGGING_FOR_OPAQUE)
+#define NEEDS_BASEPASS_PIXEL_FOGGING		(TRANSLUCENCY_NEEDS_BASEPASS_FOGGING && MATERIAL_COMPUTE_FOG_PER_PIXEL || OPAQUE_NEEDS_BASEPASS_FOGGING && !PROJECT_VERTEX_FOGGING_FOR_OPAQUE)
+
+// Volumetric fog interpolated per vertex gives very poor results, always sample the volumetric fog texture per-pixel
+// Opaque materials in the deferred renderer get volumetric fog applied in a deferred fog pass
+#define NEEDS_BASEPASS_PIXEL_VOLUMETRIC_FOGGING		(MATERIALBLENDING_ANY_TRANSLUCENT || FORWARD_SHADING)
 
 #define NEEDS_LIGHTMAP						(NEEDS_LIGHTMAP_COORDINATE)
 
@@ -116,10 +122,10 @@ Texture3D TranslucencyLightingVolumeDirectionalInner;
 Texture3D TranslucencyLightingVolumeDirectionalOuter;
 
 #if SUPPORTS_INDEPENDENT_SAMPLERS
-	#define TranslucencyLightingVolumeAmbientInnerSampler View.SharedBilinearClampSampler
-	#define TranslucencyLightingVolumeAmbientOuterSampler View.SharedBilinearClampSampler
-	#define TranslucencyLightingVolumeDirectionalInnerSampler View.SharedBilinearClampSampler
-	#define TranslucencyLightingVolumeDirectionalOuterSampler View.SharedBilinearClampSampler
+	#define TranslucencyLightingVolumeAmbientInnerSampler View.SharedBilinearClampedSampler
+	#define TranslucencyLightingVolumeAmbientOuterSampler View.SharedBilinearClampedSampler
+	#define TranslucencyLightingVolumeDirectionalInnerSampler View.SharedBilinearClampedSampler
+	#define TranslucencyLightingVolumeDirectionalOuterSampler View.SharedBilinearClampedSampler
 #else
 	SamplerState TranslucencyLightingVolumeAmbientInnerSampler;
 	SamplerState TranslucencyLightingVolumeAmbientOuterSampler;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,7 +16,6 @@
 #include "Editor/HierarchicalLODOutliner/Private/TreeItemID.h"
 
 class AActor;
-class AHLODSelectionActor;
 class ALODActor;
 class AWorldSettings;
 class IDetailsView;
@@ -59,6 +58,7 @@ namespace HLODOutliner
 	friend struct FLODActorItem;
 	friend struct FHLODTreeWidgetItem;
 	friend struct FStaticMeshActorItem;
+	friend struct FLODLevelItem;
 	friend class SHLODWidgetItem;
 
 	public:
@@ -208,6 +208,9 @@ namespace HLODOutliner
 
 		/** Removes the given LODActor from its parent's (ALODActor) sub-actors array */
 		void RemoveLODActorFromCluster();
+
+		/** Creates a cluster from a set of actors for the given lod level index */
+		void CreateClusterFromActors(const TArray<AActor*>& Actors, uint32 LODLevelIndex);
 		
 		/**
 		* Updates the DrawDistance value for all the LODActors with the given LODLevelIndex
@@ -310,7 +313,7 @@ namespace HLODOutliner
 		* @param Actor - Actor to create the SelectionActor for
 		* @return UDrawSphereComponent*
 		*/
-		UDrawSphereComponent* CreateBoundingSphereForActor(AActor* Actor);
+		void AddLODActorForBoundsDrawing(AActor* Actor);
 
 		/** Ends the Editor selection batch, bChange determines whether or not there was an actual change and call NoteSelectionChange */
 		void EndSelection(const bool bChange);
@@ -332,10 +335,7 @@ namespace HLODOutliner
 
 		/** Called by the engine when an actor is remove from the world. */
 		void OnLevelActorsRemoved(AActor* InActor);
-
-		/** Handler for when a property changes on any object */
-		void OnActorLabelChanged(AActor* ChangedActor);
-
+		
 		/** Called when the map has changed*/
 		void OnMapChange(uint32 MapFlags);
 
@@ -454,8 +454,8 @@ namespace HLODOutliner
 		/** Array containing all the nodes */
 		TArray<FTreeItemPtr> AllNodes;
 	
-		/** Array of SelectionActors created for current HLOD selection*/
-		TArray<AHLODSelectionActor*> SelectionActors;
+		/** Array of currently selected LODActors */		
+		TArray<AActor*> SelectedLODActors;
 
 		/** Currently forced LOD level*/
 		int32 ForcedLODLevel;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "HTML5InputInterface.h"
 #include "HTML5Cursor.h"
@@ -17,7 +17,8 @@ THIRD_PARTY_INCLUDES_START
 #include <emscripten/html5.h>
 THIRD_PARTY_INCLUDES_END
 
-static FGamepadKeyNames::Type AxisMapping[4] =
+#define AxisMappingCap 4
+static FGamepadKeyNames::Type AxisMapping[AxisMappingCap] =
 {
 	FGamepadKeyNames::LeftAnalogX,
 	FGamepadKeyNames::LeftAnalogY,
@@ -35,7 +36,8 @@ static int Reversed[4] =
 };
 
 // all are digital except Left and Right Trigger Analog.
-static FGamepadKeyNames::Type ButtonMapping[16] =
+#define ButtonMappingCap 16
+static FGamepadKeyNames::Type ButtonMapping[ButtonMappingCap] =
 {
 	FGamepadKeyNames::FaceButtonBottom,
 	FGamepadKeyNames::FaceButtonRight,
@@ -99,8 +101,11 @@ void FHTML5InputInterface::Tick(float DeltaTime, const SDL_Event& Event,TSharedR
 				const SDL_Keycode KeyCode = KeyEvent.keysym.scancode;
 				const bool bIsRepeated = KeyEvent.repeat != 0;
 
-				// First KeyDown, then KeyChar. This is important, as in-game console ignores first character otherwise
-				MessageHandler->OnKeyDown(KeyCode, KeyEvent.keysym.sym, bIsRepeated);
+				if ( KeyCode != 227 && KeyCode != 231 ) // UE-54056 -- filtering out Windows/Super key
+				{
+					// First KeyDown, then KeyChar. This is important, as in-game console ignores first character otherwise
+					MessageHandler->OnKeyDown(KeyCode, KeyEvent.keysym.sym, bIsRepeated);
+				}
 
 				// Backspace/Return input caught here.
 				// Note that TextInput still seems to get characters messages too but slate seems to not process them.
@@ -117,10 +122,12 @@ void FHTML5InputInterface::Tick(float DeltaTime, const SDL_Event& Event,TSharedR
 			{
 				SDL_KeyboardEvent keyEvent = Event.key;
 				const SDL_Keycode KeyCode = keyEvent.keysym.scancode;
-				const bool IsRepeat = keyEvent.repeat != 0;
-
-				MessageHandler->OnKeyUp( KeyCode, keyEvent.keysym.sym, IsRepeat );
-				UE_LOG(LogHTML5Input, Verbose, TEXT("KeyUp Code:%d"), KeyCode);
+				if ( KeyCode != 227 && KeyCode != 231 ) // UE-54056 -- filtering out Windows/Super key
+				{
+					const bool IsRepeat = keyEvent.repeat != 0;
+					MessageHandler->OnKeyUp( KeyCode, keyEvent.keysym.sym, IsRepeat );
+					UE_LOG(LogHTML5Input, Verbose, TEXT("KeyUp Code:%d"), KeyCode);
+				}
 			}
 			break;
 		case SDL_TEXTINPUT:
@@ -195,7 +202,7 @@ void FHTML5InputInterface::SendControllerEvents()
 			if (!Failed)
 			{
 				check(CurrentGamePad == GamePadEvent.index);
-				for(int CurrentAxis = 0; CurrentAxis < GamePadEvent.numAxes; ++CurrentAxis)
+				for(int CurrentAxis = 0; CurrentAxis < AxisMappingCap; ++CurrentAxis)
 				{
 					if (GamePadEvent.axis[CurrentAxis] != PrevGamePadState[CurrentGamePad].axis[CurrentAxis])
 					{
@@ -204,7 +211,7 @@ void FHTML5InputInterface::SendControllerEvents()
 					}
 				}
 				// edge trigger.
-				for(int CurrentButton = 0; CurrentButton < GamePadEvent.numButtons; ++CurrentButton)
+				for(int CurrentButton = 0; CurrentButton < ButtonMappingCap; ++CurrentButton)
 				{
 					// trigger for digital buttons.
 					if ( GamePadEvent.digitalButton[CurrentButton]   != PrevGamePadState[CurrentGamePad].digitalButton[CurrentButton] )
@@ -223,7 +230,7 @@ void FHTML5InputInterface::SendControllerEvents()
 				}
 				// repeat trigger.
 				const float RepeatDelta = 0.2f;
-				for(int CurrentButton = 0; CurrentButton < GamePadEvent.numButtons; ++CurrentButton)
+				for(int CurrentButton = 0; CurrentButton < ButtonMappingCap; ++CurrentButton)
 				{
 					if ( GamePadEvent.digitalButton[CurrentButton]  )
 					{

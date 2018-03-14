@@ -68,7 +68,7 @@ Another way to view the position types is by which aspects of the player positio
 
 * Supports the Support Depth flag on World and Tracker locked layers.
 
-* When multiple layers have the same priority, layers are rendered in a non-defined order. If you care about the ordering, use different priorities.
+* The Oculus plugin treats all Stereo Layers as intersecting the scene. This makes the layers behave as if the [**Support Depth**](Engine/Basics/Screenshots/#customdepthmask) flag is always set to true. To re-order which layers are rendered on top of other, you will need to physically move the layers you want to render first closer to the camera.
 
 ### Gear VR 
 

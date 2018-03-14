@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "VIUniformScaleGizmoHandle.h"
 #include "UObject/ConstructorHelpers.h"
@@ -8,18 +8,21 @@
 #include "VIBaseTransformGizmo.h"
 #include "ViewportWorldInteraction.h"
 #include "ViewportInteractionDragOperations.h"
+#include "ViewportInteractionAssetContainer.h"
 
 UUniformScaleGizmoHandleGroup::UUniformScaleGizmoHandleGroup()
 	: Super(),
 	bUsePivotAsLocation( true )
 {
-	// Setup uniform scaling
-	UStaticMesh* UniformScaleMesh = nullptr;
+	if (HasAnyFlags(RF_ClassDefaultObject))
 	{
-		static ConstructorHelpers::FObjectFinder<UStaticMesh> ObjectFinder( TEXT( "/Engine/VREditor/TransformGizmo/UniformScaleHandle" ) );
-		UniformScaleMesh = ObjectFinder.Object;
-		check( UniformScaleMesh != nullptr );
+		return;
 	}
+
+	// Setup uniform scaling
+	const UViewportInteractionAssetContainer& AssetContainer = UViewportWorldInteraction::LoadAssetContainer(); 
+	UStaticMesh* UniformScaleMesh = AssetContainer.UniformScaleHandleMesh;
+	check( UniformScaleMesh != nullptr );
 
 	UGizmoHandleMeshComponent* UniformScaleHandle = CreateMeshHandle( UniformScaleMesh, FString( "UniformScaleHandle" ) );
 	check( UniformScaleHandle != nullptr );

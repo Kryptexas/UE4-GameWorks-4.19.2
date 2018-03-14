@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -45,11 +45,11 @@ struct ENGINE_API FEdGraphTerminalType
 
 	/** Category */
 	UPROPERTY()
-	FString TerminalCategory;
+	FName TerminalCategory;
 
 	/** Sub-category */
 	UPROPERTY()
-	FString TerminalSubCategory;
+	FName TerminalSubCategory;
 
 	/** Sub-category object */
 	UPROPERTY()
@@ -340,15 +340,28 @@ public:
 	/** Get all pins this node owns */
 	TArray<UEdGraphPin*> GetAllPins() { return Pins; }
 
+	struct FNameParameterHelper
+	{
+		FNameParameterHelper(const FName InNameParameter) : NameParameter(InNameParameter) { }
+		FNameParameterHelper(const FString& InNameParameter) : NameParameter(*InNameParameter) { }
+		FNameParameterHelper(const TCHAR* InNameParameter) : NameParameter(InNameParameter) { }
+
+		FName operator*() const { return NameParameter; }
+
+	private:
+		FName NameParameter;
+	};
+
 	/** Create a new pin on this node using the supplied info, and return the new pin */
+	DEPRECATED(4.19, "Use version that supplies Pin Category, SubCategory, and Name as an FName and uses PinContainerType instead of separate booleans for array, set, and map.")
 	UEdGraphPin* CreatePin(
 		EEdGraphPinDirection Dir, 
-		const FString& PinCategory, 
-		const FString& PinSubCategory, 
+		const FNameParameterHelper PinCategory, 
+		const FNameParameterHelper PinSubCategory, 
 		UObject* PinSubCategoryObject, 
 		bool bIsArray, 
 		bool bIsReference, 
-		const FString& PinName, 
+		const FNameParameterHelper PinName, 
 		bool bIsConst = false, 
 		int32 Index = INDEX_NONE, 
 		bool bIsSet = false, 
@@ -356,30 +369,111 @@ public:
 		const FEdGraphTerminalType& ValueTerminalType = FEdGraphTerminalType());
 
 	/** Create a new pin on this node using the supplied info, and return the new pin */
+	DEPRECATED(4.19, "Use version that supplies Pin Category, SubCategory, and Name as an FName and uses a parameter structure for optional paramaters.")
 	UEdGraphPin* CreatePin(
-		EEdGraphPinDirection Dir, 
-		const FString& PinCategory, 
-		const FString& PinSubCategory, 
-		UObject* PinSubCategoryObject, 
-		const FString& PinName, 
+		EEdGraphPinDirection Dir,
+		const FNameParameterHelper PinCategory,
+		const FNameParameterHelper PinSubCategory,
+		UObject* PinSubCategoryObject,
+		const FNameParameterHelper PinName,
 		EPinContainerType PinContainerType = EPinContainerType::None,
-		bool bIsReference = false, 
-		bool bIsConst = false, 
-		int32 Index = INDEX_NONE, 
+		bool bIsReference = false,
+		bool bIsConst = false,
+		int32 Index = INDEX_NONE,
 		const FEdGraphTerminalType& ValueTerminalType = FEdGraphTerminalType());
 
+	/** Parameter struct of less common options for CreatePin */
+	struct ENGINE_API FCreatePinParams
+	{
+		FCreatePinParams()
+			: ContainerType(EPinContainerType::None)
+			, bIsReference(false)
+			, bIsConst(false)
+			, Index(INDEX_NONE)
+		{
+		}
+
+		FCreatePinParams(const FEdGraphPinType& PinType);
+
+		EPinContainerType ContainerType;
+		bool bIsReference;
+		bool bIsConst;
+		int32 Index;
+		FEdGraphTerminalType ValueTerminalType;
+	};
+
+	/** Create a new pin on this node using the supplied info, and return the new pin */
+	UEdGraphPin* CreatePin(EEdGraphPinDirection Dir, const FName PinCategory, const FName PinName, const FCreatePinParams& PinParams = FCreatePinParams())
+	{
+		return CreatePin(Dir, PinCategory, NAME_None, nullptr, PinName, PinParams);
+	}
+
+	UEdGraphPin* CreatePin(EEdGraphPinDirection Dir, const FName PinCategory, const FName PinSubCategory, const FName PinName, const FCreatePinParams& PinParams = FCreatePinParams())
+	{
+		return CreatePin(Dir, PinCategory, PinSubCategory, nullptr, PinName, PinParams);
+	}
+
+	UEdGraphPin* CreatePin(EEdGraphPinDirection Dir, const FName PinCategory, UObject* PinSubCategoryObject, const FName PinName, const FCreatePinParams& PinParams = FCreatePinParams())
+	{
+		return CreatePin(Dir, PinCategory, NAME_None, PinSubCategoryObject, PinName, PinParams);
+	}
+
+	UEdGraphPin* CreatePin(EEdGraphPinDirection Dir, const FName PinCategory, const FName PinSubCategory, UObject* PinSubCategoryObject, const FName PinName, const FCreatePinParams& PinParams = FCreatePinParams());
+
 	/** Create a new pin on this node using the supplied pin type, and return the new pin */
-	UEdGraphPin* CreatePin(EEdGraphPinDirection Dir, const FEdGraphPinType& InPinType, const FString& PinName, int32 Index = INDEX_NONE);
+	UEdGraphPin* CreatePin(EEdGraphPinDirection Dir, const FEdGraphPinType& InPinType, const FName PinName, int32 Index = INDEX_NONE);
+
+	/** Create a new pin on this node using the supplied pin type, and return the new pin */
+	DEPRECATED(4.19, "Use version that passes PinName as FName instead.")
+	UEdGraphPin* CreatePin(EEdGraphPinDirection Dir, const FEdGraphPinType& InPinType, const FString& PinName, int32 Index = INDEX_NONE)
+	{
+		return CreatePin(Dir, InPinType, FName(*PinName), Index);
+	}
+
+	/** Create a new pin on this node using the supplied pin type, and return the new pin */
+	//DEPRECATED(4.19, "Remove when removing FString version. Exists just to resolve ambiguity")
+	UEdGraphPin* CreatePin(EEdGraphPinDirection Dir, const FEdGraphPinType& InPinType, const TCHAR* PinName, int32 Index = INDEX_NONE)
+	{
+		return CreatePin(Dir, InPinType, FName(PinName), Index);
+	}
 
 	/** Destroys the specified pin, does not modify its owning pin's Pins list */
 	static void DestroyPin(UEdGraphPin* Pin);
 
 	/** Find a pin on this node with the supplied name and optional direction */
-	UEdGraphPin* FindPin(const FString& PinName, const EEdGraphPinDirection Direction = EGPD_MAX) const;
+	UEdGraphPin* FindPin(const FName PinName, const EEdGraphPinDirection Direction = EGPD_MAX) const;
 
 	/** Find a pin on this node with the supplied name and optional direction and assert if it is not present */
-	UEdGraphPin* FindPinChecked(const FString& PinName, const EEdGraphPinDirection Direction = EGPD_MAX) const;
-	
+	UEdGraphPin* FindPinChecked(const FName PinName, const EEdGraphPinDirection Direction = EGPD_MAX) const
+	{
+		UEdGraphPin* Result = FindPin(PinName, Direction);
+		check(Result);
+		return Result;
+	}
+
+	/** Find a pin on this node with the supplied name and optional direction */
+	UEdGraphPin* FindPin(const FString& PinName, const EEdGraphPinDirection Direction = EGPD_MAX) const
+	{
+		return FindPin(*PinName, Direction);
+	}
+
+	/** Find a pin on this node with the supplied name and optional direction and assert if it is not present */
+	UEdGraphPin* FindPinChecked(const FString& PinName, const EEdGraphPinDirection Direction = EGPD_MAX) const
+	{
+		return FindPinChecked(*PinName, Direction);
+	}
+
+	/** Find a pin on this node with the supplied name and optional direction */
+	UEdGraphPin* FindPin(const TCHAR* PinName, const EEdGraphPinDirection Direction = EGPD_MAX) const;
+
+	/** Find a pin on this node with the supplied name and optional direction and assert if it is not present */
+	UEdGraphPin* FindPinChecked(const TCHAR* PinName, const EEdGraphPinDirection Direction = EGPD_MAX) const
+	{
+		UEdGraphPin* Result = FindPin(PinName, Direction);
+		check(Result);
+		return Result;
+	}
+
 	/** Find the pin on this node with the supplied guid */
 	UEdGraphPin* FindPinById(const FGuid PinId) const;
 
@@ -443,15 +537,15 @@ public:
 	}
 
 	/** Generate a unique pin name, trying to stick close to a passed in name */
-	virtual FString CreateUniquePinName(FString SourcePinName) const
+	virtual FName CreateUniquePinName(FName SourcePinName) const
 	{
-		FString PinName(SourcePinName);
+		FName PinName(SourcePinName);
 		
 		int32 Index = 1;
-		while (FindPin(PinName) != NULL)
+		while (FindPin(PinName) != nullptr)
 		{
 			++Index;
-			PinName = SourcePinName + FString::FromInt(Index);
+			PinName = *FString::Printf(TEXT("%s%d"),*SourcePinName.ToString(),Index);
 		}
 
 		return PinName;
@@ -665,7 +759,7 @@ public:
 	virtual void AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutTaggedMetaData) const;
 
 	/** Return the requested metadata for the pin if there is any */
-	virtual FString GetPinMetaData(FString InPinName, FName InKey) { return FString(); }
+	virtual FString GetPinMetaData(FName InPinName, FName InKey) { return FString(); }
 
 	/** Return false if the node and any expansion will isolate itself during compile */
 	virtual bool IsCompilerRelevant() const { return true; }

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,7 +28,7 @@ public class AndroidPlatform : Platform
 
 	private static string GetSONameWithoutArchitecture(ProjectParams Params, string DecoratedExeName)
 	{
-		return Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), DecoratedExeName) + ".so";
+		return Path.Combine(Path.GetDirectoryName(Params.GetProjectExeForPlatform(UnrealTargetPlatform.Android).ToString()), DecoratedExeName) + ".so";
 	}
 
 	private static string GetFinalApkName(ProjectParams Params, string DecoratedExeName, bool bRenameUE4Game, string Architecture, string GPUArchitecture)
@@ -44,7 +44,7 @@ public class AndroidPlatform : Platform
 		string ApkName = Path.Combine(ProjectDir, DecoratedExeName) + Architecture + GPUArchitecture + ".apk";
 
 		// if the source binary was UE4Game, handle using it or switching to project name
-		if (Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename) == "UE4Game")
+		if (Path.GetFileNameWithoutExtension(Params.GetProjectExeForPlatform(UnrealTargetPlatform.Android).ToString()) == "UE4Game")
 		{
 			if (bRenameUE4Game)
 			{
@@ -106,7 +106,7 @@ public class AndroidPlatform : Platform
         return TargetAndroidLocation + PackageName + "/" + Path.GetFileName(ObbName);
 	}
 
-    private static string GetStorageQueryCommand()
+    public static string GetStorageQueryCommand()
     {
 		if (Utils.IsRunningOnMono)
 		{
@@ -371,7 +371,7 @@ public class AndroidPlatform : Platform
 		PrintRunTime();
 	}
 
-	private string[] GenerateInstallBatchFile(bool bPackageDataInsideApk, string PackageName, string ApkName, ProjectParams Params, string ObbName, string DeviceObbName, bool bNoObbInstall, bool bIsPC, bool bIsDistribution, bool bRequireRuntimeStoragePermission)
+    private string[] GenerateInstallBatchFile(bool bPackageDataInsideApk, string PackageName, string ApkName, ProjectParams Params, string ObbName, string DeviceObbName, bool bNoObbInstall, bool bIsPC, bool bIsDistribution, bool bRequireRuntimeStoragePermission)
     {
         string[] BatchLines = null;
         string ReadPermissionGrantCommand = "shell pm grant " + PackageName + " android.permission.READ_EXTERNAL_STORAGE";
@@ -710,7 +710,7 @@ public class AndroidPlatform : Platform
 		}
 	}
 
-	private string GetAdbCommandLine(ProjectParams Params, string SerialNumber, string Args)
+	private static string GetAdbCommandLine(ProjectParams Params, string SerialNumber, string Args)
 	{
 	    if (SerialNumber != "")
 		{
@@ -722,7 +722,7 @@ public class AndroidPlatform : Platform
 
 	static string LastSpewFilename = "";
 
-	public string ADBSpewFilter(string Message)
+	public static string ADBSpewFilter(string Message)
 	{
 		if (Message.StartsWith("[") && Message.Contains("%]"))
 		{
@@ -743,7 +743,7 @@ public class AndroidPlatform : Platform
 		return Message;
 	}
 
-	private IProcessResult RunAdbCommand(ProjectParams Params, string SerialNumber, string Args, string Input = null, ERunOptions Options = ERunOptions.Default)
+	public static IProcessResult RunAdbCommand(ProjectParams Params, string SerialNumber, string Args, string Input = null, ERunOptions Options = ERunOptions.Default)
 	{
 		string AdbCommand = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/platform-tools/adb" + (Utils.IsRunningOnMono ? "" : ".exe"));
 		if (Options.HasFlag(ERunOptions.AllowSpew) || Options.HasFlag(ERunOptions.SpewIsVerbose))
@@ -1198,7 +1198,7 @@ public class AndroidPlatform : Platform
 	private static string LaunchableActivityLine = null;
 
 	/** Run an external exe (and capture the output), given the exe path and the commandline. */
-	private static string GetPackageInfo(string ApkName, bool bRetrieveVersionCode)
+	public static string GetPackageInfo(string ApkName, bool bRetrieveVersionCode)
 	{
 		// we expect there to be one, so use the first one
 		string AaptPath = GetAaptPath();
@@ -1234,7 +1234,7 @@ public class AndroidPlatform : Platform
 	}
 
 	/** Returns the launch activity name to launch (must call GetPackageInfo first), returns "com.epicgames.ue4.SplashActivity" default if not found */
-	private static string GetLaunchableActivityName()
+	public static string GetLaunchableActivityName()
 	{
 		string ReturnValue = "com.epicgames.ue4.SplashActivity";
 		if (LaunchableActivityLine != null)
@@ -1469,7 +1469,7 @@ public class AndroidPlatform : Platform
 			{
 				throw new AutomationException(ExitCode.Error_AppNotFound, "Failed to find application " + ApkName);
 			}
-			Console.WriteLine("Apk='{0}', ClientApp='{1}', ExeName='{2}'", ApkName, ClientApp, Params.ProjectGameExeFilename);
+			Console.WriteLine("Apk='{0}', ClientApp='{1}', ExeName='{2}'", ApkName, ClientApp, Params.GetProjectExeForPlatform(UnrealTargetPlatform.Android).ToString());
 
 			// run aapt to get the name of the intent
 			string PackageName = GetPackageInfo(ApkName, false);
@@ -1604,7 +1604,7 @@ public class AndroidPlatform : Platform
         }
     */
 
-	public override List<string> GetDebugFileExtentions()
+	public override List<string> GetDebugFileExtensions()
 	{
 		return new List<string> { };
 	}
@@ -1663,6 +1663,18 @@ public class AndroidPlatformETC1 : AndroidPlatform
     public override TargetPlatformDescriptor GetTargetPlatformDescriptor()
     {
         return new TargetPlatformDescriptor(TargetPlatformType, "ETC1");
+    }
+}
+
+public class AndroidPlatformETC1a : AndroidPlatform
+{
+    public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly)
+    {
+        return "Android_ETC1a";
+    }
+    public override TargetPlatformDescriptor GetTargetPlatformDescriptor()
+    {
+        return new TargetPlatformDescriptor(TargetPlatformType, "ETC1a");
     }
 }
 

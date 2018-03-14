@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GeometryCacheSceneProxy.h"
 #include "MaterialShared.h"
@@ -8,6 +8,8 @@
 #include "Engine/Engine.h"
 #include "GeometryCacheComponent.h"
 #include "GeometryCacheMeshData.h"
+
+DEFINE_LOG_CATEGORY(LogGeomCache);
 
 FGeometryCacheSceneProxy::FGeometryCacheSceneProxy(UGeometryCacheComponent* Component) : FPrimitiveSceneProxy(Component)
 , MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetFeatureLevel()))
@@ -21,7 +23,7 @@ FGeometryCacheSceneProxy::FGeometryCacheSceneProxy(UGeometryCacheComponent* Comp
 		
 		if (SrcSection.MeshData->Indices.Num() > 0)
 		{
-			FGeomCacheTrackProxy* NewSection = new FGeomCacheTrackProxy();
+			FGeomCacheTrackProxy* NewSection = new FGeomCacheTrackProxy(GetScene().GetFeatureLevel());
 
 			NewSection->WorldMatrix = SrcSection.WorldMatrix;
 			FGeometryCacheMeshData* MeshData = NewSection->MeshData = SrcSection.MeshData;
@@ -29,21 +31,13 @@ FGeometryCacheSceneProxy::FGeometryCacheSceneProxy(UGeometryCacheComponent* Comp
 			// Copy data from vertex buffer
 			const int32 NumVerts = MeshData->Vertices.Num();
 
-			// Allocate verts
-			NewSection->VertexBuffer.Vertices.Empty(NumVerts);
-			// Copy verts
-			NewSection->VertexBuffer.Vertices.Append(MeshData->Vertices);
-
 			// Copy index buffer
 			NewSection->IndexBuffer.Indices = SrcSection.MeshData->Indices;
 
-			// Init vertex factory
-			NewSection->VertexFactory.Init(&NewSection->VertexBuffer);
+			NewSection->VertexBuffers.InitFromDynamicVertex(&NewSection->VertexFactory, MeshData->Vertices);
 
 			// Enqueue initialization of render resource
-			BeginInitResource(&NewSection->VertexBuffer);
 			BeginInitResource(&NewSection->IndexBuffer);
-			BeginInitResource(&NewSection->VertexFactory);
 
 			// Grab materials
 			for (FGeometryCacheMeshBatchInfo& BatchInfo : MeshData->BatchesInfo)
@@ -69,13 +63,21 @@ FGeometryCacheSceneProxy::~FGeometryCacheSceneProxy()
 	{
 		if (Section != nullptr)
 		{
-			Section->VertexBuffer.ReleaseResource();
+			Section->VertexBuffers.PositionVertexBuffer.ReleaseResource();
+			Section->VertexBuffers.StaticMeshVertexBuffer.ReleaseResource();
+			Section->VertexBuffers.ColorVertexBuffer.ReleaseResource();
 			Section->IndexBuffer.ReleaseResource();
 			Section->VertexFactory.ReleaseResource();
 			delete Section;
 		}
 	}
 	Sections.Empty();
+}
+
+SIZE_T FGeometryCacheSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
 }
 
 void FGeometryCacheSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
@@ -125,7 +127,7 @@ void FGeometryCacheSceneProxy::GetDynamicMeshElements(const TArray<const FSceneV
 						BatchElement.FirstIndex = BatchInfo.StartIndex;
 						BatchElement.NumPrimitives = BatchInfo.NumTriangles;
 						BatchElement.MinVertexIndex = 0;
-						BatchElement.MaxVertexIndex = TrackProxy->VertexBuffer.Vertices.Num() - 1;
+						BatchElement.MaxVertexIndex = TrackProxy->VertexBuffers.PositionVertexBuffer.GetNumVertices() - 1;
 						Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
 						Mesh.Type = PT_TriangleList;
 						Mesh.DepthPriorityGroup = SDPG_World;
@@ -194,18 +196,15 @@ void FGeometryCacheSceneProxy::UpdateSectionVertexBuffer(const int32 SectionInde
 
 	Sections[SectionIndex]->MeshData = MeshData;
 
-	const bool bRecreate = Sections[SectionIndex]->VertexBuffer.Vertices.Num() != Sections[SectionIndex]->MeshData->Vertices.Num();
-	Sections[SectionIndex]->VertexBuffer.Vertices.Empty(Sections[SectionIndex]->MeshData->Vertices.Num());
-	Sections[SectionIndex]->VertexBuffer.Vertices.Append(Sections[SectionIndex]->MeshData->Vertices);
+	const bool bRecreate = Sections[SectionIndex]->VertexBuffers.PositionVertexBuffer.GetNumVertices() != Sections[SectionIndex]->MeshData->Vertices.Num();
 
-	if (bRecreate)
+	if (!bRecreate)
 	{
-		Sections[SectionIndex]->VertexBuffer.InitRHI();
+		UE_LOG(LogGeomCache, Warning, TEXT("Recreation of Geomcaches unsupported use SOA Position- Texture- Tangent- Color Buffer seperately and Lock Unlock (but those will be about as bad as re-creation) ideally have a dedicated updatepath for big VB in the RHI"));
 	}
-	else
-	{
-		Sections[SectionIndex]->VertexBuffer.UpdateRHI();
-	}
+
+	//always recreate
+	Sections[SectionIndex]->VertexBuffers.InitFromDynamicVertex(&Sections[SectionIndex]->VertexFactory, MeshData->Vertices);
 }
 
 void FGeometryCacheSceneProxy::UpdateSectionIndexBuffer(const int32 SectionIndex, const TArray<uint32>& Indices)
@@ -230,84 +229,6 @@ void FGeometryCacheSceneProxy::UpdateSectionIndexBuffer(const int32 SectionIndex
 void FGeometryCacheSceneProxy::ClearSections()
 {
 	Sections.Empty();
-}
-
-FGeomCacheVertexFactory::FGeomCacheVertexFactory()
-{
-
-}
-
-void FGeomCacheVertexFactory::Init_RenderThread(const FGeomCacheVertexBuffer* VertexBuffer)
-{
-	check(IsInRenderingThread());
-
-	// Initialize the vertex factory's stream components.
-	FDataType NewData;
-	NewData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, Position, VET_Float3);
-	NewData.TextureCoordinates.Add(
-		FVertexStreamComponent(VertexBuffer, STRUCT_OFFSET(FDynamicMeshVertex, TextureCoordinate), sizeof(FDynamicMeshVertex), VET_Float2)
-		);
-	NewData.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, TangentX, VET_PackedNormal);
-	NewData.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, TangentZ, VET_PackedNormal);
-	NewData.ColorComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, Color, VET_Color);
-	SetData(NewData);
-}
-
-void FGeomCacheVertexFactory::Init(const FGeomCacheVertexBuffer* VertexBuffer)
-{
-	if (IsInRenderingThread())
-	{
-		Init_RenderThread(VertexBuffer);
-	}
-	else
-	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			InitGeomCacheVertexFactory,
-			FGeomCacheVertexFactory*, VertexFactory, this,
-			const FGeomCacheVertexBuffer*, VertexBuffer, VertexBuffer,
-			{
-			VertexFactory->Init_RenderThread(VertexBuffer);
-		});
-	}
-}
-
-void FGeomCacheIndexBuffer::InitRHI()
-{
-	FRHIResourceCreateInfo CreateInfo;
-	void* Buffer = nullptr;
-	IndexBufferRHI = RHICreateAndLockIndexBuffer(sizeof(uint32), Indices.Num() * sizeof(uint32), BUF_Static, CreateInfo, Buffer);
-
-	// Write the indices to the index buffer.	
-
-	// Write the indices to the index buffer.
-	FMemory::Memcpy(Buffer, Indices.GetData(), Indices.Num() * sizeof(uint32));
-	RHIUnlockIndexBuffer(IndexBufferRHI);
-}
-
-void FGeomCacheIndexBuffer::UpdateRHI()
-{
-	// Copy the index data into the index buffer.
-	void* Buffer = RHILockIndexBuffer(IndexBufferRHI, 0, Indices.Num() * sizeof(uint32), RLM_WriteOnly);
-	FMemory::Memcpy(Buffer, Indices.GetData(), Indices.Num() * sizeof(uint32));
-	RHIUnlockIndexBuffer(IndexBufferRHI);
-}
-
-void FGeomCacheVertexBuffer::InitRHI()
-{
-	const uint32 SizeInBytes = Vertices.Num() * sizeof(FDynamicMeshVertex);
-
-	FGeomCacheVertexResourceArray ResourceArray(Vertices.GetData(), SizeInBytes);
-	FRHIResourceCreateInfo CreateInfo(&ResourceArray);
-	VertexBufferRHI = RHICreateVertexBuffer(SizeInBytes, BUF_Static, CreateInfo);
-}
-
-
-void FGeomCacheVertexBuffer::UpdateRHI()
-{
-	// Copy the vertex data into the vertex buffer.
-	void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI, 0, Vertices.Num() * sizeof(FDynamicMeshVertex), RLM_WriteOnly);
-	FMemory::Memcpy(VertexBufferData, Vertices.GetData(), Vertices.Num() * sizeof(FDynamicMeshVertex));
-	RHIUnlockVertexBuffer(VertexBufferRHI);
 }
 
 FGeomCacheVertexResourceArray::FGeomCacheVertexResourceArray(void* InData, uint32 InSize) : Data(InData)

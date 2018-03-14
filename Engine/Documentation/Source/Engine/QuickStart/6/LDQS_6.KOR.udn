@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:6 - 빌드 프로세스 실행
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
@@ -23,7 +23,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 지금쯤 그림자와 벽 아래 새어 드는 빛에 "Preview" 딱지가 붙어있는 것을 눈치챘을 것입니다.
 
@@ -68,4 +68,3 @@ checkpoint: editorqs
 
 다음 단계에서는 지금까지 배운 내용을 토대로 이 샘플 레벨을 더욱 발전시켜나갈 수 있는 예제를 제공해 드리겠습니다. 아울러 직접 레벨을 제작할 때 참고하실 수 있도록, 이 가이드에서 다룬 주제에 관련해서 보다 자세한 문서 링크를 제공해 드리겠습니다.
 
-%Steps%

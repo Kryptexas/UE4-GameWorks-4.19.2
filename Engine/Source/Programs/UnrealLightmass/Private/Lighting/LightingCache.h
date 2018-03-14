@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -444,6 +444,19 @@ bool TLightingCache<SampleType>::InterpolateLighting(
 				if (RecordCollector)
 				{
 					RecordCollector->AddInfluencingRecord(LightingRecord.Id, RecordWeight);
+				}
+
+				if (bVisualizeIrradianceSamples && bDebugThisSample && BounceNumber == 1)
+				{
+					for (int32 i = 0; i < DebugCacheRecords.Num(); i++)
+					{
+						FDebugLightingCacheRecord& CurrentRecord =  DebugCacheRecords[i];
+
+						if (CurrentRecord.RecordId == LightingRecord.Id)
+						{
+							CurrentRecord.bAffectsSelectedTexel = true;
+						}
+					}
 				}
 			}
 		}

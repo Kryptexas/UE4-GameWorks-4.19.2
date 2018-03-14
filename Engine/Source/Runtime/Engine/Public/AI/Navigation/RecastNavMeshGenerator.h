@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once 
 
 #include "CoreMinimal.h"
@@ -25,6 +25,7 @@ class FRecastNavMeshGenerator;
 struct BuildContext;
 struct FNavigationRelevantData;
 struct dtTileCacheLayer;
+struct FKAggregateGeom;
 
 #define MAX_VERTS_PER_POLY	6
 
@@ -38,6 +39,10 @@ struct FRecastBuildConfig : public rcConfig
 	uint32 bGenerateBVTree:1;
 	/** if set, mark areas with insufficient free height instead of cutting them out  */
 	uint32 bMarkLowHeightAreas : 1;
+	/** if set, only single low height span will be allowed under valid one */
+	uint32 bFilterLowSpanSequences : 1;
+	/** if set, only low height spans with corresponding area modifier will be stored in tile cache (reduces memory, can't modify without full tile rebuild) */
+	uint32 bFilterLowSpanFromTileCache : 1;
 
 	/** region partitioning method used by tile cache */
 	int32 TileCachePartitionType;
@@ -70,6 +75,8 @@ struct FRecastBuildConfig : public rcConfig
 		bGenerateDetailedMesh = true;
 		bGenerateBVTree = true;
 		bMarkLowHeightAreas = false;
+		bFilterLowSpanSequences = false;
+		bFilterLowSpanFromTileCache = false;
 		PolyMaxHeight = 10;
 		MaxPolysPerTile = -1;
 		AgentIndex = 0;
@@ -100,9 +107,13 @@ struct FRecastGeometryCache
 {
 	struct FHeader
 	{
+		FNavigationRelevantData::FCollisionDataHeader Validation;
+		
 		int32 NumVerts;
 		int32 NumFaces;
 		struct FWalkableSlopeOverride SlopeOverride;
+
+		static uint32 StaticMagicNumber;
 	};
 
 	FHeader Header;
@@ -115,6 +126,8 @@ struct FRecastGeometryCache
 
 	FRecastGeometryCache() {}
 	FRecastGeometryCache(const uint8* Memory);
+
+	static bool IsValid(const uint8* Memory, int32 MemorySize);
 };
 
 struct FRecastRawGeometryElement
@@ -203,6 +216,7 @@ protected:
 
 	void AppendModifier(const FCompositeNavModifier& Modifier, const FNavDataPerInstanceTransformDelegate& InTransformsDelegate);
 	/** Appends specified geometry to tile's geometry */
+	void ValidateAndAppendGeometry(TSharedRef<FNavigationRelevantData, ESPMode::ThreadSafe> ElementData);
 	void AppendGeometry(const TNavStatArray<uint8>& RawCollisionCache, const FNavDataPerInstanceTransformDelegate& InTransformsDelegate);
 	void AppendVoxels(rcSpanCache* SpanData, int32 NumSpans);
 	
@@ -218,6 +232,7 @@ protected:
 	uint32 bRegenerateCompressedLayers : 1;
 	uint32 bFullyEncapsulatedByInclusionBounds : 1;
 	uint32 bUpdateGeometry : 1;
+	uint32 bHasLowAreaModifiers : 1;
 	
 	int32 TileX;
 	int32 TileY;
@@ -419,7 +434,7 @@ public:
 	
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && ENABLE_VISUAL_LOG
 	virtual void ExportNavigationData(const FString& FileName) const override;
-	virtual void GrabDebugSnapshot(struct FVisualLogEntry* Snapshot, const FBox& BoundingBox, const struct FLogCategoryBase& Category, ELogVerbosity::Type Verbosity) const override;
+	virtual void GrabDebugSnapshot(struct FVisualLogEntry* Snapshot, const FBox& BoundingBox, const FName& CategoryName, ELogVerbosity::Type Verbosity) const override;
 #endif
 
 	/** 
@@ -430,7 +445,8 @@ public:
 
 	static void ExportRigidBodyGeometry(UBodySetup& BodySetup, TNavStatArray<FVector>& OutVertexBuffer, TNavStatArray<int32>& OutIndexBuffer, const FTransform& LocalToWorld = FTransform::Identity);
 	static void ExportRigidBodyGeometry(UBodySetup& BodySetup, TNavStatArray<FVector>& OutTriMeshVertexBuffer, TNavStatArray<int32>& OutTriMeshIndexBuffer, TNavStatArray<FVector>& OutConvexVertexBuffer, TNavStatArray<int32>& OutConvexIndexBuffer, TNavStatArray<int32>& OutShapeBuffer, const FTransform& LocalToWorld = FTransform::Identity);
-	
+	static void ExportAggregatedGeometry(const FKAggregateGeom& AggGeom, TNavStatArray<FVector>& OutConvexVertexBuffer, TNavStatArray<int32>& OutConvexIndexBuffer, TNavStatArray<int32>& OutShapeBuffer, const FTransform& LocalToWorld = FTransform::Identity);
+
 protected:
 	// Performs initial setup of member variables so that generator is ready to do its thing from this point on
 	void Init();

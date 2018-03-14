@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -42,6 +42,7 @@ public:
 		, _SelectAllTextWhenFocused( false )
 		, _RevertTextOnEscape( false )
 		, _ClearKeyboardFocusOnCommit( true )
+		, _Justification(ETextJustify::Left)
 		, _AllowContextMenu(true)
 		, _MinDesiredWidth( 0.0f )
 		, _SelectAllTextOnCommit( false )
@@ -91,6 +92,9 @@ public:
 		/** Whether to clear keyboard focus when pressing enter to commit changes */
 		SLATE_ATTRIBUTE( bool, ClearKeyboardFocusOnCommit )
 
+		/** How should the value be justified in the editable text field. */
+		SLATE_ATTRIBUTE(ETextJustify::Type, Justification)
+
 		/** Whether the context menu can be opened */
 		SLATE_ATTRIBUTE(bool, AllowContextMenu)
 
@@ -108,6 +112,9 @@ public:
 
 		/** Whether to select all text when pressing enter to commit changes */
 		SLATE_ATTRIBUTE( bool, SelectAllTextOnCommit )
+
+		/** Callback delegate to have first chance handling of the OnKeyChar event */
+		SLATE_EVENT(FOnKeyChar, OnKeyCharHandler)
 
 		/** Callback delegate to have first chance handling of the OnKeyDown event */
 		SLATE_EVENT(FOnKeyDown, OnKeyDownHandler)
@@ -183,6 +190,9 @@ public:
 	/** See the AllowContextMenu attribute */
 	void SetAllowContextMenu(TAttribute< bool > InAllowContextMenu);
 
+	/** Set the VirtualKeyboardDismissAction attribute */
+	void SetVirtualKeyboardDismissAction(TAttribute< EVirtualKeyboardDismissAction > InVirtualKeyboardDismissAction);
+	
 	/**
 	 * Sets the font used to draw the text
 	 *
@@ -253,12 +263,22 @@ public:
 	 */
 	void SetSelectAllTextOnCommit(const TAttribute<bool>& InSelectAllTextOnCommit);
 
+	/** See Justification attribute */
+	void SetJustification(const TAttribute<ETextJustify::Type>& InJustification);
+
 	/**
 	 * If InError is a non-empty string the TextBox will the ErrorReporting provided during construction
 	 * If no error reporting was provided, the TextBox will create a default error reporter.
 	 */
 	void SetError( const FText& InError );
 	void SetError( const FString& InError );
+
+	/**
+	 * Sets the OnKeyCharHandler to provide first chance handling of the SEditableText's OnKeyChar event
+	 *
+	 * @param InOnKeyCharHandler			Delegate to call during OnKeyChar event
+	 */
+	void SetOnKeyCharHandler(FOnKeyChar InOnKeyCharHandler);
 
 	/**
 	 * Sets the OnKeyDownHandler to provide first chance handling of the SEditableText's OnKeyDown event

@@ -1,5 +1,5 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+#if PLATFORM_WINDOWS
 #pragma once
 
 #include "CoreMinimal.h"
@@ -48,3 +48,4 @@ private:
 	bool									bPassThrough;
 };
 
+#endif // #if PLATFORM_WINDOWS

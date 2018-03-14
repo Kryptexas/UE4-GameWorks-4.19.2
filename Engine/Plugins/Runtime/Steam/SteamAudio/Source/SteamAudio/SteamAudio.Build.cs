@@ -2,6 +2,8 @@
 // Copyright (C) Valve Corporation. All rights reserved.
 //
 
+using System.IO;
+
 namespace UnrealBuildTool.Rules
 {
 	public class SteamAudio : ModuleRules
@@ -43,8 +45,7 @@ namespace UnrealBuildTool.Rules
 					"Engine",
 					"InputCore",
 					"Projects",
-					"AudioMixer",
-					"XAudio2",
+					"AudioMixer"
 				}
 			);
 
@@ -55,7 +56,21 @@ namespace UnrealBuildTool.Rules
 			}
 
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "libPhonon");
-			AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11Audio");
+
+			switch (Target.Platform)
+			{
+				case UnrealTargetPlatform.Win32:
+				case UnrealTargetPlatform.Win64:
+					PrivateDependencyModuleNames.Add("XAudio2");
+					AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11Audio");
+					break;
+				case UnrealTargetPlatform.Android:
+					string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
+					AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(PluginPath, "SteamAudio_APL.xml"));
+					break;
+				default:
+					break;
+			}
 		}
 	}
 }

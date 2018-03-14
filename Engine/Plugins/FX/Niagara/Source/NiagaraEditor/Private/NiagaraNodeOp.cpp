@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraNodeOp.h"
 #include "NiagaraHlslTranslator.h"
@@ -23,7 +23,7 @@ void UNiagaraNodeOp::AllocateDefaultPins()
 	for (int32 SrcIndex = 0; SrcIndex < OpInfo->Inputs.Num(); ++SrcIndex)
 	{
 		const FNiagaraOpInOutInfo& InOutInfo = OpInfo->Inputs[SrcIndex];
-		UEdGraphPin* Pin = CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(InOutInfo.DataType), InOutInfo.FriendlyName.ToString());
+		UEdGraphPin* Pin = CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(InOutInfo.DataType), *InOutInfo.FriendlyName.ToString());
 		check(Pin);
 		Pin->bDefaultValueIsIgnored = false;
 		Pin->bDefaultValueIsReadOnly = false;
@@ -36,7 +36,7 @@ void UNiagaraNodeOp::AllocateDefaultPins()
 	for (int32 OutIdx = 0; OutIdx < OpInfo->Outputs.Num(); ++OutIdx)
 	{
 		const FNiagaraOpInOutInfo& InOutInfo = OpInfo->Outputs[OutIdx];
-		UEdGraphPin* Pin = CreatePin(EGPD_Output, Schema->TypeDefinitionToPinType(InOutInfo.DataType), InOutInfo.FriendlyName.ToString());
+		UEdGraphPin* Pin = CreatePin(EGPD_Output, Schema->TypeDefinitionToPinType(InOutInfo.DataType), *InOutInfo.FriendlyName.ToString());
 		check(Pin);
 		Pin->PinToolTip = InOutInfo.Description.ToString();
 	}

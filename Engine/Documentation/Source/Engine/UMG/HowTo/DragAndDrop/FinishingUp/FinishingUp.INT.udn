@@ -29,7 +29,7 @@ type:how-to
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 In this final step, we configure our **DragWidget** (which is the visual widget we are dragging). 
 We then tell our Character Blueprint to add the **HUD** Widget Blueprint to the viewport as well as enable the Mouse Cursor so we can see where we are dragging. 
@@ -99,6 +99,6 @@ When you play in the Editor, you can **Left-click** and drag the health bar on s
 This is just an example of the elements you will need to start the Drag and Drop process. 
 Additional checking may be needed to ensure that players do not drag the widget outside of Safe Zones or potentially on top of other widgets. 
 
-%Steps%
+
 
 

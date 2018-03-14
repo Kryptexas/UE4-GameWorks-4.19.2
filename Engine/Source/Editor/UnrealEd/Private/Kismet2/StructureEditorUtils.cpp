@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Kismet2/StructureEditorUtils.h"
 #include "Misc/MessageDialog.h"
@@ -49,8 +49,7 @@ UUserDefinedStruct* FStructureEditorUtils::CreateUserDefinedStruct(UObject* InPa
 		Struct->Status = UDSS_Error;
 
 		{
-			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-			AddVariable(Struct, FEdGraphPinType(K2Schema->PC_Boolean, FString(), nullptr, EPinContainerType::None, false, FEdGraphTerminalType()));
+			AddVariable(Struct, FEdGraphPinType(UEdGraphSchema_K2::PC_Boolean, NAME_None, nullptr, EPinContainerType::None, false, FEdGraphTerminalType()));
 		}
 	}
 
@@ -177,8 +176,7 @@ FStructureEditorUtils::EStructureError FStructureEditorUtils::IsStructureValid(c
 
 bool FStructureEditorUtils::CanHaveAMemberVariableOfType(const UUserDefinedStruct* Struct, const FEdGraphPinType& VarType, FString* OutMsg)
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	if ((VarType.PinCategory == K2Schema->PC_Struct) && Struct)
+	if ((VarType.PinCategory == UEdGraphSchema_K2::PC_Struct) && Struct)
 	{
 		if (const UScriptStruct* SubCategoryStruct = Cast<const UScriptStruct>(VarType.PinSubCategoryObject.Get()))
 		{
@@ -197,10 +195,10 @@ bool FStructureEditorUtils::CanHaveAMemberVariableOfType(const UUserDefinedStruc
 			return false;
 		}
 	}
-	else if ((VarType.PinCategory == K2Schema->PC_Exec) 
-		|| (VarType.PinCategory == K2Schema->PC_Wildcard)
-		|| (VarType.PinCategory == K2Schema->PC_MCDelegate)
-		|| (VarType.PinCategory == K2Schema->PC_Delegate))
+	else if ((VarType.PinCategory == UEdGraphSchema_K2::PC_Exec) 
+		|| (VarType.PinCategory == UEdGraphSchema_K2::PC_Wildcard)
+		|| (VarType.PinCategory == UEdGraphSchema_K2::PC_MCDelegate)
+		|| (VarType.PinCategory == UEdGraphSchema_K2::PC_Delegate))
 	{
 		if (OutMsg)
 		{
@@ -405,27 +403,27 @@ bool FStructureEditorUtils::ChangeVariableDefaultValue(UUserDefinedStruct* Struc
 {
 	auto ValidateDefaultValue = [](const FStructVariableDescription& VarDesc, const FString& InNewDefaultValue) -> bool
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		const FEdGraphPinType PinType = VarDesc.ToPinType();
 
 		bool bResult = false;
 		//TODO: validation for values, that are not passed by string
-		if (PinType.PinCategory == K2Schema->PC_Text)
+		if (PinType.PinCategory == UEdGraphSchema_K2::PC_Text)
 		{
 			bResult = true;
 		}
-		else if ((PinType.PinCategory == K2Schema->PC_Object) 
-			|| (PinType.PinCategory == K2Schema->PC_Interface) 
-			|| (PinType.PinCategory == K2Schema->PC_Class)
-			|| (PinType.PinCategory == K2Schema->PC_SoftClass)
-			|| (PinType.PinCategory == K2Schema->PC_SoftObject))
+		else if ((PinType.PinCategory == UEdGraphSchema_K2::PC_Object) 
+			|| (PinType.PinCategory == UEdGraphSchema_K2::PC_Interface) 
+			|| (PinType.PinCategory == UEdGraphSchema_K2::PC_Class)
+			|| (PinType.PinCategory == UEdGraphSchema_K2::PC_SoftClass)
+			|| (PinType.PinCategory == UEdGraphSchema_K2::PC_SoftObject))
 		{
 			// K2Schema->DefaultValueSimpleValidation finds an object, passed by path, invalid
 			bResult = true;
 		}
 		else
 		{
-			bResult = K2Schema->DefaultValueSimpleValidation(PinType, FString(), InNewDefaultValue, NULL, FText::GetEmpty());
+			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+			bResult = K2Schema->DefaultValueSimpleValidation(PinType, NAME_None, InNewDefaultValue, nullptr, FText::GetEmpty());
 		}
 		return bResult;
 	};
@@ -482,6 +480,21 @@ FString FStructureEditorUtils::GetVariableDisplayName(const UUserDefinedStruct* 
 	return VarDesc ? VarDesc->FriendlyName : FString();
 }
 
+UProperty* FStructureEditorUtils::GetPropertyByDisplayName(const UUserDefinedStruct* Struct, FString DisplayName)
+{
+	if (Struct)
+	{
+		for (const FStructVariableDescription& VarDesc : GetVarDesc(Struct))
+		{
+			if (VarDesc.FriendlyName == DisplayName)
+			{
+				return FindField<UProperty>(Struct, VarDesc.VarName);
+			}
+		}
+	}
+	return nullptr;
+}
+
 bool FStructureEditorUtils::UserDefinedStructEnabled()
 {
 	static FBoolConfigValueHelper UseUserDefinedStructure(TEXT("UserDefinedStructure"), TEXT("bUseUserDefinedStructure"));
@@ -495,71 +508,6 @@ void FStructureEditorUtils::RecreateDefaultInstanceInEditorData(UUserDefinedStru
 	{
 		StructEditorData->RecreateDefaultInstance();
 	}
-}
-
-bool FStructureEditorUtils::Fill_MakeStructureDefaultValue(const UUserDefinedStruct* Struct, uint8* StructData)
-{
-	bool bResult = true;
-	if (Struct && StructData)
-	{
-		UUserDefinedStructEditorData* StructEditorData = CastChecked<UUserDefinedStructEditorData>(Struct->EditorData);
-		const uint8* DefaultInstance = StructEditorData->GetDefaultInstance();
-		if (DefaultInstance)
-		{
-			Struct->CopyScriptStruct(StructData, DefaultInstance);
-		}
-		else
-		{
-			bResult = false;
-		}
-	}
-	
-	return bResult;
-}
-
-bool FStructureEditorUtils::DiffersFromDefaultValue(const UUserDefinedStruct* Struct, uint8* StructData)
-{
-	bool bDiffers = false;
-	if (Struct && StructData)
-	{
-		UUserDefinedStructEditorData* StructEditorData = CastChecked<UUserDefinedStructEditorData>(Struct->EditorData);
-		const uint8* DefaultInstance = StructEditorData->GetDefaultInstance();
-		if (DefaultInstance)
-		{
-			const int32 PortFlags = PPF_None;
-			bDiffers = !Struct->CompareScriptStruct(StructData, DefaultInstance, PortFlags);
-		}
-	}
-	return bDiffers;
-}
-
-bool FStructureEditorUtils::Fill_MakeStructureDefaultValue(const UProperty* Property, uint8* PropertyData)
-{
-	bool bResult = true;
-
-	if (const UStructProperty* StructProperty = Cast<const UStructProperty>(Property))
-	{
-		if (const UUserDefinedStruct* InnerStruct = Cast<const UUserDefinedStruct>(StructProperty->Struct))
-		{
-			bResult &= Fill_MakeStructureDefaultValue(InnerStruct, PropertyData);
-		}
-	}
-	else if (const UArrayProperty* ArrayProp = Cast<const UArrayProperty>(Property))
-	{
-		StructProperty = Cast<const UStructProperty>(ArrayProp->Inner);
-		const UUserDefinedStruct* InnerStruct = StructProperty ? Cast<const UUserDefinedStruct>(StructProperty->Struct) : NULL;
-		if(InnerStruct)
-		{
-			FScriptArrayHelper ArrayHelper(ArrayProp, PropertyData);
-			for (int32 Index = 0; Index < ArrayHelper.Num(); ++Index)
-			{
-				uint8* const ValuePtr = ArrayHelper.GetRawPtr(Index);
-				bResult &= Fill_MakeStructureDefaultValue(InnerStruct, ValuePtr);
-			}
-		}
-	}
-
-	return bResult;
 }
 
 void FStructureEditorUtils::CompileStructure(UUserDefinedStruct* Struct)
@@ -589,7 +537,6 @@ void FStructureEditorUtils::RemoveInvalidStructureMemberVariableFromBlueprint(UB
 {
 	if (Blueprint)
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		const UScriptStruct* FallbackStruct = GetFallbackStruct();
 
 		FString DislpayList;
@@ -597,7 +544,7 @@ void FStructureEditorUtils::RemoveInvalidStructureMemberVariableFromBlueprint(UB
 		for (int32 VarIndex = 0; VarIndex < Blueprint->NewVariables.Num(); ++VarIndex)
 		{
 			const FBPVariableDescription& Var = Blueprint->NewVariables[VarIndex];
-			if (Var.VarType.PinCategory == K2Schema->PC_Struct)
+			if (Var.VarType.PinCategory == UEdGraphSchema_K2::PC_Struct)
 			{
 				const UScriptStruct* ScriptStruct = Cast<const UScriptStruct>(Var.VarType.PinSubCategoryObject.Get());
 				const bool bInvalidStruct = (NULL == ScriptStruct) || (FallbackStruct == ScriptStruct);
@@ -757,7 +704,7 @@ bool FStructureEditorUtils::MoveVariable(UUserDefinedStruct* Struct, FGuid VarGu
 		{
 			if (DescArray[Index].VarGuid == VarGuid)
 			{
-				const FScopedTransaction Transaction(LOCTEXT("ReorderVariables", "Varaibles reordered"));
+				const FScopedTransaction Transaction(LOCTEXT("ReorderVariables", "Variables reordered"));
 				ModifyStructData(Struct);
 
 				DescArray.Swap(Index, Index + (bMoveUp ? -1 : 1));

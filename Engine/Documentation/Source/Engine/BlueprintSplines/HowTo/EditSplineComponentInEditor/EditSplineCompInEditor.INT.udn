@@ -11,45 +11,7 @@ version:4.13
 skilllevel:Beginner
 reference-image:FullEdit.gif
 tags:Splines
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/BlueprintSplines/HowTo/EditSplineComponentInEditor:title%](Engine/BlueprintSplines/Splines_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/BlueprintSplines/HowTo/EditSplineComponentInEditor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/BlueprintSplines/HowTo/EditSplineComponentInEditor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/BlueprintSplines/HowTo/EditSplineComponentInEditor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/BlueprintSplines/HowTo/EditSplineComponentInEditor:title%](Engine/BlueprintSplines/Splines_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/BlueprintSplines/HowTo/EditSplineComponentInEditor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/BlueprintSplines/HowTo/EditSplineComponentInEditor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/BlueprintSplines/HowTo/EditSplineComponentInEditor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/BlueprintSplines/Splines_topic.png
 
 This how-to will step through editing **Blueprint Spline Component** curves while they are in the Level Editor. **Blueprint Spline Mesh Components** can also be set so they can be edited in the Level Editor, but only have two points to use, and you cannot add any more points.
 

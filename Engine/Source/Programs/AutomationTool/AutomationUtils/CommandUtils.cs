@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -636,49 +636,29 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Creates a directory(or directories).
-		/// If the creation of the directory fails, this function throws an Exception.
+		/// Creates a directory. Throws an exception on failure.
 		/// </summary>
-        /// <param name="Directories">Directories</param>
+        /// <param name="DirectoryName">Name of the directory to create</param>
         public static void CreateDirectory(string DirectoryName)
 		{
-			var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
-			if (!InternalUtils.SafeCreateDirectory(NormalizedDirectory))
+			string NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
+			try
 			{
-				throw new AutomationException(String.Format("Failed to create directory '{0}'", NormalizedDirectory));
+				Directory.CreateDirectory(DirectoryName);
+			}
+			catch (Exception Ex)
+			{
+				throw new AutomationException(Ex, "Failed to create directory '{0}'", NormalizedDirectory);
 			}
 		}
 
-        /// <summary>
-        /// Creates a directory(or directories).
-        /// If the creation of the directory fails, this function throws an Exception.
-        /// </summary>
-        /// <param name="bQuiet">When true, logging is suppressed.</param>
-        /// <param name="Directories">Directories</param>
-        public static void CreateDirectory(bool bQuiet, string DirectoryName)
-        {
-            var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
-            if (!InternalUtils.SafeCreateDirectory(NormalizedDirectory, bQuiet))
-            {
-                throw new AutomationException(String.Format("Failed to create directory '{0}'", NormalizedDirectory));
-            }
-        }
-
 		/// <summary>
-		/// Creates a directory (or directories).
-		/// If the creation of the directory fails, this function prints a warning.
+		/// Creates a directory. Throws an exception on failure.
 		/// </summary>
-        /// <param name="Directories">Directories</param>
-        public static bool CreateDirectory_NoExceptions(string DirectoryName)
+        /// <param name="Location">Name of the directory to create</param>
+        public static void CreateDirectory(DirectoryReference Location)
 		{
-			bool Result = true;
-			var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
-			if (!InternalUtils.SafeCreateDirectory(NormalizedDirectory))
-			{
-				LogWarning("Failed to create directory '{0}'", NormalizedDirectory);
-				Result = false;
-			}
-			return Result;
+			CreateDirectory(Location.FullName);
 		}
 
 		/// <summary>
@@ -2072,7 +2052,7 @@ namespace AutomationTool
 			}
 			else
 			{
-				using (Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile())
+				using (Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile(Encoding.UTF8))
 				{
 					Zip.UseZip64WhenSaving = Ionic.Zip.Zip64Option.Always;
 					foreach (FileReference FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
@@ -2116,7 +2096,7 @@ namespace AutomationTool
 			}
 			else
 			{
-				Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile();
+				Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile(Encoding.UTF8);
 				Zip.UseZip64WhenSaving = Ionic.Zip.Zip64Option.Always;
 				foreach(FileReference File in Files)
 				{
@@ -2845,13 +2825,14 @@ namespace AutomationTool
 			List<string> FinalFiles = new List<string>();
 			foreach (string Filename in Files.Select(x => x.FullName))
 			{
-				// Make sure the file isn't read-only
 				FileInfo TargetFileInfo = new FileInfo(Filename);
 
 				// Executable extensions
 				List<string> Extensions = new List<string>();
 				Extensions.Add(".dll");
 				Extensions.Add(".exe");
+				Extensions.Add(".msi");
+				Extensions.Add(".dle");
 
 				bool IsExecutable = bIgnoreExtension;
 
@@ -2859,6 +2840,8 @@ namespace AutomationTool
 				{
 					if (TargetFileInfo.FullName.EndsWith(Ext, StringComparison.InvariantCultureIgnoreCase))
 					{
+						// force file writable
+						TargetFileInfo.IsReadOnly = false;
 						IsExecutable = true;
 						break;
 					}

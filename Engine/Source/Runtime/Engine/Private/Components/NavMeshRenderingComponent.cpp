@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	NavMeshRenderingComponent.cpp: A component that renders a nav mesh.
@@ -151,7 +151,7 @@ namespace FNavMeshRenderingHelpers
 		const int32 VertexIndex = MeshData.Vertices.Num();
 		FDynamicMeshVertex* Vertex = new(MeshData.Vertices) FDynamicMeshVertex;
 		Vertex->Position = Pos;
-		Vertex->TextureCoordinate = FVector2D::ZeroVector;
+		Vertex->TextureCoordinate[0] = FVector2D::ZeroVector;
 		Vertex->TangentX = FVector(1.0f, 0.0f, 0.0f);
 		Vertex->TangentZ = FVector(0.0f, 1.0f, 0.0f);
 		// store the sign of the determinant in TangentZ.W (-1=0,+1=255)
@@ -166,7 +166,7 @@ namespace FNavMeshRenderingHelpers
 		MeshData.Indices.Add(V2);
 	}
 
-	void AddRecastGeometry(TArray<FVector>& OutVertexBuffer, TArray<int32>& OutIndexBuffer, const float* Coords, int32 NumVerts, const int32* Faces, int32 NumFaces)
+	void AddRecastGeometry(TArray<FVector>& OutVertexBuffer, TArray<uint32>& OutIndexBuffer, const float* Coords, int32 NumVerts, const int32* Faces, int32 NumFaces)
 	{
 		const int32 VertIndexBase = OutVertexBuffer.Num();
 		for (int32 VertIdx = 0; VertIdx < NumVerts * 3; VertIdx += 3)
@@ -790,70 +790,15 @@ void FNavMeshSceneProxyData::GatherData(const ARecastNavMesh* NavMesh, int32 InN
 //////////////////////////////////////////////////////////////////////////
 // FNavMeshSceneProxy
 
-void FNavMeshSceneProxy::FNavMeshIndexBuffer::InitRHI()
+SIZE_T FNavMeshSceneProxy::GetTypeHash() const
 {
-	if (Indices.Num() > 0)
-	{
-		FRHIResourceCreateInfo CreateInfo;
-		void* Buffer = nullptr;
-		IndexBufferRHI = RHICreateAndLockIndexBuffer(sizeof(int32), Indices.Num() * sizeof(int32), BUF_Static, CreateInfo, Buffer);
-
-		// Write the indices to the index buffer.			
-		FMemory::Memcpy(Buffer, Indices.GetData(), Indices.Num() * sizeof(int32));
-		RHIUnlockIndexBuffer(IndexBufferRHI);
-	}
-}
-
-void FNavMeshSceneProxy::FNavMeshVertexBuffer::InitRHI()
-{
-	if (Vertices.Num() > 0)
-	{
-		FRHIResourceCreateInfo CreateInfo;
-		void* VertexBufferData = nullptr;
-		VertexBufferRHI = RHICreateAndLockVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex), BUF_Static, CreateInfo, VertexBufferData);
-
-		// Copy the vertex data into the vertex buffer.			
-		FMemory::Memcpy(VertexBufferData, Vertices.GetData(), Vertices.Num() * sizeof(FDynamicMeshVertex));
-		RHIUnlockVertexBuffer(VertexBufferRHI);
-	}
-}
-
-void FNavMeshSceneProxy::FNavMeshVertexFactory::Init(const FNavMeshVertexBuffer* InVertexBuffer)
-{
-	if (IsInRenderingThread())
-	{
-		// Initialize the vertex factory's stream components.
-		FDataType NewData;
-		NewData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(InVertexBuffer, FDynamicMeshVertex, Position, VET_Float3);
-		NewData.TextureCoordinates.Add(
-			FVertexStreamComponent(InVertexBuffer, STRUCT_OFFSET(FDynamicMeshVertex, TextureCoordinate), sizeof(FDynamicMeshVertex), VET_Float2)
-			);
-		NewData.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(InVertexBuffer, FDynamicMeshVertex, TangentX, VET_PackedNormal);
-		NewData.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(InVertexBuffer, FDynamicMeshVertex, TangentZ, VET_PackedNormal);
-		SetData(NewData);
-	}
-	else
-	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			InitNavMeshVertexFactory,
-			FNavMeshVertexFactory*, InVertexFactory, this,
-			const FNavMeshVertexBuffer*, InVertexBuffer, InVertexBuffer,
-			{
-				// Initialize the vertex factory's stream components.
-				FDataType NewData;
-		NewData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(InVertexBuffer, FDynamicMeshVertex, Position, VET_Float3);
-		NewData.TextureCoordinates.Add(
-			FVertexStreamComponent(InVertexBuffer, STRUCT_OFFSET(FDynamicMeshVertex, TextureCoordinate), sizeof(FDynamicMeshVertex), VET_Float2)
-			);
-		NewData.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(InVertexBuffer, FDynamicMeshVertex, TangentX, VET_PackedNormal);
-		NewData.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(InVertexBuffer, FDynamicMeshVertex, TangentZ, VET_PackedNormal);
-		InVertexFactory->SetData(NewData);
-			});
-	}
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
 }
 
 FNavMeshSceneProxy::FNavMeshSceneProxy(const UPrimitiveComponent* InComponent, FNavMeshSceneProxyData* InProxyData, bool ForceToRender)
 	: FDebugRenderSceneProxy(InComponent)
+	, VertexFactory(GetScene().GetFeatureLevel(), "FNavMeshSceneProxy")
 	, bRequestedData(false)
 	, bForceRendering(ForceToRender)
 {
@@ -862,7 +807,7 @@ FNavMeshSceneProxy::FNavMeshSceneProxy(const UPrimitiveComponent* InComponent, F
 		ProxyData = *InProxyData;
 	}
 
-	RenderingComponent = Cast<const UNavMeshRenderingComponent>(InComponent);
+	RenderingComponent = MakeWeakObjectPtr(const_cast<UNavMeshRenderingComponent*>(Cast<UNavMeshRenderingComponent>(InComponent)));
 	bSkipDistanceCheck = GIsEditor && (GEngine->GetDebugLocalPlayer() == nullptr);
 	bUseThickLines = GIsEditor;
 
@@ -875,6 +820,8 @@ FNavMeshSceneProxy::FNavMeshSceneProxy(const UPrimitiveComponent* InComponent, F
 	MeshColors.Reserve(NumberOfMeshes + (ProxyData.PathCollidingGeomVerts.Num() ? 1 : 0));
 	MeshBatchElements.Reserve(NumberOfMeshes);
 	const FMaterialRenderProxy* ParentMaterial = GEngine->DebugMeshMaterial->GetRenderProxy(false);
+
+	TArray<FDynamicMeshVertex> Vertices;
 	for (int32 Index = 0; Index < NumberOfMeshes; ++Index)
 	{
 		const auto& CurrentMeshBuilder = ProxyData.MeshBuilders[Index];
@@ -882,28 +829,29 @@ FNavMeshSceneProxy::FNavMeshSceneProxy(const UPrimitiveComponent* InComponent, F
 		FMeshBatchElement Element;
 		Element.FirstIndex = IndexBuffer.Indices.Num();
 		Element.NumPrimitives = FMath::FloorToInt(CurrentMeshBuilder.Indices.Num() / 3);
-		Element.MinVertexIndex = VertexBuffer.Vertices.Num();
+		Element.MinVertexIndex = Vertices.Num();
 		Element.MaxVertexIndex = Element.MinVertexIndex + CurrentMeshBuilder.Vertices.Num() - 1;
 		Element.IndexBuffer = &IndexBuffer;
 		MeshBatchElements.Add(Element);
 
 		MeshColors.Add(FColoredMaterialRenderProxy(ParentMaterial, CurrentMeshBuilder.ClusterColor));
 
-		VertexBuffer.Vertices.Append(CurrentMeshBuilder.Vertices);
+		Vertices.Append(CurrentMeshBuilder.Vertices);
 		IndexBuffer.Indices.Append(CurrentMeshBuilder.Indices);
 	}
 
 	MeshColors.Add(FColoredMaterialRenderProxy(ParentMaterial, NavMeshRenderColor_PathCollidingGeom));
 
-	VertexFactory.Init(&VertexBuffer);
+	VertexBuffers.InitFromDynamicVertex(&VertexFactory, Vertices);
+
 	BeginInitResource(&IndexBuffer);
-	BeginInitResource(&VertexBuffer);
-	BeginInitResource(&VertexFactory);
 }
 
 FNavMeshSceneProxy::~FNavMeshSceneProxy()
 {
-	VertexBuffer.ReleaseResource();
+	VertexBuffers.PositionVertexBuffer.ReleaseResource();
+	VertexBuffers.StaticMeshVertexBuffer.ReleaseResource();
+	VertexBuffers.ColorVertexBuffer.ReleaseResource();
 	IndexBuffer.ReleaseResource();
 	VertexFactory.ReleaseResource();
 }
@@ -1003,7 +951,7 @@ void FNavMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>&
 
 				if (ProxyData.PathCollidingGeomIndices.Num() > 2)
 				{
-					FDynamicMeshBuilder MeshBuilder;
+					FDynamicMeshBuilder MeshBuilder(View->GetFeatureLevel());
 					MeshBuilder.AddVertices(ProxyData.PathCollidingGeomVerts);
 					MeshBuilder.AddTriangles(ProxyData.PathCollidingGeomIndices);
 
@@ -1156,7 +1104,9 @@ uint32 FNavMeshSceneProxy::GetAllocatedSize() const
 	return FDebugRenderSceneProxy::GetAllocatedSize() +
 		ProxyData.GetAllocatedSize() +
 		IndexBuffer.Indices.GetAllocatedSize() +
-		VertexBuffer.Vertices.GetAllocatedSize() +
+		VertexBuffers.PositionVertexBuffer.GetNumVertices() * VertexBuffers.PositionVertexBuffer.GetStride() +
+		VertexBuffers.StaticMeshVertexBuffer.GetResourceSize() +
+		VertexBuffers.ColorVertexBuffer.GetNumVertices() * VertexBuffers.ColorVertexBuffer.GetStride() +
 		MeshColors.GetAllocatedSize() +
 		MeshBatchElements.GetAllocatedSize();
 }

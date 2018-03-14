@@ -50,11 +50,6 @@ Here are the properties that can be adjusted via the **Details** panel for the W
 | **Draw at Desired Size** | Causes the render target to automatically match the desired size specified by the Widget Class. Expensive if is done every frame. 
 | **Pivot** | The alignment/pivot point that the widget is placed at relative to the position. |
 
-[PUBLISH:Docs]
-[REGION:note]
-See [](Engine\UMG\HowTo\InWorldWidgetInteraction) and [](Engine\UMG\HowTo\VirtualKeyboards) for creating 3D UI elements. 
-[/REGION]
-[/PUBLISH:Docs]
 
 
 

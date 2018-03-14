@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreTypes.h"
@@ -35,7 +35,14 @@ struct CORE_API FAnimPhysObjectVersion
 		RenameDisableAnimCurvesToAllowAnimCurveEvaluation,
 		// link curve to LOD, so curve metadata has to include LODIndex
 		AddLODToCurveMetaData,
-
+		// Fixed blend profile references persisting after paste when they aren't compatible
+		FixupBadBlendProfileReferences,
+		// Allowing multiple audio plugin settings
+		AllowMultipleAudioPluginSettings,
+		// Change RetargetSource reference to SoftObjectPtr
+		ChangeRetargetSourceReferenceToSoftObjectPtr,
+		// Save editor only full pose for pose asset 
+		SaveEditorOnlyFullPoseForPoseAsset,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

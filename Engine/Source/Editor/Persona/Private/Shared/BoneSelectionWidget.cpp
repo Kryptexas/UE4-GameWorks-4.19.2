@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BoneSelectionWidget.h"
@@ -21,7 +21,7 @@ void SBoneTreeMenu::Construct(const FArguments& InArgs)
 	bShowVirtualBones = InArgs._bShowVirtualBones;
 	bShowSocket = InArgs._bShowSocket;
 
-	FText TitleToUse = !InArgs._Title.IsEmpty() ? InArgs._Title  : LOCTEXT("BonePickerTitle", "Pick Bone...");
+	FText TitleToUse = !InArgs._Title.IsEmpty() ? InArgs._Title  : LOCTEXT("BonePickerTitle", "Select...");
 
 	SAssignNew(TreeView, STreeView<TSharedPtr<FBoneNameInfo>>)
 		.TreeItemsSource(&SkeletonTreeInfo)
@@ -102,7 +102,7 @@ void SBoneTreeMenu::OnFilterTextChanged(const FText& InFilterText)
 void SBoneTreeMenu::OnSelectionChanged(TSharedPtr<SBoneTreeMenu::FBoneNameInfo> BoneInfo, ESelectInfo::Type SelectInfo)
 {
 	//Because we recreate all our items on tree refresh we will get a spurious null selection event initially.
-	if (BoneInfo.IsValid())
+	if (BoneInfo.IsValid() && SelectInfo != ESelectInfo::Direct)
 	{
 		OnSelectionChangedDelegate.ExecuteIfBound(BoneInfo->BoneName);
 	}

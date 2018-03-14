@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	 GestureRecognizer - handles detecting when gestures happen
@@ -12,6 +12,11 @@
 class FGestureRecognizer
 {
 public:
+	/** Constructor **/
+	FGestureRecognizer() : bIsReadyForPinch(false), AnchorDistanceSq(0.0f), StartAngle(0.0f),
+		bIsReadyForFlick(false), FlickTime(0.0f), PreviousTouchCount(0.0f)
+	{};
+
 	/** Attempt to detect touch gestures */
 	void DetectGestures(const FVector (&Touches)[EKeys::NUM_TOUCH_KEYS], class UPlayerInput* PlayerInput, float DeltaTime);
 
@@ -27,6 +32,11 @@ protected:
 
 	/** Special gesture tracking values */
 	FVector2D AnchorPoints[EKeys::NUM_TOUCH_KEYS];
+
+	/** Special pinch tracking values */
+	FVector2D LastPinchPoint_Start;
+	FVector2D LastPinchPoint_End;
+
 	bool bIsReadyForPinch;
 	float AnchorDistanceSq;
 	float StartAngle;

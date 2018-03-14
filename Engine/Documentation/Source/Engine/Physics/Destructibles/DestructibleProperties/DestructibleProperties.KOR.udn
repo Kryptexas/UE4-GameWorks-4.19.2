@@ -1,29 +1,9 @@
-﻿INTSourceChangelist:3599948
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:디스트럭터블 프로퍼티 매트릭스
 Crumbs: %ROOT%, Engine
 Description:디스트럭터블 메시 에디터에서 디스트럭터블 액터의 모든 프로퍼티에 대한 설명입니다.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/Destructibles/DestructibleProperties:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/Destructibles/DestructibleProperties:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/Destructibles/DestructibleProperties:description%
-	[/PARAM]
-	[PARAMLITERAL:path]
-		Engine/Physics/Destructibles/DestructibleProperties
-	[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
 
 [REGION:banner]
 ![Physics](Engine/Physics/physics_landing_banner.png)

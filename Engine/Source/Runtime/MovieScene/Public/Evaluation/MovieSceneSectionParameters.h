@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -32,7 +32,6 @@ struct FMovieSceneSectionParameters
 	/** Hierachical bias. Higher bias will take precedence. */
 	UPROPERTY(EditAnywhere, Category="Sequence")
 	int32 HierarchicalBias;
-
 	UPROPERTY()
 	float PrerollTime_DEPRECATED;
 	UPROPERTY()

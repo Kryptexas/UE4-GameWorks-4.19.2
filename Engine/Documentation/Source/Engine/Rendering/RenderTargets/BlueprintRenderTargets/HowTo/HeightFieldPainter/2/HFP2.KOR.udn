@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3259022
+﻿INTSourceChangelist:3782314
 availability:Public
 title:2. 필수 애셋 생성 & 구성
 description:필수 애셋 생성 및 구성 방법입니다.
@@ -82,7 +82,8 @@ checkpoint:HFP
 
 이제 필수 애셋 구성이 완료되었으니, 다음에는 하이트 맵 페인터 제작을 위해 모든 애셋을 한 데 묶어주는 블루프린트를 만드는 법을 살펴보겠습니다.
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:HFP]
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -237,9 +238,11 @@ checkpoint:HFP
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:HFP]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:ForceSplat]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -521,7 +524,8 @@ checkpoint:HFP
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:ForceSplat]
--->
+
+[/COMMENT]
 
 
 

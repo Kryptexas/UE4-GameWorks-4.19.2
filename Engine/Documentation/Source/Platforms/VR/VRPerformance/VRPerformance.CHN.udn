@@ -1,98 +1,115 @@
-﻿INTSourceChangelist:0
-Availability:Doc
-Title: VR Performance Testing
-Crumbs:%ROOT%, Platforms
-Description:
-Navigation:platform
-Version:4.10
-Skilllevel:Advanced
+﻿INTSourceChangelist:3622884
+Availability:Public
+Crumbs: %ROOT%
+Title:VR 性能功能
+Description:VR 的各种性能优化。
+Type:Overview
+SkillLevel:Advanced
+Version:4.17
+Parent:Platforms/VR
+Order:4
+Tags:VR
 
 [TOC(start:2)]
 
-## VR Performance Overview
-Trying to figure out which computer parts are capable of producing the breathtaking imagery and immersive experiences that Virtual Reality (VR) Head Mounted Displays (HMD's) 
-like the Oculus Rift or HTC Vive produce can be a daunting and somewhat frustrating experience due to the many hardware choices available. 
-To help alleviate this frustration and ensure that any personal computer (PC) hardware that anyone is planning to purchase will meet the demanding rendering requirements of a UE4 powered VR experience, the following document has been put together.
-Inside of this  document, you will find detailed information about what PC hardware is recommended for VR development with UE4 and what type of performance you should expect to see on such hardware. 
-You will also find performance tracking data that tracks how different version of UE4 perform with different different HMD's and PC hardware.
+由于虚拟现实（VR）的渲染要求极高，因此虚幻引擎 4（UE4）中加入了大量 VR 专用的性能优化和新渲染模式。以下文档将介绍这些功能，以及如何在 UE4 VR 项目中使用这些功能。
 
-## Recommended PC Hardware for VR & UE4
 
-Due to the demanding rendering requirements of VR, the PC that is used to run a VR experience needs to have certain hardware inside of it to give users a smooth VR experience as possible. 
-According to [Oculus](https://www.oculus.com/en-us/blog/powering-the-rift/), for your PC to be able to run the smoothest VR experience as possible, the hardware inside of that PC needs to meet or exceed the following requirements.
+## VR 实例化立体
 
-* **CPU:** Intel i5-4590 equivalent or greater.
-* **GPU:** NVIDIA GTX 970 / AMD 290 equivalent or greater.
-* **RAM:** 8 GB of RAM or more.
-* **Opperating System:** Windows 7 SP1 or newer.
-* **USB Ports:** At least 2x USB 3.0 ports or more.
-* **HDMI Output:** HDMI 1.3 video output supporting a 297MHz clock via a direct output architecture.
+当前版本中加入了实例化立体渲染（Instanced Stereo Rendering），以减轻 UE4 中的 VR 性能影响。在 **Edit > Project Settings > Rendering > VR** 路径下勾选 **Instanced Stereo** 选项即可启用此功能。 
 
-Taking the recommended hardware spec's from Oculus into consideration the following computer parts list was generated. 
-The computer parts that you will find in the list below were picked based on how well the part in question met the following criteria. 
+[REGION:lightbox]
+[![](Platforms\VR\ContentSetup\VR_ISR.png)(w:376)](Platforms\VR\ContentSetup\VR_ISR.png)
+[/REGION]
 
-* How closely the part matched the recommend hardware specifications set forth by Oculus.
-* Number of positive customer reviews the part had. 
-* What the price of the part was.
+[REGION:caption]
+点击查看全图。
+[/REGION]
 
-[region:note]
-Please note that while it might be possible to run VR experiences on hardware that does not meet the following specifications, it is not advisable as it could result in a poor VR experiance.
+启用 **实例化立体** 渲染后，需要重启引擎并重新编译着色器。功能启用后，可在静态网格体、骨架网格体、sprite 粒子和网格体粒子上使用基础通道和 early-z 通道（串行和并行渲染两者均可）。**实例化立体**当前可在 PC（DirectX）和 PS4 上使用，其他平台的支持将在 4.11 后的版本中陆续呈现。以下视频展示了 VR 标准立体渲染和实例化渲染的对比。 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	nmajnglJeyE
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+## 移动 VR 多视图
+
+部分移动设备现支持 VR 多视图。多视图（Mobile Multiview）与台式电脑上使用的实例化立体渲染相似，工作原理是在移动设备的 CPU 上提供一个立体渲染的优化路径。请按以下步骤操作，启用此功能：
+
+[region:warning]
+因为此功能仍在实验性阶段，它只支持 Mali GPU。待该功能日趋成熟后，将支持更多的移动设备，该警告便会随之消失。
 [/region]
 
-### Recomened GPU
-While there are a plethora of different video cards on the market to choose from, there are only a few that have enough power to run a VR experience. 
-Choosing any of the following video cards, or video cards that have the same spec as the ones listed below will ensure that you have enough power to run a UE4 powered VR experience.
+1. 在主工具栏中前往 **Edit** >  **Projects Settings**，打开编辑器的 Project Settings。
 
-**Minimum GPU**
-* [NVIDIA GTX 970 w 4GB of VRam](http://www.newegg.com/Product/Product.aspx?Item=N82E16814487136&cm_re=NVIDIA_GTX_970-_-14-487-136-_-Product)
-* [AMD Radeon R9 w 4GB of VRam](http://www.newegg.com/Product/Product.aspx?Item=N82E16814150724&cm_re=AMD_Radeon_R9_270-_-14-150-724-_-Product)
+1. 然后前往 **Engine** > **Rendering** > **VR**，找到 **Mobile Multi-View (Experimental)** 选项。 
 
-**Recommended GPU**
-* [NVIDIA EVGA GeForce GTX 980 w 4GB of VRam](http://www.newegg.com/Product/Product.aspx?Item=N82E16814487161&cm_re=NVIDIA_GTX_980-_-14-487-161-_-Product)
-* [AMD Radeon R9 290X w 4GB of VRam](http://www.newegg.com/Product/Product.aspx?Item=N82E16814150696&cm_re=AMD_Radeon_R9_290x-_-14-150-696-_-Product)
+1. 点击 Mobile Multi-View (Experimental) 选项旁的勾选框将其启用，然后重启编辑器使修改生效。
 
-** Preferred GPU**
-* [NVIDIA GTX Titian w 12GB of VRam](http://www.newegg.com/Product/Product.aspx?Item=N82E16814487129)
-* [AMD Radeon R9 390 w 8GB of VRam](http://www.newegg.com/Product/Product.aspx?Item=N82E16814202164&cm_re=AMD_Radeon_R9_390X-_-14-202-164-_-Product)
+	[REGION:lightbox]
+	[![](Platforms\VR\ContentSetup\VR_MobileMultiView.png)(w:379)](Platforms\VR\ContentSetup\VR_MobileMultiView.png)
+	[/REGION]
 
-### Recomened CPU
-* **Intel:** [Intel Core i5-4590 Processor](http://www.amazon.com/Intel-i5-4590-BX80646I54590-Processor-Cache/dp/B00J2LIFBY)
-* **AMD:** [AMD FX-9590 Vishera Processor](http://www.newegg.com/Product/Product.aspx?Item=N82E16819113347)
+	[REGION:caption]
+	点击查看全图。
+	[/REGION]
 
-### Recomened RAM
-* **8 GB RAM:** [G.SKILL Ripjaws Series](http://www.newegg.com/Product/Product.aspx?Item=N82E16820231314)
+需要对 Android 版本进行如下设置才能使此功能正常使用：
 
-### Recomened Hard Drive
-* **SSD Harddrive:** [Mushkin 2.5" Internal 256GB SSD](http://www.newegg.com/Product/Product.aspx?Item=N82E16820226688)
-* ** Standard Harddrive:** [WD 3.5" Internal 7200 RPM 1 TB](http://www.newegg.com/Product/Product.aspx?Item=N82E16822236339&cm_re=1_TB_7200_RMP_drive-_-22-236-339-_-Product)
+* 在 **Android** > **Build** 部分中启用 **Support OpenGL ES2**。 
+* 禁用 **Mobile HDR** 和 **Instanced Stereo Rendering**。
+* 当前版本中，多视图功能只支持 Mali GPU。 
+如打包项目时开启了此功能但 GPU 不兼容，其在运行时将被禁用。 
 
-### Recomened Motherboard
-* **Intel Based Motherboard:** [MSI Z97 PC Intel](http://www.newegg.com/Product/Product.aspx?Item=N82E16813130779&cm_re=Z97_motherboards-_-13-130-779-_-Product)
-* **AMD Based Motherboard:** [MSI 970A-G46 AMD](http://www.newegg.com/Product/Product.aspx?Item=N82E16813130637&cm_re=socket_am3-_-13-130-637-_-Product)
+## VR 前向渲染
 
-[region:note]
-If you are picking a different motherboard than the ones listed above, make sure that it has and can use USB 3.0 as this is a requirement of all HMD's.
-[/region]
+![](Engine\Performance\ForwardRenderer\ForwardRenderingBanner.png)(w:840)
 
-## Oculus VR Performance
+[INCLUDE:Engine\Performance\ForwardRenderer#intro]
 
+[REGION:note]
+如需了解此功能的详细内容，请查阅 [](Engine\Performance\ForwardRenderer) 文档。 
+[/REGION]
 
-## Vive VR Performance
+## VR 性能分析
 
+如需找到 VR 项目中开销过高的资源，须在项目生命周期中尽多地对项目在 CPU 和 GPU 执行的操作进行分析。 
 
+* **GPU 分析** - 运行项目时按下 **CTRL + SHIFT + ,（逗号键）** 即可启用 GPU 分析工具。按下组合键后，将出现与下图相似的新窗口。 
+	![](Platforms\VR\ContentSetup\VR_GPU_Profiler.png)
 
+* **CPU 分析工具** - 项目的 CPU 分析比 GPU 分析更为复杂。请查阅 [性能分析工具](https://docs.unrealengine.com/latest/INT/Engine/Performance/Profiler/index.html) 文档中的详细操作说明。 
 
+## VR 后期处理设置
 
+由于 VR 的渲染要求较高，因此需要禁用诸多默认开启的高级后期处理功能，否则项目可能出现严重的性能问题。执行以下步骤完成项目设置。
 
+ 1. 在关卡中添加一个后期处理（PP）体积域。
+ 1. 选择 PP 体积域，然后在 **Post Process Volume** 部分启用 **Unbound** 选项，使 PP 体积域中的设置应用到整个关卡。 
 
+	![](Platforms\VR\ContentSetup\VR_PP_Unbound.png)
 
-
-
-
-
-
-
-
+ 1. 打开 **Post Process Volume** 的 **Settings**，前往每个部分将启用的 PP 设置禁用：先点击属性，然后将默认值（通常为 1.0）改为 **0** 即可禁用功能。
+	
+	![](Platforms\VR\ContentSetup\VR_Disable_PP_Settings.png)
+	[region:note]
+	执行此操作时，无需点击每个部分并将所有属性设为 0。可先行禁用开销较大的功能，如镜头光晕（Lens Flares）、屏幕空间反射（Screen Space reflections）、临时抗锯齿（Temporal AA）、屏幕空间环境遮挡（SSAO）、光晕（Bloom）和其他可能对性能产生影响的功能。
+	[/region]
 
 
 

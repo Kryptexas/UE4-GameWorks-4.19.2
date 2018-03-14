@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -49,6 +49,15 @@ public:
 	/** Asset Type of Label used to tag other assets */
 	static const FPrimaryAssetType PrimaryAssetLabelType;
 
+	/** Type representing a packaging chunk, this is a virtual type that is never loaded off disk */
+	static const FPrimaryAssetType PackageChunkType;
+
+	/** Creates a PrimaryAssetId from a chunk id */
+	static FPrimaryAssetId CreatePrimaryAssetIdFromChunkId(int32 ChunkId);
+
+	/** Extracts a chunk id from a primary asset id, returns INDEX_NONE if it is not PackageChunkType */
+	static int32 ExtractChunkIdFromPrimaryAssetId(const FPrimaryAssetId& PrimaryAssetId);
+
 	// BUILDING ASSET DIRECTORY
 
 	/** 
@@ -83,7 +92,7 @@ public:
 	virtual bool AddDynamicAsset(const FPrimaryAssetId& PrimaryAssetId, const FSoftObjectPath& AssetPath, const FAssetBundleData& BundleData);
 
 	/** This will expand out references in the passed in AssetBundleData that are pointing to other primary assets with bundles. This is useful to preload entire webs of assets */
-	virtual void RecursivelyExpandBundleData(FAssetBundleData& BundleData);
+	virtual void RecursivelyExpandBundleData(FAssetBundleData& BundleData) const;
 
 	// ACCESSING ASSET DIRECTORY
 
@@ -234,6 +243,17 @@ public:
 	void GetPrimaryAssetBundleStateMap(TMap<FPrimaryAssetId, TArray<FName>>& BundleStateMap, bool bForceCurrent = false) const;
 
 	/**
+	 * Fills in a set of object paths with the assets that need to be loaded, for a given Primary Asset and bundle list
+	 *
+	 * @param OutAssetLoadSet	Set that will have asset paths added to it
+	 * @param PrimaryAssetId	Asset that would be loaded
+	 * @param LoadBundles		List of bundles to load for those assets
+	 * @param bLoadRecursive	If true, this will call RecursivelyExpandBundleData and recurse into sub bundles of other primary assets loaded by a bundle reference
+	 * @return					True if primary asset id was found
+	 */
+	bool GetPrimaryAssetLoadSet(TSet<FSoftObjectPath>& OutAssetLoadSet, const FPrimaryAssetId& PrimaryAssetId, const TArray<FName>& LoadBundles, bool bLoadRecursive) const;
+
+	/**
 	 * Preloads data for a set of assets in a specific bundle state, and returns a handle you must keep active.
 	 * These assets are not officially Loaded, so Unload/ChangeBundleState will not affect them and if you release the handle without otherwise loading the assets they will be freed.
 	 *
@@ -311,6 +331,9 @@ public:
 	/** Gets the FAssetData at a specific path, handles redirectors and blueprint classes correctly. Returns true if it found a valid data */
 	virtual bool GetAssetDataForPath(const FSoftObjectPath& ObjectPath, FAssetData& AssetData) const;
 
+	/** Checks to see if the given asset data is a blueprint with a base class in the ClassNameSet. This checks the parent asset tag */
+	virtual bool IsAssetDataBlueprintOfClassSet(const FAssetData& AssetData, const TSet<FName>& ClassNameSet);
+
 	/** Turns an FAssetData into FSoftObjectPath, handles adding _C as necessary */
 	virtual FSoftObjectPath GetAssetPathForData(const FAssetData& AssetData) const;
 
@@ -319,6 +342,9 @@ public:
 
 	/** Reads redirector list and gets a list of the redirected previous names for a Primary Asset Id */
 	virtual void GetPreviousPrimaryAssetIds(const FPrimaryAssetId& NewId, TArray<FPrimaryAssetId>& OutOldIds) const;
+
+	/** If bShouldManagerDetermineTypeAndName is true in settings, this function is used to determine the primary asset id for any object that does not have it's own implementation. Games can override the behavior here or call it from other places */
+	virtual FPrimaryAssetId DeterminePrimaryAssetIdForObject(const UObject* Object);
 
 	/** Reads AssetManagerSettings for specifically redirected asset paths. This is useful if you need to convert older saved data */
 	virtual FName GetRedirectedAssetPath(FName OldPath) const;
@@ -366,8 +392,18 @@ public:
 	/** Returns true if the specified asset package can be cooked, will error and return false if it is disallowed */
 	virtual bool VerifyCanCookPackage(FName PackageName, bool bLogError = true) const;
 
-	/** For a given package and platform, return what Chunks it should be assigned to, games can override this as needed. Returns false if no information found */
-	virtual bool GetPackageChunkIds(FName PackageName, const class ITargetPlatform* TargetPlatform, const TArray<int32>& ExistingChunkList, TArray<int32>& OutChunkList) const;
+	/** 
+	 * For a given package and platform, return what Chunks it should be assigned to, games can override this as needed. Returns false if no information found 
+	 * @param PackageName Package to check chunks for
+	 * @param TargetPlatform Can be used to do platform-specific chunking, this is null when previewing in the editor
+	 * @param ExistingChunkList List of chunks that the asset was previously assigned to, may be empty
+	 * @param OutChunkList List of chunks to actually assign this to
+	 * @param OutOverrideChunkList List of chunks that were added due to override rules, not just normal primary asset rules. Tools use this for dependency checking
+	 */
+	virtual bool GetPackageChunkIds(FName PackageName, const class ITargetPlatform* TargetPlatform, const TArray<int32>& ExistingChunkList, TArray<int32>& OutChunkList, TArray<int32>* OutOverrideChunkList = nullptr) const;
+
+	/** Returns the list of chunks assigned to the list of primary assets, which is usually a manager list. This is called by GetPackageChunkIds */
+	virtual bool GetPrimaryAssetSetChunkIds(const TSet<FPrimaryAssetId>& PrimaryAssetSet, const class ITargetPlatform* TargetPlatform, const TArray<int32>& ExistingChunkList, TArray<int32>& OutChunkList) const;
 
 	/** Refresh the entire set of asset data, can call from editor when things have changed dramatically */
 	virtual void RefreshPrimaryAssetDirectory();
@@ -377,6 +413,9 @@ public:
 
 	/** Updates the asset management database if needed */
 	virtual void UpdateManagementDatabase(bool bForceRefresh = false);
+
+	/** Returns the chunk information map computed during UpdateManagementDatabase */
+	const TMap<int32, FAssetManagerChunkInfo>& GetChunkManagementMap() const;
 
 	/** Handles applying Asset Labels and should be overridden to do any game-specific labelling */
 	virtual void ApplyPrimaryAssetLabels();
@@ -465,6 +504,9 @@ protected:
 	/** Handles updating manager if deleted object is relevant*/
 	virtual void OnInMemoryAssetDeleted(UObject *Object);
 
+	/** Called when object is saved */
+	virtual void OnObjectPreSave(UObject* Object);
+
 	/** When asset is renamed */
 	virtual void OnAssetRenamed(const FAssetData& NewData, const FString& OldPath);
 
@@ -479,8 +521,10 @@ protected:
 
 	/** Copy of the asset state before PIE was entered, return to that when PIE completes */
 	TMap<FPrimaryAssetId, TArray<FName>> PrimaryAssetStateBeforePIE;
-#endif // WITH_EDITOR
 
+	/** Cached map of chunk ids to lists of assets in that chunk */
+	TMap<int32, FAssetManagerChunkInfo> CachedChunkMap;
+#endif // WITH_EDITOR
 
 	/** Map from object path to Primary Asset Id */
 	TMap<FName, FPrimaryAssetId> AssetPathMap;

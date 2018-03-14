@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Viewport.cpp: D3D viewport RHI implementation.
@@ -71,7 +71,7 @@ void FD3D12Viewport::Init()
 
 	Fence.CreateFence();
 
-	CalculateSwapChainDepth();
+	CalculateSwapChainDepth(DefaultNumBackBuffers);
 
 	UINT SwapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
@@ -127,7 +127,7 @@ void FD3D12Viewport::ResizeInternal()
 {
 	FD3D12Adapter* Adapter = GetParentAdapter();
 
-	CalculateSwapChainDepth();
+	CalculateSwapChainDepth(DefaultNumBackBuffers);
 
 	UINT SwapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	if (bAllowTearing)

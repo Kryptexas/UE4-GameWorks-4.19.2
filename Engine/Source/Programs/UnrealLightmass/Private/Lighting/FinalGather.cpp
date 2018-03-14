@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Exporter.h"
@@ -108,7 +108,7 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 		FDebugStaticLightingVertex DebugVertex;
 		DebugVertex.VertexNormal = FVector(0, 0, 1);
 		DebugVertex.VertexPosition = LightingSample.GetPosition();
-		DebugOutput.Vertices.Add(DebugVertex);
+		MappingContext.DebugOutput->Vertices.Add(DebugVertex);
 	}
 		
 	const double EndGatherTime = FPlatformTime::Seconds();
@@ -218,7 +218,7 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 		LightingSample.LowQualityCoefficients[CoefficientIndex][2] = CombinedLowQualitySample.SHVector.B.V[CoefficientIndex];
 	}
 
-	LightingSample.DirectionalLightShadowing = FMath::Min(UpperToggleableDirectionalLightShadowing, LowerToggleableDirectionalLightShadowing);
+	LightingSample.DirectionalLightShadowing = FMath::Max(UpperToggleableDirectionalLightShadowing, LowerToggleableDirectionalLightShadowing);
 
 	// Only using the upper hemisphere sky bent normal
 	LightingSample.SkyBentNormal = UpperHemisphereSample.SkyOcclusion;
@@ -513,7 +513,7 @@ FLinearColor FStaticLightingSystem::FinalGatherSample(
 		{
 			DebugRay.End = RayIntersection.IntersectionVertex.WorldPosition;
 		}
-		DebugOutput.PathRays.Add(DebugRay);
+		MappingContext.DebugOutput->PathRays.Add(DebugRay);
 	}
 #endif
 
@@ -1002,6 +1002,7 @@ public:
 							&& NodeContext.Node->Element.Uniforms.X < ChildMin.X + NodeContext.Size.X / 2
 							&& NodeContext.Node->Element.Uniforms.Y < ChildMin.Y + NodeContext.Size.Y / 2)
 						{
+							//@todo - re-evaluate skylight which uses texture filtering dependent on SolidAngle, which has been refined
 							FreeNode->Element = NodeContext.Node->Element;
 							NodeContext.Node->Element.HitPointIndex = -1;
 						}
@@ -1521,6 +1522,12 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 					}
 
 					Irradiance = Mapping->GetSurfaceCacheLighting(CurrentVertex);
+
+					const bool bTranslucent = Mapping->Mesh->IsTranslucent(ElementIndex);
+					const FLinearColor Reflectance = (bTranslucent ? FLinearColor::Black : Mapping->Mesh->EvaluateTotalReflectance(CurrentVertex, ElementIndex)) * (float)INV_PI;
+
+					// Undo reflectance scale applied to surface cache lighting
+					Irradiance /= Reflectance;
 				}
 				else
 				{
@@ -1689,7 +1696,7 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 
 							// CachePointIncomingRadiance can be called from multiple threads
 							FScopeLock DebugOutputLock(&DebugOutputSync);
-							DebugOutput.PathRays.Add(DebugRay);
+							MappingContext.DebugOutput->PathRays.Add(DebugRay);
 						}
 	#endif
 					}
@@ -1724,7 +1731,7 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 					const float DistanceToDebugTexelSq = FVector(Scene.DebugInput.Position - Vertex.WorldPosition).SizeSquared();
 					FDebugLightingCacheRecord TempRecord;
 					TempRecord.bNearSelectedTexel = DistanceToDebugTexelSq < NewRecord.BoundingRadius * NewRecord.BoundingRadius;
-					TempRecord.Radius = GatherInfo.MinDistance;
+					TempRecord.Radius = NewRecord.Radius;
 					TempRecord.Vertex.VertexPosition = Vertex.WorldPosition;
 					TempRecord.Vertex.VertexNormal = Vertex.WorldTangentZ;
 					TempRecord.RecordId = NewRecord.Id;

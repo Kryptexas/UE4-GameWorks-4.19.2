@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AndroidLicenseDialog.h"
 #include "Misc/Paths.h"
@@ -34,7 +34,7 @@ void SAndroidLicenseDialog::Construct(const FArguments& InArgs)
 {
 	bLicenseValid = false;
 
-	// from Android SDK Tools 25.2.3
+	// from Android SDK Tools 26.1.1
 	FString LicenseFilename = FPaths::EngineDir() + TEXT("Source/ThirdParty/Android/package.xml");
 	FString LicenseText = "Unable to read " + LicenseFilename;
 
@@ -252,6 +252,13 @@ FReply SAndroidLicenseDialog::OnAgree()
 			FString HashText = TEXT("\015\012") + LicenseHash.ToString().ToLower();
 			FileHandle->Write((const uint8*)TCHAR_TO_ANSI(*HashText), HashText.Len());
 			delete FileHandle;
+		}
+		else
+		{
+			FText ErrorText = FText::Format(LOCTEXT("CouldntWriteLicense",
+				"Couldn't write license file {0}. Make sure you have the permissions to modify the file and try again."),
+				FText::FromString(LicenseFilename));
+			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *ErrorText.ToString(), TEXT("Error"));
 		}
 	}
 

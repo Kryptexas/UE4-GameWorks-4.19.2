@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScreenShotManager.cpp: Implements the FScreenShotManager class.
@@ -12,9 +12,10 @@
 #include "Interfaces/IScreenShotManager.h"
 #include "MessageEndpoint.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogScreenShotManager, Log, All);
+
 class FScreenshotComparisons;
 struct FScreenShotDataItem;
-
 
 /**
  * Implements the ScreenShotManager that contains screen shot data.
@@ -34,7 +35,7 @@ public:
 
 	//~ Begin IScreenShotManager Interface
 
-	virtual TFuture<FImageComparisonResult> CompareScreensotAsync(FString RelativeImagePath) override;
+	virtual TFuture<FImageComparisonResult> CompareScreenshotAsync(FString RelativeImagePath) override;
 
 	virtual TFuture<FScreenshotExportResults> ExportComparisonResultsAsync(FString ExportPath = TEXT("")) override;
 
@@ -51,9 +52,11 @@ public:
 private:
 	FString GetDefaultExportDirectory() const;
 
-	FImageComparisonResult CompareScreensot(FString Existing);
+	FImageComparisonResult CompareScreenshot(FString Existing);
 	FScreenshotExportResults ExportComparisonResults(FString RootExportFolder);
 	void CopyDirectory(const FString& DestDir, const FString& SrcDir);
+
+	void BuildFallbackPlatformsListFromConfig();
 
 private:
 	FString ScreenshotApprovedFolder;
@@ -61,4 +64,5 @@ private:
 	FString ScreenshotDeltaFolder;
 	FString ScreenshotResultsFolder;
 	FString ComparisonResultsFolder;
+	TMap<FString, FString> FallbackPlatforms;
 };

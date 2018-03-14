@@ -1,7 +1,7 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	ParticleVertexFactory.h: Particle vertex factory definitions.
+ParticleVertexFactory.h: Particle vertex factory definitions.
 =============================================================================*/
 
 #pragma once
@@ -10,10 +10,11 @@
 #include "RenderResource.h"
 #include "UniformBuffer.h"
 #include "NiagaraVertexFactory.h"
-#include "NiagaraDataSet.h"
+#include "../../Niagara/Classes/NiagaraDataSet.h"
 #include "SceneView.h"
 #include "Components.h"
 #include "SceneManagement.h"
+#include "VertexFactory.h"
 
 
 class FMaterial;
@@ -63,18 +64,20 @@ struct FNiagaraMeshInstanceVertexPrevTransform
 * Uniform buffer for mesh particle vertex factories.
 */
 BEGIN_UNIFORM_BUFFER_STRUCT(FNiagaraMeshUniformParameters, NIAGARAVERTEXFACTORIES_API)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, SubImageSize)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, TexCoordWeightA)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, TexCoordWeightB)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, PrevTransformAvailable)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, DeltaSeconds)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, PositionDataOffset)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, VelocityDataOffset)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, ColorDataOffset)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, TransformDataOffset)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, ScaleDataOffset)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, SizeDataOffset)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, MaterialParamDataOffset)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX( FMatrix, LocalToWorld, EShaderPrecisionModifier::Half)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX( FMatrix, LocalToWorldInverseTransposed, EShaderPrecisionModifier::Half)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, SubImageSize)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, TexCoordWeightA)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, TexCoordWeightB)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, PrevTransformAvailable)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, DeltaSeconds)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, PositionDataOffset)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, VelocityDataOffset)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, ColorDataOffset)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, TransformDataOffset)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, ScaleDataOffset)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, SizeDataOffset)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(int, MaterialParamDataOffset)
 
 END_UNIFORM_BUFFER_STRUCT(FNiagaraMeshUniformParameters)
 typedef TUniformBufferRef<FNiagaraMeshUniformParameters> FNiagaraMeshUniformBufferRef;
@@ -91,20 +94,8 @@ class NIAGARAVERTEXFACTORIES_API FNiagaraMeshVertexFactory : public FNiagaraVert
 public:
 
 	// TODO get rid of the unnecessary components here when streams are no longer necessary
-	struct FDataType
+	struct FDataType : public FStaticMeshDataType
 	{
-		/** The stream to read the vertex position from. */
-		FVertexStreamComponent PositionComponent;
-
-		/** The streams to read the tangent basis from. */
-		FVertexStreamComponent TangentBasisComponents[2];
-
-		/** The streams to read the texture coordinates from. */
-		TArray<FVertexStreamComponent, TFixedAllocator<MAX_TEXCOORDS> > TextureCoordinates;
-
-		/** The stream to read the vertex  color from. */
-		FVertexStreamComponent VertexColorComponent;
-
 		/** The stream to read the vertex  color from. */
 		FVertexStreamComponent ParticleColorComponent;
 
@@ -142,6 +133,7 @@ public:
 		: FNiagaraVertexFactoryBase(InType, InFeatureLevel)
 		, DynamicVertexStride(InDynamicVertexStride)
 		, DynamicParameterVertexStride(InDynamicParameterVertexStride)
+		, MeshFacingMode(0)
 		, InstanceVerticesCPU(nullptr)
 	{}
 
@@ -149,13 +141,14 @@ public:
 		: FNiagaraVertexFactoryBase(NVFT_MAX, ERHIFeatureLevel::Num)
 		, DynamicVertexStride(-1)
 		, DynamicParameterVertexStride(-1)
+		, MeshFacingMode(0)
 		, InstanceVerticesCPU(nullptr)
 	{}
 
 	/**
 	* Should we cache the material's shadertype on this platform with this vertex factory?
 	*/
-	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType);
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType);
 
 
 	/**
@@ -178,31 +171,28 @@ public:
 
 	inline FShaderResourceViewRHIParamRef GetFloatDataSRV() const
 	{
-#if PLATFORM_PS4
-		return DataSet->PrevData().GetGPUBufferFloat()->SRV;
-#else
-		check(IsInRenderingThread());
-		return DataSet->PrevDataRender().GetGPUBufferFloat()->SRV;
-#endif
+		const FShaderResourceViewRHIRef& Ret = DataSet->GetRenderDataFloatSRV();
+		if (Ret.IsValid())
+		{
+			return Ret;
+		}
+		return DummyBuffer.SRV;
 	}
+
 	inline FShaderResourceViewRHIParamRef GetIntDataSRV() const
 	{
-#if PLATFORM_PS4
-		return DataSet->PrevData().GetGPUBufferInt()->SRV;
-#else
-		check(IsInRenderingThread());
-		return DataSet->PrevDataRender().GetGPUBufferInt()->SRV;
-#endif
+		const FShaderResourceViewRHIRef& Ret = DataSet->GetRenderDataInt32SRV();
+		if (Ret.IsValid())
+		{
+			return Ret;
+		}
+		return DummyBuffer.SRV;
 	}
 
 	uint32 GetComponentBufferSize()
 	{
-#if PLATFORM_PS4
-		return DataSet->PrevData().GetFloatStride() / sizeof(float);
-#else
-		check(IsInRenderingThread());
-		return DataSet->PrevDataRender().GetFloatStride() / sizeof(float);
-#endif
+		check(!IsInGameThread());
+		return DataSet->CurrDataRender().GetFloatStride() / sizeof(float);
 	}
 
 	/**
@@ -245,9 +235,9 @@ public:
 	*/
 	void SetDynamicParameterBuffer(const FVertexBuffer* InDynamicParameterBuffer, uint32 StreamOffset, uint32 Stride);
 
-	uint8* LockPreviousTransformBuffer(uint32 ParticleCount);
-	void UnlockPreviousTransformBuffer();
-	FShaderResourceViewRHIParamRef GetPreviousTransformBufferSRV() const;
+	//uint8* LockPreviousTransformBuffer(uint32 ParticleCount);
+	//void UnlockPreviousTransformBuffer();
+	//FShaderResourceViewRHIParamRef GetPreviousTransformBufferSRV() const;
 
 	/**
 	* Copy the data from another vertex factory
@@ -267,18 +257,27 @@ public:
 		return InstanceVerticesCPU;
 	}
 
+	uint32 GetMeshFacingMode() const
+	{
+		return MeshFacingMode;
+	}
+
+	void SetMeshFacingMode(uint32 InMode)
+	{
+		MeshFacingMode = InMode;
+	}
+
 protected:
 	FDataType Data;
 	const FNiagaraDataSet *DataSet;
 	/** Stride information for instanced mesh particles */
 	int32 DynamicVertexStride;
 	int32 DynamicParameterVertexStride;
+	uint32 MeshFacingMode;
 
 	/** Uniform buffer with mesh particle parameters. */
 	FUniformBufferRHIParamRef MeshParticleUniformBuffer;
-
-	FDynamicReadBuffer PrevTransformBuffer;
-
+	
 	/** Used to remember this in the case that we reuse the same vertex factory for multiple renders . */
 	FNiagaraMeshInstanceVertices* InstanceVerticesCPU;
 };
@@ -297,10 +296,10 @@ public:
 		: FNiagaraMeshVertexFactory()
 	{}
 
-	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 	{
 		return (Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL) // Those are only platforms that might not support hardware instancing
-			&& FNiagaraMeshVertexFactory::ShouldCache(Platform, Material, ShaderType);
+			&& FNiagaraMeshVertexFactory::ShouldCompilePermutation(Platform, Material, ShaderType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)

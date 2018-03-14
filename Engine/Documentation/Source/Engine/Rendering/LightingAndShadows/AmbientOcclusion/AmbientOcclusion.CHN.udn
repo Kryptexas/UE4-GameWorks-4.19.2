@@ -51,9 +51,12 @@ Version: 4.9
 | **Radius in WorldSpace** （世界空间中的半径）|如启用，**AO Radius** （环境遮挡半径）属性值将被认为位于世界空间内。 否则，则认为其位于视图空间内。  |
 | **Distance** （距离） | 用来防止物体周围的暗色光晕的调整参数。 由于 SSAO（屏幕空间环境遮挡）技术且仅有zbuffer值，因此它无法获知物体的厚度。 [INCLUDE:Engine/Rendering/LightingAndShadows/AmbientOcclusion#Distance] |
 | **Power** （力度）|控制计算的变暗特效的力度。 [INCLUDE:Engine/Rendering/LightingAndShadows/AmbientOcclusion#Power] |
-| **Bias** （偏移）|用来修改 AO (环境遮挡）细节。 为防止一定距离内的精度失真，我们需要设置一些偏移。 >0,以虚幻单位为单位，默认值(3.0)适用于平整表面，但会降低细节。 <!--TODO: images--> |
+| **Bias** （偏移）|用来修改 AO (环境遮挡）细节。 为防止一定距离内的精度失真，我们需要设置一些偏移。 >0,以虚幻单位为单位，默认值(3.0)适用于平整表面，但会降低细节。 [COMMENT:none]
+TODO: images
+[/COMMENT] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Intensity]
 [REGION:imagetable]
 | ![AO Intensity - 0.0](ao_intensity_0.png)(w:390) | ![AO Intensity - 1.0](ao_intensity_1.png)(w:390)
@@ -88,4 +91,5 @@ Version: 4.9
 | 1.0 | 4.0 | 10.0 |
 [/REGION]
 [/EXCERPT:Power]
--->
+
+[/COMMENT]

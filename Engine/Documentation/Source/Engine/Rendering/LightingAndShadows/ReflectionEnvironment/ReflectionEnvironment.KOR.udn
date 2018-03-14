@@ -1,50 +1,12 @@
-﻿INTSourceChangelist:3507178
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 리플렉션 인바이언먼트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:국소적 광택 리플렉션을 캡처하여 표시하는 시스템입니다.
 Version: 4.14
+topic-image:reflection_topic.png
 
 [TOC(start:2)]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/ReflectionEnvironment:title%](%ROOT%/Engine/Rendering/LightingAndShadows/ReflectionEnvironment/reflection_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	![](%ROOT%/ue4_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	%Engine/Rendering/LightingAndShadows/ReflectionEnvironment:title%
-	[/PARAM]
-	[PARAM:description]
-	%Engine/Rendering/LightingAndShadows/ReflectionEnvironment:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/ReflectionEnvironment]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/ReflectionEnvironment:title%](%ROOT%/Engine/Rendering/LightingAndShadows/ReflectionEnvironment/reflection_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	![](%ROOT%/ue4_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	%Engine/Rendering/LightingAndShadows/ReflectionEnvironment:title%
-	[/PARAM]
-	[PARAM:description]
-	%Engine/Rendering/LightingAndShadows/ReflectionEnvironment:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/ReflectionEnvironment]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [EXCERPT:ReflectionEnv001]
 **Reflection Environment** (반사 환경, 리플렉션 인바이언먼트)란 레벨의 모든 영역에 효율적인 광택 리플렉션을 내는 
@@ -509,7 +471,8 @@ Reflection Environment 비용은 화면상의 픽셀에 얼마나 많은 캡처�
 월드에 최대로 가능한 리플렉션 캡처 수는 한 번에 341 개입니다.
 
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:ReflectionResolution]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -538,4 +501,5 @@ Reflection Environment 비용은 화면상의 픽셀에 얼마나 많은 캡처�
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:ReflectionResolution]
--->
+
+[/COMMENT]

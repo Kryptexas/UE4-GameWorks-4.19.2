@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -125,40 +125,21 @@ class UMaterialGraphSchema : public UEdGraphSchema
 	GENERATED_UCLASS_BODY()
 
 	// Allowable PinType.PinCategory values
-	UPROPERTY()
-	FString PC_Mask;
-
-	UPROPERTY()
-	FString PC_Required;
-
-	UPROPERTY()
-	FString PC_Optional;
-
-	UPROPERTY()
-	FString PC_MaterialInput;
+	UNREALED_API static const FName PC_Mask;
+	UNREALED_API static const FName PC_Required;
+	UNREALED_API static const FName PC_Optional;
+	UNREALED_API static const FName PC_MaterialInput;
 
 	// Common PinType.PinSubCategory values
-	UPROPERTY()
-	FString PSC_Red;
-
-	UPROPERTY()
-	FString PSC_Green;
-
-	UPROPERTY()
-	FString PSC_Blue;
-
-	UPROPERTY()
-	FString PSC_Alpha;
+	UNREALED_API static const FName PSC_Red;
+	UNREALED_API static const FName PSC_Green;
+	UNREALED_API static const FName PSC_Blue;
+	UNREALED_API static const FName PSC_Alpha;
 
 	// Color of certain pins/connections
-	UPROPERTY()
-	FLinearColor ActivePinColor;
-
-	UPROPERTY()
-	FLinearColor InactivePinColor;
-
-	UPROPERTY()
-	FLinearColor AlphaPinColor;
+	UNREALED_API static const FLinearColor ActivePinColor;
+	UNREALED_API static const FLinearColor InactivePinColor;
+	UNREALED_API static const FLinearColor AlphaPinColor;
 
 	/**
 	 *  Add all linked to nodes to this pin to selection
@@ -212,7 +193,7 @@ class UMaterialGraphSchema : public UEdGraphSchema
 	virtual FLinearColor GetPinTypeColor(const FEdGraphPinType& PinType) const override;
 	virtual void BreakNodeLinks(UEdGraphNode& TargetNode) const override;
 	virtual void BreakPinLinks(UEdGraphPin& TargetPin, bool bSendsNodeNotifcation) const override;
-	virtual void BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) override;
+	virtual void BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) const override;
 	virtual void DroppedAssetsOnGraph(const TArray<struct FAssetData>& Assets, const FVector2D& GraphPosition, UEdGraph* Graph) const override;
 	virtual int32 GetNodeSelectionCount(const UEdGraph* Graph) const override;
 	virtual TSharedPtr<FEdGraphSchemaAction> GetCreateCommentAction() const override;

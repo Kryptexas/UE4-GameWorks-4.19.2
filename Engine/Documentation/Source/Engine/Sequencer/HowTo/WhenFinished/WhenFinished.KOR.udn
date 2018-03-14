@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3683933
+Availability:Public
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Title: Keeping or Restoring Changes Made by Sequencer
-Description: Describes how to keep any changes made through Sequencer when it has completed or restore changes back to their original state.
+Title: 시퀀서에서 가한 변경사항 유지 또는 복원
+Description: 시퀀서를 통해 가한 변경사항을 완료 후에도 유지하거나 원래 상태로 되돌리는 방법입니다.
 Type: how-to
 SkillLevel: intermediate
 Version: 4.16
@@ -11,119 +11,117 @@ Order: 1
 Tags: Sequencer
 Tags: how-to
 topic-image:WhenFinishedTopicImage.png
+type:how-to
 
-When working with Sequencer, there may be instances where you are affecting the properties of Actors in your cinematic that you want to persist for a particular shot or when the cinematic completes. 
-For example, you create a cinematic where a player unlocks and opens a door where (once the cinematic finishes) the door remains in the open state. 
-In a film production environment, however, you may want animated values in a shot to return to their pre-animated state so they don't bleed into the next shot. 
-With the **When Finished** property, you can determine on a per-track basis whether tracks should return to their pre-animated state or keep them when the sequence finishes. 
+시퀀서에서 작업할 때, 시네마틱이 종료된 후에도 액터의 프로퍼티에 가한 변경사항을 유지하고플 수가 있을 수 있습니다. 예를 들어 플레이어가 문을 따고 여는 시네마틱을 만들었다면, 그 종료 이후 문이 열린 상태로 남아있으면 좋을 것입니다. 하지만 영화 제작 환경에서는 샷의 애니메이션 적용 값을 원래 상태로 되돌려 다음 샷으로 새어나가지 못하도록 하고싶을 수 있습니다. **When Finished** (완료 시) 프로퍼티를 통해 시퀀스 종료 후 애니메이션 이전 상태로 되돌릴 것인지 변경사항을 유지할 것인지 트랙 단위로 결정할 수 있습니다.
 
-In this how-to guide, you will use the When Finished property to restore the color change of a light but keep the changes made to the movement of a door. 
+여기서는 When Finished 프로퍼티를 사용하여 라이트에 대한 변경사항은 되돌리지만 문에 대한 변경사항은 유지하도록 하겠습니다.
 
 ![](HeroImage.png)
 
 
-## Steps
+## 단계
 
 [REGION:note]
-For this how-to guide, we are using the **Blueprint Third Person Template** with **Starter Content** enabled. 
+여기서는 **블루프린트 삼인칭 템플릿** 에 **시작용 콘텐츠를 포함** 시켜 사용하고 있습니다.
 [/REGION]
 
-1.	From the **Content/StarterContent/Props** folder, drag an **SM_Door** and **SM_DoorFrame** into the **Level Viewport** and position the door inside the frame. 
+1.	**Content/StarterContent/Props** 폴더에서 **SM_Door** 와 **SM_DoorFrame** 을 끌어 **레벨 뷰포트** 에 놓고 문을 틀에 맞게 이동시킵니다.
 
 	![](WhenFinished_01.png)
 
-	Press the **W** key to enter translation mode and if needed, disable grid snapping (pictured below) to fine tune the position of the door in the frame. 
+	**W** 키를 눌러 이동 모드로 들어가고, 필요하다면 그리드 스냅을 (아래와 같이) 끄고 틀 안의 문 위치를 미세 조정합니다.
 
 	![](WhenFinished_02.png)
 
-1.	From the **Modes** panel under **Lights**, drag a **Point Light** into the **Level Viewport** and position it in front of the door. 
+1.	**모드** 패널에서 **Lights** (라이트) 아래 **Point Light** (포인트 라이트)를 끌어 **레벨 뷰포트** 에 놓고 위치를 문 앞으로 합니다.
 
 	![](WhenFinished_03.png)
 
-1.	Position the **ThirdPersonCharacter** in the **Level Viewport** in front of the door. 
+1.	**레벨 뷰포트** 에서 **ThirdPersonCharacter** 위치를 문 앞에 놓습니다.
 
 	![](WhenFinished_04.png)
 
-1.	From the **Main Toolbar**, click the **Cinematics** button and select **Add Level Sequence**. 
+1.	**메인 툴바** 에서 **시네마틱** 버튼을 클릭하고 **레벨 시퀀스 추가** 를 선택합니다.
 
 	![](WhenFinished_05.png)
 
-1.	In the **Save Asset As** window, select a **Name** and save location, then click **Save**. 
+1.	**애셋을 다른 이름으로 저장** 창에서 **이름** 과 저장 위치를 선택한 뒤 **저장** 을 클릭합니다.
 
 	![](WhenFinished_06.png)
 
-1.	In the **Sequencer** window, click the **Add** button and select **Shot Track**. 
+1.	**시퀀서** 창에서 **추가** 버튼을 클릭하고 **Shot Track** (샷 트랙)을 선택합니다.
 
 	![](WhenFinished_07.png)
 
-	This will create a [Shot Track](Engine/Sequencer/HowTo/TracksShot) which enables you to section off parts of your cinematic into self-contained "shots" that you can arrange and re-arrange. 
+	[샷 트랙](Engine/Sequencer/HowTo/TracksShot) 이 생성되며, 여기서 시네마틱 일부분을 섹션으로 떼어 독립적인 "샷" 으로 만든 뒤 이것을 재배치할 수 있습니다.
 
-1.	On the **Shot Track**, click the **+ Shot** button and **Insert Shot** and use the default naming convention when prompted. 
+1.	**샷 트랙** 에서, **+ Shot** (+ 샷) 버튼을 클릭하고 **Insert Shot** (샷 삽입) 후 이름은 기본 이름으로 합니다.
 
 	![](WhenFinished_08.png)
 
-1.	Grab the end of the shot and pull it back to **Frame 75** so the shot is half the length of the entire sequence. 
+1.	샷 끝부분을 잡아 **75 프레임** 으로 끌어 샷이 전체 시퀀스의 절반 길이가 되도록 합니다.
 
 	![](WhenFinished_09.png)
 
-	We are going to use the shot to affect the light in our scene but restore those changes once the shot is over.
+	샷이 씬의 라이트에 영향을 주지만, 샷이 끝나면 그 변경사항을 복원하도록 하겠습니다.
 
-1.	With the **Timeline** at **Frame 0** and the **SM_Door** selected in the level, add the **Actor To Sequencer** from the **+ Add** button. 
+1.	**타임라인** 은 **0 프레임** 에 두고 레벨의 **SM_Door** 를 선택한 채, **+ Add** (+ 추가) - **Actor To Sequencer** (시퀀서에 추가)합니다.
 
 	![](WhenFinished_10.png)
 
-	We will affect the door on the master level and keep the state of the changes we are going to apply. 
+	마스터 레벨의 문에 영향을 주고 적용하려는 변경사항 상태를 유지하도록 하겠습니다.
 
-1.	Click the **+** button on the **Transform** track of **SM_Door**. 
+1.	**SM_Door** 의 **트랜스폼** 트랙에 있는 **+** 버튼을 클릭합니다.
 
 	![](WhenFinished_11.png)
 
-1.	Move the **Timeline** marker to **Frame 150**, then rotate the door (**E** key) in the level so it is open and press the **S** key to add its transform while open. 
+1.	**타임라인** 마커를 **150 프레임** 으로 옮긴 뒤 레벨의 문을 (**E** 키로) 회전시켜 연 뒤 **S** 키를 눌러 열린 상태의 트랜스폼을 추가합니다.
 
 	![](WhenFinished_12.png)
 
-	This will cause the door to go from closed to open once we reach the end of the cinematic. 
+	시네마틱 끝부분에 도달하면 닫혔던 문이 열리게 됩니다.
 
-1.	Double-click on the shot in the **Shot Track** to open it, then in the level select the **Point Light** and add it to the shot. 
+1.	**샷 트랙** 에서 샷에 더블클릭하여 연 뒤, 레벨에서 **포인트 라이트** 를 선택하고 샷에 추가합니다.
 
 	![](WhenFinished_13.png)
 
-1.	On the **Light Color** track, click the **+** sign to assign the default color to use at **Frame 0** of the shot. 
+1.	**Light Color** (라이트 컬러) 트랙에서 **+** 부호를 클릭하여 샷의 **0 프레임** 에 사용할 기본 색을 할당합니다.
 
 	![](WhenFinished_14.png)
 
-1.	Move the **Timeline** marker to **Frame 75** and change the **Light Color** to **Green** (or any color you desire) adding keys for the new values. 
+1.	**타임라인** 마커를 **75 프레임** 으로 옮기고 **Light Color** 를 **초록** (아니면 원하는 색)으로 변경하여 새 값에 대한 키를 추가합니다.
 
 	![](WhenFinished_15.png)
 
-1.	Right-click on the **Light Color** track in the tracks window and select **Properties** to view the **When Finished** state. 
+1.	트랙 창의 **라이트 컬러** 트랙에 우클릭하고 **프로퍼티** 를 선택하여 **When Finished** (완료 시) 스테이트를 확인합니다.
 
 	![](WhenFinished_16.png)
 
-	By default, **When Finished** states that this track will **Restore State** or return to its original state when the section is completed. 
+	기본적으로 **When Finished** 스테이트는 섹션이 완료되면 **Restore State** (원래 상태로 복원)될 것입니다.
 
-1.	Exit the **Shot** and return to the **Master Sequence** level by clicking the breadcrumb buttons in the upper-right of the **Sequencer** window. 
+1.	**샷** 을 빠져나가 **마스터 시퀀스** 레벨로 돌아갑니다. **시퀀서** 창 우상단의 경로 버튼을 클릭하면 됩니다.
 
 	![](WhenFinished_17.png)
 
-1.	Right-click on the **Transform** track of the **SM_Door** and select **Properties**, then change the **When Finished** property to **Keep State**. 
+1.	**SM_Door** 의 **트랜스폼** 트랙에 우클릭하고 **프로퍼티** 를 선택한 뒤 **When Finished** 프로퍼티를 **Keep State** (상태 유지)로 변경합니다.
 
 	![](WhenFinished_18.png)
 
-	We are now stating that we want to **Keep State** and keep the changes that we apply through Sequencer when the cinematic is complete. 
+	이제 시네마틱이 완료되면 시퀀서를 통해 적용한 변경사항을 유지하고 싶다는 뜻입니다.
 
-1.	Select the **Level Sequence** Actor in the level, then in the **Details** panel set the **Auto Play** option to **True**. 
+1.	레벨의 **레벨 시퀀스** 액터를 선택하고, **디테일** 패널에서 **Auto Play** (자동 재생) 옵션을 **True** 로 설정합니다. 
 
 	![](WhenFinished_19.png)
 
-1.	From the **Main Toolbar** click the **Build** button and select **Build Lighting Only**, then (after lighting has built) click the **Play** button. 
+1.	**메인 툴바** 에서 **빌드** 버튼을 클릭하고 **Build Lighting Only** (라이팅만 빌드) 옵션을 선택한 뒤, (라이팅 빌드가 끝나면) **플레이** 버튼을 클릭합니다.
 
 	![](WhenFinished_20.png)
 
 
-## End Result
+## 최종 결과
 
-When you play in the level, the light will change colors before returning to white however our door will remain in the opened state. 
+레벨에서 플레이해 보면, 라이트 색이 바뀐 뒤 흰색으로 돌아갑니다. 하지만 문은, 열린 상태로 남아있을 것입니다.
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -143,43 +141,11 @@ When you play in the level, the light will change colors before returning to whi
 	[/PARAMLITERAL]
 [/OBJECT]
 
-For the light inside our shot, we used the default **When Finished** property value of **Restore State** which will restore it back to its original state when the shot is finished. 
-The door, however, we changed the When Finished property to **Keep State** preserving our changes and keeping the door in the open state when the cinematic completes. 
+샷 안의 라이트에는, 기본 **When Finished** 프로퍼티 값 **Restore State** 를 사용하여, 샷이 끝나면 원래 상태로 복원됩니다.
+하지만 문에는, When Finished 프로퍼티를 **Keep State** 로 바꾸어 변경사항을 보존하도록 해 시네마틱이 끝나도 문이 열린 상태로 남아있습니다.
 
-One thing to consider is that while Keep State has a local effect, there is a global **Restore State** option contained within the **Level Sequence** actor: 
+한 가지 고려할 것은, Keep State 는 로컬 효과인 반면, **레벨 시퀀스** 액터 자체에 포함된 **Restore State** 글로벌 옵션이 있습니다.
 
 ![](WhenFinished_21.png)
 
-The Restore State option in the **Details** panel of a Level Sequence actor will restore all states when the Level Sequence stops. 
-If you want to keep the state of a track after the sequence has completely finished, you will need to make sure that both your section is set to Keep State and the Level Sequence actor is **not** set to Restore State otherwise the global value will override your local settings. 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+레벨 시퀀스 액터의 **디테일** 패널에 있는 Restore State 옵션은 레벨 시퀀스가 멈추면 모든 상태를 복원시킵니다. 시퀀스가 완전히 끝난 후 트랙의 상태를 유지하려면, 섹션이 Keep State 로 설정되어 있고 레벨 시퀀스 액터가 Restore State 로 설정되지 **않았는지** 확인해야 합니다. 그렇지 않으면 글로벌 값이 로컬 세팅을 덮어쓸 것입니다.

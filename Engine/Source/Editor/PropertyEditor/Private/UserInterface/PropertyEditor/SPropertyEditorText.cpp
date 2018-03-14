@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "UserInterface/PropertyEditor/SPropertyEditorText.h"
 #include "UObject/TextProperty.h"
@@ -36,7 +36,7 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 				.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
 				.AutoWrapText(true)
 				.ModiferKeyForNewLine(EModifierKey::Shift)
-				.IsPassword( bIsPassword )
+				//.IsPassword( bIsPassword )
 			]
 		];
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -493,35 +493,19 @@ public:
 	}
 
 	/**
-	 * Returns the size of the object/ resource for display to artists/ LDs in the Editor. The
-	 * default behavior is to return 0 which indicates that the resource shouldn't
-	 * display its size.
-	 *
-	 * @param	Mode	Indicates which resource size should be returned
-	 * @return	Size of resource as to be displayed to artists/ LDs in the Editor.
-	 */
-	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode)
-	{
-		return GetResourceSizeBytes(Mode);
-	}
-
-	/**
-	 * Get the size of the object/resource for display to artists/LDs in the Editor.
+	 * Get the size of the object/resource for use in memory tools or to display to artists/LDs in the Editor
 	 * This is the extended version which separates up the used memory into different memory regions (the actual definition of which may be platform specific).
 	 *
 	 * @param	CumulativeResourceSize	Struct used to count up the cumulative size of the resource as to be displayed to artists/LDs in the Editor.
 	 */
-	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
-	{
-	}
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize);
 
 	/**
-	 * Get the size of the object/resource for display to artists/LDs in the Editor.
+	 * Get the size of the object/resource for use in memory tools or to display to artists/LDs in the Editor
 	 * This is the simple version which just returns the total number of bytes used by this object.
 	 *
 	 * @param	Mode					Indicates which resource size should be returned.
-	 * @return The cumulative size of the resource as to be displayed to artists/LDs in the Editor.
+	 * @return The cumulative size of this object in memory
 	 */
 	SIZE_T GetResourceSizeBytes(EResourceSizeMode::Type Mode)
 	{
@@ -682,6 +666,8 @@ public:
 	/** Returns true if this object is considered an asset. */
 	virtual bool IsAsset() const;
 
+	virtual void NotifyObjectReferenceEliminated() const {}
+
 	/**
 	 * Returns an Type:Name pair representing the PrimaryAssetId for this object.
 	 * Assets that need to be globally referenced at runtime should return a valid Identifier.
@@ -728,6 +714,13 @@ public:
 
 	/** Called right before being marked for destruction due to network replication */
 	virtual void PreDestroyFromReplication();
+
+#if WITH_EDITOR
+	/** 
+	 * @return		Returns Valid if this object has data validation rules set up for it and the data for this object is valid. Returns Invalid if it does not pass the rules. Returns NotValidated if no rules are set for this object.
+	 */
+	virtual EDataValidationResult IsDataValid(TArray<FText>& ValidationErrors);
+#endif // WITH_EDITOR
 
 	/**
  	 *******************************************************
@@ -877,7 +870,7 @@ public:
 	 * @param	bIncludeNestedSubobjects	controls whether subobjects which are contained by this object, but do not have this object
 	 *										as its direct Outer should be included
 	 */
-	void CollectDefaultSubobjects( TArray<UObject*>& OutDefaultSubobjects, bool bIncludeNestedSubobjects=false );
+	void CollectDefaultSubobjects( TArray<UObject*>& OutDefaultSubobjects, bool bIncludeNestedSubobjects=false ) const;
 
 	/**
 	 * Checks default sub-object assumptions.
@@ -885,7 +878,7 @@ public:
 	 * @param bForceCheck Force checks even if not enabled globally.
 	 * @return true if the assumptions are met, false otherwise.
 	 */
-	bool CheckDefaultSubobjects(bool bForceCheck = false);
+	bool CheckDefaultSubobjects(bool bForceCheck = false) const;
 
 	/**
 	 * Save configuration.
@@ -1062,7 +1055,7 @@ public:
 	// Internal function call processing.
 	// @warning: might not write anything to Result if proper type isn't returned.
 	//
-	void ProcessInternal( FFrame& Stack, RESULT_DECL );
+	DECLARE_FUNCTION(ProcessInternal);
 
 	/**
 	 * This function handles a console exec sent to the object; it is virtual so 'nexus' objects like
@@ -1292,14 +1285,14 @@ public:
 protected: 
 
 	/** Checks it's ok to perform subobjects check at this time. */
-	bool CanCheckDefaultSubObjects(bool bForceCheck, bool& bResult);
+	bool CanCheckDefaultSubObjects(bool bForceCheck, bool& bResult) const;
 
 	/**
 	* Checks default sub-object assumptions.
 	*
 	* @return true if the assumptions are met, false otherwise.
 	*/
-	virtual bool CheckDefaultSubobjectsInternal();
+	virtual bool CheckDefaultSubobjectsInternal() const;
 
 private:
 	void ProcessContextOpcode(FFrame& Stack, RESULT_DECL, bool bCanFailSilent);

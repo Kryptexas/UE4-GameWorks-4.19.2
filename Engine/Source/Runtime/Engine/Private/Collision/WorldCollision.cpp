@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	WorldCollision.cpp: UWorld collision implementation
@@ -67,32 +67,17 @@ void FBaseTraceDatum::Set(UWorld * World, const FCollisionShape& InCollisionShap
 
 bool UWorld::LineTraceTestByChannel(const FVector& Start,const FVector& End,ECollisionChannel TraceChannel, const FCollisionQueryParams& Params /* = FCollisionQueryParams::DefaultQueryParam */, const FCollisionResponseParams& ResponseParam /* = FCollisionResponseParams::DefaultResponseParam */) const
 {
-#if UE_WITH_PHYSICS
 	return RaycastTest(this, Start, End, TraceChannel, Params, ResponseParam, FCollisionObjectQueryParams::DefaultObjectQueryParam);
-#else
-	return false;
-#endif
-
 }
 
 bool UWorld::LineTraceSingleByChannel(struct FHitResult& OutHit,const FVector& Start,const FVector& End,ECollisionChannel TraceChannel,const FCollisionQueryParams& Params /* = FCollisionQueryParams::DefaultQueryParam */, const FCollisionResponseParams& ResponseParam /* = FCollisionResponseParams::DefaultResponseParam */) const
 {
-#if UE_WITH_PHYSICS
 	return RaycastSingle(this, OutHit, Start, End, TraceChannel, Params, ResponseParam, FCollisionObjectQueryParams::DefaultObjectQueryParam);
-#else
-	OutHit.TraceStart = Start;
-	OutHit.TraceEnd = End;
-	return false;
-#endif
 }
 
 bool UWorld::LineTraceMultiByChannel(TArray<struct FHitResult>& OutHits,const FVector& Start,const FVector& End,ECollisionChannel TraceChannel,const FCollisionQueryParams& Params /* = FCollisionQueryParams::DefaultQueryParam */, const FCollisionResponseParams& ResponseParam /* = FCollisionResponseParams::DefaultResponseParam */) const
 {
-#if UE_WITH_PHYSICS
 	return RaycastMulti(this, OutHits, Start, End, TraceChannel, Params, ResponseParam, FCollisionObjectQueryParams::DefaultObjectQueryParam);
-#else
-	return false;
-#endif
 }
 
 bool UWorld::SweepTestByChannel(const FVector& Start, const FVector& End, const FQuat& Rot, ECollisionChannel TraceChannel, const FCollisionShape& CollisionShape, const FCollisionQueryParams& Params /* = FCollisionQueryParams::DefaultQueryParam */, const FCollisionResponseParams& ResponseParam /* = FCollisionResponseParams::DefaultResponseParam */) const
@@ -104,11 +89,7 @@ bool UWorld::SweepTestByChannel(const FVector& Start, const FVector& End, const 
 	}
 	else
 	{
-#if UE_WITH_PHYSICS
 		return GeomSweepTest(this, CollisionShape, Rot, Start, End, TraceChannel, Params, ResponseParam, FCollisionObjectQueryParams::DefaultObjectQueryParam);
-#else
-		return false;
-#endif
 	}
 }
 
@@ -120,13 +101,7 @@ bool UWorld::SweepSingleByChannel(struct FHitResult& OutHit, const FVector& Star
 	}
 	else
 	{
-#if UE_WITH_PHYSICS
 		return GeomSweepSingle(this, CollisionShape, Rot, OutHit, Start, End, TraceChannel, Params, ResponseParam, FCollisionObjectQueryParams::DefaultObjectQueryParam);
-#else
-		OutHit.TraceStart = Start;
-		OutHit.TraceEnd = End;
-		return false;
-#endif
 	}
 }
 
@@ -138,20 +113,14 @@ bool UWorld::SweepMultiByChannel(TArray<struct FHitResult>& OutHits, const FVect
 	}
 	else
 	{
-#if UE_WITH_PHYSICS
 		return GeomSweepMulti(this, CollisionShape, Rot, OutHits, Start, End, TraceChannel, Params, ResponseParam, FCollisionObjectQueryParams::DefaultObjectQueryParam);
-#else
-		return false;
-#endif
 	}
 }
 
 bool UWorld::OverlapBlockingTestByChannel(const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const FCollisionShape& CollisionShape, const FCollisionQueryParams& Params /* = FCollisionQueryParams::DefaultQueryParam */, const FCollisionResponseParams& ResponseParam /* = FCollisionResponseParams::DefaultResponseParam */) const
 {
 	bool bBlocking = false;
-#if UE_WITH_PHYSICS
 	bBlocking = GeomOverlapBlockingTest(this, CollisionShape, Pos, Rot, TraceChannel, Params, ResponseParam, FCollisionObjectQueryParams::DefaultObjectQueryParam);
-#endif
 	return bBlocking;
 
 }
@@ -159,66 +128,42 @@ bool UWorld::OverlapBlockingTestByChannel(const FVector& Pos, const FQuat& Rot, 
 bool UWorld::OverlapAnyTestByChannel(const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const FCollisionShape& CollisionShape, const FCollisionQueryParams& Params /* = FCollisionQueryParams::DefaultQueryParam */, const FCollisionResponseParams& ResponseParam /* = FCollisionResponseParams::DefaultResponseParam */) const
 {
 	bool bBlocking = false;
-#if UE_WITH_PHYSICS
 	bBlocking = GeomOverlapAnyTest(this, CollisionShape, Pos, Rot, TraceChannel, Params, ResponseParam, FCollisionObjectQueryParams::DefaultObjectQueryParam);
-#endif
 	return bBlocking;
 
 }
 
 bool UWorld::OverlapMultiByChannel(TArray<struct FOverlapResult>& OutOverlaps, const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const FCollisionShape& CollisionShape, const FCollisionQueryParams& Params /* = FCollisionQueryParams::DefaultQueryParam */, const FCollisionResponseParams& ResponseParam /* = FCollisionResponseParams::DefaultResponseParam */) const
 {
-#if UE_WITH_PHYSICS
 	return GeomOverlapMulti(this, CollisionShape, Pos, Rot, OutOverlaps, TraceChannel, Params, ResponseParam, FCollisionObjectQueryParams::DefaultObjectQueryParam);
-#else
-	return false;
-#endif
 }
 
 // object query interfaces
 
 bool UWorld::OverlapMultiByObjectType(TArray<struct FOverlapResult>& OutOverlaps, const FVector& Pos, const FQuat& Rot, const FCollisionObjectQueryParams& ObjectQueryParams, const FCollisionShape& CollisionShape, const FCollisionQueryParams& Params /* = FCollisionQueryParams::DefaultQueryParam */) const
 {
-#if UE_WITH_PHYSICS
 	GeomOverlapMulti(this, CollisionShape, Pos, Rot, OutOverlaps, DefaultCollisionChannel, Params, FCollisionResponseParams::DefaultResponseParam, ObjectQueryParams);
 
 	// object query returns true if any hit is found, not only blocking hit
 	return (OutOverlaps.Num() > 0);
-#else
-	return false;
-#endif
 }
 
 bool UWorld::LineTraceTestByObjectType(const FVector& Start,const FVector& End,const FCollisionObjectQueryParams& ObjectQueryParams, const FCollisionQueryParams& Params /* = FCollisionQueryParams::DefaultQueryParam */) const
 {
-#if UE_WITH_PHYSICS
 	return RaycastTest(this, Start, End, DefaultCollisionChannel, Params, FCollisionResponseParams::DefaultResponseParam, ObjectQueryParams);
-#else
-	return false;
-#endif
 }
 
 bool UWorld::LineTraceSingleByObjectType(struct FHitResult& OutHit,const FVector& Start,const FVector& End,const FCollisionObjectQueryParams& ObjectQueryParams, const FCollisionQueryParams& Params /* = FCollisionQueryParams::DefaultQueryParam */) const
 {
-#if UE_WITH_PHYSICS
 	return RaycastSingle(this, OutHit, Start, End, DefaultCollisionChannel, Params, FCollisionResponseParams::DefaultResponseParam, ObjectQueryParams);
-#else
-	OutHit.TraceStart = Start;
-	OutHit.TraceEnd = End;
-	return false;
-#endif
 }
 
 bool UWorld::LineTraceMultiByObjectType(TArray<struct FHitResult>& OutHits,const FVector& Start,const FVector& End,const FCollisionObjectQueryParams& ObjectQueryParams, const FCollisionQueryParams& Params /* = FCollisionQueryParams::DefaultQueryParam */) const
 {
-#if UE_WITH_PHYSICS
 	RaycastMulti(this, OutHits, Start, End, DefaultCollisionChannel, Params, FCollisionResponseParams::DefaultResponseParam, ObjectQueryParams);
 
 	// object query returns true if any hit is found, not only blocking hit
 	return (OutHits.Num() > 0);
-#else
-	return false;
-#endif
 }
 
 bool UWorld::SweepTestByObjectType(const FVector& Start, const FVector& End, const FQuat& Rot, const FCollisionObjectQueryParams& ObjectQueryParams, const FCollisionShape& CollisionShape, const FCollisionQueryParams& Params /* = FCollisionQueryParams::DefaultQueryParam */) const
@@ -230,11 +175,7 @@ bool UWorld::SweepTestByObjectType(const FVector& Start, const FVector& End, con
 	}
 	else
 	{
-#if UE_WITH_PHYSICS
 		return GeomSweepTest(this, CollisionShape, Rot, Start, End, DefaultCollisionChannel, Params, FCollisionResponseParams::DefaultResponseParam, ObjectQueryParams);
-#else
-		return false;
-#endif
 	}
 
 }
@@ -247,13 +188,7 @@ bool UWorld::SweepSingleByObjectType(struct FHitResult& OutHit, const FVector& S
 	}
 	else
 	{
-#if UE_WITH_PHYSICS
 		return GeomSweepSingle(this, CollisionShape, Rot, OutHit, Start, End, DefaultCollisionChannel, Params, FCollisionResponseParams::DefaultResponseParam, ObjectQueryParams);
-#else
-		OutHit.TraceStart = Start;
-		OutHit.TraceEnd = End;
-		return false;
-#endif
 	}
 
 }
@@ -266,23 +201,17 @@ bool UWorld::SweepMultiByObjectType(TArray<struct FHitResult>& OutHits, const FV
 	}
 	else
 	{
-#if UE_WITH_PHYSICS
 		GeomSweepMulti(this, CollisionShape, Rot, OutHits, Start, End, DefaultCollisionChannel, Params, FCollisionResponseParams::DefaultResponseParam, ObjectQueryParams);
 
 		// object query returns true if any hit is found, not only blocking hit
 		return (OutHits.Num() > 0);
-#else
-		return false;
-#endif
 	}
 }
 
 bool UWorld::OverlapAnyTestByObjectType(const FVector& Pos, const FQuat& Rot, const FCollisionObjectQueryParams& ObjectQueryParams, const FCollisionShape& CollisionShape, const FCollisionQueryParams& Params /* = FCollisionQueryParams::DefaultQueryParam */) const
 {
 	bool bBlocking = false;
-#if UE_WITH_PHYSICS
 	bBlocking = GeomOverlapAnyTest(this, CollisionShape, Pos, Rot, DefaultCollisionChannel, Params, FCollisionResponseParams::DefaultResponseParam, ObjectQueryParams);
-#endif
 	return bBlocking;
 }
 
@@ -435,7 +364,6 @@ bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrim
 
 	OutHits.Reset();
 
-#if UE_WITH_PHYSICS
 	const FBodyInstance* BodyInstance = PrimComp->GetBodyInstance();
 
 	if (!BodyInstance || !BodyInstance->IsValidBodyInstance())
@@ -449,8 +377,6 @@ bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrim
 	{
 		UE_LOG(LogCollision, Log, TEXT("ComponentSweepMulti : SkeletalMeshComponent support only root body (%s) "), *PrimComp->GetReadableName());
 	}
-#endif
-
 #endif
 
 	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomSweepMultiple);

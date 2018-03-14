@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3309591
+﻿INTSourceChangelist:3782314
 availability:Public
 title:3. 블루프린트 구성
 description:하이트 맵 페인터 블루프린트를 만들고 구성하는 법에 대해 다룹니다.
@@ -96,7 +96,8 @@ checkpoint:HFP
 
 [NAV]
 
-<!--
+[COMMENT:none]
+
 Method Split Here
 
 [EXCERPT:m1]
@@ -172,9 +173,11 @@ Trace from Camera (카메라에서 트레이스) 함수는 하이트 값을 올�
 
 이제 필수 블루프린트 구성이 완료되었으니, 다음에는 UE4 의 하이트 맵 페인터 사용법을 알아보겠습니다.
 [/EXCERPT]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:Function]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -1491,4 +1494,5 @@ Trace from Camera (카메라에서 트레이스) 함수는 하이트 값을 올�
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:FunctionUV02]
--->
+
+[/COMMENT]

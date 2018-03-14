@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SteamVRAssetManager.h"
 #include "ISteamVRPlugin.h" // STEAMVR_SUPPORTED_PLATFORMS
@@ -35,8 +35,7 @@ namespace SteamVRDevice_Impl
 static FSteamVRHMD* SteamVRDevice_Impl::GetSteamHMD()
 {
 #if STEAMVR_SUPPORTED_PLATFORMS
-	static FName SystemName(TEXT("SteamVR"));
-	if (GEngine->XRSystem.IsValid() && (GEngine->XRSystem->GetSystemName() == SystemName))
+	if (GEngine->XRSystem.IsValid() && (GEngine->XRSystem->GetSystemName() == FSteamVRHMD::SteamSystemName))
 	{
 		return static_cast<FSteamVRHMD*>(GEngine->XRSystem.Get());
 	}
@@ -52,28 +51,31 @@ static int32 SteamVRDevice_Impl::GetDeviceStringProperty(int32 DeviceIndex, int3
 	if (FSteamVRHMD* SteamHMD = GetSteamHMD())
 	{
 		vr::IVRSystem* SteamVRSystem = SteamHMD->GetVRSystem();
-		vr::ETrackedDeviceProperty SteamPropId = (vr::ETrackedDeviceProperty)PropertyId;
-
-		vr::TrackedPropertyError APIError;
-		TArray<char> Buffer;
-		Buffer.AddUninitialized(vr::k_unMaxPropertyStringSize);
-
-		int Size = SteamVRSystem->GetStringTrackedDeviceProperty(DeviceIndex, SteamPropId, Buffer.GetData(), Buffer.Num(), &APIError);
-		if (APIError == vr::TrackedProp_BufferTooSmall)
+		if (SteamVRSystem)
 		{
-			Buffer.AddUninitialized(Size - Buffer.Num());
-			Size = SteamVRSystem->GetStringTrackedDeviceProperty(DeviceIndex, SteamPropId, Buffer.GetData(), Buffer.Num(), &APIError);
-		}
+			vr::ETrackedDeviceProperty SteamPropId = (vr::ETrackedDeviceProperty)PropertyId;
 
-		if (APIError == vr::TrackedProp_Success)
-		{
-			StringPropertyOut = UTF8_TO_TCHAR(Buffer.GetData());
-		}
-		else
-		{
-			StringPropertyOut = UTF8_TO_TCHAR(SteamVRSystem->GetPropErrorNameFromEnum(APIError));
-		}
-		ErrorResult = (int32)APIError;
+			vr::TrackedPropertyError APIError;
+			TArray<char> Buffer;
+			Buffer.AddUninitialized(vr::k_unMaxPropertyStringSize);
+
+			int Size = SteamVRSystem->GetStringTrackedDeviceProperty(DeviceIndex, SteamPropId, Buffer.GetData(), Buffer.Num(), &APIError);
+			if (APIError == vr::TrackedProp_BufferTooSmall)
+			{
+				Buffer.AddUninitialized(Size - Buffer.Num());
+				Size = SteamVRSystem->GetStringTrackedDeviceProperty(DeviceIndex, SteamPropId, Buffer.GetData(), Buffer.Num(), &APIError);
+			}
+
+			if (APIError == vr::TrackedProp_Success)
+			{
+				StringPropertyOut = UTF8_TO_TCHAR(Buffer.GetData());
+			}
+			else
+			{
+				StringPropertyOut = UTF8_TO_TCHAR(SteamVRSystem->GetPropErrorNameFromEnum(APIError));
+			}
+			ErrorResult = (int32)APIError;
+		}	
 	}
 #endif 
 	return ErrorResult;
@@ -339,7 +341,7 @@ public:
 #if STEAMVR_SUPPORTED_PLATFORMS
 		if (RawResource != nullptr)
 		{
-#if WITH_EDITORONLY_DATA // @TODO: UTexture::Source is only available in editor builds, we need to find some other way to construct textures
+#if WITH_EDITORONLY_DATA // @TODO: UTexture::Source is only available in editor builds, we need to find some other way to construct textures - try using CreateTransient() (see: TexturePaintHelpers::CreateTempUncompressedTexture)
 			NewTexture = NewObject<UTexture2D>(ObjOuter, ObjName, ObjFlags);
 			NewTexture->Source.Init(RawResource->unWidth, RawResource->unHeight, /*NewNumSlices =*/1, /*NewNumMips =*/1, TSF_BGRA8, RawResource->rubTextureMapData);
 
@@ -360,7 +362,8 @@ public:
 /* FSteamVRAsyncMeshLoader 
  *****************************************************************************/
 
-DECLARE_DELEGATE_ThreeParams(FOnSteamVRMeshLoadComplete, int32, const FSteamVRMeshData&, UTexture2D*);
+DECLARE_DELEGATE(FOnSteamVRModelLoadComplete);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnSteamVRSubMeshLoaded, int32, const FSteamVRMeshData&, UTexture2D*);
 
 class FSteamVRAsyncMeshLoader : public FTickableGameObject, public FGCObject
 {
@@ -368,9 +371,11 @@ public:
 	FSteamVRAsyncMeshLoader(const float WorldMetersScaleIn);
 
 	/** */
-	void SetLoadCallback(const FOnSteamVRMeshLoadComplete& OnLoadComplete);
+	void SetLoadCompleteCallback(const FOnSteamVRModelLoadComplete& OnLoadComplete);
 	/** */
 	int32 EnqueMeshLoad(const FString& ModelName);
+	/** */
+	FOnSteamVRSubMeshLoaded& OnSubMeshLoaded();
 
 public:
 	//~ FTickableObjectBase interface
@@ -399,9 +404,10 @@ protected:
 private:
 	int32 PendingLoadCount;
 	float WorldMetersScale;
-	FOnSteamVRMeshLoadComplete LoadCompleteCallback;
+	FOnSteamVRSubMeshLoaded SubMeshLoadedDelegate;
+	FOnSteamVRModelLoadComplete LoadCompleteCallback;
 
-	TArray<FSteamVRModel>    EnqueuedModels;
+	TArray<FSteamVRModel>    EnqueuedMeshes;
 	TArray<FSteamVRTexture>  EnqueuedTextures;
 	TMap<int32, int32>       PendingTextureLoads;
 	TMap<int32, UTexture2D*> ConstructedTextures;
@@ -412,9 +418,9 @@ FSteamVRAsyncMeshLoader::FSteamVRAsyncMeshLoader(const float WorldMetersScaleIn)
 	, WorldMetersScale(WorldMetersScaleIn)
 {}
 
-void FSteamVRAsyncMeshLoader::SetLoadCallback(const FOnSteamVRMeshLoadComplete& LoadCompleteDelegate)
+void FSteamVRAsyncMeshLoader::SetLoadCompleteCallback(const FOnSteamVRModelLoadComplete& LoadCompleteCallbackIn)
 {
-	LoadCompleteCallback = LoadCompleteDelegate;
+	LoadCompleteCallback = LoadCompleteCallbackIn;
 }
 
 int32 FSteamVRAsyncMeshLoader::EnqueMeshLoad(const FString& ModelName)
@@ -423,18 +429,22 @@ int32 FSteamVRAsyncMeshLoader::EnqueMeshLoad(const FString& ModelName)
 	if (!ModelName.IsEmpty())
 	{
 		++PendingLoadCount;
-		MeshIndex = EnqueuedModels.Add( FSteamVRModel(ModelName) );
+		MeshIndex = EnqueuedMeshes.Add( FSteamVRModel(ModelName) );
 	}
 	return MeshIndex;
 }
 
+FOnSteamVRSubMeshLoaded& FSteamVRAsyncMeshLoader::OnSubMeshLoaded()
+{
+	return SubMeshLoadedDelegate;
+}
+
 void FSteamVRAsyncMeshLoader::Tick(float /*DeltaTime*/)
 {
-	for (int32 SubMeshIndex = 0; SubMeshIndex < EnqueuedModels.Num(); ++SubMeshIndex)
+	for (int32 SubMeshIndex = 0; SubMeshIndex < EnqueuedMeshes.Num(); ++SubMeshIndex)
 	{
-		FSteamVRModel& ModelResource = EnqueuedModels[SubMeshIndex];
-		if (ModelResource.IsPending())
-		{
+		FSteamVRModel& ModelResource = EnqueuedMeshes[SubMeshIndex];
+
 			vr::RenderModel_t* RenderModel = ModelResource.TickAsyncLoad();
 			if (!ModelResource.IsPending())
 			{
@@ -459,7 +469,6 @@ void FSteamVRAsyncMeshLoader::Tick(float /*DeltaTime*/)
 				}			
 			}
 		}
-	}
 
 	for (int32 TexIndex = 0; TexIndex < EnqueuedTextures.Num(); ++TexIndex)
 	{
@@ -485,9 +494,9 @@ void FSteamVRAsyncMeshLoader::Tick(float /*DeltaTime*/)
 				}
 
 				int32* ModelIndexPtr = PendingTextureLoads.Find(TexIndex);
-				if ( ensure(ModelIndexPtr != nullptr && EnqueuedModels.IsValidIndex(*ModelIndexPtr)) )
+				if ( ensure(ModelIndexPtr != nullptr && EnqueuedMeshes.IsValidIndex(*ModelIndexPtr)) )
 				{
-					FSteamVRModel& AssociatedModel = EnqueuedModels[*ModelIndexPtr];
+					FSteamVRModel& AssociatedModel = EnqueuedMeshes[*ModelIndexPtr];
 					OnLoadComplete(*ModelIndexPtr);
 				}	
 			}
@@ -496,8 +505,7 @@ void FSteamVRAsyncMeshLoader::Tick(float /*DeltaTime*/)
 
 	if (PendingLoadCount <= 0)
 	{
-		// INDEX_NONE => signifies everything has been loaded
-		LoadCompleteCallback.Execute(INDEX_NONE, FSteamVRMeshData(), /*UTexture2D =*/nullptr);
+		LoadCompleteCallback.ExecuteIfBound();
 	}
 }
 
@@ -538,9 +546,9 @@ void FSteamVRAsyncMeshLoader::OnLoadComplete(int32 SubMeshIndex)
 	FSteamVRMeshData RawMeshData;
 	UTexture2D* Texture = nullptr;
 
-	if (EnqueuedModels.IsValidIndex(SubMeshIndex))
+	if (EnqueuedMeshes.IsValidIndex(SubMeshIndex))
 	{
-		FSteamVRModel& LoadedModel = EnqueuedModels[SubMeshIndex];
+		FSteamVRModel& LoadedModel = EnqueuedMeshes[SubMeshIndex];
 		LoadedModel.GetRawMeshData(WorldMetersScale, RawMeshData);
 
 		
@@ -555,7 +563,7 @@ void FSteamVRAsyncMeshLoader::OnLoadComplete(int32 SubMeshIndex)
 #endif // STEAMVR_SUPPORTED_PLATFORMS
 		}
 	}
-	LoadCompleteCallback.ExecuteIfBound(SubMeshIndex, RawMeshData, Texture);
+	SubMeshLoadedDelegate.Broadcast(SubMeshIndex, RawMeshData, Texture);
 }
 
 
@@ -565,12 +573,12 @@ void FSteamVRAsyncMeshLoader::OnLoadComplete(int32 SubMeshIndex)
 FSteamVRAssetManager::FSteamVRAssetManager()
 	: DefaultDeviceMat(FString(TEXT("/SteamVR/Materials/M_DefaultDevice.M_DefaultDevice")))
 {
-	IModularFeatures::Get().RegisterModularFeature(IXRDeviceAssets::GetModularFeatureName(), this);
+	IModularFeatures::Get().RegisterModularFeature(IXRSystemAssets::GetModularFeatureName(), this);
 }
 
 FSteamVRAssetManager::~FSteamVRAssetManager()
 {
-	IModularFeatures::Get().UnregisterModularFeature(IXRDeviceAssets::GetModularFeatureName(), this);
+	IModularFeatures::Get().UnregisterModularFeature(IXRSystemAssets::GetModularFeatureName(), this);
 }
 
 bool FSteamVRAssetManager::EnumerateRenderableDevices(TArray<int32>& DeviceListOut)
@@ -598,6 +606,93 @@ bool FSteamVRAssetManager::EnumerateRenderableDevices(TArray<int32>& DeviceListO
 	return bHasActiveVRSystem;
 }
 
+int32 FSteamVRAssetManager::GetDeviceId(EControllerHand ControllerHand)
+{
+	int32 DeviceIndexOut = INDEX_NONE;
+
+#if STEAMVR_SUPPORTED_PLATFORMS
+	FSteamVRHMD* SteamHMD = SteamVRDevice_Impl::GetSteamHMD();
+	vr::IVRSystem* SteamVRSystem = (SteamHMD) ? SteamHMD->GetVRSystem() : nullptr;
+	if (SteamVRSystem)
+	{
+		vr::ETrackedDeviceClass DesiredDeviceClass = vr::ETrackedDeviceClass::TrackedDeviceClass_Invalid;
+		vr::ETrackedControllerRole DesiredControllerRole = vr::ETrackedControllerRole::TrackedControllerRole_Invalid;
+
+		switch (ControllerHand)
+		{
+		case EControllerHand::Left:
+			DesiredControllerRole = vr::TrackedControllerRole_LeftHand;
+			DesiredDeviceClass = vr::ETrackedDeviceClass::TrackedDeviceClass_Controller;
+			break;
+		case EControllerHand::Right:
+			DesiredControllerRole = vr::TrackedControllerRole_RightHand;
+			DesiredDeviceClass = vr::ETrackedDeviceClass::TrackedDeviceClass_Controller;
+			break;
+		case EControllerHand::AnyHand:
+			DesiredDeviceClass = vr::ETrackedDeviceClass::TrackedDeviceClass_Controller;
+			break;
+
+		case EControllerHand::ExternalCamera:
+			DesiredDeviceClass = vr::ETrackedDeviceClass::TrackedDeviceClass_TrackingReference;
+			break;
+
+		case EControllerHand::Special_1:
+		case EControllerHand::Special_2:
+		case EControllerHand::Special_3:
+		case EControllerHand::Special_4:
+		case EControllerHand::Special_5:
+		case EControllerHand::Special_6:
+		case EControllerHand::Special_7:
+		case EControllerHand::Special_8:
+		case EControllerHand::Special_9:
+		case EControllerHand::Special_10:
+		case EControllerHand::Special_11:
+			DesiredDeviceClass = vr::ETrackedDeviceClass::TrackedDeviceClass_GenericTracker;
+			break;
+
+		default:
+			// DesiredDeviceClass = TrackedDeviceClass_Invalid => returns -1
+			break;
+		}
+
+		if (DesiredDeviceClass != vr::TrackedDeviceClass_Invalid)
+		{
+			int32 FallbackIndex = INDEX_NONE;
+
+			for (uint32 DeviceIndex = 0; DeviceIndex < vr::k_unMaxTrackedDeviceCount; ++DeviceIndex)
+			{
+				const vr::ETrackedDeviceClass DeviceClass = SteamVRSystem->GetTrackedDeviceClass(DeviceIndex);
+				if (DeviceClass == DesiredDeviceClass)
+				{
+					if (DesiredControllerRole != vr::TrackedControllerRole_Invalid)
+					{
+						// NOTE: GetControllerRoleForTrackedDeviceIndex() only seems to return a valid role if the device is on and being tracked
+						const vr::ETrackedControllerRole ControllerRole = SteamVRSystem->GetControllerRoleForTrackedDeviceIndex(DeviceIndex);
+						if (ControllerRole == vr::TrackedControllerRole_Invalid && FallbackIndex == INDEX_NONE)
+						{
+							FallbackIndex = DeviceIndex;
+						}
+						else if (ControllerRole != DesiredControllerRole)
+						{
+							continue;
+						}
+					}
+
+					DeviceIndexOut = DeviceIndex;
+					break;
+				}
+			}
+
+			if (DeviceIndexOut == INDEX_NONE)
+			{
+				DeviceIndexOut = FallbackIndex;
+			}
+		}
+	}
+#endif
+	return DeviceIndexOut;
+}
+
 UPrimitiveComponent* FSteamVRAssetManager::CreateRenderComponent(const int32 DeviceId, AActor* Owner, EObjectFlags Flags)
 {
 	UPrimitiveComponent* NewRenderComponent = nullptr;
@@ -611,11 +706,9 @@ UPrimitiveComponent* FSteamVRAssetManager::CreateRenderComponent(const int32 Dev
 
 		if (VRModelManager != nullptr)
 		{
-			const char* RawModelName = TCHAR_TO_UTF8(*ModelName);
-			const uint32 SubMeshCount = VRModelManager->GetComponentCount(RawModelName);
-
-			const FName DeviceName = *FString::Printf(TEXT("%s_Device%d"), TEXT("SteamVR"), DeviceId);
-			UProceduralMeshComponent* ProceduralMesh = NewObject<UProceduralMeshComponent>(Owner, DeviceName, Flags);
+			const FString BaseComponentName = FString::Printf(TEXT("%s_%s"), TEXT("SteamVR"), *ModelName);
+			const FName ComponentObjName = MakeUniqueObjectName(Owner, UProceduralMeshComponent::StaticClass(), *BaseComponentName);
+			UProceduralMeshComponent* ProceduralMesh = NewObject<UProceduralMeshComponent>(Owner, ComponentObjName, Flags);
 
 			float MeterScale = 1.f;
 			if (UWorld* World = Owner->GetWorld())
@@ -626,15 +719,22 @@ UPrimitiveComponent* FSteamVRAssetManager::CreateRenderComponent(const int32 Dev
 					MeterScale = WorldSettings->WorldToMeters;
 				}
 			}
+
+			TSharedPtr<FSteamVRAsyncMeshLoader> AssignedMeshLoader;
+			if (TSharedPtr<FSteamVRAsyncMeshLoader>* ExistingLoader = ActiveMeshLoaders.Find(ModelName))
+			{
+				AssignedMeshLoader = *ExistingLoader;
+			}
+			else
+			{
 			TSharedPtr<FSteamVRAsyncMeshLoader> NewMeshLoader = MakeShareable(new FSteamVRAsyncMeshLoader(MeterScale));
 			
-			FAsyncLoadData CallbackPayload;
-			CallbackPayload.AsyncLoader  = NewMeshLoader;
-			CallbackPayload.ComponentPtr = ProceduralMesh;
+				FOnSteamVRModelLoadComplete LoadHandler;
+				LoadHandler.BindRaw(this, &FSteamVRAssetManager::OnModelFullyLoaded, ModelName);
+				NewMeshLoader->SetLoadCompleteCallback(LoadHandler);
 
-			FOnSteamVRMeshLoadComplete LoadHandler;
-			LoadHandler.BindRaw(this, &FSteamVRAssetManager::OnMeshLoaded, CallbackPayload);
-			NewMeshLoader->SetLoadCallback(LoadHandler);
+				const char* RawModelName = TCHAR_TO_UTF8(*ModelName);
+				const uint32 SubMeshCount = VRModelManager->GetComponentCount(RawModelName);
 
 			if (SubMeshCount > 0)
 			{
@@ -656,7 +756,7 @@ UPrimitiveComponent* FSteamVRAssetManager::CreateRenderComponent(const int32 Dev
 					
 					FString ComponentName = UTF8_TO_TCHAR(NameBuffer.GetData());
 					// arbitrary pieces that are not present on the physical device
-					// @TODO: probably useful for something, should figure out their purpose 
+					// @TODO: probably useful for something, should figure out their purpose (battery readout? handedness?)
 					if (ComponentName == TEXT("status") ||
 						ComponentName == TEXT("scroll_wheel") ||
 						ComponentName == TEXT("trackpad_scroll_cut") ||
@@ -685,7 +785,15 @@ UPrimitiveComponent* FSteamVRAssetManager::CreateRenderComponent(const int32 Dev
 				NewMeshLoader->EnqueMeshLoad(ModelName);
 			}
 
-			AsyncMeshLoaders.Add(NewMeshLoader);
+				AssignedMeshLoader = NewMeshLoader;
+				ActiveMeshLoaders.Add(ModelName, NewMeshLoader);
+			}
+			
+			FAsyncLoadData CallbackPayload;
+			CallbackPayload.ComponentPtr = ProceduralMesh;
+
+			AssignedMeshLoader->OnSubMeshLoaded().AddRaw(this, &FSteamVRAssetManager::OnMeshLoaded, CallbackPayload);
+
 			NewRenderComponent = ProceduralMesh;
 		}
 	}
@@ -695,11 +803,7 @@ UPrimitiveComponent* FSteamVRAssetManager::CreateRenderComponent(const int32 Dev
 
 void FSteamVRAssetManager::OnMeshLoaded(int32 SubMeshIndex, const FSteamVRMeshData& MeshData, UTexture2D* DiffuseTex, FAsyncLoadData LoadData)
 {
-	if (SubMeshIndex == INDEX_NONE && LoadData.AsyncLoader.IsValid())
-	{
-		AsyncMeshLoaders.Remove(LoadData.AsyncLoader.Pin());
-	}
-	else if (MeshData.VertPositions.Num() > 0 && LoadData.ComponentPtr.IsValid())
+	if (MeshData.VertPositions.Num() > 0 && LoadData.ComponentPtr.IsValid())
 	{
 		LoadData.ComponentPtr->CreateMeshSection(SubMeshIndex
 			, MeshData.VertPositions
@@ -715,7 +819,7 @@ void FSteamVRAssetManager::OnMeshLoaded(int32 SubMeshIndex, const FSteamVRMeshDa
 			UMaterial* DefaultMaterial = DefaultDeviceMat.LoadSynchronous();
 			if (DefaultMaterial)
 			{
-				FName MatName = *FString::Printf(TEXT("M_%s_SubMesh%d"), *LoadData.ComponentPtr->GetName(), SubMeshIndex);
+				const FName MatName = MakeUniqueObjectName(GetTransientPackage(), UMaterialInstanceDynamic::StaticClass(), *FString::Printf(TEXT("M_%s_SubMesh%d"), *LoadData.ComponentPtr->GetName(), SubMeshIndex));
 				UMaterialInstanceDynamic* MeshMaterial = UMaterialInstanceDynamic::Create(DefaultMaterial, LoadData.ComponentPtr.Get(), MatName);
 
 				MeshMaterial->SetTextureParameterValue(TEXT("DiffuseTex"), DiffuseTex);
@@ -723,4 +827,9 @@ void FSteamVRAssetManager::OnMeshLoaded(int32 SubMeshIndex, const FSteamVRMeshDa
 			}
 		}
 	}
+}
+
+void FSteamVRAssetManager::OnModelFullyLoaded(FString ModelName)
+{
+	ActiveMeshLoaders.Remove(ModelName);
 }

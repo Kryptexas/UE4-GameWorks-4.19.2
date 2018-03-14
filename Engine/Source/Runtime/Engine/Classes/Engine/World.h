@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -64,12 +64,12 @@ template<typename,typename> class TOctree;
  * Misc. Iterator types
  *
  */
-typedef TArray<TAutoWeakObjectPtr<AController> >::TConstIterator FConstControllerIterator;
-typedef TArray<TAutoWeakObjectPtr<APlayerController> >::TConstIterator FConstPlayerControllerIterator;
-typedef TArray<TAutoWeakObjectPtr<APawn> >::TConstIterator FConstPawnIterator;	
-typedef TArray<TAutoWeakObjectPtr<ACameraActor> >::TConstIterator FConstCameraActorIterator;
+typedef TArray<TWeakObjectPtr<AController> >::TConstIterator FConstControllerIterator;
+typedef TArray<TWeakObjectPtr<APlayerController> >::TConstIterator FConstPlayerControllerIterator;
+typedef TArray<TWeakObjectPtr<APawn> >::TConstIterator FConstPawnIterator;	
+typedef TArray<TWeakObjectPtr<ACameraActor> >::TConstIterator FConstCameraActorIterator;
 typedef TArray<class ULevel*>::TConstIterator FConstLevelIterator;
-typedef TArray<TAutoWeakObjectPtr<APhysicsVolume> >::TConstIterator FConstPhysicsVolumeIterator;
+typedef TArray<TWeakObjectPtr<APhysicsVolume> >::TConstIterator FConstPhysicsVolumeIterator;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSpawn, Warning, All);
 
@@ -1240,8 +1240,7 @@ public:
 	 **/
 	uint32 NumLightingUnbuiltObjects;
 	
-	/** Num of reflection capture components missing valid data. This can be non-zero only in game with FeatureLevel < SM4*/
-	uint32 NumInvalidReflectionCaptureComponents;
+	uint32 NumUnbuiltReflectionCaptures;
 
 	/** Num of components missing valid texture streaming data. Updated in map check. */
 	int32 NumTextureStreamingUnbuiltComponents;
@@ -1303,9 +1302,6 @@ public:
 	/** Keeps track whether actors moved via PostEditMove and therefore constraint syncup should be performed. */
 	UPROPERTY(transient)
 	uint32 bAreConstraintsDirty:1;
-
-	/** Coordinates async tasks started in post load that we want completed before we register components.  May not be here for long; currently used to convert foliage instance buffers.*/
-	FThreadSafeCounter AsyncPreRegisterLevelStreamingTasks;
 
 #if WITH_EDITORONLY_DATA
 	/** List of DDC async requests we need to wait on before we register components. Game thread only. */
@@ -2188,9 +2184,6 @@ public:
 	 */
 	void CommitModelSurfaces();
 
-	/** Purges all reflection capture cached derived data and forces a re-render of captured scene data. */
-	void UpdateAllReflectionCaptures();
-
 	/** Purges all sky capture cached derived data and forces a re-render of captured scene data. */
 	void UpdateAllSkyCaptures();
 
@@ -2198,7 +2191,7 @@ public:
 	ULevel* GetActiveLightingScenario() const;
 
 	/** Propagates a change to the active lighting scenario. */
-	void PropagateLightingScenarioChange(bool bLevelWasMadeVisible);
+	void PropagateLightingScenarioChange();
 
 	/**
 	 * Associates the passed in level with the world. The work to make the level visible is spread across several frames and this
@@ -3129,7 +3122,7 @@ public:
 	 * Sets NumLightingUnbuiltObjects to the specified value.  Marks the worldsettings package dirty if the value changed.
 	 * @param	InNumLightingUnbuiltObjects			The new value.
 	 */
-	void SetMapNeedsLightingFullyRebuilt(int32 InNumLightingUnbuiltObjects);
+	void SetMapNeedsLightingFullyRebuilt(int32 InNumLightingUnbuiltObjects, int32 InNumUnbuiltReflectionCaptures);
 
 	/** Returns TimerManager instance for this world. */
 	inline FTimerManager& GetTimerManager() const
@@ -3198,6 +3191,9 @@ public:
 public:
 	/** Rename this world such that it has the prefix on names for the given PIE Instance ID */
 	void RenameToPIEWorld(int32 PIEInstanceID);
+
+	/** Given a level script actor, modify the string such that it points to the correct instance of the object. For replays. */
+	bool RemapCompiledScriptActor(FString& Str) const;
 
 	/** Given a PackageName and a PIE Instance ID return the name of that Package when being run as a PIE world */
 	static FString ConvertToPIEPackageName(const FString& PackageName, int32 PIEInstanceID);

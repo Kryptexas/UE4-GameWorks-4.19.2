@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BSDIPv6Sockets/SocketSubsystemBSDIPv6.h"
 #include "Misc/ScopeLock.h"
@@ -60,7 +60,17 @@ ESocketErrors FSocketSubsystemBSDIPv6::GetHostByName(const ANSICHAR* HostName, F
 	FMemory::Memzero(&HintAddrInfo, sizeof(HintAddrInfo));
 	HintAddrInfo.ai_family = AF_INET6;
 
-	int32 ErrorCode = getaddrinfo(HostName, NULL, &HintAddrInfo, &AddrInfo);
+	// Handle both IPv4 and IPv6 addrs
+	FString HostNameIpV6(HostName);
+	FInternetAddrBSDIPv6 IPv6Addr;
+	bool bValidIPv6Addr = false;
+	IPv6Addr.SetIp(ANSI_TO_TCHAR(HostName), bValidIPv6Addr);
+	if (bValidIPv6Addr)
+	{
+		HostNameIpV6 = IPv6Addr.ToString(false);
+	}
+
+	int32 ErrorCode = getaddrinfo(TCHAR_TO_ANSI(*HostNameIpV6), NULL, &HintAddrInfo, &AddrInfo);
 	ESocketErrors SocketError = TranslateGAIErrorCode(ErrorCode);
 	if (SocketError == SE_NO_ERROR)
 	{

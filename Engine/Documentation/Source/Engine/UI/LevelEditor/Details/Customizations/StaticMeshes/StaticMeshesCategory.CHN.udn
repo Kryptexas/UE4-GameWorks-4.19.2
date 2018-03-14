@@ -17,7 +17,8 @@ Description:用于查看及修改应用到Actor的所有组件上的静态网格
 | ------- | ----------- |
 | ![](button_blocking_volume.png) | 使用以下方法从该 _StaticMesh（静态网格物体）_ 生成一个 _BlockingVolume（阻挡体积）_ 作为碰撞： [INCLUDE:#BlockingVolume] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BlockingVolume]
 [REGION:simpletable]
 |方法|描述|
@@ -32,4 +33,5 @@ Description:用于查看及修改应用到Actor的所有组件上的静态网格
 $ NormalTolerance（正态容差） : 容差尺度。当计算哪些面和阻挡体积立方体相交时，代码里会忽略任何与当前面法线差小于"NormalTolerance"的切割面。这减少了用于生成切割面的平面数量，另一个作用是，同时也去掉了重复的面。
 [/REGION]
 [/EXCERPT:BlockingVolume]
--->
+
+[/COMMENT]

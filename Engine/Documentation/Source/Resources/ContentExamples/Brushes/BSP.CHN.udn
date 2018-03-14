@@ -53,7 +53,9 @@ Version: 4.9
 ![](BSP_Header.png)
 [/REGION]
 
-<!---[TOC(start:2 end:2)]--->
+[COMMENT:none]
+-[TOC(start:2 end:2)]-
+[/COMMENT]
 
 
 
@@ -61,7 +63,8 @@ Version: 4.9
 
 这个页面涵盖了 **Geometry_Editing** 关卡并且说明如何通过使用 **Aditive** 和 **Subtractive Brushes** 两种形式来搭建关卡，定义关卡的形状。在这些示例后，应当能够了解如何直接通过 Brush 来搭建一个房子，并能够开始搭建自定义关卡。
 
-<!--
+[COMMENT:none]
+
 this part's content has been moved somewhere else. uncomment this when the content ready.
 
 [region:note]
@@ -82,4 +85,5 @@ Geometry_Editing 关卡内有下面列表的内容：
 | **1.5 Edit Geometry Example** | This example demonstrates how to edit a Brush's shape with Edit Mode by clicking on the Edit (Shift+5) button. |
 | **1.6 Example House** | This is an example of using Additive and Subtractive Brushes to construct a house with windows and a door opening. |
 
--->
+
+[/COMMENT]

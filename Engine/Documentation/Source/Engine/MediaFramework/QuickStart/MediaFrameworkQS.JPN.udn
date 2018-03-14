@@ -1,0 +1,56 @@
+﻿INTSourceChangelist:3684558
+Availability:Docs
+Title:メディア フレームワークのクイック スタート
+Crumbs: %ROOT%, Engine
+Description:Media Framework ツールを使ってゲーム レベル内で動画をすぐに追加およびプレイするための操作ガイドです。 
+Navigation:topic
+parent:Engine/MediaFramework
+order:1
+Version:4.18
+type:quick start
+checkpoint:mediaframeworkqs
+tags:Media Framework
+tags:Getting Started
+topic-image:MediaFrameworkTopic.png
+
+![](MediaFrameworkHero.png)
+
+_操作ガイドを最後まで終えると、レベル内で複数のテレビで異なるコンテンツをプレイし、隣に立ってオンオフを操作できるようになります。_
+
+## 目標
+
+メディア フレームワーク クイックスタート ガイドでは、レベル内で動画をプレイテレビのセットアップを行います。 
+さらに、ブループリントでもテレビのセットアップを行うので、テレビのコンテンツを変更したり、複数のテレビをレベル内に、しかもそれぞれ別のコンテンツで配置することができます。 
+メディア フレームワークが初めての方、もしくはレベル内のスタティックメッシュ上での動画再生方法を学びたい方にぴったりのガイドです。 
+
+[REGION:note]
+このガイドでは、テレビでプレイする動画の効果を実現するために、[](Engine/Rendering/Materials) および [ブループリント](Engine/Blueprints) をいくつかセットアップします。 
+これらのトピックスを事前に知っておくと役立ちます (必須ではありません)。 
+[/REGION]
+
+## 目的
+
+このチュートリアルでは以下を習得します。
+
+*	メディアのインポート方法および様々なメディア ソースの使用方法 
+*	メディア ファイルをプレイするためのメディア テクスチャを統合するマテリアルの作成方法 
+*	ブループリントを使ってメディアの再生を開始、停止、ポーズする方法 
+*	使用するメディア ソースを指定できる TV ブループリントの作成方法 
+
+## ステップ
+
+
+
+[REGION:call_to_action]
+	[クイック スタート](Engine\MediaFramework\QuickStart/1 "%Engine\MediaFramework\QuickStart/1:title%")
+[/REGION]
+
+
+
+
+
+
+
+
+
+

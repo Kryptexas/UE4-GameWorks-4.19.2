@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Docs
 Title:TV 안전 지대 디버깅 구성
 Crumbs:%ROOT%, Platforms
@@ -134,7 +134,8 @@ TV 안전 지대 명령은 프로젝트의 **DefaultEngine.ini** 파일 내 **[S
 
 
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:SZ]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -163,9 +164,11 @@ TV 안전 지대 명령은 프로젝트의 **DefaultEngine.ini** 파일 내 **[S
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:SZ]
--->
 
-<!-----
+[/COMMENT]
+
+[COMMENT:none]
+---
 [EXCERPT:SZA]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -194,4 +197,5 @@ TV 안전 지대 명령은 프로젝트의 **DefaultEngine.ini** 파일 내 **[S
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:SZA]
--->
+
+[/COMMENT]

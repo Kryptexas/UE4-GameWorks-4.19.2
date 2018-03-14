@@ -35,7 +35,7 @@ LightSwitchBoth クラスの大部分のコード設定は、[C++ Only LightSwit
 [REGION:codetitlebar]
 LightSwitchBoth.h
 [/REGION:codetitlebar]
-		// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+		// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 		#pragma once
@@ -93,7 +93,7 @@ C++ コードで実装した関数を代わりに実行します。この設定�
 LightSwitchBoth.cpp
 [/REGION:codetitlebar]
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#include "BasicClasses.h"
 	#include "LightSwitchBoth.h"

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388666
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 2.5 - 캐릭터 점프 구현
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -22,7 +22,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 일반적으로 액션 매핑은 별도의 이벤트에 대한 입력을 다루며, 입력을 "친근한 이름"에 매핑시켜 나중에 이벤트 주도형 동작에 바인딩시킬 수 있도록 해줍니다. 
 최종 효과는 키나 마우스 버튼이나 키패드 버튼 누르기 및/또는 떼기가 바로 게임 동작을 발동시키도록 하는 것입니다.
@@ -228,4 +228,3 @@ Visual Studio 로 돌아가 FPSCharacter 클래스에 코드를 추가합니다.
 
 1.	Esc 키를 누르거나 레벨 에디터의 **중지** 버튼을 **클릭** 하여 에디터에서 플레이 (PIE) 모드를 빠져나갑니다.
 
-%Steps%

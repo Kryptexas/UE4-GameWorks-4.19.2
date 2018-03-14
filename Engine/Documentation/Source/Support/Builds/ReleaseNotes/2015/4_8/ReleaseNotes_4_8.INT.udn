@@ -29,7 +29,8 @@ order:8
 | **Xbox One** | April 2015 XDK (Requires Visual Studio 2012) |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Labels]
 [REGION:plainlist]
 * QA_APPROVED_UE4_BUILD_4.8.0_Release
@@ -37,7 +38,8 @@ order:8
 * QA_APPROVED_UE4_BUILD_MINIMUM
 [/REGION]
 [/EXCERPT:Labels]
--->
+
+[/COMMENT]
 [/PUBLISH:Licensee]
 
 This release includes 189 great changes that were submitted from Unreal Engine's amazing community of developers.  Thanks to all of these contributors to Unreal Engine 4.8:

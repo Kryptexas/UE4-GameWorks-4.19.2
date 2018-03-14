@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -58,8 +58,8 @@ private:
 	/** Get the text color based on bone part of skeleton or part of mesh */
 	FSlateColor GetBoneTextColor() const;
 
-	/** visibility of the icon */
-	EVisibility GetLODIconVisibility() const;
+	/** Brush of the icon */
+	const FSlateBrush* GetLODIcon() const;
 
 	/** Function that returns the current tooltip for this bone, depending on how it's used by the mesh */
 	FText GetBoneToolTip();

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "HAL/FileManager.h"
@@ -69,7 +69,7 @@ namespace GameProjectAutomationUtils
 
 
 	/* 
-	 * Create a project from a templalte with a given criteria
+	 * Create a project from a template with a given criteria
 	 * @oaram	InTemplates			List of available project templates
 	 * @param	InTargetedHardware	Target hardware (EHardwareClass)
 	 * @param	InGraphicPreset		Graphics preset (EGraphicsPreset)
@@ -98,6 +98,10 @@ namespace GameProjectAutomationUtils
 		else if (InCategory == EContentSourceCategory::CodeFeature)
 		{
 			CategoryName = FTemplateCategory::CodeCategoryName;
+		}
+		else if (InCategory == EContentSourceCategory::EnterpriseFeature)
+		{
+			CategoryName = FTemplateCategory::EnterpriseCategoryName;
 		}
 		else
 		{

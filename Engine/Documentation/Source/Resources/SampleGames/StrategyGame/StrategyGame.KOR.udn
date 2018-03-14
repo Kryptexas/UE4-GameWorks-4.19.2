@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3151861
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:전략 게임
 Crumbs:%ROOT%, Resources
@@ -12,43 +12,7 @@ Related: Gameplay/Framework/UIAndHUD
 Related: Gameplay/Input
 Related: Engine/Rendering/ParticleSystems
 Version: 4.9
-
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/SampleGames/StrategyGame:title%](StrategyGameTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/SampleGames/StrategyGame:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/SampleGames/StrategyGame:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/SampleGames/StrategyGame]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/SampleGames/StrategyGame:title%](StrategyGameTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/SampleGames/StrategyGame:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/SampleGames/StrategyGame:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/SampleGames/StrategyGame]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:StrategyGameTopic.png
 
 
 [REGION:fullwidth]
@@ -216,7 +180,9 @@ HUD 우하단 구석에는 `PauseButton` (4)으로, 게임 일시정지와 인�
 이전 메뉴로 돌아가기 위해 메뉴들에 대한 공유 포인터 배열이 `MenuHistory` 변수에 저장됩니다. 이 변수는 전에 확인한 메뉴를 저장하는 스택같은 역할을 하여, 되돌아가기가 쉬우면서도 메뉴를 여러 곳에서 
 재사용할 수 있도록 한 메뉴의 부모를 저장해야 하는 요건을 없애 주기도 합니다.
 
-<!-- ![](StrategyGameMainMenu2.png)(w:700) -->
+[COMMENT:none]
+ ![](StrategyGameMainMenu2.png)(w:700) 
+[/COMMENT]
 
 메뉴 애니메이션에서는 `SStrategyMenuWidget::SetupAnimations` 에 정의된 보간 커브를 사용합니다. 각 커브에는 시작 시간, 기간, 보간 방법이 정의되어 있으며, 정방향으로도 역방향으로도 재생 가능합니다.
 특정 시간에서의 특성 애니메이션을 위해 0.0f 에서 1.0f 사이의 값이 반환되는 `GetLerp()` 가 사용됩니다.

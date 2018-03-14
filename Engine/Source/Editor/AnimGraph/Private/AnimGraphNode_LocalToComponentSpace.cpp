@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphNode_LocalToComponentSpace.h"
 #include "AnimationGraphSchema.h"
@@ -35,8 +35,7 @@ FString UAnimGraphNode_LocalToComponentSpace::GetNodeCategory() const
 
 void UAnimGraphNode_LocalToComponentSpace::CreateOutputPins()
 {
-	const UAnimationGraphSchema* Schema = GetDefault<UAnimationGraphSchema>();
-	CreatePin(EGPD_Output, Schema->PC_Struct, FString(), FComponentSpacePoseLink::StaticStruct(), TEXT("ComponentPose"));
+	CreatePin(EGPD_Output, UAnimationGraphSchema::PC_Struct, FComponentSpacePoseLink::StaticStruct(), TEXT("ComponentPose"));
 }
 
 void UAnimGraphNode_LocalToComponentSpace::PostProcessPinName(const UEdGraphPin* Pin, FString& DisplayName) const

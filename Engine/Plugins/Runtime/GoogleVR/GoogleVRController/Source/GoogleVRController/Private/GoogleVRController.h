@@ -4,7 +4,7 @@
 
 #include "GoogleVRControllerPrivate.h"
 #include "IInputDevice.h"
-#include "IMotionController.h"
+#include "XRMotionControllerBase.h"
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 #include "gvr_arm_model.h"
 #endif
@@ -39,7 +39,7 @@ namespace GoogleVRControllerKeyNames
 	const FGamepadKeyNames::Type Touch0("Steam_Touch_0");
 }
 
-class FGoogleVRController : public IInputDevice, public IMotionController
+class FGoogleVRController : public IInputDevice, public FXRMotionControllerBase
 {
 public:
 

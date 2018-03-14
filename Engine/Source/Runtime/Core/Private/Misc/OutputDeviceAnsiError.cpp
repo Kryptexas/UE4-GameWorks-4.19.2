@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Misc/OutputDeviceAnsiError.h"
 #include "Templates/UnrealTemplate.h"
@@ -40,13 +40,13 @@ void FOutputDeviceAnsiError::Serialize( const TCHAR* Msg, ELogVerbosity::Type Ve
 		UE_LOG(LogHAL, Error, TEXT("Error reentered: %s"), Msg );
 	}
 
-	FPlatformMisc::DebugBreak();
+	UE_DEBUG_BREAK();
 
 	if( GIsGuarded )
 	{
 		// Propagate error so structured exception handler can perform necessary work.
 #if PLATFORM_EXCEPTIONS_DISABLED
-		FPlatformMisc::DebugBreak();
+		UE_DEBUG_BREAK();
 #endif
 		FPlatformMisc::RaiseException( 1 );
 	}

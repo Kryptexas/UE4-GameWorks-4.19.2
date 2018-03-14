@@ -22,7 +22,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 
 ## 对地形造型
@@ -131,4 +131,4 @@ Noise 工具同时随机上下移动地形顶点，在地形表面随机形成�
 	[/REGION]
 
 
-%Steps%
+

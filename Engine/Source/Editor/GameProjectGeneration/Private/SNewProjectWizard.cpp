@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SNewProjectWizard.h"
@@ -303,14 +303,14 @@ private:
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SNewProjectWizard::Construct( const FArguments& InArgs )
 {
+	bProjectSettingsHidden = false;
+
 	LastValidityCheckTime = 0;
 	ValidityCheckFrequency = 4;
 	bLastGlobalValidityCheckSuccessful = true;
 	bLastNameAndLocationValidityCheckSuccessful = true;
 	bPreventPeriodicValidityChecksUntilNextChange = false;
 	bCopyStarterContent = GEditor ? GetDefault<UEditorSettings>()->bCopyStarterContentPreference : true;
-
-	IHardwareTargetingModule& HardwareTargeting = IHardwareTargetingModule::Get();
 
 	SelectedHardwareClassTarget = EHardwareClass::Desktop;
 	SelectedGraphicsPreset = EGraphicsPreset::Maximum;
@@ -333,22 +333,6 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 
 	TSharedRef<SSeparator> Separator = SNew(SSeparator).Orientation(EOrientation::Orient_Vertical);
 	Separator->SetBorderBackgroundColor(FLinearColor::White.CopyWithNewOpacity(0.25f));
-
-	TSharedPtr<SWidget> StartContentCombo;
-	{
-		TArray<SDecoratedEnumCombo<int32>::FComboOption> StarterContentInfo;
-		StarterContentInfo.Add(SDecoratedEnumCombo<int32>::FComboOption(
-			0, FSlateIcon(FEditorStyle::GetStyleSetName(), "GameProjectDialog.NoStarterContent"), LOCTEXT("NoStarterContent", "No Starter Content")));
-
-		// Only add the option to add starter content if its there to add !
-		bool bIsStarterAvailable = GameProjectUtils::IsStarterContentAvailableForNewProjects();
-		StarterContentInfo.Add(SDecoratedEnumCombo<int32>::FComboOption(
-			1, FSlateIcon(FEditorStyle::GetStyleSetName(), "GameProjectDialog.IncludeStarterContent"), LOCTEXT("IncludeStarterContent", "With Starter Content"),bIsStarterAvailable));
-		StartContentCombo = SNew(SDecoratedEnumCombo<int32>, MoveTemp(StarterContentInfo))
-			.SelectedEnum(this, &SNewProjectWizard::GetCopyStarterContentIndex)
-			.OnEnumChanged(this, &SNewProjectWizard::OnSetCopyStarterContent)
-			.ToolTipText(LOCTEXT("CopyStarterContent_ToolTip", "Enable to include an additional content pack containing simple placeable meshes with basic materials and textures.\nYou can opt out of including this to create a project that only has the bare essentials for the selected project template."));
-	}
 
 	const float UniformPadding = 16.f;
 	ChildSlot
@@ -572,11 +556,7 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 								.AutoHeight()
 								.Padding(FMargin(0, 0, 0, 15.f))
 								[
-									SNew(SRichTextBlock)
-									.Text(LOCTEXT("ProjectSettingsDescription", "Choose some <RichTextBlock.BoldHighlight>settings</> for your project.  Don't worry, you can change these later in the <RichTextBlock.BoldHighlight>Target Hardware</> section of <RichTextBlock.BoldHighlight>Project Settings</>.  You can also add the <RichTextBlock.BoldHighlight>Starter Content</> to your project later using <RichTextBlock.BoldHighlight>Content Browser</>."))
-									.AutoWrapText(true)
-									.DecoratorStyleSet(&FEditorStyle::Get())
-									.ToolTip(IDocumentation::Get()->CreateToolTip(LOCTEXT("HardwareTargetTooltip", "These settings will choose good defaults for a number of other settings in the project such as post-processing flags and touch input emulation using the mouse."), NULL, TEXT("Shared/Editor/NewProjectWizard"), TEXT("TargetHardware")))
+									MakeProjectSettingsDescriptionBox()
 								]
 
 								+ SVerticalBox::Slot()
@@ -593,49 +573,7 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 										.HAlign(HAlign_Center)
 										.Padding(FMargin(0, 0, 0, 25.f))
 										[
-											SNew(SHorizontalBox)
-
-											+ SHorizontalBox::Slot()
-											.AutoWidth()
-											[
-												HardwareTargeting.MakeHardwareClassTargetCombo(
-													FOnHardwareClassChanged::CreateSP(this, &SNewProjectWizard::SetHardwareClassTarget),
-													TAttribute<EHardwareClass::Type>(this, &SNewProjectWizard::GetHardwareClassTarget)
-													)
-											]
-								
-											+ SHorizontalBox::Slot()
-											.AutoWidth()
-											.Padding(FMargin(30, 0))
-											[
-												HardwareTargeting.MakeGraphicsPresetTargetCombo(
-													FOnGraphicsPresetChanged::CreateSP(this, &SNewProjectWizard::SetGraphicsPreset),
-													TAttribute<EGraphicsPreset::Type>(this, &SNewProjectWizard::GetGraphicsPreset)
-													)
-											]
-								
-											+ SHorizontalBox::Slot()
-											.AutoWidth()
-											[
-												SNew(SOverlay)
-												+SOverlay::Slot()
-												[
-													StartContentCombo.ToSharedRef()
-												]
-
-												// Warning when enabled for mobile, since the current starter content is bad for mobile
-												+SOverlay::Slot()
-												//.Visibility(EVisibility::SelfHitTestInvisible)
-												.HAlign(HAlign_Right)
-												.VAlign(VAlign_Top)
-												.Padding(4)
-												[
-													SNew(SImage)
-													.Image(FEditorStyle::GetBrush("Icons.Warning"))
-													.ToolTipText(this, &SNewProjectWizard::GetStarterContentWarningTooltip)
-													.Visibility(this, &SNewProjectWizard::GetStarterContentWarningVisibility)
-												]
-											]
+											MakeProjectSettingsOptionsBox()
 										]
 									]
 								]
@@ -1161,11 +1099,28 @@ TMap<FName, TArray<TSharedPtr<FTemplateItem>> >& SNewProjectWizard::FindTemplate
 		TEXT("")		// No asset types
 		)) );
 
+	if (FPaths::DirectoryExists(FPaths::EnterpriseDir()))
+	{
+		Templates.FindOrAdd(FTemplateCategory::EnterpriseCategoryName).Add(MakeShareable(new FTemplateItem(
+			LOCTEXT("BlankEnterpriseProjectName", "Blank"),
+			LOCTEXT("BlankEnterpriseProjectDescription", "A clean empty Unreal Studio project with no code."),
+			false, FTemplateCategory::EnterpriseCategoryName,
+			TEXT("_1"),			// SortKey
+			TEXT(""),			// No filename, this is a generation template
+			MakeShareable(new FSlateBrush(*FEditorStyle::GetBrush("GameProjectDialog.BlankProjectThumbnail"))),
+			MakeShareable(new FSlateBrush(*FEditorStyle::GetBrush("GameProjectDialog.BlankProjectPreview"))),
+			TEXT(""),		// No class types
+			TEXT("")		// No asset types
+		)));
+	}
 	// Now discover and all data driven templates
 	TArray<FString> TemplateRootFolders;
 
 	// @todo rocket make template folder locations extensible.
 	TemplateRootFolders.Add( FPaths::RootDir() + TEXT("Templates") );
+
+	// Add the Enterprise templates
+	TemplateRootFolders.Add(FPaths::EnterpriseDir() + TEXT("Templates"));
 
 	// allow plugins to define templates
 	TArray<TSharedRef<IPlugin>> Plugins = IPluginManager::Get().GetEnabledPlugins();
@@ -1450,18 +1405,7 @@ bool SNewProjectWizard::CreateProject( const FString& ProjectFile )
 	FProjectInformation ProjectInfo(ProjectFile, SelectedTemplate->bGenerateCode, bCopyStarterContent, SelectedTemplate->ProjectFile);
 	ProjectInfo.TargetedHardware = SelectedHardwareClassTarget;
 	ProjectInfo.DefaultGraphicsPerformance = SelectedGraphicsPreset;
-
-	const FProjectDescriptor* CurrentProject = IProjectManager::Get().GetCurrentProject();
-	if (CurrentProject != nullptr)
-	{
-		ProjectInfo.bIsEnterpriseProject = CurrentProject->bIsEnterpriseProject;
-	}
-	else
-	{
-		// Set the default value for the enterprise flag from the command line for now.
-		// This should be temporary until we implement a more generic approach.
-		ProjectInfo.bIsEnterpriseProject = FParse::Param(FCommandLine::Get(), TEXT("enterprise"));
-	}
+	ProjectInfo.bIsEnterpriseProject = (SelectedTemplate->Type == FTemplateCategory::EnterpriseCategoryName);
 
 	if (!GameProjectUtils::CreateProject(ProjectInfo, FailReason, FailLog))
 	{
@@ -1634,6 +1578,22 @@ void SNewProjectWizard::HandleCategoryChanged(ECheckBoxState CheckState, FName C
 		TemplateListView->SetSelection(FilteredTemplateList[0]);
 	}
 	TemplateListView->RequestListRefresh();
+
+	if (ActiveCategory == FTemplateCategory::EnterpriseCategoryName)
+	{
+		bProjectSettingsHidden = true;
+		bCopyStarterContent = false;
+		SetGraphicsPreset(EGraphicsPreset::Maximum);
+		SetHardwareClassTarget(EHardwareClass::Desktop);		
+		ProjectSettingsDescriptionBox->SetVisibility(EVisibility::Collapsed);
+		ProjectSettingsOptionsBox->SetVisibility(EVisibility::Collapsed);
+	}
+	else if (bProjectSettingsHidden)
+	{
+		bProjectSettingsHidden = false;
+		ProjectSettingsDescriptionBox->SetVisibility(EVisibility::Visible);
+		ProjectSettingsOptionsBox->SetVisibility(EVisibility::Visible);
+	}
 }
 
 void SNewProjectWizard::SetHardwareClassTarget(EHardwareClass::Type InHardwareClass)
@@ -1646,4 +1606,85 @@ void SNewProjectWizard::SetGraphicsPreset(EGraphicsPreset::Type InGraphicsPreset
 	SelectedGraphicsPreset = InGraphicsPreset;
 }
 
+TSharedRef<SRichTextBlock> SNewProjectWizard::MakeProjectSettingsDescriptionBox()
+{
+	TSharedPtr<SRichTextBlock> Widget = SNew(SRichTextBlock)
+		.Text(LOCTEXT("ProjectSettingsDescription", "Choose some <RichTextBlock.BoldHighlight>settings</> for your project.  Don't worry, you can change these later in the <RichTextBlock.BoldHighlight>Target Hardware</> section of <RichTextBlock.BoldHighlight>Project Settings</>.  You can also add the <RichTextBlock.BoldHighlight>Starter Content</> to your project later using <RichTextBlock.BoldHighlight>Content Browser</>."))
+		.AutoWrapText(true)
+		.DecoratorStyleSet(&FEditorStyle::Get())
+		.ToolTip(IDocumentation::Get()->CreateToolTip(LOCTEXT("HardwareTargetTooltip", "These settings will choose good defaults for a number of other settings in the project such as post-processing flags and touch input emulation using the mouse."), NULL, TEXT("Shared/Editor/NewProjectWizard"), TEXT("TargetHardware")));
+
+	ProjectSettingsDescriptionBox = Widget;
+
+	return ProjectSettingsDescriptionBox.ToSharedRef();
+}
+
+TSharedRef<SHorizontalBox> SNewProjectWizard::MakeProjectSettingsOptionsBox()
+{
+	IHardwareTargetingModule& HardwareTargeting = IHardwareTargetingModule::Get();
+
+	TSharedPtr<SWidget> StartContentCombo;
+	{
+		TArray<SDecoratedEnumCombo<int32>::FComboOption> StarterContentInfo;
+		StarterContentInfo.Add(SDecoratedEnumCombo<int32>::FComboOption(
+			0, FSlateIcon(FEditorStyle::GetStyleSetName(), "GameProjectDialog.NoStarterContent"), LOCTEXT("NoStarterContent", "No Starter Content")));
+
+		// Only add the option to add starter content if its there to add !
+		bool bIsStarterAvailable = GameProjectUtils::IsStarterContentAvailableForNewProjects();
+		StarterContentInfo.Add(SDecoratedEnumCombo<int32>::FComboOption(
+			1, FSlateIcon(FEditorStyle::GetStyleSetName(), "GameProjectDialog.IncludeStarterContent"), LOCTEXT("IncludeStarterContent", "With Starter Content"), bIsStarterAvailable));
+		StartContentCombo = SNew(SDecoratedEnumCombo<int32>, MoveTemp(StarterContentInfo))
+			.SelectedEnum(this, &SNewProjectWizard::GetCopyStarterContentIndex)
+			.OnEnumChanged(this, &SNewProjectWizard::OnSetCopyStarterContent)
+			.ToolTipText(LOCTEXT("CopyStarterContent_ToolTip", "Enable to include an additional content pack containing simple placeable meshes with basic materials and textures.\nYou can opt out of including this to create a project that only has the bare essentials for the selected project template."));
+	}
+
+	TSharedPtr<SHorizontalBox> Widget = SNew(SHorizontalBox)
+
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			HardwareTargeting.MakeHardwareClassTargetCombo(
+				FOnHardwareClassChanged::CreateSP(this, &SNewProjectWizard::SetHardwareClassTarget),
+				TAttribute<EHardwareClass::Type>(this, &SNewProjectWizard::GetHardwareClassTarget)
+			)
+		]
+
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(FMargin(30, 0))
+		[
+			HardwareTargeting.MakeGraphicsPresetTargetCombo(
+				FOnGraphicsPresetChanged::CreateSP(this, &SNewProjectWizard::SetGraphicsPreset),
+				TAttribute<EGraphicsPreset::Type>(this, &SNewProjectWizard::GetGraphicsPreset)
+			)
+		]
+
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(SOverlay)
+			+ SOverlay::Slot()
+			[
+				StartContentCombo.ToSharedRef()
+			]
+
+			// Warning when enabled for mobile, since the current starter content is bad for mobile
+			+ SOverlay::Slot()
+			//.Visibility(EVisibility::SelfHitTestInvisible)
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Top)
+			.Padding(4)
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("Icons.Warning"))
+				.ToolTipText(this, &SNewProjectWizard::GetStarterContentWarningTooltip)
+				.Visibility(this, &SNewProjectWizard::GetStarterContentWarningVisibility)
+			]
+		];
+
+	ProjectSettingsOptionsBox = Widget;
+
+	return ProjectSettingsOptionsBox.ToSharedRef();
+}
 #undef LOCTEXT_NAMESPACE

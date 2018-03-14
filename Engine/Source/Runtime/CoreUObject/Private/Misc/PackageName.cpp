@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectHash.cpp: Unreal object name hashes
@@ -24,6 +24,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogPackageName, Log, All);
 
 FString FPackageName::AssetPackageExtension = TEXT(".uasset");
 FString FPackageName::MapPackageExtension = TEXT(".umap");
+FString FPackageName::TextAssetPackageExtension = TEXT(".uasset.json");
 
 /** Event that is triggered when a new content path is mounted */
 FPackageName::FOnContentPathMountedEvent FPackageName::OnContentPathMountedEvent;
@@ -161,11 +162,34 @@ struct FLongPackagePathsSingleton
 		}
 	}
 
+	// Given a content path ensure it is consistent, specifically with FileManager relative paths 
+	static FString ProcessContentMountPoint(const FString& ContentPath)
+	{
+		FString MountPath = ContentPath;
+
+		// If a relative path is passed, convert to an absolute path 
+		if (FPaths::IsRelative(MountPath))
+		{
+			MountPath = FPaths::ConvertRelativePathToFull(ContentPath);
+
+			// Revert to original path if unable to convert to full path
+			if (MountPath.Len() <= 1)
+			{
+				MountPath = ContentPath;
+				UE_LOG(LogPackageName, Warning, TEXT("Unable to convert mount point relative path: %s"), *ContentPath);
+			}
+		}
+
+		// Convert to a relative path using the FileManager
+		return IFileManager::Get().ConvertToRelativePath(*MountPath);
+	}
+
+
 	// This will insert a mount point at the head of the search chain (so it can overlap an existing mount point and win)
 	void InsertMountPoint(const FString& RootPath, const FString& ContentPath)
-	{
+	{	
 		// Make sure the content path is stored as a relative path, consistent with the other paths we have
-		FString RelativeContentPath = IFileManager::Get().ConvertToRelativePath( *ContentPath );
+		FString RelativeContentPath = ProcessContentMountPoint(ContentPath);
 
 		// Make sure the path ends in a trailing path separator.  We are expecting that in the InternalFilenameToLongPackageName code.
 		if( !RelativeContentPath.EndsWith( TEXT( "/" ), ESearchCase::CaseSensitive ) )
@@ -179,14 +203,14 @@ struct FLongPackagePathsSingleton
 		MountPointRootPaths.Add( RootPath );
 
 		// Let subscribers know that a new content path was mounted
-		FPackageName::OnContentPathMounted().Broadcast( RootPath, ContentPath );
+		FPackageName::OnContentPathMounted().Broadcast( RootPath, RelativeContentPath);
 	}
 
 	// This will remove a previously inserted mount point
 	void RemoveMountPoint(const FString& RootPath, const FString& ContentPath)
 	{
 		// Make sure the content path is stored as a relative path, consistent with the other paths we have
-		FString RelativeContentPath = IFileManager::Get().ConvertToRelativePath(*ContentPath);
+		FString RelativeContentPath = ProcessContentMountPoint(ContentPath);
 
 		// Make sure the path ends in a trailing path separator.  We are expecting that in the InternalFilenameToLongPackageName code.
 		if (!RelativeContentPath.EndsWith(TEXT("/"), ESearchCase::CaseSensitive))
@@ -201,8 +225,8 @@ struct FLongPackagePathsSingleton
 			ContentPathToRoot.Remove(Pair);
 			MountPointRootPaths.Remove(RootPath);
 
-			// Let subscribers know that a new content path was mounted
-			FPackageName::OnContentPathDismounted().Broadcast( RootPath, ContentPath );
+			// Let subscribers know that a new content path was unmounted
+			FPackageName::OnContentPathDismounted().Broadcast( RootPath, RelativeContentPath);
 		}
 	}
 
@@ -324,13 +348,28 @@ bool FPackageName::TryConvertFilenameToLongPackageName(const FString& InFilename
 	const bool bContainsDot = LongPackageName.FindChar(TEXT('.'), CharacterIndex);
 	const bool bContainsBackslash = LongPackageName.FindChar(TEXT('\\'), CharacterIndex);
 	const bool bContainsColon = LongPackageName.FindChar(TEXT(':'), CharacterIndex);
-	const bool bResult = !(bContainsDot || bContainsBackslash || bContainsColon);
 
-	if (bResult)
+	if (!(bContainsDot || bContainsBackslash || bContainsColon))
 	{
 		OutPackageName = MoveTemp(LongPackageName);
+		return true;
 	}
-	else if (OutFailureReason != nullptr)
+
+	// if the package name resolution failed and a relative path was provided, convert to an absolute path
+	// as content may be mounted in a different relative path to the one given
+	if (FPaths::IsRelative(InFilename))
+	{
+		FString AbsPath = FPaths::ConvertRelativePathToFull(InFilename);
+		if (!FPaths::IsRelative(AbsPath) && AbsPath.Len() > 1)
+		{
+			if (TryConvertFilenameToLongPackageName(AbsPath, OutPackageName, nullptr))
+			{
+				return true;
+			}
+		}
+	}
+
+	if (OutFailureReason != nullptr)
 	{
 		FString InvalidChars;
 		if (bContainsDot)
@@ -347,7 +386,8 @@ bool FPackageName::TryConvertFilenameToLongPackageName(const FString& InFilename
 		}
 		*OutFailureReason = FString::Printf(TEXT("FilenameToLongPackageName failed to convert '%s'. Attempt result was '%s', but the path contains illegal characters '%s'"), *InFilename, *LongPackageName, *InvalidChars);
 	}
-	return bResult;
+
+	return false;
 }
 
 FString FPackageName::FilenameToLongPackageName(const FString& InFilename)
@@ -728,68 +768,36 @@ bool FPackageName::FindPackageFileWithoutExtension(const FString& InPackageFilen
 
 bool FPackageName::FixPackageNameCase(FString& LongPackageName, const FString& Extension)
 {
-	// Visitor which corrects the case of a filename against any matching item in a directory
-	struct FFixCaseVisitor : public IPlatformFile::FDirectoryVisitor
-	{
-		FString Name;
-
-		FFixCaseVisitor(const FString&& InName) : Name(InName)
-		{
-		}
-
-		virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
-		{
-			if (Name == FilenameOrDirectory)
-			{
-				Name = FilenameOrDirectory;
-				return false;
-			}
-			return true;
-		}
-	};
-
 	// Find the matching long package root
 	const FLongPackagePathsSingleton& Paths = FLongPackagePathsSingleton::Get();
 	for (const FPathPair& Pair : Paths.ContentRootToPath)
 	{
 		if (LongPackageName.StartsWith(Pair.RootPath))
 		{
-			// Construct a visitor with this mount point
-			FFixCaseVisitor Visitor(Pair.ContentPath.Left(Pair.ContentPath.Len() - 1));
+			FString RelativePackageName = LongPackageName.Mid(Pair.RootPath.Len());
+			FString FileName = Pair.ContentPath / RelativePackageName;
 
-			// Normalize the extension to begin with a dot
-			FString DotExtension = Extension;
-			if (DotExtension.Len() > 0 && DotExtension[0] != '.')
+			int ExtensionLen = Extension.Len();
+			if(Extension.Len() > 0 && Extension[0] != '.')
 			{
-				DotExtension.InsertAt(0, '.');
+				FileName.AppendChar('.');
+				ExtensionLen++;
 			}
 
-			// Iterate through each directory trying to match a file with the correct name
-			int32 BaseIdx = Pair.RootPath.Len();
-			for (;;)
-			{
-				int32 NextIdx = LongPackageName.Find(TEXT("/"), ESearchCase::IgnoreCase, ESearchDir::FromStart, BaseIdx);
-				if(NextIdx == INDEX_NONE)
-				{
-					FString BaseDir = Visitor.Name;
-					Visitor.Name /= LongPackageName.Mid(BaseIdx) + DotExtension;
-					IFileManager::Get().IterateDirectory(*BaseDir, Visitor);
-					break;
-				}
-				else
-				{
-					FString BaseDir = Visitor.Name;
-					Visitor.Name /= LongPackageName.Mid(BaseIdx, NextIdx - BaseIdx);
-					IFileManager::Get().IterateDirectory(*BaseDir, Visitor);
-				}
-				BaseIdx = NextIdx + 1;
-			}
+			FileName += Extension;
 
-			// Construct the new long package name, and check it matches the original in all but case
-			FString NewLongPackageName = Pair.RootPath / Visitor.Name.Mid(Pair.ContentPath.Len(), Visitor.Name.Len() - DotExtension.Len() - Pair.ContentPath.Len());
-			check(LongPackageName == NewLongPackageName);
-			LongPackageName = MoveTemp(NewLongPackageName);
-			return true;
+			FString CorrectFileName = IFileManager::Get().GetFilenameOnDisk(*FileName);
+			if(CorrectFileName.Len() >= RelativePackageName.Len() + ExtensionLen)
+			{
+				FString NewRelativePackageName = CorrectFileName.Mid(CorrectFileName.Len() - RelativePackageName.Len() - ExtensionLen, RelativePackageName.Len());
+				if(NewRelativePackageName == RelativePackageName)
+				{
+					LongPackageName.RemoveAt(Pair.RootPath.Len(), LongPackageName.Len() - Pair.RootPath.Len());
+					LongPackageName.Append(*NewRelativePackageName);
+					return true;
+				}
+			}
+			break;
 		}
 	}
 	return false;
@@ -1306,10 +1314,14 @@ bool FPackageName::IsScriptPackage(const FString& InPackageName)
 	return InPackageName.StartsWith(FLongPackagePathsSingleton::Get().ScriptRootPath);
 }
 
-// Are we a package that resides in memory and not on disk
 bool FPackageName::IsMemoryPackage(const FString& InPackageName)
 {
 	return InPackageName.StartsWith(FLongPackagePathsSingleton::Get().MemoryRootPath);
+}
+
+bool FPackageName::IsTempPackage(const FString& InPackageName)
+{
+	return InPackageName.StartsWith(FLongPackagePathsSingleton::Get().TempRootPath);
 }
 
 bool FPackageName::IsLocalizedPackage(const FString& InPackageName)

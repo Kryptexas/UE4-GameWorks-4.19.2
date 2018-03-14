@@ -21,7 +21,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Task 是真正“执行”操作的节点，如移动 AI，或调整黑板值。它们可以被 [Decorators](Engine/AI/BehaviorTrees/NodeReference/Decorators) 附着。
 
@@ -78,7 +78,7 @@ Task 是真正“执行”操作的节点，如移动 AI，或调整黑板值。
 1. 完成后，任务将成功运行 **Finish Execute** 节点。
 
 
-%Steps%
+
 
 [VAR:bpcode]
 	Begin Object Class=K2Node_Event Name="K2Node_Event_845"

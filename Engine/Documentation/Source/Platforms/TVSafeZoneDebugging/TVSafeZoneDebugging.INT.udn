@@ -82,7 +82,7 @@ In the following section, we will take a look at what you need to do to activate
 1. Once the command has been input, you should now see a slightly transparent red border placed around the entire play window like in the following image.
 
 	[REGION:lightbox]
-	[![](Safe_Zone_00.png)(w:645 h:377)](Safe_Zone_00.png)
+	[![](Safe_Zone_00.png)(w:645)](Safe_Zone_00.png)
 	[/REGION]
 	
 	[REGION:caption]
@@ -133,7 +133,8 @@ In the following section we will go over some pieces of information you need to 
 
 
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:SZ]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -162,9 +163,11 @@ In the following section we will go over some pieces of information you need to 
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:SZ]
--->
 
-<!-----
+[/COMMENT]
+
+[COMMENT:none]
+---
 [EXCERPT:SZA]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -193,4 +196,5 @@ In the following section we will go over some pieces of information you need to 
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:SZA]
--->
+
+[/COMMENT]

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -32,7 +32,7 @@ private:
 
 	TArray<float> HAngles;
 	TArray<float> VAngles;
-	TArray<float> CandalaValues;
+	TArray<float> CandelaValues;
 
 	/** in Lumens, always >0 */
 	float Brightness;
@@ -49,23 +49,23 @@ private:
 	float ComputeMax() const;
 
 	// integrate over the unit sphere
-	// @return in Candala
+	// @return in Candela
 	float ComputeFullIntegral();
 
 	static float ComputeFilterPos(float Value, const TArray<float>& SortedValues);
 
 	// low level code, only used by InterpolateBilinear
-	// @param X 0..VAngles.size()-1
-	// @param Y 0..HAngles.size()-1
+	// @param X 0..HAngles.size()-1
+	// @param Y 0..VAngles.size()-1
 	float InterpolatePoint(int X, int Y) const;
 
 	// low level code, used by Interpolate2D() and Interpolate1D()
-	// @param fX 0..VAngles.size()-1
-	// @param fY 0..HAngles.size()-1
+	// @param fX 0..HAngles.size()-1
+	// @param fY 0..VAngles.size()-1
 	float InterpolateBilinear(float fX, float fY) const;
 
-	// high level code to compute the Candala value for a given direction
-	// @param HAngle n degrees e.g. 0..180
+	// high level code to compute the Candela value for a given direction
+	// @param HAngle n degrees e.g. 0..360
 	// @param VAngle n degrees e.g. 0..180
 	float Interpolate2D(float HAngle, float VAngle) const;
 

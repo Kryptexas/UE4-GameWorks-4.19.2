@@ -58,7 +58,8 @@ To check the compatibility of your device with engine features, please see the [
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsConfig]
 
 See the [Recommended Specifications](GettingStarted/RecommendedSpecifications) page for detailed information about Windows system requirements.
@@ -72,7 +73,8 @@ See the [Recommended Specifications](GettingStarted/RecommendedSpecifications) p
 XCode is [available as a free download](https://itunes.apple.com/us/app/xcode/id497799835?mt=12) on the App Store.
 
 [/EXCERPT:MacOSConfig]
--->
+
+[/COMMENT]
 
 
 
@@ -125,7 +127,8 @@ For more information, please see the following pages on Apple's site:
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsSetup]
 
 To get your certificate on Windows, you will need to use iPhone Packager, located in `Engine\Binaries\DotNET\IOS`.
@@ -184,7 +187,8 @@ Next, download the `.mobileprovision` from the Apple site. It will download a fi
 
 
 [/EXCERPT:MacOSSetup]
--->
+
+[/COMMENT]
 
 In the end, the important thing is that everyone has the same "iPhone Developer:" certificate in their login Keychain.
 

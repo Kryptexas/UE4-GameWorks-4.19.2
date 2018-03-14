@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,7 +19,7 @@ class UNiagaraSystemFactoryNew : public UFactory
 	//~ Begin UFactory Interface	
 
 public:
-	static void InitializeSystem(UNiagaraSystem* System);
+	static void InitializeSystem(UNiagaraSystem* System, bool bCreateDefaultNodes);
 };
 
 

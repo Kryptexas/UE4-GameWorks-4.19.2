@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MallocProfiler.cpp: Memory profiling support.
@@ -755,9 +755,9 @@ void FMallocProfiler::EndProfiling()
 		Header.ModuleEntries				= FPlatformStackWalk::GetProcessModuleCount();
 
 		TArray<FStackWalkModuleInfo> ProcModules;
-		ProcModules.Reserve(Header.ModuleEntries);
+		ProcModules.AddUninitialized(Header.ModuleEntries);
 
-		Header.ModuleEntries = FPlatformStackWalk::GetProcessModuleSignatures(ProcModules.GetData(), ProcModules.Num());
+		Header.ModuleEntries = FPlatformStackWalk::GetProcessModuleSignatures(ProcModules.GetData(), ProcModules.Max());
 
 		for(uint32 ModuleIndex = 0; ModuleIndex < Header.ModuleEntries; ++ModuleIndex)
 		{

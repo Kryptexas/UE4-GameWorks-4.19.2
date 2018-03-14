@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388666
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:2.7 - カメラビューの変更
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -22,7 +22,7 @@ Version:4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 前回の手順の最後で、デフォルトのカメラがメッシュのネックの内側に配置されました。このステップでは、カメラのプロパティ (位置やFOV (視野角) など) を調整するために使用可能な FPS カメラをセットアップします。
 
@@ -208,4 +208,3 @@ Version:4.15
 
 1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで Escape キーを押すか、**[Stop]** ボタンをクリックします。
 
-%Steps%

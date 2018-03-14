@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -72,11 +72,11 @@ public:
 	}
 
 	/** Properties which are supposed to be baked out for the material(s) */
-	UPROPERTY(EditAnywhere, config, BlueprintReadWrite, Category= MaterialSettings, meta = (ExposeOnSpawn))
+	UPROPERTY(EditAnywhere, config, BlueprintReadWrite, Category= MaterialBakeSettings, meta = (ExposeOnSpawn))
 	TArray<FPropertyEntry> Properties;
 
 	/** Size of the final texture(s) containing the baked out property data */
-	UPROPERTY(EditAnywhere, config, BlueprintReadWrite, Category = MaterialSettings, meta = (ExposeOnSpawn, ClampMin = "1", UIMin = "1"))
+	UPROPERTY(EditAnywhere, config, BlueprintReadWrite, Category = MaterialBakeSettings, meta = (ExposeOnSpawn, ClampMin = "1", UIMin = "1"))
 	FIntPoint TextureSize;
 
 	/** LOD indices for which the materials should be baked out */
@@ -124,6 +124,6 @@ public:
 	EMaterialBakeMethod Method;
 
 	/** Blend mode for the final proxy material(s) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, config, Category = MeshSettings, meta = (ExposeOnSpawn))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, config, Category = OutputMaterialSettings, meta = (ExposeOnSpawn))
 	TEnumAsByte<EBlendMode> BlendMode;
 };

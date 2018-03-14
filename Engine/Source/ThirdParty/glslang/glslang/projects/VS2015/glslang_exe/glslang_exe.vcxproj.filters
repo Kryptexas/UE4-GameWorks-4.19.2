@@ -11,6 +11,7 @@
     <ClInclude Include="..\..\..\src\glslang_exe\StandAlone\ResourceLimits.h">
       <Filter>StandAlone</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\glslang_exe\StandAlone\DirStackFileIncluder.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\glslang_exe\StandAlone\spirv-remap.cpp">

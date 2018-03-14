@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:3244012
+﻿INTSourceChangelist:3730788
 Availability:Public
 Title:1 - 必要な設定
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
 Description:シネマティックス オーサリング用にプロジェクトとエディタのレイアウトを設定してみましょう。 
 SkillLevel:Beginner
-Version:4.12
-Related:Engine\Sequencer
-Related:Engine\Sequencer\Overview
+Version:4.18
 checkpoint: sequencerqs
 parent:Engine/Sequencer/QuickStart
 type:multi-step
@@ -36,16 +34,14 @@ tags:Sequencer
 	![](SequencerQS_1_2.png)
 
 	[REGION:tip]
-	**「Content」** フォルダ上で **右クリック** し、すべてのレベル シーケンスを保存するための新規フォルダを作成します。 
+	「Content」 フォルダ上で右クリックし、すべてのレベル シーケンスを保存するための新規フォルダを作成します。 
 	[/REGION]
 
 	**シーケンサー エディタ** が自動的に開きます。これを他のウィンドウに [ドラッグ＆ドッキング](Engine/UI/InterfaceOverview/) することができます。 
 
 	![](SequencerQS_1_2b.png)
 
-	上の画面では、**コンテンツ ブラウザ** の隣にシーケンサー エディタをドッキングしました。これにより、**[コンテンツ ブラウザ]** タブをクリックしてコンテンツ ブラウザを表示させるか、**[シーケンサー]** タブをクリックしてシーケンサー エディタを開きます。 
-
-1.	**コンテンツ ブラウザ** で **Master** レベル シーケンス上で **右クリック** し、**Duplicate** を選びます。新しいレベル シーケンスに **Shot01** と名前を付けます。 
+1.	**コンテンツ ブラウザ** で **Master** レベル シーケンス上で 右クリックし、**[Duplicate]** を選んで、**Shot01** と名前を付けます。 
 
 	![](SequencerQS_1_3.png)
 
@@ -59,7 +55,7 @@ tags:Sequencer
 
 	![](SequencerQS_1_5.png)
 
-1.	左のビューポートで **[View Mode]** ボタンをクリックし、**[Perspective]** を選択します。 
+1.	右のビューポートで **[View Mode]** ボタンをクリックし、**[Perspective]** を選択します。 
 
 	![](SequencerQS_1_6.png)
 
@@ -67,13 +63,18 @@ tags:Sequencer
 
 	![](SequencerQS_1_7.png)
 
-1.	右のビューポートで、**G** キーを押して、**Ctrl+Shift+T** を押します。**G** キーを押すと、[ゲーム ビュー](Engine/UI/LevelEditor/Viewports/Basics) になり、すべてのエディタ アイコンが非表示になり、ゲーム (またはシネマティックス) がどのような外観になるかが表示されます。 
-	**Ctrl+Shift+T** キーを押すと、ビューポートのツールバーの表示が切り替わります (グリッドのスナッピング、ビューモード、トランスフォーム ギズモなどシネマティックスのプレビューでは不要なものも含まれます)。 
+	これで Cinematic Preview  (シネマティック プレビュー) が使えるようになり、編集しながら最終結果に近いシーンの状態を見ることができます。 
+
+1.	右のビューポートで **G** キーを押して **Ctrl+Shift+T** キーを押します。 
 
 	![](SequencerQS_1_8.png)
 
+	**G** キーを押すと [ゲーム ビュー](Engine/UI/LevelEditor/Viewports/Basics) になり、すべてのエディタ アイコンが非表示になり、ゲーム (またはシネマティックス) がどのような外観になるかが表示されます。 
+	**Ctrl+Shift+T** キー押すと、シネマティック ビューポート上部にあるビューポート ツールバーの表示を切り替えることができます。 
+	この操作でグリッドのスナッピング、ビューモード、トランスフォーム ギズモのオプションなどシネマティックスのプレビューでは不要かもしれないものを非表示にします。 
+
 	[REGION:tip]
-	再度 **G** キーを押すと、エディタのアイコンが再び有効になります。または、**Ctrl+Shift+T** キーを押してビューポートのツールバーを再度表示します。 
+	再度 **G** キーを押すと、エディタのアイコンが再び有効になります。または、**Ctrl+Shift+T** キーを再度押してビューポートのツールバーを表示します。 
 	[/REGION]
 
 
@@ -85,5 +86,6 @@ tags:Sequencer
 次にひとつめのショットで作業をして、カメラを追加し、フォーカスを調整し、カメラの動きも生成します。
 
 [NAV]
+
 
 

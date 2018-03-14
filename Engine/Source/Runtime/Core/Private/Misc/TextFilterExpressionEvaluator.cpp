@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Misc/TextFilterExpressionEvaluator.h"
 #include "Math/BasicMathExpressionEvaluator.h"
@@ -49,7 +49,7 @@ namespace TextFilterExpressionParser
 	{
 		auto& Stream = Consumer.GetStream();
 
-		TOptional<FStringToken> NumberToken = ExpressionParser::ParseNumber(Stream);
+		TOptional<FStringToken> NumberToken = ExpressionParser::ParseLocalizedNumberWithAgnosticFallback(Stream);
 		
 		if (NumberToken.IsSet())
 		{

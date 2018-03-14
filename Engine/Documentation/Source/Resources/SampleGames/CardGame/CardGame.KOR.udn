@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:메모리 게임
 Crumbs:%ROOT%, Resources
@@ -10,50 +10,7 @@ Related: Gameplay/Input
 Related: Gameplay/Framework
 Related: Engine/Content/Types/StaticMeshes
 Version: 4.9
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/SampleGames/CardGame:title%](CardGame_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/SampleGames/CardGame:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/SampleGames/CardGame:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/SampleGames/CardGame]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/SampleGames/CardGame:title%](CardGame_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/SampleGames/CardGame:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/SampleGames/CardGame:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/SampleGames/CardGame]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:CardGame_Topic.png
 
 
 [REGION:fullwidth]
@@ -122,7 +79,8 @@ Memory Game 샘플은 간단한 PC/모바일 로직 게임 예제입니다. 별�
 ![](CardGameEndMenu.png)
 [/REGION:fullwidth]
 
-<!--
+[COMMENT:none]
+
 ## Overview
 
 The ShooterGame sample is an example of PC multiplayer first person shooter. It includes basic implementations of 
@@ -294,4 +252,5 @@ The options menu is available as a submenu of both the main menu and in-game men
 
 The settings in the options menu are saved to `GameUserSettings.ini`, and loaded automatically at startup.
 
--->
+
+[/COMMENT]

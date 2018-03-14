@@ -1,16 +1,46 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "SoundEffectSubmix.h"
+#include "IAmbisonicsMixer.h"
 #include "SoundSubmix.generated.h"
 
 class UEdGraph;
 class USoundEffectSubmixPreset;
 class USoundSubmix;
 
+/* Submix channel format. 
+ Allows submixes to have sources mix to a particular channel configuration for potential effect chain requirements.
+ Master submix will always render at the device channel count. All child submixes will be down-mixed (or up-mixed) to 
+ the device channel count. This feature exists to allow specific submix effects to do their work on multi-channel mixes
+ of audio. 
+*/
+UENUM(BlueprintType)
+enum class ESubmixChannelFormat : uint8
+{
+	// Sets the submix channels to the output device channel count
+	Device UMETA(DisplayName = "Device"),
+
+	// Sets the submix mix to stereo (FL, FR)
+	Stereo UMETA(DisplayName = "Stereo"),
+
+	// Sets the submix to mix to quad (FL, FR, SL, SR)
+	Quad UMETA(DisplayName = "Quad"),
+
+	// Sets the submix to mix 5.1 (FL, FR, FC, LF, SL, SR)
+	FiveDotOne UMETA(DisplayName = "5.1"),
+
+	// Sets the submix to mix audio to 7.1 (FL, FR, FC, LF, BL, BR, SL, SR)
+	SevenDotOne UMETA(DisplayName = "7.1"),
+
+	// Sets the submix to render audio as an ambisonics bed.
+	Ambisonics UMETA(DisplayName = "Ambisonics"),
+
+	Count UMETA(Hidden)
+};
 
 // Class used to send audio to submixes from USoundBase
 USTRUCT(BlueprintType)
@@ -40,13 +70,13 @@ public:
 };
 #endif
 
-UCLASS()
+UCLASS(config=Engine, hidecategories=Object, editinlinenew, BlueprintType)
 class ENGINE_API USoundSubmix : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
 	// Child submixes to this sound mix
-	UPROPERTY(EditAnywhere, Category = SoundSubmix)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SoundSubmix)
 	TArray<USoundSubmix*> ChildSubmixes;
 
 	UPROPERTY()
@@ -57,8 +87,16 @@ class ENGINE_API USoundSubmix : public UObject
 	class UEdGraph* SoundSubmixGraph;
 #endif
 
-	UPROPERTY(EditAnywhere, Category = SoundSubmix)
+	// Experimental! Specifies the channel format for the submix. Sources will be mixed at the specified format. Useful for specific effects that need to operate on a specific format.
+	UPROPERTY()
+	ESubmixChannelFormat ChannelFormat;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SoundSubmix)
 	TArray<USoundEffectSubmixPreset*> SubmixEffectChain;
+
+	// TODO: Hide this unless Channel Format is ambisonics. Also, worry about thread safety.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SoundSubmix)
+	UAmbisonicsSubmixSettingsBase* AmbisonicsPluginSettings;
 
 protected:
 

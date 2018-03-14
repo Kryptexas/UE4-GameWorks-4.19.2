@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphNode_PoseBlendNode.h"
 #include "EdGraphSchema_K2_Actions.h"
@@ -155,7 +155,7 @@ void UAnimGraphNode_PoseBlendNode::GetMenuActions(FBlueprintActionDatabaseRegist
 	{
 		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 
-		TWeakObjectPtr<UPoseAsset> PoseAssetPtr = PoseAsset;
+		TWeakObjectPtr<UPoseAsset> PoseAssetPtr = MakeWeakObjectPtr(const_cast<UPoseAsset*>(PoseAsset));
 		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(LoadedAssetSetup, PoseAssetPtr);
 		NodeSpawner->DefaultMenuSignature.MenuName = GetTitleGivenAssetInfo(FText::FromName(PoseAsset->GetFName()));
 

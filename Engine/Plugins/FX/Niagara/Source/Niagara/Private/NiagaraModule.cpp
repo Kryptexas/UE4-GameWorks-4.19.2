@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraModule.h"
 #include "Modules/ModuleManager.h"
@@ -12,6 +12,22 @@
 #include "VectorVM.h"
 
 IMPLEMENT_MODULE(INiagaraModule, Niagara);
+
+#define LOCTEXT_NAMESPACE "NiagaraModule"
+
+/**
+Detail Level CVar.
+Effectively replaces the DetaiMode feature but allows for a rolling range of new hardware and emitters to target them.
+TODO: Possible that this might be more broadly useful across the engine as a replacement for DetailMode so placing in "r." rather than "fx."
+*/
+static TAutoConsoleVariable<float> CVarDetailLevel(
+	TEXT("r.DetailLevel"),
+	4,
+	TEXT("The detail level for use with Niagara.\n")
+	TEXT("If this value does not fall within an Emitter's MinDetailLevel and MaxDetailLevel range, then it will be disabled. \n")
+	TEXT("\n")
+	TEXT("Default = 4"),
+	ECVF_Scalability);
 
 void INiagaraModule::StartupModule()
 {
@@ -29,7 +45,9 @@ void INiagaraModule::StartupModule()
 	// @TODO We should remove this once Niagara is fully a plug-in.
 	FModuleManager::Get().LoadModule(TEXT("NiagaraEditor"));
 #endif
-	UNiagaraDataInterfaceCurlNoise::InitNoiseLUT();
+
+	CVarDetailLevel.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateRaw(this, &INiagaraModule::OnChangeDetailLevel));
+	OnChangeDetailLevel(CVarDetailLevel.AsVariable());
 }
 
 void INiagaraModule::ShutdownModule()
@@ -41,6 +59,8 @@ void INiagaraModule::ShutdownModule()
 		delete Pair.Value;
 		Pair.Value = nullptr;
 	}
+
+	CVarDetailLevel.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate());
 }
 
 FNiagaraWorldManager* INiagaraModule::GetWorldManager(UWorld* World)
@@ -65,13 +85,21 @@ void INiagaraModule::OnWorldInit(UWorld* World, const UWorld::InitializationValu
 void INiagaraModule::OnWorldCleanup(UWorld* World, bool bSessionEnded, bool bCleanupResources)
 {
 	//Cleanup world manager contents but not the manager itself.
+	FNiagaraWorldManager** Manager = WorldManagers.Find(World);
+	if (Manager)
+	{
+		(*Manager)->OnWorldCleanup(bSessionEnded, bCleanupResources);
+	}
 }
 
 void INiagaraModule::OnPreWorldFinishDestroy(UWorld* World)
 {
-	FNiagaraWorldManager*& Manager = WorldManagers.FindChecked(World);
-	delete Manager;
-	WorldManagers.Remove(World);
+	FNiagaraWorldManager** Manager = WorldManagers.Find(World);
+	if (Manager)
+	{
+		delete (*Manager);
+		WorldManagers.Remove(World);
+	}
 }
 
 void INiagaraModule::TickWorld(UWorld* World, ELevelTick TickType, float DeltaSeconds)
@@ -79,7 +107,49 @@ void INiagaraModule::TickWorld(UWorld* World, ELevelTick TickType, float DeltaSe
 	GetWorldManager(World)->Tick(DeltaSeconds);
 }
 
+#if WITH_EDITOR
+INiagaraModule::FMergeEmitterResults INiagaraModule::MergeEmitter(UNiagaraEmitter& Source, UNiagaraEmitter& LastMergedSource, UNiagaraEmitter& Instance)
+{
+	if (OnMergeEmitterDelegate.IsBound())
+	{
+		return OnMergeEmitterDelegate.Execute(Source, LastMergedSource, Instance);
+	}
+	FMergeEmitterResults Results;
+	Results.bSucceeded = false;
+	Results.ErrorMessages.Add(FText::Format(LOCTEXT("MergeDelegateNotRegisteredFormat", "Failed to merge emitter {0}.  Merge delegate not registered."), FText::FromString(Instance.GetPathName())));
+	return Results;
+}
 
+FDelegateHandle INiagaraModule::RegisterOnMergeEmitter(FOnMergeEmitter OnMergeEmitter)
+{
+	checkf(OnMergeEmitterDelegate.IsBound() == false, TEXT("Only one handler is allowed for the OnMergeEmitter delegate"));
+	OnMergeEmitterDelegate = OnMergeEmitter;
+	return OnMergeEmitterDelegate.GetHandle();
+}
+
+void INiagaraModule::UnregisterOnMergeEmitter(FDelegateHandle DelegateHandle)
+{
+	checkf(OnMergeEmitterDelegate.IsBound(), TEXT("OnMergeEmitter is not registered"));
+	checkf(OnMergeEmitterDelegate.GetHandle() == DelegateHandle, TEXT("Can only unregister the OnMergeEmitter delegate with the handle it was registered with."));
+	OnMergeEmitterDelegate.Unbind();
+}
+#endif
+
+int32 INiagaraModule::EngineDetailLevel = 4;
+void INiagaraModule::OnChangeDetailLevel(class IConsoleVariable* CVar)
+{
+	//Can only change the detail level at runtime on when not cooked.
+#if WITH_EDITORONLY_DATA
+	int32 NewDetailLevel = CVar->GetInt();
+	if (EngineDetailLevel != NewDetailLevel)
+	{
+		EngineDetailLevel = NewDetailLevel;
+		//If the detail level has changed we have to reset all systems.
+		FNiagaraSystemUpdateContext UpdateContext;
+		UpdateContext.AddAll(true);
+	}
+#endif
+}
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -270,7 +340,7 @@ void FNiagaraTypeDefinition::RecreateUserDefinedTypeRegistry()
 	}
 
 
-	for (FStringAssetReference AssetRef : Settings->AdditionalParameterEnums)
+	for (FSoftObjectPath AssetRef : Settings->AdditionalParameterEnums)
 	{
 		UObject* Obj = AssetRef.ResolveObject();
 		if (Obj == nullptr)
@@ -280,8 +350,8 @@ void FNiagaraTypeDefinition::RecreateUserDefinedTypeRegistry()
 
 		if (Obj != nullptr)
 		{
-			const FStringAssetReference* ParamRefFound = Settings->AdditionalParameterEnums.FindByPredicate([&](const FStringAssetReference& Ref) { return Ref.ToString() == AssetRef.ToString(); });
-			const FStringAssetReference* PayloadRefFound = nullptr;
+			const FSoftObjectPath* ParamRefFound = Settings->AdditionalParameterEnums.FindByPredicate([&](const FStringAssetReference& Ref) { return Ref.ToString() == AssetRef.ToString(); });
+			const FSoftObjectPath* PayloadRefFound = nullptr;
 			UEnum* Enum = Cast<UEnum>(Obj);
 			if (Enum != nullptr)
 			{
@@ -437,5 +507,7 @@ void INiagaraModule::ProcessShaderCompilationQueue()
 	checkf(OnProcessQueue.IsBound(), TEXT("Can not process shader queue.  Delegate was never set."));
 	return OnProcessQueue.Execute();
 }
+
+#undef LOCTEXT_NAMESPACE
 
 

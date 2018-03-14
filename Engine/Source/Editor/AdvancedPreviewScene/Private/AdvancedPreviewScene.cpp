@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AdvancedPreviewScene.h"
 #include "UnrealClient.h"
@@ -256,15 +256,15 @@ void FAdvancedPreviewScene::Tick(float DeltaTime)
 		else
 		{
 			SphereReflectionComponent->SourceCubemapAngle = Profile.LightingRigRotation;
-			SphereReflectionComponent->SetCaptureIsDirty();
+			SphereReflectionComponent->MarkDirtyForRecapture();
 			SphereReflectionComponent->MarkRenderStateDirty();
-			SphereReflectionComponent->UpdateReflectionCaptureContents(PreviewWorld);
+			UReflectionCaptureComponent::UpdateReflectionCaptureContents(PreviewWorld);
 		}
 
 		InstancedSkyMaterial->SetScalarParameterValueEditorOnly(FName("CubemapRotation"), Profile.LightingRigRotation / 360.0f);
 		InstancedSkyMaterial->PostEditChange();
 
-		PreviewWorld->UpdateAllReflectionCaptures();
+		UReflectionCaptureComponent::UpdateReflectionCaptureContents(PreviewWorld);
 		PreviewWorld->UpdateAllSkyCaptures();
 
 		PreviousRotation = Profile.LightingRigRotation;
@@ -281,20 +281,15 @@ void FAdvancedPreviewScene::Tick(float DeltaTime)
 		}
 		else
 		{
-			SphereReflectionComponent->SetCaptureIsDirty();
+			SphereReflectionComponent->MarkDirtyForRecapture();
 			SphereReflectionComponent->MarkRenderStateDirty();
-			SphereReflectionComponent->UpdateReflectionCaptureContents(PreviewWorld);
+			UReflectionCaptureComponent::UpdateReflectionCaptureContents(PreviewWorld);
 		}
 
 
 		InstancedSkyMaterial->PostEditChange();
 		bSkyChanged = false;
 	}
-}
-
-bool FAdvancedPreviewScene::IsTickable() const
-{
-	return true;
 }
 
 TStatId FAdvancedPreviewScene::GetStatId() const
@@ -439,11 +434,14 @@ void FAdvancedPreviewScene::BindCommands()
 	UICommandList->MapAction(Commands.ToggleFloor,
 		FExecuteAction::CreateRaw(this, &FAdvancedPreviewScene::HandleToggleFloor));
 
-	UICommandList->MapAction(Commands.ToggleSky,
-		FExecuteAction::CreateRaw(this, &FAdvancedPreviewScene::HandleToggleSky));
+	UICommandList->MapAction(Commands.ToggleEnvironment,
+		FExecuteAction::CreateRaw(this, &FAdvancedPreviewScene::HandleToggleEnvironment));
+
+	UICommandList->MapAction(Commands.TogglePostProcessing,
+		FExecuteAction::CreateRaw(this, &FAdvancedPreviewScene::HandleTogglePostProcessing));
 }
 
-void FAdvancedPreviewScene::HandleToggleSky()
+void FAdvancedPreviewScene::HandleToggleEnvironment()
 {
 	SetEnvironmentVisibility(!DefaultSettings->Profiles[CurrentProfileIndex].bShowEnvironment);
 }
@@ -451,6 +449,19 @@ void FAdvancedPreviewScene::HandleToggleSky()
 void FAdvancedPreviewScene::HandleToggleFloor()
 {
 	SetFloorVisibility(!DefaultSettings->Profiles[CurrentProfileIndex].bShowFloor);
+}
+
+void FAdvancedPreviewScene::HandleTogglePostProcessing()
+{
+	FPreviewSceneProfile& Profile = DefaultSettings->Profiles[CurrentProfileIndex];
+	Profile.bPostProcessingEnabled = !Profile.bPostProcessingEnabled;
+	PostProcessComponent->bEnabled = Profile.bPostProcessingEnabled;
+	bPostProcessing = Profile.bPostProcessingEnabled;
+	
+	FName PropertyName("bPostProcessingEnabled");
+	UProperty* PostProcessingProperty = FindField<UProperty>(FPreviewSceneProfile::StaticStruct(), PropertyName);
+	FPropertyChangedEvent PropertyEvent(PostProcessingProperty);
+	DefaultSettings->PostEditChangeProperty(PropertyEvent);	
 }
 
 void FAdvancedPreviewScene::OnAssetViewerSettingsRefresh(const FName& InPropertyName)

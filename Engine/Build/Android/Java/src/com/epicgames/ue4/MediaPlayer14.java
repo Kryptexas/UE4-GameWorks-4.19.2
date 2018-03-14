@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 package com.epicgames.ue4;
 
@@ -485,6 +485,21 @@ public class MediaPlayer14
 		return position;
 	}
 
+	public int getDuration()
+	{
+		int duration = 0;
+		
+		synchronized(this)
+		{
+			if (Prepared)
+			{
+				duration = super.getDuration();
+			}
+		}
+
+		return duration;
+	}
+	
 	public void seekTo(int position)
 	{
 		synchronized (this)

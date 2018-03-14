@@ -109,7 +109,7 @@ FText 는 현재 그 비교 연산에 연산자를 노출시키지 않는데, �
 
 ### 캔버스
 
-[캔버스](Programming/Gameplay/Framework\UIAndHUD) 를 사용해서 HUD 에 FText 를 표시하려면, FCanvasTextItem 을 새로 만들어야 합니다.
+[Canvas](Gameplay/Framework\UIAndHUD) 를 사용해서 HUD 에 FText 를 표시하려면, FCanvasTextItem 을 새로 만들어야 합니다.
 
 	FCanvasTextItem TextItem( FVector2D::ZeroVector, TestHUDText, BigFont, FLinearColor::Black);
 	

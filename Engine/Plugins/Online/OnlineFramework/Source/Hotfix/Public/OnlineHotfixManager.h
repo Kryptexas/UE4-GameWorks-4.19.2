@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -284,6 +284,9 @@ protected:
 	/** Fires the progress delegate with our updated progress */
 	void UpdateProgress(uint32 FileCount, uint64 UpdateSize);
 
+	/** Called after any hotfixes are applied to apply last-second changes to certain asset types from .ini file data */
+	void PatchAssetsFromIniFiles();
+
 public:
 	UOnlineHotfixManager();
 
@@ -302,6 +305,12 @@ public:
 	/** Starts the fetching of hotfix data from the OnlineTitleFileInterface that is registered for this game */
 	UFUNCTION(BlueprintCallable, Category="Hotfix")
 	virtual void StartHotfixProcess();
+
+	/** Array of objects that we're forcing to remain resident because we've applied live hotfixes and won't get an
+	    opportunity to reapply changes if the object is evicted from memory. */
+	UPROPERTY(Transient)
+	TArray<UObject*> AssetsHotfixedFromIniFiles;
+	
 
 	/** 
 	 * Check for available hotfix files (but do not apply them) 

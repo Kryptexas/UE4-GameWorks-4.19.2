@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "FriendsChatStyle.h"
 
@@ -37,6 +37,12 @@ FFriendsChatStyle& FFriendsChatStyle::SetDefaultChatColor(const FLinearColor& In
 FFriendsChatStyle& FFriendsChatStyle::SetGlobalChatColor(const FLinearColor& InFontColor)
 {
 	GlobalChatColor = InFontColor;
+	return *this;
+}
+
+FFriendsChatStyle& FFriendsChatStyle::SetFounderChatColor(const FLinearColor& InFontColor)
+{
+	FounderChatColor = InFontColor;
 	return *this;
 }
 
@@ -103,6 +109,12 @@ FFriendsChatStyle& FFriendsChatStyle::SetWhisplerHyperlinkChatColor(const FLinea
 FFriendsChatStyle& FFriendsChatStyle::SetGlobalHyperlinkChatColor(const FLinearColor& InFontColor)
 {
 	GlobalHyperlinkChatColor = InFontColor;
+	return *this;
+}
+
+FFriendsChatStyle& FFriendsChatStyle::SetFounderHyperlinkChatColor(const FLinearColor& InFontColor)
+{
+	FounderHyperlinkChatColor = InFontColor;
 	return *this;
 }
 

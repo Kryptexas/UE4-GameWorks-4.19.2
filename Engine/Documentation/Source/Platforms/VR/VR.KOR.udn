@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3467293
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:가상 현실 개발
 Crumbs:%ROOT%, Platforms
 Description:가상 현실 플랫폼용 개발에 관련된 정보입니다.
 Navigation:platform
-Version: 4.9
+Version: 4.17
 Type:landing
 tags:VR
 tags:Platform
@@ -13,13 +13,17 @@ order:2
 topic-icon:%ROOT%/platform_icon.png
 topic-image:VirtualRealityDevelopment_topic.png
 
-## 가상 현실 플랫폼
+## 데스크탑 플랫폼
 
-[DIR(end:"1" output:"topic" type:"landing" tags:"platform" parent:"Platforms/VR")]
+[DIR(end:"1" output:"topic" type:"landing" tags:"platform" tags:"Desktop VR" parent:"Platforms/VR")]
 
-## 가상 현실 토픽
+## 모바일 플랫폼
 
-[DIR(end:"1" output:"topic" parent:"Platforms/VR" tags:"!platform")]
+[DIR(end:"1" output:"topic" type:"landing" tags:"platform" tags:"Mobile VR" parent:"Platforms/VR")]
+
+## 일반 VR 개발
+
+[DIR(end:"1" output:"topic" parent:"Platforms/VR" type:"overview,reference,how-to")]
 
 ## 교육 자료
 

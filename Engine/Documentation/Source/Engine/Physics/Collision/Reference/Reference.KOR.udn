@@ -1,29 +1,9 @@
-﻿INTSourceChangelist:3418529
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:콜리전 반응 참고서
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
 Description:콜리전 프로퍼티 카테고리의 콜리전 프리셋 섹션에 있는 여러가지 프로퍼티에 대한 분석입니다.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/Collision/Reference:title%](Engine/Physics/Collision/Reference/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/Collision:/Reference:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/Collision/Reference:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Collision/Reference]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 Collision Properties (콜리전 프로퍼티) 카테고리의 Collision Presets(콜리전 프리셋)/Collision Response(콜리전 반응) 섹션에는 프로퍼티와 세팅이 다수 있는데, 여기서 명확히 분석하도록 하겠습니다.
 
@@ -34,10 +14,6 @@ Collision Properties (콜리전 프로퍼티) 카테고리의 Collision Presets(
 ![](collProp.png)(convert:false)
 
 ### 콜리전 프리셋
-	
-%p2%
-
-[VAR:p2]
 
 [REGION:raw]
 | 프로퍼티 | %spacer% | 설명 |
@@ -50,15 +26,9 @@ Collision Properties (콜리전 프로퍼티) 카테고리의 Collision Presets(
 | **Object Responses** || 오브젝트 반응 - [INCLUDE:#objtrace] |
 [/REGION]
 
-[/VAR]
 
+[COMMENT:none]
 
-[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
-
-[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
-
-
-<!--
 [EXCERPT:colrep]
 
 이 피직스 바디가 다른 모든 유형의 트레이스 & 오브젝트 유형과 어떻게 상호작용하는지를 결정합니다. 기억할 것은, 최종 결과를 정의하는 것은 양쪽 피직스 바디 사이의 상호작용이라, 양쪽 피직스 바디의 오브젝트 유형과 콜리전 반응이 중요합니다.
@@ -169,4 +139,5 @@ Collision Enabled 는 아래 네 가지 상태를 가질 수 있습니다.
 | **Destructible** || 디스트럭터블 - 기본적으로 디스트럭터블 메시가 이 유형을 받습니다. |
 [/REGION]
 [/EXCERPT]
--->
+
+[/COMMENT]

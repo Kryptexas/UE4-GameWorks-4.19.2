@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelSequenceActorDetails.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
@@ -11,6 +11,7 @@
 #include "DetailCategoryBuilder.h"
 #include "IDetailsView.h"
 #include "LevelSequenceActor.h"
+#include "Algo/Transform.h"
 
 #define LOCTEXT_NAMESPACE "LevelSequenceActorDetails"
 
@@ -18,6 +19,30 @@
 TSharedRef<IDetailCustomization> FLevelSequenceActorDetails::MakeInstance()
 {
 	return MakeShareable( new FLevelSequenceActorDetails );
+}
+
+void AddAllSubObjectProperties(TArray<UObject*>& SubObjects, IDetailCategoryBuilder& Category, TAttribute<EVisibility> Visibility = TAttribute<EVisibility>(EVisibility::Visible))
+{
+	SubObjects.Remove(nullptr);
+	if (!SubObjects.Num())
+	{
+		return;
+	}
+
+	for (const UProperty* TestProperty : TFieldRange<UProperty>(SubObjects[0]->GetClass()))
+	{
+		if (TestProperty->HasAnyPropertyFlags(CPF_Edit))
+		{
+			const bool bAdvancedDisplay = TestProperty->HasAnyPropertyFlags(CPF_AdvancedDisplay);
+			const EPropertyLocation::Type PropertyLocation = bAdvancedDisplay ? EPropertyLocation::Advanced : EPropertyLocation::Common;
+
+			IDetailPropertyRow* NewRow = Category.AddExternalObjectProperty(SubObjects, TestProperty->GetFName(), PropertyLocation);
+			if (NewRow)
+			{
+				NewRow->Visibility(Visibility);
+			}
+		}
+	}
 }
 
 void FLevelSequenceActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
@@ -37,10 +62,25 @@ void FLevelSequenceActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 			}
 		}
 	}
+
+	TArray<ALevelSequenceActor*> LevelSequenceActors;
+	{
+		TArray<TWeakObjectPtr<>> ObjectPtrs;
+		DetailLayout.GetObjectsBeingCustomized(ObjectPtrs);
+
+		for (TWeakObjectPtr<> WeakObj : ObjectPtrs)
+		{
+			if (auto* Actor = Cast<ALevelSequenceActor>(WeakObj.Get()))
+			{
+				LevelSequenceActors.Add(Actor);
+			}
+		}
+	}
 	
-	//DetailLayout.EditCategory( "LevelSequenceActor", NSLOCTEXT("LevelSequenceActorDetails", "LevelSequenceActor", "Level Sequence Actor"), ECategoryPriority::Important )
-	DetailLayout.EditCategory( "General", NSLOCTEXT("GeneralDetails", "General", "General"), ECategoryPriority::Important )
-	.AddCustomRow( NSLOCTEXT("LevelSequenceActorDetails", "OpenLevelSequence", "Open Level Sequence") )
+
+	IDetailCategoryBuilder& GeneralCategory = DetailLayout.EditCategory( "General", NSLOCTEXT("GeneralDetails", "General", "General"), ECategoryPriority::Important );
+
+	GeneralCategory.AddCustomRow( NSLOCTEXT("LevelSequenceActorDetails", "OpenLevelSequence", "Open Level Sequence") )
 	[
 		SNew(SHorizontalBox)
 		+SHorizontalBox::Slot()
@@ -56,6 +96,43 @@ void FLevelSequenceActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 			.Text( NSLOCTEXT("LevelSequenceActorDetails", "OpenLevelSequence", "Open Level Sequence") )
 		]
 	];
+
+	TArray<UObject*> SubObjects;
+
+	IDetailCategoryBuilder& BurnInOptionsCategory = DetailLayout.EditCategory( "BurnInOptions", LOCTEXT("BurnInOptions", "Burn In Options") ).InitiallyCollapsed(false);
+	{
+		SubObjects.Reset();
+		Algo::Transform(LevelSequenceActors, SubObjects, &ALevelSequenceActor::BurnInOptions);
+
+		AddAllSubObjectProperties(SubObjects, BurnInOptionsCategory);
+	}
+
+	IDetailCategoryBuilder& BindingOverridesCategory = DetailLayout.EditCategory( "BindingOverrides", LOCTEXT("BindingOverrides", "Binding Overrides") ).InitiallyCollapsed(false);
+	{
+		SubObjects.Reset();
+		Algo::Transform(LevelSequenceActors, SubObjects, &ALevelSequenceActor::BindingOverrides);
+		AddAllSubObjectProperties(SubObjects, BindingOverridesCategory);
+	}
+
+	IDetailCategoryBuilder& InstanceDataCategory = DetailLayout.EditCategory( "InstanceData", LOCTEXT("InstanceData", "Instance Data") ).InitiallyCollapsed(false);
+	{
+		TSharedRef<IPropertyHandle> UseInstanceData = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(ALevelSequenceActor, bOverrideInstanceData));
+
+		DetailLayout.HideProperty(UseInstanceData);
+		InstanceDataCategory.AddProperty(UseInstanceData);
+
+		SubObjects.Reset();
+		Algo::Transform(LevelSequenceActors, SubObjects, &ALevelSequenceActor::DefaultInstanceData);
+
+		auto IsVisible = [UseInstanceData]() -> EVisibility
+		{
+			bool bValue = false;
+			return UseInstanceData->GetValue(bValue) == FPropertyAccess::Success && bValue ? EVisibility::Visible : EVisibility::Collapsed;
+		};
+
+		TAttribute<EVisibility> Visibility = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateLambda(IsVisible));
+		AddAllSubObjectProperties(SubObjects, InstanceDataCategory, Visibility);
+	}
 }
 
 

@@ -1,10 +1,14 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3740727
 Availability:Public
+Crumbs: %ROOT%
 Title:Samsung Gear VR ベストプラクティス
-Crumbs:%ROOT%, Platforms
 Description:Gear VR ヘッドセットを使用する
-Navigation:platform
-Platform:Gear VR
+Type:Reference
+Version:4.17
+Parent:Platforms/GearVR
+Order:1
+tags:VR
+tags:GearVR
 Related:Platforms/Mobile/Performance
 Related:Engine/Performance
 Related:Engine/Performance/StatCommands
@@ -12,41 +16,49 @@ Related:Platforms/Mobile/Textures
 Related:Platforms/Mobile/Materials
 Related:Engine/Rendering/Materials/MaterialProperties/BlendModes
 Related:Engine/Rendering/Materials/CustomizedUVs
-SkillLevel:Intermediate
-Version:4.9
-type:overview
-parent:Platforms/GearVR
-tags:VR
-tags:GearVR
+
 
 [TOC(start:2 end:3)]
 
-仮想現実 (VR) 向けのコンテンツ開発では、ユーザーに最高の VR 体験をさせるステップがある程度含まれるようにしなければなりません。
-ベスト プラクティス ガイドでは、Samsung Gear Virtual Reality(VR) Headset と Samsung Galaxy Note 4 Smartphone を使ってプロジェクトを見た時に、 
-ユーザーに最高の体験をしてもらうための要件について説明します。
+仮想現実 (VR) 向けのコンテンツ開発では、ユーザーに最高の VR 体験をさせるステップがある程度含まれるようにしなければなりません。ベスト プラクティス ガイドでは、Samsung Gear Virtual Reality(VR) ヘッドセットおよび Samsung Galaxy スマートフォンを使ってプロジェクトを見た時に、ユーザーにできる限り良い体験を提供するために必要な内容を説明します。
 
 
 ## Gear VR のレンダリング オプション
-Gear VR Headset を Samsung Galaxy Note 4 スマートフォンと組み合わて使うとイマーシブ感のある VR 体験をすることができますが、 
+Gear VR Headset を Samsung Galaxy スマートフォンと組み合わて使うとイマーシブ感のある VR 体験をすることができますが、 
 その一方で、ハードウェア上の制約があるため、 Gear VR Headset の使用中は UE4 が実行できないレンダリング機能があります。 
-目にする制約の多くは、[モバイル デバイス](Platforms/Mobile/Performance) への制約と似ています。
-ただし、Gear VR Headset のレンダリング要件はユニークなので、その点に対する配慮も必要です。
+目にする制約の多くは、[モバイル デバイス](Platforms/Mobile/Performance) と似ています。
 次のセクションでは、これらの要件およびそれらが Gear VR プロジェクトに及ぼす影響について説明します。 
 
+## モバイル マルチビュー / マルチビュー ディレクト レンダリング
+UE4 GearVR プロジェクトが CPU に結合されている場合、**[Mobile Multi-View]** または **[Mobile Multi-View Direct]** を有効にするとパフォーマンスが向上します。有効にするには、**[ProjectSettings]** > **[Rendering]** > **[VR]** を選択し、[Mobile Multi-View] をクリックします。 
+
+![](MobileMultiView.png)(w:900)
+
+* **Mobile Multi-View**:[Mobile Multi-View] を有効にすると、オブジェクトは左目バッファに一度レンダリングされてから、頂点の位置と反射などビューに依存する変数を適切に修正して、自動的に右目バッファに複製されます。
+
+* **Mobile Multi-View Direct** :Mobile Multi-View の拡張版です。レンダリングしなければならない全画面コピー数が減ります。多くの場合、GPU オーバーヘッドを大幅に削減することができます。
+
+[region:note]
+[Mobile Multi-View Direct] を使用するには [Mobile Multi-View] を有効にする必要があります。ご注意ください。[Mobile Multi-View](https://developer.oculus.com/documentation/unreal/latest/concepts/unreal-multi-view/) の詳細は、[Oculus Developer site](https://developer.oculus.com/documentation/unreal/latest/concepts/unreal-multi-view/) をご覧ください。
+[/region]
+
+## Monoscopic Far Field
+**Monoscopic Far Field** レンダリング (正確には Hybrid Monoscopic レンダリング) は、アンリアル エンジン 4 (UE4) にビルトインされている VR モバイル アプリケーション向けの高度なレンダリング機能です。通常、Monoscopic Far Field レンダリングは遠方のコンテンツを膨大に含むレベルのパフォーマンスを改善します。その理由は、遠方のオブジェクトは両目に対して 1 回ずつしかレンダリングされないためです。エピックは、この方法で遠方のオブジェクトをレンダリングすると、VR モバイル アプリケーションに対して著しいパフォーマンスの改善を生み出すことを発見しました。Monoscopic Far Field の有効化および使用方法については、こちらのドキュメントをご覧ください。
+
+* [**Monoscopic Far Field**](Platforms\VR\MonoFarFieldRendering) 
+
+
 ### Mobile HDR
-さらに高度なレンダリング機能をプロジェクトに使えるように Mobile HDR を有効にした方がいいように思いますが、有効にしないでください！
-Gear VR Headset では Mobile HDR を使用できませんので、オフのままにしておいてください。 
-この機能を有効にすると、Gear VR Headset に配置されたプロジェクトが正しくレンダリングされない原因になります。
+Gear VR プロジェクトは Mobile HDR に対応していませんので、有効にはしないでください。 
 
 ### ポストプロセス
-Gear VR Headset はレンダリング要件が厳しいため、残念ながら Gear VR Headset では使用できないポストプロセスが数多くあります。 
-Gear VR Headset では以下のプロセスのみが使用できます。
+Gear VR はレンダリング要件が厳しいため、多くのポストプロセス機能とは使用することができません。以下のポストプロセスは、Gear VR Headset 向けに開発されたプロジェクトで使用することができます。
 
 |ポストプロセス セクション |機能名| 説明 |
 | -------- | ---------- |------|
-| Auto Exposure|Exposure Bias | シーン輝度を増減します。 |
+| Auto Exposure|Exposure Bias | シーンの輝度を増減します。 |
 
-###マテリアル
+### マテリアル
 Gear VR 用のマテリアルの作成とインタラクションは、その他のプロジェクト用のマテリアルの作成およびインタラクションと非常によく似ています。 
 マテリアル エディタでマテリアルを作成することもできますし、マテリアル エディタ内にあるマテリアル ノードをいろいろ使うこともできます。 
 ただし、Gear VR 用にマテリアルを作成する時に守らなければならない制約 / 留意すべき事項がいくつかあります。 
@@ -56,16 +68,15 @@ Gear VR 用のマテリアルの作成とインタラクションは、その他
 | -------- | ---------- |
 | **Base Color** |マテリアル全体の色を定義します。 |
 | **Roughness** |マテリアルの粗さ、またはスムーズさを定義します。 |
-| **Metallic** |マテリアルをどのようにメタルのように見せるかを定義します。 |
+| **Metallic** |マテリアルをどの程度メタルらしく見せるかを定義します。 |
 | **Specular** |リフレクションの強度を定義します。 |
-| **Normal**  |モデルに含むには負荷が大きい詳細を追加します。 |
+| **Normal**  |重すぎて作成できない詳細の追加を支援します。 |
 | **Emissive**  |光を放射しているようにマテリアルを部分的に発光させます。 |
 | **Opacity**  |透過の度合いを定義します。 |
 | **Opacity Mask** |ピクセルを透過状態にするかどうかを定義しやすくします。 |
 
 [REGION:note]
-Translucent マテリアルと Masked マテリアルは両方ともレンダリング負荷が非常に高いことを覚えておいてください。スマートフォンでは特にそうです。
-レンダリング負荷の低い [不透明なマテリアル](Engine/Rendering/Materials/MaterialProperties/BlendModes) を可能な限り使用してください。
+Translucent マテリアルと Masked マテリアルは両方ともレンダリング負荷が非常に高いことを覚えておいてください。スマートフォンでは特にそうです。レンダリング負荷の低い [不透明なマテリアル](Engine/Rendering/Materials/MaterialProperties/BlendModes) を可能な限り使用してください。
 [/region]
 
 ### マテリアルのシェーディング モデル
@@ -85,10 +96,10 @@ Gear VR Headset 用にコンテンツを作成する場合は、以下のマテ�
 
 | Blend モード | 説明 |
 | ---- | ----- |
-| **Opaque (不透明)** | ソリッド オブジェクトでは Opaque は最も負荷の低いマテリアルです。ただし、名前から想像できるように、透過処理には対応していません。つまり、オーバードローが作成されることはなく、マテリアルの各ピクセルを レンダリングする場合は、**ノードグラフ**の複雑さに応じて同じ時間がかかります。
-| **Masked (マスク)** | マテリアル上に一部のピクセルを描画する必要のない場合に使います。マテリアルは、マスクアウトされた領域に対してのみオーバードローを作成します。ただし、マテリアルは 100\% opaque or 100\% 透視可能です。マスクアウトされた領域が広いほど、オーバードローの数が増えます。その分負荷もかかります。 |
+| **Opaque (不透明)** | ソリッド オブジェクトでは Opaque は最も負荷の低いマテリアルです。ただし、名前から推測できるように、透過処理には対応していません。つまり、オーバードローが作成されることはなく、マテリアルの各ピクセルを レンダリングする場合は、**ノードグラフ** の複雑さに応じて同じ時間がかかります。 |
+| **Masked (マスク)** | マテリアル上に一部のピクセルを描画する必要のない場合に使います。マテリアルは、マスクアウトされた領域に対してのみオーバードローを作成します。ただし、マテリアルは 100 % 不透明または 100 % 透過です。マスクアウトされた領域が広いほど、オーバードローの数が増えます。その分、負荷もかかります。 |
 | **Translucent (透過)** | 最も負荷の高い **ブレンド モード** です。Masked や Opaque のようにも見えますが、実際に透明かどうかに関係なくパフォーマンスに影響を与えます。 |
-| **Additive (加算)** | Translucent で負荷の低いオプションです。ピクセルをソートせずに、シーンに追加されます。つまり、明るくすることしかできません。マテリアルの黒のピクセルは、シーンに対して何も影響を与えません。|
+| **Additive (加算)** | Translucent で負荷の低いオプションです。ピクセルをソートする必要なく、単にシーンに追加されます。つまり、明るくすることしかできません。マテリアルの黒のピクセルは、シーンに何も影響を与えません。|
 | **Modulated (調整)** | Translucent で 2 番めに負荷が低いオプションですが、シーンのピクセルが増えます。つまり、シーンを暗くすることしかできません。|
 [region:note]
 Modulate ブレンド モードを使用する際は必ず **[Separate Translucency]** を無効にしてください。マテリアルが正しくコンパイルされなくなくなります。
@@ -100,16 +111,15 @@ Modulate ブレンド モードを使用する際は必ず **[Separate Transluce
 ここには、モバイル デバイス上でのマテリアル レンダリングの負荷を減らすオプションがあります。  
 | プロパティ | 説明 |
 | -------- | ---------- |
-| FullyRough | 有効にすると、多数のシェーダー ALU インストラクションとサンプラが 1 つ保存します。反射エネルギー全体を維持しながら、スペキュラを効率よく無効化します。|
-| UseLightmapDirectionality | 無効にすると、ライトマップからのライティングはフラットになりますが負荷が小さくなります。 |
+| **Fully Rough** | 有効にすると、多数のシェーダー ALU インストラクションとサンプラが 1 つ保存します。反射エネルギー全体を維持しながら、効率よくスペキュラを無効化します。|
+| **Use Lightmap Directionality** | 無効にすると、ライトマップからのライティングはフラットになりますが負荷が小さくなります。 |
 
 ### カスタム仕様の UV
 [カスタム仕様の UV](Engine/Rendering/Materials/CustomizedUVs) により、依存するテクスチャ フェッチを避けるために、ピクセル シェーダーではなく頂点シェーダーでシェーダー操作を行うことが可能になります。 
-これは、UV 操作など単純な操作の際、本当に必要とするパフォーマンスを取り戻すのに非常に便利です。 
-特に Gear VR Headset 用コンテンツを作成する場合はそうですが、すべての UV 操作には可能な限りカスタム仕様の UV を使うようにしてください。
+これは、UV 操作など単純な操作の際、本当に必要とするパフォーマンスを取り戻すのに非常に便利です。特に Gear VR Headset 用コンテンツを作成する場合はそうですが、すべての UV 操作には可能な限りカスタム仕様の UV を使うようにしてください。
 
 [region:note]
-カスタム仕様の UV は現時点では、スタティックメッシュ、スケルタルメッシュ、 BSP 、ランドスケープ、メッシュ パーティクルなどの限られたコンポーネント タイプにしか実装されていません。
+カスタム仕様の UV は現時点では、スタティックメッシュ、スケルタルメッシュ、BSP、ランドスケープ、メッシュ パーティクルなどの限られたコンポーネント タイプにしか実装されていません。
 [/region]
 
 ### 反射
@@ -117,18 +127,18 @@ Gear VR は Screen Space Reflections(SSR) をサポートしていません。�
 反射アクタから生成された反射は、ハードウェアの制約により忠実度があまり高くないことに留意してください。 
 
 ## Gear VR とコンテンツの設定
-Gear VR プロジェクト用アート コンテンツを作成する場合、プロジェクトが Gear VR Headset 上で可能な限りスムーズに動くようにするための留意点がいくつかあります。 
+Gear VR プロジェクト用アート コンテンツを作成する場合、プロジェクトが Gear VR Headset で可能な限りスムーズに動くようにするための留意点がいくつかあります。 
 次のセクションでそれを説明します。
 
 ### コンテンツに対するハードウェアの制約
-モバイル デバイスに対してハードウェアの制約があるので、コンテンツを作成する際には以下の制約を守る 必要があります。 
-これらの制約に違反すると、稼働中のプロジェクトに影響します。
+モバイル デバイスにはハードウェア制約が課せられているので、コンテンツ作成の際には以下の制約への順守が必要です。 
+これらの制約に違反すると、Gear VR プロジェクトが動作しなくなります。
 
-* 全てのメッシュ タイプは、モバイル ハードウェア上での 32 bit インデックスサポートがないため、頂点は 65000 までとなります。
+* 全てのメッシュ タイプは、モバイル ハードウェアでは 32 bit インデックスがサポートされないため、頂点は 65000 までとなります。
 * スケルタル メッシュは 75 ボーンまで持つことができます。
 
 ### メッシュに関する留意点
-Gear VR プロジェクトを使ってメッシュを作成する場合、作成しているものが必ず Gear VR Headset で使用できるように、以下の事に留意してください。 
+Gear VR プロジェクトを使ってメッシュを作成する場合、メッシュが必ず Gear VR Headset で動くようにするために以下の事に留意してください。 
 
 * 描画コールを減らすために、3D の [マテリアル ID](Engine/Content/FBX/Materials) はできる限り少なくしてください。
 * 可能な限り [スタティックメッシュ LOD](Engine/Content/FBX/StaticMeshes) を使うようにしてください。
@@ -139,9 +149,8 @@ Gear VR プロジェクトを使ってメッシュを作成する場合、作成
 ### テクスチャに関する留意点
 Gear VR プロジェクトを使ってメッシュを作成する場合、作成しているものがプロジェクト全体に対して有害になることがないように、以下の点に留意してください。 
 
-* テクスチャは、[ECT2](http://en.wikipedia.org/wiki/Ericsson_Texture_Compression) テクスチャ圧縮フォーマットを使用します。
-* テクスチャは X または Y のいずれかのディメンションが 2048 ピクセル以上には なりません 。
-* テクスチャ サイズは 2 のべき乗 (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048) でなければなりません 。
+* テクスチャは X または Y のいずれかのディメンションが 2048 ピクセル以上にはなりません。
+* テクスチャ サイズは 2 のべき乗 (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048) でなければなりません。
 * Gear VR では最高 512 MB までテクスチャをメモリへロードすることができますが、128 MB 以上はお勧めしません。
 * メモリを効率よく使用する正方テクスチャを可能な限り使用してください。 
 * メモリ内で必要なテクスチャ数を減らすために、できるだけ [テクスチャ アトラス化](http://en.wikipedia.org/wiki/Texture_atlas) を使用してください。
@@ -149,14 +158,14 @@ Gear VR プロジェクトを使ってメッシュを作成する場合、作成
 * **TC_Default** および **TC_NormalMap** 圧縮設定のみを使用してください。モバイル プラットフォームで使用できるのはこの 2 つのみとなります。 
 
 ### レベルに関する留意点
-Gear VR のレベルで最高のパフォーマンスを出すには、絶妙なバランス使いが要求されます。これは慣れるまで時間を要します。 
+Gear VR のレベルで最高のパフォーマンスを出すには、絶妙なバランスを取ることが必要で、慣れるまで時間を要します。 
 以下の点に気を付けると、Gear VR Headset 上で見た時にパフォーマンス関連の問題を発生させる可能性のレベル領域を早く特定できるようになります。
 
-* 最高のパフォーマンスを得られるように、レベル ライティングが [ビルド](Engine/Rendering/LightingAndShadows/Lightmass) されていることを常に確認してください。赤字の「 **Lighting needs to be rebuilt** 」エラーメッセージが画面に表示された場合は、ライティングをビルドしなければなりません。
+* パフォーマンスが最高になるように、レベル ライティングが [ビルド](Engine/Rendering/LightingAndShadows/Lightmass) されていることを常に確認してください。赤字の **[Lighting needs to be rebuilt (ライティングのリビルドが必要です)]** エラーメッセージが画面に表示された場合は、ライトを再ビルドしなければなりません。
 * レベル内のすべてのライトは必ず [Static (静的)](Engine/Rendering/LightingAndShadows/LightMobility/StaticLights) に設定してください。他のライト オプションだとレンダリング負荷が非常に高くなってしまいます。
 * レベルに [事前計算されたビジビリティ](Engine/Actors/Volumes) が使われているか確認してください。使われていない場合はレベルに 1 つ追加し、レベルのワールド設定で有効にするためにライティングをリビルドするようにしてください。 
-* シーン全体の描画コールは、どのビューに対しても 100 以下でなければなりません。これは、PC の ES2 プレビュア [stat d3d11rhi](Engine/Performance/StatCommands) のデバイス [stat openglrhi](Engine/Performance/StatCommands) で確認することができます。
-* レベルのトライアングル総数は、どのビューに対しても 100,000 を超えてはいけません。これは、PC の ES2 プレビュア [stat d3d11rhi](Engine/Performance/StatCommands) のデバイス [stat openglrhi](Engine/Performance/StatCommands) で確認することができます。
+* シーン全体の描画コールは、すべてのビューに対して 100 以下でなければなりません。描画コールは PC の ES2 プレビュア [stat d3d11rhi](Engine/Performance/StatCommands) のデバイス [stat openglrhi](Engine/Performance/StatCommands) で確認することができます。
+* レベルのトライアングル総数は、どのビューでも 100,000 を超えてはいけません。描画コールは PC の ES2 プレビュア [stat d3d11rhi](Engine/Performance/StatCommands) のデバイス [stat openglrhi](Engine/Performance/StatCommands) で確認することができます。
 * 透過マテリアルとオパシティ マスク付マテリアルはレンダリング負荷が非常に高いので、レベル内での使い方にはくれぐれも注意してください。
 * [パフォーマンスおよびプロファイル](Engine/Performance) を必ず一読して、自分のレベルのパフォーマンスに関わる問題を早めに探知できるようにしてください。
 

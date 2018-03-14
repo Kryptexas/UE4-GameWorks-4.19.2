@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "FrontendFilters.h"
 #include "Framework/Commands/UIAction.h"
@@ -995,8 +995,11 @@ FFrontendFilter_InUseByLoadedLevels::~FFrontendFilter_InUseByLoadedLevels()
 {
 	FEditorDelegates::MapChange.RemoveAll(this);
 
-	IAssetTools& AssetTools = FAssetToolsModule::GetModule().Get();
-	AssetTools.OnAssetPostRename().RemoveAll(this);
+	if(FAssetToolsModule::IsModuleLoaded())
+	{
+		IAssetTools& AssetTools = FAssetToolsModule::GetModule().Get();
+		AssetTools.OnAssetPostRename().RemoveAll(this);
+	}
 }
 
 void FFrontendFilter_InUseByLoadedLevels::ActiveStateChanged( bool bActive )

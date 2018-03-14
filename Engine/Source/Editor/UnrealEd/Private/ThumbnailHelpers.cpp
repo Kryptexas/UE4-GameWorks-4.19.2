@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ThumbnailHelpers.h"
 #include "FinalPostProcessSettings.h"
@@ -278,8 +278,11 @@ void FMaterialThumbnailScene::SetMaterialInterface(UMaterialInterface* InMateria
 
 		if(BaseMaterial)
 		{
-			// UI and particle sprite material thumbnails always get a 2D plane centered at the camera which is a better representation of the what the material will look like
-			bForcePlaneThumbnail = BaseMaterial->IsUIMaterial() || (BaseMaterial->bUsedWithParticleSprites && !ThumbnailInfo->bUserModifiedShape);
+			bForcePlaneThumbnail = BaseMaterial->ShouldForcePlanePreview();
+		}
+		else
+		{
+			bForcePlaneThumbnail = InMaterial->ShouldForcePlanePreview();
 		}
 
 		EThumbnailPrimType PrimitiveType = bForcePlaneThumbnail ? TPT_Plane : ThumbnailInfo->PrimitiveType.GetValue();

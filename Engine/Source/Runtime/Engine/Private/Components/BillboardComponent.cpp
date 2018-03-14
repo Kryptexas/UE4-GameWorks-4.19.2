@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/BillboardComponent.h"
 #include "UObject/ConstructorHelpers.h"
@@ -26,9 +26,15 @@ float UBillboardComponent::EditorScale = 1.0f;
 #endif
 
 /** Represents a billboard sprite to the scene manager. */
-class FSpriteSceneProxy : public FPrimitiveSceneProxy
+class FSpriteSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
+
 	/** Initialization constructor. */
 	FSpriteSceneProxy(const UBillboardComponent* InComponent, float SpriteScale)
 		: FPrimitiveSceneProxy(InComponent)

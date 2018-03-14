@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Title:스프라이트 만들기
 Crumbs: %ROOT%, Engine, Engine/Paper2D, Engine/Paper2D/Sprites
 Description:
@@ -60,8 +60,10 @@ Sprite, 스프라이트는 다른 애셋과 마찬가지로 콘텐츠 브라우�
 ![](sprite_create_flipbook.gif)(convert:false)
 [/REGION]
 
-<!-- 
+[COMMENT:none]
+ 
 ## JSON 스프라이트 시트에서 스프라이트 시리즈
 
 JSON 포맷 스프라이트 시트 설명을 임포트하는 것으로, 연관된 텍스처를 임포트하여 설명된 프레임에 대한 플립북과 스프라이트를 생성합니다.
--->
+
+[/COMMENT]

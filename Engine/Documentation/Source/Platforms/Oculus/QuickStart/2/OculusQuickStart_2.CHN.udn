@@ -28,7 +28,7 @@ SkillLevel:Intermediate
 Oculus runtimes 的安装过程须保证 30 到 60 分钟的网络连接。
 [/region]
 
-%Steps%
+
 
 1. 完成 Oculus Rift runtimes 的下载后，双击 **OculusSetup.exe** 开始安装。
 
@@ -61,4 +61,4 @@ Oculus runtimes 的安装过程须保证 30 到 60 分钟的网络连接。
 
 	![](Rift_Device_Software_Install_00.png)
 
-%Steps%
+

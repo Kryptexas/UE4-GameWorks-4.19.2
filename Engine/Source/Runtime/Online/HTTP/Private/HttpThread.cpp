@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "HttpThread.h"
 #include "IHttpThreadedRequest.h"
@@ -152,12 +152,26 @@ void FHttpThread::Process(TArray<IHttpThreadedRequest*>& RequestsToCancel, TArra
 		}
 	}
 
+	const double AppTime = FPlatformTime::Seconds();
+	const double ElapsedTime = AppTime - LastTime;
+	LastTime = AppTime;
+
+	// Tick any running requests
+	// as long as they properly finish in HttpThreadTick below they are unaffected by a possibly large ElapsedTime above
+	for (IHttpThreadedRequest* Request : RunningThreadedRequests)
+	{
+		Request->TickThreadedRequest(ElapsedTime);
+	}
+
 	// Start any pending requests
+	// Tick new requests separately from existing RunningThreadedRequests so they get a chance 
+	// to send unaffected by possibly large ElapsedTime above
 	for (IHttpThreadedRequest* Request : RequestsToStart)
 	{
 		if (StartThreadedRequest(Request))
 		{
 			RunningThreadedRequests.Add(Request);
+			Request->TickThreadedRequest(0.0f);
 		}
 		else
 		{
@@ -165,17 +179,8 @@ void FHttpThread::Process(TArray<IHttpThreadedRequest*>& RequestsToCancel, TArra
 		}
 	}
 
-	const double AppTime = FPlatformTime::Seconds();
-	const double ElapsedTime = AppTime - LastTime;
-	LastTime = AppTime;
-
-	// Tick any running requests
-	for (int32 Index = 0; Index < RunningThreadedRequests.Num(); ++Index)
-	{
-		IHttpThreadedRequest* Request = RunningThreadedRequests[Index];
-		Request->TickThreadedRequest(ElapsedTime);
-	}
-
+	// Every valid request in RunningThreadedRequests gets at least two calls to HttpThreadTick
+	// Blocking loads still can affect things if the network stack can't keep its connections alive
 	HttpThreadTick(ElapsedTime);
 
 	// Move any completed requests

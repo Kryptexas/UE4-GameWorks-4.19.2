@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintNativeCodeGenModule.h"
 #include "Engine/Blueprint.h"
@@ -868,7 +868,7 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 			};
 			if (Object && (IsEditorOnlyObject(Object) || IsDeveloperObject(Object)))
 			{
-				UE_LOG(LogBlueprintCodeGen, Warning, TEXT("Object %s depends on Editor or Development stuff. It shouldn't be cooked."), *GetPathNameSafe(Object));
+				UE_LOG(LogBlueprintCodeGen, Verbose, TEXT("Object %s depends on Editor or Development stuff. It shouldn't be cooked."), *GetPathNameSafe(Object));
 				return true;
 			}
 		}

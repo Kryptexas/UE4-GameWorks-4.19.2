@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3481084
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1. 필수 구성
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
@@ -25,7 +25,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 시작하기에 앞서, 먼저 이 안내서에서 사용할 [프로젝트](Engine/Basics/Projects) 를 만들어 줘야 합니다. 
 다음 부분에서는 언리얼 엔진 4 의 [프로젝트 브라우저](Engine/Basics/Projects/Browser) 를 사용하여 프로젝트를 만듭니다.
@@ -103,5 +103,5 @@ mac
 
 다음 단계에서는 언리얼 에디터 안에서의 기본적인 뷰포트 조작법을 다루도록 하겠습니다.
 
-%Steps%
+
 

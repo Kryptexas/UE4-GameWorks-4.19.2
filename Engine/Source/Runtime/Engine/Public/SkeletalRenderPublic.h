@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalRenderPublic.h: Definitions and inline code for rendering SkeletalMeshComponent
@@ -10,16 +10,13 @@
 #include "ProfilingDebugging/ResourceSize.h"
 #include "PackedNormal.h"
 #include "RenderingThread.h"
-#include "SkeletalMeshTypes.h"
 #include "Engine/SkeletalMesh.h"
 #include "Components/SkinnedMeshComponent.h"
 
 class FPrimitiveDrawInterface;
 class FVertexFactory;
 class UMorphTarget;
-
-//#include "../Private/SkeletalRenderCPUSkin.h"
-struct FSkelMeshSection;
+struct FSkelMeshRenderSection;
 
 /** data for a single skinned skeletal mesh vertex */
 struct FFinalSkinVertex
@@ -29,14 +26,14 @@ struct FFinalSkinVertex
 	FPackedNormal	TangentZ;
 	float			U;
 	float			V;
-};
 
-/** Which set of indices to select for TRISORT_CustomLeftRight sections. */
-enum ECustomSortAlternateIndexMode
-{
-	CSAIM_Auto = 0,
-	CSAIM_Left = 1,
-	CSAIM_Right = 2,
+	FVector GetTangentY() const
+	{
+		FVector TanX = TangentX;
+		FVector TanZ = TangentZ;
+
+		return (TanZ ^ TanX) * ((float)TangentZ.Vector.W / 127.5f - 1.0f);
+	};
 };
 
 /**
@@ -45,7 +42,7 @@ enum ECustomSortAlternateIndexMode
 class FSkeletalMeshObject : public FDeferredCleanupInterface
 {
 public:
-	FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource, ERHIFeatureLevel::Type FeatureLevel);
+	FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshRenderData* InSkelMeshRenderData, ERHIFeatureLevel::Type FeatureLevel);
 	virtual ~FSkeletalMeshObject();
 
 	/** 
@@ -64,14 +61,7 @@ public:
 	 * @param	InSkeletalMeshComponen - parent prim component doing the updating
 	 * @param	ActiveMorphs - morph targets to blend with during skinning
 	 */
-	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights) = 0;
-
-	/**
-	* Called by the game thread for any update on RecomputeTangent
-	* @param	MaterialIndex : Material Index for the update
-	* @param	bRecomputeTangent : the new flag
-	*/
-	virtual void UpdateRecomputeTangent(int32 MaterialIndex, int32 LODIndex, bool bRecomputeTangent) = 0;
+	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights, bool bUpdatePreviousBoneTransform) = 0;
 
 	/**
 	 * Called by FSkeletalMeshObject prior to GDME. This allows the GPU skin version to update bones etc now that we know we are going to render
@@ -143,11 +133,6 @@ public:
 	void UpdateMinDesiredLODLevel(const FSceneView* View, const FBoxSphereBounds& Bounds, int32 FrameNumber);
 
 	/**
-	 * Get the origin and direction vectors for TRISORT_CustomLeftRight sections
-	 */
-	virtual const FTwoVectors& GetCustomLeftRightVectors(int32 SectionIndex) const = 0;
-
-	/**
 	 *	Return true if this does have valid dynamic data to render
 	 */
 	virtual bool HaveValidDynamicData() = 0;
@@ -167,29 +152,14 @@ public:
 		delete this;
 	}
 	
-	/**
-	* Returns the size of memory allocated by render data
-	*/
-	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-	SIZE_T GetResourceSize()
-	{
-		return GetResourceSizeBytes();
-	}
-
+	/** Returns the size of memory allocated by render data */
 	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) = 0;
-
-	SIZE_T GetResourceSizeBytes()
-	{
-		FResourceSizeEx ResSize;
-		GetResourceSizeEx(ResSize);
-		return ResSize.GetTotalMemoryBytes();
-	}
 
 	/**
 	 * List of sections to be rendered based on instance weight usage. Full swap of weights will render with its own sections.
 	 * @return Sections to iterate over for rendering
 	 */
-	const TArray<FSkelMeshSection>& GetRenderSections(int32 InLODIndex) const;
+	const TArray<FSkelMeshRenderSection>& GetRenderSections(int32 InLODIndex) const;
 
 	/**
 	 * Update the hidden material section flags for an LOD entry
@@ -218,7 +188,7 @@ public:
 	}
 
 	/** Get the skeletal mesh resource for which this mesh object was created. */
-	FORCEINLINE FSkeletalMeshResource& GetSkeletalMeshResource() const { return *SkeletalMeshResource; }
+	FORCEINLINE FSkeletalMeshRenderData& GetSkeletalMeshRenderData() const { return *SkeletalMeshRenderData; }
 
 	/** Setup for rendering a specific LOD entry of the component */
 	struct FSkelMeshObjectLODInfo
@@ -256,6 +226,11 @@ public:
 	/** Index of the section to preview... If set to -1, all section will be rendered */
 	int32 SectionIndexPreview;
 	int32 MaterialIndexPreview;
+
+	/** The section currently selected in the Editor. Used for highlighting */
+	int32 SelectedEditorSection;
+	/** The Material currently selected. need to remember this index for reimporting cloth */
+	int32 SelectedEditorMaterial;
 #endif
 
 	/** returns the feature level this FSkeletalMeshObject was created with */
@@ -266,7 +241,7 @@ public:
 
 protected:
 	/** The skeletal mesh resource with which to render. */
-	FSkeletalMeshResource* SkeletalMeshResource;
+	FSkeletalMeshRenderData* SkeletalMeshRenderData;
 
 	/** Per-LOD info. */
 	TArray<FSkeletalMeshLODInfo> SkeletalMeshLODInfo;
@@ -276,17 +251,6 @@ protected:
 	/** Used to keep track of the first call to UpdateMinDesiredLODLevel each frame. from ViewFamily.FrameNumber */
 	uint32 LastFrameNumber;
 
-#if WITH_EDITORONLY_DATA
-	/** Editor only. Used for visualizing drawing order in Animset Viewer. If < 1.0,
-	 * only the specified fraction of triangles will be rendered
-	 */
-	float ProgressiveDrawingFraction;
-#endif
-
-	/** Use the 2nd copy of indices for separate left/right sort order (when TRISORT_CustomLeftRight) 
-	 * Set manually by the AnimSetViewer when editing sort order, or based on viewing angle otherwise.
-	 */
-	ECustomSortAlternateIndexMode CustomSortAlternateIndexMode;
 	/** 
 	 *	If true, per-bone motion blur is enabled for this object. This includes is the system overwrites the skeletal mesh setting.
 	 */

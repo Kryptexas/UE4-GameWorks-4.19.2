@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorTabFactories.h"
 #include "Widgets/Text/STextBlock.h"
@@ -395,16 +395,23 @@ TSharedRef<SWidget> FFindResultsSummoner::CreateTabBody(const FWorkflowTabSpawnI
 	return BlueprintEditorPtr->GetFindResults();
 }
 
-void FGraphTabHistory::EvokeHistory(TSharedPtr<FTabInfo> InTabInfo)
+void FGraphTabHistory::EvokeHistory(TSharedPtr<FTabInfo> InTabInfo, bool bPrevTabMatches)
 {
 	FWorkflowTabSpawnInfo SpawnInfo;
 	SpawnInfo.Payload = Payload;
 	SpawnInfo.TabInfo = InTabInfo;
 
-	TSharedRef< SGraphEditor > GraphEditorRef = StaticCastSharedRef< SGraphEditor >(FactoryPtr.Pin()->CreateTabBody(SpawnInfo));
-	GraphEditor = GraphEditorRef;
-
-	FactoryPtr.Pin()->UpdateTab(InTabInfo->GetTab().Pin(), SpawnInfo, GraphEditorRef);
+	if(bPrevTabMatches)
+	{
+		TSharedPtr<SDockTab> DockTab = InTabInfo->GetTab().Pin();
+		GraphEditor = StaticCastSharedRef<SGraphEditor>(DockTab->GetContent());
+	}
+	else
+	{
+		TSharedRef< SGraphEditor > GraphEditorRef = StaticCastSharedRef< SGraphEditor >(FactoryPtr.Pin()->CreateTabBody(SpawnInfo));
+		GraphEditor = GraphEditorRef;
+		FactoryPtr.Pin()->UpdateTab(InTabInfo->GetTab().Pin(), SpawnInfo, GraphEditorRef);
+	}
 }
 
 void FGraphTabHistory::SaveHistory()

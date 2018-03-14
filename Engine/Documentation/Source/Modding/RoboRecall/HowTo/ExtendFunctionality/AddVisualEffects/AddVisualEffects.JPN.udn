@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3487380
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:6.視覚効果を加える
 Crumbs:%ROOT%
@@ -12,11 +12,15 @@ topic-image:Modding/RoboRecall/RoboRecall_Topic.png
 social-image:Modding/RoboRecall/RoboRecall_Social.png
 checkpoint:mod_extend
 
-<!-- Location:Modding/RoboRecall/Quickstarts/WeaponMod/6 -->
+[COMMENT:none]
+ Location:Modding/RoboRecall/Quickstarts/WeaponMod/6 
+[/COMMENT]
 
 [NAV]
 
-<!-- Title Image if Needed Here -->
+[COMMENT:none]
+ Title Image if Needed Here 
+[/COMMENT]
 
 このステップではパーティクル システム、サウンド、ラジアル フォースを加えて、最終的に爆発後に銃をクリーンアップして GrenadeGunPistol ブループリントを完成させます。
 
@@ -103,7 +107,8 @@ checkpoint:mod_extend
 
 [NAV]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:snippet]
 	Begin Object Class=K2Node_Self Name="K2Node_Self_16"
 
@@ -349,5 +354,6 @@ checkpoint:mod_extend
 
 	End Object
 [/EXCERPT:snippet]
--->
+
+[/COMMENT]
 

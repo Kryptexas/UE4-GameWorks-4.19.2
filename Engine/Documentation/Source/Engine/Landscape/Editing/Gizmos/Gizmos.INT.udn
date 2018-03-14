@@ -153,9 +153,11 @@ Before data can be pasted from a Gizmo, it must first be [copied](#CopyingData) 
 	[REGION:note]
 	If there is a region selected using the **Region Selection** tool and **Use Region as Mask** is enabled, pasted data is applied according to the masked region.  
 	[/REGION]
-<!----
-    ![pastemask_region.jpg](pastemask_region.jpg)(w:667 h:363) ![pastemask_partial.jpg](pastemask_partial.jpg)(w:667 h:363)
----->
+[COMMENT:none]
+--
+    ![pastemask_region.jpg](pastemask_region.jpg)(w:667) ![pastemask_partial.jpg](pastemask_partial.jpg)(w:667)
+--
+[/COMMENT]
 
 
 
@@ -195,19 +197,20 @@ Heightmap data can be imported from and exported to the Gizmo through the **Gizm
 
 1. With the Gizmo populated with data (see [Copying to the Gizmo](#CopyingData)), press the **Export Gizmo Data** button to export the Gizmo data to a file. Enabling the **Gizmo copy/paste all layers** checkbox at the top of the Gizmo options will export the heightmap and all layers' weight data to files.  
 1. Choose a location and name for the heightmap file.  
-    ![export_file.jpg](export_file.jpg)(w:625 h:436)
+    ![export_file.jpg](export_file.jpg)(w:625)
 1. If exporting layers, choose locations and filenames for each exported layer.  
-    ![export_layerfile.jpg](export_layerfile.jpg)(w:625 h:436)
+    ![export_layerfile.jpg](export_layerfile.jpg)(w:625)
 
 
-<!--
+[COMMENT:none]
+
 ## Gizmo List
 
-![gizmolist.jpg](gizmolist.jpg)(w:267 h:60)
+![gizmolist.jpg](gizmolist.jpg)(w:267)
 
 The Gizmo List displays a list of saved Gizmos so that they can easily be reused at a later time.
 
-![gizmolist_populated.jpg](gizmolist_populated.jpg)(w:266 h:98)
+![gizmolist_populated.jpg](gizmolist_populated.jpg)(w:266)
 
 | **Control** | **Description** |
 | --- | --- |
@@ -215,6 +218,7 @@ The Gizmo List displays a list of saved Gizmos so that they can easily be reused
 | ![gizmolist_remove.jpg](gizmolist_remove.jpg)| Removes the Gizmo currently selected in the list. |
 | ![gizmolist_goto.jpg](gizmolist_goto.jpg)| Sets the Gizmo's position, size, and rotation to that of the currently selected Gizmo in the list. |
 
--->
+
+[/COMMENT]
 
 [INCLUDE:Engine/Landscape#landscape002]

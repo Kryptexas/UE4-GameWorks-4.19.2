@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalRenderCommandEncoder.cpp: Metal command encoder wrapper.
@@ -199,7 +199,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 
 - (void)popDebugGroup
 {
-	[Buffer popDebugGroup];
+    [Buffer popDebugGroup];
 #if METAL_DEBUG_OPTIONS
 	[self insertDebugDraw];
 #endif
@@ -387,9 +387,9 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 }
 
 #if METAL_NEW_NONNULL_DECL
-- (void)setVertexTextures:(const id <MTLTexture> __nullable [__nonnull])textures withRange:(NSRange)range
+- (void)setVertexTextures:(const id <MTLTexture> __nullable[__nonnull])textures withRange : (NSRange)range
 #else
-- (void)setVertexTextures : (const id <MTLTexture> __nullable[__nullable])textures withRange : (NSRange)range
+- (void)setVertexTextures:(const id <MTLTexture> __nullable [__nullable])textures withRange:(NSRange)range
 #endif
 {
 #if METAL_DEBUG_OPTIONS
@@ -454,9 +454,9 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 }
 
 #if METAL_NEW_NONNULL_DECL
-- (void)setVertexSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers withRange:(NSRange)range
+- (void)setVertexSamplerStates:(const id <MTLSamplerState> __nullable[__nonnull])samplers withRange : (NSRange)range
 #else
-- (void)setVertexSamplerStates : (const id <MTLSamplerState> __nullable[__nullable])samplers withRange : (NSRange)range
+- (void)setVertexSamplerStates:(const id <MTLSamplerState> __nullable [__nullable])samplers withRange:(NSRange)range
 #endif
 {
 #if METAL_DEBUG_OPTIONS
@@ -522,9 +522,9 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 }
 
 #if METAL_NEW_NONNULL_DECL
-- (void)setVertexSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers lodMinClamps:(const float [__nonnull])lodMinClamps lodMaxClamps:(const float [__nonnull])lodMaxClamps withRange:(NSRange)range
+- (void)setVertexSamplerStates:(const id <MTLSamplerState> __nullable[__nonnull])samplers lodMinClamps : (const float[__nonnull])lodMinClamps lodMaxClamps : (const float[__nonnull])lodMaxClamps withRange : (NSRange)range
 #else
-- (void)setVertexSamplerStates : (const id <MTLSamplerState> __nullable[__nullable])samplers lodMinClamps : (const float[__nullable])lodMinClamps lodMaxClamps : (const float[__nullable])lodMaxClamps withRange : (NSRange)range
+- (void)setVertexSamplerStates:(const id <MTLSamplerState> __nullable [__nullable])samplers lodMinClamps:(const float [__nullable])lodMinClamps lodMaxClamps:(const float [__nullable])lodMaxClamps withRange:(NSRange)range
 #endif
 {
 #if METAL_DEBUG_OPTIONS
@@ -579,8 +579,8 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 {
 	if (GMetalSupportsDepthClipMode)
 	{
-    	[Inner setDepthClipMode:depthClipMode];
-    }
+    [Inner setDepthClipMode:depthClipMode];
+}
 }
 #endif
 
@@ -753,9 +753,9 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 }
 
 #if METAL_NEW_NONNULL_DECL
-- (void)setFragmentTextures:(const id <MTLTexture> __nullable [__nonnull])textures withRange:(NSRange)range
+- (void)setFragmentTextures:(const id <MTLTexture> __nullable[__nonnull])textures withRange : (NSRange)range
 #else
-- (void)setFragmentTextures : (const id <MTLTexture> __nullable[__nullable])textures withRange : (NSRange)range
+- (void)setFragmentTextures:(const id <MTLTexture> __nullable [__nullable])textures withRange:(NSRange)range
 #endif
 {
 #if METAL_DEBUG_OPTIONS
@@ -821,9 +821,9 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 }
 
 #if METAL_NEW_NONNULL_DECL
-- (void)setFragmentSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers withRange:(NSRange)range
+- (void)setFragmentSamplerStates:(const id <MTLSamplerState> __nullable[__nonnull])samplers withRange : (NSRange)range
 #else
-- (void)setFragmentSamplerStates : (const id <MTLSamplerState> __nullable[__nullable])samplers withRange : (NSRange)range
+- (void)setFragmentSamplerStates:(const id <MTLSamplerState> __nullable [__nullable])samplers withRange:(NSRange)range
 #endif
 {
 #if METAL_DEBUG_OPTIONS
@@ -889,9 +889,9 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 }
 
 #if METAL_NEW_NONNULL_DECL
-- (void)setFragmentSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers lodMinClamps:(const float [__nonnull])lodMinClamps lodMaxClamps:(const float [__nonnull])lodMaxClamps withRange:(NSRange)range
+- (void)setFragmentSamplerStates:(const id <MTLSamplerState> __nullable[__nonnull])samplers lodMinClamps : (const float[__nonnull])lodMinClamps lodMaxClamps : (const float[__nonnull])lodMaxClamps withRange : (NSRange)range
 #else
-- (void)setFragmentSamplerStates : (const id <MTLSamplerState> __nullable[__nullable])samplers lodMinClamps : (const float[__nullable])lodMinClamps lodMaxClamps : (const float[__nullable])lodMaxClamps withRange : (NSRange)range
+- (void)setFragmentSamplerStates:(const id <MTLSamplerState> __nullable [__nullable])samplers lodMinClamps:(const float [__nullable])lodMinClamps lodMaxClamps:(const float [__nullable])lodMaxClamps withRange:(NSRange)range
 #endif
 {
 #if METAL_DEBUG_OPTIONS
@@ -1215,13 +1215,13 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 - (void)updateFence:(id <MTLFence>)fence afterStages:(MTLRenderStages)stages
 {
 #if METAL_DEBUG_OPTIONS
-    if (fence && Buffer->DebugLevel >= EMetalDebugLevelValidation)
-    {
-        [self addUpdateFence:fence];
+	if (fence && Buffer->DebugLevel >= EMetalDebugLevelValidation)
+	{
+		[self addUpdateFence:fence];
         if (((FMetalDebugFence*)fence).Inner)
         {
-            [Inner updateFence:((FMetalDebugFence*)fence).Inner afterStages:(MTLRenderStages)stages];
-        }
+		[Inner updateFence:((FMetalDebugFence*)fence).Inner afterStages:(MTLRenderStages)stages];
+	}
 	}
 	else
 #endif
@@ -1238,8 +1238,8 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 		[self addWaitFence:fence];
         if (((FMetalDebugFence*)fence).Inner)
         {
-            [Inner waitForFence:((FMetalDebugFence*)fence).Inner beforeStages:(MTLRenderStages)stages];
-        }
+		[Inner waitForFence:((FMetalDebugFence*)fence).Inner beforeStages:(MTLRenderStages)stages];
+	}
 	}
 	else
 #endif
@@ -1621,7 +1621,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 }
 
 #if (METAL_NEW_NONNULL_DECL)
-- (void)setColorStoreActionOptions:(MTLStoreActionOptions)storeActionOptions atIndex:(NSUInteger)colorAttachmentIndex
+-(void)setColorStoreActionOptions:(MTLStoreActionOptions)storeActionOptions atIndex : (NSUInteger)colorAttachmentIndex
 {
 	if (GMetalSupportsStoreActionOptions)
 	{

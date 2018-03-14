@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SClassViewer.h"
 #include "Misc/MessageDialog.h"
@@ -556,11 +556,11 @@ namespace ClassViewer
 		 *	@param InInitOptions		The class viewer's options, holds the AllowedClasses and DisallowedClasses.
 		 *	@param InClass				The class to test against.
 		 */
-		static bool IsClassAllowed( const FClassViewerInitializationOptions& InInitOptions, const TWeakObjectPtr<UClass> InClass )
+		static bool IsClassAllowed( const FClassViewerInitializationOptions& InInitOptions, const TWeakObjectPtr<const UClass> InClass )
 		{
 			if(InInitOptions.ClassFilter.IsValid())
 			{
-				return InInitOptions.ClassFilter->IsClassAllowed(InInitOptions, InClass.Get(), MakeShareable(new FClassViewerFilterFuncs));
+				return InInitOptions.ClassFilter->IsClassAllowed(InInitOptions, InClass.Get(), MakeShared<FClassViewerFilterFuncs>());
 			}
 
 			return true;
@@ -574,7 +574,7 @@ namespace ClassViewer
 		{
 			if(InInitOptions.ClassFilter.IsValid() && InNode->UnloadedBlueprintData.IsValid())
 			{
-				return InInitOptions.ClassFilter->IsUnloadedClassAllowed(InInitOptions, InNode->UnloadedBlueprintData.ToSharedRef(), MakeShareable(new FClassViewerFilterFuncs));
+				return InInitOptions.ClassFilter->IsUnloadedClassAllowed(InInitOptions, InNode->UnloadedBlueprintData.ToSharedRef(), MakeShared<FClassViewerFilterFuncs>());
 			}
 
 			return true;
@@ -2758,7 +2758,7 @@ FReply SClassViewer::OnDragDetected( const FGeometry& Geometry, const FPointerEv
 				else
 				{
 					// Add the UClass associated with this item to the drag event being spawned.
-					return FReply::Handled().BeginDragDrop(FClassDragDropOp::New(TWeakObjectPtr<UClass>(Class)));
+					return FReply::Handled().BeginDragDrop(FClassDragDropOp::New(MakeWeakObjectPtr(Class)));
 				}	
 			}
 			else

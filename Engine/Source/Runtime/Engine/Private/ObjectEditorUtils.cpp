@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ObjectEditorUtils.h"
 #include "Package.h"
@@ -87,10 +87,6 @@ namespace FObjectEditorUtils
 
 	static void CopySinglePropertyRecursive(UObject* SourceObject, const void* const InSourcePtr, UProperty* InSourceProperty, void* const InTargetPtr, UObject* InDestinationObject, UProperty* InDestinationProperty)
 	{
-		// Properties that are *object* properties are tricky
-		// Sometimes the object will be a reference to a PIE-world object, and copying that reference back to an actor CDO asset is not a good idea
-		// If the property is referencing an actor or actor component in the PIE world, then we can try and fix that reference up to the equivalent
-		// from the editor world; otherwise we have to skip it
 		bool bNeedsShallowCopy = true;
 		bool bNeedsStringCopy = false;
 
@@ -185,23 +181,37 @@ namespace FObjectEditorUtils
 			if ( SourceObjectProperty->HasAllPropertyFlags(CPF_InstancedReference) )
 			{
 				UObject* Value = SourceObjectProperty->GetObjectPropertyValue_InContainer(InSourcePtr);
-				if ( Value && Value->GetOuter() == SourceObject )
+				if (Value)
 				{
-					// This property is pointing to an object that is outered to the source, we can't just
-					// shallow copy the object reference, this needs to be a deep copy of the object outered
-					// to the destination object in a mirrored fashion.
-					bNeedsShallowCopy = false;
-
-					UObject* ExistingObject = StaticFindObject(UObject::StaticClass(), InDestinationObject, *Value->GetFName().ToString());
-					if ( ExistingObject )
+					// If the outer of the value is the source object, then we need to translate that same relationship
+					// onto the destination object by deep copying the value and outering it to the destination object.
+					if (Value->GetOuter() == SourceObject)
 					{
-						ExistingObject->Rename(nullptr, GetTransientPackage());
+						bNeedsShallowCopy = false;
+
+						UObject* ExistingObject = StaticFindObject(UObject::StaticClass(), InDestinationObject, *Value->GetFName().ToString());
+						if (ExistingObject)
+						{
+							ExistingObject->Rename(nullptr, GetTransientPackage());
+						}
+
+						UObject* DuplicateValue = StaticDuplicateObject(Value, InDestinationObject, Value->GetFName(), RF_AllFlags, nullptr, EDuplicateMode::Normal, EInternalObjectFlags::AllFlags);
+
+						UObjectPropertyBase* DestObjectProperty = CastChecked<UObjectPropertyBase>(InDestinationProperty);
+						DestObjectProperty->SetObjectPropertyValue_InContainer(InTargetPtr, DuplicateValue);
 					}
 
-					UObject* DuplicateValue = StaticDuplicateObject(Value, InDestinationObject, Value->GetFName(), RF_AllFlags, nullptr, EDuplicateMode::Normal, EInternalObjectFlags::AllFlags);
+					// If the outers match, we should look for a corresponding object already in existance
+					// with the same name inside the destination object's outer.
+					if (Value->GetOuter() == SourceObject->GetOuter())
+					{
+						bNeedsShallowCopy = false;
 
-					UObjectPropertyBase* DestObjectProperty = CastChecked<UObjectPropertyBase>(InDestinationProperty);
-					DestObjectProperty->SetObjectPropertyValue_InContainer(InTargetPtr, DuplicateValue);
+						UObject* DesintationValue = FindObjectFast<UObject>(InDestinationObject->GetOuter(), Value->GetFName());
+
+						UObjectPropertyBase* DestObjectProperty = CastChecked<UObjectPropertyBase>(InDestinationProperty);
+						DestObjectProperty->SetObjectPropertyValue_InContainer(InTargetPtr, DesintationValue);
+					}
 				}
 			}
 		}

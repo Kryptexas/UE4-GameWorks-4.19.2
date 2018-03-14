@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "STreeMap.h"
 #include "Rendering/DrawElements.h"
@@ -61,7 +61,8 @@ void STreeMap::Construct( const FArguments& InArgs, const TSharedRef<FTreeMapNod
 		}
 	}
 
-	MinimumVisualTreeNodeSize = InArgs._MinimumVisualTreeNodeSize;
+	MinimumInteractiveTreeNodeSize = InArgs._MinimumInteractiveTreeNodeSize;
+	MinimumVisibleTreeNodeSize = InArgs._MinimumVisibleTreeNodeSize;
 	TopLevelContainerOuterPadding = InArgs._TopLevelContainerOuterPadding;
 	NestedContainerOuterPadding = InArgs._NestedContainerOuterPadding;
 	ContainerInnerPadding = InArgs._ContainerInnerPadding;
@@ -69,8 +70,8 @@ void STreeMap::Construct( const FArguments& InArgs, const TSharedRef<FTreeMapNod
 
 	TreeMapSize = FVector2D( 0, 0 );
 	NavigateAnimationCurve.AddCurve( 0.0f, InArgs._NavigationTransitionTime, ECurveEaseFunction::CubicOut );
-	MouseOverVisual = NULL;
-	DraggingVisual = NULL;
+	MouseOverVisual = nullptr;
+	DraggingVisual = nullptr;
 	DragVisualDistance = 0.0f;
 
 	bIsNamingNewNode = false;
@@ -78,6 +79,7 @@ void STreeMap::Construct( const FArguments& InArgs, const TSharedRef<FTreeMapNod
 	HighlightPulseStartTime = -99999.0;
 
 	OnTreeMapNodeDoubleClicked = InArgs._OnTreeMapNodeDoubleClicked;
+	OnTreeMapNodeRightClicked = InArgs._OnTreeMapNodeRightClicked;
 
 	if( Customization.IsValid() )
 	{
@@ -111,14 +113,15 @@ void STreeMap::Tick( const FGeometry& AllottedGeometry, const double InCurrentTi
 		TreeMapOptions.Name2Font = Name2Font.Get();
 		TreeMapOptions.CenterTextFont = CenterTextFont.Get();
 		TreeMapOptions.FontSizeChangeBasedOnDepth = 2;		// @todo treemap custom: Expose as a customization option to STreeMap
-		TreeMapOptions.MinimumInteractiveNodeSize = MinimumVisualTreeNodeSize;
+		TreeMapOptions.MinimumInteractiveNodeSize = MinimumInteractiveTreeNodeSize;
+		TreeMapOptions.MinimumVisibleNodeSize = MinimumVisibleTreeNodeSize;
 		TreeMap = ITreeMap::CreateTreeMap( TreeMapOptions, ActiveRootTreeMapNode.ToSharedRef() );
 
 		TreeMapSize = AllottedGeometry.Size;
 
 		CachedNodeVisuals = TreeMap->GetVisuals();
-		MouseOverVisual = NULL;
-		DraggingVisual = NULL;
+		MouseOverVisual = nullptr;
+		DraggingVisual = nullptr;
 
 		// Map the new visuals back to the old ones!
 		NodeVisualIndicesToLastIndices.Reset();
@@ -160,7 +163,7 @@ void STreeMap::MakeBlendedNodeVisual( const int32 VisualIndex, const float Navig
 	{
 		// Did the visual exist before we navigated?
 		const int32* LastVisualIndexPtr = NodeVisualIndicesToLastIndices.Find( VisualIndex );
-		if( LastVisualIndexPtr != NULL )
+		if( LastVisualIndexPtr != nullptr )
 		{
 			// It did exist!
 			const auto LastVisualIndex = *LastVisualIndexPtr;
@@ -253,7 +256,7 @@ int32 STreeMap::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 				// Don't draw if completely faded out
 				if( BlendedVisual.Color.A > KINDA_SMALL_NUMBER )
 				{
-					const bool bIsMouseOverNode = MouseOverVisual != NULL && MouseOverVisual->NodeData == BlendedVisual.NodeData;
+					const bool bIsMouseOverNode = MouseOverVisual != nullptr && MouseOverVisual->NodeData == BlendedVisual.NodeData;
 
 					// Draw the visual's background box
 					const FVector2D VisualPosition = BlendedVisual.Position;
@@ -370,7 +373,7 @@ int32 STreeMap::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 						auto VisualTextColor = TextColorScale;
 						VisualTextColor.A *= BlendedVisual.Color.A;
 
-						const bool bIsMouseOverNode = MouseOverVisual != NULL && MouseOverVisual->NodeData == BlendedVisual.NodeData;
+						const bool bIsMouseOverNode = MouseOverVisual != nullptr && MouseOverVisual->NodeData == BlendedVisual.NodeData;
 
 						// If the visual is crushed down pretty small in screen space, we don't want to bother even try drawing text
 						const FVector2D ScreenSpaceVisualSize( AllottedGeometry.Scale * BlendedVisual.Size );
@@ -461,7 +464,7 @@ int32 STreeMap::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 	}
 
 
-	if( DraggingVisual != NULL && DragVisualDistance >= STreeMapDefs::MinCursorDistanceForDraggingVisual )
+	if( DraggingVisual != nullptr && DragVisualDistance >= STreeMapDefs::MinCursorDistanceForDraggingVisual )
 	{
 		const FVector2D DragStartCursorPos = RelativeDragStartMouseCursorPos;
 		const FVector2D NewCursorPos = RelativeMouseCursorPos;
@@ -516,14 +519,14 @@ FReply STreeMap::OnMouseMove( const FGeometry& InMyGeometry, const FPointerEvent
 	RelativeMouseCursorPos = InMyGeometry.AbsoluteToLocal( InMouseEvent.GetScreenSpacePosition() );
 
 	// Clear current hover
-	MouseOverVisual = NULL;
+	MouseOverVisual = nullptr;
 
 	// Don't hover while transitioning.  It looks bad!
 	if( !IsNavigationTransitionActive() )
 	{
 		// Figure out which visual the cursor is over
 		FTreeMapNodeVisualInfo* NodeVisualUnderCursor = FindNodeVisualUnderCursor( InMyGeometry, InMouseEvent.GetScreenSpacePosition() );
-		if( NodeVisualUnderCursor != NULL )
+		if( NodeVisualUnderCursor != nullptr )
 		{
 			// Mouse is over a visual
 			MouseOverVisual = NodeVisualUnderCursor;
@@ -532,7 +535,7 @@ FReply STreeMap::OnMouseMove( const FGeometry& InMyGeometry, const FPointerEvent
 		Reply = FReply::Handled();
 	}
 
-	if( DraggingVisual != NULL )
+	if( DraggingVisual != nullptr )
 	{
 		DragVisualDistance += InMouseEvent.GetCursorDelta().Size();
 	}
@@ -542,7 +545,7 @@ FReply STreeMap::OnMouseMove( const FGeometry& InMyGeometry, const FPointerEvent
 
 void STreeMap::OnMouseLeave( const FPointerEvent& InMouseEvent )
 {
-	MouseOverVisual = NULL;
+	MouseOverVisual = nullptr;
 }
 
 FReply STreeMap::OnMouseButtonDown( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
@@ -557,7 +560,7 @@ FReply STreeMap::OnMouseButtonDown( const FGeometry& InMyGeometry, const FPointe
 			{
 				// Figure out what was clicked on
 				FTreeMapNodeVisualInfo* NodeVisualUnderCursor = FindNodeVisualUnderCursor( InMyGeometry, InMouseEvent.GetScreenSpacePosition() );
-				if( NodeVisualUnderCursor != NULL )
+				if( NodeVisualUnderCursor != nullptr )
 				{
 					// Mouse was pressed on a node
 					DraggingVisual = NodeVisualUnderCursor;
@@ -576,44 +579,36 @@ FReply STreeMap::OnMouseButtonDown( const FGeometry& InMyGeometry, const FPointe
 FReply STreeMap::OnMouseButtonUp( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
 	FReply Reply = FReply::Unhandled();
+	FTreeMapNodeVisualInfo* NodeVisualUnderCursor = FindNodeVisualUnderCursor(InMyGeometry, InMouseEvent.GetScreenSpacePosition());
 	if( InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
 		auto* DroppedVisual = DraggingVisual;
-		DraggingVisual = NULL;
+		DraggingVisual = nullptr;
 
-		if( DroppedVisual != NULL && DragVisualDistance >= STreeMapDefs::MinCursorDistanceForDraggingVisual )
+		if( DroppedVisual != nullptr && DragVisualDistance >= STreeMapDefs::MinCursorDistanceForDraggingVisual )
 		{
 			// Wait until we've finished animating a transition
-			if( !IsNavigationTransitionActive() )
+			if( !IsNavigationTransitionActive() && NodeVisualUnderCursor != nullptr )
 			{
-				// Find the node under the cursor
-				FTreeMapNodeVisualInfo* NodeVisualUnderCursor = FindNodeVisualUnderCursor( InMyGeometry, InMouseEvent.GetScreenSpacePosition() );
-				if( NodeVisualUnderCursor != NULL )
-				{
-					// The dropped node will become a child of the node we dropped onto
-					auto NewParentNode = NodeVisualUnderCursor->NodeData->AsShared();
-					auto DroppedNode = DroppedVisual->NodeData->AsShared();
+				// The dropped node will become a child of the node we dropped onto
+				auto NewParentNode = NodeVisualUnderCursor->NodeData->AsShared();
+				auto DroppedNode = DroppedVisual->NodeData->AsShared();
 
-					// Reparent it!
-					ReparentNode( DroppedNode, NewParentNode );
+				// Reparent it!
+				ReparentNode( DroppedNode, NewParentNode );
 
-					Reply = FReply::Handled();
-				}
+				Reply = FReply::Handled();
 			}
 		}
-		else
+		else if( NodeVisualUnderCursor != nullptr )
 		{
-			FTreeMapNodeVisualInfo* NodeVisualUnderCursor = FindNodeVisualUnderCursor( InMyGeometry, InMouseEvent.GetScreenSpacePosition() );
-			if( NodeVisualUnderCursor != NULL )
+			if( AllowEditing.Get() )
 			{
-				if( AllowEditing.Get() )
-				{
-					// Start renaming!
-					const bool bIsNewNode = false;
-					StartRenamingNode( InMyGeometry, NodeVisualUnderCursor->NodeData->AsShared(), NodeVisualUnderCursor->Position, bIsNewNode );
+				// Start renaming!
+				const bool bIsNewNode = false;
+				StartRenamingNode( InMyGeometry, NodeVisualUnderCursor->NodeData->AsShared(), NodeVisualUnderCursor->Position, bIsNewNode );
 
-					Reply = FReply::Handled();
-				}
+				Reply = FReply::Handled();
 			}
 		}
 
@@ -621,10 +616,37 @@ FReply STreeMap::OnMouseButtonUp( const FGeometry& InMyGeometry, const FPointerE
 	}
 	else if( InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
 	{
-		// Show a pop-up menu!
-		ShowOptionsMenuAt( InMouseEvent );
+		if (OnTreeMapNodeRightClicked.IsBound())
+		{
+			if (NodeVisualUnderCursor != nullptr)
+			{
+				OnTreeMapNodeRightClicked.Execute(*NodeVisualUnderCursor->NodeData, InMouseEvent);
+			}
+		}
+		else
+		{
+			// Show a pop-up menu!
+			ShowOptionsMenuAt(InMouseEvent);
+		}
 	}
-
+	else if ( InMouseEvent.GetEffectingButton() == EKeys::ThumbMouseButton )
+	{
+		// Back button
+		if (ZoomOut() && !Reply.IsEventHandled())
+		{
+			Reply = FReply::Handled();
+		}
+	}
+	else if ( InMouseEvent.GetEffectingButton() == EKeys::ThumbMouseButton2 )
+	{
+		if (NodeVisualUnderCursor != nullptr)
+		{
+			// Do zoom behavior
+			const bool bShouldPlayTransition = true;
+			SetTreeRoot(NodeVisualUnderCursor->NodeData->AsShared(), bShouldPlayTransition);
+		}
+	}
+	
 	return Reply;
 }
 
@@ -639,12 +661,12 @@ FReply STreeMap::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const 
 		{
 			// Figure out what was clicked on
 			const FTreeMapNodeVisualInfo* NodeVisualUnderCursor = FindNodeVisualUnderCursor( InMyGeometry, InMouseEvent.GetScreenSpacePosition() );
-			if( NodeVisualUnderCursor != NULL )
+			if( NodeVisualUnderCursor != nullptr )
 			{
 				// Double-clicked on a tree map visual!  Check to see if we were asked to customize how double-click is handled.
 				if( OnTreeMapNodeDoubleClicked.IsBound() )
 				{
-					OnTreeMapNodeDoubleClicked.Execute( *NodeVisualUnderCursor->NodeData );
+					OnTreeMapNodeDoubleClicked.Execute( *NodeVisualUnderCursor->NodeData, InMouseEvent );
 				}
 				else
 				{
@@ -675,14 +697,14 @@ FReply STreeMap::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent&
 		{
 			// Figure out what was clicked on
 			const FTreeMapNodeVisualInfo* NodeVisualUnderCursor = FindNodeVisualUnderCursor( MyGeometry, MouseEvent.GetScreenSpacePosition() );
-			if( NodeVisualUnderCursor != NULL )
+			if( NodeVisualUnderCursor != nullptr )
 			{
 				// From the node that was scrolled over, visits nodes upward until we find one whose parent is our current active root
 				FTreeMapNodeDataPtr NextNode = NodeVisualUnderCursor->NodeData->AsShared();
 				do
 				{
 					FTreeMapNodeDataPtr NodeParent;
-					if( NextNode->Parent != NULL )
+					if( NextNode->Parent != nullptr )
 					{
 						NodeParent = NextNode->Parent->AsShared();
 					}
@@ -711,7 +733,7 @@ FReply STreeMap::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent&
 		else if( MouseEvent.GetWheelDelta() < 0 )
 		{
 			// Zoom out one level
-			if( ActiveRootTreeMapNode->Parent != NULL )
+			if( ActiveRootTreeMapNode->Parent != nullptr )
 			{
 				const bool bShouldPlayTransition = true;
 				SetTreeRoot( ActiveRootTreeMapNode->Parent->AsShared(), bShouldPlayTransition );
@@ -740,6 +762,36 @@ void STreeMap::SetTreeRoot( const FTreeMapNodeDataRef& NewRoot, const bool bShou
 }
 
 
+FTreeMapNodeDataPtr STreeMap::GetTreeRoot() const
+{
+	return ActiveRootTreeMapNode;
+}
+
+
+bool STreeMap::CanZoomOut() const
+{
+	if (ActiveRootTreeMapNode.IsValid() && ActiveRootTreeMapNode->Parent != nullptr)
+	{
+		return true;
+	}
+	return false;
+}
+
+
+bool STreeMap::ZoomOut()
+{
+	if (!CanZoomOut())
+	{
+		return false;
+	}
+
+	const bool bShouldPlayTransition = true;
+	SetTreeRoot(ActiveRootTreeMapNode->Parent->AsShared(), bShouldPlayTransition);
+
+	return true;
+}
+
+
 void STreeMap::RebuildTreeMap( const bool bShouldPlayTransition )
 {
 	// Stop renaming anything.  We don't want pop-up windows persisting during the transition
@@ -760,8 +812,20 @@ void STreeMap::RebuildTreeMap( const bool bShouldPlayTransition )
 	// Kill the tree map so that it will be regenerated
 	TreeMap.Reset();
 	CachedNodeVisuals.Reset();
-	DraggingVisual = NULL;
-	MouseOverVisual = NULL;
+	DraggingVisual = nullptr;
+	MouseOverVisual = nullptr;
+
+	// Update ActiveRootTreeMapNode
+	FTreeMapNodeDataPtr NewActiveRoot = FindNodeInCopiedTree(ActiveRootTreeMapNode.ToSharedRef(), TreeMapNodeData.ToSharedRef(), TreeMapNodeData.ToSharedRef());
+
+	if (NewActiveRoot.IsValid())
+	{
+		ActiveRootTreeMapNode = NewActiveRoot;
+	}
+	else
+	{
+		ActiveRootTreeMapNode = TreeMapNodeData;
+	}
 
 	// Customize the size and coloring of the source nodes before we rebuild it
 	ApplyVisualizationToNodes( ActiveRootTreeMapNode.ToSharedRef() );
@@ -791,7 +855,7 @@ FTreeMapNodeVisualInfo* STreeMap::FindNodeVisualUnderCursor( const FGeometry& My
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 
@@ -827,7 +891,7 @@ void STreeMap::TakeUndoSnapshot()
 
 FTreeMapNodeDataPtr STreeMap::FindNodeInCopiedTree( const FTreeMapNodeDataRef& NodeToFind, const FTreeMapNodeDataRef& OriginalNode, const FTreeMapNodeDataRef& CopiedNode ) const
 {
-	if( NodeToFind == OriginalNode )
+	if( NodeToFind.Get() == OriginalNode.Get() )
 	{
 		return CopiedNode;
 	}
@@ -844,7 +908,7 @@ FTreeMapNodeDataPtr STreeMap::FindNodeInCopiedTree( const FTreeMapNodeDataRef& N
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 
@@ -936,7 +1000,7 @@ void STreeMap::ReparentNode( const FTreeMapNodeDataRef DroppedNode, const FTreeM
 					return true;
 				}
 
-				if( PossibleParent->Parent != NULL )
+				if( PossibleParent->Parent != nullptr )
 				{
 					return IsMyParent( Node, PossibleParent->Parent->AsShared() );
 				}
@@ -957,7 +1021,7 @@ void STreeMap::ReparentNode( const FTreeMapNodeDataRef DroppedNode, const FTreeM
 					// Take an Undo snapshot before we change anything
 					TakeUndoSnapshot();
 
-					if( DroppedNode->Parent != NULL )
+					if( DroppedNode->Parent != nullptr )
 					{
 						DroppedNode->Parent->Children.RemoveSingle( DroppedNode );
 					}
@@ -993,11 +1057,11 @@ FReply STreeMap::DeleteHoveredNode()
 	// Wait until we've finished animating a transition
 	if( !IsNavigationTransitionActive() )
 	{
-		if( MouseOverVisual != NULL )
+		if( MouseOverVisual != nullptr )
 		{
 			// Only non-root nodes can be deleted
 			auto NodeToDelete = MouseOverVisual->NodeData->AsShared();
-			if( NodeToDelete->Parent != NULL )
+			if( NodeToDelete->Parent != nullptr )
 			{
 				// Don't allow the current active tree root to be deleted.  The user should zoom out first!
 				if( NodeToDelete != ActiveRootTreeMapNode )
@@ -1007,7 +1071,7 @@ FReply STreeMap::DeleteHoveredNode()
 					// Delete the node
 					{
 						NodeToDelete->Parent->Children.RemoveSingle( NodeToDelete );
-						NodeToDelete->Parent = NULL;
+						NodeToDelete->Parent = nullptr;
 
 						// Note:  NodeToDelete will actually be deleted when it goes out of scope later in this function (shared pointer), but it is already removed from our tree
 					}
@@ -1032,7 +1096,7 @@ FReply STreeMap::InsertNewNodeAsChildOfHoveredNode( const FGeometry& MyGeometry 
 	// Wait until we've finished animating a transition
 	if( !IsNavigationTransitionActive() )
 	{
-		if( MouseOverVisual != NULL )
+		if( MouseOverVisual != nullptr )
 		{
 			auto ParentNode = MouseOverVisual->NodeData->AsShared();
 
@@ -1042,7 +1106,6 @@ FReply STreeMap::InsertNewNodeAsChildOfHoveredNode( const FGeometry& MyGeometry 
 			// in the delegate callback for the editable text change commit handler.  If the user opts to not type anything, the
 			// node will be deleted instead of being added to the tree.
 			FTreeMapNodeDataRef NewNode( new FTreeMapNodeData() );
-			NewNode->Name = TEXT( "" );
 			NewNode->Size = 1.0f;	// Leaf nodes always get a size of 1.0 for now
 			NewNode->Parent = MouseOverVisual->NodeData;
 
@@ -1155,7 +1218,7 @@ void STreeMap::StartRenamingNode( const FGeometry& MyGeometry, const FTreeMapNod
 
 	TSharedRef<SEditableTextBox> EditableText = 
 		SNew( SEditableTextBox )
-			.Text( FText::FromString( NodeData->Name ) )
+			.Text( FText::FromString( NodeData->Name) )
 			.SelectAllTextWhenFocused( true )
 			.RevertTextOnEscape( true )
 			.MinDesiredWidth( 100 )
@@ -1212,7 +1275,7 @@ void STreeMap::ApplyVisualizationToNodesRecursively( const FTreeMapNodeDataRef& 
 		if( SizeNodesByAttribute.IsValid() )
 		{
 			FTreeMapAttributeDataPtr* AttributeDataPtr = Node->Attributes.Find( SizeNodesByAttribute->Name );
-			if( AttributeDataPtr != NULL )
+			if( AttributeDataPtr != nullptr )
 			{
 				const FTreeMapAttributeData& AttributeData = *AttributeDataPtr->Get();
 
@@ -1250,7 +1313,7 @@ void STreeMap::ApplyVisualizationToNodesRecursively( const FTreeMapNodeDataRef& 
 		if( ColorNodesByAttribute.IsValid() )
 		{
 			FTreeMapAttributeDataPtr* AttributeDataPtr = Node->Attributes.Find( ColorNodesByAttribute->Name );
-			if( AttributeDataPtr != NULL )
+			if( AttributeDataPtr != nullptr )
 			{
 				const FTreeMapAttributeData& AttributeData = *AttributeDataPtr->Get();
 
@@ -1520,9 +1583,9 @@ void STreeMap::ShowOptionsMenuAtInternal(const FVector2D& ScreenSpacePosition, c
 	if( Customization.IsValid() )
 	{
 		const bool bShouldCloseMenuAfterSelection = true;
-		FMenuBuilder OptionsMenuBuilder( bShouldCloseMenuAfterSelection, NULL );
+		FMenuBuilder OptionsMenuBuilder( bShouldCloseMenuAfterSelection, nullptr );
 
-		if( AllowEditing.Get() && Customization.IsValid() && MouseOverVisual != NULL )
+		if( AllowEditing.Get() && Customization.IsValid() && MouseOverVisual != nullptr )
 		{
 			// Node editing options
 			OptionsMenuBuilder.BeginSection( NAME_None, LOCTEXT( "EditNodeAttributesSection", "Edit Node" ) );

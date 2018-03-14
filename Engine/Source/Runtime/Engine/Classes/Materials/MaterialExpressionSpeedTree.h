@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -41,6 +41,18 @@ UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionSpeedTree : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()	
+
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'WindType' if not specified"))
+	FExpressionInput GeometryInput;
+
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'GeometryType' if not specified"))
+	FExpressionInput WindInput;
+
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'LODType' if not specified"))
+	FExpressionInput LODInput;
+
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "An extra bending of the tree for local effects"))
+	FExpressionInput ExtraBendWS;
 
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionSpeedTree, meta=(DisplayName = "Geometry Type", ToolTip="The type of SpeedTree geometry on which this material will be used"))
 	TEnumAsByte<enum ESpeedTreeGeometryType> GeometryType;

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:이벤트 디스패처
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -8,48 +8,7 @@ related:Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
 related:Engine/Blueprints/UserGuide/BlueprintComms
 version: 4.9
 tags:Blueprints
-<!--related:Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo
-Commented out due to page not being published publicly-->
-
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide/EventDispatcher:title%](Engine/Blueprints/UserGuide/event_dispatcher_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide/EventDispatcher:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide/EventDispatcher:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/EventDispatcher]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/UserGuide/EventDispatcher:title%](Engine/Blueprints/UserGuide/event_dispatcher_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/UserGuide/EventDispatcher:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/UserGuide/EventDispatcher:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/EventDispatcher]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Blueprints/UserGuide/event_dispatcher_topic.png
 
 
 [EXCERPT:Intro]
@@ -116,40 +75,14 @@ Commented out due to page not being published publicly-->
 * 레벨 블루프린트에서 이 핀에는 레벨 내 클래스의 인스턴스에 대한 레퍼런스를 연결해 줘야 합니다. 즉 이벤트 리스트가 해당 클래스 인스턴스에 대해서만으로 변경된다는 뜻입니다.
 _액터_ 레퍼런스를 만드는 법에 대해서는 [레벨 블루프린트 문서](Engine/Blueprints/UserGuide/Types/LevelBlueprint#액터레퍼런싱) 를 참고하시기 바랍니다.
 
+[DIR(output:"topic" parent:"Engine/Blueprints/UserGuide/EventDispatcher")]
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](event_dispatcher_call_node.png)](Engine/Blueprints/UserGuide/EventDispatcher/Calling)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/EventDispatcher/Calling)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/EventDispatcher/Calling#Intro]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](bind_node.png)](Engine/Blueprints/UserGuide/EventDispatcher/BindingAndUnbinding)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/EventDispatcher/BindingAndUnbinding)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/EventDispatcher/BindingAndUnbinding#Intro]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](dispatcher_event.png)](Engine/Blueprints/UserGuide/EventDispatcher/CreatingEvents)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/EventDispatcher/CreatingEvents)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/EventDispatcher/CreatingEvents#Intro]
-	[/PARAM]
-[/OBJECT]
+
+
+
+
+
+
 
 
 

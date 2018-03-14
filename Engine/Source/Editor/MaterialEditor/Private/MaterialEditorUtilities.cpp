@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MaterialEditorUtilities.h"
 #include "UObject/UObjectHash.h"
@@ -17,10 +17,12 @@
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
 #include "Materials/MaterialExpressionFontSampleParameter.h"
+#include "Materials/MaterialExpressionMaterialFunctionCall.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionStaticSwitchParameter.h"
 #include "Materials/MaterialExpressionCustomOutput.h"
+#include "Materials/MaterialExpressionMaterialAttributeLayers.h"
 #include "Materials/MaterialExpressionReroute.h"
 
 #include "Toolkits/ToolkitManager.h"
@@ -214,7 +216,7 @@ void FMaterialEditorUtilities::UpdateSearchResults(const class UEdGraph* Graph)
 /////////////////////////////////////////////////////
 // Static functions moved from SMaterialEditorCanvas
 
-void FMaterialEditorUtilities::GetVisibleMaterialParameters(const UMaterial* Material, UMaterialInstance* MaterialInstance, TArray<FGuid>& VisibleExpressions)
+void FMaterialEditorUtilities::GetVisibleMaterialParameters(const UMaterial* Material, UMaterialInstance* MaterialInstance, TArray<FMaterialParameterInfo>& VisibleExpressions)
 {
 	VisibleExpressions.Empty();
 
@@ -240,7 +242,7 @@ void FMaterialEditorUtilities::GetVisibleMaterialParameters(const UMaterial* Mat
 	}
 }
 
-bool FMaterialEditorUtilities::GetStaticSwitchExpressionValue(UMaterialInstance* MaterialInstance, UMaterialExpression* SwitchValueExpression, bool& OutValue, FGuid& OutExpressionID, TArray<FGetVisibleMaterialParametersFunctionState*>& FunctionStack)
+bool FMaterialEditorUtilities::GetStaticSwitchExpressionValue(UMaterialInstance* MaterialInstance, UMaterialExpression* SwitchValueExpression, bool& bOutValue, FGuid& OutExpressionID, TArray<FGetVisibleMaterialParametersFunctionState*>& FunctionStack)
 {
 	// Trace any re-route nodes between the input pin and the actual expression
 	UMaterialExpression* TracedExpression = SwitchValueExpression;
@@ -261,58 +263,53 @@ bool FMaterialEditorUtilities::GetStaticSwitchExpressionValue(UMaterialInstance*
 		const FFunctionExpressionInput* MatchingInput = FindInputById(FunctionInputExpression, *FunctionInputs);
 		if (MatchingInput && (MatchingInput->Input.Expression || !FunctionInputExpression->bUsePreviewValueAsDefault))
 		{
-			GetStaticSwitchExpressionValue(MaterialInstance, MatchingInput->Input.Expression, OutValue, OutExpressionID, FunctionStack);
+			GetStaticSwitchExpressionValue(MaterialInstance, MatchingInput->Input.Expression, bOutValue, OutExpressionID, FunctionStack);
 		}
 		else
 		{
-			GetStaticSwitchExpressionValue(MaterialInstance, FunctionInputExpression->Preview.Expression, OutValue, OutExpressionID, FunctionStack);
+			GetStaticSwitchExpressionValue(MaterialInstance, FunctionInputExpression->Preview.Expression, bOutValue, OutExpressionID, FunctionStack);
 		}
 
 		FunctionStack.Push(TopmostFunctionState);
 	}
 
-	if(TracedExpression)
+	if (TracedExpression)
 	{
 		UMaterialExpressionStaticBoolParameter* SwitchParamValue = Cast<UMaterialExpressionStaticBoolParameter>(TracedExpression);
+		UMaterialExpressionStaticBool* StaticBoolValue = Cast<UMaterialExpressionStaticBool>(TracedExpression);
+		UMaterialExpressionStaticSwitch* StaticSwitchValue = Cast<UMaterialExpressionStaticSwitch>(TracedExpression);
 
-		if(SwitchParamValue)
+		if (SwitchParamValue)
 		{
-			MaterialInstance->GetStaticSwitchParameterValue(SwitchParamValue->ParameterName, OutValue, OutExpressionID);
+			// Use the current stack state's parameter association
+			FMaterialParameterInfo ParamInfo = FunctionStack.Top()->StackParameterInfo;
+			ParamInfo.Name = SwitchParamValue->ParameterName;
+			MaterialInstance->GetStaticSwitchParameterValue(ParamInfo, bOutValue, OutExpressionID);
+			return true;
+		}
+		else if (StaticBoolValue)
+		{
+			bOutValue = StaticBoolValue->Value;
+			return true;
+		}
+		else if (StaticSwitchValue)
+		{
+			bool bSwitchValue = StaticSwitchValue->DefaultValue;
+			GetStaticSwitchExpressionValue(MaterialInstance, StaticSwitchValue->Value.Expression, bSwitchValue, OutExpressionID, FunctionStack);
+
+			if (bSwitchValue)
+			{
+				GetStaticSwitchExpressionValue(MaterialInstance, StaticSwitchValue->A.Expression, bOutValue, OutExpressionID, FunctionStack);
+			}
+			else
+			{
+				GetStaticSwitchExpressionValue(MaterialInstance, StaticSwitchValue->B.Expression, bOutValue, OutExpressionID, FunctionStack);
+			}
+
 			return true;
 		}
 	}
-
-	UMaterialExpressionStaticBool* StaticSwitchValue = Cast<UMaterialExpressionStaticBool>(TracedExpression);
-	if(StaticSwitchValue)
-	{
-		OutValue = StaticSwitchValue->Value;
-		return true;
-	}
-
-	return false;
-}
-
-bool FMaterialEditorUtilities::IsFunctionContainingSwitchExpressions(UMaterialFunction* MaterialFunction)
-{
-	if (MaterialFunction)
-	{
-		TArray<UMaterialFunction*> DependentFunctions;
-		MaterialFunction->GetDependentFunctions(DependentFunctions);
-		DependentFunctions.AddUnique(MaterialFunction);
-		for (int32 FunctionIndex = 0; FunctionIndex < DependentFunctions.Num(); ++FunctionIndex)
-		{
-			UMaterialFunction* CurrentFunction = DependentFunctions[FunctionIndex];
-			for(int32 ExpressionIndex = 0; ExpressionIndex < CurrentFunction->FunctionExpressions.Num(); ++ExpressionIndex )
-			{
-				UMaterialExpressionStaticSwitch* StaticSwitchExpression = Cast<UMaterialExpressionStaticSwitch>(CurrentFunction->FunctionExpressions[ExpressionIndex]);
-				if (StaticSwitchExpression)
-				{
-					return true;
-				}
-			}
-		}
-	}
-
+	
 	return false;
 }
 
@@ -382,7 +379,7 @@ void FMaterialEditorUtilities::InitExpressions(UMaterial* Material)
 void FMaterialEditorUtilities::GetVisibleMaterialParametersFromExpression(
 	FMaterialExpressionKey MaterialExpressionKey, 
 	UMaterialInstance* MaterialInstance, 
-	TArray<FGuid>& VisibleExpressions, 
+	TArray<FMaterialParameterInfo>& VisibleExpressions, 
 	TArray<FGetVisibleMaterialParametersFunctionState*>& FunctionStack)
 {
 	if (!MaterialExpressionKey.Expression)
@@ -401,85 +398,47 @@ void FMaterialEditorUtilities::GetVisibleMaterialParametersFromExpression(
 	FunctionStack.Top()->VisitedExpressions.Add(MaterialExpressionKey);
 	FunctionStack.Top()->ExpressionStack.Push(MaterialExpressionKey);
 	const int32 FunctionDepth = FunctionStack.Num();
+	FMaterialParameterInfo ParameterInfo = FunctionStack.Top()->StackParameterInfo;
 
+	UMaterial* BaseMaterial = MaterialInstance->GetBaseMaterial();
+	bool bCompilingFunctionPreview = BaseMaterial && BaseMaterial->bIsFunctionPreviewMaterial;
+
+	// If it's a material parameter it must be visible so add it to the list
+	UMaterialExpressionParameter* Param = Cast<UMaterialExpressionParameter>( MaterialExpressionKey.Expression );
+	UMaterialExpressionTextureSampleParameter* TexParam = Cast<UMaterialExpressionTextureSampleParameter>( MaterialExpressionKey.Expression );
+	UMaterialExpressionFontSampleParameter* FontParam = Cast<UMaterialExpressionFontSampleParameter>( MaterialExpressionKey.Expression );
+
+	if (Param)
 	{
-		// if it's a material parameter it must be visible so add it to the map
-		UMaterialExpressionParameter* Param = Cast<UMaterialExpressionParameter>( MaterialExpressionKey.Expression );
-		UMaterialExpressionTextureSampleParameter* TexParam = Cast<UMaterialExpressionTextureSampleParameter>( MaterialExpressionKey.Expression );
-		UMaterialExpressionFontSampleParameter* FontParam = Cast<UMaterialExpressionFontSampleParameter>( MaterialExpressionKey.Expression );
-		if (Param)
-		{
-			VisibleExpressions.AddUnique(Param->ExpressionGUID);
-
-			UMaterialExpressionScalarParameter* ScalarParam = Cast<UMaterialExpressionScalarParameter>( MaterialExpressionKey.Expression );
-			UMaterialExpressionVectorParameter* VectorParam = Cast<UMaterialExpressionVectorParameter>( MaterialExpressionKey.Expression );
-			TArray<FName> Names;
-			TArray<FGuid> Ids;
-			if (ScalarParam)
-			{
-				MaterialInstance->GetMaterial()->GetAllScalarParameterNames( Names, Ids );
-				for( int32 i = 0; i < Names.Num(); i++ )
-				{
-					if( Names[i] == ScalarParam->ParameterName )
-					{
-						VisibleExpressions.AddUnique( Ids[ i ] );
-					}
-				}
-			}
-			else if (VectorParam)
-			{
-				MaterialInstance->GetMaterial()->GetAllVectorParameterNames( Names, Ids );
-				for( int32 i = 0; i < Names.Num(); i++ )
-				{
-					if( Names[i] == VectorParam->ParameterName )
-					{
-						VisibleExpressions.AddUnique( Ids[ i ] );
-					}
-				}
-			}
-		}
-		else if (TexParam)
-		{
-			VisibleExpressions.AddUnique( TexParam->ExpressionGUID );
-			TArray<FName> Names;
-			TArray<FGuid> Ids;
-			MaterialInstance->GetMaterial()->GetAllTextureParameterNames( Names, Ids );
-			for( int32 i = 0; i < Names.Num(); i++ )
-			{
-				if( Names[i] == TexParam->ParameterName )
-				{
-					VisibleExpressions.AddUnique( Ids[ i ] );
-				}
-			}
-		}
-		else if (FontParam)
-		{
-			VisibleExpressions.AddUnique( FontParam->ExpressionGUID );
-			TArray<FName> Names;
-			TArray<FGuid> Ids;
-			MaterialInstance->GetMaterial()->GetAllFontParameterNames( Names, Ids );
-			for( int32 i = 0; i < Names.Num(); i++ )
-			{
-				if( Names[i] == FontParam->ParameterName )
-				{
-					VisibleExpressions.AddUnique( Ids[ i ] );
-				}
-			}
-		}
+		ParameterInfo.Name = Param->ParameterName;
+	}
+	else if (TexParam)
+	{
+		ParameterInfo.Name = TexParam->ParameterName;
+	}
+	else if (FontParam)
+	{
+		ParameterInfo.Name = FontParam->ParameterName;
+	}
+		
+	if (Param || TexParam || FontParam)
+	{
+		VisibleExpressions.AddUnique(ParameterInfo);
 	}
 
-	// check if it's a switch expression and branch according to its value
+	// Check if it's a switch expression and branch according to its value
 	UMaterialExpressionStaticSwitchParameter* StaticSwitchParamExpression = Cast<UMaterialExpressionStaticSwitchParameter>(MaterialExpressionKey.Expression);
 	UMaterialExpressionStaticSwitch* StaticSwitchExpression = Cast<UMaterialExpressionStaticSwitch>(MaterialExpressionKey.Expression);
 	UMaterialExpressionMaterialFunctionCall* FunctionCallExpression = Cast<UMaterialExpressionMaterialFunctionCall>(MaterialExpressionKey.Expression);
+	UMaterialExpressionMaterialAttributeLayers* LayersExpression = Cast<UMaterialExpressionMaterialAttributeLayers>(MaterialExpressionKey.Expression);
 	UMaterialExpressionFunctionInput* FunctionInputExpression = Cast<UMaterialExpressionFunctionInput>(MaterialExpressionKey.Expression);
 
 	if (StaticSwitchParamExpression)
 	{
 		bool Value = false;
 		FGuid ExpressionID;
-		MaterialInstance->GetStaticSwitchParameterValue(StaticSwitchParamExpression->ParameterName, Value, ExpressionID);
-		VisibleExpressions.AddUnique(ExpressionID);
+
+		MaterialInstance->GetStaticSwitchParameterValue(ParameterInfo, Value, ExpressionID);
 
 		if (Value)
 		{
@@ -498,11 +457,7 @@ void FMaterialEditorUtilities::GetVisibleMaterialParametersFromExpression(
 		if (StaticSwitchExpression->Value.Expression)
 		{
 			GetStaticSwitchExpressionValue(MaterialInstance, StaticSwitchExpression->Value.Expression, bValue, ExpressionID, FunctionStack);
-
-			if (ExpressionID.IsValid())
-			{
-				VisibleExpressions.AddUnique(ExpressionID);
-			}
+			GetVisibleMaterialParametersFromExpression(FMaterialExpressionKey(StaticSwitchExpression->Value.Expression, StaticSwitchExpression->Value.OutputIndex), MaterialInstance, VisibleExpressions, FunctionStack);
 		}
 
 		if(bValue)
@@ -517,7 +472,7 @@ void FMaterialEditorUtilities::GetVisibleMaterialParametersFromExpression(
 	else if (FunctionCallExpression)
 	{
 		if (FunctionCallExpression->MaterialFunction)
-		{
+		{			
 			for (int32 FunctionCallIndex = 0; FunctionCallIndex < FunctionStack.Num(); FunctionCallIndex++)
 			{
 				checkSlow(FunctionStack[FunctionCallIndex]->FunctionCall != FunctionCallExpression);
@@ -525,14 +480,60 @@ void FMaterialEditorUtilities::GetVisibleMaterialParametersFromExpression(
 
 			TUniquePtr<FGetVisibleMaterialParametersFunctionState> NewFunctionState = MakeUnique<FGetVisibleMaterialParametersFunctionState>(FunctionCallExpression);
 			FunctionStack.Push(NewFunctionState.Get());
-			
+		
 			GetVisibleMaterialParametersFromExpression(FMaterialExpressionKey(FunctionCallExpression->FunctionOutputs[MaterialExpressionKey.OutputIndex].ExpressionOutput, 0), MaterialInstance, VisibleExpressions, FunctionStack);
 		
 			check(FunctionStack.Top()->ExpressionStack.Num() == 0);
 			FunctionStack.Pop();
 		}
 	}
-	else if (FunctionInputExpression)
+	else if (LayersExpression)
+	{
+		FMaterialLayersFunctions LayersValue;
+		FGuid LayersGuid;
+
+		ParameterInfo.Name = LayersExpression->ParameterName;
+		VisibleExpressions.AddUnique(ParameterInfo);
+
+		// TODO: We only need to traverse a solo Layer[0] or the final Blend[N-1] here it will recurse anyway
+		if (MaterialInstance->GetMaterialLayersParameterValue(ParameterInfo, LayersValue, LayersGuid))
+		{
+			LayersExpression->OverrideLayerGraph(&LayersValue);
+
+			if (LayersExpression->bIsLayerGraphBuilt)
+			{
+				for (int32 LayerIndex = 0; LayerIndex < LayersExpression->LayerCallers.Num(); ++LayerIndex)
+				{
+					if (auto* Layer = LayersExpression->LayerCallers[LayerIndex])
+					{
+						TUniquePtr<FGetVisibleMaterialParametersFunctionState> NewFunctionState = MakeUnique<FGetVisibleMaterialParametersFunctionState>(Layer);
+						FunctionStack.Push(NewFunctionState.Get());
+						GetVisibleMaterialParametersFromExpression(FMaterialExpressionKey(Layer->FunctionOutputs[MaterialExpressionKey.OutputIndex].ExpressionOutput, 0), MaterialInstance, VisibleExpressions, FunctionStack);
+
+						check(FunctionStack.Top()->ExpressionStack.Num() == 0);
+						FunctionStack.Pop();
+					}
+				}
+
+				for (int32 BlendIndex = 0; BlendIndex < LayersExpression->BlendCallers.Num(); ++BlendIndex)
+				{
+					if (auto* Blend = LayersExpression->BlendCallers[BlendIndex])
+					{
+						TUniquePtr<FGetVisibleMaterialParametersFunctionState> NewFunctionState = MakeUnique<FGetVisibleMaterialParametersFunctionState>(Blend);
+						FunctionStack.Push(NewFunctionState.Get());
+
+						GetVisibleMaterialParametersFromExpression(FMaterialExpressionKey(Blend->FunctionOutputs[MaterialExpressionKey.OutputIndex].ExpressionOutput, 0), MaterialInstance, VisibleExpressions, FunctionStack);
+
+						check(FunctionStack.Top()->ExpressionStack.Num() == 0);
+						FunctionStack.Pop();
+					}
+				}
+			}
+
+			LayersExpression->OverrideLayerGraph(nullptr);
+		}
+	}
+	else if (FunctionInputExpression && FunctionStack.Num() > 1)
 	{
 		GetVisibleMaterialParametersFromExpression(FMaterialExpressionKey(FunctionInputExpression->Preview.Expression, FunctionInputExpression->Preview.OutputIndex), MaterialInstance, VisibleExpressions, FunctionStack);
 		

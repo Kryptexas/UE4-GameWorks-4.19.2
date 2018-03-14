@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Cascade.h"
 #include "Widgets/Text/STextBlock.h"
@@ -1522,6 +1522,11 @@ void FCascade::AddReferencedObjects(FReferenceCollector& Collector)
 	Collector.AddReferencedObject(CopyModule);
 	Collector.AddReferencedObject(CopyEmitter);
 	Collector.AddReferencedObject(CurveToReplace);
+
+	for (auto& Pair : EmitterToThumbnailMap)
+	{
+		Collector.AddReferencedObject(Pair.Value.Texture);
+	}
 }
 
 void FCascade::Tick(float DeltaTime)
@@ -1673,10 +1678,6 @@ void FCascade::Tick(float DeltaTime)
 	}
 }
 
-bool FCascade::IsTickable() const
-{
-	return true;
-}
 TStatId FCascade::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(FCascade, STATGROUP_Tickables);
@@ -5067,7 +5068,9 @@ void FCascade::OnDuplicateEmitter(bool bIsShared)
 void FCascade::OnDeleteEmitter()
 {
 	if (!SelectedEmitter)
+	{
 		return;
+	}
 
 	check(ParticleSystem->Emitters.Contains(SelectedEmitter));
 
@@ -5149,6 +5152,8 @@ void FCascade::OnDeleteEmitter()
 	ParticleSystem->Emitters.Remove(SelectedEmitter);
 
 	ParticleSystem->PostEditChange();
+
+	EmitterToThumbnailMap.Remove(SelectedEmitter);
 
 	SetSelectedEmitter(NULL);
 

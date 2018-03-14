@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserve
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserve
 
 #include "TP_TwinStickProjectile.h"
 #include "GameFramework/ProjectileMovementComponent.h"

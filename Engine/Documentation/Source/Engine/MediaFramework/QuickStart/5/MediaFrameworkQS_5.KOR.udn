@@ -1,0 +1,176 @@
+﻿INTSourceChangelist:3750348
+Availability:Public
+Crumbs: %ROOT%
+Title:5 - TV 블루프린트 함수 기능 & 테스트
+Description:TV 블프린트 함수 기능을 마무리하고 레벨에서 테스트해 봅니다.
+SkillLevel:Beginner
+Version:4.18
+checkpoint: mediaframeworkqs
+parent:Engine/MediaFramework/QuickStart
+type:quick start
+type:multi-step
+order:5
+tags:Media Framework
+tags:Blueprints
+ 
+[NAV]
+
+여기서는 TV 블루프린트 작업을 이어 플레이어가 TV 에 다가가 켜고 끄는 것은 물론 재생도 정지 시작하도록 하는 기능을 마련해 주겠습니다. 
+이번 단계에서의 목표는 (각기 다른 콘텐츠가 표시되는) TV 를 다수 만드는 것입니다.
+여기서 그 목표를 이루기 위해서는, 레벨에 다수의 TV 를 배치하고 **디테일** 패널을 사용하여 각 TV 에 표시하고자 하는 콘텐츠를 변경해줘야 합니다.
+
+## 단계
+
+1. **TV_Blueprint** 안에서 메인 툴바 아래 **이벤트 그래프** 탭을 클릭합니다.
+
+	![](Event_01.png)
+
+1. **컴포넌트** 창에서 **Box** 를 선택합니다. **디테일** 패널에서 **On Component Begin Overlap** 과 **On Component End Overlap** 이벤트 둘 다 추가합니다.
+
+	![](Event_02.png)
+
+	그러면 플레이어가 버튼을 눌러 TV 블루프린트에 영향을 끼칠 수 있도록 해줄 [이벤트](Engine/Blueprints/UserGuide/Events/) 가 생성됩니다.
+
+1. 그래프에 우클릭하고 **Get Player Controller**, **Enable Input**, **Disable Input** 노드를 추가하고 그림과 같이 연결합니다.
+
+	![](Event_03.png)
+
+	플레이어가 박스의 콜리전 볼륨에 들어섰을 때만 키보드 입력으로 이 블루프린트에 영향을 줄 수 있게 될 것입니다.
+
+1.	그래프에서 우클릭하고 **O** 와 **P** 키 이벤트 및 **Flip Flop** 노드를 둘 추가합니다. 그림과 같이 연결합니다.
+
+	![](Event_04.png)
+
+	플레이어가 **O** 키를 누르면 TV 를 켜고 끄고, **P** 키를 누르면 재생을 멈추고 시작하도록 구성하겠습니다.
+
+1.	**내 블루프린트** 패널에서 변수를 만들고 **MediaPlayerForVideo** 라 합니다. 
+
+1.	새 변수의 **디테일** 패널에서 **Variable Type** (변수 유형)을 **Media Player Object Reference** 로, **Instance Editable** (인스턴스 편집가능), **Default Value** (기본값)을 **MediaPlayer_01** 로 설정합니다. 
+
+	![](Event_05.png)
+
+	실행시간에 비디오 콘텐츠 재생을 하기 위해서는, 미디어 플레이어 애셋에게 미디어 소스를 열라고 해줘야 합니다. 그에 앞서 이야기하고자 하는 미디어 플레이어로의 레퍼런스가 있어야 하고, 이것을 인스턴스 편집가능으로 만들면 어떤 미디어 플레이어에 이야기할지 정의할 수 있습니다 (레벨에 다수의 재생기와 콘텐츠를 배치할 수 있습니다).
+
+1.	**Ctrl** 키를 누르고 **MediaPlayerForVideo** 변수를 끌어 그래프에 놓은 뒤, 그것을 끌어놓고 **Open Source** 함수 호출을 사용합니다.
+
+	![](Event_06.png)
+
+1.	**Open Source** 노드에서 **Media Source** 를 **Video_01** 로 설정한 뒤 우클릭하고 **변수로 승격** 시킵니다. 이 변수를 **SourceToOpen** 이라 합니다. 
+
+	![](Event_07.png)
+
+	[REGION:caption]여기서, 재생할 수 있는 여러가지 미디어 소스를 선택할 수 있도록 미디어 소스에 쓸 변수를 만들고 있습니다.[/REGION]
+
+	[REGION:tip]
+	프로퍼티의 값을 설정한 뒤 **변수로 승격** 시키면 자동으로 변수가 생성되고 그 값이 기본값으로 할당됩니다.
+	[/REGION]
+
+1.	**SourceToOpen** 변수에서 **Instance Editable** (인스턴스 편집가능) 옵션을 켭니다.
+
+	![](Event_08.png)
+
+	그러면 레벨에 배치된 TV 인스턴스 각각에 대해 열어줄 소스를 설정할 수 있습니다.
+
+1.	그래프에서 **Media Player For Video** 노드를 끌어놓고 **Close** 함수 호출을 사용하여 각각을 **FlipFlop** 노드에 연결합니다.
+
+	![](Event_09.png)
+
+	[REGION:caption]플레이어가 **O** 키를 누르면, 지정된 미디어 소스를 엽니다 (TV 를 켭니다). **O** 를 다시 누르면 미디어 플레이어를 닫습니다 (TV 를 끕니다).[/REGION]
+
+	[REGION:note]
+	미디어 플레이어는 **Play on Open** (열리면 재생) 설정되어 있습니다. 그러므로 소스를 열면, 재생기가 소스 콘텐츠 재생을 자동 시작합니다.
+	[/REGION]
+
+1.	**P** 키 이벤트의 경우, **MediaPlayerForVideo** 변수를 추가한 뒤 끌어놓고, **Pause** 와 **Play** 함수를 호출한 뒤 그림처럼 연결합니다.
+
+	![](Event_10.png)
+
+	미디어 소스를 열 때와 비슷하게, 플레이어가 **P** 키를 누르면 미디어 플레이어를 일시중지하고, **P** 를 다시 누르면 재개합니다.
+
+1.	**TV_Blueprint** 를 닫은 뒤 **콘텐츠 브라우저** 에서 **TV_Blueprint** 를 레벨에 끌어놓고 트랜스폼 툴을 사용하여 원하는 대로 조절합니다.
+
+	![](Event_11.png)
+
+	**디테일** 패널에서, TV 에 대해 변경할 수 있는 프로퍼티 노출된 것을 전부 확인할 수 있습니다.
+
+	![](Event_12.png)
+
+	이 프로퍼티로 TV 에 연결된 비디오/오디오를 변경할 수 있지만, 먼저 또다른 미디어 소스가 필요합니다.
+
+1.	**콘텐츠 브라우저** 에 우클릭한 뒤 **Content/Movies** 폴더의 **Media** 아래 **Stream Media Source** 를 선택하고 **Video_2** 라 합니다. 
+
+	![](Event_13.png)
+
+	로컬 미디어 파일에 추가로, 미디어 프레임워크는 인터넷에서 **Stream Media Source** (스트림 미디어 소스) 애셋 유형으로 된 ([지원](Engine\MediaFramework\TechReference\) 포맷) 스트리밍 비디오를 지원하기도 합니다.
+
+1.	**Video_2** 애셋을 연 뒤 이 [샘플 비디오 스트림](https://docs.unrealengine.com/latest/attachments/Engine/MediaFramework/HowTo/StreamMediaSource/Infiltrator%20Demo.mp4) 을 우클릭하고 **링크 주소 복사** 후 **Stream URL** 칸에 붙여넣습니다.
+
+	![](Event_14.png)
+
+	[REGION:warning]
+	4.18 부로 유튜브 링크는 지원되지 않습니다. 지원 포맷은 [](Engine\MediaFramework\TechReference\) 문서를 참고하세요.
+	[/REGION]
+
+1.	**콘텐브 브라우저** 에서 **Content/Movies** 폴더에 우클릭하고 **미디어 플레이어** 애셋을 또하나 만듭니다.
+
+	![](Event_15.png)
+
+	이 미디어 플레이어를 사용하여 레벨의 또다른 TV 에 콘텐츠를 재생할 수 있습니다.
+
+1.	**미디어 플레이어 생성** 창에서 **Video Output Media Texture Asset** (비디오 출력 미디어 텍스처 애셋) 옵션을 켠 뒤 미디어 플레이어 **MediaPlayer_02** 를 호출합니다.
+
+	![](Event_16.png)
+
+	그러면 미디어 텍스처와 미디어 플레이어 애셋을 자동으로 만들어 이름을 짓습니다.
+	
+1.	레벨에서 **TV_Blueprint** 사본을 생성합니다. **디테일** 패널에서 프로퍼티를 아래와 같이 변경합니다.
+
+	![](Event_17.png)
+
+	다음과 같이 설정합니다: 
+
+	* **TV 용 텍스처** - _MediaPlayer_02_Video_
+	* **사운드용 미디어 플레이어** - _MediaPlayer_02_
+	* **비디오용 미디어 플레이어** - _MediaPlayer_02_
+	* **열려는 소스** - _Video_2_
+
+	여기서 새로 생성된 미디어 프레임워크 콘텐츠와 스트리밍 비디오를 열기 위한 미디어 플레이어, 미디어 텍스처, 미디어 사운드, 미디어 소스를 변경하고 있습니다.
+
+1.	메인 툴바의 **플레이** 버튼을 눌러 레벨에서 플레이합니다.
+
+## 최종 결과
+
+TV 하나에 접근하여 **O** 키를 누르면 지정된 미디어 소스가 열립니다 (TV 가 켜집니다). **O** 키를 다시 누르면 미디어 소스가 닫힙니다 (TV 가 꺼집니다).
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	LEX8rd9e_ik
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+[REGION:caption]
+**P** 키를 눌러 각 TV 의 비디오 재생을 일시정지 또는 재개시킬 수도 있습니다.
+[/REGION]
+
+레벨 각 인스턴스에 대해 연결된 미디어 프레임워크 애셋과 콘텐츠를 변경할 수 있는 TV 블루프린트가 완성되었습니다. 레벨에 각기 다른 콘텐츠를 재생하면서 독립적으로 작동시킬 수 있는 TV 가 여러 대 있는 경우 좋습니다. 미디어 텍스처 애셋을 활용하는 머티리얼 생성 방법과, 몇 가지 블루프린트 함수 호출을 통해 미디어 플레이어와 미디어 소스 애셋 재생 및 열기를 제어하는 방법도 배워봤습니다.
+
+다음 단계에서는 미디어 프레임워크 관련 부가 자료와 직접 해볼 수 있는 기타 요소에 대해 알아보겠습니다.
+
+[NAV]
+
+
+
+
+

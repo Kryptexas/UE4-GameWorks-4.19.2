@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,12 +18,6 @@ class MEDIAASSETS_API UMediaPlaylist
 	: public UObject
 {
 	GENERATED_BODY()
-
-public:
-
-	/** Whether the play list should loop (default = true). */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Playback)
-	uint32 Loop:1;
 
 public:
 

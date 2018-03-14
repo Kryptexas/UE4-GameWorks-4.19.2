@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:마우스 인터페이스
 Crumbs:%ROOT%, Resources
@@ -9,48 +9,7 @@ Related: Engine/Blueprints\Editor\Modes\Components
 Related: Engine/Blueprints\Editor\Modes\Defaults
 Related: Engine/Blueprints\Editor\Modes\GraphPanel
 Version: 4.9
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/MouseInterface:title%](MouseInterfaceTopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/gameplay_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MouseInterface:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MouseInterface:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/MouseInterface]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/MouseInterface:title%](MouseInterfaceTopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/gameplay_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MouseInterface:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MouseInterface:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/MouseInterface]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:MouseInterfaceTopic.png
 
 
 [REGION:fullwidth]
@@ -72,9 +31,6 @@ Mouse Interface (마우스 인터페이스) 데모렛은 게임에서 마우스�
 * 구체를 클릭한 뒤 끌면 커서를 따라오게 되어 구체를 레벨 이리저리로 움직일 수 있습니다. 모바일 디바이스의 터치 이벤트에도 마찬가지입니다.
 * 배경의 박스를 클릭하면 구체 뒤를 앞뒤로 이동하는 박스 마티네 시퀀스를 재생 또는 중지합니다.
 
-
-
-[REGION:topics fourth]
 
 [OBJECT:TopicCompact]
 	[PARAM:image]
@@ -123,7 +79,6 @@ Mouse Interface (마우스 인터페이스) 데모렛은 게임에서 마우스�
 		[RELATIVE:Resources\ContentExamples\MouseInterface\SettingsAndCursors]
 	[/PARAM]
 [/OBJECT]
-[/REGION]
 
 
 

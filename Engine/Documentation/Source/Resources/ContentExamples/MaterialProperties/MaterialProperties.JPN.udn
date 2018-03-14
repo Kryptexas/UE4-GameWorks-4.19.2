@@ -43,7 +43,9 @@ Description:マテリアル プロパティのサンプル レベル
 [/OBJECT]
 [/VAR]
 
-<!--Insert path when done [RELATIVE:Resources/ContentExamples/MaterialProperties]-->
+[COMMENT:none]
+Insert path when done [RELATIVE:Resources/ContentExamples/MaterialProperties]
+[/COMMENT]
 
 [REGION:fullwidth]
 

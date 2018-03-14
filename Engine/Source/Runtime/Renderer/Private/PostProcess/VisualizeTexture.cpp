@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VisualizeTexture.cpp: Post processing visualize texture.
@@ -46,14 +46,14 @@ class VisualizeTexturePS : public FGlobalShader
 	DECLARE_SHADER_TYPE(VisualizeTexturePS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("TEXTURE_TYPE"), (int32)TextureType);
 	}
 
@@ -186,7 +186,7 @@ class FVisualizeTexturePresentPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FVisualizeTexturePresentPS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -591,8 +591,6 @@ void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, con
 	VertexShader->SetParameters(RHICmdList, View.ViewUniformBuffer);
 	PixelShader->SetParameters(RHICmdList, View, *VisualizeTextureContent);
 
-	FIntRect DestRect = View.ViewRect;
-
 	FIntRect VisualizeTextureRect = ComputeVisualizeTextureRect(Desc.Extent);
 
 	{
@@ -613,8 +611,8 @@ void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, con
 	FRenderTargetTemp TempRenderTarget(View, View.UnscaledViewRect.Size());
 	FCanvas Canvas(&TempRenderTarget, NULL, View.Family->CurrentRealTime, View.Family->CurrentWorldTime, View.Family->DeltaWorldTime, View.GetFeatureLevel());
 
-	float X = 100 + View.ViewRect.Min.X;
-	float Y = 160 + View.ViewRect.Min.Y;
+	float X = 100 + View.UnscaledViewRect.Min.X;
+	float Y = 160 + View.UnscaledViewRect.Min.Y;
 	float YStep = 14;
 
 	{
@@ -666,9 +664,9 @@ void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, con
 
 	for(int32 ViewId = 0; ViewId < ViewFamily.Views.Num(); ++ViewId)
 	{
-		const FSceneView& ViewIt = *ViewFamily.Views[ViewId];
+		const FViewInfo* ViewIt = static_cast<const FViewInfo*>(ViewFamily.Views[ViewId]);
 		FString Line = FString::Printf(TEXT("   View #%d: (%d,%d)-(%d,%d)"), ViewId + 1,
-			ViewIt.ViewRect.Min.X, ViewIt.ViewRect.Min.Y, ViewIt.ViewRect.Max.X, ViewIt.ViewRect.Max.Y);
+			ViewIt->UnscaledViewRect.Min.X, ViewIt->UnscaledViewRect.Min.Y, ViewIt->UnscaledViewRect.Max.X, ViewIt->UnscaledViewRect.Max.Y);
 		Canvas.DrawShadowedString( X + 10, Y += YStep, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
 	}
 

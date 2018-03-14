@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "HierarchicalLODOutlinerModule.h"
 #include "Modules/ModuleManager.h"
@@ -49,7 +49,7 @@ void FHierarchicalLODOutlinerModule::OnHLODLevelsArrayChangedEvent()
 
 	if (WorldSettings)
 	{
-		TArray<FHierarchicalSimplification>& HierarchicalLODSetup = WorldSettings->HierarchicalLODSetup;
+		TArray<FHierarchicalSimplification>& HierarchicalLODSetup = WorldSettings->GetHierarchicalLODSetup();
 		int32 NumHLODLevels = WorldSettings->NumHLODLevels;
 
 		if (HierarchicalLODSetup.Num() > 1 && HierarchicalLODSetup.Num() > NumHLODLevels)

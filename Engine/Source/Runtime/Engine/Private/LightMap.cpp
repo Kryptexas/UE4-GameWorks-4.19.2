@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightMap.cpp: Light-map implementation.
@@ -220,6 +220,10 @@ FStaticLightingTextureMapping::FStaticLightingTextureMapping(FStaticLightingMesh
 	bBilinearFilter(bInBilinearFilter)
 {}
 
+FStaticLightingGlobalVolumeMapping::FStaticLightingGlobalVolumeMapping(FStaticLightingMesh* InMesh, UObject* InOwner, int32 InSizeX, int32 InSizeY, int32 InLightmapTextureCoordinateIndex) :
+	FStaticLightingTextureMapping(InMesh, InOwner, InSizeX, InSizeY, InLightmapTextureCoordinateIndex)
+{}
+
 #if WITH_EDITOR
 
 /**
@@ -325,38 +329,11 @@ struct FLightMapAllocationGroup
 	{
 	}
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	FLightMapAllocationGroup(FLightMapAllocationGroup&&) = default;
 	FLightMapAllocationGroup& operator=(FLightMapAllocationGroup&&) = default;
 
 	FLightMapAllocationGroup(const FLightMapAllocationGroup&) = delete; // non-copy-able
 	FLightMapAllocationGroup& operator=(const FLightMapAllocationGroup&) = delete;
-#else
-	FLightMapAllocationGroup(FLightMapAllocationGroup&& other)
-		: Allocations(MoveTemp(other.Allocations))
-		, Outer(other.Outer)
-		, LightmapFlags(other.LightmapFlags)
-		, Bounds(other.Bounds)
-		, TotalTexels(other.TotalTexels)
-	{
-	}
-
-	FLightMapAllocationGroup& operator=(FLightMapAllocationGroup&& other)
-	{
-		Allocations = MoveTemp(other.Allocations);
-		Outer = other.Outer;
-		LightmapFlags = other.LightmapFlags;
-		Bounds = other.Bounds;
-		TotalTexels = other.TotalTexels;
-
-		return *this;
-	}
-
-private:
-	FLightMapAllocationGroup(const FLightMapAllocationGroup&); // non-copy-able
-	FLightMapAllocationGroup& operator=(const FLightMapAllocationGroup&);
-public:
-#endif
 
 	TArray<TUniquePtr<FLightMapAllocation>, TInlineAllocator<1>> Allocations;
 

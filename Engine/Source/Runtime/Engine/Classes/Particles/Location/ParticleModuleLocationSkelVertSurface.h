@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -6,16 +6,15 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "Particles/Location/ParticleModuleLocationBase.h"
-#include "SkeletalMeshTypes.h"
 #include "ParticleModuleLocationSkelVertSurface.generated.h"
 
-class FStaticLODModel;
 class UParticleLODLevel;
 class UParticleModuleTypeDataBase;
 class UParticleSystemComponent;
 class USkeletalMeshComponent;
 struct FParticleEmitterInstance;
-struct FSkelMeshSection;
+class FSkeletalMeshLODRenderData;
+struct FSkelMeshRenderSection;
 
 UENUM()
 enum ELocationSkelVertSurfaceSource
@@ -184,5 +183,5 @@ class ENGINE_API UParticleModuleLocationSkelVertSurface : public UParticleModule
 private:
 	/** Helper function for concrete types. */
 	template<bool bExtraBoneInfluencesT>
-	bool VertInfluencedByActiveBoneTyped(FStaticLODModel& Model, int32 LODIndex, const FSkelMeshSection& Section, int32 VertIndex, USkeletalMeshComponent* InSkelMeshComponent, FModuleLocationVertSurfaceInstancePayload* InstancePayload, int32* OutBoneIndex);
+	bool VertInfluencedByActiveBoneTyped(FSkeletalMeshLODRenderData& LODData, int32 LODIndex, const FSkelMeshRenderSection& Section, int32 VertIndex, USkeletalMeshComponent* InSkelMeshComponent, FModuleLocationVertSurfaceInstancePayload* InstancePayload, int32* OutBoneIndex);
 };

@@ -40,6 +40,9 @@
 -keep class com.epicgames.ue4.LocalNotificationReceiver {
 	public *;
 }
+-keep class com.epicgames.ue4.MulticastBroadcastReceiver {
+	public *;
+}
 
 # Needed...
 

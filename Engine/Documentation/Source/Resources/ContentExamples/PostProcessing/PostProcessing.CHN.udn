@@ -71,7 +71,8 @@ Listed below are the examples provided inside the **PostProcessing** map:
 | **[1.17 Blend Radius and Weight](Resources\ContentExamples\PostProcessing\1_17)** | Used to change the transition from one Post Process Volume to another over a distance (e.g. blend scene tint or color based on distance to an object). |
 | **[1.18 Unbound](Resources\ContentExamples\PostProcessing\1_18)** | This allows you to create a global Post Process effect without being constrained to being inside an actual volume (e.g. the effects are applied where ever you are in the world). |
 
-<!--
+[COMMENT:none]
+
 [REGION:fullwidth]
 ![](PostProcHeader.png)
 
@@ -117,4 +118,5 @@ Listed below are the examples provided inside the **PostProcessing** map:
 
 
 [/REGION]
--->
+
+[/COMMENT]

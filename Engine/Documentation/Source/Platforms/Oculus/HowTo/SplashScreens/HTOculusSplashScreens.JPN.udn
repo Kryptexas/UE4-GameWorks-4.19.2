@@ -1,0 +1,127 @@
+﻿INTSourceChangelist:3719384
+Availability:Public
+Crumbs: %ROOT%, Platforms
+Title:Oculus Rift 用 スプラッシュスクリーンの使用方法
+Description:VR へのレベルのロード時にスプラッシュスクリーンを設定する方法
+Type: how-to
+Skilllevel:Intermediate
+Version:4.17
+Parent:Platforms/Oculus
+Order:2
+tags:Oculus
+prereq:Platforms\Oculus\HowTo\StandingCamera
+prereq:Platforms/VR/UsingTouchControllers
+prereq:Platforms\Oculus\HowTo\GuardianSystem
+
+![](HTSplashScreen_Hero_Image.png)
+
+UE4 VR プロジェクトのレベルを変更すると、大量のデータがやりとりされるため、どうしてもユーザーにフレームレートの違和感を与えてしまいます。新しいレベルのロード時に発生するこの問題を目立たないようにするために、スプラッシュスクリーンあるいはムービーをユーザーに表示することができます。以下の操作ガイドでは、UE4 プロジェクトでスプラッシュスクリーンを設定および呼び出す方法について説明します。
+
+## ステップ
+
+[region:note]
+ * この操作ガイドを進めるために、zip ファイル **[Oculus Splash Screen Source Files](OclusSplashScreenSourceContent.zip)** の中にある 2 つのファイルをダウンロード、解凍、インポートする必要があります。
+[/region]
+
+1. VRPawn から **Event Graph** を開きます。Event Graph の中を右クリックして、以下の Blueprint ノードを検索および追加します。
+
+    * Event Begin Play
+    * Set Tracking Origin
+    * Enable Auto Loading Splash Screen
+    * Add Loading Splash Screen
+    * Hide Splash Screen
+
+    [REGION:lightbox]
+    [![](HTSplashScreen_00.png)(w:446)](HTSplashScreen_00.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. スプラッシュスクリーンをレベルのロードの都度呼び出したいので、まずスプラッシュスクリーンの自動ロード処理を確認してから、スプラッシュスクリーンとして使用したいものを設定します。最後に、後で必要な時に呼び出せるようにスプラッシュスクリーンを非表示にします。以下の画像に合わせて VRPawn イベントグラフのノードを設定します。 
+
+    [REGION:lightbox]
+    [![](HTSplashScreen_01.png)(w:772)](HTSplashScreen_01.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+    [REGION:note]
+    **Enable Auto Loading Splash Screen** の **Auto Show Enabled** プロパティに必ずチェックを入れて、レベルがロードされるとスプラッシュスクリーンが自動的に呼び出されるようにします。
+    [/REGION]
+
+1. **Add Loading Splash Screen** ノードには、ノードが呼び出されるとテクスチャまたは動画の表示を調整する **Texture** 入力があります。**T_UE4_Logo_00** または選択したテクスチャになるようにテクスチャを設定します。
+    
+    [REGION:lightbox]
+    [![](HTSplashScreen_02.png)(w:353)](HTSplashScreen_02.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+    [REGION:note]
+    テクスチャがスプラッシュスクリーンに使われるように選択する場合、テクスチャ圧縮設定を **UserInterface2D** にして、さらに **[Never Stream]** オプションを有効にして、スプラッシュスクリーンの最高品質バージョンになっていることを確認するのが最善の方法です。
+    [/REGION]
+
+1. 以下の 3 つのノードを VRPawn イベントグラフに接続して、スプラッシュスクリーンの表示 / 非表示を可能にします。完了すると、設定はこのようになります。
+
+    * Motion Controller (L)Trigger
+    * Show Loading Splash Screen
+    * Hide Loading Splash Screen
+
+    [REGION:lightbox]
+    [![](HTSplashScreen_03.png)(w:467)](HTSplashScreen_03.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+    [REGION:note]
+    この方法でスプラッシュスクリーンを表示できる一方で、レベルのロード時にロード完了までスプラッシュスクリーンが表示されるようにこの機能をレベル ブループリントに追加しておくと便利です。 
+    [/REGION]
+
+1. これが完了すると VRPawn ブループリントが以下の画像のようになります。HMD を装着してタッチコントローラを手に持ち、VR インタラクション エリアの中央に立ちます。
+
+    [REGION:lightbox]
+    [![](HTSplashScreen_04.png)(w:467)](HTSplashScreen_04.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+## 最終結果
+
+タッチコントローラーの左トリガーをつかむとシーンが黒くなり、UE4 ロゴのテクスチャもしくは選択した画像が表示されます。タッチコントローラーの左トリガーを離すと以下の動画のように画面にレベルが戻ります。
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	H_APZ1h8H5o
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+## UE4 プロジェクトのダウンロード
+以下のリンクから、このサンプルの作成に使われた UE4 プロジェクトをダウンロードすることができます。
+
+* [**Oculus Rift Splash Screens Example Project**](https://epicgames.box.com/s/1rirqbohl7inchgnssznuam7ylalrzk4)
+
+
+
+

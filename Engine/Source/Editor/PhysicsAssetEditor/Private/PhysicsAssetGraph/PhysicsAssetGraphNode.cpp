@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PhysicsAssetGraphNode.h"
 #include "PhysicsAssetGraph.h"
@@ -33,9 +33,9 @@ FText UPhysicsAssetGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 void UPhysicsAssetGraphNode::AllocateDefaultPins()
 {
-	InputPin = CreatePin(EEdGraphPinDirection::EGPD_Input, TEXT(""), TEXT(""), nullptr, TEXT(""));
+	InputPin = CreatePin(EEdGraphPinDirection::EGPD_Input, NAME_None, NAME_None, NAME_None);
 	InputPin->bHidden = true;
-	OutputPin = CreatePin(EEdGraphPinDirection::EGPD_Output, TEXT(""), TEXT(""), nullptr, TEXT(""));
+	OutputPin = CreatePin(EEdGraphPinDirection::EGPD_Output, NAME_None, NAME_None, NAME_None);
 	OutputPin->bHidden = true;
 }
 

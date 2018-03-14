@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #include "SpeedTreeImportData.h"
 #include "PropertyHandle.h"
 #include "DetailLayoutBuilder.h"
@@ -47,6 +47,7 @@ void USpeedTreeImportData::CopyFrom(USpeedTreeImportData* Other)
 	IncludeBranchSeamSmoothing = Other->IncludeBranchSeamSmoothing;
 	IncludeSpeedTreeAO = Other->IncludeSpeedTreeAO;
 	IncludeColorAdjustment = Other->IncludeColorAdjustment;
+	IncludeSubsurface = Other->IncludeSubsurface;
 	IncludeVertexProcessingCheck = Other->IncludeVertexProcessingCheck;
 	IncludeWindCheck = Other->IncludeWindCheck;
 	IncludeSmoothLODCheck = Other->IncludeSmoothLODCheck;
@@ -220,11 +221,21 @@ void FSpeedTreeImportDataDetails::CustomizeDetails(IDetailLayoutBuilder& DetailL
 		return;
 	}
 
+	// figure out if it is SpeedTree 8 to change what is shown in the dialog
+	const FString FileExtension = FPaths::GetExtension(SpeedTreeImportData->GetFirstFilename());
+	bool bSpeedTree8 = (FCString::Stricmp(*FileExtension, TEXT("ST")) == 0);
+
 	//We have to hide FilePath category
 	DetailLayout.HideCategory(FName(TEXT("File Path")));
 	
 	//Mesh category Must be the first category (Important)
 	DetailLayout.EditCategory(FName(TEXT("Mesh")), FText::GetEmpty(), ECategoryPriority::Important);
+
+	if (bSpeedTree8)
+	{
+		DetailLayout.HideProperty(FName(TEXT("TreeScale")));
+		DetailLayout.HideProperty(FName(TEXT("ImportGeometryType")));
+	}
 
 	//Get the Materials category
 	IDetailCategoryBuilder& MaterialsCategoryBuilder = DetailLayout.EditCategory(FName(TEXT("Materials")));
@@ -249,20 +260,35 @@ void FSpeedTreeImportDataDetails::CustomizeDetails(IDetailLayoutBuilder& DetailL
 	{
 		for (TSharedRef<IPropertyHandle> Handle : MaterialCategoryDefaultProperties)
 		{
+			// skip any properties that don't match speedtree 8
+			const FString& SpeedTreeMetaData = Handle->GetMetaData(TEXT("SpeedTreeVersion"));
+			if (bSpeedTree8 && SpeedTreeMetaData.Compare(TEXT("8")) != 0)
+			{
+				continue;
+			}
+
 			const FString& MetaData = Handle->GetMetaData(TEXT("EditCondition"));
 			if (MetaData.Compare(TEXT("MakeMaterialsCheck")) == 0 && IncludeVertexProcessingCheckProp->GetProperty() != Handle->GetProperty())
 			{
 				MaterialsCategoryBuilder.AddProperty(Handle);
 			}
 		}
-		IDetailGroup& VertexProcessingGroup = MaterialsCategoryBuilder.AddGroup(FName(TEXT("VertexProcessingGroup")), LOCTEXT("VertexProcessingGroup_DisplayName", "Vertex Processing"), false, true);
-		VertexProcessingGroup.AddPropertyRow(IncludeVertexProcessingCheckProp);
-		for (TSharedRef<IPropertyHandle> Handle : MaterialCategoryDefaultProperties)
+
+		if (bSpeedTree8)
 		{
-			const FString& MetaData = Handle->GetMetaData(TEXT("EditCondition"));
-			if (MetaData.Compare(TEXT("IncludeVertexProcessingCheck")) == 0)
+			MaterialsCategoryBuilder.AddProperty(IncludeVertexProcessingCheckProp);
+		}
+		else
+		{
+			IDetailGroup& VertexProcessingGroup = MaterialsCategoryBuilder.AddGroup(FName(TEXT("VertexProcessingGroup")), LOCTEXT("VertexProcessingGroup_DisplayName", "Vertex Processing"), false, true);
+			VertexProcessingGroup.AddPropertyRow(IncludeVertexProcessingCheckProp);
+			for (TSharedRef<IPropertyHandle> Handle : MaterialCategoryDefaultProperties)
 			{
-				VertexProcessingGroup.AddPropertyRow(Handle);
+				const FString& MetaData = Handle->GetMetaData(TEXT("EditCondition"));
+				if (MetaData.Compare(TEXT("IncludeVertexProcessingCheck")) == 0)
+				{
+					VertexProcessingGroup.AddPropertyRow(Handle);
+				}
 			}
 		}
 	}

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,8 +6,8 @@
 #include "StaticMeshVertexData.h"
 #include "GPUSkinPublicDefs.h"
 
-struct FSoftSkinVertex;
 class FStaticMeshVertexDataInterface;
+struct FSoftSkinVertex;
 
 /** Struct for storing skin weight info in vertex buffer */
 template <bool bExtraBoneInfluences>
@@ -36,6 +36,23 @@ struct TSkinWeightInfo
 
 		return Ar;
 	}
+
+	bool GetRigidWeightBone(uint8& OutBoneIndex) const
+	{
+		bool bIsRigid = false;
+
+		for (int32 WeightIdx = 0; WeightIdx < NumInfluences; WeightIdx++)
+		{
+			if (InfluenceWeights[WeightIdx] == 255)
+			{
+				bIsRigid = true;
+				OutBoneIndex = InfluenceBones[WeightIdx];
+				break;
+			}
+		}
+
+		return bIsRigid;
+	}
 };
 
 /** The implementation of the skin weight vertex data storage type. */
@@ -46,12 +63,6 @@ public:
 	FSkinWeightVertexData(bool InNeedsCPUAccess = false)
 		: TStaticMeshVertexData<VertexDataType>(InNeedsCPUAccess)
 	{
-	}
-
-	TStaticMeshVertexData<VertexDataType>& operator=(const TArray<VertexDataType>& Other)
-	{
-		TStaticMeshVertexData<VertexDataType>::operator=(Other);
-		return *this;
 	}
 };
 
@@ -77,8 +88,10 @@ public:
 	/** @return true is WeightData is valid */
 	bool IsWeightDataValid() const;
 
+#if WITH_EDITOR
 	/** Init from another skin weight buffer */
 	ENGINE_API void Init(const TArray<FSoftSkinVertex>& InVertices);
+#endif // WITH_EDITOR
 
 	friend FArchive& operator<<(FArchive& Ar, FSkinWeightVertexBuffer& VertexBuffer);
 
@@ -160,7 +173,7 @@ public:
 		check(bExtraBoneInfluences == bExtraBoneInfluencesT);
 		AllocateData();
 
-		*(FSkinWeightVertexData< TSkinWeightInfo<bExtraBoneInfluencesT> >*)WeightData = InWeights;
+		static_cast<FSkinWeightVertexData< TSkinWeightInfo<bExtraBoneInfluencesT> >*>(WeightData)->Assign(InWeights);
 
 		Data = WeightData->GetDataPointer();
 		Stride = WeightData->GetStride();
@@ -196,7 +209,9 @@ private:
 	/** Allocates the vertex data storage type. */
 	void AllocateData();
 
+#if WITH_EDITOR
 	/** Helper for concrete types */
 	template <bool bUsesExtraBoneInfluences>
 	void SetWeightsForVertex(uint32 VertexIndex, const FSoftSkinVertex& SrcVertex);
+#endif //WITH_EDITOR
 };

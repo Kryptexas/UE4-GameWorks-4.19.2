@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetViewSortManager.h"
 #include "AssetViewTypes.h"
@@ -323,8 +323,10 @@ void FAssetViewSortManager::ResetSort()
 	}
 }
 
-UObject::FAssetRegistryTag::ETagType FAssetViewSortManager::FindAndRefreshCustomColumn(TArray<TSharedPtr<FAssetViewItem>>& AssetItems, FName ColumnName, const TArray<FAssetViewCustomColumn>& CustomColumns) const
+bool FAssetViewSortManager::FindAndRefreshCustomColumn(TArray<TSharedPtr<FAssetViewItem>>& AssetItems, FName ColumnName, const TArray<FAssetViewCustomColumn>& CustomColumns, UObject::FAssetRegistryTag::ETagType& TagType) const
 {
+	TagType = UObject::FAssetRegistryTag::ETagType::TT_Hidden;
+
 	// Look in custom columns list
 	for (const FAssetViewCustomColumn& Column : CustomColumns)
 	{
@@ -346,10 +348,11 @@ UObject::FAssetRegistryTag::ETagType FAssetViewSortManager::FindAndRefreshCustom
 					Asset->CustomColumnData.Add(Column.ColumnName, Column.OnGetColumnData.Execute(Asset->Data, Column.ColumnName));
 				}
 			}
-			return Column.DataType;
+			TagType = Column.DataType;
+			return true;
 		}
 	}
-	return UObject::FAssetRegistryTag::ETagType::TT_Hidden;
+	return false;
 }
 
 void FAssetViewSortManager::SortList(TArray<TSharedPtr<FAssetViewItem>>& AssetItems, const FName& MajorityAssetType, const TArray<FAssetViewCustomColumn>& CustomColumns) const
@@ -381,10 +384,11 @@ void FAssetViewSortManager::SortList(TArray<TSharedPtr<FAssetViewItem>>& AssetIt
 		}
 		else
 		{
-			UObject::FAssetRegistryTag::ETagType TagType = FindAndRefreshCustomColumn(AssetItems, Tag, CustomColumns);
+			UObject::FAssetRegistryTag::ETagType TagType;
+			bool bFoundCustomColumn = FindAndRefreshCustomColumn(AssetItems, Tag, CustomColumns, TagType);
 			
 			// Since this SortData.Tag is not one of preset columns, sort by asset registry tag	
-			if (TagType != UObject::FAssetRegistryTag::ETagType::TT_Hidden && MajorityAssetType != NAME_None)
+			if ((!bFoundCustomColumn || TagType == UObject::FAssetRegistryTag::ETagType::TT_Hidden) && MajorityAssetType != NAME_None)
 			{
 				UClass* Class = FindObject<UClass>(ANY_PACKAGE, *MajorityAssetType.ToString());
 				if (Class)
@@ -459,7 +463,8 @@ void FAssetViewSortManager::ExportColumnsToCSV(TArray<TSharedPtr<struct FAssetVi
 		OutString += Column.ToString();
 		OutString += TEXT(",");
 
-		FindAndRefreshCustomColumn(AssetItems, Column, CustomColumns);
+		UObject::FAssetRegistryTag::ETagType TagType;
+		FindAndRefreshCustomColumn(AssetItems, Column, CustomColumns, TagType);
 	}
 	OutString += TEXT("\n");
 

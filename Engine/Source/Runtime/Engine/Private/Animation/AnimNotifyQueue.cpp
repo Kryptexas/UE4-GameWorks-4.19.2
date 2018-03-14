@@ -1,7 +1,17 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Animation/AnimNotifyQueue.h"
 #include "Animation/AnimInstanceProxy.h"
+#include "Animation/AnimTypes.h"
+
+bool operator==(const FAnimNotifyEventReference& Lhs, const FAnimNotifyEvent& Rhs)
+{
+	if (Lhs.NotifySource && Lhs.Notify)
+	{
+		return (*(Lhs.Notify)) == Rhs;
+	}
+	return false;
+}
 
 bool FAnimNotifyQueue::PassesFiltering(const FAnimNotifyEvent* Notify) const
 {
@@ -28,33 +38,53 @@ bool FAnimNotifyQueue::PassesChanceOfTriggering(const FAnimNotifyEvent* Event) c
 	return Event->NotifyStateClass ? true : RandomStream.FRandRange(0.f, 1.f) < Event->NotifyTriggerChance;
 }
 
-void FAnimNotifyQueue::AddAnimNotifiesToDest(const TArray<const FAnimNotifyEvent*>& NewNotifies, TArray<const FAnimNotifyEvent*>& DestArray, const float InstanceWeight)
+void FAnimNotifyQueue::AddAnimNotifiesToDest(bool bSrcIsLeader, const TArray<FAnimNotifyEventReference>& NewNotifies, TArray<FAnimNotifyEventReference>& DestArray, const float InstanceWeight)
 {
 	// for now there is no filter whatsoever, it just adds everything requested
-	for (const FAnimNotifyEvent* Notify : NewNotifies)
+	for (const FAnimNotifyEventReference& NotifyRef : NewNotifies)
 	{
-		// only add if it is over TriggerWeightThreshold
-		const bool bPassesDedicatedServerCheck = Notify->bTriggerOnDedicatedServer || !IsRunningDedicatedServer();
-		if (bPassesDedicatedServerCheck && Notify->TriggerWeightThreshold <= InstanceWeight && PassesFiltering(Notify) && PassesChanceOfTriggering(Notify))
+		const FAnimNotifyEvent* Notify = NotifyRef.GetNotify();
+		if( Notify && (bSrcIsLeader || Notify->bTriggerOnFollower))
 		{
-			// Only add unique AnimNotifyState instances just once. We can get multiple triggers if looping over an animation.
-			// It is the same state, so just report it once.
-			Notify->NotifyStateClass ? DestArray.AddUnique(Notify) : DestArray.Add(Notify);
+			// only add if it is over TriggerWeightThreshold
+			const bool bPassesDedicatedServerCheck = Notify->bTriggerOnDedicatedServer || !IsRunningDedicatedServer();
+			if (bPassesDedicatedServerCheck && Notify->TriggerWeightThreshold <= InstanceWeight && PassesFiltering(Notify) && PassesChanceOfTriggering(Notify))
+			{
+				// Only add unique AnimNotifyState instances just once. We can get multiple triggers if looping over an animation.
+				// It is the same state, so just report it once.
+				Notify->NotifyStateClass ? DestArray.AddUnique(NotifyRef) : DestArray.Add(NotifyRef);
+			}
 		}
 	}
 }
 
-void FAnimNotifyQueue::AddAnimNotifies(const TArray<const FAnimNotifyEvent*>& NewNotifies, const float InstanceWeight)
+void FAnimNotifyQueue::AddAnimNotifiesToDestNoFiltering(const TArray<FAnimNotifyEventReference>& NewNotifies, TArray<FAnimNotifyEventReference>& DestArray) const
 {
-	AddAnimNotifiesToDest(NewNotifies, AnimNotifies, InstanceWeight);
+	for (const FAnimNotifyEventReference& NotifyRef : NewNotifies)
+	{
+		if (const FAnimNotifyEvent* Notify = NotifyRef.GetNotify())
+		{
+			Notify->NotifyStateClass ? DestArray.AddUnique(NotifyRef) : DestArray.Add(NotifyRef);
+		}
+	}
 }
 
-void FAnimNotifyQueue::AddAnimNotifies(const TMap<FName, TArray<const FAnimNotifyEvent*>>& NewNotifies, const float InstanceWeight)
+void FAnimNotifyQueue::AddAnimNotify(const FAnimNotifyEvent* Notify, const UObject* NotifySource)
 {
-	for (const TPair<FName, TArray<const FAnimNotifyEvent*>>& Pair : NewNotifies)
+	AnimNotifies.Add(FAnimNotifyEventReference(Notify, NotifySource));
+}
+
+void FAnimNotifyQueue::AddAnimNotifies(bool bSrcIsLeader, const TArray<FAnimNotifyEventReference>& NewNotifies, const float InstanceWeight)
+{
+	AddAnimNotifiesToDest(bSrcIsLeader, NewNotifies, AnimNotifies, InstanceWeight);
+}
+
+void FAnimNotifyQueue::AddAnimNotifies(bool bSrcIsLeader, const TMap<FName, TArray<FAnimNotifyEventReference>>& NewNotifies, const float InstanceWeight)
+{
+	for (const TPair<FName, TArray<FAnimNotifyEventReference>>& Pair : NewNotifies)
 	{
-		TArray<const FAnimNotifyEvent*>& Notifies = UnfilteredMontageAnimNotifies.FindOrAdd(Pair.Key);
-		AddAnimNotifiesToDest(Pair.Value, Notifies, InstanceWeight);
+		TArray<FAnimNotifyEventReference>& Notifies = UnfilteredMontageAnimNotifies.FindOrAdd(Pair.Key).Notifies;
+		AddAnimNotifiesToDest(bSrcIsLeader, Pair.Value, Notifies, InstanceWeight);
 	}
 }
 
@@ -68,30 +98,22 @@ void FAnimNotifyQueue::Reset(USkeletalMeshComponent* Component)
 void FAnimNotifyQueue::Append(const FAnimNotifyQueue& Queue)
 {
 	// we dont just append here - we need to preserve uniqueness for AnimNotifyState instances
-	for (const FAnimNotifyEvent* Notify : Queue.AnimNotifies)
+	AddAnimNotifiesToDestNoFiltering(Queue.AnimNotifies, AnimNotifies);
+
+	for (const TPair<FName, FAnimNotifyArray>& Pair : Queue.UnfilteredMontageAnimNotifies)
 	{
-		Notify->NotifyStateClass ? AnimNotifies.AddUnique(Notify) : AnimNotifies.Add(Notify);
-	}
-	for (const TPair<FName, TArray<const FAnimNotifyEvent*>>& Pair : Queue.UnfilteredMontageAnimNotifies)
-	{
-		TArray<const FAnimNotifyEvent*>& Notifies = UnfilteredMontageAnimNotifies.FindOrAdd(Pair.Key);
-		for (const FAnimNotifyEvent* Notify : Pair.Value)
-		{
-			Notify->NotifyStateClass ? Notifies.AddUnique(Notify) : Notifies.Add(Notify);
-		}
+		TArray<FAnimNotifyEventReference>& Notifies = UnfilteredMontageAnimNotifies.FindOrAdd(Pair.Key).Notifies;
+		AddAnimNotifiesToDestNoFiltering(Pair.Value.Notifies, Notifies);
 	}
 }
 
 void FAnimNotifyQueue::ApplyMontageNotifies(const FAnimInstanceProxy& Proxy)
 {
-	for (const TPair<FName, TArray<const FAnimNotifyEvent*>>& Pair : UnfilteredMontageAnimNotifies)
+	for (const TPair<FName, FAnimNotifyArray>& Pair : UnfilteredMontageAnimNotifies)
 	{
 		if (Proxy.IsSlotNodeRelevantForNotifies(Pair.Key))
 		{
-			for (const FAnimNotifyEvent* Notify : Pair.Value)
-			{
-				Notify->NotifyStateClass ? AnimNotifies.AddUnique(Notify) : AnimNotifies.Add(Notify);
-			}
+			AddAnimNotifiesToDestNoFiltering(Pair.Value.Notifies, AnimNotifies);
 		}
 	}
 	UnfilteredMontageAnimNotifies.Reset();

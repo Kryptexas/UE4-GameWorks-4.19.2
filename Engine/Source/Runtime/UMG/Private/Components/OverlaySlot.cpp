@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/OverlaySlot.h"
 #include "Components/Widget.h"
@@ -11,6 +11,7 @@ UOverlaySlot::UOverlaySlot(const FObjectInitializer& ObjectInitializer)
 {
 	HorizontalAlignment = HAlign_Left;
 	VerticalAlignment = VAlign_Top;
+	Slot = NULL;
 }
 
 void UOverlaySlot::ReleaseSlateResources(bool bReleaseChildren)

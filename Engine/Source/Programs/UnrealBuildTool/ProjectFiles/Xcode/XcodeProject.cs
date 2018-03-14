@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -425,7 +425,7 @@ namespace UnrealBuildTool
 			Content.Append("/* End PBXGroup section */" + ProjectFileGenerator.NewLine + ProjectFileGenerator.NewLine);
 		}
 
-		private void AppendLegacyTargetSection(StringBuilder Content, string TargetName, string TargetGuid, string TargetBuildConfigGuid, FileReference UProjectPath)
+		private void AppendLegacyTargetSection(StringBuilder Content, string TargetName, string TargetGuid, string TargetBuildConfigGuid, FileReference UProjectPath, bool bHasEditorConfiguration)
 		{
 			string UE4Dir = ConvertPath(Path.GetFullPath(Directory.GetCurrentDirectory() + "../../.."));
 			string BuildToolPath = UE4Dir + "/Engine/Build/BatchFiles/Mac/Build.sh";
@@ -434,7 +434,7 @@ namespace UnrealBuildTool
 
 			Content.Append("\t\t" + TargetGuid + " /* " + TargetName + " */ = {" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\tisa = PBXLegacyTarget;" + ProjectFileGenerator.NewLine);
-			Content.Append("\t\t\tbuildArgumentsString = \"$(ACTION) $(UE_BUILD_TARGET_NAME) $(PLATFORM_NAME) $(UE_BUILD_TARGET_CONFIG)" + (UProjectPath == null ? "" : " \\\"" + UProjectPath.FullName + "\\\"") + "\";" + ProjectFileGenerator.NewLine);
+			Content.Append("\t\t\tbuildArgumentsString = \"$(ACTION) $(UE_BUILD_TARGET_NAME) $(PLATFORM_NAME) $(UE_BUILD_TARGET_CONFIG)" + (UProjectPath == null ? "" : " \\\"" + UProjectPath.FullName + "\\\"") + (bHasEditorConfiguration ? " -buildscw" : "") + "\";" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\tbuildConfigurationList = "  + TargetBuildConfigGuid + " /* Build configuration list for PBXLegacyTarget \"" + TargetName + "\" */;" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\tbuildPhases = (" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\t);" + ProjectFileGenerator.NewLine);
@@ -589,7 +589,7 @@ namespace UnrealBuildTool
 			Content.Append("\t\t\t\tGCC_PREPROCESSOR_DEFINITIONS = (" + ProjectFileGenerator.NewLine);
 			foreach (var Definition in IntelliSensePreprocessorDefinitions)
 			{
-				Content.Append("\t\t\t\t\t\"" + Definition.Replace("\"", "") + "\"," + ProjectFileGenerator.NewLine);
+				Content.Append("\t\t\t\t\t\"" + Definition.Replace("\"", "").Replace("\\", "") + "\"," + ProjectFileGenerator.NewLine);
 			}
 			Content.Append("\t\t\t\t\t\"MONOLITHIC_BUILD=1\"," + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\t\t);" + ProjectFileGenerator.NewLine);
@@ -616,7 +616,7 @@ namespace UnrealBuildTool
 				Content.Append("\t\t\t\tENABLE_TESTABILITY = YES;" + ProjectFileGenerator.NewLine);
 			}
 			Content.Append("\t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;" + ProjectFileGenerator.NewLine);
-			Content.Append("\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"c++0x\";" + ProjectFileGenerator.NewLine);
+			Content.Append("\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"c++14\";" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\t\tGCC_ENABLE_CPP_RTTI = NO;" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\t\tGCC_WARN_CHECK_SWITCH_STATEMENTS = NO;" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\t\tUSE_HEADERMAP = NO;" + ProjectFileGenerator.NewLine);
@@ -890,8 +890,21 @@ namespace UnrealBuildTool
 				}
 			}
 			Content.Append("\t\t\t\tMACOSX_DEPLOYMENT_TARGET = " + MacToolChain.Settings.MacOSVersion + ";" + ProjectFileGenerator.NewLine);
-			Content.Append("\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine);
-			Content.Append("\t\t\t\tGCC_PRECOMPILE_PREFIX_HEADER = YES;" + ProjectFileGenerator.NewLine);
+            //#jira UE-50382 Xcode Address Sanitizer feature does not work on iOS
+            // address sanitizer dylib loader depends on the SDKROOT parameter. For macosx or default (missing, translated as macosx), the path is incorrect for iphone/appletv
+            if (XcodeProjectFileGenerator.bGeneratingRunIOSProject)
+            {
+                Content.Append("\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine);
+            }
+            else if (XcodeProjectFileGenerator.bGeneratingRunTVOSProject)
+            {
+                Content.Append("\t\t\t\tSDKROOT = appletvos;" + ProjectFileGenerator.NewLine);
+            }
+            else
+            {
+                Content.Append("\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine);
+            }
+            Content.Append("\t\t\t\tGCC_PRECOMPILE_PREFIX_HEADER = YES;" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\t\tGCC_PREFIX_HEADER = \"" + UE4Dir + "/Engine/Source/Editor/UnrealEd/Public/UnrealEd.h\";" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\t};" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\tname = \"" + Config.DisplayName + "\";" + ProjectFileGenerator.NewLine);
@@ -1054,7 +1067,7 @@ namespace UnrealBuildTool
 									{
 										// Figure out if this is a monolithic build
 										bool bShouldCompileMonolithic = BuildPlatform.ShouldCompileMonolithicBinary(Platform);
-										bShouldCompileMonolithic |= (ProjectTarget.CreateRulesDelegate(Platform, Configuration).GetLegacyLinkType(Platform, Configuration) == TargetLinkType.Monolithic);
+										bShouldCompileMonolithic |= (ProjectTarget.CreateRulesDelegate(Platform, Configuration).LinkType == TargetLinkType.Monolithic);
 
 										var ConfigName = Configuration.ToString();
 										if (ProjectTarget.TargetRules.Type != TargetType.Game && ProjectTarget.TargetRules.Type != TargetType.Program)
@@ -1068,7 +1081,7 @@ namespace UnrealBuildTool
 
 											// Get the output directory
 											DirectoryReference RootDirectory = UnrealBuildTool.EngineDirectory;
-											if ((ProjectTarget.TargetRules.Type == TargetType.Game || ProjectTarget.TargetRules.Type == TargetType.Client || ProjectTarget.TargetRules.Type == TargetType.Server) && bShouldCompileMonolithic && !ProjectTarget.TargetRules.bOutputToEngineBinaries)
+											if ((ProjectTarget.TargetRules.Type == TargetType.Game || ProjectTarget.TargetRules.Type == TargetType.Client || ProjectTarget.TargetRules.Type == TargetType.Server) && bShouldCompileMonolithic)
 											{
 												if(ProjectTarget.UnrealProjectFilePath != null)
 												{
@@ -1076,7 +1089,7 @@ namespace UnrealBuildTool
 												}
 											}
 
-											if(ProjectTarget.TargetRules.Type == TargetType.Program && !ProjectTarget.TargetRules.bOutputToEngineBinaries && ProjectTarget.UnrealProjectFilePath != null)
+											if(ProjectTarget.TargetRules.Type == TargetType.Program && ProjectTarget.UnrealProjectFilePath != null)
 											{
 												RootDirectory = ProjectTarget.UnrealProjectFilePath.Directory;
 											}
@@ -1262,7 +1275,7 @@ namespace UnrealBuildTool
 			Content.Append("\t\t<key>" + TargetName + ".xcscheme_^#shared#^_</key>" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t<dict>" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\t<key>orderHint</key>" + ProjectFileGenerator.NewLine);
-			Content.Append("\t\t\t<integer>" + SchemeOrderHint.ToString() + "</integer>" + ProjectFileGenerator.NewLine);
+			Content.Append("\t\t\t<integer>1</integer>" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t</dict>" + ProjectFileGenerator.NewLine);
 			Content.Append("\t</dict>" + ProjectFileGenerator.NewLine);
 			Content.Append("\t<key>SuppressBuildableAutocreation</key>" + ProjectFileGenerator.NewLine);
@@ -1294,8 +1307,6 @@ namespace UnrealBuildTool
 
 			string ManagementFilePath = ManagementFileDir + "/xcschememanagement.plist";
 			File.WriteAllText(ManagementFilePath, Content.ToString(), new UTF8Encoding());
-
-			SchemeOrderHint++;
 		}
 
 		/// Implements Project interface
@@ -1383,7 +1394,7 @@ namespace UnrealBuildTool
 				AppendTargetDependencySection(ProjectFileContent, BuildTargetName, BuildTargetGuid, TargetDependencyGuid, TargetProxyGuid);
 			}
 			AppendGroupSection(ProjectFileContent, MainGroupGuid, ProductRefGroupGuid, TargetAppGuid, TargetName);
-			AppendLegacyTargetSection(ProjectFileContent, BuildTargetName, BuildTargetGuid, BuildTargetConfigListGuid, GameProjectPath);
+			AppendLegacyTargetSection(ProjectFileContent, BuildTargetName, BuildTargetGuid, BuildTargetConfigListGuid, GameProjectPath, bHasEditorConfiguration);
 			AppendRunTargetSection(ProjectFileContent, TargetName, TargetGuid, TargetConfigListGuid, TargetDependencyGuid, TargetAppGuid);
 			AppendIndexTargetSection(ProjectFileContent, IndexTargetName, IndexTargetGuid, IndexTargetConfigListGuid, SourcesBuildPhaseGuid);
 			AppendProjectSection(ProjectFileContent, TargetName, TargetGuid, BuildTargetName, BuildTargetGuid, IndexTargetName, IndexTargetGuid, MainGroupGuid, ProductRefGroupGuid, ProjectGuid, ProjectConfigListGuid, GameProjectPath);
@@ -1408,7 +1419,5 @@ namespace UnrealBuildTool
 
 			return bSuccess;
 		}
-
-		static private int SchemeOrderHint = 0;
 	}
 }

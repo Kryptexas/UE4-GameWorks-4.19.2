@@ -1,0 +1,126 @@
+﻿INTSourceChangelist:3782314
+Availability: Public
+Title: Android Manifest 컨트롤
+Crumbs:%ROOT%, Platforms
+Description:Android Mainfest 파일 구성 및 사용법입니다.
+Platform:Android
+Skilllevel:Advanced 
+Navigation:platform
+version: 4.12
+tags:Android
+tags:Mobile
+parent:Platforms/Mobile
+type:overview
+
+[TOC(start:2)]
+
+**AndroidManifest.xml** 파일은 프로젝트 세팅의 **Advanced  APKPackaging** (고급 APK 패키징) 섹션에 설정된 다양한 안드로이드 시스템 권한과 세팅을 저장하는 데 사용됩니다. 여기서는 언리얼 엔진 4 (UE4) 프로젝트의 요구사항 충족을 위해 AndroidManifest.xml 파일에 추가시킬 명령을 입력하는 법을 다뤄보겠습니다.
+
+
+## Android Manifest 위치
+프로젝트의 AndroidManifest.xml 파일을 찾기 전, 먼저 프로젝트를 패키징하거나 안드로이드 디바이스에 디플로이 해야합니다. 프로젝트 빌드 또는 디플로이가 완료되었으면, **(YourProjectName)\Intermediate\Android\APK** 에서 AndroidManifest.xml 파일을 찾을 수 있습니다.
+
+[REGION:lightbox]
+[![](AMC_File_Location.png)(w:430 h:285)](AMC_File_Location.png)
+[/REGION]
+	
+[REGION:caption]
+클릭하면 이미지 원본을 확인합니다.
+[/REGION]
+
+[region:warning]
+어떤 상황에서도 AndroidManifest.xml 파일을 편집해서는 **안됩니다**. AndroidManifest.xml 파일을 편집할 필요가 있으면 UE4 에디터 내 Advanced APK Packing 섹션에서 해야 합니다.
+[/region]
+
+## Android Manifest 레이아웃
+전형적인 AndroidManifest.xml 파일에서는 다음과 같은 세 가지 섹션을 찾을 수 있습니다.
+
+* **Application Definition** 어플리케이션 정의
+* **Activity** 활동
+* **Requirements** 요구사항
+
+		<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+			package="com.yourcompany.project"
+			android:versionCode="1"
+			android:versionName="1.0.0">
+
+			<-- Application Definition -->
+			<application android:label="@string/app_name"
+		android:icon="@drawable/icon" android:hasCode="true">
+				<activity android:name="com.epicgames.ue4.GameActivity"
+				</activity>
+			</application>
+
+			 <-- Requirements -->
+			 <uses-sdk android:minSdkVersions="9"/>
+			 <uses-feature android android:glEsVersion="0x00020000"
+		android:required="true" />
+			 <uses-permission
+		android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+		</manifest>
+
+[region:note]
+참고로 위의 Android Manifest 파일은 실제 파일이 아니며 단순 참고용입니다.
+[/region]
+
+
+
+## Extra Tags for Manifest
+매니페스트에 태그를 추가로 붙일 수 있는데, **더하기** 아이콘을 클릭하여 태그 배열에 엘리먼트를 새로 추가한 뒤 입력창에 사용하고자 하는 태그를 입력하면 됩니다. 이 예제에서 사용된 태그는 다음과 같습니다: **android:sharedUserId="Foo"**
+
+![](AMC_Extra_Man_Tags.png)
+
+Extra Tags for Manifest 섹션에 입력된 태그는 AndroidManifest.xml 파일의 **manifest** 섹션에 추가됩니다.
+
+	<manifest xmlns:android="http://schemas.android.com/apk/res/android" 
+	package="com.YourCompany.AndroidManifest" 
+	android:sharedUserId="Foo" 
+	android:versionCode="1" 
+	android:versionName="1.0">
+
+## Extra Tags for Application
+어플리케이션에 태그를 추가로 붙일 수 있는데, 마찬가지로 **더하기** 아이콘을 클릭하여 어플리케이션 배열에 엘리먼트를 새로 추가한 뒤 사용하고자 하는 태그를 입력하면 됩니다. 이 예제에서 사용된 태그는 다음과 같습니다: **android:hardwareAccelerated="True"** 
+
+![](AMC_Extra_App_Tags.png)
+
+ Extra Tags for Application 섹션에 입력된 항목은 AndroidManifest.xml 파일의 **Application Definition** 섹션에 추가됩니다.
+
+	[COMMENT:none]
+ Application Definition 
+[/COMMENT]
+	<application android:label="@string/app_name"
+	 android:icon="@drawable/icon" 
+	 android:hardwareAccelerated="True" 
+	 android:hasCode="true">
+    
+## Extra Settings for Application
+어플리케이션에 사용할 부가 세팅을 추가할 수 있는데, 사용하고자 하는 세팅을 **Extra Settings for &#60 application>** 섹션에 입력하면 됩니다. 사용하고자 하는 세팅이 둘 이상인 경우, 각 세팅을 **\n** 로 구분해 주면 됩니다. 이 예제에서 추가한 항목은 다음 두 가지입니다: **android:banner="Foo"**, **android:vmSafeMode="True"**
+
+![](AMC_Extra_App_Settings.png)
+
+Extra Settings for &#60Android:nameapplication> 섹션에 입력된 항목은 AndroidManifest.xml 파일의 **Activity** 섹션에 추가됩니다.
+
+		</activity>
+		<activity android:name=".DownloaderActivity" android:screenOrientation="landscape" android:configChanges="screenSize|orientation|keyboardHidden|keyboard" android:theme="@style/UE4SplashTheme" />
+		<meta-data android:name="com.epicgames.ue4.GameActivity.DepthBufferPreference" android:value="0" />
+		<meta-data android:name="com.epicgames.ue4.GameActivity.bPackageDataInsideApk" android:value="false" />
+		<meta-data android:name="com.epicgames.ue4.GameActivity.bVerifyOBBOnStartUp" android:value="false" />
+		<meta-data android:name="com.epicgames.ue4.GameActivity.bShouldHideUI" android:value="false" />
+		<meta-data android:name="com.epicgames.ue4.GameActivity.ProjectName" android:value="AndroidManifest" />
+		<meta-data android:name="com.epicgames.ue4.GameActivity.bHasOBBFiles" android:value="true" />
+		<meta-data android:name="com.epicgames.ue4.GameActivity.bSupportsVulkan" android:value="false" />
+		<meta-data android:name="com.google.android.gms.games.APP_ID" android:value="@string/app_id" />
+		<meta-data android:name="com.google.android.gms.version" android:value="@integer/google_play_services_version" />
+		<activity android:name="com.google.android.gms.ads.AdActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize" />
+			android:banner="Foo" 
+			android:vmSafeMode="True"
+		<service android:name="OBBDownloaderService" /><receiver android:name="AlarmReceiver" /></application>
+
+## Extra Tags for UE4 Game Activity
+**Extra Tags for UE4.GameActivity<activity> node** 섹션에 부가 태그를 추가할 수 있는데, **더하기** 아이콘을 클릭하여 Extra Tags for UE4.GameActivity<activity> node 배열에 
+엘리먼트를 추가한 뒤 사용하고자 하는 태그를 입력하면 됩니다.
+
+
+
+
+

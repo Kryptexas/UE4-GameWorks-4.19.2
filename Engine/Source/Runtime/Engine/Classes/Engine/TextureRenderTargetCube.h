@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -37,11 +37,11 @@ class UTextureRenderTargetCube : public UTextureRenderTarget
 
 	/** Whether to support storing HDR values, which requires more memory. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=TextureRenderTargetCube, AssetRegistrySearchable)
-	uint32 bHDR:1;
+	uint8 bHDR:1;
 
 	/** True to force linear gamma space for this render target */
 	UPROPERTY()
-	uint32 bForceLinearGamma:1;
+	uint8 bForceLinearGamma:1;
 
 	/** 
 	* Initialize the settings needed to create a render target texture

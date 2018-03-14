@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "QosStats.h"
 #include "Misc/Guid.h"
@@ -41,7 +41,7 @@ inline void PrintEventAndAttributes(const FString& StatsEvent, const TArray<FAna
 	for (int32 AttrIdx = 0; AttrIdx<Attributes.Num(); AttrIdx++)
 	{
 		const FAnalyticsEventAttribute& Attr = Attributes[AttrIdx];
-		UE_LOG(LogQos, Display, TEXT("\t%s : %s"), *Attr.AttrName, *Attr.AttrValue);
+		UE_LOG(LogQos, Display, TEXT("\t%s : %s"), *Attr.AttrName, *Attr.ToString());
 	}
 #endif
 }

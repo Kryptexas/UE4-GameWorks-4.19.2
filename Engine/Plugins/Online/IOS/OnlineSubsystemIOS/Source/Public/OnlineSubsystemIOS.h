@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -52,6 +52,7 @@ public:
 	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 	virtual bool Tick(float DeltaTime) override;
 	virtual FText GetOnlineServiceName() const override;
+	virtual bool IsEnabled() const override;
 	//~ End IOnlineSubsystem Interface
 
 PACKAGE_SCOPE:
@@ -61,22 +62,16 @@ PACKAGE_SCOPE:
 	FOnlineSubsystemIOS(FName InInstanceName);
 
 	/**
-	 * Is IOS available for use
-	 * @return true if IOS is available, false otherwise
-	 */
-	bool IsEnabled();
-
-	/**
 	 * Is IAP available for use
 	 * @return true if IAP should be available, false otherwise
 	 */
-	bool IsInAppPurchasingEnabled();
+	static bool IsInAppPurchasingEnabled();
 	
 	/**
 	 * Is Store v2 enabled (disabling legacy store interface)
 	 * @return true if enabled, false otherwise
 	 */
-	bool IsV2StoreEnabled();
+	static bool IsV2StoreEnabled();
 	
 	/**
 	 * @return access to the app store utility class

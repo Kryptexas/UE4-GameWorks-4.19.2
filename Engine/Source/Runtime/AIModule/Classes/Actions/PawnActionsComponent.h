@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -108,7 +108,7 @@ public:
 	// blueprint interface
 	//----------------------------------------------------------------------//
 
-	UFUNCTION(BlueprintCallable, Category = "AI|PawnActions", meta = (DisplayName = "PerformAction"))
+	UFUNCTION(BlueprintCallable, Category = "AI|PawnActions", meta = (DisplayName = "PerformAction", ScriptName = "PerformAction"))
 	static bool K2_PerformAction(APawn* Pawn, UPawnAction* Action, TEnumAsByte<EAIRequestPriority::Type> Priority = EAIRequestPriority::HardScript);
 	static bool PerformAction(APawn& Pawn, UPawnAction& Action, TEnumAsByte<EAIRequestPriority::Type> Priority = EAIRequestPriority::HardScript);
 
@@ -126,17 +126,17 @@ public:
 
 	bool OnEvent(UPawnAction& Action, EPawnActionEventType::Type Event);
 
-	UFUNCTION(BlueprintCallable, Category = PawnAction, meta = (DisplayName = "PushAction"))
+	UFUNCTION(BlueprintCallable, Category = PawnAction, meta = (DisplayName = "PushAction", ScriptName = "PushAction"))
 	bool K2_PushAction(UPawnAction* NewAction, EAIRequestPriority::Type Priority, UObject* Instigator = NULL);
 	bool PushAction(UPawnAction& NewAction, EAIRequestPriority::Type Priority, UObject* Instigator = NULL);	
 
 	/** Aborts given action instance */
-	UFUNCTION(BlueprintCallable, Category = PawnAction, meta = (DisplayName = "AbortAction"))
+	UFUNCTION(BlueprintCallable, Category = PawnAction, meta = (DisplayName = "AbortAction", ScriptName = "AbortAction"))
 	EPawnActionAbortState::Type K2_AbortAction(UPawnAction* ActionToAbort);
 	EPawnActionAbortState::Type AbortAction(UPawnAction& ActionToAbort);
 
 	/** Aborts given action instance */
-	UFUNCTION(BlueprintCallable, Category = PawnAction, meta = (DisplayName = "ForceAbortAction"))
+	UFUNCTION(BlueprintCallable, Category = PawnAction, meta = (DisplayName = "ForceAbortAction", ScriptName = "ForceAbortAction"))
 	EPawnActionAbortState::Type K2_ForceAbortAction(UPawnAction* ActionToAbort);
 	EPawnActionAbortState::Type ForceAbortAction(UPawnAction& ActionToAbort);
 

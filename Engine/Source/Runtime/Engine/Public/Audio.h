@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Audio.h: Unreal base audio.
@@ -235,7 +235,15 @@ private:
 
 /** Queries if a plugin of the given type is enabled. */
 ENGINE_API bool IsAudioPluginEnabled(EAudioPlugin PluginType);
-ENGINE_API bool DoesAudioPluginHaveCustomSettings(EAudioPlugin PluginType);
+ENGINE_API UClass* GetAudioPluginCustomSettingsClass(EAudioPlugin PluginType);
+
+/** Bus send types */
+enum class EBusSendType : uint8
+{
+	PreEffect,
+	PostEffect,
+	Count
+};
 
 /**
  * Structure encapsulating all information required to play a USoundWave on a channel/source. This is required
@@ -258,8 +266,8 @@ struct ENGINE_API FWaveInstance
 	/** Sound submix sends */
 	TArray<FSoundSubmixSendInfo> SoundSubmixSends;
 
-	/** The sound sourcebus sends. */
-	TArray<FSoundSourceBusSendInfo> SoundSourceBusSends;
+	/** The sound source bus sends. */
+	TArray<FSoundSourceBusSendInfo> SoundSourceBusSends[(int32)EBusSendType::Count];
 
 	/** Sound effect chain */
 	USoundEffectSourcePresetChain* SourceEffectChain;
@@ -284,7 +292,15 @@ private:
 	/** The volume of the wave instance due to application volume or tab-state */
 	float VolumeApp;
 
+	/** The current envelope value of the wave instance. */
+	float EnvelopValue;
+
 public:
+	/** The envelope follower attack time in milliseconds. */
+	int32 EnvelopeFollowerAttackTime;
+
+	/** The envelope follower release time in milliseconds. */
+	int32 EnvelopeFollowerReleaseTime;
 
 	/** An audio component priority value that scales with volume (post all gain stages) and is used to determine voice playback priority. */
 	float Priority;
@@ -354,6 +370,9 @@ public:
 
 	/** Prevent spamming of spatialization of surround sounds by tracking if the warning has already been emitted */
 	uint32 bReportedSpatializationWarning:1;
+
+	/** Whether or not this wave instance is ambisonics. */
+	uint32 bIsAmbisonics:1;
 
 	/** Which spatialization method to use to spatialize 3d sounds. */
 	ESoundSpatializationAlgorithm SpatializationMethod;
@@ -469,17 +488,24 @@ public:
 	/** Returns the volume of the wave instance (ignoring application muting) */
 	float GetVolume() const;
 
-	/** Returns the volume due to application behavior for the wave instance. */
-	float GetVolumeApp() const { return VolumeApp; }
-
 	/** Returns the weighted priority of the wave instance. */
 	float GetVolumeWeightedPriority() const;
+
+	/** Returns the volume due to application behavior for the wave instance. */
+	float GetVolumeApp() const { return VolumeApp; }
 
 	/** Checks whether wave is streaming and streaming is supported */
 	bool IsStreaming() const;
 
 	/** Returns the name of the contained USoundWave */
 	FString GetName() const;
+
+	/** Sets the envelope value of the wave instance. Only set if the wave instance is actually generating real audio with a source voice. Only implemented in the audio mixer. */
+	void SetEnvelopeValue(const float InEnvelopeValue) { EnvelopValue = InEnvelopeValue; }
+
+	/** Gets the envelope value of the waveinstance. Only returns non-zero values if it's a real voice. Only implemented in the audio mixer. */
+	float GetEnvelopeValue() const { return EnvelopValue; }
+
 };
 
 inline uint32 GetTypeHash(FWaveInstance* A) { return A->TypeHash; }
@@ -696,7 +722,10 @@ public:
 	/** Returns the source's playback percent. */
 	ENGINE_API virtual float GetPlaybackPercent() const;
 
-	void NotifyPlaybackPercent();
+	/** Returns the source's envelope at the callback block rate. Only implemented in audio mixer. */
+	ENGINE_API virtual float GetEnvelopeValue() const { return 0.0f; };
+
+	void NotifyPlaybackData();
 
 protected:
 
@@ -850,6 +879,9 @@ public:
 
 	ENGINE_API void ReportImportFailure() const;
 };
+
+/** Utility to serialize raw PCM data into a wave file. */
+ENGINE_API void SerializeWaveFile(TArray<uint8>& OutWaveFileData, const uint8* InPCMData, const int32 NumBytes, const int32 NumChannels, const int32 SampleRate);
 
 /**
  * Brings loaded sounds up to date for the given platforms (or all platforms), and also sets persistent variables to cover any newly loaded ones.

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "NiagaraCommon.h"
@@ -25,7 +25,7 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere, Category = "Curve", meta=(AllowedClasses = CurveLinearColor))
-	FStringAssetReference CurveToCopy;
+	FSoftObjectPath CurveToCopy;
 #endif
 
 	UPROPERTY(EditAnywhere, Category = "Curve")
@@ -40,7 +40,6 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Curve")
 	FRichCurve AlphaCurve;
 
-
 	//UObject Interface
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
@@ -49,23 +48,34 @@ public:
 #endif
 	//UObject Interface End
 
+	enum
+	{
+		CurveLUTNumElems = 4,
+		CurveLUTMax = (CurveLUTWidth * CurveLUTNumElems) - 1,
+	};
+
 	void UpdateLUT();
 
 	virtual void GetFunctions(TArray<FNiagaraFunctionSignature>& OutFunctions)override;
 	virtual FVMExternalFunction GetVMExternalFunction(const FVMExternalFunctionBindingInfo& BindingInfo, void* InstanceData)override;
 
-	template<typename XParamType>
+	template<typename UseLUT, typename XParamType>
 	void SampleCurve(FVectorVMContext& Context);
-
-	virtual bool CopyTo(UNiagaraDataInterface* Destination) const override;
 
 	virtual bool Equals(const UNiagaraDataInterface* Other) const override;
 
 	//~ UNiagaraDataInterfaceCurveBase interface
 	virtual void GetCurveData(TArray<FCurveData>& OutCurveData) override;
 
-	virtual bool GetFunctionHLSL(FString FunctionName, TArray<DIGPUBufferParamDescriptor> &Descriptors, FString &HLSLInterfaceID, FString &OutHLSL) override;
-	virtual void GetBufferDefinitionHLSL(FString DataInterfaceID, TArray<DIGPUBufferParamDescriptor> &BufferDescriptors, FString &OutHLSL) override;
+	virtual bool GetFunctionHLSL(const FName&  DefinitionFunctionName, FString InstanceFunctionName, TArray<FDIGPUBufferParamDescriptor> &Descriptors, FString &HLSLInterfaceID, FString &OutHLSL) override;
+	virtual void GetBufferDefinitionHLSL(FString DataInterfaceID, TArray<FDIGPUBufferParamDescriptor> &BufferDescriptors, FString &OutHLSL) override;
 	virtual TArray<FNiagaraDataInterfaceBufferData> &GetBufferDataArray() override;
-	virtual void SetupBuffers(TArray<DIGPUBufferParamDescriptor> &BufferDescriptors) override;
+	virtual void SetupBuffers(FDIBufferDescriptorStore &BufferDescriptors) override;
+
+protected:
+	virtual bool CopyToInternal(UNiagaraDataInterface* Destination) const override;
+
+private:
+	template<typename UseLUT>
+	FORCEINLINE_DEBUGGABLE FLinearColor SampleCurveInternal(float X);
 };

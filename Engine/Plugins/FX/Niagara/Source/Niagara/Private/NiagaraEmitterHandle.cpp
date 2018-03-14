@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraEmitterHandle.h"
 #include "NiagaraSystem.h"
@@ -6,14 +6,17 @@
 #include "NiagaraScriptSourceBase.h"
 #include "NiagaraCommon.h"
 #include "NiagaraDataInterface.h"
+#include "NiagaraModule.h"
+
+#include "Modules/ModuleManager.h"
 
 const FNiagaraEmitterHandle FNiagaraEmitterHandle::InvalidHandle;
 
-FNiagaraEmitterHandle::FNiagaraEmitterHandle() 
-	:
+FNiagaraEmitterHandle::FNiagaraEmitterHandle() :
 #if WITH_EDITORONLY_DATA
-	Source(nullptr)
-	,
+	Source(nullptr),
+	LastMergedSource(nullptr),
+	bIsolated(false),
 #endif
 	Instance(nullptr)
 {
@@ -26,20 +29,26 @@ FNiagaraEmitterHandle::FNiagaraEmitterHandle(UNiagaraEmitter& Emitter)
 	, Name(TEXT("Emitter"))
 #if WITH_EDITORONLY_DATA
 	, Source(&Emitter)
+	, LastMergedSource(&Emitter)
+	, bIsolated(false)
 #endif
 	, Instance(&Emitter)
 {
+	
 }
 
 #if WITH_EDITORONLY_DATA
-FNiagaraEmitterHandle::FNiagaraEmitterHandle(const UNiagaraEmitter& InSourceEmitter, FName InName, UNiagaraSystem& InOuterSystem)
+FNiagaraEmitterHandle::FNiagaraEmitterHandle(UNiagaraEmitter& InSourceEmitter, FName InName, UNiagaraSystem& InOuterSystem)
 	: Id(FGuid::NewGuid())
 	, IdName(*Id.ToString())
 	, bIsEnabled(true)
 	, Name(InName)
 	, Source(&InSourceEmitter)
-	, Instance(InSourceEmitter.MakeRecursiveDeepCopy(&InOuterSystem))
+	, LastMergedSource(Cast<UNiagaraEmitter>(StaticDuplicateObject(Source, &InOuterSystem)))
+	, bIsolated(false)
+	, Instance(Cast<UNiagaraEmitter>(StaticDuplicateObject(Source, &InOuterSystem)))
 {
+	Instance->SetUniqueEmitterName(Name.ToString());
 }
 
 FNiagaraEmitterHandle::FNiagaraEmitterHandle(const FNiagaraEmitterHandle& InHandleToDuplicate, FName InDuplicateName, UNiagaraSystem& InDuplicateOwnerSystem)
@@ -48,8 +57,14 @@ FNiagaraEmitterHandle::FNiagaraEmitterHandle(const FNiagaraEmitterHandle& InHand
 	, bIsEnabled(InHandleToDuplicate.bIsEnabled)
 	, Name(InDuplicateName)
 	, Source(InHandleToDuplicate.Source)
-	, Instance(InHandleToDuplicate.Instance->MakeRecursiveDeepCopy(&InDuplicateOwnerSystem))
+	, LastMergedSource(InHandleToDuplicate.LastMergedSource != nullptr ? Cast<UNiagaraEmitter>(StaticDuplicateObject(InHandleToDuplicate.LastMergedSource, &InDuplicateOwnerSystem)) : nullptr)
+	, bIsolated(false)
+	, Instance(Cast<UNiagaraEmitter>(StaticDuplicateObject(InHandleToDuplicate.Instance, &InDuplicateOwnerSystem)))
 {
+	// Clear stand alone and public flags from the referenced emitters since they are not assets.
+	Instance->ClearFlags(RF_Standalone | RF_Public);
+	Instance->SetUniqueEmitterName(Name.ToString());
+	LastMergedSource->ClearFlags(RF_Standalone | RF_Public);
 }
 #endif
 
@@ -73,9 +88,30 @@ FName FNiagaraEmitterHandle::GetName() const
 	return Name;
 }
 
-void FNiagaraEmitterHandle::SetName(FName InName)
+void FNiagaraEmitterHandle::SetName(FName InName, UNiagaraSystem& InOwnerSystem)
 {
-	Name = InName;
+	if (InName == Name)
+	{
+		return;
+	}
+
+	FString TempNameString = InName.ToString();
+	TempNameString.ReplaceInline(TEXT(" "), TEXT("_"));
+	TempNameString.ReplaceInline(TEXT("\t"), TEXT("_"));
+	InName = *TempNameString;
+
+	TSet<FName> OtherEmitterNames;
+	for (const FNiagaraEmitterHandle& OtherEmitterHandle : InOwnerSystem.GetEmitterHandles())
+	{
+		if (OtherEmitterHandle.GetId() != GetId())
+		{
+			OtherEmitterNames.Add(OtherEmitterHandle.GetName());
+		}
+	}
+	FName UniqueName = FNiagaraUtilities::GetUniqueName(InName, OtherEmitterNames);
+
+	Name = UniqueName;
+	Instance->SetUniqueEmitterName(Name.ToString());
 }
 
 bool FNiagaraEmitterHandle::GetIsEnabled() const
@@ -107,57 +143,25 @@ FString FNiagaraEmitterHandle::GetUniqueInstanceName()const
 	return Instance->GetUniqueEmitterName();
 }
 
-void FNiagaraEmitterHandle::SetInstance(UNiagaraEmitter* InInstance)
-{
-	Instance = InInstance;
-}
 #if WITH_EDITORONLY_DATA
-
-void FNiagaraEmitterHandle::ResetToSource()
-{
-	UObject* Outer = GetInstance()->GetOuter();
-	Instance = nullptr; // Clear out our reference to this object first..
-	Instance = GetSource()->MakeRecursiveDeepCopy(Outer);
-}
-
-void CopyParameterValues(UNiagaraScript* Script, UNiagaraScript* PreviousScript)
-{
-	for (FNiagaraVariable& InputParameter : Script->Parameters.Parameters)
-	{
-		for (FNiagaraVariable& PreviousInputParameter : PreviousScript->Parameters.Parameters)
-		{
-			if (PreviousInputParameter.IsDataAllocated())
-			{
-				if (InputParameter.GetName() == PreviousInputParameter.GetName() &&
-					InputParameter.GetType() == PreviousInputParameter.GetType())
-				{
-					InputParameter.AllocateData();
-					PreviousInputParameter.CopyTo(InputParameter.GetData());
-				}
-			}
-		}
-	}
-	
-	for (FNiagaraScriptDataInterfaceInfo& InputInfo : Script->DataInterfaceInfo)
-	{
-		for (FNiagaraScriptDataInterfaceInfo&  PreviousInputInfo : PreviousScript->DataInterfaceInfo)
-		{
-			if (InputInfo.Name == PreviousInputInfo.Name &&
-				InputInfo.DataInterface->GetClass() == PreviousInputInfo.DataInterface->GetClass())
-			{
-				PreviousInputInfo.CopyTo(&InputInfo, Script->GetOuter());
-			}
-		}
-	}
-}
 
 bool FNiagaraEmitterHandle::IsSynchronizedWithSource() const
 {
-	if (Instance && Source && Source->ChangeId.IsValid() && Instance->ChangeId.IsValid())
+	if (Source == nullptr || LastMergedSource == nullptr)
 	{
-		return Instance->ChangeId == Source->ChangeId;		
+		// If either the source or last merged sources is missing, then we're not synchronized.  The
+		// merge logic will detect this and print an appropriate message to the log.
+		return false;
 	}
-	return false;
+
+	if (Source->GetChangeId().IsValid() == false ||
+		LastMergedSource->GetChangeId().IsValid() == false)
+	{
+		// If any of the change Ids aren't valid then we assume we're out of sync.
+		return false;
+	}
+
+	return Source->GetChangeId() == LastMergedSource->GetChangeId();
 }
 
 bool FNiagaraEmitterHandle::NeedsRecompile() const
@@ -167,7 +171,7 @@ bool FNiagaraEmitterHandle::NeedsRecompile() const
 
 	for (UNiagaraScript* Script : Scripts)
 	{
-		if (!Script->AreScriptAndSourceSynchronized())
+		if (Script->IsCompilable() && !Script->AreScriptAndSourceSynchronized())
 		{
 			return true;
 		}
@@ -175,105 +179,60 @@ bool FNiagaraEmitterHandle::NeedsRecompile() const
 	return false;
 }
 
-bool FNiagaraEmitterHandle::RefreshFromSource()
+void FNiagaraEmitterHandle::ConditionalPostLoad()
 {
-	// TODO: Update this to support events.
-	UNiagaraScript* PreviousInstanceSpawnScript = Instance->SpawnScriptProps.Script;
-	UNiagaraScript* PreviousInstanceUpdateScript = Instance->UpdateScriptProps.Script;
-	TMap<const UObject*, UObject*> ExistingConversions;
+	if (Source != nullptr)
+	{
+		Source->ConditionalPostLoad();
+	}
+	if (LastMergedSource != nullptr)
+	{
+		LastMergedSource->ConditionalPostLoad();
+	}
+	Instance->ConditionalPostLoad();
+}
 
+INiagaraModule::FMergeEmitterResults FNiagaraEmitterHandle::MergeSourceChanges()
+{
 	if (Source == nullptr)
 	{
-		return false;
+		// If we don't have a copy of the source emitter, this emitter can't safely be merged.
+		INiagaraModule::FMergeEmitterResults MergeResults;
+		MergeResults.bSucceeded = false;
+		MergeResults.bModifiedGraph = false;
+		MergeResults.ErrorMessages.Add(NSLOCTEXT("NiagaraEmitterHandle", "NoSourceErrorMessage", "This emitter has no 'Source' so changes can't be merged in."));
+		return MergeResults;
 	}
 
-	// First we need to deep copy the graph, which is shared amongst children
-	UNiagaraScriptSourceBase* GraphSource = Source->GraphSource->MakeRecursiveDeepCopy(Instance, ExistingConversions);
-	ExistingConversions.Add(Source->GraphSource, GraphSource);
-
-	// The script graphs will look up from ExistingConversions
-	UNiagaraScript* NewSpawnScript = Source->SpawnScriptProps.Script->MakeRecursiveDeepCopy(Instance, ExistingConversions);
-	UNiagaraScript* NewUpdateScript = Source->UpdateScriptProps.Script->MakeRecursiveDeepCopy(Instance, ExistingConversions);
-
-	if (NewSpawnScript->GetLastCompileStatus() == ENiagaraScriptCompileStatus::NCS_UpToDate && NewUpdateScript->GetLastCompileStatus() == ENiagaraScriptCompileStatus::NCS_UpToDate)
+	if (LastMergedSource == nullptr)
 	{
-		Instance->GraphSource = GraphSource;
-		Instance->ChangeId = Source->ChangeId;
-		Instance->SpawnScriptProps.Script = NewSpawnScript;
-		Instance->UpdateScriptProps.Script = NewUpdateScript;
-		
-		// We may have overridden the interpolated spawn script value from the default. If so, this requires
-		// a recompile.
-		bool bNeedRecompile = false;
-		if ((int32)Instance->SpawnScriptProps.Script->IsInterpolatedParticleSpawnScript() != Instance->bInterpolatedSpawning)
-		{
-			Instance->SpawnScriptProps.Script->SetUsage(ENiagaraScriptUsage::ParticleSpawnScriptInterpolated);
-			bNeedRecompile = true;
-		}
-
-		int32 NumDifference = Source->EventHandlerScriptProps.Num() - Instance->EventHandlerScriptProps.Num();
-		if (NumDifference < 0)
-		{
-			Instance->EventHandlerScriptProps.SetNum(Source->EventHandlerScriptProps.Num());
-		}
-		else if (NumDifference > 0)
-		{
-			Instance->EventHandlerScriptProps.AddDefaulted(NumDifference);
-		}
-		check(Source->EventHandlerScriptProps.Num() == Instance->EventHandlerScriptProps.Num());
-
-		for (int32 i = 0; i < Source->EventHandlerScriptProps.Num(); i++)
-		{
-			if (Instance->EventHandlerScriptProps[i].Script == nullptr)
-			{
-				Instance->EventHandlerScriptProps[i] = Source->EventHandlerScriptProps[i];
-				Instance->EventHandlerScriptProps[i].Script = Source->EventHandlerScriptProps[i].Script->MakeRecursiveDeepCopy(Instance, ExistingConversions);
-				check(Instance->EventHandlerScriptProps[i].Script->GetSource() == Instance->GraphSource);
-
-			}
-			else if (Source->EventHandlerScriptProps[i].Script != nullptr && Source->GraphSource == Source->EventHandlerScriptProps[i].Script->GetSource())
-			{
-				// Make sure that we copy all required variables and update our bytecode too.
-				Instance->EventHandlerScriptProps[i].Script = Source->EventHandlerScriptProps[i].Script->MakeRecursiveDeepCopy(Instance, ExistingConversions);
-				check(Instance->EventHandlerScriptProps[i].Script->GetSource() == Instance->GraphSource);
-			}
-		}
-
-		if (bNeedRecompile)
-		{
-			TArray<ENiagaraScriptCompileStatus> OutScriptStatuses;
-			TArray<FString> OutGraphLevelErrorMessages;
-			TArray<FString> PathNames;
-			TArray<UNiagaraScript*> Scripts;
-			Instance->CompileScripts(OutScriptStatuses, OutGraphLevelErrorMessages, PathNames, Scripts);
-
-			//ensure that we are now sync'ed with source
-			Instance->ChangeId = Source->ChangeId;
-		}
-
-		// We wait until after the potential recompile above to copy the old values over because
-		// the script parameters array is also written by the CompileScripts call.
-		CopyParameterValues(Instance->SpawnScriptProps.Script, PreviousInstanceSpawnScript);
-		CopyParameterValues(Instance->UpdateScriptProps.Script, PreviousInstanceUpdateScript);
-		check(Instance->SpawnScriptProps.Script->GetSource() == Instance->GraphSource);
-		check(Instance->UpdateScriptProps.Script->GetSource() == Instance->GraphSource);
-
-		UE_LOG(LogNiagara, Log, TEXT("Successful refresh from source %s"), *Instance->GetFullName());
-		check((int32)Instance->SpawnScriptProps.Script->IsInterpolatedParticleSpawnScript() == Instance->bInterpolatedSpawning);
-
-		Instance->SpawnScriptProps.InitDataSetAccess();
-		Instance->UpdateScriptProps.InitDataSetAccess();
-		for (int32 j = 0; j < Instance->EventHandlerScriptProps.Num(); j++)
-		{
-			Instance->EventHandlerScriptProps[j].InitDataSetAccess();
-		}
-		
-		return true;
+		// If we don't have a copy of the last merged source emitter, this emitter can't safely be
+		// merged.
+		INiagaraModule::FMergeEmitterResults MergeResults;
+		MergeResults.bSucceeded = false;
+		MergeResults.bModifiedGraph = false;
+		MergeResults.ErrorMessages.Add(NSLOCTEXT("NiagaraEmitterHandle", "NoLastMergedSourceErrorMessage", "This emitter has no 'LastMergedSource' so changes can't be merged in."));
+		return MergeResults;
 	}
-	else
+
+	INiagaraModule& NiagaraModule = FModuleManager::Get().GetModuleChecked<INiagaraModule>("Niagara");
+	INiagaraModule::FMergeEmitterResults MergeResults = NiagaraModule.MergeEmitter(*Source, *LastMergedSource, *Instance);
+	if (MergeResults.bSucceeded)
 	{
-		UE_LOG(LogNiagara, Warning, TEXT("Failed to refresh from source %s"), *Instance->GetFullName());
+		UObject* Outer = Instance->GetOuter();
+		Instance = MergeResults.MergedInstance;
+
+		// Rename the merged instance into this package with the correct handle name and then clear it's stand alone and public flags since it's not a root asset.
+		FName NewInstanceName = MakeUniqueObjectName(Outer, UNiagaraEmitter::StaticClass(), Name);
+		Instance->Rename(*NewInstanceName.ToString(), Outer, REN_ForceNoResetLoaders);
+		Instance->ClearFlags(RF_Standalone | RF_Public);
+		Instance->SetUniqueEmitterName(Name.ToString());
+
+		// Update the last merged source and clear it's stand alone and public flags since it's not an asset.
+		LastMergedSource = CastChecked<UNiagaraEmitter>(StaticDuplicateObject(Source, Outer));
+		LastMergedSource->ClearFlags(RF_Standalone | RF_Public);
 	}
-	return false;
+	return MergeResults;
 }
+
 #endif

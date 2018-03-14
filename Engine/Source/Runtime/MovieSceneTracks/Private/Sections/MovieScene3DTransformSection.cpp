@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Sections/MovieScene3DTransformSection.h"
 #include "UObject/StructOnScope.h"
@@ -107,7 +107,12 @@ UMovieScene3DTransformSection::UMovieScene3DTransformSection(const FObjectInitia
 	, Show3DTrajectory(EShow3DTrajectory::EST_OnlyWhenSelected)
 #endif
 {
-	EvalOptions.EnableAndSetCompletionMode(GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToRestoreState ? EMovieSceneCompletionMode::KeepState : EMovieSceneCompletionMode::RestoreState);
+	EvalOptions.EnableAndSetCompletionMode
+		(GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToRestoreState ? 
+			EMovieSceneCompletionMode::KeepState : 
+			GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToProjectDefault ? 
+			EMovieSceneCompletionMode::RestoreState : 
+			EMovieSceneCompletionMode::ProjectDefault);
 
 	TransformMask = EMovieSceneTransformChannel::AllTransform;
 	BlendType = EMovieSceneBlendType::Absolute;

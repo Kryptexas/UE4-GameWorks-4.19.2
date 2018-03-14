@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -43,7 +43,7 @@ public:
 
 	virtual bool GetViewportRealtime(int32 ViewportUid, bool IsCurrentlyRealtime, bool IsMouseInsideViewport);
 
-	virtual void CreatePixelInspectorRequest(FIntPoint ScreenPosition, int32 ViewportUniqueId, FSceneInterface *SceneInterface, bool bInGameViewMode);
+	virtual void CreatePixelInspectorRequest(FVector2D InspectViewportUV, int32 ViewportUniqueId, FSceneInterface *SceneInterface, bool bInGameViewMode);
 
 	virtual void SetViewportInformation(int32 ViewportUniqueId, FIntPoint ViewportSize);
 
@@ -52,6 +52,10 @@ public:
 	virtual void RegisterTabSpawner(const TSharedPtr<FWorkspaceItem>& WorkspaceGroup);
 
 	virtual void UnregisterTabSpawner();
+	
+private:
+	
+	void OnTabClosed(TSharedRef<SDockTab> TabBeingClosed);
 
 private:
 	TSharedRef<SDockTab> MakePixelInspectorTab(const FSpawnTabArgs&);

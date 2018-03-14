@@ -16,18 +16,18 @@ Related: Engine/Animation/AnimBlueprints
 [TOC (start:2 end:2)]
 
 [EXCERPT:Intro]
-**Sync Groups** are to keep related animations that may have different lengths synchronized. For example, you may have a walk cycle and a run cycle that you would like to blend together so that the character can smoothly accelerate or decelerate. But what if these animations were different lengths, such as the walk being significantly longer than the run? In such a case, directly blending from one to the other would have unnatural results, an unsightly "beat" as the foot animation switches.
+**Sync Groups** keep related animations synchronized with each other, even if they have different lengths. For example, you may have a walk cycle and a run cycle that you would like to blend together so that the character can smoothly accelerate or decelerate. However, the walk cycle for a given character is usually significantly longer than the run cycle? In such a case, directly blending from one to the other would have unnatural results, like an unsightly "beat" as the foot animation switches.
 
-Sync Groups solve this problem by allowing one primary animation node to serve as the Leader, and all other related animations will simply scale their time length to match. Typically, the leader is the node with the greatest blend weight. As the weight blends and the follower's weight exceeds the leader, the follower becomes the leader. In this way, the two animations can work smoothly together offering a seamless transition from one motion to the next. 
+Sync Groups solve this problem by designating one primary animation node as the **Leader**, and scaling the lengths of all related animations to match the Leader's length. Typically, the Leader is the node with the greatest blend weight. As the weight blends and the follower's weight exceeds the Leader's, the follower becomes the Leader. In this way, the two animations can work smoothly together, offering a seamless transition from one motion to the next.
 
-It should be noted, however, that since the time of the animations is shifting, certain animation considerations become apparent. For instance, in the example of blending between different walk and run cycles, you would want to make sure your animations all started and ended on the same foot. Establishing these standards early will help everything blend much more smoothly!
+It should be noted, however, that since the time of the animations is shifting, there are certain animation considerations to take into account. For instance, in the example of blending between walk and run cycles, both animations should begin and end on the same foot. Establishing these standards early will help everything blend much more smoothly!
 [/EXCERPT:Intro]
 
 
 
 ## Group Roles: Leaders and Followers
 
-Sync Groups work off the concept of group roles, in which one animation is the "leader" while all other animations are "followers". 
+Sync Groups work with the concept of group roles, in which one animation is the "Leader" while all other animations are "followers". 
 
 | | |
 |---|---|
@@ -43,7 +43,8 @@ Leaders and followers are designated simply by which animation has the greater b
 |[INCLUDE:#walkanimationscaled] |In this instance, the blend weight for the run animation would be greater than the walk animation. Since they are in the same Sync Group, the walk scales down to match the length of the run animation.|
 |[INCLUDE:#runanimationscaled]|Here, the weighting has switched such that the walking animation is receiving a greater blend weight. This causes the run animation to scale up to match the length of the walk. | 
 
-<!---
+[COMMENT]
+-
 
 
 [EXCERPT:RunAnimation]
@@ -71,16 +72,17 @@ Leaders and followers are designated simply by which animation has the greater b
 [/EXCERPT:WalkAnimationScaled]
 
 [EXCERPT:LeaderList]
-* Provides the master animation length that is used by all followers
-* Executes all of its Notifies
+* Provides the master animation length that is used by all followers.
+* Executes all of its Notifies.
 [/EXCERPT:LeaderList]
 
 [EXCERPT:FollowerList]
-* Scales its animation length to match the leader
-* Has its Notifies suppressed, deferring instead to Leader's Notifies
+* Scales its animation length to match the Leader.
+* Has its Notifies suppressed, deferring instead to Leader's Notifies.
 [/EXCERPT:FollowerList]
 
----->
+--
+[/COMMENT]
 
 
 ## Setting a Sync Group
@@ -91,16 +93,17 @@ To set the Sync Group, select the animation node in the AnimGraph and look in th
 
 | Property | Description |
 |---|---|
-|**Group Name**|This is where you enter the name for you Sync Group. Generally, you will want all related animations that are meant to blend together (such as body motions for sneak, walk, run, sprint) to all be in the same Sync Group.|
-|**Group Role**|This is where you set the type of membership in the group (potential leader, always follower, etc...)|
+|**Group Name**|This is where the Sync Group can be set. Generally, you will want all related animations that are meant to blend together (such as body motions for sneak, walk, run, sprint) to be in the same Sync Group.|
+|**Group Role**|This is where you set the type of membership in the group. The available values are "Can Be Leader" (the default), "Always Leader", and "Never Leader".|
 
-<!---
+[COMMENT]
+-
 Group Role has 3 options:
-* Can Be Leader - This is the default setting. This means that if this animation has the greatest blend weight, then it can become the leader and other animations will scale to match its length.
-* Always Leader - If set, then this animation will always be the leader and all animations will always scale to match its length.
-* Never Leader - If set, then this animation can never be the leader and will always scale to match the next weighted animation.
-
---->
+* Can Be Leader - This is the default setting. This means that if this animation has the greatest blend weight, then it can become the Leader and other animations will scale to match its length.
+* Always Leader - If set, then this animation will always be the Leader and all animations will always scale to match its length.
+* Never Leader - If set, then this animation can never be the Leader and will always scale to match the next weighted animation.
+-
+[/COMMENT]
 
 
 [REGION:note]
@@ -109,7 +112,7 @@ Sync Groups can be set on AnimSequence and BlendSpace nodes within the AnimGraph
 
 ## Marker-Based Animation Syncing
 
-In addition to Sync Groups, animations can also be synchronized using markers within your animation. 
+In addition to Sync Groups, animations can be synchronized using markers within the animations.
 
 ![](AddSyncMarker.png)
 
@@ -117,13 +120,13 @@ To add a Sync Marker, inside the [](Engine/Animation/Sequences/Notifies) track o
 
 **Some elements to consider when working with Sync Markers:**
 
-* Only animations within the same Sync Group are synced and the leader drives the positions of followers within the same Sync Group. 
-* The play rate is always that of the master animation (play rate adjustment is currently not available). 
-* Only makers common to all animations within a group are synced. 
-	* For example, if one animation is missing the "Right Foot Down" makers, those markers will be ignored for all animations when determining that frame's position. 
-* Position is synced based on the relative position of the Leader with respect to its common markers. 
+* Only animations within the same Sync Group are synced, and the Leader drives the positions of followers within the same Sync Group.
+* The play rate is always that of the master animation (play rate adjustment is currently not available).
+* Only makers common to all animations within a group are synced.
+	* For example, if one animation is missing the "Right Foot Down" makers, those markers will be ignored for all animations when determining that frame's position.
+* Position is synced based on the relative position of the Leader with respect to its common markers.
 	* For example, if the Leader is 25% of the way between its left and right foot markers, the followers will be synced to 25% of the way of their respective left and right markers. 
-* Marker based sync is used automatically when animations in a Sync Group have enough matching markers otherwise the original scaled length syncing behavior is used. 
+* Marker based sync is used automatically when animations in a Sync Group have enough matching markers. Otherwise, the original scaled length syncing behavior is used. 
 * [AnimMontages](Engine/Animation/AnimMontage) also support marker-based sync while blending out, so you can transition back to other animations seamlessly.
 	* You can find the Sync Group setting [Asset Details](Engine/Animation/Persona/AnimAssetDetails) panel in the AnimMontage. 
 

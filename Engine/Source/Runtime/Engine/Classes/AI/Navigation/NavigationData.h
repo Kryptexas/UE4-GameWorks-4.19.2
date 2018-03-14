@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -553,7 +553,7 @@ public:
 	virtual void CleanUpAndMarkPendingKill();
 
 	FORCEINLINE bool IsRegistered() const { return bRegistered; }
-	void OnRegistered();
+	virtual void OnRegistered();
 	void OnUnregistered();
 	
 	FORCEINLINE uint16 GetNavDataUniqueID() const { return NavDataUniqueID; }
@@ -1006,5 +1006,5 @@ FORCEINLINE bool FPathFindingResult::IsPartial() const
 
 FORCEINLINE void FNavigationPath::SetNavigationDataUsed(const ANavigationData* const NavData)
 {
-	NavigationDataUsed = NavData;
+	NavigationDataUsed = MakeWeakObjectPtr(const_cast<ANavigationData*>(NavData));
 }

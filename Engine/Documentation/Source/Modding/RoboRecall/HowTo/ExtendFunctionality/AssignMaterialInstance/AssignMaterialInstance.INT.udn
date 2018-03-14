@@ -11,11 +11,15 @@ topic-image:Modding/RoboRecall/RoboRecall_Topic.png
 social-image:Modding/RoboRecall/RoboRecall_Social.png
 checkpoint:mod_extend
 
-<!-- Location: Modding/RoboRecall/Quickstarts/WeaponMod/3 -->
+[COMMENT:none]
+ Location: Modding/RoboRecall/Quickstarts/WeaponMod/3 
+[/COMMENT]
 
 [NAV]
 
-<!-- Title Image if Needed Here -->
+[COMMENT:none]
+ Title Image if Needed Here 
+[/COMMENT]
 
 Your custom pistol needs to know about the new dissolve Material in order to make use of it. You can assign it to your custom pistol to force it to be used.
 
@@ -25,14 +29,14 @@ Your custom pistol needs to know about the new dissolve Material in order to mak
 
 2. Select **GrenadeGunPistol(self)** in the **Components** panel
 
-	![image alt text](image_0.png)(w:302 h:253 convert:false)
+	![image alt text](image_0.png)(w:302 convert:false)
 
 3. In the Details panel search for **Dissolve** to easily find the **Dissolve Material** property.
 
 4. Click the dropdown menu for the  **Dissolve Material** property to show the Asset Picker and select **GrenadeGun_Dissolve_MI**. You can use the search box to quickly filter the list.
 
 	[REGION:raw]
-	![image alt text](image_1.png)(w:933 h:494 convert:false)
+	![image alt text](image_1.png)(w:933 convert:false)
 	[/REGION]
 
 5. In the Blueprint Editor toolbar, click **Compile** to update the Blueprint and click **Save** to preserve your changes.

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraSpriteRendererProperties.h"
 #include "NiagaraRenderer.h"
@@ -8,11 +8,16 @@
 #define LOCTEXT_NAMESPACE "UNiagaraSpriteRendererProperties"
 
 UNiagaraSpriteRendererProperties::UNiagaraSpriteRendererProperties()
-	: SubImageSize(1.0f, 1.0f)
-	, Alignment(ENiagaraSpriteAlignment::Unaligned)
+	: Alignment(ENiagaraSpriteAlignment::Unaligned)
 	, FacingMode(ENiagaraSpriteFacingMode::FaceCamera)
 	, CustomFacingVectorMask(EForceInit::ForceInitToZero)
+	, PivotInUVSpace(0.5f, 0.5f)
 	, SortMode(ENiagaraSortMode::SortNone)
+	, SubImageSize(1.0f, 1.0f)
+	, bSubImageBlend(false)
+	, bRemoveHMDRollInVR(false)
+	, MinFacingCameraBlendDistance(0.0f)
+	, MaxFacingCameraBlendDistance(0.0f)
 {
 }
 
@@ -57,6 +62,9 @@ const TArray<FNiagaraVariable>& UNiagaraSpriteRendererProperties::GetOptionalAtt
 		Attrs.Add(SYS_PARAM_PARTICLES_SPRITE_ALIGNMENT);
 		Attrs.Add(SYS_PARAM_PARTICLES_SUB_IMAGE_INDEX);
 		Attrs.Add(SYS_PARAM_PARTICLES_DYNAMIC_MATERIAL_PARAM);
+		Attrs.Add(SYS_PARAM_PARTICLES_CAMERA_OFFSET);
+		Attrs.Add(SYS_PARAM_PARTICLES_UV_SCALE);
+		Attrs.Add(SYS_PARAM_PARTICLES_MATERIAL_RANDOM);
 	}
 
 	return Attrs;

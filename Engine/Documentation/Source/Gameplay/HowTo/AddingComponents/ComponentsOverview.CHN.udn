@@ -16,9 +16,11 @@ order:13
 
 [REGION:buttonlist]
 * [](Gameplay\HowTo\AddingComponents\Blueprints)
-<!--
+[COMMENT:none]
+
 * [](Gameplay\HowTo\AddingComponents\Code)
--->
+
+[/COMMENT]
 [/REGION]
 
 

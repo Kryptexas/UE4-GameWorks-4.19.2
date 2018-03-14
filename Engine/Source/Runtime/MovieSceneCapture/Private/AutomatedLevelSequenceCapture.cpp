@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AutomatedLevelSequenceCapture.h"
 #include "MovieScene.h"
@@ -49,7 +49,7 @@ void UAutomatedLevelSequenceCapture::SetLevelSequenceAsset(FString AssetPath)
 
 void UAutomatedLevelSequenceCapture::AddFormatMappings(TMap<FString, FStringFormatArg>& OutFormatMappings, const FFrameMetrics& FrameMetrics) const
 {
-	OutFormatMappings.Add(TEXT("shot"), CachedState.CurrentShotName.ToString());
+	OutFormatMappings.Add(TEXT("shot"), CachedState.CurrentShotName);
 
 	const int32 FrameNumber = FMath::RoundToInt(CachedState.CurrentShotLocalTime * CachedState.Settings.FrameRate);
 	OutFormatMappings.Add(TEXT("shot_frame"), FString::Printf(TEXT("%0*d"), Settings.ZeroPadFrameNumbers, FrameNumber));
@@ -542,9 +542,9 @@ void UAutomatedLevelSequenceCapture::SequenceUpdated(const UMovieSceneSequencePl
 		if (Actor && Actor->SequencePlayer)
 		{
 			// If this is a new shot, set the state to shot warm up and pause on this frame until warmed up			
-			bool bHasMultipleShots = !PreviousState.CurrentShotName.IdenticalTo(PreviousState.MasterName);
+			bool bHasMultipleShots = PreviousState.CurrentShotName != PreviousState.MasterName;
 			bool bNewShot = bHasMultipleShots && PreviousState.ShotID != CachedState.ShotID;
-
+			
 			if (bNewShot && Actor->SequencePlayer->IsPlaying() && DelayBeforeWarmUp > 0)
 			{
 				CaptureState = ELevelSequenceCaptureState::Paused;

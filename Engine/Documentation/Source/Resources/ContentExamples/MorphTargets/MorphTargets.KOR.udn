@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:모프 타겟 콘텐츠 예제
 Crumbs: %ROOT%, Resources, Resources/ContentExamples
@@ -8,42 +8,11 @@ Related: Engine/Content/FBX/MorphTargets
 Related: Engine/Animation/Persona/MorphTargetPreviewer
 Related: Engine/Content/FBX
 Version: 4.9
+topic-image:MorphTargets_Compact.png
 
 [REGION:banner]
 ![](MorphTargets_Header.png)(convert:false)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/MorphTargets:title%](MorphTargets_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MorphTargets:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/MorphTargets:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/MorphTargets]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/MorphTargets:title%](MorphTargets_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/MorphTargets:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/MorphTargets]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 
 
 **MorphTargets** 맵 안에 제공되는 콘텐츠 예제는 **스켈레탈 메시** (및 아래 예제 1.2 에 나열된 애셋)와 함께 사용하는 법에 대한 데모입니다. **모프 타겟** 을 사용하면 **스켈레탈 메시** 의 스케일 측면이나 오브젝트끼리의 블렌딩이 가능합니다.

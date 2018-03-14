@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LazyObjectPtr.cpp: Guid-based lazy pointer to UObject
@@ -100,11 +100,6 @@ void FLazyObjectPtr::PossiblySerializeObjectGuid(UObject *Object, FArchive& Ar)
 		{
 			if (Ar.GetPortFlags() & PPF_DuplicateForPIE)
 			{
-				if (Object->GetName().StartsWith(TEXT("CorePointerTestBP3")))
-				{
-					static volatile int32 xx = 0;
-					xx++;
-				}
 				check(GPlayInEditorID != -1);
 				FGuid &FoundGuid = PIEGuidMap[GPlayInEditorID % MAX_PIE_INSTANCES].FindOrAdd(Guid.GetGuid());
 				if (!FoundGuid.IsValid())

@@ -18,7 +18,9 @@ Related:Engine/Animation/AnimBlueprints/AnimGraph
 Related:Engine/Animation/StateMachines
 topic-image:ModifyCurveNode.png
 
-<!--WB: Do need a TOC for this?-->
+[COMMENT:none]
+WB: Do need a TOC for this?
+[/COMMENT]
 
 **Modify Curve** 控制可用于公开 [动画曲线](Engine/Animation/Sequences/Curves) 数据。该数据可使用任意逻辑进行修改，使动画更为动态。 
 

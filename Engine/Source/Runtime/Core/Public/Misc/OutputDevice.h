@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,6 +7,9 @@
 #include "Logging/LogVerbosity.h"
 #include "Misc/CoreMiscDefines.h"
 #include "Misc/VarArgs.h"
+#include "Templates/IsValidVariadicFunctionArg.h"
+#include "Templates/AndOrNot.h"
+#include "Templates/IsArrayOrRefOfType.h"
 
 #if !PLATFORM_DESKTOP
 	// don't support colorized text on consoles
@@ -108,6 +111,8 @@ namespace ELogTimes
 	};
 }
 
+class FName;
+
 // An output device.
 class CORE_API FOutputDevice
 {
@@ -116,56 +121,25 @@ public:
 		 : bSuppressEventTag      (false)
 		 , bAutoEmitLineTerminator(true)
 	{}
-	virtual ~FOutputDevice(){}
-
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 
 	FOutputDevice(FOutputDevice&&) = default;
 	FOutputDevice(const FOutputDevice&) = default;
 	FOutputDevice& operator=(FOutputDevice&&) = default;
 	FOutputDevice& operator=(const FOutputDevice&) = default;
 
-#else
-
-	FORCEINLINE FOutputDevice(FOutputDevice&& Other)
-		 : bSuppressEventTag      (Other.bSuppressEventTag)
-		 , bAutoEmitLineTerminator(Other.bAutoEmitLineTerminator)
-	{
-	}
-
-	FORCEINLINE FOutputDevice(const FOutputDevice& Other)
-		 : bSuppressEventTag      (Other.bSuppressEventTag)
-		 , bAutoEmitLineTerminator(Other.bAutoEmitLineTerminator)
-	{
-	}
-
-	FORCEINLINE FOutputDevice& operator=(FOutputDevice&& Other)
-	{
-		bSuppressEventTag       = Other.bSuppressEventTag;
-		bAutoEmitLineTerminator = Other.bAutoEmitLineTerminator;
-		return *this;
-	}
-
-	FORCEINLINE FOutputDevice& operator=(const FOutputDevice& Other)
-	{
-		bSuppressEventTag       = Other.bSuppressEventTag;
-		bAutoEmitLineTerminator = Other.bAutoEmitLineTerminator;
-		return *this;
-	}
-
-#endif
+	virtual ~FOutputDevice() = default;
 
 	// static helpers
 	DEPRECATED(4.12, "Please use FOutputDeviceHelper::VerbosityToString.")
 	static const TCHAR* VerbosityToString(ELogVerbosity::Type Verbosity);
 
 	DEPRECATED(4.12, "Please use FOutputDeviceHelper::FormatLogLine.")
-	static FString FormatLogLine(ELogVerbosity::Type Verbosity, const class FName& Category, const TCHAR* Message = nullptr, ELogTimes::Type LogTime = ELogTimes::None, const double Time = -1.0);
+	static FString FormatLogLine(ELogVerbosity::Type Verbosity, const FName& Category, const TCHAR* Message = nullptr, ELogTimes::Type LogTime = ELogTimes::None, const double Time = -1.0);
 
 
 	// FOutputDevice interface.
-	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) = 0;
-	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time )
+	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const FName& Category ) = 0;
+	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const FName& Category, const double Time )
 	{
 		Serialize( V, Verbosity, Category );
 	}
@@ -221,15 +195,51 @@ public:
 	// Simple text printing.
 	void Log( const TCHAR* S );
 	void Log( ELogVerbosity::Type Verbosity, const TCHAR* S );
-	void Log( const class FName& Category, ELogVerbosity::Type Verbosity, const TCHAR* Str );
+	void Log( const FName& Category, ELogVerbosity::Type Verbosity, const TCHAR* Str );
 	void Log( const FString& S );
 	void Log( const FText& S );
 	void Log( ELogVerbosity::Type Verbosity, const FString& S );
-	void Log( const class FName& Category, ELogVerbosity::Type Verbosity, const FString& S );
+	void Log( const FName& Category, ELogVerbosity::Type Verbosity, const FString& S );
 
-	VARARG_DECL( void, void, {}, Logf, VARARG_NONE, const TCHAR*, VARARG_NONE, VARARG_NONE );
-	VARARG_DECL( void, void, {}, Logf, VARARG_NONE, const TCHAR*, VARARG_EXTRA(ELogVerbosity::Type Verbosity), VARARG_EXTRA(Verbosity) );
-	VARARG_DECL( void, void, {}, CategorizedLogf, VARARG_NONE, const TCHAR*, VARARG_EXTRA(const class FName& Category) VARARG_EXTRA(ELogVerbosity::Type Verbosity), VARARG_EXTRA(Category) VARARG_EXTRA(Verbosity) );
+private:
+	void VARARGS LogfImpl(const TCHAR* Fmt, ...);
+	void VARARGS LogfImpl(ELogVerbosity::Type Verbosity, const TCHAR* Fmt, ...);
+	void VARARGS CategorizedLogfImpl(const FName& Category, ELogVerbosity::Type Verbosity, const TCHAR* Fmt, ...);
+
+public:
+	template <typename FmtType, typename... Types>
+	void Logf(const FmtType& Fmt, Types... Args)
+	{
+#if USE_FORMAT_STRING_TYPE_CHECKING
+		static_assert(TIsArrayOrRefOfType<FmtType, TCHAR>::Value, "Formatting string must be a TCHAR array.");
+#endif
+		static_assert(TAnd<TIsValidVariadicFunctionArg<Types>...>::Value, "Invalid argument(s) passed to FOutputDevice::Logf");
+
+		LogfImpl(Fmt, Args...);
+	}
+
+	template <typename FmtType, typename... Types>
+	void Logf(ELogVerbosity::Type Verbosity, const FmtType& Fmt, Types... Args)
+	{
+#if USE_FORMAT_STRING_TYPE_CHECKING
+		static_assert(TIsArrayOrRefOfType<FmtType, TCHAR>::Value, "Formatting string must be a TCHAR array.");
+#endif
+		static_assert(TAnd<TIsValidVariadicFunctionArg<Types>...>::Value, "Invalid argument(s) passed to FOutputDevice::Logf");
+
+		LogfImpl(Verbosity, Fmt, Args...);
+	}
+
+	template <typename FmtType, typename... Types>
+	void CategorizedLogf(const FName& Category, ELogVerbosity::Type Verbosity, const FmtType& Fmt, Types... Args)
+	{
+#if USE_FORMAT_STRING_TYPE_CHECKING
+		static_assert(TIsArrayOrRefOfType<FmtType, TCHAR>::Value, "Formatting string must be a TCHAR array.");
+#endif
+		static_assert(TAnd<TIsValidVariadicFunctionArg<Types>...>::Value, "Invalid argument(s) passed to FOutputDevice::CategorizedLogf");
+
+		CategorizedLogfImpl(Category, Verbosity, Fmt, Args...);
+	}
+
 protected:
 	/** Whether to output the 'Log: ' type front... */
 	bool bSuppressEventTag;

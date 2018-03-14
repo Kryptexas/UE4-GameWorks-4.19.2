@@ -60,7 +60,8 @@ Related:Engine/Deployment/UnrealFrontend
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:android]
 ## 设置移动打包向导配置文件
 
@@ -108,7 +109,8 @@ Related:Engine/Deployment/UnrealFrontend
 	![](MPW_Launch_APK_Profile.png)
 
 	[region:warning]
-	必须先打包项目文件然后才能对 DLC 进行编译。<!--先打包 DLC 然后再打包项目不可行。-->
+	必须先打包项目文件然后才能对 DLC 进行编译。<!--先打包 DLC 然后再打包项目不可行。
+[/COMMENT]
 	[/region]
 
 1. 按下 **Launch this Profile** 键后 Project Launcher 将开始打包进程。可在 Project Launcher 窗口中查看打包进程的进度。
@@ -189,7 +191,9 @@ Related:Engine/Deployment/UnrealFrontend
 	![](MPW_Launch_APK_Profile_iOS.png)
 
 	[region:warning]
-	必须先打包项目文件然后才能对 DLC 进行编译。<!--先打包 DLC 然后再打包项目不可行。-->
+	必须先打包项目文件然后才能对 DLC 进行编译。[COMMENT:none]
+先打包 DLC 然后再打包项目不可行。
+[/COMMENT]
 	[/region]
 
 1. 按下 **Launch this Profile** 键后 Project Launcher 将开始打包进程。可在 Project Launcher 窗口中查看打包进程的进度。

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightGridInjection.cpp
@@ -74,6 +74,7 @@ FForwardGlobalLightData::FForwardGlobalLightData()
 	DirectionalLightUseStaticShadowing = 0;
 	DirectionalLightStaticShadowmap = GBlackTexture->TextureRHI;
 	StaticShadowmapSampler = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
+	DirectionalLightShadowmapAtlasBufferSize = FVector4(0, 0, 0, 0);
 }
 
 int32 NumCulledLightsGridStride = 2;
@@ -175,17 +176,17 @@ class TLightGridInjectionCS : public FGlobalShader
 	DECLARE_SHADER_TYPE(TLightGridInjectionCS,Global)
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZE"), LightGridInjectionGroupSize);
-		FForwardLightingParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		FForwardCullingParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FForwardLightingParameters::ModifyCompilationEnvironment(Parameters.Platform, OutEnvironment);
+		FForwardCullingParameters::ModifyCompilationEnvironment(Parameters.Platform, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USE_LINKED_CULL_LIST"), bLightLinkedListCulling);
 	}
 
@@ -236,17 +237,17 @@ class FLightGridCompactCS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FLightGridCompactCS,Global)
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZE"), LightGridInjectionGroupSize);
-		FForwardLightingParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		FForwardCullingParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FForwardLightingParameters::ModifyCompilationEnvironment(Parameters.Platform, OutEnvironment);
+		FForwardCullingParameters::ModifyCompilationEnvironment(Parameters.Platform, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("MAX_CAPTURES"), GMaxNumReflectionCaptures);
 	}
 
@@ -373,10 +374,6 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 
 						if (LightProxy->IsInverseSquared())
 						{
-							// Correction for lumen units
-							LightParameters.LightColorAndFalloffExponent.X *= 16.0f;
-							LightParameters.LightColorAndFalloffExponent.Y *= 16.0f;
-							LightParameters.LightColorAndFalloffExponent.Z *= 16.0f;
 							LightParameters.LightColorAndFalloffExponent.W = 0;
 						}
 
@@ -479,6 +476,8 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 										{
 											GlobalLightData.DirectionalLightShadowmapAtlas = ShadowInfo->RenderTargets.DepthTarget->GetRenderTargetItem().ShaderResourceTexture.GetReference();
 											GlobalLightData.DirectionalLightDepthBias = ShadowInfo->GetShaderDepthBias();
+											FVector2D AtlasSize = ShadowInfo->RenderTargets.DepthTarget->GetDesc().Extent;
+											GlobalLightData.DirectionalLightShadowmapAtlasBufferSize = FVector4(AtlasSize.X, AtlasSize.Y, 1.0f / AtlasSize.X, 1.0f / AtlasSize.Y);
 										}
 									}
 								}
@@ -523,12 +522,6 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 					const uint32 PackedWInt = ((uint32)SimpleLightSourceLength16f.Encoded) | ((uint32)VolumetricScatteringIntensity16f.Encoded << 16);
 		
 					LightData.SpotAnglesAndSourceRadiusPacked = FVector4(-2, 1, 0, *(float*)&PackedWInt);
-
-					if( SimpleLight.Exponent == 0.0f )
-					{
-						// Correction for lumen units
-						LightData.LightColorAndFalloffExponent *= 16.0f;
-					}
 				}
 			}
 
@@ -547,7 +540,7 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 				if (View.ForwardLightingResources->ForwardLocalLightBuffer.NumBytes < NumBytesRequired)
 				{
 					View.ForwardLightingResources->ForwardLocalLightBuffer.Release();
-					View.ForwardLightingResources->ForwardLocalLightBuffer.Initialize(sizeof(FVector4), NumBytesRequired / sizeof(FVector4), PF_R32G32B32A32_UINT, BUF_Volatile);
+					View.ForwardLightingResources->ForwardLocalLightBuffer.Initialize(sizeof(FVector4), NumBytesRequired / sizeof(FVector4), PF_A32B32G32R32F, BUF_Volatile);
 				}
 
 				View.ForwardLightingResources->ForwardLocalLightBuffer.Lock();
@@ -568,9 +561,9 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 			FVector ZParams = GetLightGridZParams(View.NearClippingDistance, FarPlane + 10.f);
 			GlobalLightData.LightGridZParams = ZParams;
 
-			// @todo Metal lacks SRV/UAV format conversions in v1.1 and earlier.
+            // @todo Metal lacks efficient SRV/UAV format conversions.
 #if PLATFORM_MAC || PLATFORM_IOS
-			static bool const bNoFormatConversion = (IsMetalPlatform(GMaxRHIShaderPlatform) && RHIGetShaderLanguageVersion(GMaxRHIShaderPlatform) < 2);
+			static bool const bNoFormatConversion = (IsMetalPlatform(GMaxRHIShaderPlatform));
 			const uint64 NumIndexableLights = bNoFormatConversion ? (1llu << (sizeof(FLightIndexType32) * 8llu)) : (1llu << (sizeof(FLightIndexType) * 8llu));
 #else
 			const uint64 NumIndexableLights = 1llu << (sizeof(FLightIndexType) * 8llu);
@@ -590,9 +583,9 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 			View.ForwardLightingResources->ForwardGlobalLightData = TUniformBufferRef<FForwardGlobalLightData>::CreateUniformBufferImmediate(GlobalLightData, UniformBuffer_SingleFrame);
 		}
 
-		// @todo Metal lacks SRV/UAV format conversions in v1.1 and earlier.
+		// @todo Metal lacks efficient SRV/UAV format conversions.
 #if PLATFORM_MAC || PLATFORM_IOS
-		static bool const bNoFormatConversion = (IsMetalPlatform(GMaxRHIShaderPlatform) && RHIGetShaderLanguageVersion(GMaxRHIShaderPlatform) < 2);
+		static bool const bNoFormatConversion = (IsMetalPlatform(GMaxRHIShaderPlatform));
 		const SIZE_T LightIndexTypeSize = bNoFormatConversion ? sizeof(FLightIndexType32) : sizeof(FLightIndexType);
 #else
 		const SIZE_T LightIndexTypeSize = sizeof(FLightIndexType);

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_SetFieldsInStruct.h"
 #include "UObject/StructOnScope.h"
@@ -123,15 +123,16 @@ UK2Node_SetFieldsInStruct::UK2Node_SetFieldsInStruct(const FObjectInitializer& O
 
 void UK2Node_SetFieldsInStruct::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-	if (Schema && StructType)
+	if (StructType)
 	{
-		CreatePin(EGPD_Input, Schema->PC_Exec, FString(), nullptr, Schema->PN_Execute);
-		CreatePin(EGPD_Output, Schema->PC_Exec, FString(), nullptr, Schema->PN_Then);
+		CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Execute);
+		CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Then);
 
-		UEdGraphPin* InPin = CreatePin(EGPD_Input, Schema->PC_Struct, FString(), StructType, SetFieldsInStructHelper::StructRefPinName(), EPinContainerType::None, true);
+		UEdGraphNode::FCreatePinParams PinParams;
+		PinParams.bIsReference = true;
 
-		UEdGraphPin* OutPin = CreatePin(EGPD_Output, Schema->PC_Struct, FString(), StructType, SetFieldsInStructHelper::StructOutPinName(), EPinContainerType::None, true);
+		UEdGraphPin* InPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Struct, StructType, SetFieldsInStructHelper::StructRefPinName(), PinParams);
+		UEdGraphPin* OutPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Struct, StructType, SetFieldsInStructHelper::StructOutPinName(), PinParams);
 
 		// Input pin will forward the ref to the output, if the input value is not a reference connection, a copy is made and modified instead and provided as a reference until the function is called again.
 		InPin->AssignByRefPassThroughConnection(OutPin);
@@ -228,7 +229,7 @@ void UK2Node_SetFieldsInStruct::RemoveFieldPins(UEdGraphPin* Pin, EPinsToRemove 
 		bool bWasChanged = false;
 		for (FOptionalPinFromProperty& OptionalProperty : ShowPinForProperties)
 		{
-			const bool bSelected = (Pin->PinName == OptionalProperty.PropertyName.ToString());
+			const bool bSelected = (Pin->PinName == OptionalProperty.PropertyName);
 			const bool bHide = (bSelected && bHideSelected) || (!bSelected && bHideNotSelected);
 			if (OptionalProperty.bShowPin && bHide)
 			{

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerEdMode.h"
 #include "EditorViewportClient.h"
@@ -288,20 +288,16 @@ FTransform FSequencerEdMode::GetRefFrame(const TSharedPtr<FSequencer>& Sequencer
 									FVector ParentKeyPos;
 									FRotator ParentKeyRot;
 
-									const FMovieSceneEvaluationTemplateInstance* TemplateInstance = Sequencer->GetEvaluationTemplate().GetInstance(Sequencer->GetFocusedTemplateID());
-									if (TemplateInstance)
+									FMovieSceneEvaluationTemplate* Template = Sequencer->GetEvaluationTemplate().FindTemplate(Sequencer->GetFocusedTemplateID());
+									FMovieSceneEvaluationTrack* EvalTrack = Template ? Template->FindTrack(TransformTrack->GetSignature()) : nullptr;
+
+									if (EvalTrack)
 									{
-										for (FMovieSceneTrackIdentifier TrackID : TemplateInstance->Template->FindTracks(TransformTrack->GetSignature()))
-										{
-											if (const FMovieSceneEvaluationTrack* EvalTrack = TemplateInstance->Template->FindTrack(TrackID))
-											{
-												GetLocationAtTime(EvalTrack, ParentObject, KeyTime, ParentKeyPos, ParentKeyRot, Sequencer);
+										GetLocationAtTime(EvalTrack, ParentObject, KeyTime, ParentKeyPos, ParentKeyRot, Sequencer);
 
-												CurrentRefTM = FTransform(ParentKeyRot, ParentKeyPos);
+										CurrentRefTM = FTransform(ParentKeyRot, ParentKeyPos);
 
-												return CurrentRefTM * ParentRefTM;
-											}
-										}
+										return CurrentRefTM * ParentRefTM;
 									}
 								}
 							}
@@ -317,7 +313,7 @@ FTransform FSequencerEdMode::GetRefFrame(const TSharedPtr<FSequencer>& Sequencer
 	return RefTM;
 }
 
-void FSequencerEdMode::GetLocationAtTime(const FMovieSceneEvaluationTrack* Track, UObject* Object, float KeyTime, FVector& KeyPos, FRotator& KeyRot, const TSharedPtr<FSequencer>& Sequencer)
+void FSequencerEdMode::GetLocationAtTime(FMovieSceneEvaluationTrack* Track, UObject* Object, float KeyTime, FVector& KeyPos, FRotator& KeyRot, const TSharedPtr<FSequencer>& Sequencer)
 {
 	FMovieSceneInterrogationData InterrogationData;
 	Sequencer->GetEvaluationTemplate().CopyActuators(InterrogationData.GetAccumulator());
@@ -373,8 +369,8 @@ void FSequencerEdMode::DrawTransformTrack(const TSharedPtr<FSequencer>& Sequence
 		}
 	);
 	
-	const FMovieSceneEvaluationTemplateInstance* TemplateInstance = Sequencer->GetEvaluationTemplate().GetInstance(Sequencer->GetFocusedTemplateID());
-	if (!bShowTrajectory || !TemplateInstance || !TransformTrack->GetAllSections().ContainsByPredicate([](UMovieSceneSection* In){ return In->IsActive(); }))
+	FMovieSceneEvaluationTemplate* Template = Sequencer->GetEvaluationTemplate().FindTemplate(Sequencer->GetFocusedTemplateID());
+	if (!bShowTrajectory || !Template || !TransformTrack->GetAllSections().ContainsByPredicate([](UMovieSceneSection* In){ return In->IsActive(); }))
 	{
 		return;
 	}
@@ -382,14 +378,8 @@ void FSequencerEdMode::DrawTransformTrack(const TSharedPtr<FSequencer>& Sequence
 	FLinearColor TrackColor = TransformTrack->GetColorTint();
 
 	// Draw one line per-track (should only really ever be one)
-	for (FMovieSceneTrackIdentifier TrackID : TemplateInstance->Template->FindTracks(TransformTrack->GetSignature()))
+	if (FMovieSceneEvaluationTrack* EvalTrack = Template->FindTrack(TransformTrack->GetSignature()))
 	{
-		const FMovieSceneEvaluationTrack* EvalTrack = TemplateInstance->Template->FindTrack(TrackID);
-		if (!EvalTrack)
-		{
-			continue;
-		}
-
 		TArray<FTrajectoryKey> TrajectoryKeys = TransformTrack->GetTrajectoryData(Sequencer->GetLocalTime(), Sequencer->GetSettings()->GetTrajectoryPathCap());
 		for (TWeakObjectPtr<> WeakBinding : BoundObjects)
 		{

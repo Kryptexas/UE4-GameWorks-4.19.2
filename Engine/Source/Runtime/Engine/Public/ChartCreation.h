@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /** 
  * ChartCreation
@@ -50,13 +50,20 @@ public:
 		// Time elapsed since the last time the performance tracking system ran
 		double TrueDeltaSeconds;
 
-		// How long did we burn idling until this frame (e.g., when running faster than a frame rate target on a dedicated server)
+		// How long did we burn idling until this frame (FApp::GetIdleTime) (e.g., when running faster than a frame rate target on a dedicated server)
 		double IdleSeconds;
+
+		// How long did we burn idling beyond what we requested this frame (FApp::GetIdleTimeOvershoot). WaitTime we requested for the frame = IdleSeconds - IdleOvershootSeconds.
+		double IdleOvershootSeconds;
 
 		// Duration of each of the major functional units (GPU time is frequently inferred rather than actual)
 		double GameThreadTimeSeconds;
 		double RenderThreadTimeSeconds;
 		double GPUTimeSeconds;
+		/** Duration of the primary networking portion of the frame (that is, communication between server and clients). Currently happens on the game thread on both client and server. */
+		double GameDriverTickFlushTimeSeconds;
+		/** Duration of the replay networking portion of the frame. Can happen in a separate thread (not on servers). */
+		double DemoDriverTickFlushTimeSeconds;
 
 		// Should this frame be considered for histogram generation (controlled by t.FPSChart.MaxFrameDeltaSecsBeforeDiscarding)
 		bool bBinThisFrame;
@@ -76,9 +83,12 @@ public:
 			: DeltaSeconds(0.0)
 			, TrueDeltaSeconds(0.0)
 			, IdleSeconds(0.0)
+			, IdleOvershootSeconds(0.0)
 			, GameThreadTimeSeconds(0.0)
 			, RenderThreadTimeSeconds(0.0)
 			, GPUTimeSeconds(0.0)
+			, GameDriverTickFlushTimeSeconds(0.0)
+			, DemoDriverTickFlushTimeSeconds(0.0)
 			, bBinThisFrame(false)
 			, bGameThreadBound(false)
 			, bRenderThreadBound(false)
@@ -180,7 +190,7 @@ public:
 	void DumpFPSChart(const FString& InMapName);
 
 	// Dumps the FPS chart information to an analytic event param array.
-	void DumpChartToAnalyticsParams(const FString& InMapName, TArray<struct FAnalyticsEventAttribute>& InParamArray, bool bIncludeClientHWInfo) const;
+	void DumpChartToAnalyticsParams(const FString& InMapName, TArray<struct FAnalyticsEventAttribute>& InParamArray, bool bIncludeClientHWInfo, bool bIncludeHistograms = true) const;
 
 
 	// Dumps the FPS chart information to the log.

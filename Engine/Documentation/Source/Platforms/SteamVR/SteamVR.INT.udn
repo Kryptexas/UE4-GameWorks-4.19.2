@@ -1,26 +1,34 @@
-Title: SteamVR Development
+Title: Developing for SteamVR
 Crumbs:%ROOT%, Platforms
 Description:An introduction to getting started with SteamVR
 Availability:Public
 Navigation:platform
 Platform:SteamVR
 type:landing
+Version:4.17
 parent:Platforms/VR
 tags:VR
+Tags: Desktop VR
 tags:SteamVR
 tags:Platform
 Topic-image:SteamVRDevelopment_topic.png
 
-![](T_Vive_HMD.png)
+![](T_Vive_HMD.png)(w:1000)
 
-## Starting Out
+## Starting Out 
 
-[DIR(output:"listbutton" type:"quick start" parent:"Platforms/SteamVR")]
+[DIR(end:"1" output:"topic" type:"quick start" parent:"Platforms/SteamVR")]
 
-## SteamVR Topics
+## Samsung Gear VR Development
 
-[DIR(output:"listbutton" type:"overview" parent:"Platforms/SteamVR")]
-[DIR(output:"listbutton" type:"landing" parent:"Platforms/SteamVR")]
+[DIR(end:"1" output:"topic" type:"reference,overview" parent:"Platforms/SteamVR")]
+
+## Guides
+
+[DIR(output:"fancy" type:"how-to" skilllevel:"Beginner" parent:"Platforms/SteamVR" org:"flat")]
+[DIR(output:"fancy" type:"how-to" skilllevel:"Intermediate" parent:"Platforms/SteamVR" org:"flat")]
+[DIR(output:"fancy" type:"how-to" skilllevel:"Advanced" parent:"Platforms/SteamVR" org:"flat")]
+[DIR(output:"fancy" type:"how-to" skilllevel:"Expert" parent:"Platforms/SteamVR" org:"flat")]
 
 
 

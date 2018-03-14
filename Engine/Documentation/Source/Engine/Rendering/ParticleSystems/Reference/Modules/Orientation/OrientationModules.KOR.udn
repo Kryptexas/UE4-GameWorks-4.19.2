@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:Orientation 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -27,7 +27,8 @@ Axis Lock (축 고정)은 파티클을 주어진 축에 고정시키는 데 사�
 
 
 
-<!-------------Axis Lock Includes----------------
+[COMMENT:none]
+-----------Axis Lock Includes----------------
 #### Includes
 
 
@@ -49,4 +50,5 @@ Axis Lock (축 고정)은 파티클을 주어진 축에 고정시키는 데 사�
 [/EXCERPT:LockAxisFlags]
 
 
--------------Axis Lock Includes--------------->
+-------------Axis Lock Includes-------------
+[/COMMENT]

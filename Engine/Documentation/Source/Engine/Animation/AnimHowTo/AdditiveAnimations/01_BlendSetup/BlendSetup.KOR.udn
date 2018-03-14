@@ -1,29 +1,16 @@
-﻿INTSourceChangelist:3255885
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1 - 블렌딩할 애니메이션 구성
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:여기서는 플레이어 캐릭터를 업데이트하고 이동 애니메이션 위에 레이어로 놓을 애니메이션에 대한 애님 몽타주를 만들어 봅니다.
 version: 4.14
 skilllevel: Advanced
+parent:Engine/Animation/AnimHowTo/AdditiveAnimations
 type:how-to
+order:1
 tags:Animation
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[레이어 애니메이션 - 홈](Engine\Animation\AnimHowTo\AdditiveAnimations)
-	[/PARAM]
-	[PARAM:next]
-		[다음](Engine\Animation\AnimHowTo\AdditiveAnimations\02_CharacterBlueprintSetup)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 여기서는 기본 플레이어 캐릭터를 변경하고 이동 애니메이션 위에 레이어로 입힐 애니메이션에 대한 애님 몽타주를 생성합니다.
 
@@ -47,7 +34,7 @@ Animation Starter Pack 은 에픽 런처의 **마켓플레이스** 탭에서 무
 
 1.	**콘텐츠 브라우저** 에서 **Content/AnimStarterPack** 폴더를 엽니다.
 
-1.	**Fire_Shotgun_Ironsights** 애니메이션에 **우클릭** 한 다음 **생성** 을 선택하고 **애님 몽타** 를 생성합니다.
+1.	**Fire_Shotgun_Ironsights** 애니메이션에 **우클릭** 한 다음 **생성** 을 선택하고 **애님 몽타주** 를 생성합니다.
   
 	![](Animations2.png)
 	[REGION:note]
@@ -57,7 +44,7 @@ Animation Starter Pack 은 에픽 런처의 **마켓플레이스** 탭에서 무
 
 	![](Animations3.png)
 
-	그러면 **애님 슬롯 매니저** 가 열리며, 여기서 **슬롯**을 생성한 뒤 이름으로 호출하면 블렌딩하는 데 사용할 수 있습니다.
+	그러면 **애님 슬롯 매니저** 가 열리며, 여기서 **슬롯** 을 생성한 뒤 이름으로 호출하면 블렌딩하는 데 사용할 수 있습니다.
 
 1.	**슬롯 추가** 버튼을 클릭하고, 슬롯 이름을 **UpperBody** 로 한 다음 **저장** 합니다.
 
@@ -74,4 +61,5 @@ Animation Starter Pack 은 에픽 런처의 **마켓플레이스** 탭에서 무
 	이 몽타주를 **DefaultGroup.UpperBody** 에 연동시켰으니, 슬롯을 호출하여 재생시키는 것이 가능합니다.
 
 다음 섹션에서는 기본 플레이어 캐릭터를 변경하고 무기 발사 시점을 알아내기 위한 조정을 가하도록 하겠습니다.
-%Steps%
+
+[NAV]

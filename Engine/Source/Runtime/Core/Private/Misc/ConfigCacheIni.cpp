@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/DateTime.h"
@@ -19,6 +19,10 @@
 	#define INI_CACHE 1
 #else
 	#define INI_CACHE 0
+#endif
+
+#ifndef DISABLE_GENERATED_INI_WHEN_COOKED
+#define DISABLE_GENERATED_INI_WHEN_COOKED 0
 #endif
 
 DEFINE_LOG_CATEGORY(LogConfig);
@@ -174,6 +178,11 @@ static void CheckLongSectionNames(const TCHAR* Section, const FConfigFile* File)
 
 bool FConfigSection::HasQuotes( const FString& Test )
 {
+	if (Test.Len() < 2)
+	{
+		return false;
+	}
+
 	return Test.Left(1) == TEXT("\"") && Test.Right(1) == TEXT("\"");
 }
 
@@ -672,47 +681,8 @@ void FConfigFile::ProcessInputFileContents(const FString& Contents)
 				// If this line is delimited by quotes
 				if( *Value=='\"' )
 				{
-					FString PreprocessedValue = FString(Value).TrimQuotes().ReplaceQuotesWithEscapedQuotes();
-					const TCHAR* NewValue = *PreprocessedValue;
-
 					FString ProcessedValue;
-					//epic moelfke: fixed handling of escaped characters in quoted string
-					while (*NewValue && *NewValue != '\"')
-					{
-						if (*NewValue != '\\') // unescaped character
-						{
-							ProcessedValue += *NewValue++;
-						}
-						else if( *++NewValue == '\0')// escape character encountered at end
-						{
-							break;
-						}
-						else if (*NewValue == '\\') // escaped backslash "\\"
-						{
-							ProcessedValue += '\\';
-							NewValue++;
-						}
-						else if (*NewValue == '\"') // escaped double quote "\""
-						{
-							ProcessedValue += '\"';
-							NewValue++;
-						}
-						else if ( *NewValue == TEXT('n') )
-						{
-							ProcessedValue += TEXT('\n');
-							NewValue++;
-						}
-						else if( *NewValue == TEXT('u') && NewValue[1] && NewValue[2] && NewValue[3] && NewValue[4] )	// \uXXXX - UNICODE code point
-						{
-							ProcessedValue += (TCHAR)(FParse::HexDigit(NewValue[1])*(1<<12) + FParse::HexDigit(NewValue[2])*(1<<8) + FParse::HexDigit(NewValue[3])*(1<<4) + FParse::HexDigit(NewValue[4]));
-							NewValue += 5;
-						}
-						else if( NewValue[1] ) // some other escape sequence, assume it's a hex character value
-						{
-							ProcessedValue += (TCHAR)(FParse::HexDigit(NewValue[0])*16 + FParse::HexDigit(NewValue[1]));
-							NewValue += 2;
-						}
-					}
+					FParse::QuotedString(Value, ProcessedValue);
 
 					// Add this pair to the current FConfigSection
 					CurrentSection->Add(Start, *ProcessedValue);
@@ -797,6 +767,12 @@ bool FConfigFile::ShouldExportQuotedString(const FString& PropertyValue)
 		
 		// ... it contains unquoted '//' (interpreted as a comment when importing)
 		if ((ThisChar == TEXT('/') && NextChar == TEXT('/')) && !bIsWithinQuotes)
+		{
+			return true;
+		}
+
+		// ... it contains an unescaped new-line
+		if (!bEscapeNextChar && (NextChar == TEXT('\r') || NextChar == TEXT('\n')))
 		{
 			return true;
 		}
@@ -1117,9 +1093,6 @@ static void ClearHierarchyCache( const TCHAR* BaseIniName )
 #endif
 }
 
-/// This is a 4.18 hack. FConfigFile::ProcessPropertyAndWriteForDefaults needs a new parameter, but due to "no change to public headers" policy we cannot modify ConfigCacheIni.h
-EConfigFileHierarchy GProcessPropertyAndWriteForDefaults_IniCombineThreshold = EConfigFileHierarchy::NumHierarchyFiles;
-
 bool FConfigFile::Write( const FString& Filename, bool bDoRemoteWrite/* = true*/, const FString& InitialText/*=FString()*/ )
 {
 	if( !Dirty || NoSave || FParse::Param( FCommandLine::Get(), TEXT("nowrite")) || 
@@ -1128,6 +1101,9 @@ bool FConfigFile::Write( const FString& Filename, bool bDoRemoteWrite/* = true*/
 		return true;
 
 	FString Text = InitialText;
+
+	bool bAcquiredIniCombineThreshold = false;	// avoids extra work when writing multiple properties
+	EConfigFileHierarchy IniCombineThreshold = EConfigFileHierarchy::NumHierarchyFiles;
 
 	for( TIterator SectionIterator(*this); SectionIterator; ++SectionIterator )
 	{
@@ -1200,19 +1176,22 @@ bool FConfigFile::Write( const FString& Filename, bool bDoRemoteWrite/* = true*/
 
 					if( bIsADefaultIniWrite )
 					{
-						GProcessPropertyAndWriteForDefaults_IniCombineThreshold = EConfigFileHierarchy::NumHierarchyFiles;
-						// find the filename in ini hierarchy
-						FString IniName = FPaths::GetCleanFilename(Filename);
-						for (const auto& HierarchyFileIt : SourceIniHierarchy)
+						if (!bAcquiredIniCombineThreshold)
 						{
-							if (FPaths::GetCleanFilename(HierarchyFileIt.Value.Filename) == IniName)
+							// find the filename in ini hierarchy
+							FString IniName = FPaths::GetCleanFilename(Filename);
+							for (const auto& HierarchyFileIt : SourceIniHierarchy)
 							{
-								GProcessPropertyAndWriteForDefaults_IniCombineThreshold = HierarchyFileIt.Key;
-								break;
+								if (FPaths::GetCleanFilename(HierarchyFileIt.Value.Filename) == IniName)
+								{
+									IniCombineThreshold = HierarchyFileIt.Key;
+									break;
+								}
 							}
+
+							bAcquiredIniCombineThreshold = true;
 						}
-						ProcessPropertyAndWriteForDefaults(CompletePropertyToWrite, Text, SectionName, PropertyName.ToString());
-						GProcessPropertyAndWriteForDefaults_IniCombineThreshold = EConfigFileHierarchy::NumHierarchyFiles;
+						ProcessPropertyAndWriteForDefaults(IniCombineThreshold, CompletePropertyToWrite, Text, SectionName, PropertyName.ToString());
 					}
 					else
 					{
@@ -1541,7 +1520,7 @@ void FConfigFile::ProcessSourceAndCheckAgainstBackup()
 	}
 }
 
-void FConfigFile::ProcessPropertyAndWriteForDefaults( const TArray< FConfigValue >& InCompletePropertyToProcess, FString& OutText, const FString& SectionName, const FString& PropertyName )
+void FConfigFile::ProcessPropertyAndWriteForDefaults( EConfigFileHierarchy IniCombineThreshold, const TArray< FConfigValue >& InCompletePropertyToProcess, FString& OutText, const FString& SectionName, const FString& PropertyName )
 {
 	// Only process against a hierarchy if this config file has one.
 	if (SourceIniHierarchy.Num() > 0)
@@ -1568,7 +1547,7 @@ void FConfigFile::ProcessPropertyAndWriteForDefaults( const TArray< FConfigValue
 				// Combine everything up to the level we're writing, but not including it.
 				// Inclusion would result in a bad feedback loop where on subsequent writes 
 				// we would be diffing against the same config we've just written to.
-				if (HierarchyFileIt.Key < GProcessPropertyAndWriteForDefaults_IniCombineThreshold)
+				if (HierarchyFileIt.Key < IniCombineThreshold)
 				{
 					DefaultConfigFile.Combine(HierarchyFileIt.Value.Filename);
 				}
@@ -2848,7 +2827,10 @@ static bool GenerateDestIniFile(FConfigFile& DestConfigFile, const FString& Dest
 	{
 		return false;
 	}
-	LoadAnIniFile(DestIniFilename, DestConfigFile);
+	if (!FPlatformProperties::RequiresCookedData() || bAllowGeneratedINIs)
+	{
+		LoadAnIniFile(DestIniFilename, DestConfigFile);
+	}
 
 #if ALLOW_INI_OVERRIDE_FROM_COMMANDLINE
 	// process any commandline overrides
@@ -2924,6 +2906,10 @@ static bool GenerateDestIniFile(FConfigFile& DestConfigFile, const FString& Dest
 	{
 		// Regenerate the file.
 		bResult = LoadIniFileHierarchy(SourceIniHierarchy, DestConfigFile, bUseHierarchyCache);
+		if (DestConfigFile.SourceConfigFile)
+		{
+			delete DestConfigFile.SourceConfigFile;
+		}
 		DestConfigFile.SourceConfigFile = new FConfigFile( DestConfigFile );
 
 		// mark it as dirty (caller may want to save)
@@ -3260,16 +3246,32 @@ bool FConfigCacheIni::LoadExternalIniFile(FConfigFile& ConfigFile, const TCHAR* 
 	}
 	else
 	{
+#if DISABLE_GENERATED_INI_WHEN_COOKED
+		if (FCString::Strcmp(IniName, TEXT("GameUserSettings")) != 0)
+		{
+			// If we asked to disable ini when cooked, disable all ini files except GameUserSettings, which stores user preferences
+			bAllowGeneratedIniWhenCooked = false;
+			if (FPlatformProperties::RequiresCookedData())
+			{
+				ConfigFile.NoSave = true;
+			}
+		}
+#endif
 		FString DestIniFilename = GetDestIniFilename(IniName, Platform, GeneratedConfigDir);
 
-		GetSourceIniHierarchyFilenames( IniName, Platform, EngineConfigDir, SourceConfigDir, ConfigFile.SourceIniHierarchy, false );
+		GetSourceIniHierarchyFilenames(IniName, Platform, EngineConfigDir, SourceConfigDir, ConfigFile.SourceIniHierarchy, false);
 
-		if ( bForceReload )
+		if (bForceReload)
 		{
-			ClearHierarchyCache( IniName );
+			ClearHierarchyCache(IniName);
 		}
 
-		// Keep a record of the original settings
+		// Keep a record of the original settings, delete
+		if (ConfigFile.SourceConfigFile)
+		{
+			delete ConfigFile.SourceConfigFile;
+		}
+
 		ConfigFile.SourceConfigFile = new FConfigFile();
 
 		// now generate and make sure it's up to date (using IniName as a Base for an ini filename)
@@ -3303,16 +3305,16 @@ void FConfigCacheIni::LoadConsoleVariablesFromINI()
 {
 	FString ConsoleVariablesPath = FPaths::EngineDir() + TEXT("Config/ConsoleVariables.ini");
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !DISABLE_CHEAT_CVARS
 	// First we read from "../../../Engine/Config/ConsoleVariables.ini" [Startup] section if it exists
 	// This is the only ini file where we allow cheat commands (this is why it's not there for UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	ApplyCVarSettingsFromIni(TEXT("Startup"), *ConsoleVariablesPath, ECVF_SetByConsoleVariablesIni, true);
-#endif
+#endif // !DISABLE_CHEAT_CVARS
 
 	// We also apply from Engine.ini [ConsoleVariables] section
 	ApplyCVarSettingsFromIni(TEXT("ConsoleVariables"), *GEngineIni, ECVF_SetBySystemSettingsIni);
 
-		IConsoleManager::Get().CallAllConsoleVariableSinks();
+	IConsoleManager::Get().CallAllConsoleVariableSinks();
 }
 
 void FConfigFile::UpdateSections(const TCHAR* DiskFilename, const TCHAR* IniRootName/*=nullptr*/, const TCHAR* OverridePlatform/*=nullptr*/)
@@ -3381,6 +3383,10 @@ void FConfigFile::UpdateSections(const TCHAR* DiskFilename, const TCHAR* IniRoot
 		ClearHierarchyCache(IniRootName);
 
 		// Get a collection of the source hierachy properties
+		if (SourceConfigFile)
+		{
+			delete SourceConfigFile;
+		}
 		SourceConfigFile = new FConfigFile();
 
 		// now when Write it called below, it will diff against SourceIniHierarchy
@@ -3652,7 +3658,7 @@ CORE_API void OnSetCVarFromIniEntry(const TCHAR *IniFile, const TCHAR *Key, cons
 		}
 		else
 		{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !DISABLE_CHEAT_CVARS
 			if(bCheatFlag)
 			{
 				// We have one special cvar to test cheating and here we don't want to both the user of the engine
@@ -3662,7 +3668,7 @@ CORE_API void OnSetCVarFromIniEntry(const TCHAR *IniFile, const TCHAR *Key, cons
 						IniFile, Key);
 				}
 			}
-#endif
+#endif // !DISABLE_CHEAT_CVARS
 		}
 	}
 	else

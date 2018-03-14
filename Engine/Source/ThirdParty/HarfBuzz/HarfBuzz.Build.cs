@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 using System;
 using System.IO;
@@ -12,7 +12,7 @@ public class HarfBuzz : ModuleRules
 		// Can't be used without our dependencies
 		if (!Target.bCompileFreeType || !Target.bCompileICU)
 		{
-			Definitions.Add("WITH_HARFBUZZ=0");
+			PublicDefinitions.Add("WITH_HARFBUZZ=0");
 			return;
 		}
 
@@ -29,7 +29,7 @@ public class HarfBuzz : ModuleRules
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
-			Definitions.Add("WITH_HARFBUZZ=1");
+			PublicDefinitions.Add("WITH_HARFBUZZ=1");
 
 			string VSVersionFolderName = "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 			HarfBuzzLibPath += VSVersionFolderName + "/";
@@ -45,7 +45,7 @@ public class HarfBuzz : ModuleRules
 
 		else if (Target.Platform == UnrealTargetPlatform.HTML5 )
 		{
-			Definitions.Add("WITH_HARFBUZZ=1");
+			PublicDefinitions.Add("WITH_HARFBUZZ=1");
 
 			string OpimizationSuffix = "_Oz"; // i.e. bCompileForSize
 			if ( ! Target.bCompileForSize )
@@ -67,14 +67,14 @@ public class HarfBuzz : ModuleRules
 
 		else if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.IOS)
 		{
-			Definitions.Add("WITH_HARFBUZZ=1");
+			PublicDefinitions.Add("WITH_HARFBUZZ=1");
 
 			PublicAdditionalLibraries.Add(HarfBuzzLibPath + "libharfbuzz.a");
 		}
 
 		else if (Target.Platform == UnrealTargetPlatform.PS4)
 		{
-			Definitions.Add("WITH_HARFBUZZ=1");
+			PublicDefinitions.Add("WITH_HARFBUZZ=1");
 
 			string BuildTypeFolderName = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 				? "Debug"
@@ -87,7 +87,7 @@ public class HarfBuzz : ModuleRules
 
 		else if (Target.Platform == UnrealTargetPlatform.XboxOne)
 		{
-			Definitions.Add("WITH_HARFBUZZ=1");
+			PublicDefinitions.Add("WITH_HARFBUZZ=1");
 
 			string BuildTypeFolderName = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 				? "Debug"
@@ -100,7 +100,7 @@ public class HarfBuzz : ModuleRules
 
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
-			Definitions.Add("WITH_HARFBUZZ=1");
+			PublicDefinitions.Add("WITH_HARFBUZZ=1");
 
 			string BuildTypeFolderName = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 				? "Debug/"
@@ -116,7 +116,7 @@ public class HarfBuzz : ModuleRules
 
 		else
 		{
-			Definitions.Add("WITH_HARFBUZZ=0");
+			PublicDefinitions.Add("WITH_HARFBUZZ=0");
 		}
 	}
 }

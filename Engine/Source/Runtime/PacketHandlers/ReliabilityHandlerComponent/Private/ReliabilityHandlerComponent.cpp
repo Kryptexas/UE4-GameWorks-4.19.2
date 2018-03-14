@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ReliabilityHandlerComponent.h"
 #include "Modules/ModuleManager.h"
@@ -8,7 +8,8 @@ IMPLEMENT_MODULE(FReliabilityHandlerComponentModuleInterface, ReliabilityHandler
 
 // RELIABILITY
 ReliabilityHandlerComponent::ReliabilityHandlerComponent()
-: LocalPacketID(1)
+: HandlerComponent(FName(TEXT("ReliabilityHandlerComponent")))
+, LocalPacketID(1)
 , LocalPacketIDACKED(0)
 , RemotePacketID(0)
 , RemotePacketIDACKED(0)

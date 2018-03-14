@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	IOSPlatformMisc.h: iOS platform misc functions
@@ -31,6 +31,7 @@ struct CORE_API FIOSPlatformMisc : public FApplePlatformMisc
 	static bool DeleteStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName);
 	static void GetValidTargetPlatforms(class TArray<class FString>& TargetPlatformNames);
 	static bool HasActiveWiFiConnection();
+    static const TCHAR* GamePersistentDownloadDir();
 
 	static int GetAudioVolume();
 	static bool AreHeadphonesPluggedIn();

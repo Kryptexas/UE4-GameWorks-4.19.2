@@ -20,7 +20,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:tip] **アンリアルエンジン 4** 初心者の方は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このチュートリアルでは、プロジェクトの作成とプロジェクトに C++ コードを追加できることを前提にしています。[/REGION]
 
@@ -117,7 +117,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**Countdown.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -155,7 +155,7 @@ version:4.9
 
 
 		**Countdown.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_VTE.h"
 			#include "Countdown.h"
@@ -218,4 +218,4 @@ version:4.9
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

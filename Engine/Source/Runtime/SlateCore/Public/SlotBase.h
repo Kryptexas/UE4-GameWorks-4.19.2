@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,6 +18,9 @@ public:
 
 	FORCEINLINE_DEBUGGABLE void AttachWidget( const TSharedRef<SWidget>& InWidget )
 	{
+		// If we don't hold a reference here, ~SWidget() could called on the old widget before the assignment takes place
+		// The behavior of TShareRef is going to change in the near future to avoid this issue and this should then be reverted.
+		TSharedRef<SWidget> LocalWidget = Widget;
 		Widget = InWidget;
 	}
 

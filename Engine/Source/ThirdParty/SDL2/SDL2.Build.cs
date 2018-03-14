@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 
 public class SDL2 : ModuleRules
@@ -11,7 +11,7 @@ public class SDL2 : ModuleRules
 		string SDL2LibPath = SDL2Path + "lib/";
 
 		// assume SDL to be built with extensions
-		Definitions.Add("SDL_WITH_EPIC_EXTENSIONS=1");
+		PublicDefinitions.Add("SDL_WITH_EPIC_EXTENSIONS=1");
 
 		if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
@@ -44,7 +44,7 @@ public class SDL2 : ModuleRules
 
 			PublicAdditionalLibraries.Add(SDL2LibPath + "SDL2.lib");
 
-			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/SDL2/Win64/SDL2.dll"));
+			RuntimeDependencies.Add("$(EngineDir)/Binaries/ThirdParty/SDL2/Win64/SDL2.dll");
 			PublicDelayLoadDLLs.Add("SDL2.dll");
 		}
 

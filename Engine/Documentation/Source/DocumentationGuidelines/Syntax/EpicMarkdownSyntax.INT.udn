@@ -123,7 +123,9 @@ It was desirable to have the ability to provide some formatting instructions for
     [refepiclogo]: Logo_Epic-New.jpg "Here's a title"(w:50 h:50 a:left convert:true quality:75 fill:#000000)
 	This text is in a paragraph alongside the image. A special div element follows ending floating.
 	[REGION:clear]
-		<!-- clear float -->
+		[COMMENT]
+ clear float 
+[/COMMENT]
 	[/REGION]    
 	
 #### HTML Output
@@ -131,7 +133,9 @@ It was desirable to have the ability to provide some formatting instructions for
 	<p>This is the reference image <img width="50" height="50" style="float: left;" title="Here's a title" alt="Epic Logo" src="./../../../images\EpicMarkdownDocGuides\EpicMarkdownExtension\Logo_Epic-New.jpg"/> with width, height, and left float.</p>
 	<p>This text is in a paragraph alongside the image. A special div element follows ending floating.</p>
 	[REGION:clear]
-		<!-- clear float -->
+		[COMMENT]
+ clear float 
+[/COMMENT]
 	[/REGION]
     
 #### Results
@@ -144,7 +148,9 @@ This is the reference image ![Epic Logo][refepiclogo] with width, height, and le
 This text is in a paragraph alongside the image. A special div element follows ending floating.
 
 [REGION:clear]
-	<!-- clear float -->
+	[COMMENT]
+ clear float 
+[/COMMENT]
 [/REGION]
 
 ### Tables

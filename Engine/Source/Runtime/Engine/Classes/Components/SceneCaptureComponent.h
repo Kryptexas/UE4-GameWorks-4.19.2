@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -47,7 +47,7 @@ UENUM()
 enum class ESceneCapturePrimitiveRenderMode : uint8
 {
 	/** Legacy */
-	PRM_LegacySceneCapture UMETA(DisplayName = "Render Scene Primitives"),
+	PRM_LegacySceneCapture UMETA(DisplayName = "Legacy"),
 	/** Render primitives in the scene, minus HiddenActors. */
 	PRM_RenderScenePrimitives UMETA(DisplayName = "Render Scene Primitives"),
 	/** Render only primitives in the ShowOnlyActors list, or components specified with ShowOnlyComponent(). */

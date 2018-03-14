@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/AudioComponent.h"
 #include "Audio.h"
@@ -22,7 +22,9 @@ UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
 {
 	bUseAttachParentBound = true; // Avoid CalcBounds() when transform changes.
 	bAutoDestroy = false;
+	bAutoManageAttachment = false;
 	bAutoActivate = true;
+	bAllowAnyoneToDestroyMe = true;
 	bAllowSpatialization = true;
 	bStopWhenOwnerDestroyed = true;
 	bNeverNeedsRenderUpdate = true;
@@ -46,6 +48,9 @@ UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
 	LowPassFilterFrequency = MAX_FILTER_FREQUENCY;
 	OcclusionCheckInterval = 0.1f;
 	ActiveCount = 0;
+
+	EnvelopeFollowerAttackTime = 10;
+	EnvelopeFollowerReleaseTime = 100;
 
 	AudioDeviceHandle = INDEX_NONE;
 	AudioComponentID = ++AudioComponentIDCounter;
@@ -130,14 +135,50 @@ void UAudioComponent::PostLoad()
 	Super::PostLoad();
 }
 
-#if WITH_EDITORONLY_DATA
 void UAudioComponent::OnRegister()
 {
+	if (bAutoManageAttachment && !IsActive())
+	{
+		// Detach from current parent, we are supposed to wait for activation.
+		if (GetAttachParent())
+		{
+			// If no auto attach parent override, use the current parent when we activate
+			if (!AutoAttachParent.IsValid())
+			{
+				AutoAttachParent = GetAttachParent();
+			}
+			// If no auto attach socket override, use current socket when we activate
+			if (AutoAttachSocketName == NAME_None)
+			{
+				AutoAttachSocketName = GetAttachSocketName();
+			}
+
+			// Prevent attachment before Super::OnRegister() tries to attach us, since we only attach when activated.
+			if (GetAttachParent()->GetAttachChildren().Contains(this))
+			{
+				// Only detach if we are not about to auto attach to the same target, that would be wasteful.
+				if (!bAutoActivate || (AutoAttachLocationRule != EAttachmentRule::KeepRelative && AutoAttachRotationRule != EAttachmentRule::KeepRelative && AutoAttachScaleRule != EAttachmentRule::KeepRelative) || (AutoAttachSocketName != GetAttachSocketName()) || (AutoAttachParent != GetAttachParent()))
+				{
+					DetachFromComponent(FDetachmentTransformRules(EDetachmentRule::KeepRelative, /*bCallModify=*/ false));
+				}
+			}
+			else
+			{
+				SetupAttachment(nullptr, NAME_None);
+			}
+		}
+
+		SavedAutoAttachRelativeLocation = RelativeLocation;
+		SavedAutoAttachRelativeRotation = RelativeRotation;
+		SavedAutoAttachRelativeScale3D = RelativeScale3D;
+	}
+
 	Super::OnRegister();
 
+	#if WITH_EDITORONLY_DATA
 	UpdateSpriteTexture();
+	#endif
 }
-#endif
 
 void UAudioComponent::OnUnregister()
 {
@@ -208,6 +249,27 @@ void UAudioComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformFla
 	}
 };
 
+void UAudioComponent::CancelAutoAttachment(bool bDetachFromParent)
+{
+	if (bAutoManageAttachment)
+	{
+		if (bDidAutoAttach)
+		{
+			// Restore relative transform from before attachment. Actual transform will be updated as part of DetachFromParent().
+			RelativeLocation = SavedAutoAttachRelativeLocation;
+			RelativeRotation = SavedAutoAttachRelativeRotation;
+			RelativeScale3D = SavedAutoAttachRelativeScale3D;
+			bDidAutoAttach = false;
+		}
+
+		if (bDetachFromParent)
+		{
+			DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+		}
+	}
+}
+
+
 void UAudioComponent::Play(float StartTime)
 {
 	PlayInternal(StartTime);
@@ -233,6 +295,34 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 	{
 		if (FAudioDevice* AudioDevice = GetAudioDevice())
 		{
+			// Auto attach if requested
+			const bool bWasAutoAttached = bDidAutoAttach;
+			bDidAutoAttach = false;
+			if (bAutoManageAttachment)
+			{
+				USceneComponent* NewParent = AutoAttachParent.Get();
+				if (NewParent)
+				{
+					const bool bAlreadyAttached = GetAttachParent() && (GetAttachParent() == NewParent) && (GetAttachSocketName() == AutoAttachSocketName) && GetAttachParent()->GetAttachChildren().Contains(this);
+					if (!bAlreadyAttached)
+					{
+						bDidAutoAttach = bWasAutoAttached;
+						CancelAutoAttachment(true);
+						SavedAutoAttachRelativeLocation = RelativeLocation;
+						SavedAutoAttachRelativeRotation = RelativeRotation;
+						SavedAutoAttachRelativeScale3D = RelativeScale3D;
+						AttachToComponent(NewParent, FAttachmentTransformRules(AutoAttachLocationRule, AutoAttachRotationRule, AutoAttachScaleRule, false), AutoAttachSocketName);
+					}
+
+					bDidAutoAttach = true;
+				}
+				else
+				{
+					CancelAutoAttachment(true);
+				}
+			}
+
+			// Create / configure new ActiveSound
 			const FSoundAttenuationSettings* AttenuationSettingsToApply = (bAllowSpatialization ? GetAttenuationSettingsToApply() : nullptr);
 
 			float MaxDistance = 0.0f;
@@ -299,7 +389,12 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 				NewActiveSound.FocusPriorityScale = AttenuationSettingsToApply->GetFocusPriorityScale(AudioDevice->GetGlobalFocusSettings(), FocusFactor);
 			}
 
+			NewActiveSound.EnvelopeFollowerAttackTime = FMath::Max(EnvelopeFollowerAttackTime, 0);
+			NewActiveSound.EnvelopeFollowerReleaseTime = FMath::Max(EnvelopeFollowerReleaseTime, 0);
+
 			NewActiveSound.bUpdatePlayPercentage = OnAudioPlaybackPercentNative.IsBound() || OnAudioPlaybackPercent.IsBound();
+			NewActiveSound.bUpdateSingleEnvelopeValue = OnAudioSingleEnvelopeValue.IsBound() || OnAudioSingleEnvelopeValueNative.IsBound();
+			NewActiveSound.bUpdateMultiEnvelopeValue = OnAudioMultiEnvelopeValue.IsBound() || OnAudioMultiEnvelopeValueNative.IsBound();
 
 			NewActiveSound.MaxDistance = MaxDistance;
 
@@ -493,6 +588,11 @@ void UAudioComponent::PlaybackCompleted(bool bFailedToStart)
 		if (bAutoDestroy)
 		{
 			DestroyComponent();
+		}
+		// Otherwise see if we should detach ourself and wait until we're needed again
+		else if (bAutoManageAttachment)
+		{
+			CancelAutoAttachment(true);
 		}
 	}
 }

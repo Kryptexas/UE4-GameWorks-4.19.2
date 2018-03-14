@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -235,6 +235,11 @@ public:
 	 * Delegate triggered when an audio component Stop() function is called
 	 */
 	void OnAudioFinished(UAudioComponent* AC);
+
+	/**
+	 * Delegate that fixes up remote audio components when the level changes
+	 */
+	void OnPostLoadMap(UWorld*);
 };
 
 typedef TSharedPtr<FVoiceEngineSteam, ESPMode::ThreadSafe> FVoiceEngineSteamPtr;

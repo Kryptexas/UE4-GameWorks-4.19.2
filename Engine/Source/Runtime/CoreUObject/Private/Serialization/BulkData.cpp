@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "Serialization/BulkData.h"
@@ -1406,7 +1406,7 @@ void FUntypedBulkData::LoadDataIntoMemory( void* Dest )
 
 #else
 	bool bWasLoadedSuccessfully = false;
-	if ((IsInGameThread() || IsInAsyncLoadingThread()) && Package.IsValid() && Package->LinkerLoad && Package->LinkerLoad->GetOwnerThreadId() == FPlatformTLS::GetCurrentThreadId() && ((BulkDataFlags & BULKDATA_PayloadInSeperateFile) == 0))
+	if (IsInAsyncLoadingThread() && Package.IsValid() && Package->LinkerLoad && Package->LinkerLoad->GetOwnerThreadId() == FPlatformTLS::GetCurrentThreadId() && ((BulkDataFlags & BULKDATA_PayloadInSeperateFile) == 0))
 	{
 		FLinkerLoad* LinkerLoad = Package->LinkerLoad;
 		if (LinkerLoad && LinkerLoad->Loader)
@@ -1433,8 +1433,17 @@ void FUntypedBulkData::LoadDataIntoMemory( void* Dest )
 	{
 		// load from the specied filename when the linker has been cleared
 		checkf( Filename != TEXT(""), TEXT( "Attempted to load bulk data without a proper filename." ) );
-	
-		UE_CLOG(GEventDrivenLoaderEnabled && !(IsInGameThread() || IsInAsyncLoadingThread()), LogSerialization, Error, TEXT("Attempt to sync load bulk data with EDL enabled (LoadDataIntoMemory). This is not desireable. File %s"), *Filename);
+
+#if PLATFORM_SUPPORTS_TEXTURE_STREAMING
+		static auto CVarTextureStreamingEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TextureStreaming"));
+		check(CVarTextureStreamingEnabled);
+		// Because "r.TextureStreaming" is driven by the project setting as well as the command line option "-NoTextureStreaming", 
+		// is it possible for streaming mips to be loaded in non streaming ways.
+		if (CVarTextureStreamingEnabled->GetValueOnAnyThread() != 0)
+		{
+			UE_CLOG(GEventDrivenLoaderEnabled && (IsInGameThread() || IsInAsyncLoadingThread()), LogSerialization, Error, TEXT("Attempt to sync load bulk data with EDL enabled (LoadDataIntoMemory). This is not desireable. File %s"), *Filename);
+		}
+#endif
 
 		if (GEventDrivenLoaderEnabled && (Filename.EndsWith(TEXT(".uasset")) || Filename.EndsWith(TEXT(".umap"))))
 		{
@@ -1584,23 +1593,25 @@ void FFormatContainer::Serialize(FArchive& Ar, UObject* Owner, const TArray<FNam
 		check(Ar.IsCooking() && FormatsToSave); // this thing is for cooking only, and you need to provide a list of formats
 
 		int32 NumFormats = 0;
-		for (TMap<FName, FByteBulkData*>:: TIterator It(Formats); It; ++It)
+		for (const TPair<FName, FByteBulkData*>& Format : Formats)
 		{
-			if (FormatsToSave->Contains(It.Key()) && It.Value()->GetBulkDataSize() > 0)
+			const FName Name = Format.Key;
+			FByteBulkData* Bulk = Format.Value;
+			check(Bulk);
+			if (FormatsToSave->Contains(Name) && Bulk->GetBulkDataSize() > 0)
 			{
 				NumFormats++;
 			}
 		}
 		Ar << NumFormats;
-		for (TMap<FName, FByteBulkData*>:: TIterator It(Formats); It; ++It)
+		for (const TPair<FName, FByteBulkData*>& Format : Formats)
 		{
-			if (FormatsToSave->Contains(It.Key()) && It.Value()->GetBulkDataSize() > 0)
+			FName Name = Format.Key;
+			FByteBulkData* Bulk = Format.Value;
+			if (FormatsToSave->Contains(Name) && Bulk->GetBulkDataSize() > 0)
 			{
 				NumFormats--;
-				FName Name = It.Key();
 				Ar << Name;
-				FByteBulkData* Bulk = It.Value();
-				check(Bulk);
 				// Force this kind of bulk data (physics, etc) to be stored inline for streaming
 				const uint32 OldBulkDataFlags = Bulk->GetBulkDataFlags();
 				Bulk->SetBulkDataFlags(bSingleUse ? (BULKDATA_ForceInlinePayload | BULKDATA_SingleUse) : BULKDATA_ForceInlinePayload);				

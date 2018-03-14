@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PhysicsEngine/PhysicalAnimationComponent.h"
 #include "SceneManagement.h"
@@ -299,10 +299,12 @@ void UPhysicalAnimationComponent::TickComponent(float DeltaTime, enum ELevelTick
 //NOTE: Technically skeletal mesh component could have bodies in multiple scenes. This doesn't seem like a legit setup though and we should probably enforce that it's not supported.
 int32 FindSceneIndexForSkeletalMeshComponent(const USkeletalMeshComponent* SkeletalMeshComp)
 {
+#if WITH_PHYSX
 	for(FBodyInstance* BI : SkeletalMeshComp->Bodies)
 	{
 		return BI->GetSceneIndex();
 	}
+#endif // WITH_PHYSX
 
 	return INDEX_NONE;
 }
@@ -435,7 +437,10 @@ void UPhysicalAnimationComponent::ReleasePhysicsEngine()
 		
 		if(Instance.TargetActor)
 		{
-			Scene->removeActor(*Instance.TargetActor);
+			if (Scene)
+			{
+				Scene->removeActor(*Instance.TargetActor);
+			}
 			Instance.TargetActor->release();
 
 			Instance.TargetActor = nullptr;

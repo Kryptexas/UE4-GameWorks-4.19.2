@@ -124,7 +124,8 @@ Version:4.12
 |**植物叶子类型对象（Foliage Type Object）** | 程序式植物叶子模拟所生成的植物叶子类型。|
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:NavMesh]
 | 值 | 说明 |
 | --- | --- |
@@ -133,6 +134,7 @@ Version:4.12
 | **即使不可碰撞（Even if not Collidable）**|即使网格不可碰撞并且通常不影响导航网格，也调用 DoCustomNavigableGeometryExport()。|
 | **不导出（Dont Export）**|不导出可导航几何体，即使基本体与导航相关也是如此（仍可添加修改器）。|
 [/EXCERPT:NavMesh]
--->
+
+[/COMMENT]
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -71,6 +71,15 @@ private:
 	/** Get the default typeface */
 	const FTypeface* GetConstDefaultTypeface() const;
 
+	/** Get the fallback typeface */
+	FTypeface* GetFallbackTypeface() const;
+
+	/** Get the fallback typeface */
+	const FTypeface* GetConstFallbackTypeface() const;
+
+	/** Get the fallback font */
+	FCompositeFallbackFont* GetFallbackFont() const;
+
 	/** Update the list of sub-typefaces in this composite font */
 	void UpdateSubTypefaceList();
 
@@ -89,6 +98,9 @@ private:
 	/** Widget for editing the default typeface */
 	TSharedPtr<class STypefaceEditor> DefaultTypefaceEditor;
 
+	/** Widget for editing the fallback typeface */
+	TSharedPtr<class STypefaceEditor> FallbackTypefaceEditor;
+
 	/** Internal list of sub-typeface pointers for the list view (generated from CompositeFontPtr->SubTypefaces) */
 	TArray<FSubTypefaceListViewEntryPtr> SubTypefaceEntries;
 
@@ -104,6 +116,7 @@ public:
 		, _Typeface(nullptr)
 		, _TypefaceDisplayName()
 		, _OnDisplayNameCommitted()
+		, _TypefaceDisplayNameToolTip()
 		, _HeaderContent()
 		, _BodyContent()
 		{}
@@ -119,6 +132,9 @@ public:
 
 		/** Callback to use when the display name is committed (if not set, the display name will be read-only) */
 		SLATE_EVENT(FOnTextCommitted, OnDisplayNameCommitted)
+
+		/** Tooltip to show in the display name UI for this typeface */
+		SLATE_ATTRIBUTE(FText, TypefaceDisplayNameToolTip)
 
 		/** Slot for extra content to place in the header bar (optional) */
 		SLATE_NAMED_SLOT(FArguments, HeaderContent)
@@ -306,18 +322,6 @@ private:
 	/** Set the display name of this sub-font family */
 	void OnDisplayNameCommitted(const FText& InNewName, ETextCommit::Type InCommitType);
 
-	/** Get the visibility of the "Add Font Override" combo button */
-	EVisibility GetAddFontOverrideVisibility() const;
-
-	/** Called before the font override combo is opened - used to update the list of available font overrides */
-	void OnAddFontOverrideComboOpening();
-
-	/** Called when the selection of the font override combo is changed */
-	void OnAddFontOverrideSelectionChanged(TSharedPtr<FName> InNewSelection, ESelectInfo::Type);
-
-	/** Make the widget for an entry in the font override combo */
-	TSharedRef<SWidget> MakeAddFontOverrideWidget(TSharedPtr<FName> InFontEntry);
-
 	/** Called in response to the "Delete Sub-Font Family" button being clicked" */
 	FReply OnDeleteSubFontFamilyClicked();
 
@@ -333,11 +337,11 @@ private:
 	/** Called in response to the "Delete Character Range" button being clicked" */
 	FReply OnDeleteCharacterRangeClicked(FCharacterRangeTileViewEntryPtr InCharacterRangeEntry);
 
-	/** Get the scaling factor in its numeric form */
-	TOptional<float> GetScalingFactorAsOptional() const;
+	/** Get the semi-colon separated cultures list */
+	FText GetCultures() const;
 
-	/** Set the the scaling factor from its numerical form */
-	void OnScalingFactorCommittedAsNumeric(float InNewValue, ETextCommit::Type InCommitType);
+	/** Set the semi-colon separated cultures list */
+	void OnCulturesCommitted(const FText& InCultures, ETextCommit::Type InCommitType);
 
 	/** Pointer back to the composite font editor that owns us */
 	SCompositeFontEditor* CompositeFontEditorPtr;
@@ -353,12 +357,6 @@ private:
 
 	/** Nested typeface editor widget */
 	TSharedPtr<STypefaceEditor> TypefaceEditor;
-
-	/** Font override combo box widget */
-	TSharedPtr<SComboBox<TSharedPtr<FName>>> FontOverrideCombo;
-
-	/** Source data for the font override combo widget */
-	TArray<TSharedPtr<FName>> FontOverrideComboData;
 
 	/** Internal list of sub-typeface pointers for the list view (generated from SubTypeface->CharacterRanges) */
 	TArray<FCharacterRangeTileViewEntryPtr> CharacterRangeEntries;
@@ -443,4 +441,96 @@ private:
 
 	/** The currently selected range selection preset */
 	TOptional<FUnicodeBlockRange> CurrentRangeSelection;
+};
+
+class SFontScalingFactorEditor : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SFontScalingFactorEditor)
+		: _CompositeFontEditor(nullptr)
+		, _FallbackFont(nullptr)
+		{}
+
+		/** Pointer back to the composite font editor that owns us */
+		SLATE_ARGUMENT(SCompositeFontEditor*, CompositeFontEditor)
+
+		/** Fallback font that we should edit the scaling factor of (may be invalid, or change in response to an undo/redo) */
+		SLATE_ATTRIBUTE(FCompositeFallbackFont*, FallbackFont)
+
+	SLATE_END_ARGS()
+
+	/** SCompoundWidget interface */
+	void Construct(const FArguments& InArgs);
+
+private:
+	/** Get the scaling factor in its numeric form */
+	TOptional<float> GetScalingFactorAsOptional() const;
+
+	/** Set the the scaling factor from its numerical form */
+	void OnScalingFactorCommittedAsNumeric(float InNewValue, ETextCommit::Type InCommitType);
+
+	/** Pointer back to the composite font editor that owns us */
+	SCompositeFontEditor* CompositeFontEditorPtr;
+
+	/** Fallback font that we should edit the scaling factor of (may be invalid, or change in response to an undo/redo) */
+	TAttribute<FCompositeFallbackFont*> FallbackFont;
+};
+
+class SFontOverrideSelector : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SFontOverrideSelector)
+		: _CompositeFontEditor(nullptr)
+		, _TypefaceEditor(nullptr)
+		, _Typeface(nullptr)
+		, _ParentTypeface(nullptr)
+		{}
+
+		/** Pointer back to the composite font editor that owns us */
+		SLATE_ARGUMENT(SCompositeFontEditor*, CompositeFontEditor)
+
+		/** Pointer back to the typeface editor that owns us */
+		SLATE_ATTRIBUTE(STypefaceEditor*, TypefaceEditor)
+
+		/** Typeface that we should edit the fonts on (may be invalid, or change in response to an undo/redo) */
+		SLATE_ATTRIBUTE(FTypeface*, Typeface)
+
+		/** Parent typeface to override font slots from (may be invalid, or change in response to an undo/redo) */
+		SLATE_ATTRIBUTE(const FTypeface*, ParentTypeface)
+
+	SLATE_END_ARGS()
+
+	/** SCompoundWidget interface */
+	void Construct(const FArguments& InArgs);
+
+private:
+	/** Get the visibility of the "Add Font Override" combo button */
+	EVisibility GetAddFontOverrideVisibility() const;
+
+	/** Called before the font override combo is opened - used to update the list of available font overrides */
+	void OnAddFontOverrideComboOpening();
+
+	/** Called when the selection of the font override combo is changed */
+	void OnAddFontOverrideSelectionChanged(TSharedPtr<FName> InNewSelection, ESelectInfo::Type);
+
+	/** Make the widget for an entry in the font override combo */
+	TSharedRef<SWidget> MakeAddFontOverrideWidget(TSharedPtr<FName> InFontEntry);
+
+	/** Pointer back to the composite font editor that owns us */
+	SCompositeFontEditor* CompositeFontEditorPtr;
+
+	/** Pointer back to the typeface editor that owns us */
+	TAttribute<STypefaceEditor*> TypefaceEditor;
+
+	/** Typeface that we should edit the fonts on (may be invalid, or change in response to an undo/redo) */
+	TAttribute<FTypeface*> Typeface;
+
+	/** Parent typeface to override font slots from (may be invalid, or change in response to an undo/redo) */
+	TAttribute<const FTypeface*> ParentTypeface;
+
+	/** Font override combo box widget */
+	TSharedPtr<SComboBox<TSharedPtr<FName>>> FontOverrideCombo;
+
+	/** Source data for the font override combo widget */
+	TArray<TSharedPtr<FName>> FontOverrideComboData;
 };

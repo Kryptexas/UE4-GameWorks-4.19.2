@@ -20,7 +20,7 @@ Availability:Public
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 %Globals:OSSelect%
 
@@ -74,13 +74,15 @@ Availability:Public
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:windows]
 
 [/EXCERPT:windows]
 [EXCERPT:macos]
 
 [/EXCERPT:macos]
--->
 
-%Steps%
+[/COMMENT]
+
+

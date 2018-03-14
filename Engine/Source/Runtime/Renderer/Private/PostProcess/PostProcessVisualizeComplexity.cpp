@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 PostProcessVisualizeComplexity.cpp: Contains definitions for complexity viewmode.
@@ -110,11 +110,11 @@ void FRCPassPostProcessVisualizeComplexity::Process(FRenderingCompositePassConte
 		return;
 	}
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	
-	FIntRect SrcRect = View.ViewRect;
-	FIntRect DestRect = View.ViewRect;
+	FIntRect SrcRect = Context.SceneColorViewRect;
+	FIntRect DestRect = Context.SceneColorViewRect;
 	FIntPoint SrcSize = InputDesc->Extent;
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);

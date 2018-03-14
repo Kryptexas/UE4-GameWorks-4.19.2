@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3238697
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1. 타이머를 사용하는 액터 만들기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/VariablesTimersEvents
@@ -20,7 +20,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:tip]**언리얼 엔진 4** 에 처음이신 경우, [%Programming\QuickStart:title% 튜토리얼](Programming\QuickStart) 을 먼저 읽어보세요. 이 튜토리얼은 프로젝트 생성, C++ 코드 추가, 코드 컴파일이 익숙하신 분들을 대상으로 합니다.[/REGION]
 
@@ -104,120 +104,110 @@ version:4.9
 	[REGION:note]카운트다운 텍스트 설정은 **ACountdown::ACountdown** 가 아닌 **ACountdown::BeginPlay** 도중 하기 때문에, 기본 "Text" 가 **레벨 에디터** 에 표시됩니다.[/REGION]
 	**플레이** 를 누르면 카운트다운은 예상대로 "3", "2", "1", 마지막 "GO!" 로 진행됩니다.
 
-----
-
 이 시점에서 이미 타이머를 사용하는 간단한 클래스가 생성되었습니다. 프로그래머가 아닌 사용자를 위해 카운트다운 시간 설정, 카운트다운 완료시의 작동방식을 변경할 수 있다면 훨씬 활용도가 높을 것입니다. 다음에는 이 기능을 에디터에 노출시키도록 하겠습니다.
 
-[OBJECT:Section]
-    [PARAMLITERAL:id]
-    code
-    [/PARAMLITERAL]
-    [PARAM:heading]
-	    작업중 코드
-    [/PARAM]
-    [PARAM:content]
-		**Countdown.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+## 작업중 코드
 
-			#pragma once
+**Countdown.h**
 
-			#include "GameFramework/Actor.h"
-			#include "Countdown.generated.h"
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-			UCLASS()
-			class HOWTO_VTE_API ACountdown : public AActor
-			{
-				GENERATED_BODY()
+	#pragma once
+
+	#include "GameFramework/Actor.h"
+	#include "Countdown.generated.h"
+
+	UCLASS()
+	class HOWTO_VTE_API ACountdown : public AActor
+	{
+		GENERATED_BODY()
 	
-			public:	
-				// Sets default values for this actor's properties
-				ACountdown();
+	public:	
+		// Sets default values for this actor's properties
+		ACountdown();
 
-			protected:
-				// Called when the game starts or when spawned
-				virtual void BeginPlay() override;
+	protected:
+		// Called when the game starts or when spawned
+		virtual void BeginPlay() override;
 	
-			public:
-				// Called every frame
-				virtual void Tick( float DeltaSeconds ) override;
+	public:
+		// Called every frame
+		virtual void Tick( float DeltaSeconds ) override;
 
-				//How long, in seconds, the countdown will run
-				int32 CountdownTime;
+		//How long, in seconds, the countdown will run
+		int32 CountdownTime;
 
-				UTextRenderComponent* CountdownText;
+		UTextRenderComponent* CountdownText;
 
-				void UpdateTimerDisplay();
+		void UpdateTimerDisplay();
 
-				void AdvanceTimer();
+		void AdvanceTimer();
 
-				void CountdownHasFinished();
+		void CountdownHasFinished();
 
-				FTimerHandle CountdownTimerHandle;
-			};
+		FTimerHandle CountdownTimerHandle;
+	};
 
 
-		**Countdown.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+**Countdown.cpp**
 
-			#include "HowTo_VTE.h"
-			#include "Countdown.h"
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-			// Sets default values
-			ACountdown::ACountdown()
-			{
- 				// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-				PrimaryActorTick.bCanEverTick = false;
+	#include "HowTo_VTE.h"
+	#include "Countdown.h"
+
+	// Sets default values
+	ACountdown::ACountdown()
+	{
+ 		// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+		PrimaryActorTick.bCanEverTick = false;
 	
-				CountdownText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("CountdownNumber"));
-				CountdownText->SetHorizontalAlignment(EHTA_Center);
-				CountdownText->SetWorldSize(150.0f);
-				RootComponent = CountdownText;
+		CountdownText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("CountdownNumber"));
+		CountdownText->SetHorizontalAlignment(EHTA_Center);
+		CountdownText->SetWorldSize(150.0f);
+		RootComponent = CountdownText;
 
-				CountdownTime = 3;
-			}
+		CountdownTime = 3;
+	}
 
-			// Called when the game starts or when spawned
-			void ACountdown::BeginPlay()
-			{
-				Super::BeginPlay();
+	// Called when the game starts or when spawned
+	void ACountdown::BeginPlay()
+	{
+		Super::BeginPlay();
 	
-				UpdateTimerDisplay();
-				GetWorldTimerManager().SetTimer(CountdownTimerHandle, this, &ACountdown::AdvanceTimer, 1.0f, true);
-			}
+		UpdateTimerDisplay();
+		GetWorldTimerManager().SetTimer(CountdownTimerHandle, this, &ACountdown::AdvanceTimer, 1.0f, true);
+	}
 
-			// Called every frame
-			void ACountdown::Tick( float DeltaTime )
-			{
-				Super::Tick( DeltaTime );
+	// Called every frame
+	void ACountdown::Tick( float DeltaTime )
+	{
+		Super::Tick( DeltaTime );
 
-			}
+	}
 
-			void ACountdown::UpdateTimerDisplay()
-			{
-				CountdownText->SetText(FString::FromInt(FMath::Max(CountdownTime, 0)));
-			}
+	void ACountdown::UpdateTimerDisplay()
+	{
+		CountdownText->SetText(FString::FromInt(FMath::Max(CountdownTime, 0)));
+	}
 
-			void ACountdown::AdvanceTimer()
-			{
-				--CountdownTime;
-				UpdateTimerDisplay();
-				if (CountdownTime < 1)
-				{
-					// We're done counting down, so stop running the timer.
-					GetWorldTimerManager().ClearTimer(CountdownTimerHandle);
-					//Perform any special actions we want to do when the timer ends.
-					CountdownHasFinished();
-				}
-			}
+	void ACountdown::AdvanceTimer()
+	{
+		--CountdownTime;
+		UpdateTimerDisplay();
+		if (CountdownTime < 1)
+		{
+			// We're done counting down, so stop running the timer.
+			GetWorldTimerManager().ClearTimer(CountdownTimerHandle);
+			//Perform any special actions we want to do when the timer ends.
+			CountdownHasFinished();
+		}
+	}
 
-			void ACountdown::CountdownHasFinished()
-			{
-				//Change to a special readout
-				CountdownText->SetText(TEXT("GO!"));
-			}
+	void ACountdown::CountdownHasFinished()
+	{
+		//Change to a special readout
+		CountdownText->SetText(TEXT("GO!"));
+	}
 
 
-    [/PARAM]
-[/OBJECT]
-
-%Steps%

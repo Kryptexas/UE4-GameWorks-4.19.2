@@ -1,0 +1,75 @@
+Availability:Public
+Crumbs: %ROOT%
+Title:2 - Setting up the Media Texture and Material
+Description:In this step, we set up our Media Texture and Material that will be used for video playback. 
+SkillLevel:Beginner
+Version:4.18
+checkpoint: mediaframeworkqs
+parent:Engine/MediaFramework/QuickStart
+type:quick start
+type:multi-step
+order:2
+tags:Media Framework
+tags:Materials
+ 
+[NAV]
+
+In the previous step, we imported content and created some of the assets that we will use for this guide, up next we will create our Material that we will use to play our video. This requires us to incorporate our Media Texture inside a [Material](Engine/Rendering/Materials) and a little bit of work to get the content to fit on our TV's screen correctly.
+
+## Steps
+
+1.	In the **TV** folder, open the **M_TV_Inst** Material and delete the **Vector Parameter** node attached to the **Base Color** pin of the **M_TV_Inst** node.
+
+1.	Right-click in the graph and add a **Texture Sample** node. Then, in the **Details** panel, change the **Sampler Type** to **External**.
+
+	![](TVMaterial_01.png)
+
+	We can leave the **Texture** field empty for now, as we are going to populate it with a **Texture Object Parameter**. This will enable us to override what **Media Texture** to sample from through Blueprint. 
+	The **Sampler Type** field needs to be set to **External** for Media Textures, as this optimization provides more efficient video playback and decoding. 
+
+1.	Right-click in the graph and add a **Param Tex Object** node, then connect it to the **Tex** pin of the **Texture Sample** node.
+
+1.	On the **Param Tex Object** node, use **TV_Texture** as the **Parameter Name** and set the **Texture** field to **MediaPlayer_01_Video**.
+
+	![](TVMaterial_02.png)
+
+	When setting the Texture field to use our Media Texture, the **Sampler Type** field will automatically change to **External**.
+
+1.	Right-click in the graph and add a **TexCoord** node, then connect it to the **UVs** pin of the **Texture Sample**. Set the **VTiling** property to **2.0**.
+
+	![](TVMaterial_03.png)
+
+	The values used for the [TexCoord](https://docs.unrealengine.com/latest/INT/Engine/Rendering/Materials/ExpressionReference/Coordinates/#texturecoordinate) may vary based on the mesh you plan to apply this Material to. After some experimenting, we found these values to be sufficient for this example.
+
+1.	Right-click and add another **Texture Sample** node and set the **Texture** property to the **T_TV_M2** texture. 
+
+	![](TVMaterial_04.png)
+
+1.	Off the **Green** channel of the new **Texture Sample**, use a **LinearInterpolate** node and connect it to the **Alpha** channel. 
+
+	![](TVMaterial_05.png)
+
+	We are going to use this texture to separate the screen of our TV from the rest of the mesh so that we can apply the video to just the screen. 
+
+1.	Hold the **1** key and left-click to add a constant node and connect it to the **B** pin of the **Lerp** node, then connect the remaining nodes as shown. 
+
+	![](TVMaterial_06.png)
+
+	
+## End Result
+
+Our TV Material is set up and ready to play our video. If you open the **SM_TV** Static Mesh, you may notice the screen is white. 
+
+![](TVMaterial_07.png)(w:740)
+
+Once you open the **Media Player** asset and play the video, if you re-open the **SM_TV** Static Mesh again the TV will be playing your video. 
+
+![](TVMaterial_08.png)(w:740)
+
+While the TV plays our content inside the Editor, if we were to drop this Static Mesh inside the level and play the game, our content would not play on the TV at runtime. 
+In the next step, we will tell our content to open at runtime to start playback. 
+Before we can do that however, we need to set up the Blueprint we will use to enable the player to press a button and turn on/off our TV. 
+We will also provide a way to specify the content that will appear on the TV from within the Editor.
+
+[NAV]
+

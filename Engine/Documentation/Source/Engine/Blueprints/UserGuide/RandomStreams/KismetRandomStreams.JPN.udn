@@ -103,7 +103,8 @@ RandomStream を入力として受けとり、関数に合わせた様々なタ�
 ランダム エフェクトを微調整することができます。ブループリントのインスタンス毎に、新たに初期シード値が生成されます。ブループリントのインスタンスがワールドに配置された時や既存のインスタンスの複製が作られたときに、 
 毎回、ブループリントに属する各 RandomStream 変数に、新しい初期シード値が与えられます。そのため、各インスタンスは異なり、ちょうど必要な結果を得るために微調整することができます。
 
-<!--
+[COMMENT:none]
+
 Same Blueprint, Different Playthroughs
 
 LogBlueprintUserMessages:HHTTHTHTHH
@@ -127,7 +128,8 @@ Different Instances of the Same Blueprint, seed set randomly
 LogBlueprintUserMessages:TTTTHTTHTT
 
 LogBlueprintUserMessages:HTHTHTTHTT
--->
+
+[/COMMENT]
 
 
 ### 初期シード値を修正する
@@ -143,6 +145,8 @@ Initial Seed プロパティを変数上に直接設定するには、RandomStre
 これは、ブループリントがレベルに配置されると、ランダムに設定されている初期シード値をオーバーライドします。 
 
 
-<!--### Resetting a Random Stream-->
+[COMMENT:none]
+### Resetting a Random Stream
+[/COMMENT]
 
 

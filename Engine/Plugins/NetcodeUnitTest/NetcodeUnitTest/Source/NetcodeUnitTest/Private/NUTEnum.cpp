@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NUTEnum.h"
 
@@ -41,7 +41,6 @@ FString GetUnitTestFlagName(EUnitTestFlags Flag)
 		EUTF_CASE(RequirePing);
 		EUTF_CASE(RequireNUTActor);
 		EUTF_CASE(RequireBeacon);
-		EUTF_CASE(RequireMCP);
 		EUTF_CASE(RequireCustom);
 		EUTF_CASE(ExpectServerCrash);
 		EUTF_CASE(ExpectDisconnect);

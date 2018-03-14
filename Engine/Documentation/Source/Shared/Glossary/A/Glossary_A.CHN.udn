@@ -11,9 +11,11 @@ Availability:NoPublish
 Actor
 	[/PARAM]
 	[PARAM:Definition]
-<!--
+[COMMENT:none]
+
 **Actors** are the most important concept in Unreal Engine 4. Your game will be filled with them, as every interactive entity in your game is an Actor. They usually contain one or more components, can be placed in a **Level** or **Spawned** in during gameplay, and support network replication for multiplayer games.
--->
+
+[/COMMENT]
 
 [EXCERPT:Glossary_Actor]
 **Actor** 是可以放置在关卡中的任意对象。Actor 是支持三维变换的通用类，比如如平移，旋转和缩放变换。

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,18 +18,16 @@ class NIAGARAEDITOR_API UNiagaraStackScriptItemGroup : public UNiagaraStackItemG
 	GENERATED_BODY()
 
 public:
-	UNiagaraStackScriptItemGroup();
-
 	void Initialize(
 		TSharedRef<FNiagaraSystemViewModel> InSystemViewModel,
 		TSharedRef<FNiagaraEmitterViewModel> InEmitterViewModel,
 		UNiagaraStackEditorData& InStackEditorData,
 		TSharedRef<FNiagaraScriptViewModel> InScriptViewModel,
 		ENiagaraScriptUsage InScriptUsage,
-		int32 InScriptOccurrence = 0);
+		FGuid InScriptUsageId = FGuid());
 
 	ENiagaraScriptUsage GetScriptUsage() const { return ScriptUsage; }
-	int32 GetScriptOccurrence() const { return ScriptOccurrence; }
+	FGuid GetScriptUsageId() const { return ScriptUsageId; }
 
 	virtual FText GetDisplayName() const override;
 	void SetDisplayName(FText InDisplayName);
@@ -42,7 +40,7 @@ public:
 
 protected:
 	virtual void RefreshChildrenInternal(const TArray<UNiagaraStackEntry*>& CurrentChildren, TArray<UNiagaraStackEntry*>& NewChildren) override;
-	TSharedPtr<FNiagaraScriptViewModel> ScriptViewModel;
+	TWeakPtr<FNiagaraScriptViewModel> ScriptViewModel;
 
 private:
 	void ItemAdded();
@@ -52,15 +50,9 @@ private:
 private:
 	ENiagaraScriptUsage ScriptUsage;
 
-	int32 ScriptOccurrence;
+	FGuid ScriptUsageId;
 
 	FText DisplayName;
-
-	UPROPERTY()
-	UNiagaraStackAddScriptModuleItem* AddModuleItem;
-
-	UPROPERTY()
-	UNiagaraStackSpacer* BottomSpacer;
 
 	DECLARE_DELEGATE(FFixError);
 	struct FError

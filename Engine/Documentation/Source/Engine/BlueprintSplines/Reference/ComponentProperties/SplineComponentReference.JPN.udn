@@ -323,7 +323,8 @@ tags:Splines
 [/EXCERPT]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:PointsType]
 選択された **カーブ ポイント** のタイプを定義します。
 
@@ -335,5 +336,6 @@ tags:Splines
 | **CurveClamped** || **Curve** と似ていますが、カーブのタンジェントでクランプする点が異なります。 |
 | **CurveCustomTangent** ||タンジェントを **カーブ ポイント** で調節した場合に設定される値です。 |
 [/EXCERPT]
--->
+
+[/COMMENT]
 

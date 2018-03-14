@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AudioDecompress.h: Unreal audio vorbis decompression interface object.
@@ -421,6 +421,8 @@ public:
 	}
 };
 
+ENGINE_API bool ShouldUseBackgroundPoolFor_FAsyncRealtimeAudioTask();
+
 template<class T>
 class FAsyncRealtimeAudioTaskProxy
 {
@@ -460,7 +462,7 @@ public:
 	void StartBackgroundTask()
 	{
 		FScopeLock Lock(&CritSect);
-		Task->StartBackgroundTask();
+		Task->StartBackgroundTask(ShouldUseBackgroundPoolFor_FAsyncRealtimeAudioTask() ? GBackgroundPriorityThreadPool : GThreadPool);
 	}
 
 	FAsyncRealtimeAudioTaskWorker<T>& GetTask()

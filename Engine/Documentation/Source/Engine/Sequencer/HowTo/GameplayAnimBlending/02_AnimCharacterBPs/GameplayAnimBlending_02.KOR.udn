@@ -1,0 +1,93 @@
+﻿INTSourceChangelist:3782314
+Availability: Public
+Title:2. 애니메이션 및 캐릭터 블루프린트 구성
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:이번 단계에서는 캐릭터 및 애니메이션 블루프린트를 구성하여 게임플레이에서 시퀀서의 슬롯 애니메이션으로 블렌딩하는 방식을 결정합니다.
+Version: 4.17
+SkillLevel: Advanced
+parent:Engine/Sequencer/HowTo/GameplayAnimBlending
+order:2
+checkpoint: editorqs
+tags:Sequencer
+tags:Animation
+type:how-to
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전](Engine\Sequencer\HowTo\GameplayAnimBlending\01_SequenceSetup)
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[게임플레이 애니메이션 블렌딩 - 홈](Engine\Sequencer\HowTo\GameplayAnimBlending)
+	[/PARAM]
+	[PARAM:next]
+		[다음](Engine\Sequencer\HowTo\GameplayAnimBlending\03_LevelSetup)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[COMMENT:none]
+
+
+
+[/COMMENT]
+
+[nav]
+
+이번 단계에서는 애니메이션 블루프린트를 구성하여 게임플레이 포즈를 가지고 레벨 시퀀스에서 정의한 슬롯 애니메이션으로 블렌딩하도록 하겠습니다.
+
+1.	**콘텐츠 브라우저** 에서 **UE4ASP_HeroTPP_AnimBlueprint** 를 찾아 연 뒤 **내 블루프린트** 창의 **애님 그래프** 를 더블클릭합니다.
+
+	![](GameBlend_04.png)
+
+1.	**애님 그래프** 에서 기존 **Locomotion** 스테이트 머신을 끌어 놓고, **New Save Cached Pose** 를 생성한 뒤 **lococache** 라 합니다. 
+
+	![](GameBlend_05.png)
+
+1.	**lococache** 를 두 번 사용하여 하나는 **Blend** 노드의 **A** 핀에 연결하고, **Final Animation Pose** (최종 애니메이션 포즈)에 물려줍니다. 
+	
+	![](GameBlend_06.png)
+
+1.	다른 **lococache** 에서 **Slot** 노드를 사용하여 **Blend** 의 **B** 핀에 연결한 뒤, **Alpha** 에 우클릭하고 **변수로 승격** 시킨 뒤 **Blend Interp** 라 합니다. 
+
+	![](GameBlend_07.png)
+
+1.	**콘텐츠 브라우저** 에서 **Ue4ASP_Character** 블루프린트를 열고 **Crouching** 섹션을 아래 그래프로 대체합니다.
+
+	![](GameBlend_08.png)
+
+	위에서 **InputAction Crouch** 노드를 **C** 키보드 이벤트와 **Flip Flop** 노드로 대체하여 웅크리기 상태를 토글합니다.
+	
+	[REGION:note]
+	이 블루프린트는 원래 다른 프로젝트용으로 만들어져 있어 웅크리기용 입력 키가 설정되어 있었으나, 우리 템플릿 프로젝트는 그렇지 않습니다. InputAction Crouch 를 표준 C 키보드 이벤트로 대체하여, 블루프린트 경고 메시지를 없애고 C 키를 눌러 웅크린 상태와 웅크리지 않은 상태를 토글하도록 합니다.
+	[/REGION]
+
+1.	**Float** 변수를 새로 만들고 **DefaultSlotInterp** 라 한 뒤 **Instance Editable** (인스턴스 편집가능)과 **Expose to Cinematics** (시네마틱에 노출) 옵션을 **True** 로 설정합니다. 
+
+	![](GameBlend_09.png)
+
+	이 변수를 시퀀서에서 블렌딩에 사용하여 값을 애니메이션 블루프린트 변수 **Blend Interp** 에 전달, 실제 블렌딩을 처리하도록 합니다.
+
+1.	함수를 새로 만들어 **SetDefaultSlotInterp** 라 하고 **디테일** 패널에서 **입력** 을 추가한 뒤 유형은 **Float**, 이름은 **Interp** 라 합니다.
+
+	![](GameBlend_10.png)
+
+	**Set (Property Value Name)** 라는 함수를 만드는 것으로 연관된 프로퍼티 값이 바뀔 때마다 시퀀서가 호출하는 **프록시** 함수를 만들었습니다.
+	이 함수는 프로퍼티 값이 바뀔 때만 호출되므로 **Event Tick** 또는 **Custom Event** 와 **Timeline** 을 통해 **DefaultSlotInterp** 프로퍼티 값의 변화를 반영하는 것보다 효율적입니다.
+	
+1.	**컴포넌트** 창에서 **Mesh** 를 끌어 놓고 **Get Anim Instance** 를 사용하여 **Cast to UE4ASP_HeroTPP_AnimBlueprint** 합니다. 
+
+	![](GameBlend_11.png)
+
+1.	**As UE4ASP Hero TPP Anim Blueprint** 에서 **Set Blend Interp** 를 사용하여 **Interp** 값을 **Blend Interp** 에 전달합니다. 
+
+	![](GameBlend_12.png)
+
+	시퀀서를 통해 **DefaultSlotInterp** 값이 바뀔 때마다, **SetDefaultSlotInterp** 프록시 함수가 호출되며 플로트 값이 애니메이션 블루프린트의 **Blend Interp** 값을 통과합니다. 여기서 포즈 블렌딩에 영향을 줍니다.
+
+다음 단계에서는 레벨 시퀀스에 **Default Slot Interp** 프로퍼티를 추가하여 애니메이션 블루프린트에서 **Blend Interp** 를 제어할 수 있도록 하겠습니다.
+또 레벨에 트리거 박스를 추가하여 레벨 시퀀스를 발동시켜 플레이어가 트리거 박스 볼륨에 들어서면 재생시키도록 하겠습니다.
+	
+[nav]

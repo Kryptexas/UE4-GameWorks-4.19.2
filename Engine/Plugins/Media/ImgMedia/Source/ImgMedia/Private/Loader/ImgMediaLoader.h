@@ -1,17 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Containers/LruCache.h"
 #include "Containers/Queue.h"
-
-#include "IImgMediaLoader.h"
+#include "Templates/SharedPointer.h"
 
 class FImgMediaLoaderWork;
+class FImgMediaScheduler;
 class FImgMediaTextureSample;
 class IImageWrapperModule;
 class IImgMediaReader;
+class IQueuedWork;
 
 struct FImgMediaFrame;
 
@@ -20,12 +21,16 @@ struct FImgMediaFrame;
  * Loads image sequence frames from disk.
  */
 class FImgMediaLoader
-	: protected IImgMediaLoader
+	: public TSharedFromThis<FImgMediaLoader, ESPMode::ThreadSafe>
 {
 public:
 
-	/** Default constructor. */
-	FImgMediaLoader();
+	/**
+	 * Create and initialize a new instance.
+	 *
+	 * @param InScheduler The scheduler for image loading.
+	 */
+	FImgMediaLoader(const TSharedRef<FImgMediaScheduler, ESPMode::ThreadSafe>& InScheduler);
 
 	/** Virtual destructor. */
 	virtual ~FImgMediaLoader();
@@ -138,13 +143,23 @@ public:
 	}
 
 	/**
+	 * Get the next work item.
+	 *
+	 * This method is called by the scheduler.
+	 *
+	 * @return The work item, or nullptr if no work is available.
+	 */
+	IQueuedWork* GetWork();
+
+	/**
 	 * Initialize the image sequence loader.
 	 *
-	 * @param SequencePath Path to the EXR image sequence.
+	 * @param SequencePath Path to the image sequence.
 	 * @param FpsOverride The frames per second to use (0.0 = do not override).
+	 * @param Loop Whether the cache should loop around.
 	 * @see IsInitialized
 	 */
-	void Initialize(const FString& SequencePath, const float FpsOverride);
+	void Initialize(const FString& SequencePath, const float FpsOverride, bool Loop);
 
 	/**
 	 * Whether this loader has been initialized yet.
@@ -158,13 +173,23 @@ public:
 	}
 
 	/**
+	 * Notify the loader that a work item completed.
+	 *
+	 * @param CompletedWork The work item that completed.
+	 * @param FrameNumber Number of the frame that was read.
+	 * @param Frame The frame that was read, or nullptr if reading failed.
+	 */
+	void NotifyWorkComplete(FImgMediaLoaderWork& CompletedWork, int32 FrameNumber, const TSharedPtr<FImgMediaFrame, ESPMode::ThreadSafe>& Frame);
+
+	/**
 	 * Asynchronously request the image frame at the specified time.
 	 *
 	 * @param Time The time of the image frame to request (relative to the beginning of the sequence).
 	 * @param PlayRate The current play rate (used by the look-ahead logic).
+	 * @param Loop Whether the cache should loop around.
 	 * @return bool if the frame will be loaded, false otherwise.
 	 */
-	bool RequestFrame(FTimespan Time, float PlayRate);
+	bool RequestFrame(FTimespan Time, float PlayRate, bool Loop);
 
 protected:
 
@@ -175,6 +200,15 @@ protected:
 	 * @param OutRangeSet Will contain the time ranges.
 	 */
 	void FrameNumbersToTimeRanges(const TArray<int32>& FrameNumbers, TRangeSet<FTimespan>& OutRangeSet) const;
+
+	/**
+	 * Initialize the image sequence loader.
+	 *
+	 * @param SequencePath Path to the image sequence.
+	 * @param FpsOverride The frames per second to use (0.0 = do not override).
+	 * @param Loop Whether the cache should loop around.
+	 */
+	void LoadSequence(const FString& SequencePath, const float FpsOverride, bool Loop);
 
 	/**
 	 * Get the frame number corresponding to the specified play head time.
@@ -189,14 +223,9 @@ protected:
 	 *
 	 * @param PlayHeadFrame Current play head frame number.
 	 * @param PlayRate Current play rate.
+	 * @param Loop Whether the cache should loop around.
 	 */
-	void Update(int32 PlayHeadFrame, float PlayRate);
-
-protected:
-
-	//~ IImgMediaLoader interface
-
-	virtual void NotifyWorkComplete(FImgMediaLoaderWork& CompletedWork, int32 FrameNumber, const TSharedPtr<FImgMediaFrame, ESPMode::ThreadSafe>& Frame) override;
+	void Update(int32 PlayHeadFrame, float PlayRate, bool Loop);
 
 private:
 
@@ -209,7 +238,7 @@ private:
 	/** The image wrapper module to use. */
 	IImageWrapperModule& ImageWrapperModule;
 
-	/** Paths to each EXR image in the currently opened sequence. */
+	/** Paths to each image in the currently opened sequence. */
 	TArray<FString> ImagePaths;
 
 	/** Media information string. */
@@ -227,6 +256,9 @@ private:
 	/** The image sequence reader to use. */
 	TSharedPtr<IImgMediaReader, ESPMode::ThreadSafe> Reader;
 
+	/** The scheduler for image loading. */
+	TSharedPtr<FImgMediaScheduler, ESPMode::ThreadSafe> Scheduler;
+
 	/** Width and height of the image sequence (in pixels) .*/
 	FIntPoint SequenceDim;
 
@@ -238,8 +270,6 @@ private:
 
 private:
 
-	TArray<FImgMediaLoaderWork*> AbandonedWorks;
-
 	/** Index of the previously requested frame. */
 	int32 LastRequestedFrame;
 
@@ -248,9 +278,6 @@ private:
 
 	/** Collection of frame numbers that are being read. */
 	TArray<int32> QueuedFrameNumbers;
-
-	/** Maps queued frame numbers to work items. */
-	TMap<int32, FImgMediaLoaderWork*> QueuedWorks;
 
 	/** Object pool for reusable work items. */
 	TArray<FImgMediaLoaderWork*> WorkPool;

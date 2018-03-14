@@ -3,46 +3,7 @@ Title: IES Light Profiles
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:Using IES Light Profiles in Unreal Engine 4.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/IESLightProfiles:title%](%ROOT%/Engine/Rendering/LightingAndShadows/IESLightProfiles/IES_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/IESLightProfiles:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/IESLightProfiles:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/IESLightProfiles]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/IESLightProfiles:title%](%ROOT%/Engine/Rendering/LightingAndShadows/IESLightProfiles/IES_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/IESLightProfiles:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/IESLightProfiles:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/IESLightProfiles]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:IES_topic.png
 
 [REGION:banner]
 ![](IES_fullwidth.png)
@@ -57,7 +18,7 @@ Version: 4.9
 [/EXCERPT:IES001]
 
 [REGION:lightbox]
-[![](IES_01.png)(w:225 h:225)](IES_01.png) [![](IES_02.png)(w:225 h:225)](IES_02.png) [![](IES_03.png)(w:225 h:225)](IES_03.png) [![](IES_04.png)(w:225 h:225)](IES_04.png)
+[![](IES_01.png)(w:225)](IES_01.png) [![](IES_02.png)(w:225)](IES_02.png) [![](IES_03.png)(w:225)](IES_03.png) [![](IES_04.png)(w:225)](IES_04.png)
 [/REGION]
 
 ## Where can I get them?

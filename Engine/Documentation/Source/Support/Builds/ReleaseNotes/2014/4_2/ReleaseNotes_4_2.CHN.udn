@@ -23,13 +23,15 @@ order:2
 | **DirectX** | June 2010 |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Labels]
 QA_APPROVED_UE4_BUILD_2014_06  
 QA_APPROVED_UE4_BUILD_CURRENT  
 QA_APPROVED_UE4_BUILD_MINIMUM
 [/EXCERPT:Labels]
--->
+
+[/COMMENT]
 [/PUBLISH:Licensee]
 
 ## Major New Features

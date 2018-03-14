@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -64,7 +64,7 @@ public:
 	void GetAllListenerComponents(TArray<UAIPerceptionComponent*>& ListenerComponents) const;
 
 	/** called when sense's instance gets notified about new pawn that has just been spawned */
-	UFUNCTION(BlueprintImplementableEvent, DisplayName="OnNewPawn")
+	UFUNCTION(BlueprintImplementableEvent, DisplayName="OnNewPawn", meta=(ScriptName="OnNewPawn"))
 	void K2_OnNewPawn(APawn* NewPawn);
 
 	virtual FAISenseID UpdateSenseID() override;

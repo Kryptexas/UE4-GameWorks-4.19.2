@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DeferredLightPixelShaders.usf: 
@@ -75,6 +75,10 @@ void DirectionalPixelMain(
 
 		OutColor = GetDynamicLighting(WorldPosition, CameraVector, ScreenSpaceData.GBuffer, ScreenSpaceData.AmbientOcclusion, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(InUV), Dither, Random);
 	}
+
+#if USE_PREEXPOSURE
+		OutColor *= View.PreExposure;
+#endif
 }
 
 /** 
@@ -108,10 +112,16 @@ void RadialPixelMain(
 
 		FDeferredLightData LightData = SetupLightDataForStandardDeferred();
 
-		uint2 Random = Rand3DPCG16( uint3( SVPos.xy, View.Random ) ).xy;
+		uint2 Random = uint2( SVPos.xy );
+		//uint2 Random = SobolPixel( uint2(SVPos.xy) );
+		//uint2 Random = Rand3DPCG16( uint3( SVPos.xy, View.Random ) ).xy;
 		float Dither = InterleavedGradientNoise( SVPos.xy, View.StateFrameIndexMod8 );
 
 		OutColor = GetDynamicLighting(WorldPosition, CameraVector, ScreenSpaceData.GBuffer, ScreenSpaceData.AmbientOcclusion, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(ScreenUV), Dither, Random);
-		OutColor *= ComputeLightProfileMultiplier(WorldPosition, DeferredLightUniforms.LightPosition, DeferredLightUniforms.NormalizedLightDirection);
+		OutColor *= ComputeLightProfileMultiplier(WorldPosition, DeferredLightUniforms.LightPosition, -DeferredLightUniforms.NormalizedLightDirection, DeferredLightUniforms.NormalizedLightTangent);
+
+#if USE_PREEXPOSURE
+		OutColor *= View.PreExposure;
+#endif
 	}
 }

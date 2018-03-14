@@ -21,7 +21,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 When we setup our **Basic Code** project in the previous step, Unreal Engine created a **Game Mode** for us. Game Modes define a game's rules and win conditions. Our Game Mode also sets default classes that will be used for some basic gameplay framework types, including Pawn, PlayerController, and HUD. During this step, we're going to use the Editor to open our solution in Visual Studio so that we can view our project's Game Mode class. 
 
@@ -56,4 +56,3 @@ When we setup our **Basic Code** project in the previous step, Unreal Engine cre
 
 1.	Now that you've opened your C++ project in Visual Studio, you're ready to start adding code to the project. 
 		
-%Steps%

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,6 +14,7 @@
 #include "MeshBatch.h"
 #include "LocalVertexFactory.h"
 #include "GenericOctree.h"
+#include "StaticMeshResources.h"
 #include "NavMeshRenderingComponent.generated.h"
 
 class APlayerController;
@@ -68,7 +69,7 @@ struct ENGINE_API FNavMeshSceneProxyData : public TSharedFromThis<FNavMeshSceneP
 	};
 	TArray<FDebugText> DebugLabels;
 	
-	TArray<int32> PathCollidingGeomIndices;
+	TArray<uint32> PathCollidingGeomIndices;
 	TArray<FDynamicMeshVertex> PathCollidingGeomVerts;
 	TArray<FBoxCenterAndExtent>	OctreeBounds;
 
@@ -92,10 +93,12 @@ struct ENGINE_API FNavMeshSceneProxyData : public TSharedFromThis<FNavMeshSceneP
 };
 
 // exported to API for GameplayDebugger module
-class ENGINE_API FNavMeshSceneProxy : public FDebugRenderSceneProxy
+class ENGINE_API FNavMeshSceneProxy final : public FDebugRenderSceneProxy
 {
 	friend class FNavMeshDebugDrawDelegateHelper;
 public:
+	SIZE_T GetTypeHash() const override;
+
 	FNavMeshSceneProxy(const UPrimitiveComponent* InComponent, FNavMeshSceneProxyData* InProxyData, bool ForceToRender = false);
 	virtual ~FNavMeshSceneProxy();
 
@@ -108,32 +111,12 @@ protected:
 	virtual uint32 GetMemoryFootprint(void) const override { return sizeof(*this) + GetAllocatedSize(); }
 	uint32 GetAllocatedSize(void) const;
 
-private:
-	class FNavMeshIndexBuffer : public FIndexBuffer
-	{
-	public:
-		TArray<int32> Indices;
-		virtual void InitRHI() override;
-	};
-
-	class FNavMeshVertexBuffer : public FVertexBuffer
-	{
-	public:
-		TArray<FDynamicMeshVertex> Vertices;
-		virtual void InitRHI() override;
-	};
-
-	class FNavMeshVertexFactory : public FLocalVertexFactory
-	{
-	public:
-		void Init(const FNavMeshVertexBuffer* VertexBuffer);
-	};
-			
+private:			
 	FNavMeshSceneProxyData ProxyData;
 
-	FNavMeshIndexBuffer IndexBuffer;
-	FNavMeshVertexBuffer VertexBuffer;
-	FNavMeshVertexFactory VertexFactory;
+	FDynamicMeshIndexBuffer32 IndexBuffer;
+	FStaticMeshVertexBuffers VertexBuffers;
+	FLocalVertexFactory VertexFactory;
 
 	TArray<FColoredMaterialRenderProxy> MeshColors;
 	TArray<FMeshBatchElement> MeshBatchElements;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrimitiveComponent.cpp: Primitive component implementation.
@@ -30,6 +30,7 @@
 #include "GameFramework/CheatManager.h"
 #include "Streaming/TextureStreamingHelpers.h"
 #include "PrimitiveSceneProxy.h"
+#include "UObject/RenderingObjectVersion.h"
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponent"
 
@@ -75,6 +76,10 @@ FAutoConsoleVariableRef CVarRefShowInitialOverlaps(
 static int32 bEnableFastOverlapCheck = 1;
 static FAutoConsoleVariableRef CVarEnableFastOverlapCheck(TEXT("p.EnableFastOverlapCheck"), bEnableFastOverlapCheck, TEXT("Enable fast overlap check against sweep hits, avoiding UpdateOverlaps (for the swept component)."));
 DECLARE_CYCLE_STAT(TEXT("MoveComponent FastOverlap"), STAT_MoveComponent_FastOverlap, STATGROUP_Game);
+DECLARE_CYCLE_STAT(TEXT("BeginComponentOverlap"), STAT_BeginComponentOverlap, STATGROUP_Game);
+DECLARE_CYCLE_STAT(TEXT("EndComponentOverlap"), STAT_EndComponentOverlap, STATGROUP_Game);
+DECLARE_CYCLE_STAT(TEXT("PrimComp DispatchBlockingHit"), STAT_DispatchBlockingHit, STATGROUP_Game);
+
 
 // Predicate to determine if an overlap is with a certain AActor.
 struct FPredicateOverlapHasSameActor
@@ -203,6 +208,7 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 	
 	bApplyImpulseOnDamage = true;
 
+	bReceiveMobileCSMShadows = true;
 #if WITH_EDITORONLY_DATA
 	bEnableAutoLODGeneration = true;
 #endif // WITH_EDITORONLY_DATA
@@ -247,7 +253,7 @@ bool UPrimitiveComponent::IsEditorOnly() const
 
 bool UPrimitiveComponent::HasStaticLighting() const
 {
-	return ((Mobility == EComponentMobility::Static) || bLightAsIfStatic) && SupportsStaticLighting();
+	return ((Mobility == EComponentMobility::Static) || LightmapType == ELightmapType::ForceSurface) && SupportsStaticLighting();
 }
 
 void UPrimitiveComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
@@ -265,28 +271,22 @@ void UPrimitiveComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext&
 			// by specifying that the texture is stretched across the bounds. To do this, we use a density of 1
 			// while also specifying the component scale as the bound radius. 
 			// Note that material UV scaling will  still apply.
-			static FMeshUVChannelInfo UVChannelData;
-			if (!UVChannelData.bInitialized)
-			{
-				UVChannelData.bInitialized = true;
-				for (float& Density : UVChannelData.LocalUVDensities)
-				{
-					Density = 1.f;
-				}
-			}
+			static const FMeshUVChannelInfo UVChannelData(1.f);
 
 			FPrimitiveMaterialInfo MaterialData;
 			MaterialData.PackedRelativeBox = PackedRelativeBox_Identity;
 			MaterialData.UVChannelData = &UVChannelData;
 
-			TArray<UTexture*> UsedTextures;
-			for (UMaterialInterface* MaterialInterface : UsedMaterials)
+			while (UsedMaterials.Num())
 			{
+				UMaterialInterface* MaterialInterface = UsedMaterials[0];
 				if (MaterialInterface)
 				{
 					MaterialData.Material = MaterialInterface;
 					LevelContext.ProcessMaterial(Bounds, MaterialData, Bounds.SphereRadius, OutStreamingTextures);
 				}
+				// Remove all instances of this material in case there were duplicates.
+				UsedMaterials.RemoveSwap(MaterialInterface);
 			}
 		}
 	}
@@ -295,7 +295,8 @@ void UPrimitiveComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext&
 
 void UPrimitiveComponent::GetStreamingTextureInfoWithNULLRemoval(FStreamingTextureLevelContext& LevelContext, TArray<struct FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
 {
-	if (!IsRegistered() || SceneProxy) // If registered but without a scene proxy, then this is not visible.
+	// Ignore components that are fully initialized but have no scene proxy (hidden primitive or non game primitive)
+	if (!IsRegistered() || !IsRenderStateCreated() || SceneProxy)
 	{
 		GetStreamingTextureInfo(LevelContext, OutStreamingTextures);
 		for (int32 Index = 0; Index < OutStreamingTextures.Num(); Index++)
@@ -627,13 +628,11 @@ void UPrimitiveComponent::OnCreatePhysicsState()
 				BodyTransform.SetScale3D(FVector(KINDA_SMALL_NUMBER));
 			}
 
-#if UE_WITH_PHYSICS
 			// Create the body.
 			BodyInstance.InitBody(BodySetup, BodyTransform, this, GetWorld()->GetPhysicsScene());		
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			SendRenderDebugPhysics();
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-#endif //UE_WITH_PHYSICS
 
 #if WITH_EDITOR
 			// Make sure we have a valid body instance here. As we do not keep BIs with no collision shapes at all,
@@ -759,9 +758,19 @@ void UPrimitiveComponent::Serialize(FArchive& Ar)
 
 	// as temporary fix for the bug TTP 299926
 	// permanent fix is coming
-	if (IsTemplate())
+	if (Ar.IsLoading() && IsTemplate())
 	{
 		BodyInstance.FixupData(this);
+	}
+
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+
+	if (Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::ReplaceLightAsIfStatic)
+	{
+		if (bLightAsIfStatic_DEPRECATED)
+		{
+			LightmapType = ELightmapType::ForceSurface;
+		}
 	}
 }
 
@@ -789,9 +798,9 @@ void UPrimitiveComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 		}
 	}
 
-	if (bLightAsIfStatic && GetStaticLightingType() == LMIT_None)
+	if (LightmapType == ELightmapType::ForceSurface && GetStaticLightingType() == LMIT_None)
 	{
-		bLightAsIfStatic = false;
+		LightmapType = ELightmapType::Default;
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -832,7 +841,6 @@ bool UPrimitiveComponent::CanEditChange(const UProperty* InProperty) const
 	{
 		const FName PropertyName = InProperty->GetFName();
 
-		static FName LightAsIfStaticName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bLightAsIfStatic);
 		static FName LightmassSettingsName = TEXT("LightmassSettings");
 		static FName LightingChannelsName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, LightingChannels);
 		static FName SingleSampleShadowFromStationaryLightsName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bSingleSampleShadowFromStationaryLights);
@@ -841,15 +849,9 @@ bool UPrimitiveComponent::CanEditChange(const UProperty* InProperty) const
 		static FName CastInsetShadowName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bCastInsetShadow);
 		static FName CastShadowName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, CastShadow);
 
-		if (PropertyName == LightAsIfStaticName)
-		{
-			// Disable editing bLightAsIfStatic on static components, since it has no effect
-			return Mobility != EComponentMobility::Static;
-		}
-
 		if (PropertyName == LightmassSettingsName)
 		{
-			return Mobility != EComponentMobility::Movable || bLightAsIfStatic;
+			return Mobility != EComponentMobility::Movable || LightmapType == ELightmapType::ForceSurface;
 		}
 
 		if (PropertyName == SingleSampleShadowFromStationaryLightsName)
@@ -868,6 +870,12 @@ bool UPrimitiveComponent::CanEditChange(const UProperty* InProperty) const
 			AWorldSettings* WorldSettings = World ? World->GetWorldSettings() : NULL;
 			const bool bILCRelevant = WorldSettings ? (WorldSettings->LightmassSettings.VolumeLightingMethod == VLM_SparseVolumeLightingSamples) : true;
 			return bILCRelevant && Mobility == EComponentMobility::Movable;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, LightmapType))
+		{
+			static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
+			return AllowStaticLightingVar->GetValueOnAnyThread() != 0;
 		}
 
 		if (PropertyName == CastInsetShadowName)
@@ -1016,9 +1024,9 @@ void UPrimitiveComponent::PostLoad()
 		}
 	} 
 
-	if (bLightAsIfStatic && GetStaticLightingType() == LMIT_None)
+	if (LightmapType == ELightmapType::ForceSurface && GetStaticLightingType() == LMIT_None)
 	{
-		bLightAsIfStatic = false;
+		LightmapType = ELightmapType::Default;
 	}
 }
 
@@ -2060,6 +2068,8 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 
 void UPrimitiveComponent::DispatchBlockingHit(AActor& Owner, FHitResult const& BlockingHit)
 {
+	SCOPE_CYCLE_COUNTER(STAT_DispatchBlockingHit);
+
 	UPrimitiveComponent* const BlockingHitComponent = BlockingHit.Component.Get();
 	if (BlockingHitComponent)
 	{
@@ -2298,6 +2308,8 @@ bool IsPrimCompValidAndAlive(UPrimitiveComponent* PrimComp)
 // @todo, don't need to pass in Other actor?
 void UPrimitiveComponent::BeginComponentOverlap(const FOverlapInfo& OtherOverlap, bool bDoNotifies)
 {
+	SCOPE_CYCLE_COUNTER(STAT_BeginComponentOverlap);
+
 	// If pending kill, we should not generate any new overlaps
 	if (IsPendingKill())
 	{
@@ -2369,6 +2381,8 @@ void UPrimitiveComponent::BeginComponentOverlap(const FOverlapInfo& OtherOverlap
 
 void UPrimitiveComponent::EndComponentOverlap(const FOverlapInfo& OtherOverlap, bool bDoNotifies, bool bSkipNotifySelf)
 {
+	SCOPE_CYCLE_COUNTER(STAT_EndComponentOverlap);
+
 	UPrimitiveComponent* OtherComp = OtherOverlap.OverlapInfo.Component.Get();
 	if (OtherComp == nullptr)
 	{
@@ -2696,6 +2710,7 @@ TArray<UPrimitiveComponent*> UPrimitiveComponent::CopyArrayOfMoveIgnoreComponent
 void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingOverlaps, bool bDoNotifies, const TArray<FOverlapInfo>* OverlapsAtEndLocation)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateOverlaps); 
+	SCOPE_CYCLE_UOBJECT(ComponentScope, this);
 
 	if (IsDeferringMovementUpdates())
 	{

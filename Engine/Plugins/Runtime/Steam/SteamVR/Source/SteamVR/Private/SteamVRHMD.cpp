@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SteamVRHMD.h"
 #include "SteamVRPrivate.h"
@@ -15,7 +15,6 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/WorldSettings.h"
 #include "IHeadMountedDisplayVulkanExtensions.h"
-#include "Debug/DebugDrawService.h"
 
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
@@ -36,17 +35,6 @@
 #include "Containers/ResourceArray.h"
 #include <Metal/Metal.h>
 #endif
-
-static TAutoConsoleVariable<int32> CShowDebug(TEXT("vr.SteamVR.ShowDebug"), 0, TEXT("If non-zero, will draw debugging info to the canvas"));
-
-// Adaptive Pixel Density
-static TAutoConsoleVariable<float> CUseAdaptivePDMin(TEXT("vr.SteamVR.PixelDensityMin"), 0.7f, TEXT("Minimum pixel density, as a float"));
-static TAutoConsoleVariable<float> CUseAdaptivePDMax(TEXT("vr.SteamVR.PixelDensityMax"), 1.0f, TEXT("Maximum pixel density, as a float"));
-static TAutoConsoleVariable<float> CAdaptiveGPUTimeThreshold(TEXT("vr.SteamVR.AdaptiveGPUTimeThreshold"), 11.1f, TEXT("Time, in ms, to aim for stabilizing the GPU frame time at"));
-static TAutoConsoleVariable<float> CDebugAdaptiveGPUTime(TEXT("vr.SteamVR.AdaptiveDebugGPUTime"), 0.f, TEXT("Added to the the GPU frame timing, in ms, for testing"));
-static TAutoConsoleVariable<int32> CDebugAdaptiveOutput(TEXT("vr.SteamVR.PixelDensityAdaptiveDebugOutput"), 0, TEXT("If non-zero, the adaptive pixel density will print debugging info to the log."));
-static TAutoConsoleVariable<int32> CDebugAdaptiveCycle(TEXT("vr.SteamVR.PixelDensityAdaptiveDebugCycle"), 0, TEXT("If non-zero, the adaptive pixel density will cycle from max to min pixel density, and then jump to max."));
-static TAutoConsoleVariable<int32> CDebugAdaptivePostProcess(TEXT("vr.SteamVR.PixelDensityAdaptivePostProcess"), 1, TEXT("If non-zero, when the adaptive density changes, we'll disable TAA for a few frames to clear the buffers."));
 
 // Visibility mesh
 static TAutoConsoleVariable<int32> CUseSteamVRVisibleAreaMesh(TEXT("vr.SteamVR.UseVisibleAreaMesh"), 1, TEXT("If non-zero, SteamVR will use the visible area mesh in addition to the hidden area mesh optimization.  This may be problematic on beta versions of platforms."));
@@ -136,7 +124,6 @@ public:
 #if !STEAMVR_SUPPORTED_PLATFORMS
 	{
 	}
-
 #else //STEAMVR_SUPPORTED_PLATFORMS
 		: VRSystem(nullptr)
 	{
@@ -453,11 +440,6 @@ void FSteamVRHMD::EnableHMD(bool enable)
 	}
 }
 
-EHMDDeviceType::Type FSteamVRHMD::GetHMDDeviceType() const
-{
-	return EHMDDeviceType::DT_SteamVR;
-}
-
 bool FSteamVRHMD::GetHMDMonitorInfo(MonitorInfo& MonitorDesc) 
 {
 	if (IsInitialized())
@@ -498,7 +480,7 @@ bool FSteamVRHMD::DoesSupportPositionalTracking() const
 
 bool FSteamVRHMD::HasValidTrackingPosition()
 {
-	return bHaveVisionTracking;
+	return GetTrackingFrame().bHaveVisionTracking;
 }
 
 bool FSteamVRHMD::GetTrackingSensorProperties(int32 SensorId, FQuat& OutOrientation, FVector& OutOrigin, FXRSensorProperties& OutSensorProperties)
@@ -573,7 +555,7 @@ bool FSteamVRHMD::GetCurrentPose(int32 DeviceId, FQuat& CurrentOrientation, FVec
 	return bHasValidPose;
 }
 
-void FSteamVRHMD::RefreshPoses()
+void FSteamVRHMD::UpdatePoses()
 {
 	if (VRSystem == nullptr)
 	{
@@ -581,32 +563,31 @@ void FSteamVRHMD::RefreshPoses()
 	}
 
 	FTrackingFrame& TrackingFrame = const_cast<FTrackingFrame&>(GetTrackingFrame());
-		TrackingFrame.FrameNumber = GFrameNumberRenderThread;
+	TrackingFrame.FrameNumber = GFrameNumberRenderThread;
 
-		vr::TrackedDevicePose_t Poses[vr::k_unMaxTrackedDeviceCount];
+	vr::TrackedDevicePose_t Poses[vr::k_unMaxTrackedDeviceCount];
 	if (IsInRenderingThread())
-		{
-			vr::EVRCompositorError PoseError = VRCompositor->WaitGetPoses(Poses, ARRAYSIZE(Poses) , NULL, 0);
-		}
-		else
-		{
+	{
+		vr::EVRCompositorError PoseError = VRCompositor->WaitGetPoses(Poses, ARRAYSIZE(Poses) , NULL, 0);
+	}
+	else
+	{
 		check(IsInGameThread());
-			VRSystem->GetDeviceToAbsoluteTrackingPose(VRCompositor->GetTrackingSpace(), 0.0f, Poses, ARRAYSIZE(Poses));
-		}
+		VRSystem->GetDeviceToAbsoluteTrackingPose(VRCompositor->GetTrackingSpace(), 0.0f, Poses, ARRAYSIZE(Poses));
+	}
 
-		bHaveVisionTracking = false;
+	TrackingFrame.bHaveVisionTracking = false;
 	TrackingFrame.WorldToMetersScale = GameWorldToMetersScale;
-		for (uint32 i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
-		{
-		bHaveVisionTracking |= Poses[i].eTrackingResult == vr::ETrackingResult::TrackingResult_Running_OK;
+	for (uint32 i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
+	{
+		TrackingFrame.bHaveVisionTracking |= Poses[i].eTrackingResult == vr::ETrackingResult::TrackingResult_Running_OK;
 
-			TrackingFrame.bDeviceIsConnected[i] = Poses[i].bDeviceIsConnected;
-			TrackingFrame.bPoseIsValid[i] = Poses[i].bPoseIsValid;
+		TrackingFrame.bDeviceIsConnected[i] = Poses[i].bDeviceIsConnected;
+		TrackingFrame.bPoseIsValid[i] = Poses[i].bPoseIsValid;
 		TrackingFrame.RawPoses[i] = Poses[i].mDeviceToAbsoluteTracking;
 
 	}
 	ConvertRawPoses(TrackingFrame);
-	
 }
 
 void FSteamVRHMD::GetWindowBounds(int32* X, int32* Y, uint32* Width, uint32* Height)
@@ -914,7 +895,6 @@ EXRTrackedDeviceType FSteamVRHMD::GetTrackedDeviceType(int32 DeviceId) const
 	}
 }
 
-
 bool FSteamVRHMD::EnumerateTrackedDevices(TArray<int32>& TrackedIds, EXRTrackedDeviceType DeviceType)
 {
 	TrackedIds.Empty();
@@ -977,6 +957,8 @@ void FSteamVRHMD::OnEndPlay(FWorldContext& InWorldContext)
 	}
 }
 
+const FName FSteamVRHMD::SteamSystemName(TEXT("SteamVR"));
+
 FString FSteamVRHMD::GetVersionString() const
 {
 	if (VRSystem == nullptr)
@@ -1010,8 +992,10 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 	FQuat Orientation;
 	FVector Position;
 	GameWorldToMetersScale = WorldContext.World()->GetWorldSettings()->WorldToMeters;
-	RefreshPoses();
+	UpdatePoses();
 	GetCurrentPose(IXRTrackingSystem::HMDDeviceId, Orientation, Position);
+
+	RefreshTrackingToWorldTransform(WorldContext);
 
 	bool bShouldShutdown = false;
 	if (bIsQuitting)
@@ -1021,17 +1005,6 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 			bShouldShutdown = true;
 			bIsQuitting = false;
 		}
-	}
-
-	// We must be sure the rendertargetsize is calculated already
-	if (FrameSettings.bNeedsUpdate)
-	{
-		UpdateStereoRenderingParams();
-	}
-	// And then transfer the settings for this frame to the render thread
-	{
-		FScopeLock Lock(&FrameSettingsLock);
-		pBridge->UpdateFrameSettings(FrameSettings);
 	}
 
 	// Poll SteamVR events
@@ -1235,7 +1208,7 @@ bool FSteamVRHMD::EnableStereo(bool bStereo)
 				int32 PosX, PosY;
 				uint32 Width, Height;
 				GetWindowBounds( &PosX, &PosY, &Width, &Height );
-				SceneVP->SetViewportSize( Width, Height );
+				SceneVP->SetViewportSize(Width, Height);
 				bStereoEnabled = bStereoDesired;
 			}
 			else
@@ -1264,7 +1237,9 @@ bool FSteamVRHMD::EnableStereo(bool bStereo)
 
 void FSteamVRHMD::AdjustViewRect(EStereoscopicPass StereoPass, int32& X, int32& Y, uint32& SizeX, uint32& SizeY) const
 {
-	//@todo steamvr: get the actual rects from steamvr
+	SizeX = FMath::CeilToInt(IdealRenderTargetSize.X * PixelDensity);
+	SizeY = FMath::CeilToInt(IdealRenderTargetSize.Y * PixelDensity);
+
 	SizeX = SizeX / 2;
 	if( StereoPass == eSSP_RIGHT_EYE )
 	{
@@ -1347,9 +1322,16 @@ FMatrix FSteamVRHMD::GetStereoProjectionMatrix(const enum EStereoscopicPass Ster
 
 void FSteamVRHMD::GetOrthoProjection(int32 RTWidth, int32 RTHeight, float OrthoDistance, FMatrix OrthoProjection[2]) const
 {
+	const int32 RenderTargetWidth = FMath::CeilToInt(static_cast<float>(IdealRenderTargetSize.X) * PixelDensity);
+	const int32 RenderTargetHeight = FMath::CeilToInt(static_cast<float>(IdealRenderTargetSize.Y) * PixelDensity);
+
 	const float HudOffset = 50.0f;
-	OrthoProjection[0] = FTranslationMatrix(FVector(HudOffset, 0.f, 0.f));
-	OrthoProjection[1] = FTranslationMatrix(FVector(-HudOffset + RTWidth * .5, 0.f, 0.f));
+	OrthoProjection[0] = FTranslationMatrix(FVector(HudOffset, 0.0f, 0.0f));
+	OrthoProjection[1] = FTranslationMatrix(FVector(-HudOffset + RenderTargetWidth * 0.5, 0.0f, 0.0f));
+
+	const FScaleMatrix RTScale(FVector(static_cast<float>(RTWidth) / static_cast<float>(RenderTargetWidth), static_cast<float>(RTHeight) / static_cast<float>(RenderTargetHeight), 1.0f));
+	OrthoProjection[0] *= RTScale;
+	OrthoProjection[1] *= RTScale;
 }
 
 void FSteamVRHMD::GetEyeRenderParams_RenderThread(const FRenderingCompositePassContext& Context, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const
@@ -1372,21 +1354,22 @@ void FSteamVRHMD::GetEyeRenderParams_RenderThread(const FRenderingCompositePassC
 	}
 }
 
-bool FSteamVRHMD::GetHMDDistortionEnabled() const
+bool FSteamVRHMD::GetHMDDistortionEnabled(EShadingPath /* ShadingPath */) const
 {
 	return false;
 }
 
-void FSteamVRHMD::BeginRendering_GameThread()
+void FSteamVRHMD::OnBeginRendering_GameThread()
 {
 	check(IsInGameThread());
 	SpectatorScreenController->BeginRenderViewFamily();
 }
 
-void FSteamVRHMD::BeginRendering_RenderThread(const FTransform& NewRelativeTransform, FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily)
+void FSteamVRHMD::OnBeginRendering_RenderThread(FRHICommandListImmediate& /* unused */, FSceneViewFamily& ViewFamily)
 {
 	check(IsInRenderingThread());
-	FHeadMountedDisplayBase::BeginRendering_RenderThread(NewRelativeTransform, RHICmdList, ViewFamily);
+	UpdatePoses();
+
 	GetActiveRHIBridgeImpl()->BeginRendering();
 
 	check(SpectatorScreenController);
@@ -1398,51 +1381,11 @@ void FSteamVRHMD::BeginRendering_RenderThread(const FTransform& NewRelativeTrans
 	PlayerOrientation = ViewOrientation * MainView->BaseHmdOrientation.Inverse();
 }
 
-
 void FSteamVRHMD::UpdateViewportRHIBridge(bool /* bUseSeparateRenderTarget */, const class FViewport& Viewport, FRHIViewport* const ViewportRHI)
 {
 	check(IsInGameThread());
 
 	GetActiveRHIBridgeImpl()->UpdateViewport(Viewport, ViewportRHI);
-	GetActiveRHIBridgeImpl()->IncrementFrameNumber();
-}
-
-void FSteamVRHMD::DrawDebug(class UCanvas* Canvas, class APlayerController*)
-{
-	if(CShowDebug.GetValueOnGameThread())
-	{
-		if (Canvas == nullptr)
-		{
-			return;
-		}
-		
-		static const FColor TextColor(0,255,0);
-		// Pick a larger font on console.
-		UFont* const Font = FPlatformProperties::SupportsWindowedMode() ? GEngine->GetSmallFont() : GEngine->GetMediumFont();
-		const int32 RowHeight = FMath::TruncToInt(Font->GetMaxCharHeight() * 1.1f);
-		
-		float ClipX = Canvas->ClipX;
-		float ClipY = Canvas->ClipY;
-		float LeftPos = 0;
-		
-		ClipX -= 100;
-		LeftPos = ClipX * 0.3f;
-		float TopPos = ClipY * 0.4f;
-		
-		int32 X = (int32)LeftPos;
-		int32 Y = (int32)TopPos;
-		
-		FString Str;
-		Str = FString::Printf(TEXT("PD: %.2f"), FrameSettings.CurrentPixelDensity);
-		Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
-		
-		Y += RowHeight;
-		
-		static const auto PostProcessAAQualityCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.PostProcessAAQuality"));
-		Str = FString::Printf(TEXT("AA: %d"), PostProcessAAQualityCVar->GetInt());
-		Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
-		
-	}
 }
 
 FSteamVRHMD::BridgeBaseImpl* FSteamVRHMD::GetActiveRHIBridgeImpl()
@@ -1458,9 +1401,9 @@ void FSteamVRHMD::CalculateRenderTargetSize(const class FViewport& Viewport, uin
 	{
 		return;
 	}
-	
-	InOutSizeX = FrameSettings.RenderTargetSize.X;
-	InOutSizeY = FrameSettings.RenderTargetSize.Y;
+
+	InOutSizeX = FMath::CeilToInt(IdealRenderTargetSize.X * PixelDensity);
+	InOutSizeY = FMath::CeilToInt(IdealRenderTargetSize.Y * PixelDensity);
 
 	check(InOutSizeX != 0 && InOutSizeY != 0);
 }
@@ -1486,14 +1429,13 @@ bool FSteamVRHMD::NeedReAllocateViewportRenderTarget(const FViewport& Viewport)
 }
 
 FSteamVRHMD::FSteamVRHMD(ISteamVRPlugin* InSteamVRPlugin) :
-	CUseAdaptivePD(TEXT("vr.SteamVR.PixelDensityAdaptive"), TEXT("SteamVR adaptive pixel density support.  0 to disable, 1 to enable"), FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(this, &FSteamVRHMD::AdaptivePixelDensityCommandHandler)),
 	bHmdEnabled(true),
 	HmdWornState(EHMDWornState::Unknown),
 	bStereoDesired(false),
 	bStereoEnabled(false),
-	bHaveVisionTracking(false),
 	WindowMirrorBoundsWidth(2160),
 	WindowMirrorBoundsHeight(1200),
+	PixelDensity(1.0f),
 	HMDWornMovementThreshold(50.0f),
 	HMDStartLocation(FVector::ZeroVector),
 	BaseOrientation(FQuat::Identity),
@@ -1584,48 +1526,18 @@ bool FSteamVRHMD::Startup()
 		uint32 RecommendedWidth, RecommendedHeight;
 		VRSystem->GetRecommendedRenderTargetSize(&RecommendedWidth, &RecommendedHeight);
 		RecommendedWidth *= 2;
-		
-		FrameSettings.RecommendedWidth = RecommendedWidth;
-		FrameSettings.RecommendedHeight = RecommendedHeight;
-		FrameSettings.RenderTargetSize.X = RecommendedWidth;
-		FrameSettings.RenderTargetSize.Y = RecommendedHeight;
 
 		int32 ScreenX, ScreenY;
 		uint32 ScreenWidth, ScreenHeight;
 		GetWindowBounds(&ScreenX, &ScreenY, &ScreenWidth, &ScreenHeight);
 
-		float WidthPercentage = ((float)RecommendedWidth / (float)ScreenWidth) * 100.0f;
-		float HeightPercentage = ((float)RecommendedHeight / (float)ScreenHeight) * 100.0f;
+		IdealRenderTargetSize = FIntPoint(RecommendedWidth, RecommendedHeight);
 
-		float ScreenPercentage = FMath::Max(WidthPercentage, HeightPercentage);
-		IdealScreenPercentage = ScreenPercentage;
-
-		/*
-		//@todo steamvr: move out of here
-		static IConsoleVariable* CScrPercVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
-
-		if (FMath::RoundToInt(CScrPercVar->GetFloat()) != FMath::RoundToInt(ScreenPercentage))
-		{
-			CScrPercVar->Set(ScreenPercentage);
+		static const auto PixelDensityCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("vr.PixelDensity"));
+		if (PixelDensityCVar)
+		{ 
+			PixelDensity = FMath::Clamp(PixelDensityCVar->GetFloat(), PixelDensityMin, PixelDensityMax);
 		}
-		*/
-
-		UpdateStereoRenderingParams();
-
-		// Set up the adaptive buckets for pixel density, and start at the highest
-		AdaptivePixelDensityBuckets.Add(0.60f);
-		AdaptivePixelDensityBuckets.Add(0.65f);
-		AdaptivePixelDensityBuckets.Add(0.70f);
-		AdaptivePixelDensityBuckets.Add(0.75f);
-		AdaptivePixelDensityBuckets.Add(0.80f);
-		AdaptivePixelDensityBuckets.Add(0.85f);
-		AdaptivePixelDensityBuckets.Add(0.90f);
-		AdaptivePixelDensityBuckets.Add(0.95f);
-		AdaptivePixelDensityBuckets.Add(1.00f);
-		CurrentAdaptiveBucket = AdaptivePixelDensityBuckets.Num() - 1;
-
-		PreviousFrameTimes.AddZeroed(PreviousFrameBufferSize);
-		CurrentFrameTimesBufferIndex = 0;
 
 		// disable vsync
 		static IConsoleVariable* CVSyncVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
@@ -1683,8 +1595,6 @@ bool FSteamVRHMD::Startup()
 
 		CreateSpectatorScreenController();
 
-		DrawDebugDelegateHandle = UDebugDrawService::Register(TEXT("SteamVR"), FDebugDrawDelegate::CreateRaw(this, &FSteamVRHMD::DrawDebug));
-
 		UE_LOG(LogHMD, Log, TEXT("SteamVR initialized.  Driver: %s  Display: %s"), *DriverId, *DisplayId);
 		return true;
 	}
@@ -1721,12 +1631,6 @@ void FSteamVRHMD::LoadFromIni()
 
 void FSteamVRHMD::Shutdown()
 {
-	if (DrawDebugDelegateHandle.IsValid())
-	{
-		UDebugDrawService::Unregister(DrawDebugDelegateHandle);
-		DrawDebugDelegateHandle.Reset();
-	}
-
 	if (VRSystem != nullptr)
 	{
 		SplashTicker->UnregisterForMapLoad();
@@ -1810,232 +1714,6 @@ const FSteamVRHMD::FTrackingFrame& FSteamVRHMD::GetTrackingFrame() const
 	{
 		return GameTrackingFrame;
 	}
-}
-
-FAutoConsoleVariableSink FSteamVRHMD::ConsoleVariableSink(FConsoleCommandDelegate::CreateStatic(&FSteamVRHMD::ConsoleSinkHandler));
-void FSteamVRHMD::ConsoleSinkHandler()
-{
-	if (GEngine && GEngine->XRSystem.IsValid())
-	{
-		static FName SteamVRName(TEXT("SteamVR"));
-
-		if (GEngine->XRSystem->GetSystemName() == SteamVRName)
-		{
-			FSteamVRHMD* HMD = static_cast<FSteamVRHMD*>(GEngine->XRSystem.Get());
-			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
-			const float CurrentScreenPercentage = CVar->GetValueOnGameThread();
-			if(CurrentScreenPercentage != (HMD->FrameSettings.CurrentPixelDensity * HMD->IdealScreenPercentage))
-			{
-				HMD->FrameSettings.bNeedsUpdate = true;
-			}
-		}
-	}
-}
-
-void FSteamVRHMD::AdaptivePixelDensityCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
-{
-	if (Args.Num() > 0)
-	{
-		int32 Value = FCString::Atoi(*Args[0]);
-		FrameSettings.bAdaptivePixelDensity = (Value != 0);
-		FrameSettings.bNeedsUpdate = true;
-	}
-}
-
-float FSteamVRHMD::GetPixelDensity() const
-{
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
-	float CurrentScreenPercentage= CVar->GetValueOnGameThread();
-
-	return CurrentScreenPercentage / IdealScreenPercentage;
-}
-
-void FSteamVRHMD::SetPixelDensity(float NewPD)
-{
-	static IConsoleVariable* CScrPercVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
-	CScrPercVar->Set(NewPD * IdealScreenPercentage, EConsoleVariableFlags(CScrPercVar->GetFlags() & ECVF_SetByMask));
-}
-
-int32 FSteamVRHMD::CalculateScalabilityFactor()
-{
-	int32 RetVal = 0;
-
-	const float GPUTarget = CAdaptiveGPUTimeThreshold->GetFloat();
-
-	// Gather the GPU timing information.  This isn't hooked up on Panda yet, so we have to use the RHIGetGPUFrameCycles call as a substitute
-#if PLATFORM_MAC
-	const uint32 GPUCycles = RHIGetGPUFrameCycles();
-	const float CurrentFrameTime = FPlatformTime::ToMilliseconds(GPUCycles) + CDebugAdaptiveGPUTime->GetFloat();
-#else
-	vr::Compositor_FrameTiming FrameTiming;
-	FrameTiming.m_nSize = sizeof(vr::Compositor_FrameTiming);
-	VRCompositor->GetFrameTiming(&FrameTiming);
-	const float CurrentFrameTime = FrameTiming.m_flPreSubmitGpuMs + CDebugAdaptiveGPUTime->GetFloat();
-#endif
-
-	// Get the historical frame data
-	int32 PreviousFrameIndex = CurrentFrameTimesBufferIndex - 1;
-	PreviousFrameIndex = (PreviousFrameIndex < 0) ? (PreviousFrameBufferSize + PreviousFrameIndex) : PreviousFrameIndex;
-	const float PreviousFrameTime = PreviousFrameTimes[CurrentFrameTimesBufferIndex];
-
-	int32 TwoPreviousFrameTimeIndex = CurrentFrameTimesBufferIndex - 2;
-	TwoPreviousFrameTimeIndex = (TwoPreviousFrameTimeIndex < 0) ? (PreviousFrameBufferSize + TwoPreviousFrameTimeIndex) : TwoPreviousFrameTimeIndex;
-	const float TwoPreviousFrameTime = PreviousFrameTimes[TwoPreviousFrameTimeIndex];
-
-	// Record the current frame into the buffer
-	PreviousFrameTimes[(CurrentFrameTimesBufferIndex++) % PreviousFrameBufferSize] = CurrentFrameTime;
-	if (CurrentFrameTimesBufferIndex >= PreviousFrameBufferSize)
-	{
-		CurrentFrameTimesBufferIndex = 0;
-	}
-
-	// If we're frame locked, bail after updating our buffers
-	if (FrameSettings.PixelDensityAdaptiveLockedFrames-- > 0)
-	{
-		return RetVal;
-	}
-
-	// Adapted from Alex Vlachos' GDC presentation "Advanced VR Rendering Performance" (GDC 2016)
-
-	// If the current frame is above 90% of the total time, drop two buckets
-	if (CurrentFrameTime > 0.9f * GPUTarget)
-	{
-		RetVal = -2;
-	}
-	else
-	{
-		// If the last three frames were below 70% of the total time, raise one bucket
-		const float SeventyPercentTargetTime = 0.7f * GPUTarget;
-		if (TwoPreviousFrameTime < SeventyPercentTargetTime
-			&& PreviousFrameTime < SeventyPercentTargetTime
-			&& CurrentFrameTime < SeventyPercentTargetTime)
-		{
-			RetVal = 1;
-		}
-
-		// If the last frame was above 85%, and the predicted next frame is above 90%, drop two buckets
-		const float PredictedFrameTime = 2.f * CurrentFrameTime - PreviousFrameTime;
-		if ((CurrentFrameTime > 0.85f * GPUTarget) && (PredictedFrameTime > 0.9f * GPUTarget))
-		{
-			RetVal = -2;
-		}
-	}
-
-	// If we've changed, give it two frames to settle down before making any more adjustments
-	if (RetVal != 0)
-	{
-		FrameSettings.PixelDensityAdaptiveLockedFrames = 2;
-	}
-
-	const bool bOutputDebug = (CDebugAdaptiveOutput.GetValueOnAnyThread() > 0);
-	if(bOutputDebug)
-	{
-		UE_LOG(LogHMD, Log, TEXT("FrameTime: %2.1f, FrameTime - 1: %2.1f, Frametime - 2: %2.1f"), CurrentFrameTime, PreviousFrameTime, TwoPreviousFrameTime);
-	}
-
-	return RetVal;
-}
-
-void FSteamVRHMD::UpdateStereoRenderingParams()
-{
-	FScopeLock Lock(&FrameSettingsLock);
-
-	if (FrameSettings.bAdaptivePixelDensity)
-	{
-		// If we changed AA modes because of a PD switch, restore it here
-		static const auto PostProcessAAQualityCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.PostProcessAAQuality"));
-		if ((FrameSettings.PostProcessAARestoreValue != INDEX_NONE) && (FrameSettings.PixelDensityAdaptiveLockedFrames <= 0))
-		{
-			PostProcessAAQualityCVar->Set(FrameSettings.PostProcessAARestoreValue);
-			FrameSettings.PostProcessAARestoreValue = INDEX_NONE;
-		}
-
-		// Update values for our PD range, in case they've been changed
-		FrameSettings.PixelDensityMin = CUseAdaptivePDMin.GetValueOnAnyThread();
-		FrameSettings.PixelDensityMax = CUseAdaptivePDMax.GetValueOnAnyThread();
-		const bool bDebugAdaptive = (CDebugAdaptiveCycle.GetValueOnAnyThread() > 0);
-
-		if(bDebugAdaptive)
-		{
-			FrameSettings.CurrentPixelDensity -= 0.005;
-			if (FrameSettings.CurrentPixelDensity < FrameSettings.PixelDensityMin)
-			{
-				FrameSettings.CurrentPixelDensity = FrameSettings.PixelDensityMax;
-			}
-		}
-		else
-		{
-			// Determine if we need to scale up or down based on the most recent frames.  This will tell us if we need to move up or down a bucket
-			const int32 PerformanceDelta = CalculateScalabilityFactor();
-			CurrentAdaptiveBucket = FMath::Clamp(CurrentAdaptiveBucket + PerformanceDelta, 0, AdaptivePixelDensityBuckets.Num() - 1);
-			
-			// If we've actually changed, we need to disable TAA to avoid artifacting, and then restore it the next frame.
-			if (FrameSettings.CurrentPixelDensity != AdaptivePixelDensityBuckets[CurrentAdaptiveBucket])
-			{
-				// If desired, turn off TAA for a few frames because of the buffer resizing
-				if((CDebugAdaptivePostProcess.GetValueOnGameThread() != 0) && (FrameSettings.PostProcessAARestoreValue == INDEX_NONE))
-				{
-					FrameSettings.PostProcessAARestoreValue = PostProcessAAQualityCVar->GetInt();
-					PostProcessAAQualityCVar->Set(2);
-				}
-				
-				FrameSettings.CurrentPixelDensity = AdaptivePixelDensityBuckets[CurrentAdaptiveBucket];
-			}
-		}
-		
-		const bool bOutputDebug = (CDebugAdaptiveOutput.GetValueOnAnyThread() > 0);
-		if(bOutputDebug)
-		{
-			UE_LOG(LogHMD, Log, TEXT("---> PDAdaptive: %1.2f"), FrameSettings.CurrentPixelDensity);
-		}
-	}
-	else
-	{
-		const float CurrentPixelDensity = GetPixelDensity();
-		FrameSettings.CurrentPixelDensity = CurrentPixelDensity;
-		FrameSettings.PixelDensityMin = CurrentPixelDensity;
-		FrameSettings.PixelDensityMax = CurrentPixelDensity;
-	}
-
-	const float PD = FrameSettings.CurrentPixelDensity;
-	const float PDMax = FrameSettings.PixelDensityMax;
-
-	const uint32 ViewRecommendedWidth = FMath::CeilToInt(PD * FrameSettings.RecommendedWidth / 2.f);
-	const uint32 ViewRecommendedHeight = FMath::CeilToInt(PD * FrameSettings.RecommendedHeight);
-
-	const uint32 ViewMaximumWidth = FMath::CeilToInt(PDMax * FrameSettings.RecommendedWidth / 2.f);
-	const uint32 ViewMaxiumumHeight = FMath::CeilToInt(PDMax * FrameSettings.RecommendedHeight);
-
-	const uint32 TotalWidth = FMath::CeilToInt(PDMax * FrameSettings.RecommendedWidth);
-
-	// Left Eye Viewport and Max Viewport
-	FrameSettings.EyeViewports[0].Min = FIntPoint(0, 0);
-	FrameSettings.EyeViewports[0].Max = FIntPoint(ViewRecommendedWidth, ViewRecommendedHeight);
-
-	// Right Eye Viewport and Max Viewport
-	FrameSettings.EyeViewports[1].Min = FIntPoint(TotalWidth - ViewRecommendedWidth, 0);
-	FrameSettings.EyeViewports[1].Max = FIntPoint(TotalWidth, ViewRecommendedHeight);
-
-	if (FrameSettings.bAdaptivePixelDensity)
-	{
-		FrameSettings.MaxViewports[0].Min = FIntPoint(0, 0);
-		FrameSettings.MaxViewports[0].Max = FIntPoint(ViewMaximumWidth, ViewMaxiumumHeight);
-
-		FrameSettings.MaxViewports[1].Min = FIntPoint(TotalWidth - ViewMaximumWidth, 0);
-		FrameSettings.MaxViewports[1].Max = FIntPoint(TotalWidth, ViewMaxiumumHeight);
-	}
-	else
-	{
-		FrameSettings.MaxViewports[0] = FrameSettings.EyeViewports[0];
-		FrameSettings.MaxViewports[1] = FrameSettings.EyeViewports[1];
-	}
-
-	FrameSettings.RenderTargetSize.X = TotalWidth;
-	FrameSettings.RenderTargetSize.Y = ViewMaxiumumHeight;
-
-	SetPixelDensity(FrameSettings.CurrentPixelDensity);
-
-	FrameSettings.bNeedsUpdate = FrameSettings.bAdaptivePixelDensity;
 }
 
 #endif //STEAMVR_SUPPORTED_PLATFORMS

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:피지컬 머티리얼 편집
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
@@ -6,44 +6,6 @@ Description:
 Version: 4.9
 SkillLevel: Intermediate
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/PhysicalMaterials/HowTo/Editing:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhysicalMaterials/HowTo/Editing:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhysicalMaterials/HowTo/Editing:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/PhysicalMaterials/HowTo/Editing]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Physics/PhysicalMaterials/HowTo/Editing:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhysicalMaterials/HowTo/Editing:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhysicalMaterials/HowTo/Editing:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/PhysicalMaterials/HowTo/Editing]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 다음은 기존에 이미 있는 피지컬 머티리얼을 편집하는 방법입니다.
 

@@ -20,6 +20,9 @@
 #include "PhononScene.h"
 #include "SteamAudioSettings.h"
 #include "PhononProbeVolume.h"
+#include "PlatformFileManager.h"
+#include "GenericPlatformFile.h"
+#include "Paths.h"
 
 namespace SteamAudio
 {
@@ -39,7 +42,6 @@ namespace SteamAudio
 
 	FEnvironment::~FEnvironment()
 	{
-		Shutdown();
 	}
 
 	IPLhandle FEnvironment::Initialize(UWorld* World, FAudioDevice* InAudioDevice)
@@ -53,28 +55,6 @@ namespace SteamAudio
 		if (InAudioDevice == nullptr)
 		{
 			UE_LOG(LogSteamAudio, Error, TEXT("Unable to create Phonon environment: null Audio Device."));
-			return nullptr;
-		}
-
-		TArray<AActor*> PhononSceneActors;
-		UGameplayStatics::GetAllActorsOfClass(World, APhononScene::StaticClass(), PhononSceneActors);
-
-		if (PhononSceneActors.Num() == 0)
-		{
-			UE_LOG(LogSteamAudio, Error, TEXT("Unable to create Phonon environment: PhononScene not found. Be sure to add a PhononScene actor to your level and export the scene."));
-			return nullptr;
-		}
-		else if (PhononSceneActors.Num() > 1)
-		{
-			UE_LOG(LogSteamAudio, Warning, TEXT("More than one PhononScene actor found in level. Arbitrarily choosing one. Ensure only one exists to avoid unexpected behavior."));
-		}
-
-		APhononScene* PhononSceneActor = Cast<APhononScene>(PhononSceneActors[0]);
-		check(PhononSceneActor);
-
-		if (PhononSceneActor->SceneData.Num() == 0)
-		{
-			UE_LOG(LogSteamAudio, Error, TEXT("Unable to create Phonon environment: PhononScene actor does not have scene data. Be sure to export the scene."));
 			return nullptr;
 		}
 
@@ -102,13 +82,13 @@ namespace SteamAudio
 		EnvironmentalOutputAudioFormat.ambisonicsNormalization = IPL_AMBISONICSNORMALIZATION_N3D;
 		EnvironmentalOutputAudioFormat.ambisonicsOrdering = IPL_AMBISONICSORDERING_ACN;
 
-		IPLerror Error = IPLerror::IPL_STATUS_SUCCESS;
+		if (!LoadSceneFromDisk(World, ComputeDevice, SimulationSettings, &PhononScene, PhononSceneInfo))
+		{
+			UE_LOG(LogSteamAudio, Warning, TEXT("Unable to create Phonon environment: failed to load scene from disk. Be sure to export the scene."));
+			return nullptr;
+		}
 
-		iplLoadFinalizedScene(GlobalContext, SimulationSettings, PhononSceneActor->SceneData.GetData(), PhononSceneActor->SceneData.Num(),
-			ComputeDevice, nullptr, &PhononScene);
-		LogSteamAudioStatus(Error);
-
-		Error = iplCreateProbeManager(&ProbeManager);
+		IPLerror Error = iplCreateProbeManager(&ProbeManager);
 		LogSteamAudioStatus(Error);
 
 		TArray<AActor*> PhononProbeVolumes;
@@ -117,9 +97,15 @@ namespace SteamAudio
 		for (AActor* PhononProbeVolumeActor : PhononProbeVolumes)
 		{
 			APhononProbeVolume* PhononProbeVolume = Cast<APhononProbeVolume>(PhononProbeVolumeActor);
+
+			if (PhononProbeVolume->GetProbeBatchDataSize() == 0)
+			{
+				UE_LOG(LogSteamAudio, Warning, TEXT("No batch data found on probe volume. You may need to bake indirect sound."));
+				continue;
+			}
+
 			IPLhandle ProbeBatch = nullptr;
-			Error = iplLoadProbeBatch(PhononProbeVolume->GetProbeBatchData(), PhononProbeVolume->GetProbeBatchDataSize(), &ProbeBatch);
-			LogSteamAudioStatus(Error);
+			PhononProbeVolume->LoadProbeBatchFromDisk(&ProbeBatch);
 
 			iplAddProbeBatch(ProbeManager, ProbeBatch);
 

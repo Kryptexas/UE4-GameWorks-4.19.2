@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Internationalization/TextFormatter.h"
 #include "Misc/ScopeLock.h"
@@ -780,7 +780,7 @@ void FTextFormatData::GetFormatArgumentNames_NoLock(TArray<FString>& OutArgument
 			// We can't just use AddUnique since we need the names to be case-sensitive
 			const bool bIsInArray = OutArgumentNames.ContainsByPredicate([&](const FString& InEntry) -> bool
 			{
-				return ArgumentToken->ArgumentNameLen == InEntry.Len() && FCString::Strnicmp(ArgumentToken->ArgumentNameStartPos, *InEntry, ArgumentToken->ArgumentNameLen) == 0;
+				return ArgumentToken->ArgumentNameLen == InEntry.Len() && FCString::Strncmp(ArgumentToken->ArgumentNameStartPos, *InEntry, ArgumentToken->ArgumentNameLen) == 0;
 			});
 
 			if (!bIsInArray)
@@ -888,7 +888,7 @@ FString FTextFormatter::FormatStr(const FTextFormat& InFmt, const FFormatNamedAr
 	{
 		for (const auto& Pair : InArguments)
 		{
-			if (ArgumentToken.ArgumentNameLen == Pair.Key.Len() && FCString::Strnicmp(ArgumentToken.ArgumentNameStartPos, *Pair.Key, ArgumentToken.ArgumentNameLen) == 0)
+			if (ArgumentToken.ArgumentNameLen == Pair.Key.Len() && FCString::Strncmp(ArgumentToken.ArgumentNameStartPos, *Pair.Key, ArgumentToken.ArgumentNameLen) == 0)
 			{
 				return &Pair.Value;
 			}
@@ -944,7 +944,7 @@ FString FTextFormatter::FormatStr(const FTextFormat& InFmt, const TArray<FFormat
 	{
 		for (const auto& Arg : InArguments)
 		{
-			if (ArgumentToken.ArgumentNameLen == Arg.ArgumentName.Len() && FCString::Strnicmp(ArgumentToken.ArgumentNameStartPos, *Arg.ArgumentName, ArgumentToken.ArgumentNameLen) == 0)
+			if (ArgumentToken.ArgumentNameLen == Arg.ArgumentName.Len() && FCString::Strncmp(ArgumentToken.ArgumentNameStartPos, *Arg.ArgumentName, ArgumentToken.ArgumentNameLen) == 0)
 			{
 				switch (Arg.ArgumentValueType)
 				{

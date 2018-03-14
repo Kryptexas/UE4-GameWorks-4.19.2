@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #if PLATFORM_ANDROID
 
@@ -559,8 +559,8 @@ eglDisplay(EGL_NO_DISPLAY)
 	,eglConfigParam(NULL)
 	,eglSurface(EGL_NO_SURFACE)
 	,auxSurface(EGL_NO_SURFACE)
-	,eglWidth(8)  // required for GearVR apps with internal win surf mgmt
-	,eglHeight(8) // required for GearVR apps with internal win surf mgmt
+	,eglWidth(8)  // required for Gear VR apps with internal win surf mgmt
+	,eglHeight(8) // required for Gear VR apps with internal win surf mgmt
 	,eglRatio(0)
 	,DepthSize(0)
 	,SwapBufferFailureCount(0)
@@ -654,7 +654,7 @@ void AndroidEGL::InitSurface(bool bUseSmallSurface, bool bCreateWndSurface)
 	PImplData->SingleThreadedContext.eglSurface = PImplData->eglSurface;
 }
 
-// call out to JNI to see if the application was packaged for GearVR
+// call out to JNI to see if the application was packaged for Gear VR
 extern bool AndroidThunkCpp_IsGearVRApplication();
 
 void AndroidEGL::ReInit()

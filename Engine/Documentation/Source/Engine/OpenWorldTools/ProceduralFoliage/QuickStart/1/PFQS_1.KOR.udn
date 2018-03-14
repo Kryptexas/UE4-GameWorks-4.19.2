@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 1. 폴리지 타입 액터 만들기
 Crumbs:
@@ -22,7 +22,7 @@ Version: 4.8
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 이번 비법에서는 UE4 에서 프로시저럴 폴리지 툴의 정상 작동에 필요한 레벨, 랜드스케이프 터레인, 필수 액터 전부를 새로 만들어 보겠습니다.
 
@@ -70,7 +70,7 @@ Version: 4.8
 
 	![](T_Save_All.png)
 
-%Steps%
+
 
 
 

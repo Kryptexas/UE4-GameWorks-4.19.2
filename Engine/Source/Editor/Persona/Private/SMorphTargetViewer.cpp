@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SMorphTargetViewer.h"
@@ -277,8 +277,7 @@ float SMorphTargetListRow::GetWeight() const
 		if (AnimInstance)
 		{
 			// make sure if they have value that's not same as saved value
-			TMap<FName, float> MorphCurves;
-			AnimInstance->GetAnimationCurveList(EAnimCurveType::MorphTargetCurve, MorphCurves);
+			const TMap<FName, float>& MorphCurves = AnimInstance->GetAnimationCurveList(EAnimCurveType::MorphTargetCurve);
 			const float* CurrentWeightPtr = MorphCurves.Find(Item->Name);
 			if (CurrentWeightPtr)
 			{

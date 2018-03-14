@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Slate/SGameLayerManager.h"
 #include "Widgets/SOverlay.h"
@@ -239,9 +239,8 @@ void SGameLayerManager::Tick(const FGeometry& AllottedGeometry, const double InC
 
 int32 SGameLayerManager::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	FPlatformMisc::BeginNamedEvent(FColor::Green, "Paint: Game UI");
+	SCOPED_NAMED_EVENT_TEXT("Paint: Game UI", FColor::Green);
 	const int32 ResultLayer = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
-	FPlatformMisc::EndNamedEvent();
 	return ResultLayer;
 }
 

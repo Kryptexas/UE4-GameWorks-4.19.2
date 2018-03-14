@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,10 +14,11 @@ class INiagaraParameterCollectionViewModel;
 class FNiagaraScriptGraphViewModel;
 class FNiagaraScriptInputCollectionViewModel;
 class FNiagaraScriptOutputCollectionViewModel;
+class FNiagaraMetaDataCollectionViewModel;
 class UNiagaraEmitter;
 
 
-/** A view model for niagara scripts which manages other script related view models. */
+/** A view model for Niagara scripts which manages other script related view models. */
 class FNiagaraScriptViewModel : public TSharedFromThis<FNiagaraScriptViewModel>, public FEditorUndoClient, public TNiagaraViewModelManager<UNiagaraScript, FNiagaraScriptViewModel>
 {
 public:
@@ -37,6 +38,12 @@ public:
 	/** Gets the view model for the output parameter collection. */
 	TSharedRef<FNiagaraScriptOutputCollectionViewModel> GetOutputCollectionViewModel();
 
+	/** Gets the view model for the metadata collection. */
+	TSharedRef<FNiagaraMetaDataCollectionViewModel> GetMetadataCollectionViewModel();
+
+	TSharedRef<INiagaraParameterCollectionViewModel> GetInputParameterMapViewModel();
+	TSharedRef<INiagaraParameterCollectionViewModel> GetOutputParameterMapViewModel();
+
 	/** Gets the view model for the graph. */
 	TSharedRef<FNiagaraScriptGraphViewModel> GetGraphViewModel();
 
@@ -46,7 +53,7 @@ public:
 		const TArray<UNiagaraScript*>& InCompileSources);
 
 	/** Compiles a script that isn't part of an emitter or System. */
-	void CompileStandaloneScript();
+	void CompileStandaloneScript(bool bForce);
 
 	/** Get the latest status of this view-model's script compilation.*/
 	ENiagaraScriptCompileStatus GetLatestCompileStatus();
@@ -62,13 +69,17 @@ public:
 
 	void SetScriptDirty(bool InNeedsSave) { bNeedsSave = InNeedsSave; }
 
-	const UNiagaraScript* GetScript(ENiagaraScriptUsage InUsage) const;
+	UNiagaraScript* GetContainerScript(ENiagaraScriptUsage InUsage, FGuid InUsageId = FGuid());
+	UNiagaraScript* GetScript(ENiagaraScriptUsage InUsage, FGuid InUsageId = FGuid());
 
-	ENiagaraScriptCompileStatus GetScriptCompileStatus(ENiagaraScriptUsage InUsage, int32 InOccurrence) const;
-	FText GetScriptErrors(ENiagaraScriptUsage InUsage, int32 InOccurrence) const;
+	ENiagaraScriptCompileStatus GetScriptCompileStatus(ENiagaraScriptUsage InUsage, FGuid InUsageId) const;
+	FText GetScriptErrors(ENiagaraScriptUsage InUsage, FGuid InUsageId) const;
 
 	/** Updates the compiled versions of data interfaces from changes to their source. */
 	void UpdateCompiledDataInterfaces(UNiagaraDataInterface* ChangedDataInterface);
+
+	/** If this is editing a standalone script, returns the script being edited.*/
+	UNiagaraScript* GetStandaloneScript();
 
 private:
 	/** Handles the selection changing in the graph view model. */
@@ -77,10 +88,19 @@ private:
 	/** Handles the selection changing in the input collection view model. */
 	void InputViewModelSelectionChanged();
 
+	/** Marks this script view model as dirty and marks the scripts as needing synchrnozation. */
+	void MarkAllDirty();
+
     /** Handle the graph being changed by the UI notifications to see if we need to mark as needing recompile.*/
 	void OnGraphChanged(const struct FEdGraphEditAction& InAction);
 
 	void SetScripts(UNiagaraScriptSource* InScriptSource, TArray<UNiagaraScript*>& InScripts);
+
+	/** Handles when a value in the input parameter collection changes. */
+	void InputParameterValueChanged(FName ParameterName);
+
+	/** Handles when a value in the output parameter collection changes. */
+	void OutputParameterValueChanged(FName ParameterName);
 
 protected:
 	/** The script which provides the data for this view model. */
@@ -93,6 +113,9 @@ protected:
 
 	/** The view model for the output parameter collection .*/
 	TSharedRef<FNiagaraScriptOutputCollectionViewModel> OutputCollectionViewModel;
+
+	/** The view model for the metadata collection .*/
+	TSharedRef<FNiagaraMetaDataCollectionViewModel> MetaDataCollectionViewModel;
 
 	/** The view model for the graph. */
 	TSharedRef<FNiagaraScriptGraphViewModel> GraphViewModel;
@@ -116,5 +139,5 @@ protected:
 	TArray<ENiagaraScriptCompileStatus> CompileStatuses;
 	TArray<FString> CompileErrors;
 	TArray<FString> CompilePaths;
-	TArray<TPair<ENiagaraScriptUsage, int32> > CompileTypes;
+	TArray<TPair<ENiagaraScriptUsage, FGuid>> CompileTypes;
 };

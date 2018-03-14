@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Tracks/MovieSceneCinematicShotTrack.h"
 #include "MovieSceneSequence.h"
@@ -30,7 +30,7 @@ UMovieSceneSubSection* UMovieSceneCinematicShotTrack::AddSequence(UMovieSceneSeq
 
 	if (Sequence != nullptr)
 	{
-		NewShotSection->SetShotDisplayName(Sequence->GetDisplayName());	
+		NewShotSection->SetShotDisplayName(Sequence->GetDisplayName().ToString());	
 	}
 
 #endif
@@ -75,59 +75,36 @@ bool UMovieSceneCinematicShotTrack::SupportsMultipleRows() const
 	return true;
 }
 
-TInlineValue<FMovieSceneSegmentCompilerRules> UMovieSceneCinematicShotTrack::GetTrackCompilerRules() const
+FMovieSceneTrackSegmentBlenderPtr UMovieSceneCinematicShotTrack::GetTrackSegmentBlender() const
 {
 	// Apply a high pass filter to overlapping sections such that only the highest row in a track wins
-	struct FCinematicShotTrackCompilerRules : FMovieSceneSegmentCompilerRules
+	struct FCinematicShotTrackRowBlender : FMovieSceneTrackSegmentBlender
 	{
-		virtual void BlendSegment(FMovieSceneSegment& Segment, const TArrayView<const FMovieSceneSectionData>& SourceData) const
+		virtual void Blend(FSegmentBlendData& BlendData) const override
 		{
-			MovieSceneSegmentCompiler::BlendSegmentHighPass(Segment, SourceData);
+			MovieSceneSegmentCompiler::ChooseLowestRowIndex(BlendData);
 		}
 	};
-	return FCinematicShotTrackCompilerRules();
+	return FCinematicShotTrackRowBlender();
 }
 
-TInlineValue<FMovieSceneSegmentCompilerRules> UMovieSceneCinematicShotTrack::GetRowCompilerRules() const
+FMovieSceneTrackRowSegmentBlenderPtr UMovieSceneCinematicShotTrack::GetRowSegmentBlender() const
 {
-	class FCinematicRowRules : public FMovieSceneSegmentCompilerRules
+	class FCinematicRowRules : public FMovieSceneTrackRowSegmentBlender
 	{
-		virtual void BlendSegment(FMovieSceneSegment& Segment, const TArrayView<const FMovieSceneSectionData>& SourceData) const override
+		virtual void Blend(FSegmentBlendData& BlendData) const override
 		{
 			// Sort everything by priority, then latest start time wins
-			if (Segment.Impls.Num() <= 1)
+			if (BlendData.Num() <= 1)
 			{
 				return;
 			}
 
-			Segment.Impls.Sort(
-				[&](const FSectionEvaluationData& A, const FSectionEvaluationData& B)
-				{
-					const FMovieSceneSectionData& DataA = SourceData[A.ImplIndex];
-					const FMovieSceneSectionData& DataB = SourceData[B.ImplIndex];
-					
-					// Always sort pre/postroll to the front of the array
-					const bool PrePostRollA = DataA.EvalData.IsPreRoll() || DataA.EvalData.IsPostRoll();
-					const bool PrePostRollB = DataB.EvalData.IsPreRoll() || DataB.EvalData.IsPostRoll();
-					if (PrePostRollA != PrePostRollB)
-					{
-						return PrePostRollA;
-					}
-					else if (PrePostRollA)
-					{
-						return false;
-					}
-					else if (DataA.Priority == DataB.Priority)
-					{
-						return TRangeBound<float>::MaxLower(DataA.Bounds.GetLowerBound(), DataB.Bounds.GetLowerBound()) == DataA.Bounds.GetLowerBound();
-					}
-					return DataA.Priority > DataB.Priority;
-				}
-			);
+			BlendData.Sort(SortPredicate);
 
 			int32 RemoveAtIndex = 0;
 			// Skip over any pre/postroll sections
-			while (Segment.Impls.IsValidIndex(RemoveAtIndex) && (Segment.Impls[RemoveAtIndex].Flags & (ESectionEvaluationFlags::PreRoll | ESectionEvaluationFlags::PostRoll)) != ESectionEvaluationFlags::None)
+			while (BlendData.IsValidIndex(RemoveAtIndex) && EnumHasAnyFlags(BlendData[RemoveAtIndex].Flags, ESectionEvaluationFlags::PreRoll | ESectionEvaluationFlags::PostRoll))
 			{
 				++RemoveAtIndex;
 			}
@@ -135,11 +112,35 @@ TInlineValue<FMovieSceneSegmentCompilerRules> UMovieSceneCinematicShotTrack::Get
 			// Skip over the first genuine evaluation if it exists
 			++RemoveAtIndex;
 
-			int32 NumToRemove = Segment.Impls.Num() - RemoveAtIndex;
+			int32 NumToRemove = BlendData.Num() - RemoveAtIndex;
 			if (NumToRemove > 0)
 			{
-				Segment.Impls.RemoveAt(RemoveAtIndex, NumToRemove, true);
+				BlendData.RemoveAt(RemoveAtIndex, NumToRemove, true);
 			}
+		}
+
+		static bool SortPredicate(const FMovieSceneSectionData& A, const FMovieSceneSectionData& B)
+		{
+			// Always sort pre/postroll to the front of the array
+			const bool PrePostRollA = EnumHasAnyFlags(A.Flags, ESectionEvaluationFlags::PreRoll | ESectionEvaluationFlags::PostRoll);
+			const bool PrePostRollB = EnumHasAnyFlags(B.Flags, ESectionEvaluationFlags::PreRoll | ESectionEvaluationFlags::PostRoll);
+
+			if (PrePostRollA != PrePostRollB)
+			{
+				return PrePostRollA;
+			}
+			else if (PrePostRollA)
+			{
+				return false;
+			}
+			else if (A.Section->GetOverlapPriority() == B.Section->GetOverlapPriority())
+			{
+				TRangeBound<float> StartBoundA = A.Section->IsInfinite() ? TRangeBound<float>::Open() : TRangeBound<float>::Inclusive(A.Section->GetStartTime());
+				TRangeBound<float> StartBoundB = B.Section->IsInfinite() ? TRangeBound<float>::Open() : TRangeBound<float>::Inclusive(B.Section->GetStartTime());
+
+				return TRangeBound<float>::MaxLower(StartBoundA, StartBoundB) == StartBoundA;
+			}
+			return A.Section->GetOverlapPriority() > B.Section->GetOverlapPriority();
 		}
 	};
 

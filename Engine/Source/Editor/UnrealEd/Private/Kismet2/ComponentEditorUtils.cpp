@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Kismet2/ComponentEditorUtils.h"
 #include "HAL/FileManager.h"
@@ -536,7 +536,7 @@ int32 FComponentEditorUtils::DeleteComponents(const TArray<UActorComponent*>& Co
 						ParentComponent->GetChildrenComponents(false, Siblings);
 						for (int32 i = 0; i < Siblings.Num() && ComponentToDelete != Siblings[i]; ++i)
 						{
-							if (!Siblings[i]->IsPendingKill())
+							if (Siblings[i] && !Siblings[i]->IsPendingKill())
 							{
 								OutComponentToSelect = Siblings[i];
 							}

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -236,6 +236,7 @@ private:
 	TMap<const USkeletalMeshComponent*, FbxNode*> FbxSkeletonRoots;
 	TMap<const UMaterialInterface*, FbxSurfaceMaterial*> FbxMaterials;
 	TMap<const UStaticMesh*, FbxMesh*> FbxMeshes;
+	TMap<const UStaticMesh*, FbxMesh*> FbxCollisionMeshes;
 
 	/** The frames-per-second (FPS) used when baking transforms */
 	static const float BakeTransformsFPS;
@@ -353,7 +354,7 @@ private:
 	FbxNode* CreateSkeleton(const USkeletalMesh* SkelMesh, TArray<FbxNode*>& BoneNodes);
 
 	/**
-	 * Adds an Fbx Mesh to the FBX scene based on the data in the given FStaticLODModel
+	 * Adds an Fbx Mesh to the FBX scene based on the data in the given FSkeletalMeshLODModel
 	 */
 	FbxNode* CreateMesh(const USkeletalMesh* SkelMesh, const TCHAR* MeshName);
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,6 +6,7 @@
 #include "K2Node.h"
 #include "UObject/ObjectMacros.h"
 #include "MovieScene.h"
+#include "Evaluation/MovieSceneSequenceHierarchy.h"
 
 #include "K2Node_GetSequenceBinding.generated.h"
 
@@ -42,6 +43,7 @@ public:
 	virtual bool IsNodePure() const override { return true; }
 	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
+	virtual void PreloadRequiredAssets() override;
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual void AllocateDefaultPins() override;
 #if WITH_EDITOR
@@ -52,4 +54,8 @@ public:
 	FText GetSequenceName() const;
 	FText GetBindingName() const;
 	UMovieScene* GetObjectMovieScene() const;
+
+private:
+	mutable FMovieSceneSequenceHierarchy SequenceHierarchyCache;
+	mutable TMap<FMovieSceneSequenceID, FGuid> SequenceSignatureCache;
 };

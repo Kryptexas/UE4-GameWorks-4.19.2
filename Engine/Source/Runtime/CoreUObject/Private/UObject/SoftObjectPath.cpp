@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "UObject/SoftObjectPath.h"
 #include "UObject/PropertyPortFlags.h"
@@ -48,19 +48,19 @@ void FSoftObjectPath::SetPath(FString Path)
 		{
 			// Possibly an ExportText path. Trim the ClassName.
 			Path = FPackageName::ExportTextPathToObjectPath(Path);
-		}
+	}
 
 		int32 ColonIndex = INDEX_NONE;
 
 		if (Path.FindChar(':', ColonIndex))
-		{
+	{
 			// Has a subobject, split on that then create a name from the temporary path
 			SubPathString = Path.Mid(ColonIndex + 1);
 			Path.RemoveAt(ColonIndex, Path.Len() - ColonIndex);
 			AssetPathName = *Path;
-		}
-		else
-		{
+	}
+	else
+	{
 			// No Subobject
 			AssetPathName = *Path;
 			SubPathString.Empty();
@@ -97,16 +97,34 @@ bool FSoftObjectPath::Serialize(FArchive& Ar)
 	return true;
 }
 
-void FSoftObjectPath::SerializePath(FArchive& Ar, bool bSkipSerializeIfArchiveHasSize)
+void FSoftObjectPath::SerializePath(FArchive& Ar)
 {
+	bool bSerializeInternals = true;
 #if WITH_EDITOR
 	if (Ar.IsSaving())
 	{
 		PreSavePath();
 	}
+
+	// Only read serialization options in editor as it is a bit slow
+	FName PackageName, PropertyName;
+	ESoftObjectPathCollectType CollectType = ESoftObjectPathCollectType::AlwaysCollect;
+	ESoftObjectPathSerializeType SerializeType = ESoftObjectPathSerializeType::AlwaysSerialize;
+
+	FSoftObjectPathThreadContext& ThreadContext = FSoftObjectPathThreadContext::Get();
+	ThreadContext.GetSerializationOptions(PackageName, PropertyName, CollectType, SerializeType);
+
+	if (SerializeType == ESoftObjectPathSerializeType::NeverSerialize)
+	{
+		bSerializeInternals = false;
+	}
+	else if (SerializeType == ESoftObjectPathSerializeType::SkipSerializeIfArchiveHasSize)
+	{
+		bSerializeInternals = Ar.IsObjectReferenceCollector() || Ar.Tell() < 0;
+	}
 #endif // WITH_EDITOR
 
-	if (!bSkipSerializeIfArchiveHasSize || Ar.IsObjectReferenceCollector() || Ar.Tell() < 0)
+	if (bSerializeInternals)
 	{
 		if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_ADDED_SOFT_OBJECT_PATH)
 		{
@@ -135,11 +153,11 @@ void FSoftObjectPath::SerializePath(FArchive& Ar, bool bSkipSerializeIfArchiveHa
 			PostLoadPath();
 		}
 		if (Ar.GetPortFlags()&PPF_DuplicateForPIE)
-		{
-			// Remap unique ID if necessary
-			// only for fixing up cross-level references, inter-level references handled in FDuplicateDataReader
-			FixupForPIE();
-		}
+	{
+		// Remap unique ID if necessary
+		// only for fixing up cross-level references, inter-level references handled in FDuplicateDataReader
+		FixupForPIE();
+	}
 	}
 #endif // WITH_EDITOR
 }
@@ -241,7 +259,7 @@ bool SerializeFromMismatchedTagTemplate(FString& Output, const FPropertyTag& Tag
 			Output = ObjPtr->GetPathName();
 		}
 		else
-		{
+	{
 			Output = FString();
 		}
 		return true;
@@ -252,8 +270,8 @@ bool SerializeFromMismatchedTagTemplate(FString& Output, const FPropertyTag& Tag
 		Ar << String;
 
 		Output = String;
-		return true;
-	}
+	return true;
+}
 	return false;
 }
 
@@ -362,9 +380,9 @@ void FSoftObjectPath::FixupForPIE()
 
 			// Duplicate if this an already registered PIE package or this looks like a level subobject reference
 			if (bIsChildOfLevel || PIEPackageNames.Contains(PIEPackage))
-			{
-				// Need to prepend PIE prefix, as we're in PIE and this refers to an object in a PIE package
-				SetPath(MoveTemp(PIEPath));
+				{
+					// Need to prepend PIE prefix, as we're in PIE and this refers to an object in a PIE package
+					SetPath(MoveTemp(PIEPath));
 			}
 		}
 	}
@@ -388,15 +406,15 @@ bool FSoftClassPath::SerializeFromMismatchedTag(struct FPropertyTag const& Tag, 
 	{
 		SetPath(MoveTemp(Path));
 		PostLoadPath();
-	}
+				}
 
 	return bReturn;
-}
+			}
 
 UClass* FSoftClassPath::ResolveClass() const
 {
 	return Cast<UClass>(ResolveObject());
-}
+		}
 
 FSoftClassPath FSoftClassPath::GetOrCreateIDForClass(const UClass *InClass)
 {
@@ -404,10 +422,11 @@ FSoftClassPath FSoftClassPath::GetOrCreateIDForClass(const UClass *InClass)
 	return FSoftClassPath(InClass);
 }
 
-bool FSoftObjectPathThreadContext::GetSerializationOptions(FName& OutPackageName, FName& OutPropertyName, ESoftObjectPathCollectType& OutCollectType) const
+bool FSoftObjectPathThreadContext::GetSerializationOptions(FName& OutPackageName, FName& OutPropertyName, ESoftObjectPathCollectType& OutCollectType, ESoftObjectPathSerializeType& OutSerializeType) const
 {
 	FName CurrentPackageName, CurrentPropertyName;
 	ESoftObjectPathCollectType CurrentCollectType = ESoftObjectPathCollectType::AlwaysCollect;
+	ESoftObjectPathSerializeType CurrentSerializeType = ESoftObjectPathSerializeType::AlwaysSerialize;
 	bool bFoundAnything = false;
 	if (OptionStack.Num() > 0)
 	{
@@ -430,11 +449,15 @@ bool FSoftObjectPathThreadContext::GetSerializationOptions(FName& OutPackageName
 			{
 				CurrentCollectType = Options.CollectType;
 			}
+			if (Options.SerializeType < CurrentSerializeType)
+			{
+				CurrentSerializeType = Options.SerializeType;
+			}
 		}
 
 		bFoundAnything = true;
 	}
-
+	
 	// Check UObject thread context as a backup
 	FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
 	if (ThreadContext.SerializedObject)
@@ -459,7 +482,7 @@ bool FSoftObjectPathThreadContext::GetSerializationOptions(FName& OutPackageName
 			if (bEditorOnly && CurrentCollectType == ESoftObjectPathCollectType::AlwaysCollect)
 			{
 				CurrentCollectType = ESoftObjectPathCollectType::EditorOnlyCollect;
-			}
+	}
 
 			bFoundAnything = true;
 		}
@@ -470,6 +493,7 @@ bool FSoftObjectPathThreadContext::GetSerializationOptions(FName& OutPackageName
 		OutPackageName = CurrentPackageName;
 		OutPropertyName = CurrentPropertyName;
 		OutCollectType = CurrentCollectType;
+		OutSerializeType = CurrentSerializeType;
 		return true;
 	}
 

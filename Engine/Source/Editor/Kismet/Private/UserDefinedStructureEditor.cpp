@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "UserDefinedStructureEditor.h"
 #include "Widgets/Text/STextBlock.h"
@@ -103,7 +103,7 @@ public:
 	void Initialize()
 	{
 		StructData = MakeShareable(new FStructOnScope(UserDefinedStruct.Get()));
-		FStructureEditorUtils::Fill_MakeStructureDefaultValue(UserDefinedStruct.Get(), StructData->GetStructMemory());
+		UserDefinedStruct.Get()->InitializeDefaultValue(StructData->GetStructMemory());
 		StructData->SetPackage(UserDefinedStruct->GetOutermost());
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
@@ -155,7 +155,7 @@ public:
 			DetailsView->SetObject(UserDefinedStruct.Get());
 		}
 
-		FStructureEditorUtils::Fill_MakeStructureDefaultValue(UserDefinedStruct.Get(), StructData->GetStructMemory());
+		UserDefinedStruct.Get()->InitializeDefaultValue(StructData->GetStructMemory());
 	}
 
 	// FNotifyHook interface
@@ -435,7 +435,7 @@ class FUserDefinedStructureLayout : public IDetailCustomNodeBuilder, public TSha
 public:
 	FUserDefinedStructureLayout(TWeakPtr<class FUserDefinedStructureDetails> InStructureDetails)
 		: StructureDetails(InStructureDetails)
-		, InitialPinType(GetDefault<UEdGraphSchema_K2>()->PC_Boolean, FString(), nullptr, EPinContainerType::None, false, FEdGraphTerminalType())
+		, InitialPinType(UEdGraphSchema_K2::PC_Boolean, NAME_None, nullptr, EPinContainerType::None, false, FEdGraphTerminalType())
 	{}
 
 	void OnChanged()

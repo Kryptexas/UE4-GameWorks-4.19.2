@@ -34,7 +34,8 @@ Mesh Type Data モジュールには、以下のプロパティがあります�
 |**Face Camera Direction Rather Than Position**| _true_ の場合、カメラが対向するすべてのオプションはカメラ位置に向かずに、カメラのビュー方向に反してメッシュに向きます。.|
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:AxisLockOption]
 [REGION:simpletable]
 | **オプション** | **説明** |
@@ -89,5 +90,6 @@ Mesh Type Data モジュールには、以下のプロパティがあります�
 |_PSMA_MeshFaceCameraWithLockedAxis_|Up ベクターを固定方向として保持する間、カメラに対面します。|
 [/REGION]
 [/EXCERPT:MeshAlignmentOption]
--->
+
+[/COMMENT]
 

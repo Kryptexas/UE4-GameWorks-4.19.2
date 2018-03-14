@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GpuSkinVertexFactory.hlsl: GPU skinned vertex factory shader code
@@ -28,8 +28,6 @@ float4x4 PreviousLocalToWorld;
 
 #define FIXED_VERTEX_INDEX 0xFFFF
 
-float3 MeshOrigin;
-float3 MeshExtension;
 // if the per bone motion blur is enabled for this draw call
 bool PerBoneMotionBlur;
 
@@ -37,6 +35,8 @@ bool PerBoneMotionBlur;
 /** Vertex buffer from which to read simulated positions of clothing. */
 Buffer<float2> ClothSimulVertsPositionsNormals;
 Buffer<float2> PreviousClothSimulVertsPositionsNormals;
+/** Transform to apply when positions/normals are loaded */
+float4x4 ClothLocalToWorld;
 /** blend weight between simulated positions and original key-framed animation */
 float ClothBlendWeight;
 #endif// #if GPUSKIN_APEX_CLOTH
@@ -103,9 +103,9 @@ struct FVertexFactoryInput
 uint2 GPUSkinApexClothStartIndexOffset;
 struct FClothVertex
 {
-	// APEX cloth mesh-mesh mapping data
-	// Barycentric Coordinate Data
-	float4	BaryCoordPos;
+// APEX cloth mesh-mesh mapping data
+// Barycentric Coordinate Data
+float4	BaryCoordPos;
 	float4	BaryCoordNormal;
 	float4	BaryCoordTangent;
 
@@ -121,7 +121,7 @@ struct FClothVertex
 */
 };
 //@todo Switch to StructuredBuffer<FClothVertex>
-Buffer<uint4> GPUSkinApexCloth;
+Buffer<float4> GPUSkinApexCloth;
 
 // Current cloth vertex
 static FClothVertex ClothVertex;
@@ -130,10 +130,10 @@ void SetupClothVertex(uint Index)
 {
 	Index = Index + GPUSkinApexClothStartIndexOffset.y - GPUSkinApexClothStartIndexOffset.x;
 	uint Offset = Index * 4;	// sizeof(FClothVertex) / sizeof(float4)
-	ClothVertex.BaryCoordPos = asfloat(GPUSkinApexCloth[Offset]);
-	ClothVertex.BaryCoordNormal = asfloat(GPUSkinApexCloth[Offset + 1]);
-	ClothVertex.BaryCoordTangent = asfloat(GPUSkinApexCloth[Offset + 2]);
-	uint4 PackedSimulIndices = GPUSkinApexCloth[Offset + 3];
+	ClothVertex.BaryCoordPos = GPUSkinApexCloth[Offset];
+	ClothVertex.BaryCoordNormal = GPUSkinApexCloth[Offset + 1];
+	ClothVertex.BaryCoordTangent = GPUSkinApexCloth[Offset + 2];
+	uint4 PackedSimulIndices = asuint(GPUSkinApexCloth[Offset + 3]);
 	ClothVertex.SimulIndices.yw = (PackedSimulIndices.xy >> 16) & 0xffff;
 	ClothVertex.SimulIndices.xz = PackedSimulIndices.xy & 0xffff;
 }
@@ -199,9 +199,9 @@ half2 GetShadowMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants)
 #if FEATURE_LEVEL >= FEATURE_LEVEL_ES3_1
 
 // The bone matrix buffer stored as 4x3 (3 float4 behind each other), all chunks of a skeletal mesh in one, each skeletal mesh has it's own buffer
-Buffer<float4> BoneMatrices;
+STRONG_TYPE Buffer<float4> BoneMatrices;
 // The previous bone matrix buffer stored as 4x3 (3 float4 behind each other), all chunks of a skeletal mesh in one, each skeletal mesh has it's own buffer
-Buffer<float4> PreviousBoneMatrices;
+STRONG_TYPE Buffer<float4> PreviousBoneMatrices;
 
 #endif
 
@@ -259,32 +259,32 @@ bool IsSimulatedVertex(FClothVertex Input)
 float3 GetClothSimulPosition(int Index, bool bPrevious)
 {
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+	float3 Position;
 	if(bPrevious)
 	{
-		return float3(PreviousClothSimulVertsPositionsNormals[Index * 3], PreviousClothSimulVertsPositionsNormals[Index * 3 + 1].x);
+		Position = float3(PreviousClothSimulVertsPositionsNormals[Index * 3], PreviousClothSimulVertsPositionsNormals[Index * 3 + 1].x);
 	}
 	else
 	{
-		return float3(ClothSimulVertsPositionsNormals[Index * 3], ClothSimulVertsPositionsNormals[Index * 3 + 1].x);
+		Position = float3(ClothSimulVertsPositionsNormals[Index * 3], ClothSimulVertsPositionsNormals[Index * 3 + 1].x);
 	}
-#else
-	return APEXClothParam.Positions[Index];
+	return float3(mul(float4(Position, 1), ClothLocalToWorld).xyz);
 #endif //FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 }
 
 float3 GetClothSimulNormal(int Index, bool bPrevious)
 {
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+	float3 Normal;
 	if(bPrevious)
 	{
-		return float3(PreviousClothSimulVertsPositionsNormals[Index * 3 + 1].y, PreviousClothSimulVertsPositionsNormals[Index * 3 + 2]);
+		Normal = float3(PreviousClothSimulVertsPositionsNormals[Index * 3 + 1].y, PreviousClothSimulVertsPositionsNormals[Index * 3 + 2]);
 	}
 	else
 	{
-		return float3(ClothSimulVertsPositionsNormals[Index * 3 + 1].y, ClothSimulVertsPositionsNormals[Index * 3 + 2]);
+		Normal = float3(ClothSimulVertsPositionsNormals[Index * 3 + 1].y, ClothSimulVertsPositionsNormals[Index * 3 + 2]);
 	}
-#else
-	return APEXClothParam.Normals[Index];
+	return float3(mul(float4(Normal, 0), ClothLocalToWorld).xyz);
 #endif //FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 
 }
@@ -295,7 +295,7 @@ float3 ClothingPosition(FClothVertex Input, bool bPrevious)
 					+ Input.BaryCoordPos.y*(GetClothSimulPosition(Input.SimulIndices.y, bPrevious)+GetClothSimulNormal(Input.SimulIndices.y, bPrevious)*Input.BaryCoordPos.w)
 					+ Input.BaryCoordPos.z*(GetClothSimulPosition(Input.SimulIndices.z, bPrevious)+GetClothSimulNormal(Input.SimulIndices.z, bPrevious)*Input.BaryCoordPos.w);
 
-	return float3(Position.xyz*MeshExtension + MeshOrigin);
+	return float3(Position.xyz);
 }
 
 #endif //#if GPUSKIN_APEX_CLOTH
@@ -305,7 +305,7 @@ float3 ClothingPosition(FClothVertex Input, bool bPrevious)
 */
 float3 UnpackedPosition( FVertexFactoryInput Input )
 {
-	return float3(Input.Position.xyz*MeshExtension + MeshOrigin);
+		return float3(Input.Position.xyz);
 }
 
 #if GPUSKIN_MORPH_BLEND
@@ -460,8 +460,8 @@ float3x3 SkinTangents( FVertexFactoryInput Input, FVertexFactoryIntermediates In
 								+ ClothVertex.BaryCoordTangent.y*(B+NB*ClothVertex.BaryCoordTangent.w)
 								+ ClothVertex.BaryCoordTangent.z*(C+NC*ClothVertex.BaryCoordTangent.w);
 
-		TangentToLocal[0] = normalize(TangentPosition*MeshExtension + MeshOrigin - Intermediates.SimulatedPosition);
-		TangentToLocal[2] = normalize(NormalPosition*MeshExtension + MeshOrigin - Intermediates.SimulatedPosition);
+		TangentToLocal[0] = normalize(TangentPosition - Intermediates.SimulatedPosition);
+		TangentToLocal[2] = normalize(NormalPosition - Intermediates.SimulatedPosition);
 
 		// cloth data are all in world space so need to change into local space
 		TangentToLocal[0] = mul(TangentToLocal[0], (half3x3)Primitive.WorldToLocal);

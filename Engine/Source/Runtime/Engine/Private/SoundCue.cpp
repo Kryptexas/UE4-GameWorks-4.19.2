@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Sound/SoundCue.h"
 #include "Misc/App.h"
@@ -127,6 +127,8 @@ void USoundCue::PostLoad()
 	{
 		OnPostEngineInitHandle = FCoreDelegates::OnPostEngineInit.AddUObject(this, &USoundCue::OnPostEngineInit);
 	}
+
+	CacheNodeState();
 }
 
 void USoundCue::OnPostEngineInit()
@@ -188,6 +190,8 @@ void USoundCue::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyCha
 			}
 		}
 	}
+
+	CacheNodeState();
 }
 #endif
 
@@ -306,31 +310,6 @@ FString USoundCue::GetDesc()
 	return Description;
 }
 
-void USoundCue::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
-{
-	Super::GetResourceSizeEx(CumulativeResourceSize);
-
-	if( CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Exclusive )
-	{
-		// Nothing to add
-	}
-	else
-	{
-		// Sum up the size of referenced waves
-		TArray<USoundNodeWavePlayer*> WavePlayers;
-		RecursiveFindNode<USoundNodeWavePlayer>( FirstNode, WavePlayers );
-
-		for( int32 WaveIndex = 0; WaveIndex < WavePlayers.Num(); ++WaveIndex )
-		{
-			USoundWave* SoundWave = WavePlayers[WaveIndex]->GetSoundWave();
-			if (SoundWave)
-			{
-				SoundWave->GetResourceSizeEx(CumulativeResourceSize);
-			}
-		}
-	}
-}
-
 int32 USoundCue::GetResourceSizeForFormat(FName Format)
 {
 	TArray<USoundNodeWavePlayer*> WavePlayers;
@@ -351,31 +330,59 @@ int32 USoundCue::GetResourceSizeForFormat(FName Format)
 
 float USoundCue::GetMaxAudibleDistance()
 {
+	// Always recalc the max audible distance when in the editor as it could change
+	if ((GIsEditor && !FApp::IsGame()))
+	{
+		CacheNodeState();
+	}
+
+	return MaxAudibleDistance;
+}
+
+void USoundCue::CacheNodeState()
+{
+	// Reset the cached values in case they changed.
+	bHasAttenuationNode = false;
+	bHasVirtualizedSoundWaves = false;
+	MaxAudibleDistance = 0.0f;
+
 	if (FirstNode)
 	{
-		// Always recalc the max audible distance when in the editor as it could change
-		if ((GIsEditor && !FApp::IsGame()) || (MaxAudibleDistance < SMALL_NUMBER))
-		{
-			// initialize AudibleDistance
-			TArray<USoundNode*> SoundNodes;
+		// Search through this sound cue's nodes and find if any sound wave is allowed to be virtualized.
+		// if any of them are virtualized, then this sound cue is treated as being allowed to be virtualized.
+		TArray<USoundNode*> SoundNodes;
+		FirstNode->GetAllNodes(SoundNodes);
 
-			FirstNode->GetAllNodes( SoundNodes );
-			for( int32 i = 0; i < SoundNodes.Num(); ++i )
+		for (int32 i = 0; i < SoundNodes.Num(); ++i)
+		{
+			if (SoundNodes[i]->IsAllowedVirtual())
 			{
-				MaxAudibleDistance = SoundNodes[ i ]->MaxAudibleDistance( MaxAudibleDistance );
+				bHasVirtualizedSoundWaves = true;
 			}
-			if( MaxAudibleDistance < SMALL_NUMBER )
+
+			if (SoundNodes[i]->IsA(USoundNodeAttenuation::StaticClass()))
+			{
+				bHasAttenuationNode = true;
+			}
+
+			MaxAudibleDistance = SoundNodes[i]->MaxAudibleDistance(MaxAudibleDistance);
+
+			if (MaxAudibleDistance < SMALL_NUMBER)
 			{
 				MaxAudibleDistance = WORLD_MAX;
 			}
 		}
 	}
-	else
-	{
-		MaxAudibleDistance = 0.f;
-	}
+}
 
-	return MaxAudibleDistance;
+bool USoundCue::IsAllowedVirtual() const
+{
+	return bHasVirtualizedSoundWaves;
+}
+
+bool USoundCue::HasAttenuationNode() const
+{
+	return bHasAttenuationNode;
 }
 
 float USoundCue::GetDuration()
@@ -392,29 +399,37 @@ float USoundCue::GetDuration()
 	return Duration;
 }
 
-bool USoundCue::ShouldApplyInteriorVolumes() const
+bool USoundCue::ShouldApplyInteriorVolumes()
 {
-	if (Super::ShouldApplyInteriorVolumes())
+	// Only evaluate the sound class graph if we've not cached the result or if we're in editor
+	if (GIsEditor || !bShouldApplyInteriorVolumesCached)
 	{
-		return true;
-	}
+		// After this, we'll have cached the value
+		bShouldApplyInteriorVolumesCached = true;
 
-	// TODO: Consider caching this so we only reevaluate in editor
-	TArray<UObject*> Children;
-	GetObjectsWithOuter(this, Children);
+		bShouldApplyInteriorVolumes = Super::ShouldApplyInteriorVolumes();
 
-	for (UObject* Child : Children)
-	{
-		if (USoundNodeSoundClass* SoundClassNode = Cast<USoundNodeSoundClass>(Child))
+		// Only need to evaluate the sound cue graph if our super doesn't have apply interior volumes enabled
+		if (!bShouldApplyInteriorVolumes)
 		{
-			if (SoundClassNode->SoundClassOverride && SoundClassNode->SoundClassOverride->Properties.bApplyAmbientVolumes)
+			TArray<UObject*> Children;
+			GetObjectsWithOuter(this, Children);
+
+			for (UObject* Child : Children)
 			{
-				return true;
+				if (USoundNodeSoundClass* SoundClassNode = Cast<USoundNodeSoundClass>(Child))
+				{
+					if (SoundClassNode->SoundClassOverride && SoundClassNode->SoundClassOverride->Properties.bApplyAmbientVolumes)
+					{
+						bShouldApplyInteriorVolumes = true;
+						break;
+					}
+				}
 			}
 		}
 	}
 
-	return false;
+	return bShouldApplyInteriorVolumes;
 }
 
 bool USoundCue::IsPlayable() const

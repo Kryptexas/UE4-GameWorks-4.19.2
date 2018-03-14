@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -1904,6 +1904,48 @@ namespace AutomationTool
         public void Sync(string CommandLine, bool AllowSpew = true, bool SpewIsVerbose = false)
 		{
 			LogP4("sync " + CommandLine, null, AllowSpew, SpewIsVerbose:SpewIsVerbose);
+		}
+
+		/// <summary>
+		/// Invokes p4 preview sync command and gets a list of preview synced files.
+		/// </summary>
+		/// <param name="FilesPreviewSynced">Files that have been preview synced with the command</param>
+		/// <param name="CommandLine">CommandLine to pass on to the command.</param>
+		/// <returns>Whether preview sync is successful</returns>
+		public bool PreviewSync(out List<string> FilesPreviewSynced, string CommandLine, bool AllowSpew = true, bool SpewIsVerbose = false)
+		{
+			FilesPreviewSynced = new List<string>();
+
+			try
+			{
+				string Output;
+				LogP4Output(out Output, "sync -n " + CommandLine, null, AllowSpew, SpewIsVerbose: SpewIsVerbose);
+
+				string UpToDateOutput = String.Format("{0} - file(s) up-to-date.\r\n", CommandLine);
+				if (Output == UpToDateOutput)
+				{
+					return true;
+				}
+
+				var Lines = Output.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+				foreach(var line in Lines)
+				{
+					// Line example: //Fortnite/Main/FortniteGame/Content/Backend/Calendars/athena-sales.ics#11 - updating D:\Build\UE4-Fortnite\FortniteGame\Content\Backend\Calendars\athena-sales.ics
+					var splittedLine = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+					if(splittedLine.Length > 3)
+					{
+						FilesPreviewSynced.Add(splittedLine[3]);
+					}
+				}
+			}
+			catch (Exception Ex)
+			{
+				CommandUtils.LogWarning("Unable to preview sync P4 changes with {0}", CommandLine);
+				CommandUtils.LogWarning(" Exception was {0}", LogUtils.FormatException(Ex));
+				return false;
+			}
+
+			return true;
 		}
 
 		/// <summary>

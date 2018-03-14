@@ -77,7 +77,8 @@ the erosion being applied.
 | **Noise Mode** | Whether to apply noise to raise or lower the heightmap, or do both.  [INCLUDE:#noise] |
 | **Noise Scale** | The size of the noise filter used. The noise filter is related to position and scale, which means if you do not change **Noise Scale**, the same filter is applied to the same position many times. | 
 
-<!---
+[COMMENT:none]
+-
 
 [EXCERPT:noise]
 |Selection | Description |
@@ -87,7 +88,8 @@ the erosion being applied.
 | **Lower** | This will only apply erosion effects that result in lower the heightmap.  |
 [/EXCERPT:noise]
 
---->
+-
+[/COMMENT]
 
 
 

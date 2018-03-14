@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -31,13 +31,7 @@ public:
 	}
 
 	// Disallow copy-assignment
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	TUniqueObj& operator=(const TUniqueObj&) = delete;
-#else
-private:
-	TUniqueObj& operator=(const TUniqueObj&);
-public:
-#endif
 
 	// Move-assignment is implemented as swapping the internal pointer
 	TUniqueObj& operator=(TUniqueObj&& other)

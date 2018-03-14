@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "CoreMinimal.h"
@@ -139,6 +139,16 @@ public:
 		return NULL;
 	}
 
+	virtual class FStaticLightingGlobalVolumeMapping* GetVolumeMapping() 
+	{
+		return NULL;
+	}
+
+	virtual const FStaticLightingGlobalVolumeMapping* GetVolumeMapping() const
+	{
+		return NULL;
+	}
+
 	/**
 	 * Returns the relative processing cost used to sort tasks from slowest to fastest.
 	 *
@@ -175,12 +185,12 @@ public:
 	{}
 
 	// FStaticLightingMapping interface.
-	virtual FStaticLightingTextureMapping* GetTextureMapping()
+	virtual FStaticLightingTextureMapping* GetTextureMapping() override
 	{
 		return this;
 	}
 
-	virtual const FStaticLightingTextureMapping* GetTextureMapping() const
+	virtual const FStaticLightingTextureMapping* GetTextureMapping() const override
 	{
 		return this;
 	}
@@ -222,6 +232,28 @@ public:
 
 	/** List of completed interpolation tasks for this mapping. */
 	TLockFreePointerListLIFO<FInterpolateIndirectTaskDescription> CompletedInterpolationTasks;
+};
+
+/** 
+ * A mapping that represents an object which is going to use the global volumetric lightmap.
+ * Hack: currently represented as a texture lightmap to Lightmass for the purposes of surface caching of light (radiosity + direct lighting).
+ */
+class FStaticLightingGlobalVolumeMapping : public FStaticLightingTextureMapping
+{
+public:
+
+	FStaticLightingGlobalVolumeMapping() 
+	{}
+
+	virtual class FStaticLightingGlobalVolumeMapping* GetVolumeMapping() override
+	{
+		return this;
+	}
+
+	virtual const FStaticLightingGlobalVolumeMapping* GetVolumeMapping() const override
+	{
+		return this;
+	}
 };
  
 } //namespace Lightmass

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -196,7 +196,7 @@ public:
 		if ((!GameModeClass || GameModeClass->GetPathName() != ClassName) && !GIsSavingPackage)
 		{
 			GameModeClass = FEditorClassUtils::GetClassFromString(ClassName);
-			CachedGameModeClass = GameModeClass;
+			CachedGameModeClass = MakeWeakObjectPtr(const_cast<UClass*>(GameModeClass));
 		}
 		return GameModeClass;
 	}
@@ -205,7 +205,7 @@ public:
 	{
 		if (DefaultGameModeClassHandle->SetValueFromFormattedString((NewGameModeClass) ? NewGameModeClass->GetPathName() : TEXT("None")) == FPropertyAccess::Success)
 		{
-			CachedGameModeClass = NewGameModeClass;
+			CachedGameModeClass = MakeWeakObjectPtr(const_cast<UClass*>(NewGameModeClass));
 		}
 	}
 

@@ -1,9 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreTypes.h"
 #include "ScopeLock.h"
+#include "Templates/Atomic.h"
 
 
 // this is currently incompatible with PLATFORM_USES_FIXED_GMalloc_CLASS, because this ends up being included way too early
@@ -16,7 +17,7 @@
 #else
 	#include "Stats/Stats.h"
 
-	#define LLM_SUPPORTED_PLATFORM (PLATFORM_XBOXONE || PLATFORM_PS4 || PLATFORM_WINDOWS)
+	#define LLM_SUPPORTED_PLATFORM (PLATFORM_XBOXONE || PLATFORM_PS4 || PLATFORM_WINDOWS || PLATFORM_SWITCH)
 
 	// *** enable/disable LLM here ***
 	#define ENABLE_LOW_LEVEL_MEM_TRACKER (!UE_BUILD_SHIPPING && !UE_BUILD_TEST && LLM_SUPPORTED_PLATFORM && WITH_ENGINE && 1)
@@ -80,7 +81,7 @@ enum class ELLMTracker : uint8
 	Platform,
 	Default,
 
-	Max,	// see FLowLevelMemTracker::UpdateStatsPerFrame when adding!
+	Max,
 };
 
 /*
@@ -103,14 +104,19 @@ enum class ELLMTag : LLM_TAG_TYPE
 {
 	Untagged = 0,
 	Paused,					// special tag that indicates the thread is paused, and that the tracking code should ignore the alloc
-
+	
+	Total,
+	Untracked,
+	PlatformTotal,
 	TrackedTotal,
-	UntrackedTotal,
+	UntaggedTotal,
 	PlatformTrackedTotal,
-	PlatformUntrackedTotal,
-	SmallBinnedAllocation,
-	LargeBinnedAllocation,
+	PlatformUntaggedTotal,
+	PlatformUntracked,
+	FMalloc,
+	FMallocUnused,
 	ThreadStack,
+	ThreadStackPlatform,
 	ProgramSizePlatform,
 	ProgramSize,
 	BackupOOMMemoryPoolPlatform,
@@ -152,13 +158,25 @@ enum class ELLMTag : LLM_TAG_TYPE
 	//------------------------------
 	// Platform tags
 	PlatformTagStart = 100,
-	PlatformRHITagStart = 200,
 	PlatformTagEnd = 0xff,
 
 	// anything above this value is treated as an FName for a stat section
 };
 
-/*
+/**
+ * Passed in to OnLowLevelAlloc to specify the type of allocation. Used to track FMalloc total
+ * and pausing for a specific allocation type.
+ */
+enum class ELLMAllocType
+{
+	None = 0,
+	FMalloc,
+	System,
+
+	Count
+};
+
+/**
  * LLM utility macros
  */
 #define LLM(x) x
@@ -168,32 +186,32 @@ enum class ELLMTag : LLM_TAG_TYPE
 // These are the main macros to use externally when tracking memory
 ///////////////////////////////////////////////////////////////////////////////////////
 
-/*
+/**
  * LLM scope macros
  */
-#define LLM_SCOPE(Tag) FLLMScopedTag SCOPE_NAME(Tag, ELLMTagSet::None, ELLMTracker::Default);
-#define LLM_PLATFORM_SCOPE(Tag) FLLMScopedTag SCOPE_NAME(Tag, ELLMTagSet::None, ELLMTracker::Platform);
+#define LLM_SCOPE(Tag) FLLMScope SCOPE_NAME(Tag, ELLMTagSet::None, ELLMTracker::Default);
+#define LLM_PLATFORM_SCOPE(Tag) FLLMScope SCOPE_NAME(Tag, ELLMTagSet::None, ELLMTracker::Platform);
 
- /*
+ /**
  * LLM Pause scope macros
  */
-#define LLM_SCOPED_PAUSE_TRACKING() FLLMScopedPauseTrackingWithAmountToTrack SCOPE_NAME(NAME_None, 0, ELLMTracker::Max);
-#define LLM_SCOPED_PAUSE_TRACKING_FOR_TRACKER(Tracker) FLLMScopedPauseTrackingWithAmountToTrack SCOPE_NAME(NAME_None, 0, Tracker);
-#define LLM_SCOPED_PAUSE_TRACKING_WITH_ENUM_AND_AMOUNT(Tag, Amount, Tracker) FLLMScopedPauseTrackingWithAmountToTrack SCOPE_NAME(Tag, Amount, Tracker);
+#define LLM_SCOPED_PAUSE_TRACKING(AllocType) FLLMPauseScope SCOPE_NAME(NAME_None, 0, ELLMTracker::Max, AllocType);
+#define LLM_SCOPED_PAUSE_TRACKING_FOR_TRACKER(Tracker, AllocType) FLLMPauseScope SCOPE_NAME(NAME_None, 0, Tracker, AllocType);
+#define LLM_SCOPED_PAUSE_TRACKING_WITH_ENUM_AND_AMOUNT(Tag, Amount, Tracker, AllocType) FLLMPauseScope SCOPE_NAME(Tag, Amount, Tracker, AllocType);
 
-/*
+/**
  * LLM Stat scope macros (if stats system is enabled)
  */
 #if LLM_STAT_TAGS_ENABLED
-	#define LLM_SCOPED_TAG_WITH_STAT(Stat, Tracker) FLLMScopedTag SCOPE_NAME(GET_STATFNAME(Stat), ELLMTagSet::None, Tracker);
-	#define LLM_SCOPED_TAG_WITH_STAT_IN_SET(Stat, Set, Tracker) FLLMScopedTag SCOPE_NAME(GET_STATFNAME(Stat), Set, Tracker);
-	#define LLM_SCOPED_TAG_WITH_STAT_NAME(StatName, Tracker) FLLMScopedTag SCOPE_NAME(StatName, ELLMTagSet::None, Tracker);
-	#define LLM_SCOPED_TAG_WITH_STAT_NAME_IN_SET(StatName, Set, Tracker) FLLMScopedTag SCOPE_NAME(StatName, Set, Tracker);
+	#define LLM_SCOPED_TAG_WITH_STAT(Stat, Tracker) FLLMScope SCOPE_NAME(GET_STATFNAME(Stat), ELLMTagSet::None, Tracker);
+	#define LLM_SCOPED_TAG_WITH_STAT_IN_SET(Stat, Set, Tracker) FLLMScope SCOPE_NAME(GET_STATFNAME(Stat), Set, Tracker);
+	#define LLM_SCOPED_TAG_WITH_STAT_NAME(StatName, Tracker) FLLMScope SCOPE_NAME(StatName, ELLMTagSet::None, Tracker);
+	#define LLM_SCOPED_TAG_WITH_STAT_NAME_IN_SET(StatName, Set, Tracker) FLLMScope SCOPE_NAME(StatName, Set, Tracker);
 	#define LLM_SCOPED_SINGLE_PLATFORM_STAT_TAG(Stat) DECLARE_LLM_MEMORY_STAT(TEXT(#Stat), Stat, STATGROUP_LLMPlatform); LLM_SCOPED_TAG_WITH_STAT(Stat, ELLMTracker::Platform);
 	#define LLM_SCOPED_SINGLE_PLATFORM_STAT_TAG_IN_SET(Stat, Set) DECLARE_LLM_MEMORY_STAT(TEXT(#Stat), Stat, STATGROUP_LLMPlatform); LLM_SCOPED_TAG_WITH_STAT_IN_SET(Stat, Set, ELLMTracker::Platform);
 	#define LLM_SCOPED_SINGLE_STAT_TAG(Stat) DECLARE_LLM_MEMORY_STAT(TEXT(#Stat), Stat, STATGROUP_LLMFULL); LLM_SCOPED_TAG_WITH_STAT(Stat, ELLMTracker::Default);
 	#define LLM_SCOPED_SINGLE_STAT_TAG_IN_SET(Stat, Set) DECLARE_LLM_MEMORY_STAT(TEXT(#Stat), Stat, STATGROUP_LLMFULL); LLM_SCOPED_TAG_WITH_STAT_IN_SET(Stat, Set, ELLMTracker::Default);
-	#define LLM_SCOPED_PAUSE_TRACKING_WITH_STAT_AND_AMOUNT(Stat, Amount, Tracker) FLLMScopedPauseTrackingWithAmountToTrack SCOPE_NAME(GET_STATFNAME(Stat), Amount, Tracker);
+	#define LLM_SCOPED_PAUSE_TRACKING_WITH_STAT_AND_AMOUNT(Stat, Amount, Tracker) FLLMPauseScope SCOPE_NAME(GET_STATFNAME(Stat), Amount, Tracker, ELLMAllocType::None);
 	#define LLM_SCOPED_TAG_WITH_OBJECT_IN_SET(Object, Set) LLM_SCOPED_TAG_WITH_STAT_NAME_IN_SET(FLowLevelMemTracker::Get().IsTagSetActive(Set) ? (FDynamicStats::CreateMemoryStatId<FStatGroup_STATGROUP_LLMAssets>(FName(*(Object)->GetFullName())).GetName()) : NAME_None, Set, ELLMTracker::Default);
 
 	// special stat pushing for when asset tracking is on, which abuses the poor thread tracking
@@ -215,6 +233,10 @@ enum class ELLMTag : LLM_TAG_TYPE
 typedef void*(*LLMAllocFunction)(size_t);
 typedef void(*LLMFreeFunction)(void*, size_t);
 
+/**
+ * The allocator LLM uses to allocate internal memory. Uses platform defined
+ * allocation functions to grab memory directly from the OS.
+ */
 class FLLMAllocator
 {
 public:
@@ -289,8 +311,8 @@ public:
 	void ProcessCommandLine(const TCHAR* CmdLine);
 
 	// this is the main entry point for the class - used to track any pointer that was allocated or freed 
-	void OnLowLevelAlloc(ELLMTracker Tracker, const void* Ptr, uint64 Size, ELLMTag DefaultTag = ELLMTag::Untagged);		// DefaultTag is used it no other tag is set
-	void OnLowLevelFree(ELLMTracker Tracker, const void* Ptr, uint64 CheckSize);
+	void OnLowLevelAlloc(ELLMTracker Tracker, const void* Ptr, uint64 Size, ELLMTag DefaultTag = ELLMTag::Untagged, ELLMAllocType AllocType = ELLMAllocType::None);		// DefaultTag is used it no other tag is set
+	void OnLowLevelFree(ELLMTracker Tracker, const void* Ptr, ELLMAllocType AllocType = ELLMAllocType::None);
 
 	// call if an allocation is moved in memory, such as in a defragger
 	void OnLowLevelAllocMoved(ELLMTracker Tracker, const void* Dest, const void* Source);
@@ -322,8 +344,8 @@ private:
 
 	class FLLMTracker* GetTracker(ELLMTracker Tracker);
 
-	friend class FLLMScopedTag;
-	friend class FLLMScopedPauseTrackingWithAmountToTrack;
+	friend class FLLMScope;
+	friend class FLLMPauseScope;
 
 	FLLMAllocator Allocator;
 	
@@ -331,7 +353,7 @@ private:
 
 	uint64 ProgramSize;
 
-	bool bIsDisabled;
+	TAtomic<bool> bIsDisabled;
 
 	bool ActiveSets[(int32)ELLMTagSet::Max];
 
@@ -349,12 +371,12 @@ private:
 /*
  * LLM scope for tracking memory
  */
-class CORE_API FLLMScopedTag
+class CORE_API FLLMScope
 {
 public:
-	FLLMScopedTag(FName StatIDName, ELLMTagSet Set, ELLMTracker Tracker);
-	FLLMScopedTag(ELLMTag Tag, ELLMTagSet Set, ELLMTracker Tracker);
-	~FLLMScopedTag();
+	FLLMScope(FName StatIDName, ELLMTagSet Set, ELLMTracker Tracker);
+	FLLMScope(ELLMTag Tag, ELLMTagSet Set, ELLMTracker Tracker);
+	~FLLMScope();
 protected:
 	void Init(int64 Tag, ELLMTagSet Set, ELLMTracker Tracker);
 	ELLMTagSet TagSet;
@@ -365,14 +387,16 @@ protected:
 /*
 * LLM scope for pausing LLM (disables the allocation hooks)
 */
-class CORE_API FLLMScopedPauseTrackingWithAmountToTrack
+class CORE_API FLLMPauseScope
 {
 public:
-	FLLMScopedPauseTrackingWithAmountToTrack(FName StatIDName, int64 Amount, ELLMTracker TrackerToPause);
-	FLLMScopedPauseTrackingWithAmountToTrack(ELLMTag Tag, int64 Amount, ELLMTracker TrackerToPause);
-	~FLLMScopedPauseTrackingWithAmountToTrack();
+	FLLMPauseScope(FName StatIDName, int64 Amount, ELLMTracker TrackerToPause, ELLMAllocType InAllocType);
+	FLLMPauseScope(ELLMTag Tag, int64 Amount, ELLMTracker TrackerToPause, ELLMAllocType InAllocType);
+	~FLLMPauseScope();
 protected:
-	void Init(int64 Tag, int64 Amount, ELLMTracker TrackerToPause);
+	void Init(int64 Tag, int64 Amount, ELLMTracker TrackerToPause, ELLMAllocType InAllocType);
+	ELLMTracker PausedTracker;
+	ELLMAllocType AllocType;
 };
 
 #else
@@ -390,7 +414,7 @@ protected:
 	#define LLM_SCOPED_SINGLE_RHI_STAT_TAG(...)
 	#define LLM_SCOPED_SINGLE_RHI_STAT_TAG_IN_SET(...)
 	#define LLM_SCOPED_TAG_WITH_OBJECT_IN_SET(...)
-	#define LLM_SCOPED_PAUSE_TRACKING()
+	#define LLM_SCOPED_PAUSE_TRACKING(...)
 	#define LLM_SCOPED_PAUSE_TRACKING_FOR_TRACKER(...)
 	#define LLM_SCOPED_PAUSE_TRACKING_WITH_ENUM_AND_AMOUNT(...)
 	#define LLM_SCOPED_PAUSE_TRACKING_WITH_STAT_AND_AMOUNT(...)

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,6 +22,12 @@ public:
 		return *(Instance.Get());
 	}
 
+	/** Get the default font for Slate */
+	static TSharedRef<const FCompositeFont> GetDefaultFont();
+
+	/** Get a font style using the default for for Slate */
+	static FSlateFontInfo GetDefaultFontStyle(const FName InTypefaceFontName, const int32 InSize, const FFontOutlineSettings& InOutlineSettings = FFontOutlineSettings());
+
 	static void ResetToDefault( );
 
 	/** Used to override the default selection colors */
@@ -35,6 +41,9 @@ public:
 	static const TSharedPtr<FSlateDynamicImageBrush> GetDynamicImageBrush( FName BrushTemplate, FName TextureName, const ANSICHAR* Specifier = nullptr );
 	static const TSharedPtr<FSlateDynamicImageBrush> GetDynamicImageBrush( FName BrushTemplate, const ANSICHAR* Specifier, class UTexture2D* TextureResource, FName TextureName );
 	static const TSharedPtr<FSlateDynamicImageBrush> GetDynamicImageBrush( FName BrushTemplate, class UTexture2D* TextureResource, FName TextureName );
+
+	static const int32 RegularTextSize = 9;
+	static const int32 SmallTextSize = 8;
 
 private:
 

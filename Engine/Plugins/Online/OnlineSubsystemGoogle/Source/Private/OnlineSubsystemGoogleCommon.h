@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -60,12 +60,6 @@ public:
 	 * Destructor
 	 */
 	virtual ~FOnlineSubsystemGoogleCommon();
-
-	/**
-	 * Is Google available for use
-	 * @return true if Google functionality is available, false otherwise
-	 */
-	virtual bool IsEnabled() const;
 
 PACKAGE_SCOPE:
 

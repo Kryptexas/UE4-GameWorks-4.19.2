@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Evaluation/MovieScene3DTransformTemplate.h"
 #include "Tracks/MovieScene3DTransformTrack.h"
@@ -9,6 +9,7 @@
 #include "IMovieScenePlayer.h"
 #include "Evaluation/Blending/BlendableTokenStack.h"
 #include "Evaluation/Blending/MovieSceneBlendingActuatorID.h"
+#include "IMovieSceneTransformOrigin.h"
 
 DECLARE_CYCLE_STAT(TEXT("Transform Track Evaluate"), MovieSceneEval_TransformTrack_Evaluate, STATGROUP_MovieSceneEval);
 DECLARE_CYCLE_STAT(TEXT("Transform Track Token Execute"), MovieSceneEval_TransformTrack_TokenExecute, STATGROUP_MovieSceneEval);
@@ -98,6 +99,28 @@ FMovieSceneComponentTransformSectionTemplate::FMovieSceneComponentTransformSecti
 {
 }
 
+struct FComponentTransformPersistentData : IPersistentEvaluationData
+{
+	FTransform Origin;
+};
+
+void FMovieSceneComponentTransformSectionTemplate::Initialize(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const
+{
+	// If the global instance data implements a transform origin interface, use its transform as an origin for this transform
+	const UObject* InstanceData = Player.GetInstanceData();
+	const IMovieSceneTransformOrigin* RawInterface = Cast<IMovieSceneTransformOrigin>(InstanceData);
+	const bool bHasInterface = RawInterface || (InstanceData && InstanceData->GetClass()->ImplementsInterface(UMovieSceneTransformOrigin::StaticClass()));
+
+	if (bHasInterface && TemplateData.BlendType == EMovieSceneBlendType::Absolute)
+	{
+		// Retrieve the current origin
+		FTransform TransformOrigin = RawInterface ? RawInterface->GetTransformOrigin() : IMovieSceneTransformOrigin::Execute_BP_GetTransformOrigin(InstanceData);
+
+		// Assign the transform origin to the peristent data so it can be queried in Evaluate
+		PersistentData.GetOrAddSectionData<FComponentTransformPersistentData>().Origin = TransformOrigin;
+	}
+}
+
 void FMovieSceneComponentTransformSectionTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 {
 	using namespace MovieScene;
@@ -106,6 +129,37 @@ void FMovieSceneComponentTransformSectionTemplate::Evaluate(const FMovieSceneEva
 	if (TransformValue.IsEmpty())
 	{
 		return;
+	}
+
+	// Apply origin transformation if necessary 
+	const FComponentTransformPersistentData* Data = PersistentData.FindSectionData<FComponentTransformPersistentData>();
+	if (TemplateData.BlendType == EMovieSceneBlendType::Absolute && Data)
+	{
+		float Components[6] = {
+			TransformValue.Get(0, 0.f), TransformValue.Get(1, 0.f), TransformValue.Get(2, 0.f),
+			TransformValue.Get(3, 0.f), TransformValue.Get(4, 0.f), TransformValue.Get(5, 0.f),
+		};
+
+		FTransform AnimatedTransform(FRotator(Components[4], Components[5], Components[3]), FVector(Components[0], Components[1], Components[2]));
+		AnimatedTransform = AnimatedTransform * Data->Origin;
+
+		FVector Location = AnimatedTransform.GetTranslation();
+		Components[0] = Location.X;
+		Components[1] = Location.Y;
+		Components[2] = Location.Z;
+
+		FVector Rotation = AnimatedTransform.GetRotation().Euler();
+		Components[3] = Rotation.X;
+		Components[4] = Rotation.Y;
+		Components[5] = Rotation.Z;
+
+		for (int32 Index = 0; Index < ARRAY_COUNT(Components); ++Index)
+		{
+			if (TransformValue.IsSet(Index))
+			{
+				TransformValue.Set(Index, Components[Index]);
+			}
+		}
 	}
 
 	// Ensure the accumulator knows how to actually apply component transforms

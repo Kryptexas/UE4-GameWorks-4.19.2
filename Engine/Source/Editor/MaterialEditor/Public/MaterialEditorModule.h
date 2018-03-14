@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,8 +11,10 @@
 class IMaterialEditor;
 class UMaterial;
 class UMaterialFunction;
+class UMaterialFunctionInstance;
 class UMaterialInstance;
 class UMaterialInterface;
+struct FMaterialParameterInfo;
 
 extern const FName MaterialEditorAppIdentifier;
 extern const FName MaterialInstanceEditorAppIdentifier;
@@ -30,15 +32,16 @@ public:
 	virtual TSharedRef<IMaterialEditor> CreateMaterialEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UMaterial* Material ) = 0;
 	virtual TSharedRef<IMaterialEditor> CreateMaterialEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UMaterialFunction* MaterialFunction ) = 0;
 	virtual TSharedRef<IMaterialEditor> CreateMaterialInstanceEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UMaterialInstance* MaterialInstance ) = 0;
+	virtual TSharedRef<IMaterialEditor> CreateMaterialInstanceEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UMaterialFunctionInstance* MaterialFunction ) = 0;
 
 	/**
 	 * Retrieves all visible parameters within the material.
 	 *
 	 * @param	Material			The material to retrieve the parameters from.
 	 * @param	MaterialInstance	The material instance that contains all parameter overrides.
-	 * @param	VisibleExpressions	The array that will contain the id's of the visible parameter expressions.
+	 * @param	VisibleExpressions	The array that will contain the name's of the visible parameter expressions.
 	 */
-	virtual void GetVisibleMaterialParameters(const class UMaterial* Material, class UMaterialInstance* MaterialInstance, TArray<struct FGuid>& VisibleExpressions) = 0;
+	virtual void GetVisibleMaterialParameters(const class UMaterial* Material, class UMaterialInstance* MaterialInstance, TArray<FMaterialParameterInfo>& VisibleExpressions) = 0;
 
 	/** Delegates to be called to extend the material menus */
 	DECLARE_DELEGATE_RetVal_OneParam( TSharedRef<FExtender>, FMaterialMenuExtender, const TSharedRef<FUICommandList>);
@@ -57,6 +60,8 @@ public:
 	/** Delegate to be called when a Material Instance Editor is created, for toolbar, tab, and menu extension **/
 	DECLARE_EVENT_OneParam(IMaterialEditorModule, FMaterialInstanceEditorOpenedEvent, TWeakPtr<IMaterialEditor>);
 	virtual FMaterialInstanceEditorOpenedEvent& OnMaterialInstanceEditorOpened() { return MaterialInstanceEditorOpenedEvent; };
+
+	virtual bool MaterialLayersEnabled() = 0;
 
 private:
 	/** All extender delegates for the material menus */

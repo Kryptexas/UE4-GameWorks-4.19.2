@@ -23,7 +23,8 @@ Description:
 
 
 [/REGION]
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:SkeletonUses]
 
@@ -38,4 +39,5 @@ Description:
 
 
 
--->
+
+[/COMMENT]

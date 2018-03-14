@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimComposite.cpp: Composite classes that contains sequence for each section
@@ -29,7 +29,7 @@ bool UAnimComposite::IsNotifyAvailable() const
 	return (Super::IsNotifyAvailable() || AnimationTrack.IsNotifyAvailable());
 }
 
-void UAnimComposite::GetAnimNotifiesFromDeltaPositions(const float& PreviousPosition, const float & CurrentPosition, TArray<const FAnimNotifyEvent *>& OutActiveNotifies) const
+void UAnimComposite::GetAnimNotifiesFromDeltaPositions(const float& PreviousPosition, const float & CurrentPosition, TArray<FAnimNotifyEventReference>& OutActiveNotifies) const
 {
 	const bool bMovingForward = (RateScale >= 0.f);
 

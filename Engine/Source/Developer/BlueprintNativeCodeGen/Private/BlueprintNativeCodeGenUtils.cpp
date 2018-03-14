@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintNativeCodeGenUtils.h"
 #include "Engine/Blueprint.h"
@@ -19,6 +19,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "TextPackageNamespaceUtil.h"
 #include "PlatformInfo.h"
+#include "Interfaces/IPluginManager.h"
 
 DEFINE_LOG_CATEGORY(LogBlueprintCodeGen)
 
@@ -31,6 +32,9 @@ namespace BlueprintNativeCodeGenUtilsImpl
 	static FString CoreModuleName   = TEXT("Core");
 	static FString EngineModuleName = TEXT("Engine");
 	static FString EngineHeaderFile = TEXT("Engine.h");
+
+	// Used to cache the set of plugin dependencies.
+	static TSet<FString> PluginDependencies;
 	
 	/**
 	 * Creates and fills out a new .uplugin file for the converted assets.
@@ -92,7 +96,6 @@ static bool BlueprintNativeCodeGenUtilsImpl::GeneratePluginDescFile(const FBluep
 	PluginDesc.Category     = TEXT("Intermediate");
 	PluginDesc.EnabledByDefault  = EPluginEnabledByDefault::Enabled;
 	PluginDesc.bCanContainContent = false;
-	PluginDesc.bIsBetaVersion     = true; // @TODO: change once we're confident in the feature
 	PluginDesc.bIsHidden    = true; 
 
 	const FName ModuleName = *TargetPaths.RuntimeModuleName();
@@ -126,11 +129,21 @@ static bool BlueprintNativeCodeGenUtilsImpl::GeneratePluginDescFile(const FBluep
 				// string to correspond to UBT's UnrealTargetPlatform enum (and by proxy, FPlatformMisc::GetUBTPlatform)
 				ModuleDesc->WhitelistPlatforms.AddUnique(PlatformIt->UBTTargetId.ToString());
 
+				// Hack to allow clients for PS4/XboxOne (etc.) to build the nativized assets plugin
+				const bool bIsClientValidForPlatform = PlatformIt->UBTTargetId == TEXT("Win32") || PlatformIt->UBTTargetId == TEXT("Win64") || PlatformIt->UBTTargetId == TEXT("Linux") || PlatformIt->UBTTargetId == TEXT("Mac");
+
 				// should correspond to UnrealBuildTool::TargetType in TargetRules.cs
 				switch (PlatformIt->PlatformType)
 				{
 				case PlatformInfo::EPlatformType::Game:
 					ModuleDesc->WhitelistTargets.AddUnique(TEXT("Game"));
+
+					// Hack to allow clients for PS4/XboxOne (etc.) to build the nativized assets plugin
+					if(!bIsClientValidForPlatform)
+					{
+						// Also add "Client" target
+						ModuleDesc->WhitelistTargets.AddUnique(TEXT("Client"));
+					}
 					break;
 
 				case PlatformInfo::EPlatformType::Client:
@@ -146,6 +159,19 @@ static bool BlueprintNativeCodeGenUtilsImpl::GeneratePluginDescFile(const FBluep
 					break;
 				};				
 			}
+		}
+	}
+
+	// Add plugin dependencies to the descriptor
+	for (const FString& PluginName : PluginDependencies)
+	{
+		TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(PluginName);
+		if (Plugin.IsValid())
+		{
+			FPluginReferenceDescriptor PluginRefDesc(Plugin->GetName(), Plugin->IsEnabled());
+			PluginRefDesc.SupportedTargetPlatforms = Plugin->GetDescriptor().SupportedTargetPlatforms;
+
+			PluginDesc.Plugins.Add(MoveTemp(PluginRefDesc));
 		}
 	}
 	
@@ -219,6 +245,16 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateNativizedDependenciesSource
 static bool BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(const FBlueprintNativeCodeGenManifest& Manifest)
 {
 	FModuleManager& ModuleManager = FModuleManager::Get();
+
+	// Gather the set of installed plugin modules
+	TMap<FString, FString> ModuleToPluginMap;
+	for (auto Plugin : IPluginManager::Get().GetEnabledPlugins())
+	{
+		for (auto PluginModule : Plugin->GetDescriptor().Modules)
+		{
+			ModuleToPluginMap.Add(PluginModule.Name.ToString(), Plugin->GetName());
+		}
+	}
 	
 	TArray<FString> PublicDependencies;
 	// for IModuleInterface
@@ -235,20 +271,30 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(const FBlue
 		}
 	}
 
-	auto IndludeAdditionalPublicDependencyModules = [&](const TCHAR* AdditionalPublicDependencyModuleSection)
+	auto IncludeAdditionalPublicDependencyModules = [&](const TCHAR* AdditionalPublicDependencyModuleSection)
 	{
 		TArray<FString> AdditionalPublicDependencyModuleNames;
 		GConfig->GetArray(TEXT("BlueprintNativizationSettings"), AdditionalPublicDependencyModuleSection, AdditionalPublicDependencyModuleNames, GEditorIni);
-		PublicDependencies.Append(AdditionalPublicDependencyModuleNames);
+
+		for (FString ModuleName : AdditionalPublicDependencyModuleNames)
+		{
+			if (const FString* PluginName = ModuleToPluginMap.Find(ModuleName))
+			{
+				PluginDependencies.Add(*PluginName);
+			}
+			
+			PublicDependencies.Add(ModuleName);
+		}
 	};
-	IndludeAdditionalPublicDependencyModules(TEXT("AdditionalPublicDependencyModuleNames"));
+
+	IncludeAdditionalPublicDependencyModules(TEXT("AdditionalPublicDependencyModuleNames"));
 	if (Manifest.GetCompilerNativizationOptions().ServerOnlyPlatform) //or !ClientOnlyPlatform ?
 	{
-		IndludeAdditionalPublicDependencyModules(TEXT("AdditionalPublicDependencyModuleNamesServer"));
+		IncludeAdditionalPublicDependencyModules(TEXT("AdditionalPublicDependencyModuleNamesServer"));
 	}
 	if (Manifest.GetCompilerNativizationOptions().ClientOnlyPlatform)
 	{
-		IndludeAdditionalPublicDependencyModules(TEXT("AdditionalPublicDependencyModuleNamesClient"));
+		IncludeAdditionalPublicDependencyModules(TEXT("AdditionalPublicDependencyModuleNamesClient"));
 	}
 
 	TArray<FString> PrivateDependencies;
@@ -267,6 +313,11 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(const FBlue
 			}
 			if (!PublicDependencies.Contains(PkgModuleName))
 			{
+				if (const FString* PluginName = ModuleToPluginMap.Find(PkgModuleName))
+				{
+					PluginDependencies.Add(*PluginName);
+				}
+			
 				PrivateDependencies.Add(PkgModuleName);
 			}
 		}

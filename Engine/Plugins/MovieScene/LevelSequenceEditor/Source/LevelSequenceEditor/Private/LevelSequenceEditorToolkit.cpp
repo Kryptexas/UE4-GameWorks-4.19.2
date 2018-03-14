@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelSequenceEditorToolkit.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
@@ -464,8 +464,6 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 
 					NewSection->SetIsInfinite(GetSequencer()->GetInfiniteKeyAreas());
 				}
-
-				Sequencer->UpdateRuntimeInstances();
 			}
 		}
 
@@ -578,8 +576,6 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 			FKeyPropertyParams KeyPropertyParams(TArrayBuilder<UObject*>().Add(PropertyOwner), *PropertyPath, ESequencerKeyMode::ManualKey);
 
 			Sequencer->KeyProperty(KeyPropertyParams);
-
-			Sequencer->UpdateRuntimeInstances();
 		}
 	}
 }
@@ -645,7 +641,6 @@ void FLevelSequenceEditorToolkit::HandleMapChanged(class UWorld* NewWorld, EMapC
 	if( ( MapChangeType == EMapChangeType::LoadMap || MapChangeType == EMapChangeType::NewMap || MapChangeType == EMapChangeType::TearDownWorld) )
 	{
 		Sequencer->GetSpawnRegister().CleanUp(*Sequencer);
-		Sequencer->UpdateRuntimeInstances();
 	}
 }
 
@@ -657,7 +652,6 @@ void FLevelSequenceEditorToolkit::AddShot(UMovieSceneCinematicShotTrack* ShotTra
 	UMovieSceneSubSection* ShotSubSection = ShotTrack->AddSequence(ShotSequence, ShotStartTime, ShotEndTime-ShotStartTime);
 
 	// Focus on the new shot
-	GetSequencer()->UpdateRuntimeInstances();
 	GetSequencer()->ForceEvaluate();
 	GetSequencer()->FocusSequenceInstance(*ShotSubSection);
 
@@ -727,7 +721,6 @@ void FLevelSequenceEditorToolkit::AddShot(UMovieSceneCinematicShotTrack* ShotTra
 		if (bCreateSpawnableCamera)
 		{
 			CameraGuid = GetSequencer()->MakeNewSpawnable(*NewCamera);
-			GetSequencer()->UpdateRuntimeInstances();
 			UObject* SpawnedCamera = GetSequencer()->FindSpawnedObjectOrTemplate(CameraGuid);
 			if (SpawnedCamera)
 			{

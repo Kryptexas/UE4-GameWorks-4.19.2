@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -206,7 +206,7 @@ namespace UnrealBuildTool
 
 		/// True if we should include documentation in the generated projects
 		[XmlConfigFile]
-		bool bIncludeDocumentation = true;
+		protected bool bIncludeDocumentation = false;
 
 		/// True if all documentation languages should be included in generated projects, otherwise only "INT" will be included
 		bool bAllDocumentationLanguages = false;
@@ -218,19 +218,19 @@ namespace UnrealBuildTool
 		protected bool bIncludeEngineSource = true;
 
 		/// True if shader source files should be included in the generated projects
-		bool bIncludeShaderSource = true;
+		protected bool bIncludeShaderSource = true;
 
 		/// True if build system files should be included
 		bool bIncludeBuildSystemFiles = true;
 
 		/// True if we should include config files (.ini files) in the generated project
-		bool bIncludeConfigFiles = true;
+		protected bool bIncludeConfigFiles = true;
 
 		/// True if we should include localization files (.int/.kor/etc files) in the generated project
 		bool bIncludeLocalizationFiles = false;
 
-        /// True if we should include template files (.template files) in the generated project
-        bool bIncludeTemplateFiles = true;
+		/// True if we should include template files (.template files) in the generated project
+		protected bool bIncludeTemplateFiles = true;
 
 		/// True if we should include program projects in the generated solution
 		protected bool IncludeEnginePrograms = true;
@@ -430,6 +430,40 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Gets the user's preferred IDE from their editor settings
+		/// </summary>
+		/// <param name="ProjectFile">Project file being built</param>
+		/// <param name="Format">Preferred format for the project being built</param>
+		/// <returns>True if a preferred IDE was set, false otherwise</returns>
+		public static bool GetPreferredSourceCodeAccessor(FileReference ProjectFile, out ProjectFileFormat Format)
+		{
+			DirectoryReference EngineSavedDir = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Saved");
+			if(UnrealBuildTool.IsEngineInstalled())
+			{
+				BuildVersion Version;
+				if(BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
+				{
+					EngineSavedDir = DirectoryReference.Combine(Utils.GetUserSettingDirectory(), "UnrealEngine", String.Format("{0}.{1}", Version.MajorVersion, Version.MinorVersion), "Saved");
+				}
+			}
+			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.EditorSettings, DirectoryReference.FromFile(ProjectFile), BuildHostPlatform.Current.Platform, EngineSavedDir);
+
+			string PreferredAccessor;
+			if (Ini.GetString("/Script/SourceCodeAccess.SourceCodeAccessSettings", "PreferredAccessor", out PreferredAccessor))
+			{
+				ProjectFileFormat PreferredFormat;
+				if (Enum.TryParse(PreferredAccessor, out PreferredFormat))
+				{
+					Format = PreferredFormat;
+					return true;
+				}
+			}
+
+			Format = ProjectFileFormat.VisualStudio;
+			return false;
+		}
+
+		/// <summary>
 		/// Generates a Visual Studio solution file and Visual C++ project files for all known engine and game targets.
 		/// Does not actually build anything.
 		/// </summary>
@@ -441,8 +475,8 @@ namespace UnrealBuildTool
 			// Parse project generator options
 			bool IncludeAllPlatforms = true;
 			ConfigureProjectFileGeneration( Arguments, ref IncludeAllPlatforms);
-
-			if (bGeneratingGameProjectFiles || UnrealBuildTool.IsEngineInstalled())
+      
+            if (bGeneratingGameProjectFiles || UnrealBuildTool.IsEngineInstalled())
 			{
 				Log.TraceInformation("Discovering modules, targets and source code for project...");
 
@@ -1557,9 +1591,17 @@ namespace UnrealBuildTool
 						// out any state.
 						FileItem.ClearCachedIncludePaths();
 
-						// Run UnrealBuildTool, pretending to build this target but instead only gathering data for IntelliSense (include paths and definitions).
-						// No actual compiling or linking will happen because we early out using the ProjectFileGenerator.bGenerateProjectFiles global
-						bSuccess = UnrealBuildTool.RunUBT( BuildConfiguration, NewArguments, CurTarget.UnrealProjectFilePath ) == ECompilationResult.Succeeded;
+						try
+						{
+							// Run UnrealBuildTool, pretending to build this target but instead only gathering data for IntelliSense (include paths and definitions).
+							// No actual compiling or linking will happen because we early out using the ProjectFileGenerator.bGenerateProjectFiles global
+							bSuccess = UnrealBuildTool.RunUBT( BuildConfiguration, NewArguments, CurTarget.UnrealProjectFilePath, false ) == ECompilationResult.Succeeded;
+						}
+						catch(Exception Ex)
+						{
+							Progress.LogMessage(LogEventType.Warning, "Exception while generating include data for {0}: {1}", CurTarget.TargetFilePath.GetFileNameWithoutAnyExtensions(), Ex.ToString());
+						}
+
 						ProjectFileGenerator.OnlyGenerateIntelliSenseDataForProject = null;
 
 						if( !bSuccess )
@@ -1855,6 +1897,9 @@ namespace UnrealBuildTool
 			DirectoryReference EnterpriseTemplatesDirectory = DirectoryReference.Combine(UnrealBuildTool.EnterpriseDirectory, "Templates");
 			DirectoryReference EnterpriseSamplesDirectory = DirectoryReference.Combine(UnrealBuildTool.EnterpriseDirectory, "Samples");
 
+			// Read the current engine version
+			ReadOnlyBuildVersion Version = new ReadOnlyBuildVersion(BuildVersion.ReadDefault());
+
 			// Find all of the target files.  This will filter out any modules or targets that don't
 			// belong to platforms we're generating project files for.
 			List<FileReference> AllTargetFiles = DiscoverTargets(AllGames);
@@ -1918,7 +1963,7 @@ namespace UnrealBuildTool
 
 					// Create target rules for all of the platforms and configuration combinations that we want to enable support for.
 					// Just use the current platform as we only need to recover the target type and both should be supported for all targets...
-					TargetRules TargetRulesObject = RulesAssembly.CreateTargetRules(TargetName, BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development, "", CheckProjectFile, false);
+					TargetRules TargetRulesObject = RulesAssembly.CreateTargetRules(TargetName, BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development, "", CheckProjectFile, Version, false);
 
 					bool IsProgramTarget = false;
 
@@ -2001,7 +2046,7 @@ namespace UnrealBuildTool
 					{
 						EnterpriseProject = ProjectFile;
 						BaseFolder = UnrealBuildTool.EnterpriseDirectory;
-						if (UnrealBuildTool.IsEngineInstalled())
+						if (UnrealBuildTool.IsEnterpriseInstalled())
 						{
 							// Allow enterprise projects to be created but not built for Installed Engine builds
 							EnterpriseProject.IsForeignProject = false;
@@ -2060,7 +2105,7 @@ namespace UnrealBuildTool
 							ProjectFilePath = ProjectFilePath,
 							UnrealProjectFilePath = CheckProjectFile,
 							SupportedPlatforms = UEBuildTarget.GetSupportedPlatforms(TargetRulesObject).Where(x => UEBuildPlatform.GetBuildPlatform(x, true) != null).ToArray(),
-							CreateRulesDelegate = (Platform, Configuration) => RulesAssembly.CreateTargetRules(TargetName, Platform, Configuration, "", CheckProjectFile, false)
+							CreateRulesDelegate = (Platform, Configuration) => RulesAssembly.CreateTargetRules(TargetName, Platform, Configuration, "", CheckProjectFile, Version, false)
                         };
 
 					if (TargetName == "ShaderCompileWorker")		// @todo projectfiles: Ideally, the target rules file should set this
@@ -2462,8 +2507,40 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				// For existing project files, just support the default desktop platforms and configurations
-				ProjectTarget.ExtraSupportedPlatforms.AddRange(Utils.GetPlatformsInClass(UnrealPlatformClass.Desktop));
+                bool bFoundDevelopmentConfig = false;
+                bool bFoundDebugConfig = false;
+
+                try
+                {
+
+                    // Parse the project and ensure both Development and Debug configurations are present
+                    foreach (var Config in XElement.Load(InProject.ProjectFilePath.FullName).Elements("{http://schemas.microsoft.com/developer/msbuild/2003}PropertyGroup")
+                                           .Where(node => node.Attribute("Condition") != null)
+                                           .Select(node => node.Attribute("Condition").ToString())
+                                           .ToList())
+                    {
+                        if (Config.Contains("Development|"))
+                        {
+                            bFoundDevelopmentConfig = true;
+                        }
+                        else if (Config.Contains("Debug|"))
+                        {
+                            bFoundDebugConfig = true;
+                        }
+                    }
+                }
+                catch
+                {
+                    Trace.TraceError("Unable to parse existing project file {0}", InProject.ProjectFilePath.FullName);
+                }
+
+                if (!bFoundDebugConfig || !bFoundDevelopmentConfig)
+                {
+                    throw new BuildException("Existing C# project {0} must contain a {1} configuration", InProject.ProjectFilePath.FullName, bFoundDebugConfig ? "Development" : "Debug");
+                }
+
+                // For existing project files, just support the default desktop platforms and configurations
+                ProjectTarget.ExtraSupportedPlatforms.AddRange(Utils.GetPlatformsInClass(UnrealPlatformClass.Desktop));
 				// Debug and Development only
 				ProjectTarget.ExtraSupportedConfigurations.Add(UnrealTargetConfiguration.Debug);
 				ProjectTarget.ExtraSupportedConfigurations.Add(UnrealTargetConfiguration.Development);

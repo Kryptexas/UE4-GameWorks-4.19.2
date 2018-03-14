@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DisplayNodes/SequencerTrackNode.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
@@ -324,68 +324,56 @@ void FSequencerTrackNode::SetDisplayName(const FText& NewDisplayName)
 	}
 }
 
-struct FOverlappingCompileRules : FMovieSceneSegmentCompilerRules
-{
-	int32 PredicatePriority;
-	FOverlappingCompileRules(int32 InPredicatePriority) : PredicatePriority(InPredicatePriority) {}
-
-	virtual void BlendSegment(FMovieSceneSegment& Segment, const TArrayView<const FMovieSceneSectionData>& SourceData) const
-	{
-		// If there is anything on top of this section in this range, ignore it completely (that section will render everything underneath it) 
-		auto IsUnderneathAnything = [=](const FSectionEvaluationData& In) { return SourceData[In.ImplIndex].Priority > PredicatePriority; };
-
-		if (Segment.Impls.ContainsByPredicate(IsUnderneathAnything))
-		{
-			Segment.Impls.Reset();
-		}
-		else if (Segment.Impls.Num() > 1)
-		{
-			// Sort lowest to highest
-			Segment.Impls.Sort([=](const FSectionEvaluationData& A, const FSectionEvaluationData& B){
-				return SourceData[A.ImplIndex].Priority < SourceData[B.ImplIndex].Priority;
-			});
-		}
-	}
-};
-
 TArray<FSequencerOverlapRange> FSequencerTrackNode::GetUnderlappingSections(UMovieSceneSection* InSection)
 {
 	TRange<float> InSectionRange = InSection->IsInfinite() ? TRange<float>::All() : InSection->GetRange();
 
-	TArray<FMovieSceneSectionData> CompileData;
+	TMovieSceneEvaluationTree<int32> SectionIndexTree;
+
+	// Iterate all other sections on the same row with <= overlap priority
 	for (int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex)
 	{
 		UMovieSceneSection* SectionObj = Sections[SectionIndex]->GetSectionObject();
-		if (!SectionObj || SectionObj == InSection || SectionObj->GetRowIndex() != InSection->GetRowIndex())
+		if (!SectionObj || SectionObj == InSection || SectionObj->GetRowIndex() != InSection->GetRowIndex() || SectionObj->GetOverlapPriority() > InSection->GetOverlapPriority())
 		{
 			continue;
 		}
 
-		
 		TRange<float> OtherSectionRange = SectionObj->IsInfinite() ? TRange<float>::All() : SectionObj->GetRange();
 		TRange<float> Intersection = TRange<float>::Intersection(OtherSectionRange, InSectionRange);
 		if (!Intersection.IsEmpty())
 		{
-			CompileData.Add(FMovieSceneSectionData(Intersection, FSectionEvaluationData(SectionIndex), FOptionalMovieSceneBlendType(), SectionObj->GetOverlapPriority()));
+			SectionIndexTree.Add(Intersection, SectionIndex);
 		}
 	}
 
-	FOverlappingCompileRules Rules(InSection->GetOverlapPriority());
+	TSharedRef<FSequencerTrackNode> TrackNode = SharedThis(this);;
 
 	TArray<FSequencerOverlapRange> Result;
-
-	for (const FMovieSceneSegment& Segment : FMovieSceneSegmentCompiler().Compile(CompileData, &Rules))
+	for (FMovieSceneEvaluationTreeRangeIterator It(SectionIndexTree); It; ++It)
 	{
-		Result.Emplace();
+		FSequencerOverlapRange NewRange;
 
-		FSequencerOverlapRange& NewRange = Result.Last();
-		NewRange.Range = Segment.Range;
-		for (FSectionEvaluationData EvalData : Segment.Impls)
+		NewRange.Range = It.Range();
+
+		for (int32 SectionIndex : SectionIndexTree.GetAllData(It.Node()))
 		{
-			NewRange.Sections.Add(FSectionHandle(SharedThis(this), EvalData.ImplIndex));
+			NewRange.Sections.Add(FSectionHandle(TrackNode, SectionIndex));
 		}
+
+		if (!NewRange.Sections.Num())
+		{
+			continue;
+		}
+
+		// Sort lowest to highest
+		NewRange.Sections.Sort([](const FSectionHandle& A, const FSectionHandle& B){
+			return A.GetSectionObject()->GetOverlapPriority() < B.GetSectionObject()->GetOverlapPriority();
+		});
+
+		Result.Add(MoveTemp(NewRange));
 	}
-	
+
 	return Result;
 }
 
@@ -395,10 +383,13 @@ TArray<FSequencerOverlapRange> FSequencerTrackNode::GetEasingSegmentsForSection(
 
 	TArray<FMovieSceneSectionData> CompileData;
 
+	TMovieSceneEvaluationTree<int32> SectionIndexTree;
+
+	// Iterate all active sections on the same row with <= overlap priority
 	for (int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex)
 	{
 		UMovieSceneSection* SectionObj = Sections[SectionIndex]->GetSectionObject();
-		if (!SectionObj || !SectionObj->IsActive() || SectionObj->GetRowIndex() != InSection->GetRowIndex())
+		if (!SectionObj || !SectionObj->IsActive() || SectionObj->GetRowIndex() != InSection->GetRowIndex() || SectionObj->GetOverlapPriority() > InSection->GetOverlapPriority())
 		{
 			continue;
 		}
@@ -406,32 +397,43 @@ TArray<FSequencerOverlapRange> FSequencerTrackNode::GetEasingSegmentsForSection(
 		TRange<float> Intersection = TRange<float>::Intersection(SectionObj->GetEaseInRange(), InSectionRange);
 		if (!Intersection.IsEmpty())
 		{
-			CompileData.Add(FMovieSceneSectionData(Intersection, FSectionEvaluationData(SectionIndex), FOptionalMovieSceneBlendType(), SectionObj->GetOverlapPriority()));
+			SectionIndexTree.Add(Intersection, SectionIndex);
 		}
 
 		Intersection = TRange<float>::Intersection(SectionObj->GetEaseOutRange(), InSectionRange);
 		if (!Intersection.IsEmpty())
 		{
-			CompileData.Add(FMovieSceneSectionData(Intersection, FSectionEvaluationData(SectionIndex), FOptionalMovieSceneBlendType(), SectionObj->GetOverlapPriority()));
+			SectionIndexTree.Add(Intersection, SectionIndex);
 		}
 	}
 
-	FOverlappingCompileRules Rules(InSection->GetOverlapPriority());
+	TSharedRef<FSequencerTrackNode> TrackNode = SharedThis(this);;
 
 	TArray<FSequencerOverlapRange> Result;
-
-	for (const FMovieSceneSegment& Segment : FMovieSceneSegmentCompiler().Compile(CompileData, &Rules))
+	for (FMovieSceneEvaluationTreeRangeIterator It(SectionIndexTree); It; ++It)
 	{
-		Result.Emplace();
+		FSequencerOverlapRange NewRange;
 
-		FSequencerOverlapRange& NewRange = Result.Last();
-		NewRange.Range = Segment.Range;
-		for (FSectionEvaluationData EvalData : Segment.Impls)
+		NewRange.Range = It.Range();
+
+		for (int32 SectionIndex : SectionIndexTree.GetAllData(It.Node()))
 		{
-			NewRange.Sections.Add(FSectionHandle(SharedThis(this), EvalData.ImplIndex));
+			NewRange.Sections.Add(FSectionHandle(TrackNode, SectionIndex));
 		}
+
+		if (!NewRange.Sections.Num())
+		{
+			continue;
+		}
+
+		// Sort lowest to highest
+		NewRange.Sections.Sort([=](const FSectionHandle& A, const FSectionHandle& B){
+			return A.GetSectionObject()->GetOverlapPriority() < B.GetSectionObject()->GetOverlapPriority();
+		});
+
+		Result.Add(MoveTemp(NewRange));
 	}
-	
+
 	return Result;
 }
 

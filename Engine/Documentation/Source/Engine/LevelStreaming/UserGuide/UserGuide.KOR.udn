@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Docs
 Title:레벨 스트리밍 사용 안내서
 Crumbs:
 Description:실시간 비동기 레벨 스트리밍 구성 안내입니다.
 
 
-<!--
+[COMMENT:none]
+
 [REGION:todo]
 	이 글은 언리얼 엔진 3 문서를 변환한 것으로, 현재 검토중에 있습니다. 정보가 철지난 것일 수 있습니다.
 [/REGION]
@@ -165,4 +166,5 @@ regularly as new features and simplifications come online.
 
 
 
- -->
+ 
+[/COMMENT]

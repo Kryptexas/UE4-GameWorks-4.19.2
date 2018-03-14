@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -21,6 +21,7 @@ class SAnimViewportToolBar : public SViewportToolBar
 public:
 	SLATE_BEGIN_ARGS( SAnimViewportToolBar )
 		: _ShowShowMenu(true)
+		, _ShowCharacterMenu(true)
 		, _ShowLODMenu(true)
 		, _ShowPlaySpeedMenu(true)
 		, _ShowPhysicsMenu(false)
@@ -28,7 +29,11 @@ public:
 
 	SLATE_ARGUMENT(TArray<TSharedPtr<FExtender>>, Extenders)
 
+	SLATE_ARGUMENT(FName, ContextName)
+
 	SLATE_ARGUMENT(bool, ShowShowMenu)
+
+	SLATE_ARGUMENT(bool, ShowCharacterMenu)
 
 	SLATE_ARGUMENT(bool, ShowLODMenu)
 
@@ -44,6 +49,9 @@ public:
 
 	void Construct(const FArguments& InArgs, TSharedPtr<class SAnimationEditorViewportTabBody> InViewport, TSharedPtr<class SEditorViewport> InRealViewport);
 
+	/** Get the pinned commands widget */
+	TSharedPtr<IPinnedCommandList> GetPinnedCommandList() { return PinnedCommands; }
+
 private:
 	/**
 	 * Generates the toolbar view menu content 
@@ -55,6 +63,11 @@ private:
 	*/
 	TSharedRef<SWidget> GeneratePhysicsMenu() const;
 
+	/*
+	 * Generates the toolbar character menu content 
+	 */
+	TSharedRef<SWidget> GenerateCharacterMenu() const;
+
 	/**
 	 * Generates the toolbar show menu content 
 	 */
@@ -63,17 +76,17 @@ private:
 	/**
 	 * Generates the Show -> Scene sub menu content
 	 */
-	TSharedRef<SWidget> FillShowSceneMenu() const;
+	void FillCharacterSceneMenu(FMenuBuilder& MenuBuilder) const;
 
 	/**
 	 * Generates the Show -> Advanced sub menu content
 	 */
-	void FillShowAdvancedMenu(FMenuBuilder& MenuBuilder) const;
+	void FillCharacterAdvancedMenu(FMenuBuilder& MenuBuilder) const;
 
 	/**
 	* Generates the Show -> Clothing sub menu content
 	*/
-	void FillShowClothingMenu(FMenuBuilder& MenuBuilder);
+	void FillCharacterClothingMenu(FMenuBuilder& MenuBuilder);
 
 	/**
 	 * Generates the toolbar LOD menu content 
@@ -121,7 +134,7 @@ private:
 	const FSlateBrush* GetCameraMenuLabelIcon() const;
 
 	/** Called by the FOV slider in the perspective viewport to get the FOV value */
-	float OnGetFOVValue() const;
+	TOptional<float> OnGetFOVValue() const;
 	/** Called when the FOV slider is adjusted in the perspective viewport */
 	void OnFOVValueChanged( float NewValue );
 	/** Called when a value is entered into the FOV slider/box in the perspective viewport */
@@ -135,9 +148,18 @@ private:
 	// Called to determine if the gizmos can be used in the current preview
 	EVisibility GetTransformToolbarVisibility() const;
 
+	/** Build the floor offset widget */
+	TSharedRef<SWidget> MakeFloorOffsetWidget() const;
+
+	/** Build the FOV widget */
+	TSharedRef<SWidget> MakeFOVWidget() const;
+
 private:
 	/** Build the main toolbar */
 	TSharedRef<SWidget> MakeViewportToolbar(TSharedPtr<class SEditorViewport> InRealViewport);
+
+	/** Extend the view menu */
+	TSharedRef<FExtender> GetViewMenuExtender(TSharedPtr<class SEditorViewport> InRealViewport);
 
 private:
 	/** The viewport that we are in */
@@ -149,8 +171,14 @@ private:
 	/** Extenders */
 	TArray<TSharedPtr<FExtender>> Extenders;
 
+	/** Pinned commands widget */
+	TSharedPtr<IPinnedCommandList> PinnedCommands;
+
 	/** Whether to show the 'Show' menu */
 	bool bShowShowMenu;
+
+	/** Whether to show the 'Character' menu */
+	bool bShowCharacterMenu;
 
 	/** Whether to show the 'LOD' menu */
 	bool bShowLODMenu;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -7,7 +7,7 @@ public class OnlineSubsystemTwitch : ModuleRules
 {
 	public OnlineSubsystemTwitch(ReadOnlyTargetRules Target) : base(Target)
 	{
-		Definitions.Add("ONLINESUBSYSTEM_TWITCH_PACKAGE=1");
+		PublicDefinitions.Add("ONLINESUBSYSTEM_TWITCH_PACKAGE=1");
 		PCHUsage = ModuleRules.PCHUsageMode.UseSharedPCHs;
 
 		PrivateIncludePaths.Add("Private");

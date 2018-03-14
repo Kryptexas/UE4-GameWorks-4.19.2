@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
@@ -24,8 +24,12 @@ public:
 
 	// FSlateShaderResourceManager interface
 	virtual FSlateShaderResourceProxy* GetShaderResource( const FSlateBrush& InBrush ) override { return nullptr; }
-	virtual FSlateResourceHandle GetResourceHandle( const FSlateBrush& InBrush ) override { return FSlateResourceHandle(); }
 	virtual ISlateAtlasProvider* GetTextureAtlasProvider() { return this; }
+	virtual FSlateResourceHandle GetResourceHandle( const FSlateBrush& InBrush ) override 
+	{
+		static const FSlateResourceHandle NullHandle(MakeShareable(new FSlateSharedHandleData));
+		return NullHandle;
+	}
 };
 
 /** A null font texture resource to represent fonts */
@@ -120,7 +124,7 @@ public:
 	{
 		ConditionalCreateResources();
 
-		return MakeShareable( new FSlateNullRenderer(SlateFontServices.ToSharedRef()) );
+		return MakeShareable( new FSlateNullRenderer(SlateFontServices.ToSharedRef(), ResourceManager.ToSharedRef()) );
 	}
 
 	virtual TSharedRef<ISlateFontAtlasFactory> CreateSlateFontAtlasFactory() override

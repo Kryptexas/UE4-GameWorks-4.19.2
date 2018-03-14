@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PaperStyle.h"
 #include "Styling/SlateStyleRegistry.h"
 #include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "Interfaces/IPluginManager.h"
 #include "SlateOptMacros.h"
@@ -11,8 +12,7 @@
 #define IMAGE_PLUGIN_BRUSH( RelativePath, ... ) FSlateImageBrush( FPaperStyle::InContent( RelativePath, ".png" ), __VA_ARGS__ )
 #define IMAGE_BRUSH(RelativePath, ...) FSlateImageBrush(StyleSet->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
 #define BOX_BRUSH(RelativePath, ...) FSlateBoxBrush(StyleSet->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
-#define TTF_FONT(RelativePath, ...) FSlateFontInfo(StyleSet->RootToContentDir(RelativePath, TEXT(".ttf")), __VA_ARGS__)
-#define TTF_CORE_FONT(RelativePath, ...) FSlateFontInfo(StyleSet->RootToCoreContentDir(RelativePath, TEXT(".ttf") ), __VA_ARGS__)
+#define DEFAULT_FONT(...) FCoreStyle::GetDefaultFontStyle(__VA_ARGS__)
 
 FString FPaperStyle::InContent(const FString& RelativePath, const ANSICHAR* Extension)
 {
@@ -54,11 +54,11 @@ void FPaperStyle::Initialize()
 	// Shared editors
 	{
 		StyleSet->Set("Paper2D.Common.ViewportZoomTextStyle", FTextBlockStyle(NormalText)
-			.SetFont(TTF_FONT("Fonts/Roboto-BoldCondensed", 16))
+			.SetFont(DEFAULT_FONT("BoldCondensed", 16))
 			);
 
 		StyleSet->Set("Paper2D.Common.ViewportTitleTextStyle", FTextBlockStyle(NormalText)
-			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 18))
+			.SetFont(DEFAULT_FONT("Regular", 18))
 			.SetColorAndOpacity(FLinearColor(1.0, 1.0f, 1.0f, 0.5f))
 			);
 
@@ -138,7 +138,7 @@ void FPaperStyle::Initialize()
 		StyleSet->Set("TileMapEditor.LayerBrowser.SelectionColor", LayerSelectionColor);
 
 		StyleSet->Set("TileMapEditor.TileSetPalette.NothingSelectedText", FTextBlockStyle(NormalText)
-			.SetFont(TTF_FONT("Fonts/Roboto-BoldCondensed", 18))
+			.SetFont(DEFAULT_FONT("BoldCondensed", 18))
 			.SetColorAndOpacity(FLinearColor(0.8, 0.8f, 0.0f, 0.8f))
 			.SetShadowOffset(FVector2D(1.0f, 1.0f))
 			.SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.9f))
@@ -267,8 +267,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 #undef IMAGE_PLUGIN_BRUSH
 #undef IMAGE_BRUSH
 #undef BOX_BRUSH
-#undef TTF_FONT
-#undef TTF_CORE_FONT
+#undef DEFAULT_FONT
 
 void FPaperStyle::Shutdown()
 {

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429254
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:유저 인터페이스와 HUD
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
@@ -9,25 +9,17 @@ parent:Gameplay/Framework
 order:6
 type:overview
 
-<!--
+[COMMENT:none]
+
 [REGION:header_img]
 ![hud.jpg](hud.jpg)
 [/REGION]
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		UI & HUD
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Programming/Slate) - %Programming/Slate:Description%
-	[/PARAM]
-[/OBJECT]
--->
+## UI & HUD
+
+* [](Programming/Slate) - %Programming/Slate:Description%
+
+[/COMMENT]
 
 게임이 플레이어와 소통을 하는 방은 극도로 중요합니다. 유저 인터페이스(User Interface, UI)와 HUD(Heads-Up Displays, 머리 장착 디스플레이)는 플레이어에게 게임에 대한 정보를 표시해 주기도 하고, 가끔은 플레이어와의 상호작용이 가능하기도 합니다.
 

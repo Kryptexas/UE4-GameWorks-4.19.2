@@ -37,23 +37,17 @@ Version: 4.8
 
 	![](Engine\OpenWorldTools\T_OWT_ATP.png)
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		步骤
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 步骤
+
+[REGION:buttonlist]
+
 	* [](Engine\OpenWorldTools\Grass\QuickStart\1)
 	* [](Engine\OpenWorldTools\Grass\QuickStart\2)
 	* [](Engine\OpenWorldTools\Grass\QuickStart\3)
 	* [](Engine\OpenWorldTools\Grass\QuickStart\4)
 	* [](Engine\OpenWorldTools\Grass\QuickStart\5)
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
 
 

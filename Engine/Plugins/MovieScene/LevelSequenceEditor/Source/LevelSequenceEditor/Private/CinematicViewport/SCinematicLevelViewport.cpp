@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CinematicViewport/SCinematicLevelViewport.h"
 #include "Widgets/SBoxPanel.h"
@@ -651,7 +651,7 @@ void SCinematicLevelViewport::Tick(const FGeometry& AllottedGeometry, const doub
 		UMovieSceneCinematicShotSection* CinematicShotSection = Cast<UMovieSceneCinematicShotSection>(SubSection);
 		if (CinematicShotSection)
 		{
-			UIData.ShotName = CinematicShotSection->GetShotDisplayName();
+			UIData.ShotName = FText::FromString(CinematicShotSection->GetShotDisplayName());
 		}
 		else if (SubSection->GetSequence() != nullptr)
 		{

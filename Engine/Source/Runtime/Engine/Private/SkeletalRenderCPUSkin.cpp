@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalRenderCPUSkin.cpp: CPU skinned skeletal mesh rendering code.
@@ -15,7 +15,7 @@
 struct FMorphTargetDelta;
 
 template<typename VertexType>
-static void SkinVertices(FFinalSkinVertex* DestVertex, FMatrix* ReferenceToLocal, int32 LODIndex, FStaticLODModel& LOD, FSkinWeightVertexBuffer& WeightBuffer, TArray<FActiveMorphTarget>& ActiveMorphTargets, TArray<float>& MorphTargetWeights, const TMap<int32, FClothSimulData>& ClothSimulUpdateData, float ClothBlendWeight, const FMatrix& WorldToLocal);
+static void SkinVertices(FFinalSkinVertex* DestVertex, FMatrix* ReferenceToLocal, int32 LODIndex, FSkeletalMeshLODRenderData& LOD, FSkinWeightVertexBuffer& WeightBuffer, TArray<FActiveMorphTarget>& ActiveMorphTargets, TArray<float>& MorphTargetWeights, const TMap<int32, FClothSimulData>& ClothSimulUpdateData, float ClothBlendWeight, const FMatrix& WorldToLocal);
 
 #define INFLUENCE_0		0
 #define INFLUENCE_1		1
@@ -32,7 +32,7 @@ static void SkinVertices(FFinalSkinVertex* DestVertex, FMatrix* ReferenceToLocal
  * @param LOD - LOD model corresponding to DestVertex 
  * @param BonesOfInterest - array of bones we want to display
  */
-static void CalculateBoneWeights(FFinalSkinVertex* DestVertex, FStaticLODModel& LOD, FSkinWeightVertexBuffer& WeightBuffer, TArray<int32> InBonesOfInterest);
+static void CalculateBoneWeights(FFinalSkinVertex* DestVertex, FSkeletalMeshLODRenderData& LOD, FSkinWeightVertexBuffer& WeightBuffer, TArray<int32> InBonesOfInterest);
 
 /**
 * Modify the vertex buffer to store morph target weights in the UV coordinates for rendering
@@ -40,82 +40,23 @@ static void CalculateBoneWeights(FFinalSkinVertex* DestVertex, FStaticLODModel& 
 * @param LOD - LOD model corresponding to DestVertex
 * @param MorphTargetOfInterest - array of morphtargets to draw
 */
-static void CalculateMorphTargetWeights(FFinalSkinVertex* DestVertex, FStaticLODModel& LOD, int LODIndex, TArray<UMorphTarget*> InMorphTargetOfInterest);
-
-/*-----------------------------------------------------------------------------
-	FFinalSkinVertexBuffer
------------------------------------------------------------------------------*/
-
-/** 
- * Initialize the dynamic RHI for this rendering resource 
- */
-void FFinalSkinVertexBuffer::InitDynamicRHI()
-{
-	// all the vertex data for a single LOD of the skel mesh
-	FStaticLODModel& LodModel = SkeletalMeshResource->LODModels[LODIdx];
-
-	InitVertexData(LodModel);
-}
-
-void FFinalSkinVertexBuffer::InitVertexData(FStaticLODModel& LodModel)
-{
-	// this used to be check, but during clothing importing (when replacing cloth asset)
-	// it comes here with incomplete data causing crash during that intermediate state
-	// so I'm changing to ensure, and update won't do anything since it contains Invalid VertexBufferRHI
-	if (ensure(LodModel.VertexBufferGPUSkin.GetNumVertices() == LodModel.NumVertices))
-	{
-		// Create the buffer rendering resource
-		uint32 Size = LodModel.NumVertices * sizeof(FFinalSkinVertex);
-
-		// Initialize the vertex data
-		// All chunks are combined into one (rigid first, soft next)
-		FRHIResourceCreateInfo CreateInfo;
-		void* Buffer = nullptr;
-		VertexBufferRHI = RHICreateAndLockVertexBuffer(Size, BUF_Dynamic, CreateInfo, Buffer);
-
-		FFinalSkinVertex* DestVertex = (FFinalSkinVertex*)Buffer;
-		for (uint32 VertexIdx = 0; VertexIdx < LodModel.NumVertices; VertexIdx++)
-		{
-			const TGPUSkinVertexBase* SrcVertex = LodModel.VertexBufferGPUSkin.GetVertexPtr(VertexIdx);
-
-			DestVertex->Position = LodModel.VertexBufferGPUSkin.GetVertexPositionFast(VertexIdx);
-			DestVertex->TangentX = SrcVertex->TangentX;
-			// w component of TangentZ should already have sign of the tangent basis determinant
-			DestVertex->TangentZ = SrcVertex->TangentZ;
-
-			FVector2D UVs = LodModel.VertexBufferGPUSkin.GetVertexUVFast(VertexIdx, 0);
-			DestVertex->U = UVs.X;
-			DestVertex->V = UVs.Y;
-
-			DestVertex++;
-		}
-
-		// Unlock the buffer.
-		RHIUnlockVertexBuffer(VertexBufferRHI);
-	}
-}
-
-void FFinalSkinVertexBuffer::ReleaseDynamicRHI()
-{
-	VertexBufferRHI.SafeRelease();
-}
-
+static void CalculateMorphTargetWeights(FFinalSkinVertex* DestVertex, FSkeletalMeshLODRenderData& LOD, int LODIndex, TArray<UMorphTarget*> InMorphTargetOfInterest);
 
 /*-----------------------------------------------------------------------------
 	FSkeletalMeshObjectCPUSkin
 -----------------------------------------------------------------------------*/
 
 
-FSkeletalMeshObjectCPUSkin::FSkeletalMeshObjectCPUSkin(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource, ERHIFeatureLevel::Type InFeatureLevel)
-	: FSkeletalMeshObject(InMeshComponent, InSkeletalMeshResource, InFeatureLevel)
+FSkeletalMeshObjectCPUSkin::FSkeletalMeshObjectCPUSkin(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshRenderData* InSkelMeshRenderData, ERHIFeatureLevel::Type InFeatureLevel)
+	: FSkeletalMeshObject(InMeshComponent, InSkelMeshRenderData, InFeatureLevel)
 ,	DynamicData(NULL)
 ,	CachedVertexLOD(INDEX_NONE)
 ,	bRenderOverlayMaterial(false)
 {
 	// create LODs to match the base mesh
-	for( int32 LODIndex=0;LODIndex < SkeletalMeshResource->LODModels.Num();LODIndex++ )
+	for( int32 LODIndex=0;LODIndex < InSkelMeshRenderData->LODRenderData.Num();LODIndex++ )
 	{
-		new(LODs) FSkeletalMeshObjectLOD(SkeletalMeshResource,LODIndex);
+		new(LODs) FSkeletalMeshObjectLOD(InFeatureLevel, InSkelMeshRenderData,LODIndex);
 	}
 
 	InitResources(InMeshComponent);
@@ -172,76 +113,41 @@ void FSkeletalMeshObjectCPUSkin::EnableOverlayRendering(bool bEnabled, const TAr
 	}
 }
 
-void FSkeletalMeshObjectCPUSkin::UpdateRecomputeTangent(int32 MaterialIndex, int32 LODIndex, bool bRecomputeTangent)
-{
-	// queue a call to update this data
-	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
-		SkelMeshObjectUpdateMaterialDataCommand,
-		FSkeletalMeshObjectCPUSkin*, MeshObject, this,
-		int32, MaterialIndex, MaterialIndex,
-		int32, LODIndex, LODIndex,
-		bool, bRecomputeTangent, bRecomputeTangent,
-		{
-			// iterate through section and find the section that matches MaterialIndex, if so, set that flag
-			for (int32 LodIdx = 0; LodIdx < MeshObject->SkeletalMeshResource->LODModels.Num(); ++LodIdx)
-			{
-				if (LODIndex != INDEX_NONE && LODIndex != LodIdx)
-					continue;
-				FStaticLODModel& LODModel = MeshObject->SkeletalMeshResource->LODModels[LodIdx];
-				for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); ++SectionIndex)
-				{
-					// @todo there can be more than one section that can use same material? If not, please break. 
-					if (LODModel.Sections[SectionIndex].MaterialIndex == MaterialIndex)
-					{
-						LODModel.Sections[SectionIndex].bRecomputeTangent = bRecomputeTangent;
-					}
-				}
-			}
-		}
-	);
-}
-
-void FSkeletalMeshObjectCPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights)
+void FSkeletalMeshObjectCPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights, bool bUpdatePreviousBoneTransform)
 {
 	if (InMeshComponent)
 	{
 		// create the new dynamic data for use by the rendering thread
 		// this data is only deleted when another update is sent
-		FDynamicSkelMeshObjectDataCPUSkin* NewDynamicData = new FDynamicSkelMeshObjectDataCPUSkin(InMeshComponent,SkeletalMeshResource,LODIndex,ActiveMorphTargets, MorphTargetWeights);
+		FDynamicSkelMeshObjectDataCPUSkin* NewDynamicData = new FDynamicSkelMeshObjectDataCPUSkin(InMeshComponent,SkeletalMeshRenderData,LODIndex,ActiveMorphTargets, MorphTargetWeights);
 
 		// We prepare the next frame but still have the value from the last one
 		uint32 FrameNumberToPrepare = GFrameNumber + 1;
+		uint32 RevisionNumber = 0;
 
 		if (InMeshComponent->SceneProxy)
 		{
 			// We allow caching of per-frame, per-scene data
 			FrameNumberToPrepare = InMeshComponent->SceneProxy->GetScene().GetFrameNumber() + 1;
+			RevisionNumber = InMeshComponent->GetBoneTransformRevisionNumber();
 		}
 
 		// queue a call to update this data
-		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+		ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 			SkelMeshObjectUpdateDataCommand,
 			FSkeletalMeshObjectCPUSkin*, MeshObject, this,
 			uint32, FrameNumberToPrepare, FrameNumberToPrepare,
+			uint32, RevisionNumber, RevisionNumber, 
 			FDynamicSkelMeshObjectDataCPUSkin*, NewDynamicData, NewDynamicData,
 		{
 			FScopeCycleCounter Context(MeshObject->GetStatId());
-			MeshObject->UpdateDynamicData_RenderThread(RHICmdList, NewDynamicData, FrameNumberToPrepare);
+			MeshObject->UpdateDynamicData_RenderThread(RHICmdList, NewDynamicData, FrameNumberToPrepare, RevisionNumber);
 		}
 		);
-
-		if( GIsEditor )
-		{
-			// this does not need thread-safe update
-#if WITH_EDITORONLY_DATA
-			ProgressiveDrawingFraction = InMeshComponent->ProgressiveDrawingFraction;
-#endif // #if WITH_EDITORONLY_DATA
-			CustomSortAlternateIndexMode = (ECustomSortAlternateIndexMode)InMeshComponent->CustomSortAlternateIndexMode;
-		}
 	}
 }
 
-void FSkeletalMeshObjectCPUSkin::UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataCPUSkin* InDynamicData, uint32 FrameNumberToPrepare)
+void FSkeletalMeshObjectCPUSkin::UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataCPUSkin* InDynamicData, uint32 FrameNumberToPrepare, uint32 RevisionNumber)
 {
 	// we should be done with the old data at this point
 	delete DynamicData;
@@ -258,7 +164,7 @@ void FSkeletalMeshObjectCPUSkin::CacheVertices(int32 LODIndex, bool bForce) cons
 	SCOPE_CYCLE_COUNTER( STAT_CPUSkinUpdateRTTime);
 
 	// Source skel mesh and static lod model
-	FStaticLODModel& LOD = SkeletalMeshResource->LODModels[LODIndex];
+	FSkeletalMeshLODRenderData& LOD = SkeletalMeshRenderData->LODRenderData[LODIndex];
 
 	// Get the destination mesh LOD.
 	const FSkeletalMeshObjectLOD& MeshLOD = LODs[LODIndex];
@@ -266,14 +172,14 @@ void FSkeletalMeshObjectCPUSkin::CacheVertices(int32 LODIndex, bool bForce) cons
 	// only recache if lod changed
 	if ( (LODIndex != CachedVertexLOD || bForce) &&
 		DynamicData && 
-		IsValidRef(MeshLOD.VertexBuffer.VertexBufferRHI) )
+		MeshLOD.StaticMeshVertexBuffer.IsValid() )
 	{
 		const FSkelMeshObjectLODInfo& MeshLODInfo = LODInfo[LODIndex];
 
 		// bone matrices
 		FMatrix* ReferenceToLocal = DynamicData->ReferenceToLocal.GetData();
 
-		int32 CachedFinalVerticesNum = LOD.NumVertices;
+		int32 CachedFinalVerticesNum = LOD.GetNumVertices();
 		CachedFinalVertices.Empty(CachedFinalVerticesNum);
 		CachedFinalVertices.AddUninitialized(CachedFinalVerticesNum);
 
@@ -282,9 +188,9 @@ void FSkeletalMeshObjectCPUSkin::CacheVertices(int32 LODIndex, bool bForce) cons
 
 		if (DestVertex)
 		{
-			check(GIsEditor || LOD.VertexBufferGPUSkin.GetNeedsCPUAccess());
+			check(GIsEditor || LOD.StaticVertexBuffers.StaticMeshVertexBuffer.GetAllowCPUAccess());
 			SCOPE_CYCLE_COUNTER(STAT_SkinningTime);
-			if (LOD.VertexBufferGPUSkin.GetUseFullPrecisionUVs())
+			if (LOD.StaticVertexBuffers.StaticMeshVertexBuffer.GetUseFullPrecisionUVs())
 			{
 				// do actual skinning
 				SkinVertices< TGPUSkinVertexFloat32Uvs<1> >( DestVertex, ReferenceToLocal, DynamicData->LODIndex, LOD, *MeshLOD.MeshObjectWeightBuffer, DynamicData->ActiveMorphTargets, DynamicData->MorphTargetWeights, DynamicData->ClothSimulUpdateData, DynamicData->ClothBlendWeight, DynamicData->WorldToLocal);
@@ -315,8 +221,34 @@ void FSkeletalMeshObjectCPUSkin::CacheVertices(int32 LODIndex, bool bForce) cons
 		// set lod level currently cached
 		CachedVertexLOD = LODIndex;
 
-		check(LOD.NumVertices == CachedFinalVertices.Num());
-		MeshLOD.UpdateFinalSkinVertexBuffer( CachedFinalVertices.GetData(), LOD.NumVertices * sizeof(FFinalSkinVertex) );
+		check(LOD.GetNumVertices() == CachedFinalVertices.Num());
+
+		for (int i = 0; i < CachedFinalVertices.Num(); i++)
+		{
+			MeshLOD.PositionVertexBuffer.VertexPosition(i) = CachedFinalVertices[i].Position;
+			MeshLOD.StaticMeshVertexBuffer.SetVertexTangents(i, CachedFinalVertices[i].TangentX, CachedFinalVertices[i].GetTangentY(), CachedFinalVertices[i].TangentZ);
+			MeshLOD.StaticMeshVertexBuffer.SetVertexUV(i, 0, FVector2D(CachedFinalVertices[i].U, CachedFinalVertices[i].V));
+		}
+
+		BeginUpdateResourceRHI(&MeshLOD.PositionVertexBuffer);
+		BeginUpdateResourceRHI(&MeshLOD.StaticMeshVertexBuffer);
+
+		const FSkeletalMeshObjectCPUSkin::FSkeletalMeshObjectLOD* MeshLODptr = &MeshLOD;
+		FLocalVertexFactory* VertexFactoryPtr = &MeshLOD.VertexFactory;
+		ENQUEUE_RENDER_COMMAND(UpdateSkeletalMeshCPUSkinVertexFactory)(
+			[VertexFactoryPtr, MeshLODptr](FRHICommandListImmediate& RHICmdList)
+		{
+			FLocalVertexFactory::FDataType Data;
+
+			MeshLODptr->PositionVertexBuffer.BindPositionVertexBuffer(VertexFactoryPtr, Data);
+			MeshLODptr->StaticMeshVertexBuffer.BindTangentVertexBuffer(VertexFactoryPtr, Data);
+			MeshLODptr->StaticMeshVertexBuffer.BindTexCoordVertexBuffer(VertexFactoryPtr, Data, 0);
+			MeshLODptr->StaticMeshVertexBuffer.BindLightMapVertexBuffer(VertexFactoryPtr, Data, 0);
+			MeshLODptr->MeshObjectColorBuffer->BindColorVertexBuffer(VertexFactoryPtr, Data);
+
+			VertexFactoryPtr->SetData(Data);
+			VertexFactoryPtr->InitResource();
+		});
 	}
 }
 
@@ -331,49 +263,65 @@ const FVertexFactory* FSkeletalMeshObjectCPUSkin::GetSkinVertexFactory(const FSc
  */
 void FSkeletalMeshObjectCPUSkin::FSkeletalMeshObjectLOD::InitResources(FSkelMeshComponentLODInfo* CompLODInfo)
 {
-	check(SkelMeshResource);
-	check(SkelMeshResource->LODModels.IsValidIndex(LODIndex));
+	check(SkelMeshRenderData);
+	check(SkelMeshRenderData->LODRenderData.IsValidIndex(LODIndex));
 
 	// If we have a skin weight override buffer (and it's the right size) use it
-	FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
-	if (CompLODInfo &&
-		CompLODInfo->OverrideSkinWeights &&
-		CompLODInfo->OverrideSkinWeights->GetNumVertices() == LODModel.VertexBufferGPUSkin.GetNumVertices())
+	FSkeletalMeshLODRenderData& LODData = SkelMeshRenderData->LODRenderData[LODIndex];
+	if (CompLODInfo)
 	{
-		check(LODModel.SkinWeightVertexBuffer.HasExtraBoneInfluences() == CompLODInfo->OverrideSkinWeights->HasExtraBoneInfluences());
-		MeshObjectWeightBuffer = CompLODInfo->OverrideSkinWeights;
-	}
-	else
-	{
-		MeshObjectWeightBuffer = &LODModel.SkinWeightVertexBuffer;
+		if (CompLODInfo->OverrideSkinWeights &&
+			CompLODInfo->OverrideSkinWeights->GetNumVertices() == LODData.StaticVertexBuffers.PositionVertexBuffer.GetNumVertices())
+		{
+			check(LODData.SkinWeightVertexBuffer.HasExtraBoneInfluences() == CompLODInfo->OverrideSkinWeights->HasExtraBoneInfluences());
+			MeshObjectWeightBuffer = CompLODInfo->OverrideSkinWeights;
+		}
+		else
+		{
+			MeshObjectWeightBuffer = &LODData.SkinWeightVertexBuffer;
+		}
+
+		if (CompLODInfo->OverrideVertexColors &&
+			CompLODInfo->OverrideVertexColors->GetNumVertices() == LODData.StaticVertexBuffers.PositionVertexBuffer.GetNumVertices())
+		{
+			MeshObjectColorBuffer = CompLODInfo->OverrideVertexColors;
+		}
+		else
+		{
+			MeshObjectColorBuffer = &LODData.StaticVertexBuffers.ColorVertexBuffer;
+		}
 	}
 
-	// upload vertex buffer
-	BeginInitResource(&VertexBuffer);
+	const FStaticMeshVertexBuffer& SrcVertexBuf = LODData.StaticVertexBuffers.StaticMeshVertexBuffer;
+	PositionVertexBuffer.Init(LODData.StaticVertexBuffers.PositionVertexBuffer);
+	StaticMeshVertexBuffer.Init(SrcVertexBuf.GetNumVertices(), 1);
 
+	for (uint32 i = 0; i < SrcVertexBuf.GetNumVertices(); i++)
+	{
+		StaticMeshVertexBuffer.SetVertexTangents(i, SrcVertexBuf.VertexTangentX(i), SrcVertexBuf.VertexTangentY(i), SrcVertexBuf.VertexTangentZ(i));
+		StaticMeshVertexBuffer.SetVertexUV(i, 0, SrcVertexBuf.GetVertexUV(i, 0));
+	}
+
+	BeginInitResource(&PositionVertexBuffer);
+	BeginInitResource(&StaticMeshVertexBuffer);
+
+	FSkeletalMeshObjectCPUSkin::FSkeletalMeshObjectLOD* Self = this;
+	FLocalVertexFactory* VertexFactoryPtr = &VertexFactory;
 	// update vertex factory components and sync it
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		InitSkeletalMeshCPUSkinVertexFactory,
-		FLocalVertexFactory*,VertexFactory,&VertexFactory,
-		FVertexBuffer*,VertexBuffer,&VertexBuffer,
+	ENQUEUE_RENDER_COMMAND(InitSkeletalMeshCPUSkinVertexFactory)(
+		[VertexFactoryPtr, Self](FRHICommandListImmediate& RHICmdList)
 		{
 			FLocalVertexFactory::FDataType Data;
 
-			// position
-			Data.PositionComponent = FVertexStreamComponent(
-				VertexBuffer,STRUCT_OFFSET(FFinalSkinVertex,Position),sizeof(FFinalSkinVertex),VET_Float3);
-			// tangents
-			Data.TangentBasisComponents[0] = FVertexStreamComponent(
-				VertexBuffer,STRUCT_OFFSET(FFinalSkinVertex,TangentX),sizeof(FFinalSkinVertex),VET_PackedNormal);
-			Data.TangentBasisComponents[1] = FVertexStreamComponent(
-				VertexBuffer,STRUCT_OFFSET(FFinalSkinVertex,TangentZ),sizeof(FFinalSkinVertex),VET_PackedNormal);
-			// uvs
-			Data.TextureCoordinates.Add(FVertexStreamComponent(
-				VertexBuffer,STRUCT_OFFSET(FFinalSkinVertex,U),sizeof(FFinalSkinVertex),VET_Float2));
+			Self->PositionVertexBuffer.BindPositionVertexBuffer(VertexFactoryPtr, Data);
+			Self->StaticMeshVertexBuffer.BindTangentVertexBuffer(VertexFactoryPtr, Data);
+			Self->StaticMeshVertexBuffer.BindTexCoordVertexBuffer(VertexFactoryPtr, Data, 0);
+			Self->StaticMeshVertexBuffer.BindLightMapVertexBuffer(VertexFactoryPtr, Data, 0);
+			Self->MeshObjectColorBuffer->BindColorVertexBuffer(VertexFactoryPtr, Data);
 
-			VertexFactory->SetData(Data);
+			VertexFactoryPtr->SetData(Data);
+			VertexFactoryPtr->InitResource();
 		});
-	BeginInitResource(&VertexFactory);
 
 	bResourcesInitialized = true;
 }
@@ -384,21 +332,10 @@ void FSkeletalMeshObjectCPUSkin::FSkeletalMeshObjectLOD::InitResources(FSkelMesh
 void FSkeletalMeshObjectCPUSkin::FSkeletalMeshObjectLOD::ReleaseResources()
 {	
 	BeginReleaseResource(&VertexFactory);
-	BeginReleaseResource(&VertexBuffer);
+	BeginReleaseResource(&PositionVertexBuffer);
+	BeginReleaseResource(&StaticMeshVertexBuffer);
 
 	bResourcesInitialized = false;
-}
-
-/** 
- * Update the contents of the vertex buffer with new data
- * @param	NewVertices - array of new vertex data
- * @param	Size - size of new vertex data aray 
- */
-void FSkeletalMeshObjectCPUSkin::FSkeletalMeshObjectLOD::UpdateFinalSkinVertexBuffer(void* NewVertices, uint32 Size) const
-{
-	void* Buffer = RHILockVertexBuffer(VertexBuffer.VertexBufferRHI,0,Size,RLM_WriteOnly);
-	FMemory::Memcpy(Buffer,NewVertices,Size);
-	RHIUnlockVertexBuffer(VertexBuffer.VertexBufferRHI);
 }
 
 TArray<FTransform>* FSkeletalMeshObjectCPUSkin::GetComponentSpaceTransforms() const
@@ -418,22 +355,6 @@ TArray<FTransform>* FSkeletalMeshObjectCPUSkin::GetComponentSpaceTransforms() co
 const TArray<FMatrix>& FSkeletalMeshObjectCPUSkin::GetReferenceToLocalMatrices() const
 {
 	return DynamicData->ReferenceToLocal;
-}
-
-/**
- * Get the origin and direction vectors for TRISORT_CustomLeftRight sections
- */
-const FTwoVectors& FSkeletalMeshObjectCPUSkin::GetCustomLeftRightVectors(int32 SectionIndex) const
-{
-	if( DynamicData && DynamicData->CustomLeftRightVectors.IsValidIndex(SectionIndex) )
-	{
-		return DynamicData->CustomLeftRightVectors[SectionIndex];
-	}
-	else
-	{
-		static FTwoVectors Bad( FVector::ZeroVector, FVector(1.f,0.f,0.f) );
-		return Bad;
-	}
 }
 
 void FSkeletalMeshObjectCPUSkin::DrawVertexElements(FPrimitiveDrawInterface* PDI, const FMatrix& ToWorldSpace, bool bDrawNormals, bool bDrawTangents, bool bDrawBinormals) const
@@ -477,7 +398,7 @@ FDynamicSkelMeshObjectDataCPUSkin
 
 FDynamicSkelMeshObjectDataCPUSkin::FDynamicSkelMeshObjectDataCPUSkin(
 	USkinnedMeshComponent* InMeshComponent,
-	FSkeletalMeshResource* InSkeletalMeshResource,
+	FSkeletalMeshRenderData* InSkelMeshRenderData,
 	int32 InLODIndex,
 	const TArray<FActiveMorphTarget>& InActiveMorphTargets,
 	const TArray<float>& InMorphTargetWeights
@@ -487,9 +408,7 @@ FDynamicSkelMeshObjectDataCPUSkin::FDynamicSkelMeshObjectDataCPUSkin(
 ,	MorphTargetWeights(InMorphTargetWeights)
 ,	ClothBlendWeight(0.0f)
 {
-	UpdateRefToLocalMatrices( ReferenceToLocal, InMeshComponent, InSkeletalMeshResource, LODIndex );
-
-	UpdateCustomLeftRightVectors( CustomLeftRightVectors, InMeshComponent, InSkeletalMeshResource, LODIndex );
+	UpdateRefToLocalMatrices( ReferenceToLocal, InMeshComponent, InSkelMeshRenderData, LODIndex );
 
 	// Update the clothing simulation mesh positions and normals
 	UpdateClothSimulationData(InMeshComponent);
@@ -602,7 +521,7 @@ FORCEINLINE void ApplyMorphBlend( VertexType& DestVertex, const FMorphTargetDelt
 * Blends the source vertex with all the active morph targets.
 */
 template<typename VertexType>
-FORCEINLINE void UpdateMorphedVertex( VertexType& MorphedVertex, VertexType& SrcVertex, int32 CurBaseVertIdx, int32 LODIndex, TArray<FMorphTargetInfo>& EvalInfos, const TArray<float>& MorphWeights )
+FORCEINLINE void UpdateMorphedVertex( VertexType& MorphedVertex, const VertexType& SrcVertex, int32 CurBaseVertIdx, int32 LODIndex, TArray<FMorphTargetInfo>& EvalInfos, const TArray<float>& MorphWeights )
 {
 	MorphedVertex = SrcVertex;
 
@@ -655,8 +574,8 @@ static void SkinVertexSection(
 	FFinalSkinVertex*& DestVertex,
 	TArray<FMorphTargetInfo>& MorphEvalInfos,
 	const TArray<float>& MorphWeights,
-	const FSkelMeshSection& Section,
-	const FStaticLODModel &LOD,
+	const FSkelMeshRenderSection& Section,
+	const FSkeletalMeshLODRenderData &LOD,
 	FSkinWeightVertexBuffer& WeightBuffer,
 	int32 VertexBufferBaseIndex, 
 	uint32 NumValidMorphs, 
@@ -677,35 +596,35 @@ static void SkinVertexSection(
 	FPlatformMisc::Prefetch( BoneMap );
 	FPlatformMisc::Prefetch( BoneMap, PLATFORM_CACHE_LINE_SIZE );
 
-	VertexType* SrcSoftVertex = NULL;
-	const FVector MeshExtension = LOD.VertexBufferGPUSkin.GetMeshExtension();
-	const FVector MeshOrigin = LOD.VertexBufferGPUSkin.GetMeshOrigin();
 	const bool bLODUsesCloth = LOD.HasClothData() && ClothSimData != nullptr && ClothBlendWeight > 0.0f;
 	const int32 NumSoftVertices = Section.GetNumVertices();
 	if (NumSoftVertices > 0)
 	{
 		INC_DWORD_STAT_BY(STAT_CPUSkinVertices,NumSoftVertices);
-
-		// Prefetch first vertex
-		FPlatformMisc::Prefetch( LOD.VertexBufferGPUSkin.GetVertexPtr(Section.GetVertexBufferIndex()) );
-		if (bLODUsesCloth)
-		{
-			FPlatformMisc::Prefetch(&LOD.ClothVertexBuffer.MappingData(Section.GetVertexBufferIndex()));
-		}
-
 		for(int32 VertexIndex = VertexBufferBaseIndex;VertexIndex < NumSoftVertices;VertexIndex++,DestVertex++)
 		{
 			const int32 VertexBufferIndex = Section.GetVertexBufferIndex() + VertexIndex;
-			SrcSoftVertex = (VertexType*)LOD.VertexBufferGPUSkin.GetVertexPtr(VertexBufferIndex);
-			FPlatformMisc::Prefetch( SrcSoftVertex, PLATFORM_CACHE_LINE_SIZE );	// Prefetch next vertices
-			VertexType* MorphedVertex = SrcSoftVertex;
+
+			VertexType SrcSoftVertex;
+			const FVector& VertexPosition = LOD.StaticVertexBuffers.PositionVertexBuffer.VertexPosition(VertexBufferIndex);
+			FPlatformMisc::Prefetch(&VertexPosition, PLATFORM_CACHE_LINE_SIZE);	// Prefetch next vertices
+			
+			SrcSoftVertex.Position = VertexPosition;
+			SrcSoftVertex.TangentX = LOD.StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentX_Typed<EStaticMeshVertexTangentBasisType::Default>(VertexBufferIndex);
+			SrcSoftVertex.TangentZ = LOD.StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentZ_Typed<EStaticMeshVertexTangentBasisType::Default>(VertexBufferIndex);
+			for (uint32 j = 0; j < VertexType::NumTexCoords; j++)
+			{
+				SrcSoftVertex.UVs[j] = LOD.StaticVertexBuffers.StaticMeshVertexBuffer.GetVertexUV_Typed<VertexType::StaticMeshVertexUVType>(VertexBufferIndex, j);
+			}
+
+			VertexType* MorphedVertex = &SrcSoftVertex;
 
 			const TSkinWeightInfo<bExtraBoneInfluences>* SrcWeights = WeightBuffer.GetSkinWeightPtr<bExtraBoneInfluences>(VertexBufferIndex);
 
 			if( NumValidMorphs ) 
 			{
 				MorphedVertex = &VertexCopy;
-				UpdateMorphedVertex<VertexType>( *MorphedVertex, *SrcSoftVertex, CurBaseVertIdx, LODIndex, MorphEvalInfos, MorphWeights);
+				UpdateMorphedVertex<VertexType>( *MorphedVertex, SrcSoftVertex, CurBaseVertIdx, LODIndex, MorphEvalInfos, MorphWeights);
 			}
 
 			const FMeshToMeshVertData* ClothVertData = nullptr;
@@ -720,8 +639,7 @@ static void SkinVertexSection(
 
 			static VectorRegister	SrcNormals[3];
 			VectorRegister			DstNormals[3];
-			const FVector VertexPosition = LOD.VertexBufferGPUSkin.GetVertexPositionFast((const TGPUSkinVertexBase*)MorphedVertex);
-			SrcNormals[0] = VectorLoadFloat3_W1( &VertexPosition );
+			SrcNormals[0] = VectorLoadFloat3_W1( &MorphedVertex->Position);
 			SrcNormals[1] = Unpack3( &MorphedVertex->TangentX.Vector.Packed );
 			SrcNormals[2] = Unpack4( &MorphedVertex->TangentZ.Vector.Packed );
 			VectorRegister Weights = VectorMultiply( VectorLoadByte4(BoneWeights), VECTOR_INV_255 );
@@ -843,12 +761,12 @@ static void SkinVertexSection(
 				{
 					FORCEINLINE static FVector GetClothSimulPosition(const FClothSimulData& InClothSimData, int32 InIndex)
 					{
-						return FVector(InClothSimData.Positions[InIndex]);
+						return FVector(InClothSimData.Transform.TransformPosition(InClothSimData.Positions[InIndex]));
 					}
 
 					FORCEINLINE static FVector GetClothSimulNormal(const FClothSimulData& InClothSimData, int32 InIndex)
 					{
-						return FVector(InClothSimData.Normals[InIndex]);
+						return FVector(InClothSimData.Transform.TransformVector(InClothSimData.Normals[InIndex]));
 					}
 
 					FORCEINLINE static FVector ClothingPosition(const FMeshToMeshVertData& InClothVertData, const FClothSimulData& InClothSimData)
@@ -858,7 +776,7 @@ static void SkinVertexSection(
 								+ InClothVertData.PositionBaryCoordsAndDist.Z * (GetClothSimulPosition(InClothSimData, InClothVertData.SourceMeshVertIndices[2]) + GetClothSimulNormal(InClothSimData, InClothVertData.SourceMeshVertIndices[2]) * InClothVertData.PositionBaryCoordsAndDist.W);
 					}
 
-					FORCEINLINE static void ClothingTangents(const FMeshToMeshVertData& InClothVertData, const FClothSimulData& InClothSimData, const FVector& InSimulatedPosition, const FMatrix& InWorldToLocal, const FVector& InMeshExtension, const FVector& InMeshOrign, FVector& OutTangentX, FVector& OutTangentZ)
+					FORCEINLINE static void ClothingTangents(const FMeshToMeshVertData& InClothVertData, const FClothSimulData& InClothSimData, const FVector& InSimulatedPosition, const FMatrix& InWorldToLocal, FVector& OutTangentX, FVector& OutTangentZ)
 					{
 						FVector A = GetClothSimulPosition(InClothSimData, InClothVertData.SourceMeshVertIndices[0]);
 						FVector B = GetClothSimulPosition(InClothSimData, InClothVertData.SourceMeshVertIndices[1]);
@@ -876,8 +794,8 @@ static void SkinVertexSection(
 												+ InClothVertData.TangentBaryCoordsAndDist.Y*(B + NB*InClothVertData.TangentBaryCoordsAndDist.W)
 												+ InClothVertData.TangentBaryCoordsAndDist.Z*(C + NC*InClothVertData.TangentBaryCoordsAndDist.W);
 
-						OutTangentX = (TangentPosition*InMeshExtension + InMeshOrign - InSimulatedPosition).GetUnsafeNormal();
-						OutTangentZ = (NormalPosition*InMeshExtension + InMeshOrign - InSimulatedPosition).GetUnsafeNormal();
+						OutTangentX = (TangentPosition - InSimulatedPosition).GetUnsafeNormal();
+						OutTangentZ = (NormalPosition - InSimulatedPosition).GetUnsafeNormal();
 
 						// cloth data are all in world space so need to change into local space
 						OutTangentX = InWorldToLocal.TransformVector(OutTangentX);
@@ -886,7 +804,7 @@ static void SkinVertexSection(
 				};
 
 				// build sim position (in world space)
-				FVector SimulatedPositionWorld = ClothCPU::ClothingPosition(*ClothVertData, *ClothSimData) * MeshExtension + MeshOrigin;
+				FVector SimulatedPositionWorld = ClothCPU::ClothingPosition(*ClothVertData, *ClothSimData);
 
 				// transform back to local space
 				FVector SimulatedPosition = WorldToLocal.TransformPosition(SimulatedPositionWorld);
@@ -897,7 +815,7 @@ static void SkinVertexSection(
 				// recompute tangent & normal
 				FVector TangentX;
 				FVector TangentZ;
-				ClothCPU::ClothingTangents(*ClothVertData, *ClothSimData, SimulatedPositionWorld, WorldToLocal, MeshExtension, MeshOrigin, TangentX, TangentZ);
+				ClothCPU::ClothingTangents(*ClothVertData, *ClothSimData, SimulatedPositionWorld, WorldToLocal, TangentX, TangentZ);
 
 				// Lerp between skinned and simulated tangents
 				FVector SkinnedTangentX = DestVertex->TangentX;
@@ -907,7 +825,7 @@ static void SkinVertexSection(
 			}
 
 			// Copy UVs.
-			FVector2D UVs = LOD.VertexBufferGPUSkin.GetVertexUVFast(Section.GetVertexBufferIndex() + VertexIndex, 0);
+			FVector2D UVs = LOD.StaticVertexBuffers.StaticMeshVertexBuffer.GetVertexUV(Section.GetVertexBufferIndex() + VertexIndex, 0);
 			DestVertex->U = UVs.X;
 			DestVertex->V = UVs.Y;
 
@@ -921,8 +839,8 @@ static void SkinVertexSection(
 	FFinalSkinVertex*& DestVertex, 
 	TArray<FMorphTargetInfo>& MorphEvalInfos, 
 	const TArray<float>& MorphWeights, 
-	const FSkelMeshSection& Section, 
-	const FStaticLODModel &LOD, 
+	const FSkelMeshRenderSection& Section, 
+	const FSkeletalMeshLODRenderData &LOD,
 	FSkinWeightVertexBuffer& WeightBuffer,
 	int32 VertexBufferBaseIndex, 
 	uint32 NumValidMorphs, 
@@ -953,7 +871,7 @@ static void SkinVertices(
 	FFinalSkinVertex* DestVertex, 
 	FMatrix* ReferenceToLocal, 
 	int32 LODIndex, 
-	FStaticLODModel& LOD, 
+	FSkeletalMeshLODRenderData& LOD,
 	FSkinWeightVertexBuffer& WeightBuffer,
 	TArray<FActiveMorphTarget>& ActiveMorphTargets, 
 	TArray<float>& MorphTargetWeights, 
@@ -982,13 +900,13 @@ static void SkinVertices(
 	const int32 RigidInfluenceIndex = SkinningTools::GetRigidInfluenceIndex();
 	int32 VertexBufferBaseIndex=0;
 
-	for(int32 SectionIndex= 0;SectionIndex< LOD.Sections.Num();SectionIndex++)
+	for(int32 SectionIndex= 0;SectionIndex< LOD.RenderSections.Num();SectionIndex++)
 	{
-		FSkelMeshSection& Section = LOD.Sections[SectionIndex];
+		FSkelMeshRenderSection& Section = LOD.RenderSections[SectionIndex];
 
 		const FClothSimulData* ClothSimData = ClothSimulUpdateData.Find(Section.CorrespondClothAssetIndex);
 
-		if (LOD.DoSectionsNeedExtraBoneInfluences())
+		if (LOD.DoesVertexBufferHaveExtraBoneInfluences())
 		{
 			SkinVertexSection<true, VertexType>(DestVertex, MorphEvalInfos, MorphTargetWeights, Section, LOD, WeightBuffer, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal);
 		}
@@ -1024,7 +942,7 @@ FVector4 GetTangetToColor(FPackedNormal Tangent)
  * @param BonesOfInterest - array of bones we want to display
  */
 template <bool bExtraBoneInfluencesT>
-static FORCEINLINE void CalculateSectionBoneWeights(FFinalSkinVertex*& DestVertex, FSkinWeightVertexBuffer& SkinWeightVertexBuffer, FSkelMeshSection& Section, const TArray<int32>& BonesOfInterest)
+static FORCEINLINE void CalculateSectionBoneWeights(FFinalSkinVertex*& DestVertex, FSkinWeightVertexBuffer& SkinWeightVertexBuffer, FSkelMeshRenderSection& Section, const TArray<int32>& BonesOfInterest)
 {
 	const float INV255 = 1.f/255.f;
 
@@ -1061,11 +979,11 @@ static FORCEINLINE void CalculateSectionBoneWeights(FFinalSkinVertex*& DestVerte
 /** 
  * Modify the vertex buffer to store bone weights in the UV coordinates for rendering 
  * @param DestVertex - already filled out vertex buffer from SkinVertices
- * @param LOD - LOD model corresponding to DestVertex 
+ * @param LOD - LOD render data corresponding to DestVertex 
  * @param WeightBuffer - skin weights
  * @param BonesOfInterest - array of bones we want to display
  */
-static void CalculateBoneWeights(FFinalSkinVertex* DestVertex, FStaticLODModel& LOD, FSkinWeightVertexBuffer& WeightBuffer, TArray<int32> InBonesOfInterest)
+static void CalculateBoneWeights(FFinalSkinVertex* DestVertex, FSkeletalMeshLODRenderData& LOD, FSkinWeightVertexBuffer& WeightBuffer, TArray<int32> InBonesOfInterest)
 {
 	const float INV255 = 1.f/255.f;
 
@@ -1073,9 +991,9 @@ static void CalculateBoneWeights(FFinalSkinVertex* DestVertex, FStaticLODModel& 
 
 	int32 VertexBufferBaseIndex = 0;
 
-	for(int32 SectionIndex= 0;SectionIndex< LOD.Sections.Num();SectionIndex++)
+	for(int32 SectionIndex= 0;SectionIndex< LOD.RenderSections.Num();SectionIndex++)
 	{
-		FSkelMeshSection& Section = LOD.Sections[SectionIndex];
+		FSkelMeshRenderSection& Section = LOD.RenderSections[SectionIndex];
 
 		if (WeightBuffer.HasExtraBoneInfluences())
 		{
@@ -1088,9 +1006,9 @@ static void CalculateBoneWeights(FFinalSkinVertex* DestVertex, FStaticLODModel& 
 	}
 }
 
-static void CalculateMorphTargetWeights(FFinalSkinVertex* DestVertex, FStaticLODModel& LOD, int LODIndex, TArray<UMorphTarget*> InMorphTargetOfInterest)
+static void CalculateMorphTargetWeights(FFinalSkinVertex* DestVertex, FSkeletalMeshLODRenderData& LOD, int LODIndex, TArray<UMorphTarget*> InMorphTargetOfInterest)
 {
-	const FFinalSkinVertex* EndVert = DestVertex + LOD.NumVertices;
+	const FFinalSkinVertex* EndVert = DestVertex + LOD.GetNumVertices();
 
 	for (FFinalSkinVertex* ClearVert = DestVertex; ClearVert != EndVert; ++ClearVert)
 	{

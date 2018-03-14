@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -24,7 +24,13 @@ FString TNumericUnitTypeInterface<NumericType>::ToString(const NumericType& Valu
 		return TDefaultNumericTypeInterface<NumericType>::ToString(Value);
 	}
 
-	using namespace Lex;
+	auto ToUnitString = [this](const FNumericUnit<NumericType>& InNumericUnit) -> FString
+	{
+		FString String = TDefaultNumericTypeInterface<NumericType>::ToString(InNumericUnit.Value);
+		String += TEXT(" ");
+		String += FUnitConversion::GetUnitDisplayString(InNumericUnit.Units);
+		return String;
+	};
 
 	FNumericUnit<NumericType> FinalValue(Value, UnderlyingUnits);
 
@@ -33,11 +39,11 @@ FString TNumericUnitTypeInterface<NumericType>::ToString(const NumericType& Valu
 		auto Converted = FinalValue.ConvertTo(FixedDisplayUnits.GetValue());
 		if (Converted.IsSet())
 		{
-			return ToSanitizedString(Converted.GetValue());
+			return ToUnitString(Converted.GetValue());
 		}
 	}
 	
-	return ToSanitizedString(FinalValue);
+	return ToUnitString(FinalValue);
 }
 
 template<typename NumericType>
@@ -47,8 +53,6 @@ TOptional<NumericType> TNumericUnitTypeInterface<NumericType>::FromString(const 
 	{
 		return TDefaultNumericTypeInterface<NumericType>::FromString(InString, InExistingValue);
 	}
-
-	using namespace Lex;
 
 	EUnit DefaultUnits = FixedDisplayUnits.IsSet() ? FixedDisplayUnits.GetValue() : UnderlyingUnits;
 
@@ -72,7 +76,7 @@ TOptional<NumericType> TNumericUnitTypeInterface<NumericType>::FromString(const 
 template<typename NumericType>
 bool TNumericUnitTypeInterface<NumericType>::IsCharacterValid(TCHAR InChar) const
 {
-	return (UnderlyingUnits == EUnit::Unspecified) ? TDefaultNumericTypeInterface<NumericType>::IsCharacterValid(InChar) : true;
+	return (UnderlyingUnits == EUnit::Unspecified) ? TDefaultNumericTypeInterface<NumericType>::IsCharacterValid(InChar) : InChar != TEXT('\t');
 }
 
 template<typename NumericType>

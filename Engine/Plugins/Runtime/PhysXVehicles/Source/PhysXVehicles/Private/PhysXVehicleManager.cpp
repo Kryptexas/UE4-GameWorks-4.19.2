@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PhysXVehicleManager.h"
 #include "UObject/UObjectIterator.h"
@@ -9,6 +9,8 @@
 #include "PhysXPublic.h"
 
 DEFINE_LOG_CATEGORY(LogVehicles);
+
+#if WITH_PHYSX
 
 DECLARE_STATS_GROUP(TEXT("PhysXVehicleManager"), STATGROUP_PhysXVehicleManager, STATGROUP_Advanced);
 DECLARE_CYCLE_STAT(TEXT("PxVehicleSuspensionRaycasts"), STAT_PhysXVehicleManager_PxVehicleSuspensionRaycasts, STATGROUP_PhysXVehicleManager);
@@ -478,14 +480,14 @@ PxVehicleTelemetryData* FPhysXVehicleManager::GetTelemetryData_AssumesLocked()
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 #endif //PX_DEBUG_VEHICLE_ON
 
-PxWheelQueryResult* FPhysXVehicleManager::GetWheelsStates_AssumesLocked(TWeakObjectPtr<class UWheeledVehicleMovementComponent> Vehicle)
+PxWheelQueryResult* FPhysXVehicleManager::GetWheelsStates_AssumesLocked(TWeakObjectPtr<const UWheeledVehicleMovementComponent> Vehicle)
 {
-	int32 Index = Vehicles.Find(Vehicle);
+	int32 Index = Vehicles.IndexOfByKey(Vehicle);
 
 	if(Index != INDEX_NONE)
 	{
@@ -493,6 +495,8 @@ PxWheelQueryResult* FPhysXVehicleManager::GetWheelsStates_AssumesLocked(TWeakObj
 	}
 	else
 	{
-		return NULL;
+		return nullptr;
 	}
 }
+
+#endif // WITH_PHYSX

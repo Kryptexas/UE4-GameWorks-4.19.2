@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -580,12 +580,6 @@ struct TIsContiguousContainer<TArrayView<T>>
 
 template <typename ElementType, size_t Size>
 TArrayView<ElementType> MakeArrayView(ElementType(&Other)[Size])
-{
-	return TArrayView<ElementType>(Other);
-}
-
-template <typename ElementType, size_t Size>
-TArrayView<const ElementType> MakeArrayView(const ElementType(&Other)[Size])
 {
 	return TArrayView<ElementType>(Other);
 }

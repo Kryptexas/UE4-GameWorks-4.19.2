@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanPipeline.cpp: Vulkan device RHI implementation.
@@ -361,10 +361,12 @@ FVulkanGraphicsPipelineState* FVulkanPipelineStateCache::CreateAndAdd(const FGra
 	FVulkanGfxPipeline* Pipeline = new FVulkanGfxPipeline(Device);
 
 	check(GfxEntry);
-	GfxPipelineEntries.Add(GfxEntry->GetEntryHash(), GfxEntry);
+	{
+		FScopeLock ScopeLock(&GfxPipelineEntriesCS);
+		GfxPipelineEntries.Add(GfxEntry->GetEntryHash(), GfxEntry);
+	}
 
 	// Create the pipeline
-
 	double BeginTime = FPlatformTime::Seconds();
 	CreateGfxPipelineFromEntry(GfxEntry, Pipeline);
 	Pipeline->CreateRuntimeObjects(PSOInitializer);
@@ -1320,6 +1322,8 @@ FGraphicsPipelineStateRHIRef FVulkanDynamicRHI::RHICreateGraphicsPipelineState(c
 
 FVulkanComputePipeline* FVulkanPipelineStateCache::GetOrCreateComputePipeline(FVulkanComputeShader* ComputeShader)
 {
+	FScopeLock ScopeLock(&CreateComputePipelineCS);
+
 	// Fast path, try based on FVulkanComputeShader pointer
 	FVulkanComputePipeline** ComputePipelinePtr = ComputeShaderToPipelineMap.Find(ComputeShader);
 	if (ComputePipelinePtr)

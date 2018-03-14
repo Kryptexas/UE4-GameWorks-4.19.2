@@ -365,7 +365,8 @@ ParticleSystem への追加時のエミッタのデフォルト タイプはス�
 
 
 
-<!-------------Random Seed Includes----------------
+[COMMENT:none]
+-----------Random Seed Includes----------------
 #### Includes
 
 [EXCERPT:RandomSeedInfo]
@@ -381,5 +382,6 @@ ParticleSystem への追加時のエミッタのデフォルト タイプはス�
 [/EXCERPT:RandomSeedInfo]
 
 
--------------Random Seed Includes--------------->
+-------------Random Seed Includes-------------
+[/COMMENT]
 

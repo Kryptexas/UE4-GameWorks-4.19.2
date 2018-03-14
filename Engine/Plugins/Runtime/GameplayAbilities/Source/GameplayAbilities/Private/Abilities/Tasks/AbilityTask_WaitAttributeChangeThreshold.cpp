@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Abilities/Tasks/AbilityTask_WaitAttributeChangeThreshold.h"
 
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 
 
 UAbilityTask_WaitAttributeChangeThreshold::UAbilityTask_WaitAttributeChangeThreshold(const FObjectInitializer& ObjectInitializer)
@@ -12,22 +13,23 @@ UAbilityTask_WaitAttributeChangeThreshold::UAbilityTask_WaitAttributeChangeThres
 	bMatchedComparisonLastAttributeChange = false;
 }
 
-UAbilityTask_WaitAttributeChangeThreshold* UAbilityTask_WaitAttributeChangeThreshold::WaitForAttributeChangeThreshold(UGameplayAbility* OwningAbility, FGameplayAttribute Attribute, TEnumAsByte<EWaitAttributeChangeComparison::Type> ComparisonType, float ComparisonValue, bool bTriggerOnce)
+UAbilityTask_WaitAttributeChangeThreshold* UAbilityTask_WaitAttributeChangeThreshold::WaitForAttributeChangeThreshold(UGameplayAbility* OwningAbility, FGameplayAttribute Attribute, TEnumAsByte<EWaitAttributeChangeComparison::Type> ComparisonType, float ComparisonValue, bool bTriggerOnce, AActor* OptionalExternalOwner)
 {
 	UAbilityTask_WaitAttributeChangeThreshold* MyTask = NewAbilityTask<UAbilityTask_WaitAttributeChangeThreshold>(OwningAbility);
 	MyTask->Attribute = Attribute;
 	MyTask->ComparisonType = ComparisonType;
 	MyTask->ComparisonValue = ComparisonValue;
 	MyTask->bTriggerOnce = bTriggerOnce;
+	MyTask->ExternalOwner = OptionalExternalOwner ? UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OptionalExternalOwner) : nullptr;
 
 	return MyTask;
 }
 
 void UAbilityTask_WaitAttributeChangeThreshold::Activate()
 {
-	if (AbilitySystemComponent)
+	if (UAbilitySystemComponent* ASC = GetFocusedASC())
 	{
-		const float CurrentValue = AbilitySystemComponent->GetNumericAttribute(Attribute);
+		const float CurrentValue = ASC->GetNumericAttribute(Attribute);
 		bMatchedComparisonLastAttributeChange = DoesValuePassComparison(CurrentValue);
 
 		// Broadcast OnChange immediately with current value
@@ -36,7 +38,7 @@ void UAbilityTask_WaitAttributeChangeThreshold::Activate()
 			OnChange.Broadcast(bMatchedComparisonLastAttributeChange, CurrentValue);
 		}
 
-		OnAttributeChangeDelegateHandle = AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(Attribute).AddUObject(this, &UAbilityTask_WaitAttributeChangeThreshold::OnAttributeChange);
+		OnAttributeChangeDelegateHandle = ASC->GetGameplayAttributeValueChangeDelegate(Attribute).AddUObject(this, &UAbilityTask_WaitAttributeChangeThreshold::OnAttributeChange);
 	}
 }
 
@@ -88,11 +90,16 @@ bool UAbilityTask_WaitAttributeChangeThreshold::DoesValuePassComparison(float Va
 	return bPassedComparison;
 }
 
+UAbilitySystemComponent* UAbilityTask_WaitAttributeChangeThreshold::GetFocusedASC()
+{
+	return ExternalOwner ? ExternalOwner : AbilitySystemComponent;
+}
+
 void UAbilityTask_WaitAttributeChangeThreshold::OnDestroy(bool AbilityEnded)
 {
-	if (AbilitySystemComponent)
+	if (UAbilitySystemComponent* ASC = GetFocusedASC())
 	{
-		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(Attribute).Remove(OnAttributeChangeDelegateHandle);
+		ASC->GetGameplayAttributeValueChangeDelegate(Attribute).Remove(OnAttributeChangeDelegateHandle);
 	}
 
 	Super::OnDestroy(AbilityEnded);

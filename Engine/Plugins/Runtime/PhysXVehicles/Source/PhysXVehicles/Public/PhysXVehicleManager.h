@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,8 +8,11 @@
 #include "PhysXIncludes.h"
 
 class UTireConfig;
+class UWheeledVehicleMovementComponent;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogVehicles, Log, All);
+
+#if WITH_PHYSX
 
 /**
  * Manages vehicles and tire surface data for all scenes
@@ -33,17 +36,17 @@ public:
 	/**
 	 * Register a PhysX vehicle for processing
 	 */
-	void AddVehicle( TWeakObjectPtr<class UWheeledVehicleMovementComponent> Vehicle );
+	void AddVehicle( TWeakObjectPtr<UWheeledVehicleMovementComponent> Vehicle );
 
 	/**
 	 * Unregister a PhysX vehicle from processing
 	 */
-	void RemoveVehicle( TWeakObjectPtr<class UWheeledVehicleMovementComponent> Vehicle );
+	void RemoveVehicle( TWeakObjectPtr<UWheeledVehicleMovementComponent> Vehicle );
 
 	/**
 	 * Set the vehicle that we want to record telemetry data for
 	 */
-	void SetRecordTelemetry( TWeakObjectPtr<class UWheeledVehicleMovementComponent> Vehicle, bool bRecord );
+	void SetRecordTelemetry( TWeakObjectPtr<UWheeledVehicleMovementComponent> Vehicle, bool bRecord );
 
 	/**
 	 * Get the updated telemetry data
@@ -53,7 +56,7 @@ public:
 	/**
 	 * Get a vehicle's wheels states, such as isInAir, suspJounce, contactPoints, etc
 	 */
-	PxWheelQueryResult* GetWheelsStates_AssumesLocked(TWeakObjectPtr<class UWheeledVehicleMovementComponent> Vehicle);
+	PxWheelQueryResult* GetWheelsStates_AssumesLocked(TWeakObjectPtr<const UWheeledVehicleMovementComponent> Vehicle);
 
 	/**
 	 * Update vehicle data before the scene simulates
@@ -93,7 +96,7 @@ private:
 	PxScene*													Scene;
 
 	// All instanced vehicles
-	TArray<TWeakObjectPtr<class UWheeledVehicleMovementComponent>>			Vehicles;
+	TArray<TWeakObjectPtr<UWheeledVehicleMovementComponent>>	Vehicles;
 
 	// All instanced PhysX vehicles
 	TArray<PxVehicleWheels*>									PVehicles;
@@ -152,3 +155,5 @@ private:
 
 #endif //PX_DEBUG_VEHICLE_ON
 };
+
+#endif // WITH_PHYSX

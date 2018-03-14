@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SAnimTimingPanel.h"
 #include "Widgets/Input/SCheckBox.h"
@@ -8,6 +8,7 @@
 #include "Layout/WidgetPath.h"
 #include "Framework/Application/MenuStack.h"
 #include "Fonts/FontMeasure.h"
+#include "Styling/CoreStyle.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Layout/SBox.h"
@@ -31,7 +32,7 @@ void SAnimTimingNode::Construct(const FArguments& InArgs)
 	Element = InArgs._InElement;
 
 	const FSlateBrush* StyleInfo = FEditorStyle::GetBrush("ProgressBar.Background");
-	static FSlateFontInfo LabelFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), AnimTimingConstants::FontSize);
+	static FSlateFontInfo LabelFont = FCoreStyle::GetDefaultFontStyle("Regular", AnimTimingConstants::FontSize);
 
 	UPersonaOptions* EditorOptions = UPersonaOptions::StaticClass()->GetDefaultObject<UPersonaOptions>();
 	check(EditorOptions);
@@ -158,7 +159,7 @@ FVector2D SAnimTimingNode::ComputeDesiredSize(float) const
 {
 	// Desired height is always the same (a little less than the track height) but the width depends on the text we display
 	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	static FSlateFontInfo LabelFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 );
+	static FSlateFontInfo LabelFont = FCoreStyle::GetDefaultFontStyle("Regular", 10);
 	float TextWidth = FontMeasureService->Measure(FString::FromInt(Element->TriggerIdx), LabelFont).X;
 	return FVector2D(FMath::Max(AnimTimingConstants::DefaultNodeSize, TextWidth), AnimTimingConstants::DefaultNodeSize);
 }

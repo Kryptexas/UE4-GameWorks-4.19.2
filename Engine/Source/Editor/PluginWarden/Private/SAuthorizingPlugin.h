@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -8,6 +8,7 @@
 #include "Widgets/SWindow.h"
 #include "Async/AsyncResult.h"
 #include "Account/IPortalUser.h"
+#include "IPluginWardenModule.h"
 
 class IPortalApplicationWindow;
 class IPortalUserLogin;
@@ -45,6 +46,14 @@ public:
 
 	void Construct(const FArguments& InArgs, const TSharedRef<SWindow>& InParentWindow, const FText& InPluginFriendlyName, const FString& InPluginItemId, const FString& InPluginOfferId, TFunction<void()> InAuthorizedCallback);
 
+	/**
+	 * Override the default message and behavior in the case where the plugin is unauthorized.
+	 *
+	 * @param UnauthorizedMessageOverride The error message to display for unauthorized plugins, overriding the default message if not empty.
+	 * @param UnauthorizedErrorHandling How to handle the unauthorized error.
+	 */
+	void SetUnauthorizedOverride(const FText& InUnauthorizedMessageOverride, IPluginWardenModule::EUnauthorizedErrorHandling UnauthorizedErrorHandling);
+
 private:
 
 	FText GetWaitingText() const;
@@ -71,6 +80,12 @@ private:
 
 	/** The unique id of the offer for the plug-in on the marketplace. */
 	FString PluginOfferId;
+
+	/** The optional error message to display in case plugin is unauthorized. If empty, will default to standard message. */
+	FText UnauthorizedMessageOverride;
+
+	/** Flag that sets the handling mechanism for when plugin is not authorized */
+	IPluginWardenModule::EUnauthorizedErrorHandling UnauthorizedErrorHandling;
 
 	/** Flag for tracking user interruption of the process, either with the cancel button or the close button. */
 	bool bUserInterrupted;

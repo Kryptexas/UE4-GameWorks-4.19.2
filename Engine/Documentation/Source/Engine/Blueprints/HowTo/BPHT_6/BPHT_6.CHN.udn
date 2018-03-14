@@ -20,7 +20,7 @@ Description:在这个步骤中，我们会基于角色蓝图中存储的值来�
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在这个步骤中，我们会通过与角色蓝图进行通信来获得Pulls, Shots和Score中存储的值，从而更新显示于HUD控件蓝图的值。 为完成这个目标，我们使用 **Cast** （投射）节点来访问玩家的角色蓝图，然后绑定HUD中的属性到角色蓝图中的值，这样它们会在这些值在角色蓝图中进行更新时自动获取更新。 
 
@@ -95,7 +95,8 @@ Description:在这个步骤中，我们会基于角色蓝图中存储的值来�
 
 
 
-<!-- Old
+[COMMENT:none]
+ Old
 
 For more information on the topics covered in this guide, and across the entire editor, see the [**Unreal Editor Manual**](Engine).
 
@@ -111,9 +112,10 @@ As for coverage related to the topics in this guide:
 
 * For more information on creating HUD elements with **Unreal Motion Graphics** (UMG), see: [**Unreal Motion Graphics**](Engine/UMG)
 
--->
 
-%Steps%
+[/COMMENT]
+
+
 
 
 

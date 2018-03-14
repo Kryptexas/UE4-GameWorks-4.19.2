@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3343833
+﻿INTSourceChangelist:3782314
 Availability:Docs
 Title:3D ウィジェットの作成
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -33,20 +33,12 @@ zrYjngjYrEI
 
 _このガイドの最後まで進むと、オンスクリーンでオーバーレイする代わりに 3D ゲーム ワールド内で表示するメニューが作成できます。_
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine\UMG\HowTo\Create3DWidgets\WidgetSetup)
-	* [](Engine\UMG\HowTo\Create3DWidgets\ActorSetup)
-	[/PARAM]
-[/OBJECT]
+## ステップ
+
+[REGION:buttonlist]
+* [](Engine\UMG\HowTo\Create3DWidgets\WidgetSetup)
+* [](Engine\UMG\HowTo\Create3DWidgets\ActorSetup)
+[/REGION]
 
 [REGION:call_to_action]
 	[クリックして開始](Engine\UMG\HowTo\Create3DWidgets\WidgetSetup "%Engine\UMG\HowTo\Create3DWidgets\WidgetSetup:title%")

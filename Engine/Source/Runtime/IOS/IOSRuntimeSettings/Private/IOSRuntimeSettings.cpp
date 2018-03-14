@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "IOSRuntimeSettings.h"
 #include "HAL/FileManager.h"
@@ -43,6 +43,7 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitial
 	bSupportsOpenGLES2 = false;
 	bSupportsMetal = true;
 	bSupportsMetalMRT = false;
+	bDisableHTTPS = false;
 }
 
 #if WITH_EDITOR

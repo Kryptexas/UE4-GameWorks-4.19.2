@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Widget.h"
@@ -11,6 +11,7 @@ UHorizontalBoxSlot::UHorizontalBoxSlot(const FObjectInitializer& ObjectInitializ
 {
 	HorizontalAlignment = HAlign_Fill;
 	VerticalAlignment = VAlign_Fill;
+	Slot = NULL;
 	Size = FSlateChildSize(ESlateSizeRule::Automatic);
 }
 

@@ -2,7 +2,7 @@
 Title:5. Package Your Game
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:Package your game for installation.
-Version:4.16
+Version:4.17
 Skilllevel:Intermediate
 tags:Android
 tags:Mobile
@@ -63,7 +63,8 @@ In the following section we will take a look at how you can package your finishe
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsSetup]
 
 [region:note]
@@ -156,7 +157,8 @@ We are currently packaging in **Development** because we are testing this game, 
 [EXCERPT:LinuxSetup]
 [INCLUDE:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux/5#AndroidLinux_5]
 [/EXCERPT:LinuxSetup]
--->
+
+[/COMMENT]
 
 ## End Result
 When completed you will now have a .APK file that contains your UE4  project that can now be deployed via the .BAT file to any Android based smartphone.

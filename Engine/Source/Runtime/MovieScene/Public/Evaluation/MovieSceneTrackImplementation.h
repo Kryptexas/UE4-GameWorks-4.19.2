@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,6 +7,7 @@
 #include "UObject/Class.h"
 #include "Misc/InlineValue.h"
 #include "Evaluation/MovieSceneEvalTemplateBase.h"
+#include "MovieSceneSegment.h"
 #include "MovieSceneTrackImplementation.generated.h"
 
 
@@ -14,7 +15,6 @@ struct FMovieSceneEvaluationOperand;
 struct FMovieSceneEvaluationTrack;
 struct FMovieSceneExecutionTokens;
 struct FMovieSceneInterrogationData;
-
 
 /**
  * Structure that allows the implementation of setup/teardown/initialization/evaluation logic at the track level.
@@ -54,13 +54,13 @@ public:
 	 *							Only called if EnableOverrides(CustomInitializeFlag) has been called (see SetupOverrides).
 	 *
 	 * @param Track				The parent evaluation track that has knowledge of all child tracks and segments
-	 * @param SegmentIndex		The index of the segment at the current time
+	 * @param SegmentID			The identifier of the segment at the current time
 	 * @param Operand			Unique handle to the operand on which we are to operate. May represent multiple objects. Resolve through IMovieScenePlayer::FindBoundObjects(Operand)
 	 * @param Context			Evaluation context specifying the current evaluation time, sub sequence transform and other relevant information.
 	 * @param PersistentData	Persistent data store which can be used to store arbitrary data pertaining to the current template that may be required in Evaluate(Swept)
 	 * @param Player			The movie scene player currently playing back this sequence
 	 */
-	virtual void Initialize(const FMovieSceneEvaluationTrack& Track, int32 SegmentIndex, const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const
+	virtual void Initialize(const FMovieSceneEvaluationTrack& Track, FMovieSceneSegmentIdentifier SegmentID, const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const
 	{
 		ensureMsgf(false, TEXT("FMovieSceneTrackImplementation::Initialize has not been implemented. Did you erroneously call EnableOverrides(CustomInitializeFlag)?"));
 	}
@@ -72,13 +72,13 @@ public:
 	 *							Only called if EnableOverrides(CustomEvaluateFlag) has been called (see SetupOverrides).
 	 *
 	 * @param Track				The parent evaluation track that has knowledge of all child tracks and segments
-	 * @param SegmentIndex		The index of the segment at the current time
+	 * @param SegmentID			The identifier of the segment at the current time
 	 * @param Operand			Unique handle to the operand on which we are to operate. Only to be used as a reference, or forwarded throgh to an execution token.
 	 * @param Context			Evaluation context specifying the current evaluation time, sub sequence transform and other relevant information.
 	 * @param PersistentData	Persistent data store which can be used to access arbitrary data pertaining to the current template that should have been set up in initialize.
 	 * @param ExecutionTokens	Stack of execution tokens that will be used to apply animated state to the environment at a later time.
 	 */
-	virtual void Evaluate(const FMovieSceneEvaluationTrack& Track, int32 SegmentIndex, const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
+	virtual void Evaluate(const FMovieSceneEvaluationTrack& Track, FMovieSceneSegmentIdentifier SegmentID, const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 	{
 		ensureMsgf(false, TEXT("FMovieSceneTrackImplementation::Evaluate has not been implemented. Did you erroneously call EnableOverrides(CustomEvaluateFlag)?"));
 	}
@@ -154,17 +154,9 @@ struct FMovieSceneTrackImplementationPtr
 	}
 
 	/** Templates are moveable */
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	FMovieSceneTrackImplementationPtr(FMovieSceneTrackImplementationPtr&&) = default;
 	FMovieSceneTrackImplementationPtr& operator=(FMovieSceneTrackImplementationPtr&&) = default;
-#else
-	FMovieSceneTrackImplementationPtr(FMovieSceneTrackImplementationPtr&& RHS) :  TInlineValue(MoveTemp(RHS)) {}
-	FMovieSceneTrackImplementationPtr& operator=(FMovieSceneTrackImplementationPtr&& RHS)
-	{
-		static_cast<TInlineValue&>(*this) = MoveTemp(RHS);
-		return *this;
-	}
-#endif
+
 	/** Serialize the template */
 	MOVIESCENE_API bool Serialize(FArchive& Ar);
 };

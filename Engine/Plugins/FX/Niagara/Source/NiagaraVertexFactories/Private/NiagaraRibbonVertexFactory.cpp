@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleVertexFactory.cpp: Particle vertex factory implementation.
@@ -11,10 +11,73 @@
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FNiagaraRibbonUniformParameters,TEXT("NiagaraRibbonVF"));
 
+
+class FNiagaraRibbonVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
+{
+public:
+	virtual void Bind(const FShaderParameterMap& ParameterMap) override
+	{
+	}
+
+	virtual void Serialize(FArchive& Ar) override
+	{
+	}
+};
+
 /**
 * Shader parameters for the beam/trail vertex factory.
 */
-class FNiagaraRibbonVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
+class FNiagaraRibbonVertexFactoryShaderParametersVS : public FNiagaraRibbonVertexFactoryShaderParameters
+{
+public:
+	virtual void Bind(const FShaderParameterMap& ParameterMap) override
+	{
+		/*NiagaraParticleDataFloat.Bind(ParameterMap, TEXT("NiagaraParticleDataFloat"));
+		NiagaraParticleDataInt.Bind(ParameterMap, TEXT("NiagaraParticleDataInt"));
+		SafeComponentBufferSizeParam.Bind(ParameterMap, TEXT("SafeComponentBufferSize"));*/
+	}
+
+	virtual void Serialize(FArchive& Ar) override
+	{
+		/*Ar << PositionOffsetParam;
+		Ar << WidthOffsetParam;
+		Ar << TwistOffsetParam;
+		Ar << ColorOffsetParam;
+
+		Ar << NiagaraParticleDataFloat;
+		Ar << NiagaraParticleDataInt;
+		Ar << SafeComponentBufferSizeParam;*/
+	}
+
+	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const override
+	{
+		FNiagaraRibbonVertexFactory* RibbonVF = (FNiagaraRibbonVertexFactory*)VertexFactory;
+		FVertexShaderRHIParamRef VertexShaderRHI = Shader->GetVertexShader();
+		SetUniformBufferParameter(RHICmdList, Shader->GetVertexShader(), Shader->GetUniformBufferParameter<FNiagaraRibbonUniformParameters>(), RibbonVF->GetBeamTrailUniformBuffer());
+
+		/*
+		SetSRVParameter(RHICmdList, VertexShaderRHI, NiagaraParticleDataFloat, RibbonVF->GetFloatDataSRV());
+		SetSRVParameter(RHICmdList, VertexShaderRHI, NiagaraParticleDataInt, RibbonVF->GetIntDataSRV());
+		SetShaderValue(RHICmdList, VertexShaderRHI, SafeComponentBufferSizeParam, RibbonVF->GetComponentBufferSize());
+		*/
+	}
+
+private:
+	FShaderParameter PositionOffsetParam;
+	FShaderParameter WidthOffsetParam;
+	FShaderParameter TwistOffsetParam;
+	FShaderParameter ColorOffsetParam;
+	FShaderResourceParameter NiagaraParticleDataFloat;
+	FShaderResourceParameter NiagaraParticleDataInt;
+	FShaderParameter SafeComponentBufferSizeParam;
+};
+
+
+
+/**
+* Shader parameters for the beam/trail vertex factory.
+*/
+class FNiagaraRibbonVertexFactoryShaderParametersPS : public FNiagaraRibbonVertexFactoryShaderParameters
 {
 public:
 	virtual void Bind(const FShaderParameterMap& ParameterMap) override
@@ -27,10 +90,11 @@ public:
 
 	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const override
 	{
-		FNiagaraRibbonVertexFactory* BeamTrailVF = (FNiagaraRibbonVertexFactory*)VertexFactory;
-		SetUniformBufferParameter(RHICmdList, Shader->GetVertexShader(), Shader->GetUniformBufferParameter<FNiagaraRibbonUniformParameters>(), BeamTrailVF->GetBeamTrailUniformBuffer());
+		FNiagaraRibbonVertexFactory* RibbonVF = (FNiagaraRibbonVertexFactory*)VertexFactory;
+		SetUniformBufferParameter(RHICmdList, Shader->GetPixelShader(), Shader->GetUniformBufferParameter<FNiagaraRibbonUniformParameters>(), RibbonVF->GetBeamTrailUniformBuffer());
 	}
 };
+
 
 ///////////////////////////////////////////////////////////////////////////////
 /**
@@ -48,23 +112,33 @@ public:
 	{
 		uint16 Stride = sizeof(FNiagaraRibbonVertex);
 		/** The stream to read the vertex position from. */
-		Elements.Add(FVertexElement(0, Offset, VET_Float4, 0, Stride));
-		Offset += sizeof(float) * 4;
-		/** The stream to read the vertex old position from. */
+		Elements.Add(FVertexElement(0, Offset, VET_Float3, 0, Stride));
+		Offset += sizeof(float) * 3;
+		/** The stream to read the direction from. */
 		Elements.Add(FVertexElement(0, Offset, VET_Float3, 1, Stride));
-		Offset += sizeof(float) * 4;
-		/** The stream to read the vertex size/rot/subimage from. */
-		Elements.Add(FVertexElement(0, Offset, VET_Float4, 2, Stride));
-		Offset += sizeof(float) * 4;
+		Offset += sizeof(float) * 3;
+		/** The stream to read the vertex size from. */
+		Elements.Add(FVertexElement(0, Offset, VET_Float1, 2, Stride));
+		Offset += sizeof(float) * 1;
 		/** The stream to read the color from.					*/
-		Elements.Add(FVertexElement(0, Offset, VET_Float4, 4, Stride));
-		Offset += sizeof(float) * 4;
-		/** The stream to read the texture coordinates from.	*/
 		Elements.Add(FVertexElement(0, Offset, VET_Float4, 3, Stride));
 		Offset += sizeof(float) * 4;
+		/** The stream to read the texture coordinates from.	*/
+		Elements.Add(FVertexElement(0, Offset, VET_Float4, 4, Stride));
+		Offset += sizeof(float) * 4;
+
+		/** The stream to read the twist from. */
+		Elements.Add(FVertexElement(0, Offset, VET_Float1, 5, Stride));
+		Offset += sizeof(float);
+
+		/** The stream to read the custom alignment vector from. */
+		Elements.Add(FVertexElement(0, Offset, VET_Float3, 6, Stride));
+		Offset += sizeof(float) * 3;
 
 		/** Dynamic parameters come from a second stream */
-		Elements.Add(FVertexElement(1, 0, VET_Float4, 5, sizeof(FVector4)));
+		Elements.Add(FVertexElement(1, 0, VET_Float4, 7, sizeof(FVector4)));
+		Offset += sizeof(float) * 4;
+
 	}
 
 	virtual void InitDynamicRHI()
@@ -90,9 +164,9 @@ static TGlobalResource<FNiagaraRibbonVertexDeclaration> GNiagaraRibbonVertexDecl
 
 ///////////////////////////////////////////////////////////////////////////////
 
-bool FNiagaraRibbonVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+bool FNiagaraRibbonVertexFactory::ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
-	return Material->IsUsedWithNiagaraRibbons() || Material->IsSpecialEngineMaterial();
+	return (!IsMobilePlatform(Platform) && !IsSwitchPlatform(Platform) && (Material->IsUsedWithNiagaraRibbons() || Material->IsSpecialEngineMaterial()));
 }
 
 /**
@@ -117,7 +191,15 @@ void FNiagaraRibbonVertexFactory::InitRHI()
 
 FVertexFactoryShaderParameters* FNiagaraRibbonVertexFactory::ConstructShaderParameters(EShaderFrequency ShaderFrequency)
 {
-	return ShaderFrequency == SF_Vertex ? new FNiagaraRibbonVertexFactoryShaderParameters() : NULL;
+	if (ShaderFrequency == SF_Vertex)
+	{
+		return new FNiagaraRibbonVertexFactoryShaderParametersVS();
+	}
+	else if (ShaderFrequency == SF_Pixel)
+	{
+		return new FNiagaraRibbonVertexFactoryShaderParametersPS();
+	}
+	return NULL;
 }
 
 void FNiagaraRibbonVertexFactory::SetVertexBuffer(const FVertexBuffer* InBuffer, uint32 StreamOffset, uint32 Stride)
@@ -149,4 +231,4 @@ void FNiagaraRibbonVertexFactory::SetDynamicParameterBuffer(const FVertexBuffer*
 
 ///////////////////////////////////////////////////////////////////////////////
 
-IMPLEMENT_VERTEX_FACTORY_TYPE(FNiagaraRibbonVertexFactory, "/Engine/Private/ParticleBeamTrailVertexFactory.ush", true, false, true, false, false);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FNiagaraRibbonVertexFactory, "/Engine/Private/NiagaraRibbonVertexFactory.ush", true, false, true, false, false);

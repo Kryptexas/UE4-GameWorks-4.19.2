@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessCombineLUTs.cpp: Post processing tone mapping implementation.
@@ -148,6 +148,9 @@ public:
 		ColorCorrectionShadowsMax.Bind(		ParameterMap, TEXT("ColorCorrectionShadowsMax"));
 		ColorCorrectionHighlightsMin.Bind(	ParameterMap, TEXT("ColorCorrectionHighlightsMin"));
 
+		BlueCorrection.Bind(ParameterMap, TEXT("BlueCorrection"));
+		ExpandGamut.Bind(	ParameterMap, TEXT("ExpandGamut"));
+
 		FilmSlope.Bind(		ParameterMap,TEXT("FilmSlope") );
 		FilmToe.Bind(		ParameterMap,TEXT("FilmToe") );
 		FilmShoulder.Bind(	ParameterMap,TEXT("FilmShoulder") );
@@ -223,6 +226,9 @@ public:
 
 		SetShaderValue(RHICmdList, ShaderRHI, ColorCorrectionShadowsMax,	Settings.ColorCorrectionShadowsMax);
 		SetShaderValue(RHICmdList, ShaderRHI, ColorCorrectionHighlightsMin,	Settings.ColorCorrectionHighlightsMin);
+
+		SetShaderValue(RHICmdList, ShaderRHI, BlueCorrection, Settings.BlueCorrection);
+		SetShaderValue(RHICmdList, ShaderRHI, ExpandGamut, Settings.ExpandGamut);
 
 		// Film
 		SetShaderValue(RHICmdList, ShaderRHI, FilmSlope,		Settings.FilmSlope);
@@ -405,6 +411,7 @@ public:
 		Ar << P.ColorSaturationMidtones << P.ColorContrastMidtones << P.ColorGammaMidtones << P.ColorGainMidtones << P.ColorOffsetMidtones;
 		Ar << P.ColorSaturationHighlights << P.ColorContrastHighlights << P.ColorGammaHighlights  << P.ColorGainHighlights << P.ColorOffsetHighlights;
 		Ar << P.ColorCorrectionShadowsMax << P.ColorCorrectionHighlightsMin;
+		Ar << P.BlueCorrection << P.ExpandGamut;
 		Ar << P.OutputDevice << P.OutputGamut;
 		Ar << P.FilmSlope << P.FilmToe << P.FilmShoulder << P.FilmBlackClip << P.FilmWhiteClip;
 		Ar << P.ColorMatrixR_ColorCurveCd1 << P.ColorMatrixG_ColorCurveCd3Cm3 << P.ColorMatrixB_ColorCurveCm2;
@@ -451,6 +458,9 @@ public:
 
 	FShaderParameter ColorCorrectionShadowsMax;
 	FShaderParameter ColorCorrectionHighlightsMin;
+
+	FShaderParameter BlueCorrection;
+	FShaderParameter ExpandGamut;
 
 	FShaderParameter FilmSlope;
 	FShaderParameter FilmToe;
@@ -537,7 +547,7 @@ class FLUTBlenderPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FLUTBlenderPS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -555,12 +565,12 @@ public:
 		CombineLUTsShaderParameters.Set(RHICmdList, ShaderRHI, View, Textures, Weights);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 
 		OutEnvironment.SetDefine(TEXT("BLENDCOUNT"), BlendCount);
-		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"), UseVolumeTextureLUT(Platform));
+		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"), UseVolumeTextureLUT(Parameters.Platform));
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -593,20 +603,20 @@ class FLUTBlenderCS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FLUTBlenderCS,Global);
 
 public:
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		// CS params
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZE"), GCombineLUTsComputeTileSize);
 		
 		// PS params
 		OutEnvironment.SetDefine(TEXT("BLENDCOUNT"), BlendCount);
-		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"), UseVolumeTextureLUT(Platform));
+		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"), UseVolumeTextureLUT(Parameters.Platform));
 	}
 
 	FLUTBlenderCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -681,7 +691,7 @@ static void SetLUTBlenderShader(FRenderingCompositePassContext& Context, TRHICom
 	check(BlendCount > 0);
 
 	FShader* LocalPixelShader = 0;
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 
 	const auto FeatureLevel = Context.GetFeatureLevel();
 	auto ShaderMap = Context.GetShaderMap();
@@ -872,7 +882,7 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 	float LocalWeights[GMaxLUTBlendCount];
 	AsyncEndFence = FComputeFenceRHIRef();
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
 	uint32 LocalCount = 1;

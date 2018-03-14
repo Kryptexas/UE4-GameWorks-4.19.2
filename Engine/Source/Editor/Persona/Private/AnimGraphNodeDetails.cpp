@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphNodeDetails.h"
 #include "Modules/ModuleManager.h"
@@ -40,6 +40,7 @@
 #include "SNumericEntryBox.h"
 #include "BoneControllers/AnimNode_SkeletalControlBase.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include "Styling/CoreStyle.h"
 
 #define LOCTEXT_NAMESPACE "KismetNodeWithOptionalPinsDetails"
 
@@ -127,6 +128,8 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 
 		IDetailPropertyRow& PropertyRow = CurrentCategory.AddProperty( TargetPropertyHandle );
 
+		TSharedRef<SWidget> InternalCustomWidget = CreatePropertyWidget(TargetProperty, TargetPropertyHandle, AnimGraphNode->GetClass());
+
 		if (OptionalPin.bCanToggleVisibility)
 		{
 			TSharedPtr<SWidget> NameWidget; 
@@ -134,8 +137,7 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 			FDetailWidgetRow Row;
 			PropertyRow.GetDefaultWidgets( NameWidget, ValueWidget, Row );
 
-			TSharedRef<SWidget> TempWidget = CreatePropertyWidget(TargetProperty, TargetPropertyHandle, AnimGraphNode->GetClass());
-			ValueWidget = (TempWidget == SNullWidget::NullWidget) ? ValueWidget : TempWidget;
+			ValueWidget = (InternalCustomWidget == SNullWidget::NullWidget) ? ValueWidget : InternalCustomWidget;
 
 			const FName OptionalPinArrayEntryName(*FString::Printf(TEXT("ShowPinForProperties[%d].bShowPin"), CustomPinIndex));
 			TSharedRef<IPropertyHandle> ShowHidePropertyHandle = DetailBuilder.GetProperty(OptionalPinArrayEntryName);
@@ -187,7 +189,9 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 					]
 				];
 
-			const bool bShowChildren = true;
+			// we only show children if visilibity is one
+			// whenever toggles, this gets called, so it will be refreshed
+			const bool bShowChildren = GetVisibilityOfProperty(ShowHidePropertyHandle) == EVisibility::Visible;
 			PropertyRow.CustomWidget(bShowChildren)
 			.NameContent()
 			.MinDesiredWidth(Row.NameWidget.MinWidth)
@@ -201,6 +205,20 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 			[
 				ValueWidget.ToSharedRef()
 			];
+		}
+		else if(InternalCustomWidget != SNullWidget::NullWidget)
+		{
+			// A few properties are internally customized within this customization. Here we
+			// catch instances of these that don't have an optional pin flag.
+			PropertyRow.CustomWidget()
+				.NameContent()
+				[
+					TargetPropertyHandle->CreatePropertyNameWidget()
+				]
+				.ValueContent()
+				[
+					InternalCustomWidget
+				];
 		}
 	}
 }
@@ -230,6 +248,8 @@ TSharedRef<SWidget> FAnimGraphNodeDetails::CreatePropertyWidget(UProperty* Targe
 
 			FBlendProfilePickerArgs Args;
 			Args.bAllowNew = false;
+			Args.bAllowRemove = false;
+			Args.bAllowClear = true;
 			Args.OnBlendProfileSelected = FOnBlendProfileSelected::CreateSP(this, &FAnimGraphNodeDetails::OnBlendProfileChanged, PropertyPtr);
 			Args.InitialProfile = CurrentProfile;
 
@@ -462,7 +482,6 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 			StructPropertyHandle->CreatePropertyNameWidget()
 		]
 		.ValueContent()
-		.MinDesiredWidth(200.f)
 		[
 			SNew(SBoneSelectionWidget)
 			.ToolTipText(StructPropertyHandle->GetToolTipText())
@@ -479,6 +498,10 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 	}
 }
 
+void FBoneReferenceCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+{
+
+}
 void FBoneReferenceCustomization::SetEditableSkeleton(TSharedRef<IPropertyHandle> StructPropertyHandle) 
 {
 	TArray<UObject*> Objects;
@@ -564,11 +587,6 @@ void FBoneReferenceCustomization::SetPropertyHandle(TSharedRef<IPropertyHandle> 
 	check(BoneNameProperty->IsValidHandle());
 }
 
-void FBoneReferenceCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
-{
-	
-}
-
 void FBoneReferenceCustomization::OnBoneSelectionChanged(FName Name)
 {
 	BoneNameProperty->SetValue(Name);
@@ -635,7 +653,6 @@ void FBoneSocketTargetCustomization::Build(TSharedRef<IPropertyHandle> StructPro
 			StructPropertyHandle->CreatePropertyNameWidget()
 		]
 		.ValueContent()
-		.MinDesiredWidth(200.f)
 		[
 			SNew(SBoneSelectionWidget)
 			.ToolTipText(StructPropertyHandle->GetToolTipText())
@@ -1038,7 +1055,7 @@ void FPlayerTreeViewEntry::GenerateNameWidget(TSharedPtr<SHorizontalBox> Box)
 		.AutoWidth()
 		[
 			SNew(STextBlock)
-			.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 10))
+			.Font(FCoreStyle::GetDefaultFontStyle("Bold", 10))
 			.Text(FText::FromString(EntryName))
 		];
 }

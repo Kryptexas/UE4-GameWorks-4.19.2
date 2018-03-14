@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OculusBoundaryComponent.h"
 #include "OculusHMDPrivate.h"
@@ -232,8 +232,8 @@ OculusHMD::FOculusHMD* GetOculusHMD()
 		IHeadMountedDisplay* HMDDevice = GEngine->XRSystem->GetHMDDevice();
 		if (HMDDevice)
 		{
-			EHMDDeviceType::Type HMDDeviceType = HMDDevice->GetHMDDeviceType();
-			if (HMDDeviceType == EHMDDeviceType::DT_OculusRift || HMDDeviceType == EHMDDeviceType::DT_GearVR)
+			const FName SystemName = GEngine->XRSystem->GetSystemName();
+			if (SystemName == FOculusHMD::OculusSystemName)
 			{
 				return static_cast<OculusHMD::FOculusHMD*>(HMDDevice);
 			}

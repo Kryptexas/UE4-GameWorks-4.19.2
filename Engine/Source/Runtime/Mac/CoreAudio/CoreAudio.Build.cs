@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -30,7 +30,7 @@ public class CoreAudio : ModuleRules
 		// Add contents of component directory as runtime dependencies
 		foreach (string FilePath in Directory.EnumerateFiles("../Build/Mac/RadioEffectUnit/RadioEffectUnit.component", "*", SearchOption.AllDirectories))
 		{
-			RuntimeDependencies.Add(new RuntimeDependency(FilePath));
+			RuntimeDependencies.Add(FilePath);
 		}
 	}
 }

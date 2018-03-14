@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Sound/DialogueWave.h"
 #include "Internationalization/InternationalizationMetadata.h"
@@ -490,6 +490,12 @@ void UDialogueSoundWaveProxy::Parse(class FAudioDevice* AudioDevice, const UPTRI
 USoundClass* UDialogueSoundWaveProxy::GetSoundClass() const
 {
 	return SoundWave->GetSoundClass();
+}
+
+
+UCurveTable* UDialogueSoundWaveProxy::GetCurveData() const
+{
+	return SoundWave ? SoundWave->GetCurveData() : nullptr;
 }
 
 UDialogueWave::UDialogueWave(const FObjectInitializer& ObjectInitializer)

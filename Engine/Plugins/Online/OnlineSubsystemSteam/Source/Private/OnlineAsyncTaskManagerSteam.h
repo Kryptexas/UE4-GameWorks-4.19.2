@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -90,6 +90,10 @@ private:
 	STEAM_CALLBACK(FOnlineAsyncTaskManagerSteam, OnExternalUITriggered, GameOverlayActivated_t, OnExternalUITriggeredCallback);
 	/** Delegate registered with Steam to trigger when Steam is shutting down */
 	STEAM_CALLBACK(FOnlineAsyncTaskManagerSteam, OnSteamShutdown, SteamShutdown_t, OnSteamShutdownCallback);
+	/** Delegate registered with Steam to trigger when Steam gets updates about user rich presence */
+	STEAM_CALLBACK(FOnlineAsyncTaskManagerSteam, OnRichPresenceUpdate, FriendRichPresenceUpdate_t, OnRichPresenceUpdateCallback);
+	/** Delegate registered with Steam to trigger when Steam gets updates about friends status */
+	STEAM_CALLBACK(FOnlineAsyncTaskManagerSteam, OnFriendStatusUpdate, PersonaStateChange_t, OnFriendStatusUpdateCallback);
 
 	//GameServerChangeRequested_t
 
@@ -121,6 +125,8 @@ public:
 		OnUserStatsUnloadedCallback(this, &FOnlineAsyncTaskManagerSteam::OnUserStatsUnloaded),
 		OnExternalUITriggeredCallback(this, &FOnlineAsyncTaskManagerSteam::OnExternalUITriggered),
 		OnSteamShutdownCallback(this, &FOnlineAsyncTaskManagerSteam::OnSteamShutdown),
+		OnRichPresenceUpdateCallback(this, &FOnlineAsyncTaskManagerSteam::OnRichPresenceUpdate),
+		OnFriendStatusUpdateCallback(this, &FOnlineAsyncTaskManagerSteam::OnFriendStatusUpdate),
 		SteamSubsystem(InOnlineSubsystem)
 	{
 	}

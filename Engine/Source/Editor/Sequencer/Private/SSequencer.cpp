@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SSequencer.h"
 #include "Engine/Blueprint.h"
@@ -63,6 +63,7 @@
 #include "IVREditorModule.h"
 #include "EditorFontGlyphs.h"
 #include "HAL/PlatformApplicationMisc.h"
+#include "Camera/CameraActor.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
@@ -996,6 +997,7 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 	MenuBuilder.BeginSection( "ViewOptions", LOCTEXT( "ViewMenuHeader", "View" ) );
 	{
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleLabelBrowser );
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleShowSelectedNodesOnly );
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleCombinedKeyframes );
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleChannelColors );
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleShowPreAndPostRoll );
@@ -1032,6 +1034,29 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 	}
 
 	return MenuBuilder.MakeWidget();
+}
+
+void SSequencer::FillPlaybackSpeedMenu(FMenuBuilder& InMenuBarBuilder)
+{
+	const int32 NumPlaybackSpeeds = 7;
+	float PlaybackSpeeds[NumPlaybackSpeeds] = { 0.1f, 0.25f, 0.5f, 1.0f, 2.0f, 5.0f, 10.0f };
+
+	InMenuBarBuilder.BeginSection("PlaybackSpeed");
+	for( uint32 PlaybackSpeedIndex = 1; PlaybackSpeedIndex < NumPlaybackSpeeds; ++PlaybackSpeedIndex )
+	{
+		float PlaybackSpeed = PlaybackSpeeds[PlaybackSpeedIndex];
+		const FText MenuStr = FText::Format( LOCTEXT("PlaybackSpeedStr", "x{0}"), FText::AsNumber( PlaybackSpeed ) );
+		InMenuBarBuilder.AddMenuEntry(MenuStr, FText(), FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateLambda( [this, PlaybackSpeed]{ SequencerPtr.Pin()->SetPlaybackSpeed(PlaybackSpeed); }),
+				FCanExecuteAction::CreateLambda([] { return true; }),
+				FIsActionChecked::CreateLambda( [this, PlaybackSpeed]{ return SequencerPtr.Pin()->GetPlaybackSpeed() == PlaybackSpeed; })
+				),
+			NAME_None,
+			EUserInterfaceActionType::RadioButton
+			);
+	}
+	InMenuBarBuilder.EndSection();
 }
 
 TSharedRef<SWidget> SSequencer::MakePlaybackMenu()
@@ -1115,6 +1140,9 @@ TSharedRef<SWidget> SSequencer::MakePlaybackMenu()
 				],
 			LOCTEXT("PlaybackStartEnd", "End"));
 
+
+		MenuBuilder.AddSubMenu(LOCTEXT("PlaybackSpeedHeader", "Playback Speed"), FText::GetEmpty(), FNewMenuDelegate::CreateRaw(this, &SSequencer::FillPlaybackSpeedMenu));
+
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().TogglePlaybackRangeLocked );
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleForceFixedFrameIntervalPlayback );
 
@@ -1174,6 +1202,11 @@ TSharedRef<SWidget> SSequencer::MakeSelectEditMenu()
 	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
 
 	MenuBuilder.AddMenuEntry(FSequencerCommands::Get().ToggleShowTransformBox);
+	
+	if (SequencerPtr.Pin()->IsLevelEditorSequencer())
+	{
+		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().BakeTransform);
+	}
 
 	// selection range options
 	MenuBuilder.BeginSection("SelectionRange", LOCTEXT("SelectionRangeHeader", "Selection Range"));
@@ -1686,7 +1719,18 @@ void SSequencer::OnAssetsDropped( const FAssetDragDropOp& DragDropOp )
 
 		if (!SequencerRef.OnHandleAssetDropped(CurObject, TargetObjectGuid))
 		{
-			SequencerRef.MakeNewSpawnable( *CurObject );
+			FGuid NewGuid = SequencerRef.MakeNewSpawnable( *CurObject, DragDropOp.GetActorFactory() );
+
+			UMovieScene* MovieScene = SequencerRef.GetFocusedMovieSceneSequence()->GetMovieScene();
+			if (MovieScene)
+			{
+				FMovieSceneSpawnable* Spawnable = MovieScene->FindSpawnable(NewGuid);
+
+				if (Spawnable && Spawnable->GetObjectTemplate()->IsA<ACameraActor>())
+				{
+					SequencerRef.NewCameraAdded(NewGuid);
+				}
+			}
 		}
 		bObjectAdded = true;
 	}
@@ -1814,17 +1858,17 @@ TArray<FSectionHandle> SSequencer::GetSectionHandles(const TSet<TWeakObjectPtr<U
 	if (Sequencer.IsValid())
 	{
 		// @todo sequencer: this is potentially slow as it traverses the entire tree - there's scope for optimization here
-		for (auto& Node : Sequencer->GetNodeTree()->GetRootNodes())
+		for (const FDisplayNodeRef& Node : Sequencer->GetNodeTree()->GetRootNodes())
 		{
 			Node->Traverse_ParentFirst([&](FSequencerDisplayNode& InNode) {
 				if (InNode.GetType() == ESequencerNode::Track)
 				{
 					FSequencerTrackNode& TrackNode = static_cast<FSequencerTrackNode&>(InNode);
 
-					const auto& AllSections = TrackNode.GetSections();
+					const TArray<TSharedRef<ISequencerSection>>& AllSections = TrackNode.GetSections();
 					for (int32 Index = 0; Index < AllSections.Num(); ++Index)
 					{
-						if (DesiredSections.Contains(TWeakObjectPtr<UMovieSceneSection>(AllSections[Index]->GetSectionObject())))
+						if (DesiredSections.Contains(MakeWeakObjectPtr(AllSections[Index]->GetSectionObject())))
 						{
 							SectionHandles.Emplace(StaticCastSharedRef<FSequencerTrackNode>(TrackNode.AsShared()), Index);
 						}

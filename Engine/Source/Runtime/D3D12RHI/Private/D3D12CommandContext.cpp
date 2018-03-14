@@ -1,10 +1,16 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 D3D12CommandContext.cpp: RHI  Command Context implementation.
 =============================================================================*/
 
 #include "D3D12RHIPrivate.h"
+
+#if PLATFORM_WINDOWS
+#include "AllowWindowsPlatformTypes.h"
+	#include "amd_ags.h"
+#include "HideWindowsPlatformTypes.h"
+#endif
 
 #if PLATFORM_XBOXONE
 // @TODO: We fixed this on PC. Need to check it works on XB before re-enabling. 
@@ -20,6 +26,58 @@ static FAutoConsoleVariableRef CVarCommandListBatchingMode(
 	TEXT("Changes how command lists are batched and submitted to the GPU."),
 	ECVF_RenderThreadSafe
 	);
+
+// These can be overridden with the cvars below
+namespace ConstantAllocatorSizesKB
+{
+	int32 DefaultGraphics = 3072; // x1
+	int32 Graphics = 3072; //x4
+ 	int32 AsyncCompute = 3072; // x1
+}
+// We don't yet have a way to auto-detect that the Radeon Developer Panel is running
+// with profiling enabled, so for now, we have to manually toggle this console var.
+// It needs to be set before device creation, so it's read only.
+int32 GEmitRgpFrameMarkers = 0;
+static FAutoConsoleVariableRef CVarEmitRgpFrameMarkers(
+	TEXT("D3D12.EmitRgpFrameMarkers"),
+	GEmitRgpFrameMarkers,
+	TEXT("Enables/Disables frame markers for AMD's RGP tool."),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe
+	);
+
+static FAutoConsoleVariableRef CVarDefaultGfxCommandContextConstantAllocatorSizeKB(
+	TEXT("D3D12.DefaultGfxCommandContextConstantAllocatorSizeKB"),
+	ConstantAllocatorSizesKB::DefaultGraphics,
+	TEXT(""),
+	ECVF_ReadOnly
+);
+
+static FAutoConsoleVariableRef CVarGfxCommandContextConstantAllocatorSizeKB(
+	TEXT("D3D12.GfxCommandContextConstantAllocatorSizeKB"),
+	ConstantAllocatorSizesKB::Graphics,
+	TEXT(""),
+	ECVF_ReadOnly
+);
+
+static FAutoConsoleVariableRef CVarComputeCommandContextConstantAllocatorSizeKB(
+	TEXT("D3D12.ComputeCommandContextConstantAllocatorSizeKB"),
+	ConstantAllocatorSizesKB::AsyncCompute,
+	TEXT(""),
+	ECVF_ReadOnly
+);
+
+static uint32 GetConstantAllocatorSize(bool bIsAsyncComputeContext, bool bIsDefaultContext)
+{
+	if (bIsAsyncComputeContext)
+	{
+		return ConstantAllocatorSizesKB::AsyncCompute * 1024;
+	}
+	if (bIsDefaultContext)
+	{
+		return ConstantAllocatorSizesKB::DefaultGraphics * 1024;
+	}
+	return ConstantAllocatorSizesKB::Graphics * 1024;
+}
 
 FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent, FD3D12SubAllocatedOnlineHeap::SubAllocationDesc& SubHeapDesc, bool InIsDefaultContext, bool InIsAsyncComputeContext) :
 	OwningRHI(*InParent->GetOwningRHI()),
@@ -44,7 +102,7 @@ FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent, FD3D12SubAllo
 	CommandListHandle(),
 	CommandAllocator(nullptr),
 	CommandAllocatorManager(InParent, InIsAsyncComputeContext ? D3D12_COMMAND_LIST_TYPE_COMPUTE : D3D12_COMMAND_LIST_TYPE_DIRECT),
-	ConstantsAllocator(InParent, GetVisibilityMask(), (1024*1024) * 3),
+	ConstantsAllocator(InParent, GetVisibilityMask(), GetConstantAllocatorSize(InIsAsyncComputeContext, InIsDefaultContext) ),
 	DynamicVB(InParent),
 	DynamicIB(InParent),
 	StateCache(InParent->GetNodeMask()),
@@ -87,6 +145,14 @@ void FD3D12CommandContext::RHIPushEvent(const TCHAR* Name, FColor Color)
 		GetParentDevice()->PushGPUEvent(Name, Color);
 	}
 
+#if PLATFORM_WINDOWS
+	AGSContext* const AmdAgsContext = OwningRHI.GetAmdAgsContext();
+	if (GEmitRgpFrameMarkers && AmdAgsContext)
+	{
+		agsDriverExtensionsDX12_PushMarker(AmdAgsContext, CommandListHandle.GraphicsCommandList(), TCHAR_TO_ANSI(Name));
+	}
+#endif
+
 #if USE_PIX
 	PIXBeginEvent(CommandListHandle.GraphicsCommandList(), PIX_COLOR(Color.R, Color.G, Color.B), Name);
 #endif
@@ -98,6 +164,14 @@ void FD3D12CommandContext::RHIPopEvent()
 	{
 		GetParentDevice()->PopGPUEvent();
 	}
+
+#if PLATFORM_WINDOWS
+	AGSContext* const AmdAgsContext = OwningRHI.GetAmdAgsContext();
+	if (GEmitRgpFrameMarkers && AmdAgsContext)
+	{
+		agsDriverExtensionsDX12_PopMarker(AmdAgsContext, CommandListHandle.GraphicsCommandList());
+	}
+#endif
 
 #if USE_PIX
 	PIXEndEvent(CommandListHandle.GraphicsCommandList());

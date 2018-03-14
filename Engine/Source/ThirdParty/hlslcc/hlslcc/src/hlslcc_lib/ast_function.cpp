@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // This code is modified from that in the Mesa3D Graphics library available at
 // http://mesa3d.org/
@@ -2590,6 +2590,9 @@ ir_rvalue* gen_image_op(
 		}
 	}
 
+	bool const bIsByteBuffer = !strcmp(image->type->name, "ByteAddressBuffer");
+	bool const bIsRWByteBuffer = !strcmp(image->type->name, "RWByteAddressBuffer");
+	
 	if (strcmp(method, "GetDimensions") == 0)
 	{
 		ir_dereference_image *imageop = new(ctx) ir_dereference_image(image, new(ctx) ir_constant(0.0f), ir_image_dimensions);
@@ -2658,6 +2661,152 @@ ir_rvalue* gen_image_op(
 					instructions->push_tail(new(ctx) ir_assignment(lhs, rhs));
 				}
 			}
+		}
+	}
+	else if((bIsByteBuffer || bIsRWByteBuffer) && !strcmp(method, "Load") && num_params == 1)
+	{
+		result = new(ctx) ir_dereference_image(image, new (ctx) ir_expression(ir_binop_div, (ir_rvalue*)param_list.head, new (ctx) ir_constant(4)), ir_image_access);
+	}
+	else if((bIsByteBuffer || bIsRWByteBuffer) && (!strcmp(method, "Load2") || !strcmp(method, "Load3") || !strcmp(method, "Load4")) && num_params == 1)
+	{
+		ir_variable* base_index = new(ctx) ir_variable(((ir_rvalue*)param_list.head)->type, NULL, ir_var_temporary);
+		ir_assignment* base_index_assign = new(ctx) ir_assignment(new(ctx) ir_dereference_variable(base_index), new (ctx) ir_expression(ir_binop_div, (ir_rvalue*)param_list.head, new (ctx) ir_constant(4)));
+		instructions->push_tail(base_index);
+		instructions->push_tail(base_index_assign);
+		
+		ir_dereference_image* index0 = new(ctx) ir_dereference_image(image, new(ctx) ir_dereference_variable(base_index), ir_image_access);
+		ir_dereference_image* index1 = new(ctx) ir_dereference_image(image, new(ctx) ir_expression(ir_binop_add, new(ctx) ir_dereference_variable(base_index), new (ctx) ir_constant(1)), ir_image_access);
+		
+		exec_list params;
+		params.push_tail(index0);
+		params.push_tail(index1);
+		switch (method[4])
+		{
+			case '2':
+			{
+				result = emit_inline_vector_constructor(glsl_type::uvec2_type, instructions, &params, ctx);
+				break;
+			}
+			case '3':
+			{
+				ir_dereference_image* index2 = new(ctx) ir_dereference_image(image, new(ctx) ir_expression(ir_binop_add, new(ctx) ir_dereference_variable(base_index), new (ctx) ir_constant(2)), ir_image_access);
+				params.push_tail(index2);
+				result = emit_inline_vector_constructor(glsl_type::uvec3_type, instructions, &params, ctx);
+				break;
+			}
+			case '4':
+			{
+				ir_dereference_image* index2 = new(ctx) ir_dereference_image(image, new(ctx) ir_expression(ir_binop_add, new(ctx) ir_dereference_variable(base_index), new (ctx) ir_constant(2)), ir_image_access);
+				ir_dereference_image* index3 = new(ctx) ir_dereference_image(image, new(ctx) ir_expression(ir_binop_add, new(ctx) ir_dereference_variable(base_index), new (ctx) ir_constant(3)), ir_image_access);
+				params.push_tail(index2);
+				params.push_tail(index3);
+				result = emit_inline_vector_constructor(glsl_type::uvec4_type, instructions, &params, ctx);
+				break;
+			}
+			default:
+			{
+				char* errmsg = ralloc_asprintf(ctx, "Unsupported method '%s(", method);
+				for (int i = 0; i < num_params; ++i)
+				{
+					if (parameters[i])
+					{
+						ralloc_asprintf_append(&errmsg, "%s%s", (i == 0) ? "" : ",",
+											   parameters[i]->type->name);
+					}
+				}
+				struct YYLTYPE location = expr->get_location();
+				ir_variable *var = image->variable_referenced();
+				_mesa_glsl_error(&location, state, "%s)' called on '%s' of type '%s'.\n",
+								 errmsg,
+								 var->name,
+								 var->type->name);
+				result = ir_rvalue::error_value(ctx);
+				break;
+			}
+		}
+	}
+	else if(bIsRWByteBuffer && !strcmp(method, "Store") && num_params == 2)
+	{
+		ir_dereference_image* deref = new(ctx) ir_dereference_image(image, new (ctx) ir_expression(ir_binop_div, (ir_rvalue*)param_list.head, new (ctx) ir_constant(4)), ir_image_access);
+		ir_assignment* assign = new(ctx) ir_assignment(deref, (ir_rvalue*)param_list.head->next);
+		instructions->push_tail(assign);
+		result = nullptr;
+	}
+	else if(bIsRWByteBuffer && (!strcmp(method, "Store2") || !strcmp(method, "Store3") || !strcmp(method, "Store4")) && num_params == 2)
+	{
+		ir_variable* base_index = new(ctx) ir_variable(((ir_rvalue*)param_list.head)->type, NULL, ir_var_temporary);
+		ir_assignment* base_index_assign = new(ctx) ir_assignment(new(ctx) ir_dereference_variable(base_index), new (ctx) ir_expression(ir_binop_div, (ir_rvalue*)param_list.head, new (ctx) ir_constant(4)));
+		instructions->push_tail(base_index);
+		instructions->push_tail(base_index_assign);
+		
+		result = nullptr;
+		switch (method[5])
+		{
+			case '4':
+			{
+				ir_dereference_image* index3 = new(ctx) ir_dereference_image(image, new(ctx) ir_expression(ir_binop_add, new(ctx) ir_dereference_variable(base_index), new (ctx) ir_constant(3)), ir_image_access);
+				ir_assignment* assign3 = new(ctx) ir_assignment(index3, new(ctx) ir_swizzle(((ir_rvalue*)param_list.head->next)->clone(ctx, nullptr), 1, 2, 3, 0, 1)); // .w
+				instructions->push_tail(assign3);
+			}
+			case '3':
+			{
+				ir_dereference_image* index2 = new(ctx) ir_dereference_image(image, new(ctx) ir_expression(ir_binop_add, new(ctx) ir_dereference_variable(base_index), new (ctx) ir_constant(2)), ir_image_access);
+				ir_assignment* assign2 = new(ctx) ir_assignment(index2, new(ctx) ir_swizzle(((ir_rvalue*)param_list.head->next)->clone(ctx, nullptr), 1, 2, 0, 3, 1)); // .z
+				instructions->push_tail(assign2);
+			}
+			case '2':
+			{
+				ir_dereference_image* index0 = new(ctx) ir_dereference_image(image, new(ctx) ir_dereference_variable(base_index), ir_image_access);
+				ir_dereference_image* index1 = new(ctx) ir_dereference_image(image, new(ctx) ir_expression(ir_binop_add, new(ctx) ir_dereference_variable(base_index), new (ctx) ir_constant(1)), ir_image_access);
+				
+				ir_assignment* assign1 = new(ctx) ir_assignment(index1, new(ctx) ir_swizzle(((ir_rvalue*)param_list.head->next)->clone(ctx, nullptr), 1, 0, 2, 3, 1)); // .y
+				instructions->push_tail(assign1);
+				
+				ir_assignment* assign0 = new(ctx) ir_assignment(index0, new(ctx) ir_swizzle((ir_rvalue*)param_list.head->next, 0, 1, 2, 3, 1));  // .x
+				instructions->push_tail(assign0);
+				break;
+			}
+			default:
+			{
+				break;
+			}
+		}
+	}
+	else if(bIsRWByteBuffer && ((num_params == 3 && (strcmp(method, "InterlockedAdd") == 0 || strcmp(method, "InterlockedAnd") == 0 || strcmp(method, "InterlockedMax") == 0 || strcmp(method, "InterlockedMin") == 0 || strcmp(method, "InterlockedOr") == 0 || strcmp(method, "InterlockedXor") == 0 || strcmp(method, "InterlockedExchange") == 0)) || (num_params == 4 && (strcmp(method, "InterlockedCompareStore") == 0 || strcmp(method, "InterlockedCompareExchange") == 0))))
+	{
+		bool bFound = false;
+		ir_function * func = state->symbols->get_function(method);
+		if (func)
+		{
+			ir_dereference_image* ref = new(ctx) ir_dereference_image(image, new (ctx) ir_expression(ir_binop_div, (ir_rvalue*)param_list.head, new (ctx) ir_constant(4)), ir_image_access);
+			param_list.get_head()->remove();
+			param_list.push_head(ref);
+			ir_function_signature* sig = func->matching_signature(&param_list);
+			if (sig)
+			{
+				ir_call* call = nullptr;
+				result = generate_call(instructions, sig, &loc, &param_list, &call, state);
+				bFound = true;
+			}
+		}
+		if(!bFound)
+		{
+			char* errmsg = ralloc_asprintf(ctx, "Unsupported method '%s(", method);
+			for (int i = 0; i < num_params; ++i)
+			{
+				if (parameters[i])
+				{
+					ralloc_asprintf_append(&errmsg, "%s%s", (i == 0) ? "" : ",",
+										   parameters[i]->type->name);
+				}
+			}
+			struct YYLTYPE location = expr->get_location();
+			ir_variable *var = image->variable_referenced();
+			_mesa_glsl_error(&location, state, "%s)' called on '%s' of type '%s'.\n",
+							 errmsg,
+							 var->name,
+							 var->type->name);
+			result = ir_rvalue::error_value(ctx);
 		}
 	}
 	else

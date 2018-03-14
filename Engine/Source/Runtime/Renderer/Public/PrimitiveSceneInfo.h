@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrimitiveSceneInfo.h: Primitive scene info definitions.
@@ -272,6 +272,12 @@ public:
 	/** The number of dynamic point lights for ES2 */
 	int32 NumES2DynamicPointLights;
 
+	/** This indicate that we should call the GetCustomLOD function on the proxy instead of the generic implementation. */
+	bool bIsUsingCustomLODRules : 1;
+	
+	/** This indicate that we should call the GetCustomWholeSceneShadowLOD function on the proxy instead of the generic implementation. */
+	bool bIsUsingCustomWholeSceneShadowLODRules : 1;
+
 	/** Initialization constructor. */
 	FPrimitiveSceneInfo(UPrimitiveComponent* InPrimitive,FScene* InScene);
 
@@ -279,7 +285,7 @@ public:
 	~FPrimitiveSceneInfo();
 
 	/** Adds the primitive to the scene. */
-	void AddToScene(FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists);
+	void AddToScene(FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists, bool bAddToStaticDrawLists = true);
 
 	/** Removes the primitive from the scene. */
 	void RemoveFromScene(bool bUpdateStaticDrawLists);
@@ -309,7 +315,7 @@ public:
 	}
 
 	/** Updates the primitive's static meshes in the scene. */
-	void UpdateStaticMeshes(FRHICommandListImmediate& RHICmdList);
+	void UpdateStaticMeshes(FRHICommandListImmediate& RHICmdList, bool bReAddToDrawLists = true);
 
 	/** Updates the primitive's static meshes in the scene. */
 	FORCEINLINE void ConditionalUpdateStaticMeshes(FRHICommandListImmediate& RHICmdList)
@@ -343,7 +349,7 @@ public:
 	void BeginDeferredUpdateStaticMeshes();
 
 	/** Adds the primitive's static meshes to the scene. */
-	void AddStaticMeshes(FRHICommandListImmediate& RHICmdList);
+	void AddStaticMeshes(FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists = true);
 
 	/** Removes the primitive's static meshes from the scene. */
 	void RemoveStaticMeshes();
@@ -384,12 +390,12 @@ public:
 	 * This index is only valid until a primitive is added to or removed from
 	 * the scene!
 	 */
-	inline int32 GetIndex() const { return PackedIndex; }
+	RENDERER_API FORCEINLINE int32 GetIndex() const { return PackedIndex; }
 	/** 
 	 * Retrieves the address of the primitives index into in the scene's primitives array.
 	 * This address is only for reference purposes
 	 */
-	inline const int32* GetIndexAddress() const { return &PackedIndex; }
+	FORCEINLINE const int32* GetIndexAddress() const { return &PackedIndex; }
 
 	/* @return true if the object needs to be rendered in the velocity pass (is not moving like the world, needed for motionblur and TemporalAA) */
 	bool ShouldRenderVelocity(const FViewInfo& View, bool bCheckVisibility = true) const;
@@ -413,6 +419,12 @@ public:
 
 	void UpdatePrecomputedLightingBuffer();
 	void ClearPrecomputedLightingBuffer(bool bSingleFrameOnly);
+
+	/** Will output the LOD ranges of the static meshes used with this primitive. */
+	RENDERER_API void GetStaticMeshesLODRange(int8& OutMinLOD, int8& OutMaxLOD) const;
+
+	/** Will output the FMeshBatch associated with the specified LODIndex. */
+	RENDERER_API const FMeshBatch* GetMeshBatch(int8 InLODIndex) const;
 
 private:
 

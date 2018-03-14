@@ -1,16 +1,15 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LogVisualizerStyle.h"
 #include "Styling/SlateStyleRegistry.h"
 #include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 
 #define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush( FPaths::EngineContentDir() / "Editor/Slate"/ RelativePath + TEXT(".png"), __VA_ARGS__ )
 #define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush( FPaths::EngineContentDir() / "Editor/Slate"/ RelativePath + TEXT(".png"), __VA_ARGS__ )
 #define BORDER_BRUSH( RelativePath, ... ) FSlateBorderBrush( FPaths::EngineContentDir() / "Editor/Slate"/ RelativePath + TEXT(".png"), __VA_ARGS__ )
-#define TTF_FONT( RelativePath, ... ) FSlateFontInfo( FPaths::EngineContentDir() / "Editor/Slate"/ RelativePath + TEXT(".ttf"), __VA_ARGS__ )
-#define OTF_FONT( RelativePath, ... ) FSlateFontInfo( FPaths::EngineContentDir() / "Editor/Slate"/ RelativePath + TEXT(".otf"), __VA_ARGS__ )
-#define TTF_CORE_FONT( RelativePath, ... ) FSlateFontInfo( FPaths::EngineContentDir()  / "Slate"/ RelativePath + TEXT(".ttf"), __VA_ARGS__ )
+#define DEFAULT_FONT(...) FCoreStyle::GetDefaultFontStyle(__VA_ARGS__)
 
 TSharedPtr< FSlateStyleSet > FLogVisualizerStyle::StyleInstance = nullptr;
 
@@ -51,7 +50,7 @@ TSharedRef< FSlateStyleSet > FLogVisualizerStyle::Create()
 	FSlateStyleSet& Style = StyleRef.Get();
 	// Generic styles
 	const FTextBlockStyle NormalText = FTextBlockStyle()
-		.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 9))
+		.SetFont(DEFAULT_FONT("Regular", 9))
 		.SetColorAndOpacity(FSlateColor::UseForeground())
 		.SetShadowOffset(FVector2D::ZeroVector)
 		.SetShadowColorAndOpacity(FLinearColor::Black)
@@ -59,7 +58,7 @@ TSharedRef< FSlateStyleSet > FLogVisualizerStyle::Create()
 		.SetHighlightShape(BOX_BRUSH("Common/TextBlockHighlightShape", FMargin(3.f / 8.f)));
 
 	const FTextBlockStyle LogsText = FTextBlockStyle(NormalText)
-		.SetFont(TTF_CORE_FONT("Fonts/DroidSansMono", 9));
+		.SetFont(DEFAULT_FONT("Mono", 9));
 
 	Style.Set("TextLogs.Text", LogsText);
 
@@ -162,7 +161,7 @@ TSharedRef< FSlateStyleSet > FLogVisualizerStyle::Create()
 		/* ... and add the new style */
 		Style.Set("ContentBrowser.FilterButton", ContentBrowserFilterButtonCheckBoxStyle);
 
-		Style.Set("ContentBrowser.FilterNameFont", TTF_CORE_FONT("Fonts/Roboto-Regular", 9));
+		Style.Set("ContentBrowser.FilterNameFont", DEFAULT_FONT("Regular", 9));
 		//Style.Set("ContentBrowser.FilterNameFont", FEditorStyle::Get().GetFontStyle("ContentBrowser.FilterNameFont"));
 	}
 
@@ -172,7 +171,7 @@ TSharedRef< FSlateStyleSet > FLogVisualizerStyle::Create()
 		Style.Set("Sequencer.ItemTitle.Hover", new BOX_BRUSH("Common/Button/simple_round_hovered", FMargin(4 / 16.0f), FLinearColor(1, 1, 1, 1)));
 		Style.Set("Sequencer.SectionArea.Background", new FSlateColorBrush(FColor::White));
 		const FTextBlockStyle CLassNameTextStyle = FTextBlockStyle(NormalText)
-			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 7));
+			.SetFont(DEFAULT_FONT("Regular", 7));
 		Style.Set("Sequencer.ClassNAme", CLassNameTextStyle);
 	}
 
@@ -183,7 +182,7 @@ TSharedRef< FSlateStyleSet > FLogVisualizerStyle::Create()
 		Style.Set("RichText.RoundedBackground", new BOX_BRUSH("Common/RoundedSelection_16x", 4.0f / 16.0f, FLinearColor(FColor(0xffeff3f3))));
 
 		const FTextBlockStyle NormalRichTextStyle = FTextBlockStyle(NormalText)
-			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 10))
+			.SetFont(DEFAULT_FONT("Regular", 10))
 			.SetColorAndOpacity(FLinearColor(FColor(0xff2c3e50)));
 
 		Style.Set("RichText.Text", NormalRichTextStyle);
@@ -192,7 +191,7 @@ TSharedRef< FSlateStyleSet > FLogVisualizerStyle::Create()
 			);
 
 		Style.Set("RichText.TextBold", FTextBlockStyle(NormalRichTextStyle)
-			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 10)));
+			.SetFont(DEFAULT_FONT("Bold", 10)));
 
 		Style.Set("RichText.HeaderText2", FTextBlockStyle(NormalRichTextStyle)
 			.SetFontSize(14));
@@ -231,22 +230,22 @@ TSharedRef< FSlateStyleSet > FLogVisualizerStyle::Create()
 			Style.Set("RichText.Tagline.Background", new BOX_BRUSH("Common/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor(FColor(0xffdbe4e4))));
 			Style.Set("RichText.Tagline.DarkBackground", new BOX_BRUSH("Common/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(1), FLinearColor(0.55423, 0.60548, 0.60548)));
 			Style.Set("RichText.Tagline.Text", FTextBlockStyle(NormalText)
-				.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 24))
+				.SetFont(DEFAULT_FONT("Bold", 24))
 				.SetColorAndOpacity(FLinearColor(FColor(0xff2c3e50)))
 				);
 
 			Style.Set("RichText.Tagline.TextHighlight", FTextBlockStyle(NormalText)
-				.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 24))
+				.SetFont(DEFAULT_FONT("Bold", 24))
 				.SetColorAndOpacity(FLinearColor(FColor(0xff19bc9c)))
 				);
 
 			Style.Set("RichText.Tagline.SubtleText", FTextBlockStyle(NormalText)
-				.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 16))
+				.SetFont(DEFAULT_FONT("Regular", 16))
 				.SetColorAndOpacity(FLinearColor(FColor(0xff2c3e50)))
 				);
 
 			Style.Set("RichText.Tagline.SubtleTextHighlight", FTextBlockStyle(NormalText)
-				.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 16))
+				.SetFont(DEFAULT_FONT("Regular", 16))
 				.SetColorAndOpacity(FLinearColor(FColor(0xff19bc9c)))
 				);
 		}
@@ -259,9 +258,6 @@ TSharedRef< FSlateStyleSet > FLogVisualizerStyle::Create()
 #undef IMAGE_BRUSH
 #undef BOX_BRUSH
 #undef BORDER_BRUSH
-#undef TTF_FONT
-#undef OTF_FONT
-#undef TTF_CORE_FONT
 
 const ISlateStyle& FLogVisualizerStyle::Get()
 {

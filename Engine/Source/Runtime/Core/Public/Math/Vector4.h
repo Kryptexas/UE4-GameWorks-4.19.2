@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -122,6 +122,14 @@ public:
 	 * @return The result of vector subtraction.
 	 */
 	FORCEINLINE FVector4 operator-(const FVector4& V) const;
+
+	/**
+	 * Subtracts another vector to this one.
+	 *
+	 * @param V The other vector to subtract.
+	 * @return Copy of the vector after subtraction.
+	 */
+	FORCEINLINE FVector4 operator-=(const FVector4& V);
 
 	/**
 	 * Gets the result of scaling this vector.
@@ -250,6 +258,14 @@ public:
 	 * @return Reference to the component.
 	 */
 	float& Component(int32 Index);
+
+	/**
+	* Gets a specific component of the vector.
+	*
+	* @param Index The index of the component.
+	* @return Reference to the component.
+	*/
+	const float& Component(int32 Index) const;
 
 	/**
 	 * Error tolerant comparison.
@@ -527,6 +543,14 @@ FORCEINLINE FVector4 FVector4::operator-(const FVector4& V) const
 }
 
 
+FORCEINLINE FVector4 FVector4::operator-=(const FVector4& V)
+{
+	X -= V.X; Y -= V.Y; Z -= V.Z; W -= V.W;
+	DiagnosticCheckNaN();
+	return *this;
+}
+
+
 FORCEINLINE FVector4 FVector4::operator*(float Scale) const
 {
 	return FVector4(X * Scale, Y * Scale, Z * Scale, W * Scale);
@@ -562,6 +586,10 @@ FORCEINLINE float& FVector4::Component(int32 Index)
 	return (&X)[Index];
 }
 
+FORCEINLINE const float& FVector4::Component(int32 Index) const
+{
+	return (&X)[Index];
+}
 
 FORCEINLINE bool FVector4::operator==(const FVector4& V) const
 {

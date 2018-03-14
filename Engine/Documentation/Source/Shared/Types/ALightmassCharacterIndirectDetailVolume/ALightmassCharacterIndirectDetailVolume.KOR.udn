@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:NoPublish
 Title:ALightmassCharacterIndirectDetailVolume
 Crumbs:
@@ -13,4 +13,6 @@ Engine/Rendering/LightingAndShadows/IndirectLightingCache
 [/VAR]
 [/EXCERPT:ALightmassCharacterIndirectDetailVolume]
 
-<!-- TODO: LightmassCharacterIndirecDetailVolume Definition --->
+[COMMENT:none]
+ TODO: LightmassCharacterIndirecDetailVolume Definition -
+[/COMMENT]

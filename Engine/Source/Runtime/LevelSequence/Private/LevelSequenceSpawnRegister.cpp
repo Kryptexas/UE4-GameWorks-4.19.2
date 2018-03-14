@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelSequenceSpawnRegister.h"
 #include "Engine/EngineTypes.h"
@@ -57,3 +57,19 @@ void FLevelSequenceSpawnRegister::DestroySpawnedObject(UObject& Object)
 
 	checkf(false, TEXT("No valid object spawner found to destroy spawned object of type %s"), *Object.GetClass()->GetName());
 }
+
+#if WITH_EDITOR
+
+bool FLevelSequenceSpawnRegister::CanSpawnObject(UClass* InClass) const
+{
+	for (TSharedRef<IMovieSceneObjectSpawner> MovieSceneObjectSpawner : MovieSceneObjectSpawners)
+	{
+		if (InClass->IsChildOf(MovieSceneObjectSpawner->GetSupportedTemplateType()))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+#endif

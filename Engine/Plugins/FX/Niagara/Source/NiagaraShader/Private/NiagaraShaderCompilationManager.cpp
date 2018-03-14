@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraShaderCompilationManager.h"
 #include "NiagaraShared.h"
@@ -129,11 +129,11 @@ void FNiagaraShaderCompilationManager::RunCompileJobs()
 					// Generate a hash of the output and cache it
 					// The shader processing this output will use it to search for existing FShaderResources
 					CurrentJob.Output.GenerateOutputHash();
-					UE_LOG(LogNiagaraShaderCompiler, Log, TEXT("GPU shader compile succeeded."));
+					UE_LOG(LogNiagaraShaderCompiler, Log, TEXT("GPU shader compile succeeded. Id %d"), CurrentJob.Id);
 				}
 				else
 				{
-					UE_LOG(LogNiagaraShaderCompiler, Log, TEXT("ERROR: GPU shader compile failed!"));
+					UE_LOG(LogNiagaraShaderCompiler, Log, TEXT("ERROR: GPU shader compile failed! Id %d"), CurrentJob.Id);
 				}
 
 				CurrentWorkerInfo.bComplete = true;
@@ -206,10 +206,6 @@ void FNiagaraShaderCompilationManager::ProcessAsyncResults()
 		ProcessCompiledNiagaraShaderMaps(PendingFinalizeNiagaraShaderMaps, 0.1f);
 	}
 }
-
-
-
-
 
 
 void FNiagaraShaderCompilationManager::ProcessCompiledNiagaraShaderMaps(
@@ -292,6 +288,21 @@ void FNiagaraShaderCompilationManager::ProcessCompiledNiagaraShaderMaps(
 					// This avoids applying shadermaps which are out of date and a newer one is in the async compiling pipeline
 					if (Script->GetScriptID() == CompletedShaderMap->GetShaderMapId().BaseScriptID)
 					{
+						if (Errors.Num() != 0)
+						{
+							FString SourceCode;
+							Script->GetScriptHLSLSource(SourceCode);
+							UE_LOG(LogNiagaraShaderCompiler, Log, TEXT("Compile output as text:"));
+							UE_LOG(LogNiagaraShaderCompiler, Log, TEXT("==================================================================================="));
+							TArray<FString> OutputByLines;
+							SourceCode.ParseIntoArrayLines(OutputByLines, false);
+							for (int32 i = 0; i < OutputByLines.Num(); i++)
+							{
+								UE_LOG(LogNiagaraShaderCompiler, Log, TEXT("/*%04d*/\t\t%s"), i + 1, *OutputByLines[i]);
+							}
+							UE_LOG(LogNiagaraShaderCompiler, Log, TEXT("==================================================================================="));
+						}
+
 						if (!bSuccess)
 						{
 							// Propagate error messages
@@ -326,6 +337,13 @@ void FNiagaraShaderCompilationManager::ProcessCompiledNiagaraShaderMaps(
 									UE_LOG(LogNiagaraShaderCompiler, Warning, TEXT("	%s"), *Errors[ErrorIndex]);
 								}
 							}
+						}
+					}
+					else
+					{
+						if (CompletedShaderMap->IsComplete(Script, true))
+						{
+							Script->NotifyCompilationFinished();
 						}
 					}
 				}

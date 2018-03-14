@@ -5,36 +5,7 @@ Description:Collision settings for Landscape.
 version: 4.12
 parent:Engine/Landscape
 order:7
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](Engine/Landscape/Landscape_Collision_Banner.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Landscape/Collision:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Landscape/Collision]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](Engine/Landscape/Landscape_Collision_Banner.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Landscape/Collision:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Landscape/Collision:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Landscape/Collision]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Landscape/Landscape_Collision_Banner.png
 
 [TOC(start:2 end:3)]
 
@@ -163,7 +134,8 @@ In the following image, the Collision Mip level for each of the four outlined La
 
 
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:VC]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -188,9 +160,11 @@ In the following image, the Collision Mip level for each of the four outlined La
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:VC]
--->
 
-<!-----
+[/COMMENT]
+
+[COMMENT:none]
+---
 [EXCERPT:PC]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -215,4 +189,5 @@ In the following image, the Collision Mip level for each of the four outlined La
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:PC]
--->
+
+[/COMMENT]

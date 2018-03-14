@@ -1,4 +1,4 @@
-Availability: Public
+﻿Availability: Public
 Title: 音频系统
 Crumbs: %ROOT%, Engine
 Description:用于播放游戏中音效的系统，包括应用基于SoundCue节点的音频资源。
@@ -55,18 +55,14 @@ Navigation:topic
  相应的效果。
 [/EXCERPT:Intro]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Audio/Overview "%Engine/Audio/Overview:description%")
-	[/PARAM]
-	[PARAM:links]
+## [](Engine/Audio/Overview "%Engine/Audio/Overview:description%")
+
+[REGION:buttonlist]
+
 		* [](Engine/Audio/WAV "%Engine/Audio/WAV:description%")
 		* [](Engine/Audio/SoundCues/Editor "%Engine/Audio/SoundCues/Editor:description%")
 		* [](Engine/Audio/SoundCues/NodeReference "%Engine/Audio/SoundCues/NodeReference:description%")
 		* [](Engine/Audio/SoundActors "%Engine/Audio/SoundActors:description%")
 		* [](Engine/Audio/DistanceModelAttenuation "%Engine/Audio/DistanceModelAttenuation:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]

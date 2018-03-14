@@ -1,13 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ThumbnailRendering/BlueprintThumbnailRenderer.h"
 #include "ShowFlags.h"
 #include "SceneView.h"
 #include "Misc/App.h"
 
-// FPreviewScene derived helpers for rendering
-#include "RendererInterface.h"
-#include "EngineModule.h"
 #include "Engine/SCS_Node.h"
 
 UBlueprintThumbnailRenderer::UBlueprintThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
@@ -98,7 +95,7 @@ void UBlueprintThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32
 		ViewFamily.EngineShowFlags.MotionBlur = 0;
 
 		ThumbnailScene->GetView(&ViewFamily, X, Y, Width, Height);
-		GetRendererModule().BeginRenderingViewFamily(Canvas,&ViewFamily);
+		RenderViewFamily(Canvas,&ViewFamily);
 	}
 }
 

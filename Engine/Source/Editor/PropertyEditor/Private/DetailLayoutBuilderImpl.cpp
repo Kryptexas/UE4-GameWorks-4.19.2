@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailLayoutBuilderImpl.h"
 #include "ObjectPropertyNode.h"
@@ -9,14 +9,14 @@
 #include "DetailMultiTopLevelObjectRootNode.h"
 #include "ObjectEditorUtils.h"
 
-FDetailLayoutBuilderImpl::FDetailLayoutBuilderImpl(TSharedPtr<FComplexPropertyNode>& InRootNode, FClassToPropertyMap& InPropertyMap, const TSharedRef< class IPropertyUtilities >& InPropertyUtilities, const TSharedPtr< IDetailsViewPrivate >& InDetailsView)
+FDetailLayoutBuilderImpl::FDetailLayoutBuilderImpl(TSharedPtr<FComplexPropertyNode>& InRootNode, FClassToPropertyMap& InPropertyMap, const TSharedRef< class IPropertyUtilities >& InPropertyUtilities, const TSharedPtr< IDetailsViewPrivate >& InDetailsView, bool bIsExternal)
 	: RootNode( InRootNode )
 	, PropertyMap( InPropertyMap )
 	, PropertyDetailsUtilities( InPropertyUtilities )
 	, DetailsView( InDetailsView.Get() )
 	, CurrentCustomizationClass( nullptr )
 {
-	bLayoutForExternalRoot = ExternalRootPropertyNodes.Contains(InRootNode.ToSharedRef());
+	bLayoutForExternalRoot = bIsExternal;
 }
 
 IDetailCategoryBuilder& FDetailLayoutBuilderImpl::EditCategory( FName CategoryName, const FText& NewLocalizedDisplayName, ECategoryPriority::Type CategoryType )

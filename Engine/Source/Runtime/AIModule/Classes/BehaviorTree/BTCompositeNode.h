@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -170,28 +170,34 @@ class AIMODULE_API UBTCompositeNode : public UBTNode
 	/** is child execution allowed by decorators? */
 	bool DoDecoratorsAllowExecution(UBehaviorTreeComponent& OwnerComp, int32 InstanceIdx, int32 ChildIdx) const;
 
+	bool IsApplyingDecoratorScope() const;
+
 protected:
+
+	/** if set, all decorators in branch below will be removed when execution flow leaves (decorators on this node are not affected) */
+	UPROPERTY(EditAnywhere, Category = Composite)
+	uint32 bApplyDecoratorScope : 1;
+
+	/** if set, NotifyChildExecution will be called */
+	uint32 bUseChildExecutionNotify : 1;
+
+	/** if set, NotifyNodeActivation will be called */
+	uint32 bUseNodeActivationNotify : 1;
+
+	/** if set, NotifyNodeDeactivation will be called */
+	uint32 bUseNodeDeactivationNotify : 1;
+
+	/** if set, CanNotifyDecoratorsOnActivation will be called */
+	uint32 bUseDecoratorsActivationCheck : 1;
+
+	/** if set, CanNotifyDecoratorsOnDeactivation will be called */
+	uint32 bUseDecoratorsDeactivationCheck : 1;
+
+	/** if set, CanNotifyDecoratorsOnFailedActivation will be called */
+	uint32 bUseDecoratorsFailedActivationCheck : 1;
 
 	/** execution index of last node in child branches */
 	uint16 LastExecutionIndex;
-
-	/** if set, NotifyChildExecution will be called */
-	uint8 bUseChildExecutionNotify : 1;
-
-	/** if set, NotifyNodeActivation will be called */
-	uint8 bUseNodeActivationNotify : 1;
-
-	/** if set, NotifyNodeDeactivation will be called */
-	uint8 bUseNodeDeactivationNotify : 1;
-
-	/** if set, CanNotifyDecoratorsOnActivation will be called */
-	uint8 bUseDecoratorsActivationCheck : 1;
-
-	/** if set, CanNotifyDecoratorsOnDeactivation will be called */
-	uint8 bUseDecoratorsDeactivationCheck : 1;
-
-	/** if set, CanNotifyDecoratorsOnFailedActivation will be called */
-	uint8 bUseDecoratorsFailedActivationCheck : 1;
 
 	/** called just after child execution, allows to modify result */
 	virtual void NotifyChildExecution(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const;
@@ -248,4 +254,9 @@ FORCEINLINE int32 UBTCompositeNode::GetChildrenNum() const
 FORCEINLINE uint16 UBTCompositeNode::GetLastExecutionIndex() const
 {
 	return LastExecutionIndex;
+}
+
+FORCEINLINE bool UBTCompositeNode::IsApplyingDecoratorScope() const
+{
+	return bApplyDecoratorScope;
 }

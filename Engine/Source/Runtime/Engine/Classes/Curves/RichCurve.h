@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -327,6 +327,9 @@ public:
 	/** Remove redundant keys, comparing against Tolerance */
 	void RemoveRedundantKeys(float Tolerance);
 	void RemoveRedundantKeys(float Tolerance, float FirstKeyTime, float LastKeyTime);
+
+private:
+	void RemoveRedundantKeysInternal(float Tolerance, int32 InStartKeepKey, int32 InEndKeepKey);
 
 public:
 

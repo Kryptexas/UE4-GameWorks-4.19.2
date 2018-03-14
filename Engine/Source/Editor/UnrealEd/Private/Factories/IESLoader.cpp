@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "Factories/IESLoader.h"
@@ -197,13 +197,11 @@ void FIESLoadHelper::Load(const uint8* Buffer)
 
 	PARSE_FLOAT(LumensPerLamp);
 
-	Brightness = LumensPerLamp / LightCount;
+	PARSE_FLOAT(CandelaMult);
 
-	PARSE_FLOAT(CandalaMult);
-
-	if(CandalaMult < 0)
+	if(CandelaMult < 0)
 	{
-		Error = "CandalaMult is negative";
+		Error = "CandelaMult is negative";
 		return;
 	}
 
@@ -280,18 +278,18 @@ void FIESLoadHelper::Load(const uint8* Buffer)
 		}
 	}
 
-	CandalaValues.Empty(HAnglesNum * VAnglesNum);
+	CandelaValues.Empty(HAnglesNum * VAnglesNum);
 	for(uint32 y = 0; y < (uint32)HAnglesNum; ++y)
 	{
 		for(uint32 x = 0; x < (uint32)VAnglesNum; ++x)
 		{
 			PARSE_FLOAT(Value);
 
-			CandalaValues.Add(Value * CandalaMult);
+			CandelaValues.Add(Value * CandelaMult);
 		}
 	}
 
-	Error = "Unexpected content after candala values.";
+	Error = "Unexpected content after candela values.";
 
 	JumpOverWhiteSpace(BufferPos);
 
@@ -316,6 +314,8 @@ void FIESLoadHelper::Load(const uint8* Buffer)
 
 	Error = 0;
 
+	Brightness = ComputeMax(); // Use max candela as the brightness
+
 	if(Brightness <= 0)
 	{
 		// some samples have -1, then the brightness comes from the samples
@@ -335,7 +335,7 @@ uint32 FIESLoadHelper::GetWidth() const
 
 uint32 FIESLoadHelper::GetHeight() const
 {
-	return 1;
+	return 256;
 }
 
 bool FIESLoadHelper::IsValid() const
@@ -361,21 +361,23 @@ float FIESLoadHelper::ExtractInRGBA16F(TArray<uint8>& OutData)
 	FFloat16Color* Out = (FFloat16Color*)OutData.GetData();
 
 	float InvWidth = 1.0f / Width;
+	float InvHeight = 1.0f / Height;
 	float MaxValue = ComputeMax();
 	float InvMaxValue= 1.0f / MaxValue;
 
 	for(uint32 y = 0; y < Height; ++y)
 	{
+		float HFraction = y * InvHeight;
+
 		for(uint32 x = 0; x < Width; ++x)
 		{
 			// 0..1
-			float Fraction = x * InvWidth;
+			float VFraction = x * InvWidth;
 
 			// distort for better quality?
 //				Fraction = Square(Fraction);
 
-			float FloatValue = InvMaxValue * Interpolate1D(Fraction * 180.0f);
-
+			float FloatValue = InvMaxValue * Interpolate2D(HFraction * 360.0f, VFraction * 180.0f);
 			{
 				FFloat16 HalfValue(FloatValue);
 
@@ -391,9 +393,7 @@ float FIESLoadHelper::ExtractInRGBA16F(TArray<uint8>& OutData)
 		}
 	}
 
-	float Integral = ComputeFullIntegral();
-
-	return MaxValue / Integral;
+	return 1.f;
 }
 
 float FIESLoadHelper::ComputeFullIntegral()
@@ -417,12 +417,12 @@ float FIESLoadHelper::ComputeFullIntegral()
 			// http://en.wikipedia.org/wiki/Spherical_coordinate_system
 
 			// 0..180
-			float HAngle = FMath::Acos(Dir.Z) / PI * 180;
+			float VAngle = FMath::Acos(Dir.Z) / PI * 180;
 			// 0..360
-			float VAngle = FMath::Atan2(Dir.Y, Dir.X) / PI * 180 + 180;
+			float HAngle = FMath::Atan2(Dir.Y, Dir.X) / PI * 180 + 180;
 
-			check(HAngle >= 0 && HAngle <= 180);
-			check(VAngle >= 0 && VAngle <= 360);
+			check(VAngle >= 0 && VAngle <= 180);
+			check(HAngle >= 0 && HAngle <= 360);
 
 			Sum += Interpolate2D(HAngle, VAngle);
 		}
@@ -439,9 +439,9 @@ float FIESLoadHelper::ComputeMax() const
 {
 	float ret = 0.0f;
 
-	for(uint32 i = 0; i < (uint32)CandalaValues.Num(); ++i)
+	for(uint32 i = 0; i < (uint32)CandelaValues.Num(); ++i)
 	{
-		float Value = CandalaValues[i];
+		float Value = CandelaValues[i];
 
 		ret = FMath::Max(ret, Value);
 	}
@@ -524,7 +524,7 @@ float FIESLoadHelper::InterpolatePoint(int X, int Y) const
 	check(X < (int)HAnglesNum);
 	check(Y < (int)VAnglesNum);
 
-	return CandalaValues[Y + VAnglesNum * X];
+	return CandelaValues[Y + VAnglesNum * X];
 }
 
 
@@ -549,6 +549,27 @@ float FIESLoadHelper::InterpolateBilinear(float fX, float fY) const
 
 float FIESLoadHelper::Interpolate2D(float HAngle, float VAngle) const
 {
+	// Support symmetry, per the IES format doc:
+	// 0     There is only one horizontal angle, implying that the luminaire is laterally symmetric in all photometric planes.
+	// 90    The luminaire is assumed to be symmetric in each quadrant.
+	// 180   The luminaire is assumed to be bilaterally symmetric about the 0-180 degree photometric plane.
+	// 360   The luminaire is assumed to exhibit no lateral symmetry.
+	//
+	// A luminaire that is bilaterally symmetric about the 90-270 degree
+	// photometric plane will have a first value of 90 degrees and a last value of 270 degrees.
+
+	if ( HAngles.Num() > 0 )
+	{
+		if ( HAngles.Last() > 0.f && HAngle > HAngles.Last() )
+		{
+			HAngle = HAngles.Last() - FMath::Fmod( HAngle, HAngles.Last() );
+		}
+		else if ( HAngles[0] > 0.f && HAngle < HAngles[0] )
+		{
+			HAngle = HAngles.Last() - HAngles[0] - HAngle;
+		}
+	}
+
 	float u = ComputeFilterPos(HAngle, HAngles);
 	float v = ComputeFilterPos(VAngle, VAngles);
 

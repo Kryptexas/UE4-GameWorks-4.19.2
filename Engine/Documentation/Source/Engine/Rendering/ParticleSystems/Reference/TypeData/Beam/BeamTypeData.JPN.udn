@@ -51,8 +51,11 @@ coXs-CmI_v8
 | **Render Tessellation** | _true_の場合、ソースとターゲット間で細分化 (テセレーション) されたパス (小道) がレンダリングされます。Cascade のデバッギングに使用されます。 |
 
 
-<!-- Begin Beam Includes -->
-<!--
+[COMMENT:none]
+ Begin Beam Includes 
+[/COMMENT]
+[COMMENT:none]
+
 [EXCERPT:BeamMethod]
 [REGION:simpletable]
 | メソッド | 説明 |
@@ -89,8 +92,11 @@ coXs-CmI_v8
 [/REGION:simpletable]
 [/EXCERPT:TaperMethod]
 
--->
-<!-- End Beam Includes -->
+
+[/COMMENT]
+[COMMENT:none]
+ End Beam Includes 
+[/COMMENT]
 
 
 

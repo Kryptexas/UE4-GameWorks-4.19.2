@@ -25,16 +25,10 @@ _このセクションの最後まで終了すると、上の画面のように�
 * アニメーションに遷移ステートを追加
 * Animation ブループリントと Character ブループリントを関連付ける
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## ステップ
+
+[REGION:buttonlist]
+
 	* [](Programming/Tutorials/FirstPersonShooter/4/1 "%Programming/Tutorials/FirstPersonShooter/4/1:description%")
 	* [](Programming/Tutorials/FirstPersonShooter/4/2 "%Programming/Tutorials/FirstPersonShooter/4/2:description%")
 	* [](Programming/Tutorials/FirstPersonShooter/4/3 "%Programming/Tutorials/FirstPersonShooter/4/3:description%")
@@ -46,5 +40,5 @@ _このセクションの最後まで終了すると、上の画面のように�
 		* [](Programming/Tutorials/FirstPersonShooter/4/4/5 "%Programming/Tutorials/FirstPersonShooter/4/4/5:description%")
 		* [](Programming/Tutorials/FirstPersonShooter/4/4/6 "%Programming/Tutorials/FirstPersonShooter/4/4/6:description%")
 	* [](Programming/Tutorials/FirstPersonShooter/4/5 "%Programming/Tutorials/FirstPersonShooter/4/5:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]

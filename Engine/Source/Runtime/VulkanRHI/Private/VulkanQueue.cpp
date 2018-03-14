@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanQueue.cpp: Vulkan Queue implementation.
@@ -70,6 +70,9 @@ void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer, FVulkanSemaphore* WaitSem
 		VERIFYVULKANRESULT(VulkanRHI::vkQueueSubmit(Queue, 1, &SubmitInfo, Fence->GetHandle()));
 	}
 
+	CmdBuffer->State = FVulkanCmdBuffer::EState::Submitted;
+	CmdBuffer->SubmittedFenceCounter = CmdBuffer->FenceSignaledCounter;
+
 	if (GWaitForIdleOnSubmit != 0)
 	{
 		VERIFYVULKANRESULT(VulkanRHI::vkQueueWaitIdle(Queue));
@@ -78,8 +81,6 @@ void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer, FVulkanSemaphore* WaitSem
 		Device->GetFenceManager().WaitForFence(CmdBuffer->Fence, 1000 * 60000);
 		ensure(Device->GetFenceManager().IsFenceSignaled(CmdBuffer->Fence));
 	}
-
-	CmdBuffer->State = FVulkanCmdBuffer::EState::Submitted;
 
 	UpdateLastSubmittedCommandBuffer(CmdBuffer);
 

@@ -1,12 +1,14 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintConnectionDrawingPolicy.h"
 #include "Misc/App.h"
 #include "Engine/Blueprint.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "EdGraphSchema_K2.h"
+#include "K2Node_Composite.h"
 #include "K2Node_Knot.h"
 #include "K2Node_MacroInstance.h"
+#include "K2Node_TunnelBoundary.h"
 #include "Kismet2/KismetDebugUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "BlueprintEditorSettings.h"
@@ -62,10 +64,48 @@ void FKismetConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArrangedWid
 	FConnectionDrawingPolicy::Draw(InPinGeometries, ArrangedNodes);
 }
 
-bool FKismetConnectionDrawingPolicy::CanBuildRoadmap() const
+UBlueprint* FKismetConnectionDrawingPolicy::GetTargetBlueprint() const
+{
+	// Start out with the current graph Blueprint context.
+	if (UBlueprint* TargetBP = FBlueprintEditorUtils::FindBlueprintForGraph(GraphObj))
+	{
+		// Macro library Blueprints have no associated "active" object debugging context, so we need to determine which one to use from the call stack.
+		if (TargetBP->BlueprintType == BPTYPE_MacroLibrary)
+		{
+			// Walk backwards through the stack trace (check the most recent sample first) until we find a Blueprint context with the expansion and a valid "active" object for debugging.
+			const TSimpleRingBuffer<FKismetTraceSample>& TraceStack = FKismetDebugUtilities::GetTraceStack();
+			for (int32 i = TraceStack.Num() - 1; i >= 0 && !TargetBP->GetObjectBeingDebugged(); --i)
+			{
+				const FKismetTraceSample& Sample = TraceStack(i);
+				if (UObject* TestObject = Sample.Context.Get())
+				{
+					if (UBlueprintGeneratedClass* TargetClass = Cast<UBlueprintGeneratedClass>(TestObject->GetClass()))
+					{
+						// Check to see if the current instruction maps back to the Macro library source graph; if it does, this Blueprint contains an expansion of the Macro source graph.
+						const FBlueprintDebugData& DebugData = TargetClass->GetDebugData();
+						if (UEdGraphNode* Node = DebugData.FindSourceNodeFromCodeLocation(Sample.Function.Get(), Sample.Offset, /*bAllowImpreciseHit=*/ false))
+						{
+							if (GraphObj == Node->GetGraph())
+							{
+								// Switch the target Blueprint to the context containing the expansion of the current Macro source graph in the Macro library.
+								TargetBP = CastChecked<UBlueprint>(TargetClass->ClassGeneratedBy);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return TargetBP;
+	}
+
+	return nullptr;
+}
+
+bool FKismetConnectionDrawingPolicy::CanBuildRoadmap(UBlueprint* TargetBP) const
 {
 	UObject* ActiveObject = nullptr;
-	if (UBlueprint* TargetBP = FBlueprintEditorUtils::FindBlueprintForGraph(GraphObj))
+	if (TargetBP)
 	{
 		ActiveObject = TargetBP->GetObjectBeingDebugged();
 	}
@@ -73,25 +113,25 @@ bool FKismetConnectionDrawingPolicy::CanBuildRoadmap() const
 	return ActiveObject != nullptr;
 }
 
+bool FKismetConnectionDrawingPolicy::CanBuildRoadmap() const
+{
+	return CanBuildRoadmap(GetTargetBlueprint());
+}
+
 void FKismetConnectionDrawingPolicy::BuildExecutionRoadmap()
 {
 	LatestTimeDiscovered = 0.0;
 
+	UBlueprint* TargetBP = GetTargetBlueprint();
+	
 	// Only do highlighting in PIE or SIE
-	if (!CanBuildRoadmap())
+	if (!CanBuildRoadmap(TargetBP))
 	{
 		return;
 	}
 
-	UBlueprint* TargetBP = FBlueprintEditorUtils::FindBlueprintForGraphChecked(GraphObj);
 	UObject* ActiveObject = TargetBP->GetObjectBeingDebugged();
 	check(ActiveObject); // Due to CanBuildRoadmap
-
-	// Redirect the target Blueprint when debugging with a macro graph visible
-	if (TargetBP->BlueprintType == BPTYPE_MacroLibrary)
-	{
-		TargetBP = Cast<UBlueprint>(ActiveObject->GetClass()->ClassGeneratedBy);
-	}
 
 	TArray<UEdGraphNode*> SequentialNodesInGraph;
 	TArray<double> SequentialNodeTimes;
@@ -121,47 +161,20 @@ void FKismetConnectionDrawingPolicy::BuildExecutionRoadmap()
 							SequentialNodeTimes.Add(Sample.ObservationTime);
 							SequentialExecPinsInGraph.Add(AssociatedPin);
 						}
-						else
+						else if (const TArray<TWeakObjectPtr<UEdGraphNode> >* ExpansionSourceNodes = DebugData.FindExpansionSourceNodesFromCodeLocation(Sample.Function.Get(), Sample.Offset))
 						{
-							// If the top-level source node is a macro instance node
-							UK2Node_MacroInstance* MacroInstanceNode = Cast<UK2Node_MacroInstance>(Node);
-							if (MacroInstanceNode)
+							// Attempt to find an outer expansion (tunnel instance) source node that may have also been mapped to the sample code offset.
+							for (TWeakObjectPtr<UEdGraphNode> ExpansionSourceNodePtr : *ExpansionSourceNodes)
 							{
-								// Attempt to locate the macro source node through the code mapping
-								UEdGraphNode* MacroSourceNode = DebugData.FindMacroSourceNodeFromCodeLocation(Sample.Function.Get(), Sample.Offset);
-								if (MacroSourceNode)
+								if (UEdGraphNode* TunnelInstanceNode = ExpansionSourceNodePtr.Get())
 								{
-									// If the macro source node is located in the current graph context
-									if (GraphObj == MacroSourceNode->GetGraph())
+									if (GraphObj == TunnelInstanceNode->GetGraph())
 									{
-										// Add it to the sequential node list
-										SequentialNodesInGraph.Add(MacroSourceNode);
+										SequentialNodesInGraph.Add(TunnelInstanceNode);
 										SequentialNodeTimes.Add(Sample.ObservationTime);
 										SequentialExecPinsInGraph.Add(AssociatedPin);
-									}
-									else
-									{
-										// The macro source node isn't in the current graph context, but we might have a macro instance node that is
-										// in the current graph context, so obtain the set of macro instance nodes that are mapped to the code here.
-										TArray<UEdGraphNode*> MacroInstanceNodes;
-										DebugData.FindMacroInstanceNodesFromCodeLocation(Sample.Function.Get(), Sample.Offset, MacroInstanceNodes);
 
-										// For each macro instance node in the set
-										for (auto MacroInstanceNodeIt = MacroInstanceNodes.CreateConstIterator(); MacroInstanceNodeIt; ++MacroInstanceNodeIt)
-										{
-											// If the macro instance node is located in the current graph context
-											MacroInstanceNode = Cast<UK2Node_MacroInstance>(*MacroInstanceNodeIt);
-											if (MacroInstanceNode && GraphObj == MacroInstanceNode->GetGraph())
-											{
-												// Add it to the sequential node list
-												SequentialNodesInGraph.Add(MacroInstanceNode);
-												SequentialNodeTimes.Add(Sample.ObservationTime);
-												SequentialExecPinsInGraph.Add(AssociatedPin);
-
-												// Exit the loop; we're done
-												break;
-											}
-										}
+										break;
 									}
 								}
 							}

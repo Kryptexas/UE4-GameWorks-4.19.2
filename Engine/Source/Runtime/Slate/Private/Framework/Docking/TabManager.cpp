@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Framework/Docking/TabManager.h"
 #include "Dom/JsonValue.h"
@@ -2081,6 +2081,10 @@ void FGlobalTabmanager::OnTabRelocated( const TSharedRef<SDockTab>& RelocatedTab
 				}
 			}
 		}
+#if WITH_EDITOR
+		// When a tab is relocated we need to let the content know that the dpi scale window where the tab now resides may have changed
+		FSlateApplication::Get().OnWindowDPIScaleChanged().Broadcast(NewOwnerWindow.ToSharedRef());
+#endif
 	}
 
 	FTabManager::OnTabRelocated( RelocatedTab, NewOwnerWindow );

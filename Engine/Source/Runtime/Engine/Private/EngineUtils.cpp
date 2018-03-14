@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 =============================================================================*/
@@ -123,7 +123,7 @@ bool FContentComparisonHelper::CompareClasses(const FString& InBaseClassName, co
 								int32 NewIndex = AssetList->AddZeroed();
 								FContentComparisonAssetInfo& Info = (*AssetList)[NewIndex];
 								Info.AssetName = Object->GetFullName();
-								Info.ResourceSize = Object->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
+								Info.ResourceSize = Object->GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal);
 							}
 						}
 					}

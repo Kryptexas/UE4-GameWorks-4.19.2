@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -33,8 +33,14 @@ private:
 	/** The path on disk to the directory containing the feature packs. */
 	FString FeaturePackPath;
 
+	/** The path on disk to the directory containing the enterprise feature packs. */
+	FString EnterpriseFeaturePackPath;
+
 	/** The path on disk to the directory containing the templates folder. */
 	FString TemplatePath;
+
+	/** The path on disk to the directory containing the enterprise templates folder. */
+	FString EnterpriseTemplatePath;
 
 	/** The delegate which gets called when the feature pack directory changes. This reference
 		is kept so that it can be unregistered correctly. */
@@ -45,6 +51,9 @@ private:
 
 	/** An array of the available content sources. */
 	TArray<TSharedRef<IContentSource>> ContentSources;
+
+	/** An array of the available Enterprise content sources. */
+	TArray<TSharedRef<IContentSource>> EnterpiseContentSources;
 
 	FDelegateHandle DirectoryChangedDelegateHandle;
 };

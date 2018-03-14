@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Tickable.h: Interface for tickable objects.
@@ -11,10 +11,79 @@
 #include "Stats/Stats.h"
 
 /**
+ * Enum used to convey whether a tickable object will always tick, conditionally tick, or never tick.
+ */
+enum class ETickableTickType : uint8
+{
+	/** Use IsTickable to determine whether to tick */
+	Conditional,
+
+	/** Always tick the object */
+	Always,
+
+	/** Never tick the object, do not add to tickables array */
+	Never        
+};
+
+/**
  * Base class for tickable objects
  */
 class FTickableObjectBase
 {
+protected:
+	struct FTickableObjectEntry
+	{
+		FTickableObjectBase* TickableObject;
+		ETickableTickType TickType;
+
+		bool operator==(FTickableObjectBase* OtherObject) const { return TickableObject == OtherObject; }
+	};
+
+	static void AddTickableObject(TArray<FTickableObjectEntry>& TickableObjects, FTickableObjectBase* TickableObject)
+	{
+		check(!TickableObjects.Contains(TickableObject));
+		const ETickableTickType TickType = TickableObject->GetTickableTickType();
+		if (TickType != ETickableTickType::Never)
+		{
+			TickableObjects.Add({ TickableObject, TickType });
+		}
+	}
+
+	static void RemoveTickableObject(TArray<FTickableObjectEntry>& TickableObjects, FTickableObjectBase* TickableObject, const bool bIsTickingObjects)
+	{
+		const int32 Pos = TickableObjects.IndexOfByKey(TickableObject);
+
+#if 0 // virtual from destructor doesn't work ... need to rethink how to do warning
+		// ensure that GetTickableTickType did not change over time
+		switch (TickableObject->GetTickableTickType())
+		{
+		case ETickableTickType::Always:
+			ensureMsgf(Pos != INDEX_NONE && TickableObjects[Pos].TickType == ETickableTickType::Always, TEXT("TickType has changed since object was created. Result of GetTickableTickType must be invariant for a given object."));
+			break;
+
+		case ETickableTickType::Conditional:
+			ensureMsgf(Pos != INDEX_NONE && TickableObjects[Pos].TickType == ETickableTickType::Conditional, TEXT("TickType has changed since object was created. Result of GetTickableTickType must be invariant for a given object."));
+			break;
+
+		case ETickableTickType::Never:
+			ensureMsgf(Pos == INDEX_NONE, TEXT("TickType has changed since object was created. Result of GetTickableTickType must be invariant for a given object."));
+			break;
+		}
+#endif
+
+		if (Pos != INDEX_NONE)
+		{
+			if (bIsTickingObjects)
+			{
+				TickableObjects[Pos].TickableObject = nullptr;
+			}
+			else
+			{
+				TickableObjects.RemoveAt(Pos);
+			}
+		}
+	}
+
 public:
 	/**
 	 * Pure virtual that must be overloaded by the inheriting class. It will
@@ -26,14 +95,25 @@ public:
 	virtual void Tick( float DeltaTime ) = 0;
 
 	/**
-	 * Pure virtual that must be overloaded by the inheriting class. It is
+	* Virtual that can be overloaded by the inheriting class. It is
+	* used to determine whether an object will ever be able to tick, and if not,
+	* it will not get added to the tickable objects array. If the tickable tick type
+	* is Conditional then the virtual IsTickable will be called to determine whether
+	* to tick the object on each given frame
+	*
+	* @return	true if object will ever want to be ticked, false otherwise.
+	*/
+	virtual ETickableTickType GetTickableTickType() const { return ETickableTickType::Conditional; }
+
+	/**
+	 * Virtual that can be overloaded by the inheriting class. It is
 	 * used to determine whether an object is ready to be ticked. This is 
 	 * required for example for all UObject derived classes as they might be
 	 * loaded async and therefore won't be ready immediately.
 	 *
-	 * @return	true if class is ready to be ticked, false otherwise.
+	 * @return	true if object is ready to be ticked, false otherwise.
 	 */
-	virtual bool IsTickable() const = 0;
+	virtual bool IsTickable() const { return true; }
 
 	/** return the stat id to use for this tickable **/
 	virtual TStatId GetStatId() const = 0;
@@ -45,8 +125,20 @@ public:
  */
 class ENGINE_API FTickableGameObject : public FTickableObjectBase
 {
+private:
 	/** Static array of tickable objects */
-	static TArray<FTickableGameObject*> TickableObjects;
+	static TArray<FTickableObjectEntry>& GetTickableObjects()
+	{
+		static TArray<FTickableObjectEntry> TickableObjects;
+		return TickableObjects;
+	}
+
+	static TArray<FTickableGameObject*>& GetPendingTickableObjects()
+	{
+		static TArray<FTickableGameObject*> PendingTickableObjects;
+		return PendingTickableObjects;
+	}
+
 	static bool bIsTickingObjects;
 
 public:
@@ -56,8 +148,9 @@ public:
 	 */
 	FTickableGameObject()
 	{
-		check(!TickableObjects.Contains(this));
-		TickableObjects.Add( this );
+		check(!GetPendingTickableObjects().Contains(this));
+		check(!GetTickableObjects().Contains(this));
+		GetPendingTickableObjects().Add(this);
 	}
 
 	/**
@@ -65,16 +158,9 @@ public:
 	 */
 	virtual ~FTickableGameObject()
 	{
-		// make sure this tickable object was registered from the game thread
-		const int32 Pos = TickableObjects.Find(this);
-		check(Pos!=INDEX_NONE);
-		if (bIsTickingObjects)
+		if (GetPendingTickableObjects().Remove(this) == 0)
 		{
-			TickableObjects[Pos] = nullptr;
-		}
-		else
-		{
-			TickableObjects.RemoveAt(Pos);
+			RemoveTickableObject(GetTickableObjects(), this, bIsTickingObjects);
 		}
 	}
 

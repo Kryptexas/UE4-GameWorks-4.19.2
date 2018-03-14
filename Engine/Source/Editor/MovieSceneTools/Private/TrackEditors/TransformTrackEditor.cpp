@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "TrackEditors/TransformTrackEditor.h"
 #include "GameFramework/Actor.h"
@@ -80,6 +80,27 @@ protected:
 			}
 		}
 		return TOptional<FTransform>();
+	}
+	virtual TOptional<FRotator> GetCurrentRotator() const
+	{
+		TSharedPtr<ISequencer> Sequencer = WeakSequencer.Pin();
+		if (Sequencer.IsValid())
+		{
+			for (TWeakObjectPtr<> WeakObject : Sequencer->FindBoundObjects(ObjectBinding, Sequencer->GetFocusedTemplateID()))
+			{
+				if (UObject* Object = WeakObject.Get())
+				{
+					AActor* Actor = nullptr;
+					USceneComponent* Component = nullptr;
+					GetActorAndSceneComponentFromObject(Object, Actor, Component);
+					if (Component)
+					{
+						return Component->RelativeRotation;
+					}
+				}
+			}
+		}
+		return TOptional<FRotator>();
 	}
 };
 
@@ -699,6 +720,19 @@ void GetKeysForVector( bool LastVectorIsValid, const FVector& LastVector, const 
 	ZKeys.Add( FTransformKey( VectorChannel, EAxis::Z, CurrentVector.Z, bUnwindRotation ) );
 }
 
+float UnwindChannel(const float& OldValue, float NewValue)
+{
+	while( NewValue - OldValue > 180.0f )
+	{
+		NewValue -= 360.0f;
+	}
+	while( NewValue - OldValue < -180.0f )
+	{
+		NewValue += 360.0f;
+	}
+	return NewValue;
+}
+
 void F3DTransformTrackEditor::GetTransformKeys( const FTransformData& LastTransform, const FTransformData& CurrentTransform, EKey3DTransformChannel::Type ChannelsToKey, bool bUnwindRotation, TArray<FTransformKey>& OutNewKeys, TArray<FTransformKey>& OutDefaultKeys )
 {
 	bool bLastVectorIsValid = LastTransform.IsValid();
@@ -710,8 +744,18 @@ void F3DTransformTrackEditor::GetTransformKeys( const FTransformData& LastTransf
 		ChannelsToKey = EKey3DTransformChannel::All;
 	}
 
+	// Unwind rotation
+	FRotator CurrentRotator = CurrentTransform.Rotation;
+	FRotator LastRotator = LastTransform.Rotation;
+	if (LastTransform.IsValid())
+	{
+		CurrentRotator.Yaw = UnwindChannel(LastRotator.Yaw, CurrentRotator.Yaw);
+		CurrentRotator.Pitch = UnwindChannel(LastRotator.Pitch, CurrentRotator.Pitch);
+		CurrentRotator.Roll = UnwindChannel(LastRotator.Roll, CurrentRotator.Roll);
+	}
+
 	GetKeysForVector( bLastVectorIsValid, LastTransform.Translation, CurrentTransform.Translation, EKey3DTransformChannel::Translation, ChannelsToKey, bUnwindRotation, OutNewKeys, OutDefaultKeys );
-	GetKeysForVector( bLastVectorIsValid, LastTransform.Rotation.Euler(), CurrentTransform.Rotation.Euler(), EKey3DTransformChannel::Rotation, ChannelsToKey, bUnwindRotation, OutNewKeys, OutDefaultKeys );
+	GetKeysForVector( bLastVectorIsValid, LastRotator.Euler(), CurrentRotator.Euler(), EKey3DTransformChannel::Rotation, ChannelsToKey, bUnwindRotation, OutNewKeys, OutDefaultKeys );
 	GetKeysForVector( bLastVectorIsValid, LastTransform.Scale, CurrentTransform.Scale, EKey3DTransformChannel::Scale, ChannelsToKey, bUnwindRotation, OutNewKeys, OutDefaultKeys );
 }
 

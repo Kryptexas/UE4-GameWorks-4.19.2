@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DSP/EnvelopeFollower.h"
 #include "DSP/Dsp.h"
@@ -92,6 +92,18 @@ namespace Audio
 
 		// Update and return the envelope value
 		return CurrentEnvelopeValue = NewEnvelopeValue;
+	}
+
+	int16 FEnvelopeFollower::ProcessAudio(const int16 InAudioSample)
+	{
+		// Convert to float
+		float SampleValueFloat = (float)InAudioSample / 32767.0f;
+
+		// Process it
+		float Result = ProcessAudio(SampleValueFloat);
+
+		// Convert back to int16
+		return (int16)(Result * 32767.0f);
 	}
 
 	float FEnvelopeFollower::GetCurrentValue() const

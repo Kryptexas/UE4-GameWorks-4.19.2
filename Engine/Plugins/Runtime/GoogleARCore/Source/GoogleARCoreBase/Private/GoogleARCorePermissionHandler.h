@@ -9,7 +9,7 @@
 #include "GoogleARCorePermissionHandler.generated.h"
 
 UCLASS()
-class UTangoAndroidPermissionHandler: public UObject
+class UARCoreAndroidPermissionHandler: public UObject
 {
 	GENERATED_UCLASS_BODY()
 public:

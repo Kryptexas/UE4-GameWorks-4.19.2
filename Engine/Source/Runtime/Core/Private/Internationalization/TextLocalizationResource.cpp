@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Internationalization/TextLocalizationResource.h"
 #include "Internationalization/TextLocalizationResourceVersion.h"
@@ -40,6 +40,13 @@ bool FTextLocalizationMetaDataResource::LoadFromArchive(FArchive& Archive, const
 		}
 
 		Archive << VersionNumber;
+	}
+
+	// Is this LocMeta file too new to load?
+	if (VersionNumber > FTextLocalizationResourceVersion::ELocMetaVersion::Latest)
+	{
+		UE_LOG(LogTextLocalizationResource, Error, TEXT("LocMeta '%s' is too new to be loaded (File Version: %d, Loader Version: %d)"), *LocMetaID, (int32)VersionNumber, (int32)FTextLocalizationResourceVersion::ELocMetaVersion::Latest);
+		return false;
 	}
 
 	Archive << NativeCulture;
@@ -132,6 +139,13 @@ bool FTextLocalizationResource::LoadFromArchive(FArchive& Archive, const FString
 		Archive.Seek(0);
 		//UE_LOG(LogTextLocalizationResource, Warning, TEXT("LocRes '%s' failed the magic number check! Assuming this is a legacy resource (please re-generate your localization resources!)"), *LocalizationResourceIdentifier);
 		UE_LOG(LogTextLocalizationResource, Log, TEXT("LocRes '%s' failed the magic number check! Assuming this is a legacy resource (please re-generate your localization resources!)"), *LocalizationResourceIdentifier);
+	}
+
+	// Is this LocRes file too new to load?
+	if (VersionNumber > FTextLocalizationResourceVersion::ELocResVersion::Latest)
+	{
+		UE_LOG(LogTextLocalizationResource, Error, TEXT("LocRes '%s' is too new to be loaded (File Version: %d, Loader Version: %d)"), *LocalizationResourceIdentifier, (int32)VersionNumber, (int32)FTextLocalizationResourceVersion::ELocResVersion::Latest);
+		return false;
 	}
 
 	// Read the localized string array

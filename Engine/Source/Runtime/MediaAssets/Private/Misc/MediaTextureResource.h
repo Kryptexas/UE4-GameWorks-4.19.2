@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -35,9 +35,12 @@ public:
 	 * Creates and initializes a new instance.
 	 *
 	 * @param InOwner The Movie texture object to create a resource for (must not be nullptr).
-	 * @param InSink The sink that receives texture samples from the media player.
+	 * @param InOwnerDim Reference to the width and height of the texture that owns this resource (will be updated by resource).
+	 * @param InOWnerSize Reference to the size in bytes of the texture that owns this resource (will be updated by resource).
+	 * @param InClearColor The initial clear color.
+	 * @param InTextureGuid The initial external texture GUID.
 	 */
-	FMediaTextureResource(UMediaTexture& InOwner, FIntPoint& InOwnerDim, SIZE_T& InOwnerSize);
+	FMediaTextureResource(UMediaTexture& InOwner, FIntPoint& InOwnerDim, SIZE_T& InOwnerSize, FLinearColor InClearColor, FGuid InTextureGuid);
 
 	/** Virtual destructor. */
 	virtual ~FMediaTextureResource() { }
@@ -47,11 +50,17 @@ public:
 	/** Parameters for the Render method. */
 	struct FRenderParams
 	{
+		/** Whether the texture can be cleared. */
+		bool CanClear;
+
 		/** The clear color to use when clearing the texture. */
 		FLinearColor ClearColor;
 
-		/** Guid associated with media player. */
-		FGuid PlayerGuid;
+		/** The texture's current external texture GUID. */
+		FGuid CurrentGuid;
+
+		/** The texture's previously used external texture GUID. */
+		FGuid PreviousGuid;
 
 		/** The player's play rate. */
 		float Rate;
@@ -139,6 +148,9 @@ private:
 
 	/** Tracks the current clear color. */
 	FLinearColor CurrentClearColor;
+
+	/** The external texture GUID to use when initializing this resource. */
+	FGuid InitialTextureGuid;
 
 	/** Input render target if the texture samples don't provide one (for conversions). */
 	TRefCountPtr<FRHITexture2D> InputTarget;

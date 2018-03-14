@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -113,10 +113,16 @@ protected:
 private:
 	float MaxAudibleDistance;
 
+	uint32 bHasVirtualizedSoundWaves:1;
+	uint32 bVirtualizeSoundWavesInitialized:1;
+	uint32 bHasAttenuationNode:1;
+	uint32 bHasAttenuationNodeInitialized:1;
+	uint32 bShouldApplyInteriorVolumes:1;
+	uint32 bShouldApplyInteriorVolumesCached:1;
+
 public:
 
 	//~ Begin UObject Interface.
-	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	virtual FString GetDesc() override;
 #if WITH_EDITOR
 	virtual void PostInitProperties() override;
@@ -129,11 +135,13 @@ public:
 
 	//~ Begin USoundBase Interface.
 	virtual bool IsPlayable() const override;
-	virtual bool ShouldApplyInteriorVolumes() const override;
+	virtual bool ShouldApplyInteriorVolumes() override;
 	virtual void Parse( class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
 	virtual float GetVolumeMultiplier() override;
 	virtual float GetPitchMultiplier() override;
 	virtual float GetMaxAudibleDistance() override;
+	virtual bool IsAllowedVirtual() const override;
+	virtual bool HasAttenuationNode() const override;
 	virtual float GetDuration() override;
 	virtual const FSoundAttenuationSettings* GetAttenuationSettingsToApply() const override;
 	virtual float GetSubtitlePriority() const override;
@@ -201,6 +209,8 @@ private:
 	void AudioQualityChanged();
 	void OnPostEngineInit();
 	void EvaluateNodes(bool bAddToRoot);
+
+	void CacheNodeState();
 
 	FDelegateHandle OnPostEngineInitHandle;
 	static int32 CachedQualityLevel;

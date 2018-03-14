@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraGraph.h"
 #include "Modules/ModuleManager.h"
@@ -24,13 +24,35 @@
 #include "NiagaraNodeParameterMapGet.h"
 #include "INiagaraEditorTypeUtilities.h"
 #include "NiagaraConstants.h"
+#include "NiagaraEditorModule.h"
 
+DECLARE_CYCLE_STAT(TEXT("NiagaraEditor - Graph - FindInputNodes"), STAT_NiagaraEditor_Graph_FindInputNodes, STATGROUP_NiagaraEditor);
+DECLARE_CYCLE_STAT(TEXT("NiagaraEditor - Graph - FindInputNodes_NotFilterUsage"), STAT_NiagaraEditor_Graph_FindInputNodes_NotFilterUsage, STATGROUP_NiagaraEditor);
+DECLARE_CYCLE_STAT(TEXT("NiagaraEditor - Graph - FindInputNodes_FilterUsage"), STAT_NiagaraEditor_Graph_FindInputNodes_FilterUsage, STATGROUP_NiagaraEditor);
+DECLARE_CYCLE_STAT(TEXT("NiagaraEditor - Graph - FindInputNodes_FilterDupes"), STAT_NiagaraEditor_Graph_FindInputNodes_FilterDupes, STATGROUP_NiagaraEditor);
+DECLARE_CYCLE_STAT(TEXT("NiagaraEditor - Graph - FindInputNodes_FindInputNodes_Sort"), STAT_NiagaraEditor_Graph_FindInputNodes_Sort, STATGROUP_NiagaraEditor);
+DECLARE_CYCLE_STAT(TEXT("NiagaraEditor - Graph - FindOutputNode"), STAT_NiagaraEditor_Graph_FindOutputNode, STATGROUP_NiagaraEditor);
+DECLARE_CYCLE_STAT(TEXT("NiagaraEditor - Graph - BuildTraversalHelper"), STAT_NiagaraEditor_Graph_BuildTraversalHelper, STATGROUP_NiagaraEditor);
 
 UNiagaraGraph::UNiagaraGraph(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	Schema = UEdGraphSchema_Niagara::StaticClass();
 	ChangeId = FGuid::NewGuid();
+}
+void UNiagaraGraph::NotifyGraphChanged(const FEdGraphEditAction& InAction)
+{
+	if ((InAction.Action & GRAPHACTION_AddNode) != 0 || (InAction.Action & GRAPHACTION_RemoveNode) != 0 ||
+		(InAction.Action & GRAPHACTION_GenericNeedsRecompile) != 0)
+	{
+		MarkGraphRequiresSynchronization();
+	}
+	Super::NotifyGraphChanged(InAction);
+}
+
+void UNiagaraGraph::NotifyGraphChanged()
+{
+	Super::NotifyGraphChanged();
 }
 
 void UNiagaraGraph::PostLoad()
@@ -127,8 +149,7 @@ class UNiagaraScriptSource* UNiagaraGraph::GetSource() const
 	return CastChecked<UNiagaraScriptSource>(GetOuter());
 }
 
-
-UEdGraphPin* UNiagaraGraph::FindParameterMapDefaultValuePin(const FString& VariableName)
+UEdGraphPin* UNiagaraGraph::FindParameterMapDefaultValuePin(const FName VariableName)
 {
 	TArray<UEdGraphPin*> MatchingDefaultPins;
 	TArray<UNiagaraNodeParameterMapGet*> GetNodes;
@@ -142,18 +163,12 @@ UEdGraphPin* UNiagaraGraph::FindParameterMapDefaultValuePin(const FString& Varia
 		{
 			if (VariableName == OutputPin->PinName)
 			{
-				UEdGraphPin* Pin = GetNode->GetDefaultPin(OutputPin);
-				if (Pin)
+				if (UEdGraphPin* Pin = GetNode->GetDefaultPin(OutputPin))
 				{
-					MatchingDefaultPins.Add(Pin);
+					return Pin;
 				}
 			}
 		}
-	}
-
-	if (MatchingDefaultPins.Num() > 0)
-	{
-		return MatchingDefaultPins[0];
 	}
 
 	return nullptr;
@@ -183,22 +198,19 @@ void UNiagaraGraph::FindOutputNodes(ENiagaraScriptUsage TargetUsageType, TArray<
 		}
 	}
 
-	NodesFound.Sort([](const UNiagaraNodeOutput& LHS, const UNiagaraNodeOutput& RHS) { return LHS.GetUsageIndex() > RHS.GetUsageIndex(); });
 	OutputNodes = NodesFound;
 }
 
-UNiagaraNodeOutput* UNiagaraGraph::FindOutputNode(ENiagaraScriptUsage TargetUsageType, int32 TargetOccurence) const
+UNiagaraNodeOutput* UNiagaraGraph::FindOutputNode(ENiagaraScriptUsage TargetUsageType, FGuid TargetUsageId) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_NiagaraEditor_Graph_FindOutputNode);
 	for (UEdGraphNode* Node : Nodes)
 	{
 		if (UNiagaraNodeOutput* OutNode = Cast<UNiagaraNodeOutput>(Node))
 		{
-			if (OutNode->GetUsage() == TargetUsageType)
+			if (OutNode->GetUsage() == TargetUsageType && OutNode->GetUsageId() == TargetUsageId)
 			{
-				if (OutNode->ScriptTypeIndex == TargetOccurence)
-				{
-					return OutNode;
-				}
+				return OutNode;
 			}
 		}
 	}
@@ -212,21 +224,28 @@ void BuildTraversalHelper(TArray<class UNiagaraNode*>& OutNodesTraversed, UNiaga
 		return;
 	}
 
+	SCOPE_CYCLE_COUNTER(STAT_NiagaraEditor_Graph_BuildTraversalHelper);
+
 	TArray<UEdGraphPin*> Pins = CurrentNode->GetAllPins();
 	for (int32 i = 0; i < Pins.Num(); i++)
 	{
 		if (Pins[i]->Direction == EEdGraphPinDirection::EGPD_Input && Pins[i]->LinkedTo.Num() == 1)
 		{
-			BuildTraversalHelper(OutNodesTraversed, Cast<UNiagaraNode>(Pins[i]->LinkedTo[0]->GetOwningNode()));
+			UNiagaraNode* Node = Cast<UNiagaraNode>(Pins[i]->LinkedTo[0]->GetOwningNode());
+			if (OutNodesTraversed.Contains(Node))
+			{
+				continue;
+			}
+			BuildTraversalHelper(OutNodesTraversed, Node);
 		}
 	}
 
 	OutNodesTraversed.Add(CurrentNode);
 }
 
-void UNiagaraGraph::BuildTraversal(TArray<class UNiagaraNode*>& OutNodesTraversed, ENiagaraScriptUsage TargetUsage, int32 TargetOccurence) const
+void UNiagaraGraph::BuildTraversal(TArray<class UNiagaraNode*>& OutNodesTraversed, ENiagaraScriptUsage TargetUsage, FGuid TargetUsageId) const
 {
-	UNiagaraNodeOutput* Output = FindOutputNode(TargetUsage, TargetOccurence);
+	UNiagaraNodeOutput* Output = FindOutputNode(TargetUsage, TargetUsageId);
 	if (Output)
 	{
 		BuildTraversalHelper(OutNodesTraversed, Output);
@@ -244,10 +263,13 @@ void UNiagaraGraph::BuildTraversal(TArray<class UNiagaraNode*>& OutNodesTraverse
 
 void UNiagaraGraph::FindInputNodes(TArray<UNiagaraNodeInput*>& OutInputNodes, UNiagaraGraph::FFindInputNodeOptions Options) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_NiagaraEditor_Graph_FindInputNodes);
 	TArray<UNiagaraNodeInput*> InputNodes;
 
 	if (!Options.bFilterByScriptUsage)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_NiagaraEditor_Graph_FindInputNodes_NotFilterUsage);
+
 		for (UEdGraphNode* Node : Nodes)
 		{
 			UNiagaraNodeInput* NiagaraInputNode = Cast<UNiagaraNodeInput>(Node);
@@ -262,8 +284,10 @@ void UNiagaraGraph::FindInputNodes(TArray<UNiagaraNodeInput*>& OutInputNodes, UN
 	}
 	else
 	{
+		SCOPE_CYCLE_COUNTER(STAT_NiagaraEditor_Graph_FindInputNodes_FilterUsage);
+
 		TArray<class UNiagaraNode*> Traversal;
-		BuildTraversal(Traversal, Options.TargetScriptUsage, Options.TargetOccurence);
+		BuildTraversal(Traversal, Options.TargetScriptUsage, Options.TargetScriptUsageId);
 		for (UNiagaraNode* Node : Traversal)
 		{
 			UNiagaraNodeInput* NiagaraInputNode = Cast<UNiagaraNodeInput>(Node);
@@ -279,6 +303,8 @@ void UNiagaraGraph::FindInputNodes(TArray<UNiagaraNodeInput*>& OutInputNodes, UN
 
 	if (Options.bFilterDuplicates)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_NiagaraEditor_Graph_FindInputNodes_FilterDupes);
+
 		for (UNiagaraNodeInput* InputNode : InputNodes)
 		{
 			auto NodeMatches = [=](UNiagaraNodeInput* UniqueInputNode)
@@ -306,6 +332,8 @@ void UNiagaraGraph::FindInputNodes(TArray<UNiagaraNodeInput*>& OutInputNodes, UN
 
 	if (Options.bSort)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_NiagaraEditor_Graph_FindInputNodes_Sort);
+
 		UNiagaraNodeInput::SortNodes(OutInputNodes);
 	}
 }
@@ -399,6 +427,31 @@ void UNiagaraGraph::GetOutputNodeVariables(ENiagaraScriptUsage InScriptUsage, TA
 	}
 }
 
+bool UNiagaraGraph::HasParameterMapParameters()const
+{
+	TArray<FNiagaraVariable> Inputs;
+	TArray<FNiagaraVariable> Outputs;
+
+	GetParameters(Inputs, Outputs);
+
+	for (FNiagaraVariable& Var : Inputs)
+	{
+		if (Var.GetType() == FNiagaraTypeDefinition::GetParameterMapDef())
+		{
+			return true;
+		}
+	}
+	for (FNiagaraVariable& Var : Outputs)
+	{
+		if (Var.GetType() == FNiagaraTypeDefinition::GetParameterMapDef())
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool UNiagaraGraph::HasNumericParameters()const
 {
 	TArray<FNiagaraVariable> Inputs;
@@ -429,6 +482,11 @@ void UNiagaraGraph::NotifyGraphNeedsRecompile()
 	FEdGraphEditAction Action;
 	Action.Action = (EEdGraphActionType)GRAPHACTION_GenericNeedsRecompile;
 	NotifyGraphChanged(Action);
+}
+
+void UNiagaraGraph::NotifyGraphDataInterfaceChanged()
+{
+	OnDataInterfaceChangedDelegate.Broadcast();
 }
 
 void UNiagaraGraph::SubsumeExternalDependencies(TMap<const UObject*, UObject*>& ExistingConversions)
@@ -497,4 +555,59 @@ void UNiagaraGraph::MarkGraphRequiresSynchronization()
 	Modify();
 	ChangeId = FGuid::NewGuid();
 	UE_LOG(LogNiagaraEditor, Log, TEXT("MarkGraphRequiresSynchronization %s"), *ChangeId.ToString());
+}
+
+/** Get the meta-data associated with this variable, if it exists.*/
+FNiagaraVariableMetaData* UNiagaraGraph::GetMetaData(const FNiagaraVariable& InVar)
+{
+	return VariableToMetaData.Find(InVar);
+}
+
+const FNiagaraVariableMetaData* UNiagaraGraph::GetMetaData(const FNiagaraVariable& InVar) const
+{
+	return VariableToMetaData.Find(InVar);
+}
+
+/** Return the meta-data associated with this variable. This should only be called on variables defined within this Graph, otherwise meta-data may leak.*/
+FNiagaraVariableMetaData& UNiagaraGraph::FindOrAddMetaData(const FNiagaraVariable& InVar)
+{
+	FNiagaraVariableMetaData* FoundMetaData = VariableToMetaData.Find(InVar);
+	if (FoundMetaData)
+	{
+		return *FoundMetaData;
+	}
+	// We shouldn't add constants to the graph's meta-data list. Those are stored globally.
+	ensure(FNiagaraConstants::IsNiagaraConstant(InVar) == false);
+	return VariableToMetaData.Add(InVar);
+}
+
+void UNiagaraGraph::PurgeUnreferencedMetaData()
+{
+	TArray<FNiagaraVariable> VarsToRemove;
+	for (auto It = VariableToMetaData.CreateConstIterator(); It; ++It)
+	{
+		int32 NumValid = 0;
+		for (TWeakObjectPtr<UObject> WeakPtr : It.Value().ReferencerNodes)
+		{
+			if (WeakPtr.IsValid())
+			{
+				NumValid++;
+			}
+		}
+
+		if (NumValid == 0)
+		{
+			VarsToRemove.Add(It.Key());
+		}
+	}
+
+	for (FNiagaraVariable& Var : VarsToRemove)
+	{
+		VariableToMetaData.Remove(Var);
+	}
+}
+
+UNiagaraGraph::FOnDataInterfaceChanged& UNiagaraGraph::OnDataInterfaceChanged()
+{
+	return OnDataInterfaceChangedDelegate;
 }

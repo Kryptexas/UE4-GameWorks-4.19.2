@@ -1,49 +1,12 @@
-﻿INTSourceChangelist:3112291
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:일인칭
 Crumbs:%ROOT%
 Description:다양한 예제 씬, 샘플 게임, 튜토리얼에 대한 링크입니다.
 Navigation:topic
 Version: 4.9
+topic-image:FP_FirstPersonBP_Preview.png
 
-[VAR:Params]
-[PARAM:image]
-	![](FP_FirstPersonBP_Preview.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/tutorial_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Resources/Templates/FirstPerson:title%
-[/PARAM]
-[PARAM:description]
-	%Resources/Templates/FirstPerson:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Resources/Templates/FirstPerson]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:Role]
-[OBJECT:Role]
-%params%
-[PARAMLITERAL:id]
-resources
-[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
 
 ![](templateMore1.png)(convert:false)
 

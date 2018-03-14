@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,21 +13,13 @@
 #include "Evaluation/MovieSceneEvaluationField.h"
 #include "Containers/ArrayView.h"
 #include "Evaluation/MovieSceneEvaluationTrack.h"
+#include "Evaluation/MovieSceneEvaluationTree.h"
 #include "Evaluation/MovieSceneSequenceHierarchy.h"
-#include "Compilation/IMovieSceneTemplateGenerator.h"
-#include "Evaluation/MovieSceneSequenceTemplateStore.h"
 #include "MovieSceneEvaluationTemplate.generated.h"
 
 class UMovieSceneSequence;
+class UMovieSceneSubSection;
 
-USTRUCT()
-struct FMovieSceneTrackIdentifiers
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	TArray<FMovieSceneTrackIdentifier> Data;
-};
 
 
 USTRUCT()
@@ -37,24 +29,99 @@ struct FMovieSceneTemplateGenerationLedger
 
 public:
 
-	TArrayView<const FMovieSceneTrackIdentifier> FindTracks(const FGuid& InSignature) const;
+	/**
+	 * Lookup a track identifier by its originating signature
+	 */
+	MOVIESCENE_API FMovieSceneTrackIdentifier FindTrack(const FGuid& InSignature) const;
 
-	void AddTrack(const FGuid& InSignature, FMovieSceneTrackIdentifier Identifier);
+	/**
+	 * Add a new track for the specified signature. Signature must not have already been used
+	 */
+	MOVIESCENE_API void AddTrack(const FGuid& InSignature, FMovieSceneTrackIdentifier Identifier);
+
+	/**
+	 * Check whether we already have a sub section for the specified signature
+	 */
+	bool ContainsSubSection(const FGuid& InSignature)
+	{
+		return SubSectionRanges.Contains(InSignature);
+	}
 
 public:
 
 	UPROPERTY()
 	FMovieSceneTrackIdentifier LastTrackIdentifier;
 
-	/** Map of track identifiers to number of references within th template (generally 1, maybe >1 for shared tracks) */
-	UPROPERTY()
-	TMap<FMovieSceneTrackIdentifier, int32> TrackReferenceCounts;
-
 	/** Map of track signature to array of track identifiers that it created */
 	UPROPERTY()
-	TMap<FGuid, FMovieSceneTrackIdentifiers> TrackSignatureToTrackIdentifier;
+	TMap<FGuid, FMovieSceneTrackIdentifier> TrackSignatureToTrackIdentifier;
+
+	/** Map of sub section ranges that exist in a template */
+	UPROPERTY()
+	TMap<FGuid, FFloatRange> SubSectionRanges;
 };
 template<> struct TStructOpsTypeTraits<FMovieSceneTemplateGenerationLedger> : public TStructOpsTypeTraitsBase2<FMovieSceneTemplateGenerationLedger> { enum { WithCopy = true }; };
+
+/** Custom serialized track field data that allows efficient lookup of each track contained within this template for a given time */
+USTRUCT()
+struct FMovieSceneTrackFieldData
+{
+	GENERATED_BODY()
+
+	bool Serialize(FArchive& Ar)
+	{
+		Ar << Field;
+		return true;
+	}
+
+	TMovieSceneEvaluationTree<FMovieSceneTrackIdentifier> Field;
+};
+template<> struct TStructOpsTypeTraits<FMovieSceneTrackFieldData> : public TStructOpsTypeTraitsBase2<FMovieSceneTrackFieldData> { enum { WithSerializer = true }; };
+
+/** Data that represents a single sub-section */
+USTRUCT()
+struct FMovieSceneSubSectionData
+{
+	GENERATED_BODY()
+
+	FMovieSceneSubSectionData() {}
+
+	FMovieSceneSubSectionData(UMovieSceneSubSection& InSubSection, const FGuid& InObjectBindingId, ESectionEvaluationFlags InFlags);
+
+	friend FArchive& operator<<(FArchive& Ar, FMovieSceneSubSectionData& In)
+	{
+		return Ar << In.Section << In.ObjectBindingId << In.Flags;
+	}
+
+	/** The sub section itself */
+	UPROPERTY()
+	TWeakObjectPtr<UMovieSceneSubSection> Section;
+
+	/** The object binding that the sub section belongs to (usually zero) */
+	UPROPERTY()
+	FGuid ObjectBindingId;
+
+	/** Evaluation flags for the section */
+	UPROPERTY()
+	ESectionEvaluationFlags Flags;
+};
+
+/** Custom serialized track field data that allows efficient lookup of each sub section contained within this template for a given time */
+USTRUCT()
+struct FMovieSceneSubSectionFieldData
+{
+	GENERATED_BODY()
+
+	bool Serialize(FArchive& Ar)
+	{
+		Ar << Field;
+		return true;
+	}
+
+	TMovieSceneEvaluationTree<FMovieSceneSubSectionData> Field;
+};
+template<> struct TStructOpsTypeTraits<FMovieSceneSubSectionFieldData> : public TStructOpsTypeTraitsBase2<FMovieSceneSubSectionFieldData> { enum { WithSerializer = true }; };
+
 
 /**
  * Template that is used for efficient runtime evaluation of a movie scene sequence. Potentially serialized into the asset.
@@ -69,46 +136,9 @@ struct FMovieSceneEvaluationTemplate
 	 */
 	FMovieSceneEvaluationTemplate()
 	{
-		bHasLegacyTrackInstances = 0;
-		bKeepStaleTracks = 0;
 	}
-
-	/**
-	 * Move construction/assignment
-	 */
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-	FMovieSceneEvaluationTemplate(FMovieSceneEvaluationTemplate&&) = default;
-	FMovieSceneEvaluationTemplate& operator=(FMovieSceneEvaluationTemplate&&) = default;
-#else
-	FMovieSceneEvaluationTemplate(FMovieSceneEvaluationTemplate&& RHS)
-	{
-		*this = MoveTemp(RHS);
-	}
-	FMovieSceneEvaluationTemplate& operator=(FMovieSceneEvaluationTemplate&& RHS)
-	{
-		Tracks = MoveTemp(RHS.Tracks);
-		StaleTracks = MoveTemp(RHS.StaleTracks);
-		EvaluationField = MoveTemp(RHS.EvaluationField);
-		Hierarchy = MoveTemp(RHS.Hierarchy);
-		Ledger = MoveTemp(RHS.Ledger);
-		bHasLegacyTrackInstances = RHS.bHasLegacyTrackInstances;
-		bKeepStaleTracks = RHS.bKeepStaleTracks;
-		return *this;
-	}
-#endif
-
-	/**
-	 * Non-copyable
-	 */
-	FMovieSceneEvaluationTemplate(const FMovieSceneEvaluationTemplate&) = default;
-	FMovieSceneEvaluationTemplate& operator=(const FMovieSceneEvaluationTemplate&) = default;
 
 public:
-
-	/**
-	 * Reset this evaluation template, whilst ensuring that track identifiers do not get reused
-	 */
-	MOVIESCENE_API void ResetGeneratedData();
 
 	/**
 	 * Attempt to locate a track with the specified identifier
@@ -116,12 +146,12 @@ public:
 	FMovieSceneEvaluationTrack* FindTrack(FMovieSceneTrackIdentifier Identifier)
 	{
 		// Fast, most common path
-		if (FMovieSceneEvaluationTrack* Track = Tracks.Find(Identifier.Value))
+		if (FMovieSceneEvaluationTrack* Track = Tracks.Find(Identifier))
 		{
 			return Track;
 		}
 
-		return bKeepStaleTracks ? StaleTracks.Find(Identifier.Value) : nullptr;
+		return StaleTracks.Find(Identifier);
 	}
 
 	/**
@@ -130,12 +160,28 @@ public:
 	const FMovieSceneEvaluationTrack* FindTrack(FMovieSceneTrackIdentifier Identifier) const
 	{
 		// Fast, most common path
-		if (const FMovieSceneEvaluationTrack* Track = Tracks.Find(Identifier.Value))
+		if (const FMovieSceneEvaluationTrack* Track = Tracks.Find(Identifier))
 		{
 			return Track;
 		}
 
-		return bKeepStaleTracks ? StaleTracks.Find(Identifier.Value) : nullptr;
+		return StaleTracks.Find(Identifier);
+	}
+
+	/**
+	 * Find a track within this template that relates to the specified signature
+	 */
+	FMovieSceneEvaluationTrack* FindTrack(const FGuid& InSignature)
+	{
+		return FindTrack(TemplateLedger.FindTrack(InSignature));
+	}
+
+	/**
+	 * Find a track within this template that relates to the specified signature
+	 */
+	const FMovieSceneEvaluationTrack* FindTrack(const FGuid& InSignature) const
+	{
+		return FindTrack(TemplateLedger.FindTrack(InSignature));
 	}
 
 	/**
@@ -143,13 +189,26 @@ public:
 	 */
 	bool IsTrackStale(FMovieSceneTrackIdentifier Identifier) const
 	{
-		return bKeepStaleTracks ? StaleTracks.Contains(Identifier.Value) : false;
+		return StaleTracks.Contains(Identifier);
 	}
+
+	/**
+	 * Add a new sub section
+	 */
+	MOVIESCENE_API void AddSubSectionRange(UMovieSceneSubSection& InSubSection, const FGuid& InObjectBindingId, const TRange<float>& InRange, ESectionEvaluationFlags InFlags);
 
 	/**
 	 * Add a new track for the specified identifier
 	 */
 	MOVIESCENE_API FMovieSceneTrackIdentifier AddTrack(const FGuid& InSignature, FMovieSceneEvaluationTrack&& InTrack);
+
+	/**
+	 * Define the structural lookup for the specified track identifier, optionally invalidating any overlapping areas in the evaluation field
+	 *
+	 * @param TrackIdentifier 				The identifier for the track
+	 * @param bInvalidateEvaluationField 	Whether to invalidate any overlapping sections of the cached evaluation field
+	 */
+	MOVIESCENE_API void DefineTrackStructure(FMovieSceneTrackIdentifier TrackIdentifier, bool bInvalidateEvaluationField);
 
 	/**
 	 * Remove any tracks that correspond to the specified signature
@@ -167,11 +226,6 @@ public:
 	 * Beware of using this to modify tracks afterwards as it will almost certainly break evaluation.
 	 */
 	MOVIESCENE_API TMap<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack>& GetTracks();
-
-	/**
-	 * Find tracks within this template that relate to the specified signature
-	 */
-	MOVIESCENE_API TArrayView<const FMovieSceneTrackIdentifier> FindTracks(const FGuid& InSignature) const;
 
 	/**
 	 * Called after this template has been serialized in some way
@@ -196,14 +250,34 @@ public:
 		return TemplateLedger;
 	}
 
+	/**
+	 * Remove any data within this template that does not reside in the specified set of signatures
+	 */
+	void RemoveStaleData(const TSet<FGuid>& ActiveSignatures);
+
+	/**
+	 * Reset this template's field data and sub section cache (keeps tracks alive)
+	 */
+	void ResetFieldData();
+
+	/**
+	 * Access this template's track field
+	 */
+	const TMovieSceneEvaluationTree<FMovieSceneTrackIdentifier>& GetTrackField() const;
+
+	/**
+	 * Access this template's sub section field
+	 */
+	const TMovieSceneEvaluationTree<FMovieSceneSubSectionData>& GetSubSectionField() const;
+
 private:
 
 	/** Map of evaluation tracks from identifier to track */
 	UPROPERTY()
-	TMap<uint32, FMovieSceneEvaluationTrack> Tracks;
+	TMap<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack> Tracks;
 
-	/** Transient map of stale tracks. Only populated dureing regeneration where bKeepStaleTracks is true */
-	TMap<uint32, FMovieSceneEvaluationTrack> StaleTracks;
+	/** Transient map of stale tracks. */
+	TMap<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack> StaleTracks;
 
 public:
 
@@ -215,82 +289,19 @@ public:
 	UPROPERTY()
 	FMovieSceneSequenceHierarchy Hierarchy;
 
+	UPROPERTY()
+	FGuid SequenceSignature;
+
 private:
 
 	UPROPERTY()
 	FMovieSceneTemplateGenerationLedger TemplateLedger;
 
-public:
-
-	/** When set, this template contains legacy track instances that require the initialization of a legacy sequence instance */
 	UPROPERTY()
-	uint32 bHasLegacyTrackInstances : 1;
+	FMovieSceneTrackFieldData TrackFieldData;
 
-	/** Primarily used in editor to keep stale tracks around during template regeneration to ensure we can call OnEndEvaluation on them. */
 	UPROPERTY()
-	uint32 bKeepStaleTracks : 1;
+	FMovieSceneSubSectionFieldData SubSectionFieldData;
+
 };
 template<> struct TStructOpsTypeTraits<FMovieSceneEvaluationTemplate> : public TStructOpsTypeTraitsBase2<FMovieSceneEvaluationTemplate> { enum { WithPostSerialize = true }; };
-
-USTRUCT()
-struct FMovieSceneSequenceCachedSignature
-{
-	GENERATED_BODY()
-
-	FMovieSceneSequenceCachedSignature() {}
-	MOVIESCENE_API FMovieSceneSequenceCachedSignature(UMovieSceneSequence& InSequence);
-
-	UPROPERTY()
-	TWeakObjectPtr<UMovieSceneSequence> Sequence;
-
-	UPROPERTY()
-	FGuid CachedSignature;
-};
-
-USTRUCT()
-struct FCachedMovieSceneEvaluationTemplate : public FMovieSceneEvaluationTemplate
-{
-	GENERATED_BODY()
-
-#if WITH_EDITORONLY_DATA
-
-	FCachedMovieSceneEvaluationTemplate()
-		: Origin(nullptr)
-	{
-		bKeepStaleTracks = 1;
-	}
-
-	FCachedMovieSceneEvaluationTemplate(UMovieSceneSequence& InSequence)
-		: Origin(nullptr)
-	{
-		bKeepStaleTracks = 1;
-		Initialize(InSequence);
-	}
-
-	MOVIESCENE_API void Initialize(UMovieSceneSequence& InSequence, FMovieSceneSequenceTemplateStore* InOrigin = nullptr);
-
-	MOVIESCENE_API void Regenerate();
-
-	MOVIESCENE_API void Regenerate(const FMovieSceneTrackCompilationParams& NewParams);
-
-	MOVIESCENE_API void ForceRegenerate(const FMovieSceneTrackCompilationParams& NewParams);
-
-	MOVIESCENE_API bool IsOutOfDate(const FMovieSceneTrackCompilationParams& NewParams) const;
-
-private:
-
-	void RegenerateImpl(const FMovieSceneTrackCompilationParams& NewParams);
-
-	/** Transient data */
-	TWeakObjectPtr<UMovieSceneSequence> SourceSequence;
-	FMovieSceneSequenceTemplateStore* Origin;
-
-	UPROPERTY()
-	FMovieSceneTrackCompilationParams CachedCompilationParams;
-
-	UPROPERTY()
-	TArray<FMovieSceneSequenceCachedSignature> CachedSignatures;
-#endif
-};
-
-template<> struct TStructOpsTypeTraits<FCachedMovieSceneEvaluationTemplate> : public TStructOpsTypeTraitsBase2<FCachedMovieSceneEvaluationTemplate> { enum { WithCopy = false, WithPostSerialize = true }; };

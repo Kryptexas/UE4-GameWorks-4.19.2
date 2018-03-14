@@ -20,7 +20,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 During this step, we're going to make a new character using the engine's Character base class. The Character class (derived from the Pawn class) has built-in functionality for bipedal movement; such as walking, running, and jumping.
 
@@ -158,4 +158,3 @@ Now that we've successfully extended our newly modified Game Mode to Blueprints,
 
 1.	Before going to the next step, press the Escape key or click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
-%Steps%

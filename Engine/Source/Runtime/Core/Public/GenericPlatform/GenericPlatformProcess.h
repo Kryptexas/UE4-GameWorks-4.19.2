@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -544,6 +544,19 @@ struct CORE_API FGenericPlatformProcess
 	* @see CreatePipe, ClosePipe, ReadPipe
 	*/
 	static bool WritePipe(void* WritePipe, const FString& Message, FString* OutWritten = nullptr);
+
+	/**
+	* Sends data to process through pipe
+	*
+	* @param WritePipe Pipe for writing.
+	* @param Data The data to be written.
+	* @param DataLength how many bytes to write.
+	* @param OutDataLength Optional parameter to know how many bytes had been written.
+	* @return True if all bytes written successfully.
+	* @see CreatePipe, ClosePipe, ReadPipe
+	*/
+	static bool WritePipe(void* WritePipe, const uint8* Data, const int32 DataLength, int32* OutDataLength = nullptr);
+
 
 	/**
 	 * Gets whether this platform can use multiple threads.

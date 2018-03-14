@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SoundClassGraph/SoundClassGraphNode.h"
 #include "Sound/SoundClass.h"
@@ -71,8 +71,8 @@ void USoundClassGraphNode::AllocateDefaultPins()
 {
 	check(Pins.Num() == 0);
 
-	ChildPin = CreatePin(EGPD_Output, TEXT("SoundClass"), FString(), nullptr, LOCTEXT("SoundClassChildren", "Children").ToString());
-	ParentPin = CreatePin(EGPD_Input, TEXT("SoundClass"), FString(), nullptr, FString());
+	ChildPin = CreatePin(EGPD_Output, TEXT("SoundClass"), *LOCTEXT("SoundClassChildren", "Children").ToString());
+	ParentPin = CreatePin(EGPD_Input, TEXT("SoundClass"), NAME_None);
 }
 
 void USoundClassGraphNode::AutowireNewNode(UEdGraphPin* FromPin)

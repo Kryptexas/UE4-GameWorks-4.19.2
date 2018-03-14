@@ -7,9 +7,11 @@ version: 4.11
 [TOC (start:2 end:3)]
 
 
-<!-- An Actor is the base type of Object that can be placed or [spawned](Programming\UnrealArchitecture\Actors\Spawning) into the world. A good short description of Actor would be "a collection of Components that tick". In reality, Actors can do 
+[COMMENT:none]
+ An Actor is the base type of Object that can be placed or [spawned](Programming\UnrealArchitecture\Actors\Spawning) into the world. A good short description of Actor would be "a collection of Components that tick". In reality, Actors can do 
 many things; check out `Actor.h` for all the included variables and functions. 
--->
+
+[/COMMENT]
 
 [EXCERPT:Actors]
 [INCLUDE:Shared/Glossary/A#glossary_actor] Note that actors do not directly store Transform (Location, Rotation, and Scale) data; the Transform data of the Actor's Root Component, if one exists, is used instead.
@@ -49,7 +51,8 @@ An example Actor and hierarchy might look something like this:
 | ------------------| -----------|
 | ![](GoldPickupExampleActor.png)(w:400) | [INCLUDE:#goldhierarchy] | 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:GoldHierarchy]
 * **Root - SceneComponent**: Basic scene Component to set the Actor's base location in the world.
 	* **StaticMeshComponent**: Mesh representing gold ore. 
@@ -59,7 +62,8 @@ An example Actor and hierarchy might look something like this:
 [/EXCERPT:GoldHierarchy]
 
 For more information, see the [](Programming/UnrealArchitecture/Actors/Components) page.
--->
+
+[/COMMENT]
 
 ## Ticking
 

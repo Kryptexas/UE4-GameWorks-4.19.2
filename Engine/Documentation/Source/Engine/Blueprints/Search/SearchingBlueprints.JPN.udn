@@ -54,7 +54,8 @@ tags:Blueprints
 | [INCLUDE:#pinfilter] | [INCLUDE:#pintags] | |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BlueprintTags]
 * Name
 * ParentClass (Explicit)
@@ -112,7 +113,8 @@ tags:Blueprints
 * PinCategory (Explicit)
 * ObjectClass (Explicit)
 [/EXCERPT]
--->               
+
+[/COMMENT]               
             	
 [REGION:tip]
  PinCategory はピンのタイプです。"bool"、"string"、"Actor"、"MyBlueprint" などです。ObjectClass は、pin/variable/component で表される構造体またはオブジェクトです。

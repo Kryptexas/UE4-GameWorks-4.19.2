@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,17 +19,28 @@ struct FSplineMeshVertexFactory : public FLocalVertexFactory
 {
 	DECLARE_VERTEX_FACTORY_TYPE(FSplineMeshVertexFactory);
 public:
+	FSplineMeshVertexFactory(ERHIFeatureLevel::Type InFeatureLevel)
+		: FLocalVertexFactory(InFeatureLevel, "FSplineMeshVertexFactory")
+	{
+		bSupportsManualVertexFetch = false;
+	}
 
 	/** Should we cache the material's shadertype on this platform with this vertex factory? */
-	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 	{
 		return (Material->IsUsedWithSplineMeshes() || Material->IsSpecialEngineMaterial())
-			&& FLocalVertexFactory::ShouldCache(Platform, Material, ShaderType);
+			&& FLocalVertexFactory::ShouldCompilePermutation(Platform, Material, ShaderType);
 	}
 
 	/** Modify compile environment to enable spline deformation */
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
+		const bool ContainsManualVertexFetch = OutEnvironment.GetDefinitions().Contains("MANUAL_VERTEX_FETCH");
+		if (!ContainsManualVertexFetch)
+		{
+			OutEnvironment.SetDefine(TEXT("MANUAL_VERTEX_FETCH"), TEXT("0"));
+		}
+
 		// We don't call this because we don't actually support speed tree wind, and this advertises support for that
 		//FLocalVertexFactory::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 
@@ -120,7 +131,7 @@ private:
 // SplineMeshSceneProxy
 
 /** Scene proxy for SplineMesh instance */
-class FSplineMeshSceneProxy : public FStaticMeshSceneProxy
+class FSplineMeshSceneProxy final : public FStaticMeshSceneProxy
 {
 protected:
 	struct FLODResources
@@ -134,6 +145,7 @@ protected:
 		}
 	};
 public:
+	SIZE_T GetTypeHash() const override;
 
 	FSplineMeshSceneProxy(USplineMeshComponent* InComponent);
 

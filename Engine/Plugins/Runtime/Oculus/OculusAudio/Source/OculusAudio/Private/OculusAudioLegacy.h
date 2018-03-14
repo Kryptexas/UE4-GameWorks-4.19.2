@@ -1,5 +1,5 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+#if PLATFORM_WINDOWS
 #pragma once
 #include "OVR_Audio.h"
 #include "XAudio2Device.h"
@@ -9,6 +9,7 @@
 #include "Runtime/Windows/XAudio2/Private/XAudio2Support.h"
 #include "Misc/Paths.h"
 #include "OculusAudioDllManager.h"
+#include "OculusAudioSettings.h"
 
 /************************************************************************/
 /* OculusAudioLegacySpatialization                                      */
@@ -26,6 +27,7 @@ public:
 	virtual void Shutdown() override;
 
 	virtual bool IsSpatializationEffectInitialized() const override;
+    virtual void OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, USpatializationPluginSourceSettingsBase* InSettings) override;
 	virtual void ProcessSpatializationForVoice(uint32 VoiceIndex, float* InSamples, float* OutSamples, const FVector& Position) override;
 	virtual bool CreateSpatializationEffect(uint32 VoiceId) override;
 	virtual void* GetSpatializationEffect(uint32 VoiceId) override;
@@ -35,7 +37,13 @@ public:
 
 private:
 	void ProcessAudioInternal(ovrAudioContext AudioContext, uint32 VoiceIndex, float* InSamples, float* OutSamples, const FVector& Position);
-	FVector ToOVRVector(const FVector& InVec) const;
+    void ApplyOculusAudioSettings(const UOculusAudioSettings* Settings);
+
+    // Helper function to convert from UE coords to OVR coords.
+    FORCEINLINE FVector ToOVRVector(const FVector& InVec) const
+    {
+        return FVector(InVec.Y, InVec.Z, -InVec.X);
+    }
 	
 private:
 	/* Whether or not the OVR audio context is initialized. We defer initialization until the first audio callback.*/
@@ -50,3 +58,5 @@ private:
 
 	FCriticalSection ParamCriticalSection;
 };
+
+#endif // #if PLATFORM_WINDOWS

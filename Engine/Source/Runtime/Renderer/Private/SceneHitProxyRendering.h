@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneHitProxyRendering.h: Scene hit proxy rendering.
@@ -32,10 +32,10 @@ public:
 		);
 
 	// FMeshDrawingPolicy interface.
-	FDrawingPolicyMatchResult Matches(const FHitProxyDrawingPolicy& Other) const
+	FDrawingPolicyMatchResult Matches(const FHitProxyDrawingPolicy& Other, bool bForReals = false) const
 	{
 		DRAWING_POLICY_MATCH_BEGIN
-			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
+			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other, bForReals)) &&
 			DRAWING_POLICY_MATCH(HullShader == Other.HullShader) &&
 			DRAWING_POLICY_MATCH(DomainShader == Other.DomainShader) &&
 			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&

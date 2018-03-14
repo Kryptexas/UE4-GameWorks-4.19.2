@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Windows/WindowsPlatformFile.h"
 #include "CoreTypes.h"
@@ -681,36 +681,40 @@ public:
 
 	virtual FString GetFilenameOnDisk(const TCHAR* Filename) override
 	{
-		FString Result;
-		WIN32_FIND_DATAW Data;
-		FString NormalizedFilename = NormalizeFilename(Filename);
-		while (NormalizedFilename.Len())
+		HANDLE hFile = CreateFile(Filename, FILE_READ_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, 0, NULL);
+		if(hFile == INVALID_HANDLE_VALUE)
 		{
-			HANDLE Handle = FindFirstFileW(*NormalizedFilename, &Data);
-			if (Handle != INVALID_HANDLE_VALUE)
+			return NormalizeFilename(Filename);
+		}
+		else
+		{
+			TCHAR NormalizedFileName[MAX_PATH + 1];
+			int Length = (int)GetFinalPathNameByHandle(hFile, NormalizedFileName, MAX_PATH, FILE_NAME_NORMALIZED);
+			NormalizedFileName[Length] = 0;
+			CloseHandle(hFile);
+
+			int SrcIdx = 0;
+			if(FCString::Strncmp(NormalizedFileName, TEXT("\\\\?\\"), 4) == 0)
 			{
-				if (Result.Len())
+				SrcIdx = 4;
+			}
+
+			int DstIdx = 0;
+			for(; NormalizedFileName[SrcIdx] != 0; SrcIdx++, DstIdx++)
+			{
+				if(NormalizedFileName[SrcIdx] == '\\')
 				{
-					Result = FString(Data.cFileName) / Result;
+					NormalizedFileName[DstIdx] = '/';
 				}
 				else
 				{
-					Result = Data.cFileName;
-				}				
-				FindClose(Handle);
+					NormalizedFileName[DstIdx] = NormalizedFileName[SrcIdx];
+				}
 			}
-			int32 SeparatorIndex = INDEX_NONE;
-			if (NormalizedFilename.FindLastChar('/', SeparatorIndex))
-			{
-				NormalizedFilename = NormalizedFilename.Mid(0, SeparatorIndex);				
-			}
-			if (NormalizedFilename.Len() && (SeparatorIndex == INDEX_NONE || NormalizedFilename.EndsWith(TEXT(":"))))
-			{
-				Result = NormalizedFilename / Result;
-				NormalizedFilename.Empty();
-			}
+			NormalizedFileName[DstIdx] = 0;
+
+			return NormalizedFileName;
 		}
-		return Result;
 	}
 
 #define USE_WINDOWS_ASYNC_IMPL (!IS_PROGRAM && !WITH_EDITOR)
@@ -721,7 +725,7 @@ public:
 		uint32  WinFlags = FILE_SHARE_READ;
 		uint32  Create = OPEN_EXISTING;
 
-		HANDLE Handle = CreateFileW(*NormalizeFilename(Filename), Access, WinFlags, NULL, Create, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING, NULL);
+		HANDLE Handle = CreateFileW(*NormalizeFilename(Filename), Access, WinFlags, NULL, Create, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, NULL);
 		// we can't really fail here because this is intended to be an async open
 		return new FWindowsAsyncReadFileHandle(Handle);
 

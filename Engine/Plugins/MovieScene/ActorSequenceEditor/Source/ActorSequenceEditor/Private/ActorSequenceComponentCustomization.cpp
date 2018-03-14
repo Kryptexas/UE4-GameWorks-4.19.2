@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ActorSequenceComponentCustomization.h"
 
@@ -133,7 +133,7 @@ void FActorSequenceComponentCustomization::CustomizeDetails(IDetailLayoutBuilder
 	}
 
 	// Only display an inline editor for non-blueprint sequences
-	if (!GetActorSequence()->GetParentBlueprint() && !bIsExternalTabAlreadyOpened)
+	if (GetActorSequence() && !GetActorSequence()->GetParentBlueprint() && !bIsExternalTabAlreadyOpened)
 	{
 		Category.AddCustomRow(FText())
 		.WholeRowContent()

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244012
+﻿INTSourceChangelist:3683933
 Availability: Public
 Title:서브씬 & 합성
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -11,6 +11,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 종종 영화에서는, 여러 사람이 한 씬의 다양한 부분을 동시에 작업할 때가 있습니다.
 시퀀서는 **서브씬 트랙** 을 통해 이와 같은 작업방식을 지원하는데, **레벨 시퀀서** 레이어를 서로 쌓아 최종 시퀀스를 만드는 것입니다.

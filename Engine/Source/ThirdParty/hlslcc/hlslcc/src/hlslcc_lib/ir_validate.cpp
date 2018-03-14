@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // This code is modified from that in the Mesa3D Graphics library available at
 // http://mesa3d.org/
@@ -973,11 +973,17 @@ ir_visitor_status ir_validate::visit_enter(ir_call *ir)
 		const ir_rvalue *actual_param = (const ir_rvalue *) actual_param_node;
 		if (formal_param->type != actual_param->type)
 		{
-			_mesa_glsl_error(state,
-				"internal compiler error: parameter type mismatch in call to '%s'",
-				callee->function_name()
-				);
-			return visit_stop;
+			bool const ShadowSamplerMatch = (formal_param->type->is_sampler() && actual_param->type->is_sampler()
+				&& formal_param->type->sampler_shadow != actual_param->type->sampler_shadow
+				&& state->LanguageSpec && state->LanguageSpec->AllowsAllTextureOperationsOnDepthTextures());
+			if (!ShadowSamplerMatch)
+			{
+				_mesa_glsl_error(state,
+					"internal compiler error: parameter type mismatch in call to '%s'",
+					callee->function_name()
+					);
+				return visit_stop;
+			}
 		}
 		if (formal_param->mode == ir_var_out || formal_param->mode == ir_var_inout)
 		{

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,6 +20,7 @@
 #include "Input/PopupMethodReply.h"
 #include "Types/ISlateMetaData.h"
 #include "Types/WidgetActiveTimerDelegate.h"
+#include "SlateGlobals.h"
 
 class FActiveTimerHandle;
 class FArrangedChildren;
@@ -33,6 +34,8 @@ class FWidgetPath;
 class IToolTip;
 class SWidget;
 struct FSlateBrush;
+
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("STAT_SlateVeryVerboseStatGroupTester"), STAT_SlateVeryVerboseStatGroupTester, STATGROUP_SlateVeryVerbose, SLATECORE_API);
 
 /** Delegate type for handling mouse events */
 DECLARE_DELEGATE_RetVal_TwoParams(
@@ -218,11 +221,12 @@ public:
 	 * Construct a SWidget based on initial parameters.
 	 */
 	void Construct(
-		const TAttribute<FText> & InToolTipText,
-		const TSharedPtr<IToolTip> & InToolTip,
-		const TAttribute< TOptional<EMouseCursor::Type> > & InCursor,
-		const TAttribute<bool> & InEnabledState,
-		const TAttribute<EVisibility> & InVisibility,
+		const TAttribute<FText>& InToolTipText,
+		const TSharedPtr<IToolTip>& InToolTip,
+		const TAttribute< TOptional<EMouseCursor::Type> >& InCursor,
+		const TAttribute<bool>& InEnabledState,
+		const TAttribute<EVisibility>& InVisibility,
+		const float InRenderOpacity,
 		const TAttribute<TOptional<FSlateRenderTransform>>& InTransform,
 		const TAttribute<FVector2D>& InTransformPivot,
 		const FName& InTag,
@@ -230,20 +234,20 @@ public:
 		const EWidgetClipping InClipping,
 		const TArray<TSharedRef<ISlateMetaData>>& InMetaData);
 
-	void SWidgetConstruct( const TAttribute<FText> & InToolTipText,
-		const TSharedPtr<IToolTip> & InToolTip,
-		const TAttribute< TOptional<EMouseCursor::Type> > & InCursor,
-		const TAttribute<bool> & InEnabledState,
-		const TAttribute<EVisibility> & InVisibility,
+	void SWidgetConstruct(const TAttribute<FText>& InToolTipText,
+		const TSharedPtr<IToolTip>& InToolTip,
+		const TAttribute< TOptional<EMouseCursor::Type> >& InCursor,
+		const TAttribute<bool>& InEnabledState,
+
+
+		const TAttribute<EVisibility>& InVisibility,
+		const float InRenderOpacity,
 		const TAttribute<TOptional<FSlateRenderTransform>>& InTransform,
 		const TAttribute<FVector2D>& InTransformPivot,
 		const FName& InTag,
 		const bool InForceVolatile,
 		const EWidgetClipping InClipping,
-		const TArray<TSharedRef<ISlateMetaData>>& InMetaData)
-	{
-		Construct(InToolTipText, InToolTip, InCursor, InEnabledState, InVisibility, InTransform, InTransformPivot, InTag, InForceVolatile, InClipping, InMetaData);
-	}
+		const TArray<TSharedRef<ISlateMetaData>>& InMetaData);
 
 	//
 	// GENERAL EVENTS
@@ -706,14 +710,14 @@ public:
 	{
 #if STATS
 		// this is done to avoid even registering stats for a disabled group (unless we plan on using it later)
-		if (FThreadStats::IsCollectingData())
-		{
-			if (!StatID.IsValidStat())
-			{
-				CreateStatID();
-			}
-			return StatID;
-		}
+        if (FThreadStats::IsCollectingData(GET_STATID(STAT_SlateVeryVerboseStatGroupTester)))
+        {
+            if (!StatID.IsValidStat())
+            {
+                CreateStatID();
+            }
+            return StatID;
+        }
 #endif
 		return TStatId(); // not doing stats at the moment, or ever
 	}
@@ -969,6 +973,19 @@ protected:
 	}
 
 public:
+
+	/** @return the render opacity of the widget. */
+	FORCEINLINE float GetRenderOpacity() const
+	{
+		return RenderOpacity;
+	}
+
+	/** @param InOpacity The opacity of the widget during rendering. */
+	FORCEINLINE void SetRenderOpacity(float InRenderOpacity)
+	{
+		RenderOpacity = InRenderOpacity;
+		Invalidate(EInvalidateWidget::Layout);
+	}
 
 	/** @return the render transform of the widget. */
 	FORCEINLINE const TOptional<FSlateRenderTransform>& GetRenderTransform() const
@@ -1414,6 +1431,9 @@ protected:
 
 	/** Is this widget visible, hidden or collapsed */
 	TAttribute< EVisibility > Visibility;
+
+	/** The opacity of the widget.  Automatically applied during rendering. */
+	float RenderOpacity;
 
 	/** Render transform of this widget. TOptional<> to allow code to skip expensive overhead if there is no render transform applied. */
 	TAttribute< TOptional<FSlateRenderTransform> > RenderTransform;

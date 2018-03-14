@@ -6,19 +6,12 @@ Description:利用 Matinee 设置一扇自动开关的门。
 Version:4.9
 SkillLevel:Beginner
 
-
----
 在下列步骤中我们将创建一扇角色进入/离开触发框时自动开关的门。 
 
 [EXCERPT:ProjectStart]
-[OBJECT:TopicList]
-	[PARAM:title]
-		创建项目
-	[/PARAM]
-	[PARAM:description]
-	在这部分中我们先设置项目。 
-	[/PARAM]
-[/OBJECT]
+## 创建项目
+
+在这部分中我们先设置项目。 
 
 1. 从 **Unreal Project Browser** 窗口中创建一个 **New Project**，然后使用 **Blueprint Third Person** 模板。 
 
@@ -31,14 +24,9 @@ SkillLevel:Beginner
 1. 上述步骤设置完成后，点击 **Create Project** 创建新项目。 
 [/EXCERPT:ProjectStart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		放置门和触发器
-	[/PARAM]
-	[PARAM:description]
-	在这步中我们放置门并为门放置触发器。
-	[/PARAM]
-[/OBJECT]
+## 放置门和触发器
+
+在这步中我们放置门并为门放置触发器。
 
 1. 在 **Content Browser** 中选择 **Props** 文件夹，找到 **SM_DoorFrame** 静态网格体。 
 
@@ -94,14 +82,9 @@ SkillLevel:Beginner
 
 1. 门和触发器已放置好，下一步我们将添加一个 **Matinee** Actor 控制开关。 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		添加 Matinee Actor
-	[/PARAM]
-	[PARAM:description]
-	在这步中，我们将添加 **Matinee** Actor 并设置 **关键帧（Keyframes）** 控制门的开关。 
-	[/PARAM]
-[/OBJECT]
+添加 Matinee Actor
+
+在这步中，我们将添加 **Matinee** Actor 并设置 **关键帧（Keyframes）** 控制门的开关。 
 
 1. 在 **工具栏** 菜单中选择 **Matinee** 并点击 **Add Matinee** 按钮。 
 
@@ -166,14 +149,9 @@ SkillLevel:Beginner
 1. Matinee 序列设置已完成。在下一步中，我们将把 Matinee 和 **触发器** 衔接起来，完成操作。 
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		将 **Matinee** 和 **触发器** 衔接起来
-	[/PARAM]
-	[PARAM:description]
-	在这步中我们将把 **Matinee** 和 **触发器** 衔接起来，达成角色进入触发器时门自动打开，角色离开触发器时门自动关闭的效果。
-	[/PARAM]
-[/OBJECT]
+将 **Matinee** 和 **触发器** 衔接起来
+
+在这步中我们将把 **Matinee** 和 **触发器** 衔接起来，达成角色进入触发器时门自动打开，角色离开触发器时门自动关闭的效果。
 
 1. 在 **工具栏** 菜单中选择 **Blueprints** 并点击 **Open Level Blueprint** 按钮。 
 
@@ -238,9 +216,6 @@ SkillLevel:Beginner
 	Z2son2Wcgbo
 	[/PARAMLITERAL]
 	[/OBJECT]
-
----
-
 
 
 

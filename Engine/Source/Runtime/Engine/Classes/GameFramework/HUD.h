@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -61,6 +61,10 @@ class ENGINE_API AHUD : public AActor
 	/** If true, current ViewTarget shows debug information using its DisplayDebug(). */
 	UPROPERTY(BlueprintReadWrite, Category=HUD)
 	uint8 bShowDebugInfo:1;    
+
+	/** Current target in our considered Targets list for 'showdebug' */
+	UPROPERTY(Transient)
+	int32 CurrentTargetIndex;
 
 	/** If true, show hitbox debugging info. */
 	UPROPERTY(BlueprintReadWrite, Category=HUD)
@@ -134,7 +138,7 @@ public:
 	UFUNCTION(exec)
 	void ShowDebugForReticleTargetToggle(TSubclassOf<AActor> DesiredClass);
 
-private:
+protected:
 	/** Class filter for selecting 'ShowDebugTargetActor' when 'bShowDebugForReticleTarget' is true. */
 	UPROPERTY()
 	TSubclassOf<AActor> ShowDebugTargetDesiredClass;
@@ -467,6 +471,28 @@ public:
 	 * Can be overridden to display custom debug per-game. 
 	 */
 	virtual void ShowDebugInfo(float& YL, float& YPos);
+
+	/** Get Target to view 'showdebug' on */
+	virtual AActor* GetCurrentDebugTargetActor();
+	
+	/** Utility function to add an actor to our consideration list for 'showdebug' 
+	 * Only consider visible, non destroyed Actors in the same world the player is in. */
+	static void AddActorToDebugList(AActor* InActor, TArray<AActor*>& InOutList, UWorld* InWorld);
+
+	/** Utility function to add a component's owner to our consideration list for 'showdebug' */
+	static void AddComponentOwnerToDebugList(UActorComponent* InComponent, TArray<AActor*>& InOutList, UWorld* InWorld);
+
+	/** Get list of considered targets for 'showdebug'
+	 * This list is built contextually based on which 'showdebug' flags have been enabled. */
+	virtual void GetDebugActorList(TArray<AActor*>& InOutList);
+
+	/** Cycle to next target in our considered targets list for 'showdebug' */
+	UFUNCTION(exec)
+	virtual void NextDebugTarget();
+
+	/** Cycle to previous target in our considered targets list for 'showdebug' */
+	UFUNCTION(exec)
+	virtual void PreviousDebugTarget();
 
 	// Callback allowing external systems to register to show debug info
 	static FOnShowDebugInfo OnShowDebugInfo;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,6 +11,7 @@
 #include "HAL/CriticalSection.h"
 #include "Containers/StringConv.h"
 #include "UObject/UnrealNames.h"
+#include "Templates/Atomic.h"
 
 /*----------------------------------------------------------------------------
 	Definitions.
@@ -128,7 +129,7 @@ private:
 
 public:
 	/** Pointer to the next entry in this hash bin's linked list. */
-	FNameEntry*		HashNext;
+	TAtomic<FNameEntry*>		HashNext;
 
 protected:
 	/** Name, variable-sized - note that AllocateNameEntry only allocates memory as needed. */
@@ -139,21 +140,17 @@ protected:
 	};
 	// DO NOT ADD VARIABLES BELOW!
 
-	/** 
-	 * Constructor called from the linker name table serialization function. Initializes the index
-	 * to a value that indicates widechar as that's what the linker is going to serialize.
-	 *
-	 * Only callable from the serialization version of this class
-	 */
-	FNameEntry( enum ELinkerNameTableConstructor )
-	{
-		Index = NAME_WIDE_MASK;
-	}
-
-public:
+private:
 	/** Default constructor doesn't do anything. AllocateNameEntry is responsible for work. */
 	FNameEntry()
 	{}
+
+	FNameEntry(const FNameEntry&) = delete;
+	FNameEntry(FNameEntry&&) = delete;
+	FNameEntry& operator=(const FNameEntry&) = delete;
+	FNameEntry& operator=(FNameEntry&&) = delete;
+
+public:
 
 	/** 
 	 * Sets whether or not the NameEntry will have a wide string, or an ansi string
@@ -254,11 +251,7 @@ public:
 	static int32 GetSize( int32 Length, bool bIsPureAnsi );
 
 	// Functions.
-	friend CORE_API FArchive& operator<<( FArchive& Ar, FNameEntry& E );
-	friend CORE_API FArchive& operator<<( FArchive& Ar, FNameEntry* E )
-	{
-		return Ar << *E;
-	}
+	CORE_API void Write(FArchive& Ar) const;
 
 	// Friend for access to Flags.
 	template<typename TCharType>
@@ -268,21 +261,68 @@ public:
 /**
  *  This struct is only used during loading/saving and is not part of the runtime costs
  */
-struct FNameEntrySerialized :
-	public FNameEntry
+struct FNameEntrySerialized
 {
+	NAME_INDEX Index;
+
+	union
+	{
+		ANSICHAR	AnsiName[NAME_SIZE];
+		WIDECHAR	WideName[NAME_SIZE];
+	};
+
 	uint16 NonCasePreservingHash;
 	uint16 CasePreservingHash;
 	bool bWereHashesLoaded;
 
 	FNameEntrySerialized(const FNameEntry& NameEntry);
 	FNameEntrySerialized(enum ELinkerNameTableConstructor) :
-		FNameEntry(ENAME_LinkerConstructor),
 		NonCasePreservingHash(0),
 		CasePreservingHash(0),
 		bWereHashesLoaded(false)
 	{
 	}
+
+	/** 
+	 * Sets whether or not the NameEntry will have a wide string, or an ansi string
+	 *
+	 * @param bIsWide true if we are going to serialize a wide string
+	 */
+	FORCEINLINE void PreSetIsWideForSerialization(bool bIsWide)
+	{
+		Index = bIsWide ? NAME_WIDE_MASK : 0;
+	}
+
+	/**
+	 * Returns whether this name entry is represented via TCHAR or ANSICHAR
+	 */
+	FORCEINLINE bool IsWide() const
+	{
+		return (Index & NAME_WIDE_MASK);
+	}
+
+	/**
+	 * @return direct access to ANSI name if stored in ANSI
+	 */
+	inline ANSICHAR const* GetAnsiName() const
+	{
+		check(!IsWide());
+		return AnsiName;
+	}
+
+	/**
+	 * @return direct access to wide name if stored in widechars
+	 */
+	inline WIDECHAR const* GetWideName() const
+	{
+		check(IsWide());
+		return WideName;
+	}
+
+	/**
+	 * @return FString of name portion minus number.
+	 */
+	CORE_API FString GetPlainNameString() const;	
 
 	friend CORE_API FArchive& operator<<(FArchive& Ar, FNameEntrySerialized& E);
 	friend CORE_API FArchive& operator<<(FArchive& Ar, FNameEntrySerialized* E)
@@ -309,7 +349,7 @@ class TStaticIndirectArrayThreadSafeRead
 	/** Static master table to chunks of pointers **/
 	ElementType** Chunks[ChunkTableSize];
 	/** Number of elements we currently have **/
-	int32 NumElements;
+	TAtomic<int32> NumElements;
 	/** Number of chunks we currently have **/
 	int32 NumChunks;
 
@@ -375,7 +415,7 @@ public:
 	**/
 	FORCEINLINE int32 Num() const
 	{
-		return NumElements;
+		return NumElements.Load(EMemoryOrder::Relaxed);
 	}
 	/** 
 	 * Return if this index is valid
@@ -408,11 +448,9 @@ public:
 	int32 AddZeroed(int32 NumToAdd)
 	{
 		int32 Result = NumElements;
-		check(NumElements + NumToAdd <= MaxTotalElements);
-		ExpandChunksToIndex(NumElements + NumToAdd - 1);
-		check(Result == NumElements);
+		check(Result + NumToAdd <= MaxTotalElements);
+		ExpandChunksToIndex(Result + NumToAdd - 1);
 		NumElements += NumToAdd;
-		FPlatformMisc::MemoryBarrier();
 		return Result;
 	}
 	/** 
@@ -428,7 +466,7 @@ public:
 	void Reserve(int32 Capacity)
 	{
 		check(Capacity >= 0 && Capacity <= MaxTotalElements);
-		if (Capacity > NumElements)
+		if (Capacity > NumElements.Load(EMemoryOrder::Relaxed))
 		{			
 			int32 MaxChunks = (Capacity + ElementsPerChunk - 1) / ElementsPerChunk;
 			check(MaxChunks >= NumChunks);
@@ -472,6 +510,11 @@ struct CORE_API FMinimalName
 		: Index(InIndex)
 		, Number(InNumber)
 	{
+	}
+
+	FORCEINLINE bool IsNone() const
+	{
+		return Index == 0 && Number == 0;
 	}
 
 	/** Index into the Names array (used to find String portion of the string/number pair) */
@@ -554,7 +597,12 @@ public:
 	/** Returns the pure name string without any trailing numbers */
 	FString GetPlainNameString() const
 	{
-		return GetDisplayNameEntry()->GetPlainNameString();
+		if (const FNameEntry* CurEntry = GetDisplayNameEntry())
+		{
+			return CurEntry->GetPlainNameString();
+		}
+
+		return TEXT("*INVALID*");
 	}
 
 	/**
@@ -562,7 +610,12 @@ public:
 	 */
 	FORCEINLINE ANSICHAR const* GetPlainANSIString() const
 	{
-		return GetDisplayNameEntry()->GetAnsiName();
+		if (const FNameEntry* CurEntry = GetDisplayNameEntry())
+		{
+			return CurEntry->GetAnsiName();
+		}
+
+		return "*INVALID*";
 	}
 
 	/**
@@ -570,7 +623,12 @@ public:
 	 */
 	FORCEINLINE WIDECHAR const* GetPlainWIDEString() const
 	{
-		return GetDisplayNameEntry()->GetWideName();
+		if (const FNameEntry* CurEntry = GetDisplayNameEntry())
+		{
+			return CurEntry->GetWideName();
+		}
+
+		return L"*INVALID*";
 	}
 
 	const FNameEntry* GetComparisonNameEntry() const;
@@ -889,35 +947,43 @@ public:
 	template <typename CharType>
 	bool operator==(const CharType* Other) const
 	{
-		// Find name entry associated with this FName.
-		check(Other);
-		const FNameEntry* const Entry = GetComparisonNameEntry();
-
-		// Temporary buffer to hold split name in case passed in name is of Name_Number format.
-		WIDECHAR TempBuffer[NAME_SIZE];
-		int32 InNumber = NAME_NO_NUMBER_INTERNAL;
-		int32 TempNumber = NAME_NO_NUMBER_INTERNAL;
-
-		// Check whether we need to split the passed in string into name and number portion.
-		auto WideOther = StringCast<WIDECHAR>(Other);
-		const WIDECHAR* WideOtherPtr = WideOther.Get();
-		if (SplitNameWithCheck(WideOtherPtr, TempBuffer, ARRAY_COUNT(TempBuffer), TempNumber))
+		// Make NAME_None == TEXT("") or nullptr consistent with NAME_None == FName(TEXT("")) or FName(nullptr)
+		if (Other == nullptr || Other[0] == 0)
 		{
-			WideOtherPtr = TempBuffer;
-			InNumber = NAME_EXTERNAL_TO_INTERNAL(TempNumber);
+			return (*this == NAME_None);
 		}
 
-		// Report a match if both the number and string portion match.
+		// Find name entry associated with this FName.
 		bool bAreNamesMatching = false;
-		if (InNumber == GetNumber())
+		const FNameEntry* const Entry = GetComparisonNameEntry();
+
+		if (Entry != nullptr)
 		{
-			if (Entry->IsWide())
+			// Temporary buffer to hold split name in case passed in name is of Name_Number format.
+			WIDECHAR TempBuffer[NAME_SIZE];
+			int32 InNumber = NAME_NO_NUMBER_INTERNAL;
+			int32 TempNumber = NAME_NO_NUMBER_INTERNAL;
+
+			// Check whether we need to split the passed in string into name and number portion.
+			auto WideOther = StringCast<WIDECHAR>(Other);
+			const WIDECHAR* WideOtherPtr = WideOther.Get();
+			if (SplitNameWithCheck(WideOtherPtr, TempBuffer, ARRAY_COUNT(TempBuffer), TempNumber))
 			{
-				bAreNamesMatching = !FPlatformString::Stricmp(WideOtherPtr, Entry->GetWideName());
+				WideOtherPtr = TempBuffer;
+				InNumber = NAME_EXTERNAL_TO_INTERNAL(TempNumber);
 			}
-			else
+
+			// Report a match if both the number and string portion match.
+			if (InNumber == GetNumber())
 			{
-				bAreNamesMatching = !FPlatformString::Stricmp(WideOtherPtr, Entry->GetAnsiName());
+				if (Entry->IsWide())
+				{
+					bAreNamesMatching = !FPlatformString::Stricmp(WideOtherPtr, Entry->GetWideName());
+				}
+				else
+				{
+					bAreNamesMatching = !FPlatformString::Stricmp(WideOtherPtr, Entry->GetAnsiName());
+				}
 			}
 		}
 
@@ -941,7 +1007,6 @@ public:
 	template <typename TCharType>
 	static uint16 GetNonCasePreservingHash(const TCharType* Source);
 
-	static void StaticInit();
 	static void DisplayHash( class FOutputDevice& Ar );
 	static FString SafeString( int32 InDisplayIndex, int32 InstanceNumber=NAME_NO_NUMBER_INTERNAL )
 	{
@@ -1044,9 +1109,9 @@ private:
 	};
 
 	/** Name hash head - used to iterate the single-linked list.		*/
-	static FNameEntry*						NameHashHead[FNameDefs::NameHashBucketCount];
+	static TAtomic<FNameEntry*>				NameHashHead[FNameDefs::NameHashBucketCount];
 	/** Name hash tail - insert new entries after this - NON ATOMIC!	*/
-	static FNameEntry*						NameHashTail[FNameDefs::NameHashBucketCount];
+	static TAtomic<FNameEntry*>				NameHashTail[FNameDefs::NameHashBucketCount];
 	/** Size of all name entries.								*/
 	static int32							NameEntryMemorySize;	
 	/** Number of ANSI names in name table.						*/
@@ -1061,6 +1126,7 @@ private:
 	 * different initialization order of static variables across the codebase. Use this function to get or set the variable.
 	 */
 	static bool& GetIsInitialized();
+	static void StaticInit();
 
 	friend const TCHAR* DebugFName(int32);
 	friend const TCHAR* DebugFName(int32, int32);

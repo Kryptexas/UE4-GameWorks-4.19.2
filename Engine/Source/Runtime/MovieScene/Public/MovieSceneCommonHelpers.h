@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -99,6 +99,22 @@ public:
 	 * @param InInterpolation The interpolation to set
 	 */
 	static void SetKeyInterpolation(FRichCurve& InCurve, FKeyHandle InKeyHandle, EMovieSceneKeyInterpolation InKeyInterpolation);
+
+	/**
+	 * Sort predicate that sorts lower bounds of a range
+	 */
+	static bool SortLowerBounds(TRangeBound<float> A, TRangeBound<float> B)
+	{
+		return TRangeBound<float>::MinLower(A, B) == A && A != B;
+	}
+
+	/**
+	 * Sort predicate that sorts upper bounds of a range
+	 */
+	static bool SortUpperBounds(TRangeBound<float> A, TRangeBound<float> B)
+	{
+		return TRangeBound<float>::MinUpper(A, B) == A && A != B;
+	}
 };
 
 /**

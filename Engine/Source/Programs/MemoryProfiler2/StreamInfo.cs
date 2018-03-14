@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -42,6 +42,9 @@ namespace MemoryProfiler2
 
 		/// <summary> Array of unique call stacks. Code has fixed indexes into it. </summary>
 		public List<FCallStack> CallStackArray;
+
+        /// <summary> Array of unique call stacks. Code has fixed indexes into it. </summary>
+		public List<FModuleInfo> ModuleInfoArray;
 
 		/// <summary> Array of unique call stack addresses. Code has fixed indexes into it. </summary>
 		public List<FCallStackAddress> CallStackAddressArray;
@@ -113,6 +116,7 @@ namespace MemoryProfiler2
 			InternalNameIndexLookupMap = new Dictionary<string, int>( (int)Header.NameTableEntries );
 			CallStackArray = new List<FCallStack>( (int)Header.CallStackTableEntries );
 			CallStackAddressArray = new List<FCallStackAddress>( (int)Header.CallStackAddressTableEntries );
+            ModuleInfoArray = new List<FModuleInfo>((int)Header.ModuleEntries);
 		}
 
 		/// <summary> 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:시스템과 툴
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -78,60 +78,30 @@ Version: 4.9
 [/EXCERPT:Tools]
 
 (#LevelEditing)
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-	![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	레벨 편집 툴
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/UI/LevelEditor/Layers "%Engine/UI/LevelEditor/Layers:Description%")
-	* [](Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor "%Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor:Description%")
-	[/PARAM]
-[/OBJECT]
+## 레벨 편집 툴
+
+[REGION:buttonlist]
+* [](Engine/UI/LevelEditor/Layers "%Engine/UI/LevelEditor/Layers:Description%")
+* [](Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor "%Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor:Description%")
+[/REGION]
 
 (#ContentCreation)
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-	![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	콘텐츠 제작 툴
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/Content/Types/StaticMeshes/Editor "%Engine/Content/Types/StaticMeshes/Editor:Description%")
-	[PUBLISH:Licensee]
-	* [](Engine/UI/Tools/Simplygon "%Engine/UI/Tools/Simplygon:Description%")
-	[/PUBLISH:Licensee]
-	* [](Engine/Animation/Persona "%Engine/Animation/Persona:Description%")
-	* [](Engine/Physics/PhAT "%Engine/Physics/PhAT:Description%")
-	* [](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:Description%")
-	* [](Engine/Rendering/ParticleSystems/Cascade "%Engine/Rendering/ParticleSystems/Cascade:Description%")
-	[/PARAM]
-[/OBJECT]
+## 콘텐츠 제작 툴
+
+[REGION:buttonlist]
+* [](Engine/Content/Types/StaticMeshes/Editor "%Engine/Content/Types/StaticMeshes/Editor:Description%")
+* [](Engine/Animation/Persona "%Engine/Animation/Persona:Description%")
+* [](Engine/Physics/PhAT "%Engine/Physics/PhAT:Description%")
+* [](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:Description%")
+* [](Engine/Rendering/ParticleSystems/Cascade "%Engine/Rendering/ParticleSystems/Cascade:Description%")
+[/REGION]
 
 (#ToolProgramming)
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/prog_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		툴 제작
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Programming/Slate "%Programming/Slate:Description%")
-	[PUBLISH:Licensee]
-	* [](Programming/Slate/DetailsCustomization "%Programming/Slate/DetailsCustomization:Description%")
-	[/PUBLISH:Licensee]
-	[/PARAM]
-[/OBJECT]
+## 툴 제작
+
+[REGION:buttonlist]
+* [](Programming/Slate "%Programming/Slate:Description%")
+[/REGION]
 
 
 

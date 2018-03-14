@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanViewport.cpp: Vulkan viewport RHI implementation.
@@ -16,12 +16,7 @@ FAutoConsoleVariable GCVarDelayAcquireBackBuffer(
 	ECVF_ReadOnly
 );
 
-inline static bool DelayAcquireBackBuffer()
-{
-	return GCVarDelayAcquireBackBuffer->GetInt() != 0;
-}
-
-struct FRHICommandAcquireBackBuffer : public FRHICommand<FRHICommandAcquireBackBuffer>
+struct FRHICommandAcquireBackBuffer final : public FRHICommand<FRHICommandAcquireBackBuffer>
 {
 	FVulkanViewport* Viewport;
 	FVulkanBackBuffer* NewBackBuffer;
@@ -38,7 +33,7 @@ struct FRHICommandAcquireBackBuffer : public FRHICommand<FRHICommandAcquireBackB
 };
 
 
-struct FRHICommandProcessDeferredDeletionQueue : public FRHICommand<FRHICommandProcessDeferredDeletionQueue>
+struct FRHICommandProcessDeferredDeletionQueue final : public FRHICommand<FRHICommandProcessDeferredDeletionQueue>
 {
 	FVulkanDevice* Device;
 	FORCEINLINE_DEBUGGABLE FRHICommandProcessDeferredDeletionQueue(FVulkanDevice* InDevice)
@@ -160,7 +155,7 @@ void FVulkanViewport::AcquireBackBuffer(FRHICommandListBase& CmdList, FVulkanBac
 	FVulkanCommandBufferManager* CmdBufferManager = Context.GetCommandBufferManager();
 	FVulkanCmdBuffer* CmdBuffer = CmdBufferManager->GetActiveCmdBuffer();
 	check(CmdBuffer->IsOutsideRenderPass());
-	
+
 	VulkanRHI::ImagePipelineBarrier(CmdBuffer->GetHandle(), BackBufferImages[AcquiredImageIndex], EImageLayoutBarrier::Undefined, EImageLayoutBarrier::ColorAttachment, VulkanRHI::SetupImageSubresourceRange());
 
 	// Submit here so we can add a dependency with the acquired semaphore
@@ -233,7 +228,7 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		}
 
 		FVulkanTextureBase* Texture = FVulkanTextureBase::Cast(RHITexture);
-
+		ColorRenderTargetImages[Index] = Texture->Surface.Image;
 		MipIndex = InRTInfo.ColorRenderTarget[Index].MipIndex;
 
 		VkImageView RTView = VK_NULL_HANDLE;
@@ -270,7 +265,7 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 	if (RTLayout.GetHasDepthStencil())
 	{
 		FVulkanTextureBase* Texture = FVulkanTextureBase::Cast(InRTInfo.DepthStencilRenderTarget.Texture);
-
+		DepthStencilRenderTargetImage = Texture->Surface.Image;
 		bool bHasStencil = (Texture->Surface.PixelFormat == PF_DepthStencil || Texture->Surface.PixelFormat == PF_X24_G8);
 
 		ensure(Texture->Surface.GetViewType() == VK_IMAGE_VIEW_TYPE_2D || Texture->Surface.GetViewType() == VK_IMAGE_VIEW_TYPE_CUBE);
@@ -354,6 +349,16 @@ bool FVulkanFramebuffer::Matches(const FRHISetRenderTargetsInfo& InRTInfo) const
 		{
 			return false;
 		}
+
+		if (A.Texture)
+		{
+			VkImage AImage = DepthStencilRenderTargetImage;
+			VkImage BImage = ((FVulkanTextureBase*)B.Texture->GetTextureBaseRHI())->Surface.Image;
+			if (AImage != BImage)
+			{
+				return false;
+			}
+		}
 	}
 
 	// We dont need to compare all render-tagets, since we
@@ -365,6 +370,16 @@ bool FVulkanFramebuffer::Matches(const FRHISetRenderTargetsInfo& InRTInfo) const
 		if (!(A == B))
 		{
 			return false;
+		}
+
+		if (A.Texture)
+		{
+			VkImage AImage = ColorRenderTargetImages[Index];
+			VkImage BImage = ((FVulkanTextureBase*)B.Texture->GetTextureBaseRHI())->Surface.Image;
+			if (AImage != BImage)
+			{
+				return false;
+			}
 		}
 	}
 
@@ -544,7 +559,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 		//#todo-rco: Might need to NOT be undefined...
 		VulkanRHI::ImagePipelineBarrier(CmdBuffer->GetHandle(), BackBufferImages[AcquiredImageIndex], EImageLayoutBarrier::Undefined, EImageLayoutBarrier::Present, VulkanRHI::SetupImageSubresourceRange());
 	}
-	
+
 
 #if 0
 	{
@@ -641,8 +656,6 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 		ImmediateCmdBufMgr->PrepareForNewActiveCommandBuffer();
 	}
 
-	//#todo-rco: This needs to happen on the render thread? Acquire happens on render thread
-	Device->GetImmediateContext().GetTempFrameAllocationBuffer().Reset();
 #if 0
 	CurrentBackBuffer = -1;
 	PendingState->Reset();
@@ -663,6 +676,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	}
 #endif
 	++PresentCount;
+	++((FVulkanDynamicRHI*)GDynamicRHI)->TotalPresentCount;
 #if 0
 	{
 		FVulkanTimestampQueryPool* TimestampPool = Device->GetTimestampQueryPool(PresentCount % FVulkanDevice::NumTimestampPools);
@@ -706,6 +720,12 @@ void FVulkanDynamicRHI::RHIResizeViewport(FViewportRHIParamRef ViewportRHI, uint
 void FVulkanDynamicRHI::RHITick(float DeltaTime)
 {
 	check(IsInGameThread());
+	FVulkanDevice* VulkanDevice = GetDevice();
+	ENQUEUE_RENDER_COMMAND(TempFrameReset)(
+		[VulkanDevice](FRHICommandListImmediate& RHICmdList)
+		{
+			VulkanDevice->GetImmediateContext().GetTempFrameAllocationBuffer().Reset();
+		});
 }
 
 /*

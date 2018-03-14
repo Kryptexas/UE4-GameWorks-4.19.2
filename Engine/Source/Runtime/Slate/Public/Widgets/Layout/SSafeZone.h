@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -104,6 +104,8 @@ public:
 	void SetSafeAreaScale(FMargin InSafeAreaScale);
 
 	void SetSidesToPad( bool InPadLeft, bool InPadRight, bool InPadTop, bool InPadBottom );
+
+	FMargin GetSafeMargin(float InLayoutScale) const;
 
 #if WITH_EDITOR
 	void SetOverrideScreenInformation(TOptional<FVector2D> InScreenSize, TOptional<float> InOverrideDpiScale);

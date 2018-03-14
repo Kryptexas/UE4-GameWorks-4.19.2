@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ClothingAssetFactory.h"
 
@@ -6,7 +6,9 @@
 #include "PhysXPublic.h"
 #include "PhysicsPublic.h"
 #include "ClothingAsset.h"
+#if WITH_APEX_CLOTHING
 #include "ClothingAssetAuthoring.h"
+#endif // WITH_APEX_CLOTHING
 #include "ApexClothingUtils.h"
 #include "ContentBrowserModule.h"
 #include "Misc/FileHelper.h"
@@ -20,6 +22,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "Utils/ClothingMeshUtils.h"
+#include "Rendering/SkeletalMeshModel.h"
 
 #define LOCTEXT_NAMESPACE "ClothingAssetFactory"
 DEFINE_LOG_CATEGORY(LogClothingAssetFactory)
@@ -163,43 +166,8 @@ UClothingAssetBase* UClothingAssetFactory::Reimport(const FString& Filename, USk
 			ApexAsset = ConvertApexAssetCoordSystem(ApexAsset);
 			AssetName = *FPaths::GetBaseFilename(Filename);
 
-			// Work out the bindings to the old asset so we can reproduce them for the new asset
-			struct Local_BindingInfo
-			{
-				int32 MeshLodIndex;
-				int32 MeshLodSectionIndex;
-				int32 AssetLodIndex;
-			};
-			TArray<Local_BindingInfo> AssetBindings;
-
-			FSkeletalMeshResource* MeshResource = TargetMesh->GetImportedResource();
-			if(MeshResource)
-			{
-				const int32 NumLods = MeshResource->LODModels.Num();
-
-				for(int32 LodIndex = 0; LodIndex < NumLods; ++LodIndex)
-				{
-					FStaticLODModel& LodModel = MeshResource->LODModels[LodIndex];
-
-					const int32 NumSections = LodModel.Sections.Num();
-
-					for(int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
-					{
-						FSkelMeshSection& Section = LodModel.Sections[SectionIndex];
-
-						if(Section.ClothingData.AssetGuid == OldClothingAsset->AssetGuid && Section.bDisabled == true)
-						{
-							// Found a binding
-							AssetBindings.AddDefaulted();
-
-							Local_BindingInfo& Binding = AssetBindings.Last();
-							Binding.MeshLodIndex = LodIndex;
-							Binding.MeshLodSectionIndex = SectionIndex;
-							Binding.AssetLodIndex = Section.ClothingData.AssetLodIndex;
-						}
-					}
-				}
-			}
+			TArray<ClothingAssetUtils::FClothingAssetMeshBinding> AssetBindings;
+			ClothingAssetUtils::GetMeshClothingAssetBindings(TargetMesh, AssetBindings);
 
 			OldClothingAsset->UnbindFromSkeletalMesh(TargetMesh);
 
@@ -213,11 +181,10 @@ UClothingAssetBase* UClothingAssetFactory::Reimport(const FString& Filename, USk
 
 				TargetMesh->MeshClothingAssets[OldIndex] = NewClothingAsset;
 
-				for(Local_BindingInfo& Binding : AssetBindings)
+				for(ClothingAssetUtils::FClothingAssetMeshBinding& Binding : AssetBindings)
 				{
-					NewClothingAsset->BindToSkeletalMesh(TargetMesh, Binding.MeshLodIndex, Binding.MeshLodSectionIndex, Binding.AssetLodIndex);
+					NewClothingAsset->BindToSkeletalMesh(TargetMesh, Binding.LODIndex, Binding.SectionIndex, Binding.AssetInternalLodIndex);
 				}
-
 			}
 		}
 
@@ -236,7 +203,7 @@ UClothingAssetBase* UClothingAssetFactory::CreateFromSkeletalMesh(USkeletalMesh*
 		return nullptr;
 	}
 
-	FSkeletalMeshResource* Mesh = TargetMesh->GetImportedResource();
+	FSkeletalMeshModel* Mesh = TargetMesh->GetImportedModel();
 
 	// Need a valid resource
 	if(!Mesh)
@@ -250,7 +217,7 @@ UClothingAssetBase* UClothingAssetFactory::CreateFromSkeletalMesh(USkeletalMesh*
 		return nullptr;
 	}
 
-	FStaticLODModel& LodModel = Mesh->LODModels[Params.LodIndex];
+	FSkeletalMeshLODModel& LodModel = Mesh->LODModels[Params.LodIndex];
 
 	// Need a valid section
 	if(!LodModel.Sections.IsValidIndex(Params.SourceSection))
@@ -262,7 +229,7 @@ UClothingAssetBase* UClothingAssetFactory::CreateFromSkeletalMesh(USkeletalMesh*
 	FSkelMeshSection& SourceSection = LodModel.Sections[Params.SourceSection];
 
 	// Can't convert to a clothing asset if bound to clothing
-	if(SourceSection.CorrespondClothSectionIndex != INDEX_NONE)
+	if(SourceSection.HasClothingData())
 	{
 		return nullptr;
 	}
@@ -318,7 +285,7 @@ UClothingAssetBase* UClothingAssetFactory::ImportLodToClothing(USkeletalMesh* Ta
 		return nullptr;
 	}
 
-	FSkeletalMeshResource* MeshResource = TargetMesh->GetImportedResource();
+	FSkeletalMeshModel* MeshResource = TargetMesh->GetImportedModel();
 	check(MeshResource);
 
 	const int32 NumMeshLods = MeshResource->LODModels.Num();
@@ -1120,15 +1087,18 @@ void UClothingAssetFactory::ExtractMaterialParameters(UClothingAsset* NewAsset, 
 	}
 }
 
+#endif // WITH_APEX_CLOTHING
+
+
 bool UClothingAssetFactory::ImportToLodInternal(USkeletalMesh* SourceMesh, int32 SourceLodIndex, int32 SourceSectionIndex, UClothingAsset* DestAsset, FClothLODData& DestLod, FClothLODData* InParameterRemapSource)
 {
-	if(!SourceMesh || !SourceMesh->GetImportedResource())
+	if(!SourceMesh || !SourceMesh->GetImportedModel())
 	{
 		// Invalid mesh
 		return false;
 	}
 
-	FSkeletalMeshResource* SkeletalResource = SourceMesh->GetImportedResource();
+	FSkeletalMeshModel* SkeletalResource = SourceMesh->GetImportedModel();
 
 	if(!SkeletalResource->LODModels.IsValidIndex(SourceLodIndex))
 	{
@@ -1136,7 +1106,7 @@ bool UClothingAssetFactory::ImportToLodInternal(USkeletalMesh* SourceMesh, int32
 		return false;
 	}
 
-	FStaticLODModel& SourceLod = SkeletalResource->LODModels[SourceLodIndex];
+	FSkeletalMeshLODModel& SourceLod = SkeletalResource->LODModels[SourceLodIndex];
 
 	if(!SourceLod.Sections.IsValidIndex(SourceSectionIndex))
 	{
@@ -1259,11 +1229,9 @@ bool UClothingAssetFactory::ImportToLodInternal(USkeletalMesh* SourceMesh, int32
 
 	PhysMesh.MaxBoneWeights = SourceSection.MaxBoneInfluences;
 
-	FMultiSizeIndexContainerData IndexData;
-	SourceLod.MultiSizeIndexContainer.GetIndexBufferData(IndexData);
 	for(int32 IndexIndex = 0; IndexIndex < NumIndices; ++IndexIndex)
 	{
-		PhysMesh.Indices[IndexIndex] = IndexData.Indices[BaseIndex + IndexIndex] - BaseVertexIndex;
+		PhysMesh.Indices[IndexIndex] = SourceLod.IndexBuffer[BaseIndex + IndexIndex] - BaseVertexIndex;
 		PhysMesh.Indices[IndexIndex] = IndexRemap[PhysMesh.Indices[IndexIndex]];
 	}
 
@@ -1308,6 +1276,8 @@ bool UClothingAssetFactory::ImportToLodInternal(USkeletalMesh* SourceMesh, int32
 
 	return true;
 }
+
+#if WITH_APEX_CLOTHING
 
 void UClothingAssetFactory::ExtractLodPhysicalData(UClothingAsset* NewAsset, ClothingAsset &InApexAsset, int32 InLodIdx, FClothLODData &InLodData, TArray<FApexVertData>& OutApexVertData)
 {
@@ -1518,6 +1488,6 @@ void UClothingAssetFactory::ExtractLodPhysicalData(UClothingAsset* NewAsset, Clo
 		UE_LOG(LogClothingAssetFactory, Log, TEXT("Finished physical mesh import"));
 	}
 }
-#endif
+#endif // WITH_APEX_CLOTHING
 
 #undef LOCTEXT_NAMESPACE

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticMeshBuild.cpp: Static mesh building.
@@ -39,12 +39,12 @@ static bool HasBadNTB(UStaticMesh* Mesh, bool &bZeroNormals, bool &bZeroTangents
 		for (int32 LODIndex = 0; LODIndex < NumLODs; ++LODIndex)
 		{
 			FStaticMeshLODResources& LOD = Mesh->RenderData->LODResources[LODIndex];
-			int32 NumVerts = LOD.VertexBuffer.GetNumVertices();
+			int32 NumVerts = LOD.VertexBuffers.PositionVertexBuffer.GetNumVertices();
 			for (int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
 			{
-				const FVector TangentX = LOD.VertexBuffer.VertexTangentX(VertIndex);
-				const FVector TangentY = LOD.VertexBuffer.VertexTangentY(VertIndex);
-				const FVector TangentZ = LOD.VertexBuffer.VertexTangentZ(VertIndex);
+				const FVector TangentX = LOD.VertexBuffers.StaticMeshVertexBuffer.VertexTangentX(VertIndex);
+				const FVector TangentY = LOD.VertexBuffers.StaticMeshVertexBuffer.VertexTangentY(VertIndex);
+				const FVector TangentZ = LOD.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(VertIndex);
 				
 				if (TangentX.IsNearlyZero(KINDA_SMALL_NUMBER))
 				{
@@ -285,7 +285,7 @@ struct FStaticMeshComponentVertPosOctreeSemantics
 typedef TOctree<FPaintedVertex, FStaticMeshComponentVertPosOctreeSemantics> TSMCVertPosOctree;
 
 void RemapPaintedVertexColors(const TArray<FPaintedVertex>& InPaintedVertices,
-	const FColorVertexBuffer& InOverrideColors,
+	const FColorVertexBuffer* InOverrideColors,
 	const FPositionVertexBuffer& OldPositions,
 	const FStaticMeshVertexBuffer& OldVertexBuffer,
 	const FPositionVertexBuffer& NewPositions,
@@ -310,11 +310,11 @@ void RemapPaintedVertexColors(const TArray<FPaintedVertex>& InPaintedVertices,
 			Bounds += Vertex.Position;
 		}
 	}
-	else
+	else if ( InOverrideColors )
 	{
 		// Otherwise we have to retrieve the data from the override color and vertex buffers
 		TArray<FColor> Colors;
-		InOverrideColors.GetVertexColors(Colors);
+		InOverrideColors->GetVertexColors(Colors);
 
 		PaintedVertices.Reset(Colors.Num());
 		FPaintedVertex PaintedVertex;

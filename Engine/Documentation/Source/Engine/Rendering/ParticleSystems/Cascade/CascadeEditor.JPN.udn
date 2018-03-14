@@ -312,21 +312,25 @@ Shader Complexity (シェーダの複雑度) では、特定のシェーダに�
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Emitters]
 1. **エミッタ カラム** - 各カラムは別個のエミッタを表します。
 2. **エミッタ ブロック** - 各エミッタの上部にあるこのボックスには、他の主要プロパティと共に、エミッタのタイプ、名前などそのエミッタ自体の主要プロパティと制御が含まれます。
 3. **モジュール リスト** - エミッタ ブロックの下に当該エミッタの外観と動作を定義するすべてのモジュールのリストが表示されます。すべてのエミッタには **[Required]** モジュールがあり、その中にビヘイビアを細かく定義するモジュールが付いている場合もあります。
 [/EXCERPT:Emitters]
--->
+
+[/COMMENT]
 
 [REGION:raw]
 ![](Engine\Rendering\LightingAndShadows\LightTypes\Point\spacer.png)
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 エミッタの使用方法については、「エミッタの使用方法」セクションをご覧ください。
--->
+
+[/COMMENT]
 
 パーティクル モジュールに関する詳細は、[モジュール リファレンスのセクション](Engine/Rendering/ParticleSystems/Reference) を参照してください。
 
@@ -350,7 +354,8 @@ Shader Complexity (シェーダの複雑度) では、特定のシェーダに�
 [/REGION]
 
 
-<!--
+[COMMENT:none]
+
 #### LOSE ME
 エミッタ ブロックは以下になります。
 
@@ -386,7 +391,8 @@ Shader Complexity (シェーダの複雑度) では、特定のシェーダに�
 ![CASC_Cross.jpg](CASC_Cross.jpg)/ ![CASC_None.jpg](CASC_None.jpg)
 
 左の画像は、描画された 3D _プレビュー_ です。右の画像は現在無効になっていることを意味します。
--->
+
+[/COMMENT]
 
 ###カーブ エディタ
 

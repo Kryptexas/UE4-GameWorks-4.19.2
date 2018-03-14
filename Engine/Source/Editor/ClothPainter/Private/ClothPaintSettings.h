@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -34,6 +34,9 @@ public:
 		: UMeshPaintSettings()
 		, ViewMin(0.0f)
 		, ViewMax(100.0f)
+		, bAutoViewRange(false)
+		, AutoCalculatedViewMin(0.0f)
+		, AutoCalculatedViewMax(0.0f)
 		, bFlipNormal(false)
 		, bCullBackface(false)
 		, Opacity(0.8f)
@@ -41,14 +44,16 @@ public:
 
 	float GetViewMin()
 	{
+		float TempViewMin = bAutoViewRange ? AutoCalculatedViewMin : ViewMin;
+
 		// Zero is reserved, but conceptually we should allow it as that's an
 		// implementation detail the user is unlikely to care about
-		return FMath::Clamp(ViewMin, SMALL_NUMBER, MAX_flt);
+		return FMath::Clamp(TempViewMin, SMALL_NUMBER, MAX_flt);
 	}
 
 	float GetViewMax()
 	{
-		return ViewMax;
+		return bAutoViewRange ? AutoCalculatedViewMax : ViewMax;
 	}
 
 	// Delegates to communicate with objects concerned with the settings changing
@@ -56,14 +61,26 @@ public:
 
 protected:
 	/** When painting float/1D values, this is considered the zero or black point */
-	UPROPERTY(EditAnywhere, Category = View, meta = (UIMin = 0, UIMax = 100000, ClampMin = 0, ClampMax = 100000))
+	UPROPERTY(EditAnywhere, Category = View, meta = (UIMin = 0, UIMax = 100000, ClampMin = 0, ClampMax = 100000, EditCondition = "!bAutoViewRange"))
 	float ViewMin;
 
 	/** When painting float/1D values, this is considered the one or white point */
-	UPROPERTY(EditAnywhere, Category = View, meta = (UIMin = 0, UIMax = 100000, ClampMin = 0, ClampMax = 100000))
+	UPROPERTY(EditAnywhere, Category = View, meta = (UIMin = 0, UIMax = 100000, ClampMin = 0, ClampMax = 100000, EditCondition = "!bAutoViewRange"))
 	float ViewMax;
 
 public:
+
+	/** When set, the view min and max values will be calculated from the values present in the currently editable mask */
+	UPROPERTY(EditAnywhere, Category = View)
+	bool bAutoViewRange;
+
+	/** Storage for auto calculated view min value */
+	UPROPERTY()
+	float AutoCalculatedViewMin;
+
+	/** Storage for auto calculated view max value */
+	UPROPERTY()
+	float AutoCalculatedViewMax;
 
 	/** Array of Clothing assets */
 	UPROPERTY()

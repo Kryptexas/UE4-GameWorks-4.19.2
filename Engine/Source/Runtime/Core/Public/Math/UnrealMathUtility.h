@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -67,6 +67,7 @@ struct FLinearColor;
 #define THRESH_POINTS_ARE_SAME			(0.00002f)	/* Two points are same if within this distance */
 #define THRESH_POINTS_ARE_NEAR			(0.015f)	/* Two points are near if within this distance and can be combined if imprecise math is ok */
 #define THRESH_NORMALS_ARE_SAME			(0.00002f)	/* Two normal points are same if within this distance */
+#define THRESH_UVS_ARE_SAME			    (0.0009765625f)/* Two UV are same if within this threshold (1.0f/1024f) */
 													/* Making this too large results in incorrect CSG classification and disaster */
 #define THRESH_VECTORS_ARE_NEAR			(0.0004f)	/* Two vectors are near if within this distance and can be combined if imprecise math is ok */
 													/* Making this too large results in lighting problems due to inaccurate texture coordinates */
@@ -138,6 +139,9 @@ struct FMath : public FPlatformMath
 	 * Assumes world Y and Z, although this could be extended to handle arbitrary rotations.
 	 */
 	static CORE_API FVector VRandCone(FVector const& Dir, float HorizontalConeHalfAngleRad, float VerticalConeHalfAngleRad);
+
+	/** Returns a random point, uniformly distributed, within the specified radius */
+	static CORE_API FVector2D RandPointInCircle(float CircleRadius);
 
 	/** Returns a random point within the passed in bounding box */
 	static CORE_API FVector RandPointInBox(const FBox& Box);

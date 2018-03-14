@@ -54,14 +54,16 @@ Sprite instances will pass in their color as a vertex color, but it can be used 
 [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Functions#TextureObject]
 
 
-<!---
+[COMMENT:none]
+-
 ## Scene Texture
 
 
 ## Texture Object
 
 
---->
+-
+[/COMMENT]
 
 ## TextureSample
 

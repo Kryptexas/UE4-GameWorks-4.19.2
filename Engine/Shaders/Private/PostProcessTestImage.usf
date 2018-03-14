@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessTestImage.usf: PostProcessing shader to show a test image
@@ -6,7 +6,6 @@
 
 #include "Common.ush"
 #include "PostProcessCommon.ush"
-#include "PostProcessHistogramCommon.ush"
 #include "DeferredShadingCommon.ush"
 
 uint FrameNumber;

@@ -63,7 +63,8 @@ version: 4.9
 想要获得这部分更多的信息, 请查阅 [](Engine/Blueprints/UserGuide/Types/MacroLibrary).
 
 
-<!--
+[COMMENT:none]
+
 [OBJECT:IconSection]
 	[PARAM:icon]
 		![Blueprints](%ROOT%/blueprint_icon.png)(convert:false)
@@ -77,6 +78,7 @@ version: 4.9
 		and have the ability to execute any functions exposed to _Blueprints_ and act on the current set of selected Actors in the viewport.
 	[/PARAM]
 [/OBJECT]
--->
+
+[/COMMENT]
 
 [/EXCERPT:Types]

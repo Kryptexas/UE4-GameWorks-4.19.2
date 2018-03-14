@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -59,7 +59,7 @@ public:
 	TSharedRef<FNiagaraScriptViewModel> GetSharedScriptViewModel();
 
 	/** Compiles the spawn and update scripts. */
-	void CompileScripts();
+	void CompileScripts(bool bForce);
 
 	/* Get the latest status of this view-model's script compilation.*/
 	ENiagaraScriptCompileStatus GetLatestCompileStatus();
@@ -72,9 +72,6 @@ public:
 
 	/** Gets a delegate which is called when the shared script is compiled. */
 	FOnScriptCompiled& OnScriptCompiled();
-		
-	bool GetDirty() const;
-	void SetDirty(bool bDirty);
 
 	/** Gets editor specific data which can be stored per emitter.  If this data hasn't been created the default version will be returned. */
 	const UNiagaraEmitterEditorData& GetEditorData() const;
@@ -109,7 +106,7 @@ private:
 
 	ENiagaraScriptCompileStatus LastEventScriptStatus;
 
-	bool bEmitterDirty;
-
 	TNiagaraViewModelManager<UNiagaraEmitter, FNiagaraEmitterViewModel>::Handle RegisteredHandle;
+
+	UEnum* ExecutionStateEnum;
 };

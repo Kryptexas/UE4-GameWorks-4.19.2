@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,7 +13,7 @@ class IDetailLayoutBuilder;
 class IPropertyHandle;
 class SComboButton;
 
-class FSkeletalMeshComponentDetails : public IDetailCustomization
+class DETAILCUSTOMIZATIONS_API FSkeletalMeshComponentDetails : public IDetailCustomization
 {
 public:
 	FSkeletalMeshComponentDetails();
@@ -24,6 +24,8 @@ public:
 
 	/** IDetailCustomization interface */
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
+
+	static TSharedRef<SWidget> CreateAsyncSceneValueWidgetWithWarning(const TSharedPtr<IPropertyHandle>& AsyncScenePropertyHandle);
 
 private:
 	void UpdateAnimationCategory(IDetailLayoutBuilder& DetailBuilder);
@@ -75,12 +77,6 @@ private:
 
 	/** Called when a skeletal mesh property changes. */
 	void UpdateSkeletonNameAndPickerVisibility();
-
-	/** Returns the desired visibility state for the async scene warning. */
-	EVisibility VisibilityForAsyncSceneWarning() const;
-
-	/** Returns whether the user should be a allowed to modify the async scene property on the given mesh. */
-	bool ShouldAllowAsyncSceneSettingToBeChanged() const;
 
 	/** Cached layout builder for use after customization */
 	IDetailLayoutBuilder* CurrentDetailBuilder;

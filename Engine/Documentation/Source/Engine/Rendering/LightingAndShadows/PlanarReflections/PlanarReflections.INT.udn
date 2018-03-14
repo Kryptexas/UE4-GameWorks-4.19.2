@@ -16,10 +16,10 @@ Screen Space Reflections (SSR) are much more efficient than Planar Reflections w
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Screen Space Reflections](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\SSR_Relections_00.png)(w:800 h:500)
+	![Screen Space Reflections](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\SSR_Relections_00.png)(w:800)
 	[/PARAM]
 	[PARAM:after]
-	![Planar Reflections](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_00.png)(w:800 h:500)
+	![Planar Reflections](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_00.png)(w:800)
 	[/PARAM]
 [/OBJECT]
 
@@ -33,7 +33,7 @@ To use enable and use Planar Reflections in your project you will need to do the
 1. From the Main Toolbar go to **Edit > Project Settings** and from the Project Settings menu, go to the **Rendering > Optimizations** section.
 	
 	[REGION:lightbox]
-	[![](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Project_Settings_00.png)(w:502 h:322)](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Project_Settings_00.png)
+	[![](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Project_Settings_00.png)(w:502)](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Project_Settings_00.png)
 	[/REGION]
 
 1. Click on the check box next to **Support global clip plane for Planar Reflections** and re-start the UE4 Editor when prompted. 
@@ -47,7 +47,7 @@ To use enable and use Planar Reflections in your project you will need to do the
 1. Once the UE4 Editor restarts, go to the **Modes** panel and from the **Visual Effects** section, select and drag a **Planar Reflection Actor** to the level.
 
 	[REGION:lightbox]
-	[![](Adding_Planar_Reflection_Actor.png)(w:380 h:286)](Adding_Planar_Reflection_Actor.png)
+	[![](Adding_Planar_Reflection_Actor.png)(w:380)](Adding_Planar_Reflection_Actor.png)
 	[/REGION]
 
 1. With the Planar Reflection Actor now placed in the level, you can now use the **G** key to hide and unhide the Actor. You can also use the **Move**, **Rotate**, and **Scale** tools to better position and size the Planar Reflection Actor to meet your levels needs. 
@@ -73,7 +73,7 @@ To use enable and use Planar Reflections in your project you will need to do the
 The Planar Reflection Actor has a number of properties that when adjusted can significantly affect the look of the reflection. The following table outlines these properties and how they will change the look of the Planar Reflection.
 
 [REGION:lightbox]
-[![](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Props_Breakdown_00.png)(w:238 h:232)](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Props_Breakdown_00.png)
+[![](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Props_Breakdown_00.png)(w:238)](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\PR_Props_Breakdown_00.png)
 [/REGION]
 
 |Setting Name| Description|
@@ -113,10 +113,10 @@ Due to the size and varying height of the Kite demos Landscape terrain, adding a
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Planar Reflections Off](SSR_Reflections_00.png)(w:853 h:466)
+	![Planar Reflections Off](SSR_Reflections_00.png)(w:853)
 	[/PARAM]
 	[PARAM:after]
-	![Planar Reflections On](PR_Reflections_00.png)(w:853 h:466)
+	![Planar Reflections On](PR_Reflections_00.png)(w:853)
 	[/PARAM]
 [/OBJECT]
 
@@ -134,10 +134,10 @@ Due to the size and layout of the Infinity Blade Elven Ruins map, only one Plana
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Planar Reflections Off](SSR_Reflections_01.png)(w:853 h:466)
+	![Planar Reflections Off](SSR_Reflections_01.png)(w:853)
 	[/PARAM]
 	[PARAM:after]
-	![Planar Reflections On](PR_Reflections_01.png)(w:853 h:466)
+	![Planar Reflections On](PR_Reflections_01.png)(w:853)
 	[/PARAM]
 [/OBJECT]
 
@@ -149,26 +149,30 @@ While adding a Planar Reflection makes the water look more lifelike, the impact 
 
 The reason that Planar Reflections only cost 1.67 ms to render in the Elven Ruins map versus the 23.07 ms that it takes to render the Planar Reflections in the Kite Demo is due to how the Static Meshes and Materials that are used in the Elven Ruins were built. Since the Elven Ruins map and its content was designed for mobile devices, close attention was paid to the amount of triangles and Material instructions each asset used. Because of this, when Planar Reflections are enabled in the Elven Ruins map, they will cost less as the assets that are used in the map are greatly reduced in complexity and size when compared to the Kite Demo assets.
 
-<!--  
+[COMMENT:none]
+  
 [EXCERPT:KitePlanarReflection]
 [REGION:imagetable lightbox caption]
-|[![](GPU_Profile_PR_Off_00.png)(w:400 h:200)](GPU_Profile_PR_Off_00.png)|[![](GPU_Profile_PR_On_00.png)(w:400 h:200)](GPU_Profile_PR_On_00.png) | 
+|[![](GPU_Profile_PR_Off_00.png)(w:400)](GPU_Profile_PR_Off_00.png)|[![](GPU_Profile_PR_On_00.png)(w:400)](GPU_Profile_PR_On_00.png) | 
 | ------ | ------ |
 | Planar Reflection Off | Planar Reflection On |
 |Click for full image |Click for full image.|
 [/REGION] 
 [/EXCERPT:KitePlanarReflection]
--->
 
-<!--  
+[/COMMENT]
+
+[COMMENT:none]
+  
 [EXCERPT:ElvenRuinsReflection]
 [REGION:imagetable lightbox caption]
-|[![](GPU_Profile_PR_Off_01.png)(w:400 h:200)](GPU_Profile_PR_Off_01.png)|[![](GPU_Profile_PR_On_01.png)(w:400 h:200)](GPU_Profile_PR_On_01.png) | 
+|[![](GPU_Profile_PR_Off_01.png)(w:400)](GPU_Profile_PR_Off_01.png)|[![](GPU_Profile_PR_On_01.png)(w:400)](GPU_Profile_PR_On_01.png) | 
 | ------ | ------ |
 | Planar Reflection Off | Planar Reflection On |
 |Click for full image |Click for full image.|
 [/REGION] 
 [/EXCERPT:ElvenRuinsReflection]
--->
+
+[/COMMENT]
 
 

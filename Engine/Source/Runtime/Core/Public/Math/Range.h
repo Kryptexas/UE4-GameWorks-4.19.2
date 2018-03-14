@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -51,6 +51,9 @@ public:
 
 	typedef TRangeBound<ElementType> BoundsType;
 
+	/*~ Typedef used to pass/return small element types by value rather than const& */
+	typedef typename TCallTraits<ElementType>::ParamType ElementValueOrConstRef;
+
 	/** Default constructor (no initialization). */
 	TRange() { }
 
@@ -61,7 +64,7 @@ public:
 	 *
 	 * @param A The element in the range.
 	 */
-	explicit TRange(const ElementType& A)
+	explicit TRange(ElementValueOrConstRef A)
 		: LowerBound(BoundsType::Inclusive(A))
 		, UpperBound(BoundsType::Inclusive(A))
 	{ }
@@ -74,7 +77,7 @@ public:
 	 * @param A The range's lower bound value (inclusive).
 	 * @param B The range's upper bound value (exclusive).
 	 */
-	explicit TRange(const ElementType& A, const ElementType& B)
+	explicit TRange(ElementValueOrConstRef A, ElementValueOrConstRef B)
 		: LowerBound(BoundsType::Inclusive(A))
 		, UpperBound(BoundsType::Exclusive(B))
 	{ }
@@ -184,7 +187,7 @@ public:
 	 * @param Element The element to check.
 	 * @return true if the range contains the element, false otherwise.
 	 */
-	bool Contains(const ElementType& Element) const
+	bool Contains(ElementValueOrConstRef Element) const
 	{
 		return ((BoundsType::MinLower(LowerBound, Element) == LowerBound) &&
 				(BoundsType::MaxUpper(UpperBound, Element) == UpperBound));
@@ -234,7 +237,7 @@ public:
 	 * @return Bound value.
 	 * @see GetLowerBound, GetUpperBoundValue, HasLowerBound
 	 */
-	const ElementType& GetLowerBoundValue() const
+	ElementValueOrConstRef GetLowerBoundValue() const
 	{
 		return LowerBound.GetValue();
 	}
@@ -258,7 +261,7 @@ public:
 	 * @return Bound value.
 	 * @see GetLowerBoundValue, GetUpperBound, HasUpperBound
 	 */
-	const ElementType& GetUpperBoundValue() const
+	ElementValueOrConstRef GetUpperBoundValue() const
 	{
 		return UpperBound.GetValue();
 	}
@@ -390,7 +393,7 @@ public:
 	 *
 	 * @param Element The element at which to split the range.
 	 */
-	TArray<TRange> Split(const ElementType& Element) const
+	TArray<TRange> Split(ElementValueOrConstRef Element) const
 	{
 		TArray<TRange> Result;
 		
@@ -596,7 +599,7 @@ public:
 	 * @return A new range.
 	 * @see All, AtMost, Empty, Exclusive, GreaterThan, Inclusive, LessThan
 	 */
-	static FORCEINLINE TRange AtLeast(const ElementType& Value)
+	static FORCEINLINE TRange AtLeast(ElementValueOrConstRef Value)
 	{
 		return TRange(BoundsType::Inclusive(Value), BoundsType::Open());
 	}
@@ -608,7 +611,7 @@ public:
 	 * @return A new range.
 	 * @see All, AtLeast, Empty, Exclusive, GreaterThan, Inclusive, LessThan
 	 */
-	static FORCEINLINE TRange AtMost(const ElementType& Value)
+	static FORCEINLINE TRange AtMost(ElementValueOrConstRef Value)
 	{
 		return TRange(BoundsType::Open(), BoundsType::Inclusive(Value));
 	}
@@ -632,7 +635,7 @@ public:
 	 * @return A new range.
 	 * @see All, AtLeast, AtMost, Empty, Exclusive, GreaterThan, Inclusive, LessThan
 	 */
-	static FORCEINLINE TRange Exclusive(const ElementType& Min, const ElementType& Max)
+	static FORCEINLINE TRange Exclusive(ElementValueOrConstRef Min, ElementValueOrConstRef Max)
 	{
 		return TRange(BoundsType::Exclusive(Min), BoundsType::Exclusive(Max));
 	}
@@ -644,7 +647,7 @@ public:
 	 * @return A new range.
 	 * @see All, AtLeast, AtMost, Empty, Exclusive, Inclusive, LessThan
 	 */
-	static FORCEINLINE TRange GreaterThan(const ElementType& Value)
+	static FORCEINLINE TRange GreaterThan(ElementValueOrConstRef Value)
 	{
 		return TRange(BoundsType::Exclusive(Value), BoundsType::Open());
 	}
@@ -657,7 +660,7 @@ public:
 	 * @return A new range.
 	 * @see All, AtLeast, AtMost, Empty, Exclusive, GreaterThan, LessThan
 	 */
-	static FORCEINLINE TRange Inclusive(const ElementType& Min, const ElementType& Max)
+	static FORCEINLINE TRange Inclusive(ElementValueOrConstRef Min, ElementValueOrConstRef Max)
 	{
 		return TRange(BoundsType::Inclusive(Min), BoundsType::Inclusive(Max));
 	}
@@ -669,7 +672,7 @@ public:
 	 * @return A new range.
 	 * @see All, AtLeast, AtMost, Empty, Exclusive, GreaterThan, Inclusive
 	 */
-	static FORCEINLINE TRange LessThan(const ElementType& Value)
+	static FORCEINLINE TRange LessThan(ElementValueOrConstRef Value)
 	{
 		return TRange(BoundsType::Open(), BoundsType::Exclusive(Value));
 	}
@@ -729,12 +732,12 @@ private:
 		{ \
 		} \
 		 \
-		explicit Name(const ElementType& A) \
+		explicit Name(ElementValueOrConstRef A) \
 			: Super(A) \
 		{ \
 		} \
 		 \
-		explicit Name(const ElementType& A, const ElementType& B) \
+		explicit Name(ElementValueOrConstRef A, ElementValueOrConstRef B) \
 			: Super(A, B) \
 		{ \
 		} \
@@ -744,7 +747,7 @@ private:
 		{ \
 		} \
 		 \
-		TArray<Name> Split(const ElementType& Element) const \
+		TArray<Name> Split(ElementValueOrConstRef Element) const \
 		{ \
 			return TArray<Name>(Super::Split(Element)); \
 		} \
@@ -789,22 +792,22 @@ private:
 			return Super::All(); \
 		} \
 		 \
-		static FORCEINLINE Name AtLeast(const ElementType& Value) \
+		static FORCEINLINE Name AtLeast(ElementValueOrConstRef Value) \
 		{ \
 			return Super::AtLeast(Value); \
 		} \
 		 \
-		static FORCEINLINE Name AtMost(const ElementType& Value) \
+		static FORCEINLINE Name AtMost(ElementValueOrConstRef Value) \
 		{ \
 			return Super::AtMost(Value); \
 		} \
 		 \
-		static FORCEINLINE TRange GreaterThan(const ElementType& Value) \
+		static FORCEINLINE TRange GreaterThan(ElementValueOrConstRef Value) \
 		{ \
 			return Super::GreaterThan(Value); \
 		} \
 		 \
-		static FORCEINLINE TRange LessThan(const ElementType& Value) \
+		static FORCEINLINE TRange LessThan(ElementValueOrConstRef Value) \
 		{ \
 			return Super::LessThan(Value); \
 		} \

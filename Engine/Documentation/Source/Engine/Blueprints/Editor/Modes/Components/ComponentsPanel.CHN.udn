@@ -5,7 +5,8 @@ Description:
 
 [INCLUDE:Globals#bpmodesremoved]
 
-<!--
+[COMMENT:none]
+
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
@@ -86,7 +87,8 @@ See [](Engine/Blueprints/UserGuide/Components) for information on adding or mana
 * [Class Defaults](Engine/Blueprints/Editor\Modes\Defaults\DefaultsTab)
 * [Find Results](Engine/Blueprints/Editor\UIComponents\FindResults)
 [/EXCERPT:Invisible]
-------------->
+-----------
+[/COMMENT]
 
 -->
 

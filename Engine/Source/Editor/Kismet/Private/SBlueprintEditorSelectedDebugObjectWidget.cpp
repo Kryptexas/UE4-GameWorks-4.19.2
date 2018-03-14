@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SBlueprintEditorSelectedDebugObjectWidget.h"
 #include "Framework/MultiBox/MultiBoxDefs.h"
@@ -397,9 +397,19 @@ void SBlueprintEditorSelectedDebugObjectWidget::GenerateDebugObjectNames(bool bR
 				continue;
 			}
 
-			if (!TestObject->HasAnyFlags(RF_ClassDefaultObject) && !TestObject->IsPendingKill())
+			// check outer chain for pending kill objects
+			bool bPendingKill = false;
+			UObject* ObjOuter = TestObject;
+			do
 			{
-				UObject *ObjOuter = TestObject;
+				bPendingKill = ObjOuter->IsPendingKill();
+				ObjOuter = ObjOuter->GetOuter();
+			} 
+			while (!bPendingKill && ObjOuter != nullptr);
+
+			if (!TestObject->HasAnyFlags(RF_ClassDefaultObject) && !bPendingKill)
+			{
+				ObjOuter = TestObject;
 				UWorld *ObjWorld = nullptr;
 				static bool bUseNewWorldCode = false;
 				do		// Run through at least once in case the TestObject is a UGameInstance

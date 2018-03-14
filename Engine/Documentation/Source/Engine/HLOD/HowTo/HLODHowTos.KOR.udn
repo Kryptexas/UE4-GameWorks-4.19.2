@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3188567
+﻿INTSourceChangelist:3782314
 title:계층형 레벨 오브 디테일 비법
 description:게임에서 계층형 레벨 오브 디테일, HLOD 시스템을 켜고 구성하는 법에 대한 안내입니다.
 crumbs:
@@ -22,8 +22,10 @@ topic-image:Engine/HLOD/HowTo/HLOD_howto_Topic_02.png
 
 [DIR(output:"fancy" parent:"Engine/HLOD/HowTo" skill_level:"intermediate")]
 
-<!--
+[COMMENT:none]
+
 ## 고급
 
 [DIR(output:"fancy" parent:"Engine/HLOD/HowTo" skill_level:"advanced")]
--->
+
+[/COMMENT]

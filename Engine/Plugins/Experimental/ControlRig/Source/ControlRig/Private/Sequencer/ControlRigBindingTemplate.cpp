@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ControlRigBindingTemplate.h"
 #include "MovieSceneSequence.h"
@@ -8,6 +8,7 @@
 #include "ControlRig.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "ControlRigSequencerAnimInstance.h"
+#include "MovieSceneControlRigInstanceData.h"
 
 DECLARE_CYCLE_STAT(TEXT("Binding Track Evaluate"), MovieSceneEval_BindControlRigTemplate_Evaluate, STATGROUP_MovieSceneEval);
 DECLARE_CYCLE_STAT(TEXT("Binding Track Token Execute"), MovieSceneEval_BindControlRig_TokenExecute, STATGROUP_MovieSceneEval);
@@ -62,32 +63,19 @@ struct FControlRigPreAnimatedTokenProducer : IMovieScenePreAnimatedTokenProducer
 
 struct FBindControlRigObjectToken : IMovieSceneExecutionToken
 {
-	FBindControlRigObjectToken(FGuid InObjectBindingId, FMovieSceneSequenceIDRef InObjectBindingSequenceID, float InWeight, bool bInAdditive, bool bInApplyBoneFilter, const FInputBlendPose& InBoneFilter, bool bInSpawned)
+
+	FBindControlRigObjectToken(float InWeight, bool bInSpawned
+#if WITH_EDITORONLY_DATA
+		, TWeakObjectPtr<> InObjectBinding = TWeakObjectPtr<>()
+#endif
+		)
 		: 
 #if WITH_EDITORONLY_DATA
-		ObjectBinding(nullptr),
+		  ObjectBinding(InObjectBinding),
 #endif
-		ObjectBindingId(InObjectBindingId)
-		, ObjectBindingSequenceID(InObjectBindingSequenceID)
-		, BoneFilter(InBoneFilter)
-		, Weight(InWeight)
-		, bApplyBoneFilter(bInApplyBoneFilter)
-		, bAdditive(bInAdditive)
+		  Weight(InWeight)
 		, bSpawned(bInSpawned)
 	{}
-
-#if WITH_EDITORONLY_DATA
-	FBindControlRigObjectToken(TWeakObjectPtr<> InObjectBinding, float InWeight, bool bInAdditive, bool bInApplyBoneFilter, const FInputBlendPose& InBoneFilter, bool bInSpawned)
-		: ObjectBinding(InObjectBinding)
-		, BoneFilter(InBoneFilter)
-		, Weight(InWeight)
-		, bApplyBoneFilter(bInApplyBoneFilter)
-		, bAdditive(bInAdditive)
-		, bSpawned(bInSpawned)
-	{
-		ObjectBindingId.Invalidate();
-	}
-#endif
 
 	void BindToSequencerInstance(UControlRig* ControlRig)
 	{
@@ -114,6 +102,21 @@ struct FBindControlRigObjectToken : IMovieSceneExecutionToken
 	{
 		MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_BindControlRig_TokenExecute)
 
+		FInputBlendPose DefaultBoneFilter;
+
+		FMovieSceneEvaluationOperand InstanceOperand;
+		bool bAdditive = false;
+		bool bApplyBoneFilter = false;
+		const FInputBlendPose* BoneFilter = &DefaultBoneFilter;
+
+		if (const FMovieSceneControlRigInstanceData* InstanceData = PersistentData.FindInstanceData<FMovieSceneControlRigInstanceData>())
+		{
+			InstanceOperand = InstanceData->Operand;
+			bAdditive = InstanceData->bAdditive;
+			bApplyBoneFilter = InstanceData->bApplyBoneFilter;
+			BoneFilter = &InstanceData->BoneFilter;
+		}
+
 		TArrayView<TWeakObjectPtr<>> BoundObjects = Player.FindBoundObjects(Operand);
 		const bool bHasBoundObjects = BoundObjects.Num() != 0;
 		if (bSpawned)
@@ -127,9 +130,9 @@ struct FBindControlRigObjectToken : IMovieSceneExecutionToken
 				if (Sequence)
 				{
 					ControlRig = CastChecked<UControlRig>(Player.GetSpawnRegister().SpawnObject(Operand.ObjectBindingID, *Sequence->GetMovieScene(), Operand.SequenceID, Player));
-					if (ObjectBindingId.IsValid())
+					if (InstanceOperand.ObjectBindingID.IsValid())
 					{
-						TArrayView<TWeakObjectPtr<>> OuterBoundObjects = Player.FindBoundObjects(ObjectBindingId, ObjectBindingSequenceID);
+						TArrayView<TWeakObjectPtr<>> OuterBoundObjects = Player.FindBoundObjects(InstanceOperand);
 						if (OuterBoundObjects.Num() > 0)
 						{
 							UObject* OuterBoundObject = OuterBoundObjects[0].Get();
@@ -175,7 +178,7 @@ struct FBindControlRigObjectToken : IMovieSceneExecutionToken
 				{
 					if (UControlRigSequencerAnimInstance* AnimInstance = Cast<UControlRigSequencerAnimInstance>(SkeletalMeshComponent->GetAnimInstance()))
 					{
-						bool bStructureChanged = AnimInstance->UpdateControlRig(ControlRig, Operand.SequenceID.GetInternalValue(), bAdditive, bApplyBoneFilter, BoneFilter, Weight);
+						bool bStructureChanged = AnimInstance->UpdateControlRig(ControlRig, Operand.SequenceID.GetInternalValue(), bAdditive, bApplyBoneFilter, *BoneFilter, Weight);
 						if (bStructureChanged)
 						{
 							AnimInstance->RecalcRequiredBones();
@@ -204,7 +207,7 @@ struct FBindControlRigObjectToken : IMovieSceneExecutionToken
 						if (UControlRigSequencerAnimInstance* AnimInstance = Cast<UControlRigSequencerAnimInstance>(SkeletalMeshComponent->GetAnimInstance()))
 						{
 							// Force us to zero weight before we despawn, as the graph could persist
-							AnimInstance->UpdateControlRig(ControlRig, Operand.SequenceID.GetInternalValue(), bAdditive, bApplyBoneFilter, BoneFilter, 0.0f);
+							AnimInstance->UpdateControlRig(ControlRig, Operand.SequenceID.GetInternalValue(), bAdditive, bApplyBoneFilter, *BoneFilter, 0.0f);
 							AnimInstance->RecalcRequiredBones();
 						}
 						UAnimSequencerInstance::UnbindFromSkeletalMeshComponent(SkeletalMeshComponent);
@@ -223,23 +226,8 @@ struct FBindControlRigObjectToken : IMovieSceneExecutionToken
 	TWeakObjectPtr<> ObjectBinding;
 #endif
 
-	/** The object binding controllers should bind to (in the case we are bound to a sequencer object) */
-	FGuid ObjectBindingId;
-
-	/** The sequence ID controllers should bind to */
-	FMovieSceneSequenceID ObjectBindingSequenceID;
-
-	/** Per-bone filter to apply to our animation */
-	FInputBlendPose BoneFilter;
-
 	/** The weight to apply this controller at */
 	float Weight;
-
-	/** Only apply bones that are in the filter */
-	bool bApplyBoneFilter;
-
-	/** Whether we are additive */
-	bool bAdditive;
 
 	/** Whether this token should spawn an object */
 	bool bSpawned;
@@ -247,10 +235,7 @@ struct FBindControlRigObjectToken : IMovieSceneExecutionToken
 
 FControlRigBindingTemplate::FControlRigBindingTemplate(const UMovieSceneSpawnSection& SpawnSection)
 	: FMovieSceneSpawnSectionTemplate(SpawnSection)
-	, bApplyBoneFilter(false)
-	, bAdditive(false)
 {
-	WeightCurve.SetDefaultValue(1.0f);
 }
 
 #if WITH_EDITORONLY_DATA
@@ -272,47 +257,24 @@ void FControlRigBindingTemplate::ClearObjectBinding()
 
 #endif
 
-void FControlRigBindingTemplate::SetObjectBindingId(FGuid InObjectBindingId, FMovieSceneSequenceIDRef InObjectBindingSequenceID)
-{
-	ObjectBindingId = InObjectBindingId;
-	ObjectBindingSequenceID = InObjectBindingSequenceID;
-}
-
-void FControlRigBindingTemplate::SetWeightCurve(const FRichCurve& InWeightCurve, float InOffset, float InScale)
-{ 
-	WeightCurve = InWeightCurve;
-
-	WeightCurve.ShiftCurve(InOffset);
-	WeightCurve.ScaleCurve(0.0f, InScale);
-}
-
-void FControlRigBindingTemplate::SetPerBoneBlendFilter(bool bInApplyBoneFilter, const FInputBlendPose& InBoneFilter)
-{
-	bApplyBoneFilter = bInApplyBoneFilter;
-	if (bInApplyBoneFilter)
-	{
-		BoneFilter = InBoneFilter;
-	}
-	else
-	{
-		BoneFilter.BranchFilters.Empty();
-	}
-}
 
 void FControlRigBindingTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 {
 	MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_BindControlRigTemplate_Evaluate)
 
-	const float Time = Context.GetTime();
+	const FMovieSceneControlRigInstanceData* InstanceData = PersistentData.FindInstanceData<FMovieSceneControlRigInstanceData>();
 
-	if (ObjectBindingId.IsValid())
+	const float Time = Context.GetTime();
+	const float Weight = InstanceData ? InstanceData->Weight.Eval(Time) : 1.f;
+
+	if (InstanceData && InstanceData->Operand.ObjectBindingID.IsValid())
 	{
-		ExecutionTokens.Add(FBindControlRigObjectToken(ObjectBindingId, ObjectBindingSequenceID, WeightCurve.Eval(Time), bAdditive, bApplyBoneFilter, BoneFilter, Curve.Evaluate(Time) != 0));
+		ExecutionTokens.Add(FBindControlRigObjectToken(Weight, Curve.Evaluate(Time) != 0));
 	}
 #if WITH_EDITORONLY_DATA
 	else if (ObjectBinding.IsValid())
 	{
-		ExecutionTokens.Add(FBindControlRigObjectToken(ObjectBinding, WeightCurve.Eval(Time), bAdditive, bApplyBoneFilter, BoneFilter, Curve.Evaluate(Time) != 0));
+		ExecutionTokens.Add(FBindControlRigObjectToken(Weight, Curve.Evaluate(Time) != 0, ObjectBinding));
 	}
 #endif
 }

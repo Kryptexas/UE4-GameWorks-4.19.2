@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Containers/SortedMap.h"
 #include "UObject/WeakObjectPtr.h"
 #include "Async/Future.h"
 
@@ -618,7 +619,7 @@ struct COREUOBJECT_API FFloatBulkData : public FUntypedBulkData
 
 class FFormatContainer
 {
-	TMap<FName, FByteBulkData*> Formats;
+	TSortedMap<FName, FByteBulkData*> Formats;
 	uint32 Alignment;
 public:
 	~FFormatContainer()
@@ -641,12 +642,12 @@ public:
 	}
 	void FlushData()
 	{
-		for (TMap<FName, FByteBulkData*>:: TIterator It(Formats); It; ++It)
+		for (const TPair<FName, FByteBulkData*>& Format : Formats)
 		{
-			delete It.Value();
+			delete Format.Value;
 		}
 		Formats.Empty();
 	}
-	COREUOBJECT_API void Serialize(FArchive& Ar, UObject* Owner, const TArray<FName>* FormatsToSave = NULL, bool bSingleUse = true, uint32 InAlignment = DEFAULT_ALIGNMENT);
+	COREUOBJECT_API void Serialize(FArchive& Ar, UObject* Owner, const TArray<FName>* FormatsToSave = nullptr, bool bSingleUse = true, uint32 InAlignment = DEFAULT_ALIGNMENT);
 };
 

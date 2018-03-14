@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Kismet2/CompilerResultsLog.h"
 #include "Engine/Blueprint.h"
@@ -11,7 +11,6 @@
 #include "SourceCodeNavigation.h"
 #include "Developer/HotReload/Public/IHotReload.h"
 #include "EngineLogs.h"
-#include "K2Node_MacroInstance.h"
 #include "Engine/Blueprint.h"
 #include "IMessageLogListing.h"
 
@@ -240,13 +239,6 @@ void FCompilerResultsLog::InternalLogSummary()
 /** Update the source backtrack map to note that NewObject was most closely generated/caused by the SourceObject */
 void FCompilerResultsLog::NotifyIntermediateObjectCreation(UObject* NewObject, UObject* SourceObject)
 {
-	if(UEdGraphNode* NewNode = Cast<UEdGraphNode>(NewObject))
-	{
-		if(UEdGraphNode* OldNode = Cast<UEdGraphNode>(SourceObject))
-		{
-			FullSourceBacktrackMap.Add(NewNode, OldNode);
-		}
-	}
 	SourceBacktrackMap.NotifyIntermediateObjectCreation(NewObject, SourceObject);
 }
 
@@ -266,6 +258,21 @@ UObject const* FCompilerResultsLog::FindSourceObject(UObject const* PossiblyDupl
 	return SourceBacktrackMap.FindSourceObject(PossiblyDuplicatedObject);
 }
 
+void FCompilerResultsLog::NotifyIntermediateTunnelNode(const UEdGraphNode* Node, const UEdGraphNode* OuterTunnelInstance)
+{
+	IntermediateTunnelNodeToTunnelInstanceMap.Add(Node, OuterTunnelInstance);
+}
+
+const UEdGraphNode* FCompilerResultsLog::GetIntermediateTunnelInstance(const UEdGraphNode* IntermediateNode) const
+{
+	TWeakObjectPtr<const UEdGraphNode> Result;
+	if (const TWeakObjectPtr<const UEdGraphNode>* IntermediateTunnelInstanceNode = IntermediateTunnelNodeToTunnelInstanceMap.Find(IntermediateNode))
+	{
+		Result = *IntermediateTunnelInstanceNode;
+	}
+	return Result.Get();
+}
+
 int32 FCompilerResultsLog::CalculateStableIdentifierForLatentActionManager( const UEdGraphNode* Node )
 {
 	/* 
@@ -278,55 +285,40 @@ int32 FCompilerResultsLog::CalculateStableIdentifierForLatentActionManager( cons
 
 		Meeting these two requirements has proved difficult. The edge cases involve
 		macros and nodes that implement UK2Node::ExpandNode, e.g. LoadAsset/LoadAssetClass
-		nodes in Macros. In order to handle that case we use the full source backtrack map.
+		nodes in Macros. In order to handle that case we use the source backtrack map.
 		Typically an intermediate node has a dynamic GUID, which is useless, but source 
-		nodes that came from macros have stable GUIDs, and can be used 
+		nodes that came from tunnel expansions have stable GUIDs, and can be used 
 	*/
 
+	int32 LatentUUID = 0;
 	const UEdGraphNode* OriginalNode = Node;
+	const UEdGraphNode* OuterTunnelInstance = GetIntermediateTunnelInstance(Node);
 
 	// first search for a node with a stable GUID (e.g., not a node that was created via SpawnIntermediateNode, 
 	// but we want to include nodes that are created via macro instantiation):
-	bool bNodeHasStableGUID = false;
-	while(!bNodeHasStableGUID)
+	if (!OuterTunnelInstance)
 	{
-		if(!Node->HasAnyFlags(RF_Transient) || 
-			GetIntermediateTunnelInstance(Node))
+		Node = Cast<UEdGraphNode>(SourceBacktrackMap.FindSourceObject(Node));
+		if (Node && Node->HasAnyFlags(RF_Transient))
 		{
-			bNodeHasStableGUID = true;
-		}
-		else
-		{
-			UEdGraphNode* const* PreviousNode = FullSourceBacktrackMap.Find(Node);
-			if(PreviousNode && *PreviousNode)
-			{
-				Node = *PreviousNode;
-			}
-			else
-			{
-				// we failed to find a source node, bail
-				bNodeHasStableGUID = true;
-				Node = nullptr;
-			}
+			// we failed to find a source node, bail
+			Node = nullptr;
 		}
 	}
-
-	int32 LatentUUID = 0;
 	
 	if(Node)
 	{
 		LatentUUID = GetTypeHash(Node->NodeGuid);
 
 		const UEdGraphNode* ResultNode = Node;
-		const UEdGraphNode* SourceNode = GetIntermediateTunnelInstance(Node);
-		while (SourceNode && SourceNode != ResultNode)
+		while (OuterTunnelInstance && OuterTunnelInstance != ResultNode)
 		{
-			if (SourceNode->NodeGuid.IsValid())
+			if (OuterTunnelInstance->NodeGuid.IsValid())
 			{
-				LatentUUID = HashCombine(LatentUUID, GetTypeHash(SourceNode->NodeGuid));
+				LatentUUID = HashCombine(LatentUUID, GetTypeHash(OuterTunnelInstance->NodeGuid));
 			}
-			ResultNode = SourceNode;
-			SourceNode = GetIntermediateTunnelInstance(ResultNode);
+			ResultNode = OuterTunnelInstance;
+			OuterTunnelInstance = GetIntermediateTunnelInstance(ResultNode);
 		}
 	}
 	else
@@ -679,94 +671,6 @@ void FCompilerResultsLog::AddChildEvent(TSharedPtr<FCompilerEvent>& ParentEventS
 			}
 		}
 	}
-}
-
-void FCompilerResultsLog::RegisterIntermediateTunnelNode(UEdGraphNode* IntermediateNode, UEdGraphNode* OwningTunnelInstance)
-{
-	IntermediateTunnelNodeToTunnelInstanceMap.Add(IntermediateNode, OwningTunnelInstance);
-	UObject* TrueSourceNode = SourceBacktrackMap.FindSourceObject(IntermediateNode);
-	if (IntermediateNode != TrueSourceNode)
-	{
-		FinalNodeBackToTunnelSourceMap.NotifyIntermediateObjectCreation(IntermediateNode, TrueSourceNode);
-	}
-}
-
-void FCompilerResultsLog::RegisterIntermediateTunnelInstance(UEdGraphNode* IntermediateTunnel, TArray<TWeakObjectPtr<UEdGraphNode>>& ActiveTunnels)
-{
-	for (auto Tunnel : ActiveTunnels)
-	{
-		if (Tunnel.Get()->IsA<UK2Node_MacroInstance>())
-		{
-			IntermediateTunnelInstanceHierarchyMap.Add(IntermediateTunnel, Tunnel);
-		}
-	}
-	UEdGraphNode* TrueSourceTunnelInstance = Cast<UEdGraphNode>(SourceBacktrackMap.FindSourceObject(IntermediateTunnel));
-	if (!ActiveTunnels.Contains(TrueSourceTunnelInstance))
-	{
-		if (TrueSourceTunnelInstance->IsA<UK2Node_MacroInstance>())
-		{
-			IntermediateTunnelInstanceHierarchyMap.Add(IntermediateTunnel, TrueSourceTunnelInstance);
-		}
-	}
-}
-
-UEdGraphNode* FCompilerResultsLog::GetSourceNode(const UEdGraphNode* IntermediateNode)
-{
-	UEdGraphNode* Result = nullptr;
-	if (UEdGraphNode* SourceTunnelInstance = GetSourceTunnelInstance(IntermediateNode))
-	{
-		if (SourceTunnelInstance->IsA<UK2Node_MacroInstance>())
-		{
-			Result = SourceTunnelInstance;
-		}
-	}
-	if (!Result)
-	{
-		Result = Cast<UEdGraphNode>(SourceBacktrackMap.FindSourceObject(const_cast<UEdGraphNode*>(IntermediateNode)));
-	}
-	return Result;
-}
-
-UEdGraphNode* FCompilerResultsLog::GetIntermediateTunnelInstance(const UEdGraphNode* IntermediateNode) const
-{
-	TWeakObjectPtr<UEdGraphNode> Result;
-	if (const TWeakObjectPtr<UEdGraphNode>* IntermediateTunnelInstanceNode = IntermediateTunnelNodeToTunnelInstanceMap.Find(IntermediateNode))
-	{
-		Result = *IntermediateTunnelInstanceNode;
-	}
-	return Result.Get();
-}
-
-UEdGraphNode* FCompilerResultsLog::GetSourceTunnelNode(const UEdGraphNode* IntermediateNode)
-{
-	UEdGraphNode* SourceNode = Cast<UEdGraphNode>(FinalNodeBackToTunnelSourceMap.FindSourceObject(const_cast<UEdGraphNode*>(IntermediateNode)));
-	if (SourceNode == IntermediateNode)
-	{
-		// No source node available because we haven't mapped this yet, this could be a top level Tunnel so look it up.
-		SourceNode = Cast<UEdGraphNode>(SourceBacktrackMap.FindSourceObject(const_cast<UEdGraphNode*>(IntermediateNode)));
-	}
-	return SourceNode;
-}
-
-UEdGraphNode* FCompilerResultsLog::GetSourceTunnelInstance(const UEdGraphNode* IntermediateNode)
-{
-	TWeakObjectPtr<UEdGraphNode> Result;
-	if (UEdGraphNode* IntermediateTunnelInstance = GetIntermediateTunnelInstance(IntermediateNode))
-	{
-		if (UEdGraphNode* SourceTunnelInstanceNode = Cast<UEdGraphNode>(SourceBacktrackMap.FindSourceObject(IntermediateTunnelInstance)))
-		{
-			if (SourceTunnelInstanceNode != IntermediateNode)
-			{
-				Result = SourceTunnelInstanceNode;
-			}
-		}
-	}
-	return Result.Get();
-}
-
-void FCompilerResultsLog::GetTunnelsActiveForNode(const UEdGraphNode* IntermediateNode, TArray<TWeakObjectPtr<UEdGraphNode>>& ActiveTunnelsOut)
-{
-	IntermediateTunnelInstanceHierarchyMap.MultiFind(IntermediateNode, ActiveTunnelsOut, true);
 }
 
 static FName GetBlueprintMessageLogName(UBlueprint* InBlueprint)

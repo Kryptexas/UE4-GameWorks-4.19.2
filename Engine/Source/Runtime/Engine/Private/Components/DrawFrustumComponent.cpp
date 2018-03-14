@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DrawFrsutumComponent.cpp: UDrawFrsutumComponent implementation.
@@ -12,9 +12,14 @@
 
 
 /** Represents a draw frustum to the scene manager. */
-class FDrawFrustumSceneProxy : public FPrimitiveSceneProxy
+class FDrawFrustumSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
 
 	/** 
 	* Initialization constructor. 

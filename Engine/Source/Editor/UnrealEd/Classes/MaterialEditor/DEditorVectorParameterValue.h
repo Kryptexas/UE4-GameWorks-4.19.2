@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,5 +16,7 @@ class UNREALED_API UDEditorVectorParameterValue : public UDEditorParameterValue
 	UPROPERTY(EditAnywhere, Category=DEditorVectorParameterValue)
 	FLinearColor ParameterValue;
 
+	UPROPERTY(Transient)
+	bool bIsUsedAsChannelMask;
 };
 

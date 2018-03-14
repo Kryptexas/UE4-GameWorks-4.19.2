@@ -1,8 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // Implementation of D3D12 Pipelinestate related functions
 
 #pragma once
+
+#include "ScopeRWLock.h"
 
 class FD3D12RootSignature; // forward-declare
 class FD3D12BoundShaderState; // forward-declare
@@ -161,8 +163,8 @@ private:
 	FDiskCacheInterface DiskBinaryCache;
 	TRefCountPtr<ID3D12PipelineLibrary> PipelineLibrary;
 
-	FD3D12PipelineState* Add(const GraphicsPipelineCreationArgs& Args);
-	FD3D12PipelineState* Add(const ComputePipelineCreationArgs& Args);
+	FD3D12PipelineState* Add_NoLock(const GraphicsPipelineCreationArgs& Args);
+	FD3D12PipelineState* Add_NoLock(const ComputePipelineCreationArgs& Args);
 
 	FD3D12PipelineState* FindGraphicsLowLevel(FD3D12LowLevelGraphicsPipelineStateDesc* Desc);
 
@@ -202,6 +204,8 @@ private:
 	{
 		return bUseAPILibaries && bUseCachedBlobs && !UsePipelineLibrary();
 	}
+
+	FD3D12PipelineState* FindGraphicsInternal(FD3D12HighLevelGraphicsPipelineStateDesc* Desc, FRWScopeLockType LockType);
 
 public:
 	void RebuildFromDiskCache(ID3D12RootSignature* GraphicsRootSignature, ID3D12RootSignature* ComputeRootSignature);

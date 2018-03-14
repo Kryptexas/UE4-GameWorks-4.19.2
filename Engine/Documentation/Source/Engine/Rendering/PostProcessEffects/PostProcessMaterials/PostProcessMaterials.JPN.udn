@@ -16,12 +16,14 @@ Topic-image:PPMaterials_Topic.png
 ![](Teaser_Banner.png)
 [/REGION]
 
-<!---
+[COMMENT:none]
+-
 ![](Teaser3.png)
 ![](Teaser0.png)
 ![](Teaser1.png)
 ![](Teaser2.png)
--->
+
+[/COMMENT]
 
 
 ポストプロセス マテリアルは、ポストプロセスで使用できるマテリアルのセットアップを使用して、広域効果のビジュアル スクリーン エフェクトを作成したり、
@@ -118,7 +120,8 @@ Blend Radius が以下の範囲内の場合、カメラ位置に合わせてボ�
 [/REGION]
 
 
-<!---
+[COMMENT:none]
+-
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
 	![Green vignette material instance](VignetteG.png)(w:450)
@@ -127,7 +130,8 @@ Blend Radius が以下の範囲内の場合、カメラ位置に合わせてボ�
 	![Red vignette material instance](VignetteR.png)(w:450)
 	[/PARAM]
 [/OBJECT]
---->
+-
+[/COMMENT]
 
 カメラがの移動を介して、2 つのエフェクト設定をスムーズに順番に切り替えることができます。
 

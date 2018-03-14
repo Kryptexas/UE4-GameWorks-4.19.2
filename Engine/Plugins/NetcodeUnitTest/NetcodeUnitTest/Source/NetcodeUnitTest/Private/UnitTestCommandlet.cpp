@@ -1,6 +1,8 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "UnitTestCommandlet.h"
+
+#include "Containers/Ticker.h"
 #include "Misc/FeedbackContext.h"
 #include "Misc/App.h"
 #include "Modules/ModuleManager.h"
@@ -149,6 +151,11 @@ int32 UUnitTestCommandlet::Main(const FString& Params)
 				FSlateApplication::Get().PumpMessages();
 				FSlateApplication::Get().Tick();
 			}
+
+			// Required for FTimerManager to function - as it blocks ticks, if the frame counter doesn't change
+			GFrameCounter++;
+
+			FTicker::GetCoreTicker().Tick(FApp::GetDeltaTime());
 
 
 			// Execute deferred commands

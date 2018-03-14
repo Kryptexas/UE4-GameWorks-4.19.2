@@ -3,45 +3,7 @@ Title:Project Settings
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:Dialog for configuring options specific to the current project.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UI/ProjectSettings:title%](projectsettings_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/ProjectSettings:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/ProjectSettings:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/ProjectSettings]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UI/ProjectSettings:title%](projectsettings_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/ProjectSettings:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/ProjectSettings:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/ProjectSettings]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:projectsettings_topic.png
 
 [REGION:fullwidth]
 	[OBJECT:ToggleButtonContent]
@@ -140,6 +102,8 @@ Contains options for specific systems and sections of the engine.
 | **Console** | Allows you to set your own in-game inputs for the console. |
 | **Cooker** | Contains options for various cooker settings. These will handle things like compression quality for textures. |
 | **Crowd Manager** | Contains a set of configurable options for managing AI crowds. |
+| [REGION:tablesection]End-User Settings[/REGION] ||
+| Privacy | [INCLUDE:#privacy] |
 | **Garbage Collection** | Allows you to configure settings for how Garbage Collection works for your game.  |
 | **General Settings** | Contains options used by the engine and editor for initialization and setup, such as default fonts, base classes, materials, frame rate, etc. |
 | **Input** | Allows you to set up action and axis bindings (keybinds and other input mapping) for your game. [REGION:note]These are in-game keybinds, not editor keybinds.[/REGION] |
@@ -152,6 +116,15 @@ Contains options for specific systems and sections of the engine.
 | **Tutorials** | Allows you to set which tutorials are available in this project. |
 | **User Interface** | Contains settings that control Slate and UMG, like DPI scaling, cursors, and the Render Focus Rule.  |
 
+[COMMENT:none]
+
+[EXCERPT:privacy]
+Controls whether anonymous usage data is sent to Epic Games. To disable sending usage data, click **End-users don't send**.
+
+![](privacy_donotsend.png)
+[/EXCERPT:privacy]
+
+[/COMMENT]
 
 ### Editor Category
 

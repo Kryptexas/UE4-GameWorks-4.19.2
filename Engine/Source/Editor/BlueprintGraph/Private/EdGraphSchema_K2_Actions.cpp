@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "EdGraphSchema_K2_Actions.h"
 #include "Components/ActorComponent.h"
@@ -555,8 +555,6 @@ UEdGraphNode* FEdGraphSchemaAction_K2AddCustomEvent::PerformAction(class UEdGrap
 
 UEdGraphNode* FEdGraphSchemaAction_K2AddCallOnActor::PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode/* = true*/)
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 	// Snap the node placement location to the grid, ensures calculations later match up better
 	FVector2D LocalLocation;
 	LocalLocation.X = FMath::GridSnap( Location.X, SNAP_GRID );
@@ -598,7 +596,7 @@ UEdGraphNode* FEdGraphSchemaAction_K2AddCallOnActor::PerformAction(class UEdGrap
 
 			// Connect the literal out to the self of the call
 			UEdGraphPin* LiteralOutput = LiteralNode->GetValuePin();
-			UEdGraphPin* CallSelfInput = CallNode->FindPin(K2Schema->PN_Self);
+			UEdGraphPin* CallSelfInput = CallNode->FindPin(UEdGraphSchema_K2::PN_Self);
 			if(LiteralOutput != nullptr && CallSelfInput != nullptr)
 			{
 				LiteralOutput->MakeLinkTo(CallSelfInput);

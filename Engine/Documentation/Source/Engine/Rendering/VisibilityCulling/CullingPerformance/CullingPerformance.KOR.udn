@@ -1,48 +1,9 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Docs
 Title: 비저빌리티 컬링 세팅과 퍼포먼스
 Crumbs: %ROOT%, Engine, 
 Description: 비저빌리티 컬링 세팅과 퍼포먼스
 Version: 4.13
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/VisibilityCulling:title%]()
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/VisibilityCulling:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/VisibilityCulling:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/VisibilityCulling]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/VisibilityCulling:title%]()
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/VisibilityCulling:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/VisibilityCulling:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/VisibilityCulling]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 
 [TOC(start:2 end:2)]
@@ -64,7 +25,8 @@ Version: 4.13
 | **Warn about no precomputed visibility** | 프리컴퓨티드 비저빌리티 없음 경고 표시 - 현재 카메라 위치에 표시여부 미리계산 데이터가 없을 때 경고를 표시합니다. 프리컴퓨티드 비저빌리티에 의존하는 게임 제작시 유용하게 쓰일 수 있습니다. |
 
 [REGION:tip]
-모바일 게임을 개발중인 경우 **Warn about no precomputed visibility** 옵션을 켜주면 레벨 디자이너에게 현재 다이내믹 오클루전 컬링이 사용되지 않는다는 귀뜸을 해줄 수 있어 좋습니다.
+모바일 게임을 개발중인 경우 **Warn about no precomputed visibility** 옵션을 켜주면 레벨 디자이너에게 현재 다이내믹 오클루전 컬링이 사용되지 않는다는 귀뜸을 해줄 수 있어 
+좋습니다.
 [/REGION]
 
 
@@ -105,7 +67,8 @@ Version: 4.13
 | **Counters** | [INCLUDE:#counters] |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:CycleCounter]
 | 통계 | 설명 |
 | --- | --- |
@@ -125,7 +88,8 @@ Version: 4.13
 | **Visible Dynamic Primitives** | 보이는 다이내믹 프리미티브 - 씬에서 파티클 시스템이나 폴리지 인스턴스처럼 모빌리티가 무버블로 설정된 다이내믹 프리미티브 수입니다. |
 | **Visible Static Mesh Elements** | 보이는 스태틱 메시 엘리먼트 - 씬 안에서 모빌리티가 스태틱으로 설정된 보이는 메시의 수입니다. |
 [/EXCERPT:Counters]
--->
+
+[/COMMENT]
 
 ## 유용한 콘솔 명령
 

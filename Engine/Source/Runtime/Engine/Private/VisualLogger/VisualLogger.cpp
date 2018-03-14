@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "VisualLogger/VisualLogger.h"
 #include "Misc/CoreMisc.h"
@@ -51,7 +51,7 @@ namespace
 TMap<const UWorld*, FVisualLogger::RedirectionMapType> FVisualLogger::WorldToRedirectionMap;
 int32 FVisualLogger::bIsRecording = false;
 
-bool FVisualLogger::CheckVisualLogInputInternal(const UObject* Object, const FLogCategoryBase& Category, ELogVerbosity::Type Verbosity, UWorld **World, FVisualLogEntry **CurrentEntry)
+bool FVisualLogger::CheckVisualLogInputInternal(const UObject* Object, const FName& CategoryName, ELogVerbosity::Type Verbosity, UWorld **World, FVisualLogEntry **CurrentEntry)
 {
 	if (FVisualLogger::IsRecording() == false || !Object || !GEngine || GEngine->bDisableAILogging || Object->HasAnyFlags(RF_ClassDefaultObject))
 	{
@@ -59,7 +59,6 @@ bool FVisualLogger::CheckVisualLogInputInternal(const UObject* Object, const FLo
 	}
 
 	FVisualLogger& VisualLogger = FVisualLogger::Get();
-	const FName CategoryName = Category.GetCategoryName();
 	if (VisualLogger.IsBlockedForAllCategories() && VisualLogger.IsWhiteListed(CategoryName) == false)
 	{
 		return false;
@@ -305,8 +304,8 @@ void FVisualLogger::EventLog(const UObject* Object, const FName EventTag1, const
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog);
 	UWorld *World = nullptr;
 	FVisualLogEntry *CurrentEntry = nullptr;
-	const FLogCategory<ELogVerbosity::Log, ELogVerbosity::Log> Category(*Event.Name);
-	if (CheckVisualLogInputInternal(Object, Category, ELogVerbosity::Log, &World, &CurrentEntry) == false)
+	const FName CategoryName(*Event.Name);
+	if (CheckVisualLogInputInternal(Object, CategoryName, ELogVerbosity::Log, &World, &CurrentEntry) == false)
 	{
 		return;
 	}
@@ -332,10 +331,15 @@ void FVisualLogger::EventLog(const UObject* Object, const FName EventTag1, const
 
 void FVisualLogger::NavigationDataDump(const UObject* Object, const FLogCategoryBase& Category, const ELogVerbosity::Type Verbosity, const FBox& Box)
 {
+	NavigationDataDump(Object, Category.GetCategoryName(), Verbosity, Box);
+}
+
+void FVisualLogger::NavigationDataDump(const UObject* Object, const FName& CategoryName, const ELogVerbosity::Type Verbosity, const FBox& Box)
+{
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog);
 	UWorld* World = nullptr;
 	FVisualLogEntry* CurrentEntry = nullptr;
-	if (CheckVisualLogInputInternal(Object, Category, Verbosity, &World, &CurrentEntry) == false || CurrentEntry == nullptr)
+	if (CheckVisualLogInputInternal(Object, CategoryName, Verbosity, &World, &CurrentEntry) == false || CurrentEntry == nullptr)
 	{
 		return;
 	}
@@ -344,7 +348,7 @@ void FVisualLogger::NavigationDataDump(const UObject* Object, const FLogCategory
 	const FNavDataGenerator* Generator = MainNavData ? MainNavData->GetGenerator() : nullptr;
 	if (Generator)
 	{
-		Generator->GrabDebugSnapshot(CurrentEntry, FMath::IsNearlyZero(Box.GetVolume()) ? MainNavData->GetBounds().ExpandBy(FVector(20,20,20)) : Box, Category, Verbosity);
+		Generator->GrabDebugSnapshot(CurrentEntry, FMath::IsNearlyZero(Box.GetVolume()) ? MainNavData->GetBounds().ExpandBy(FVector(20,20,20)) : Box, CategoryName, Verbosity);
 	}
 }
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Transport/UdpMessageTransport.h"
 #include "UdpMessagingPrivate.h"
@@ -180,7 +180,7 @@ bool FUdpMessageTransport::TransportMessage(const TSharedRef<IMessageContext, ES
 		return false;
 	}
 
-	TSharedRef<FUdpSerializedMessage, ESPMode::ThreadSafe> SerializedMessage = MakeShareable(new FUdpSerializedMessage());
+	TSharedRef<FUdpSerializedMessage, ESPMode::ThreadSafe> SerializedMessage = MakeShared<FUdpSerializedMessage, ESPMode::ThreadSafe>();
 
 	if (Recipients.Num() == 0)
 	{
@@ -196,7 +196,7 @@ bool FUdpMessageTransport::TransportMessage(const TSharedRef<IMessageContext, ES
 		}
 	}
 
-	TGraphTask<FUdpSerializeMessageTask>::CreateTask().ConstructAndDispatchWhenReady(Context, SerializedMessage);
+	TGraphTask<FUdpSerializeMessageTask>::CreateTask().ConstructAndDispatchWhenReady(Context, SerializedMessage, MessageProcessor->GetWorkEvent());
 
 	return true;
 }

@@ -21,7 +21,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 该步骤需要创建更为复杂的场景查询。将创建一个点网格投射到寻路网格体上，然后通过一系列测试找到最佳的藏身之处。部分测试将完全剔除掉不理想的位置，如处于玩家角色视线（Trace）中的位置，其他将基于寻路网格体是否可到达（PathFinding）权衡潜在的隐藏点，或玩家角色前有多少点存在（Dot Product）。
 
@@ -103,11 +103,12 @@ version:4.9
 
 	![](final.png)
 
-%Steps%
+
 
 [VAR:arrow]![](Engine\AI\EnvironmentQuerySystem\QuickStart\arrow_button.png)[/VAR]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:eqsqs125]
 * **Line A - Rotation** = PlayerContext
 * **Line B - Line From** = PlayerContext
@@ -134,4 +135,5 @@ version:4.9
 * **Scoring Equation** = Inverse Linear
 * **Scoring Factor** = 2.0
 [/EXCERPT]
--->
+
+[/COMMENT]

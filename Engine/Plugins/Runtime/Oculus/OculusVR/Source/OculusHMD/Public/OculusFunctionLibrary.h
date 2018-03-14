@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "CoreMinimal.h"
@@ -85,6 +85,15 @@ enum class EGearVRControllerHandedness_DEPRECATED : uint8
 	RightHanded_DEPRECATED,
 	LeftHanded_DEPRECATED,
 	Unknown_DEPRECATED
+};
+
+UENUM(BlueprintType)
+enum class ETiledMultiResLevel : uint8
+{
+	ETiledMultiResLevel_Off = 0,
+	ETiledMultiResLevel_LMSLow,
+	ETiledMultiResLevel_LMSMedium,
+	ETiledMultiResLevel_LMSHigh
 };
 
 UCLASS()
@@ -200,7 +209,7 @@ class OCULUSHMD_API UOculusFunctionLibrary : public UBlueprintFunctionLibrary
 	/**
 	 * Adds loading splash screen with parameters
 	 *
-	 * @param Texture			(in) A texture asset to be used for the splash. GearVR uses it as a path for loading icon; all other params are currently ignored by GearVR.
+	 * @param Texture			(in) A texture asset to be used for the splash. Gear VR uses it as a path for loading icon; all other params are currently ignored by Gear VR.
 	 * @param TranslationInMeters (in) Initial translation of the center of the splash screen (in meters).
 	 * @param Rotation			(in) Initial rotation of the splash screen, with the origin at the center of the splash screen.
 	 * @param SizeInMeters		(in) Size, in meters, of the quad with the splash screen.
@@ -265,7 +274,7 @@ class OCULUSHMD_API UOculusFunctionLibrary : public UBlueprintFunctionLibrary
 	/**
 	 * Sets loading splash screen parameters.
 	 *
-	 * @param TexturePath		(in) A path to the texture asset to be used for the splash. GearVR uses it as a path for loading icon; all other params are currently ignored by GearVR.
+	 * @param TexturePath		(in) A path to the texture asset to be used for the splash. Gear VR uses it as a path for loading icon; all other params are currently ignored by Gear VR.
 	 * @param DistanceInMeters	(in) Distance, in meters, to the center of the splash screen.
 	 * @param SizeInMeters		(in) Size, in meters, of the quad with the splash screen.
 	 * @param RotationAxes		(in) A vector that specifies the axis of the splash screen rotation (if RotationDelta is specified).
@@ -277,7 +286,7 @@ class OCULUSHMD_API UOculusFunctionLibrary : public UBlueprintFunctionLibrary
 	/**
 	 * Returns loading splash screen parameters.
 	 *
-	 * @param TexturePath		(out) A path to the texture asset to be used for the splash. GearVR uses it as a path for loading icon; all other params are currently ignored by GearVR.
+	 * @param TexturePath		(out) A path to the texture asset to be used for the splash. Gear VR uses it as a path for loading icon; all other params are currently ignored by Gear VR.
 	 * @param DistanceInMeters	(out) Distance, in meters, to the center of the splash screen.
 	 * @param SizeInMeters		(out) Size, in meters, of the quad with the splash screen.
 	 * @param RotationAxes		(out) A vector that specifies the axis of the splash screen rotation (if RotationDelta is specified).
@@ -299,6 +308,48 @@ class OCULUSHMD_API UOculusFunctionLibrary : public UBlueprintFunctionLibrary
 	static bool HasSystemOverlayPresent();
 
 	/**
+	* Returns the GPU utilization availability and value
+	*/
+	UFUNCTION(BlueprintPure, Category = "Input|OculusLibrary")
+	static void GetGPUUtilization(bool& IsGPUAvailable, float& GPUUtilization);
+
+	/**
+	* Returns the current multiresolution level
+	*/
+	UFUNCTION(BlueprintPure, Category = "Input|OculusLibrary")
+	static ETiledMultiResLevel GetTiledMultiresLevel();
+
+	/**
+	* Set the requested multiresolution level for the next frame
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Input|OculusLibrary")
+	static void SetTiledMultiresLevel(ETiledMultiResLevel level);
+
+	/**
+	* Returns the current device's name
+	*/
+	UFUNCTION(BlueprintPure, Category = "Input|OculusLibrary")
+	static FString GetDeviceName();
+
+	/**
+	* Returns the current available frequencies
+	*/
+	UFUNCTION(BlueprintPure, Category = "Input|OculusLibrary")
+	static TArray<float> GetAvailableDisplayFrequencies();
+
+	/**
+	* Returns the current display frequency
+	*/
+	UFUNCTION(BlueprintPure, Category = "Input|OculusLibrary")
+	static float GetCurrentDisplayFrequency();
+
+	/**
+	* Sets the requested display frequency
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Input|OculusLibrary")
+	static void SetDisplayFrequency(float RequestedFrequency);
+
+	/**
 	 * Returns IStereoLayers interface to work with overlays.
 	 */
 	static class IStereoLayers* GetStereoLayers();
@@ -312,51 +363,51 @@ private:
 
 	/** Set Gear VR CPU and GPU Levels */
 	DEPRECATED(4.17, "The Oculus API no longer supports this function. Therefore it has been deprecated, and is no longer available.")
-	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVR", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this GearVR function."))
+	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVR", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this Gear VR function."))
 	static bool IsPowerLevelStateMinimum();
 	DECLARE_FUNCTION(execIsPowerLevelStateMinimum);
 
 	/** Set Gear VR CPU and GPU Levels */
 	DEPRECATED(4.17, "The Oculus API no longer supports this function. Therefore it has been deprecated, and is no longer available.")
-	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVR", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this GearVR function."))
+	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVR", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this Gear VR function."))
 	static bool IsPowerLevelStateThrottled();
 	DECLARE_FUNCTION(execIsPowerLevelStateThrottled);
 
 	/** Set Gear VR CPU and GPU Levels */
 	DEPRECATED(4.17, "The Oculus API no longer supports this function. Therefore it has been deprecated, and is no longer available.")
-	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVR", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this GearVR function."))
+	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVR", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this Gear VR function."))
 	static bool AreHeadPhonesPluggedIn();
 	DECLARE_FUNCTION(execAreHeadPhonesPluggedIn);
 
 	/** Set Gear VR CPU and GPU Levels */
 	DEPRECATED(4.17, "The Oculus API no longer supports this function. Therefore it has been deprecated, and is no longer available.")
-	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVR", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this GearVR function."))
+	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVR", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this Gear VR function."))
 	static float GetTemperatureInCelsius();
 	DECLARE_FUNCTION(execGetTemperatureInCelsius);
 
 	/** Set Gear VR CPU and GPU Levels */
 	DEPRECATED(4.17, "The Oculus API no longer supports this function. Therefore it has been deprecated, and is no longer available.")
-	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVR", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this GearVR function."))
+	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVR", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this Gear VR function."))
 	static float GetBatteryLevel();
 	DECLARE_FUNCTION(execGetBatteryLevel);
 
 	/** Set Gear VR CPU and GPU Levels */
 	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	DEPRECATED(4.17, "The Oculus API no longer supports this function. Therefore it has been deprecated, and is no longer available.")
-	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVRController", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this GearVR function."))
+	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVRController", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this Gear VR function."))
 	static EGearVRControllerHandedness_DEPRECATED GetGearVRControllerHandedness();
 	DECLARE_FUNCTION(execGetGearVRControllerHandedness);
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 	/** Set Gear VR CPU and GPU Levels */
 	DEPRECATED(4.17, "The Oculus API no longer supports this function. Therefore it has been deprecated, and is no longer available.")
-	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVRController", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this GearVR function."))
+	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVRController", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this Gear VR function."))
 	static void EnableArmModel(bool bArmModelEnable);
 	DECLARE_FUNCTION(execEnableArmModel);
 
 	/** Is controller active */
 	DEPRECATED(4.17, "The Oculus API no longer supports this function. Therefore it has been deprecated, and is no longer available.")
-	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVRController", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this GearVR function."))
+	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVRController", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this Gear VR function."))
 	static bool IsControllerActive();
 	DECLARE_FUNCTION(execIsControllerActive);
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -61,7 +61,7 @@ public:
 	virtual float CalculateDrawDistanceFromScreenSize(const float SphereRadius, const float ScreenSize, const FMatrix& ProjectionMatrix) = 0;
 
 	/** Creates or retrieves the HLOD package that is created for the given level */
-	virtual UPackage* CreateOrRetrieveLevelHLODPackage(ULevel* InLevel) = 0;
+	virtual UPackage* CreateOrRetrieveLevelHLODPackage(const ULevel* InLevel) = 0;
 
 	/**
 	* Builds a virtual mesh object for the given LODACtor

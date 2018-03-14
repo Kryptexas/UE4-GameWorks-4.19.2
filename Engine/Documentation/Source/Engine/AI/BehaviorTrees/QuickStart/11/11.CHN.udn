@@ -21,7 +21,7 @@ Version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 **Services** 附着在 [Composite](Engine/AI/BehaviorTrees/NodeReference/Composites) 节点上，只要其分支节点被执行，它们便将按所定义的频率执行。它们常用于检查和更新黑板。它们以行为树系统的形态取代了传统平行节点。
 
@@ -87,7 +87,7 @@ Version:4.9
 1. 如不能看到，清除黑板上的 **Target to Follow** key。
 
 
-%Steps%
+
 
 
 [VAR:BPCode]

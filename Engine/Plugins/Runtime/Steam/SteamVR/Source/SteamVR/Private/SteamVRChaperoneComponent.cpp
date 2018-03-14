@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 //
 #include "Classes/SteamVRChaperoneComponent.h"
 #include "SteamVRPrivate.h"
@@ -24,11 +24,8 @@ void USteamVRChaperoneComponent::TickComponent(float DeltaTime, enum ELevelTick 
 
 #if STEAMVR_SUPPORTED_PLATFORMS
 	IXRTrackingSystem* ActiveXRSystem = GEngine->XRSystem.Get();
-	// @TODO: hardcoded to match FSteamVRHMD::GetSystemName(), which we should turn into 
-	//        a static method so we don't have to litter code with hardcoded values like this
-	static FName SteamVRSystemName(TEXT("SteamVR")); 
 
-	if (ActiveXRSystem && ActiveXRSystem->GetSystemName() == SteamVRSystemName)
+	if (ActiveXRSystem && ActiveXRSystem->GetSystemName() == FSteamVRHMD::SteamSystemName)
 	{
 		FSteamVRHMD* SteamVRHMD = (FSteamVRHMD*)(ActiveXRSystem);
 		if (SteamVRHMD->IsStereoEnabled())
@@ -60,10 +57,8 @@ TArray<FVector> USteamVRChaperoneComponent::GetBounds() const
 #if STEAMVR_SUPPORTED_PLATFORMS
 	if (GEngine->XRSystem.IsValid())
 	{
-		static FName SteamHMDName(TEXT("SteamVR"));
-
 		IXRTrackingSystem* XRSystem = GEngine->XRSystem.Get();
-		if (XRSystem->GetSystemName() == SteamHMDName)
+		if (XRSystem->GetSystemName() == FSteamVRHMD::SteamSystemName)
 		{
 			FSteamVRHMD* SteamVRHMD = (FSteamVRHMD*)(XRSystem);
 			if (SteamVRHMD->IsStereoEnabled())

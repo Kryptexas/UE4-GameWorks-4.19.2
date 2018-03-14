@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PreviewSceneCustomizations.h"
 #include "Modules/ModuleManager.h"
@@ -8,6 +8,10 @@
 #include "DetailCategoryBuilder.h"
 #include "PropertyCustomizationHelpers.h"
 #include "PersonaPreviewSceneDescription.h"
+#include "PersonaPreviewSceneController.h"
+#include "PersonaPreviewSceneDefaultController.h"
+#include "PersonaPreviewSceneRefPoseController.h"
+#include "PersonaPreviewSceneAnimationController.h"
 #include "Engine/PreviewMeshCollection.h"
 #include "Factories/PreviewMeshCollectionFactory.h"
 #include "IPropertyUtilities.h"
@@ -20,9 +24,9 @@
 #include "IAssetTools.h"
 #include "Animation/AnimBlueprint.h"
 #include "UObject/UObjectIterator.h"
-#include "STextBlock.h"
-#include "SCheckBox.h"
+#include "SComboBox.h"
 #include "PhysicsEngine/PhysicsAsset.h"
+#include "Containers/Algo/Sort.h"
 
 #define LOCTEXT_NAMESPACE "PreviewSceneCustomizations"
 
@@ -63,35 +67,79 @@ FPreviewSceneDescriptionCustomization::~FPreviewSceneDescriptionCustomization()
 
 void FPreviewSceneDescriptionCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
+	MyDetailLayout = &DetailBuilder;
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
-	TSharedRef<IPropertyHandle> AnimationModeProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UPersonaPreviewSceneDescription, AnimationMode));
-	AnimationModeProperty->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FPreviewSceneDescriptionCustomization::HandleAnimationModeChanged));
-	TSharedRef<IPropertyHandle> AnimationProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UPersonaPreviewSceneDescription, Animation));
-	AnimationProperty->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FPreviewSceneDescriptionCustomization::HandleAnimationChanged));
+	TSharedRef<IPropertyHandle> PreviewControllerProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UPersonaPreviewSceneDescription, PreviewController));
 	TSharedRef<IPropertyHandle> SkeletalMeshProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UPersonaPreviewSceneDescription, PreviewMesh));
 	TSharedRef<IPropertyHandle> AdditionalMeshesProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UPersonaPreviewSceneDescription, AdditionalMeshes));
 
-	DetailBuilder.EditCategory("Animation")
-	.AddProperty(AnimationModeProperty);
+	TArray<UClass*> BuiltInPreviewControllers = { UPersonaPreviewSceneDefaultController::StaticClass(), UPersonaPreviewSceneRefPoseController::StaticClass(), UPersonaPreviewSceneAnimationController::StaticClass() };
 
-	DetailBuilder.EditCategory("Animation")
-	.AddProperty(AnimationProperty)
-	.CustomWidget()
+	TArray<UClass*> DynamicPreviewControllers;
+	
+	for (TObjectIterator<UClass> It; It; ++It)
+	{
+		UClass* CurrentClass = *It;
+		if (CurrentClass->IsChildOf(UPersonaPreviewSceneController::StaticClass()) &&
+			!(CurrentClass->HasAnyClassFlags(CLASS_Abstract)) &&
+			!BuiltInPreviewControllers.Contains(CurrentClass))
+		{
+			DynamicPreviewControllers.Add(CurrentClass);
+		}
+	}
+
+	Algo::SortBy(DynamicPreviewControllers, [](UClass* Cls) { return Cls->GetName(); });
+
+	ControllerItems.Reset();
+
+	for (UClass* ControllerClass : BuiltInPreviewControllers)
+	{
+		ControllerItems.Add(MakeShared<FPersonaModeComboEntry>(ControllerClass));
+	}
+	for (UClass* ControllerClass : DynamicPreviewControllers)
+	{
+		ControllerItems.Add(MakeShared<FPersonaModeComboEntry>(ControllerClass));
+	}
+
+	PreviewControllerProperty->MarkHiddenByCustomization();
+
+	IDetailCategoryBuilder& AnimCategory = DetailBuilder.EditCategory("Animation");
+	AnimCategory.AddCustomRow(PreviewControllerProperty->GetPropertyDisplayName())
 	.NameContent()
 	[
-		AnimationProperty->CreatePropertyNameWidget()
+		PreviewControllerProperty->CreatePropertyNameWidget()
 	]
 	.ValueContent()
-	.MaxDesiredWidth(250.0f)
-	.MinDesiredWidth(250.0f)
+	.MinDesiredWidth(200.0f)
 	[
-		SNew(SObjectPropertyEntryBox)
-		.AllowedClass(UAnimationAsset::StaticClass())
-		.PropertyHandle(AnimationProperty)
-		.OnShouldFilterAsset(this, &FPreviewSceneDescriptionCustomization::HandleShouldFilterAsset, false)
-		.ThumbnailPool(DetailBuilder.GetThumbnailPool())
+		SNew(SComboBox<TSharedPtr<FPersonaModeComboEntry>>)
+		.OptionsSource(&ControllerItems)
+		.OnGenerateWidget(this, &FPreviewSceneDescriptionCustomization::MakeControllerComboEntryWidget)
+		.OnSelectionChanged(this, &FPreviewSceneDescriptionCustomization::OnComboSelectionChanged)
+		[
+			SNew(STextBlock)
+			.Text(this, &FPreviewSceneDescriptionCustomization::GetCurrentPreviewControllerText)
+		]
 	];
+
+	TSharedPtr<FAnimationEditorPreviewScene> PreviewScenePtr = PreviewScene.Pin();
+	UPersonaPreviewSceneDescription* PersonaPreviewSceneDescription = PreviewScenePtr->GetPreviewSceneDescription();
+
+	FSimpleDelegate PropertyChangedDelegate = FSimpleDelegate::CreateSP(this, &FPreviewSceneDescriptionCustomization::HandlePreviewControllerPropertyChanged);
+
+	for (const UProperty* TestProperty : TFieldRange<UProperty>(PersonaPreviewSceneDescription->PreviewControllerInstance->GetClass()))
+	{
+		if (TestProperty->HasAnyPropertyFlags(CPF_Edit))
+		{
+			const bool bAdvancedDisplay = TestProperty->HasAnyPropertyFlags(CPF_AdvancedDisplay);
+			const EPropertyLocation::Type PropertyLocation = bAdvancedDisplay ? EPropertyLocation::Advanced : EPropertyLocation::Common;
+
+			IDetailPropertyRow* NewRow = PersonaPreviewSceneDescription->PreviewControllerInstance->AddPreviewControllerPropertyToDetails(PersonaToolkit.Pin().ToSharedRef(), DetailBuilder, AnimCategory, TestProperty, PropertyLocation);
+			
+			NewRow->GetPropertyHandle()->SetOnPropertyValueChanged(PropertyChangedDelegate);
+		}
+	}
 
 	if (PersonaToolkit.Pin()->GetContext() != USkeletalMesh::StaticClass()->GetFName())
 	{
@@ -167,7 +215,7 @@ void FPreviewSceneDescriptionCustomization::CustomizeDetails(IDetailLayoutBuilde
 	}
 
 	// set the skeleton to use in our factory as we shouldn't be picking one here
-	FactoryToUse->CurrentSkeleton = &EditableSkeleton.Pin()->GetSkeleton();
+	FactoryToUse->CurrentSkeleton = MakeWeakObjectPtr(const_cast<USkeleton*>(&EditableSkeleton.Pin()->GetSkeleton()));
 	TArray<UFactory*> FactoriesToUse({ FactoryToUse });
 
 	FAssetData AdditionalMeshesAsset;
@@ -321,33 +369,36 @@ bool FPreviewSceneDescriptionCustomization::HandleShouldFilterAsset(const FAsset
 	return true;
 }
 
-void FPreviewSceneDescriptionCustomization::HandleAnimationModeChanged()
+FText FPreviewSceneDescriptionCustomization::GetCurrentPreviewControllerText() const
 {
 	UPersonaPreviewSceneDescription* PersonaPreviewSceneDescription = PreviewScene.Pin()->GetPreviewSceneDescription();
-	switch (PersonaPreviewSceneDescription->AnimationMode)
-	{
-	case EPreviewAnimationMode::Default:
-		PreviewScene.Pin()->ShowDefaultMode();
-		break;
-	case EPreviewAnimationMode::ReferencePose:
-		PreviewScene.Pin()->ShowReferencePose(true);
-		break;
-	case EPreviewAnimationMode::UseSpecificAnimation:
-		PreviewScene.Pin()->SetPreviewAnimationAsset(PersonaPreviewSceneDescription->Animation.LoadSynchronous());
-		break;
-	}
+	return PersonaPreviewSceneDescription->PreviewController->GetDisplayNameText();
 }
 
-void FPreviewSceneDescriptionCustomization::HandleAnimationChanged()
+TSharedRef<SWidget> FPreviewSceneDescriptionCustomization::MakeControllerComboEntryWidget(TSharedPtr<FPersonaModeComboEntry> InItem) const
 {
-	UPersonaPreviewSceneDescription* PersonaPreviewSceneDescription = PreviewScene.Pin()->GetPreviewSceneDescription();
-	UAnimationAsset* AnimationAsset = PersonaPreviewSceneDescription->Animation.LoadSynchronous();
-	PreviewScene.Pin()->SetPreviewAnimationAsset(AnimationAsset);
+	return
+		SNew(STextBlock)
+		.Text(InItem->Text);
+}
 
-	if (AnimationAsset != nullptr)
-	{
-		PreviewScene.Pin()->GetPreviewSceneDescription()->AnimationMode = EPreviewAnimationMode::UseSpecificAnimation;
-	}
+void FPreviewSceneDescriptionCustomization::OnComboSelectionChanged(TSharedPtr<FPersonaModeComboEntry> InSelectedItem, ESelectInfo::Type SelectInfo)
+{
+	TSharedPtr<FAnimationEditorPreviewScene> PreviewScenePtr = PreviewScene.Pin();
+	UPersonaPreviewSceneDescription* PersonaPreviewSceneDescription = PreviewScenePtr->GetPreviewSceneDescription();
+
+	PersonaPreviewSceneDescription->SetPreviewController(InSelectedItem->Class, PreviewScenePtr.Get());
+
+	MyDetailLayout->ForceRefreshDetails();
+}
+
+void FPreviewSceneDescriptionCustomization::HandlePreviewControllerPropertyChanged()
+{
+	TSharedPtr<FAnimationEditorPreviewScene> PreviewScenePtr = PreviewScene.Pin();
+	UPersonaPreviewSceneDescription* PersonaPreviewSceneDescription = PreviewScenePtr->GetPreviewSceneDescription();
+	
+	PersonaPreviewSceneDescription->PreviewControllerInstance->UninitializeView(PersonaPreviewSceneDescription, PreviewScenePtr.Get());
+	PersonaPreviewSceneDescription->PreviewControllerInstance->InitializeView(PersonaPreviewSceneDescription, PreviewScenePtr.Get());
 }
 
 void FPreviewSceneDescriptionCustomization::HandleMeshChanged(const FAssetData& InAssetData)   

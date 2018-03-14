@@ -21,7 +21,7 @@ Version:4.8
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 このステップでは、Procedural Foliage ツールが必要とするレベル、ランドスケープ テレイン、すべてのアクタを新規作成します。
 
@@ -69,7 +69,7 @@ Version:4.8
 
 	![](T_Save_All.png)
 
-%Steps%
+
 
 
 

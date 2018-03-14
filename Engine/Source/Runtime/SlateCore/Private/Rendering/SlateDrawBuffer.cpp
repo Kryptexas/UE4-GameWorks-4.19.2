@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Rendering/SlateDrawBuffer.h"
 #include "Rendering/DrawElements.h"
@@ -64,4 +64,13 @@ void FSlateDrawBuffer::ClearBuffer()
 	}
 
 	WindowElementLists.Reset();
+}
+
+void FSlateDrawBuffer::UpdateResourceVersion(uint32 NewResourceVersion)
+{
+	if (NewResourceVersion != ResourceVersion)
+	{
+		WindowElementListsPool.Empty();
+		ResourceVersion = NewResourceVersion;
+	}
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AI/NavigationModifier.h"
 #include "UObject/UnrealType.h"
@@ -24,9 +24,9 @@ FNavigationLinkBase::FNavigationLinkBase()
 	: LeftProjectHeight(0.0f), MaxFallDownLength(1000.0f), Direction(ENavLinkDirection::BothWays), UserId(0),
 	  SnapRadius(30.f), SnapHeight(50.0f), bUseSnapHeight(false), bSnapToCheapestArea(true),
 	  bCustomFlag0(false), bCustomFlag1(false), bCustomFlag2(false), bCustomFlag3(false), bCustomFlag4(false),
-	  bCustomFlag5(false), bCustomFlag6(false), bCustomFlag7(false), bAreaClassInitialized(false)
+	  bCustomFlag5(false), bCustomFlag6(false), bCustomFlag7(false)
 {
-	AreaClass = NULL;
+	AreaClass = nullptr;
 	SupportedAgentsBits = 0xFFFFFFFF;
 }
 
@@ -36,7 +36,6 @@ void FNavigationLinkBase::SetAreaClass(UClass* InAreaClass)
 	{
 		AreaClassOb = InAreaClass;
 		AreaClass = InAreaClass;
-		bAreaClassInitialized = true;
 	}
 }
 
@@ -48,13 +47,7 @@ UClass* FNavigationLinkBase::GetAreaClass() const
 
 void FNavigationLinkBase::InitializeAreaClass(const bool bForceRefresh)
 {
-	// @hack fix for changes to AreaClass in the editor not taking effect
-	// proper fix will get merged over from Dev-Gen
-	if (!bAreaClassInitialized || bForceRefresh || GIsEditor)
-	{
-		AreaClassOb = (UClass*)AreaClass;
-		bAreaClassInitialized = true;
-	}
+	AreaClassOb = (UClass*)AreaClass;
 }
 
 bool FNavigationLinkBase::HasMetaArea() const
@@ -86,10 +79,7 @@ void FNavigationLinkBase::PostSerialize(const FArchive& Ar)
 		SupportedAgents.MarkInitialized();
 	}
 
-	if (Ar.IsLoading())
-	{
-		InitializeAreaClass();
-	}
+	// can't initialize at this time, used UClass may not be ready yet
 }
 
 #if WITH_EDITOR
@@ -412,13 +402,14 @@ void FAreaNavModifier::SetAreaClassToReplace(const TSubclassOf<UNavArea> InAreaC
 	const UClass* AreaClass2 = ReplaceAreaClassOb.Get();
 	bHasMetaAreas = (AreaClass1 && AreaClass1->IsChildOf(UNavAreaMeta::StaticClass())) || (AreaClass2 && AreaClass2->IsChildOf(UNavAreaMeta::StaticClass()));
 
-	ApplyMode = (AreaClass2 == UNavArea_LowHeight::StaticClass()) ? ENavigationAreaMode::ReplaceInLowPass :
-		AreaClass2 ? ENavigationAreaMode::Replace : ENavigationAreaMode::Apply;
+	bIsLowAreaModifier = (AreaClass2 == UNavArea_LowHeight::StaticClass());
+	ApplyMode = bIsLowAreaModifier ? ENavigationAreaMode::ReplaceInLowPass : AreaClass2 ? ENavigationAreaMode::Replace : ENavigationAreaMode::Apply;
 }
 
 void FAreaNavModifier::SetApplyMode(ENavigationAreaMode::Type InApplyMode)
 {
 	ApplyMode = InApplyMode;
+	bIsLowAreaModifier = (InApplyMode == ENavigationAreaMode::ApplyInLowPass) || (InApplyMode == ENavigationAreaMode::ReplaceInLowPass);
 }
 
 bool IsAngleMatching(float Angle)

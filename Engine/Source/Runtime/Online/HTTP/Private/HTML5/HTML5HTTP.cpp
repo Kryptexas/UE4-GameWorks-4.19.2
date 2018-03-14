@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "HTML5HTTP.h"
 #include "EngineVersion.h"
@@ -427,7 +427,7 @@ bool FHTML5HttpRequest::StartRequest()
 	else
 	{
 		UE_LOG(LogHttp, Fatal, TEXT("Unsupported verb '%s"), *Verb);
-		FPlatformMisc::DebugBreak();
+		UE_DEBUG_BREAK();
 	}
 
 	return true;

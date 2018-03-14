@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -167,23 +167,30 @@ public:
 
 #if ENABLE_VISUAL_LOG && USE_EQS_DEBUGGER
 	static void LogQuery(FEnvQueryInstance& Query, const FLogCategoryBase& Category, ELogVerbosity::Type Verbosity);
+	static void LogQuery(FEnvQueryInstance& Query, const FName& CategoryName, ELogVerbosity::Type Verbosity);
 
 private:
-	static void LogQueryInternal(FEnvQueryInstance& Query, const FLogCategoryBase& Category, ELogVerbosity::Type Verbosity, float TimeSeconds, FVisualLogEntry *CurrentEntry);
+	static void LogQueryInternal(FEnvQueryInstance& Query, const FName& CategoryName, ELogVerbosity::Type Verbosity, float TimeSeconds, FVisualLogEntry *CurrentEntry);
 #endif
 };
 
 #if ENABLE_VISUAL_LOG && USE_EQS_DEBUGGER
 inline void UEnvQueryDebugHelpers::LogQuery(FEnvQueryInstance& Query, const FLogCategoryBase& Category, ELogVerbosity::Type Verbosity)
 {
+	const FName CategoryName = Category.GetCategoryName(); 
+	LogQuery(Query, CategoryName, Verbosity);
+}
+
+inline void UEnvQueryDebugHelpers::LogQuery(FEnvQueryInstance& Query, const FName& CategoryName, ELogVerbosity::Type Verbosity)
+{
 	UWorld *World = nullptr;
 	FVisualLogEntry *CurrentEntry = nullptr;
-	if (FVisualLogger::CheckVisualLogInputInternal(Query.Owner.Get(), Category, Verbosity, &World, &CurrentEntry) == false)
+	if (FVisualLogger::CheckVisualLogInputInternal(Query.Owner.Get(), CategoryName, Verbosity, &World, &CurrentEntry) == false)
 	{
 		return;
 	}
 
-	LogQueryInternal(Query, Category, Verbosity, World->TimeSeconds, CurrentEntry);
+	LogQueryInternal(Query, CategoryName, Verbosity, World->TimeSeconds, CurrentEntry);
 }
 #endif
 

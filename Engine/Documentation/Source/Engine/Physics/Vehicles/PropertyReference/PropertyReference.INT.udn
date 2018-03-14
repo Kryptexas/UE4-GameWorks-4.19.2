@@ -36,7 +36,8 @@ Navigation:topic
 | **Clutch Strength** | %doxygen:FVehicleTransmissionData::ClutchStrength% |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:gearData]
 
 Each gear will have these 3 properties.
@@ -49,7 +50,8 @@ Each gear will have these 3 properties.
 | **Up Ratio** | %doxygen:FVehicleGearData::UpRatio% |
 [/REGION]
 [/EXCERPT:gearData]
--->
+
+[/COMMENT]
 
 ## Steering Setup
 
@@ -76,7 +78,8 @@ Each gear will have these 3 properties.
 | **MaxNormalizedTireLoadFiltered** | %doxygen:UWheeledVehicleMovementComponent::MaxNormalizedTireLoadFiltered% |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:wheelTable]
 [REGION:simpletable]
 | Wheel Property | Description |
@@ -86,7 +89,8 @@ Each gear will have these 3 properties.
 | **AdditionalOffset** | %doxygen:FWheelSetup::AdditionalOffset% |
 [/REGION]
 [/EXCERPT:wheelTable]
--->
+
+[/COMMENT]
 
 ## Vehicle Input
 
@@ -102,7 +106,8 @@ Each gear will have these 3 properties.
 | **Steering Input** | %in4% [INCLUDE:#risefall] |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:riseFall]
 [REGION:simpletable]
 | Input Property | Description |
@@ -127,12 +132,15 @@ Rate at which input for the handbrake can rise and fall.
 [VAR:in4]
 Rate at which input for steering can rise and fall.
 [/VAR]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 | **FVehicle Input Rate** | %doxygen:FVehicleInputRate::FVehicleInputRate% |
 | **Interp Input Value** | %doxygen:FVehicleInputRate::InterpInputValue% |
--->
+
+[/COMMENT]
 
 
 

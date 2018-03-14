@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MatineeImportTools.h"
 #include "MovieSceneSequence.h"
@@ -655,7 +655,8 @@ bool FMatineeImportTools::CopyInterpDirectorTrack( UInterpTrackDirector* Directo
 				FGuid CameraHandle = Player.FindObjectId(*CameraActor, MovieSceneSequenceID::Root);
 				if (CameraHandle.IsValid())
 				{
-					CameraCutTrack->AddNewCameraCut(CameraHandle, TrackCut.Time);
+					FMovieSceneObjectBindingID CameraBindingID(CameraHandle, MovieSceneSequenceID::Root);
+					CameraCutTrack->AddNewCameraCut(CameraBindingID, TrackCut.Time);
 					bCutsAdded = true;
 				}
 			}

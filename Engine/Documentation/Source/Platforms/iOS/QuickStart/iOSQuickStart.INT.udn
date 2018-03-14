@@ -2,69 +2,33 @@ Title:iOS Quick Start
 Crumbs:%ROOT%, Platforms, Platforms/iOS
 Description:Instructions on setting up and launching games on iOS devices.
 Availability:Public
-Version:4.9
+Version:4.18
 tags:iOS
 tags:mobile
 parent:Platforms/iOS
-order:1
+Skilllevel:Intermediate
 type:quick start
+Checkpoint:iOSQS
+order:1
+topic-image:iOSQuickStart_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](iOSQuickStart_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/iOS/QuickStart:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/iOS/QuickStart]
-	[/PARAM]
-	[PARAM:description]
-	%Platforms/iOS/QuickStart:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+![](iOSQuickStart_topic.png)
 
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](iOSQuickStart_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/iOS/QuickStart:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/iOS/QuickStart]
-	[/PARAM]
-	[PARAM:description]
-	%Platforms/iOS/QuickStart:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+## Goals
 
-The Apple iOS Quick Start will walk you through setting up your computer and your iOS device for deployment, as well as putting a template game on your device using both the launching and packaging features.
+The focus of this Apple iOS Quick Start guide is to walk you through the basics of setting up your computer for iOS Development with Unreal Engine 4(UE4).
+This guide also teaches you how to put a template game on your iOS device with the Unreal Editor's launching and packaging features.
 
-%Globals:OSSelect%
+## Objectives
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Platforms/iOS/QuickStart/1 "%Platforms/iOS/QuickStart/1:description%")
-	* [](Platforms/iOS/QuickStart/2 "%Platforms/iOS/QuickStart/2:description%")
-	* [](Platforms/iOS/QuickStart/3 "%Platforms/iOS/QuickStart/3:description%")
-	* [](Platforms/iOS/QuickStart/4 "%Platforms/iOS/QuickStart/4:description%")
-	* [](Platforms/iOS/QuickStart/5 "%Platforms/iOS/QuickStart/5:description%")
-	* [](Platforms/iOS/QuickStart/6 "%Platforms/iOS/QuickStart/6:description%")
-	* [](Platforms/iOS/QuickStart/7 "%Platforms/iOS/QuickStart/7:description%")
-	* [](Platforms/iOS/QuickStart/8 "%Platforms/iOS/QuickStart/8:description%")
-	* [](Platforms/iOS/QuickStart/9 "%Platforms/iOS/QuickStart/9:description%")
-	[/PARAM]
-[/OBJECT]
+* Install and set up the needed Apple prerequisites.
+* Generating & Setting up required Apple development certificates.
+* Creating a project that is targeted for iOS mobile development.
+* How to deploy a level to your Apple device.
+* How to package your project for release.
+
+[DIR(output:"checkpoint" parent:"Platforms/iOS/QuickStart")]
+
+[REGION:call_to_action]
+ [Click to Start](Platforms/iOS/QuickStart/1"%Platforms/iOS/QuickStart/1:title%")
+[/REGION]

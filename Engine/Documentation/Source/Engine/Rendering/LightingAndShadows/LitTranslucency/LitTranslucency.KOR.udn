@@ -1,29 +1,10 @@
-﻿INTSourceChangelist:3218894
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:라이팅된 반투명
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:반투명 표면의 라이팅과 셀프 섀도를 포함한 그림자가 드리워지는 방식에 대한 설명입니다.
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-	![%Engine/Rendering/LightingAndShadows/LitTranslucency:title%](%ROOT%/Engine/Rendering/LightingAndShadows/LitTranslucency/translucent_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	![](%ROOT%/ue4_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	%Engine/Rendering/LightingAndShadows/LitTranslucency:title%
-	[/PARAM]
-	[PARAM:description]
-	%Engine/Rendering/LightingAndShadows/LitTranslucency:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Engine/Rendering/LightingAndShadows/LitTranslucency]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:translucent_topic.png
 
 [TOC(start:2)]
 

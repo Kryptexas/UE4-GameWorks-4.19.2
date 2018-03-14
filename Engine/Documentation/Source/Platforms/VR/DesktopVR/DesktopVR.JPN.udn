@@ -1,0 +1,50 @@
+﻿INTSourceChangelist:3643552
+Availability:Public
+Crumbs: %ROOT%
+Title:デスクトップ用 VR を開発する
+Description:デスクトップ用 VR プラットフォームの開発に関する情報
+Type:Landing
+Version:4.16
+Parent:Platforms/VR
+Order:1
+tags:Platform
+tags:VR
+topic-icon:%ROOT%/platform_icon.png
+
+![](Header_00.png)
+
+アンリアル エンジン 4 (UE4) はデスクトップ ベースの仮想現実 (VR) ヘッドマウント ディスプレイ (HMD) 、モーション コントローラー、対応するソフトウェア開発キットを幅広くサポートしています。以下のリンク先では、UE4 プロジェクトに対応するVR HMD の取得に役立つドキュメントが数多く提供されています。
+
+## サポートされているデスクトップ VR ヘッドマウント ディスプレイ
+
+UE4 は次のデスクトップ VR HMD をサポートしています。 
+
+* **Oculus Rift**
+* **HTC Vive**  
+
+
+UE4 がもともとサポートしている上記デスクトップ HMD の場合は、追加のダウンロードやコンパイルを一切行わずに UE4 プロジェクトを VR で表示することができます。以下のリンク先では、UE4 プロジェクトで対応している中から選んだデスクトップ HMD を使用する方法に関するドキュメントが提供されています。
+
+## Oculus Rift
+
+[DIR(end:"1" output:"topic" type:"landing" tags:"Oculus Rift" parent:"Platforms/Oculus")]
+
+
+## SteamVR
+
+[DIR(end:"1" output:"topic" type:"landing" tags:"SteamVR" parent:"Platforms/SteamVR")]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

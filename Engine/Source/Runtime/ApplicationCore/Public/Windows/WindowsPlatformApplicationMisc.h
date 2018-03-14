@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,6 +18,7 @@ struct APPLICATIONCORE_API FWindowsPlatformApplicationMisc : public FGenericPlat
 	static void PumpMessages(bool bFromMainLoop);
 	static void PreventScreenSaver();
 	static struct FLinearColor GetScreenPixelColor(const FVector2D& InScreenPos, float InGamma = 1.0f);
+	static void SetHighDPIMode();
 	static bool GetWindowTitleMatchingText(const TCHAR* TitleStartsWith, FString& OutTitle);
 	static float GetDPIScaleFactorAtPoint(float X, float Y);
 	static void ClipboardCopy(const TCHAR* Str);

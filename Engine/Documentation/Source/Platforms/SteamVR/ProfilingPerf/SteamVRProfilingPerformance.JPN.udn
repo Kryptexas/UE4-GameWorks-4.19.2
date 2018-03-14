@@ -1,0 +1,64 @@
+﻿INTSourceChangelist:3769397
+Title:SteamVR Profiling & Performance
+Availability:Public
+Crumbs:%ROOT%, Platforms
+Description:SteamVR を使った UE4 プロジェクトのパフォーマンス プロファイル方法
+Navigation:platform
+Platform:SteamVR
+Version:4.17
+type:overview
+Skilllevel:Advanced
+parent:Platforms/SteamVR
+order:2
+tags:Performance and Profiling
+type:overview
+topic-image:SteamVR_ProPref_Topic_Image.png
+related:Engine/Performance/GPU/ 
+related:Engine/Performance/CPU/
+
+SteamVR を使ったアンリアル エンジン 4 (UE4) プロジェクトのパフォーマンスのプロファイル方法について説明します。 
+
+## SteamVR Frame Timing
+
+![](SteamVR_ProPref_00.png)
+
+SteamVR Frame Timing ツールは、UE4 プロジェクトのパフォーマンス低下の原因を追跡するために使用します。エディタでもパッケージ化されたビルドでも、SteamVR Frame Timing ツールはアプリケーションによるスロットリング処理など行う一方で、実際の CPU と GPU タイミングの検証に役立ちます。SteamVR Frame Timing ツールは他にも沢山の用途があります。詳細は [SteamVR Frame Timing ツール](https://developer.valvesoftware.com/wiki/SteamVR/Frame_Timing) を参照してください。
+
+SteamVR **Frame Timing** ツールを表示するには、以下の手順に従います。
+
+1. SteamVR ツールを右クリックして、表示されたメニューから **[Settings]** オプションをクリックします。
+
+    ![](SteamVR_ProPref_01.png)
+
+1. [Setting] メニューの **[Display Frame Timing]** ボタンをクリックして Frame Timing ツールを表示します。
+
+    ![](SteamVR_ProPref_02.png)
+
+1. Frame Timing ツールが起動したら、UE4 プロジェクトを起動して、Frame Timing ツール内の様子を確認することができるようになります。 
+
+    ![](SteamVR_ProPref_00.png)
+
+## SteamVR Frame Timing を保存する
+
+**Frame Timing** ツールで生成したデータを保存して、後でレビューしたり、レビューのために他の誰かに送ることができます。SteamVR Frame Timing を保存するには、以下の手順に従います。
+
+1. SteamVR ツールを右クリックして、表示されたメニューから **[Settings]** オプションをクリックします。
+
+    ![](SteamVR_ProPref_01.png)
+
+1. [Setting] メニューで **[Save Frame Data Now]** ボタンをクリックして Frame Data を保存します。
+
+    ![](SteamVR_ProPref_03.png)
+ 
+1. Frame Timings の保存先は、**C:\Program Files (x86)\Steam\logs** に置かれている **VRFrames.csv** という .CSV ファイルになります。 
+
+    ![](SteamVR_ProPref_04.png)
+
+
+
+
+
+
+
+
+

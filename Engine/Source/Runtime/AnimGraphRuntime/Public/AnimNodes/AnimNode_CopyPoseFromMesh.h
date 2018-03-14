@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,6 +27,10 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_CopyPoseFromMesh : public FAnimNode_Base
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Copy, meta = (NeverAsPin))
 	bool bUseAttachedParent;
 
+	/* Copy curves also from SouceMeshComponent. This will copy the curves if this instance also contains */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Copy, meta = (NeverAsPin))
+	bool bCopyCurves;
+
 	FAnimNode_CopyPoseFromMesh();
 
 	// FAnimNode_Base interface
@@ -41,6 +45,7 @@ private:
 	TWeakObjectPtr<USkeletalMeshComponent> CurrentlyUsedSourceMeshComponent;
 	// cache of target space bases to source space bases
 	TMap<int32, int32> BoneMapToSource;
+	TMap<FName, SmartName::UID_Type> CurveNameToUIDMap;
 
 	// reinitialize mesh component 
 	void ReinitializeMeshComponent(USkeletalMeshComponent* NewSkeletalMeshComponent, FAnimInstanceProxy* AnimInstanceProxy);

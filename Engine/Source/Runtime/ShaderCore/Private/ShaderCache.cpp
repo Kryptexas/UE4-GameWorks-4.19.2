@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShaderCache.cpp: Bound shader state cache implementation.
@@ -34,9 +34,9 @@ DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("Binary Cache Load Time (s)"),STATGROUP_Bina
 const FGuid FShaderCacheCustomVersion::Key(0xB954F018, 0xC9624DD6, 0xA74E79B1, 0x8EA113C2);
 const FGuid FShaderCacheCustomVersion::GameKey(0x03D4EB48, 0xB50B4CC3, 0xA598DE41, 0x5C6CC993);
 FCustomVersionRegistration GRegisterShaderCacheVersion(FShaderCacheCustomVersion::Key, FShaderCacheCustomVersion::Latest, TEXT("ShaderCacheVersion"));
-FCustomVersionRegistration GRegisterShaderCacheGameVersion(FShaderCacheCustomVersion::GameKey, 0, TEXT("ShaderCacheGameVersion"));
+FCustomVersionRegistration GRegisterShaderCacheGameVersion(FShaderCacheCustomVersion::GameKey, (int32)FEngineVersion::Current().GetChangelist(), TEXT("ShaderCacheGameVersion"));
 
-#define SHADER_CACHE_ENABLED (!WITH_EDITOR && PLATFORM_MAC)
+#define SHADER_CACHE_ENABLED (0)
 
 static const ECompressionFlags ShaderCacheCompressionFlag = ECompressionFlags::COMPRESS_ZLIB;
 
@@ -637,6 +637,7 @@ static bool ShaderPlatformCanPrebindBoundShaderState(EShaderPlatform Platform)
 		case SP_METAL_MRT:
 		case SP_METAL_MRT_MAC:
 		case SP_METAL_SM5:
+		case SP_METAL_SM5_NOTESS:
 		case SP_METAL_MACES3_1:
 		case SP_METAL_MACES2:
 		case SP_OPENGL_PCES2:
@@ -1247,7 +1248,7 @@ void FShaderCache::InternalLogShader(EShaderPlatform Platform, EShaderFrequency 
 				FShaderCacheLibrary* ShaderCacheLibrary = ShaderCache->CodeCache;
 				if (ShaderCacheLibrary && !ShaderCacheLibrary->Shaders.Contains(Key))
 				{
-					Lock.RaiseLockToWrite();
+					Lock.ReleaseReadOnlyLockAndAcquireWriteLock_USE_WITH_CAUTION();
 					ShaderCacheLibrary->AddShader(Key.Frequency, Key.SHAHash, Code, UncompressedSize);
 					bSubmit = true;
 				}
@@ -1989,13 +1990,13 @@ void FShaderCache::InternalLogDraw(FShaderCacheState& CacheState, uint32 Primiti
 			
 			if (DrawId < 0)
 			{
-				Lock.RaiseLockToWrite();
+				Lock.ReleaseReadOnlyLockAndAcquireWriteLock_USE_WITH_CAUTION();
 				DrawId = CurrentShaderPlatformCache.DrawStates.Add(CacheState.CurrentDrawKey);
 			}
 			
 			if (PSOId < 0)
 			{
-				Lock.RaiseLockToWrite();
+				Lock.ReleaseReadOnlyLockAndAcquireWriteLock_USE_WITH_CAUTION();
 				PSOId = ShaderPlatformPSOOnly(CurrentPlatform) ? CacheState.CurrentPSO.Index : CurrentShaderPlatformCache.PipelineStates.Add(CacheState.CurrentPSO);
 			}
 
@@ -2010,27 +2011,27 @@ void FShaderCache::InternalLogDraw(FShaderCacheState& CacheState, uint32 Primiti
 			
 			if (EntryId < 0)
 			{
-				Lock.RaiseLockToWrite();
+				Lock.ReleaseReadOnlyLockAndAcquireWriteLock_USE_WITH_CAUTION();
 				EntryId = CurrentShaderPlatformCache.PreDrawEntries.Add(Entry);
 			}
 			
 			FShaderStreamingCache* StreamCache = CurrentShaderPlatformCache.StreamingDrawStates.Find(StreamingKey);
 			if (!StreamCache)
 			{
-				Lock.RaiseLockToWrite();
+				Lock.ReleaseReadOnlyLockAndAcquireWriteLock_USE_WITH_CAUTION();
 				StreamCache = &CurrentShaderPlatformCache.StreamingDrawStates.FindOrAdd(StreamingKey);
 			}
 			
 			TSet<int32>* ShaderDrawSet = StreamCache->ShaderDrawStates.Find(CacheState.CurrentPSO.BoundShaderState);
 			if (!ShaderDrawSet)
 			{
-				Lock.RaiseLockToWrite();
+				Lock.ReleaseReadOnlyLockAndAcquireWriteLock_USE_WITH_CAUTION();
 				ShaderDrawSet = &StreamCache->ShaderDrawStates.FindOrAdd(CacheState.CurrentPSO.BoundShaderState);
 			}
 			
 			if (!ShaderDrawSet->Contains(EntryId))
 			{
-				Lock.RaiseLockToWrite();
+				Lock.ReleaseReadOnlyLockAndAcquireWriteLock_USE_WITH_CAUTION();
 				ShaderDrawSet->Add(EntryId,&bShaderDrawSetEntryExists);
 			}
 		}

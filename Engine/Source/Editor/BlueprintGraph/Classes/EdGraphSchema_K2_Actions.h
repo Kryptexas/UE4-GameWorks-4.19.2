@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -440,7 +440,7 @@ public:
 		bIsVarBool = bInIsVarBool;
 
 		check(InOwningScope);
-		VariableSource = InOwningScope;
+		VariableSource = MakeWeakObjectPtr(const_cast<UStruct*>(InOwningScope));
 	}
 
 	// Simple type info

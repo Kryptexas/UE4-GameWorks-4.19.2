@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/SBoxPanel.h"
 #include "Layout/LayoutUtils.h"
@@ -262,6 +262,7 @@ int32 SBoxPanel::RemoveSlot( const TSharedRef<SWidget>& SlotWidget )
 		if ( SlotWidget == Children[SlotIdx].GetWidget() )
 		{
 			Children.RemoveAt(SlotIdx);
+			Invalidate(EInvalidateWidget::Layout);
 			return SlotIdx;
 		}
 	}
@@ -272,6 +273,8 @@ int32 SBoxPanel::RemoveSlot( const TSharedRef<SWidget>& SlotWidget )
 void SBoxPanel::ClearChildren()
 {
 	Children.Empty();
+
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 /**

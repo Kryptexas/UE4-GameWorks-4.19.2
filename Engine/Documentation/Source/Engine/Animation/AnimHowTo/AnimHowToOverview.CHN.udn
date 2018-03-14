@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2815130
+﻿INTSourceChangelist:3462657
 Availability: Public
 Title:动画操作指南
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:通过多个包含详细步骤的操作指南，介绍虚幻引擎 4 的动画系统各个方面的示例。
-version: 4.9
+type:how-to
+type:landing
 
 动画操作指南提供多个有关使用虚幻引擎 4 中 [Persona](Engine/Animation) 动画工具的各个方面的操作步骤示例。 
 无论您是虚幻引擎 4 中的动画新手，还是要学习如何使用 Persona 的特定方面，以下操作指南页面包含各种主题，旨在帮助您入门或扩展目前的知识。 
@@ -19,25 +20,31 @@ version: 4.9
 ## 中级
 |操作指南 | 说明 |
 | ------- | ------------ |
-| [](Engine\Animation\AnimHowTo\PropertyBasedBlending) | %Engine\Animation\AnimHowTo\PropertyBasedBlending:description% |
 | [](Engine\Animation\AnimHowTo\AimOffset) | %Engine\Animation\AnimHowTo\AimOffset:description% |
+| [](Engine\Animation\AnimHowTo\Blendspace) | %Engine\Animation\AnimHowTo\Blendspace:description% |
 | [](Engine\Animation\AnimHowTo\Retargeting) | %Engine\Animation\AnimHowTo\Retargeting:description% |
+| [](Engine\Animation\AnimHowTo\CreatePoseAsset) | %Engine\Animation\AnimHowTo\CreatePoseAsset:description% |
+| [](Engine\Animation\AnimHowTo\SubAnimInstance) | %Engine\Animation\AnimHowTo\SubAnimInstance:description% |
 
 
 ## 高级
 |操作指南 | 说明 |
 | ------- | ------------ |
 | [](Engine\Animation\AnimHowTo\AdditiveAnimations) | %Engine\Animation\AnimHowTo\AdditiveAnimations:description% |
+| [](Engine\Animation\AnimHowTo\AnimDynamics) | %Engine\Animation\AnimHowTo\AnimDynamics:description% |
+| [](Engine\Animation\AnimHowTo\CurveDrivenAnimation) | %Engine\Animation\AnimHowTo\CurveDrivenAnimation:description% |
 | [](Engine\Animation\AnimHowTo\LayerEditing) | %Engine\Animation\AnimHowTo\LayerEditing:description% |
 | [](Engine\Animation\AnimHowTo\AnimBPOverride) | %Engine\Animation\AnimHowTo\AnimBPOverride:description% |
 
 
-<!-- Convert these to Quick Starts
+[COMMENT:none]
+ Convert these to Quick Starts
 | [](Engine\Animation\AnimHowTo\AimOffset) | %Engine\Animation\AnimHowTo\AimOffset:description% |初学者|
 
 将此分为两个操作指南
 | [](Engine\Animation\AnimHowTo\Retargeting) | %Engine\Animation\AnimHowTo\Retargeting:description% |中级|
--->
+
+[/COMMENT]
 
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GenericPlatformMisc.cpp: Generic implementations of misc platform functions
@@ -748,7 +748,7 @@ bool FLinuxPlatformMisc::IsRunningOnBattery()
 #if !UE_BUILD_SHIPPING
 CORE_API TFunction<void()> UngrabAllInputCallback;
 
-void FLinuxPlatformMisc::DebugBreak()
+void FLinuxPlatformMisc::DebugBreakInternal()
 {
 	if( IsDebuggerPresent() )
 	{

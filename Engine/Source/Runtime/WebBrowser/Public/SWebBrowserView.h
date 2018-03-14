@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -134,6 +134,8 @@ public:
 	 * @param InArgs  Declaration from which to construct the widget.
 	 */
 	void Construct(const FArguments& InArgs, const TSharedPtr<IWebBrowserWindow>& InWebBrowserWindow = nullptr);
+
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 	/**
 	 * Load the specified URL.
@@ -309,7 +311,7 @@ private:
 	/** Interface for dealing with a web browser window. */
 	TSharedPtr<IWebBrowserWindow> BrowserWindow;
 	/** The slate window that contains this widget. This must be stored weak otherwise we create a circular reference. */
-	TWeakPtr<SWindow> SlateParentWindowPtr;
+	mutable TWeakPtr<SWindow> SlateParentWindowPtr;
 	/** Viewport interface for rendering the web page. */
 	TSharedPtr<FWebBrowserViewport> BrowserViewport;
 	/** Viewport interface for rendering popup menus. */

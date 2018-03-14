@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -29,7 +29,7 @@ class UMaterialExpressionQualitySwitch : public UMaterialExpression
 
 	virtual const TArray<FExpressionInput*> GetInputs() override;
 	virtual FExpressionInput* GetInput(int32 InputIndex) override;
-	virtual FString GetInputName(int32 InputIndex) const override;
+	virtual FName GetInputName(int32 InputIndex) const override;
 	virtual bool IsInputConnectionRequired(int32 InputIndex) const override;
 #if WITH_EDITOR
 	virtual bool IsResultMaterialAttributes(int32 OutputIndex) override;

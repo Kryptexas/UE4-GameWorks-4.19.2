@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -21,7 +21,10 @@ class FAssetRenameManager : public TSharedFromThis<FAssetRenameManager>
 {
 public:
 	/** Renames assets using the specified names. */
-	void RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const;
+	bool RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const;
+
+	/** Renames assets using the specified names. */
+	void RenameAssetsWithDialog(const TArray<FAssetRenameData>& AssetsAndNames, bool bAutoCheckout = false) const;
 
 	/** Returns list of objects that soft reference the given soft object path. This will load assets into memory to verify */
 	void FindSoftReferencesToObject(FSoftObjectPath TargetObject, TArray<UObject*>& ReferencingObjects) const;
@@ -41,8 +44,11 @@ public:
 	bool CheckPackageForSoftObjectReferences(UPackage* Package, const TMap<FSoftObjectPath, FSoftObjectPath>& AssetRedirectorMap, TArray<UObject*>& OutReferencingObjects) const;
 
 private:
+	/** Callback used by DiscoverintAssetsDialog to call FixrefrencesAndRename */
+	void FixReferencesAndRenameCallback(TArray<FAssetRenameData> AssetsAndNames, bool bAutoCheckout, bool bWithDialog) const;
+
 	/** Attempts to load and fix redirector references for the supplied assets */
-	void FixReferencesAndRename(TArray<FAssetRenameData> AssetsAndNames) const;
+	bool FixReferencesAndRename(const TArray<FAssetRenameData>& AssetsAndNames, bool bAutoCheckout, bool bWithDialog) const;
 
 	/** Get a list of assets referenced from CDOs */
 	TArray<TWeakObjectPtr<UObject>> FindCDOReferencedAssets(const TArray<FAssetRenameDataWithReferencers>& AssetsToRename) const;
@@ -66,7 +72,10 @@ private:
 	 * Trims PackagesToSave when necessary.
 	 * Returns true if the user opted to continue the operation or no dialog was required.
 	 */
-	bool CheckOutPackages(TArray<FAssetRenameDataWithReferencers>& AssetsToRename, TArray<UPackage*>& InOutReferencingPackagesToSave) const;
+	bool CheckOutPackages(TArray<FAssetRenameDataWithReferencers>& AssetsToRename, TArray<UPackage*>& InOutReferencingPackagesToSave, bool bAutoCheckout) const;
+
+	/** Attempts to check out packages, returns false on any failure */
+	bool AutoCheckOut(TArray<UPackage*>& PackagesToCheckOut) const;
 
 	/** Finds any collections that are referencing the assets to be renamed. Assets referenced by collections will leave redirectors */
 	void DetectReferencingCollections(TArray<FAssetRenameDataWithReferencers>& AssetsToRename) const;
@@ -80,8 +89,8 @@ private:
 	/** Saves all the referencing packages and updates SCC state */
 	void SaveReferencingPackages(const TArray<UPackage*>& ReferencingPackagesToSave) const;
 
-	/** Report any failures that may have happened during the rename */
-	void ReportFailures(const TArray<FAssetRenameDataWithReferencers>& AssetsToRename) const;
+	/** Report any failures that may have happened during the rename. Return the number of failures */
+	int32 ReportFailures(const TArray<FAssetRenameDataWithReferencers>& AssetsToRename, bool bWithDialog) const;
 
 	/** Called when a package is dirtied, clears the cache */
 	void OnMarkPackageDirty(UPackage* Pkg, bool bWasDirty);

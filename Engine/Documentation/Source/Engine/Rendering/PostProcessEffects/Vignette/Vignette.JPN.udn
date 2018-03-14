@@ -19,7 +19,8 @@ Version:4.9
 | -------- | ----------- |
 | **Vignette Intensity** | スクリーンの端を暗くします。ブルームには影響しません (パフォーマンスによりますが変更も可能です)。活用例：輪郭のぼかし (カメラ機能の不完全性) をシミュレートします。 [INCLUDE:#Intensity] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Intensity]
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -30,4 +31,5 @@ Version:4.9
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:Intensity]
--->
+
+[/COMMENT]

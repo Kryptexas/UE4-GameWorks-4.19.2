@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SPhysicsAssetGraph.h"
 #include "GraphEditor.h"
@@ -91,8 +91,8 @@ FActionMenuContent SPhysicsAssetGraph::OnCreateGraphActionMenu(UEdGraph* InGraph
 		if(UPhysicsAssetGraphNode_Bone* BodyNode = Cast<UPhysicsAssetGraphNode_Bone>(InDraggedPins[0]->GetOwningNode()))
 		{
 			FMenuBuilder MenuBuilder(true, nullptr);
-			GraphObj->GetPhysicsAssetEditor()->BuildMenuWidgetNewConstraintForBody(MenuBuilder, BodyNode->BodyIndex);
-			return FActionMenuContent(MenuBuilder.MakeWidget(), nullptr);
+			TSharedPtr<ISkeletonTree> SkeletonTree = GraphObj->GetPhysicsAssetEditor()->BuildMenuWidgetNewConstraintForBody(MenuBuilder, BodyNode->BodyIndex, InOnMenuClosed);
+			return FActionMenuContent(MenuBuilder.MakeWidget(), SkeletonTree->GetSearchWidget());
 		}
 	}
 

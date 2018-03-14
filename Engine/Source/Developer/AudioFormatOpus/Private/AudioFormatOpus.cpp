@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AudioFormatOpus.h"
 #include "Serialization/MemoryWriter.h"
@@ -30,7 +30,7 @@ class FAudioFormatOpus : public IAudioFormat
 	enum
 	{
 		/** Version for OPUS format, this becomes part of the DDC key. */
-		UE_AUDIO_OPUS_VER = 3,
+		UE_AUDIO_OPUS_VER = 4,
 	};
 
 public:
@@ -345,10 +345,8 @@ public:
 		return CompressedDataStore.Num();
 	}
 
-	virtual bool SplitDataForStreaming(const TArray<uint8>& SrcBuffer, TArray<TArray<uint8>>& OutBuffers) const override
+	virtual bool SplitDataForStreaming(const TArray<uint8>& SrcBuffer, TArray<TArray<uint8>>& OutBuffers, const int32 MaxChunkSize) const override
 	{
-		// 16K chunks - don't really have an idea of what's best for loading from disc yet
-		const int32 kMaxChunkSizeBytes = 16384;
 		if (SrcBuffer.Num() == 0)
 		{
 			return false;
@@ -375,13 +373,13 @@ public:
 		ReadOffset += sizeof(uint16);
 
 		// Should always be able to store basic info in a single chunk
-		check(ReadOffset - WriteOffset < kMaxChunkSizeBytes)
+		check(ReadOffset - WriteOffset < (uint32)MaxChunkSize)
 
 		while (ProcessedFrames < SerializedFrames)
 		{
 			uint16 FrameSize = *((uint16*)(LockedSrc + ReadOffset));
 
-			if ( (ReadOffset + sizeof(uint16) + FrameSize) - WriteOffset >= kMaxChunkSizeBytes)
+			if ( (ReadOffset + sizeof(uint16) + FrameSize) - WriteOffset >= MaxChunkSize)
 			{
 				WriteOffset += AddDataChunk(OutBuffers, LockedSrc + WriteOffset, ReadOffset - WriteOffset);
 			}

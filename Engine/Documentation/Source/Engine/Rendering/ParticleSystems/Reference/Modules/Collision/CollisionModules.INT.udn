@@ -93,7 +93,8 @@ Then under the **Performacne** section in your particel effect Collision module,
 After the Min Desired Frame Rate has been changed and the Drop Detail box unchecked, 
 re-cook or re-deploy your project to your iOS mobiel device and check to see if the particle collisions are working. 
 
-<!-----------
+[COMMENT:none]
+---------
 
 #### Includes
 
@@ -118,4 +119,5 @@ re-cook or re-deploy your project to your iOS mobiel device and check to see if 
 [/EXCERPT:CollisionCompletionOption]
 
 
-------->
+-----
+[/COMMENT]

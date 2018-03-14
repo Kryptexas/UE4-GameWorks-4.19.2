@@ -8,7 +8,9 @@ Description:骨架网格体变形系统概述，其基于使用蓝图，混合�
 
 
 [EXCERPT:Intro]
-**虚幻引擎 4**（**UE4**）的动画系统可对角色和骨架网格体进行深度设定。在这篇文档中包含 UE4 动画系统工作原理的高级概要，以及这套系统的基本概念。<!---以下资料将说明--->
+**虚幻引擎 4**（**UE4**）的动画系统可对角色和骨架网格体进行深度设定。在这篇文档中包含 UE4 动画系统工作原理的高级概要，以及这套系统的基本概念。[COMMENT:none]
+-以下资料将说明-
+[/COMMENT]
 
 
 
@@ -172,7 +174,8 @@ Description:骨架网格体变形系统概述，其基于使用蓝图，混合�
 [/OBJECT]
 
 
-<!--
+[COMMENT:none]
+
 [OBJECT:IconSection]
 	[PARAM:icon]
 		[![](StateMachines.png)(w:192)](Engine/Animation/StateMachines)
@@ -184,7 +187,8 @@ Description:骨架网格体变形系统概述，其基于使用蓝图，混合�
 		[INCLUDE:Engine/Animation/StateMachines#Intro]
 	[/PARAM]
 [/OBJECT]
--->
+
+[/COMMENT]
 
 
 ## 系统分解

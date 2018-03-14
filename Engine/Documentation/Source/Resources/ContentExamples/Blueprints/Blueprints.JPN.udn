@@ -171,7 +171,9 @@ Version:4.9
 
 Blueprint_HUD マップの詳細は以下でご覧いただけます。 
 
-<!---* [1.1 ブループリント マウス インタラクション](Resources\ContentExamples\MouseInterface)--->
+[COMMENT:none]
+-* [1.1 ブループリント マウス インタラクション](Resources\ContentExamples\MouseInterface)-
+[/COMMENT]
 
 | サンプル | 実演内容 |
 | ------- | ------------ |
@@ -185,7 +187,9 @@ Blueprint_HUD マップの詳細は以下でご覧いただけます。
 
 Blueprint_HUD マップの詳細は以下でご覧いただけます。 
 
-<!---* [1.1 ブループリント HUD サンプル](Resources\ContentExamples\Blueprints_HUD\1_1)--->
+[COMMENT:none]
+-* [1.1 ブループリント HUD サンプル](Resources\ContentExamples\Blueprints_HUD\1_1)-
+[/COMMENT]
 
 | サンプル | 実演内容 |
 | ------- | ------------ |
@@ -225,9 +229,11 @@ Blueprint_HUD マップの詳細は以下でご覧いただけます。
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BlueprintsCEInstructions]
 コンテンツ サンプルの [ブループリントを開く](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Opening) から、各ブループリントの作成で [デフォルト](Engine/Blueprints/Editor\Modes\Defaults), [コンポーネント](Engine/Blueprints/UserGuide\Components)、そして [グラフ](Engine/Blueprints/Editor\Modes\GraphPanel) がどのように設定されたかを確認することができます。
 [/EXCERPT:BlueprintsCEInstructions]
 
--->
+
+[/COMMENT]

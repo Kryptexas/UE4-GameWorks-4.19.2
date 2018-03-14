@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -19,9 +19,14 @@ public class FunctionalTesting : ModuleRules
                 "AssetRegistry",
                 "RHI",
                 "UMG",
-				"AutomationController"
+				"AutomationController",
             }
         );
+
+        if (Target.bBuildEditor == true)
+		{
+			PrivateDependencyModuleNames.Add("UnrealEd");
+		}
 
         PrivateIncludePaths.AddRange(
             new string[]

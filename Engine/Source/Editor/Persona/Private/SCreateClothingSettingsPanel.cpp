@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SCreateClothingSettingsPanel.h"
 
@@ -17,6 +17,7 @@
 #include "SComboButton.h"
 #include "STextBlock.h"
 #include "MultiBoxBuilder.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 #define LOCTEXT_NAMESPACE "CreateClothSettings"
 
@@ -61,6 +62,7 @@ void SCreateClothingSettingsPanel::Construct(const FArguments& InArgs)
 	StructureDetailsView->GetDetailsView()->SetGenericLayoutDetailsDelegate(FOnGetDetailCustomizationInstance::CreateStatic(&FClothCreateSettingsCustomization::MakeInstance, InArgs._Mesh, InArgs._bIsSubImport));
 
 	BuildParams.AssetName = InArgs._MeshName + TEXT("_Clothing");
+	BuildParams.PhysicsAsset = InArgs._Mesh->PhysicsAsset;
 
 	FStructOnScope* Struct = new FStructOnScope(FSkeletalMeshClothBuildParams::StaticStruct(), (uint8*)&BuildParams);
 	StructureDetailsView->SetStructureData(MakeShareable(Struct));

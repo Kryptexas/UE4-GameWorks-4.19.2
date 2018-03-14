@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidString.cpp: Android implementations of string functions
@@ -121,10 +121,37 @@ int vswprintf( TCHAR *buf, int max, const TCHAR *fmt, va_list args )
 		case 'X':
 		case 'x':
 		case 'u':
-		case 'p':
 			{
 				src++;
 				int val = va_arg(args, int);
+				ANSICHAR ansinum[30];
+				ANSICHAR fmtbuf[30];
+
+				// Yes, this is lame.
+				int cpyidx = 0;
+				while (percent_ptr < src)
+				{
+					fmtbuf[cpyidx] = (ANSICHAR)*percent_ptr;
+					percent_ptr++;
+					cpyidx++;
+				}
+				fmtbuf[cpyidx] = 0;
+
+				int rc = snprintf(ansinum, sizeof(ansinum), fmtbuf, val);
+				if ((dst + rc) > enddst)
+					return -1;	// Fail - the app needs to create a larger buffer and try again
+				for (int i = 0; i < rc; i++)
+				{
+					*dst = (TCHAR)ansinum[i];
+					dst++;
+				}
+			}
+			break;
+
+		case 'p':
+			{
+				src++;
+				void* val = va_arg(args, void*);
 				ANSICHAR ansinum[30];
 				ANSICHAR fmtbuf[30];
 

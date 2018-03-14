@@ -145,7 +145,8 @@ type:reference
 
 [/EXCERPT:Sections]
 
-<!--
+[COMMENT:none]
+
 ### 蓝图模式
 
 蓝图的 _模式_ 决定其窗口中的内容。关卡蓝图只包含一个模式（图表模式），而蓝图类包含三种不同模式：
@@ -155,4 +156,5 @@ type:reference
 * **[组件模式](Engine/Blueprints\Editor\Modes\Components)** - 可在此对组成蓝图的组件进行添加、移除和编辑。
 
 如需了解蓝图类模式的更多内容，请查阅 [](Engine/Blueprints\Editor\Modes)。
--->
+
+[/COMMENT]

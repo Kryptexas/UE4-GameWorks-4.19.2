@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SSequencerCurveEditor.h"
 #include "SequencerCommonHelpers.h"
@@ -48,7 +48,7 @@ FReply SSequencerCurveEditor::OnMouseButtonDown( const FGeometry& MyGeometry, co
 	FReply Reply = SCurveEditor::OnMouseButtonDown( MyGeometry, MouseEvent );
 	if ( Reply.IsEventHandled() )
 	{
-		return Reply;
+		return Reply.PreventThrottling();
 	}
 
 	return TimeSliderController->OnMouseButtonDown( *this, MyGeometry, MouseEvent );

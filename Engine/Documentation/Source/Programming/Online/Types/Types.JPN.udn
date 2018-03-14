@@ -58,15 +58,19 @@ Version:4.9
 
 **FUniqueNetId** は、プロファイル サービス オンライン ID を格納し、個人プレイヤー、フレンド、またはセッションから何でも表現します。
 
-<!--[](Programming/Online/Interfaces/Profile) をご覧ください。-->
+[COMMENT:none]
+[](Programming/Online/Interfaces/Profile) をご覧ください。
+[/COMMENT]
 
 
 ### FSharedContentHandle
 
 **FSharedContentHandle** は、プロファイルサービスの共有ファイル処理を格納します。適切な権限が付与されると、この処理は共有コンテンツへアクセスするためにどこからでも渡されたり使用することができます。
 
-<!--:
- * [](Programming/Online/Interfaces/SharedCloud) をご覧ください。-->
+[COMMENT:none]
+:
+ * [](Programming/Online/Interfaces/SharedCloud) をご覧ください。
+[/COMMENT]
 
 
  
@@ -88,9 +92,11 @@ Version:4.9
  * File size - ファイルサイズです。  
 
 
-<!--:
+[COMMENT:none]
+:
  * [](Programming/Online/Interfaces/SharedCloud)
- * [](Programming/Online/Interfaces/UserCloud) をご覧ください。-->
+ * [](Programming/Online/Interfaces/UserCloud) をご覧ください。
+[/COMMENT]
 
 
 ### FTitleFile
@@ -103,9 +109,11 @@ Version:4.9
  * Data - ファイル コンテンツを格納するバッファです。
 
 
-<!--:
+[COMMENT:none]
+:
  * [](Programming/Online/Interfaces/SharedCloud)
- * [](Programming/Online/Interfaces/UserCloud) をご覧ください。-->
+ * [](Programming/Online/Interfaces/UserCloud) をご覧ください。
+[/COMMENT]
 
 
 ### EOnlineAsyncTaskState

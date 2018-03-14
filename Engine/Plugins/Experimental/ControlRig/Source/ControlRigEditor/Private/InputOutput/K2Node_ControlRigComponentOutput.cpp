@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_ControlRigComponentOutput.h"
 #include "EdGraphSchema_K2.h"
@@ -36,7 +36,7 @@ void UK2Node_ControlRigComponentOutput::CreateOutputPins()
 
 	for (const TSharedRef<IControlRigField>& OutputInfo : OutputInfos)
 	{
-		CreatePin(EGPD_Output, OutputInfo->GetPinType(), OutputInfo->GetPinString());
+		CreatePin(EGPD_Output, OutputInfo->GetPinType(), OutputInfo->GetPinName());
 	}
 }
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Misc/MessageDialog.h"
@@ -33,18 +33,33 @@ FDynamicRHI* PlatformCreateDynamicRHI()
 		}
 	}
 
-	// default to SM4 for safety's sake
-	ERHIFeatureLevel::Type RequestedFeatureLevel = ERHIFeatureLevel::SM4;
+	ERHIFeatureLevel::Type RequestedFeatureLevel = ERHIFeatureLevel::SM5;	// SM4 is a dead level walking
 
 	// Check the list of targeted shader platforms and decide an RHI based off them
 	TArray<FString> TargetedShaderFormats;
 	GConfig->GetArray(TEXT("/Script/LinuxTargetPlatform.LinuxTargetSettings"), TEXT("TargetedRHIs"), TargetedShaderFormats, GEngineIni);
-	if (TargetedShaderFormats.Num() > 0)
+	for (int32 SfIdx = 0; SfIdx < TargetedShaderFormats.Num(); ++SfIdx)
 	{
-		// Pick the first one
-		FName ShaderFormatName(*TargetedShaderFormats[0]);
+		// Pick the first one that matches the desired API
+		if (bForceVulkan)
+		{
+			if (!TargetedShaderFormats[SfIdx].StartsWith(TEXT("SF_VULKAN_")))
+			{
+				continue;
+			}
+		}
+		else
+		{
+			if (!TargetedShaderFormats[SfIdx].StartsWith(TEXT("GLSL_")))
+			{
+				continue;
+			}
+		}
+
+		FName ShaderFormatName(*TargetedShaderFormats[SfIdx]);
 		EShaderPlatform TargetedPlatform = ShaderFormatToLegacyShaderPlatform(ShaderFormatName);
 		RequestedFeatureLevel = GetMaxSupportedFeatureLevel(TargetedPlatform);
+		break;
 	}
 
 	// Create the dynamic RHI.

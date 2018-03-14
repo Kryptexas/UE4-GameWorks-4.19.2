@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -186,7 +186,7 @@ static const VectorRegister VectorNegativeOne = MakeVectorRegister( -1.0f, -1.0f
  * @param IntersectionTime	[in/out] Best intersection time so far (0..1), as in: IntersectionPoint = Start + IntersectionTime * Dir.
  * @return			Index (0-3) to specify which of the 4 triangles the line intersected, or -1 if none was found.
  */
-int32 appLineCheckTriangleSOA(const FVector3SOA& Start, const FVector3SOA& End, const FVector3SOA& Dir, const FTriangleSOA& Triangle4, float& InOutIntersectionTime)
+static int32 appLineCheckTriangleSOA(const FVector3SOA& Start, const FVector3SOA& End, const FVector3SOA& Dir, const FTriangleSOA& Triangle4, float& InOutIntersectionTime)
 {
 	VectorRegister TriangleMask;
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3481084
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:1.アクタのトランスフォームの作業
 Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo, GettingStarted\HowTo\DetailsPanel
@@ -24,7 +24,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 アクタの作業を行う場合に重要なのは、アクタの移動、回転、スケーリングを含む [アクタのトランスフォーム](GettingStarted/HowTo/ManipulatingActors) のプロセスおよび [可動性](Engine/Actors/Mobility) (ゲームプレイ中にアクタを何らかの方法で移動または変更できるようにするかどうか) を理解することです。このステップでは、 **[Details (詳細)]** パネルを使って、選択したアクタのトランスフォームを調整し、レベル内での位置、スケーリング、可動性を設定します。 
 
@@ -99,4 +99,4 @@ checkpoint: editorqs
 次では、[詳細] パネルでアクタに適用された **マテリアル** を更新します。 
 
 
-%Steps%
+

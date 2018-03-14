@@ -1,50 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:ビューモード
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
 Description:ビューポート内で使用できるビューモードに関する説明
 Version:4.9
+topic-image:ViewModes_Topic.png
 
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](ViewModes_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor/Viewports/ViewModes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor/Viewports/ViewModes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor/Viewports/ViewModes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](ViewModes_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor/Viewports/ViewModes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor/Viewports/ViewModes:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor/Viewports/ViewModes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [VAR:WireSize]462[/VAR]
 
@@ -268,10 +229,12 @@ Buffer Visualization 領域では、グラフィック カード内の各バッ�
 **Base Color** モードで、シーンのマテリアルの基本色のみを見ることができます。
 
 
-<!---
+[COMMENT:none]
+-
 ### Custom Depth （カスタム深度）
 Not included until I can get an answer from Daniel 
--->
+
+[/COMMENT]
 
 
 ### Decal Mask （デカールマスク）
@@ -296,7 +259,8 @@ Not included until I can get an answer from Daniel
 **Diffuse Color** は基本色とマテリアルのアンビエントオクルージョン入力の結果を表示します。
 
 
-<!--
+[COMMENT:none]
+
 ### Final Image
 Removed, since DanielW wasn't sure why it's here. 
 
@@ -304,7 +268,8 @@ Removed, since DanielW wasn't sure why it's here.
 aka no visualization
 not sure why it's in there
 "
--->
+
+[/COMMENT]
 
 ### シェーディング モデル
 
@@ -521,10 +486,12 @@ Opacity ビューモードは Opacity の使用中に不透明なマテリアル
 
 
 
-<!--
+[COMMENT:none]
+
 ### Layer Debug （レイヤのデバッグ）
 TODO
--->
+
+[/COMMENT]
 
 ## Exposure （露出）
 

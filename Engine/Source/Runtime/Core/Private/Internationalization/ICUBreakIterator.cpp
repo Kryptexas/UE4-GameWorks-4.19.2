@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Internationalization/ICUBreakIterator.h"
 #include "Misc/ScopeLock.h"
@@ -21,6 +21,11 @@ void FICUBreakIteratorManager::Destroy()
 	check(Singleton);
 	delete Singleton;
 	Singleton = nullptr;
+}
+
+bool FICUBreakIteratorManager::IsInitialized()
+{
+	return Singleton != nullptr;
 }
 
 FICUBreakIteratorManager& FICUBreakIteratorManager::Get()
@@ -77,8 +82,11 @@ FICUBreakIterator::FICUBreakIterator(TWeakPtr<icu::BreakIterator>&& InICUBreakIt
 
 FICUBreakIterator::~FICUBreakIterator()
 {
-	// This assumes that FICUBreakIterator owns the iterator, and that nothing ever copies an FICUBreakIterator instance
-	FICUBreakIteratorManager::Get().DestroyIterator(ICUBreakIteratorHandle);
+	if (FICUBreakIteratorManager::IsInitialized())
+	{
+		// This assumes that FICUBreakIterator owns the iterator, and that nothing ever copies an FICUBreakIterator instance
+		FICUBreakIteratorManager::Get().DestroyIterator(ICUBreakIteratorHandle);
+	}
 }
 
 void FICUBreakIterator::SetString(const FText& InText)

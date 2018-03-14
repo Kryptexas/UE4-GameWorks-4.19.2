@@ -1,11 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayEffectAggregator.h"
 #include "UObject/UObjectHash.h"
 #include "UObject/UObjectIterator.h"
 #include "AbilitySystemComponent.h"
 
-bool FAggregatorMod::Qualifies(const FAggregatorEvaluateParameters& Parameters) const
+void FAggregatorMod::UpdateQualifies(const FAggregatorEvaluateParameters& Parameters) const
 {
 	static const FGameplayTagContainer EmptyTagContainer;
 	const FGameplayTagContainer& SrcTags = Parameters.SourceTags ? *Parameters.SourceTags : EmptyTagContainer;
@@ -18,7 +18,8 @@ bool FAggregatorMod::Qualifies(const FAggregatorEvaluateParameters& Parameters) 
 
 	if (Parameters.IncludePredictiveMods == false && IsPredicted)
 	{
-		return false;
+		IsQualified = false;
+		return;
 	}
 
 	if (ActiveHandle.IsValid())
@@ -27,7 +28,8 @@ bool FAggregatorMod::Qualifies(const FAggregatorEvaluateParameters& Parameters) 
 		{
 			if (ActiveHandle == HandleToIgnore)
 			{
-				return false;
+				IsQualified = false;
+				return;
 			}
 		}
 	}
@@ -48,14 +50,14 @@ bool FAggregatorMod::Qualifies(const FAggregatorEvaluateParameters& Parameters) 
 		}
 	}
 
-	return bSourceMet && bTargetMet && bSourceFilterMet && bTargetFilterMet;
+	IsQualified = bSourceMet && bTargetMet && bSourceFilterMet && bTargetFilterMet;
 }
 
 float FAggregatorModChannel::EvaluateWithBase(float InlineBaseValue, const FAggregatorEvaluateParameters& Parameters) const
 {
 	for (const FAggregatorMod& Mod : Mods[EGameplayModOp::Override])
 	{
-		if (Mod.Qualifies(Parameters))
+		if (Mod.Qualifies())
 		{
 			return Mod.EvaluatedMagnitude;
 		}
@@ -78,7 +80,7 @@ bool FAggregatorModChannel::ReverseEvaluate(float FinalValue, const FAggregatorE
 {
 	for (const FAggregatorMod& Mod : Mods[EGameplayModOp::Override])
 	{
-		if (Mod.Qualifies(Parameters))
+		if (Mod.Qualifies())
 		{
 			// This is the case we can't really handle due to lack of information.
 			ComputedValue = FinalValue;
@@ -143,6 +145,30 @@ void FAggregatorModChannel::AddModsFrom(const FAggregatorModChannel& Other)
 	}
 }
 
+void FAggregatorModChannel::UpdateQualifiesOnAllMods(const FAggregatorEvaluateParameters& Parameters) const
+{
+	for (int32 ModOpIdx = 0; ModOpIdx < ARRAY_COUNT(Mods); ++ModOpIdx)
+	{
+		for (const FAggregatorMod& Mod : Mods[ModOpIdx])
+		{
+			Mod.UpdateQualifies(Parameters);
+		}
+	}
+}
+
+void FAggregatorModChannel::ForEachMod(FAggregatorModInfo& Info, TFunction<void (const FAggregatorModInfo&) > Func) const
+{
+	for (int32 ModOpIdx = 0; ModOpIdx < ARRAY_COUNT(Mods); ++ModOpIdx)
+	{
+		Info.Op = (EGameplayModOp::Type)ModOpIdx;
+		for (const FAggregatorMod& Mod : Mods[ModOpIdx])
+		{
+			Info.Mod = &Mod;
+			Func(Info);
+		}
+	}
+}
+
 void FAggregatorModChannel::GetAllAggregatorMods(EGameplayModEvaluationChannel Channel, OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>* >& OutMods) const
 {
 	OutMods.Add(Channel, Mods);
@@ -169,7 +195,7 @@ float FAggregatorModChannel::SumMods(const TArray<FAggregatorMod>& InMods, float
 
 	for (const FAggregatorMod& Mod : InMods)
 	{
-		if (Mod.Qualifies(Parameters))
+		if (Mod.Qualifies())
 		{
 			Sum += (Mod.EvaluatedMagnitude - Bias);
 		}
@@ -254,6 +280,17 @@ float FAggregatorModChannelContainer::ReverseEvaluate(float FinalValue, const FA
 	return ComputedValue;
 }
 
+void FAggregatorModChannelContainer::EvaluateQualificationForAllMods(const FAggregatorEvaluateParameters& Parameters) const
+{
+	// First run our "Default" qualifies function
+	for (auto& MapIt : ModChannelsMap)
+	{
+		const FAggregatorModChannel& Channel = MapIt.Value;
+		Channel.UpdateQualifiesOnAllMods(Parameters);
+	}
+}
+
+
 void FAggregatorModChannelContainer::RemoveAggregatorMod(const FActiveGameplayEffectHandle& ActiveHandle)
 {
 	if (ActiveHandle.IsValid())
@@ -298,6 +335,17 @@ void FAggregatorModChannelContainer::OnActiveEffectDependenciesSwapped(const TMa
 	}
 }
 
+void FAggregatorModChannelContainer::ForEachMod( TFunction<void (const FAggregatorModInfo&) > Func) const
+{
+	FAggregatorModInfo Info;
+	for (const auto& MapIt : ModChannelsMap)
+	{
+		Info.Channel = MapIt.Key;
+		const FAggregatorModChannel& Channel = MapIt.Value;
+		Channel.ForEachMod(Info, Func);
+	}
+}
+
 FAggregator::~FAggregator()
 {
 	int32 NumRemoved = FScopedAggregatorOnDirtyBatch::DirtyAggregators.Remove(this);
@@ -306,21 +354,25 @@ FAggregator::~FAggregator()
 
 float FAggregator::Evaluate(const FAggregatorEvaluateParameters& Parameters) const
 {
+	EvaluateQualificationForAllMods(Parameters);
 	return ModChannels.EvaluateWithBase(BaseValue, Parameters);
 }
 
 float FAggregator::EvaluateToChannel(const FAggregatorEvaluateParameters& Parameters, EGameplayModEvaluationChannel FinalChannel) const
 {
+	EvaluateQualificationForAllMods(Parameters);
 	return ModChannels.EvaluateWithBaseToChannel(BaseValue, Parameters, FinalChannel);
 }
 
 float FAggregator::EvaluateWithBase(float InlineBaseValue, const FAggregatorEvaluateParameters& Parameters) const
 {
+	EvaluateQualificationForAllMods(Parameters);
 	return ModChannels.EvaluateWithBase(InlineBaseValue, Parameters);
 }
 
 float FAggregator::ReverseEvaluate(float FinalValue, const FAggregatorEvaluateParameters& Parameters) const
 {
+	EvaluateQualificationForAllMods(Parameters);
 	return ModChannels.ReverseEvaluate(FinalValue, Parameters);
 }
 
@@ -340,6 +392,18 @@ float FAggregator::EvaluateContribution(const FAggregatorEvaluateParameters& Par
 	}
 
 	return 0.f;
+}
+
+void FAggregator::EvaluateQualificationForAllMods(const FAggregatorEvaluateParameters& Parameters) const
+{
+	// First run our "Default" qualifies function
+	ModChannels.EvaluateQualificationForAllMods(Parameters);
+
+	// Then run custom func
+	if (EvaluationMetaData && EvaluationMetaData->CustomQualifiesFunc)
+	{
+		EvaluationMetaData->CustomQualifiesFunc(Parameters, this);
+	}
 }
 
 float FAggregator::GetBaseValue() const
@@ -479,6 +543,11 @@ void FAggregator::OnActiveEffectDependenciesSwapped(const TMap<FActiveGameplayEf
 
 		ModChannels.OnActiveEffectDependenciesSwapped(SwappedDependencies);
 	}
+}
+
+void FAggregator::ForEachMod( TFunction<void (const FAggregatorModInfo&) > Func ) const
+{
+	ModChannels.ForEachMod(Func);
 }
 
 void FAggregator::TakeSnapshotOf(const FAggregator& AggToSnapshot)

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -44,9 +44,9 @@ enum class EComponentCreationMethod : uint8
 enum class EUpdateTransformFlags : int32
 {
 	None = 0x0,
-	SkipPhysicsUpdate = 0x1,	//Don't update the underlying physics
-	PropagateFromParent = 0x2	//The update is coming as a result of the parent updating (i.e. not called directly)
-
+	SkipPhysicsUpdate = 0x1,		// Don't update the underlying physics
+	PropagateFromParent = 0x2,		// The update is coming as a result of the parent updating (i.e. not called directly)
+	OnlyUpdateIfUsingSocket = 0x4	// Only update child transform if attached to parent via a socket
 };
 
 CONSTEXPR inline EUpdateTransformFlags operator|(EUpdateTransformFlags Left, EUpdateTransformFlags Right)
@@ -807,7 +807,7 @@ public:
 	/**
 	 * Unregister and mark for pending kill a component.  This may not be used to destroy a component that is owned by an actor unless the owning actor is calling the function.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components", meta=(Keywords = "Delete", HidePin="Object", DefaultToSelf="Object", DisplayName = "DestroyComponent"))
+	UFUNCTION(BlueprintCallable, Category="Components", meta=(Keywords = "Delete", HidePin="Object", DefaultToSelf="Object", DisplayName = "DestroyComponent", ScriptName = "DestroyComponent"))
 	void K2_DestroyComponent(UObject* Object);
 
 	/** Unregisters and immediately re-registers component.  Handles bWillReregister properly. */

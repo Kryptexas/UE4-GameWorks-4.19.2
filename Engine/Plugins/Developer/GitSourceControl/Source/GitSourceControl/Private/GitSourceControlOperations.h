@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,6 +16,10 @@ public:
 	virtual FName GetName() const override;
 	virtual bool Execute(class FGitSourceControlCommand& InCommand) override;
 	virtual bool UpdateStates() const override;
+
+public:
+	/** Temporary states for results */
+	TArray<FGitSourceControlState> States;
 };
 
 /** Commit (check-in) a set of file to the local depot. */

@@ -1,0 +1,68 @@
+Availability: Public
+Crumbs: %ROOT%
+Title: Using Distance Field Ambient Occlusion
+Description: How to setup and use Distance Field Ambient Occlusion in Unreal Engine 4.
+Type: how-to
+SkillLevel:Beginner
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields
+Related:Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion
+Related:Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference
+Order:2
+Tags:Lighting
+Topic-image:DFAO_Topic.png
+Social-image:DFAO_Header.png
+
+
+
+[REGION:fullwidth raw]
+![](DFAO_Header.png)
+[/REGION]
+
+In your games, you may rely mostly on screen space techniques to provide dynamic Ambient Occlusion (AO) or even precomputed lighting to make objects feel grounded in the world. These
+techniques are very useful but have their limitations. [Screen Space Ambient Occlusion](Engine/Rendering/LightingAndShadows/AmbientOcclusion) (SSAO) is limited to using scene 
+depth and can only work within the visible screen space. Precomputed methods only work for static objects in the world, which means they can't update in realtime. 
+[Distance Field Ambient Occlusion](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) (DFAO) is a fully dynamic AO method using [Mesh Distance Fields](Engine/Rendering/LightingAndShadows/MeshDistanceFields)
+for movable Static Meshes. It is also not limited to only being used in dynamically lit worlds; it can be used with precomputed lighting.
+
+In this guide, you'll learn how to enable DFAO for your scene with a Sky Light and then explore the settings that can be adjusted.
+
+
+## Steps
+
+[REGION:note]
+This feature requires that **Generate Mesh Distance Fields** be enabled in your **Project Settings** in the **Rendering** section. See how to [enable Mesh Distance Fields](Engine/Rendering/LightingAndShadows/MeshDistanceFields#EnablingDistanceFields) 
+here, if you have not done so already.
+[/REGION]
+
+1. Start by navigating to the **Modes** window, then in the **Lights** section, select and drag a **Sky Light** into the Level Viewport.
+	
+	![](AddSkylight.png)(w:750)
+	
+1. With the Sky Light selected, navigate over to its **Details** panel and set its **Mobility** to **Movable**.
+
+	![](TransformMobility.png)(w:450)
+	
+
+## End Result
+
+Once the Sky Light is set to Movable, Distance Field Ambient Occlusion will automatically be enabled for your level.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Sky Light | without | Distance Field Ambient Occlusion](NoDFAOScene.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Sky Light | with | Distance Field Ambient Occlusion](DFAOEnabledScene.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+
+You can see in this comparison example how much of a difference adding a Sky Light to your scene can make when Distance Field Ambient Occlusion is enabled. 
+
+## Additional Sky Light Settings
+
+Use the [Distance Field Reference](Engine/Rendering/LightingAndShadows/MeshDistanceFields/Reference#SkyLight) to learn about settings specific to [Distance Field Ambient Occlusion](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion)
+for Sky Lights. These settings enable you to have artistic control over your scene, like controlling the accuracy of the occlusion, its tint and contrasts, and more. 
+
+

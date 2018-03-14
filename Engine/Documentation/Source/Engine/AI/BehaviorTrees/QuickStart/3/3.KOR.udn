@@ -1,28 +1,15 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3717040
 Availability:Public
 Title: 3. 기본 애셋 생성
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:3 단계. 기본 애셋 생성
 version: 4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:3
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Engine/AI/BehaviorTrees/QuickStart/2 "%Engine/AI/BehaviorTrees/QuickStart/2:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[퀵스타트 홈](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Engine/AI/BehaviorTrees/QuickStart/4 "%Engine/AI/BehaviorTrees/QuickStart/4:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
-
+[NAV]
 
 우선 **콘텐츠 브라우저** 에서 애셋을 네 개 만들어야 합니다: AI 콘트롤러 블루프린트, 캐릭터 블루프린트, 비헤이비어 트리 애셋, 블랙 보드 애셋 입니다.
 
@@ -62,8 +49,8 @@ version: 4.9
 
 	블랙보드 이름은 ** `FollowerBlackboard` 로 합니다.
 
+[NAV]
 
-%Steps%
 
 
 

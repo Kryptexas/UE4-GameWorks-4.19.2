@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -63,7 +63,7 @@ public:
 	}
 
 	/* Not legal to destroy the request until it is complete. */
-	virtual ~IAsyncReadRequest()
+	virtual ~IAsyncReadRequest() TSAN_SAFE
 	{
 		check(bCompleteAndCallbackCalled && (bSizeRequest || !Memory)); // must be complete, and if it was a read request, the memory should be gone
 		DEC_DWORD_STAT(STAT_AsyncFileRequests);
@@ -148,7 +148,7 @@ protected:
 	/** Cancel the request. This is a non-blocking async call and so does not ensure completion! **/
 	virtual void CancelImpl() = 0;
 
-	void SetDataComplete()
+	void SetDataComplete() TSAN_SAFE
 	{
 		bDataIsReady = true;
 		FPlatformMisc::MemoryBarrier();
@@ -159,7 +159,7 @@ protected:
 		FPlatformMisc::MemoryBarrier();
 	}
 
-	void SetAllComplete()
+	void SetAllComplete() TSAN_SAFE
 	{
 		bCompleteAndCallbackCalled = true;
 		FPlatformMisc::MemoryBarrier();

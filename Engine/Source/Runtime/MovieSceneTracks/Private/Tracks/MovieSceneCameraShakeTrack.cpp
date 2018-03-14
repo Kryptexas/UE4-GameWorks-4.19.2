@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Tracks/MovieSceneCameraShakeTrack.h"
 #include "Sections/MovieSceneCameraShakeSection.h"
@@ -24,21 +24,9 @@ void UMovieSceneCameraShakeTrack::AddNewCameraShake(float KeyTime, TSubclassOf<U
 	}
 }
 
-void UMovieSceneCameraShakeTrack::PostCompile(FMovieSceneEvaluationTrack& OutTrack, const FMovieSceneTrackCompilerArgs& Args) const
+FMovieSceneTrackSegmentBlenderPtr UMovieSceneCameraShakeTrack::GetTrackSegmentBlender() const
 {
-	FMovieSceneSharedDataId UniqueId = FMovieSceneAdditiveCameraAnimationTrackTemplate::SharedDataId;
-
-	// Add a new shared track for the additive camera anim. There will only be one of these, and it will apply all the additive camera animations for this object.
-	FMovieSceneEvaluationTrack SharedTrackTemplate(Args.ObjectBindingId);
-	SharedTrackTemplate.DefineAsSingleTemplate(FMovieSceneAdditiveCameraAnimationTrackTemplate());
-	SharedTrackTemplate.SetEvaluationPriority(0xF);
-	
-	Args.Generator.AddSharedTrack(MoveTemp(SharedTrackTemplate), UniqueId, *this);
-}
-
-TInlineValue<FMovieSceneSegmentCompilerRules> UMovieSceneCameraShakeTrack::GetTrackCompilerRules() const
-{
-	return FMovieSceneAdditiveCameraRules(this);
+	return FMovieSceneAdditiveCameraTrackBlender();
 }
 
 #if WITH_EDITORONLY_DATA

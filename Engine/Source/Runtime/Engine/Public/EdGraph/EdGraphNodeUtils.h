@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -105,16 +105,16 @@ private:
 	 *  node and pin titles localized and updates the cache accordingly */
 	FORCEINLINE void UpdateCacheIternal(FText const& InText) const
 	{
-		bool bShowNodesAndPinsUnlocalized = false;
-		GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorSettingsIni );
+		bool bShouldUseLocalizedNodeAndPinNames = false;
+		GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldUseLocalizedNodeAndPinNames"), bShouldUseLocalizedNodeAndPinNames, GEditorSettingsIni );
 
-		if (bShowNodesAndPinsUnlocalized)
+		if (bShouldUseLocalizedNodeAndPinNames)
 		{
-			CachedText = FText::FromString(InText.BuildSourceString());
+			CachedText = InText;
 		}
 		else
 		{
-			CachedText = InText;
+			CachedText = FText::FromString(InText.BuildSourceString());
 		}
 	}
 

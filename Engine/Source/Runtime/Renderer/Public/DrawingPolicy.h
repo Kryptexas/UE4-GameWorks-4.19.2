@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DrawingPolicy.h: Drawing policy definitions.
@@ -14,6 +14,7 @@
 class FPrimitiveSceneProxy;
 class FStaticMesh;
 class FViewInfo;
+class FMaterialShader;
 
 /**
  * A macro to compare members of two drawing policies(A and B), and return based on the result.
@@ -195,8 +196,11 @@ public:
 		bLastResult = Result;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		TestResults.Add(Result);
-		TestCondition.Add(condition);
+		if (condition)
+		{
+			TestResults.Add(Result);
+			TestCondition.Add(condition);
+		}
 		Matches += Result;
 #endif
 
@@ -227,7 +231,7 @@ public:
 };
 
 #define DRAWING_POLICY_MATCH_BEGIN FDrawingPolicyMatchResult Result; {
-#define DRAWING_POLICY_MATCH(MatchExp) Result.Append((MatchExp), TEXT(#MatchExp))
+#define DRAWING_POLICY_MATCH(MatchExp) Result.Append((MatchExp), bForReals ? TEXT(#MatchExp) : nullptr)
 #define DRAWING_POLICY_MATCH_END } return Result;
 
 struct FMeshDrawingPolicyOverrideSettings
@@ -309,6 +313,8 @@ public:
 		bIsDitheredLODTransitionMaterial = Other.bIsDitheredLODTransitionMaterial;
 		bUsePositionOnlyVS = Other.bUsePositionOnlyVS;
 		DebugViewShaderMode = Other.DebugViewShaderMode;
+		InstanceFactor = Other.InstanceFactor;
+		BaseVertexShader = Other.BaseVertexShader;
 		return *this; 
 	}
 
@@ -324,7 +330,7 @@ public:
 		OnlyApplyDitheredLODTransitionState(DrawRenderState, ViewInfo, Mesh, InAllowStencilDither);
 	}
 
-	FDrawingPolicyMatchResult Matches(const FMeshDrawingPolicy& OtherDrawer) const
+	FDrawingPolicyMatchResult Matches(const FMeshDrawingPolicy& OtherDrawer, bool bForReals = false) const
 	{
 		DRAWING_POLICY_MATCH_BEGIN
 			DRAWING_POLICY_MATCH(VertexFactory == OtherDrawer.VertexFactory) &&
@@ -370,7 +376,7 @@ public:
 	/**
 	 * Executes the draw commands for a mesh.
 	 */
-	void DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo = false) const;
+	void DrawMesh(FRHICommandList& RHICmdList, const FSceneView& View, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo = false) const;
 
 	/** 
 	 * Sets the instanced eye index shader uniform value where supported. 
@@ -425,6 +431,11 @@ public:
 		return MeshPrimitiveType;
 	}
 
+	bool GetUsePositionOnlyVS() const
+	{
+		return bUsePositionOnlyVS;
+	}
+
 	const FVertexFactory* GetVertexFactory() const { return VertexFactory; }
 	const FMaterialRenderProxy* GetMaterialRenderProxy() const { return MaterialRenderProxy; }
 
@@ -437,6 +448,7 @@ public:
 #endif
 
 protected:
+	const FMaterialShader* BaseVertexShader = nullptr;
 	const FVertexFactory* VertexFactory;
 	const FMaterialRenderProxy* MaterialRenderProxy;
 	const FMaterial* MaterialResource;
@@ -445,7 +457,16 @@ protected:
 	ERasterizerCullMode MeshCullMode;
 	EPrimitiveType		MeshPrimitiveType;
 
+	uint32 InstanceFactor = 1;
 	uint32 bIsDitheredLODTransitionMaterial : 1;
 	uint32 bUsePositionOnlyVS : 1;
 	uint32 DebugViewShaderMode : 6; // EDebugViewShaderMode
+
+private:
+	uint32 GetInstanceFactor() const
+	{
+		return InstanceFactor;
+	}
+
+	void SetInstanceParameters(FRHICommandList& RHICmdList, const FSceneView& View, uint32 InVertexOffset, uint32 InInstanceOffset, uint32 InInstanceCount) const;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "NiagaraActor.h"
@@ -26,12 +26,12 @@ ANiagaraActor::ANiagaraActor(const FObjectInitializer& ObjectInitializer)
 		struct FConstructorStatics
 		{
 			ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTextureObject;
-			FName ID_Systems;
-			FText NAME_Systems;
+			FName ID_Effects;
+			FText NAME_Effects;
 			FConstructorStatics()
 				: SpriteTextureObject(TEXT("/Engine/EditorResources/S_Emitter"))
-				, ID_Systems(TEXT("Systems"))
-				, NAME_Systems(NSLOCTEXT("SpriteCategory", "Systems", "Systems"))
+				, ID_Effects(TEXT("Effects"))
+				, NAME_Effects(NSLOCTEXT("SpriteCategory", "Effects", "Effects"))
 			{
 			}
 		};
@@ -43,8 +43,8 @@ ANiagaraActor::ANiagaraActor(const FObjectInitializer& ObjectInitializer)
 			SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 			SpriteComponent->bHiddenInGame = true;
 			SpriteComponent->bIsScreenSizeScaled = true;
-			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Systems;
-			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Systems;
+			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;
+			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Effects;
 			SpriteComponent->SetupAttachment(NiagaraComponent);
 			SpriteComponent->bReceivesDecals = false;
 		}
@@ -55,10 +55,11 @@ ANiagaraActor::ANiagaraActor(const FObjectInitializer& ObjectInitializer)
 
 			ArrowComponent->ArrowSize = 1.5f;
 			ArrowComponent->bTreatAsASprite = true;
-			ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Systems;
-			ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Systems;
-			ArrowComponent->SetupAttachment(NiagaraComponent);
 			ArrowComponent->bIsScreenSizeScaled = true;
+			ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;
+			ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Effects;
+			ArrowComponent->SetupAttachment(NiagaraComponent);
+			ArrowComponent->bAbsoluteScale = true;
 		}
 	}
 #endif // WITH_EDITORONLY_DATA

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -67,7 +67,7 @@ public:
 		UNiagaraStackEditorData& InStackEditorData,
 		UNiagaraNodeFunctionCall& InModuleNode,
 		UNiagaraNodeFunctionCall& InInputFunctionCallNode,
-		FString InInputParameterHandle,
+		FName InInputParameterHandle,
 		FNiagaraTypeDefinition InInputType);
 
 	/** Gets the function call node which owns this input. */
@@ -87,6 +87,9 @@ public:
 	virtual FName GetTextStyleName() const override;
 	virtual bool GetCanExpand() const override;
 	virtual int32 GetItemIndentLevel() const override;
+	virtual FText GetTooltipText() const override;
+
+	FText GetTooltipText(EValueMode InValueMode) const;
 
 	/** Sets the item indent level for this stack entry. */
 	void SetItemIndentLevel(int32 InItemIndentLevel);
@@ -142,6 +145,15 @@ public:
 	/** Resets the value and handle of this input to the value and handle defined in the module. */
 	void Reset();
 
+	/** Whether or not this input has a base value.  This is true for emitter instances in systems. */
+	bool EmitterHasBase() const;
+
+	/** Whether or not this input can be reset to a base value. */
+	bool CanResetToBase() const;
+
+	/** Resets this input to its base value. */
+	void ResetToBase();
+
 	/** Returns whether or not this input can be renamed. */
 	bool CanRenameInput() const;
 
@@ -152,10 +164,10 @@ public:
 	void SetIsRenamePending(bool bIsRenamePending);
 
 	/** Renames this input to the name specified. */
-	void RenameInput(FString NewName);
+	void RenameInput(FName NewName);
 
 	/** Gets the namespaces which new parameters for this input can be read from. */
-	void GetNamespacesForNewParameters(TArray<FString>& OutNamespacesForNewParameters) const;
+	void GetNamespacesForNewParameters(TArray<FName>& OutNamespacesForNewParameters) const;
 
 	/** Gets a multicast delegate which is called whenever the value on this input changes. */
 	FOnValueChanged& OnValueChanged();
@@ -166,6 +178,10 @@ public:
 protected:
 	//~ UNiagaraStackEntry interface
 	virtual void RefreshChildrenInternal(const TArray<UNiagaraStackEntry*>& CurrentChildren, TArray<UNiagaraStackEntry*>& NewChildren) override;
+
+	FNiagaraVariable GetDefaultValue() const;
+	bool UpdateRapidIterationParametersForAffectedScripts(const uint8* Data);
+	bool RemoveRapidIterationParametersForAffectedScripts();
 
 private:
 	struct FDataValues
@@ -250,6 +266,12 @@ private:
 	/** Called whenever the graph which generated this input changes. */
 	void OnGraphChanged(const struct FEdGraphEditAction& InAction);
 
+	/** Called whenever rapid iteration parameters are changed for the script that owns the function that owns this input. */
+	void OnRapidIterationParametersChanged();
+
+	/** Called whenever the script source that owns the function that owns this input changes. */
+	void OnScriptSourceChanged();
+
 	/** Gets the graph node which owns the local overrides for the module that owns this input if it exists. */
 	UNiagaraNodeParameterMapSet* GetOverrideNode() const;
 
@@ -279,8 +301,13 @@ private:
 	/** Gets the dynamic input node providing a value to this input if one exists. */
 	bool TryGetCurrentDynamicValue(TWeakObjectPtr<UNiagaraNodeFunctionCall>& DynamicValue, UEdGraphPin* OverridePin);
 
-	/** Recursively removes all nodes connected to the override pin. */
-	static void RemoveAllNodesConnectedToOverridePin(UEdGraphPin& OverridePin, UNiagaraStackFunctionInput* OwningInput);
+	/** Removes all nodes connected to the override pin which provide it's value. */
+	void RemoveNodesForOverridePin(UEdGraphPin& OverridePin);
+
+	/** Determine if the values in this input are possibly under the control of the rapid iteration array on the script.*/
+	bool IsRapidIterationCandidate() const;
+
+	FString CreateRapidIterationVariableName(const FString& InName);
 
 private:
 	/** The stack editor data for this function input. */
@@ -296,7 +323,7 @@ private:
 	/** The assignment node which owns this input.  This is only valid for inputs of assignment modules. */
 	TWeakObjectPtr<UNiagaraNodeAssignment> OwningAssignmentNode;
 
-	/** The nigara type definition for this input. */
+	/** The niagara type definition for this input. */
 	FNiagaraTypeDefinition InputType;
 
 	/** Whether or not this input can be pinned. */
@@ -315,6 +342,9 @@ private:
 	  * graph.  This only affects parameter handles which are local module handles. */
 	FNiagaraParameterHandle AliasedInputParameterHandle;
 
+	/** The computed name for the rapid iteration variable that could potentially drive this entry..*/
+	FString RapidIterationParameterName;
+
 	/** The name of this input for display in the UI. */
 	FText DisplayName;
 
@@ -329,11 +359,18 @@ private:
 	  * UI reads this value every frame due to attribute updates. */
 	mutable TOptional<UEdGraphPin*> OverridePinCache;
 
+	/** Whether or not this input can be reset to a base value. */
+	mutable TOptional<bool> bCanResetToBase;
+
 	/** A flag to prevent handling graph changes when it's being updated directly by this object. */
 	bool bUpdatingGraphDirectly;
 
 	/** A handle for removing the graph changed delegate. */
 	FDelegateHandle GraphChangedHandle;
+
+	/** A handle for removing the changed delegate for the rapid iteration parameters for the script
+	   that owns the function that owns this input. */
+	FDelegateHandle RapidIterationParametersChangedHandle;
 
 	/** A multicast delegate which is called when the value of this input is changed. */
 	FOnValueChanged ValueChangedDelegate;
@@ -343,4 +380,10 @@ private:
 
 	/** The item indent level for this stack entry. */
 	int32 ItemIndentLevel;
+
+	/** The script which owns the function which owns this input.  This is also the autoritative version of the rapid iteration parameters. */
+	TWeakObjectPtr<UNiagaraScript> SourceScript;
+
+	/** An array of scripts which this input affects. */
+	TArray<TWeakObjectPtr<UNiagaraScript>> AffectedScripts;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "TestPALLog.h"
@@ -11,6 +11,7 @@
 #include "TestDirectoryWatcher.h"
 #include "RequiredProgramMainCPPInclude.h"
 #include "MallocPoisonProxy.h"
+#include "ThreadSafeCounter64.h"
 
 DEFINE_LOG_CATEGORY(LogTestPAL);
 
@@ -29,6 +30,7 @@ IMPLEMENT_APPLICATION(TestPAL, "TestPAL");
 #define ARG_GET_ALLOCATION_SIZE_TEST		"getallocationsize"
 #define ARG_MALLOC_THREADING_TEST			"mallocthreadtest"
 #define ARG_MALLOC_REPLAY					"mallocreplay"
+#define ARG_THREAD_PRIO_TEST				"threadpriotest"
 
 namespace TestPAL
 {
@@ -511,8 +513,13 @@ int32 GetAllocationSizeTest(const TCHAR* CommandLine)
 	return 0;
 }
 
-/** An ugly way to pass a parameter to FRunnable; shouldn't matter for this test code. */
-int32 GMallocTestNumAllocs = 500000;
+/** An ugly way to pass a parameters to FRunnable; shouldn't matter for this test code. */
+int32 GMallocTestNumRuns = 500;
+int32 GMallocTestMemoryPerThreadKB = 64*1024;	// 64 MB
+bool GMallocTestCommitMemory = false;
+
+FThreadSafeCounter64 GTotalAllocsDone;
+FThreadSafeCounter64 GTotalMemoryAllocated;
 
 /**
  * Thread runnable
@@ -523,25 +530,75 @@ struct FMemoryAllocatingThread : public FRunnable
 {
 	virtual uint32 Run()
 	{
-		for (int32 IdxAlloc = 0; IdxAlloc < GMallocTestNumAllocs; ++IdxAlloc)
-		{
-			// allocate up to 4MB at a time
-			const SIZE_T ChunkSize = 65536 + (4096 * 1024 - 65536) * FMath::FRand();
+		void* Ptrs[8192];
 
-			if (bUseSystemMalloc)
+		for (int32 IdxRun = 0; IdxRun < GMallocTestNumRuns; ++IdxRun)
+		{
+			FMemory::Memzero(Ptrs);
+
+			int32 NumAllocs = 0;
+			uint64 MemAllocatedThisRun = 0;
+
+			while(MemAllocatedThisRun < GMallocTestMemoryPerThreadKB * 1024 && NumAllocs < ARRAY_COUNT(Ptrs))
 			{
-				void* Ptr = malloc(ChunkSize);
+				// allocate up to 128KB at a time
+				const int32 ChunkSize = 1 + static_cast<int32>(131072.0 * FMath::FRand());
+
+				void* Ptr = nullptr;
+				if (bUseSystemMalloc)
+				{
+					Ptr = malloc(ChunkSize);
+				}
+				else
+				{
+					Ptr = FMemory::Malloc(ChunkSize);
+				}
+
 				if (LIKELY(Ptr))
 				{
-					free(Ptr);
+					Ptrs[NumAllocs++] = Ptr;
+					MemAllocatedThisRun += ChunkSize;
+
+					// touch the memory if not measuring the speed
+					if (UNLIKELY(GMallocTestCommitMemory))
+					{
+						FMemory::Memset(Ptr, 0xff, ChunkSize);
+					}
+				}
+				else
+				{
+					break;
 				}
 			}
-			else
+
+			//UE_LOG(LogTestPAL, Display, TEXT("NumAllocs = %d, MemAllocatedThisRun=%llu"), NumAllocs, MemAllocatedThisRun);
+			GTotalAllocsDone.Add(NumAllocs);
+			GTotalMemoryAllocated.Add(MemAllocatedThisRun);
+
+			// allocate in somewhat atypical order to make it harder for malloc
+			// (reinterpret Ptrs table as a 2D array of kAllocFieldWidth x NumAllocH allocs)
+			const int32 kAllocFieldWidth = 4;
+			int32 NumAllocsH = (NumAllocs / kAllocFieldWidth) + 1;
+			for (int32 IdxAllocX = kAllocFieldWidth - 1; IdxAllocX >= 0; --IdxAllocX)
 			{
-				void* Ptr = FMemory::Malloc(ChunkSize);
-				if (LIKELY(Ptr))
+				for (int32 IdxAllocY = 0; IdxAllocY < NumAllocsH; ++IdxAllocY)
 				{
-					FMemory::Free(Ptr);
+					int32 IdxAlloc = IdxAllocY * kAllocFieldWidth + IdxAllocX;
+					if (LIKELY(IdxAlloc < NumAllocs))
+					{
+						void* Ptr = Ptrs[IdxAlloc];
+						if (LIKELY(Ptr))
+						{
+							if (bUseSystemMalloc)
+							{
+								free(Ptr);
+							}
+							else
+							{
+								FMemory::Free(Ptr);
+							}
+						}
+					}
 				}
 			}
 		}
@@ -562,23 +619,38 @@ int32 MallocThreadingTest(const TCHAR* CommandLine)
 	TArray<FRunnable*> RunnableArray;
 	TArray<FRunnableThread*> ThreadArray;
 
-	FString Test(CommandLine);
+	UE_LOG(LogTestPAL, Display, TEXT("Accepted options:"));
+	UE_LOG(LogTestPAL, Display, TEXT("    -systemmalloc to use system malloc"));
+	UE_LOG(LogTestPAL, Display, TEXT("    -numthreads=N"));
+	UE_LOG(LogTestPAL, Display, TEXT("    -memperthread=N (how much memory each thread will allocate in KB)"));
+	UE_LOG(LogTestPAL, Display, TEXT("    -numruns=N (how many times the thread will allocate and free that memory)"));
+	UE_LOG(LogTestPAL, Display, TEXT("    -commitmem (touch the memory to commit it - makes speed measurements irrelevant)"));
 
 	bool bUseSystemMalloc = FParse::Param(CommandLine, TEXT("systemmalloc"));
-	int32 NumTestThreads = 32, InNumTestThreads = 0, InNumAllocs = 0;
+	int32 NumTestThreads = 4, InNumTestThreads = 0, InNumRuns = 0, InMemPerThreadKB = 0;
 	if (FParse::Value(CommandLine, TEXT("numthreads="), InNumTestThreads))
 	{
 		NumTestThreads = FMath::Max(1, InNumTestThreads);
 	}
-	if (FParse::Value(CommandLine, TEXT("numallocs="), InNumAllocs))
+	if (FParse::Value(CommandLine, TEXT("numruns="), InNumRuns))
 	{
-		GMallocTestNumAllocs = FMath::Max(1000, InNumAllocs * 1000);
+		GMallocTestNumRuns = FMath::Max(1, InNumRuns);
+	}
+	if (FParse::Value(CommandLine, TEXT("memperthread="), InMemPerThreadKB))
+	{
+		GMallocTestMemoryPerThreadKB = FMath::Max(0, InMemPerThreadKB);
+	}
+	if (FParse::Param(CommandLine, TEXT("commitmem")))
+	{
+		GMallocTestCommitMemory = true;
 	}
 
-	UE_LOG(LogTestPAL, Display, TEXT("Running malloc threading test using %s malloc and %d threads, each doing %d allocations."),
+	UE_LOG(LogTestPAL, Display, TEXT("Running malloc threading test using %s malloc and %d threads, each allocating %sup to %d KB (%d MB) memory %d times."),
 		bUseSystemMalloc ? TEXT("libc") : GMalloc->GetDescriptiveName(),
 		NumTestThreads,
-		GMallocTestNumAllocs
+		GMallocTestCommitMemory ? TEXT("and committing ") : TEXT(""),
+		GMallocTestMemoryPerThreadKB, GMallocTestMemoryPerThreadKB / 1024,
+		GMallocTestNumRuns
 		);
 
 	// start all threads
@@ -605,7 +677,23 @@ int32 MallocThreadingTest(const TCHAR* CommandLine)
 			RunnableArray[Idx] = nullptr;
 		}
 	}
-	UE_LOG(LogTestPAL, Display, TEXT("Test took %f seconds."), WallTimeDuration);
+	UE_LOG(LogTestPAL, Display, TEXT("--- Results for %s malloc ---"), bUseSystemMalloc ? TEXT("libc") : GMalloc->GetDescriptiveName());
+	UE_LOG(LogTestPAL, Display, TEXT("Total wall time:        %f seconds"), WallTimeDuration);
+	UE_LOG(LogTestPAL, Display, TEXT("Total allocations done: %llu"), GTotalAllocsDone.GetValue());
+	UE_LOG(LogTestPAL, Display, TEXT("Total memory allocated: %llu bytes (%llu KB, %llu MB)"), GTotalMemoryAllocated.GetValue(),
+		GTotalMemoryAllocated.GetValue() / 1024, GTotalMemoryAllocated.GetValue() / (1024 * 1024));
+
+	double AllocsPerSecond = (WallTimeDuration > 0.0) ? GTotalAllocsDone.GetValue() / WallTimeDuration : 0.0;
+	double BytesPerSecond = (WallTimeDuration > 0.0) ? GTotalMemoryAllocated.GetValue() / WallTimeDuration : 0.0;
+
+	UE_LOG(LogTestPAL, Display, TEXT("Speed in allocs:        %.1f Kallocs/sec (%.1f allocs/sec)%s"), AllocsPerSecond / 1000.0, AllocsPerSecond,
+		GMallocTestCommitMemory ? TEXT("- irrelevant since memory is committed") : TEXT(""));
+	UE_LOG(LogTestPAL, Display, TEXT("Speed in bytes:         %.1f MB/sec (%.1f KB/sec, %.1f bytes/sec)%s"), BytesPerSecond / (1024.0 * 1024.0), BytesPerSecond / 1024.0, BytesPerSecond,
+		GMallocTestCommitMemory ? TEXT("- irrelevant since memory is committed") : TEXT(""));
+
+	FPlatformMemoryStats Stats = FPlatformMemory::GetStats();
+	UE_LOG(LogTestPAL, Display, TEXT("Peak used resident RAM: %llu MB (%llu KB, %llu bytes)"), Stats.PeakUsedPhysical / (1024 * 1024), Stats.PeakUsedPhysical / 1024, Stats.PeakUsedPhysical);
+	UE_LOG(LogTestPAL, Display, TEXT("Peak used virtual RAM:  %llu MB (%llu KB, %llu bytes)"), Stats.PeakUsedVirtual / (1024 * 1024), Stats.PeakUsedVirtual / 1024, Stats.PeakUsedVirtual);
 
 	FEngineLoop::AppPreExit();
 	FEngineLoop::AppExit();
@@ -768,6 +856,207 @@ int32 MallocReplayTest(const TCHAR* CommandLine)
 
 
 /**
+ * Translates priorities into strings.
+ * For priorities values, see GenericPlatformAffinity.h.
+ */
+const TCHAR* ThreadPrioToString(EThreadPriority Prio)
+{
+	switch(Prio)
+	{
+#define RET_PRIO(PrioName)	case PrioName: return TEXT(#PrioName);
+		RET_PRIO(TPri_Normal)
+		RET_PRIO(TPri_AboveNormal)
+		RET_PRIO(TPri_BelowNormal)
+		RET_PRIO(TPri_Highest)
+		RET_PRIO(TPri_Lowest)
+		RET_PRIO(TPri_SlightlyBelowNormal)
+		RET_PRIO(TPri_TimeCritical)
+#undef RET_PRIO
+		default:
+			checkf(false, TEXT("Unknown priority!"));
+			break;
+	}
+
+	return nullptr;
+}
+
+/**
+ * Thread (will be run with different prios)
+ */
+struct FThreadPrioTester : public FRunnable
+{
+	/** Priority assigned to this thread (for printing purposes). */
+	EThreadPriority			Prio;
+
+	/** Counter incremented by this thread. */
+	uint64					Counter;
+
+	/** Time to run (all threads should have the same value. */
+	double					SecondsToRun;
+
+	/** How much time the thread was actually running. Should be close to SecondsToRun, but may differ. */
+	double					SecondsActuallyRan;
+
+	FThreadPrioTester(EThreadPriority InPrio, double InSecondsToRun)
+		:	FRunnable()
+		,	Prio(InPrio)
+		,	Counter(0)
+		,	SecondsToRun(InSecondsToRun)
+	{
+	}
+
+	virtual uint32 Run() override
+	{
+		double StartTime = FPlatformTime::Seconds();
+		for(;;)
+		{
+			// don't check too often to avoid threads bottlenecking on access to clock
+			if (Counter % 65536 == 0)
+			{
+				// account for an unlikely case that we will never get to run in the allotted time and check first
+				double RanForSoFar = FPlatformTime::Seconds() - StartTime;
+				if (RanForSoFar >= SecondsToRun)
+				{
+					SecondsActuallyRan = RanForSoFar;
+					break;
+				}
+			}
+
+			++Counter;
+		}
+
+		return 0;
+	}
+};
+
+/**
+ * Thread priorities test
+ */
+int32 ThreadPriorityTest(const TCHAR* CommandLine)
+{
+	FPlatformMisc::SetCrashHandler(NULL);
+	FPlatformMisc::SetGracefulTerminationHandler();
+
+	GEngineLoop.PreInit(CommandLine);
+
+	UE_LOG(LogTestPAL, Display, TEXT("Accepted options:"));
+	UE_LOG(LogTestPAL, Display, TEXT("    -secondstorun=N (for how long to run)"));
+	UE_LOG(LogTestPAL, Display, TEXT("    -numthreadgroups=N (how many groups of threads to run - so we can saturate the CPU)"));
+
+	float SecondsToRun = 16.0f, InSecondsToRun = 0.0f;
+	int32 NumThreadGroups = 8, InNumThreadGroups = 0;
+	if (FParse::Value(CommandLine, TEXT("secondstorun="), InSecondsToRun))
+	{
+		SecondsToRun = FMath::Max(1.0f, InSecondsToRun);
+	}
+	if (FParse::Value(CommandLine, TEXT("numthreadgroups="), InNumThreadGroups))
+	{
+		NumThreadGroups = FMath::Max(1, InNumThreadGroups);
+	}
+
+	UE_LOG(LogTestPAL, Display, TEXT("Running thread priority test (%d thread groups) for %.1f seconds."),
+		NumThreadGroups,
+		SecondsToRun
+		);
+
+	/*  Note that enum - as of now at least - is not ordered in any way and looks like this:
+		TPri_Normal,
+		TPri_AboveNormal,
+		TPri_BelowNormal,
+		TPri_Highest,
+		TPri_Lowest,
+		TPri_SlightlyBelowNormal,
+		TPri_TimeCritical */
+
+	TArray<FThreadPrioTester*> RunnableArray;
+	TArray<FRunnableThread*> ThreadArray;
+	for (int32 IdxGroup = 0; IdxGroup < NumThreadGroups; ++IdxGroup)
+	{
+		RunnableArray.Add(new FThreadPrioTester(TPri_Normal, SecondsToRun));
+		RunnableArray.Add(new FThreadPrioTester(TPri_AboveNormal, SecondsToRun));
+		RunnableArray.Add(new FThreadPrioTester(TPri_BelowNormal, SecondsToRun));
+		RunnableArray.Add(new FThreadPrioTester(TPri_Highest, SecondsToRun));
+		RunnableArray.Add(new FThreadPrioTester(TPri_Lowest, SecondsToRun));
+		RunnableArray.Add(new FThreadPrioTester(TPri_SlightlyBelowNormal, SecondsToRun));
+		RunnableArray.Add(new FThreadPrioTester(TPri_TimeCritical, SecondsToRun));
+	}
+
+	UE_LOG(LogTestPAL, Display, TEXT("Creating %d threads"), RunnableArray.Num());
+	for (int32 Idx = 0, NumThreads = RunnableArray.Num(); Idx < NumThreads; ++Idx)
+	{
+		ThreadArray.Add( FRunnableThread::Create(RunnableArray[Idx],
+			*FString::Printf(TEXT("(%d)%s"), Idx / 7, ThreadPrioToString(RunnableArray[Idx]->Prio)), 0, RunnableArray[Idx]->Prio)
+			);
+	}
+
+	// join all threads
+	for (int32 Idx = 0, NumThreads = RunnableArray.Num(); Idx < NumThreads; ++Idx)
+	{
+		ThreadArray[Idx]->WaitForCompletion();
+		delete ThreadArray[Idx];
+		ThreadArray[Idx] = nullptr;
+	}
+
+	GLog->FlushThreadedLogs();
+	GLog->Flush();
+
+	UE_LOG(LogTestPAL, Display, TEXT("--- Results ---"));
+
+	// tally up all threads (note that as of now there are seven prios)
+	uint64 AllThreadsCounters[7] = {0};
+	double AllThreadsTimes[7] = {0};
+	uint64 TotalCount = 0;
+
+	// describe all threads
+	for (int32 Idx = 0, NumThreads = RunnableArray.Num(); Idx < NumThreads; ++Idx)
+	{
+		uint32 PrioIndex = static_cast<uint32>(RunnableArray[Idx]->Prio);
+		if (PrioIndex >= ARRAY_COUNT(AllThreadsCounters))
+		{
+			UE_LOG(LogTestPAL, Fatal, TEXT("EThreadPriority enum changed and has values larger than 7 now. Revisit this code."));
+		}
+		else
+		{
+			AllThreadsCounters[PrioIndex] += RunnableArray[Idx]->Counter;
+			AllThreadsTimes[PrioIndex] += RunnableArray[Idx]->SecondsActuallyRan;
+			TotalCount += RunnableArray[Idx]->Counter;
+		}
+		delete RunnableArray[Idx];
+		RunnableArray[Idx] = nullptr;
+	}
+
+	// compare to TPri_Normal priority
+	uint64 BaseCount = FMath::Max(1ULL, AllThreadsCounters[static_cast<uint32>(TPri_Normal)]);
+
+	double BaseCountDbl = static_cast<double>(BaseCount);
+	uint32 OrderToPrint[7] =
+	{
+		static_cast<uint32>(TPri_Lowest),
+		static_cast<uint32>(TPri_BelowNormal),
+		static_cast<uint32>(TPri_SlightlyBelowNormal),
+		static_cast<uint32>(TPri_Normal),
+		static_cast<uint32>(TPri_AboveNormal),
+		static_cast<uint32>(TPri_Highest),
+		static_cast<uint32>(TPri_TimeCritical)
+	};
+
+	for (uint32 IdxPrio = 0; IdxPrio < ARRAY_COUNT(OrderToPrint); ++IdxPrio)
+	{
+		uint32 Prio = OrderToPrint[IdxPrio];
+		checkf(Prio < ARRAY_COUNT(AllThreadsCounters), TEXT("Number of thread priority enums changed, revisit this code."));
+		UE_LOG(LogTestPAL, Display, TEXT("Threads with prio %24s incremented counters %14llu times (%.1f x speed of TPri_Normal) during %1.f sec total"),
+			ThreadPrioToString(static_cast<EThreadPriority>(Prio)), AllThreadsCounters[Prio],
+			static_cast<double>(AllThreadsCounters[Prio]) / BaseCountDbl,
+			AllThreadsTimes[Prio]);
+	}
+
+	FEngineLoop::AppPreExit();
+	FEngineLoop::AppExit();
+	return 0;
+}
+
+
+/**
  * Selects and runs one of test cases.
  *
  * @param ArgC Number of commandline arguments.
@@ -830,6 +1119,10 @@ int32 MultiplexedMain(int32 ArgC, char* ArgV[])
 		{
 			return MallocReplayTest(*TestPAL::CommandLine);
 		}
+		else if (!FCStringAnsi::Strcmp(ArgV[IdxArg], ARG_THREAD_PRIO_TEST))
+		{
+			return ThreadPriorityTest(*TestPAL::CommandLine);
+		}
 	}
 
 	FPlatformMisc::SetCrashHandler(NULL);
@@ -850,8 +1143,9 @@ int32 MultiplexedMain(int32 ArgC, char* ArgV[])
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test passing %%*s in a format string"), ANSI_TO_TCHAR( ARG_STRINGPRECISION_TEST ));
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test APIs for dealing with dynamic libraries"), ANSI_TO_TCHAR( ARG_DSO_TEST ));
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test GMalloc->GetAllocationSize()"), UTF8_TO_TCHAR(ARG_GET_ALLOCATION_SIZE_TEST));
-	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test malloc for thread-safety and performance. Pass -systemmalloc to use system malloc, -numthreads=N and -numallocs=M (in thousands)."), UTF8_TO_TCHAR(ARG_MALLOC_THREADING_TEST));
+	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test malloc for thread-safety and performance."), UTF8_TO_TCHAR(ARG_MALLOC_THREADING_TEST));
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test by replaying a saved malloc history saved by -mallocsavereplay. Possible options: -replayfile=File, -stopafter=N (operation), -suppresserrors"), UTF8_TO_TCHAR(ARG_MALLOC_REPLAY));
+	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test thread priorities."), UTF8_TO_TCHAR(ARG_THREAD_PRIO_TEST));
 	UE_LOG(LogTestPAL, Warning, TEXT(""));
 	UE_LOG(LogTestPAL, Warning, TEXT("Pass one of those to run an appropriate test."));
 

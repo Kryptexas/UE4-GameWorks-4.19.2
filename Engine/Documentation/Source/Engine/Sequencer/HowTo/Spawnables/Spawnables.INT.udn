@@ -10,6 +10,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 In **Matinee** all of the content in your cinematic had to exist within your level and be "possessed" by Matinee in order to gain control of and provide instructions to each Actor. 
 That exists within Sequencer, however there is also the concept of **Spawnables** where you can turn an Actor into something that Sequencer does not need to possess but instead spawns when it needs to. 

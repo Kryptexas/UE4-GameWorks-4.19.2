@@ -20,7 +20,8 @@ Description:模拟真实世界摄像机镜头边缘附近的颜色变换的色�
 | **边纹强度** | 控制颜色变换程度的缩放因数。 [INCLUDE:#Intensity] |
 | **边纹饱和度** | 控制变换颜色饱和度的缩放因数。 更低的值将会使得最终效果更为模糊，更高的值则会使得颜色变换更为明显。 |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Intensity]
 [REGION:imagetable]
 | ![Scene Fringe Intensity - 0](scenefringe_0.png)(w:260) | ![Scene Fringe Intensity - 1](scenefringe_1.png)(w:260) | ![Scene Fringe Intensity - 5](scenefringe_2.png)(w:260)
@@ -28,4 +29,5 @@ Description:模拟真实世界摄像机镜头边缘附近的颜色变换的色�
 | 0.0 | 1.0 | 5.0 |
 [/REGION]
 [/EXCERPT:Intensity]
--->
+
+[/COMMENT]

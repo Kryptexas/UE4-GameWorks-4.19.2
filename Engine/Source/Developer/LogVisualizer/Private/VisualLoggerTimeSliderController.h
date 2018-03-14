@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -72,6 +72,9 @@ public:
 	bool IsPanning() { return bPanning; }
 
 private:
+	// forward declared as class members to prevent name collision with similar types defined in other units
+	struct FScrubRangeToScreen;
+	struct FDrawTickArgs;
 
 	/**
 	 * Draws time tick marks
@@ -80,7 +83,7 @@ private:
 	 * @param RangeToScreen		Time range to screen space converter
 	 * @param InArgs			Parameters for drawing the tick lines
 	 */
-	void DrawTicks( FSlateWindowElementList& OutDrawElements, const struct FScrubRangeToScreen& RangeToScreen, struct FDrawTickArgs& InArgs ) const;
+	void DrawTicks( FSlateWindowElementList& OutDrawElements, const FScrubRangeToScreen& RangeToScreen, FDrawTickArgs& InArgs ) const;
 	void HorizontalScrollBar_OnUserScrolled(float ScrollOffset);
 private:
 	FVisualLoggerTimeSliderArgs TimeSliderArgs;

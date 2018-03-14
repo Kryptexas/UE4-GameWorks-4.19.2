@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -57,11 +57,11 @@ public:
 		return &NoBrush;
 	}
 
-	static const FSlateFontInfo GetFontInfo(uint16 Size = 10)
-	{
-		static const FSlateFontInfo DefaultFontInfo = FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), Size );
-		return DefaultFontInfo;
-	}
+	/**
+	 * Get default font.
+	 * @return - The default font.
+	 */
+	static const FSlateFontInfo GetFontInfo(uint16 Size = 10);
 
 	/**
 	 * Return the static default sound value.

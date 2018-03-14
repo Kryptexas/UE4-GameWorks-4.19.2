@@ -18,7 +18,7 @@ Description:创建弹簧臂和相机。
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:tip]如果您刚使用 **虚幻引擎4** ，建议您先读一下[%Programming\QuickStart:title% tutorial](Programming\QuickStart) 。 对这篇教程来说，我们假设您已经了解了如何创建项目，如何添加C++代码到项目中，如何编译您的代码以及如何添加 **组件** 到 **虚幻引擎** 编辑器中的 **Actors** 。[/REGION]
 
@@ -69,7 +69,7 @@ Description:创建弹簧臂和相机。
     [/PARAM]
     [PARAM:content]
 		**PawnWithCamera.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -101,7 +101,7 @@ Description:创建弹簧臂和相机。
 			};
 
 		**PawnWithCamera.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_PlayerCamera.h"
 			#include "PawnWithCamera.h"
@@ -152,4 +152,4 @@ Description:创建弹簧臂和相机。
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

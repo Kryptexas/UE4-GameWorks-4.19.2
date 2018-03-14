@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DefaultStereoLayers.h"
 #include "HeadMountedDisplayBase.h"
@@ -202,7 +202,7 @@ void FDefaultStereoLayers::PreRenderViewFamily_RenderThread(FRHICommandListImmed
 
 void FDefaultStereoLayers::PostRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView)
 {
-	if (InView.StereoPass != EStereoscopicPass::eSSP_LEFT_EYE && InView.StereoPass != EStereoscopicPass::eSSP_RIGHT_EYE)
+	if (!HMDDevice->IsStereoEyePass(InView.StereoPass))
 	{
 		return;
 	}
@@ -228,7 +228,7 @@ void FDefaultStereoLayers::PostRenderView_RenderThread(FRHICommandListImmediate&
 	FMatrix TrackerMatrix = FTranslationMatrix(-HmdLocation) * FInverseRotationMatrix(HmdOrientation.Rotator()) * EyeMatrix;
 
 	FLayerRenderParams RenderParams{
-		InView.ViewRect, // Viewport
+		InView.UnscaledViewRect, // Viewport
 		{
 			ViewProjectionMatrix,				// WorldLocked,
 			TrackerMatrix * ProjectionMatrix,	// TrackerLocked,

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CustomVersion.cpp: Unreal custom versioning system.
@@ -152,7 +152,7 @@ const FCustomVersion* FCustomVersionContainer::GetVersion(FGuid Key) const
 		return &UnusedCustomVersion;
 	}
 
-	return Versions.Find(Key);
+	return Versions.FindByKey(Key);
 }
 
 const FName FCustomVersionContainer::GetFriendlyName(FGuid Key) const
@@ -169,9 +169,11 @@ const FName FCustomVersionContainer::GetFriendlyName(FGuid Key) const
 void FCustomVersionContainer::SetVersion(FGuid CustomKey, int32 Version, FName FriendlyName)
 {
 	if (CustomKey == UnusedCustomVersion.Key)
+	{
 		return;
+	}
 
-	if (FCustomVersion* Found = Versions.Find(CustomKey))
+	if (FCustomVersion* Found = Versions.FindByKey(CustomKey))
 	{
 		Found->Version      = Version;
 		Found->FriendlyName = FriendlyName;
@@ -184,10 +186,10 @@ void FCustomVersionContainer::SetVersion(FGuid CustomKey, int32 Version, FName F
 
 FCustomVersionRegistration::FCustomVersionRegistration(FGuid InKey, int32 InVersion, FName InFriendlyName)
 {
-	FCustomVersionSet& Versions = FCustomVersionContainer::GetInstance().Versions;
+	FCustomVersionArray& Versions = FCustomVersionContainer::GetInstance().Versions;
 
 	// Check if this tag hasn't already been registered
-	if (FCustomVersion* ExistingRegistration = Versions.Find(InKey))
+	if (FCustomVersion* ExistingRegistration = Versions.FindByKey(InKey))
 	{
 		// We don't allow the registration details to change across registrations - this code path only exists to support hotreload
 
@@ -215,16 +217,18 @@ FCustomVersionRegistration::FCustomVersionRegistration(FGuid InKey, int32 InVers
 
 FCustomVersionRegistration::~FCustomVersionRegistration()
 {
-	FCustomVersionSet& Versions = FCustomVersionContainer::GetInstance().Versions;
+	FCustomVersionArray& Versions = FCustomVersionContainer::GetInstance().Versions;
 
-	FCustomVersion* FoundKey = Versions.Find(Key);
+	const int32 KeyIndex = Versions.IndexOfByKey(Key);
 
 	// Ensure this tag has been registered
-	check(FoundKey);
+	check(KeyIndex != INDEX_NONE);
+
+	FCustomVersion* FoundKey = &Versions[KeyIndex];
 
 	--FoundKey->ReferenceCount;
 	if (FoundKey->ReferenceCount == 0)
 	{
-		Versions.Remove(Key);
+		Versions.RemoveAtSwap(KeyIndex);
 	}
 }

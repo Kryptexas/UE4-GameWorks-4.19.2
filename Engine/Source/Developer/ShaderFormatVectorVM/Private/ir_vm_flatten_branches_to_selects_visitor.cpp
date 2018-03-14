@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ShaderFormatVectorVM.h"
 #include "CoreMinimal.h"
@@ -108,15 +108,15 @@ public:
 
 		ir_if* old_if = curr_if;
 		curr_if = ir;
-		void* parent = ralloc_parent(curr_if);
+		//void* parent = ralloc_parent(curr_if);
 
 		//Pull out our condition to a variable.
-		ir_variable *condition_var = new(parent)ir_variable(glsl_type::bool_type,
+		ir_variable *condition_var = new(parse_state)ir_variable(glsl_type::bool_type,
 			"branch_flatten_condition",
 			ir_var_temporary);
 		base_ir->insert_before(condition_var);
-		base_ir->insert_before(new(parent)ir_assignment(new(parent)ir_dereference_variable(condition_var), curr_if->condition));
-		curr_if->condition = new(parent)ir_dereference_variable(condition_var);
+		base_ir->insert_before(new(parse_state)ir_assignment(new(parse_state)ir_dereference_variable(condition_var), curr_if->condition));
+		curr_if->condition = new(parse_state)ir_dereference_variable(condition_var);
 
 		check(a_assignments.Num() == 0);
 		check(curr_assignments == nullptr);
@@ -129,10 +129,11 @@ public:
 		visit_list_elements(this, &curr_if->else_instructions, true);
 		base_ir->insert_before(&curr_if->else_instructions);
 
-		while (a_assignments.Num() > 0)
-		{
-			ir_assignment* assign = a_assignments.Pop(false);
+		TArray<bool> HandledBAssignments;
+		HandledBAssignments.SetNumZeroed(b_assignments.Num());
 
+		for(ir_assignment* assign : a_assignments)
+		{
 			ir_rvalue* selection_other = nullptr;
 			int32 selection_other_idx = b_assignments.IndexOfByPredicate([&](ir_assignment* other_assign) { return AreEquivalent(assign->lhs, other_assign->lhs); });
 			if (selection_other_idx == INDEX_NONE)
@@ -145,51 +146,58 @@ public:
 			{
 				//We did find a matching statement, select using that and remove it from the b_assignments.
 				selection_other = b_assignments[selection_other_idx]->rhs;
-				b_assignments.RemoveAt(selection_other_idx, 1, false);
+				HandledBAssignments[selection_other_idx] = true;
 			}
 
 			//Selection result
-			ir_variable *result = new(parent)ir_variable(assign->lhs->type, "selction_result", ir_var_temporary);
+			ir_variable *result = new(parse_state)ir_variable(assign->lhs->type, "selction_result", ir_var_temporary);
 			base_ir->insert_before(result);
 
 			exec_list select_params;
-			select_params.push_tail(ir->condition->clone(parent, nullptr));
-			select_params.push_tail(assign->rhs->clone(parent, nullptr));
-			select_params.push_tail(selection_other->clone(parent, nullptr));
+			select_params.push_tail(ir->condition->clone(parse_state, nullptr));
+			select_params.push_tail(assign->rhs->clone(parse_state, nullptr));
+			select_params.push_tail(selection_other->clone(parse_state, nullptr));
 
 			ir_function_signature* selection_sig = get_select_signature(assign->lhs->type);
 			if (selection_sig)
 			{
-				ir_call* select_call = new(parent)ir_call(selection_sig, new(parent)ir_dereference_variable(result), &select_params);
+				ir_call* select_call = new(parse_state)ir_call(selection_sig, new(parse_state)ir_dereference_variable(result), &select_params);
 				base_ir->insert_before(select_call);
 			}
-			assign->rhs = new(parent)ir_dereference_variable(result);
+			assign->rhs = new(parse_state)ir_dereference_variable(result);
 			base_ir->insert_before(assign);
 		}
 
 		//Deal with any remaining work done on the b path.
-		while (b_assignments.Num() > 0)
+		for(int32 i=0; i < b_assignments.Num(); ++i)
 		{
-			ir_assignment* assign = b_assignments.Pop(false);
+			//bail if this assignment was already handled.
+			if(HandledBAssignments[i])
+				continue;
+
+			ir_assignment* assign = b_assignments[i];
 
 			//Selection result
-			ir_variable *result = new(parent)ir_variable(assign->lhs->type, "selction_result", ir_var_temporary);
+			ir_variable *result = new(parse_state)ir_variable(assign->lhs->type, "selction_result", ir_var_temporary);
 			base_ir->insert_before(result);
 
 			exec_list select_params;
-			select_params.push_tail(ir->condition->clone(parent, nullptr));
-			select_params.push_tail(assign->lhs->clone(parent, nullptr));
-			select_params.push_tail(assign->rhs->clone(parent, nullptr));
+			select_params.push_tail(ir->condition->clone(parse_state, nullptr));
+			select_params.push_tail(assign->lhs->clone(parse_state, nullptr));
+			select_params.push_tail(assign->rhs->clone(parse_state, nullptr));
 
 			ir_function_signature* selection_sig = get_select_signature(assign->lhs->type);
 			if (selection_sig)
 			{
-				ir_call* select_call = new(parent)ir_call(selection_sig, new(parent)ir_dereference_variable(result), &select_params);
+				ir_call* select_call = new(parse_state)ir_call(selection_sig, new(parse_state)ir_dereference_variable(result), &select_params);
 				base_ir->insert_before(select_call);
 			}
-			assign->rhs = new(parent)ir_dereference_variable(result);
+			assign->rhs = new(parse_state)ir_dereference_variable(result);
 			base_ir->insert_before(assign);
 		}
+
+		a_assignments.Reset();
+		b_assignments.Reset();
 
 		base_ir->remove();
 		curr_assignments = nullptr;
@@ -201,13 +209,13 @@ public:
 	ir_dereference_variable* replace_assigned_val_with_temp(ir_dereference* val)
 	{
 		check(val);
-		void* parent = ralloc_parent(val);
-		ir_variable *var = new(parent)ir_variable(val->type,
+		//void* parent = ralloc_parent(val);
+		ir_variable *var = new(parse_state)ir_variable(val->type,
 			"branch_flatten_temp",
 			ir_var_temporary);
 		base_ir->insert_before(var);
 
-		return new(parent)ir_dereference_variable(var);
+		return new(parse_state)ir_dereference_variable(var);
 	}
 
 	ir_visitor_status visit_leave(ir_assignment * assign)
@@ -216,10 +224,10 @@ public:
 		{
 			check(curr_assignments);
 
-			void* parent = ralloc_parent(assign);
+			//void* parent = ralloc_parent(assign);
 			ir_dereference_variable* new_deref = replace_assigned_val_with_temp(assign->lhs);
 
-			ir_assignment* new_assign = new(parent)ir_assignment(assign->lhs, new_deref);
+			ir_assignment* new_assign = new(parse_state)ir_assignment(assign->lhs, new_deref);
 			assign->set_lhs(new_deref);
 			curr_assignments->Add(new_assign);
 		}
@@ -233,10 +241,10 @@ public:
 		{
 			check(curr_assignments);
 
-			void* parent = ralloc_parent(call);
+			//void* parent = ralloc_parent(call);
 			ir_dereference_variable* new_deref = replace_assigned_val_with_temp(call->return_deref);
 
-			ir_assignment* new_assign = new(parent)ir_assignment(call->return_deref, new_deref);
+			ir_assignment* new_assign = new(parse_state)ir_assignment(call->return_deref, new_deref);
 			call->return_deref = new_deref;
 			curr_assignments->Add(new_assign);
 
@@ -247,7 +255,7 @@ public:
 				if (var->mode == ir_var_out || var->mode == ir_var_inout)
 				{
 					new_deref = replace_assigned_val_with_temp(actual_param->as_dereference());
-					new_assign = new(parent)ir_assignment(actual_param, new_deref);
+					new_assign = new(parse_state)ir_assignment(actual_param, new_deref);
 					check(actual_param->next && actual_param->prev);
 					actual_param->replace_with(new_deref);
 					curr_assignments->Add(new_assign);

@@ -79,6 +79,16 @@ if [ -e /etc/os-release ]; then
   if [[ "$ID" == "ubuntu" ]] || [[ "$ID_LIKE" == "ubuntu" ]] || [[ "$ID" == "debian" ]] || [[ "$ID_LIKE" == "debian" ]] || [[ "$ID" == "tanglu" ]] || [[ "$ID_LIKE" == "tanglu" ]]; then
     # Install the necessary dependencies (require clang-3.8 on 16.04, although 3.3 and 3.5 through 3.7 should work too for this release)
      # mono-devel is needed for making the installed build (particularly installing resgen2 tool)
+
+    # Adjust the VERSION_ID for elementary OS since elementary doesn't follow Debian versioning, but is Ubuntu-based.
+    if [[ "$ID" == "elementary" ]]; then
+      if [[ "$VERSION_ID" == 0.4 ]] || ([[ "$VERSION_ID" > 0.4 ]] && [[ "$VERSION_ID" < 0.5 ]]); then
+        VERSION_ID=16.04 # The 0.4 branch is based on 16.04
+      elif [[ "$VERSION_ID" == 0.5 ]] || [[ "$VERSION_ID" > 0.5 ]]; then
+        VERSION_ID=17 # Assumes that 0.5 won't be 16.04 based
+      fi
+    fi
+
     if [ -n "$VERSION_ID" ] && [[ "$VERSION_ID" < 16.04 ]]; then
      DEPS="mono-xbuild \
        mono-dmcs \
@@ -110,6 +120,25 @@ if [ -e /etc/os-release ]; then
        libmono-system-runtime4.0-cil
        mono-devel
        clang-3.8
+       llvm
+       build-essential
+       "
+    elif [ -n "$VERSION_ID" ] && [[ "$VERSION_ID" < 17.10 ]]; then
+     DEPS="mono-xbuild \
+       mono-dmcs \
+       libmono-microsoft-build-tasks-v4.0-4.0-cil \
+       libmono-system-data-datasetextensions4.0-cil
+       libmono-system-web-extensions4.0-cil
+       libmono-system-management4.0-cil
+       libmono-system-xml-linq4.0-cil
+       libmono-corlib4.5-cil
+       libmono-windowsbase4.0-cil
+       libmono-system-io-compression4.0-cil
+       libmono-system-io-compression-filesystem4.0-cil
+       libmono-system-runtime4.0-cil
+       mono-devel
+       clang-3.9
+       llvm
        build-essential
        "
     elif [[ $PRETTY_NAME == *sid ]] || [[ $PRETTY_NAME == *stretch ]]; then
@@ -128,7 +157,7 @@ if [ -e /etc/os-release ]; then
        mono-devel
        clang-3.8
        "
-    else # assume the latest Ubuntu, this is going to be a moving target
+    else # assume the latest Ubuntu, this is going to be a moving target (17.10 as of now)
      DEPS="mono-xbuild \
        mono-dmcs \
        libmono-microsoft-build-tasks-v4.0-4.0-cil \
@@ -142,7 +171,9 @@ if [ -e /etc/os-release ]; then
        libmono-system-io-compression-filesystem4.0-cil
        libmono-system-runtime4.0-cil
        mono-devel
-       clang-3.9
+       clang-5.0
+       lld-5.0
+       llvm
        build-essential
        "
     fi
@@ -249,11 +280,11 @@ echo Fixing inconsistent case in filenames.
 for BASE in Content/Editor/Slate Content/Slate Documentation/Source/Shared/Icons; do
   find $BASE -name "*.PNG" | while read PNG_UPPER; do
     png_lower="$(echo "$PNG_UPPER" | sed 's/.PNG$/.png/')"
-    if [ ! -f $png_lower ]; then
-      PNG_UPPER=$(basename $PNG_UPPER)
+    if [ ! -f "$png_lower" ]; then
+      PNG_UPPER=$(basename "$PNG_UPPER")
       echo "$png_lower -> $PNG_UPPER"
       # link, and not move, to make it usable with Perforce workspaces
-      ln -sf `basename "$PNG_UPPER"` "$png_lower"
+      ln -sf "`basename "$PNG_UPPER"`" "$png_lower"
     fi
   done
 done

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MeshUtilities.h"
 #include "MeshUtilitiesPrivate.h"
@@ -327,7 +327,7 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 	if (DistanceFieldResolutionScale > 0)
 	{
 		const double StartTime = FPlatformTime::Seconds();
-		const FPositionVertexBuffer& PositionVertexBuffer = LODModel.PositionVertexBuffer;
+		const FPositionVertexBuffer& PositionVertexBuffer = LODModel.VertexBuffers.PositionVertexBuffer;
 		FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
 		TArray<FkDOPBuildCollisionTriangle<uint32> > BuildTriangles;
 

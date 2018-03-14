@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -25,7 +25,15 @@ public:
 	static inline FCollectionManagerModule& GetModule()
 	{
 		static const FName CollectionManagerModuleName("CollectionManager");
-		return FModuleManager::LoadModuleChecked<FCollectionManagerModule>(CollectionManagerModuleName);
+		FCollectionManagerModule* Module = FModuleManager::GetModulePtr<FCollectionManagerModule>(CollectionManagerModuleName);
+		if (Module == nullptr)
+		{
+			return FModuleManager::LoadModuleChecked<FCollectionManagerModule>(CollectionManagerModuleName);
+		}
+		else
+		{
+			return *Module;
+		}
 	}
 
 	/**

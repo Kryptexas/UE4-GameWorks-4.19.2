@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SimpleWheeledVehicleMovementComponent.h"
 #include "Components/PrimitiveComponent.h"
@@ -6,9 +6,11 @@
 #if WITH_PHYSX
 #include "PhysXPublic.h"
 #include "PhysXVehicleManager.h"
+#endif // WITH_PHYSX
 
 void USimpleWheeledVehicleMovementComponent::SetBrakeTorque(float BrakeTorque, int32 WheelIndex)
 {
+#if WITH_PHYSX
 	if (PVehicle && UpdatedPrimitive)
 	{
 		PxVehicleWheels* PVehicleLocal = PVehicle;
@@ -20,10 +22,12 @@ void USimpleWheeledVehicleMovementComponent::SetBrakeTorque(float BrakeTorque, i
 			});
 		}
 	}
+#endif // WITH_PHYSX
 }
 
 void USimpleWheeledVehicleMovementComponent::SetDriveTorque(float DriveTorque, int32 WheelIndex)
 {
+#if WITH_PHYSX
 	if (PVehicle && UpdatedPrimitive)
 	{
 		PxVehicleWheels* PVehicleLocal = PVehicle;
@@ -35,10 +39,12 @@ void USimpleWheeledVehicleMovementComponent::SetDriveTorque(float DriveTorque, i
 			});
 		}
 	}
+#endif // WITH_PHYSX
 }
 
 void USimpleWheeledVehicleMovementComponent::SetSteerAngle(float SteerAngle, int32 WheelIndex)
 {
+#if WITH_PHYSX
 	if (PVehicle && UpdatedPrimitive)
 	{
 		PxVehicleWheels* PVehicleLocal = PVehicle;
@@ -51,8 +57,10 @@ void USimpleWheeledVehicleMovementComponent::SetSteerAngle(float SteerAngle, int
 			});
 		}
 	}
+#endif // WITH_PHYSX
 }
 
+#if WITH_PHYSX
 
 void USimpleWheeledVehicleMovementComponent::SetupVehicleDrive(PxVehicleWheelsSimData* PWheelsSimData)
 {
@@ -75,4 +83,4 @@ void USimpleWheeledVehicleMovementComponent::SetupVehicleDrive(PxVehicleWheelsSi
 	PVehicle = PVehicleNoDrive;
 }
 
-#endif
+#endif // WITH_PHYSX

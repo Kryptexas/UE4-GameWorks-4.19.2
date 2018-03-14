@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -39,7 +39,7 @@ class UMaterialExpressionFunctionInput : public UMaterialExpression
 
 	/** The input's name, which will be drawn on the connector in function call expressions that use this function. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MaterialExpressionFunctionInput)
-	FString InputName;
+	FName InputName;
 
 	/** The input's description, which will be used as a tooltip on the connector in function call expressions that use this function. */
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionFunctionInput)

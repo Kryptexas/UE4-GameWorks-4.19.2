@@ -23,7 +23,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 An important part to working with Actors is to understand the process of [Transforming Actors](GettingStarted/HowTo/ManipulatingActors) which includes the moving, rotating and scaling of an Actor as well as defining its [Mobility](Engine/Actors/Mobility) (whether an Actor will be allowed to move or change in some way during gameplay). In this step we will focus on using the **Details** panel to adjust transformations for a selected Actor to set its Location, Scale and Moblity in the level. 
 
@@ -98,4 +98,4 @@ We've set the Location, Scale and Moblity for our Actor via the Details panel di
 Next up we will update the **Material** applied to our Actor through the Details panel. 
 
 
-%Steps%
+

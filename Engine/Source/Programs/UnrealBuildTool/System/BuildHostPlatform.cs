@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -477,6 +477,7 @@ namespace UnrealBuildTool
 		internal override void GetDefaultProjectFileFormats(List<ProjectFileFormat> Formats)
 		{
 			Formats.Add(ProjectFileFormat.Make);
+			Formats.Add(ProjectFileFormat.VisualStudioCode);
 			Formats.Add(ProjectFileFormat.KDevelop);
 			Formats.Add(ProjectFileFormat.QMake);
 			Formats.Add(ProjectFileFormat.CMake);

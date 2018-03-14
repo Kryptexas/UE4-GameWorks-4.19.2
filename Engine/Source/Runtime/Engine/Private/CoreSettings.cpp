@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/CoreSettings.h"
 #include "HAL/IConsoleManager.h"
@@ -15,6 +15,9 @@ float GLevelStreamingActorsUpdateTimeLimit = 5.0f;
 float GLevelStreamingUnregisterComponentsTimeLimit = 1.0f;
 int32 GLevelStreamingComponentsRegistrationGranularity = 10;
 int32 GLevelStreamingComponentsUnregistrationGranularity = 5;
+int32 GLevelStreamingForceGCAfterLevelStreamedOut = 1;
+int32 GLevelStreamingContinuouslyIncrementalGCWhileLevelsPendingPurge = 1;
+int32 GLevelStreamingAllowLevelRequestsWhileAsyncLoadingInMatch = 1;
 
 static FAutoConsoleVariableRef CVarUseBackgroundLevelStreaming(
 	TEXT("s.UseBackgroundLevelStreaming"),
@@ -71,6 +74,27 @@ static FAutoConsoleVariableRef CVarLevelStreamingComponentsUnregistrationGranula
 	TEXT("Batching granularity used to unregister actor components during level unstreaming."),
 	ECVF_Default
 	);
+
+static FAutoConsoleVariableRef CVarForceGCAfterLevelStreamedOut(
+	TEXT("s.ForceGCAfterLevelStreamedOut"),
+	GLevelStreamingForceGCAfterLevelStreamedOut,
+	TEXT("Whether to force a GC after levels are streamed out to instantly reclaim the memory at the expensive of a hitch."),
+	ECVF_Default
+);
+
+static FAutoConsoleVariableRef CVarContinuouslyIncrementalGCWhileLevelsPendingPurge(
+	TEXT("s.ContinuouslyIncrementalGCWhileLevelsPendingPurge"),
+	GLevelStreamingContinuouslyIncrementalGCWhileLevelsPendingPurge,
+	TEXT("Whether to repeatedly kick off incremental GC when there are levels still waiting to be purged."),
+	ECVF_Default
+);
+
+static FAutoConsoleVariableRef CVarAllowLevelRequestsWhileAsyncLoadingInMatch(
+	TEXT("s.AllowLevelRequestsWhileAsyncLoadingInMatch"),
+	GLevelStreamingAllowLevelRequestsWhileAsyncLoadingInMatch,
+	TEXT("Enables level streaming requests while async loading (of anything) while the match is already in progress and no loading screen is up."),
+	ECVF_Default
+);
 
 UStreamingSettings::UStreamingSettings()
 	: Super()

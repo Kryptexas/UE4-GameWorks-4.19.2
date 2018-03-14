@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessEyeAdaptation.h: Post processing eye adaptation implementation.
@@ -11,6 +11,8 @@
 #include "RendererInterface.h"
 #include "SceneRendering.h"
 #include "PostProcess/RenderingCompositionGraph.h"
+
+#define EYE_ADAPTATION_PARAMS_SIZE 4
 
 // Computes the eye-adaptation from HDRHistogram.
 // ePId_Input0: HDRHistogram or nothing
@@ -27,10 +29,10 @@ public:
 
 	// compute the parameters used for eye-adaptation.  These will default to values
 	// that disable eye-adaptation if the hardware doesn't support SM5 feature-level
-	static void ComputeEyeAdaptationParamsValue(const FViewInfo& View, FVector4 Out[3]);
+	static void ComputeEyeAdaptationParamsValue(const FViewInfo& View, FVector4 Out[EYE_ADAPTATION_PARAMS_SIZE]);
 	
-	// computes the ExposureScale (useful if eyeadaptation is locked), 
-	static float ComputeExposureScaleValue(const FViewInfo& View);
+	// Computes the a fix exposure to be used to replace the dynamic exposure when it's not available (< SM5).
+	static float GetFixedExposure(const FViewInfo& View);
 
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context) override;
@@ -41,7 +43,7 @@ public:
 
 private:
 	template <typename TRHICmdList>
-	void DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, FUnorderedAccessViewRHIParamRef DestUAV);
+	void DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, FUnorderedAccessViewRHIParamRef DestUAV, IPooledRenderTarget* LastEyeAdaptation);
 
 	FComputeFenceRHIRef AsyncEndFence;
 };
@@ -79,13 +81,13 @@ private:
 };
 
 // Console Variable that is used to over-ride the post process settings.
-extern TAutoConsoleVariable<int32> CVarEyeAdaptationMethodOveride;
+extern TAutoConsoleVariable<int32> CVarEyeAdaptationMethodOverride;
 
 // Query the view for the auto exposure method, and allow for CVar override.
 static inline EAutoExposureMethod GetAutoExposureMethod(const FViewInfo& View)
 {
 	EAutoExposureMethod AutoExposureMethodId = View.FinalPostProcessSettings.AutoExposureMethod;
-	const int32 EyeOverride = CVarEyeAdaptationMethodOveride.GetValueOnRenderThread();
+	const int32 EyeOverride = CVarEyeAdaptationMethodOverride.GetValueOnRenderThread();
 
 	// Early out for common case
 	if (EyeOverride < 0) return AutoExposureMethodId;
@@ -103,9 +105,14 @@ static inline EAutoExposureMethod GetAutoExposureMethod(const FViewInfo& View)
 			  AutoExposureMethodId = EAutoExposureMethod::AEM_Basic;
 			  break;
 	}
+	case 3:
+	{
+			  AutoExposureMethodId = EAutoExposureMethod::AEM_Manual;
+			  break;
+	}
 	default:
 	{
-			   // Should only happen if the user supplies an override > 2
+			   // Should only happen if the user supplies an override > 3
 			   AutoExposureMethodId = EAutoExposureMethod::AEM_MAX;
 			   break;
 	}
@@ -124,6 +131,7 @@ static inline bool IsAutoExposureMethodSupported(const ERHIFeatureLevel::Type& F
 		Result = FeatureLevel >= ERHIFeatureLevel::SM5;
 		break;
 	case EAutoExposureMethod::AEM_Basic:
+	case EAutoExposureMethod::AEM_Manual:
 		Result = FeatureLevel >= ERHIFeatureLevel::ES3_1;
 		break;
 	default:

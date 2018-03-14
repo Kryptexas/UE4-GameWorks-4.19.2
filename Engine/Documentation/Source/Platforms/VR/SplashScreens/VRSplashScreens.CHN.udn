@@ -1,290 +1,234 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:VR Splash Screens
-Crumbs:%ROOT%, Platforms, Platforms/VR
-Description:Setting up and working with VR splash screens and movies.
-Navigation:platform
-Version: 4.14
+﻿INTSourceChangelist:3587824
+Availability:Public
+Title:VR 过渡画面
+Crumbs:%ROOT%
+Description:设置并使用 VR 过渡画面和动画。
+Version:4.17
 parent:Platforms/VR
 Type:overview
-Skilllevel: Intermediate
+Skilllevel:Intermediate
+Tags:VR
+Order:2
 
 [TOC(start:2)]
 
-Unreal Engine 4 (UE4) offers support for displaying movies or images while a level loads when using Oculus, Gear VR, SteamVR, and PSVR Head Mounted Displays (HMD). The loading move or image will run on the rendering thread and can also help to mask frame rate issues while your content is loading. In the following document, we will take a look at how you can set these VR splash screens in your UE4 projects.
+虚幻引擎 4（UE4）支持在使用 Oculus、Gear VR、SteamVR 和 PSVR 头戴显示器（HMD）加载关卡时显示视频或图像。视频或图像的加载将在渲染线程上运行，同时也能够隐藏加载内容时出现的帧率问题。以下文档将说明如何在 UE4 项目中设置这些 VR **过渡画面**。
 
-## VR Splash Screen Supported Platforms 
+## VR 过渡画面支持平台 
 
-VR Splash Screens will only work when used with the following VR platforms. 
+VR 过渡画面支持以下 VR 平台。 
 
-* **Oculus VR**
-* **Gear VR**
-* **Steam VR**
-* **PSVR**
+* [Oculus VR](https://www.oculus.com/)
+* [Steam VR](http://store.steampowered.com/steamvr)
+* [PSVR](https://www.playstation.com/en-us/explore/playstation-vr/)
+* [Gear VR](http://www.samsung.com/global/galaxy/gear-vr/)
+* [Google Daydream](https://vr.google.com/daydream/)
 
-## VR Splash Screen Project Setup
+## VR 过渡画面项目设置
 
-Before you can setup and use the VR splash screens you will first need to create a new **Game Mode** and **Pawn** Blueprint to make it easier to work with the VR splash screens. In the following section, we will go over what Blueprints need to be created and how they need to be setup.
+设置并使用 VR 过渡画面之前，首先需要新建一个 **Game Mode** 和 **Pawn** 蓝图，可使操作更为便捷。以下部分将说明需要创建哪些蓝图，以及它们的设置方法。
 
-1. Right - click in the **Content Browser**, and from the **Create Basic Asset** list select the **Blueprint Class** option.
+1. 在 **Content Browser** 中点击右键，从 **Create Basic Asset** 列表中选择 **Blueprint Class** 选项。
 
     ![](VRLS_Intro_01.png)
 
-1. In the **All Classes** section of the **Pick Parent Class** dialogue box, search for **Game Mode**. When Game Mode is located, select it and then press the **Select** button and give it a name of **VR_GameMode**.
+1. 在 **Pick Parent Class** 对话框的 **All Classes** 部分搜索 **Game Mode**。找到 Game Mode 后，将其选中并按下 **Select** 键，命名为 **VR_GameMode**。
 
-    ![](VRLS_Intro_02.png)
+    [REGION:lightbox]
+    [![](VRLS_Intro_02.png)(w:272)](VRLS_Intro_02.png)
+    [/REGION]
 
-1. Repeat the above process but this time select the **Pawn** option from the Pick Parent Class dialogue box and call this new Pawn, **VR_Pawn**.
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
 
-    ![](VRLS_Intro_03.png)
+1. 重复以上步骤，这次从 Pick Parent Class 对话框中选择 **Pawn** 选项，将新 Pawn 命名为 **VR_Pawn**。
 
-1. Open up the VR_GameMode Blueprint and in the **Classes** section, set the **Default Pawn Class** to the VR_Pawn that was created. When completed, Compile and Save the VR_Gamemode Blueprint.
+    [REGION:lightbox]
+    [![](VRLS_Intro_03.png)(w:272)](VRLS_Intro_03.png)
+    [/REGION]
 
-    ![](VRLS_Intro_04.png)
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
 
-Now that the Pawn and Game Mode have been set up, in the next section we will take a look at how to setup the VR splash screens in the Pawn's Event Graph.
+1. 打开 VR_GameMode 蓝图，在 **Classes** 部分将 **Default Pawn Class** 设为之前创建的 VR_Pawn。完成后编译并保存 VR_Gamemode 蓝图。
 
-## VR Splash Screen Setup
+    [REGION:lightbox]
+    [![](VRLS_Intro_04.png)(w:352)](VRLS_Intro_04.png)
+    [/REGION]
 
-In the following section, we will go over how you set up a VR splash screen in your Pawns Event Graph.
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
+
+Pawn 和 Game Mode 设置完成后，我们来了解如何在 Pawn 的 **事件图表** 中设置 VR 过渡画面。 
+
+## VR 过渡画面设置
+
+以下部分将说明如何在 Pawn 的事件图表中设置一个 VR 过渡画面。 
 
 [region:note]
-Please note that the following is showing the simplest way to set VR splash screens up. While each project has unique needs, the overall setup for VR splash screens will be very similar to what is described.
+请注意：此例中说明的是在项目中实现过渡画面自动加载的最快捷方法。在实际生产中使用时，需要在关卡过渡中手动隐藏和显示过渡画面，以便留足时间让关卡完成流入。
 [/region]
-1. Open up the VR_Pawn and go to the **Event Graph**. Right - click inside the Event Graph and from the displayed menu, search for and add the following Blueprint nodes.
 
-    * Enable Auto Loading Splash Screen
-    * Set Splash Screen
-    * Hide Splash Screen
+1. 在 **事件图表** 中打开 VR_Pawn，然后把以下蓝图节点添加到事件图表：
 
-    ![](VRLS_Setup_01.png)
+    * [**Enable Auto Loading Splash Screen**](Platforms\VR\SplashScreens\VRSplashScreenNodeReference#EnableAutoLoadingSplashScreen)
+    * [**Set Splash Screen**](Platforms\VR\SplashScreens\VRSplashScreenNodeReference#SetSplashScreen)
+    * [**Hide Splash Screen**](Platforms\VR\SplashScreens\VRSplashScreenNodeReference#HideSplashScreen)
 
-1. With the nodes now added to the Event graph, arrange and connect the nodes so that they match the setup in the following image.
+    [REGION:lightbox]
+    [![](VRLS_Setup_01.png)(w:249)](VRLS_Setup_01.png)
+    [/REGION]
 
-    ![](VRLS_Setup_02.png)
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
 
-1. Since we want the VR splash screen to load any time a level is loaded, on the Enable Auto Loading Splash Screen node, check the **In Auto Show Enabled**.
+1. 节点被添加到事件图表后，整理并连接节点，使其匹配下图中的设置。
 
-    ![](VRLS_Setup_03.png)
+    [REGION:lightbox]
+    [![](VRLS_Setup_02.png)(w:480)](VRLS_Setup_02.png)
+    [/REGION]
 
-1. The Set Splash Screen node is where you specify which Texture to use for the VR splash screen. To set a set a VR splash screen Texture, select a Texture in the Content Browser and then press the small white arrow in the Texture section of the Ste Splash Screen node to use that Texture as the VR splash screen.
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
 
-    ![](VRLS_Setup_04.png)
+1. 我们需要在关卡加载时加载 VR 过渡画面，因此在 Enable Auto Loading Splash Screen 节点上勾选 **In Auto Show Enabled**。
+
+    [REGION:lightbox]
+    [![](VRLS_Setup_03.png)(w:480)](VRLS_Setup_03.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
+
+1. 可在 Set Splash Screen 节点上指定 VR 过渡画面所使用的纹理。设置 VR 过渡画面纹理时，在 Content Browser 中选择一个纹理，然后按下 Set Splash Screen 节点 Texture 部分中的白色小按钮，将此纹理用作 VR 过渡画面。
+
+    [REGION:lightbox]
+    [![](VRLS_Setup_04.png)(w:408)](VRLS_Setup_04.png)
+    [/REGION]
+
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
     [region:note]
-    For this example, a noise Texture was created in Photoshop and then imported into UE4 and used. Feel free to use any Texture you want for this section.
+    在此例中我们使用的是在 Photoshop 中创建的噪点纹理，然后导入 UE4 使用。可根据需要使用任意纹理。
     [/region]
     [region:warning]
-    If you are targeting **SteamVR** you will need to make sure that you set the **Compression Settings** of the Texture you are using for the splash screen to **UserInterface2D(RGBA)** or it will not be displayed when the splash screen is called.
+    如您针对 **SteamVR** 进行开发，则需要将用于过渡画面的纹理的 **Compression Settings** 设为 **UserInterface2D(RGBA)**，否则调用过渡画面时它将不会显示。
 
     ![](VIL_SteamVR_Comp_Settings.png)
     [/region]
 
-1. Finally, on the Set Splash Screen node check the **Show on Set** option to make sure that the Texture you specified is displayed when a level is loaded.
+1. 最后在 Set Splash Screen 节点上勾选 **Show on Set** 选项，确保关卡加载时显示您指定的纹理。
 
-    ![](VRLS_Setup_05.png)
+    [REGION:lightbox]
+    [![](VRLS_Setup_05.png)(w:408)](VRLS_Setup_05.png)
+    [/REGION]
 
-With the VR splash screen now set up in the next section, we will take a look at how to go about calling the VR splash screen when a new level is loaded.
+    [REGION:caption]
+    点击查看全图。
+    [/REGION]
 
-## VR Splash Screen Use
+VR 过渡画面设置好后，下一部分将说明加载新关卡时如何调用 VR 过渡画面。
 
-Now that we have the Pawn setup to use the VR splash screens, in this section we will go over how to display the VR Splash Screens when a level is loaded.
+## VR 过渡画面使用
 
-1. For this to work you will need to create **two** levels that we can load. To create the levels go to the **Main Toolbar** and select the **File** > **New Level** option. When the **New Level** popup box is displayed, select the **Default** level option.  
+设置 Pawn 使用 VR 过渡画面后，接下来我们来了解如何在关卡加载后显示 VR 过渡画面。
+
+1. 首先需要创建 **两个** 关卡以供加载。前往 **主工具栏**，选择 **File** > **New Level** 选项即可创建关卡。显示 **New Level** 弹出框后，选择 **Default** 关卡选项。
 
     [REGION:lightbox]
     [![](VLI_NewLevel_00.png)(w:746)](VLI_NewLevel_00.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-1. Inside of the **Content Browser** press the **Save All** button and name the new level **Level_00**. Once it has saved, **Right - Click** on Level_00 and from the context menu select the **Duplicate** option and name it **Level_01**. When all of that is completed, you should now have two new level in the Content Browser like in the image below. 
+1. 在 **Content Browser** 中按下 **Save All** 按钮并将新关卡命名为 **Level_00**。保存后右键点击 Level_00，然后选择 **Duplicate** 选项。将副本命名为 **Level_01**。这一系列操作完成后 Content Browser 中便会存在两个新关卡，如下图所示：
 
     [REGION:lightbox]
     [![](VLI_NewLevel_01.png)(w:746)](VLI_NewLevel_01.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-1. Open up each level and go to **World Settings** > **Game Mode** and the **Game Mode Override** to the VR_GameMode Blueprint that was created. This way we can be sure that the correct Pawn will be used when the level is loaded.
+1. 打开每个关卡，前往 **World Settings** > **Game Mode**，把 **Game Mode Override** 设为之前创建的 VR_GameMode 蓝图。这样我们便能确认关卡加载时将使用正确的 Pawn。
 
     ![](VLI_NewLevel_06.png)
 
-1. Open up the VR_Pawn Blueprint, if not already open, and in the Event, graph add key inputs for the **R** and **T** keys.
+1. 打开 VR_Pawn 蓝图，在事件图表最终添加 **R** 和 **T** 键的键输入。
 
     [REGION:lightbox]
     [![](VLI_NewLevel_02.png)(w:746)](VLI_NewLevel_02.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-1.  Right - Click on the Event Graph and search for the **Open Level** Blueprint node and add it to the Event Graph. Connect the **Pressed** output for the T key to the Open Level input and in the **Level Name** option input **Level_00**.
+1. 在事件图表上点击右键，搜索 **Open Level** 蓝图节点。将其添加到事件图表。将 T 键的 **Pressed** 输出连接到 Open Level 输入，然后在 **Level Name** 域中输入 **Level_00**。
 
     [REGION:lightbox]
     [![](VLI_NewLevel_03.png)(w:746)](VLI_NewLevel_03.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-1. Select the Open Level node and then press **CTRL + W** on the keyboard to duplicate it. Connect the Pressed output for the **R** key to the new Open Level node and change the name of the Level to **Level_01**.
+1. 选择 Open Level 节点，然后在键盘上按下 **CTRL + W** 进行复制。将 R 键的 **Pressed** 输出连接到新的 Open Level 节点，然后将关卡名改为 **Level_01**。
 
     [REGION:lightbox]
     [![](VLI_NewLevel_04.png)(w:746)](VLI_NewLevel_04.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-1. Press the **Compile** and **Save** buttons to compile and save your Pawn Blueprint and then launch your project using the VR Preview.
+1. 按下 **Compile** 和 **Save** 按钮编译并保存 Pawn 蓝图，然后使用 VR 预览运行项目。
 
     [REGION:lightbox]
     [![](VLI_NewLevel_05.png)(w:746)](VLI_NewLevel_05.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    点击查看全图。
     [/REGION]
 
-1. Put your HMD on and then press the **R** key to load Level_01. While the level is being loaded you should see the image that you specified in the Texture input of the Set Splash Screen node being displayed. Once Level_01 loads press the **T** key to load Level_00, and you should now see the same image being displayed. 
+1. 戴上 HMD，然后按下 **R** 键加载 Level_01。关卡加载时，您便可以看到在 Set Splash Screen 节点的 Texture 输入中所指定的图像。Level_01 加载后，按下 **T** 键加载 Level_00，便会出现相同的图像。
 
     [OBJECT:EmbeddedVideo]
+        [PARAMLITERAL:videoid]
+        5x5zH8JE0pQ
+        [/PARAMLITERAL]
         [PARAMLITERAL:width]
-        640
+        100
         [/PARAMLITERAL]
         [PARAMLITERAL:height]
-        360
+        56.25
         [/PARAMLITERAL]
-        [PARAMLITERAL:videoid]
-        DWkuJhEOtwc
+        [PARAMLITERAL:units]
+        %
+        [/PARAMLITERAL]
+        [PARAMLITERAL:type]
+        simple
         [/PARAMLITERAL]
     [/OBJECT]
 
-With the ability to change levels on button presses now working, the next step would be to try and get this working when a player enters a level streaming volume or trigger as you would in any game or interactive project.
-
-## VR Splash Screen Node Reference
-
-The following breakdown covers what each one of the properties on the VR splash screen nodes does. When looking at the VR splash screen nodes, you will notice that there is a generic type and a type specific to Oculus. You should only use the Oculus-specific types when you are targeting Oculus HMD's. All other HMD's should use the generic type.
-
-### Generic Splash Screens
-
-* Enable Auto Loading Splash Screen
-
-    ![](VRLS_EnableAutoLoading.png)
-
-    |Setting  Name| Description|
-    |---------------|----------------------------------------------------|
-    |In Auto Show Enabled|If true, load the splash screen when a level is loaded.|
-
-* Hide Splash Screen
-
-    ![](VRLS_Hide_Splash.png)
-
-    |Setting  Name| Description|
-    |---------------|----------------------------------------------------|
-    |Hide Splash Screen|Hides the splash screen.|
-
-* Set Splash Screen
-
-    ![](VRLS_Set_Splash.png)
-
-    |Setting  Name| Description|
-    |---------------|----------------------------------------------------|
-    |Texture|Texture to use fo the splash. Must be in B8R8G8A8 format.|
-    |Scale|Scale of the Texture.|
-    |Offest|Position from which to start rendering the Texture.|
-    |Show Loading Moive|Show a loading movie.|
-    |Show on Set|Show the Texture specified when the compositor is called.|
-
-* Show Splash Screen
-
-    ![](VRLS_Show_Splash.png)
-
-    |Setting  Name| Description|
-    |---------------|----------------------------------------------------|
-    |Show Splash Screen|Shows the splash screen.|
-
-### Oculus Specific Splash Screens
-
-The following breakdown covers what each of the Oculus-specific splash screen nodes will do. Keep in mind that the following nodes should only be used when you are targeting Oculus HMD's. 
-
-* Add Loading Splash Screen
-
-    ![](VRLS_OC_Add_Loading.png)
-
-    |Setting  Name| Description|
-    |---------------|----------------------------------------------------|
-    |Texture|A Texture asset to be used for the splash screen. GearVR uses it as a path for loading icon; all other params are currently ignored by GearVR.|
-    |Translation in Meters|Initial translation of the center of the splash screen in meters.|
-    |Rotation|Initial rotation of the splash screen, with the origin at the center of the splash screen.|
-    |Size in Meters|Size, in meters, of the quad with the splash screen.|
-    |Delta Rotation|Incremental rotation, that is added each 2nd frame to the quad transform. The quad is rotated around the center of the quad.|
-    |Ckear Before Add |If true clears splash before adding a new one.|
-
-* Clear Loading Splash Screen
-
-    ![](VRLS_OC_Clear_Loading_Splash.png)
-
-    |Setting  Name| Description|
-    |---------------|----------------------------------------------------|
-    |Clear Loading Splash Screen|Removes all splash screens.|
-
-* Enable Auto Loading Splash Screen
-
-    ![](VRLS_OC_Enable_Auto_Load.png)
-
-    |Setting  Name| Description|
-    |---------------|----------------------------------------------------|
-    |Auto Show Enabled|If true, automatic showing of splash screens is enabled when a map is being loaded.|
-
-* Hide Loading Icon
-
-    ![](VRLS_OC_Hide_Loading.png)
-
-    |Setting  Name| Description|
-    |---------------|----------------------------------------------------|
-    |Hide Loading Icon|Clears the loading icon. This call will clear all the splashes.|
-
-* Hide Loading Splash Screen
-
-    ![](VRLS_OC_Hide_Loading_SS.png)
-
-    |Setting  Name| Description|
-    |---------------|----------------------------------------------------|
-    |Clear|Clear all splash screen after hiding.|
-
-* Is Auto Loading Splash Screen Enabled
-
-    ![](VRLS_OC_IsAutoLoasding.png)
-
-    |Setting  Name| Description|
-    |---------------|----------------------------------------------------|
-    |Is Auto Loading Splash Screen Enabled| Returns true if the splash screen is automatically shown when LoadMap is called.|
-
-* Is Loading Icon Enabled
-
-    ![](VRLS_OC_IsLoadingIconEnabled.png)
-
-    |Setting  Name| Description|
-    |---------------|----------------------------------------------------|
-    |Is Loading Icon Enabled| Returns true if the splash screen is in loading icon mode.|
-
-* Show Loading Splash Screen
-
-    ![](VRLS_OC_ShowLoadingSplashScreen.png)
-
-    |Setting  Name| Description|
-    |---------------|----------------------------------------------------|
-    |Show Loading Splash Screen| Shows loading splash screen.|
+能够用按键变更关卡后，下一步我们将对其进行设置，使其在玩家进入关卡流送体积域或触发器后开始工作，实现游戏或互动项目中的功能。
 
 
+## VR 过渡画面节点参考
 
+以下链接将指向 VR 过渡画面节点参考页面。此页面中包含 VR 过渡画面可用的每个节点的详细描述。
 
-
+[**VR Splash Screen Node Reference**](Platforms\VR\SplashScreens\VRSplashScreenNodeReference)

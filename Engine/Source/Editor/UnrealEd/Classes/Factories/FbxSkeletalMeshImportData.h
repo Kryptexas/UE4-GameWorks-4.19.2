@@ -1,10 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "Factories/FbxMeshImportData.h"
+#include "MeshBuild.h"
 #include "FbxSkeletalMeshImportData.generated.h"
 
 class USkeletalMesh;
@@ -17,7 +18,7 @@ UCLASS(MinimalAPI)
 class UFbxSkeletalMeshImportData : public UFbxMeshImportData
 {
 	GENERATED_UCLASS_BODY()
-
+public:
 	/** Enable this option to update Skeleton (of the mesh)'s reference pose. Mesh's reference pose is always updated.  */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Mesh, meta=(ImportType="SkeletalMesh", ToolTip="If enabled, update the Skeleton (of the mesh being imported)'s reference pose."))
 	uint32 bUpdateSkeletonReferencePose:1;
@@ -38,9 +39,17 @@ class UFbxSkeletalMeshImportData : public UFbxMeshImportData
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=Mesh, meta=(ImportType="SkeletalMesh", ToolTip="If enabled, creates Unreal morph objects for the imported meshes"))
 	uint32 bImportMorphTargets:1;
 
-	/** If checked, do not filter same vertices. Keep all vertices even if they have exact same properties*/
-	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=Mesh, meta=(ImportType="SkeletalMesh"))
-	uint32 bKeepOverlappingVertices:1;
+	/** Threshold to compare vertex position equality. */
+	UPROPERTY(EditAnywhere, config, Category="Mesh", meta = (ImportType = "SkeletalMesh", SubCategory = "Thresholds", NoSpinbox = "true", ClampMin = "0.0"))
+	float ThresholdPosition;
+	
+	/** Threshold to compare normal, tangent or bi-normal equality. */
+	UPROPERTY(EditAnywhere, config, Category="Mesh", meta = (ImportType = "SkeletalMesh", SubCategory = "Thresholds", NoSpinbox = "true", ClampMin = "0.0", ClampMax = "1.0"))
+	float ThresholdTangentNormal;
+	
+	/** Threshold to compare UV equality. */
+	UPROPERTY(EditAnywhere, config, Category="Mesh", meta = (ImportType = "SkeletalMesh", SubCategory = "Thresholds", NoSpinbox = "true", ClampMin = "0.0", ClampMax = "1.0"))
+	float ThresholdUV;
 
 	/** Gets or creates fbx import data for the specified skeletal mesh */
 	static UFbxSkeletalMeshImportData* GetImportDataForSkeletalMesh(USkeletalMesh* SkeletalMesh, UFbxSkeletalMeshImportData* TemplateForCreation);

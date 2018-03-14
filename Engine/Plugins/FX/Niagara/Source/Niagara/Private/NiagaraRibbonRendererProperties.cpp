@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraRibbonRendererProperties.h"
 #include "NiagaraRendererRibbons.h"
@@ -23,11 +23,8 @@ const TArray<FNiagaraVariable>& UNiagaraRibbonRendererProperties::GetRequiredAtt
 	if (Attrs.Num() == 0)
 	{
 		Attrs.Add(SYS_PARAM_PARTICLES_POSITION);
-		/*Attrs.Add(SYS_PARAM_PARTICLES_VELOCITY);
-		Attrs.Add(SYS_PARAM_PARTICLES_COLOR);
-		Attrs.Add(SYS_PARAM_PARTICLES_SPRITE_ROTATION);
 		Attrs.Add(SYS_PARAM_PARTICLES_NORMALIZED_AGE);
-		Attrs.Add(SYS_PARAM_PARTICLES_SPRITE_SIZE);*/
+		Attrs.Add(SYS_PARAM_PARTICLES_COLOR);
 	}
 
 	return Attrs;
@@ -40,10 +37,10 @@ const TArray<FNiagaraVariable>& UNiagaraRibbonRendererProperties::GetOptionalAtt
 
 	if (Attrs.Num() == 0)
 	{
-		//Attrs.Add(SYS_PARAM_PARTICLES_SPRITE_FACING);
-		//Attrs.Add(SYS_PARAM_PARTICLES_SPRITE_ALIGNMENT);
-		//Attrs.Add(SYS_PARAM_PARTICLES_SUB_IMAGE_INDEX);
-		//Attrs.Add(SYS_PARAM_PARTICLES_DYNAMIC_MATERIAL_PARAM);
+		Attrs.Add(SYS_PARAM_PARTICLES_RIBBONID);
+		Attrs.Add(SYS_PARAM_PARTICLES_RIBBONTWIST);
+		Attrs.Add(SYS_PARAM_PARTICLES_RIBBONWIDTH);
+		Attrs.Add(SYS_PARAM_PARTICLES_RIBBONFACING);
 	}
 
 	return Attrs;

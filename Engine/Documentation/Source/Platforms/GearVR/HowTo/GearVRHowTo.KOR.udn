@@ -1,0 +1,35 @@
+﻿INTSourceChangelist:3622565
+Availability: Public
+Crumbs: %ROOT% 
+Title: 기어 VR 안내서
+Description: 기어 VR 과 UE4 작업을 위한 단계별 안내서입니다.
+Type: how-to
+Version: 4.17
+Parent: Platforms/GearVR
+Order:1
+Tags:VR
+topic-image:GearVR_How_To_Header.png
+
+기어 VR 안내서에서는 UE4 와 기어 VR 을 함께 사용할 수 있도록 하는 방법을 단계별로 안내해 드립니다.
+
+## 초급
+
+기어 VR HMD 에서 UE4 프로젝트 카메라를 사용할 수 있도록 구성하는 방법과 기어 VR 프로젝트 크기를 줄이는 방법을 안내해 드립니다.
+
+[DIR(end:"1" output:"topic" type:"how-to" tags:"Basics" parent:"Platforms/GearVR")]
+
+## 중급
+
+기어 VR 컨트롤러 사용법과 기어 VR 글로벌 메뉴 구성법을 안내해 드립니다.
+
+[DIR(end:"1" output:"topic" type:"how-to" tags:"GearVR" parent:"Platforms/GearVR")]
+
+## 고급
+
+기어 VR 프로젝트 디버깅 방법을 안내해 드립니다.
+
+[DIR(end:"1" output:"topic" type:"how-to" tags:"GearVR" parent:"Platforms/GearVR")]
+
+
+
+

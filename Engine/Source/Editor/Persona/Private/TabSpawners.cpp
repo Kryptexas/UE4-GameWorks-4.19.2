@@ -1,10 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "TabSpawners.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Text/STextBlock.h"
 #include "EditorStyleSet.h"
+#include "Styling/CoreStyle.h"
 #include "SSkeletonAnimNotifies.h"
 #include "SAnimBlueprintParentPlayerList.h"
 #include "SSkeletonSlotNames.h"
@@ -46,7 +47,10 @@ const FName FPersonaTabs::AnimBlueprintParentPlayerEditorID("AnimBlueprintParent
 const FName FPersonaTabs::ScrubberID("ScrubberTab");
 
 // Toolbar
-const FName FPersonaTabs::PreviewViewportID("Viewport");		//@TODO: Name
+const FName FPersonaTabs::PreviewViewportID("Viewport");
+const FName FPersonaTabs::PreviewViewport1ID("Viewport1");
+const FName FPersonaTabs::PreviewViewport2ID("Viewport2");
+const FName FPersonaTabs::PreviewViewport3ID("Viewport3");
 const FName FPersonaTabs::AssetBrowserID("SequenceBrowser");	//@TODO: Name
 const FName FPersonaTabs::MirrorSetupID("MirrorSetupTab");
 const FName FPersonaTabs::AnimBlueprintDebugHistoryID("AnimBlueprintDebugHistoryTab");
@@ -78,7 +82,8 @@ const FName FPersonaModes::AnimBlueprintEditMode( "GraphName" );
 FPersonaModeSharedData::FPersonaModeSharedData()
 	: OrthoZoom(1.0f)
 	, bCameraLock(true)
-	, bCameraFollow(false)
+	, CameraFollowMode(EAnimationViewportCameraFollowMode::None)
+	, CameraFollowBoneName(NAME_None)
 	, bShowReferencePose(false)
 	, bShowBones(false)
 	, bShowBoneNames(false)
@@ -96,7 +101,8 @@ void FPersonaModeSharedData::Save(const TSharedRef<FAnimationViewportClient>& In
 	LookAtLocation = InFromViewport->GetLookAtLocation();
 	OrthoZoom = InFromViewport->GetOrthoZoom();
 	bCameraLock = InFromViewport->IsCameraLocked();
-	bCameraFollow = InFromViewport->IsSetCameraFollowChecked();
+	CameraFollowMode = InFromViewport->GetCameraFollowMode();
+	CameraFollowBoneName = InFromViewport->GetCameraFollowBoneName();
 	bShowBound = InFromViewport->IsSetShowBoundsChecked();
 	LocalAxesMode = InFromViewport->GetLocalAxesMode();
 	ViewportType = InFromViewport->ViewportType;
@@ -117,9 +123,9 @@ void FPersonaModeSharedData::Restore(const TSharedRef<FAnimationViewportClient>&
 	{
 		InToViewport->SetLookAtLocation(LookAtLocation);
 	}
-	else if(bCameraFollow)
+	else if(CameraFollowMode != EAnimationViewportCameraFollowMode::None)
 	{
-		InToViewport->SetCameraFollow();
+		InToViewport->SetCameraFollowMode(CameraFollowMode, CameraFollowBoneName);
 	}
 }
 
@@ -203,14 +209,39 @@ TSharedRef<SWidget> FAnimationAssetBrowserSummoner::CreateTabBody(const FWorkflo
 /////////////////////////////////////////////////////
 // FPreviewViewportSummoner
 
-FPreviewViewportSummoner::FPreviewViewportSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const FPersonaViewportArgs& InArgs)
-	: FWorkflowTabFactory(FPersonaTabs::PreviewViewportID, InHostingApp)
+static FName ViewportInstanceToTabName(int32 InViewportIndex)
+{
+	switch(InViewportIndex)
+	{
+	default:
+	case 0:
+		return FPersonaTabs::PreviewViewportID;
+	case 1:
+		return FPersonaTabs::PreviewViewport1ID;
+	case 2:
+		return FPersonaTabs::PreviewViewport2ID;
+	case 3:
+		return FPersonaTabs::PreviewViewport3ID;
+	}
+}
+
+
+static FName MakeViewportContextName(FName InContext, int32 InViewportIndex)
+{
+	return *FString::Printf(TEXT("%s%d"), *InContext.ToString(), InViewportIndex);
+}
+
+FPreviewViewportSummoner::FPreviewViewportSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const FPersonaViewportArgs& InArgs, int32 InViewportIndex)
+	: FWorkflowTabFactory(ViewportInstanceToTabName(InViewportIndex), InHostingApp)
 	, SkeletonTree(InArgs.SkeletonTree)
 	, PreviewScene(InArgs.PreviewScene)
 	, OnPostUndo(InArgs.OnPostUndo)
 	, BlueprintEditor(InArgs.BlueprintEditor)
 	, OnViewportCreated(InArgs.OnViewportCreated)
+	, OnGetViewportText(InArgs.OnGetViewportText)
 	, Extenders(InArgs.Extenders)
+	, ContextName(MakeViewportContextName(InArgs.ContextName, InViewportIndex))
+	, ViewportIndex(InViewportIndex)
 	, bShowShowMenu(InArgs.bShowShowMenu)
 	, bShowLODMenu(InArgs.bShowLODMenu)
 	, bShowPlaySpeedMenu(InArgs.bShowPlaySpeedMenu)
@@ -221,22 +252,24 @@ FPreviewViewportSummoner::FPreviewViewportSummoner(TSharedPtr<class FAssetEditor
 	, bShowTurnTable(InArgs.bShowTurnTable)
 	, bShowPhysicsMenu(InArgs.bShowPhysicsMenu)
 {
-	TabLabel = LOCTEXT("ViewportTabTitle", "Viewport");
+	TabLabel = FText::Format(LOCTEXT("ViewportTabTitle", "Viewport {0}"), FText::AsNumber(InViewportIndex + 1));
 	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports");
 
 	bIsSingleton = true;
 
-	ViewMenuDescription = LOCTEXT("ViewportView", "Viewport");
+	ViewMenuDescription = FText::Format(LOCTEXT("ViewportViewFormat", "Viewport {0}"), FText::AsNumber(InViewportIndex + 1));
 	ViewMenuTooltip = LOCTEXT("ViewportView_ToolTip", "Shows the viewport");
 }
 
 TSharedRef<SWidget> FPreviewViewportSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
 {
-	TSharedRef<SAnimationEditorViewportTabBody> NewViewport = SNew(SAnimationEditorViewportTabBody, SkeletonTree.Pin().ToSharedRef(), PreviewScene.Pin().ToSharedRef(), HostingApp.Pin().ToSharedRef(), OnPostUndo)
+	TSharedRef<SAnimationEditorViewportTabBody> NewViewport = SNew(SAnimationEditorViewportTabBody, SkeletonTree.Pin().ToSharedRef(), PreviewScene.Pin().ToSharedRef(), HostingApp.Pin().ToSharedRef(), OnPostUndo, ViewportIndex)
 		.BlueprintEditor(BlueprintEditor.Pin())
 		.OnInvokeTab(FOnInvokeTab::CreateSP(HostingApp.Pin().Get(), &FAssetEditorToolkit::InvokeTab))
 		.AddMetaData<FTagMetaData>(TEXT("Persona.Viewport"))
 		.Extenders(Extenders)
+		.ContextName(ContextName)
+		.OnGetViewportText(OnGetViewportText)
 		.ShowShowMenu(bShowShowMenu)
 		.ShowLODMenu(bShowLODMenu)
 		.ShowPlaySpeedMenu(bShowPlaySpeedMenu)
@@ -250,6 +283,35 @@ TSharedRef<SWidget> FPreviewViewportSummoner::CreateTabBody(const FWorkflowTabSp
 	OnViewportCreated.ExecuteIfBound(NewViewport);
 
 	return NewViewport;
+}
+
+FTabSpawnerEntry& FPreviewViewportSummoner::RegisterTabSpawner(TSharedRef<FTabManager> TabManager, const FApplicationMode* CurrentApplicationMode) const
+{
+	FTabSpawnerEntry& SpawnerEntry = FWorkflowTabFactory::RegisterTabSpawner(TabManager, nullptr);
+
+	if(CurrentApplicationMode)
+	{
+		// find an existing workspace item or create new
+		TSharedPtr<FWorkspaceItem> GroupItem = nullptr;
+		
+		for(const TSharedRef<FWorkspaceItem>& Item : CurrentApplicationMode->GetWorkspaceMenuCategory()->GetChildItems())
+		{
+			if(Item->GetDisplayName().ToString() == LOCTEXT("ViewportsSubMenu", "Viewports").ToString())
+			{
+				GroupItem = Item;
+				break;
+			}
+		}
+
+		if(!GroupItem.IsValid())
+		{
+			GroupItem = CurrentApplicationMode->GetWorkspaceMenuCategory()->AddGroup(LOCTEXT("ViewportsSubMenu", "Viewports"), LOCTEXT("ViewportsSubMenu_Tooltip", "Open a new viewport on the scene"), FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports"));
+		}
+
+		SpawnerEntry.SetGroup(GroupItem.ToSharedRef());
+	}
+
+	return SpawnerEntry;
 }
 
 /////////////////////////////////////////////////////
@@ -420,7 +482,7 @@ TSharedRef<SWidget> FAnimBlueprintPreviewEditorSummoner::CreateTabBody(const FWo
 																		TEXT("AnimBlueprintPropertyEditorPreviewMode")))
 						[
 							SNew( STextBlock )
-							.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9 ) )
+							.Font( FCoreStyle::GetDefaultFontStyle("Bold", 9) )
 							.Text( LOCTEXT("AnimBlueprintDefaultsPreviewMode", "Edit Preview") )
 						]
 					]
@@ -442,7 +504,7 @@ TSharedRef<SWidget> FAnimBlueprintPreviewEditorSummoner::CreateTabBody(const FWo
 																		TEXT("AnimBlueprintPropertyEditorDefaultMode")))
 						[
 							SNew( STextBlock )
-							.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9 ) )
+							.Font( FCoreStyle::GetDefaultFontStyle("Bold", 9) )
 							.Text( LOCTEXT("AnimBlueprintDefaultsDefaultsMode", "Edit Defaults") )
 						]
 					]

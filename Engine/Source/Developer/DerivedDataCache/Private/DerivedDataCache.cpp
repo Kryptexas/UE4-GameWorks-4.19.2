@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "CoreMinimal.h"
@@ -8,6 +8,7 @@
 #include "Stats/StatsMisc.h"
 #include "Stats/Stats.h"
 #include "Async/AsyncWork.h"
+#include "Async/TaskGraphInterfaces.h"
 #include "Serialization/MemoryReader.h"
 #include "Serialization/MemoryWriter.h"
 #include "Modules/ModuleManager.h"
@@ -448,6 +449,12 @@ public:
 		FDerivedDataBackend::Get().WaitForQuiescence(bShutdown);
 	}
 
+	/** Get whether a Shared Data Cache is in use */
+	virtual bool GetUsingSharedDDC() const override
+	{		
+		return FDerivedDataBackend::Get().GetUsingSharedDDC();
+	}
+
 	void GetDirectories(TArray<FString>& OutResults) override
 	{
 		FDerivedDataBackend::Get().GetDirectories(OutResults);
@@ -462,6 +469,12 @@ public:
 	virtual void GatherUsageStats(TMap<FString, FDerivedDataCacheUsageStats>& UsageStatsMap) override
 	{
 		FDerivedDataBackend::Get().GatherUsageStats(UsageStatsMap);
+	}
+
+	/** Get event delegate for data cache notifications */
+	virtual FOnDDCNotification& GetDDCNotificationEvent()
+	{
+		return DDCNotificationEvent;
 	}
 
 protected:
@@ -491,6 +504,9 @@ private:
 	FCriticalSection			SynchronizationObject;
 	/** Map of handle to pending task **/
 	TMap<uint32,FAsyncTask<FBuildAsyncWorker>*>	PendingTasks;
+
+	/** Cache notification delegate */
+	FOnDDCNotification DDCNotificationEvent;
 };
 
 //Forward reference

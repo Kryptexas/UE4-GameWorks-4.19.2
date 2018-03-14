@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,10 +7,10 @@
 #include "Widgets/SWidget.h"
 #include "KismetPins/SGraphPinNum.h"
 
-class GRAPHEDITOR_API SGraphPinInteger : public SGraphPinNum
+class GRAPHEDITOR_API SGraphPinInteger : public SGraphPinNum<int32>
 {
 public:
-	SLATE_BEGIN_ARGS(SGraphPinNum) {}
+	SLATE_BEGIN_ARGS(SGraphPinInteger) {}
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj);
@@ -18,6 +18,5 @@ public:
 protected:
 	//~ Begin SGraphPinString Interface
 	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override;
-	virtual void SetTypeInValue(const FText& NewTypeInValue, ETextCommit::Type CommitInfo) override;
 	//~ End SGraphPinString Interface
 };

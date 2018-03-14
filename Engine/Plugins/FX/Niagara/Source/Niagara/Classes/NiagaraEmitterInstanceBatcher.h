@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 NiagaraEmitterInstanceBatcher.h: Queueing and batching for Niagara simulation;
@@ -17,37 +17,7 @@ the same VectorVM byte code / compute shader code
 #include "ModuleManager.h"
 
 struct FNiagaraScriptExecutionContext;
-
-struct FNiagaraComputeExecutionContext
-{
-	FNiagaraComputeExecutionContext()
-		: MainDataSet(nullptr)
-		, SpawnRateInstances(0)
-		, BurstInstances(0)
-		, EventSpawnTotal(0)
-		, RTUpdateScript(0)
-		, RTSpawnScript(0)
-	{
-		TickCounter++;
-	}
-	class FNiagaraDataSet *MainDataSet;
-	TArray<FNiagaraDataSet*>UpdateEventWriteDataSets;
-	TArray<FNiagaraEventScriptProperties> EventHandlerScriptProps;
-	TArray<FNiagaraDataSet*> EventSets;
-	uint32 SpawnRateInstances;
-	uint32 BurstInstances;
-
-	TArray<int32> EventSpawnCounts;
-	uint32 EventSpawnTotal;
-
-	class FNiagaraScript *RTUpdateScript;
-	class FNiagaraScript *RTSpawnScript;
-	TArray<uint8, TAlignedHeapAllocator<16>> UpdateParams;		// RT side copy of the parameter data
-	TArray<FNiagaraScriptDataInterfaceInfo> UpdateInterfaces;
-	TArray<uint8, TAlignedHeapAllocator<16>> SpawnParams;		// RT side copy of the parameter data
-	static uint32 TickCounter;
-};
-
+struct FNiagaraComputeExecutionContext;
 
 class NiagaraEmitterInstanceBatcher : public FTickableGameObject, public FComputeDispatcher
 {
@@ -59,6 +29,11 @@ public:
 		if (RendererModule)
 		{
 			RendererModule->RegisterPostOpaqueComputeDispatcher(this);
+		}
+
+		if (DummyWriteIndexBuffer.Buffer == nullptr)
+		{
+			DummyWriteIndexBuffer.Initialize(sizeof(int32), 64, EPixelFormat::PF_R32_SINT);	// always allocate for up to 64 data sets
 		}
 	}
 
@@ -82,12 +57,12 @@ public:
 
 	void Queue(FNiagaraComputeExecutionContext *InContext);
 
-	virtual bool IsTickable() const
+	virtual ETickableTickType GetTickableTickType() const override
 	{
-		return true;
+		return ETickableTickType::Always;
 	}
 
-	virtual TStatId GetStatId() const
+	virtual TStatId GetStatId() const override
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(NiagaraEmitterInstanceBatcher, STATGROUP_Tickables);
 	}
@@ -123,12 +98,22 @@ public:
 	void UnsetEventUAVs(const FNiagaraComputeExecutionContext *Context, FRHICommandList &RHICmdList) const;
 	void SetupDataInterfaceBuffers(const TArray<FNiagaraScriptDataInterfaceInfo> &DIInfos, FNiagaraShader *Shader, FRHICommandList &RHICmdList) const;
 
-	void Run(FNiagaraDataSet *DataSet, const uint32 StartInstance, const uint32 NumInstances, class FNiagaraShader *Shader, const TArray<uint8, TAlignedHeapAllocator<16>>  &Params, FRHICommandList &RhiCmdList, bool bCopyBeforeStart = false) const;
+	void Run(	FNiagaraDataSet *DataSet,
+				uint32 Phase0StartInstance,
+				uint32 Phase1StartInstance,
+				const uint32 TotalNumInstances,
+				FNiagaraShader *Shader,
+				const TArray<uint8, TAlignedHeapAllocator<16>>  &Params,
+				FRHICommandList &RHICmdList,
+				const FRWBuffer &WriteIndexBuffer,
+				bool bCopyBeforeStart = false) const;
+
 	void RunEventHandlers(const FNiagaraComputeExecutionContext *Context, uint32 NumInstancesAfterSim, uint32 NumInstancesAfterSpawn, uint32 NumInstancesAfterNonEventSpawn, FRHICommandList &RhiCmdList) const;
-	void ResolveDatasetWrites(uint32 *OutArray, const FNiagaraComputeExecutionContext *Context) const;
+	void ResolveDatasetWrites(uint32 *OutArray, const FNiagaraComputeExecutionContext *Context, FRWBuffer &WriteIndexBuffer) const;
 private:
 	static NiagaraEmitterInstanceBatcher* BatcherSingleton;
 
 	uint32 CurQueueIndex;
 	TArray<FNiagaraComputeExecutionContext*> SimulationQueue[2];
+	static FRWBuffer DummyWriteIndexBuffer;
 };

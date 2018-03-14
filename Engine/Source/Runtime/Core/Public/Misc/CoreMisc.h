@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -179,29 +179,6 @@ struct CORE_API FUrlConfig
 
 bool CORE_API StringHasBadDashes(const TCHAR* Str);
 
-/**
- * Helper for script stack traces
- */
-struct FScriptTraceStackNode
-{
-	FName	Scope;
-	FName	FunctionName;
-
-	FScriptTraceStackNode(FName InScope, FName InFunctionName)
-		: Scope(InScope)
-		, FunctionName(InFunctionName)
-	{
-	}
-
-	FString GetStackDescription() const
-	{
-		return Scope.ToString() + TEXT(".") + FunctionName.ToString();
-	}
-
-private:
-	FScriptTraceStackNode() {};
-};
-
 /** Helper structure for boolean values in config */
 struct CORE_API FBoolConfigValueHelper
 {
@@ -225,6 +202,8 @@ public:
 #endif
 
 #if DO_BLUEPRINT_GUARD
+struct FFrame;
+
 /** 
  * Helper struct for dealing with Blueprint exceptions 
  */
@@ -252,8 +231,8 @@ public:
 	// Script entry point tracking
 	int32 ScriptEntryTag;
 
-	// Stack names from the VM to be unrolled when we assert
-	TArray<FScriptTraceStackNode> ScriptStack;
+	// Stack pointers from the VM to be unrolled when we assert
+	TArray<const FFrame*> ScriptStack;
 };
 
 #endif // DO_BLUEPRINT_GUARD

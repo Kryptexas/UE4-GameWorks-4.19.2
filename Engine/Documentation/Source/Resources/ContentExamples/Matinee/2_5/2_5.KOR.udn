@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3599948
+﻿INTSourceChangelist:3782314
 Availability: Docs
 Title:2.5 - 디렉터 그룹
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/Matinee
@@ -6,25 +6,7 @@ Description:Matinee 예제 레벨에 대한 개요로, 예제 2.5: Director Grou
 
 [TOC(start:2 end:2)]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Matinee/2_5:title%](Resources\ContentExamples\Matinee\matinee_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Matinee/2_5:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Matinee/2_5:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/Matinee/2_5]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+
 
 Director Group (디렉터 그룹) 없이 Camera Group (카메라 그룹)만 가지고는 별 쓸모가 없습니다. 기본적으로 카메라 트랙은 카메라를 뷰 타겟으로 설정하지 않습니다. 또한 작은 카메라 버튼은 편집용일 뿐, 게임에서 마티네를 언제 재생시킬지에 대해서는 아무런 영향이 없습니다. 디렉터 그룹(DirGroup)에는 Director (디렉터)라 불리는 트랙이 있습니다. 여기서 뷰 타겟을 설정하는데요. 카 프레임을 추가할 때, 해당 시점에서 전환시키고자 하는 카메라를 선택해 줘야 합니다.
 

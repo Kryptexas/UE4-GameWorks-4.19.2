@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -29,6 +29,11 @@ static void *rcAllocDefault(int size, rcAllocHint)
 static void rcFreeDefault(void *ptr)
 {
 	free(ptr);
+}
+
+void rcMemCpy(void* dst, void* src, int size)
+{
+	memcpy(dst, src, size);
 }
 
 static rcAllocFunc* sRecastAllocFunc = rcAllocDefault;

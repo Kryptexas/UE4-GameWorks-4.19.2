@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -18,12 +18,12 @@ public class LauncherCheck : ModuleRules
 
 		if (Target.bUseLauncherChecks)
 		{
-			Definitions.Add("WITH_LAUNCHERCHECK=1");
+			PublicDefinitions.Add("WITH_LAUNCHERCHECK=1");
 			PublicDependencyModuleNames.Add("LauncherPlatform");
 		}
         else
         {
-            Definitions.Add("WITH_LAUNCHERCHECK=0");
+            PublicDefinitions.Add("WITH_LAUNCHERCHECK=0");
         }
     }
 }

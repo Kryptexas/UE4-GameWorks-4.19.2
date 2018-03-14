@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistanceFieldAtlas.h
@@ -168,16 +168,10 @@ public:
 		delete this;
 	}
 
-	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-	SIZE_T GetResourceSize() const
-	{
-		return GetResourceSizeBytes();
-	}
-
 	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const
 	{
 		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(*this));
-		CumulativeResourceSize.AddUnknownMemoryBytes(CompressedDistanceFieldVolume.GetAllocatedSize());
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(CompressedDistanceFieldVolume.GetAllocatedSize());
 	}
 
 	SIZE_T GetResourceSizeBytes() const

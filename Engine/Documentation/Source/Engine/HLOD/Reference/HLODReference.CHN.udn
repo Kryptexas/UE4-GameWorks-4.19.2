@@ -134,7 +134,8 @@ Hierarchical LOD Outliner 拥有一些右键快捷菜单，以下是访问方法
 
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:GPM]
 生成代理模型时，这将使用集群 LOD 将这些 **Actors** 合并为一个单一资源。静态网格体的生成将取决于变更了哪些 HLOD 等级的设置。这也会应该材质、光照图，和诸多其他属性。 
 
@@ -157,4 +158,5 @@ Hierarchical LOD Outliner 拥有一些右键快捷菜单，以下是访问方法
 [/REGION]
 
 [/EXCERPT]
--->
+
+[/COMMENT]

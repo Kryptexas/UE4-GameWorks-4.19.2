@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -6,7 +6,7 @@ public class Stomp : ModuleRules
 {
     public Stomp(ReadOnlyTargetRules Target) : base(Target)
     {
-        Definitions.Add("STOMP_PACKAGE=1");
+        PublicDefinitions.Add("STOMP_PACKAGE=1");
 
 		bool bShouldUseModule = 
 			Target.Platform == UnrealTargetPlatform.Win32 ||
@@ -24,7 +24,7 @@ public class Stomp : ModuleRules
 
 		if (bShouldUseModule)
 		{
-			Definitions.Add("WITH_STOMP=1");
+			PublicDefinitions.Add("WITH_STOMP=1");
 
 			PrivateIncludePaths.AddRange(
 				new string[]
@@ -41,7 +41,7 @@ public class Stomp : ModuleRules
 		}
 		else
 		{
-			Definitions.Add("WITH_STOMP=0");
+			PublicDefinitions.Add("WITH_STOMP=0");
 		}
 	}
 }

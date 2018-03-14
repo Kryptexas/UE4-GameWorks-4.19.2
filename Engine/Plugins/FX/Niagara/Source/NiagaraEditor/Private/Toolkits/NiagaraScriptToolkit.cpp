@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraScriptToolkit.h"
 #include "NiagaraEditorModule.h"
@@ -38,6 +38,8 @@
 #include "PropertyEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraScriptToolkit"
+
+DECLARE_CYCLE_STAT(TEXT("Niagara - ScriptToolkit - OnApply"), STAT_NiagaraEditor_ScriptToolkit_OnApply, STATGROUP_NiagaraEditor);
 
 static TAutoConsoleVariable<int32> CVarDevDetails(
 	TEXT("fx.DevDetailsPanels"),
@@ -273,7 +275,7 @@ void FNiagaraScriptToolkit::SetupCommands()
 		FCanExecuteAction::CreateSP(this, &FNiagaraScriptToolkit::OnApplyEnabled));
 	GetToolkitCommands()->MapAction(
 		FNiagaraEditorCommands::Get().Compile,
-		FExecuteAction::CreateRaw(this, &FNiagaraScriptToolkit::CompileScript));
+		FExecuteAction::CreateRaw(this, &FNiagaraScriptToolkit::CompileScript, true));
 	GetToolkitCommands()->MapAction(
 		FNiagaraEditorCommands::Get().RefreshNodes,
 		FExecuteAction::CreateRaw(this, &FNiagaraScriptToolkit::RefreshNodes));
@@ -358,9 +360,9 @@ FText FNiagaraScriptToolkit::GetRefreshStatusTooltip() const
 	return LOCTEXT("Refresh_Status", "Currently dependencies up-to-date. Consider refreshing if status isn't accurate.");
 }
 
-void FNiagaraScriptToolkit::CompileScript()
+void FNiagaraScriptToolkit::CompileScript(bool bForce)
 {
-	ScriptViewModel->CompileStandaloneScript();
+	ScriptViewModel->CompileStandaloneScript(bForce);
 }
 
 void FNiagaraScriptToolkit::RefreshNodes()
@@ -370,8 +372,8 @@ void FNiagaraScriptToolkit::RefreshNodes()
 
 void FNiagaraScriptToolkit::OnApply()
 {
+	SCOPE_CYCLE_COUNTER(STAT_NiagaraEditor_ScriptToolkit_OnApply);
 	UE_LOG(LogNiagaraEditor, Log, TEXT("Applying Niagara Script %s"), *GetEditingObjects()[0]->GetName());
-
 	UpdateOriginalNiagaraScript();
 }
 
@@ -466,7 +468,7 @@ void FNiagaraScriptToolkit::UpdateOriginalNiagaraScript()
 		if (bRefreshed)
 		{
 			Source->NodeGraph->NotifyGraphNeedsRecompile();
-			AffectedScripts.Add(*It);
+			AffectedScripts.AddUnique(*It);
 		}
 		else
 		{
@@ -479,7 +481,7 @@ void FNiagaraScriptToolkit::UpdateOriginalNiagaraScript()
 				if (Graph == OriginalGraph)
 				{
 					Source->NodeGraph->NotifyGraphNeedsRecompile();
-					AffectedScripts.Add(*It);
+					AffectedScripts.AddUnique(*It);
 					break;
 				}
 			}
@@ -506,11 +508,11 @@ void FNiagaraScriptToolkit::UpdateOriginalNiagaraScript()
 			{
 				AffectedScriptViewModel = MakeShareable(new FNiagaraScriptViewModel(Script, FText::FromString(Script->GetName()), ENiagaraParameterEditMode::EditValueOnly));
 			}
-			AffectedScriptViewModel->CompileStandaloneScript();
+			AffectedScriptViewModel->CompileStandaloneScript(false);
 		}
 	}
 
-	FNiagaraEditorUtilities::UpdateExistingEmitters(AffectedEmitters);
+	FNiagaraEditorUtilities::CompileExistingEmitters(AffectedEmitters);
 
 	GWarn->EndSlowTask();
 	ScriptViewModel->SetScriptDirty(false);

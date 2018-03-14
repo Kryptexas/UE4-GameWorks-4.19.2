@@ -21,7 +21,7 @@ are created specifically for that Car. If this were not the case, when one Car i
 of Components by default simplifies the process of quickly adding unique sub-objects to Actors. 
 
 [REGION:note]
-Without Component instancing, all Component variables would need to be declared using the [Instanced](Programming\UnrealArchitecture\Reference\Properties\Specifiers\Instanced) property specifier.
+Without Component instancing, all Component variables would need to be declared using the [Instanced](Programming\UnrealArchitecture\Reference\Properties\Specifiers) property specifier.
 [/REGION]
 
 ## Actor Components

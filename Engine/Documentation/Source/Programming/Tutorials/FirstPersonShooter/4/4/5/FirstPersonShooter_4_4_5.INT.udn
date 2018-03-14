@@ -21,7 +21,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 During this step, we're going to set your jump loop to jump end transition.
 
@@ -39,4 +39,3 @@ During this step, we're going to set your jump loop to jump end transition.
 
 	![](IsNotFalling.png)
 
-%Steps%

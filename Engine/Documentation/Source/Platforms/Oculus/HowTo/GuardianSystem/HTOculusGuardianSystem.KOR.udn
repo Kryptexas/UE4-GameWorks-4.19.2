@@ -1,0 +1,70 @@
+﻿INTSourceChangelist:3719384
+Availability: Public
+Crumbs: %ROOT%, 
+Title: Oculus Rift Guardian 시스템 구성
+Description: 룸 스케일 VR 용 Rift Guardian 시스템 구성 안내입니다.
+Type: how-to
+Skilllevel: Beginner
+Version: 4.17
+Parent: Platforms/Oculus
+Order: 4
+tags: Basics
+topic-image:HTGuardian_System_Topic_Image.png
+prereq:Platforms\Oculus\HowTo\StandingCamera
+prereq:Platforms\VR\MotionController
+
+![](HTGuardian_System_Hero_Image.png)
+
+Oculus Guardian 시스템은 VR 상호작용 영역의 경계를 표시하는 데 사용됩니다. 트래킹 디바이스가 경계에 접근하면, Oculus Runtime 은 자동으로 비주얼 큐를 통해 사용자에게 알립니다. 여기서는 UE4 프로젝트의 플레이어 폰에 Oculus Guardian 시스템을 추가하는 법을 살펴보겠습니다.
+
+[REGION:note]
+Guardian 시스템의 정상 작동을 위해서는, Oculus App 으로 셋업이 되었는지 확인해 줘야 합니다. 그 자세한 방법 관련 정보는, 공식 [Oculus Guardian System](https://developer.oculus.com/documentation/pcsdk/latest/concepts/dg-guardian-system/) 셋업 페이지를 참고하세요.
+[/REGION]
+
+[REGION:warning]
+UE4 안에서 Guardian 시스템을 끄는 것은 가능하지도 **않고** 추천하지도 않습니다. 하지만 사용자가 경계에 가까워질 때 UE4 의 반응 방식을 조절할 수는 있습니다.
+[/REGION]
+
+## 단계
+
+Oculus Rift Guardian 시스템을 UE4 플레이어 폰에 추가하는 방법은 다음과 같습니다:
+
+1. 프로젝트의 플레이어 Pawn 블루프린트를 열고 **컴포넌트** 탭이 보이는지 확인합니다.
+
+1. **컴포넌트 추가** 버튼을 클릭하고 표시되는 목록에서 **OculusRiftBoundy** 컴포넌트를 검색합니다. 찾았으면 클릭하여 컴포넌트 리스트에 추가합니다.
+
+    ![](HTGuardian_System_00.png)
+
+1. 완료되면, 플레이어 폰이 다음 이미지와 같아 보일 것입니다.
+
+    ![](HTGuardian_System_01.png)
+
+## 최종 결과
+
+이제 VR 로 프로젝트를 실행하고 Rift HMD 를 쓴 뒤 VR 상호작용 영역 경계에 다가가면 다음 비디오와 같은 모습이 보일 것입니다.
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    AGgUNDZoObQ
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
+
+## UE4 프로젝트 다운로드
+
+이 예제를 만드는 데 사용된 UE4 프로젝트를 다운로드할 수 있는 링크입니다.
+
+* [**Oculus Rift Guardian System Set Up Project**](https://epicgames.box.com/s/s4vvkb2i0ohtice8vtqude6i8ih7hy8i)
+
+

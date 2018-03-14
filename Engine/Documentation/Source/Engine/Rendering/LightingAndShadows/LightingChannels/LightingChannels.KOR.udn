@@ -1,50 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 라이팅 채널
 Crumbs: %ROOT%, Engine
 Description:Lighting Channel, 라이팅 채널은 특정 라이트의 빛을 받는 렌더링가능 표면을 선택할 수 있는 렌더링 기능입니다.
 Navigation:topic
 Version: 4.13
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightingChannels:title%](Engine/Rendering/LightingAndShadows/lighting_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightingChannels:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightingChannels:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightingChannels]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightingChannels:title%](Engine/Rendering/LightingAndShadows/lighting_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightingChannels:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightingChannels:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightingChannels]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 ![](image_39.png)
 
@@ -83,12 +43,14 @@ Version: 4.13
 | **꺼짐** | 0.42ms   StandardDeferredLighting 1 draws 1 prims 3 verts |
 | **켜짐**  | [INCLUDE:#per1] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:per1]
 0.08ms   CopyStencilToLightingChannels 1 draws 1 prims 3 verts  
 0.45ms   StandardDeferredLighting 1 draws 1 prims 3 verts
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 ## 모바일에서
 

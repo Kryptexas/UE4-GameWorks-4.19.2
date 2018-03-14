@@ -22,7 +22,7 @@ Version:4.11
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在这步中，我们将设置待机到奔跑（奔跑到待机）的转换。角色开始移动后，状态机将从 **Idle** 转换到 **Run**。
 
@@ -56,4 +56,4 @@ Version:4.11
 
 	![](IsNotRunningtoResult.png)
 
-%Steps%
+

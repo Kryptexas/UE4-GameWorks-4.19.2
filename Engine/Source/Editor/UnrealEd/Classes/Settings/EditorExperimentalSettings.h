@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -121,9 +121,13 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = PIE, meta = (DisplayName = "Enable mobile PIE with preview device launch options."))
 	bool bMobilePIEPreviewDeviceLaunch;
 
-	/** Enables the ability to bake materials inside of the Static Mesh and Skeletal Mesh Editor, and for static mesh instances. */
-	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (ConfigRestartRequired = true))
-	bool bAssetMaterialBaking;
+	/** Enables in-editor support for text asset formats */
+	//UPROPERTY(EditAnywhere, config, Category = Core)
+	bool bTextAssetFormatSupport;
+
+	/** When creating new Material Layers and Material Layer Blends, set up example graphs. */
+	UPROPERTY(EditAnywhere, config, Category = Materials)
+	bool bExampleLayersAndBlends;
 	
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.

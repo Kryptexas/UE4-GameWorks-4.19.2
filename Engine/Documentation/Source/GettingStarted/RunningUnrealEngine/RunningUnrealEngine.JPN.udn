@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3531730
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:アンリアル エンジンを実行する
 Crumbs: %ROOT%, GettingStarted
@@ -11,9 +11,36 @@ version:4.9
 
 [EXCERPT:Main]
 
-
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 本ページでは、 **Development (開発)** ビルド コンフィギュレーションでコンパイルされたプロジェクトでエンジンを実行する方法を説明します。他のコンフィギュレーションでビルドされたプロジェクトを開くために
 必要な `UE4Editor-*.exe` または `UE4-*.exe` を置き換えることができます。バイナリの命名規則に関する詳細は、 [アンリアル エンジンのビルド](Programming/Development/BuildingUnrealEngine) ページを参照してください。
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+本ページでは、 **Development (開発)** ビルド コンフィギュレーションでコンパイルされたプロジェクトでエンジンを実行する方法を説明します。他のコンフィギュレーションでビルドされたプロジェクトを開くために
+必要な `UE4Editor-*.exe` または `UE4-*.exe` を置き換えることができます。バイナリの命名規則に関する詳細は、 [アンリアル エンジンのビルド](Programming/Development/BuildingUnrealEngine) ページを参照してください。
+[/PARAM]
+[/OBJECT]
+
 
 ## エディタの実行
 [EXCERPT:RunEditor]
@@ -491,7 +518,8 @@ $ VIEWMODE [Mode] :
 	travel DM-Deck
 
 
-<!--
+[COMMENT:none]
+
 [PUBLISH:Licensee]
 ## クックしたコンテンツでゲームを実行する
 
@@ -516,7 +544,8 @@ $ VIEWMODE [Mode] :
 
 
 [/PUBLISH:Licensee]
--->
+
+[/COMMENT]
 
 
 

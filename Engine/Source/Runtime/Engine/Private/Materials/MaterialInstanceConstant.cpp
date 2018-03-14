@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialInstanceConstant.cpp: MaterialInstanceConstant implementation.
@@ -18,6 +18,27 @@ void UMaterialInstanceConstant::PostLoad()
 	Super::PostLoad();
 }
 
+FLinearColor UMaterialInstanceConstant::K2_GetVectorParameterValue(FName ParameterName)
+{
+	FLinearColor Result(0,0,0);
+	Super::GetVectorParameterValue(ParameterName, Result);
+	return Result;
+}
+
+float UMaterialInstanceConstant::K2_GetScalarParameterValue(FName ParameterName)
+{
+	float Result = 0.f;
+	Super::GetScalarParameterValue(ParameterName, Result);
+	return Result;
+}
+
+UTexture* UMaterialInstanceConstant::K2_GetTextureParameterValue(FName ParameterName)
+{
+	UTexture* Result = NULL;
+	Super::GetTextureParameterValue(ParameterName, Result);
+	return Result;
+}
+
 #if WITH_EDITOR
 void UMaterialInstanceConstant::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -32,28 +53,28 @@ void UMaterialInstanceConstant::SetParentEditorOnly(UMaterialInterface* NewParen
 	SetParentInternal(NewParent, true);
 }
 
-void UMaterialInstanceConstant::SetVectorParameterValueEditorOnly(FName ParameterName, FLinearColor Value)
+void UMaterialInstanceConstant::SetVectorParameterValueEditorOnly(const FMaterialParameterInfo& ParameterInfo, FLinearColor Value)
 {
 	check(GIsEditor);
-	SetVectorParameterValueInternal(ParameterName,Value);
+	SetVectorParameterValueInternal(ParameterInfo,Value);
 }
 
-void UMaterialInstanceConstant::SetScalarParameterValueEditorOnly(FName ParameterName, float Value)
+void UMaterialInstanceConstant::SetScalarParameterValueEditorOnly(const FMaterialParameterInfo& ParameterInfo, float Value)
 {
 	check(GIsEditor);
-	SetScalarParameterValueInternal(ParameterName,Value);
+	SetScalarParameterValueInternal(ParameterInfo,Value);
 }
 
-void UMaterialInstanceConstant::SetTextureParameterValueEditorOnly(FName ParameterName, UTexture* Value)
+void UMaterialInstanceConstant::SetTextureParameterValueEditorOnly(const FMaterialParameterInfo& ParameterInfo, UTexture* Value)
 {
 	check(GIsEditor);
-	SetTextureParameterValueInternal(ParameterName,Value);
+	SetTextureParameterValueInternal(ParameterInfo,Value);
 }
 
-void UMaterialInstanceConstant::SetFontParameterValueEditorOnly(FName ParameterName,class UFont* FontValue,int32 FontPage)
+void UMaterialInstanceConstant::SetFontParameterValueEditorOnly(const FMaterialParameterInfo& ParameterInfo,class UFont* FontValue,int32 FontPage)
 {
 	check(GIsEditor);
-	SetFontParameterValueInternal(ParameterName,FontValue,FontPage);
+	SetFontParameterValueInternal(ParameterInfo,FontValue,FontPage);
 }
 
 void UMaterialInstanceConstant::ClearParameterValuesEditorOnly()

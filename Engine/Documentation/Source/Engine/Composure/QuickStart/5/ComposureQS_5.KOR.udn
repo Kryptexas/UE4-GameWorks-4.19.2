@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:5 - Composure Game Mode & Level Blueprint Setup
+﻿INTSourceChangelist:3728507
+Availability:Public
+Title:5 - 컴포셔 게임 모드 & 레베 블루프린트 구성
 Crumbs:%ROOT%
-Description:In this step, we will setup the level Blueprint and Game mode that Composure will use. 
+Description:컴포셔가 사용할 레벨 블루프린트와 게임 모드를 구성합니다.
 SkillLevel:Beginner
 Version:4.17
 checkpoint:ComposureQS
@@ -13,75 +13,75 @@ tags:Composure
 
 [NAV]
 
-In the following section, we will go over setting up the Level Blueprint and Game Mode so that Sequencer and Composure can work together when you run your project. When completed, you will have a re-creation of the third shot from the Composure example project.
+여기서는 프로젝트를 실행하면 시퀀서와 컴포셔가 같이 작동할 수 있도록 레벨 블루프린트와 게임 모드를 구성하는 법에 대해 살펴보도록 하겠습니다. 완료되면 컴포셔 예제 프로젝트의 세 번째 샷을 재현할 수 있을 것입니다.
 
-## Steps
+## 단계
 
-1. First, open up the Level Blueprint and click on the **Class Defaults** button. Then, over in the **Details** panel, under **Actor Tick**, press the Show Advanced Properties button and change the **Tick Group** to **Post Update Work**.
+1. 먼저 레벨 블루프린트를 열고 **클래스 디폴트** 버튼을 클릭합니다. **디테일** 패널에서 **Actor Tick** (액터 틱) 아래 고급 프로퍼티 표시 버튼을 누르고 **Tick Group** (틱 그룹) 을 **Post Update Work** (업데이트 작업 사후)로 설정합니다.
 
     [REGION:lightbox]
     [![](ComposureQS_S5_7.png)(w:740)](ComposureQS_S5_7.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    클릭하면 이미지 원본을 확인합니다.
     [/REGION]
 
     [region:warning]
-    If you fail to change the Actor Tick group, you will introduce one frame of latency in the camera position/direction because the Advanced Compositing pipeline query these inputs from the Player Camera Manager and all Tick generated animations in the scene. Moreover, this is the last Tick group that gets updated before triggering the rendering command, and since we are manually triggering this through Composure, it needs to be in the Post Update Work Tick group to work correctly.
+    액터 틱 그룹을 변경하지 못하면 카메라 위치/방향에 한 프레임 랙이 발생합니다. 왜냐하면 고급 합성 파이프라인에서는 이러한 플레이어 카메라 매니저로부터의 입력과 씬 내 모든 틱 생성 애니메이션을 대상으로 쿼리를 하기 때문입니다. 게다가 렌더링 명령을 내리기 전에 업데이트되는 마지막 틱 그룹인데, 컴포셔를 통해 수동으로 내리기 때문에 Post Update Work 틱 그룹에 있어야 정상 작동합니다.
     [/region]
 
-1. Select the BP_AdvancedCompositing Blueprint in the **World Outliner** and then inside the Level Blueprint, right - click and choose the **Create a Reference to BP_AdvancedCompositing** option.
+1. **월드 아웃라이너** 에서 BP_AdvancedCompositing 블루프린트를 선택하고 레벨 블루프린트 안에서 우클릭한 뒤 **Create a Reference to BP_AdvancedCompositing** (BP_AdvancedCompositing 에 레퍼런스 생성) 옵션을 선택합니다.
 
     [REGION:lightbox]
     [![](ComposureQS_S5_1.png)(w:603)](ComposureQS_S5_1.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    클릭하면 이미지 원본을 확인합니다.
     [/REGION]
 
-1. Drag off the out of the **BP_AdvancedCompositing** variable output and from the displayed list, search for the **Process Current Frame** node and add it to the graph, connecting the Event Tick output to the input on the Process Current Frame node.
+1. **BP_AdvancedCompositing** 변수 출력을 끌어놓으면 표시되는 목록에서 **Process Current Frame** 를 검색하여 그래프에 추가하고, Event Tick 출력은 Process Current Frame 노드의 입력에 연결합니다.
 
     [REGION:lightbox]
     [![](ComposureQS_S5_2.png)(w:615)](ComposureQS_S5_2.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    클릭하면 이미지 원본을 확인합니다.
     [/REGION]
 
-1. Next, drag of the Event Begin Play node output and from the displayed list, search for the **Set View Target with Blend** node and add it to the Event Graph. 
+1. Event Begin Play 노드 출력을 끌어놓고 **Set View Target with Blend** 노드를 검색하여 이벤트 그래프에 추가합니다.
 
     [REGION:lightbox]
     [![](ComposureQS_S5_3.png)(w:615)](ComposureQS_S5_3.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    클릭하면 이미지 원본을 확인합니다.
     [/REGION]
 
     [region:note]
-    You will need to disable **Context Sensitivity** in the Blueprint search box to see this node in the list.
+    블루프린트 검색 창의 **Context Sensitivity** (맥락 의존적) 옵션을 꺼 줘야 목록에서 이 노드가 보입니다.
     
     ![](ComposureQS_S5_4.png)
     [/region]
 
-1. Right- click in the Event Graph and search for a **Get Player Controller** and connect it to the **Target** input on the Target with Blend node. Then connect the **CineCameraActor** camera to the  **New View Target**  input on the Target with Blend node.
+1. 이벤트 그래프에 우클릭하고 **Get Player Controller** 를 추가한 뒤 Blend 노드가 있는 타겟 상의 **Target** 입력에 연결합니다. 그리고 **CineCameraActor** 카메라를 **New View Target** 입력에 연결합니다.
 
     [REGION:lightbox]
     [![](ComposureQS_S5_5.png)(w:500)](ComposureQS_S5_5.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    클릭하면 이미지 원본을 확인합니다.
     [/REGION]
 
-1. Now in the levels **World Settings** under **Game Mode** set the **Game Mode Override** to the **SimpleComposureGameModeBase** and then save your level.
+1. 이제 레벨의 **월드 세팅** 에서 **게임 모드** 아래 **Game Mode Override** (게임 모드 대체값)을 **SimpleComposureGameModeBase** 로 설정하고 레벨을 저장합니다.
 
     ![](ComposureQS_S5_6.png)
 
-1. To see what the final video will look like, first, make sure that you have the sequence open in Sequencer and then change your play mode to **Simulate** and press the **Play** button or scrub the timeline to get the images on the plates to show up like in the following video
+1. 최종 비디오와 같은 모습을 확인하려면, 먼저 시퀀서에 시퀀스가 열려있는지 그리고 플레이 모드를 **시뮬레이트** 로 바꾸고 **재생** 버튼을 누르거나 타임라인을 문지르면 플레이트의 이미지가 다음 비디오처럼 나타납니다.
 
     [OBJECT:EmbeddedVideo]
         [PARAMLITERAL:videoid]
@@ -101,9 +101,9 @@ In the following section, we will go over setting up the Level Blueprint and Gam
         [/PARAMLITERAL]
     [/OBJECT]
 
-## End Result
+## 최종 결과
 
-With the character now being able to mix seamlessly with the foreground, background and lighting this brings us to the end of the Composure Quick Start. Keep in mind that this is just a small example of what is possible with the Composure system. In the next and final step, there will be some "On Your Own" challenges you can attempt and links to additional documentation.
+이제 캐릭터가 전경, 배경, 라이팅가 매끄럽게 섞이면서 컴포셔 퀵 스타트를 마무리짓습니다. 참고로 이것은 컴포셔 시스템으로 할 수 있는 작업의 작은 예일 뿐입니다. 다음에는 직접 해볼 수 있는 추가 작업과 문서 링크를 제공해 드리겠습니다.
 
 
 [NAV]

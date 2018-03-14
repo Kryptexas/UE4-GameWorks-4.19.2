@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -104,11 +104,18 @@ public:
 	}
 
 	/**
-	* Sends the message when process is ready
+	* Sends the string message when process is ready
 	*
 	* @param Message to be sent
 	*/
 	void SendWhenReady(const FString &Message);
+
+	/**
+	* Sends the data message when process is ready
+	*
+	* @param Data to be sent
+	*/
+	void SendWhenReady(const TArray<uint8> &Data);
 
 	/**
 	* Returns the return code from the exited process
@@ -210,8 +217,11 @@ private:
 	// Holds the time at which the process ended. */
 	FDateTime EndTime;
 
-	// Holds messages to be written to pipe when ready */
-	TQueue<FString> MessagesToProcess;
+	// Holds string messages to be written to pipe when ready */
+	TQueue<FString> StringMessagesToProcess;
+
+	// Holds data messages to be written to pipe when ready */
+	TQueue<TArray<uint8>> DataMessagesToProcess;
 
 	// Holds a delegate that is executed when the process has been canceled. */
 	FSimpleDelegate CanceledDelegate;

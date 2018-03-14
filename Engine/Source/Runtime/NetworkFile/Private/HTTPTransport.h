@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -34,7 +34,7 @@ private:
 	FGuid Guid; 
 	TCHAR Url[1048];
 
-	TArray<uint8> RecieveBuffer; 
+	TArray<uint8> ReceiveBuffer; 
 	uint32 ReadPtr; 
 
 };

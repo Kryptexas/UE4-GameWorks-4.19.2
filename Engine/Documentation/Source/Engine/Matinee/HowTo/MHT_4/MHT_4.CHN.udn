@@ -6,19 +6,13 @@ Description:创建一个简单场景，实现淡入/淡出效果，添加多个�
 Version:4.9
 SkillLevel:Intermediate
 
----
 在此指导系列中，我们将创建一个简短的序列。它拥有多个摄像机角度，多个不同视野、景深以及其他后期处理效果。 
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		添加 Matinee，摄像机和道具
-	[/PARAM]
-	[PARAM:description]
-	在这步中我们将添加 **Matinee Actor**、**摄像机** 和一些作为镜头目标的道具。 
-	[/PARAM]
-[/OBJECT]
+添加 Matinee，摄像机和道具
+
+在这步中我们将添加 **Matinee Actor**、**摄像机** 和一些作为镜头目标的道具。 
 
 1. 在 **工具栏** 菜单中选择 **Matinee** 并点击 **Add Matinee** 按钮。 
 
@@ -63,14 +57,9 @@ SkillLevel:Intermediate
 	![](MHT4_C2_CameraSettings.png)
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		为 Matinee 添加摄像机并添加轨迹
-	[/PARAM]
-	[PARAM:description]
-	在这步中，我们将为 **Matinee** 添加 **摄像机** 并设置在场景中操作的后期处理轨道。
-	[/PARAM]
-[/OBJECT]
+为 Matinee 添加摄像机并添加轨迹
+
+在这步中，我们将为 **Matinee** 添加 **摄像机** 并设置在场景中操作的后期处理轨道。
 
 1. 在 **World Outliner** 中选中 Matinee，然后从 Details 面板中选择 **Open Matinee** 选项。 
 
@@ -119,14 +108,9 @@ SkillLevel:Intermediate
 	![](MHT4_CameraGroupsComplete.png)
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Camera 1, Shot 1 - 移动以及后期处理效果
-	[/PARAM]
-	[PARAM:description]
-	在这步中我们将为 Camera 1 添加摄像机运动和后期处理效果。Camera 1 也就是我们的第一个镜头。
-	[/PARAM]
-[/OBJECT]
+Camera 1, Shot 1 - 移动以及后期处理效果
+
+在这步中我们将为 Camera 1 添加摄像机运动和后期处理效果。Camera 1 也就是我们的第一个镜头。
 
 1. 在 Matinee 编辑器中，选择 Camera1 群组的 **FOVAngle** 轨迹，按下 **Enter** 键在 **0.00** 处添加一个关键帧。 
 
@@ -179,15 +163,9 @@ SkillLevel:Intermediate
 	_此操作将使背景先处于焦距中，在摄像机聚焦于前景的灌木之后开始淡出焦距。_
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Camera 2, Shot 2 - 移动以及后期处理效果
-	[/PARAM]
-	[PARAM:description]
-	在这步中我们将为 Camera 2 添加摄像机运动和后期处理效果。Camera 2 将用于我们的第二个镜头。 
-	[/PARAM]
-[/OBJECT]
+Camera 2, Shot 2 - 移动以及后期处理效果
 
+在这步中我们将为 Camera 2 添加摄像机运动和后期处理效果。Camera 2 将用于我们的第二个镜头。 
 
 
 1. 在 **Camera2** 的运动轨迹上将时间条移至 **5.00** 处，按下 **Enter** 键添加一个关键帧，然后删除 **0.00** 处的关键帧。
@@ -239,14 +217,9 @@ SkillLevel:Intermediate
 	_此操作将在聚焦于岩石时使背景模糊，然后在追拍云朵时聚焦于云朵。_
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Camera 1, Shot 3 - 添加电影效果
-	[/PARAM]
-	[PARAM:description]
-	在这步中，我们将切换回 camera 1 为序列的第三个镜头添加电影后期处理效果。 
-	[/PARAM]
-[/OBJECT]
+Camera 1, Shot 3 - 添加电影效果
+
+在这步中，我们将切换回 camera 1 为序列的第三个镜头添加电影后期处理效果。 
 
 1. 在 Matinee 编辑器中，选择并复制 Camera1 运动轨迹 **5.00** 处的关键帧。 
 
@@ -301,14 +274,9 @@ SkillLevel:Intermediate
 	_保持其默认设定，因其将通过 Matinee 更新。_
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Camera 2, Shot 4 - 添加场景色彩效果
-	[/PARAM]
-	[PARAM:description]
-	在这步中，我们将切换回 camera 2 为最后镜头的场景添加噪点滤镜效果。 
-	[/PARAM]
-[/OBJECT]
+Camera 2, Shot 4 - 添加场景色彩效果
+
+在这步中，我们将切换回 camera 2 为最后镜头的场景添加噪点滤镜效果。 
 
 1. 在 Matinee 编辑器中将时间条移至 **15.50** 处。 
 
@@ -335,14 +303,9 @@ SkillLevel:Intermediate
 	_保持默认设定，因其将通过 Matinee 更新。_
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		导演群组 - 添加镜头切换和淡化
-	[/PARAM]
-	[PARAM:description]
-	在这步中，我们将通过 **导演（Director）** 轨迹添加镜头切换和淡化，完成片段。 
-	[/PARAM]
-[/OBJECT]
+导演群组 - 添加镜头切换和淡化
+
+在这步中，我们将通过 **导演（Director）** 轨迹添加镜头切换和淡化，完成片段。 
 
 1. 在 Matinee 编辑器中 Camera2 最后一个轨迹下方的空白处 **单击右键**，从快捷菜单中选择 **Add New Director Group**。 
 

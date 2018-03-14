@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Models/TextureEditorViewportClient.h"
 #include "Widgets/Layout/SScrollBar.h"
@@ -66,83 +66,76 @@ void FTextureEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 	TextureEditorPtr.Pin()->PopulateQuickInfo();
 	
-	// Get the rendering info for this object
-	FThumbnailRenderingInfo* RenderInfo = GUnrealEd->GetThumbnailManager()->GetRenderingInfo(Texture);
+	UTexture2D* Texture2D = Cast<UTexture2D>(Texture);
+	UTextureCube* TextureCube = Cast<UTextureCube>(Texture);
+	UTextureRenderTarget2D* TextureRT2D = Cast<UTextureRenderTarget2D>(Texture);
+	UTextureRenderTargetCube* RTTextureCube = Cast<UTextureRenderTargetCube>(Texture);
 
-	// If there is an object configured to handle it, draw the thumbnail
-	if (RenderInfo != NULL && RenderInfo->Renderer != NULL)
+	// Fully stream in the texture before drawing it.
+	if (Texture2D)
 	{
-		UTexture2D* Texture2D = Cast<UTexture2D>(Texture);
-		UTextureCube* TextureCube = Cast<UTextureCube>(Texture);
-		UTextureRenderTarget2D* TextureRT2D = Cast<UTextureRenderTarget2D>(Texture);
-		UTextureRenderTargetCube* RTTextureCube = Cast<UTextureRenderTargetCube>(Texture);
+		Texture2D->SetForceMipLevelsToBeResident(30.0f);
+		Texture2D->WaitForStreaming();
+	}
 
-		// Fully stream in the texture before drawing it.
-		if (Texture2D)
+	// Figure out the size we need
+	uint32 Width, Height;
+	TextureEditorPtr.Pin()->CalculateTextureDimensions(Width, Height);
+
+	TRefCountPtr<FBatchedElementParameters> BatchedElementParameters;
+
+	if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	{
+		if (TextureCube || RTTextureCube)
 		{
-			Texture2D->SetForceMipLevelsToBeResident(30.0f);
-			Texture2D->WaitForStreaming();
+			BatchedElementParameters = new FMipLevelBatchedElementParameters((float)TextureEditorPtr.Pin()->GetMipLevel(), false);
 		}
-
-		// Figure out the size we need
-		uint32 Width, Height;
-		TextureEditorPtr.Pin()->CalculateTextureDimensions(Width, Height);
-
-		TRefCountPtr<FBatchedElementParameters> BatchedElementParameters;
-
-		if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+		else if (Texture2D)
 		{
-			if (TextureCube || RTTextureCube)
-			{
-				BatchedElementParameters = new FMipLevelBatchedElementParameters((float)TextureEditorPtr.Pin()->GetMipLevel(), false);
-			}
-			else if (Texture2D)
-			{
-				float MipLevel = (float)TextureEditorPtr.Pin()->GetMipLevel();
-				bool bIsNormalMap = Texture2D->IsNormalMap();
-				bool bIsSingleChannel = Texture2D->CompressionSettings == TC_Grayscale || Texture2D->CompressionSettings == TC_Alpha;
-				BatchedElementParameters = new FBatchedElementTexture2DPreviewParameters(MipLevel, bIsNormalMap, bIsSingleChannel);
-			}
-			else if (TextureRT2D)
-			{
-				float MipLevel = (float)TextureEditorPtr.Pin()->GetMipLevel();
-				BatchedElementParameters = new FBatchedElementTexture2DPreviewParameters(MipLevel, false, false);
-			}
-			else
-			{
-				// Default to treating any UTexture derivative as a 2D texture resource
-				float MipLevel = (float)TextureEditorPtr.Pin()->GetMipLevel();
-				BatchedElementParameters = new FBatchedElementTexture2DPreviewParameters(MipLevel, false, false);
-			}
+			float MipLevel = (float)TextureEditorPtr.Pin()->GetMipLevel();
+			bool bIsNormalMap = Texture2D->IsNormalMap();
+			bool bIsSingleChannel = Texture2D->CompressionSettings == TC_Grayscale || Texture2D->CompressionSettings == TC_Alpha;
+			BatchedElementParameters = new FBatchedElementTexture2DPreviewParameters(MipLevel, bIsNormalMap, bIsSingleChannel);
 		}
-
-		// Draw the background checkerboard pattern in the same size/position as the render texture so it will show up anywhere
-		// the texture has transparency
-		if (Settings.Background == TextureEditorBackground_CheckeredFill)
+		else if (TextureRT2D)
 		{
-			Canvas->DrawTile( 0.0f, 0.0f, Viewport->GetSizeXY().X, Viewport->GetSizeXY().Y, 0.0f, 0.0f, (Viewport->GetSizeXY().X / CheckerboardTexture->GetSizeX()), (Viewport->GetSizeXY().Y / CheckerboardTexture->GetSizeY()), FLinearColor::White, CheckerboardTexture->Resource);
+			float MipLevel = (float)TextureEditorPtr.Pin()->GetMipLevel();
+			BatchedElementParameters = new FBatchedElementTexture2DPreviewParameters(MipLevel, false, false);
 		}
-		else if (Settings.Background == TextureEditorBackground_Checkered)
+		else
 		{
-			Canvas->DrawTile( XPos, YPos, Width, Height, 0.0f, 0.0f, (Width / CheckerboardTexture->GetSizeX()), (Height / CheckerboardTexture->GetSizeY()), FLinearColor::White, CheckerboardTexture->Resource);
+			// Default to treating any UTexture derivative as a 2D texture resource
+			float MipLevel = (float)TextureEditorPtr.Pin()->GetMipLevel();
+			BatchedElementParameters = new FBatchedElementTexture2DPreviewParameters(MipLevel, false, false);
 		}
+	}
 
-		float Exposure = FMath::Pow(2.0f, (float)TextureEditorViewportPtr.Pin()->GetExposureBias());
+	// Draw the background checkerboard pattern in the same size/position as the render texture so it will show up anywhere
+	// the texture has transparency
+	if (Settings.Background == TextureEditorBackground_CheckeredFill)
+	{
+		Canvas->DrawTile( 0.0f, 0.0f, Viewport->GetSizeXY().X, Viewport->GetSizeXY().Y, 0.0f, 0.0f, (Viewport->GetSizeXY().X / CheckerboardTexture->GetSizeX()), (Viewport->GetSizeXY().Y / CheckerboardTexture->GetSizeY()), FLinearColor::White, CheckerboardTexture->Resource);
+	}
+	else if (Settings.Background == TextureEditorBackground_Checkered)
+	{
+		Canvas->DrawTile( XPos, YPos, Width, Height, 0.0f, 0.0f, (Width / CheckerboardTexture->GetSizeX()), (Height / CheckerboardTexture->GetSizeY()), FLinearColor::White, CheckerboardTexture->Resource);
+	}
 
-		if ( Texture->Resource != nullptr )
+	float Exposure = FMath::Pow(2.0f, (float)TextureEditorViewportPtr.Pin()->GetExposureBias());
+
+	if ( Texture->Resource != nullptr )
+	{
+		FCanvasTileItem TileItem( FVector2D( XPos, YPos ), Texture->Resource, FVector2D( Width, Height ), FLinearColor(Exposure, Exposure, Exposure) );
+		TileItem.BlendMode = TextureEditorPtr.Pin()->GetColourChannelBlendMode();
+		TileItem.BatchedElementParameters = BatchedElementParameters;
+		Canvas->DrawItem( TileItem );
+
+		// Draw a white border around the texture to show its extents
+		if (Settings.TextureBorderEnabled)
 		{
-			FCanvasTileItem TileItem( FVector2D( XPos, YPos ), Texture->Resource, FVector2D( Width, Height ), FLinearColor(Exposure, Exposure, Exposure) );
-			TileItem.BlendMode = TextureEditorPtr.Pin()->GetColourChannelBlendMode();
-			TileItem.BatchedElementParameters = BatchedElementParameters;
-			Canvas->DrawItem( TileItem );
-
-			// Draw a white border around the texture to show its extents
-			if (Settings.TextureBorderEnabled)
-			{
-				FCanvasBoxItem BoxItem( FVector2D(XPos, YPos), FVector2D(Width , Height ) );
-				BoxItem.SetColor( Settings.TextureBorderColor );
-				Canvas->DrawItem( BoxItem );
-			}
+			FCanvasBoxItem BoxItem( FVector2D(XPos, YPos), FVector2D(Width , Height ) );
+			BoxItem.SetColor( Settings.TextureBorderColor );
+			Canvas->DrawItem( BoxItem );
 		}
 	}
 }

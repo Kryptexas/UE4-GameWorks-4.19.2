@@ -19,7 +19,7 @@ Description:在世界中放置相机Director并分配相机到其中
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. 在代码编译完成后，我们可以把 **内容浏览器** 中的新类的实例拖曳到 **关卡编辑器** 中。
 
@@ -56,7 +56,7 @@ Description:在世界中放置相机Director并分配相机到其中
     [/PARAM]
     [PARAM:content]
 		**MyPawn.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -88,7 +88,7 @@ Description:在世界中放置相机Director并分配相机到其中
 			};
 
 		**MyPawn.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_AutoCamera.h"
 			#include "CameraDirector.h"
@@ -144,4 +144,4 @@ Description:在世界中放置相机Director并分配相机到其中
 [/OBJECT]
 
 
-%Steps%
+

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -23,7 +23,6 @@ public:
 	// FOnlineSubsystemGoogleCommon Interface
 	virtual bool Init() override;
 	virtual bool Shutdown() override;
-	virtual bool IsEnabled() const override;
 
 	// FOnlineSubsystemGoogle
 

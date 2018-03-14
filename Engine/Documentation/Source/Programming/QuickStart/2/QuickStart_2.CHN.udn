@@ -20,7 +20,7 @@ Version: 4.7
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
  1. 在 **Unreal Editor（虚幻编辑器）** 中，我们可以使用 **Add Code to Project（添加代码到项目）** 命令来创建新的C++类，它位于 **File（文件）** 下拉菜单中。
  
@@ -38,4 +38,4 @@ Version: 4.7
 
 现在我们已经创建了一个C++类，我们可以切换到 **Visual Studio** 来对它编程。 `FloatingActor.cpp`将会自动打开， **Unreal Engine（虚幻引擎）** 会自动编译并使用我们的新类来重新载入代码。
 
-%Steps%
+

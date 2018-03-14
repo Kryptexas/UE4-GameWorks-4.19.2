@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PacketHandlers/StatelessConnectHandlerComponent.h"
 #include "Stats/Stats.h"
@@ -146,7 +146,7 @@ DEFINE_LOG_CATEGORY(LogHandshake);
  */
 
 StatelessConnectHandlerComponent::StatelessConnectHandlerComponent()
-	: HandlerComponent()
+	: HandlerComponent(FName(TEXT("StatelessConnectHandlerComponent")))
 	, Driver(nullptr)
 	, HandshakeSecret()
 	, ActiveSecret(255)

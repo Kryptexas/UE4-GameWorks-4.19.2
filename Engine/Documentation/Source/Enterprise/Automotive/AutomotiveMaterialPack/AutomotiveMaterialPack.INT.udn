@@ -339,7 +339,8 @@ To change which reflector pattern is used,  open up the **Reflector** Material I
 
 ![](AP_08_Reflector_01.png)
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:RM]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -363,9 +364,11 @@ To change which reflector pattern is used,  open up the **Reflector** Material I
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:RM]
--->
 
-<!-----
+[/COMMENT]
+
+[COMMENT:none]
+---
 [EXCERPT:CP]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -398,9 +401,11 @@ To change which reflector pattern is used,  open up the **Reflector** Material I
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:CP]
--->
 
-<!-----
+[/COMMENT]
+
+[COMMENT:none]
+---
 [EXCERPT:RF]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -422,9 +427,11 @@ To change which reflector pattern is used,  open up the **Reflector** Material I
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:RF]
--->
 
-<!-----
+[/COMMENT]
+
+[COMMENT:none]
+---
 [EXCERPT:OP]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -448,4 +455,5 @@ To change which reflector pattern is used,  open up the **Reflector** Material I
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:OP]
--->
+
+[/COMMENT]

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Navigation/CrowdManager.h"
 #include "GameFramework/Actor.h"
@@ -1183,7 +1183,7 @@ void UCrowdManager::DebugTick() const
 				FString LogData = DetourAgentDebug->agentLog.FindRef(AgentData.AgentIndex);
 				if (LogData.Len() > 0)
 				{
-					UE_VLOG(LogOwner, LogCrowdFollowing, Log, *LogData);
+					UE_VLOG(LogOwner, LogCrowdFollowing, Log, TEXT("%s"), *LogData);
 				}
 
 				{

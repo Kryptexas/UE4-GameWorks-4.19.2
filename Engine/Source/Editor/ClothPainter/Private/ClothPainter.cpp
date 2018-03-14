@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ClothPainter.h"
 #include "MeshPaintSettings.h"
@@ -21,13 +21,17 @@
 
 #define LOCTEXT_NAMESPACE "ClothPainter"
 
+namespace ClothPaintConstants
+{
+	const float HoverQueryRadius = 50.0f;
+}
+
 FClothPainter::FClothPainter()
 	: IMeshPainter()
 	, SkeletalMeshComponent(nullptr)
 	, PaintSettings(nullptr)
 	, BrushSettings(nullptr)
 {
-	VertexPointSize = 3.0f;
 	VertexPointColor = FLinearColor::White;
 	WidgetLineThickness = .5f;
 	bShouldSimulate = false;
@@ -36,7 +40,7 @@ FClothPainter::FClothPainter()
 
 FClothPainter::~FClothPainter()
 {
-	SkeletalMeshComponent->ToggleMeshSectionForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting);
+	SkeletalMeshComponent->SetMeshSectionVisibilityForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting, true);
 
 	// Cancel rendering of the paint proxy
 	SkeletalMeshComponent->SelectedClothingGuidForPainting = FGuid();
@@ -93,11 +97,11 @@ bool FClothPainter::PaintInternal(const FVector& InCameraOrigin, const FVector& 
 			Args.Action = PaintAction;
 
 			if(SelectedTool->IsPerVertex())
-					{
+			{
 				bApplied = MeshPaintHelpers::ApplyPerVertexPaintAction(Args, GetPaintAction(Parameters));
-					}
+			}
 			else
-					{
+			{
 				bApplied = true;
 				GetPaintAction(Parameters).ExecuteIfBound(Args, INDEX_NONE);
 			}
@@ -178,12 +182,72 @@ void FClothPainter::RefreshClothingAssets()
 	}
 }
 
+void FClothPainter::EnterPaintMode()
+{
+	Reset();
+
+	if(SkeletalMeshComponent)
+	{
+		HoveredTextCallbackHandle = SkeletalMeshComponent->RegisterExtendedViewportTextDelegate(FGetExtendedViewportText::CreateSP(this, &FClothPainter::GetViewportText));
+	}
+}
+
+void FClothPainter::ExitPaintMode()
+{
+	if(SkeletalMeshComponent)
+	{
+		SkeletalMeshComponent->UnregisterExtendedViewportTextDelegate(HoveredTextCallbackHandle);
+	}
+}
+
+void FClothPainter::RecalculateAutoViewRange()
+{
+	if(!Adapter.IsValid())
+	{
+		return;
+	}
+
+	TSharedPtr<FClothMeshPaintAdapter> ClothAdapter = StaticCastSharedPtr<FClothMeshPaintAdapter>(Adapter);
+	FClothParameterMask_PhysMesh* CurrentMask = ClothAdapter->GetCurrentMask();
+
+	if(UClothPainterSettings* PainterSettings = Cast<UClothPainterSettings>(GetPainterSettings()))
+	{
+		if(PainterSettings->bAutoViewRange && CurrentMask)
+		{
+			CurrentMask->CalcRanges();
+
+			PainterSettings->AutoCalculatedViewMin = CurrentMask->MinValue;
+			PainterSettings->AutoCalculatedViewMax = CurrentMask->MaxValue;
+		}
+		else
+		{
+			PainterSettings->AutoCalculatedViewMin = 0.0f;
+			PainterSettings->AutoCalculatedViewMax = 0.0f;
+		}
+	}
+}
+
 void FClothPainter::Tick(FEditorViewportClient* ViewportClient, float DeltaTime)
 {
 	IMeshPainter::Tick(ViewportClient, DeltaTime);
 
 	SkeletalMeshComponent->MinClothPropertyView = PaintSettings->GetViewMin();
 	SkeletalMeshComponent->MaxClothPropertyView = PaintSettings->GetViewMax();
+
+	if(SelectedTool.IsValid() && PaintSettings->bAutoViewRange)
+	{
+		if(SelectedTool->HasValueRange())
+		{
+			float ToolMinRange = SkeletalMeshComponent->MinClothPropertyView;
+			float ToolMaxRange = SkeletalMeshComponent->MaxClothPropertyView;
+
+			SelectedTool->GetValueRange(ToolMinRange, ToolMaxRange);
+
+			SkeletalMeshComponent->MinClothPropertyView = FMath::Min(SkeletalMeshComponent->MinClothPropertyView, ToolMinRange);
+			SkeletalMeshComponent->MaxClothPropertyView = FMath::Max(SkeletalMeshComponent->MaxClothPropertyView, ToolMaxRange);
+		}
+	}
+
 	SkeletalMeshComponent->bClothFlipNormal = PaintSettings->bFlipNormal;
 	SkeletalMeshComponent->bClothCullBackface = PaintSettings->bCullBackface;
 	SkeletalMeshComponent->ClothMeshOpacity = PaintSettings->Opacity;
@@ -200,14 +264,14 @@ void FClothPainter::Tick(FEditorViewportClient* ViewportClient, float DeltaTime)
 					Asset->ApplyParameterMasks();
 				}
 			}
-
+		
 			SkeletalMeshComponent->RebuildClothingSectionsFixedVerts();
 		}
 
 		FComponentReregisterContext ReregisterContext(SkeletalMeshComponent);
-		SkeletalMeshComponent->ToggleMeshSectionForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting);
-		SkeletalMeshComponent->bDisableClothSimulation = !bShouldSimulate;		
+		SkeletalMeshComponent->bDisableClothSimulation = !bShouldSimulate;
 		SkeletalMeshComponent->bShowClothData = !bShouldSimulate;
+		SkeletalMeshComponent->SetMeshSectionVisibilityForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting, bShouldSimulate);
 		ViewportClient->Invalidate();
 	}
 
@@ -238,6 +302,9 @@ void FClothPainter::FinishPainting()
 				}
 			}
 		}
+
+		/** If necessary, recalculate view ranges when set to auto mode */
+		RecalculateAutoViewRange();
 	}
 
 	bArePainting = false;
@@ -251,8 +318,9 @@ void FClothPainter::Reset()
 	}
 
 	bArePainting = false;
-	SkeletalMeshComponent->ToggleMeshSectionForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting);
+	SkeletalMeshComponent->SetMeshSectionVisibilityForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting, true);
 	SkeletalMeshComponent->SelectedClothingGuidForPainting = FGuid();
+	bShouldSimulate = false;
 }
 
 TSharedPtr<IMeshPaintGeometryAdapter> FClothPainter::GetMeshAdapterForComponent(const UMeshComponent* Component)
@@ -317,6 +385,80 @@ void FClothPainter::Render(const FSceneView* View, FViewport* Viewport, FPrimiti
 		RenderInteractors(View, Viewport, PDI, true, SDPG_Foreground);
 	}
 
+	if(Adapter.IsValid() && SkeletalMeshComponent)
+	{
+		TSharedPtr<FClothMeshPaintAdapter> ClothAdapter = StaticCastSharedPtr<FClothMeshPaintAdapter>(Adapter);
+
+		TArray<MeshPaintHelpers::FPaintRay> PaintRays;
+		MeshPaintHelpers::RetrieveViewportPaintRays(View, Viewport, PDI, PaintRays);
+
+		bool bFoundValue = false;
+		float Value = 0.0f;
+
+		for(const MeshPaintHelpers::FPaintRay& PaintRay : PaintRays)
+		{
+			const FHitResult& HitResult = GetHitResult(PaintRay.RayStart, PaintRay.RayDirection);
+
+			if(HitResult.Component == SkeletalMeshComponent)
+			{
+				const FMatrix ComponentToWorldMatrix = SkeletalMeshComponent->GetComponentTransform().ToMatrixWithScale();
+				const FVector ComponentSpaceCameraPosition(ComponentToWorldMatrix.InverseTransformPosition(PaintRay.CameraLocation));
+				const FVector ComponentSpaceBrushPosition(ComponentToWorldMatrix.InverseTransformPosition(HitResult.Location));
+				const float ComponentSpaceBrushRadius = ClothPaintConstants::HoverQueryRadius;
+				const float ComponentSpaceSquaredBrushRadius = ComponentSpaceBrushRadius * ComponentSpaceBrushRadius;
+
+				TArray<TPair<int32, FVector>> VertexData;
+				ClothAdapter->GetInfluencedVertexData(ComponentSpaceSquaredBrushRadius, ComponentSpaceBrushPosition, ComponentSpaceCameraPosition, BrushSettings->bOnlyFrontFacingTriangles, VertexData);
+				
+				FClothParameterMask_PhysMesh* CurrentMask = ClothAdapter->GetCurrentMask();
+
+				if(CurrentMask && VertexData.Num() > 0)
+				{
+					int32 ClosestIndex = INDEX_NONE;
+					float ClosestDistanceSq = MAX_flt;
+					int32 NumVertsFound = VertexData.Num();
+					for(int32 CurrIndex = 0; CurrIndex < NumVertsFound; ++CurrIndex)
+					{
+						const float DistSq = (VertexData[CurrIndex].Value - ComponentSpaceBrushPosition).SizeSquared();
+
+						if(DistSq < ClosestDistanceSq)
+						{
+							ClosestDistanceSq = DistSq;
+							ClosestIndex = CurrIndex;
+						}
+					}
+
+					if(ClosestIndex != INDEX_NONE)
+					{
+						TPair<int32, FVector>& Nearest = VertexData[ClosestIndex];
+						bFoundValue = true;
+						Value = CurrentMask->GetValue(Nearest.Key);
+
+						break;
+					}
+				}
+			}
+		}
+
+		if(PaintRays.Num() > 0)
+		{
+			FText BaseText = LOCTEXT("ClothPaintViewportValueText", "Cloth Value: {0}");
+
+			if(bFoundValue)
+			{
+				FNumberFormattingOptions Options;
+				Options.MinimumFractionalDigits = 3;
+				Options.MaximumFractionalDigits = 3;
+
+				CachedHoveredClothValueText = FText::Format(BaseText, FText::AsNumber(Value, &Options));
+			}
+			else
+			{
+				CachedHoveredClothValueText = FText::Format(BaseText, LOCTEXT("ClothPaintViewportNotApplicable", "N/A"));
+			}
+		}
+	}
+	
 	const ESceneDepthPriorityGroup DepthPriority = bShowHiddenVerts ? SDPG_Foreground : SDPG_World;
 	// Render simulation mesh vertices if not simulating
 	if(SkeletalMeshComponent)
@@ -419,8 +561,8 @@ void FClothPainter::OnAssetSelectionChanged(UClothingAsset* InNewSelectedAsset, 
 			 InNewSelectedAsset->LodData[InAssetLod].ParameterMasks.IsValidIndex(InMaskIndex))
 		{
 			const FGuid NewGuid = InNewSelectedAsset->GetAssetGuid();
-			SkeletalMeshComponent->ToggleMeshSectionForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting);
-			SkeletalMeshComponent->ToggleMeshSectionForCloth(NewGuid);
+			SkeletalMeshComponent->SetMeshSectionVisibilityForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting, true);
+			SkeletalMeshComponent->SetMeshSectionVisibilityForCloth(NewGuid, false);
 
 			SkeletalMeshComponent->bDisableClothSimulation = true;
 			SkeletalMeshComponent->bShowClothData = true;
@@ -431,6 +573,10 @@ void FClothPainter::OnAssetSelectionChanged(UClothingAsset* InNewSelectedAsset, 
 
 			ClothAdapter->SetSelectedClothingAsset(NewGuid, InAssetLod, InMaskIndex);
 
+			for(TSharedPtr<FClothPaintToolBase> Tool : Tools)
+			{
+				Tool->OnMeshChanged();
+			}
 		}
 	}
 }

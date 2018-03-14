@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2620109
+﻿INTSourceChangelist:3719743
 Availability:Public
-Title:1.ポーンにカメラを親子付けする
+Title:1.カメラをポーンにアタッチする
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerCamera
-Description:スプリングアームとカメラを作成
-バージョン:4.9
+Description:スプリング アームとカメラを作成する
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -15,66 +15,67 @@ Description:スプリングアームとカメラを作成
 		[](Programming\Tutorials\PlayerCamera)
 	[/PARAM]
 	[PARAM:next]
-		[次の手順](Programming\Tutorials\PlayerCamera\2 "%Programming\Tutorials\PlayerCamera\2:title%")
+		[次のステップ](Programming\Tutorials\PlayerCamera\2 "%Programming\Tutorials\PlayerCamera\2:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
-%Steps%
 
-[REGION:tip] **アンリアルエンジン 4** 初心者の人は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このチュートリアルの対象者は、 **アンリアルエンジン** エディタでプロジェクトを作成、プロジェクトにC++コードを追加、コードをコンパイルおよび **コンポーネント** を **アクタ** に追加できる方を想定しています。[/REGION]
 
-1. まず「HowTo_PlayerCamera」という名前のスターターコンテンツを使用して、Basic Code（基本コード）プロジェクトを作成します。カスタム仕様の **ポーン** を作成したいので、この作業から取り掛かりましょう。このチュートリアルでは、新しい Pawn クラスに "PawnWithCamera" と名前を付けます。
+[REGION:tip] **アンリアルエンジン 4** 初心者の方は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このドキュメントでは、**アンリアル エンジン** のエディタでプロジェクトの作成、プロジェクトへの C++ コードの追加、コードのコンパイル、**アクタ** への **コンポーネント** の追加に慣れている方を対象として想定しています。[/REGION]
+
+1. まず「HowTo_PlayerCamera」という名前のスターター コンテンツを使用して、新規 Basic Code プロジェクトを作成します。まず、カスタムの **Pawn** クラスを作成します。このチュートリアルでは、新規 Pawn クラスに対して、PawnWithCamera という名前を使います。
 
 	[![](NamePawnClass.png)](NamePawnClass.png)
 
-1. 次に **Visual Studio** で 「PawnWithCamera.h」 ファイルを開いて、以下のコードをクラス定義の下に追加します：
+1. **Visual Studio** で 「PawnWithCamera.h」 ファイルを開いて、以下のコードをクラス定義の下に追加します。
 
 		protected:
 			UPROPERTY(EditAnywhere)
 			USpringArmComponent* OurCameraSpringArm;
 			UCameraComponent* OurCamera;
 
-	エンドに **CameraComponent** を親子付けした **SpringArmComponent** の作成にこれらの変数を使用します。スプリングアームは過度に固定せずに動きに合わせたより滑らかな動作を作成するため、カメラの親子付け（または別のコンポーネント）に適したシンプルな手法です。
+	こうした変数を使って、端に **CameraComponent** をアタッチした **SpringArmComponent** を作成します。スプリングアームは、カメラ (または他のコンポーネント) をアタッチする単純な方法であり、ある程度の柔軟性を持って、滑らかな動きをすることができます。
 
-1. その後、コンストラクタ内にコンポーネントを実際に作成しなくてはいけません。次のコードを **APawnWithCamera::APawnWithCamera** 内の "PawnWithCamera.cpp" に追加します：
+1. その後、コンストラクタで実際にコンポーネントを作成する必要があります。次のコードを **APawnWithCamera::APawnWithCamera** 内の PawnWithCamera.cpp に追加します。
 
-		//Create a new component（新規コンポーネントを作成）
+		//Create our components (コンポーネントを作成)
 		RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 		OurCameraSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpringArm"));
-		OurCameraSpringArm->AttachTo(RootComponent);
+		OurCameraSpringArm->SetupAttachment(RootComponent);
 		OurCameraSpringArm->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, 50.0f), FRotator(-60.0f, 0.0f, 0.0f));
 		OurCameraSpringArm->TargetArmLength = 400.f;
 		OurCameraSpringArm->bEnableCameraLag = true;
 		OurCameraSpringArm->CameraLagSpeed = 3.0f;
 
-	このコードはComponent階層のルートとして基本的な空の **SceneComponent** を作成します。その後、このコンポーネントに SpringArmComponent を作成して親子付けします。次に **Spring Arm** を60度のデフォルトピッチ（つまり60度下方向を見ます）とルートよりも50単位上の位置に設定します。SpringArmComponent クラス特有の値もいくつか設定します。このクラスは長さとモーションのスムースネスを判断します。この作業が終了したら、 CameraComponent を作成して以下のように SpringArmComponent のエンドに親子付けします：
+	これで基本的な空の **SceneComponent** がコンポーネント階層のルートとして作成されます。次に、SpringArmComponent を作成してアタッチします。**Spring Arm** はデフォルトのピッチ、 -60 度 (すなわち 60 度下向き) およびルートから 50 ユニット上の位置になります。SpringArmComponent クラス特有の値もいくつか設定します。こうした値でその長さと動きの滑らかさを決めます。設定したら、CameraComponent を作成して、SpringArmComponent の終端のソケットにアタッチします。
 
 		OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("GameCamera"));
-		OurCamera->AttachTo(OurCameraSpringArm, USpringArmComponent::SocketName);
+		OurCamera->SetupAttachment(OurCameraSpringArm, USpringArmComponent::SocketName);
 
-1. 以下に示すコードの一部を追加することにより、デフォルト設定およびスポーン時にローカルプレイヤーが自動でコントロールできる ポーン を最終的に設定できます。
+1. 最後に、以下のコードを追加することで、デフォルトのローカル プレイヤーによって自動的にポーンがスポーン時に制御されるように設定することができます。
 
-		//Take control of the default Player（デフォルトプレイヤーをコントロール）
+		//Take control of the default Player (デフォルトプレイヤーをコントロール)
 		AutoPossessPlayer = EAutoReceiveInput::Player0;
 
 ----
 
-カメラを楽にコントロールできるシンプルなポーンを作成しました。次に **アンリアルエンジン** エディタで入力値を設定して、これに対応するコードを作成します。
+これでカメラを快適に制御可能にするシンプルなポーンが用意できました。次に **アンリアル エンジン** エディタで入力を設定し、それに反応するコードを作成します。
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
-    コード
+    code
     [/PARAMLITERAL]
     [PARAM:heading]
 	    作業中のコード
     [/PARAM]
     [PARAM:content]
 		**PawnWithCamera.h**
-			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
+			#include "CoreMinimal.h"
 			#include "GameFramework/Pawn.h"
 			#include "PawnWithCamera.generated.h"
 
@@ -84,16 +85,18 @@ Description:スプリングアームとカメラを作成
 				GENERATED_BODY()
 
 			public:
-				// Sets default values for this pawn's properties（このポーンのプロパティのデフォルト値を設定）
+				// Sets default values for this pawn's properties (このポーンのプロパティのデフォルト値を設定) 
 				APawnWithCamera();
 
-				// Called when the game starts or when spawned（ゲーム開始またはスポーン時に呼ばれます）
+			protected:
+				// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出されます)
 				virtual void BeginPlay() override;
-	// Called every frame（フレームごとに呼ばれます）
+			public:
 
+				// Called every frame (フレーム毎に呼び出されます)
 				virtual void Tick( float DeltaSeconds ) override;
 
-				// Called to bind functionality to input（機能と入力をバインドするために呼ばれます）
+				// Called to bind functionality to input (機能を入力にバインドするために呼び出されます)
 				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
 			protected:
@@ -103,47 +106,47 @@ Description:スプリングアームとカメラを作成
 			};
 
 		**PawnWithCamera.cpp**
-			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_PlayerCamera.h"
 			#include "PawnWithCamera.h"
 
-			// Sets default values（デフォルト値を設定）
+			// Sets default values (デフォルト値を設定) 
 			APawnWithCamera::APawnWithCamera()
 			{
- 				// Set this pawn to call Tick() every frame.You can turn this off to improve performance if you don't need it.（このポーンがフレームごとにTick()を呼び出すように設定。必要なければパフォーマンスを向上させるためにオフにします）
+ 				// Set this pawn to call Tick() every frame. (フレーム毎に Tick() を呼び出すようにこのポーンを設定します。) You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます) 
 				PrimaryActorTick.bCanEverTick = true;
 
-				//Create a new component（新規コンポーネントを作成）
+				//Create our components (コンポーネントを作成)
 				RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 				OurCameraSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpringArm"));
-				OurCameraSpringArm->AttachTo(RootComponent);
+				OurCameraSpringArm->SetupAttachment(RootComponent);
 				OurCameraSpringArm->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, 50.0f), FRotator(-60.0f, 0.0f, 0.0f));
 				OurCameraSpringArm->TargetArmLength = 400.f;
 				OurCameraSpringArm->bEnableCameraLag = true;
 				OurCameraSpringArm->CameraLagSpeed = 3.0f;
 				OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("GameCamera"));
-				OurCamera->AttachTo(OurCameraSpringArm, USpringArmComponent::SocketName);
+				OurCamera->SetupAttachment(OurCameraSpringArm, USpringArmComponent::SocketName);
 
-				//Take control of the default Player（デフォルトプレイヤーをコントロール）
+				//Take control of the default Player (デフォルトプレイヤーをコントロール)
 				AutoPossessPlayer = EAutoReceiveInput::Player0;
 			}
 
-			// Called when the game starts or when spawned（ゲーム開始またはスポーン時に呼ばれます）
+			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出されます)
 			void APawnWithCamera::BeginPlay()
 			{
 				Super::BeginPlay();
 	}
 
 
-			// Called every frame（フレームごとに呼ばれます）
+			// Called every frame (フレーム毎に呼び出されます)
 			void APawnWithCamera::Tick( float DeltaTime )
 			{
 				Super::Tick( DeltaTime );
 
 			}
 
-			// Called to bind functionality to input（機能と入力をバインドするために呼ばれます）
+			// Called to bind functionality to input (機能を入力にバインドするために呼び出されます)
 			void APawnWithCamera::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 			{
 				Super::SetupPlayerInputComponent(InputComponent);
@@ -154,4 +157,4 @@ Description:スプリングアームとカメラを作成
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

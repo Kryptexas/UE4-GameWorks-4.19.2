@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -12,8 +12,6 @@ public class LevelEditor : ModuleRules
 				"ClassViewer",
 				"MainFrame",
                 "PlacementMode",
-				"ReferenceViewer",
-				"SizeMap",
 				"SlateReflector",
                 "IntroTutorials",
                 "AppFramework",
@@ -26,7 +24,8 @@ public class LevelEditor : ModuleRules
 				"Settings",
 				"IntroTutorials",
 				"HeadMountedDisplay",
-				"VREditor"
+				"VREditor",
+				"CommonMenuExtensions"
 			}
 		);
 
@@ -66,7 +65,8 @@ public class LevelEditor : ModuleRules
 				"HierarchicalLODUtilities",
 				"MaterialShaderQualitySettings",
 				"PixelInspectorModule",
-				"FunctionalTesting"
+				"FunctionalTesting",
+				"CommonMenuExtensions"
 			}
 		);
 
@@ -87,8 +87,6 @@ public class LevelEditor : ModuleRules
 				"NewLevelDialog",
 				"DeviceProfileEditor",
                 "PlacementMode",
-				"ReferenceViewer",
-				"SizeMap",
                 "IntroTutorials",
 				"HeadMountedDisplay",
 				"VREditor"

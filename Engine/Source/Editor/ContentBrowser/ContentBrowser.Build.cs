@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -16,9 +16,7 @@ public class ContentBrowser : ModuleRules
                 "MainFrame",
 				"PackagesDialog",
 				"SourceControl",
-				"SourceControlWindows",
-                "ReferenceViewer",
-                "SizeMap",
+				"SourceControlWindows"
 			}
 		);
 
@@ -52,9 +50,7 @@ public class ContentBrowser : ModuleRules
 				"AssetTools",
 				"CollectionManager",
 				"GameProjectGeneration",
-                "MainFrame",
-                "ReferenceViewer",
-                "SizeMap",
+                "MainFrame"
 			}
 		);
 		

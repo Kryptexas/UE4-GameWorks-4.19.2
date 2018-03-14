@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IOSTargetPlatform.h: Declares the FIOSTargetPlatform class.
@@ -91,6 +91,8 @@ public:
 	}
 
 	virtual bool SupportsFeature( ETargetPlatformFeatures Feature ) const override;
+
+	virtual bool CanSupportXGEShaderCompile() const override;
 
 	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutTutorialPath) const override;
 	virtual int32 CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath, FString& OutDocumenationPath, FText& CustomizedLogMessage) const override;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/LocalPlayer.h"
 #include "Misc/FileHelper.h"
@@ -26,7 +26,7 @@
 #include "Net/OnlineEngineInterface.h"
 #include "SceneManagement.h"
 #include "PhysicsPublic.h"
-#include "SkeletalMeshTypes.h"
+#include "SkeletalMeshRenderData.h"
 #include "HAL/PlatformApplicationMisc.h"
 
 #include "IHeadMountedDisplay.h"
@@ -43,7 +43,7 @@ DEFINE_LOG_CATEGORY(LogPlayerManagement);
 #if !UE_BUILD_SHIPPING
 
 static TAutoConsoleVariable<int32> CVarViewportTest(
-	TEXT("r.ViewportTest"),
+	TEXT("r.Test.ConstrainedView"),
 	0,
 	TEXT("Allows to test different viewport rectangle configuations (in game only) as they can happen when using Matinee/Editor.\n")
 	TEXT("0: off(default)\n")
@@ -155,7 +155,7 @@ class APawn* FLocalPlayerContext::GetPawn() const
 
 void FLocalPlayerContext::SetLocalPlayer( const ULocalPlayer* InLocalPlayer )
 {
-	LocalPlayer = InLocalPlayer;
+	LocalPlayer = MakeWeakObjectPtr(const_cast<ULocalPlayer*>(InLocalPlayer));
 }
 
 void FLocalPlayerContext::SetPlayerController( const APlayerController* InPlayerController )
@@ -194,8 +194,16 @@ void ULocalPlayer::PostInitProperties()
 
 		if( GEngine->StereoRenderingDevice.IsValid() )
 		{
-			StereoViewState.Allocate();
 			MonoViewState.Allocate();
+
+			const int32 NumViews = GEngine->StereoRenderingDevice->GetDesiredNumberOfViews(true);
+			check(NumViews > 0);
+			// ViewState is used for eSSP_LEFT_EYE, so we don't create one for that here.
+			StereoViewStates.SetNum(NumViews - 1);
+			for (auto& State : StereoViewStates)
+			{
+				State.Allocate();
+			}
 		}
 	}
 }
@@ -258,6 +266,7 @@ bool ULocalPlayer::SpawnPlayActor(const FString& URL,FString& OutError, UWorld* 
 		PlayerController = InWorld->SpawnActor<APlayerController>(PCClass, SpawnInfo);
 		const int32 PlayerIndex = GEngine->GetGamePlayers(InWorld).Find(this);
 		PlayerController->NetPlayerIndex = PlayerIndex;
+		PlayerController->Player = this;
 	}
 	return PlayerController != NULL;
 }
@@ -310,6 +319,13 @@ void ULocalPlayer::SendSplitJoin()
 				URL.AddOption(*FString::Printf(TEXT("Name=%s"), *PlayerName));
 			}
 
+			// Send any game-specific url options for this player
+			FString GameUrlOptions = GetGameLoginOptions();
+			if (GameUrlOptions.Len() > 0)
+			{
+				URL.AddOption(*FString::Printf(TEXT("%s"), *GameUrlOptions));
+			}
+
 			// Send the player unique Id at login
 			FUniqueNetIdRepl UniqueIdRepl(GetPreferredUniqueNetId());
 
@@ -325,8 +341,12 @@ void ULocalPlayer::FinishDestroy()
 	if ( !IsTemplate() )
 	{
 		ViewState.Destroy();
-		StereoViewState.Destroy();
 		MonoViewState.Destroy();
+
+		for (FSceneViewStateReference& StereoViewState : StereoViewStates)
+		{
+			StereoViewState.Destroy();
+		}
 	}
 	Super::FinishDestroy();
 }
@@ -669,20 +689,6 @@ bool ULocalPlayer::CalcSceneViewInitOptions(
 		return false;
 	}
 
-#if WITH_EDITOR
-	if (GIsEditor)
-	{
-		if (!ViewportClient->GetEngineShowFlags()->ScreenPercentage)
-		{
-			// Disables any screen percentage derived for game such as r.ScreenPercentage or FPostProcessSettings::ScreenPercentage.
-			ViewInitOptions.bDisableGameScreenPercentage = true;
-		}
-
-		// PIE viewports should adjust screen percentage if necessary (for DPI scale performance)
-		ViewInitOptions.EditorViewScreenPercentage = ViewportClient->GetEditorScreenPercentage();
-	}
-#endif
-
 	if (PlayerController->PlayerCameraManager != NULL)
 	{
 		// Apply screen fade effect to screen.
@@ -715,11 +721,16 @@ bool ULocalPlayer::CalcSceneViewInitOptions(
 		break;
 
 	case eSSP_RIGHT_EYE:
-		ViewInitOptions.SceneViewStateInterface = StereoViewState.GetReference();
+		ViewInitOptions.SceneViewStateInterface = StereoViewStates[0].GetReference();
 		break;
 
 	case eSSP_MONOSCOPIC_EYE:
 		ViewInitOptions.SceneViewStateInterface = MonoViewState.GetReference();
+		break;
+		
+	default:
+		check(StereoPass > eSSP_MONOSCOPIC_EYE);
+		ViewInitOptions.SceneViewStateInterface = StereoViewStates[StereoPass - eSSP_MONOSCOPIC_EYE].GetReference();
 		break;
 	}
 
@@ -974,6 +985,10 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 
 	int32 X = FMath::TruncToInt(Origin.X * Viewport->GetSizeXY().X);
 	int32 Y = FMath::TruncToInt(Origin.Y * Viewport->GetSizeXY().Y);
+
+	X += Viewport->GetInitialPositionXY().X;
+	Y += Viewport->GetInitialPositionXY().Y;
+
 	uint32 SizeX = FMath::TruncToInt(Size.X * Viewport->GetSizeXY().X);
 	uint32 SizeY = FMath::TruncToInt(Size.Y * Viewport->GetSizeXY().Y);
 
@@ -1172,9 +1187,9 @@ bool ULocalPlayer::HandleListSkelMeshesCommand( const TCHAR* Cmd, FOutputDevice&
 		if( SkeletalMesh && SkeletalMeshComponents.Num() )
 		{
 			// Dump information about skeletal mesh.
-			FSkeletalMeshResource* SkelMeshResource = SkeletalMesh->GetResourceForRendering();
-			check(SkelMeshResource->LODModels.Num());
-			UE_LOG(LogPlayerManagement, Log, TEXT("%5i Vertices for LOD 0 of %s"),SkelMeshResource->LODModels[0].NumVertices,*SkeletalMesh->GetFullName());
+			FSkeletalMeshRenderData* SkelMeshRenderData = SkeletalMesh->GetResourceForRendering();
+			check(SkelMeshRenderData->LODRenderData.Num());
+			UE_LOG(LogPlayerManagement, Log, TEXT("%5i Vertices for LOD 0 of %s"), SkelMeshRenderData->LODRenderData[0].GetNumVertices(),*SkeletalMesh->GetFullName());
 
 			// Dump all instances.
 			for( int32 InstanceIndex=0; InstanceIndex<SkeletalMeshComponents.Num(); InstanceIndex++ )
@@ -1242,14 +1257,14 @@ bool ULocalPlayer::HandleExecCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 bool ULocalPlayer::HandleToggleDrawEventsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 #if WITH_PROFILEGPU
-	if( GEmitDrawEvents )
+	if( GetEmitDrawEvents() )
 	{
-		GEmitDrawEvents = false;
+		SetEmitDrawEvents(false);
 		UE_LOG(LogEngine, Warning, TEXT("Draw events are now DISABLED"));
 	}
 	else
 	{
-		GEmitDrawEvents = true;
+		SetEmitDrawEvents(true);
 		UE_LOG(LogEngine, Warning, TEXT("Draw events are now ENABLED"));
 	}
 #endif
@@ -1598,10 +1613,13 @@ void ULocalPlayer::AddReferencedObjects(UObject* InThis, FReferenceCollector& Co
 		Ref->AddReferencedObjects(Collector);
 	}
 
-	FSceneViewStateInterface* StereoRef = This->StereoViewState.GetReference();
-	if (StereoRef)
+	for (FSceneViewStateReference& StereoViewState : This->StereoViewStates)
 	{
-		StereoRef->AddReferencedObjects(Collector);
+		FSceneViewStateInterface* StereoRef = StereoViewState.GetReference();
+		if (StereoRef)
+		{
+			StereoRef->AddReferencedObjects(Collector);
+		}
 	}
 
 	FSceneViewStateInterface* MonoRef = This->MonoViewState.GetReference();

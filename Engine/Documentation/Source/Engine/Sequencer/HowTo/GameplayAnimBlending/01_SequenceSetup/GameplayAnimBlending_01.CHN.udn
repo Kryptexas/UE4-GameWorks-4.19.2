@@ -1,0 +1,98 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title:1. Sequence Setup
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:In this step we create our Level Sequence and add the animation in Sequencer we want to blend to. 
+Version: 4.17
+SkillLevel: Advanced
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+tags:Sequencer
+tags:Animation
+type:how-to
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Gameplay Animation Blending - Home ](Engine\Sequencer\HowTo\GameplayAnimBlending)
+	[/PARAM]
+	[PARAM:next]
+		[Next](Engine\Sequencer\HowTo\GameplayAnimBlending\02_AnimCharacterBPs)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[COMMENT:none]
+ Pulling this as we aren't doing it this way anymore. 
+
+
+[/COMMENT]
+
+[nav]
+
+In this step we set up our Level Sequence and add our playable character and animation we want to blend to. 
+
+[REGION:note]
+For this how-to guide, we are using the **Blueprint Third Person Template** with **Animation Starter Pack** available for free from the Epic Marketplace. 
+
+![](AnimStarterPack.png)
+
+[/REGION]
+
+1.	Inside your project, delete the **ThirdPersonCharacter** from the level and add the **Ue4ASP_Character**, setting **Auto Possess Player** to **Player 0**. 
+
+	![](GameBlend_01.png)
+
+	Optionally, you can disable the capsule component from being displayed by selecting the capsule component then checking the **Hidden in Game** option. 
+
+	![](GameBlend_01b.png)
+
+1.	From the main toolbar, click the **Cinematics** button then select **Add Level Sequence** and save it with any name. 
+
+	![](GameBlend_02.png)
+
+1.	In your Level Sequence, add the **Ue4ASP_Character** and an **Animation Track** with **Death_3** assigned as the animation. 
+
+	![](GameBlend_03.png)
+
+1.	Right-click on the animation in the keyframe window then under properties, change **When Finished** to **Keep State**. 
+
+	![](GameBlend_03b.png)
+
+	This will enable us to preserve the animation state when the Level Sequence is over. Also, take note of the **Slot Name** property highlighted below. 
+
+	![](GameBlend_03c.png)
+
+	When an Animation Blueprint is controlling a Skeletal Mesh, Sequencer plays back animations on slots within that Blueprint and is controllable through the **Slot Name** property. 
+	An Animation Blueprint can then Blend between a slot Animation and whatever game logic driven animation your character may happen to be in. 
+
+In the next step, we set up our Animation Blueprint and Character Blueprint so that we can blend from our gameplay animation into our death animation we created in this step. 
+
+[nav]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

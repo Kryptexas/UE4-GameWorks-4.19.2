@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrimitiveSceneProxy.cpp: Primitive scene proxy implementation.
@@ -12,6 +12,7 @@
 #include "SceneManagement.h"
 #include "PrimitiveSceneInfo.h"
 #include "Materials/Material.h"
+#include "SceneManagement.h"
 
 static TAutoConsoleVariable<int32> CVarForceSingleSampleShadowingFromStationary(
 	TEXT("r.Shadow.ForceSingleSampleShadowingFromStationary"),
@@ -38,6 +39,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	LevelColor(FLinearColor::White)
 ,	PropertyColor(FLinearColor::White)
 ,	Mobility(InComponent->Mobility)
+,	LightmapType(InComponent->LightmapType)
 ,	DrawInGame(InComponent->IsVisible())
 ,	DrawInEditor(InComponent->bVisible)
 ,	bRenderInMono(InComponent->bRenderInMono)
@@ -77,7 +79,6 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	bCastInsetShadow(InComponent->bSelfShadowOnly ? true : InComponent->bCastInsetShadow)	// Assumed to be enabled if bSelfShadowOnly is enabled.
 ,	bCastCinematicShadow(InComponent->bCastCinematicShadow)
 ,	bCastFarShadow(InComponent->bCastFarShadow)
-,	bLightAsIfStatic(InComponent->bLightAsIfStatic)
 ,	bLightAttachmentsAsGroup(InComponent->bLightAttachmentsAsGroup)
 ,	bSingleSampleShadowFromStationaryLights(InComponent->bSingleSampleShadowFromStationaryLights)
 ,	bStaticElementsAlwaysUseProxyPrimitiveUniformBuffer(false)
@@ -93,7 +94,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	bSelectable(InComponent->bSelectable)
 ,	bHasPerInstanceHitProxies(InComponent->bHasPerInstanceHitProxies)
 ,	bUseEditorCompositing(InComponent->bUseEditorCompositing)
-,	bReceiveCombinedCSMAndStaticShadowsFromStationaryLights(InComponent->bReceiveCombinedCSMAndStaticShadowsFromStationaryLights)
+,	bReceiveMobileCSMShadows(InComponent->bReceiveMobileCSMShadows)
 ,	bRenderCustomDepth(InComponent->bRenderCustomDepth)
 ,	CustomDepthStencilValue(InComponent->CustomDepthStencilValue)
 ,	CustomDepthStencilWriteMask(FRendererStencilMaskEvaluation::ToStencilMask(InComponent->CustomDepthStencilWriteMask))
@@ -292,6 +293,27 @@ void FPrimitiveSceneProxy::SetTransform(const FMatrix& InLocalToWorld, const FBo
 	OnTransformChanged();
 }
 
+bool FPrimitiveSceneProxy::WouldSetTransformBeRedundant(const FMatrix& InLocalToWorld, const FBoxSphereBounds& InBounds, const FBoxSphereBounds& InLocalBounds, FVector InActorPosition)
+{
+	if (LocalToWorld != InLocalToWorld)
+	{
+		return false;
+	}
+	if (Bounds != InBounds)
+	{
+		return false;
+	}
+	if (LocalBounds != InLocalBounds)
+	{
+		return false;
+	}
+	if (ActorPosition != InActorPosition)
+	{
+		return false;
+	}
+	return true;
+}
+
 void FPrimitiveSceneProxy::ApplyWorldOffset(FVector InOffset)
 {
 	FBoxSphereBounds NewBounds = FBoxSphereBounds(Bounds.Origin + InOffset, Bounds.BoxExtent, Bounds.SphereRadius);
@@ -310,7 +332,9 @@ void FPrimitiveSceneProxy::ApplyLateUpdateTransform(const FMatrix& LateUpdateTra
 
 bool FPrimitiveSceneProxy::UseSingleSampleShadowFromStationaryLights() const 
 { 
-	return bSingleSampleShadowFromStationaryLights || CVarForceSingleSampleShadowingFromStationary.GetValueOnRenderThread() != 0; 
+	return bSingleSampleShadowFromStationaryLights 
+		|| CVarForceSingleSampleShadowingFromStationary.GetValueOnRenderThread() != 0
+		|| LightmapType == ELightmapType::ForceVolumetric; 
 }
 
 #if !UE_BUILD_SHIPPING
@@ -403,6 +427,11 @@ void FPrimitiveSceneProxy::SetCustomDepthStencilValue_RenderThread(const int32 I
 {
 	check(IsInRenderingThread());
 	CustomDepthStencilValue = InCustomDepthStencilValue;
+}
+
+void FPrimitiveSceneProxy::SetDistanceFieldSelfShadowBias_RenderThread(float NewBias)
+{
+	DistanceFieldSelfShadowBias = NewBias;
 }
 
 /**
@@ -759,4 +788,15 @@ bool FPrimitiveSceneProxy::GetMaterialTextureScales(int32 LODIndex, int32 Sectio
 { 
 	return false; 
 }
+
 #endif // WITH_EDITORONLY_DATA
+
+FLODMask FPrimitiveSceneProxy::GetCustomLOD(const FSceneView& InView, float InViewLODScale, int32 InForcedLODLevel, float& OutScreenSizeSquared) const
+{
+	return FLODMask();
+}
+
+FLODMask FPrimitiveSceneProxy::GetCustomWholeSceneShadowLOD(const FSceneView& InView, float InViewLODScale, int32 InForcedLODLevel, const struct FLODMask& InVisibilePrimitiveLODMask, float InShadowMapTextureResolution, float InShadowMapCascadeSize, int8 InShadowCascadeId, bool InHasSelfShadow) const
+{
+	return FLODMask();
+}

@@ -2,12 +2,15 @@
  * Copyright 2016-2017 Nikolay Aleksiev. All rights reserved.
  * License: https://github.com/naleksiev/mtlpp/blob/master/LICENSE
  */
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -18,7 +21,7 @@ namespace mtlpp
         A8Unorm                                            = 1,
 
         R8Unorm                                            = 10,
-        R8Unorm_sRGB          MTLPP_AVAILABLE_IOS(8_0)     = 11,
+        R8Unorm_sRGB          MTLPP_AVAILABLE_AX(8_0)     = 11,
 
         R8Snorm                                            = 12,
         R8Uint                                             = 13,
@@ -31,15 +34,15 @@ namespace mtlpp
         R16Float                                           = 25,
 
         RG8Unorm                                           = 30,
-        RG8Unorm_sRGB         MTLPP_AVAILABLE_IOS(8_0)     = 31,
+        RG8Unorm_sRGB         MTLPP_AVAILABLE_AX(8_0)     = 31,
         RG8Snorm                                           = 32,
         RG8Uint                                            = 33,
         RG8Sint                                            = 34,
 
-        B5G6R5Unorm           MTLPP_AVAILABLE_IOS(8_0)     = 40,
-        A1BGR5Unorm           MTLPP_AVAILABLE_IOS(8_0)     = 41,
-        ABGR4Unorm            MTLPP_AVAILABLE_IOS(8_0)     = 42,
-        BGR5A1Unorm           MTLPP_AVAILABLE_IOS(8_0)     = 43,
+        B5G6R5Unorm           MTLPP_AVAILABLE_AX(8_0)     = 40,
+        A1BGR5Unorm           MTLPP_AVAILABLE_AX(8_0)     = 41,
+        ABGR4Unorm            MTLPP_AVAILABLE_AX(8_0)     = 42,
+        BGR5A1Unorm           MTLPP_AVAILABLE_AX(8_0)     = 43,
 
         R32Uint                                            = 53,
         R32Sint                                            = 54,
@@ -68,8 +71,8 @@ namespace mtlpp
 		
 		BGR10A2Unorm  		  MTLPP_AVAILABLE(10_13, 11_0) = 94,
 
-        BGR10_XR              MTLPP_AVAILABLE_IOS(10_0)    = 554,
-        BGR10_XR_sRGB         MTLPP_AVAILABLE_IOS(10_0)    = 555,
+        BGR10_XR              MTLPP_AVAILABLE_AX(10_0)    = 554,
+        BGR10_XR_sRGB         MTLPP_AVAILABLE_AX(10_0)    = 555,
 
 
         RG32Uint                                           = 103,
@@ -82,8 +85,8 @@ namespace mtlpp
         RGBA16Sint                                         = 114,
         RGBA16Float                                        = 115,
 
-        BGRA10_XR             MTLPP_AVAILABLE_IOS(10_0)    = 552,
-        BGRA10_XR_sRGB        MTLPP_AVAILABLE_IOS(10_0)    = 553,
+        BGRA10_XR             MTLPP_AVAILABLE_AX(10_0)    = 552,
+        BGRA10_XR_sRGB        MTLPP_AVAILABLE_AX(10_0)    = 553,
 
         RGBA32Uint                                         = 123,
         RGBA32Sint                                         = 124,
@@ -106,56 +109,56 @@ namespace mtlpp
         BC7_RGBAUnorm         MTLPP_AVAILABLE_MAC(10_11)   = 152,
         BC7_RGBAUnorm_sRGB    MTLPP_AVAILABLE_MAC(10_11)   = 153,
 
-        PVRTC_RGB_2BPP        MTLPP_AVAILABLE_IOS(8_0)     = 160,
-        PVRTC_RGB_2BPP_sRGB   MTLPP_AVAILABLE_IOS(8_0)     = 161,
-        PVRTC_RGB_4BPP        MTLPP_AVAILABLE_IOS(8_0)     = 162,
-        PVRTC_RGB_4BPP_sRGB   MTLPP_AVAILABLE_IOS(8_0)     = 163,
-        PVRTC_RGBA_2BPP       MTLPP_AVAILABLE_IOS(8_0)     = 164,
-        PVRTC_RGBA_2BPP_sRGB  MTLPP_AVAILABLE_IOS(8_0)     = 165,
-        PVRTC_RGBA_4BPP       MTLPP_AVAILABLE_IOS(8_0)     = 166,
-        PVRTC_RGBA_4BPP_sRGB  MTLPP_AVAILABLE_IOS(8_0)     = 167,
+        PVRTC_RGB_2BPP        MTLPP_AVAILABLE_AX(8_0)     = 160,
+        PVRTC_RGB_2BPP_sRGB   MTLPP_AVAILABLE_AX(8_0)     = 161,
+        PVRTC_RGB_4BPP        MTLPP_AVAILABLE_AX(8_0)     = 162,
+        PVRTC_RGB_4BPP_sRGB   MTLPP_AVAILABLE_AX(8_0)     = 163,
+        PVRTC_RGBA_2BPP       MTLPP_AVAILABLE_AX(8_0)     = 164,
+        PVRTC_RGBA_2BPP_sRGB  MTLPP_AVAILABLE_AX(8_0)     = 165,
+        PVRTC_RGBA_4BPP       MTLPP_AVAILABLE_AX(8_0)     = 166,
+        PVRTC_RGBA_4BPP_sRGB  MTLPP_AVAILABLE_AX(8_0)     = 167,
 
-        EAC_R11Unorm          MTLPP_AVAILABLE_IOS(8_0)     = 170,
-        EAC_R11Snorm          MTLPP_AVAILABLE_IOS(8_0)     = 172,
-        EAC_RG11Unorm         MTLPP_AVAILABLE_IOS(8_0)     = 174,
-        EAC_RG11Snorm         MTLPP_AVAILABLE_IOS(8_0)     = 176,
-        EAC_RGBA8             MTLPP_AVAILABLE_IOS(8_0)     = 178,
-        EAC_RGBA8_sRGB        MTLPP_AVAILABLE_IOS(8_0)     = 179,
+        EAC_R11Unorm          MTLPP_AVAILABLE_AX(8_0)     = 170,
+        EAC_R11Snorm          MTLPP_AVAILABLE_AX(8_0)     = 172,
+        EAC_RG11Unorm         MTLPP_AVAILABLE_AX(8_0)     = 174,
+        EAC_RG11Snorm         MTLPP_AVAILABLE_AX(8_0)     = 176,
+        EAC_RGBA8             MTLPP_AVAILABLE_AX(8_0)     = 178,
+        EAC_RGBA8_sRGB        MTLPP_AVAILABLE_AX(8_0)     = 179,
 
-        ETC2_RGB8             MTLPP_AVAILABLE_IOS(8_0)     = 180,
-        ETC2_RGB8_sRGB        MTLPP_AVAILABLE_IOS(8_0)     = 181,
-        ETC2_RGB8A1           MTLPP_AVAILABLE_IOS(8_0)     = 182,
-        ETC2_RGB8A1_sRGB      MTLPP_AVAILABLE_IOS(8_0)     = 183,
+        ETC2_RGB8             MTLPP_AVAILABLE_AX(8_0)     = 180,
+        ETC2_RGB8_sRGB        MTLPP_AVAILABLE_AX(8_0)     = 181,
+        ETC2_RGB8A1           MTLPP_AVAILABLE_AX(8_0)     = 182,
+        ETC2_RGB8A1_sRGB      MTLPP_AVAILABLE_AX(8_0)     = 183,
 
-        ASTC_4x4_sRGB         MTLPP_AVAILABLE_IOS(8_0)     = 186,
-        ASTC_5x4_sRGB         MTLPP_AVAILABLE_IOS(8_0)     = 187,
-        ASTC_5x5_sRGB         MTLPP_AVAILABLE_IOS(8_0)     = 188,
-        ASTC_6x5_sRGB         MTLPP_AVAILABLE_IOS(8_0)     = 189,
-        ASTC_6x6_sRGB         MTLPP_AVAILABLE_IOS(8_0)     = 190,
-        ASTC_8x5_sRGB         MTLPP_AVAILABLE_IOS(8_0)     = 192,
-        ASTC_8x6_sRGB         MTLPP_AVAILABLE_IOS(8_0)     = 193,
-        ASTC_8x8_sRGB         MTLPP_AVAILABLE_IOS(8_0)     = 194,
-        ASTC_10x5_sRGB        MTLPP_AVAILABLE_IOS(8_0)     = 195,
-        ASTC_10x6_sRGB        MTLPP_AVAILABLE_IOS(8_0)     = 196,
-        ASTC_10x8_sRGB        MTLPP_AVAILABLE_IOS(8_0)     = 197,
-        ASTC_10x10_sRGB       MTLPP_AVAILABLE_IOS(8_0)     = 198,
-        ASTC_12x10_sRGB       MTLPP_AVAILABLE_IOS(8_0)     = 199,
-        ASTC_12x12_sRGB       MTLPP_AVAILABLE_IOS(8_0)     = 200,
+        ASTC_4x4_sRGB         MTLPP_AVAILABLE_AX(8_0)     = 186,
+        ASTC_5x4_sRGB         MTLPP_AVAILABLE_AX(8_0)     = 187,
+        ASTC_5x5_sRGB         MTLPP_AVAILABLE_AX(8_0)     = 188,
+        ASTC_6x5_sRGB         MTLPP_AVAILABLE_AX(8_0)     = 189,
+        ASTC_6x6_sRGB         MTLPP_AVAILABLE_AX(8_0)     = 190,
+        ASTC_8x5_sRGB         MTLPP_AVAILABLE_AX(8_0)     = 192,
+        ASTC_8x6_sRGB         MTLPP_AVAILABLE_AX(8_0)     = 193,
+        ASTC_8x8_sRGB         MTLPP_AVAILABLE_AX(8_0)     = 194,
+        ASTC_10x5_sRGB        MTLPP_AVAILABLE_AX(8_0)     = 195,
+        ASTC_10x6_sRGB        MTLPP_AVAILABLE_AX(8_0)     = 196,
+        ASTC_10x8_sRGB        MTLPP_AVAILABLE_AX(8_0)     = 197,
+        ASTC_10x10_sRGB       MTLPP_AVAILABLE_AX(8_0)     = 198,
+        ASTC_12x10_sRGB       MTLPP_AVAILABLE_AX(8_0)     = 199,
+        ASTC_12x12_sRGB       MTLPP_AVAILABLE_AX(8_0)     = 200,
 
-        ASTC_4x4_LDR          MTLPP_AVAILABLE_IOS(8_0)     = 204,
-        ASTC_5x4_LDR          MTLPP_AVAILABLE_IOS(8_0)     = 205,
-        ASTC_5x5_LDR          MTLPP_AVAILABLE_IOS(8_0)     = 206,
-        ASTC_6x5_LDR          MTLPP_AVAILABLE_IOS(8_0)     = 207,
-        ASTC_6x6_LDR          MTLPP_AVAILABLE_IOS(8_0)     = 208,
-        ASTC_8x5_LDR          MTLPP_AVAILABLE_IOS(8_0)     = 210,
-        ASTC_8x6_LDR          MTLPP_AVAILABLE_IOS(8_0)     = 211,
-        ASTC_8x8_LDR          MTLPP_AVAILABLE_IOS(8_0)     = 212,
-        ASTC_10x5_LDR         MTLPP_AVAILABLE_IOS(8_0)     = 213,
-        ASTC_10x6_LDR         MTLPP_AVAILABLE_IOS(8_0)     = 214,
-        ASTC_10x8_LDR         MTLPP_AVAILABLE_IOS(8_0)     = 215,
-        ASTC_10x10_LDR        MTLPP_AVAILABLE_IOS(8_0)     = 216,
-        ASTC_12x10_LDR        MTLPP_AVAILABLE_IOS(8_0)     = 217,
-        ASTC_12x12_LDR        MTLPP_AVAILABLE_IOS(8_0)     = 218,
+        ASTC_4x4_LDR          MTLPP_AVAILABLE_AX(8_0)     = 204,
+        ASTC_5x4_LDR          MTLPP_AVAILABLE_AX(8_0)     = 205,
+        ASTC_5x5_LDR          MTLPP_AVAILABLE_AX(8_0)     = 206,
+        ASTC_6x5_LDR          MTLPP_AVAILABLE_AX(8_0)     = 207,
+        ASTC_6x6_LDR          MTLPP_AVAILABLE_AX(8_0)     = 208,
+        ASTC_8x5_LDR          MTLPP_AVAILABLE_AX(8_0)     = 210,
+        ASTC_8x6_LDR          MTLPP_AVAILABLE_AX(8_0)     = 211,
+        ASTC_8x8_LDR          MTLPP_AVAILABLE_AX(8_0)     = 212,
+        ASTC_10x5_LDR         MTLPP_AVAILABLE_AX(8_0)     = 213,
+        ASTC_10x6_LDR         MTLPP_AVAILABLE_AX(8_0)     = 214,
+        ASTC_10x8_LDR         MTLPP_AVAILABLE_AX(8_0)     = 215,
+        ASTC_10x10_LDR        MTLPP_AVAILABLE_AX(8_0)     = 216,
+        ASTC_12x10_LDR        MTLPP_AVAILABLE_AX(8_0)     = 217,
+        ASTC_12x12_LDR        MTLPP_AVAILABLE_AX(8_0)     = 218,
 
         GBGR422                                            = 240,
 
@@ -175,3 +178,4 @@ namespace mtlpp
     MTLPP_AVAILABLE(10_11, 8_0);
 }
 
+MTLPP_END

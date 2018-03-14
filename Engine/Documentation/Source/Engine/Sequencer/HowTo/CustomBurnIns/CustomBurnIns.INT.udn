@@ -10,6 +10,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 When rendering out your cinematics, you may want to provide additional information or functionality that extends past the [Default Burn In](Engine\Sequencer\HowTo\BurnIns) settings that include time, shot and frame information. 
 With a little bit of [Unreal Motion Graphics](Engine/UMG) and [](Engine/Blueprints) you can create your own custom burn ins and overlay functionality. 

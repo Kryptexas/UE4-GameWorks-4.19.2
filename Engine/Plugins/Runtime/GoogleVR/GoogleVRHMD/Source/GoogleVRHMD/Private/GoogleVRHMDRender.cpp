@@ -127,7 +127,7 @@ void FGoogleVRHMD::GenerateDistortionCorrectionVertexBuffer(EStereoscopicPass Ey
 
 void FGoogleVRHMD::DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FIntPoint& TextureSize)
 {
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	FRHICommandListImmediate& RHICmdList = Context.RHICmdList;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	FIntPoint ViewportSize = ViewFamily.RenderTarget->GetSizeXY();

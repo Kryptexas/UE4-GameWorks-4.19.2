@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/Viewport.h"
 #include "Misc/App.h"
@@ -13,6 +13,7 @@
 #include "PreviewScene.h"
 #include "EngineModule.h"
 #include "Slate/SceneViewport.h"
+#include "LegacyScreenPercentageDriver.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -159,7 +160,11 @@ void FUMGViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 		.SetWorldTimes(TimeSeconds, DeltaTimeSeconds, RealTimeSeconds)
 		.SetRealtimeUpdate(bIsRealTime));
 
-	ViewFamily.EngineShowFlags = EngineShowFlags;
+	// Get DPI derived view fraction.
+	float GlobalResolutionFraction = GetDPIDerivedResolutionFraction();
+
+	// Force screen percentage show flag for High DPI.
+	ViewFamily.EngineShowFlags.ScreenPercentage = true;
 
 	//UpdateLightingShowFlags(ViewFamily.EngineShowFlags);
 
@@ -168,6 +173,9 @@ void FUMGViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	//ViewFamily.LandscapeLODOverride = LandscapeLODOverride;
 
 	FSceneView* View = CalcSceneView(&ViewFamily);
+
+	ViewFamily.SetScreenPercentageInterface(new FLegacyScreenPercentageDriver(
+		ViewFamily, GlobalResolutionFraction, /* AllowPostProcessSettingsScreenPercentage = */ false));
 
 	//SetupViewForRendering(ViewFamily, *View);
 
@@ -286,10 +294,6 @@ FSceneView* FUMGViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 	ViewInitOptions.ViewElementDrawer = this;
 
 	ViewInitOptions.BackgroundColor = GetBackgroundColor();
-
-#if WITH_EDITOR
-	ViewInitOptions.EditorViewScreenPercentage = GetEditorScreenPercentage();
-#endif
 
 	//ViewInitOptions.EditorViewBitflag = 0, // send the bit for this view - each actor will check it's visibility bits against this
 

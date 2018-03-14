@@ -1,15 +1,23 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NullSourceCodeAccessor.h"
 #include "Misc/Paths.h"
+#include "PlatformProcess.h"
+#include "App.h"
 
 #define LOCTEXT_NAMESPACE "NullSourceCodeAccessor"
 bool FNullSourceCodeAccessor::CanAccessSourceCode() const
 {
-	// only check the binaries that UBT will/can use. This file must be in sync with LinuxToolChain.cs
-	return FPaths::FileExists(TEXT("/usr/bin/clang++")) || FPaths::FileExists(TEXT("/usr/bin/clang++-3.5"))
-		|| FPaths::FileExists(TEXT("/usr/bin/clang++-3.6")) || FPaths::FileExists(TEXT("/usr/bin/clang++-3.7")) || FPaths::FileExists(TEXT("/usr/bin/clang++-3.8"))
-		|| FPaths::FileExists(TEXT("/usr/bin/clang++-3.9")) || FPaths::FileExists(TEXT("/usr/bin/clang++-4.0"));
+	if (FApp::IsEngineInstalled())
+	{
+		// only check the binaries that UBT will/can use. This file must be loosely in sync with LinuxToolChain.cs
+		return FPaths::FileExists(TEXT("/usr/bin/clang++")) || FPaths::FileExists(TEXT("/usr/bin/clang++-5.0")) || FPaths::FileExists(TEXT("/usr/bin/clang++-3.5"))
+			|| FPaths::FileExists(TEXT("/usr/bin/clang++-3.6")) || FPaths::FileExists(TEXT("/usr/bin/clang++-3.7")) || FPaths::FileExists(TEXT("/usr/bin/clang++-3.8"))
+			|| FPaths::FileExists(TEXT("/usr/bin/clang++-3.9")) || FPaths::FileExists(TEXT("/usr/bin/clang++-4.0"));
+	}
+
+	// if the build is a source one, assume the compiler was available to build it
+	return true;
 }
 
 FName FNullSourceCodeAccessor::GetFName() const
@@ -34,6 +42,9 @@ bool FNullSourceCodeAccessor::OpenSolution()
 
 bool FNullSourceCodeAccessor::OpenSolutionAtPath(const FString& InSolutionPath)
 {
+	FString Path = FPaths::GetPath(InSolutionPath);
+	FPlatformProcess::ExploreFolder(*Path);
+
 	return true;
 }
 

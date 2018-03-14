@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "WidgetBlueprintCompiler.h"
 #include "Components/SlateWrapperTypes.h"
@@ -75,14 +75,12 @@ void FWidgetBlueprintCompiler::CreateFunctionList()
 				// Create a function entry node
 				FGraphNodeCreator<UK2Node_FunctionEntry> FunctionEntryCreator(*FunctionGraph);
 				UK2Node_FunctionEntry* EntryNode = FunctionEntryCreator.CreateNode();
-				EntryNode->SignatureClass = NULL;
-				EntryNode->SignatureName = FunctionGraph->GetFName();
+				EntryNode->FunctionReference.SetSelfMember(FunctionGraph->GetFName());
 				FunctionEntryCreator.Finalize();
 
 				FGraphNodeCreator<UK2Node_FunctionResult> FunctionReturnCreator(*FunctionGraph);
 				UK2Node_FunctionResult* ReturnNode = FunctionReturnCreator.CreateNode();
-				ReturnNode->SignatureClass = NULL;
-				ReturnNode->SignatureName = FunctionGraph->GetFName();
+				ReturnNode->FunctionReference.SetSelfMember(FunctionGraph->GetFName());
 				ReturnNode->NodePosX = EntryNode->NodePosX + EntryNode->NodeWidth + 256;
 				ReturnNode->NodePosY = EntryNode->NodePosY;
 				FunctionReturnCreator.Finalize();
@@ -152,15 +150,15 @@ void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 {
 	UWidgetBlueprint* WidgetBP = WidgetBlueprint();
 
+	const bool bRecompilingOnLoad = Blueprint->bIsRegeneratingOnLoad;
+	const ERenameFlags RenFlags = REN_DontCreateRedirectors | (bRecompilingOnLoad ? REN_ForceNoResetLoaders : 0) | REN_NonTransactional | REN_DoNotDirty;
+
 	if ( !Blueprint->bIsRegeneratingOnLoad && bIsFullCompile )
 	{
 		UPackage* WidgetTemplatePackage = WidgetBP->GetWidgetTemplatePackage();
 		UUserWidget* OldArchetype = FindObjectFast<UUserWidget>(WidgetTemplatePackage, TEXT("WidgetArchetype"));
-		if ( OldArchetype )
+		if (OldArchetype)
 		{
-			const bool bRecompilingOnLoad = Blueprint->bIsRegeneratingOnLoad;
-			const ERenameFlags RenFlags = REN_DontCreateRedirectors | ( bRecompilingOnLoad ? REN_ForceNoResetLoaders : 0 ) | REN_NonTransactional | REN_DoNotDirty;
-
 			FString TransientArchetypeString = FString::Printf(TEXT("OLD_TEMPLATE_%s"), *OldArchetype->GetName());
 			FName TransientArchetypeName = MakeUniqueObjectName(GetTransientPackage(), OldArchetype->GetClass(), FName(*TransientArchetypeString));
 			OldArchetype->Rename(*TransientArchetypeName.ToString(), GetTransientPackage(), RenFlags);
@@ -187,9 +185,9 @@ void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 	// Make sure our typed pointer is set
 	check(ClassToClean == NewClass && NewWidgetBlueprintClass == NewClass);
 
-	for ( UWidgetAnimation* Animation : NewWidgetBlueprintClass->Animations )
+	for (UWidgetAnimation* Animation : NewWidgetBlueprintClass->Animations)
 	{
-		Animation->Rename(nullptr, GetTransientPackage(), REN_ForceNoResetLoaders | REN_DontCreateRedirectors);
+		Animation->Rename(nullptr, GetTransientPackage(), RenFlags);
 	}
 	NewWidgetBlueprintClass->Animations.Empty();
 
@@ -198,6 +196,8 @@ void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 
 void FWidgetBlueprintCompiler::SaveSubObjectsFromCleanAndSanitizeClass(FSubobjectCollection& SubObjectsToSave, UBlueprintGeneratedClass* ClassToClean)
 {
+	Super::SaveSubObjectsFromCleanAndSanitizeClass(SubObjectsToSave, ClassToClean);
+
 	// Make sure our typed pointer is set
 	check(ClassToClean == NewClass);
 	NewWidgetBlueprintClass = CastChecked<UWidgetBlueprintGeneratedClass>((UObject*)NewClass);
@@ -207,14 +207,6 @@ void FWidgetBlueprintCompiler::SaveSubObjectsFromCleanAndSanitizeClass(FSubobjec
 	// We need to save the widget tree to survive the initial sub-object clean blitz, 
 	// otherwise they all get renamed, and it causes early loading errors.
 	SubObjectsToSave.AddObject(WidgetBP->WidgetTree);
-
-	// We need to save all the animations to survive the initial sub-object clean blitz, 
-	// otherwise they all get renamed, and it causes early loading errors.
-	SubObjectsToSave.AddObject(NewWidgetBlueprintClass->WidgetTree);
-	for ( UWidgetAnimation* Animation : NewWidgetBlueprintClass->Animations )
-	{
-		SubObjectsToSave.AddObject(Animation);
-	}
 }
 
 void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
@@ -270,7 +262,7 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 			continue;
 		}
 
-		FEdGraphPinType WidgetPinType(Schema->PC_Object, FString(), WidgetClass, EPinContainerType::None, false, FEdGraphTerminalType());
+		FEdGraphPinType WidgetPinType(UEdGraphSchema_K2::PC_Object, NAME_None, WidgetClass, EPinContainerType::None, false, FEdGraphTerminalType());
 		
 		// Always name the variable according to the underlying FName of the widget object
 		UProperty* WidgetProperty = CreateVariable(Widget->GetFName(), WidgetPinType);
@@ -298,7 +290,7 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 	// Add movie scenes variables here
 	for(UWidgetAnimation* Animation : WidgetBP->Animations)
 	{
-		FEdGraphPinType WidgetPinType(Schema->PC_Object, FString(), Animation->GetClass(), EPinContainerType::None, true, FEdGraphTerminalType());
+		FEdGraphPinType WidgetPinType(UEdGraphSchema_K2::PC_Object, NAME_None, Animation->GetClass(), EPinContainerType::None, true, FEdGraphTerminalType());
 		UProperty* AnimationProperty = CreateVariable(Animation->GetFName(), WidgetPinType);
 
 		if ( AnimationProperty != nullptr )
@@ -495,31 +487,30 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 
 		if ( bIsBindWidget && !bIsOptional )
 		{
+			const FText RequiredWidgetNotBoundError = LOCTEXT("RequiredWidgetNotBound", "A required widget binding @@ of type @@ was not found.");
+			const FText IncorrectWidgetTypeError = LOCTEXT("IncorrectWidgetTypes", "The widget @@ is of type @@, but the bind widget property is of type @@.");
+
 			UWidget* const* Widget = WidgetToMemberVariableMap.FindKey( WidgetProperty );
 			if (!Widget)
 			{
 				if (Blueprint->bIsNewlyCreated)
 				{
-					MessageLog.Warning(*LOCTEXT("RequiredWidget_NotBound", "Non-optional widget binding @@ not found.").ToString(),
-						WidgetProperty);
+					MessageLog.Warning(*RequiredWidgetNotBoundError.ToString(), WidgetProperty, WidgetProperty->PropertyClass);
 				}
 				else
 				{
-					MessageLog.Error(*LOCTEXT("RequiredWidget_NotBound", "Non-optional widget binding @@ not found.").ToString(),
-						WidgetProperty);
+					MessageLog.Error(*RequiredWidgetNotBoundError.ToString(), WidgetProperty, WidgetProperty->PropertyClass);
 				}
 			}
 			else if (!(*Widget)->IsA(WidgetProperty->PropertyClass))
 			{
 				if (Blueprint->bIsNewlyCreated)
 				{
-					MessageLog.Warning(*LOCTEXT("IncorrectWidgetTypes", "@@ is of type @@ property is of type @@.").ToString(), *Widget,
-						(*Widget)->GetClass(), WidgetProperty->PropertyClass);
+					MessageLog.Warning(*IncorrectWidgetTypeError.ToString(), *Widget, (*Widget)->GetClass(), WidgetProperty->PropertyClass);
 				}
 				else
 				{
-					MessageLog.Error(*LOCTEXT("IncorrectWidgetTypes", "@@ is of type @@ property is of type @@.").ToString(), *Widget,
-						(*Widget)->GetClass(), WidgetProperty->PropertyClass);
+					MessageLog.Error(*IncorrectWidgetTypeError.ToString(), *Widget, (*Widget)->GetClass(), WidgetProperty->PropertyClass);
 				}
 			}
 		}
@@ -616,7 +607,7 @@ void FWidgetBlueprintCompiler::VerifyEventReplysAreNotEmpty(FKismetFunctionConte
 	Context.SourceGraph->GetNodesOfClass<UK2Node_FunctionResult>(FunctionResults);
 
 	UScriptStruct* EventReplyStruct = FEventReply::StaticStruct();
-	FEdGraphPinType EventReplyPinType(Schema->PC_Struct, FString(), EventReplyStruct, EPinContainerType::None, /*bIsReference =*/false, /*InValueTerminalType =*/FEdGraphTerminalType());
+	FEdGraphPinType EventReplyPinType(UEdGraphSchema_K2::PC_Struct, NAME_None, EventReplyStruct, EPinContainerType::None, /*bIsReference =*/false, /*InValueTerminalType =*/FEdGraphTerminalType());
 
 	for ( UK2Node_FunctionResult* FunctionResult : FunctionResults )
 	{

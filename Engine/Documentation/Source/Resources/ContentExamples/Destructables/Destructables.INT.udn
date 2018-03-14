@@ -7,45 +7,11 @@ Related: Engine/Physics/Apex
 Related: Engine/Physics/Collision
 Related: Engine/Performance/SystemSettings
 Related: 
+topic-image:Destructibles_Compact.png
 
 [REGION:banner]
 ![](Destructibles_Header.png)(convert:false)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Destructables:title%](Destructibles_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Destructables:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Destructables:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Destructables]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Destructables:title%](Destructibles_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Destructables:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Destructables]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-<!---[TOC(start:2 end:2)]--->
-
-
 
 
 The Content Examples provided inside the **Destructibles** map showcase how destructible meshes can be created and used in Unreal Engine 4. Automatically generated and custom imported destructibles, fracturing controls with Support and Destruction Depth levels as well as how to fire events upon destruction like spawning particles or playing sounds are demonstrated in this map. 

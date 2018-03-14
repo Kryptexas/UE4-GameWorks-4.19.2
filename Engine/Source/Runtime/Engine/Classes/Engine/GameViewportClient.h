@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -557,9 +557,11 @@ public:
 	 */
 	bool IsSimulateInEditorViewport() const;
 
+	/** FViewport interface */
+	virtual bool ShouldDPIScaleSceneCanvas() const override { return false; }
 protected:
 	/** FCommonViewportClient interface */
-	virtual float GetViewportClientWindowDPIScale() const override;
+	virtual float UpdateViewportClientWindowDPIScale() const override;
 
 public:
 	/** The show flags used by the viewport's players. */

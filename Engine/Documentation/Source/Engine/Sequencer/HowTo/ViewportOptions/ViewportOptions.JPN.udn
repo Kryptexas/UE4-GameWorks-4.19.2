@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244012
+﻿INTSourceChangelist:3683933
 Availability:Public
 Title:シネマティックス ビューポートを有効にする
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -11,6 +11,7 @@ checkpoint: editorqs
 Related:Engine/Sequencer/Overview
 Related:Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 利用可能ないくつかの特殊なビューポートがあり、シネマティックスをリアルタイムでプレビューすることができます。
 このガイドでは、こうしたビューポートをどこから使えるようにするか、またビューポートの再生コントロールとビューポートのオプション メニューを有効にする方法を説明します。 

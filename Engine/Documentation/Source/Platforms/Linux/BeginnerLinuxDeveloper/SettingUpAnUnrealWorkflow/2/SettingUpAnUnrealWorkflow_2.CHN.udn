@@ -26,7 +26,7 @@ SkillLevel:Beginner
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在 Linux 电脑上设置 Git 后，即可从 [GitHub 站点](http://github.com/EpicGames) 下载虚幻引擎源代码。下载 UE4 源代码的方式有很多，一种是使用 GitHub 页面的下载功能，另一种是用 Git 客户端复制虚幻引擎元库。此页面将讲述两种方式。
 
@@ -80,4 +80,4 @@ SkillLevel:Beginner
 
 无论是使用 [GitHub 站点](http://github.com/EpicGames) 上的 **Download ZIP** 按钮下载虚幻引擎源代码，还是使用 Git 复制虚幻引擎元库，您现在均可使用硬盘上的虚幻引擎源代码在 Linux 上生成 UE4。
 
-%Steps%
+

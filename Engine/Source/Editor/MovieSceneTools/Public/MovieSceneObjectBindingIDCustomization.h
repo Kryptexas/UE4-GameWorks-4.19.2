@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,6 +26,8 @@ public:
 	FMovieSceneObjectBindingIDCustomization(FMovieSceneSequenceID InLocalSequenceID, TWeakPtr<ISequencer> InSequencer)
 		: FMovieSceneObjectBindingIDPicker(InLocalSequenceID, InSequencer)
 	{}
+
+	MOVIESCENETOOLS_API static void BindTo(TSharedRef<ISequencer> InSequencer);
 
 	virtual void CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils) override;
 	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override {}

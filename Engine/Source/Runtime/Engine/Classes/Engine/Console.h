@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -192,7 +192,7 @@ class ENGINE_API UConsole
 	
 	/**
 	 * Process a character input event (typing) routed through unrealscript from another object. This method is assigned as the value for the
-	 * OnRecievedNativeInputKey delegate so that native input events are routed to this unrealscript function.
+	 * OnReceivedNativeInputKey delegate so that native input events are routed to this unrealscript function.
 	 *
 	 * @param	ControllerId	the controller that generated this character input event
 	 * @param	Unicode			the character that was typed
@@ -219,7 +219,7 @@ class ENGINE_API UConsole
 	
 	/**
 	 * Process an input key event routed through unrealscript from another object. This method is assigned as the value for the
-	 * OnRecievedNativeInputKey delegate so that native input events are routed to this unrealscript function.
+	 * OnReceivedNativeInputKey delegate so that native input events are routed to this unrealscript function.
 	 *
 	 * @param	ControllerId	the controller that generated this input key event
 	 * @param	Key				the name of the key which an event occured for (KEY_Up, KEY_Down, etc.)

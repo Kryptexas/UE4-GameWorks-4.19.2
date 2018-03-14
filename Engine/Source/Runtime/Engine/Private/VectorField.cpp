@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	VectorField.cpp: Implementation of vector fields.
@@ -90,7 +90,7 @@ void FVectorFieldInstance::UpdateTransforms(const FMatrix& LocalToWorld)
 	VolumeToWorldNoScale = LocalToWorld.GetMatrixWithoutScale().RemoveTranslation();
 	VolumeToWorld = FScaleMatrix(VolumeScale) * FTranslationMatrix(VolumeOffset)
 		* LocalToWorld;
-	WorldToVolume = VolumeToWorld.InverseFast();
+	WorldToVolume = VolumeToWorld.Inverse();
 }
 
 /*------------------------------------------------------------------------------
@@ -377,6 +377,9 @@ void UVectorFieldStatic::PostInitProperties()
 class FVectorFieldCollectorResources : public FOneFrameResource
 {
 public:
+	FVectorFieldCollectorResources(ERHIFeatureLevel::Type InFeatureLevel)
+		: VisualizationVertexFactory(InFeatureLevel){}
+
 	FVectorFieldVisualizationVertexFactory VisualizationVertexFactory;
 
 	virtual ~FVectorFieldCollectorResources()
@@ -389,13 +392,19 @@ public:
 	Scene proxy for visualizing vector fields.
 ------------------------------------------------------------------------------*/
 
-class FVectorFieldSceneProxy : public FPrimitiveSceneProxy
+class FVectorFieldSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
 
 	/** Initialization constructor. */
 	explicit FVectorFieldSceneProxy( UVectorFieldComponent* VectorFieldComponent )
 		: FPrimitiveSceneProxy(VectorFieldComponent)
+		, VisualizationVertexFactory(GetScene().GetFeatureLevel())
 	{
 		bWillEverBeLit = false;
 		VectorFieldInstance = VectorFieldComponent->VectorFieldInstance;
@@ -434,7 +443,7 @@ public:
 				// Draw a visualization of the vectors contained in the field when selected.
 				if (IsSelected() || View->Family->EngineShowFlags.VectorFields)
 				{
-					FVectorFieldCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FVectorFieldCollectorResources>();
+					FVectorFieldCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FVectorFieldCollectorResources>(View->GetFeatureLevel());
 					CollectorResources.VisualizationVertexFactory.InitResource();
 
 					GetVectorFieldMesh(&CollectorResources.VisualizationVertexFactory, VectorFieldInstance, ViewIndex, Collector);
@@ -648,14 +657,14 @@ class FCompositeAnimatedVectorFieldCS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FCompositeAnimatedVectorFieldCS,Global);
 public:
 
-	static bool ShouldCache( EShaderPlatform Platform )
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment( Platform, OutEnvironment );
+		FGlobalShader::ModifyCompilationEnvironment( Parameters, OutEnvironment );
 		OutEnvironment.SetDefine( TEXT("THREADS_X"), THREADS_PER_AXIS );
 		OutEnvironment.SetDefine( TEXT("THREADS_Y"), THREADS_PER_AXIS );
 		OutEnvironment.SetDefine( TEXT("THREADS_Z"), THREADS_PER_AXIS );

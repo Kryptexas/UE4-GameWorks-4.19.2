@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "TessellationRendering.h"
@@ -11,7 +11,10 @@ bool MaterialSettingsRequireAdjacencyInformation_GameThread(UMaterialInterface* 
 {
 	check(IsInGameThread());
 
-	if (RHISupportsTessellation(GShaderPlatformForFeatureLevel[InFeatureLevel]) && VertexFactoryType->SupportsTessellationShaders() && Material)
+	//if we pass null here we have to guarantee that the VF supports tessellation (e.g by using type LocalVF)
+	bool VertexFactorySupportsTessellation = !VertexFactoryType || (VertexFactoryType && VertexFactoryType->SupportsTessellationShaders());
+
+	if (RHISupportsTessellation(GShaderPlatformForFeatureLevel[InFeatureLevel]) && VertexFactorySupportsTessellation && Material)
 	{
 		UMaterial* BaseMaterial = Material->GetMaterial();
 		check(BaseMaterial);
@@ -28,7 +31,10 @@ bool MaterialRenderingRequiresAdjacencyInformation_RenderingThread(UMaterialInte
 {
 	check(IsInRenderingThread());
 
-	if (RHISupportsTessellation(GShaderPlatformForFeatureLevel[InFeatureLevel]) && VertexFactoryType->SupportsTessellationShaders() && Material)
+	//if we pass null here we have to guarantee that the VF supports tessellation (e.g by using type LocalVF)
+	bool VertexFactorySupportsTessellation = !VertexFactoryType || (VertexFactoryType && VertexFactoryType->SupportsTessellationShaders());
+
+	if (RHISupportsTessellation(GShaderPlatformForFeatureLevel[InFeatureLevel]) && VertexFactorySupportsTessellation && Material)
 	{
 		FMaterialRenderProxy* MaterialRenderProxy = Material->GetRenderProxy(false, false);
 		if (ensureMsgf(MaterialRenderProxy, TEXT("Could not determine if RequiresAdjacencyInformation. Invalid MaterialRenderProxy on Material '%s'"), *GetNameSafe(Material)))
@@ -64,8 +70,11 @@ bool RequiresAdjacencyInformation(UMaterialInterface* Material, const FVertexFac
 	}
 	else
 	{
+		//if we pass null here we have to guarantee that the VF supports tessellation (e.g by using type LocalVF)
+		bool VertexFactorySupportsTessellation = !VertexFactoryType || (VertexFactoryType && VertexFactoryType->SupportsTessellationShaders());
+
 		// Concurrent?
-		if (RHISupportsTessellation(GShaderPlatformForFeatureLevel[InFeatureLevel]) && VertexFactoryType->SupportsTessellationShaders() && Material)
+		if (RHISupportsTessellation(GShaderPlatformForFeatureLevel[InFeatureLevel]) && VertexFactorySupportsTessellation && Material)
 		{
 			UMaterialInterface::TMicRecursionGuard RecursionGuard;
 			const UMaterial* BaseMaterial = Material->GetMaterial_Concurrent(RecursionGuard);

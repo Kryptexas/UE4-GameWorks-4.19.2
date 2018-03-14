@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SSequenceRecorder.h"
 #include "Widgets/Layout/SSplitter.h"
@@ -8,6 +8,8 @@
 #include "Framework/Commands/UICommandList.h"
 #include "Widgets/Notifications/SProgressBar.h"
 #include "Widgets/Text/STextBlock.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SButton.h"
 #include "Framework/MultiBox/MultiBoxDefs.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Widgets/Views/SListView.h"
@@ -24,6 +26,7 @@
 
 #define LOCTEXT_NAMESPACE "SequenceRecorder"
 
+static const FName ActiveColumnName(TEXT("Active"));
 static const FName ActorColumnName(TEXT("Actor"));
 static const FName AnimationColumnName(TEXT("Animation"));
 static const FName LengthColumnName(TEXT("Length"));
@@ -53,7 +56,23 @@ public:
 	/** Overridden from SMultiColumnTableRow.  Generates a widget for this column of the list view. */
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override
 	{
-		if (ColumnName == ActorColumnName)
+		if (ColumnName == ActiveColumnName)
+		{
+			return
+				SNew(SButton)
+				.ContentPadding(0)
+				.OnClicked(this, &SSequenceRecorderListRow::ToggleRecordingActive)
+				.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+				.ToolTipText(LOCTEXT("ActiveButtonToolTip", "Toggle Recording Active"))
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.Content()
+				[
+					SNew(SImage)
+					.Image(this, &SSequenceRecorderListRow::GetActiveBrushForRecording)
+				];
+		}
+		else if (ColumnName == ActorColumnName)
 		{
 			return
 				SNew(STextBlock)
@@ -76,6 +95,28 @@ public:
 	}
 
 private:
+
+	FReply ToggleRecordingActive()
+	{
+		if (RecordingPtr.IsValid())
+		{
+			 RecordingPtr.Get()->bActive = !RecordingPtr.Get()->bActive;
+		}
+		return FReply::Handled();
+	}
+
+	const FSlateBrush* GetActiveBrushForRecording() const
+	{
+		if (RecordingPtr.IsValid() && RecordingPtr.Get()->bActive)
+		{
+			return FEditorStyle::GetBrush("SequenceRecorder.Common.RecordingActive");
+		}
+		else
+		{
+			return FEditorStyle::GetBrush("SequenceRecorder.Common.RecordingInactive");
+		}
+	}
+
 	FText GetRecordingActorName() const
 	{
 		FText ActorName(LOCTEXT("InvalidActorName", "None"));
@@ -195,6 +236,9 @@ void SSequenceRecorder::Construct(const FArguments& Args)
 								.HeaderRow
 								(
 									SNew(SHeaderRow)
+									+ SHeaderRow::Column(ActiveColumnName)
+									.FillWidth(14.0f)
+									.DefaultLabel(LOCTEXT("ActiveColumnName", "Active"))
 									+ SHeaderRow::Column(ActorColumnName)
 									.FillWidth(43.0f)
 									.DefaultLabel(LOCTEXT("ActorHeaderName", "Actor"))
@@ -341,7 +385,7 @@ bool SSequenceRecorder::IsStopAllVisible() const
 
 void SSequenceRecorder::HandleAddRecording()
 {
-	FSequenceRecorder::Get().AddNewQueuedRecording();
+	FSequenceRecorder::Get().AddNewQueuedRecordingsForSelectedActors();
 }
 
 bool SSequenceRecorder::CanAddRecording() const

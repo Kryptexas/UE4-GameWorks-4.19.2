@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -36,7 +36,9 @@ public:
 	 * @param PluginFriendlyName The localized friendly name of the plug-in.
 	 * @param PluginItemId The unique identifier of the item plug-in on the marketplace.
 	 * @param PluginOfferId The unique identifier of the offer for the plug-in on the marketplace.
+	 * @param UnauthorizedMessageOverride The error message to display for unauthorized plugins, overriding the default message if not empty.
+	 * @param UnauthorizedErrorHandling How to handle the unauthorized error.
 	 * @param AuthorizedCallback This function will be called after the user has been given entitlement.
 	 */
-	virtual void CheckEntitlementForPlugin(const FText& PluginFriendlyName, const FString& PluginItemId, const FString& PluginOfferId, TFunction<void()> AuthorizedCallback) override;
+	virtual void CheckEntitlementForPlugin(const FText& PluginFriendlyName, const FString& PluginItemId, const FString& PluginOfferId, const FText& UnauthorizedMessageOverride, EUnauthorizedErrorHandling UnauthorizedErrorHandling, TFunction<void()> AuthorizedCallback) override;
 };

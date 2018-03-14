@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3467293
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 파티클 시스템 레벨 오브 디테일 (LOD)
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
@@ -150,7 +150,8 @@ LODDistanceCheckTime 은 Automatic 모드로 설정된 ParticleSystemComponent �
 | **LODDistances** | LOD 거리 - 활용할 LOD 레벨 결정을 위한 거리값이 들어있는 배열입니다 (LODMethod 가 Automatic 일때만 사용됩니다). 이 수치는 LOD 레벨 선택을 위한 최소 거리를 나타냅니다. 예를 들어 LOD 레벨이 셋인 시스템은: [INCLUDE:#LODDistance] |
 | **LODSettings** | LOD 세팅 - 각각의 LOD 에 사용할 전용 세팅 결정을 위한 구조체 배열입니다. 현재 _Lit_ 로 설정할 때만 주어진 LOD 가 사용중일 때 파티클 시스템이 빛을 받을지 여부를 결정합니다. |
 
-<!----
+[COMMENT:none]
+--
 [EXCERPT:LODDistance]
 [REGION:simpletable]
 | LODDistanceIndex | 값 | 범위 | 선택되는 LOD 레벨 |
@@ -170,4 +171,5 @@ LODDistanceCheckTime 은 Automatic 모드로 설정된 ParticleSystemComponent �
 [/REGION]
 [/EXCERPT:LODMethod]
 
----->
+--
+[/COMMENT]

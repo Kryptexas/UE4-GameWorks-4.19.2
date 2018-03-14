@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LateUpdateManager.h"
 #include "PrimitiveSceneProxy.h"
@@ -43,6 +43,10 @@ void FLateUpdateManager::Apply_RenderThread(FSceneInterface* Scene, const FTrans
 			CachedSceneInfo->Proxy->ApplyLateUpdateTransform(LateUpdateTransform);
 		}
 	}
+}
+
+void FLateUpdateManager::PostRender_RenderThread()
+{
 	LateUpdatePrimitives[LateUpdateRenderReadIndex].Reset();
 	LateUpdateRenderReadIndex = (LateUpdateRenderReadIndex + 1) % 2;
 }
@@ -72,7 +76,9 @@ void FLateUpdateManager::GatherLateUpdatePrimitives(USceneComponent* ParentCompo
 	ParentComponent->GetChildrenComponents(true, Components);
 	for(USceneComponent* Component : Components)
 	{
-		check(Component != nullptr);
-		CacheSceneInfo(Component);
+		if (Component != nullptr)
+		{
+			CacheSceneInfo(Component);
+		}
 	}
 }

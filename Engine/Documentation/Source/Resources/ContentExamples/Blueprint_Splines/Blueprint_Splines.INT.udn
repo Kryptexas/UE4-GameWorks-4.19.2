@@ -5,41 +5,12 @@ Description:Overview of the samples provided in the Blueprint Splines Content Ex
 Related: Engine/Rendering/Materials
 Version: 4.9
 tags:Splines
+topic-image:blueprintSplines_ce_compact.png
 
 [REGION:banner]
 ![](blueprintSplines_ce_header.png)(convert:false)
 [/REGION]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Blueprint_Splines:title%](blueprintSplines_ce_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Blueprint_Splines:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Blueprint_Splines:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Blueprint_Splines]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Blueprint_Splines:title%](blueprintSplines_ce_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Blueprint_Splines:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Blueprint_Splines]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 

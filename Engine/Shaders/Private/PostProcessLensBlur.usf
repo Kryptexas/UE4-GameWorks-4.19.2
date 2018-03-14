@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessLensBlur.usf: PostProcessing Lens Flares.
@@ -51,7 +51,7 @@ void MainVS(
 	
 	OutPosition.xy = PixelToScreenPos(TilePos * TileSize);
 
-	float2 InputTexCoord = PostprocessInput0Size.zw * TilePos * TileSize;
+	float2 InputTexCoord = clamp(PostprocessInput0Size.zw * TilePos * TileSize, PostprocessInput0MinMax.xy, PostprocessInput0MinMax.zw);
 
 	OutColor = Texture2DSampleLevel(PostprocessInput0, PostprocessInput0Sampler, InputTexCoord, 0);
 

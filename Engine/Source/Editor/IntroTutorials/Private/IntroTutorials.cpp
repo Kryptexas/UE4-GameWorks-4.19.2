@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "IntroTutorials.h"
 #include "Templates/SubclassOf.h"
@@ -436,9 +436,9 @@ void FIntroTutorials::DetachWidget()
 	}
 }
 
-void FIntroTutorials::LaunchTutorial(const FString& TutorialAssetName)
+void FIntroTutorials::LaunchTutorial(const FString& TutorialAssetName, TSharedPtr<SWindow> InNavigationWindow)
 {
-	LaunchTutorialByName(TutorialAssetName);
+	LaunchTutorialByName(TutorialAssetName, true, InNavigationWindow);
 }
 
 void FIntroTutorials::LaunchTutorialByName(const FString& InAssetPath, bool bInRestart, TWeakPtr<SWindow> InNavigationWindow, FSimpleDelegate OnTutorialClosed, FSimpleDelegate OnTutorialExited)

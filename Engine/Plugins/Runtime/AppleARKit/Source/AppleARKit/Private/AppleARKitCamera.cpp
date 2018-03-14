@@ -1,3 +1,5 @@
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
 // AppleARKit
 #include "AppleARKitCamera.h"
 #include "AppleARKitModule.h"
@@ -29,15 +31,15 @@ FAppleARKitCamera::FAppleARKitCamera( ARCamera* InARCamera )
 	{
 		default:
 		case ARTrackingStateNotAvailable:
-			TrackingQuality = EARTrackingQuality::NotAvailable;
+			TrackingQuality = EARTrackingQuality::NotTracking;
 			break;
 			
 		case ARTrackingStateLimited:
-			TrackingQuality = EARTrackingQuality::Limited;
+			TrackingQuality = EARTrackingQuality::OrientationOnly;
 			break;
 		
 		case ARTrackingStateNormal:
-			TrackingQuality = EARTrackingQuality::Normal;
+			TrackingQuality = EARTrackingQuality::OrientationAndPosition;
 			break;
 	}
 	

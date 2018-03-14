@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreTypes.h"
@@ -21,7 +21,7 @@ public:
 	void LoadAllCultureData();
 
 	bool IsCultureRemapped(const FString& Name, FString* OutMappedCulture);
-	bool IsCultureDisabled(const FString& Name);
+	bool IsCultureAllowed(const FString& Name);
 
 	void HandleLanguageChanged(const FString& Name);
 	void GetCultureNames(TArray<FString>& CultureNames) const;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealVersionSelector.h"
 #include "RequiredProgramMainCPPInclude.h"
@@ -208,7 +208,7 @@ bool GenerateProjectFiles(const FString& ProjectFileName)
 
 	// Generate project files
 	FFeedbackContext* Warn = DesktopPlatform->GetNativeFeedbackContext();
-	bool bResult = DesktopPlatform->GenerateProjectFiles(RootDir, ProjectFileName, Warn);
+	bool bResult = DesktopPlatform->GenerateProjectFiles(RootDir, ProjectFileName, Warn, FPaths::ProjectLogDir() / FString::Printf(TEXT("%s-%s.log"), FPlatformProcess::ExecutableName(), *FDateTime::Now().ToString()));
 	GLog->RemoveOutputDevice(&LogCapture);
 
 	// Display an error dialog if we failed

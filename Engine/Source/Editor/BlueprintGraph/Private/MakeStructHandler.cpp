@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MakeStructHandler.h"
 #include "UObject/UnrealType.h"
@@ -111,7 +111,7 @@ void FKCHandler_MakeStruct::Compile(FKismetFunctionContext& Context, UEdGraphNod
 	{
 		if (Pin && !Pin->bOrphanedPin && (Pin != StructPin) && (Pin->Direction == EGPD_Input) && !CompilerContext.GetSchema()->IsMetaPin(*Pin))
 		{
-			UProperty* BoundProperty = FindField<UProperty>(Node->StructType, *(Pin->PinName));
+			UProperty* BoundProperty = FindField<UProperty>(Node->StructType, Pin->PinName);
 			check(BoundProperty);
 
 			// If the pin is not connectible, do not forward the net
@@ -151,7 +151,7 @@ void FKCHandler_MakeStruct::Compile(FKismetFunctionContext& Context, UEdGraphNod
 
 				// Literal Bool Term to set the OverrideProperty to
 				FBPTerminal* BoolTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
-				BoolTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Boolean;
+				BoolTerm->Type.PinCategory = UEdGraphSchema_K2::PC_Boolean;
 				BoolTerm->bIsLiteral = true;
 				// If we are showing the pin, then we are overriding the property
 

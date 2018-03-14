@@ -28,7 +28,8 @@ Description:事件模块让您能基于粒子本身或关卡中的其他actor来
 
 
 
-<!-------------Event Generator Includes----------------
+[COMMENT:none]
+-----------Event Generator Includes----------------
 #### Includes
 
 [EXCERPT:EventGenType]
@@ -45,7 +46,8 @@ Description:事件模块让您能基于粒子本身或关卡中的其他actor来
 [/EXCERPT:EventGenType]
 
 
--------------End Event Generator Includes--------------->
+-------------End Event Generator Includes-------------
+[/COMMENT]
 
 
 ### 事件接收器销毁所有粒子 (EventRcvr KillAll)
@@ -62,7 +64,8 @@ Description:事件模块让您能基于粒子本身或关卡中的其他actor来
 
 
 
-<!-------------Event Generator Includes----------------
+[COMMENT:none]
+-----------Event Generator Includes----------------
 #### Includes
 
 [EXCERPT:EventRecType]
@@ -79,7 +82,8 @@ Description:事件模块让您能基于粒子本身或关卡中的其他actor来
 [/EXCERPT:EventRecType]
 
 
--------------End Event Generator Includes--------------->
+-------------End Event Generator Includes-------------
+[/COMMENT]
 
 ### 事件接收器生成粒子 (EventRcvr Spawn)
 

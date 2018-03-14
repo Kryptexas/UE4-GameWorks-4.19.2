@@ -1,28 +1,16 @@
-﻿INTSourceChangelist:3238697
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:4 - 코드 테스트
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:레벨에 테스트 오브젝트를 만듭니다.
 SkillLevel: Beginner
 Version: 4.9
+parent:Programming/QuickStart
+order:4
+type:quick start
+type:multi-step
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Programming\QuickStart\3 "%Programming\QuickStart\3:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[프로그래밍 퀵스타트 홈](Programming\QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Programming\QuickStart\5 "%Programming\QuickStart\5:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 1. **언리얼 에디터** 에서 **콘텐츠 브라우저** 를 찾은 다음 "C++ Classes" 라는 폴더를 펼칩니다. 그 폴더 안에 보면 "QuickStart" 폴더가 있으며, 그 안에 **FloatingActor** 라는 액터 클래스가 있습니다.
 
@@ -44,76 +32,69 @@ Version: 4.9
 
 	[![](MovingCone.png)](MovingCone.png)
 
-[OBJECT:Section]
-    [PARAMLITERAL:id]
-    code
-    [/PARAMLITERAL]
-    [PARAM:heading]
-    완성된 코드
-    [/PARAM]
-    [PARAM:content]
-		**FloatingActor.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+## Finished Code
+   
+**FloatingActor.h**
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-			#pragma once
+	#pragma once
 
-			#include "GameFramework/Actor.h"
-			#include "FloatingActor.generated.h"
+	#include "GameFramework/Actor.h"
+	#include "FloatingActor.generated.h"
 
-			UCLASS()
-			class QUICKSTART_API AFloatingActor : public AActor
-			{
-				GENERATED_BODY()
+	UCLASS()
+	class QUICKSTART_API AFloatingActor : public AActor
+	{
+		GENERATED_BODY()
 	
-			public:	
-				// 이 액터 프로퍼티의 기본값을 설정합니다
-				AFloatingActor();
+	public:	
+		// Sets default values for this actor's properties
+		AFloatingActor();
 
-			protected:
-				// 게임 시작 또는 스폰시 호출됩니다
-				virtual void BeginPlay() override;
+	protected:
+		// Called when the game starts or when spawned
+		virtual void BeginPlay() override;
 	
-			public:
-				// 매 프레임 호출됩니다
-				virtual void Tick( float DeltaSeconds ) override;
+	public:
+		// Called every frame
+		virtual void Tick( float DeltaSeconds ) override;
 	
-				float RunningTime;
-			};
+		float RunningTime;
+	};
 
-		**FloatingActor.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+**FloatingActor.cpp**
 
-			#include "QuickStart.h"
-			#include "FloatingActor.h"
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-			// 기본값을 설정합니다
-			AFloatingActor::AFloatingActor()
-			{
- 				// 이 액터가 모든 프레임마다 Tick() 호출하도록 설정합니다. 필요치 않은 경우 꺼주면 퍼포먼스가 향상됩니다
-				PrimaryActorTick.bCanEverTick = true;
+	#include "QuickStart.h"
+	#include "FloatingActor.h"
 
-			}
+	// Sets default values
+	AFloatingActor::AFloatingActor()
+	{
+ 		// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+		PrimaryActorTick.bCanEverTick = true;
 
-			// 게임 시작시 또는 스폰시 호출됩니다
-			void AFloatingActor::BeginPlay()
-			{
-				Super::BeginPlay();
+	}
+
+	// Called when the game starts or when spawned
+	void AFloatingActor::BeginPlay()
+	{
+		Super::BeginPlay();
 	
-			}
+	}
 
-			// 모든 프레임마다 호출됩니다
-			void AFloatingActor::Tick( float DeltaTime )
-			{
-				Super::Tick( DeltaTime );
+	// Called every frame
+	void AFloatingActor::Tick( float DeltaTime )
+	{
+		Super::Tick( DeltaTime );
 
-				FVector NewLocation = GetActorLocation();
-				float DeltaHeight = (FMath::Sin(RunningTime + DeltaTime) - FMath::Sin(RunningTime));
-				NewLocation.Z += DeltaHeight * 20.0f;       //높이에 20 을 곱합니다
-				RunningTime += DeltaTime;
-				SetActorLocation(NewLocation);
-			}
+		FVector NewLocation = GetActorLocation();
+		float DeltaHeight = (FMath::Sin(RunningTime + DeltaTime) - FMath::Sin(RunningTime));
+		NewLocation.Z += DeltaHeight * 20.0f;       //Scale our height by a factor of 20
+		RunningTime += DeltaTime;
+		SetActorLocation(NewLocation);
+	}
 
-    [/PARAM]
-[/OBJECT]
 
-%Steps%
+[NAV]

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3571140
+﻿INTSourceChangelist:3782314
 Availability: Public
 Crumbs: %ROOT%
 Title: 모바일 디바이스용 퍼포먼스 지침서
@@ -47,7 +47,8 @@ UE4 의 모바일 라이팅 피처 대부분 섞어 조합하는 것이 가능�
 | [INCLUDE:#ldradvantages] | [INCLUDE:#ldrlimitations] | [INCLUDE:#ldrreccommendations] |
 [/REGION]
 
-<!--- EXCERPTS LDR
+[COMMENT:none]
+- EXCERPTS LDR
 
 [INCLUDE:#ldrreccommendations]
 
@@ -68,7 +69,8 @@ UE4 의 모바일 라이팅 피처 대부분 섞어 조합하는 것이 가능�
 * 가급적 많은 연산을 머티리얼의 **버텍스 셰이더** 에서 하는 것을 고려하세요. **Customized UVs** 를 켜고, 노드를 연결해 준 다음, 픽셀 셰이더에서 **Texture Coordinate** 노드로 Customized UVs 를 타겟으로 하면 됩니다.
 [/EXCERPT:ldrreccommendations]
 
---->
+-
+[/COMMENT]
 
 
 
@@ -87,7 +89,8 @@ UE4 의 모바일 라이팅 피처 대부분 섞어 조합하는 것이 가능�
 | [INCLUDE:#BLadvantages] | [INCLUDE:#BLlimitations] | [INCLUDE:#BLreccommendations] |
 [/REGION]
 
-<!--- EXCERPTS Basic Lighting
+[COMMENT:none]
+- EXCERPTS Basic Lighting
 
 [INCLUDE:#BLreccommendations]
 
@@ -109,7 +112,8 @@ UE4 의 모바일 라이팅 피처 대부분 섞어 조합하는 것이 가능�
 * 블룸 같은 포스트 프로세싱 피처를 완전히 끕니다. 또 기본적인 필름 및 컬러 컨트롤만 사용합니다. 자세한 것은 [모바일 포스트 프로세스](Platforms/Mobile/PostProcessEffects) 문서를 참고하세요.
 [/EXCERPT:BLreccommendations]
 
---->
+-
+[/COMMENT]
 
 
 
@@ -132,7 +136,8 @@ UE4 의 모바일 라이팅 피처 대부분 섞어 조합하는 것이 가능�
 | [INCLUDE:#HDRadvantages] | [INCLUDE:#HDRreccommendations] |
 [/REGION]
 
-<!--- EXCERPTS Basic Lighting
+[COMMENT:none]
+- EXCERPTS Basic Lighting
 
 [INCLUDE:#HDRreccommendations]
 
@@ -151,7 +156,8 @@ UE4 의 모바일 라이팅 피처 대부분 섞어 조합하는 것이 가능�
 * 최적의 퍼포먼스를 위해서는 씬에 스태틱 라이트와 라이트맵만 사용하세요.
 [/EXCERPT:HDRreccommendations]
 
---->
+-
+[/COMMENT]
 
 
 
@@ -170,7 +176,8 @@ UE4 의 모바일 라이팅 피처 대부분 섞어 조합하는 것이 가능�
 | [INCLUDE:#HDRSunadvantages] | [INCLUDE:#HDRSunreccommendations] |
 [/REGION]
 
-<!--- EXCERPTS Basic Lighting
+[COMMENT:none]
+- EXCERPTS Basic Lighting
 
 [INCLUDE:#HDRreccommendations]
 
@@ -186,7 +193,8 @@ UE4 의 모바일 라이팅 피처 대부분 섞어 조합하는 것이 가능�
 * 스테이셔너리로 설정해야 하는 단일 디렉셔널 라이트를 제외하고는 씬에 스태틱 라이트만 사용하세요.
 [/EXCERPT:HDRSunreccommendations]
 
---->
+-
+[/COMMENT]
 
  
 ## 셰이더 복잡도 뷰 모드
@@ -210,7 +218,8 @@ Mobile Sun Temple 의 몇 가지 예제입니다. 셰이더 복잡도 뷰 모드
 | [INCLUDE:#image1] | [INCLUDE:#image2] | [INCLUDE:#image3] |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Image1]
 여기서는 기둥 머티리얼이 꽤나 비싸며, 반투명 볼류메트릭 시트는 **매우** 비쌉니다. 이 씬에서는 반투명 시트 비용이 너무 비싸 제거해야 한다고 요청했습니다.
 [/EXCERPT:Image1]
@@ -220,7 +229,8 @@ Mobile Sun Temple 의 몇 가지 예제입니다. 셰이더 복잡도 뷰 모드
 [EXCERPT:Image3]
 여기서는 나무의 픽셀 비용이 **극도로** 비싸지고 있습니다. 플레이어가 어쩌다가 이 머티리얼로 화면을 덮기라도 하는 경우엔, 그 비용은 엄청날 것입니다.
 [/EXCERPT:Image3]
--->
+
+[/COMMENT]
 
 ## 모바일 콘텐츠 스케일 팩터
 
@@ -482,7 +492,8 @@ iOS 스케일 팩터는 Apple 의 스케일 팩터 시스템과 직접적인 연
 | **Maximum number of CSM cascades to render** | CSM 캐스케이트 최대 렌더링 개수 - 모바일 렌더러에서 다이내믹 디렉셔널 라이트 섀도우를 렌더링할 때 사용할 캐스케이드 최대 개수입니다. |
 | **Mobile MSAA** | 모바일 MSAA - 모바일에서 사용할 멀티 샘플 안티 앨리어싱(MSAA) 세팅입니다. MSAA 가 지원되는 디바이스는 현재 iOS 에서는 Metal, 안드로이드에서는 ES2 또는 ES 3.1 을 필수로 지원하는 디바이스입니다. MSAA 를 사용할 수 없으면, 현재 기본 AA 메소드가 사용됩니다. |
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:MMQ]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -504,7 +515,8 @@ iOS 스케일 팩터는 Apple 의 스케일 팩터 시스템과 직접적인 연
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:MMQ]
--->
+
+[/COMMENT]
 
 
 ## 모바일용 셰이더 감소 세팅
@@ -522,7 +534,8 @@ iOS 스케일 팩터는 Apple 의 스케일 팩터 시스템과 직접적인 연
 | **Mobile Shader Permutation Reduction** || 모바일 셰이더 퍼뮤테이션 감소 - **Mobile Shader Permutation Reduction** (모바일 셰이더 퍼뮤테이션 감소) 섹션 아래 있는 옵션은 모바일 퍼포먼스 조정에 사용됩니다. [INCLUDE:#shaderpermutations] |
 [/REGION]
 
-<!--- EXCERPTS ---
+[COMMENT:none]
+- EXCERPTS ---
 
 [INCLUDE:#shaderpermutations]
 
@@ -546,7 +559,8 @@ iOS 스케일 팩터는 Apple 의 스케일 팩터 시스템과 직접적인 연
 [/REGION]
 [/EXCERPT:shaderpermutations]
 
------>
+---
+[/COMMENT]
 
 [REGION:note]
 이 세팅 중 하나를 바꾸면 에디터를 재시작해야 효과가 적용됩니다.

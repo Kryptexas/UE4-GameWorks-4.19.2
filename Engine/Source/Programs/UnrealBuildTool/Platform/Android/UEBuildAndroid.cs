@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -173,10 +173,13 @@ namespace UnrealBuildTool
 				"bBuildForArmV7", "bBuildForArm64", "bBuildForX86", "bBuildForX8664", 
 				"bBuildForES2", "bBuildForES31", "bBuildWithHiddenSymbolVisibility"
 			};
+			string[] StringKeys = new string[] {
+				"NDKAPILevelOverride"
+			};
 
 			// look up Android specific settings
 			if (!DoProjectSettingsMatchDefault(Platform, ProjectPath, "/Script/AndroidRuntimeSettings.AndroidRuntimeSettings",
-				BoolKeys, null, null))
+				BoolKeys, null, StringKeys))
 			{
 				return false;
 			}
@@ -229,6 +232,7 @@ namespace UnrealBuildTool
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ATCTargetPlatform");
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_DXTTargetPlatform");
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
+                            Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC1aTargetPlatform");
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ASTCTargetPlatform");
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_MultiTargetPlatform");
@@ -258,6 +262,7 @@ namespace UnrealBuildTool
 						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ATCTargetPlatform");
 						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_DXTTargetPlatform");
 						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
+                        Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC1aTargetPlatform");
 						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
 						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ASTCTargetPlatform");
 						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_MultiTargetPlatform");

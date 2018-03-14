@@ -8,43 +8,13 @@ Related: Engine/Content/Types/StaticMeshes/Editor
 Related: Engine/Actors/StaticMeshActor
 Related: Engine/Content/FBX/BestPractices
 Version: 4.9
-
+topic-image:StaticMeshes_Compact.png
 
 
 [REGION:banner]
 ![](StaticMeshes_Header.png)(convert:false)
 [/REGION]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/StaticMeshes:title%](StaticMeshes_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/StaticMeshes:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/StaticMeshes:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/StaticMeshes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/StaticMeshes:title%](StaticMeshes_Compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/StaticMeshes:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/StaticMeshes]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 Inside the **StaticMeshes** Content Example map, you will find essential examples using Static Meshes including how to set Mobility, assign UVs, and add or adjust Collision settings. Other examples include how to customize your Static Meshes with Material Elements (which allow you to specify the Material applied to parts of a Static Mesh) as well as using the MeshPaint Tool to manually paint onto a Static Mesh. 
 Last, you will see how LODs can improve performance by scaling back the quality of a mesh based on player distance.

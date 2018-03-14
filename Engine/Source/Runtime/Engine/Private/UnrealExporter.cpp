@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UExporter.cpp: Exporter class implementation.
@@ -98,6 +98,11 @@ void UExporter::SetShowExportOption(bool InShowExportOption)
 UExporter* UExporter::FindExporter( UObject* Object, const TCHAR* FileType )
 {
 	check(Object);
+
+	if (Object->GetOutermost()->HasAnyPackageFlags(PKG_DisallowExport))
+	{
+		return NULL;
+	}
 
 	TMap<UClass*,UClass*> Exporters;
 

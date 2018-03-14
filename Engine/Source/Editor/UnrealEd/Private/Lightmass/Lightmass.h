@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Lightmass.h: lightmass import/export definitions.
@@ -10,6 +10,7 @@
 #include "Misc/Guid.h"
 #include "GameFramework/WorldSettings.h"
 #include "Lightmass/LightmassCharacterIndirectDetailVolume.h"
+#include "Lightmass/VolumetricLightmapDensityVolume.h"
 #include "StaticLightingSystem/StaticLightingPrivate.h"
 #include "Lightmass/LightmassImportanceVolume.h"
 #include "Components/LightmassPortalComponent.h"
@@ -127,6 +128,8 @@ public:
 
 	TMap<FGuid, int32> VolumetricLightmapTaskGuids;
 
+	TArray<AVolumetricLightmapDensityVolume*> VolumetricLightmapDensityVolumes;
+
 private:
 
 	void SetVolumetricLightmapSettings(Lightmass::FVolumetricLightmapSettings& OutSettings);
@@ -241,6 +244,8 @@ private:
 	TArray<const FLandscapeStaticLightingMesh*> LandscapeLightingMeshes;
 	TArray<FLandscapeStaticLightingTextureMapping*> LandscapeTextureMappings;
 
+	TArray<class FStaticLightingGlobalVolumeMapping*> VolumeMappings;
+
 	// materials
 	TArray<UMaterialInterface*> Materials;
 	TMap<UMaterialInterface*, FLightmassMaterialExportSettings> MaterialExportSettings;
@@ -264,6 +269,7 @@ private:
 	friend class FLightmassProcessor;
 	friend class FLandscapeStaticLightingMesh;
 	friend class FLandscapeStaticLightingTextureMapping;
+	friend class FStaticLightingGlobalVolumeMapping;
 };
 
 /** Lightmass Importer class */
@@ -722,8 +728,7 @@ protected:
 		}
 	}
 
-	/** Fills out GDebugStaticLightingInfo with the output from Lightmass */
-	void	ImportDebugOutput();
+	void ImportDebugOutputStruct(int32 Channel);
 
 	void ProcessAlertMessages();
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2691763
+﻿INTSourceChangelist:3677718
 Availability:Public
 Title: Emissive Material 入力の使用方法
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials/HowTo
@@ -7,8 +7,9 @@ Related:Engine/Rendering/Materials/MaterialInputs
 Related:Engine/Rendering/Materials/MaterialProperties/LightingModels
 Related:Engine/Rendering/PostProcessEffects
 Related:Resources/ContentExamples/MaterialNodes/1_5
-Version:4.9
+Version:4.18
 SkillLevel:Intermediate
+tags:Materials
 
 
 [TOC(start:2 end:3)]
@@ -19,9 +20,9 @@ SkillLevel:Intermediate
 アンリアル エンジン 4 (UE4) では、Self Illuminated Material はエミッシブ マテリアルとして知られています。 
 以下の操作ガイドでは、Emissive 入力を使うためのマテリアルの設定方法に加えて、Emissive 入力を使って作成中のワールドを実際に照らす方法を説明します。 
 
-## エミッシブ グロー
+## エミッシブ ライティング
 
-エミッシブ グローまたは UE4 のエミッシブ マテリアルを使うと、アーティストは、たかもマテリアルが光をキャストしているようなイリュージョンを、非常に効率良く効果的に作ることができます。 
+エミッシブ ライティングまたは UE4 のエミッシブ マテリアルを使うと、アーティストは、まるでマテリアルが光をキャストしているようなイリュージョンを、非常に効率良く効果的に作ることができます。 
 その仕組みは、アーティストが Emissive 入力の値を 1.0 より高くして、 
 マテリアルを HDR へプッシュできるようにしているのです。
 
@@ -49,7 +50,7 @@ SkillLevel:Intermediate
 プロジェクトに **スターター コンテンツ** を入れれば、以下のセクションで使用するすべてのコンテンツは見つかります。以下で説明するテクニックは、どのテクスチャでも機能しますが、手順に従う場合はプロジェクトに **スターター コンテンツ** が含まれていることを確認してください。
 [/region]
 
-1. これを行うには、 **コンテンツ ブラウザ** で **右クリック** し、ポップアップ メニューの **[Create Basic Asset (基本アセットを作成)]** セクションから **[Material]** を選択します。 
+1. まず **コンテンツ ブラウザ** で **右クリック** し、ポップアップ メニューの **[Create Basic Asset (基本アセットを作成)]** セクションから **[Material]** を選択します。 
   選択すると新規 **マテリアル** が作成されるので、そのマテリアルに **「Emissive_Material」** という名前を付けます。 
 
 1. マテリアルが作成されたら、コンテンツ ブラウザでそのマテリアルを **マウスの左ボタン** を使うか **ダブル クリック** して開きます。
@@ -65,7 +66,7 @@ SkillLevel:Intermediate
 	[region:tip]
 	この操作ガイドで使用している **Tech_Panel** テクスチャが見つからなければ、プロジェクトに **スターター コンテンツ** を入れ忘れている可能性があります。 
 	確実にスターター コンテンツを入れたプロジェクトを新しく作成すれば、このコンテンツが見つかります。 
-	その後で、 [Migrate Tool](Engine/Content/Browser/UserGuide/Migrate) を使って、そのプロジェクトからご自分のプロジェクトへテクスチャを移してください。 
+	その後で、[移行ツール](Engine/Content/Browser/UserGuide/Migrate) を使って、そのプロジェクトからご自分のプロジェクトへテクスチャを移してください。 
 	[/region]
 
 1. 必要な Material Expression ノードはすべて追加されたので、マテリアルの設定を始めましょう。まず最初に、 Material Expression ノードに 
@@ -96,7 +97,7 @@ SkillLevel:Intermediate
 	![](EM_Create_New_Material_Instance.png)
 
 1. マテリアル インスタンス が作成されたら、その上で **マウスの左ボタン** を **ダブルクリック** して開きます。開いたら、 **Parameter Groups** セクションを見てください。 
-	Emisive_Color や Emissive_Strength などの親マテリアルにエクスポーズされた全ての制御は、このセクションにあります。 
+	Emisive_Color や Emissive_Strength などの親マテリアルに公開された全ての制御は、このセクションにあります。 
 
 	![](EM_Emissive_Material_Instance.png)
 
@@ -195,7 +196,7 @@ Emissive_Strength を増加するとワールド内の Emissive エフェクト�
 	![](EM_Turn_Off_Use_As_SL.png)
 
 	[region:note]
-	デフォルトでは、 **Use Emissive for Static Lighting** はワールド内に配置した全てのメッシュで無効になっています。使用する都度、有効にします。 
+	**[Use Emissive for Static Lighting]** は、ワールド内にお置かれたすべてのメッシュ上でデフォルトで無効に設定されています。使用する時に毎回有効にします。 
 	[/region]
 
 1. **Use Emissive for Static Lighting** の使用例です。左が無効、右が有効の状態です。 
@@ -208,7 +209,7 @@ Emissive_Strength を増加するとワールド内の Emissive エフェクト�
 ## エミッシブの影響とブルーム
 
 マテリアル インスタンス内で Emissive 入力の強度を高めるほど、マテリアルの [Emissive] セクションで生成されるブルームは明るくなっていきます。 
-マテリアル インスタンス内の値を下げずにブルームの影響を落とすには、 **Post Process Volume** の **Bloom** 設定を調整します。
+マテリアル インスタンス内の値を下げずにブルームの影響を落とすには、**[Post Process Volume]** の **[Bloom]** 設定を調整します。
 
 ![](EM_Bloom_On_PP.png)
 
@@ -218,11 +219,37 @@ Emissive_Strength を増加するとワールド内の Emissive エフェクト�
 
 ![](EM_Tweak_PP.png)
 
+## 間接ライティングのを複数回バウンスさせる設定
+
+**[Emissive for Static Lighting]** を有効にしたメッシュから間接ライトを複数回バウンスさせる設定は、**[World Settings]** > **[Lightmass]****[Num Sky Lighting Bounces]** で行います。 
+
+![](Engine/Rendering/LightingAndShadows/LightTypes/SkyLight/LightmassSettings.png)
+
+![](EmissiveMultiBounce.png)(w:900)
+[REGION:caption]
+エミッシブな Static Lighting (静的ライティング) が間接ライティングを複数回バウンスさせたシーンの例 
+[/REGION]
+
+[COMMENT:none]
+-
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Number of Bounces: 1](DetailLighting1.png)(w:1200)
+	[/PARAM]
+	[PARAM:after]
+	![Number of Bounces: 10](DetailLighting2.png)(w:1200)
+	[/PARAM]
+[/OBJECT]
+
+間接ライティングを 1 回バウンスさせたもの (デフォルト) と間接ライティングを 10 回バウンスさせたものを比較した例 
+
+-
+[/COMMENT]
 
 ## まとめ 
 
-エミッシブ グローをマテリアルへ追加すれば、小さい負荷で、ライトを新規に追加せずに効果的に光源をシミュレートを行うことができます。 
-ただし、エミッシブ グローを使う場合、エミッシブ グローはキャラクターのような動的オブジェクトを照らさず、ライトと同じように照らすということを覚えておいてください。 
+エミッシブ ライティングをマテリアルへ追加すれば、小さい負荷で、ライトを新規に追加せずに効果的に光源をシミュレートを行うことができます。 
+ただし、エミッシブ ライティングを使う場合、エミッシブ ライティングはキャラクターのような動的オブジェクトを照らさず、ライトと同じように照らすということを覚えておいてください。 
 また、輝きが強すぎる場合は、Post Process ボリューム上でブルーム設定を調節できることも覚えておいてください。 
 
 

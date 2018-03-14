@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,9 +13,11 @@ class UPaperSpriteComponent;
 //////////////////////////////////////////////////////////////////////////
 // FPaperSpriteSceneProxy
 
-class FPaperSpriteSceneProxy : public FPaperRenderSceneProxy
+class FPaperSpriteSceneProxy final : public FPaperRenderSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override;
+
 	FPaperSpriteSceneProxy(UPaperSpriteComponent* InComponent);
 
 	// FPrimitiveSceneProxy interface

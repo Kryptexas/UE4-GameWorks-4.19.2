@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Linux/LinuxApplication.h"
 #include "HAL/PlatformTime.h"
@@ -1417,14 +1417,8 @@ void FLinuxApplication::UpdateMouseCaptureWindow(SDL_HWindow TargetWindow)
 	}
 	else
 	{
-		if (MouseCaptureWindow)
-		{
-			if (bShouldGrab)
-			{
-				SDL_CaptureMouse(SDL_FALSE);
-			}
-			MouseCaptureWindow = nullptr;
-		}
+		SDL_CaptureMouse(SDL_FALSE);
+		MouseCaptureWindow = nullptr;
 	}
 }
 

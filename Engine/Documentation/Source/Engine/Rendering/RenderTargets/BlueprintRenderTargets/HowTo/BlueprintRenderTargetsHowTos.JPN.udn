@@ -12,7 +12,9 @@ tags:Blueprints
 topic-image:Engine/Rendering/RenderTargets/Render_Targets_Best_Practies.png
 
 **ブループリントとレンダー ターゲット - 操作ガイド** では、アンリアル エンジン 4 (UE4) プロジェクトでブループリントとレンダー ターゲットの使用方法をサンプルを使ってステップごとに説明します。 
-<!--リファレンスのリンク先も追加情報として掲載しています。-->
+[COMMENT:none]
+リファレンスのリンク先も追加情報として掲載しています。
+[/COMMENT]
 
 ## 中級者向け
 

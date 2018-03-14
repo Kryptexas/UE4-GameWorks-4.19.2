@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "UserInterface/PropertyEditor/SPropertyEditorMap.h"
 #include "UObject/UnrealType.h"
@@ -12,7 +12,7 @@ void SPropertyEditorMap::Construct(const FArguments& InArgs, const TSharedRef< c
 {
 	PropertyEditor = InPropertyEditor;
 
-	TAttribute<FText> TextAttr(this, &SPropertyEditorMap::GetSetTextValue);
+	TAttribute<FText> TextAttr(this, &SPropertyEditorMap::GetMapTextValue);
 
 	ChildSlot
 	.Padding(0.0f, 0.0f, 2.0f, 0.0f)
@@ -47,7 +47,7 @@ void SPropertyEditorMap::GetDesiredWidth(float& OutMinDesiredWidth, float& OutMa
 	OutMaxDesiredWidth = 190.0f;
 }
 
-FText SPropertyEditorMap::GetSetTextValue() const
+FText SPropertyEditorMap::GetMapTextValue() const
 {
 	return FText::Format(LOCTEXT("NumMapItemsFmt", "{0} Map elements"), FText::AsNumber( PropertyEditor->GetPropertyNode()->GetNumChildNodes()));
 }

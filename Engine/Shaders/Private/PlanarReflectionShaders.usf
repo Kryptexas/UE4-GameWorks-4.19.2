@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
  PlanarReflectionShaders.usf
@@ -43,12 +43,12 @@ void VerticalSample(float2 InUV, float y, float KernelRadiusY, float CenterDista
 		// Can't use bilinear filtering when we are depth masking
 		ColorHalfTexelOffset = 0;
 
-		float ViewportMask = YPosition > View.ViewRectMin.y;
+		float ViewportMask = YPosition > View.ViewRectMin.y + 0.5;
 		SampleWeight *= ViewportMask;
 	}
 	else
 	{
-		float ViewportMask = YPosition < View.ViewRectMin.y + View.ViewSizeAndInvSize.y;
+		float ViewportMask = YPosition < View.ViewRectMin.y + View.ViewSizeAndInvSize.y - 0.5;
 		SampleWeight *= ViewportMask;
 	}
 
@@ -68,6 +68,8 @@ void PrefilterPlanarReflectionPS(
 	out float4 OutColor : SV_Target0
 	)
 {
+	float2 BufferUV = min(InUV, (View.ViewSizeAndInvSize.xy + View.ViewRectMin.xy - 0.5) * View.BufferSizeAndInvSize.zw);
+
 #if ENABLE_PLANAR_REFLECTIONS_PREFILTER
 	BRANCH
 	if (KernelRadiusY > 0)
@@ -76,7 +78,7 @@ void PrefilterPlanarReflectionPS(
 		float CenterDistanceToPlane = -(dot(View.WorldCameraOrigin, ReflectionPlane.xyz) - ReflectionPlane.w) / dot(normalize(ScreenVector), ReflectionPlane.xyz);
 		// Note: reading from depth after the temporal AA pass
 		// This works without jittering because we disable temporal AA jittering for planar reflections
-		float CenterSceneDepth = CalcSceneDepth(InUV);
+		float CenterSceneDepth = CalcSceneDepth(BufferUV);
 		float CenterReflectionDistance = max(CenterSceneDepth - CenterDistanceToPlane, 0);
 
 		float4 AccumulatedColor = 0;
@@ -86,13 +88,13 @@ void PrefilterPlanarReflectionPS(
 		LOOP
 		for (float y = 0; y < KernelRadiusY; y += 2)
 		{
-			VerticalSample(InUV, y, KernelRadiusY, CenterDistanceToPlane, CenterReflectionDistance, false, AccumulatedColor, AccumulatedWeight);
+			VerticalSample(BufferUV, y, KernelRadiusY, CenterDistanceToPlane, CenterReflectionDistance, false, AccumulatedColor, AccumulatedWeight);
 		}
 
 		LOOP
 		for (float y = -2; y > -KernelRadiusY; y -= 2)
 		{
-			VerticalSample(InUV, y, KernelRadiusY, CenterDistanceToPlane, CenterReflectionDistance, true, AccumulatedColor, AccumulatedWeight);
+			VerticalSample(BufferUV, y, KernelRadiusY, CenterDistanceToPlane, CenterReflectionDistance, true, AccumulatedColor, AccumulatedWeight);
 		}
 
 		AccumulatedColor = AccumulatedColor / max(AccumulatedWeight, .0001f);
@@ -104,7 +106,7 @@ void PrefilterPlanarReflectionPS(
 	else
 #endif // ENABLE_PLANAR_REFLECTIONS_PREFILTER
 	{
-		float4 SceneColorValue = SampleSceneColorInput(InUV);
+		float4 SceneColorValue = SampleSceneColorInput(BufferUV);
 		// We cleared the planar reflection alpha to 1, and base pass writes 0
 		float ValidContentMask = 1 - SceneColorValue.a;
 		OutColor = float4(SceneColorValue.xyz, ValidContentMask);

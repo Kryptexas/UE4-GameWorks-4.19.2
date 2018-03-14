@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,10 +12,9 @@
 #include "Interfaces/VoiceCodec.h"
 #include "OnlineSubsystemBPCallHelper.h"
 #include "OnlineSubsystemUtilsPackage.h"
+#include "VoipListenerSynthComponent.h"
 
 class IOnlineSubsystem;
-class UAudioComponent;
-class USoundWaveProcedural;
 class FUniqueNetIdString;
 class IVoiceDecoder;
 class IVoiceEncoder;
@@ -65,8 +64,14 @@ public:
 	double LastSeen;
 	/** Number of frames starved of audio */
 	int32 NumFramesStarved;
-	/** Audio component playing this buffer (only valid on remote instances) */
-	UAudioComponent* AudioComponent;
+	/** Synth component playing this buffer (only valid on remote instances) */
+	UVoipListenerSynthComponent* VoipSynthComponent;
+	/** Cached Talker Ptr. Is checked against map before use to ensure it has not been destroyed. */
+	UVOIPTalker* CachedTalkerPtr;
+	/** Boolean used to ensure that we only bind the VOIP talker to the SynthComponent's corresponding envelope delegate once. */
+	bool bIsEnvelopeBound;
+	/** Boolean flag used to tell whether this synth component is currently consuming incoming voice packets. */
+	bool bIsActive;
 	/** Buffer for outgoing audio intended for procedural streaming */
 	mutable FCriticalSection QueueLock;
 	TArray<uint8> UncompressedDataQueue;
@@ -101,9 +106,9 @@ class FVoiceEngineImpl : public IVoiceEngine, public FSelfRegisteringExec
 			for (FRemoteTalkerData::TIterator It(VoiceEngine->RemoteTalkerBuffers); It; ++It)
 			{
 				FRemoteTalkerDataImpl& RemoteData = It.Value();
-				if (RemoteData.AudioComponent)
+				if (RemoteData.VoipSynthComponent)
 				{
-					Collector.AddReferencedObject(RemoteData.AudioComponent);
+					Collector.AddReferencedObject(RemoteData.VoipSynthComponent);
 				}
 			}
 		}
@@ -276,8 +281,16 @@ public:
 		return S_OK;
 	}
 
-	virtual uint32 ReadLocalVoiceData(uint32 LocalUserNum, uint8* Data, uint32* Size) override;
-	virtual uint32 SubmitRemoteVoiceData(const FUniqueNetId& RemoteTalkerId, uint8* Data, uint32* Size) override;
+	virtual uint32 ReadLocalVoiceData(uint32 LocalUserNum, uint8* Data, uint32* Size) override { return ReadLocalVoiceData(LocalUserNum, Data, Size, nullptr); }
+	virtual uint32 ReadLocalVoiceData(uint32 LocalUserNum, uint8* Data, uint32* Size, uint64* OutSampleCount) override;
+
+	virtual uint32 SubmitRemoteVoiceData(const FUniqueNetId& RemoteTalkerId, uint8* Data, uint32* Size) 
+	{ 
+		checkf(false, TEXT("Please use the following function signature instead: SubmitRemoteVoiceData(const FUniqueNetIdWrapper& RemoteTalkerId, uint8* Data, uint32* Size, uint64& InSampleCount)"));
+		return 0; 
+	}
+	virtual uint32 SubmitRemoteVoiceData(const FUniqueNetIdWrapper& RemoteTalkerId, uint8* Data, uint32* Size, uint64& InSampleCount) override;
+	
 	virtual void Tick(float DeltaTime) override;
 	FString GetVoiceDebugState() const override;
 
@@ -294,7 +307,7 @@ private:
 	/**
 	 * Delegate triggered when an audio component Stop() function is called
 	 */
-	void OnAudioFinished(UAudioComponent* AC);
+	void OnAudioFinished();
 };
 
 typedef TSharedPtr<FVoiceEngineImpl, ESPMode::ThreadSafe> FVoiceEngineImplPtr;

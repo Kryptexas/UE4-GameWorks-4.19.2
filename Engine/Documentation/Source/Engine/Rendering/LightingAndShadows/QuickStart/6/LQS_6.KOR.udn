@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:6. 라이트 프로파일 사용하기
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
@@ -22,7 +22,7 @@ Version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 아파트가 거의 완료되었으니, 다음으로 **IES 프로파일** 을 사용하는 좀 더 고급 **포인트 라이트** 를 만들어 보겠습니다. **IES 프로파일** 이란 현실의 특정 조명기구에서 나는 빛의 밝기와 감쇠를 도표로 나타내는 조명 업계 표준 방식입니다.
 
@@ -62,7 +62,6 @@ Version: 4.9
 
 이 가이드의 마지막인 **다음 단계** 에서는 직접 시도해 볼 수 있는 예제 몇 가지와 추가적인 라이팅 문서, 샘플, 기법에 대한 링크를 제공해 드리겠습니다.
 
-%Steps%
 
 
 

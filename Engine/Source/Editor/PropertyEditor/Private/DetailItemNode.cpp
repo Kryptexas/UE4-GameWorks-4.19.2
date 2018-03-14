@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailItemNode.h"
 #include "DetailCategoryGroupNode.h"
@@ -515,7 +515,7 @@ FName FDetailItemNode::GetNodeName() const
 FPropertyPath FDetailItemNode::GetPropertyPath() const
 {
 	FPropertyPath Ret;
-	auto PropertyNode = Customization.GetPropertyNode();
+	TSharedPtr<FPropertyNode> PropertyNode = Customization.GetPropertyNode();
 	if( PropertyNode.IsValid() )
 	{
 		Ret = *FPropertyNode::CreatePropertyPath( PropertyNode.ToSharedRef() );
@@ -523,7 +523,21 @@ FPropertyPath FDetailItemNode::GetPropertyPath() const
 	return Ret;
 }
 
-void FDetailItemNode::FilterNode( const FDetailFilter& InFilter )
+TSharedPtr<FPropertyNode> FDetailItemNode::GetPropertyNode() const
+{
+	return Customization.GetPropertyNode();
+}
+
+TSharedPtr<IDetailPropertyRow> FDetailItemNode::GetRow() const
+{
+	if (Customization.IsValidCustomization() && Customization.PropertyRow.IsValid())
+	{
+		return Customization.PropertyRow;
+	}
+	return nullptr;
+}
+
+void FDetailItemNode::FilterNode(const FDetailFilter& InFilter)
 {
 	bShouldBeVisibleDueToFiltering = PassesAllFilters( Customization, InFilter, ParentCategory.Pin()->GetDisplayName().ToString() );
 

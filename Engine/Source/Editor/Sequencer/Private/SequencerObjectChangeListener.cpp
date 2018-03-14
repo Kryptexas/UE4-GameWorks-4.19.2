@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerObjectChangeListener.h"
 #include "Components/ActorComponent.h"
@@ -340,17 +340,25 @@ void FSequencerObjectChangeListener::OnObjectPreEditChange( UObject* Object, con
 	}
 
 	// Call add key/track before the property changes so that pre-animated state can be saved off.
-	for( FEditPropertyChain::TIterator It(PropertyChain.GetHead()); It; ++It )
+
+	TArray<FPropertyInfo, TInlineAllocator<16>> ReversePropertyPath;
+	FEditPropertyChain::TDoubleLinkedListNode* ActiveNode = PropertyChain.GetActiveNode();
+	while (ActiveNode && ActiveNode->GetValue())
 	{
-		UProperty* Prop = *It;
-
-		TArray<UObject*> Objects;
-		Objects.Add(Object);
-
-		FPropertyPath PropertyPath;
-		PropertyPath.AddProperty(FPropertyInfo(Prop));
-		BroadcastPropertyChanged(FKeyPropertyParams(Objects, PropertyPath, ESequencerKeyMode::AutoKey));
+		ReversePropertyPath.Add(FPropertyInfo(ActiveNode->GetValue()));
+		ActiveNode = ActiveNode->GetPrevNode();
 	}
+
+	FPropertyPath PropertyPath;
+	for (int32 Index = ReversePropertyPath.Num() - 1; Index >= 0; --Index)
+	{
+		PropertyPath.AddProperty(ReversePropertyPath[Index]);
+	}
+
+	TArray<UObject*> Objects;
+	Objects.Add(Object);
+
+	BroadcastPropertyChanged(FKeyPropertyParams(Objects, PropertyPath, ESequencerKeyMode::AutoKey));
 }
 
 void FSequencerObjectChangeListener::OnObjectPostEditChange( UObject* Object, FPropertyChangedEvent& PropertyChangedEvent )

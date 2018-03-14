@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BasePassPixelShader.usf: Base pass pixel shader
@@ -22,7 +22,7 @@
 #define PREV_FRAME_COLOR	1
 #include "ScreenSpaceRayCast.ush"
 
-#if NEEDS_BASEPASS_PIXEL_FOGGING
+#if NEEDS_BASEPASS_PIXEL_FOGGING || NEEDS_BASEPASS_PIXEL_VOLUMETRIC_FOGGING
 	#include "HeightFogCommon.ush"
 #endif
 
@@ -67,9 +67,6 @@ SamplerState	PrevSceneColorSampler;
 
 #define FORCE_FULLY_ROUGH (SIMPLE_FORWARD_SHADING || MATERIAL_FULLY_ROUGH)
 #define EDITOR_ALPHA2COVERAGE (USE_EDITOR_COMPOSITING && SUPPORTS_PIXEL_COVERAGE)
-
-// Optimization: if opacity is 0 then revert to default shading model 
-#define SUBSURFACE_PROFILE_OPACITY_THRESHOLD 1
 
 #if TRANSLUCENCY_LIGHTING_SURFACE_LIGHTINGVOLUME || TRANSLUCENCY_LIGHTING_SURFACE_FORWARDSHADING || FORWARD_SHADING
 #include "ForwardLightingCommon.ush" 
@@ -296,8 +293,8 @@ void GetSkyLighting(float3 WorldNormal, float2 LightmapUV, float3 SkyOcclusionUV
 }
 
 #if SUPPORTS_INDEPENDENT_SAMPLERS
-	#define ILCSharedSampler1 View.SharedBilinearClampSampler
-	#define ILCSharedSampler2 View.SharedBilinearClampSampler
+	#define ILCSharedSampler1 View.SharedBilinearClampedSampler
+	#define ILCSharedSampler2 View.SharedBilinearClampedSampler
 #else
 	#define ILCSharedSampler1 PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler1
 	#define ILCSharedSampler2 PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler2
@@ -501,48 +498,6 @@ float3 GetSimpleForwardLightingDirectionalLight(FGBufferData GBuffer, float3 Dif
 
 #endif
 
-#if USE_EDITOR_COMPOSITING
-	bool bEnableEditorPrimitiveDepthTest;
-	int MSAASampleCount;
-
-	// depth in the red channel in DeviceZ
-	Texture2D		FilteredSceneDepthTexture;
-	SamplerState	FilteredSceneDepthTextureSampler;
-#endif
-
-// @return 0:translucent..1:opaque
-float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
-{
-	float Ret = 1;
-
-#if USE_EDITOR_COMPOSITING && (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || MOBILE_EMULATION)
-	// Depth test manually if compositing editor primitives since the depth buffer is different (MSAA only)
-	BRANCH
-	if (bEnableEditorPrimitiveDepthTest)
-	{
-#if HAS_INVERTED_Z_BUFFER
-		//@todo-briank
-		bool bIsPerspective = (ResolvedView.ViewToClip._m33 < 1.0f);
-#endif	// HAS_INVERTED_Z_BUFFER
- 		
-		// dejitter the sample position and make a filtered lookup - for planes this allows to reconstruct a much less jittery depth comparison function, it however doesn't fix silhuetes
-		float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SvPosition.xy - View.TemporalAAParams.zw) * ResolvedView.BufferSizeAndInvSize.zw, 0).r;
-
-		float PixelDeviceZ = MaterialParameters.SvPosition.z;
-
-		// Soft Bias with DeviceZ for best quality
-		const float DeviceDepthFade = 0.00005f;
-
-		// 0.5f is to bias around the actual value, 1 or 0 are another option
-		Ret = saturate(0.5f - (DeviceZ - PixelDeviceZ) / DeviceDepthFade);
-	}
-#endif	// USE_EDITOR_COMPOSITING && (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || MOBILE_EMULATION)
-
-	// Note: multiple returns cause strange HLSL compiler error for CV_Coverage in later code
-	return Ret;
-}
-
-
 #if EDITOR_ALPHA2COVERAGE != 0
 uint CustomAlpha2Coverage(inout float4 InOutColor)
 {
@@ -561,7 +516,7 @@ uint CustomAlpha2Coverage(inout float4 InOutColor)
 	if(InOutColor.a > 0.75f) { MaskedCoverage |= 0x8; ++EnabledSampleCount; }
 
 	// renormalize to make this sample the correct weight
-	InOutColor *= (float)MSAASampleCount / EnabledSampleCount;
+	InOutColor *= (float)View.NumSceneColorMSAASamples / EnabledSampleCount;
 
 	return MaskedCoverage;
 }
@@ -1043,13 +998,23 @@ void FPixelShaderInOut_MainPS(
 	#endif
 
 	#if NEEDS_BASEPASS_VERTEX_FOGGING
-		float4 Fogging = BasePassInterpolants.VertexFog;
+		float4 HeightFogging = BasePassInterpolants.VertexFog;
 	#elif NEEDS_BASEPASS_PIXEL_FOGGING
-		float4 Fogging = CalculateHeightFog(MaterialParameters.WorldPosition_CamRelative);
+		float4 HeightFogging = CalculateHeightFog(MaterialParameters.WorldPosition_CamRelative);
 	#else
-		float4 Fogging = float4(0,0,0,1);
+		float4 HeightFogging = float4(0,0,0,1);
 	#endif
-		
+
+	float4 Fogging = HeightFogging;
+
+#if NEEDS_BASEPASS_PIXEL_VOLUMETRIC_FOGGING
+	if (ApplyVolumetricFog > 0)
+	{
+		float3 VolumeUV = ComputeVolumeUV(MaterialParameters.AbsoluteWorldPosition, ResolvedView.WorldToClip);
+		Fogging = CombineVolumetricFog(HeightFogging, VolumeUV);
+	}
+#endif
+
 	// Volume lighting for lit translucency
 	#if (MATERIAL_SHADINGMODEL_DEFAULT_LIT || MATERIAL_SHADINGMODEL_SUBSURFACE) && (MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE) && !SIMPLE_FORWARD_SHADING && !FORWARD_SHADING
 		Color += GetTranslucencyVolumeLighting(MaterialParameters, PixelMaterialInputs, BasePassInterpolants, GBuffer, IndirectIrradiance);
@@ -1063,7 +1028,7 @@ void FPixelShaderInOut_MainPS(
 
 #if USE_DEVELOPMENT_SHADERS
 	// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
-	#if METAL_SM5_PROFILE || SM5_PROFILE || SM4_PROFILE || METAL_SM4_PROFILE || VULKAN_PROFILE_SM4 || VULKAN_PROFILE_SM5
+	#if METAL_SM5_PROFILE || SM5_PROFILE || SM4_PROFILE || METAL_SM5_NOTESS_PROFILE || VULKAN_PROFILE_SM4 || VULKAN_PROFILE_SM5
 		BRANCH
 		if (View.OutOfBoundsMask > 0)
 		{
@@ -1147,16 +1112,14 @@ void FPixelShaderInOut_MainPS(
 	{
 		Out.MRT[0].a = 1;
 
-#if MATERIALBLENDING_MASKED
-		// some material might have a opacity value
-		Out.MRT[0].a = GetMaterialMaskInputRaw(PixelMaterialInputs);
-#endif
-		// we output premultiplied alpha to we have to darken all 4 channels
-		Out.MRT[0] *= ClipForEditorPrimitives(MaterialParameters);
+		#if MATERIALBLENDING_MASKED
+			// some material might have a opacity value
+			Out.MRT[0].a = GetMaterialMaskInputRaw(PixelMaterialInputs);
+		#endif
 
 		#if EDITOR_ALPHA2COVERAGE != 0
 			// per MSAA sample
-			if(MSAASampleCount > 1)
+			if(View.NumSceneColorMSAASamples > 1)
 			{
 				Out.Coverage = In.Coverage & CustomAlpha2Coverage(Out.MRT[0]);
 			}
@@ -1181,6 +1144,10 @@ void FPixelShaderInOut_MainPS(
 	#if GBUFFER_HAS_PRECSHADOWFACTOR
 		Out.MRT[GBUFFER_HAS_VELOCITY ? 6 : 5] = OutGBufferE;
 	#endif
+#endif
+
+#if !MATERIALBLENDING_MODULATE && USE_PREEXPOSURE
+	Out.MRT[0].xyz *= View.PreExposure;
 #endif
 }
 

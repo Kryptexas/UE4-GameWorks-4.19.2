@@ -6,46 +6,11 @@ Related: Engine/Audio/Overview
 Related: Engine/Audio
 Related: Engine/Audio/SoundCues/Editor
 Related: Engine/Audio/DistanceModelAttenuation
+topic-image:audio_compact.png
 
 [REGION:banner]
 ![](Audio_Header.png)(convert:false)
 [/REGION]
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Audio:title%](audio_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Audio:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Audio:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Audio]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Audio:title%](audio_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Audio:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Audio]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-<!---
-[TOC(start:2 end:2)]
---->
 
 
 
@@ -56,9 +21,11 @@ The **Audio** map located inside the Content Examples project is an excellent so
 
 ![](contentExamplesStarterMap.png)(w:640)
 
-<!---
+[COMMENT:none]
+-
 The **Audio** map gives you the core concepts for using audio in Unreal Engine 4. This map covers many topics including the different types of audio assets and how to manipulate them to produce different effects based on your needs. Whether you are new to audio in Unreal Engine 4 or need a refresher course, this map will provide an excellent foundation. 
---->
+-
+[/COMMENT]
 | Example | What is Demonstrated |
 | ------- | ------------ |
 | **1.1 AmbientSound Actor** | Audio that plays as a one-off event. |
@@ -72,7 +39,8 @@ The **Audio** map gives you the core concepts for using audio in Unreal Engine 4
 | **1.9 Audio Volume** | Audio is affected by an Audio Volume where its effects can only be heard when the player is inside the volume (e.g. Dialogue plays and sounds as if you are in an auditorium when inside the volume. When outside, dialogue plays normally). |
 | **1.10 Audio Volume using Ambient Zone** | Two sounds are affected by an Ambient Zone where one sound is placed inside an Audio Volume and the other is not. The inside sound is quiet while outside the Audio Volume but louder when inside, while the outside sound is quiet when inside the Audio Volume and louder while standing outside it (e.g. audio when moving from an indoor to outdoor environment at night). |
 
-<!--
+[COMMENT:none]
+
 ### Sound Cue Node Usage
 The **Sound Cue Node Usage** section covers more in-depth usage of the **Sound Cue Editor** including: combining multiple **Sound Waves**, selective **Attenuation**, **Random** and **Delayed** playback of **Sound Waves**, and **Modulation**. 
 
@@ -210,4 +178,5 @@ The **Audio_Speaker_Test** map demonstrates how to setup audio for multichannel 
 In this map, you can test out playing music from the Left Front, Center, Right Front, Left Rear, and Right Rear Speakers as well as from a Subwoofer. 
 You can play them individually or in any combination to hear the different effects. 
 
--->
+
+[/COMMENT]

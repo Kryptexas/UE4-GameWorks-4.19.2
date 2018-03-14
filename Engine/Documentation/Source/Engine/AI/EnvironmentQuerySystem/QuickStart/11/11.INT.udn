@@ -20,7 +20,7 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 This is the simpler of the two **Environment Queries**, as all it will do is return a list of all the TopDownCharacters within 1500 units of the AI then test if the AI can see the TopDownCharacters. If it can, then we'll get our ActorToFleeFrom for our Behavior Tree.
 
@@ -81,4 +81,4 @@ Some quick glossary terms you're going to run into:
 And that's it!
 
 
-%Steps%
+

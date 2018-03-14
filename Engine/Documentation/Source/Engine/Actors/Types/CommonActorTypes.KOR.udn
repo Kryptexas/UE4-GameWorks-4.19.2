@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3429227
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 흔한 액터 유형
 Crumbs: %ROOT%, Engine, Engine/Actors
@@ -31,7 +31,8 @@ order:0
 | **AmbientSound**  | ![](Shared/Icons/Source/icon_class_AmbientSound_40px.png)(convert:false) | 앰비언트 사운드 - 월드에서 사운드 큐 형태로 소리를 재생하는 데 사용됩니다. 사운드는 반복이 될 수도 있고 안될 수도 있고, 공간에 배치된 느낌을 낼 수도 있고, 감쇠를 통해 멀어지는 느낌을 낼 수도 있는데, 이러한 모든 것들은 앰비언트 사운드 액터 자체에 노출되기 보다는 사운드 큐에서 구성해야 하기는 합니다. |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Trigger]
 [REGION:imagetable]
 | ![](Engine/Actors/Triggers/box_trigger.png)(w:180) | ![](Engine/Actors/Triggers/capsule_trigger.png)(w:180) | ![](Engine/Actors/Triggers/sphere_trigger.png)(w:180) |
@@ -39,4 +40,5 @@ order:0
 | 박스 트리거 | 캡슐 트리거 | 구체 트리거 |
 [/REGION]
 [/EXCERPT:Trigger]
--->
+
+[/COMMENT]

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -122,6 +122,7 @@ class ENGINE_API UHierarchicalInstancedStaticMeshComponent : public UInstancedSt
 public:
 
 	//Begin UObject Interface
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;

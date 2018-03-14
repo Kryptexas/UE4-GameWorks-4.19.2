@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved..
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved..
 
 /*=============================================================================
 	VulkanPipeline.h: Private Vulkan RHI definitions.
@@ -26,7 +26,6 @@ public:
 
 	inline const FVulkanLayout& GetLayout() const
 	{
-		check(Layout);
 		return *Layout;
 	}
 
@@ -546,7 +545,9 @@ private:
 	TMap<FVulkanComputeShader*, FVulkanComputePipeline*> ComputeShaderToPipelineMap;
 	TMap<uint32, FVulkanComputePipeline*> ComputeEntryHashToPipelineMap;
 
+	FCriticalSection GfxPipelineEntriesCS;
 	TMap<uint32, FGfxPipelineEntry*> GfxPipelineEntries;
+	FCriticalSection CreateComputePipelineCS;
 	TMap<uint32, FComputePipelineEntry*> ComputePipelineEntries;
 
 	VkPipelineCache PipelineCache;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NameTableArchive.h"
 #include "HAL/FileManager.h"
@@ -290,7 +290,7 @@ void FNameTableArchiveWriter::SerializeNameMap()
 		for (auto& Pair : NameMap)
 		{
 			check(NameMapIdx == Pair.Value);
-			*this << *const_cast<FNameEntry*>(Pair.Key.GetDisplayNameEntry());
+			Pair.Key.GetDisplayNameEntry()->Write(*this);
 			NameMapIdx++;
 		}
 	}

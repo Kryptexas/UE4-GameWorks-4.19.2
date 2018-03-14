@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:3471591
+﻿INTSourceChangelist:3726228
 Availability: Public
-title:피벗 페인터 머티리얼 함수
+title:피벗 페인터 툴 1.0 머티리얼 함수
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Pivot Painter 카테고리 아래 있는 머티리얼 함수에 대한 설명과 예제입니다.
 Version: 4.9
 Parent:Engine/Rendering/Materials/Functions/Reference
 Related:Engine/Content/Tools/PivotPainter
+Related:Engine/Content/Tools/PivotPainter/PivotPainter1
 Topic-Image:PivotPainterMF_Topic.png
 tags:Materials
 tags:Pivot Painter
@@ -17,10 +18,10 @@ tags:Pivot Painter
 [REGION:header_img]
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
-640
+960
 [/PARAMLITERAL]
 [PARAMLITERAL:height]
-360
+540
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
 G3vUj7c5gUM

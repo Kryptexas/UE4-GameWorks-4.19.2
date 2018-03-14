@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -64,9 +64,19 @@ struct FKShapeElem
 		return (T*)this;
 	}
 
+#if WITH_PHYSX
 	const FPhysxUserData* GetUserData() const { FPhysxUserData::Set<FKShapeElem>((void*)&UserData, const_cast<FKShapeElem*>(this));  return &UserData; }
+#endif // WITH_PHYSX
 
 	ENGINE_API static EAggCollisionShape::Type StaticShapeType;
+
+#if WITH_EDITORONLY_DATA
+	/** Get the user-defined name for this shape */
+	ENGINE_API const FString& GetName() { return Name; }
+
+	/** Set the user-defined name for this shape */
+	ENGINE_API void SetName(const FString& InName) { Name = InName; }
+#endif
 
 protected:
 	/** Helper function to safely clone instances of this shape element */
@@ -76,6 +86,15 @@ protected:
 	}
 
 private:
+#if WITH_EDITORONLY_DATA
+	/** User-defined name for this shape */
+	UPROPERTY(Category=Shape, EditAnywhere)
+	FString Name;
+#endif
+
 	EAggCollisionShape::Type ShapeType;
+
+#if WITH_PHYSX
 	FPhysxUserData UserData;
+#endif // WITH_PHYSX
 };

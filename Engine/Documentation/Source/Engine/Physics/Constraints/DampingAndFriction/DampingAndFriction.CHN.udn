@@ -53,7 +53,8 @@ _这两个 Angular Swing Motions（角性摇动）共享Damping（阻尼） 值,
 或者关于物理约束属性的参考指南，
  参见: [](Engine/Physics\Constraints\ConstraintsReference)
 
-<!--
+[COMMENT:none]
+
 ## 物理材质阻尼
 这可以想象为应用到刚体上的空气阻力。它是应用到刚体上试图使它慢下来的力， 
 力的强度和物体移动的速度成比例关系。对于线性及角度阻尼有单独的设置，所以您可以控制它对平移运动及旋转运动的阻力的大小。
@@ -80,7 +81,8 @@ _这两个 Angular Swing Motions（角性摇动）共享Damping（阻尼） 值,
 是在那个体积中的物体应该达到的理想速度。您可以把这个速度想象为在那个区域中的河流或者风洞。然后您可以修改 
 RigidBodyDamping(刚体阻尼)属性来控制当在体积中时物理刚体尝试并获得那个速度所需的力度。设置ZoneVelocity(区域速度)为零并设置较高的RigidBodyDamping(刚体阻尼)值 
 可以使得它像果冻一样。设置水平的ZoneVelocity(区域速度)和一个中等的RigidBodyDamping(刚体阻尼)可以使它像流动的水一样。
--->
+
+[/COMMENT]
  
 
 

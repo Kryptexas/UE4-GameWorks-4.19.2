@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Includes all necessary PhysX headers
 
 #pragma once
@@ -30,8 +30,14 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 	#elif PLATFORM_32BITS
 		#pragma pack(push,8)
 	#endif
-#elif (PLATFORM_LINUX && PLATFORM_CPU_X86_FAMILY && !PLATFORM_64BITS)
-	#pragma pack(push,16)
+#elif PLATFORM_LINUX
+	#if (PLATFORM_CPU_X86_FAMILY && !PLATFORM_64BITS)
+		#pragma pack(push,16)
+	#endif
+	#ifdef __clang__
+		#pragma clang diagnostic push
+		#pragma clang diagnostic ignored "-Wreturn-type-c-linkage"	// ignore PxPhysics.h PxGetPhysics() returning C++ type - see UE-49412
+	#endif
 #endif
 
 THIRD_PARTY_INCLUDES_START
@@ -96,8 +102,13 @@ THIRD_PARTY_INCLUDES_END
 	#elif PLATFORM_32BITS
 		#pragma pack(pop)
 	#endif
-#elif (PLATFORM_LINUX && PLATFORM_CPU_X86_FAMILY && !PLATFORM_64BITS)
-	#pragma pack(pop)
+#elif PLATFORM_LINUX
+	#if (PLATFORM_CPU_X86_FAMILY && !PLATFORM_64BITS)
+		#pragma pack(pop)
+	#endif
+	#ifdef __clang__
+		#pragma clang diagnostic pop
+	#endif
 #endif
 
 #if USING_CODE_ANALYSIS

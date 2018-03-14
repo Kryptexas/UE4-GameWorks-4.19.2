@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,6 +27,8 @@ struct FMeshChart
 	FVector2D	PackingBias;
 
 	int32		Join[4];
+
+	int32		Id; // Store a unique id so that we can come back to the initial Charts ordering when necessary
 };
 
 struct FAllocator2DShader
@@ -48,7 +50,7 @@ class MESHUTILITIES_API FLayoutUV
 public:
 				FLayoutUV( FRawMesh* InMesh, uint32 InSrcChannel, uint32 InDstChannel, uint32 InTextureResolution );
 
-	void		FindCharts( const TMultiMap<int32,int32>& OverlappingCorners );
+	int32		FindCharts( const TMultiMap<int32,int32>& OverlappingCorners );
 	bool		FindBestPacking();
 	void		CommitPackedUVs();
 
@@ -85,11 +87,13 @@ private:
 	FAllocator2D		BestChartRaster;
 	FAllocator2DShader	ChartShader;
 
-	ELightmapUVVersion LayoutVersion;
+	ELightmapUVVersion	LayoutVersion;
+
+	int32				NextMeshChartId;
 };
 
 
-#define THRESH_UVS_ARE_SAME (GetUVEqualityThreshold())
+#define UVLAYOUT_THRESH_UVS_ARE_SAME (GetUVEqualityThreshold())
 
 
 inline bool FLayoutUV::PositionsMatch( uint32 a, uint32 b ) const
@@ -109,7 +113,7 @@ inline bool FLayoutUV::NormalsMatch( uint32 a, uint32 b ) const
 
 inline bool FLayoutUV::UVsMatch( uint32 a, uint32 b ) const
 {
-	return ( RawMesh->WedgeTexCoords[ SrcChannel ][a] - RawMesh->WedgeTexCoords[ SrcChannel ][b] ).IsNearlyZero( THRESH_UVS_ARE_SAME );
+	return ( RawMesh->WedgeTexCoords[ SrcChannel ][a] - RawMesh->WedgeTexCoords[ SrcChannel ][b] ).IsNearlyZero(UVLAYOUT_THRESH_UVS_ARE_SAME);
 }
 
 inline bool FLayoutUV::VertsMatch( uint32 a, uint32 b ) const

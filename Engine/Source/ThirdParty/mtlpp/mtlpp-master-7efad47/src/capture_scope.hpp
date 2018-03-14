@@ -1,20 +1,24 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+#include "imp_CaptureScope.hpp"
 #include "ns.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
 	class Device;
 	class CommandQueue;
 	
-	class CaptureScope : public ns::Object
+	class CaptureScope : public ns::Object<ns::Protocol<id<MTLCaptureScope>>::type>
 	{
 	public:
 		CaptureScope() { }
-		CaptureScope(const ns::Handle& handle) : ns::Object(handle) { }
+		CaptureScope(ns::Protocol<id<MTLCaptureScope>>::type handle) : ns::Object<ns::Protocol<id<MTLCaptureScope>>::type>(handle) { }
 		
 		void BeginScope();
 		void EndScope();
@@ -27,3 +31,5 @@ namespace mtlpp
 	} MTLPP_AVAILABLE(10_13, 11_0);
 	
 }
+
+MTLPP_END

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Commands.h"
@@ -35,4 +35,9 @@ public:
 
 	/** Toggles the locking/unlocking of refreshing from changes*/
 	TSharedPtr<FUICommandInfo> ToggleUnlockToChanges;
+
+	TSharedPtr<FUICommandInfo> ToggleOrbit;
+	TSharedPtr<FUICommandInfo> ToggleBounds;
+	TSharedPtr<FUICommandInfo> ToggleBounds_SetFixedBounds;
+	TSharedPtr<FUICommandInfo> SaveThumbnailImage;
 };

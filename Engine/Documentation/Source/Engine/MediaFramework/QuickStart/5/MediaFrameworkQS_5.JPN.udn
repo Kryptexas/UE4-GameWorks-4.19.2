@@ -1,0 +1,175 @@
+﻿INTSourceChangelist:3725599
+Availability:Public
+Crumbs: %ROOT%
+Title:5 - TV ブループリントの機能とテスト
+Description:TV ブループリントの機能設定を完了し、レベルですべてをテストします。 
+SkillLevel:Beginner
+Version:4.18
+checkpoint: mediaframeworkqs
+parent:Engine\MediaFramework\QuickStart
+type:multi-step
+order:5
+tags:Media Framework
+tags:Blueprints
+ 
+[NAV]
+
+このステップでは、引き続き TV ブループリントを使ってプレイヤーが TV に近づいて、オン / オフ、ポーズ、再生開始ができるような機能を追加します。 
+最終的にはレベル内に複数の TV (それぞれがユニークなコンテンツを表示) を作れるようにします。 
+そのためのステップとして、レベル内に複数の TV を配置し、**[Details]** パネルを使って各 TV が表示するコンテンツを変更します。 
+
+## ステップ
+
+1. **TV_Blueprint** で、メイン ツールバーの下にある **[Construction Script]** タブをクリックします。 
+
+	![](Event_01.png)
+
+1. **[Components]** ウィンドウで **[Box]** コンポーネントを選択します。**[Details (詳細)]** パネルで、**On Component Begin Overlap** イベントと **On Component End Overlap** イベントの両方を追加します。
+
+	![](Event_02.png)
+
+	これにより、プレイヤーがボタンを押すと TV ブループリントに影響を与えることができる [イベント](Engine/Blueprints/UserGuide/Events/) が生成されます。 
+
+1. グラフを右クリックして **Get Player Controller** ノード、**Enable Input** ノード、**Disable Input** ノードを追加して、以下のように接続します。
+
+	![](Event_03.png)
+
+	プレイヤーがボックスのコリジョン ボリュームに入ると、キーボードで入力をしてこのブループリントに影響を与えることができます。プレイヤーがボリュームから去ると、それはできなくなります。 
+
+1.	グラフで右クリックして **O** と **P** のキーボード イベント、および **Flip Flop** ノードを 2 つ作成します。以下のように接続します。 
+
+	![](Event_04.png)
+
+	プレイヤーが **O** キーを押すと、TV のオン / オフ、**P** キーを押すとポーズもしくは再生開始となるように設定します。
+
+1.	**[My Blueprint]** パネルで、**[Character Movement]** という名前の変数を作成します。 
+
+1.	 新規変数の **[Details]** パネルで **[Variable Type]** を **[Media Player Object Reference]** に設定し、**[Instance Editable]** を有効にして、**[Default Value]** を **[MediaPlayer_01]** に設定します。 
+
+	![](Event_05.png)
+
+	ランタイム時にビデオ コンテンツをプレイするために、Media Player アセットに Media Source を開くように指示しなければなりません。そのためには、まず指示を出す Media Player への参照が必要です。**[Instance Editable]** を有効すると、指示する Media Player を定義することができます (つまり、レベル内に複数のプレイヤーとコンテンツを持つことができます)。
+
+1.	 **Ctrl** キーを押しながら **MediaPlayerForVideo** 変数をグラフ内にドラッグし、ワイヤーを伸ばして **Open Source** 関数呼び出しにつなげます。 
+
+	![](Event_06.png)
+
+1.	**Open Source** ノードで **[Media Source]** を **[Video_01]** に設定し、それを右クリックして **Promote to Variable** をクリックします。この変数に **「SourceToOpen」** という名前を付けます。 
+
+	![](Event_07.png)
+
+	[REGION:caption]別の Media Source のプレイも選択できるように Media Source に変数を作成しています。[/REGION]
+
+	[REGION:tip]
+	プロパティの値を設定し、**Promote to Variable** を選択すると、自動的に変数が作成され、Default Value として値が割り当てられます。
+	[/REGION]
+
+1.	**SourceToOpen** 変数の **[Instance Editable]** オプションを有効にします。 
+
+	![](Event_08.png)
+
+	これにより、レベルに配置した TV の各インスタンスを開くためのソースの設定が可能になります。 
+
+1.	グラフで **Media Player For Video** ノードからワイヤーをのばし **Close** 関数呼び出しを使ってそれぞれを **FlipFlop** ノードに接続します。 
+
+	![](Event_09.png)
+
+	[REGION:caption]プレイヤーが **O** キーを押すと指定した Media Source (TV をオン) が開きます。もう 1 度 **O** を押すと Media Player (TV をオフ) が閉じます。[/REGION]
+
+	[REGION:note]
+	Media Player アセットは **Play on Open** に設定されているので、ソースが開いた時にソース コンテンツのプレイが自動的に開始されます。
+	[/REGION]
+
+1.	**P** キーボード イベントの場合は **MediaPlayerForVideo** 変数を追加し、関数コールの **Pause** と **Play** を設定し、以下のように接続します。 
+
+	![](Event_10.png)
+
+	開き方は Media Source と同じで、プレイヤーが **P** キーを押すと Media Player がポーズし、もう 1 度 **P** キーを押すと再生が開始します。
+
+1.	**TV_Blueprint** ブループリントを終了し **コンテンツ ブラウザ** の **TV_Blueprint** をレベルへドラッグし、トランスフォーム ツールを使って好きなサイズに変更します。 
+
+	![](Event_11.png)
+
+	公開されている TV 変更用のすべてのプロパティが **[Details]** パネルに表示されます。 
+
+	![](Event_12.png)
+
+	これらのプロパティを使って、TV と関連づいているビデオ / オーディオを変更することができますが、その前に Media Source をもう 1 つ作成する必要があります。 
+
+1.	**コンテンツ ブラウザ** の **「Content/Movies」** フォルダを右クリックして、**[Media]** から **[Stream Media Source]** を選択して **「Video_2」** と名前を付けます。 
+
+	![](Event_13.png)
+
+	ローカル メディア ファイルの他には、Media Framework がインターネットからのビデオ ([サポート対象](Engine\MediaFramework\TechReference\) 形式) のストリーミングを **Stream Media Source** アセット タイプでサポートしています。
+
+1.	**Video_2** アセットを開き、この [Sample Video Stream](https://docs.unrealengine.com/latest/attachments/Engine/MediaFramework/HowTo/StreamMediaSource/Infiltrator%20Demo.mp4) をクリックして **リンク アドレスをコピー** したら **Stream URL** 入力フィールドにペーストします。
+
+	![](Event_14.png)
+
+	[REGION:warning]
+	4.18 では YouTube へのリンクはサポートされていません。サポート対象フォーマットについては [](Engine\MediaFramework\TechReference\) でご確認ください。 
+	[/REGION]
+
+1.	**コンテンツ ブラウザ** の **「Content/Movies」** フォルダを右クリックして、**Media Player** アセットをもう 1 つ作成します。 
+
+	![](Event_15.png)
+
+	この Media Player は、レベルに追加した TV のコンテンツをプレイするために使用します。 
+
+1.	**[Create Media Player]** ウィンドウで **[Video Output Media Texture Asset]** が有効になっているかを確認して、Media Player の **MediaPlayer_02** を呼び出します。  
+
+	![](Event_16.png)
+
+	すると、名前の付いた Media Texture アセットと Media Player アセットが自動的に作成されます。 
+
+1.	レベルで **TV_Blueprint** のコピーを作成します。**[Details (詳細)]** パネルで以下のプロパティを変更します。 
+
+	![](Event_17.png)
+
+	以下のように設定します。 
+
+	* **Texture for TV** - _MediaPlayer_02_Video_
+	* **Media Player for Sound** - _MediaPlayer_02_
+	* **Media Player for Video** - _MediaPlayer_02_
+	* **Source to Open** - _Video_2_
+
+	追加した Media Framework コンテンツとストリーミング ビデオに対して開く Media Player、Media Texture、Media Sound、Media Source を指定することができます。 
+
+1.	メイン ツールバーで **[Play]** ボタンをクリックしてレベルで再生します。 
+
+## 最終結果
+
+いずれかの TV に近づいて **O** キーを押すと指定した Media Source (オン) が開きます。もう 1 度 **O** を押すと Media Source (オフ) が閉じます。
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	LEX8rd9e_ik
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+[REGION:caption]
+**P** キーを押すと、それぞれの TV でビデオがポーズまたは再生が開始されます。 
+[/REGION]
+
+レベルの各インスタンスごとにコンテンツおよび関連づけられた Media Framework アセットの変更ができるように TV Blueprint を設定しました。1 つのレベルで複数の TV に異なるコンテンツを映し出して、お互いに独立してインタラクトすることが可能な場合に便利です。また、Media Texture アセットを組み込むマテリアルの生成方法、ブループリントの関数呼び出しを使って Media Player Asset と Media Source Asset の再生および開く方法についても学習しました。
+
+次のステップでは、Media Framework に関する追加情報および練習素材を用意しています。 
+
+[NAV]
+
+
+
+
+

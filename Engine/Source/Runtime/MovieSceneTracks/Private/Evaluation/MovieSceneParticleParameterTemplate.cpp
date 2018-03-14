@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Evaluation/MovieSceneParticleParameterTemplate.h"
 #include "Tracks/MovieSceneParticleParameterTrack.h"
@@ -19,23 +19,9 @@ struct FParticleParameterPreAnimatedToken : IMovieScenePreAnimatedToken
 {
 	FParticleParameterPreAnimatedToken() {}
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	FParticleParameterPreAnimatedToken(FParticleParameterPreAnimatedToken&&) = default;
 	FParticleParameterPreAnimatedToken& operator=(FParticleParameterPreAnimatedToken&&) = default;
-#else
-	FParticleParameterPreAnimatedToken(FParticleParameterPreAnimatedToken&& RHS)
-	{
-		*this = MoveTemp(RHS);
-	}
-	FParticleParameterPreAnimatedToken& operator=(FParticleParameterPreAnimatedToken&& RHS)
-	{
-		ScalarValues = MoveTemp(RHS.ScalarValues);
-		VectorValues = MoveTemp(RHS.VectorValues);
-		ColorValues = MoveTemp(RHS.ColorValues);
-		return *this;
-	}
-#endif
-	
+
 	virtual void RestoreState(UObject& Object, IMovieScenePlayer& Player) override
 	{
 		UParticleSystemComponent* ParticleSystemComponent = CastChecked<UParticleSystemComponent>(&Object);
@@ -95,20 +81,12 @@ struct FParticleParameterExecutionToken : IMovieSceneExecutionToken
 {
 	FParticleParameterExecutionToken() = default;
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	FParticleParameterExecutionToken(FParticleParameterExecutionToken&&) = default;
 	FParticleParameterExecutionToken& operator=(FParticleParameterExecutionToken&&) = default;
-#else
-	FParticleParameterExecutionToken(FParticleParameterExecutionToken&& RHS)
-		: Values(MoveTemp(RHS.Values))
-	{
-	}
-	FParticleParameterExecutionToken& operator=(FParticleParameterExecutionToken&& RHS)
-	{
-		Values = MoveTemp(RHS.Values);
-		return *this;
-	}
-#endif
+
+	// Non-copyable
+	FParticleParameterExecutionToken(const FParticleParameterExecutionToken&) = delete;
+	FParticleParameterExecutionToken& operator=(const FParticleParameterExecutionToken&) = delete;
 
 	virtual void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player)
 	{

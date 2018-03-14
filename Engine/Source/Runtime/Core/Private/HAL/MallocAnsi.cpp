@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MallocAnsi.cpp: Binned memory allocator
@@ -34,6 +34,16 @@ FMallocAnsi::FMallocAnsi()
 void* FMallocAnsi::Malloc( SIZE_T Size, uint32 Alignment )
 {
 	IncrementTotalMallocCalls();
+
+#if !UE_BUILD_SHIPPING
+	uint64 LocalMaxSingleAlloc = MaxSingleAlloc.Load(EMemoryOrder::Relaxed);
+	if (LocalMaxSingleAlloc != 0 && Size > LocalMaxSingleAlloc)
+	{
+		FPlatformMemory::OnOutOfMemory(Size, Alignment);
+		return nullptr;
+	}
+#endif
+
 	Alignment = FMath::Max(Size >= 16 ? (uint32)16 : (uint32)8, Alignment);
 
 #if USE_ALIGNED_MALLOC
@@ -62,6 +72,16 @@ void* FMallocAnsi::Malloc( SIZE_T Size, uint32 Alignment )
 void* FMallocAnsi::Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment )
 {
 	IncrementTotalReallocCalls();
+
+#if !UE_BUILD_SHIPPING
+	uint64 LocalMaxSingleAlloc = MaxSingleAlloc.Load(EMemoryOrder::Relaxed);
+	if (LocalMaxSingleAlloc != 0 && NewSize > LocalMaxSingleAlloc)
+	{
+		FPlatformMemory::OnOutOfMemory(NewSize, Alignment);
+		return nullptr;
+	}
+#endif
+
 	void* Result;
 	Alignment = FMath::Max(NewSize >= 16 ? (uint32)16 : (uint32)8, Alignment);
 

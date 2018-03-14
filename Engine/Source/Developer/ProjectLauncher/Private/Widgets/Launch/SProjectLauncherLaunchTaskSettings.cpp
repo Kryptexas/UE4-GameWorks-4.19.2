@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SProjectLauncherLaunchTaskSettings.h"
 
 #include "Fonts/SlateFontInfo.h"
+#include "Styling/CoreStyle.h"
 #include "SlateOptMacros.h"
 #include "Widgets/SOverlay.h"
 #include "Widgets/Layout/SGridPanel.h"
@@ -54,7 +55,7 @@ void SProjectLauncherLaunchTaskSettings::Construct(const FArguments& InArgs, con
 							.VAlign(VAlign_Top)
 							[
 								SNew(STextBlock)
-									.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
+									.Font(FCoreStyle::GetDefaultFontStyle("Bold", 13))
 									.Text(LOCTEXT("ProjectSectionHeader", "Project"))
 							]
 
@@ -78,7 +79,7 @@ void SProjectLauncherLaunchTaskSettings::Construct(const FArguments& InArgs, con
 							.VAlign(VAlign_Top)
 							[
 								SNew(STextBlock)
-								.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
+								.Font(FCoreStyle::GetDefaultFontStyle("Bold", 13))
 								.Text(LOCTEXT("CookSectionHeader", "Cook"))
 							]
 
@@ -102,7 +103,7 @@ void SProjectLauncherLaunchTaskSettings::Construct(const FArguments& InArgs, con
 							.VAlign(VAlign_Top)
 							[
 								SNew(STextBlock)
-									.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
+									.Font(FCoreStyle::GetDefaultFontStyle("Bold", 13))
 									.Text(LOCTEXT("TargetSectionHeader", "Target"))
 							]
 

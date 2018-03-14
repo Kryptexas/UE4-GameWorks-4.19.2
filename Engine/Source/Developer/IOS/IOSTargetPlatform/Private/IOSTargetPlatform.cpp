@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IOSTargetPlatform.cpp: Implements the FIOSTargetPlatform class.
@@ -116,7 +116,7 @@ bool FIOSTargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutTutori
 		FPlatformProcess::Sleep(0.01f);
 	}
 	int RetCode = IPPProcess->GetReturnCode();
-	UE_LOG(LogTemp, Display, TEXT("%s"), *OutputMessage);
+//	UE_LOG(LogTemp, Display, TEXT("%s"), *OutputMessage);
 
 	bool biOSSDKInstalled = IFileManager::Get().DirectoryExists(*OutputMessage);
 #else
@@ -194,11 +194,18 @@ int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bPr
 	GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("BundleIdentifier"), BundleIdentifier, GEngineIni);
 	BundleIdentifier = BundleIdentifier.Replace(TEXT("[PROJECT_NAME]"), FApp::GetProjectName());
 	BundleIdentifier = BundleIdentifier.Replace(TEXT("_"), TEXT(""));
+
+	bool bAutomaticSigning = false;
+	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bAutomaticSigning"), bAutomaticSigning, GEngineIni);
+
+	FString TeamID;
+	GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("IOSTeamID"), TeamID, GEngineIni);
+
 #if PLATFORM_MAC
     FString CmdExe = TEXT("/bin/sh");
     FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Mac/RunMono.sh"));
     FString IPPPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNET/IOS/IPhonePackager.exe"));
-	FString CommandLine = FString::Printf(TEXT("\"%s\" \"%s\" Validate Engine -project \"%s\" -bundlename \"%s\" %s"), *ScriptPath, *IPPPath, *ProjectPath, *(BundleIdentifier), (bForDistribtion ? TEXT("-distribution") : TEXT("")) );
+	FString CommandLine = FString::Printf(TEXT("\"%s\" \"%s\" Validate Engine -project \"%s\" -bundlename \"%s\" -teamID \"%s\" %s %s"), *ScriptPath, *IPPPath, *ProjectPath, *(BundleIdentifier), *(TeamID), (bForDistribtion ? TEXT("-distribution") : TEXT("")), bAutomaticSigning ? TEXT("-autosigning") : TEXT(""));
 #else
 	FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNET/IOS/IPhonePackager.exe"));
 	FString CommandLine = FString::Printf(TEXT("Validate Engine -project \"%s\" -bundlename \"%s\" %s"), *ProjectPath, *(BundleIdentifier), (bForDistribtion ? TEXT("-distribution") : TEXT("")) );
@@ -210,6 +217,10 @@ int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bPr
 	}
 
 #endif
+	if (bIsTVOS)
+	{
+		CommandLine += " -tvos";
+	}
 	TSharedPtr<FMonitoredProcess> IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, true));
 	OutputMessage = TEXT("");
 	IPPProcess->OnOutput().BindStatic(&OnOutput);
@@ -219,7 +230,7 @@ int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bPr
 		FPlatformProcess::Sleep(0.01f);
 	}
 	int RetCode = IPPProcess->GetReturnCode();
-    UE_LOG(LogTemp, Display, TEXT("%s"), *OutputMessage);
+//	UE_LOG(LogTemp, Display, TEXT("%s"), *OutputMessage);
 	if (RetCode == 14)
 	{
 		OutTutorialPath = FString("/Engine/Tutorial/Mobile/CreatingInfoPlist.CreatingInfoPlist");
@@ -240,6 +251,16 @@ int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bPr
 	{
 		OutTutorialPath = FString("/Engine/Tutorial/Mobile/CreatingSigningCertAndProvisionTutorial.CreatingSigningCertAndProvisionTutorial");
 		bReadyToBuild |= ETargetPlatformReadyStatus::ProvisionNotFound;
+	}
+
+	{
+		TArray<FString> FoundIconFiles;
+		FString Wildcard = FPaths::Combine(FPaths::ProjectDir(), TEXT("Build"), TEXT("IOS"), TEXT("Resources"), TEXT("Graphics"), TEXT("Icon*.png"));
+		IFileManager::Get().FindFiles(FoundIconFiles, *Wildcard, true, false);
+		if (FoundIconFiles.Num() > 0)
+		{
+			bReadyToBuild |= ETargetPlatformReadyStatus::CodeBuildRequired;
+		}
 	}
 
 	return bReadyToBuild;
@@ -405,6 +426,13 @@ static bool CookASTC()
 	bool bCookASTCTextures = true;
 	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bCookASTCTextures"), bCookASTCTextures, GEngineIni);
 	return bCookASTCTextures;
+}
+
+bool FIOSTargetPlatform::CanSupportXGEShaderCompile() const
+{
+	bool bRemoteCompilingEnabled = false;
+	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("EnableRemoteShaderCompile"), bRemoteCompilingEnabled, GEngineIni);
+	return !bRemoteCompilingEnabled;
 }
 
 bool FIOSTargetPlatform::SupportsFeature( ETargetPlatformFeatures Feature ) const

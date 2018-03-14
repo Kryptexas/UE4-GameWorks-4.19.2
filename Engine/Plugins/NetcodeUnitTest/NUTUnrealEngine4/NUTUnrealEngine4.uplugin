@@ -10,7 +10,7 @@
 	"DocsURL" : "",
 	"MarketplaceURL" : "",
 	"SupportURL" : "",
-	"EnabledByDefault" : false,
+	"EnabledByDefault" : true,
 	"CanContainContent" : false,
 	"IsBetaVersion" : false,
 	"Installed" : false,
@@ -18,7 +18,7 @@
 	[
 		{
 			"Name" : "NUTUnrealEngine4",
-			"Type" : "Runtime",
+			"Type" : "Developer",
 			"LoadingPhase" : "Default",
 			"WhitelistPlatforms" :
 			[
@@ -30,10 +30,6 @@
 	],
 	"Plugins":
 	[
-		{
-			"Name": "OnlineSubsystemUtils",
-			"Enabled": true
-		},
 		{
 			"Name": "NetcodeUnitTest",
 			"Enabled": true

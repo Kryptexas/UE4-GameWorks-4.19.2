@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,6 +7,7 @@
 #include "Templates/UnrealTemplate.h"
 #include "Templates/Decay.h"
 #include "Delegates/IntegerSequence.h"
+#include "Templates/Invoke.h"
 
 // VS2015 Update 2 (and seemingly earlier) erroneously complains about multiple versions
 // of special member functions, so we disable the use of defaulting in that case.
@@ -15,14 +16,14 @@
 #if defined(_MSC_VER) && _MSC_FULL_VER <= 190023918
 	#define TUPLES_USE_DEFAULTED_FUNCTIONS 0
 #else
-	#define TUPLES_USE_DEFAULTED_FUNCTIONS PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
+	#define TUPLES_USE_DEFAULTED_FUNCTIONS 1
 #endif
 
 // Static analysis causes internal compiler errors with auto-deduced return types,
 // but some older VC versions still have return type deduction failures inside the delegate code
 // when they are enabled.  So we currently only enable them for static analysis builds.
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
-	#define USE_TUPLE_AUTO_RETURN_TYPES (PLATFORM_COMPILER_HAS_AUTO_RETURN_TYPES && USING_CODE_ANALYSIS)
+	#define USE_TUPLE_AUTO_RETURN_TYPES USING_CODE_ANALYSIS
 #else
 	#define USE_TUPLE_AUTO_RETURN_TYPES 1
 #endif
@@ -416,7 +417,7 @@ namespace UE4Tuple_Private
 		#if USE_TUPLE_AUTO_RETURN_TYPES
 			decltype(auto) ApplyAfter(FuncType&& Func, ArgTypes&&... Args) const
 		#else
-			auto ApplyAfter(FuncType&& Func, ArgTypes&&... Args) const -> decltype(Func(Forward<ArgTypes>(Args)..., Get<Indices>()...))
+			auto ApplyAfter(FuncType&& Func, ArgTypes&&... Args) const -> decltype(Func(Forward<ArgTypes>(Args)..., this->Get<Indices>()...))
 		#endif
 		{
 			return Func(Forward<ArgTypes>(Args)..., this->template Get<Indices>()...);
@@ -426,7 +427,7 @@ namespace UE4Tuple_Private
 		#if USE_TUPLE_AUTO_RETURN_TYPES
 			decltype(auto) ApplyBefore(FuncType&& Func, ArgTypes&&... Args) const
 		#else
-			auto ApplyBefore(FuncType&& Func, ArgTypes&&... Args) const -> decltype(Func(Get<Indices>()..., Forward<ArgTypes>(Args)...))
+			auto ApplyBefore(FuncType&& Func, ArgTypes&&... Args) const -> decltype(Func(this->Get<Indices>()..., Forward<ArgTypes>(Args)...))
 		#endif
 		{
 			return Func(this->template Get<Indices>()..., Forward<ArgTypes>(Args)...);
@@ -545,6 +546,13 @@ namespace UE4Tuple_Private
 
 	#endif
 
+
+	template <typename... Types>
+	FORCEINLINE TTuple<typename TDecay<Types>::Type...> MakeTupleImpl(Types&&... Args)
+	{
+		return TTuple<typename TDecay<Types>::Type...>(Forward<Types>(Args)...);
+	}
+
 	template <typename IntegerSequence>
 	struct TTransformTuple_Impl;
 
@@ -558,7 +566,7 @@ namespace UE4Tuple_Private
 			static auto Do(TupleType&& Tuple, FuncType Func) -> decltype(MakeTuple(Func(Forward<TupleType>(Tuple).template Get<Indices>())...))
 		#endif
 		{
-			return MakeTuple(Func(Forward<TupleType>(Tuple).template Get<Indices>())...);
+			return MakeTupleImpl(Func(Forward<TupleType>(Tuple).template Get<Indices>())...);
 		}
 	};
 
@@ -568,11 +576,19 @@ namespace UE4Tuple_Private
 	template <uint32... Indices>
 	struct TVisitTupleElements_Impl<TIntegerSequence<uint32, Indices...>>
 	{
-		template <typename TupleType, typename FuncType>
-		static void Do(TupleType&& Tuple, FuncType Func)
+		// We need a second function to do the invocation for a particular index, to avoid the pack expansion being
+		// attempted on the indices and tuples simultaneously.
+		template <uint32 Index, typename FuncType, typename... TupleTypes>
+		FORCEINLINE static void InvokeFunc(FuncType&& Func, TupleTypes&&... Tuples)
+		{
+			Invoke(Forward<FuncType>(Func), Forward<TupleTypes>(Tuples).template Get<Index>()...);
+		}
+
+		template <typename FuncType, typename... TupleTypes>
+		static void Do(FuncType&& Func, TupleTypes&&... Tuples)
 		{
 			// This should be implemented with a fold expression when our compilers support it
-			int Temp[] = { 0, (Func(Tuple.template Get<Indices>()), 0)... };
+			int Temp[] = { 0, (InvokeFunc<Indices>(Forward<FuncType>(Func), Forward<TupleTypes>(Tuples)...), 0)... };
 			(void)Temp;
 		}
 	};
@@ -678,9 +694,9 @@ struct TTupleArity : UE4Tuple_Private::TCVTupleArity<const volatile TupleType>
  * }
  */
 template <typename... Types>
-TTuple<typename TDecay<Types>::Type...> MakeTuple(Types&&... Args)
+FORCEINLINE TTuple<typename TDecay<Types>::Type...> MakeTuple(Types&&... Args)
 {
-	return TTuple<typename TDecay<Types>::Type...>(Forward<Types>(Args)...);
+	return UE4Tuple_Private::MakeTupleImpl(Forward<Types>(Args)...);
 }
 
 
@@ -727,13 +743,25 @@ template <typename FuncType, typename... Types>
 
 
 /**
- * Visits each element in the tuple in turn and applies the supplied functor to it.
+ * Visits each element in the specified tuples in parallel and applies them as arguments to the functor.
+ * All specified tuples must have the same number of elements.
  *
- * @param  Tuple  The tuple to apply the functor to.
- * @param  Func   The functor to apply.
+ * @param  Func    The functor to apply.
+ * @param  Tuples  The tuples whose elements are to be applied to the functor.
+ *
+ * Example:
+ *
+ * void Func(const TTuple<int32, const TCHAR*, FString>& Tuple1, const TTuple<bool, float, FName>& Tuple2)
+ * {
+ *     // Equivalent to:
+ *     // Functor(Tuple1.Get<0>(), Tuple2.Get<0>());
+ *     // Functor(Tuple1.Get<1>(), Tuple2.Get<1>());
+ *     // Functor(Tuple1.Get<2>(), Tuple2.Get<2>());
+ *     VisitTupleElements(Functor, Tuple1, Tuple2);
+ * }
  */
-template <typename TupleType, typename FuncType>
-FORCEINLINE void VisitTupleElements(TupleType& Tuple, FuncType Func)
+template <typename FuncType, typename FirstTupleType, typename... TupleTypes>
+FORCEINLINE void VisitTupleElements(FuncType&& Func, FirstTupleType&& FirstTuple, TupleTypes&&... Tuples)
 {
-	UE4Tuple_Private::TVisitTupleElements_Impl<TMakeIntegerSequence<uint32, TTupleArity<TupleType>::Value>>::Do(Tuple, MoveTemp(Func));
+	UE4Tuple_Private::TVisitTupleElements_Impl<TMakeIntegerSequence<uint32, TTupleArity<typename TDecay<FirstTupleType>::Type>::Value>>::Do(Forward<FuncType>(Func), Forward<FirstTupleType>(FirstTuple), Forward<TupleTypes>(Tuples)...);
 }

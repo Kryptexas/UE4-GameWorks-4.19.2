@@ -69,7 +69,8 @@ The commentary box has the following exposed properties:
 
 
 
-<!----------------
+[COMMENT:none]
+--------------
 [EXCERPT:BoxCL]
 The _Components List_ for the Commentary Box is set up as follows:
 
@@ -95,4 +96,5 @@ The _Event Graph_ performs the following tasks:
 * When the player enters the Sphere Component trigger volume, animate the box components so that they scale to the proper size, then create the text.
 * Every tick, rotate the Blueprint so that it faces the player.
 [/EXCERPT:BoxEG]
------------------->
+----------------
+[/COMMENT]

@@ -5,40 +5,7 @@ Availability:Public
 Parent:Platforms/iOS
 order:4
 type:how-to
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Platforms/iOS/Leaderboards:title%](Platforms/Mobile/Leaderboards/topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/iOS/Leaderboards:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/iOS/Leaderboards:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/iOS/Leaderboards]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Platforms/iOS/Leaderboards:title%](Platforms/Mobile/Leaderboards/topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/iOS/Leaderboards:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/iOS/Leaderboards:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/iOS/Leaderboards]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:topic.png
 
 ![](Platforms\Mobile\Leaderboards\iOSleaderboard.png)(w:320 convert:false)
 

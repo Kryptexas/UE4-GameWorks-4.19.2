@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Evaluation/MovieSceneMaterialParameterCollectionTemplate.h"
 #include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
@@ -90,20 +90,12 @@ struct FMaterialParameterCollectionExecutionToken : IMovieSceneExecutionToken
 {
 	FMaterialParameterCollectionExecutionToken(UMaterialParameterCollection* InCollection) : Collection(InCollection) {}
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	FMaterialParameterCollectionExecutionToken(FMaterialParameterCollectionExecutionToken&&) = default;
 	FMaterialParameterCollectionExecutionToken& operator=(FMaterialParameterCollectionExecutionToken&&) = default;
-#else
-	FMaterialParameterCollectionExecutionToken(FMaterialParameterCollectionExecutionToken&& RHS)
-		: Values(MoveTemp(RHS.Values))
-	{
-	}
-	FMaterialParameterCollectionExecutionToken& operator=(FMaterialParameterCollectionExecutionToken&& RHS)
-	{
-		Values = MoveTemp(RHS.Values);
-		return *this;
-	}
-#endif
+
+	// Non-copyable
+	FMaterialParameterCollectionExecutionToken(const FMaterialParameterCollectionExecutionToken&) = delete;
+	FMaterialParameterCollectionExecutionToken& operator=(const FMaterialParameterCollectionExecutionToken&) = delete;
 
 	virtual void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player)
 	{
@@ -117,6 +109,12 @@ struct FMaterialParameterCollectionExecutionToken : IMovieSceneExecutionToken
 
 		static TMovieSceneAnimTypeIDContainer<FName> AnimTypeIDsByName;
 		UMaterialParameterCollectionInstance* Instance = World->GetParameterCollectionInstance(Collection);
+
+		if (!Instance)
+		{
+			UE_LOG(LogMovieScene, Warning, TEXT("Failed to get material parameter collection to animate."));
+			return;
+		}
 
 		TArray<FString> InvalidParameterNames;
 

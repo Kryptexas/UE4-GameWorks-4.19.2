@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -43,7 +43,7 @@ public class MacPlatform : Platform
 	private void StageAppBundle(DeploymentContext SC, DirectoryReference InPath, StagedDirectoryReference NewName)
 	{
 		// Files with DebugFileExtensions should always be DebugNonUFS
-		List<string> DebugExtensions = GetDebugFileExtentions();
+		List<string> DebugExtensions = GetDebugFileExtensions();
 		foreach(FileReference InputFile in DirectoryReference.EnumerateFiles(InPath, "*", SearchOption.AllDirectories))
 		{
 			StagedFileReference OutputFile = StagedFileReference.Combine(NewName, InputFile.MakeRelativeTo(InPath));
@@ -416,7 +416,7 @@ public class MacPlatform : Platform
 		bool bUseManifest = !bIsBuildingRemotely || AddArgs.IndexOf("-CopyAppBundleBackToDevice", StringComparison.InvariantCultureIgnoreCase) > 0;
 		return bUseManifest;
 	}
-	public override List<string> GetDebugFileExtentions()
+	public override List<string> GetDebugFileExtensions()
 	{
 		return new List<string> { ".dSYM" };
 	}

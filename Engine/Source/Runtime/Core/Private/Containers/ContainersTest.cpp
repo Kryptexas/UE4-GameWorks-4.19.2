@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreTypes.h"
 #include "Misc/AssertionMacros.h"
@@ -9,6 +9,8 @@
 #include "Misc/AutomationTest.h"
 #include "Stats/StatsMisc.h"
 #include "Math/RandomStream.h"
+
+#if WITH_DEV_AUTOMATION_TESTS
 
 #define MAX_TEST_OBJECTS      65
 #define MAX_TEST_OBJECTS_STEP 1
@@ -425,6 +427,12 @@ namespace
 		}
 	}
 
+	template <typename ContainerType, typename ElemType, typename GetRefFuncType>
+	void TestGetRef(ContainerType& Container, ElemType&& Elem, GetRefFuncType&& GetRefFunc)
+	{
+		auto& Ref = GetRefFunc(Container, Forward<ElemType>(Elem));
+	}
+
 	template<typename TValueType>
 	struct FCaseSensitiveLookupKeyFuncs : BaseKeyFuncs<TValueType, FString>
 	{
@@ -441,6 +449,40 @@ namespace
 			return FCrc::StrCrc32<TCHAR>(*Key);
 		}
 	};
+
+	void RunGetRefTests()
+	{
+		{
+			TArray<FString> Arr;
+			FString* Str1 = &Arr.AddDefaulted_GetRef();
+			check(Str1->IsEmpty());
+			check(Str1 == &Arr.Last());
+
+			FString* Str2 = &Arr.AddZeroed_GetRef();
+			check(Str2->IsEmpty());
+			check(Str2 == &Arr.Last());
+
+			FString* Str3 = &Arr.Add_GetRef(TEXT("Abc"));
+			check(*Str3 == TEXT("Abc"));
+			check(Str3 == &Arr.Last());
+
+			FString* Str4 = &Arr.Emplace_GetRef(TEXT("Def"));
+			check(*Str4 == TEXT("Def"));
+			check(Str4 == &Arr.Last());
+
+			FString* Str5 = &Arr.EmplaceAt_GetRef(3, TEXT("Ghi"));
+			check(*Str5 == TEXT("Ghi"));
+			check(Str5 == &Arr[3]);
+
+			FString* Str6 = &Arr.InsertDefaulted_GetRef(2);
+			check(Str6->IsEmpty());
+			check(Str6 == &Arr[2]);
+
+			FString* Str7 = &Arr.InsertZeroed_GetRef(4);
+			check(Str7->IsEmpty());
+			check(Str7 == &Arr[4]);
+		}
+	}
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FContainersSmokeTest, "System.Core.Containers.Smoke", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::SmokeFilter)
@@ -480,6 +522,8 @@ bool FContainersFullTest::RunTest(const FString& Parameters)
 	check(It->Key == NAME_FloatProperty); ++It;
 	check(It->Key == NAME_NameProperty); ++It;
 	check(!It);
+
+	RunGetRefTests();
 
 	return true;
 }
@@ -595,3 +639,5 @@ namespace ArrayViewTests
 		return true;
 	}
 };
+
+#endif // WITH_DEV_AUTOMATION_TESTS

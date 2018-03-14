@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,6 +26,12 @@ public:
 	{
 		static const FName ModuleName = "AssetTools";
 		return FModuleManager::LoadModuleChecked< FAssetToolsModule >(ModuleName);
+	}
+
+	static inline bool IsModuleLoaded()
+	{
+		static const FName ModuleName = "AssetTools";
+		return FModuleManager::Get().IsModuleLoaded(ModuleName);
 	}
 
 private:

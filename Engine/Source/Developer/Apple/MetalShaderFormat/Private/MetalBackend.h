@@ -1,4 +1,5 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+// .
 
 #pragma once
 
@@ -24,7 +25,7 @@ public:
 	FMetalLanguageSpec(uint8 InVersion) : Version(InVersion), ClipDistanceCount(0), ClipDistancesUsed(0) {}
 	
 	uint32 GetClipDistanceCount() const { return ClipDistanceCount; }
-	
+
 	virtual bool SupportsDeterminantIntrinsic() const override
 	{
 		return (Version >= 2);
@@ -54,9 +55,13 @@ public:
 	
 	virtual bool SupportsSaturateIntrinsic() const { return (Version >= 2); }
 
-    virtual bool SupportsSinCosIntrinsic() const { return (Version >= 2); }
+    virtual bool SupportsSinCosIntrinsic() const { return true; }
     
     virtual bool SupportsMatrixIntrinsics() const { return (Version < 2); }
+
+	virtual bool AllowsAllTextureOperationsOnDepthTextures() const { return true; }
+    
+    virtual bool AllowsInvariantBufferTypes() const { return true; }
 };
 
 struct FBuffers;
@@ -78,9 +83,10 @@ enum EMetalGPUSemantics
 
 enum EMetalTypeBufferMode
 {
-	EMetalTypeBufferModeNone = 0, // No typed buffers
-	EMetalTypeBufferModeSRV = 1, // Buffer<> SRVs are typed
-	EMetalTypeBufferModeUAV = 2 // Buffer<> SRVs & RWBuffer<> UAVs are typed
+	EMetalTypeBufferModeRaw = 0, // No typed buffers
+    EMetalTypeBufferModeSRV = 1, // Buffer<> Typed via 2D textures, RWBuffer<> typed via function constants
+    EMetalTypeBufferModeUAV = 2, // Buffer<> SRVs & RWBuffer<> UAVs are typed via 2D textures
+    EMetalTypeBufferModeFun = 3, // Buffer<> SRVs & RWBuffer<> UAVs are typed via function constants
 };
 
 // Metal supports 16 across all HW
@@ -89,7 +95,7 @@ static const int32 MaxMetalSamplers = 16;
 // Generates Metal compliant code from IR tokens
 struct FMetalCodeBackend : public FCodeBackend
 {
-	FMetalCodeBackend(FMetalTessellationOutputs& Attribs, unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, uint8 Version, EMetalGPUSemantics bInDesktop, EMetalTypeBufferMode InTypedMode, uint32 MaxUnrollLoops, bool bInZeroInitialise, bool bInBoundsChecks, bool bInAllFastIntriniscs);
+	FMetalCodeBackend(FMetalTessellationOutputs& Attribs, unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, uint8 Version, EMetalGPUSemantics bInDesktop, EMetalTypeBufferMode InTypedMode, uint32 MaxUnrollLoops, bool bInZeroInitialise, bool bInBoundsChecks, bool bInAllFastIntriniscs, bool bForceInvariance);
 
 	virtual char* GenerateCode(struct exec_list* ir, struct _mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency) override;
 
@@ -110,7 +116,10 @@ struct FMetalCodeBackend : public FCodeBackend
 
     TMap<ir_variable*, uint32> ImageRW;
     FMetalTessellationOutputs& TessAttribs;
-	uint8 AtomicUAVs;
+	TArray<uint8> TypedBufferFormats;
+	uint32 InvariantBuffers;
+	uint32 TypedBuffers;
+    uint32 TypedUAVs;
     
     uint8 Version;
 	EMetalGPUSemantics bIsDesktop;
@@ -120,6 +129,7 @@ struct FMetalCodeBackend : public FCodeBackend
 	bool bBoundsChecks;
 	bool bAllowFastIntriniscs;
 	bool bExplicitDepthWrites;
+	bool bForceInvariance;
 
 	bool bIsTessellationVSHS = false;
 	unsigned int inputcontrolpoints = 0;

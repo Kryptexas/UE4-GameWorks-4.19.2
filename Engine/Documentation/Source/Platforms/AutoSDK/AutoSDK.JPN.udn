@@ -1,0 +1,209 @@
+﻿INTSourceChangelist:3782314
+Availability:Docs
+Crumbs: %ROOT%
+Title:AutoSDK を有効にする方法
+Description:UE4 の AutoSDK システムを利用するための開発環境の設定方法の説明
+Type: how-to
+SkillLevel:Advanced
+Version:4.18
+Parent:Platforms
+Order: 
+Tags:Platform
+Related:Platforms/Linux/GettingStarted
+Related:Platforms/Linux/AdvancedLinuxDeveloper/LinuxCrossCompileLegacy
+
+[REGION:warning]
+このページは、AutoSDK 機能を自動ビルド システムの一部として使用するチーム向けの内容です。
+[/REGION]
+
+ソフトウェア開発キット (SDK) の手動によるインストールがサポートされました。しかしながら、同じ SDK から複数のバージョンを作成し、単一のプラットフォームで SDK の複数のバージョンを管理する必要がある場合、アンリアル エンジン (UE4) で利用可能な **AutoSDK** 機能を使うと便利です。 
+[AutoSDK](https://docs.unrealengine.com/latest/INT/API/Developer/DesktopPlatform/FPlatformInfo/index.html) を使用する大きなメリットは、[](Programming/UnrealBuildSystem) を有効にしてプロジェクトとブランチに合わせて正しい SDK バージョンを自動的に選択できることです。 
+AutoSDK を使用した後、サポートされているすべてのプラットフォームをコンパイルするように PC を設定することができます。
+
+## 環境変数の設定
+
+AutoSDK を使用する前に、**UE_SDKS_ROOT** 環境変数を設定しなければなりません。
+
+1.	プラットフォーム (またはこれらのプラットフォームのサブセット) のツールチェーンをすべて保持するディレクトリをメモに取ります。ディレクトリは `D:\YourPath\Host<Platform>` のようになります。
+
+	[REGION:note]
+	通常、**AutoSDK** からターゲット プラットフォームの SDK を含む`Host<Platform>` サブディレクトリ (`Host<Platform>\TargetPlatform`) の提供を求められます。たとえば、`D:\YourPath\HostWin64\Linux_x64` のようなサブディレクトリを提供します。
+	[/REGION]
+
+1.	必要であれば、クライアント ワークスペース定義に `//repo/YourDirectory` を追加することができます。Perforce の例としては、ディレクトリを [Client Spec](https://www.perforce.com/perforce/doc.081/manuals/p4web/help/client.html) に追加することができます。
+
+	[REGION:note]
+	ディレクトリ パスの大文字と小文字の区別に注意してください。AutoSKD は、大文字と小文字の区別をするプラットフォームがケースの異なる以前のプラットフォームと混しないでパスを探知します。
+	[/REGION]
+
+	クライアント ワークスペース定義にディレクトリを追加したので、次は **UE_SDKS_ROOT** 環境変数を設定しましょう。
+
+%Globals:OSSelect_Linux%
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#WindowsConsoleSteps]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#MacTerminalSteps]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	linux
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#LinuxTerminalSteps]
+	[/PARAM]
+[/OBJECT]
+
+## 最終結果
+
+この時点で、**AutoSDK** を使用するために、**UE_SDKS_ROOT** 環境変数が Unreal Build Tool (UBT) に設定されています。 
+これで、UBT を SDK に切り替えればいつでも **Setup** と **Unsetup** バッチ (あるいはバッシュ) スクリプト ファイルは SDK をインストール / 再インストールすることができます。
+
+[COMMENT:none]
+
+[EXCERPT:WindowsConsoleSteps]
+
+###コンソールを使用する
+
+[REGION:tip]
+**System Settings** ウィンドウの方が使いやすい場合は、[System Settings ウィンドウを使用する](#Bookmark1) セクションをご覧ださい。
+[/REGION]
+
+1.	**UE_SDKS_ROOT** 環境変数を設定するために、**コマンド プロンプト** を開きます。
+
+	![](AutoSDK_Win_0.png)
+
+1.	次にコマンド `setx UE_SDKS_ROOT D:\YourPath` をコンソールに入力します。
+
+	![](AutoSDK_Win_1.png)
+
+	[REGION:tip]
+	**setx** コマンドの詳細については、コンソールに `setx /?` と入力します。
+	[/REGION]
+
+###System Settings ウィンドウを使用する
+
+(#Bookmark1)
+
+1.	ウィンドウの **[System]** メニューを開くには、**[Windows] + [Pause/Break]** を一緒に押します。
+
+	![](AutoSDK_Win_2.png)
+
+1.	Click the **[Advanced system settings]** リンクをクリックして **[System Properties]** メニューを開きます。
+
+	![](AutoSDK_Win_3.png)
+
+1.	**[Environment Variables...]** ボタンをクリックして **[Environment Variables]** メニューを開きます。
+
+	![](AutoSDK_Win_4.png)
+
+1.	このステップでは、**[Environment Variables]** メニューの **[User variables]** セクション、または **[System variables]** セクションのいずれかを使用することができます。説明するために、**[Environment Variables]** メニューの **[System variables]** セクションにある **[New...]** ボタンをクリックしてください。
+
+	![](AutoSDK_Win_5.png)
+
+1.	**[New System Variable]** メニューの **Variable name:** テキスト フィールドに「`UE_SDKS_ROOT`」と入力します。
+
+	![](AutoSDK_Win_6.png)
+
+1.	ディレクトリ パスの位置を **[Variable value:]** フィールドに入力したら、**[OK]** ボタンを押して新しい環境変数を保存します。
+
+	![](AutoSDK_Win_7.png)
+
+[/EXCERPT:WindowsConsoleSteps]
+
+[/COMMENT]
+
+[COMMENT:none]
+
+[EXCERPT:LinuxTerminalSteps]
+
+###ターミナルを使用する
+
+1.	**UE_SDKS_ROOT** 環境変数を設定するために、**ターミナル** を開きます。
+
+	![](AutoSDK_Linux_0.png)
+
+1.	以下のコマンドをターミナルに入力します： `sudo -H gedit /etc/environment`
+
+	![](AutoSDK_Linux_1.png)
+
+	[REGION:note]
+	ここでは **gedit** をこのサンプルのテキスト エディタとして使用していますが、自分の好きなテキスト エディタを自由に選んで、Environment Variable テキスト ファイルを更新することもできます。
+	[/REGION]
+
+1.	Environment Variable テキスト ファイルを **gedit** で開くために、**sudo** パスワードを入力します。
+
+	![](AutoSDK_Linux_2.png)
+
+1.	新しく開いた Environment Variable テキスト ファイルを編集するには、`UE_SDKS_ROOT=YourPath` をファイルの終わりに追加します。
+
+	![](AutoSDK_Linux_3.png)
+
+1.	ファイルを保存し終了したら、変更を反映させるためにオペレーティング システムを再起動する必要があります。
+
+	[REGION:tip]
+	ターミナルに `echo` または `printenv` のいずれかを入力すると、新しく追加した Environmental Varibale を検証することができます。
+	[/REGION]
+
+[/EXCERPT:LinuxTerminalSteps]
+
+[/COMMENT]
+
+[COMMENT:none]
+
+[EXCERPT:MacTerminalSteps]
+
+###ターミナルを使用する
+
+1.	**UE_SDKS_ROOT** 環境変数を設定するために、**ターミナル** を開きます。
+
+	![](AutoSDK_Mac_0.png)
+
+1.	以下のコマンドをターミナルに入力します： `sudo nano /etc/paths`
+
+	![](AutoSDK_Mac_1.png)
+
+	[REGION:note]
+	ここでは **nano** をこのサンプルのテキスト エディタとして使用していますが、自分の好きなテキスト エディタを自由に選んで、Environment Variable テキスト ファイルを更新することもできます。
+	[/REGION]
+
+1.	Environment Variable テキスト ファイルを **gedit** で開くために、**nano** パスワードを入力します。
+
+	![](AutoSDK_Mac_2.png)
+
+1.	新しく開いた Environment Variable テキスト ファイルを編集するには、`UE_SDKS_ROOT=YourPath` をファイルの終わりに追加します。
+
+	![](AutoSDK_Mac_3.png)
+
+1.	ファイルを保存し終了したら、ターミナルも終了します。
+
+[/EXCERPT:MacTerminalSteps]
+
+[/COMMENT]

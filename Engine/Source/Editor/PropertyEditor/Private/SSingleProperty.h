@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -59,7 +59,7 @@ public:
 	/** @return The notify hook used by the property */
 	FNotifyHook* GetNotifyHook() const { return NotifyHook; }
 
-
+	virtual TSharedPtr<IPropertyHandle> GetPropertyHandle() const override { return PropertyHandle;  }
 private:
 	/**
 	 * Sets the color if this is a color property
@@ -84,4 +84,5 @@ private:
 	FName PropertyName;
 	/** Location of the name in the view */
 	EPropertyNamePlacement::Type NamePlacement;
+	TSharedPtr<class IPropertyHandle> PropertyHandle;
 };

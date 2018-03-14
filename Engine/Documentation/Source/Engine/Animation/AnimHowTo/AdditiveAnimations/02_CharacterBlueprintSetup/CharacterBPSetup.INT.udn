@@ -4,26 +4,12 @@ Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:In this step, we create some script inside our Character Blueprint to allow us to simulate firing a weapon. 
 version: 4.14
 skilllevel: Advanced
+parent:Engine/Animation/AnimHowTo/AdditiveAnimations
 type:how-to
+order:2
 tags:Animation
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous](Engine\Animation\AnimHowTo\AdditiveAnimations\01_BlendSetup)
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Layered Animations - Home ](Engine\Animation\AnimHowTo\AdditiveAnimations)
-	[/PARAM]
-	[PARAM:next]
-		[Next](Engine\Animation\AnimHowTo\AdditiveAnimations\03_AnimGraphSetup)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 In this step, we create some script inside our Character Blueprint to allow us to signal our Animation Blueprint that we are firing a weapon. 
 
@@ -66,4 +52,4 @@ In this step, we create some script inside our Character Blueprint to allow us t
 Our character is now set up to send signals to our Animation Blueprint when we are crouching or firing a weapon. 
 In the next step, we will set up our Animation Graph inside our Animation Blueprint to handle the blending of our Anim Montage with our normal movement animations so that we can blend between the two. 
 
-%Steps%
+[NAV]

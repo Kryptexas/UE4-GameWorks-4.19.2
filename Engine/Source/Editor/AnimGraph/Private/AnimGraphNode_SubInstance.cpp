@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphNode_SubInstance.h"
 #include "Widgets/Text/STextBlock.h"
@@ -145,7 +145,7 @@ void UAnimGraphNode_SubInstance::ReallocatePinsDuringReconstruction(TArray<UEdGr
 			FEdGraphPinType PinType;
 			if(Schema->ConvertPropertyToPinType(PoseProperty, PinType))
 			{
-				UEdGraphPin* NewPin = CreatePin(EEdGraphPinDirection::EGPD_Input, PinType, PoseProperty->GetName());
+				UEdGraphPin* NewPin = CreatePin(EEdGraphPinDirection::EGPD_Input, PinType, PoseProperty->GetFName());
 				NewPin->PinFriendlyName = PoseProperty->GetDisplayNameText();
 
 				CustomizePinData(NewPin, PoseProperty->GetFName(), INDEX_NONE);
@@ -178,7 +178,7 @@ void UAnimGraphNode_SubInstance::ReallocatePinsDuringReconstruction(TArray<UEdGr
 
 			verify(Schema->ConvertPropertyToPinType(Property, PinType));
 
-			UEdGraphPin* NewPin = CreatePin(EEdGraphPinDirection::EGPD_Input, PinType, Property->GetName());
+			UEdGraphPin* NewPin = CreatePin(EEdGraphPinDirection::EGPD_Input, PinType, Property->GetFName());
 			NewPin->PinFriendlyName = Property->GetDisplayNameText();
 
 			// Need to grab the default value for the property from the target generated class CDO
@@ -252,7 +252,7 @@ void UAnimGraphNode_SubInstance::GetInstancePinProperty(const UClass* InOwnerIns
 
 FString UAnimGraphNode_SubInstance::GetPinTargetVariableName(const UEdGraphPin* InPin) const
 {
-	return TEXT("__SUBINSTANCE_") + InPin->PinName + TEXT("_") + NodeGuid.ToString();
+	return TEXT("__SUBINSTANCE_") + InPin->PinName.ToString() + TEXT("_") + NodeGuid.ToString();
 }
 
 void UAnimGraphNode_SubInstance::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)

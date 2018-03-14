@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:블루프린트 통신 방법
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:블루프린트 통신의 여러가지 방법을 언제 사용할지에 대한 개요입니다.
-Related: Engine\Blueprints\UserGuide\BlueprintComms
+Related: Engine/Blueprints/UserGuide/BlueprintComms
 Related: Engine/Blueprints/UserGuide/EventDispatcher
 Related: Engine/Blueprints/UserGuide/CastNodes
 Related: Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
@@ -12,43 +12,9 @@ parent:Engine/Blueprints
 order:4
 type:how-to
 tags:Blueprints
+topic-image:Engine/Blueprints/UserGuide/bp_comms_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\BlueprintCommsUsage:title%](Engine\Blueprints\UserGuide\bp_comms_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\BlueprintCommsUsage:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\BlueprintCommsUsage:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\BlueprintCommsUsage]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\BlueprintCommsUsage:title%](Engine\Blueprints\UserGuide\bp_comms_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\BlueprintCommsUsage:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\BlueprintCommsUsage:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\BlueprintCommsUsage]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+
 
 
 [TOC(start:2 end:2)]
@@ -57,12 +23,12 @@ tags:Blueprints
 
 ## 직접 블루프린트 통신
 
-![](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo\2_9.png)
+![](Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo/2_9.png)
 
-[INCLUDE:Engine\Blueprints\UserGuide\BlueprintComms#intro]
+[INCLUDE:Engine/Blueprints/UserGuide/BlueprintComms#intro]
 
 [REGION:note]
-자세한 정보는 **[](Engine\Blueprints\UserGuide\BlueprintComms)** 문서를 참고하세요.
+자세한 정보는 **[](Engine/Blueprints/UserGuide/BlueprintComms)** 문서를 참고하세요.
 [/REGION]
 
 ### 사용 시점
@@ -73,7 +39,7 @@ tags:Blueprints
 	*	레벨에 있는 스위치를 조작하면 특정 문을 열거나 라이트를 켭니다 (이들 각각은 별도의 블루프린트입니다).
 
 [REGION:note]
-직접 블루프린트 통신 셋업 길잡이는 [](Engine\Blueprints\BP_HowTo\DirectBlueprintComs) 문서를 참고하세요.
+직접 블루프린트 통신 셋업 길잡이는 [](Engine/Blueprints/BP_HowTo/DirectBlueprintComs) 문서를 참고하세요.
 [/REGION]
 
 	
@@ -101,7 +67,7 @@ tags:Blueprints
 	*	레벨에 (웨폰, 헬쓰 등의) 아이템을 스폰하고, 픽업시 아이템과 캐릭터에게 알립니다.
 
 [REGION:note]
-이벤트 디스패처 셋업 관련 길잡이는 [](Engine\Blueprints\BP_HowTo\EventDispatcher) 문서를 참고하세요.
+이벤트 디스패처 셋업 관련 길잡이는 [](Engine/Blueprints/BP_HowTo/EventDispatcher) 문서를 참고하세요.
 [/REGION]
 
 
@@ -132,13 +98,13 @@ OnTakeWeaponFire 함수가 들어있는 **블루프린트 인터페이스** 를 
 	*	적이 플레이어의 생명력에 따라 변하며 다르게 반응하는 특수 동작이 있습니다.
 
 [REGION:note]
-블루프린트 인터페이스 셋업 방법 안내는 [](Engine\Blueprints\BP_HowTo\Interfaces) 문서를 참고하세요.
+블루프린트 인터페이스 셋업 방법 안내는 [](Engine/Blueprints/BP_HowTo/Interfaces) 문서를 참고하세요.
 [/REGION]
 
 
 ## 블루프린트 형변환
 
-![](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo\Event6.png)
+![](Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo/Event6.png)
 
 [EXCERPT:CastDesc]
 또 한 가지 흔히 쓰이는 블루프린트 통신 형태는 **Cast** (형변환) 노드를 사용하는 것입니다. 형변환 노드를 사용한다는 것은, 간단히 말해서 오브젝트에게 "너 그 오브젝트의 특수 버전이니?" 하고 물어서 그렇다면 접근을 허가하고, 아니면 요청을 무시하는 것입니다.
@@ -171,7 +137,7 @@ OnTakeWeaponFire 함수가 들어있는 **블루프린트 인터페이스** 를 
 [/EXCERPT:Castusage]
 
 [REGION:note]
-블루프린트 형변환 구성법 관련 안내는 [](Engine\Blueprints\BP_HowTo\Casting) 문서를 참고하세요.
+블루프린트 형변환 구성법 관련 안내는 [](Engine/Blueprints/BP_HowTo/Casting) 문서를 참고하세요.
 [/REGION]
 
 

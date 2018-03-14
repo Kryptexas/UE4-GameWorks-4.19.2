@@ -22,7 +22,8 @@ using various preset methods.
 | ------- | ----------- |
 | ![](button_blocking_volume.png) | Generates a _BlockingVolume_ from the _StaticMesh_ to use as collision using one of the following methods: [INCLUDE:#BlockingVolume] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BlockingVolume]
 [REGION:simpletable]
 | Method | Description |
@@ -40,4 +41,5 @@ This cuts down on the number of planes that will be used for generating the cutt
 as a side effect, eliminates duplicates.
 [/REGION]
 [/EXCERPT:BlockingVolume]
--->
+
+[/COMMENT]

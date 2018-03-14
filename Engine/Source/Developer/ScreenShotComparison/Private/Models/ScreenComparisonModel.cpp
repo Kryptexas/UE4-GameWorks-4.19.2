@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ScreenComparisonModel.h"
 #include "ISourceControlModule.h"
@@ -32,16 +32,25 @@ void FScreenComparisonModel::Complete()
 	FString RelativeReportFolder = Report.ReportFolder;
 	if ( FPaths::MakePathRelativeTo(RelativeReportFolder, *Report.ReportRootDirectory) )
 	{
+		// Find test folder, immediate sub-folder of map
+		// e.g. Map/Test/Platform/RHI -> Map/Test 
 		for (;;)
 		{
 			FString ParentFolder = FPaths::GetPath(RelativeReportFolder);
-			if ( ParentFolder.IsEmpty() )
+
+			int32 SubfolderPos = INDEX_NONE;
+			bool bContainsSubfolder = false;
+			bContainsSubfolder |= ParentFolder.FindChar('\\', SubfolderPos);
+			bContainsSubfolder |= ParentFolder.FindChar('/', SubfolderPos);
+
+			if (ParentFolder.IsEmpty() || !bContainsSubfolder)
 			{
 				break;
 			}
 			RelativeReportFolder = ParentFolder;
 		}
 
+		// Delete test folder
 		FString ReportTopFolder = Report.ReportRootDirectory / RelativeReportFolder;
 		if ( IFileManager::Get().DeleteDirectory(*ReportTopFolder, false, true) )
 		{

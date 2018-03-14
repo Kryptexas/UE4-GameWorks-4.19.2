@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -523,44 +523,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelOfDetail, AdvancedDisplay)
 	int32 NumCinematicMipLevels;
 
-	/** This should be unchecked if using alpha channels individually as masks. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Texture, meta=(DisplayName="sRGB"), AssetRegistrySearchable)
-	uint32 SRGB:1;
-
-#if WITH_EDITORONLY_DATA
-
-	/** A flag for using the simplified legacy gamma space e.g pow(color,1/2.2) for converting from FColor to FLinearColor, if we're doing sRGB. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Texture, AdvancedDisplay)
-	uint32 bUseLegacyGamma:1;
-
-#endif // WITH_EDITORONLY_DATA
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Texture, AssetRegistrySearchable, AdvancedDisplay)
-	uint32 NeverStream:1;
-
-	/** If true, the RHI texture will be created using TexCreate_NoTiling */
-	UPROPERTY()
-	uint32 bNoTiling:1;
-
-	/** Whether to use the extra cinematic quality mip-levels, when we're forcing mip-levels to be resident. */
-	UPROPERTY(transient)
-	uint32 bUseCinematicMipLevels:1;
-
-protected:
-	/** Array of user data stored with the asset */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category = Texture)
-	TArray<UAssetUserData*> AssetUserData;
-
-private:
-	/** Cached combined group and texture LOD bias to use.	*/
-	UPROPERTY(transient)
-	int32 CachedCombinedLODBias;
-
-	/** Whether the async resource release process has already been kicked off or not */
-	UPROPERTY(transient)
-	uint32 bAsyncResourceReleaseHasBeenStarted:1;
-
-public:
 	/** Compression settings to use when building the texture. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Compression, AssetRegistrySearchable)
 	TEnumAsByte<enum TextureCompressionSettings> CompressionSettings;
@@ -572,6 +534,43 @@ public:
 	/** Texture group this texture belongs to */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelOfDetail, meta=(DisplayName="Texture Group"), AssetRegistrySearchable)
 	TEnumAsByte<enum TextureGroup> LODGroup;
+
+	/** This should be unchecked if using alpha channels individually as masks. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Texture, meta=(DisplayName="sRGB"), AssetRegistrySearchable)
+	uint8 SRGB:1;
+
+#if WITH_EDITORONLY_DATA
+
+	/** A flag for using the simplified legacy gamma space e.g pow(color,1/2.2) for converting from FColor to FLinearColor, if we're doing sRGB. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Texture, AdvancedDisplay)
+	uint8 bUseLegacyGamma:1;
+
+#endif // WITH_EDITORONLY_DATA
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Texture, AssetRegistrySearchable, AdvancedDisplay)
+	uint8 NeverStream:1;
+
+	/** If true, the RHI texture will be created using TexCreate_NoTiling */
+	UPROPERTY()
+	uint8 bNoTiling:1;
+
+	/** Whether to use the extra cinematic quality mip-levels, when we're forcing mip-levels to be resident. */
+	UPROPERTY(transient)
+	uint8 bUseCinematicMipLevels:1;
+
+private:
+	/** Whether the async resource release process has already been kicked off or not */
+	UPROPERTY(transient)
+	uint8 bAsyncResourceReleaseHasBeenStarted : 1;
+
+	/** Cached combined group and texture LOD bias to use.	*/
+	UPROPERTY(transient)
+	int32 CachedCombinedLODBias;
+
+protected:
+	/** Array of user data stored with the asset */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category = Texture)
+	TArray<UAssetUserData*> AssetUserData;
 
 public:
 	/** The texture's resource, can be NULL */

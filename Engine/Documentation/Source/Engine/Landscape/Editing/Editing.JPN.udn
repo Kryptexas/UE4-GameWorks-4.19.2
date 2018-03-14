@@ -144,17 +144,21 @@ Landscape ツールは、VR エディタでも機能します。VR での Landsc
 
 [/REGION]
 
-<!-----
+[COMMENT:none]
+---
 [REGION:banner]
 ![Editing Banner](Engine/Landscape/Landscape_banner.png)
 [/REGION]
------>
+---
+[/COMMENT]
 
-<!-----
+[COMMENT:none]
+---
 [REGION:banner]
 ![Editing Banner](Landscape_Editing_banner.png)
 [/REGION]
----->
+--
+[/COMMENT]
 
 
 

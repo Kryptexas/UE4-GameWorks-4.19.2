@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EmptyRHI.cpp: Empty device RHI implementation.
@@ -91,6 +91,8 @@ FEmptyDynamicRHI::FEmptyDynamicRHI()
 // 	GPixelFormats[PF_R5G6B5_UNORM		].PlatformFormat	= 
 // 	GPixelFormats[PF_R8G8B8A8			].PlatformFormat	= 
 // 	GPixelFormats[PF_R8G8				].PlatformFormat	= 
+//	GPixelFormats[PF_R16G16B16A16_UNORM ].PlatformFormat    =
+//	GPixelFormats[PF_R16G16B16A16_SNORM ].PlatformFormat    =
 
 	GDynamicRHI = this;
 

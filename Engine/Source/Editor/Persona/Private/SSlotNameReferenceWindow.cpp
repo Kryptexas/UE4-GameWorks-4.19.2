@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SSlotNameReferenceWindow.h"
 #include "Toolkits/AssetEditorManager.h"
 #include "EditorStyleSet.h"
+#include "Styling/CoreStyle.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Layout/SScrollBox.h"
@@ -285,7 +286,7 @@ TSharedRef<SWidget> SSlotNameReferenceWindow::GetContent()
 		[
 			SNew(STextBlock)
 			.Text(FText::Format(LOCTEXT("WindowTitle", "{0}: {1}"), OperationText, FText::FromString(SlotName)))
-			.Font(FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 12 ))
+			.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12))
 		]
 		+SVerticalBox::Slot()
 		.Padding(5.0f)

@@ -1,5 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
+//  Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 //
 //  FlipsideViewController.h
 //  UDKRemote
@@ -9,13 +8,18 @@
 
 #import <UIKit/UIKit.h>
 
+@protocol FlipsideViewControllerDelegate;
 @class UDKRemoteAppDelegate;
 
-@interface FlipsideViewController : UINavigationController <UITextFieldDelegate> 
+@interface FlipsideViewController : UINavigationController <UITextFieldDelegate, UIPopoverControllerDelegate>
 {
-    /** Cached app delegate */
+	id <FlipsideViewControllerDelegate> Delegate;
+	
+	/** Cached app delegate */
 	UDKRemoteAppDelegate* AppDelegate;
 }
+
+@property (nonatomic, assign) IBOutlet id <FlipsideViewControllerDelegate> Delegate;
 
 /** Table cell types */
 @property (nonatomic, retain) IBOutlet UITableViewCell* DestIPCell;
@@ -33,17 +37,29 @@
 
 /** The table views in the hierarchy */
 @property (nonatomic, retain) IBOutlet UITableView* MainSettingsTable;
+
+/** Management of the computer address to broadcast to */
 @property (nonatomic, retain) IBOutlet UITableView* RecentComputersTable;
-
 @property (nonatomic, retain) IBOutlet UIViewController* RecentComputersController;
-@property (nonatomic, assign) UITextField* NewComputerTextField;
 @property (nonatomic, assign) IBOutlet UIBarButtonItem* ComputerListEdit;
-@property (nonatomic, retain) UIAlertView* TextAlert;
+@property (nonatomic, retain) UIAlertView* ComputerTextAlert;
 
+/** Management of the ports to broadcast to */
+@property (nonatomic, retain) IBOutlet UITableView* RecentPortsTable;
+@property (nonatomic, retain) IBOutlet UIViewController* RecentPortsController;
+@property (nonatomic, assign) IBOutlet UIBarButtonItem* PortListEdit;
+@property (nonatomic, retain) UIAlertView* PortTextAlert;
 
 - (IBAction)done;
 - (IBAction)AddComputer;
+- (IBAction)AddPort;
 - (IBAction)EditList;
 - (IBAction)CalibrateTilt;
 
 @end
+
+
+@protocol FlipsideViewControllerDelegate
+- (void)flipsideViewControllerDidFinish:(FlipsideViewController *)controller;
+@end
+

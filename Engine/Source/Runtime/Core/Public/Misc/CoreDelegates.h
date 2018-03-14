@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -31,10 +31,15 @@ struct FTestHotFixPayload
 	bool Result;
 };
 
-// Parameters passed to CrashOverrideParamsChanged used to customize crash report client behavior/appearance
+// Parameters passed to CrashOverrideParamsChanged used to customize crash report client behavior/appearance. If the corresponding bool is not true, this value will not be stored.
 struct FCrashOverrideParameters
 {
 	FString CrashReportClientMessageText;
+	/** Appended to the end of GameName (which is retreived from FApp::GetGameName). */
+	FString GameNameSuffix;
+	/** Default this to true for backward compatibility before these bools were added. */
+	bool bSetCrashReportClientMessageText = true;
+	bool bSetGameNameSuffix = false;
 };
 
 class CORE_API FCoreDelegates
@@ -71,10 +76,10 @@ public:
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInviteAccepted, const FString&, const FString&);
 
 	// Callback for accessing pak encryption key, if it exists
-	DECLARE_DELEGATE_RetVal(const ANSICHAR*, FPakEncryptionKeyDelegate);
+	DECLARE_DELEGATE_OneParam(FPakEncryptionKeyDelegate, uint8[32]);
 
 	// Callback for gathering pak signing keys, if they exist
-	DECLARE_DELEGATE_TwoParams(FPakSigningKeysDelegate, FString&, FString&);
+	DECLARE_DELEGATE_TwoParams(FPakSigningKeysDelegate, uint8[64], uint8[64]);
 
 	// Callback for handling the Controller connection / disconnection
 	// first param is true for a connection, false for a disconnection.
@@ -94,8 +99,12 @@ public:
 	DECLARE_MULTICAST_DELEGATE(FOnAsyncLoadingFlushUpdate);
 	static FOnAsyncLoadingFlushUpdate OnAsyncLoadingFlushUpdate;
 
+	// Callback on the game thread when an async load is started. This goes off before the packages has finished loading
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAsyncLoadPackage, const FString&);
 	static FOnAsyncLoadPackage OnAsyncLoadPackage;
+
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSyncLoadPackage, const FString&);
+	static FOnSyncLoadPackage OnSyncLoadPackage;
 
 	// get a hotfix delegate
 	static FHotFixDelegate& GetHotfixDelegate(EHotfixDelegates::Type HotFix);
@@ -176,6 +185,12 @@ public:
 
 	// Called at the end of a frame
 	static FSimpleMulticastDelegate OnEndFrame;
+
+	// Called at the beginning of a frame on the renderthread
+	static FSimpleMulticastDelegate OnBeginFrameRT;
+
+	// Called at the end of a frame on the renderthread
+	static FSimpleMulticastDelegate OnEndFrameRT;
 
 
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FWorldOriginOffset, class UWorld*, FIntVector, FIntVector);
@@ -318,7 +333,11 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameSessionIDChange, const FString&);
 	static FOnGameSessionIDChange GameSessionIDChanged;
 
-	/** Sent by application code to set params that customize crash reporting behavior */
+	/** Sent when application code changes game state. The exact semantics of this will vary between games but it is useful for analytics, crash reports, etc  */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameStateClassChange, const FString&);
+	static FOnGameStateClassChange GameStateClassChanged;
+
+	/** Sent by application code to set params that customize crash reporting behavior. */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCrashOverrideParamsChanged, const FCrashOverrideParameters&);
 	static FOnCrashOverrideParamsChanged CrashOverrideParamsChanged;
 	
@@ -346,12 +365,6 @@ public:
 	// Should return True of resolution occured.
 	DECLARE_DELEGATE_RetVal_TwoParams(bool, FResolvePackageNameDelegate, const FString&, FString&);
 	static TArray<FResolvePackageNameDelegate> PackageNameResolvers;
-
-	// Called when module integrity has been compromised. Code should do as little as
-	// possible since the app may be in an unknown state. Return 'true' to handle the
-	// event and prevent the default check/ensure process occuring
-	DECLARE_DELEGATE_RetVal_TwoParams(bool, FImageIntegrityChanged, const TCHAR*, int32);
-	static FImageIntegrityChanged OnImageIntegrityChanged;
 
 	// Called to request that systems free whatever memory they are able to. Called early in LoadMap.
 	// Caller is responsible for flushing rendering etc. See UEngine::TrimMemory

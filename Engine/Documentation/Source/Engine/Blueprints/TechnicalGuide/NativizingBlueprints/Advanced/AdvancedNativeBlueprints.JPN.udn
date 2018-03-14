@@ -88,7 +88,8 @@ Unreal Automation ツールでのビルド中にコマンドラインからブ�
 
 [/PUBLISH:Licensee]
 
-<!--Commented out per SME; however, it's being preserved for future review.
+[COMMENT:none]
+Commented out per SME; however, it's being preserved for future review.
 
 1. 以下のラインを実行します。こららは、ネイティブ化されたビルドをパッケージ処理する出力ログにあるので、 
 コピーすればスイッチが環境に合っているか簡単に検証することができます。`Development` スイッチを `Debug` に変えるだけです。 
@@ -101,4 +102,5 @@ Unreal Automation ツールでのビルド中にコマンドラインからブ�
 
 3. Visual Studio でデバッグを実行しますが、Visual Studio からはプロジェクトを再コンパイルしないでください。
 
--->
+
+[/COMMENT]

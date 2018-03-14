@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:보안 카메라, 알람, 문
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -159,7 +159,8 @@ Alarm Blueprint 는 플레이어가 보안 카메라 범위에 걸려 알람을 
 
 
 
-<!-----------------------------------
+[COMMENT:none]
+---------------------------------
 
 [EXCERPT:CameraCL]
 Camera 의 _Components List_ 에 들어있는 컴포넌트는 다음과 같습니다:
@@ -245,4 +246,5 @@ _Construction Script_ 가 하는 일은 다음과 같습니다:
 
 
 
------------------------------------->
+----------------------------------
+[/COMMENT]

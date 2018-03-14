@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -170,10 +170,19 @@ USTRUCT()
 struct FMeshProxySettings
 {
 	GENERATED_USTRUCT_BODY()
-	/** Screen size of the resulting proxy mesh in pixel size*/
-	UPROPERTY(EditAnywhere, Category = ProxySettings)
+	/** Screen size of the resulting proxy mesh in pixels*/
+	UPROPERTY(EditAnywhere, Category = ProxySettings, meta = (ClampMin = "1", ClampMax = "1200", UIMin = "1", UIMax = "1200"))
 	int32 ScreenSize;
 
+	/** If true, Spatial Sampling Distance will not be automatically computed based on geometry and you must set it directly */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = ProxySettings, meta = (InlineEditConditionToggle))
+	uint8 bOverrideVoxelSize : 1;
+
+
+	/** Override when converting multiple meshes for proxy LOD merging. Warning, large geometry with small sampling has very high memory costs*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = ProxySettings, meta = (editcondition = "bOverrideVoxelSize", ClampMin = "0.1", DisplayName = "Overide Spatial Sampling Distance"))
+	float VoxelSize;
+	
 	/** Material simplification */
 	UPROPERTY(EditAnywhere, Category = ProxySettings)
 	FMaterialProxySettings MaterialSettings;
@@ -202,13 +211,13 @@ struct FMeshProxySettings
 	/** Distance at which meshes should be merged together */
 	UPROPERTY(EditAnywhere, Category = ProxySettings)
 	float MergeDistance;
-
+	
 	/** Angle at which a hard edge is introduced between faces */
 	UPROPERTY(EditAnywhere, Category = ProxySettings, meta = (DisplayName = "Hard Edge Angle"))
 	float HardAngleThreshold;
 
 	/** Lightmap resolution */
-	UPROPERTY(EditAnywhere, Category = ProxySettings, meta = (EditCondition = "!bComputeLightMapResolution"))
+	UPROPERTY(EditAnywhere, Category = ProxySettings, meta = (ClampMin = 32, ClampMax = 4096, EditCondition = "!bComputeLightMapResolution"))
 	int32 LightMapResolution;
 
 	/** If ticked will compute the lightmap resolution by summing the dimensions for each mesh included for merging */
@@ -230,9 +239,21 @@ struct FMeshProxySettings
 	UPROPERTY(EditAnywhere, Category = LandscapeCulling, meta = (EditCondition="bUseLandscapeCulling"))
 	TEnumAsByte<ELandscapeCullingPrecision::Type> LandscapeCullingPrecision;
 
+	/** Whether to allow adjacency buffers for tessellation in the merged mesh */
+	UPROPERTY(EditAnywhere, Category = ProxySettings)
+	bool bAllowAdjacency;
+
+	/** Whether to allow distance field to be computed for this mesh.  Disable this to save memory if you mesh will only rendered in the distance. */
+	UPROPERTY(EditAnywhere, Category = ProxySettings)
+	bool bAllowDistanceField;
+
+
+
 	/** Default settings. */
 	FMeshProxySettings()
 		: ScreenSize(300)
+		, bOverrideVoxelSize(false)
+		, VoxelSize(3.f)
 		, TextureWidth_DEPRECATED(512)
 		, TextureHeight_DEPRECATED(512)
 		, bExportNormalMap_DEPRECATED(true)
@@ -244,6 +265,9 @@ struct FMeshProxySettings
 		, LightMapResolution(256)
 		, bRecalculateNormals(true)
 		, bUseLandscapeCulling(false)
+		, bAllowAdjacency(false)
+		, bAllowDistanceField(false)
+		
 	{ 
 		MaterialSettings.MaterialMergeType = EMaterialMergeType::MaterialMergeType_Simplygon;
 	}
@@ -255,7 +279,9 @@ struct FMeshProxySettings
 			&& MaterialSettings == Other.MaterialSettings
 			&& bRecalculateNormals == Other.bRecalculateNormals
 			&& HardAngleThreshold == Other.HardAngleThreshold
-			&& MergeDistance == Other.MergeDistance;
+			&& MergeDistance == Other.MergeDistance
+			&& bOverrideVoxelSize == Other.bOverrideVoxelSize
+			&& VoxelSize == Other.VoxelSize;
 	}
 
 	/** Inequality. */
@@ -423,6 +449,6 @@ struct FSectionInfo
 
 	bool operator==(const FSectionInfo& Other) const
 	{
-		return Material == Other.Material && MaterialSlotName == Other.MaterialSlotName && EnabledProperties == Other.EnabledProperties && bProcessed == Other.bProcessed && MaterialIndex == Other.MaterialIndex && StartIndex == Other.StartIndex && EndIndex == Other.EndIndex;
+		return Material == Other.Material && EnabledProperties == Other.EnabledProperties;
 	}
 };

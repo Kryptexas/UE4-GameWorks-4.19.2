@@ -1,43 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:트레일 콘트롤러
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
 Description:본 체인에 영향을 끼치는데 사용되는 Trail Controller 노드 사용법입니다.
 version: 4.12
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\TrailController:title%](Engine\Animation\NodeReference\SkeletalControls\TrailController\TrailController.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\TrailController:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\TrailController]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\TrailController:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\TrailController:title%](Engine\Animation\NodeReference\SkeletalControls\TrailController\TrailController.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\TrailController:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\TrailController]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\TrailController:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:TrailController.png
 
 **Trail Controller** (트레일 콘트롤러)는 계층구조 내 본 시리즈에 영향을 끼치는 데 사용됩니다.
 

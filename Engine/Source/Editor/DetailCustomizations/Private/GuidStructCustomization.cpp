@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GuidStructCustomization.h"
 #include "Widgets/SNullWidget.h"
@@ -12,7 +12,7 @@
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SComboButton.h"
 #include "DetailWidgetRow.h"
-
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "FGuidStructCustomization"
 
@@ -98,12 +98,7 @@ void FGuidStructCustomization::CustomizeChildren( TSharedRef<class IPropertyHand
 
 void FGuidStructCustomization::SetGuidValue( const FGuid& Guid )
 {
-	for (uint32 ChildIndex = 0; ChildIndex < 4; ++ChildIndex)
-	{
-		// Mark first 3 as interactive changes so the post edit doesn't go off until the last one
-		TSharedRef<IPropertyHandle> ChildHandle = PropertyHandle->GetChildHandle(ChildIndex).ToSharedRef();
-		ChildHandle->SetValue((int32)Guid[ChildIndex], ChildIndex != 3 ? EPropertyValueSetFlags::InteractiveChange : EPropertyValueSetFlags::DefaultFlags);
-	}
+	WriteGuidToProperty(PropertyHandle, Guid);
 }
 
 
@@ -171,5 +166,17 @@ void FGuidStructCustomization::HandleTextBoxTextCommited( const FText& NewText, 
 	}
 }
 
+void WriteGuidToProperty(TSharedPtr<IPropertyHandle> GuidPropertyHandle, const FGuid& Guid)
+{
+	FScopedTransaction Transaction(FText::Format(LOCTEXT("EditGuidPropertyTransaction", "Edit {0}"), GuidPropertyHandle->GetPropertyDisplayName()));
+
+	// Do not want a transaction on each individual set call as our scope transaction will handle it all
+	EPropertyValueSetFlags::Type GuidComponentFlags = (EPropertyValueSetFlags::NotTransactable);
+	for (uint32 ChildIndex = 0; ChildIndex < 4; ++ChildIndex)
+	{
+		TSharedRef<IPropertyHandle> ChildHandle = GuidPropertyHandle->GetChildHandle(ChildIndex).ToSharedRef();
+		ChildHandle->SetValue((int32)Guid[ChildIndex], GuidComponentFlags);
+	}
+}
 
 #undef LOCTEXT_NAMESPACE

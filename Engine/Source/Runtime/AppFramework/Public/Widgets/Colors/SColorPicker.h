@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -95,6 +95,7 @@ public:
 		, _DisplayInlineVersion(false)
 		, _OverrideColorPickerCreation(false)
 		, _ExpandAdvancedSection(false)
+		, _OptionalOwningDetailsView(nullptr)
 	{ }
 		
 		/** The color that is being targeted as a TAttribute */
@@ -157,6 +158,9 @@ public:
 		/** If true, the Advanced section will be expanded, regardless of the remembered state */
 		SLATE_ARGUMENT(bool, ExpandAdvancedSection)
 
+		/** Allows a details view to own the color picker so refreshing another details view doesn't close it */
+		SLATE_ATTRIBUTE(TSharedPtr<SWidget>, OptionalOwningDetailsView)
+
 	SLATE_END_ARGS()
 	
 	/** A default window size for the color picker which looks nice */
@@ -173,6 +177,20 @@ public:
 	 * @param InArgs Declaration from which to construct the widget.
 	 */
 	void Construct(const FArguments& InArgs);
+
+	/** Gets the (optionally set) owning details view of the current color picker */
+	TSharedPtr<SWidget> GetOptionalOwningDetailsView()
+	{
+		if (OptionalOwningDetailsView.IsValid())
+		{
+			return OptionalOwningDetailsView.Pin();
+		}
+		else
+		{
+			return nullptr;
+		}
+	}
+
 
 	/** Delegate to override color picker creation behavior */
 	DECLARE_DELEGATE_OneParam(FOnColorPickerCreationOverride, const TSharedRef<SColorPicker>&);
@@ -472,6 +490,9 @@ private:
 	/** Invoked when the color picker window closes. */
 	FOnWindowClosed OnColorPickerWindowClosed;
 
+	/** Allows a details view to own the color picker so refreshing another details view doesn't close it */
+	TWeakPtr<SWidget> OptionalOwningDetailsView;
+
 private:
 
 	/** A static pointer to the global color themes viewer */
@@ -538,6 +559,9 @@ struct FColorPickerArgs
 	/** Overrides the initial color set on the color picker. */
 	FLinearColor InitialColorOverride;
 
+	/** Allows a details view to own the color picker so refreshing another details view doesn't close it */
+	TSharedPtr<SWidget> OptionalOwningDetailsView;
+
 	/** Default constructor. */
 	FColorPickerArgs()
 		: bIsModal(false)
@@ -559,9 +583,12 @@ struct FColorPickerArgs
 		, OnInteractivePickBegin()
 		, OnInteractivePickEnd()
 		, InitialColorOverride()
+		, OptionalOwningDetailsView(nullptr)
 	{ }
 };
 
+/** Get a pointer to the static color picker, or nullptr if it does not exist. */
+APPFRAMEWORK_API TSharedPtr<SColorPicker> GetColorPicker();
 
 /** Open up the static color picker, destroying any previously existing one. */
 APPFRAMEWORK_API bool OpenColorPicker(const FColorPickerArgs& Args);

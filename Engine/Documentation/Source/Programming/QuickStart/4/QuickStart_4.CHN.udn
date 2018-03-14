@@ -19,7 +19,7 @@ Description:在您的关卡中创建测试对象
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. 在 **虚幻编辑器** 中，找到 **Content Browser（内容浏览器）** ，并展开名称为"C++类"的文件夹、  在该文件夹中，有一个包含了 **Actor** 类的 **FloatingActor** 的"QuickStart"文件夹。
 
@@ -52,7 +52,7 @@ Description:在您的关卡中创建测试对象
     [/PARAM]
     [PARAM:content]
 		**FloatingActor.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -78,7 +78,7 @@ Description:在您的关卡中创建测试对象
 			};
 
 		**FloatingActor.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "QuickStart.h"
 			#include "FloatingActor.h"
@@ -113,4 +113,4 @@ Description:在您的关卡中创建测试对象
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

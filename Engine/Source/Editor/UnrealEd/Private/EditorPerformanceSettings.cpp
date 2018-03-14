@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Editor/EditorPerformanceSettings.h"
 #include "EditorViewportClient.h"
@@ -16,6 +16,7 @@ UEditorPerformanceSettings::UEditorPerformanceSettings(const FObjectInitializer&
 	, bThrottleCPUWhenNotForeground(true)
 	, bMonitorEditorPerformance(true)
 	, bOverrideDPIBasedEditorViewportScaling(false)
+	, bEnableSharedDDCPerformanceNotifications(true)
 {
 
 }
@@ -40,13 +41,14 @@ void UEditorPerformanceSettings::PostEditChangeProperty(FPropertyChangedEvent& P
 		{
 			if (Client)
 			{
-				Client->RequestUpdateEditorScreenPercentage();
+				Client->RequestUpdateDPIScale();
+				Client->Invalidate();
 			}
 		}
 
 		if (GEngine->GameViewport)
 		{
-			GEngine->GameViewport->RequestUpdateEditorScreenPercentage();
+			GEngine->GameViewport->RequestUpdateDPIScale();
 		}
 	}
 }

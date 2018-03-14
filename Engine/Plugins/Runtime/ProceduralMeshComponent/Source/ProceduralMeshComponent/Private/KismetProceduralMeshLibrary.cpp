@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved. 
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved. 
 
 #include "KismetProceduralMeshLibrary.h"
 #include "RawIndexBuffer.h"
@@ -338,7 +338,7 @@ void UKismetProceduralMeshLibrary::CalculateTangentsForMesh(const TArray<FVector
 	}
 }
 
-static int32 GetNewIndexForOldVertIndex(int32 MeshVertIndex, TMap<int32, int32>& MeshToSectionVertMap, const FPositionVertexBuffer* PosBuffer, const FStaticMeshVertexBuffer* VertBuffer, TArray<FVector>& Vertices, TArray<FVector>& Normals, TArray<FVector2D>& UVs, TArray<FProcMeshTangent>& Tangents)
+static int32 GetNewIndexForOldVertIndex(int32 MeshVertIndex, TMap<int32, int32>& MeshToSectionVertMap, const FStaticMeshVertexBuffers& VertexBuffers, TArray<FVector>& Vertices, TArray<FVector>& Normals, TArray<FVector2D>& UVs, TArray<FProcMeshTangent>& Tangents)
 {
 	int32* NewIndexPtr = MeshToSectionVertMap.Find(MeshVertIndex);
 	if (NewIndexPtr != nullptr)
@@ -348,18 +348,18 @@ static int32 GetNewIndexForOldVertIndex(int32 MeshVertIndex, TMap<int32, int32>&
 	else
 	{
 		// Copy position
-		int32 SectionVertIndex = Vertices.Add(PosBuffer->VertexPosition(MeshVertIndex));
+		int32 SectionVertIndex = Vertices.Add(VertexBuffers.PositionVertexBuffer.VertexPosition(MeshVertIndex));
 
 		// Copy normal
-		Normals.Add(VertBuffer->VertexTangentZ(MeshVertIndex));
+		Normals.Add(VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(MeshVertIndex));
 		check(Normals.Num() == Vertices.Num());
 
 		// Copy UVs
-		UVs.Add(VertBuffer->GetVertexUV(MeshVertIndex, 0));
+		UVs.Add(VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(MeshVertIndex, 0));
 		check(UVs.Num() == Vertices.Num());
 
 		// Copy tangents
-		FVector4 TangentX = VertBuffer->VertexTangentX(MeshVertIndex);
+		FVector4 TangentX = VertexBuffers.StaticMeshVertexBuffer.VertexTangentX(MeshVertIndex);
 		FProcMeshTangent NewTangent(TangentX, TangentX.W < 0.f);
 		Tangents.Add(NewTangent);
 		check(Tangents.Num() == Vertices.Num());
@@ -406,7 +406,7 @@ void UKismetProceduralMeshLibrary::GetSectionFromStaticMesh(UStaticMesh* InMesh,
 					uint32 MeshVertIndex = Indices[i];
 
 					// See if we have this vert already in our section vert buffer, and copy vert in if not 
-					int32 SectionVertIndex = GetNewIndexForOldVertIndex(MeshVertIndex, MeshToSectionVertMap, &LOD.PositionVertexBuffer, &LOD.VertexBuffer, Vertices, Normals, UVs, Tangents);
+					int32 SectionVertIndex = GetNewIndexForOldVertIndex(MeshVertIndex, MeshToSectionVertMap, LOD.VertexBuffers, Vertices, Normals, UVs, Tangents);
 
 					// Add to index buffer
 					Triangles.Add(SectionVertIndex);
@@ -469,6 +469,40 @@ void UKismetProceduralMeshLibrary::CopyProceduralMeshFromStaticMeshComponent(USt
 		}
 	}
 }
+
+void UKismetProceduralMeshLibrary::GetSectionFromProceduralMesh(UProceduralMeshComponent* InProcMesh, int32 SectionIndex, TArray<FVector>& Vertices, TArray<int32>& Triangles, TArray<FVector>& Normals, TArray<FVector2D>& UVs, TArray<FProcMeshTangent>& Tangents)
+{
+	if (InProcMesh && SectionIndex >= 0 && SectionIndex < InProcMesh->GetNumSections())
+	{
+		const FProcMeshSection* Section = InProcMesh->GetProcMeshSection(SectionIndex);
+
+		const int32 NumOutputVerts = Section->ProcVertexBuffer.Num();
+
+		// Allocate output buffers for vert data
+		Vertices.SetNumUninitialized(NumOutputVerts);
+		Normals.SetNumUninitialized(NumOutputVerts);
+		UVs.SetNumUninitialized(NumOutputVerts);
+		Tangents.SetNumUninitialized(NumOutputVerts);
+		// copy data
+		for (int32 VertIdx = 0; VertIdx < NumOutputVerts; VertIdx++)
+		{
+			const FProcMeshVertex& Vert = Section->ProcVertexBuffer[VertIdx];
+			Vertices[VertIdx] = Vert.Position;
+			Normals[VertIdx] = Vert.Normal;
+			UVs[VertIdx] = Vert.UV0;
+			Tangents[VertIdx] = Vert.Tangent;
+		}
+
+		// Copy index buffer
+		const int32 NumIndices = Section->ProcIndexBuffer.Num();
+		Triangles.SetNumUninitialized(NumIndices);
+		for (int32 IndexIdx = 0; IndexIdx < NumIndices; IndexIdx++)
+		{
+			Triangles[IndexIdx] = Section->ProcIndexBuffer[IndexIdx];
+		}
+	}
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -553,7 +587,7 @@ void Transform2DPolygonTo3D(const FUtilPoly2D& InPoly, const FMatrix& InMatrix, 
 }
 
 /** Given a polygon, decompose into triangles. */
-bool TriangulatePoly(TArray<int32>& OutTris, const TArray<FProcMeshVertex>& PolyVerts, int32 VertBase, const FVector& PolyNormal)
+bool TriangulatePoly(TArray<uint32>& OutTris, const TArray<FProcMeshVertex>& PolyVerts, int32 VertBase, const FVector& PolyNormal)
 {
 	// Can't work if not enough verts for 1 triangle
 	int32 NumVerts = PolyVerts.Num() - VertBase;

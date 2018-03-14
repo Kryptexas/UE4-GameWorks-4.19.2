@@ -1,6 +1,11 @@
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
 #include "PIEPreviewDeviceEnumeration.h"
 #include "HAL/FileManager.h"
 #include "Paths.h"
+
+#include "Modules/ModuleManager.h"
+#include "PIEPreviewDeviceProfileSelectorModule.h"
 
 #define LOCTEXT_NAMESPACE "PIEPreviewDevice"
 
@@ -8,7 +13,9 @@ void FPIEPreviewDeviceContainer::EnumerateDeviceSpecifications(const FString& Ro
 {
 	RootCategory = MakeShareable(new FPIEPreviewDeviceContainerCategory(RootDir, FText()));
 	DeviceSpecifications.Reset();
+	DeviceSpecificationsLocalizedName.Reset();
 	EnumerateDeviceSpecifications(RootCategory);
+	EnumerateDeviceLocalizedNames();
 }
 
 void FPIEPreviewDeviceContainer::EnumerateDeviceSpecifications(TSharedPtr<FPIEPreviewDeviceContainerCategory> CurrentCategory)
@@ -33,6 +40,16 @@ void FPIEPreviewDeviceContainer::EnumerateDeviceSpecifications(TSharedPtr<FPIEPr
 		TSharedPtr<FPIEPreviewDeviceContainerCategory> SubCategory = MakeShareable(new FPIEPreviewDeviceContainerCategory(CurrentDirectory / SubDir, FText::FromString(SubDir)));
 		CurrentCategory->SubCategories.Add(SubCategory);
 		EnumerateDeviceSpecifications(SubCategory);
+	}
+}
+
+void FPIEPreviewDeviceContainer::EnumerateDeviceLocalizedNames()
+{
+	const TArray<FString>& Devices = GetDeviceSpecifications();
+
+	for (int32 DeviceIndex = 0; DeviceIndex < Devices.Num(); DeviceIndex++)
+	{
+		DeviceSpecificationsLocalizedName.Add(Devices[DeviceIndex]);
 	}
 }
 

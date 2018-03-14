@@ -27,7 +27,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 **[Details (詳細)]** パネルでアクタの [](Engine/Physics) と [コリジョン](Engine/Physics/Collision/Overview) のプロパティを調整します。 
 こうした設定を調整すると、ゲームワールド内で、あるアクタが別のアクタにどのように反応するかを定義することができます。 
@@ -94,4 +94,3 @@ checkpoint: editorqs
 
 ここまでで、メインのレベル エディタの **[詳細]** パネルでアクタのプロパティを編集する方法について学習しました。詳細は以下の関連トピックを参照してください。 
 
-%Steps%

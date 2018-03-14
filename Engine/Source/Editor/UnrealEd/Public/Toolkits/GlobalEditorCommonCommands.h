@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -34,8 +34,6 @@ public:
 	TSharedPtr<FUICommandInfo> SummonOpenAssetDialog;
 	TSharedPtr<FUICommandInfo> SummonOpenAssetDialogAlternate;
 	TSharedPtr<FUICommandInfo> OpenDocumentation;
-	TSharedPtr<FUICommandInfo> ViewReferences;
-	TSharedPtr<FUICommandInfo> ViewSizeMap;
 	TSharedPtr<FUICommandInfo> OpenConsoleCommandBox;
 };
 

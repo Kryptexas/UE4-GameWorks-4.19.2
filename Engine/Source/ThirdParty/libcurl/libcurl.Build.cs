@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -8,9 +8,18 @@ public class libcurl : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		Definitions.Add("WITH_LIBCURL=1");
+		PublicDefinitions.Add("WITH_LIBCURL=1");
 
-		string NewLibCurlPath = Target.UEThirdPartySourceDirectory + "libcurl/7_48_0/";
+		string NewLibCurlPath = Target.UEThirdPartySourceDirectory;
+		if (Target.Architecture == "x86_64-unknown-linux-gnu")
+		{
+			NewLibCurlPath += "libcurl/7_57_0/";
+		}
+		else
+		{
+			NewLibCurlPath += "libcurl/7_48_0/";
+		}
+
 		string LibCurlPath = Target.UEThirdPartySourceDirectory + "libcurl/curl-7.47.1/";
 
 		// TODO: latest recompile for consoles and mobile platforms
@@ -61,7 +70,7 @@ public class libcurl : ModuleRules
 			PublicLibraryPaths.Add(LibCurlPath + "lib/" + Target.Platform.ToString() +  "/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
 
 			PublicAdditionalLibraries.Add("libcurl_a.lib");
-			Definitions.Add("CURL_STATICLIB=1");
+			PublicDefinitions.Add("CURL_STATICLIB=1");
 		}
 	}
 }

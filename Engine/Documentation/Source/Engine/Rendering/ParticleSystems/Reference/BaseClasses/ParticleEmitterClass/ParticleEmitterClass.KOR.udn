@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:ParticleEmitter 클래스
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -18,8 +18,11 @@ ParticleEmitter (파티클 이미터)는 ParticleSystem (파티클 시스템)에
 | **Collapsed** | 접음 - _True_ 면 캐스케이드의 이미터 목록에 파티클 이미터가 접힌 채로 나타나게 됩니다. 파티클 이미터 블록을 더블클릭하면 이 프로퍼티가 토글됩니다. |
 
 
-<!-- Begin ParticleEmitter Table Includes -->
-<!--
+[COMMENT:none]
+ Begin ParticleEmitter Table Includes 
+[/COMMENT]
+[COMMENT:none]
+
 [EXCERPT:RenderMode]
 [REGION:simpletable]
 | 모드 | 설명 |
@@ -30,5 +33,8 @@ ParticleEmitter (파티클 이미터)는 ParticleSystem (파티클 시스템)에
 |_ERM_None_ | 없음 - 이미터의 파티클이 렌더링되지 않습니다. |
 [/REGION]
 [/EXCERPT:RenderMode]
--->
-<!-- End ParticleEmitter Includes -->
+
+[/COMMENT]
+[COMMENT:none]
+ End ParticleEmitter Includes 
+[/COMMENT]

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/RendererSettings.h"
 
@@ -18,6 +18,7 @@ URendererSettings::URendererSettings(const FObjectInitializer& ObjectInitializer
 	bSupportPointLightWholeSceneShadows = true;
 	bSupportAtmosphericFog = true;
 	bSupportSkinCacheShaders = false;
+	bSupportMaterialLayers = false;
 }
 
 void URendererSettings::PostInitProperties()
@@ -48,7 +49,7 @@ void URendererSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(URendererSettings, ReflectionCaptureResolution) && 
 			PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
 		{
-			GEditor->UpdateReflectionCaptures();
+			GEditor->BuildReflectionCaptures();
 		}
 	}
 }

@@ -43,7 +43,9 @@ Description:材质属性示例关卡概述
 [/OBJECT]
 [/VAR]
 
-<!--Insert path when done [RELATIVE:Resources/ContentExamples/MaterialProperties]-->
+[COMMENT:none]
+Insert path when done [RELATIVE:Resources/ContentExamples/MaterialProperties]
+[/COMMENT]
 
 ## 概述
 

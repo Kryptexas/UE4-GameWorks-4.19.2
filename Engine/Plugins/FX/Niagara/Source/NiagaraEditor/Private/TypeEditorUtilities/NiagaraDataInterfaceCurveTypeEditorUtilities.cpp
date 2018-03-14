@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraDataInterfaceCurveTypeEditorUtilities.h"
 
@@ -36,7 +36,7 @@ TSharedPtr<SWidget> FNiagaraDataInterfaceCurveTypeEditorUtilitiesBase::CreateDat
 		return SNew(SComboButton)
 			.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
 			.ForegroundColor(FSlateColor::UseForeground())
-			.OnGetMenuContent(this, &FNiagaraDataInterfaceCurveTypeEditorUtilitiesBase::GetImportMenuContent, TWeakObjectPtr<UNiagaraDataInterfaceCurveBase>(CurveDataInterface), DataInterfaceChangedHandler)
+			.OnGetMenuContent(this, &FNiagaraDataInterfaceCurveTypeEditorUtilitiesBase::GetImportMenuContent, MakeWeakObjectPtr(CurveDataInterface), DataInterfaceChangedHandler)
 			.ButtonContent()
 			[
 				SNew(STextBlock)

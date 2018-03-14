@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -35,8 +35,8 @@ class UK2Node_SwitchInteger : public UK2Node_Switch
 	// End of UK2Node interface
 
 	// UK2Node_Switch Interface
-	virtual FString GetUniquePinName() override;
-	virtual FString GetPinNameGivenIndex(int32 Index) override;
+	virtual FName GetUniquePinName() override;
+	virtual FName GetPinNameGivenIndex(int32 Index) const override;
 	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
 	virtual FEdGraphPinType GetPinType() const override;
 	virtual bool CanRemoveExecutionPin(UEdGraphPin* TargetPin) const override;

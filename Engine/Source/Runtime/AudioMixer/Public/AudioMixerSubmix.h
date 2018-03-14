@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,6 +14,32 @@ namespace Audio
 	class FMixerDevice;
 
 	typedef TSharedPtr<FSoundEffectSubmix, ESPMode::ThreadSafe> FSoundEffectSubmixPtr;
+
+	struct FSubmixVoiceData
+	{
+		float SendLevel;
+		uint32 AmbisonicsEncoderId;
+		FAmbisonicsEncoderInputData CachedEncoderInputData;
+
+		FSubmixVoiceData()
+			: SendLevel(1.0f)
+			, AmbisonicsEncoderId(INDEX_NONE)
+		{
+		}
+	};
+
+	class FMixerSubmix;
+
+	struct FChildSubmixInfo
+	{
+		TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe> SubmixPtr;
+		bool bNeedsAmbisonicsEncoding;
+
+		FChildSubmixInfo()
+			: bNeedsAmbisonicsEncoding(true)
+		{
+		}
+	};
 
 	class FMixerSubmix
 	{
@@ -32,6 +58,9 @@ namespace Audio
 
 		// Adds the given submix to this submix's children
 		void AddChildSubmix(TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe> Submix);
+
+		// Gets the submix channels channels
+		ESubmixChannelFormat GetSubmixChannels() const;
 
 		// Gets this submix's parent submix
 		TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe> GetParentSubmix();
@@ -58,7 +87,7 @@ namespace Audio
 		void ClearSoundEffectSubmixes();
 
 		// Function which processes audio.
-		void ProcessAudio(AlignedFloatBuffer& OutAudio);
+		void ProcessAudio(const ESubmixChannelFormat ParentInputChannels, AlignedFloatBuffer& OutAudio);
 
 		// Returns the device sample rate this submix is rendering to
 		int32 GetSampleRate() const;
@@ -75,9 +104,43 @@ namespace Audio
 		// Returns the submix effect at the given effect chain index
 		FSoundEffectSubmixPtr GetSubmixEffect(const int32 InIndex);
 
+		// updates settings, potentially creating or removing ambisonics streams based on
+		void OnAmbisonicsSettingsChanged(UAmbisonicsSubmixSettingsBase* AmbisonicsSettings);
+
 	protected:
 		// Down mix the given buffer to the desired down mix channel count
-		void DownmixBuffer(const int32 InputChannelCount, const AlignedFloatBuffer& InBuffer, const int32 DownMixChannelCount, AlignedFloatBuffer& OutDownmixedBuffer);
+		void FormatChangeBuffer(const ESubmixChannelFormat NewChannelType, AlignedFloatBuffer& InBuffer, AlignedFloatBuffer& OutNewBuffer);
+
+		// Set up ambisonics encoder. Called when ambisonics settings are changed.
+		void SetUpAmbisonicsEncoder();
+
+		// Set up ambisonics decoder. Called when ambisonics settings are changed.
+		void SetUpAmbisonicsDecoder();
+
+		// Clean up ambisonics encoder.
+		void TearDownAmbisonicsEncoder();
+
+		// Clean up ambisonics decoder.
+		void TearDownAmbisonicsDecoder();
+
+		// Check if we need to encode for ambisonics for childen (TODO)
+		void UpdateAmbisonicsEncoderForChildren();
+
+		// Check to see if we need to decode from ambisonics for parent
+		void UpdateAmbisonicsDecoderForParent();
+
+		// This sets up the ambisonics positional data for speakers, based on what new format we need to convert to.
+		void SetUpAmbisonicsPositionalData();
+
+		// Encode a source and sum it into the AmbisonicsBuffer.
+		void EncodeAndMixInSource(AlignedFloatBuffer& InAudioData, FSubmixVoiceData& InVoiceInfo);
+
+		// Encodes child submix into ambisonics (TODO)
+		void EncodeAndMixInChildSubmix(FChildSubmixInfo& Child);
+
+	public:
+		// Cached pointer to ambisonics settings.
+		UAmbisonicsSubmixSettingsBase* AmbisonicsSettings;
 
 	protected:
 
@@ -94,7 +157,7 @@ namespace Audio
 		TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe> ParentSubmix;
 
 		// Child submixes
-		TMap<uint32, TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe>> ChildSubmixes;
+		TMap<uint32, FChildSubmixInfo> ChildSubmixes;
 
 		// Info struct for a submix effect instance
 		struct FSubmixEffectInfo
@@ -118,12 +181,33 @@ namespace Audio
 		FMixerDevice* MixerDevice;
 
 		// Map of mixer source voices with a given send level for this submix
-		TMap<FMixerSourceVoice*, float> MixerSourceVoices;
+		TMap<FMixerSourceVoice*, FSubmixVoiceData> MixerSourceVoices;
 
 		AlignedFloatBuffer ScratchBuffer;
+		AlignedFloatBuffer InputBuffer;
 		AlignedFloatBuffer DownmixedBuffer;
+		AlignedFloatBuffer SourceInputBuffer;
 
-		// Submic command queue to shuffle commands from audio thread to audio render thread.
+		ESubmixChannelFormat ChannelFormat;
+		int32 NumChannels;
+		int32 NumSamples;
+
+		// Cached ambisonics mixer
+		TAmbisonicsMixerPtr AmbisonicsMixer;
+
+		// Encoder ID set up with Ambisonics Mixer. Set to INDEX_NONE if there is no encoder stream open.
+		uint32 SubmixAmbisonicsEncoderID;
+
+		// Decoder ID set up with Ambisonics Mixer. Set to INDEX_NONE if there is no decoder stream open.
+		uint32 SubmixAmbisonicsDecoderID;
+
+		// This buffer is encoded into for each source, then summed into the ambisonics buffer.
+		AlignedFloatBuffer InputAmbisonicsBuffer;
+
+		// Cached positional data for Ambisonics decoder.
+		FAmbisonicsDecoderPositionalData CachedPositionalData;
+
+		// Submix command queue to shuffle commands from audio thread to audio render thread.
 		TQueue<TFunction<void()>> CommandQueue;
 
 		friend class FMixerDevice;

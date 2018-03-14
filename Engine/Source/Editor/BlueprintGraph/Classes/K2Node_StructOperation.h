@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -19,7 +19,7 @@ class UK2Node_StructOperation : public UK2Node_Variable
 	UScriptStruct* StructType;
 
 	//~ Begin UEdGraphNode Interface
-	virtual FString GetPinMetaData(FString InPinName, FName InKey) override;
+	virtual FString GetPinMetaData(FName InPinName, FName InKey) override;
 	//~ End UEdGraphNode Interface
 
 	//~ Begin UK2Node Interface
@@ -46,8 +46,7 @@ protected:
 		virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property) const override;
 		// End of FOptionalPinsUpdater interfac
 	};
-#if WITH_EDITOR
-	static bool DoRenamedPinsMatch(const UEdGraphPin* NewPin, const UEdGraphPin* OldPin, bool bStructInVaraiablesOut);
-#endif
+
+	bool DoRenamedPinsMatch(const UEdGraphPin* NewPin, const UEdGraphPin* OldPin, bool bStructInVariablesOut) const;
 };
 

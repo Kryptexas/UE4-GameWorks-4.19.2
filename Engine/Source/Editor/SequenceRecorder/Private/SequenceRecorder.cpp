@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SequenceRecorder.h"
 #include "ISequenceAudioRecorder.h"
@@ -23,6 +23,7 @@
 #include "ObjectTools.h"
 #include "Features/IModularFeatures.h"
 #include "Engine/DemoNetDriver.h"
+#include "Engine/Selection.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "LevelSequenceActor.h"
@@ -122,6 +123,35 @@ void FSequenceRecorder::StopAllQueuedRecordings()
 	for (UActorRecording* QueuedRecording : QueuedRecordings)
 	{
 		QueuedRecording->StopRecording(CurrentSequence.Get());
+	}
+}
+
+void FSequenceRecorder::AddNewQueuedRecordingsForSelectedActors()
+{
+	bool bAnySelectedActorsAdded = false;
+	TArray<AActor*> EntireSelection;
+
+	GEditor->GetSelectedActors()->GetSelectedObjects(EntireSelection);
+
+	TArray<AActor*> ActorsToRecord;
+	for (AActor* Actor : EntireSelection)
+	{
+		if (!FindRecording(Actor))
+		{
+			if (UActorRecording* NewRecording = AddNewQueuedRecording(Actor))
+			{
+				bAnySelectedActorsAdded = true;
+			}
+		}
+		else
+		{
+			bAnySelectedActorsAdded = true;
+		}
+	}
+
+	if (!bAnySelectedActorsAdded)
+	{
+		AddNewQueuedRecording();
 	}
 }
 
@@ -229,27 +259,6 @@ void FSequenceRecorder::Tick(float DeltaSeconds)
 	}
 
 	const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
-
-	// check for spawned actors and if they have begun playing yet
-	for(TWeakObjectPtr<AActor>& QueuedSpawnedActor : QueuedSpawnedActors)
-	{
-		if(AActor* Actor = QueuedSpawnedActor.Get())
-		{
-			if(Actor->HasActorBegunPlay())
-			{
-				if(UActorRecording::IsRelevantForRecording(Actor) && IsActorValidForRecording(Actor))
-				{
-					UActorRecording* NewRecording = AddNewQueuedRecording(Actor);
-					NewRecording->bWasSpawnedPostRecord = true;
-					NewRecording->StartRecording(CurrentSequence.Get(), CurrentTime);
-				}
-
-				QueuedSpawnedActor.Reset();
-			}
-		}
-	}
-
-	QueuedSpawnedActors.RemoveAll([](TWeakObjectPtr<AActor>& QueuedSpawnedActor) { return !QueuedSpawnedActor.IsValid(); } );
 
 	FAnimationRecorderManager::Get().Tick(DeltaSeconds);
 
@@ -422,11 +431,8 @@ void FSequenceRecorder::DrawDebug(UCanvas* InCanvas, APlayerController* InPlayer
 	}
 }
 
-bool FSequenceRecorder::StartRecording(const FOnRecordingStarted& OnRecordingStarted, const FOnRecordingFinished& OnRecordingFinished, const FString& InPathToRecordTo, const FString& InSequenceName)
+bool FSequenceRecorder::StartRecording(const FString& InPathToRecordTo, const FString& InSequenceName)
 {
-	OnRecordingStartedDelegate = OnRecordingStarted;
-	OnRecordingFinishedDelegate = OnRecordingFinished;
-
 	const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
 
 	if(InPathToRecordTo.Len() > 0)
@@ -506,14 +512,18 @@ bool FSequenceRecorder::StartRecordingInternal(UWorld* World)
 	const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
 
 	UWorld* ActorWorld = nullptr;
+	if(World != nullptr || (QueuedRecordings.Num() > 0 && QueuedRecordings[0]->GetActorToRecord() != nullptr))
+	{
+		ActorWorld = World != nullptr ? World : QueuedRecordings[0]->GetActorToRecord()->GetWorld();
+	}
+
 	if(Settings->bRecordWorldSettingsActor)
 	{
-		if(World != nullptr || (QueuedRecordings.Num() > 0 && QueuedRecordings[0]->GetActorToRecord() != nullptr))
+		if(ActorWorld)
 		{
-			ActorWorld = World != nullptr ? World : QueuedRecordings[0]->GetActorToRecord()->GetWorld();
-			if(ActorWorld)
+			AWorldSettings* WorldSettings = ActorWorld->GetWorldSettings();
+			if (!IsRecordingQueued(WorldSettings))
 			{
-				AWorldSettings* WorldSettings = ActorWorld->GetWorldSettings();
 				AddNewQueuedRecording(WorldSettings);
 			}
 		}
@@ -526,14 +536,39 @@ bool FSequenceRecorder::StartRecordingInternal(UWorld* World)
 		{
 			// find a counterpart in the PIE world if this actor is not
 			ALevelSequenceActor* ActorToTrigger = LevelSequenceActor.Get();
-			if(ActorWorld && ActorWorld->IsPlayInEditor() && !ActorToTrigger->GetWorld()->IsPlayInEditor())
+			if(!ActorToTrigger->GetWorld()->IsPlayInEditor())
 			{
 				ActorToTrigger = Cast<ALevelSequenceActor>(EditorUtilities::GetSimWorldCounterpartActor(ActorToTrigger));
 			}
 
-			if(ActorToTrigger && ActorToTrigger->SequencePlayer)
+			if(ActorToTrigger)
 			{
-				ActorToTrigger->SequencePlayer->Play();
+				// Duplicate the level sequence we want to trigger so that we can playback the level sequence and record to it at the same time
+				ALevelSequenceActor* DupActorToTrigger = ActorToTrigger->GetWorld()->SpawnActor<ALevelSequenceActor>();
+				if (!DupActorToTrigger)
+				{
+					UE_LOG(LogAnimation, Display, TEXT("Unabled to spawn actor to trigger: (%s)"), *ActorToTrigger->GetPathName());
+					continue;
+				}
+
+				ULevelSequence* DupLevelSequence = CastChecked<ULevelSequence>(StaticDuplicateObject(ActorToTrigger->GetSequence(), ActorToTrigger->GetOuter(), NAME_None, RF_AllFlags & ~RF_Transactional));
+				DupActorToTrigger->SetSequence(DupLevelSequence);
+
+				// Always initialize the player so that the playback settings/range can be initialized from editor.
+				DupActorToTrigger->InitializePlayer();
+				
+				if (DupActorToTrigger->SequencePlayer)
+				{
+					DupActorToTrigger->SequencePlayer->SetDisableCameraCuts(true);
+					DupActorToTrigger->SequencePlayer->SetPlaybackPosition(0.f);
+					DupActorToTrigger->SequencePlayer->Play();
+				}
+				else
+				{
+					UE_LOG(LogAnimation, Display, TEXT("Level sequence (%s) is not initialized for playback"), *ActorToTrigger->GetPathName());
+				}
+
+				DupActorsToTrigger.Add(DupActorToTrigger);
 			}
 		}
 	}
@@ -567,7 +602,7 @@ bool FSequenceRecorder::StartRecordingInternal(UWorld* World)
 					FDelegateHandle* FoundHandle = ActorSpawningDelegateHandles.Find(ActorToRecordWorld);
 					if(FoundHandle == nullptr)
 					{
-						FDelegateHandle NewHandle = ActorToRecordWorld->AddOnActorSpawnedHandler(FOnActorSpawned::FDelegate::CreateStatic(&FSequenceRecorder::HandleActorSpawned));
+						FDelegateHandle NewHandle = ActorToRecordWorld->AddOnActorSpawnedHandler(FOnActorSpawned::FDelegate::CreateRaw(this, &FSequenceRecorder::HandleActorSpawned));
 						ActorSpawningDelegateHandles.Add(ActorToRecordWorld, NewHandle);
 					}
 				}
@@ -575,17 +610,16 @@ bool FSequenceRecorder::StartRecordingInternal(UWorld* World)
 		}
 
 		// start recording 
-		bool bStartedRecordingAllActors = true;
+		bool bAnyRecordingsStarted = false;
 		for(UActorRecording* Recording : QueuedRecordings)
 		{
-			if(!Recording->StartRecording(CurrentSequence.Get(), CurrentTime))
+			if(Recording->StartRecording(CurrentSequence.Get(), CurrentTime))
 			{
-				bStartedRecordingAllActors = false;
-				break;
+				bAnyRecordingsStarted = true;
 			}
 		}
 
-		if(!bStartedRecordingAllActors)
+		if(!bAnyRecordingsStarted)
 		{
 			// if we couldnt start a recording, stop all others
 			TArray<FAssetData> AssetsToCleanUp;
@@ -634,12 +668,12 @@ bool FSequenceRecorder::StartRecordingInternal(UWorld* World)
 
 				ISequenceRecorder& Recorder = FModuleManager::Get().LoadModuleChecked<ISequenceRecorder>("SequenceRecorder");
 
-				FAudioRecorderSettings AudioSettings;
+				FSequenceAudioRecorderSettings AudioSettings;
 				AudioSettings.Directory = AudioDirectory;
 				AudioSettings.AssetName = FText::Format(LOCTEXT("AudioFormatStr", "{0}_Audio"), FText::FromString(LevelSequence->GetName())).ToString();
-				AudioSettings.RecordingDurationSec = Settings->SequenceLength;
-				AudioSettings.GainDB = Settings->AudioGain;
-				AudioSettings.InputBufferSize = Settings->AudioInputBufferSize;
+				AudioSettings.RecordingDuration = Settings->SequenceLength;
+				AudioSettings.GainDb = Settings->AudioGain;
+				AudioSettings.bSplitChannels = Settings->bSplitAudioChannelsIntoSeparateTracks;
 
 				AudioRecorder = Recorder.CreateAudioRecorder();
 				if (AudioRecorder)
@@ -653,7 +687,11 @@ bool FSequenceRecorder::StartRecordingInternal(UWorld* World)
 			}
 		}
 
-		OnRecordingStartedDelegate.ExecuteIfBound(CurrentSequence.Get());
+		if (OnRecordingStartedDelegate.IsBound())
+		{
+			OnRecordingStartedDelegate.Broadcast(CurrentSequence.Get());
+		}
+
 		return true;
 	}
 	else
@@ -675,6 +713,11 @@ void FSequenceRecorder::HandleEndPIE(bool bSimulating)
 
 bool FSequenceRecorder::StopRecording()
 {
+	if (!IsRecording())
+	{
+		return false;
+	}
+
 	const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
 
 	if (Settings->bImmersiveMode)
@@ -704,13 +747,13 @@ bool FSequenceRecorder::StopRecording()
 	SlowTask.EnterProgressFrame(1.f, LOCTEXT("ProcessingAudio", "Processing Audio"));
 	if (AudioRecorder && LevelSequence)
 	{
-		USoundWave* RecordedAudio = AudioRecorder->Stop();
+		TArray<USoundWave*> RecordedSoundWaves;
+		AudioRecorder->Stop(RecordedSoundWaves);
 		AudioRecorder.Reset();
 
-		if (RecordedAudio)
+		for (USoundWave* RecordedAudio : RecordedSoundWaves)
 		{
-			// Add a new master audio track to the level sequence
-			
+			// Add a new master audio track to the level sequence		
 			UMovieScene* MovieScene = LevelSequence->GetMovieScene();
 
 			UMovieSceneAudioTrack* AudioTrack = MovieScene->FindMasterTrack<UMovieSceneAudioTrack>();
@@ -773,6 +816,41 @@ bool FSequenceRecorder::StopRecording()
 
 	DeadRecordings.Empty();
 
+	// Remove any spawned recordings
+	for (int32 QueuedRecordingIndex = 0; QueuedRecordingIndex < QueuedRecordings.Num(); )
+	{
+		if (QueuedRecordings[QueuedRecordingIndex]->bWasSpawnedPostRecord)
+		{
+			RemoveQueuedRecording(QueuedRecordings[QueuedRecordingIndex]);
+		}
+		else
+		{
+			QueuedRecordingIndex++;
+		}
+	}
+
+
+	// Stop any level sequences that were triggered
+	for(int32 DupActorToTriggerIndex = 0; DupActorToTriggerIndex < DupActorsToTrigger.Num(); ++DupActorToTriggerIndex )
+	{
+		if (DupActorsToTrigger[DupActorToTriggerIndex].IsValid())
+		{
+			ALevelSequenceActor* DupActorToTrigger = DupActorsToTrigger[DupActorToTriggerIndex].Get();
+			ULevelSequencePlayer* SequencePlayer = DupActorToTrigger->SequencePlayer;
+			if (SequencePlayer)
+			{
+				SequencePlayer->SetDisableCameraCuts(false);
+				SequencePlayer->Stop();
+			}
+			if (DupActorToTrigger->GetWorld())
+			{
+				DupActorToTrigger->GetWorld()->DestroyActor(DupActorToTrigger);
+			}
+		}
+	}
+
+	DupActorsToTrigger.Empty();
+
 	if(Settings->bCreateLevelSequence)
 	{
 		if(LevelSequence)
@@ -816,10 +894,10 @@ bool FSequenceRecorder::StopRecording()
 
 			UE_LOG(LogAnimation, Display, TEXT("Stopped recording sequence %s"), *LevelSequence->GetPathName());
 
-			OnRecordingFinishedDelegate.ExecuteIfBound(LevelSequence);
-
-			OnRecordingFinishedDelegate = FOnRecordingFinished();
-			OnRecordingStartedDelegate = FOnRecordingStarted();
+			if (OnRecordingFinishedDelegate.IsBound())
+			{
+				OnRecordingFinishedDelegate.Broadcast(LevelSequence);
+			}
 
 			return true;
 		}
@@ -922,8 +1000,12 @@ void FSequenceRecorder::HandleActorSpawned(AActor* Actor)
 
 	if(Actor && FSequenceRecorder::Get().IsRecording())
 	{
-		// Queue a possible recording - we need to wait until the actor has begun playing
-		FSequenceRecorder::Get().QueuedSpawnedActors.Add(Actor);
+		if (UActorRecording::IsRelevantForRecording(Actor) || IsActorValidForRecording(Actor))
+		{
+			UActorRecording* NewRecording = AddNewQueuedRecording(Actor);
+			NewRecording->bWasSpawnedPostRecord = true;
+			NewRecording->StartRecording(CurrentSequence.Get(), CurrentTime);
+		}
 	}
 }
 

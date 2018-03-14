@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 namespace UnrealBuildTool.Rules
 {
@@ -52,11 +52,11 @@ namespace UnrealBuildTool.Rules
                 PublicIncludePaths.Add(Target.UEThirdPartySourceDirectory + "NotForLicensees/Flurry/IOS/");
                 PublicAdditionalLibraries.Add(Target.UEThirdPartySourceDirectory + "NotForLicensees/Flurry/IOS/libFlurry_6.7.0.a");
 
-                Definitions.Add("WITH_FLURRY=1");
+                PublicDefinitions.Add("WITH_FLURRY=1");
             }
             else
             {
-                Definitions.Add("WITH_FLURRY=0");
+                PublicDefinitions.Add("WITH_FLURRY=0");
             }
         }
 	}

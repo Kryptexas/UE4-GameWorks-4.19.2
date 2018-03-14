@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,6 +26,8 @@ enum class EUINavigationRule : uint8
 	Stop,
 	/** Custom navigation handled by user code. */
 	Custom,
+	/** Custom navigation handled by user code if the boundary is hit. */
+	CustomBoundary,
 	/** Invalid Rule */
 	Invalid
 };
@@ -73,6 +75,17 @@ public:
 	{
 		FNavigationReply NewReply;
 		NewReply.BoundaryRule = EUINavigationRule::Custom;
+		NewReply.FocusDelegate = InFocusDelegate;
+		return NewReply;
+	}
+
+	/**
+	 * An event should return a FNavigationReply::CustomBoundary() to let the system know to call a custom delegate to get the widget to navigate to is the widgets boundary is hit.
+	 */
+	static FNavigationReply CustomBoundary(const FNavigationDelegate& InFocusDelegate)
+	{
+		FNavigationReply NewReply;
+		NewReply.BoundaryRule = EUINavigationRule::CustomBoundary;
 		NewReply.FocusDelegate = InFocusDelegate;
 		return NewReply;
 	}

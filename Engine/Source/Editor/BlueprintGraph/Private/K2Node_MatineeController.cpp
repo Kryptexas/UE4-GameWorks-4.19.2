@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_MatineeController.h"
 #include "EdGraphSchema_K2.h"
@@ -36,8 +36,6 @@ void UK2Node_MatineeController::BeginDestroy()
 
 void UK2Node_MatineeController::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 	// Preload the matinee data, if needed, so that we can have all the event tracks we need
 	if (MatineeActor)
 	{
@@ -46,7 +44,7 @@ void UK2Node_MatineeController::AllocateDefaultPins()
 	}
 
 	// Create the "finished" playing pin
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_MatineeFinished);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_MatineeFinished);
 
 	// Create pins for each event
 	if (MatineeActor && MatineeActor->MatineeData)
@@ -54,10 +52,9 @@ void UK2Node_MatineeController::AllocateDefaultPins()
 		TArray<FName> EventNames;
 		MatineeActor->MatineeData->GetAllEventNames(EventNames);
 
-		for(int32 i=0; i<EventNames.Num(); i++)
+		for (const FName EventName : EventNames)
 		{
-			FName EventName = EventNames[i];
-			CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, EventName.ToString());			
+			CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, EventName);			
 		}
 	}
 
@@ -99,15 +96,14 @@ AActor* UK2Node_MatineeController::GetReferencedLevelActor() const
 
 UEdGraphPin* UK2Node_MatineeController::GetFinishedPin() const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	return FindPin(K2Schema->PN_MatineeFinished);
+	return FindPin(UEdGraphSchema_K2::PN_MatineeFinished);
 }
 
 void UK2Node_MatineeController::ExpandNode(FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
 {
 	if (SourceGraph != CompilerContext.ConsolidatedEventGraph)
 	{
-		CompilerContext.MessageLog.Error(*FString::Printf(*NSLOCTEXT("KismetCompiler", "InvalidNodeOutsideUbergraph_Error", "Unexpected node @@ found outside ubergraph.").ToString()), this);
+		CompilerContext.MessageLog.Error(*NSLOCTEXT("KismetCompiler", "InvalidNodeOutsideUbergraph_Error", "Unexpected node @@ found outside ubergraph.").ToString(), this);
 		return;
 	}
 
@@ -124,9 +120,9 @@ void UK2Node_MatineeController::ExpandNode(FKismetCompilerContext& CompilerConte
 		for(int32 PinIdx=0; PinIdx<Pins.Num(); PinIdx++)
 		{
 			UEdGraphPin* MatineePin = Pins[PinIdx];
-			if(MatineePin->Direction == EGPD_Output && MatineePin->PinType.PinCategory == Schema->PC_Exec)
+			if(MatineePin->Direction == EGPD_Output && MatineePin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
 			{
-				FName EventFuncName = MatineeActor->GetFunctionNameForEvent( FName(*(MatineePin->PinName)) );
+				FName EventFuncName = MatineeActor->GetFunctionNameForEvent(MatineePin->PinName);
 
 				UK2Node_Event* MatineeEventNode = CompilerContext.SpawnIntermediateEventNode<UK2Node_Event>(this, MatineePin, SourceGraph);
 				MatineeEventNode->EventReference.SetFromField<UFunction>(MatineeEventSig, false);
@@ -217,12 +213,12 @@ void UK2Node_MatineeController::OnEventKeyframeAdded(const AMatineeActor* InMati
 	if ( MatineeActor == InMatineeActor )
 	{
 		// Only add unique event names to the controller node
-		if (!FindPin(InPinName.ToString()))
+		if (!FindPin(InPinName))
 		{
-			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 			// Add one to the index as we insert "finished" at index 0
-			CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, InPinName.ToString(), EPinContainerType::None, false, false, InIndex + 1);
+			UEdGraphNode::FCreatePinParams PinParams;
+			PinParams.Index = InIndex + 1;
+			CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, InPinName, PinParams);
 
 			// Update and refresh the blueprint
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprint());
@@ -234,10 +230,10 @@ void UK2Node_MatineeController::OnEventKeyframeRenamed(const AMatineeActor* InMa
 {
 	if ( MatineeActor == InMatineeActor )
 	{
-		if( UEdGraphPin* OldPin = FindPin(InOldPinName.ToString()) )
+		if( UEdGraphPin* OldPin = FindPin(InOldPinName) )
 		{
 			OldPin->Modify();
-			OldPin->PinName = InNewPinName.ToString();
+			OldPin->PinName = InNewPinName;
 
 			GetGraph()->NotifyGraphChanged();
 		}
@@ -251,7 +247,7 @@ void UK2Node_MatineeController::OnEventKeyframeRemoved(const AMatineeActor* InMa
 		bool bNeedsRefresh = false;
 		for(int32 PinIdx=0; PinIdx<InPinNames.Num(); PinIdx++)
 		{
-			if(UEdGraphPin* Pin = FindPin(InPinNames[PinIdx].ToString()))
+			if(UEdGraphPin* Pin = FindPin(InPinNames[PinIdx]))
 			{
 				RemovePin(Pin);
 				bNeedsRefresh = true;

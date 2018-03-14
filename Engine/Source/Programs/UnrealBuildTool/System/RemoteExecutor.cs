@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,18 +10,8 @@ namespace UnrealBuildTool
 {
 	class RemoteExecutor : LocalExecutor
 	{
-		double AdjustedProcessorCountMultiplierValue;
-
 		public RemoteExecutor()
 		{
-			Int32 RemoteCPUCount = RPCUtilHelper.GetCommandSlots();
-			if (RemoteCPUCount == 0)
-			{
-				RemoteCPUCount = Environment.ProcessorCount;
-			}
-
-			AdjustedProcessorCountMultiplierValue = (Double)RemoteCPUCount / (Double)Environment.ProcessorCount;
-			Log.TraceVerbose("Adjusting the remote Mac compile process multiplier to " + AdjustedProcessorCountMultiplierValue.ToString());
 		}
 
 		public override string Name
@@ -27,9 +19,14 @@ namespace UnrealBuildTool
 			get { return "Remote"; }
 		}
 
-		public override double AdjustedProcessorCountMultiplier
+		public override int GetMaxActionsToExecuteInParallel()
 		{
-			get { return AdjustedProcessorCountMultiplierValue; }
+			Int32 RemoteCPUCount = RPCUtilHelper.GetCommandSlots();
+			if (RemoteCPUCount == 0)
+			{
+				RemoteCPUCount = Environment.ProcessorCount;
+			}
+			return RemoteCPUCount;
 		}
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Modules/ModuleInterface.h"
@@ -62,7 +62,7 @@ class FIOSPlatformEditorModule
 
 			{
 				static FName NAME_SF_METAL(TEXT("SF_METAL"));
-				const UShaderPlatformQualitySettings* IOSMaterialQualitySettings = UMaterialShaderQualitySettings::Get()->GetShaderPlatformQualitySettings(NAME_SF_METAL);
+				UShaderPlatformQualitySettings* IOSMaterialQualitySettings = UMaterialShaderQualitySettings::Get()->GetShaderPlatformQualitySettings(NAME_SF_METAL);
 				SettingsModule->RegisterSettings("Project", "Platforms", "iOSMetalQuality",
 					LOCTEXT("IOSMetalQualitySettingsName", "iOS Material Quality"),
 					LOCTEXT("IOSMetalQualitySettingsDescription", "Settings for iOS material quality"),

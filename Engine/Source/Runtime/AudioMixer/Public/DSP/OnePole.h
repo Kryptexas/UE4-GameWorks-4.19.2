@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -103,12 +103,18 @@ namespace Audio
 			A0 = 1.0f - B1;
 		}
 
+		// Clears memory without reevaluating coefficients. This function is useful when there is a break between ProcessAudio calls.
+		void ClearMemory()
+		{
+			Z1.SetNumZeroed(NumChannels);
+		}
+
 		// Resets the sample delay to 0
 		void Reset()
 		{
 			B1 = 0.0f;
 			A0 = 1.0f;
-			Z1.SetNumZeroed(NumChannels);
+			ClearMemory();
 		}
 
 		/** Sets the filter frequency using normalized frequency (between 0.0 and 1.0f or 0.0 hz and Nyquist Frequency in Hz) */

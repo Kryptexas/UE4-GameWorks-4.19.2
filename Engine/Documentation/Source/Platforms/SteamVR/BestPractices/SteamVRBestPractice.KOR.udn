@@ -1,73 +1,96 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3766333
 Title: SteamVR 실전 사례
 Crumbs:%ROOT%, Platforms
 Description:SteamVR 시작을 위한 안내입니다.
 Availability:Public
 Navigation:platform
+Version: 4.17
 Platform:SteamVR
 type:overview
 parent:Platforms/SteamVR
 tags:VR
 tags:SteamVR
+Skilllevel:Beginner
+Order:
+Topic-image:SteamVRTopicImage.png
+social-images:SteamVRTopicImage.png
 
-![](Platforms\SteamVR\T_Vive_HMD.png)
+![](Platforms\SteamVR\T_Vive_HMD.png)(w:866)
 
+[TOC(start:1 end:2)]
 
-가상 현실 줄여서 VR 은 빠른 속도로 디지털 엔터테인먼트 계의 큰 별이 되고 있습니다.
-이 업계가 대대적으로 VR 을 밀고 있기에, 언리얼 엔진 4 (UE4) 는 개발자가 VR 디바이스를 개발 PC 에 연결하고 언리얼 에디터를 여는 것 말고는 다른 작업을 하지 않아도 되도록 다양한 VR 헤드셋과 콘트롤러를 지원하고 있습니다.
-최근의 VR 통합 중의 하나로 UE4 는 이제 SteamVR 을 완벽 지원합니다.
-다른 VR 통합과는 달리 SteamVR 통합은 신형 Vive VR 헤드셋에 대한 코드뿐 아니라,
-새로운 스팀 콘트롤러는 물론 스팀 라이트하우스 베이스 스테이션의 위력을 북돋워줄 코드까지 포함되어 있습니다.
-이번 섹션에서는 UE4 에서 SteamVR 통합 관련 작업을 하기 위해 알아야 하는 모든 것을 다루도록 하겠습니다.
+SteamVR SDK 는 다른 언리얼 엔진 4 (UE4) 가상 현실 SDK 와 다른데, 특정 머리 장착 디스플레이(HMD)에 묶여있지 않기 때문입니다. SteamVR 용으로 개발되는 UE4 프로젝트는 SteamVR 을 지원하면 어떤 HMD 든 사용할 수 있습니다. 이 안내가 SteamVR 및 UE4 용 콘텐츠를 개발할 때 알아야 하는 정보를 파악하는 데 도움이 될 것입니다.
 
-[region:note]
-현재 SteamVR 헤드셋과 콘트롤러는 공개적으로 구매할 수 없습니다.
-개발 키트를 구할 수 있는 유일한 방법은 [Valve](http://store.steampowered.com/universe/vr) 웹사이트에 SteamVR 개발자 등록을 하는 방법뿐입니다.
-또 한가지 유념할 것은, SteamVR 은 아직 프로토타입 하드웨어 단계라, 이 문서에 포함된 이미지 또는 정보가 갑자기 바뀔 수도 있고, 현재 받으셨거나 사용중인 것과 살짝 다를 수 있습니다.
-그런 일이 생기면 이 문서를 업데이트할 예정이니, 가끔씩 다시 들러 어떤 변경사항이 있나 확인하시기 바랍니다.
-[/region]
+## SteamVR Beta
 
+SteamVR 최신 버전이 설치되었는지 확인하려면, SteamVR Tool 에 우클릭하고 **Properties** >  **Betas** 로 가서 **beta - SteamVR  Beta Update** 옵션을 선택하시기 바랍니다.
 
-## 사전 요구사항
+![](SteamVRBP_01.png)
 
-SteamVR 에서 사용할 콘텐츠 개발을 시작하기에 앞서, 먼저 구성해줘야 하는 것이 몇 가지 있습니다.
-다음 섹션에서는 SteamVR 용 콘텐츠 개발 시작을 위해 어떤 구성이 필요한지 다뤄보도록 하겠습니다.
+## SteamVR HMD 목표 프레임 속도
 
+SteamVR 을 사용하는 UE4 프로젝트가 충족해야 하는 프레임 속도는 아래와 같습니다.
 
-* [Windows Aero](http://windows.microsoft.com/en-us/windows-vista/what-is-windows-aero) 기능을 꺼서 개발 PC 의 모든 성능을 VR 에서 사용할 수 있도록 합니다.
-* Steam 클라이언트에서 **SteamVR** 툴을 다운로드 및 설치합니다. 툴의 위치와 설치방법은 다음과 같습니다.
- 1. Steam 클라이언트에서 **라이브러리** > **툴** 로 이동한 다음 툴 목록에서 **SteamVR** 을 찾습니다.
- 1. **SteamVR** 항목에 **더블클릭** 하여 툴 설치 프로세스를 시작한 후 Steam 에서 이르는 안내를 따릅니다.
-
-* 언리얼 엔진 런처에서 언리얼 엔진 4.8 버전 이상을 다운로드하여 설치합니다.
-* Vive 헤드 마운트 디스플레이 (HMD) 와 라이트하우스 베이스 스테이션 모두 포장을 풀고 필수 코드와 전원선이 연결되었는지 확인합니다.
-* 4.5 M x 4.5 M 정도 공간에서 Vive HMD 사용 도중 걸릴 수 있는 장애물을 모두 치웁니다.
-* 필수는 아니지만, 무선 마우스와 키보드가 있으면 HMD 를 벗고 개발 PC 가 있는 곳으로 가서 명령 입력을 하지 않아도 되므로 명령 입력이 쉬워집니다.
+| HMD 디바이스 | 목표 프레임 속도 |
+| --- | --- |
+| **HTC Vive**      | 90 FPS|
+| **Oculus Rift**   | 90 FPS|
 
 
-## SteamVR 이란
+## SteamVR 온전성 검사
 
-SteamVR 또는 Steam 가상 현실은 사용자가 가상 현실을 체험하고 상호작용하며 심지어 돌아다닐 수도 있도록 해주는 360 도 완전판 현실 공간 스케일의 가상현실 체험입니다.
-SteamVR 은 능동형, 즉 방을 돌아다니는 방식으로 활용할 수도 있고, 수동형, 즉 의자에 앉는 방식으로 활용할 수도 있어서, 개발자는 적합한 방식을 선택할 수 있습니다.
-SteamVR 은 또한 한 쌍의 무선 한손 콘트롤러를 활용하여 현실의 움직임, 위치, 회전을 정확히 추적하여 가상현실 속으로 변환해 보냄으로써, 전에 없던 수준으로 가상현실 내 사물과의 정교한 상호작용을 가능하게 해줍니다.
-뿐만 아니라 SteamVR 은 공간 탐색 레이저를 활용해서 현실의 사용자 위치, 회전, 동작을 정확히 추적하여 변환 전송해 주는 라이트하우스 트래킹 시스템을 활용, 사용자가 현실에서 하는 동작이 탐험중인 가상현실 세계와 정확히 일치시키는 것이 가능합니다.
+언리얼 엔진은 지원 HMD 가 연결되어 있고 SteamVR 플러그인이 활성화된 경우 SteamVR 을 자동으로 사용합니다. 어떤 이유로 SteamVR 이 정상 작동하지 않는다면 먼저 SteamVR 플러그인이 활성화되어 있는지 확인하세요. SteamVR 플러그인은 [플러그인](Programming/Plugins) 메뉴의 **Virtual Reality** 섹션에서 찾을 수 있습니다.
 
-## SteamVR 이 다른 VR 디바이스와 다른 점
+[REGION:lightbox]
+[![](SteamVRBP_00.png)(w:546)](SteamVRBP_00.png)
+[/REGION]
 
-SteamVR 과 다른 VR 구현에서 비슷한 점이 몇 가지 있을 수는 있지만, 꽤나 다른 점도 몇 가지 있습니다.
-그 주요 차이점 중 하나는, 카메라를 사용해서 현실의 사용자 위치를 추적한 뒤 가상현실로 변환하는 대신, SteamVR 은 레이저로 구동되는 트래킹 스테이션을 활용하여 사용자의 현실 동작을 추적합니다.
-이 스테이션은 라이트하우스 트래커 또는 베이스 스테이션이라고도 하는데, 이를 통해 헤드셋과 콘트롤러의 위치 및 방향을 보다 정확하게 추적하는 것은 물론, 빠른 반응 속도에다 정확성까지 최적화되어 있습니다.
-사실 라이트하우스 트래커는 너무 정확해서 1/10 초 단위로 다중 입력 디바이스의 밀리미터 이하 움직임까지 동시 추적이 가능합니다.
-SteamVR 은 가상현실 내 사물과의 보다 쉬운 상호작용을 위해 특수 디자인된 SteamVR 콘트롤러를 중심으로 제작되어 있기도 합니다.
-마지막으로, 아마 가장 큰 차이점이 아닐까 싶은데, SteamVR 구성에서는 SteamVR 을 사용하는 공간을 물리적으로 돌아다닌 후 그 동작을 가상현실 세계로 전송할 수 있기에 사용자가 실제로 다른 세계의 일부분을 탐험하고 확인하는 느낌을 받을 수 있으며, 이는 다른 VR 시스템에서는 실제 이동이 불가능한 한계로 인해 이룰 수 없는 부분입니다.
+[REGION:caption]
+클릭하면 이미지 원본을 확인합니다.
+[/REGION]
+
+## SteamVR 로 작업 내용 확인
+
+SteamVR 은 UE4 에디터 뷰포트나 기본 에디터에서 플레이(PIE) 세션에서 작동하지 않습니다. SteamVR 로 프로젝트를 확인하려면, **VR 프리뷰** 옵션을 사용해야 합니다. VR 프리뷰 옵션에 접근하려면, UE4 에디터에서 다음과 같은 작업을 해줘야 합니다.
+
+1. 메인 툴바의 **플레이** 섹션에서, 플레이 버튼 옆 작은 하양 삼각형을 클릭합니다.
+
+    ![](Platforms\Oculus\BestPractices\Rift_Preview_00.png)
+
+1. 드롭다운 메뉴에서, **VR 프리뷰** 옵션을 선택하고 Rift 를 써서 VR 로 프로젝트를 확인합니다.
+
+    ![](Platforms\Oculus\BestPractices\Rift_Preview_01.png)
+
+    [region:note]
+    플레이 모드를 VR 프리뷰 옵션으로 변경하고나면 프로젝트는 항상 VR 모드로 실행되며, **ALT + P** 같은 단축키를 사용할 때도 마찬가지입니다.
+    [/region]
+
+## SteamVR 미러 모드
+
+SteamVR Headset Mirror (SteamVR 헤드셋 미러)는 사용자가 HMD 를 쓰고 보는 것을 확인할 수 있도록 해줍니다. 이 모드는 UE4 프로젝트와 SteamVR 컴포지터로 확인중인 것을 녹화할 필요가 있을 때 특히 좋습니다. 미러 모드를 켜는 방법은 다음과 같습니다:
+
+1. 먼저 SteamVR Tools 에 우클릭하여 메뉴를 띄우고 **Display Mirror** 옵션을 선택합니다.
+	
+	[REGION:raw]
+    ![](SteamVRBP_02.png)
+	[/REGION]
+
+1. 그러면 아래 이미지처럼 미러가 **Headset Mirror** 라는 새 창에 표시됩니다.
+
+    [REGION:lightbox]
+    [![](SteamVRBP_03.png)(w:540)](SteamVRBP_03.png)
+    [/REGION]
+
+    [REGION:caption]
+    위 그림은 사용자가 HMD 를 썼을 때 보이는 것을 그대로 보여줍니다.
+    [/REGION]
 
 
+## SteamVR 개발자 링크
 
+SteamVR 관련 하드웨어나 소프트웨어 이슈같은 항목 관련 유용한 정보가 들어있는 링크 모음입니다.
 
-
-
-
-
-
+* [SteamVR Developer Support](https://support.steampowered.com/kb_article.php?ref=1131-WSFG-3320)
+* [HTC Vive Developer Support](https://developer.viveport.com/us/develop_portal/)
 
 

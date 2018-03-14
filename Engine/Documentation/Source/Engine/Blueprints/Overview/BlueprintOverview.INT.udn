@@ -6,47 +6,8 @@ version: 4.9
 parent:Engine/Blueprints
 order:2
 tags:Blueprints
+topic-image:blueprint_topic.png
 
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/Overview:title%](blueprint_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Overview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/Overview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Overview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/Overview:title%](blueprint_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Overview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/Overview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Overview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC (start:2)]
 
@@ -145,7 +106,8 @@ and more.
 
 [/EXCERPT:Sections]
 
-<!--
+[COMMENT:none]
+
 ### Blueprint Modes
 
 A Blueprint's _mode_ determines what is visible in its window. Although Level Blueprints contain only one mode, the Graph mode, Blueprint Classes contain three different modes:
@@ -155,4 +117,5 @@ A Blueprint's _mode_ determines what is visible in its window. Although Level Bl
 * **[Components Mode](Engine/Blueprints\Editor\Modes\Components)** - Where you add, remove, and modify the components that make up your Blueprint.
 
 For more information about Blueprint Class modes, see [](Engine/Blueprints\Editor\Modes).
--->
+
+[/COMMENT]

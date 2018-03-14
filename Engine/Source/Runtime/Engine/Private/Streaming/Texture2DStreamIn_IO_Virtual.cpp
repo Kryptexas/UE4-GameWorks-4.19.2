@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 Texture2DStreamIn_IO_AsyncCreate.cpp: Async create path for streaming in texture 2D mips.

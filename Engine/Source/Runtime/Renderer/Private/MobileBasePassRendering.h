@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MobileBasePassRendering.h: base pass rendering definitions.
@@ -22,7 +22,6 @@
 #include "MeshMaterialShader.h"
 #include "DebugViewModeRendering.h"
 #include "FogRendering.h"
-#include "EditorCompositeParams.h"
 #include "PlanarReflectionRendering.h"
 #include "BasePassRendering.h"
 
@@ -80,7 +79,7 @@ protected:
 
 public:
 
-	// static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	// static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
@@ -145,9 +144,9 @@ protected:
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return IsMobilePlatform(Platform) && LightMapPolicyType::ShouldCache(Platform,Material,VertexFactoryType);
+		return IsMobilePlatform(Platform) && LightMapPolicyType::ShouldCompilePermutation(Platform,Material,VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -163,9 +162,9 @@ class TMobileBasePassVS : public TMobileBasePassVSBaseType<LightMapPolicyType>
 	DECLARE_SHADER_TYPE(TMobileBasePassVS,MeshMaterial);
 public:
 	
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
 	{		
-		return TMobileBasePassVSBaseType<LightMapPolicyType>::ShouldCache(Platform, Material, VertexFactoryType) && ShouldCacheShaderByPlatformAndOutputFormat(Platform,OutputFormat);
+		return TMobileBasePassVSBaseType<LightMapPolicyType>::ShouldCompilePermutation(Platform, Material, VertexFactoryType) && ShouldCacheShaderByPlatformAndOutputFormat(Platform,OutputFormat);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -193,7 +192,7 @@ class TMobileBasePassPSPolicyParamType : public FMeshMaterialShader, public Pixe
 {
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// We compile the point light shader combinations based on the project settings
 		static auto* MobileDynamicPointLightsUseStaticBranchCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileDynamicPointLightsUseStaticBranch"));
@@ -234,7 +233,6 @@ public:
 		ReflectionCubemap.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemap"));
 		ReflectionSampler.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemapSampler"));
 		InvReflectionCubemapAverageBrightness.Bind(Initializer.ParameterMap, TEXT("InvReflectionCubemapAverageBrightness"));
-		EditorCompositeParams.Bind(Initializer.ParameterMap);
 		LightPositionAndInvRadiusParameter.Bind(Initializer.ParameterMap, TEXT("LightPositionAndInvRadius"));
 		LightColorAndFalloffExponentParameter.Bind(Initializer.ParameterMap, TEXT("LightColorAndFalloffExponent"));
 		if (NumDynamicPointLights == INT32_MAX)
@@ -252,10 +250,9 @@ public:
 	}
 	TMobileBasePassPSPolicyParamType() {}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy, const FMaterial& MaterialResource, const FSceneView* View, ESceneRenderTargetsMode::Type TextureMode, bool bEnableEditorPrimitveDepthTest)
+	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy, const FMaterial& MaterialResource, const FViewInfo* View, ESceneRenderTargetsMode::Type TextureMode)
 	{
 		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(),MaterialRenderProxy,MaterialResource,*View,View->ViewUniformBuffer,TextureMode);
-		EditorCompositeParams.SetParameters(RHICmdList, MaterialResource, View, bEnableEditorPrimitveDepthTest, GetPixelShader());
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FDrawingPolicyRenderState& DrawRenderState)
@@ -288,7 +285,7 @@ public:
 						{
 							ReflectionCubemapTextures[i] = PrimitiveSceneInfo->CachedReflectionCaptureProxies[i]->EncodedHDRCubemap;
 						}
-						AverageBrightness[i] = ReflectionProxy->AverageBrightness;
+						AverageBrightness[i] = ReflectionProxy->EncodedHDRAverageBrightness;
 					}
 				}
 			}
@@ -318,7 +315,7 @@ public:
 				&& PrimitiveSceneInfo->CachedReflectionCaptureProxy->EncodedHDRCubemap
 				&& PrimitiveSceneInfo->CachedReflectionCaptureProxy->EncodedHDRCubemap->IsInitialized())
 			{
-				AverageBrightness = PrimitiveSceneInfo->CachedReflectionCaptureProxy->AverageBrightness;
+				AverageBrightness = PrimitiveSceneInfo->CachedReflectionCaptureProxy->EncodedHDRAverageBrightness;
 				ReflectionTexture = PrimitiveSceneInfo->CachedReflectionCaptureProxy->EncodedHDRCubemap;
 			}
 
@@ -354,7 +351,6 @@ public:
 		Ar << ReflectionCubemap;
 		Ar << ReflectionSampler;
 		Ar << InvReflectionCubemapAverageBrightness;
-		Ar << EditorCompositeParams;
 		Ar << LightPositionAndInvRadiusParameter;
 		Ar << LightColorAndFalloffExponentParameter;
 		if (NumDynamicPointLights == INT32_MAX)
@@ -379,7 +375,6 @@ private:
 	FShaderResourceParameter ReflectionCubemap;
 	FShaderResourceParameter ReflectionSampler;
 	FShaderParameter InvReflectionCubemapAverageBrightness;
-	FEditorCompositingParameters EditorCompositeParams;
 	FShaderParameter LightPositionAndInvRadiusParameter;
 	FShaderParameter LightColorAndFalloffExponentParameter;
 	FShaderParameter NumDynamicPointLightsParameter;
@@ -402,10 +397,10 @@ class TMobileBasePassPSBaseType : public TMobileBasePassPSPolicyParamType<typena
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return LightMapPolicyType::ShouldCache(Platform, Material, VertexFactoryType) 
-			&& Super::ShouldCache(Platform, Material, VertexFactoryType);
+		return LightMapPolicyType::ShouldCompilePermutation(Platform, Material, VertexFactoryType) 
+			&& Super::ShouldCompilePermutation(Platform, Material, VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -425,12 +420,12 @@ class TMobileBasePassPS : public TMobileBasePassPSBaseType<LightMapPolicyType, N
 	DECLARE_SHADER_TYPE(TMobileBasePassPS,MeshMaterial);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
 	{		
 		// Only compile skylight version for lit materials on ES2 (Metal) or higher
 		const bool bShouldCacheBySkylight = !bEnableSkyLight || (Material->GetShadingModel() != MSM_Unlit);
 
-		return TMobileBasePassPSBaseType<LightMapPolicyType, NumDynamicPointLights>::ShouldCache(Platform, Material, VertexFactoryType) && ShouldCacheShaderByPlatformAndOutputFormat(Platform, OutputFormat) && bShouldCacheBySkylight;
+		return TMobileBasePassPSBaseType<LightMapPolicyType, NumDynamicPointLights>::ShouldCompilePermutation(Platform, Material, VertexFactoryType) && ShouldCacheShaderByPlatformAndOutputFormat(Platform, OutputFormat) && bShouldCacheBySkylight;
 	}
 	
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -636,14 +631,12 @@ public:
 		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
 		EDebugViewShaderMode InDebugViewShaderMode,
 		ERHIFeatureLevel::Type FeatureLevel,
-		bool bInEnableEditorPrimitiveDepthTest = false,
 		bool bInEnableReceiveDecalOutput = false
 		):
 		FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource, InOverrideSettings, InDebugViewShaderMode),
 		LightMapPolicy(InLightMapPolicy),
 		BlendMode(InBlendMode),
 		SceneTextureMode(InSceneTextureMode),
-		bEnableEditorPrimitiveDepthTest(bInEnableEditorPrimitiveDepthTest),
 		bEnableReceiveDecalOutput(bInEnableReceiveDecalOutput)
 	{
 		GetMobileBasePassShaders<LightMapPolicyType, NumDynamicPointLights>(
@@ -655,21 +648,15 @@ public:
 					PixelShader
 					);
 
-#if DO_GUARD_SLOW
-		// Somewhat hacky
-		if (SceneTextureMode == ESceneRenderTargetsMode::DontSet && !bEnableEditorPrimitiveDepthTest && InMaterialResource.IsUsedWithEditorCompositing())
-		{
-			SceneTextureMode = ESceneRenderTargetsMode::DontSetIgnoreBoundByEditorCompositing;
-		}
-#endif
+		BaseVertexShader = VertexShader;
 	}
 
 	// FMeshDrawingPolicy interface.
 
-	FDrawingPolicyMatchResult Matches(const TMobileBasePassDrawingPolicy& Other) const
+	FDrawingPolicyMatchResult Matches(const TMobileBasePassDrawingPolicy& Other, bool bForReals = false) const
 	{
 		DRAWING_POLICY_MATCH_BEGIN
-			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
+			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other, bForReals)) &&
 			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
 			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader) &&
 			DRAWING_POLICY_MATCH(LightMapPolicy == Other.LightMapPolicy) &&
@@ -779,7 +766,7 @@ public:
 		}
 		else
 		{
-			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, SceneTextureMode, bEnableEditorPrimitiveDepthTest);
+			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, SceneTextureMode);
 		}
 		// Set the light-map policy.
 		LightMapPolicy.Set(RHICmdList, VertexShader, !UseDebugViewPS() ? PixelShader : nullptr, VertexShader, PixelShader, VertexFactory, MaterialRenderProxy, View);		
@@ -879,8 +866,6 @@ protected:
 	LightMapPolicyType LightMapPolicy;
 	EBlendMode BlendMode;
 	ESceneRenderTargetsMode::Type SceneTextureMode;
-	/** Whether or not this policy is compositing editor primitives and needs to depth test against the scene geometry in the base pass pixel shader */
-	uint32 bEnableEditorPrimitiveDepthTest : 1;
 	uint32 bEnableReceiveDecalOutput : 1;
 };
 
@@ -894,11 +879,7 @@ public:
 	enum { bAllowSimpleElements = true };
 	struct ContextType 
 	{
-		/** Whether or not to perform depth test in the pixel shader */
-		bool bEditorCompositeDepthTest;
-
-		ContextType(bool bInEditorCompositeDepthTest, ESceneRenderTargetsMode::Type InTextureMode) :
-			bEditorCompositeDepthTest(bInEditorCompositeDepthTest),
+		ContextType(ESceneRenderTargetsMode::Type InTextureMode) :
 			TextureMode(InTextureMode)
 		{}
 
@@ -958,13 +939,14 @@ void ProcessMobileBasePassMesh(
 	
 		const FReadOnlyCVARCache& ReadOnlyCVARCache = FReadOnlyCVARCache::Get();
 
-		const bool bPrimReceivesStaticAndCSM = Action.CanReceiveStaticAndCSM(MobileDirectionalLight, Parameters.PrimitiveSceneProxy);
+		const bool bPrimReceivesCSM = Action.CanReceiveCSM(MobileDirectionalLight, Parameters.PrimitiveSceneProxy);
 		const bool bUseMovableLight = MobileDirectionalLight && !MobileDirectionalLight->Proxy->HasStaticShadowing() && ReadOnlyCVARCache.bMobileAllowMovableDirectionalLights;
 
 		const bool bUseStaticAndCSM = MobileDirectionalLight && MobileDirectionalLight->Proxy->UseCSMForDynamicObjects()
-			&& bPrimReceivesStaticAndCSM
-			&& ReadOnlyCVARCache.bMobileEnableStaticAndCSMShadowReceivers
-			&& (ReadOnlyCVARCache.bAllReceiveDynamicCSM || (Parameters.PrimitiveSceneProxy != nullptr && Parameters.PrimitiveSceneProxy->ShouldReceiveCombinedCSMAndStaticShadowsFromStationaryLights()));
+			&& bPrimReceivesCSM
+			&& ReadOnlyCVARCache.bMobileEnableStaticAndCSMShadowReceivers;
+
+		const bool bMovableWithCSM = bUseMovableLight && MobileDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows() && bPrimReceivesCSM;
 
 		if (LightMapInteraction.GetType() == LMIT_Texture && ReadOnlyCVARCache.bAllowStaticLighting && ReadOnlyCVARCache.bEnableLowQualityLightmaps)
 		{
@@ -987,7 +969,7 @@ void ProcessMobileBasePassMesh(
 			}
 			else if (bUseStaticAndCSM)
 			{
-				if (ShadowMapInteraction.GetType() == SMIT_Texture && MobileDirectionalLight && MobileDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows() && ReadOnlyCVARCache.bMobileAllowDistanceFieldShadows)
+				if (ShadowMapInteraction.GetType() == SMIT_Texture && MobileDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows() && ReadOnlyCVARCache.bMobileAllowDistanceFieldShadows)
 				{
 					Action.template Process<NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_MOBILE_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM), Parameters.Mesh.LCI);
 				}
@@ -1018,7 +1000,7 @@ void ProcessMobileBasePassMesh(
 		{
 			if (bUseMovableLight)
 			{
-				if (MobileDirectionalLight && MobileDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows())
+				if (MobileDirectionalLight && MobileDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows() && bMovableWithCSM)
 				{
 					Action.template Process<NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT), Parameters.Mesh.LCI);
 				}
@@ -1045,7 +1027,7 @@ void ProcessMobileBasePassMesh(
 		else if (bUseMovableLight)
 		{
 			// final determination of whether CSMs are rendered can be view dependent, thus we always need to clear the CSMs even if we're not going to render to them based on the condition below.
-			if (MobileDirectionalLight && MobileDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows())
+			if (MobileDirectionalLight && bMovableWithCSM)
 			{
 				Action.template Process<NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM), Parameters.Mesh.LCI);
 			}

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -86,6 +86,10 @@ class UNREALED_API UPhysicsAssetEditorOptions : public UObject
 	UPROPERTY(config)
 	uint32 bShowConstraintsAsPoints:1;
 
+	/** Whether to only render selected constraints */
+	UPROPERTY(config)
+	uint32 bRenderOnlySelectedConstraints:1;
+
 	/** Controls how large constraints are drawn in Physics Asset Editor */
 	UPROPERTY(config)
 	float ConstraintDrawSize;
@@ -121,4 +125,8 @@ class UNREALED_API UPhysicsAssetEditorOptions : public UObject
 	/** When set, turns opacity of solid rendering for unselected bodies to zero */
 	UPROPERTY(config)
 	bool bSolidRenderingForSelectedOnly;
+
+	/** When set, cloth will reset each time simulation is toggled */
+	UPROPERTY(EditAnywhere, config, Category=Clothing)
+	bool bResetClothWhenSimulating;
 };

@@ -22,7 +22,7 @@ Version:4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 このステップでは、ステート グラフに以下の 5 種類のステートを追加します。
 
@@ -74,4 +74,3 @@ Version:4.15
 
 	![](ConnectEntrytoIdle.png)
 
-%Steps%

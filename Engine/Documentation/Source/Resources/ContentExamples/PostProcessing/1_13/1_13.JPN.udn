@@ -24,7 +24,7 @@ Version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -76,13 +76,15 @@ Version:4.9
 [/OBJECT]
 </div>
 
-<!---
+[COMMENT:none]
+-
 <div align="center">
 [REGION:lightbox]
 [![](1_13_01.png)(w:440)](1_13_01.png) [![](1_13_02.png)(w:440)](1_13_02.png)
 [/REGION:lightbox]
 </div>
---->
+-
+[/COMMENT]
 
 **Screen Percentage** は、低解像度でシーンをレンダリングして拡大します。この値は、シーンの全体的な解像度の比率を表します。
 

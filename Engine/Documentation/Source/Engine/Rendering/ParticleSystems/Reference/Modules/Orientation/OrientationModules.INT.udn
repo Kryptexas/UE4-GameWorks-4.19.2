@@ -26,7 +26,8 @@ In this image, the particle sprites are being locked to the positive Y-Axis.
 
 
 
-<!-------------Axis Lock Includes----------------
+[COMMENT:none]
+-----------Axis Lock Includes----------------
 #### Includes
 
 
@@ -48,4 +49,5 @@ In this image, the particle sprites are being locked to the positive Y-Axis.
 [/EXCERPT:LockAxisFlags]
 
 
--------------Axis Lock Includes--------------->
+-------------Axis Lock Includes-------------
+[/COMMENT]

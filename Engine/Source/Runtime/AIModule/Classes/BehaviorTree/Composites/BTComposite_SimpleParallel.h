@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -50,13 +50,13 @@ struct FBTParallelMemory : public FBTCompositeMemory
  * Simple Parallel composite node.
  * Allows for running two children: one which must be a single task node (with optional decorators), and the other of which can be a complete subtree.
  */
-UCLASS()
+UCLASS(HideCategories=(Composite))
 class AIMODULE_API UBTComposite_SimpleParallel : public UBTCompositeNode
 {
 	GENERATED_UCLASS_BODY()
 
 	/** how background tree should be handled when main task finishes execution */
-	UPROPERTY(EditInstanceOnly, Category=Parallel)
+	UPROPERTY(EditInstanceOnly, Category = Parallel)
 	TEnumAsByte<EBTParallelMode::Type> FinishMode;
 
 	/** handle child updates */

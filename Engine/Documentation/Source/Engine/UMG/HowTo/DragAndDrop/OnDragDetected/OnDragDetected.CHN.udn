@@ -31,7 +31,7 @@ type:how-to
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 在这步中，我们将决定玩家实际在屏幕上拖动 HealthBar 时发生的状况。 
 
@@ -76,7 +76,7 @@ type:how-to
 
 最后需要执行的几项操作是确定玩家松开鼠标左键并执行 OnDrop 函数时发生的情况。我们还需要将 HealthBar 控件添加到主 HUD 控件蓝图，并在测试所有内容之前告知其进行显示。  
 
-%Steps%
+
 
 
 

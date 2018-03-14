@@ -9,62 +9,7 @@ Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 Version: 4.9
-
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Effects Gallery Home](Resources/ContentExamples/EffectsGallery)
-	[/PARAM]
-	[PARAM:next]
-		[Next Example](Resources/ContentExamples/EffectsGallery/1_B "%Resources/ContentExamples/EffectsGallery/1_B:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources\ContentExamples\EffectsGallery\1_A:title%](%ROOT%\Resources\ContentExamples\EffectsGallery\1_A\1_ATopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources\ContentExamples\EffectsGallery\1_A:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources\ContentExamples\EffectsGallery\1_A:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources\ContentExamples\EffectsGallery\1_A]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources\ContentExamples\EffectsGallery\1_A:title%](%ROOT%\Resources\ContentExamples\EffectsGallery\1_A\1_ATopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources\ContentExamples\EffectsGallery\1_A:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources\ContentExamples\EffectsGallery\1_A:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources\ContentExamples\EffectsGallery\1_A]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:1_ATopic.png
 
 [REGION:fullwidth]
 ![](image006.png)

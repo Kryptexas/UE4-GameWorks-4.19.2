@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:머티리얼 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -12,41 +12,12 @@ Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Actors/DecalActor
 Version: 4.9
+topic-image:materials_compact.png
 
 [REGION:banner]
 ![](MaterialNodes_Header.png)(convert:false)
 [/REGION]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Materials:title%](materials_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Materials:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Materials:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Materials]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Materials:title%](materials_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Materials:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Materials]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SplineMeshSceneProxy.h"
 #include "Materials/Material.h"
@@ -39,15 +39,21 @@ FSplineMeshSceneProxy::FSplineMeshSceneProxy(USplineMeshComponent* InComponent) 
 	}
 }
 
+SIZE_T FSplineMeshSceneProxy::GetTypeHash() const
+{
+	static size_t UniquePointer;
+	return reinterpret_cast<size_t>(&UniquePointer);
+}
+
 bool FSplineMeshSceneProxy::GetShadowMeshElement(int32 LODIndex, int32 BatchIndex, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshBatch, bool bDitheredLODTransition) const
 {
 	//checkf(LODIndex == 0, TEXT("Getting spline static mesh element with invalid LOD [%d]"), LODIndex);
 
 	if (FStaticMeshSceneProxy::GetShadowMeshElement(LODIndex, BatchIndex, InDepthPriorityGroup, OutMeshBatch, bDitheredLODTransition))
 	{
-		const FStaticMeshLODResources& LOD = RenderData->LODResources[LODIndex];
+		const FStaticMeshVertexFactories& VFs = RenderData->LODVertexFactories[LODIndex];
 		check(OutMeshBatch.Elements.Num() == 1);
-		OutMeshBatch.VertexFactory = OutMeshBatch.Elements[0].bUserDataIsColorVertexBuffer ? LOD.SplineVertexFactoryOverrideColorVertexBuffer : LOD.SplineVertexFactory;
+		OutMeshBatch.VertexFactory = OutMeshBatch.Elements[0].bUserDataIsColorVertexBuffer ? VFs.SplineVertexFactoryOverrideColorVertexBuffer : VFs.SplineVertexFactory;
 		check(OutMeshBatch.VertexFactory);
 		OutMeshBatch.Elements[0].SplineMeshSceneProxy = const_cast<FSplineMeshSceneProxy*>(this);
 		OutMeshBatch.Elements[0].bIsSplineProxy = true;
@@ -63,9 +69,9 @@ bool FSplineMeshSceneProxy::GetMeshElement(int32 LODIndex, int32 BatchIndex, int
 
 	if (FStaticMeshSceneProxy::GetMeshElement(LODIndex, BatchIndex, SectionIndex, InDepthPriorityGroup, bUseSelectedMaterial, bUseHoveredMaterial, bAllowPreCulledIndices, OutMeshBatch))
 	{
-		const FStaticMeshLODResources& LOD = RenderData->LODResources[LODIndex];
+		const FStaticMeshVertexFactories& VFs = RenderData->LODVertexFactories[LODIndex];
 		check(OutMeshBatch.Elements.Num() == 1);
-		OutMeshBatch.VertexFactory = OutMeshBatch.Elements[0].bUserDataIsColorVertexBuffer ? LOD.SplineVertexFactoryOverrideColorVertexBuffer : LOD.SplineVertexFactory;
+		OutMeshBatch.VertexFactory = OutMeshBatch.Elements[0].bUserDataIsColorVertexBuffer ? VFs.SplineVertexFactoryOverrideColorVertexBuffer : VFs.SplineVertexFactory;
 		check(OutMeshBatch.VertexFactory);
 		OutMeshBatch.Elements[0].SplineMeshSceneProxy = const_cast<FSplineMeshSceneProxy*>(this);
 		OutMeshBatch.Elements[0].bIsSplineProxy = true;
@@ -81,9 +87,9 @@ bool FSplineMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, int32 BatchI
 
 	if (FStaticMeshSceneProxy::GetWireframeMeshElement(LODIndex, BatchIndex, WireframeRenderProxy, InDepthPriorityGroup, bAllowPreCulledIndices, OutMeshBatch))
 	{
-		const FStaticMeshLODResources& LOD = RenderData->LODResources[LODIndex];
+		const FStaticMeshVertexFactories& VFs = RenderData->LODVertexFactories[LODIndex];
 		check(OutMeshBatch.Elements.Num() == 1);
-		OutMeshBatch.VertexFactory = OutMeshBatch.Elements[0].bUserDataIsColorVertexBuffer ? LOD.SplineVertexFactoryOverrideColorVertexBuffer : LOD.SplineVertexFactory;
+		OutMeshBatch.VertexFactory = OutMeshBatch.Elements[0].bUserDataIsColorVertexBuffer ? VFs.SplineVertexFactoryOverrideColorVertexBuffer : VFs.SplineVertexFactory;
 		check(OutMeshBatch.VertexFactory);
 		OutMeshBatch.Elements[0].SplineMeshSceneProxy = const_cast<FSplineMeshSceneProxy*>(this);
 		OutMeshBatch.Elements[0].bIsSplineProxy = true;

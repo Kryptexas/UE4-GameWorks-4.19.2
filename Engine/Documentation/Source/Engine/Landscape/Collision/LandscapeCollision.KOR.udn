@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:랜드스케이프 콜리전
 Crumbs: %ROOT%, Engine, Engine/Landscape
@@ -6,36 +6,7 @@ Description:랜드스케이프의 콜리전 세팅 안내서입니다.
 version: 4.12
 parent:Engine/Landscape
 order:7
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](Engine/Landscape/Landscape_Collision_Banner.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Landscape/Collision:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Landscape/Collision]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](Engine/Landscape/Landscape_Collision_Banner.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Landscape/Collision:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Landscape/Collision:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Landscape/Collision]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Landscape/Landscape_Collision_Banner.png
 
 [TOC(start:2 end:3)]
 
@@ -164,7 +135,8 @@ order:7
 
 
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:VC]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -189,9 +161,11 @@ order:7
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:VC]
--->
 
-<!-----
+[/COMMENT]
+
+[COMMENT:none]
+---
 [EXCERPT:PC]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -216,4 +190,5 @@ order:7
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:PC]
--->
+
+[/COMMENT]

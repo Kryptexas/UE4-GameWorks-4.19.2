@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessMaterialShaders.usf: Shaders for rendering post process materials
@@ -9,13 +9,27 @@
 
 #if (FEATURE_LEVEL > FEATURE_LEVEL_ES3_1)
 
+#if VERTEXSHADER
+
 void MainVS(
 	in float4 InPosition : ATTRIBUTE0,
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	DrawRectangle(InPosition,  OutPosition);
+	DrawRectangle(InPosition, OutPosition);
 }
+
+void MainVS_VideoOverlay(
+	in float4 InPosition : ATTRIBUTE0,
+	in float2 InTexCoord : ATTRIBUTE1,
+	out float2 OutUV : TEXCOORD0,
+	out float4 OutPosition : SV_POSITION
+	)
+{
+	DrawRectangle(InPosition, InTexCoord, OutPosition, OutUV);
+}
+
+#elif PIXELSHADER
 
 void MainPS(
 	in float4 SvPosition : SV_Position,		// after all interpolators
@@ -27,18 +41,18 @@ void MainPS(
 	FPixelMaterialInputs PixelMaterialInputs;
 
 	// can be optimized
-	float2 ScreenUV = SvPositionToBufferUV(SvPosition);
+	float2 ViewportUV = (SvPosition - ViewportRect.xy) * ViewportSize.zw;
 
 #if NUM_MATERIAL_TEXCOORDS
 	for(int CoordinateIndex = 0;CoordinateIndex < NUM_MATERIAL_TEXCOORDS;CoordinateIndex++)
 	{
-		Parameters.TexCoords[CoordinateIndex] = ScreenUV;
+		Parameters.TexCoords[CoordinateIndex] = ViewportUV;
 	}
 #endif
 
 	Parameters.VertexColor = 1;
 	
-	SvPosition.z = LookupDeviceZ(ScreenUV);
+	SvPosition.z = LookupDeviceZ(ViewportUVToBufferUV(ViewportUV));
 	SvPosition.z = max(SvPosition.z, 1e-18);
 
 	// fill out other related material parameters
@@ -52,6 +66,47 @@ void MainPS(
 #endif
 	OutColor = float4(GetMaterialEmissive(PixelMaterialInputs), Alpha );
 } 
+
+void MainPS_VideoOverlay(
+	in float2 InUV : TEXCOORD0,
+	in float4 SvPosition : SV_Position,		// after all interpolators
+	out float4 OutColor : SV_Target0
+	)
+{
+	ResolvedView = ResolveView();
+	FMaterialPixelParameters Parameters = MakeInitializedMaterialPixelParameters();
+	FPixelMaterialInputs PixelMaterialInputs;
+
+	float2 ViewportUV = InUV;
+
+#if NUM_MATERIAL_TEXCOORDS
+	for(int CoordinateIndex = 0;CoordinateIndex < NUM_MATERIAL_TEXCOORDS;CoordinateIndex++)
+	{
+		Parameters.TexCoords[CoordinateIndex] = ViewportUV;
+	}
+#endif
+
+	Parameters.VertexColor = 1;
+
+	SvPosition.z = LookupDeviceZ(ViewportUVToBufferUV(ViewportUV));
+	SvPosition.z = max(SvPosition.z, 1e-18);
+
+	// fill out other related material parameters
+	CalcMaterialParametersPost(Parameters, PixelMaterialInputs, SvPosition, true);
+
+	// Grab emissive colour as output
+#if MATERIAL_OUTPUT_OPACITY_AS_ALPHA
+	const float Alpha = GetMaterialOpacity(PixelMaterialInputs);
+#else
+	const float Alpha = 1.0f;
+#endif
+	OutColor = float4(GetMaterialEmissive(PixelMaterialInputs), Alpha );
+}
+
+#else // !VERTEXSHADER && !PIXELSHADER
+#error Wrong shader domain.
+
+#endif
 
 #else // FEATURE_LEVEL_ES3_1
 //

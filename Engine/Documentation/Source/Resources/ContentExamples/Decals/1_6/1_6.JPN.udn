@@ -29,9 +29,11 @@ Version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
 
-<!---[TOC(start:2 end:2)]--->
+
+[COMMENT:none]
+-[TOC(start:2 end:2)]-
+[/COMMENT]
 
 [VAR:Topic]
 [OBJECT:Topic]

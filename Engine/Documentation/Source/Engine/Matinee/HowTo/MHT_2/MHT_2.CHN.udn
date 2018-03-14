@@ -7,19 +7,13 @@ Version:4.9
 SkillLevel:Intermediate
 
 
----
 在下列步骤中，我们将创建两个自动从一个点前往另一个点的电梯。
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		创建电梯
-	[/PARAM]
-	[PARAM:description]
-	在该步骤中，我们将利用基础形态创建电梯和平台。 
-	[/PARAM]
-[/OBJECT]
+创建电梯
+
+在该步骤中，我们将利用基础形态创建电梯和平台。 
 
 1. 在 **Content Browser** 和 **Shapes** 文件夹中，将一个 **Shape_Cube** 拖进关卡中 **PlayerStart** 的前面。 
 
@@ -58,14 +52,9 @@ SkillLevel:Intermediate
 	![](MHT2_LastCubeAdded.png)
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		添加 Matinee 并移动第一个电梯
-	[/PARAM]
-	[PARAM:description]
-	在这步中，我们将添加 **Matinee** 并为第一个电梯创建一个 **Movement Track**。 
-	[/PARAM]
-[/OBJECT]
+添加 Matinee 并移动第一个电梯
+
+在这步中，我们将添加 **Matinee** 并为第一个电梯创建一个 **Movement Track**。 
 
 1. 在 **工具栏** 菜单中选择 **Matinee** 并点击 **Add Matinee** 按钮。 
 
@@ -156,14 +145,9 @@ SkillLevel:Intermediate
 	[/OBJECT]
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		使用弧线编辑器移动第二个电梯
-	[/PARAM]
-	[PARAM:description]
-	在这步中，我们移动 **弧线编辑器（Curve Editor）** 中的关键帧，实现第二个电梯的移动。 
-	[/PARAM]
-[/OBJECT]
+使用弧线编辑器移动第二个电梯
+
+在这步中，我们移动 **弧线编辑器（Curve Editor）** 中的关键帧，实现第二个电梯的移动。 
 
 1. 在 **World Outliner** 中选择 **Matinee Actor**，然后在 Details 面板中选择 **Open Matinee** 选项。 
 
@@ -271,14 +255,3 @@ SkillLevel:Intermediate
 	[/PARAMLITERAL]
 	[/OBJECT]
 	
-
----
-
-
-
-
-
-
-
-
-

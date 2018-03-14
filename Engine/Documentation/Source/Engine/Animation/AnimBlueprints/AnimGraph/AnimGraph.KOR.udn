@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3226913
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:애님 그래프
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
@@ -67,7 +67,8 @@ tags:Blueprints
 * [싱크 그룹](Engine\Animation\SyncGroups) - 연관성은 있지만 길이가 다를 수 있는 애니메이션의 동기화 상태를 유지하는 데 사용됩니다.
 
 
-<!-- includes were just duplicating information when arriving at the linked page, commenting out. 
+[COMMENT:none]
+ includes were just duplicating information when arriving at the linked page, commenting out. 
 ### 애니메이션 시퀀스
 
 [INCLUDE:Engine/Animation/Sequences/UserGuide#Intro]
@@ -134,7 +135,9 @@ tags:Blueprints
 
 [REGION:note]
 싱크 그룹 사용법 및 부가적인 디테일 관련 정보는 [](Engine\Animation\SyncGroups) 문서를 참고하세요.
-[/REGION]-->
+[/REGION]
+
+[/COMMENT]
 
 ## 스레드 안전성
 

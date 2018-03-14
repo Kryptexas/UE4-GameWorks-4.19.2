@@ -1,7 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraStackEntry.h"
 #include "NiagaraStackErrorItem.h"
+#include "NiagaraUnmergeableStackEntryFilter.h"
 
 UNiagaraStackEntry::UNiagaraStackEntry()
 {
@@ -12,6 +13,7 @@ void UNiagaraStackEntry::Initialize(TSharedRef<FNiagaraSystemViewModel> InSystem
 	SystemViewModel = InSystemViewModel;
 	EmitterViewModel = InEmitterViewModel;
 	bIsExpanded = IsExpandedByDefault();
+	AddChildFilter(FNiagaraUnmergeableStackEntryFilter::CreateFilter());
 }
 
 FText UNiagaraStackEntry::GetDisplayName() const
@@ -55,10 +57,32 @@ bool UNiagaraStackEntry::GetShouldShowInStack() const
 	return true;
 }
 
-void UNiagaraStackEntry::GetChildren(TArray<UNiagaraStackEntry*>& OutChildren)
+void UNiagaraStackEntry::GetFilteredChildren(TArray<UNiagaraStackEntry*>& OutFilteredChildren)
 {
-	OutChildren.Append(ErrorChildren);
-	OutChildren.Append(Children);
+	OutFilteredChildren.Append(ErrorChildren);
+	for (UNiagaraStackEntry* Child : Children)
+	{
+		bool bPassesFilter = true;
+		for(const FOnFilterChild& ChildFilter : ChildFilters)
+		{ 
+			if (ChildFilter.Execute(*Child) == false)
+			{
+				bPassesFilter = false;
+				break;
+			}
+		}
+
+		if (bPassesFilter)
+		{
+			OutFilteredChildren.Add(Child);
+		}
+	}
+}
+
+void UNiagaraStackEntry::GetUnfilteredChildren(TArray<UNiagaraStackEntry*>& OutUnfilteredChildren)
+{
+	OutUnfilteredChildren.Append(ErrorChildren);
+	OutUnfilteredChildren.Append(Children);
 }
 
 void UNiagaraStackEntry::RefreshErrors()
@@ -73,6 +97,19 @@ void UNiagaraStackEntry::RefreshErrors()
 			ErrorChildren.Add(ErrorObject);
 		}
 	}
+}
+
+FDelegateHandle UNiagaraStackEntry::AddChildFilter(FOnFilterChild ChildFilter)
+{
+	ChildFilters.Add(ChildFilter);
+	StructureChangedDelegate.Broadcast();
+	return ChildFilters.Last().GetHandle();
+}
+
+void UNiagaraStackEntry::RemoveChildFilter(FDelegateHandle FilterHandle)
+{
+	ChildFilters.RemoveAll([=](const FOnFilterChild& ChildFilter) { return ChildFilter.GetHandle() == FilterHandle; });
+	StructureChangedDelegate.Broadcast();
 }
 
 TSharedRef<FNiagaraSystemViewModel> UNiagaraStackEntry::GetSystemViewModel() const

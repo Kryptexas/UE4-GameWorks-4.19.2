@@ -17,7 +17,7 @@ Discover and load quests, heroes, or other game-specific content with the new As
 
 Develop games for Microsoft's Xbox One X console as part of the platform improvements. Make your VR project a social experience using the new VR Spectator Screen support. On Android, we have improved several aspects on high end devices, and we continue the effort to reduce executable sizes even further.
 
-This release includes **90 improvements** submitted by the incredible community of Unreal Engine developers on GitHub! Thanks to each of these contributors to Unreal Engine 4.17:
+In addition to **hundreds of updates** from Epic in this release, Unreal Engine 4.17 includes **90 improvements** submitted by the incredible community of Unreal Engine developers on GitHub! Thanks to each of these contributors to Unreal Engine 4.17:
 
 0lento, Akihiro Kayama (kayama-shift), Andrea Catania (AndreaCatania), Andrew Armbruster (aarmbruster), Andrew Gaubatz (e-agaubatz), Andreas Schultes (andreasschultes), Angel Angelov (DexterLB), Artem V. Navrotskiy (bozaro), Brent Scriver (FineRedMist), Cengiz Terzibas (yaakuro), Chris Grebeldinger (cgrebeld), DaveC79, Dennis Wissel (dsine-de), erniea, GBX-ABair, Gryphon Myers (gryphonmyers), Igor Karatayev (yatagarasu25), Ilya (ill), irobot, Jared Hefty (jared-improbable), Jason Calvert (jasoncalvert), Jorge Martins (SNikon), Kalle Hämäläinen (kallehamalainen), Konstantin Nosov (gildor2), Laurie (laurie-hedge), Mario Zechner (badlogic), Mathias Hübscher (user37337), Matteo De Carlo (portaloffreedom), Mattias Cibien (mattiascibien), Max Shawabkeh (max99x), Michael Auerswald (flipswitchingmonkey), Michail Nikolaev (michail-nikolaev), Nako Sung (nakosung), Paul Eremeeff (PaulEremeeff), Piotr Bąk (Pierdek), poiyomi, projectgheist, rfenner, Robert Khalikov (nbjk667), Roberto De Ioris (rdeioris), Ron van Essen (ronve), rooneym, Ryan Nielson (RyanNielson), Sam Hocevar (samhocevar), Satheesh (ryanjon2040), Sébastien Rombauts (SRombauts), Skylonxe, Stefan Zimecki (stefanzimecki), StefanoProsperi, Stormtide Ltd (StormtideGames), Timothee Besset (TTimo), Trent Polack (trentpolack), UpwindSpring01, wuyakuma
 
@@ -648,13 +648,15 @@ The new Unreal Audio system now has support on Android, which includes improved 
 
 Audio streaming support in Unreal Engine is no longer 'experimental', and contains a number of fixes in this release.
 
-### Release Notes
+## Release Notes
 
-#### AI
+### AI
 
 * Fix an error on shutdown when the CDO of UAIPerceptionComponent tries to clean up (as it was never registered in the first place)
 
 * Fixed UCrowdFollowingComponent::UpdateCachedDirections crashing when CharacterMovement is not set
+
+#### Behavior Tree
 
 * Fixed missing decorator deactivation notifies: placed on parallel task or during StopTree call.
 
@@ -662,9 +664,13 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Improved BT editor's robustness against changes to user-created enum classes.
 
+#### General
+
 * Fixed a bug in EQS query running that caused EQS Manager to always use up the whole time budget for the frame if all performed queries happened to finish.
 
 * Fixed gameplay task: TimeLimitedExecution being removed during garbage collection.
+
+#### Navigation
 
 * Added continuous goal tracking mode to AI Move gameplay task.
 
@@ -698,7 +704,7 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Added a spiced up, community-suggested, working solution to patching up dynamic navmesh after world offset.
 
-#### Animation
+### Animation
 
 * FCSPose<PoseType>::ConvertToLocalPoses Allow root bone to be modified. Minor optimization: Take out root bone check from loop.
 
@@ -724,6 +730,8 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fix various crashes when calling methods in USkeletalMeshSocket with no component specified
 
+#### Animation Assets
+
 * Added mesh space additive support to Blendspace1D
 
 * Added ability to set montage section time directly via right click menu.
@@ -745,6 +753,8 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 * Fixed an issue related to Blend-spaces using individual sample rates causing issues with Marker Syncing
 
 * Fixed compression ratio for baked additive animations by storing the size of the raw data that was compressed in DDC.
+
+#### Animation Blueprint
 
 * Constraint AnimNode
 
@@ -818,6 +828,8 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fix crash when deleting a transition rule while it's graph is open in an orphan window.
 
+#### General
+
 * Added in-game bone rendering feature. Use 'Show Bones' in the console or the Show -> Developer menu to display the bones of all skeletal meshes.
 
 * Added getters to alpha blend for remaining blend time and begin value, and made Update return any overshoot if applicable.
@@ -846,6 +858,8 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fixed crash when spawning a skeletal mesh-containing actor from an existing template actor.
 
+#### Import / Export
+
 * Added support for importing multiple Texture coordinate sets from Alembic files
 
 * Default skeleton to something useful when importing FBX. We default to the first skeleton we find in the target directory
@@ -860,6 +874,8 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fixed undeletable folders when importing facial animation audio
 
+#### Skeletal Mesh
+
 * We don't import any empty morphtarget anymore. Those empty morphtargets will be also removed on loading.
 
 * Fixed order of default values in FAnimUpdateRateParameters.BaseVisibileDistanceFactorThesholds
@@ -869,6 +885,8 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 * Fixed Crash with Morphtarget valid indices mismatching with render resource data
 
 * Fix ensures caused by FSkeletalMeshMerge not properly merging UVChannelData.
+
+#### Tools
 
 * New:
 
@@ -952,7 +970,7 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fixed stretched icon in preview scene settings
 
-#### Audio
+### Audio
 
 * Removing audio streaming as an experimental feature in the engine.
 
@@ -1018,7 +1036,7 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Crash fix for when a map attempts to cook a streaming sound file while targeting Linux.
 
-#### Automation
+### Automation
 
 * Automation - Forcing textures to load before taking screenshot, so that the scene gets another opportunity to render before we render with Slate.
 
@@ -1030,7 +1048,7 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Automation - Fixing some delay screenshot code in the Screenshot Functional Test Actor that was preventing the delay from having any effect.
 
-#### Blueprints
+### Blueprints
 
 * Native member variables can now make use of uproperty markup to be exposed to Blueprints via ufunction accessors even if the property had been previously exposed directly using BlueprintReadOnly or BlueprintReadWrite markup.
 
@@ -1288,8 +1306,7 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fix Switch On Gameplay Tag Container node to work properly
 
-
-#### Core
+### Core
 
 * Delete FixupRedirects commandlet, replace with -FixupRedirects/FixupRedirectors option on the ResavePackages commandlet. This new method is much faster than the old commandlet as it uses the asset registry vs loading all packages.
 
@@ -1579,7 +1596,7 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fixed a crash during tagged serialization if an enum no longer exists.
 
-#### Editor and Tools
+### Editor and Tools
 
 * Added new Blueprint-exposed functions for procedurally editing Materials, MaterialFunctions and MaterialInstanceConstants in the editor.
 
@@ -1638,8 +1655,6 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 * PR #2341: Optional Middle Mouse Button panning in Graph Editor (Contributed by flipswitchingmonkey)
 
 * Improved layout of Mesh Paint panel to fit better within default layout, and changed styling of action buttons
-
- 
 
 * Make curve tables create temporary CSV files to use during diffs. This matches the current behaviour of data tables.
 
@@ -1791,6 +1806,8 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fixed typo that forced merged meshes with no backing raw mesh to incorrectly generate non-square merged atlases
 
+#### Content Browser
+
 * Implemented support for hiding empty folders in the Content Browser
 
     * "Empty" in this case is defined as folders that recursively don't contain assets or classes. Folders that were created or have contained content at any point during the current editing session are always shown.
@@ -1831,9 +1848,13 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fix engine hang when editing an instanced property that may reference BP classes.
 
+#### Cooker
+
 * Cooker output lines containing the strings "Error:" or "Warning:" are now highlighted as red and yellow in the output log.
 
 * ResavePackages commandlet can now buildtexturestreaming while rebuildlightmaps
+
+#### Foliage
 
 * The instance buffer is now updating partially instead of being recreate every time there was a change, this was done to improve performance with a lot of painted foliage instances.
 
@@ -1851,11 +1872,15 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fixed possible crash when performing drag &drop operation of Target Layers
 
+#### Landscape
+
 * When updating Phyx region take into account simple collision mip.
 
 * Landscape info map transactional state is based on its world's transactional state
 
 * Fixed a lighting crash when working with non square landscape
+
+#### Material Editor
 
 * Reset arrows now only display for non-default values in the Material Instance editor. Reset to default arrows now are placed in the correct location for SObjectPropertyEntryBox and SPropertyEditorAsset.
 
@@ -1868,6 +1893,8 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 * Adding "texcoord" keyword to UMaterialExpressionTextureCoordinate so you can search for the name that is displayed on the node in the graph.
 
 * Fixed an issue where the material editor stats and error animations would stop updating.
+
+#### Sequencer
 
 * Sequencer: Show sequencer spawnables in the world outliner and add the icon overlay for spawnables.
 
@@ -1983,13 +2010,19 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Sequence Recorder: Fixed recording component visibility to use the same visibility tracks for actors.
 
+#### Source Control
+
 * Git Plugin: disable "Keep Files Checked Out" checkbox on Submit to Source Control Window
 
 * PR #2457: Add .gitdeps.xml-files for plugins support (Contributed by bozaro)
 
 * Fixed an ensure firing when checking in via SVN
 
+#### Static Mesh Editor
+
 * Better highlighting of selected UV edges in the static mesh editor
+
+#### VR Editor
 
 * Selecting a camera or other preview actor in VR Mode now creates a floating in-world viewport that enables you to see the camera's perspective. You can pin this just like the preview in the desktop mode viewport.
 
@@ -2011,9 +2044,11 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Log spam when adding a CineCameraActor to the world.
 
+#### World Outliner
+
 * Scene Outliner: Added the ability to set default columns in a scene outliner.
 
-#### Gameplay Framework
+### Gameplay Framework
 
 * The Asset Management Framework introduced in 4.16 is now ready for production use. Many bugs were fixed and features were added, and there is a suite of Blueprint functions available in the Asset Manager category.
 
@@ -2127,7 +2162,7 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fix memory corruption when player controllers were disconnected from pawns in certain networked situations
 
-#### Localization
+### Localization
 
 * The culture/language/locale console commands are now available in all build configs
 
@@ -2159,7 +2194,7 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Building lighting no longer causes a world to lose its package localization ID
 
-#### Networking
+### Networking
 
 * Perf counter module gets more logging to improve error reporting
 
@@ -2175,7 +2210,7 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fixed a crash that would occur if the "netprofile" command is executed while the Steam Online Subsystem (OSS) is active.
 
-#### Online
+### Online
 
 * OnlineSubsystemGoogle for Windows. Basic implementation of Google Sign-In for user authentication. Separate from GooglePlay in that it is cross platform and doesn't include any of the Google Game Services.
 
@@ -2203,13 +2238,13 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Online Subsystem (OSS) consistency cleanup - all OSS classes use the instance name passed into the CreateFactory function - nothing uses the default constructor - OnlineSubsystemImpl requires two params now (OSS name, Instance name) - added GetSubsystemName to return OSS name from OnlineSubsystemNames.h
 
-#### Paper2D
+### Paper2D
 
 * Prevented a crash when calling UPaperTileMapComponent::GetLayerColor with no TileMap asset set
 
 * Fix crash when clicking Edit Map if there is no tile map specified.
 
-#### Physics
+### Physics
 
 * Enabled physx GPU hooks in PhysX libs
 
@@ -2301,7 +2336,7 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fixed bounds calculation crash when a skeletal mesh component with clothing is bound to a master pose component with no skeletal mesh set.
 
-#### Platforms
+### Platforms
 
 * Removed Twitch broadcasting support and Game Live Streaming API
 
@@ -2315,7 +2350,11 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fix for slate postprocess resource transition bug.
 
+#### All Mobile
+
 * Fixed: Crash in MobilePatchingLibrary OnInstallComplete when installation fails
+
+#### Android
 
 * Added experimental support for Gradle build system
 
@@ -2383,6 +2422,8 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * The Media Player and startup movies now function correctly on when running in Vulkan mode on an Android device
 
+#### HTML 5
+
 * HTML5 : re-enable IndexedDB storage usage patches from jukka to properly handle error conditions with IndexedDB
 
 * HTML5 - disable using IndexedDB (until browsers allows storage to DB with large data sizes)
@@ -2399,7 +2440,27 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
     * tested with Win64 client and server (as well as HTML5 browsers)
 
+#### iOS
+
 * Fixed an issue where you could not install an iOS certificate via the editor or iPhonePackager tool if the certificate required a password
+
+* Added support for local notifications which do not provide an alert, but still add a badge to the application icon.
+
+* Added a setting to enable o disable the IOS integrated keyboard.
+
+* The MetalMRT setting has been removed temporarily as the MRT support on Metal is being reworked.
+
+* In preparation for officially dropping support for 32-bit applications and OpenGL on IOS, those options have been removed from the IOS Settings in the editor. They are currently still available in the ini configuration files, but the support will be deprecated in a future release.
+
+* Bug Fix: Properly set the iPad Pro resolution based on the MobileContentScaleFactor variable.
+
+* Bug Fix: Fixed a problem with the casing of commandline.txt on IOS which would cause it to not be read properly. (modified from kosz78 change)
+
+* Bug Fix: Properly case DotNET in several locations. (from portaloffreedom and Madh93)
+
+* Bug Fix: Fixed a problem with mobile provision detection in IPhonePackager. It now properly reads and uses mobile provision files not managed by Xcode, but with the UUID of the provision in the filename.
+
+#### Linux
 
 * UBT will use all cores during a native Linux build on machines with at least 16GB RAM.
 
@@ -2445,6 +2506,8 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Eliminated SCW logspam on Linux.
 
+#### Mac
+
 * Added VolumetricFogVoxelization implementation. Requires Metal 1.2.
 
 * Fixed address sanitizer support in MacToolChain and added support for thread sanitizer
@@ -2485,57 +2548,9 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fixed a problem with the green titlebar button changing functionality from toggle fullscreen to zoom after switching from fullscreen to windowed mode.
 
-* After retrieving the friends list, session IDs of any sessions that friends are in are now added to their corresponding presence information.
+* Bug Fix: Added some extra checking to prevent a rare editor crash on Mac when connecting iOS devices
 
-* Added visualization support the CMask using the vis command in the console. (This also adds support for all other UINT8 textures)
-
-* Fix crash in RHIUpdateTexture3D when updating textures with more than 8MB of data.
-
-    * The graphics temporary allocator can only handle up to 8MB.
-
-    * If more than 8MB is passed, RHIUpdateTexture3D will fall back to the standard FMemBlock allocator.
-
-* Fix crash when running games on dev/test kits in release-check mode.
-
-    * Failure to create a dev directory on the kit emits a warning UE_LOG, which causes a stack overflow attempting to create the directory again.
-
-    * Switched that log message to a low-level printf instead.
-
-* Fixed DBuffer-Normal Decals so that they are drawn correctly.
-
-* Fixed Dualshock 4 and Move disconnection issues.
-
-* Fixed DBuffer decals when "r.ScreenPercentage" is bigger than 100.
-
-* Fixed DBuffer decals optimization is on PSVR.
-
-* Mesh particle systems now bind the previous transform of the particles.
-
-* Fixed an ensure which fires when the -norhithread flag is used.
-
-* The supported NEX version has been upgraded to 4.1.1.
-
-* Support custom LOD for shadow map generation only (r.ForceLODShadow) Added #define to expose forceLOD and forceLODShadow also in Test/Ship builds. #define EXPOSE_FORCE_LOD 1 in RenderCore.cpp to enable.
-
-* NVN queue flush threshold can now be adjusted (via ini file) to avoid mid-frame submits.
-
-* Added stats for some GPU counter metrics: "stat NVNRender" and "stat NVNShaderInvocation"
-
-* - Shader info dump for NVN-GD profiling / debugging feature. Enable with r.DumpShaderDebugInfo=1.
-
-* Add support for 3.0.0 SDK. Maintain compatibility with 1.3.0 SDK.
-
-* Copy over default engine Icons if they don't exist for project. Required for successful packaging with SDK v3.4.0
-
-* Don't tear down audio if it's already been done.
-
-* Consume decoded audio buffers even if no audio sink is available to keep playback from stalling. Fixes stalling of videos rendered as textures.
-
-* Ensure NN_SDK_BUILD_xxx definition matches the libraries linked against.
-
-* Fix for startup crash where LLM tracker tries to use new to allocate TLS buffer.
-
-* Fix for failed IsSafeToUseRHIThreadResources() check.
+#### Windows
 
 * Fixed a bug with the windows async IO stuff related to an unsafe pointer cast to LPDWORD from int64*.
 
@@ -2545,51 +2560,7 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fix for incorrect mouse position in fullscreen mode when Windows task bar is placed on the top or on the left of the monitor.
 
-* Initial Scorpio Support (requires the June Preview XDK)
-
-* UE4.17 is built against the March 2017 QFE1 XDK.
-
-* Support for XMA2 hardware audio decompression has been added. This replaces the previous OggVorbis software audio decompression system. This saves both CPU time and memory.
-
-* Simplified achievements are now supported.
-
-* Add commandline option for enabling break on D3D errors
-
-* Fixed chunk events sometimes being skipped due to initialization order.Fixed an issue where chunks could be mounted twice.Fixed the chunk status that would be returned for non-existent chunks.Added support for registering chunk updated due to a content update while the game is running.Added support for suspend/resume to the Streaming Install system.
-
-* Add some additional pixel formats in ComputeBytesPerPixel (DXGI_FORMAT_R32_TYPELESS and DXGI_FORMAT_R32_FLOAT)
-
-* The symbol cache is now generated by default.
-
-* Disable wavesim iteration shader compiler flag. Recent profiles show no performance benefit and it significantly slows builds, and can cause graphical corruption in some cases.
-
-* Fixed a rare crash that could occur when the connection has been lost to the subscriptions service if multiple sessions were active.
-
-* Fixed an issue where the game exe would be placed in streaming install chunk 2, instead of chunk 1 where it is intended to be.Fixed the direction of slashes in the generated packaging layout file.
-
-* Fixed a potential crash caused by settings and logs attempting to write to developer scratch space in retail games.
-
-* Fixed an issue that would cause the default stack size options to be deleted when the editor updated the target settings in DefaultEngine.ini.
-
-* Fixed an issue where some runtime files were saved to the game directory in Shipping builds.
-
-* DX12: Fix memory leak with CBV descriptor heaps
-
-* Workaround for PIX memory trace misreporting (issue with overlapping VirtualAlloc commits). Virtualallocs with MEM_COMMIT from texture streaming are now non-overlapping. This may also improve allocation performance during texture streaming
-
-* Fixed a bug that caused audio and video playback from the MfMedia plugin to start desynchronized.
-
-* Fixed crash dump and call stack generation when a crash happens on a non-gamethread.
-
-* Fix for PSO disk cache initialization bug with static root signature (root sig was not getting initialized when the disk cache was enabled)
-
-* Fixed validation failures against the latest Submission Validator from Microsoft.
-
-* Fixed a typo in the AppXManifest generator.
-
-* Fixed an issue in the DX11.x RHI where skinned meshes would render incorrectly in some circumstances.
-
-#### Programming
+### Programming
 
 * Added support for running PVS-Studio through UnrealBuildTool. To use, pass -StaticAnalyzer=PVSStudio to the build command line (similarly, the Visual C++ analyzer can now be invoked using -StaticAnalyzer=VisualCpp). A log file will be written to the Engine/Saved/PVS-Studio or <Project>/Saved/PVS-Studio directory containing diagnostics, which can be opened using the "unparsed output" filter in the PVS-Studio standalone application. High priority warnings are printed to stdout.
 
@@ -2645,7 +2616,7 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fixed INI settings for default stack size not correctly being propagated to the linker.
 
-#### Rendering
+### Rendering
 
 * Moves all engine shader files into Public and Private directory, and introduce the .ush extensions for header file that do not contains entry points.
 
@@ -2765,7 +2736,11 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fixed up a crash when running a cooked build without cooked shaders.
 
+#### FX
+
 * Fixed a rare crash bug in GPU particles. Particle emitter resources were being deleted before being used by the simulation.
+
+#### Lighting
 
 * Static light source shapes drawn into reflection captures handle SourceLength via scaled sphere
 
@@ -2803,6 +2778,8 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fixed direct capsule shadows with point lights also projecting shadow on opposite side and direction
 
+#### Materials
+
 * Bent normal map support. Multibounce AO approximation.. Spherical Gaussian based specular occlusion.
 
 * Added new material nodes for quasi-random Sobol points, with a distribution matching the new Sobol Blueprint nodes.
@@ -2830,6 +2807,8 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 * Fix a crash when UMaterialInstanceDynamic::CopyParameterOverrides is passed a nullptr
 
 * Fixed an issue where textures would have low resolutions after a memory usage spike.
+
+#### Mobile Rendering
 
 * Android applications built with OpenGL ES3.1 or Vulkan will now use native sRGB sampling instead of emulating it. You can expect better perceptual color resolution for textures on devices.
 
@@ -2859,6 +2838,8 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fixed: DOF rendering artifacts on Redmi Note 3
 
+#### Optimizations
+
 * Allowed the possibility of running the RHI "thread" on task threads instead and cleaned up and unified the conditionals involved. By default we still have a dedicated RHI thread because it tested slightly faster.
 
 * Cone vs tile bounding sphere intersection tests for Light Grid culling of spotlights, which provides much tighter culling than just View space tile AABB vs light bounding sphere. * Forward shading BasePass 3.7ms -> 2.4ms in a scene with 24 spotlights on 970GTX * Volumetric fog 2.87ms -> 2.09ms in the same scene
@@ -2877,6 +2858,8 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Improvements for Skin Cache, performance and memory optimizations
 
+#### Post Processing
+
 * Implements Composure plugin to make compositing in UE4 easier.
 
 * Change labels on bloom boost from x,y,z to min, max, mult. This applies to the convolution bloom option. A PropertyRedirect in BaseEngine.ini allows this to work with older version.
@@ -2887,7 +2870,7 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fixed a bug with the compute version of the SSAO pass that could cause some AO artifacts with non-standard viewport sizes. Most people won't have seen these problem since the pixel shader (not the compute) version is the default code path.
 
-#### UI
+### UI
 
 * Fixed some crashes/artifacts with bidirectional text It was possible for a line to compute an incorrect range, which could cause crashes or other highlighting issues. The highlighting logic has also been updated as the old code didn't handle all bidirectional cases correctly.
 
@@ -3069,7 +3052,7 @@ Audio streaming support in Unreal Engine is no longer 'experimental', and contai
 
 * Fix issue where Widget Blueprints could fail to cook properly and mistakenly get marked as editor only
 
-#### VR
+### VR
 
 * Spectator Screen Support Improved
 The Spectator Screen is the 'normal' output device connected to a VR device usually a TV or a Computer Monitor. While one player uses the HMD other people can observe or interact with the experience.At the time of this writing Oculus Rift, HTC Vive, and PlayStation VR support a Spectator Screen. It is expected that PC and Console like platforms, which always have a Screen attached, are likely to support this while mobile-like platforms are not.
@@ -3160,11 +3143,13 @@ The Spectator Screen is the 'normal' output device connected to a VR device usua
 
 ## UPGRADE NOTES
 
-#### Animation
+### Animation
+
+#### Skeletal Mesh
 
 * If you have empty morphtargets, they will go away with this change.
 
-#### Blueprints
+### Blueprints
 
 * Exposes scene capture showflags to Blueprint editor UI
 
@@ -3174,17 +3159,25 @@ The Spectator Screen is the 'normal' output device connected to a VR device usua
 
 * If, after upgrading, your Blueprint class has a "Cannot construct objects of type..." Blueprint node error after loading, you'll need to change the class type on the affected "Construct Object From Class" node to one that includes 'BlueprintType' (and not paired with 'DontUseGenericSpawnObject') somewhere in its inheritance hierarchy.
 
-#### Core
+### Core
 
 * Projects should no longer use the private_subobject macro. Instead, all subobject properties should be made private and be accessible through accessor functions.
 
-#### Editor and Tools
+### Editor and Tools
 
 * A few methods were deprecated and renamed to enforce a consistent UI. Now all asset tools methods that expose a dialog have "WithDialog" in their name to differentiate them from methods that do not open dialogs and could be used by scripts for automation. C++ users may still access IAssetTools but should not ever need to use the UAssetTools interface class
 
-* Refactored the API for adding rows to details panels to make it more consistentAddChildCustomBuilder->AddCustomBuilderAddChildGroup->AddGroupAddChildContent->AddCustomRowAddChildPropert->AddPropertyAddChildStructure->AddExternalStructurePropertyAddStructure->AddAllExternalStructurePropertiesAddExternalProperty->AddExternalObjectProperty or AddExternalStructureProperty
+* Refactored the API for adding rows to details panels to make it more consistent:
 
-#### Gameplay Framework
+	* AddChildCustomBuilder->AddCustomBuilder
+	* AddChildGroup->AddGroup
+	* AddChildContent->AddCustomRow
+	* AddChildPropert->AddProperty
+	* AddChildStructure->AddExternalStructureProperty
+	* AddStructure->AddAllExternalStructureProperties
+	* AddExternalProperty->AddExternalObjectProperty or AddExternalStructureProperty
+
+### Gameplay Framework
 
 * UEngine::GetWorldFromContextObject(Object, optional Boolean) has been deprecated and replaced with a new version which takes a non-optional enum specifying the behavior on failures. The behavior of the existing UEngine::GetWorldFromContextObject(Object, true) case has changed slightly to log an error (with BP callstack) and return nullptr, rather than the previous inconsistent behavior where it might:
 
@@ -3196,22 +3189,26 @@ The Spectator Screen is the 'normal' output device connected to a VR device usua
 
 * This behavior change matches the expectations of the vast majority of use cases that expected it could fail and handled a null return value. Most game-specific usages should pass in EGetWorldErrorMode::LogAndReturnNull and handle the return value being null gracefully. For the few cases that need to assert that it will always return a valid world, use the new GetWorldFromContextObjectChecked method.
 
-#### Physics
+### Physics
 
 * Changed tuning for linear soft constraints to use more reasonable numbers. Existing data should be fine, but runtime values (set by code or Blueprints) will need to be updated. You can go back to the old tuning by modifying p.ConstraintLinearDampingScale and p.ConstraintLinearStiffnessScale back to the same as the angular stiffness values. Also any custom value of p.ConstraintStiffnessScale should be renamed to p.ConstraintAngularStiffnessScale
 
 * Physics assets created prior to this release may need to be recreated. This should only be the case if enabling Simulate Physics for the Skeletal Mesh component causes the Mesh to explode.
 This only happened in cases where Skeletons or Skeletal Meshes used as Previews in PhAT had baked in non-identity scale.
 
-#### Platforms
+### Platforms
 
 * The Twitch implementation was never completed, and the SDK is no longer publicly available from Twitch. We have no plans to support in-engine broadcasting at this time.
 
+#### Android
+
 * If your automation systems depend on Android_All, you will need to replace that with Android_Multi and select the texture formats you wish to support.
+
+#### Xbox One
 
 * See the Major features doc
 
-#### Rendering
+### Rendering
 
 * Shaders in plugins.
 
@@ -3233,15 +3230,19 @@ This only happened in cases where Skeletons or Skeletal Meshes used as Previews 
 
 * Fixes a bug where scene capture WorldToView matrix would get scale != 1 when scaling the scene capture actor in the world, causing various artifacts such as decals not showing up.
 
-    * SeparateTranslucency is now renamed to AfterDOF translucency
+#### Optimizations
 
-    * Projects can now configure *r.AllowDownsampledStandardTranslucency* to control whether standard translucency should be rendered in downsampled resolution like AfterDOF translucency.
+* SeparateTranslucency is now renamed to AfterDOF translucency
 
-    * The default value is 0 will downsample translucency unless there are some blend modulate materials.
+* Projects can now configure *r.AllowDownsampledStandardTranslucency* to control whether standard translucency should be rendered in downsampled resolution like AfterDOF translucency.
+
+* The default value is 0 will downsample translucency unless there are some blend modulate materials.
+
+#### Post Processing
 
 * Exposes project settings to enable experimental alpha channel in post processing.
 
-#### VR
+### VR
 
 * New:
 
@@ -3281,13 +3282,19 @@ This only happened in cases where Skeletons or Skeletal Meshes used as Previews 
 
 ## PROGRAMMING UPGRADE NOTES
 
-#### AI
+### AI
+
+#### Navigation
 
 * Instead of simply instantiating `UCrowdManager` NavigationSystem will now create an instance of a class indicated by `UNavigationSystem::CrowdManagerClass`. Given class needs to extend the newly added `UCrowdManagerBase` class.
 
-#### Animation
+### Animation
+
+#### Animation Assets
 
 * Custom code that is creating montages or montage slots may have to be updated to take into account montages have a slot by default.
+
+#### General
 
 * Only affects GPU Morph Targets which need to be enabled in the Project Settings
 
@@ -3295,11 +3302,15 @@ This only happened in cases where Skeletons or Skeletal Meshes used as Previews 
 
 * Old transition getters in UAnimInstance have been deprecated since 4.9, they have now been removed.
 
-* This requires native asset that derives from DataAsset and IPreviewCollectionInterface.
- class UMyPreviewMeshCollection : public UDataAsset, public IPreviewCollectionInterface
-Once you create this, you can extend this in BP if you want to. And can preview those assets in Animation Editor.
+#### Tools
 
-#### Blueprints
+* This requires native asset that derives from DataAsset and IPreviewCollectionInterface.
+
+		class UMyPreviewMeshCollection : public UDataAsset, public IPreviewCollectionInterface
+	
+	Once you create this, you can extend this in BP if you want to. And can preview those assets in Animation Editor.
+
+### Blueprints
 
 * FEdGraphPinType constructor, UEdGraphNode::CreatePin, and FKismetCompilerContext::SpawnInternalVariable that took 3 booleans deprecated and replaced with a version that takes EPinContainerType.UEdGraphNode::CreatePin parameters reorganized so that PinName is before ContainerType and bIsReference, which default to None and false respectively
 
@@ -3307,7 +3318,7 @@ Once you create this, you can extend this in BP if you want to. And can preview 
 
 * Deprecate and rename SetPinDefaultValue because it actually sets the Autogenerated default. This was being called in bad places and destroying the stored autogenerated defaults
 
-#### Core
+### Core
 
 * Deprecated FPackageName::ConvertRootPathToContentPath and PackageFromPath as they were confusingly named and not used much. Also cleaned up header in general
 
@@ -3327,18 +3338,23 @@ Once you create this, you can extend this in BP if you want to. And can preview 
 
 * The default User-Agent in all HTTP requests have been consolidated on all platforms. The format is now: game=<FApp::GetGameName()>, engine=UE4, version=<FEngineVersion::Current()>, platform=<FPlatformProperties::GetIniPlatform()>, osver=<FPlatformMisc::GetOSVersion()>
 
-#### Editor and Tools
+### Editor and Tools
 
 * To use this feature, simple override USceneComponent's GetEditorPreviewInfo() method.
 
 * Add UPhysicsAsset API function to know if a Skinned Mesh Component is able to calculate a valid bounding box.
-ENGINE_API bool CanCalculateValidAABB(const class USkinnedMeshComponent* MeshComponent, const FTransform& LocalToWorld) const;
+
+		ENGINE_API bool CanCalculateValidAABB(const class USkinnedMeshComponent* MeshComponent, const FTransform& LocalToWorld) const;
+
+#### Content Browser
 
 * FAssetPathDragDropOp has been removed. Use FAssetDragDropOp instead.
 
+#### Material Editor
+
 * SResetToDefaultPropertyEditor now takes a property handle in the constructor, instead of an FPropertyEditor.
 
-#### Gameplay Framework
+### Gameplay Framework
 
 * Several Asset Manager functions have been renamed, and the feature is now out of early access and ready for production.
 
@@ -3348,17 +3364,19 @@ ENGINE_API bool CanCalculateValidAABB(const class USkinnedMeshComponent* MeshCom
 
 * Directly accessing USceneComponent::ComponentToWorld has been deprecated. Use GetComponentTransform() instead.USceneComponent::bWorldToComponentUpdated has been made private instead of protected.
 
-#### Physics
+### Physics
 
 * Upgraded SkeletalMeshComponent's TeleportDistanceThreshold and TeleportRotationThreshold UProperties to use the brand new BlueprintGetter and BlueprintSetter attributes.
 
-#### Rendering
+### Rendering
 
 * USH are shader files meant to be #include by other. Only USF should have shader entry points. Plugins including shaders from Private directory of Engine or other parent plugin are on their own for backward compatibility.
 
-    * SeparateTranslucency is now renamed to AfterDOF translucency
+#### Optimizations
 
-#### VR
+* SeparateTranslucency is now renamed to AfterDOF translucency
+
+### VR
 
 * New:
 

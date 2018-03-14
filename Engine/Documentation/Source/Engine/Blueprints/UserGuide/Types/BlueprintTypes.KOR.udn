@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3736175
 Availability:Public
 Title: 블루프린트 유형
 Crumbs: %ROOT%, Engine/Blueprints
@@ -65,23 +65,6 @@ tags:Blueprints
 [INCLUDE:Engine/Blueprints/UserGuide/Types/MacroLibrary#Intro]
 
 이번 섹션에 대한 상세 정보는, [](Engine/Blueprints/UserGuide/Types/MacroLibrary) 문서를 참고하세요.
-
-
-<!--
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![Blueprints](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		블루프린트 유틸리티
-	[/PARAM]
-	[PARAM:description]
-		**Blueprint Utility** (블루프린트 유틸리티), 다른 말로 **Blutility** (블류틸리티)는 에디터 동작을 수행하거나 에디터 기능을 
-		확장하는 데 사용할 수 있는 에디터 전용 _블루프린트_ 입니다. 이들은 파라미터 없이 [](Engine/Blueprints/UserGuide/Events) 로 노출시킬 수 있으며,
-		_블루프린트_ 에 노출되어 뷰포트의 현재 선택된 액터 세트에 작용하는 함수를 실행시킬 수도 있습니다.
-	[/PARAM]
-[/OBJECT]
--->
 
 [/EXCERPT:Types]
 

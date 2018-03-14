@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3478014
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:5.仕上げ
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -30,7 +30,7 @@ type:how-to
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 この最終ステップでは、**DragWidget** (ドラッグしている視覚的ウィジェット) を設定します。 
 その後、Character ブループリントに指示して、**HUD** Widget ブループリントをビューポートに追加し、マウス カーソルを有効にして、ドラッグしている場所がわかるようにします。 
@@ -100,6 +100,6 @@ type:how-to
 これは、ドラッグ＆ドロップのプロセスを開始するために必要な要素の一例にすぎません。 
 プレイヤーがセーフゾーンの外側にウィジェットをドラッグしないように、または他のウィジェットの上に重ならないようにさらにチェックが必要になることがあります。 
 
-%Steps%
+
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -52,8 +52,10 @@ class FTreeMapNodeData : public TSharedFromThis<FTreeMapNodeData>
 {
 
 public:
+	/** Logical name, if set this is used for comparison */
+	FString LogicalName;
 
-	/** Node name.  When drawing the tree map, this shows up at the top of the inside of the node's rectangle */
+	/** Node name display.  When drawing the tree map, this shows up at the top of the inside of the node's rectangle */
 	FString Name;
 
 	/** Node name (line 2).  Left nodes only.  This shows up on the second line of the node, right underneath its name.  Might be drawn in a smaller font by default. */
@@ -61,7 +63,6 @@ public:
 
 	/** Center info text.  Leaf nodes only.  This draws right in the center of the node, with a larger font by default */
 	FString CenterText;
-
 
 	/** 
 	 * Size of this node.  This works differently depending on whether the node is a leaf node (no children) or a container node (has children):
@@ -90,21 +91,30 @@ public:
 	/** List of child nodes */
 	TArray< FTreeMapNodeDataPtr > Children;
 
-
 public:
 
 	/** Default constructor for FTreeMapNodeData */
 	FTreeMapNodeData()
-		: Name(),
-		  Name2(),
-		  CenterText(),
-		  Size( 0.0 ),
+		: Size( 0.0 ),
 		  BackgroundBrush( nullptr ),
 		  Color( FLinearColor::White ),
-		  HashTags(),
-		  Parent( NULL ),
-		  Children()
+		  Parent( NULL )
 	{
+	}
+
+	bool operator==(const FTreeMapNodeData& Other) const
+	{
+		if (!LogicalName.IsEmpty() || !Other.LogicalName.IsEmpty())
+		{
+			return LogicalName == Other.LogicalName;
+		}
+
+		return Name == Other.Name && Name2 == Other.Name2 && CenterText == Other.CenterText;
+	}
+
+	bool operator!=(const FTreeMapNodeData& Other) const
+	{
+		return !(*this == Other);
 	}
 
 	/** @return Returns true if this is a leaf node */
@@ -116,6 +126,7 @@ public:
 	/** @return Copies this node into another node (not children, though.  The copied node will have no children.) */
 	void CopyNodeInto( FTreeMapNodeData& NodeCopy ) const
 	{
+		NodeCopy.LogicalName = this->LogicalName;
 		NodeCopy.Name = this->Name;
 		NodeCopy.Name2 = this->Name2;
 		NodeCopy.CenterText = this->CenterText;
@@ -204,6 +215,9 @@ struct FTreeMapOptions
 	/** Minimize size of a tree node that will be allowed to have a title and padding.  Nodes smaller than this will be a simple rectangle.  Doesn't apply to top level nodes. */
 	float MinimumInteractiveNodeSize;
 
+	/** Minimize size of a tree node that will be drawn at all, below this size it is invisible */
+	float MinimumVisibleNodeSize;
+
 
 	/** Default constructor for FTreeMapOptions that initializes good defaults */
 	FTreeMapOptions()
@@ -217,7 +231,8 @@ struct FTreeMapOptions
 		  TopLevelContainerOuterPadding( 0.0f ),
 		  NestedContainerOuterPadding( 0.0f ),
 		  ContainerInnerPadding( 0.0f ),
-		  MinimumInteractiveNodeSize( 0.0f )
+		  MinimumInteractiveNodeSize( 0.0f ),
+		  MinimumVisibleNodeSize( 0.0f )
 	{
 		NameFont.Size = 12;
 		Name2Font.Size = 8;

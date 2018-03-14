@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditor.h"
 #include "Widgets/Text/STextBlock.h"
@@ -1497,8 +1497,7 @@ void FBlueprintEditor::EnsureBlueprintIsUpToDate(UBlueprint* BlueprintObj)
 		// If we should have a UCS but don't yet, make it
 		if(!FBlueprintEditorUtils::FindUserConstructionScript(BlueprintObj))
 		{
-			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-			UEdGraph* UCSGraph = FBlueprintEditorUtils::CreateNewGraph(BlueprintObj, K2Schema->FN_UserConstructionScript, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+			UEdGraph* UCSGraph = FBlueprintEditorUtils::CreateNewGraph(BlueprintObj, UEdGraphSchema_K2::FN_UserConstructionScript, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
 			FBlueprintEditorUtils::AddFunctionGraph(BlueprintObj, UCSGraph, /*bIsUserCreated=*/ false, AActor::StaticClass());
 			UCSGraph->bAllowDeletion = false;
 		}
@@ -1568,7 +1567,7 @@ struct FLoadObjectsFromAssetRegistryHelper
 				TObjectType* Object = LoadObject<TObjectType>(NULL, *AssetPath, NULL, 0, NULL);
 				if (Object)
 				{
-					Collection.Add( TWeakObjectPtr<TObjectType>(Object) );
+					Collection.Add( MakeWeakObjectPtr(Object) );
 				}
 			}
 		}
@@ -3439,9 +3438,13 @@ void FBlueprintEditor::JumpToHyperlink(const UObject* ObjectReference, bool bReq
 	}
 	else if(const UFunction* Function = Cast<const UFunction>(ObjectReference))
 	{
-		if (UEdGraph* FunctionGraph = FBlueprintEditorUtils::FindScopeGraph(GetBlueprintObj(), Function))
+		UBlueprint* BP = GetBlueprintObj();
+		if(BP)
 		{
-			OpenDocument(FunctionGraph, FDocumentTracker::OpenNewDocument);
+			if (UEdGraph* FunctionGraph = FBlueprintEditorUtils::FindScopeGraph(BP, Function))
+			{
+				OpenDocument(FunctionGraph, FDocumentTracker::OpenNewDocument);
+			}
 		}
 	}
 	else if(const UBlueprintGeneratedClass* Class = Cast<const UBlueprintGeneratedClass>(ObjectReference))
@@ -3729,9 +3732,9 @@ bool FBlueprintEditor::CanPromoteToVariable(bool bInToMemberVariable) const
 	{
 		if (UEdGraphPin* Pin = FocusedGraphEd->GetGraphPinForMenu())
 		{
-			if (!Pin->bOrphanedPin && (bInToMemberVariable || (!bInToMemberVariable && FBlueprintEditorUtils::DoesSupportLocalVariables(FocusedGraphEd->GetCurrentGraph()))))
+			if (!Pin->bOrphanedPin && (bInToMemberVariable || FBlueprintEditorUtils::DoesSupportLocalVariables(FocusedGraphEd->GetCurrentGraph())))
 			{
-				bCanPromote = K2Schema->CanPromotePinToVariable(*Pin);
+				bCanPromote = K2Schema->CanPromotePinToVariable(*Pin, bInToMemberVariable);
 			}
 		}
 	}
@@ -4543,12 +4546,12 @@ void FBlueprintEditor::OnCollapseSelectionToFunction()
 bool FBlueprintEditor::CanCollapseSelectionToFunction(TSet<class UEdGraphNode*>& InSelection) const
 {
 	bool bBadConnection = false;
-	UEdGraphPin* OutputConnection = NULL;
-	UEdGraphPin* InputConnection = NULL;
+	UEdGraphPin* OutputConnection = nullptr;
+	UEdGraphPin* InputConnection = nullptr;
 
 	// Create a function graph
 	UEdGraph* FunctionGraph = FBlueprintEditorUtils::CreateNewGraph(GetBlueprintObj(), FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), TEXT("TempGraph")), UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
-	FBlueprintEditorUtils::AddFunctionGraph<UClass>(GetBlueprintObj(), FunctionGraph, /*bIsUserCreated=*/ true, NULL);
+	FBlueprintEditorUtils::AddFunctionGraph<UClass>(GetBlueprintObj(), FunctionGraph, /*bIsUserCreated=*/ true, nullptr);
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
@@ -4581,7 +4584,7 @@ bool FBlueprintEditor::CanCollapseSelectionToFunction(TSet<class UEdGraphNode*>&
 					InterfaceTemplateNode = CustomEvent;
 					if(InputConnection)
 					{
-						InputConnection = EventExecPin->LinkedTo[0];
+						InputConnection = (EventExecPin->LinkedTo.Num() > 0) ? EventExecPin->LinkedTo[0] : nullptr;
 					}
 					continue;
 				}
@@ -4592,47 +4595,45 @@ bool FBlueprintEditor::CanCollapseSelectionToFunction(TSet<class UEdGraphNode*>&
 		}
 		else
 		{
-			for (int32 PinIndex = 0; PinIndex < Node->Pins.Num(); ++PinIndex)
+			for (UEdGraphPin* NodePin : Node->Pins)
 			{
-				if(Node->Pins[PinIndex]->PinType.PinCategory == K2Schema->PC_Exec)
+				if (NodePin->PinType.PinCategory == K2Schema->PC_Exec)
 				{
-					if (Node->Pins[PinIndex]->LinkedTo.Num() == 0 && Node->Pins[PinIndex]->Direction == EGPD_Input)
+					if (NodePin->LinkedTo.Num() == 0 && NodePin->Direction == EGPD_Input)
 					{
-						EntryGatewayPins.Add(Node->Pins[PinIndex]);
+						EntryGatewayPins.Add(NodePin);
 					}
 					else
 					{
-						for (int32 LinkIndex = 0; LinkIndex < Node->Pins[PinIndex]->LinkedTo.Num(); ++LinkIndex)
+						for (UEdGraphPin* ConnectedPin : NodePin->LinkedTo)
 						{
-							if (!InSelection.Contains(Node->Pins[PinIndex]->LinkedTo[LinkIndex]->GetOwningNode()))
+							if (!InSelection.Contains(ConnectedPin->GetOwningNode()))
 							{
-								if (Node->Pins[PinIndex]->Direction == EGPD_Input)
+								if (NodePin->Direction == EGPD_Input)
 								{
 									// For input pins, there must be a single connection 
-									if (InputConnection == NULL || InputConnection == Node->Pins[PinIndex])
+									if ((InputConnection == nullptr) || (InputConnection == NodePin))
 									{
-										EntryGatewayPins.Add(Node->Pins[PinIndex]);
-										InputConnection = Node->Pins[PinIndex];
+										EntryGatewayPins.Add(NodePin);
+										InputConnection = NodePin;
 									}
 									else
 									{
 										// Check if the input connection was linked, report what node it is connected to
-										LogResults.Error(*LOCTEXT("TooManyPathsMultipleInput_Error", "Found too many input connections in selection! @@ is connected to @@, previously found @@ connected to @@").ToString(), Node, Node->Pins[PinIndex]->LinkedTo[LinkIndex]->GetOwningNode(), InputConnection->GetOwningNode(), InputConnection->LinkedTo[0]->GetOwningNode());
+										LogResults.Error(*LOCTEXT("TooManyPathsMultipleInput_Error", "Found too many input connections in selection! @@ is connected to @@, previously found @@ connected to @@").ToString(), Node, ConnectedPin->GetOwningNode(), InputConnection->GetOwningNode(), (InputConnection->LinkedTo.Num() > 0) ? InputConnection->LinkedTo[0]->GetOwningNode() : nullptr);
 										bBadConnection = true;
 									}
 								}
 								else
 								{
 									// For output pins, as long as they all connect to the same pin, we consider the selection valid for being made into a function
-									if (OutputConnection == NULL || OutputConnection == Node->Pins[PinIndex]->LinkedTo[LinkIndex])
+									if ((OutputConnection == nullptr) || (OutputConnection == ConnectedPin))
 									{
-										OutputConnection = Node->Pins[PinIndex]->LinkedTo[LinkIndex];
+										OutputConnection = ConnectedPin;
 									}
 									else
 									{
-										check(OutputConnection->LinkedTo.Num());
-
-										LogResults.Error(*LOCTEXT("TooManyPathsMultipleOutput_Error", "Found too many output connections in selection! @@ is connected to @@, previously found @@ connected to @@").ToString(), Node, Node->Pins[PinIndex]->LinkedTo[LinkIndex]->GetOwningNode(), OutputConnection->GetOwningNode(), OutputConnection->LinkedTo[0]->GetOwningNode());
+										LogResults.Error(*LOCTEXT("TooManyPathsMultipleOutput_Error", "Found too many output connections in selection! @@ is connected to @@, previously found @@ connected to @@").ToString(), Node, ConnectedPin->GetOwningNode(), OutputConnection->GetOwningNode(), (OutputConnection->LinkedTo.Num() > 0) ? OutputConnection->LinkedTo[0]->GetOwningNode() : nullptr);
 										bBadConnection = true;
 									}
 								}
@@ -4644,7 +4645,7 @@ bool FBlueprintEditor::CanCollapseSelectionToFunction(TSet<class UEdGraphNode*>&
 		}
 	}
 
-	if (!bBadConnection && InputConnection == nullptr && EntryGatewayPins.Num() > 1)
+	if (!bBadConnection && (InputConnection == nullptr) && (EntryGatewayPins.Num() > 1))
 	{
 		// Too many input gateway pins with no connections.
 		LogResults.Error(*LOCTEXT("AmbiguousEntryPaths_Error", "Multiple entry pin possibilities. Unable to convert to a function. Make sure that selection either has only 1 entry pin or exactly 1 entry pin has a connection.").ToString());
@@ -5605,7 +5606,7 @@ struct FUpdatePastedNodes
 		{
 			if (UK2Node_CallFunctionOnMember* CallOnMember = Cast<UK2Node_CallFunctionOnMember>(PastedNode))
 			{
-				if (UEdGraphPin* TargetInPin = CallOnMember->FindPin(K2Schema->PN_Self))
+				if (UEdGraphPin* TargetInPin = CallOnMember->FindPin(UEdGraphSchema_K2::PN_Self))
 				{
 					const UClass* TargetClass = Cast<const UClass>(TargetInPin->PinType.PinSubCategoryObject.Get());
 
@@ -5671,7 +5672,7 @@ private:
 		bool bResult = true;
 		for(UEdGraphPin* OldPin : OldNode->Pins)
 		{
-			if(OldPin && (OldPin->PinName != K2Schema->PN_Self))
+			if(OldPin && (OldPin->PinName != UEdGraphSchema_K2::PN_Self))
 			{
 				UEdGraphPin* NewPin = NewNode->FindPin(OldPin->PinName);
 				if (NewPin)
@@ -5679,13 +5680,13 @@ private:
 					if (!K2Schema->MovePinLinks(*OldPin, *NewPin).CanSafeConnect())
 					{
 						UE_LOG(LogBlueprint, Error, TEXT("FUpdatePastedNodes: Cannot connect pin '%s' node '%s'"),
-							*OldPin->PinName, *OldNode->GetName());
+							*OldPin->PinName.ToString(), *OldNode->GetName());
 						bResult = false;
 					}
 				}
 				else
 				{
-					UE_LOG(LogBlueprint, Error, TEXT("FUpdatePastedNodes: Cannot find pin '%s'"), *OldPin->PinName);
+					UE_LOG(LogBlueprint, Error, TEXT("FUpdatePastedNodes: Cannot find pin '%s'"), *OldPin->PinName.ToString());
 					bResult = false;
 				}
 			}
@@ -5710,7 +5711,7 @@ private:
 
 		UK2Node_VariableGet* NewTarget = NULL;
 		
-		const UProperty* Property = OldCall->MemberVariableToCallOn.ResolveMember<UProperty>((UClass*)NULL);
+		const UProperty* Property = OldCall->MemberVariableToCallOn.ResolveMember<UProperty>();
 		for (UK2Node_VariableGet* AddedTarget : AddedTargets)
 		{
 			if (AddedTarget && (Property == AddedTarget->VariableReference.ResolveMember<UProperty>(CurrentClass)))
@@ -5748,7 +5749,7 @@ private:
 
 		if (NewTarget)
 		{
-			UEdGraphPin* SelfPin = NewCall->FindPinChecked(K2Schema->PN_Self);
+			UEdGraphPin* SelfPin = NewCall->FindPinChecked(UEdGraphSchema_K2::PN_Self);
 			if (!K2Schema->TryCreateConnection(SelfPin, NewTarget->GetValuePin()))
 			{
 				UE_LOG(LogBlueprint, Error, TEXT("FUpdatePastedNodes: Cannot connect new self."));
@@ -6337,7 +6338,7 @@ void FBlueprintEditor::ExtractEventTemplateForFunction(class UK2Node_CustomEvent
 
 	for(UEdGraphPin* Pin : InCustomEvent->Pins)
 	{
-		if(Pin->PinType.PinCategory == K2Schema->PC_Exec)
+		if(Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
 		{
 			TArray< UEdGraphPin* > PinLinkList = Pin->LinkedTo;
 			for( UEdGraphPin* PinLink : PinLinkList)
@@ -6352,7 +6353,7 @@ void FBlueprintEditor::ExtractEventTemplateForFunction(class UK2Node_CustomEvent
 				}
 			}
 		}
-		else if(Pin->PinType.PinCategory != K2Schema->PC_Delegate)
+		else if(Pin->PinType.PinCategory != UEdGraphSchema_K2::PC_Delegate)
 		{
 
 			TArray< UEdGraphPin* > PinLinkList = Pin->LinkedTo;
@@ -6364,14 +6365,14 @@ void FBlueprintEditor::ExtractEventTemplateForFunction(class UK2Node_CustomEvent
 					Pin->Modify();
 					PinLink->Modify();
 
-					FString PortName = Pin->PinName + TEXT("_Out");
+					const FName PortName = *FString::Printf(TEXT("%s_Out"), *Pin->PinName.ToString());
 					UEdGraphPin* RemotePortPin = InGatewayNode->FindPin(PortName);
 					// For nodes that are connected to the event but not collapsing into the graph, they need to create a pin on the result.
 					if(RemotePortPin == nullptr)
 					{
-						FString UniquePortName = InGatewayNode->CreateUniquePinName(PortName);
+						FName UniquePortName = InGatewayNode->CreateUniquePinName(PortName);
 
-						RemotePortPin = InGatewayNode->CreatePin(Pin->Direction, Pin->PinType,UniquePortName);
+						RemotePortPin = InGatewayNode->CreatePin(Pin->Direction, Pin->PinType, UniquePortName);
 						InResultNode->CreateUserDefinedPin(UniquePortName, Pin->PinType, EGPD_Input);
 					}
 					PinLink->BreakAllPinLinks();
@@ -6381,7 +6382,7 @@ void FBlueprintEditor::ExtractEventTemplateForFunction(class UK2Node_CustomEvent
 				{
 					InEntryNode->Modify();
 
-					FString UniquePortName = InGatewayNode->CreateUniquePinName(Pin->PinName);
+					const FName UniquePortName = InGatewayNode->CreateUniquePinName(Pin->PinName);
 					InEntryNode->CreateUserDefinedPin(UniquePortName, Pin->PinType, EGPD_Output);
 				}
 			}
@@ -6506,7 +6507,7 @@ void FBlueprintEditor::CollapseNodesIntoGraph(UEdGraphNode* InGatewayNode, UK2No
 				UEdGraphPin* RemotePortPin = NULL;
 
 				// Function graphs have a single exec path through them, so only one exec pin for input and another for output. In this fashion, they must not be handled by name.
-				if(InGatewayNode->GetClass() == UK2Node_CallFunction::StaticClass() && LocalPin->PinType.PinCategory == K2Schema->PC_Exec)
+				if(InGatewayNode->GetClass() == UK2Node_CallFunction::StaticClass() && LocalPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
 				{
 					LocalPortPin = LocalPort->Pins[0];
 					RemotePortPin = K2Schema->FindExecutionPin(*InGatewayNode, (LocalPortPin->Direction == EGPD_Input)? EGPD_Output : EGPD_Input);
@@ -6528,7 +6529,7 @@ void FBlueprintEditor::CollapseNodesIntoGraph(UEdGraphNode* InGatewayNode, UK2No
 
 					if(LocalPin->LinkedTo[0]->GetOwningNode() != InEntryNode)
 					{
-						FString UniquePortName = InGatewayNode->CreateUniquePinName(LocalPin->PinName);
+						const FName UniquePortName = InGatewayNode->CreateUniquePinName(LocalPin->PinName);
 
 						if(!RemotePortPin && !LocalPortPin)
 						{
@@ -6912,7 +6913,7 @@ void FBlueprintEditor::ExpandNode(UEdGraphNode* InNodeToExpand, UEdGraph* InSour
 			for (int32 PinIndex = 0; PinIndex < Node->Pins.Num(); ++PinIndex)
 			{
 				// Only hookup output exec pins that do not have a connection
-				if(Node->Pins[PinIndex]->PinType.PinCategory == K2Schema->PC_Exec && Node->Pins[PinIndex]->Direction == EGPD_Output && Node->Pins[PinIndex]->LinkedTo.Num() == 0)
+				if(Node->Pins[PinIndex]->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec && Node->Pins[PinIndex]->Direction == EGPD_Output && Node->Pins[PinIndex]->LinkedTo.Num() == 0)
 				{
 					Node->Pins[PinIndex]->MakeLinkTo(OutputExecPinReconnect);
 				}
@@ -7124,7 +7125,7 @@ void FBlueprintEditor::OnAddNewDelegate()
 	Blueprint->Modify();
 
 	FEdGraphPinType DelegateType;
-	DelegateType.PinCategory = K2Schema->PC_MCDelegate;
+	DelegateType.PinCategory = UEdGraphSchema_K2::PC_MCDelegate;
 	const bool bVarCreatedSuccess = FBlueprintEditorUtils::AddMemberVariable(Blueprint, Name, DelegateType);
 	if(!bVarCreatedSuccess)
 	{

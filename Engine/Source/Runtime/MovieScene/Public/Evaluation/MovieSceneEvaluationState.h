@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -130,7 +130,7 @@ struct FMovieSceneEvaluationState
 	 * @param InSequenceID		The sequence ID to assign to
 	 * @param InSequence		The sequence to assign
 	 */
-	void AssignSequence(FMovieSceneSequenceIDRef InSequenceID, UMovieSceneSequence& InSequence, IMovieScenePlayer& Player);
+	MOVIESCENE_API void AssignSequence(FMovieSceneSequenceIDRef InSequenceID, UMovieSceneSequence& InSequence, IMovieScenePlayer& Player);
 
 	/**
 	 * Attempt to locate a sequence from its ID

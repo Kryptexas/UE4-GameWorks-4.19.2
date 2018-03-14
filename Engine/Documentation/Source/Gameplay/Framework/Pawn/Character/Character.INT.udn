@@ -18,40 +18,24 @@ implementations of basic networking and input models.
 Unlike Pawns, Characters come with a `SkeletalMeshComponent` to enable advanced animations that use a skeleton. It is possible for other Skeletal Meshes to be added to Character-derived classes,
 but this is the main Skeletal Mesh associated with the Character. For more on Skeletal Meshes, see: 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Skeletal Mesh Topics
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links] 
-		* [](Engine/Actors/SkeletalMeshActors "%Engine/Actors/SkeletalMeshActors:description%")
-		* [](Engine/Animation "%Engine/Animation:description%") 
-	[/PARAM]
-[/OBJECT]
+## Skeletal Mesh Topics
+
+[REGION:buttonlist]
+* [](Engine/Actors/SkeletalMeshActors "%Engine/Actors/SkeletalMeshActors:description%")
+* [](Engine/Animation "%Engine/Animation:description%") 
+[/REGION]
 
 
 
 ### CapsuleComponent
 The `CapsuleComponent` is used for movement collision. In order to calculate complicated geometries for the `CharacterMovementComponent`, there is an assumption that the collision component in the Character class is a vertically-oriented capsule. For more on Collision, see: 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Capsule Component Topics
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links] 
-		* [](Engine/Physics/Collision "%Engine/Physics/Collision:description%")
-		* [](Engine/Content/Types/StaticMeshes/HowTo/SettingCollision "%Engine/Content/Types/StaticMeshes/HowTo/SettingCollision:description%")
-	[/PARAM]
-[/OBJECT]
+## Capsule Component Topics
+
+[REGION:buttonlist]
+* [](Engine/Physics/Collision "%Engine/Physics/Collision:description%")
+* [](Engine/Content/Types/StaticMeshes/HowTo/SettingCollision "%Engine/Content/Types/StaticMeshes/HowTo/SettingCollision:description%")
+[/REGION]
 
 ### CharacterMovementComponent
 The `CharacterMovementComponent` allows avatars not using rigid body physics to move by walking, running, jumping, flying, falling, and swimming. 
@@ -60,7 +44,6 @@ values for falling and walking friction, speeds for travel through air and water
 Character can exert on Physics objects. The `CharacterMovementComponent` also includes root motion parameters that come from the animation and are already
 transformed in world space, ready for use by physics. 
 
----
 
 
 

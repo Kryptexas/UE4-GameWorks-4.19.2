@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -118,7 +118,7 @@ public:
 	 */
 	FORCEINLINE int32 GetIntegerField(const FString& FieldName) const
 	{
-		return FMath::TruncToInt(GetNumberField(FieldName));
+		return (int32)GetNumberField(FieldName);
 	}
 
 	/** Get the field named FieldName as a number. Returns false if it doesn't exist or cannot be converted. */

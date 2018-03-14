@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /**
  * MaterialEditorInstanceConstant.h: This class is used by the material instance editor to hold a set of inherited parameters which are then pushed to a material instance.
@@ -13,6 +13,7 @@
 #include "StaticParameterSet.h"
 #include "Editor/UnrealEdTypes.h"
 #include "Materials/MaterialInstanceBasePropertyOverrides.h"
+#include "Materials/MaterialExpression.h"
 #include "MaterialEditorInstanceConstant.generated.h"
 
 class UDEditorParameterValue;
@@ -28,12 +29,14 @@ struct FEditorParameterGroup
 	UPROPERTY()
 	FName GroupName;
 
+	UPROPERTY()
+	TEnumAsByte<EMaterialParameterAssociation> GroupAssociation;
+
 	UPROPERTY(EditAnywhere, editfixedsize, Instanced, Category=EditorParameterGroup)
 	TArray<class UDEditorParameterValue*> Parameters;
 
 	UPROPERTY()
 	int32 GroupSortPriority;
-
 };
 
 USTRUCT()
@@ -45,17 +48,15 @@ struct FEditorParameterValue
 	uint32 bOverride:1;
 
 	UPROPERTY(EditAnywhere, Category=EditorParameterValue)
-	FName ParameterName;
+	FMaterialParameterInfo ParameterInfo;
 
 	UPROPERTY()
 	FGuid ExpressionId;
-
 
 	FEditorParameterValue()
 		: bOverride(false)
 	{
 	}
-
 };
 
 USTRUCT()
@@ -66,12 +67,10 @@ struct FEditorVectorParameterValue : public FEditorParameterValue
 	UPROPERTY(EditAnywhere, Category=EditorVectorParameterValue)
 	FLinearColor ParameterValue;
 
-
 	FEditorVectorParameterValue()
 		: ParameterValue(ForceInit)
 	{
 	}
-
 };
 
 USTRUCT()
@@ -82,12 +81,10 @@ struct FEditorScalarParameterValue : public FEditorParameterValue
 	UPROPERTY(EditAnywhere, Category=EditorScalarParameterValue)
 	float ParameterValue;
 
-
 	FEditorScalarParameterValue()
 		: ParameterValue(0)
 	{
 	}
-
 };
 
 USTRUCT()
@@ -98,12 +95,10 @@ struct FEditorTextureParameterValue : public FEditorParameterValue
 	UPROPERTY(EditAnywhere, Category=EditorTextureParameterValue)
 	class UTexture* ParameterValue;
 
-
 	FEditorTextureParameterValue()
 		: ParameterValue(NULL)
 	{
 	}
-
 };
 
 USTRUCT()
@@ -117,13 +112,25 @@ struct FEditorFontParameterValue : public FEditorParameterValue
 	UPROPERTY(EditAnywhere, Category=EditorFontParameterValue)
 	int32 FontPage;
 
-
 	FEditorFontParameterValue()
 		: FontValue(NULL)
 		, FontPage(0)
 	{
 	}
+};
 
+USTRUCT()
+struct FEditorMaterialLayersParameterValue : public FEditorParameterValue
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, Category=EditorLayersParameterValue)
+	class UMaterialFunctionInterface* FunctionValue;
+
+	FEditorMaterialLayersParameterValue()
+		: FunctionValue(NULL)
+	{
+	}
 };
 
 USTRUCT()
@@ -134,22 +141,20 @@ struct FEditorStaticSwitchParameterValue : public FEditorParameterValue
 	UPROPERTY(EditAnywhere, Category=EditorStaticSwitchParameterValue)
 	uint32 ParameterValue:1;
 
-
 	FEditorStaticSwitchParameterValue()
 		: ParameterValue(false)
 	{
 	}
 
-
-		/** Constructor */
-		FEditorStaticSwitchParameterValue(const FStaticSwitchParameter& InParameter) : ParameterValue(InParameter.Value)
-		{
-			//initialize base class members
-			bOverride = InParameter.bOverride;
-			ParameterName = InParameter.ParameterName;
-			ExpressionId = InParameter.ExpressionGUID;
-		}
-	
+	/** Constructor */
+	FEditorStaticSwitchParameterValue(const FStaticSwitchParameter& InParameter)
+		: ParameterValue(InParameter.Value)
+	{
+		//initialize base class members
+		bOverride = InParameter.bOverride;
+		ParameterInfo = InParameter.ParameterInfo;
+		ExpressionId = InParameter.ExpressionGUID;
+	}
 };
 
 USTRUCT()
@@ -169,7 +174,6 @@ struct FComponentMaskParameter
 	UPROPERTY(EditAnywhere, Category=ComponentMaskParameter)
 	uint32 A:1;
 
-
 	FComponentMaskParameter()
 		: R(false)
 		, G(false)
@@ -178,16 +182,14 @@ struct FComponentMaskParameter
 	{
 	}
 
-
-		/** Constructor */
-		FComponentMaskParameter(bool InR, bool InG, bool InB, bool InA) :
-			R(InR),
-			G(InG),
-			B(InB),
-			A(InA)
-		{
-		}
-	
+	/** Constructor */
+	FComponentMaskParameter(bool InR, bool InG, bool InB, bool InA) :
+		R(InR),
+		G(InG),
+		B(InB),
+		A(InA)
+	{
+	}
 };
 
 USTRUCT()
@@ -198,18 +200,16 @@ struct FEditorStaticComponentMaskParameterValue : public FEditorParameterValue
 	UPROPERTY(EditAnywhere, Category=EditorStaticComponentMaskParameterValue)
 	struct FComponentMaskParameter ParameterValue;
 
-
-
-		/** Constructor */
-		FEditorStaticComponentMaskParameterValue() {}
-		FEditorStaticComponentMaskParameterValue(const FStaticComponentMaskParameter& InParameter) : ParameterValue(InParameter.R, InParameter.G, InParameter.B, InParameter.A)
-		{
-			//initialize base class members
-			bOverride = InParameter.bOverride;
-			ParameterName = InParameter.ParameterName;
-			ExpressionId = InParameter.ExpressionGUID;
-		}
-	
+	/** Constructor */
+	FEditorStaticComponentMaskParameterValue() {}
+	FEditorStaticComponentMaskParameterValue(const FStaticComponentMaskParameter& InParameter)
+		: ParameterValue(InParameter.R, InParameter.G, InParameter.B, InParameter.A)
+	{
+		//initialize base class members
+		bOverride = InParameter.bOverride;
+		ParameterInfo = InParameter.ParameterInfo;
+		ExpressionId = InParameter.ExpressionGUID;
+	}
 };
 
 UCLASS(hidecategories=Object, collapsecategories)
@@ -243,14 +243,23 @@ class UNREALED_API UMaterialEditorInstanceConstant : public UObject
 	UPROPERTY()
 	uint32 bOverrideBaseProperties_DEPRECATED : 1;
 
+	UPROPERTY(transient, duplicatetransient)
+	uint32 bIsFunctionPreviewMaterial : 1;
+
+	UPROPERTY(transient, duplicatetransient)
+	uint32 bIsFunctionInstanceDirty : 1;
+	
 	UPROPERTY(EditAnywhere, Category=MaterialOverrides)
 	FMaterialInstanceBasePropertyOverrides BasePropertyOverrides;
 
 	UPROPERTY()
 	class UMaterialInstanceConstant* SourceInstance;
 
+	UPROPERTY()
+	class UMaterialFunctionInstance* SourceFunction;	
+
 	UPROPERTY(transient, duplicatetransient)
-	TArray<FGuid> VisibleExpressions;
+	TArray<FMaterialParameterInfo> VisibleExpressions;
 
 	/** The Lightmass override settings for this object. */
 	UPROPERTY(EditAnywhere, Category=Lightmass)
@@ -269,9 +278,16 @@ class UNREALED_API UMaterialEditorInstanceConstant : public UObject
 
 	/** Regenerates the parameter arrays. */
 	void RegenerateArrays();
-
+#if WITH_EDITOR
+	/** Sets back to zero the overrides for any parameters copied out of the layer stack */
+	void CleanParameterStack(int32 Index, EMaterialParameterAssociation MaterialType);
+	/** Copies the overrides for any parameters copied out of the layer stack from the layer or blend */
+	void ResetOverrides(int32 Index, EMaterialParameterAssociation MaterialType);
+#endif
 	/** Copies the parameter array values back to the source instance. */
-	void CopyToSourceInstance();
+	void CopyToSourceInstance(const bool bForceStaticPermutationUpdate = false);
+
+	void ApplySourceFunctionChanges();
 
 	/** Builds a FStaticParameterSet for the source UMaterialInstance to store.  The built set has only parameters overridden by this instance. */
 	void BuildStaticParametersForSourceInstance(FStaticParameterSet& OutStaticParameters);
@@ -282,6 +298,8 @@ class UNREALED_API UMaterialEditorInstanceConstant : public UObject
 	 * @param MaterialInterface		Instance to use as the source for this material editor instance.
 	 */
 	void SetSourceInstance(UMaterialInstanceConstant* MaterialInterface);
+
+	void SetSourceFunction(UMaterialFunctionInstance* MaterialFunction);
 
 	/** 
 	 * Update the source instance parent to match this
@@ -300,6 +318,18 @@ class UNREALED_API UMaterialEditorInstanceConstant : public UObject
 	 * @param ParentMaterial		Name of material to search for groups.
 	 * @param ParameterValue		Current data to be grouped
 	 */
-	void AssignParameterToGroup(UMaterial* ParentMaterial, UDEditorParameterValue * ParameterValue);
+	void AssignParameterToGroup(UMaterial* ParentMaterial, UDEditorParameterValue* ParameterValue);
+
+	static FName GlobalGroupPrefix;
+
+	TWeakPtr<class IDetailsView> DetailsView;
+
+#if WITH_EDITORONLY_DATA
+	UPROPERTY()
+	TArray<class UMaterialInstanceConstant*> StoredLayerPreviews;
+
+	UPROPERTY()
+	TArray<class UMaterialInstanceConstant*> StoredBlendPreviews;
+#endif
 };
 

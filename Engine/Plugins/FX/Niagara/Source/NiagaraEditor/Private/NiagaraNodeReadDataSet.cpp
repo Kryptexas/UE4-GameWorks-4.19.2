@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraNodeReadDataSet.h"
 #include "UObject/UnrealType.h"
@@ -29,7 +29,7 @@ void UNiagaraNodeReadDataSet::AllocateDefaultPins()
 	for (int32 i = 0; i < Variables.Num(); i++)
 	{
 		FNiagaraVariable& Var = Variables[i];
-		UEdGraphPin* NewPin = CreatePin(EGPD_Output, Schema->TypeDefinitionToPinType(Var.GetType()), Var.GetName().ToString());
+		UEdGraphPin* NewPin = CreatePin(EGPD_Output, Schema->TypeDefinitionToPinType(Var.GetType()), Var.GetName());
 		if (useFriendlyNames && VariableFriendlyNames[i].IsEmpty() == false)
 		{
 			NewPin->PinFriendlyName = FText::FromString(VariableFriendlyNames[i]);

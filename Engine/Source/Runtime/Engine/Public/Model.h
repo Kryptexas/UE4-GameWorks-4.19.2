@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Model.h: Unreal UModel definition.
@@ -20,6 +20,7 @@
 #include "RawIndexBuffer.h"
 #include "LocalVertexFactory.h"
 #include "UniquePtr.h"
+#include "StaticMeshResources.h"
 
 class AActor;
 class ABrush;
@@ -277,6 +278,13 @@ struct FModelVertex
 	FVector2D TexCoord;
 	FVector2D ShadowTexCoord;
 
+	FVector GetTangentY() const
+	{
+		FVector TanX = TangentX;
+		FVector TanZ = TangentZ;
+
+		return (TanZ ^ TanX) * ((float)TangentZ.Vector.W / 127.5f - 1.0f);
+	};
 	/**
 	* Serializer
 	*
@@ -290,18 +298,21 @@ struct FModelVertex
 /**
  * A vertex buffer for a set of BSP nodes.
  */
-class FModelVertexBuffer : public FVertexBuffer
+class FModelVertexBuffer
 {
 public:
+	// Number of FModelSceneProxy's using this
+	// Only access in CreateRenderState_Concurrent and DestroyRenderState_Concurrent
+	uint32 RefCount = 0;
+
 	/** model vertex data */
-	TResourceArray<FModelVertex,VERTEXBUFFER_ALIGNMENT> Vertices;
+	TArray<FModelVertex> Vertices;
+
+	/** Resources used for Rendering. */
+	FStaticMeshVertexBuffers Buffers;
 
 	/** Minimal initialization constructor. */
 	FModelVertexBuffer(UModel* InModel);
-
-	// FRenderResource interface.
-	virtual void InitRHI() override;
-	virtual FString GetFriendlyName() const override { return TEXT("BSP vertices"); }
 	
 	/**
 	* Serializer for this class
@@ -382,9 +393,6 @@ class UModel : public UObject
 
 	/** A vertex buffer containing the vertices for all nodes in the UModel. */
 	FModelVertexBuffer VertexBuffer;
-
-	/** The vertex factory which is used to access VertexBuffer. */
-	FLocalVertexFactory VertexFactory;
 
 	/** A fence which is used to keep track of the rendering thread releasing the model resources. */
 	FRenderCommandFence ReleaseResourcesFence;
@@ -556,9 +564,6 @@ public:
 	 * Apply world origin changes
 	 */
 	void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift);
-
-	/** Release CPU access version of vertex buffer */
-	void ReleaseVertices();
 
 	/**
 	* Clears local (non RHI) data associated with MaterialIndexBuffers

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -39,6 +39,7 @@ struct FMeshMergeData
 	class UStaticMesh* SourceStaticMesh;
 	/** If set, the raw mesh should be used as clipping geometry */
 	bool bIsClippingMesh;
+	FString DebugJobName;
 };
 
 /** Structure for encapsulating per LOD mesh merging data */

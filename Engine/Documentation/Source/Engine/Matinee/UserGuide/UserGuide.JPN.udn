@@ -1,30 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:マチネのユーザーガイド
 Crumbs: %ROOT%, Engine, Engine/Matinee
 Description:インゲームのプロパティとアクタのアニメートに使用するマチネエディタのガイドです。
 Version:4.9
 SkillLevel:Beginner
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Matinee/UserGuide:title%](Engine/Matinee_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/cine_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		マチネ エディタ
-	[/PARAM]
-	[PARAM:description]
-		インゲームのプロパティとアクタのアニメートに使用するマチネ エディタのガイドです。
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Matinee/UserGuide]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Matinee_topic.png
 
 [REGION:fullwidth]
 ![](MatineeOverview.png)(w:800)
@@ -274,5 +255,7 @@ Play ノードの入力実行ピンへ接続します。
 
 関数ノードはマチネの **Palette** の中にあります。
 
-<!----For more information about Matinee and Blueprints, see *link*.----->
+[COMMENT:none]
+--For more information about Matinee and Blueprints, see *link*.---
+[/COMMENT]
 

@@ -86,7 +86,9 @@ unbound にし、適切な優先度を持たせるようにします)。
 
 ツールチップ (マウスでかざす) には、設定に関する詳細情報が表示されます。
 
-<!-- add setting descriptions -->
+[COMMENT:none]
+ add setting descriptions 
+[/COMMENT]
 
 ボリュームでこうした設定をすると、カメラ位置に応じてソフトでブレンド可能なものにすることができます (例、 
 屋内環境または木々の下で GI バウンスが少なくなります)。
@@ -180,7 +182,8 @@ unbound にし、適切な優先度を持たせるようにします)。
 * パフォーマンス コストは多少かかりますが、クオリティは非常に高くなるジオメトリのボクセル化によるセカンダリ オクルージョン(現時点では未対応)
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:VisualizeSlider]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:id]
@@ -216,7 +219,8 @@ unbound にし、適切な優先度を持たせるようにします)。
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:VisualizeSlider]
--->
+
+[/COMMENT]
 
 
 

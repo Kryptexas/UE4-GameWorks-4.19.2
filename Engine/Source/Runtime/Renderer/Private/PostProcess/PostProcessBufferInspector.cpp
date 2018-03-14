@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessVisualizeBuffer.cpp: Post processing VisualizeBuffer implementation.
@@ -67,12 +67,15 @@ void FRCPassPostProcessBufferInspector::Process(FRenderingCompositePassContext& 
 
 	FRHICommandListImmediate& RHICmdList = Context.RHICmdList;
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
 	FScene* Scene = (FScene*)View.Family->Scene;
 	int32 ViewUniqueId = View.State->GetViewKey();
-	TArray<FIntPoint> ProcessRequests;
+	TArray<FVector2D> ProcessRequests;
+
+
+
 	//Process all request for this view
 	for (auto kvp : Scene->PixelInspectorData.Requests)
 	{
@@ -84,14 +87,16 @@ void FRCPassPostProcessBufferInspector::Process(FRenderingCompositePassContext& 
 		}
 		else if (PixelInspectorRequest->RenderingCommandSend == false && PixelInspectorRequest->ViewId == ViewUniqueId)
 		{
-			FVector2D SourcePoint(PixelInspectorRequest->SourcePixelPosition);
+			FVector2D SourceViewportUV = PixelInspectorRequest->SourceViewportUV;
 			FVector2D ExtendSize(1.0f, 1.0f);
-			FBox2D SourceBox(SourcePoint, SourcePoint + ExtendSize);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Pixel Depth
 			if (Scene->PixelInspectorData.RenderTargetBufferDepth[PixelInspectorRequest->BufferIndex] != nullptr)
 			{
+				FVector2D SourcePoint = SourceViewportUV * FVector2D(View.ViewRect.Size());
+				FBox2D SourceBox(SourcePoint, SourcePoint + ExtendSize);
+				
 				const FTexture2DRHIRef &DestinationBufferDepth = Scene->PixelInspectorData.RenderTargetBufferDepth[PixelInspectorRequest->BufferIndex]->GetRenderTargetTexture();
 				if (DestinationBufferDepth.IsValid())
 				{
@@ -109,6 +114,10 @@ void FRCPassPostProcessBufferInspector::Process(FRenderingCompositePassContext& 
 			const FTexture2DRHIRef &DestinationBufferFinalColor = Scene->PixelInspectorData.RenderTargetBufferFinalColor[PixelInspectorRequest->BufferIndex]->GetRenderTargetTexture();
 			if (DestinationBufferFinalColor.IsValid())
 			{
+				FVector2D SourcePoint(
+					FMath::FloorToInt(SourceViewportUV.X * Context.SceneColorViewRect.Width()),
+					FMath::FloorToInt(SourceViewportUV.Y * Context.SceneColorViewRect.Height()));
+
 				const FRenderingCompositeOutputRef* OutputRef0 = GetInput(ePId_Input0);
 				if (OutputRef0)
 				{
@@ -133,6 +142,9 @@ void FRCPassPostProcessBufferInspector::Process(FRenderingCompositePassContext& 
 			const FTexture2DRHIRef &DestinationBufferSceneColor = Scene->PixelInspectorData.RenderTargetBufferSceneColor[PixelInspectorRequest->BufferIndex]->GetRenderTargetTexture();
 			if (DestinationBufferSceneColor.IsValid())
 			{
+				FVector2D SourcePoint = SourceViewportUV * FVector2D(View.ViewRect.Size());
+				FBox2D SourceBox(SourcePoint, SourcePoint + ExtendSize);
+
 				const FRenderingCompositeOutputRef* OutputRef0 = GetInput(ePId_Input2);
 				if (OutputRef0)
 				{
@@ -154,6 +166,9 @@ void FRCPassPostProcessBufferInspector::Process(FRenderingCompositePassContext& 
 			const FTexture2DRHIRef &DestinationBufferHDR = Scene->PixelInspectorData.RenderTargetBufferHDR[PixelInspectorRequest->BufferIndex]->GetRenderTargetTexture();
 			if (InputDescHDR != nullptr && DestinationBufferHDR.IsValid())
 			{
+				FVector2D SourcePoint = SourceViewportUV * FVector2D(Context.SceneColorViewRect.Size());
+				FBox2D SourceBox(SourcePoint, SourcePoint + ExtendSize);
+
 				const FRenderingCompositeOutputRef* OutputRef1 = GetInput(ePId_Input1);
 				if (OutputRef1)
 				{
@@ -174,6 +189,9 @@ void FRCPassPostProcessBufferInspector::Process(FRenderingCompositePassContext& 
 			// GBuffer A
 			if (Scene->PixelInspectorData.RenderTargetBufferA[PixelInspectorRequest->BufferIndex] != nullptr)
 			{
+				FVector2D SourcePoint = SourceViewportUV * FVector2D(View.ViewRect.Size());
+				FBox2D SourceBox(SourcePoint, SourcePoint + ExtendSize);
+
 				const FTexture2DRHIRef &DestinationBufferA = Scene->PixelInspectorData.RenderTargetBufferA[PixelInspectorRequest->BufferIndex]->GetRenderTargetTexture();
 				if (DestinationBufferA.IsValid() && SceneContext.GBufferA.IsValid() && SceneContext.GBufferA->GetRenderTargetItem().ShaderResourceTexture.IsValid())
 				{
@@ -191,6 +209,9 @@ void FRCPassPostProcessBufferInspector::Process(FRenderingCompositePassContext& 
 			const FTexture2DRHIRef &DestinationBufferBCDE = Scene->PixelInspectorData.RenderTargetBufferBCDE[PixelInspectorRequest->BufferIndex]->GetRenderTargetTexture();
 			if (DestinationBufferBCDE.IsValid())
 			{
+				FVector2D SourcePoint = SourceViewportUV * FVector2D(View.ViewRect.Size());
+				FBox2D SourceBox(SourcePoint, SourcePoint + ExtendSize);
+
 				if (SceneContext.GBufferB.IsValid() && SceneContext.GBufferB->GetRenderTargetItem().ShaderResourceTexture.IsValid())
 				{
 					FTexture2DRHIRef SourceBufferB = (FRHITexture2D*)(SceneContext.GBufferB->GetRenderTargetItem().ShaderResourceTexture.GetReference());
@@ -238,12 +259,12 @@ void FRCPassPostProcessBufferInspector::Process(FRenderingCompositePassContext& 
 	}
 	
 	//Remove request we just process
-	for (FIntPoint RequestKey : ProcessRequests)
+	for (FVector2D RequestKey : ProcessRequests)
 	{
 		Scene->PixelInspectorData.Requests.Remove(RequestKey);
 	}
 
-	FIntRect ViewRect = View.ViewRect;
+	FIntRect ViewRect = Context.SceneColorViewRect;
 	FIntPoint SrcSize = InputDesc->Extent;
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);

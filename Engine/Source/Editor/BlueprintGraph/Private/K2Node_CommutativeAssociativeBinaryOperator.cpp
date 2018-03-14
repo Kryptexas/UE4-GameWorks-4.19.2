@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_CommutativeAssociativeBinaryOperator.h"
 #include "Framework/Commands/UIAction.h"
@@ -17,11 +17,10 @@ int32 UK2Node_CommutativeAssociativeBinaryOperator::GetMaxInputPinsNum()
 	return (TCHAR('Z') - TCHAR('A'));
 }
 
-FString UK2Node_CommutativeAssociativeBinaryOperator::GetNameForPin(int32 PinIndex)
+FName UK2Node_CommutativeAssociativeBinaryOperator::GetNameForPin(int32 PinIndex)
 {
 	check(PinIndex < GetMaxInputPinsNum());
-	FString Name;
-	Name.AppendChar(TCHAR('A') + PinIndex);
+	const FName Name(*FString::Chr(TCHAR('A') + PinIndex));
 	return Name;
 }
 
@@ -45,10 +44,9 @@ UEdGraphPin* UK2Node_CommutativeAssociativeBinaryOperator::FindOutPin() const
 
 UEdGraphPin* UK2Node_CommutativeAssociativeBinaryOperator::FindSelfPin() const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	for(int32 PinIdx=0; PinIdx<Pins.Num(); PinIdx++)
 	{
-		if(Pins[PinIdx]->PinName == K2Schema->PN_Self)
+		if(Pins[PinIdx]->PinName == UEdGraphSchema_K2::PN_Self)
 		{
 			return Pins[PinIdx];
 		}
@@ -142,27 +140,29 @@ void UK2Node_CommutativeAssociativeBinaryOperator::AllocateDefaultPins()
 	else
 	{
 		const UClass* FunctionParentClass = FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode());
-		Message_Error(FString::Printf(
-			*LOCTEXT("NoFunction_Error", "CommutativeAssociativeBinaryOperator has no function: '%s' class: '%s'").ToString(), 
-			*FunctionReference.GetMemberName().ToString(),
-			(FunctionParentClass ? *FunctionParentClass->GetName() : TEXT("None"))
-			));
+		Message_Error(
+			FText::Format(
+				LOCTEXT("NoFunction_ErrorFmt", "CommutativeAssociativeBinaryOperator has no function: '{0}' class: '{1}'"),
+				FText::FromString(FunctionReference.GetMemberName().ToString()),
+				FunctionParentClass ? FText::FromString(FunctionParentClass->GetName()) : LOCTEXT("NoFunction_ErrorNone", "None")
+			).ToString()
+		);
 	}
 }
 
 void UK2Node_CommutativeAssociativeBinaryOperator::AddInputPinInner(int32 AdditionalPinIndex)
 {
 	const FEdGraphPinType InputType = GetType();
+	UEdGraphNode::FCreatePinParams PinParams;
+	PinParams.ContainerType = InputType.ContainerType;
+	PinParams.bIsReference = InputType.bIsReference;
+	PinParams.ValueTerminalType = InputType.PinValueType;
 	CreatePin(EGPD_Input, 
 		InputType.PinCategory, 
 		InputType.PinSubCategory, 
 		InputType.PinSubCategoryObject.Get(), 
-		*GetNameForPin(AdditionalPinIndex + BinaryOperatorInputsNum),
-		InputType.ContainerType, 
-		InputType.bIsReference, 
-		false,
-		INDEX_NONE,
-		InputType.PinValueType
+		GetNameForPin(AdditionalPinIndex + BinaryOperatorInputsNum),
+		PinParams
 	);
 }
 
@@ -199,8 +199,8 @@ void UK2Node_CommutativeAssociativeBinaryOperator::RemoveInputPin(UEdGraphPin* P
 				UEdGraphPin* LocalPin = Pins[PinIndex];
 				if(LocalPin && (LocalPin != OutPin) && (LocalPin != SelfPin))
 				{
-					const FString PinName = GetNameForPin(NameIndex);
-					if(PinName != LocalPin->PinName)
+					const FName PinName = GetNameForPin(NameIndex);
+					if (PinName != LocalPin->PinName)
 					{
 						LocalPin->Modify();
 						LocalPin->PinName = PinName;

@@ -106,7 +106,8 @@ Version:4.13
 | **Counters** | [INCLUDE:#counters] |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:CycleCounter]
 | 統計情報 | 説明 |
 | --- | --- |
@@ -126,7 +127,8 @@ Version:4.13
 | **Visible Dynamic Primitives** | パーティクル システムとフォリッジ インスタンスなど、可動性が Movable に設定されたシーン内の動的プリミティブ数です。 |
 | **Visible Static Mesh Elements** | 可動性が Static に設定された表示メッシュ数です。 |
 [/EXCERPT:Counters]
--->
+
+[/COMMENT]
 
 ## 便利なコンソール コマンド
 

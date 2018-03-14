@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -98,9 +98,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
 	USoundEffectSourcePresetChain* SourceEffectChain;
 
-	/** This sound will send it's audio output to this list of buses if there are bus instances playing.  */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
+	/** This sound will send its audio output to this list of buses if there are bus instances playing after source effects are processed.  */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects, meta = (DisplayName = "Post-Effect Bus Sends"))
 	TArray<FSoundSourceBusSendInfo> BusSends;
+
+	/** This sound will send its audio output to this list of buses if there are bus instances playing before source effects are processed.  */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects, meta = (DisplayName = "Pre-Effect Bus Sends"))
+	TArray<FSoundSourceBusSendInfo> PreEffectBusSends;
 
 public:	
 	/** Number of times this cue is currently being played. */
@@ -113,6 +117,12 @@ public:
 	
 	/** Returns whether the sound base is set up in a playable manner */
 	virtual bool IsPlayable() const;
+
+	/** Returns whether a sound is allowed to be virtualized. */
+	virtual bool IsAllowedVirtual() const;
+
+	/** Returns whether or not this sound base has an attenuation node. */
+	virtual bool HasAttenuationNode() const;
 
 	/** Returns a pointer to the attenuation settings that are to be applied for this node */
 	virtual const FSoundAttenuationSettings* GetAttenuationSettingsToApply() const;
@@ -134,7 +144,12 @@ public:
 	virtual float GetSubtitlePriority() const { return DEFAULT_SUBTITLE_PRIORITY; };
 	
 	/** Returns whether or not any part of this sound wants interior volumes applied to it */
-	virtual bool ShouldApplyInteriorVolumes() const;
+	virtual bool ShouldApplyInteriorVolumes();
+
+	/** Returns curves associated with this sound if it has any. By default returns nullptr, but types
+	*	supporting curves can return a corresponding curve table.
+	*/
+	virtual class UCurveTable* GetCurveData() const { return nullptr; }
 
 	/** Returns whether or not this sound is looping. */
 	bool IsLooping();
@@ -152,7 +167,7 @@ public:
 	void GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) const;
 
 	/** Returns the sound source sends for this sound. */
-	void GetSoundSourceBusSends(TArray<FSoundSourceBusSendInfo>& OutSends) const;
+	void GetSoundSourceBusSends(EBusSendType BusSendType, TArray<FSoundSourceBusSendInfo>& OutSends) const;
 
 	/** Returns the FSoundConcurrencySettings struct to use. */
 	const FSoundConcurrencySettings* GetSoundConcurrencySettingsToApply();

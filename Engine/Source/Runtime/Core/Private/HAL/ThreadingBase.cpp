@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "HAL/ThreadingBase.h"
@@ -6,6 +6,7 @@
 #include "Stats/Stats.h"
 #include "Misc/CoreStats.h"
 #include "Misc/EventPool.h"
+#include "Templates/Atomic.h"
 
 DEFINE_STAT( STAT_EventWaitWithId );
 DEFINE_STAT( STAT_EventTriggerWithId );
@@ -16,6 +17,8 @@ DECLARE_DWORD_COUNTER_STAT( TEXT( "ThreadPoolDummyCounter" ), STAT_ThreadPoolDum
 FQueuedThreadPool* GThreadPool = nullptr;
 
 FQueuedThreadPool* GIOThreadPool = nullptr;
+
+FQueuedThreadPool* GBackgroundPriorityThreadPool = nullptr;
 
 #if WITH_EDITOR
 FQueuedThreadPool* GLargeThreadPool = nullptr;
@@ -35,7 +38,7 @@ CORE_API bool IsInAudioThread()
 	return FPlatformTLS::GetCurrentThreadId() == (GAudioThreadId ? GAudioThreadId : GGameThreadId);
 }
 
-CORE_API int32 GIsRenderingThreadSuspended = 0;
+CORE_API TAtomic<int32> GIsRenderingThreadSuspended(0);
 
 CORE_API FRunnableThread* GRenderingThread = nullptr;
 
@@ -46,12 +49,12 @@ CORE_API bool IsInActualRenderingThread()
 
 CORE_API bool IsInRenderingThread()
 {
-	return !GRenderingThread || GIsRenderingThreadSuspended || (FPlatformTLS::GetCurrentThreadId() == GRenderingThread->GetThreadID());
+	return !GRenderingThread || GIsRenderingThreadSuspended.Load(EMemoryOrder::Relaxed) || (FPlatformTLS::GetCurrentThreadId() == GRenderingThread->GetThreadID());
 }
 
 CORE_API bool IsInParallelRenderingThread()
 {
-	return !GRenderingThread || GIsRenderingThreadSuspended || (FPlatformTLS::GetCurrentThreadId() != GGameThreadId);
+	return !GRenderingThread || GIsRenderingThreadSuspended.Load(EMemoryOrder::Relaxed) || (FPlatformTLS::GetCurrentThreadId() != GGameThreadId);
 }
 
 CORE_API uint32 GRHIThreadId = 0;
@@ -214,13 +217,13 @@ FThreadManager& FThreadManager::Get()
 	FEvent, FScopedEvent
 -----------------------------------------------------------------------------*/
 
-uint32 FEvent::EventUniqueId = 0;
+TAtomic<uint32> FEvent::EventUniqueId;
 
 void FEvent::AdvanceStats()
 {
 #if	STATS
-	EventId = FPlatformAtomics::InterlockedAdd( (int32*)&EventUniqueId, 1 );
-	FPlatformAtomics::InterlockedExchange((int32*)&EventStartCycles, 0);
+	EventId = EventUniqueId++;
+	EventStartCycles = 0;
 #endif // STATS
 }
 
@@ -228,11 +231,11 @@ void FEvent::WaitForStats()
 {
 #if	STATS
 	// Only start counting on the first wait, trigger will "close" the history.
-	if( FThreadStats::IsCollectingData() && EventStartCycles == 0 )
+	if( FThreadStats::IsCollectingData() && EventStartCycles.Load(EMemoryOrder::Relaxed) == 0 )
 	{
 		const uint64 PacketEventIdAndCycles = ((uint64)EventId << 32) | 0;
 		STAT_ADD_CUSTOMMESSAGE_PTR( STAT_EventWaitWithId, PacketEventIdAndCycles );
-		FPlatformAtomics::InterlockedExchange((int32*)&EventStartCycles, FPlatformTime::Cycles());
+		EventStartCycles = FPlatformTime::Cycles();
 	}
 #endif // STATS
 }
@@ -241,10 +244,11 @@ void FEvent::TriggerForStats()
 {
 #if	STATS
 	// Only add wait-trigger pairs.
-	if( EventStartCycles > 0 && FThreadStats::IsCollectingData() )
+	uint32 LocalEventStartCycles = EventStartCycles.Load(EMemoryOrder::Relaxed);
+	if( LocalEventStartCycles > 0 && FThreadStats::IsCollectingData() )
 	{
 		const uint32 EndCycles = FPlatformTime::Cycles();
-		const int32 DeltaCycles = int32( EndCycles - EventStartCycles );
+		const int32 DeltaCycles = int32( EndCycles - LocalEventStartCycles );
 		const uint64 PacketEventIdAndCycles = ((uint64)EventId << 32) | DeltaCycles;
 		STAT_ADD_CUSTOMMESSAGE_PTR( STAT_EventTriggerWithId, PacketEventIdAndCycles );
 
@@ -409,7 +413,7 @@ protected:
 	FEvent* DoWorkEvent;
 
 	/** If true, the thread should exit. */
-	volatile int32 TimeToDie;
+	TAtomic<bool> TimeToDie;
 
 	/** The work this thread is doing. */
 	IQueuedWork* volatile QueuedWork;
@@ -426,7 +430,7 @@ protected:
 	 */
 	virtual uint32 Run() override
 	{
-		while (!TimeToDie)
+		while (!TimeToDie.Load(EMemoryOrder::Relaxed))
 		{
 			// This will force sending the stats packet from the previous frame.
 			SET_DWORD_STAT( STAT_ThreadPoolDummyCounter, 0 );
@@ -442,7 +446,7 @@ protected:
 			IQueuedWork* LocalQueuedWork = QueuedWork;
 			QueuedWork = nullptr;
 			FPlatformMisc::MemoryBarrier();
-			check(LocalQueuedWork || TimeToDie); // well you woke me up, where is the job or termination request?
+			check(LocalQueuedWork || TimeToDie.Load(EMemoryOrder::Relaxed)); // well you woke me up, where is the job or termination request?
 			while (LocalQueuedWork)
 			{
 				// Tell the object to do the work
@@ -459,7 +463,7 @@ public:
 	/** Default constructor **/
 	FQueuedThread()
 		: DoWorkEvent(nullptr)
-		, TimeToDie(0)
+		, TimeToDie(false)
 		, QueuedWork(nullptr)
 		, OwningThreadPool(nullptr)
 		, Thread(nullptr)
@@ -499,7 +503,7 @@ public:
 	{
 		bool bDidExitOK = true;
 		// Tell the thread it needs to die
-		FPlatformAtomics::InterlockedExchange(&TimeToDie,1);
+		TimeToDie = true;
 		// Trigger the thread so that it will come out of the wait state if
 		// it isn't actively doing work
 		DoWorkEvent->Trigger();

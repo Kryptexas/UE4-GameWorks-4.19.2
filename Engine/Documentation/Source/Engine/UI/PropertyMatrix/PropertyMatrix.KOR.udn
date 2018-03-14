@@ -1,48 +1,11 @@
-﻿INTSourceChangelist:3481084
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:프로퍼티 매트릭스
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:동시에 여러 액터의 프로퍼티 다수를 확인하고 편집하는 툴입니다.
 Version: 4.9
+topic-image:Engine/UI/PropertyMatrix_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UI/PropertyMatrix:title%](Engine/UI/PropertyMatrix_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/PropertyMatrix:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/PropertyMatrix:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/PropertyMatrix]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UI/PropertyMatrix:title%](Engine/UI/PropertyMatrix_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/PropertyMatrix:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/PropertyMatrix:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/PropertyMatrix]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:fullwidth]
 [OBJECT:ToggleButtonContent]
@@ -89,7 +52,8 @@ Version: 4.9
 | Bulk Fine-Grain Object Comparison  | 대량 오브젝트 미세 비교 - [INCLUDE:#BulkComparison] |
 | Deep Property and Array Support  | 프로퍼티와 배열 깊이 지원 - [INCLUDE:#PropertySupport] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BulkEditing]
 
 * **다양한 값을 대량 오브젝트에 설정하기** 쉬운 작업방식으로, 
@@ -111,7 +75,8 @@ Version: 4.9
 * **배열 인덱스** 까지도 처리합니다.
 
 [/EXCERPT:PropertySupport]
--->
+
+[/COMMENT]
 
 ## 프로퍼티 매트릭스 열기
 

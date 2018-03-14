@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -83,7 +83,7 @@ typedef FGenericPlatformMemoryConstants FPlatformMemoryConstants;
  * Struct used to hold common memory stats for all platforms.
  * These values may change over the entire life of the executable.
  */
-struct FGenericPlatformMemoryStats : public FPlatformMemoryConstants
+struct CORE_API FGenericPlatformMemoryStats : public FPlatformMemoryConstants
 {
 	/** The amount of physical memory currently available, in bytes. */
 	uint64 AvailablePhysical;
@@ -466,9 +466,8 @@ public:
 	/**
 	* Returns true if debug memory has been assigned to the title for general use.
 	* Only applies to consoles with fixed memory and no paging.
-	* On XB1 set Debug Memory Mode to PIX_Title. On PS4 set Memory Budget Mode to LARGE.
 	*/
-	static bool IsDebugMemoryEnabled();
+	static bool IsExtraDevelopmentMemoryAvailable();
 
 	/**
 	* This function sets AllocFunction and FreeFunction and returns true, or just returns false.

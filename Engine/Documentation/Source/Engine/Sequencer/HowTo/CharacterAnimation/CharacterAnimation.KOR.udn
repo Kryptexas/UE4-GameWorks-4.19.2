@@ -1,23 +1,24 @@
-﻿INTSourceChangelist:3602938
+﻿INTSourceChangelist:3717037
 Availability: Public
-Title:애니메이션 및 애니메이션 블렌딩
+Title:애니메이션 블렌딩과 프로퍼티
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:시퀀서에서 스켈레탈 메시 액터에 애니메이션을 적용하고 애니메이션을 블렌딩하는 방법을 알아봅니다.
+Description:시퀀서에서 스켈레탈 메시 액터에 애니메이션을 적용하고 애니메이션을 블렌딩하는 방법은 물론 블렌드 프로퍼티 값에 대해서도 알아봅니다.
 Type: how-to
 SkillLevel: Intermediate
-Version: 4.15
+Version: 4.17
 Parent: Engine/Sequencer/HowTo
 Order: 1
 Tags: Sequencer
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
-
+type:how-to
 
 시네마틱 시퀀스 제작시, 씬에 있는 캐릭터가 돌아다니거나 어떤 애니메이션을 적용하고픈 경우가 있습니다.
 그 방법은 **시퀀서** 에서 레벨 시퀀스에 스켈레탈 메시 액터를 추가한 뒤 애니메이션 서브 트랙을 추가하고 액터에게 시키고자 하는 애니메이션을 지정해 주면 됩니다.
-이 과정을 반복하여 액터에 시키고자 하는 애니메이션을 여럿 추가해 주면 시네마틱 시퀀스의 캐릭터에 생동감을 불어넣을 수 있습니다.
+시퀀서에서 프로퍼티 트랙을 끌어 기존 프로퍼티 트랙에 놓는 식으로 애니메이션( 및 프로퍼티 값) 크로스페이드와 블렌딩을 자동 처리할 수 있습니다.
+그렇게 할 때, 자동 블렌드가 적용되는데, 별도의 커브 애셋을 정의하거나 이즈 프로퍼티를 설정하여 미세 조정할 수 있습니다.
 
-여기 이 가이드에서는, 걷기로 시작해서 점프 애니메이션으로 블렌딩되는 캐릭터가 있는 작은 씬을 만들어 보겠습니다.
+여기서 만들어 보는 애니메이션 샘플 시퀀스에서는, 걷기에서 점프로, 다시 걷기로 블렌딩되는 캐릭터를 볼 수 있습니다.
 
 ![](AnimationBlending.png)(w:720 h:480)
 
@@ -35,7 +36,7 @@ Related: Engine\Sequencer\ReferenceEditor\
 
 	![](CharacterAnim_02.png)
 
-1.	**SK_Mannequin** 애셋을 선택한 채 시퀀서에서 **추가** 버튼을 눌러 레벨 시퀀스에 추가합니다.
+1.	**SK_Mannequin** 애셋을 선택한 채 시퀀서에서 **트랙** 버튼을 눌러 레벨 시퀀스에 추가합니다.
 
 	![](CharacterAnim_03.png)
 
@@ -43,62 +44,56 @@ Related: Engine\Sequencer\ReferenceEditor\
 
 	![](CharacterAnim_04.png)
 
-1.	**애니메이션** 을 펼친 뒤 **Timeline** (타임라인)을 끌어 **30** 프레임 마크에 놓습니다.
+1.	타임라인을 **30** 으로 문질러 이동한 뒤 **애니메이션** 버튼을 클릭하고 **ThirdPersonJump_Start** 애니메이션을 추가합니다.
 
 	![](CharacterAnim_05.png)
 
-1.	**애니메이션** 버튼을 다시 한 번 클릭하고 **ThirdPersonJump_Start** 애니메이션을 추가합니다.
+1.	트랙 창의 **ThirdPersonJump_Start** 애니메이션을 좌클릭으로 끌어 **ThirdPersonWalk** 위에 **25** 프레임으로 돌려놓습니다. 
 
 	![](CharacterAnim_06.png)
 
-	이제 애니메이션을 재생하면, 두 애니메이션 사이에 튀는 부분이 보일 것입니다.
+	[REGION:tip]
+	타임라인에서 애니메이션을 드래그할 때, 수치가 음수로 나오면 타임라인에서 프레임을 뒤로, 양수면 앞으로 이동시킨다는 것을 나타냅니다.
+	[/REGION]
 
-	[OBJECT:EmbeddedVideo]
-	[PARAMLITERAL:videoid]
-	oHjDpYPAdCo
-	[/PARAMLITERAL]
-	[PARAMLITERAL:width]
-	100
-	[/PARAMLITERAL]
-	[PARAMLITERAL:height]
-	56.25
-	[/PARAMLITERAL]
-	[PARAMLITERAL:units]
-	%
-	[/PARAMLITERAL]
-	[PARAMLITERAL:type]
-	simple
-	[/PARAMLITERAL]
-	[/OBJECT]
-	
-	애니메이션을 추가할 때, 웨이트 (가중치) 값을 사용하여 다수의 애니메이션을 블렌딩할 수 있는데, 이렇게 해서 애니메이션 사이의 튀는 현상을 처리해 줄 것입니다.
-
-1.	아래 **ThirdPersonJump_Start** 애니메이션을 끌어 걷기 애니메이션 아래, 시퀀스의 **25** 프레임 뒤로 갑니다.
+1.	**ThirdPersonJump_Loop** 를 **39** 프레임에 추가한 뒤 **ThirPersonJump_start** 위에 끌어놓고 **34** 부터 크로스페이드를 추가합니다. 
 
 	![](CharacterAnim_07.png)
 
-1.	양쪽 서브 애니메이션 트랙을 펼친 뒤 걷기 트랙에 **키 추가** 버튼을 클릭하고 **1.0** 값을, 점프 시작 애니메이션에 대해 **0.0** 값을 추가합니다.
+1.	**ThirdPersonJump_End** 애니메이션을 추가하고 **2** 프레임 크로스페이드 합니다.
 
 	![](CharacterAnim_08.png)
 
-	그러면 점프 시작 애니메이션의 가중치 값은 0.0 이 되어 사실상 비활성화됩니다.
-
-1.	**30** 프레임으로 이동한 뒤 양쪽 애니메이션에 키를 추가합니다. 걷기 애니메이션에는 **0.0**, 점프 애니메이션에는 **1.0** 입니다.
+1.	**ThirdPersonWalk** 를 추가하고 **3** 프레임 크로스페이드 합니다.
 
 	![](CharacterAnim_09.png)
 
-	그러면 점프 시작 애니메이션이 블렌드 인 되면서 걷기 애니메이션은 블렌드 아웃 됩니다.
+1.	크로스페이드 중 하나의 시작 위치에서, 위쪽 삼각형 아이콘에 우클릭하여 **Easing Curve** (커브 이즈) 옵션을 띄웁니다.
 
-1.	**Preview Play** (재생 미리보기) 버튼을 눌러 애니메이션 블렌딩을 확인합니다.
+	![](CharacterAnim_10.png)
+
+1.	**Options** (옵션) 섹션 아래, 원하는 **Easing** (이즈) 옵션을 선택하여 커브 작동 방식을 정의합니다.
+
+	![](CharacterAnim_11.png)
+
+	다른 방법으로는, **Method** (메소드)를 **Curve Asset** (커브 애셋)으로 변경하면 됩니다. 
+
+	![](CharacterAnim_12.png)
+
+	그렇게 할 때, **Option** (옵션) 섹션에서 사용하고자 하는 커스텀 **Curve** (커브) 애셋을 정의할 수 있습니다.
+
+	![](CharacterAnim_13.png)
+
+1.	타임라인을 시퀀스로 문질러 이동하여 블렌딩을 확인하거나, **Preview Play** (프리뷰 재생) 버튼을 클릭합니다.
 
 
 ## 최종 결과
 
-이제 시퀀스에 다수의 애니메이션이 튀지 않고 부드럽게 블렌딩되는 스켈레탈 메시가 생겼습니다.
+시퀀스에 이제 다수의 애니메이션이 서로 부드럽게 블렌딩되는 스켈레탈 메시가 포함되어, 이즈 옵션으로 미세 조정할 수도 있습니다.
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:videoid]
-kVotxriT1Y4
+ZV_jKfrmVM0
 [/PARAMLITERAL]
 [PARAMLITERAL:width]
 100
@@ -114,4 +109,44 @@ simple
 [/PARAMLITERAL]
 [/OBJECT]
 
-점프 루프와 점프 끝 애니메이션을 추가하고 캐릭터가 점프 후 착지하도록 블렌딩하는 식으로 이 예제를 확장해 볼 수도 있습니다.
+### 웨이트 값으로 블렌딩
+
+애니메이션 블렌딩의 또 한가지 방법은 애니메이션 트랙의 **Weight** (웨이트, 가중치) 서브 트랙을 사용하는 것입니다.
+
+아래에서 웨이트 값이 **1.0** 인 애니메이션이 하나, **0.0** 인 애니메이션이 또하나 있습니다.
+
+![](CharacterAnim_14.png)
+
+그 후 타임라인을 앞으로 문질러 이동하여 각각에 대한 웨이트 값을 반대로 바꿔 두 값 사이의 보간을 통해 애니메이션 블렌딩이 일어나도록 만들었습니다.
+
+![](CharacterAnim_15.png)
+
+### 프로퍼티 값 블렌딩
+
+블렌딩은 애니메이션에만 국한된 것이 아니라, 2D/3D 트랜스폼, 벡터, 컬러, 플로트 역시 자동 블렌딩 가능합니다.
+
+기본적으로 트랜스폼, 벡터, 컬러 및 유사 트랙은 **Infinite** (무한)으로 설정되어 있어서 프로퍼티 값이 시퀀스 전체에 걸쳐 지속됩니다.
+이 옵션을 끄고 **Sections** (섹션) 프로퍼티를 사용하면, 그 섹션끼리 블렌딩할 수 있습니다. 아래 예제 비디오에서는, 이 안내서와 비슷한 접근법을 사용하여 시퀀서 안에서 시간에 따라 라이트의 색을 서서히 블렌딩하고 있습니다.
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:videoid]
+w9j6RaMG9Nc
+[/PARAMLITERAL]
+[PARAMLITERAL:width]
+100
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+56.25
+[/PARAMLITERAL]
+[PARAMLITERAL:units]
+%
+[/PARAMLITERAL]
+[PARAMLITERAL:type]
+simple
+[/PARAMLITERAL]
+[/OBJECT]
+
+
+
+
+

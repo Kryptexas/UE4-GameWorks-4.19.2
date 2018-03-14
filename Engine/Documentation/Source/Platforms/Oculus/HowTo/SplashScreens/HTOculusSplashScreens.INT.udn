@@ -1,32 +1,26 @@
 Availability: Public
 Crumbs: %ROOT%, Platforms
-Title: Using Touch Controllers for the Oculus Rift
-Description: Use the Rift Touch controllers to interact with the world.
+Title: Using Splash Screens for the Oculus Rift
+Description: Setting up splash screens when loading levels on VR
 Type: how-to
 Skilllevel: Intermediate
-Version: 4.16
+Version: 4.17
 Parent: Platforms/Oculus
 Order: 2
 tags: Oculus
-topic-image:Platforms\Oculus\HowTo\TouchControllers\HT_Rift_Touch_Setup_Topic_Image.png
+prereq: Platforms\Oculus\HowTo\StandingCamera
+prereq: Platforms/VR/UsingTouchControllers
+prereq: Platforms\Oculus\HowTo\GuardianSystem
+
+![](HTSplashScreen_Hero_Image.png)
 
 Whenever you are changing levels in your UE4 VR project, the user could experience some framerate issues due to the massive amount of data that is being unloaded and loaded. To help avoid this issue and mask any frame rate issues that might arise when loading a new level you can display a Splash screen or movie to the user. In the following How - To we will go over how to setup and call a splash screen in your UE4 projects.
 
-[REGION:note]
-The following How - To is going to make use of the Standing VR Pawn with added Touch Controller and Guardian support. If you are not sure how to set this up the following two How - To's will help you out:
-
-* [Set Up Standing Cameras for the Oculus Rift](Platforms\Oculus\HowTo\StandingCamera)
-* [Setup Touch Controllers for the Oculus Rift](Platforms\Oculus\HowTo\TouchControllers)
-* [Set Up Guardian System](Platforms\Oculus\HowTo\GuardianSystem)
-[/REGION]
-
-## Setting Up Oculus Loading Splash Screens
+## Steps
 
 [region:note]
- * Please note that the following is showing the simplest way to set VR splash screens up. While each project has unique needs, the overall setup for VR splash screens will be very similar to what is described.
  * For this How - To you will need to download, unzip and import the two files contained in the following zip file, **[Oculus Splash Screen Source Files](OclusSplashScreenSourceContent.zip)**
 [/region]
-
 
 1. Open up your VRPawn and go to the **Event Graph**. Right-click inside the Event Graph and search for and add the following Blueprint nodes:
 
@@ -100,19 +94,27 @@ The following How - To is going to make use of the Standing VR Pawn with added T
     Click for full image.
     [/REGION]
 
-1. Now when you squeeze the left trigger on the Touch, your scene should go black, and the Texture of the UE4 logo or the image you selected will be displayed. Releasing the left trigger on the Touch will bring you back the level back into view like in the following video.
+## End Result
 
-    [OBJECT:EmbeddedVideo]
-        [PARAMLITERAL:width]
-        640
-        [/PARAMLITERAL]
-        [PARAMLITERAL:height]
-        360
-        [/PARAMLITERAL]
-        [PARAMLITERAL:videoid]
-        H_APZ1h8H5o
-        [/PARAMLITERAL]
-    [/OBJECT]
+Now when you squeeze the left trigger on the Touch, your scene should go black, and the Texture of the UE4 logo or the image you selected will be displayed. Releasing the left trigger on the Touch will bring you back the level back into view like in the following video.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	H_APZ1h8H5o
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
 
 ## UE4 Project Downloads
 Below you will find a link to where you can download the UE4 project that was used to create this example.

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -175,6 +175,7 @@ public:
 	virtual void RequestResize( const TSharedPtr<SWindow>& Window, uint32 NewWidth, uint32 NewHeight ) override;
 	virtual void CreateViewport( const TSharedRef<SWindow> Window ) override;
 	virtual void UpdateFullscreenState( const TSharedRef<SWindow> Window, uint32 OverrideResX, uint32 OverrideResY ) override;
+	virtual void SetSystemResolution(uint32 Width, uint32 Height) override;
 	virtual void RestoreSystemResolution(const TSharedRef<SWindow> InWindow) override;
 	virtual void DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer ) override;
 	virtual void FlushCommands() const override;
@@ -198,7 +199,7 @@ public:
 	virtual void ClearScenes() override;
 
 	/** Draws windows from a FSlateDrawBuffer on the render thread */
-	void DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, FSlateRHIRenderer::FViewportInfo& ViewportInfo, FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear, FVector2D WindowSize);
+	void DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, FSlateRHIRenderer::FViewportInfo& ViewportInfo, FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear);
 
 	/**
 	 * Reloads texture resources from disk                   
@@ -282,9 +283,12 @@ private:
 	/** These are state management variables for Scenes on the game thread. A similar copy exists on the RHI Rendering Policy for the rendering thread.*/
 	TArray<FSceneInterface*> ActiveScenes;
 	int32 CurrentSceneIndex;
+	
+	/** Version that increments when it is okay to clean up older cached resources */
+	uint32 ResourceVersion;
 };
 
-struct FSlateEndDrawingWindowsCommand : public FRHICommand < FSlateEndDrawingWindowsCommand >
+struct FSlateEndDrawingWindowsCommand final : public FRHICommand < FSlateEndDrawingWindowsCommand >
 {
 	FSlateRHIRenderingPolicy& Policy;
 	FSlateDrawBuffer* DrawBuffer;

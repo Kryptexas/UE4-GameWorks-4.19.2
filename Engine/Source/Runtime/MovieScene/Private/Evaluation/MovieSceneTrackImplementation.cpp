@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Evaluation/MovieSceneTrackImplementation.h"
 #include "Evaluation/MovieSceneEvalTemplate.h"
@@ -6,5 +6,5 @@
 
 bool FMovieSceneTrackImplementationPtr::Serialize(FArchive& Ar)
 {
-	return SerializeEvaluationTemplate(*this, Ar);
+	return SerializeInlineValue(*this, Ar);
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraSystemFactoryNew.h"
 #include "CoreMinimal.h"
@@ -7,6 +7,8 @@
 #include "NiagaraScriptSource.h"
 #include "NiagaraGraph.h"
 #include "NiagaraEditorSettings.h"
+#include "AssetData.h"
+#include "NiagaraStackGraphUtilities.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraSystemFactory"
 
@@ -32,18 +34,19 @@ UObject* UNiagaraSystemFactoryNew::FactoryCreateNew(UClass* Class, UObject* InPa
 	if (UNiagaraSystem* Default = Cast<UNiagaraSystem>(Settings->DefaultSystem.TryLoad()))
 	{
 		NewSystem = Cast<UNiagaraSystem>(StaticDuplicateObject(Default, InParent, Name, Flags, Class));
+		InitializeSystem(NewSystem, false);
 	}
 	else
 	{
 		NewSystem = NewObject<UNiagaraSystem>(InParent, Class, Name, Flags | RF_Transactional);
+		InitializeSystem(NewSystem, true);
 	}
 
-	InitializeSystem(NewSystem);
 
 	return NewSystem;
 }
 
-void UNiagaraSystemFactoryNew::InitializeSystem(UNiagaraSystem* System)
+void UNiagaraSystemFactoryNew::InitializeSystem(UNiagaraSystem* System, bool bCreateDefaultNodes)
 {
 	UNiagaraScript* SystemSpawnScript = System->GetSystemSpawnScript();
 	UNiagaraScript* SystemUpdateScript = System->GetSystemUpdateScript();
@@ -51,12 +54,35 @@ void UNiagaraSystemFactoryNew::InitializeSystem(UNiagaraSystem* System)
 	UNiagaraScript* SystemUpdateScriptSolo = System->GetSystemUpdateScript(true);
 
 	UNiagaraScriptSource* SystemScriptSource = NewObject<UNiagaraScriptSource>(SystemSpawnScript, "SystemScriptSource", RF_Transactional);
-	SystemScriptSource->NodeGraph = NewObject<UNiagaraGraph>(SystemScriptSource, "SystemScriptGraph", RF_Transactional);
+
+	if (SystemScriptSource)
+	{
+		SystemScriptSource->NodeGraph = NewObject<UNiagaraGraph>(SystemScriptSource, "SystemScriptGraph", RF_Transactional);
+	}
 
 	SystemSpawnScript->SetSource(SystemScriptSource);
 	SystemUpdateScript->SetSource(SystemScriptSource);
 	SystemSpawnScriptSolo->SetSource(SystemScriptSource);
 	SystemUpdateScriptSolo->SetSource(SystemScriptSource);
+
+	if (bCreateDefaultNodes)
+	{
+		FStringAssetReference SystemUpdateScriptRef(TEXT("/Niagara/Modules/System/SystemLifeCycle.SystemLifeCycle"));
+		UNiagaraScript* Script = Cast<UNiagaraScript>(SystemUpdateScriptRef.TryLoad());
+
+		FAssetData ModuleScriptAsset(Script);
+		if (SystemScriptSource && ModuleScriptAsset.IsValid())
+		{
+			UNiagaraNodeOutput* SpawnOutputNode = FNiagaraStackGraphUtilities::ResetGraphForOutput(*SystemScriptSource->NodeGraph, ENiagaraScriptUsage::SystemSpawnScript, SystemSpawnScript->GetUsageId());
+			UNiagaraNodeOutput* UpdateOutputNode = FNiagaraStackGraphUtilities::ResetGraphForOutput(*SystemScriptSource->NodeGraph, ENiagaraScriptUsage::SystemUpdateScript, SystemUpdateScript->GetUsageId());
+
+			if (UpdateOutputNode)
+			{
+				FNiagaraStackGraphUtilities::AddScriptModuleToStack(ModuleScriptAsset, *UpdateOutputNode);
+			}
+			FNiagaraStackGraphUtilities::RelayoutGraph(*SystemScriptSource->NodeGraph);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

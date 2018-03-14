@@ -6,18 +6,11 @@ Version: 4.9
 SkillLevel: Beginner
 
 
----
 In the following steps, we are going to create a simple door that opens/closes when entering/exiting a trigger volume. 
 
-[EXCERPT:ProjectStart]
-[OBJECT:TopicList]
-	[PARAM:title]
-		Creating the Project
-	[/PARAM]
-	[PARAM:description]
-	In this section, we will set up the project. 
-	[/PARAM]
-[/OBJECT]
+## Creating the Project
+
+In this section, we will set up the project. 
 
 1. From the **Unreal Project Browser** window, create a **New Project** and use the **Blueprint Third Person** template. 
 
@@ -30,14 +23,9 @@ In the following steps, we are going to create a simple door that opens/closes w
 1. With each of the above defined, click **Create Project** to create a new project. 
 [/EXCERPT:ProjectStart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Placing the Door and Trigger
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will place the door and add the trigger for the door.
-	[/PARAM]
-[/OBJECT]
+## Placing the Door and Trigger
+
+In this step, we will place the door and add the trigger for the door.
 
 1.  Inside the **Content Browser**, find and select the **Props** folder and locate the **SM_DoorFrame** Static Mesh. 
 
@@ -75,7 +63,7 @@ In the following steps, we are going to create a simple door that opens/closes w
 
 1. Using the **Translation** widget, position the door inside the door frame. 
 
-	![](MHT1_MoveDoor.png)(h:300) ![](MHT1_MoveDoor2.png)(w:310 h:300)
+	![](MHT1_MoveDoor.png)(h:300) ![](MHT1_MoveDoor2.png)(w:310)
 	
 1. Inside the **Modes** menu and under the **Basic** tab, find the **Box Trigger** and drag-and-drop it into the Level Viewport inside the door frame.
 
@@ -93,14 +81,9 @@ In the following steps, we are going to create a simple door that opens/closes w
 
 1. The door and trigger are now placed, next we will add the **Matinee** Actor to open/close it. 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Adding the Matinee Actor
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will add the **Matinee** Actor and set **Keyframes** to open/close the door. 
-	[/PARAM]
-[/OBJECT]
+## Adding the Matinee Actor
+
+In this step, we will add the **Matinee** Actor and set **Keyframes** to open/close the door. 
 
 1. From the **Toolbar** menu, select **Matinee** and click the **Add Matinee** button. 
 
@@ -165,14 +148,9 @@ In the following steps, we are going to create a simple door that opens/closes w
 1. The Matinee sequence set up is complete. In the next step, we will finish by hooking up the Matinee to the **Trigger**. 
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Hooking the **Matinee** up to the **TriggerBox**
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will hook up the **Matinee** to the **TriggerBox** so that it opens when entering the trigger and closes when exiting the trigger.
-	[/PARAM]
-[/OBJECT]
+## Hooking the **Matinee** up to the **TriggerBox**
+
+In this step, we will hook up the **Matinee** to the **TriggerBox** so that it opens when entering the trigger and closes when exiting the trigger.
 
 1. From the **Toolbar** menu, select **Blueprints** and click the **Open Level Blueprint** button. 
 
@@ -237,13 +215,3 @@ In the following steps, we are going to create a simple door that opens/closes w
 	Z2son2Wcgbo
 	[/PARAMLITERAL]
 	[/OBJECT]
-
----
-
-
-
-
-
-
-
-

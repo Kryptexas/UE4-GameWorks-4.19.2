@@ -3,40 +3,7 @@ Title:Observe Bone
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
 Description:Describes how you can debug a specified Bone with the Observe Bone node.
 version: 4.12
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\ObserveBone:title%](Engine\Animation\NodeReference\SkeletalControls\ObserveBone\ObserveBone.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\ObserveBone:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\ObserveBone]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\ObserveBonedescription%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\ObserveBone:title%](Engine\Animation\NodeReference\SkeletalControls\ObserveBone\ObserveBone.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\ObserveBone:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\ObserveBone]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\ObserveBonedescription%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:ObserveBone.png
 
 The **Observe Bone** node can be used to give debug transform information about a specified bone.
 

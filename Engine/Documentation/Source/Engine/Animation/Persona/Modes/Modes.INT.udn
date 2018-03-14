@@ -13,7 +13,7 @@ tags:Animation
 tags:Skeleton Asset
 tags:Animation Blueprint
 tags:Skeletal Mesh
-tags:Tools
+tags:Animation Tools
 
 [EXCERPT:Overview]
 Creating animated characters in Unreal Engine 4 involves using several different Animation Tools (or Editors), each of which focus on different aspects of animation. 
@@ -21,8 +21,10 @@ Creating animated characters in Unreal Engine 4 involves using several different
 For instance, the **Skeleton Editor** is where everything starts as it is used to manage the bone (or joint hierarchy) that drives the Skeletal Mesh and the animation. 
 The **Skeletal Mesh Editor** is used to modify the Skeletal Mesh that is linked to a Skeleton and is the outward appearance of a character. 
 The **Animation Editor** allows you to create and modify your animation assets and is where the tuning/tweaking of animation assets are done. 
-Finally, the **Animation Blueprint Editor** can be used to create logic that drives what animations a character uses and when as well as how animations are blended together. 
+The **Animation Blueprint Editor** can be used to create logic that drives what animations a character uses and when as well as how animations are blended together. 
+Finally, the **Physics Asset Editor** can be used to create and edit the physics bodies that will be used for your Skeletal Meshes collision.
 [/EXCERPT:Overview]
+
 
 Please refer to each editor for more information: 
 
@@ -32,6 +34,7 @@ Please refer to each editor for more information:
 %Engine\Animation\Persona\Modes\Mesh:TopicCompact%
 %Engine\Animation\Persona\Modes\Animation:TopicCompact%
 %Engine\Animation\Persona\Modes\Graph:TopicCompact%
+%Engine\Physics/PhAT/PhysicsAssetEditor:TopicCompact%
 [/REGION]
 [/EXCERPT]
 

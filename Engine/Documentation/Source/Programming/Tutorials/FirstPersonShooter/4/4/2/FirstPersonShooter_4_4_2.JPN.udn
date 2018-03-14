@@ -22,7 +22,7 @@ Version:4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 このステップでは、キャラクターがアイドル ステートからジャンプ スタートする機能を追加します。
 
@@ -38,4 +38,3 @@ Version:4.15
 
 	![](IsFallingtoResult.png)
 
-%Steps%

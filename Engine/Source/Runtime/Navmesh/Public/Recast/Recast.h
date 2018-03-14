@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -604,6 +604,13 @@ enum rcBuildContoursFlags
 	RC_CONTOUR_TESS_AREA_EDGES = 0x02,	///< Tessellate edges between areas during contour simplification.
 };
 
+// UE4
+enum rcFilterLowAreaFlags
+{
+	RC_LOW_FILTER_SEED_SPANS = 0x01,	///< initial seeding on spans
+	RC_LOW_FILTER_POST_PROCESS = 0x02,	///< additional filtering at the end
+};
+
 /// Applied to the region id field of contour vertices in order to extract the region id.
 /// The region id field of a vertex may have several flags applied to it.  So the
 /// fields value can't be used directly.
@@ -982,6 +989,7 @@ NAVMESH_API void rcFilterLedgeSpans(rcContext* ctx, const int walkableHeight,
 ///  								be considered walkable. [Limit: >= 3] [Units: vx]
 ///  @param[in,out]	solid			A fully built heightfield.  (All spans have been added.)
 NAVMESH_API void rcFilterWalkableLowHeightSpans(rcContext* ctx, int walkableHeight, rcHeightfield& solid);
+NAVMESH_API void rcFilterWalkableLowHeightSpansSequences(rcContext* ctx, int walkableHeight, rcHeightfield& solid);
 
 /// Returns the number of spans contained in the specified heightfield.
 ///  @ingroup recast
@@ -1023,10 +1031,12 @@ NAVMESH_API bool rcErodeWalkableArea(rcContext* ctx, int radius, rcCompactHeight
 ///  @param[in]		radius	The radius of erosion. [Limits: 0 < value < 255] [Units: vx]
 ///  @param[in]		height	Height threshold [Units: vx]
 ///  @param[in]		areaId	The area id to apply [Limit: <= @RC_WALKABLE_AREA]
+///  @param[in]		filterFlags	See: rcFilterLowAreaFlags
 ///  @param[in,out]	chf		The populated compact heightfield to erode.
 ///  @returns True if the operation completed successfully.
 NAVMESH_API bool rcErodeWalkableAndLowAreas(rcContext* ctx, int radius, unsigned int height,
-											unsigned char areaId, rcCompactHeightfield& chf);
+											unsigned char areaId, unsigned char filterFlags,
+											rcCompactHeightfield& chf);
 
 /// Applies a median filter to walkable area types (based on area id), removing noise.
 ///  @ingroup recast

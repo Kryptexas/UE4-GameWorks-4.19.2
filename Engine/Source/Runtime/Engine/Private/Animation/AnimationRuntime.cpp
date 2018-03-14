@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimationUE4.cpp: Animation runtime utilities
@@ -249,7 +249,7 @@ void FAnimationRuntime::BlendTwoPosesTogetherPerBone(
 	const FCompactPose& SourcePose2,
 	const FBlendedCurve& SourceCurve1,
 	const FBlendedCurve& SourceCurve2,
-	const TArray<float> WeightsOfSource2,
+	const TArray<float>& WeightsOfSource2,
 	/*out*/ FCompactPose& ResultPose,
 	/*out*/ FBlendedCurve& ResultCurve)
 {
@@ -519,6 +519,51 @@ void FAnimationRuntime::LerpPosesPerBone(FCompactPose& PoseA, const FCompactPose
 		// For now, replacing with combine (non-zero will be overridden)
 		// in the future, we might want to do this outside if we want per bone blend to apply curve also UE-39182
 		CurveA.Combine(CurveB);
+	}
+}
+
+void FAnimationRuntime::LerpPosesWithBoneIndexList(FCompactPose& PoseA, const FCompactPose& PoseB, FBlendedCurve& CurveA, const FBlendedCurve& CurveB, float Alpha, const TArray<FCompactPoseBoneIndex>& BoneIndices)
+{
+	// If pose A is full weight, we're set.
+	if (FAnimWeight::IsRelevant(Alpha))
+	{
+		// Make sure poses are compatible with each other.
+		check(&PoseA.GetBoneContainer() == &PoseB.GetBoneContainer());
+
+		// If pose 2 is full weight, just copy, no need to blend.
+		if (FAnimWeight::IsFullWeight(Alpha))
+		{
+			for (int32 Index = 0; Index < BoneIndices.Num(); Index++)
+			{
+				const FCompactPoseBoneIndex& BoneIndex = BoneIndices[Index];
+				PoseA[BoneIndex] = PoseB[BoneIndex];
+			}
+
+			CurveA.CopyFrom(CurveB);
+		}
+		else
+		{
+			const ScalarRegister VWeightOfPose1(1.f - Alpha);
+			const ScalarRegister VWeightOfPose2(Alpha);
+
+			for (int32 Index = 0; Index < BoneIndices.Num(); Index++)
+			{
+				const FCompactPoseBoneIndex& BoneIndex = BoneIndices[Index];
+
+				FTransform& InOutBoneTransform1 = PoseA[BoneIndex];
+				InOutBoneTransform1 *= VWeightOfPose1;
+
+				const FTransform& BoneTransform2 = PoseB[BoneIndex];
+				InOutBoneTransform1.AccumulateWithShortestRotation(BoneTransform2, VWeightOfPose2);
+				InOutBoneTransform1.NormalizeRotation();
+			}
+
+			// @note : This isn't perfect as curve can link to joint, and it would be the best to use that information
+			// but that is very expensive option as we have to have another indirect look up table to search. 
+			// For now, replacing with combine (non-zero will be overridden)
+			// in the future, we might want to do this outside if we want per bone blend to apply curve also UE-39182
+			CurveA.Combine(CurveB);
+		}
 	}
 }
 
@@ -1458,6 +1503,31 @@ void FAnimationRuntime::FillUpComponentSpaceTransforms(const FReferenceSkeleton&
 	}
 }
 
+void FAnimationRuntime::MakeSkeletonRefPoseFromMesh(const USkeletalMesh* InMesh, const USkeleton* InSkeleton, TArray<FTransform>& OutBoneBuffer)
+{
+	check(InMesh && InSkeleton);
+
+	const TArray<FTransform>& MeshRefPose = InMesh->RefSkeleton.GetRefBonePose();
+	const TArray<FTransform>& SkeletonRefPose = InSkeleton->GetReferenceSkeleton().GetRefBonePose();
+	const TArray<FMeshBoneInfo> & SkeletonBoneInfo = InSkeleton->GetReferenceSkeleton().GetRefBoneInfo();
+
+	OutBoneBuffer.Reset(SkeletonRefPose.Num());
+	OutBoneBuffer.AddUninitialized(SkeletonRefPose.Num());
+
+	for (int32 SkeletonBoneIndex = 0; SkeletonBoneIndex < SkeletonRefPose.Num(); ++SkeletonBoneIndex)
+	{
+		FName SkeletonBoneName = SkeletonBoneInfo[SkeletonBoneIndex].Name;
+		int32 MeshBoneIndex = InMesh->RefSkeleton.FindBoneIndex(SkeletonBoneName);
+		if (MeshBoneIndex != INDEX_NONE)
+		{
+			OutBoneBuffer[SkeletonBoneIndex] = MeshRefPose[MeshBoneIndex];
+		}
+		else
+		{
+			OutBoneBuffer[SkeletonBoneIndex] = FTransform::Identity;
+		}
+	}
+}
 #if WITH_EDITOR
 void FAnimationRuntime::FillUpComponentSpaceTransformsRefPose(const USkeleton* Skeleton, TArray<FTransform> &ComponentSpaceTransforms)
 {

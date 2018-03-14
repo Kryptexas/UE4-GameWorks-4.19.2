@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemIOSPrivatePCH.h"
 #include "HttpModule.h"
@@ -37,7 +37,7 @@ public:
 	{
 		if (!IOSSingleton.IsValid())
 		{
-			IOSSingleton = MakeShareable(new FOnlineSubsystemIOS(InstanceName));
+			IOSSingleton = MakeShared<FOnlineSubsystemIOS, ESPMode::ThreadSafe>(InstanceName);
 			if (IOSSingleton->IsEnabled())
 			{
 				if(!IOSSingleton->Init())

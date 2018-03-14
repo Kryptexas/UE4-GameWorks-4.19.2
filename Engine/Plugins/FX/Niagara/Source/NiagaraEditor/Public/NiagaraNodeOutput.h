@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,7 +22,11 @@ class UNiagaraNodeOutput : public UNiagaraNode
 	ENiagaraScriptUsage ScriptType;
 
 	UPROPERTY()
-	int32 ScriptTypeIndex;
+	FGuid ScriptTypeId;
+
+public:
+	UPROPERTY()
+	int32 ScriptTypeIndex_DEPRECATED;
 
 public:
 
@@ -43,16 +47,17 @@ public:
 	/** Notifies the node that it's output variables have been modified externally. */
 	void NotifyOutputVariablesChanged();
 
-	virtual void Compile(class FHlslNiagaraTranslator *Translator, TArray<int32>& OutputExpressions)override;
+	virtual void Compile(class FHlslNiagaraTranslator *Translator, TArray<int32>& OutputExpressions) override;
 	const TArray<FNiagaraVariable>& GetOutputs() const {return Outputs;}
 	
 	/** Gets the usage of this graph root. */
 	ENiagaraScriptUsage GetUsage() const { return ScriptType; }
 	void SetUsage(ENiagaraScriptUsage InUsage) { ScriptType = InUsage; }
 
-	/** Gets the usage index of this graph root. */
-	int32 GetUsageIndex() const { return ScriptTypeIndex; }
-	void SetUsageIndex(int32 InIndex) { ScriptTypeIndex = InIndex; }
+	/** Gets the id of the usage of this script.  For use when there are multiple scripts with the same usage e.g. Events. */
+	FGuid GetUsageId() const { return ScriptTypeId; }
+	void SetUsageId(FGuid InId) { ScriptTypeId = InId; }
+
 protected:
 	virtual int32 CompileInputPin(class FHlslNiagaraTranslator *Translator, UEdGraphPin* Pin) override;
 

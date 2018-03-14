@@ -18,11 +18,11 @@ Refer to each section below for more information and the **Paper 2D** map inside
 
 ## Starting Out
 
-[DIR(output:"topic" parent:"Engine/Paper2D" org:"hierarchy" path:"!Engine/Paper2D/HowTo")]
+[DIR(output:"topic" parent:"Engine/Paper2D" org:"hierarchy" type:"landing,overview,quick start, reference")]
 
 ## Guides
 
-[DIR(output:"fancy" parent:"Engine/Paper2D/HowTo" org:"hierarchy")]
+[DIR(output:"fancy" parent:"Engine/Paper2D/HowTo" org:"hierarchy" type:"how-to")]
 
 ## Video Series
 

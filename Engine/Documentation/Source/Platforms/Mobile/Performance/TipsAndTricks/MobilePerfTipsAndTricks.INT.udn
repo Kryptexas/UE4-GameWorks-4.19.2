@@ -8,40 +8,7 @@ parent:Platforms/Mobile
 order:6
 type:overview
 tags:mobile
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Platforms/Mobile/Performance/TipsAndTricks:title%](Platforms/Mobile/Performance/TipsAndTricks/perf_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Mobile/Performance/TipsAndTricks:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Mobile/Performance/TipsAndTricks:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Mobile/Performance/TipsAndTricks]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Platforms/Mobile/Ads:title%](Platforms/Mobile/Performance/TipsAndTricks/perf_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Mobile/Performance/TipsAndTricks:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Mobile/Performance/TipsAndTricks:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Mobile/Performance/TipsAndTricks]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:perf_topic.png
 
 This guide contains optimizations and techniques utilized in the Unreal Match 3 game to ensure that it performed as well as possible when played on supported mobile devices.
 
@@ -139,13 +106,15 @@ While Unreal Match 3 did not make use of LODs for Static Meshes, it did make use
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [REGION:imagetable]
 | ![](PLOD_Base_00.png) | ![](PLOD_LOD_00.png) |
 | --- | --- |
 | Base | LOD 1 |
 [/REGION]
--->
+
+[/COMMENT]
 
 The image above shows how the **P_Selected_Title** particle effect that shows your currently selected gem was optimized for lower-end devices. The left-hand image shows the base of the **P_Selected_Title** particle effect, which is meant for higher-end devices. If you look closely at this picture, you will notice that there are some small white squares in the particle effect. Now look at the right-hand image and you will see the same effect,  **P_Selected_Title**, but this time the small white squares are missing, as they have been completely removed from the effect's LOD to help Unreal Match 3 run better on lower-end mobile devices. However, this is only half of what needs to be done in order to get this working.  The next step requires that you define which mobile devices should use the main particle effect and which mobile devices should use the various LODs based on the main particle effect. To do this, first open up DefaultDeviceProfiles.ini in a text editor and look for the **Android_Low DeviceProfile** entry, which is shown in the image below.
 
@@ -186,10 +155,12 @@ If you take a look at the Material that was used for the Character in Unreal Mat
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [REGION:imagetable]
 | ![](Lighting_Default_Theme.png)(w:320) | ![](Lighting_Night_Theme.png)(w:320) |
 | --- | --- |
 | Default Theme | Night Theme |
 [/REGION]
--->
+
+[/COMMENT]

@@ -1,0 +1,35 @@
+﻿INTSourceChangelist:3622565
+Availability:Public
+Crumbs: %ROOT% 
+Title:Gear VR の操作ガイド
+Description:Gear VR およびアンリアル エンジン 4 の段階的な操作ガイド
+Type: how-to
+Version:4.17
+Parent:Platforms/GearVR
+Order:1
+Tags:VR
+topic-image:GearVR_How_To_Header.png
+
+Gear VR とアンリアル エンジン 4 を連携させて使用する方法を段階的に説明します。
+
+## 初心者向け
+
+初心者向けガイドでは、UE4 プロジェクト カメラを Gear VR HMD で使用できるように設定し、さらに Gear VR プロジェクトのサイズを小さくする方法を説明します。
+
+[DIR(end:"1" output:"topic" type:"how-to" tags:"Basics" parent:"Platforms/GearVR")]
+
+## 中級者向け
+
+中級者向けガイドでは、Gear VR コントローラーの使用方法および Gear VR Global Menu の設定方法を説明します。
+
+[DIR(end:"1" output:"topic" type:"how-to" tags:"GearVR" parent:"Platforms/GearVR")]
+
+## 上級者向け
+
+上級者向けガイドでは、Gear VR プロジェクトのデバッグ方法を説明します。 
+
+[DIR(end:"1" output:"topic" type:"how-to" tags:"GearVR" parent:"Platforms/GearVR")]
+
+
+
+

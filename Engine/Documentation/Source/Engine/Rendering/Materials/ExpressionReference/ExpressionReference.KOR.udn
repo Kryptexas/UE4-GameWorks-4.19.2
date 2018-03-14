@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3242329
+﻿INTSourceChangelist:3782314
 Availability: Public
 title:머티리얼 표현식 참고서
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -184,7 +184,8 @@ tags:Materials
 		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/Particles]
 	[/PARAM]
 [/OBJECT]
-<!---
+[COMMENT:none]
+-
 [OBJECT:TopicCompact]
 	[PARAM:image]
 		![%Engine/Rendering/Materials/ExpressionReference/Parameters:title%](exp_parameter.png)
@@ -196,7 +197,8 @@ tags:Materials
 		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/SpeedTree]
 	[/PARAM]
 [/OBJECT]
---->
+-
+[/COMMENT]
 [OBJECT:TopicCompact]
 	[PARAM:image]
 		![%Engine/Rendering/Materials/ExpressionReference/Landscape:title%](exp_landscape.png)
@@ -419,12 +421,14 @@ tags:Materials
 * [ParticleSubUV](Engine/Rendering/Materials\ExpressionReference\Particles#ParticleSubUV)
 * [TextureSampleParameterSubUV](Engine/Rendering/Materials\ExpressionReference\Particles#TextureSampleParameterSubUV)
 [/REGION]
-<!---
+[COMMENT:none]
+-
 [**SpeedTree**](Engine/Rendering/Materials\ExpressionReference\SpeedTree)
 [REGION:indentedlist]
 * [SpeedTree](Engine/Rendering/Materials\ExpressionReference\SpeedTree#스피드트리)
 [/REGION]
---->
+-
+[/COMMENT]
 [**Terrain**](Engine/Rendering/Materials\ExpressionReference\Landscape)
 [REGION:indentedlist]
 * [LanscapeLayerBlend](Engine/Rendering/Materials\ExpressionReference\Landscape#LandscapeLayerBlend)
@@ -437,7 +441,9 @@ tags:Materials
 * [FontSample](Engine/Rendering/Materials\ExpressionReference\Textures#FontSample)
 * [FontSampleParameter](Engine/Rendering/Materials\ExpressionReference\Textures#FontSampleParameter)
 * [SceneColor](Engine/Rendering/Materials\ExpressionReference\Textures#SceneColor)
-<!--* [SceneTexture](Engine/Rendering/Materials\ExpressionReference\Textures#SceneTexture)-->
+[COMMENT:none]
+* [SceneTexture](Engine/Rendering/Materials\ExpressionReference\Textures#SceneTexture)
+[/COMMENT]
 * [TextureObject](Engine/Rendering/Materials\ExpressionReference\Textures#TextureObject)
 * [TextureSample](Engine/Rendering/Materials\ExpressionReference\Textures#TextureSample)
 [/REGION]
@@ -453,7 +459,9 @@ tags:Materials
 * [DepthOfFieldFunction](Engine/Rendering/Materials\ExpressionReference\Utility#DepthOfFieldFunction)
 * [Desaturation](Engine/Rendering/Materials\ExpressionReference\Utility#Desaturation)
 * [Distance](Engine/Rendering/Materials\ExpressionReference\Utility#Distance)
-<!--* [FeatureLevelSwitch](Engine/Rendering/Materials\ExpressionReference\Utility#FeatureLevelSwitch)-->
+[COMMENT:none]
+* [FeatureLevelSwitch](Engine/Rendering/Materials\ExpressionReference\Utility#FeatureLevelSwitch)
+[/COMMENT]
 * [Fresnel](Engine/Rendering/Materials\ExpressionReference\Utility#Fresnel)
 * [LightmassReplace](Engine/Rendering/Materials\ExpressionReference\Utility#LightmassReplace)
 * [LinearInterpolate](Engine/Rendering/Materials\ExpressionReference\Utility#LinearInterpolate)

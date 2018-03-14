@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 DynamicRHI.h: Dynamically bound Render Hardware Interface definitions.
@@ -51,6 +51,26 @@ struct FUpdateTexture3DData
 
 private:
 	FUpdateTexture3DData();
+};
+
+/** Struct to provide details of swap chain flips */
+struct FRHIFlipDetails
+{
+	uint64 PresentIndex;
+	double FlipTimeInSeconds;
+	double VBlankTimeInSeconds;
+
+	FRHIFlipDetails()
+		: PresentIndex(0)
+		, FlipTimeInSeconds(0)
+		, VBlankTimeInSeconds(0)
+	{}
+
+	FRHIFlipDetails(uint64 InPresentIndex, double InFlipTimeInSeconds, double InVBlankTimeInSeconds)
+		: PresentIndex(InPresentIndex)
+		, FlipTimeInSeconds(InFlipTimeInSeconds)
+		, VBlankTimeInSeconds(InVBlankTimeInSeconds)
+	{}
 };
 
 /** The interface which is implemented by the dynamically bound RHI. */
@@ -679,6 +699,11 @@ public:
 	{
 		return FUnorderedAccessViewRHIRef();
 	}
+	
+	virtual FTexture2DRHIRef RHIGetFMaskTexture(FTextureRHIParamRef SourceTextureRHI)
+	{
+		return nullptr;
+	}
 
 	// Only relevant with an RHI thread, this advances the backbuffer for the purpose of GetViewportBackBuffer
 	// FlushType: Thread safe
@@ -790,6 +815,15 @@ public:
 	// FlushType: Wait RHI Thread
 	virtual void RHIVirtualTextureSetFirstMipVisible(FTexture2DRHIParamRef Texture, uint32 FirstMip) = 0;
 
+	/**
+	* Called once per frame just before deferred deletion in FRHIResource::FlushPendingDeletes
+	*/
+	// FlushType: called from render thread when RHI thread is flushed 
+	virtual void RHIPerFrameRHIFlushComplete()
+	{
+
+	}
+
 	// FlushType: Wait RHI Thread
 	virtual void RHIExecuteCommandList(FRHICommandList* CmdList) = 0;
 
@@ -888,10 +922,16 @@ public:
 	//checks if the GPU is still alive.
 	virtual bool CheckGpuHeartbeat() const { return true; }
 
+	virtual void VirtualTextureSetFirstMipInMemory_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture, uint32 FirstMip);
+	virtual void VirtualTextureSetFirstMipVisible_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture, uint32 FirstMip);
+
 	/* Copy the source box pixels in the destination box texture, return true if implemented for the current platform*/
 	virtual void RHICopySubTextureRegion_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef SourceTexture, FTexture2DRHIParamRef DestinationTexture, FBox2D SourceBox, FBox2D DestinationBox);
 	virtual void RHICopySubTextureRegion(FTexture2DRHIParamRef SourceTexture, FTexture2DRHIParamRef DestinationTexture, FBox2D SourceBox, FBox2D DestinationBox) { }
 	
+	virtual FRHIFlipDetails RHIWaitForFlip(double TimeoutInSeconds) { return FRHIFlipDetails(); }
+	virtual void RHISignalFlipEvent() { }
+
 protected:
 	TArray<uint32> PixelFormatBlockBytes;
 };
@@ -987,6 +1027,11 @@ FORCEINLINE bool RHIGetRenderQueryResult(FRenderQueryRHIParamRef RenderQuery, ui
 FORCEINLINE FTexture2DRHIRef RHIGetViewportBackBuffer(FViewportRHIParamRef Viewport)
 {
 	return GDynamicRHI->RHIGetViewportBackBuffer(Viewport);
+}
+
+FORCEINLINE FTexture2DRHIRef RHIGetFMaskTexture(FTextureRHIParamRef SourceTextureRHI)
+{
+	return GDynamicRHI->RHIGetFMaskTexture(SourceTextureRHI);
 }
 
 FORCEINLINE void RHIAdvanceFrameForGetViewportBackBuffer(FViewportRHIParamRef Viewport)

@@ -25,11 +25,13 @@
     <ClInclude Include="..\..\inc\btMinMax.h" />
     <ClInclude Include="..\..\inc\btScalar.h" />
     <ClInclude Include="..\..\inc\btVector3.h" />
+    <ClInclude Include="..\..\inc\FloatMath.h" />
     <ClInclude Include="..\..\inc\vhacdCircularList.h" />
     <ClInclude Include="..\..\inc\vhacdICHull.h" />
     <ClInclude Include="..\..\inc\vhacdManifoldMesh.h" />
     <ClInclude Include="..\..\inc\vhacdMesh.h" />
     <ClInclude Include="..\..\inc\vhacdMutex.h" />
+    <ClInclude Include="..\..\inc\vhacdRaycastMesh.h" />
     <ClInclude Include="..\..\inc\vhacdSArray.h" />
     <ClInclude Include="..\..\inc\vhacdTimer.h" />
     <ClInclude Include="..\..\inc\vhacdVector.h" />
@@ -44,10 +46,13 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\btAlignedAllocator.cpp" />
     <ClCompile Include="..\..\src\btConvexHullComputer.cpp" />
+    <ClCompile Include="..\..\src\FloatMath.cpp" />
+    <ClCompile Include="..\..\src\VHACD-ASYNC.cpp" />
     <ClCompile Include="..\..\src\VHACD.cpp" />
     <ClCompile Include="..\..\src\vhacdICHull.cpp" />
     <ClCompile Include="..\..\src\vhacdManifoldMesh.cpp" />
     <ClCompile Include="..\..\src\vhacdMesh.cpp" />
+    <ClCompile Include="..\..\src\vhacdRaycastMesh.cpp" />
     <ClCompile Include="..\..\src\vhacdVolume.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

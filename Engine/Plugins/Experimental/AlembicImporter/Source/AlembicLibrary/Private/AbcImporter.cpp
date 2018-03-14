@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AbcImporter.h"
 
@@ -31,6 +31,7 @@ THIRD_PARTY_INCLUDES_END
 #include "Engine/SkeletalMesh.h"
 #include "SkelImport.h"
 #include "Animation/AnimSequence.h"
+#include "Rendering/SkeletalMeshModel.h"
 
 #include "AbcImportUtilities.h"
 #include "Runnables/AbcMeshDataImportRunnable.h"
@@ -50,6 +51,7 @@ THIRD_PARTY_INCLUDES_END
 #include "AbcAssetImportData.h"
 
 #include "AssetRegistryModule.h"
+#include "AnimationUtils.h"
 
 #define LOCTEXT_NAMESPACE "AbcImporter"
 
@@ -1049,17 +1051,16 @@ TArray<UObject*> FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFl
 		SkeletalMesh->PreEditChange(NULL);
 
 		// Retrieve the imported resource structure and allocate a new LOD model
-		FSkeletalMeshResource* ImportedResource = SkeletalMesh->GetImportedResource();
-		check(ImportedResource->LODModels.Num() == 0);
-		ImportedResource->LODModels.Empty();
-		new(ImportedResource->LODModels)FStaticLODModel();
+		FSkeletalMeshModel* ImportedModel = SkeletalMesh->GetImportedModel();
+		check(ImportedModel->LODModels.Num() == 0);
+		ImportedModel->LODModels.Empty();
+		new(ImportedModel->LODModels)FSkeletalMeshLODModel();
 		SkeletalMesh->LODInfo.Empty();
 		SkeletalMesh->LODInfo.AddZeroed();
-		FStaticLODModel& LODModel = ImportedResource->LODModels[0];
-		SkeletalMesh->LODInfo[0].TriangleSortSettings.AddZeroed(LODModel.Sections.Num());
+		FSkeletalMeshLODModel& LODModel = ImportedModel->LODModels[0];
 
 		const FMeshBoneInfo BoneInfo(FName(TEXT("RootBone"), FNAME_Add), TEXT("RootBone_Export"), INDEX_NONE);
-		const FTransform BoneTransform;
+		const FTransform BoneTransform(ImportData->ArchiveBounds.GetBox().GetCenter());
 		{
 			FReferenceSkeletonModifier RefSkelModifier(SkeletalMesh->RefSkeleton, SkeletalMesh->Skeleton);
 			RefSkelModifier.Add(BoneInfo, BoneTransform);
@@ -1071,9 +1072,9 @@ TArray<UObject*> FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFl
 		{
 			AbcImporterUtilities::AppendMeshSample(MergedMeshSample, Data.AverageSample);
 		}
-		
+
 		// Forced to 1
-		ImportedResource->LODModels[0].NumTexCoords = MergedMeshSample->NumUVSets;
+		ImportedModel->LODModels[0].NumTexCoords = MergedMeshSample->NumUVSets;
 		SkeletalMesh->bHasVertexColors = true;
 
 		/* Bounding box according to animation */
@@ -1137,7 +1138,7 @@ TArray<UObject*> FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFl
 					// Setup morph target vertices directly
 					TArray<FMorphTargetDelta> MorphDeltas;
 					GenerateMorphTargetVertices(BaseSample, MorphDeltas, AverageSample, WedgeOffset, MorphTargetVertexRemapping, UsedVertexIndicesForMorphs, VertexOffset, WedgeOffset);
-					MorphTarget->PopulateDeltas(MorphDeltas, 0);
+					MorphTarget->PopulateDeltas(MorphDeltas, 0, LODModel.Sections);
 
 					const float PercentageOfVerticesInfluences = ((float)MorphTarget->MorphLODModels[0].Vertices.Num() / (float)NumIndices) * 100.0f;
 					if (PercentageOfVerticesInfluences > ImportData->ImportSettings->CompressionSettings.MinimumNumberOfVertexInfluencePercentage)
@@ -1179,7 +1180,8 @@ TArray<UObject*> FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFl
 		}
 		
 		// Set recompute tangent flag on skeletal mesh sections
-		for (FSkelMeshSection& Section : SkeletalMesh->GetSourceModel().Sections)
+		FSkeletalMeshModel* SkelResource = SkeletalMesh->GetImportedModel();
+		for (FSkelMeshSection& Section : SkelResource->LODModels[0].Sections)
 		{
 			Section.bRecomputeTangent = true;
 		}
@@ -1191,6 +1193,7 @@ TArray<UObject*> FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFl
 		// Retrieve the name mapping container
 		const FSmartNameMapping* NameMapping = Skeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
 		Sequence->RawCurveData.RefreshName(NameMapping);
+		Sequence->CompressionScheme = FAnimationUtils::GetDefaultAnimationCompressionAlgorithm();
 		Sequence->MarkRawDataAsModified();
 		Sequence->PostEditChange();
 		Sequence->SetPreviewMesh(SkeletalMesh);
@@ -1655,7 +1658,7 @@ void FAbcImporter::GenerateGeometryCacheMeshDataForSample(FGeometryCacheMeshData
 
 			Vertex.Position = MeshSample->Vertices[Index];
 			Vertex.SetTangents(MeshSample->TangentX[CornerIndex], MeshSample->TangentY[CornerIndex], MeshSample->Normals[CornerIndex]);
-			Vertex.TextureCoordinate = MeshSample->UVs[0][CornerIndex];
+			Vertex.TextureCoordinate[0] = MeshSample->UVs[0][CornerIndex];
 			Vertex.Color = MeshSample->Colors[CornerIndex].ToFColor(false);
 
 			Section.Add(CornerIndex);
@@ -1678,7 +1681,7 @@ void FAbcImporter::GenerateGeometryCacheMeshDataForSample(FGeometryCacheMeshData
 }
 
 bool FAbcImporter::BuildSkeletalMesh(
-	FStaticLODModel& LODModel,
+	FSkeletalMeshLODModel& LODModel,
 	const FReferenceSkeleton& RefSkeleton,
 	FAbcMeshSample* Sample,
 	/*const TArray<FVector>& Vertices,
@@ -1755,10 +1758,7 @@ bool FAbcImporter::BuildSkeletalMesh(
 	// Create Skeletal mesh LOD sections
 	LODModel.Sections.Empty(MeshSections.Num());
 	LODModel.NumVertices = 0;
-	if (LODModel.MultiSizeIndexContainer.IsIndexBufferValid())
-	{
-		LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Empty();
-	}
+	LODModel.IndexBuffer.Empty();
 
 	TArray<uint32> RawPointIndices;
 	TArray< TArray<uint32> > VertexIndexRemap;
@@ -1868,7 +1868,6 @@ bool FAbcImporter::BuildSkeletalMesh(
 		FMemory::Memcpy(Dest, RawPointIndices.GetData(), LODModel.RawPointIndices.GetBulkDataSize());
 		LODModel.RawPointIndices.Unlock();
 	}
-	LODModel.MultiSizeIndexContainer.CreateIndexBuffer((LODModel.NumVertices < MAX_uint16) ? sizeof(uint16) : sizeof(uint32));
 
 	// Finish building the sections.
 	for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
@@ -1876,29 +1875,15 @@ bool FAbcImporter::BuildSkeletalMesh(
 		FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
 
 		const TArray<uint32>& SectionIndices = MeshSections[SectionIndex].Indices;
-		FRawStaticIndexBuffer16or32Interface* IndexBuffer = LODModel.MultiSizeIndexContainer.GetIndexBuffer();
-		Section.BaseIndex = IndexBuffer->Num();
+		Section.BaseIndex = LODModel.IndexBuffer.Num();
 		const int32 NumIndices = SectionIndices.Num();
 		const TArray<uint32>& SectionVertexIndexRemap = VertexIndexRemap[SectionIndex];
 		for (int32 Index = 0; Index < NumIndices; Index++)
 		{
 			uint32 VertexIndex = SectionVertexIndexRemap[Index];
-			IndexBuffer->AddItem(VertexIndex);
+			LODModel.IndexBuffer.Add(VertexIndex);
 		}
 	}
-
-	// Build the adjacency index buffer used for tessellation.
-	TArray<FSoftSkinVertex> SoftSkinVertices;
-	LODModel.GetVertices(SoftSkinVertices);
-
-	FMultiSizeIndexContainerData IndexData;
-	LODModel.MultiSizeIndexContainer.GetIndexBufferData(IndexData);
-
-	FMultiSizeIndexContainerData AdjacencyIndexData;
-	AdjacencyIndexData.DataTypeSize = IndexData.DataTypeSize;
-
-	MeshUtilities.BuildSkeletalAdjacencyIndexBuffer(SoftSkinVertices, LODModel.NumTexCoords, IndexData.Indices, AdjacencyIndexData.Indices);
-	LODModel.AdjacencyMultiSizeIndexContainer.RebuildIndexBuffer(AdjacencyIndexData);
 
 	// Compute the required bones for this model.
 	USkeletalMesh::CalculateRequiredBones(LODModel, RefSkeleton, NULL);

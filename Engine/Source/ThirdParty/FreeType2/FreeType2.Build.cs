@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -8,7 +8,7 @@ public class FreeType2 : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		Definitions.Add("WITH_FREETYPE=1");
+		PublicDefinitions.Add("WITH_FREETYPE=1");
 
 		string FreeType2Path;
 		string FreeType2LibPath;

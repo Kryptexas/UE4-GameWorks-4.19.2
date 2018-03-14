@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3478014
+﻿INTSourceChangelist:3782314
 Availability:Docs
 Title:1.Widget ブループリントの設定
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo, Engine\UMG\HowTo\Create3DWidgets
@@ -28,7 +28,7 @@ Order:1
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 3D ワールド空間でウィジェットを表示できるようにするには、まず表示する [Widget ブループリント](Engine/UMG/UserGuide/WidgetBlueprints) を作成しなければなりません。このチュートリアルでは、プレイヤーがナビゲートできる 3D メニューを作成しますが、この手法を使ってあらゆるタイプの 3D ウィジェットを作成することができます (ヘルスバー、インタラクティブなワールド内の UI エレメントなど)。
 
@@ -125,7 +125,7 @@ Order:1
 
 Widget ブループリントのセットアップが完成し、これを Actor ブループリント内の **Widget コンポーネント** として使用することができますが、この後で設定します。このチュートリアルではクリックしたときのボタンの機能は設定しませんが、少なくともこれは 3D ワールド空間でナビゲーションできるマウスの操作に反応するメニューになり、作業開始の考え方を示しています。
 
-%Steps%
+
 
 
 

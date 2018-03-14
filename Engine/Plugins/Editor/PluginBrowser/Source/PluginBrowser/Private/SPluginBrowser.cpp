@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SPluginBrowser.h"
 #include "Misc/App.h"
@@ -40,6 +40,10 @@ void SPluginBrowser::Construct( const FArguments& Args )
 	// Get the root directories which contain plugins
 	TArray<FString> WatchDirectoryNames;
 	WatchDirectoryNames.Add(FPaths::EnginePluginsDir());
+	if (FPaths::DirectoryExists(FPaths::EnterprisePluginsDir()))
+	{
+		WatchDirectoryNames.Add(FPaths::EnterprisePluginsDir());
+	}
 	if(FApp::HasProjectName())
 	{
 		WatchDirectoryNames.Add(FPaths::ProjectPluginsDir());
@@ -164,6 +168,46 @@ void SPluginBrowser::Construct( const FArguments& Args )
 					]
 				]
 			]
+
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(FMargin(PaddingAmount, PaddingAmount, PaddingAmount, 0.0f))
+			[
+				SNew(SBorder)
+				.BorderBackgroundColor(FLinearColor::Yellow)
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				.Padding(8.0f)
+				.Visibility(this, &SPluginBrowser::HandleUpgradeToUnrealStudioVisibility)
+				[
+					SNew( SHorizontalBox )
+
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					.Padding(FMargin(0.0f, 0.0f, 8.0f, 0.0f))
+					[
+						SNew(SImage)
+						.Image(FPluginStyle::Get()->GetBrush("Plugins.Warning"))
+					]
+
+					+SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("PluginSettingsUpgradeToStudioNotice", "The current project is not an Unreal Studio project. Click 'Convert Project & Restart' to use Unreal Studio plugins."))
+					]
+
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Right)
+					[
+						SNew(SButton)
+						.Text(LOCTEXT("PluginSettingsUpgradeToStudio", "Convert Project & Restart"))
+						.OnClicked(this, &SPluginBrowser::HandleUpgradeToUnrealStudioButtonClicked)
+					]
+				]
+			]
 		]
 	];
 
@@ -197,6 +241,26 @@ EVisibility SPluginBrowser::HandleRestartEditorNoticeVisibility() const
 	return FPluginBrowserModule::Get().HasPluginsPendingEnable() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
+EVisibility SPluginBrowser::HandleUpgradeToUnrealStudioVisibility() const
+{
+	const FProjectDescriptor* CurrentProject = IProjectManager::Get().GetCurrentProject();
+
+	TSharedPtr< FPluginCategory > SelectedCategory = GetSelectedCategory();
+
+	// Don't display the message for the root category or the project is an Unreal Studio project
+	if ( SelectedCategory.IsValid() && SelectedCategory->ParentCategory.IsValid() && !IProjectManager::Get().IsEnterpriseProject() ) 
+	{
+		for ( TSharedRef< IPlugin >& Plugin : SelectedCategory->Plugins )
+		{
+			if ( Plugin->GetType() == EPluginType::Enterprise )
+			{
+				return EVisibility::Visible;
+			}
+		}
+	}
+
+	return EVisibility::Collapsed;
+}
 
 FReply SPluginBrowser::HandleRestartEditorButtonClicked() const
 {
@@ -205,6 +269,23 @@ FReply SPluginBrowser::HandleRestartEditorButtonClicked() const
 	return FReply::Handled();
 }
 
+FReply SPluginBrowser::HandleUpgradeToUnrealStudioButtonClicked() const
+{
+	if ( IProjectManager::Get().GetCurrentProject() )
+	{
+		FGameProjectGenerationModule::Get().TryMakeProjectFileWriteable(FPaths::GetProjectFilePath());
+
+		IProjectManager::Get().SetIsEnterpriseProject(true);
+
+		FText FailMessage;
+		IProjectManager::Get().SaveCurrentProjectToDisk(FailMessage);
+
+		const bool bWarn = false;
+		FUnrealEdMisc::Get().RestartEditor(bWarn);
+	}
+	
+	return FReply::Handled();
+}
 
 void SPluginBrowser::SearchBox_OnPluginSearchTextChanged( const FText& NewText )
 {

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3332303
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 5 - 직접 해보기!
 Crumbs:
@@ -25,7 +25,7 @@ SkillLevel:Beginner
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 생산성을 향상시키는 한 가지 방법은 터미널에서 실행되는 커스텀 셸 스크립트를 작성하는 것입니다. 리눅스에서 셸 스크립트 작성법을 아시는 경우, 
 UE4 셋업 및 빌드 프로세스를 자동화시키는 스크립트를 만들어 보세요.
@@ -48,4 +48,3 @@ UE4 프로젝트 제작을 빨리 시작하는 법을 찾고 계시는 경우, �
 *	[](Programming/QuickStart)
 *	[](Engine/QuickStart)
 
-%Steps%

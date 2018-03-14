@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3339965
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:7.テストと次のステップ
 Crumbs:%ROOT%
@@ -12,11 +12,15 @@ topic-image:Modding/RoboRecall/RoboRecall_Topic.png
 social-image:Modding/RoboRecall/RoboRecall_Social.png
 checkpoint:mod_extend
 
-<!-- Location:Modding/RoboRecall/Quickstarts/WeaponMod/7 -->
+[COMMENT:none]
+ Location:Modding/RoboRecall/Quickstarts/WeaponMod/7 
+[/COMMENT]
 
 [NAV]
 
-<!-- Title Image if Needed Here -->
+[COMMENT:none]
+ Title Image if Needed Here 
+[/COMMENT]
 
 カスタム ピストルが完成した状態で、ハブ レべルのロード中に **[Play]** をクリックすると、mod メニューから GrenadeGunPistol を有効にすることができます。これで Gun Range を使ってターゲットに向けて銃を投げて爆発させることができます。
 

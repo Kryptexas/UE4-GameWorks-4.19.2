@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -173,10 +173,13 @@ public:
 	 * @param UserIndex the local talker that is having their data read
 	 * @param Data the buffer to copy the voice data into
 	 * @param Size in: the size of the buffer, out: the amount of data copied
+	 * @param OutSampleCount: Optional parameter for the starting sample of this voice data.
+	 *        Used for sorting packets received out of order.
 	 *
 	 * @return 0 upon success, an error code otherwise
 	 */
 	virtual uint32 ReadLocalVoiceData(uint32 LocalUserNum, uint8* Data, uint32* Size) = 0;
+	virtual uint32 ReadLocalVoiceData(uint32 LocalUserNum, uint8* Data, uint32* Size, uint64* OutSampleCount) { return ReadLocalVoiceData(LocalUserNum, Data, Size); };
 
 	/**
 	 * Submits remote voice data for playback by the voice system. No playback
@@ -187,10 +190,13 @@ public:
 	 * @param RemoteTalkerId the remote talker that sent this data
 	 * @param Data the buffer to copy the voice data into
 	 * @param Size in: the size of the buffer, out: the amount of data copied
+	 * @param InSampleCount optional parameter for the starting sample of this voice packet.
+	 *        Used for sorting packets received out of order.
 	 *
 	 * @return 0 upon success, an error code otherwise
 	 */
 	virtual uint32 SubmitRemoteVoiceData(const FUniqueNetId& RemoteTalkerId, uint8* Data, uint32* Size) = 0;
+	virtual uint32 SubmitRemoteVoiceData(const FUniqueNetIdWrapper& RemoteTalkerId, uint8* Data, uint32* Size, uint64& InSampleCount) { return SubmitRemoteVoiceData(*RemoteTalkerId, Data, Size); };
 
 	/**
 	 * Allows for platform specific servicing of devices, etc.

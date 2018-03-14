@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "XmppStrophe/XmppMultiUserChatStrophe.h"
 #include "XmppStrophe/XmppConnectionStrophe.h"
@@ -68,11 +68,26 @@ bool FXmppMultiUserChatStrophe::ReceiveStanza(const FStropheStanza& IncomingStan
 			return false;
 		}
 
-		// Config sets/gets are don't have queries in the "muc owner" namespace, so filter those out
+		// Config sets/gets (what we're caring about here) don't have queries in the "muc owner" namespace, so filter out those who do
 		TOptional<const FStropheStanza> QueryStanza = IncomingStanza.GetChildByNameAndNamespace(Strophe::SN_QUERY, Strophe::SNS_MUC_OWNER);
 		if (!QueryStanza.IsSet())
 		{
-			if (IncomingStanza.GetType() != Strophe::ST_ERROR)
+			const FString StanzaType = IncomingStanza.GetType();
+			if (StanzaType == Strophe::ST_RESULT)
+			{
+				// If this is a result type, check the FromJid for JUST a domain (i.e. the server), and drop it if it is
+				// These are replies to pings (pongs), and until we keep track of what IDs we use for sent-pings, this filter
+				// method will have to do
+				const FXmppUserJid FromUser(IncomingStanza.GetFrom());
+				const bool bMessageFromOnlyDomain = FromUser.Id.IsEmpty() && !FromUser.Domain.IsEmpty() && FromUser.Resource.IsEmpty();
+				if (bMessageFromOnlyDomain)
+				{
+					// Ignore pongs
+					return false;
+				}
+			}
+
+			if (StanzaType != Strophe::ST_ERROR)
 			{
 				return HandleRoomConfigStanza(IncomingStanza);
 			}
@@ -976,7 +991,7 @@ void FXmppMultiUserChatStrophe::OnReceiveRoomConfigSuccess(FXmppRoomId&& RoomId)
 				break;
 			}
 
-			UE_LOG(LogXmpp, Verbose, TEXT("MUC: OnReceiveRoomConfigSuccess Recieved success for room %s"), *RoomId);
+			UE_LOG(LogXmpp, Verbose, TEXT("MUC: OnReceiveRoomConfigSuccess Received success for room %s"), *RoomId);
 		}
 		else
 		{

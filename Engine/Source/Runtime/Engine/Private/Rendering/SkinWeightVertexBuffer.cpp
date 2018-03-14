@@ -1,8 +1,8 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Rendering/SkinWeightVertexBuffer.h"
-#include "SkeletalMeshTypes.h"
 #include "EngineUtils.h"
+#include "Rendering/SkeletalMeshLODModel.h"
 
 ///
 
@@ -54,6 +54,8 @@ bool FSkinWeightVertexBuffer::IsWeightDataValid() const
 	return WeightData != NULL;
 }
 
+#if WITH_EDITOR
+
 void FSkinWeightVertexBuffer::Init(const TArray<FSoftSkinVertex>& InVertices)
 {
 	// Make sure if this is console, use compressed otherwise, use not compressed
@@ -85,6 +87,9 @@ void FSkinWeightVertexBuffer::Init(const TArray<FSoftSkinVertex>& InVertices)
 		}
 	}
 }
+
+#endif // WITH_EDITOR
+
 
 FArchive& operator<<(FArchive& Ar, FSkinWeightVertexBuffer& VertexBuffer)
 {
@@ -129,15 +134,19 @@ void FSkinWeightVertexBuffer::InitRHI()
 
 		// BUF_ShaderResource is needed for support of the SkinCache (we could make is dependent on GEnableGPUSkinCacheShaders or are there other users?)
 		VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(), BUF_Static | BUF_ShaderResource, CreateInfo);
-		SRVValue = RHICreateShaderResourceView(VertexBufferRHI, 4, PF_R32_UINT);
+
+		if (GSupportsResourceView)
+		{
+			SRVValue = RHICreateShaderResourceView(VertexBufferRHI, 4, PF_R32_UINT);
+		}
 	}
 }
 
 void FSkinWeightVertexBuffer::ReleaseRHI()
 {
-	FVertexBuffer::ReleaseRHI();
-
 	SRVValue.SafeRelease();
+
+	FVertexBuffer::ReleaseRHI();
 }
 
 
@@ -158,6 +167,8 @@ void FSkinWeightVertexBuffer::AllocateData()
 	}
 }
 
+#if WITH_EDITOR
+
 template <bool bExtraBoneInfluencesT>
 void FSkinWeightVertexBuffer::SetWeightsForVertex(uint32 VertexIndex, const FSoftSkinVertex& SrcVertex)
 {
@@ -166,3 +177,5 @@ void FSkinWeightVertexBuffer::SetWeightsForVertex(uint32 VertexIndex, const FSof
 	FMemory::Memcpy(VertBase->InfluenceBones, SrcVertex.InfluenceBones, TSkinWeightInfo<bExtraBoneInfluencesT>::NumInfluences);
 	FMemory::Memcpy(VertBase->InfluenceWeights, SrcVertex.InfluenceWeights, TSkinWeightInfo<bExtraBoneInfluencesT>::NumInfluences);
 }
+
+#endif //WITH_EDITOR

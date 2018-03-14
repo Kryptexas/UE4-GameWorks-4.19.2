@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -118,7 +118,7 @@ public:
 	 *
 	 * @return	true if it succeeds, false if it fails.
 	 */
-	bool CreatePinForVariable(EEdGraphPinDirection Direction, FString InPinName = FString());
+	bool CreatePinForVariable(EEdGraphPinDirection Direction, FName InPinName = NAME_None);
 
 	/** Creates 'self' pin */
 	void CreatePinForSelf();
@@ -132,7 +132,7 @@ public:
 	 *
 	 * @return	true if it succeeds, false if it fails.
 	 */
-	bool RecreatePinForVariable(EEdGraphPinDirection Direction, TArray<UEdGraphPin*>& OldPins, FString InPinName = FString());
+	bool RecreatePinForVariable(EEdGraphPinDirection Direction, TArray<UEdGraphPin*>& OldPins, FName InPinName = NAME_None);
 
 	/** Get the class to look for this variable in */
 	UClass* GetVariableSourceClass() const;
@@ -140,6 +140,9 @@ public:
 	/** Get the UProperty for this variable node */
 	UProperty* GetPropertyForVariable() const;
 	UProperty* GetPropertyForVariableFromSkeleton() const;
+
+	/** Returns true if the variable names match, this looks for redirectors */
+	static bool DoesRenamedVariableMatch(FName OldVariableName, FName NewVariableName, UStruct* StructType);
 
 private:
 	UProperty* GetPropertyForVariable_Internal(UClass* OwningClass) const;

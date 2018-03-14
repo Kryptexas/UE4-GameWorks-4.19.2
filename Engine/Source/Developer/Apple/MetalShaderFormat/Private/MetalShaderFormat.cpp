@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MetalShaderFormat.h"
 #include "ModuleInterface.h"
@@ -21,7 +21,7 @@ extern bool FinalizeLibrary_Metal(class FName const& Format, class FString const
 
 static FName NAME_SF_METAL(TEXT("SF_METAL"));
 static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
-static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
+static FName NAME_SF_METAL_SM5_NOTESS(TEXT("SF_METAL_SM5_NOTESS"));
 static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
 static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
 static FName NAME_SF_METAL_MACES2(TEXT("SF_METAL_MACES2"));
@@ -36,7 +36,7 @@ public:
 	: Format(InFormat)
 	, WorkingDir(WorkingDirectory)
 	{
-		check(Format == NAME_SF_METAL || Format == NAME_SF_METAL_MRT || Format == NAME_SF_METAL_SM4 || Format == NAME_SF_METAL_SM5 || Format == NAME_SF_METAL_MACES3_1 || Format == NAME_SF_METAL_MACES2 || Format == NAME_SF_METAL_MRT_MAC);
+		check(Format == NAME_SF_METAL || Format == NAME_SF_METAL_MRT || Format == NAME_SF_METAL_SM5_NOTESS || Format == NAME_SF_METAL_SM5 || Format == NAME_SF_METAL_MACES3_1 || Format == NAME_SF_METAL_MACES2 || Format == NAME_SF_METAL_MRT_MAC);
 		ArchivePath = (WorkingDir / Format.GetPlainNameString());
 		IFileManager::Get().DeleteDirectory(*ArchivePath, false, true);
 		IFileManager::Get().MakeDirectory(*ArchivePath);
@@ -107,15 +107,14 @@ class FMetalShaderFormat : public IShaderFormat
 public:
 	enum
 	{
-		HEADER_VERSION = 48,
+		HEADER_VERSION = 53,
 	};
 	
 	struct FVersion
 	{
 		uint16 XcodeVersion;
 		uint16 HLSLCCMinor		: 8;
-		uint16 Format			: 7;
-		uint16 OfflineCompiled	: 1;
+		uint16 Format			: 8;
 	};
 	
 	virtual uint32 GetVersion(FName Format) const override final
@@ -126,7 +125,7 @@ public:
 	{
 		OutFormats.Add(NAME_SF_METAL);
 		OutFormats.Add(NAME_SF_METAL_MRT);
-		OutFormats.Add(NAME_SF_METAL_SM4);
+		OutFormats.Add(NAME_SF_METAL_SM5_NOTESS);
 		OutFormats.Add(NAME_SF_METAL_SM5);
 		OutFormats.Add(NAME_SF_METAL_MACES3_1);
 		OutFormats.Add(NAME_SF_METAL_MACES2);
@@ -134,7 +133,7 @@ public:
 	}
 	virtual void CompileShader(FName Format, const struct FShaderCompilerInput& Input, struct FShaderCompilerOutput& Output,const FString& WorkingDirectory) const override final
 	{
-		check(Format == NAME_SF_METAL || Format == NAME_SF_METAL_MRT || Format == NAME_SF_METAL_SM4 || Format == NAME_SF_METAL_SM5 || Format == NAME_SF_METAL_MACES3_1 || Format == NAME_SF_METAL_MACES2 || Format == NAME_SF_METAL_MRT_MAC);
+		check(Format == NAME_SF_METAL || Format == NAME_SF_METAL_MRT || Format == NAME_SF_METAL_SM5_NOTESS || Format == NAME_SF_METAL_SM5 || Format == NAME_SF_METAL_MACES3_1 || Format == NAME_SF_METAL_MACES2 || Format == NAME_SF_METAL_MRT_MAC);
 		CompileShader_Metal(Input, Output, WorkingDirectory);
 	}
 	virtual bool CanStripShaderCode(bool const bNativeFormat) const override final
@@ -196,13 +195,11 @@ uint32 GetMetalFormatVersion(FName Format)
 	Version.Version.XcodeVersion = AppVersion;
 	Version.Version.Format = FMetalShaderFormat::HEADER_VERSION;
 	Version.Version.HLSLCCMinor = HLSLCC_VersionMinor;
-	Version.Version.OfflineCompiled = METAL_OFFLINE_COMPILE;
 	
 	// Check that we didn't overwrite any bits
 	check(Version.Version.XcodeVersion == AppVersion);
 	check(Version.Version.Format == FMetalShaderFormat::HEADER_VERSION);
 	check(Version.Version.HLSLCCMinor == HLSLCC_VersionMinor);
-	check(Version.Version.OfflineCompiled == METAL_OFFLINE_COMPILE);
 	
 	return Version.Raw;
 }

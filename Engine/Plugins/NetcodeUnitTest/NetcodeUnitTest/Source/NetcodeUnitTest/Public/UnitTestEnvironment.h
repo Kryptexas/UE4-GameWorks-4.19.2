@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -126,7 +126,7 @@ public:
 	}
 
 	/**
-	 * Returns the default URL that fake clients should use, when connecting to a server, for the current game
+	 * Returns the default URL that minimal clients should use, when connecting to a server, for the current game
 	 *
 	 * @return	Returns the default URL
 	 */
@@ -197,6 +197,14 @@ public:
 	 * @param PC			The PlayerController being initialized
 	 */
 	virtual void HandleClientPlayer(EUnitTestFlags UnitTestFlags, APlayerController* PC)
+	{
+	}
+
+	/**
+	 * If the game environment requires special/complex setup (e.g. player auth before join),
+	 * then UnitTask's for handling complex setup, are added here.
+	 */
+	virtual void InitializeUnitTasks()
 	{
 	}
 

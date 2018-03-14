@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SAssetFamilyShortcutBar.h"
 #include "Styling/SlateTypes.h"
@@ -279,16 +279,18 @@ public:
 
 	void HandleAssetSelectedFromPicker(const struct FAssetData& InAssetData)
 	{
-		FSlateApplication::Get().DismissAllMenus();
-
 		if (InAssetData.IsValid())
 		{
+			FSlateApplication::Get().DismissAllMenus();
+
 			TArray<UObject*> Assets;
 			Assets.Add(InAssetData.GetAsset());
 			FAssetEditorManager::Get().OpenEditorForAssets(Assets);
 		}
 		else if(AssetData.IsValid())
 		{
+			FSlateApplication::Get().DismissAllMenus();
+
 			// Assume that as we are set to 'toggle' mode with no 'none' selection allowed, we are selecting the currently selected item
 			TArray<UObject*> Assets;
 			Assets.Add(AssetData.GetAsset());

@@ -18,7 +18,9 @@ The following guide is meant for users who've downloaded and built UE4 from its 
 
 If you download the latest Unreal Engine 4 (UE4) code, you might notice that there are no Visual Studio (VS) or Xcode project files included for compiling and running the engine or example games.  You will need to run a script that generates project files for you to load:
 
-* Run the GenerateProjectFiles.bat file which is located in the main UE4 directory<!--(mapped to '//depot/UE4/`)-->.
+* Run the GenerateProjectFiles.bat file which is located in the main UE4 directory[COMMENT:none]
+(mapped to '//depot/UE4/`)
+[/COMMENT].
 
 	[REGION:note]
 	You can run that script from any folder.  (Make a desktop shortcut if you want.)
@@ -125,7 +127,9 @@ This script is a simple wrapper around Unreal Build Tool, which is launched in a
 
 * Change your startup project to UnrealBuildTool.
 * Set the command-line parameters for debugging to:  -ProjectFiles
-* Set the working directory to your local path for:  <!--//depot/UE4-->[Your UE4 Directory]/Engine/Source/
+* Set the working directory to your local path for:  [COMMENT:none]
+//depot/UE4
+[/COMMENT][Your UE4 Directory]/Engine/Source/
 * Compile and debug as per normal.
 
 

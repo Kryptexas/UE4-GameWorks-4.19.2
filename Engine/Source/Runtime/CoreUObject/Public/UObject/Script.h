@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Script.h: Blueprint bytecode execution engine.
@@ -17,7 +17,7 @@ struct FFrame;
 // The results will be confusing. Native time would be included only in a coarse 
 // 'native time' timer, and all overhead would be broken up per script function
 #define TOTAL_OVERHEAD_SCRIPT_STATS (STATS && 0)
-#define PER_FUNCTION_SCRIPT_STATS (STATS && 1)
+#define PER_FUNCTION_SCRIPT_STATS ((STATS || ENABLE_STATNAMEDEVENTS) && 1)
 
 DECLARE_STATS_GROUP(TEXT("Scripting"), STATGROUP_Script, STATCAT_Advanced);
 

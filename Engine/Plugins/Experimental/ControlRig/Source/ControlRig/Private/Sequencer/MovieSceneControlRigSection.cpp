@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneControlRigSection.h"
 #include "Animation/AnimSequence.h"
@@ -6,6 +6,7 @@
 #include "MovieScene.h"
 #include "ControlRigSequence.h"
 #include "ControlRigBindingTemplate.h"
+#include "MovieSceneControlRigInstanceData.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneControlRigSection"
 
@@ -52,37 +53,29 @@ void UMovieSceneControlRigSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles
 	}
 }
 
-FMovieSceneEvaluationTemplate& UMovieSceneControlRigSection::GenerateTemplateForSubSequence(const FMovieSceneTrackCompilerArgs& InArgs) const
+FMovieSceneSubSequenceData UMovieSceneControlRigSection::GenerateSubSequenceData(const FSubSequenceInstanceDataParams& Params) const
 {
-	// Use our section as the object key here
-	FMovieSceneEvaluationTemplate& Template = InArgs.SubSequenceStore.GetCompiledTemplate(*SubSequence, FObjectKey(this));
+	FMovieSceneSubSequenceData SubData(*this);
 
-	for (TPair<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack>& TrackPair : Template.GetTracks())
+	FMovieSceneControlRigInstanceData InstanceData;
+	InstanceData.bAdditive = bAdditive;
+	InstanceData.bApplyBoneFilter = bApplyBoneFilter;
+	if (InstanceData.bApplyBoneFilter)
 	{
-		// iterate child templates
-		for (FMovieSceneEvalTemplatePtr& ChildTemplate : TrackPair.Value.GetChildTemplates())
-		{
-			if (&(*ChildTemplate).GetScriptStruct() == FControlRigBindingTemplate::StaticStruct())
-			{
-				// set section curves into binding track
-				FControlRigBindingTemplate& BindingTemplate = *static_cast<FControlRigBindingTemplate*>(&(*ChildTemplate));
-
-				BindingTemplate.SetObjectBindingId(InArgs.ObjectBindingId, MovieSceneSequenceID::Root);
-				BindingTemplate.SetWeightCurve(Weight, -GetStartTime(), Parameters.TimeScale == 0.0f ? 0.0f : 1.0f / Parameters.TimeScale);
-				BindingTemplate.SetPerBoneBlendFilter(bApplyBoneFilter, BoneFilter);
-				BindingTemplate.SetAdditive(bAdditive);
-			}
-		}
+		InstanceData.BoneFilter = BoneFilter;
 	}
+	else
+	{
+		InstanceData.BoneFilter.BranchFilters.Empty();
+	}
+	InstanceData.Operand = Params.Operand;
 
-	return Template;
-}
+	InstanceData.Weight.SetDefaultValue(1.0f);
+	InstanceData.Weight = Weight;
+	InstanceData.Weight.ShiftCurve(-GetStartTime());
+	InstanceData.Weight.ScaleCurve(0.0f, Parameters.TimeScale == 0.0f ? 0.0f : 1.0f / Parameters.TimeScale);
 
-FMovieSceneSubSequenceData UMovieSceneControlRigSection::GenerateSubSequenceData() const
-{
-	FMovieSceneSubSequenceData SubData = UMovieSceneSubSection::GenerateSubSequenceData();
-
-	SubData.SequenceKeyObject = this;
+	SubData.InstanceData = FMovieSceneSequenceInstanceDataPtr(InstanceData);
 
 	return SubData;
 }

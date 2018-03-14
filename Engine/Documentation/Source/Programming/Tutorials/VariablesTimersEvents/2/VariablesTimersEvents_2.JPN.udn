@@ -20,7 +20,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. 現時点のカウントダウン タイマーは値 3 (秒) にハード コーディングされています。エディタでカウントダウン時間に希望する値を設定できるとより実用的になります。しかもこの変更は簡単にできます。**Visual Studio** で、「Countdown.h」ファイルを開いて以下の行を探します。
 
@@ -95,7 +95,7 @@ C++ コードに独自の値と機能を記述しながら、プログラマー�
     [/PARAM]
     [PARAM:content]
 		**Countdown.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -135,7 +135,7 @@ C++ コードに独自の値と機能を記述しながら、プログラマー�
 
 
 		**Countdown.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_VTE.h"
 			#include "Countdown.h"
@@ -198,4 +198,4 @@ CountdownText->SetHorizontalAlignment(EHTA_Center);
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

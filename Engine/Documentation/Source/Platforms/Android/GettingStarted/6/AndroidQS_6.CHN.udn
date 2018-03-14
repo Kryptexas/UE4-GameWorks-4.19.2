@@ -22,7 +22,7 @@ Skilllevel:Intermediate
 [/VAR]
 
 
-%Steps%
+
 
 了解有关设备兼容性和性能的更多信息：
 * [](Platforms\Android\DeviceCompatibility)
@@ -39,4 +39,4 @@ Skilllevel:Intermediate
 您还可以在不部署到设备的情况下预览移动游戏，只需使用 [](Platforms\Mobile\Previewer) 即可。
 
 
-%Steps%
+

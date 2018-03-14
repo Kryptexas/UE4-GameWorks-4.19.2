@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3454520
+﻿INTSourceChangelist:3681959
 Availability:Public
 Title:派生データのキャッシュ
 Crumbs:%ROOT%, Engine
@@ -106,6 +106,16 @@ DDC に保存されたデータの移行は、ローカルでゼロから生成�
 
 ## 派生データのビルド
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 一般的に、アセットをインポートする開発者がエンジンでアセットを使用したりテストをする可能性が高いため、 
 そのユーザーが派生データのビルドを行います。しかし、場合によっては新アセットの 
 処理が必要となります。これは必要に応じて自然に発生し、高速のハードウェアで実行時には大した影響を及ぼしませんが、 
@@ -113,13 +123,51 @@ DDC に保存されたデータの移行は、ローカルでゼロから生成�
  
 以下の引数を実行ファイルへ引き渡すことによって、いつでも派生したデータキャッシュへ書き込むことができます。
  
-	UE4\Engine\Binaries\Win64\UE4Editor.exe MyGame -run=DerivedDataCache -fill 
+	UE4\Engine\Binaries\Win64\UE4Editor.exe ProjectName -run=DerivedDataCache -fill 
 
 DDC の事前準備を常に整えるため、この作業は毎夜行っていますが、 
 自動キャッシュが機能するため通常は必要ありません。
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+一般的に、アセットをインポートする開発者がエンジンでアセットを使用したりテストをする可能性が高いため、 
+そのユーザーが派生データのビルドを行います。しかし、場合によっては新アセットの 
+処理が必要となります。これは必要に応じて自然に発生し、高速のハードウェアで実行時には大した影響を及ぼしませんが、 
+ときおり遅延が生じるかもしれません。
+ 
+以下の引数を実行ファイルへ引き渡すことによって、いつでも派生したデータキャッシュへ書き込むことができます。
+ 
+	open -a "ProjectName.app" --args -run=DerivedDataCache -fill
+
+DDC の事前準備を常に整えるため、この作業は毎夜行っていますが、 
+自動キャッシュが機能するため通常は必要ありません。
+[/PARAM]
+[/OBJECT]
+
 
 ## DDC の配布
  
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 クックされたビルドは DDC は不要または使用しないため、ゲームのパッケージングには一般的にクックが推奨メソッドです。しかし、 
 必要に応じて DDC を配布用にパッケージングすることも出来ます。
 
@@ -127,8 +175,35 @@ DDC の事前準備を常に整えるため、この作業は毎夜行ってい�
  
 1. UE4/Engine/Binaries/Win64 ディレクトリから **UE4Editor.exe** を実行して、以下の引数を渡します。
 
-		UE4Editor.exe [GameName] -run=DerivedDataCache -fill -DDC=CreatePak
+		UE4Editor.exe [ProjectName] -run=DerivedDataCache -fill -DDC=CreatePak
  
 1. UE4\[GameName]\DerivedDataCache に **DDC.ddp** ファイルを作成します。
 
 1. エンジンは .ddp ファイルを自動的に検出して使用します。
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+クックされたビルドは DDC は不要または使用しないため、ゲームのパッケージングには一般的にクックが推奨メソッドです。しかし、 
+必要に応じて DDC を配布用にパッケージングすることも出来ます。
+
+**DDC のパッケージング**
+ 
+1. UE4/Engine/Binaries/Win64 ディレクトリから **UE4Editor.exe** を実行して、以下の引数を渡します。
+
+		open -a "ProjectName.app" --args -run=DerivedDataCache -fill -DDC=CreatePak 
+ 
+1. UE4\[GameName]\DerivedDataCache に **DDC.ddp** ファイルを作成します。
+
+1. エンジンは .ddp ファイルを自動的に検出して使用します。
+[/PARAM]
+[/OBJECT]

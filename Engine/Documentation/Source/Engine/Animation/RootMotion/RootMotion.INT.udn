@@ -183,7 +183,8 @@ YuD29-Xr7Oc
 The physics state of the Character is taken into account during Root Motion. For example, if the character physics is Walking or Falling, then the Z-axis of Root Motion will be ignored, and gravity will be applied. Characters will fall, go down slopes or up stairs. If the character physics is Flying, then the full Root Motion is applied and gravity is ignored.
 
 
-<!-- This should be a HowTo. It's actually a checkbox now instead of using AnimMontages
+[COMMENT]
+ This should be a HowTo. It's actually a checkbox now instead of using AnimMontages
 ## Setting Up Root Motion
 
 Setting up Root Motion in UE4 is very easy, however, the steps will be slightly different depending on what version of UE4 you are using. At a high level, the process pre-4.6 includes:
@@ -287,7 +288,8 @@ PWB_mqjz3iA
 [/PARAMLITERAL]
 [/OBJECT]
 
--->
+
+[/COMMENT]
 
 
 

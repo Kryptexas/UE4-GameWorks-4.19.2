@@ -1,12 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanSwapChain.h: Vulkan viewport RHI definitions.
 =============================================================================*/
 
 #pragma once
-
-#define USE_IMAGE_ACQUIRE_FENCES	!PLATFORM_ANDROID
 
 namespace VulkanRHI
 {
@@ -44,7 +42,7 @@ protected:
 	uint32 NumAcquireCalls;
 	VkInstance Instance;
 	TArray<FVulkanSemaphore*> ImageAcquiredSemaphore;
-#if USE_IMAGE_ACQUIRE_FENCES
+#if VULKAN_USE_IMAGE_ACQUIRE_FENCES
 	TArray<VulkanRHI::FFence*> ImageAcquiredFences;
 #endif
 

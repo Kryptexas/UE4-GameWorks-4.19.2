@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimBlueprintNodeOptionalPinManager.h"
 #include "UObject/UnrealType.h"
@@ -12,11 +12,10 @@ FAnimBlueprintNodeOptionalPinManager::FAnimBlueprintNodeOptionalPinManager(class
 	: BaseNode(Node)
 	, OldPins(InOldPins)
 {
-	if (OldPins != NULL)
+	if (OldPins)
 	{
-		for (auto PinIt = OldPins->CreateIterator(); PinIt; ++PinIt)
+		for (UEdGraphPin* Pin : *OldPins)
 		{
-			UEdGraphPin* Pin = *PinIt;
 			OldPinMap.Add(Pin->PinName, Pin);
 		}
 	}
@@ -28,8 +27,8 @@ void FAnimBlueprintNodeOptionalPinManager::GetRecordDefaults(UProperty* TestProp
 
 	// Determine if this is a pose or array of poses
 	UArrayProperty* ArrayProp = Cast<UArrayProperty>(TestProperty);
-	UStructProperty* StructProp = Cast<UStructProperty>((ArrayProp != NULL) ? ArrayProp->Inner : TestProperty);
-	const bool bIsPoseInput = (StructProp != NULL) && (StructProp->Struct->IsChildOf(FPoseLinkBase::StaticStruct()));
+	UStructProperty* StructProp = Cast<UStructProperty>(ArrayProp ? ArrayProp->Inner : TestProperty);
+	const bool bIsPoseInput = (StructProp  && StructProp->Struct->IsChildOf(FPoseLinkBase::StaticStruct()));
 
 	//@TODO: Error if they specified two or more of these flags
 	const bool bAlwaysShow = TestProperty->HasMetaData(Schema->NAME_AlwaysAsPin) || bIsPoseInput;
@@ -111,7 +110,7 @@ void FAnimBlueprintNodeOptionalPinManager::PostRemovedOldPin(FOptionalPinFromPro
 
 	if (Record.bCanToggleVisibility && (OldPins != nullptr))
 	{
-		const FString OldPinName = (ArrayIndex != INDEX_NONE) ? FString::Printf(TEXT("%s_%d"), *(Record.PropertyName.ToString()), ArrayIndex) : Record.PropertyName.ToString();
+		const FName OldPinName = (ArrayIndex != INDEX_NONE) ? *FString::Printf(TEXT("%s_%d"), *(Record.PropertyName.ToString()), ArrayIndex) : Record.PropertyName;
 		// Pin was visible but it's now hidden
 		if (UEdGraphPin* OldPin = OldPinMap.FindRef(OldPinName))
 		{

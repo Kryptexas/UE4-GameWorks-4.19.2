@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SkeletalControlNodeDetails.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
@@ -13,6 +13,9 @@
 #include "DetailCategoryBuilder.h"
 #include "PropertyCustomizationHelpers.h"
 #include "K2Node.h"
+#include "Widgets/Input/SButton.h"
+#include "K2Node_BreakStruct.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalControlNodeDetails"
 
@@ -28,7 +31,23 @@ void FSkeletalControlNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& D
 {
 	DetailCategory = &DetailBuilder.EditCategory("PinOptions");
 	TSharedRef<IPropertyHandle> AvailablePins = DetailBuilder.GetProperty("ShowPinForProperties");
-	TSharedPtr<IPropertyHandleArray> ArrayProperty = AvailablePins->AsArray();
+	ArrayProperty = AvailablePins->AsArray();
+
+	const TArray< TWeakObjectPtr<UObject> >& SelectedObjects = DetailBuilder.GetSelectedObjects();
+	for (const TWeakObjectPtr<UObject>& CurrentObject : SelectedObjects)
+	{
+		if (UK2Node_BreakStruct* CurrBreakStruct = Cast<UK2Node_BreakStruct>(CurrentObject.Get()))
+		{
+			if (BreakStructNode.IsValid())
+			{
+				// Have more than one break struct node, don't cache so we don't
+				// create the hide unconnected pins UI
+				BreakStructNode = nullptr;
+				break;
+			}
+			BreakStructNode = CurrBreakStruct;
+		}
+	}
 
 	TSet<FName> UniqueCategoryNames;
 	{
@@ -68,6 +87,25 @@ void FSkeletalControlNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& D
 		AvailablePinsBuilder->OnGenerateArrayElementWidget(FOnGenerateArrayElementWidget::CreateSP(this, &FSkeletalControlNodeDetails::OnGenerateElementForPropertyPin, CategoryName));
 		AvailablePinsBuilder->SetDisplayName((CategoryName == NAME_None) ? LOCTEXT("DefaultCategory", "Default Category") : FText::FromName(CategoryName));
 		DetailCategory->AddCustomBuilder(AvailablePinsBuilder, bForAdvanced);
+	}
+
+	// Add the action buttons
+	if(BreakStructNode.IsValid())
+	{
+		FDetailWidgetRow& GroupActionsRow = DetailCategory->AddCustomRow(LOCTEXT("GroupActionsSearchText", "Split Sort"))
+		.ValueContent()
+		.HAlign(HAlign_Left)
+		.MaxDesiredWidth(250.f)
+		[
+			SNew(SButton)
+			.OnClicked(this, &FSkeletalControlNodeDetails::HideAllUnconnectedPins)
+			.ToolTipText(LOCTEXT("HideAllUnconnectedPinsTooltip", "All unconnected pins of the structure get hidden (removed from the graph node)"))
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("HideAllUnconnectedPins", "Hide Unconnected Pins"))
+				.Font(DetailBuilder.GetDetailFont())
+			]
+		];
 	}
 }
 
@@ -206,6 +244,34 @@ void FSkeletalControlNodeDetails::OnGenerateElementForPropertyPin(TSharedRef<IPr
 	];
 }
 
+FReply FSkeletalControlNodeDetails::HideAllUnconnectedPins()
+{
+	if (ArrayProperty.IsValid() && BreakStructNode.IsValid())
+	{
+		uint32 NumChildren = 0;
+		ArrayProperty->GetNumElements(NumChildren);
+
+		FScopedTransaction Transaction(LOCTEXT("HideUnconnectedPinsTransaction", "Hide Unconnected Pins"));
+
+		for (uint32 ChildIndex = 0; ChildIndex < NumChildren; ++ChildIndex)
+		{
+			TSharedRef<IPropertyHandle> ElementHandle = ArrayProperty->GetElement(ChildIndex);
+			
+			TSharedPtr<IPropertyHandle> PropertyNameHandle = ElementHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FOptionalPinFromProperty, PropertyName));
+			FName ActualPropertyName;
+			if (PropertyNameHandle.IsValid() && PropertyNameHandle->GetValue(ActualPropertyName) == FPropertyAccess::Success)
+			{
+				const UEdGraphPin* Pin = BreakStructNode->FindPin(ActualPropertyName.ToString(), EGPD_Output);
+				if (Pin && Pin->LinkedTo.Num() <= 0)
+				{
+					OnShowPinChanged(ECheckBoxState::Unchecked, ElementHandle);
+				}
+			}
+		}
+	}
+
+	return FReply::Handled();
+}
 
 /////////////////////////////////////////////////////
 

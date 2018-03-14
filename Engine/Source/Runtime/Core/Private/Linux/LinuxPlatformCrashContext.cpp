@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Linux/LinuxPlatformCrashContext.h"
 #include "Containers/StringConv.h"
@@ -250,79 +250,6 @@ void FLinuxCrashContext::GenerateReport(const FString & DiagnosticsPath) const
 }
 
 /** 
- * Mimics Windows WER format
- */
-void GenerateWindowsErrorReport(const FString & WERPath, bool bReportingNonCrash)
-{
-	FArchive* ReportFile = IFileManager::Get().CreateFileWriter(*WERPath);
-	if (ReportFile != NULL)
-	{
-		// write BOM
-		static uint16 ByteOrderMarker = 0xFEFF;
-		ReportFile->Serialize(&ByteOrderMarker, sizeof(ByteOrderMarker));
-
-		WriteLine(ReportFile, TEXT("<?xml version=\"1.0\" encoding=\"UTF-16\"?>"));
-		WriteLine(ReportFile, TEXT("<WERReportMetadata>"));
-		
-		WriteLine(ReportFile, TEXT("\t<OSVersionInformation>"));
-		WriteLine(ReportFile, TEXT("\t\t<WindowsNTVersion>0.0</WindowsNTVersion>"));
-		WriteLine(ReportFile, TEXT("\t\t<Build>No Build</Build>"));
-		WriteLine(ReportFile, TEXT("\t\t<Product>Linux</Product>"));
-		WriteLine(ReportFile, TEXT("\t\t<Edition>No Edition</Edition>"));
-		WriteLine(ReportFile, TEXT("\t\t<BuildString>No BuildString</BuildString>"));
-		WriteLine(ReportFile, TEXT("\t\t<Revision>0</Revision>"));
-		WriteLine(ReportFile, TEXT("\t\t<Flavor>No Flavor</Flavor>"));
-		WriteLine(ReportFile, TEXT("\t\t<Architecture>Unknown Architecture</Architecture>"));
-		WriteLine(ReportFile, TEXT("\t\t<LCID>0</LCID>"));
-		WriteLine(ReportFile, TEXT("\t</OSVersionInformation>"));
-		
-		WriteLine(ReportFile, TEXT("\t<ParentProcessInformation>"));
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<ParentProcessId>%d</ParentProcessId>"), getppid()));
-		WriteLine(ReportFile, TEXT("\t\t<ParentProcessPath>C:\\Windows\\explorer.exe</ParentProcessPath>"));			// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<ParentProcessCmdLine>C:\\Windows\\Explorer.EXE</ParentProcessCmdLine>"));	// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t</ParentProcessInformation>"));
-
-		WriteLine(ReportFile, TEXT("\t<ProblemSignatures>"));
-		WriteLine(ReportFile, TEXT("\t\t<EventType>APPCRASH</EventType>"));
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter0>UE4-%s</Parameter0>"), FApp::GetProjectName()));
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter1>%d.%d.%d</Parameter1>"), FEngineVersion::Current().GetMajor(), FEngineVersion::Current().GetMinor(), FEngineVersion::Current().GetPatch()));
-		WriteLine(ReportFile, TEXT("\t\t<Parameter2>0</Parameter2>"));													// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<Parameter3>Unknown Fault Module</Parameter3>"));										// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<Parameter4>0.0.0.0</Parameter4>"));													// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<Parameter5>00000000</Parameter5>"));													// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<Parameter6>00000000</Parameter6>"));													// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<Parameter7>0000000000000000</Parameter7>"));											// FIXME: supply valid?
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter8>!%s!</Parameter8>"), FCommandLine::Get()));				// FIXME: supply valid? Only partially valid
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter9>%s!%s!%s!%d</Parameter9>"), *FApp::GetBranchName(), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), FEngineVersion::Current().GetChangelist()));
-		WriteLine(ReportFile, TEXT("\t</ProblemSignatures>"));
-
-		WriteLine(ReportFile, TEXT("\t<DynamicSignatures>"));
-		WriteLine(ReportFile, TEXT("\t\t<Parameter1>6.1.7601.2.1.0.256.48</Parameter1>"));
-		WriteLine(ReportFile, TEXT("\t\t<Parameter2>1033</Parameter2>"));
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<DeploymentName>%s</DeploymentName>"), FApp::GetDeploymentName()));
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<BuildVersion>%s</BuildVersion>"), FApp::GetBuildVersion()));
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsEnsure>%s</IsEnsure>"), bReportingNonCrash ? TEXT("1") : TEXT("0")));
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsAssert>%s</IsAssert>"), FDebug::bHasAsserted ? TEXT("1") : TEXT("0")));
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<CrashType>%s</CrashType>"), FGenericCrashContext::GetCrashTypeString(bReportingNonCrash, FDebug::bHasAsserted, GIsGPUCrashed)));
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<EngineModeEx>%s</EngineModeEx>"), FGenericCrashContext::EngineModeExString()));
-		WriteLine(ReportFile, TEXT("\t</DynamicSignatures>"));
-
-		WriteLine(ReportFile, TEXT("\t<SystemInformation>"));
-		WriteLine(ReportFile, TEXT("\t\t<MID>11111111-2222-3333-4444-555555555555</MID>"));							// FIXME: supply valid?
-		
-		WriteLine(ReportFile, TEXT("\t\t<SystemManufacturer>Unknown.</SystemManufacturer>"));						// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<SystemProductName>Linux machine</SystemProductName>"));					// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<BIOSVersion>A02</BIOSVersion>"));											// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t</SystemInformation>"));
-
-		WriteLine(ReportFile, TEXT("</WERReportMetadata>"));
-
-		ReportFile->Close();
-		delete ReportFile;
-	}
-}
-
-/** 
  * Creates (fake so far) minidump
  */
 void GenerateMinidump(const FString & Path)
@@ -432,18 +359,15 @@ void FLinuxCrashContext::GenerateCrashInfoAndLaunchReporter(bool bReportingNonCr
 	{
 		// generate "minidump"
 		GenerateReport(FPaths::Combine(*CrashInfoAbsolute, TEXT("Diagnostics.txt")));
-
-		// generate "WER"
-		GenerateWindowsErrorReport(FPaths::Combine(*CrashInfoAbsolute, TEXT("wermeta.xml")), bReportingNonCrash);
-
+		
 		// generate "minidump" (just >1 byte)
 		GenerateMinidump(FPaths::Combine(*CrashInfoAbsolute, TEXT("minidump.dmp")));
 
 		// Introduces a new runtime crash context. Will replace all Windows related crash reporting.
-		//FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
-		//FCStringAnsi::Strncat(FilePath, "/", PATH_MAX);
-		//FCStringAnsi::Strncat(FilePath, FGenericCrashContext::CrashContextRuntimeXMLNameA, PATH_MAX);
-		//SerializeAsXML( FilePath ); @todo uncomment after verification
+		FString FilePath(CrashInfoFolder);
+		FilePath += TEXT("/");
+		FilePath += FGenericCrashContext::CrashContextRuntimeXMLNameW;
+		SerializeAsXML(*FilePath);
 
 		// copy log
 		FString LogSrcAbsolute = FPlatformOutputDevices::GetAbsoluteLogFilename();

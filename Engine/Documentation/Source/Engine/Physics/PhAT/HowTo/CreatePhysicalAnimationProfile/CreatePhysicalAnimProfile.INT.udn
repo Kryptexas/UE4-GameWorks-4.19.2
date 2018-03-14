@@ -6,7 +6,6 @@ parent:Engine/Physics/PhAT/HowTo
 order:1
 Version: 4.13
 skilllevel:Intermediate
-related:Videos/PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f/N1tDjbFXeOo
 related:Engine/Physics/PhAT/HowTo/ApplyPhysicalAnimationProfile
 topic-image:Engine/Physics/physics_topic.png
 
@@ -69,4 +68,22 @@ In this How-To, we'll cover the basics of creating a **Physical Animation Profil
 The **Physics Asset** will have a profile that can be called upon from Blueprint or C++ to change the **Physical Animation** properties of its **Physics Bodies**.
 
 
+## Additional Resources
 
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	N1tDjbFXeOo
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]

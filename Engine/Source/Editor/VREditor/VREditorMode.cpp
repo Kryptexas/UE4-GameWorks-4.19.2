@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "VREditorMode.h"
 #include "Modules/ModuleManager.h"
@@ -52,6 +52,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
+#include "XRMotionControllerBase.h" // for FXRMotionControllerBase::Left/RightHandSourceId
 
 #define LOCTEXT_NAMESPACE "VREditorMode"
 
@@ -272,12 +273,12 @@ void UVREditorMode::Enter()
 		// Motion controllers
 		{
 			LeftHandInteractor = NewObject<UVREditorMotionControllerInteractor>();
-			LeftHandInteractor->SetControllerHandSide( EControllerHand::Left );
+			LeftHandInteractor->SetControllerHandSide( FXRMotionControllerBase::LeftHandSourceId );
 			LeftHandInteractor->Init( this );
 			WorldInteraction->AddInteractor( LeftHandInteractor );
 
 			RightHandInteractor = NewObject<UVREditorMotionControllerInteractor>();
-			RightHandInteractor->SetControllerHandSide( EControllerHand::Right );
+			RightHandInteractor->SetControllerHandSide( FXRMotionControllerBase::RightHandSourceId );
 			RightHandInteractor->Init( this );
 			WorldInteraction->AddInteractor( RightHandInteractor );
 
@@ -684,9 +685,9 @@ void UVREditorMode::CycleTransformGizmoHandleType()
 	WorldInteraction->SetGizmoHandleType( NewGizmoType );
 }
 
-EHMDDeviceType::Type UVREditorMode::GetHMDDeviceType() const
+FName UVREditorMode::GetHMDDeviceType() const
 {
-	return GEngine->XRSystem.IsValid() && GEngine->XRSystem->GetHMDDevice() ? GEngine->XRSystem->GetHMDDevice()->GetHMDDeviceType() : EHMDDeviceType::DT_SteamVR;
+	return GEngine->XRSystem.IsValid() ? GEngine->XRSystem->GetSystemName() : FName();
 }
 
 FLinearColor UVREditorMode::GetColor( const EColors Color ) const
@@ -1145,11 +1146,11 @@ void UVREditorMode::RestoreWorldToMeters()
 UStaticMeshComponent* UVREditorMode::CreateMotionControllerMesh( AActor* OwningActor, USceneComponent* AttachmentToComponent )
 {
 	UStaticMesh* ControllerMesh = nullptr;
-	if(GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR)
+	if(GetHMDDeviceType() == FName(TEXT("SteamVR")))
 	{
 		ControllerMesh = AssetContainer->VivePreControllerMesh;
 	}
-	else if(GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift)
+	else if(GetHMDDeviceType() == FName(TEXT("OculusHMD")))
 	{
 		ControllerMesh = AssetContainer->OculusControllerMesh;
 	}

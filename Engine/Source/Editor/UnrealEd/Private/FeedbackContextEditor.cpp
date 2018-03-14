@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "FeedbackContextEditor.h"
@@ -11,6 +11,7 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Input/SButton.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "Editor.h"
 #include "Dialogs/SBuildProgress.h"
@@ -87,7 +88,7 @@ public:
 							SNew( STextBlock )
 							.Text( this, &SSlowTaskWidget::GetPercentageText )
 							// The main font size dynamically changes depending on the content
-							.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Light.ttf"), 14, EFontHinting::AutoLight ) )
+							.Font( FCoreStyle::GetDefaultFontStyle("Light", 14) )
 						]
 					]
 				]
@@ -216,7 +217,7 @@ private:
 			[
 				SNew( STextBlock )
 				.Text( this, &SSlowTaskWidget::GetProgressText, Index )
-				.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 9, EFontHinting::AutoLight ) )
+				.Font( FCoreStyle::GetDefaultFontStyle("Regular", 9) )
 				.ColorAndOpacity( FSlateColor::UseSubduedForeground() )
 			]
 
@@ -262,7 +263,7 @@ private:
 		TSharedRef<FSlateFontMeasure> MeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 
 		const int32 MaxFontSize = 14;
-		FSlateFontInfo FontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Light.ttf"), MaxFontSize, EFontHinting::AutoLight );
+		FSlateFontInfo FontInfo = FCoreStyle::GetDefaultFontStyle("Light", MaxFontSize);
 
 		const FText MainText = GetProgressText(0);
 		const int32 MaxTextWidth = FixedWidth - FixedPaddingH*2;
@@ -402,7 +403,7 @@ void FFeedbackContextEditor::StartSlowTask( const FText& Task, bool bShowCancelB
 
 		if( bHaveOpenMenu )
 		{
-			UE_LOG(LogSlate, Warning, TEXT("Prevented a slow task dialog from being summoned while a context menu was open") );
+			UE_LOG(LogSlate, Log, TEXT("Prevented a slow task dialog from being summoned while a context menu was open") );
 		}
 
 		// reset the cancellation flag

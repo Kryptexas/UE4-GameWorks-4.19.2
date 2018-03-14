@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	WorldComposition.cpp: UWorldComposition implementation
@@ -19,6 +19,7 @@
 #include "Engine/LevelStreaming.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/LevelStreamingKismet.h"
+#include "Engine/AssetManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogWorldComposition, Log, All);
 
@@ -129,6 +130,8 @@ struct FPackageNameAndLODIndex
 struct FWorldTilesGatherer
 	: public IPlatformFile::FDirectoryVisitor
 {
+	TArray<FString> MapFilesToConsider;
+
 	// List of tile long package names (non LOD)
 	TArray<FString> TilesCollection;
 	
@@ -137,31 +140,54 @@ struct FWorldTilesGatherer
 	
 	virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
 	{
-		FString FullPath = FilenameOrDirectory;
-	
 		// for all packages
-		if (!bIsDirectory && FPaths::GetExtension(FullPath, true) == FPackageName::GetMapPackageExtension())
+		if (!bIsDirectory)
+		{
+			FString FullPath = FilenameOrDirectory;
+
+			if (FPaths::GetExtension(FullPath, true) == FPackageName::GetMapPackageExtension())
+			{
+				MapFilesToConsider.Emplace(MoveTemp(FullPath));
+			}
+		}
+
+		return true;
+	}
+
+	void BuildTileCollection(const FString& WorldRootFilename)
+	{
+		FPlatformFileManager::Get().GetPlatformFile().IterateDirectoryRecursively(*WorldRootFilename, *this);
+
+		IAssetRegistry& AssetRegistry = UAssetManager::Get().GetAssetRegistry();
+		AssetRegistry.ScanFilesSynchronous(MapFilesToConsider);
+
+		for (const FString& FullPath : MapFilesToConsider)
 		{
 			FString TilePackageName = FPackageName::FilenameToLongPackageName(FullPath);
-			FPackageNameAndLODIndex PackageNameLOD = BreakToNameAndLODIndex(TilePackageName);
-						
-			if (PackageNameLOD.LODIndex != INDEX_NONE)
+			const FName TilePackagePath = *(TilePackageName + TEXT(".") + FPackageName::GetLongPackageAssetName(TilePackageName));
+
+			const FAssetData MapAssetData = AssetRegistry.GetAssetByObjectPath(TilePackagePath);
+
+			if (MapAssetData.IsValid() && !MapAssetData.IsRedirector())
 			{
-				if (PackageNameLOD.LODIndex == 0) 
+				FPackageNameAndLODIndex PackageNameLOD = BreakToNameAndLODIndex(TilePackageName);
+
+				if (PackageNameLOD.LODIndex != INDEX_NONE)
 				{
-					// non-LOD tile
-					TilesCollection.Add(TilePackageName);
-				}
-				else
-				{
-					// LOD tile
-					FString TileShortName = FPackageName::GetShortName(PackageNameLOD.PackageName);
-					TilesLODCollection.Add(TileShortName, PackageNameLOD);
+					if (PackageNameLOD.LODIndex == 0)
+					{
+						// non-LOD tile
+						TilesCollection.Emplace(MoveTemp(TilePackageName));
+					}
+					else
+					{
+						// LOD tile
+						FString TileShortName = FPackageName::GetShortName(PackageNameLOD.PackageName);
+						TilesLODCollection.Add(MoveTemp(TileShortName), MoveTemp(PackageNameLOD));
+					}
 				}
 			}
 		}
-	
-		return true;
 	}
 
 	FPackageNameAndLODIndex BreakToNameAndLODIndex(const FString& PackageName) const
@@ -216,7 +242,7 @@ void UWorldComposition::Rescan()
 	// Gather tiles packages from a specified folder
 	FWorldTilesGatherer Gatherer;
 	FString WorldRootFilename = FPackageName::LongPackageNameToFilename(WorldRoot);
-	FPlatformFileManager::Get().GetPlatformFile().IterateDirectoryRecursively(*WorldRootFilename, Gatherer);
+	Gatherer.BuildTileCollection(WorldRootFilename);
 
 	// Make sure we have persistent level name without PIE prefix
 	FString PersistentLevelPackageName = UWorld::StripPIEPrefixFromPackageName(OwningWorld->GetOutermost()->GetName(), OwningWorld->StreamingLevelsPrefix);

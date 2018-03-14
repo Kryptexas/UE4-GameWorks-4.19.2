@@ -76,7 +76,7 @@ To enable Contact Shadows, perform the following steps:
 1.	Now, expand the **Light** section of the **Details** panel for your newly created Point Light Component by clicking on the expansion arrow.
 
 	[REGION:lightbox]
-	[![](CastShadows_Step2.png)(w:360 h:640)](CastShadows_Step2.png)
+	[![](CastShadows_Step2.png)(w:360)](CastShadows_Step2.png)
 	[/REGION]
 
 	[REGION:caption]
@@ -86,7 +86,7 @@ To enable Contact Shadows, perform the following steps:
 1.	To enable contact shadows, set the **Contact Shadow Length** to a value greater than 0.
 
 	[REGION:lightbox]
-	[![](CastShadows_Step3.png)(w:360 h:640)](CastShadows_Step3.png)
+	[![](CastShadows_Step3.png)(w:360)](CastShadows_Step3.png)
 	[/REGION]
 
 	[REGION:caption]

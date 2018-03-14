@@ -30,9 +30,7 @@
     <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\preprocessor\Pp.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\preprocessor\PpAtom.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\preprocessor\PpContext.cpp" />
-    <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\preprocessor\PpMemory.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\preprocessor\PpScanner.cpp" />
-    <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\preprocessor\PpSymbols.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\preprocessor\PpTokens.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\propagateNoContraction.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\reflection.cpp" />

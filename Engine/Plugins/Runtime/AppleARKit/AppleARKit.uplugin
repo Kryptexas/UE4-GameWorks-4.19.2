@@ -20,5 +20,15 @@
 			"LoadingPhase": "PostConfigInit",
 			"WhitelistPlatforms" : [ "Mac", "iOS", "Win64" ]
 		}
-	]
+	],
+    "Plugins": [
+		{
+			"Name": "ProceduralMeshComponent",
+			"Enabled": true
+		},
+        {
+            "Name": "LiveLink",
+            "Enabled": true
+        }
+    ]
 }

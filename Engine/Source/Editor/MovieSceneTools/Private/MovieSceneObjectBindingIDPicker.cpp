@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneObjectBindingIDPicker.h"
 #include "IPropertyUtilities.h"
@@ -19,6 +19,7 @@
 #include "ISequencer.h"
 #include "MovieSceneEvaluationTemplateInstance.h"
 #include "MovieSceneSequenceHierarchy.h"
+#include "SlateApplication.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneObjectBindingIDPicker"
 
@@ -90,6 +91,8 @@ struct FSequenceBindingTree
 	 */
 	void Build(UMovieSceneSequence* InSequence, FObjectKey InActiveSequence, FMovieSceneSequenceID InActiveSequenceID)
 	{
+		bIsEmpty = true;
+
 		// Reset state
 		ActiveSequenceID = InActiveSequenceID;
 		ActiveSequence = InActiveSequence;
@@ -147,6 +150,11 @@ struct FSequenceBindingTree
 	TSharedPtr<FSequenceBindingNode> FindNode(FMovieSceneObjectBindingID BindingID) const
 	{
 		return Hierarchy.FindRef(BindingID);
+	}
+
+	bool IsEmpty() const
+	{
+		return bIsEmpty;
 	}
 
 private:
@@ -214,7 +222,7 @@ private:
 						FMovieSceneObjectBindingID CurrentID(FGuid(), SequenceIDStack.GetCurrent());
 
 						UMovieSceneCinematicShotSection* ShotSection = Cast<UMovieSceneCinematicShotSection>(Section);
-						FText DisplayString = ShotSection ? ShotSection->GetShotDisplayName() : FText::FromName(SubSection->GetFName());
+						FText DisplayString = ShotSection ? FText::FromString(ShotSection->GetShotDisplayName()) : FText::FromName(SubSequence->GetFName());
 						FSlateIcon Icon(FEditorStyle::GetStyleSetName(), ShotSection ? "Sequencer.Tracks.CinematicShot" : "Sequencer.Tracks.Sub");
 						
 						TSharedRef<FSequenceBindingNode> NewNode = MakeShared<FSequenceBindingNode>(DisplayString, CurrentID, Icon);
@@ -248,6 +256,8 @@ private:
 			EnsureParent(FGuid(), MovieScene, CurrentSequenceID)->AddChild(NewNode);
 			ensure(!Hierarchy.Contains(ID));
 			Hierarchy.Add(ID, NewNode);
+
+			bIsEmpty = false;
 		}
 
 		// Add all possessables
@@ -265,6 +275,8 @@ private:
 				EnsureParent(Possessable.GetParent(), MovieScene, CurrentSequenceID)->AddChild(NewNode);
 				ensure(!Hierarchy.Contains(ID));
 				Hierarchy.Add(ID, NewNode);
+
+				bIsEmpty = false;
 			}
 		}
 	}
@@ -310,6 +322,7 @@ private:
 		
 		ensure(!Hierarchy.Contains(ParentPtr));
 		Hierarchy.Add(ParentPtr, NewNode);
+		bIsEmpty = false;
 
 		EnsureParent(AddToGuid, InMovieScene, SequenceID)->AddChild(NewNode);
 
@@ -328,7 +341,14 @@ private:
 	TSharedPtr<FSequenceBindingNode> TopLevelNode;
 	/** Map of hierarchical information */
 	TMap<FMovieSceneObjectBindingID, TSharedPtr<FSequenceBindingNode>> Hierarchy;
+	/** Whether the tree is considered empty */
+	bool bIsEmpty;
 };
+
+bool FMovieSceneObjectBindingIDPicker::IsEmpty() const
+{
+	return !DataTree.IsValid() || DataTree->IsEmpty();
+}
 
 void FMovieSceneObjectBindingIDPicker::Initialize()
 {
@@ -381,7 +401,8 @@ void FMovieSceneObjectBindingIDPicker::OnGetMenuContent(FMenuBuilder& MenuBuilde
 					FText(),
 					FNewMenuDelegate::CreateRaw(this, &FMovieSceneObjectBindingIDPicker::OnGetMenuContent, Child),
 					false,
-					Child->Icon
+					Child->Icon,
+					false
 					);
 			}
 		}
@@ -411,9 +432,17 @@ TSharedRef<SWidget> FMovieSceneObjectBindingIDPicker::GetPickerMenu()
 	FMenuBuilder MenuBuilder(true, nullptr, nullptr, true);
 
 	Initialize();
-	OnGetMenuContent(MenuBuilder, DataTree->GetRootNode());
+	GetPickerMenu(MenuBuilder);
 
-	return MenuBuilder.MakeWidget();
+	// Hold onto the menu widget so we can destroy it manually
+	TSharedRef<SWidget> MenuWidget = MenuBuilder.MakeWidget();
+	DismissWidget = MenuWidget;
+	return MenuWidget;
+}
+
+void FMovieSceneObjectBindingIDPicker::GetPickerMenu(FMenuBuilder& MenuBuilder)
+{
+	OnGetMenuContent(MenuBuilder, DataTree->GetRootNode());
 }
 
 TSharedRef<SWidget> FMovieSceneObjectBindingIDPicker::GetCurrentItemWidget(TSharedRef<STextBlock> TextContent)
@@ -455,6 +484,12 @@ void FMovieSceneObjectBindingIDPicker::SetBindingId(FMovieSceneObjectBindingID I
 {
 	SetRemappedCurrentValue(InBindingId);
 	UpdateCachedData();
+
+	TSharedPtr<SWidget> MenuWidget = DismissWidget.Pin();
+	if (MenuWidget.IsValid())
+	{
+		FSlateApplication::Get().DismissMenuByWidget(MenuWidget.ToSharedRef());
+	}
 }
 
 void FMovieSceneObjectBindingIDPicker::UpdateCachedData()

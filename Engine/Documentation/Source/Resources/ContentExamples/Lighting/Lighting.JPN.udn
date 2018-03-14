@@ -122,7 +122,8 @@ Content Examples プロジェクトの中にある **Lighting** マップでは�
 | **[6.1 Shadow Bias](Resources\ContentExamples\Lighting\6_1)** | 表面との接地感を持たせるようなオブジェクトのシャドウのキャスト方法を説明します。 |
 | **[6.2 Shadow Filter Sharpen](Resources\ContentExamples\Lighting\6_2)** | シャドウのエッジをより鮮明にするための設定です。 |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:RadiusNote]
 [REGION:note]
 ライトの半径または形状のインジケーターを表示するには、ライトを選択しなくてはいけません。
@@ -142,4 +143,5 @@ Content Examples プロジェクトの中にある **Lighting** マップでは�
 ![](MobilitySetting.png)
 [/EXCERPT:LightMobility]
 
--->
+
+[/COMMENT]

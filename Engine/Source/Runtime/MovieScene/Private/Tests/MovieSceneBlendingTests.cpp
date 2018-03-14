@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Misc/AutomationTest.h"
@@ -56,7 +56,7 @@ bool FMovieSceneBlendingTest::RunTest(const FString& Parameters)
 	const FMovieSceneContext Context(FMovieSceneEvaluationRange(0.f));
 	
 	FNullPlayer Player;
-	FPersistentEvaluationData PersistentDataProxy(Player.State.PersistentEntityData, Player.State.PersistentSharedData);
+	FPersistentEvaluationData PersistentDataProxy(Player);
 
 	FMovieSceneBlendingAccumulator Accumulator;
 	Accumulator.DefineActuator(ID, MakeShared<FInt32Actuator>());
@@ -146,7 +146,7 @@ bool FMovieSceneBlendingStressTest::RunTest(const FString& Parameters)
 	const FMovieSceneContext Context(FMovieSceneEvaluationRange(0.f));
 	
 	FNullPlayer Player;
-	FPersistentEvaluationData PersistentDataProxy(Player.State.PersistentEntityData, Player.State.PersistentSharedData);
+	FPersistentEvaluationData PersistentDataProxy(Player);
 
 	FMovieSceneBlendingAccumulator Accumulator;
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "ShaderFormatVectorVM.h"
@@ -549,7 +549,7 @@ struct op_base
 
 	virtual FString to_string() = 0;
 	virtual void add_to_bytecode(TArray<uint8>& bytecode) = 0;
-	virtual bool finalize_temporary_allocations(const unsigned num_temp_registers, unsigned *registers, unsigned op_idx) { return true; }
+	virtual bool finalize(_mesa_glsl_parse_state* parse_state, FVectorVMCompilationOutput&CompilationOutput, const unsigned num_temp_registers, unsigned *registers, unsigned op_idx) { return true; }
 	virtual void validate(_mesa_glsl_parse_state* parse_state) = 0;
 
 	virtual struct op_standard* as_standard() { return nullptr; }
@@ -708,9 +708,14 @@ struct op_standard : public op_base
 		emit_short(dest_component->offset, bytecode);
 	}
 
-	virtual bool finalize_temporary_allocations(const unsigned num_temp_registers, unsigned *registers, unsigned op_idx)
+	virtual bool finalize(_mesa_glsl_parse_state* parse_state, FVectorVMCompilationOutput&CompilationOutput, const unsigned num_temp_registers, unsigned *registers, unsigned op_idx)
 	{
-		return finalize_component_temporary_allocation(dest_component, num_temp_registers, registers, op_idx);
+		if (!finalize_component_temporary_allocation(dest_component, num_temp_registers, registers, op_idx))
+		{
+			_mesa_glsl_error(parse_state, "Failed to allocate temporary registers");
+			return false;
+		}
+		return true;
 	}
 
 	virtual void validate(_mesa_glsl_parse_state* parse_state)override
@@ -771,9 +776,14 @@ struct op_input : public op_base
 		emit_short(dest_component->offset, bytecode);
 	}
 
-	virtual bool finalize_temporary_allocations(const unsigned num_temp_registers, unsigned *registers, unsigned op_idx)
+	virtual bool finalize(_mesa_glsl_parse_state* parse_state, FVectorVMCompilationOutput&CompilationOutput, const unsigned num_temp_registers, unsigned *registers, unsigned op_idx)
 	{
-		return finalize_component_temporary_allocation(dest_component, num_temp_registers, registers, op_idx);
+		if (!finalize_component_temporary_allocation(dest_component, num_temp_registers, registers, op_idx))
+		{
+			_mesa_glsl_error(parse_state, "Failed to allocate temporary registers");
+			return false;
+		}
+		return true;
 	}
 
 	virtual void validate(_mesa_glsl_parse_state* parse_state)override
@@ -821,9 +831,14 @@ struct op_input_noadvance : public op_input
 		emit_short(dest_component->offset, bytecode);
 	}
 
-	virtual bool finalize_temporary_allocations(const unsigned num_temp_registers, unsigned *registers, unsigned op_idx)
+	virtual bool finalize(_mesa_glsl_parse_state* parse_state, FVectorVMCompilationOutput&CompilationOutput, const unsigned num_temp_registers, unsigned *registers, unsigned op_idx)
 	{
-		return finalize_component_temporary_allocation(dest_component, num_temp_registers, registers, op_idx);
+		if (!finalize_component_temporary_allocation(dest_component, num_temp_registers, registers, op_idx))
+		{
+			_mesa_glsl_error(parse_state, "Failed to allocate temporary registers");
+			return false;
+		}
+		return true;
 	}
 
 	virtual void validate(_mesa_glsl_parse_state* parse_state)override
@@ -920,9 +935,14 @@ struct op_index_acquire : public op_base
 		emit_short(dest_component->offset, bytecode);
 	}
 
-	virtual bool finalize_temporary_allocations(const unsigned num_temp_registers, unsigned *registers, unsigned op_idx)
+	virtual bool finalize(_mesa_glsl_parse_state* parse_state, FVectorVMCompilationOutput&CompilationOutput, const unsigned num_temp_registers, unsigned *registers, unsigned op_idx)
 	{
-		return finalize_component_temporary_allocation(dest_component, num_temp_registers, registers, op_idx);
+		if (!finalize_component_temporary_allocation(dest_component, num_temp_registers, registers, op_idx))
+		{
+			_mesa_glsl_error(parse_state, "Failed to allocate temporary registers");
+			return false;
+		}
+		return true;
 	}
 
 	virtual void validate(_mesa_glsl_parse_state* parse_state)override
@@ -984,8 +1004,29 @@ struct op_external_func : public op_base
 		return Str += TEXT(");\n");
 	}
 
+	bool should_cull_function(unsigned int op_idx)
+	{
+		//If the outputs of this call are never used after the current op then we cull this function.
+		bool func_is_used = false;
+		for (variable_info_node* output : outputs)
+		{
+			if (output->last_read > op_idx)
+			{
+				func_is_used = true;
+				break;
+			}
+		}
+
+		return !func_is_used;
+	}
+
 	virtual void add_to_bytecode(TArray<uint8>& bytecode)
 	{
+		if (function_index == -1)
+		{
+			return;
+		}
+
 		emit_byte((uint8)EVectorVMOp::external_func_call, bytecode);
 
 		emit_byte(function_index, bytecode);
@@ -1016,8 +1057,26 @@ struct op_external_func : public op_base
 		ctx->success &= finalize_component_temporary_allocation(node, ctx->num_temp_registers, ctx->registers, ctx->op_idx);
 	}
 
-	virtual bool finalize_temporary_allocations(const unsigned num_temp_registers, unsigned *registers, unsigned op_idx)
+	virtual bool finalize(_mesa_glsl_parse_state* parse_state, FVectorVMCompilationOutput&CompilationOutput, const unsigned num_temp_registers, unsigned *registers, unsigned op_idx)
 	{
+		//don't allocate any temp registers if we're culling the function.
+		function_index = -1;
+		if (should_cull_function(op_idx))
+		{
+			return false;
+		}
+
+		//We also add this call to the compiler output here as we're now sure it's been called.
+		function_index = CompilationOutput.CalledVMFunctionTable.AddDefaulted();
+		check(function_index != INDEX_NONE);
+		FVectorVMCompilationOutput::FCalledVMFunction& CalledFunc = CompilationOutput.CalledVMFunctionTable[function_index];
+		CalledFunc.Name = sig->function_name();
+		CalledFunc.NumOutputs = outputs.Num();
+		for (variable_info_node* input : inputs)
+		{
+			CalledFunc.InputParamLocations.Add(input->owner->location == EVectorVMOperandLocation::Constant);
+		}
+
 		finalize_temp_register_ctx ctx;
 		ctx.num_temp_registers = num_temp_registers;
 		ctx.registers = registers;
@@ -1027,11 +1086,20 @@ struct op_external_func : public op_base
 		{
 			for_each_component(output, &finalize_comp, true, &ctx);
 		}
+		if (!ctx.success)
+		{
+			_mesa_glsl_error(parse_state, "Failed to allocate temporary registers for external funciton.");
+		}
 		return ctx.success;
 	}
 
 	virtual void validate(_mesa_glsl_parse_state* parse_state)override
 	{
+		if (function_index == -1)
+		{
+			return;
+		}
+
 		for (variable_info_node* input : inputs)
 		{
 			if (input->offset == INDEX_NONE)
@@ -1683,11 +1751,7 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 			unsigned num_inputs = 0;
 			unsigned num_outputs = 0;
 
-			func->function_index = CompilationOutput.CalledVMFunctionTable.AddDefaulted();
 			func->sig = call->callee;
-			check(func->function_index != INDEX_NONE);
-			FVectorVMCompilationOutput::FCalledVMFunction& CalledFunc = CompilationOutput.CalledVMFunctionTable[func->function_index];
-			CalledFunc.Name = call->callee->function_name();
 
 			exec_node* sig_param_node = call->callee->parameters.get_head();
 			foreach_iter(exec_list_iterator, iter, call->actual_parameters)
@@ -1703,11 +1767,9 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 				if (sig_param->mode == ir_var_in)
 				{
 					func->inputs.Add(curr_node);
-					CalledFunc.InputParamLocations.Add(curr_node->owner->location == EVectorVMOperandLocation::Constant);
 				}
-				else 
+				else
 				{
-					++CalledFunc.NumOutputs;
 					func->outputs.Add(curr_node);
 				}	
 				curr_node = nullptr;
@@ -1779,13 +1841,18 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 #if VM_VERBOSE_LOGGING
 		UE_LOG(LogVVMBackend, Log, TEXT("\n-------------------------------\nTemporary Allocations\n------------------------------\n"));
 #endif
+		TArray<int32> ops_to_strip;
 		for (int32 i = 0; i < ordered_ops.Num(); ++i)
 		{
-			if (!ordered_ops[i]->finalize_temporary_allocations(num_temp_registers, registers, i))
+			if (!ordered_ops[i]->finalize(parse_state, CompilationOutput, num_temp_registers, registers, i))
 			{
-				_mesa_glsl_error(parse_state, "register assignment failed");
-				break;
+				ops_to_strip.Add(i);
 			}
+		}
+
+		for (int32 op_idx : ops_to_strip)
+		{
+			ordered_ops.RemoveAt(op_idx);
 		}
 
 		//Final error checking.
@@ -1806,24 +1873,23 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 		}
 	}
 
-	void DumpOps()
+	FString DumpOps(uint32& OutNumOps)
 	{
-#if VM_VERBOSE_LOGGING
 		FString OpStr;
+		OutNumOps = ordered_ops.Num();
 
-		//Dump the constant table
-		OpStr += TEXT("\n-------------------------------\n");
-		OpStr += TEXT("Constant Table\n");
-		OpStr += TEXT("-------------------------------\n");
+
 		//First go through all the parameters.
-
+		FString OpsConstantTable;
+		uint32 NumConstants = 0;
 		TFunction<void(variable_info_node*, FString)> GatherConstantTable = [&](variable_info_node* node, FString accumulated_name)
 		{
 			accumulated_name += node->name;
 			if (node->is_scalar())
 			{
 				check(node->offset != INDEX_NONE);
-				OpStr += FString::Printf(TEXT("%d | %s\n"), node->offset, *accumulated_name);
+				OpsConstantTable += FString::Printf(TEXT("%d | %s\n"), node->offset, *accumulated_name);
+				NumConstants++;
 			}
 			else
 			{
@@ -1850,26 +1916,42 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 			case EVectorVMBaseTypes::Float:
 			{
 				float Val = *(float*)(CompilationOutput.InternalConstantData.GetData() + Offset);
-				OpStr += FString::Printf(TEXT("%d | %f\n"), TableOffset, Val);
+				OpsConstantTable += FString::Printf(TEXT("%d | %f\n"), TableOffset, Val);
+				NumConstants++;
 			}
 			break;
 			case EVectorVMBaseTypes::Int:
 			{
 				int32 Val = *(int32*)(CompilationOutput.InternalConstantData.GetData() + Offset);
-				OpStr += FString::Printf(TEXT("%d | %d\n"), TableOffset, Val);
+				OpsConstantTable += FString::Printf(TEXT("%d | %d\n"), TableOffset, Val);
+				NumConstants++;
 			}
 			break;
 			case EVectorVMBaseTypes::Bool:
 			{
 				int32 Val = *(int32*)(CompilationOutput.InternalConstantData.GetData() + Offset);
-				OpStr += FString::Printf(TEXT("%d | %s\n"), TableOffset, Val == INDEX_NONE ? TEXT("True") : (Val == 0 ? TEXT("False") : TEXT("Invalid") ));
+				OpsConstantTable += FString::Printf(TEXT("%d | %s\n"), TableOffset, Val == INDEX_NONE ? TEXT("True") : (Val == 0 ? TEXT("False") : TEXT("Invalid") ));
+				NumConstants++;
 			}
 			break;
 			}
 		}
+		
+		
+		OpStr += TEXT("\n-------------------------------\n");
+		OpStr += TEXT("Summary\n");
+		OpStr += TEXT("-------------------------------\n");
+		OpStr += FString::Printf(TEXT("Num Byte Code Ops: %d\n"), ordered_ops.Num());
+		OpStr += FString::Printf(TEXT("Num Constants: %d\n"), NumConstants);
+		
+		//Dump the constant table
+		OpStr += TEXT("\n-------------------------------\n");
+		OpStr += TEXT("Constant Table\n");
+		OpStr += TEXT("-------------------------------\n");
+		OpStr += OpsConstantTable;
 
 		OpStr += TEXT("-------------------------------\n");
-		OpStr += TEXT("Byte Code\n");
+		OpStr += FString::Printf(TEXT("Byte Code (%d Ops)\n"), ordered_ops.Num());
 		OpStr += TEXT("-------------------------------\n");
 		
 		//Dump the bytecode		
@@ -1880,8 +1962,10 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 		
 		OpStr += TEXT("-------------------------------\n");
 
+#if VM_VERBOSE_LOGGING
 		UE_LOG(LogVVMBackend, Log, TEXT("\n%s"), *OpStr);
 #endif
+		return OpStr;
 	}
 
 public:
@@ -1901,7 +1985,7 @@ public:
 		visit_list_elements(&genv, ir);
 		genv.Finalize();
 
-		genv.DumpOps();
+		InCompOutput.AssemblyAsString = genv.DumpOps(InCompOutput.NumOps);
 
 		return NULL;
 	}

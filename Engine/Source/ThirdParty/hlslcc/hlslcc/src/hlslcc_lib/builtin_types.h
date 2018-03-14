@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // This code is modified from that in the Mesa3D Graphics library available at
 // http://mesa3d.org/
@@ -108,7 +108,7 @@ static const struct glsl_struct_field gl_DepthRangeParameters_fields[] = {
 
 const glsl_type glsl_type::builtin_structure_types[] = {
    glsl_type(gl_DepthRangeParameters_fields,
-             Elements(gl_DepthRangeParameters_fields),
+             GetNumArrayElements(gl_DepthRangeParameters_fields),
              "gl_DepthRangeParameters"),
 };
 /*@}*/
@@ -174,25 +174,25 @@ static const struct glsl_struct_field gl_FogParameters_fields[] = {
 
 const glsl_type glsl_type::builtin_110_deprecated_structure_types[] = {
    glsl_type(gl_PointParameters_fields,
-             Elements(gl_PointParameters_fields),
+             GetNumArrayElements(gl_PointParameters_fields),
              "gl_PointParameters"),
    glsl_type(gl_MaterialParameters_fields,
-             Elements(gl_MaterialParameters_fields),
+             GetNumArrayElements(gl_MaterialParameters_fields),
              "gl_MaterialParameters"),
    glsl_type(gl_LightSourceParameters_fields,
-             Elements(gl_LightSourceParameters_fields),
+             GetNumArrayElements(gl_LightSourceParameters_fields),
              "gl_LightSourceParameters"),
    glsl_type(gl_LightModelParameters_fields,
-             Elements(gl_LightModelParameters_fields),
+             GetNumArrayElements(gl_LightModelParameters_fields),
              "gl_LightModelParameters"),
    glsl_type(gl_LightModelProducts_fields,
-             Elements(gl_LightModelProducts_fields),
+             GetNumArrayElements(gl_LightModelProducts_fields),
              "gl_LightModelProducts"),
    glsl_type(gl_LightProducts_fields,
-             Elements(gl_LightProducts_fields),
+             GetNumArrayElements(gl_LightProducts_fields),
              "gl_LightProducts"),
    glsl_type(gl_FogParameters_fields,
-             Elements(gl_FogParameters_fields),
+             GetNumArrayElements(gl_FogParameters_fields),
              "gl_FogParameters"),
 };
 /*@}*/

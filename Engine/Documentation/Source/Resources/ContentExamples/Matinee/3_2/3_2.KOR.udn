@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Docs
 Title:3.2 - 마티네 이벤트와 이벤트 트랙
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/Matinee
@@ -6,25 +6,6 @@ Description:Matinee 예제 레벨에 대한 개요로, 예제 3.2: Matinee Event
 
 [TOC(start:2 end:2)]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Matinee/3_2:title%](Resources\ContentExamples\Matinee\matinee_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Matinee/3_2:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Matinee/3_2:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/Matinee/3_2]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 마티네 안에서 제어할 수 없는 무언가를 하고자 하는 (예를 들어 액터의 함수를 호출하는) 경우, Event (이벤트)가 필요합니다.
 

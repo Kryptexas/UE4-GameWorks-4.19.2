@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraSystemSimulation.h"
 #include "NiagaraModule.h"
@@ -33,7 +33,7 @@ static FAutoConsoleVariableRef CVarNiagaraDumpSystemData(
 	ECVF_Default
 );
 
-static int32 GbParallelSystemPreTick = 1;
+static int32 GbParallelSystemPreTick = 0;
 static FAutoConsoleVariableRef CVarNiagaraParallelSystemPreTick(
 	TEXT("fx.ParallelSystemPreTick"),
 	GbParallelSystemPreTick,
@@ -41,7 +41,7 @@ static FAutoConsoleVariableRef CVarNiagaraParallelSystemPreTick(
 	ECVF_Default
 );
 
-static int32 GbParallelSystemPostTick = 1;
+static int32 GbParallelSystemPostTick = 0;
 static FAutoConsoleVariableRef CVarNiagaraParallelSystemPostTick(
 	TEXT("fx.ParallelSystemPostTick"),
 	GbParallelSystemPostTick,
@@ -60,9 +60,16 @@ static FAutoConsoleVariableRef CVarNiagaraParallelSystemPostTick(
 
 //////////////////////////////////////////////////////////////////////////
 
+FNiagaraSystemSimulation::~FNiagaraSystemSimulation()
+{
+	Destroy();
+}
+
 bool FNiagaraSystemSimulation::Init(UNiagaraSystem* InSystem, UWorld* InWorld)
 {
-	System = InSystem;
+	UNiagaraSystem* System = InSystem;
+	WeakSystem = System;
+
 	World = InWorld;
 
 	FNiagaraWorldManager* WorldMan = FNiagaraWorldManager::Get(InWorld);
@@ -79,37 +86,43 @@ bool FNiagaraSystemSimulation::Init(UNiagaraSystem* InSystem, UWorld* InWorld)
 		DataSet.AddVariables(System->GetSystemUpdateScript()->Attributes);
 		DataSet.Finalize();
 
-		SpawnParameterDataSet.Reset();
-		FNiagaraParameters* EngineParamsSpawn = System->GetSystemSpawnScript()->DataSetToParameters.Find(TEXT("Engine"));
-		if (EngineParamsSpawn != nullptr)
 		{
-			SpawnParameterDataSet.AddVariables(EngineParamsSpawn->Parameters);
+			SpawnInstanceParameterDataSet.Reset();
+			FNiagaraParameters* EngineParamsSpawn = System->GetSystemSpawnScript()->DataSetToParameters.Find(TEXT("Engine"));
+			if (EngineParamsSpawn != nullptr)
+			{
+				SpawnInstanceParameterDataSet.AddVariables(EngineParamsSpawn->Parameters);
+			}
+			SpawnInstanceParameterDataSet.Finalize();
+			UpdateInstanceParameterDataSet.Reset();
+			FNiagaraParameters* EngineParamsUpdate = System->GetSystemUpdateScript()->DataSetToParameters.Find(TEXT("Engine"));
+			if (EngineParamsUpdate != nullptr)
+			{
+				UpdateInstanceParameterDataSet.AddVariables(EngineParamsUpdate->Parameters);
+			}
+			UpdateInstanceParameterDataSet.Finalize();
 		}
-		SpawnParameterDataSet.Finalize();
-		UpdateParameterDataSet.Reset();
-		FNiagaraParameters* EngineParamsUpdate = System->GetSystemUpdateScript()->DataSetToParameters.Find(TEXT("Engine"));
-		if (EngineParamsUpdate != nullptr)
-		{
-			UpdateParameterDataSet.AddVariables(EngineParamsUpdate->Parameters);
-		}
-		UpdateParameterDataSet.Finalize();
 
-		SpawnExecContext.Init(System->GetSystemSpawnScript(false), ENiagaraSimTarget::CPUSim);
-		UpdateExecContext.Init(System->GetSystemUpdateScript(false), ENiagaraSimTarget::CPUSim);
+		UNiagaraScript* SpawnScript = System->GetSystemSpawnScript(false);
+		UNiagaraScript* UpdateScript = System->GetSystemUpdateScript(false);
+
+		SpawnExecContext.Init(SpawnScript, ENiagaraSimTarget::CPUSim);
+		UpdateExecContext.Init(UpdateScript, ENiagaraSimTarget::CPUSim);
 
 		//Bind parameter collections.
-		for (UNiagaraParameterCollection* Collection : System->GetSystemSpawnScript(false)->ParameterCollections)
+		for (UNiagaraParameterCollection* Collection : SpawnScript->ParameterCollections)
 		{
-			WorldMan->GetParameterCollection(Collection)->GetParameterStore().Bind(&SpawnExecContext.Parameters);
+			GetParameterCollectionInstance(Collection)->GetParameterStore().Bind(&SpawnExecContext.Parameters);
 		}
-		for (UNiagaraParameterCollection* Collection : System->GetSystemUpdateScript(false)->ParameterCollections)
+		for (UNiagaraParameterCollection* Collection : UpdateScript->ParameterCollections)
 		{
-			WorldMan->GetParameterCollection(Collection)->GetParameterStore().Bind(&UpdateExecContext.Parameters);
+			GetParameterCollectionInstance(Collection)->GetParameterStore().Bind(&UpdateExecContext.Parameters);
 		}
 
-		SystemEnabledAccessor.Create(&DataSet, FNiagaraVariable(FNiagaraTypeDefinition::GetBoolDef(), TEXT("System.Enabled")));
+		SpawnScript->RapidIterationParameters.Bind(&SpawnExecContext.Parameters);
+		UpdateScript->RapidIterationParameters.Bind(&UpdateExecContext.Parameters);
+
 		SystemExecutionStateAccessor.Create(&DataSet, FNiagaraVariable(EnumPtr, TEXT("System.ExecutionState")));
-		EmitterEnabledAccessors.Reset();
 		EmitterSpawnInfoAccessors.Reset();
 		EmitterExecutionStateAccessors.Reset();
 		EmitterSpawnInfoAccessors.SetNum(System->GetNumEmitters());
@@ -120,33 +133,32 @@ bool FNiagaraSystemSimulation::Init(UNiagaraSystem* InSystem, UWorld* InWorld)
 			UNiagaraEmitter* Emitter = EmitterHandle.GetInstance();
 			FString EmitterName = Emitter->GetUniqueEmitterName();
 			check(Emitter);
-			EmitterEnabledAccessors.Emplace(DataSet, FNiagaraVariable(FNiagaraTypeDefinition::GetBoolDef(), *(EmitterName + TEXT(".Enabled"))));
 			EmitterExecutionStateAccessors.Emplace(DataSet, FNiagaraVariable(EnumPtr, *(EmitterName + TEXT(".ExecutionState"))));
 			const TArray<FNiagaraEmitterSpawnAttributes>& EmitterSpawnAttrNames = System->GetEmitterSpawnAttributes();
-			for (const FNiagaraEmitterSpawnAttributes& SpawnAttrs : EmitterSpawnAttrNames)
+			
+			check(EmitterSpawnAttrNames.Num() == System->GetNumEmitters());
+			for (FName AttrName : EmitterSpawnAttrNames[EmitterIdx].SpawnAttributes)
 			{
-				for (FName AttrName : SpawnAttrs.SpawnAttributes)
-				{
-					EmitterSpawnInfoAccessors[EmitterIdx].Emplace(DataSet, FNiagaraVariable(FNiagaraTypeDefinition(FNiagaraSpawnInfo::StaticStruct()), AttrName));
-				}
+				EmitterSpawnInfoAccessors[EmitterIdx].Emplace(DataSet, FNiagaraVariable(FNiagaraTypeDefinition(FNiagaraSpawnInfo::StaticStruct()), AttrName));
 			}
 		}
 	}
 
 	if (bCanExecuteSolo)
 	{
+		UNiagaraScript* SpawnScript = System->GetSystemSpawnScript(true);
+		UNiagaraScript* UpdateScript = System->GetSystemUpdateScript(true);
+
 		//Init solo simulation.
 		DataSetSolo.Reset();
-		DataSetSolo.AddVariables(System->GetSystemSpawnScript(true)->Attributes);
-		DataSetSolo.AddVariables(System->GetSystemUpdateScript(true)->Attributes);
+		DataSetSolo.AddVariables(SpawnScript->Attributes);
+		DataSetSolo.AddVariables(UpdateScript->Attributes);
 		DataSetSolo.Finalize();
 
-		SpawnExecContextSolo.Init(System->GetSystemSpawnScript(true), ENiagaraSimTarget::CPUSim);
-		UpdateExecContextSolo.Init(System->GetSystemUpdateScript(true), ENiagaraSimTarget::CPUSim);
+		SpawnExecContextSolo.Init(SpawnScript, ENiagaraSimTarget::CPUSim);
+		UpdateExecContextSolo.Init(UpdateScript, ENiagaraSimTarget::CPUSim);
 
-		SoloSystemEnabledAccessor.Create(&DataSetSolo, FNiagaraVariable(FNiagaraTypeDefinition::GetBoolDef(), TEXT("System.Enabled")));
 		SoloSystemExecutionStateAccessor.Create(&DataSetSolo, FNiagaraVariable(EnumPtr, TEXT("System.ExecutionState")));
-		SoloEmitterEnabledAccessors.Reset();
 		SoloEmitterExecutionStateAccessors.Reset();
 		SoloEmitterSpawnInfoAccessors.Reset();
 		SoloEmitterSpawnInfoAccessors.SetNum(System->GetNumEmitters());
@@ -157,7 +169,6 @@ bool FNiagaraSystemSimulation::Init(UNiagaraSystem* InSystem, UWorld* InWorld)
 			UNiagaraEmitter* Emitter = EmitterHandle.GetInstance();
 			FString EmitterName = Emitter->GetUniqueEmitterName();
 			check(Emitter);
-			SoloEmitterEnabledAccessors.Emplace(DataSetSolo, FNiagaraVariable(FNiagaraTypeDefinition::GetBoolDef(), *(EmitterName + TEXT(".Enabled"))));
 			SoloEmitterExecutionStateAccessors.Emplace(DataSetSolo, FNiagaraVariable(EnumPtr, *(EmitterName + TEXT(".ExecutionState"))));
 			
 			for (FName AttrName : System->GetEmitterSpawnAttributes()[EmitterIdx].SpawnAttributes)
@@ -165,6 +176,19 @@ bool FNiagaraSystemSimulation::Init(UNiagaraSystem* InSystem, UWorld* InWorld)
 				SoloEmitterSpawnInfoAccessors[EmitterIdx].Emplace(DataSetSolo, FNiagaraVariable(FNiagaraTypeDefinition(FNiagaraSpawnInfo::StaticStruct()), AttrName));
 			}
 		}
+
+		//Bind the parameter collections and RI parameters into the Solo Execution contexts
+		for (UNiagaraParameterCollection* Collection : SpawnScript->ParameterCollections)
+		{
+			GetParameterCollectionInstance(Collection)->GetParameterStore().Bind(&SpawnExecContextSolo.Parameters);
+		}
+		SpawnScript->RapidIterationParameters.Bind(&SpawnExecContextSolo.Parameters);
+
+		for (UNiagaraParameterCollection* Collection : UpdateScript->ParameterCollections)
+		{
+			GetParameterCollectionInstance(Collection)->GetParameterStore().Bind(&UpdateExecContextSolo.Parameters);
+		}
+		UpdateScript->RapidIterationParameters.Bind(&UpdateExecContextSolo.Parameters);
 	}
 
 	return true;
@@ -187,15 +211,26 @@ void FNiagaraSystemSimulation::Destroy()
 
 	FNiagaraWorldManager* WorldMan = FNiagaraWorldManager::Get(World);
 	check(WorldMan);
-	//Unbind parameter collections from the batched exec contexts.
-	for (UNiagaraParameterCollection* Collection : System->GetSystemSpawnScript(false)->ParameterCollections)
+	SpawnExecContext.Parameters.UnbindFromSourceStores();
+	UpdateExecContext.Parameters.UnbindFromSourceStores();
+	SpawnExecContextSolo.Parameters.UnbindFromSourceStores();
+	UpdateExecContextSolo.Parameters.UnbindFromSourceStores();
+}
+
+UNiagaraParameterCollectionInstance* FNiagaraSystemSimulation::GetParameterCollectionInstance(UNiagaraParameterCollection* Collection)
+{
+	UNiagaraSystem* System = WeakSystem.Get();
+	check(System != nullptr);
+	UNiagaraParameterCollectionInstance* Ret = System->GetParameterCollectionOverride(Collection);
+
+	//If no explicit override from the system, just get the current instance set on the world.
+	if (!Ret)
 	{
-		WorldMan->GetParameterCollection(Collection)->GetParameterStore().Unbind(&SpawnExecContext.Parameters);
+		FNiagaraWorldManager* WorldMan = FNiagaraWorldManager::Get(World);
+		Ret = WorldMan->GetParameterCollection(Collection);
 	}
-	for (UNiagaraParameterCollection* Collection : System->GetSystemUpdateScript(false)->ParameterCollections)
-	{
-		WorldMan->GetParameterCollection(Collection)->GetParameterStore().Unbind(&UpdateExecContext.Parameters);
-	}
+
+	return Ret;
 }
 
 void FNiagaraSystemSimulation::TickSoloDataSet()
@@ -209,13 +244,23 @@ void FNiagaraSystemSimulation::TickSoloDataSet()
 	}
 }
 
-void FNiagaraSystemSimulation::Tick(float DeltaSeconds)
+bool FNiagaraSystemSimulation::Tick(float DeltaSeconds)
 {
-	if (!System->IsValid())
+	UNiagaraSystem* System = WeakSystem.Get();
+	if (System == nullptr)
 	{
 		// TODO: evaluate whether or not we should have removed this from the world manager instead?
-		return;
+		return false;
 	}
+
+	UNiagaraScript* SystemSpawnScript = System->GetSystemSpawnScript(false);
+	UNiagaraScript* SystemUpdateScript = System->GetSystemUpdateScript(false);
+	UNiagaraScript* SystemSpawnScriptSolo = System->GetSystemSpawnScript(true);
+	UNiagaraScript* SystemUpdateScriptSolo = System->GetSystemUpdateScript(true);
+	SystemSpawnScript->RapidIterationParameters.Tick();
+	SystemUpdateScript->RapidIterationParameters.Tick();
+	SystemSpawnScriptSolo->RapidIterationParameters.Tick();
+	SystemUpdateScriptSolo->RapidIterationParameters.Tick();
 
 	TickSoloDataSet();
 
@@ -233,6 +278,16 @@ void FNiagaraSystemSimulation::Tick(float DeltaSeconds)
 	}
 	PendingSystemInstances.Reset();
 
+	// Go ahead an initialize the data set accessors that we will potentially write since they 
+	// may have changed internally from the previous frame. We write to current here because we
+	// call tick after pretick, which will make these values the previous values during execution.
+	SystemExecutionStateAccessor.InitForAccess(true);
+	for (int32 EmitterIdx = 0; EmitterIdx < System->GetNumEmitters(); ++EmitterIdx)
+	{
+		EmitterExecutionStateAccessors[EmitterIdx].InitForAccess(true);
+	}
+	
+
 	{
 		SCOPE_CYCLE_COUNTER(STAT_NiagaraSystemSim_PreSimulate);
 
@@ -241,18 +296,41 @@ void FNiagaraSystemSimulation::Tick(float DeltaSeconds)
 			FNiagaraSystemInstance* Inst = SystemInstances[SystemIndex];
 			Inst->PreSimulateTick(DeltaSeconds);
 
-			check(!Inst->GetParameters().bLayoutDirty);
-			if (Inst->GetParameters().bParametersDirty && bCanExecute)
+			//System exec state can be driven externally so we must feed it in as well as take it out.
+			if (SystemExecutionStateAccessor.IsValid())
 			{
-				SpawnParameterToDataSetBinding.ParameterStoreToDataSet(Inst->GetParameters(), SpawnParameterDataSet, SystemIndex);
-				UpdateParameterToDataSetBinding.ParameterStoreToDataSet(Inst->GetParameters(), UpdateParameterDataSet, SystemIndex);
+				SystemExecutionStateAccessor.Set(SystemIndex, (int32)Inst->GetExecutionState());
 			}
+
+			if (Inst->GetParameters().GetParametersDirty() && bCanExecute)
+			{
+				SpawnInstanceParameterToDataSetBinding.ParameterStoreToDataSet(Inst->GetParameters(), SpawnInstanceParameterDataSet, SystemIndex);
+				UpdateInstanceParameterToDataSetBinding.ParameterStoreToDataSet(Inst->GetParameters(), UpdateInstanceParameterDataSet, SystemIndex);
+			}
+
 			//TODO: Find good way to check that we're not using any instance parameter data interfaces in the system scripts here.
 			//In that case we need to solo and will never get here.
+
+			// Update the individual parameters that may have been manually set. Note that we check for a valid base in multiple situations
+			// as in certain situations (like spawn) these values may not yet have been set or created.
+			if (SystemExecutionStateAccessor.BaseIsValid())
+			{
+				SystemExecutionStateAccessor.Set(SystemIndex, (int32)Inst->GetExecutionState());
+			}
+
+			TArray<TSharedRef<FNiagaraEmitterInstance>>& Emitters = Inst->GetEmitters();
+			for (int32 EmitterIdx = 0; EmitterIdx < Emitters.Num(); ++EmitterIdx)
+			{
+				FNiagaraEmitterInstance& EmitterInst = Emitters[EmitterIdx].Get();
+				if (EmitterExecutionStateAccessors.Num() > EmitterIdx && EmitterExecutionStateAccessors[EmitterIdx].BaseIsValid())
+				{
+					EmitterExecutionStateAccessors[EmitterIdx].Set(SystemIndex, (int32)EmitterInst.GetExecutionState());
+				}
+			}
 		};
 
-		SpawnParameterDataSet.Allocate(NewNum);
-		UpdateParameterDataSet.Allocate(NewNum);
+		SpawnInstanceParameterDataSet.Allocate(NewNum);
+		UpdateInstanceParameterDataSet.Allocate(NewNum);
 
 		if (GbParallelSystemPreTick)
 		{
@@ -267,8 +345,8 @@ void FNiagaraSystemSimulation::Tick(float DeltaSeconds)
 			}
 		}
 
-		SpawnParameterDataSet.Tick();
-		UpdateParameterDataSet.Tick();
+		SpawnInstanceParameterDataSet.Tick();
+		UpdateInstanceParameterDataSet.Tick();
 	}
 
 	if (bCanExecute && NewNum > 0)
@@ -288,50 +366,60 @@ void FNiagaraSystemSimulation::Tick(float DeltaSeconds)
 
 		TArray<FNiagaraDataSetExecutionInfo> DataSetExecInfos;
 		DataSetExecInfos.Emplace(&DataSet, 0, false, true);
+		DataSetExecInfos.Emplace(&UpdateInstanceParameterDataSet, 0, false, false);
 
 		{
 			SCOPE_CYCLE_COUNTER(STAT_NiagaraSystemSim_Update);
 			DataSet.SetNumInstances(OrigNum);
+			UpdateInstanceParameterDataSet.SetNumInstances(OrigNum);
+
 			//Run update.
 			UpdateExecContext.Tick(nullptr);//We can't require a specfic instance here as these are for all instances.
-			DataSetExecInfos.SetNum(1, false);
 			DataSetExecInfos[0].StartInstance = 0;
-			DataSetExecInfos.Emplace(&UpdateParameterDataSet, 0, false, false);
+
+			if (GbDumpSystemData)
+			{
+				UE_LOG(LogNiagara, Log, TEXT("=== PreUpdated %d Systems ==="), OrigNum);
+				DataSet.Dump(true, 0, OrigNum);
+				UpdateInstanceParameterDataSet.Dump(true, 0, OrigNum);
+			}
+
 			UpdateExecContext.Execute(OrigNum, DataSetExecInfos);
 
 			if (GbDumpSystemData)
 			{
 				UE_LOG(LogNiagara, Log, TEXT("=== Updated %d Systems ==="), OrigNum);
 				DataSet.Dump(true, 0, OrigNum);
-				UpdateParameterDataSet.Dump(true, 0, OrigNum);
+				UpdateInstanceParameterDataSet.Dump(false, 0, OrigNum);
 			}
 		}
 
+		if(SpawnNum)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_NiagaraSystemSim_Spawn);
 			DataSet.SetNumInstances(NewNum);
+			SpawnInstanceParameterDataSet.SetNumInstances(NewNum);
+
 			//Run Spawn
 			SpawnExecContext.Tick(nullptr);//We can't require a specific instance here as these are for all instances.
 			DataSetExecInfos.SetNum(1, false);
 			DataSetExecInfos[0].StartInstance = OrigNum;
-			DataSetExecInfos.Emplace(&SpawnParameterDataSet, OrigNum, false, false);
+			DataSetExecInfos.Emplace(&SpawnInstanceParameterDataSet, OrigNum, false, false);
 			SpawnExecContext.Execute(SpawnNum, DataSetExecInfos);
 
 			if (GbDumpSystemData)
 			{
 				UE_LOG(LogNiagara, Log, TEXT("=== Spwaned %d Systems ==="), SpawnNum);
 				DataSet.Dump(true, OrigNum, SpawnNum);
-				SpawnParameterDataSet.Dump(true, OrigNum, SpawnNum);
+				SpawnInstanceParameterDataSet.Dump(false, OrigNum, SpawnNum);
 			}
 		}
 
 		{
 			SCOPE_CYCLE_COUNTER(STAT_NiagaraSystemSim_TransferParameters);
-			SystemEnabledAccessor.InitForAccess(true);
 			SystemExecutionStateAccessor.InitForAccess(true);
 			for (int32 EmitterIdx = 0; EmitterIdx < System->GetNumEmitters(); ++EmitterIdx)
 			{
-				EmitterEnabledAccessors[EmitterIdx].InitForAccess(true);
 				EmitterExecutionStateAccessors[EmitterIdx].InitForAccess(true);
 				for (int32 SpawnInfoIdx = 0; SpawnInfoIdx < EmitterSpawnInfoAccessors[EmitterIdx].Num(); ++SpawnInfoIdx)
 				{
@@ -342,17 +430,10 @@ void FNiagaraSystemSimulation::Tick(float DeltaSeconds)
 			int32 SystemIndex = 0;
 			while (SystemIndex < SystemInstances.Num())
 			{
-				ENiagaraExecutionState ExecutionState = (ENiagaraExecutionState)SystemExecutionStateAccessor.GetSafe(SystemIndex, (int32)ENiagaraExecutionState::Active);
+				ENiagaraExecutionState ExecutionState = (ENiagaraExecutionState)SystemExecutionStateAccessor.GetSafe(SystemIndex, (int32)ENiagaraExecutionState::Disabled);
 				FNiagaraSystemInstance* SystemInst = SystemInstances[SystemIndex];
 				SystemInst->SetExecutionState(ExecutionState);
-				bool bSystemEnabled = SystemEnabledAccessor.GetSafe(SystemIndex, true);
-				//Kill any instances that are flagged as disabled.
-				if (!bSystemEnabled || ExecutionState == ENiagaraExecutionState::Dead)
-				{
-					RemoveInstance(SystemInst);
-					SystemInst->Disable();
-				}
-				else
+				if (!SystemInst->HandleCompletion())
 				{
 					//Now pull data out of the simulation and drive the emitters with it.
 					TArray<TSharedRef<FNiagaraEmitterInstance>>& Emitters = SystemInst->GetEmitters();
@@ -360,9 +441,15 @@ void FNiagaraSystemSimulation::Tick(float DeltaSeconds)
 					{
 						FNiagaraEmitterInstance& EmitterInst = Emitters[EmitterIdx].Get();
 
-						FNiagaraBool bEmitterEnabled = EmitterEnabledAccessors[EmitterIdx].GetSafe(SystemIndex, true);
-						EmitterInst.SetEnabled(bEmitterEnabled);//TODO: Alter this to instruct emitter to dump existing particles optionally.
+						//Early exit before we set the state as if we're complete or disabled we should never let the emitter turn itself back. It needs to be reset/reinited manually.
+						if (EmitterInst.IsComplete())
+						{
+							continue;
+						}
 
+						ENiagaraExecutionState State = (ENiagaraExecutionState)EmitterExecutionStateAccessors[EmitterIdx].GetSafe(SystemIndex, (int32)ENiagaraExecutionState::Disabled);
+						EmitterInst.SetExecutionState(State);
+												
 						TArray<FNiagaraSpawnInfo>& EmitterInstSpawnInfos = EmitterInst.GetSpawnInfo();
 						for (int32 SpawnInfoIdx=0; SpawnInfoIdx < EmitterSpawnInfoAccessors[EmitterIdx].Num(); ++SpawnInfoIdx)
 						{
@@ -376,8 +463,6 @@ void FNiagaraSystemSimulation::Tick(float DeltaSeconds)
 							}
 						}
 
-						ENiagaraExecutionState State = (ENiagaraExecutionState)EmitterExecutionStateAccessors[EmitterIdx].GetSafe(SystemIndex, (int32)ENiagaraExecutionState::Active);
-						EmitterInst.SetExecutionState(State);
 
 						//TODO: Any other fixed function stuff like this?
 
@@ -391,7 +476,14 @@ void FNiagaraSystemSimulation::Tick(float DeltaSeconds)
 						for (int32 EventIdx = 0; EventIdx < EventContexts.Num(); ++EventIdx)
 						{
 							FNiagaraScriptExecutionContext& EventContext = EventContexts[EventIdx];
-							DataSetToEmitterEventParameters[EmitterIdx][EventIdx].DataSetToParameterStore(EventContext.Parameters, DataSet, SystemIndex);
+							if (DataSetToEmitterEventParameters[EmitterIdx].Num() > EventIdx)
+							{
+								DataSetToEmitterEventParameters[EmitterIdx][EventIdx].DataSetToParameterStore(EventContext.Parameters, DataSet, SystemIndex);
+							}
+							else
+							{
+								UE_LOG(LogNiagara, Log, TEXT("Skipping DataSetToEmitterEventParameters because EventIdx is out-of-bounds. %d of %d"), EventIdx, DataSetToEmitterEventParameters[EmitterIdx].Num());
+							}
 						}
 					}
 
@@ -435,14 +527,19 @@ void FNiagaraSystemSimulation::Tick(float DeltaSeconds)
 		{
 			FNiagaraSystemInstance* SystemInst = SystemInstances[SystemIndex];
 			++SystemIndex;
-			if (SystemIndex < SystemInstances.Num())
+			if (SystemInst->HasTickingEmitters())
 			{
-				FPlatformMisc::Prefetch(SystemInstances[SystemIndex]->GetComponent());
+				if (SystemIndex < SystemInstances.Num())
+				{
+					FPlatformMisc::Prefetch(SystemInstances[SystemIndex]->GetComponent());
+				}
+				SystemInst->GetComponent()->UpdateComponentToWorld();//Needed for bounds updates. Can probably skip if using fixed bounds
+				SystemInst->GetComponent()->MarkRenderDynamicDataDirty();
 			}
-			SystemInst->GetComponent()->UpdateComponentToWorld();
-			SystemInst->GetComponent()->MarkRenderDynamicDataDirty();
 		}
 	}
+
+	return true;
 }
 
 void FNiagaraSystemSimulation::RemoveInstance(FNiagaraSystemInstance* Instance)
@@ -526,18 +623,53 @@ void FNiagaraSystemSimulation::ResetSolo(FNiagaraSystemInstance* Instance)
 {
 	Instance->SetPendingSpawn(true);
 	Instance->SystemInstanceIndex = INDEX_NONE;
-	Instance->SetExecutionState(ENiagaraExecutionState::Active);
+}
+
+const TArray<UNiagaraDataInterface*>& FNiagaraSystemSimulation::GetSoloDataInterfacesSpawn()
+{
+	return SpawnExecContextSolo.GetDataInterfaces();
+}
+
+const TArray<UNiagaraDataInterface*>& FNiagaraSystemSimulation::GetSoloDataInterfacesUpdate()
+{
+	return UpdateExecContextSolo.GetDataInterfaces();
 }
 
 void FNiagaraSystemSimulation::TickSolo(FNiagaraSystemInstance* SystemInst)
 {
 	SCOPE_CYCLE_COUNTER(STAT_NiagaraSystemSimSolo);
-	check(System->IsValid());
+
+	UNiagaraSystem* System = WeakSystem.Get();
+	check(System != nullptr);
 
 	if (!System->GetSystemSpawnScript(true)->IsValid() || !System->GetSystemUpdateScript(true)->IsValid())
 	{
 		return;
 	}
+
+	auto SetExecStateFromExternal = [&](int32 SystemIndex, bool bCurr)
+	{
+		SoloSystemExecutionStateAccessor.InitForAccess(bCurr);
+		for (int32 EmitterIdx = 0; EmitterIdx < System->GetNumEmitters(); ++EmitterIdx)
+		{
+			SoloEmitterExecutionStateAccessors[EmitterIdx].InitForAccess(bCurr);
+		}
+		
+		// Update the individual parameters that may have been manually set.
+		if (SoloSystemExecutionStateAccessor.BaseIsValid())
+		{
+			SoloSystemExecutionStateAccessor.Set(SystemIndex, (int32)SystemInst->GetExecutionState());
+		}
+		TArray<TSharedRef<FNiagaraEmitterInstance>>& Emitters = SystemInst->GetEmitters();
+		for (int32 EmitterIdx = 0; EmitterIdx < Emitters.Num(); ++EmitterIdx)
+		{
+			FNiagaraEmitterInstance& EmitterInst = Emitters[EmitterIdx].Get();
+			if (SoloEmitterExecutionStateAccessors.Num() > EmitterIdx && SoloEmitterExecutionStateAccessors[EmitterIdx].BaseIsValid())
+			{
+				SoloEmitterExecutionStateAccessors[EmitterIdx].Set(SystemIndex, (int32)EmitterInst.GetExecutionState());
+			}
+		}
+	};
 
 	FNiagaraWorldManager* WorldMan = FNiagaraWorldManager::Get(World);
 	check(WorldMan);
@@ -563,14 +695,16 @@ void FNiagaraSystemSimulation::TickSolo(FNiagaraSystemInstance* SystemInst)
 		}
 
 		check(SoloSystemInstances.IsValidIndex(SystemIndex));
+
+		SetExecStateFromExternal(SystemIndex, true);
+
 		//////////////////////////////////////////////////////////////////////////
 		//TODO: This can be optimized as all the offests are the same. Can skip all the searching involved with a full bind().
-		//Unbind parameter collections from the batched exec contexts.
-		for (UNiagaraParameterCollection* Collection : System->GetSystemSpawnScript(true)->ParameterCollections)
-		{
-			WorldMan->GetParameterCollection(Collection)->GetParameterStore().Bind(&SpawnExecContextSolo.Parameters);
-		}
 		SystemInst->GetParameters().Bind(&SpawnExecContextSolo.Parameters);
+
+		//We must tick the RI parameters here to be sure we have up to date data. NPC data can afford to be a frame delayed but not RI data.
+		SpawnExecContextSolo.Script->RapidIterationParameters.Tick();
+
 		SpawnExecContextSolo.Tick(SystemInst);
 		//////////////////////////////////////////////////////////////////////////
 		
@@ -579,10 +713,6 @@ void FNiagaraSystemSimulation::TickSolo(FNiagaraSystemInstance* SystemInst)
 		//////////////////////////////////////////////////////////////////////////
 		//TODO: This can be optimized as all the offests are the same. Can skip all the searching involved with a full bind().
 		SystemInst->GetParameters().Unbind(&SpawnExecContextSolo.Parameters);
-		for (UNiagaraParameterCollection* Collection : System->GetSystemSpawnScript(true)->ParameterCollections)
-		{
-			WorldMan->GetParameterCollection(Collection)->GetParameterStore().Unbind(&SpawnExecContextSolo.Parameters);
-		}
 		//////////////////////////////////////////////////////////////////////////
 		
 		DataSetSolo.SetNumInstances(SoloSystemInstances.Num());
@@ -596,13 +726,14 @@ void FNiagaraSystemSimulation::TickSolo(FNiagaraSystemInstance* SystemInst)
 	else
 	{
 		check(SoloSystemInstances.IsValidIndex(SystemIndex));
+
+		SetExecStateFromExternal(SystemIndex, true);
+
 		//////////////////////////////////////////////////////////////////////////
 		//TODO: This can be optimized as all the offests are the same. Can skip all the searching involved with a full bind().
-		for (UNiagaraParameterCollection* Collection : System->GetSystemUpdateScript(true)->ParameterCollections)
-		{
-			WorldMan->GetParameterCollection(Collection)->GetParameterStore().Bind(&SpawnExecContextSolo.Parameters);
-		}
 		SystemInst->GetParameters().Bind(&UpdateExecContextSolo.Parameters);
+		//We must tick the RI parameters here to be sure we have up to date data. NPC data can afford to be a frame delayed but not RI data.
+		UpdateExecContextSolo.Script->RapidIterationParameters.Tick();
 		UpdateExecContextSolo.Tick(SystemInst);
 		//////////////////////////////////////////////////////////////////////////
 
@@ -611,10 +742,6 @@ void FNiagaraSystemSimulation::TickSolo(FNiagaraSystemInstance* SystemInst)
 		//////////////////////////////////////////////////////////////////////////
 		//TODO: This can be optimized as all the offests are the same. Can skip all the searching involved with a full bind().
 		SystemInst->GetParameters().Unbind(&UpdateExecContextSolo.Parameters);
-		for (UNiagaraParameterCollection* Collection : System->GetSystemUpdateScript(true)->ParameterCollections)
-		{
-			WorldMan->GetParameterCollection(Collection)->GetParameterStore().Unbind(&UpdateExecContextSolo.Parameters);
-		}
 		//////////////////////////////////////////////////////////////////////////
 
 		DataSetSolo.SetNumInstances(SoloSystemInstances.Num());
@@ -628,12 +755,9 @@ void FNiagaraSystemSimulation::TickSolo(FNiagaraSystemInstance* SystemInst)
 
 	InitBindings(SystemInst);
 
-	//Kill instance if it's marked for delete.
-	SoloSystemEnabledAccessor.InitForAccess(true);
 	SoloSystemExecutionStateAccessor.InitForAccess(true);
 	for (int32 EmitterIdx = 0; EmitterIdx < System->GetNumEmitters(); ++EmitterIdx)
 	{
-		SoloEmitterEnabledAccessors[EmitterIdx].InitForAccess(true);
 		SoloEmitterExecutionStateAccessors[EmitterIdx].InitForAccess(true);
 		for (int32 SpawnInfoIdx = 0; SpawnInfoIdx < SoloEmitterSpawnInfoAccessors[EmitterIdx].Num(); ++SpawnInfoIdx)
 		{
@@ -642,48 +766,50 @@ void FNiagaraSystemSimulation::TickSolo(FNiagaraSystemInstance* SystemInst)
 	}		
 
 	ensure(SystemIndex != INDEX_NONE);
-	bool bSystemEnabled = SoloSystemEnabledAccessor.GetSafe(SystemIndex, true);
-	ENiagaraExecutionState SoloExecutionState = (ENiagaraExecutionState)SoloSystemExecutionStateAccessor.GetSafe(SystemIndex, (int32)ENiagaraExecutionState::Active);
+	ENiagaraExecutionState SoloExecutionState = (ENiagaraExecutionState)SoloSystemExecutionStateAccessor.GetSafe(SystemIndex, (int32)ENiagaraExecutionState::Disabled);
 	SystemInst->SetExecutionState(SoloExecutionState);
 
-	if (!bSystemEnabled || SoloExecutionState == ENiagaraExecutionState::Dead)
+	//Now pull data out of the simulation and drive the emitters with it.
+	TArray<TSharedRef<FNiagaraEmitterInstance>>& Emitters = SystemInst->GetEmitters();
+	for (int32 EmitterIdx = 0; EmitterIdx < Emitters.Num(); ++EmitterIdx)
 	{
-		RemoveInstance(SystemInst);
-		SystemInst->Disable();
-	}
-	else
-	{
-		//Now pull data out of the simulation and drive the emitters with it.
-		TArray<TSharedRef<FNiagaraEmitterInstance>>& Emitters = SystemInst->GetEmitters();
-		for (int32 EmitterIdx = 0; EmitterIdx < Emitters.Num(); ++EmitterIdx)
+		FNiagaraEmitterInstance& EmitterInst = Emitters[EmitterIdx].Get();
+
+		//Early exit before we set the state as if we're complete or disabled we should never let the emitter turn itself back. It needs to be reset/reinited manually.
+		if (EmitterInst.IsComplete())
 		{
-			FNiagaraEmitterInstance& EmitterInst = Emitters[EmitterIdx].Get();
+			continue;
+		}
 
-			FNiagaraBool bEmitterEnabled = SoloEmitterEnabledAccessors[EmitterIdx].GetSafe(SystemIndex, true);
-			EmitterInst.SetEnabled(bEmitterEnabled);//TODO: Alter this to instruct emitter to dump existing particles optionally.
+		ENiagaraExecutionState State = (ENiagaraExecutionState)SoloEmitterExecutionStateAccessors[EmitterIdx].GetSafe(SystemIndex, (int32)ENiagaraExecutionState::Disabled);
+		EmitterInst.SetExecutionState(State);
 
-			ENiagaraExecutionState State = (ENiagaraExecutionState)SoloEmitterExecutionStateAccessors[EmitterIdx].GetSafe(SystemIndex, (int32)ENiagaraExecutionState::Active);
-			EmitterInst.SetExecutionState(State);
+		for (int32 SpawnInfoIdx = 0; SpawnInfoIdx < SoloEmitterSpawnInfoAccessors[EmitterIdx].Num(); ++SpawnInfoIdx)
+		{
+			EmitterInst.GetSpawnInfo()[SpawnInfoIdx] = SoloEmitterSpawnInfoAccessors[EmitterIdx][SpawnInfoIdx].Get(SystemIndex);
+		}
 
-			for (int32 SpawnInfoIdx = 0; SpawnInfoIdx < SoloEmitterSpawnInfoAccessors[EmitterIdx].Num(); ++SpawnInfoIdx)
+		//TODO: Any other fixed function stuff like this?
+
+		FNiagaraScriptExecutionContext& SpawnContext = EmitterInst.GetSpawnExecutionContext();
+		DataSetToEmitterSpawnParameters[EmitterIdx].DataSetToParameterStore(SpawnContext.Parameters, DataSetSolo, SystemIndex);
+
+		FNiagaraScriptExecutionContext& UpdateContext = EmitterInst.GetUpdateExecutionContext();
+		DataSetToEmitterUpdateParameters[EmitterIdx].DataSetToParameterStore(UpdateContext.Parameters, DataSetSolo, SystemIndex);
+
+		TArray<FNiagaraScriptExecutionContext>& EventContexts = EmitterInst.GetEventExecutionContexts();
+		for (int32 EventIdx = 0; EventIdx < EventContexts.Num(); ++EventIdx)
+		{
+			FNiagaraScriptExecutionContext& EventContext = EventContexts[EventIdx];
+			if (DataSetToEmitterEventParameters[EmitterIdx].Num() > EventIdx)
 			{
-				EmitterInst.GetSpawnInfo()[SpawnInfoIdx] = SoloEmitterSpawnInfoAccessors[EmitterIdx][SpawnInfoIdx].Get(SystemIndex);
-			}
-			
-			//TODO: Any other fixed function stuff like this?
-
-			FNiagaraScriptExecutionContext& SpawnContext = EmitterInst.GetSpawnExecutionContext();
-			DataSetToEmitterSpawnParameters[EmitterIdx].DataSetToParameterStore(SpawnContext.Parameters, DataSetSolo, SystemIndex);
-
-			FNiagaraScriptExecutionContext& UpdateContext = EmitterInst.GetUpdateExecutionContext();
-			DataSetToEmitterUpdateParameters[EmitterIdx].DataSetToParameterStore(UpdateContext.Parameters, DataSetSolo, SystemIndex);
-
-			TArray<FNiagaraScriptExecutionContext>& EventContexts = EmitterInst.GetEventExecutionContexts();
-			for (int32 EventIdx = 0; EventIdx < EventContexts.Num(); ++EventIdx)
-			{
-				FNiagaraScriptExecutionContext& EventContext = EventContexts[EventIdx];
 				DataSetToEmitterEventParameters[EmitterIdx][EventIdx].DataSetToParameterStore(EventContext.Parameters, DataSetSolo, SystemIndex);
 			}
+			else
+			{
+				UE_LOG(LogNiagara, Log, TEXT("Skipping DataSetToEmitterEventParameters because EventIdx is out-of-bounds. %d of %d"), EventIdx, DataSetToEmitterEventParameters[EmitterIdx].Num());
+			}
+
 		}
 	}
 }
@@ -696,8 +822,8 @@ void FNiagaraSystemSimulation::InitBindings(FNiagaraSystemInstance* SystemInst)
 	//Ideally we can store all this layout info in the systm/emitter assets so we can just generate this in Init()
 	if (DataSetToEmitterSpawnParameters.Num() == 0)
 	{
-		SpawnParameterToDataSetBinding.Init(SpawnParameterDataSet, SystemInst->GetInstanceParameters());
-		UpdateParameterToDataSetBinding.Init(UpdateParameterDataSet, SystemInst->GetInstanceParameters());
+		SpawnInstanceParameterToDataSetBinding.Init(SpawnInstanceParameterDataSet, SystemInst->GetInstanceParameters());
+		UpdateInstanceParameterToDataSetBinding.Init(UpdateInstanceParameterDataSet, SystemInst->GetInstanceParameters());
 
 		TArray<TSharedRef<FNiagaraEmitterInstance>>& Emitters = SystemInst->GetEmitters();
 		check(DataSetToEmitterUpdateParameters.Num() == 0);
@@ -724,6 +850,3 @@ void FNiagaraSystemSimulation::InitBindings(FNiagaraSystemInstance* SystemInst)
 		}
 	}
 }
-
-
-

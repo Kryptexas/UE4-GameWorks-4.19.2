@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "IOSAppDelegate.h"
 #include "IOSCommandLineHelper.h"
@@ -129,6 +129,8 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 @synthesize IdleTimerEnableTimer;
 @synthesize IdleTimerEnablePeriod;
 
+@synthesize savedOpenUrlParameters;
+
 -(void)dealloc
 {
 #if !UE_BUILD_SHIPPING && !PLATFORM_TVOS
@@ -205,6 +207,16 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 	// @PJS - need a better way to allow the game to turn off the splash screen
     GShowSplashScreen = false;
 
+	for (NSDictionary* openUrlParameter in self.savedOpenUrlParameters)
+	{
+		UIApplication* application = [openUrlParameter valueForKey : @"application"];
+		NSURL* url = [openUrlParameter valueForKey : @"url"];
+		NSString * sourceApplication = [openUrlParameter valueForKey : @"sourceApplication"];
+		id annotation = [openUrlParameter valueForKey : @"annotation"];
+		FIOSCoreDelegates::OnOpenURL.Broadcast(application, url, sourceApplication, annotation);
+	}
+	self.savedOpenUrlParameters = nil; // clear after saved openurl delegate running
+
 	while( !GIsRequestingExit )
 	{
         if (self.bIsSuspended)
@@ -220,7 +232,9 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
             // free any autoreleased objects every once in awhile to keep memory use down (strings, splash screens, etc)
             if (((GFrameCounter) & 31) == 0)
             {
-                [AutoreleasePool release];
+				// If you crash upon release, turn on Zombie Objects (Edit Scheme... | Diagnostics | Zombie Objects)
+				// This will list the last object sent the release message, which will help identify the double free
+				[AutoreleasePool release];
                 AutoreleasePool = [[NSAutoreleasePool alloc] init];
             }
         }
@@ -592,6 +606,8 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 	NSMutableString* PngString = [[NSMutableString alloc] init];
     [ImageString appendString:@"Default"];
 
+	self.savedOpenUrlParameters = [[NSMutableArray alloc] init];
+
 	FPlatformMisc::EIOSDevice Device = FPlatformMisc::GetIOSDeviceType();
 
 	// iphone6 has specially named files, this seems to be needed for every iphone since, so let's see if we can find a better way to do this which isn't device specific
@@ -798,11 +814,31 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 	[self.CommandLineParseTimer invalidate];
 	self.CommandLineParseTimer = nil;
 	
-	FIOSCoreDelegates::OnOpenURL.Broadcast(application, url, sourceApplication, annotation);
-	
+	//    Save openurl infomation before engine initialize.
+	//    When engine is done ready, running like previous. ( if OnOpenUrl is bound on game source. )
+	if (bEngineInit)
+	{
+		FIOSCoreDelegates::OnOpenURL.Broadcast(application, url, sourceApplication, annotation);
+	}
+	else
+	{
+#if !NO_LOGGING
+		NSLog(@"%s", "Before Engine Init receive IOSAppDelegate openURL\n");
+#endif
+			NSDictionary* openUrlParameter = [NSDictionary dictionaryWithObjectsAndKeys :
+		application, @"application",
+			url, @"url",
+			sourceApplication, @"sourceApplication",
+			annotation, @"annotation",
+			nil];
+
+		[savedOpenUrlParameters addObject : openUrlParameter];
+	}
+
 	return YES;
 }
 
+FCriticalSection RenderSuspend;
 - (void)applicationWillResignActive:(UIApplication *)application
 {
 	/*
@@ -827,9 +863,15 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 			}
 		}
     }
-    
+
 	[self ToggleSuspend:true];
 	[self ToggleAudioSession:false];
+
+	RenderSuspend.TryLock();
+	FGraphEventRef ResignTask = FFunctionGraphTask::CreateAndDispatchWhenReady([]()
+	{
+		FScopeLock ScopeLock(&RenderSuspend);
+	}, TStatId(), NULL, ENamedThreads::ActualRenderingThread);
 }
 
 - (void)applicationDidEnterBackground:(UIApplication *)application
@@ -838,6 +880,7 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 	 Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later. 
 	 If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
 	 */
+
     FCoreDelegates::ApplicationWillEnterBackgroundDelegate.Broadcast();
 }
 
@@ -846,6 +889,7 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 	/*
 	 Called as part of the transition from the background to the inactive state; here you can undo many of the changes made on entering the background.
 	 */
+
     FCoreDelegates::ApplicationHasEnteredForegroundDelegate.Broadcast();
 }
 
@@ -854,7 +898,8 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 	/*
 	 Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
 	 */
-    [self ToggleSuspend:false];
+	RenderSuspend.Unlock();
+	[self ToggleSuspend : false];
 	[self ToggleAudioSession:true];
 
     if (bEngineInit)

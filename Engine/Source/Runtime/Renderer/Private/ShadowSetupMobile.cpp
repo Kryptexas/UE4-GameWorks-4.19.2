@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 ShadowSetupMobile.cpp: Shadow setup implementation for mobile specific features.
@@ -22,23 +22,16 @@ static TAutoConsoleVariable<int32> CVarCsmShaderCullingDebugGfx(
 	TEXT(""),
 	ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<int32> CVarsCsmShaderCullingDisableCasterTest(
-	TEXT("r.Mobile.Shadow.CSMShaderCullingDisableCasterTest"),
-	0,
-	TEXT(""),
-	ECVF_RenderThreadSafe);
-
-static TAutoConsoleVariable<int32> CVarsCsmShaderCullingCombineCasters(
-	TEXT("r.Mobile.Shadow.CSMShaderCullingCombineCasters"),
+static TAutoConsoleVariable<int32> CVarsCsmShaderCullingMethod(
+	TEXT("r.Mobile.Shadow.CSMShaderCullingMethod"),
 	1,
-	TEXT(""),
-	ECVF_RenderThreadSafe);
-
-static TAutoConsoleVariable<int32> CVarsCsmShaderCullingTestBox(
-	TEXT("r.Mobile.Shadow.CSMShaderCullingTestBox"),
-	1,
-	TEXT(""),
-	ECVF_RenderThreadSafe);
+	TEXT("Method to determine which primitives will receive CSM shaders:\n")
+	TEXT("0 - disabled (all primitives will receive CSM)\n")
+	TEXT("1 - Light frustum, all primitives whose bounding box is within CSM receiving distance. (default)\n")
+	TEXT("2 - Combined caster bounds, all primitives whose bounds are within CSM receiving distance and the capsule of the combined bounds of all casters.\n")
+	TEXT("3 - Light frustum + caster bounds, all primitives whose bounds are within CSM receiving distance and capsule of at least one caster. (slowest)\n")
+	TEXT("Combine with 16 to change primitive bounding test to spheres instead of box. (i.e. 18 == combined casters + sphere test)")
+	,ECVF_RenderThreadSafe);
 
 static bool CouldStaticMeshEverReceiveCSMFromStationaryLight(ERHIFeatureLevel::Type FeatureLevel, const FPrimitiveSceneInfo* PrimitiveSceneInfo, const FStaticMesh& StaticMesh)
 {
@@ -53,7 +46,7 @@ static bool CouldStaticMeshEverReceiveCSMFromStationaryLight(ERHIFeatureLevel::T
 		(!bHasCSMApplicableLightInteraction && PrimitiveSceneInfo->Proxy->IsMovable());
 }
 
-static bool EnableStaticMeshCombinedStaticAndCSMVisibilityState(const FPrimitiveSceneInfo* PrimitiveSceneInfo, FMobileCSMVisibilityInfo& MobileCSMVisibilityInfo, FViewInfo& View)
+static bool EnableStaticMeshCSMVisibilityState(bool bMovableLight, const FPrimitiveSceneInfo* PrimitiveSceneInfo, FMobileCSMVisibilityInfo& MobileCSMVisibilityInfo, FViewInfo& View)
 {
 	bool bFoundReceiver = false;
 	if (MobileCSMVisibilityInfo.MobilePrimitiveCSMReceiverVisibilityMap[PrimitiveSceneInfo->GetIndex()])
@@ -70,7 +63,7 @@ static bool EnableStaticMeshCombinedStaticAndCSMVisibilityState(const FPrimitive
 		bool bHasCSMApplicableShadowInteraction = View.StaticMeshVisibilityMap[StaticMesh.Id] && StaticMesh.LCI;
 		bHasCSMApplicableShadowInteraction = bHasCSMApplicableShadowInteraction && StaticMesh.LCI->GetShadowMapInteraction().GetType() == SMIT_Texture;
 
-		if (CouldStaticMeshEverReceiveCSMFromStationaryLight(View.GetFeatureLevel(), PrimitiveSceneInfo, StaticMesh))
+		if (bMovableLight || CouldStaticMeshEverReceiveCSMFromStationaryLight(View.GetFeatureLevel(), PrimitiveSceneInfo, StaticMesh))
 		{
 			const FMaterialRenderProxy* MaterialRenderProxy = StaticMesh.MaterialRenderProxy;
 			const FMaterial* Material = MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
@@ -99,41 +92,34 @@ static bool EnableStaticMeshCombinedStaticAndCSMVisibilityState(const FPrimitive
 	return bFoundReceiver;
 }
 
-static bool ShouldPrimitiveReceiveCombinedCSMAndStaticShadowsFromStationaryLights(FPrimitiveSceneProxy* PrimitiveProxy)
-{
-	static auto* ConsoleVarAllReceiveDynamicCSM = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllReceiveDynamicCSM"));
-	return PrimitiveProxy->ShouldReceiveCombinedCSMAndStaticShadowsFromStationaryLights() || ConsoleVarAllReceiveDynamicCSM->GetValueOnRenderThread() != 0;
-}
-
 template<typename TReceiverFunc>
 static bool MobileDetermineStaticMeshesCSMVisibilityStateInner(
 	FScene* Scene,
 	FViewInfo& View,
 	const FPrimitiveSceneInfoCompact& PrimitiveSceneInfoCompact,
-	FProjectedShadowInfo* WholeSceneShadow,
+	FProjectedShadowInfo* ProjectedShadowInfo,
 	TReceiverFunc IsReceiverFunc
 	)
 {
 	FConvexVolume ViewVolume;
-	FVector LightDir = WholeSceneShadow->GetLightSceneInfo().Proxy->GetDirection();
+	const FLightSceneInfo& LightSceneInfo = ProjectedShadowInfo->GetLightSceneInfo();
+	FLightSceneProxy* RESTRICT LightProxy = LightSceneInfo.Proxy;
+	FVector LightDir = LightProxy->GetDirection();
 	const float ShadowCastLength = WORLD_MAX;
 
 	FPrimitiveSceneInfo* RESTRICT	PrimitiveSceneInfo = PrimitiveSceneInfoCompact.PrimitiveSceneInfo;
 	FPrimitiveSceneProxy* RESTRICT	PrimitiveProxy = PrimitiveSceneInfoCompact.Proxy;
 	const FBoxSphereBounds&			PrimitiveBounds = PrimitiveSceneInfoCompact.Bounds;
 	bool bFoundCSMReceiver = false;
-	if (PrimitiveProxy->WillEverBeLit() && ShouldPrimitiveReceiveCombinedCSMAndStaticShadowsFromStationaryLights(PrimitiveProxy)
-		&& (PrimitiveProxy->GetLightingChannelMask() & WholeSceneShadow->GetLightSceneInfo().Proxy->GetLightingChannelMask()) != 0)
+	if (PrimitiveProxy->WillEverBeLit() && PrimitiveProxy->ShouldReceiveMobileCSMShadows()
+		&& (PrimitiveProxy->GetLightingChannelMask() & LightProxy->GetLightingChannelMask()) != 0)
 	{
-		FProjectedShadowInfo* RESTRICT ProjectedShadowInfo = WholeSceneShadow;
 
 		if (ProjectedShadowInfo->bReflectiveShadowmap && !PrimitiveProxy->AffectsDynamicIndirectLighting())
 		{
 			return bFoundCSMReceiver;
 		}
 
-		FLightSceneProxy* RESTRICT LightProxy = ProjectedShadowInfo->GetLightSceneInfo().Proxy;
-		check(LightProxy->UseCSMForDynamicObjects());
 		const FVector LightDirection = LightProxy->GetDirection();
 		const FVector PrimitiveToShadowCenter = ProjectedShadowInfo->ShadowBounds.Center - PrimitiveBounds.Origin;
 		// Project the primitive's bounds origin onto the light vector
@@ -144,7 +130,7 @@ static bool MobileDetermineStaticMeshesCSMVisibilityStateInner(
 
 		// Include all primitives for movable lights, but only statically shadowed primitives from a light with static shadowing,
 		// Since lights with static shadowing still create per-object shadows for primitives without static shadowing.
-		if ((!LightProxy->HasStaticLighting() || (!ProjectedShadowInfo->GetLightSceneInfo().IsPrecomputedLightingValid() || LightProxy->UseCSMForDynamicObjects()))
+		if ((!LightProxy->HasStaticLighting() || (!LightSceneInfo.IsPrecomputedLightingValid() || LightProxy->UseCSMForDynamicObjects()))
 			// Check if this primitive is in the shadow's cylinder
 			&& PrimitiveDistanceFromCylinderAxisSq < CombinedRadiusSq
 			// Check if the primitive is closer than the cylinder cap toward the light
@@ -155,10 +141,10 @@ static bool MobileDetermineStaticMeshesCSMVisibilityStateInner(
 			&& !(ProjectedDistanceFromShadowOriginAlongLightDir < 0
 				&& PrimitiveToShadowCenter.SizeSquared() > CombinedRadiusSq))
 		{
-			FVisibleLightViewInfo& VisibleLightViewInfo = View.VisibleLightInfos[WholeSceneShadow->GetLightSceneInfo().Id];
+			FVisibleLightViewInfo& VisibleLightViewInfo = View.VisibleLightInfos[LightSceneInfo.Id];
 
 			const FPrimitiveViewRelevance& Relevance = View.PrimitiveViewRelevanceMap[PrimitiveSceneInfo->GetIndex()];
-			const bool bLit = (Relevance.ShadingModelMaskRelevance & (1 << MSM_Unlit)) == 0;
+			const bool bLit = (Relevance.ShadingModelMaskRelevance != (1 << MSM_Unlit));
 			bool bCanReceiveDynamicShadow =
 				bLit
 				&& (Relevance.bOpaqueRelevance || Relevance.bMaskedRelevance)
@@ -166,7 +152,8 @@ static bool MobileDetermineStaticMeshesCSMVisibilityStateInner(
 
 			if (bCanReceiveDynamicShadow)
 			{
-				bFoundCSMReceiver = EnableStaticMeshCombinedStaticAndCSMVisibilityState(PrimitiveSceneInfo, View.MobileCSMVisibilityInfo, View);
+				bool bMovableLightUsingCSM = LightProxy->IsMovable() && LightSceneInfo.ShouldRenderViewIndependentWholeSceneShadows();
+				bFoundCSMReceiver = EnableStaticMeshCSMVisibilityState(bMovableLightUsingCSM, PrimitiveSceneInfo, View.MobileCSMVisibilityInfo, View);
 			}
 		}
 	}
@@ -214,7 +201,7 @@ static bool MobileDetermineStaticMeshesCSMVisibilityState(FScene* Scene, FViewIn
 	return bFoundReceiver;
 }
 
-static void VisualizeMobileDynamicCSMSubjectCapsules(FViewInfo& View, FLightSceneInfo* LightSceneInfo)
+static void VisualizeMobileDynamicCSMSubjectCapsules(FViewInfo& View, FLightSceneInfo* LightSceneInfo, FProjectedShadowInfo* ProjectedShadowInfo)
 {
 	auto DrawDebugCapsule = [](FViewInfo& InView, const FLightSceneInfo* InLightSceneInfo, const FVector& Start, float CastLength, float CapsuleRadius)
 	{
@@ -232,41 +219,62 @@ static void VisualizeMobileDynamicCSMSubjectCapsules(FViewInfo& View, FLightScen
 	FMobileCSMSubjectPrimitives& MobileCSMSubjectPrimitives = VisibleLightViewInfo.MobileCSMSubjectPrimitives;
 	FVector LightDir = LightSceneInfo->Proxy->GetDirection();
 	const float ShadowCastLength = WORLD_MAX;
-	if (CVarsCsmShaderCullingCombineCasters.GetValueOnRenderThread())
-	{
-		// Combined bounds
-		FVector CombinedCasterStart;
-		FVector CombinedCasterEnd;
-		FBoxSphereBounds CombinedBounds(EForceInit::ForceInitToZero);
-		for (auto& Caster : MobileCSMSubjectPrimitives.GetShadowSubjectPrimitives())
-		{
-			CombinedBounds = (CombinedBounds.SphereRadius > 0.0f) ? CombinedBounds + Caster->Proxy->GetBounds() : Caster->Proxy->GetBounds();
-		}
-		CombinedCasterStart = CombinedBounds.Origin;
-		CombinedCasterEnd = CombinedBounds.Origin + (LightDir * ShadowCastLength);
+	const uint32 CullingMethod = CVarsCsmShaderCullingMethod.GetValueOnRenderThread() & 0xF;
+	const bool bSphereTest = (CVarsCsmShaderCullingMethod.GetValueOnRenderThread() & 0x10) != 0;
 
-		DrawDebugCapsule(View, LightSceneInfo, CombinedCasterStart, ShadowCastLength, CombinedBounds.SphereRadius);
-	}
-	else
+	switch (CullingMethod)
 	{
-		for (auto& Caster : MobileCSMSubjectPrimitives.GetShadowSubjectPrimitives())
+		case 2:
 		{
-			const FBoxSphereBounds& CasterBounds = Caster->Proxy->GetBounds();
-			const FVector& CasterStart = CasterBounds.Origin;
-			const FVector CasterEnd = CasterStart + (LightDir * ShadowCastLength);
-			DrawDebugCapsule(View, LightSceneInfo, CasterStart, ShadowCastLength, CasterBounds.SphereRadius);
+			// Combined bounds
+			FVector CombinedCasterStart;
+			FVector CombinedCasterEnd;
+			FBoxSphereBounds CombinedBounds(EForceInit::ForceInitToZero);
+			for (auto& Caster : MobileCSMSubjectPrimitives.GetShadowSubjectPrimitives())
+			{
+				CombinedBounds = (CombinedBounds.SphereRadius > 0.0f) ? CombinedBounds + Caster->Proxy->GetBounds() : Caster->Proxy->GetBounds();
+			}
+			CombinedCasterStart = CombinedBounds.Origin;
+			CombinedCasterEnd = CombinedBounds.Origin + (LightDir * ShadowCastLength);
+
+			DrawDebugCapsule(View, LightSceneInfo, CombinedCasterStart, ShadowCastLength, CombinedBounds.SphereRadius);
+			break;
 		}
+		case 3:
+		{
+			// All casters.
+			for (auto& Caster : MobileCSMSubjectPrimitives.GetShadowSubjectPrimitives())
+			{
+				const FBoxSphereBounds& CasterBounds = Caster->Proxy->GetBounds();
+				const FVector& CasterStart = CasterBounds.Origin;
+				const FVector CasterEnd = CasterStart + (LightDir * ShadowCastLength);
+				DrawDebugCapsule(View, LightSceneInfo, CasterStart, ShadowCastLength, CasterBounds.SphereRadius);
+			}
+			break;
+		}
+		default:
+		{
+			if (CullingMethod >= 1 && CullingMethod <= 3)
+			{
+				// all culling modes draw the receiver frustum.
+				FViewElementPDI ShadowFrustumPDI(&View, NULL);
+				FMatrix Reciever = ProjectedShadowInfo->InvReceiverMatrix;
+				DrawFrustumWireframe(&ShadowFrustumPDI, Reciever * FTranslationMatrix(-ProjectedShadowInfo->PreShadowTranslation), FColor::Cyan, 0);
+			}
+		}
+		break;
 	}
 }
 /** Finds the visible dynamic shadows for each view. */
 void FMobileSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& RHICmdList)
 {
 	static auto* MyCVarMobileEnableStaticAndCSMShadowReceivers = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableStaticAndCSMShadowReceivers"));
-	static auto* MyCVarEnableCsmShaderCulling = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.Shadow.CSMShaderCulling"));
 	const bool bMobileEnableStaticAndCSMShadowReceivers = MyCVarMobileEnableStaticAndCSMShadowReceivers->GetValueOnRenderThread() == 1;
 
-	const bool bCombinedStaticAndCSMEnabled = MyCVarMobileEnableStaticAndCSMShadowReceivers->GetValueOnRenderThread()
-		&& MyCVarEnableCsmShaderCulling->GetValueOnRenderThread();
+	const bool bCombinedStaticAndCSMEnabled = MyCVarMobileEnableStaticAndCSMShadowReceivers->GetValueOnRenderThread()!=0;
+
+	static auto* CVarMobileEnableMovableLightCSMShaderCulling = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableMovableLightCSMShaderCulling"));
+	const bool bMobileEnableMovableLightCSMShaderCulling = CVarMobileEnableMovableLightCSMShaderCulling->GetValueOnRenderThread() == 1;
 
 	// initialize CSMVisibilityInfo for each eligible light.
 	for (FLightSceneInfo* MobileDirectionalLightSceneInfo : Scene->MobileDirectionalLights)
@@ -275,8 +283,9 @@ void FMobileSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& RHICmdLi
 		if (LightSceneProxy)
 		{
 			bool bLightHasCombinedStaticAndCSMEnabled = bCombinedStaticAndCSMEnabled && LightSceneProxy->UseCSMForDynamicObjects();
+			bool bMovableLightUsingCSM = bMobileEnableMovableLightCSMShaderCulling && LightSceneProxy->IsMovable() && MobileDirectionalLightSceneInfo->ShouldRenderViewIndependentWholeSceneShadows();
 
-			if (bLightHasCombinedStaticAndCSMEnabled)
+			if (bLightHasCombinedStaticAndCSMEnabled || bMovableLightUsingCSM)
 			{
 				int32 PrimitiveCount = Scene->Primitives.Num();
 				for (auto& View : Views)
@@ -313,10 +322,11 @@ void FMobileSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& RHICmdLi
 		if (LightSceneProxy)
 		{
 			bool bLightHasCombinedStaticAndCSMEnabled = bCombinedStaticAndCSMEnabled && LightSceneProxy->UseCSMForDynamicObjects();
+			bool bMovableLightUsingCSM = bMobileEnableMovableLightCSMShaderCulling && LightSceneProxy->IsMovable() && MobileDirectionalLightSceneInfo->ShouldRenderViewIndependentWholeSceneShadows();
 
-			if (bLightHasCombinedStaticAndCSMEnabled)
+			if (bLightHasCombinedStaticAndCSMEnabled || bMovableLightUsingCSM)
 			{
-				BuildCombinedStaticAndCSMVisibilityState(MobileDirectionalLightSceneInfo);
+				BuildCSMVisibilityState(MobileDirectionalLightSceneInfo);
 			}
 		}
 	}
@@ -336,9 +346,9 @@ void FMobileSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& RHICmdLi
 }
 
 // Build visibility lists of CSM receivers and non-csm receivers.
-void FMobileSceneRenderer::BuildCombinedStaticAndCSMVisibilityState(FLightSceneInfo* LightSceneInfo)
+void FMobileSceneRenderer::BuildCSMVisibilityState(FLightSceneInfo* LightSceneInfo)
 {
-	SCOPE_CYCLE_COUNTER(STAT_BuildCombinedStaticAndCSMVisibilityState);
+	SCOPE_CYCLE_COUNTER(STAT_BuildCSMVisibilityState);
 
 	FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
 	
@@ -363,8 +373,13 @@ void FMobileSceneRenderer::BuildCombinedStaticAndCSMVisibilityState(FLightSceneI
 		return;
 	}
 
-	if (LightSceneInfo->Proxy->CastsDynamicShadow()
-		&& (LightSceneInfo->Proxy->HasStaticShadowing() && LightSceneInfo->Proxy->UseCSMForDynamicObjects())
+	const uint32 CSMCullingMethod = CVarsCsmShaderCullingMethod.GetValueOnRenderThread() & 0xF;
+	const bool bSphereTest = (CVarsCsmShaderCullingMethod.GetValueOnRenderThread() & 0x10) != 0;
+
+	bool bMovableLightUsingCSM = LightSceneInfo->Proxy->IsMovable() && LightSceneInfo->ShouldRenderViewIndependentWholeSceneShadows();
+
+	if (LightSceneInfo->Proxy->CastsDynamicShadow() && 
+		(bMovableLightUsingCSM || (LightSceneInfo->Proxy->HasStaticShadowing() && LightSceneInfo->Proxy->UseCSMForDynamicObjects()))
 		)
 	{
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
@@ -376,41 +391,12 @@ void FMobileSceneRenderer::BuildCombinedStaticAndCSMVisibilityState(FLightSceneI
 			FVisibleLightViewInfo& VisibleLightViewInfo = ShadowSubjectView->VisibleLightInfos[LightSceneInfo->Id];
 			FMobileCSMSubjectPrimitives& MobileCSMSubjectPrimitives = VisibleLightViewInfo.MobileCSMSubjectPrimitives;
 			FMobileCSMVisibilityInfo& MobileCSMVisibilityInfo = View.MobileCSMVisibilityInfo;
+			FVector LightDir = LightSceneInfo->Proxy->GetDirection();
+			const float ShadowCastLength = WORLD_MAX;
+
 			const auto& ShadowSubjectPrimitives = MobileCSMSubjectPrimitives.GetShadowSubjectPrimitives();
-			if (ShadowSubjectPrimitives.Num() != 0)
+			if (ShadowSubjectPrimitives.Num() != 0 || CSMCullingMethod == 0 || CSMCullingMethod == 1)
 			{
-				if (CVarsCsmShaderCullingDisableCasterTest.GetValueOnRenderThread())
-				{
-					for (FSceneSetBitIterator BitIt(View.PrimitiveVisibilityMap); BitIt; ++BitIt)
-					{
-						EnableStaticMeshCombinedStaticAndCSMVisibilityState(Scene->Primitives[BitIt.GetIndex()], MobileCSMVisibilityInfo, View);
-					}
-					MobileCSMVisibilityInfo.bMobileDynamicCSMInUse = true;
-					break;
-				}
-				
-				if (CVarCsmShaderCullingDebugGfx.GetValueOnRenderThread())
-				{
-					VisualizeMobileDynamicCSMSubjectCapsules(View, LightSceneInfo);
-				}
-
-				const bool bCombineCasters = CVarsCsmShaderCullingCombineCasters.GetValueOnRenderThread() != 0;
-				FVector LightDir = LightSceneInfo->Proxy->GetDirection();
-				const float ShadowCastLength = WORLD_MAX;
-				FVector CombinedCasterStart;
-				FVector CombinedCasterEnd;
-				FBoxSphereBounds CombinedBounds(EForceInit::ForceInitToZero);
-
-				// Calculate combined bounds if needed.
-				if (bCombineCasters)
-				{
-					for (auto& Caster : ShadowSubjectPrimitives)
-					{
-						CombinedBounds = (CombinedBounds.SphereRadius > 0.0f) ? CombinedBounds + Caster->Proxy->GetBounds() : Caster->Proxy->GetBounds();
-					}
-					CombinedCasterStart = CombinedBounds.Origin;
-					CombinedCasterEnd = CombinedBounds.Origin + (LightDir * ShadowCastLength);
-				}
 
 				FConvexVolume ViewFrustum;
 				GetViewFrustumBounds(ViewFrustum, View.ViewMatrices.GetViewProjectionMatrix(), true);
@@ -418,135 +404,152 @@ void FMobileSceneRenderer::BuildCombinedStaticAndCSMVisibilityState(FLightSceneI
 				FVector& PreShadowTranslation = ProjectedShadowInfo->PreShadowTranslation;
 
 				// Common receiver test functions.
-				// Test receiver bounding box against view+shadow frusta only
+				// Test receiver bounding box against view+shadow frustum only
 				auto IsShadowReceiver = [&ViewFrustum, &ShadowReceiverFrustum, &PreShadowTranslation](const FVector& PrimOrigin, const FVector& PrimExtent)
 				{
 					return ViewFrustum.IntersectBox(PrimOrigin, PrimExtent)
 						&& ShadowReceiverFrustum.IntersectBox(PrimOrigin + PreShadowTranslation, PrimExtent);
 				};
-				// Test receiver bounding box against shadow frustum only. 
-				auto IsShadowReceiverNoView = [&ShadowReceiverFrustum, &PreShadowTranslation](const FVector& PrimOrigin, const FVector& PrimExtent)
+
+				//Test against caster capsule vs bounds sphere
+				auto IsShadowReceiverCasterVsSphere = [](const FVector& PrimOrigin, float PrimRadius, const FVector& CasterStart, const FVector& CasterEnd, float CasterRadius)
 				{
-					return ShadowReceiverFrustum.IntersectBox(PrimOrigin + PreShadowTranslation, PrimExtent);
+					return FMath::PointDistToSegmentSquared(PrimOrigin, CasterStart, CasterEnd) < FMath::Square(PrimRadius + CasterRadius);
 				};
 
+				// Test receiver against single caster capsule vs bounding box
+				auto IsShadowReceiverCasterVsBox = [](const FVector& PrimOrigin, const FVector& PrimExtent, const FVector& CasterStart, const FVector& CasterEnd, float CasterRadius)
+				{
+					FBox PrimBox(PrimOrigin - (PrimExtent + CasterRadius), PrimOrigin + (PrimExtent + CasterRadius));
+					FVector Direction = CasterEnd - CasterStart;
+
+					return FMath::LineBoxIntersection(PrimBox, CasterStart, CasterEnd, Direction);
+				};
+
+				switch (CSMCullingMethod)
+				{
+					case 0:
+					{
+						// Set all prims to receive CSM
+						for (FSceneSetBitIterator BitIt(View.PrimitiveVisibilityMap); BitIt; ++BitIt)
+						{
+							EnableStaticMeshCSMVisibilityState(bMovableLightUsingCSM, Scene->Primitives[BitIt.GetIndex()], MobileCSMVisibilityInfo, View);
+						}
+						bStaticCSMReceiversFound = MobileCSMVisibilityInfo.bMobileDynamicCSMInUse = true;						
+						break;
+					}
+					case 1:
+					{
+						auto IsShadowReceiverFrustumOnly = [&IsShadowReceiver](const FVector& PrimOrigin, const FVector& PrimExtent, float PrimRadius)
+						{
+							return IsShadowReceiver(PrimOrigin, PrimExtent);
+						};
+						bStaticCSMReceiversFound = MobileDetermineStaticMeshesCSMVisibilityState(Scene, View, ProjectedShadowInfo, IsShadowReceiverFrustumOnly);
+						break;
+					}
+					case 2: // combined casters:
+					{
+						FVector CombinedCasterStart;
+						FVector CombinedCasterEnd;
+						FBoxSphereBounds CombinedBounds(EForceInit::ForceInitToZero);
+
+						// Calculate combined bounds
+						for (auto& Caster : ShadowSubjectPrimitives)
+						{
+							CombinedBounds = (CombinedBounds.SphereRadius > 0.0f) ? CombinedBounds + Caster->Proxy->GetBounds() : Caster->Proxy->GetBounds();
+						}
+						CombinedCasterStart = CombinedBounds.Origin;
+						CombinedCasterEnd = CombinedBounds.Origin + (LightDir * ShadowCastLength);
+
+						if (bSphereTest)
+						{
+							// Test against view+shadow frustums and caster capsule vs bounding sphere
+							auto IsShadowReceiverCombined = [&IsShadowReceiver, &IsShadowReceiverCasterVsSphere, &CombinedBounds, &CombinedCasterStart, &CombinedCasterEnd](const FVector& PrimOrigin, const FVector& PrimExtent, float PrimRadius)
+							{
+								return IsShadowReceiver(PrimOrigin, PrimExtent) && IsShadowReceiverCasterVsSphere(PrimOrigin, PrimRadius, CombinedCasterStart, CombinedCasterEnd, CombinedBounds.SphereRadius);
+							};
+							bStaticCSMReceiversFound = MobileDetermineStaticMeshesCSMVisibilityState(Scene, View, ProjectedShadowInfo, IsShadowReceiverCombined);
+						}
+						else
+						{
+							// Test against view+shadow frustums and caster capsule vs bounding box
+							auto IsShadowReceiverCombinedBox = [&IsShadowReceiver, &IsShadowReceiverCasterVsBox, &CombinedBounds, &CombinedCasterStart, &CombinedCasterEnd](const FVector& PrimOrigin, const FVector& PrimExtent, float PrimRadius)
+							{
+								return IsShadowReceiver(PrimOrigin, PrimExtent) && IsShadowReceiverCasterVsBox(PrimOrigin, PrimExtent, CombinedCasterStart, CombinedCasterEnd, CombinedBounds.SphereRadius);
+							};
+
+							bStaticCSMReceiversFound = MobileDetermineStaticMeshesCSMVisibilityState(Scene, View, ProjectedShadowInfo, IsShadowReceiverCombinedBox);
+						}
+						break;
+					}
+					case 3: // All casters:
+					{
+						if (bSphereTest)
+						{
+							auto IsShadowReceiverAllCastersVsSphere = [&ShadowSubjectPrimitives, &IsShadowReceiverCasterVsSphere, &LightDir, &ShadowCastLength](const FVector& PrimOrigin, float PrimRadius)
+							{
+								for (auto& Caster : ShadowSubjectPrimitives)
+								{
+									const FBoxSphereBounds& CasterBounds = Caster->Proxy->GetBounds();
+									const FVector& CasterStart = CasterBounds.Origin;
+									float CasterRadius = CasterBounds.SphereRadius;
+									const FVector CasterEnd = CasterStart + (LightDir * ShadowCastLength);
+
+									if (IsShadowReceiverCasterVsSphere(PrimOrigin, PrimRadius, CasterStart, CasterEnd, CasterRadius))
+									{
+										return true;
+									}
+								}
+								return false;
+							};
+							// Test against view+shadow frustums and all caster capsules vs bounding sphere
+							auto IsShadowReceiverSphereAllCasters = [&IsShadowReceiver, &IsShadowReceiverAllCastersVsSphere](const FVector& PrimOrigin, const FVector& PrimExtent, float PrimRadius)
+							{
+								return IsShadowReceiver(PrimOrigin, PrimExtent) && IsShadowReceiverAllCastersVsSphere(PrimOrigin, PrimRadius);
+							};
+
+							bStaticCSMReceiversFound = MobileDetermineStaticMeshesCSMVisibilityState(Scene, View, ProjectedShadowInfo, IsShadowReceiverSphereAllCasters);
+						}
+						else
+						{
+							// Test against all caster capsules vs bounding box
+							auto IsShadowReceiverAllCastersVsBox = [&ShadowSubjectPrimitives, &IsShadowReceiverCasterVsBox, &LightDir, &ShadowCastLength](const FVector& PrimOrigin, const FVector& PrimExtent)
+							{
+								for (auto& Caster : ShadowSubjectPrimitives)
+								{
+									const FBoxSphereBounds& CasterBounds = Caster->Proxy->GetBounds();
+									const FVector& CasterStart = CasterBounds.Origin;
+									const FVector CasterEnd = CasterStart + (LightDir * ShadowCastLength);
+									float CasterRadius = CasterBounds.SphereRadius;
+
+									if (IsShadowReceiverCasterVsBox(PrimOrigin, PrimExtent, CasterStart, CasterEnd, CasterRadius))
+									{
+										return true;
+									}
+								}
+								return false;
+							};
+							// Test against view+shadow frustums and all caster capsules vs bounding box
+							auto IsShadowReceiverBoxAllCasters = [&IsShadowReceiver, &IsShadowReceiverAllCastersVsBox](const FVector& PrimOrigin, const FVector& PrimExtent, float PrimRadius)
+							{
+								return IsShadowReceiver(PrimOrigin, PrimExtent) && IsShadowReceiverAllCastersVsBox(PrimOrigin, PrimExtent);
+							};
+							bStaticCSMReceiversFound = MobileDetermineStaticMeshesCSMVisibilityState(Scene, View, ProjectedShadowInfo, IsShadowReceiverBoxAllCasters);
+						}
+					}
+					break;
+					case 4:
+					{
+						bStaticCSMReceiversFound = MobileCSMVisibilityInfo.bMobileDynamicCSMInUse = false;
+					}
+					break;
+				}
+
+				if (CVarCsmShaderCullingDebugGfx.GetValueOnRenderThread())
+				{
+					VisualizeMobileDynamicCSMSubjectCapsules(View, LightSceneInfo, ProjectedShadowInfo);
+				}
 				INC_DWORD_STAT_BY(STAT_CSMSubjects, ShadowSubjectPrimitives.Num());
-				const bool bPerformBoxTests = CVarsCsmShaderCullingTestBox.GetValueOnRenderThread() != 0;
-				if (bPerformBoxTests)
-				{
-					// Test receiver against single caster capsule vs bounding box
-					auto IsShadowReceiverCasterVsBox = [](const FVector& PrimOrigin, const FVector& PrimExtent, const FVector& CasterStart, const FVector& CasterEnd, float CasterRadius)
-					{
-						FBox PrimBox(PrimOrigin - (PrimExtent + CasterRadius), PrimOrigin + (PrimExtent + CasterRadius));
-						FVector Direction = CasterEnd - CasterStart;
-
-						return FMath::LineBoxIntersection(PrimBox, CasterStart, CasterEnd, Direction);
-					};
-
-					// Test against all caster capsules vs bounding box
-					auto IsShadowReceiverAllCastersVsBox = [&ShadowSubjectPrimitives, &IsShadowReceiverCasterVsBox, &LightDir, &ShadowCastLength](const FVector& PrimOrigin, const FVector& PrimExtent)
-					{
-						for (auto& Caster : ShadowSubjectPrimitives)
-						{
-							const FBoxSphereBounds& CasterBounds = Caster->Proxy->GetBounds();
-							const FVector& CasterStart = CasterBounds.Origin;
-							const FVector CasterEnd = CasterStart + (LightDir * ShadowCastLength);
-							float CasterRadius = CasterBounds.SphereRadius;
-
-							if (IsShadowReceiverCasterVsBox(PrimOrigin, PrimExtent, CasterStart, CasterEnd, CasterRadius))
-							{
-								return true;
-							}
-						}
-						return false;
-					};
-
-					if (bCombineCasters)
-					{
-						// Test against view+shadow frustums and caster capsule vs bounding box
-						auto IsShadowReceiverCombinedBox = [&IsShadowReceiver, &IsShadowReceiverCasterVsBox, &CombinedBounds, &CombinedCasterStart, &CombinedCasterEnd](const FVector& PrimOrigin, const FVector& PrimExtent, float PrimRadius)
-						{
-							return IsShadowReceiver(PrimOrigin, PrimExtent)	&& IsShadowReceiverCasterVsBox(PrimOrigin, PrimExtent, CombinedCasterStart, CombinedCasterEnd, CombinedBounds.SphereRadius);
-						};
-						// Test against shadow frustum and caster capsule vs bounding box
-						auto IsShadowReceiverCombinedBoxNoView = [&IsShadowReceiverNoView, &IsShadowReceiverCasterVsBox, &CombinedBounds, &CombinedCasterStart, &CombinedCasterEnd](const FVector& PrimOrigin, const FVector& PrimExtent, float PrimRadius)
-						{
-							return IsShadowReceiverNoView(PrimOrigin, PrimExtent) && IsShadowReceiverCasterVsBox(PrimOrigin, PrimExtent, CombinedCasterStart, CombinedCasterEnd, CombinedBounds.SphereRadius);
-						};
-						bStaticCSMReceiversFound = MobileDetermineStaticMeshesCSMVisibilityState(Scene, View, ProjectedShadowInfo, IsShadowReceiverCombinedBox);
-					}
-					else
-					{
-						// Test against view+shadow frustums and all caster capsules vs bounding box
-						auto IsShadowReceiverBoxAllCasters = [&IsShadowReceiver, &IsShadowReceiverAllCastersVsBox](const FVector& PrimOrigin, const FVector& PrimExtent, float PrimRadius)
-						{
-							return IsShadowReceiver(PrimOrigin, PrimExtent)	&& IsShadowReceiverAllCastersVsBox(PrimOrigin, PrimExtent);
-						};
-						// Test against shadow frustum and all caster capsules vs bounding box
-						auto IsShadowReceiverBoxPerCasterNoView = [&IsShadowReceiverNoView, &IsShadowReceiverAllCastersVsBox](const FVector& PrimOrigin, const FVector& PrimExtent, float PrimRadius)
-						{
-							return IsShadowReceiverNoView(PrimOrigin, PrimExtent) && IsShadowReceiverAllCastersVsBox(PrimOrigin, PrimExtent);
-						};
-						bStaticCSMReceiversFound = MobileDetermineStaticMeshesCSMVisibilityState(Scene, View, ProjectedShadowInfo, IsShadowReceiverBoxAllCasters);
-					}
-				}
-				else
-				{
-					//Test against caster capsule vs bounds sphere
-					auto IsShadowReceiverCasterVsSphere = [](const FVector& PrimOrigin, float PrimRadius, const FVector& CasterStart, const FVector& CasterEnd, float CasterRadius)
-					{
-						return FMath::PointDistToSegmentSquared(PrimOrigin, CasterStart, CasterEnd) < FMath::Square(PrimRadius + CasterRadius);
-					};
-
-					// Test against all caster capsules vs bounding box
-					auto IsShadowReceiverAllCastersVsSphere = [&ShadowSubjectPrimitives, &IsShadowReceiverCasterVsSphere, &LightDir, &ShadowCastLength](const FVector& PrimOrigin, float PrimRadius)
-					{
-						for (auto& Caster : ShadowSubjectPrimitives)
-						{
-							const FBoxSphereBounds& CasterBounds = Caster->Proxy->GetBounds();
-							const FVector& CasterStart = CasterBounds.Origin;
-							float CasterRadius = CasterBounds.SphereRadius;
-							const FVector CasterEnd = CasterStart + (LightDir * ShadowCastLength);
-
-							if (IsShadowReceiverCasterVsSphere(PrimOrigin, PrimRadius, CasterStart, CasterEnd, CasterRadius))
-							{
-								return true;
-							}
-						}
-						return false;
-					};
-
-					if (bCombineCasters)
-					{
-						// Test against view+shadow frustums and caster capsule vs bounding sphere
-						auto IsShadowReceiverCombined = [&IsShadowReceiver, &IsShadowReceiverCasterVsSphere, &CombinedBounds, &CombinedCasterStart, &CombinedCasterEnd](const FVector& PrimOrigin, const FVector& PrimExtent, float PrimRadius)
-						{
-							return IsShadowReceiver(PrimOrigin, PrimExtent)	&& IsShadowReceiverCasterVsSphere(PrimOrigin, PrimRadius, CombinedCasterStart, CombinedCasterEnd, CombinedBounds.SphereRadius);
-						};
-						// Test against shadow frustum and caster capsule vs bounding sphere
-						auto IsShadowReceiverCombinedNoView = [&IsShadowReceiverNoView, &IsShadowReceiverCasterVsSphere, &CombinedBounds, &CombinedCasterStart, &CombinedCasterEnd](const FVector& PrimOrigin, const FVector& PrimExtent, float PrimRadius)
-						{
-							return IsShadowReceiverNoView(PrimOrigin, PrimExtent) && IsShadowReceiverCasterVsSphere(PrimOrigin, PrimRadius, CombinedCasterStart, CombinedCasterEnd, CombinedBounds.SphereRadius);
-						};
-						bStaticCSMReceiversFound = MobileDetermineStaticMeshesCSMVisibilityState(Scene, View, ProjectedShadowInfo, IsShadowReceiverCombined);
-					}
-					else // all casters test
-					{
-						// Test against view+shadow frustums and all caster capsules vs bounding sphere
-						auto IsShadowReceiverSphereAllCasters = [&IsShadowReceiver, &IsShadowReceiverAllCastersVsSphere](const FVector& PrimOrigin, const FVector& PrimExtent, float PrimRadius)
-						{
-							return IsShadowReceiver(PrimOrigin, PrimExtent)	&& IsShadowReceiverAllCastersVsSphere(PrimOrigin, PrimRadius);
-						};
-
-						// Test against shadow frustum and all caster capsules vs bounding sphere
-						auto IsShadowReceiverSpherePerCasterNoView = [&IsShadowReceiverNoView, &IsShadowReceiverAllCastersVsSphere](const FVector& PrimOrigin, const FVector& PrimExtent, float PrimRadius)
-						{
-							return IsShadowReceiverNoView(PrimOrigin, PrimExtent) && IsShadowReceiverAllCastersVsSphere(PrimOrigin, PrimRadius);
-						};
-
-						bStaticCSMReceiversFound = MobileDetermineStaticMeshesCSMVisibilityState(Scene, View, ProjectedShadowInfo, IsShadowReceiverSphereAllCasters);
-					}
-				}
 			}
 			MobileCSMVisibilityInfo.bMobileDynamicCSMInUse = bStaticCSMReceiversFound;
 		}

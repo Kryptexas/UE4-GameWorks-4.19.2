@@ -20,8 +20,8 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [INCLUDE:Engine/AI/BehaviorTrees/QuickStart/9#s9]
 
-%Steps%
+

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Docs
 Title:1.2 - 트랙과 키
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/Matinee
@@ -6,25 +6,7 @@ Description:Matinee 예제 레벨에 대한 개요로, 예제 1.2: Tracks and Ke
 
 [TOC(start:2 end:2)]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Matinee/1_2:title%](Resources\ContentExamples\Matinee\matinee_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%\anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Matinee/1_2:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Matinee/1_2:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/ContentExamples/Matinee/1_2]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+
 
 Track (트랙)과 Key (키)는 마티네의 전부입니다. 주요 창은 트랙 뷰이고, 각 트랙의 타임라인 위에는 키 프레임이 있습니다.
 

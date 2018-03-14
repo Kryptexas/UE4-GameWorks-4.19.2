@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "K2Node_GetEnumeratorName.h"
@@ -11,7 +11,7 @@
 #include "EditorCategoryUtils.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 
-FString UK2Node_GetEnumeratorName::EnumeratorPinName = TEXT("Enumerator");
+FName UK2Node_GetEnumeratorName::EnumeratorPinName(TEXT("Enumerator"));
 
 UK2Node_GetEnumeratorName::UK2Node_GetEnumeratorName(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -22,8 +22,8 @@ void UK2Node_GetEnumeratorName::AllocateDefaultPins()
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
-	CreatePin(EGPD_Input, Schema->PC_Byte, FString(), nullptr, EnumeratorPinName);
-	CreatePin(EGPD_Output, Schema->PC_Name, FString(), nullptr, Schema->PN_ReturnValue);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Byte, EnumeratorPinName);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Name, UEdGraphSchema_K2::PN_ReturnValue);
 }
 
 FText UK2Node_GetEnumeratorName::GetTooltipText() const
@@ -53,7 +53,7 @@ void UK2Node_GetEnumeratorName::ValidateNodeDuringCompilation(class FCompilerRes
 	Super::ValidateNodeDuringCompilation(MessageLog);
 
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-	const UEdGraphPin* OutputPin = FindPinChecked(Schema->PN_ReturnValue); 
+	const UEdGraphPin* OutputPin = FindPinChecked(UEdGraphSchema_K2::PN_ReturnValue); 
 	/*Don't validate isolated nodes */
 	if (0 != OutputPin->LinkedTo.Num())
 	{
@@ -83,7 +83,7 @@ bool UK2Node_GetEnumeratorName::IsConnectionDisallowed(const UEdGraphPin* MyPin,
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
 	const UEdGraphPin* InputPin = FindPinChecked(EnumeratorPinName);
-	if((InputPin == MyPin) && OtherPin && (OtherPin->PinType.PinCategory == Schema->PC_Byte))
+	if((InputPin == MyPin) && OtherPin && (OtherPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Byte))
 	{
 		if(NULL == Cast<UEnum>(OtherPin->PinType.PinSubCategoryObject.Get()))
 		{
@@ -136,7 +136,7 @@ void UK2Node_GetEnumeratorName::ExpandNode(class FKismetCompilerContext& Compile
 	UEnum* Enum = GetEnum();
 	if(NULL == Enum)
 	{
-		CompilerContext.MessageLog.Error(*FString::Printf(*NSLOCTEXT("K2Node", "GetEnumeratorNam_Error_MustHaveValidName", "@@ must have a valid enum defined").ToString()), this);
+		CompilerContext.MessageLog.Error(*NSLOCTEXT("K2Node", "GetEnumeratorNam_Error_MustHaveValidName", "@@ must have a valid enum defined").ToString(), this);
 		return;
 	}
 
@@ -150,9 +150,9 @@ void UK2Node_GetEnumeratorName::ExpandNode(class FKismetCompilerContext& Compile
 	check(CallGetName->IsNodePure());
 		
 	//OPUTPUT PIN
-	UEdGraphPin* OrgReturnPin = FindPinChecked(Schema->PN_ReturnValue);
+	UEdGraphPin* OrgReturnPin = FindPinChecked(UEdGraphSchema_K2::PN_ReturnValue);
 	UEdGraphPin* NewReturnPin = CallGetName->GetReturnValuePin();
-	check(NULL != NewReturnPin);
+	check(NewReturnPin);
 	CompilerContext.MovePinLinksToIntermediate(*OrgReturnPin, *NewReturnPin);
 
 	//ENUM PIN
@@ -163,7 +163,7 @@ void UK2Node_GetEnumeratorName::ExpandNode(class FKismetCompilerContext& Compile
 	//VALUE PIN
 	UEdGraphPin* OrgInputPin = FindPinChecked(EnumeratorPinName);
 	UEdGraphPin* IndexPin = CallGetName->FindPinChecked(TEXT("EnumeratorValue"));
-	check(EGPD_Input == IndexPin->Direction && Schema->PC_Byte == IndexPin->PinType.PinCategory);
+	check(EGPD_Input == IndexPin->Direction && UEdGraphSchema_K2::PC_Byte == IndexPin->PinType.PinCategory);
 	CompilerContext.MovePinLinksToIntermediate(*OrgInputPin, *IndexPin);
 
 	if (!IndexPin->LinkedTo.Num())
@@ -173,7 +173,7 @@ void UK2Node_GetEnumeratorName::ExpandNode(class FKismetCompilerContext& Compile
 		const int32 NumericValue = Enum->GetValueByName(*EnumLiteral);
 		if (NumericValue == INDEX_NONE) 
 		{
-			CompilerContext.MessageLog.Error(*FString::Printf(*NSLOCTEXT("K2Node", "GetEnumeratorNam_Error_InvalidName", "@@ has invalid enum value '%s'").ToString(), *EnumLiteral), this);
+			CompilerContext.MessageLog.Error(*FText::Format(NSLOCTEXT("K2Node", "GetEnumeratorNam_Error_InvalidNameFmt", "@@ has invalid enum value '{0}'"), FText::FromString(EnumLiteral)).ToString(), this);
 			return;
 		}
 		const FString DefaultByteValue = FString::FromInt(NumericValue);
@@ -184,7 +184,7 @@ void UK2Node_GetEnumeratorName::ExpandNode(class FKismetCompilerContext& Compile
 		MakeLiteralByte->SetFromFunction(UKismetSystemLibrary::StaticClass()->FindFunctionByName(FunctionName));
 		MakeLiteralByte->AllocateDefaultPins();
 
-		UEdGraphPin* MakeLiteralByteReturnPin = MakeLiteralByte->FindPinChecked(Schema->PN_ReturnValue);
+		UEdGraphPin* MakeLiteralByteReturnPin = MakeLiteralByte->FindPinChecked(UEdGraphSchema_K2::PN_ReturnValue);
 		Schema->TryCreateConnection(MakeLiteralByteReturnPin, IndexPin);
 
 		UEdGraphPin* MakeLiteralByteInputPin = MakeLiteralByte->FindPinChecked(TEXT("Value"));

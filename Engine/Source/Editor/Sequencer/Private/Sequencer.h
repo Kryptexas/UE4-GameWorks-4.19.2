@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -39,7 +39,7 @@
 #include "SequencerSettings.h"
 
 class AActor;
-class ACineCameraActor;
+class ACameraActor;
 class APlayerController;
 class FLevelEditorViewportClient;
 class FMenuBuilder;
@@ -262,6 +262,9 @@ public:
 	/** Translate the selected keys and section by the time snap interval */
 	void TranslateSelectedKeysAndSections(bool bTranslateLeft);
 
+	/** Bake transform */
+	void BakeTransform();
+
 	/**
 	 * @return Movie scene tools used by the sequencer
 	 */
@@ -302,10 +305,11 @@ protected:
 	 * Attempts to add a new spawnable to the MovieScene for the specified asset, class, or actor
 	 *
 	 * @param	Object	The asset, class, or actor to add a spawnable for
+	 * @param	ActorFactory	Optional actor factory to use to create spawnable type
 	 *
 	 * @return	The spawnable ID, or invalid ID on failure
 	 */
-	FGuid AddSpawnable( UObject& Object );
+	FGuid AddSpawnable( UObject& Object, UActorFactory* ActorFactory = nullptr );
 
 	/**
 	 * Save default spawnable state for the currently selected objects
@@ -392,6 +396,8 @@ public:
 
 	/** Functions to push on to the transport controls we use */
 	FReply OnRecord();
+	FReply OnPlayForward(bool bTogglePlay);
+	FReply OnPlayBackward(bool bTogglePlay);
 	FReply OnStepForward();
 	FReply OnStepBackward();
 	FReply OnJumpToStart();
@@ -413,8 +419,6 @@ public:
 
 	/** Set the new global time, accounting for looping options */
 	void SetLocalTimeLooped(float InTime);
-
-	float AutoScroll(float InTime, ESnapTimeMode SnapTimeMode);
 
 	ESequencerLoopMode GetLoopMode() const;
 
@@ -450,11 +454,12 @@ public:
 	void DeleteSelectedNodes();
 
 	/** Called when a user executes the copy track menu item */
+	void CopySelectedObjects(TArray<TSharedPtr<FSequencerObjectBindingNode>>& ObjectNodes);
 	void CopySelectedTracks(TArray<TSharedPtr<FSequencerTrackNode>>& TrackNodes);
 	void ExportTracksToText(TArray<UMovieSceneTrack*> TrackToExport, /*out*/ FString& ExportedText);
 
 	/** Called when a user executes the paste track menu item */
-	bool CanPaste(const FString& TextToImport) const;
+	bool CanPaste(const FString& TextToImport);
 	void PasteCopiedTracks();
 	void ImportTracksFromText(const FString& TextToImport, /*out*/ TArray<UMovieSceneTrack*>& ImportedTrack);
 
@@ -484,6 +489,14 @@ public:
 
 	/** Updates the sequencer selection to match the current external selection. */
 	void SynchronizeSequencerSelectionWithExternalSelection();
+		
+	/** Whether the binding is visible in the tree view */
+	bool IsBindingVisible(const FMovieSceneBinding& InBinding);
+
+	/** Whether the track is visible in the tree view */
+	bool IsTrackVisible(const UMovieSceneTrack* InTrack);
+
+	void OnSelectedNodesOnlyChanged();
 
 public:
 
@@ -492,6 +505,9 @@ public:
 
 	/** Cut the selection, whether it's keys or tracks */
 	void CutSelection();
+
+	/** Duplicate the selection */
+	void DuplicateSelection();
 
 	/** Copy the selected keys to the clipboard */
 	void CopySelectedKeys();
@@ -511,8 +527,8 @@ public:
 	/** Create camera and set it as the current camera cut. */
 	void CreateCamera();
 
-	/** Called when a new camera is added */
-	void NewCameraAdded(ACineCameraActor* NewCamera, FGuid CameraGuid, bool bLockToCamera);
+	/** Called when a new camera is added. Locks the viewport to the NewCamera is not null. */
+	void NewCameraAdded(FGuid CameraGuid, ACameraActor* NewCamera = nullptr);
 
 	/** Attempts to automatically fix up broken actor references in the current scene. */
 	void FixActorReferences();
@@ -528,6 +544,9 @@ public:
 
 	/** Exports the animation to an fbx file. */
 	void ExportFBX();
+
+	/** Exports the animation to a camera anim asset. */
+	void ExportToCameraAnim();
 
 public:
 	
@@ -556,6 +575,11 @@ public:
 	/** Scroll the sequencer vertically by the specified number of slate units */
 	void VerticalScroll(float ScrollAmountUnits);
 
+	/**
+	 * Update auto-scroll mechanics as a result of a new time position
+	 */
+	void UpdateAutoScroll(float NewTime);
+
 public:
 
 	//~ FGCObject Interface
@@ -567,7 +591,7 @@ public:
 	//~ FTickableEditorObject Interface
 
 	virtual void Tick(float DeltaTime) override;
-	virtual bool IsTickable() const override { return true; }
+	virtual ETickableTickType GetTickableTickType() const override { return ETickableTickType::Always; }
 	virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(FSequencer, STATGROUP_Tickables); };
 
 public:
@@ -615,8 +639,10 @@ protected:
 	virtual void NotifyMovieSceneDataChangedInternal() override;
 public:
 	virtual void NotifyMovieSceneDataChanged( EMovieSceneDataChangeType DataChangeType ) override;
-	virtual void UpdateRuntimeInstances() override;
+	virtual void RefreshTree() override;
 	virtual void UpdatePlaybackRange() override;
+	virtual void SetPlaybackSpeed(float InPlaybackSpeed) override { PlaybackSpeed = InPlaybackSpeed; }
+	virtual float GetPlaybackSpeed() const override { return PlaybackSpeed; }
 	virtual TArray<FGuid> AddActors(const TArray<TWeakObjectPtr<AActor> >& InActors) override;
 	virtual void AddSubSequence(UMovieSceneSequence* Sequence) override;
 	virtual bool CanKeyProperty(FCanKeyPropertyParams CanKeyPropertyParams) const override;
@@ -631,10 +657,13 @@ public:
 	virtual void SelectByPropertyPaths(const TArray<FString>& InPropertyPaths) override;
 	virtual void EmptySelection() override;
 	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() override { return OnGlobalTimeChangedDelegate; }
+	virtual FOnPlayEvent& OnPlayEvent() override { return OnPlayDelegate; }
+	virtual FOnStopEvent& OnStopEvent() override { return OnStopDelegate; }
 	virtual FOnBeginScrubbingEvent& OnBeginScrubbingEvent() override { return OnBeginScrubbingDelegate; }
 	virtual FOnEndScrubbingEvent& OnEndScrubbingEvent() override { return OnEndScrubbingDelegate; }
 	virtual FOnMovieSceneDataChanged& OnMovieSceneDataChanged() override { return OnMovieSceneDataChangedDelegate; }
 	virtual FOnMovieSceneBindingsChanged& OnMovieSceneBindingsChanged() override { return OnMovieSceneBindingsChangedDelegate; }
+	virtual FOnMovieSceneBindingsPasted& OnMovieSceneBindingsPasted() override { return OnMovieSceneBindingsPastedDelegate; }
 	virtual FOnSelectionChangedObjectGuids& GetSelectionChangedObjectGuids() override { return OnSelectionChangedObjectGuidsDelegate; }
 	virtual FOnSelectionChangedTracks& GetSelectionChangedTracks() override { return OnSelectionChangedTracksDelegate; }
 	virtual FOnSelectionChangedSections& GetSelectionChangedSections() override { return OnSelectionChangedSectionsDelegate; }
@@ -649,11 +678,11 @@ public:
 	virtual TSharedRef<INumericTypeInterface<float>> GetNumericTypeInterface() override;
 	virtual TSharedRef<INumericTypeInterface<float>> GetZeroPadNumericTypeInterface() override;
 	virtual TSharedRef<SWidget> MakeTransportControls(bool bExtended) override;
-	virtual FReply OnPlay(bool bTogglePlay = true, float InPlayRate = 1.f) override;
+	virtual FReply OnPlay(bool bTogglePlay = true) override;
 	virtual void Pause() override;
 	virtual TSharedRef<SWidget> MakeTimeRange(const TSharedRef<SWidget>& InnerContent, bool bShowWorkingRange, bool bShowViewRange, bool bShowPlaybackRange) override;
 	virtual UObject* FindSpawnedObjectOrTemplate(const FGuid& BindingId) override;
-	virtual FGuid MakeNewSpawnable(UObject& SourceObject) override;
+	virtual FGuid MakeNewSpawnable(UObject& SourceObject, UActorFactory* ActorFactory = nullptr) override;
 	virtual bool IsReadOnly() const override;
 	virtual void ExternalSelectionHasChanged() override { SynchronizeSequencerSelectionWithExternalSelection(); }
 	virtual USequencerSettings* GetSequencerSettings() override { return Settings; }
@@ -671,10 +700,6 @@ public:
 	virtual void SetPlaybackStatus(EMovieScenePlayerStatus::Type InPlaybackStatus) override;
 	virtual FMovieSceneSpawnRegister& GetSpawnRegister() override { return *SpawnRegister; }
 	virtual bool IsPreview() const override { return SilentModeCount != 0; }
-
-public:
-
-	FMovieSceneRootEvaluationTemplateInstance& GetSequenceInstance() { return RootTemplateInstance; }
 
 protected:
 
@@ -744,11 +769,6 @@ protected:
 protected:
 
 	/**
-	 * Update auto-scroll mechanics as a result of a new time position
-	 */
-	void UpdateAutoScroll(float NewTime);
-
-	/**
 	 * Ensure that the specified local time is in the view
 	 */
 	void ScrollIntoView(float InLocalTime);
@@ -788,7 +808,6 @@ protected:
 	
 	/** Transport controls */
 	void TogglePlay();
-	void PlayForward();
 	void JumpToStart();
 	void JumpToEnd();
 	void ShuttleForward();
@@ -959,8 +978,8 @@ private:
 	/** Current play position */
 	FMovieScenePlaybackPosition PlayPosition;
 
-	/** The playback rate */
-	float PlayRate;
+	/** The playback speed */
+	float PlaybackSpeed;
 
 	/** The shuttle multiplier */
 	float ShuttleMultiplier;
@@ -984,9 +1003,6 @@ private:
 		the MovieScene data can change many times per frame.) */
 	bool bNeedTreeRefresh;
 
-	/** When true, the runtime instances need to be updated next frame. */
-	bool bNeedInstanceRefresh;
-
 	/** Stores the playback status to be restored on refresh. */
 	EMovieScenePlayerStatus::Type StoredPlaybackState;
 
@@ -1000,6 +1016,12 @@ private:
 	/** A delegate which is called any time the global time changes. */
 	FOnGlobalTimeChanged OnGlobalTimeChangedDelegate;
 
+	/** A delegate which is called whenever the user begins playing the sequence. */
+	FOnPlayEvent OnPlayDelegate;
+
+	/** A delegate which is called whenever the user stops playing the sequence. */
+	FOnStopEvent OnStopDelegate;
+
 	/** A delegate which is called whenever the user begins scrubbing. */
 	FOnBeginScrubbingEvent OnBeginScrubbingDelegate;
 
@@ -1011,6 +1033,9 @@ private:
 
 	/** A delegate which is called any time the movie scene bindings are changed. */
 	FOnMovieSceneBindingsChanged OnMovieSceneBindingsChangedDelegate;
+
+	/** A delegate which is called any time a binding is pasted. */
+	FOnMovieSceneBindingsPasted OnMovieSceneBindingsPastedDelegate;
 
 	/** A delegate which is called any time the sequencer selection changes. */
 	FOnSelectionChangedObjectGuids OnSelectionChangedObjectGuidsDelegate;

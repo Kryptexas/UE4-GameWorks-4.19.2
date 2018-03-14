@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Editor/EditorEngine.h"
 #include "Misc/MessageDialog.h"
@@ -163,7 +163,6 @@
 
 // AIMdule
 
-#include "Misc/HotReloadInterface.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "GameFramework/GameUserSettings.h"
@@ -195,6 +194,11 @@
 
 #include "ILauncherPlatform.h"
 #include "LauncherPlatformModule.h"
+#include "Engine/MapBuildDataRegistry.h"
+
+#include "DynamicResolutionState.h"
+
+#include "Developer/HotReload/Public/IHotReload.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
@@ -606,7 +610,9 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 		FSlateApplication::Get().EnableMenuAnimations(GetDefault<UEditorStyleSettings>()->bEnableWindowAnimations);
 	}
 
-	const UEditorStyleSettings* StyleSettings = GetDefault<UEditorStyleSettings>();
+	UEditorStyleSettings* StyleSettings = GetMutableDefault<UEditorStyleSettings>();
+	StyleSettings->Init();
+
 	const ULevelEditorViewportSettings* ViewportSettings = GetDefault<ULevelEditorViewportSettings>();
 
 	// Needs to be set early as materials can be cached with selected material color baked in
@@ -659,6 +665,10 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 		// Setup a delegate to handle requests for opening assets
 		FSlateApplication::Get().SetWidgetReflectorAssetAccessDelegate(FAccessAsset::CreateUObject(this, &UEditorEngine::HandleOpenAsset));
 	}
+
+	IHotReloadModule& HotReloadModule = IHotReloadModule::Get();
+	HotReloadModule.OnModuleCompilerStarted ().AddUObject(this, &UEditorEngine::OnModuleCompileStarted);
+	HotReloadModule.OnModuleCompilerFinished().AddUObject(this, &UEditorEngine::OnModuleCompileFinished);
 }
 
 bool UEditorEngine::HandleOpenAsset(UObject* Asset)
@@ -682,7 +692,7 @@ void UEditorEngine::HandlePackageReloaded(const EPackageReloadPhase InPackageRel
 				// Notify about any BP assets that are about to be unloaded
 				if (UBlueprint* BP = Cast<UBlueprint>(InObject))
 				{
-					FKismetEditorUtilities::OnBlueprintUnloaded.Broadcast(BP);
+					BP->ClearEditorReferences();
 				}
 			}
 		}, false, RF_Transient, EInternalObjectFlags::PendingKill);
@@ -699,7 +709,22 @@ void UEditorEngine::HandlePackageReloaded(const EPackageReloadPhase InPackageRel
 			{
 				if (const UBlueprint* OldBlueprint = Cast<UBlueprint>(OldObject))
 				{
-					FBlueprintCompileReinstancer::ReplaceInstancesOfClass(OldBlueprint->GeneratedClass, NewObject ? CastChecked<UBlueprint>(NewObject)->GeneratedClass : nullptr);
+					if(NewObject && CastChecked<UBlueprint>(NewObject)->GeneratedClass)
+					{
+						FBlueprintCompileReinstancer::ReplaceInstancesOfClass(OldBlueprint->GeneratedClass, CastChecked<UBlueprint>(NewObject)->GeneratedClass);
+					}
+					else
+					{
+						// we failed to load the UBlueprint and/or it's GeneratedClass. Show a notification indicating that maps may need to be reloaded:
+						FNotificationInfo Warning( 
+							FText::Format(
+								NSLOCTEXT("UnrealEd", "Warning_FailedToLoadParentClass", "Failed to load ParentClass for {0}"),
+								FText::FromName(OldObject->GetFName())
+							)
+						);
+						Warning.ExpireDuration = 3.0f;
+						FSlateNotificationManager::Get().AddNotification(Warning);
+					}
 				}
 			}
 		}
@@ -850,12 +875,20 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	
 	FEditorDelegates::BeginPIE.AddLambda([](bool)
 	{
+		FTextLocalizationManager::Get().PushAutoEnableGameLocalizationPreview();
 		FTextLocalizationManager::Get().EnableGameLocalizationPreview();
+
+		// Always make sure dynamic resolution starts with a clean history.
+		GEngine->GetDynamicResolutionState()->ResetHistory();
 	});
 
 	FEditorDelegates::EndPIE.AddLambda([](bool)
 	{
+		FTextLocalizationManager::Get().PopAutoEnableGameLocalizationPreview();
 		FTextLocalizationManager::Get().DisableGameLocalizationPreview();
+
+		// Always resume the dynamic resolution state to ensure it is same state as in game builds when starting PIE.
+		GEngine->ResumeDynamicResolution();
 	});
 
 	// Initialize vanilla status before other systems that consume its status are started inside InitEditor()
@@ -870,7 +903,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	GEditor = this;
 	InitEditor(InEngineLoop);
 
-	Layers = FLayers::Create( TWeakObjectPtr< UEditorEngine >( this ) );
+	Layers = FLayers::Create( MakeWeakObjectPtr( this ) );
 
 	// Init transactioning.
 	Trans = CreateTrans();
@@ -925,9 +958,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("BehaviorTreeEditor"),
 			TEXT("HardwareTargeting"),
 			TEXT("LocalizationDashboard"),
-			TEXT("ReferenceViewer"),
-			TEXT("TreeMap"),
-			TEXT("SizeMap"),
 			TEXT("MergeActors"),
 			TEXT("InputBindingEditor"),
 			TEXT("AudioEditor")
@@ -1261,13 +1291,6 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// early in the Tick() to get the callbacks for cvar changes called
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
 
-	// Tick the hot reload interface
-	IHotReloadInterface* HotReload = IHotReloadInterface::GetPtr();
-	if(HotReload != nullptr)
-	{
-		HotReload->Tick();
-	}
-
 	// Tick the remote config IO manager
 	FRemoteConfigAsyncTaskManager::Get()->Tick();
 
@@ -1572,16 +1595,27 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		UReflectionCaptureComponent::UpdateReflectionCaptureContents(EditorContext.World());
 	}
 
+	EmitDynamicResolutionEvent(EDynamicResolutionStateEvent::BeginFrame);
+
 	// if we have the side-by-side world for "Play From Here", tick it unless we are ensuring slate is responsive
 	if( FSlateThrottleManager::Get().IsAllowingExpensiveTasks() )
 	{
-		for (auto ContextIt = WorldList.CreateIterator(); ContextIt; ++ContextIt)
+		// Determine number of PIE worlds that should tick.
+		TArray<FWorldContext*> LocalPieContextPtrs;
+		for (FWorldContext& PieContext : WorldList)
 		{
-			FWorldContext &PieContext = *ContextIt;
-			if (PieContext.WorldType != EWorldType::PIE || PieContext.World() == NULL || !PieContext.World()->ShouldTick())
+			if (PieContext.WorldType == EWorldType::PIE && PieContext.World() != nullptr && PieContext.World()->ShouldTick())
 			{
-				continue;
+				LocalPieContextPtrs.Add(&PieContext);
 			}
+		}
+
+		// Note: WorldList can change size within this loop during PIE when stopped at a breakpoint. In that case, we are
+		// running in a nested tick loop within this loop, where a new editor window with a preview viewport can be opened.
+		// So we iterate on a local list here instead.
+		for (FWorldContext* PieContextPtr : LocalPieContextPtrs)
+		{
+			FWorldContext &PieContext = *PieContextPtr;
 
 			GPlayInEditorID = PieContext.PIEInstance;
 
@@ -2181,6 +2215,9 @@ void UEditorEngine::Cleanse( bool ClearSelection, bool Redraw, const FText& Tran
 
 			if (RedirectorPackage == GetTransientPackage())
 			{
+				RedirIt->ClearFlags(FlagsToClear);
+				RedirIt->RemoveFromRoot();
+
 				continue;
 			}
 
@@ -3812,39 +3849,180 @@ void UEditorEngine::OpenMatinee(AMatineeActor* MatineeActor, bool bWarnUser)
 	OnOpenMatinee();
 }
 
-void UEditorEngine::UpdateReflectionCaptures(UWorld* World)
+void UEditorEngine::BuildReflectionCaptures(UWorld* World)
 {
-	const ERHIFeatureLevel::Type ActiveFeatureLevel = World->FeatureLevel;
-	if (ActiveFeatureLevel < ERHIFeatureLevel::SM4 && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
-	{
-		FScopedSlowTask SlowTask(4, LOCTEXT("UpdatingReflectionCaptures", "Updating reflection captures"));
-		SlowTask.MakeDialog();
-		// change to GMaxRHIFeatureLevel feature level to generate capture images.
-		SlowTask.EnterProgressFrame();			
-		World->ChangeFeatureLevel(GMaxRHIFeatureLevel, false);
+	// Note: Lighting and reflection build operations should only dirty BuildData packages, not ULevel packages
 
-		// Wait for shaders to compile so the capture result isn't capture black
-		if (GShaderCompilingManager != NULL)
+	FText StatusText = FText(LOCTEXT("BuildReflectionCaptures", "Building Reflection Captures..."));
+	GWarn->BeginSlowTask(StatusText, true);
+	GWarn->StatusUpdate(0, 1, StatusText);
+
+	// Wait for shader compiling to finish so we don't capture the default material
+	if (GShaderCompilingManager != NULL)
+	{
+		GShaderCompilingManager->FinishAllCompilation();
+	}
+
+	// Process any outstanding captures before we start operating on scenarios
+	UReflectionCaptureComponent::UpdateReflectionCaptureContents(World);
+
+	// Only the cubemap array path supports reading back from the GPU
+	// Calling code should not allow building reflection captures on lower feature levels
+	check(World->FeatureLevel >= ERHIFeatureLevel::SM5);
+
+	// Update sky light first because it's considered direct lighting, sky diffuse will be visible in reflection capture indirect specular
+	World->UpdateAllSkyCaptures();
+
+	TArray<ULevel*> LightingScenarios;
+	
+	// The list of scene capture component from hidden levels to keep.
+	TSet<FGuid> ResourcesToKeep; 
+	for (ULevel* Level : World->GetLevels())
+	{
+		check(Level);
+		// If the level is hidden and not a lighting scenario, scene capture data from this level should be preserved.
+		if (!Level->bIsVisible && !Level->bIsLightingScenario)
 		{
-			GShaderCompilingManager->FinishAllCompilation();
+			for (const AActor* Actor : Level->Actors)
+			{
+				if (Actor)
+				{
+					for (const UActorComponent* Component : Actor->GetComponents())
+					{
+						const UReflectionCaptureComponent* ReflectionCaptureComponent = Cast<UReflectionCaptureComponent>(Component);
+						if (ReflectionCaptureComponent)
+						{
+							ResourcesToKeep.Add(ReflectionCaptureComponent->MapBuildDataId);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	for (ULevel* Level : World->GetLevels())
+	{
+		if (Level->bIsVisible)
+		{
+			if (Level->MapBuildData)
+			{
+				// Remove all existing reflection capture data from visible levels before the build
+				Level->MapBuildData->InvalidateReflectionCaptures(Level->bIsLightingScenario ? &ResourcesToKeep : nullptr);
+			}
+
+			if (Level->bIsLightingScenario)
+			{
+				LightingScenarios.Add(Level);
+			}
+		}
+	}
+
+	if (LightingScenarios.Num() == 0)
+	{
+		// No lighting scenario levels present, add a null entry to represent the default case
+		LightingScenarios.Add(nullptr);
+		ResourcesToKeep.Empty();
+	}
+
+	// All but the first scenario start hidden
+	for (int32 LevelIndex = 1; LevelIndex < LightingScenarios.Num(); LevelIndex++)
+	{
+		ULevel* LightingScenario = LightingScenarios[LevelIndex];
+
+		if (LightingScenario)
+		{
+			EditorLevelUtils::SetLevelVisibilityTemporarily(LightingScenario, false);
+		}
+	}
+
+	for (int32 LevelIndex = 0; LevelIndex < LightingScenarios.Num(); LevelIndex++)
+	{
+		ULevel* LightingScenario = LightingScenarios[LevelIndex];
+
+		if (LightingScenario && LevelIndex > 0)
+		{
+			// Set current scenario visible
+			EditorLevelUtils::SetLevelVisibilityTemporarily(LightingScenario, true);	
 		}
 
-		// Update captures
-		SlowTask.EnterProgressFrame();
-		World->UpdateAllSkyCaptures();
-		SlowTask.EnterProgressFrame();
-		World->UpdateAllReflectionCaptures();
+		TArray<UReflectionCaptureComponent*> ReflectionCapturesToBuild;
 
-		// restore to the preview feature level.
-		SlowTask.EnterProgressFrame();
-		World->ChangeFeatureLevel(ActiveFeatureLevel, false);
-	}
-	else
-	{
+		for (TObjectIterator<UReflectionCaptureComponent> It; It; ++It)
+		{
+			UReflectionCaptureComponent* CaptureComponent = *It;
+
+			if (CaptureComponent->GetOwner()
+				&& World->ContainsActor(CaptureComponent->GetOwner()) 
+				&& !CaptureComponent->GetOwner()->bHiddenEdLevel
+				&& !CaptureComponent->IsPendingKill()
+				&& !ResourcesToKeep.Contains(CaptureComponent->MapBuildDataId))
+			{
+				// Queue an update
+				// Note InvalidateReflectionCaptures will guarantee this is a recapture, we don't want old data to persist
+				// We cannot modify MapBuildDataId to force a recapture as that would modify CaptureComponent's package, build operations should only modify the BuildData package
+				CaptureComponent->MarkDirtyForRecaptureOrUpload();	
+				ReflectionCapturesToBuild.Add(CaptureComponent);
+			}
+		}
+
+		FString UpdateReason = LightingScenario ? LightingScenario->GetOuter()->GetName() : TEXT("all levels");
+
+		// Passing in flag to verify all recaptures, no uploads
+		UReflectionCaptureComponent::UpdateReflectionCaptureContents(World, *UpdateReason, true);
+
+		for (int32 CaptureIndex = 0; CaptureIndex < ReflectionCapturesToBuild.Num(); CaptureIndex++)
+		{ 
+			UReflectionCaptureComponent* CaptureComponent = ReflectionCapturesToBuild[CaptureIndex];
+
+			FReflectionCaptureData ReadbackCaptureData;
+			World->Scene->GetReflectionCaptureData(CaptureComponent, ReadbackCaptureData);
+
+			// Capture can fail if there are more than GMaxNumReflectionCaptures captures
+			if (ReadbackCaptureData.CubemapSize > 0)
+			{
+				ULevel* StorageLevel = LightingScenarios[LevelIndex] ? LightingScenarios[LevelIndex] : CaptureComponent->GetOwner()->GetLevel();
+				UMapBuildDataRegistry* Registry = StorageLevel->GetOrCreateMapBuildData();
+				FReflectionCaptureMapBuildData& CaptureBuildData = Registry->AllocateReflectionCaptureBuildData(CaptureComponent->MapBuildDataId, true);
+				(FReflectionCaptureData&)CaptureBuildData = ReadbackCaptureData;
+
+				CaptureBuildData.FinalizeLoad();
+
+				// Recreate capture render state now that we have valid BuildData
+				CaptureComponent->MarkRenderStateDirty();
+			}
+			else
+			{
+				UE_LOG(LogEditor, Warning, TEXT("Unable to build Reflection Capture %s, max number of reflection captures exceeded"), *CaptureComponent->GetPathName());
+			}
+		}
+				// Queue an update
 		// Update sky light first because it's considered direct lighting, sky diffuse will be visible in reflection capture indirect specular
-		World->UpdateAllSkyCaptures();
-		World->UpdateAllReflectionCaptures();
+		if (LightingScenario)
+		{
+			// Hide current scenario now that we are done capturing it
+			EditorLevelUtils::SetLevelVisibilityTemporarily(LightingScenario, false);	
+		}
 	}
+
+		// Passing in flag to verify all recaptures, no uploads
+	// Restore initial visibility
+	for (int32 LevelIndex = 0; LevelIndex < LightingScenarios.Num(); LevelIndex++)
+	{
+		ULevel* LightingScenario = LightingScenarios[LevelIndex];
+
+			// Recreate capture render state now that we have valid BuildData
+
+
+		if (LightingScenario)
+		{
+			// Hide current scenario now that we are done capturing it
+
+	// Restore initial visibility
+			EditorLevelUtils::SetLevelVisibilityTemporarily(LightingScenario, true);
+		}
+	}
+
+	GWarn->EndSlowTask();
 }
 
 void UEditorEngine::EditorAddModalWindow( TSharedRef<SWindow> InModalWindow ) const
@@ -3919,8 +4097,7 @@ void UEditorEngine::ParentActors( AActor* ParentActor, AActor* ChildActor, const
 		}
 
 		// Snap to socket if a valid socket name was provided, otherwise attach without changing the relative transform
-		const bool bValidSocketName = !SocketName.IsNone() && ParentRoot->DoesSocketExist(SocketName);
-		ChildRoot->AttachToComponent(ParentRoot, bValidSocketName ? FAttachmentTransformRules::SnapToTargetNotIncludingScale : FAttachmentTransformRules::KeepWorldTransform, SocketName);
+		ChildRoot->AttachToComponent(ParentRoot, FAttachmentTransformRules::KeepWorldTransform, SocketName);
 
 		// Refresh editor in case child was translated after snapping to socket
 		RedrawLevelEditingViewports();
@@ -4076,40 +4253,6 @@ bool UEditorEngine::IsPackageValidForAutoAdding(UPackage* InPackage, const FStri
 
 bool UEditorEngine::IsPackageOKToSave(UPackage* InPackage, const FString& InFilename, FOutputDevice* Error)
 {
-	TArray<FString>	AllStartupPackageNames;
-	appGetAllPotentialStartupPackageNames(AllStartupPackageNames, GEngineIni, false);
-
-	FString ConvertedPackageName, ConversionError;
-	if (!FPackageName::TryConvertFilenameToLongPackageName(InFilename, ConvertedPackageName, &ConversionError))
-	{
-		Error->Logf(ELogVerbosity::Error, *FText::Format(NSLOCTEXT("UnrealEd", "CannotConvertPackageName", "Cannot save asset '{0}' as conversion of long package name failed. Reason: '{1}'."), FText::FromString(InFilename), FText::FromString(ConversionError)).ToString());
-		return false;
-	}
-
-	bool bIsStartupPackage = AllStartupPackageNames.Contains(ConvertedPackageName);
-
-	// Make sure that if the package is a startup package, the user indeed wants to save changes
-	if( !IsRunningCommandlet()																		&& // Don't prompt about saving startup packages when running UCC
-		InFilename.EndsWith(FPackageName::GetAssetPackageExtension())				&& // Maps, even startup maps, are ok
-		bIsStartupPackage && 
-		(!StartupPackageToWarnState.Find(InPackage) || (*(StartupPackageToWarnState.Find(InPackage)) == false))
-		)
-	{		
-		// Prompt to save startup packages
-		if( EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, FText::Format(
-				NSLOCTEXT("UnrealEd", "Prompt_AboutToEditStartupPackage", "{0} is a startup package.  Startup packages are fully cooked and loaded when on consoles. ALL CONTENT IN THIS PACKAGE WILL ALWAYS USE MEMORY. Are you sure you want to save it?"),
-				FText::FromString(InPackage->GetName()))) )
-		{
-			StartupPackageToWarnState.Add( InPackage, true );
-		}
-		else
-		{
-			StartupPackageToWarnState.Add( InPackage, false );
-			Error->Logf(ELogVerbosity::Warning, *FText::Format( NSLOCTEXT( "UnrealEd", "CannotSaveStartupPackage", "Cannot save asset '{0}' as user opted not to save this startup asset" ), FText::FromString( InFilename ) ).ToString() );
-			return false;
-		}
-	}
-
 	return true;
 }
 
@@ -4135,9 +4278,70 @@ void UEditorEngine::OnSourceControlDialogClosed(bool bEnabled)
 	}
 }
 
+bool UEditorEngine::InitializePhysicsSceneForSaveIfNecessary(UWorld* World)
+{
+	// We need a physics scene at save time in case code does traces during onsave events.
+	bool bHasPhysicsScene = false;
+
+	// First check if our owning world has a physics scene
+	if (World->PersistentLevel && World->PersistentLevel->OwningWorld)
+	{
+		bHasPhysicsScene = (World->PersistentLevel->OwningWorld->GetPhysicsScene() != nullptr);
+	}
+
+	// If we didn't already find a physics scene in our owning world, maybe we personally have our own.
+	if (!bHasPhysicsScene)
+	{
+		bHasPhysicsScene = (World->GetPhysicsScene() != nullptr);
+	}
+
+
+	// If we didn't find any physics scene we will synthesize one and remove it after save
+	if (!bHasPhysicsScene)
+	{
+		// Clear world components first so that UpdateWorldComponents below properly adds them all to the physics scene
+		World->ClearWorldComponents();
+
+		if (World->bIsWorldInitialized)
+		{
+			// If we don't have a physics scene and the world was initialized without one (i.e. an inactive world) then we should create one here. We will remove it down below after the save
+			World->CreatePhysicsScene();
+		}
+		else
+		{
+			// If we aren't already initialized, initialize now and create a physics scene. Don't create an FX system because it uses too much video memory for bulk operations
+			World->InitWorld(GetEditorWorldInitializationValues().CreateFXSystem(false).CreatePhysicsScene(true));
+		}
+
+		// Update components now that a physics scene exists.
+		World->UpdateWorldComponents(true, true);
+
+		// Set this to true so we can clean up what we just did down below
+		return true;
+	}
+
+	return false;
+}
+
+void UEditorEngine::CleanupPhysicsSceneThatWasInitializedForSave(UWorld* World)
+{
+	// Make sure we clean up the physics scene here. If we leave too many scenes in memory, undefined behavior occurs when locking a scene for read/write.
+	World->ClearWorldComponents();
+	World->SetPhysicsScene(nullptr);
+#if WITH_PHYSX
+	if (GPhysCommandHandler)
+	{
+		GPhysCommandHandler->Flush();
+	}
+#endif // WITH_PHYSX
+
+	// Update components again in case it was a world without a physics scene but did have rendered components.
+	World->UpdateWorldComponents(true, true);
+}
+
 FSavePackageResultStruct UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObjectFlags TopLevelFlags, const TCHAR* Filename,
 				 FOutputDevice* Error, FLinkerLoad* Conform, bool bForceByteSwapping, bool bWarnOfLongFilename, 
-				 uint32 SaveFlags, const class ITargetPlatform* TargetPlatform, const FDateTime& FinalTimeStamp, bool bSlowTask )
+				 uint32 SaveFlags, const class ITargetPlatform* TargetPlatform, const FDateTime& FinalTimeStamp, bool bSlowTask, FArchiveDiffMap* InOutDiffMap)
 {
 	FScopedSlowTask SlowTask(100, FText(), bSlowTask);
 
@@ -4154,51 +4358,17 @@ FSavePackageResultStruct UEditorEngine::Save( UPackage* InOuter, UObject* InBase
 
 	UWorld* World = Cast<UWorld>(Base);
 	bool bInitializedPhysicsSceneForSave = false;
+	const bool bSavingConcurrent = !!(SaveFlags & ESaveFlags::SAVE_Concurrent);
 	
 	UWorld *OriginalOwningWorld = nullptr;
 	if ( World )
 	{
-		// We need a physics scene at save time in case code does traces during onsave events.
-		bool bHasPhysicsScene = false;
-
-		// First check if our owning world has a physics scene
-		if (World->PersistentLevel && World->PersistentLevel->OwningWorld)
+		if (!bSavingConcurrent)
 		{
-			bHasPhysicsScene = (World->PersistentLevel->OwningWorld->GetPhysicsScene() != nullptr);
+			bInitializedPhysicsSceneForSave = InitializePhysicsSceneForSaveIfNecessary(World);
+
+			OnPreSaveWorld(SaveFlags, World);
 		}
-		
-		// If we didn't already find a physics scene in our owning world, maybe we personally have our own.
-		if (!bHasPhysicsScene)
-		{
-			bHasPhysicsScene = (World->GetPhysicsScene() != nullptr);
-		}
-
-		
-		// If we didn't find any physics scene we will synthesize one and remove it after save
-		if (!bHasPhysicsScene)
-		{
-			// Clear world components first so that UpdateWorldComponents below properly adds them all to the physics scene
-			World->ClearWorldComponents();
-
-			if (World->bIsWorldInitialized)
-			{
-				// If we don't have a physics scene and the world was initialized without one (i.e. an inactive world) then we should create one here. We will remove it down below after the save
-				World->CreatePhysicsScene();
-			}
-			else
-			{
-				// If we aren't already initialized, initialize now and create a physics scene. Don't create an FX system because it uses too much video memory for bulk operations
-				World->InitWorld(GetEditorWorldInitializationValues().CreateFXSystem(false).CreatePhysicsScene(true));
-			}
-
-			// Update components now that a physics scene exists.
-			World->UpdateWorldComponents(true, true);
-
-			// Set this to true so we can clean up what we just did down below
-			bInitializedPhysicsSceneForSave = true;
-		}
-
-		OnPreSaveWorld(SaveFlags, World);
 
 		OriginalOwningWorld = World->PersistentLevel->OwningWorld;
 		World->PersistentLevel->OwningWorld = World;
@@ -4215,7 +4385,7 @@ FSavePackageResultStruct UEditorEngine::Save( UPackage* InOuter, UObject* InBase
 	SlowTask.EnterProgressFrame(70);
 
 	UPackage::PreSavePackageEvent.Broadcast(InOuter);
-	const FSavePackageResultStruct Result = UPackage::Save(InOuter, Base, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping, bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp, bSlowTask);
+	const FSavePackageResultStruct Result = UPackage::Save(InOuter, Base, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping, bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp, bSlowTask, InOutDiffMap);
 
 	SlowTask.EnterProgressFrame(10);
 
@@ -4248,20 +4418,14 @@ FSavePackageResultStruct UEditorEngine::Save( UPackage* InOuter, UObject* InBase
 			World->PersistentLevel->OwningWorld = OriginalOwningWorld;
 		}
 
-		OnPostSaveWorld(SaveFlags, World, OriginalPackageFlags, Result == ESavePackageResult::Success);
-
-		if (bInitializedPhysicsSceneForSave)
+		if (!bSavingConcurrent)
 		{
-			// Make sure we clean up the physics scene here. If we leave too many scenes in memory, undefined behavior occurs when locking a scene for read/write.
-			World->ClearWorldComponents();
-			World->SetPhysicsScene(nullptr);
-			if (GPhysCommandHandler)
+			OnPostSaveWorld(SaveFlags, World, OriginalPackageFlags, Result == ESavePackageResult::Success);
+
+			if (bInitializedPhysicsSceneForSave)
 			{
-				GPhysCommandHandler->Flush();
+				CleanupPhysicsSceneThatWasInitializedForSave(World);
 			}
-			
-			// Update components again in case it was a world without a physics scene but did have rendered components.
-			World->UpdateWorldComponents(true, true);
 
 			// Rerunning construction scripts may have made it dirty again
 			InOuter->SetDirtyFlag(false);
@@ -6421,8 +6585,17 @@ void UEditorEngine::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld)
 	else
 	{
 		// UEngine::LoadMap broadcast this event with InLevel==NULL, before cleaning up the world
-		// Reset transactions buffer, to ensure that there are no references to a world which is about to be destroyed
-		ResetTransaction( NSLOCTEXT("UnrealEd", "LoadMapTransReset", "Loading a New Map") );
+		if (InWorld->IsPlayInEditor())
+		{
+			// Each additional instance of PIE in a multiplayer game will add another barrier, so if the event is triggered then this is the case and we need to lift it
+			// Otherwise there will be an imbalance between barriers set and barriers removed and we won't be able to undo when we return.
+			Trans->RemoveUndoBarrier();
+		}
+		else
+		{	
+			// If we're in editor mode, reset transactions buffer, to ensure that there are no references to a world which is about to be destroyed
+			ResetTransaction(NSLOCTEXT("UnrealEd", "LoadMapTransReset", "Loading a New Map"));
+		}
 	}
 }
 
@@ -6615,10 +6788,15 @@ void UEditorEngine::UpdateAutoLoadProject()
 	IFileManager::Get().Delete(*AutoLoadInProgressFilename, bRequireExists, bEvenIfReadOnly, bQuiet);
 }
 
-FORCEINLINE bool NetworkRemapPath_local(FWorldContext& Context, FString& Str, bool bReading)
+FORCEINLINE bool NetworkRemapPath_local(FWorldContext& Context, FString& Str, bool bReading, bool bIsReplay)
 {
 	if (bReading)
 	{
+		if (bIsReplay && Context.World() && Context.World()->RemapCompiledScriptActor(Str))
+		{
+			return true;
+		}
+		
 		if (FPackageName::IsShortPackageName(Str))
 		{
 			return false;
@@ -6626,7 +6804,7 @@ FORCEINLINE bool NetworkRemapPath_local(FWorldContext& Context, FString& Str, bo
 
 		// First strip any source prefix, then add the appropriate prefix for this context
 		FSoftObjectPath Path = UWorld::RemovePIEPrefix(Str);
-			
+		
 		Path.FixupForPIE();
 		FString Remapped = Path.ToString();
 		if (!Remapped.Equals(Str, ESearchCase::CaseSensitive))
@@ -6655,14 +6833,16 @@ bool UEditorEngine::NetworkRemapPath(UNetDriver* Driver, FString& Str, bool bRea
 		return false;
 	}
 
+	// Pretty sure there's no case where you can't have a world by this point.
+	bool bIsAReplay = (Driver->GetWorld()) ? (Driver->GetWorld()->DemoNetDriver != NULL) : false;
 	FWorldContext& Context = GetWorldContextFromWorldChecked(Driver->GetWorld());
-	return NetworkRemapPath_local(Context, Str, bReading);
+	return NetworkRemapPath_local(Context, Str, bReading, bIsAReplay);
 }
 
 bool UEditorEngine::NetworkRemapPath( UPendingNetGame *PendingNetGame, FString& Str, bool bReading)
 {
 	FWorldContext& Context = GetWorldContextFromPendingNetGameChecked(PendingNetGame);
-	return NetworkRemapPath_local(Context, Str, bReading);
+	return NetworkRemapPath_local(Context, Str, bReading, PendingNetGame->DemoNetDriver != NULL);
 }
 
 void UEditorEngine::VerifyLoadMapWorldCleanup()
@@ -6950,7 +7130,7 @@ void FActorLabelUtilities::RenameExistingActor(AActor* Actor, const FString& New
 	{
 		TArray<FAssetRenameData> RenameData;
 		RenameData.Add(FAssetRenameData(OldPath, NewPath, true));
-		AssetToolsModule.Get().RenameAssets(RenameData);
+		AssetToolsModule.Get().RenameAssetsWithDialog(RenameData);
 	}
 }
 
@@ -7062,6 +7242,16 @@ bool UEditorEngine::IsHMDTrackingAllowed() const
 {
 	// @todo vreditor: Added GEnableVREditorHacks check below to allow head movement in non-PIE editor; needs revisit
 	return GEnableVREditorHacks || (PlayWorld && (bUseVRPreviewForPlayWorld || GetDefault<ULevelEditorPlaySettings>()->ViewportGetsHMDControl));
+}
+
+void UEditorEngine::OnModuleCompileStarted(bool bIsAsyncCompile)
+{
+	bIsCompiling = true;
+}
+
+void UEditorEngine::OnModuleCompileFinished(const FString& CompilationOutput, ECompilationResult::Type CompilationResult, bool bShowLog)
+{
+	bIsCompiling = false;
 }
 
 #undef LOCTEXT_NAMESPACE 

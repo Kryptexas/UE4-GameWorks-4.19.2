@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "EnvironmentQuery/EQSTestingPawn.h"
 #include "UObject/ConstructorHelpers.h"
@@ -37,6 +37,8 @@ AEQSTestingPawn::AEQSTestingPawn(const FObjectInitializer& ObjectInitializer)
 {
 	static FName CollisionProfileName(TEXT("NoCollision"));
 	GetCapsuleComponent()->SetCollisionProfileName(CollisionProfileName);
+
+	NavAgentProperties = FNavAgentProperties::DefaultProperties;
 
 #if WITH_EDITORONLY_DATA
 	EdRenderComp = CreateEditorOnlyDefaultSubobject<UEQSRenderingComponent>(TEXT("EQSRender"));
@@ -103,6 +105,11 @@ AEQSTestingPawn::AEQSTestingPawn(const FObjectInitializer& ObjectInitializer)
 float AEQSTestingPawn::GetHighlightRangePct() const
 {
 	return (HighlightMode == EEnvQueryHightlightMode::Best25Pct) ? 0.75f : (HighlightMode == EEnvQueryHightlightMode::Best5Pct) ? 0.95f : 1.0f;
+}
+
+const FNavAgentProperties& AEQSTestingPawn::GetNavAgentPropertiesRef() const 
+{
+	return NavAgentProperties;
 }
 
 void AEQSTestingPawn::OnEditorSelectionChanged(UObject* NewSelection)

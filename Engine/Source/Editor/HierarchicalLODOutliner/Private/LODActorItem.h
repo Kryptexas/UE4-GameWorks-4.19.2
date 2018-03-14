@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -35,7 +35,7 @@ namespace HLODOutliner
 		mutable TWeakObjectPtr<ALODActor> LODActor;
 		mutable FTreeItemID ID;
 
-		FLODActorItem(const ALODActor* InLODActor);
+		explicit FLODActorItem(ALODActor* InLODActor);
 
 		//~ Begin ITreeItem Interface.
 		virtual bool CanInteract() const override;

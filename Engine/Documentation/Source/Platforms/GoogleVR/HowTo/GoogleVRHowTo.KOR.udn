@@ -1,0 +1,35 @@
+﻿INTSourceChangelist:3743807
+Availability:Docs
+Crumbs:%ROOT%
+Title:구글 VR 안내서
+Description: Google VR 과 UE4 작업을 위한 단계별 안내서입니다.
+Type:how-to
+Version:4.17
+Parent:Parent: Platforms/GoogleVR
+Order:2
+Tags:GoogleVR
+Tags:VR
+Tags:Mobile
+
+구글 VR 안내서에는 언리얼 엔진과 GoogleVR (구글 VR)을 함께 사용하는 법을 단계별로 안내해 드립니다.
+
+## 초급
+
+구글 VR 초급 안내서는 카메라 등의 구성 방법을 안내해 드립니다.
+
+[DIR(end:"1" output:"topic" type:"how-to" tags:"Basics" parent:"Platforms/GoogleVR")]
+
+## 중급
+
+구글 VR 중급 안내서는 구글 데이드림 VR 컨트롤러 등의 구성 방법을 안내해 드립니다.
+
+[DIR(end:"1" output:"topic" type:"how-to" tags:"GoogleVR" parent:"Platforms/GoogleVR")]
+
+## 고급
+
+구글 VR 고급 안내서는 구글 VR 프로젝트 디버깅 방법을 안내해 드립니다.
+
+[DIR(end:"1" output:"topic" type:"how-to" tags:"GoogleVR" parent:"Platforms/GoogleVR")]
+
+
+

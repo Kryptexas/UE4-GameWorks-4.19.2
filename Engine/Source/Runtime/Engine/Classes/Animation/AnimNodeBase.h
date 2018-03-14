@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,6 +8,7 @@
 #include "Animation/AnimTypes.h"
 #include "Animation/AnimCurveTypes.h"
 #include "BonePose.h"
+#include "Logging/TokenizedMessage.h"
 #include "AnimNodeBase.generated.h"
 
 class IAnimClassInterface;
@@ -42,6 +43,11 @@ public:
 	// Note: This can return NULL, so check the result.
 	ENGINE_API UAnimBlueprint* GetAnimBlueprint() const;
 #endif //WITH_EDITORONLY_DATA
+
+protected:
+
+	/** Interface for node contexts to register log messages with the proxy */
+	ENGINE_API void LogMessageInternal(FName InLogType, EMessageSeverity::Type InSeverity, FText InMessage);
 };
 
 
@@ -127,6 +133,9 @@ public:
 
 	// Returns the delta time for this update, in seconds
 	float GetDeltaTime() const { return DeltaTime; }
+
+	// Log update message
+	void LogMessage(EMessageSeverity::Type InSeverity, FText InMessage) { LogMessageInternal("Update", InSeverity, InMessage); }
 };
 
 
@@ -140,24 +149,36 @@ public:
 
 public:
 	// This constructor allocates a new uninitialized pose for the specified anim instance
-	FPoseContext(FAnimInstanceProxy* InAnimInstanceProxy)
+	FPoseContext(FAnimInstanceProxy* InAnimInstanceProxy, bool bInExpectsAdditivePose = false)
 		: FAnimationBaseContext(InAnimInstanceProxy)
+		, bExpectsAdditivePose(bInExpectsAdditivePose)
 	{
 		Initialize(InAnimInstanceProxy);
 	}
 
 	// This constructor allocates a new uninitialized pose, copying non-pose state from the source context
-	FPoseContext(const FPoseContext& SourceContext)
+	FPoseContext(const FPoseContext& SourceContext, bool bInOverrideExpectsAdditivePose = false)
 		: FAnimationBaseContext(SourceContext.AnimInstanceProxy)
+		, bExpectsAdditivePose(SourceContext.bExpectsAdditivePose || bInOverrideExpectsAdditivePose)
 	{
 		Initialize(SourceContext.AnimInstanceProxy);
 	}
 
 	ENGINE_API void Initialize(FAnimInstanceProxy* InAnimInstanceProxy);
 
+	// Log evaluation message
+	void LogMessage(EMessageSeverity::Type InSeverity, FText InMessage) { LogMessageInternal("Evaluate", InSeverity, InMessage); }
+
 	void ResetToRefPose()
 	{
-		Pose.ResetToRefPose();	
+		if (bExpectsAdditivePose)
+		{
+			Pose.ResetToAdditiveIdentity();
+		}
+		else
+		{
+			Pose.ResetToRefPose();
+		}
 	}
 
 	void ResetToAdditiveIdentity()
@@ -184,8 +205,17 @@ public:
 
 		Pose = Other.Pose;
 		Curve = Other.Curve;
+		bExpectsAdditivePose = Other.bExpectsAdditivePose;
 		return *this;
 	}
+
+	// Is this pose expected to be additive
+	bool ExpectsAdditivePose() const { return bExpectsAdditivePose; }
+
+private:
+
+	// Is this pose expected to be an additive pose
+	bool bExpectsAdditivePose;
 };
 
 
@@ -397,7 +427,7 @@ struct ENGINE_API FPoseLink : public FPoseLinkBase
 
 public:
 	// Interface
-	void Evaluate(FPoseContext& Output, bool bExpectsAdditivePose = false);
+	void Evaluate(FPoseContext& Output);
 
 #if ENABLE_ANIMNODE_POSE_DEBUG
 private:
@@ -459,6 +489,7 @@ struct FExposedValueCopyRecord
 		, PostCopyOperation(EPostCopyOperation::None)
 		, CopyType(ECopyType::MemCopy)
 		, CachedSourceProperty(nullptr)
+		, CachedSourceStructSubProperty(nullptr)
 		, CachedSourceContainer(nullptr)
 		, CachedDestContainer(nullptr)
 		, Source(nullptr)
@@ -499,8 +530,11 @@ struct FExposedValueCopyRecord
 	ECopyType CopyType;
 
 	// cached source property
-	UPROPERTY(Transient)
+	UPROPERTY()
 	UProperty* CachedSourceProperty;
+
+	UPROPERTY()
+	UProperty* CachedSourceStructSubProperty;
 
 	// cached source container for use with boolean operations
 	void* CachedSourceContainer;
@@ -546,6 +580,7 @@ struct ENGINE_API FExposedValueHandler
 	TArray<FExposedValueCopyRecord> CopyRecords;
 
 	// function pointer if BoundFunction != NAME_None
+	UPROPERTY()
 	UFunction* Function;
 
 	// Prevent multiple initialization
@@ -605,7 +640,6 @@ struct ENGINE_API FAnimNode_Base
 	 * @param	Output		Output structure to write pose or curve data to. Also provides access to relevant data as a context.
 	 */
 	virtual void Evaluate_AnyThread(FPoseContext& Output);
-	virtual void Evaluate_AnyThread(FPoseContext& Output, bool bExpectsAdditivePose);
 
 	/** 
 	 * Called to evaluate component-space bone transforms according to the weights set up in Update().

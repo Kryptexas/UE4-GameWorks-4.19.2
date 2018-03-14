@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "WheeledVehicleMovementComponent4WDetails.h"
 #include "WheeledVehicleMovementComponent4W.h"
@@ -92,6 +92,19 @@ void FWheeledVehicleMovementComponent4WDetails::CustomizeDetails(IDetailLayoutBu
 			];
 
 		SteeringCurveWidget->SetCurveOwner(&SteeringCurveEditor);
+	}
+}
+
+FWheeledVehicleMovementComponent4WDetails::~FWheeledVehicleMovementComponent4WDetails()
+{
+	if(SCurveEditor* SteeringCurveRaw = SteeringCurveWidget.Get())
+	{
+		SteeringCurveRaw->SetCurveOwner(nullptr);
+	}
+
+	if (SCurveEditor* TorqueCurveRaw = TorqueCurveWidget.Get())
+	{
+		TorqueCurveRaw->SetCurveOwner(nullptr);
 	}
 }
 

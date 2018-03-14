@@ -89,7 +89,8 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 | **Constraint Draw Size** | Controls how large constraints are drawn in the **Physics Asset Tool**. |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:UpdateJointsfromAnimationEnum]
 
 Determines whether simulation of root body updates component transform.
@@ -99,7 +100,8 @@ Determines whether simulation of root body updates component transform.
 | **Simulation Updates Component Transfrom** | Simulation updates the component's transform. |
 | **Component Trasform is Kinematic** | Simulation doesn't update the component's transform. Instead it is driven by animation, blueprint, etc... |
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 ## Body Mode Properties
 

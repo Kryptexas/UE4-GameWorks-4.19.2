@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraNodeOutput.h"
 #include "UObject/UnrealType.h"
 #include "NiagaraHlslTranslator.h"
+#include "NiagaraEmitter.h"
 #include "NiagaraScript.h"
 #include "NiagaraGraph.h"
 #include "NiagaraScriptSource.h"
@@ -12,11 +13,12 @@
 #include "MultiBoxBuilder.h"
 #include "SBox.h"
 #include "SEditableTextBox.h"
+#include "NiagaraEditorUtilities.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraNodeOutput"
 
 UNiagaraNodeOutput::UNiagaraNodeOutput(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer), ScriptTypeIndex(0)
+: Super(ObjectInitializer), ScriptTypeIndex_DEPRECATED(0)
 {
 }
 
@@ -41,7 +43,7 @@ void UNiagaraNodeOutput::PostEditChangeProperty(struct FPropertyChangedEvent& Pr
 void UNiagaraNodeOutput::RemoveOutputPin(UEdGraphPin* Pin)
 {
 	FScopedTransaction RemovePinTransaction(LOCTEXT("RemovePinTransaction", "Remove pin"));
-	int32 Index = Outputs.IndexOfByPredicate([&](const FNiagaraVariable& InVar) { return Pin->PinName == InVar.GetName().ToString(); });
+	int32 Index = Outputs.IndexOfByPredicate([&](const FNiagaraVariable& InVar) { return Pin->PinName == InVar.GetName(); });
 	if (Index >= 0)
 	{
 		Modify();
@@ -53,7 +55,7 @@ void UNiagaraNodeOutput::RemoveOutputPin(UEdGraphPin* Pin)
 
 FText UNiagaraNodeOutput::GetPinNameText(UEdGraphPin* Pin) const
 {
-	return FText::FromString(Pin->PinName);
+	return FText::FromName(Pin->PinName);
 }
 
 
@@ -64,10 +66,10 @@ void UNiagaraNodeOutput::PinNameTextCommitted(const FText& Text, ETextCommit::Ty
 		FScopedTransaction RenamePinTransaction(LOCTEXT("RenamePinTransaction", "Rename pin"));
 
 		Modify();
-		FNiagaraVariable* Var = Outputs.FindByPredicate([&](const FNiagaraVariable& InVar) {return Pin->PinName == InVar.GetName().ToString(); });
+		FNiagaraVariable* Var = Outputs.FindByPredicate([&](const FNiagaraVariable& InVar) {return Pin->PinName == InVar.GetName(); });
 		check(Var != nullptr);
-		Pin->PinName = Text.ToString();
-		Var->SetName(FName(*Pin->PinName));
+		Pin->PinName = *Text.ToString();
+		Var->SetName(Pin->PinName);
 		GetNiagaraGraph()->NotifyGraphNeedsRecompile();
 	}
 }
@@ -116,7 +118,7 @@ void UNiagaraNodeOutput::AllocateDefaultPins()
 
 	for (const FNiagaraVariable& Output : Outputs)
 	{
-		UEdGraphPin* Pin = CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(Output.GetType()), Output.GetName().ToString());
+		UEdGraphPin* Pin = CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(Output.GetType()), Output.GetName());
 		if (ScriptType == ENiagaraScriptUsage::ParticleUpdateScript)
 		{
 			Pin->bDefaultValueIsIgnored = true;
@@ -154,7 +156,12 @@ FText UNiagaraNodeOutput::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 	else if (ScriptType == ENiagaraScriptUsage::ParticleEventScript)
 	{
-		return FText::Format(NSLOCTEXT("NiagaraNodeOutput", "OutputEvent", "Output Event {0}"), FText::AsNumber(ScriptTypeIndex));
+		FText EventName;
+		if (FNiagaraEditorUtilities::TryGetEventDisplayName(GetTypedOuter<UNiagaraEmitter>(), ScriptTypeId, EventName) == false)
+		{
+			EventName = NSLOCTEXT("NiagaraNodeOutput", "UnknownEventName", "Unknown");
+		}
+		return FText::Format(NSLOCTEXT("NiagaraNodeOutput", "OutputEvent", "Output Event {0}"), EventName);
 	}
 	else if (ScriptType == ENiagaraScriptUsage::Function)
 	{

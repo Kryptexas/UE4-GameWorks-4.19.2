@@ -21,7 +21,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Now that we can detect the projectile's collision interactions, we can determine how to respond to those collisions. During this step, we'll add an `OnHit` function to `FPSProjectile` that'll respond to collision events.
 
@@ -79,7 +79,7 @@ Now that we can detect the projectile's collision interactions, we can determine
 1.	Locate the `FPSProjectile` class CPP file in the **Solution Explorer** and open `FPSProjectile.cpp` to add the following code:
 
 		// Function that is called when the projectile hits something.
-		void AFPSProjectile::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
+		void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
 		{
 			if (OtherActor != this && OtherComponent->IsSimulatingPhysics())
 			{
@@ -148,7 +148,7 @@ Now that we can detect the projectile's collision interactions, we can determine
 		}
 		
 		// Function that is called when the projectile hits something.
-		void AFPSProjectile::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
+		void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
 		{
 			if (OtherActor != this && OtherComponent->IsSimulatingPhysics())
 			{
@@ -208,4 +208,3 @@ Now that we can detect the projectile's collision interactions, we can determine
 
 1.	Press the Escape key or click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
-%Steps%

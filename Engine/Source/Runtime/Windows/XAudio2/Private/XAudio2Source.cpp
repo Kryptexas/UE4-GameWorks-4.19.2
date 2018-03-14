@@ -752,7 +752,7 @@ void FXAudio2SoundSource::GetMonoChannelVolumes(float ChannelVolumes[CHANNEL_MAT
 
 		ChannelVolumes[CHANNELOUT_RADIO] = 0.0f;
 
-		AudioDevice->DeviceProperties->SpatializationHelper.CalculateDolbySurroundRate(SpatializationParams.ListenerOrientation, SpatializationParams.ListenerPosition, SpatializationParams.EmitterPosition, SpatializationParams.NormalizedOmniRadius, ChannelVolumes);
+		AudioDevice->DeviceProperties->SpatializationHelper.CalculateDolbySurroundRate(FVector::UpVector, FVector::ZeroVector, SpatializationParams.EmitterPosition, SpatializationParams.NormalizedOmniRadius, ChannelVolumes);
 
 
 		// Handle any special post volume processing
@@ -838,11 +838,11 @@ void FXAudio2SoundSource::GetStereoChannelVolumes(float ChannelVolumes[CHANNEL_M
 
 		// Compute the speaker mappings for the left channel
 		float* ChannelMap = ChannelVolumes;
-		AudioDevice->DeviceProperties->SpatializationHelper.CalculateDolbySurroundRate(SpatializationParams.ListenerOrientation, SpatializationParams.ListenerPosition, SpatializationParams.LeftChannelPosition, SpatializationParams.NormalizedOmniRadius, ChannelMap);
+		AudioDevice->DeviceProperties->SpatializationHelper.CalculateDolbySurroundRate(FVector::UpVector, FVector::ZeroVector, SpatializationParams.LeftChannelPosition, SpatializationParams.NormalizedOmniRadius, ChannelMap);
 		
 		// Now compute the speaker mappings for the right channel
 		ChannelMap = &ChannelVolumes[CHANNELOUT_COUNT];
-		AudioDevice->DeviceProperties->SpatializationHelper.CalculateDolbySurroundRate(SpatializationParams.ListenerOrientation, SpatializationParams.ListenerPosition, SpatializationParams.RightChannelPosition, SpatializationParams.NormalizedOmniRadius, ChannelMap);
+		AudioDevice->DeviceProperties->SpatializationHelper.CalculateDolbySurroundRate(FVector::UpVector, FVector::ZeroVector, SpatializationParams.RightChannelPosition, SpatializationParams.NormalizedOmniRadius, ChannelMap);
 	}
 	else
 	{

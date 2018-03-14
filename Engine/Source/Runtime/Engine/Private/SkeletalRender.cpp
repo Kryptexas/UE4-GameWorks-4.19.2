@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalRender.cpp: Skeletal mesh skinning/rendering code.
@@ -8,6 +8,7 @@
 #include "SkeletalRenderPublic.h"
 #include "SceneManagement.h"
 #include "GPUSkinCache.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 
 /*-----------------------------------------------------------------------------
 Globals
@@ -22,29 +23,27 @@ const float MaxMorphTargetBlendWeight = 5.0f;
 FSkeletalMeshObject
 -----------------------------------------------------------------------------*/
 
-FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource, ERHIFeatureLevel::Type InFeatureLevel)
+FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshRenderData* InSkelMeshRenderData, ERHIFeatureLevel::Type InFeatureLevel)
 :	MinDesiredLODLevel(0)
 ,	MaxDistanceFactor(0.f)
 ,	WorkingMinDesiredLODLevel(0)
 ,	WorkingMaxDistanceFactor(0.f)
 ,   bHasBeenUpdatedAtLeastOnce(false)
 #if WITH_EDITORONLY_DATA
-,   SectionIndexPreview(InMeshComponent->SectionIndexPreview)
-,   MaterialIndexPreview(InMeshComponent->MaterialIndexPreview)
+,   SectionIndexPreview(InMeshComponent->GetSectionPreview())
+,   MaterialIndexPreview(InMeshComponent->GetMaterialPreview())
+,	SelectedEditorSection(InMeshComponent->GetSelectedEditorSection())
+,	SelectedEditorMaterial(InMeshComponent->GetSelectedEditorMaterial())
 #endif	
-,	SkeletalMeshResource(InSkeletalMeshResource)
+,	SkeletalMeshRenderData(InSkelMeshRenderData)
 ,	SkeletalMeshLODInfo(InMeshComponent->SkeletalMesh->LODInfo)
 ,	SkinCacheEntry(nullptr)
 ,	LastFrameNumber(0)
-#if WITH_EDITORONLY_DATA
-,	ProgressiveDrawingFraction(InMeshComponent->ProgressiveDrawingFraction)
-#endif
-,	CustomSortAlternateIndexMode((ECustomSortAlternateIndexMode)InMeshComponent->CustomSortAlternateIndexMode)
 ,	bUsePerBoneMotionBlur(InMeshComponent->bPerBoneMotionBlur)
 ,	StatId(InMeshComponent->SkeletalMesh->GetStatID(true))
 ,	FeatureLevel(InFeatureLevel)
 {
-	check(SkeletalMeshResource);
+	check(SkeletalMeshRenderData);
 
 #if WITH_EDITORONLY_DATA
 	if ( !GIsEditor )
@@ -75,7 +74,7 @@ void FSkeletalMeshObject::UpdateMinDesiredLODLevel(const FSceneView* View, const
 
 	const float ScreenRadiusSquared = ComputeBoundsScreenRadiusSquared(Bounds.Origin, Bounds.SphereRadius, *View) * LODScale * LODScale;
 
-	checkf( SkeletalMeshLODInfo.Num() == SkeletalMeshResource->LODModels.Num(), TEXT("Mismatched LOD arrays. SkeletalMeshLODInfo.Num() = %d, SkeletalMeshResource->LODModels.Num() = %d"), SkeletalMeshLODInfo.Num(), SkeletalMeshResource->LODModels.Num());
+	checkf( SkeletalMeshLODInfo.Num() == SkeletalMeshRenderData->LODRenderData.Num(), TEXT("Mismatched LOD arrays. SkeletalMeshLODInfo.Num() = %d, SkeletalMeshRenderData->LODRenderData.Num() = %d"), SkeletalMeshLODInfo.Num(), SkeletalMeshRenderData->LODRenderData.Num());
 
 	// Need the current LOD
 	const int32 CurrentLODLevel = GetLOD();
@@ -87,7 +86,7 @@ void FSkeletalMeshObject::UpdateMinDesiredLODLevel(const FSceneView* View, const
 	if( View->Family && 1==View->Family->EngineShowFlags.LOD )
 	{
 		// Iterate from worst to best LOD
-		for(int32 LODLevel = SkeletalMeshResource->LODModels.Num()-1; LODLevel > 0; LODLevel--) 
+		for(int32 LODLevel = SkeletalMeshRenderData->LODRenderData.Num()-1; LODLevel > 0; LODLevel--)
 		{
 			// Get ScreenSize for this LOD
 			float ScreenSize = SkeletalMeshLODInfo[LODLevel].ScreenSize;
@@ -129,10 +128,10 @@ void FSkeletalMeshObject::UpdateMinDesiredLODLevel(const FSceneView* View, const
  * List of chunks to be rendered based on instance weight usage. Full swap of weights will render with its own chunks.
  * @return Chunks to iterate over for rendering
  */
-const TArray<FSkelMeshSection>& FSkeletalMeshObject::GetRenderSections(int32 InLODIndex) const
+const TArray<FSkelMeshRenderSection>& FSkeletalMeshObject::GetRenderSections(int32 InLODIndex) const
 {
-	const FStaticLODModel& LOD = SkeletalMeshResource->LODModels[InLODIndex];
-	return LOD.Sections;
+	const FSkeletalMeshLODRenderData& LOD = SkeletalMeshRenderData->LODRenderData[InLODIndex];
+	return LOD.RenderSections;
 }
 
 /**
@@ -180,6 +179,99 @@ void FSkeletalMeshObject::InitLODInfos(const USkinnedMeshComponent* SkelComponen
 Global functions
 -----------------------------------------------------------------------------*/
 
+void UpdateRefToLocalMatricesInner(TArray<FMatrix>& ReferenceToLocal, const TArray<FTransform>& ComponentTransform, const TArray<uint8>& BoneVisibilityStates, const TArray<int32>* MasterBoneMap,
+	const TArray<FMatrix>* RefBasesInvMatrix, const FReferenceSkeleton& RefSkeleton, const FSkeletalMeshRenderData* InSkeletalMeshRenderData, int32 LODIndex, const TArray<FBoneIndexType>* ExtraRequiredBoneIndices)
+{
+	const FSkeletalMeshLODRenderData& LOD = InSkeletalMeshRenderData->LODRenderData[LODIndex];
+
+	check(RefBasesInvMatrix->Num() != 0);
+
+	if (ReferenceToLocal.Num() != RefBasesInvMatrix->Num())
+	{
+		ReferenceToLocal.Reset();
+		ReferenceToLocal.AddUninitialized(RefBasesInvMatrix->Num());
+	}
+
+	const TArray<FBoneIndexType>* RequiredBoneSets[3] = { &LOD.ActiveBoneIndices, ExtraRequiredBoneIndices, NULL };
+
+	const bool bBoneVisibilityStatesValid = BoneVisibilityStates.Num() == ComponentTransform.Num();
+	const bool bIsMasterCompValid = MasterBoneMap != nullptr;
+	
+	// Handle case of using ParentAnimComponent for SpaceBases.
+	// this always should be same
+	check(BoneVisibilityStates.Num() == ComponentTransform.Num());
+	for (int32 RequiredBoneSetIndex = 0; RequiredBoneSets[RequiredBoneSetIndex] != NULL; RequiredBoneSetIndex++)
+	{
+		const TArray<FBoneIndexType>& RequiredBoneIndices = *RequiredBoneSets[RequiredBoneSetIndex];
+
+		// Get the index of the bone in this skeleton, and loop up in table to find index in parent component mesh.
+		for (int32 BoneIndex = 0; BoneIndex < RequiredBoneIndices.Num(); BoneIndex++)
+		{
+			const int32 ThisBoneIndex = RequiredBoneIndices[BoneIndex];
+
+			if ( RefBasesInvMatrix->IsValidIndex(ThisBoneIndex) )
+			{
+				//if we have master pose component, we use MasterBoneMap to figure out the mapping
+				if( bIsMasterCompValid )
+				{
+					// If valid, use matrix from parent component.
+					const int32 MasterBoneIndex = (*MasterBoneMap)[ThisBoneIndex];
+					if (ComponentTransform.IsValidIndex(MasterBoneIndex))
+					{
+						const int32 ParentIndex = RefSkeleton.GetParentIndex(ThisBoneIndex);
+						bool bNeedToHideBone = BoneVisibilityStates[MasterBoneIndex] != BVS_Visible;
+						if (bNeedToHideBone && ParentIndex != INDEX_NONE)
+						{
+							ReferenceToLocal[ThisBoneIndex] = ReferenceToLocal[ParentIndex].ApplyScale(0.f);
+						}
+						else
+						{
+							checkSlow(ComponentTransform[MasterBoneIndex].IsRotationNormalized());
+							ReferenceToLocal[ThisBoneIndex] = ComponentTransform[MasterBoneIndex].ToMatrixWithScale();
+						}
+					}
+					else
+					{
+						// On the off chance the parent matrix isn't valid, revert to identity.
+						ReferenceToLocal[ThisBoneIndex] = FMatrix::Identity;
+					}
+				}
+				else
+				{
+					if (ComponentTransform.IsValidIndex(ThisBoneIndex))
+					{
+						// If we can't find this bone in the parent, we just use the reference pose.
+						const int32 ParentIndex = RefSkeleton.GetParentIndex(ThisBoneIndex);
+						bool bNeedToHideBone = BoneVisibilityStates[ThisBoneIndex] != BVS_Visible;
+						if (bNeedToHideBone && ParentIndex != INDEX_NONE)
+						{
+							ReferenceToLocal[ThisBoneIndex] = ReferenceToLocal[ParentIndex].ApplyScale(0.f);
+						}
+						else
+						{
+							checkSlow(ComponentTransform[ThisBoneIndex].IsRotationNormalized());
+							ReferenceToLocal[ThisBoneIndex] = ComponentTransform[ThisBoneIndex].ToMatrixWithScale();
+						}				
+					}
+					else
+					{
+						// On the off chance the parent matrix isn't valid, revert to identity.
+						ReferenceToLocal[ThisBoneIndex] = FMatrix::Identity;
+					}					
+				}
+			}
+			// removed else statement to set ReferenceToLocal[ThisBoneIndex] = FTransform::Identity;
+			// since it failed in ( ThisMesh->RefBasesInvMatrix.IsValidIndex(ThisBoneIndex) ), ReferenceToLocal is not valid either
+			// because of the initialization code line above to match both array count
+			// if(ReferenceToLocal.Num() != ThisMesh->RefBasesInvMatrix.Num())					
+		}
+	}
+
+	for (int32 ThisBoneIndex = 0; ThisBoneIndex < ReferenceToLocal.Num(); ++ThisBoneIndex)
+	{
+		ReferenceToLocal[ThisBoneIndex] = (*RefBasesInvMatrix)[ThisBoneIndex] * ReferenceToLocal[ThisBoneIndex];
+	}
+}
 /**
  * Utility function that fills in the array of ref-pose to local-space matrices using 
  * the mesh component's updated space bases
@@ -188,15 +280,17 @@ Global functions
  * @param	LODIndex - each LOD has its own mapping of bones to update
  * @param	ExtraRequiredBoneIndices - any extra bones apart from those active in the LOD that we'd like to update
  */
-void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinnedMeshComponent* InMeshComponent, const FSkeletalMeshResource* InSkeletalMeshResource, int32 LODIndex, const TArray<FBoneIndexType>* ExtraRequiredBoneIndices )
+void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinnedMeshComponent* InMeshComponent, const FSkeletalMeshRenderData* InSkeletalMeshRenderData, int32 LODIndex, const TArray<FBoneIndexType>* ExtraRequiredBoneIndices )
 {
 	const USkeletalMesh* const ThisMesh = InMeshComponent->SkeletalMesh;
 	const USkinnedMeshComponent* const MasterComp = InMeshComponent->MasterPoseComponent.Get();
-	const USkeletalMesh* const MasterCompMesh = MasterComp? MasterComp->SkeletalMesh : nullptr;
-	const FStaticLODModel& LOD = InSkeletalMeshResource->LODModels[LODIndex];
+	const FSkeletalMeshLODRenderData& LOD = InSkeletalMeshRenderData->LODRenderData[LODIndex];
 
+	const FReferenceSkeleton& RefSkeleton = ThisMesh->RefSkeleton;
 	const TArray<int32>& MasterBoneMap = InMeshComponent->GetMasterBoneMap();
-
+	const bool bIsMasterCompValid = MasterComp && MasterBoneMap.Num() == ThisMesh->RefSkeleton.GetNum();
+	const TArray<FTransform>& ComponentTransform = (bIsMasterCompValid)? MasterComp->GetComponentSpaceTransforms() : InMeshComponent->GetComponentSpaceTransforms();
+	const TArray<uint8>& BoneVisibilityStates = (bIsMasterCompValid) ? MasterComp->BoneVisibilityStates : InMeshComponent->BoneVisibilityStates;
 	// Get inv ref pose matrices
 	const TArray<FMatrix>* RefBasesInvMatrix = &ThisMesh->RefBasesInvMatrix;
 
@@ -215,166 +309,37 @@ void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinned
 		ReferenceToLocal.AddUninitialized(RefBasesInvMatrix->Num());
 	}
 
-	const bool bIsMasterCompValid = MasterComp && MasterBoneMap.Num() == ThisMesh->RefSkeleton.GetNum();
-
-	const TArray<FBoneIndexType>* RequiredBoneSets[3] = { &LOD.ActiveBoneIndices, ExtraRequiredBoneIndices, NULL };
-
-	const bool bBoneVisibilityStatesValid = InMeshComponent->BoneVisibilityStates.Num() == InMeshComponent->GetNumComponentSpaceTransforms();
-
-	// Handle case of using ParentAnimComponent for SpaceBases.
-	for( int32 RequiredBoneSetIndex = 0; RequiredBoneSets[RequiredBoneSetIndex]!=NULL; RequiredBoneSetIndex++ )
-	{
-		const TArray<FBoneIndexType>& RequiredBoneIndices = *RequiredBoneSets[RequiredBoneSetIndex];
-
-		// Get the index of the bone in this skeleton, and loop up in table to find index in parent component mesh.
-		for(int32 BoneIndex = 0;BoneIndex < RequiredBoneIndices.Num();BoneIndex++)
-		{
-			const int32 ThisBoneIndex = RequiredBoneIndices[BoneIndex];
-
-			if ( RefBasesInvMatrix->IsValidIndex(ThisBoneIndex) )
-			{
-				// On the off chance the parent matrix isn't valid, revert to identity.
-				ReferenceToLocal[ThisBoneIndex] = FMatrix::Identity;
-
-				if( bIsMasterCompValid )
-				{
-					// If valid, use matrix from parent component.
-					const int32 MasterBoneIndex = MasterBoneMap[ThisBoneIndex];
-					if (MasterComp->GetComponentSpaceTransforms().IsValidIndex(MasterBoneIndex))
-					{
-						const int32 ParentIndex = ThisMesh->RefSkeleton.GetParentIndex(ThisBoneIndex);
-						bool bNeedToHideBone = MasterComp->BoneVisibilityStates[MasterBoneIndex] != BVS_Visible;
-						if (bNeedToHideBone && ParentIndex != INDEX_NONE)
-						{
-							ReferenceToLocal[ThisBoneIndex] = ReferenceToLocal[ParentIndex].ApplyScale(0.f);
-						}
-						else
-						{
-							checkSlow(MasterComp->GetComponentSpaceTransforms()[MasterBoneIndex].IsRotationNormalized());
-							ReferenceToLocal[ThisBoneIndex] = MasterComp->GetComponentSpaceTransforms()[MasterBoneIndex].ToMatrixWithScale();
-						}
-					}
-				}
-				else
-				{
-					if (InMeshComponent->GetComponentSpaceTransforms().IsValidIndex(ThisBoneIndex))
-					{
-						// If we can't find this bone in the parent, we just use the reference pose.
-						if (bBoneVisibilityStatesValid)
-						{
-							const int32 ParentIndex = ThisMesh->RefSkeleton.GetParentIndex(ThisBoneIndex);
-							bool bNeedToHideBone = InMeshComponent->BoneVisibilityStates[ThisBoneIndex] != BVS_Visible;
-							if (bNeedToHideBone && ParentIndex != INDEX_NONE)
-							{
-								ReferenceToLocal[ThisBoneIndex] = ReferenceToLocal[ParentIndex].ApplyScale(0.f);
-							}
-							else
-							{
-								checkSlow(InMeshComponent->GetComponentSpaceTransforms()[ThisBoneIndex].IsRotationNormalized());
-								ReferenceToLocal[ThisBoneIndex] = InMeshComponent->GetComponentSpaceTransforms()[ThisBoneIndex].ToMatrixWithScale();
-							}
-						}
-						else
-						{
-							checkSlow(InMeshComponent->GetComponentSpaceTransforms()[ThisBoneIndex].IsRotationNormalized());
-							ReferenceToLocal[ThisBoneIndex] = InMeshComponent->GetComponentSpaceTransforms()[ThisBoneIndex].ToMatrixWithScale();
-						}
-					}
-				}
-			}
-			// removed else statement to set ReferenceToLocal[ThisBoneIndex] = FTransform::Identity;
-			// since it failed in ( ThisMesh->RefBasesInvMatrix.IsValidIndex(ThisBoneIndex) ), ReferenceToLocal is not valid either
-			// because of the initialization code line above to match both array count
-			// if(ReferenceToLocal.Num() != ThisMesh->RefBasesInvMatrix.Num())
-		}
-	}
-
-	for (int32 ThisBoneIndex = 0; ThisBoneIndex < ReferenceToLocal.Num(); ++ThisBoneIndex)
-	{
-		ReferenceToLocal[ThisBoneIndex] = (*RefBasesInvMatrix)[ThisBoneIndex] * ReferenceToLocal[ThisBoneIndex];
-	}
+	UpdateRefToLocalMatricesInner(ReferenceToLocal, ComponentTransform, BoneVisibilityStates, (bIsMasterCompValid)? &MasterBoneMap : nullptr, RefBasesInvMatrix, RefSkeleton, InSkeletalMeshRenderData, LODIndex, ExtraRequiredBoneIndices);
 }
 
-/**
- * Utility function that calculates the local-space origin and bone direction vectors for the
- * current pose for any TRISORT_CustomLeftRight sections.
- * @param	OutVectors - origin and direction vectors to update
- * @param	SkeletalMeshComponent - mesh primitive with updated bone matrices
- * @param	LODIndex - current LOD
- */
-void UpdateCustomLeftRightVectors( TArray<FTwoVectors>& OutVectors, const USkinnedMeshComponent* InMeshComponent, const FSkeletalMeshResource* InSkeletalMeshResource, int32 LODIndex )
+void UpdatePreviousRefToLocalMatrices(TArray<FMatrix>& ReferenceToLocal, const USkinnedMeshComponent* InMeshComponent, const FSkeletalMeshRenderData* InSkeletalMeshRenderData, int32 LODIndex, const TArray<FBoneIndexType>* ExtraRequiredBoneIndices)
 {
 	const USkeletalMesh* const ThisMesh = InMeshComponent->SkeletalMesh;
 	const USkinnedMeshComponent* const MasterComp = InMeshComponent->MasterPoseComponent.Get();
-	const FStaticLODModel& LOD = InSkeletalMeshResource->LODModels[LODIndex];
-	const FSkeletalMeshLODInfo& LODInfo = ThisMesh->LODInfo[LODIndex];
+	const FSkeletalMeshLODRenderData& LOD = InSkeletalMeshRenderData->LODRenderData[LODIndex];
+
+	const FReferenceSkeleton& RefSkeleton = ThisMesh->RefSkeleton;
 	const TArray<int32>& MasterBoneMap = InMeshComponent->GetMasterBoneMap();
-
-	if(OutVectors.Num() != LODInfo.TriangleSortSettings.Num())
+	const bool bIsMasterCompValid = MasterComp && MasterBoneMap.Num() == ThisMesh->RefSkeleton.GetNum();
+	const TArray<FTransform>& ComponentTransform = (bIsMasterCompValid) ? MasterComp->GetPreviousComponentTransformsArray() : InMeshComponent->GetPreviousComponentTransformsArray();
+	const TArray<uint8>& BoneVisibilityStates = (bIsMasterCompValid) ? MasterComp->GetPreviousBoneVisibilityStates() : InMeshComponent->GetPreviousBoneVisibilityStates();
+	// Get inv ref pose matrices
+	const TArray<FMatrix>* RefBasesInvMatrix = &ThisMesh->RefBasesInvMatrix;
+	// Check if there is an override (and it's the right size)
+	if (InMeshComponent->GetRefPoseOverride() &&
+		InMeshComponent->GetRefPoseOverride()->RefBasesInvMatrix.Num() == RefBasesInvMatrix->Num())
 	{
-		OutVectors.Reset();
-		OutVectors.AddUninitialized(LODInfo.TriangleSortSettings.Num());
+		RefBasesInvMatrix = &InMeshComponent->GetRefPoseOverride()->RefBasesInvMatrix;
 	}
 
-	const FVector AxisDirections[] = { FVector(1.f,0.f,0.f), FVector(0.f,1.f,0.f), FVector(0.f,0.f,1.f) };
+	check(RefBasesInvMatrix->Num() != 0);
 
-	for ( int32 SectionIndex = 0 ; SectionIndex < LOD.Sections.Num() ; ++SectionIndex )
+	if (ReferenceToLocal.Num() != RefBasesInvMatrix->Num())
 	{
-		if( LOD.Sections[SectionIndex].TriangleSorting == TRISORT_CustomLeftRight )
-		{
-			FName CustomLeftRightBoneName = LODInfo.TriangleSortSettings[SectionIndex].CustomLeftRightBoneName;
-			if( CustomLeftRightBoneName == NAME_None )
-			{
-				OutVectors[SectionIndex].v1 = FVector::ZeroVector;
-				OutVectors[SectionIndex].v2 = AxisDirections[LODInfo.TriangleSortSettings[SectionIndex].CustomLeftRightAxis];
-			}
-			else
-			{
-				int32 SpaceBasesBoneIndex = ThisMesh->RefSkeleton.FindBoneIndex(CustomLeftRightBoneName);
-				const TArray<FTransform>* SpaceBases = &InMeshComponent->GetComponentSpaceTransforms();
-				
-				// Handle case of using MasterPoseComponent for SpaceBases.
-				if( MasterComp && MasterBoneMap.Num() == ThisMesh->RefSkeleton.GetNum() && SpaceBasesBoneIndex != INDEX_NONE )
-				{
-					// If valid, use matrix from parent component.
-					SpaceBasesBoneIndex = MasterBoneMap[SpaceBasesBoneIndex];
-					SpaceBases = &MasterComp->GetComponentSpaceTransforms();
-				}
-
-				if (SpaceBases->IsValidIndex(SpaceBasesBoneIndex))
-				{
-					const FMatrix BoneMatrix = (*SpaceBases)[SpaceBasesBoneIndex].ToMatrixWithScale();
-					OutVectors[SectionIndex].v1 = BoneMatrix.GetOrigin();
-
-					EAxis::Type MatrixAxis = EAxis::X;
-
-					// TEnumAsByte<ETriangleSortAxis> won't cast to EMatrixAxis, so lets do this the hard way...
-					switch ( LODInfo.TriangleSortSettings[SectionIndex].CustomLeftRightAxis )
-					{
-					case TSA_X_Axis:
-						MatrixAxis = EAxis::X;
-						break;
-
-					case TSA_Y_Axis:
-						MatrixAxis = EAxis::Y;
-						break;
-
-					case TSA_Z_Axis:
-						MatrixAxis = EAxis::Z;
-						break;
-
-					default:
-						check(0);
-					}
-
-					OutVectors[SectionIndex].v2 = BoneMatrix.GetScaledAxis( MatrixAxis );
-				}
-				else
-				{
-					OutVectors[SectionIndex].v1 = FVector::ZeroVector;
-					OutVectors[SectionIndex].v2 = AxisDirections[LODInfo.TriangleSortSettings[SectionIndex].CustomLeftRightAxis];
-				}
-			}
-		}
+		ReferenceToLocal.Reset();
+		ReferenceToLocal.AddUninitialized(RefBasesInvMatrix->Num());
 	}
+
+	UpdateRefToLocalMatricesInner(ReferenceToLocal, ComponentTransform, BoneVisibilityStates, (bIsMasterCompValid) ? &MasterBoneMap : nullptr, RefBasesInvMatrix, RefSkeleton, InSkeletalMeshRenderData, LODIndex, ExtraRequiredBoneIndices);
 }
+

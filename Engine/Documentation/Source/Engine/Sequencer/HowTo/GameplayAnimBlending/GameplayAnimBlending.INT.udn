@@ -1,0 +1,66 @@
+Availability: Public
+Title:Blending Gameplay and Sequencer Animation
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:Illustrates how you can blend animation smoothly from gameplay into a Level Sequence based animation. 
+Version: 4.17
+SkillLevel: Advanced
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+tags:Sequencer
+tags:Animation
+type:how-to
+
+When creating your cinematic sequences, you may want to blend existing gameplay animation with animation contained inside your Level Sequence. 
+For example, a playable character walks up to a door during gameplay and you want Sequencer to animate the character and open the door. 
+Or a player is controlling their character in a third person shooter and comes around a blind corner and you want to blend in a cinematic death sequence. 
+By using a combination of Sequencer, Blueprint, and an Animation Blueprint you can blend whatever gameplay pose your character is in with a **Slot** animation defined by Sequencer. 
+
+In this example, we take whatever gameplay pose the character is in when entering a trigger volume and blend it with a death animation inside Sequencer.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	ZQX4CB0s9b0
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+## Steps
+
+[DIR(output:"checkpoint" parent:"/Engine/Sequencer/HowTo/GameplayAnimBlending" org:"hierarchy")]
+
+[REGION:call_to_action]
+	[Click to Start](Engine/Sequencer/HowTo/GameplayAnimBlending/01_SequenceSetup "%Engine/Sequencer/HowTo/GameplayAnimBlending/01_SequenceSetup:title%")
+[/REGION]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

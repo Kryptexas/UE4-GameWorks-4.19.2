@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,8 +6,9 @@
 #include "Misc/Guid.h"
 #include "Modules/ModuleInterface.h"
 #include "Components.h"
-#include "SkeletalMeshTypes.h"
 #include "Engine/MeshMerging.h"
+#include "SkelImport.h"
+#include "MeshBuild.h"
 
 #include "IMeshMergeUtilities.h"
 
@@ -42,9 +43,20 @@ enum class ELightmapUVVersion : int32
 	BitByBit = 0,
 	Segments = 1,
 	SmallChartPacking = 2,
-	Latest = SmallChartPacking
+	ScaleChartsOrderingFix = 3,
+	Latest = ScaleChartsOrderingFix
 };
 
+/**
+*	Contains the vertices that are most dominated by that bone. Vertices are in Bone space.
+*	Not used at runtime, but useful for fitting physics assets etc.
+*/
+struct FBoneVertInfo
+{
+	// Invariant: Arrays should be same length!
+	TArray<FVector>	Positions;
+	TArray<FVector>	Normals;
+};
 
 class IMeshUtilities : public IModuleInterface
 {
@@ -196,19 +208,18 @@ public:
 	struct MeshBuildOptions
 	{
 		MeshBuildOptions()
-		: bKeepOverlappingVertices(false)
-		, bRemoveDegenerateTriangles(false)
+		: bRemoveDegenerateTriangles(false)
 		, bComputeNormals(true)
 		, bComputeTangents(true)
 		, bUseMikkTSpace(false)
 		{
 		}
 
-		bool bKeepOverlappingVertices;
 		bool bRemoveDegenerateTriangles;
 		bool bComputeNormals;
 		bool bComputeTangents;
 		bool bUseMikkTSpace;
+		FOverlappingThresholds OverlappingThresholds;
 	};
 	
 	/**
@@ -216,7 +227,7 @@ public:
 	 * @returns true if the mesh was built successfully.
 	 */
 	virtual bool BuildSkeletalMesh( 
-		FStaticLODModel& LODModel,
+		FSkeletalMeshLODModel& LODModel,
 		const FReferenceSkeleton& RefSkeleton,
 		const TArray<FVertInfluence>& Influences, 
 		const TArray<FMeshWedge>& Wedges, 
@@ -241,8 +252,6 @@ public:
 		const TArray<uint32>& Indices,
 		TArray<uint32>& OutPnAenIndices
 		) = 0;
-
-	virtual void RechunkSkeletalMeshModels(USkeletalMesh* SrcMesh, int32 MaxBonesPerChunk) = 0;
 
 	/**
 	 *	Calculate the verts associated weighted to each bone of the skeleton.
@@ -269,7 +278,7 @@ public:
 	* @param InRawMesh - Skeletal Mesh to calculate the bounds for
 	* @param OutBounds - Out texture bounds (min-max)
 	*/
-	virtual void CalculateTextureCoordinateBoundsForSkeletalMesh(const FStaticLODModel& LODModel, TArray<FBox2D>& OutBounds) const = 0;
+	virtual void CalculateTextureCoordinateBoundsForSkeletalMesh(const FSkeletalMeshLODModel& LODModel, TArray<FBox2D>& OutBounds) const = 0;
 	
 	/** Calculates (new) non-overlapping UV coordinates for the given Skeletal Mesh
 	*
@@ -278,7 +287,7 @@ public:
 	* @param OutTexCoords - New set of UV coordinates
 	* @return bool - whether or not generating the UVs succeeded
 	*/
-	virtual bool GenerateUniqueUVsForSkeletalMesh(const FStaticLODModel& LODModel, int32 TextureResolution, TArray<FVector2D>& OutTexCoords) const = 0;	
+	virtual bool GenerateUniqueUVsForSkeletalMesh(const FSkeletalMeshLODModel& LODModel, int32 TextureResolution, TArray<FVector2D>& OutTexCoords) const = 0;
 	
 	/**
 	 * Remove Bones based on LODInfo setting
@@ -300,22 +309,35 @@ public:
 	 * @param InSmoothingGroupIndices Smoothing group index (per-face based)
 	 * @param InTangentOptions Flags for Tangent calculation
 	 * @param OutTangentX Array to hold calculated Tangents
-	 * @param OutTangentX Array to hold calculated Tangents
-	 * @param OutNormals Array to hold calculated normals (if already contains normals will use those instead for the tangent calculation	
+	 * @param OutTangentY Array to hold calculated Bitangents
+	 * @param OutNormals Array to hold calculated normals (if already contains normals will use those instead for the tangent calculation)	
 	*/
 	virtual void CalculateTangents(const TArray<FVector>& InVertices, const TArray<uint32>& InIndices, const TArray<FVector2D>& InUVs, const TArray<uint32>& InSmoothingGroupIndices, const uint32 InTangentOptions, TArray<FVector>& OutTangentX, TArray<FVector>& OutTangentY, TArray<FVector>& OutNormals) const = 0;
 
 	/** 
-	* Calculates the overlapping corners for a given set of vertex data
-	* 
-	* @param InVertices Vertices that make up the mesh
-	* @param InIndices Indices for the Vertex array
-	* @param bIgnoreDegenerateTriangles Indicates if we should skip degenerate triangles
-	* @param OutOverlappingCorners MultiMap to hold the overlapping corners. For a vertex, lists all the overlapping vertices.
-	*/
+	 * Calculates Normals for a given set of vertex data
+	 * 
+	 * @param InVertices Vertices that make up the mesh
+	 * @param InIndices Indices for the Vertex array
+	 * @param InUVs Texture coordinates (per-index based)
+	 * @param InSmoothingGroupIndices Smoothing group index (per-face based)
+	 * @param InTangentOptions Flags for Tangent calculation
+	 * @param OutNormals Array to hold calculated normals	
+	 */
+	virtual void CalculateNormals(const TArray<FVector>& InVertices, const TArray<uint32>& InIndices, const TArray<FVector2D>& InUVs, const TArray<uint32>& InSmoothingGroupIndices, const uint32 InTangentOptions, TArray<FVector>& OutNormals) const = 0;
+
+	/** 
+	 * Calculates the overlapping corners for a given set of vertex data
+	 * 
+	 * @param InVertices Vertices that make up the mesh
+	 * @param InIndices Indices for the Vertex array
+	 * @param bIgnoreDegenerateTriangles Indicates if we should skip degenerate triangles
+	 * @param OutOverlappingCorners MultiMap to hold the overlapping corners. For a vertex, lists all the overlapping vertices.
+	 */
 	virtual void CalculateOverlappingCorners(const TArray<FVector>& InVertices, const TArray<uint32>& InIndices, bool bIgnoreDegenerateTriangles, TMultiMap<int32, int32>& OutOverlappingCorners) const = 0;
 
 	virtual void RecomputeTangentsAndNormalsForRawMesh(bool bRecomputeTangents, bool bRecomputeNormals, const FMeshBuildSettings& InBuildSettings, FRawMesh &OutRawMesh) const = 0;
+	virtual void RecomputeTangentsAndNormalsForRawMesh(bool bRecomputeTangents, bool bRecomputeNormals, const FMeshBuildSettings& InBuildSettings, const TMultiMap<int32, int32>& InOverlappingCorners, FRawMesh &OutRawMesh) const = 0;
 
 	virtual void FindOverlappingCorners(TMultiMap<int32, int32>& OutOverlappingCorners, const TArray<FVector>& InVertices, const TArray<uint32>& InIndices, float ComparisonThreshold) const = 0;
 };

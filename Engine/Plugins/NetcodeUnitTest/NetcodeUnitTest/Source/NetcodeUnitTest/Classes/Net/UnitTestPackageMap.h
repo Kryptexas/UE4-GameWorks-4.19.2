@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,8 +10,22 @@
 
 
 // Forward declarations
+class FArchive;
 class UNetConnection;
 class UMinimalClient;
+
+
+// Delegates
+
+/**
+ * Delegate for hooking SerializeName
+ *
+ * @param bPreSerialize		Whether or not this call is occurring before or after serialization (it happens twice)
+ * @param bSerializedName	Whether or not the name has already been serialized
+ * @param Ar				The archive to serialize from/to
+ * @param InName			The name to serialize to/from
+ */
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnSerializeName, bool /*bPreSerialize*/, bool& /* bSerializedName */, FArchive& /* Ar */, FName& /* InName */);
 
 
 /**
@@ -35,6 +49,8 @@ class UUnitTestPackageMap : public UPackageMapClient
 
 	virtual bool SerializeObject(FArchive& Ar, UClass* InClass, UObject*& Obj, FNetworkGUID* OutNetGUID=nullptr) override;
 
+	virtual bool SerializeName(FArchive& Ar, FName& InName) override;
+
 	virtual bool SerializeNewActor(FArchive& Ar, class UActorChannel* Channel, class AActor*& Actor) override;
 
 public:
@@ -49,5 +65,8 @@ public:
 
 	/** Map of objects to watch and replace, in SerializeObject */
 	TMap<UObject*, UObject*> ReplaceObjects;
+
+	/** Delegate for hooking SerializeName */
+	FOnSerializeName OnSerializeName;
 };
 

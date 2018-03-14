@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MeshVertexPainter/MeshVertexPainter.h"
 #include "Components.h"
@@ -25,7 +25,7 @@ void FMeshVertexPainter::PaintVerticesSingleColor(UStaticMeshComponent* StaticMe
 		check(LODInfo.OverrideVertexColors == nullptr);
 
 		const FStaticMeshLODResources& LODModel = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[LODIndex];
-		const FPositionVertexBuffer& PositionVertexBuffer = LODModel.PositionVertexBuffer;
+		const FPositionVertexBuffer& PositionVertexBuffer = LODModel.VertexBuffers.PositionVertexBuffer;
 		const uint32 NumVertices = PositionVertexBuffer.GetNumVertices();
 
 		LODInfo.OverrideVertexColors = new FColorVertexBuffer;
@@ -64,7 +64,7 @@ void FMeshVertexPainter::PaintVerticesLerpAlongAxis(UStaticMeshComponent* Static
 		check(LODInfo.OverrideVertexColors == nullptr);
 
 		const FStaticMeshLODResources& LODModel = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[LODIndex];
-		const FPositionVertexBuffer& PositionVertexBuffer = LODModel.PositionVertexBuffer;
+		const FPositionVertexBuffer& PositionVertexBuffer = LODModel.VertexBuffers.PositionVertexBuffer;
 		const uint32 NumVertices = PositionVertexBuffer.GetNumVertices();
 
 		TArray<FColor> VertexColors;

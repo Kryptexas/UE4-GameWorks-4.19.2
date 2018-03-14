@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemOculus.h"
 #include "OnlineSubsystemOculusPrivate.h"
@@ -318,6 +318,20 @@ bool FOnlineSubsystemOculus::Shutdown()
 
 FString FOnlineSubsystemOculus::GetAppId() const
 {
+	// Try to get the platform specific field before the generic one
+#if PLATFORM_WINDOWS
+	auto AppId = GConfig->GetStr(TEXT("OnlineSubsystemOculus"), TEXT("RiftAppId"), GEngineIni);
+#elif PLATFORM_ANDROID
+	auto AppId = GConfig->GetStr(TEXT("OnlineSubsystemOculus"), TEXT("GearVRAppId"), GEngineIni);
+#endif
+	if (!AppId.IsEmpty()) {
+		return AppId;
+	}
+#if PLATFORM_WINDOWS
+	UE_LOG_ONLINE(Warning, TEXT("Could not find 'RiftAppId' key in engine config.  Trying 'OculusAppId'.  Move your oculus app id to 'RiftAppId' to use in your rift app and make this warning go away."));
+#elif PLATFORM_ANDROID
+	UE_LOG_ONLINE(Warning, TEXT("Could not find 'GearVRAppId' key in engine config.  Trying 'OculusAppId'.  Move your oculus app id to 'GearVRAppId' to use in your gearvr app make this warning go away."));
+#endif
 	return GConfig->GetStr(TEXT("OnlineSubsystemOculus"), TEXT("OculusAppId"), GEngineIni);
 }
 
@@ -329,13 +343,6 @@ bool FOnlineSubsystemOculus::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevi
 FText FOnlineSubsystemOculus::GetOnlineServiceName() const
 {
 	return NSLOCTEXT("OnlineSubsystemOculus", "OnlineServiceName", "Oculus Platform");
-}
-
-bool FOnlineSubsystemOculus::IsEnabled() const
-{
-	bool bEnableOculus = true;
-	GConfig->GetBool(TEXT("OnlineSubsystemOculus"), TEXT("bEnabled"), bEnableOculus, GEngineIni);
-	return bEnableOculus;
 }
 
 bool FOnlineSubsystemOculus::IsInitialized() const

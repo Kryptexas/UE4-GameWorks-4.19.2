@@ -1,10 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailsDiff.h"
 #include "Modules/ModuleManager.h"
 #include "IDetailsView.h"
 #include "PropertyEditorModule.h"
-//#include "SBlueprintDiff.h"
+#include "Algo/Copy.h"
+#include "Algo/Transform.h"
 
 FDetailsDiff::FDetailsDiff(const UObject* InObject, FOnDisplayedPropertiesChanged InOnDisplayedPropertiesChanged )
 	: OnDisplayedPropertiesChanged( InOnDisplayedPropertiesChanged )
@@ -57,10 +58,7 @@ void FDetailsDiff::HandlePropertiesChanged()
 TArray<FPropertySoftPath> FDetailsDiff::GetDisplayedProperties() const
 {
 	TArray<FPropertySoftPath> Ret;
-	for( const auto& Property : DifferingProperties )
-	{
-		Ret.Push( Property );
-	}
+	Algo::Copy(DifferingProperties, Ret);
 	return Ret;
 }
 
@@ -69,29 +67,21 @@ void FDetailsDiff::DiffAgainst(const FDetailsDiff& Newer, TArray< FSingleObjectD
 	TSharedPtr< class IDetailsView > OldDetailsView = DetailsView;
 	TSharedPtr< class IDetailsView > NewDetailsView = Newer.DetailsView;
 
-	const auto& OldSelectedObjects = OldDetailsView->GetSelectedObjects();
-	const auto& NewSelectedObjects = NewDetailsView->GetSelectedObjects();
+	const TArray<TWeakObjectPtr<UObject>>& OldSelectedObjects = OldDetailsView->GetSelectedObjects();
+	const TArray<TWeakObjectPtr<UObject>>& NewSelectedObjects = NewDetailsView->GetSelectedObjects();
 
-	auto OldProperties = OldDetailsView->GetPropertiesInOrderDisplayed();
-	auto NewProperties = NewDetailsView->GetPropertiesInOrderDisplayed();
+	const TArray<FPropertyPath> OldProperties = OldDetailsView->GetPropertiesInOrderDisplayed();
+	const TArray<FPropertyPath> NewProperties = NewDetailsView->GetPropertiesInOrderDisplayed();
 
 	TSet<FPropertySoftPath> OldPropertiesSet;
 	TSet<FPropertySoftPath> NewPropertiesSet;
 
-	auto ToSet = [](const TArray<FPropertyPath>& Array, TSet<FPropertySoftPath>& OutSet)
-	{
-		for (const auto& Entry : Array)
-		{
-			OutSet.Add(FPropertySoftPath(Entry));
-		}
-	};
-
-	ToSet(OldProperties, OldPropertiesSet);
-	ToSet(NewProperties, NewPropertiesSet);
+	Algo::Transform(OldProperties, OldPropertiesSet, [](const FPropertyPath& Entry) { return FPropertySoftPath(Entry); });
+	Algo::Transform(NewProperties, NewPropertiesSet, [](const FPropertyPath& Entry) { return FPropertySoftPath(Entry); });
 
 	// detect removed properties:
-	TSet<FPropertySoftPath> RemovedProperties = OldPropertiesSet.Difference(NewPropertiesSet);
-	for (const auto& RemovedProperty : RemovedProperties)
+	const TSet<FPropertySoftPath> RemovedProperties = OldPropertiesSet.Difference(NewPropertiesSet);
+	for (const FPropertySoftPath& RemovedProperty : RemovedProperties)
 	{
 		// @todo: (doc) label these as removed, rather than added to a
 		FSingleObjectDiffEntry Entry(RemovedProperty, EPropertyDiffType::PropertyAddedToA);
@@ -99,16 +89,16 @@ void FDetailsDiff::DiffAgainst(const FDetailsDiff& Newer, TArray< FSingleObjectD
 	}
 
 	// detect added properties:
-	TSet<FPropertySoftPath> AddedProperties = NewPropertiesSet.Difference(OldPropertiesSet);
-	for (const auto& AddedProperty : AddedProperties)
+	const TSet<FPropertySoftPath> AddedProperties = NewPropertiesSet.Difference(OldPropertiesSet);
+	for (const FPropertySoftPath& AddedProperty : AddedProperties)
 	{
 		FSingleObjectDiffEntry Entry(AddedProperty, EPropertyDiffType::PropertyAddedToB);
 		OutDifferences.Push(Entry);
 	}
 
 	// check for changed properties
-	TSet<FPropertySoftPath> CommonProperties = NewPropertiesSet.Intersect(OldPropertiesSet);
-	for (const auto& CommonProperty : CommonProperties)
+	const TSet<FPropertySoftPath> CommonProperties = NewPropertiesSet.Intersect(OldPropertiesSet);
+	for (const FPropertySoftPath& CommonProperty : CommonProperties)
 	{
 		// get value, diff:
 		check(NewSelectedObjects.Num() == 1);
@@ -119,9 +109,9 @@ void FDetailsDiff::DiffAgainst(const FDetailsDiff& Newer, TArray< FSingleObjectD
 
 		if (!DiffUtils::Identical(OldProperty, NewProperty, CommonProperty, DifferingSubProperties))
 		{
-			for (int32 DifferingIndex = 0; DifferingIndex < DifferingSubProperties.Num(); DifferingIndex++)
+			for (const FPropertySoftPath& DifferingSubProperty : DifferingSubProperties)
 			{
-				OutDifferences.Push(FSingleObjectDiffEntry(DifferingSubProperties[DifferingIndex], EPropertyDiffType::PropertyValueChanged));
+				OutDifferences.Push(FSingleObjectDiffEntry(DifferingSubProperty, EPropertyDiffType::PropertyValueChanged));
 			}
 		}
 	}

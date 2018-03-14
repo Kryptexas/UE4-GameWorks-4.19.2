@@ -4,7 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/Physics
 Description:A reference for all the properties available on Physics Constraints in Unreal Editor.
 parent:Engine/Physics/Constraints
 order:1
-Version: 4.13
+Version: 4.18
 topic-image:Engine/Physics/physics_topic.png
 tags:Physics
 SkillLevel: Beginner
@@ -43,10 +43,12 @@ This page contains a reference listing of properties for Physics Constraints sep
 | **Enable Projection** | If the distance error between bodies exceeds **Projection Linear Tolerance** value, or rotational error exceeds **Projection Angular Tolerance**, the Physics Body will be projected to fix this. This fixes cases where the visuals look disconnected, such as individual chain links breaking away from each other. |
 | **Projection Linear Tolerance** | If the distance error exceeds this value, in world units, the body will be projected. |
 | **Projection Angular Tolerance** | If the rotational error exceeds this value, in degrees, the body will be projected. |
+| **Parent Dominates** | When set, the parent body in a constraint will not be affected by the motion of the child. |
 [/REGION]
 [/EXCERPT]
 
-<!--
+[COMMENT:none]
+
 ## Joint Presets
 
 [EXCERPT:p3]
@@ -60,7 +62,8 @@ This page contains a reference listing of properties for Physics Constraints sep
 | **Ball and Socket** | Setup joint as ball and socket. A Ball and Socket joint allows motion around an indefinite number of axes, which have one common center. |
 [/REGION]
 [/EXCERPT:p3]
--->
+
+[/COMMENT]
 
 ## Linear Limits
 
@@ -109,7 +112,6 @@ This page contains a reference listing of properties for Physics Constraints sep
 | **Swing 1Limit Angle** | Angle of movement along the **XY** Plane. |
 | **Twist Limit Angle** | Angle of movement along the **XZ** Plane. |
 | **Swing 2Limit Angle** | Symmetric angle of roll along the X-axis. |
-| **Angular Rotation Offset** | Specifies the angular offset between the two frames of reference. By default this limit goes from (-Angle, +Angle). |
 [/REGION]
 
 ### Advanced
@@ -194,15 +196,16 @@ This page contains a reference listing of properties for Physics Constraints sep
 [/REGION]
 
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:AngMotorMode]
 
-Whether this angular motor uses SLERP (Sphereical Linear Interpolation) or decompose into a Swing Motor and a Twist Motor (cone and roll constraints). SLERP will not work if any of the angular constraints are locked.
+Whether this angular motor uses SLERP (Spherical Linear Interpolation) or decompose into a Swing Motor and a Twist Motor (cone and roll constraints). SLERP will not work if any of the angular constraints are locked.
 
 | Property  | Description |
 | ---  | :--- |
-| **SLERP** | Sets the motor to SLERP (Sphereical Linear Interpolation) mode. SLERP mode will not work if any of axis of the angular constraint is locked. |
+| **SLERP** | Sets the motor to SLERP (Spherical Linear Interpolation) mode. SLERP mode will not work if any of axis of the angular constraint is locked. |
 | **Twist and Swing** | Sets the motor to **Twist and Swing** (cone and roll constraints) mode.|
 
 [/EXCERPT]
@@ -326,7 +329,8 @@ Whether this angular motor uses SLERP (Sphereical Linear Interpolation) or decom
 | **Locked** | Fully constraint around this axis. |
 [/EXCERPT:angularMotionEnum]
 
--->
+
+[/COMMENT]
 
 ## Further Information
 
@@ -356,7 +360,9 @@ Under most circumstances, the Linear Motions' freedoms will remain locked. Howev
 
 _From left to right (Physics Constraint scaled up 4x): Linear Motions limited to 15 Units, and Linear Motions set to free._
 
-<!-- For information on all the properties relating to Linear Freedom and Limits see: [%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference -->
+[COMMENT:none]
+ For information on all the properties relating to Linear Freedom and Limits see: [%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference 
+[/COMMENT]
 
 ### Angular Freedom and Limits
 
@@ -378,7 +384,9 @@ Further, since the joint is located where the Physics Constraint Actor is locate
 [![](PhysCon_AngPos1.png)(h:312)](PhysCon_AngPos1.png) [![](PhysCon_AngPos2.png)(h:312)](PhysCon_AngPos2.png) 
 [/REGION]
 
-<!-- For information on all the properties relating to Angular Freedom and Limits see: [%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference -->
+[COMMENT:none]
+ For information on all the properties relating to Angular Freedom and Limits see: [%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference 
+[/COMMENT]
 
 ### Orientation
 
@@ -396,7 +404,9 @@ In either setup, the Physics Constraint has its Linear XMotion set to free, and 
 [![](PhysCon_SimFlat.png)(w:453)](PhysCon_SimFlat.png) [![](PhysCon_SimAngled.png)(w:453)](PhysCon_SimAngled.png)
 [/REGION]
 
-When using Angular limits, it is assumed that the Twist Axis (positive X) will be aligned pointing towards the blue constrained Actor (Constrained Actor 2). <!---This is really important because the ---> 
+When using Angular limits, it is assumed that the Twist Axis (positive X) will be aligned pointing towards the blue constrained Actor (Constrained Actor 2). [COMMENT:none]
+-This is really important because the -
+[/COMMENT] 
 
 [REGION:lightbox]
 [![](PhysCon_Angular.png)(w:453)](PhysCon_Angular.png) [![](PhysCon_AngularSim.png)(w:453)](PhysCon_AngularSim.png)
@@ -406,7 +416,8 @@ Also, while simulating, you will notice that the cone that represents the angula
 
 ![](PhysCon_AngularCone_2.png)(h:300 convert:false) ![](PhysCon_Arc.png)(h:300 convert:false)
 
-<!--
+[COMMENT:none]
+
 
 ### Ball And Socket
 A ball-and-socket joint is simply a joint that has all its linear parts locked and all its angular parts free.
@@ -427,7 +438,8 @@ You can simulate joint friction using the drive settings. Turn on velocity drive
 ### Punch bag
 You could simulate something like a punch-bag (a ball on the top of a vertical pole that can be knocked around) with a joint by first creating a ball-and-socket joint. Then turn on swing position drive and adjust the **AngularDriveSpring** and **AngularDriveDamping** until it springs nicely around the upright position when pushed. You could turn on swing limits as well to ensure that it cannot bend over too far.
 
--->
+
+[/COMMENT]
 -->
 
 

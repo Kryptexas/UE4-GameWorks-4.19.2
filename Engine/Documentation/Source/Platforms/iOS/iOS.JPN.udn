@@ -12,44 +12,26 @@ tags:Mobile
 tags:iOS
 topic-image:iOSGameDevelopment_topic.png
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		はじめよう
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## はじめよう
+
+[REGION:buttonlist]
+
 		[DIR(output:"topiccompact" parent:"Platforms/iOS" type:"quick start")]
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		iOS の操作方法
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## iOS の操作方法
+
+[REGION:buttonlist]
+
 		[DIR(end:"1" output:"listbutton" type:"how-to" parent:"Platforms/iOS")]
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		一般的な iOS ゲームの開発
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 一般的な iOS ゲームの開発
+
+[REGION:buttonlist]
+
 		[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/iOS")]
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]

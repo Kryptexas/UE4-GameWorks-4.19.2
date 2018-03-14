@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -24,6 +24,9 @@ class FDebugDisplayInfo;
 class FNetworkPredictionData_Server_Character;
 class FSavedMove_Character;
 class UPrimitiveComponent;
+class UCharacterMovementComponent;
+
+DECLARE_DELEGATE_RetVal_TwoParams(FTransform, FOnProcessRootMotion, const FTransform&, UCharacterMovementComponent*)
 
 /** Data about the floor for walking movement, used by CharacterMovementComponent. */
 USTRUCT(BlueprintType)
@@ -473,6 +476,16 @@ public:
 	 */
 	uint32 bNetworkSmoothingComplete:1;
 
+	/** Flag indicating the client correction was larger than NetworkLargeClientCorrectionThreshold. */
+	uint32 bNetworkLargeClientCorrection:1;
+
+	/**
+	 * Whether we skip prediction on frames where a proxy receives a network update. This can avoid expensive prediction on those frames,
+	 * with the side-effect of predicting with a frame of additional latency.
+	 */
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly)
+	uint32 bNetworkSkipProxyPredictionOnNetUpdate:1;
+
 public:
 
 	/** true to update CharacterOwner and UpdatedComponent after movement ends */
@@ -592,6 +605,14 @@ protected:
 	/** Timestamp when location or rotation last changed during an update. Only valid on the server. */
 	UPROPERTY(Transient)
 	float ServerLastTransformUpdateTimeStamp;
+
+	/** Timestamp of last client adjustment sent. See NetworkMinTimeBetweenClientAdjustments. */
+	UPROPERTY(Transient)
+	float ServerLastClientGoodMoveAckTime;
+
+	/** Timestamp of last client adjustment sent. See NetworkMinTimeBetweenClientAdjustments. */
+	UPROPERTY(Transient)
+	float ServerLastClientAdjustmentTime;
 
 	/** Accumulated impulse to be added next tick. */
 	UPROPERTY()
@@ -736,6 +757,36 @@ public:
 	/** Smoothing mode for simulated proxies in network game. */
 	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadOnly)
 	ENetworkSmoothingMode NetworkSmoothingMode;
+
+	/**
+	 * Minimum time on the server between acknowledging good client moves. This can save on bandwidth. Set to 0 to disable throttling.
+	 */
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, meta=(ClampMin="0.0", UIMin="0.0"))
+	float NetworkMinTimeBetweenClientAckGoodMoves;
+
+	/**
+	 * Minimum time on the server between sending client adjustments when client has exceeded allowable position error.
+	 * Should be >= NetworkMinTimeBetweenClientAdjustmentsLargeCorrection (the larger value is used regardless).
+  	 * This can save on bandwidth. Set to 0 to disable throttling.
+	 * @see ServerLastClientAdjustmentTime
+	 */
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, meta=(ClampMin="0.0", UIMin="0.0"))
+	float NetworkMinTimeBetweenClientAdjustments;
+
+	/**
+	* Minimum time on the server between sending client adjustments when client has exceeded allowable position error by a large amount (NetworkLargeClientCorrectionDistance).
+	* Should be <= NetworkMinTimeBetweenClientAdjustments (the smaller value is used regardless).
+	* @see NetworkMinTimeBetweenClientAdjustments
+	*/
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, meta=(ClampMin="0.0", UIMin="0.0"))
+	float NetworkMinTimeBetweenClientAdjustmentsLargeCorrection;
+
+	/**
+	* If client error is larger than this, sets bNetworkLargeClientCorrection to reduce delay between client adjustments.
+	* @see NetworkMinTimeBetweenClientAdjustments, NetworkMinTimeBetweenClientAdjustmentsLargeCorrection
+	*/
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, meta=(ClampMin="0.0", UIMin="0.0"))
+	float NetworkLargeClientCorrectionDistance;
 
 	/** Used in determining if pawn is going off ledge.  If the ledge is "shorter" than this value then the pawn will be able to walk off it. **/
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
@@ -1276,7 +1327,7 @@ public:
 	 *	Compute the max jump height based on the JumpZVelocity velocity and gravity.
 	 *	This does take into account the CharacterOwner's MaxJumpHoldTime.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovemet")
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	virtual float GetMaxJumpHeightWithJumpTime() const;
 
 	/** @return Maximum acceleration for the current state. */
@@ -1288,7 +1339,7 @@ public:
 	virtual float GetModifiedMaxAcceleration() const;
 	
 	/** @return Maximum acceleration for the current state, based on MaxAcceleration and any additional modifiers. */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta=(DeprecatedFunction, DisplayName="GetModifiedMaxAcceleration", DeprecationMessage="GetModifiedMaxAcceleration() is deprecated, apply your own modifiers to GetMaxAcceleration() if desired."))
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta=(DeprecatedFunction, DisplayName="GetModifiedMaxAcceleration", ScriptName="GetModifiedMaxAcceleration", DeprecationMessage="GetModifiedMaxAcceleration() is deprecated, apply your own modifiers to GetMaxAcceleration() if desired."))
 	virtual float K2_GetModifiedMaxAcceleration() const;
 
 	/** @return Maximum acceleration for the current state. */
@@ -1598,7 +1649,7 @@ public:
 	FORCEINLINE float GetWalkableFloorAngle() const { return WalkableFloorAngle; }
 
 	/** Get the max angle in degrees of a walkable surface for the character. */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta=(DisplayName = "GetWalkableFloorAngle"))
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta=(DisplayName = "GetWalkableFloorAngle", ScriptName = "GetWalkableFloorAngle"))
 	float K2_GetWalkableFloorAngle() const;
 
 	/** Set the max angle in degrees of a walkable surface for the character. Also computes WalkableFloorZ. */
@@ -1609,7 +1660,7 @@ public:
 	FORCEINLINE float GetWalkableFloorZ() const { return WalkableFloorZ; }
 
 	/** Get the Z component of the normal of the steepest walkable surface for the character. Any lower than this and it is not walkable. */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta=(DisplayName = "GetWalkableFloorZ"))
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta=(DisplayName = "GetWalkableFloorZ", ScriptName = "GetWalkableFloorZ"))
 	float K2_GetWalkableFloorZ() const;
 
 	/** Set the Z component of the normal of the steepest walkable surface for the character. Also computes WalkableFloorAngle. */
@@ -1749,7 +1800,7 @@ public:
 	* @param CapsuleLocation		Location where the capsule sweep should originate
 	* @param FloorResult			Result of the floor check
 	*/
-	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta=(DisplayName="FindFloor"))
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta=(DisplayName="FindFloor", ScriptName="FindFloor"))
 	void K2_FindFloor(FVector CapsuleLocation, FFindFloorResult& FloorResult) const;
 
 	/**
@@ -1778,7 +1829,7 @@ public:
 	* @param SweepRadius			The radius to use for sweep tests. Should be <= capsule radius.
 	* @param FloorResult			Result of the floor check
 	*/
-	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta=(DisplayName="ComputeFloorDistance"))
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta=(DisplayName="ComputeFloorDistance", ScriptName="ComputeFloorDistance"))
 	void K2_ComputeFloorDist(FVector CapsuleLocation, float LineDistance, float SweepDistance, float SweepRadius, FFindFloorResult& FloorResult) const;
 
 	/**
@@ -1925,6 +1976,9 @@ public:
 
 	/** Force a client update by making it appear on the server that the client hasn't updated in a long time. */
 	virtual void ForceReplicationUpdate();
+
+	/** Force a client adjustment. Resets ServerLastClientAdjustmentTime. */
+	void ForceClientAdjustment();
 	
 	/**
 	 * Generate a random angle in degrees that is approximately equal between client and server.
@@ -2114,55 +2168,60 @@ public:
 	////////////////////////////////////
 	// Network RPCs for movement
 	////////////////////////////////////
+	/**
+	 * The actual RPCs are passed to ACharacter, which wrap to the _Implementation and _Validate call here, to avoid Component RPC overhead.
+	 * For example:
+	 *		Client: UCharacterMovementComponent::ServerMove(...) => Calls CharacterOwner->ServerMove(...) triggering RPC on server
+	 *		Server: ACharacter::ServerMove_Implementation(...) => Calls CharacterMovement->ServerMove_Implementation
+	 *		To override the client call to the server RPC (on CharacterOwner), override ServerMove().
+	 *		To override the server implementation, override ServerMove_Implementation().
+	 */
 
-	/** Replicated function sent by client to server - contains client movement and view info. */
-	UFUNCTION(unreliable, server, WithValidation)
+	/**
+	 * Replicated function sent by client to server - contains client movement and view info.
+	 * Calls either CharacterOwner->ServerMove() or CharacterOwner->ServerMoveNoBase() depending on whehter ClientMovementBase is null.
+	 */
 	virtual void ServerMove(float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
 	virtual void ServerMove_Implementation(float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
 	virtual bool ServerMove_Validate(float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
 
-	/** Replicated function sent by client to server - contains client movement and view info for two moves. */
-	UFUNCTION(unreliable, server, WithValidation)
+	/**
+	 * Replicated function sent by client to server - contains client movement and view info for two moves.
+	 * Calls either CharacterOwner->ServerMoveDual() or CharacterOwner->ServerMoveDualNoBase() depending on whehter ClientMovementBase is null.
+	 */
 	virtual void ServerMoveDual(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
 	virtual void ServerMoveDual_Implementation(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
 	virtual bool ServerMoveDual_Validate(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
 
 	/** Replicated function sent by client to server - contains client movement and view info for two moves. First move is non root motion, second is root motion. */
-	UFUNCTION(unreliable, server, WithValidation)
 	virtual void ServerMoveDualHybridRootMotion(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
 	virtual void ServerMoveDualHybridRootMotion_Implementation(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
 	virtual bool ServerMoveDualHybridRootMotion_Validate(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
 
 	/* Resending an (important) old move. Process it if not already processed. */
-	UFUNCTION(unreliable, server, WithValidation)
 	virtual void ServerMoveOld(float OldTimeStamp, FVector_NetQuantize10 OldAccel, uint8 OldMoveFlags);
 	virtual void ServerMoveOld_Implementation(float OldTimeStamp, FVector_NetQuantize10 OldAccel, uint8 OldMoveFlags);
 	virtual bool ServerMoveOld_Validate(float OldTimeStamp, FVector_NetQuantize10 OldAccel, uint8 OldMoveFlags);
 	
 	/** If no client adjustment is needed after processing received ServerMove(), ack the good move so client can remove it from SavedMoves */
-	UFUNCTION(unreliable, client)
 	virtual void ClientAckGoodMove(float TimeStamp);
 	virtual void ClientAckGoodMove_Implementation(float TimeStamp);
 
 	/** Replicate position correction to client, associated with a timestamped servermove.  Client will replay subsequent moves after applying adjustment.  */
-	UFUNCTION(unreliable, client)
 	virtual void ClientAdjustPosition(float TimeStamp, FVector NewLoc, FVector NewVel, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
 	virtual void ClientAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, FVector NewVel, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
 
 	/* Bandwidth saving version, when velocity is zeroed */
-	UFUNCTION(unreliable, client)
 	virtual void ClientVeryShortAdjustPosition(float TimeStamp, FVector NewLoc, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
 	virtual void ClientVeryShortAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
 	
 	/** Replicate position correction to client when using root motion for movement. (animation root motion specific) */
-	UFUNCTION(unreliable, client)
-	void ClientAdjustRootMotionPosition(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
-	void ClientAdjustRootMotionPosition_Implementation(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+	virtual void ClientAdjustRootMotionPosition(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+	virtual void ClientAdjustRootMotionPosition_Implementation(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
 
 	/** Replicate root motion source correction to client when using root motion for movement. */
-	UFUNCTION(unreliable, client)
-	void ClientAdjustRootMotionSourcePosition(float TimeStamp, FRootMotionSourceGroup ServerRootMotion, bool bHasAnimRootMotion, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
-	void ClientAdjustRootMotionSourcePosition_Implementation(float TimeStamp, FRootMotionSourceGroup ServerRootMotion, bool bHasAnimRootMotion, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+	virtual void ClientAdjustRootMotionSourcePosition(float TimeStamp, FRootMotionSourceGroup ServerRootMotion, bool bHasAnimRootMotion, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+	virtual void ClientAdjustRootMotionSourcePosition_Implementation(float TimeStamp, FRootMotionSourceGroup ServerRootMotion, bool bHasAnimRootMotion, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
 
 protected:
 
@@ -2239,6 +2298,15 @@ public:
 	{
 		return RootMotionParams.bHasRootMotion;
 	}
+
+	// Takes component space root motion and converts it to world space
+	FTransform ConvertLocalRootMotionToWorld(const FTransform& InLocalRootMotion);
+
+	// Delegate for modifying root motion pre conversion from component space to world space.
+	FOnProcessRootMotion ProcessRootMotionPreConvertToWorld;
+	
+	// Delegate for modifying root motion post conversion from component space to world space.
+	FOnProcessRootMotion ProcessRootMotionPostConvertToWorld;
 
 	/** Simulate Root Motion physics on Simulated Proxies */
 	void SimulateRootMotion(float DeltaSeconds, const FTransform& LocalRootMotionTransform);

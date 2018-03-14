@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -17,6 +17,14 @@ class FCurlHttpResponse;
 	#include "curl/curl.h"
 #if PLATFORM_WINDOWS
 #include "HideWindowsPlatformTypes.h"
+#endif
+
+#if !defined(CURL_ENABLE_DEBUG_CALLBACK)
+	#define CURL_ENABLE_DEBUG_CALLBACK 0
+#endif
+
+#if !defined(CURL_ENABLE_NO_TIMEOUTS_OPTION)
+	#define CURL_ENABLE_NO_TIMEOUTS_OPTION 0
 #endif
 
 namespace
@@ -259,7 +267,6 @@ private:
 	 */
 	size_t ReceiveResponseBodyCallback(void* Ptr, size_t SizeInBlocks, size_t BlockSizeInBytes);
 
-#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 	/**
 	 * Static callback to be used as debug function (CURLOPT_DEBUGFUNCTION), will dispatch the call to proper instance
 	 *
@@ -282,7 +289,6 @@ private:
 	 * @return must return 0
 	 */
 	size_t DebugCallback(CURL * Handle, curl_infotype DebugInfoType, char * DebugInfo, size_t DebugInfoSize);
-#endif // !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 
 	/**
 	 * Setup the request

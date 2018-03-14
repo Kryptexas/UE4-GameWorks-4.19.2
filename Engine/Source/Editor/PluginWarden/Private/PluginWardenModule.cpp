@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PluginWardenModule.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
@@ -23,7 +23,7 @@ void FPluginWardenModule::ShutdownModule()
 
 }
 
-void FPluginWardenModule::CheckEntitlementForPlugin(const FText& PluginFriendlyName, const FString& PluginItemId, const FString& PluginOfferId, TFunction<void()> AuthorizedCallback)
+void FPluginWardenModule::CheckEntitlementForPlugin(const FText& PluginFriendlyName, const FString& PluginItemId, const FString& PluginOfferId, const FText& UnauthorizedMessageOverride, EUnauthorizedErrorHandling UnauthorizedErrorHandling, TFunction<void()> AuthorizedCallback)
 {
 	// If we've previously authorized the plug-in, just immediately verify access.
 	if ( AuthorizedPlugins.Contains(PluginItemId) )
@@ -41,6 +41,7 @@ void FPluginWardenModule::CheckEntitlementForPlugin(const FText& PluginFriendlyN
 		.Title(FText::Format(LOCTEXT("EntitlementCheckFormat", "{0} - Entitlement Check"), PluginFriendlyName));
 
 	TSharedRef<SAuthorizingPlugin> PluginAuthPanel = SNew(SAuthorizingPlugin, AuthorizingPluginWindow, PluginFriendlyName, PluginItemId, PluginOfferId, AuthorizedCallback);
+	PluginAuthPanel->SetUnauthorizedOverride(UnauthorizedMessageOverride, UnauthorizedErrorHandling);
 
 	AuthorizingPluginWindow->SetContent(PluginAuthPanel);
 

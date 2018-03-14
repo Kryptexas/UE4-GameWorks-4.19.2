@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "StaticMeshEditorViewportClient.h"
 #include "EngineGlobals.h"
@@ -561,12 +561,12 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 		FMatrix LocalToWorldInverseTranspose = StaticMeshComponent->GetComponentTransform().ToMatrixWithScale().InverseFast().GetTransposed();
 		for (uint32 i = 0; i < NumIndices; i++)
 		{
-			const FVector& VertexPos = LODModel.PositionVertexBuffer.VertexPosition( Indices[i] );
+			const FVector& VertexPos = LODModel.VertexBuffers.PositionVertexBuffer.VertexPosition( Indices[i] );
 
 			const FVector WorldPos = StaticMeshComponent->GetComponentTransform().TransformPosition( VertexPos );
-			const FVector& Normal = LODModel.VertexBuffer.VertexTangentZ( Indices[i] ); 
-			const FVector& Binormal = LODModel.VertexBuffer.VertexTangentY( Indices[i] ); 
-			const FVector& Tangent = LODModel.VertexBuffer.VertexTangentX( Indices[i] ); 
+			const FVector& Normal = LODModel.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ( Indices[i] ); 
+			const FVector& Binormal = LODModel.VertexBuffers.StaticMeshVertexBuffer.VertexTangentY( Indices[i] ); 
+			const FVector& Tangent = LODModel.VertexBuffers.StaticMeshVertexBuffer.VertexTangentX( Indices[i] ); 
 
 			const float Len = 5.0f;
 			const float BoxLen = 2.0f;
@@ -954,8 +954,8 @@ void FStaticMeshEditorViewportClient::ProcessClick(class FSceneView& InView, cla
 					FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
 					const uint32 Index = Indices[VertexProxy->Index];
 
-					Socket->RelativeLocation = LODModel.PositionVertexBuffer.VertexPosition(Index);
-					Socket->RelativeRotation = FRotationMatrix::MakeFromYZ(LODModel.VertexBuffer.VertexTangentZ(Index), LODModel.VertexBuffer.VertexTangentX(Index)).Rotator();
+					Socket->RelativeLocation = LODModel.VertexBuffers.PositionVertexBuffer.VertexPosition(Index);
+					Socket->RelativeRotation = FRotationMatrix::MakeFromYZ(LODModel.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(Index), LODModel.VertexBuffers.StaticMeshVertexBuffer.VertexTangentX(Index)).Rotator();
 
 					ClearSelectedSockets = false;
 				}

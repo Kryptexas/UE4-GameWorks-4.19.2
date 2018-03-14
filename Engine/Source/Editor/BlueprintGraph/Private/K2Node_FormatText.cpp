@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "K2Node_FormatText.h"
@@ -25,12 +25,15 @@
 
 struct FFormatTextNodeHelper
 {
-	static const FString& GetFormatPinName()
+	static const FName FormatPinName;
+
+	static const FName GetFormatPinName()
 	{
-		static const FString FormatPinName(TEXT("Format"));
 		return FormatPinName;
 	}
 };
+
+const FName FFormatTextNodeHelper::FormatPinName(TEXT("Format"));
 
 UK2Node_FormatText::UK2Node_FormatText(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -43,13 +46,12 @@ void UK2Node_FormatText::AllocateDefaultPins()
 {
 	Super::AllocateDefaultPins();
 
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	CachedFormatPin = CreatePin(EGPD_Input, K2Schema->PC_Text, FString(), nullptr, FFormatTextNodeHelper::GetFormatPinName());
-	CreatePin(EGPD_Output, K2Schema->PC_Text, FString(), nullptr, TEXT("Result"));
+	CachedFormatPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Text, FFormatTextNodeHelper::GetFormatPinName());
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Text, TEXT("Result"));
 
-	for (const FString& PinName : PinNames)
+	for (const FName& PinName : PinNames)
 	{
-		CreatePin(EGPD_Input, K2Schema->PC_Wildcard, FString(), nullptr, PinName);
+		CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Wildcard, PinName);
 	}
 }
 
@@ -63,7 +65,7 @@ void UK2Node_FormatText::SynchronizeArgumentPinType(UEdGraphPin* Pin)
 		bool bPinTypeChanged = false;
 		if (Pin->LinkedTo.Num() == 0)
 		{
-			static const FEdGraphPinType WildcardPinType = FEdGraphPinType(K2Schema->PC_Wildcard, FString(), nullptr, EPinContainerType::None, false, FEdGraphTerminalType());
+			static const FEdGraphPinType WildcardPinType = FEdGraphPinType(UEdGraphSchema_K2::PC_Wildcard, NAME_None, nullptr, EPinContainerType::None, false, FEdGraphTerminalType());
 
 			// Ensure wildcard
 			if (Pin->PinType != WildcardPinType)
@@ -106,16 +108,16 @@ FText UK2Node_FormatText::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 FText UK2Node_FormatText::GetPinDisplayName(const UEdGraphPin* Pin) const
 {
-	return FText::FromString(Pin->PinName);
+	return FText::FromName(Pin->PinName);
 }
 
-FString UK2Node_FormatText::GetUniquePinName()
+FName UK2Node_FormatText::GetUniquePinName()
 {
-	FString NewPinName;
+	FName NewPinName;
 	int32 i = 0;
 	while (true)
 	{
-		NewPinName = FString::FromInt(i++);
+		NewPinName = *FString::FromInt(i++);
 		if (!FindPin(NewPinName))
 		{
 			break;
@@ -171,33 +173,35 @@ void UK2Node_FormatText::PinDefaultValueChanged(UEdGraphPin* Pin)
 	const UEdGraphPin* FormatPin = GetFormatPin();
 	if(Pin == FormatPin && FormatPin->LinkedTo.Num() == 0)
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		
 		TArray< FString > ArgumentParams;
 		FText::GetFormatPatternParameters(FormatPin->DefaultTextValue, ArgumentParams);
 
-		PinNames.Empty();
+		PinNames.Reset();
 
 		for (const FString& Param : ArgumentParams)
 		{
-			if(!FindArgumentPin(Param))
+			const FName ParamName(*Param);
+			if (!FindArgumentPin(ParamName))
 			{
-				CreatePin(EGPD_Input, K2Schema->PC_Wildcard, FString(), nullptr, Param);
+				CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Wildcard, ParamName);
 			}
-			PinNames.Add(Param);
+			PinNames.Add(ParamName);
 		}
 
-		for(auto It = Pins.CreateConstIterator(); It; ++It)
+		for (auto It = Pins.CreateIterator(); It; ++It)
 		{
 			UEdGraphPin* CheckPin = *It;
-			if(CheckPin != FormatPin && CheckPin->Direction == EGPD_Input)
+			if (CheckPin != FormatPin && CheckPin->Direction == EGPD_Input)
 			{
-				int Index = 0;
-				if(!ArgumentParams.Find(CheckPin->PinName, Index))
+				const bool bIsValidArgPin = ArgumentParams.ContainsByPredicate([&CheckPin](const FString& InPinName)
+				{
+					return InPinName.Equals(CheckPin->PinName.ToString(), ESearchCase::CaseSensitive);
+				});
+
+				if(!bIsValidArgPin)
 				{
 					CheckPin->MarkPendingKill();
-					Pins.Remove(CheckPin);
-					--It;
+					It.RemoveCurrent();
 				}
 			}
 		}
@@ -334,32 +338,31 @@ void UK2Node_FormatText::ExpandNode(class FKismetCompilerContext& CompilerContex
 		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(MakeFormatArgumentDataStruct, this);
 
 		// Set the struct's "ArgumentName" pin literal to be the argument pin's name.
-		MakeFormatArgumentDataStruct->GetSchema()->TrySetDefaultValue(*MakeFormatArgumentDataStruct->FindPinChecked(GET_MEMBER_NAME_STRING_CHECKED(FFormatArgumentData, ArgumentName)), ArgumentPin->PinName);
+		MakeFormatArgumentDataStruct->GetSchema()->TrySetDefaultValue(*MakeFormatArgumentDataStruct->FindPinChecked(GET_MEMBER_NAME_STRING_CHECKED(FFormatArgumentData, ArgumentName)), ArgumentPin->PinName.ToString());
 
 		UEdGraphPin* ArgumentTypePin = MakeFormatArgumentDataStruct->FindPinChecked(GET_MEMBER_NAME_STRING_CHECKED(FFormatArgumentData, ArgumentValueType));
 
 		// Move the connection of the argument pin to the correct argument value pin, and also set the correct argument type based on the pin that was hooked up.
 		if (ArgumentPin->LinkedTo.Num() > 0)
 		{
-			const FString& ArgumentPinCategory = ArgumentPin->PinType.PinCategory;
+			const FName& ArgumentPinCategory = ArgumentPin->PinType.PinCategory;
 
-			const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(GetSchema());
-			if (ArgumentPinCategory == K2Schema->PC_Int)
+			if (ArgumentPinCategory == UEdGraphSchema_K2::PC_Int)
 			{
 				MakeFormatArgumentDataStruct->GetSchema()->TrySetDefaultValue(*ArgumentTypePin, TEXT("Int"));
 				CompilerContext.MovePinLinksToIntermediate(*ArgumentPin, *MakeFormatArgumentDataStruct->FindPinChecked(GET_MEMBER_NAME_STRING_CHECKED(FFormatArgumentData, ArgumentValueInt)));
 			}
-			else if (ArgumentPinCategory == K2Schema->PC_Float)
+			else if (ArgumentPinCategory == UEdGraphSchema_K2::PC_Float)
 			{
 				MakeFormatArgumentDataStruct->GetSchema()->TrySetDefaultValue(*ArgumentTypePin, TEXT("Float"));
 				CompilerContext.MovePinLinksToIntermediate(*ArgumentPin, *MakeFormatArgumentDataStruct->FindPinChecked(GET_MEMBER_NAME_STRING_CHECKED(FFormatArgumentData, ArgumentValueFloat)));
 			}
-			else if (ArgumentPinCategory == K2Schema->PC_Text)
+			else if (ArgumentPinCategory == UEdGraphSchema_K2::PC_Text)
 			{
 				MakeFormatArgumentDataStruct->GetSchema()->TrySetDefaultValue(*ArgumentTypePin, TEXT("Text"));
 				CompilerContext.MovePinLinksToIntermediate(*ArgumentPin, *MakeFormatArgumentDataStruct->FindPinChecked(GET_MEMBER_NAME_STRING_CHECKED(FFormatArgumentData, ArgumentValue)));
 			}
-			else if (ArgumentPinCategory == K2Schema->PC_Byte && !ArgumentPin->PinType.PinSubCategoryObject.IsValid())
+			else if (ArgumentPinCategory == UEdGraphSchema_K2::PC_Byte && !ArgumentPin->PinType.PinSubCategoryObject.IsValid())
 			{
 				MakeFormatArgumentDataStruct->GetSchema()->TrySetDefaultValue(*ArgumentTypePin, TEXT("Int"));
 
@@ -375,7 +378,7 @@ void UK2Node_FormatText::ExpandNode(class FKismetCompilerContext& CompilerContex
 				// Connect the int output pin to the argument value
 				CallByteToIntFunction->FindPinChecked(TEXT("ReturnValue"))->MakeLinkTo(MakeFormatArgumentDataStruct->FindPinChecked(GET_MEMBER_NAME_STRING_CHECKED(FFormatArgumentData, ArgumentValueInt)));
 			}
-			else if (ArgumentPinCategory == K2Schema->PC_Byte || ArgumentPinCategory == K2Schema->PC_Enum)
+			else if (ArgumentPinCategory == UEdGraphSchema_K2::PC_Byte || ArgumentPinCategory == UEdGraphSchema_K2::PC_Enum)
 			{
 				static UEnum* TextGenderEnum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("ETextGender"), /*ExactClass*/true);
 				if (ArgumentPin->PinType.PinSubCategoryObject == TextGenderEnum)
@@ -387,7 +390,7 @@ void UK2Node_FormatText::ExpandNode(class FKismetCompilerContext& CompilerContex
 			else
 			{
 				// Unexpected pin type!
-				CompilerContext.MessageLog.Error(*FText::Format(LOCTEXT("Error_UnexpectedPinType", "Pin '{0}' has an unexpected type: {1}"), FText::FromString(PinNames[ArgIdx]), FText::FromString(ArgumentPinCategory)).ToString());
+				CompilerContext.MessageLog.Error(*FText::Format(LOCTEXT("Error_UnexpectedPinType", "Pin '{0}' has an unexpected type: {1}"), FText::FromName(PinNames[ArgIdx]), FText::FromName(ArgumentPinCategory)).ToString());
 			}
 		}
 		else
@@ -404,7 +407,7 @@ void UK2Node_FormatText::ExpandNode(class FKismetCompilerContext& CompilerContex
 		}
 
 		// Find the input pin on the "Make Array" node by index.
-		FString PinName = FString::Printf(TEXT("[%d]"), ArgIdx);
+		const FString PinName = FString::Printf(TEXT("[%d]"), ArgIdx);
 		UEdGraphPin* InputPin = MakeArrayNode->FindPinChecked(PinName);
 
 		// Find the output for the pin's "Make Struct" node and link it to the corresponding pin on the "Make Array" node.
@@ -419,18 +422,18 @@ void UK2Node_FormatText::ExpandNode(class FKismetCompilerContext& CompilerContex
 	BreakAllNodeLinks();
 }
 
-UEdGraphPin* UK2Node_FormatText::FindArgumentPin(const FString& InPinName) const
+UEdGraphPin* UK2Node_FormatText::FindArgumentPin(const FName InPinName) const
 {
 	const UEdGraphPin* FormatPin = GetFormatPin();
-	for(int32 PinIdx=0; PinIdx<Pins.Num(); PinIdx++)
+	for (UEdGraphPin* Pin : Pins)
 	{
-		if( Pins[PinIdx] != FormatPin && Pins[PinIdx]->Direction != EGPD_Output && Pins[PinIdx]->PinName.Equals(InPinName) )
+		if( Pin != FormatPin && Pin->Direction != EGPD_Output && Pin->PinName.ToString().Equals(InPinName.ToString(), ESearchCase::CaseSensitive) )
 		{
-			return Pins[PinIdx];
+			return Pin;
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 UK2Node::ERedirectType UK2Node_FormatText::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
@@ -438,7 +441,7 @@ UK2Node::ERedirectType UK2Node_FormatText::DoPinsMatchForReconstruction(const UE
 	ERedirectType RedirectType = ERedirectType_None;
 
 	// if the pin names do match
-	if (FCString::Strcmp(*(NewPin->PinName), *(OldPin->PinName)) == 0)
+	if (NewPin->PinName.ToString().Equals(OldPin->PinName.ToString(), ESearchCase::CaseSensitive))
 	{
 		// Make sure we're not dealing with a menu node
 		UEdGraph* OuterGraph = GetGraph();
@@ -468,7 +471,7 @@ UK2Node::ERedirectType UK2Node_FormatText::DoPinsMatchForReconstruction(const UE
 			RedirectType = ShouldRedirectParam(OldPinNames, /*out*/ NewPinName, Node);
 
 			// make sure they match
-			if ((RedirectType != ERedirectType_None) && FCString::Stricmp(*(NewPin->PinName), *(NewPinName.ToString())) != 0)
+			if ((RedirectType != ERedirectType_None) && (!NewPin->PinName.ToString().Equals(NewPinName.ToString(), ESearchCase::CaseSensitive)))
 			{
 				RedirectType = ERedirectType_None;
 			}
@@ -485,14 +488,14 @@ bool UK2Node_FormatText::IsConnectionDisallowed(const UEdGraphPin* MyPin, const 
 	if (MyPin != FormatPin && MyPin->Direction == EGPD_Input)
 	{
 		const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(GetSchema());
-		const FString& OtherPinCategory = OtherPin->PinType.PinCategory;
+		const FName& OtherPinCategory = OtherPin->PinType.PinCategory;
 
 		bool bIsValidType = false;
-		if (OtherPinCategory == K2Schema->PC_Int || OtherPinCategory == K2Schema->PC_Float || OtherPinCategory == K2Schema->PC_Text || (OtherPinCategory == K2Schema->PC_Byte && !OtherPin->PinType.PinSubCategoryObject.IsValid()))
+		if (OtherPinCategory == UEdGraphSchema_K2::PC_Int || OtherPinCategory == UEdGraphSchema_K2::PC_Float || OtherPinCategory == UEdGraphSchema_K2::PC_Text || (OtherPinCategory == UEdGraphSchema_K2::PC_Byte && !OtherPin->PinType.PinSubCategoryObject.IsValid()))
 		{
 			bIsValidType = true;
 		}
-		else if (OtherPinCategory == K2Schema->PC_Byte || OtherPinCategory == K2Schema->PC_Enum)
+		else if (OtherPinCategory == UEdGraphSchema_K2::PC_Byte || OtherPinCategory == UEdGraphSchema_K2::PC_Enum)
 		{
 			static UEnum* TextGenderEnum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("ETextGender"), /*ExactClass*/true);
 			if (OtherPin->PinType.PinSubCategoryObject == TextGenderEnum)
@@ -513,9 +516,9 @@ bool UK2Node_FormatText::IsConnectionDisallowed(const UEdGraphPin* MyPin, const 
 
 FText UK2Node_FormatText::GetArgumentName(int32 InIndex) const
 {
-	if(InIndex < PinNames.Num())
+	if (InIndex < PinNames.Num())
 	{
-		return FText::FromString(PinNames[InIndex]);
+		return FText::FromName(PinNames[InIndex]);
 	}
 	return FText::GetEmpty();
 }
@@ -525,9 +528,8 @@ void UK2Node_FormatText::AddArgumentPin()
 	const FScopedTransaction Transaction( NSLOCTEXT("Kismet", "AddArgumentPin", "Add Argument Pin") );
 	Modify();
 
-	const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(GetSchema());
-	FString PinName = GetUniquePinName();
-	CreatePin(EGPD_Input, K2Schema->PC_Wildcard, FString(), nullptr, PinName);
+	const FName PinName(GetUniquePinName());
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Wildcard, PinName);
 	PinNames.Add(PinName);
 
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprint());
@@ -550,7 +552,7 @@ void UK2Node_FormatText::RemoveArgument(int32 InIndex)
 	GetGraph()->NotifyGraphChanged();
 }
 
-void UK2Node_FormatText::SetArgumentName(int32 InIndex, FString InName)
+void UK2Node_FormatText::SetArgumentName(int32 InIndex, FName InName)
 {
 	PinNames[InIndex] = InName;
 

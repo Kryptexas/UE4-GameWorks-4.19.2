@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ModelComponent.cpp: Model component implementation
@@ -319,18 +319,6 @@ void UModelComponent::PostEditUndo()
 	Super::PostEditUndo();
 }
 #endif // WITH_EDITOR
-
-void UModelComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
-{
-	Super::GetResourceSizeEx(CumulativeResourceSize);
-
-	// Count the bodysetup we own as well for 'inclusive' stats
-	if((CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive) && (ModelBodySetup != NULL))
-	{
-		ModelBodySetup->GetResourceSizeEx(CumulativeResourceSize);
-	}
-}
-
 
 bool UModelComponent::IsNameStableForNetworking() const
 {
@@ -670,44 +658,52 @@ bool UModelComponent::GetPhysicsTriMeshData(struct FTriMeshCollisionData* Collis
 		FModelElement& Element = Elements[ElementIndex];
 		FRawIndexBuffer16or32* IndexBuffer = Element.IndexBuffer;
 		int32 IndexBufferSize = 0;
-		// Check index buffer pointer is valid and has something in it
-		if (IndexBuffer != nullptr && IndexBuffer->Indices.Num() >= 0)
+
+		if (IndexBuffer == nullptr || IndexBuffer->Indices.Num() == 0)
 		{
-			IndexBufferSize = IndexBuffer->Indices.Num();
-
-			for (uint32 TriIdx = 0; TriIdx < Element.NumTriangles; TriIdx++)
-			{
-				FTriIndices Triangle;
-
-				Triangle.v0 = IndexBuffer->Indices[Element.FirstIndex + (TriIdx * 3) + 0];
-				Triangle.v1 = IndexBuffer->Indices[Element.FirstIndex + (TriIdx * 3) + 1];
-				Triangle.v2 = IndexBuffer->Indices[Element.FirstIndex + (TriIdx * 3) + 2];
-
-				if (AreaThreshold >= 0.f)
-				{
-					const FVector V0 = Model->VertexBuffer.Vertices[Triangle.v0].Position;
-					const FVector V1 = Model->VertexBuffer.Vertices[Triangle.v1].Position;
-					const FVector V2 = Model->VertexBuffer.Vertices[Triangle.v2].Position;
-
-					const FVector V01 = (V1 - V0);
-					const FVector V02 = (V2 - V0);
-					const FVector Cross = FVector::CrossProduct(V01, V02);
-					const float Area = Cross.Size() * 0.5f;
-					if (Area <= AreaThreshold)
-					{
-						nBadArea++;
-						continue;
-					}
-				}
-
-				CollisionData->Indices.Add(Triangle);
-				CollisionData->MaterialIndices.Add(ElementIndex);
-			}
-		}
-		else
-		{
-			UE_LOG(LogPhysics, Warning, TEXT("Found bad index buffer when cooking UModelComponent physics data! Component: %s, Buffer: %x, Buffer Size: %d, Element: %d"), *GetPathName(this), IndexBuffer, IndexBufferSize, ElementIndex);
+			UE_LOG(LogPhysics, Warning, TEXT("Found bad index buffer when cooking UModelComponent physics data! Component: %s, Buffer: %x, Buffer Size: %d, Element: %d"), *GetPathName(), IndexBuffer, IndexBufferSize, ElementIndex);
 			verify(IndexBufferSize >= 0);
+			continue;
+		}
+
+		int32 NumVertices = Model->VertexBuffer.Vertices.Num();
+
+		if (NumVertices < (int32)Element.MaxVertexIndex)
+		{
+			UE_LOG(LogPhysics, Warning, TEXT("Found bad vertex buffer when cooking UModelComponent physics data! Component: %s, Element: %d. Verts Exected: %d, Actual: %d"), 
+				*GetPathName(), ElementIndex, Element.MaxVertexIndex, NumVertices);
+			continue;
+		}
+
+		IndexBufferSize = IndexBuffer->Indices.Num();
+
+		for (uint32 TriIdx = 0; TriIdx < Element.NumTriangles; TriIdx++)
+		{
+			FTriIndices Triangle;
+
+			Triangle.v0 = IndexBuffer->Indices[Element.FirstIndex + (TriIdx * 3) + 0];
+			Triangle.v1 = IndexBuffer->Indices[Element.FirstIndex + (TriIdx * 3) + 1];
+			Triangle.v2 = IndexBuffer->Indices[Element.FirstIndex + (TriIdx * 3) + 2];
+
+			if (AreaThreshold >= 0.f)
+			{
+				const FVector V0 = Model->VertexBuffer.Vertices[Triangle.v0].Position;
+				const FVector V1 = Model->VertexBuffer.Vertices[Triangle.v1].Position;
+				const FVector V2 = Model->VertexBuffer.Vertices[Triangle.v2].Position;
+
+				const FVector V01 = (V1 - V0);
+				const FVector V02 = (V2 - V0);
+				const FVector Cross = FVector::CrossProduct(V01, V02);
+				const float Area = Cross.Size() * 0.5f;
+				if (Area <= AreaThreshold)
+				{
+					nBadArea++;
+					continue;
+				}
+			}
+
+			CollisionData->Indices.Add(Triangle);
+			CollisionData->MaterialIndices.Add(ElementIndex);
 		}
 	}
 

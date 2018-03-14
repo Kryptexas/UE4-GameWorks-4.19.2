@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	 GestureRecognizer - handles detecting when gestures happen
@@ -35,24 +35,35 @@ void FGestureRecognizer::DetectGestures(const FVector (&Touches)[EKeys::NUM_TOUC
 		if (TouchCount >= 2)
 		{
 			float* CurrentAlpha = CurrentGestureValues.Find(EKeys::Gesture_Pinch);
+
+			//#jira UE-51262 values for pinch input produce very different results for same area on android device
+			FVector2D CurrentPinchPoint_Start = FVector2D(Touches[0]);
+			FVector2D CurrentPinchPoint_End = FVector2D(Touches[1]);
+			const float PinchThreshold = 10000.0f;
+
 			if (CurrentAlpha == nullptr)
 			{
-				// remember the starting distance
-				SetAnchorDistanceSquared(AnchorPoints[0], AnchorPoints[1]);
+				//if the pinch points are close enough to those from the last pinch, continue with the previous starting distance
+				if (AnchorDistanceSq == 0 ||
+					(LastPinchPoint_Start - CurrentPinchPoint_Start).SizeSquared() > PinchThreshold || 
+					(LastPinchPoint_End - CurrentPinchPoint_End).SizeSquared() > PinchThreshold)
+				{
+					// remember the starting distance
+					SetAnchorDistanceSquared(CurrentPinchPoint_Start, CurrentPinchPoint_End);
+				}
 
 				// alpha of 1 is initial pinch anchor distance
 				CurrentGestureValues.Add(EKeys::Gesture_Pinch, 1.0f);
-				HandleGesture(PlayerInput, EKeys::Gesture_Pinch, true, false);
+				CurrentAlpha = CurrentGestureValues.Find(EKeys::Gesture_Pinch);
 			}
-			else
-			{
-				// calculate current alpha
-				float NewDistanceSq = (FVector2D(Touches[0]) - FVector2D(Touches[1])).SizeSquared();
-				*CurrentAlpha = NewDistanceSq / AnchorDistanceSq;
 
-				// Gestures are only processed for IE_Pressed events, so treat this like another "start"
-				HandleGesture(PlayerInput, EKeys::Gesture_Pinch, true, false);
-			}
+			// calculate current alpha
+			float NewDistanceSq = (CurrentPinchPoint_Start - CurrentPinchPoint_End).SizeSquared();
+			*CurrentAlpha = NewDistanceSq / AnchorDistanceSq;
+			HandleGesture(PlayerInput, EKeys::Gesture_Pinch, true, false);
+
+			LastPinchPoint_Start = CurrentPinchPoint_Start;
+			LastPinchPoint_End = CurrentPinchPoint_End;
 
 			// calculate the angle of the vector between the touch points
 			float NewAngle = FMath::Atan2(Touches[0].Y - Touches[1].Y, Touches[0].X - Touches[1].X);

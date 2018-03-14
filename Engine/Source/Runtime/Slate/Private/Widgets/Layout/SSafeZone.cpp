@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/Layout/SSafeZone.h"
 #include "Layout/LayoutUtils.h"
@@ -65,8 +65,10 @@ void SSafeZone::SetTitleSafe( bool InIsTitleSafe )
 
 	const FMargin DeviceSafeMargin =
 #if PLATFORM_IOS
-		// Hack: This is a temp solution to support iPhoneX safeArea. TitleSafePaddingSize and ActionSafePaddingSize should be FVector4 and use them separately. 
-		FMargin(Metrics.TitleSafePaddingSize.X, Metrics.ActionSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y, Metrics.ActionSafePaddingSize.Y);
+		// Hack: This is a temp solution to support iPhoneX safeArea. TitleSafePaddingSize and ActionSafePaddingSize should be FVector4 and use them separately.
+		bIsTitleSafe
+		? FMargin(Metrics.TitleSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y, Metrics.TitleSafePaddingSize.Z, Metrics.TitleSafePaddingSize.W)
+		: FMargin(Metrics.ActionSafePaddingSize.X, Metrics.ActionSafePaddingSize.Y, Metrics.ActionSafePaddingSize.Z, Metrics.ActionSafePaddingSize.W);
 #else
 		bIsTitleSafe ?
 		FMargin(Metrics.TitleSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y) :
@@ -118,6 +120,12 @@ void SSafeZone::SetOverrideScreenInformation(TOptional<FVector2D> InScreenSize, 
 
 #endif
 
+FMargin SSafeZone::GetSafeMargin(float InLayoutScale) const
+{
+	const FMargin SlotPadding = Padding.Get() + (ComputeScaledSafeMargin(InLayoutScale) * SafeAreaScale);
+	return SlotPadding;
+}
+
 void SSafeZone::SetSafeAreaScale(FMargin InSafeAreaScale)
 {
 	SafeAreaScale = InSafeAreaScale;
@@ -144,7 +152,7 @@ void SSafeZone::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedC
 	const EVisibility& MyCurrentVisibility = this->GetVisibility();
 	if ( ArrangedChildren.Accepts( MyCurrentVisibility ) )
 	{
-		const FMargin SlotPadding               = Padding.Get() + (ComputeScaledSafeMargin(AllottedGeometry.Scale) * SafeAreaScale);
+		const FMargin SlotPadding               = GetSafeMargin(AllottedGeometry.Scale);
 		AlignmentArrangeResult XAlignmentResult = AlignChild<Orient_Horizontal>( AllottedGeometry.GetLocalSize().X, ChildSlot, SlotPadding );
 		AlignmentArrangeResult YAlignmentResult = AlignChild<Orient_Vertical>( AllottedGeometry.GetLocalSize().Y, ChildSlot, SlotPadding );
 
@@ -164,7 +172,7 @@ FVector2D SSafeZone::ComputeDesiredSize(float LayoutScale) const
 
 	if ( ChildVisibility != EVisibility::Collapsed )
 	{
-		const FMargin SlotPadding = Padding.Get() + (ComputeScaledSafeMargin(LayoutScale) * SafeAreaScale);
+		const FMargin SlotPadding = GetSafeMargin(LayoutScale);
 		FVector2D BaseDesiredSize = SBox::ComputeDesiredSize(LayoutScale);
 
 		return BaseDesiredSize + SlotPadding.GetDesiredSize();

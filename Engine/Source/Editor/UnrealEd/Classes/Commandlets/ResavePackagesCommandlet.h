@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -82,6 +82,18 @@ protected:
 
 	/** Ignore package version changelist **/
 	bool bIgnoreChangelist;
+
+	/** Should we generated HLOD proxy meshes */
+	bool bShouldBuildHLOD;
+	bool bGenerateClusters;
+	bool bGenerateMeshProxies;
+	bool bForceClusterGeneration;
+	bool bForceProxyGeneration;
+	bool bForceEnableHLODForLevel;
+	bool bForceSingleClusterForLevel;
+	FString ForceHLODSetupAsset;
+	FString HLODSkipToMap;
+	bool bForceUATEnvironmentVariableSet;
 
 	/** Running count of packages that got modified and will need to be resaved */
 	int32 PackagesRequiringResave;

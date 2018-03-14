@@ -1,5 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
+//  Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 //
 //  FlipsideViewController.m
 //  UDKRemote
@@ -11,9 +10,10 @@
 #import "UDKRemoteAppDelegate.h"
 #import "MainViewController.h"
 
+
 @implementation FlipsideViewController
 
-//@synthesize my_delegate;
+@synthesize Delegate;
 @synthesize DestIPCell;
 @synthesize PortCell;
 @synthesize TiltCell;
@@ -28,8 +28,24 @@
 @synthesize RecentComputersTable;
 @synthesize RecentComputersController;
 @synthesize ComputerListEdit;
-@synthesize NewComputerTextField;
-@synthesize TextAlert;
+@synthesize ComputerTextAlert;
+@synthesize RecentPortsTable;
+@synthesize RecentPortsController;
+@synthesize PortListEdit;
+@synthesize PortTextAlert;
+
+#define MAX_NUMBER_PORTS 5
+
+/** 
+ * Enum to notify of which view mode we are in when manipulating the table data 
+ */
+enum EAlertViewMode
+{
+	SECTION_AddComputer = 0,
+	SECTION_AddPort,
+};
+EAlertViewMode CurrentViewMode;
+
 
 /**
  * Enum to describe each and how many sections are in the table
@@ -62,13 +78,24 @@ enum ESection0Rows
 	AppDelegate = ((UDKRemoteAppDelegate*)[UIApplication sharedApplication].delegate);
 }
 
+
+- (void)SetPortString
+{
+	self.PortTextField.text = @"";
+	
+	for( int i = 0; i < [AppDelegate.Ports count]; i++ )
+	{
+		self.PortTextField.text = [NSString stringWithFormat:@"%@%@%@", self.PortTextField.text, [AppDelegate.Ports objectAtIndex:i], i < [AppDelegate.Ports count]-1 ? @", " : @""];
+	}
+}
+
 - (void)viewWillAppear:(BOOL)animated
 {
     [super viewWillAppear:animated];
 	
 	// get settings from app
 	self.SubIPTextField.text = AppDelegate.PCAddress;
-	self.PortTextField.text = [NSString stringWithFormat:@"%d", AppDelegate.Port];
+	[self SetPortString];
 	self.SubTiltSwitch.on = !AppDelegate.bShouldIgnoreTilt;
 	self.SubTouchSwitch.on = !AppDelegate.bShouldIgnoreTouch;
 	self.SubLockSwitch.on = AppDelegate.bLockOrientation;
@@ -81,13 +108,12 @@ enum ESection0Rows
 - (IBAction)done 
 {
 	// write settings back to app
-	AppDelegate.Port = [self.PortTextField.text intValue];
 	AppDelegate.bShouldIgnoreTilt = !self.SubTiltSwitch.on;
 	AppDelegate.bShouldIgnoreTouch = !self.SubTouchSwitch.on;
 	AppDelegate.bLockOrientation = self.SubLockSwitch.on;
 	if (AppDelegate.bLockOrientation)
 	{
-		AppDelegate.LockedOrientation = self.interfaceOrientation;
+		AppDelegate.LockedOrientation = [UIApplication sharedApplication].statusBarOrientation;
 	}
 
 	// always save the tilt setting
@@ -96,103 +122,147 @@ enum ESection0Rows
 	[[NSUserDefaults standardUserDefaults] setBool:AppDelegate.bShouldIgnoreTouch forKey:@"bShouldIgnoreTouch"];
 	[[NSUserDefaults standardUserDefaults] setBool:AppDelegate.bLockOrientation forKey:@"bLockOrientation"];
 	[[NSUserDefaults standardUserDefaults] setInteger:(int)AppDelegate.LockedOrientation forKey:@"LockedOrientation"];
-	[[NSUserDefaults standardUserDefaults] setInteger:AppDelegate.Port forKey:@"Port"];
 	[[NSUserDefaults standardUserDefaults] setObject:AppDelegate.RecentComputers forKey:@"RecentComputers"];
+	[[NSUserDefaults standardUserDefaults] setObject:AppDelegate.Ports forKey:@"Ports"];
 	[[NSUserDefaults standardUserDefaults] synchronize];
 
-    MainViewController* MainThing = (MainViewController*)(self.delegate);
-    
-	[MainThing flipsideViewControllerDidFinish:self];
+	[self.Delegate flipsideViewControllerDidFinish:self];	
+}
+
+- (void)popoverControllerDidDismissPopover:(UIPopoverController *)popoverController
+{
+	[self done];
 }
 
 - (IBAction)AddComputer
-{ 
-	float OSVersion = [[[UIDevice currentDevice] systemVersion] floatValue];
-	
-	self.TextAlert = [[UIAlertView alloc] initWithTitle:@"Add New Computer" 
-												message:(OSVersion < 4.0f ? @"\n" : @"\n\n")
-											   delegate:self 
-									  cancelButtonTitle:NSLocalizedString(@"Cancel", nil) 
-									  otherButtonTitles:NSLocalizedString(@"OK", nil), nil];
-										  
-	UITextField* TextPrompt = [[UITextField alloc] initWithFrame:CGRectMake(16, 40, 252, 25)];
-	TextPrompt.font = [UIFont systemFontOfSize:18];
-	TextPrompt.keyboardAppearance = UIKeyboardAppearanceAlert;
-	TextPrompt.autocorrectionType = UITextAutocorrectionTypeNo;
-	TextPrompt.autocapitalizationType = UITextAutocapitalizationTypeNone;
-	TextPrompt.borderStyle = UITextBorderStyleRoundedRect;
-	TextPrompt.placeholder = @"Computer name or IP";
-	TextPrompt.delegate = self;
-	[TextPrompt becomeFirstResponder];
-	
-	// jam the text field into the alert view
-	[self.TextAlert addSubview:TextPrompt];
-	
-	// move up on old OSs
-	if (OSVersion < 4.0f)
-	{
-		self.TextAlert.transform = CGAffineTransformTranslate(self.TextAlert.transform, 0.0, 100.0);
-	}
-	
-	// self.TextAlert the alert
-	[self.TextAlert show];
-	
-	// release our retained items
-	[self.TextAlert release];
-	[TextPrompt release];
-	self.NewComputerTextField = TextPrompt;
-}
-
-
-- (void)didRotateFromInterfaceOrientation:(UIInterfaceOrientation)fromInterfaceOrientation
 {
-	if ([[[UIDevice currentDevice] systemVersion] floatValue] < 4.0f)
-	{
-		self.TextAlert.transform = CGAffineTransformTranslate(self.TextAlert.transform, 0.0, -100.0);
-	}
+	// make the dialog
+	self.ComputerTextAlert = [[UIAlertView alloc] initWithTitle:@"Add New Computer"
+														message:@""
+													   delegate:self
+											  cancelButtonTitle:NSLocalizedString(@"Cancel", nil)
+											  otherButtonTitles:NSLocalizedString(@"OK", nil), nil];
+	self.ComputerTextAlert.alertViewStyle = UIAlertViewStylePlainTextInput;
+
+	// modify the text box
+	[self.ComputerTextAlert textFieldAtIndex:0].keyboardType = UIKeyboardTypeURL;
+	[self.ComputerTextAlert textFieldAtIndex:0].placeholder = @"IP address or name";
+
+	// remember our mode
+	CurrentViewMode = SECTION_AddComputer;
+
+	[self.ComputerTextAlert show];
+	[self.ComputerTextAlert release];
 }
+
+
+- (IBAction)AddPort
+{
+	if( [AppDelegate.Ports count] == MAX_NUMBER_PORTS )
+	{
+		UIAlertView* TooManyPortsAlert = [[UIAlertView alloc] initWithTitle:@"Alert" message:@"You have reached the maximum number of Ports" delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil];
+		[TooManyPortsAlert show];
+		[TooManyPortsAlert release];
+		return;
+	}
+
+	// make the dialog
+	self.PortTextAlert = [[UIAlertView alloc] initWithTitle:@"Add New Port"
+														message:@""
+													   delegate:self
+											  cancelButtonTitle:NSLocalizedString(@"Cancel", nil)
+											  otherButtonTitles:NSLocalizedString(@"OK", nil), nil];
+	self.PortTextAlert.alertViewStyle = UIAlertViewStylePlainTextInput;
+	
+	// modify the text box
+	[self.PortTextAlert textFieldAtIndex:0].keyboardType = UIKeyboardTypeNumberPad;
+	[self.PortTextAlert textFieldAtIndex:0].placeholder = @"41765,41766 are game/editor defaults";
+	
+	// remember our mode
+	CurrentViewMode = SECTION_AddPort;
+	
+	[self.PortTextAlert show];
+	[self.PortTextAlert release];
+}
+
 
 /**
  * Handle pressing OK or Return on the keyboard
  */
-- (void)ProcessOK
+- (void)ProcessOK:(UITextField*)TextField
 {
-	// get the text the user entered
-	NSString* EnteredText = self.NewComputerTextField.text;
+	NSString* EnteredText;
 	
-	// check to make sure it's not already there
-	bool bAlreadyExists = NO;
-	for (NSString* Existing in AppDelegate.RecentComputers)
+	bool AlreadyAnEntry = NO;
+	
+	switch ( CurrentViewMode )
 	{
-		if ([Existing compare:EnteredText] == NSOrderedSame)
-		{
-			bAlreadyExists = YES;
+		case SECTION_AddComputer:
+			
+			// get the text the user entered
+			EnteredText = TextField.text;
+			
+			// check to make sure it's not already there
+			for (NSString* Existing in AppDelegate.RecentComputers)
+			{
+				if ([Existing compare:EnteredText] == NSOrderedSame)
+				{
+					AlreadyAnEntry = YES;
+					break;
+				}
+			}
+			
+			// add it if it wasn't already there
+			if (!AlreadyAnEntry)
+			{
+				[AppDelegate.RecentComputers addObject:EnteredText];
+			}
+			
+			// even if it was already there, use it as the current address
+			AppDelegate.PCAddress = EnteredText;
+			self.SubIPTextField.text = AppDelegate.PCAddress;
+			[self.RecentComputersTable reloadData];	
 			break;
-		}
+		case SECTION_AddPort:
+			
+			// get the text the user entered
+			NSString* EnteredPortText = TextField.text;
+			
+			// check to make sure it's not already there
+			for (NSString* Existing in AppDelegate.Ports)
+			{
+				if ([Existing compare:EnteredPortText] == NSOrderedSame)
+				{
+					AlreadyAnEntry = YES;
+					break;
+				}
+			}
+			
+			// add it if it wasn't already there
+			if (!AlreadyAnEntry)
+			{
+				[AppDelegate.Ports addObject:EnteredPortText];
+			}
+			
+			// even if it was already there, use it as the current address
+			[self SetPortString];
+			[self.RecentPortsTable reloadData];
+			break;
 	}
-	
-	// add it if it wasn't already there
-	if (!bAlreadyExists)
-	{
-		[AppDelegate.RecentComputers addObject:EnteredText];
-	}
-	
-	// even if it was already there, use it as the current address
-	AppDelegate.PCAddress = EnteredText;
-	self.SubIPTextField.text = AppDelegate.PCAddress;
-	[self.RecentComputersTable reloadData];	
 }
 
 - (BOOL)textFieldShouldReturn:(UITextField *)textField
 {
-	[self.TextAlert dismissWithClickedButtonIndex:1 animated:YES];
+	[self.ComputerTextAlert dismissWithClickedButtonIndex:1 animated:YES];
+	[self.PortTextAlert dismissWithClickedButtonIndex:1 animated:YES];
 	return NO;
 }
 
 - (void)alertView:(UIAlertView*)AlertView willDismissWithButtonIndex:(NSInteger)ButtonIndex
 {
-	// let go of the keyboard before dismissing (to avoid "wait_fences: failed to receive reply: 10004003")
-	[self.NewComputerTextField resignFirstResponder];	
+//	// let go of the keyboard before dismissing (to avoid "wait_fences: failed to receive reply: 10004003")
+//	[self.NewComputerTextField resignFirstResponder];
+//	[self.NewPortTextField resignFirstResponder];
 }
 
 - (void)alertView:(UIAlertView*)AlertView didDismissWithButtonIndex:(NSInteger)ButtonIndex
@@ -200,26 +270,44 @@ enum ESection0Rows
 	// on OK, do something (on cancel, do nothing)
 	if (ButtonIndex == 1)
 	{
-		[self ProcessOK];
+		[self ProcessOK:[AlertView textFieldAtIndex:0]];
 	}
 	
-	self.TextAlert = nil;
-	self.NewComputerTextField = nil;
+	self.ComputerTextAlert = nil;
+	self.PortTextAlert = nil;
 }
 
 - (IBAction)EditList
 {
-	// toggle editing mode
-	self.RecentComputersTable.editing = !self.RecentComputersTable.editing;
+	if( CurrentViewMode == SECTION_AddComputer )
+	{
+		// toggle editing mode
+		self.RecentComputersTable.editing = !self.RecentComputersTable.editing;
 	
-	if (self.RecentComputersTable.editing)
-	{
-		[self.ComputerListEdit setTitle:@"Done"];
+		if (self.RecentComputersTable.editing)
+		{
+			[self.ComputerListEdit setTitle:@"Done"];
+		}
+		else
+		{
+			[self.ComputerListEdit setTitle:@"Edit"];
+			[RecentComputersTable reloadData];
+		}
 	}
-	else
+	else if( CurrentViewMode == SECTION_AddPort )
 	{
-		[self.ComputerListEdit setTitle:@"Edit"];
-		[RecentComputersTable reloadData];
+		// toggle editing mode
+		self.RecentPortsTable.editing = !self.RecentPortsTable.editing;
+		
+		if (self.RecentPortsTable.editing)
+		{
+			[self.PortListEdit setTitle:@"Done"];
+		}
+		else
+		{
+			[self.PortListEdit setTitle:@"Edit"];
+			[RecentPortsTable reloadData];
+		}
 	}
 }
 
@@ -251,7 +339,10 @@ enum ESection0Rows
 	{
 		return [AppDelegate.RecentComputers count];
 	}
-	
+	else if (tableView == RecentPortsTable)
+	{
+		return [AppDelegate.Ports count];
+	}	
 	return 0;
 }
 
@@ -297,6 +388,22 @@ enum ESection0Rows
 		
 		return Cell;
 	}
+	else if (tableView == RecentPortsTable)
+	{
+		// get the computer name from our list of names
+		NSString* PortName = [AppDelegate.Ports objectAtIndex:indexPath.row];
+		
+		// reuse or create a cell for the name
+		UITableViewCell* Cell = [RecentPortsTable dequeueReusableCellWithIdentifier:PortName];
+		if (Cell == nil)
+		{
+			Cell = [[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:PortName] autorelease];
+			Cell.textLabel.text = PortName;
+		}
+		Cell.accessoryType = UITableViewCellAccessoryCheckmark;
+		
+		return Cell;
+	}
 	
 	return nil;
 }
@@ -304,19 +411,35 @@ enum ESection0Rows
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath*)indexPath
 {
 	// if user clicked on the address cell, we need to go to a submenu to handle it
-	if (tableView == MainSettingsTable && indexPath.section == SECTION_Settings && indexPath.row == SECTION0_IPAddr)
+	if (tableView == MainSettingsTable && indexPath.section == SECTION_Settings)
 	{
+		CurrentViewMode = SECTION_AddComputer;
 		[tableView deselectRowAtIndexPath:indexPath animated:YES];
 		[self setToolbarHidden:NO animated:NO];
-		[self pushViewController:RecentComputersController animated:YES];
 		
-		// auto prompt for new computer if none exist
-		if ([AppDelegate.RecentComputers count] == 0)
+		if( indexPath.row == SECTION0_IPAddr )
 		{
-			[self AddComputer];
+			[self pushViewController:RecentComputersController animated:YES];
+		
+			// auto prompt for new computer if none exist
+			if ([AppDelegate.RecentComputers count] == 0)
+			{
+				[self AddComputer];
+			}
+		}
+		else if( indexPath.row == SECTION0_Port )
+		{
+			CurrentViewMode = SECTION_AddPort;
+			[self pushViewController:RecentPortsController animated:YES];
+			
+			// auto prompt for new port if none exist
+			if ([AppDelegate.Ports count] == 0)
+			{
+				[self AddPort];
+			}
 		}
 	}
-	// if the user clicked on a cell int he computers list, then use that as the current address
+	// if the user clicked on a cell in the computers list, then use that as the current address
 	else if (tableView == RecentComputersTable)
 	{
 		AppDelegate.PCAddress = [AppDelegate.RecentComputers objectAtIndex:indexPath.row];
@@ -327,11 +450,22 @@ enum ESection0Rows
 		// we can now close this list
 		[self popViewControllerAnimated:YES];
 	}
+	// if the user clicked on a cell in the ports list, then use that as the current port
+	else if (tableView == RecentPortsTable)
+	{
+		[self SetPortString];
+		
+		[self setToolbarHidden:YES animated:NO];
+		[RecentPortsTable reloadData];
+		
+		// we can now close this list
+		[self popViewControllerAnimated:YES];
+	}
 }
 
 - (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath
 {
-	return tableView == RecentComputersTable;
+	return tableView == RecentComputersTable || tableView == RecentPortsTable;
 }
 
 - (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath
@@ -339,25 +473,34 @@ enum ESection0Rows
 	// delete a row
 	if (editingStyle == UITableViewCellEditingStyleDelete)
 	{
-		// did we delete the selected computer
-		NSString* Computer = [AppDelegate.RecentComputers objectAtIndex:indexPath.row];
-		bool bRemovedSelected = [Computer compare:AppDelegate.PCAddress] == NSOrderedSame;
-		
-		// remove the computer from our known list
-		[AppDelegate.RecentComputers removeObjectAtIndex:indexPath.row];
-		
-		// select a computer if we deleted the selected one
-		if (bRemovedSelected)
+		if( tableView == RecentComputersTable )
 		{
-			if ([AppDelegate.RecentComputers count] > 0)
+			// did we delete the selected computer
+			NSString* Computer = [AppDelegate.RecentComputers objectAtIndex:indexPath.row];
+			bool bRemovedSelected = [Computer compare:AppDelegate.PCAddress] == NSOrderedSame;
+		
+			// remove the computer from our known list
+			[AppDelegate.RecentComputers removeObjectAtIndex:indexPath.row];
+		
+			// select a computer if we deleted the selected one
+			if (bRemovedSelected)
 			{
-				AppDelegate.PCAddress = [AppDelegate.RecentComputers objectAtIndex:0];
-			}
-			else 
-			{
-				AppDelegate.PCAddress = @"";
-			}
+				if ([AppDelegate.RecentComputers count] > 0)
+				{
+					AppDelegate.PCAddress = [AppDelegate.RecentComputers objectAtIndex:0];
+				}
+				else 
+				{
+					AppDelegate.PCAddress = @"";
+				}
 
+			}
+		}
+		else if( tableView == RecentPortsTable )
+		{
+			// remove the computer from our known list
+			[AppDelegate.Ports removeObjectAtIndex:indexPath.row];
+			[self SetPortString];
 		}
 		
 		NSArray* Rows = [NSArray arrayWithObject:indexPath];
@@ -392,8 +535,6 @@ enum ESection0Rows
 	// Return YES for supported orientations
 	return YES;//(interfaceOrientation == UIInterfaceOrientationLandscapeRight);
 }
-
-
 
 - (void)dealloc 
 {

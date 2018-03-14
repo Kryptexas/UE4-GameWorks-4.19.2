@@ -1,17 +1,19 @@
-﻿INTSourceChangelist:3514316
+﻿INTSourceChangelist:3735117
 Availability: Public
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Title:애니메이션 툴바
 Description:각 애니메이션 툴 에디터에 사용되는 여러가지 툴바에 대한 개요입니다.
 Type: Reference
-Version: 4.16
+Version: 4.18
 Parent: Engine/Animation/Persona
-Order: 1
-Tags:animation
-topic-image:SkeletonToolbar.png
 Related: Engine/Animation/Persona
 Related: Engine/Content/Types/SkeletalMeshes
 Related: Engine/Animation/AnimBlueprints
+Related: Engine/Physics/PhAT
+Order: 1
+Tags:animation
+topic-image:SkeletonToolbar.png
+
 
 [TOC(start:2)]
 
@@ -85,6 +87,28 @@ Related: Engine/Animation/AnimBlueprints
 [REGION:note]
 각 옵션 관련 상세 정보는 [](Engine/Blueprints/Editor/UIComponents/Toolbar) 문서를 참고하세요.
 [/REGION]
+
+
+### 피직스 에디터 툴바
+
+![](PhATToolbar.png)
+
+피직스 에디터 툴바는 피직스 애셋을 열면 표시되는 것으로 다음과 같은 옵션이 있습니다:
+
+|옵션 | 설명 |
+| ------- | ------------ |
+| ![](saveIcon.png) | 현재 스켈레탈 메시 애셋에 대한 변경사항을 저장합니다. |
+| ![](findincbIcon.png) | **콘텐츠 브라우저** 를 열고 현재 스켈레탈 메시 애셋 위치로 자동 이동합니다. |
+| ![](PhAT_PreviewMesh.png) | 현재 애셋에 (애니메이션 별 또는 스켈레톤 별 저장된) 프리뷰 스켈레톤 메시를 새로 설정합니다. |
+| ![](PhAT_EnableCollision.png) | 현재 선택된 피직스 바디들 사이 콜리전을 활성화시킵니다. |
+| ![](PhAT_DisableCollision.png) | 현재 선택된 피직스 바디들 사이 콜리전을 비활성화시킵니다. |
+| ![](PhAT_PhysicalMaterial.png) | 모든 바디에 피지컬 머티리얼을 적용합니다. |
+| ![](PhAT_ToBallAndSocket.png) | 선택된 컨스트레인트를 볼 앤 소켓으로 변환합니다. |
+| ![](PhAT_ToHinge.png) | 선택된 컨스트레인트를 힌지로 변환합니다. |
+| ![](PhAT_ToPrismatic.png) | 선택된 컨스트레인트를 프리즈매틱으로 변환합니다. |
+| ![](PhAT_ToSkeletal.png) | 선택된 컨스트레인트를 스켈레탈로 변환합니다. |
+| ![](PhAT_Simulate.png) | 모든 오브젝트에 피직스 시뮬레이션을 돌립니다. |
+
 
 
 ## 에디터 툴바

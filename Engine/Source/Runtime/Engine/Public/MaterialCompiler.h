@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialCompiler.h: Material compiler interface.
@@ -9,7 +9,6 @@
 #include "CoreMinimal.h"
 #include "Misc/Guid.h"
 #include "MaterialShared.h"
-#include "Materials/MaterialExpressionScreenPosition.h"
 #include "Materials/MaterialExpressionSpeedTree.h"
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionWorldPosition.h"
@@ -19,6 +18,7 @@
 class Error;
 class UMaterialParameterCollection;
 class UTexture;
+struct FMaterialParameterInfo;
 
 enum EMaterialForceCastFlags
 {
@@ -40,7 +40,7 @@ public:
 	// @param OverrideShaderFrequency SF_NumFrequencies to not override
 	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency OverrideShaderFrequency = SF_NumFrequencies, bool bUsePreviousFrameTime = false) = 0;
 	
-	/** Pushes a material attriubtes property onto the stack. Called as we begin compiling a property through a MaterialAttributes pin. */
+	/** Pushes a material attributes property onto the stack. Called as we begin compiling a property through a MaterialAttributes pin. */
 	virtual void PushMaterialAttribute(const FGuid& InAttributeID) = 0;
 	/** Pops a MaterialAttributes property off the stack. Called as we finish compiling a property through a MaterialAttributes pin. */
 	virtual FGuid PopMaterialAttribute() = 0;
@@ -48,6 +48,11 @@ public:
 	virtual const FGuid GetMaterialAttribute() = 0;
 	/** Sets the bottom MaterialAttributes property of the stack. */
 	virtual void SetBaseMaterialAttribute(const FGuid& InAttributeID) = 0;
+
+	/** Pushes a parameter owner onto the stack. Called as we begin compiling each layer function of MaterialAttributeLayers. */
+	virtual void PushParameterOwner(const FMaterialParameterInfo& InOwnerInfo) = 0;
+	/** Pops a parameter owner off the stack. Called as we finish compiling each layer function of MaterialAttributeLayers. */
+	virtual FMaterialParameterInfo PopParameterOwner() = 0;
 
 	// gets value stored by SetMaterialProperty()
 	virtual EShaderFrequency GetCurrentShaderFrequency() const = 0;
@@ -82,9 +87,11 @@ public:
 	/** Pops a function from the compiler's function stack, which indicates that compilation is leaving a function. */
 	virtual FMaterialFunctionCompileState PopFunction() = 0;
 
-	virtual int32 AccessCollectionParameter(UMaterialParameterCollection* ParameterCollection, int32 ParameterIndex, int32 ComponentIndex) = 0;
-	virtual int32 VectorParameter(FName ParameterName,const FLinearColor& DefaultValue) = 0;
-	virtual int32 ScalarParameter(FName ParameterName,float DefaultValue) = 0;
+	virtual int32 GetCurrentFunctionStackDepth() = 0;
+
+	virtual int32 AccessCollectionParameter(UMaterialParameterCollection* ParameterCollection, int32 ParameterIndex, int32 ComponentIndex) = 0;	
+	virtual int32 ScalarParameter(FName ParameterName, float DefaultValue) = 0;
+	virtual int32 VectorParameter(FName ParameterName, const FLinearColor& DefaultValue) = 0;
 
 	virtual int32 Constant(float X) = 0;
 	virtual int32 Constant2(float X,float Y) = 0;
@@ -123,7 +130,8 @@ public:
 	virtual int32 CameraVector() = 0;
 	virtual int32 LightVector() = 0;
 
-	virtual int32 ScreenPosition(EMaterialExpressionScreenPositionMapping Mapping) = 0;
+	virtual int32 GetViewportUV() = 0;
+	virtual int32 GetPixelPosition() = 0;
 	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets) = 0;
 	virtual int32 ObjectWorldPosition() = 0;
 	virtual int32 ObjectRadius() = 0;
@@ -146,7 +154,7 @@ public:
 	virtual int32 If(int32 A,int32 B,int32 AGreaterThanB,int32 AEqualsB,int32 ALessThanB,int32 Threshold) = 0;
 
 	virtual int32 TextureCoordinate(uint32 CoordinateIndex, bool UnMirrorU, bool UnMirrorV) = 0;
-	virtual int32 TextureSample(int32 Texture,int32 Coordinate,enum EMaterialSamplerType SamplerType,int32 MipValue0Index=INDEX_NONE,int32 MipValue1Index=INDEX_NONE,ETextureMipValueMode MipValueMode=TMVM_None,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset,int32 TextureReferenceIndex=INDEX_NONE) = 0;
+	virtual int32 TextureSample(int32 Texture,int32 Coordinate,enum EMaterialSamplerType SamplerType,int32 MipValue0Index=INDEX_NONE,int32 MipValue1Index=INDEX_NONE,ETextureMipValueMode MipValueMode=TMVM_None,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset,int32 TextureReferenceIndex=INDEX_NONE, bool AutomaticViewMipBias=false) = 0;
 	virtual int32 TextureProperty(int32 InTexture, EMaterialExposedTextureProperty Property) = 0;
 
 	virtual int32 TextureDecalMipmapLevel(int32 TextureSizeInput) = 0;
@@ -191,20 +199,16 @@ public:
 	}
 
 	virtual	int32 PixelDepth()=0;
-	virtual int32 SceneDepth(int32 Offset, int32 UV, bool bUseOffset) = 0;
-	virtual int32 SceneColor(int32 Offset, int32 UV, bool bUseOffset) = 0;
+	virtual int32 SceneDepth(int32 Offset, int32 ViewportUV, bool bUseOffset) = 0;
+	virtual int32 SceneColor(int32 Offset, int32 ViewportUV, bool bUseOffset) = 0;
 	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor
-	virtual int32 SceneTextureLookup(int32 UV, uint32 SceneTextureId, bool bFiltered) = 0;
-	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor
-	virtual int32 SceneTextureSize(uint32 SceneTextureId, bool bInvert) = 0;
-	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor
-	virtual int32 SceneTextureMax(uint32 InSceneTextureId) = 0;
-	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor
-	virtual int32 SceneTextureMin(uint32 InSceneTextureId) = 0;
+	virtual int32 SceneTextureLookup(int32 ViewportUV, uint32 SceneTextureId, bool bFiltered) = 0;
+	virtual int32 GetSceneTextureViewSize(int32 SceneTextureId, bool InvProperty) = 0;
 
 	virtual int32 StaticBool(bool Value) = 0;
 	virtual int32 StaticBoolParameter(FName ParameterName,bool bDefaultValue) = 0;
 	virtual int32 StaticComponentMask(int32 Vector,FName ParameterName,bool bDefaultR,bool bDefaultG,bool bDefaultB,bool bDefaultA) = 0;
+	virtual const FMaterialLayersFunctions* StaticMaterialLayersParameter(FName ParameterName) = 0;
 	virtual bool GetStaticBoolValue(int32 BoolIndex, bool& bSucceeded) = 0;
 	virtual int32 StaticTerrainLayerWeight(FName ParameterName,int32 Default) = 0;
 
@@ -276,7 +280,7 @@ public:
 	virtual int32 DepthOfFieldFunction(int32 Depth, int32 FunctionValueIndex) = 0;
 	virtual int32 AtmosphericFogColor(int32 WorldPosition) = 0;
 	virtual int32 RotateScaleOffsetTexCoords(int32 TexCoordCodeIndex, int32 RotationScale, int32 Offset) = 0;
-	virtual int32 SpeedTree(ESpeedTreeGeometryType GeometryType, ESpeedTreeWindType WindType, ESpeedTreeLODType LODType, float BillboardThreshold, bool bAccurateWindVelocities) = 0;
+	virtual int32 SpeedTree(int32 GeometryArg, int32 WindArg, int32 LODArg, float BillboardThreshold, bool bAccurateWindVelocities, bool bExtraBend, int32 ExtraBendArg) = 0;
 	virtual int32 TextureCoordinateOffset() = 0;
 	virtual int32 EyeAdaptation() = 0;
 	virtual int32 AtmosphericLightVector() = 0;
@@ -309,6 +313,10 @@ public:
 	virtual FGuid PopMaterialAttribute() override { return Compiler->PopMaterialAttribute(); }
 	virtual const FGuid GetMaterialAttribute() override { return Compiler->GetMaterialAttribute(); }
 	virtual void SetBaseMaterialAttribute(const FGuid& InAttributeID) override { Compiler->SetBaseMaterialAttribute(InAttributeID); }
+
+	virtual void PushParameterOwner(const FMaterialParameterInfo& InOwnerInfo) override { Compiler->PushParameterOwner(InOwnerInfo); }
+	virtual FMaterialParameterInfo PopParameterOwner() override { return Compiler->PopParameterOwner(); }
+
 	virtual EShaderFrequency GetCurrentShaderFrequency() const override { return Compiler->GetCurrentShaderFrequency(); }
 	virtual int32 Error(const TCHAR* Text) override { return Compiler->Error(Text); }
 
@@ -316,6 +324,7 @@ public:
 
 	virtual void PushFunction(const FMaterialFunctionCompileState& FunctionState) override { Compiler->PushFunction(FunctionState); }
 	virtual FMaterialFunctionCompileState PopFunction() override { return Compiler->PopFunction(); }
+	virtual int32 GetCurrentFunctionStackDepth() override { return Compiler->GetCurrentFunctionStackDepth(); }
 
 	virtual EMaterialValueType GetType(int32 Code) override { return Compiler->GetType(Code); }
 	virtual EMaterialQualityLevel::Type GetQualityLevel() override { return Compiler->GetQualityLevel(); }
@@ -325,8 +334,8 @@ public:
 	{ return Compiler->ForceCast(Code,DestType,ForceCastFlags); }
 
 	virtual int32 AccessCollectionParameter(UMaterialParameterCollection* ParameterCollection, int32 ParameterIndex, int32 ComponentIndex) override { return Compiler->AccessCollectionParameter(ParameterCollection, ParameterIndex, ComponentIndex); }
-	virtual int32 VectorParameter(FName ParameterName,const FLinearColor& DefaultValue) override { return Compiler->VectorParameter(ParameterName,DefaultValue); }
-	virtual int32 ScalarParameter(FName ParameterName,float DefaultValue) override { return Compiler->ScalarParameter(ParameterName,DefaultValue); }
+	virtual int32 ScalarParameter(FName ParameterName, float DefaultValue) override { return Compiler->ScalarParameter(ParameterName,DefaultValue); }
+	virtual int32 VectorParameter(FName ParameterName, const FLinearColor& DefaultValue) override { return Compiler->VectorParameter(ParameterName,DefaultValue); }
 
 	virtual int32 Constant(float X) override { return Compiler->Constant(X); }
 	virtual int32 Constant2(float X,float Y) override { return Compiler->Constant2(X,Y); }
@@ -365,7 +374,8 @@ public:
 	virtual int32 CameraVector() override { return Compiler->CameraVector(); }
 	virtual int32 LightVector() override { return Compiler->LightVector(); }
 
-	virtual int32 ScreenPosition(EMaterialExpressionScreenPositionMapping Mapping = MESP_SceneTextureUV) override { return Compiler->ScreenPosition(Mapping); }
+	virtual int32 GetViewportUV() override { return Compiler->GetViewportUV(); }
+	virtual int32 GetPixelPosition() override { return Compiler->GetPixelPosition(); }
 	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets) override { return Compiler->WorldPosition(WorldPositionIncludedOffsets); }
 	virtual int32 ObjectWorldPosition() override { return Compiler->ObjectWorldPosition(); }
 	virtual int32 ObjectRadius() override { return Compiler->ObjectRadius(); }
@@ -381,8 +391,8 @@ public:
 
 	virtual int32 If(int32 A,int32 B,int32 AGreaterThanB,int32 AEqualsB,int32 ALessThanB,int32 Threshold) override { return Compiler->If(A,B,AGreaterThanB,AEqualsB,ALessThanB,Threshold); }
 
-	virtual int32 TextureSample(int32 InTexture,int32 Coordinate,enum EMaterialSamplerType SamplerType,int32 MipValue0Index,int32 MipValue1Index,ETextureMipValueMode MipValueMode,ESamplerSourceMode SamplerSource,int32 TextureReferenceIndex) override 
-		{ return Compiler->TextureSample(InTexture,Coordinate,SamplerType,MipValue0Index,MipValue1Index,MipValueMode,SamplerSource,TextureReferenceIndex); }
+	virtual int32 TextureSample(int32 InTexture,int32 Coordinate,enum EMaterialSamplerType SamplerType,int32 MipValue0Index,int32 MipValue1Index,ETextureMipValueMode MipValueMode,ESamplerSourceMode SamplerSource,int32 TextureReferenceIndex, bool AutomaticViewMipBias) override
+		{ return Compiler->TextureSample(InTexture,Coordinate,SamplerType,MipValue0Index,MipValue1Index,MipValueMode,SamplerSource,TextureReferenceIndex, AutomaticViewMipBias); }
 	virtual int32 TextureProperty(int32 InTexture, EMaterialExposedTextureProperty Property) override 
 		{ return Compiler->TextureProperty(InTexture, Property); }
 
@@ -404,16 +414,15 @@ public:
 	virtual int32 ExternalTextureCoordinateOffset(const FGuid& ExternalTextureGuid) override { return Compiler->ExternalTextureCoordinateOffset(ExternalTextureGuid); }
 
 	virtual	int32 PixelDepth() override { return Compiler->PixelDepth();	}
-	virtual int32 SceneDepth(int32 Offset, int32 UV, bool bUseOffset) override { return Compiler->SceneDepth(Offset, UV, bUseOffset); }
-	virtual int32 SceneColor(int32 Offset, int32 UV, bool bUseOffset) override { return Compiler->SceneColor(Offset, UV, bUseOffset); }
-	virtual int32 SceneTextureLookup(int32 UV, uint32 InSceneTextureId, bool bFiltered) override { return Compiler->SceneTextureLookup(UV, InSceneTextureId, bFiltered); }
-	virtual int32 SceneTextureSize(uint32 InSceneTextureId, bool bInvert) override { return Compiler->SceneTextureSize(InSceneTextureId, bInvert); }
-	virtual int32 SceneTextureMax(uint32 InSceneTextureId) override { return Compiler->SceneTextureMax(InSceneTextureId); }
-	virtual int32 SceneTextureMin(uint32 InSceneTextureId) override { return Compiler->SceneTextureMin(InSceneTextureId); }
+	virtual int32 SceneDepth(int32 Offset, int32 ViewportUV, bool bUseOffset) override { return Compiler->SceneDepth(Offset, ViewportUV, bUseOffset); }
+	virtual int32 SceneColor(int32 Offset, int32 ViewportUV, bool bUseOffset) override { return Compiler->SceneColor(Offset, ViewportUV, bUseOffset); }
+	virtual int32 SceneTextureLookup(int32 ViewportUV, uint32 InSceneTextureId, bool bFiltered) override { return Compiler->SceneTextureLookup(ViewportUV, InSceneTextureId, bFiltered); }
+	virtual int32 GetSceneTextureViewSize(int32 SceneTextureId, bool InvProperty) override { return Compiler->GetSceneTextureViewSize(SceneTextureId, InvProperty); }
 
 	virtual int32 StaticBool(bool Value) override { return Compiler->StaticBool(Value); }
 	virtual int32 StaticBoolParameter(FName ParameterName,bool bDefaultValue) override { return Compiler->StaticBoolParameter(ParameterName,bDefaultValue); }
 	virtual int32 StaticComponentMask(int32 Vector,FName ParameterName,bool bDefaultR,bool bDefaultG,bool bDefaultB,bool bDefaultA) override { return Compiler->StaticComponentMask(Vector,ParameterName,bDefaultR,bDefaultG,bDefaultB,bDefaultA); }
+	virtual const FMaterialLayersFunctions* StaticMaterialLayersParameter(FName ParameterName) override { return Compiler->StaticMaterialLayersParameter(ParameterName); }
 	virtual bool GetStaticBoolValue(int32 BoolIndex, bool& bSucceeded) override { return Compiler->GetStaticBoolValue(BoolIndex, bSucceeded); }
 	virtual int32 StaticTerrainLayerWeight(FName ParameterName,int32 Default) override { return Compiler->StaticTerrainLayerWeight(ParameterName,Default); }
 
@@ -502,9 +511,9 @@ public:
 		return Compiler->RotateScaleOffsetTexCoords(TexCoordCodeIndex, RotationScale, Offset);
 	}
 
-	virtual int32 SpeedTree(ESpeedTreeGeometryType GeometryType, ESpeedTreeWindType WindType, ESpeedTreeLODType LODType, float BillboardThreshold, bool bAccurateWindVelocities) override 
+	virtual int32 SpeedTree(int32 GeometryArg, int32 WindArg, int32 LODArg, float BillboardThreshold, bool bAccurateWindVelocities, bool bExtraBend, int32 ExtraBendArg) override
 	{ 
-		return Compiler->SpeedTree(GeometryType, WindType, LODType, BillboardThreshold, bAccurateWindVelocities); 
+		return Compiler->SpeedTree(GeometryArg, WindArg, LODArg, BillboardThreshold, bAccurateWindVelocities, bExtraBend, ExtraBendArg);
 	}
 
 	virtual int32 AtmosphericFogColor(int32 WorldPosition) override

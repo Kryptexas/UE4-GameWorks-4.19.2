@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetTypeActions/AssetTypeActions_Skeleton.h"
 #include "Widgets/Text/STextBlock.h"
@@ -935,12 +935,12 @@ void FAssetTypeActions_Skeleton::RetargetSkeleton(TArray<FAssetToRemapSkeleton>&
 	}
 }
 
-void FAssetTypeActions_Skeleton::OnAssetCreated(TArray<UObject*> NewAssets) const
+bool FAssetTypeActions_Skeleton::OnAssetCreated(TArray<UObject*> NewAssets) const
 {
 	if(NewAssets.Num() > 1)
 	{
 		FAssetTools::Get().SyncBrowserToAssets(NewAssets);
 	}
-
+	return true;
 }
 #undef LOCTEXT_NAMESPACE

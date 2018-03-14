@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -81,9 +81,13 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Workflow)
 	bool bHideConstructionScriptComponentsInDetailsView;
 
-	/** If enabled, the global Find in Blueprints command (CTRL-SHIFT-F) will be hosted in a standalone tab. This tab can remain open after the Blueprint Editor context is closed. */
+	/** If set, the global Find in Blueprints command (CTRL-SHIFT-F) will be hosted in a standalone tab. This tab can remain open after the Blueprint Editor context is closed. */
 	UPROPERTY(EditAnywhere, config, Category=Workflow)
 	bool bHostFindInBlueprintsInGlobalTab;
+	
+	/** If set double clicking on a call function node will jump to the native source definition: */
+	UPROPERTY(EditAnywhere, config, Category=Workflow)
+	bool bNavigateToNativeFunctionsFromCallNodes;
 
 // Compiler Settings
 public:

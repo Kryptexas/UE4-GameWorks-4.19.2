@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PartyBeaconState.h"
 #include "OnlineBeacon.h"
@@ -8,6 +8,7 @@ namespace ETeamAssignmentMethod
 	const FName Smallest = FName(TEXT("Smallest"));
 	const FName BestFit = FName(TEXT("BestFit"));
 	const FName Random = FName(TEXT("Random"));
+	const FName Manual = FName(TEXT("Manual"));
 }
 
 bool FPartyReservation::IsValid() const
@@ -332,6 +333,11 @@ int32 UPartyBeaconState::GetTeamAssignment(const FPartyReservation& Party)
 				int32 TeamIndex = FMath::Rand() % PotentialTeamChoices.Num();
 				return PotentialTeamChoices[TeamIndex].TeamIdx;
 			}
+			else if (TeamAssignmentMethod == ETeamAssignmentMethod::Manual)
+			{
+				// It is expected that the caller making the reservation has manually assigned the team number
+				return Party.TeamNum;
+			}
 		}
 		else
 		{
@@ -503,52 +509,59 @@ void UPartyBeaconState::UpdatePartyLeader(const FUniqueNetIdRepl& InPartyMemberI
 			int32 NewPartyLeaderReservationIdx = GetExistingReservation(NewPartyLeaderId);
 			if (NewPartyLeaderReservationIdx != PartyMemberReservationIdx)
 			{
-				FPartyReservation& PriorReservation = Reservations[PartyMemberReservationIdx];
+				FPartyReservation* PriorReservation = &Reservations[PartyMemberReservationIdx];
 				FPartyReservation* DestinationReservation = (NewPartyLeaderReservationIdx != INDEX_NONE) ? &Reservations[NewPartyLeaderReservationIdx] : nullptr;
 
 				// Verify that a migration between existing reservations can occur
-				if (!DestinationReservation || DestinationReservation->CanPlayerMigrateFromReservation(PriorReservation))
+				if (!DestinationReservation || DestinationReservation->CanPlayerMigrateFromReservation(*PriorReservation))
 				{
 					// Make a copy of their player reservation so we can move it to the new reservation
-					int32 PriorPlayerReservationIdx = PriorReservation.PartyMembers.IndexOfByPredicate([&InPartyMemberId](const FPlayerReservation& ExistingPlayerRes)
+					int32 PriorPlayerReservationIdx = PriorReservation->PartyMembers.IndexOfByPredicate([&InPartyMemberId](const FPlayerReservation& ExistingPlayerRes)
 					{
 						return InPartyMemberId == ExistingPlayerRes.UniqueId;
 					});
 					if (ensure(PriorPlayerReservationIdx != INDEX_NONE))
 					{
 						// Make a copy of the player reservation to be inserted into a new reservation after being removed from the prior reservation
-						FPlayerReservation PlayerReservation = PriorReservation.PartyMembers[PriorPlayerReservationIdx];
+						FPlayerReservation PlayerReservation = PriorReservation->PartyMembers[PriorPlayerReservationIdx];
 
 						// Remove player from their previous reservation and find a new place for them
-						PriorReservation.PartyMembers.RemoveAtSwap(PriorPlayerReservationIdx);
+						PriorReservation->PartyMembers.RemoveAtSwap(PriorPlayerReservationIdx);
 
 						// If there is already a reservation that has the new party leader as a leader, join it
 						// If not, create one
 						if (DestinationReservation)
 						{
 							UE_LOG(LogBeacon, Display, TEXT("UpdatePartyLeader:  Moving player %s from reservation under party leader %s, to reservation under party leader %s"),
-								*InPartyMemberId.ToString(), *PriorReservation.PartyLeader.ToString(), *NewPartyLeaderId.ToString());
-							DestinationReservation->PartyMembers.Add(PlayerReservation);
+								*InPartyMemberId.ToString(), *PriorReservation->PartyLeader.ToString(), *NewPartyLeaderId.ToString());
+							DestinationReservation->PartyMembers.Add(MoveTemp(PlayerReservation));
 						}
 						else
 						{
 							UE_LOG(LogBeacon, Display, TEXT("UpdatePartyLeader:  Moving player %s from reservation under party leader %s, to new reservation with leader %s"),
-								*InPartyMemberId.ToString(), *PriorReservation.PartyLeader.ToString(), *NewPartyLeaderId.ToString());
+								*InPartyMemberId.ToString(), *PriorReservation->PartyLeader.ToString(), *NewPartyLeaderId.ToString());
 
-							FPartyReservation NewReservation;
-							NewReservation.TeamNum = PriorReservation.TeamNum;
-							NewReservation.PartyLeader = NewPartyLeaderId;
-							NewReservation.PartyMembers.Add(PlayerReservation);
+							{
+								FPartyReservation NewReservation;
+								NewReservation.TeamNum = PriorReservation->TeamNum;
+								NewReservation.PartyLeader = NewPartyLeaderId;
+								NewReservation.PartyMembers.Add(MoveTemp(PlayerReservation));
 
-							Reservations.Add(NewReservation);
+								Reservations.Add(MoveTemp(NewReservation));
+							}
+							// While the index doesn't change, the Add() call above could invalidate our memory address
+							PriorReservation = &Reservations[PartyMemberReservationIdx];
 						}
 
 						// If the former reservation is now empty, remove the reservation
-						if (PriorReservation.PartyMembers.Num() == 0)
+						if (PriorReservation->PartyMembers.Num() == 0)
 						{
-							UE_LOG(LogBeacon, Display, TEXT("UpdatePartyLeader:  Removing now empty reservation that had party leader %s"), *PriorReservation.PartyLeader.ToString());
+							UE_LOG(LogBeacon, Display, TEXT("UpdatePartyLeader:  Removing now empty reservation that had party leader %s"), *PriorReservation->PartyLeader.ToString());
 							Reservations.RemoveAtSwap(PartyMemberReservationIdx);
+							PriorReservation = nullptr;
 						}
+
+						// At this point both PriorReservation and DestinationReservation are possibly invalid, don't use them below here
 
 						SanityCheckReservations(false);
 					}
@@ -560,7 +573,7 @@ void UPartyBeaconState::UpdatePartyLeader(const FUniqueNetIdRepl& InPartyMemberI
 				else
 				{
 					UE_LOG(LogBeacon, Warning, TEXT("UpdatePartyLeader:  Unable to migrate player %s from reservation under leader %s to existing reservation with leader %s"),
-						*InPartyMemberId.ToString(), *PriorReservation.PartyLeader.ToString(), *NewPartyLeaderId.ToString());
+						*InPartyMemberId.ToString(), *PriorReservation->PartyLeader.ToString(), *NewPartyLeaderId.ToString());
 				}
 			}
 			else

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Transport/UdpMessageProcessor.h"
 #include "UdpMessagingPrivate.h"
@@ -37,7 +37,11 @@ FUdpMessageProcessor::FUdpMessageProcessor(FSocket& InSocket, const FGuid& InNod
 	, SocketSender(nullptr)
 	, Stopping(false)
 {
-	WorkEvent = FPlatformProcess::GetSynchEventFromPool();
+	WorkEvent = MakeShareable(FPlatformProcess::GetSynchEventFromPool(), [](FEvent* EventToDelete)
+	{
+		FPlatformProcess::ReturnSynchEventToPool(EventToDelete);
+	});
+
 	Thread = FRunnableThread::Create(this, TEXT("FUdpMessageProcessor"), 128 * 1024, TPri_AboveNormal, FPlatformAffinity::GetPoolThreadMask());
 
 	const UUdpMessagingSettings& Settings = *GetDefault<UUdpMessagingSettings>();
@@ -76,10 +80,6 @@ FUdpMessageProcessor::~FUdpMessageProcessor()
 	}
 
 	KnownNodes.Empty();
-
-	// clean up 
-	FPlatformProcess::ReturnSynchEventToPool(WorkEvent);
-	WorkEvent = nullptr;
 }
 
 
@@ -101,14 +101,7 @@ bool FUdpMessageProcessor::EnqueueInboundSegment(const TSharedPtr<FArrayReader, 
 
 bool FUdpMessageProcessor::EnqueueOutboundMessage(const TSharedRef<FUdpSerializedMessage, ESPMode::ThreadSafe>& SerializedMessage, const FGuid& Recipient)
 {
-	if (!OutboundMessages.Enqueue(FOutboundMessage(SerializedMessage, Recipient)))
-	{
-		return false;
-	}
-
-	SerializedMessage->OnStateChanged().BindRaw(this, &FUdpMessageProcessor::HandleSerializedMessageStateChanged);
-
-	return true;
+	return OutboundMessages.Enqueue(FOutboundMessage(SerializedMessage, Recipient));
 }
 
 
@@ -537,13 +530,4 @@ void FUdpMessageProcessor::UpdateStaticNodes()
 	{
 		UpdateSegmenters(StaticNodePair.Value);
 	}
-}
-
-
-/* FUdpMessageProcessor callbacks
- *****************************************************************************/
-
-void FUdpMessageProcessor::HandleSerializedMessageStateChanged()
-{
-	WorkEvent->Trigger();
 }

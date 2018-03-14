@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Net/UnitTestActorChannel.h"
 #include "Engine/Engine.h"
@@ -24,13 +24,6 @@ UUnitTestActorChannel::UUnitTestActorChannel(const FObjectInitializer& ObjectIni
 #if !UE_BUILD_SHIPPING
 	bBlockChannelFailure = true;
 #endif
-}
-
-void UUnitTestActorChannel::Init(UNetConnection* InConnection, int32 InChIndex, bool InOpenedLocally)
-{
-	MinClient = UMinimalClient::GetMinClientFromConn(InConnection);
-
-	Super::Init(InConnection, InChIndex, InOpenedLocally);
 }
 
 void UUnitTestActorChannel::ReceivedBunch(FInBunch& Bunch)
@@ -91,10 +84,9 @@ void UUnitTestActorChannel::NotifyActorChannelOpen(AActor* InActor, FInBunch& In
 				PC->Player = NewObject<ULocalPlayer>(GEngine, GEngine->LocalPlayerClass);
 			}
 
-			if (MinClient != nullptr)
-			{
-				MinClient->HandleClientPlayerDel.ExecuteIfBound(PC, Connection);
-			}
+			check(MinClient != nullptr);
+
+			MinClient->HandleClientPlayerDel.ExecuteIfBound(PC, Connection);
 		}
 	}
 	else

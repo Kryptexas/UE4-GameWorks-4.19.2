@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -39,6 +39,12 @@ public:
 		, bIsCurrentItemSpawnable(false)
 	{}
 
+
+	/**
+	 * Check whether this picker actually has anything to pick
+	 */
+	bool IsEmpty() const;
+
 protected:
 	virtual ~FMovieSceneObjectBindingIDPicker() { }
 
@@ -75,6 +81,9 @@ protected:
 	/** Build menu content that allows the user to choose a binding from inside the source sequence */
 	TSharedRef<SWidget> GetPickerMenu();
 
+	/** Build menu content that allows the user to choose a binding from inside the source sequence */
+	void GetPickerMenu(FMenuBuilder& MenuBuilder);
+
 	/** Get a widget that represents the currently chosen item */
 	TSharedRef<SWidget> GetCurrentItemWidget(TSharedRef<STextBlock> TextContent);
 
@@ -109,4 +118,7 @@ private:
 
 	/** Data tree that stores all the available bindings for the current sequence, and their identifiers */
 	TSharedPtr<FSequenceBindingTree> DataTree;
+
+	/** Weak ptr to a widget used to dismiss menus to */
+	TWeakPtr<SWidget> DismissWidget;
 };

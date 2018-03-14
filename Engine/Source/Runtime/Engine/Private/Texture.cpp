@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/Texture.h"
 #include "Misc/App.h"
@@ -375,7 +375,10 @@ void UTexture::FinishDestroy()
 
 	CleanupCachedRunningPlatformData();
 #if WITH_EDITOR
-	ClearAllCachedCookedPlatformData();
+	if (!GExitPurge)
+	{
+		ClearAllCachedCookedPlatformData();
+	}
 #endif
 }
 

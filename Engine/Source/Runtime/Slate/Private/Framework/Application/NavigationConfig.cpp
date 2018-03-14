@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Framework/Application/NavigationConfig.h"
 #include "Types/SlateEnums.h"
@@ -9,8 +9,12 @@ FNavigationConfig::FNavigationConfig()
 	: bTabNavigation(true)
 	, bKeyNavigation(true)
 	, bAnalogNavigation(true)
-	, AnalogNavigationThreshold(0.40f)
+	, AnalogNavigationHorizontalThreshold(0.40f)
+	, AnalogNavigationVerticalThreshold(0.50f)
 {
+	AnalogHorizontalKey = EKeys::Gamepad_LeftX;
+	AnalogVerticalKey = EKeys::Gamepad_LeftY;
+
 	KeyEventRules.Emplace(EKeys::Left, EUINavigation::Left);
 	KeyEventRules.Emplace(EKeys::Gamepad_DPad_Left, EUINavigation::Left);
 
@@ -78,13 +82,13 @@ EUINavigation FNavigationConfig::GetNavigationDirectionFromAnalogInternal(const 
 {
 	if (bAnalogNavigation)
 	{
-		if (InAnalogEvent.GetKey() == EKeys::Gamepad_LeftX)
+		if (InAnalogEvent.GetKey() == AnalogHorizontalKey)
 		{
-			if (InAnalogEvent.GetAnalogValue() < -AnalogNavigationThreshold)
+			if (InAnalogEvent.GetAnalogValue() < -AnalogNavigationHorizontalThreshold)
 			{
 				return EUINavigation::Left;
 			}
-			else if (InAnalogEvent.GetAnalogValue() > AnalogNavigationThreshold)
+			else if (InAnalogEvent.GetAnalogValue() > AnalogNavigationHorizontalThreshold)
 			{
 				return EUINavigation::Right;
 			}
@@ -94,13 +98,13 @@ EUINavigation FNavigationConfig::GetNavigationDirectionFromAnalogInternal(const 
 				AnalogNavigationState.Add(EUINavigation::Right, FAnalogNavigationState());
 			}
 		}
-		else if (InAnalogEvent.GetKey() == EKeys::Gamepad_LeftY)
+		else if (InAnalogEvent.GetKey() == AnalogVerticalKey)
 		{
-			if (InAnalogEvent.GetAnalogValue() > AnalogNavigationThreshold)
+			if (InAnalogEvent.GetAnalogValue() > AnalogNavigationVerticalThreshold)
 			{
 				return EUINavigation::Up;
 			}
-			else if (InAnalogEvent.GetAnalogValue() < -AnalogNavigationThreshold)
+			else if (InAnalogEvent.GetAnalogValue() < -AnalogNavigationVerticalThreshold)
 			{
 				return EUINavigation::Down;
 			}
@@ -117,10 +121,10 @@ EUINavigation FNavigationConfig::GetNavigationDirectionFromAnalogInternal(const 
 
 float FNavigationConfig::GetRepeatRateForPressure(float InPressure, int32 InRepeats) const
 {
-	float RepeatRate = (InRepeats == 0) ? 0.3f : 0.2f;
-	if (InPressure > 0.90f)
+	float RepeatRate = (InRepeats == 0) ? 0.5f : 0.25f;
+	if (InPressure > 0.90f && RepeatRate > 0)
 	{
-		return RepeatRate * 0.35f;
+		return RepeatRate * 0.5f;
 	}
 
 	return RepeatRate;

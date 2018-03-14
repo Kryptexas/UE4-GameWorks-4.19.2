@@ -4,6 +4,8 @@ Crumbs:%ROOT%
 Description:Business and legal information for those developing games with Unreal Engine 4.
 Navigation:role
 Version: 4.9
+parent:%ROOT%
+order:100
 
 [REGION:banner]
 ![Business and Legal](business.png)

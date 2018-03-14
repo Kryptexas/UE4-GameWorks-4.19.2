@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Materials/MaterialExpressionLandscapeLayerBlend.h"
 #include "Engine/Engine.h"
@@ -96,24 +96,24 @@ FExpressionInput* UMaterialExpressionLandscapeLayerBlend::GetInput(int32 InputIn
 }
 
 
-FString UMaterialExpressionLandscapeLayerBlend::GetInputName(int32 InputIndex) const
+FName UMaterialExpressionLandscapeLayerBlend::GetInputName(int32 InputIndex) const
 {
 	int32 Idx = 0;
 	for (int32 LayerIdx = 0; LayerIdx<Layers.Num(); LayerIdx++)
 	{
 		if (InputIndex == Idx++)
 		{
-			return FString::Printf(TEXT("Layer %s"), *Layers[LayerIdx].LayerName.ToString());
+			return *FString::Printf(TEXT("Layer %s"), *Layers[LayerIdx].LayerName.ToString());
 		}
 		if (Layers[LayerIdx].BlendType == LB_HeightBlend)
 		{
 			if (InputIndex == Idx++)
 			{
-				return FString::Printf(TEXT("Height %s"), *Layers[LayerIdx].LayerName.ToString());
+				return *FString::Printf(TEXT("Height %s"), *Layers[LayerIdx].LayerName.ToString());
 			}
 		}
 	}
-	return TEXT("");
+	return NAME_None;
 }
 
 #if WITH_EDITOR
@@ -324,16 +324,15 @@ void UMaterialExpressionLandscapeLayerBlend::PostEditChangeProperty(FPropertyCha
 #endif // WITH_EDITOR
 
 
-void UMaterialExpressionLandscapeLayerBlend::GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds) const
+void UMaterialExpressionLandscapeLayerBlend::GetAllParameterInfo(TArray<FMaterialParameterInfo> &OutParameterInfo, TArray<FGuid> &OutParameterIds, const FMaterialParameterInfo& InBaseParameterInfo) const
 {
-	for (int32 LayerIdx = 0; LayerIdx<Layers.Num(); LayerIdx++)
+	for (const FLayerBlendInput& Layer : Layers)
 	{
-		const FLayerBlendInput& Layer = Layers[LayerIdx];
+		int32 CurrentSize = OutParameterInfo.Num();
+		FMaterialParameterInfo NewParameter(Layer.LayerName, InBaseParameterInfo.Association, InBaseParameterInfo.Index);
+		OutParameterInfo.AddUnique(NewParameter);
 
-		int32 CurrentSize = OutParameterNames.Num();
-		OutParameterNames.AddUnique(Layer.LayerName);
-
-		if (CurrentSize != OutParameterNames.Num())
+		if (CurrentSize != OutParameterInfo.Num())
 		{
 			OutParameterIds.Add(ExpressionGUID);
 		}

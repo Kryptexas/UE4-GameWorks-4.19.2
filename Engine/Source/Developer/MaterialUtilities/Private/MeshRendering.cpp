@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MeshRendering.cpp: Mesh rendering implementation.
@@ -20,17 +20,18 @@
 #include "Misc/FileHelper.h"
 #include "RawMesh.h"
 #include "SceneView.h"
-#include "SkeletalMeshTypes.h"
 #include "MeshBatch.h"
 #include "CanvasItem.h"
 #include "CanvasTypes.h"
 #include "LocalVertexFactory.h"
-#include "SkeletalMeshTypes.h"
 #include "DrawingPolicy.h"
+#include "SkeletalMeshLODRenderData.h"
 
 #include "RendererInterface.h"
 #include "EngineModule.h"
 #include "LightMapHelpers.h"
+#include "ParallelFor.h"
+#include "DynamicMeshBuilder.h"
 
 #define SHOW_WIREFRAME_MESH 0
 #define SAVE_INTERMEDIATE_TEXTURES 0
@@ -38,28 +39,27 @@
 FColor BoxBlurSample(TArray<FColor>& InBMP, int32 X, int32 Y, int32 InImageWidth, int32 InImageHeight, bool bIsNormalMap)
 {
 	const int32 SampleCount = 8;
-	static int32 PixelIndices[SampleCount] = { -(InImageWidth + 1), -InImageWidth, -(InImageWidth - 1),
-									 -1, 1,
-									 (InImageWidth + -1), InImageWidth, (InImageWidth + 1) };
+	const int32 PixelIndices[SampleCount] = { -(InImageWidth + 1), -InImageWidth, -(InImageWidth - 1),
+		-1, 1,
+		(InImageWidth + -1), InImageWidth, (InImageWidth + 1) };
 
-	static int32 PixelOffsetX[SampleCount] = { -1, 0, 1,
-									-1, 1,
-									-1, 0, 1 };
+	static const int32 PixelOffsetX[SampleCount] = { -1, 0, 1,
+		-1, 1,
+		-1, 0, 1 };
 
 	int32 PixelsSampled = 0;
 	FLinearColor CombinedColor = FColor::Black;
-	
+
 	// Take samples for blur with square indices
 	for (int32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex)
 	{
 		const int32 PixelIndex = ((Y * InImageWidth) + X) + PixelIndices[SampleIndex];
-
 		const int32 XIndex = X + PixelOffsetX[SampleIndex];
 
 		// Check if we are not out of texture bounds
 		if (InBMP.IsValidIndex(PixelIndex) && XIndex >= 0 && XIndex < InImageWidth)
 		{
-			FLinearColor SampledColor = InBMP[PixelIndex].ReinterpretAsLinear();
+			const FLinearColor SampledColor = InBMP[PixelIndex].ReinterpretAsLinear();
 			// Check if the pixel is a rendered one (not clear colour)
 			if ((!(SampledColor.R == 1.0f && SampledColor.B == 1.0f && SampledColor.G == 0.0f)) && (!bIsNormalMap || SampledColor.B != 0.0f))
 			{
@@ -78,52 +78,75 @@ FColor BoxBlurSample(TArray<FColor>& InBMP, int32 X, int32 Y, int32 InImageWidth
 	return CombinedColor.ToFColor(false);
 }
 
-void PerformUVBorderSmear(TArray<FColor>& InBMP, int32 InImageWidth, int32 InImageHeight, bool IsNormalMap)
+void PerformUVBorderSmear(TArray<FColor>& InOutPixels, int32 ImageWidth, int32 ImageHeight, bool bIsNormalMap)
 {
-	TArray<FColor> Swap;
-	Swap.Append(InBMP);
+	// This is ONLY possible because this is never called from multiple threads
+	static TArray<FColor> Swap;
+	if (Swap.Num())
+	{
+		Swap.SetNum(0, false);
+	}
+	Swap.Append(InOutPixels);
 
-	TArray<FColor>* Current = &InBMP;
+	TArray<FColor>* Current = &InOutPixels;
 	TArray<FColor>* Scratch = &Swap;
 
-	bool bSwap = false;
-
-	int32 MagentaPixels = 1;
-
-	int32 LoopCount = 0;
 	const int32 MaxIterations = 32;
-	
-	// Sampling
-	while (MagentaPixels && (LoopCount <= MaxIterations))
+	const int32 NumThreads = [&]()
 	{
-		MagentaPixels = 0;
-		// Left / right, Top / down
-		for (int32 Y = 0; Y < InImageHeight; Y++)
-		{		
-			for (int32 X = 0; X < InImageWidth; X++)
-			{
-				int32 PixelIndex = (Y * InImageWidth) + X;
+		return FPlatformProcess::SupportsMultithreading() ? FPlatformMisc::NumberOfCores() : 1;
+	}();
 
-				FColor& Color = (*Current)[PixelIndex];
-				if ((Color.R == 255 && Color.B == 255 && Color.G == 0) || (IsNormalMap && Color.B == 0))
+	const int32 LinesPerThread = FMath::CeilToInt((float)ImageHeight / (float)NumThreads);
+	int32* MagentaPixels = new int32[NumThreads];
+	FMemory::Memzero(MagentaPixels, sizeof(int32) * NumThreads);
+
+	int32 SummedMagentaPixels = 1;
+
+	// Sampling
+	int32 LoopCount = 0;
+	while (SummedMagentaPixels && (LoopCount <= MaxIterations))
+	{
+		SummedMagentaPixels = 0;
+		// Left / right, Top / down
+		ParallelFor(NumThreads, [ImageWidth, ImageHeight, bIsNormalMap, MaxIterations, LoopCount, Current, Scratch, &MagentaPixels, LinesPerThread]
+		(int32 Index)
+		{
+			const int32 StartY = FMath::CeilToInt((Index)* LinesPerThread);
+			const int32 EndY = FMath::Min(FMath::CeilToInt((Index + 1) * LinesPerThread), ImageHeight);
+
+			for (int32 Y = StartY; Y < EndY; Y++)
+			{
+				for (int32 X = 0; X < ImageWidth; X++)
 				{
-					MagentaPixels++;
-					FColor SampledColor = BoxBlurSample(*Scratch, X, Y, InImageWidth, InImageHeight, IsNormalMap);
-					// If it's a valid pixel
-					if ((!(SampledColor.R == 255 && SampledColor.B == 255 && SampledColor.G == 0)) && (!IsNormalMap || SampledColor.B != 0))
+					const int32 PixelIndex = (Y * ImageWidth) + X;
+					FColor& Color = (*Current)[PixelIndex];
+					if ((Color.R == 255 && Color.B == 255 && Color.G == 0) || (bIsNormalMap && Color.B == 0))
 					{
-						Color = SampledColor;
-					}
-					else
-					{
-						// If we are at the end of our iterations, replace the pixels with black
-						if (LoopCount == (MaxIterations - 1))
+						MagentaPixels[Index]++;
+						const FColor SampledColor = BoxBlurSample(*Scratch, X, Y, ImageWidth, ImageHeight, bIsNormalMap);
+						// If it's a valid pixel
+						if ((!(SampledColor.R == 255 && SampledColor.B == 255 && SampledColor.G == 0)) && (!bIsNormalMap || SampledColor.B != 0))
 						{
-							Color = FColor::Black;
+							Color = SampledColor;
+						}
+						else
+						{
+							// If we are at the end of our iterations, replace the pixels with black
+							if (LoopCount == (MaxIterations - 1))
+							{
+								Color = FColor(0, 0, 0, 0);
+							}
 						}
 					}
 				}
 			}
+		});
+
+		for (int32 ThreadIndex = 0; ThreadIndex < NumThreads; ++ThreadIndex)
+		{
+			SummedMagentaPixels += MagentaPixels[ThreadIndex];
+			MagentaPixels[ThreadIndex] = 0;
 		}
 
 		TArray<FColor>& Temp = *Scratch;
@@ -133,132 +156,14 @@ void PerformUVBorderSmear(TArray<FColor>& InBMP, int32 InImageWidth, int32 InIma
 		LoopCount++;
 	}
 
-	if (Current != &InBMP)
+	if (Current != &InOutPixels)
 	{
-		InBMP.Empty();
-		InBMP.Append(*Current);
+		InOutPixels.Empty();
+		InOutPixels.Append(*Current);
 	}
+
+	delete[] MagentaPixels;
 }
-
-/**
-* Vertex data for a screen quad.
-*/
-struct FMaterialMeshVertex
-{
-	FVector			Position;
-	FPackedNormal	TangentX,
-		TangentZ;
-	uint32			Color;
-	FVector2D		TextureCoordinate[MAX_STATIC_TEXCOORDS];
-	FVector2D		LightMapCoordinate;
-
-	void SetTangents(const FVector& InTangentX, const FVector& InTangentY, const FVector& InTangentZ)
-	{
-		TangentX = InTangentX;
-		TangentZ = InTangentZ;
-		// store determinant of basis in w component of normal vector
-		TangentZ.Vector.W = GetBasisDeterminantSign(InTangentX, InTangentY, InTangentZ) < 0.0f ? 0 : 255;
-	}
-};
-
-/**
-* A dummy vertex buffer used to give the FMeshVertexFactory something to reference as a stream source.
-*/
-class FMaterialMeshVertexBuffer : public FVertexBuffer
-{
-public:
-	virtual void InitRHI() override
-	{
-		FRHIResourceCreateInfo CreateInfo;
-		VertexBufferRHI = RHICreateVertexBuffer(sizeof(FMaterialMeshVertex), BUF_Static, CreateInfo);
-	}
-};
-TGlobalResource<FMaterialMeshVertexBuffer> GDummyMeshRendererVertexBuffer;
-
-/**
-* Vertex factory for rendering meshes with materials.
-*/
-class FMeshVertexFactory : public FLocalVertexFactory
-{
-public:
-
-	/** Default constructor. */
-	FMeshVertexFactory()
-	{
-		FLocalVertexFactory::FDataType VertexData;
-
-		// position
-		VertexData.PositionComponent = FVertexStreamComponent(
-			&GDummyMeshRendererVertexBuffer,
-			STRUCT_OFFSET(FMaterialMeshVertex, Position),
-			sizeof(FMaterialMeshVertex),
-			VET_Float3
-			);
-		// tangents
-		VertexData.TangentBasisComponents[0] = FVertexStreamComponent(
-			&GDummyMeshRendererVertexBuffer,
-			STRUCT_OFFSET(FMaterialMeshVertex, TangentX),
-			sizeof(FMaterialMeshVertex),
-			VET_PackedNormal
-			);
-		VertexData.TangentBasisComponents[1] = FVertexStreamComponent(
-			&GDummyMeshRendererVertexBuffer,
-			STRUCT_OFFSET(FMaterialMeshVertex, TangentZ),
-			sizeof(FMaterialMeshVertex),
-			VET_PackedNormal
-			);
-		// color
-		VertexData.ColorComponent = FVertexStreamComponent(
-			&GDummyMeshRendererVertexBuffer,
-			STRUCT_OFFSET(FMaterialMeshVertex, Color),
-			sizeof(FMaterialMeshVertex),
-			VET_Color
-			);
-		// UVs
-		int32 UVIndex;
-		for (UVIndex = 0; UVIndex < MAX_STATIC_TEXCOORDS - 1; UVIndex += 2)
-		{
-			VertexData.TextureCoordinates.Add(FVertexStreamComponent(
-				&GDummyMeshRendererVertexBuffer,
-				STRUCT_OFFSET(FMaterialMeshVertex, TextureCoordinate) + sizeof(FVector2D)* UVIndex,
-				sizeof(FMaterialMeshVertex),
-				VET_Float4
-				));
-		}
-		// possible last UV channel if we have an odd number (by the way, MAX_STATIC_TEXCOORDS is even value, so most
-		// likely the following code will never be executed)
-		if (UVIndex < MAX_STATIC_TEXCOORDS)
-		{
-			VertexData.TextureCoordinates.Add(FVertexStreamComponent(
-				&GDummyMeshRendererVertexBuffer,
-				STRUCT_OFFSET(FMaterialMeshVertex, TextureCoordinate) + sizeof(FVector2D)* UVIndex,
-				sizeof(FMaterialMeshVertex),
-				VET_Float2
-				));
-		}
-
-		VertexData.LightMapCoordinateComponent = FVertexStreamComponent(
-			&GDummyMeshRendererVertexBuffer,
-			STRUCT_OFFSET(FMaterialMeshVertex, LightMapCoordinate),
-			sizeof(FMaterialMeshVertex),
-			VET_Float2
-		);
-
-
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			FMeshVertexFactoryConstructor,
-			FMeshVertexFactory*, FactoryParam, this,
-			FLocalVertexFactory::FDataType, DataParam, VertexData,
-			{
-				FactoryParam->SetData(DataParam);
-			}
-		);
-
-		FlushRenderingCommands();
-	}
-};
-TGlobalResource<FMeshVertexFactory> GMeshVertexFactory;
-
 
 class FMeshRenderInfo : public FLightCacheInterface
 {
@@ -278,13 +183,13 @@ public:
 /**
 * Canvas render item enqueued into renderer command list.
 */
-class FMeshMaterialRenderItem : public FCanvasBaseRenderItem
+class FMeshMaterialRenderItem2 : public FCanvasBaseRenderItem
 {
 public:
-	FMeshMaterialRenderItem(FSceneViewFamily* InViewFamily, const FRawMesh* InMesh, const FStaticLODModel* InLODModel, int32 LightMapIndex, int32 InMaterialIndex, const FBox2D& InTexcoordBounds, const TArray<FVector2D>& InTexCoords, const FVector2D& InSize, const FMaterialRenderProxy* InMaterialRenderProxy, const FCanvas::FTransformEntry& InTransform /*= FCanvas::FTransformEntry(FMatrix::Identity)*/, FLightMapRef LightMap, FShadowMapRef ShadowMap, FUniformBufferRHIRef Buffer) : Data(new FRenderData(
+	FMeshMaterialRenderItem2(FSceneViewFamily* InViewFamily, const FRawMesh* InMesh, const FSkeletalMeshLODRenderData* InLODData, int32 LightMapIndex, int32 InMaterialIndex, const FBox2D& InTexcoordBounds, const TArray<FVector2D>& InTexCoords, const FVector2D& InSize, const FMaterialRenderProxy* InMaterialRenderProxy, const FCanvas::FTransformEntry& InTransform /*= FCanvas::FTransformEntry(FMatrix::Identity)*/, FLightMapRef LightMap, FShadowMapRef ShadowMap, FUniformBufferRHIRef Buffer) : Data(new FRenderData(
 		InViewFamily,
 		InMesh,
-		InLODModel,
+		InLODData,
 		LightMapIndex,
 		InMaterialIndex,
 		InTexcoordBounds,
@@ -296,7 +201,7 @@ public:
 	{
 	}
 
-	~FMeshMaterialRenderItem()
+	~FMeshMaterialRenderItem2()
 	{
 	}
 
@@ -307,7 +212,7 @@ private:
 		FRenderData(
 			FSceneViewFamily* InViewFamily,
 			const FRawMesh* InMesh,
-			const FStaticLODModel* InLODModel,
+			const FSkeletalMeshLODRenderData* InLODData,
 			int32 InLightMapIndex,
 			int32 InMaterialIndex,
 			const FBox2D& InTexcoordBounds,
@@ -318,7 +223,7 @@ private:
 			FLightCacheInterface* InLCI = nullptr)
 			: ViewFamily(InViewFamily)
 			, StaticMesh(InMesh)
-			, SkeletalMesh(InLODModel)
+			, SkeletalMesh(InLODData)
 			, LightMapIndex(InLightMapIndex)
 			, MaterialIndex(InMaterialIndex)
 			, TexcoordBounds(InTexcoordBounds)
@@ -331,7 +236,7 @@ private:
 		{}
 		FSceneViewFamily* ViewFamily;
 		const FRawMesh* StaticMesh;
-		const FStaticLODModel* SkeletalMesh;
+		const FSkeletalMeshLODRenderData* SkeletalMesh;
 		int32 LightMapIndex;
 		int32 MaterialIndex;
 		FBox2D TexcoordBounds;
@@ -345,17 +250,17 @@ private:
 	FRenderData* Data;
 public:
 
-	static void EnqueueMaterialRender(class FCanvas* InCanvas, FSceneViewFamily* InViewFamily, const FRawMesh* InMesh, const FStaticLODModel* InLODModel, int32 LightMapIndex, int32 InMaterialIndex, const FBox2D& InTexcoordBounds, const TArray<FVector2D>& InTexCoords, const FVector2D& InSize, const FMaterialRenderProxy* InMaterialRenderProxy, FLightMapRef LightMap, FShadowMapRef ShadowMap, FUniformBufferRHIRef Buffer)
+	static void EnqueueMaterialRender(class FCanvas* InCanvas, FSceneViewFamily* InViewFamily, const FRawMesh* InMesh, const FSkeletalMeshLODRenderData* InLODRenderData, int32 LightMapIndex, int32 InMaterialIndex, const FBox2D& InTexcoordBounds, const TArray<FVector2D>& InTexCoords, const FVector2D& InSize, const FMaterialRenderProxy* InMaterialRenderProxy, FLightMapRef LightMap, FShadowMapRef ShadowMap, FUniformBufferRHIRef Buffer)
 	{
 		// get sort element based on the current sort key from top of sort key stack
 		FCanvas::FCanvasSortElement& SortElement = InCanvas->GetSortElement(InCanvas->TopDepthSortKey());
 		// get the current transform entry from top of transform stack
 		const FCanvas::FTransformEntry& TopTransformEntry = InCanvas->GetTransformStack().Top();
 		// create a render batch
-		FMeshMaterialRenderItem* RenderBatch = new FMeshMaterialRenderItem(
+		FMeshMaterialRenderItem2* RenderBatch = new FMeshMaterialRenderItem2(
 			InViewFamily,
 			InMesh,
-			InLODModel,
+			InLODRenderData,
 			LightMapIndex,
 			InMaterialIndex,
 			InTexcoordBounds,
@@ -369,7 +274,7 @@ public:
 		SortElement.RenderBatchArray.Add(RenderBatch);
 	}
 
-	static int32 FillStaticMeshData(bool bDuplicateTris, const FRawMesh& RawMesh, FRenderData& Data, TArray<FMaterialMeshVertex>& OutVerts, TArray<int32>& OutIndices)
+	static int32 FillStaticMeshData(bool bDuplicateTris, const FRawMesh& RawMesh, FRenderData& Data, TArray<FDynamicMeshVertex>& OutVerts, TArray<uint32>& OutIndices)
 	{
 		// count triangles for selected material
 		int32 NumTris = 0;
@@ -400,7 +305,6 @@ public:
 		float SizeV = Data.TexcoordBounds.Max.Y - Data.TexcoordBounds.Min.Y;
 		float ScaleX = (SizeU != 0) ? Data.Size.X / SizeU : 1.0;
 		float ScaleY = (SizeV != 0) ? Data.Size.Y / SizeV : 1.0;
-		uint32 DefaultColor = FColor::White.DWColor();
 
 		// count number of texture coordinates for this mesh
 		int32 NumTexcoords = 1;
@@ -430,7 +334,7 @@ public:
 				{
 					int32 SrcVertIndex = FaceIndex * 3 + Corner;
 					// add vertex
-					FMaterialMeshVertex* Vert = new(OutVerts)FMaterialMeshVertex();
+					FDynamicMeshVertex* Vert = new(OutVerts)FDynamicMeshVertex();
 					if (!bUseNewUVs)
 					{
 						// compute vertex position from original UV
@@ -449,10 +353,8 @@ public:
 					Vert->TextureCoordinate[6].X = RawMesh.VertexPositions[RawMesh.WedgeIndices[SrcVertIndex]].X;
 					Vert->TextureCoordinate[6].Y = RawMesh.VertexPositions[RawMesh.WedgeIndices[SrcVertIndex]].Y;
 					Vert->TextureCoordinate[7].X = RawMesh.VertexPositions[RawMesh.WedgeIndices[SrcVertIndex]].Z;
-					
-					Vert->LightMapCoordinate = RawMesh.WedgeTexCoords[Data.LightMapIndex][SrcVertIndex];
 
-					Vert->Color = bHasVertexColor ? RawMesh.WedgeColors[SrcVertIndex].DWColor() : DefaultColor;
+					Vert->Color = bHasVertexColor ? RawMesh.WedgeColors[SrcVertIndex] : FColor::White;
 					// add index
 					OutIndices.Add(VertIndex);
 					VertIndex++;
@@ -470,26 +372,24 @@ public:
 		return NumTris;
 	}
 
-	static int32 FillSkeletalMeshData(bool bDuplicateTris, const FStaticLODModel& LODModel, FRenderData& Data, TArray<FMaterialMeshVertex>& OutVerts, TArray<int32>& OutIndices)
+	static int32 FillSkeletalMeshData(bool bDuplicateTris, const FSkeletalMeshLODRenderData& LODData, FRenderData& Data, TArray<FDynamicMeshVertex>& OutVerts, TArray<uint32>& OutIndices)
 	{
-		TArray<FSoftSkinVertex> Vertices;
-		FMultiSizeIndexContainerData IndexData;
-		LODModel.GetVertices(Vertices);
-		LODModel.MultiSizeIndexContainer.GetIndexBufferData(IndexData);
+		TArray<uint32> IndexData;
+		LODData.MultiSizeIndexContainer.GetIndexBuffer(IndexData);
 
 		int32 NumTris = 0;
 		int32 NumVerts = 0;
 
-		const int32 SectionCount = LODModel.NumNonClothingSections();
+		const int32 SectionCount = LODData.NumNonClothingSections();
 
 		// count triangles and vertices for selected material
 		for (int32 SectionIndex = 0; SectionIndex < SectionCount; SectionIndex++)
 		{
-			const FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
+			const FSkelMeshRenderSection& Section = LODData.RenderSections[SectionIndex];
 			if (Section.MaterialIndex == Data.MaterialIndex)
 			{
 				NumTris += Section.NumTriangles;
-				NumVerts += Section.GetNumVertices();
+				NumVerts += Section.NumVertices;
 			}
 		}
 
@@ -520,7 +420,7 @@ public:
 		float ScaleY = (SizeV != 0) ? Data.Size.Y / SizeV : 1.0;
 		uint32 DefaultColor = FColor::White.DWColor();
 
-		int32 NumTexcoords = LODModel.NumTexCoords;
+		int32 NumTexcoords = LODData.GetNumTexCoords();
 
 		// check if we should use NewUVs or original UV set
 		if (bUseNewUVs)
@@ -539,9 +439,9 @@ public:
 
 			for (int32 SectionIndex = 0; SectionIndex < SectionCount; SectionIndex++)
 			{
-				const FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
+				const FSkelMeshRenderSection& Section = LODData.RenderSections[SectionIndex];
 
-				const int32 NumVertsInSection = Section.GetNumVertices();
+				const int32 NumVertsInSection = Section.NumVertices;
 
 				if (Section.MaterialIndex == Data.MaterialIndex)
 				{
@@ -552,17 +452,21 @@ public:
 					int32 SrcVertIndex = FirstVertex;
 					for (int32 VertIndex = 0; VertIndex < NumVertsInSection; VertIndex++)
 					{
-						const FSoftSkinVertex& SrcVert = Vertices[SrcVertIndex];
-						FMaterialMeshVertex* DstVert = new(OutVerts)FMaterialMeshVertex();
+						FDynamicMeshVertex* DstVert = new(OutVerts)FDynamicMeshVertex();
 
 						// compute vertex position from original UV
-						const FVector2D& UV = SrcVert.UVs[0];
+						const FVector2D UV = LODData.StaticVertexBuffers.StaticMeshVertexBuffer.GetVertexUV(SrcVertIndex, 0);
 						DstVert->Position.Set((UV.X - U) * ScaleX, (UV.Y - V) * ScaleY, 0);
 
-						DstVert->SetTangents(SrcVert.TangentX, SrcVert.TangentY, SrcVert.TangentZ);
+						DstVert->TangentX = LODData.StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentX(SrcVertIndex);
+						DstVert->TangentZ = LODData.StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(SrcVertIndex);
+
 						for (int32 TexcoordIndex = 0; TexcoordIndex < NumTexcoords; TexcoordIndex++)
-							DstVert->TextureCoordinate[TexcoordIndex] = SrcVert.UVs[TexcoordIndex];
-						DstVert->Color = SrcVert.Color.DWColor();
+						{
+							DstVert->TextureCoordinate[TexcoordIndex] = LODData.StaticVertexBuffers.StaticMeshVertexBuffer.GetVertexUV(SrcVertIndex, TexcoordIndex);
+						}
+
+						DstVert->Color = LODData.StaticVertexBuffers.ColorVertexBuffer.VertexColor(SrcVertIndex);
 
 						SrcVertIndex++;
 						OutVertexIndex++;
@@ -572,9 +476,9 @@ public:
 					int32 Index = Section.BaseIndex;
 					for (uint32 TriIndex = 0; TriIndex < Section.NumTriangles; TriIndex++)
 					{
-						uint32 Index0 = IndexData.Indices[Index++] - IndexOffset;
-						uint32 Index1 = IndexData.Indices[Index++] - IndexOffset;
-						uint32 Index2 = IndexData.Indices[Index++] - IndexOffset;
+						uint32 Index0 = IndexData[Index++] - IndexOffset;
+						uint32 Index1 = IndexData[Index++] - IndexOffset;
+						uint32 Index2 = IndexData[Index++] - IndexOffset;
 						OutIndices.Add(Index0);
 						OutIndices.Add(Index1);
 						OutIndices.Add(Index2);
@@ -599,7 +503,7 @@ public:
 
 			for (int32 SectionIndex = 0; SectionIndex < SectionCount; SectionIndex++)
 			{
-				const FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
+				const FSkelMeshRenderSection& Section = LODData.RenderSections[SectionIndex];
 
 				if (Section.MaterialIndex == Data.MaterialIndex)
 				{
@@ -610,17 +514,21 @@ public:
 						for (int32 Corner = 0; Corner < 3; Corner++)
 						{
 							int32 CornerIndex = Index + Corner;
-							int32 SrcVertIndex = IndexData.Indices[CornerIndex];
-							const FSoftSkinVertex& SrcVert = Vertices[SrcVertIndex];
-							FMaterialMeshVertex* DstVert = new(OutVerts)FMaterialMeshVertex();
+							int32 SrcVertIndex = IndexData[CornerIndex];
+							FDynamicMeshVertex* DstVert = new(OutVerts)FDynamicMeshVertex();
 
-							const FVector2D& UV = Data.TexCoords[CornerIndex];
+							const FVector2D UV = LODData.StaticVertexBuffers.StaticMeshVertexBuffer.GetVertexUV(SrcVertIndex, 0);
 							DstVert->Position.Set(UV.X * ScaleX, UV.Y * ScaleY, 0);
 
-							DstVert->SetTangents(SrcVert.TangentX, SrcVert.TangentY, SrcVert.TangentZ);
+							DstVert->TangentX = LODData.StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentX(SrcVertIndex);
+							DstVert->TangentZ = LODData.StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(SrcVertIndex);
+
 							for (int32 TexcoordIndex = 0; TexcoordIndex < NumTexcoords; TexcoordIndex++)
-								DstVert->TextureCoordinate[TexcoordIndex] = SrcVert.UVs[TexcoordIndex];
-							DstVert->Color = SrcVert.Color.DWColor();
+							{
+								DstVert->TextureCoordinate[TexcoordIndex] = LODData.StaticVertexBuffers.StaticMeshVertexBuffer.GetVertexUV(SrcVertIndex, TexcoordIndex);
+							}
+
+							DstVert->Color = LODData.StaticVertexBuffers.ColorVertexBuffer.VertexColor(SrcVertIndex);
 
 							OutIndices.Add(OutVertexIndex);
 							OutVertexIndex++;
@@ -640,7 +548,7 @@ public:
 		return NumTris;
 	}
 
-	static int32 FillQuadData(FRenderData& Data, TArray<FMaterialMeshVertex>& OutVerts, TArray<int32>& OutIndices)
+	static int32 FillQuadData(FRenderData& Data, TArray<FDynamicMeshVertex>& OutVerts, TArray<uint32>& OutIndices)
 	{
 		OutVerts.Empty(4);
 		OutIndices.Empty(6);
@@ -651,12 +559,11 @@ public:
 		float SizeV = Data.TexcoordBounds.Max.Y - Data.TexcoordBounds.Min.Y;
 		float ScaleX = (SizeU != 0) ? Data.Size.X / SizeU : 1.0;
 		float ScaleY = (SizeV != 0) ? Data.Size.Y / SizeV : 1.0;
-		uint32 DefaultColor = FColor::White.DWColor();
 
 		// add vertices
 		for (int32 VertIndex = 0; VertIndex < 4; VertIndex++)
 		{
-			FMaterialMeshVertex* Vert = new(OutVerts)FMaterialMeshVertex();
+			FDynamicMeshVertex* Vert = new(OutVerts)FDynamicMeshVertex();
 
 			int X = VertIndex & 1;
 			int Y = (VertIndex >> 1) & 1;
@@ -665,11 +572,11 @@ public:
 			Vert->SetTangents(FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1));
 			FMemory::Memzero(&Vert->TextureCoordinate, sizeof(Vert->TextureCoordinate));
 			Vert->TextureCoordinate[0].Set(U + SizeU * X, V + SizeV * Y);
-			Vert->Color = DefaultColor;
+			Vert->Color = FColor::White;
 		}
 
 		// add indices
-		static const int32 Indices[6] = { 0, 2, 1, 2, 3, 1 };
+		static const uint32 Indices[6] = { 0, 2, 1, 2, 3, 1 };
 		OutIndices.Append(Indices, 6);
 
 		return 2;
@@ -677,29 +584,14 @@ public:
 
 	static void RenderMaterial(FRHICommandListImmediate& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const class FSceneView& View, FRenderData& Data)
 	{
-		FMeshBatch MeshElement;
-		MeshElement.VertexFactory = &GMeshVertexFactory;
-		MeshElement.DynamicVertexStride = sizeof(FMaterialMeshVertex);
-		MeshElement.ReverseCulling = false;
-		MeshElement.UseDynamicData = true;
-		MeshElement.Type = PT_TriangleList;
-		MeshElement.DepthPriorityGroup = SDPG_Foreground;		
-		Data.LCI->SetPrecomputedLightingBuffer(LightMapHelpers::CreateDummyPrecomputedLightingUniformBuffer(UniformBuffer_SingleFrame, GMaxRHIFeatureLevel, Data.LCI));
-		MeshElement.LCI = Data.LCI;
-		FMeshBatchElement& BatchElement = MeshElement.Elements[0];
-		BatchElement.PrimitiveUniformBufferResource = &GIdentityPrimitiveUniformBuffer;
-	#if SHOW_WIREFRAME_MESH
-		MeshElement.bWireframe = true;
-	#endif
-
 		// Check if material is TwoSided - single-sided materials should be rendered with normal and reverse
 		// triangle corner orders, to avoid problems with inside-out meshes or mesh parts. Note:
 		// FExportMaterialProxy::GetMaterial() (which is really called here) ignores 'InFeatureLevel' parameter.
 		const FMaterial* Material = Data.MaterialRenderProxy->GetMaterial(GMaxRHIFeatureLevel);
 		bool bIsMaterialTwoSided = Material->IsTwoSided();
 
-		TArray<FMaterialMeshVertex> Verts;
-		TArray<int32> Indices;
+		TArray<FDynamicMeshVertex> Verts;
+		TArray<uint32> Indices;
 
 		int32 NumTris = 0;
 		if (Data.StaticMesh != nullptr)
@@ -722,17 +614,26 @@ public:
 			return;
 		}
 
-		MeshElement.UseDynamicData = true;
-		MeshElement.DynamicVertexData = Verts.GetData();
-		MeshElement.MaterialRenderProxy = Data.MaterialRenderProxy;
+		uint32 LightMapCoordinateIndex = (uint32)Data.LightMapIndex;
+		LightMapCoordinateIndex = LightMapCoordinateIndex < MAX_STATIC_TEXCOORDS ? LightMapCoordinateIndex : MAX_STATIC_TEXCOORDS - 1;
 
-		// an attempt to use index data
-		BatchElement.FirstIndex = 0;
-		BatchElement.NumPrimitives = bIsMaterialTwoSided ? NumTris : NumTris * 2;
-		BatchElement.DynamicIndexData = Indices.GetData();
-		BatchElement.DynamicIndexStride = sizeof(int32);
-		BatchElement.MinVertexIndex = 0;
-		BatchElement.MaxVertexIndex = Verts.Num() - 1;
+		FDynamicMeshBuilder DynamicMeshBuilder(View.GetFeatureLevel(), MAX_STATIC_TEXCOORDS, LightMapCoordinateIndex);
+		DynamicMeshBuilder.AddVertices(Verts);
+		DynamicMeshBuilder.AddTriangles(Indices);
+
+		FMeshBatch MeshElement;
+		FMeshBuilderOneFrameResources OneFrameResource;
+		DynamicMeshBuilder.GetMeshElement(FMatrix::Identity, Data.MaterialRenderProxy, SDPG_Foreground, true, false, 0, OneFrameResource, MeshElement);
+
+		check(OneFrameResource.IsValidForRendering());
+
+		Data.LCI->SetPrecomputedLightingBuffer(LightMapHelpers::CreateDummyPrecomputedLightingUniformBuffer(UniformBuffer_SingleFrame, GMaxRHIFeatureLevel, Data.LCI));
+		MeshElement.LCI = Data.LCI;
+		MeshElement.ReverseCulling = false;
+
+#if SHOW_WIREFRAME_MESH
+		MeshElement.bWireframe = true;
+#endif
 
 		GetRendererModule().DrawTileMesh(RHICmdList, DrawRenderState, View, MeshElement, false /*bIsHitTesting*/, FHitProxyId());
 	}
@@ -879,11 +780,11 @@ bool FMeshRenderer::RenderMaterial(struct FMaterialMergeData& InMaterialData, FM
 #endif
 
 		// add item for rendering
-		FMeshMaterialRenderItem::EnqueueMaterialRender(
+		FMeshMaterialRenderItem2::EnqueueMaterialRender(
 			&Canvas,
 			&ViewFamily,
 			InMaterialData.Mesh,
-			InMaterialData.LODModel,
+			InMaterialData.LODData,
 			InMaterialData.LightMapIndex,
 			InMaterialData.MaterialIndex,
 			InMaterialData.TexcoordBounds,
@@ -894,6 +795,14 @@ bool FMeshRenderer::RenderMaterial(struct FMaterialMergeData& InMaterialData, FM
 			InMaterialData.ShadowMap,
 			InMaterialData.Buffer
 			);
+
+		// In case of running commandlet the RHI is not fully set up on first flush so do it twice TODO 
+		static bool TempForce = true;
+		if (IsRunningCommandlet() && TempForce)
+		{
+			Canvas.Flush_GameThread();
+			TempForce = false;
+		}
 
 		// rendering is performed here
 		Canvas.Flush_GameThread();
@@ -1000,11 +909,11 @@ bool FMeshRenderer::RenderMaterialTexCoordScales(struct FMaterialMergeData& InMa
 	ViewFamily.bNullifyWorldSpacePosition = true;
 
 	// add item for rendering
-	FMeshMaterialRenderItem::EnqueueMaterialRender(
+	FMeshMaterialRenderItem2::EnqueueMaterialRender(
 		&Canvas,
 		&ViewFamily,
 		InMaterialData.Mesh,
-		InMaterialData.LODModel,
+		InMaterialData.LODData,
 		InMaterialData.LightMapIndex,
 		InMaterialData.MaterialIndex,
 		InMaterialData.TexcoordBounds,

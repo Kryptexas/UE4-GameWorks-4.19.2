@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PixelInspectorStyle.h"
 #include "Styling/SlateStyleRegistry.h"
@@ -6,8 +6,6 @@
 #define IMAGE_BRUSH(RelativePath, ...) FSlateImageBrush(StyleSet->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
 #define BOX_BRUSH(RelativePath, ...) FSlateBoxBrush(StyleSet->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
 #define BORDER_BRUSH(RelativePath, ...) FSlateBorderBrush(StyleSet->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
-#define TTF_FONT(RelativePath, ...) FSlateFontInfo(StyleSet->RootToContentDir(RelativePath, TEXT(".ttf")), __VA_ARGS__)
-#define OTF_FONT(RelativePath, ...) FSlateFontInfo(StyleSet->RootToContentDir(RelativePath, TEXT(".otf")), __VA_ARGS__)
 
 TSharedPtr< FSlateStyleSet > FPixelInspectorStyle::StyleSet = NULL;
 TSharedPtr< class ISlateStyle > FPixelInspectorStyle::Get() { return StyleSet; }
@@ -62,10 +60,6 @@ void FPixelInspectorStyle::Initialize()
 #undef IMAGE_BRUSH
 #undef BOX_BRUSH
 #undef BORDER_BRUSH
-#undef TTF_FONT
-#undef TTF_CORE_FONT
-#undef OTF_FONT
-#undef OTF_CORE_FONT
 
 void FPixelInspectorStyle::Shutdown()
 {

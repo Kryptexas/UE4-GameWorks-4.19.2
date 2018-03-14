@@ -329,7 +329,14 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_CloudStorage_ResolveKeepLocal(const char *b
 /// Extract the payload from the message handle with ::ovr_Message_GetCloudStorageUpdateResponse().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_CloudStorage_ResolveKeepRemote(const char *bucket, const char *key, ovrCloudStorageVersionHandle remoteHandle);
 
-/// Send a save data buffer to the platform.
+/// Note: Cloud Storage is only available for Rift apps.
+///
+/// Send a save data buffer to the platform. ovr_CloudStorage_Save() passes a
+/// pointer to your data in an async call. You need to maintain the save data
+/// until you receive the message indicating that the save was successful.
+///
+/// If the data is destroyed or modified prior to receiving that message the
+/// data will not be saved.
 /// \param bucket The name of the storage bucket.
 /// \param key The name for this saved data.
 /// \param data Start of the data block.

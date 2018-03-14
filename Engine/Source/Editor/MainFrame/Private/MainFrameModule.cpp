@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MainFrameModule.h"
 #include "Widgets/Text/STextBlock.h"
@@ -22,6 +22,7 @@
 #include "Developer/HotReload/Public/IHotReload.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
+#include "Widgets/Input/SEditableTextBox.h"
 #include "Framework/Commands/GenericCommands.h"
 #include "AnalyticsEventAttribute.h"
 #include "Interfaces/IAnalyticsProvider.h"

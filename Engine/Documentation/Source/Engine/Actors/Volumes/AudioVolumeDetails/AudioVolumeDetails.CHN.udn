@@ -35,4 +35,6 @@ Several properties can be adjusted from the **Details** panel on this volume to 
 | **Interior LPF** | Lowpass Filter multiplier applied to interior sounds when outside (1.0 to apply the maximum LPF). |
 | **Interior LPFTime** | Time to fade to new Lowpass Filter level in seconds. |
 
-<!--For more information on Ambient Zones, please refer to the following documentation: [Ambient Zones Documentation](Engine/Audio/AmbientZones).-->
+[COMMENT:none]
+For more information on Ambient Zones, please refer to the following documentation: [Ambient Zones Documentation](Engine/Audio/AmbientZones).
+[/COMMENT]

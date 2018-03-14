@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -21,8 +21,9 @@ struct FNvVisualizationOptions
 			: bDisablesSimulation(false)
 		{}
 
-		// Localized name of the entry
+		// Text for menu entries
 		FText DisplayName;
+		FText ToolTip;
 
 		// Whether or not this option requires the simulation to be disabled
 		bool bDisablesSimulation;
@@ -37,6 +38,7 @@ struct FNvVisualizationOptions
 		Backstop,
 		MaxDistances,
 		SelfCollision,
+		AnimDrive,
 		Max
 	};
 

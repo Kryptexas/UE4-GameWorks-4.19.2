@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -21,6 +21,11 @@ public:
 	 * Get (or create) an appropriate composite font from the legacy font name
 	 */
 	TSharedPtr<const FCompositeFont> GetCompositeFont(const FName& InLegacyFontName, const EFontHinting InLegacyFontHinting);
+
+	/**
+	 * Get (or create) the default font based on the current build configuration
+	 */
+	TSharedRef<const FCompositeFont> GetDefaultFont();
 
 	/**
 	 * Get (or create) the default system font
@@ -100,6 +105,7 @@ private:
 	};
 
 	TMap<FLegacyFontKey, TSharedPtr<const FCompositeFont>> LegacyFontNameToCompositeFont;
+	TSharedPtr<const FCompositeFont> DefaultFont;
 	TSharedPtr<const FCompositeFont> SystemFont;
 	TSharedPtr<const FCompositeFont> LastResortFont;
 	

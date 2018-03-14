@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_ActorBoundEvent.h"
 #include "Engine/Level.h"
@@ -81,7 +81,7 @@ void UK2Node_ActorBoundEvent::DestroyNode()
 	if (EventOwner)
 	{
 		// If we have an event owner, remove the delegate referencing this event, if any
-		const ULevel* TargetLevel = Cast<ULevel>(EventOwner->GetOuter());
+		const ULevel* TargetLevel = EventOwner->GetLevel();
 		if (TargetLevel)
 		{
 			ALevelScriptActor* LSA = TargetLevel->GetLevelScriptActor();

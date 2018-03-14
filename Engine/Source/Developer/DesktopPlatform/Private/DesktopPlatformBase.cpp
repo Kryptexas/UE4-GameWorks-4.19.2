@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DesktopPlatformBase.h"
 #include "HAL/FileManager.h"
@@ -600,7 +600,7 @@ bool FDesktopPlatformBase::CompileGameProject(const FString& RootDir, const FStr
 	return RunUnrealBuildTool(LOCTEXT("CompilingProject", "Compiling project..."), RootDir, Arguments, Warn);
 }
 
-bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn)
+bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn, FString LogFilePath)
 {
 	FString Arguments = TEXT(" -projectfiles");
 
@@ -630,6 +630,11 @@ bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FS
 		}
 	}
 	Arguments += TEXT(" -progress");
+
+	if (!LogFilePath.IsEmpty())
+	{
+		Arguments += TEXT(" -log=") + LogFilePath;
+	}
 
 	// Compile UnrealBuildTool if it doesn't exist. This can happen if we're just copying source from somewhere.
 	bool bRes = true;

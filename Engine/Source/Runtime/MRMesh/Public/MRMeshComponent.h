@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -29,8 +29,7 @@ public:
 		FIntVector BrickCoords;
 		TArray<FVector>& PositionData;
 		//TArray<FVector2D>& UVData;
-		//TArray<FPackedNormal>& TangentXData;
-		//TArray<FPackedNormal>& TangentZData;
+		//TArray<FPackedNormal>& TangentXZData;
 		TArray<FColor>& ColorData;
 		TArray<uint32>& Indices;
 	};

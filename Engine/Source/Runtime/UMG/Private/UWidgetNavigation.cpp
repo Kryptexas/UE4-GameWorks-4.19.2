@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Types/SlateEnums.h"
@@ -6,6 +6,19 @@
 #include "Types/NavigationMetaData.h"
 #include "Blueprint/WidgetNavigation.h"
 #include "Blueprint/WidgetTree.h"
+
+void FWidgetNavigationData::Resolve(UUserWidget* InInstance, UWidgetTree* WidgetTree)
+{
+	switch (Rule)
+	{
+	case EUINavigationRule::Explicit:
+		Widget = WidgetTree->FindWidget(WidgetToFocus);
+		break;
+	case EUINavigationRule::Custom:
+		CustomDelegate.BindUFunction(InInstance, WidgetToFocus);
+		break;
+	}
+}
 
 /////////////////////////////////////////////////////
 // UWidgetNavigation
@@ -66,32 +79,14 @@ EUINavigationRule UWidgetNavigation::GetNavigationRule(EUINavigation Nav)
 
 #endif
 
-void UWidgetNavigation::ResolveExplictRules(UWidgetTree* WidgetTree)
+void UWidgetNavigation::ResolveRules(UUserWidget* InOuter, UWidgetTree* WidgetTree)
 {
-	if ( Up.Rule == EUINavigationRule::Explicit )
-	{
-		Up.Widget = WidgetTree->FindWidget(Up.WidgetToFocus);
-	}
-	if ( Down.Rule == EUINavigationRule::Explicit )
-	{
-		Down.Widget = WidgetTree->FindWidget(Down.WidgetToFocus);
-	}
-	if ( Left.Rule == EUINavigationRule::Explicit )
-	{
-		Left.Widget = WidgetTree->FindWidget(Left.WidgetToFocus);
-	}
-	if ( Right.Rule == EUINavigationRule::Explicit )
-	{
-		Right.Widget = WidgetTree->FindWidget(Right.WidgetToFocus);
-	}
-	if ( Next.Rule == EUINavigationRule::Explicit )
-	{
-		Next.Widget = WidgetTree->FindWidget(Next.WidgetToFocus);
-	}
-	if ( Previous.Rule == EUINavigationRule::Explicit )
-	{
-		Previous.Widget = WidgetTree->FindWidget(Previous.WidgetToFocus);
-	}
+	Up.Resolve(InOuter, WidgetTree);
+	Down.Resolve(InOuter, WidgetTree);
+	Left.Resolve(InOuter, WidgetTree);
+	Right.Resolve(InOuter, WidgetTree);
+	Next.Resolve(InOuter, WidgetTree);
+	Previous.Resolve(InOuter, WidgetTree);
 }
 
 void UWidgetNavigation::UpdateMetaData(TSharedRef<FNavigationMetaData> MetaData)
@@ -134,6 +129,18 @@ void UWidgetNavigation::UpdateMetaDataEntry(TSharedRef<FNavigationMetaData> Meta
 		}
 		break;
 	case EUINavigationRule::Custom:
+		if (NavData.CustomDelegate.IsBound())
+		{
+			FCustomWidgetNavigationDelegate CustomDelegate = NavData.CustomDelegate;
+			MetaData->SetNavigationCustom(Nav, FNavigationDelegate::CreateLambda([CustomDelegate](EUINavigation UINav) {
+				UWidget* CustomWidget = CustomDelegate.Execute(UINav);
+				if (CustomWidget)
+				{
+					return CustomWidget->GetCachedWidget();
+				}
+				return TSharedPtr<SWidget>();
+			}));
+		}
 		break;
 	}
 }

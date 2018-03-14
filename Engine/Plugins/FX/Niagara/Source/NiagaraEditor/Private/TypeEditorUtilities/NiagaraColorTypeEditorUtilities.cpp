@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraColorTypeEditorUtilities.h"
 #include "SNiagaraParameterEditor.h"
@@ -192,13 +192,13 @@ private:
 	FLinearColor ColorValue;
 };
 
-void FNiagaraEditorColorTypeUtilities::UpdateStructWithDefaultValue(TSharedRef<FStructOnScope> Struct) const
+void FNiagaraEditorColorTypeUtilities::UpdateVariableWithDefaultValue(FNiagaraVariable& Variable) const
 {
-	checkf(Struct->GetStruct() == FNiagaraTypeDefinition::GetColorStruct(), TEXT("Struct type not supported."));
-	*((FLinearColor*)Struct->GetStructMemory()) = FLinearColor(1, 1, 1, 1);
+	checkf(Variable.GetType().GetStruct() == FNiagaraTypeDefinition::GetColorStruct(), TEXT("Struct type not supported."));
+	Variable.SetValue<FLinearColor>(FLinearColor(1, 1, 1, 1));
 }
 
-TSharedPtr<SNiagaraParameterEditor> FNiagaraEditorColorTypeUtilities::CreateParameterEditor() const
+TSharedPtr<SNiagaraParameterEditor> FNiagaraEditorColorTypeUtilities::CreateParameterEditor(const FNiagaraTypeDefinition& ParameterType) const
 {
 	return SNew(SNiagaraColorParameterEditor);
 }
@@ -208,17 +208,19 @@ bool FNiagaraEditorColorTypeUtilities::CanHandlePinDefaults() const
 	return true;
 }
 
-FString FNiagaraEditorColorTypeUtilities::GetPinDefaultStringFromValue(const FNiagaraVariable& Variable) const
+FString FNiagaraEditorColorTypeUtilities::GetPinDefaultStringFromValue(const FNiagaraVariable& AllocatedVariable) const
 {
-	if (Variable.IsDataAllocated())
-	{
-		return Variable.GetValue<FLinearColor>()->ToString();
-	}
-	return FVector4(0.0f, 0.0f, 0.0f, 0.0f).ToString();
+	checkf(AllocatedVariable.IsDataAllocated(), TEXT("Can not generate a default value string for an unallocated variable."));
+	return AllocatedVariable.GetValue<FLinearColor>().ToString();
 }
 
-void FNiagaraEditorColorTypeUtilities::SetValueFromPinDefaultString(const FString& StringValue, FNiagaraVariable& Variable) const
+bool FNiagaraEditorColorTypeUtilities::SetValueFromPinDefaultString(const FString& StringValue, FNiagaraVariable& Variable) const
 {
-	Variable.AllocateData();
-	Variable.GetValue<FLinearColor>()->InitFromString(StringValue);
+	FLinearColor ColorValue;
+	if (ColorValue.InitFromString(StringValue))
+	{
+		Variable.SetValue<FLinearColor>(ColorValue);
+		return true;
+	}
+	return false;
 }

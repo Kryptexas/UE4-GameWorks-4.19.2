@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SynthComponents/SynthComponentGranulator.h"
 #include "UObject/Package.h"
@@ -16,10 +16,11 @@ UGranularSynth::~UGranularSynth()
 
 }
 
-void UGranularSynth::Init(const int32 SampleRate)
+bool UGranularSynth::Init(int32& SampleRate)
 {
 	NumChannels = 2;
 	SoundWaveLoader.Init(GetAudioDevice());
+	return true;
 }
 
 void UGranularSynth::OnGenerateAudio(float* OutAudio, int32 NumSamples)

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	AndroidPlatform.h: Setup for the Android platform
@@ -36,7 +36,7 @@ typedef FAndroidTypes FPlatformTypes;
 #define PLATFORM_HAS_BSD_TIME						1
 #define PLATFORM_USE_PTHREADS						1
 #define PLATFORM_MAX_FILEPATH_LENGTH				MAX_PATH
-#define PLATFORM_SUPPORTS_TEXTURE_STREAMING			0
+#define PLATFORM_SUPPORTS_TEXTURE_STREAMING			1
 #define PLATFORM_REQUIRES_FILESERVER				1
 #define PLATFORM_TCHAR_IS_4_BYTES					1
 #define PLATFORM_HAS_NO_EPROCLIM					1

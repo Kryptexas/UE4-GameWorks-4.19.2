@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelSequenceEditorActorSpawner.h"
 #include "MovieScene.h"
@@ -26,26 +26,17 @@ TSharedRef<IMovieSceneObjectSpawner> FLevelSequenceEditorActorSpawner::CreateObj
 
 #if WITH_EDITOR
 
-TValueOrError<FNewSpawnable, FText> FLevelSequenceEditorActorSpawner::CreateNewSpawnableType(UObject& SourceObject, UMovieScene& OwnerMovieScene)
+TValueOrError<FNewSpawnable, FText> FLevelSequenceEditorActorSpawner::CreateNewSpawnableType(UObject& SourceObject, UMovieScene& OwnerMovieScene, UActorFactory* ActorFactory)
 {
 	FNewSpawnable NewSpawnable(nullptr, FName::NameToDisplayString(SourceObject.GetName(), false));
 
 	const FName TemplateName = MakeUniqueObjectName(&OwnerMovieScene, UObject::StaticClass(), SourceObject.GetFName());
 
+	FText ErrorText;
+
 	// First off, deal with creating a spawnable from a class
-	if (UClass* InClass = Cast<UClass>(&SourceObject))
-	{
-		if (!InClass->IsChildOf(AActor::StaticClass()))
-		{
-			FText ErrorText = FText::Format(LOCTEXT("NotAnActorClass", "Unable to add spawnable for class of type '{0}' since it is not a valid actor class."), FText::FromString(InClass->GetName()));
-			return MakeError(ErrorText);
-		}
-
-		NewSpawnable.ObjectTemplate = NewObject<UObject>(&OwnerMovieScene, InClass, TemplateName);
-	}
-
 	// Deal with creating a spawnable from an instance of an actor
-	else if (AActor* Actor = Cast<AActor>(&SourceObject))
+	if (AActor* Actor = Cast<AActor>(&SourceObject))
 	{
 		AActor* SpawnedActor = Cast<AActor>(StaticDuplicateObject(Actor, &OwnerMovieScene, TemplateName, RF_AllFlags & ~RF_Transactional));
 		SpawnedActor->bIsEditorPreviewActor = false;
@@ -62,40 +53,58 @@ TValueOrError<FNewSpawnable, FText> FLevelSequenceEditorActorSpawner::CreateNewS
 	// At this point we have to assume it's an asset
 	else
 	{
-		// @todo sequencer: Add support for forcing specific factories for an asset?
-		UActorFactory* FactoryToUse = FActorFactoryAssetProxy::GetFactoryForAssetObject(&SourceObject);
+		UActorFactory* FactoryToUse = ActorFactory ? ActorFactory : FActorFactoryAssetProxy::GetFactoryForAssetObject(&SourceObject);
 		if (!FactoryToUse)
 		{
-			FText ErrorText = FText::Format(LOCTEXT("CouldNotFindFactory", "Unable to create spawnable from  asset '{0}' - no valid factory could be found."), FText::FromString(SourceObject.GetName()));
-			return MakeError(ErrorText);
+			ErrorText = FText::Format(LOCTEXT("CouldNotFindFactory", "Unable to create spawnable from asset '{0}' - no valid factory could be found."), FText::FromString(SourceObject.GetName()));
 		}
 
-		FText ErrorText;
-		if (!FactoryToUse->CanCreateActorFrom(FAssetData(&SourceObject), ErrorText))
+		if (FactoryToUse)
 		{
-			if (!ErrorText.IsEmpty())
+			if (!FactoryToUse->CanCreateActorFrom(FAssetData(&SourceObject), ErrorText))
 			{
-				return MakeError(FText::Format(LOCTEXT("CannotCreateActorFromAsset_Ex", "Unable to create spawnable from  asset '{0}'. {1}."), FText::FromString(SourceObject.GetName()), ErrorText));
+				if (!ErrorText.IsEmpty())
+				{
+					ErrorText = FText::Format(LOCTEXT("CannotCreateActorFromAsset_Ex", "Unable to create spawnable from  asset '{0}'. {1}."), FText::FromString(SourceObject.GetName()), ErrorText);
+				}
+				else
+				{
+					ErrorText = FText::Format(LOCTEXT("CannotCreateActorFromAsset", "Unable to create spawnable from  asset '{0}'."), FText::FromString(SourceObject.GetName()));
+				}
 			}
-			else
-			{
-				return MakeError(FText::Format(LOCTEXT("CannotCreateActorFromAsset", "Unable to create spawnable from  asset '{0}'."), FText::FromString(SourceObject.GetName())));
-			}
+
+			AActor* Instance = FactoryToUse->CreateActor(&SourceObject, GWorld->PersistentLevel, FTransform(), RF_Transient, TemplateName );
+			Instance->bIsEditorPreviewActor = false;
+			NewSpawnable.ObjectTemplate = StaticDuplicateObject(Instance, &OwnerMovieScene, TemplateName, RF_AllFlags & ~RF_Transient);
+
+			const bool bNetForce = false;
+			const bool bShouldModifyLevel = false;
+			GWorld->DestroyActor(Instance, bNetForce, bShouldModifyLevel);
 		}
-
-		AActor* Instance = FactoryToUse->CreateActor(&SourceObject, GWorld->PersistentLevel, FTransform(), RF_Transient, TemplateName );
-		Instance->bIsEditorPreviewActor = false;
-		NewSpawnable.ObjectTemplate = StaticDuplicateObject(Instance, &OwnerMovieScene, TemplateName, RF_AllFlags & ~RF_Transient);
-
-		const bool bNetForce = false;
-		const bool bShouldModifyLevel = false;
-		GWorld->DestroyActor(Instance, bNetForce, bShouldModifyLevel);
 	}
 
 	if (!NewSpawnable.ObjectTemplate || !NewSpawnable.ObjectTemplate->IsA<AActor>())
 	{
-		FText ErrorText = FText::Format(LOCTEXT("UnknownClassError", "Unable to create a new spawnable object from {0}."), FText::FromString(SourceObject.GetName()));
-		return MakeError(ErrorText);
+		if (UClass* InClass = Cast<UClass>(&SourceObject))
+		{
+			if (!InClass->IsChildOf(AActor::StaticClass()))
+			{
+				ErrorText = FText::Format(LOCTEXT("NotAnActorClass", "Unable to add spawnable for class of type '{0}' since it is not a valid actor class."), FText::FromString(InClass->GetName()));
+				return MakeError(ErrorText);
+			}
+
+			NewSpawnable.ObjectTemplate = NewObject<UObject>(&OwnerMovieScene, InClass, TemplateName);
+		}
+
+		if (!NewSpawnable.ObjectTemplate || !NewSpawnable.ObjectTemplate->IsA<AActor>())
+		{
+			if (ErrorText.IsEmpty())
+			{
+				ErrorText = FText::Format(LOCTEXT("UnknownClassError", "Unable to create a new spawnable object from {0}."), FText::FromString(SourceObject.GetName()));
+			}
+
+			return MakeError(ErrorText);
+		}
 	}
 
 	return MakeValue(NewSpawnable);

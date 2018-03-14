@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SBlueprintActionMenu.h"
@@ -546,18 +546,18 @@ void SBlueprintActionMenu::TryInsertPromoteToVariable(FBlueprintActionContext co
 	const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(GraphObj->GetSchema());
 	if ((K2Schema != nullptr) && (MenuContext.Pins.Num() > 0))
 	{
-		if (K2Schema->CanPromotePinToVariable(*MenuContext.Pins[0]))
+		if (K2Schema->CanPromotePinToVariable(*MenuContext.Pins[0], false))
 		{
 			TSharedPtr<FBlueprintAction_PromoteVariable> PromoteAction = TSharedPtr<FBlueprintAction_PromoteVariable>(new FBlueprintAction_PromoteVariable(true));
 			PromoteAction->MyBlueprintEditor = EditorPtr;
-			OutAllActions.AddAction( PromoteAction );
+			OutAllActions.AddAction(PromoteAction);
+		}
 
-			if (MenuContext.Graphs.Num() == 1 && FBlueprintEditorUtils::DoesSupportLocalVariables(MenuContext.Graphs[0]))
-			{
-				TSharedPtr<FBlueprintAction_PromoteVariable> LocalPromoteAction = TSharedPtr<FBlueprintAction_PromoteVariable>(new FBlueprintAction_PromoteVariable(false));
-				LocalPromoteAction->MyBlueprintEditor = EditorPtr;
-				OutAllActions.AddAction( LocalPromoteAction );
-			}
+		if (MenuContext.Graphs.Num() == 1 && FBlueprintEditorUtils::DoesSupportLocalVariables(MenuContext.Graphs[0]) && K2Schema->CanPromotePinToVariable(*MenuContext.Pins[0], true))
+		{
+			TSharedPtr<FBlueprintAction_PromoteVariable> LocalPromoteAction = TSharedPtr<FBlueprintAction_PromoteVariable>(new FBlueprintAction_PromoteVariable(false));
+			LocalPromoteAction->MyBlueprintEditor = EditorPtr;
+			OutAllActions.AddAction( LocalPromoteAction );
 		}
 	}
 }

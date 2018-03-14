@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Sound/SoundWave.h"
 #include "Serialization/MemoryWriter.h"
@@ -42,9 +42,18 @@ void FStreamedAudioChunk::Serialize(FArchive& Ar, UObject* Owner, int32 ChunkInd
 	bool bCooked = Ar.IsCooking();
 	Ar << bCooked;
 
-	BulkData.SetBulkDataFlags(BULKDATA_Force_NOT_InlinePayload);
+	// ChunkIndex 0 is always inline payload, all other chunks are streamed.
+	if (ChunkIndex == 0)
+	{
+		BulkData.SetBulkDataFlags(BULKDATA_ForceInlinePayload);
+	}
+	else
+	{
+		BulkData.SetBulkDataFlags(BULKDATA_Force_NOT_InlinePayload);
+	}
 	BulkData.Serialize(Ar, Owner, ChunkIndex);
 	Ar << DataSize;
+	Ar << AudioDataSize;
 
 #if WITH_EDITORONLY_DATA
 	if (!bCooked)
@@ -293,6 +302,11 @@ float USoundWave::GetSubtitlePriority() const
 { 
 	return SubtitlePriority;
 };
+
+bool USoundWave::IsAllowedVirtual() const
+{
+	return bVirtualizeWhenSilent || (Subtitles.Num() > 0);
+}
 
 void USoundWave::PostInitProperties()
 {
@@ -635,7 +649,10 @@ void USoundWave::FinishDestroy()
 
 	CleanupCachedRunningPlatformData();
 #if WITH_EDITOR
-	ClearAllCachedCookedPlatformData();
+	if (!GExitPurge)
+	{
+		ClearAllCachedCookedPlatformData();
+	}
 #endif
 
 	IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundWave(this);
@@ -785,6 +802,10 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->ReverbSendLevelRange = ParseParams.ReverbSendLevelRange;
 		WaveInstance->ReverbSendLevelDistanceRange = ParseParams.ReverbSendLevelDistanceRange;
 
+		// Get the envelope follower settings
+		WaveInstance->EnvelopeFollowerAttackTime = ParseParams.EnvelopeFollowerAttackTime;
+		WaveInstance->EnvelopeFollowerReleaseTime = ParseParams.EnvelopeFollowerReleaseTime;
+
 		// Copy over the submix sends.
 		WaveInstance->SoundSubmix = ParseParams.SoundSubmix;
 		WaveInstance->SoundSubmixSends = ParseParams.SoundSubmixSends;
@@ -795,7 +816,10 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 			WaveInstance->bOutputToBusOnly = ParseParams.bOutputToBusOnly;
 		}
 
-		WaveInstance->SoundSourceBusSends = ParseParams.SoundSourceBusSends;
+		for (int32 BusSendType = 0; BusSendType < (int32)EBusSendType::Count; ++BusSendType)
+		{
+			WaveInstance->SoundSourceBusSends[BusSendType] = ParseParams.SoundSourceBusSends[BusSendType];
+		}
 
 		if (AudioDevice->IsHRTFEnabledForAll() && ParseParams.SpatializationMethod == ESoundSpatializationAlgorithm::SPATIALIZATION_Default)
 		{
@@ -811,10 +835,12 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->OcclusionPluginSettings = ParseParams.OcclusionPluginSettings;
 		WaveInstance->ReverbPluginSettings = ParseParams.ReverbPluginSettings;
 
+		WaveInstance->bIsAmbisonics = bIsAmbisonics;
+
 		bool bAddedWaveInstance = false;
-		// For now, we must virtualize sounds if we are supposed to handle subtitles, because otherwise the subtitles never play.
-		// That needs to change in the future, because there are still reasons a sound (and thus its subtitle) may not play.
-		// But for now at least that makes it possible handle virtualizing properly.
+
+		// Recompute the virtualizability here even though we did it up-front in the active sound parse.
+		// This is because an active sound can generate multiple sound waves, not all of them are necessarily virtualizable.
 		bool bHasSubtitles = ActiveSound.bHandleSubtitles && (ActiveSound.bHasExternalSubtitles || (Subtitles.Num() > 0));
 		if (WaveInstance->GetVolumeWithDistanceAttenuation() > KINDA_SMALL_NUMBER || ((bVirtualizeWhenSilent || bHasSubtitles) && AudioDevice->VirtualSoundsEnabled()))
 		{
@@ -921,19 +947,23 @@ bool USoundWave::GetChunkData(int32 ChunkIndex, uint8** OutChunkData)
 {
 	if (RunningPlatformData->TryLoadChunk(ChunkIndex, OutChunkData) == false)
 	{
-		// Unable to load chunks from the cache. Rebuild the sound and try again.
-		UE_LOG(LogAudio, Warning, TEXT("GetChunkData failed for %s"), *GetPathName());
 #if WITH_EDITORONLY_DATA
+		// Unable to load chunks from the cache. Rebuild the sound and attempt to recache it.
+		UE_LOG(LogAudio, Display, TEXT("GetChunkData failed, rebuilding %s"), *GetPathName());
+
 		ForceRebuildPlatformData();
 		if (RunningPlatformData->TryLoadChunk(ChunkIndex, OutChunkData) == false)
 		{
-			UE_LOG(LogAudio, Error, TEXT("Failed to build sound %s."), *GetPathName());
+			UE_LOG(LogAudio, Display, TEXT("Failed to build sound %s."), *GetPathName());
 		}
 		else
 		{
 			// Succeeded after rebuilding platform data
 			return true;
 		}
+#else
+		// Failed to find the SoundWave chunk in the cooked package.
+		UE_LOG(LogAudio, Warning, TEXT("GetChunkData failed while streaming. Ensure the following file is cooked: %s"), *GetPathName());
 #endif // #if WITH_EDITORONLY_DATA
 		return false;
 	}

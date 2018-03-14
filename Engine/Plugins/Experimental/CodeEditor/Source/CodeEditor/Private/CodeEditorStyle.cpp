@@ -1,17 +1,16 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CodeEditorStyle.h"
 #include "Styling/SlateStyleRegistry.h"
 #include "Styling/SlateTypes.h"
-
+#include "Styling/CoreStyle.h"
 
 TSharedPtr< FSlateStyleSet > FCodeEditorStyle::StyleSet = nullptr;
 
 #define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush( StyleSet->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
 #define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush( StyleSet->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
 #define BORDER_BRUSH( RelativePath, ... ) FSlateBorderBrush( StyleSet->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
-#define TTF_FONT( RelativePath, ... ) FSlateFontInfo( StyleSet->RootToContentDir( RelativePath, TEXT(".ttf") ), __VA_ARGS__ )
-#define OTF_FONT( RelativePath, ... ) FSlateFontInfo( StyleSet->RootToContentDir( RelativePath, TEXT(".otf") ), __VA_ARGS__ )
+#define DEFAULT_FONT(...) FCoreStyle::GetDefaultFontStyle(__VA_ARGS__)
 
 // Const icon sizes
 static const FVector2D Icon8x8(8.0f, 8.0f);
@@ -54,7 +53,7 @@ void FCodeEditorStyle::Initialize()
 		StyleSet->Set("CodeEditor.SaveAll.Small", new IMAGE_BRUSH("UI/SaveAll_40x", Icon16x16));
 	}
 
-	const FSlateFontInfo Consolas10  = TTF_FONT("Font/DroidSansMono", 9);
+	const FSlateFontInfo Consolas10  = DEFAULT_FONT("Mono", 9);
 
 	const FTextBlockStyle NormalText = FTextBlockStyle()
 		.SetFont(Consolas10)
@@ -103,8 +102,7 @@ void FCodeEditorStyle::Initialize()
 #undef IMAGE_BRUSH
 #undef BOX_BRUSH
 #undef BORDER_BRUSH
-#undef TTF_FONT
-#undef OTF_FONT
+#undef DEFAULT_FONT
 
 void FCodeEditorStyle::Shutdown()
 {

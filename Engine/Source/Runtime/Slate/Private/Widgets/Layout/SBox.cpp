@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/Layout/SBox.h"
 #include "Types/PaintArgs.h"
@@ -39,6 +39,8 @@ void SBox::SetContent(const TSharedRef< SWidget >& InContent)
 	[
 		InContent
 	];
+
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void SBox::SetHAlign(EHorizontalAlignment HAlign)

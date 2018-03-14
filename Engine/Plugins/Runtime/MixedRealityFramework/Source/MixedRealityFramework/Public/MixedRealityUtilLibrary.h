@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,9 +27,8 @@ public:
 public:
 	static APawn* FindAssociatedPlayerPawn(AActor* ActorInst);
 	static USceneComponent* FindAssociatedHMDRoot(AActor* ActorInst);
+
 	static USceneComponent* GetHMDRootComponent(const UObject* WorldContextObject, int32 PlayerIndex);
-	static USceneComponent* GetHMDRootComponentFromPlayer(const APlayerController* Player);
+	static USceneComponent* GetHMDRootComponent(const APawn* PlayerPawn);
 	static UCameraComponent* GetHMDCameraComponent(const APawn* PlayerPawn);
-	static FTransform GetVRDeviceToWorldTransform(const UObject* WorldContextObject, int32 PlayerIndex);
-	static FTransform GetVRDeviceToWorldTransformFromPlayer(const APlayerController* Player);
 };

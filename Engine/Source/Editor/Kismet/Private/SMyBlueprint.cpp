@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SMyBlueprint.h"
@@ -573,7 +573,7 @@ void SMyBlueprint::OnCategoryNameCommitted(const FText& InNewText, ETextCommit::
 					// Don't allow changing the category of a graph who's parent is not the current Blueprint
 					if(GraphAction && !FBlueprintEditorUtils::IsPaletteActionReadOnly(Actions[i], BlueprintEditorPtr.Pin()) && FBlueprintEditorUtils::FindBlueprintForGraph(GraphAction->EdGraph) == GetBlueprintObj())
 					{
-						auto EntryNode = FBlueprintEditorUtils::GetEntryNode(GraphAction->EdGraph);
+						UK2Node_EditablePinBase* EntryNode = FBlueprintEditorUtils::GetEntryNode(GraphAction->EdGraph);
 						EntryNode->Modify();
 						if (UK2Node_FunctionEntry* FunctionEntryNode = Cast<UK2Node_FunctionEntry>(EntryNode))
 						{
@@ -945,10 +945,8 @@ struct FCreateEdGraphSchemaActionHelper
 	{
 		TArray<NodeType*> EventNodes;
 		EdGraph->GetNodesOfClass<NodeType>(EventNodes);
-		for (auto It = EventNodes.CreateConstIterator(); It; ++It)
+		for (NodeType* const EventNode : EventNodes)
 		{
-			NodeType* const EventNode = (*It);
-
 			const FText Tooltip = EventNode->GetTooltipText();
 			const FText Description = EventNode->GetNodeTitle(ENodeTitleType::EditableTitle);
 
@@ -1008,13 +1006,12 @@ void SMyBlueprint::GetLocalVariables(FGraphActionSort& SortList) const
 
 		// Search in all FunctionEntry nodes for their local variables
 		FText ActionCategory;
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		for (UK2Node_FunctionEntry* const FunctionEntry : FunctionEntryNodes)
 		{
 			for (const FBPVariableDescription& Variable : FunctionEntry->LocalVariables)
 			{
 				FText Category = Variable.Category;
-				if (Variable.Category.EqualTo(K2Schema->VR_DefaultCategory))
+				if (Variable.Category.EqualTo(UEdGraphSchema_K2::VR_DefaultCategory))
 				{
 					Category = FText::GetEmpty();
 				}
@@ -1023,7 +1020,7 @@ void SMyBlueprint::GetLocalVariables(FGraphActionSort& SortList) const
 				if (Func)
 				{
 					TSharedPtr<FEdGraphSchemaAction_K2LocalVar> NewVarAction = MakeShareable(new FEdGraphSchemaAction_K2LocalVar(Category, FText::FromName(Variable.VarName), FText::GetEmpty(), 0, NodeSectionID::LOCAL_VARIABLE));
-					NewVarAction->SetVariableInfo(Variable.VarName, Func, Variable.VarType.PinCategory == K2Schema->PC_Boolean);
+					NewVarAction->SetVariableInfo(Variable.VarName, Func, Variable.VarType.PinCategory == UEdGraphSchema_K2::PC_Boolean);
 					SortList.AddAction(NewVarAction);
 				}
 			}
@@ -1097,7 +1094,7 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 		FText PropertyCategory = FObjectEditorUtils::GetCategoryText(Property);
 		const FString UserCategoryName = FEditorCategoryUtils::GetCategoryDisplayString( PropertyCategory.ToString() );
 
-		if (CategoryName.EqualTo(FText::FromString(BlueprintObj->GetName())) || CategoryName.EqualTo(K2Schema->VR_DefaultCategory))
+		if (CategoryName.EqualTo(FText::FromString(BlueprintObj->GetName())) || CategoryName.EqualTo(UEdGraphSchema_K2::VR_DefaultCategory))
 		{
 			CategoryName = FText::GetEmpty();		// default, so place in 'non' category
 			PropertyCategory = FText::GetEmpty();
@@ -1162,7 +1159,7 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 		}
 
 		//@TODO: Should be a bit more generic (or the AnimGraph shouldn't be stored as a FunctionGraph...)
-		const bool bIsConstructionScript = Graph->GetFName() == K2Schema->FN_UserConstructionScript;
+		const bool bIsConstructionScript = Graph->GetFName() == UEdGraphSchema_K2::FN_UserConstructionScript;
 		int32 SectionID = Graph->IsA<UAnimationGraph>() ? NodeSectionID::GRAPH : NodeSectionID::FUNCTION;
 		TSharedPtr<FEdGraphSchemaAction_K2Graph> NewFuncAction = MakeShareable(new FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Function, FunctionCategory, DisplayInfo.PlainName, DisplayInfo.Tooltip, bIsConstructionScript ? 2 : 1, SectionID));
 		NewFuncAction->FuncName = Graph->GetFName();
@@ -1452,11 +1449,11 @@ FReply SMyBlueprint::OnActionDragged( const TArray< TSharedPtr<FEdGraphSchemaAct
 				};
 
 				bool bIsBlueprintCallableFunction = false;
-				if (FuncAction->EdGraph != NULL)
+				if (FuncAction->EdGraph)
 				{
-					for (auto It = FuncAction->EdGraph->Nodes.CreateConstIterator(); It; ++It)
+					for (UEdGraphNode* GraphNode : FuncAction->EdGraph->Nodes)
 					{
-						if (UK2Node_FunctionEntry* Node = Cast<UK2Node_FunctionEntry>(*It))
+						if (UK2Node_FunctionEntry* Node = Cast<UK2Node_FunctionEntry>(GraphNode))
 						{
 							// See whether this node is a blueprint callable function
 							if (Node->GetFunctionFlags() & (FUNC_BlueprintCallable|FUNC_BlueprintPure))
@@ -1798,7 +1795,7 @@ FText SMyBlueprint::GetGraphCategory(UEdGraph* InGraph) const
 	FText ReturnCategory;
 
 	// Pull the category from the required metadata based on the types of nodes we can discover in the graph
-	auto EntryNode = FBlueprintEditorUtils::GetEntryNode(InGraph);
+	UK2Node_EditablePinBase* EntryNode = FBlueprintEditorUtils::GetEntryNode(InGraph);
 	if (UK2Node_FunctionEntry* FunctionEntryNode = Cast<UK2Node_FunctionEntry>(EntryNode))
 	{
 		ReturnCategory = FunctionEntryNode->MetaData.Category;
@@ -1809,8 +1806,7 @@ FText SMyBlueprint::GetGraphCategory(UEdGraph* InGraph) const
 	}
 
 	// Empty the category if it's default, we don't want to display the "default" category and items will just appear without a category
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	if(ReturnCategory.EqualTo(K2Schema->VR_DefaultCategory))
+	if(ReturnCategory.EqualTo(UEdGraphSchema_K2::VR_DefaultCategory))
 	{
 		ReturnCategory = FText::GetEmpty();
 	}
@@ -1996,7 +1992,7 @@ void SMyBlueprint::OnFocusNode()
 	FEdGraphSchemaAction_K2InputAction* InputAction = SelectionAsInputAction();
 	if (EventAction || InputAction)
 	{
-		auto Node = EventAction ? EventAction->NodeTemplate : InputAction->NodeTemplate;
+		UK2Node* Node = EventAction ? EventAction->NodeTemplate : InputAction->NodeTemplate;
 		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(Node);
 	}
 }
@@ -2212,9 +2208,8 @@ void SMyBlueprint::OnDeleteGraph(UEdGraph* InGraph, EEdGraphSchemaAction_K2Graph
 			FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Composite>(GetBlueprintObj(), AllCompositeNodes);
 
 			const bool bDontRecompile = true;
-			for (auto CompIt = AllCompositeNodes.CreateIterator(); CompIt; ++CompIt)
+			for (UK2Node_Composite* CompNode : AllCompositeNodes)
 			{
-				UK2Node_Composite* CompNode = *CompIt;
 				if (CompNode->BoundGraph == InGraph)
 				{
 					FBlueprintEditorUtils::RemoveNode(GetBlueprintObj(), CompNode, bDontRecompile);
@@ -2242,7 +2237,7 @@ void SMyBlueprint::OnDeleteGraph(UEdGraph* InGraph, EEdGraphSchemaAction_K2Graph
 
 UEdGraph* SMyBlueprint::GetFocusedGraph() const
 {
-	auto BlueprintEditorPtrPinned = BlueprintEditorPtr.Pin();
+	TSharedPtr<FBlueprintEditor> BlueprintEditorPtrPinned = BlueprintEditorPtr.Pin();
 	if( BlueprintEditorPtrPinned.IsValid() )
 	{
 		return BlueprintEditorPtrPinned->GetFocusedGraph();
@@ -2261,7 +2256,7 @@ void SMyBlueprint::OnObjectPropertyChanged(UObject* InObject, FPropertyChangedEv
 
 bool SMyBlueprint::IsEditingMode() const
 {
-	auto BlueprintEditorSPtr = BlueprintEditorPtr.Pin();
+	TSharedPtr<FBlueprintEditor> BlueprintEditorSPtr = BlueprintEditorPtr.Pin();
 	return BlueprintEditorSPtr.IsValid() && BlueprintEditorSPtr->InEditingMode();
 }
 
@@ -2669,13 +2664,11 @@ void SMyBlueprint::OnResetItemFilter()
 
 void SMyBlueprint::EnsureLastPinTypeValid()
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-
 	LastPinType.bIsWeakPointer = false;
 	LastFunctionPinType.bIsWeakPointer = false;
 
-	const bool bLastPinTypeValid = (Schema->PC_Struct != LastPinType.PinCategory) || LastPinType.PinSubCategoryObject.IsValid();
-	const bool bLastFunctionPinTypeValid = (Schema->PC_Struct != LastFunctionPinType.PinCategory) || LastFunctionPinType.PinSubCategoryObject.IsValid();
+	const bool bLastPinTypeValid = (UEdGraphSchema_K2::PC_Struct != LastPinType.PinCategory) || LastPinType.PinSubCategoryObject.IsValid();
+	const bool bLastFunctionPinTypeValid = (UEdGraphSchema_K2::PC_Struct != LastFunctionPinType.PinCategory) || LastFunctionPinType.PinSubCategoryObject.IsValid();
 	const bool bConstType = LastPinType.bIsConst || LastFunctionPinType.bIsConst;
 	if (!bLastPinTypeValid || !bLastFunctionPinTypeValid || bConstType)
 	{
@@ -2685,10 +2678,8 @@ void SMyBlueprint::EnsureLastPinTypeValid()
 
 void SMyBlueprint::ResetLastPinType()
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-
 	LastPinType.ResetToDefaults();
-	LastPinType.PinCategory = Schema->PC_Boolean;
+	LastPinType.PinCategory = UEdGraphSchema_K2::PC_Boolean;
 	LastFunctionPinType = LastPinType;
 }
 

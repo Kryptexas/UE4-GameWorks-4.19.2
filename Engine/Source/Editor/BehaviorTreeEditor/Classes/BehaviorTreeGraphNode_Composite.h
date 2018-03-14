@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,6 +13,8 @@ class UBehaviorTreeGraphNode_Composite : public UBehaviorTreeGraphNode
 	GENERATED_UCLASS_BODY()
 	
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FText GetDescription() const override;
+	virtual FText GetTooltipText() const override;
 	virtual bool RefreshNodeClass() override{ return false; }
 
 	/** Gets a list of actions that can be done to this particular node */

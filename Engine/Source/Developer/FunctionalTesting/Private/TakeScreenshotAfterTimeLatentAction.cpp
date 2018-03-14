@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "TakeScreenshotAfterTimeLatentAction.h"
 #include "AutomationBlueprintFunctionLibrary.h"
@@ -38,9 +38,10 @@ void FTakeScreenshotAfterTimeLatentAction::UpdateOperation(FLatentResponse& Resp
 			SecondsRemaining -= Response.ElapsedTime();
 			if ( SecondsRemaining <= 0.0f )
 			{
+				UObject* Caller = CallbackTarget.IsValid() ? CallbackTarget.Get() : nullptr;
 				FAutomationTestFramework::Get().OnScreenshotTakenAndCompared.AddRaw(this, &FTakeScreenshotAfterTimeLatentAction::OnScreenshotTakenAndCompared);
 
-				if ( UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(nullptr, ScreenshotName, Options) )
+				if ( UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(Caller, ScreenshotName, Options) )
 				{
 					IssuedScreenshotCapture = true;
 				}

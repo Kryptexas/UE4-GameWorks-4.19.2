@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,7 +8,7 @@
 #include "Widgets/SWidget.h"
 #include "Framework/MultiBox/MultiBoxExtender.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
-#include "Editor/UnrealEd/Public/SViewportToolBar.h"
+#include "SViewportToolBar.h"
 
 // This is the interface that the host of a SCommonEditorViewportToolbarBase must implement
 class ICommonEditorViewportToolbarInfoProvider
@@ -127,7 +127,6 @@ private:
 	 */
 	virtual TSharedRef<SWidget> GenerateShowMenu() const;
 
-
 	/**
 	 * Returns the initial visibility of the view mode options widget 
 	 *
@@ -151,6 +150,17 @@ private:
 	float OnGetFOVValue() const;
 
 	/**
+	* @return The widget containing the screen percentage.
+	*/
+	TSharedRef<SWidget> GenerateScreenPercentageMenu() const;
+
+	/** Called by the ScreenPercentage slider */
+	int32 OnGetScreenPercentageValue() const;
+
+	/** Called by the ScreenPercentage slider */
+	bool OnScreenPercentageIsEnabled() const;
+
+	/**
 	 * @return The widget containing the far view plane slider.
 	 */
 	TSharedRef<SWidget> GenerateFarViewPlaneMenu() const;
@@ -170,6 +180,12 @@ protected:
 
 	void CreateViewMenuExtensions(FMenuBuilder& MenuBuilder);
 
+	/** Extension allowing derived classes to add to the options menu.*/	
+	virtual void ExtendOptionsMenu(FMenuBuilder& OptionsMenuBuilder) const {}
+
+	/** Extension allowing derived classes to add to left-aligned portion of the toolbar slots.*/
+	virtual void ExtendLeftAlignedToolbarSlots(TSharedPtr<SHorizontalBox> MainBoxPtr, TSharedPtr<SViewportToolBar> ParentToolBarPtr) const {}
+
 protected:
 	// Returns the info provider for this viewport
 	ICommonEditorViewportToolbarInfoProvider& GetInfoProvider() const;
@@ -183,6 +199,9 @@ protected:
 
 	/** Called when the FOV slider is adjusted in the perspective viewport */
 	virtual void OnFOVValueChanged(float NewValue) const;
+
+	/** Called when the ScreenPercentage slider is adjusted in the viewport */
+	void OnScreenPercentageValueChanged(int32 NewValue);
 
 private:
 	/** The viewport that we are in */

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244089
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:1.必要なプロジェクト設定
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
@@ -21,7 +21,7 @@ tags:UMG UI Designer
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:note]
 このチュートリアルでは **スターター コンテンツ** を有効にして **Blueprint First Person** テンプレートを使用します。新規プロジェクトの作成およびテンプレートの使用方法がわからない場合は、 [](Engine/Basics/Projects/Browser) ページで詳しい情報をご覧ください。 
@@ -136,6 +136,6 @@ tags:UMG UI Designer
 
 次のステップでは、HUD のヘルス、エネルギー、弾薬の変数の表示をセットアップし、ゲーム内で動作するようにします。 
 
-%Steps%
+
 
 

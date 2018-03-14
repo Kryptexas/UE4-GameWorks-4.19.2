@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "KismetPins/SGraphPinObject.h"
 #include "Modules/ModuleManager.h"
@@ -152,6 +152,9 @@ FReply SGraphPinObject::OnClickUse()
 		UObject* SelectedObject = GEditor->GetSelectedObjects()->GetTop(ObjectClass);
 		if(SelectedObject != NULL)
 		{
+			const FScopedTransaction Transaction(NSLOCTEXT("GraphEditor", "ChangeObjectPinValue", "Change Object Pin Value"));
+			GraphPinObj->Modify();
+
 			GraphPinObj->GetSchema()->TrySetDefaultObject(*GraphPinObj, SelectedObject);
 		}
 	}
@@ -250,7 +253,7 @@ FText SGraphPinObject::GetValue() const
 	{
 		if (GraphPinObj->GetSchema()->IsSelfPin(*GraphPinObj))
 		{
-			Value =  FText::FromString(GraphPinObj->PinName);
+			Value =  FText::FromName(GraphPinObj->PinName);
 		}
 		else
 		{

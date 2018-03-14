@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using System.IO;
 using UnrealBuildTool;
 
@@ -58,7 +58,7 @@ namespace UnrealBuildTool.Rules
 			var LuaLibPath = Path.Combine(LuaLibDirectory, "Lua.lib");
 			if (File.Exists(LuaLibPath))
 			{					
-				Definitions.Add("WITH_LUA=1");
+				PublicDefinitions.Add("WITH_LUA=1");
 
 				// Path to Lua include files
 				var IncludePath = Path.GetFullPath(Path.Combine(LuaPath, "Include"));
@@ -73,7 +73,7 @@ namespace UnrealBuildTool.Rules
 			else
 			{
 				Log.TraceVerbose("LUA Integration NOT enabled");
-				Definitions.Add("WITH_LUA=0");
+				PublicDefinitions.Add("WITH_LUA=0");
 			}
 		}
 	}

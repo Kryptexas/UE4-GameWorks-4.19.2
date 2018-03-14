@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /** 
  * ChartCreation
@@ -263,16 +263,18 @@ void FDumpFPSChartToEndpoint::DumpChart(double InWallClockTimeFromStartOfChartin
 
 struct FDumpFPSChartToAnalyticsArray : public FDumpFPSChartToEndpoint
 {
-	FDumpFPSChartToAnalyticsArray(const FPerformanceTrackingChart& InChart, TArray<FAnalyticsEventAttribute>& InParamArray, bool bShouldIncludeClientHWInfo)
+	FDumpFPSChartToAnalyticsArray(const FPerformanceTrackingChart& InChart, TArray<FAnalyticsEventAttribute>& InParamArray, bool bShouldIncludeClientHWInfo, bool bIncludeHistograms)
 		: FDumpFPSChartToEndpoint(InChart)
 		, ParamArray(InParamArray)
 		, bIncludeClientHWInfo(bShouldIncludeClientHWInfo)
+		, bIncludeHistogramInfo(bIncludeHistograms)
 	{
 	}
 
 protected:
 	TArray<FAnalyticsEventAttribute>& ParamArray;
 	bool bIncludeClientHWInfo;
+	bool bIncludeHistogramInfo;
 protected:
 	virtual void PrintToEndpoint(const FString& Text) override
 	{
@@ -280,30 +282,36 @@ protected:
 
 	virtual void HandleFPSBucket(float BucketTimePercentage, float BucketFramePercentage, double StartFPS, double EndFPS) override
 	{
-		const int32 IntegralStartFPS = (int32)StartFPS;
-		const int32 IntegralEndFPS = (EndFPS == FLT_MAX) ? 999 : (int32)EndFPS;
-		check((IntegralStartFPS != IntegralEndFPS) && (IntegralStartFPS < IntegralEndFPS));
-		ParamArray.Add(FAnalyticsEventAttribute(FString::Printf(TEXT("Bucket_%i_%i_TimePercentage"), IntegralStartFPS, IntegralEndFPS), BucketTimePercentage));
+		if (bIncludeHistogramInfo)
+		{
+			const int32 IntegralStartFPS = (int32)StartFPS;
+			const int32 IntegralEndFPS = (EndFPS == FLT_MAX) ? 999 : (int32)EndFPS;
+			check((IntegralStartFPS != IntegralEndFPS) && (IntegralStartFPS < IntegralEndFPS));
+			ParamArray.Add(FAnalyticsEventAttribute(FString::Printf(TEXT("Bucket_%i_%i_TimePercentage"), IntegralStartFPS, IntegralEndFPS), BucketTimePercentage));
+		}
 	}
 
 	virtual void HandleHitchBucket(const FHistogram& HitchHistogram, int32 BucketIndex) override
 	{
-		const double UpperBoundSecs = HitchHistogram.GetBinUpperBound(BucketIndex);
-		const int32 LowerBoundMS = (int32)(HitchHistogram.GetBinLowerBound(BucketIndex) * 1000.0);
-		const int32 UpperBoundMS = (int32)(UpperBoundSecs * 1000.0);
-
-		FString ParamNameBase;
-		if (UpperBoundSecs == FLT_MAX)
+		if (bIncludeHistogramInfo)
 		{
-			ParamNameBase = FString::Printf(TEXT("Hitch_%i_Plus_Hitch"), LowerBoundMS);
-		}
-		else
-		{
-			ParamNameBase = FString::Printf(TEXT("Hitch_%i_%i_Hitch"), LowerBoundMS, UpperBoundMS);
-		}
+			const double UpperBoundSecs = HitchHistogram.GetBinUpperBound(BucketIndex);
+			const int32 LowerBoundMS = (int32)(HitchHistogram.GetBinLowerBound(BucketIndex) * 1000.0);
+			const int32 UpperBoundMS = (int32)(UpperBoundSecs * 1000.0);
 
-		ParamArray.Add(FAnalyticsEventAttribute(ParamNameBase + TEXT("Count"), HitchHistogram.GetBinObservationsCount(BucketIndex)));
-		ParamArray.Add(FAnalyticsEventAttribute(ParamNameBase + TEXT("Time"), HitchHistogram.GetBinObservationsSum(BucketIndex)));
+			FString ParamNameBase;
+			if (UpperBoundSecs == FLT_MAX)
+			{
+				ParamNameBase = FString::Printf(TEXT("Hitch_%i_Plus_Hitch"), LowerBoundMS);
+			}
+			else
+			{
+				ParamNameBase = FString::Printf(TEXT("Hitch_%i_%i_Hitch"), LowerBoundMS, UpperBoundMS);
+			}
+
+			ParamArray.Add(FAnalyticsEventAttribute(ParamNameBase + TEXT("Count"), HitchHistogram.GetBinObservationsCount(BucketIndex)));
+			ParamArray.Add(FAnalyticsEventAttribute(ParamNameBase + TEXT("Time"), HitchHistogram.GetBinObservationsSum(BucketIndex)));
+		}
 	}
 
 
@@ -507,6 +515,7 @@ protected:
 		// Update non- bucket stats.
 		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_MAPNAME"), *FString::Printf(TEXT("%s"), *MapName), ESearchCase::CaseSensitive);
 		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_CHANGELIST"), *FString::Printf(TEXT("%i"), GetChangeListNumberForPerfTesting()), ESearchCase::CaseSensitive);
+		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_BUILDCONFIG"), EBuildConfigurations::ToString(FApp::GetBuildConfiguration()), ESearchCase::CaseSensitive);
 		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_DATESTAMP"), *FString::Printf(TEXT("%s"), *FDateTime::Now().ToString()), ESearchCase::CaseSensitive);
 
 		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_OS"), *FString::Printf(TEXT("%s %s"), *OSMajor, *OSMinor), ESearchCase::CaseSensitive);
@@ -716,7 +725,7 @@ void FPerformanceTrackingChart::DumpChartsToLogFile(double WallClockElapsed, con
 }
 #endif
 
-void FPerformanceTrackingChart::DumpChartToAnalyticsParams(const FString& InMapName, TArray<struct FAnalyticsEventAttribute>& InParamArray, bool bIncludeClientHWInfo) const
+void FPerformanceTrackingChart::DumpChartToAnalyticsParams(const FString& InMapName, TArray<struct FAnalyticsEventAttribute>& InParamArray, bool bIncludeClientHWInfo, bool bIncludeHistograms) const
 {
 	// Iterate over all buckets, gathering total frame count and cumulative time.
 	const double TotalTime = FramerateHistogram.GetSumOfAllMeasures();
@@ -725,7 +734,7 @@ void FPerformanceTrackingChart::DumpChartToAnalyticsParams(const FString& InMapN
 	if ((TotalTime > 0.f) && (NumFrames > 0))
 	{
 		// Dump all the basic stats
-		FDumpFPSChartToAnalyticsArray AnalyticsEndpoint(*this, InParamArray, bIncludeClientHWInfo);
+		FDumpFPSChartToAnalyticsArray AnalyticsEndpoint(*this, InParamArray, bIncludeClientHWInfo, bIncludeHistograms);
 		AnalyticsEndpoint.DumpChart(AccumulatedChartTime, InMapName);
 
 		if (bIncludeClientHWInfo)
@@ -1005,11 +1014,18 @@ IPerformanceDataConsumer::FFrameData FPerformanceTrackingSystem::AnalyzeFrame(fl
 	const double TrueDeltaSeconds = DeltaSeconds;
 
 	FrameData.TrueDeltaSeconds = DeltaSeconds;
+	double ThisFrameIdleTime = FApp::GetIdleTime();
+	FrameData.IdleSeconds = ThisFrameIdleTime;
+	FrameData.IdleOvershootSeconds = FApp::GetIdleTimeOvershoot();
+
+	extern double GTickFlushGameDriverTimeSeconds;
+	FrameData.GameDriverTickFlushTimeSeconds = GTickFlushGameDriverTimeSeconds;
+	extern double GTickFlushDemoDriverTimeSeconds;
+	FrameData.DemoDriverTickFlushTimeSeconds = GTickFlushDemoDriverTimeSeconds;
 
 	// subtract idle time (FPS chart is ticked after UpdateTimeAndHandleMaxTickRate(), so we know time we spent sleeping this frame)
 	if (ShouldExcludeIdleTimeFromCharts())
 	{
-		double ThisFrameIdleTime = FApp::GetIdleTime();
 		if (LIKELY(ThisFrameIdleTime < DeltaSeconds))
 		{
 			DeltaSeconds -= ThisFrameIdleTime;
@@ -1039,6 +1055,7 @@ IPerformanceDataConsumer::FFrameData FPerformanceTrackingSystem::AnalyzeFrame(fl
 		MaxThreadTimeValue = FMath::Max3<uint32>( GGameThreadTime, LocalRenderThreadTime, PossibleGPUTime );
 	}
 
+	FrameData.IdleSeconds = FApp::GetIdleTime();
 	FrameData.GameThreadTimeSeconds = FPlatformTime::ToSeconds(GGameThreadTime);
 	FrameData.RenderThreadTimeSeconds = FPlatformTime::ToSeconds(LocalRenderThreadTime);
 	FrameData.GPUTimeSeconds = FPlatformTime::ToSeconds(LocalGPUFrameTime);
@@ -1299,6 +1316,7 @@ L"<TD CLASS=\"rowHeaderDateStamp\"><DIV CLASS=\"rowHeaderValue\">datestamp</DIV>
 L"<TD CLASS=\"rowHeaderOS\"><DIV CLASS=\"rowHeaderValue\">OS</DIV></TD>\n"
 L"<TD CLASS=\"rowHeaderCPU\"><DIV CLASS=\"rowHeaderValue\">CPU</DIV></TD>\n"
 L"<TD CLASS=\"rowHeaderGPU\"><DIV CLASS=\"rowHeaderValue\">GPU</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderBuildConfig\"><DIV CLASS=\"rowHeaderValue\">BuildConfig</DIV></TD>\n"
 L"<TD CLASS=\"rowHeaderSettingsRes\"><DIV CLASS=\"rowHeaderValue\">Res Qual</DIV></TD>\n"
 L"<TD CLASS=\"rowHeaderSettingsVD\"><DIV CLASS=\"rowHeaderValue\">View Dist Qual</DIV></TD>\n"
 L"<TD CLASS=\"rowHeaderSettingsAA\"><DIV CLASS=\"rowHeaderValue\">AA Qual</DIV></TD>\n"
@@ -1397,6 +1415,7 @@ L"<TD CLASS=\"rowEntryDateStamp\"><DIV>TOKEN_DATESTAMP</DIV></TD>\n"
 L"<TD CLASS=\"rowEntryOS\"><DIV>TOKEN_OS</DIV></TD>\n"
 L"<TD CLASS=\"rowEntryCPU\"><DIV>TOKEN_CPU</DIV></TD>\n"
 L"<TD CLASS=\"rowEntryGPU\"><DIV>TOKEN_GPU</DIV></TD>\n"
+L"<TD CLASS=\"rowEntryBuildConfig\"><DIV>TOKEN_BUILDCONFIG</DIV></TD>\n"
 L"<TD CLASS=\"rowEntrySettingsRes\"><DIV>TOKEN_SETTINGS_RES</DIV></TD>\n"
 L"<TD CLASS=\"rowEntrySettingsVD\"><DIV>TOKEN_SETTINGS_VD</DIV></TD>\n"
 L"<TD CLASS=\"rowEntrySettingsAA\"><DIV>TOKEN_SETTINGS_AA</DIV></TD>\n"

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_MultiGate.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -55,7 +55,7 @@ public:
 
 		// Create a term to store a bool that determines if we're in the first execution of the node or not
 		FBPTerminal* FirstRunTerm = Context.CreateLocalTerminal();
-		FirstRunTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Boolean;
+		FirstRunTerm->Type.PinCategory = UEdGraphSchema_K2::PC_Boolean;
 		FirstRunTerm->Source = Node;
 		FirstRunTerm->Name = BaseNetName + TEXT("_FirstRun");
 		FirstRunTermMap.Add(Node, FirstRunTerm);
@@ -65,7 +65,7 @@ public:
 		if (!GateNode || !GateNode->DataNode)
 		{
 			FBPTerminal* DataTerm = Context.CreateLocalTerminal();
-			DataTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Int;
+			DataTerm->Type.PinCategory = UEdGraphSchema_K2::PC_Int;
 			DataTerm->Source = Node;
 			DataTerm->Name = BaseNetName + TEXT("_Data");
 			DataTermMap.Add(Node, DataTerm);
@@ -77,7 +77,7 @@ public:
 		if (!FuncLocals.GenericBoolTerm)
 		{
 			FuncLocals.GenericBoolTerm = Context.CreateLocalTerminal();
-			FuncLocals.GenericBoolTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Boolean;
+			FuncLocals.GenericBoolTerm->Type.PinCategory = UEdGraphSchema_K2::PC_Boolean;
 			FuncLocals.GenericBoolTerm->Source = Node;
 			FuncLocals.GenericBoolTerm->Name = BaseNetName + TEXT("_ScratchBool");
 		}
@@ -86,7 +86,7 @@ public:
 		if (!FuncLocals.IndexTerm)
 		{
 			FuncLocals.IndexTerm = Context.CreateLocalTerminal();
-			FuncLocals.IndexTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Int;
+			FuncLocals.IndexTerm->Type.PinCategory = UEdGraphSchema_K2::PC_Int;
 			FuncLocals.IndexTerm->Source = Node;
 			FuncLocals.IndexTerm->Name = BaseNetName + TEXT("_ScratchIndex");
 		}
@@ -178,12 +178,12 @@ public:
 		// Create a literal pin that represents a -1 value
 		FBPTerminal* InvalidIndexTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
 		InvalidIndexTerm->bIsLiteral = true;
-		InvalidIndexTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Int;
+		InvalidIndexTerm->Type.PinCategory = UEdGraphSchema_K2::PC_Int;
 		InvalidIndexTerm->Name = TEXT("-1");
 
 		// Create a literal pin that represents a true value
 		FBPTerminal* TrueBoolTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
-		TrueBoolTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Boolean;
+		TrueBoolTerm->Type.PinCategory = UEdGraphSchema_K2::PC_Boolean;
 		TrueBoolTerm->bIsLiteral = true;
 		TrueBoolTerm->Name = TEXT("true");
 
@@ -191,7 +191,7 @@ public:
 		TArray<UEdGraphPin*> OutPins;
 		GateNode->GetOutPins(OutPins);
 		FBPTerminal* NumOutsTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
-		NumOutsTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Int;
+		NumOutsTerm->Type.PinCategory = UEdGraphSchema_K2::PC_Int;
 		NumOutsTerm->bIsLiteral = true;
 		NumOutsTerm->Name = FString::Printf(TEXT("%d"), OutPins.Num());
 
@@ -416,7 +416,7 @@ public:
 			// LiteralIndexTerm will be the right side of the == statemnt
 			FBPTerminal* LiteralIndexTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
 			LiteralIndexTerm->bIsLiteral = true;
-			LiteralIndexTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Int;
+			LiteralIndexTerm->Type.PinCategory = UEdGraphSchema_K2::PC_Int;
 			LiteralIndexTerm->Name = FString::Printf(TEXT("%d"), OutIdx);
 			// Set the params
 			IndexEqualityStatement.LHS = FuncLocals.GenericBoolTerm;
@@ -465,8 +465,8 @@ public:
 		// Create a local int for use in the equality call function below (LiteralTerm = the right hand side of the EqualEqual_IntInt or NotEqual_BoolBool statement)
 		FBPTerminal* LiteralStringTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
 		LiteralStringTerm->bIsLiteral = true;
-		LiteralStringTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_String;
-		LiteralStringTerm->Name = FString::Printf(*LOCTEXT("MultiGateNode IndexWarning", "MultiGate Node failed! Out of bounds indexing of the out pins. There are only %d outs available.").ToString(), OutPins.Num());
+		LiteralStringTerm->Type.PinCategory = UEdGraphSchema_K2::PC_String;
+		LiteralStringTerm->Name = FText::Format(LOCTEXT("MultiGateNode IndexWarningFmt", "MultiGate Node failed! Out of bounds indexing of the out pins. There are only {0} outs available."), OutPins.Num()).ToString();
 		PrintStatement.RHS.Add(LiteralStringTerm);
 		// Hook the IfNot statement's jump target to this statement
 		PrevIfIndexMatchesStatement->TargetLabel = &PrintStatement;
@@ -498,10 +498,10 @@ void UK2Node_MultiGate::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, TEXT("Reset"));
-	CreatePin(EGPD_Input, K2Schema->PC_Boolean, FString(), nullptr, TEXT("IsRandom"));
-	CreatePin(EGPD_Input, K2Schema->PC_Boolean, FString(), nullptr, TEXT("Loop"));
-	UEdGraphPin* IndexPin = CreatePin(EGPD_Input, K2Schema->PC_Int, FString(), nullptr, TEXT("StartIndex"));
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, TEXT("Reset"));
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Boolean, TEXT("IsRandom"));
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Boolean, TEXT("Loop"));
+	UEdGraphPin* IndexPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Int, TEXT("StartIndex"));
 	K2Schema->SetPinAutogeneratedDefaultValue(IndexPin, TEXT("-1"));
 }
 
@@ -510,10 +510,10 @@ void UK2Node_MultiGate::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>&
 	Super::ReallocatePinsDuringReconstruction(OldPins);
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, TEXT("Reset"));
-	CreatePin(EGPD_Input, K2Schema->PC_Boolean, FString(), nullptr, TEXT("IsRandom"));
-	CreatePin(EGPD_Input, K2Schema->PC_Boolean, FString(), nullptr, TEXT("Loop"));
-	UEdGraphPin* IndexPin = CreatePin(EGPD_Input, K2Schema->PC_Int, FString(), nullptr, TEXT("StartIndex"));
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, TEXT("Reset"));
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Boolean, TEXT("IsRandom"));
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Boolean, TEXT("Loop"));
+	UEdGraphPin* IndexPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Int, TEXT("StartIndex"));
 	K2Schema->SetPinAutogeneratedDefaultValue(IndexPin, TEXT("-1"));
 }
 
@@ -547,14 +547,12 @@ UEdGraphPin* UK2Node_MultiGate::GetStartIndexPin() const
 
 void UK2Node_MultiGate::GetOutPins(TArray<UEdGraphPin*>& OutPins) const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+	OutPins.Reset();
 
-	OutPins.Empty();
-
-	for (auto It = Pins.CreateConstIterator(); It; It++)
+	const TCHAR* OutStr(TEXT("Out"));
+	for (UEdGraphPin* Pin : Pins)
 	{
-		UEdGraphPin* Pin = (*It);
-		if (Pin->PinName.Left(3) == "Out")
+		if (Pin->PinName.ToString().StartsWith(OutStr))
 		{
 			OutPins.Add(Pin);
 		}
@@ -612,9 +610,9 @@ void UK2Node_MultiGate::GetClearAllBitsFunction(FName& FunctionName, UClass** Fu
 	*FunctionClass = UKismetNodeHelperLibrary::StaticClass();
 }
 
-FString UK2Node_MultiGate::GetPinNameGivenIndex(int32 Index) const
+FName UK2Node_MultiGate::GetPinNameGivenIndex(int32 Index) const
 {
-	return FString::Printf(TEXT("Out %d"), Index);
+	return *FString::Printf(TEXT("Out %d"), Index);
 }
 
 FNodeHandlingFunctor* UK2Node_MultiGate::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
@@ -634,15 +632,13 @@ void UK2Node_MultiGate::ExpandNode(class FKismetCompilerContext& CompilerContext
 	UEdGraphPin* ResetPin = GetResetPin();
 	if (ResetPin->LinkedTo.Num() > 0)
 	{
-		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
-
 		/////////////////////////////
 		// Temporary Variable node
 		/////////////////////////////
 
 		// Create the node
 		UK2Node_TemporaryVariable* TempVarNode = SourceGraph->CreateIntermediateNode<UK2Node_TemporaryVariable>();
-		TempVarNode->VariableType.PinCategory = Schema->PC_Int;
+		TempVarNode->VariableType.PinCategory = UEdGraphSchema_K2::PC_Int;
 		TempVarNode->AllocateDefaultPins();
 		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(TempVarNode, this);
 		// Give a reference of the variable node to the multi gate node

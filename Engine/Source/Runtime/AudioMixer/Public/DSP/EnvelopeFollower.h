@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -49,6 +49,9 @@ namespace Audio
 
 		// Processes the input audio stream and returns the envelope value.
 		float ProcessAudio(const float InAudioSample);
+
+		// Process the input audio stream in int16 format
+		int16 ProcessAudio(const int16 InAudioSample);
 
 		// Gets the current envelope value
 		float GetCurrentValue() const;

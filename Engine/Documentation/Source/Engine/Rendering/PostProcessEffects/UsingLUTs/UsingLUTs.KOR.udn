@@ -1,0 +1,209 @@
+﻿INTSourceChangelist:3782314
+Availability: Public
+Crumbs: %ROOT%
+Title: 컬러 그레이딩에 룩업 테이블(LUT) 사용
+Description: 언리얼 엔진 4 에서 컬러 그레이딩에 별도의 룩업 테이블을 만들어 사용하는 방법입니다.
+Type:how-to
+SkillLevel:Beginner
+Version:4.16
+Parent:Engine/Rendering/PostProcessEffects
+Related:Engine/Rendering/PostProcessEffects/ColorGrading
+Order:1000
+Tags:Post Process
+Topic-image:ColorGrading_Topic.png
+Social-image:ColorGrading_Overview.png
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+[VAR:spacer3]![](%ROOT%/spacer.png)(w:0 convert:false)[/VAR]
+
+
+![](Engine/Rendering/PostProcessEffects/ColorGrading/ColorGrading_Overview.png)
+
+
+[TOC(start:2 end:2)]
+
+룩업 테이블(LUT)은 Post Process Volume 에서 색 보정을 하는 데 사용할 수 있습니다. 1차원 (1D) 룩업 테이블을 셋 사용하는 대신, 3차원 (3D) 룩업 테이블을 하나 사용합니다. 
+그래야 보다 세련된 (채도감소(desaturation)같은) 색 변환이 가능하기 때문입니다.
+
+[REGION:imagetable]
+| ![Neutral LUT](RGBTable16x1.png)(w:350)  | ![Sepia Tone LUT](LUT_Sepia.png)(w:350) |
+| --- | --- |
+| 무채색 LUT | 세피아 톤 LUT |
+[/REGION]
+
+언리얼 엔진 4 (UE4)에 사용되는 룩업 테이블은 16x16x16 무채색 LUT 를 256x16 텍스처에 펼친(unwrap) 것입니다. 이 예제는 무채색 및 세피아 톤을 보여줍니다. 무채색 LUT 를 적용한다 해도 UE4 의 기본 씬에 아무런 변화가 보이지 않을 
+것이지만, 세피아 톤을 사용한다면 이런 화면이 나옵니다:
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Color Neutral LUT](LUT1.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Sepia Tone LUT](LUT4.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
+
+
+## LUT 텍스처 사용
+
+LUT 를 활용하려면, 다음 프로퍼티로 LUT 텍스처를 같이 사용하고자 하는 Post Process Volumn 에 할당하고 그 세기를 조절하면 됩니다.
+
+[REGION:raw]
+| 프로퍼티 | %spacer2% | 설명 |
+| -------- | --------- | ----------- |
+| **Color Grading LUT Intensity** || 컬러 그레이딩 LUT 세기 - 색 보정 효과를 제어하는 스케일 인수입니다. |
+| **Color Grading LUT** || 컬러 그레이딩 LUT - 색 보정의 룩업 테이블로 사용할 LUT 텍스처입니다. [INCLUDE:#ColorGradingLUT] |
+[/REGION]
+
+[COMMENT:none]
+
+[EXCERPT:ColorGradingLUT]
+[REGION:imagetable]
+| [INCLUDE:#colorgradingnone] | [INCLUDE:#colorgradinggreen] | [INCLUDE:#colorgradingred] |
+| ------ | ------ | ------ |
+| ![무채색 LUT](RGBTable16x1.png) | ![Greenish LUT](LUT_Greenish.png) | ![붉은빛 LUT](LUT_Reddish.png) |
+[/REGION:imagetable]
+[/EXCERPT:ColorGradingLUT]
+
+[EXCERPT:colorgradingnone]
+[REGION:lightbox]
+[![자연 씬](lut_none.png)(w:300)](lut_none.png)
+[/REGION]
+[REGION:caption]이미지를 클릭하면 원본을 확인합니다.[/REGION]
+[/EXCERPT:colorgradingnone]
+
+[EXCERPT:colorgradinggreen]
+[REGION:lightbox]
+[![초록빛 씬](lut_green.png)(w:300)](lut_green.png)
+[/REGION]
+[REGION:caption]이미지를 클릭하면 원본을 확인합니다.[/REGION]
+[/EXCERPT:colorgradinggreen]
+
+[EXCERPT:colorgradingred]
+[REGION:lightbox]
+[![붉은빛 씬](lut_red.png)(w:300)](lut_red.png)
+[/REGION]
+[REGION:caption]이미지를 클릭하면 원본을 확인합니다.[/REGION]
+[/EXCERPT:colorgradingred]
+
+[/COMMENT]
+
+## 자체 LUT 텍스처 제작
+
+자체 LUT 텍스처를 제작하려면, 먼저 (Photoshop 이나 GIMP 같은) 이미지 편집 프로그램이 필요한데, 캡처한 이미지의 색을 조정해야 합니다. 이 데모에서는 
+에픽게임즈 런처의 **학습** 탭에서 다운로드할 수 있는 **Sun Temple** (태양의 사원) 프로젝트를 사용하며, LUT 이미지 편집을 위해서는 Photoshop 을 선택했습니다. 이 예제에서 일부 용어는 
+Photoshop 전용일 수 있습니다.
+
+1. UE4 프로젝트에서, 씬을 대표하면서 색 보정을 적용했으면 하는 스크린 샷을 최소 한 장 찍습니다. 에디터의 [스크린샷 툴](Engine/Basics/Screenshots) 을 사용하여 
+씬 고해상도 이미지를 캡처할 수 있습니다.
+	
+	![](LUT1.png)(w:850)
+
+1. Photoshop 에서 스크린샷을 열고 오른편 Layers 패널 위에 위치한 ADjustments 탭에서 자체 **Adjustment** 레이어를 추가합니다. 여기서 이미지에 가할 수 있는 여러 유형의 변경 작업, 예를 들면 밝기와 대비, 색상, 채도 등의 아이콘을 찾을 수 있습니다.
+
+	[REGION:lightbox]
+	[![](LUT2.png)(w:850)](LUT2.png)
+	[/REGION]
+	[REGION:caption]이미지를 클릭하면 원본을 확인합니다.[/REGION]
+
+1. **Adjustments** 패널에서, 아무 아이콘이나 클릭하여 Layers 패널에 레이어를 추가합니다. 이 방법으로 최종 이미지에 특정한 색 보정을 가할 수 있습니다. 이 예제의 경우,
+**Vibrance** 와 **Brightness/Contrasts** 를 추가하여 조정했습니다. Layers 패널에 이와 같이 추가한 이후, 목록에서 선택하면 프로퍼티를 노출시킬 수 있는데, 만약 보이지 않으면 
+우클릭하고 **Edit Adjustment** 를 선택하여 노출시키면 됩니다.
+
+	![](LUT3.png)(w:850)
+
+1. 여기서 가하는 조정이 뷰포트에 보일 것입니다. 원하는 색 보정이 나올 때까니 Adjustment 레이어의 프로퍼티를 조정합니다. 아래 예제에서 
+Vibrance 와 Brightness/Contrast 를 조정하여 캡처한 스크린샷에 채도와 시각적 매력도를 높였습니다.
+	 
+	[OBJECT:ComparisonSlider]
+		[PARAM:before]
+		![이전](LUT1.png)(w:850)
+		[/PARAM]
+		[PARAM:after]
+		![이후](LUT4.png)(w:850)
+		[/PARAM]
+	[/OBJECT]
+
+1. Adjustment 레이어로 원하는 외양을 얻었으니, **Neutral Color LUT** (무채색 LUT) 사본을 별도로 열어줍니다. 스크린샷에 대해 만든 Adjustment 레이어를 끌어 무채색 LUT 에 놓을 수 있습니다.
+
+	[REGION:note]
+	사용할 수 있는 무채색 LUT 가 없는 경우, 이 글 처음에 있던 RGBTable16x1.png 이미지를 사용해도 됩니다.
+	* [LUT 텍스처 예제](RGBTable16x1.png) - 우클릭 후 **다른 이름으로 저장**
+	[/REGION]
+
+	스크린샷에서 Adjustment 레이어와 무채색 LUT 를 열어둔 채, Screenshot Layers 패널의 Adjustment 레이어를 끌어 무채색 LUT 이미지에 놓습니다. LUT 의 레이어 패널에 채워지는 것이 보일 것입니다.
+
+	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:videoid]
+		IFFgPsML1yc
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		100
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
+	[/OBJECT]
+	
+1. 이제 **File** > **Save As** 에서 색 보정이 있는 LUT 에 이름을 짓습니다.
+1. UE4 에서 색 보정된 LUT 를 에디터에 임포트합니다. 콘텐츠 브라우저에 **드래그 앤 드롭** 하거나, 콘텐츠 브라우저에 있는 **임포트** 버튼을 사용하면 됩니다.
+	
+	![](LUT5.png)(w:850)
+
+1. Post Process Volume 에서 LUT 를 사용한 최적의 결과를 얻기 위해서는, 텍스처 에디터에서 LUT 이미지를 열고 다음과 같이 프로퍼티 설정을 해줍니다:
+
+	[REGION:imagetable]
+	| ![](LUT6.png)(w:450) | [INCLUDE:#textureproperties] |
+	| --- | --- |
+	|||
+	[/REGION]
+
+1. 다음 Post Process Volume 에서 **디테일** 패널의 **Color Grading** > **Global** 섹션 아래 **Color Grading LUT** (컬러 그레이딩 LUT) 옵션을 켜고 LUT 를 적용합니다.
+	
+	[REGION:imagetable]
+	| ![](LUT8.png)(h:400) | [INCLUDE:#finalcomparison] |
+	| --- | --- |
+	|||
+	[/REGION]
+
+[COMMENT:none]
+-
+[INCLUDE:#textureproperties]
+[EXCERPT:textureproperties]
+* Mip Gen Settings: **NoMipMaps**
+* Texture Group: **Color Lookup Table**
+[/EXCERPT:textureproperties]
+
+[INCLUDE:#finalcomparison]
+
+[EXCERPT:finalcomparison]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![기본](LUT1.png)(h:400)
+	[/PARAM]
+	[PARAM:after]
+	![생성된 LUT 적용](LUT7.png)(h:400)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:finalcomparison]
+
+-
+[/COMMENT]
+
+## 추가 사항
+
+프로젝트에 LUT 를 사용할 때 알아둬야 하는 몇 가지 사항은 다음과 같습니다:
+
+* LUT 는 로우 다이내믹 레인지(LDR) 및 모니터에 출력된 sRGB 스페이스의 최종 이미지 컬러에서 일어납니다. 즉 당시 해당 디스플레이가 지원하는 데 대한 스냅샷일 뿐, 실제 출력되는 디스플레이에서 반드시 같아보이지는 않는다는 뜻입니다. 이 부분은 톤 매핑 전에 색 보정이 일어나도록 처리되는 [하이 다이내믹 레인지](Engine/Rendering/HDRDisplayOutput) (HDR) 와는 다릅니다. 그런 이유로, LUT 를 사용할 때는 언리얼 엔진 4.16 이상 버전에서 사용할 수 있는 최신 [컬러 그레이딩](Engine/Rendering/PostProcessEffects/ColorGrading) 색 보정 툴을 사용할 것을 추천합니다.
+
+* LUT 로 현재 디스플레이에서 프로젝트에 맞는 특정한 외양을 빠르게 타겟으로 삼고, 그 후 Post Process Volume 의 **Color Grading** 섹션에서 찾을 수 있는 색 보정 프로퍼티를 사용하여 최종 조정을 가해야 여러가지 유형의 디스플레이에서도 그 외양이 일관성있게 나옵니다.
+
+* LUT 를 사용하면 일관성이 손실되는데, 거기서 가해진 색 보정이 HDR 디스플레이에서 그대로 통하지 않기 때문입니다. Post Process Volume 의 컬러 그레이딩 프로퍼티 연산은 모두 **Scene Referred Linear Space** (씬 기준 선형 공간)에서 일어납니다. 즉 그 연산이 톤 매핑 이전에, 특정 디스플레이의 색 공간으로 변형되기 이전에 일어나기 때문에 색 일관성이 유지되는 것입니다. 예를 들어, sRGB 가 아닌 Rec709 를 사용하는 TV 로 출력하려는 경우, LUT 를 사용하면 색 보정이 넘어가지 않습니다. 이미지를 디스플레이에 출력한 이후 색 보정이 일어나기 때문입니다. 그런 이유로, LUT 는 색 보정 이미지 처리 방법 중 하나로써는 사용하지 않으려 하고 있습니다.

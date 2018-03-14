@@ -6,40 +6,7 @@ parent:Platforms/Mobile
 order:4
 type:how-to
 tags:mobile
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Platforms/Mobile/Leaderboards:title%](Platforms/Mobile/Leaderboards/topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Mobile/Leaderboards:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Mobile/Leaderboards:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Mobile/Leaderboards]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Platforms/Mobile/Leaderboards:title%](Platforms/Mobile/Leaderboards/topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/Mobile/Leaderboards:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/Mobile/Leaderboards:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/Mobile/Leaderboards]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:topic.png
 
 Leaderboards enable you to track and display high scores for players on a per-platform basis. This lets players compete for bragging rights and helps to build community.
 

@@ -52,7 +52,8 @@ prereq:Platforms/iOS/QuickStart
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsConfig]
 
 请查阅[推荐配置规格](GettingStarted/RecommendedSpecifications)页面以获得Windows系统需求的详细信息。
@@ -65,7 +66,8 @@ prereq:Platforms/iOS/QuickStart
 请查阅[推荐配置规格](GettingStarted/RecommendedSpecifications)页面以获得Mac系统需求的详细信息。 请注意如需部署到iOS 7.1，您需要安装XCode 5.1。 XCode在App Store可以[免费下载](https://itunes.apple.com/us/app/xcode/id497799835?mt=12)。
 
 [/EXCERPT:MacOSConfig]
--->
+
+[/COMMENT]
 
 
 
@@ -118,7 +120,8 @@ prereq:Platforms/iOS/QuickStart
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsSetup]
 
 如果您需要获得Windows上的凭证，您需要使用iPhone打包器，它的位置在`Engine\Binaries\DotNET\IOS`。
@@ -177,7 +180,8 @@ Already a Registered iOS Developer(已经注册为iOS开发者)标签包含了�
 
 
 [/EXCERPT:MacOSSetup]
--->
+
+[/COMMENT]
 
 最后，最重要的是每个人在它们的登录密码链中都具有相同的"iPhone Developer（iPhone开发者）:"凭证。 
 

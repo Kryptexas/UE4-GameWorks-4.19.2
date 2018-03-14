@@ -77,7 +77,8 @@ CDG4WcQ7cIY
 | **Alpha Scale Bias** | 设置最小和最大输入标度值。|
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:LocationSpace]
 [REGION:simpletable]
 | 数值 | 效果 |
@@ -87,9 +88,11 @@ CDG4WcQ7cIY
 | **Scale** | XYZ 组件在目标骨骼上的缩放。|
 [/REGION] 
 [/EXCERPT:LocationSpace]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 [EXCERPT:ModificationSettings]
 [REGION:simpletable]
 | 数值 | 效果 |
@@ -99,6 +102,7 @@ CDG4WcQ7cIY
 | **Add to Ref Pose** | 将驱动值添加到参考姿态值。|
 [/REGION] 
 [/EXCERPT:ModificationSettings]
--->
+
+[/COMMENT]
 
 

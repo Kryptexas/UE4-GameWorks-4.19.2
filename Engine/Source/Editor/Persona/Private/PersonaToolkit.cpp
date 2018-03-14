@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PersonaToolkit.h"
 #include "Modules/ModuleManager.h"
@@ -27,7 +27,7 @@ static void FindCounterpartAssets(const UObject* InAsset, TWeakObjectPtr<USkelet
 	const USkeleton* CounterpartSkeleton = OutSkeleton.Get();
 	const USkeletalMesh* CounterpartMesh = OutMesh;
 	FPersonaAssetFamily::FindCounterpartAssets(InAsset, CounterpartSkeleton, CounterpartMesh);
-	OutSkeleton = CounterpartSkeleton;
+	OutSkeleton = MakeWeakObjectPtr(const_cast<USkeleton*>(CounterpartSkeleton));
 	OutMesh = const_cast<USkeletalMesh*>(CounterpartMesh);
 }
 
@@ -122,12 +122,9 @@ void FPersonaToolkit::CreatePreviewScene(const FPersonaToolkitArgs& PersonaToolk
 		bool bSetMesh = false;
 
 		// Set the mesh
-		if (Mesh != nullptr)
-		{
-			PreviewScene->SetPreviewMesh(Mesh);
-			bSetMesh = true;
-		}
-		else if (AnimationAsset != nullptr)
+		// first check assets first
+		// mesh exists with anim BP
+		if (AnimationAsset != nullptr)
 		{
 			USkeletalMesh* AssetMesh = AnimationAsset->GetPreviewMesh();
 			if (AssetMesh)
@@ -144,6 +141,11 @@ void FPersonaToolkit::CreatePreviewScene(const FPersonaToolkitArgs& PersonaToolk
 				PreviewScene->SetPreviewMesh(AssetMesh);
 				bSetMesh = true;
 			}
+		}
+		else if (Mesh != nullptr)
+		{
+			PreviewScene->SetPreviewMesh(Mesh);
+			bSetMesh = true;
 		}
 
 		if (!bSetMesh && Skeleton.IsValid())

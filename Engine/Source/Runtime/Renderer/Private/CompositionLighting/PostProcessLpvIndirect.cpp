@@ -42,7 +42,7 @@ class FPostProcessLpvIndirectPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FPostProcessLpvIndirectPS, Global);
 
 	//@todo-rco: Remove this when reenabling for OpenGL
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Platform); }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)		{ return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Parameters.Platform); }
 
 	/** Default constructor. */
 	FPostProcessLpvIndirectPS() {}
@@ -138,9 +138,9 @@ public:
 		: FPostProcessLpvIndirectPS(Initializer)
 	{}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FPostProcessLpvIndirectPS::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FPostProcessLpvIndirectPS::ModifyCompilationEnvironment(Parameters,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("APPLY_SEPARATE_SPECULAR_RT"), bApplySeparateSpecularRT);
 	}
 };
@@ -153,7 +153,7 @@ class FPostProcessLpvDirectionalOcclusionPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FPostProcessLpvDirectionalOcclusionPS, Global);
 
 	//@todo-rco: Remove this when reenabling for OpenGL
-	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Platform); }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)		{ return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && IsLPVSupported(Parameters.Platform); }
 
 	/** Default constructor. */
 	FPostProcessLpvDirectionalOcclusionPS() {}
@@ -224,7 +224,7 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 	}
 
 	const FFinalPostProcessSettings& PostprocessSettings = Context.View.FinalPostProcessSettings;
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
 
@@ -434,7 +434,7 @@ void FRCPassPostProcessVisualizeLPV::Process(FRenderingCompositePassContext& Con
 {
 	SCOPED_DRAW_EVENT(Context.RHICmdList, VisualizeLPV);
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	
 //	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);

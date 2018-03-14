@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialInterface.cpp: UMaterialInterface implementation.
@@ -245,49 +245,54 @@ void UMaterialInterface::GetLightingGuidChain(bool bIncludeTextures, TArray<FGui
 #endif // WITH_EDITORONLY_DATA
 }
 
-bool UMaterialInterface::GetVectorParameterValue(FName ParameterName, FLinearColor& OutValue) const
+bool UMaterialInterface::GetVectorParameterValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor& OutValue, bool bOveriddenOnly) const
 {
 	// is never called but because our system wants a UMaterialInterface instance we cannot use "virtual =0"
 	return false;
 }
 
-bool UMaterialInterface::GetScalarParameterValue(FName ParameterName, float& OutValue) const
+bool UMaterialInterface::IsVectorParameterUsedAsChannelMask(const FMaterialParameterInfo& ParameterInfo, bool& OutValue) const
+{
+	return false;
+}
+
+bool UMaterialInterface::GetScalarParameterSliderMinMax(const FMaterialParameterInfo& ParameterInfo, float& OutSliderMin, float& OutSliderMax) const
+{
+	return false;
+}
+
+bool UMaterialInterface::GetScalarParameterValue(const FMaterialParameterInfo& ParameterInfo, float& OutValue, bool bOveriddenOnly) const
 {
 	// is never called but because our system wants a UMaterialInterface instance we cannot use "virtual =0"
 	return false;
 }
 
-bool UMaterialInterface::GetScalarCurveParameterValue(FName ParameterName, FInterpCurveFloat& OutValue) const
+bool UMaterialInterface::GetScalarCurveParameterValue(const FMaterialParameterInfo& ParameterInfo, FInterpCurveFloat& OutValue) const
 {
 	return false;
 }
 
-bool UMaterialInterface::GetVectorCurveParameterValue(FName ParameterName, FInterpCurveVector& OutValue) const
+bool UMaterialInterface::GetVectorCurveParameterValue(const FMaterialParameterInfo& ParameterInfo, FInterpCurveVector& OutValue) const
 {
 	return false;
 }
 
-bool UMaterialInterface::GetLinearColorParameterValue(FName ParameterName, FLinearColor& OutValue) const
+bool UMaterialInterface::GetLinearColorParameterValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor& OutValue) const
 {
 	return false;
 }
 
-bool UMaterialInterface::GetLinearColorCurveParameterValue(FName ParameterName, FInterpCurveLinearColor& OutValue) const
+bool UMaterialInterface::GetLinearColorCurveParameterValue(const FMaterialParameterInfo& ParameterInfo, FInterpCurveLinearColor& OutValue) const
 {
 	return false;
 }
 
-bool UMaterialInterface::GetTextureParameterValue(FName ParameterName, UTexture*& OutValue) const
+bool UMaterialInterface::GetTextureParameterValue(const FMaterialParameterInfo& ParameterInfo, UTexture*& OutValue, bool bOveriddenOnly) const
 {
 	return false;
 }
 
-bool UMaterialInterface::GetTextureParameterOverrideValue(FName ParameterName, UTexture*& OutValue) const
-{
-	return false;
-}
-
-bool UMaterialInterface::GetFontParameterValue(FName ParameterName,class UFont*& OutFontValue,int32& OutFontPage) const
+bool UMaterialInterface::GetFontParameterValue(const FMaterialParameterInfo& ParameterInfo, class UFont*& OutFontValue, int32& OutFontPage, bool bOveriddenOnly) const
 {
 	return false;
 }
@@ -297,11 +302,11 @@ bool UMaterialInterface::GetRefractionSettings(float& OutBiasValue) const
 	return false;
 }
 
-bool UMaterialInterface::GetParameterDesc(FName ParamaterName,FString& OutDesc) const
+bool UMaterialInterface::GetParameterDesc(const FMaterialParameterInfo& ParameterInfo, FString& OutDesc, const TArray<struct FStaticMaterialLayersParameter>* MaterialLayersParameters) const
 {
 	return false;
 }
-bool UMaterialInterface::GetGroupName(FName ParamaterName,FName& OutDesc) const
+bool UMaterialInterface::GetGroupName(const FMaterialParameterInfo& ParameterInfo, FName& OutDesc) const
 {
 	return false;
 }

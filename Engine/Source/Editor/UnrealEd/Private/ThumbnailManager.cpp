@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ThumbnailRendering/ThumbnailManager.h"
 #include "HAL/FileManager.h"
@@ -143,13 +143,10 @@ FThumbnailRenderingInfo* UThumbnailManager::GetRenderingInfo(UObject* Object)
 		RenderInfoMap.Add(ClassToCheck, (RenderInfo != nullptr) ? RenderInfo : &NotSupported);
 	}
 
-	if ( RenderInfo && RenderInfo->Renderer )
+	if ( RenderInfo && RenderInfo->Renderer && !RenderInfo->Renderer->CanVisualizeAsset(Object))
 	{
-		if ( !RenderInfo->Renderer->CanVisualizeAsset(Object) )
-		{
-			// This is an asset with a thumbnail renderer, but it can't visualized (i.e it is something like a blueprint that doesn't contain any visible primitive components)
-			RenderInfo = nullptr;
-		}
+		// This is an asset with a thumbnail renderer, but it can't visualized (i.e it is something like a blueprint that doesn't contain any visible primitive components)
+		RenderInfo = nullptr;
 	}
 
 	// Check to see if this object is the "not supported" type or not

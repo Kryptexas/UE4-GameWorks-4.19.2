@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SAnimCurveViewer.h"
@@ -359,10 +359,8 @@ bool SAnimCurveListRow::GetActiveWeight(float& OutWeight) const
 		if (AnimInstance)
 		{
 			// See if curve is in active set, attribute curve should have everything
-			TMap<FName, float> CurveList;
-			AnimInstance->GetAnimationCurveList(EAnimCurveType::AttributeCurve, CurveList);
-
-			float* CurrentValue = CurveList.Find(Item->SmartName.DisplayName);
+			const TMap<FName, float>& CurveList = AnimInstance->GetAnimationCurveList(EAnimCurveType::AttributeCurve);
+			const float* CurrentValue = CurveList.Find(Item->SmartName.DisplayName);
 			if (CurrentValue)
 			{
 				OutWeight = *CurrentValue;
@@ -850,17 +848,17 @@ void SAnimCurveViewer::CreateAnimCurveList( const FString& SearchText )
 			// so only search other container if attribute is off
 			if (CurrentCurveFlag & ACEF_DriveAttribute)
 			{
-				AnimInstance->GetAnimationCurveList(EAnimCurveType::AttributeCurve, ActiveCurves);
+				AnimInstance->AppendAnimationCurveList(EAnimCurveType::AttributeCurve, ActiveCurves);
 			}
 			else
 			{
 				if (CurrentCurveFlag & ACEF_DriveMorphTarget)
 				{
-					AnimInstance->GetAnimationCurveList(EAnimCurveType::MorphTargetCurve, ActiveCurves);
+					AnimInstance->AppendAnimationCurveList(EAnimCurveType::MorphTargetCurve, ActiveCurves);
 				}
 				if (CurrentCurveFlag & ACEF_DriveMaterial)
 				{
-					AnimInstance->GetAnimationCurveList(EAnimCurveType::MaterialCurve, ActiveCurves);
+					AnimInstance->AppendAnimationCurveList(EAnimCurveType::MaterialCurve, ActiveCurves);
 				}
 			}
 		}

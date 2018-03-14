@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -115,9 +115,6 @@ private:
 
 	/** Handler for show in explorer */
 	void ExecuteExplore();
-
-	/** Handler for size map tool */
-	void ExecuteSizeMap();
 
 	/** Setup function for the context menu creation of folder and assets */
 	void SetupContextMenuContent(FMenuBuilder& MenuBuilder, const TArray<FString>& SelectedPaths);

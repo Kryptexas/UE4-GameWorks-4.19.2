@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Title: 시퀀서 지하철
 Crumbs:
 Description: 언리얼 엔진 4 의 시퀀서 에디터를 사용한 영화급 퀄리티 시네마틱 시퀀스 제작법을 보여주는 시퀀서 예제입니다.
@@ -7,46 +7,7 @@ Related: Engine/Sequencer
 Related: Engine/Sequencer/HowTo/TracksShot
 Related: Engine/Sequencer/HowTo/ViewportOptions
 tags:Sequencer
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/Showcases/SequencerSubway:title%](SequencerSubway_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/SequencerSubway:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/SequencerSubway:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/SequencerSubway]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/Showcases/SequencerSubway:title%](SequencerSubway_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/SequencerSubway:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/SequencerSubway:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/SequencerSubway]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:SequencerSubway_Topic.png
 
 [TOC]
 

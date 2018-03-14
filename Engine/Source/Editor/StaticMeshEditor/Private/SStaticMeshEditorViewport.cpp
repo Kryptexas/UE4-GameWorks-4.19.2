@@ -1,6 +1,8 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SStaticMeshEditorViewport.h"
+#include "SStaticMeshEditorViewportToolBar.h"
+#include "StaticMeshViewportLODCommands.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
 #include "UObject/Package.h"
@@ -16,61 +18,11 @@
 #include "EngineAnalytics.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "Engine/StaticMeshSocket.h"
+#include "Editor/UnrealEd/Public/SEditorViewportToolBarMenu.h"
 
 #define HITPROXY_SOCKET	1
 
-///////////////////////////////////////////////////////////
-// SStaticMeshEditorViewportToolbar
-
-// In-viewport toolbar widget used in the static mesh editor
-class SStaticMeshEditorViewportToolbar : public SCommonEditorViewportToolbarBase
-{
-public:
-	SLATE_BEGIN_ARGS(SStaticMeshEditorViewportToolbar) {}
-	SLATE_END_ARGS()
-
-	void Construct(const FArguments& InArgs, TSharedPtr<class ICommonEditorViewportToolbarInfoProvider> InInfoProvider)
-	{
-		SCommonEditorViewportToolbarBase::Construct(SCommonEditorViewportToolbarBase::FArguments(), InInfoProvider);
-	}
-
-	// SCommonEditorViewportToolbarBase interface
-	virtual TSharedRef<SWidget> GenerateShowMenu() const override
-	{
-		GetInfoProvider().OnFloatingButtonClicked();
-
-		TSharedRef<SEditorViewport> ViewportRef = GetInfoProvider().GetViewportWidget();
-
-		const bool bInShouldCloseWindowAfterMenuSelection = true;
-		FMenuBuilder ShowMenuBuilder(bInShouldCloseWindowAfterMenuSelection, ViewportRef->GetCommandList());
-		{
-			auto Commands = FStaticMeshEditorCommands::Get();
-
-			ShowMenuBuilder.AddMenuEntry(Commands.SetShowSockets);
-			ShowMenuBuilder.AddMenuEntry(Commands.SetShowPivot);
-			ShowMenuBuilder.AddMenuEntry(Commands.SetShowVertices);
-
-			ShowMenuBuilder.AddMenuSeparator();
-
-			ShowMenuBuilder.AddMenuEntry(Commands.SetShowGrid);
-			ShowMenuBuilder.AddMenuEntry(Commands.SetShowBounds);
-			ShowMenuBuilder.AddMenuEntry(Commands.SetShowSimpleCollision);
-			ShowMenuBuilder.AddMenuEntry(Commands.SetShowComplexCollision);
-
-			ShowMenuBuilder.AddMenuSeparator();
-
-			ShowMenuBuilder.AddMenuEntry(Commands.SetShowNormals);
-			ShowMenuBuilder.AddMenuEntry(Commands.SetShowTangents);
-			ShowMenuBuilder.AddMenuEntry(Commands.SetShowBinormals);
-
-			//ShowMenuBuilder.AddMenuSeparator();
-			//ShowMenuBuilder.AddMenuEntry(Commands.SetShowMeshEdges);
-		}
-
-		return ShowMenuBuilder.MakeWidget();
-	}
-	// End of SCommonEditorViewportToolbarBase
-};
+#define LOCTEXT_NAMESPACE "StaticMeshEditorViewport"
 
 ///////////////////////////////////////////////////////////
 // SStaticMeshEditorViewport
@@ -86,6 +38,8 @@ void SStaticMeshEditorViewport::Construct(const FArguments& InArgs)
 	StaticMesh = InArgs._ObjectToEdit;
 
 	CurrentViewMode = VMI_Lit;
+
+	FStaticMeshViewportLODCommands::Register();
 
 	SEditorViewport::Construct( SEditorViewport::FArguments() );
 
@@ -375,8 +329,55 @@ bool SStaticMeshEditorViewport::IsInViewModeVertexColorChecked() const
 void SStaticMeshEditorViewport::ForceLODLevel(int32 InForcedLOD)
 {
 	PreviewMeshComponent->ForcedLodModel = InForcedLOD;
+	LODSelection = InForcedLOD;
 	{FComponentReregisterContext ReregisterContext(PreviewMeshComponent);}
 	SceneViewport->Invalidate();
+}
+
+int32 SStaticMeshEditorViewport::GetLODSelection() const
+{
+	if (PreviewMeshComponent)
+	{
+		return PreviewMeshComponent->ForcedLodModel;
+	}
+	return 0;
+}
+
+bool SStaticMeshEditorViewport::IsLODModelSelected(int32 InLODSelection) const
+{
+	if (PreviewMeshComponent)
+	{
+		return (PreviewMeshComponent->ForcedLodModel == InLODSelection) ? true : false;
+	}
+	return false;
+}
+
+void SStaticMeshEditorViewport::OnSetLODModel(int32 InLODSelection)
+{
+	if (PreviewMeshComponent)
+	{
+		LODSelection = InLODSelection;
+		PreviewMeshComponent->SetForcedLodModel(LODSelection);
+		//PopulateUVChoices();
+		StaticMeshEditorPtr.Pin()->BroadcastOnSelectedLODChanged();
+	}
+}
+
+void SStaticMeshEditorViewport::OnLODModelChanged()
+{
+	if (PreviewMeshComponent && LODSelection != PreviewMeshComponent->ForcedLodModel)
+	{
+		//PopulateUVChoices();
+	}
+}
+
+int32 SStaticMeshEditorViewport::GetLODModelCount() const
+{
+	if (PreviewMeshComponent && PreviewMeshComponent->GetStaticMesh())
+	{
+		return PreviewMeshComponent->GetStaticMesh()->GetNumLODs();
+	}
+	return 0;
 }
 
 TSet< int32 >& SStaticMeshEditorViewport::GetSelectedEdges()
@@ -508,6 +509,28 @@ void SStaticMeshEditorViewport::BindCommands()
 		FExecuteAction::CreateSP(EditorViewportClientRef, &FStaticMeshEditorViewportClient::ToggleDrawVertices ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(EditorViewportClientRef, &FStaticMeshEditorViewportClient::IsDrawVerticesChecked ) );
+
+	// LOD
+	StaticMeshEditorPtr.Pin()->RegisterOnSelectedLODChanged(FOnSelectedLODChanged::CreateSP(this, &SStaticMeshEditorViewport::OnLODModelChanged), false);
+	//Bind LOD preview menu commands
+
+	const FStaticMeshViewportLODCommands& ViewportLODMenuCommands = FStaticMeshViewportLODCommands::Get();
+	
+	//LOD Auto
+	CommandList->MapAction(
+		ViewportLODMenuCommands.LODAuto,
+		FExecuteAction::CreateSP(this, &SStaticMeshEditorViewport::OnSetLODModel, 0),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SStaticMeshEditorViewport::IsLODModelSelected, 0));
+
+	// LOD 0
+	CommandList->MapAction(
+		ViewportLODMenuCommands.LOD0,
+		FExecuteAction::CreateSP(this, &SStaticMeshEditorViewport::OnSetLODModel, 1),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SStaticMeshEditorViewport::IsLODModelSelected, 1));
+	// all other LODs will be added dynamically
+
 }
 
 void SStaticMeshEditorViewport::OnFocusViewportToSelection()
@@ -544,3 +567,5 @@ void SStaticMeshEditorViewport::OnFocusViewportToSelection()
 		return;
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

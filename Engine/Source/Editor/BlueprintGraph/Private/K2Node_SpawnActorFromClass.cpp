@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_SpawnActorFromClass.h"
 #include "UObject/UnrealType.h"
@@ -19,18 +19,18 @@
 
 struct FK2Node_SpawnActorFromClassHelper
 {
-	static FString SpawnTransformPinName;
-	static FString SpawnEvenIfCollidingPinName;
-	static FString NoCollisionFailPinName;
-	static FString CollisionHandlingOverridePinName;
-	static FString OwnerPinName;
+	static const FName SpawnTransformPinName;
+	static const FName SpawnEvenIfCollidingPinName;
+	static const FName NoCollisionFailPinName;
+	static const FName CollisionHandlingOverridePinName;
+	static const FName OwnerPinName;
 };
 
-FString FK2Node_SpawnActorFromClassHelper::SpawnTransformPinName(TEXT("SpawnTransform"));
-FString FK2Node_SpawnActorFromClassHelper::SpawnEvenIfCollidingPinName(TEXT("SpawnEvenIfColliding"));		// deprecated pin, name kept for backwards compat
-FString FK2Node_SpawnActorFromClassHelper::NoCollisionFailPinName(TEXT("bNoCollisionFail"));		// deprecated pin, name kept for backwards compat
-FString FK2Node_SpawnActorFromClassHelper::CollisionHandlingOverridePinName(TEXT("CollisionHandlingOverride"));
-FString FK2Node_SpawnActorFromClassHelper::OwnerPinName(TEXT("Owner"));
+const FName FK2Node_SpawnActorFromClassHelper::SpawnTransformPinName(TEXT("SpawnTransform"));
+const FName FK2Node_SpawnActorFromClassHelper::SpawnEvenIfCollidingPinName(TEXT("SpawnEvenIfColliding"));		// deprecated pin, name kept for backwards compat
+const FName FK2Node_SpawnActorFromClassHelper::NoCollisionFailPinName(TEXT("bNoCollisionFail"));		// deprecated pin, name kept for backwards compat
+const FName FK2Node_SpawnActorFromClassHelper::CollisionHandlingOverridePinName(TEXT("CollisionHandlingOverride"));
+const FName FK2Node_SpawnActorFromClassHelper::OwnerPinName(TEXT("Owner"));
 
 #define LOCTEXT_NAMESPACE "K2Node_SpawnActorFromClass"
 
@@ -49,18 +49,16 @@ void UK2Node_SpawnActorFromClass::AllocateDefaultPins()
 {
 	Super::AllocateDefaultPins();
 
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 	// Transform pin
 	UScriptStruct* TransformStruct = TBaseStructure<FTransform>::Get();
-	UEdGraphPin* TransformPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Struct, FString(), TransformStruct, FK2Node_SpawnActorFromClassHelper::SpawnTransformPinName);
+	UEdGraphPin* TransformPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Struct, TransformStruct, FK2Node_SpawnActorFromClassHelper::SpawnTransformPinName);
 
 	// Collision handling method pin
 	UEnum* const MethodEnum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("ESpawnActorCollisionHandlingMethod"), true);
-	UEdGraphPin* const CollisionHandlingOverridePin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Byte, FString(), MethodEnum, FK2Node_SpawnActorFromClassHelper::CollisionHandlingOverridePinName);
+	UEdGraphPin* const CollisionHandlingOverridePin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Byte, MethodEnum, FK2Node_SpawnActorFromClassHelper::CollisionHandlingOverridePinName);
 	CollisionHandlingOverridePin->DefaultValue = MethodEnum->GetNameStringByValue(static_cast<int>(ESpawnActorCollisionHandlingMethod::Undefined));
 
-	UEdGraphPin* OwnerPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, FString(), AActor::StaticClass(), FK2Node_SpawnActorFromClassHelper::OwnerPinName);
+	UEdGraphPin* OwnerPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, AActor::StaticClass(), FK2Node_SpawnActorFromClassHelper::OwnerPinName);
 	OwnerPin->bAdvancedView = true;
 	if (ENodeAdvancedPins::NoPins == AdvancedPinDisplay)
 	{
@@ -330,18 +328,18 @@ void UK2Node_SpawnActorFromClass::ExpandNode(class FKismetCompilerContext& Compi
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
 	static const FName BeginSpawningBlueprintFuncName = GET_FUNCTION_NAME_CHECKED(UGameplayStatics, BeginDeferredActorSpawnFromClass);
-	static const FString ActorClassParamName = FString(TEXT("ActorClass"));
-	static const FString WorldContextParamName = FString(TEXT("WorldContextObject"));
+	static const FName ActorClassParamName(TEXT("ActorClass"));
+	static const FName WorldContextParamName(TEXT("WorldContextObject"));
 
 	static const FName FinishSpawningFuncName = GET_FUNCTION_NAME_CHECKED(UGameplayStatics, FinishSpawningActor);
-	static const FString ActorParamName = FString(TEXT("Actor"));
-	static const FString TransformParamName = FString(TEXT("SpawnTransform"));
-	static const FString CollisionHandlingOverrideParamName = FString(TEXT("CollisionHandlingOverride"));
-	static const FString OwnerParamName = FString(TEXT("Owner"));
+	static const FName ActorParamName(TEXT("Actor"));
+	static const FName TransformParamName(TEXT("SpawnTransform"));
+	static const FName CollisionHandlingOverrideParamName(TEXT("CollisionHandlingOverride"));
+	static const FName OwnerParamName(TEXT("Owner"));
 
-	static const FString ObjectParamName = FString(TEXT("Object"));
-	static const FString ValueParamName = FString(TEXT("Value"));
-	static const FString PropertyNameParamName = FString(TEXT("PropertyName"));
+	static const FName ObjectParamName(TEXT("Object"));
+	static const FName ValueParamName(TEXT("Value"));
+	static const FName PropertyNameParamName(TEXT("PropertyName"));
 
 	UK2Node_SpawnActorFromClass* SpawnNode = this;
 	UEdGraphPin* SpawnNodeExec = SpawnNode->GetExecPin();

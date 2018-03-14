@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #include "Internationalization/ICUInternationalization.h"
 #include "HAL/FileManager.h"
 #include "Misc/ScopeLock.h"
@@ -12,6 +12,8 @@
 
 #if UE_ENABLE_ICU
 
+#include "Internationalization/ICURegex.h"
+#include "Internationalization/ICUUtilities.h"
 #include "Internationalization/ICUBreakIterator.h"
 THIRD_PARTY_INCLUDES_START
 	#include <unicode/locid.h>
@@ -125,11 +127,16 @@ bool FICUInternationalization::Initialize()
 		}
 		return Result;
 	};
-	checkf( HasFoundDataDirectory, TEXT("ICU data directory was not discovered:\n%s"), *(GetPrioritizedDataDirectoriesString()) );
+
+	if (!HasFoundDataDirectory)
+	{
+		UE_LOG(LogICUInternationalization, Fatal, TEXT("ICU data directory was not discovered:\n%s"), *(GetPrioritizedDataDirectoriesString()));
+	}
 
 	u_setDataFileFunctions(nullptr, &FICUInternationalization::OpenDataFile, &FICUInternationalization::CloseDataFile, &(ICUStatus));
 	u_init(&(ICUStatus));
 
+	FICURegexManager::Create();
 	FICUBreakIteratorManager::Create();
 
 	InitializeAvailableCultures();
@@ -137,8 +144,8 @@ bool FICUInternationalization::Initialize()
 	bHasInitializedCultureMappings = false;
 	ConditionalInitializeCultureMappings();
 
-	bHasInitializedDisabledCultures = false;
-	ConditionalInitializeDisabledCultures();
+	bHasInitializedAllowedCultures = false;
+	ConditionalInitializeAllowedCultures();
 
 	I18N->InvariantCulture = FindOrMakeCulture(TEXT("en-US-POSIX"), EAllowDefaultCultureFallback::No);
 	if (!I18N->InvariantCulture.IsValid())
@@ -150,6 +157,7 @@ bool FICUInternationalization::Initialize()
 	I18N->CurrentLanguage = I18N->DefaultLanguage;
 	I18N->CurrentLocale = I18N->DefaultLocale;
 
+	InitializeTimeZone();
 	InitializeInvariantGregorianCalendar();
 
 	return U_SUCCESS(ICUStatus) ? true : false;
@@ -159,6 +167,7 @@ void FICUInternationalization::Terminate()
 {
 	InvariantGregorianCalendar.Reset();
 
+	FICURegexManager::Destroy();
 	FICUBreakIteratorManager::Destroy();
 	CachedCultures.Empty();
 
@@ -339,6 +348,33 @@ void FICUInternationalization::InitializeAvailableCultures()
 	}
 }
 
+TArray<FString> LoadInternationalizationConfigArray(const TCHAR* InKey)
+{
+	check(GConfig && GConfig->IsReadyForUse());
+
+	const bool ShouldLoadEditor = GIsEditor;
+	const bool ShouldLoadGame = FApp::IsGame();
+
+	TArray<FString> FinalArray;
+	GConfig->GetArray(TEXT("Internationalization"), InKey, FinalArray, GEngineIni);
+
+	if (ShouldLoadEditor)
+	{
+		TArray<FString> EditorArray;
+		GConfig->GetArray(TEXT("Internationalization"), InKey, EditorArray, GEditorIni);
+		FinalArray.Append(MoveTemp(EditorArray));
+	}
+
+	if (ShouldLoadGame)
+	{
+		TArray<FString> GameArray;
+		GConfig->GetArray(TEXT("Internationalization"), InKey, GameArray, GGameIni);
+		FinalArray.Append(MoveTemp(GameArray));
+	}
+
+	return FinalArray;
+}
+
 void FICUInternationalization::ConditionalInitializeCultureMappings()
 {
 	if (bHasInitializedCultureMappings || !GConfig || !GConfig->IsReadyForUse())
@@ -348,23 +384,7 @@ void FICUInternationalization::ConditionalInitializeCultureMappings()
 
 	bHasInitializedCultureMappings = true;
 
-	const bool ShouldLoadEditor = GIsEditor;
-	const bool ShouldLoadGame = FApp::IsGame();
-
-	TArray<FString> CultureMappingsArray;
-	GConfig->GetArray(TEXT("Internationalization"), TEXT("CultureMappings"), CultureMappingsArray, GEngineIni);
-	if (ShouldLoadEditor)
-	{
-		TArray<FString> EditorCultureMappingsArray;
-		GConfig->GetArray(TEXT("Internationalization"), TEXT("CultureMappings"), EditorCultureMappingsArray, GEditorIni);
-		CultureMappingsArray.Append(MoveTemp(EditorCultureMappingsArray));
-	}
-	if (ShouldLoadGame)
-	{
-		TArray<FString> GameCultureMappingsArray;
-		GConfig->GetArray(TEXT("Internationalization"), TEXT("CultureMappings"), GameCultureMappingsArray, GGameIni);
-		CultureMappingsArray.Append(MoveTemp(GameCultureMappingsArray));
-	}
+	const TArray<FString> CultureMappingsArray = LoadInternationalizationConfigArray(TEXT("CultureMappings"));
 
 	// An array of semicolon separated mapping entries: SourceCulture;DestCulture
 	CultureMappings.Reserve(CultureMappingsArray.Num());
@@ -387,32 +407,14 @@ void FICUInternationalization::ConditionalInitializeCultureMappings()
 	CultureMappings.Compact();
 }
 
-void FICUInternationalization::ConditionalInitializeDisabledCultures()
+void FICUInternationalization::ConditionalInitializeAllowedCultures()
 {
-	if (bHasInitializedDisabledCultures || !GConfig || !GConfig->IsReadyForUse())
+	if (bHasInitializedAllowedCultures || !GConfig || !GConfig->IsReadyForUse())
 	{
 		return;
 	}
 
-	bHasInitializedDisabledCultures = true;
-
-	const bool ShouldLoadEditor = GIsEditor;
-	const bool ShouldLoadGame = FApp::IsGame();
-
-	TArray<FString> DisabledCulturesArray;
-	GConfig->GetArray(TEXT("Internationalization"), TEXT("DisabledCultures"), DisabledCulturesArray, GEngineIni);
-	if (ShouldLoadEditor)
-	{
-		TArray<FString> EditorDisabledCulturesArray;
-		GConfig->GetArray(TEXT("Internationalization"), TEXT("DisabledCultures"), EditorDisabledCulturesArray, GEditorIni);
-		DisabledCulturesArray.Append(MoveTemp(EditorDisabledCulturesArray));
-	}
-	if (ShouldLoadGame)
-	{
-		TArray<FString> GameDisabledCulturesArray;
-		GConfig->GetArray(TEXT("Internationalization"), TEXT("DisabledCultures"), GameDisabledCulturesArray, GGameIni);
-		DisabledCulturesArray.Append(MoveTemp(GameDisabledCulturesArray));
-	}
+	bHasInitializedAllowedCultures = true;
 
 	// Get our current build config string so we can compare it against the config entries
 	FString BuildConfigString;
@@ -432,48 +434,57 @@ void FICUInternationalization::ConditionalInitializeDisabledCultures()
 
 	// An array of potentially semicolon separated mapping entries: Culture[;BuildConfig[,BuildConfig,BuildConfig]]
 	// No build config(s) implies all build configs
-	DisabledCultures.Reserve(DisabledCulturesArray.Num());
-	for (const FString& DisabledCultureStr : DisabledCulturesArray)
+	auto ProcessCulturesArray = [this, &BuildConfigString](const TArray<FString>& InCulturesArray, TSet<FString>& OutCulturesSet)
 	{
-		FString DisabledCulture;
-		FString DisabledBuildConfigsStr;
-		if (DisabledCultureStr.Split(TEXT(";"), &DisabledCulture, &DisabledBuildConfigsStr, ESearchCase::CaseSensitive))
+		OutCulturesSet.Reserve(InCulturesArray.Num());
+		for (const FString& CultureStr : InCulturesArray)
 		{
-			// Check to see if any of the build configs matches our current build config
-			TArray<FString> DisabledBuildConfigs;
-			if (DisabledBuildConfigsStr.ParseIntoArray(DisabledBuildConfigs, TEXT(",")))
+			FString CultureName;
+			FString CultureBuildConfigsStr;
+			if (CultureStr.Split(TEXT(";"), &CultureName, &CultureBuildConfigsStr, ESearchCase::CaseSensitive))
 			{
-				bool bIsValidBuildConfig = false;
-				for (const FString& DisabledBuildConfig : DisabledBuildConfigs)
+				// Check to see if any of the build configs matches our current build config
+				TArray<FString> CultureBuildConfigs;
+				if (CultureBuildConfigsStr.ParseIntoArray(CultureBuildConfigs, TEXT(",")))
 				{
-					if (BuildConfigString == DisabledBuildConfig)
+					bool bIsValidBuildConfig = false;
+					for (const FString& CultureBuildConfig : CultureBuildConfigs)
 					{
-						bIsValidBuildConfig = true;
-						break;
+						if (BuildConfigString == CultureBuildConfig)
+						{
+							bIsValidBuildConfig = true;
+							break;
+						}
+					}
+
+					if (!bIsValidBuildConfig)
+					{
+						continue;
 					}
 				}
+			}
+			else
+			{
+				CultureName = CultureStr;
+			}
 
-				if (!bIsValidBuildConfig)
-				{
-					continue;
-				}
+			if (AllAvailableCulturesMap.Contains(CultureName))
+			{
+				OutCulturesSet.Add(MoveTemp(CultureName));
+			}
+			else
+			{
+				UE_LOG(LogICUInternationalization, Warning, TEXT("Culture '%s' is unknown and has been ignored when parsing the enabled/disabled culture list."), *CultureName);
 			}
 		}
-		else
-		{
-			DisabledCulture = DisabledCultureStr;
-		}
+		OutCulturesSet.Compact();
+	};
 
-		if (AllAvailableCulturesMap.Contains(DisabledCulture))
-		{
-			DisabledCultures.Add(MoveTemp(DisabledCulture));
-		}
-		else
-		{
-			UE_LOG(LogICUInternationalization, Warning, TEXT("Disabled culture '%s' is unknown and has been ignored."), *DisabledCulture);
-		}
-	}
-	DisabledCultures.Compact();
+	const TArray<FString> EnabledCulturesArray = LoadInternationalizationConfigArray(TEXT("EnabledCultures"));
+	ProcessCulturesArray(EnabledCulturesArray, EnabledCultures);
+
+	const TArray<FString> DisabledCulturesArray = LoadInternationalizationConfigArray(TEXT("DisabledCultures"));
+	ProcessCulturesArray(DisabledCulturesArray, DisabledCultures);
 }
 
 bool FICUInternationalization::IsCultureRemapped(const FString& Name, FString* OutMappedCulture)
@@ -491,12 +502,12 @@ bool FICUInternationalization::IsCultureRemapped(const FString& Name, FString* O
 	return MappedCulture != nullptr;
 }
 
-bool FICUInternationalization::IsCultureDisabled(const FString& Name)
+bool FICUInternationalization::IsCultureAllowed(const FString& Name)
 {
-	// Make sure we've loaded the disabled cultures list (the config system may not have been available when we were first initialized)
-	ConditionalInitializeDisabledCultures();
+	// Make sure we've loaded the allowed cultures lists (the config system may not have been available when we were first initialized)
+	ConditionalInitializeAllowedCultures();
 
-	return DisabledCultures.Contains(Name);
+	return (EnabledCultures.Num() == 0 || EnabledCultures.Contains(Name)) && !DisabledCultures.Contains(Name);
 }
 
 void FICUInternationalization::HandleLanguageChanged(const FString& Name)
@@ -616,10 +627,10 @@ TArray<FString> FICUInternationalization::GetPrioritizedCultureNames(const FStri
 		}
 	}
 
-	// Remove any cultures that are explicitly disabled
+	// Remove any cultures that are explicitly disallowed
 	PrioritizedCultureNames.RemoveAll([&](const FString& InPrioritizedCultureName) -> bool
 	{
-		return IsCultureDisabled(InPrioritizedCultureName);
+		return !IsCultureAllowed(InPrioritizedCultureName);
 	});
 
 	// If we have no cultures, fallback to using English
@@ -681,6 +692,19 @@ FCulturePtr FICUInternationalization::FindOrMakeCulture(const FString& Name, con
 	return NewCulture;
 }
 
+void FICUInternationalization::InitializeTimeZone()
+{
+	const FString TimeZoneId = FPlatformMisc::GetTimeZoneId();
+
+	icu::TimeZone* ICUDefaultTz = TimeZoneId.IsEmpty() ? icu::TimeZone::createDefault() : icu::TimeZone::createTimeZone(ICUUtilities::ConvertString(TimeZoneId));
+	icu::TimeZone::adoptDefault(ICUDefaultTz);
+
+	const int32 DefaultTzOffsetMinutes = ICUDefaultTz->getRawOffset() / 60000;
+	const int32 RawOffsetHours = DefaultTzOffsetMinutes / 60;
+	const int32 RawOffsetMinutes = DefaultTzOffsetMinutes % 60;
+	UE_LOG(LogICUInternationalization, Display, TEXT("ICU TimeZone Detection - Raw Offset: %+d:%02d, Platform Override: '%s'"), RawOffsetHours, RawOffsetMinutes, *TimeZoneId);
+}
+
 void FICUInternationalization::InitializeInvariantGregorianCalendar()
 {
 	UErrorCode ICUStatus = U_ZERO_ERROR;
@@ -711,26 +735,27 @@ UDate FICUInternationalization::UEDateTimeToICUDate(const FDateTime& DateTime)
 
 UBool FICUInternationalization::OpenDataFile(const void* context, void** fileContext, void** contents, const char* path)
 {
+	const FString PathStr = StringCast<TCHAR>(path).Get();
 	auto& PathToCachedFileDataMap = FInternationalization::Get().Implementation->PathToCachedFileDataMap;
 
 	// Try to find existing buffer
-	FICUInternationalization::FICUCachedFileData* CachedFileData = PathToCachedFileDataMap.Find(path);
+	FICUInternationalization::FICUCachedFileData* CachedFileData = PathToCachedFileDataMap.Find(PathStr);
 
 	// If there's no file context, we might have to load the file.
 	if (!CachedFileData)
 	{
 #if !UE_BUILD_SHIPPING
-		FScopedLoadingState ScopedLoadingState(StringCast<TCHAR>(path).Get());
+		FScopedLoadingState ScopedLoadingState(*PathStr);
 #endif
 
 		// Attempt to load the file.
-		FArchive* FileAr = IFileManager::Get().CreateFileReader(StringCast<TCHAR>(path).Get());
+		FArchive* FileAr = IFileManager::Get().CreateFileReader(*PathStr);
 		if (FileAr)
 		{
 			const int64 FileSize = FileAr->TotalSize();
 
 			// Create file data.
-			CachedFileData = &(PathToCachedFileDataMap.Emplace(FString(path), FICUInternationalization::FICUCachedFileData(FileSize)));
+			CachedFileData = &(PathToCachedFileDataMap.Emplace(PathStr, FICUInternationalization::FICUCachedFileData(FileSize)));
 
 			// Load file into buffer.
 			FileAr->Serialize(CachedFileData->Buffer, FileSize); 
@@ -755,7 +780,7 @@ UBool FICUInternationalization::OpenDataFile(const void* context, void** fileCon
 	}
 
 	// Use the file path as the context, so we can look up the cached file data later and decrement its reference count.
-	*fileContext = CachedFileData ? new FString(path) : nullptr;
+	*fileContext = CachedFileData ? new FString(PathStr) : nullptr;
 
 	// Use the buffer from the cached file data.
 	*contents = CachedFileData ? CachedFileData->Buffer : nullptr;

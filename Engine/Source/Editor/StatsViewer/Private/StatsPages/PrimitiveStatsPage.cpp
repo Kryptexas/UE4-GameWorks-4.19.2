@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "StatsPages/PrimitiveStatsPage.h"
 #include "Engine/Level.h"
@@ -18,7 +18,8 @@
 #include "LightMap.h"
 #include "LandscapeComponent.h"
 #include "Engine/LevelStreaming.h"
-#include "SkeletalMeshTypes.h"
+#include "Rendering/SkeletalMeshRenderData.h"
+#include "Components/InstancedStaticMeshComponent.h"
 
 #define LOCTEXT_NAMESPACE "Editor.StatsViewer.PrimitiveStats"
 
@@ -73,6 +74,7 @@ struct PrimitiveStatsGenerator
 		}
 
 		UStaticMeshComponent*	StaticMeshComponent		= Cast<UStaticMeshComponent>(InPrimitiveComponent);
+		UInstancedStaticMeshComponent*	InstancedStaticMeshComponent = Cast<UInstancedStaticMeshComponent>(InPrimitiveComponent);
 		UModelComponent*		ModelComponent			= Cast<UModelComponent>(InPrimitiveComponent);
 		USkeletalMeshComponent*	SkeletalMeshComponent	= Cast<USkeletalMeshComponent>(InPrimitiveComponent);
 		ULandscapeComponent*	LandscapeComponent		= Cast<ULandscapeComponent>(InPrimitiveComponent);
@@ -85,6 +87,7 @@ struct PrimitiveStatsGenerator
 		int32 LightsLMCount			= 0;
 		int32 LightsOtherCount		= 0;
 		bool bUsesOnlyUnlitMaterials = InPrimitiveComponent->UsesOnlyUnlitMaterials();
+		int32 NumHWInstances = InstancedStaticMeshComponent ? InstancedStaticMeshComponent->GetNumRenderInstances() : 1;
 
 		// The static mesh is a static mesh component's resource.
 		if( StaticMeshComponent )
@@ -98,7 +101,7 @@ struct PrimitiveStatsGenerator
 				// Accumulate memory for each LOD
 				for( int32 LODIndex = 0; LODIndex < Mesh->RenderData->LODResources.Num(); ++LODIndex )
 				{
-					VertexColorMem += Mesh->RenderData->LODResources[LODIndex].ColorVertexBuffer.GetAllocatedSize();
+					VertexColorMem += Mesh->RenderData->LODResources[LODIndex].VertexBuffers.ColorVertexBuffer.GetAllocatedSize();
 				}
 			}
 
@@ -158,11 +161,11 @@ struct PrimitiveStatsGenerator
 			// Calculate vertex color usage for skeletal meshes
 			if( Mesh )
 			{
-				FSkeletalMeshResource* SkelMeshResource = Mesh->GetResourceForRendering();
-				for( int32 LODIndex = 0; LODIndex < SkelMeshResource->LODModels.Num(); ++LODIndex )
+				FSkeletalMeshRenderData* SkelMeshRenderData = Mesh->GetResourceForRendering();
+				for( int32 LODIndex = 0; LODIndex < SkelMeshRenderData->LODRenderData.Num(); ++LODIndex )
 				{
-					const FStaticLODModel& LODModel = SkelMeshResource->LODModels[ LODIndex ];
-					VertexColorMem += LODModel.ColorVertexBuffer.GetAllocatedSize();
+					const FSkeletalMeshLODRenderData& LODData = SkelMeshRenderData->LODRenderData[ LODIndex ];
+					VertexColorMem += LODData.StaticVertexBuffers.ColorVertexBuffer.GetAllocatedSize();
 				}
 			}
 		}
@@ -221,6 +224,7 @@ struct PrimitiveStatsGenerator
 
 				// We do. Update existing entry.
 				StatsEntry->Count++;
+				StatsEntry->HWInstances		+= NumHWInstances;
 				StatsEntry->Actors.AddUnique(ActorOuter);
 				StatsEntry->RadiusMin		= FMath::Min( StatsEntry->RadiusMin, InPrimitiveComponent->Bounds.SphereRadius );
 				StatsEntry->RadiusMax		= FMath::Max( StatsEntry->RadiusMax, InPrimitiveComponent->Bounds.SphereRadius );
@@ -234,8 +238,8 @@ struct PrimitiveStatsGenerator
 				if ( !ModelComponent && !LandscapeComponent )
 				{
 					// Count instanced sections
-					StatsEntry->InstSections += StatsEntry->Sections;
-					StatsEntry->InstTriangles += StatsEntry->Triangles;
+					StatsEntry->InstSections += StatsEntry->Sections * NumHWInstances;
+					StatsEntry->InstTriangles += StatsEntry->Triangles * NumHWInstances;
 				}
 
 				// ... in the case of a model component (aka BSP).
@@ -272,11 +276,12 @@ struct PrimitiveStatsGenerator
 				NewStatsEntry->Object			= Resource;
 				NewStatsEntry->Actors.AddUnique(ActorOuter);
 				NewStatsEntry->Count			= 1;
+				NewStatsEntry->HWInstances		= NumHWInstances;
 				NewStatsEntry->Triangles		= 0;
 				NewStatsEntry->InstTriangles	= 0;
-				NewStatsEntry->ResourceSize		= (float)(FArchiveCountMem(Resource).GetNum() + Resource->GetResourceSizeBytes(EResourceSizeMode::Exclusive)) / 1024.0f;
+				NewStatsEntry->ResourceSize		= (float)(FArchiveCountMem(Resource).GetNum() + Resource->GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal)) / 1024.0f;
 				NewStatsEntry->Sections			= 0;
-				NewStatsEntry->InstSections = 0;
+				NewStatsEntry->InstSections		= 0;
 				NewStatsEntry->RadiusMin		= InPrimitiveComponent->Bounds.SphereRadius;
 				NewStatsEntry->RadiusAvg		= InPrimitiveComponent->Bounds.SphereRadius;
 				NewStatsEntry->RadiusMax		= InPrimitiveComponent->Bounds.SphereRadius;
@@ -322,13 +327,13 @@ struct PrimitiveStatsGenerator
 					USkeletalMesh* SkeletalMesh = SkeletalMeshComponent->SkeletalMesh;
 					if( SkeletalMesh )
 					{
-						FSkeletalMeshResource* SkelMeshResource = SkeletalMesh->GetResourceForRendering();
-						if (SkelMeshResource->LODModels.Num())
+						FSkeletalMeshRenderData* SkelMeshRenderData = SkeletalMesh->GetResourceForRendering();
+						if (SkelMeshRenderData->LODRenderData.Num())
 						{
-							const FStaticLODModel& BaseLOD = SkelMeshResource->LODModels[0];
-							for( int32 SectionIndex=0; SectionIndex<BaseLOD.Sections.Num(); SectionIndex++ )
+							const FSkeletalMeshLODRenderData& BaseLOD = SkelMeshRenderData->LODRenderData[0];
+							for( int32 SectionIndex=0; SectionIndex<BaseLOD.RenderSections.Num(); SectionIndex++ )
 							{
-								const FSkelMeshSection& Section = BaseLOD.Sections[SectionIndex];
+								const FSkelMeshRenderSection& Section = BaseLOD.RenderSections[SectionIndex];
 								NewStatsEntry->Triangles += Section.NumTriangles;
 								NewStatsEntry->Sections++;
 							}
@@ -351,7 +356,7 @@ struct PrimitiveStatsGenerator
 						UniqueTextures.Add(CurrentComponent->HeightmapTexture, &bNotUnique);
 						if (!bNotUnique)
 						{
-							const SIZE_T HeightmapResourceSize = CurrentComponent->HeightmapTexture->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
+							const SIZE_T HeightmapResourceSize = CurrentComponent->HeightmapTexture->GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal);
 							NewStatsEntry->ResourceSize += HeightmapResourceSize;
 						}
 						if (CurrentComponent->XYOffsetmapTexture)
@@ -359,7 +364,7 @@ struct PrimitiveStatsGenerator
 							UniqueTextures.Add(CurrentComponent->XYOffsetmapTexture, &bNotUnique);
 							if (!bNotUnique)
 							{
-								const SIZE_T OffsetmapResourceSize = CurrentComponent->XYOffsetmapTexture->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
+								const SIZE_T OffsetmapResourceSize = CurrentComponent->XYOffsetmapTexture->GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal);
 								NewStatsEntry->ResourceSize += OffsetmapResourceSize;
 							}
 						}
@@ -369,15 +374,15 @@ struct PrimitiveStatsGenerator
 							UniqueTextures.Add((*ItWeightmaps), &bNotUnique);
 							if (!bNotUnique)
 							{
-								const SIZE_T WeightmapResourceSize = (*ItWeightmaps)->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
+								const SIZE_T WeightmapResourceSize = (*ItWeightmaps)->GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal);
 								NewStatsEntry->ResourceSize += WeightmapResourceSize;
 							}
 						}
 					}
 				}
 
-				NewStatsEntry->InstTriangles = NewStatsEntry->Triangles;
-				NewStatsEntry->InstSections = NewStatsEntry->Sections;
+				NewStatsEntry->InstTriangles = NewStatsEntry->Triangles * NumHWInstances;
+				NewStatsEntry->InstSections = NewStatsEntry->Sections * NumHWInstances;
 
 				// Add to map.
 				ResourceToStatsMap.Add( Resource, NewStatsEntry );
@@ -515,6 +520,7 @@ void FPrimitiveStatsPage::GenerateTotals( const TArray< TWeakObjectPtr<UObject> 
 
 			TotalEntry->Count += StatsEntry->Count;
 			TotalEntry->Sections += StatsEntry->Sections;
+			TotalEntry->HWInstances += StatsEntry->HWInstances;
 			TotalEntry->InstSections += StatsEntry->InstSections;
 			TotalEntry->Triangles += StatsEntry->Triangles;
 			TotalEntry->InstTriangles += StatsEntry->InstTriangles;
@@ -538,6 +544,7 @@ void FPrimitiveStatsPage::GenerateTotals( const TArray< TWeakObjectPtr<UObject> 
 		TotalEntry->RadiusAvg /= InObjects.Num();
 
 		OutTotals.Add( TEXT("Count"), FText::AsNumber( TotalEntry->Count ) );
+		OutTotals.Add( TEXT("HWInstances"), FText::AsNumber(TotalEntry->HWInstances) );
 		OutTotals.Add( TEXT("InstSections"), FText::AsNumber( TotalEntry->InstSections ) );
 		OutTotals.Add( TEXT("Triangles"), FText::AsNumber( TotalEntry->Triangles ) );
 		OutTotals.Add( TEXT("InstTriangles"), FText::AsNumber( TotalEntry->InstTriangles ) );

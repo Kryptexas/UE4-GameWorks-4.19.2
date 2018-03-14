@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -160,6 +160,9 @@ private:
 	/** Handler for when a path has been selected in the path view */
 	void PathSelected(const FString& FolderPath);
 
+	/** Handler for when a path has been selected in the favorite path view */
+	void FavoritePathSelected(const FString& FolderPath);
+
 	/** Gets the current path if one exists, otherwise returns empty string. */
 	FString GetCurrentPath() const;
 
@@ -318,12 +321,6 @@ private:
 	/** Handler for clicking the directory up button */
 	void HandleDirectoryUpCommandExecute();
 
-	/** Handler for the view references command */
-	void HandleViewReferencesCommand();
-
-	/** Returns true if the view references command can be handled */
-	bool HandleViewReferencesCanExecute();
-
 	/** True if the user may use the history back button */
 	bool IsBackEnabled() const;
 
@@ -355,7 +352,7 @@ private:
 	void OnFilterChanged();
 
 	/** Gets the text for the path label */
-	FString GetPathText() const;
+	FText GetPathText() const;
 
 	/** Returns true if currently filtering by a source */
 	bool IsFilteredBySource() const;
@@ -402,6 +399,9 @@ private:
 	/** Delegate called when generating the context menu for a folder */
 	TSharedPtr<SWidget> GetFolderContextMenu(const TArray<FString>& SelectedPaths, FContentBrowserMenuExtender_SelectedPaths InMenuExtender, FOnCreateNewFolder OnCreateNewFolder, bool bPathView);
 
+	/** Delegate called to get the current selection state */
+	void GetSelectionState(TArray<FAssetData>& SelectedAssets, TArray<FString>& SelectedPaths);
+
 	/** Sets up an inline-name for the creation of a default-named folder the specified path */
 	void CreateNewFolder(FString FolderPath, FOnCreateNewFolder OnCreateNewFolder);
 
@@ -410,6 +410,15 @@ private:
 
 	/** Gets the visibility of the collection view */
 	EVisibility GetCollectionViewVisibility() const;
+
+	/** Gets the visibility of the favorites view */
+	EVisibility GetFavoriteFolderVisibility() const;
+	
+	/** The visibility of the search bar for the base path view*/
+	EVisibility GetAlternateSearchBarVisibility() const;
+
+	/** Toggles the favorite status of an array of folders*/
+	void ToggleFolderFavorite(const TArray<FString>& FolderPaths);
 
 private:
 
@@ -427,6 +436,9 @@ private:
 
 	/** The asset tree widget */
 	TSharedPtr<SPathView> PathViewPtr;
+
+	/** The favorites tree widget */
+	TSharedPtr<class SFavoritePathView> FavoritePathViewPtr;
 
 	/** The collection widget */
 	TSharedPtr<SCollectionView> CollectionViewPtr;

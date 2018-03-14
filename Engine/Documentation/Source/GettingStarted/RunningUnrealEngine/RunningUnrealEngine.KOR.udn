@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3531730
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:언리얼 엔진 실행하기
 Crumbs: %ROOT%, GettingStarted
@@ -11,9 +11,36 @@ version: 4.9
 
 [EXCERPT:Main]
 
-
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 이 페이지의 내용은 **Development** 빌드 환경설정으로 컴파일된 프로젝트로 엔진을 실행하는 경우를 기준으로 합니다. 다른 환경설정으로 빌드한 프로젝트를 열기 위해서는 `UE4Editor-*.exe` 나 `UE4-*.exe` 부분을 
 그에 맞게 대체해 주시기 바랍니다. 바이너리 작명 규칙 관련 상세 정보는 [](Programming/Development/BuildingUnrealEngine) 문서를 참고하시기 바랍니다.
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+이 페이지의 내용은 **Development** 빌드 환경설정으로 컴파일된 프로젝트로 엔진을 실행하는 경우를 기준으로 합니다. 다른 환경설정으로 빌드한 프로젝트를 열기 위해서는 `UE4Editor-*.app` 나 `UE4-*.app` 부분을 
+그에 맞게 대체해 주시기 바랍니다. 바이너리 작명 규칙 관련 상세 정보는 [](Programming/Development/BuildingUnrealEngine) 문서를 참고하시기 바랍니다.
+[/PARAM]
+[/OBJECT]
+
 
 ## 에디터 실행하기
 [EXCERPT:RunEditor]
@@ -491,7 +518,8 @@ $ VIEWMODE [Mode] :
 	travel DM-Deck
 
 
-<!--
+[COMMENT:none]
+
 [PUBLISH:Licensee]
 ## 쿠킹된 콘텐츠로 게임 실행하기
 
@@ -516,7 +544,8 @@ $ VIEWMODE [Mode] :
 
 
 [/PUBLISH:Licensee]
--->
+
+[/COMMENT]
 
 
 

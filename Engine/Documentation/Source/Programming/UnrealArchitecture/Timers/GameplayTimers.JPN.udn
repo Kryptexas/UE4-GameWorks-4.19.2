@@ -1,125 +1,102 @@
-﻿INTSourceChangelist:2656789
+﻿INTSourceChangelist:3600525
 Availability:Public
+Crumbs: %ROOT%
 Title:ゲームプレイ タイマー
-Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Functions
-Description:指定したインターバルで実行アクションを作成するタイマー
-Version:4.9
+Description:指定した間隔でアクションを実行するタイマー。
+Version:4.17
+Type:Overview
+SkillLevel:Intermediate
+Parent:Programming/UnrealArchitecture
+Order:0
+Related:Programming/UnrealArchitecture/Delegates
 
 [EXCERPT:Overview]
-タイマーを使用して、指定したインターバルでアクションを一度もしくは繰り返し実行することができます。タイマーは 
-アクションを遅らせてもしくはある期間に渡って発生させる際に使用します。例えば、 
-プレイヤーがあるアイテムを取得したその 10 秒後に、無敵キャラクターとなる例が挙げられます。もしくは、 
-プレイヤーが毒ガスで充満した部屋に入ると、 1 秒おきにダメージを受ける場合などです。いずれの場合も 
-タイマーを使用して実現します。
+**タイマー** は、アクションを遅らせる、もしくはある期間に渡って発生させる際に使用します。プレイヤーがパワーアップ アイテムを取得した 10 秒後に、無敵キャラクターとなり、10秒後に弱くなる例が挙げられます。プレイヤーが毒ガスで充満した部屋に入ると、 1 秒おきにダメージを与える例もあります。これらはタイマーを使用して実現します。
 [/EXCERPT:Overview]
 
 ## タイマーの管理
 
-タイマーは AActor 領域外のグローバル **FTimerManager** で管理され、 
-幅広いタイプの中からデリゲートを割り当てることができます。FTimerManager にあるいくつかの関数は、タイマーの 
-管理に利用できます。タイマーの処理中にタイマーを操作してもシステムには問題がないため、 
-タイマーデリゲート内のこれらの関数を使用しても問題は起きません。つまり、タイマーデリゲート内の 
-タイマーを設定もしくはクリアしても問題ありません。
+タイマーは、グローバル **Timer Manager** ( `FTimerManager` 型) で管理されます。グローバル Timer Manager は、**Game Instance** オブジェクトと各 **World** に存在します。Timer Manager を使ってタイマーをセットアップするために使用する主な 2 つの関数があります。`SetTimer` と `SetTimerForNextTick` です。それぞれ、いくつかのオーバーロードがあります。それぞれどのようなオブジェクトや関数のデリゲートにもアタッチ可能であり、`SetTimer` は必要に応じて定期的間隔でリピートすることができます。こうした関数の詳細は、 [TimerManager API ページ](API:FTimerManager) をご覧ください。
 
-**AActor::GetWorldTimerManager()** を使って、 
-現在のワールドのタイム マネージャ インスタンスにアクセスします。
+[REGION:note]タイマーの時刻になる前に、アクタなどタイマーを呼び出そうとしていたオブジェクトが破棄されると、タイマーは自動的にキャンセルされます。この場合、Timer Handle は無効になり、この関数は呼び出されません。[/REGION]
 
-### タイマーの作成とクリア
+Timer Manager へのアクセスは、`GetWorldTimerManager` という`AActor` 関数を通して行われ、これは、`UWorld` で `GetTimerManager` 関数を呼び出します。グローバル Timer Manager にアクセスするには、`UGameInstance` 関数、`GetTimerManager' を使用します。これは、何らかの理由でワールドに独自の Timer Manager がない場合に使われるフォールバックでもあり、特定のワールドの存在に関係なく、または依存せずに関数呼び出しをするために使用することができます。
 
-**FTimerManager::SetTimer()** は、任意のネイティブ関数を指定インターバルで呼ぶタイマーの作成に使用します。 
+タイマーは、標準の C++ 関数ポインタ、[`TFunction` Objects](API:TFunction), または [](Programming/UnrealArchitecture/Delegates) と合わせて使用することができます。
 
-例：
+### タイマーの設定とクリア
 
-	GetWorldTimerManager().SetTimer(this, &AMatineeActor::CheckPriorityRefresh, 1.0f, true);
+`FTimerManager` の `SetTimer` 関数は、関数または遅延後にデリゲートを呼び出すようにタイマーを設定し、その関数呼び出しを無制限に繰り返すように設定することができます。この関数は、**Timer Handle** (`FTimerHandle` 型) に書き込み、これを使ってカウントダウンを一時停止 (再開)、または残り時間の長さを変更したり、タイマーを完全にキャンセルすることもできます。この関数を呼び出すために使われた Timer Handle の再利用も含めて、タイマーによって呼び出される関数内でタイマーを設定すると安全です。使用例としては、スポーン前だが間もなくスポーン予定の別のアクタに依存するアクタの初期化を遅延させるというものがあります。従属するアクタの初期化関数はタイマーを例えば 1 秒後などの決まった時間の長さで再度呼び出すように設定することができます。または、成功すると自らをクリアするループするタイマーによって初期化関数を呼び出すこともできます。
+
+タイマーは、指定間隔で作動させる代わりに、次のフレームで実行するように設定することもできます。これは `SetTimerForNextTick` を呼び出すことで実現できますが、この関数は Timer Handle に書き込みません。
+
+Timer をクリアするには、`SetTimer` の呼び出し中に書き込まれた `FTimerHandle` を `ClearTimer` という `FTimerManager` 関数に渡します。この時点で Timer Handle は無効になり、新しい Timer を管理するために再利用することができます。既存の Timer Handle で `SetTimer` を呼び出すと、その Timer Handle によって参照される Timer がクリアされて、新しいものと置き換えられます。
+
+最後に特定のオブジェクトに関連付けられているすべての Timer は、`ClearAllTimersForObject` を呼び出すことによってクリアすることができます。
+
+例:
+
+	void AMyActor::BeginPlay()
+	{
+		Super::BeginPlay();
+		// Call RepeatingFunction once per second, starting two seconds from now. (今から 2 秒後に開始しますが、1 秒毎に RepeatingFunction を呼び出します。) 
+		GetWorldTimerManager().SetTimer(MemberTimerHandle, this, &AMyActor::RepeatingFunction, 1.0f, true, 2.0f);
+	}
+	void AMyActor::RepeatingFunction()
+
+	{
+		// Once we've called this function enough times, clear the Timer. (この関数を十分な回数呼び出したら、Timer をクリアします。)
+		if (--RepeatingCallsRemaining <= 0)
+		{
+			GetWorldTimerManager().ClearTimer(MemberTimerHandle);
+			// MemberTimerHandle can now be reused for any other Timer. (MemberTimerHandle を他の Timer のために再利用することができます) 
+		}
+		// Do something here... (ここで何かを行います)
+	}
 
 [REGION:tip]
-SetTimer() で既存タイマーをリセットすることも出来ます。タイマーが既にこのデリゲートに設定されている場合、 
-現在のタイマーのパラメータが更新されて、経過時間が 0 にリセットされます。
+`SetTimer` を 0 以下のレートで呼ぶと、`ClearTimer` を呼び出すのと同じことになります。
 [/REGION]
 
-**FTimerManager::ClearTimer()** は、設定済みのタイマーをクリアし今後は実行をしません。
+### タイマーを一時停止して再開する
 
-例：
-
-	GetWorldTimerManager().ClearTimer(this, &AMatineeActor::CheckPriorityRefresh);
-
-[REGION:tip]
-ClearTimer() でタイマーをクリアすることは、<= 0.f に設定した SetTimer() を呼ぶことと同一です。
-[/REGION]
-
-### タイマーの一時停止
-
-**FTimerManager::PauseTimer()** は、設定済みのタイマーを現在のステートで一時停止します。つまり、実行はしませんが、 
-経過および残り時間は、タイマーの一時停止が解かれるまで同じ状態のままとなります。
-
-**FTimerManager::UnPauseTimer()** は、一時停止されたタイマーを解除します。
+`FTimerManager` 関数では、`PauseTimer` は Timer Handle を使って 実行している Timer を一時停止します。これにより、Timer が関数呼び出しを実行するのを防ぎますが、経過時間および残り時間は、タイマーの一時停止中は同じ状態のままとなります。`UnPauseTimer` は一時停止したタイマーの実行を再開させます。
 
 ## タイマーの情報
 
-FTimermanager は、タイマーの管理に加え情報を取得する関数があります。 
-例えば、特定タイマーの速度、経過時間、残り時間などを取得します。
+Timer Manager はタイマーの管理に加え、レート、経過時間、残り時間などの情報を取得する関数があります。
 
-### IsTimerActive 関数
+### Is Timer Active
 
-**FTimerManager::IsTimerActive()** は、特定のタイマーが現在アクティブで一時停止されていないことの確認に使用します。
+`FTimerManager` の `IsTimerActive` 関数は、特定のタイマーが現在アクティブで一時停止されていないことの確認に使用します。
 
-例：
+例:
 
-	GetWorldTimerManager().IsTimerActive(this, &APlayerController::DelayedPrepareMapChange)
+	// Is this weapon waiting to be able to fire again? (この武器は、再度発砲できるまで待機していますか？) 
+	GetWorldTimerManager().IsTimerActive(this, &AUTWeapon::RefireCheckTimer);
 
-### GetTimerRate 関数
+### Timer Rate
 
-**FTimerManager::GetTimerRate()** は、特定のタイマーの現在の速度 (実行間隔) を取得します。
+`FTimerManager` には、Timer Handle からタイマーの現在のレート (実行間隔) を取得する `GetTimerRate` と呼ばれる関数があります。タイマーのレートは直接変更できませんが、Timer Handle を使って `SetTimer` を呼び出して、それをクリアして新しいタイマーを作成することができます。これは、レート以外は全く同じです。`GetTimerRate` は、Timer Handle が無効な場合に `-1` の値を戻します。
 
-例：
+例:
 
-	GetWorldTimerManager().GetTimerRate(this, &AUTWeapon::RefireCheckTimer)
+	// This weapon's rate of fire changes as it warms up. (この武器の発砲のレートは、ウォームアップに従い変化します。) 現在、発砲を待機していますか？ その場合、ショット間の現在の遅延はどれくらいの長さですか？ 
+	GetWorldTimerManager().GetTimerRate(this, &AUTWeapon::RefireCheckTimer);
 
 ### GetTimerElapsed&Remaining 関数
 
-**FTimermanager::GetTimerElapsed()** と **FTimerManager::GetTimerRemaining()** は特定のタイマーの 
-経過時間と残り時間をそれぞれ返します。 
+`FTimermanager` は、与えられた Timer Handle に関連したタイマーに対して、`GetTimerElapsed` と `GetTimerRemaining` を通してそれぞれ経過時間と残り時間を示します。`GetTimerRate` と同様に、こうした関数は Timer Handle が無効な場合に、`-1` を戻します。
 
-例：
+例:
 
-	GetWorldTimerManager().GetTimerElapsed(this, &AUTWeapon::RefireCheckTimer)
+	// How long will it be until this weapon is ready to fire again? (この武器が再度発砲可能になるまでどれくらいかかりますか？) If the answer comes back as -1, it is ready now. ( -1 が戻されれば、準備が整っています。) 
+	GetWorldTimerManager().GetTimerElapsed(this, &AUTWeapon::RefireCheckTimer);
 
 [REGION:note]
-タイマーの経過時間と残り時間の合計は、タイマーの速度と同じでなくてはいけません。
+タイマーの経過時間と残り時間の合計は、タイマーのレートと同じでなくてはいけません。
 [/REGION]
 
-## Timer 関数のオーバーロード
-
-タイマーを操作するそれぞれの関数には、タイマーと相互作用するための 3 つのオーバーロードの特性があります。
-
-* オブジェクトと関数の受け取り
-                
-		GetWorldTimerManager().SetTimer( this, &UMyClass::DoSomethingWithNoParams, 5.f, FALSE );
-
-	これは最もシンプルな形状で、旧バージョンに最も近いものです。選択したゲームインスタンス (4c) に対して 
-    
-		GetWorldTimerManager().SetTimer( FTimerDelegate::CreateUObject(this, &UMyClass::DoSomethingWithNoParams), 5.f, FALSE );
-
-	多少冗長構成ですが、よりクリーンなコードで今後一般的なユースケースになると考えられます。
-
-* 呼出しが可能なすべてのタイプの非動的デリゲートを受け取ります。構文的には多少不明瞭ですが、はるかに柔軟性があります。 
-
-		GetWorldTimerManager().SetTimer( FTimerDelegate::CreateUObject(this, &AMyClass::MyFunc), 5.0f, TRUE );
-		GetWorldTimerManager().SetTimer( FTimerDelegate::CreateRaw(&MyStaticFunc, MyPassThruArg, MyOtherArg, YesOneMoreArg), 5.0f, TRUE );
-                
-		FTimerDelegate MyDel;
-		Del.BindRaw(this, &AMyClass::MyFunc2);
-		GetWorldTimerManager().SetTimer( MyDel, 5.0f, TRUE );
-
-* 動的 (例えば UFunction) デリゲートを受け取ります。
-                
-		FTimerDynamicDelegate D;
-		D.BindDynamic( this, &AMyClass::MyUFunction );
-		GetWorldTimerManager().SetTimer( D, 5.0f, TRUE );
-
-	これらのデリゲートは、UFUNCTION イベント構造を通じて呼ばれます。つまり、ブループリントにおけるノンネイティブのオーバーライド等に適切な注意をはらいます。
-
-
-## 周知の問題
+## 既知の問題
                
-* 現状のコードはスレッドセーフではありません。ゲームスレッド外でアクセスがあるとアサートします。
+* 現状のコードはスレッドセーフではありません。ゲーム スレッドの外側でアクセスされるとアサートを生じます。

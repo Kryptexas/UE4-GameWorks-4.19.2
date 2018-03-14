@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "StaticMeshActorItem.h"
 #include "GameFramework/Actor.h"
@@ -9,7 +9,7 @@
 
 #define LOCTEXT_NAMESPACE "StaticMeshActorItem"
 
-HLODOutliner::FStaticMeshActorItem::FStaticMeshActorItem(const AActor* InStaticMeshActor)
+HLODOutliner::FStaticMeshActorItem::FStaticMeshActorItem(AActor* InStaticMeshActor)
 	: StaticMeshActor(InStaticMeshActor), ID(InStaticMeshActor)
 {
 	Type = ITreeItem::StaticMeshActor;

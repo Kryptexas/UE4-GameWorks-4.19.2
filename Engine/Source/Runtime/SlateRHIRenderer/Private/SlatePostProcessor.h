@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,7 +15,7 @@ struct FPostProcessRectParams
 	FSlateRect SourceRect;
 	FSlateRect DestRect;
 	FIntPoint SourceTextureSize;
-	TFunction<void(FGraphicsPipelineStateInitializer&)> RestoreStateFunc;
+	TFunction<void(FRHICommandListImmediate&, FGraphicsPipelineStateInitializer&)> RestoreStateFunc;
 	TFunction<void()> RestoreStateFuncPostPipelineState;
 };
 

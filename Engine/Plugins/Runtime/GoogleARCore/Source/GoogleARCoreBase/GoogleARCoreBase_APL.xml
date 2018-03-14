@@ -1,137 +1,104 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--Tango plugin additions-->
+<!--GoogleARCore plugin additions-->
 <root xmlns:android="http://schemas.android.com/apk/res/android">
   <!-- init section is always evaluated once per architecture -->
   <init>
-    <log text="Tango init"/>
+    <log text="GoogleARCorePlugin APL init"/>
     <setBoolFromProperty result="bGradle" ini="Engine" section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings" property="bEnableGradle" default="false"/>
-  </init>
+		<!-- Get the bARCoreRequiredApp setting from the Engine ini. -->
+		<setBoolFromProperty result="bARCoreRequiredApp" ini="Engine" section="/Script/GoogleARCoreBase.GoogleARCoreEditorSettings" property="bARCoreRequiredApp" default="true" />
+	</init>
 
   <!-- optional files or directories to copy to Intermediate/Android/APK -->
   <resourceCopies>
-    <log text="Copying Tango files to staging"/>
-    <copyDir src="$S(PluginDir)/Java"
-    dst="$S(BuildDir)/src/com/projecttango/unreal" />
-    <copyDir src="$S(PluginDir)/../Java/com" dst="$S(BuildDir)/src/com" />
+    <log text="Copying GoogleARCore plugin files to staging"/>
+    <copyDir src="$S(PluginDir)/Java" dst="$S(BuildDir)/src/com/google/arcore/unreal" />
     <isArch arch="armeabi-v7a">
-      <copyFile src="$S(EngineDir)/Source/ThirdParty/TangoSDK/lib/armeabi-v7a/libtango_client_api2.so"
-          dst="$S(BuildDir)/libs/armeabi-v7a/libtango_client_api2.so" />
-      <copyFile src="$S(EngineDir)/Source/ThirdParty/TangoSDK/lib/armeabi-v7a/libtango_support.so"
-          dst="$S(BuildDir)/libs/armeabi-v7a/libtango_support.so" />
-      <copyFile src="$S(EngineDir)/Source/ThirdParty/TangoSDK/lib/armeabi-v7a/libtango_3d_reconstruction.so"
-                dst="$S(BuildDir)/libs/armeabi-v7a/libtango_3d_reconstruction.so" />
+      <copyFile src="$S(EngineDir)/Source/ThirdParty/GoogleARCore/lib/armeabi-v7a/libarcore_sdk.so"
+          dst="$S(BuildDir)/libs/armeabi-v7a/libarcore_sdk.so" />
     </isArch>
     <isArch arch="arm64-v8a">
-      <copyFile src="$S(EngineDir)/Source/ThirdParty/TangoSDK/lib/arm64-v8a/libtango_client_api2.so"
-                dst="$S(BuildDir)/libs/arm64-v8a/libtango_client_api2.so" />
-      <copyFile src="$S(EngineDir)/Source/ThirdParty/TangoSDK/lib/arm64-v8a/libtango_support.so"
-                dst="$S(BuildDir)/libs/arm64-v8a/libtango_support.so" />
-      <copyFile src="$S(EngineDir)/Source/ThirdParty/TangoSDK/lib/arm64-v8a/libtango_3d_reconstruction.so"
-                dst="$S(BuildDir)/libs/arm64-v8a/libtango_3d_reconstruction.so" />
+      <copyFile src="$S(EngineDir)/Source/ThirdParty/GoogleARCore/lib/arm64-v8a/libarcore_sdk.so"
+                dst="$S(BuildDir)/libs/arm64-v8a/libarcore_sdk.so" />
     </isArch>
 
   </resourceCopies>
 
   <!-- optional updates applied to AndroidManifest.xml -->
   <androidManifestUpdates>
-    <addPermission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <addPermission android:name="android.permission.CAMERA"/>
+    <if condition="bARCoreRequiredApp">
+      <true>
+        <addFeature android:name="android.hardware.camera.ar" android:required="true"/>
+        <addElements tag="application">
+          <meta-data android:name="com.google.ar.core" android:value="required" />
+        </addElements>
+      </true>
+      <false>
+        <addElements tag="application">
+          <meta-data android:name="com.google.ar.core" android:value="optional" />
+        </addElements>
+      </false>
+    </if>
   </androidManifestUpdates>
 
 
   <gameActivityImportAdditions>
     <insert>
-      import com.projecttango.unreal.TangoInitialization;
-      import com.projecttango.unreal.TangoUnrealHelper;
-      import com.projecttango.unreal.TangoNativeEngineMethodWrapper;
-      import com.google.atap.tangoservice.Tango;
-      import com.google.atap.tangoservice.SupportedDevices;
-      import com.google.ar.core.LightingEstimation;
-      import java.nio.ByteBuffer;
-      import android.os.IBinder;
-    </insert>
+			import com.google.arcore.unreal.GoogleARCoreJavaHelper;
+		</insert>
   </gameActivityImportAdditions>
 
   <gameActivityClassAdditions>
     <insert>
 
-      private TangoUnrealHelper tangoUnrealHelper = null;
-      private Tango tangoObject;
+      private GoogleARCoreJavaHelper arCoreJavaHelper = null;
 
-      public TangoUnrealHelper GetTangoUnrealHelper()
+      public GoogleARCoreJavaHelper GetGoogleARCoreJavaHelper()
       {
-        if (tangoUnrealHelper == null)
+        if (arCoreJavaHelper == null)
         {
-          tangoUnrealHelper = new TangoUnrealHelper(this);
+          arCoreJavaHelper = new GoogleARCoreJavaHelper(this);
         }
 
-        return tangoUnrealHelper;
+        return arCoreJavaHelper;
       }
 
       // Methods for calling via JNI:
 
       public int AndroidThunkJava_GetDisplayRotation()
       {
-        return GetTangoUnrealHelper().getDisplayRotation();
-      }
-      public int AndroidThunkJava_GetColorCameraRotation()
-      {
-        return GetTangoUnrealHelper().getColorCameraRotation();
-      }
-      public boolean AndroidThunkJava_IsTangoCorePresent()
-      {
-         return GetTangoUnrealHelper().isTangoCorePresent();
-      }
-      public boolean AndroidThunkJava_IsTangoCoreUpToDate()
-      {
-         return GetTangoUnrealHelper().isTangoCoreUpToDate();
+        return GetGoogleARCoreJavaHelper().getDisplayRotation();
       }
 
-      public boolean AndroidThunkJava_IsARCoreSupported()
+      public void AndroidThunkJava_QueueStartSessionOnUiThread()
       {
-          return SupportedDevices.isSupported(this);
-      }
-
-      public void AndroidThunkJava_CreateTangoObject()
-      {
-        _activity.runOnUiThread(new Runnable()
-        {
-          @Override
-          public void run()
-          {
-            tangoObject = new Tango(_activity, new Runnable() {
-              @Override
-              public void run() {
-                TangoNativeEngineMethodWrapper.onTangoServiceConnected(tangoObject);
-              }
-            });
-          }
-        });
+        GetGoogleARCoreJavaHelper().queueSessionStartOnUiThread();
       }
     </insert>
   </gameActivityClassAdditions>
 
   <gameActivityOnPauseAdditions>
     <insert>
-      TangoNativeEngineMethodWrapper.onApplicationPause();
+      GoogleARCoreJavaHelper.onApplicationPause();
     </insert>
   </gameActivityOnPauseAdditions>
 
   <gameActivityOnResumeAdditions>
     <insert>
-       TangoNativeEngineMethodWrapper.onApplicationResume();
+       GoogleARCoreJavaHelper.onApplicationResume();
     </insert>
   </gameActivityOnResumeAdditions>
 
   <gameActivityOnStartAdditions>
     <insert>
-       TangoNativeEngineMethodWrapper.onApplicationStart();
+       GoogleARCoreJavaHelper.onApplicationStart();
      </insert>
   </gameActivityOnStartAdditions>
 
   <gameActivityOnStopAdditions>
     <insert>
-       TangoNativeEngineMethodWrapper.onApplicationStop();
+       GoogleARCoreJavaHelper.onApplicationStop();
      </insert>
   </gameActivityOnStopAdditions>
   <gameActivityOnActivityResultAdditions>
@@ -141,35 +108,31 @@
 
   <gameActivityOnCreateAdditions>
     <insert>
-      Log.debug("Tango library loaded successfully from device.");
-      TangoNativeEngineMethodWrapper.onApplicationCreated();
-      GetTangoUnrealHelper().initDisplayManager();
+      GoogleARCoreJavaHelper.onApplicationCreated();
+      GetGoogleARCoreJavaHelper().initDisplayManager();
     </insert>
   </gameActivityOnCreateAdditions>
 
   <gameActivityOnDestroyAdditions>
     <insert>
-      TangoNativeEngineMethodWrapper.onApplicationDestroyed();
+      GoogleARCoreJavaHelper.onApplicationDestroyed();
     </insert>
   </gameActivityOnDestroyAdditions>
 
   <buildGradleAdditions>
       <insert>
         dependencies {
-          compile('com.google.tango:lighting_estimation:0.0.0')
-          compile('com.google.tango:tango_java_lib:0.0.0')
+          compile('com.google.ar:core:1.0.0')
         }
       </insert>
   </buildGradleAdditions>
 
   <AARImports>
-    <insert>repository $(ENGINEDIR)/Source/ThirdParty/TangoSDK/lib/</insert>
+    <insert>repository $(ENGINEDIR)/Source/ThirdParty/GoogleARCore/lib/android-aar</insert>
     <insertNewline/>
     <if condition="bGradle">
       <false>
-        <insert>com.google.tango, tango_java_lib, 0.0.0</insert>
-        <insertNewline/>
-        <insert>com.google.tango, lighting_estimation, 0.0.0</insert>
+        <insert>com.google.ar, core, 1.0.0</insert>
         <insertNewline/>
       </false>
     </if>

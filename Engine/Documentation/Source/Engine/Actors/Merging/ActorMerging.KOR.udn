@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3599948
+﻿INTSourceChangelist:3782314
 Availability: Public
 Crumbs: %ROOT%
 Title:액터 병합
@@ -20,11 +20,13 @@ Tags:HLOD
 
 Merge Actors (액터 병합) 툴은 다수의 스태틱 메시를 하나의 새로운 액터로 합칩니다. 다수의 머티리얼 역시 새로운 UV 레이아웃을 사용한 일련의 커스텀 텍스처로 된 단일 머티리얼로 구워 넣을 수도 있으며, 
 심지어 사용된 원본 스태틱 메시는 새로 병합된 애셋으로 완전히 대체할 수도 있습니다.
-<!---
+[COMMENT:none]
+-
 [REGION:warning]
 액터 병합 기능은 4.12 버전 이후로 공식 지원됩니다. 4.8 에서 4.11 까지는 에디터 세팅의 실험단계 탭에서 켜줘야 합니다. 4.12 이전 버전을 사용하시는 경우, 이 기능은 실험단계 기능으로 간주되어 공식 지원되지 않습니다.
 [/REGION]
---->
+-
+[/COMMENT]
 [REGION:raw]
 ![](MergingActors.png)(w:950)
 [/REGION]
@@ -96,7 +98,8 @@ Merge Actors (액터 병합) 툴은 다수의 스태틱 메시를 하나의 새�
 |**Target Light Map Resolution**||타겟 라이트 맵 해상도 - 새로운 라이트맵 UV 의 해상도를 지정합니다. 레이아웃 내 각 아일랜드 사이에 계산되는 거리를 제어합니다. 해상도가 높으면 각 아일랜드 사잉가 더욱 조밀해집니다. |
 [/REGION]
 
-<!--- LOD Selection Type Excerpts ---
+[COMMENT:none]
+- LOD Selection Type Excerpts ---
 
 [EXCERPT:lodselectiontype]
 [REGION:raw]
@@ -108,7 +111,8 @@ Merge Actors (액터 병합) 툴은 다수의 스태틱 메시를 하나의 새�
 [/REGION]
 [/EXCERPT:lodselectiontype]
 
---- LOD Selection Type Excerpts --->
+--- LOD Selection Type Excerpts -
+[/COMMENT]
 
 
 ### 머티리얼 세팅
@@ -149,7 +153,8 @@ Merge Actors (액터 병합) 툴은 다수의 스태틱 메시를 하나의 새�
 [/REGION]
 
 
-<!-- Material Settings Excerpts ----
+[COMMENT:none]
+ Material Settings Excerpts ----
 
 
 [EXCERPT:texturesizing]
@@ -182,7 +187,8 @@ Merge Actors (액터 병합) 툴은 다수의 스태틱 메시를 하나의 새�
 [/REGION]
 [/EXCERPT:blendmode]
 
---- /End Material Setting Excerpts -->
+--- /End Material Setting Excerpts 
+[/COMMENT]
 
 
 ### 랜드스케이프 컬링 세팅

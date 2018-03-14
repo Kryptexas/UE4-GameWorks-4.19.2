@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -61,8 +61,14 @@ private:
 	/** @return Is the "restart required" notice visible? */
 	EVisibility HandleRestartEditorNoticeVisibility() const;
 
+	/** @return Is the "update to Unreal Studio" notice visible? */
+	EVisibility HandleUpgradeToUnrealStudioVisibility() const;
+
 	/** Handle the "restart now" button being clicked */
 	FReply HandleRestartEditorButtonClicked() const;
+
+	/** Handle the "upgrade to Unreal Studio" button being clicked */
+	FReply HandleUpgradeToUnrealStudioButtonClicked() const;
 
 	/** Called when the text in the search box was changed */
 	void SearchBox_OnPluginSearchTextChanged( const FText& NewText );

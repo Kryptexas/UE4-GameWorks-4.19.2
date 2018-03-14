@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -24,6 +24,30 @@ using EventWaitHandle = System.Threading.EventWaitHandle;
 
 namespace UnrealGameSync
 {
+	interface IMainWindowTabPanel : IDisposable
+	{
+		void Activate();
+		void Deactivate();
+		void Hide();
+		void Show();
+		bool IsBusy();
+		bool CanClose();
+		bool CanSyncNow();
+		void SyncLatestChange();
+		bool CanLaunchEditor();
+		void LaunchEditor();
+
+		Tuple<TaskbarState, float> DesiredTaskbarState
+		{
+			get;
+		}
+
+		string SelectedFileName
+		{
+			get;
+		}
+	}
+
 	partial class MainWindow : Form, IWorkspaceControlOwner
 	{
 		[DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
@@ -52,7 +76,7 @@ namespace UnrealGameSync
 
 		string OriginalExecutableFileName;
 
-		WorkspaceControl CurrentWorkspace;
+		IMainWindowTabPanel CurrentTabPanel;
 
 		public MainWindow(UpdateMonitor InUpdateMonitor, string InSqlConnectionString, string InDataFolder, EventWaitHandle ActivateEvent, bool bInRestoreStateOnLoad, string InOriginalExecutableFileName, string InProjectFileName, bool bInUnstable, BoundedLogWriter InLog, UserSettings InSettings)
 		{
@@ -168,20 +192,20 @@ namespace UnrealGameSync
 
 		void TabControl_OnTabClosed(object Data)
 		{
-			WorkspaceControl Workspace = (WorkspaceControl)Data;
-			if(CurrentWorkspace == Workspace)
+			IMainWindowTabPanel TabPanel = (IMainWindowTabPanel)Data;
+			if(CurrentTabPanel == TabPanel)
 			{
-				CurrentWorkspace = null;
+				CurrentTabPanel = null;
 			}
-			Workspace.Dispose();
+			TabPanel.Dispose();
 
 			SaveTabSettings();
 		}
 
 		bool TabControl_OnTabClosing(object TabData)
 		{
-			WorkspaceControl Workspace = (WorkspaceControl)TabData;
-			return Workspace.CanClose();
+			IMainWindowTabPanel TabPanel = (IMainWindowTabPanel)TabData;
+			return TabPanel.CanClose();
 		}
 
 		/// <summary>
@@ -197,7 +221,7 @@ namespace UnrealGameSync
 
 			for(int Idx = 0; Idx < TabControl.GetTabCount(); Idx++)
 			{
-				((WorkspaceControl)TabControl.GetTabData(Idx)).Dispose();
+				((IMainWindowTabPanel)TabControl.GetTabData(Idx)).Dispose();
 			}
 
 			if(ActivationListener != null)
@@ -248,8 +272,8 @@ namespace UnrealGameSync
 			{
 				for(int Idx = 0; Idx < TabControl.GetTabCount(); Idx++)
 				{
-					WorkspaceControl Workspace = (WorkspaceControl)TabControl.GetTabData(Idx);
-					if(!Workspace.CanClose())
+					IMainWindowTabPanel TabPanel = (IMainWindowTabPanel)TabControl.GetTabData(Idx);
+					if(!TabPanel.CanClose())
 					{
 						EventArgs.Cancel = true;
 						return;
@@ -287,6 +311,57 @@ namespace UnrealGameSync
 			DefaultControl.Set(Lines);
 		}
 
+		private void CreateErrorPanel(int ReplaceTabIdx, string ProjectFileName, string Message)
+		{
+			Log.WriteLine(Message);
+
+			ErrorPanel ErrorPanel = new ErrorPanel(ProjectFileName);
+			ErrorPanel.Parent = TabPanel;
+			ErrorPanel.BorderStyle = BorderStyle.FixedSingle;
+			ErrorPanel.BackColor = Color.White;
+			ErrorPanel.Location = new Point(0, 0);
+			ErrorPanel.Size = new Size(TabPanel.Width, TabPanel.Height);
+			ErrorPanel.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right | AnchorStyles.Bottom;
+			ErrorPanel.Hide();
+
+			List<StatusLine> Lines = new List<StatusLine>();
+
+			StatusLine SummaryLine = new StatusLine();
+			SummaryLine.AddText(String.Format("Unable to open '{0}'.", ProjectFileName));
+			Lines.Add(SummaryLine);
+
+			Lines.Add(new StatusLine(){ LineHeight = 0.5f });
+
+			StatusLine ErrorLine = new StatusLine();
+			ErrorLine.AddText(Message);
+			Lines.Add(ErrorLine);
+
+			Lines.Add(new StatusLine(){ LineHeight = 0.5f });
+
+			StatusLine ActionLine = new StatusLine();
+			ActionLine.AddLink("Close", FontStyle.Bold | FontStyle.Underline, () => { BeginInvoke(new MethodInvoker(() => { TabControl.RemoveTab(TabControl.FindTabIndex(ErrorPanel)); })); });
+			ActionLine.AddText(" | ");
+			ActionLine.AddLink("Retry", FontStyle.Bold | FontStyle.Underline, () => { BeginInvoke(new MethodInvoker(() => { TryOpenProject(ProjectFileName, TabControl.FindTabIndex(ErrorPanel)); })); });
+			ActionLine.AddText(" | ");
+			ActionLine.AddLink("Open another...", FontStyle.Bold | FontStyle.Underline, () => { BeginInvoke(new MethodInvoker(() => { BrowseForProject(TabControl.FindTabIndex(ErrorPanel)); })); });
+			Lines.Add(ActionLine);
+
+			ErrorPanel.Set(Lines);
+
+			string NewTabName = "Error: " + Path.GetFileName(ProjectFileName);
+			if (ReplaceTabIdx == -1)
+			{
+				TabControl.InsertTab(-1, NewTabName, ErrorPanel);
+			}
+			else
+			{
+				TabControl.InsertTab(ReplaceTabIdx + 1, NewTabName, ErrorPanel);
+				TabControl.RemoveTab(ReplaceTabIdx);
+			}
+
+			UpdateProgress();
+		}
+
 		public void ShowAndActivate()
 		{
 			Show();
@@ -322,8 +397,8 @@ namespace UnrealGameSync
 			{
 				for(int TabIdx = 0; TabIdx < TabControl.GetTabCount(); TabIdx++)
 				{
-					WorkspaceControl Workspace = (WorkspaceControl)TabControl.GetTabData(TabIdx);
-					if(Workspace.IsBusy())
+					IMainWindowTabPanel TabPanel = (IMainWindowTabPanel)TabControl.GetTabData(TabIdx);
+					if(TabPanel.IsBusy())
 					{
 						return;
 					}
@@ -334,22 +409,15 @@ namespace UnrealGameSync
 			}
 		}
 
-		private void ShowErrorDialog(string Format, params object[] Args)
-		{
-			string Message = String.Format(Format, Args);
-			Log.WriteLine(Message);
-			MessageBox.Show(Message);
-		}
-
 		private void NotifyIcon_MouseDown(object sender, MouseEventArgs e)
 		{
 			// Have to set up this stuff here, because the menu is laid out before Opening() is called on it after mouse-up.
-			if(CurrentWorkspace != null)
+			if(CurrentTabPanel != null)
 			{
-				bool bCanSyncNow = CurrentWorkspace.CanSyncNow();
-				bool bCanLaunchEditor = CurrentWorkspace.CanLaunchEditor();
-				NotifyMenu_SyncNow.Visible = CurrentWorkspace.CanSyncNow();
-				NotifyMenu_LaunchEditor.Visible = CurrentWorkspace.CanLaunchEditor();
+				bool bCanSyncNow = CurrentTabPanel.CanSyncNow();
+				bool bCanLaunchEditor = CurrentTabPanel.CanLaunchEditor();
+				NotifyMenu_SyncNow.Visible = CurrentTabPanel.CanSyncNow();
+				NotifyMenu_LaunchEditor.Visible = CurrentTabPanel.CanLaunchEditor();
 				NotifyMenu_ExitSeparator.Visible = bCanSyncNow || bCanLaunchEditor;
 			}
 		}
@@ -366,12 +434,12 @@ namespace UnrealGameSync
 
 		private void NotifyMenu_SyncNow_Click(object sender, EventArgs e)
 		{
-			CurrentWorkspace.SyncLatestChange();
+			CurrentTabPanel.SyncLatestChange();
 		}
 
 		private void NotifyMenu_LaunchEditor_Click(object sender, EventArgs e)
 		{
-			CurrentWorkspace.LaunchEditor();
+			CurrentTabPanel.LaunchEditor();
 		}
 
 		private void NotifyMenu_Exit_Click(object sender, EventArgs e)
@@ -382,17 +450,17 @@ namespace UnrealGameSync
 
 		private void MainWindow_Activated(object sender, EventArgs e)
 		{
-			if(CurrentWorkspace != null)
+			if(CurrentTabPanel != null)
 			{
-				CurrentWorkspace.Activate();
+				CurrentTabPanel.Activate();
 			}
 		}
 
 		private void MainWindow_Deactivate(object sender, EventArgs e)
 		{
-			if(CurrentWorkspace != null)
+			if(CurrentTabPanel != null)
 			{
-				CurrentWorkspace.Deactivate();
+				CurrentTabPanel.Deactivate();
 			}
 		}
 
@@ -442,7 +510,11 @@ namespace UnrealGameSync
 		{
 			for(int Idx = 0; Idx < TabControl.GetTabCount(); Idx++)
 			{
-				((WorkspaceControl)TabControl.GetTabData(Idx)).ScheduleTimerElapsed();
+				WorkspaceControl Workspace = TabControl.GetTabData(Idx) as WorkspaceControl;
+				if(Workspace != null)
+				{
+					Workspace.ScheduleTimerElapsed();
+				}
 			}
 		}
 
@@ -451,31 +523,31 @@ namespace UnrealGameSync
 			SendMessage(Handle, WM_SETREDRAW, 0, 0);
 			SuspendLayout();
 
-			if(CurrentWorkspace != null)
+			if(CurrentTabPanel != null)
 			{
-				CurrentWorkspace.Deactivate();
-				CurrentWorkspace.Hide();
+				CurrentTabPanel.Deactivate();
+				CurrentTabPanel.Hide();
 			}
 
 			if(NewTabData == null)
 			{
-				CurrentWorkspace = null;
+				CurrentTabPanel = null;
 				Settings.LastProjectFileName = null;
 				DefaultControl.Show();
 			}
 			else
 			{
-				CurrentWorkspace = (WorkspaceControl)NewTabData;
-				Settings.LastProjectFileName = CurrentWorkspace.SelectedFileName;
+				CurrentTabPanel = (IMainWindowTabPanel)NewTabData;
+				Settings.LastProjectFileName = CurrentTabPanel.SelectedFileName;
 				DefaultControl.Hide();
 			}
 
 			Settings.Save();
 
-			if(CurrentWorkspace != null)
+			if(CurrentTabPanel != null)
 			{
-				CurrentWorkspace.Activate();
-				CurrentWorkspace.Show();
+				CurrentTabPanel.Activate();
+				CurrentTabPanel.Show();
 			}
 
 			ResumeLayout();
@@ -532,7 +604,7 @@ namespace UnrealGameSync
 			// Make sure the project exists
 			if(!File.Exists(ProjectFileName))
 			{
-				ShowErrorDialog("{0} does not exist.", ProjectFileName);
+				CreateErrorPanel(ReplaceTabIdx, ProjectFileName, String.Format("{0} does not exist.", ProjectFileName));
 				return -1;
 			}
 
@@ -541,21 +613,24 @@ namespace UnrealGameSync
 			{
 				if(ReplaceTabIdx != TabIdx)
 				{
-					WorkspaceControl Workspace = (WorkspaceControl)TabControl.GetTabData(TabIdx);
-					if(Workspace.SelectedFileName.Equals(ProjectFileName, StringComparison.InvariantCultureIgnoreCase))
+					WorkspaceControl Workspace = TabControl.GetTabData(TabIdx) as WorkspaceControl;
+					if(Workspace != null)
 					{
-						TabControl.SelectTab(TabIdx);
-						return TabIdx;
-					}
-					else if(ProjectFileName.StartsWith(Workspace.BranchDirectoryName + Path.DirectorySeparatorChar, StringComparison.InvariantCultureIgnoreCase))
-					{
-						if(MessageBox.Show(String.Format("{0} is already open under {1}.\n\nWould you like to close it?", Path.GetFileNameWithoutExtension(Workspace.SelectedFileName), Workspace.BranchDirectoryName, Path.GetFileNameWithoutExtension(ProjectFileName)), "Branch already open", MessageBoxButtons.YesNo) == System.Windows.Forms.DialogResult.Yes)
+						if(Workspace.SelectedFileName.Equals(ProjectFileName, StringComparison.InvariantCultureIgnoreCase))
 						{
-							TabControl.RemoveTab(TabIdx);
+							TabControl.SelectTab(TabIdx);
+							return TabIdx;
 						}
-						else
+						else if(ProjectFileName.StartsWith(Workspace.BranchDirectoryName + Path.DirectorySeparatorChar, StringComparison.InvariantCultureIgnoreCase))
 						{
-							return -1;
+							if(MessageBox.Show(String.Format("{0} is already open under {1}.\n\nWould you like to close it?", Path.GetFileNameWithoutExtension(Workspace.SelectedFileName), Workspace.BranchDirectoryName, Path.GetFileNameWithoutExtension(ProjectFileName)), "Branch already open", MessageBoxButtons.YesNo) == System.Windows.Forms.DialogResult.Yes)
+							{
+								TabControl.RemoveTab(TabIdx);
+							}
+							else
+							{
+								return -1;
+							}
 						}
 					}
 				}
@@ -572,7 +647,7 @@ namespace UnrealGameSync
 				{
 					if(!String.IsNullOrEmpty(ErrorMessage))
 					{
-						ShowErrorDialog("{0}", ErrorMessage);
+						CreateErrorPanel(ReplaceTabIdx, ProjectFileName, ErrorMessage);
 					}
 					return -1;
 				}
@@ -637,8 +712,8 @@ namespace UnrealGameSync
 			List<string> OpenProjectFileNames = new List<string>();
 			for(int TabIdx = 0; TabIdx < TabControl.GetTabCount(); TabIdx++)
 			{
-				WorkspaceControl Workspace = (WorkspaceControl)TabControl.GetTabData(TabIdx);
-				OpenProjectFileNames.Add(Workspace.SelectedFileName);
+				IMainWindowTabPanel TabPanel = (IMainWindowTabPanel)TabControl.GetTabData(TabIdx);
+				OpenProjectFileNames.Add(TabPanel.SelectedFileName);
 			}
 			Settings.OpenProjectFileNames = OpenProjectFileNames.ToArray();
 			Settings.Save();
@@ -677,8 +752,11 @@ namespace UnrealGameSync
 
 				for(int Idx = 0; Idx < TabControl.GetTabCount(); Idx++)
 				{
-					WorkspaceControl Workspace = (WorkspaceControl)TabControl.GetTabData(Idx);
-					TabControl.SetTabName(Idx, GetTabName(Workspace));
+					WorkspaceControl Workspace = TabControl.GetTabData(Idx) as WorkspaceControl;
+					if(Workspace != null)
+					{
+						TabControl.SetTabName(Idx, GetTabName(Workspace));
+					}
 				}
 			}
 		}
@@ -732,9 +810,9 @@ namespace UnrealGameSync
 
 			for(int Idx = 0; Idx < TabControl.GetTabCount(); Idx++)
 			{
-				WorkspaceControl Workspace = (WorkspaceControl)TabControl.GetTabData(Idx);
+				IMainWindowTabPanel TabPanel = (IMainWindowTabPanel)TabControl.GetTabData(Idx);
 
-				Tuple<TaskbarState, float> DesiredTaskbarState = Workspace.DesiredTaskbarState;
+				Tuple<TaskbarState, float> DesiredTaskbarState = TabPanel.DesiredTaskbarState;
 				if(DesiredTaskbarState.Item1 == TaskbarState.Error)
 				{
 					State = TaskbarState.Error;

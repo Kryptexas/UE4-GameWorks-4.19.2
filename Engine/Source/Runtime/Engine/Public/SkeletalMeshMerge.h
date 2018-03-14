@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalMeshMerge.h: Merging of unreal skeletal mesh objects.
@@ -13,14 +13,14 @@ FSkeletalMeshMerge
 #include "CoreMinimal.h"
 #include "Engine/EngineTypes.h"
 #include "ReferenceSkeleton.h"
-#include "SkeletalMeshTypes.h"
+#include "Components.h"
 
-class FStaticLODModel;
 class UMaterialInterface;
 class USkeletalMesh;
 class USkeletalMeshSocket;
 class USkeleton;
-struct FSkelMeshSection;
+class FSkeletalMeshLODRenderData;
+struct FSkelMeshRenderSection;
 
 struct FRefPoseOverride
 {
@@ -179,13 +179,13 @@ private:
 		/** ptr to source skeletal mesh for this section */
 		const USkeletalMesh* SkelMesh;
 		/** ptr to source section for merging */
-		const FSkelMeshSection* Section;
+		const FSkelMeshRenderSection* Section;
 		/** mapping from the original BoneMap for this sections chunk to the new MergedBoneMap */
 		TArray<FBoneIndexType> BoneMapToMergedBoneMap;
 		/** transform from the original UVs */
 		TArray<FTransform> UVTransforms;
 
-		FMergeSectionInfo( const USkeletalMesh* InSkelMesh,const FSkelMeshSection* InSection, TArray<FTransform> & InUVTransforms )
+		FMergeSectionInfo( const USkeletalMesh* InSkelMesh,const FSkelMeshRenderSection* InSection, TArray<FTransform> & InUVTransforms )
 			:	SkelMesh(InSkelMesh)
 			,	Section(InSection)
 			,	UVTransforms(InUVTransforms)
@@ -310,9 +310,9 @@ private:
 	 * Copy Vertex Buffer from Source LOD Model
 	 */
 	template<typename VertexDataType>
-	void CopyVertexFromSource(VertexDataType& DestVert, const FStaticLODModel& SrcLODModel, int32 SourceVertIdx, const FMergeSectionInfo& MergeSectionInfo);
+	void CopyVertexFromSource(VertexDataType& DestVert, const FSkeletalMeshLODRenderData& SrcLODData, int32 SourceVertIdx, const FMergeSectionInfo& MergeSectionInfo);
 
 	/** Copy skin weight info from source LOD model - templatized per SourceLODModel extra bone influence */
 	template<typename SkinWeightType, bool bHasExtraBoneInfluences>
-	void CopyWeightFromSource(SkinWeightType& DestWeight, const FStaticLODModel& SrcLODModel, int32 SourceVertIdx, const FMergeSectionInfo& MergeSectionInfo);
+	void CopyWeightFromSource(SkinWeightType& DestWeight, const FSkeletalMeshLODRenderData& SrcLODData, int32 SourceVertIdx, const FMergeSectionInfo& MergeSectionInfo);
 };

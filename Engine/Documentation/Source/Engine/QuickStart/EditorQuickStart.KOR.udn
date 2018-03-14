@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3367473
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 레벨 디자이너 퀵스타트 가이드
 Crumbs: %ROOT%, GettingStarted
@@ -11,40 +11,7 @@ parent:Engine/Editor
 order:1
 checkpoint: editorqs
 type:quick start
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](engine_qs_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/QuickStart:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/QuickStart]
-	[/PARAM]
-	[PARAM:description]
-	%Engine/QuickStart:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](engine_qs_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/QuickStart:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/QuickStart]
-	[/PARAM]
-	[PARAM:description]
-	%Engine/QuickStart:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:engine_qs_topic.png
 
 ![](Finished.png)
 
@@ -63,19 +30,9 @@ _이 가이드를 마칠 즈음엔 위 그림과 같은 방이 생겨있을 것�
 *	레벨에 액터 배치 및 편집 방법
 *	레벨 빌드 및 실행 방법
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		단계
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	[DIR(output:"checkpoint" parent:"Engine/QuickStart" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+## 단계
+
+[DIR(output:"checkpoint" parent:"Engine/QuickStart" org:"hierarchy")]
 
 [REGION:call_to_action]
 	[클릭하면 시작합니다.](Engine/QuickStart/1 "%Engine/QuickStart/1:title%")

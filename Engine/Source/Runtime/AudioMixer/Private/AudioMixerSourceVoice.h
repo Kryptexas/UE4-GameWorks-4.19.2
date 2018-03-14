@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -54,7 +54,7 @@ namespace Audio
 		void SetHPFFrequency(const float InFrequency);
 
 		// Sets the source voice's channel map (2d or 3d).
-		void SetChannelMap(TArray<float>& InChannelMap, const bool bInIs3D, const bool bInIsCenterChannelOnly);
+		void SetChannelMap(ESubmixChannelFormat InChannelType, TArray<float>& InChannelMap, const bool bInIs3D, const bool bInIsCenterChannelOnly);
 
 		// Sets params used by HRTF spatializer
 		void SetSpatializationParams(const FSpatializationParams& InParams);
@@ -89,8 +89,11 @@ namespace Audio
 		// Retrieves the total number of samples played.
 		int64 GetNumFramesPlayed() const;
 
+		// Retrieves the envelope value of the source.
+		float GetEnvelopeValue() const;
+
 		// Mixes the dry and wet buffer audio into the given buffers.
-		void MixOutputBuffers(AlignedFloatBuffer& OutWetBuffer, const float SendLevel) const;
+		void MixOutputBuffers(const ESubmixChannelFormat InSubmixChannelType, const float SendLevel, AlignedFloatBuffer& OutWetBuffer) const;
 
 		// Sets the submix send levels
 		void SetSubmixSendInfo(FMixerSubmixPtr Submix, const float SendLevel);
@@ -105,7 +108,7 @@ namespace Audio
 		FMixerSourceManager* SourceManager;
 		TMap<uint32, FMixerSourceSubmixSend> SubmixSends;
 		FMixerDevice* MixerDevice;
-		TArray<float> ChannelMap;
+		TMap<ESubmixChannelFormat, TArray<float>> ChannelMaps;
 		FThreadSafeCounter NumBuffersQueued;
 		float Pitch;
 		float Volume;

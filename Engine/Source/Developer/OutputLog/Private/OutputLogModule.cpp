@@ -1,6 +1,7 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OutputLogModule.h"
+#include "Features/IModularFeatures.h"
 #include "Modules/ModuleManager.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Textures/SlateIcon.h"
@@ -88,6 +89,9 @@ TSharedRef<SDockTab> SpawnDeviceOutputLog( const FSpawnTabArgs& Args )
 
 void FOutputLogModule::StartupModule()
 {
+	CmdExec = MakeShared<FConsoleCommandExecutor>();
+	IModularFeatures::Get().RegisterModularFeature(IConsoleCommandExecutor::ModularFeatureName(), CmdExec.Get());
+
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(OutputLogModule::OutputLogTabName, FOnSpawnTab::CreateStatic( &SpawnOutputLog ) )
 		.SetDisplayName(NSLOCTEXT("UnrealEditor", "OutputLogTab", "Output Log"))
 		.SetTooltipText(NSLOCTEXT("UnrealEditor", "OutputLogTooltipText", "Open the Output Log tab."))
@@ -106,6 +110,8 @@ void FOutputLogModule::StartupModule()
 
 void FOutputLogModule::ShutdownModule()
 {
+	IModularFeatures::Get().UnregisterModularFeature(IConsoleCommandExecutor::ModularFeatureName(), CmdExec.Get());
+
 	if (FSlateApplication::IsInitialized())
 	{
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(OutputLogModule::OutputLogTabName);
@@ -113,13 +119,12 @@ void FOutputLogModule::ShutdownModule()
 	}
 }
 
-TSharedRef< SWidget > FOutputLogModule::MakeConsoleInputBox( TSharedPtr< SEditableTextBox >& OutExposedEditableTextBox ) const
+TSharedRef< SWidget > FOutputLogModule::MakeConsoleInputBox( TSharedPtr< SMultiLineEditableTextBox >& OutExposedEditableTextBox ) const
 {
 	TSharedRef< SConsoleInputBox > NewConsoleInputBox = SNew( SConsoleInputBox );
 	OutExposedEditableTextBox = NewConsoleInputBox->GetEditableTextBox();
 	return NewConsoleInputBox;
 }
-
 
 void FOutputLogModule::ToggleDebugConsoleForWindow( const TSharedRef< SWindow >& Window, const EDebugConsoleStyle::Type InStyle, const FDebugConsoleDelegates& DebugConsoleDelegates )
 {
@@ -170,7 +175,6 @@ void FOutputLogModule::ToggleDebugConsoleForWindow( const TSharedRef< SWindow >&
 		DebugConsoleRef->SetFocusToEditableText();
 	}
 }
-
 
 void FOutputLogModule::CloseDebugConsole()
 {

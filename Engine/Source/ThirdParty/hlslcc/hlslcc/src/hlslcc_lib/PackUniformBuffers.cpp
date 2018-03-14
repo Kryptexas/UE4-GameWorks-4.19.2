@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ShaderCompilerCommon.h"
 #include "glsl_parser_extras.h"
@@ -572,9 +572,9 @@ static void FindMainAndCalculateUniformArraySizes(exec_list* Instructions, _mesa
 		else if (ir->ir_type == ir_type_function && OutMain == NULL)
 		{
 			ir_function* func = (ir_function*)ir;
-			foreach_iter(exec_list_iterator, iter, func->signatures)
+			foreach_iter(exec_list_iterator, iter2, func->signatures)
 			{
-				ir_function_signature* sig = (ir_function_signature*)iter.get();
+				ir_function_signature* sig = (ir_function_signature*)iter2.get();
 				if (sig->is_main)
 				{
 					OutMain = sig;
@@ -1014,18 +1014,18 @@ namespace DebugPackUniforms
 		}
 	}
 
-	static TDMARangeList SortRanges(TCBDMARangeMap& CBRanges)
-	{
-		TDMARangeList Sorted;
-		for (auto& Pair : CBRanges)
-		{
-			Sorted.insert(Sorted.end(), Pair.second.begin(), Pair.second.end());
-		}
+	//static TDMARangeList SortRanges(TCBDMARangeMap& CBRanges)
+	//{
+	//	TDMARangeList Sorted;
+	//	for (auto& Pair : CBRanges)
+	//	{
+	//		Sorted.insert(Sorted.end(), Pair.second.begin(), Pair.second.end());
+	//	}
 
-		Sorted.sort();
+	//	Sorted.sort();
 
-		return Sorted;
-	}
+	//	return Sorted;
+	//}
 
 	void DebugPrintPackedUniformBuffers(_mesa_glsl_parse_state* ParseState, bool bGroupFlattenedUBs)
 	{
@@ -1559,7 +1559,7 @@ namespace ArraysToMatrices
 		_mesa_glsl_parse_state* ParseState;
 		SFixArrays(_mesa_glsl_parse_state* InParseState, TArrayReplacedMap& InEntries) : ParseState(InParseState), Entries(InEntries) {}
 
-		virtual ir_visitor_status visit_enter(ir_dereference_array* DerefArray)
+		virtual ir_visitor_status visit_enter(ir_dereference_array* DerefArray) override
 		{
 			auto FoundIter = Entries.find(DerefArray->variable_referenced());
 			if (FoundIter == Entries.end())

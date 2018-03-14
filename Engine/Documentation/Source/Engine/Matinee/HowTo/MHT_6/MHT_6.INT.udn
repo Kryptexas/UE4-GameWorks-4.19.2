@@ -6,19 +6,13 @@ Version: 4.9
 SkillLevel: Intermediate
 
 
----
 In the following steps, we will create a blinking **Material** on an object and change the color of a **Material** on an object when the player approaches it. 
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Add the Matinee Actor, Props, and Tracks in Matinee
-	[/PARAM]
-	[PARAM:description]
-	In this step, we will add our **Matinee Actor**, add some props that we will use in the scene and finally, add the tracks we will use in our **Matinee**.
-	[/PARAM]
-[/OBJECT]
+## Add the Matinee Actor, Props, and Tracks in Matinee
+
+In this step, we will add our **Matinee Actor**, add some props that we will use in the scene and finally, add the tracks we will use in our **Matinee**.
 
 1. From the **Toolbar** menu, select Matinee and click the **Add Matinee** button. 
 
@@ -80,15 +74,9 @@ In the following steps, we will create a blinking **Material** on an object and 
 
 	![](MHT6_AddFloatMaterialTrack.png)
 
+##Vector Material Parameter Matinee
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Vector Material Parameter Matinee
-	[/PARAM]
-	[PARAM:description]
-	In the following steps, we will use the **Vector Material Parameter** track in **Matinee** to change the color of the chair when the player is near it. 
-	[/PARAM]
-[/OBJECT]
+In the following steps, we will use the **Vector Material Parameter** track in **Matinee** to change the color of the chair when the player is near it. 
 
 1.  Select the chair in the level, then in the Details panel under **Materials**, click the Browse To (Magnifying glass) icon. 
 
@@ -206,15 +194,9 @@ In the following steps, we will create a blinking **Material** on an object and 
 
 	_When you move away from the chair, it should blend back to the default color._
 
+## Float Material Parameter Matinee
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Float Material Parameter Matinee
-	[/PARAM]
-	[PARAM:description]
-	In the following steps, we will use the **Float Material Parameter** track in **Matinee** to create a blinking **Material** applied to the steps of our stairs. 
-	[/PARAM]
-[/OBJECT]
+In the following steps, we will use the **Float Material Parameter** track in **Matinee** to create a blinking **Material** applied to the steps of our stairs. 
 
 1. In the Content Browser under **Game/Materials**, **Right-click** on the **M_Basic_Wall Material** and choose **Create Copy** and give it a name.
 
@@ -289,18 +271,4 @@ In the following steps, we will create a blinking **Material** on an object and 
 	_You should now see that the steps of the stairs blink back-and-forth between black and white colors._
 
 	_You could increase the speed at which it blinks by making the time in between keyframes in the **Matinee** shorter._
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

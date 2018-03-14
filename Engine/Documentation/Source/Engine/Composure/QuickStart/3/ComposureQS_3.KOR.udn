@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:3 - Creating a Sequence for Composure
+﻿INTSourceChangelist:3728507
+Availability:Public
+Title:3 - 컴포셔 레벨 시퀀스 생성
 Crumbs:%ROOT%
-Description:In this step we will create new level sequence that will use Composure. 
+Description:컴포셔의 레벨 시퀀스를 구성합니다.
 SkillLevel:Beginner
 Version:4.17
 checkpoint:ComposureQS
@@ -13,14 +13,43 @@ tags:Composure
 
 [NAV]
 
+여기서는 데모 시퀀스의 세 번째 샷을 재현하는 데 필요한 모든 데이터가 들어갈 새 레벨 시퀀스를 만들고 구성하도록 하겠습니다.
 
+## 단계
 
-## Steps
+1. **툴바** 에서 **Cinematics** (시네마틱) 버튼을 클릭하고 표시되는 목록에서 **Add Level Sequence** (레벨 시퀀스 추가) 옵션을 선택합니다.
 
+    ![](ComposureQS_S3_1.png)
 
+1. 레벨 시퀀스를 저장할 위치는 **ComposureQS** 폴더를 선택해 주고 시퀀스 이름은 **shot0030_remake_001** 이라 합니다.
 
-## End Result
+1. 새 레벨 시퀀스가 생성되면, **시퀀스** 에디터가 자동으로 열리고, 열리면 바로 **Time Snapping Interval** (시간 스냅 간격)을 **24 fps (film)** 으로 설정합니다. 
 
+    ![](ComposureQS_S3_2.png)
 
+1. 다음, 시퀀서 타임라인에 클릭하고 **Ctrl** 키를 누른 상태에서 마우스 휠 스크롤을 조작하여 타임라인을 축소시켜 더욱 넓게 확인할 수 있도록 합니다.
+
+1.  **재생** 버튼 아이콘을 클릭하여 재생 옵션을 표시한 뒤 **End** 를 1591 로, **Start** 를 1098 로 설정합니다.
+
+    ![](ComposureQS_S3_3.png)
+
+    [region:note]
+    End 프레임 번호를 먼저 설정한 뒤 Start 프레임 번호를 나중에 설정해야 정상 작동합니다. 다른 식으로 하면 원하는 대로 작동하지 않을 것입니다.
+    [/region]
+
+1. **Home** 키를 눌러 시퀀서 뷰의 줌 레벨을 이 새로운 프레임 범위에 맞추고 **위** 화살표 키를 눌러 플레이 헤드를 1098 프레임에 맞춥니다.
+
+    [OBJECT:ComparisonSlider]
+        [PARAM:before]
+        ![이전](ComposureQS_S3_4_1.png)
+        [/PARAM]
+        [PARAM:after]
+        ![이후](ComposureQS_S3_4_2.png)
+        [/PARAM]
+    [/OBJECT]
+
+## 최종 결과
+
+레벨 시퀀스가 생성되었으니, 다음에는 정상 작동에 필요한 액터와 블루프린트 컴포셔 추가 및 구성 방법을 살펴보겠습니다.
 
 [NAV]

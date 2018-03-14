@@ -2,14 +2,14 @@
 	LightGridCommon.usf
 =============================================================================*/
 
-Buffer<uint> NumCulledLightsGrid;
-Buffer<uint> CulledLightDataGrid;
-Buffer<uint4> ForwardLocalLightBuffer;
+STRONG_TYPE Buffer<uint> NumCulledLightsGrid;
+STRONG_TYPE Buffer<uint> CulledLightDataGrid;
+STRONG_TYPE Buffer<float4> ForwardLocalLightBuffer;
 
 // ISR copies
-Buffer<uint> InstancedNumCulledLightsGrid;
-Buffer<uint> InstancedCulledLightDataGrid;
-Buffer<uint4> InstancedForwardLocalLightBuffer;
+STRONG_TYPE Buffer<uint> InstancedNumCulledLightsGrid;
+STRONG_TYPE Buffer<uint> InstancedCulledLightDataGrid;
+STRONG_TYPE Buffer<float4> InstancedForwardLocalLightBuffer;
 
 struct LightGridData
 {
@@ -75,12 +75,12 @@ FCulledLightsGridData GetCulledLightsGrid(uint GridIndex, uint EyeIndex)
 	BRANCH
 	if (EyeIndex == 0)
 	{
-		Result.NumLocalLights = NumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 0];
+		Result.NumLocalLights = min(NumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 0], ForwardGlobalLightData.NumLocalLights);
 		Result.DataStartIndex = NumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 1];
 	}
 	else
 	{
-		Result.NumLocalLights = InstancedNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 0];
+		Result.NumLocalLights = min(InstancedNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 0], InstancedForwardGlobalLightData.NumLocalLights);
 		Result.DataStartIndex = InstancedNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 1];
 	}
 
@@ -91,10 +91,8 @@ struct FLocalLightData
 {
 	float4 LightPositionAndInvRadius;
 	float4 LightColorAndFalloffExponent;
-	float3 SpotAngles;
-	uint   SourceRadiusPacked;
-    float3 LightDirection;
-	uint   ShadowMask;
+	float4 SpotAnglesAndSourceRadiusPacked;
+    float4 LightDirectionAndShadowMask;
     float4 LightTangentAndSoftSourceRadius;
 };
 
@@ -106,25 +104,21 @@ FLocalLightData GetLocalLightData(uint GridIndex, uint EyeIndex)
 	{
 		uint LocalLightIndex = CulledLightDataGrid[GridIndex];
 		uint LocalLightBaseIndex = LocalLightIndex * LOCAL_LIGHT_DATA_STRIDE;
-		Result.LightPositionAndInvRadius = asfloat(ForwardLocalLightBuffer[LocalLightBaseIndex + 0]);
-		Result.LightColorAndFalloffExponent = asfloat(ForwardLocalLightBuffer[LocalLightBaseIndex + 1]);
-		Result.LightDirection = asfloat(ForwardLocalLightBuffer[LocalLightBaseIndex + 2].xyz);
-		Result.ShadowMask = ForwardLocalLightBuffer[LocalLightBaseIndex + 2].w;
-        Result.SpotAngles = asfloat(ForwardLocalLightBuffer[LocalLightBaseIndex + 3].xyz);
-		Result.SourceRadiusPacked = ForwardLocalLightBuffer[LocalLightBaseIndex + 3].w;
-        Result.LightTangentAndSoftSourceRadius = asfloat(ForwardLocalLightBuffer[LocalLightBaseIndex + 4]);
+		Result.LightPositionAndInvRadius = ForwardLocalLightBuffer[LocalLightBaseIndex + 0];
+		Result.LightColorAndFalloffExponent = ForwardLocalLightBuffer[LocalLightBaseIndex + 1];
+		Result.LightDirectionAndShadowMask = ForwardLocalLightBuffer[LocalLightBaseIndex + 2];
+        Result.SpotAnglesAndSourceRadiusPacked = ForwardLocalLightBuffer[LocalLightBaseIndex + 3];
+        Result.LightTangentAndSoftSourceRadius = ForwardLocalLightBuffer[LocalLightBaseIndex + 4];
     }
 	else
 	{
 		uint LocalLightIndex = InstancedCulledLightDataGrid[GridIndex];
 		uint LocalLightBaseIndex = LocalLightIndex * LOCAL_LIGHT_DATA_STRIDE;
-		Result.LightPositionAndInvRadius = asfloat(InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 0]);
-		Result.LightColorAndFalloffExponent = asfloat(InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 1]);
-		Result.LightDirection = asfloat(InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 2].xyz);
-		Result.ShadowMask = InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 2].w;
-        Result.SpotAngles = asfloat(InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 3].xyz);
-		Result.SourceRadiusPacked = InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 3].w;
-        Result.LightTangentAndSoftSourceRadius = asfloat(InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 4]);
+		Result.LightPositionAndInvRadius = InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 0];
+		Result.LightColorAndFalloffExponent = InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 1];
+		Result.LightDirectionAndShadowMask = InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 2];
+        Result.SpotAnglesAndSourceRadiusPacked = InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 3];
+        Result.LightTangentAndSoftSourceRadius = InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 4];
     }
 
 	return Result;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagQueryCustomization.h"
 #include "UObject/UnrealType.h"
@@ -22,6 +22,7 @@
 void FGameplayTagQueryCustomization::CustomizeHeader(TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	StructPropertyHandle = InStructPropertyHandle;
+	check(StructPropertyHandle.IsValid());
 
 	PropertyUtilities = StructCustomizationUtils.GetPropertyUtilities();
 	
@@ -160,44 +161,47 @@ FReply FGameplayTagQueryCustomization::OnEditButtonClicked()
 	}
 	else
 	{
-		TArray<UObject*> OuterObjects;
-		StructPropertyHandle->GetOuterObjects(OuterObjects);
-
-		bool const bReadOnly = StructPropertyHandle->IsEditConst();
-
-		FText Title;
-		if (OuterObjects.Num() > 1)
+		if (StructPropertyHandle.IsValid())
 		{
-			FText const AssetName = FText::Format(LOCTEXT("GameplayTagDetailsBase_MultipleAssets", "{0} Assets"), FText::AsNumber(OuterObjects.Num()));
-			FText const PropertyName = StructPropertyHandle->GetPropertyDisplayName();
-			Title = FText::Format(LOCTEXT("GameplayTagQueryCustomization_BaseWidgetTitle", "Tag Editor: {0} {1}"), PropertyName, AssetName);
-		}
-		else if (OuterObjects.Num() > 0 && OuterObjects[0])
-		{
-			FText const AssetName = FText::FromString(OuterObjects[0]->GetName());
-			FText const PropertyName = StructPropertyHandle->GetPropertyDisplayName();
-			Title = FText::Format(LOCTEXT("GameplayTagQueryCustomization_BaseWidgetTitle", "Tag Editor: {0} {1}"), PropertyName, AssetName);
-		}
+			TArray<UObject*> OuterObjects;
+			StructPropertyHandle->GetOuterObjects(OuterObjects);
 
+			bool bReadOnly = StructPropertyHandle->IsEditConst();
 
-		GameplayTagQueryWidgetWindow = SNew(SWindow)
-			.Title(Title)
-			.HasCloseButton(false)
-			.ClientSize(FVector2D(600, 400))
-			[
-				SNew(SGameplayTagQueryWidget, EditableQueries)
-				.OnSaveAndClose(this, &FGameplayTagQueryCustomization::CloseWidgetWindow, false)
-				.OnCancel(this, &FGameplayTagQueryCustomization::CloseWidgetWindow, true)
-				.ReadOnly(bReadOnly)
-			];
+			FText Title;
+			if (OuterObjects.Num() > 1)
+			{
+				FText const AssetName = FText::Format(LOCTEXT("GameplayTagDetailsBase_MultipleAssets", "{0} Assets"), FText::AsNumber(OuterObjects.Num()));
+				FText const PropertyName = StructPropertyHandle->GetPropertyDisplayName();
+				Title = FText::Format(LOCTEXT("GameplayTagQueryCustomization_BaseWidgetTitle", "Tag Editor: {0} {1}"), PropertyName, AssetName);
+			}
+			else if (OuterObjects.Num() > 0 && OuterObjects[0])
+			{
+				FText const AssetName = FText::FromString(OuterObjects[0]->GetName());
+				FText const PropertyName = StructPropertyHandle->GetPropertyDisplayName();
+				Title = FText::Format(LOCTEXT("GameplayTagQueryCustomization_BaseWidgetTitle", "Tag Editor: {0} {1}"), PropertyName, AssetName);
+			}
 
-		if (FGlobalTabmanager::Get()->GetRootWindow().IsValid())
-		{
-			FSlateApplication::Get().AddWindowAsNativeChild(GameplayTagQueryWidgetWindow.ToSharedRef(), FGlobalTabmanager::Get()->GetRootWindow().ToSharedRef());
-		}
-		else
-		{
-			FSlateApplication::Get().AddWindow(GameplayTagQueryWidgetWindow.ToSharedRef());
+			GameplayTagQueryWidgetWindow = SNew(SWindow)
+				.Title(Title)
+				.HasCloseButton(false)
+				.ClientSize(FVector2D(600, 400))
+				[
+					SNew(SGameplayTagQueryWidget, EditableQueries)
+					.OnSaveAndClose(this, &FGameplayTagQueryCustomization::CloseWidgetWindow, false)
+					.OnCancel(this, &FGameplayTagQueryCustomization::CloseWidgetWindow, true)
+					.ReadOnly(bReadOnly)
+				];
+
+			// NOTE: FGlobalTabmanager::Get()-> is actually dereferencing a SharedReference, not a SharedPtr, so it cannot be null.
+			if (FGlobalTabmanager::Get()->GetRootWindow().IsValid())
+			{
+				FSlateApplication::Get().AddWindowAsNativeChild(GameplayTagQueryWidgetWindow.ToSharedRef(), FGlobalTabmanager::Get()->GetRootWindow().ToSharedRef());
+			}
+			else
+			{
+				FSlateApplication::Get().AddWindow(GameplayTagQueryWidgetWindow.ToSharedRef());
+			}
 		}
 	}
 
@@ -206,7 +210,7 @@ FReply FGameplayTagQueryCustomization::OnEditButtonClicked()
 
 FGameplayTagQueryCustomization::~FGameplayTagQueryCustomization()
 {
-	if( GameplayTagQueryWidgetWindow.IsValid() )
+	if (GameplayTagQueryWidgetWindow.IsValid())
 	{
 		GameplayTagQueryWidgetWindow->RequestDestroyWindow();
 	}
@@ -217,7 +221,7 @@ void FGameplayTagQueryCustomization::BuildEditableQueryList()
 {	
 	EditableQueries.Empty();
 
-	if( StructPropertyHandle.IsValid() )
+	if (StructPropertyHandle.IsValid())
 	{
 		TArray<void*> RawStructData;
 		StructPropertyHandle->AccessRawData(RawStructData);
@@ -240,21 +244,24 @@ void FGameplayTagQueryCustomization::CloseWidgetWindow(bool WasCancelled)
 	// Notify change. This is required for these to work inside of UDataTables
 	if (!WasCancelled && PropertyUtilities.IsValid())
 	{
-		UProperty* TheProperty = StructPropertyHandle->GetProperty();
-
-		FEditPropertyChain PropertyChain;
-		PropertyChain.AddHead(TheProperty);
-		PropertyChain.SetActivePropertyNode(TheProperty);
-
-		FPropertyChangedEvent ChangeEvent(StructPropertyHandle->GetProperty(), EPropertyChangeType::ValueSet, nullptr);
-		FNotifyHook* NotifyHook = PropertyUtilities->GetNotifyHook();
-		if (NotifyHook != nullptr)
+		if (StructPropertyHandle.IsValid())
 		{
-			NotifyHook->NotifyPostChange(ChangeEvent, &PropertyChain);
+			UProperty* TheProperty = StructPropertyHandle->GetProperty();
+
+			FEditPropertyChain PropertyChain;
+			PropertyChain.AddHead(TheProperty);
+			PropertyChain.SetActivePropertyNode(TheProperty);
+
+			FPropertyChangedEvent ChangeEvent(StructPropertyHandle->GetProperty(), EPropertyChangeType::ValueSet, nullptr);
+			FNotifyHook* NotifyHook = PropertyUtilities->GetNotifyHook();
+			if (NotifyHook != nullptr)
+			{
+				NotifyHook->NotifyPostChange(ChangeEvent, &PropertyChain);
+			}
 		}
 	}
 
- 	if( GameplayTagQueryWidgetWindow.IsValid() )
+ 	if (GameplayTagQueryWidgetWindow.IsValid())
  	{
  		GameplayTagQueryWidgetWindow->RequestDestroyWindow();
 		GameplayTagQueryWidgetWindow = nullptr;

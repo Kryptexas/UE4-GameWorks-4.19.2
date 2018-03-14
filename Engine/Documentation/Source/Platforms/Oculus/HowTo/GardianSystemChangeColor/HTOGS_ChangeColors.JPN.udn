@@ -1,0 +1,73 @@
+﻿INTSourceChangelist:3719384
+Availability:Public
+Crumbs: %ROOT%, Platforms
+Title:Oculus Rift ガーディアン システムの色の変更方法
+Description:Rift ガーディアン システムの色の変更方法
+Type: how-to
+Skilllevel:Intermediate
+Version:4.17
+Parent:Platforms/Oculus
+Order:2
+tags:Oculus
+topic-image:Platforms\Oculus\HowTo\GuardianSystem\HTGuardian_System_Topic_Image.png
+prereq:Platforms\Oculus\HowTo\StandingCamera
+prereq:Platforms\VR\MotionController
+prereq:Platforms\Oculus\HowTo\GuardianSystem
+
+ ![](HTGuardian_System_07.png)
+
+Oculus Guardian システムは、VR インタラクション エリアの境界をユーザーに表示します。トラックされたデバイスが境界に近づくと、Oculus Runtime が自動的に視覚的なヒントを出してユーザーに知らせます。以下の操作ガイドでは、Oculus ガーディアン システムが VR インタラクションをユーザーに表示する際に使用する色の変更方法を説明します。
+
+[REGION:note]
+ガーディアン システムを使用するためには Oculus App による設定が必要です。設定方法の詳細は、[Oculus ガーディアン システム](https://www.vive.com/us/support/category_howto/setting-up-room-scale-play-area.html) 設定ページをご覧ください。
+[/REGION]
+
+[REGION:warning]
+UE4 からガーディアン システムを無効にすることは **できません**。また推奨もしません。ただし、ユーザーの境界への接近に対する UE4 の反応はいろいろ変えることができます。  
+[/REGION]
+
+## ステップ
+
+[REGION:note]
+次の処理を行うためには、ポーンに **OculusRiftBoundy** が追加されている必要があります。ご確認ください。詳細は、[ガーディアン システムのセットアップ](https://www.vive.com/us/support/category_howto/setting-up-room-scale-play-area.html) をご覧ください。
+[/REGION]
+
+1. **Oculus Rift Boundary Color** という名前の **変数** を作成し、タイプを **[Linear Color]**、色を **[Red]** に設定します。
+
+    ![](HTGuardian_System_04.png)
+
+1. **イベントグラフ** に **Event Begin Play** ノードと **Set Tracking Origin** ノードを追加します。Tracking Origin ノードの **Origin** を **Floor Level** に設定し、Event Begin Play を the Set Tracking Origin ノードに接続されていることを確認します。 
+
+    ![](HTGuardian_System_02.png)(w:500)
+
+
+1. イベントグラフを右クリックして、メニューから **SSet Outer Boundary Color** ノードを探して、クリックしてグラフに追加します。 
+
+    ![](HTGuardian_System_03.png)
+
+1. **Oculus Rift Boundary Color** 変数と **Oculus Rift Boundary** コンポーネントをイベントグラフにドラッグします。Oculus Rift Boundary Color 変数を Set Boundary Color ノードの **In Boundary Color** に接続し、Oculus Rift Boundary を **Target** 入力に接続します。 
+
+	![](HTGuardian_System_05.png)(w:492)
+ 
+
+1. Tracking Origin ノードを Set Outer Boundary Color ノードの入力に接続します。完成したイベントグラフはこのようになります。
+
+    [REGION:lightbox]
+    [![](HTGuardian_System_06.png)(w:492)](HTGuardian_System_06.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+## 最終結果
+
+レベルを実行し Oculus Rift を装着すると、Oculus Rift Boundary Color 変数で設定した色で境界が表示されます。 
+
+   ![](HTGuardian_System_07.png)
+
+## UE4 プロジェクトのダウンロード
+以下のリンクから、このサンプルの作成に使われた UE4 プロジェクトをダウンロードすることができます。
+
+* [**Oculus Rift ガーディアン システム設定プロジェクト**](https://epicgames.box.com/s/s4vvkb2i0ohtice8vtqude6i8ih7hy8i)
+

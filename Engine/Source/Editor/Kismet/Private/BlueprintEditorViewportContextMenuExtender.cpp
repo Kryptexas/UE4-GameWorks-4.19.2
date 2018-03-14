@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "CoreMinimal.h"
@@ -68,7 +68,7 @@ void FillEditCodeMenu( class FMenuBuilder& MenuBuilder, TArray< FMenuBlueprintCl
 		FUIAction UIAction;
 		UIAction.ExecuteAction.BindStatic(
 			&EditKismetCodeFor,
-			TWeakObjectPtr<UBlueprint>(CurClass.Blueprint.Get()) );
+			CurClass.Blueprint );
 
 		MenuBuilder.AddMenuEntry( LabelName, ToolTipName, FSlateIcon(), UIAction );
 	}
@@ -231,7 +231,7 @@ void FillBlueprintOptions(FMenuBuilder& MenuBuilder, TArray<AActor*> SelectedAct
 				FUIAction UIAction;
 				UIAction.ExecuteAction.BindStatic(
 					&EditKismetCodeFor,
-					/*Blueprint=*/ TWeakObjectPtr<UBlueprint>(FirstBlueprint) );
+					/*Blueprint=*/ MakeWeakObjectPtr(FirstBlueprint) );
 
 				const FText Label = LOCTEXT("EditBlueprint", "Edit Blueprint");
 				const FText Description = FText::Format( LOCTEXT("EditBlueprint_ToolTip", "Opens {0} in the Blueprint editor"), FText::FromString( FirstBlueprint->GetName() ) );

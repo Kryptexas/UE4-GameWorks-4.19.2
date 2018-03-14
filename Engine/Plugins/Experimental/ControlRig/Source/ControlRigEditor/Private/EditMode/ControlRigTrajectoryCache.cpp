@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ControlRigTrajectoryCache.h"
 #include "ISequencer.h"
@@ -360,7 +360,7 @@ void FControlRigTrajectoryCache::RenderTrajectories(const FTransform& ComponentT
 {
 	if (Vertices.Num() > 0 && Indices.Num() > 0)
 	{
-		FDynamicMeshBuilder MeshBuilder;
+		FDynamicMeshBuilder MeshBuilder(PDI->View->GetFeatureLevel());
 		MeshBuilder.AddVertices(Vertices);
 		MeshBuilder.AddTriangles(Indices);
 

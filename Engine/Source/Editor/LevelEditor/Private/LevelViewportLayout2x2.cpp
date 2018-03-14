@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelViewportLayout2x2.h"
 #include "Framework/Docking/LayoutService.h"
@@ -68,7 +68,7 @@ TSharedRef<SWidget> FLevelViewportLayout2x2::MakeViewportLayout(const FString& L
 	TSharedPtr< IViewportLayoutEntity > ViewportTL = LevelEditor.FactoryViewport(*TopLeftType, Args);
 
 	// Persp viewport
-	Args.bRealtime = true;
+	Args.bRealtime = !FPlatformMisc::IsRemoteSession();
 	Args.ConfigKey = BottomLeftKey;
 	Args.ViewportType = LVT_Perspective;
 	TSharedPtr< IViewportLayoutEntity > ViewportBL = LevelEditor.FactoryViewport(*BottomLeftType, Args);

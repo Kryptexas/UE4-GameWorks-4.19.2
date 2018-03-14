@@ -63,14 +63,14 @@ namespace UnrealBuildTool.Rules
 				PrivateDependencyModuleNames.AddRange(new string[] { "GoogleVR" });
 
 				string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
-				AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "GoogleVRHMD_APL.xml")));
+				AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(PluginPath, "GoogleVRHMD_APL.xml"));
 			}
 			else if (Target.Platform == UnrealTargetPlatform.IOS)
 			{
 				PrivateDependencyModuleNames.AddRange(new string[] { "GoogleVR", "ApplicationCore" });
 
 				string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
-				AdditionalPropertiesForReceipt.Add(new ReceiptProperty("IOSPlugin", Path.Combine(PluginPath, "GoogleVRHMD_APL.xml")));
+				AdditionalPropertiesForReceipt.Add("IOSPlugin", Path.Combine(PluginPath, "GoogleVRHMD_APL.xml"));
 			}
 		}
 	}

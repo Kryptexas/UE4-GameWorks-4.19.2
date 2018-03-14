@@ -21,7 +21,7 @@ Version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:note]
 このチュートリアルを開始する前に、デスクトップに **Visual Studio 2015** (可能であれば Community Edition または Professional Editions) をインストールしてください。
@@ -35,4 +35,4 @@ Version:4.9
 
 **アンリアル エディタ** が新規プロジェクトを開きます。**Visual Studio** も開き、プロジェクトが作成したソリューション ファイルをロードします。
 
-%Steps%
+

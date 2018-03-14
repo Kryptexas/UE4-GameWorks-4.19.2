@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "HierarchicalLODUtilities.h"
 #include "GameFramework/Actor.h"
@@ -91,7 +91,7 @@ float FHierarchicalLODUtilities::CalculateDrawDistanceFromScreenSize(const float
 	return ComputeBoundsDrawDistance(ScreenSize, SphereRadius, ProjectionMatrix);
 }
 
-UPackage* FHierarchicalLODUtilities::CreateOrRetrieveLevelHLODPackage(ULevel* InLevel)
+UPackage* FHierarchicalLODUtilities::CreateOrRetrieveLevelHLODPackage(const ULevel* InLevel)
 {
 	checkf(InLevel != nullptr, TEXT("Invalid Level supplied"));
 
@@ -118,11 +118,6 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 {
 	if (AssetsOuter && LODActor)
 	{
-		if (!LODActor->IsDirty())
-		{
-			return false;
-		}
-
 		UE_LOG(LogHierarchicalLODUtilities, Log, TEXT("Building Proxy Mesh for Cluster %s"), *LODActor->GetName());
 		const FScopedTransaction Transaction(LOCTEXT("UndoAction_BuildProxyMesh", "Building Proxy Mesh for Cluster"));
 		LODActor->Modify();		
@@ -168,11 +163,12 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 
 			// Generate proxy mesh and proxy material assets
 			IMeshReductionManagerModule& MeshReductionModule = FModuleManager::Get().LoadModuleChecked<IMeshReductionManagerModule>("MeshReductionInterface");
+			const bool bHasMeshReductionCapableModule = (MeshReductionModule.GetMeshMergingInterface() != NULL);
 
 			const IMeshMergeUtilities& MeshMergeUtilities = FModuleManager::Get().LoadModuleChecked<IMeshMergeModule>("MeshMergeUtilities").GetUtilities();
 			// should give unique name, so use level + actor name
 			const FString PackageName = FString::Printf(TEXT("LOD_%s"), *FirstActor->GetName());
-			if (MeshReductionModule.GetMeshMergingInterface() && LODSetup.bSimplifyMesh)
+			if (bHasMeshReductionCapableModule && LODSetup.bSimplifyMesh)
 			{
 				TArray<AActor*> Actors;
 				ExtractSubActorsFromLODActor(LODActor, Actors);
@@ -418,7 +414,8 @@ ALODActor* FHierarchicalLODUtilities::CreateNewClusterActor(UWorld* InWorld, con
 {
 	// Check incoming data
 	check(InWorld != nullptr && WorldSettings != nullptr && InLODLevel >= 0);
-	if (!WorldSettings->bEnableHierarchicalLODSystem || WorldSettings->HierarchicalLODSetup.Num() == 0 || WorldSettings->HierarchicalLODSetup.Num() < InLODLevel)
+	const TArray<struct FHierarchicalSimplification>& HierarchicalLODSetups = InWorld->GetWorldSettings()->GetHierarchicalLODSetup();
+	if (!WorldSettings->bEnableHierarchicalLODSystem || HierarchicalLODSetups.Num() == 0 || HierarchicalLODSetups.Num() < InLODLevel)
 	{
 		return nullptr;
 	}

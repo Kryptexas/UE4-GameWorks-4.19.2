@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 PixelShaderOutputCommon.usf: To allow PS input/output passed int functions through a single struct, allowing for a more readable code (less #ifdefs, reducing the boolean hell)

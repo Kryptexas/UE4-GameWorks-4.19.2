@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,17 +8,35 @@
 #include "Input/Reply.h"
 #include "Widgets/SWidget.h"
 #include "Widgets/SCompoundWidget.h"
-#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SMultiLineEditableTextBox.h"
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 #include "Framework/Text/BaseTextLayoutMarshaller.h"
 #include "Misc/TextFilterExpressionEvaluator.h"
+#include "HAL/IConsoleManager.h"
 
 class FMenuBuilder;
 class FOutputLogTextLayoutMarshaller;
 class FTextLayout;
 class SMenuAnchor;
-class SMultiLineEditableTextBox;
+
+/**
+ * Executor for Unreal console commands
+ */
+class FConsoleCommandExecutor : public IConsoleCommandExecutor
+{
+public:
+	static FName StaticName();
+	virtual FName GetName() const override;
+	virtual FText GetDisplayName() const override;
+	virtual FText GetDescription() const override;
+	virtual FText GetHintText() const override;
+	virtual void GetAutoCompleteSuggestions(const TCHAR* Input, TArray<FString>& Out) override;
+	virtual void GetExecHistory(TArray<FString>& Out) override;
+	virtual bool Exec(const TCHAR* Input) override;
+	virtual bool AllowHotKeyClose() const override;
+	virtual bool AllowMultiLine() const override;
+};
 
 /**
 * A single log message for the output log, holding a message and
@@ -70,6 +88,9 @@ public:
 
 		/** Called when a console command is executed */
 		SLATE_EVENT( FSimpleDelegate, OnConsoleCommandExecuted )
+
+		/** Delegate to call to close the console */
+		SLATE_EVENT( FSimpleDelegate, OnCloseConsole )
 	SLATE_END_ARGS()
 
 	/** Protected console input box widget constructor, called by Slate */
@@ -83,7 +104,7 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	/** Returns the editable text box associated with this widget.  Used to set focus directly. */
-	TSharedRef< SEditableTextBox > GetEditableTextBox()
+	TSharedRef< SMultiLineEditableTextBox > GetEditableTextBox()
 	{
 		return InputText.ToSharedRef();
 	}
@@ -110,27 +131,99 @@ protected:
 
 	void SuggestionSelectionChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);
 		
-	void SetSuggestions(TArray<FString>& Elements, bool bInHistoryMode);
+	void SetSuggestions(TArray<FString>& Elements, FText Highlight);
 
 	void MarkActiveSuggestion();
 
 	void ClearSuggestions();
 
-	FString GetSelectionText() const;
+	void OnCommandExecutorRegistered(const FName& Type, class IModularFeature* ModularFeature);
+
+	void OnCommandExecutorUnregistered(const FName& Type, class IModularFeature* ModularFeature);
+
+	void SyncActiveCommandExecutor();
+
+	void SetActiveCommandExecutor(const FName InExecName);
+
+	FText GetActiveCommandExecutorDisplayName() const;
+
+	FText GetActiveCommandExecutorHintText() const;
+
+	bool GetActiveCommandExecutorAllowMultiLine() const;
+
+	bool IsCommandExecutorMenuEnabled() const;
+
+	TSharedRef<SWidget> GetCommandExecutorMenuContent();
+
+	FReply OnKeyDownHandler(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent);
+
+	FReply OnKeyCharHandler(const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent);
 
 private:
 
+	struct FSuggestions
+	{
+		FSuggestions()
+			: SelectedSuggestion(INDEX_NONE)
+		{
+		}
+
+		void Reset()
+		{
+			SelectedSuggestion = INDEX_NONE;
+			SuggestionsList.Reset();
+			SuggestionsHighlight = FText::GetEmpty();
+		}
+
+		bool HasSuggestions() const
+		{
+			return SuggestionsList.Num() > 0;
+		}
+
+		bool HasSelectedSuggestion() const
+		{
+			return SuggestionsList.IsValidIndex(SelectedSuggestion);
+		}
+
+		void StepSelectedSuggestion(const int32 Step)
+		{
+			SelectedSuggestion += Step;
+			if (SelectedSuggestion < 0)
+			{
+				SelectedSuggestion = SuggestionsList.Num() - 1;
+			}
+			else if (SelectedSuggestion >= SuggestionsList.Num())
+			{
+				SelectedSuggestion = 0;
+			}
+		}
+
+		TSharedPtr<FString> GetSelectedSuggestion() const
+		{
+			return SuggestionsList.IsValidIndex(SelectedSuggestion) ? SuggestionsList[SelectedSuggestion] : nullptr;
+		}
+
+		/** INDEX_NONE if not set, otherwise index into SuggestionsList */
+		int32 SelectedSuggestion;
+
+		/** All log messages stored in this widget for the list view */
+		TArray<TSharedPtr<FString>> SuggestionsList;
+
+		/** Highlight text to use for the suggestions list */
+		FText SuggestionsHighlight;
+	};
+
 	/** Editable text widget */
-	TSharedPtr< SEditableTextBox > InputText;
+	TSharedPtr< SMultiLineEditableTextBox > InputText;
 
 	/** history / auto completion elements */
 	TSharedPtr< SMenuAnchor > SuggestionBox;
 
-	/** All log messages stored in this widget for the list view */
-	TArray< TSharedPtr<FString> > Suggestions;
-
 	/** The list view for showing all log messages. Should be replaced by a full text editor */
 	TSharedPtr< SListView< TSharedPtr<FString> > > SuggestionListView;
+
+	/** Active list of suggestions */
+	FSuggestions Suggestions;
 
 	/** Delegate to call when a console command is executed */
 	FSimpleDelegate OnConsoleCommandExecuted;
@@ -138,11 +231,20 @@ private:
 	/** Delegate to call to execute console command */
 	FExecuteConsoleCommand ConsoleCommandCustomExec;
 
-	/** -1 if not set, otherwise index into Suggestions */
-	int32 SelectedSuggestion;
+	/** Delegate to call to close the console */
+	FSimpleDelegate OnCloseConsole;
+
+	/** Name of the preferred command executor (may not always be the active executor) */
+	FName PreferredCommandExecutorName;
+
+	/** The currently active command executor */
+	IConsoleCommandExecutor* ActiveCommandExecutor;
 
 	/** to prevent recursive calls in UI callback */
-	bool bIgnoreUIUpdate; 
+	bool bIgnoreUIUpdate;
+
+	/** true if this widget has been Ticked at least once */
+	bool bHasTicked;
 };
 
 /**

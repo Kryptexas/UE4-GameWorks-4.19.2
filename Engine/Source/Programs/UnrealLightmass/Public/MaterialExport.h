@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -61,6 +61,7 @@ struct FMaterialData
 	uint32 bTwoSided:1;
 	/** Whether the material should cast shadows as masked even though it has a translucent blend mode. */
 	uint32 bCastShadowAsMasked:1;
+	uint32 bSurfaceDomain:1;
 	/** Scales the emissive contribution for this material. */
 	float EmissiveBoost;
 	/** Scales the diffuse contribution for this material. */

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,6 +15,9 @@ class SLATE_API FUICommandList
 	: public TSharedFromThis<FUICommandList>
 {
 public:
+
+	/** Virtual destructor */
+	virtual ~FUICommandList() {}
 
 	/** Determines if this UICommandList is capable of producing an action for the supplied command */
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FCanProduceActionForCommand, const TSharedRef<const FUICommandInfo>& /*Command*/);
@@ -90,7 +93,7 @@ public:
 	 * @param InUICommandInfo	The command info to map
 	 * @param InUIAction		Action to map to this command
 	 */
-	void MapAction( const TSharedPtr< const FUICommandInfo > InUICommandInfo, const FUIAction& InUIAction );
+	virtual void MapAction( const TSharedPtr< const FUICommandInfo > InUICommandInfo, const FUIAction& InUIAction );
 
 	/**
 	 * Append commands in InCommandsToAppend to this command list.
@@ -117,7 +120,7 @@ public:
 	 *
 	 * @param InUICommandInfo	The command info execute
 	 */
-	bool ExecuteAction( const TSharedRef< const FUICommandInfo > InUICommandInfo ) const;
+	virtual bool ExecuteAction( const TSharedRef< const FUICommandInfo > InUICommandInfo ) const;
 
 	/**
 	 * Calls the CanExecuteAction associated with the provided command info to see if ExecuteAction can be called

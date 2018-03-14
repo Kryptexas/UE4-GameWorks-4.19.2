@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -25,6 +25,10 @@ UCLASS(MinimalAPI)
 class UNiagaraScriptSourceBase : public UObject
 {
 	GENERATED_UCLASS_BODY()
+
+#if WITH_EDITOR
+	DECLARE_MULTICAST_DELEGATE(FOnChanged);
+#endif
 
 	TArray<TSharedPtr<EditorExposedVectorConstant> > ExposedVectorConstants;
 	TArray<TSharedPtr<EditorExposedVectorCurveConstant> > ExposedVectorCurveConstants;
@@ -56,4 +60,20 @@ class UNiagaraScriptSourceBase : public UObject
 
 	/** Do any cleanup to return this data source to its original state before precompilation. Note that this must be called after the "compile" operation.*/
 	virtual void PostCompile() {}
+
+	/** 
+	 * Allows the derived editor only script source to handle a post load requested by an owning emitter. 
+	 * @param OwningEmitter The emitter requesting the post load.
+	 * @returns True if the emitter will need to be recompiled, otherwise false.
+	 */
+	virtual bool PostLoadFromEmitter(UNiagaraEmitter& OwningEmitter) { return false; }
+
+	/** Adds a module if it isn't already in the graph. If the module isn't found bOutFoundModule will be false. If it is found and it did need to be added, the function returns true. If it already exists, it returns false. */
+	NIAGARA_API virtual bool AddModuleIfMissing(FString ModulePath, ENiagaraScriptUsage Usage, bool& bOutFoundModule) { bOutFoundModule = false; return false; }
+#if WITH_EDITOR
+	FOnChanged& OnChanged() { return OnChangedDelegate; }
+
+protected:
+	FOnChanged OnChangedDelegate;
+#endif
 };

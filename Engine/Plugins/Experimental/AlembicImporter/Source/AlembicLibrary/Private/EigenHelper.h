@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,8 +13,10 @@
 	#pragma warning(push)
 	#pragma warning(disable:6326) // Potential comparison of a constant with another constant.
 #endif
+THIRD_PARTY_INCLUDES_START
 	#include <Eigen/Dense>
 	#include <Eigen/SVD>
+THIRD_PARTY_INCLUDES_END
 #if defined(_MSC_VER) && USING_CODE_ANALYSIS
 	#pragma warning(pop)
 #endif

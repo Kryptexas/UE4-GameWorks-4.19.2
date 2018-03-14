@@ -1,48 +1,11 @@
-﻿INTSourceChangelist:3481084
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:プロパティ マトリックス
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:複数のアクタの複数のプロパティを同時に表示および編集するツール
 Version:4.9
+topic-image:Engine/UI/PropertyMatrix_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UI/PropertyMatrix:title%](Engine/UI/PropertyMatrix_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/PropertyMatrix:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/PropertyMatrix:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/PropertyMatrix]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UI/PropertyMatrix:title%](Engine/UI/PropertyMatrix_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/PropertyMatrix:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/PropertyMatrix:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/PropertyMatrix]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:fullwidth]
 [OBJECT:ToggleButtonContent]
@@ -89,7 +52,8 @@ Version:4.9
 | Bulk Fine-Grain Object Comparison | [INCLUDE:#BulkComparison] |
 | Deep Property and Array Support  | [INCLUDE:#PropertySupport] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BulkEditing]
 
 * 大量のオブジェクトに同じ値のプロパティ設定ができる機能を損なわずに、 
@@ -111,7 +75,8 @@ Version:4.9
 * 配列インデックスさえも処理できます。
 
 [/EXCERPT:PropertySupport]
--->
+
+[/COMMENT]
 
 ## プロパティ マトリックスへのアクセス
 

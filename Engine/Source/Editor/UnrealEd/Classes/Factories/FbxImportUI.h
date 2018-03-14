@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Fbx Importer UI options.
@@ -123,7 +123,7 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Material)
 	uint32 bImportMaterials:1;
 
-	/** The option works only when option "Import UMaterial" is OFF. If "Import Material" is ON, textures are always imported. */
+	/** The option works only when option "Import Material" is OFF. If "Import Material" is ON, textures are always imported. */
 	UPROPERTY(EditAnywhere, config, Category=Material)
 	uint32 bImportTextures:1;
 

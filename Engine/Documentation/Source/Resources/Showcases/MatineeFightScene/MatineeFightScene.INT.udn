@@ -11,48 +11,7 @@ Related: Engine/Rendering/ParticleSystems
 Related: Engine/Blueprints
 Related: Engine/Basics/Projects/CreatingTemplates
 Version: 4.9
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/Showcases/MatineeFightScene:title%](MatineeTopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/MatineeFightScene:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/MatineeFightScene:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/MatineeFightScene]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/Showcases/MatineeFightScene:title%](MatineeTopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases/MatineeFightScene:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases/MatineeFightScene:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases/MatineeFightScene]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:MatineeTopic.png
 
 
 [REGION:fullwidth]
@@ -639,7 +598,8 @@ Try to make use of the Rule of Thirds in some of your shots. This is a general p
 | Center Shot vs. Rule of Thirds Shot | Matinee Example |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:v11]
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -653,7 +613,8 @@ xnuP2mepDjs
 [/PARAMLITERAL]
 [/OBJECT]
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 #### Framing Your Shots
 

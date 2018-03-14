@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -66,6 +66,21 @@ public:
 	virtual TSharedPtr<FExtender> GetExtenders() const override;
 	virtual void OnFloatingButtonClicked() override;
 	// End of ICommonEditorViewportToolbarInfoProvider interface
+
+	/** Draw flag types */
+	enum EDrawElements
+	{
+		Bounds = 0x020,
+	};
+
+	bool GetDrawElement(EDrawElements Element) const;
+	void ToggleDrawElement(EDrawElements Element);
+	void CreateThumbnail();
+
+
+	bool IsToggleOrbitChecked() const;
+	void ToggleOrbit();
+
 protected:
 	/** SEditorViewport interface */
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
@@ -87,8 +102,10 @@ private:
 	/** Pointer back to the material editor tool that owns us */
 	//TWeakPtr<INiagaraSystemEditor> SystemEditorPtr;
 	
-	class UNiagaraComponent *PreviewComponent;
+	class UNiagaraComponent* PreviewComponent;
 	
 	/** Level viewport client */
 	TSharedPtr<class FNiagaraSystemViewportClient> SystemViewportClient;
+
+	uint32 DrawFlags;
 };

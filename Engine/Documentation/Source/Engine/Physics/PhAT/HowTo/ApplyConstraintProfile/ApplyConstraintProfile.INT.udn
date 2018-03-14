@@ -8,7 +8,6 @@ Version: 4.13
 skilllevel:Intermediate
 prereq: Engine/Blueprints/QuickStart
 prereq: Engine/Physics/PhAT/HowTo/CreateConstraintProfile
-related:Videos/PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f/N1tDjbFXeOo
 related: Engine/Physics/PhAT/HowTo/ApplyPhysicalAnimationProfile
 topic-image:Engine/Physics/physics_topic.png
 
@@ -97,7 +96,7 @@ Below, you will find the steps for creating a simple graph to enable a **Constra
 	[REGION:raw]
 	| Variable | Value | Description |
 	| --- | :--- | :--- |
-	| **Bone Name** %spacer2% | `spine_01` | We use it in the **Set All Bodies Below Simulate Physics** to define what parts of the Skeletal Mesh are simulating. |
+	| **Bone Name**  | `spine_01` | We use it in the **Set All Bodies Below Simulate Physics** to define what parts of the Skeletal Mesh are simulating. |
 	[/REGION]
 
 	| Component || Description |
@@ -114,11 +113,9 @@ This effect was achieved by setting the **Linear Limits** on the upper arm const
 
 ![](achievedBy.png)
 
-<!-- Variables -->
-
-[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
-
-[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+[COMMENT:none]
+ Variables 
+[/COMMENT]
 
 [VAR:BPSnip_001]
 	Begin Object Class=K2Node_Event Name="K2Node_Event_8"
@@ -178,4 +175,22 @@ This effect was achieved by setting the **Linear Limits** on the upper arm const
 [/VAR]
 
 
+## Additional Resources
 
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	N1tDjbFXeOo
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]

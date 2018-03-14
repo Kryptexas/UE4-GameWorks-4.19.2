@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Audio.h"
 
 namespace Audio
 {
@@ -31,10 +32,10 @@ namespace Audio
 		bool RemoveInstanceId(const int32 InSourceId);
 
 		// Adds a buss end to the bus
-		void AddBusSend(const FBusSend& InBusSend);
+		void AddBusSend(EBusSendType BusSendType, const FBusSend& InBusSend);
 
 		// Removes the source instance from this bus's send list
-		bool RemoveBusSend(const int32 InSourceId);
+		bool RemoveBusSend(EBusSendType BusSendType, const int32 InSourceId);
 
 		// Gets the current mixed bus buffer
 		const float* GetCurrentBusBuffer() const;
@@ -54,7 +55,7 @@ namespace Audio
 		TArray<int32> InstanceIds;
 
 		// Bus sends to this instance
-		TArray<FBusSend> BusSends;
+		TArray<FBusSend> BusSends[(int32)EBusSendType::Count];
 
 		// The mixed source data. This is double-buffered to allow buses to send audio to themselves.
 		// Buses feed audio to each other by storing their previous buffer. Current buses mix in previous other buses (including themselves)

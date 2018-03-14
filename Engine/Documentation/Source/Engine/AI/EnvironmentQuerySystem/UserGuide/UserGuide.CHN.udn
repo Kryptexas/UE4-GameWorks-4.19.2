@@ -6,44 +6,7 @@ Description:此文档包含行为树中场景查询系统的界面和最常用�
 Version:4.9
 SkillLevel:Advanced
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/AI/EnvironmentQuerySystem/UserGuide:title%](AI_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/AI/EnvironmentQuerySystem/UserGuide:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/AI/EnvironmentQuerySystem/UserGuide:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/AI/EnvironmentQuerySystem/UserGuide]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/AI/EnvironmentQuerySystem/UserGuide:title%](AI_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/AI/EnvironmentQuerySystem/UserGuide:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/AI/EnvironmentQuerySystem/UserGuide:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/AI/EnvironmentQuerySystem/UserGuide]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+
 
 ## 启用环境查询系统
 
@@ -184,19 +147,14 @@ Context 可在蓝图和 C++ 中进行创建。
 
 新建的 EnvQueryContext 蓝图拥有 4 个可应用函数：
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](implementableFunctions.png)(convert:false)
-	[/PARAM]
-	[PARAM:description]
-		* **Provide Single Location**
-		* **Provide Single Actor**
-		* **Provide Locations Set**
-		* **Provide Actors Set**
+![](implementableFunctions.png)(convert:false)
 
-		应用一个（或多个）函数可创建您的自定义 Context，以便在查询的测试中使用。右键单击需要应用的函数，选择 **Implement Function**。
-	[/PARAM]
-[/OBJECT]
+* **Provide Single Location**
+* **Provide Single Actor**
+* **Provide Locations Set**
+* **Provide Actors Set**
+
+应用一个（或多个）函数可创建您的自定义 Context，以便在查询的测试中使用。右键单击需要应用的函数，选择 **Implement Function**。
 
 
 ### 提供单一位置

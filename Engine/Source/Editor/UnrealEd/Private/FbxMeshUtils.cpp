@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "FbxMeshUtils.h"
 #include "EngineDefines.h"
@@ -19,6 +19,7 @@
 #include "StaticMeshResources.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "SkelImport.h"
+#include "Rendering/SkeletalMeshModel.h"
 
 #include "DesktopPlatformModule.h"
 
@@ -188,7 +189,7 @@ namespace FbxMeshUtils
 				if( TempStaticMesh )
 				{
 					//Build the staticmesh
-					FFbxImporter->PostImportStaticMesh(TempStaticMesh, *(LODNodeList[bUseLODs ? LODLevel : 0]));
+					FFbxImporter->PostImportStaticMesh(TempStaticMesh, *(LODNodeList[bUseLODs ? LODLevel : 0]), LODLevel);
 					TArray<int32> ReimportLodList;
 					ReimportLodList.Add(LODLevel);
 					UpdateSomeLodsImportMeshData(BaseStaticMesh, &ReimportLodList);
@@ -233,11 +234,20 @@ namespace FbxMeshUtils
 
 	bool ImportSkeletalMeshLOD( class USkeletalMesh* SelectedSkelMesh, const FString& Filename, int32 LODLevel)
 	{
+		UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
+		//Make sure skeletal mesh is valid
+		if (!SelectedSkelMesh)
+		{
+			FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("FBXImport_NoSelectedSkeletalMesh", "Cannot import a LOD if there is not a valid selected skeletal mesh.")), FFbxErrors::Generic_MeshNotFound);
+			return false;
+		}
+
 		bool bSuccess = false;
 
 		// Check the file extension for FBX. Anything that isn't .FBX is rejected
 		const FString FileExtension = FPaths::GetExtension(Filename);
 		const bool bIsFBX = FCString::Stricmp(*FileExtension, TEXT("FBX")) == 0;
+
 
 		if (bIsFBX)
 		{
@@ -246,10 +256,10 @@ namespace FbxMeshUtils
 			TArray<int32> ClothingAssetSectionIndices;
 			TArray<int32> ClothingAssetInternalLodIndices;
 
-			FSkeletalMeshResource* ImportedResource = SelectedSkelMesh->GetImportedResource();
+			FSkeletalMeshModel* ImportedResource = SelectedSkelMesh->GetImportedModel();
 			if(ImportedResource && ImportedResource->LODModels.IsValidIndex(LODLevel))
 			{
-				FStaticLODModel& LodModel = ImportedResource->LODModels[LODLevel];
+				FSkeletalMeshLODModel& LodModel = ImportedResource->LODModels[LODLevel];
 
 				const int32 NumSections = LodModel.Sections.Num();
 
@@ -257,16 +267,12 @@ namespace FbxMeshUtils
 				{
 					FSkelMeshSection& Section = LodModel.Sections[SectionIndex];
 
-					if(Section.CorrespondClothSectionIndex != INDEX_NONE)
+					if(Section.HasClothingData())
 					{
-						// See if this is the original section
-						if(Section.bDisabled)
-						{
-							UClothingAssetBase* AssetInUse = SelectedSkelMesh->GetSectionClothingAsset(LODLevel, SectionIndex);
-							ClothingAssetsInUse.Add(AssetInUse);
-							ClothingAssetSectionIndices.Add(SectionIndex);
-							ClothingAssetInternalLodIndices.Add(Section.ClothingData.AssetLodIndex);
-						}
+						UClothingAssetBase* AssetInUse = SelectedSkelMesh->GetSectionClothingAsset(LODLevel, SectionIndex);
+						ClothingAssetsInUse.Add(AssetInUse);
+						ClothingAssetSectionIndices.Add(SectionIndex);
+						ClothingAssetInternalLodIndices.Add(Section.ClothingData.AssetLodIndex);
 					}
 				}
 			}
@@ -277,7 +283,6 @@ namespace FbxMeshUtils
 				ClothingAsset->UnbindFromSkeletalMesh(SelectedSkelMesh, LODLevel);
 			}
 
-			UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 			// don't import material and animation
 			UnFbx::FBXImportOptions* ImportOptions = FFbxImporter->GetImportOptions();
 			
@@ -523,7 +528,7 @@ namespace FbxMeshUtils
 			int32 NumClothingAssetsToApply = ClothingAssetsInUse.Num();
 			if(ImportedResource && ImportedResource->LODModels.IsValidIndex(LODLevel))
 			{
-				FStaticLODModel& LodModel = ImportedResource->LODModels[LODLevel];
+				FSkeletalMeshLODModel& LodModel = ImportedResource->LODModels[LODLevel];
 				for(int32 AssetIndex = 0; AssetIndex < NumClothingAssetsToApply; ++AssetIndex)
 				{
 					// Only if the same section exists

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:블루프린트 매크로 라이브러리
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
@@ -7,44 +7,7 @@ version: 4.9
 Parent:Engine/Blueprints
 type:overview
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints\UserGuide\Types\MacroLibrary:title%](Engine/Blueprints/UserGuide/Types/macro_blueprint.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints\UserGuide\Types\MacroLibrary:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints\UserGuide\Types\MacroLibrary:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints\UserGuide\Types\MacroLibrary]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints\UserGuide\Types\MacroLibrary:title%](Engine/Blueprints/UserGuide/Types/macro_blueprint.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints\UserGuide\Types\MacroLibrary:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints\UserGuide\Types\MacroLibrary:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints\UserGuide\Types\MacroLibrary]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Blueprints/UserGuide/Types/macro_blueprint.png
 
 [TOC(start:2)]
 
@@ -81,7 +44,8 @@ _블루프린트 매크로 라이브러리_ 는 다른 애셋들처럼 패키지
 
 	![](unsaved_macro_library.png)
 
-<!--
+[COMMENT:none]
+
 1. 콘텐츠 브라우저에서 바로 _블루프린트 매크로 라이브러리_ 를 저장하려면, 콘텐츠 브라우저의 내비게이션 바에서 **저장...** 을 클릭합니다.
 
 	![](save_macrolib_content_browser.png)
@@ -91,7 +55,8 @@ _블루프린트 매크로 라이브러리_ 는 다른 애셋들처럼 패키지
 	![](save_selected_macrolib.png)
 
 1. _블루프린트 매크로 라이브러리_ 아이콘을 더블클릭하여 _블루프린트 에디터_ 에서 엽니다.
--->
+
+[/COMMENT]
 
 콘텐츠 브라우저에서 _블루프린트 매크로 라이브러리_ 생성 메뉴에 접근하는 방법은 두 가지 더 있습니다.
 
@@ -122,5 +87,5 @@ _블루프린트 매크로 라이브러리_ 는 다른 애셋들처럼 패키지
 _블루프린트 매크로 라이브러리_ 에 _매크로_ 를 저장하면 프로젝트 전반에 걸쳐 _블루프린트 클래스_ 와 _레벨 블루프린트_ 에서 해당 매크로를 사용할 수 있게 됩니다.  
 [INCLUDE:Engine/Blueprints/UserGuide/Macros#UniversalImplement]
 
-_매크로_ 노드를 그래프에 추가하고 나면, 다른 노드와 비슷한 방식으로 작동하며, 입출력 핀도 비슷하게 연결할 수 있습니다. 아무 _블루프린트_ 그래프의 _매크로_ 노드에 **더블클릭** 하면 
- _매크로_ 의 그래프가 열립니다.
+매크로 노드를 그래프에 추가하고 나면, 다른 노드와 비슷한 방식으로 작동하며, 입출력 핀도 비슷하게 연결할 수 있습니다. 아무 블루프린트 그래프의 매크로 노드에 **더블클릭** 하면 
+ 매크로의 그래프가 열립니다.

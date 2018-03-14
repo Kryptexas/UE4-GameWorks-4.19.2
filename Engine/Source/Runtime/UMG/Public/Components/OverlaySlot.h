@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -17,6 +17,12 @@ UCLASS()
 class UMG_API UOverlaySlot : public UPanelSlot
 {
 	GENERATED_UCLASS_BODY()
+
+protected:
+	//TODO UMG Slots should hold weak or shared refs to slots.
+
+	/** A raw pointer to the slot to allow us to adjust the size, padding...etc at runtime. */
+	SOverlay::FOverlaySlot* Slot;
 
 public:
 	
@@ -53,10 +59,4 @@ public:
 	virtual void BuildSlot(TSharedRef<SOverlay> InOverlay);
 
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-
-protected:
-	//TODO UMG Slots should hold weak or shared refs to slots.
-
-	/** A raw pointer to the slot to allow us to adjust the size, padding...etc at runtime. */
-	SOverlay::FOverlaySlot* Slot;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SAdvancedPreviewDetailsTab.h"
 #include "Editor/EditorPerProjectUserSettings.h"
@@ -242,7 +242,7 @@ void SAdvancedPreviewDetailsTab::CreateSettingsView()
 	FDetailsViewArgs DetailsViewArgs(
 		/*bUpdateFromSelection=*/ false,
 		/*bLockable=*/ false,
-		/*bAllowSearch=*/ false,
+		/*bAllowSearch=*/ true,
 		FDetailsViewArgs::HideNameArea,
 		/*bHideSelectionTip=*/ true,
 		/*InNotifyHook=*/ nullptr,

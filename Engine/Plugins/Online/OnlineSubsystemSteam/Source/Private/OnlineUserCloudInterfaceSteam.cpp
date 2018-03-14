@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineUserCloudInterfaceSteam.h"
 #include "Misc/ScopeLock.h"
@@ -246,7 +246,7 @@ FOnlineUserCloudSteam::~FOnlineUserCloudSteam()
 
 bool FOnlineUserCloudSteam::GetFileContents(const FUniqueNetId& UserId, const FString& FileName, TArray<uint8>& FileContents)
 {
-	FScopeLock(&SteamSubsystem->UserCloudDataLock);
+	FScopeLock ScopeLock(&SteamSubsystem->UserCloudDataLock);
 	// Search for the specified file and return the raw data
 	FSteamUserCloudData* UserCloudData = SteamSubsystem->GetUserCloudEntry(UserId);
 	if (UserCloudData)
@@ -264,7 +264,7 @@ bool FOnlineUserCloudSteam::GetFileContents(const FUniqueNetId& UserId, const FS
 
 bool FOnlineUserCloudSteam::ClearFiles(const FUniqueNetId& UserId)
 {
-	FScopeLock(&SteamSubsystem->UserCloudDataLock);
+	FScopeLock ScopeLock(&SteamSubsystem->UserCloudDataLock);
 	// Search for the specified file
 	FSteamUserCloudData* UserCloudData = SteamSubsystem->GetUserCloudEntry(UserId);
 	if (UserCloudData)
@@ -277,7 +277,7 @@ bool FOnlineUserCloudSteam::ClearFiles(const FUniqueNetId& UserId)
 
 bool FOnlineUserCloudSteam::ClearFile(const FUniqueNetId& UserId, const FString& FileName)
 {
-	FScopeLock(&SteamSubsystem->UserCloudDataLock);
+	FScopeLock ScopeLock(&SteamSubsystem->UserCloudDataLock);
 	// Search for the specified file
 	FSteamUserCloudData* UserCloudData = SteamSubsystem->GetUserCloudEntry(UserId);
 	if (UserCloudData)
@@ -295,14 +295,14 @@ void FOnlineUserCloudSteam::EnumerateUserFiles(const FUniqueNetId& UserId)
 
 void FOnlineUserCloudSteam::GetUserFileList(const FUniqueNetId& UserId, TArray<FCloudFileHeader>& UserFiles)
 {
-	FScopeLock(&SteamSubsystem->UserCloudDataLock);
+	FScopeLock ScopeLock(&SteamSubsystem->UserCloudDataLock);
 	FSteamUserCloudData* UserMetadata = SteamSubsystem->GetUserCloudEntry(UserId);  
 	UserFiles = UserMetadata->CloudMetadata;
 }
 
 bool FOnlineUserCloudSteam::ReadUserFile(const FUniqueNetId& UserId, const FString& FileName)
 {
-	FScopeLock(&SteamSubsystem->UserCloudDataLock);
+	FScopeLock ScopeLock(&SteamSubsystem->UserCloudDataLock);
 	// Create or get the current entry for this file
 	FSteamUserCloudData* UserCloud = SteamSubsystem->GetUserCloudEntry(UserId);
 	if (UserCloud && FileName.Len() > 0)
@@ -318,7 +318,7 @@ bool FOnlineUserCloudSteam::ReadUserFile(const FUniqueNetId& UserId, const FStri
 
 bool FOnlineUserCloudSteam::WriteUserFile(const FUniqueNetId& UserId, const FString& FileName, TArray<uint8>& FileContents)
 {
-	FScopeLock(&SteamSubsystem->UserCloudDataLock);
+	FScopeLock ScopeLock(&SteamSubsystem->UserCloudDataLock);
 	// Create or get the current entry for this file
 	FSteamUserCloudData* UserCloud = SteamSubsystem->GetUserCloudEntry(UserId);
 	if (UserCloud && FileName.Len() > 0)
@@ -369,7 +369,7 @@ void FOnlineUserCloudSteam::DumpCloudFileState(const FUniqueNetId& UserId, const
 	{
 		UE_LOG_ONLINE(Log, TEXT("Cloud File State file %s:"), *FileName);
 		{
-			FScopeLock(&SteamSubsystem->UserCloudDataLock);
+			FScopeLock ScopeLock(&SteamSubsystem->UserCloudDataLock);
 			FSteamUserCloudData* UserCloud = SteamSubsystem->GetUserCloudEntry(UserId);
 			FCloudFileHeader* FileMetadata = UserCloud->GetFileMetadata(FileName);
 			if (FileMetadata)

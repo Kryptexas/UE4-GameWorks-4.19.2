@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 using System;
@@ -122,6 +122,8 @@ namespace UnrealBuildTool
 
 		public static List<FileReference> BuiltBinaries = new List<FileReference>();
 
+		private bool bUseMallocProfiler;
+
 		/// <summary>
 		/// Additional frameworks stored locally so we have access without LinkEnvironment
 		/// </summary>
@@ -143,8 +145,47 @@ namespace UnrealBuildTool
                     FileReference AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "AssetCatalog", "Assets.car");
                     BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
                 }
+				else if (CppPlatform == CppPlatform.IOS && Settings.Value.IOSSDKVersionFloat >= 11.0f && BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+				{
+					int Index = Binary.Config.OutputFilePath.GetFileNameWithoutExtension().IndexOf("-");
+					string OutputFile = Binary.Config.OutputFilePath.GetFileNameWithoutExtension().Substring(0, Index > 0 ? Index : Binary.Config.OutputFilePath.GetFileNameWithoutExtension().Length);
+					FileReference AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "Assets.car");
+					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon20x20@2x.png");
+					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon20x20@2x~ipad.png");
+					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon20x20@3x.png");
+					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon20x20~ipad.png");
+					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon29x29@2x.png");
+					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon29x29@2x~ipad.png");
+					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon29x29@3x.png");
+					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon29x29~ipad.png");
+					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon40x40@2x.png");
+					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon40x40@2x~ipad.png");
+					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon40x40@3x.png");
+					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon40x40~ipad.png");
+					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon60x60@2x.png");
+					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon76x76@2x~ipad.png");
+					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon76x76~ipad.png");
+					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
+					AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Payload", OutputFile + ".app", "AppIcon83.5x83.5@2x~ipad.png");
+					BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
+				}
 			}
-            if ((ProjectSettings.bGeneratedSYMFile == true || ProjectSettings.bGeneratedSYMBundle == true) && ProjectSettings.bGenerateCrashReportSymbols && Binary.Config.Type == UEBuildBinaryType.Executable)
+            if ((ProjectSettings.bGeneratedSYMFile == true || ProjectSettings.bGeneratedSYMBundle == true) && (ProjectSettings.bGenerateCrashReportSymbols || bUseMallocProfiler) && Binary.Config.Type == UEBuildBinaryType.Executable)
             {
                 FileReference DebugFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".udebugsymbols");
                 BuildProducts.Add(DebugFile, BuildProductType.SymbolFile);
@@ -159,6 +200,12 @@ namespace UnrealBuildTool
 		public override bool ShouldAddDebugFileToReceipt(FileReference OutputFile, BuildProductType OutputType)
 		{
 			return OutputType == BuildProductType.Executable;
+		}
+
+		public override void SetUpGlobalEnvironment(ReadOnlyTargetRules Target)
+		{
+			base.SetUpGlobalEnvironment(Target);
+			bUseMallocProfiler = Target.bUseMallocProfiler;
 		}
 
 		string GetCompileArguments_Global(CppCompileEnvironment CompileEnvironment)
@@ -298,6 +345,11 @@ namespace UnrealBuildTool
 			else
 			{
 				Result += " -O0";
+			}
+
+			if (!CompileEnvironment.bUseInlining)
+			{
+				Result += " -fno-inline-functions";
 			}
 
 			// Create DWARF format debug info if wanted,
@@ -945,18 +997,42 @@ namespace UnrealBuildTool
 			return RemoteOutputFile;
 		}
 
-        public FileItem CompileAssetCatalog(FileItem Executable, string EngineDir, string BuildDir, string IntermediateDir, ActionGraph ActionGraph, CppPlatform Platform, List<FileItem> Icons)
+        public FileItem CompileAssetCatalogHelper(FileItem Executable, string EngineDir, string BuildDir, string IntermediateDir, ActionGraph ActionGraph, CppPlatform Platform)
         {
-            // Make a file item for the source and destination files
-            FileItem LocalExecutable = RemoteToLocalFileItem(Executable);
-            string FullDestPathRoot = Path.Combine(Path.GetDirectoryName(LocalExecutable.AbsolutePath), "AssetCatalog", "Assets.car");
+			// Make a file item for the source and destination files
+			FileItem LocalExecutable = RemoteToLocalFileItem(Executable);
+			Console.WriteLine("LocalExe: " + LocalExecutable);
+			int Index = Path.GetFileName(LocalExecutable.AbsolutePath).IndexOf("-");
+			if (Index > 0)
+			{
+				LocalExecutable = FileItem.GetItemByPath(Path.Combine(Path.GetDirectoryName(LocalExecutable.AbsolutePath), Path.GetFileName(LocalExecutable.AbsolutePath).Substring(0, Index)));
+			}
+			string FullDestPathRoot = Path.Combine(Path.GetDirectoryName(LocalExecutable.AbsolutePath), "AssetCatalog", "Assets.car");
 
-            FileItem OutputFile;
+			FileItem OutputFile;
             if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac && Platform == CppPlatform.IOS)
             {
                 FullDestPathRoot = Path.Combine(Path.GetDirectoryName(LocalExecutable.AbsolutePath), "Payload", Path.GetFileNameWithoutExtension(LocalExecutable.AbsolutePath) + ".app", "Assets.car");
             }
+
+            // Delete the Assets.car file to force the asset catalog to build every time, because
+            // removals of files or copies of icons (for instance) with a timestamp earlier than
+            // the last generated Assets.car will result in nothing built.
+            if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+            {
+                if (File.Exists(FullDestPathRoot))
+                {
+                    File.Delete(FullDestPathRoot);
+                }
+            }
+
             OutputFile = FileItem.GetItemByPath(FullDestPathRoot);
+
+            if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+            {
+                string RemoteFilename = ConvertPath(OutputFile.AbsolutePath);
+                RPCUtilHelper.Command("/", String.Format("rm -f {0}", RemoteFilename), "", null);
+            }
 
             // Make the compile action
             Action CompileAssetAction = ActionGraph.Add(ActionType.CreateAppBundle);
@@ -987,7 +1063,6 @@ namespace UnrealBuildTool
 
             CompileAssetAction.CommandArguments = Arguments;
             CompileAssetAction.PrerequisiteItems.Add(Executable);
-			CompileAssetAction.PrerequisiteItems.AddRange(Icons);
             CompileAssetAction.ProducedItems.Add(DestFile);
             CompileAssetAction.StatusDescription = CompileAssetAction.CommandArguments;// string.Format("Generating debug info for {0}", Path.GetFileName(Executable.AbsolutePath));
             CompileAssetAction.bCanExecuteRemotely = false;
@@ -1252,8 +1327,10 @@ namespace UnrealBuildTool
 			}
         }
 
-        public void GenerateAssetCatalog(string EngineDir, string BuildDir, string IntermediateDir, CppPlatform Platform, ref List<FileItem> Icons)
+        public void GenerateAssetCatalogHelper(string EngineDir, string BuildDir, string IntermediateDir, CppPlatform Platform, ref bool bUserImagesExist)
         {
+            bUserImagesExist = false;
+
             if (Platform == CppPlatform.TVOS)
             {
                 string[] Directories = { "Assets.xcassets",
@@ -1326,6 +1403,9 @@ namespace UnrealBuildTool
                     LocalToRemoteFileItem(FileItem.GetItemByPath(Path.Combine(Dir, "Contents.json")), BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac);
                     if (Images[i] != null)
                     {
+                        // This assumption might not be true, but we need the asset catalog process to fire anyway.
+                        bUserImagesExist = true;
+
                         string Image = Path.Combine((Directory.Exists(Path.Combine(BuildDir, "Resource", "Graphics")) ? (BuildDir) : (Path.Combine(EngineDir, "Build", "TVOS"))), "Resources", "Graphics", Images[i]);
                         if (File.Exists(Image))
                         {
@@ -1384,6 +1464,8 @@ namespace UnrealBuildTool
                     new string []{ "Icon1024.png", "Icon1024.png" },
                 };
                 Dir = Path.Combine(IntermediateDir, "Resources", "Assets.xcassets", "AppIcon.appiconset");
+
+                string BuildResourcesGraphicsDir = Path.Combine(BuildDir, "Resources", "Graphics");
                 for (int Index = 0; Index < Images.Length; ++Index)
                 {
                     string Image = Path.Combine((Directory.Exists(Path.Combine(BuildDir, "Resources", "Graphics")) ? (BuildDir) : (Path.Combine(EngineDir, "Build", "IOS"))), "Resources", "Graphics", Images[Index][1]);
@@ -1397,8 +1479,9 @@ namespace UnrealBuildTool
                     }
                     if (File.Exists(Image))
                     {
+                        bUserImagesExist |= Image.StartsWith(BuildResourcesGraphicsDir);
+
                         File.Copy(Image, Path.Combine(Dir, Images[Index][0]), true);
-						Icons.Add(FileItem.GetItemByPath(Image));
                         LocalToRemoteFileItem(FileItem.GetItemByPath(Path.Combine(Dir, Images[Index][0])), BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac);
                         FileInfo DestFileInfo = new FileInfo(Path.Combine(Dir, Images[Index][0]));
                         DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
@@ -1420,24 +1503,37 @@ namespace UnrealBuildTool
 			if (ProjectSettings.bGeneratedSYMFile == true || ProjectSettings.bGeneratedSYMBundle == true || BinaryLinkEnvironment.bUsePDBFiles == true)
             {
                 OutputFiles.Add(GenerateDebugInfo(Executable, ActionGraph));
-                if (ProjectSettings.bGenerateCrashReportSymbols)
+                if (ProjectSettings.bGenerateCrashReportSymbols || bUseMallocProfiler)
                 {
                     OutputFiles.Add(GeneratePseudoPDB(Executable, ActionGraph));
                 }
             }
 
             // generate the asset catalog
+            bool bUserImagesExist = false;
+            GenerateAssetCatalog(BinaryLinkEnvironment.Platform, ref bUserImagesExist);
+            CompileAssetCatalog(Executable, BinaryLinkEnvironment.Platform, ActionGraph, OutputFiles);
+
+			return OutputFiles;
+        }
+
+        public void GenerateAssetCatalog(CppPlatform Platform, ref bool bUserImagesExist)
+        {
+            string EngineDir = UnrealBuildTool.EngineDirectory.ToString();
+            string BuildDir = (((ProjectFile != null) ? ProjectFile.Directory.ToString() : (string.IsNullOrEmpty(UnrealBuildTool.GetRemoteIniPath()) ? UnrealBuildTool.EngineDirectory.ToString() : UnrealBuildTool.GetRemoteIniPath()))) + "/Build/" + (Platform == CppPlatform.IOS ? "IOS" : "TVOS");
+            string IntermediateDir = (((ProjectFile != null) ? ProjectFile.Directory.ToString() : UnrealBuildTool.EngineDirectory.ToString())) + "/Intermediate/" + (Platform == CppPlatform.IOS ? "IOS" : "TVOS");
+            GenerateAssetCatalogHelper(EngineDir, BuildDir, IntermediateDir, Platform, ref bUserImagesExist);
+        }
+
+        public void CompileAssetCatalog(FileItem Executable, CppPlatform Platform, ActionGraph ActionGraph, ICollection<FileItem> OutputFiles)
+        {
             if (CppPlatform == CppPlatform.TVOS || (CppPlatform == CppPlatform.IOS && Settings.Value.IOSSDKVersionFloat >= 11.0f))
             {
                 string EngineDir = UnrealBuildTool.EngineDirectory.ToString();
-                string BuildDir = (((ProjectFile != null) ? ProjectFile.Directory.ToString() : (string.IsNullOrEmpty(UnrealBuildTool.GetRemoteIniPath()) ? UnrealBuildTool.EngineDirectory.ToString() : UnrealBuildTool.GetRemoteIniPath()))) + "/Build/" + (BinaryLinkEnvironment.Platform == CppPlatform.IOS ? "IOS" : "TVOS");
-                string IntermediateDir = (((ProjectFile != null) ? ProjectFile.Directory.ToString() : UnrealBuildTool.EngineDirectory.ToString())) + "/Intermediate/" + (BinaryLinkEnvironment.Platform == CppPlatform.IOS ? "IOS" : "TVOS");
-				List<FileItem> Icons = new List<FileItem>();
-                GenerateAssetCatalog(EngineDir, BuildDir, IntermediateDir, BinaryLinkEnvironment.Platform, ref Icons);
-                OutputFiles.Add(CompileAssetCatalog(Executable, EngineDir, BuildDir, IntermediateDir, ActionGraph, BinaryLinkEnvironment.Platform, Icons));
+                string BuildDir = (((ProjectFile != null) ? ProjectFile.Directory.ToString() : (string.IsNullOrEmpty(UnrealBuildTool.GetRemoteIniPath()) ? UnrealBuildTool.EngineDirectory.ToString() : UnrealBuildTool.GetRemoteIniPath()))) + "/Build/" + (Platform == CppPlatform.IOS ? "IOS" : "TVOS");
+                string IntermediateDir = (((ProjectFile != null) ? ProjectFile.Directory.ToString() : UnrealBuildTool.EngineDirectory.ToString())) + "/Intermediate/" + (Platform == CppPlatform.IOS ? "IOS" : "TVOS");
+                OutputFiles.Add(CompileAssetCatalogHelper(Executable, EngineDir, BuildDir, IntermediateDir, ActionGraph, Platform));
             }
-
-            return OutputFiles;
         }
 
 		public static string GetCodesignPlatformName(UnrealTargetPlatform Platform)
@@ -1455,10 +1551,10 @@ namespace UnrealBuildTool
 
 		private static void GenerateCrashlyticsData(string ExecutableDirectory, string ExecutableName, string ProjectDir, string ProjectName)
         {
+			Log.TraceInformation("Generating and uploading Crashlytics Data");
             string FabricPath = UnrealBuildTool.EngineDirectory + "/Intermediate/UnzippedFrameworks/ThirdPartyFrameworks/Fabric.embeddedframework";
             if (Directory.Exists(FabricPath))
             {
-				Log.TraceInformation("Generating and uploading Crashlytics Data");
 				string PlistFile = ProjectDir + "/Intermediate/IOS/" + ProjectName + "-Info.plist";
                 Process FabricProcess = new Process();
                 FabricProcess.StartInfo.WorkingDirectory = ExecutableDirectory;
@@ -1481,7 +1577,12 @@ namespace UnrealBuildTool
 
         public static void PostBuildSync(UEBuildTarget Target)
 		{
-			IOSProjectSettings ProjectSettings = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS)).ReadProjectSettings(Target.ProjectFile);
+			if (Target.Rules == null)
+			{
+				Log.TraceWarning("Unable to PostBuildSync, Target has no Rules object");
+				return;
+			}
+			IOSProjectSettings ProjectSettings = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(Target.Platform)).ReadProjectSettings(Target.ProjectFile);
 
 			string AppName = Target.TargetType == TargetType.Game ? Target.TargetName : Target.AppName;
 
@@ -1684,7 +1785,7 @@ namespace UnrealBuildTool
 								DSYMExt = ".dSYM";
 							}
 							RPCUtilHelper.CopyFile(RemoteExecutablePath + DSYMExt, FilePath.FullName + DSYMExt, false);
-                            if (ProjectSettings.bGenerateCrashReportSymbols)
+                            if (ProjectSettings.bGenerateCrashReportSymbols || Target.Rules.bUseMallocProfiler)
                             {
                                 RPCUtilHelper.CopyFile(RemoteExecutablePath + ".udebugsymbols", FilePath.FullName + ".udebugsymbols", false);
                             }

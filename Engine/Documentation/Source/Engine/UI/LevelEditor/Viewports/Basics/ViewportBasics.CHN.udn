@@ -80,7 +80,8 @@ Description:虚幻编辑器中视口的基本概念和功能。
 通过使用位于每个视口右上角的按钮 ![Minimize Viewport](button_minimize.png)和![Maximize Viewport](button_maximize.png) 
 可以缩小和放大视口。
 
-<!--
+[COMMENT:none]
+
 [REGION:fullwidth]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -103,7 +104,8 @@ Description:虚幻编辑器中视口的基本概念和功能。
 	[/PARAM]
 [/OBJECT]
 [/REGION]
--->
+
+[/COMMENT]
 
 ## 视图模式
 

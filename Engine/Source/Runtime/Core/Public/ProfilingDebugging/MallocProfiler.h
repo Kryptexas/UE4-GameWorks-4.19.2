@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MallocProfiler.h: Memory profiling support.
@@ -93,7 +93,7 @@ enum EProfilingPayloadSubType
 };
 
 /** Whether we are performing symbol lookup at runtime or not.					*/
-#define SERIALIZE_SYMBOL_INFO PLATFORM_SUPPORTS_STACK_SYMBOLS
+#define SERIALIZE_SYMBOL_INFO PLATFORM_RUNTIME_MALLOCPROFILER_SYMBOLICATION
 
 /*=============================================================================
 	CallStack address information.

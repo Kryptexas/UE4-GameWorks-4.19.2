@@ -1,14 +1,18 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "CoreMinimal.h"
 #include "Misc/MessageDialog.h"
 #include "HAL/FileManager.h"
+#include "Misc/CoreMisc.h"
 #include "Misc/CommandLine.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Misc/Guid.h"
+#include "Misc/ScopeLock.h"
+#include "Async/TaskGraphInterfaces.h"
 
+#include "DerivedDataCacheInterface.h"
 #include "DerivedDataBackendInterface.h"
 #include "DDCCleanup.h"
 
@@ -47,6 +51,7 @@ public:
 		, bTouch(bTouchFiles)
 		, bPurgeTransient(bPurgeTransientData)
 		, DaysToDeleteUnusedFiles(InDaysToDeleteUnusedFiles)
+		, TotalEstimatedBuildTime(0)
 	{
 		// If we find a platform that has more stingent limits, this needs to be rethought.
 		static_assert(MAX_BACKEND_KEY_LENGTH + MAX_CACHE_DIR_LEN + MAX_BACKEND_NUMBERED_SUBFOLDER_LENGTH + MAX_CACHE_EXTENTION_LEN < PLATFORM_MAX_FILEPATH_LENGTH,
@@ -158,6 +163,18 @@ public:
 
 			COOK_STAT(Timer.AddHit(0));
 		}
+
+		// If not using a shared cache, record a (probable) miss
+		if (!bExists && !GetDerivedDataCacheRef().GetUsingSharedDDC())
+		{
+			// store a cache miss
+			FScopeLock ScopeLock(&SynchronizationObject);
+			if (!DDCNotificationCacheTimes.Contains(CacheKey))
+			{
+				DDCNotificationCacheTimes.Add(CacheKey, FPlatformTime::Seconds());
+			}
+		}
+
 		return bExists;
 	}
 	/**
@@ -189,6 +206,18 @@ public:
 		}
 		UE_LOG(LogDerivedDataCache, Verbose, TEXT("FileSystemDerivedDataBackend: Cache miss on %s"),*Filename);
 		Data.Empty();
+
+		// If not using a shared cache, record a miss
+		if (!GetDerivedDataCacheRef().GetUsingSharedDDC())
+		{
+			// store a cache miss
+			FScopeLock ScopeLock(&SynchronizationObject);
+			if (!DDCNotificationCacheTimes.Contains(CacheKey))
+			{
+				DDCNotificationCacheTimes.Add(CacheKey, FPlatformTime::Seconds());
+			}
+		}
+
 		return false;
 	}
 	/**
@@ -253,6 +282,45 @@ public:
 					IFileManager::Get().Delete(*TempFilename, false, false, true);
 				}
 			}
+
+			// If not using a shared cache, update estimated build time
+			if (!GetDerivedDataCacheRef().GetUsingSharedDDC())
+			{
+				FScopeLock ScopeLock(&SynchronizationObject);
+
+				if (DDCNotificationCacheTimes.Contains(CacheKey))
+				{
+					// There isn't any way to get exact build times in the DDC code as custom asset processing and async are factors.
+					// So, estimate the asset build time based on the delta between the cache miss and the put
+					TotalEstimatedBuildTime += (FPlatformTime::Seconds() - DDCNotificationCacheTimes[CacheKey]);
+					DDCNotificationCacheTimes.Remove(CacheKey);
+
+					// If more than 20 seconds has been spent building assets, send out a notification
+					if (TotalEstimatedBuildTime > 20.0f)
+					{
+						// Send out a DDC put notification if we have any subscribers
+						FDerivedDataCacheInterface::FOnDDCNotification& DDCNotificationEvent = GetDerivedDataCacheRef().GetDDCNotificationEvent();
+
+						if (DDCNotificationEvent.IsBound())
+						{
+							TotalEstimatedBuildTime = 0.0f;
+
+							DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.PutCachedData"), STAT_FSimpleDelegateGraphTask_DDCNotification, STATGROUP_TaskGraphTasks);
+
+							FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+								FSimpleDelegateGraphTask::FDelegate::CreateLambda([DDCNotificationEvent]() {
+								DDCNotificationEvent.Broadcast(FDerivedDataCacheInterface::SharedDDCPerformanceNotification);
+							}),
+								GET_STATID(STAT_FSimpleDelegateGraphTask_DDCNotification),
+								nullptr,
+								ENamedThreads::GameThread);
+						}
+					}
+
+				}
+
+			}
+
 		}
 	}
 
@@ -309,6 +377,17 @@ private:
 	bool		bPurgeTransient;
 	/** Age of file when it should be deleted from DDC cache. */
 	int32		DaysToDeleteUnusedFiles;
+	/** Object used for synchronization via a scoped lock						*/
+	FCriticalSection SynchronizationObject;
+
+	// DDCNotification metrics
+
+	/** Map of cache keys to miss times for generating timing deltas */
+	TMap<FString, double> DDCNotificationCacheTimes;
+
+	/** The total estimated build time accumulated from cache miss/put deltas */
+	double TotalEstimatedBuildTime;
+
 };
 
 FDerivedDataBackendInterface* CreateFileSystemDerivedDataBackend(const TCHAR* CacheDirectory, bool bForceReadOnly /*= false*/, bool bTouchFiles /*= false*/, bool bPurgeTransient /*= false*/, bool bDeleteOldFiles /*= false*/, int32 InDaysToDeleteUnusedFiles /*= 60*/, int32 InMaxNumFoldersToCheck /*= -1*/, int32 InMaxContinuousFileChecks /*= -1*/)

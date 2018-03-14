@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "WmfMediaSession.h"
 
@@ -169,7 +169,7 @@ bool FWmfMediaSession::SetTopology(const TComPtr<IMFTopology>& InTopology, FTime
 		return false;
 	}
 
-	UE_LOG(LogWmfMedia, Verbose, TEXT("Session: %p: Setting new partial topology (duration = %s)"), this, *InDuration.ToString());
+	UE_LOG(LogWmfMedia, Verbose, TEXT("Session: %p: Setting new partial topology %p (duration = %s)"), this, InTopology.Get(), *InDuration.ToString());
 
 	FScopeLock Lock(&CriticalSection);
 

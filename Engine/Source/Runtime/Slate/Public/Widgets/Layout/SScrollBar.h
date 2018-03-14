@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
  
 #pragma once
 
@@ -37,6 +37,7 @@ public:
 		, _HideWhenNotInUse(false)
 #endif
 		, _Orientation( Orient_Vertical )
+		, _DragFocusCause( EFocusCause::Mouse )
 		, _Thickness( FVector2D(12.0f, 12.0f) )
 		{}
 
@@ -46,6 +47,7 @@ public:
 		SLATE_ARGUMENT( bool, AlwaysShowScrollbar )
 		SLATE_ARGUMENT( bool, HideWhenNotInUse )
 		SLATE_ARGUMENT( EOrientation, Orientation )
+		SLATE_ARGUMENT( EFocusCause, DragFocusCause )
 		/** The thickness of the scrollbar thumb */
 		SLATE_ATTRIBUTE( FVector2D, Thickness )
 	SLATE_END_ARGS()
@@ -106,6 +108,9 @@ public:
 	/** See UserVisibility attribute */
 	void SetUserVisibility(TAttribute<EVisibility> InUserVisibility) { UserVisibility = InUserVisibility; }
 
+	/** See DragFocusCause attribute */
+	void SetDragFocusCause(EFocusCause InDragFocusCause);
+
 	/** See Thickness attribute */
 	void SetThickness(TAttribute<FVector2D> InThickness);
 
@@ -144,6 +149,7 @@ protected:
 	FOnUserScrolled OnUserScrolled;
 	float DragGrabOffset;
 	EOrientation Orientation;
+	EFocusCause DragFocusCause;
 	bool bHideWhenNotInUse;
 	bool bIsScrolling;
 	double LastInteractionTime;

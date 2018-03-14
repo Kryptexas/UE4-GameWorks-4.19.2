@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 NiagaraSimulationShader.usf: 
@@ -14,13 +14,42 @@ NiagaraSimulationShader.usf:
 //TODO: Add common utility code for things such as reading data sources, reading from and writing to events.
 
 #if GPU_SIMULATION
+	/** Returns clip space W, which is world space distance along the View Z axis. Note if you need DeviceZ LookupDeviceZ() is the faster option */
+	float CalcSceneDepth(float2 ScreenUV)
+	{
+	#if SCENE_TEXTURES_DISABLED
+		return 0.0f;
+	#else
+		#if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1 || MOBILE_FORCE_DEPTH_TEXTURE_READS
+			return ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);
+		#else
+			#if COMPILER_GLSL_ES2
+				#if IOS
+					// Only call FramebufferFetch when actually compiling for IOS ES2.
+					return FramebufferFetchES2().w;
+				#elif WEBGL
+					return Texture2DSampleLevel(SceneAlphaCopyTexture, SceneAlphaCopyTextureSampler, ScreenUV, 0).r;
+				#else 
+					float SceneW = ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);		
+					return DepthbufferFetchES2(SceneW, View.InvDeviceZToWorldZTransform[2], View.InvDeviceZToWorldZTransform[3]);
+				#endif 
+			#elif METAL_PROFILE && !MAC
+					return FramebufferFetchES2().w;
+			#else
+				return ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);
+			#endif
+		#endif
+	#endif
+	}
+
+
 	static uint3 GDispatchThreadId;
 	uint EmitterTickCounter;
 
-	#define THREADGROUP_SIZE 16
+	#define THREADGROUP_SIZE 64
 
 	// 4D random number generator inspired by PCGs (permuted congruential generator)
-	// COPY FROM RANDOM.USF, which we can't easily include here due to a sizable dependency chain
+	// COPY FROM RANDOM.USH, which we can't easily include here due to a sizable dependency chain
 	uint4 NiagaraRand4DPCG32(int4 p)
 	{
 		// taking a signed int then reinterpreting as unsigned gives good behavior for negatives
@@ -54,7 +83,7 @@ NiagaraSimulationShader.usf:
 	static uint4 RandomVal = 2308975;
 	float4 rand4()
 	{
-		RandomVal = NiagaraRand4DPCG32( int4(GDispatchThreadId+(RandomVal/57843).xyz, 54121) + int4(EmitterTickCounter.xxxx));
+		RandomVal = NiagaraRand4DPCG32( int4(GDispatchThreadId+(RandomVal/573).xyz, RandomVal.x/921) + int4(EmitterTickCounter.xxxx));
 		return float4(RandomVal.xyzw) / float4(0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF);
 	}
 
@@ -143,17 +172,21 @@ void ExitStatScope();
 #endif
 
 #if GPU_SIMULATION
-	uint NumInstancesPerThread;
-	uint StartInstance;
-	uint SimulateStartInstance;
-	uint NumInstances;
-	uint NumThreadGroups;
-	uint GroupStartInstance;
+	int ExecIndex()
+	{
+		return GDispatchThreadId.x;
+	}
+
+	uint StartInstancePhase0;
+	uint StartInstancePhase1;
+	uint TotalNumInstances;
+
 	uint ComponentBufferSizeRead;
 	uint ComponentBufferSizeWrite;
 	int	NumEventsPerParticle;
 	int NumParticlesPerEvent;
 	uint CopyInstancesBeforeStart;
+
 	Buffer<float> InputFloat;
 	Buffer<int> InputInt;
 	RWBuffer<int> RWOutputInt;
@@ -165,7 +198,7 @@ void ExitStatScope();
 		int PrevIdx = -1;
 		if(bDoAcquire == true)
 		{
-			InterlockedAdd(RWDataSetIndices[DataSetID], 1, PrevIdx);
+			InterlockedAdd(RWDataSetIndices[DataSetID*5+1], 1, PrevIdx);
 		}
 		return PrevIdx;
 	}
@@ -175,14 +208,19 @@ void ExitStatScope();
 		return InputFloat[RegisterIdx*ComponentBufferSizeRead + InstanceIdx];
 	}
 
+	float InputDataInt(int DataSetIndex, int RegisterIdx, int InstanceIdx)
+	{
+		return InputInt[RegisterIdx*ComponentBufferSizeRead + InstanceIdx];
+	}
+
 	void OutputDataFloat(int DataSetIndex, int RegisterIndex, int InstanceIndex, float Value)
 	{
-		RWOutputFloat[RegisterIndex*ComponentBufferSizeWrite + InstanceIndex + StartInstance] = Value;
+		RWOutputFloat[RegisterIndex*ComponentBufferSizeWrite + InstanceIndex + StartInstancePhase0] = Value;
 	}
 
 	void OutputDataInt(int DataSetIndex, int RegisterIndex, int InstanceIndex, int Value)
 	{
-		RWOutputInt[RegisterIndex*ComponentBufferSizeWrite + InstanceIndex + StartInstance] = Value;
+		RWOutputInt[RegisterIndex*ComponentBufferSizeWrite + InstanceIndex + StartInstancePhase0] = Value;
 	}
 
 	void EnterStatScope(int ID)	{}
@@ -204,36 +242,54 @@ void SimulateMainComputeCS(
 {
 	GDispatchThreadId = DispatchThreadId;
 
-	//if(CopyInstancesBeforeStart == 1)
-	//{
-	//	StartInstance = 0;
-	//}
-
-	for(uint InstanceIdx = 0; InstanceIdx<NumInstancesPerThread; InstanceIdx++)
+	/*
+	if(CopyInstancesBeforeStart == 1)
 	{
-		uint InstanceID = StartInstance + InstanceIdx*THREADGROUP_SIZE*NumThreadGroups + DispatchThreadId.x;
+		StartInstancePhase0 = 0;
+	}
+	*/
 
-		if(InstanceID < StartInstance+NumInstances )
+	uint InstanceID = StartInstancePhase0 + DispatchThreadId.x;
+
+	if(InstanceID < StartInstancePhase0+TotalNumInstances )
+	{
+		// calculate event index for the current instance; this is primarily for spawn events, where we do a single read from a secondary DataSet for a subset of particles
+		//  for all-particle events, this will always end up being 0 because NumParticlesPerEvent = total particles in the set
+		uint EventIndex = 0; //(InstanceID-SimulateStartInstance) / NumParticlesPerEvent;
+
+		// before the simulation start - either update or copy
+		//
+		if(InstanceID < StartInstancePhase1)
 		{
-			// if we have a start instance >0, then we need to be sure that we don't run on instances before that
-			//
-			if(InstanceID >= SimulateStartInstance)
+			// copy instances before simulation start inst (e.g. for event spawns)
+			/*
+			if(CopyInstancesBeforeStart)
 			{
-				// calculate event index for the current instance; this is primarily for spawn events, where we do a single read from a secondary DataSet for a subset of particles
-				//  for all-particle events, this will always end up being 0 because NumParticlesPerEvent = total particles in the set
-				uint EventIndex = (InstanceID-SimulateStartInstance) / NumParticlesPerEvent;
-
-				SimulateMain(InstanceID, EventIndex);
+				CopyInstance(InstanceID);
 			}
-			// event spawn scripts, for example, will need to copy instances before their start
-			//  TODO: should do this in the VM as well; saves an extra copy
-			//
-			//else if(CopyInstancesBeforeStart)
-			//{
-			//	CopyInstance(InstanceID);
-			//}
+			else
+			*/
+			{
+				SimulateMain(InstanceID, EventIndex, 1);
+			}
 
 		}
+
+		// after simulation start - spawn phase
+		//
+		else if(InstanceID >= StartInstancePhase1)
+		{
+				SimulateMain(InstanceID, EventIndex, 0);		// SimulateMain spawn phase
+		}
+	}
+
+	// fill in the rest of RWDataSetIndices for the DrawIndirect call for the main data set; number of instances is incremented in AcquireIndex
+	if(InstanceID == 0)
+	{
+		RWDataSetIndices[0] = 6;		// IndexCountPerInstance; TODO: need to pass this in from outside based on renderer setup
+		RWDataSetIndices[2] = 0;		// StartIndexLocation
+		RWDataSetIndices[3] = 0;		// BaseVertexLocation
+		RWDataSetIndices[4] = 0;		// StartInstanceLocation
 	}
 }
 

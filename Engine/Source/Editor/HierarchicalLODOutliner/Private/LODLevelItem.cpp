@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LODLevelItem.h"
 #include "Engine/World.h"
@@ -6,6 +6,10 @@
 #include "Modules/ModuleManager.h"
 #include "IHierarchicalLODUtilities.h"
 #include "HierarchicalLODUtilitiesModule.h"
+#include "Engine/Selection.h"
+#include "MultiBoxBuilder.h"
+#include "HLODOutliner.h"
+#include "Editor.h"
 
 #define LOCTEXT_NAMESPACE "LODLevelItem"
 
@@ -23,7 +27,34 @@ bool HLODOutliner::FLODLevelItem::CanInteract() const
 
 void HLODOutliner::FLODLevelItem::GenerateContextMenu(FMenuBuilder& MenuBuilder, SHLODOutliner& Outliner)
 {
-	// No context menu available for LODLevel item
+	// Collect actors / components available for creating a new HLOD cluster 
+	USelection* CurrentSelection = GEditor->GetSelectedActors();	
+	if (const int32 NumSelected = CurrentSelection->Num())
+	{
+		TArray<AActor*> ValidActorsToCluster;
+		for (int32 SelectionIndex = 0; SelectionIndex < NumSelected; ++SelectionIndex)
+		{
+			AActor* Actor = Cast<AActor>(CurrentSelection->GetSelectedObject(SelectionIndex));
+			if (Actor)
+			{
+				if (Outliner.HierarchicalLODUtilities->ShouldGenerateCluster(Actor) == EClusterGenerationError::ValidActor)
+				{
+					ValidActorsToCluster.Add(Actor);
+				}
+			}
+		}
+
+		// Generate context menu with option to create a new cluster from the current viewport selection
+		MenuBuilder.AddMenuEntry(LOCTEXT("CreateClusterFromViewportSelection", "Create Cluster from World Selection"), FText(), FSlateIcon(), 
+			FUIAction(FExecuteAction::CreateLambda([&Outliner, ValidActorsToCluster, this]()
+			{
+				Outliner.CreateClusterFromActors(ValidActorsToCluster, LODLevelIndex);
+			}),
+				FCanExecuteAction::CreateLambda([ValidActorsToCluster]() -> bool
+			{ 
+				return (ValidActorsToCluster.Num() > 1); 
+			})));		
+	}
 }
 
 FString HLODOutliner::FLODLevelItem::GetDisplayString() const

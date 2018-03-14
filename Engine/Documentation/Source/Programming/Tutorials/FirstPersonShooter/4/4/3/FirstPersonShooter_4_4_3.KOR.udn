@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388665
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 4.4.3 - Run -> Jump Start 트랜지션 추가
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4, Programming/Tutorials/FirstPersonShooter/4/4
@@ -22,7 +22,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 이번 단계에서는 Run (달리기)에서 Jump Start (점프 시작)으로의 트랜지션 구성을 하겠습니다.
 
@@ -38,4 +38,3 @@ Version: 4.15
 
 	![](IsFallingtoResult.png)
 
-%Steps%

@@ -115,8 +115,8 @@
 #define SSSSSampleLevelZeroPoint(tex, coord) tex.SampleLevel(PointSampler, coord, 0)
 #define SSSSSampleShadowmap(coord)	float4(0,0,0,0)	// todo: not used yet
 #define SSSSSampleMasking(texcoord)	(GetScreenSpaceData(texcoord).GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE)	// todo: masking doesn't work with filtering ideally put in alpha to get it filtered
-#define SSSSSampleSceneColor(coord) Texture2DSampleLevel(PostprocessInput0, PostprocessInput0Sampler, coord, 0)
-#define SSSSSampleSceneColorPoint(coord) ( Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, coord))		// todo: could be made point
+#define SSSSSampleSceneColor(coord) SampleSetup(coord)
+#define SSSSSampleSceneColorPoint(coord) SampleSetup(coord) // todo: could be made point
 #define SSSSSampleLevelZeroOffset(tex, coord, offset) tex.SampleLevel(LinearSampler, coord, 0, offset)
 #define SSSSSampleOffset(tex, coord, offset) SSSSSampleLevelZeroOffset(tex, coord, offset)
 #define SSSSLerp(a, b, t) lerp(a, b, t)
@@ -186,10 +186,10 @@ float3 SSSSTransmittance(float translucency, float sssWidth, float3 worldPositio
 // @param texcoord The usual quad texture coordinates.
 // @param dir Direction of the blur: First pass:   float2(1.0, 0.0), Second pass:  float2(0.0, 1.0)
 // @param initStencil indicates whether the stencil buffer should be initialized. Should be set to 'true' for the first pass if not previously initialized, to enable optimization of the second pass.
-float4 SSSSBlurPS(float2 GBufferUV, float2 ViewportUV, float2 dir, bool initStencil)
+float4 SSSSBlurPS(float2 BufferUV, float2 dir, bool initStencil)
 {
     // Fetch color of current pixel:
-    float4 colorM = SSSSSampleSceneColorPoint(ViewportUV);
+    float4 colorM = SSSSSampleSceneColorPoint(BufferUV);
 
 	// we store the depth in alpha
 	float OutDepth = colorM.a;
@@ -205,7 +205,7 @@ float4 SSSSBlurPS(float2 GBufferUV, float2 ViewportUV, float2 dir, bool initSten
 	}
 
 	// 0..1
-	float SSSStrength = GetSubsurfaceStrength(GBufferUV);
+	float SSSStrength = GetSubsurfaceStrength(BufferUV);
 
 	// Initialize the stencil buffer in case it was not already available:
     if (initStencil) // (Checked in compile time, it's optimized away)
@@ -221,7 +221,7 @@ float4 SSSSBlurPS(float2 GBufferUV, float2 ViewportUV, float2 dir, bool initSten
 	// ideally this comes from a half res buffer as well - there are some minor artifacts
 	finalStep *= SSSStrength; // Modulate it using the opacity (0..1 range)
     
-	FGBufferData GBufferData = GetGBufferData(GBufferUV);
+	FGBufferData GBufferData = GetGBufferData(BufferUV);
 
 	// 0..255, which SubSurface profile to pick
 	// ideally this comes from a half res buffer as well - there are some minor artifacts
@@ -253,7 +253,7 @@ float4 SSSSBlurPS(float2 GBufferUV, float2 ViewportUV, float2 dir, bool initSten
 		for (int Side = -1; Side <= 1; Side += 2)
 		{
 			// Fetch color and depth for current sample:
-			float4 color = SSSSSampleSceneColor(ViewportUV + UVOffset * Side);
+			float4 color = SSSSSampleSceneColor(BufferUV + UVOffset * Side);
 
 			float LocalDepth = color.a;
 			

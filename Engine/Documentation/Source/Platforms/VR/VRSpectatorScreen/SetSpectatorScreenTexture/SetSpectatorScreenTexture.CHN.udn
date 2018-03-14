@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3569151
 Availability: Public 
 Crumbs: %ROOT%
-Title: Set Spectator Screen Texture 
-Description: This node changes the texture being displayed on the Social (Spectator) Screen.
+Title: 设置旁观者屏幕贴图
+Description: 设置旁观者屏幕贴图
 Type: Reference
 Version: 4.17
 Parent: Platforms/VR/VRSpectatorScreen

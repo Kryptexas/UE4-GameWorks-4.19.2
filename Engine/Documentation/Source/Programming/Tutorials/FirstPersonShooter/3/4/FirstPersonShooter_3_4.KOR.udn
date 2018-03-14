@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388666
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 3.4 - 월드와 상호작용하는 프로젝타일
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
@@ -22,7 +22,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 프로젝타일의 콜리전 상호작용을 감지할 수 있으니, 이제 그 콜리전에 어떻게 반응할지를 결정하면 됩니다. 이번 단계에서는, 콜리전 이벤트에 반응하는 `FPSProjectile` 에 `OnHit` 함수를 추가하겠습니다.
 
@@ -80,7 +80,7 @@ Version: 4.15
 1.	**Solution Explorer** 에서 `FPSProjectile` 클래스 CPP 파일을 찾고 `FPSProjectile.cpp` 를 열고 다음 코드를 추가합니다:
 
 		// 프로젝타일에 무언가 맞으면 호출되는 함수입니다.
-		void AFPSProjectile::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
+		void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
 		{
 			if (OtherActor != this && OtherComponent->IsSimulatingPhysics())
 			{
@@ -149,7 +149,7 @@ Version: 4.15
 		}
 		
 		// 프로젝타일이 무언가에 맞으면 호출되는 함수입니다.
-		void AFPSProjectile::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
+		void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
 		{
 			if (OtherActor != this && OtherComponent->IsSimulatingPhysics())
 			{
@@ -209,4 +209,3 @@ Version: 4.15
 
 1.	레벨 에디터에서 **중지** 버튼을 눌러 에디터에서 플레이 (PIE) 모드를 빠져나갑니다.
 
-%Steps%

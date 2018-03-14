@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MaterialOptionsCustomization.h"
 #include "MaterialOptions.h"
@@ -14,6 +14,8 @@
 
 #include "IPropertyTypeCustomization.h"
 #include "IPropertyUtilities.h"
+
+static const TArray<EMaterialProperty> DisabledProperties = { MP_Refraction };
 
 TSharedRef<IPropertyTypeCustomization> FPropertyEntryCustomization::MakeInstance()
 {
@@ -69,11 +71,11 @@ void FPropertyEntryCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> 
 }
 
 void FPropertyEntryCustomization::UpdateRestrictions(const int32 EntryIndex)
-{
+{	
 	PropertyRestriction->RemoveAll();
+	const UEnum* PropertyEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EMaterialProperty"));
 	if (CurrentOptions)
-	{
-		const UEnum* PropertyEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EMaterialProperty"));
+	{	
 		// Add all previously set material properties to be disabled
 		for (int32 Index = 0; Index < CurrentOptions->Properties.Num(); ++Index)
 		{
@@ -83,6 +85,11 @@ void FPropertyEntryCustomization::UpdateRestrictions(const int32 EntryIndex)
 				PropertyRestriction->AddDisabledValue(PropertyEnum->GetNameStringByValue(Entry.Property));
 			}
 		}
+	}
+
+	for (const EMaterialProperty& Property : DisabledProperties)
+	{
+		PropertyRestriction->AddDisabledValue(PropertyEnum->GetNameStringByValue(Property));
 	}
 }
 
@@ -140,7 +147,7 @@ void FMaterialOptionsCustomization::CustomizeDetails(IDetailLayoutBuilder& Detai
 				{
 					Entry.Property = MP_MAX;
 				}
-				else if (Entry.Property != MP_MAX)
+				else if (Entry.Property != MP_MAX && !DisabledProperties.Contains(Entry.Property))
 				{
 					Properties.Add(Entry.Property);
 				}

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -130,10 +130,12 @@ public:
 	void SetEditorLocale(const FString& InEditorLocale);
 	bool GetPreviewGameLanguage(FString& OutPreviewGameLanguage) const;
 	void SetPreviewGameLanguage(const FString& InPreviewGameLanguage);
-	bool ShouldLoadLocalizedPropertyNames() const;
-	void ShouldLoadLocalizedPropertyNames(const bool Value);
-	bool ShouldShowNodesAndPinsUnlocalized() const;
-	void ShouldShowNodesAndPinsUnlocalized(const bool Value);
+	bool ShouldUseLocalizedNumericInput() const;
+	void SetShouldUseLocalizedNumericInput(const bool Value);
+	bool ShouldUseLocalizedPropertyNames() const;
+	void SetShouldUseLocalizedPropertyNames(const bool Value);
+	bool ShouldUseLocalizedNodeAndPinNames() const;
+	void SetShouldUseLocalizedNodeAndPinNames(const bool Value);
 
 	int32 GetTimezoneValue() const;
 

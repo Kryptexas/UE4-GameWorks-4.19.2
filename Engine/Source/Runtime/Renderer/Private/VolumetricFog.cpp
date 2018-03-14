@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VolumetricFog.cpp
@@ -138,16 +138,16 @@ class FVolumetricFogMaterialSetupCS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FVolumetricFogMaterialSetupCS,Global)
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return DoesPlatformSupportVolumetricFog(Platform);
+		return DoesPlatformSupportVolumetricFog(Parameters.Platform);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZE"), VolumetricFogGridInjectionGroupSize);
-		FVolumetricFogIntegrationParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FVolumetricFogIntegrationParameters::ModifyCompilationEnvironment(Parameters.Platform, OutEnvironment);
 	}
 
 	FVolumetricFogMaterialSetupCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -215,16 +215,16 @@ class FWriteToBoundingSphereVS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FWriteToBoundingSphereVS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) 
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) 
 	{ 
-		return DoesPlatformSupportVolumetricFog(Platform);
+		return DoesPlatformSupportVolumetricFog(Parameters.Platform);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.CompilerFlags.Add(CFLAG_VertexToGeometryShader);
-		FVolumetricFogIntegrationParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FVolumetricFogIntegrationParameters::ModifyCompilationEnvironment(Parameters.Platform, OutEnvironment);
 	}
 
 	FWriteToBoundingSphereVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
@@ -277,18 +277,18 @@ class TInjectShadowedLocalLightPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(TInjectShadowedLocalLightPS,Global);
 public:
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("DYNAMICALLY_SHADOWED"), (uint32)bDynamicallyShadowed);
 		OutEnvironment.SetDefine(TEXT("INVERSE_SQUARED_FALLOFF"), (uint32)bInverseSquared);
 		OutEnvironment.SetDefine(TEXT("USE_TEMPORAL_REPROJECTION"), bTemporalReprojection);
-		FVolumetricFogIntegrationParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FVolumetricFogIntegrationParameters::ModifyCompilationEnvironment(Parameters.Platform, OutEnvironment);
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return DoesPlatformSupportVolumetricFog(Platform);
+		return DoesPlatformSupportVolumetricFog(Parameters.Platform);
 	}
 
 	TInjectShadowedLocalLightPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
@@ -640,17 +640,17 @@ class TVolumetricFogLightScatteringCS : public FGlobalShader
 	DECLARE_SHADER_TYPE(TVolumetricFogLightScatteringCS,Global)
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return DoesPlatformSupportVolumetricFog(Platform);
+		return DoesPlatformSupportVolumetricFog(Parameters.Platform);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZE"), VolumetricFogGridInjectionGroupSize);
-		FVolumetricFogIntegrationParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		FForwardLightingParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FVolumetricFogIntegrationParameters::ModifyCompilationEnvironment(Parameters.Platform, OutEnvironment);
+		FForwardLightingParameters::ModifyCompilationEnvironment(Parameters.Platform, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USE_TEMPORAL_REPROJECTION"), bTemporalReprojection);
 		OutEnvironment.SetDefine(TEXT("DISTANCE_FIELD_SKY_OCCLUSION"), bDistanceFieldSkyOcclusion);
 	}
@@ -850,16 +850,16 @@ class FVolumetricFogFinalIntegrationCS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FVolumetricFogFinalIntegrationCS,Global)
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return DoesPlatformSupportVolumetricFog(Platform);
+		return DoesPlatformSupportVolumetricFog(Parameters.Platform);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZE"), VolumetricFogIntegrationGroupSize);
-		FVolumetricFogIntegrationParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FVolumetricFogIntegrationParameters::ModifyCompilationEnvironment(Parameters.Platform, OutEnvironment);
 	}
 
 	FVolumetricFogFinalIntegrationCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)

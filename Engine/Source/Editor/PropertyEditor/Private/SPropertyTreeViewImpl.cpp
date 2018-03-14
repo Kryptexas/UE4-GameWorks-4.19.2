@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SPropertyTreeViewImpl.h"
@@ -797,7 +797,7 @@ void SPropertyTreeViewImpl::SetObjectArray( const TArray< TWeakObjectPtr< UObjec
 	}
 	else
 	{
-		Title = FString::Printf( *NSLOCTEXT("PropertyView", "MultipleSelected", "%s (%i selected)").ToString(), *RootPropertyNode->GetObjectBaseClass()->GetName(), RootPropertyNode->GetNumObjects() );
+		Title = FText::Format( NSLOCTEXT("PropertyView", "MultipleSelectedFmt", "{0} ({1} selected)"), FText::FromString(RootPropertyNode->GetObjectBaseClass()->GetName()), RootPropertyNode->GetNumObjects() ).ToString();
 	}
 
 	OnObjectArrayChanged.ExecuteIfBound(Title, InObjects);

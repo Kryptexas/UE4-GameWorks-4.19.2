@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -106,6 +106,14 @@ public:
 	 */
 	FGuid AddSpawnable(const FString& Name, UObject& ObjectTemplate);
 
+	/*
+	 * Adds an existing spawnable to this movie scene.
+	 *
+	 * @param InNewSpawnable The posssesable to add.
+	 * @param InNewBinding The object binding to add.
+	 */
+	void AddSpawnable(const FMovieSceneSpawnable& InNewSpawnable, const FMovieSceneBinding& InNewBinding);
+
 	/**
 	 * Removes a spawnable from this movie scene.
 	 *
@@ -158,6 +166,14 @@ public:
 	 */
 	FGuid AddPossessable(const FString& Name, UClass* Class);
 
+	/*
+	 * Adds an existing possessable to this movie scene.
+	 *
+	 * @param InNewPossessable The posssesable to add.
+	 * @param InNewBinding The object binding to add.
+	 */
+	void AddPossessable(const FMovieScenePossessable& InNewPossessable, const FMovieSceneBinding& InNewBinding);
+
 	/**
 	 * Removes a possessable from this movie scene.
 	 *
@@ -169,14 +185,6 @@ public:
 	* Replace an existing possessable with another 
 	*/
 	bool ReplacePossessable(const FGuid& OldGuid, const FMovieScenePossessable& InNewPosessable);
-
-	DEPRECATED(4.15, "Please use ReplacePossessable(const FGuid&, const FMovieScenePossessable&) so that the possessable class gets updated correctly.")
-	bool ReplacePossessable(const FGuid& OldGuid, const FGuid& NewGuid, const FString& Name)
-	{
-		FMovieScenePossessable NewPossessable(Name, nullptr);
-		NewPossessable.SetGuid(NewGuid);
-		return ReplacePossessable(OldGuid, NewPossessable);
-	}
 
 	/**
 	 * Tries to locate a possessable in this MovieScene for the specified possessable GUID.

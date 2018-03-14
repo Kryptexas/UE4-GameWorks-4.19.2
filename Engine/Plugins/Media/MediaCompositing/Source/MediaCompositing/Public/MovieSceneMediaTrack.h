@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "Misc/Guid.h"
-#include "MovieScenePropertyTrack.h"
+#include "MovieSceneNameableTrack.h"
 #include "UObject/ObjectMacros.h"
 
 #include "MovieSceneMediaTrack.generated.h"
+
+class UMediaSource;
 
 
 /**
@@ -14,7 +16,7 @@
  */
 UCLASS(MinimalAPI)
 class UMovieSceneMediaTrack
-	: public UMovieScenePropertyTrack
+	: public UMovieSceneNameableTrack
 {
 public:
 
@@ -29,17 +31,26 @@ public:
 
 public:
 
+	/** Adds a new media source to the track. */
+	virtual void AddNewMediaSource(UMediaSource& MediaSource, float Time);
+
+public:
+
 	//~ UMovieScenePropertyTrack interface
 
 	virtual void AddSection(UMovieSceneSection& Section) override;
 	virtual UMovieSceneSection* CreateNewSection() override;
 	virtual FMovieSceneEvalTemplatePtr CreateTemplateForSection(const UMovieSceneSection& InSection) const override;
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
+	virtual TRange<float> GetSectionBoundaries() const override;
+	virtual bool HasSection(const UMovieSceneSection& Section) const override;
+	virtual bool IsEmpty() const override;
 	virtual void RemoveSection(UMovieSceneSection& Section) override;
 	virtual bool SupportsMultipleRows() const override { return true; }
 
-#if WITH_EDITORONLY_DATA
-	virtual FText GetDefaultDisplayName() const override;
-	virtual FName GetTrackName() const override;
-#endif
+private:
+
+	/** List of all master media sections. */
+	UPROPERTY()
+	TArray<UMovieSceneSection*> MediaSections;
 };

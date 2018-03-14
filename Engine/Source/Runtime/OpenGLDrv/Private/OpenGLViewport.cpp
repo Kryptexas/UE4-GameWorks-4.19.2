@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLViewport.cpp: OpenGL viewport RHI implementation.
@@ -146,7 +146,7 @@ void FOpenGLDynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,b
 		BackBuffer->GetSizeY(),
 		bPresent,
 		bLockToVsync,
-		RHIOpenGLConsoleVariables::SyncInterval
+		RHIGetSyncInterval()
 	);
 
 	// Always consider the Framebuffer in the rendering context dirty after the blit

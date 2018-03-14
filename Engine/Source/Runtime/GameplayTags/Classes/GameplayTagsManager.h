@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -227,10 +227,11 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 * This can only be called during engine initialization, the table needs to be locked down before replication
 	 *
 	 * @param TagName The Name of the tag to add
+	 * @param TagDevComment The developer comment clarifying the usage of the tag
 	 * 
 	 * @return Will return the corresponding FGameplayTag
 	 */
-	FGameplayTag AddNativeGameplayTag(FName TagName);
+	FGameplayTag AddNativeGameplayTag(FName TagName, const FString& TagDevComment = TEXT("(Native)"));
 
 	/** Call to flush the list of native tags, once called it is unsafe to add more */
 	void DoneAddingNativeTags();
@@ -378,6 +379,9 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	/** Handles redirectors for a single tag, will also error on invalid tag. This is only called for when individual tags are serialized on their own */
 	void RedirectSingleGameplayTag(FGameplayTag& Tag, UProperty* SerializingProperty) const;
 
+	/** Handles establishing a single tag from an imported tag name (accounts for redirects too). Called when tags are imported via text. */
+	bool ImportSingleGameplayTag(FGameplayTag& Tag, FName ImportedTagName) const;
+
 	/** Gets a tag name from net index and vice versa, used for replication efficiency */
 	FName GetTagNameFromNetIndex(FGameplayTagNetIndex Index) const;
 	FGameplayTagNetIndex GetNetIndexFromTag(const FGameplayTag &InTag) const;
@@ -395,6 +399,8 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	FGameplayTagNetIndex InvalidTagNetIndex;
 
 	const TArray<TSharedPtr<FGameplayTagNode>>& GetNetworkGameplayTagNodeIndex() const { return NetworkGameplayTagNodeIndex; }
+
+	bool IsNativelyAddedTag(FGameplayTag Tag) const;
 
 #if WITH_EDITOR
 	/** Gets a Filtered copy of the GameplayRootTags Array based on the comma delimited filter string passed in */

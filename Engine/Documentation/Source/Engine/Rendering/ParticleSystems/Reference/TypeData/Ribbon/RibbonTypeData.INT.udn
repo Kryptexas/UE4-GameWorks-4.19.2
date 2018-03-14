@@ -1,9 +1,12 @@
 Availability: Public
 Title:Ribbon Type Data
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
-Description:Reference for the Ribbon Type Data module, which allows for the creation of particles with streaming tails.
+Description:The Ribbon type data module indicates that the emitter should output trails - connecting particles to form ribbons.
 Version: 4.9
 tags:Particles
+tags:TypeData
+order:4
+topic-image:RibbonSmoke.png
 
 
 
@@ -43,7 +46,8 @@ The **Ribbon** type data module has the following properties:
 
 
 
-<!--------------BEGIN INCLUDES------------
+[COMMENT:none]
+------------BEGIN INCLUDES------------
 
 [EXCERPT:TessellationPoints]
       TessellationPoints = TruncToInt((Distance Between Spawned Particles) / (DistanceTessellationStepSize))
@@ -70,4 +74,5 @@ This will map so that from parallel to orthogonal (0 to 90 degrees) will scale f
 	If CheckTangent is < 0.5, then the DistanceTessellationStepSize will be scaled based on the result. 
 [/EXCERPT:CheckTangent]
 
-------------END INCLUDES-------------->
+------------END INCLUDES------------
+[/COMMENT]

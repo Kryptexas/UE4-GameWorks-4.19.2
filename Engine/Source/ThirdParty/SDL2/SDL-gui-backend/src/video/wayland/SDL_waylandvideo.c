@@ -320,7 +320,12 @@ display_handle_global(void *data, struct wl_registry *registry, uint32_t id,
     } else if (strcmp(interface, "zwp_pointer_constraints_v1") == 0) {
         Wayland_display_add_pointer_constraints(d, id);
     } else if (strcmp(interface, "wl_data_device_manager") == 0) {
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+        // Version 3 fails on some older compositors, we can get away with version 2.
+        d->data_device_manager = wl_registry_bind(d->registry, id, &wl_data_device_manager_interface, 2);
+#else
         d->data_device_manager = wl_registry_bind(d->registry, id, &wl_data_device_manager_interface, 3);
+#endif
 #ifdef SDL_VIDEO_DRIVER_WAYLAND_QT_TOUCH
     } else if (strcmp(interface, "qt_touch_extension") == 0) {
         Wayland_touch_create(d, id);

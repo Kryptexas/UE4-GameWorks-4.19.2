@@ -1,9 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CanvasTypes.h"
 #include "MaterialRenderItemData.h"
+#include "DynamicMeshBuilder.h"
 
 class FSceneViewFamily;
 class FMaterialRenderProxy;
@@ -12,7 +13,6 @@ class FRHICommandListImmediate;
 struct FMaterialData;
 struct FMeshData;
 struct FDrawingPolicyRenderState;
-struct FMaterialMeshVertex;
 
 class FMeshMaterialRenderItem : public FCanvasBaseRenderItem
 {
@@ -42,8 +42,8 @@ public:
 	/** Material render proxy (material/shader) to use while baking */
 	FMaterialRenderProxy* MaterialRenderProxy;	
 	/** Vertex and index data representing the mesh or a quad */
-	TArray<FMaterialMeshVertex, TInlineAllocator<4>> Vertices;
-	TArray<int32, TInlineAllocator<6>> Indices;
+	TArray<FDynamicMeshVertex> Vertices;
+	TArray<uint32> Indices;
 	/** Light cache interface object to simulate lightmap behaviour in case the material used prebaked ambient occlusion */
 	FLightCacheInterface* LCI;
 	/** View family to use while baking */

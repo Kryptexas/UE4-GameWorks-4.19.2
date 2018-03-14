@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "InternationalizationSettingsModel.h"
 #include "Misc/ConfigCacheIni.h"
@@ -27,9 +27,9 @@ void UInternationalizationSettingsModel::ResetToDefault()
 	GConfig->GetString(TEXT("Internationalization"), TEXT("Culture"), SavedCultureName, GEngineIni);
 	GConfig->SetString( TEXT("Internationalization"), TEXT("Culture"), *SavedCultureName, GEditorSettingsIni );
 
-	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), true, GEditorSettingsIni );
-
-	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), false, GEditorSettingsIni );
+	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShouldUseLocalizedNumericInput"), true, GEditorSettingsIni );
+	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShouldUseLocalizedPropertyNames"), true, GEditorSettingsIni );
+	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShouldUseLocalizedNodeAndPinNames"), true, GEditorSettingsIni );
 
 	GConfig->Flush(false, GEditorSettingsIni);
 
@@ -77,29 +77,42 @@ void UInternationalizationSettingsModel::SetPreviewGameLanguage(const FString& I
 	FTextLocalizationManager::Get().ConfigureGameLocalizationPreviewLanguage(InPreviewGameLanguage);
 }
 
-bool UInternationalizationSettingsModel::ShouldLoadLocalizedPropertyNames() const
+bool UInternationalizationSettingsModel::ShouldUseLocalizedNumericInput() const
 {
-	bool bShouldLoadLocalizedPropertyNames = true;
-	GConfig->GetBool(TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEditorSettingsIni);
-	return bShouldLoadLocalizedPropertyNames;
+	bool bShouldUseLocalizedNumericInput = false;
+	GConfig->GetBool(TEXT("Internationalization"), TEXT("ShouldUseLocalizedNumericInput"), bShouldUseLocalizedNumericInput, GEditorSettingsIni);
+	return bShouldUseLocalizedNumericInput;
 }
 
-void UInternationalizationSettingsModel::ShouldLoadLocalizedPropertyNames(const bool Value)
+void UInternationalizationSettingsModel::SetShouldUseLocalizedNumericInput(const bool Value)
 {
-	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), Value, GEditorSettingsIni );
+	GConfig->SetBool(TEXT("Internationalization"), TEXT("ShouldUseLocalizedNumericInput"), Value, GEditorSettingsIni);
 	GConfig->Flush(false, GEditorSettingsIni);
 }
 
-bool UInternationalizationSettingsModel::ShouldShowNodesAndPinsUnlocalized() const
+bool UInternationalizationSettingsModel::ShouldUseLocalizedPropertyNames() const
 {
-	bool bShowNodesAndPinsUnlocalized = false;
-	GConfig->GetBool(TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorSettingsIni);
-	return bShowNodesAndPinsUnlocalized;
+	bool bShouldUseLocalizedPropertyNames = false;
+	GConfig->GetBool(TEXT("Internationalization"), TEXT("ShouldUseLocalizedPropertyNames"), bShouldUseLocalizedPropertyNames, GEditorSettingsIni);
+	return bShouldUseLocalizedPropertyNames;
 }
 
-void UInternationalizationSettingsModel::ShouldShowNodesAndPinsUnlocalized(const bool Value)
+void UInternationalizationSettingsModel::SetShouldUseLocalizedPropertyNames(const bool Value)
 {
-	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), Value, GEditorSettingsIni );
+	GConfig->SetBool(TEXT("Internationalization"), TEXT("ShouldUseLocalizedPropertyNames"), Value, GEditorSettingsIni);
+	GConfig->Flush(false, GEditorSettingsIni);
+}
+
+bool UInternationalizationSettingsModel::ShouldUseLocalizedNodeAndPinNames() const
+{
+	bool bShouldUseLocalizedNodeAndPinNames = false;
+	GConfig->GetBool(TEXT("Internationalization"), TEXT("ShouldUseLocalizedNodeAndPinNames"), bShouldUseLocalizedNodeAndPinNames, GEditorSettingsIni);
+	return bShouldUseLocalizedNodeAndPinNames;
+}
+
+void UInternationalizationSettingsModel::SetShouldUseLocalizedNodeAndPinNames(const bool Value)
+{
+	GConfig->SetBool(TEXT("Internationalization"), TEXT("ShouldUseLocalizedNodeAndPinNames"), Value, GEditorSettingsIni);
 	GConfig->Flush(false, GEditorSettingsIni);
 }
 

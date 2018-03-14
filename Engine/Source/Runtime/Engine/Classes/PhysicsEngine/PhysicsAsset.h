@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -184,6 +184,10 @@ public:
 	/** Update skeletal meshes when physics asset changes*/
 	ENGINE_API void RefreshPhysicsAssetChange() const;
 
+	/** Delegate fired when physics asset changes */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FRefreshPhysicsAssetChangeDelegate, const UPhysicsAsset*);
+	ENGINE_API static FRefreshPhysicsAssetChangeDelegate OnRefreshPhysicsAssetChange;
+
 	/** Set the preview mesh for this physics asset */
 	ENGINE_API void SetPreviewMesh(USkeletalMesh* PreviewMesh);
 
@@ -260,6 +264,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = PhysicalAnimation)
 	FPhysicalAnimationProfile CurrentPhysicalAnimationProfile;
 #endif
+
+	/** If true we ignore scale changes from animation. This is useful for subtle scale animations like breathing where the physics collision should remain unchanged*/
+	UPROPERTY(EditAnywhere, Category = BodySetup)
+	bool bSkipScaleFromAnimation;
 
 private:
 	UPROPERTY()

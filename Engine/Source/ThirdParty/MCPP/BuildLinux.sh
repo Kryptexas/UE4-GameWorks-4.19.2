@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+# Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 cd mcpp-2.7.2
 CFLAGS="-O2 -fPIC -g0" CPPFLAGS="-fPIC -g0" ./configure --enable-mcpplib

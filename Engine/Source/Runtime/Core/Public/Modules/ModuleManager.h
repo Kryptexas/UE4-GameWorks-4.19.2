@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -163,21 +163,19 @@ public:
 	 * Loads the specified module.
 	 *
 	 * @param InModuleName The base name of the module file.  Should not include path, extension or platform/configuration info.  This is just the "module name" part of the module file name.  Names should be globally unique.
-	 * @param bWasReloaded Indicates that the module has been reloaded (default = false).
 	 * @return The loaded module, or nullptr if the load operation failed.
 	 * @see AbandonModule, IsModuleLoaded, LoadModuleChecked, LoadModulePtr, LoadModuleWithFailureReason, UnloadModule
 	 */
-	IModuleInterface* LoadModule( const FName InModuleName, const bool bWasReloaded = false );
+	IModuleInterface* LoadModule( const FName InModuleName );
 
 	/**
 	 * Loads the specified module, checking to ensure it exists.
 	 *
 	 * @param InModuleName The base name of the module file.  Should not include path, extension or platform/configuration info.  This is just the "module name" part of the module file name.  Names should be globally unique.
-	 * @param bWasReloaded Indicates that the module has been reloaded (default = false).
 	 * @return The loaded module, or nullptr if the load operation failed.
 	 * @see AbandonModule, IsModuleLoaded, LoadModuleChecked, LoadModulePtr, LoadModuleWithFailureReason, UnloadModule
 	 */
-	IModuleInterface& LoadModuleChecked( const FName InModuleName, const bool bWasReloaded = false );
+	IModuleInterface& LoadModuleChecked( const FName InModuleName );
 
 	/**
 	 * Loads a module in memory then calls PostLoad.
@@ -194,11 +192,10 @@ public:
 	 *
 	 * @param InModuleName The base name of the module file.  Should not include path, extension or platform/configuration info.  This is just the "module name" part of the module file name.  Names should be globally unique.
 	 * @param OutFailureReason Will contain the result.
-	 * @param bWasReloaded Indicates that the module has been reloaded (default = false).
 	 * @return The loaded module (null if the load operation failed).
 	 * @see AbandonModule, IsModuleLoaded, LoadModule, LoadModuleChecked, LoadModulePtr, UnloadModule
 	 */
-	IModuleInterface* LoadModuleWithFailureReason( const FName InModuleName, EModuleLoadResult& OutFailureReason, const bool bWasReloaded = false );
+	IModuleInterface* LoadModuleWithFailureReason( const FName InModuleName, EModuleLoadResult& OutFailureReason );
 
 	/**
 	 * Queries information about a specific module name.

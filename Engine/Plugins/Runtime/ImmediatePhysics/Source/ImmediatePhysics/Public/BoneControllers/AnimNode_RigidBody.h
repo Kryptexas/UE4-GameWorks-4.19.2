@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -43,6 +43,8 @@ struct IMMEDIATEPHYSICS_API FAnimNode_RigidBody : public FAnimNode_SkeletalContr
 	// End of FAnimNode_Base interface
 
 	// FAnimNode_SkeletalControlBase interface
+	virtual void UpdateComponentPose_AnyThread(const FAnimationUpdateContext& Context) override;
+	virtual void EvaluateComponentPose_AnyThread(FComponentSpacePoseContext& Output) override;
 	virtual void EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms) override;
 	virtual void OnInitializeAnimInstance(const FAnimInstanceProxy* InProxy, const UAnimInstance* InAnimInstance) override;
 	virtual void PreUpdate(const UAnimInstance* InAnimInstance) override;
@@ -85,6 +87,21 @@ struct IMMEDIATEPHYSICS_API FAnimNode_RigidBody : public FAnimNode_SkeletalContr
 	UPROPERTY(EditAnywhere, Category = Settings, meta = (ClampMin="1.0", ClampMax="2.0"))
 	float CachedBoundsScale;
 
+	/** 
+		When simulation starts, transfer previous bone velocities (from animation)
+		to make transition into simulation seamless.
+	*/
+	UPROPERTY(EditAnywhere, Category = Settings, meta=(PinHiddenByDefault))
+	bool bTransferBoneVelocities;
+
+	/**
+		When simulation starts, freeze incoming pose.
+		This is useful for ragdolls, when we want the simulation to take over.
+		It prevents non simulated bones from animating.
+	*/
+	UPROPERTY(EditAnywhere, Category = Settings)
+	bool bFreezeIncomingPoseOnStart;
+
 	void PostSerialize(const FArchive& Ar);
 
 private:
@@ -99,6 +116,9 @@ private:
 	void InitPhysics(const UAnimInstance* InAnimInstance);
 	void UpdateWorldGeometry(const UWorld& World, const USkeletalMeshComponent& SKC);
 	void UpdateWorldForces(const FTransform& ComponentToWorld, const FTransform& RootBoneTM);
+
+	void InitializeNewBodyTransformsDuringSimulation(FComponentSpacePoseContext& Output, const FTransform& ComponentTransform, const FTransform& RootBoneTM);
+
 private:
 
 	/** This should only be used for removing the delegate during termination. Do NOT use this for any per frame work */
@@ -108,25 +128,42 @@ private:
 
 	struct FOutputBoneData
 	{
-		FBoneReference BoneReference;
+		FOutputBoneData()
+			: CompactPoseBoneIndex(INDEX_NONE)
+		{}
+
+		FCompactPoseBoneIndex CompactPoseBoneIndex;
 		int32 BodyIndex;
+		int32 ParentBodyIndex;
+		TArray<FCompactPoseBoneIndex> BoneIndicesToParentBody;
+	};
+
+	struct FBodyAnimData
+	{
+		FBodyAnimData()
+			: bIsSimulated(false)
+			, bBodyTransformInitialized(false)
+		{}
+
+		bool bIsSimulated;
+		bool bBodyTransformInitialized;
+		FTransform TransferedBoneVelocity;
 	};
 	
 	FBoneReference RootBoneRef;
 
 	TArray<FOutputBoneData> OutputBoneData;
 	TArray<ImmediatePhysics::FActorHandle*> Bodies;
-	TArray<bool> IsSimulated;
-	TArray<FBoneIndexType> BodyBoneIndices;
-	bool bResetSimulated;
-	
+	TArray<int32> SkeletonBoneIndexToBodyIndex;
+	TArray<FBodyAnimData> BodyAnimData;
+
 	TArray<struct FPhysicsConstraintHandle*> Constraints;
 	TArray<USkeletalMeshComponent::FPendingRadialForces> PendingRadialForces;
 
 	TSet<UPrimitiveComponent*> ComponentsInSim;
 
 	FVector WorldSpaceGravity;
-	float DeltaSeconds;
+	float AccumulatedDeltaTime;
 	float TotalMass;
 
 	FSphere Bounds;
@@ -139,6 +176,15 @@ private:
 	// Typically, World should never be accessed off the Game Thread.
 	// However, since we're just doing overlaps this should be OK.
 	const UWorld* UnsafeWorld;
+
+	FBoneContainer CapturedBoneVelocityBoneContainer;
+	FCSPose<FCompactHeapPose> CapturedBoneVelocityPose;
+	FCSPose<FCompactHeapPose> CapturedFrozenPose;
+	FBlendedHeapCurve CapturedFrozenCurves;
+
+	bool bResetSimulated;
+	bool bSimulationStarted;
+	bool bCheckForBodyTransformInit;
 };
 
 template<>

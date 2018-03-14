@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DecalRenderingShared.cpp
@@ -59,7 +59,7 @@ class FDeferredDecalVS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FDeferredDecalVS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
 		return true;
 	}
@@ -105,7 +105,7 @@ public:
 	  * as 'UsedAsDeferredDecal' in the Material Editor gets compiled into
 	  * the shader cache.
 	  */
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+	static bool ShouldCompilePermutation(EShaderPlatform Platform, const FMaterial* Material)
 	{
 		return Material->IsDeferredDecal();
 	}
@@ -125,7 +125,7 @@ public:
 		DecalParams.Bind(Initializer.ParameterMap, TEXT("DecalParams"));
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FMaterialRenderProxy* MaterialProxy, const FDeferredDecalProxy& DecalProxy, const float FadeAlphaValue=1.0f)
+	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View, const FMaterialRenderProxy* MaterialProxy, const FDeferredDecalProxy& DecalProxy, const float FadeAlphaValue=1.0f)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 

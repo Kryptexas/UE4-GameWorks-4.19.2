@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_InputTouch.h"
 #include "GraphEditorSettings.h"
@@ -44,16 +44,14 @@ UEnum* UK2Node_InputTouch::GetTouchIndexEnum()
 
 void UK2Node_InputTouch::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, TEXT("Pressed"));
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, TEXT("Released"));
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, TEXT("Moved"));
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, TEXT("Pressed"));
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, TEXT("Released"));
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, TEXT("Moved"));
 	
 	UScriptStruct* VectorStruct = TBaseStructure<FVector>::Get();
-	CreatePin(EGPD_Output, K2Schema->PC_Struct, FString(), VectorStruct, TEXT("Location"));
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Struct, VectorStruct, TEXT("Location"));
 
-	CreatePin(EGPD_Output, K2Schema->PC_Byte, FString(), GetTouchIndexEnum(), TEXT("FingerIndex"));
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Byte, GetTouchIndexEnum(), TEXT("FingerIndex"));
 
 	Super::AllocateDefaultPins();
 }
@@ -189,13 +187,13 @@ void UK2Node_InputTouch::ExpandNode(FKismetCompilerContext& CompilerContext, UEd
 		// Create a temporary variable to copy location in to
 		static UScriptStruct* VectorStruct = TBaseStructure<FVector>::Get();
 		UK2Node_TemporaryVariable* TouchLocationVar = CompilerContext.SpawnIntermediateNode<UK2Node_TemporaryVariable>(this, SourceGraph);
-		TouchLocationVar->VariableType.PinCategory = Schema->PC_Struct;
+		TouchLocationVar->VariableType.PinCategory = UEdGraphSchema_K2::PC_Struct;
 		TouchLocationVar->VariableType.PinSubCategoryObject = VectorStruct;
 		TouchLocationVar->AllocateDefaultPins();
 
 		// Create a temporary variable to copy finger index in to
 		UK2Node_TemporaryVariable* TouchFingerVar = CompilerContext.SpawnIntermediateNode<UK2Node_TemporaryVariable>(this, SourceGraph);
-		TouchFingerVar->VariableType.PinCategory = Schema->PC_Byte;
+		TouchFingerVar->VariableType.PinCategory = UEdGraphSchema_K2::PC_Byte;
 		TouchFingerVar->VariableType.PinSubCategoryObject = UK2Node_InputTouch::GetTouchIndexEnum();
 		TouchFingerVar->AllocateDefaultPins();
 

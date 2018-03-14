@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,14 +11,14 @@
 
 class ACharacter;
 class APawn;
+class APlayerState;
 class FDebugDisplayInfo;
 class UDamageType;
 class UPathFollowingComponent;
 
 UDELEGATE(BlueprintAuthorityOnly)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams( FInstigatedAnyDamageSignature, float, Damage, const class UDamageType*, DamageType, class AActor*, DamagedActor, class AActor*, DamageCauser );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams( FInstigatedAnyDamageSignature, float, Damage, const UDamageType*, DamageType, AActor*, DamagedActor, AActor*, DamageCauser );
 
-//~=============================================================================
 /**
  * Controllers are non-physical actors that can possess a Pawn to control
  * its actions.  PlayerControllers are used by human players to control pawns, while
@@ -36,11 +36,29 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams( FInstigatedAnyDamageSignature, fl
  * 
  * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Controller/
  */
-
 UCLASS(abstract, notplaceable, NotBlueprintable, HideCategories=(Collision,Rendering,"Utilities|Transformation")) 
 class ENGINE_API AController : public AActor, public INavAgentInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+
+public:
+	/** Default Constructor */
+	AController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+	/** PlayerState containing replicated information about the player using this controller (only exists for players, not NPCs). */
+	UPROPERTY(replicatedUsing = OnRep_PlayerState, BlueprintReadOnly, Category=Controller)
+	APlayerState* PlayerState;
+
+	/** Actor marking where this controller spawned in. */
+	TWeakObjectPtr<class AActor> StartSpot;
+
+	/** Called when the controller has instigated damage in any way */
+	UPROPERTY(BlueprintAssignable)
+	FInstigatedAnyDamageSignature OnInstigatedAnyDamage;
+
+	/** Current gameplay state this controller is in */
+	UPROPERTY()
+	FName StateName;
 
 private:
 	/** Pawn currently being controlled by this controller.  Use Pawn.Possess() to take control of a pawn */
@@ -53,39 +71,15 @@ private:
 	 */
 	TWeakObjectPtr< APawn > OldPawn;
 
-	/** Character currently being controlled by this controller.  Value is same as Pawn if the controlled pawn is a character, otherwise NULL */
+	/** Character currently being controlled by this controller.  Value is same as Pawn if the controlled pawn is a character, otherwise nullptr */
 	UPROPERTY()
-	class ACharacter* Character;
+	ACharacter* Character;
 
-public:
-	/** PlayerState containing replicated information about the player using this controller (only exists for players, not NPCs). */
-	UPROPERTY(replicatedUsing=OnRep_PlayerState, BlueprintReadOnly, Category="Controller")
-	class APlayerState* PlayerState;
-
-private:
 	/** Component to give controllers a transform and enable attachment if desired. */
 	UPROPERTY()
-	class USceneComponent* TransformComponent;
-
-public:
-
-	/**
-	  * Get the control rotation. This is the full aim rotation, which may be different than a camera orientation (for example in a third person view),
-	  * and may differ from the rotation of the controlled Pawn (which may choose not to visually pitch or roll, for example).
-	  */
-	UFUNCTION(BlueprintCallable, Category="Pawn")
-	virtual FRotator GetControlRotation() const;
-
-	/** Set the control rotation. The RootComponent's rotation will also be updated to match it if RootComponent->bAbsoluteRotation is true. */
-	UFUNCTION(BlueprintCallable, Category="Pawn", meta=(Tooltip="Set the control rotation."))
-	virtual void SetControlRotation(const FRotator& NewRotation);
-
-	/** Set the initial location and rotation of the controller, as well as the control rotation. Typically used when the controller is first created. */
-	UFUNCTION(BlueprintCallable, Category="Pawn")
-	virtual void SetInitialLocationAndRotation(const FVector& NewLocation, const FRotator& NewRotation);
+	USceneComponent* TransformComponent;
 
 protected:
-
 	/** The control rotation of the Controller. See GetControlRotation. */
 	UPROPERTY()
 	FRotator ControlRotation;
@@ -110,10 +104,10 @@ protected:
 	uint8 IgnoreLookInput;
 
 	/**
-	  * Physically attach the Controller to the specified Pawn, so that our position reflects theirs.
-	  * The attachment persists during possession of the pawn. The Controller's rotation continues to match the ControlRotation.
-	  * Attempting to attach to a NULL Pawn will call DetachFromPawn() instead.
-	  */
+	 * Physically attach the Controller to the specified Pawn, so that our position reflects theirs.
+	 * The attachment persists during possession of the pawn. The Controller's rotation continues to match the ControlRotation.
+	 * Attempting to attach to a nullptr Pawn will call DetachFromPawn() instead.
+	 */
 	virtual void AttachToPawn(APawn* InPawn);
 
 	/** Detach the RootComponent from its parent, but only if bAttachToPawn is true and it was attached to a Pawn.	 */
@@ -125,16 +119,10 @@ protected:
 	/** Remove dependency that makes us tick before the given Pawn.	 */
 	virtual void RemovePawnTickDependency(APawn* InOldPawn);
 
+	/** Returns TransformComponent subobject **/
+	class USceneComponent* GetTransformComponent() const { return TransformComponent; }
+
 public:
-
-	/** Actor marking where this controller spawned in. */
-	TWeakObjectPtr<class AActor> StartSpot;
-
-	//~=============================================================================
-	// CONTROLLER STATE PROPERTIES
-
-	UPROPERTY()
-	FName StateName;
 
 	/** Change the current state to named state */
 	virtual void ChangeState(FName NewState);
@@ -148,7 +136,23 @@ public:
 	
 	/** @return the name of the current state */
 	FName GetStateName() const;
-	
+
+	/**
+	 * Get the control rotation. This is the full aim rotation, which may be different than a camera orientation (for example in a third person view),
+	 * and may differ from the rotation of the controlled Pawn (which may choose not to visually pitch or roll, for example).
+	 */
+	UFUNCTION(BlueprintCallable, Category=Pawn)
+	virtual FRotator GetControlRotation() const;
+
+	/** Set the control rotation. The RootComponent's rotation will also be updated to match it if RootComponent->bAbsoluteRotation is true. */
+	UFUNCTION(BlueprintCallable, Category=Pawn, meta=(Tooltip="Set the control rotation."))
+	virtual void SetControlRotation(const FRotator& NewRotation);
+
+	/** Set the initial location and rotation of the controller, as well as the control rotation. Typically used when the controller is first created. */
+	UFUNCTION(BlueprintCallable, Category=Pawn)
+	virtual void SetInitialLocationAndRotation(const FVector& NewLocation, const FRotator& NewRotation);
+
+
 	/**
 	 * Checks line to center and top of other actor
 	 * @param Other is the actor whose visibility is being checked.
@@ -156,7 +160,7 @@ public:
 	 * @param bAlternateChecks used only in AIController implementation
 	 * @return true if controller's pawn can see Other actor.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Controller")
+	UFUNCTION(BlueprintCallable, Category=Controller)
 	virtual bool LineOfSightTo(const class AActor* Other, FVector ViewPoint = FVector(ForceInit), bool bAlternateChecks = false) const;
 
 	/** Replication Notification Callbacks */
@@ -168,22 +172,20 @@ public:
 
 	/** DEPRECATED! Use the standard "Cast To" node instead. Casts this Controller to a Player Controller, if possible. */
 	DEPRECATED(4.11, "CastToPlayerController has been replaced by the standard Cast To node.")
-	UFUNCTION(BlueprintCallable, Category = "Pawn", meta = (DeprecatedFunction, DeprecationMessage = "Use standard Cast To node instead."))
+	UFUNCTION(BlueprintCallable, Category=Pawn, meta=(DeprecatedFunction, DeprecationMessage="Use standard Cast To node instead."))
 	class APlayerController* CastToPlayerController();
 
 	/** Replicated function to set the pawn location and rotation, allowing server to force (ex. teleports). */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientSetLocation(FVector NewLocation, FRotator NewRotation);
 
 	/** Replicated function to set the pawn rotation, allowing the server to force. */
-	UFUNCTION(reliable, client)
+	UFUNCTION(Reliable, Client)
 	void ClientSetRotation(FRotator NewRotation, bool bResetCamera = false);
 
 	/** Return the Pawn that is currently 'controlled' by this PlayerController */
-	UFUNCTION(BlueprintCallable, Category="Pawn", meta=(DisplayName="Get Controlled Pawn"))
+	UFUNCTION(BlueprintCallable, Category=Pawn, meta=(DisplayName="Get Controlled Pawn", ScriptName="GetControlledPawn"))
 	APawn* K2_GetPawn() const;
-
-public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -194,7 +196,7 @@ public:
 	virtual void GetActorEyesViewPoint( FVector& out_Location, FRotator& out_Rotation ) const override;
 	virtual FString GetHumanReadableName() const override;
 
-	/* Overridden to create the player replication info and perform other mundane initialization tasks. */
+	/** Overridden to create the player replication info and perform other mundane initialization tasks. */
 	virtual void PostInitializeComponents() override;
 
 	virtual void Reset() override;
@@ -214,23 +216,23 @@ public:
 	void SetPawnFromRep(APawn* InPawn);
 
 	/** Get the actor the controller is looking at */
-	UFUNCTION(BlueprintCallable, Category="Pawn")
+	UFUNCTION(BlueprintCallable, Category=Pawn)
 	virtual AActor* GetViewTarget() const;
 
 	/** Get the desired pawn target rotation */
-	UFUNCTION(BlueprintCallable, Category="Pawn")
+	UFUNCTION(BlueprintCallable, Category=Pawn)
 	virtual FRotator GetDesiredRotation() const;
 
 	/** Returns whether this Controller is a PlayerController.  */
-	UFUNCTION(BlueprintCallable, Category="Pawn")
+	UFUNCTION(BlueprintCallable, Category=Pawn)
 	bool IsPlayerController() const;
 
 	/** Returns whether this Controller is a locally controlled PlayerController.  */
-	UFUNCTION(BlueprintCallable, Category="Pawn")
+	UFUNCTION(BlueprintCallable, Category=Pawn)
 	bool IsLocalPlayerController() const;
 
 	/** Returns whether this Controller is a local controller.	 */
-	UFUNCTION(BlueprintCallable, Category="Pawn")
+	UFUNCTION(BlueprintCallable, Category=Pawn)
 	virtual bool IsLocalController() const;
 
 	/** Called from Destroyed().  Cleans up PlayerState. */
@@ -242,13 +244,11 @@ public:
 	 * @param InPawn The Pawn to be possessed.
 	 * @see HasAuthority()
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Pawn", meta=(Keywords="set controller"))
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Pawn, meta=(Keywords="set controller"))
 	virtual void Possess(APawn* InPawn);
 
-	/**
-	 * Called to unpossess our pawn for any reason that is not the pawn being destroyed (destruction handled by PawnDestroyed()).
-	 */
-	UFUNCTION(BlueprintCallable, Category="Pawn", meta=(Keywords="set controller"))
+	/** Called to unpossess our pawn for any reason that is not the pawn being destroyed (destruction handled by PawnDestroyed()). */
+	UFUNCTION(BlueprintCallable, Category=Pawn, meta=(Keywords="set controller"))
 	virtual void UnPossess();
 
 	/**
@@ -268,7 +268,7 @@ public:
 	 * @param EndGameFocus Actor to set as the view target on end game
 	 * @param bIsWinner true if this controller is on winning team
 	 */
-	virtual void GameHasEnded(class AActor* EndGameFocus = NULL, bool bIsWinner = false);
+	virtual void GameHasEnded(class AActor* EndGameFocus = nullptr, bool bIsWinner = false);
 
 	/**
 	 * Returns Player's Point of View
@@ -277,7 +277,7 @@ public:
 	 *
 	 * @output	out_Location, view location of player
 	 * @output	out_rotation, view rotation of player
-	*/
+	 */
 	virtual void GetPlayerViewPoint( FVector& Location, FRotator& Rotation ) const;
 
 	/** GameMode failed to spawn pawn for me. */
@@ -291,77 +291,67 @@ public:
 	virtual bool IsFollowingAPath() const override;
 	//~ End INavAgentInterface Interface
 
-	/** prepares path following component */
+	/** Prepares path following component */
 	virtual void InitNavigationControl(UPathFollowingComponent*& PathFollowingComp);
 
-	/** If controller has any navigation-related components then this function 
-	 *	makes them update their cached data */
+	/** If controller has any navigation-related components then this function makes them update their cached data */
 	virtual void UpdateNavigationComponents();
 
 	/** Aborts the move the controller is currently performing */
-	UFUNCTION(BlueprintCallable, Category = "AI|Navigation")
+	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
 	virtual void StopMovement();
 
 	/**
-	* Locks or unlocks movement input, consecutive calls stack up and require the same amount of calls to undo, or can all be undone using ResetIgnoreMoveInput.
-	* @param bNewMoveInput	If true, move input is ignored. If false, input is not ignored.
-	*/
-	UFUNCTION(BlueprintCallable, Category="Input")
+	 * Locks or unlocks movement input, consecutive calls stack up and require the same amount of calls to undo, or can all be undone using ResetIgnoreMoveInput.
+	 * @param bNewMoveInput	If true, move input is ignored. If false, input is not ignored.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Input)
 	virtual void SetIgnoreMoveInput(bool bNewMoveInput);
 
 	/** Stops ignoring move input by resetting the ignore move input state. */
-	UFUNCTION(BlueprintCallable, Category="Input", meta = (Keywords = "ClearIgnoreMoveInput"))
+	UFUNCTION(BlueprintCallable, Category=Input, meta=(Keywords = "ClearIgnoreMoveInput"))
 	virtual void ResetIgnoreMoveInput();
 
 	/** Returns true if movement input is ignored. */
-	UFUNCTION(BlueprintCallable, Category="Input")
+	UFUNCTION(BlueprintCallable, Category=Input)
 	virtual bool IsMoveInputIgnored() const;
 
 	/**
 	* Locks or unlocks look input, consecutive calls stack up and require the same amount of calls to undo, or can all be undone using ResetIgnoreLookInput.
 	* @param bNewLookInput	If true, look input is ignored. If false, input is not ignored.
 	*/
-	UFUNCTION(BlueprintCallable, Category="Input")
+	UFUNCTION(BlueprintCallable, Category=Input)
 	virtual void SetIgnoreLookInput(bool bNewLookInput);
 
 	/** Stops ignoring look input by resetting the ignore look input state. */
-	UFUNCTION(BlueprintCallable, Category="Input", meta=(Keywords="ClearIgnoreLookInput"))
+	UFUNCTION(BlueprintCallable, Category=Input, meta=(Keywords="ClearIgnoreLookInput"))
 	virtual void ResetIgnoreLookInput();
 
 	/** Returns true if look input is ignored. */
-	UFUNCTION(BlueprintCallable, Category="Input")
+	UFUNCTION(BlueprintCallable, Category=Input)
 	virtual bool IsLookInputIgnored() const;
 
 	/** Reset move and look input ignore flags. */
-	UFUNCTION(BlueprintCallable, Category="Input")
+	UFUNCTION(BlueprintCallable, Category=Input)
 	virtual void ResetIgnoreInputFlags();
+
+	/** Called when the level this controller is in is unloaded via streaming. */
+	virtual void CurrentLevelUnloaded();
 
 protected:
 	/** State entered when inactive (no possessed pawn, not spectating, etc). */
 	virtual void BeginInactiveState();
 
-	/** State entered when inactive (no possessed pawn, not spectating, etc). */
+	/** Called when leaving the inactive state */
 	virtual void EndInactiveState();
 
 	/** Event when this controller instigates ANY damage */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintAuthorityOnly)
 	void ReceiveInstigatedAnyDamage(float Damage, const class UDamageType* DamageType, class AActor* DamagedActor, class AActor* DamageCauser);
 
-public:
-	/** Called when the level this controller is in is unloaded via streaming. */
-	virtual void CurrentLevelUnloaded();
-
 private:
 	// Hidden functions that don't make sense to use on this class.
 	HIDE_ACTOR_TRANSFORM_FUNCTIONS();
-
-	/** Called when the controller has instigated damage in any way */
-	UPROPERTY(BlueprintAssignable)
-	FInstigatedAnyDamageSignature OnInstigatedAnyDamage;
-
-protected:
-	/** Returns TransformComponent subobject **/
-	class USceneComponent* GetTransformComponent() const { return TransformComponent; }
 };
 
 

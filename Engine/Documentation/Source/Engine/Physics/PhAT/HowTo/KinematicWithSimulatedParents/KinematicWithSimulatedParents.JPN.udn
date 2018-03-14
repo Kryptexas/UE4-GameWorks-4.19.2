@@ -1,92 +1,92 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Using Kinematic Bodies with Simulated Parents
+﻿INTSourceChangelist:3574744
+Availability:Public
+Title:キネマティクに設定されたボディを物理シミュレートされた親とともに使う
 Crumbs: %ROOT%, Engine
-Description:This how-to covers setting up kinematic physics bodies with simulated parents.
+Description:キネマティクに設定されたボディを物理シミュレートされた親とともに使う方法
 parent:Engine/Physics/PhAT/HowTo
 order:1
-Version: 4.16
+Version:4.16
 skilllevel:Intermediate
 topic-image:KinematicHowTo_04.png
 checkpoint: editorqs
-Related: Engine/Physics/PhAT
-Related: Engine/Physics/PhAT/Reference
+Related:Engine/Physics/PhAT
+Related:Engine/Physics/PhAT/Reference
 type:how-to
 tags:Physics
 tags:Kinematic
 tags:PhAT
 
-The [](Engine/Physics/PhAT) provides several different ways in which you can simulate physics bodies including the ability to have kinematic physics bodies with simulated parents. 
-This enables you to define child bodies that can be driven by animation data while the parents of those bodies are driven by physics simulation data. 
-This can be useful if you have a character hanging from a ledge playing a hanging idle or traversing across a ledge but what them to react to impulses like falling rocks or other debris and generate a physics based reaction. 
+[](Engine/Physics/PhAT) では、キネマティクに設定されたボディを物理シミュレートされた親とともに使うための設定するなど、様々な物理ボディのシミュレーション方法を提供しています。 
+この方法では、親ボーンを物理シミュレーション データで、子ボーンは純粋にアニメーション データで操作することができます。 
+崖にぶら下がっているアイドル アニメーション、またはぶら下がっているトラバース アニメーションをプレイしながら、反応には物理ベースを適用キャラクターに便利です。
 
-In this How-to, we use kinematic bodies with simulated parents to generate the effect of a character hanging from a ledge while the rest of the body is simulated with physics. 
+この操作ガイドでは、崖にぶら下がっているキャラクターにキネマティクを設定し、物理シュミレートされた親を使って、残りのボディには物理趣味レーションでエフェクトを生成します。 
 
 ![](EndResultImage.png)
 
-## Steps
+## ステップ
 
 [REGION:note]
-For this guide, we are using the **Blueprint Third Person Template** project with **Starter Content** enabled. 
+ここでは **Starter Content** を有効にした状態で **Blueprint Third Person Template** を使います。 
 [/REGION]
 
-1.  In your project in the **Content/Mannequin/Character/Mesh** folder, open the **SK_Mannequin_PhysicsAsset**. 
+1. プロジェクトの **「Content/Mannequin/Character/Mesh」** フォルダで、**SK_Mannequin_PhysicsAsset** マテリアルを開きます。 
 
 	![](KinematicHowTo_01.png)
 
-1.	In the **Hierarchy** window, click the **All Bones** drop-down and change it to **Bones With Bodies**. 
+1.	**[Hierarchy]** ウィンドウの **[All Bones]** ドロップダウンをクリックして **[Bones With Bodies]** に変更します。 
 
 	![](KinematicHowTo_02.png)
 
-	This will filter the hierarchy to only show bones with bodies and make it easier to select the bones you want to manipulate. 
+	これにより階層がフィルタイングされてボディのあるボーンのみが表示されるため操作するボーンが選択しやすくなります。 
 
-1.	In the hierarchy list, hold **Ctrl** and select both the **hand_l** and **hand_r** bones, then in the **Details** panel, change the **Physics Type** to **Kinematic**. 
+1.	階層リストで **Ctrl** を押したまま、**[hand_l]** と **[hand_r]** の両方を選択したら **[詳細]** パネル で **[Physics Type]** を **[Kinematic]** に変更します。 
 
 	![](KinematicHowTo_03.png)
 
-	By setting these bones to Kinematic, they will not simulate physics and will follow any animation data. 
+	[Kinematic] に設定されたボーンは、物理ではなくアニメーション データで操作されます。 
 
-	Alternatively, you can **Right-click** bones in the hierarchy list and set their **Physics Type** from the roll-out menu. 
+	別の方法として、階層リストでボーンを右クリックして、展開したメニューで **[Physics Type]** に設定します。 
 
 	![](KinematicHowTo_04.png)
 
-	This option enables you to set the **Physics Type** property for children bodies below the current bone. 
+	このオプションを使って、選択しているボーンの下層の子ボディの **Physics Type** プロパティの設定をします。 
 
-1.	Click on an empty space within the viewport to deselect all bones, then in the **Details** panel, change the **Physics Update Mode** to **Component Transform is Kinematic**. 
+1.	ビューポートの空いている場所をクリックしてすべてのボーンを選択解除し、次に **[Details]** パネルで **[Physics Update Mode]** を **[Component Transform is Kinematic]** に変更します。 
 
 	![](KinematicHowTo_05.png)
 
-	This option determines whether the simulation of the root body updates component transform or is kinematic. 
+	このオプションは、ルート ボディのシミュレーションがコンポーネント トランスフォームを反映するか、キネマティックにするか判断します。 
 
-1.	From the toolbar, click the **Simulate** button. 
+1.	ツールバーで **[Simulate]** ボタンをクリックします。 
 
 	![](KinematicHowTo_06.png)
 
-	The character in the viewport will slump over and appear to be hanging by their hands. 
+	ビューポートでは、キャラクターの姿勢が前のめり、手はぶら下がっているようになります。 
 
 	![](KinematicHowTo_07.png)
 
-1.	From the toolbar, click the **Animation** selection icon, then select the **ThirdPersonJump_Loop** animation. 
+1.	ツールバーで **[Animation]** 選択アイコンをクリックし **ThirdPersonJump_Loop** アニメーションを選択します。 
 
 	![](KinematicHowTo_08.png)
 
-	The hands (because they are set to kinematic) will follow the animation data contained within the ThirdPersonJump_Loop motion. 
+	手は ([kinematic] に設定されているので) **ThirdPersonJump_Loop** モーションの中にあるアニメーション データで操作されます。 
 
 	![](KinematicHowTo_09.png)
 
-1.	From the Main Editor window, drag the **SK_Mannequin_PhysicsAsset** into the level and in the **Details** panel, set **Physics Transform Update Mode** to **Component Transform is Kinematic**. 
+1.	**SK_Mannequin_PhysicsAsset** を [Main Editor] ウィンドウからレベルへドラッグして、**[Details]** パネルで **[Physics Transform Update Mode]** を **[Component Transform is Kinematic]** に設定します。 
 
 	![](KinematicHowTo_10.png)
 
-1.	Select the **SkeletalMeshComponent**, then change **Animation Mode** to **Use Animation Asset** and **Anim to Play** to **ThirdPersonJump_Loop**. 
+1.	**[SkeletalMeshComponent]** を選択して **[Animation Mode]** を **[Use Animation Asset]** に、また **[Anim to Play]** を **[ThirdPersonJump_Loop]** にそれぞれ変更します。 
 
 	![](KinematicHowTo_11.png)
 
-1.	Click the **Play** button from the toolbar to play in the editor. 
+1.	ツールバーの **[Play]** ボタンをクリックしてエディタでプレイします。 
 
-## End Result
+## 最終結果
 
-Below we've placed the character near a ledge when we run and bump into it, it reacts to physics while the hands appear slightly fixed. 
+以下の画像では、レッジ (崖) の近くにキャラクターを配置して、キャラクターがレッジに向かって走ってぶつかると、手は若干固定されたまま、物理に反応します。 
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -106,7 +106,7 @@ Below we've placed the character near a ledge when we run and bump into it, it r
 	[/PARAMLITERAL]
 [/OBJECT]
 
-While the animation we used above not ideal, below we apply the same concept to an animation of a character hanging and traversing a ledge. 
+上のアニメーションは理想ではありませんが、下の画像では、ぶら下がってレッジをトラバースしているキャラクターのアニメーションに同じコンセプトを適用しています。 
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -126,27 +126,9 @@ While the animation we used above not ideal, below we apply the same concept to 
 	[/PARAMLITERAL]
 [/OBJECT]
 
-The arms and head are set to Kinematic (denoted below with Gold Boxes) while the rest is being simulated. 
+腕と頭はキネマティック (以下では Gold Boxes と表示) に設定し、残りのボディには物理シミュレーションを使用します。 
 
 ![](ExampleSetup.png)
-
-
-
-	
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
 
 
 

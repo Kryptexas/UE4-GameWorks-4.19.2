@@ -286,8 +286,12 @@ see IConsoleManager.h:
 変数は依然として保持されています (登録削除のフラグをともなって)。これは、ポインタがデータにアクセスした場合にクラッシュしないようにするための措置です。新たな変数が同じ名前で登録されると、
 古い変数がリストアされ、フラグが新変数からコピーされます。このようにして、変数の状態を失うこともなく、DLL (ダイナミック リンクライブラリ) のロードとアンロードが機能します。
 なお、コンソール変数の参照についてはこれは機能しません。 
-<!--Sentence below deprecated for clarification.-->
-<!--This can be fixed by giving up on one: do not store pointers, do not unregistered or not use references.-->
+[COMMENT:none]
+Sentence below deprecated for clarification.
+[/COMMENT]
+[COMMENT:none]
+This can be fixed by giving up on one: do not store pointers, do not unregistered or not use references.
+[/COMMENT]
 
 
 

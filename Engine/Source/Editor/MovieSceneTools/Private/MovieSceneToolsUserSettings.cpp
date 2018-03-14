@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsUserSettings.h"
 #include "UObject/UnrealType.h"
@@ -33,4 +33,6 @@ UMovieSceneUserImportFBXSettings::UMovieSceneUserImportFBXSettings(const FObject
 {
 	bForceFrontXAxis = false;
 	bCreateCameras = true;
+	bReduceKeys = true;
+	ReduceKeysTolerance = 0.001f;
 }

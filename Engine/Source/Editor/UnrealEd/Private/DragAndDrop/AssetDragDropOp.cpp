@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "Engine/Level.h"
@@ -52,11 +52,7 @@ TSharedRef<FAssetDragDropOp> FAssetDragDropOp::New(TArray<FAssetData> InAssetDat
 
 FAssetDragDropOp::~FAssetDragDropOp()
 {
-	if (ThumbnailPool.IsValid())
-	{
-		// Release all rendering resources being held onto
-		ThumbnailPool->ReleaseResources();
-	}
+	ThumbnailPool.Reset();
 }
 
 TSharedPtr<SWidget> FAssetDragDropOp::GetDefaultDecorator() const

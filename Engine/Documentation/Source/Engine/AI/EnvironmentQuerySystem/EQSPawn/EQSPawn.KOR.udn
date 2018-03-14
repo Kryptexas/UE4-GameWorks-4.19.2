@@ -1,48 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:EQS 테스팅 폰
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
 Description:인바이언먼트 쿼리 시스템에는 에디터의 인바이언먼트 쿼리 실시간 결과를 전문적으로 표시하는 폰이 포함되어 있습니다. 여기서는 EQSTestingPawn 을 만들고 사용하는 법을 다룹니다.
 version: 4.9
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/AI/EnvironmentQuerySystem/EQSPawn:title%](AI_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/AI/EnvironmentQuerySystem/EQSPawn:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/AI/EnvironmentQuerySystem/EQSPawn:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/AI/EnvironmentQuerySystem/EQSPawn]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/AI/EnvironmentQuerySystem/EQSPawn:title%](AI_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/AI/EnvironmentQuerySystem/EQSPawn:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/AI/EnvironmentQuerySystem/EQSPawn:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/AI/EnvironmentQuerySystem/EQSPawn]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 ![](testingPawnBanner.png)(convert:false)
 
@@ -93,7 +55,8 @@ version: 4.9
 | **Should be Visible in Game** | 게임에서 보이도록 할지 - EQSTestingPawn 및 그 디버그 시각화가 실행중인 게임에 보이도록 합니다. |
 | **Querying Mode** | 쿼리 모드 - [INCLUDE:#eqs1] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:EQS1]
 디버그 뷰에 표시되는 것을 변경합니다.
 
@@ -102,4 +65,5 @@ version: 4.9
 | **Single Result** | 단일 결과 - **Step to Debug Draw** 프로퍼티에 나열된 아이템에 대한 결과만 표시합니다. |
 | **All Matching** | 모두 일치 - 전체 인바이언먼트 쿼리의 최종, 필터링 및 가중치 적용된 스코어를 표시합니다. |
 [/EXCERPT:EQS1]
--->
+
+[/COMMENT]

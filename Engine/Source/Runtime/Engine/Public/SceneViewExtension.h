@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneViewExtension.h: Allow changing the view parameters on the render thread
@@ -121,19 +121,9 @@ public:
     virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) = 0;
 
 	/**
-	 * Called on render thread from FSceneRenderer::Render implementation after init views has completed, but before rendering proper has started
+	 * Called right after Base Pass rendering finished
 	 */
-	virtual void PostInitViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) {};
-
-	/**
-	 * Called on render thread, for each view, after the PostInitViewFamily_RenderThread call
-	 */
-	virtual void PostInitView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) {};
-
-	/**
-	 * Called right after MobileBasePass rendering finished
-	 */
-	virtual void PostRenderMobileBasePass_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) {};
+	virtual void PostRenderBasePass_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) {};
 
 	/**
 	 * Allows to render content after the 3D content scene, useful for debugging
@@ -149,12 +139,6 @@ public:
      * Called to determine view extensions priority in relation to other view extensions, higher comes first
      */
 	virtual int32 GetPriority() const { return 0; }
-
-	/**
-	 * If true, use PostInitViewFamily_RenderThread and PostInitView_RenderThread instead of PreRenderViewFamily_RenderThread and PreRenderView_RenderThread.
-	 * Note: Frustum culling will have already happened in init views. This may require a small FOV buffer when culling to account for view changes/updates.
-	 */
-	virtual bool UsePostInitView() const { return false; }
 
 	/**
 	 * Returning false disables the extension for the current frame. This will be queried each frame to determine if the extension wants to run.

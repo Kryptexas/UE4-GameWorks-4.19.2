@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SCascadeEmitterCanvas.h"
 #include "Widgets/SBoxPanel.h"
@@ -60,7 +60,7 @@ void SCascadeEmitterCanvas::Construct(const FArguments& InArgs)
 		]
 	];
 	
-	ViewportClient = MakeShareable(new FCascadeEmitterCanvasClient(CascadePtr, SharedThis(this)));
+	ViewportClient = MakeShareable(new FCascadeEmitterCanvasClient(CascadePtr.Pin(), SharedThis(this)));
 
 	ViewportClient->bSetListenerPosition = false;
 

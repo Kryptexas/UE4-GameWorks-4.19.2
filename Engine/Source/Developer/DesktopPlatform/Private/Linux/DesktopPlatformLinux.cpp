@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Linux/DesktopPlatformLinux.h"
 #include "HAL/FileManager.h"
@@ -98,7 +98,7 @@ bool FDesktopPlatformLinux::OpenDirectoryDialog(const void* ParentWindowHandle, 
 
 bool FDesktopPlatformLinux::OpenFontDialog(const void* ParentWindowHandle, FString& OutFontName, float& OutHeight, EFontImportFlags& OutFlags)
 {
-	unimplemented();
+	STUBBED("FDesktopPlatformLinux::OpenFontDialog");
 	return false;
 }
 

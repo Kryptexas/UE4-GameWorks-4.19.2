@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -137,4 +137,14 @@ public:
 	/** Fills out transient variables based on parsed ones */
 	ENGINE_API bool FillRuntimeData();
 
+};
+
+/** Information about a package chunk, computed by the asset manager or read out of the cooked asset registry */
+struct FAssetManagerChunkInfo
+{
+	/** Packages/PrimaryAssets that were explicitly added to a chunk */
+	TSet<FAssetIdentifier> ExplicitAssets;
+
+	/** All packages/Primary Assets in a chunk, includes everything in Explicit plus recursively added ones */
+	TSet<FAssetIdentifier> AllAssets;
 };

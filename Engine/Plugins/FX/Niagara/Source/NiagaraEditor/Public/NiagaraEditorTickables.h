@@ -1,3 +1,5 @@
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
 #include "TickableEditorObject.h"
@@ -9,9 +11,9 @@ class FNiagaraShaderQueueTickable : FTickableEditorObject
 public:
 	static void ProcessQueue();
 
-	virtual bool IsTickable() const override
+	virtual ETickableTickType GetTickableTickType() const override
 	{
-		return true;
+		return ETickableTickType::Always;
 	}
 
 	virtual void Tick(float DeltaSeconds) override;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,6 +10,8 @@
 #include "NiagaraShader.h"
 #include "NiagaraParameters.h"
 #include "NiagaraDataSet.h"
+#include "NiagaraShared.h"
+#include "NiagaraParameterStore.h"
 
 #include "NiagaraScript.generated.h"
 
@@ -47,6 +49,8 @@ struct FNiagaraScriptDebuggerInfo
 	int32 DebugFrameLastWriteId;
 
 	FNiagaraDataSet DebugFrame;
+
+	FNiagaraParameterStore DebugParameters;
 };
 
 
@@ -57,13 +61,19 @@ class UNiagaraScript : public UObject
 	GENERATED_UCLASS_BODY()
 
 	// how this script is to be used. cannot be private due to use of GET_MEMBER_NAME_CHECKED
-	UPROPERTY(AssetRegistrySearchable, EditAnywhere, Category = Script)
+	UPROPERTY(AssetRegistrySearchable)
 	ENiagaraScriptUsage Usage;
 
-	/** Which instance of the usage in the graph to use.*/
+	/** Which instance of the usage in the graph to use.  This is now deprecated and is handled by UsageId. */
 	UPROPERTY()
-	int32 UsageIndex;
+	int32 UsageIndex_DEPRECATED;
 
+private:
+	/** Specifies a unique id for use when there are multiple scripts with the same usage, e.g. events. */
+	UPROPERTY()
+	FGuid UsageId;
+
+public:
 	/** When used as a module, what are the appropriate script types for referencing this module?*/
 	UPROPERTY(AssetRegistrySearchable, EditAnywhere, Category = Script, meta = (Bitmask, BitmaskEnum = ENiagaraScriptUsage))
 	int32 ModuleUsageBitmask;
@@ -75,14 +85,14 @@ class UNiagaraScript : public UObject
 	/** Number of user pointers we must pass to the VM. */
 	UPROPERTY()
 	int32 NumUserPtrs;
-
-	/** Byte code to execute for this system */
-	UPROPERTY()
-	TArray<uint8> ByteCode;
-
-	/** All the data for using constants in the script. */
+	
+	/** All the data for using external constants in the script, laid out in the order they are expected in the uniform table.*/
 	UPROPERTY()
 	FNiagaraParameters Parameters;
+
+	/** Contains all of the top-level values that are iterated on in the UI. These are usually "Module" variables in the graph. They don't necessarily have to be in the order that they are expected in the uniform table.*/
+	UPROPERTY()
+	FNiagaraParameterStore RapidIterationParameters;
 
 	UPROPERTY()
 	FNiagaraParameters InternalParameters;
@@ -110,7 +120,13 @@ class UNiagaraScript : public UObject
 	UPROPERTY(EditAnywhere, Category=Script)
 	ENiagaraNumericOutputTypeSelectionMode NumericOutputTypeSelectionMode;
 
+	UPROPERTY()
+	TArray< FDIBufferDescriptorStore > DIBufferDescriptors;
+
+	UPROPERTY()
 	TArray<FNiagaraDataSetID> ReadDataSets;
+	
+	UPROPERTY()
 	TArray<FNiagaraDataSetProperties> WriteDataSets;
 
 	/** Scopes we'll track with stats.*/
@@ -126,16 +142,25 @@ class UNiagaraScript : public UObject
 
 	UPROPERTY()
 	FString LastHlslTranslation;
+	UPROPERTY()
+	FString LastHlslTranslationGPU;
+	UPROPERTY()
+	FString LastAssemblyTranslation;
+	UPROPERTY()
+	uint32 LastOpCount;
+
 	
 	/** Returns true if this script is valid and can be executed. */
 	bool IsValid()const { return ByteCode.Num() > 0; }//More? Differentiate by CPU/GPU?
 
 	void SetUsage(ENiagaraScriptUsage InUsage) { Usage = InUsage; }
 	ENiagaraScriptUsage GetUsage() const { return Usage; }
-	void SetUsageIndex(int32 InUsageIndex) { UsageIndex = InUsageIndex; }
-	int32 GetUsageIndex() const { return UsageIndex; }
 
-	bool IsEquivalentUsage(ENiagaraScriptUsage InUsage) {return (InUsage == Usage) || (Usage == ENiagaraScriptUsage::ParticleSpawnScript && InUsage == ENiagaraScriptUsage::ParticleSpawnScriptInterpolated) || (Usage == ENiagaraScriptUsage::ParticleSpawnScriptInterpolated && InUsage == ENiagaraScriptUsage::ParticleSpawnScript);}
+	void SetUsageId(FGuid InUsageId) { UsageId = InUsageId; }
+	FGuid GetUsageId() const { return UsageId; }
+
+	NIAGARA_API bool ContainsUsage(ENiagaraScriptUsage InUsage) const;
+	bool IsEquivalentUsage(ENiagaraScriptUsage InUsage) const {return (InUsage == Usage) || (Usage == ENiagaraScriptUsage::ParticleSpawnScript && InUsage == ENiagaraScriptUsage::ParticleSpawnScriptInterpolated) || (Usage == ENiagaraScriptUsage::ParticleSpawnScriptInterpolated && InUsage == ENiagaraScriptUsage::ParticleSpawnScript);}
 	static bool IsEquivalentUsage(ENiagaraScriptUsage InUsageA, ENiagaraScriptUsage InUsageB) { return (InUsageA == InUsageB) || (InUsageB == ENiagaraScriptUsage::ParticleSpawnScript && InUsageA == ENiagaraScriptUsage::ParticleSpawnScriptInterpolated) || (InUsageB == ENiagaraScriptUsage::ParticleSpawnScriptInterpolated && InUsageA == ENiagaraScriptUsage::ParticleSpawnScript); }
 
 	bool IsParticleSpawnScript() const { return Usage == ENiagaraScriptUsage::ParticleSpawnScript || Usage == ENiagaraScriptUsage::ParticleSpawnScriptInterpolated; }
@@ -156,9 +181,11 @@ class UNiagaraScript : public UObject
 
 	bool IsSpawnScript()const { return IsParticleSpawnScript() || IsEmitterSpawnScript() || IsSystemSpawnScript(); }
 
+	bool IsCompilable() const { return !IsEmitterSpawnScript() && !IsEmitterUpdateScript(); }
+
 	NIAGARA_API TArray<ENiagaraScriptUsage> GetSupportedUsageContexts() const;
 
-	bool CanBeRunOnGpu() const { return IsParticleSpawnScript() || IsParticleUpdateScript() || IsParticleEventScript(); }
+	NIAGARA_API bool CanBeRunOnGpu() const;
 
 #if WITH_EDITORONLY_DATA
 	class UNiagaraScriptSourceBase *GetSource() { return Source; }
@@ -172,6 +199,12 @@ class UNiagaraScript : public UObject
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 	//~ End UObject interface
+
+	void SetDatainterfaceBufferDescriptors(TArray< FDIBufferDescriptorStore >&InBufferDescriptors)
+	{
+		DIBufferDescriptors = InBufferDescriptors;
+	}
+
 
 	// Infrastructure for GPU compute Shaders
 	NIAGARA_API void CacheResourceShadersForCooking(EShaderPlatform ShaderPlatform, FNiagaraScript* &OutCachedResource);
@@ -222,10 +255,14 @@ class UNiagaraScript : public UObject
 	}
 
 	NIAGARA_API void GenerateStatScopeIDs();
+	ENiagaraScriptCompileStatus GetLastCompileStatus() { return LastCompileStatus; }
+
+	NIAGARA_API bool IsScriptCompilationPending(bool bGPUScript) const;
+	NIAGARA_API bool DidScriptCompilationSucceed(bool bGPUScript) const;
+	NIAGARA_API void InvalidateScript();
 
 #if WITH_EDITORONLY_DATA
 	FText GetDescription() { return Description.IsEmpty() ? FText::FromString(GetName()) : Description; }
-	ENiagaraScriptCompileStatus GetLastCompileStatus() { return LastCompileStatus; }
 	void SetLastCompileStatus(ENiagaraScriptCompileStatus InStatus) { LastCompileStatus = InStatus; }
 
 	/** Makes a deep copy of any script dependencies, including itself.*/
@@ -240,10 +277,16 @@ class UNiagaraScript : public UObject
 	/** Ensure that the Script and its source graph are marked out of sync.*/
 	NIAGARA_API void MarkScriptAndSourceDesynchronized();
 
-	NIAGARA_API ENiagaraScriptCompileStatus Compile(FString& OutGraphLevelErrorMessages);
+	NIAGARA_API ENiagaraScriptCompileStatus Compile(FString& OutGraphLevelErrorMessages, bool bForce);
 
 	NIAGARA_API FNiagaraScriptDebuggerInfo& GetDebuggerInfo() { return DebuggerInfo; }
 
+#endif
+
+	UFUNCTION()
+	void OnCompilationComplete();
+
+#if STATS
 	const TArray<TStatId>& GetStatScopeIDs()const { return StatScopesIDs; }
 #endif
 
@@ -251,19 +294,26 @@ class UNiagaraScript : public UObject
 	
 	virtual ~UNiagaraScript();
 
-	virtual void PostInitProperties() override;
+	NIAGARA_API void SetByteCode(const TArray<uint8>& InByteCode);
+	const TArray<uint8>& GetByteCode() const { return ByteCode; }
+
 private:
+
+	/** Byte code to execute for this system */
+	UPROPERTY()
+	TArray<uint8> ByteCode;
+
 #if WITH_EDITORONLY_DATA
 	/** 'Source' data/graphs for this script */
 	UPROPERTY()
 	class UNiagaraScriptSourceBase*	Source;
 	
+	FNiagaraScriptDebuggerInfo DebuggerInfo;
+#endif
+
 	/** Last known compile status. Lets us determine the latest state of the script byte buffer.*/
 	UPROPERTY()
 	ENiagaraScriptCompileStatus LastCompileStatus;
-
-	FNiagaraScriptDebuggerInfo DebuggerInfo;
-#endif
 
 	/** Adjusted every time that we compile this script. Lets us know that we might differ from any cached versions.*/
 	UPROPERTY()

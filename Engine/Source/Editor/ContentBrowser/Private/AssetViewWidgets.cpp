@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "AssetViewWidgets.h"
@@ -30,6 +30,8 @@
 #include "Widgets/Text/SInlineEditableTextBlock.h"
 #include "Misc/EngineBuildSettings.h"
 #include "ContentBrowserLog.h"
+#include "ObjectTools.h"
+#include "AssetThumbnail.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -382,6 +384,7 @@ void SAssetViewItem::Construct( const FArguments& InArgs )
 	HighlightText = InArgs._HighlightText;
 	OnAssetsOrPathsDragDropped = InArgs._OnAssetsOrPathsDragDropped;
 	OnFilesDragDropped = InArgs._OnFilesDragDropped;
+	OnIsAssetValidForCustomToolTip = InArgs._OnIsAssetValidForCustomToolTip;
 	OnGetCustomAssetToolTip = InArgs._OnGetCustomAssetToolTip;
 	OnVisualizeAssetToolTip = InArgs._OnVisualizeAssetToolTip;
 	OnAssetToolTipClosing = InArgs._OnAssetToolTipClosing;
@@ -646,7 +649,7 @@ const FSlateBrush* SAssetViewItem::GetDirtyImage() const
 
 EVisibility SAssetViewItem::GetThumbnailEditModeUIVisibility() const
 {
-	return !IsFolder() && ThumbnailEditMode.Get() == true ? EVisibility::Visible : EVisibility::Collapsed;
+	return !IsFolder() && ThumbnailEditMode.Get() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -654,7 +657,14 @@ TSharedRef<SWidget> SAssetViewItem::CreateToolTipWidget() const
 {
 	if ( AssetItem.IsValid() )
 	{
-		if(OnGetCustomAssetToolTip.IsBound() && AssetItem->GetType() != EAssetItemType::Folder)
+		bool bTryCustomAssetToolTip = true;
+		if (OnIsAssetValidForCustomToolTip.IsBound() && AssetItem->GetType() != EAssetItemType::Folder)
+		{
+			FAssetData& AssetData = StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data;
+			bTryCustomAssetToolTip = OnIsAssetValidForCustomToolTip.Execute(AssetData);
+		}
+
+		if(bTryCustomAssetToolTip && OnGetCustomAssetToolTip.IsBound() && AssetItem->GetType() != EAssetItemType::Folder)
 		{
 			FAssetData& AssetData = StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data;
 			return OnGetCustomAssetToolTip.Execute(AssetData);
@@ -975,7 +985,7 @@ void SAssetViewItem::UpdateSourceControlState(float InDeltaTime)
 	if ( !bSourceControlStateRequested && SourceControlStateDelay > 1.0f && ISourceControlModule::Get().IsEnabled() && AssetItem.IsValid() )
 	{
 		// Only update the SCC state for non-temporary asset items that aren't a built in script
-		if ( !AssetItem->IsTemporaryItem() && AssetItem->GetType() != EAssetItemType::Folder && !FPackageName::IsScriptPackage(CachedPackageName) )
+		if ( !AssetItem->IsTemporaryItem() && AssetItem->GetType() != EAssetItemType::Folder && !FPackageName::IsScriptPackage(CachedPackageName) && !FPackageName::IsMemoryPackage(CachedPackageName) && !FPackageName::IsTempPackage(CachedPackageName))
 		{
 			// Request the most recent SCC state for this asset
 			ISourceControlModule::Get().QueueStatusUpdate(CachedPackageFileName);
@@ -1444,6 +1454,7 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 		.HighlightText(InArgs._HighlightText)
 		.OnAssetsOrPathsDragDropped(InArgs._OnAssetsOrPathsDragDropped)
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)
+		.OnIsAssetValidForCustomToolTip(InArgs._OnIsAssetValidForCustomToolTip)
 		.OnGetCustomAssetToolTip(InArgs._OnGetCustomAssetToolTip)
 		.OnVisualizeAssetToolTip(InArgs._OnVisualizeAssetToolTip)
 		.OnAssetToolTipClosing( InArgs._OnAssetToolTipClosing )
@@ -1596,6 +1607,7 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 		.HighlightText(InArgs._HighlightText)
 		.OnAssetsOrPathsDragDropped(InArgs._OnAssetsOrPathsDragDropped)
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)
+		.OnIsAssetValidForCustomToolTip(InArgs._OnIsAssetValidForCustomToolTip)
 		.OnGetCustomAssetToolTip(InArgs._OnGetCustomAssetToolTip)
 		.OnVisualizeAssetToolTip(InArgs._OnVisualizeAssetToolTip)
 		.OnAssetToolTipClosing( InArgs._OnAssetToolTipClosing )
@@ -1797,6 +1809,7 @@ void SAssetColumnItem::Construct( const FArguments& InArgs )
 		.HighlightText(InArgs._HighlightText)
 		.OnAssetsOrPathsDragDropped(InArgs._OnAssetsOrPathsDragDropped)
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)
+		.OnIsAssetValidForCustomToolTip(InArgs._OnIsAssetValidForCustomToolTip)
 		.OnGetCustomAssetToolTip(InArgs._OnGetCustomAssetToolTip)
 		.OnVisualizeAssetToolTip(InArgs._OnVisualizeAssetToolTip)
 		.OnAssetToolTipClosing(InArgs._OnAssetToolTipClosing)
@@ -2018,10 +2031,10 @@ FText SAssetColumnItem::GetAssetTagText(FName AssetTag) const
 
 			// Check custom type
 			{
-				FString* FoundString = ItemAsAsset->CustomColumnData.Find(AssetTag);
-				if (FoundString)
+				FText* FoundText = ItemAsAsset->CustomColumnDisplayText.Find(AssetTag);
+				if (FoundText)
 				{
-					return FText::FromString(*FoundString);
+					return *FoundText;
 				}
 			}
 

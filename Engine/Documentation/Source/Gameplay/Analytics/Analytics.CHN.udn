@@ -14,30 +14,22 @@ version: 4.9
 
 随着时间的推移，我们将会提供更多软件的插件，如果需要，您还可以添加自己的软件支持。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/profile_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		实现游戏分析
-	[/PARAM]
-	[PARAM:links]
+## 实现游戏分析
+
+[REGION:buttonlist]
+
 		* [](Gameplay/Analytics/Instrumenting "%Gameplay/Analytics/Instrumenting:description%")
 		* [](Gameplay/Analytics/Blueprints "%Gameplay/Analytics/Blueprints:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		外部分析软件
-	[/PARAM]
-	[PARAM:links]
+## 外部分析软件
+
+[REGION:buttonlist]
+
 		* [](Gameplay/Analytics/Apsalar "%Gameplay/Analytics/Apsalar:description%")
 		* [](Gameplay/Analytics/FileLogging "%Gameplay/Analytics/FileLogging:description%")
 		* [](Gameplay/Analytics/Flurry "%Gameplay/Analytics/Flurry:description%")
 		* [](Gameplay/Analytics/Multicast "%Gameplay/Analytics/Multicast:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]

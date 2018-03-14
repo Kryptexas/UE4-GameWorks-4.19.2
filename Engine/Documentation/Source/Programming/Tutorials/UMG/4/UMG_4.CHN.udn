@@ -19,7 +19,7 @@ Description:设置游戏模式以使用主菜单控件。
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 
 1. 在 **Content Browser（内容浏览器）** 中，我们会基于项目的 **Game Mode（游戏模式）** 来添加一个 **Blueprint Class（蓝图类）** 。 这样我们就可以对这两个类的变量设置任意值了。 我们可以这样操作：
@@ -82,7 +82,7 @@ Description:设置游戏模式以使用主菜单控件。
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -110,7 +110,7 @@ Description:设置游戏模式以使用主菜单控件。
 			}
 
 		**HowTo_UMGGameMode.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -145,7 +145,7 @@ Description:设置游戏模式以使用主菜单控件。
 			};
 
 		**HowTo_UMGGameMode.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGGameMode.h"
@@ -175,4 +175,4 @@ Description:设置游戏模式以使用主菜单控件。
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

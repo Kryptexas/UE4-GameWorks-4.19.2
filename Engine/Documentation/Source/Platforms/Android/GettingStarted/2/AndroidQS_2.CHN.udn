@@ -24,7 +24,7 @@ Skilllevel:Intermediate
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 %Globals:OSSelect%
 
@@ -58,7 +58,8 @@ Skilllevel:Intermediate
 [/OBJECT]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsSetup]
 
 1. 连接您的设备。
@@ -170,9 +171,10 @@ Skilllevel:Intermediate
 
 [/EXCERPT:MacOSSetup]
 
--->
+
+[/COMMENT]
 
 
 
-%Steps%
+
 

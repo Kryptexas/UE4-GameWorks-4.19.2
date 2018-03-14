@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,6 +27,8 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
+	virtual void Serialize(FArchive& Ar) override;
+
 protected:
 	// Set player view target to screenshot camera and call PrepareForScreenshot
 	virtual void PrepareTest() override;
@@ -54,12 +56,12 @@ protected:
 	// Do some logging and trigger OnScreenshotTakenAndCompared
 	void OnComparisonComplete(bool bWasNew, bool bWasSimilar, double MaxLocalDifference, double GlobalDifference, FString ErrorMessage);
 
-	// Restore viewport size and restore original environment
-	void RestoreGameViewport();
+	// Restore viewport size and original environment settings
+	void RestoreViewSettings();
 
 protected:
 
-	UPROPERTY(BlueprintReadOnly, Category = "Screenshot")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Screenshot")
 	class UCameraComponent* ScreenshotCamera;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Screenshot", SimpleDisplay)
@@ -70,4 +72,8 @@ protected:
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 	TSharedPtr<FAutomationTestScreenshotEnvSetup> ScreenshotEnvSetup;
 #endif
+
+private:
+	bool bNeedsViewSettingsRestore;
+	bool bNeedsViewportRestore;
 };

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:Parameter 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -22,7 +22,8 @@ Dynamic 모듈은 이미터에 사용되는 머티리얼에 네 개의 스칼라
 
 
 
-<!-------------Dynamic Includes----------------
+[COMMENT:none]
+-----------Dynamic Includes----------------
 #### Includes
 
 [EXCERPT:DynamicParams]
@@ -51,7 +52,8 @@ Dynamic 모듈은 이미터에 사용되는 머티리얼에 네 개의 스칼라
 [/REGION]
 [/EXCERPT:ValueMethod]
 
--------------Dynamic Includes--------------->
+-------------Dynamic Includes-------------
+[/COMMENT]
 
 
 ## Dynamic (Seed)

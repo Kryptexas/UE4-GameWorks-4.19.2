@@ -21,7 +21,7 @@ Version: 4.8
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 In this step we will create a new Level, Landscape Terrain and all of the Actors the Procedural Foliage Tool requires.
 
@@ -69,7 +69,7 @@ In this step we will create a new Level, Landscape Terrain and all of the Actors
 
 	![](T_Save_All.png)
 
-%Steps%
+
 
 
 

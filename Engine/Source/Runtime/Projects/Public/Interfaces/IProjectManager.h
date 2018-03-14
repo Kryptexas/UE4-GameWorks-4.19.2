@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -222,4 +222,18 @@ public:
 	 * @return	True if the project was saved successfully
 	 */
 	virtual bool SaveCurrentProjectToDisk(FText& OutFailReason) = 0;
+
+	/**
+	 * Gets the enterprise flag value on the current project
+	 *
+	 * @return	True if the project is an Enterprise project
+	 */
+	virtual bool IsEnterpriseProject() = 0;
+
+	/**
+	 * Sets the enterprise flag value on the current project
+	 *
+	 * @param	bValue	The value to set the enterprise flag to
+	 */
+	virtual void SetIsEnterpriseProject(bool bValue) = 0;
 };

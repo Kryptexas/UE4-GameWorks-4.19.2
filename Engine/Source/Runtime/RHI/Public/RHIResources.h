@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -1401,9 +1401,9 @@ struct FBoundShaderStateInput
 class FGraphicsPipelineStateInitializer
 {
 public:
-	using TRenderTargetFormats = TStaticArray<EPixelFormat, MaxSimultaneousRenderTargets>;
-	using TRenderTargetFlags = TStaticArray<uint32, MaxSimultaneousRenderTargets>;
-	using TRenderTargetLoadActions = TStaticArray<ERenderTargetLoadAction, MaxSimultaneousRenderTargets>;
+	using TRenderTargetFormats		= TStaticArray<EPixelFormat, MaxSimultaneousRenderTargets>;
+	using TRenderTargetFlags		= TStaticArray<uint32, MaxSimultaneousRenderTargets>;
+	using TRenderTargetLoadActions	= TStaticArray<ERenderTargetLoadAction, MaxSimultaneousRenderTargets>;
 	using TRenderTargetStoreActions = TStaticArray<ERenderTargetStoreAction, MaxSimultaneousRenderTargets>;
 
 	FGraphicsPipelineStateInitializer()
@@ -1412,6 +1412,10 @@ public:
 		, DepthStencilState(nullptr)
 		, PrimitiveType(PT_Num)
 		, RenderTargetsEnabled(0)
+		, RenderTargetFormats(PF_Unknown)
+		, RenderTargetFlags(0)
+		, RenderTargetLoadActions(ERenderTargetLoadAction::ENoAction)
+		, RenderTargetStoreActions(ERenderTargetStoreAction::ENoAction)
 		, DepthStencilTargetFormat(PF_Unknown)
 		, DepthStencilTargetFlag(0)
 		, DepthTargetLoadAction(ERenderTargetLoadAction::ENoAction)
@@ -1420,13 +1424,6 @@ public:
 		, StencilTargetStoreAction(ERenderTargetStoreAction::ENoAction)
 		, NumSamples(0)
 	{
-		for (uint32 i = 0; i < MaxSimultaneousRenderTargets; ++i)
-		{
-			RenderTargetFormats[i] = PF_Unknown;
-			RenderTargetFlags[i] = 0;
-			RenderTargetLoadActions[i] = ERenderTargetLoadAction::ENoAction;
-			RenderTargetStoreActions[i] = ERenderTargetStoreAction::ENoAction;
-		}
 	}
 
 	FGraphicsPipelineStateInitializer(

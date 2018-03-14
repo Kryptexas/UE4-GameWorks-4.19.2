@@ -84,7 +84,8 @@ JxzEo3wUSWw
 | **Effector Location** | 一个矢量值，用于指定执行器位置空间中的位置执行器。|
 | **Joint Target Location** | 一个矢量值，用于指定关节目标位置空间中的位置关节目标。|
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:LocationSpace]
 [REGION:simpletable]
 | 数值 | 效果 |
@@ -94,5 +95,6 @@ JxzEo3wUSWw
 | **Scale** | XYZ 组件在目标骨骼上的缩放。|
 [/REGION] 
 [/EXCERPT:LocationSpace]
--->
+
+[/COMMENT]
 

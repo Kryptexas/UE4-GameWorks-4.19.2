@@ -22,6 +22,15 @@
 			"LoadingPhase" : "PostConfigInit",
 			"WhitelistPlatforms" :
 			[
+				"Win64", "Android"
+			]
+		},
+		{
+			"Name" : "OculusAudioEditor",
+			"Type" : "Editor",
+			"LoadingPhase" : "PostEngineInit",
+			"WhitelistPlatforms" :
+			[
 				"Win64"
 			]
 		}

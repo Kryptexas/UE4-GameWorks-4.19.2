@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SkeletonTreeSocketItem.h"
 #include "Widgets/Text/STextBlock.h"
@@ -7,6 +7,7 @@
 #include "Widgets/SOverlay.h"
 #include "Animation/DebugSkelMeshComponent.h"
 #include "Widgets/Images/SImage.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "SocketDragDropOp.h"
 #include "IPersonaPreviewScene.h"
@@ -31,7 +32,7 @@ void FSkeletonTreeSocketItem::GenerateWidgetForNameColumn( TSharedPtr< SHorizont
 		.Image( SocketIcon )
 	];
 
-	const FSlateFontInfo TextFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf" ), 10 );
+	const FSlateFontInfo TextFont = FCoreStyle::GetDefaultFontStyle("Regular", 10);
 
 	FText ToolTip = GetSocketToolTip();
 

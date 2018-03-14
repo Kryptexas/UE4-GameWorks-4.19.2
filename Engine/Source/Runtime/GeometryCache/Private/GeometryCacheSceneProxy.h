@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -10,6 +10,8 @@
 #include "Materials/MaterialInterface.h"
 #include "LocalVertexFactory.h"
 #include "DynamicMeshBuilder.h"
+#include "StaticMeshResources.h"
+#include "LogMacros.h"
 
 class FMeshElementCollector;
 struct FGeometryCacheMeshData;
@@ -18,6 +20,8 @@ DECLARE_STATS_GROUP(TEXT("GeometryCache"), STATGROUP_GeometryCache, STATCAT_Adva
 DECLARE_CYCLE_STAT(TEXT("MeshTime"), STAT_GeometryCacheSceneProxy_GetMeshElements, STATGROUP_GeometryCache );
 DECLARE_DWORD_COUNTER_STAT(TEXT("Triangle Count"), STAT_GeometryCacheSceneProxy_TriangleCount, STATGROUP_GeometryCache);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Section Count"), STAT_GeometryCacheSceneProxy_MeshBatchCount, STATGROUP_GeometryCache);
+
+GEOMETRYCACHE_API DECLARE_LOG_CATEGORY_EXTERN(LogGeomCache, Log, All);
 
 /** Resource array to pass  */
 class GEOMETRYCACHE_API FGeomCacheVertexResourceArray : public FResourceArrayInterface
@@ -37,65 +41,35 @@ private:
 	uint32 Size;
 };
 
-/** Vertex Buffer */
-class GEOMETRYCACHE_API FGeomCacheVertexBuffer : public FVertexBuffer
-{
-public:
-	TArray<FDynamicMeshVertex> Vertices;
-
-	virtual void InitRHI() override;
-
-	void UpdateRHI();
-};
-
-/** Index Buffer */
-class GEOMETRYCACHE_API FGeomCacheIndexBuffer : public FIndexBuffer
-{
-public:
-	TArray<uint32> Indices;
-
-	virtual void InitRHI() override;
-
-	void UpdateRHI();
-};
-
-/** Vertex Factory */
-class GEOMETRYCACHE_API FGeomCacheVertexFactory : public FLocalVertexFactory
-{
-public:
-
-	FGeomCacheVertexFactory();
-
-	/** Init function that should only be called on render thread. */
-	void Init_RenderThread(const FGeomCacheVertexBuffer* VertexBuffer);
-
-	/** Init function that can be called on any thread, and will do the right thing (enqueue command if called on main thread) */
-	void Init(const FGeomCacheVertexBuffer* VertexBuffer);
-};
-
 class GEOMETRYCACHE_API FGeomCacheTrackProxy
 {
 public:
+	FGeomCacheTrackProxy(ERHIFeatureLevel::Type InFeatureLevel)
+		: VertexFactory(InFeatureLevel, "FGeomCacheTrackProxy")
+	{
+	}
+
 	/** MeshData storing information used for rendering this Track */
 	FGeometryCacheMeshData* MeshData;
 
 	/** Material applied to this Track */
 	TArray<UMaterialInterface*> Materials;
 	/** Vertex buffer for this Track */
-	FGeomCacheVertexBuffer VertexBuffer;
+	FStaticMeshVertexBuffers VertexBuffers;
 	/** Index buffer for this Track */
-	FGeomCacheIndexBuffer IndexBuffer;
+	FDynamicMeshIndexBuffer32 IndexBuffer;
 	/** Vertex factory for this Track */
-	FGeomCacheVertexFactory VertexFactory;
+	FLocalVertexFactory VertexFactory;
 	/** World Matrix for this Track */
 	FMatrix WorldMatrix;
 };
 
 /** Procedural mesh scene proxy */
-class GEOMETRYCACHE_API FGeometryCacheSceneProxy : public FPrimitiveSceneProxy
+class GEOMETRYCACHE_API FGeometryCacheSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
-	
+	SIZE_T GetTypeHash() const override;
+
 	FGeometryCacheSceneProxy(class UGeometryCacheComponent* Component);
 
 	virtual ~FGeometryCacheSceneProxy();

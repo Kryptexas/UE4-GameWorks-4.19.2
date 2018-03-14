@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -348,4 +348,4 @@ RENDERCORE_API FIndexBufferRHIRef& GetUnitCubeIndexBuffer();
 * rendering pipeline. Currently ensures that sizes are multiples of 4 so that they can safely
 * be halved in size several times.
 */
-RENDERCORE_API void QuantizeSceneBufferSize(int32& InOutBufferSizeX, int32& InOutBufferSizeY);
+RENDERCORE_API void QuantizeSceneBufferSize(const FIntPoint& InBufferSize, FIntPoint& OutBufferSize);

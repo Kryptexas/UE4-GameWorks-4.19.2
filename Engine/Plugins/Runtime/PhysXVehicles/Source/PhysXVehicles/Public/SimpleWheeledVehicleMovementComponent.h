@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*
 * Simple n-wheeled vehicle with suspension and tire friction. If you need a motor sim see UWheeledVehicleMovementComponent4W
@@ -29,6 +29,10 @@ public:
 
 protected:
 
+#if WITH_PHYSX
+
 	/** Allocate and setup the PhysX vehicle */
 	virtual void SetupVehicleDrive(physx::PxVehicleWheelsSimData* PWheelsSimData) override;
+
+#endif // WITH_PHYSX
 };

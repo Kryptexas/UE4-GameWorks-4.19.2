@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Animation/UMGSequencePlayer.h"
 #include "MovieScene.h"
@@ -203,7 +203,9 @@ void UUMGSequencePlayer::Pause()
 	// Purposely don't trigger any OnFinished events
 	PlayerStatus = EMovieScenePlayerStatus::Stopped;
 
-	RootTemplateInstance.Finish(*this);
+	// Evaluate the sequence at its current time, with a status of 'stopped' to ensure that animated state pauses correctly. (ie. audio sounds should stop/pause)
+	const FMovieSceneContext Context(FMovieSceneEvaluationRange(TimeCursorPosition, TimeCursorPosition), PlayerStatus);
+	RootTemplateInstance.Evaluate(Context, *this);
 
 	ApplyLatentActions();
 }

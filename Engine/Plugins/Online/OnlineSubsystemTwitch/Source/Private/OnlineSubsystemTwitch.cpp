@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemTwitchPrivate.h"
 #include "OnlineIdentityTwitch.h"
@@ -257,14 +257,6 @@ bool FOnlineSubsystemTwitch::HandleAuthExecCommands(UWorld* InWorld, const TCHAR
 	return bWasHandled;
 }
 
-
-bool FOnlineSubsystemTwitch::IsEnabled()
-{
-	// Check the ini for disabling Twitch
-	bool bEnableTwitch = true;
-	GConfig->GetBool(TEXT("OnlineSubsystemTwitch"), TEXT("bEnabled"), bEnableTwitch, GEngineIni);
-	return bEnableTwitch;
-}
 
 FOnlineSubsystemTwitch::FOnlineSubsystemTwitch(FName InInstanceName)
 	: FOnlineSubsystemImpl(TWITCH_SUBSYSTEM, InInstanceName)

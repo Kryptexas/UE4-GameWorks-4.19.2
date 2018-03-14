@@ -49,7 +49,9 @@ skilllevel:Beginner
 [/OBJECT]
 [/VAR]
 
-<!-- Overview Text -->
+[COMMENT:none]
+ Overview Text 
+[/COMMENT]
 
 ## 步骤
 
@@ -64,4 +66,6 @@ skilllevel:Beginner
 
 ## 结果
 
-<!-- Result Text -->
+[COMMENT:none]
+ Result Text 
+[/COMMENT]

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapeEditorDetails.h"
 #include "Framework/Commands/UIAction.h"
@@ -198,7 +198,7 @@ TSharedRef<SWidget> FLandscapeEditorDetails::GetTargetLandscapeMenu()
 		const TArray<FLandscapeListInfo>& LandscapeList = LandscapeEdMode->GetLandscapeList();
 		for (auto It = LandscapeList.CreateConstIterator(); It; It++)
 		{
-			FUIAction Action = FUIAction(FExecuteAction::CreateStatic(&FLandscapeEditorDetails::OnChangeTargetLandscape, TWeakObjectPtr<ULandscapeInfo>(It->Info)));
+			FUIAction Action = FUIAction(FExecuteAction::CreateStatic(&FLandscapeEditorDetails::OnChangeTargetLandscape, MakeWeakObjectPtr(It->Info)));
 			MenuBuilder.AddMenuEntry(FText::FromString(It->Info->GetLandscapeProxy()->GetActorLabel()), FText(), FSlateIcon(), Action);
 		}
 

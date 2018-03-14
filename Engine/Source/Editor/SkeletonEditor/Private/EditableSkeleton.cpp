@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "EditableSkeleton.h"
 #include "Editor.h"
@@ -40,11 +40,14 @@ const FString FEditableSkeleton::SocketCopyPasteHeader = TEXT("SocketCopyPasteBu
 class FSocketTextObjectFactory : public FCustomizableTextObjectFactory
 {
 public:
-	FSocketTextObjectFactory(USkeleton* InSkeleton, USkeletalMesh* InSkeletalMesh, FName InPasteBone)
+	typedef TFunction<void(USkeletalMeshSocket*, USkeletalMesh*)> FNameCorrectionFunction;
+
+	FSocketTextObjectFactory(USkeleton* InSkeleton, USkeletalMesh* InSkeletalMesh, FName InPasteBone, FNameCorrectionFunction InNameCorrector)
 		: FCustomizableTextObjectFactory(GWarn)
 		, PasteBone(InPasteBone)
 		, Skeleton(InSkeleton)
 		, SkeletalMesh(InSkeletalMesh)
+		, NameCorrector(InNameCorrector)
 	{
 		check(Skeleton);
 	};
@@ -62,6 +65,8 @@ private:
 		CreatedSockets.Add(NewSocket);
 
 		const FReferenceSkeleton* RefSkel = nullptr;
+
+		NameCorrector(NewSocket, SkeletalMesh);
 
 		if (USkeletalMesh* SocketMesh = Cast<USkeletalMesh>(NewSocket->GetOuter()))
 		{
@@ -117,6 +122,11 @@ private:
 
 	// Target for Mesh Sockets (could be nullptr)
 	USkeletalMesh* SkeletalMesh;
+
+	// Callback so calling code can have a change to correct the newly pasted socket name
+	// before it is added to the mesh/skeleton
+	FNameCorrectionFunction NameCorrector;
+
 };
 
 FEditableSkeleton::FEditableSkeleton(USkeleton* InSkeleton)
@@ -149,10 +159,14 @@ UBlendProfile* FEditableSkeleton::CreateNewBlendProfile(const FName& NameToUse)
 
 void FEditableSkeleton::RemoveBlendProfile(UBlendProfile* InBlendProfile)
 {
-	FScopedTransaction Transaction(LOCTEXT("RemoveBlendProfile", "Remove Blend Profile"));
+	if(InBlendProfile)
+	{
+		FScopedTransaction Transaction(LOCTEXT("RemoveBlendProfile", "Remove Blend Profile"));
 
-	Skeleton->Modify();
-	Skeleton->BlendProfiles.Remove(InBlendProfile);
+		Skeleton->Modify();
+		Skeleton->BlendProfiles.Remove(InBlendProfile);
+		InBlendProfile->MarkPendingKill();
+	}
 }
 
 void FEditableSkeleton::SetBlendProfileScale(const FName& InBlendProfileName, const FName& InBoneName, float InNewScale, bool bInRecurse)
@@ -649,14 +663,14 @@ void FEditableSkeleton::HandlePasteSockets(const FName& InBoneName, USkeletalMes
 		FParse::Line(&PastePtr, PasteLine);	// Need this to advance PastePtr, for multiple sockets
 		FParse::Value(*PasteLine, TEXT("NumSockets="), NumSocketsToPaste);
 
-		FSocketTextObjectFactory TextObjectFactory(Skeleton, InSkeletalMesh, InBoneName);
+		FSocketTextObjectFactory TextObjectFactory( Skeleton,
+		                                            InSkeletalMesh,
+		                                            InBoneName,
+		                                            [this](USkeletalMeshSocket* NewSocket, USkeletalMesh* InLocalSkeletalMesh)
+		                                            {
+		                                            	NewSocket->SocketName = GenerateUniqueSocketName(NewSocket->SocketName, InLocalSkeletalMesh);
+		                                            } );
 		TextObjectFactory.ProcessBuffer(nullptr, RF_Transactional, PastePtr);
-
-		for (USkeletalMeshSocket* NewSocket : TextObjectFactory.CreatedSockets)
-		{
-			// Check the socket name is unique
-			NewSocket->SocketName = GenerateUniqueSocketName(NewSocket->SocketName, InSkeletalMesh);
-		}
 	}
 }
 
@@ -1038,7 +1052,8 @@ TSharedRef<SWidget> FEditableSkeleton::CreateBlendProfilePicker(const FBlendProf
 		.InitialProfile(InArgs.InitialProfile)
 		.OnBlendProfileSelected(InArgs.OnBlendProfileSelected)
 		.AllowNew(InArgs.bAllowNew)
-		.AllowClear(InArgs.bAllowClear);
+		.AllowClear(InArgs.bAllowClear)
+		.AllowRemove(InArgs.bAllowRemove);
 
 	BlendProfilePickers.Add(BlendProfilePicker);
 	return BlendProfilePicker;
@@ -1296,7 +1311,7 @@ void FEditableSkeleton::AddRetargetSource(const FName& InName, USkeletalMesh* In
 	// we have to do this whenever skeleton changes
 	FReferencePose RefPose;
 	RefPose.PoseName = FName(*NewSourceName);
-	RefPose.ReferenceMesh = InReferenceMesh;
+	RefPose.SourceReferenceMesh = InReferenceMesh;
 
 	const FScopedTransaction Transaction(LOCTEXT("RetargetSourceWindow_Add", "Add New Retarget Source"));
 	Skeleton->Modify();

@@ -20,16 +20,4 @@ A **Material** is an asset that can be applied to a mesh to control the visual l
 
 In more technical terms, when light from the scene hits the surface, a Material is used to calculate how that light interacts with that surface. These calculations are done using incoming data that is input to the Material from a variety of images (textures) and math expressions, as well as from various property settings inherent to the Material itself.
 
-[DIR(output:"topiccompact" parent:"Engine/Rendering/Materials" org:"hierarchy" tags:"!PBR" end:"1")]
-
-## Physically-Based Shading
-
-Unreal Engine 4 utilizes a _physically based shading model_. This means that rather than defining a Material using arbitrary properties (such as Diffuse Color and Specular Power), you instead use properties more easily relatable to the real world. These include Base Color, Metallic, Specular, and Roughness. For more information, please see the page below.
-
-[DIR(output:"topiccompact" parent:"Engine/Rendering/Materials" org:"hierarchy" tags:"PBR" end:"1")]
-
-_The above page is designed to provide in-depth details about our shift to this model, along with some of the technical considerations for it._
-
-## Introductory Tutorials
-
-%Engine/Content/Types/Textures/Importing:topiccompact%
+[DIR(output:"topiccompact" parent:"Engine/Rendering/Materials" org:"hierarchy" end:"1")]

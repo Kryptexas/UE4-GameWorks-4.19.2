@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "ISteamVRPlugin.h"
@@ -114,15 +114,15 @@ private:
 class FSteamVRHMD : public FHeadMountedDisplayBase, public FXRRenderTargetManager, public FSteamVRAssetManager, public TSharedFromThis<FSteamVRHMD, ESPMode::ThreadSafe>, public TStereoLayerManager<FSteamVRLayer>, public IHeadMountedDisplayVulkanExtensions
 {
 public:
+	static const FName SteamSystemName;
+
 	/** IXRTrackingSystem interface */
 	virtual FName GetSystemName() const override
 	{
-		static FName DefaultName(TEXT("SteamVR"));
-		return DefaultName;
+		return SteamSystemName;
 	}
 	virtual FString GetVersionString() const override;
 
-	virtual void RefreshPoses() override;
 
 	virtual class IHeadMountedDisplay* GetHMDDevice() override
 	{
@@ -162,7 +162,6 @@ public:
 	virtual bool IsHMDEnabled() const override;
 	virtual EHMDWornState::Type GetHMDWornState() override;
 	virtual void EnableHMD(bool allow = true) override;
-	virtual EHMDDeviceType::Type GetHMDDeviceType() const override;
 	virtual bool GetHMDMonitorInfo(MonitorInfo&) override;
 
 	virtual void GetFieldOfView(float& OutHFOVInDegrees, float& OutVFOVInDegrees) const override;
@@ -187,10 +186,14 @@ public:
 	
 	virtual bool AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 InTexFlags, uint32 InTargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples = 1) override;
 
-	virtual bool GetHMDDistortionEnabled() const override;
+	virtual bool GetHMDDistortionEnabled(EShadingPath ShadingPath) const override;
 
-	virtual void BeginRendering_GameThread() override;
-	virtual void BeginRendering_RenderThread(const FTransform& NewRelativeTransform, FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily) override;
+	virtual void OnBeginRendering_GameThread() override;
+	virtual void OnBeginRendering_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily) override;
+
+	virtual float GetPixelDenity() const override { return PixelDensity; }
+	virtual void SetPixelDensity(const float NewDensity) override { PixelDensity = NewDensity; }
+	virtual FIntPoint GetIdealRenderTargetSize() const override { return IdealRenderTargetSize; }
 
 	/** IStereoRendering interface */
 	virtual bool IsStereoEnabled() const override;
@@ -218,53 +221,6 @@ public:
 	// Create/Set/Get/Destroy inherited from TStereoLayerManager
 	virtual void UpdateSplashScreen() override;
 
-	/** FrameSettings struct contains information about the current render target frame, which is used to coordinate adaptive pixel density between the main and render threads */
-	struct FFrameSettings
-	{
-		/** Whether or not we need to update this next frame */
-		bool bNeedsUpdate;
-
-		/** Whether or not adaptive pixel density is enabled */
-		bool bAdaptivePixelDensity;
-
-		/** Used for disabling TAA when changing pixel densities, because of incorrect texture look ups in the history buffer.  If other than INDEX_NONE, the r.PostProcessingAAQuality cvar will be set to this value next frame */
-		int32 PostProcessAARestoreValue;
-
-		/** Current pixel density, which should match the current setting of r.ScreenPercentage for the frame */
-		float CurrentPixelDensity;
-		
-		/** Min and max bounds for pixel density, which can change from frame to frame potentially */
-		float PixelDensityMin;
-		float PixelDensityMax;
-
-		/** How many frames to remain locked for, in order to limit adapting too frequently */
-		int32 PixelDensityAdaptiveLockedFrames;
-
-		/** The recommended (i.e. PD = 1.0) render target size requested by the device */
-		uint32 RecommendedWidth, RecommendedHeight;
-
-		/** The sub-rect of the render target representing the view for each eye, given the CurrentPixelDensity (0 = left, 1 = right) */
-		FIntRect EyeViewports[2];
-		/** The sub-rect of the render target representing the view for each eye at PixelDensityMax, which is the upper bounds (0 = left, 1 = right) */
-		FIntRect MaxViewports[2];
-
-		/** The current render target size.  This should only change on initialization, when adaptive is turned on and off, or when PixelDensityMax changes */
-		FIntPoint RenderTargetSize;
-
-		FFrameSettings()
-			: bNeedsUpdate(false)
-			, bAdaptivePixelDensity(false)
-			, PostProcessAARestoreValue(INDEX_NONE)
-			, CurrentPixelDensity(1.f)
-   			, PixelDensityMin(0.7f)
-			, PixelDensityMax(1.f)
-			, PixelDensityAdaptiveLockedFrames(0)
-			, RecommendedWidth(0)
-			, RecommendedHeight(0)
-		{
-		}
-	};
-
 	/** IHeadMountedDisplayVulkanExtensions */
 	virtual bool GetVulkanInstanceExtensionsRequired( TArray<const ANSICHAR*>& Out ) override;
 	virtual bool GetVulkanDeviceExtensionsRequired( VkPhysicalDevice_T *pPhysicalDevice, TArray<const ANSICHAR*>& Out ) override;
@@ -283,9 +239,7 @@ public:
 			FRHICustomPresent(nullptr),
 			Plugin(plugin),
 			bNeedReinitRendererAPI(true),
-			bInitialized(false),
-			FrameNumber(0),
-			LastPresentedFrameNumber(-1)
+			bInitialized(false)
 		{}
 
 		bool IsInitialized() const { return bInitialized; }
@@ -298,35 +252,11 @@ public:
 
 		virtual void Reset() = 0;
 		virtual void Shutdown() = 0;
-
-		/** Copies the current FrameSettings for the HMD to the bridge for use on the render thread */
-		void UpdateFrameSettings(struct FSteamVRHMD::FFrameSettings& NewSettings);
-		FFrameSettings GetFrameSettings(int32 NumBufferedFrames = 0);
-		
-		void IncrementFrameNumber()
-		{
-			FScopeLock Lock(&FrameNumberLock);
-			++FrameNumber;
-		}
-		int32 GetFrameNumber() const
-		{
-			FScopeLock Lock(&FrameNumberLock);
-			return FrameNumber;
-		}
-		bool IsOnLastPresentedFrame() const
-		{
-			FScopeLock Lock(&FrameNumberLock);
-			return (LastPresentedFrameNumber == FrameNumber);
-		}
 		
 	protected:
 		FSteamVRHMD*			Plugin;
 		bool					bNeedReinitRendererAPI;
 		bool					bInitialized;
-		int32					FrameNumber;
-		int32					LastPresentedFrameNumber;
-		mutable FCriticalSection	FrameNumberLock;
-		TArray<FFrameSettings>		FrameSettingsStack;
 	};
 
 #if PLATFORM_WINDOWS
@@ -476,7 +406,6 @@ private:
 	bool LoadOpenVRModule();
 	void UnloadOpenVRModule();
 
-	void DrawDebug(class UCanvas* Canvas, class APlayerController*);
 	void GetWindowBounds(int32* X, int32* Y, uint32* Width, uint32* Height);
 
 public:
@@ -527,48 +456,10 @@ private:
 
 	void SetupOcclusionMeshes();
 
-	/** Command handler for turning on and off adaptive pixel density */
-	FAutoConsoleCommand CUseAdaptivePD;
-	void AdaptivePixelDensityCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
-
-	static void ConsoleSinkHandler();
-	static FAutoConsoleVariableSink ConsoleVariableSink;
-
-	/** Returns the current pixel density, which is the ratio of the current r.ScreenPercentage to the IdealScreenPercentage provided by the device */
-	float GetPixelDensity() const;
-	
-	/** Sets the current pixel density, which is the ratio of r.ScreenPercentage to the IdealScreenPercentage provided by the device */
-	void SetPixelDensity(float NewPD);
-	
-	/** Determines what the current Pixel Density should be, given the performance of the GPU under its current load.  Ruturns how many buckets should be jumped up or down given the frame history */
-	int32 CalculateScalabilityFactor();
-
-	/** Array of floats representing pixel density values to jump to, based on performance.  The list index will be adjusted up and down based on CalculateScalabilityFactor's rules */	
-	TArray<float>			AdaptivePixelDensityBuckets;
-	
-	/** The current AdaptivePixelDensityBucket index that we're at */
-	int32					CurrentAdaptiveBucket;
-	
-	/** An array of buffered frame times, so that we can see how performance is trending with adaptive pixel density adjustments */
-	TArray<float>			PreviousFrameTimes;
-
-	const int32				PreviousFrameBufferSize = 4;
-	
-	/** Index of the current frame timing data in PreviousFrameTimes that we're on */
-	int32					CurrentFrameTimesBufferIndex;
-
-	/** Contains the settings for the current frame, including render target size and subrect viewports, given the current PixelDensity */
-	FFrameSettings FrameSettings;
-	mutable FCriticalSection FrameSettingsLock;
-
-	/** Updates FrameSettings based on the current adaptive pixel density requirements */
-	void UpdateStereoRenderingParams();
-
 	bool bHmdEnabled;
 	EHMDWornState::Type HmdWornState;
 	bool bStereoDesired;
 	bool bStereoEnabled;
-	mutable bool bHaveVisionTracking;
 
 	// Current world to meters scale. Should only be used when refreshing poses.
 	// Everywhere else, use the current tracking frame's WorldToMetersScale.
@@ -582,6 +473,7 @@ private:
  		bool bPoseIsValid[vr::k_unMaxTrackedDeviceCount];
  		FVector DevicePosition[vr::k_unMaxTrackedDeviceCount];
  		FQuat DeviceOrientation[vr::k_unMaxTrackedDeviceCount];
+		bool bHaveVisionTracking;
 
 		/** World units (UU) to Meters scale.  Read from the level, and used to transform positional tracking data */
 		float WorldToMetersScale;
@@ -589,16 +481,16 @@ private:
 		vr::HmdMatrix34_t RawPoses[vr::k_unMaxTrackedDeviceCount];
 
 		FTrackingFrame()
+			: FrameNumber(0)
+			, bHaveVisionTracking(false)
+			, WorldToMetersScale(100.0f)
 		{
-			FrameNumber = 0;
-
 			const uint32 MaxDevices = vr::k_unMaxTrackedDeviceCount;
 
 			FMemory::Memzero(bDeviceIsConnected, MaxDevices * sizeof(bool));
 			FMemory::Memzero(bPoseIsValid, MaxDevices * sizeof(bool));
 			FMemory::Memzero(DevicePosition, MaxDevices * sizeof(FVector));
 
-			WorldToMetersScale = 100.0f;
 
 			for (uint32 i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
 			{
@@ -608,6 +500,9 @@ private:
 			FMemory::Memzero(RawPoses, MaxDevices * sizeof(vr::HmdMatrix34_t));
 		}
  	};
+
+	void UpdatePoses();
+
 	void ConvertRawPoses(FSteamVRHMD::FTrackingFrame& TrackingFrame) const;
 
 	FTrackingFrame GameTrackingFrame;
@@ -662,8 +557,8 @@ private:
 	uint32 WindowMirrorBoundsWidth;
 	uint32 WindowMirrorBoundsHeight;
 
-	/** The screen percentage requested by the current headset that would give a perceived pixel density of 1.0 */
-	float IdealScreenPercentage;
+	FIntPoint IdealRenderTargetSize;
+	float PixelDensity;
 
 	/** How far the HMD has to move before it's considered to be worn */
 	float HMDWornMovementThreshold;
@@ -695,7 +590,6 @@ private:
 
 	FQuat PlayerOrientation;
 	FVector PlayerLocation;
-	FDelegateHandle DrawDebugDelegateHandle;
 
 	TRefCountPtr<BridgeBaseImpl> pBridge;
 

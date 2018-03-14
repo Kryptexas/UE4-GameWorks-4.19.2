@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -223,6 +223,10 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Generate dSYM bundle for third party crash tools"))
 	bool bGeneratedSYMBundle;
 
+	// Enable generation of a .udebugsymbols file, which allows offline, platform-independent symbolication for the Malloc Profiler or external crash reporting tools. Requires a dSYM file or bundle.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Generate .udebugsymbols file"))
+	bool bGenerateCrashReportSymbols;
+	
 	// Enable generation of xcode archive package
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Generate xcode archive package"))
 	bool bGenerateXCArchive;	
@@ -374,6 +378,15 @@ public:
 	// Whether to use automatic signing through Xcode
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build)
 	bool bAutomaticSigning;
+
+	// The team ID of the apple developer account to be used to autmatically sign IOS builds
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (ConfigHierarchyEditable))
+		FString IOSTeamID;
+
+	// Whether the app supports HTTPS
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Online, meta = (DisplayName = "Allow web connections to non-HTTPS websites"))
+	bool bDisableHTTPS;
+
 
     // The maximum supported Metal shader langauge version.
     // This defines what features may be used and OS versions supported.

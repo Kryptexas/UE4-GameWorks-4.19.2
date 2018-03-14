@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GCObjectReferencer.cpp: Implementation of UGCObjectReferencer
@@ -34,14 +34,16 @@ void UGCObjectReferencer::AddObject(FGCObject* Object)
 	check(Object);
 	check(GObjUnhashUnreachableIsInProgress || GObjIncrementalPurgeIsInProgress || !IsGarbageCollecting());	FScopeLock ReferencedObjectsLock(&ReferencedObjectsCritical);
 	// Make sure there are no duplicates. Should be impossible...
-	ReferencedObjects.AddUnique(Object);
+	checkSlow(!ReferencedObjects.Contains(Object));
+	ReferencedObjects.Add(Object);
 }
 
 void UGCObjectReferencer::RemoveObject(FGCObject* Object)
 {
 	check(Object);
 	check(GObjUnhashUnreachableIsInProgress || GObjIncrementalPurgeIsInProgress || !IsGarbageCollecting());	FScopeLock ReferencedObjectsLock(&ReferencedObjectsCritical);
-	ReferencedObjects.Remove(Object);
+	int32 NumRemoved = ReferencedObjects.RemoveSingleSwap(Object);
+	check(NumRemoved == 1);
 }
 
 void UGCObjectReferencer::FinishDestroy()
@@ -52,6 +54,7 @@ void UGCObjectReferencer::FinishDestroy()
 		// reference this object.
 		check( FGCObject::GGCObjectReferencer == this );
 		FGCObject::GGCObjectReferencer = NULL;
+		ReferencedObjects.Empty();
 	}
 
 	Super::FinishDestroy();

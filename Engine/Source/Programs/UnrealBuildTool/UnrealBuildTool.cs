@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -37,6 +37,11 @@ namespace UnrealBuildTool
 		/// Whether we're running with engine installed
 		/// </summary>
 		static private bool? bIsEngineInstalled;
+
+		/// <summary>
+		/// Whether we're running with enterprise installed
+		/// </summary>
+		static private bool? bIsEnterpriseInstalled;
 
 		/// <summary>
 		/// Whether we're running with an installed project
@@ -92,6 +97,16 @@ namespace UnrealBuildTool
 		/// The full name of the Enterprise/Source directory
 		/// </summary>
 		public static readonly DirectoryReference EnterpriseSourceDirectory = DirectoryReference.Combine(EnterpriseDirectory, "Source");
+
+		/// <summary>
+		/// The full name of the Enterprise/Plugins directory
+		/// </summary>
+		public static readonly DirectoryReference EnterprisePluginsDirectory = DirectoryReference.Combine(EnterpriseDirectory, "Plugins");
+
+		/// <summary>
+		/// The full name of the Enterprise/Intermediate directory
+		/// </summary>
+		public static readonly DirectoryReference EnterpriseIntermediateDirectory = DirectoryReference.Combine(EnterpriseDirectory, "Intermediate");
 
 		/// <summary>
 		/// The Remote Ini directory.  This should always be valid when compiling using a remote server.
@@ -201,6 +216,19 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Returns true if UnrealBuildTool is running using installed Enterprise components
+		/// </summary>
+		/// <returns>True if running using installed Enterprise components</returns>
+		static public bool IsEnterpriseInstalled()
+		{
+			if(!bIsEnterpriseInstalled.HasValue)
+			{
+				bIsEnterpriseInstalled = FileReference.Exists(FileReference.Combine(EnterpriseDirectory, "Build", "InstalledBuild.txt"));
+			}
+			return bIsEnterpriseInstalled.Value;
+		}
+
+		/// <summary>
 		/// Returns true if UnrealBuildTool is running using an installed project (ie. a mod kit)
 		/// </summary>
 		/// <returns>True if running using an installed project</returns>
@@ -266,7 +294,23 @@ namespace UnrealBuildTool
 		{
 			// Enterprise modules are considered as engine modules
 			return InDirectory.IsUnderDirectory( UnrealBuildTool.EngineDirectory ) || InDirectory.IsUnderDirectory( UnrealBuildTool.EnterpriseSourceDirectory ) ||
-				InDirectory.IsUnderDirectory( DirectoryReference.Combine( UnrealBuildTool.EnterpriseDirectory, "Plugins" ) );
+				InDirectory.IsUnderDirectory( UnrealBuildTool.EnterprisePluginsDirectory ) || InDirectory.IsUnderDirectory( UnrealBuildTool.EnterpriseIntermediateDirectory );
+		}
+
+		/// <summary>
+		/// Determines whether a directory is part of an installed directory
+		/// </summary>
+		/// <param name="InDirectory"></param>
+		/// <returns>true if the directory is under an installed directory, false if not</returns>
+		static public bool IsUnderAnInstalledDirectory(DirectoryReference InDirectory)
+		{
+			// Enterprise modules are considered as engine modules
+			bool bIsUnderEngine = InDirectory.IsUnderDirectory( UnrealBuildTool.EngineDirectory );
+
+			bool bIsUnderEnterprise = InDirectory.IsUnderDirectory( UnrealBuildTool.EnterpriseSourceDirectory ) ||
+				InDirectory.IsUnderDirectory(UnrealBuildTool.EnterprisePluginsDirectory) || InDirectory.IsUnderDirectory(UnrealBuildTool.EnterpriseIntermediateDirectory);
+
+			return (IsEngineInstalled() && bIsUnderEngine) || (IsEnterpriseInstalled() && bIsUnderEnterprise);
 		}
 
 		public static void RegisterAllUBTClasses(SDKOutputLevel OutputLevel, bool bValidatingPlatforms)
@@ -380,7 +424,8 @@ namespace UnrealBuildTool
 			ECompilationResult Result = ECompilationResult.Succeeded;
 
 			// Do super early log init as a safeguard. We'll re-init with proper config options later.
-			Log.InitLogging(bLogTimestamps: false, InLogLevel: LogEventType.Log, bLogSeverity: true, bLogSources: false, bLogSourcesToConsole: false, bColorConsoleOutput: true, TraceListeners: new[] { new UEConsoleTraceListener() });
+			bool bLogProgramNameWithSeverity = Arguments.Any(x => x.Equals("-FromMsBuild", StringComparison.InvariantCultureIgnoreCase));
+			Log.InitLogging(bLogTimestamps: false, InLogLevel: LogEventType.Log, bLogSeverity: true, bLogProgramNameWithSeverity: bLogProgramNameWithSeverity, bLogSources: false, bLogSourcesToConsole: false, bColorConsoleOutput: true, TraceListeners: new[] { new UEConsoleTraceListener() });
 
 			// ensure we can resolve any external assemblies that are not in the same folder as our assembly.
 			AssemblyUtils.InstallAssemblyResolver(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()));
@@ -579,6 +624,7 @@ namespace UnrealBuildTool
 						bLogTimestamps: false,
 						InLogLevel: (LogEventType)Enum.Parse(typeof(LogEventType), BuildConfiguration.LogLevel),
 						bLogSeverity: true,
+						bLogProgramNameWithSeverity: bLogProgramNameWithSeverity,
 						bLogSources: false,
 						bLogSourcesToConsole: false,
 						bColorConsoleOutput: true,
@@ -648,7 +694,7 @@ namespace UnrealBuildTool
 
 					// @todo ubtmake: remove this when building with RPCUtility works
 					// @todo tvos merge: Check the change to this line, not clear why. Is TVOS needed here?
-					if (CheckPlatform == UnrealTargetPlatform.Mac || CheckPlatform == UnrealTargetPlatform.IOS || CheckPlatform == UnrealTargetPlatform.TVOS)
+					if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac && (CheckPlatform == UnrealTargetPlatform.Mac || CheckPlatform == UnrealTargetPlatform.IOS || CheckPlatform == UnrealTargetPlatform.TVOS))
 					{
 						BuildConfiguration.bUseUBTMakefiles = false;
 					}
@@ -746,7 +792,7 @@ namespace UnrealBuildTool
 						{
 							//ConfigName = Arg;
 						}
-						else if (LowercaseArg == "-modulewithsuffix")
+						else if (LowercaseArg.StartsWith("-modulewithsuffix="))
 						{
 							bSpecificModulesOnly = true;
 							continue;
@@ -860,25 +906,10 @@ namespace UnrealBuildTool
 							}
 
 							// Read from the editor config
-							DirectoryReference EngineSavedDir = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Saved");
-							if(IsEngineInstalled())
+							ProjectFileFormat PreferredSourceCodeAccessor;
+							if(ProjectFileGenerator.GetPreferredSourceCodeAccessor(ProjectFile, out PreferredSourceCodeAccessor))
 							{
-								BuildVersion Version;
-								if(BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
-								{
-									EngineSavedDir = DirectoryReference.Combine(Utils.GetUserSettingDirectory(), "UnrealEngine", String.Format("{0}.{1}", Version.MajorVersion, Version.MinorVersion), "Saved");
-								}
-							}
-							ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.EditorSettings, DirectoryReference.FromFile(ProjectFile), BuildHostPlatform.Current.Platform, EngineSavedDir);
-
-							string PreferredAccessor;
-							if (Ini.GetString("/Script/SourceCodeAccess.SourceCodeAccessSettings", "PreferredAccessor", out PreferredAccessor))
-							{
-								ProjectFileFormat PreferredFormat;
-								if (Enum.TryParse(PreferredAccessor, out PreferredFormat))
-								{
-									ProjectFileFormats.Add(PreferredFormat);
-								}
+								ProjectFileFormats.Add(PreferredSourceCodeAccessor);
 							}
 
 							// If there's still nothing set, get the default project file format for this platform
@@ -908,7 +939,7 @@ namespace UnrealBuildTool
 									Generator = new KDevelopGenerator(ProjectFile);
 									break;
 								case ProjectFileFormat.CodeLite:
-									Generator = new CodeLiteGenerator(ProjectFile);
+									Generator = new CodeLiteGenerator(ProjectFile, Arguments);
 									break;
 								case ProjectFileFormat.VisualStudio:
 									Generator = new VCProjectFileGenerator(ProjectFile, VCProjectFileFormat.Default, OverrideWindowsCompiler);
@@ -964,7 +995,7 @@ namespace UnrealBuildTool
 						// Build our project
 						if (Result == ECompilationResult.Succeeded)
 						{
-							Result = RunUBT(BuildConfiguration, Arguments, ProjectFile);
+							Result = RunUBT(BuildConfiguration, Arguments, ProjectFile, true);
 						}
 					}
 					// Print some performance info
@@ -1136,7 +1167,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		internal static ECompilationResult RunUBT(BuildConfiguration BuildConfiguration, string[] Arguments, FileReference ProjectFile)
+		internal static ECompilationResult RunUBT(BuildConfiguration BuildConfiguration, string[] Arguments, FileReference ProjectFile, bool bCatchExceptions)
 		{
 			bool bSuccess = true;
 
@@ -1149,7 +1180,7 @@ namespace UnrealBuildTool
 			string ExecutorName = "Unknown";
 			ECompilationResult BuildResult = ECompilationResult.Succeeded;
 
-			Thread CPPIncludesThread = null;
+			CppIncludeBackgroundThread CppIncludeThread = null;
 
 			List<UEBuildTarget> Targets = null;
 			Dictionary<UEBuildTarget, CPPHeaders> TargetToHeaders = new Dictionary<UEBuildTarget, CPPHeaders>();
@@ -1213,6 +1244,11 @@ namespace UnrealBuildTool
 					else if (TargetDescs[0].OnlyModules.Count > 0 && TargetDescs[0].ForeignPlugins.Count == 0)
 					{
 						HotReload = EHotReload.FromEditor;
+					}
+
+					if (HotReload != EHotReload.Disabled && BuildConfiguration.bCleanProject)
+					{
+						throw new BuildException("Unable to clean target while hot-reloading. Close the editor and try again.");
 					}
 				}
 				TargetDescriptor HotReloadTargetDesc = (HotReload != EHotReload.Disabled) ? TargetDescs[0] : null;
@@ -1391,10 +1427,12 @@ namespace UnrealBuildTool
 				{
 					DateTime TargetInitStartTime = DateTime.UtcNow;
 
+					ReadOnlyBuildVersion Version = new ReadOnlyBuildVersion(BuildVersion.ReadDefault());
+					
 					Targets = new List<UEBuildTarget>();
 					foreach (TargetDescriptor TargetDesc in TargetDescs)
 					{
-						UEBuildTarget Target = UEBuildTarget.CreateTarget(TargetDesc, Arguments, BuildConfiguration.SingleFileToCompile != null);
+						UEBuildTarget Target = UEBuildTarget.CreateTarget(TargetDesc, Arguments, BuildConfiguration.SingleFileToCompile != null, Version);
 						if ((Target == null) && (BuildConfiguration.bCleanProject))
 						{
 							continue;
@@ -1640,8 +1678,7 @@ namespace UnrealBuildTool
 							// our best case UBT iteration times for this task which can easily be performed asynchronously
 							if (BuildConfiguration.bUseUBTMakefiles && TargetToOutdatedPrerequisitesMap.Count > 0)
 							{
-								CPPIncludesThread = CreateThreadForCachingCPPIncludes(TargetToOutdatedPrerequisitesMap, TargetToHeaders);
-								CPPIncludesThread.Start();
+								CppIncludeThread = new CppIncludeBackgroundThread(TargetToOutdatedPrerequisitesMap, TargetToHeaders);
 							}
 
 							// If we're not touching any shared files (ie. anything under Engine), allow the build ids to be recycled between applications.
@@ -1725,14 +1762,18 @@ namespace UnrealBuildTool
 			}
 			catch (Exception Ex)
 			{
+				if(!bCatchExceptions)
+				{
+					throw;
+				}
 				ExceptionUtils.PrintExceptionInfo(Ex, String.IsNullOrEmpty(BuildConfiguration.LogFilename)? null : BuildConfiguration.LogFilename);
 				BuildResult = ECompilationResult.OtherCompilationError;
 			}
 
 			// Wait until our CPPIncludes dependency scanner thread has finished
-			if (CPPIncludesThread != null)
+			if (CppIncludeThread != null)
 			{
-				CPPIncludesThread.Join();
+				CppIncludeThread.Join();
 			}
 
 			// Save the include dependency cache.
@@ -1888,16 +1929,32 @@ namespace UnrealBuildTool
 			return TargetSettings;
 		}
 
-
 		/// <summary>
-		/// Returns a Thread object that can be kicked off to update C++ include dependency cache
+		/// Helper class to update the C++ dependency cache on a background thread. Captures exceptions and re-throws on the main thread when joined.
 		/// </summary>
-		/// <param name="TargetToOutdatedPrerequisitesMap">Maps each target to a list of outdated C++ files that need indirect dependencies cached</param>
-		/// <param name="TargetToHeaders">Map of target to cached header information</param>
-		/// <returns>The thread object</returns>
-		private static Thread CreateThreadForCachingCPPIncludes(Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap, Dictionary<UEBuildTarget, CPPHeaders> TargetToHeaders)
+		class CppIncludeBackgroundThread
 		{
-			return new Thread(new ThreadStart(() =>
+			Thread BackgroundThread;
+			Exception CaughtException;
+
+			public CppIncludeBackgroundThread(Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap, Dictionary<UEBuildTarget, CPPHeaders> TargetToHeaders)
+			{
+				BackgroundThread = new Thread(() => Run(TargetToOutdatedPrerequisitesMap, TargetToHeaders));
+				BackgroundThread.Start();
+			}
+
+			public void Join()
+			{
+				BackgroundThread.Join();
+				if(CaughtException != null)
+				{
+					throw CaughtException;
+				}
+			}
+
+			private void Run(Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap, Dictionary<UEBuildTarget, CPPHeaders> TargetToHeaders)
+			{
+				try
 				{
 					// @todo ubtmake: This thread will access data structures that are also used on the main UBT thread, but during this time UBT
 					// is only invoking the build executor, so should not be touching this stuff.  However, we need to at some guards to make sure.
@@ -1914,8 +1971,14 @@ namespace UnrealBuildTool
 							Headers.FindAndCacheAllIncludedFiles(PrerequisiteItem, PrerequisiteItem.CachedIncludePaths, bOnlyCachedDependencies: false);
 						}
 					}
-				}));
+				}
+				catch(Exception Ex)
+				{
+					CaughtException = Ex;
+				}
+			}
 		}
+
 
 		/// <summary>
 		/// Saves a UBTMakefile to disk
@@ -2507,10 +2570,8 @@ namespace UnrealBuildTool
 				{
 					FileItem OriginalProducedItem = Action.ProducedItems[ItemIndex];
 
-					string OriginalProducedItemFilePath = OriginalProducedItem.AbsolutePath;
-					string NewProducedItemFilePath = OriginalProducedItemFilePath.Replace(OriginalFileNameWithoutExtension, NewFileNameWithoutExtension);
-
-					if (OriginalProducedItemFilePath != NewProducedItemFilePath)
+					string NewProducedItemFilePath = OriginalProducedItem.AbsolutePath.Replace(OriginalFileNameWithoutExtension, NewFileNameWithoutExtension);
+					if (OriginalProducedItem.AbsolutePath != NewProducedItemFilePath)
 					{
 						// OK, the produced item's file name changed so we'll update it to point to our new file
 						FileItem NewProducedItem = FileItem.GetItemByPath(NewProducedItemFilePath);

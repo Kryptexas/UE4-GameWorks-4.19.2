@@ -17,8 +17,11 @@ ParticleEmitter は ParticleSystem に含まれる単体のパーティクル効
 | **Collapsed** | True の場合、ParticleEmitter は Cascade の Emitter List で折り畳まれて表示されます。ParticleEmitter ブロックを ダブルクリックするとトグルされるプロパティです。|
 
 
-<!-- Begin ParticleEmitter Table Includes -->
-<!--
+[COMMENT:none]
+ Begin ParticleEmitter Table Includes 
+[/COMMENT]
+[COMMENT:none]
+
 [EXCERPT:RenderMode]
 [REGION:simpletable]
 | モード | 説明 |
@@ -29,5 +32,8 @@ ParticleEmitter は ParticleSystem に含まれる単体のパーティクル効
 | `ERM_None` | エミッタのパーティクルはレンダリングされません。 |
 [/REGION]
 [/EXCERPT:RenderMode]
--->
-<!-- End ParticleEmitter Includes -->
+
+[/COMMENT]
+[COMMENT:none]
+ End ParticleEmitter Includes 
+[/COMMENT]

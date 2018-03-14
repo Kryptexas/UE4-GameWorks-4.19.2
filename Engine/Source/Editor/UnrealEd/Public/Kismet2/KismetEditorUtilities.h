@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -33,13 +33,13 @@ enum class EBlueprintCompileOptions
 	None = 0x0,
 
 	/** This flag has several effects, but its behavior is to 'make things work' when regenerating a blueprint on load */
-	IsRegeneratingOnLoad = 0x1, 
+	IsRegeneratingOnLoad = 0x1,
 	/** Skips garbage collection at the end of compile, useful if caller will collect garbage themselves */
-	SkipGarbageCollection = 0x2, 
+	SkipGarbageCollection = 0x2,
 	/** Prevents intermediate products from being garbage collected, useful for debugging macro/node expansion */
-	SaveIntermediateProducts = 0x4, 
+	SaveIntermediateProducts = 0x4,
 	/** Indicates that the skeleton is up to date, and therefore the skeleton compile pass can be skipped */
-	SkeletonUpToDate = 0x8, 
+	SkeletonUpToDate = 0x8,
 	/** Indicates this is a batch compile and that BroadcastCompiled and BroadcastBlueprintCompiled should be skipped */
 	BatchCompile = 0x10,
 	/** Skips saving blueprints even if save on compile is enabled */

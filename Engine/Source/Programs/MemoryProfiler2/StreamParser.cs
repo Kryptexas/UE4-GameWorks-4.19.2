@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.IO;
@@ -166,6 +166,12 @@ namespace MemoryProfiler2
 				EventArgs.Cancel = true;
 				return;
 			}
+
+            ParserFileStream.Seek((Int64)Header.ModulesOffset, SeekOrigin.Begin);
+            for (UInt64 ModuleId = 0; ModuleId < Header.ModuleEntries; ModuleId++)
+            {
+                FStreamInfo.GlobalInstance.ModuleInfoArray.Add(new FModuleInfo(BinaryStream));
+            }
 
             // We need to look up symbol information ourselves if it wasn't serialized.
             try
@@ -934,6 +940,10 @@ namespace MemoryProfiler2
 			if (FStreamInfo.GlobalInstance.SymbolParser != null)
 			{
 				FStreamInfo.GlobalInstance.SymbolParser.InitializeSymbolService(Header.ExecutableName, new FUIBroker(MainMProfWindow));
+                if (FStreamInfo.GlobalInstance.ModuleInfoArray != null && FStreamInfo.GlobalInstance.ModuleInfoArray.Count > 0)
+                {
+                    FStreamInfo.GlobalInstance.SymbolParser.SetModuleOffset(FStreamInfo.GlobalInstance.ModuleInfoArray[0].BaseOfImage);
+                }
 			}
 
 			// Nothing more to do if symbols were serialized at runtime (we just needed to create the correct symbol parser)

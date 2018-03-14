@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 D3D12Device.cpp: D3D device RHI implementation.
@@ -131,6 +131,11 @@ void FD3D12Device::SetupAfterDeviceCreation()
 			GDynamicRHI->EnableIdealGPUCaptureOptions(true);
 		}
 	}
+	if (GEmitRgpFrameMarkers && GetOwningRHI()->GetAmdAgsContext())
+	{
+		// Running on AMD with RGP profiling enabled, so enable capturing mode
+		GDynamicRHI->EnableIdealGPUCaptureOptions(true);
+	}
 #endif
 
 	// Init offline descriptor allocators
@@ -147,7 +152,7 @@ void FD3D12Device::SetupAfterDeviceCreation()
 
 	// This value can be tuned on a per app basis. I.e. most apps will never run into descriptor heap pressure so
 	// can make this global heap smaller
-	uint32 NumGlobalViewDesc = GLOBAL_VIEW_HEAP_SIZE;
+	uint32 NumGlobalViewDesc = GGlobalViewHeapSize;
 
 	const D3D12_RESOURCE_BINDING_TIER Tier = GetParentAdapter()->GetResourceBindingTier();
 	uint32 MaximumSupportedHeapSize = NUM_VIEW_DESCRIPTORS_TIER_1;

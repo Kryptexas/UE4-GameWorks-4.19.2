@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -66,7 +66,7 @@ public:
 	}
 
 private:
-	FTransform GetTransformToRecord();
+	bool GetTransformToRecord(FTransform& TransformToRecord);
 
 private:
 	/** Object to record from */
@@ -95,4 +95,7 @@ private:
 
 	/** Flag indicating that some time while this recorder was active an attachment was also in place */
 	bool bWasAttached;
+
+	/** The guid being recorded to */
+	FGuid Guid;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnCoreNet.cpp: Core networking support.
@@ -167,6 +167,8 @@ const FClassNetCache* FClassNetCacheMgr::GetClassNetCache( const UClass* Class )
 
 	if ( !Result )
 	{
+		ensureMsgf(!Class->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad), TEXT("FClassNetCacheMgr::GetClassNetCache: %s has flag RF_NeedPostLoad. NetFields and ClassReps will be incorrect!"), *GetFullNameSafe(Class));
+
 		Result					= ClassFieldIndices.Add( Class, new FClassNetCache( Class ) );
 		Result->Super			= NULL;
 		Result->FieldsBase		= 0;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -294,8 +294,10 @@ public:
 	/** Stop recording a replay if one is currently in progress */
 	virtual void StopRecordingReplay();
 
-	/** Start playing back a previously recorded replay. */
-	virtual void PlayReplay(const FString& InName, UWorld* WorldOverride = nullptr, const TArray<FString>& AdditionalOptions = TArray<FString>());
+	/** Start playing back a previously recorded replay.
+	 *	Return false if it fails to play.
+	*/
+	virtual bool PlayReplay(const FString& InName, UWorld* WorldOverride = nullptr, const TArray<FString>& AdditionalOptions = TArray<FString>());
 
 	/**
 	 * Adds a join-in-progress user to the set of users associated with the currently recording replay (if any)
@@ -371,6 +373,11 @@ public:
 	void NotifyPreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel);
 	/** @return delegate fired when client travel occurs */
 	FOnPreClientTravel& OnNotifyPreClientTravel() { return NotifyPreClientTravelDelegates; }
+
+	/**
+	 * Calls HandleDisconnect on either the OnlineSession if it exists or the engine, to cause a travel back to the default map. The instance must have a world.
+	 */
+	virtual void ReturnToMainMenu();
 
 protected:
 	/** Called when the game instance is started either normally or through PIE. */

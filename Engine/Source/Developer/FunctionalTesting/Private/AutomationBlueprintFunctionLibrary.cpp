@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AutomationBlueprintFunctionLibrary.h"
 #include "HAL/IConsoleManager.h"
@@ -11,6 +11,9 @@
 #include "Engine/GameViewportClient.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/Engine.h"
+#if WITH_EDITOR
+#include "Editor/EditorEngine.h"
+#endif
 #include "Tests/AutomationCommon.h"
 #include "Logging/MessageLog.h"
 #include "TakeScreenshotAfterTimeLatentAction.h"
@@ -112,6 +115,8 @@ FAutomationTestScreenshotEnvSetup::FAutomationTestScreenshotEnvSetup()
 	, ScreenSpaceReflectionQuality(TEXT("r.SSR.Quality"))
 	, EyeAdaptationQuality(TEXT("r.EyeAdaptationQuality"))
 	, ContactShadows(TEXT("r.ContactShadows"))
+	, TonemapperGamma(TEXT("r.TonemapperGamma"))
+	, SecondaryScreenPercentage(TEXT("r.SecondaryScreenPercentage.GameViewport"))
 {
 }
 
@@ -129,7 +134,16 @@ void FAutomationTestScreenshotEnvSetup::Setup(FAutomationScreenshotOptions& InOu
 		ScreenSpaceReflectionQuality.Set(0);
 		EyeAdaptationQuality.Set(0);
 		ContactShadows.Set(0);
+		TonemapperGamma.Set(2.2f);
 	}
+	else if (InOutOptions.bDisableTonemapping)
+	{
+		EyeAdaptationQuality.Set(0);
+		TonemapperGamma.Set(2.2f);
+	}
+
+	// Ignore High-DPI settings
+	SecondaryScreenPercentage.Set(100.f); 
 
 	InOutOptions.SetToleranceAmounts(InOutOptions.Tolerance);
 
@@ -160,6 +174,8 @@ void FAutomationTestScreenshotEnvSetup::Restore()
 	ScreenSpaceReflectionQuality.Restore();
 	EyeAdaptationQuality.Restore();
 	ContactShadows.Restore();
+	TonemapperGamma.Restore();
+	SecondaryScreenPercentage.Restore();
 
 	if (UGameViewportClient* ViewportClient = GEngine->GameViewport)
 	{
@@ -183,14 +199,45 @@ public:
 		: World(InWorld)
 		, Name(InName)
 		, Options(InOptions)
+		, bNeedsViewportSizeRestore(false)
 	{
 		GEngine->GameViewport->OnScreenshotCaptured().AddRaw(this, &FAutomationScreenshotTaker::GrabScreenShot);
 
 		EnvSetup.Setup(Options);
+		FlushRenderingCommands();
+
+		if (!FPlatformProperties::HasFixedResolution())
+		{
+			FSceneViewport* GameViewport = GEngine->GameViewport ? GEngine->GameViewport->GetGameViewport() : nullptr;
+			if (GameViewport)
+			{
+#if WITH_EDITOR
+				// In the editor we can only attempt to re-size standalone viewports
+				UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine);	
+
+				const bool bIsPIEViewport = GameViewport->IsPlayInEditorViewport();	
+				const bool bIsNewViewport = World.IsValid() && EditorEngine && EditorEngine->WorldIsPIEInNewViewport(World.Get());
+
+				if (!bIsPIEViewport || bIsNewViewport)
+#endif		
+				{
+					ViewportRestoreSize = GameViewport->GetSize();
+					FIntPoint ScreenshotViewportSize = UAutomationBlueprintFunctionLibrary::GetAutomationScreenshotSize(InOptions);
+					GameViewport->SetViewportSize(ScreenshotViewportSize.X, ScreenshotViewportSize.Y);
+					bNeedsViewportSizeRestore = true;
+				}
+			}
+		}
 	}
 
 	virtual ~FAutomationScreenshotTaker()
 	{
+		if (!FPlatformProperties::HasFixedResolution() && bNeedsViewportSizeRestore)
+		{
+			FSceneViewport* GameViewport = GEngine->GameViewport->GetGameViewport();
+			GameViewport->SetViewportSize(ViewportRestoreSize.X, ViewportRestoreSize.Y);
+		}
+
 		EnvSetup.Restore();
 
 		GEngine->GameViewport->OnScreenshotCaptured().RemoveAll(this);
@@ -269,6 +316,8 @@ private:
 	FAutomationScreenshotOptions Options;
 
 	FAutomationTestScreenshotEnvSetup EnvSetup;
+	FIntPoint ViewportRestoreSize;
+	bool bNeedsViewportSizeRestore;
 };
 
 #endif
@@ -338,41 +387,12 @@ bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(UObje
 {
 	UAutomationBlueprintFunctionLibrary::FinishLoadingBeforeScreenshot();
 
-	FIntPoint ScreenshotRes = GetAutomationScreenshotSize(Options);
-
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 	FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(WorldContextObject ? WorldContextObject->GetWorld() : nullptr, Name, Options);
 #endif
 
-	//static IConsoleVariable* HighResScreenshotDelay = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HighResScreenshotDelay"));
-	//check(HighResScreenshotDelay);
-	//HighResScreenshotDelay->Set(10);
-
-    if ( FPlatformProperties::HasFixedResolution() )
-    {
-	    FScreenshotRequest::RequestScreenshot(false);
-	    return true;
-    }
-	else
-	{
-	    FHighResScreenshotConfig& Config = GetHighResScreenshotConfig();
-
-	    if ( Config.SetResolution(ScreenshotRes.X, ScreenshotRes.Y, 1.0f) )
-	    {
-			if ( !GEngine->GameViewport->GetGameViewport()->TakeHighResScreenShot() )
-			{
-				// If we failed to take the screenshot, we're going to need to cleanup the automation screenshot taker.
-#if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
-				delete TempObject;
-#endif 
-				return false;
-			}
-
-			return true; //-V773
-		}
-	}
-
-	return false;
+	FScreenshotRequest::RequestScreenshot(false);
+	return true; //-V773
 }
 
 void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshot(UObject* WorldContextObject, FLatentActionInfo LatentInfo, const FString& Name, const FAutomationScreenshotOptions& Options)

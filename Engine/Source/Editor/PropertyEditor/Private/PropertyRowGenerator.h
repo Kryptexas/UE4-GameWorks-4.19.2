@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -77,19 +77,25 @@ public:
 	FPropertyRowGenerator(const FPropertyRowGeneratorArgs& InArgs, TSharedPtr<FAssetThumbnailPool> InThumbnailPool);
 	~FPropertyRowGenerator();
 
-	DECLARE_DERIVED_EVENT(FPropertyRowGenerator, IPropertyRowGenerator::FOnRefreshRows, FOnRefreshRows);
+	DECLARE_DERIVED_EVENT(FPropertyRowGenerator, IPropertyRowGenerator::FOnRowsRefreshed, FOnRowsRefreshed);
 
 	/** IPropertyRowGenerator interface */
 	virtual void SetObjects(const TArray<UObject*>& InObjects) override;
 	virtual const TArray<TSharedRef<IDetailTreeNode>>& GetRootTreeNodes() const override;
-	virtual FOnRefreshRows& OnRefreshRows() override { return RefreshRowsDelegate; }
+	virtual TSharedPtr<IDetailTreeNode> FindTreeNode(TSharedPtr<IPropertyHandle> PropertyHandle) const override;
+	virtual FOnRowsRefreshed& OnRowsRefreshed() override { return RowsRefreshedDelegate; }
 	virtual void RegisterInstancedCustomPropertyLayout(UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate) override;
 	virtual void RegisterInstancedCustomPropertyTypeLayout(FName PropertyTypeName, FOnGetPropertyTypeCustomizationInstance PropertyTypeLayoutDelegate, TSharedPtr<IPropertyTypeIdentifier> Identifier = nullptr) override;
 	virtual void UnregisterInstancedCustomPropertyLayout(UStruct* Class) override;
 	virtual void UnregisterInstancedCustomPropertyTypeLayout(FName PropertyTypeName, TSharedPtr<IPropertyTypeIdentifier> Identifier = nullptr) override;
+	virtual TSharedPtr<FAssetThumbnailPool> GetGeneratedThumbnailPool() override
+	{ 
+		return GetThumbnailPool();
+	};
+
 
 	/** FTickableEditorObject interface */
-	virtual bool IsTickable() const override { return true; }
+	virtual ETickableTickType GetTickableTickType() const override { return ETickableTickType::Always; }
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
 
@@ -108,6 +114,7 @@ private:
 	void UpdatePropertyMaps();
 	void UpdateSinglePropertyMap(TSharedPtr<FComplexPropertyNode> InRootPropertyNode, FDetailLayoutData& LayoutData);
 	bool ValidatePropertyNodes(const FRootPropertyNodeList& PropertyNodeList);
+	TSharedPtr<IDetailTreeNode> FindTreeNodeRecursive(const TSharedPtr<IDetailTreeNode>& StartNode, TSharedPtr<IPropertyHandle> PropertyHandle) const;
 private:
 	const FPropertyRowGeneratorArgs Args;
 	/** The root property nodes of the property tree for a specific set of UObjects */
@@ -125,7 +132,7 @@ private:
 	/** Currently viewed objects */
 	TArray<TWeakObjectPtr<UObject>> SelectedObjects;
 	/** Delegate to call when the user of this generator needs to know the rows are invalid */
-	FOnRefreshRows RefreshRowsDelegate;
+	FOnRowsRefreshed RowsRefreshedDelegate;
 	/** A mapping of type names to detail layout delegates, called when querying for custom detail layouts in this instance of the details view only */
 	FCustomPropertyTypeLayoutMap InstancedTypeToLayoutMap;
 	/** A mapping of classes to detail layout delegates, called when querying for custom detail layouts in this instance of the details view only*/
@@ -135,5 +142,4 @@ private:
 	/** Utility class for accessing commonly used helper methods from customizations */
 	TSharedRef<IPropertyUtilities> PropertyUtilities;
 	bool bViewingClassDefaultObject;
-	bool bShouldTick;
 };

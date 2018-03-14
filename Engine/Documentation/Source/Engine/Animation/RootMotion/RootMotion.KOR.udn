@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3467293
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:루트 모션
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -184,7 +184,8 @@ YuD29-Xr7Oc
 루트 모션 도중 캐릭터의 피직스 상태가 고려됩니다. 예를 들어 캐릭터의 피직스가 Walking 또는 Falling 인 경우, 루트 모션의 Z 축은 무시되고 중력이 적용됩니다. 캐릭터는 떨어지거나 경사면을 미끄러지거나 계단을 오르게 됩니다. 캐릭터 피직스가 Flying 인 경우, 루트 모션이 통으로 적용되고, 중력은 무시됩니다.
 
 
-<!-- This should be a HowTo. It's actually a checkbox now instead of using AnimMontages
+[COMMENT]
+ This should be a HowTo. It's actually a checkbox now instead of using AnimMontages
 ## 루트 모션 셋업
 
 UE4 에서의 루트 모션 셋업은 아주 쉽습니다만, 구체적인 방법은 사용하시는 UE4 버전에 따라 약간 다릅니다. 4.6 미만 버전의 프로세스에 대한 하이 레벨 개요는 이렇습니다:
@@ -288,7 +289,8 @@ PWB_mqjz3iA
 [/PARAMLITERAL]
 [/OBJECT]
 
--->
+
+[/COMMENT]
 
 
 

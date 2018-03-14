@@ -22,7 +22,7 @@ Order: 2
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 In this step, we create the layout of our interactive UI Widgets and script what happens when clicking a button. 
 
@@ -93,6 +93,6 @@ In this step, we create the layout of our interactive UI Widgets and script what
 Our Widget Blueprints are set up to display our keypad and keypad display, next we will add them as Widget Components to our Actor Blueprints so that we can have them appear inside our level. 
 By the end of the next step, we should be able to test out our system and interact with both elements during gameplay. 
 
-%Steps%
+
 
 

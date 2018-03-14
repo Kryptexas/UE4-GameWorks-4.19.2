@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System.IO;
 using UnrealBuildTool;
@@ -12,8 +12,8 @@ public class Facebook : ModuleRules
 		// Additional Frameworks and Libraries for Android found in OnlineSubsystemFacebook_UPL.xml
         if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
-			Definitions.Add("WITH_FACEBOOK=1");
-			Definitions.Add("UE4_FACEBOOK_VER=4.18");
+			PublicDefinitions.Add("WITH_FACEBOOK=1");
+			PublicDefinitions.Add("UE4_FACEBOOK_VER=4.18");
 
             // These are iOS system libraries that Facebook depends on (FBAudienceNetwork, FBNotifications)
             PublicFrameworks.AddRange(

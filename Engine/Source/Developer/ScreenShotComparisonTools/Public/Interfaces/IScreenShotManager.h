@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IScreenShotComparisonModule.h: Declares the IScreenShotComparisonModule interface.
@@ -44,7 +44,7 @@ public:
 	/**
 	 * Compares a specific screenshot, the shot path must be relative from the incoming unapproved directory.
 	 */
-	virtual TFuture<FImageComparisonResult> CompareScreensotAsync(FString RelativeImagePath) = 0;
+	virtual TFuture<FImageComparisonResult> CompareScreenshotAsync(FString RelativeImagePath) = 0;
 
 	/**
 	 * Exports the screenshots to the export location specified

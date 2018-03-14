@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleGPUSpriteVertexFactory.usf: Vertex factory for GPU simulated particles.
@@ -56,8 +56,8 @@ struct FVertexFactoryInput
  */
 struct FVertexFactoryInterpolantsVSToPS
 {
-#if NUM_MATERIAL_TEXCOORDS
-	float4	TexCoords[(NUM_MATERIAL_TEXCOORDS + 1) / 2]	: TEXCOORD0;
+#if NUM_TEX_COORD_INTERPOLATORS
+	float4	TexCoords[(NUM_TEX_COORD_INTERPOLATORS + 1) / 2]	: TEXCOORD0;
 #endif
 
 #if USE_PARTICLE_SUBUVS
@@ -272,7 +272,11 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates( FVertexFactoryInput I
 	float2 UVFlipOffset = float2( AttributeSample.x < 0.5 ? 0.0f : -0.5, AttributeSample.y < 0.5 ? 0.0f : -0.5);
 	float2 InitialSize = (AttributeSample.xy + UVFlipOffset) * float2(2.0,2.0);
 	float2 SizeScale = MiscCurve.xy * EmitterDynamicUniforms.LocalToWorldScale;
-	float2 SizeScaleBySpeed = clamp(EmitterUniforms.SizeBySpeed.xy * ParticleSpeed,float2(1,1), EmitterUniforms.SizeBySpeed.zw);
+
+	//Explicit ordering of clamp's min max to bypass compiler diff on PS4.
+	float2 SizeScaleBySpeed = max(EmitterUniforms.SizeBySpeed.xy * ParticleSpeed,float2(1,1));
+	SizeScaleBySpeed = min(SizeScaleBySpeed, EmitterUniforms.SizeBySpeed.zw);
+
 	float2 Size = InitialSize * SizeScale * SizeScaleBySpeed * IsAlive.xx;
 	
 	float2 FlippedUV = Input.TexCoord.xy;
@@ -370,7 +374,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates( FVertexFactoryInput I
 	return Intermediates;
 }
 
-#if NUM_MATERIAL_TEXCOORDS
+#if NUM_TEX_COORD_INTERPOLATORS
 float2 GetUV(FVertexFactoryInterpolantsVSToPS Interpolants, int UVIndex)
 {
 	float4 UVVector = Interpolants.TexCoords[UVIndex / 2];
@@ -402,13 +406,13 @@ FMaterialPixelParameters GetMaterialPixelParameters( FVertexFactoryInterpolantsV
 	FMaterialPixelParameters Result = MakeInitializedMaterialPixelParameters();
 	Result.Particle.MacroUV = EmitterDynamicUniforms.MacroUVParameters;
 
-#if NUM_MATERIAL_TEXCOORDS
+#if NUM_TEX_COORD_INTERPOLATORS
 	UNROLL
-	for (int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS; CoordinateIndex++)
+	for (int CoordinateIndex = 0; CoordinateIndex < NUM_TEX_COORD_INTERPOLATORS; CoordinateIndex++)
 	{
 		Result.TexCoords[CoordinateIndex] = GetUV(Interpolants, CoordinateIndex);
 	}
-#endif	// NUM_MATERIAL_TEXCOORDS
+#endif
 
 #if USE_PARTICLE_TIME
 	Result.Particle.RelativeTime = Interpolants.Misc.y;
@@ -600,13 +604,13 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS( FVertexFact
 	// Initialize the whole struct to 0
 	Interpolants = (FVertexFactoryInterpolantsVSToPS)0;
 
-#if NUM_MATERIAL_TEXCOORDS
-
-	float2 CustomizedUVs[NUM_MATERIAL_TEXCOORDS];
+#if NUM_TEX_COORD_INTERPOLATORS
+	float2 CustomizedUVs[NUM_TEX_COORD_INTERPOLATORS];
 	GetMaterialCustomizedUVs(VertexParameters, CustomizedUVs);
+	GetCustomInterpolators(VertexParameters, CustomizedUVs);
 
 	UNROLL
-	for (int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS; CoordinateIndex++)
+	for (int CoordinateIndex = 0; CoordinateIndex < NUM_TEX_COORD_INTERPOLATORS; CoordinateIndex++)
 	{
 		SetUV(Interpolants, CoordinateIndex, CustomizedUVs[CoordinateIndex]);
 	}

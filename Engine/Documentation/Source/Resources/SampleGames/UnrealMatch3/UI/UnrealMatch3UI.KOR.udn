@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:언리얼 매치 3 의 UI 제작
 Crumbs:%ROOT%, Resources
@@ -6,40 +6,8 @@ Description:Unreal Match 3 샘플 게임에 쓰인 UI 제작 프로세스 설명
 Version: 4.10
 Related: Engine/UMG
 Related: Engine/Blueprints
+topic-image:Resources/SampleGames/UnrealMatch3/unrealmatch3_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/SampleGames/UnrealMatch3/UI:title%](Resources/SampleGames/UnrealMatch3/unrealmatch3_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/SampleGames/UnrealMatch3/UI:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/SampleGames/UnrealMatch3/UI:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/SampleGames/UnrealMatch3/UI]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/SampleGames/UnrealMatch3/UI:title%](Resources/SampleGames/UnrealMatch3/unrealmatch3_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/SampleGames/UnrealMatch3/UI:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/SampleGames/UnrealMatch3/UI:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/SampleGames/UnrealMatch3/UI]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 
@@ -50,18 +18,9 @@ Related: Engine/Blueprints
 
 ## 타이틀 스크린
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](TitleScreen.png)(w:200 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	Title Screen (타이틀 스크린)은 **Content/UI** 폴더 안에 **TitleScreen** 위젯 블루프린트로 찾을 수 있습니다. 일차적으로 텍스트 위젯 몇 개와 애니메이션이 적용된 버튼 하나로 구성되어 있습니다. 플레이어가 버튼을 클릭 또는 누르면, 게임의 메인 메뉴로 이동됩니다. 이 그래프에서는 타이머를 통해 펄스 애니메이션을 5 초마다 호출하여 재생하고 있습니다. 버튼을 클릭하면, 메인 메뉴 위젯 블루프린트가 생성되어 뷰포트에 추가시키고 타이틀 스크린을 제거합니다.
-	[/PARAM]
-[/OBJECT]
+![](TitleScreen.png)(w:200 convert:false)
 
-[REGION:raw]
-![](spacer.png)(w:540)
-[/REGION]
+Title Screen (타이틀 스크린)은 **Content/UI** 폴더 안에 **TitleScreen** 위젯 블루프린트로 찾을 수 있습니다. 일차적으로 텍스트 위젯 몇 개와 애니메이션이 적용된 버튼 하나로 구성되어 있습니다. 플레이어가 버튼을 클릭 또는 누르면, 게임의 메인 메뉴로 이동됩니다. 이 그래프에서는 타이머를 통해 펄스 애니메이션을 5 초마다 호출하여 재생하고 있습니다. 버튼을 클릭하면, 메인 메뉴 위젯 블루프린트가 생성되어 뷰포트에 추가시키고 타이틀 스크린을 제거합니다.
 
 타이틀 스크린에 사용된 버튼 구성은 샘플 전반적으로 꽤 자주 사용됩니다.
 
@@ -73,20 +32,11 @@ Related: Engine/Blueprints
 
 ## 메인 메뉴
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](MainMenu.png)(w:200 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	Main Menu 는 **Content/UI** 폴더 안에서 **MainMenu** 위젯이라는 이름으로 찾을 수 있습니다. 허브는 플레이어가 여러가지 동작을 할 수 있는 곳인데, 이 화면에서는 열 개의 버튼을 통해 설정 화면, 게임내 스토어, 게임 플레이, 레벨 선택 등이 가능합니다. 모바일 디바이스에서 플레이하는 경우, (안드로이드냐 iOS냐) 플랫폼에 따라 플레이어는 플랫폼 전용 순위표와 업적을 열어볼 수 있습니다.
+![](MainMenu.png)(w:200 convert:false)
 
-	이 위젯 블루프린트용 그래프는 플레이어가 버튼 중 하나를 클릭하면 새로운 스크린 메뉴 (세팅, 레벨 선택, 스토어 등) 화면으로 전환되도록 구성되어 있으며, 먼저 플레이어가 그 화면을 열어볼 수 있는지 검사한 다음, 없으면 그에 맞게 표시할 위젯 블루프린트를 생성하여 다음 번 화면에 접근할 때 사용할 변수로 저장합니다. 이를 통해 사용자가 각 화면을 얼어볼 때마다 생성/소멸하지 않도록 할 수 있습니다.
-	[/PARAM]
-[/OBJECT]
+Main Menu 는 **Content/UI** 폴더 안에서 **MainMenu** 위젯이라는 이름으로 찾을 수 있습니다. 허브는 플레이어가 여러가지 동작을 할 수 있는 곳인데, 이 화면에서는 열 개의 버튼을 통해 설정 화면, 게임내 스토어, 게임 플레이, 레벨 선택 등이 가능합니다. 모바일 디바이스에서 플레이하는 경우, (안드로이드냐 iOS냐) 플랫폼에 따라 플레이어는 플랫폼 전용 순위표와 업적을 열어볼 수 있습니다.
 
-[REGION:raw]
-![](spacer.png)(w:120)
-[/REGION]
+이 위젯 블루프린트용 그래프는 플레이어가 버튼 중 하나를 클릭하면 새로운 스크린 메뉴 (세팅, 레벨 선택, 스토어 등) 화면으로 전환되도록 구성되어 있으며, 먼저 플레이어가 그 화면을 열어볼 수 있는지 검사한 다음, 없으면 그에 맞게 표시할 위젯 블루프린트를 생성하여 다음 번 화면에 접근할 때 사용할 변수로 저장합니다. 이를 통해 사용자가 각 화면을 얼어볼 때마다 생성/소멸하지 않도록 할 수 있습니다.
 
 이 화면 구성시 디자인 결정사항 중 하나는 상단과 하단에 걸쳐있는 버튼을 어떻게 배치할 것인가 입니다.
 
@@ -97,21 +47,12 @@ Related: Engine/Blueprints
 
 ## 옵션 메뉴
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](Options1.png)(w:200 convert:false) ![](Options2.png)(w:200 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	Options Menu (옵션 메뉴)는 **Content/UI** 폴더 안에 **OptionsMenu** 라는 이름의 위젯 블루프린트로 찾을 수 있습니다. 왼쪽 그림에서 보듯이, 옵션 메뉴의 용도를 변경하여 옵션 버튼이 눌리면 메인 메뉴와 게임내 디스플레이 양쪽에 사용하고 있습니다. 맥락에 따라 콘텐츠가 살짝 바뀌며 부가 옵션이 제공되고 양식화된 처리가 가능합니다.
-	
-	이 위젯 블루프린트의 그래프에는 **Global Game Instance** 블루프린트에 의해 변경되고 처리되는 로드/저장 옵션 로직이 들어있습니다.
-	또한 플레이어가 게임내에서 옵션에 접근하는지 아니면 메인 메뉴에서 접근하는지 검사한 뒤 하단에 표시되는 버튼을 교환하거나 배경색 활성화/비활성화가 가능합니다.
-	[/PARAM]
-[/OBJECT]
+![](Options1.png)(w:200 convert:false) ![](Options2.png)(w:200 convert:false)
 
-[REGION:raw]
-![](spacer.png)(w:60)
-[/REGION]
+Options Menu (옵션 메뉴)는 **Content/UI** 폴더 안에 **OptionsMenu** 라는 이름의 위젯 블루프린트로 찾을 수 있습니다. 왼쪽 그림에서 보듯이, 옵션 메뉴의 용도를 변경하여 옵션 버튼이 눌리면 메인 메뉴와 게임내 디스플레이 양쪽에 사용하고 있습니다. 맥락에 따라 콘텐츠가 살짝 바뀌며 부가 옵션이 제공되고 양식화된 처리가 가능합니다.
+	
+이 위젯 블루프린트의 그래프에는 **Global Game Instance** 블루프린트에 의해 변경되고 처리되는 로드/저장 옵션 로직이 들어있습니다.
+또한 플레이어가 게임내에서 옵션에 접근하는지 아니면 메인 메뉴에서 접근하는지 검사한 뒤 하단에 표시되는 버튼을 교환하거나 배경색 활성화/비활성화가 가능합니다.
 
 게임내 옵션 메뉴는 특정 동작 수행 후 Confirmation Screen (확인 화면)이 사용되는 곳 중 하나입니다.
 일반적으로 "파괴성" (게임 종료, 아이템 구매, 아이템 삭제 등의) 동작 확인을 위한 UI 화면을 만들어서, 사용자가 의도치 않게 무언가를 선택하거나 동작을 수행하지 못하게 하는 데 쓰입니다.
@@ -129,20 +70,11 @@ Click for full view.
 
 ## 게임내 디스플레이
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](InGameDisplay.png)(w:200 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	주요 게임내 HUD 는 **Content/UI** 폴더의 **GameScreen** 위젯 블루프린트에 들어있습니다. 이 위젯 블루프린트가 정의하는 개별 조각들은 전체 디스플레이에서 각기 다음과 같은 부분을 담당합니다: 점수판 (**ScoreBoardWB** 위젯 블루프린트), 폭탄 파워 (**PowerBarHorz** 위젯 블루프린트), 세팅 버튼 (**OptionsMenu** 위젯 블루프린트 표시).
+![](InGameDisplay.png)(w:200 convert:false)
 
-	GameScreen 위젯 블루프린트의 그래프에는 옵션 메뉴를 표시하는 로직만 들어있습니다. 점수판과 폭탄 파워 미터 업데이트 로직은 각자의 위젯 블루프린트에서 처리하여 (한 위젯 블루프린트에 모든 것을 넣었을 때에 대비해) 모듈성이 높으면서 판독이 쉽도록 처리하고 있습니다.
-	[/PARAM]
-[/OBJECT]
+주요 게임내 HUD 는 **Content/UI** 폴더의 **GameScreen** 위젯 블루프린트에 들어있습니다. 이 위젯 블루프린트가 정의하는 개별 조각들은 전체 디스플레이에서 각기 다음과 같은 부분을 담당합니다: 점수판 (**ScoreBoardWB** 위젯 블루프린트), 폭탄 파워 (**PowerBarHorz** 위젯 블루프린트), 세팅 버튼 (**OptionsMenu** 위젯 블루프린트 표시).
 
-[REGION:raw]
-![](spacer.png)(w:260)
-[/REGION]
+GameScreen 위젯 블루프린트의 그래프에는 옵션 메뉴를 표시하는 로직만 들어있습니다. 점수판과 폭탄 파워 미터 업데이트 로직은 각자의 위젯 블루프린트에서 처리하여 (한 위젯 블루프린트에 모든 것을 넣었을 때에 대비해) 모듈성이 높으면서 판독이 쉽도록 처리하고 있습니다.
 
 #### 점수판 표시
 
@@ -185,22 +117,13 @@ Floating Score 스폰 위치 결정은 (**Content/Blueprints** 폴더의) **Game
 
 ## 게임 오버 표시
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](YouWinScreen.png)(w:200 convert:false) ![](YouLoseScreen.png)(w:200 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	Game Over (게임 오버) 화면은 (You Win 과 You Lose) **Content/UI** 폴더에서 **VictoryScreen** 위젯 블루프린트로 찾을 수 있습니다. 게임이 끝났을 때도 같은 위젯 블루프린트를 호출하되, 세션의 결과에 따라 업데이트됩니다.
+![](YouWinScreen.png)(w:200 convert:false) ![](YouLoseScreen.png)(w:200 convert:false)
 
-	이겼으면, 파랑 배경과 획득한 메달이 표시됩니다. 졌으면, 빨강 배경과 "you lose" 텍스트로 대체되어 표시됩니다.
+Game Over (게임 오버) 화면은 (You Win 과 You Lose) **Content/UI** 폴더에서 **VictoryScreen** 위젯 블루프린트로 찾을 수 있습니다. 게임이 끝났을 때도 같은 위젯 블루프린트를 호출하되, 세션의 결과에 따라 업데이트됩니다.
 
-	이겼든 졌든 상관없이, 획득한 점수가 표시되고 그 옆에는 메인 메뉴로 돌아가기, 플랫폼 전용 순위표 또는 업적 표시, 레벨 다시 플레이 등의 버튼이 있습니다.
-	[/PARAM]
-[/OBJECT]
+이겼으면, 파랑 배경과 획득한 메달이 표시됩니다. 졌으면, 빨강 배경과 "you lose" 텍스트로 대체되어 표시됩니다.
 
-[REGION:raw]
-![](spacer.png)(w:10)
-[/REGION]
+이겼든 졌든 상관없이, 획득한 점수가 표시되고 그 옆에는 메인 메뉴로 돌아가기, 플랫폼 전용 순위표 또는 업적 표시, 레벨 다시 플레이 등의 버튼이 있습니다.
 
 화면 하단에 나타나는 버튼은 **GameOverButtons** 위젯 블루프린트 안에 배치되어 있습니다. Game Over Screen 위젯과 분리시킨 이유는, 다른 화면에서도 사용자에게 매번 그런 옵션을 표시할 때마다 다시 만들 필요 없이 바로 용도 변경하여 재사용할 수 있게 만들기 위해서입니다.
 
@@ -213,22 +136,13 @@ Floating Score 스폰 위치 결정은 (**Content/Blueprints** 폴더의) **Game
 
 ## 레벨 선택
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](LevelSelect.png)(w:200 convert:false) ![](LevelSelect2.png)(w:200 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	Level Select Menu (레벨 선택 메뉴)는 **Content/UI** 폴더 안에 **LevelSelect** 위젯 블루프린트로 찾을 수 있습니다. 이 화면을 통해 플레이어는 게임 내 레벨 전환은 물론 각 레벨에서 메달 획득에 필요한 점수를 알 수 있습니다.
+![](LevelSelect.png)(w:200 convert:false) ![](LevelSelect2.png)(w:200 convert:false)
+
+Level Select Menu (레벨 선택 메뉴)는 **Content/UI** 폴더 안에 **LevelSelect** 위젯 블루프린트로 찾을 수 있습니다. 이 화면을 통해 플레이어는 게임 내 레벨 전환은 물론 각 레벨에서 메달 획득에 필요한 점수를 알 수 있습니다.
 	
-	이 화면 이동에 있어서의 핵심 함수성은 Level Select 위젯 블루프린트에 있지만, 정보는 역시 **Content/UI** 폴더에 위치한 **LevelSelectWidget** 라는 다른 파이프 연결됩니다.
+이 화면 이동에 있어서의 핵심 함수성은 Level Select 위젯 블루프린트에 있지만, 정보는 역시 **Content/UI** 폴더에 위치한 **LevelSelectWidget** 라는 다른 파이프 연결됩니다.
 
-	사용자가 레벨을 구매하지 않은 경우, Accept Button 을 Store 링크로 대체하여 사용자는 스토어 메뉴에 바로 접근하여 구매할 수 있습니다.
-	[/PARAM]
-[/OBJECT]
-
-[REGION:raw]
-![](spacer.png)(w:10)
-[/REGION]
+사용자가 레벨을 구매하지 않은 경우, Accept Button 을 Store 링크로 대체하여 사용자는 스토어 메뉴에 바로 접근하여 구매할 수 있습니다.
 
 #### 레벨 선택 위젯
 
@@ -251,20 +165,11 @@ Level Select Widget (레벨 선택 위젯)은 공개적 노출된 변수를 포�
 
 ## 플레이 방법
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](HowToPlayScreen.png)(w:200 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	How To Play (플레이 방법) 화면은 **Content/UI** 폴더에 **HowToScreen** 위젯 블루프린트라는 이름으로 있습니다. 이 화면은 게임 플레이 방법을 설명해 주며, 레이아웃이 꽤나 간단합니다. 텍스트용 Text 위젯 다수로 구성되며, 화면 레이아웃과 포맷은 일관성을 위해 메인 메뉴와 같게 합니다.
+![](HowToPlayScreen.png)(w:200 convert:false)
 
-	다른 여러 화면과 마찬가지로, 플레이 방법 화면은 구글 플레이 스토어 인증에 필수인 기능이 몇 가지 구현되어 있는데, 디바이스의 "뒤로" 버튼으로 화면을 돌아 나올 수 있어야 합니다.
-	[/PARAM]
-[/OBJECT]
-
-[REGION:raw]
-![](spacer.png)(w:10)
-[/REGION]
+How To Play (플레이 방법) 화면은 **Content/UI** 폴더에 **HowToScreen** 위젯 블루프린트라는 이름으로 있습니다. 이 화면은 게임 플레이 방법을 설명해 주며, 레이아웃이 꽤나 간단합니다. 텍스트용 Text 위젯 다수로 구성되며, 화면 레이아웃과 포맷은 일관성을 위해 메인 메뉴와 같게 합니다.
+	
+다른 여러 화면과 마찬가지로, 플레이 방법 화면은 구글 플레이 스토어 인증에 필수인 기능이 몇 가지 구현되어 있는데, 디바이스의 "뒤로" 버튼으로 화면을 돌아 나올 수 있어야 합니다.
 
 #### 안드로이드 뒤로 버튼
 
@@ -285,28 +190,17 @@ Level Select Widget (레벨 선택 위젯)은 공개적 노출된 변수를 포�
 
 ## 스토어 메뉴
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](StoreMenu.png)(w:200 convert:false)
-	[/PARAM]
-	[PARAM:description]
-	스토어 화면은 **Content/UI** 폴더에서 **StoreScreen** 위젯 블루프린트라는 이름으로 찾을 수 있습니다. 이 화면의 레이아웃은 의도적으로 레벨 선택 레이아웃과 비슷하게 하여, 플레이어가 새 레벨을 풀면 레벨 선택 메뉴에서 선택하여 플레이할 수 있을 것입니다.
-	
-	메인 메뉴에서 이 화면에 들어서면, 플레이어는 확인 창을 보게 됩니다 (ConfirmationScreen 위젯 블루프린트). 이 화면에서 아이템을 구매할 수 있으며, 플레이어는 계속 진행하지 않고 뒤로 갈 수 있습니다. 확인 메시지를 수락하면, 플레이어는 메인 스토어 메뉴로 나아갑니다.
-	
-	이 화면의 콘텐츠는 대부분 보더, 오버레이, 텍스트 위젯, 이미지, 정렬을 위한 버티컬 박스로 되어있습니다. 레이아웃 구조로 인해, 메뉴 내비게이션을 복사/붙여넣기하여 레벨과 이 메뉴 사이의 전환은 물론 스토어에서 구매할 수 있는 아이템 "페이지" 추가가 가능합니다.
-	[/PARAM]
-[/OBJECT]
+![](StoreMenu.png)(w:200 convert:false)
 
-[REGION:raw]
-![](spacer.png)(w:10)
-[/REGION]
+스토어 화면은 **Content/UI** 폴더에서 **StoreScreen** 위젯 블루프린트라는 이름으로 찾을 수 있습니다. 이 화면의 레이아웃은 의도적으로 레벨 선택 레이아웃과 비슷하게 하여, 플레이어가 새 레벨을 풀면 레벨 선택 메뉴에서 선택하여 플레이할 수 있을 것입니다.
+	
+메인 메뉴에서 이 화면에 들어서면, 플레이어는 확인 창을 보게 됩니다 (ConfirmationScreen 위젯 블루프린트). 이 화면에서 아이템을 구매할 수 있으며, 플레이어는 계속 진행하지 않고 뒤로 갈 수 있습니다. 확인 메시지를 수락하면, 플레이어는 메인 스토어 메뉴로 나아갑니다.
+	
+이 화면의 콘텐츠는 대부분 보더, 오버레이, 텍스트 위젯, 이미지, 정렬을 위한 버티컬 박스로 되어있습니다. 레이아웃 구조로 인해, 메뉴 내비게이션을 복사/붙여넣기하여 레벨과 이 메뉴 사이의 전환은 물론 스토어에서 구매할 수 있는 아이템 "페이지" 추가가 가능합니다.
 
 #### 스토어에서 구매
 
-[REGION:topics third]
 %Platforms/Mobile/InAppPurchases:topic%
-[/REGION]
 
 ## 추가 자료
 

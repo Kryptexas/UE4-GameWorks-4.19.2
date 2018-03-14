@@ -8,9 +8,11 @@ version:4.11
 [TOC (start:2 end:3)]
 
 
-<!-- アクタはワールドに配置または [スポーン](Programming\UnrealArchitecture\Actors\Spawning) することができるオブジェクトです。アクタを一言で表現すると、「ティックするコンポーネント コレクション」でしょう。実際、アクタはインクルードされたすべての変数や関数に対し `Actor.h` をチェックアウトして、 
+[COMMENT:none]
+ アクタはワールドに配置または [スポーン](Programming\UnrealArchitecture\Actors\Spawning) することができるオブジェクトです。アクタを一言で表現すると、「ティックするコンポーネント コレクション」でしょう。実際、アクタはインクルードされたすべての変数や関数に対し `Actor.h` をチェックアウトして、 
 様々な事ができます。 
--->
+
+[/COMMENT]
 
 [EXCERPT:Actors]
 [INCLUDE:Shared/Glossary/A#glossary_actor] アクタにトランスフォーム (位置、回転、スケール) データは直接含まれません。アクタのルート コンポーネントのトランスフォーム データがある場合は、それが使われます。
@@ -50,7 +52,8 @@ $ UPrimitiveComponent :このコンポーネントは、何種類かのグラフ
 | ------------------| -----------|
 | ![](GoldPickupExampleActor.png)(w:400) | [INCLUDE:#goldhierarchy] | 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:GoldHierarchy]
 * **Root - SceneComponent**:ワールドにアクタの基本位置を設定するための基本的なシーン コンポーネント
 	* **StaticMeshComponent**:金鉱を表すメッシュ 
@@ -60,7 +63,8 @@ $ UPrimitiveComponent :このコンポーネントは、何種類かのグラフ
 [/EXCERPT:GoldHierarchy]
 
 詳細は、 [](Programming/UnrealArchitecture/Actors/Components) を参照してください。
--->
+
+[/COMMENT]
 
 ## ティック
 

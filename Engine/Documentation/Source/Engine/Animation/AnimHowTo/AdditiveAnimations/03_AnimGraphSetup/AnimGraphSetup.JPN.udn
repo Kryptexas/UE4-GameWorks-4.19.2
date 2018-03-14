@@ -1,30 +1,16 @@
-﻿INTSourceChangelist:3255885
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:3 - Anim Graph のセットアップ
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:Anim Graph をセットアップし、AnimMontage とステートマシンの動きのポーズのブレンドを処理します。 
 version:4.14
 skilllevel:Advanced
+parent:Engine/Animation/AnimHowTo/AdditiveAnimations
 type:how-to
+order:3
 tags:Animation
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Engine\Animation\AnimHowTo\AdditiveAnimations\02_CharacterBlueprintSetup)
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[レイヤー アニメーション ホーム](Engine\Animation\AnimHowTo\AdditiveAnimations)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine\Animation\AnimHowTo\AdditiveAnimations\04_BlendSettings)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 このステップでは、Anim Graph をセットアップし、AnimMontage とステートマシンの動きのポーズのブレンドを処理します。 
 
@@ -70,6 +56,4 @@ tags:Animation
 
 AnimGraph が完成しましたが、**Layered blend per bone** ノードの設定の一部を変更する必要があります。これは、後で行います。  
 
-
-
-%Steps%
+[NAV]

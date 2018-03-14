@@ -1,7 +1,8 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/SHistogram.h"
 #include "Fonts/SlateFontInfo.h"
+#include "Styling/CoreStyle.h"
 #include "Misc/Paths.h"
 #include "Rendering/DrawElements.h"
 #include "Widgets/SOverlay.h"
@@ -60,7 +61,7 @@ int32 SHistogram::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 	static const FLinearColor GridColor = FLinearColor(0.0f,0.0f,0.0f, 0.25f);
 	static const FLinearColor GridTextColor = FLinearColor(1.0f,1.0f,1.0f, 0.25f);
 	static const FLinearColor BorderColor = FLinearColor(0.0f,0.0f,0.0f,1.0f);
-	FSlateFontInfo SummaryFont(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8 );
+	FSlateFontInfo SummaryFont = FCoreStyle::GetDefaultFontStyle("Regular", 8);
 	const float MaxFontCharHeight = FontMeasureService->Measure( TEXT("!"), SummaryFont ).Y;
 	TArray<FVector2D> LinePoints;
 

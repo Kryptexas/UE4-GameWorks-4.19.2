@@ -45,22 +45,26 @@ UnrealBuildTool使用 `*.Build.cs` 和 `*.Target.cs` 文件来编译游戏项目
 ### 设置编译配置
 
 ![Project - Configuration Menu](rocket_configuration_menu.png)
-<!--
+[COMMENT:none]
+
 ### Solution - Configuration Menu
 
 ![UE4 Solution - Configuration Menu](configuration_menu.png)
--->
+
+[/COMMENT]
 ### 设置解决方案平台
 
 编译配置可在 Visual Studio 工具条中进行设置。
-<!--
+[COMMENT:none]
+
 虚幻引擎当前支持以下平台：
 
 * **Windows 64位**
 
 ![Project - Platform Menu](rocket_platform_menu.png)
 ![UE4 Solution - Platform Menu](platform_menu.png)
--->
+
+[/COMMENT]
 虚幻引擎 4 当前支持以下平台：
 
 * **Windows 32位**
@@ -75,7 +79,8 @@ UnrealBuildTool使用 `*.Build.cs` 和 `*.Target.cs` 文件来编译游戏项目
 在继续前请确认您安装的是 Windows 平台的 Visual Studio 2013 专业版或 Visual Studio 2013 高级版。如果您使用的是 Mac，请确认您已经安装了 Xcode。
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 
 [REGION:tip]
 当您在 Visual Studio 中编译时，您实际上仅仅在编译游戏项目，而不是 Unreal 编辑器。
@@ -93,7 +98,8 @@ UnrealBuildTool使用 `*.Build.cs` 和 `*.Target.cs` 文件来编译游戏项目
 1. **右键点击** 您的游戏项目并选择 **Rebuild** （重新编译）以进行重新编译。
 
 	![](rebuild_project_rocket.png)
--->
+
+[/COMMENT]
 1.	设置 **Solution Configuration** （解决方案配置文件）为您想要编译的配置。在本示例中，它被设置为 **Development** （开发）。请参照 [编译配置](#编译配置) 章节以获得每个可用配置的描述。
 
 	![](rocket_config_development_menu.png)
@@ -152,16 +158,20 @@ UnrealBuildTool使用 `*.Build.cs` 和 `*.Target.cs` 文件来编译游戏项目
 | ----- | -------- |
 | Xcode 未在断点处停止 | [INCLUDE:#XcodeDebug] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:XcodeDebug]
 Xcode的LLDB调试器需要被配置，以正确处理虚幻引擎项目的断点。您需要在主文件夹中创建（或编辑，如果您已有该文件的话）.lldbinit文件，并添加以下行：
 
 	settings set target.inline-breakpoint-strategy always
 [/EXCERPT:XcodeDebug]
--->
+
+[/COMMENT]
 
 [/EXCERPT:Xcode]
 
-<!-- The following was deprecated per LaurenR 29.7.15
+[COMMENT:none]
+ The following was deprecated per LaurenR 29.7.15
 | **Uncooked**                | Projects built using configurations that have an **Uncooked** type should be opened in Unreal Editor with the "-game" flag.  This runs your game with uncooked content, in a new window, and is equivalent to **Play in > New Window at Default Player Start** in the editor.       | 
--->
+
+[/COMMENT]

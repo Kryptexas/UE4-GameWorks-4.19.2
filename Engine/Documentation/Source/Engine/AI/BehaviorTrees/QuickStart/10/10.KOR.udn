@@ -1,27 +1,15 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3717040
 Availability:Public
 Title: 10. 비헤이비어 트리 기초
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:10 단계. 비헤이비어 트리 기초
 version: 4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:10
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Engine/AI/BehaviorTrees/QuickStart/9 "%Engine/AI/BehaviorTrees/QuickStart/9:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[퀵스타트 홈](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Engine/AI/BehaviorTrees/QuickStart/11 "%Engine/AI/BehaviorTrees/QuickStart/11:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 **루트** 노드는 트리의 시작이며, 다른 모든 노드가 그 아래 연결됩니다.
 
@@ -53,9 +41,4 @@ Selector 및 Sequence 노드 아래에는 자손이 여럿 있을 수 있지만,
 
 ![](connected.png)
 
-
-%Steps%
-
-
-
-
+[NAV]

@@ -22,7 +22,8 @@ SkillLevel: Intermediate
 | 仅使用蓝图的项目 |  [INCLUDE:#bpcomponents] |      [INCLUDE:#bpenvvar] |
 | C++ 项目 |   [INCLUDE:#codecomponents] |  [INCLUDE:#codeenvvar] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BPComponents]
 * Android SDK
 * Java Development Kit
@@ -44,7 +45,8 @@ SkillLevel: Intermediate
 [INCLUDE:#bpenvvar]
 * **NDKROOT**
 [/EXCERPT:CodeEnvVar]
--->
+
+[/COMMENT]
 
 ## 安装组件
 
@@ -80,7 +82,8 @@ SkillLevel: Intermediate
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:TADPWindowsSetup]
 
 TADP 是 Tegra Android Development Pack 的简称，由 Nvidia 开发。这是一款一站式的安卓开发工具包。只要安装 TADP，就能满足我们的所有要求。
@@ -128,7 +131,8 @@ TADP 中的 Nsight 用于在设备上调试安卓游戏，因此无需编译 C++
 
 [/EXCERPT:TADPMacOSSetup]
 
--->
+
+[/COMMENT]
 
 ### ADT (Android Development Tools)
 
@@ -190,7 +194,8 @@ TADP 中的 Nsight 用于在设备上调试安卓游戏，因此无需编译 C++
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ENVWindowsSetup]
 
 除非您安装了 TADP，否则就需要确认是否正确设置了某些环境变量。 
@@ -269,7 +274,8 @@ TADP 中的 Nsight 用于在设备上调试安卓游戏，因此无需编译 C++
 
 [/EXCERPT:ENVMacOSSetup]
 
--->
+
+[/COMMENT]
 
 ## 安卓技巧与提示 
 
@@ -303,7 +309,8 @@ TADP 中的 Nsight 用于在设备上调试安卓游戏，因此无需编译 C++
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:ATTWindowsSetup]
 如果您的设备没有列在 **Launch** 菜单中，您可以尝试这些办法： 
 - 等待片刻并再次查看 - 因为对连接设备进行后台扫描时需要花费一点时间。 
@@ -341,7 +348,8 @@ TADP 中的 Nsight 用于在设备上调试安卓游戏，因此无需编译 C++
 
 [/EXCERPT:ATTMacOSSetup]
 
--->
+
+[/COMMENT]
 
 (#bookmarkandroidtextureformats)
 

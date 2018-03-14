@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 //=============================================================================
 // CheatManager
@@ -325,6 +325,18 @@ class ENGINE_API UCheatManager : public UObject
 	/** Executes commands listed in CheatScript.ScriptName ini section of DefaultGame.ini */
 	UFUNCTION(exec)
 	void CheatScript(FString ScriptName);
+
+	UFUNCTION(Exec)
+	void SpawnServerStatReplicator();
+
+	UFUNCTION(Exec)
+	void DestroyServerStatReplicator();
+
+	UFUNCTION(Exec)
+	void ToggleServerStatReplicatorClientOverwrite();
+
+	UFUNCTION(Exec)
+	void ToggleServerStatReplicatorUpdateStatNet();
 
 	/**
 	 * This will move the player and set their rotation to the passed in values.

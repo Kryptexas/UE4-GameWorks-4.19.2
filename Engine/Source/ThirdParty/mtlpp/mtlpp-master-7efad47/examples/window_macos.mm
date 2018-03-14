@@ -1,6 +1,6 @@
-#import "window.hpp"
 #import <Cocoa/Cocoa.h>
 #import <MetalKit/MetalKit.h>
+#import "window.hpp"
 
 @interface WindowViewController : NSViewController<MTKViewDelegate> {
     @public void (*m_render)(const Window&);
@@ -32,13 +32,15 @@ Window::Window(const mtlpp::Device& device, void (*render)(const Window&), int32
 #endif
         backing:NSBackingStoreBuffered
         defer:NO];
-    window.title = [[NSProcessInfo processInfo] processName];
+	
+	window.title = [NSString stringWithFormat:@"%@ : %@", [[NSProcessInfo processInfo] processName], device.GetName().GetPtr()];
+	
     WindowViewController* viewController = [WindowViewController new];
     viewController->m_render = render;
     viewController->m_window = this;
 
     MTKView* view = [[MTKView alloc] initWithFrame:frame];
-    view.device = (__bridge id<MTLDevice>)device.GetPtr();
+    view.device = (id<MTLDevice>)device.GetPtr();
     view.delegate = viewController;
     view.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
 
@@ -46,28 +48,28 @@ Window::Window(const mtlpp::Device& device, void (*render)(const Window&), int32
     [window center];
     [window orderFrontRegardless];
 
-    m_view = ns::Handle{ (__bridge void*)view };
+    m_view = view;
 
 }
 
 uint32_t Window::GetWidth() const
 {
-    return uint32_t(((__bridge MTKView*)m_view.GetPtr()).frame.size.width);
+    return uint32_t(((MTKView*)m_view.GetPtr()).frame.size.width);
 }
 
 uint32_t Window::GetHeight() const
 {
-    return uint32_t(((__bridge MTKView*)m_view.GetPtr()).frame.size.height);
+    return uint32_t(((MTKView*)m_view.GetPtr()).frame.size.height);
 }
 
 mtlpp::Drawable Window::GetDrawable() const
 {
-    return ns::Handle{ (__bridge void*)((__bridge MTKView*)m_view.GetPtr()).currentDrawable };
+    return ((MTKView*)m_view.GetPtr()).currentDrawable;
 }
 
 mtlpp::RenderPassDescriptor Window::GetRenderPassDescriptor() const
 {
-    return ns::Handle{ (__bridge void*)((__bridge MTKView*)m_view.GetPtr()).currentRenderPassDescriptor };
+    return ((MTKView*)m_view.GetPtr()).currentRenderPassDescriptor;
 }
 
 void Window::Run()

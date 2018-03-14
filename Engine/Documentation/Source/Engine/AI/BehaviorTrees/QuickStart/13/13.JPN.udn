@@ -1,31 +1,19 @@
-﻿INTSourceChangelist:2757241
+﻿INTSourceChangelist:3717040
 Availability:Public
 Title:13.デコレーターの作成
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:13.デコレーターの作成
 version:4.9
+parent:Engine/AI/BehaviorTrees/QuickStart
+type:quick start
+type:multi-step
+order:13
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Engine/AI/BehaviorTrees/QuickStart/12 "%Engine/AI/BehaviorTrees/QuickStart/12:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine/AI/BehaviorTrees/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine/AI/BehaviorTrees/QuickStart/14 "%Engine/AI/BehaviorTrees/QuickStart/14:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
+ビヘイビアツリー システムの条件式としても知られる **Decorator (デコレーター)** は [Composite](Engine/AI/BehaviorTrees/NodeReference/Composites) ノードまたは [Task](Engine/AI/BehaviorTrees/NodeReference/Tasks) ノードのいずれかにアタッチされ、ツリーのブランチあるいはノード 1 つを実行可能かどうかの判断をするノードです。
 
-Behavior Tree (ビヘイビアツリー) システムの条件式としても知られる **Decorators ノード** は [Composite](Engine/AI/BehaviorTrees/NodeReference/Composites) または [Task](Engine/AI/BehaviorTrees/NodeReference/Tasks) ノードのいずれかにアタッチされ、ツリーのブランチあるいはノード 1 つでも実行可能かどうかの判断をするノードです。
-
-AI のポーンがターゲットに十分近づくと、**デコレーター** はビヘイビアツリーの Rapid Move To ブランチの実行を中止します。これは **Rapid Move To** タスク内あるいは **Move To** タスクによって処理することができますが、この Decorator はすべてのアクタを受け取り、ブランチの実行をブロックすることができます。従って、様々な状況での再利用が可能になります。
+AI のポーンがターゲットに十分近づくと、**デコレーター** はビヘイビアツリーの Rapid Move To ブランチの実行を中止します。これは **Rapid Move To** タスクで、あるいは **Move To** タスクを使って処理することができますが、この Decorator はすべてのアクタを受け取り、任意のブランチの実行をブロックすることができます。従って、様々な状況での再利用が可能になります。
 
 ## ステップ
 
@@ -34,8 +22,8 @@ AI のポーンがターゲットに十分近づくと、**デコレーター** 
 
 	ビヘイビアツリーと同じフォルダ内に作成されます。
 1. **コンテンツ ブラウザ** 内で名前を「CloseEnough」に変更します。
-1. 編集のためにエディタによって既に開いた状態になっているはずですが、もしそうでない場合は **コンテンツ ブラウザ** で **ダブルクリック** してください。
-1. [My Blueprint] タブの [Functions (関数)] セクションで、 **PerformConditionCheck** を "オーバーライド" します。
+1. 編集のためにエディタで既に開いているはずですが、そうでない場合は **コンテンツ ブラウザ** で **ダブルクリック** してください。
+1. [My Blueprint] タブの [Functions (関数)] セクションで、 **PerformConditionCheck** を "Override" します。
 
 	![](override_button.png)
 
@@ -48,7 +36,7 @@ AI のポーンがターゲットに十分近づくと、**デコレーター** 
 			[/REGION]
 		[/PARAM]
 		[PARAMLITERAL:id]
-		fullgraphBTService12
+		fullgraphBTService13
 		[/PARAMLITERAL]
 		[PARAM:snippet]
 		%bpcode%
@@ -59,7 +47,7 @@ AI のポーンがターゲットに十分近づくと、**デコレーター** 
 
 	![](variables.png)
 
-	このブループリントの変数名、タイプ、値です。
+	このブループリントの変数名、型、値です。
 
 	%vartable1%
 
@@ -68,11 +56,11 @@ AI のポーンがターゲットに十分近づくと、**デコレーター** 
 	[/REGION]
 
 [VAR:varTable1]
-| 変数名 | タイプ | 値 |
+| 変数名 | 型 | 値 |
 | --- | --- | --- |
 | **AI_CON_Ref** | Follower_AI_CON_C | None |
-| **AcceptableDistance** | Float | 0.0 - ただしこの変数には **True** に設定している「編集可能な」フラグがあるので、ビヘイビアツリー上でインスタンスごとに変更することができます。. |
-| **TargetToFollow** | BlackboardKeySelector | None - ただしこの変数には **True** に設定している「編集可能な」フラグがあるので、ビヘイビアツリー上でインスタンスごとに変更することができます。 |
+| **AcceptableDistance** | Float | 0.0 - ただしこの変数には **True** に設定している「編集可能な」フラグがあるので、ビヘイビアツリー上でインスタンス毎に変更することができます。 |
+| **TargetToFollow** | BlackboardKeySelector | None - ただしこの変数には **True** に設定している「編集可能な」フラグがあるので、ビヘイビアツリー上でインスタンス毎に変更することができます。 |
 [/VAR]
 
 1. イベント **Receive Condition Check** は、ビヘイビアツリーがこの条件のノードにヒットした時にこのブループリントへ送られるイベントです。
@@ -81,9 +69,9 @@ AI のポーンがターゲットに十分近づくと、**デコレーター** 
 1. アクタと AI ポーン間の距離を取得します。
 1. 距離が設定可能な値より大きい場合は、条件は **True** を返します。そうでない場合は **False** を返し、それがあるビヘイビアツリー部の実行をブロックします。
 
-これにより、ビヘイビアツリーが絶えず **RapidMoveTo** へサイクルして再び戻ることがなくなります。基本的に、プレイヤーに追いついたら停止します。
+これにより、ビヘイビアツリーが絶えず **RapidMoveTo** へ循環して再び戻ることがなくなります。基本的に、プレイヤーに追いついたら停止します。
 
-%Steps%
+[NAV]
 
 [VAR:bpcode]
 	Begin Object Class=K2Node_FunctionEntry Name="K2Node_FunctionEntry_232"

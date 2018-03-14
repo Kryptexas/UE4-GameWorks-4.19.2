@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:6. 캐릭터 띄우기
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
@@ -25,7 +25,7 @@ tags:Blueprints
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 ---
 
@@ -80,4 +80,4 @@ tags:Blueprints
 
 ---
 
-%Steps%
+

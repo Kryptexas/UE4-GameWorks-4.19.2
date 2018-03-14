@@ -1,7 +1,7 @@
 Availability: Public
-Title:Using Touch Controllers for the Oculus Rift
+Title:Using Motion Controllers 
 Crumbs: %ROOT%, Platforms
-Description:Use the Rift Touch controllers to interact with the world.
+Description:Showing you how to pick up and drop objects using Motion Controllers.
 Navigation:platform
 version:4.17
 Platform:VR
@@ -9,36 +9,29 @@ skilllevel:Intermediate
 type:Overview
 parent:Platforms/VR
 tags:VR
+prereq:Platforms\VR\MotionController
+prereq:Platforms\Oculus\HowTo\StandingCamera
+prereq:Platforms\Oculus\HowTo\GuardianSystem
+prereq:Platforms\SteamVR\HowTo\Chaperone
+[COMMENT:none]
 topic-image:Platforms\Oculus\HowTo\TouchControllers\HT_Rift_Touch_Setup_Topic_Image.png
+[/COMMENT]
 
 Adding Motion Controller support to your UE4 projects can add a level of real sense of immersion and realism. One way to take this immersion and realism to the next level is add the ability to pick up objects placed in the world with your Motion Controllers. In the following document we will take a look at how you can add Motion Controller support your UE4 VR project. 
 
+## Motion Controller Setup
 
-[REGION:note]
-The following document  is going to make use of the Oculus Rift Standing VR Pawn with added Touch Controller and Guardian support. If you are not sure how to set this up the following two How - To's will help you out.
-* [Set Up Cameras for the Oculus Rift](Platforms\Oculus\HowTo\StandingCamera)
-
-* [Setup Touch Controllers for the Oculus Rift](Platforms\Oculus\HowTo\TouchControllers)
-
-* [Set Up Guardian System](Platforms\Oculus\HowTo\GuardianSystem)
-
-While this document was written using the Oculus Rift HMD and Touch Controllers the information in this document can be applied to all Motion Controllers that work with UE4.
-
-[/REGION]
-
-## Using the Oculus Touch Controllres 
-[region:note]
-Going forward, the Touch controllers will be referred to as **Motion Controllers** as this is the term used inside UE4 to describe any device that tracks a user's motions.
-[/region]
+In the following sections we will go over how to setup your Motion Controllers so that they can pick up and drop items that are placed in the level.
 
 ### Component, Variable, & Event Setup
 Before we can start to add nodes to the Event graph, we first need to create and set up a few Components and Variables. In the following section, we will go over what Components and Variables are needed and what setting they should have.
 
+[REGION:simpletable]
 |Component / Variable Type|Name|Value|
 |----------|-------|----|
 |**Scene**|HeldObjectLocation|X: 38, Y: 0, Z: 0|
 |**Boolean**|IsHoldingObject|false|
-
+[/REGION]
 
 [REGION:lightbox]
 [![](HT_Using_Touch_03.png)(w:150)](HT_Using_Touch_03.png)
@@ -54,8 +47,12 @@ Make sure that the **Held Object Location** is parented to the **MC_Left** as th
 
 You will also need to create two **Custom Events** and name them the following:
 
-* **PickUpObject**
-* **DropObject**
+[REGION:simpletable]
+|Node Name| Value |
+|--------|------------|
+|**PickUpObject**|N/A|
+|**DropObject**|N/A|
+[/REGION]
 
 ![](HT_Using_Touch_06.png)
 
@@ -136,7 +133,7 @@ Click on the **Copy Node Graph** in the upper left hand corner to copy the Bluep
 ## UE4 Project Downloads
 Below you will find a link to where you can download the UE4 project that was used to create this example.
 
-* [**Oculus Rift Motion Controller Pick Up & Drop Objects Example Project**](https://epicgames.box.com/s/7byyd0sjq5vupnstks0ig8veyjc0izg9)
+* [** Motion Controller Pick Up & Drop Objects Example Project**](https://epicgames.box.com/s/7byyd0sjq5vupnstks0ig8veyjc0izg9)
 
 
 
@@ -145,7 +142,8 @@ Below you will find a link to where you can download the UE4 project that was us
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:HoldDropItemd]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -1083,5 +1081,6 @@ Below you will find a link to where you can download the UE4 project that was us
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:PickUp4]
--->
+
+[/COMMENT]
 

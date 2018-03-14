@@ -15,7 +15,9 @@ related:Programming/Basics/ConfigurationFiles
 topic-image:GettingStarted_Topic.png
 prereq:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 
-<!--- %Globals:BinarySourceSelectVar% --->
+[COMMENT:none]
+- %Globals:BinarySourceSelectVar% -
+[/COMMENT]
 
 [TOC(start:2 end:3)]
 

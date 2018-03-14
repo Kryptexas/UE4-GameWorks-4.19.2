@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3581141
+﻿INTSourceChangelist:3774430
 Title:P
 Crumbs:Shared/Glossary
 Description:
@@ -182,7 +182,7 @@ windows
 [/PARAMLITERAL]
 [PARAM:content]
 [REGION:lightbox]
-[![](ProjectHierarchy_Windows.png)](ProjectHierarchy_Windows.png)
+[![](ProjectHierarchy_Windows.png)(w:480)](ProjectHierarchy_Windows.png)
 [/REGION]
 [/PARAM]
 [/OBJECT]
@@ -203,7 +203,7 @@ mac
 [/PARAM]
 [/OBJECT]
 
-_이미지를 클릭하면 원래 크기로 보입니다._
+_이미지를 클릭하면 원본을 확인합니다._
 
  Project 종종 그 파일에 관련된 .uproject 파일을 가리키기도 하지만, 서로와 공존하는 별개의 파일이 두 개 있습니다. .uproject 는 파일을 생성하고 열고 저장하는 데 사용되는 레퍼런스 파일인 반면, Project 에는 프로젝트에 관련된 모든 파일과 폴더가 들어있습니다.
 

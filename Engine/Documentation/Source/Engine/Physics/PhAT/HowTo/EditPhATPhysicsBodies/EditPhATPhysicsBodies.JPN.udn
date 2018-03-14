@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3211040
+Availability:Public
 Title:物理アセットの物理ボディの編集
 Crumbs: %ROOT%, Engine
 Description:物理アセットの物理ボディの編集手順を説明します。
@@ -7,45 +8,7 @@ order:1
 Version:4.13
 related:Engine/Physics/PhAT/HowTo/EditPhATPhysicsConstraints
 skilllevel:Beginner
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/HowTo/EditPhATPhysicsBodies:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/HowTo/EditPhATPhysicsBodies:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/HowTo/EditPhATPhysicsBodies:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat/HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/HowTo/EditPhATPhysicsBodies:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/HowTo/EditPhATPhysicsBodies:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/HowTo/EditPhATPhysicsBodies:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat/HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Physics/physics_topic.png
 
 **Physics Asset ツール** の **物理ボディ** に関連した一般的な手順とステップの数々を説明します。
 
@@ -90,8 +53,8 @@ skilllevel:Beginner
 1. **[Delete (削除)]** キーを押します。
 
 	![](Shared\PhAT\PhAT_DelBone.png)
+	## 物理マテリアル
 
-## 物理マテリアル
 
 物理アセットの物理ボディには、それぞれ物理マテリアルを割り当てることができます。物理マテリアルを単一の物理ボディに適用するには、以下の操作を行います。
 

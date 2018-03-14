@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ApexClothingUtils.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -12,10 +12,11 @@
 #include "IDesktopPlatform.h"
 #include "DesktopPlatformModule.h"
 #include "SlateApplication.h"
+#include "Rendering/SkeletalMeshModel.h"
 
 #include "ClothingAssetFactory.h"
 #include "PhysicsPublic.h"
-#include "EditorPhysXSupport.h"
+#include "PhysXIncludes.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogApexClothingUtils, Log, All);
 
@@ -23,7 +24,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogApexClothingUtils, Log, All);
 
 namespace ApexClothingUtils
 {
-#if WITH_APEX_CLOTHING
 
 //enforces a call of "OnRegister" to update vertex factories
 void ReregisterSkelMeshComponents(USkeletalMesh* SkelMesh)
@@ -147,69 +147,49 @@ apex::ClothingAsset* CreateApexClothingAssetFromBuffer(const uint8* Buffer, int3
 
 #endif// #if WITH_APEX_CLOTHING
 
-void GetOriginSectionIndicesWithCloth(USkeletalMesh* InSkelMesh, int32 LODIndex, int32 AssetIndex, TArray<uint32>& OutSectionIndices)
-{
-	FSkeletalMeshResource* Resource = InSkelMesh->GetImportedResource();
-
-	OutSectionIndices.Empty();
-
-	check(Resource->LODModels.IsValidIndex(LODIndex));
-
-	FStaticLODModel& LODModel = Resource->LODModels[LODIndex];
-	int32 NumSections = LODModel.Sections.Num();
-
-	for(int32 SecIdx = 0; SecIdx < NumSections; SecIdx++)
-				{
-		if(LODModel.Sections[SecIdx].CorrespondClothAssetIndex == AssetIndex)
-					{
-			//add original sections
-			OutSectionIndices.Add(LODModel.Sections[SecIdx].CorrespondClothSectionIndex);
-					}
-				}
-			}
-
 void RestoreAllClothingSections(USkeletalMesh* SkelMesh, uint32 LODIndex, uint32 AssetIndex)
 {
-	TArray<uint32> SectionIndices;
-	GetOriginSectionIndicesWithCloth(SkelMesh, LODIndex, AssetIndex, SectionIndices);
-
-	for(int32 i=0; i < SectionIndices.Num(); i++)
+	if(FSkeletalMeshModel* Resource = SkelMesh->GetImportedModel())
 	{
-		RestoreOriginalClothingSection(SkelMesh, LODIndex, SectionIndices[i], false);
+		for(FSkeletalMeshLODModel& LodModel : Resource->LODModels)
+		{
+			for(FSkelMeshSection& Section : LodModel.Sections)
+			{
+				if(Section.HasClothingData())
+				{
+					ClothingAssetUtils::ClearSectionClothingData(Section);
+				}
+			}
+		}
 	}
 }
 
 void RemoveAssetFromSkeletalMesh(USkeletalMesh* SkelMesh, uint32 AssetIndex, bool bReleaseAsset, bool bRecreateSkelMeshComponent)
 {
-	FSkeletalMeshResource* ImportedResource= SkelMesh->GetImportedResource();
+	FSkeletalMeshModel* ImportedResource= SkelMesh->GetImportedModel();
 	int32 NumLODs = ImportedResource->LODModels.Num();
 
 	for(int32 LODIdx=0; LODIdx < NumLODs; LODIdx++)
 	{
 		RestoreAllClothingSections(SkelMesh, LODIdx, AssetIndex);
-
-		FStaticLODModel& LODModel = ImportedResource->LODModels[LODIdx];
-
-		int32 NumSections = LODModel.Sections.Num();
-
-		//decrease asset index because one asset is removed
-		for(int32 SectionIdx=0; SectionIdx < NumSections; SectionIdx++)
-		{
-			if(LODModel.Sections[SectionIdx].CorrespondClothAssetIndex > (int16)AssetIndex)
-				LODModel.Sections[SectionIdx].CorrespondClothAssetIndex--;
-		}
 	}
 
-
+#if WITH_APEX_CLOTHING
 	apex::ClothingAsset* ApexClothingAsset = SkelMesh->ClothingAssets_DEPRECATED[AssetIndex].ApexClothingAsset;	//Can't delete apex asset until after apex actors so we save this for now and reregister component (which will trigger the actor delete)
+#endif	// WITH_APEX_CLOTHING
 	SkelMesh->ClothingAssets_DEPRECATED.RemoveAt(AssetIndex);	//have to remove the asset from the array so that new actors are not created for asset pending deleting
+
+	SkelMesh->PostEditChange(); // update derived data
+
 	ReregisterSkelMeshComponents(SkelMesh);
 
+#if WITH_APEX_CLOTHING
 	if(bReleaseAsset)
 	{
-	//Now we can actually delete the asset
-	GPhysCommandHandler->DeferredRelease(ApexClothingAsset);
+		//Now we can actually delete the asset
+		GPhysCommandHandler->DeferredRelease(ApexClothingAsset);
 	}
+#endif	// WITH_APEX_CLOTHING
 
 	if(bRecreateSkelMeshComponent)
 	{
@@ -217,108 +197,6 @@ void RemoveAssetFromSkeletalMesh(USkeletalMesh* SkelMesh, uint32 AssetIndex, boo
 		RefreshSkelMeshComponents(SkelMesh);
 	}
 }
-
-void RestoreOriginalClothingSection(USkeletalMesh* SkelMesh, uint32 LODIndex, uint32 SectionIndex, bool bReregisterSkelMeshComponent)
-{
-	FSkeletalMeshResource* ImportedResource= SkelMesh->GetImportedResource();
-	FStaticLODModel& LODModel = ImportedResource->LODModels[LODIndex];
-
-	FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
-
-	int32 OriginSectionIndex = -1, ClothSectionIndex = -1;
-
-	// if this section is original mesh section ( without clothing data )
-	if(Section.CorrespondClothSectionIndex >= 0
-		&& !Section.HasClothingData())
-	{
-		ClothSectionIndex = Section.CorrespondClothSectionIndex;
-		OriginSectionIndex = SectionIndex;
-	}
-
-	// if this section is clothing section
-	if(Section.CorrespondClothSectionIndex >= 0
-		&& Section.HasClothingData())
-	{
-		ClothSectionIndex = SectionIndex;
-		OriginSectionIndex = Section.CorrespondClothSectionIndex;
-	}
-
-	if(OriginSectionIndex >= 0 && ClothSectionIndex >= 0)
-	{
-		// Apply to skeletal mesh
-		SkelMesh->PreEditChange(NULL);
-
-		FSkelMeshSection& ClothSection = LODModel.Sections[ClothSectionIndex];
-		FSkelMeshSection& OriginSection = LODModel.Sections[OriginSectionIndex];
-
-		// remove cloth section & chunk
-		TArray<uint32> OutIndexBuffer;
-		LODModel.MultiSizeIndexContainer.GetIndexBuffer(OutIndexBuffer);
-
-		uint32 RemovedBaseIndex = ClothSection.BaseIndex;
-		uint32 RemovedNumIndices = ClothSection.NumTriangles * 3;
-		uint32 RemovedBaseVertexIndex = ClothSection.BaseVertexIndex;
-
-		int32 NumIndexBuffer = OutIndexBuffer.Num();
-
-		int32 NumRemovedVertices = ClothSection.GetNumVertices();
-
-		// Remove old indices and update any indices for other sections
-		OutIndexBuffer.RemoveAt(RemovedBaseIndex, RemovedNumIndices);
-
-		NumIndexBuffer = OutIndexBuffer.Num();
-
-		for(int32 i=0; i < NumIndexBuffer; i++)
-		{
-			if(OutIndexBuffer[i] >= ClothSection.BaseVertexIndex)
-				OutIndexBuffer[i] -= NumRemovedVertices;
-		}
-
-		LODModel.MultiSizeIndexContainer.CopyIndexBuffer(OutIndexBuffer);
-
-		LODModel.Sections.RemoveAt(OriginSection.CorrespondClothSectionIndex);
-
-		LODModel.NumVertices -= NumRemovedVertices;
-
-		int32 NumSections = LODModel.Sections.Num();
-		//decrease indices
-		for(int32 i=0; i < NumSections; i++)
-		{
-			if(LODModel.Sections[i].CorrespondClothSectionIndex > OriginSection.CorrespondClothSectionIndex)
-				LODModel.Sections[i].CorrespondClothSectionIndex -= 1;
-
-			if(LODModel.Sections[i].BaseIndex > RemovedBaseIndex)
-				LODModel.Sections[i].BaseIndex -= RemovedNumIndices;
-
-			if(LODModel.Sections[i].BaseVertexIndex > RemovedBaseVertexIndex)
-				LODModel.Sections[i].BaseVertexIndex -= NumRemovedVertices;
-		}
-
-		OriginSection.bDisabled = false;
-		OriginSection.CorrespondClothSectionIndex = -1;
-
-		if(bReregisterSkelMeshComponent)
-		{
-			ReregisterSkelMeshComponents(SkelMesh);
-		}
-		
-		SkelMesh->PostEditChange();
-	}
-	else
-	{
-		UE_LOG(LogApexClothingUtils, Warning,TEXT("No exists proper section : %d "), SectionIndex );	
-	}
-}
-
-#else
-
-void RestoreOriginalClothingSection(USkeletalMesh* SkelMesh, uint32 LODIndex, uint32 SectionIndex, bool bRecreateSkelMeshComponent)
-{
-	// print error about not supporting APEX
-	UE_LOG(LogApexClothingUtils, Warning,TEXT("APEX Clothing is not supported") );	
-}
-
-#endif // WITH_APEX_CLOTHING
 
 } // namespace ApexClothingUtils
 

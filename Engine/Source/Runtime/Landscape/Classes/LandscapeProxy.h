@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -353,11 +353,35 @@ public:
 	UPROPERTY(EditAnywhere, Category=LOD)
 	int32 MaxLODLevel;
 
-	UPROPERTY(EditAnywhere, Category=LOD)
-	float LODDistanceFactor;
+	UPROPERTY()
+	float LODDistanceFactor_DEPRECATED;
 
-	UPROPERTY(EditAnywhere, Category=LOD)
-	TEnumAsByte<ELandscapeLODFalloff::Type> LODFalloff;
+	UPROPERTY()
+	TEnumAsByte<ELandscapeLODFalloff::Type> LODFalloff_DEPRECATED;
+
+	/** Component screen size (0.0 - 1.0) at which we should keep sub sections. This is mostly pertinent if you have large component of > 64 and component are close to the camera. The goal is to reduce draw call, so if a component is smaller than the value, we merge all subsections into 1 drawcall. */
+	UPROPERTY(EditAnywhere, Category = LOD, meta=(ClampMin = "0.01", ClampMax = "1.0", UIMin = "0.01", UIMax = "1.0", DisplayName= "SubSection Min Component ScreenSize"))
+	float ComponentScreenSizeToUseSubSections;
+
+	/** The distribution setting used to change the LOD 0 generation, 1.75 is the normal distribution, numbers influence directly the LOD0 proportion on screen. */
+	UPROPERTY(EditAnywhere, Category = "LOD Distribution", meta = (DisplayName = "LOD 0", ClampMin = "1.0", ClampMax = "5.0", UIMin = "1.0", UIMax = "5.0"))
+	float LOD0DistributionSetting;
+
+	/** The distribution setting used to change the LOD generation, 2 is the normal distribution, small number mean you want your last LODs to take more screen space and big number mean you want your first LODs to take more screen space. */
+	UPROPERTY(EditAnywhere, Category = "LOD Distribution", meta = (DisplayName = "Other LODs", ClampMin = "1.0", ClampMax = "10.0", UIMin = "1.0", UIMax = "10.0"))
+	float LODDistributionSetting;
+
+	/** Component screen size (0.0 - 1.0) at which we should enable tessellation. */
+	UPROPERTY(EditAnywhere, Category = Tessellation, meta = (ClampMin = "0.01", ClampMax = "1.0", UIMin = "0.01", UIMax = "1.0"))
+	float TessellationComponentScreenSize;
+
+	/** Tell if we should enable tessellation falloff. It will ramp down the Tessellation Multiplier from the material linearly. It should be disabled if you plan on using a custom implementation in material/shaders. */
+	UPROPERTY(EditAnywhere, Category = Tessellation, meta=(DisplayName = "Use Default Falloff"))
+	bool UseTessellationComponentScreenSizeFalloff;
+
+	/** Component screen size (0.0 - 1.0) at which we start the tessellation falloff. */
+	UPROPERTY(EditAnywhere, Category = Tessellation, meta=(editcondition= UseTessellationComponentScreenSizeFalloff, ClampMin = "0.01", ClampMax = "1.0", UIMin = "0.01", UIMax = "1.0", DisplayName = "Tessellation Component Screen Size Falloff"))
+	float TessellationComponentScreenSizeFalloff;
 
 #if WITH_EDITORONLY_DATA
 	/** LOD level to use when exporting the landscape to obj or FBX */
@@ -424,6 +448,8 @@ public:
 	FCachedLandscapeFoliage FoliageCache;
 	/** A transient data structure for tracking the grass tasks*/
 	TArray<FAsyncTask<FAsyncGrassTask>* > AsyncFoliageTasks;
+	/** Frame offset for tick interval*/
+	uint32 FrameOffsetForTickInterval;
 
 	// Only used outside of the editor (e.g. in cooked builds)
 	// Disables landscape grass processing entirely if no landscape components have landscape grass configured
@@ -538,6 +564,10 @@ public:
 	UPROPERTY(EditAnywhere, Category=Landscape)
 	uint32 bUsedForNavigation:1;
 
+	/** When set to true it will generate MaterialInstanceDynamic for each components, so material can be changed at runtime */
+	UPROPERTY(EditAnywhere, Category = Landscape)
+	bool bUseDynamicMaterialInstance;
+
 	UPROPERTY(EditAnywhere, Category = Landscape, AdvancedDisplay)
 	ENavDataGatheringMode NavigationGeometryGatheringMode;
 
@@ -565,8 +595,24 @@ public:
 	// Blueprint functions
 
 	/** Change the Level of Detail distance factor */
-	UFUNCTION(BlueprintCallable, Category = "Rendering")
+	UFUNCTION(BlueprintCallable, Category = "Rendering", meta=(DeprecatedFunction, DeprecationMessage = "This value can't be changed anymore, you should edit the property LODDistributionSetting of the Landscape"))
 	virtual void ChangeLODDistanceFactor(float InLODDistanceFactor);
+
+	/** Change TessellationComponentScreenSize value on the render proxy.*/
+	UFUNCTION(BlueprintCallable, Category = "Rendering")
+	virtual void ChangeTessellationComponentScreenSize(float InTessellationComponentScreenSize);
+
+	/** Change ComponentScreenSizeToUseSubSections value on the render proxy.*/
+	UFUNCTION(BlueprintCallable, Category = "Rendering")
+	virtual void ChangeComponentScreenSizeToUseSubSections(float InComponentScreenSizeToUseSubSections);
+
+	/** Change UseTessellationComponentScreenSizeFalloff value on the render proxy.*/
+	UFUNCTION(BlueprintCallable, Category = "Rendering")
+	virtual void ChangeUseTessellationComponentScreenSizeFalloff(bool InComponentScreenSizeToUseSubSections);
+
+	/** Change TessellationComponentScreenSizeFalloff value on the render proxy.*/
+	UFUNCTION(BlueprintCallable, Category = "Rendering")
+	virtual void ChangeTessellationComponentScreenSizeFalloff(float InUseTessellationComponentScreenSizeFalloff);
 
 	// Editor-time blueprint functions
 
@@ -584,6 +630,18 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Landscape Editor")
 	void EditorApplySpline(USplineComponent* InSplineComponent, float StartWidth = 200, float EndWidth = 200, float StartSideFalloff = 200, float EndSideFalloff = 200, float StartRoll = 0, float EndRoll = 0, int32 NumSubdivisions = 20, bool bRaiseHeights = true, bool bLowerHeights = true, ULandscapeLayerInfoObject* PaintLayer = nullptr);
+
+	/** Set an MID texture parameter value for all landscape components. */
+	UFUNCTION(BlueprintCallable, Category = "Landscape Runtime|Material")
+	void SetLandscapeMaterialTextureParameterValue(FName ParameterName, class UTexture* Value);
+
+	/** Set an MID vector parameter value for all landscape components. */
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "SetColorParameterValue"), Category = "Landscape Runtime|Material")
+	void SetLandscapeMaterialVectorParameterValue(FName ParameterName, FLinearColor Value);
+
+	/** Set a MID scalar (float) parameter value for all landscape components. */
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "SetFloatParameterValue"), Category = "Landscape Runtime|Material")
+	void SetLandscapeMaterialScalarParameterValue(FName ParameterName, float Value);
 
 	// End blueprint functions
 
@@ -639,6 +697,7 @@ public:
 
 	//~ Begin AActor Interface.
 	virtual void TickActor(float DeltaTime, ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
+	virtual bool ShouldTickIfViewportsOnly() const override;
 	//~ End AActor Interface
 
 	//~ Begin UObject Interface.

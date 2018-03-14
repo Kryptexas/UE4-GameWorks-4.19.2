@@ -252,7 +252,8 @@ TextureObjectParameter 表現式はテクスチャ パラメータを定義し�
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:VectorParamDefaultItem]
 [REGION:prop_sublist]
 	* **R**
@@ -274,5 +275,6 @@ TextureObjectParameter 表現式はテクスチャ パラメータを定義し�
 [EXCERPT:GroupDefinition]MaterialInstanceConstant 内でパラメータ名をグループまたはカテゴリに構造化する方法を提供します。同一のグループプロパティ名を持つマテリアル内の全パラメータは、インスタンスのカテゴリ配下にリストされます。[/EXCERPT:GroupDefinition]
 
 [EXCERPT:ParameterNameDefinition]マテリアルのインスタンス、またはコードを通じてパラメータを特定する名前を指定します。[/EXCERPT:ParameterNameDefinition]
--->
+
+[/COMMENT]
 

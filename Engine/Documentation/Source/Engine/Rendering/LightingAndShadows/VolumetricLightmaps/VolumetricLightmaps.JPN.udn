@@ -1,0 +1,288 @@
+﻿INTSourceChangelist:3677919
+Availability:Public
+Crumbs: %ROOT%
+Title:ボリューメトリック ライトマップ
+Description:動的オブジェクトのグローバル イルミネーションおよびビルドされていないシーンのプレビューに使用するキャッシュされたボリューメトリック ライティングのサンプル
+Type:Overview
+SkillLevel:Intermediate
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows
+Related:Engine/Rendering/LightingAndShadows/Lightmass
+Order:
+Tags:Lighting
+Topic-image:VLM_Topic.png
+Social-image:LitMoveableCharacterVLM.png
+
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:100 convert:false)[/VAR]
+
+
+[TOC(start:2 end:2)]
+
+[REGION:note]
+ボリューメトリック ライトマップは [間接ライティング キャッシュ](Engine/Rendering/LightingAndShadows/IndirectLightingCache)、ゆくゆくはボリューム ライティング サンプルにに変わるものです。 
+
+**[World Settings]** > **[Lightmass Settings]** で **[Volume Lighting Method]** を **[VLM Spare Volume Lighting Samples]** に設定すれば、再度間接ライティング キャッシュを有効にすることができます。
+[/REGION]
+
+
+
+
+ライトマスは静的オブジェクト上に間接ライティングのライトマップを生成します。ただし、キャラクターなどの動的オブジェクトも間接ライティングの情報が必要です。そこで、 
+ランタイム時に動的オブジェクトの間接ライティングを計算できるように **ボリューメトリック ライトマップ** と呼ばれる空間内のすべてのポイントを事前計算してライティングを格納します。 
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Lighting Cache | (Old Method)](LitMoveableCharacterILC.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Volumetric Lightmap | (New Method)](LitMoveableCharacterVLM.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+[REGION:caption]  [/REGION]
+[REGION:caption]
+ボリューメトリック ライトマップを使用した方が、間接ライティング キャッシュよりも正確に動的オブジェクトをレンダリングすることができます。
+[/REGION]
+
+
+
+
+## 機能の説明
+
+ボリューメトリック ライトマップ システムが機能する仕組みをおおまかに説明します。
+
+* ライトマスはレベルのあらゆる場所にライティング サンプルを配置し、ライティングのビルド中にそれらの間接ライティングを計算します。 
+* 動的オブジェクトをレンダリングすると、シェーディング処理中の各ピクセルに事前計算間接ライティングが与えられてボリューメトリック ライトマップが補間されます。
+* ライティングが利用できない場合 (オブジェクトが新規または移動が多すぎる場合) は、ボリューメトリック ライトマップは各ピクセルに対して必ずライティングを補間します。
+
+Lightmass Importance Volume を置くと、ボリューメトリック ライトマップはそれを 4x4x4 のレンガ状のライティング サンプルで完全に囲みます。これらのレンガは、間接ライティングの変化が一番大きくなる 
+高密度の静的ジオメトリの近くに置かれます。このデータ構造により、GPU 上の空間のすべてのポイントで間接ライティングの効率的な補間が可能になります。 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Volume Lighting Samples | (Old Method)](ILC_Placement.png)(w:850)
+	[/PARAM]
+	[PARAM:after]
+	![Volumetric Lightmap | (New Method) ](VLM_Placement.png)(w:850)
+	[/PARAM]
+[/OBJECT]
+
+これらのポイントの 1 つ 1 つがライティング サンプルで、全方向の入射光を格納するために 3次球面調和を使用します。 
+
+![](VolumeLightmap.png)(w:375)
+
+**Volumetric Lightmap** のビュー モードを使って、**[Show]** > **[Visualize]** > **[Volumetric Lightmap]** をクリックしてレベル ビューポート内でライティング サンプルを使用します。
+
+[REGION:imagetable]
+| [INCLUDE:#enableviewmode] | [INCLUDE:#visualize] |
+| --- | --- |
+| ボリューメトリック ライトマップ サンプルを視覚化 | ボリューメトリック ライトマップ ライティング サンプルを視覚化 |
+[/REGION]
+
+ボリューメトリック ライトマップを視覚化すると、Lightmass Importance Volume 内だけに存在し、近くにジオメトリのないエリアと比較して、ジオメトリ周囲に存在する密度が表示されます。
+
+
+[COMMENT:none]
+--
+
+[EXCERPT:enableviewmode]
+[REGION:lightbox]
+[![](ViewModeVLM.png)(h:500)](ViewModeVLM.png)
+[/REGION]
+[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+[/EXCERPT:enableviewmode]
+
+
+[EXCERPT:visualize]
+[REGION:lightbox]
+[![](Visualize.png)(h:500)](Visualize.png)
+[/REGION]
+[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+[/EXCERPT:visualize]
+
+-
+[/COMMENT]
+
+
+
+
+### ビルドされていないライティングのプレビュー方法
+
+ボリューメトリック ライトマップは、ビルドされていないライティングを使用したオブジェクトのプレビューも可能にします。ライティングがビルドされているスタティックメッシュを移動すると、 
+それは次のライティング ビルドまで自動的にボリューメトリック ライトマップに切り替わります。 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Lighting Cache | (Old Method)](UnbuildILC.png)(w:850)
+	[/PARAM]
+	[PARAM:after]
+	![Volumetric Lightmap | (New Method)](UnbuiltVLM.png)(w:850)
+	[/PARAM]
+[/OBJECT]
+[REGION:caption]
+ 
+[/REGION]
+[REGION:caption]
+中央の柱はコピーです。ライティング ビルドが再ビルドされるまで、ボリューメトリック ライトマップで照らされている状態です。
+[/REGION]
+
+
+### ムーバブル オブジェクトの事前計算ライティング
+
+ボリューメトリック ライトマップは、ライティング サンプル間の補間をコンポーネント全体で 1 度だけしか行わない [間接ライティング キャッシュ](Engine/Rendering/LightingAndShadows/IndirectLightingCache) とは異なり、
+ピクセルごとに補間するので信頼性が高くなります。信頼性のあるディティールを配布するため、ライト漏れが少なくなります。 
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Lighting Cache  | (Old Method)](MovableCharacterILC.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Volumetric Lightmap  | (New Method)](MovableCharacterVLM.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
+ボリューメトリック ライトマップのディティールが追加されたことにより、キャラクターが背景に自然に馴染みます。
+
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Lighting Cache | (Old Method)](MovableObjectILC.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Volumetric Lightmap | (New Method)](MovableObjectVLM.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
+静的ジオメトリに埋め込まれているムーバブル オブジェクトは、間接ライティング キャッシュよりも静的オブジェクト ライティングとの方がうまく適合します。 
+
+
+
+
+[COMMENT:none]
+- [INCLUDE:Engine/Rendering/LightingAndShadows/VolumetricLightmaps#Volumetricfog] --
+[/COMMENT]
+
+### ボリューメトリック フォグの事前計算ライティング
+
+[EXCERPT:volumetricfog]
+
+ボリューメトリック ライトマップは、空間での位置に対してフォグ ボクセルごとに事前計算ライティングを補間させることにより、ボリューメトリック フォグの Static light (静的ライト) への適用に対応しています。 
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Spot Light with | No Indirect Light Bounce](SpotLightNoBounce.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Spot Light with | Indirect Light Bounce](SpotLightIndirectBounce.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+
+Stationary Light (固定ライト) は間接ライティングをライトマップに格納してフォグを照らします。 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Sky Light with Emissive Color](SkylightEmissiveFogColor.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Sky Light Volumetric Lightmap](SkylightVLM.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+
+スカイライトは適切にシャドウ処理により、室内領域でのフォグのかかりすぎを防止します。
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Lighting Cache: | Static and Emissive for Static Lighting | (Old Method) ](ILCStaticLighting.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Volumetric Lightmap: | Static and Emissive for Static Lighting | (New Method) ](VLMStaticLighting.png)(w:1100)
+	[/PARAM]
+[/OBJECT]
+
+Static ligth (静的ライト) およびエミッシブによる Static light は、ボリューメトリック ライトマップにすべてベイクされているため、負荷をかけずにフォグを照らすことができます。 
+
+[/EXCERPT:volumetricfog]
+
+
+## 設定
+
+ボリューメトリック ライティングの設定は、**[Lightmass Settings]** の中の **[World Settings]** にあります。
+
+![](VLMSettings.png)
+
+[REGION:raw]
+| 設定 | %spacer% | 説明 |
+| -------- | -------- | ----------- |
+| **Volumetric Lighting Method** || 事前計算ライティングを Lightmass Importance Volume の全方向に使用する技法です。  [INCLUDE:#vlmethod] |
+| **Volumetric Lightmap Detail Cell Size** || 最高密度 (ジオメトリ周辺で使用) でのボリューメトリック ライトマップのボクセル サイズ (ワールド単位) です。この設定は、ビルド回数とメモリに大きく影響するので、慎重に使用してください。
+| **Volumetric Lightmap Maximum Brick Memory Mb** || Volumetric Lightmap Brick データに使用する最大メモリ量です。高濃度のレンガは、上記の制限値が満たされるようになるまで破棄されます。その際、ジオメトリから最も遠くにあるレンガが先に破棄されます。メモリを極端に減らしてしまうと解像度の一貫性が失われます。**Volumetric Lightmap Detail Cell Size** を増やす手段をお勧めします。 |
+[/REGION]
+
+[COMMENT:none]
+--
+[INCLUDE:#vlmethod]
+[EXCERPT:VLMethod]
+| --- | --- | --- |
+| **VLM Volumetric Lightmap** || ライティング サンプルは Lightmass Importance Volume 全体を囲む詳細グリッドで計算されます。ジオメトリ周辺では高密度なグリッドが使用されます。ボリューメトリック ライトマップは GPU 上でピクセルごとに効率的に補間されるため、動的オブジェクトおよびボリューメトリック フォグへの正確な間接ライティングが可能になります。Importance Volume の外側では、ボリューメトリック ライト マップの境界テクセルを再利用します (アドレス処理をクランプ) 。モバイルの場合、CPU 上で各オブジェクトの範囲の真ん中で行われます。  |
+| **VLM Sparse Volume Lighting Samples** || ボリューム ライティング サンプルは静的なサーフェス上に中程度の密度で置かれ、Lightmass Importance Volume 内のその他の場所では低密度で置かれます。Positions outside of the Importance Volume 外の位置では間接ライティングはありません。このメソッドは CPU 補間が必要なので、間接ライティング キャッシュを使い、レンダリング スレッド オーバーヘッドを加えて、動的オブジェクトごとに結果を補間します。ボリューメトリック フォグはこのメソッドによる事前計算されたライティングで照らすことはできません。 |
+| | %spacer2% | |
+[/EXCERPT:VLMethod]
+
+-
+[/COMMENT]
+
+
+## パフォーマンス
+
+ボリューメトリック ライトマップによるパフォーマンスおよびメモリ使用に関して、次の点に留意してください。
+
+* サードパーソン キャラクター上でボリューメトリック ライティングを使用すると、PlayStation 4 では GPU 処理が 0.2ms かかります。すべての間接ライティング キャッシュ レンダリング スレッド負荷は除去されました。  
+* エピックの Paragon マップの Monolith では、間接ライティング キャッシュの使用によりメモリ使用量がデフォルトの **[Detail Cell Size]** 設定の 5Mb から 30 Mb に増えました。メモリ使用量は
+エディタの **Stat Memory** コマンドの **Volumetric Lightmap Memory** に表示されます。
+
+	[REGION:lightbox]
+	[![](StatMemory.png)(w:700)](StatMemory.png)
+	[/REGION]
+	[REGION:caption] クリックしてフルサイズ表示 [/REGION]
+
+
+### ボリューメトリック ライトマップと間接ライティング キャッシュ
+
+ボリューメトリック ライトマップと間接ライティング キャッシュを比較すると次のようになります。 
+
+[REGION:simpletable]
+| --- | --- |
+| **ボリューメトリック ライトマップ** | **事前計算ライト ボリューム / 間接ライティング キャッシュ** |
+| [INCLUDE:#vlm] | [INCLUDE:#ilc] |
+[/REGION]
+
+
+[COMMENT:none]
+- 
+[INCLUDE:#ilc]
+[EXCERPT:ILC]
+* CPU での補間負荷が高い
+* インスタンス化されたコンポーネントでさえも補間はオブジェクトごとに行う
+* ボリューメトリック フォグに影響を及ぼすことができない
+* 静的なサーフェス上に高密度のみを配置すると、低密度のサンプルから漏れが発生してしまう
+* Lightmass Importance Volume の外側ではサンプルは黒くなる
+* レベル ストリーミングに対応
+[/EXCERPT:ILC]
+
+[EXCERPT:VLM]
+* GPU での効率のよい補間
+* ピクセルごとの補間
+* ボリューメトリック フォグと機能
+* 静的なサーフェス周辺での高密度な配置
+* 境界ボクセルを伸縮して Lightmass Importance Volume 外の領域を覆う
+* 現時点ではレベル ストリーミングには非対応
+[/EXCERPT:VLM]
+
+-
+[/COMMENT]

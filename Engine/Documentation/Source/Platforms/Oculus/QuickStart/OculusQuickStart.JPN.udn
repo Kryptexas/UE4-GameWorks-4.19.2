@@ -49,21 +49,15 @@ Oculus クイック スタートでは、アンリアル エンジンが使え�
 
 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## ステップ
+
+[REGION:buttonlist]
+
 	* [](Platforms/Oculus/QuickStart/1 "%Platforms/Oculus/QuickStart/1:description%")
 	* [](Platforms/Oculus/QuickStart/2 "%Platforms/Oculus/QuickStart/2:description%")
 	* [](Platforms/Oculus/QuickStart/3 "%Platforms/Oculus/QuickStart/3:description%")
 	* [](Platforms/Oculus/QuickStart/4 "%Platforms/Oculus/QuickStart/4:description%")
 	* [](Platforms/Oculus/QuickStart/5 "%Platforms/Oculus/QuickStart/5:description%")
 	* [](Platforms/Oculus/QuickStart/6 "%Platforms/Oculus/QuickStart/6:description%")
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]

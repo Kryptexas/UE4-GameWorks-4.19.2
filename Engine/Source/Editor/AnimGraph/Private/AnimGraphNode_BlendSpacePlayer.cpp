@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphNode_BlendSpacePlayer.h"
 #include "UObject/UObjectHash.h"
@@ -162,7 +162,7 @@ void UAnimGraphNode_BlendSpacePlayer::GetMenuActions(FBlueprintActionDatabaseReg
 				NodeSpawner = UBlueprintNodeSpawner::Create(NodeClass);
 				check(NodeSpawner != nullptr);
 
-				TWeakObjectPtr<UBlendSpaceBase> BlendSpacePtr = BlendSpace;
+				TWeakObjectPtr<UBlendSpaceBase> BlendSpacePtr = MakeWeakObjectPtr(const_cast<UBlendSpaceBase*>(BlendSpace));
 				NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(GetMenuActions_Utils::SetNodeBlendSpace, BlendSpacePtr);
 			}	
 			return NodeSpawner;

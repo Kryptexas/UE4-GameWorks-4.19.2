@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayEffectExecutionCalculation.h"
 #include "AbilitySystemComponent.h"
@@ -200,7 +200,7 @@ bool FGameplayEffectCustomExecutionParameters::AttemptGetCapturedAttributeAggreg
 	return false;
 }
 
-bool FGameplayEffectCustomExecutionParameters::AttemptGatherAttributeMods(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutModMap) const
+bool FGameplayEffectCustomExecutionParameters::AttemptGatherAttributeMods(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, const FAggregatorEvaluateParameters& InEvalParams, OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutModMap) const
 {
 	check(OwningSpec);
 
@@ -214,7 +214,7 @@ bool FGameplayEffectCustomExecutionParameters::AttemptGatherAttributeMods(const 
 		const FGameplayEffectAttributeCaptureSpec* CaptureSpec = OwningSpec->CapturedRelevantAttributes.FindCaptureSpecByDefinition(InCaptureDef, true);
 		if (CaptureSpec)
 		{
-			return CaptureSpec->AttemptGatherAttributeMods(OutModMap);
+			return CaptureSpec->AttemptGatherAttributeMods(InEvalParams, OutModMap);
 		}
 	}
 
@@ -224,7 +224,7 @@ bool FGameplayEffectCustomExecutionParameters::AttemptGatherAttributeMods(const 
 bool FGameplayEffectCustomExecutionParameters::ForEachQualifiedAttributeMod(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, const FAggregatorEvaluateParameters& InEvalParams, TFunction< void(EGameplayModEvaluationChannel, EGameplayModOp::Type, const FAggregatorMod&) > Func) const
 {
 	TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*> ModMap;
-	if (AttemptGatherAttributeMods(InCaptureDef, ModMap))
+	if (AttemptGatherAttributeMods(InCaptureDef, InEvalParams, ModMap))
 	{
 		for (auto It : ModMap)
 		{
@@ -234,7 +234,7 @@ bool FGameplayEffectCustomExecutionParameters::ForEachQualifiedAttributeMod(cons
 				const TArray<FAggregatorMod>& CurModArray = ModList[ModOpIdx];
 				for (const FAggregatorMod& AggMod : CurModArray)
 				{
-					if (AggMod.Qualifies(InEvalParams))
+					if (AggMod.Qualifies())
 					{
 						Func(It.Key, (EGameplayModOp::Type)ModOpIdx, AggMod);
 					}

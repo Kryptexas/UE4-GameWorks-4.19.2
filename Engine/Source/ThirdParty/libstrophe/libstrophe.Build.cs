@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -13,8 +13,8 @@ public class libstrophe : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.XboxOne)
 		{
-			Definitions.Add("WITH_XMPP_STROPHE=1");
-			Definitions.Add("XML_STATIC");
+			PublicDefinitions.Add("WITH_XMPP_STROPHE=1");
+			PublicDefinitions.Add("XML_STATIC");
 
 			string IncludePath = Path.Combine(StrophePackagePath, "libstrophe-0.9.1");
 			PublicSystemIncludePaths.Add(IncludePath);
@@ -37,7 +37,7 @@ public class libstrophe : ModuleRules
 		}
 		else
 		{
-			Definitions.Add("WITH_XMPP_STROPHE=0");
+			PublicDefinitions.Add("WITH_XMPP_STROPHE=0");
 		}
     }
 }

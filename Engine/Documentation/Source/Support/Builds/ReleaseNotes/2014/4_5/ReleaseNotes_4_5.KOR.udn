@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Title: 언리얼 엔진 4.5 릴리즈 노트
 Crumbs:%ROOT%, Support/Builds
 Description:
@@ -24,13 +24,15 @@ order:5
 | **Linux Toolchain** | v4_clang-3.5.0_ld-2.24_glibc-2.12.2  _(downloadable from [](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip))_ |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Labels]
 QA_APPROVED_UE4_BUILD_4.5.0_Release
 QA_APPROVED_UE4_BUILD_CURRENT  
 QA_APPROVED_UE4_BUILD_MINIMUM
 [/EXCERPT:Labels]
--->
+
+[/COMMENT]
 [/PUBLISH:Licensee]
 
 

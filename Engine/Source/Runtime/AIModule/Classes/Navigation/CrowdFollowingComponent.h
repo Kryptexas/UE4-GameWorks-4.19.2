@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -199,6 +199,9 @@ protected:
 
 	/** if set, destination overshot can be tested */
 	uint32 bCanCheckMovingTooFar : 1;
+
+	/** if set, path parts can be switched in UpdatePathSegment, based on distance */
+	uint32 bCanUpdatePathPartInTick : 1;
 
 	/** if set, movement will be finished when velocity is opposite to path direction (runtime flag) */
 	uint32 bCheckMovementAngle : 1;

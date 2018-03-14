@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MacPlatformMemory.cpp: Mac platform memory functions
@@ -62,6 +62,12 @@ FMalloc* FMacPlatformMemory::BaseAllocator()
 	{
 		AllocatorToUse = EMemoryAllocatorToUse::Ansi;
 	}
+
+#if defined(__has_feature)
+	#if __has_feature(thread_sanitizer)
+		AllocatorToUse = EMemoryAllocatorToUse::Ansi;
+	#endif
+#endif
 
 	switch (AllocatorToUse)
 	{

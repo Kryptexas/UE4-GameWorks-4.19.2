@@ -15,7 +15,8 @@ Version:4.9
 | **チェック ボックス** | `Bools` などの基本的な切り替えプロパティの編集に使用します。 [INCLUDE:#TypeBool] |
 | **ドロップダウン** | 利用可能な値のリストを提供する `Bools` やその他のプロパティに使用します。 [INCLUDE:#TypeEnum] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:TypeString]
 [REGION:none]
 **例:**  
@@ -50,4 +51,5 @@ Version:4.9
 ![Dropdown control](enum.png)
 [/REGION]
 [/EXCERPT:TypeEnum]
--->
+
+[/COMMENT]

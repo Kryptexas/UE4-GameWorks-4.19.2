@@ -43,7 +43,8 @@ Version:4.9
 
 
 
-<!--------------BEGIN INCLUDES------------
+[COMMENT:none]
+------------BEGIN INCLUDES------------
 
 [EXCERPT:TessellationPoints]
       TessellationPoints = TruncToInt((スポーンパーティクル間の距離) / (DistanceTessellationStepSize))
@@ -70,4 +71,5 @@ Version:4.9
 	CheckTangent が < 0.5 の場合、 DistanceTessellationStepSize は結果に基づいてスケーリングされます。 
 [/EXCERPT:CheckTangent]
 
-------------END INCLUDES-------------->
+------------END INCLUDES------------
+[/COMMENT]

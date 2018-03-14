@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -66,6 +68,27 @@ namespace UnrealBuildTool
 		public int EffectiveCompatibleChangelist
 		{
 			get { return (Changelist != 0 && CompatibleChangelist != 0)? CompatibleChangelist : Changelist; }
+		}
+
+		/// <summary>
+		/// Reads the default build version, throwing an exception on error.
+		/// </summary>
+		/// <returns>New BuildVersion instance</returns>
+		public static BuildVersion ReadDefault()
+		{
+			FileReference File = GetDefaultFileName();
+			if(!FileReference.Exists(File))
+			{
+				throw new BuildException("Version file is missing ({0})", File);
+			}
+
+			BuildVersion Version;
+			if(!TryRead(File, out Version))
+			{
+				throw new BuildException("Unable to read version file ({0}). Check that this file is present and well-formed JSON.", File);
+			}
+
+			return Version;
 		}
 
 		/// <summary>
@@ -187,5 +210,80 @@ namespace UnrealBuildTool
 			Writer.WriteValue("BranchName", BranchName);
 			Writer.WriteValue("BuildId", BuildId);
 		}
+	}
+
+	/// <summary>
+	/// Read-only wrapper for a BuildVersion instance
+	/// </summary>
+	public class ReadOnlyBuildVersion
+	{
+		BuildVersion Inner;
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="Inner">The writable build version instance</param>
+		public ReadOnlyBuildVersion(BuildVersion Inner)
+		{
+			this.Inner = Inner;
+		}
+
+		/// <summary>
+		/// Accessors for fields on the inner BuildVersion instance
+		/// </summary>
+		#region Read-only accessor properties 
+		#if !__MonoCS__
+		#pragma warning disable CS1591
+		#endif
+
+		public int MajorVersion
+		{
+			get { return Inner.MajorVersion; }
+		}
+
+		public int MinorVersion
+		{
+			get { return Inner.MinorVersion; }
+		}
+
+		public int PatchVersion
+		{
+			get { return Inner.PatchVersion; }
+		}
+
+		public int Changelist
+		{
+			get { return Inner.Changelist; }
+		}
+
+		public int CompatibleChangelist
+		{
+			get { return Inner.CompatibleChangelist; }
+		}
+
+		public int EffectiveCompatibleChangelist
+		{
+			get { return Inner.EffectiveCompatibleChangelist; }
+		}
+
+		public bool IsLicenseeVersion
+		{
+			get { return Inner.IsLicenseeVersion != 0; }
+		}
+
+		public bool IsPromotedBuild
+		{
+			get { return Inner.IsPromotedBuild != 0; }
+		}
+
+		public string BranchName
+		{
+			get { return Inner.BranchName; }
+		}
+
+		#if !__MonoCS__
+		#pragma warning restore C1591
+		#endif
+		#endregion
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -37,7 +37,11 @@ public:
 		}
 	}
 	
-	FORCEINLINE void RaiseLockToWrite()
+	// NOTE: As the name suggests, this function should be used with caution. 
+	// It releases the read lock _before_ acquiring a new write lock. This is not an atomic operation and the caller should 
+	// not treat it as such. 
+	// E.g. Pointers read from protected data structures prior to this call may be invalid after the function is called. 
+	FORCEINLINE void ReleaseReadOnlyLockAndAcquireWriteLock_USE_WITH_CAUTION()
 	{
 		if(LockType == SLT_ReadOnly)
 		{

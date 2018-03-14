@@ -7,19 +7,13 @@ Version:4.9
 SkillLevel:Intermediate
 
 
----
 以下の手順では、複数のカメラ アングルを使用する短いシーケンスを作成します。 
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		マチネ、カメラ、プロップを追加する
-	[/PARAM]
-	[PARAM:description]
-	この手順では、**Matinee アクタ**、**カメラ**、およびショットの対象となるプロップを追加します。 
-	[/PARAM]
-[/OBJECT]
+マチネ、カメラ、プロップを追加する
+
+この手順では、**Matinee アクタ**、**カメラ**、およびショットの対象となるプロップを追加します。 
 
 1. **ツールバー** メニューから **Matinee** を選択し、**[Add Matinee]** ボタンをクリックします。 
 
@@ -58,14 +52,9 @@ SkillLevel:Intermediate
 	![](MHT3_ChairRotated.png)
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		マチネでカメラ シーケンスを作成する
-	[/PARAM]
-	[PARAM:description]
-	この手順では、各 **カメラ** に動きを割り当てそれを **マチネ** に接続します。 
-	[/PARAM]
-[/OBJECT]
+マチネでカメラ シーケンスを作成する
+
+この手順では、各 **カメラ** に動きを割り当てそれを **マチネ** に接続します。 
 
 1. [マチネ] ウィンドウを開きます (閉じた場合は、**Matinee** を選択し、**[Details ]** パネルで **Open Matinee** を選択すると再び開きます)。 
 
@@ -175,14 +164,9 @@ SkillLevel:Intermediate
 	![](MHT3_CamerasDone.png)
 
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		Director Track でカメラカットを作成する
-	[/PARAM]
-	[PARAM:description]
-	この手順では、**Director Track (ディレクター トラック)** を追加します。これはすべてのカメラカットを処理します。 
-	[/PARAM]
-[/OBJECT]
+Director Track でカメラカットを作成する
+
+この手順では、**Director Track (ディレクター トラック)** を追加します。これはすべてのカメラカットを処理します。 
 
 1. [マチネ] ウィンドウを開きます (閉じた場合は、**Matinee** を選択し、**[Details ]** パネルで **Open Matinee** を選択すると再び開きます)。 
 

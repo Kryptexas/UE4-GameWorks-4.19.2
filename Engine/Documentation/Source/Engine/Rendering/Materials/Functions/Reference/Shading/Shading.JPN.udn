@@ -49,7 +49,8 @@ Version:4.9
 
 
 ![FuzzyShadingGrass](FuzzyShadingGrass_Demo.png)
-<!---
+[COMMENT:none]
+-
 ### TextureDefinedSpecularShape
 
 オブジェクトのスペキュラハイライトの形状として使用するテクスチャを指定する関数です。現在開発中で未完成です。
@@ -65,4 +66,5 @@ Version:4.9
 
 ![TextureDefinedSpecularShape](TextureDefinedSpecularShape.png)
 
---->
+-
+[/COMMENT]

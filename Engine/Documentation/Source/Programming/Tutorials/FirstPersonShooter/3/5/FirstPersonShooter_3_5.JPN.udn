@@ -22,7 +22,7 @@ Version:4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 このステップでは、照準 (クロスヘア) HUD エレメントをゲームに追加し、発射物の照準を合わすことができるようにします。
 
@@ -159,7 +159,7 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
     [/PARAM]
     [PARAM:content]
 		**FPSProjectile.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 			#include "GameFramework/Actor.h"
@@ -200,7 +200,7 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 
 
 		**FPSProjectile.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "FPSProject.h"
 			#include "FPSProjectile.h"
@@ -263,7 +263,7 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 			}
 
 		**FPSCharacter.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 			#pragma once
 
 			#include "GameFramework/Character.h"
@@ -328,7 +328,7 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 			};
 
 		**FPSCharacter.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 			#include "FPSProject.h"
 
 			#include "FPSCharacter.h"
@@ -459,7 +459,7 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 			}
 
 		**FPSHUD.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 			#pragma once
 
 			#include "GameFramework/HUD.h"
@@ -485,7 +485,7 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 			};
 
 		**FPSHUD.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 			#include "FPSProject.h"
 
 			#include "FPSHUD.h"
@@ -522,4 +522,3 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 
 これで次のセクションでキャラクターのアニメートについて学ぶ準備が整いました。
 
-%Steps%

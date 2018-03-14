@@ -1,56 +1,20 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3736212
 Availability:Public
 Title:스테이셔너리 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows,Engine/Rendering/LightingAndShadows/LightMobility
 Description:실행시간에 색이나 밝기는 바꿀 수 있어도 이동 및 회전, 영향력 크기를 바꿀 수는 없는 라이트 유형입니다.
 Version: 4.9
+parent:Engine/Rendering/LightingAndShadows/LightMobility
+order:2
+type:overview
+topic-image:stationarylights_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-	![%Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights:title%](%ROOT%/Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights/stationarylights_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	![](%ROOT%/ue4_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	%Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights:title%
-	[/PARAM]
-	[PARAM:description]
-	%Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-	![%Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights:title%](%ROOT%/Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights/stationarylights_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-	![](%ROOT%/ue4_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	%Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights:title%
-	[/PARAM]
-	[PARAM:description]
-	%Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:banner]
 ![](Engine/Rendering/LightingAndShadows/lighting_overview_banner_001.png)(convert:false)
 [/REGION]
 
 [TOC(start:2 end:2)]
-
-
 
 [INCLUDE:Resources/ContentExamples\Lighting\2_2#StationaryLights01]
 

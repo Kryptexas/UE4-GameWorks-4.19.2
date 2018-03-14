@@ -397,7 +397,8 @@ This mode will show all Constraint positions and their Limits representations.
 [/EXCERPT:ConstraintRenderingMode_AllLimits]
 
 
-<!--
+[COMMENT:none]
+
 MakeBodyFixed;
 MakeBodyUnfixed;
 MakeBodyDefault;
@@ -409,4 +410,5 @@ DeleteAllBodiesBelow;
 ToggleMotor;
 EnableMotorsBelow;
 DisableMotorsBelow;
--->
+
+[/COMMENT]

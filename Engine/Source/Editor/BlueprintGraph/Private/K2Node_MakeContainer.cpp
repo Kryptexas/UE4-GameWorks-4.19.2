@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "K2Node_MakeContainer.h"
@@ -101,12 +101,14 @@ void UK2Node_MakeContainer::ReallocatePinsDuringReconstruction(TArray<UEdGraphPi
 void UK2Node_MakeContainer::AllocateDefaultPins()
 {
 	// Create the output pin
-	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Wildcard, FString(), nullptr, *GetOutputPinName(), ContainerType);
+	UEdGraphNode::FCreatePinParams PinParams;
+	PinParams.ContainerType = ContainerType;
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Wildcard, GetOutputPinName(), PinParams);
 
 	// Create the input pins to create the container from
 	for (int32 i = 0; i < NumInputs; ++i)
 	{
-		CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Wildcard, FString(), nullptr, *FString::Printf(TEXT("[%d]"), i));
+		CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Wildcard, GetPinName(i));
 	}
 }
 
@@ -145,13 +147,13 @@ void UK2Node_MakeContainer::ClearPinTypeToWildcard()
 	{
 		UEdGraphPin* OutputPin = GetOutputPin();
 		OutputPin->PinType.PinCategory = UEdGraphSchema_K2::PC_Wildcard;
-		OutputPin->PinType.PinSubCategory.Reset();
+		OutputPin->PinType.PinSubCategory = NAME_None;
 		OutputPin->PinType.PinSubCategoryObject = nullptr;
 
 		if (ContainerType == EPinContainerType::Map)
 		{
 			OutputPin->PinType.PinValueType.TerminalCategory = UEdGraphSchema_K2::PC_Wildcard;
-			OutputPin->PinType.PinValueType.TerminalSubCategory.Reset();
+			OutputPin->PinType.PinValueType.TerminalSubCategory = NAME_None;
 			OutputPin->PinType.PinValueType.TerminalSubCategoryObject = nullptr;
 		}
 
@@ -194,7 +196,7 @@ void UK2Node_MakeContainer::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 		{
 			if (Pin == OutputPin)
 			{
-				if (NumKeyPinsWithLinks == 0 && (OutputPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard || Pin->LinkedTo[0]->PinType.PinCategory != UEdGraphSchema_K2::PC_Wildcard))
+				if (NumKeyPinsWithLinks == 0 && (OutputPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard && Pin->LinkedTo[0]->PinType.PinCategory != UEdGraphSchema_K2::PC_Wildcard))
 				{
 					FEdGraphTerminalType TerminalType = MoveTemp(OutputPin->PinType.PinValueType);
 					OutputPin->PinType = Pin->LinkedTo[0]->PinType;
@@ -202,7 +204,7 @@ void UK2Node_MakeContainer::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 					OutputPin->PinType.ContainerType = ContainerType;
 					bNotifyGraphChanged = true;
 				}
-				if (ContainerType == EPinContainerType::Map && NumValuePinsWithLinks == 0 && (OutputPin->PinType.PinValueType.TerminalCategory == UEdGraphSchema_K2::PC_Wildcard || Pin->LinkedTo[0]->PinType.PinValueType.TerminalCategory != UEdGraphSchema_K2::PC_Wildcard))
+				if (ContainerType == EPinContainerType::Map && NumValuePinsWithLinks == 0 && (OutputPin->PinType.PinValueType.TerminalCategory == UEdGraphSchema_K2::PC_Wildcard && Pin->LinkedTo[0]->PinType.PinValueType.TerminalCategory != UEdGraphSchema_K2::PC_Wildcard))
 				{
 					OutputPin->PinType.PinValueType = Pin->LinkedTo[0]->PinType.PinValueType;
 					bNotifyGraphChanged = true;
@@ -211,7 +213,7 @@ void UK2Node_MakeContainer::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 			else if (ValuePins.Contains(Pin))
 			{
 				// Just made a connection to a value pin, was it the first?
-				if (NumValuePinsWithLinks == 1 && (OutputPin->PinType.PinValueType.TerminalCategory == UEdGraphSchema_K2::PC_Wildcard || Pin->LinkedTo[0]->PinType.PinCategory != UEdGraphSchema_K2::PC_Wildcard))
+				if (NumValuePinsWithLinks == 1 && (OutputPin->PinType.PinValueType.TerminalCategory == UEdGraphSchema_K2::PC_Wildcard && Pin->LinkedTo[0]->PinType.PinCategory != UEdGraphSchema_K2::PC_Wildcard))
 				{
 					// Update the types on all the pins
 					OutputPin->PinType.PinValueType = FEdGraphTerminalType::FromPinType(Pin->LinkedTo[0]->PinType);
@@ -221,7 +223,7 @@ void UK2Node_MakeContainer::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 			else 
 			{
 				// Just made a connection to a key pin, was it the first?
-				if (NumKeyPinsWithLinks == 1 && (OutputPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard || Pin->LinkedTo[0]->PinType.PinCategory != UEdGraphSchema_K2::PC_Wildcard))
+				if (NumKeyPinsWithLinks == 1 && (OutputPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard && Pin->LinkedTo[0]->PinType.PinCategory != UEdGraphSchema_K2::PC_Wildcard))
 				{
 					FEdGraphTerminalType TerminalType = MoveTemp(OutputPin->PinType.PinValueType);
 					OutputPin->PinType = Pin->LinkedTo[0]->PinType;
@@ -255,7 +257,7 @@ void UK2Node_MakeContainer::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 		if (bResetOutputPinPrimary)
 		{
 			OutputPin->PinType.PinCategory = UEdGraphSchema_K2::PC_Wildcard;
-			OutputPin->PinType.PinSubCategory.Reset();
+			OutputPin->PinType.PinSubCategory = NAME_None;
 			OutputPin->PinType.PinSubCategoryObject = nullptr;
 
 			bNotifyGraphChanged = true;
@@ -263,7 +265,7 @@ void UK2Node_MakeContainer::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 		if (bResetOutputPinSecondary && ContainerType == EPinContainerType::Map)
 		{
 			OutputPin->PinType.PinValueType.TerminalCategory = UEdGraphSchema_K2::PC_Wildcard;
-			OutputPin->PinType.PinValueType.TerminalSubCategory.Reset();
+			OutputPin->PinType.PinValueType.TerminalSubCategory = NAME_None;
 			OutputPin->PinType.PinValueType.TerminalSubCategoryObject = nullptr;
 
 			bNotifyGraphChanged = true;
@@ -453,7 +455,7 @@ void UK2Node_MakeContainer::PostReconstructNode()
 	else
 	{
 		OutputPin->PinType.PinCategory = UEdGraphSchema_K2::PC_Wildcard;
-		OutputPin->PinType.PinSubCategory.Reset();
+		OutputPin->PinType.PinSubCategory = NAME_None;
 		OutputPin->PinType.PinSubCategoryObject = nullptr;
 	}
 
@@ -466,7 +468,7 @@ void UK2Node_MakeContainer::PostReconstructNode()
 		else
 		{
 			OutputPin->PinType.PinValueType.TerminalCategory = UEdGraphSchema_K2::PC_Wildcard;
-			OutputPin->PinType.PinValueType.TerminalSubCategory.Reset();
+			OutputPin->PinType.PinValueType.TerminalSubCategory = NAME_None;
 			OutputPin->PinType.PinValueType.TerminalSubCategoryObject = nullptr;
 		}
 	}
@@ -489,7 +491,7 @@ void UK2Node_MakeContainer::AddInputPin()
 
 	++NumInputs;
 	const FEdGraphPinType& OutputPinType = GetOutputPin()->PinType;
-	UEdGraphPin* Pin = CreatePin(EGPD_Input, OutputPinType.PinCategory, OutputPinType.PinSubCategory, OutputPinType.PinSubCategoryObject.Get(), *GetPinName(NumInputs-1));
+	UEdGraphPin* Pin = CreatePin(EGPD_Input, OutputPinType.PinCategory, OutputPinType.PinSubCategory, OutputPinType.PinSubCategoryObject.Get(), GetPinName(NumInputs-1));
 	GetDefault<UEdGraphSchema_K2>()->SetPinAutogeneratedDefaultValueBasedOnType(Pin);
 
 	const bool bIsCompiling = GetBlueprint()->bBeingCompiled;
@@ -499,9 +501,9 @@ void UK2Node_MakeContainer::AddInputPin()
 	}
 }
 
-FString UK2Node_MakeContainer::GetPinName(const int32 PinIndex) const
+FName UK2Node_MakeContainer::GetPinName(const int32 PinIndex) const
 {
-	return FString::Printf(TEXT("[%d]"), PinIndex);
+	return *FString::Printf(TEXT("[%d]"), PinIndex);
 }
 
 void UK2Node_MakeContainer::SyncPinNames()
@@ -513,16 +515,18 @@ void UK2Node_MakeContainer::SyncPinNames()
 		if (CurrentPin->Direction == EGPD_Input &&
 			CurrentPin->ParentPin == nullptr)
 		{
-			const FString OldName = CurrentPin->PinName;
-			const FString ElementName = GetPinName(CurrentNumParentPins++);
+			const FName OldName = CurrentPin->PinName;
+			const FName ElementName = GetPinName(CurrentNumParentPins++);
 
 			CurrentPin->Modify();
 			CurrentPin->PinName = ElementName;
 
 			if (CurrentPin->SubPins.Num() > 0)
 			{
-				FString OldFriendlyName = OldName;
-				FString ElementFriendlyName = ElementName;
+				const FString OldNameStr = OldName.ToString();
+				const FString ElementNameStr = ElementName.ToString();
+				FString OldFriendlyName = OldNameStr;
+				FString ElementFriendlyName = ElementNameStr;
 
 				// SubPin Friendly Name has an extra space in it so we need to account for that
 				OldFriendlyName.InsertAt(1, " ");
@@ -531,10 +535,10 @@ void UK2Node_MakeContainer::SyncPinNames()
 				for (UEdGraphPin* SubPin : CurrentPin->SubPins)
 				{
 					FString SubPinFriendlyName = SubPin->PinFriendlyName.ToString();
-					SubPinFriendlyName = SubPinFriendlyName.Replace(*OldFriendlyName, *ElementFriendlyName);
+					SubPinFriendlyName.ReplaceInline(*OldFriendlyName, *ElementFriendlyName);
 
 					SubPin->Modify();
-					SubPin->PinName = SubPin->PinName.Replace(*OldName, *ElementName);
+					SubPin->PinName = *SubPin->PinName.ToString().Replace(*OldNameStr, *ElementNameStr);
 					SubPin->PinFriendlyName = FText::FromString(SubPinFriendlyName);
 				}
 			}

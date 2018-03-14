@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -71,12 +71,6 @@ public:
 	virtual bool Tick(float DeltaTime) override;
 
 	// FOnlineSubsystemOculus
-
-	/**
-	* Is the Oculus API available for use
-	* @return true if Oculus functionality is available, false otherwise
-	*/
-	bool IsEnabled() const;
 
 	/**
 	 * Allows for the LibOVRPlatform calls to be used directly with the Delegates in the Oculus OSS

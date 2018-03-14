@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerNodeTree.h"
 #include "MovieSceneBinding.h"
@@ -134,10 +134,20 @@ void FSequencerNodeTree::Update()
 	TArray<TSharedRef<FSequencerObjectBindingNode>> ObjectNodes;
 	for( const FMovieSceneBinding& Binding : Bindings )
 	{
+		if (!Sequencer.IsBindingVisible(Binding))
+		{
+			continue;
+		}
+
 		TSharedRef<FSequencerObjectBindingNode> ObjectBindingNode = AddObjectBinding( Binding.GetName(), Binding.GetObjectGuid(), GuidToBindingMap, ObjectNodes );
 
 		for( UMovieSceneTrack* Track : Binding.GetTracks() )
 		{
+			if (!Sequencer.IsTrackVisible(Track))
+			{
+				continue;
+			}
+
 			// Create the new track node
 			TSharedRef<FSequencerTrackNode> TrackNode = MakeShared<FSequencerTrackNode>(*Track, *FindOrAddTypeEditor(*Track), false, nullptr, *this);
 
@@ -470,8 +480,27 @@ bool FSequencerNodeTree::GetSavedExpansionState(const FSequencerDisplayNode& Nod
 bool FSequencerNodeTree::GetDefaultExpansionState( const FSequencerDisplayNode& Node ) const
 {
 	// Object nodes, and track nodes that are parent tracks are expanded by default.
-	return Node.GetType() == ESequencerNode::Object ||
-		(Node.GetType() == ESequencerNode::Track && static_cast<const FSequencerTrackNode&>(Node).GetSubTrackMode() == FSequencerTrackNode::ESubTrackMode::ParentTrack);
+	if (Node.GetType() == ESequencerNode::Object)
+	{
+		return true;
+	}
+
+	else if (Node.GetType() == ESequencerNode::Track)
+	{
+		const FSequencerTrackNode& TrackNode = static_cast<const FSequencerTrackNode&>(Node);
+
+		if (TrackNode.GetSubTrackMode() == FSequencerTrackNode::ESubTrackMode::ParentTrack)
+		{
+			return true;
+		}
+
+		if (TrackNode.GetTrackEditor().GetDefaultExpansionState(TrackNode.GetTrack()))
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 

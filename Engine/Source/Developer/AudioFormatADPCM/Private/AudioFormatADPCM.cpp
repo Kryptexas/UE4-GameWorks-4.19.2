@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AudioFormatADPCM.h"
 #include "Misc/AssertionMacros.h"
@@ -509,10 +509,10 @@ public:
 		return 0;
 	}
 
-	virtual bool SplitDataForStreaming(const TArray<uint8>& SrcBuffer, TArray<TArray<uint8>>& OutBuffers) const override
+	virtual bool SplitDataForStreaming(const TArray<uint8>& SrcBuffer, TArray<TArray<uint8>>& OutBuffers, const int32 MaxChunkSize) const override
 	{
 		uint8 const*	SrcData = SrcBuffer.GetData();
-		uint32			SrcSize = SrcBuffer.Num();
+		int32			SrcSize = SrcBuffer.Num();
 		uint32			BytesProcessed = 0;
 		
 		FWaveModInfo	WaveInfo;
@@ -534,58 +534,68 @@ public:
 		{
 			int32 BlockSize = *WaveInfo.pBlockAlign;
 			const int32 NumBlocksPerChannel = (WaveInfo.SampleDataSize + BlockSize * NumChannels - 1) / (BlockSize * NumChannels);
-			
-			// Ensure chunk size is an even multiple of block size and channel number, ie (ChunkSize % (BlockSize * NumChannels)) == 0
-			// Use a base chunk size of MONO_PCM_BUFFER_SIZE * NumChannels * 2 because Android uses MONO_PCM_BUFFER_SIZE to submit buffers to the os, the streaming system has more scheduling flexability when the chunk size is
-			//	larger the the buffer size submitted to the OS
-			int32 ChunkSize = ((MONO_PCM_BUFFER_SIZE * NumChannels * 2 + BlockSize * NumChannels - 1) / (BlockSize * NumChannels)) * (BlockSize * NumChannels);
-			
-			// Add the first chunk and the header data
-			AddNewChunk(OutBuffers, ChunkSize + WaveInfo.SampleDataStart - SrcData);	// Add the first chunk with enough reserve room for the header data
-			AddChunkData(OutBuffers, SrcData, WaveInfo.SampleDataStart - SrcData);
-			
-			int32	CurChunkDataSize = 0;	// Don't include the header size here since we want the first chunk to include both the header data and a full ChunkSize of data
-			
-			for(int32 blockItr = 0; blockItr < NumBlocksPerChannel; ++blockItr)
+
+			// Add a new chunk for the header
+			int32 HeaderSize = WaveInfo.SampleDataStart - SrcData;
+			AddNewChunk(OutBuffers, MaxChunkSize);
+			AddChunkData(OutBuffers, SrcData, HeaderSize);
+
+			int32 CurChunkDataSize = HeaderSize;
+
+			for (int32 BlockIndex = 0; BlockIndex < NumBlocksPerChannel; ++BlockIndex)
 			{
-				for(int32 channelItr = 0; channelItr < NumChannels; ++channelItr)
+				// If the next block size will put us over the max chunk size, then add a new chunk
+				if (CurChunkDataSize + NumChannels * BlockSize >= MaxChunkSize)
 				{
-					if(CurChunkDataSize >= ChunkSize)
-					{
-						AddNewChunk(OutBuffers, ChunkSize);
-						CurChunkDataSize = 0;
-					}
-					
-					AddChunkData(OutBuffers, WaveInfo.SampleDataStart + (channelItr * NumBlocksPerChannel + blockItr) * BlockSize, BlockSize);
+					// Start a new chunk with the reserve memory for the max chunk size
+					AddNewChunk(OutBuffers, MaxChunkSize);
+					CurChunkDataSize = 0;
+				}
+
+				// Always add chunks in NumChannels pairs
+				for (int32 ChannelIndex = 0; ChannelIndex < NumChannels; ++ChannelIndex)
+				{
+					// Compute the offset of this block from the non-interleaved input data
+					const int32 Offset = (ChannelIndex * NumBlocksPerChannel + BlockIndex) * BlockSize;;
+					const uint8* DataPtr = WaveInfo.SampleDataStart + Offset;
+					AddChunkData(OutBuffers, DataPtr, BlockSize);
 					CurChunkDataSize += BlockSize;
 				}
 			}
 		}
 		else if(*WaveInfo.pFormatTag == WAVE_FORMAT_LPCM)
 		{
-			int32 ChunkSize = MONO_PCM_BUFFER_SIZE * 4;	// Use an extra big buffer for uncompressed data since uncompressed uses about x4 amount of data
-			int32	FrameSize = sizeof(uint16) * NumChannels;
-			
-			ChunkSize = (ChunkSize + FrameSize - 1) / FrameSize * FrameSize;
-			
+			int32 FrameSize = sizeof(uint16) * NumChannels;
+
 			// Add the first chunk and the header data
-			AddNewChunk(OutBuffers, ChunkSize + 128);	// Add the first chunk with enough reserve room for the header data
-			AddChunkData(OutBuffers, SrcData, WaveInfo.SampleDataStart - SrcData);
-			SrcSize -= WaveInfo.SampleDataStart - SrcData;
+			AddNewChunk(OutBuffers, MaxChunkSize);	
+
+			// Add the header data
+			int32 HeaderSize = WaveInfo.SampleDataStart - SrcData;
+			AddChunkData(OutBuffers, SrcData, HeaderSize);
+
+			SrcSize -= HeaderSize;
 			SrcData = WaveInfo.SampleDataStart;
-			
-			while(SrcSize > 0)
+
+			int32 DataLeftInCurChunk = MaxChunkSize - HeaderSize;
+
+			while (SrcSize > 0)
 			{
-				int32	CurChunkDataSize = FMath::Min<uint32>(SrcSize, ChunkSize);
-				
-				AddChunkData(OutBuffers, SrcData, CurChunkDataSize);
-				
-				SrcSize -= CurChunkDataSize;
-				SrcData += CurChunkDataSize;
-				
-				if(SrcSize > 0)
+				// Calculate how many frames can fit in whats left of the current chunk
+				DataLeftInCurChunk = FMath::Min(DataLeftInCurChunk, SrcSize);
+
+				int32 NumFramesInNextChunk = DataLeftInCurChunk / FrameSize;
+				int32 SizeOfNewChunk = NumChannels * NumFramesInNextChunk * sizeof(uint16);
+
+				AddChunkData(OutBuffers, SrcData, SizeOfNewChunk);
+
+				SrcSize -= SizeOfNewChunk;
+				SrcData += SizeOfNewChunk;
+
+				if (SrcSize > 0)
 				{
-					AddNewChunk(OutBuffers, ChunkSize);
+					DataLeftInCurChunk = MaxChunkSize;
+					AddNewChunk(OutBuffers, MaxChunkSize);
 				}
 			}
 		}

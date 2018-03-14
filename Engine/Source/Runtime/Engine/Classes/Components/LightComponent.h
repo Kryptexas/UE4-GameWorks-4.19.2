@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -92,7 +92,7 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	float ShadowSharpen;
 	
 	/** Length of screen space ray trace for sharp contact shadows. Zero is disabled. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Light, AdvancedDisplay, meta = (UIMin = "0.0", UIMax = "1.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Light, AdvancedDisplay, meta = (UIMin = "0.0", UIMax = "0.1"))
 	float ContactShadowLength;
 
 	UPROPERTY()
@@ -115,6 +115,12 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	 **/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay, meta=(DisplayName = "Dynamic Indirect Lighting"))
 	uint32 bAffectDynamicIndirectLighting : 1;
+
+	/**
+	* Enables cached shadows for movable primitives for this light even if r.shadow.cachedshadowscastfrommovableprimitives is 0
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Light, AdvancedDisplay)
+	uint32 bForceCachedShadowsForMovablePrimitives : 1;
 
 	/** 
 	 * Channels that this light should affect.  
@@ -250,6 +256,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
 	void SetShadowBias(float NewValue);
 
+	UFUNCTION(BlueprintCallable, Category = "Rendering|Components|Light")
+	void SetForceCachedShadowsForMovablePrimitives(bool bNewValue);
+
 public:
 	/** The light's scene info. */
 	class FLightSceneProxy* SceneProxy;
@@ -316,7 +325,7 @@ public:
 	}
 
 	/** Compute current light brightness based on whether there is a valid IES profile texture attached, and whether IES brightness is enabled */
-	float ComputeLightBrightness() const;
+	virtual float ComputeLightBrightness() const;
 
 	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;

@@ -1,10 +1,15 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
 #include "IMovieScenePlayer.h"
 #include "MovieSceneSequence.h"
 #include "MovieSceneSequence.h"
-#include "MovieSceneSequenceInstance.h"
+#include "MovieSceneCompiler.h"
+#include "Sections/MovieSceneSubSection.h"
+#include "Compilation/MovieSceneEvaluationTemplateGenerator.h"
+
+#include "IMovieSceneModule.h"
+#include "Algo/Sort.h"
 
 DECLARE_CYCLE_STAT(TEXT("Entire Evaluation Cost"), MovieSceneEval_EntireEvaluationCost, STATGROUP_MovieSceneEval);
 DECLARE_CYCLE_STAT(TEXT("Gather Entries For Frame"), MovieSceneEval_GatherEntries, STATGROUP_MovieSceneEval);
@@ -44,78 +49,40 @@ private:
 	TArray<FMovieSceneEvaluationKey> KeysToRestore;
 };
 
-FMovieSceneEvaluationTemplateInstance::FMovieSceneEvaluationTemplateInstance(UMovieSceneSequence& InSequence, const FMovieSceneEvaluationTemplate& InTemplate)
-	: Sequence(&InSequence)
-	, Template(&InTemplate)
-	, PreRollRange(TRange<float>::Empty())
-	, PostRollRange(TRange<float>::Empty())
-	, HierarchicalBias(0)
-{
-	if (Template->bHasLegacyTrackInstances)
-	{
-		// Initialize the legacy sequence instance
-		LegacySequenceInstance = MakeShareable(new FMovieSceneSequenceInstance(InSequence, MovieSceneSequenceID::Root));
-	}
-}
+FMovieSceneEvaluationTemplateInstance::FMovieSceneEvaluationTemplateInstance()
+	: Sequence(nullptr), Template(nullptr), SubData(nullptr)
+{}
 
-FMovieSceneEvaluationTemplateInstance::FMovieSceneEvaluationTemplateInstance(const FMovieSceneSubSequenceData& InSubData, const FMovieSceneEvaluationTemplate& InTemplate, FMovieSceneSequenceIDRef InSequenceID)
-	: Sequence(InSubData.Sequence)
-	, RootToSequenceTransform(InSubData.RootToSequenceTransform)
-	, Template(&InTemplate)
-	, PreRollRange(InSubData.PreRollRange)
-	, PostRollRange(InSubData.PostRollRange)
-	, HierarchicalBias(InSubData.HierarchicalBias)
+FMovieSceneEvaluationTemplateInstance::FMovieSceneEvaluationTemplateInstance(UMovieSceneSequence& InSequence, FMovieSceneEvaluationTemplate* InTemplate)
+	: Sequence(&InSequence), Template(InTemplate), SubData(nullptr)
+{}
+
+FMovieSceneEvaluationTemplateInstance::FMovieSceneEvaluationTemplateInstance(const FMovieSceneSubSequenceData* InSubData, IMovieSceneSequenceTemplateStore& TemplateStore)
+	: Sequence(nullptr), Template(nullptr), SubData(InSubData)
 {
-	if (Template->bHasLegacyTrackInstances)
+	Sequence = InSubData ? InSubData->GetSequence() : nullptr;
+	if (Sequence)
 	{
-		// Initialize the legacy sequence instance
-		LegacySequenceInstance = MakeShareable(new FMovieSceneSequenceInstance(*InSubData.Sequence, InSequenceID));
+		Template = &TemplateStore.AccessTemplate(*Sequence);
 	}
 }
 
 FMovieSceneRootEvaluationTemplateInstance::FMovieSceneRootEvaluationTemplateInstance()
 	: RootSequence(nullptr)
-	, TemplateStore(MakeShareable(new FMovieSceneSequenceTemplateStore))
-	, bIsDirty(false)
+	, TemplateStore(MakeShared<FMovieSceneSequencePrecompiledTemplateStore>())
 {
-
 }
 
 FMovieSceneRootEvaluationTemplateInstance::~FMovieSceneRootEvaluationTemplateInstance()
 {
-	Reset();
 }
 
-void FMovieSceneRootEvaluationTemplateInstance::Reset()
-{
-	if (TemplateStore->AreTemplatesVolatile())
-	{
-		if (UMovieSceneSequence* Sequence = RootInstance.Sequence.Get())
-		{
-			Sequence->OnSignatureChanged().RemoveAll(this);
-		}
-
-		for (auto& Pair : SubInstances)
-		{
-			if (UMovieSceneSequence* Sequence = Pair.Value.Sequence.Get())
-			{
-				Sequence->OnSignatureChanged().RemoveAll(this);
-			}
-		}
-	}
-
-	SubInstances.Reset();
-}
-
-void FMovieSceneRootEvaluationTemplateInstance::Initialize(UMovieSceneSequence& InRootSequence, IMovieScenePlayer& Player, TSharedRef<FMovieSceneSequenceTemplateStore> InTemplateStore)
+void FMovieSceneRootEvaluationTemplateInstance::Initialize(UMovieSceneSequence& InRootSequence, IMovieScenePlayer& Player, TSharedRef<IMovieSceneSequenceTemplateStore> InTemplateStore)
 {
 	if (RootSequence != &InRootSequence)
 	{
 		Finish(Player);
 	}
-
-	// Ensure we reset everything before we overwrite the template store (which potentially owns templates we've previously referenced)
-	Reset();
 
 	TemplateStore = MoveTemp(InTemplateStore);
 
@@ -124,8 +91,6 @@ void FMovieSceneRootEvaluationTemplateInstance::Initialize(UMovieSceneSequence& 
 
 void FMovieSceneRootEvaluationTemplateInstance::Initialize(UMovieSceneSequence& InRootSequence, IMovieScenePlayer& Player)
 {
-	Reset();
-
 	if (RootSequence.Get() != &InRootSequence)
 	{
 		// Always ensure that there is no persistent data when initializing a new sequence
@@ -136,46 +101,13 @@ void FMovieSceneRootEvaluationTemplateInstance::Initialize(UMovieSceneSequence& 
 		LastFrameMetaData.Reset();
 		ThisFrameMetaData.Reset();
 		ExecutionTokens = FMovieSceneExecutionTokens();
+
+		TransientInstances.ResetSubInstances();
 	}
 
-	const bool bAddEvents = TemplateStore->AreTemplatesVolatile();
-	
 	RootSequence = &InRootSequence;
-
-	const FMovieSceneEvaluationTemplate& RootTemplate = TemplateStore->GetCompiledTemplate(InRootSequence);
-	
-	Player.State.AssignSequence(MovieSceneSequenceID::Root, InRootSequence, Player);
-	RootInstance = FMovieSceneEvaluationTemplateInstance(InRootSequence, RootTemplate);
-
-	if (bAddEvents)
-	{
-		InRootSequence.OnSignatureChanged().AddRaw(this, &FMovieSceneRootEvaluationTemplateInstance::OnSequenceChanged);
-	}
-
-	for (auto& Pair : RootTemplate.Hierarchy.AllSubSequenceData())
-	{
-		const FMovieSceneSubSequenceData& Data = Pair.Value;
-		FMovieSceneSequenceID SequenceID = Pair.Key;
-
-		if (!Data.Sequence)
-		{
-			continue;
-		}
-
-		Player.State.AssignSequence(SequenceID, *Data.Sequence, Player);
-
-		const FMovieSceneEvaluationTemplate& ChildTemplate = TemplateStore->GetCompiledTemplate(*Data.Sequence, FObjectKey(Data.SequenceKeyObject));
-		FMovieSceneEvaluationTemplateInstance& Instance = SubInstances.Add(SequenceID, FMovieSceneEvaluationTemplateInstance(Data, ChildTemplate, SequenceID));
-
-		if (bAddEvents)
-		{
-			Data.Sequence->OnSignatureChanged().AddRaw(this, &FMovieSceneRootEvaluationTemplateInstance::OnSequenceChanged);
-		}
-	}
-
-	bIsDirty = false;
-
-	OnUpdatedEvent.Broadcast();
+	RootTemplate = &TemplateStore->AccessTemplate(InRootSequence);
+	TransientInstances.RootInstance = FMovieSceneEvaluationTemplateInstance(InRootSequence, RootTemplate);
 }
 
 void FMovieSceneRootEvaluationTemplateInstance::Finish(IMovieScenePlayer& Player)
@@ -184,57 +116,31 @@ void FMovieSceneRootEvaluationTemplateInstance::Finish(IMovieScenePlayer& Player
 	ThisFrameMetaData.Reset();
 
 	CallSetupTearDown(Player);
+
+	TransientInstances.Reset();
 }
 
-void FMovieSceneRootEvaluationTemplateInstance::Evaluate(FMovieSceneContext Context, IMovieScenePlayer& Player, FMovieSceneSequenceID OverrideRootID)
+void FMovieSceneRootEvaluationTemplateInstance::Evaluate(FMovieSceneContext Context, IMovieScenePlayer& Player, FMovieSceneSequenceID InOverrideRootID)
 {
-	if (bIsDirty && RootSequence.IsValid())
-	{
-		Initialize(*RootSequence.Get(), Player);
-	}
-
 	SCOPE_CYCLE_COUNTER(MovieSceneEval_EntireEvaluationCost);
 
 	Swap(ThisFrameMetaData, LastFrameMetaData);
 	ThisFrameMetaData.Reset();
 
-	const FMovieSceneEvaluationTemplateInstance* Instance = GetInstance(OverrideRootID);
+	if (TransientInstances.RootID != InOverrideRootID)
+	{
+		// Tear everything down if we're evaluating a different root sequence
+		CallSetupTearDown(Player);
+		LastFrameMetaData.Reset();
+	}
 
-	ensureMsgf(Instance, TEXT("Could not find instance for supplied sequence ID."));
+	RootOverridePath.Set(InOverrideRootID, GetHierarchy());
 
-	const int32 FieldIndex = (Instance && Instance->Template) ? Instance->Template->EvaluationField.GetSegmentFromTime(Context.GetTime() * Instance->RootToSequenceTransform) : INDEX_NONE;
-	if (FieldIndex == INDEX_NONE)
+	const FMovieSceneEvaluationGroup* GroupToEvaluate = SetupFrame(Player, InOverrideRootID, Context);
+	if (!GroupToEvaluate)
 	{
 		CallSetupTearDown(Player);
 		return;
-	}
-
-	// Construct a path that allows us to remap sequence IDs from the local (OverrideRootID) template, to the master template
-	ReverseOverrideRootPath.Reset();
-	{
-		FMovieSceneSequenceID CurrentSequenceID = OverrideRootID;
-		const FMovieSceneSequenceHierarchy& Hierarchy = GetHierarchy();
-		while (CurrentSequenceID != MovieSceneSequenceID::Root)
-		{
-			const FMovieSceneSequenceHierarchyNode* CurrentNode = Hierarchy.FindNode(CurrentSequenceID);
-			const FMovieSceneSubSequenceData* SubData = Hierarchy.FindSubData(CurrentSequenceID);
-			if (!ensureAlwaysMsgf(CurrentNode && SubData, TEXT("Malformed sequence hierarchy")))
-			{
-				return;
-			}
-
-			ReverseOverrideRootPath.Add(SubData->DeterministicSequenceID);
-			CurrentSequenceID = CurrentNode->ParentID;
-		}
-	}
-
-	const FMovieSceneEvaluationGroup& Group = Instance->Template->EvaluationField.Groups[FieldIndex];
-
-	// Take a copy of this frame's meta-data
-	ThisFrameMetaData = Instance->Template->EvaluationField.MetaData[FieldIndex];
-	if (OverrideRootID != MovieSceneSequenceID::Root)
-	{
-		ThisFrameMetaData.RemapSequenceIDsForRoot(OverrideRootID);
 	}
 
 	// Cause stale tracks to not restore until after evaluation. This fixes issues when tracks that are set to 'Restore State' are regenerated, causing the state to be restored then re-animated by the new track
@@ -248,18 +154,113 @@ void FMovieSceneRootEvaluationTemplateInstance::Evaluate(FMovieSceneContext Cont
 	Player.State.InvalidateExpiredObjects();
 
 	// Accumulate execution tokens into this structure
-	EvaluateGroup(Group, Context, Player);
+	EvaluateGroup(*GroupToEvaluate, Context, Player);
 
 	// Process execution tokens
 	ExecutionTokens.Apply(Context, Player);
+}
+
+const FMovieSceneEvaluationGroup* FMovieSceneRootEvaluationTemplateInstance::SetupFrame(IMovieScenePlayer& Player, FMovieSceneSequenceID InOverrideRootID, FMovieSceneContext Context)
+{
+	UMovieSceneSequence* RootSequencePtr = RootSequence.Get();
+	if (!RootSequencePtr)
+	{
+		return nullptr;
+	}
+
+	// Create the instance for the current root override
+	FMovieSceneEvaluationTemplateInstance RootOverrideInstance;
+
+	if (InOverrideRootID != MovieSceneSequenceID::Root)
+	{
+		if (const FMovieSceneSubSequenceData* OverrideSubData = GetHierarchy().FindSubData(InOverrideRootID))
+		{
+			RootOverrideInstance = FMovieSceneEvaluationTemplateInstance(OverrideSubData, *TemplateStore);
+		}
+	}
+	else
+	{
+		RootOverrideInstance = FMovieSceneEvaluationTemplateInstance(*RootSequencePtr, RootTemplate);
+	}
+
+	if (!ensureMsgf(RootOverrideInstance.IsValid(), TEXT("Could not find valid sequence or template for supplied sequence ID.")))
+	{
+		return nullptr;
+	}
+
+	// Ensure the root is up to date
+	if (RootOverrideInstance.Template->SequenceSignature != RootOverrideInstance.Sequence->GetSignature())
+	{
+		FMovieSceneEvaluationTemplateGenerator(*RootOverrideInstance.Sequence, *RootOverrideInstance.Template).Generate();
+	}
+
+	// First off, attempt to find the evaluation group in the existing evaluation field data from the template
+	int32 TemplateFieldIndex = RootOverrideInstance.Template->EvaluationField.GetSegmentFromTime(Context.GetTime());
+
+	if (TemplateFieldIndex != INDEX_NONE)
+	{
+		const FMovieSceneEvaluationMetaData& FieldMetaData = RootOverrideInstance.Template->EvaluationField.GetMetaData(TemplateFieldIndex);
+
+		// Verify that this field entry is still valid (all its cached signatures are still the same)
+		TRange<float> InvalidatedSubSequenceRange = TRange<float>::Empty();
+		if (FieldMetaData.IsDirty(*RootOverrideInstance.Sequence, RootOverrideInstance.Template->Hierarchy, *TemplateStore, &InvalidatedSubSequenceRange))
+		{
+			TemplateFieldIndex = INDEX_NONE;
+
+			if (!InvalidatedSubSequenceRange.IsEmpty())
+			{
+				// Invalidate the evaluation field for the root template (it may not exist until we compile below)
+				RootOverrideInstance.Template->EvaluationField.Invalidate(InvalidatedSubSequenceRange);
+			}
+		}
+	}
+
+	if (TemplateFieldIndex == INDEX_NONE)
+	{
+		// We need to compile an entry in the evaluation field
+		static bool bFullCompile = false;
+		if (bFullCompile)
+		{
+			FMovieSceneCompiler::Compile(*RootOverrideInstance.Sequence, *TemplateStore);
+			TemplateFieldIndex = RootOverrideInstance.Template->EvaluationField.GetSegmentFromTime(Context.GetTime());
+		}
+		else
+		{
+			float CurrentTime = Context.GetTime();
+			TOptional<FCompiledGroupResult> CompileResult = FMovieSceneCompiler::CompileTime(CurrentTime, *RootOverrideInstance.Sequence, *TemplateStore);
+
+			if (CompileResult.IsSet())
+			{
+				TRange<float> FieldRange = CompileResult->Range;
+				TemplateFieldIndex = RootOverrideInstance.Template->EvaluationField.Insert(
+					CurrentTime,
+					FieldRange,
+					MoveTemp(CompileResult->Group),
+					MoveTemp(CompileResult->MetaData)
+					);
+			}
+		}
+	}
+
+	if (TemplateFieldIndex != INDEX_NONE)
+	{
+		// Set meta-data
+		ThisFrameMetaData = RootOverrideInstance.Template->EvaluationField.GetMetaData(TemplateFieldIndex);
+
+		RecreateInstances(RootOverrideInstance, InOverrideRootID, Player);
+
+		return &RootOverrideInstance.Template->EvaluationField.GetGroup(TemplateFieldIndex);
+	}
+
+	return nullptr;
 }
 
 void FMovieSceneRootEvaluationTemplateInstance::EvaluateGroup(const FMovieSceneEvaluationGroup& Group, const FMovieSceneContext& RootContext, IMovieScenePlayer& Player)
 {
 	MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_EvaluateGroup);
 
-	FPersistentEvaluationData PersistentDataProxy(Player.State.PersistentEntityData, Player.State.PersistentSharedData);
-	
+	FPersistentEvaluationData PersistentDataProxy(Player);
+
 	FMovieSceneEvaluationOperand Operand;
 
 	FMovieSceneContext Context = RootContext;
@@ -275,9 +276,9 @@ void FMovieSceneRootEvaluationTemplateInstance::EvaluateGroup(const FMovieSceneE
 			FMovieSceneEvaluationFieldSegmentPtr SegmentPtr = Group.SegmentPtrLUT[TrackIndex];
 
 			// Ensure we're able to find the sequence instance in our root if we've overridden
-			SegmentPtr.SequenceID = GetSequenceIdForRoot(SegmentPtr.SequenceID);
+			SegmentPtr.SequenceID = RootOverridePath.Remap(SegmentPtr.SequenceID);
 
-			const FMovieSceneEvaluationTemplateInstance& Instance = GetInstanceChecked(SegmentPtr.SequenceID);
+			const FMovieSceneEvaluationTemplateInstance& Instance = TransientInstances.GetChecked(SegmentPtr.SequenceID);
 			const FMovieSceneEvaluationTrack* Track = Instance.Template->FindTrack(SegmentPtr.TrackIdentifier);
 
 			if (Track)
@@ -291,16 +292,16 @@ void FMovieSceneRootEvaluationTemplateInstance::EvaluateGroup(const FMovieSceneE
 				Player.PreAnimatedState.SetCaptureEntity(TrackKey, EMovieSceneCompletionMode::KeepState);
 
 				SubContext = Context;
-				if (SegmentPtr.SequenceID != MovieSceneSequenceID::Root)
+				if (Instance.SubData)
 				{
-					SubContext = Context.Transform(Instance.RootToSequenceTransform);
+					SubContext = Context.Transform(Instance.SubData->RootToSequenceTransform);
 
 					// Hittest against the sequence's pre and postroll ranges
-					SubContext.ReportOuterSectionRanges(Instance.PreRollRange, Instance.PostRollRange);
-					SubContext.SetHierarchicalBias(Instance.HierarchicalBias);
+					SubContext.ReportOuterSectionRanges(Instance.SubData->PreRollRange, Instance.SubData->PostRollRange);
+					SubContext.SetHierarchicalBias(Instance.SubData->HierarchicalBias);
 				}
 
-				Track->Initialize(SegmentPtr.SegmentIndex, Operand, SubContext, PersistentDataProxy, Player);
+				Track->Initialize(SegmentPtr.SegmentID, Operand, SubContext, PersistentDataProxy, Player);
 			}
 		}
 
@@ -313,11 +314,11 @@ void FMovieSceneRootEvaluationTemplateInstance::EvaluateGroup(const FMovieSceneE
 		for (; TrackIndex < Index.LUTOffset + Index.NumInitPtrs + Index.NumEvalPtrs; ++TrackIndex)
 		{
 			FMovieSceneEvaluationFieldSegmentPtr SegmentPtr = Group.SegmentPtrLUT[TrackIndex];
-			
-			// Ensure we're able to find the sequence instance in our root if we've overridden
-			SegmentPtr.SequenceID = GetSequenceIdForRoot(SegmentPtr.SequenceID);
 
-			const FMovieSceneEvaluationTemplateInstance& Instance = GetInstanceChecked(SegmentPtr.SequenceID);
+			// Ensure we're able to find the sequence instance in our root if we've overridden
+			SegmentPtr.SequenceID = RootOverridePath.Remap(SegmentPtr.SequenceID);
+
+			const FMovieSceneEvaluationTemplateInstance& Instance = TransientInstances.GetChecked(SegmentPtr.SequenceID);
 			const FMovieSceneEvaluationTrack* Track = Instance.Template->FindTrack(SegmentPtr.TrackIdentifier);
 
 			if (Track)
@@ -333,17 +334,17 @@ void FMovieSceneRootEvaluationTemplateInstance::EvaluateGroup(const FMovieSceneE
 				ExecutionTokens.SetCurrentScope(FMovieSceneEvaluationScope(TrackKey, EMovieSceneCompletionMode::KeepState));
 
 				SubContext = Context;
-				if (SegmentPtr.SequenceID != MovieSceneSequenceID::Root)
+				if (Instance.SubData)
 				{
-					SubContext = Context.Transform(Instance.RootToSequenceTransform);
+					SubContext = Context.Transform(Instance.SubData->RootToSequenceTransform);
 
 					// Hittest against the sequence's pre and postroll ranges
-					SubContext.ReportOuterSectionRanges(Instance.PreRollRange, Instance.PostRollRange);
-					SubContext.SetHierarchicalBias(Instance.HierarchicalBias);
+					SubContext.ReportOuterSectionRanges(Instance.SubData->PreRollRange, Instance.SubData->PostRollRange);
+					SubContext.SetHierarchicalBias(Instance.SubData->HierarchicalBias);
 				}
 
 				Track->Evaluate(
-					SegmentPtr.SegmentIndex,
+					SegmentPtr.SegmentID,
 					Operand,
 					SubContext,
 					PersistentDataProxy,
@@ -359,7 +360,7 @@ void FMovieSceneRootEvaluationTemplateInstance::CallSetupTearDown(IMovieScenePla
 {
 	MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_CallSetupTearDown);
 
-	FPersistentEvaluationData PersistentDataProxy(Player.State.PersistentEntityData, Player.State.PersistentSharedData);
+	FPersistentEvaluationData PersistentDataProxy(Player);
 
 	TArray<FMovieSceneOrderedEvaluationKey> ExpiredEntities;
 	TArray<FMovieSceneOrderedEvaluationKey> NewEntities;
@@ -367,10 +368,13 @@ void FMovieSceneRootEvaluationTemplateInstance::CallSetupTearDown(IMovieScenePla
 	
 	for (const FMovieSceneOrderedEvaluationKey& OrderedKey : ExpiredEntities)
 	{
-		const FMovieSceneEvaluationKey Key = OrderedKey.Key;
+		FMovieSceneEvaluationKey Key = OrderedKey.Key;
 
-		const FMovieSceneEvaluationTemplateInstance* Instance = FindInstance(Key.SequenceID);
-		if (Instance)
+		// Ensure we're able to find the sequence instance in our root if we've overridden
+		Key.SequenceID = RootOverridePath.Remap(Key.SequenceID);
+
+		const FMovieSceneEvaluationTemplateInstance* Instance = TransientInstances.Find(Key.SequenceID);
+		if (Instance && Instance->IsValid())
 		{
 			const FMovieSceneEvaluationTrack* Track = Instance->Template->FindTrack(Key.TrackIdentifier);
 			const bool bStaleTrack = Instance->Template->IsTrackStale(Key.TrackIdentifier);
@@ -378,7 +382,7 @@ void FMovieSceneRootEvaluationTemplateInstance::CallSetupTearDown(IMovieScenePla
 			// Track data key may be required by both tracks and sections
 			PersistentDataProxy.SetTrackKey(Key.AsTrack());
 
-			if (Key.SectionIdentifier == uint32(-1))
+			if (Key.SectionIndex == uint32(-1))
 			{
 				if (Track)
 				{
@@ -390,9 +394,9 @@ void FMovieSceneRootEvaluationTemplateInstance::CallSetupTearDown(IMovieScenePla
 			else
 			{
 				PersistentDataProxy.SetSectionKey(Key);
-				if (Track)
+				if (Track && Track->HasChildTemplate(Key.SectionIndex))
 				{
-					Track->GetChildTemplate(Key.SectionIdentifier).OnEndEvaluation(PersistentDataProxy, Player);
+					Track->GetChildTemplate(Key.SectionIndex).OnEndEvaluation(PersistentDataProxy, Player);
 				}
 
 				PersistentDataProxy.ResetSectionData();
@@ -411,22 +415,26 @@ void FMovieSceneRootEvaluationTemplateInstance::CallSetupTearDown(IMovieScenePla
 
 	for (const FMovieSceneOrderedEvaluationKey& OrderedKey : NewEntities)
 	{
-		const FMovieSceneEvaluationKey Key = OrderedKey.Key;
+		FMovieSceneEvaluationKey Key = OrderedKey.Key;
 
-		const FMovieSceneEvaluationTemplateInstance& Instance = GetInstanceChecked(Key.SequenceID);
+		// Ensure we're able to find the sequence instance in our root if we've overridden
+		Key.SequenceID = RootOverridePath.Remap(Key.SequenceID);
+
+		const FMovieSceneEvaluationTemplateInstance& Instance = TransientInstances.GetChecked(Key.SequenceID);
+		check(Instance.IsValid());
 
 		if (const FMovieSceneEvaluationTrack* Track = Instance.Template->FindTrack(Key.TrackIdentifier))
 		{
 			PersistentDataProxy.SetTrackKey(Key.AsTrack());
 
-			if (Key.SectionIdentifier == uint32(-1))
+			if (Key.SectionIndex == uint32(-1))
 			{
 				Track->OnBeginEvaluation(PersistentDataProxy, Player);
 			}
 			else
 			{
 				PersistentDataProxy.SetSectionKey(Key);
-				Track->GetChildTemplate(Key.SectionIdentifier).OnBeginEvaluation(PersistentDataProxy, Player);
+				Track->GetChildTemplate(Key.SectionIndex).OnBeginEvaluation(PersistentDataProxy, Player);
 			}
 		}
 	}
@@ -438,8 +446,18 @@ void FMovieSceneRootEvaluationTemplateInstance::CallSetupTearDown(IMovieScenePla
 	ThisFrameMetaData.DiffSequences(LastFrameMetaData, nullptr, &ExpiredSequenceIDs);
 	for (FMovieSceneSequenceID ExpiredID : ExpiredSequenceIDs)
 	{
-		Register.OnSequenceExpired(ExpiredID, Player);
+		Register.OnSequenceExpired(RootOverridePath.Remap(ExpiredID), Player);
 	}
+}
+
+bool FMovieSceneRootEvaluationTemplateInstance::IsDirty() const
+{
+	if (TransientInstances.RootInstance.IsValid())
+	{
+		return LastFrameMetaData.IsDirty(*TransientInstances.RootInstance.Sequence, TransientInstances.RootInstance.Template->Hierarchy, *TemplateStore);
+	}
+
+	return true;
 }
 
 void FMovieSceneRootEvaluationTemplateInstance::CopyActuators(FMovieSceneBlendingAccumulator& Accumulator) const
@@ -447,7 +465,60 @@ void FMovieSceneRootEvaluationTemplateInstance::CopyActuators(FMovieSceneBlendin
 	Accumulator.Actuators = ExecutionTokens.GetBlendingAccumulator().Actuators;
 }
 
-void FMovieSceneRootEvaluationTemplateInstance::OnSequenceChanged()
+UMovieSceneSequence* FMovieSceneRootEvaluationTemplateInstance::GetSequence(FMovieSceneSequenceIDRef SequenceID) const
 {
-	bIsDirty = true;
+	if (SequenceID == MovieSceneSequenceID::Root)
+	{
+		return RootSequence.Get();
+	}
+	
+	const FMovieSceneSubSequenceData* SubData = GetHierarchy().FindSubData(SequenceID);
+	return SubData ? SubData->GetSequence() : nullptr;
+}
+
+FMovieSceneEvaluationTemplate* FMovieSceneRootEvaluationTemplateInstance::FindTemplate(FMovieSceneSequenceIDRef SequenceID)
+{
+	if (SequenceID == MovieSceneSequenceID::Root)
+	{
+		return RootTemplate;
+	}
+
+	const FMovieSceneSubSequenceData* SubData = GetHierarchy().FindSubData(SequenceID);
+	UMovieSceneSequence* Sequence = SubData ? SubData->GetSequence() : nullptr;
+
+	return Sequence ? &TemplateStore->AccessTemplate(*Sequence) : nullptr;
+}
+
+void FMovieSceneRootEvaluationTemplateInstance::RecreateInstances(const FMovieSceneEvaluationTemplateInstance& RootOverrideInstance, FMovieSceneSequenceID InOverrideRootID, IMovieScenePlayer& Player)
+{
+	check(RootOverrideInstance.IsValid());
+
+	TransientInstances.RootID = InOverrideRootID;
+	TransientInstances.RootInstance = RootOverrideInstance;
+	
+	Player.State.AssignSequence(TransientInstances.RootID, *RootOverrideInstance.Sequence, Player);
+
+	TransientInstances.ResetSubInstances();
+
+	// We recreate all necessary sequence instances for the current and previous frames by diffing the sequences active last frame, with this frame
+	TArray<FMovieSceneSequenceID> PreviousAndCurrentFrameSequenceIDs = LastFrameMetaData.ActiveSequences;
+	ThisFrameMetaData.DiffSequences(LastFrameMetaData, &PreviousAndCurrentFrameSequenceIDs, nullptr);
+
+	for (FMovieSceneSequenceID SequenceID : PreviousAndCurrentFrameSequenceIDs)
+	{
+		const FMovieSceneSubSequenceData* SubData = RootOverrideInstance.Template->Hierarchy.FindSubData(SequenceID);
+		if (SubData)
+		{
+			FMovieSceneEvaluationTemplateInstance NewInstance(SubData, *TemplateStore);
+			
+			// Always add sequence IDs as the root
+			SequenceID = RootOverridePath.Remap(SequenceID);
+			TransientInstances.Add(SequenceID, NewInstance);
+
+			if (NewInstance.Sequence)
+			{
+				Player.State.AssignSequence(SequenceID, *NewInstance.Sequence, Player);
+			}
+		}
+	}
 }

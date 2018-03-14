@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -252,6 +252,8 @@ enum EPropertyDataValidationResult : uint8
 	EditInlineNewValueChanged,
 	/** The size of an array changed (delete,insert,add) */
 	ArraySizeChanged,
+	/** An internal node's children were rebuilt for some reason */
+	ChildrenRebuilt,
 	/** All data is valid */
 	DataValid,
 };
@@ -537,8 +539,6 @@ public:
 	 */
 	void PropagateContainerPropertyChange(UObject* ModifiedObject, const FString& OriginalContainerContent,
 		EPropertyArrayChangeType::Type ChangeType, int32 Index, TMap<UObject*, bool>* PropagationResult = nullptr, int32 SwapIndex = INDEX_NONE);
-
-	static void AdditionalInitializationUDS(UProperty* Property, uint8* RawPtr);
 
 	/** Broadcasts when a property value changes */
 	DECLARE_EVENT(FPropertyNode, FPropertyValueChangedEvent);
@@ -948,6 +948,9 @@ protected:
 
 	/** If true, children of this node will be rebuilt next tick. */
 	bool bRebuildChildrenRequested;
+
+	/** Set to true when RebuildChildren is called on the node */
+	bool bChildrenRebuilt;
 
 	/** An array of restrictions limiting this property's potential values in property editors.*/
 	TArray<TSharedRef<const class FPropertyRestriction>> Restrictions;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemGoogle.h"
 #include "OnlineSubsystemGooglePrivate.h"
@@ -34,9 +34,4 @@ bool FOnlineSubsystemGoogle::Shutdown()
 {
 	UE_LOG(LogOnline, Display, TEXT("FOnlineSubsystemGoogle::Shutdown()"));
 	return FOnlineSubsystemGoogleCommon::Shutdown();
-}
-
-bool FOnlineSubsystemGoogle::IsEnabled() const
-{
-	return FOnlineSubsystemGoogleCommon::IsEnabled();
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GenericPlatform/GenericPlatformHttp.h"
 #include "Interfaces/IHttpRequest.h"
@@ -131,10 +131,10 @@ FString FGenericPlatformHttp::UrlDecode(const FString &EncodedString)
 
 					ANSICHAR Buffer[8] = { 0 };
 					ANSICHAR* BufferPtr = Buffer;
-					int32 len = ARRAY_COUNT(Buffer);
-					FTCHARToUTF8_Convert::utf8fromcodepoint(Value, &BufferPtr, &len);
+					const int32 Len = ARRAY_COUNT(Buffer);
+					const int32 WrittenChars = FTCHARToUTF8_Convert::Utf8FromCodepoint(Value, BufferPtr, Len);
 
-					Data.Append(Buffer, BufferPtr - Buffer);
+					Data.Append(Buffer, WrittenChars);
 				}
 				else
 				{

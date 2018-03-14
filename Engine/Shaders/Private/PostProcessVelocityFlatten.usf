@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Common.ush"
 #include "PostProcessCommon.ush"
@@ -51,7 +51,7 @@ void VelocityFlattenMain(
 	uint3 GroupThreadId : SV_GroupThreadID,
 	uint GroupIndex : SV_GroupIndex ) 
 {
-	uint2 PixelPos = DispatchThreadId.xy + ViewportRect.xy;
+	uint2 PixelPos = min(DispatchThreadId.xy + ViewportRect.xy, ViewportRect.zw - 1);
 
 	float2 Velocity = PostprocessInput0[ PixelPos ].xy;
 	float Depth = PostprocessInput1[ PixelPos ].x;
@@ -62,14 +62,12 @@ void VelocityFlattenMain(
 	}
 	else
 	{
-		float2 ScreenUV = ( (float2)DispatchThreadId.xy + 0.5 ) / ( ViewportRect.zw - ViewportRect.xy );
-		float3 PosN = float3( ScreenUV, Depth );
-		float ScaleM = rcp( dot( PosN, CameraMotion.Value[0].xyz ) + CameraMotion.Value[0].w );
-		Velocity.x = -2.0 * ((PosN.x * ((CameraMotion.Value[1].x * PosN.y) + (CameraMotion.Value[1].y * PosN.z) + CameraMotion.Value[1].z)) + (CameraMotion.Value[1].w * PosN.y) + (CameraMotion.Value[2].x * PosN.x * PosN.x) + (CameraMotion.Value[2].y * PosN.z) + CameraMotion.Value[2].z) * ScaleM;
-		Velocity.y =  2.0 * ((PosN.y * ((CameraMotion.Value[3].x * PosN.x) + (CameraMotion.Value[3].y * PosN.z) + CameraMotion.Value[3].z)) + (CameraMotion.Value[3].w * PosN.x) + (CameraMotion.Value[4].x * PosN.y * PosN.y) + (CameraMotion.Value[4].y * PosN.z) + CameraMotion.Value[4].z) * ScaleM;
-
-		//Velocity.x += 0.3;
-		//Velocity.y += 0.1;
+		float2 ViewportUV = ( (float2)DispatchThreadId.xy + 0.5 ) / ( ViewportRect.zw - ViewportRect.xy );
+		float2 ScreenPos = 2 * float2(ViewportUV.x, 1 - ViewportUV.y) - 1;
+		float4 ThisClip = float4( ScreenPos, Depth, 1 );
+		float4 PrevClip = mul( ThisClip, View.ClipToPrevClip );
+		float2 PrevScreen = PrevClip.xy / PrevClip.w;
+		Velocity = ScreenPos - PrevScreen;
 	}
 
 	const float AspectRatio = MotionBlurParameters.x;

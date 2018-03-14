@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DataBunch.cpp: Unreal bunch (sub-packet) functions.
@@ -82,7 +82,7 @@ FOutBunch::FOutBunch( UChannel* InChannel, bool bInClose )
 ,	Next		( NULL )
 ,	Channel		( InChannel )
 ,	Time		( 0 )
-,	ReceivedAck ( false )
+,	ReceivedAck	(false)
 ,	ChIndex     ( InChannel->ChIndex )
 ,	ChType      ( InChannel->ChType )
 ,	ChSequence	( 0 )
@@ -116,7 +116,7 @@ FOutBunch::FOutBunch( UPackageMap *InPackageMap, int64 MaxBits )
 ,	Next		( NULL )
 ,	Channel		( NULL )
 ,   Time		( 0 )
-,	ReceivedAck ( false )
+,	ReceivedAck	(false)
 ,	ChIndex     ( 0 )
 ,	ChType      ( 0 )
 ,	ChSequence	( 0 )

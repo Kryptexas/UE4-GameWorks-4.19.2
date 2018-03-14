@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Docs
 Title:디스트럭터블 메시 에디터 UI
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Physics/Destructibles/Editor
@@ -22,7 +22,9 @@ Description:디스트럭터블 메시 애셋의 머티리얼, 뎁스 레벨, 모
 
 [Include:Shared/Editors/Common/EditorMenuItems/#UITabTips]
 
-<!-- For more information about the Destructible Mesh Editor, see [](Engine/Content\Types\APEX\Editor). -->
+[COMMENT:none]
+ For more information about the Destructible Mesh Editor, see [](Engine/Content\Types\APEX\Editor). 
+[/COMMENT]
 
 ## 메뉴 바
 

@@ -2,7 +2,7 @@ Availability: NoPublish
 Title: Build Configuration Properties Page
 Crumbs:
 Description: This is a procedurally generated markdown page.
-Version: 4.18
+Version: 4.19
 
 ### XboxOnePlatform
 
@@ -25,6 +25,8 @@ $ bUsePerFileIntellisense : Whether to generate per-file intellisense data
 $ bEditorDependsOnShaderCompileWorker : Whether to include a dependency on ShaderCompileWorker when generating project files for the editor.
 
 $ bDebugBuildsActuallyUseDebugCRT : Enables the debug C++ runtime (CRT) for debug builds. By default we always use the release runtime, since the debug version isn't particularly useful when debugging Unreal Engine projects, and linking against the debug CRT libraries forces our third party library dependencies to also be compiled using the debug CRT (and often perform more slowly). Often it can be inconvenient to require a separate copy of the debug versions of third party static libraries simply so that you can debug your program's code.
+
+$ bUseInlining : Enable inlining for all modules.
 
 $ bUseXGEController : Whether the XGE controller worker and modules should be included in the engine build. These are required for distributed shader compilation using the XGE interception interface.
 
@@ -69,6 +71,10 @@ $ bForcePrecompiledHeaderForGameModules : When enabled, a precompiled header is 
 $ bUseIncrementalLinking : Whether to use incremental linking or not. Incremental linking can yield faster iteration times when making small changes. Currently disabled by default because it tends to behave a bit buggy on some computers (PDB-related compile errors).
 
 $ bAllowLTCG : Whether to allow the use of link time code generation (LTCG).
+
+$ bPGOProfile : Whether to enable Profile Guided Optimization (PGO) instrumentation in this build.
+
+$ bPGOOptimize : Whether to optimize this build with Profile Guided Optimization (PGO).
 
 $ bAllowASLRInShipping : Whether to allow the use of ASLR (address space layout randomization) if supported. Only applies to shipping builds.
 
@@ -162,11 +168,29 @@ $ bShowXGEMonitor : Whether to display the XGE build monitor.
 
 $ bStopXGECompilationAfterErrors : When enabled, XGE will stop compiling targets after a compile error occurs.  Recommended, as it saves computing resources for others.
 
+### CMakefileGenerator
+
+### CodeLiteGenerator
+
+### EddieProjectFileGenerator
+
+### KDevelopGenerator
+
+### MakefileGenerator
+
 ### ProjectFileGenerator
+
+$ Format : Default list of project file formats to generate
+
+### QMakefileGenerator
+
+### VSCodeProjectFileGenerator
 
 ### VCProjectFileGenerator
 
 $ Version : The version of Visual Studio to generate project files for.
+
+### XcodeProjectFileGenerator
 
 ### SourceFileWorkingSet
 

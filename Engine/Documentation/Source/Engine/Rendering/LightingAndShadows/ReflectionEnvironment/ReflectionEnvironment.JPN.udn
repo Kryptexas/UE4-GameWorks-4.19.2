@@ -509,7 +509,8 @@ Reflection Environment のコストは、スクリーン上のピクセルに影
 ワールドは一度に最大 341 の反射のキャプチャが可能です。
 
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:ReflectionResolution]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -538,4 +539,5 @@ Reflection Environment のコストは、スクリーン上のピクセルに影
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:ReflectionResolution]
--->
+
+[/COMMENT]

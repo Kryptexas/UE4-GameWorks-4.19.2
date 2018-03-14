@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MallocTTB.cpp: IntelTTB Malloc
@@ -36,6 +36,15 @@ THIRD_PARTY_INCLUDES_END
 void* FMallocTBB::Malloc( SIZE_T Size, uint32 Alignment )
 {
 	IncrementTotalMallocCalls();
+
+#if !UE_BUILD_SHIPPING
+	uint64 LocalMaxSingleAlloc = MaxSingleAlloc.Load(EMemoryOrder::Relaxed);
+	if (LocalMaxSingleAlloc != 0 && Size > LocalMaxSingleAlloc)
+	{
+		FPlatformMemory::OnOutOfMemory(Size, Alignment);
+		return nullptr;
+	}
+#endif
 
 	MEM_TIME(MemTime -= FPlatformTime::Seconds());
 
@@ -76,6 +85,15 @@ void* FMallocTBB::Malloc( SIZE_T Size, uint32 Alignment )
 void* FMallocTBB::Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment )
 {
 	IncrementTotalReallocCalls();
+
+#if !UE_BUILD_SHIPPING
+	uint64 LocalMaxSingleAlloc = MaxSingleAlloc.Load(EMemoryOrder::Relaxed);
+	if (LocalMaxSingleAlloc != 0 && NewSize > LocalMaxSingleAlloc)
+	{
+		FPlatformMemory::OnOutOfMemory(NewSize, Alignment);
+		return nullptr;
+	}
+#endif
 
 	MEM_TIME(MemTime -= FPlatformTime::Seconds())
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT

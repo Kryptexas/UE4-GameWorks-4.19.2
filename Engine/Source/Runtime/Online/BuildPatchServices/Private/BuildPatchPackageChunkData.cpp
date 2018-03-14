@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BuildPatchPackageChunkData.h"
 #include "BuildPatchManifest.h"
@@ -80,15 +80,12 @@ bool FBuildPackageChunkData::PackageChunkData(const FString& ManifestFilePath, c
 				// Figure out the per file filename;
 				FString FilenameFmt = OutputFile;
 				FilenameFmt.RemoveFromEnd(ChunkDbExtension);
-				// Make sure we don't confuse any existing % characters when formatting (yes, % is a valid filename character).
-				FilenameFmt.ReplaceInline(TEXT("%"), TEXT("%%"));
-				FilenameFmt += TEXT(".part%0*d.chunkdb");
 				// Technically, there are mathematical solutions to this, however there can be floating point errors in log that cause edge cases there.
 				// We'll just use the obvious simple method.
 				int32 NumDigitsForParts = FString::Printf(TEXT("%d"), ChunkDbFiles.Num()).Len();
 				for (int32 ChunkDbFileIdx = 0; ChunkDbFileIdx < ChunkDbFiles.Num(); ++ChunkDbFileIdx)
 				{
-					ChunkDbFiles[ChunkDbFileIdx].DatabaseFilename = FString::Printf(*FilenameFmt, NumDigitsForParts, ChunkDbFileIdx + 1);
+					ChunkDbFiles[ChunkDbFileIdx].DatabaseFilename = FString::Printf(TEXT("%s.part%0*d.chunkdb"), *FilenameFmt, NumDigitsForParts, ChunkDbFileIdx + 1);
 				}
 			}
 			else

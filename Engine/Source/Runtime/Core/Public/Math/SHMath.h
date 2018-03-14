@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -37,7 +37,7 @@ public:
 	float V[NumTotalFloats];
 
 	/** The integral of the constant SH basis. */
-	CORE_API static const float ConstantBasisIntegral;
+	static constexpr float ConstantBasisIntegral = 3.5449077018110320545963349666823; // 2 * Sqrt(PI)
 
 	/** Default constructor. */
 	TSHVector()
@@ -266,6 +266,22 @@ public:
 		}
 	}
 
+	void ApplyWindowing(float Lambda)
+	{
+		// "Stupid Spherical Harmonics (SH) Tricks"
+		// Minimizing the weighted squared Laplacian
+
+		for (int32 l = 0; l < TSHVector::MaxSHOrder; l++)
+		{
+			const float BandScaleFactor = 1.0f / (1.0f + Lambda * l * l * (l + 1.0f) * (l + 1.0f));
+
+			for (int32 m = -l; m <= l; m++)
+			{
+				V[SHGetBasisIndex(l, m)] *= BandScaleFactor;
+			}
+		}
+	}
+
 	bool AreFloatsValid() const
 	{
 		bool bValid = true;
@@ -366,6 +382,72 @@ public:
 		AmbientFunctionSH.V[0] = 1.0f / (2.0f * FMath::Sqrt(PI));
 		return AmbientFunctionSH;
 	}
+
+	static float FindWindowingLambda(const TSHVector& Vector, float TargetLaplacian)
+	{
+		// "Stupid Spherical Harmonics (SH) Tricks"
+		// Appendix A7: Solving for Lamba to Reduce the Squared Laplacian
+
+		float TableL[TSHVector::MaxSHOrder];
+		float TableB[TSHVector::MaxSHOrder];
+
+		TableL[0] = 0.0f;
+		TableB[0] = 0.0f;
+
+		for (int32 l = 1; l < TSHVector::MaxSHOrder; l++)
+		{
+			TableL[l] = float(l * l * (l + 1) * (l + 1));
+
+			float B = 0.0f;
+			for (int32 m = -1; m <= l; m++)
+			{
+				float Coefficient = Vector.V[SHGetBasisIndex(l, m)];
+				B += Coefficient * Coefficient;
+			}
+			TableB[l] = B;
+		}
+
+		float SquaredLaplacian = 0.0f;
+
+		for (int32 l = 1; l < TSHVector::MaxSHOrder; ++l)
+		{
+			SquaredLaplacian += TableL[l] * TableB[l];
+		}
+
+		const float TargetSquaredLaplacian = TargetLaplacian * TargetLaplacian;
+		if (SquaredLaplacian <= TargetSquaredLaplacian)
+		{
+			return 0.0f;
+		}
+
+		float Lambda = 0.0f;
+
+		const uint32 IterationLimit = 100;
+		for (uint32 i = 0; i < IterationLimit; i++)
+		{
+			float f = 0.0f;
+			float fd = 0.0f;
+
+			for (int32 l = 1; l < TSHVector::MaxSHOrder; ++l)
+			{
+				float Temp = 1.0f + Lambda * TableL[l];
+				f += TableL[l] * TableB[l] / (Temp * Temp);
+				fd += (2.0f * TableL[l] * TableL[l] * TableB[l]) / (Temp * Temp * Temp);
+			}
+
+			f = TargetSquaredLaplacian - f;
+
+			float delta = -f / fd;
+			Lambda += delta;
+
+			if (FMath::Abs(delta) < KINDA_SMALL_NUMBER)
+			{
+				break;
+			}
+		}
+
+		return Lambda;
+	}
 } GCC_ALIGN(16);
 
 
@@ -444,6 +526,13 @@ public:
 		Result.B = B.CalcIntegral();
 		Result.A = 1.0f;
 		return Result;
+	}
+
+	void ApplyWindowing(float Lambda)
+	{
+		R.ApplyWindowing(Lambda);
+		G.ApplyWindowing(Lambda);
+		B.ApplyWindowing(Lambda);
 	}
 
 	bool AreFloatsValid() const

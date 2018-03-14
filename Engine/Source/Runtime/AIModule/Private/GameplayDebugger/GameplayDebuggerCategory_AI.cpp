@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayDebugger/GameplayDebuggerCategory_AI.h"
 
@@ -331,9 +331,15 @@ void FGameplayDebuggerCategory_AI::DrawData(APlayerController* OwnerPC, FGamepla
 
 FDebugRenderSceneProxy* FGameplayDebuggerCategory_AI::CreateDebugSceneProxy(const UPrimitiveComponent* InComponent, FDebugDrawDelegateHelper*& OutDelegateHelper)
 {
-	class FPathDebugRenderSceneProxy : public FDebugRenderSceneProxy
+	class FPathDebugRenderSceneProxy final : public FDebugRenderSceneProxy
 	{
 	public:
+		SIZE_T GetTypeHash() const override
+		{
+			static size_t UniquePointer;
+			return reinterpret_cast<size_t>(&UniquePointer);
+		}
+
 		FPathDebugRenderSceneProxy(const UPrimitiveComponent* InPrimitiveCComponent, const FString &InViewFlagName)
 			: FDebugRenderSceneProxy(InPrimitiveCComponent)
 		{

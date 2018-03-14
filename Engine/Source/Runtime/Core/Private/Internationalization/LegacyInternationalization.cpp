@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #include "Internationalization/LegacyInternationalization.h"
 
 #if !UE_ENABLE_ICU
@@ -35,9 +35,9 @@ bool FLegacyInternationalization::IsCultureRemapped(const FString& Name, FString
 	return false;
 }
 
-bool FLegacyInternationalization::IsCultureDisabled(const FString& Name)
+bool FLegacyInternationalization::IsCultureAllowed(const FString& Name)
 {
-	return false;
+	return true;
 }
 
 void FLegacyInternationalization::HandleLanguageChanged(const FString& Name)

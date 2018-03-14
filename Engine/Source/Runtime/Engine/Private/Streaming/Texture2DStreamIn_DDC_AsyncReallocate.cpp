@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 Texture2DStreamIn_DDC_AsyncReallocate.cpp: Load texture 2D mips from the DDC using async reallocate.

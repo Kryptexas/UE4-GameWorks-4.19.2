@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintCompilerCppBackendUtils.h"
 #include "Misc/App.h"
@@ -40,6 +40,7 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 		}
 	}
 
+	UUserDefinedStruct* ActualUserStruct = Cast<UUserDefinedStruct>(Dependencies.GetActualStruct());
 	UClass* ActualClass = Cast<UClass>(Dependencies.GetActualStruct());
 	UClass* OriginalActualClass = Dependencies.FindOriginalClass(ActualClass);
 	UClass* OuterClass = Object ? Cast<UClass>(Object->GetOuter()) : nullptr;	// SCS component templates will have an Outer that equates to their owning BPGC; since they're not currently DSOs, we have to special-case them.
@@ -197,7 +198,6 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 		}
 	}
 
-	// TODO: handle subobjects
 	ensure(!bLoadIfNotFound || Object);
 	if (Object && (bLoadIfNotFound || bTryUsedAssetsList))
 	{
@@ -207,6 +207,39 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 			if (INDEX_NONE == AssetIndex && Dependencies.Assets.Contains(Object))
 			{
 				AssetIndex = UsedObjectInCurrentClass.Add(Object);
+			}
+
+			if (INDEX_NONE == AssetIndex)
+			{
+				// Handle subobjects of assets
+				UPackage* Outermost = Object->GetOutermost();
+				if(Object->GetOuter() != Outermost)
+				{
+					// Try to see if an already referenced object exists in our outer chain
+					UObject* ObjectOuter = Object->GetOuter();
+					while(ObjectOuter != Outermost)
+					{
+						if (Dependencies.Assets.Contains(ObjectOuter))
+						{
+							// Add the outer if it hasnt been added already
+							int32 OuterAssetIndex = UsedObjectInCurrentClass.IndexOfByKey(ObjectOuter);
+							if(INDEX_NONE == OuterAssetIndex)
+							{
+								UsedObjectInCurrentClass.Add(ObjectOuter);
+							}
+
+							// Then add the inner object (again, if it hasnt already been added)
+							AssetIndex = UsedObjectInCurrentClass.IndexOfByKey(Object);
+							if(INDEX_NONE == AssetIndex)
+							{
+								AssetIndex = UsedObjectInCurrentClass.Add(Object);
+							}
+							break;
+						}
+
+						ObjectOuter = ObjectOuter->GetOuter();
+					}
+				}
 			}
 
 			if (INDEX_NONE != AssetIndex)
@@ -225,6 +258,15 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 				, *ClassString()
 				, *(Object->GetPathName().ReplaceCharWithEscapedChar()));
 		}
+	}
+
+	if (Object && ActualUserStruct)
+	{
+		// For user structs, the default action of loading is unsafe so call the wrapper function
+		return FString::Printf(TEXT("CastChecked<%s>(FConvertedBlueprintsDependencies::LoadObjectForStructConstructor(%s::StaticStruct(),TEXT(\"%s\")), ECastCheckedType::NullAllowed)")
+			, *ClassString()
+			, *FEmitHelper::GetCppName(ActualUserStruct)
+			, *(Object->GetPathName().ReplaceCharWithEscapedChar()));
 	}
 
 	return FString{};
@@ -263,92 +305,114 @@ FString FEmitterLocalContext::ExportTextItem(const UProperty* Property, const vo
 
 FString FEmitterLocalContext::ExportCppDeclaration(const UProperty* Property, EExportedDeclaration::Type DeclarationType, uint32 InExportCPPFlags, FEmitterLocalContext::EPropertyNameInDeclaration ParameterName, const FString& NamePostfix, const FString& TypePrefix) const
 {
-	FString ActualCppType;
-	FString* ActualCppTypePtr = nullptr;
-	FString ActualExtendedType;
-	FString* ActualExtendedTypePtr = nullptr;
 	uint32 ExportCPPFlags = InExportCPPFlags;
+	const bool bIsParameter = (DeclarationType == EExportedDeclaration::Parameter) || (DeclarationType == EExportedDeclaration::MacroParameter);
 
-	auto GetActualNameCPP = [&](const UObjectPropertyBase* ObjectPropertyBase, UClass* InActualClass)
+	auto GetCppTypeFromProperty = [this, ExportCPPFlags, bIsParameter, &TypePrefix](const UProperty* InProperty, FString& OutExtendedCppType) -> FString
 	{
-		auto BPGC = Cast<UBlueprintGeneratedClass>(InActualClass);
-		if (BPGC || !TypePrefix.IsEmpty())
+		auto GetCppTypeFromObjectProperty = [this, ExportCPPFlags, bIsParameter, &TypePrefix, &OutExtendedCppType](const UObjectPropertyBase* ObjectPropertyBase, UClass* InActualClass) -> FString
 		{
-			const bool bIsParameter = (DeclarationType == EExportedDeclaration::Parameter) || (DeclarationType == EExportedDeclaration::MacroParameter);
-			const uint32 LocalExportCPPFlags = ExportCPPFlags | (bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
-			UClass* NativeType = GetFirstNativeOrConvertedClass(InActualClass);
-			check(NativeType);
-			ActualCppType = TypePrefix + ObjectPropertyBase->GetCPPTypeCustom(&ActualExtendedType, LocalExportCPPFlags, FEmitHelper::GetCppName(NativeType));
-			ActualCppTypePtr = &ActualCppType;
-			if (!ActualExtendedType.IsEmpty())
+			FString Result;
+
+			auto BPGC = Cast<UBlueprintGeneratedClass>(InActualClass);
+			if (BPGC || !TypePrefix.IsEmpty())
 			{
-				ActualExtendedTypePtr = &ActualExtendedType;
+				UClass* NativeType = GetFirstNativeOrConvertedClass(InActualClass);
+				check(NativeType);
+
+				const uint32 LocalExportCPPFlags = ExportCPPFlags | (bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
+				Result = TypePrefix + ObjectPropertyBase->GetCPPTypeCustom(&OutExtendedCppType, LocalExportCPPFlags, FEmitHelper::GetCppName(NativeType));
+			}
+
+			return Result;
+		};
+
+		FString Result;
+		if (const UClassProperty* ClassProperty = Cast<const UClassProperty>(InProperty))
+		{
+			Result = GetCppTypeFromObjectProperty(ClassProperty, ClassProperty->MetaClass);
+		}
+		else if (auto SoftClassProperty = Cast<const USoftClassProperty>(InProperty))
+		{
+			Result = GetCppTypeFromObjectProperty(SoftClassProperty, SoftClassProperty->MetaClass);
+		}
+		else if (auto ObjectProperty = Cast<const UObjectPropertyBase>(InProperty))
+		{
+			Result = GetCppTypeFromObjectProperty(ObjectProperty, ObjectProperty->PropertyClass);
+		}
+		else if (auto StructProperty = Cast<const UStructProperty>(InProperty))
+		{
+			Result = FEmitHelper::GetCppName(StructProperty->Struct, false);
+		}
+		else if (auto SCDelegateProperty = Cast<const UDelegateProperty>(InProperty))
+		{
+			const FString* SCDelegateTypeName = MCDelegateSignatureToSCDelegateType.Find(SCDelegateProperty->SignatureFunction);
+			if (SCDelegateTypeName)
+			{
+				Result = *SCDelegateTypeName;
 			}
 		}
+
+		return Result;
 	};
 
-	const UArrayProperty* ArrayProperty = Cast<const UArrayProperty>(Property);
-	if (ArrayProperty)
+	FString ActualCppType, ActualExtendedCppType;
+	if (const UArrayProperty* ArrayProperty = Cast<const UArrayProperty>(Property))
 	{
-		Property = ArrayProperty->Inner;
-		ExportCPPFlags = (ExportCPPFlags & ~CPPF_ArgumentOrReturnValue);
-	}
+		ExportCPPFlags &= ~CPPF_ArgumentOrReturnValue;
 
-	if (const UClassProperty* ClassProperty = Cast<const UClassProperty>(Property))
-	{
-		GetActualNameCPP(ClassProperty, ClassProperty->MetaClass);
-	}
-	else if (auto SoftClassProperty = Cast<const USoftClassProperty>(Property))
-	{
-		GetActualNameCPP(SoftClassProperty, SoftClassProperty->MetaClass);
-	}
-	else if (auto ObjectProperty = Cast<const UObjectPropertyBase>(Property))
-	{
-		GetActualNameCPP(ObjectProperty, ObjectProperty->PropertyClass);
-	}
-	else if (auto StructProperty = Cast<const UStructProperty>(Property))
-	{
-		ActualCppType = FEmitHelper::GetCppName(StructProperty->Struct, false);
-		ActualCppTypePtr = &ActualCppType;
-	}
-	else if (auto SCDelegateProperty = Cast<const UDelegateProperty>(Property))
-	{
-		const FString* SCDelegateTypeName = MCDelegateSignatureToSCDelegateType.Find(SCDelegateProperty->SignatureFunction);
-		if (SCDelegateTypeName)
+		FString InnerCppType, InnerExtendedCppType;
+		InnerCppType = GetCppTypeFromProperty(ArrayProperty->Inner, InnerExtendedCppType);
+		if (!InnerCppType.IsEmpty())
 		{
-			ActualCppType = *SCDelegateTypeName;
-			ActualCppTypePtr = &ActualCppType;
-		}
-	}
-
-	// TODO: TypePrefix for other properties
-
-	if (ArrayProperty)
-	{
-		Property = ArrayProperty;
-		if (ActualCppTypePtr)
-		{
-			const FString LocalActualCppType = ActualCppType;
-			ActualCppType.Empty();
-			const FString LocalActualExtendedType = ActualExtendedType;
-			ActualExtendedType.Empty();
-			ActualExtendedTypePtr = nullptr;
-
-			const bool bIsParameter = (DeclarationType == EExportedDeclaration::Parameter) || (DeclarationType == EExportedDeclaration::MacroParameter);
 			const uint32 LocalExportCPPFlags = InExportCPPFlags | (bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
-
-			ActualCppType = ArrayProperty->GetCPPTypeCustom(&ActualExtendedType, LocalExportCPPFlags, LocalActualCppType, LocalActualExtendedType);
-			if (!ActualExtendedType.IsEmpty())
-			{
-				ActualExtendedTypePtr = &ActualExtendedType;
-			}
+			ActualCppType = ArrayProperty->GetCPPTypeCustom(&ActualExtendedCppType, LocalExportCPPFlags, InnerCppType, InnerExtendedCppType);
 		}
+	}
+	else if (const USetProperty* SetProperty = Cast<const USetProperty>(Property))
+	{
+		ExportCPPFlags &= ~CPPF_ArgumentOrReturnValue;
+
+		FString ElementCppType, ElementExtendedCppType;
+		ElementCppType = GetCppTypeFromProperty(SetProperty->ElementProp, ElementExtendedCppType);
+		if (!ElementCppType.IsEmpty())
+		{
+			const uint32 LocalExportCPPFlags = InExportCPPFlags | (bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
+			ActualCppType = SetProperty->GetCPPTypeCustom(&ActualExtendedCppType, LocalExportCPPFlags, ElementCppType, ElementExtendedCppType);
+		}
+	}
+	else if (const UMapProperty* MapProperty = Cast<const UMapProperty>(Property))
+	{
+		ExportCPPFlags &= ~CPPF_ArgumentOrReturnValue;
+
+		FString KeyCppType, KeyExtendedCppType;
+		KeyCppType = GetCppTypeFromProperty(MapProperty->KeyProp, KeyExtendedCppType);
+		if (KeyCppType.IsEmpty())
+		{
+			KeyCppType = MapProperty->KeyProp->GetCPPType(&KeyExtendedCppType, ExportCPPFlags);
+		}
+
+		FString ValueCppType, ValueExtendedCppType;
+		ValueCppType = GetCppTypeFromProperty(MapProperty->ValueProp, ValueExtendedCppType);
+		if (ValueCppType.IsEmpty())
+		{
+			ValueCppType = MapProperty->ValueProp->GetCPPType(&ValueExtendedCppType, ExportCPPFlags);
+		}
+
+		const uint32 LocalExportCPPFlags = InExportCPPFlags | (bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
+		ActualCppType = MapProperty->GetCPPTypeCustom(&ActualExtendedCppType, LocalExportCPPFlags, KeyCppType, KeyExtendedCppType, ValueCppType, ValueExtendedCppType);
+	}
+	else
+	{
+		ActualCppType = GetCppTypeFromProperty(Property, ActualExtendedCppType);
 	}
 
 	FStringOutputDevice Out;
 	const bool bSkipParameterName = (ParameterName == EPropertyNameInDeclaration::Skip);
 	const FString ActualNativeName = bSkipParameterName ? FString() : (FEmitHelper::GetCppName(Property, false, ParameterName == EPropertyNameInDeclaration::ForceConverted) + NamePostfix);
-	Property->ExportCppDeclaration(Out, DeclarationType, nullptr, ExportCPPFlags, bSkipParameterName, ActualCppTypePtr, ActualExtendedTypePtr, &ActualNativeName);
+	const FString* ActualCppTypePtr = ActualCppType.IsEmpty() ? nullptr : &ActualCppType;
+	const FString* ActualExtendedCppTypePtr = ActualExtendedCppType.IsEmpty() ? nullptr : &ActualExtendedCppType;
+	Property->ExportCppDeclaration(Out, DeclarationType, nullptr, ExportCPPFlags, bSkipParameterName, ActualCppTypePtr, ActualExtendedCppTypePtr, &ActualNativeName);
 	return FString(Out);
 
 }
@@ -1072,7 +1136,7 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 				EmitterContext.AddLine(FString::Printf(TEXT("auto %s = %s%s;")
 					, *LocalStructNativeName
 					, *StructName
-					, AsUDS ? TEXT("::GetDefaultValue()") : FEmitHelper::EmptyDefaultConstructor(StructType)));
+					, FEmitHelper::EmptyDefaultConstructor(StructType)));
 				if (AsUDS)
 				{
 					EmitterContext.StructsWithDefaultValuesUsed.Add(AsUDS);
@@ -1363,10 +1427,11 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 	// ENUM to BYTE cast
 	if (LType.PinCategory == UEdGraphSchema_K2::PC_Byte)
 	{
+		UEnum* LTypeEnum = Cast<UEnum>(LType.PinSubCategoryObject.Get());
+		UEnum* RTypeEnum = Cast<UEnum>(RType.PinSubCategoryObject.Get());
+
 		if (!RType.IsContainer())
 		{
-			UEnum* LTypeEnum = Cast<UEnum>(LType.PinSubCategoryObject.Get());
-			UEnum* RTypeEnum = Cast<UEnum>(RType.PinSubCategoryObject.Get());
 			if (!RTypeEnum && LTypeEnum)
 			{
 				ensure(!LTypeEnum->IsA<UUserDefinedEnum>() || LTypeEnum->CppType.IsEmpty());
@@ -1396,6 +1461,25 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 				return true;
 			}
 		}
+		else // handle automatic casts of enum arrays (allowed in blueprint but not implicitly castable in C++ with enum classes)
+		{
+			if (!RTypeEnum && LTypeEnum)
+			{
+				ensure(!LTypeEnum->IsA<UUserDefinedEnum>() || LTypeEnum->CppType.IsEmpty());
+				const FString LTypeStr = !LTypeEnum->CppType.IsEmpty() ? LTypeEnum->CppType : FEmitHelper::GetCppName(LTypeEnum);
+				OutCastBegin = TEXT("TArrayCaster<uint8>(");
+				OutCastEnd = FString::Printf(TEXT(").Get<%s>()"), *LTypeStr);
+				return true;
+			}
+			if (!LTypeEnum && RTypeEnum)
+			{
+				ensure(!RTypeEnum->IsA<UUserDefinedEnum>() || RTypeEnum->CppType.IsEmpty());
+				const FString RTypeStr = !RTypeEnum->CppType.IsEmpty() ? RTypeEnum->CppType : FEmitHelper::GetCppName(RTypeEnum);
+				OutCastBegin = FString::Printf(TEXT("TArrayCaster<%s>("), *RTypeStr);
+				OutCastEnd = TEXT(").Get<uint8>()");
+				return true;
+			}
+		}
 	}
 	else // UObject casts (UClass, etc.)
 	{
@@ -1410,19 +1494,25 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 			return RType.IsArray() && LClass && RClass && (LClass->IsChildOf(RClass) || RClass->IsChildOf(LClass)) && (LClass != RClass);
 		};
 
+		// No need to check both types here because we already checked for a match above.
 		const bool bIsClassTerm = LType.PinCategory == UEdGraphSchema_K2::PC_Class;
-		auto GetTypeString = [bIsClassTerm](UClass* TermType, const UObjectProperty* AssociatedProperty)->FString
+		const bool bIsObjectTerm = LType.PinCategory == UEdGraphSchema_K2::PC_Object;
+		const bool bIsSoftObjTerm = LType.PinCategory == UEdGraphSchema_K2::PC_SoftClass || LType.PinCategory == UEdGraphSchema_K2::PC_SoftObject;
+		auto GetTypeString = [bIsClassTerm, bIsSoftObjTerm](UClass* TermType, const UObjectPropertyBase* AssociatedProperty)->FString
 		{
 			// favor the property's CPPType since it makes choices based off of things like CPF_UObjectWrapper (which 
 			// adds things like TSubclassof<> to the decl)... however, if the property type doesn't match the term 
 			// type, then ignore the property (this can happen for things like our array library, which uses wildcards 
 			// and custom thunks to allow differing types)
-			const bool bPropertyMatch = AssociatedProperty && ((AssociatedProperty->PropertyClass == TermType) ||
+			const bool bPropertyMatch = AssociatedProperty &&
+				(bIsSoftObjTerm ||
+				(AssociatedProperty->PropertyClass == TermType) ||
 				(bIsClassTerm && CastChecked<UClassProperty>(AssociatedProperty)->MetaClass == TermType));
 
 			if (bPropertyMatch)
 			{
 				// use GetCPPTypeCustom() so that it properly fills out nativized class names
+				// note: soft properties will use the term type that we pass in here in place of the internal MetaClass/PropertyClass, so we just always match them (above)
 				return AssociatedProperty->GetCPPTypeCustom(/*ExtendedTypeText=*/nullptr, CPPF_None, FEmitHelper::GetCppName(TermType));
 			}
 			else if (bIsClassTerm)
@@ -1434,15 +1524,16 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 
 		auto GetInnerTypeString = [GetTypeString](UClass* TermType, const UArrayProperty* ArrayProp)
 		{
-			const UObjectProperty* InnerProp = ArrayProp ? Cast<UObjectProperty>(ArrayProp->Inner) : nullptr;
+			const UObjectPropertyBase* InnerProp = ArrayProp ? Cast<UObjectPropertyBase>(ArrayProp->Inner) : nullptr;
 			return GetTypeString(TermType, InnerProp);
 		};
 
 		auto GenerateArrayCast = [&OutCastBegin, &OutCastEnd](const FString& LTypeStr, const FString& RTypeStr)
 		{
-			OutCastBegin = FString::Printf(TEXT("TArrayCaster< %s >("), *RTypeStr);
-			OutCastEnd   = FString::Printf(TEXT(").Get< %s >()"), *LTypeStr);
+			OutCastBegin = FString::Printf(TEXT("TArrayCaster<%s>("), *RTypeStr);
+			OutCastEnd   = FString::Printf(TEXT(").Get<%s>()"), *LTypeStr);
 		};
+
 		// CLASS/TSubClassOf<> to CLASS/TSubClassOf<>
 		if (bIsClassTerm)
 		{
@@ -1468,7 +1559,7 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 			}
 		}
 		// OBJECT to OBJECT
-		else if (LType.PinCategory == UEdGraphSchema_K2::PC_Object)
+		else if (bIsObjectTerm || bIsSoftObjTerm)
 		{
 			UClass* LClass = GetClassType(LType);
 			UClass* RClass = GetClassType(RType);
@@ -1476,14 +1567,25 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 			if (!RType.IsContainer() && LClass && RClass && (LType.bIsReference || bForceReference) && (LClass != RClass) && RClass->IsChildOf(LClass))
 			{
 				// when pointer is passed as reference, the type must be exactly the same
-				OutCastBegin = FString::Printf(TEXT("*(%s*)(&("), *GetTypeString(LClass, Cast<UObjectProperty>(LProp)));
+				OutCastBegin = FString::Printf(TEXT("*(%s*)(&("), *GetTypeString(LClass, Cast<UObjectPropertyBase>(LProp)));
 				OutCastEnd = TEXT("))");
 				return true;
 			}
 			if (!RType.IsContainer() && LClass && RClass && LClass->IsChildOf(RClass) && !RClass->IsChildOf(LClass))
 			{
-				OutCastBegin = FString::Printf(TEXT("CastChecked<%s>("), *FEmitHelper::GetCppName(LClass));
-				OutCastEnd = TEXT(", ECastCheckedType::NullAllowed)");
+				if (bIsObjectTerm)
+				{
+					OutCastBegin = FString::Printf(TEXT("CastChecked<%s>("), *FEmitHelper::GetCppName(LClass));
+					OutCastEnd = TEXT(", ECastCheckedType::NullAllowed)");
+				}
+				else
+				{
+					// TSoftClassPtr/TSoftObjectPtr cannot be implicitly downcast via assignment operator, but
+					// rather than emit an explicit cast here, we can just assign it to the wrapped object path.
+					OutCastBegin = TEXT("");
+					OutCastEnd = TEXT(".ToSoftObjectPath()");
+				}
+				
 				return true;
 			}
 			else if (RequiresArrayCast(LClass, RClass))
@@ -1871,7 +1973,8 @@ FString FDependenciesGlobalMapHelper::EmitBodyCode(const FString& PCHFilename)
 	CodeText.AddLine(FString::Printf(TEXT("#include \"%s.h\""), *PCHFilename));
 	{
 		FDisableUnwantedWarningOnScope DisableUnwantedWarningOnScope(CodeText);
-
+		FDisableOptimizationOnScope DisableOptimizationOnScope(CodeText);
+		
 		CodeText.AddLine("namespace");
 		CodeText.AddLine("{");
 		CodeText.IncreaseIndent();
@@ -1956,6 +2059,17 @@ FDisableUnwantedWarningOnScope::~FDisableUnwantedWarningOnScope()
 	CodeText.AddLine(TEXT("#ifdef _MSC_VER"));
 	CodeText.AddLine(TEXT("#pragma warning (pop)"));
 	CodeText.AddLine(TEXT("#endif"));
+}
+
+FDisableOptimizationOnScope::FDisableOptimizationOnScope(FCodeText& InCodeText)
+	: CodeText(InCodeText)
+{
+	CodeText.AddLine(TEXT("PRAGMA_DISABLE_OPTIMIZATION"));
+}
+
+FDisableOptimizationOnScope::~FDisableOptimizationOnScope()
+{
+	CodeText.AddLine(TEXT("PRAGMA_ENABLE_OPTIMIZATION"));
 }
 
 FScopeBlock::FScopeBlock(FEmitterLocalContext& InContext)

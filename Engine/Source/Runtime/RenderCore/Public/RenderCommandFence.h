@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,8 +20,9 @@ public:
 	 * Adds a fence command to the rendering command queue.
 	 * Conceptually, the pending fence count is incremented to reflect the pending fence command.
 	 * Once the rendering thread has executed the fence command, it decrements the pending fence count.
+	 * @param bSyncToRHIAndGPU, true if we should wait for the RHI thread or GPU, otherwise we only wait for the render thread.
 	 */
-	void BeginFence();
+	void BeginFence(bool bSyncToRHIAndGPU = false);
 
 	/**
 	 * Waits for pending fence commands to retire.

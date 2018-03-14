@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -34,6 +34,49 @@ enum class EAssetEditorToolkitTabLocation : int32
 	Standalone,
 };
 
+DECLARE_DELEGATE_RetVal_TwoParams(TSharedRef<FExtender>, FAssetEditorExtender, const TSharedRef<FUICommandList>, const TArray<UObject*>);
+
+/**
+* Extensibility managers simply keep a series of FExtenders for a single menu/toolbar/anything
+* It is here to keep a standardized approach to editor extensibility among modules
+*/
+class UNREALED_API FExtensibilityManager
+{
+public:
+	virtual ~FExtensibilityManager() {}
+
+	/** Functions for outsiders to add or remove their extenders */
+	virtual void AddExtender(TSharedPtr<FExtender> Extender) { Extenders.AddUnique(Extender); }
+	virtual void RemoveExtender(TSharedPtr<FExtender> Extender) { Extenders.Remove(Extender); }
+
+	/** Gets all extender delegates for this manager */
+	virtual TArray<FAssetEditorExtender>& GetExtenderDelegates() { return ExtenderDelegates; }
+
+	/** Gets all extenders, consolidated, for use by the editor to be extended */
+	virtual TSharedPtr<FExtender> GetAllExtenders();
+	/** Gets all extenders and asset editor extenders from delegates consolidated */
+	virtual TSharedPtr<FExtender> GetAllExtenders(const TSharedRef<FUICommandList>& CommandList, const TArray<UObject*>& ContextSensitiveObjects);
+
+private:
+	/** A list of extenders the editor will use */
+	TArray<TSharedPtr<FExtender>> Extenders;
+	/** A list of extender delegates the editor will use */
+	TArray<FAssetEditorExtender> ExtenderDelegates;
+};
+
+/** Indicates that a class has a default menu that is extensible */
+class IHasMenuExtensibility
+{
+public:
+	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() = 0;
+};
+
+/** Indicates that a class has a default toolbar that is extensible */
+class IHasToolBarExtensibility
+{
+public:
+	virtual TSharedPtr<FExtensibilityManager> GetToolBarExtensibilityManager() = 0;
+};
 
 /**
  * Base class for toolkits that are used for asset editing (abstract)
@@ -150,6 +193,10 @@ public:
 	void RemoveMenuExtender(TSharedPtr<FExtender> Extender);
 	void AddToolbarExtender(TSharedPtr<FExtender> Extender);
 	void RemoveToolbarExtender(TSharedPtr<FExtender> Extender);
+
+	/** Returns the default extensibility managers, these are applied for all asset types */
+	static TSharedPtr<FExtensibilityManager> GetSharedMenuExtensibilityManager();
+	static TSharedPtr<FExtensibilityManager> GetSharedToolBarExtensibilityManager();
 
 	/**
 	 * Allows the caller to set a menu overlay, displayed to the far right of the editor's menu bar
@@ -273,18 +320,6 @@ private:
 		FLayoutSaveRestore::SaveToConfig(GEditorLayoutIni, LayoutToSave);
 	}
 
-	/** Called when "View References" is called for this asset */
-	void ViewReferences_Execute();
-
-	/** If true ViewReferences_Execute can be called, also caches ViewableObjects */
-	bool CanViewReferences();
-
-	/** Called when "View Size Map" is called for this asset */
-	void ViewSizeMap_Execute();
-
-	/** If true ViewSizeMap_Execute can be called, also caches ViewableObjects */
-	bool CanViewSizeMap();
-
 private:
 	/**
 	 * Report the references of the EditingObjects to the GC.  The level of indirection necessary 
@@ -329,6 +364,10 @@ private:
 	/** Static: World centric toolkit host to use for the next created asset editing toolkit */
 	static TWeakPtr< IToolkitHost > PreviousWorldCentricToolkitHostForNewAssetEditor;
 
+	/** The extensibility managers shared by all asset types */
+	static TSharedPtr<FExtensibilityManager> SharedMenuExtensibilityManager;
+	static TSharedPtr<FExtensibilityManager> SharedToolBarExtensibilityManager;
+
 	/** The object we're currently editing */
 	// @todo toolkit minor: Currently we don't need to serialize this object reference because the FAssetEditorManager is kept in sync (and will always serialize it.)
 	TArray<UObject*> EditingObjects;
@@ -350,55 +389,4 @@ private:
 
 	/**	The tab ids for all the tabs used */
 	static const FName ToolbarTabId;
-
-	/** A cached list of selected objects that can be viewed in the reference viewer */
-	TArray< FName > ViewableObjects;
-};
-
-
-
-DECLARE_DELEGATE_RetVal_TwoParams( TSharedRef<FExtender>, FAssetEditorExtender, const TSharedRef<FUICommandList>, const TArray<UObject*>);
-
-/**
- * Extensibility managers simply keep a series of FExtenders for a single menu/toolbar/anything
- * It is here to keep a standardized approach to editor extensibility among modules
- */
-class UNREALED_API FExtensibilityManager
-{
-public:
-	virtual ~FExtensibilityManager() {}
-
-	/** Functions for outsiders to add or remove their extenders */
-	virtual void AddExtender(TSharedPtr<FExtender> Extender) {Extenders.AddUnique(Extender);}
-	virtual void RemoveExtender(TSharedPtr<FExtender> Extender) {Extenders.Remove(Extender);}
-	
-	/** Gets all extender delegates for this manager */
-	virtual TArray<FAssetEditorExtender>& GetExtenderDelegates() {return ExtenderDelegates;}
-
-	/** Gets all extenders, consolidated, for use by the editor to be extended */
-	virtual TSharedPtr<FExtender> GetAllExtenders();
-	/** Gets all extenders and asset editor extenders from delegates consolidated */
-	virtual TSharedPtr<FExtender> GetAllExtenders(const TSharedRef<FUICommandList>& CommandList, const TArray<UObject*>& ContextSensitiveObjects);
-	
-private:
-	/** A list of extenders the editor will use */
-	TArray<TSharedPtr<FExtender>> Extenders;
-	/** A list of extender delegates the editor will use */
-	TArray<FAssetEditorExtender> ExtenderDelegates;
-};
-
-
-/** Indicates that a class has a default menu that is extensible */
-class IHasMenuExtensibility
-{
-public:
-	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() = 0;
-};
-
-
-/** Indicates that a class has a default toolbar that is extensible */
-class IHasToolBarExtensibility
-{
-public:
-	virtual TSharedPtr<FExtensibilityManager> GetToolBarExtensibilityManager() = 0;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,6 +13,7 @@
 
 class FPrimitiveDrawInterface;
 struct FCompositeNavModifier;
+struct FNavigableGeometryExport;
 
 USTRUCT()
 struct FNavCollisionCylinder
@@ -109,13 +110,18 @@ class ENGINE_API UNavCollision : public UObject
 	/** Get data for dynamic obstacle */
 	void GetNavigationModifier(FCompositeNavModifier& Modifier, const FTransform& LocalToWorld);
 
+	/** Export collision data */
+	bool ExportGeometry(const FTransform& LocalToWorld, FNavigableGeometryExport& GeoExport) const;
+
 	/** Read collisions data */
 	void GatherCollision();
 
+#if WITH_EDITOR
+	void InvalidateCollision();
+#endif // WITH_EDITOR
+
 protected:
 	void ClearCollision();
-
-	FORCEINLINE bool ShouldUseConvexCollision() const { return bGatherConvexGeometry || (CylinderCollision.Num() == 0 && BoxCollision.Num() == 0);  }
 
 #if WITH_EDITOR
 	void InvalidatePhysicsData();

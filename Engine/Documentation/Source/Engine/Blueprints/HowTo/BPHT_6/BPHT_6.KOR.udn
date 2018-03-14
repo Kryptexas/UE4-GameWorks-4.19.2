@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:6. HUD 와의 통신
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
@@ -22,7 +22,7 @@ tags:Blueprints
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 이번 단계에서는 캐릭터 블루프린트와 통신하여 거기 저장된 Pulls, Shots, Score 값을 구한 뒤 HUD 위젯 블루프린트에 표시되는 값을 업데이트하도록 하겠습니다. 그러기 위해서는, **Cast** 노드를 사용하여 플레이어의 캐릭터 블루프린트에 접근한 뒤 HUD 의 프로퍼티를 캐릭터 블루프린트의 값에 바인딩하여, 캐릭터 블루프린트의 값이 업데이트되면 같이 자동으로 업데이트되도록 만들겠습니다.
 
@@ -107,7 +107,8 @@ tags:Blueprints
 
 
 
-<!-- Old
+[COMMENT:none]
+ Old
 
 이 가이드에서 다룬 주제나 에디터 전반적인 부분 관련 상세 정보는, [**언리얼 에디터 매뉴얼**](Engine) 을 참고하세요.
 
@@ -123,9 +124,10 @@ tags:Blueprints
 
 * **언리얼 모션 그래픽 (UMG)** 으로 HUD 요소 제작 관련: [**언리얼 모션 그래픽**](Engine/UMG)
 
--->
 
-%Steps%
+[/COMMENT]
+
+
 
 
 

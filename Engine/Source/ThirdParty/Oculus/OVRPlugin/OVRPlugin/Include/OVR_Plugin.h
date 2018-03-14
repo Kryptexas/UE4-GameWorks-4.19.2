@@ -42,12 +42,12 @@ OVRP_EXPORT ovrpBool ovrp_GetInitialized();
 /// You must call this before any other function except ovrp_PreInitialize() or
 /// ovrp_GetInitialized().
 OVRP_EXPORT ovrpResult ovrp_Initialize4(
-	ovrpRenderAPIType apiType,
-	ovrpLogCallback logCallback,
-	void* activity,
-	void* instance,
-	int initializeFlags,
-	OVRP_CONSTREF(ovrpVersion) version OVRP_DEFAULTVALUE({ OVRP_VERSION }));
+    ovrpRenderAPIType apiType,
+    ovrpLogCallback logCallback,
+    void* activity,
+    void* instance,
+    int initializeFlags,
+    OVRP_CONSTREF(ovrpVersion) version);
 
 /// Tears down the Oculus runtime, VR tracking, and graphics resources.
 OVRP_EXPORT ovrpResult ovrp_Shutdown2();
@@ -140,15 +140,14 @@ OVRP_EXPORT ovrpResult ovrp_CalculateLayerDesc(
 
 /// Calculates eye layer description
 OVRP_EXPORT ovrpResult ovrp_CalculateEyeLayerDesc2(
-	ovrpLayout layout,
-	float textureScale,
-	int mipLevels,
-	int sampleCount,
-	ovrpTextureFormat format,
+    ovrpLayout layout,
+    float textureScale,
+    int mipLevels,
+    int sampleCount,
+    ovrpTextureFormat format,
 	ovrpTextureFormat depthFormat,
-	ovrpFrustum2f frustum,
-	int layerFlags,
-	ovrpLayerDesc_EyeFov* layerDesc);
+    int layerFlags,
+    ovrpLayerDesc_EyeFov* layerDesc);
 
 /// Calculates the recommended viewport rect for the specified eye
 OVRP_EXPORT ovrpResult ovrp_CalculateEyeViewportRect(
@@ -319,6 +318,12 @@ OVRP_EXPORT ovrpResult ovrp_GetSystemPowerSavingMode2(ovrpBool* systemPowerSavin
 /// Gets the current refresh rate of the HMD.
 OVRP_EXPORT ovrpResult ovrp_GetSystemDisplayFrequency2(float* systemDisplayFrequency);
 
+/// Gets the available refresh rates of the HMD.
+OVRP_EXPORT ovrpResult ovrp_GetSystemDisplayAvailableFrequencies(float* systemDisplayAvailableFrequencies, int *arraySize);
+
+/// Sets the refresh rate for the HMD
+OVRP_EXPORT ovrpResult ovrp_SetSystemDisplayFrequency(float requestedFrequency);
+
 /// Gets the minimum number of vsyncs to wait after each frame.
 OVRP_EXPORT ovrpResult ovrp_GetSystemVSyncCount2(int* systemVSyncCount);
 
@@ -360,7 +365,7 @@ OVRP_EXPORT ovrpResult ovrp_GetAppHasInputFocus(ovrpBool* appHasInputFocus);
 /// True if a system overlay is present, such as a dashboard. In this case the application
 /// (if visible) should pause while still drawing, avoid drawing near-field graphics so they
 /// don't visually fight with the system overlay, and consume fewer CPU and GPU resources.
-OVRP_EXPORT ovrpResult ovrp_GetAppHasOverlayPresent(ovrpBool* appHasOverlayPresent);
+OVRP_EXPORT ovrpResult ovrp_GetAppHasSystemOverlayPresent(ovrpBool* appHasOverlayPresent);
 
 /// If true, the app should quit as soon as possible.
 OVRP_EXPORT ovrpResult ovrp_GetAppShouldQuit2(ovrpBool* appShouldQuit);
@@ -473,7 +478,20 @@ OVRP_EXPORT ovrpResult ovrp_SetInhibitSystemUX2(ovrpBool inhibitSystemUX);
 OVRP_EXPORT ovrpResult ovrp_SetDebugDumpEnabled2(ovrpBool debugDumpEnabled);
 #endif
 
-OVRP_EXPORT ovrpResult ovrp_SetFunctionPointer(ovrpFunctionType funcType, void *funcPtr);
+/// Return true if the device supports tiled multires
+OVRP_EXPORT ovrpResult ovrp_GetTiledMultiResSupported(ovrpBool* foveationSupported);
+
+/// Returns the current multires level on the device
+OVRP_EXPORT ovrpResult ovrp_GetTiledMultiResLevel(ovrpTiledMultiResLevel* level);
+
+/// Sets MultiRes levels
+OVRP_EXPORT ovrpResult ovrp_SetTiledMultiResLevel(ovrpTiledMultiResLevel level);
+
+/// Return true if the device supports GPU Util querying
+OVRP_EXPORT ovrpResult ovrp_GetGPUUtilSupported(ovrpBool* gpuUtilSupported);
+
+/// Return the GPU util if the device supports it
+OVRP_EXPORT ovrpResult ovrp_GetGPUUtilLevel(float* gpuUtil);
 
 #ifdef __cplusplus
 }

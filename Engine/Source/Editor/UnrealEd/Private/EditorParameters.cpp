@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "MaterialEditor/DEditorParameterValue.h"
 #include "MaterialEditor/DEditorFontParameterValue.h"
+#include "MaterialEditor/DEditorMaterialLayersParameterValue.h"
 #include "MaterialEditor/DEditorScalarParameterValue.h"
 #include "MaterialEditor/DEditorStaticComponentMaskParameterValue.h"
 #include "MaterialEditor/DEditorStaticSwitchParameterValue.h"
@@ -15,6 +16,11 @@ UDEditorParameterValue::UDEditorParameterValue(const FObjectInitializer& ObjectI
 }
 
 UDEditorFontParameterValue::UDEditorFontParameterValue(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+}
+
+UDEditorMaterialLayersParameterValue::UDEditorMaterialLayersParameterValue(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 }

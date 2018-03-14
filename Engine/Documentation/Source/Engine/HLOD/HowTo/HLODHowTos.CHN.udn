@@ -22,8 +22,10 @@ topic-image:Engine/HLOD/HowTo/HLOD_howto_Topic_02.png
 
 [DIR(output:"fancy" parent:"Engine/HLOD/HowTo" skill_level:"intermediate")]
 
-<!--
+[COMMENT:none]
+
 ## 高级
 
 [DIR(output:"fancy" parent:"Engine/HLOD/HowTo" skill_level:"advanced")]
--->
+
+[/COMMENT]

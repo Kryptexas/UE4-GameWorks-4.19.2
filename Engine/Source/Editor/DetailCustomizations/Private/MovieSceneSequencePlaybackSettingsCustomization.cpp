@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneSequencePlaybackSettingsCustomization.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
@@ -139,6 +139,7 @@ void FMovieSceneSequencePlaybackSettingsCustomization::CustomizeChildren(TShared
 	ChildBuilder.AddProperty(StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FMovieSceneSequencePlaybackSettings, bDisableLookAtInput)).ToSharedRef());
 	ChildBuilder.AddProperty(StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FMovieSceneSequencePlaybackSettings, bHidePlayer)).ToSharedRef());
 	ChildBuilder.AddProperty(StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FMovieSceneSequencePlaybackSettings, bHideHud)).ToSharedRef());
+	ChildBuilder.AddProperty(StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FMovieSceneSequencePlaybackSettings, bDisableCameraCuts)).ToSharedRef());
 }
 
 

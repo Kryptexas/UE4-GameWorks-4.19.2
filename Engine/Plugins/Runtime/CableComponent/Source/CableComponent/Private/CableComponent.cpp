@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved. 
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved. 
 
 #include "CableComponent.h"
 #include "EngineGlobals.h"
@@ -16,6 +16,7 @@
 #include "Engine/Engine.h"
 #include "CableComponentStats.h"
 #include "DynamicMeshBuilder.h"
+#include "StaticMeshResources.h"
 
 DECLARE_CYCLE_STAT(TEXT("Cable Sim"), STAT_Cable_SimTime, STATGROUP_CableComponent);
 DECLARE_CYCLE_STAT(TEXT("Cable Solve"), STAT_Cable_SolveTime, STATGROUP_CableComponent);
@@ -26,19 +27,6 @@ static FName CableEndSocketName(TEXT("CableEnd"));
 static FName CableStartSocketName(TEXT("CableStart"));
 
 //////////////////////////////////////////////////////////////////////////
-
-/** Vertex Buffer */
-class FCableVertexBuffer : public FVertexBuffer 
-{
-public:
-	virtual void InitRHI() override
-	{
-		FRHIResourceCreateInfo CreateInfo;
-		VertexBufferRHI = RHICreateVertexBuffer(NumVerts * sizeof(FDynamicMeshVertex), BUF_Dynamic, CreateInfo);
-	}
-
-	int32 NumVerts;
-};
 
 /** Index Buffer */
 class FCableIndexBuffer : public FIndexBuffer 
@@ -53,51 +41,6 @@ public:
 	int32 NumIndices;
 };
 
-/** Vertex Factory */
-class FCableVertexFactory : public FLocalVertexFactory
-{
-public:
-
-	FCableVertexFactory()
-	{}
-
-
-	/** Initialization */
-	void Init(const FCableVertexBuffer* VertexBuffer)
-	{
-		if(IsInRenderingThread())
-		{
-			// Initialize the vertex factory's stream components.
-			FDataType NewData;
-			NewData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,Position,VET_Float3);
-			NewData.TextureCoordinates.Add(
-				FVertexStreamComponent(VertexBuffer,STRUCT_OFFSET(FDynamicMeshVertex,TextureCoordinate),sizeof(FDynamicMeshVertex),VET_Float2)
-				);
-			NewData.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,TangentX,VET_PackedNormal);
-			NewData.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,TangentZ,VET_PackedNormal);
-			SetData(NewData);
-		}
-		else
-		{
-			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-				InitCableVertexFactory,
-				FCableVertexFactory*,VertexFactory,this,
-				const FCableVertexBuffer*,VertexBuffer,VertexBuffer,
-			{
-				// Initialize the vertex factory's stream components.
-				FDataType NewData;
-				NewData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,Position,VET_Float3);
-				NewData.TextureCoordinates.Add(
-					FVertexStreamComponent(VertexBuffer,STRUCT_OFFSET(FDynamicMeshVertex,TextureCoordinate),sizeof(FDynamicMeshVertex),VET_Float2)
-					);
-				NewData.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,TangentX,VET_PackedNormal);
-				NewData.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,TangentZ,VET_PackedNormal);
-				VertexFactory->SetData(NewData);
-			});
-		}
-	}
-};
-
 /** Dynamic data sent to render thread */
 struct FCableDynamicData
 {
@@ -108,13 +51,19 @@ struct FCableDynamicData
 //////////////////////////////////////////////////////////////////////////
 // FCableSceneProxy
 
-class FCableSceneProxy : public FPrimitiveSceneProxy
+class FCableSceneProxy final : public FPrimitiveSceneProxy
 {
 public:
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
 
 	FCableSceneProxy(UCableComponent* Component)
 		: FPrimitiveSceneProxy(Component)
 		, Material(NULL)
+		, VertexFactory(GetScene().GetFeatureLevel(), "FCableSceneProxy")
 		, DynamicData(NULL)
 		, MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetFeatureLevel()))
 		, NumSegments(Component->NumSegments)
@@ -122,16 +71,12 @@ public:
 		, NumSides(Component->NumSides)
 		, TileMaterial(Component->TileMaterial)
 	{
-		VertexBuffer.NumVerts = GetRequiredVertexCount();
+		VertexBuffers.InitWithDummyData(&VertexFactory, GetRequiredVertexCount());
+
 		IndexBuffer.NumIndices = GetRequiredIndexCount();
 
-		// Init vertex factory
-		VertexFactory.Init(&VertexBuffer);
-
 		// Enqueue initialization of render resource
-		BeginInitResource(&VertexBuffer);
 		BeginInitResource(&IndexBuffer);
-		BeginInitResource(&VertexFactory);
 
 		// Grab material
 		Material = Component->GetMaterial(0);
@@ -143,7 +88,9 @@ public:
 
 	virtual ~FCableSceneProxy()
 	{
-		VertexBuffer.ReleaseResource();
+		VertexBuffers.PositionVertexBuffer.ReleaseResource();
+		VertexBuffers.StaticMeshVertexBuffer.ReleaseResource();
+		VertexBuffers.ColorVertexBuffer.ReleaseResource();
 		IndexBuffer.ReleaseResource();
 		VertexFactory.ReleaseResource();
 
@@ -207,7 +154,7 @@ public:
 
 				FDynamicMeshVertex Vert;
 				Vert.Position = InPoints[PointIdx] + (OutDir * 0.5f * CableWidth);
-				Vert.TextureCoordinate = FVector2D(AlongFrac * TileMaterial, AroundFrac);
+				Vert.TextureCoordinate[0] = FVector2D(AlongFrac * TileMaterial, AroundFrac);
 				Vert.Color = VertexColor;
 				Vert.SetTangents(ForwardDir, OutDir ^ ForwardDir, OutDir);
 				OutVertices.Add(Vert);
@@ -256,9 +203,43 @@ public:
 		check(Vertices.Num() == GetRequiredVertexCount());
 		check(Indices.Num() == GetRequiredIndexCount());
 
-		void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.VertexBufferRHI, 0, Vertices.Num() * sizeof(FDynamicMeshVertex), RLM_WriteOnly);
-		FMemory::Memcpy(VertexBufferData, &Vertices[0], Vertices.Num() * sizeof(FDynamicMeshVertex));
-		RHIUnlockVertexBuffer(VertexBuffer.VertexBufferRHI);
+		for (int i = 0; i < Vertices.Num(); i++)
+		{
+			const FDynamicMeshVertex& Vertex = Vertices[i];
+
+			VertexBuffers.PositionVertexBuffer.VertexPosition(i) = Vertex.Position;
+			VertexBuffers.StaticMeshVertexBuffer.SetVertexTangents(i, Vertex.TangentX, Vertex.GetTangentY(), Vertex.TangentZ);
+			VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i, 0, Vertex.TextureCoordinate[0]);
+			VertexBuffers.ColorVertexBuffer.VertexColor(i) = Vertex.Color;
+		}
+
+		{
+			auto& VertexBuffer = VertexBuffers.PositionVertexBuffer;
+			void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.VertexBufferRHI, 0, VertexBuffer.GetNumVertices() * VertexBuffer.GetStride(), RLM_WriteOnly);
+			FMemory::Memcpy(VertexBufferData, VertexBuffer.GetVertexData(), VertexBuffer.GetNumVertices() * VertexBuffer.GetStride());
+			RHIUnlockVertexBuffer(VertexBuffer.VertexBufferRHI);
+		}
+
+		{
+			auto& VertexBuffer = VertexBuffers.ColorVertexBuffer;
+			void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.VertexBufferRHI, 0, VertexBuffer.GetNumVertices() * VertexBuffer.GetStride(), RLM_WriteOnly);
+			FMemory::Memcpy(VertexBufferData, VertexBuffer.GetVertexData(), VertexBuffer.GetNumVertices() * VertexBuffer.GetStride());
+			RHIUnlockVertexBuffer(VertexBuffer.VertexBufferRHI);
+		}
+
+		{
+			auto& VertexBuffer = VertexBuffers.StaticMeshVertexBuffer;
+			void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.TangentsVertexBuffer.VertexBufferRHI, 0, VertexBuffer.GetTangentSize(), RLM_WriteOnly);
+			FMemory::Memcpy(VertexBufferData, VertexBuffer.GetTangentData(), VertexBuffer.GetTangentSize());
+			RHIUnlockVertexBuffer(VertexBuffer.TangentsVertexBuffer.VertexBufferRHI);
+		}
+
+		{
+			auto& VertexBuffer = VertexBuffers.StaticMeshVertexBuffer;
+			void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.TexCoordVertexBuffer.VertexBufferRHI, 0, VertexBuffer.GetTexCoordSize(), RLM_WriteOnly);
+			FMemory::Memcpy(VertexBufferData, VertexBuffer.GetTexCoordData(), VertexBuffer.GetTexCoordSize());
+			RHIUnlockVertexBuffer(VertexBuffer.TexCoordVertexBuffer.VertexBufferRHI);
+		}
 
 		void* IndexBufferData = RHILockIndexBuffer(IndexBuffer.IndexBufferRHI, 0, Indices.Num() * sizeof(int32), RLM_WriteOnly);
 		FMemory::Memcpy(IndexBufferData, &Indices[0], Indices.Num() * sizeof(int32));
@@ -336,9 +317,9 @@ public:
 private:
 
 	UMaterialInterface* Material;
-	FCableVertexBuffer VertexBuffer;
+	FStaticMeshVertexBuffers VertexBuffers;
 	FCableIndexBuffer IndexBuffer;
-	FCableVertexFactory VertexFactory;
+	FLocalVertexFactory VertexFactory;
 
 	FCableDynamicData* DynamicData;
 

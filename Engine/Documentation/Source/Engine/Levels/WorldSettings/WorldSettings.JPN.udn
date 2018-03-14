@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:3054319
-Availability:Public
+﻿Availability:Public
 Title:ワールド設定
 Description:**[World Settings]** タブで、ベースとなるゲーム モードや重力などのレベル固有の設定を行い、オーバーライドすることができます。 
 Version:4.12
@@ -12,11 +11,14 @@ order:3
 レベルのグローバル イルミネーションがどのように見えるかを調整するなど多くのことができます。 
 
 1. レベル エディタの **ツールバー** で **[Settings]** をクリックします。 
+
 	![](Level_Settings_Menu.jpg)
 
 1. 表示されるドロップダウン メニューから、**[World Settings]** をクリックします。
+
 	![](Level_Settings_Options.jpg)
 
 デフォルトで **[World Settings]** パネルは、エディタの UI で **[Details (詳細)]** パネルの隣にドッキングされます。ここから、カレント レベルの設定を指定することができます。 
 
 ![](Level_Settings_Options_Menu.png)
+

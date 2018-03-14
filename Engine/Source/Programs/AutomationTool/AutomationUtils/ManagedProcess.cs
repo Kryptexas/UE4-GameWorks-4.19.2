@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using Microsoft.Win32.SafeHandles;
 using System;
@@ -199,6 +199,12 @@ namespace AutomationTool
 		SafeFileHandle JobHandle;
 
 		/// <summary>
+		/// Static lock object. This is used to synchronize the creation of child processes - in particular, the inheritance of stdout/stderr write pipes. If processes
+		/// inherit pipes meant for other processes, they won't be closed until both terminate.
+		/// </summary>
+		static object LockObject = new object();
+
+		/// <summary>
 		/// Spawns a new managed process.
 		/// </summary>
 		/// <param name="FileName">Path to the executable to be run</param>
@@ -230,28 +236,8 @@ namespace AutomationTool
 
 			// Create the child process
 			IntPtr EnvironmentBlock = IntPtr.Zero;
-			SafeFileHandle StdInRead = null;
-			SafeFileHandle StdOutWrite = null;
-			SafeWaitHandle StdErrWrite = null;
 			try
 			{
-				// Create stdin and stdout pipes for the child process. We'll close the handles for the child process' ends after it's been created.
-				SECURITY_ATTRIBUTES SecurityAttributes = new SECURITY_ATTRIBUTES();
-				SecurityAttributes.bInheritHandle = 1;
-
-				if(CreatePipe(out StdInRead, out StdInWrite, SecurityAttributes, 0) == 0 || SetHandleInformation(StdInWrite, HANDLE_FLAG_INHERIT, 0) == 0)
-				{
-					throw new Win32Exception();
-				}
-				if(CreatePipe(out StdOutRead, out StdOutWrite, SecurityAttributes, 0) == 0 || SetHandleInformation(StdOutRead, HANDLE_FLAG_INHERIT, 0) == 0)
-				{
-					throw new Win32Exception();
-				}
-				if(DuplicateHandle(GetCurrentProcess(), StdOutWrite, GetCurrentProcess(), out StdErrWrite, DUPLICATE_SAME_ACCESS, true, 0) == 0)
-				{
-					throw new Win32Exception();
-				}
-
 				// Create the environment block for the child process, if necessary.
 				if(Environment != null)
 				{
@@ -271,14 +257,6 @@ namespace AutomationTool
 					Marshal.Copy(EnvironmentBytes.ToArray(), 0, EnvironmentBlock, EnvironmentBytes.Count);
 				}
 
-				// Set the startup parameters for the new process
-				STARTUPINFO StartupInfo = new STARTUPINFO();
-                StartupInfo.cb = Marshal.SizeOf(StartupInfo);
-				StartupInfo.hStdInput = StdInRead;
-				StartupInfo.hStdOutput = StdOutWrite;
-				StartupInfo.hStdError = StdErrWrite;
-				StartupInfo.dwFlags = STARTF_USESTDHANDLES;
-
 				PROCESS_INFORMATION ProcessInfo = new PROCESS_INFORMATION();
 				try
 				{
@@ -297,10 +275,65 @@ namespace AutomationTool
 							break;
 					}
 
-					// Create the new process as suspended, so we can modify it before it starts executing (and potentially preempting us)
-					if(CreateProcess(null, new StringBuilder("\"" + FileName + "\" " + CommandLine), IntPtr.Zero, IntPtr.Zero, true, Flags, EnvironmentBlock, WorkingDirectory, StartupInfo, ProcessInfo) == 0)
+					// Acquire a global lock before creating inheritable handles. If multiple threads create inheritable handles at the same time, and child processes will inherit them all.
+					// Since we need to wait for output pipes to be closed (in order to consume all output), this can result in output reads not returning until all processes with the same
+					// inherited handles are closed.
+					lock(LockObject)
 					{
-						throw new Win32Exception();
+						SafeFileHandle StdInRead = null;
+						SafeFileHandle StdOutWrite = null;
+						SafeWaitHandle StdErrWrite = null;
+						try
+						{
+							// Create stdin and stdout pipes for the child process. We'll close the handles for the child process' ends after it's been created.
+							SECURITY_ATTRIBUTES SecurityAttributes = new SECURITY_ATTRIBUTES();
+							SecurityAttributes.bInheritHandle = 1;
+
+							if(CreatePipe(out StdInRead, out StdInWrite, SecurityAttributes, 0) == 0 || SetHandleInformation(StdInWrite, HANDLE_FLAG_INHERIT, 0) == 0)
+							{
+								throw new Win32Exception();
+							}
+							if(CreatePipe(out StdOutRead, out StdOutWrite, SecurityAttributes, 0) == 0 || SetHandleInformation(StdOutRead, HANDLE_FLAG_INHERIT, 0) == 0)
+							{
+								throw new Win32Exception();
+							}
+							if(DuplicateHandle(GetCurrentProcess(), StdOutWrite, GetCurrentProcess(), out StdErrWrite, DUPLICATE_SAME_ACCESS, true, 0) == 0)
+							{
+								throw new Win32Exception();
+							}
+
+							// Create the new process as suspended, so we can modify it before it starts executing (and potentially preempting us)
+							STARTUPINFO StartupInfo = new STARTUPINFO();
+							StartupInfo.cb = Marshal.SizeOf(StartupInfo);
+							StartupInfo.hStdInput = StdInRead;
+							StartupInfo.hStdOutput = StdOutWrite;
+							StartupInfo.hStdError = StdErrWrite;
+							StartupInfo.dwFlags = STARTF_USESTDHANDLES;
+
+							if (CreateProcess(null, new StringBuilder("\"" + FileName + "\" " + CommandLine), IntPtr.Zero, IntPtr.Zero, true, Flags, EnvironmentBlock, WorkingDirectory, StartupInfo, ProcessInfo) == 0)
+							{
+								throw new Win32Exception();
+							}
+						}
+						finally
+						{
+							// Close the write ends of the handle. We don't want any other process to be able to inherit these.
+							if(StdInRead != null)
+							{
+								StdInRead.Dispose();
+								StdInRead = null;
+							}
+							if(StdOutWrite != null)
+							{
+								StdOutWrite.Dispose();
+								StdOutWrite = null;
+							}
+							if(StdErrWrite != null)
+							{
+								StdErrWrite.Dispose();
+								StdErrWrite = null;
+							}
+						}
 					}
 
 					// Add it to our job object
@@ -350,21 +383,6 @@ namespace AutomationTool
 				{
 					Marshal.FreeHGlobal(EnvironmentBlock);
 					EnvironmentBlock = IntPtr.Zero;
-				}
-				if(StdInRead != null)
-				{
-					StdInRead.Dispose();
-					StdInRead = null;
-				}
-				if(StdOutWrite != null)
-				{
-					StdOutWrite.Dispose();
-					StdOutWrite = null;
-				}
-				if(StdErrWrite != null)
-				{
-					StdErrWrite.Dispose();
-					StdErrWrite = null;
 				}
 			}
 		}

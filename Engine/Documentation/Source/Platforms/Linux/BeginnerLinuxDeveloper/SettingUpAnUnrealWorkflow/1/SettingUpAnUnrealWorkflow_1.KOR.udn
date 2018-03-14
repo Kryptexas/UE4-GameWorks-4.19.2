@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3332303
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 1 - 필수 구성
 Crumbs:
@@ -25,7 +25,7 @@ SkillLevel:Beginner
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 현재 리눅스 사용자를 위해서는 UE4 바이너리 인스톨러를 제공하지 않습니다. 좋은 소식은 저희가 엔진을 개발하는 데 사용하는 것과 동일한 소스 코드로 언리얼 엔진 
 바이너리를 컴파일할 수 있다는 것입니다. 저희 소스 코드에 접근하시려면, 에픽 게임스 계정을 등록하시고 GitHub 계정에 가입한 뒤,
@@ -59,4 +59,3 @@ SkillLevel:Beginner
 이제 에픽 게임스 계정을 등록하고 GitHub 사용자명을 연동되었니다. 또 Git 를 설치하고 다음 단계로 넘어갈 준비가 되었으니, 
 언리얼 엔진 GitHub 리포지터리에서 UE4 소스 코드를 fork 하여 복제해 보도록 하겠습니다.
 
-%Steps%

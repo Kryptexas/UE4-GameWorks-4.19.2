@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -139,9 +139,6 @@ struct FWindowsPlatformMath : public FGenericPlatformMath
 #endif
 
 #if PLATFORM_ENABLE_POPCNT_INTRINSIC
-	/**
-	 * Use the SSE instruction to count bits
-	 */
 	static FORCEINLINE int32 CountBits(uint64 Bits)
 	{
 		return _mm_popcnt_u64(Bits);

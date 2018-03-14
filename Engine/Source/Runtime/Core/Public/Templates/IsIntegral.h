@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,17 +13,21 @@ struct TIsIntegral
 	enum { Value = false };
 };
 
-template <> struct TIsIntegral<uint8>    { enum { Value = true }; };
-template <> struct TIsIntegral<uint16>   { enum { Value = true }; };
-template <> struct TIsIntegral<uint32>   { enum { Value = true }; };
-template <> struct TIsIntegral<uint64>   { enum { Value = true }; };
-template <> struct TIsIntegral<int8>     { enum { Value = true }; };
-template <> struct TIsIntegral<int16>    { enum { Value = true }; };
-template <> struct TIsIntegral<int32>    { enum { Value = true }; };
-template <> struct TIsIntegral<int64>    { enum { Value = true }; };
-template <> struct TIsIntegral<bool>     { enum { Value = true }; };
-template <> struct TIsIntegral<WIDECHAR> { enum { Value = true }; };
-template <> struct TIsIntegral<ANSICHAR> { enum { Value = true }; };
+template <> struct TIsIntegral<         bool>      { enum { Value = true }; };
+template <> struct TIsIntegral<         char>      { enum { Value = true }; };
+template <> struct TIsIntegral<signed   char>      { enum { Value = true }; };
+template <> struct TIsIntegral<unsigned char>      { enum { Value = true }; };
+template <> struct TIsIntegral<         char16_t>  { enum { Value = true }; };
+template <> struct TIsIntegral<         char32_t>  { enum { Value = true }; };
+template <> struct TIsIntegral<         wchar_t>   { enum { Value = true }; };
+template <> struct TIsIntegral<         short>     { enum { Value = true }; };
+template <> struct TIsIntegral<unsigned short>     { enum { Value = true }; };
+template <> struct TIsIntegral<         int>       { enum { Value = true }; };
+template <> struct TIsIntegral<unsigned int>       { enum { Value = true }; };
+template <> struct TIsIntegral<         long>      { enum { Value = true }; };
+template <> struct TIsIntegral<unsigned long>      { enum { Value = true }; };
+template <> struct TIsIntegral<         long long> { enum { Value = true }; };
+template <> struct TIsIntegral<unsigned long long> { enum { Value = true }; };
 
 template <typename T> struct TIsIntegral<const          T> { enum { Value = TIsIntegral<T>::Value }; };
 template <typename T> struct TIsIntegral<      volatile T> { enum { Value = TIsIntegral<T>::Value }; };

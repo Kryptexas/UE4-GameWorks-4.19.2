@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/UserDefinedStruct.h"
 #include "UObject/UObjectHash.h"
@@ -9,13 +9,44 @@
 #include "UObject/FrameworkObjectVersion.h"
 #include "Misc/SecureHash.h"
 #include "UObject/PropertyPortFlags.h"
-#include "Misc/PackageName.h" // for FPackageName::GetLongPackageAssetName()
+#include "Misc/PackageName.h"
+#include "Serialization/TextReferenceCollector.h"
+#include "Blueprint/BlueprintSupport.h"
 
 #if WITH_EDITOR
 #include "UserDefinedStructure/UserDefinedStructEditorData.h"
 #include "Kismet2/StructureEditorUtils.h"
 #endif //WITH_EDITOR
-#include "Serialization/TextReferenceCollector.h"
+
+FUserStructOnScopeIgnoreDefaults::FUserStructOnScopeIgnoreDefaults(const UUserDefinedStruct* InUserStruct)
+{
+	// Can't call super constructor because we need to call our overridden initialize
+	ScriptStruct = InUserStruct;
+	SampleStructMemory = nullptr;
+	OwnsMemory = false;
+	Initialize();
+}
+
+FUserStructOnScopeIgnoreDefaults::FUserStructOnScopeIgnoreDefaults(const UUserDefinedStruct* InUserStruct, uint8* InData) : FStructOnScope(InUserStruct, InData)
+{
+}
+
+void FUserStructOnScopeIgnoreDefaults::Recreate(const UUserDefinedStruct* InUserStruct)
+{
+	Destroy();
+	ScriptStruct = InUserStruct;
+	Initialize();
+}
+
+void FUserStructOnScopeIgnoreDefaults::Initialize()
+{
+	if (ScriptStruct.IsValid())
+	{
+		SampleStructMemory = (uint8*)FMemory::Malloc(ScriptStruct->GetStructureSize() ? ScriptStruct->GetStructureSize() : 1);
+		((UUserDefinedStruct*)ScriptStruct.Get())->InitializeStructIgnoreDefaults(SampleStructMemory);
+		OwnsMemory = true;
+	}
+}
 
 #if WITH_EDITORONLY_DATA
 namespace
@@ -28,10 +59,7 @@ namespace
 
 		const FString PathToObject = UserDefinedStruct->GetPathName();
 
-		FStructOnScope StructData(UserDefinedStruct);
-		FStructureEditorUtils::Fill_MakeStructureDefaultValue(UserDefinedStruct, StructData.GetStructMemory());
-
-		PropertyLocalizationDataGatherer.GatherLocalizationDataFromStructFields(PathToObject, StructData.GetStruct(), StructData.GetStructMemory(), nullptr, GatherTextFlags);
+		PropertyLocalizationDataGatherer.GatherLocalizationDataFromStructFields(PathToObject, UserDefinedStruct, UserDefinedStruct->GetDefaultInstance(), nullptr, GatherTextFlags);
 	}
 
 	void CollectUserDefinedStructTextReferences(UObject* Object, FArchive& Ar)
@@ -44,7 +72,7 @@ namespace
 		{
 			for (const FStructVariableDescription& StructVariableDesc : UDSEditorData->VariablesDescriptions)
 			{
-				static const FString TextCategory = TEXT("text"); // Must match UEdGraphSchema_K2::PC_Text
+				static const FName TextCategory = TEXT("text"); // Must match UEdGraphSchema_K2::PC_Text
 				if (StructVariableDesc.Category == TextCategory)
 				{
 					FText StructVariableValue;
@@ -64,20 +92,43 @@ namespace
 UUserDefinedStruct::UUserDefinedStruct(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	DefaultStructInstance.SetPackage(GetOutermost());
+
 #if WITH_EDITORONLY_DATA
 	{ static const FAutoRegisterLocalizationDataGatheringCallback AutomaticRegistrationOfLocalizationGatherer(UUserDefinedStruct::StaticClass(), &GatherUserDefinedStructForLocalization); }
 	{ static const FAutoRegisterTextReferenceCollectorCallback AutomaticRegistrationOfTextReferenceCollector(UUserDefinedStruct::StaticClass(), &CollectUserDefinedStructTextReferences); }
 #endif
 }
 
-#if WITH_EDITOR
-
 void UUserDefinedStruct::Serialize(FArchive& Ar)
 {
 	Super::Serialize( Ar );
 
+	if (HasAnyFlags(RF_ClassDefaultObject))
+	{
+		return;
+	}
+
 	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
 
+	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) >= FFrameworkObjectVersion::UserDefinedStructsStoreDefaultInstance)
+	{
+		if (EUserDefinedStructureStatus::UDSS_UpToDate == Status && !(Ar.GetPortFlags() & PPF_Duplicate))
+		{
+			// If we're saving or loading new data, serialize our defaults
+			if (!DefaultStructInstance.IsValid() && Ar.IsLoading())
+			{
+				DefaultStructInstance.Recreate(this);
+			}
+
+			uint8* StructData = DefaultStructInstance.GetStructMemory();
+
+			FScopedPlaceholderRawContainerTracker TrackStruct(StructData);
+			SerializeItem(Ar, StructData, nullptr);
+		}
+	}
+
+#if WITH_EDITOR
 	if (Ar.IsLoading())
 	{
 		if (Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::UserDefinedStructsBlueprintVisible)
@@ -109,7 +160,10 @@ void UUserDefinedStruct::Serialize(FArchive& Ar)
 			}
 		}
 	}
+#endif
 }
+
+#if WITH_EDITOR
 
 void UUserDefinedStruct::PostDuplicate(bool bDuplicateForPIE)
 {
@@ -142,19 +196,9 @@ void UUserDefinedStruct::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags
 UProperty* UUserDefinedStruct::CustomFindProperty(const FName Name) const
 {
 	const FGuid PropertyGuid = FStructureEditorUtils::GetGuidFromPropertyName(Name);
-	UProperty* Property = PropertyGuid.IsValid() ? FStructureEditorUtils::GetPropertyByGuid(this, PropertyGuid) : NULL;
-	ensure(!Property || PropertyGuid == FStructureEditorUtils::GetGuidForProperty(Property));
+	UProperty* Property = PropertyGuid.IsValid() ? FStructureEditorUtils::GetPropertyByGuid(this, PropertyGuid) : FStructureEditorUtils::GetPropertyByDisplayName(this, Name.ToString());
+	ensure(!Property || !PropertyGuid.IsValid() || PropertyGuid == FStructureEditorUtils::GetGuidForProperty(Property));
 	return Property;
-}
-
-void UUserDefinedStruct::InitializeDefaultValue(uint8* StructData) const
-{
-	FStructureEditorUtils::Fill_MakeStructureDefaultValue(this, StructData);
-}
-
-bool UUserDefinedStruct::DiffersFromDefaultValue(uint8* StructData) const
-{
-	return FStructureEditorUtils::DiffersFromDefaultValue(this, StructData);
 }
 
 void UUserDefinedStruct::ValidateGuid()
@@ -198,51 +242,72 @@ FString UUserDefinedStruct::PropertyNameToDisplayName(FName Name) const
 	return OriginalName;
 }
 
+void UUserDefinedStruct::InitializeStructIgnoreDefaults(void* Dest, int32 ArrayDim) const
+{
+	Super::InitializeStruct(Dest, ArrayDim);
+}
+
+void UUserDefinedStruct::InitializeStruct(void* Dest, int32 ArrayDim) const
+{
+	InitializeStructIgnoreDefaults(Dest, ArrayDim);
+
+	if (Dest)
+	{
+		const uint8* DefaultInstance = GetDefaultInstance();
+		if (DefaultInstance)
+		{
+			int32 Stride = GetStructureSize();
+
+			for (int32 ArrayIndex = 0; ArrayIndex < ArrayDim; ArrayIndex++)
+			{
+				void* DestStruct = (uint8*)Dest + (Stride * ArrayIndex);
+				CopyScriptStruct(DestStruct, DefaultInstance);
+
+				// When copying into another struct we need to register this raw struct pointer so any deferred dependencies will get fixed later
+				FScopedPlaceholderRawContainerTracker TrackStruct(DestStruct);
+				FBlueprintSupport::RegisterDeferredDependenciesInStruct(this, DestStruct);
+			}	
+		}
+	}
+}
+
 void UUserDefinedStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults, const UObject* BreakRecursionIfFullyLoad) const
 {
-#if WITH_EDITOR
-	/*	The following code is responsible for UUserDefinedStruct's default values serialization.	*/
+	bool bTemporarilyEnableDelta = false;
 
-	auto UDDefaultsStruct = Cast<UUserDefinedStruct>(DefaultsStruct);
+#if WITH_EDITOR
+	// In the editor the default structure may change while the editor is running, so we need to always delta serialize
+	UUserDefinedStruct* UDDefaultsStruct = Cast<UUserDefinedStruct>(DefaultsStruct);
 
 	const bool bDuplicate = (0 != (Ar.GetPortFlags() & PPF_Duplicate));
 
-	/*	When saving delta, we want the difference between current data and true structure's default values. 
-		When Defaults is NULL then zeroed data will be used for comparison.*/
+	// When saving delta, we want the difference between current data and true structure's default values.
+	// So if we don't have defaults we need to use the struct defaults
 	const bool bUseNewDefaults = !Defaults
 		&& UDDefaultsStruct
-		&& Ar.DoDelta()
-		&& Ar.IsSaving()
 		&& !bDuplicate
+		&& (Ar.IsSaving() || Ar.IsLoading())
 		&& !Ar.IsCooking();
-
-	/*	Object serialized from delta will have missing properties filled with zeroed data, 
-		we want structure's default data instead */
-	const bool bLoadDefaultFirst = UDDefaultsStruct
-		&& !bDuplicate
-		&& Ar.IsLoading();
-
-	const bool bPrepareDefaultStruct = bUseNewDefaults || bLoadDefaultFirst;
-	FStructOnScope StructDefaultMem(bPrepareDefaultStruct ? UDDefaultsStruct : NULL);
-	if (bPrepareDefaultStruct)
-	{
-		FStructureEditorUtils::Fill_MakeStructureDefaultValue(UDDefaultsStruct, StructDefaultMem.GetStructMemory());
-	}
 
 	if (bUseNewDefaults)
 	{
-		Defaults = StructDefaultMem.GetStructMemory();
+		Defaults = const_cast<uint8*>(UDDefaultsStruct->GetDefaultInstance());
 	}
-	if (bLoadDefaultFirst)
+
+	// Temporarily enable delta serialization if this is a CPFUO 
+	bTemporarilyEnableDelta = bUseNewDefaults && Ar.IsIgnoringArchetypeRef() && Ar.IsIgnoringClassRef() && !Ar.DoDelta();
+	if (bTemporarilyEnableDelta)
 	{
-		if (Defaults == nullptr)
-		{
-			Defaults = StructDefaultMem.GetStructMemory();
-		}
-		UDDefaultsStruct->CopyScriptStruct(Data, Defaults);
+		Ar.ArNoDelta = false;
 	}
 #endif // WITH_EDITOR
+
 	Super::SerializeTaggedProperties(Ar, Data, DefaultsStruct, Defaults);
+
+	if (bTemporarilyEnableDelta)
+	{
+		Ar.ArNoDelta = true;
+	}
 }
 
 uint32 UUserDefinedStruct::GetStructTypeHash(const void* Src) const
@@ -348,3 +413,23 @@ uint32 UUserDefinedStruct::GetUserDefinedStructTypeHash(const void* Src, const U
 	return ValueHash;
 }
 
+const uint8* UUserDefinedStruct::GetDefaultInstance() const
+{
+	ensure(DefaultStructInstance.IsValid() && DefaultStructInstance.GetStruct() == this);
+	return DefaultStructInstance.GetStructMemory();
+}
+
+void UUserDefinedStruct::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	UUserDefinedStruct* This = CastChecked<UUserDefinedStruct>(InThis);
+
+	ensure(!This->DefaultStructInstance.IsValid() || This->DefaultStructInstance.GetStruct() == This);
+	uint8* StructData = This->DefaultStructInstance.GetStructMemory();
+	if (StructData)
+	{
+		FVerySlowReferenceCollectorArchiveScope CollectorScope(Collector.GetVerySlowReferenceCollectorArchive(), This);
+		This->SerializeBin(CollectorScope.GetArchive(), StructData);
+	}
+
+	Super::AddReferencedObjects(This, Collector);
+}

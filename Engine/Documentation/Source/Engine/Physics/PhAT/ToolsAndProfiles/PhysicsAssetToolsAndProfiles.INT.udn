@@ -1,0 +1,243 @@
+Availability: Public
+Crumbs: %ROOT%
+Title: Physics Asset Editor - Tools and Profiles
+Description:User guide for the Tools and Profiles properties inside the Physics Asset Editor.
+Type: Reference
+Version:4.18
+Parent:Engine/Physics/PhAT/PhysicsAssetEditor
+Related:Engine/Physics/PhAT/PhysicsAssetEditor
+Related:Engine/Physics/PhysicsBodies
+Related:Engine/Physics/Constraints/ConstraintsReference
+Related:Engine/Animation/Persona/Modes
+Related:Engine/Physics/PhAT/SkeletonTree
+Order:
+Tags:Physics
+
+[TOC(start:2 end:3)]
+
+
+The **Tools** and **Profiles** tabs enable you to choose how [Bodies](Engine/Physics/PhysicsBodies) are generated and allows for custom profiles for default properties of assigned
+bodies and constraints. 
+
+![](ToolsAndProfiles.png)(w:450)
+
+
+## Tools Tab
+
+The **Tools** tab enables you to perform batch edits of your Physics Asset. It includes being able to add, generate or re-generate bodies for the entire skeleton or selected bodies 
+in the [Skeleton Tree](Engine/Physics/PhAT/SkeletonTree).
+
+![](Tools.png)
+
+
+### Body Creation Settings
+
+The following options are available when creating or editing primitive shapes, size, and more for bodies:
+
+![](BodyCreationSettings.png)
+
+[REGION:raw]
+| Property | Description |
+| -------- | ----------- |
+| **Min Bone Size** | Bones that are shorter than this value will be ignored for body creation. |
+| **Primitive Type** | The geometry type that should be used when creating bodies. [INCLUDE:#primitivetype] |
+| **Vertex Weighting Type** | How vertices are mapped to bones when approximating them with bodies. [INCLUDE:#vertexweightingtype] |
+| **Auto Orient to Bone** | Whether to automatically orient the created bodies to their corresponding bones. |
+| **Walk Past Small Bones** | Whether to skip small bones entirely (rather than merge them with the adjacent bones). |
+| **Create Body for All Bones** | Forces creation of a body for each bone. |
+| [REGION:tablesection] Advanced Properties [/REGION] |  |
+| **Min Weld Size** | Bones that are smaller than this value will be merged together for body creation. |
+| **Hull Accuracy** | When creating convex hulls, the target accuracy of the created hull. |
+| **Max Hull Verts** | When creating convex hulls, the maximum verts that should be created. |
+[/REGION]
+
+[COMMENT:none]
+-
+
+[EXCERPT:primitivetype]
+* Box
+* Capsule
+* Sphere
+* Single Convex Hull
+* Multi Convex Hull
+[/EXCERPT:primitivetype]
+
+[EXCERPT:VertexWeightingtype]
+* Any Weight
+* Dominant Weight
+[/EXCERPT:VertexWeightingtype]
+
+-
+[/COMMENT]
+
+### Constraint Creation Settings
+
+The following options are available when creating or editing the constraints of bodies:
+
+![](ConstraintCreationSettings.png)
+
+[REGION:raw]
+| Property | Description |
+| -------- | ----------- |
+| **Create Joints** | Whether to create constraints between adjacent created bodies. |
+| **Angular Constraint Mode** | The type of angular constraints to create between bodies. [INCLUDE:#constraintmode] |
+[/REGION]
+
+[COMMENT:none]
+-
+[INCLUDE:#vertexweightingtype]
+[EXCERPT:constraintmode]
+| --- | --- |
+| **Free** | No constraint against this axis. |
+| **Limited** | Limited freedome along this axis. |
+| **Locked** | Fully constraint against this axis. |
+[/EXCERPT:constraintmode]
+
+-
+[/COMMENT]
+
+
+#### Body Generation Options
+
+Once the properties have been set for the **Body Creation** and **Constraint Creation** categories, any selected bodies, constraints, or bones will display an action to add, generate, or re-generate 
+bodies.
+
+![](ToolsBodyButton.png)
+
+[REGION:simpletable]
+| Button |  |
+| --- | --- |
+| ![](AllBodies.png) | All phyiscs bodies and constraints will be re-created. |  
+| ![](GenerateAllBodies.png) | When a constraint is selected, this button will enable all bodies and constraints to be recreated using the new settings. | 
+| ![](ReGenerateBodies.png) | Selected bodies will be replaced along with their constraints using the new settings.| 
+[/REGION]
+
+
+## Profiles Tab
+
+The Physics Asset **Profiles** tab enables you to view, select, and edit a collection of settings for **Physical Animations** and **Constraints** that can be saved to profiles which can then be assigned
+to the selected bodies or constraints in the [Skeleton Tree](Engine/Physics/PhAT/SkeletonTree).
+
+![](Profiles.png)
+
+
+[REGION:note]
+For additional information, see the [Using Profiles for Bodies and Constraints](Engine/Physics/PhAT/HowTo/UsingProfiles) page.
+[/REGION]
+
+
+
+### Current Profile
+
+The **Current Profile** drop-down is where you'll find any new or existing profiles that have been created. When the profile is selected, options to remove it from the list of profiles, and assign or 
+unassign it from the selected bodies or constraints will become available.
+
+![](CurrentProfile.png)
+
+[REGION:simpletable]
+| Option | Description | 
+| --- | --- |
+| **New** | Creates a new profile that has properties set and can be assigned to bodies or constraints. |
+| **Delete** | Removes the custom profile when it is set as the **Current Profile** selection. |
+| **Assign** | Assigns the selected bodies or constraints to the **Current Profile** selection. |
+| **Unassign** | Unassigns the selected bodies or constraints from the **Current Profile** selection. |
+[/REGION]
+
+Some options are available for the Current Profile by clicking the **arrow** drop-down.
+
+![](CurrentProfileMenu.png)
+
+[REGION:simpletable]
+| Option | Description | 
+| --- | --- |
+| **Duplicate** | Copies the currently set profile. |
+| **Set Current Constraint Profile** | Select from the currently created profiles the one to be used as the Current Profile to assign, unassign, or delete. |
+[/REGION]
+
+
+#### Current Profile Assignment
+
+When bodies or constraints are assigned a profile, there are a couple of places that you can check the status of the assignment:
+
+* From the Details panel
+* From the [Graph](Engine/Physics/PhAT/Graph)
+
+In the **Details** panel, the **Current Profile** being used for the selected body will be listed. When there isn't a profile assigned, it will be listed as **None**.
+
+![](CurrentProfileAssignment.png)
+
+[REGION:imagetable]
+| ![](CurrentProfile_Name.png) | ![](CurrentProfile_None.png) |
+| --- | --- |
+| Unassigned Profile | Assigned Profile |
+[/REGION]
+
+In the [Graph](Engine/Physics/PhAT/Graph), the selected bodies and their constraints will be displayed. The shading of the bodies and constraints will be based on which 
+profile is selected as the **Current Profile**. 
+
+![](Engine\Physics\PhAT\Graph\ProfileAssignment.png)
+
+For example, the Graph is showing the selected body and constraints, while the Profiles tab is showing the Current Profile for Physical Animation set to **MyPhysicalAnimation_Profile** which 
+is assigned to two of the four bodies in the Graph. When the Current Profile selected is assigned to a node, it will have unshaded fill color, and when the node is not assigned that profile, 
+it will appear shaded. The constraints displayed all appear with their fill color since the Current Profile for Constraints is set to **None**. 
+
+
+[REGION:note]
+For additional information about the nodes in the Graph, see the [Constraints Graph](Engine/Physics/PhAT/Graph) page.
+[/REGION]
+
+
+
+#### Physical Animation Profiles
+
+When Bodies are selected and assigned a Physical Animation profile, the following options will become available:
+
+![](PhysicalAnimationSettings.png)
+
+[REGION:raw]
+| Property | Description |
+| -------- | ----------- |
+| **Is Local Simulation** | Whether the drive targets are in world or local space. |
+| **Orientation Strength** | The strength used to correct orientation error. |
+| **Angular Velocity Strength** | The strength used to correct angular velocity error. |
+| **Position Strength** | The strength used to correct linear position error. Only used for non-local simulation. |
+| **Velocity Strength** | The strength used to correct linear velocity . Only used for non-local simulation. |
+| **Max Linear Force** | The max force used to correct linear errors. |
+| **Max Angular Force** | The max force used to correct angular errors. |
+[/REGION]
+
+#### Constraint Profiles
+
+When Constraints are selected and assigned a Constraints Profile, the following options will become available:  
+
+[REGION:lightbox]
+[![](ConstraintSettings.png)(h:500)](ConstraintSettings.png)
+[/REGION]
+[REGION:caption] Click image to view full size. [/REGION]
+
+[REGION:note]
+For additional information, visit the [Constraints Reference](Engine/Physics/Constraints/ConstraintsReference) page.
+[/REGION]
+
+
+### Thumbnail
+
+Control how the thumbnail image for the Physics Asset should appear in the **Content Browser**. You can control the Pitch, Yaw, and Zoom of the thumbnail. 
+
+![](ThumbnailSettings.png)
+
+When the Thumbnail pitch, yaw, and zoom values are adjusted the thumbnail in the **Content Browser** will update in real time.
+
+![](CB_Thumbnail.png)
+
+### Physics
+
+The following options are available that will apply to all assigned profiles.
+
+![](PhysicsSettings.png)
+
+[REGION:raw]
+| Property | Description |
+| -------- | ----------- |
+| **Use Async Scene** | If true, bodies of the physics asset will be put into the asynchronous physics scene. If false, they will be put into the synchronous physics scene. |
+[/REGION]

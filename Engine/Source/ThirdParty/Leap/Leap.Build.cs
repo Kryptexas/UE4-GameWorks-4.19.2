@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -31,7 +31,7 @@ public class Leap : ModuleRules
 
 			PublicLibraryPaths.Add(LibraryPath);
 			PublicAdditionalLibraries.Add(LibraryName + ".lib");
-			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Leap/" + Target.Platform.ToString() + "/" + LibraryName + ".dll"));
+			RuntimeDependencies.Add("$(EngineDir)/Binaries/ThirdParty/Leap/" + Target.Platform.ToString() + "/" + LibraryName + ".dll");
 		}
 	}
 }

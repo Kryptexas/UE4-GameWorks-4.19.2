@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "Common.ush"
@@ -135,7 +135,10 @@ half4 GetColor( VertexToPixelInterpolants InVertex, float2 UV )
 	// Make no assumptionn of what vertex color does in a custom material shader
 	FinalColor = BaseColor;
 #else
-	FinalColor = BaseColor*InVertex.Color;
+	FinalColor = BaseColor * InVertex.Color;
+	#if USE_MATERIALS && MATERIALBLENDING_ADDITIVE
+		FinalColor *= InVertex.Color.a;
+	#endif
 #endif
 
 	return FinalColor;

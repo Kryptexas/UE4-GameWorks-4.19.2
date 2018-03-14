@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -38,6 +38,10 @@ class ENGINE_API UDataTableFunctionLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category = "DataTable")
 	static void GetDataTableRowNames(UDataTable* Table, TArray<FName>& OutRowNames);
 
+	/** Export from the DataTable all the row for one column. Export it as string. The row name is not included. */
+	UFUNCTION(BlueprintCallable, Category = "DataTable")
+	static TArray<FString> GetDataTableColumnAsString(const UDataTable* DataTable, FName PropertyName);
+
     /** Get a Row from a DataTable given a RowName */
     UFUNCTION(BlueprintCallable, CustomThunk, Category = "DataTable", meta=(CustomStructureParam = "OutRow", BlueprintInternalUseOnly="true"))
     static bool GetDataTableRowFromName(UDataTable* Table, FName RowName, FTableRowBase& OutRow);
@@ -63,7 +67,7 @@ class ENGINE_API UDataTableFunctionLibrary : public UBlueprintFunctionLibrary
 				EBlueprintExceptionType::AccessViolation,
 				NSLOCTEXT("GetDataTableRow", "MissingTableInput", "Failed to resolve the table input. Be sure the DataTable is valid.")
 			);
-			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+			FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 		}
 		else if(StructProp && OutRowPtr)
 		{
@@ -84,7 +88,7 @@ class ENGINE_API UDataTableFunctionLibrary : public UBlueprintFunctionLibrary
 					EBlueprintExceptionType::AccessViolation,
 					NSLOCTEXT("GetDataTableRow", "IncompatibleProperty", "Incompatible output parameter; the data table's type is not the same as the return type.")
 					);
-				FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+				FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 			}
 		}
 		else
@@ -93,7 +97,7 @@ class ENGINE_API UDataTableFunctionLibrary : public UBlueprintFunctionLibrary
 				EBlueprintExceptionType::AccessViolation,
 				NSLOCTEXT("GetDataTableRow", "MissingOutputProperty", "Failed to resolve the output parameter for GetDataTableRow.")
 			);
-			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+			FBlueprintCoreDelegates::ThrowScriptException(P_THIS, Stack, ExceptionInfo);
 		}
 		*(bool*)RESULT_PARAM = bSuccess;
     }

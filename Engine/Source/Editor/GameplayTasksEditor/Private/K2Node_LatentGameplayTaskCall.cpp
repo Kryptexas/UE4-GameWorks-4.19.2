@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_LatentGameplayTaskCall.h"
 #include "EdGraphSchema_K2.h"
@@ -38,7 +38,7 @@ void UK2Node_LatentGameplayTaskCall::RegisterSpecializedTaskNodeClass(TSubclassO
 
 bool UK2Node_LatentGameplayTaskCall::HasDedicatedNodeClass(TSubclassOf<UGameplayTask> TaskClass) 
 {
-	for (const auto& NodeClass : NodeClasses)
+	for (const TWeakObjectPtr<UClass>& NodeClass : NodeClasses)
 	{
 		if (NodeClass.IsValid())
 		{
@@ -89,7 +89,7 @@ void UK2Node_LatentGameplayTaskCall::GetMenuActions(FBlueprintActionDatabaseRegi
 			check(NodeSpawner != nullptr);
 			NodeSpawner->NodeClass = NodeClass;
 
-			TWeakObjectPtr<UFunction> FunctionPtr = FactoryFunc;
+			TWeakObjectPtr<UFunction> FunctionPtr = MakeWeakObjectPtr(const_cast<UFunction*>(FactoryFunc));
 			NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(GetMenuActions_Utils::SetNodeFunc, FunctionPtr);
 
 		}
@@ -101,22 +101,22 @@ void UK2Node_LatentGameplayTaskCall::GetMenuActions(FBlueprintActionDatabaseRegi
 
 struct FK2Node_LatentAbilityCallHelper
 {
-	static FString WorldContextPinName;
-	static FString ClassPinName;
-	static FString BeginSpawnFuncName;
-	static FString FinishSpawnFuncName;
-	static FString BeginSpawnArrayFuncName;
-	static FString FinishSpawnArrayFuncName;
-	static FString SpawnedActorPinName;
+	static FName WorldContextPinName;
+	static FName ClassPinName;
+	static FName BeginSpawnFuncName;
+	static FName FinishSpawnFuncName;
+	static FName BeginSpawnArrayFuncName;
+	static FName FinishSpawnArrayFuncName;
+	static FName SpawnedActorPinName;
 };
 
-FString FK2Node_LatentAbilityCallHelper::WorldContextPinName(TEXT("WorldContextObject"));
-FString FK2Node_LatentAbilityCallHelper::ClassPinName(TEXT("Class"));
-FString FK2Node_LatentAbilityCallHelper::BeginSpawnFuncName(TEXT("BeginSpawningActor"));
-FString FK2Node_LatentAbilityCallHelper::FinishSpawnFuncName(TEXT("FinishSpawningActor"));
-FString FK2Node_LatentAbilityCallHelper::BeginSpawnArrayFuncName(TEXT("BeginSpawningActorArray"));
-FString FK2Node_LatentAbilityCallHelper::FinishSpawnArrayFuncName(TEXT("FinishSpawningActorArray"));
-FString FK2Node_LatentAbilityCallHelper::SpawnedActorPinName(TEXT("SpawnedActor"));
+FName FK2Node_LatentAbilityCallHelper::WorldContextPinName(TEXT("WorldContextObject"));
+FName FK2Node_LatentAbilityCallHelper::ClassPinName(TEXT("Class"));
+FName FK2Node_LatentAbilityCallHelper::BeginSpawnFuncName(TEXT("BeginSpawningActor"));
+FName FK2Node_LatentAbilityCallHelper::FinishSpawnFuncName(TEXT("FinishSpawningActor"));
+FName FK2Node_LatentAbilityCallHelper::BeginSpawnArrayFuncName(TEXT("BeginSpawningActorArray"));
+FName FK2Node_LatentAbilityCallHelper::FinishSpawnArrayFuncName(TEXT("FinishSpawningActorArray"));
+FName FK2Node_LatentAbilityCallHelper::SpawnedActorPinName(TEXT("SpawnedActor"));
 
 // -------------------------------------------------
 
@@ -135,17 +135,16 @@ UEdGraphPin* UK2Node_LatentGameplayTaskCall::GetClassPin(const TArray<UEdGraphPi
 {
 	const TArray<UEdGraphPin*>* PinsToSearch = InPinsToSearch ? InPinsToSearch : &Pins;
 
-	UEdGraphPin* Pin = NULL;
-	for (auto PinIt = PinsToSearch->CreateConstIterator(); PinIt; ++PinIt)
+	UEdGraphPin* Pin = nullptr;
+	for (UEdGraphPin* TestPin : *PinsToSearch)
 	{
-		UEdGraphPin* TestPin = *PinIt;
 		if (TestPin && TestPin->PinName == FK2Node_LatentAbilityCallHelper::ClassPinName)
 		{
 			Pin = TestPin;
 			break;
 		}
 	}
-	check(Pin == NULL || Pin->Direction == EGPD_Input);
+	check(Pin == nullptr || Pin->Direction == EGPD_Input);
 	return Pin;
 }
 
@@ -161,7 +160,7 @@ UClass* UK2Node_LatentGameplayTaskCall::GetClassToSpawn(const TArray<UEdGraphPin
 	}
 	else if (ClassPin && (1 == ClassPin->LinkedTo.Num()))
 	{
-		auto SourcePin = ClassPin->LinkedTo[0];
+		UEdGraphPin* SourcePin = ClassPin->LinkedTo[0];
 		UseSpawnClass = SourcePin ? Cast<UClass>(SourcePin->PinType.PinSubCategoryObject.Get()) : nullptr;
 	}
 
@@ -176,7 +175,7 @@ void UK2Node_LatentGameplayTaskCall::CreatePinsForClass(UClass* InClass)
 
 	const UObject* const ClassDefaultObject = InClass->GetDefaultObject(false);
 
-	SpawnParamPins.Empty();
+	SpawnParamPins.Reset();
 
 	// Tasks can hide spawn parameters by doing meta = (HideSpawnParms="PropertyA,PropertyB")
 	// (For example, hide Instigator in situations where instigator is not relevant to your task)
@@ -207,11 +206,11 @@ void UK2Node_LatentGameplayTaskCall::CreatePinsForClass(UClass* InClass)
 			Property->HasAllPropertyFlags(CPF_BlueprintVisible) &&
 			!bIsDelegate && 
 			!IgnorePropertyList.Contains(Property->GetName()) &&
-			(FindPin(Property->GetName()) == nullptr) )
+			(FindPin(Property->GetFName()) == nullptr) )
 		{
 
 
-			UEdGraphPin* Pin = CreatePin(EGPD_Input, FString(), FString(), nullptr, Property->GetName());
+			UEdGraphPin* Pin = CreatePin(EGPD_Input, NAME_None, Property->GetFName());
 			check(Pin);
 			const bool bPinGood = K2Schema->ConvertPropertyToPinType(Property, /*out*/ Pin->PinType);
 			SpawnParamPins.Add(Pin->PinName);
@@ -241,7 +240,7 @@ void UK2Node_LatentGameplayTaskCall::PinDefaultValueChanged(UEdGraphPin* Changed
 		//ResultPin->BreakAllPinLinks();
 
 		// Remove all pins related to archetype variables
-		for (const FString& OldPinReference : SpawnParamPins)
+		for (const FName& OldPinReference : SpawnParamPins)
 		{
 			UEdGraphPin* OldPin = FindPin(OldPinReference);
 			if(OldPin)
@@ -250,7 +249,7 @@ void UK2Node_LatentGameplayTaskCall::PinDefaultValueChanged(UEdGraphPin* Changed
 				Pins.Remove(OldPin);
 			}
 		}
-		SpawnParamPins.Empty();
+		SpawnParamPins.Reset();
 
 		UClass* UseSpawnClass = GetClassToSpawn();
 		if (UseSpawnClass != NULL)
@@ -269,21 +268,17 @@ void UK2Node_LatentGameplayTaskCall::PinDefaultValueChanged(UEdGraphPin* Changed
 
 UEdGraphPin* UK2Node_LatentGameplayTaskCall::GetResultPin() const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	UEdGraphPin* Pin = FindPinChecked(K2Schema->PN_ReturnValue);
+	UEdGraphPin* Pin = FindPinChecked(UEdGraphSchema_K2::PN_ReturnValue);
 	check(Pin->Direction == EGPD_Output);
 	return Pin;
 }
 
 bool UK2Node_LatentGameplayTaskCall::IsSpawnVarPin(UEdGraphPin* Pin)
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 	return (Pin->Direction == EEdGraphPinDirection::EGPD_Input &&
-			Pin->PinName != K2Schema->PN_Execute &&
-			Pin->PinName != K2Schema->PN_Then &&
-			Pin->PinName != K2Schema->PN_ReturnValue &&
+			Pin->PinName != UEdGraphSchema_K2::PN_Execute &&
+			Pin->PinName != UEdGraphSchema_K2::PN_Then &&
+			Pin->PinName != UEdGraphSchema_K2::PN_ReturnValue &&
 			Pin->PinName != FK2Node_LatentAbilityCallHelper::ClassPinName &&
 			Pin->PinName != FK2Node_LatentAbilityCallHelper::WorldContextPinName);
 
@@ -291,16 +286,16 @@ bool UK2Node_LatentGameplayTaskCall::IsSpawnVarPin(UEdGraphPin* Pin)
 
 bool UK2Node_LatentGameplayTaskCall::ValidateActorSpawning(class FKismetCompilerContext& CompilerContext, bool bGenerateErrors)
 {
-	FName ProxyPrespawnFunctionName = *FK2Node_LatentAbilityCallHelper::BeginSpawnFuncName;
+	FName ProxyPrespawnFunctionName = FK2Node_LatentAbilityCallHelper::BeginSpawnFuncName;
 	UFunction* PreSpawnFunction = ProxyFactoryClass ? ProxyFactoryClass->FindFunctionByName(ProxyPrespawnFunctionName) : nullptr;
 
-	FName ProxyPostpawnFunctionName = *FK2Node_LatentAbilityCallHelper::FinishSpawnFuncName;
+	FName ProxyPostpawnFunctionName = FK2Node_LatentAbilityCallHelper::FinishSpawnFuncName;
 	UFunction* PostSpawnFunction = ProxyFactoryClass ? ProxyFactoryClass->FindFunctionByName(ProxyPostpawnFunctionName) : nullptr;
 
-	FName ProxyPrespawnArrayFunctionName = *FK2Node_LatentAbilityCallHelper::BeginSpawnArrayFuncName;
+	FName ProxyPrespawnArrayFunctionName = FK2Node_LatentAbilityCallHelper::BeginSpawnArrayFuncName;
 	UFunction* PreSpawnArrayFunction = ProxyFactoryClass ? ProxyFactoryClass->FindFunctionByName(ProxyPrespawnArrayFunctionName) : nullptr;
 
-	FName ProxyPostpawnArrayFunctionName = *FK2Node_LatentAbilityCallHelper::FinishSpawnArrayFuncName;
+	FName ProxyPostpawnArrayFunctionName = FK2Node_LatentAbilityCallHelper::FinishSpawnArrayFuncName;
 	UFunction* PostSpawnArrayFunction = ProxyFactoryClass ? ProxyFactoryClass->FindFunctionByName(ProxyPostpawnArrayFunctionName) : nullptr;
 
 	bool HasClassParameter = GetClassPin() != nullptr;
@@ -351,16 +346,16 @@ bool UK2Node_LatentGameplayTaskCall::ValidateActorSpawning(class FKismetCompiler
 
 bool UK2Node_LatentGameplayTaskCall::ValidateActorArraySpawning(class FKismetCompilerContext& CompilerContext, bool bGenerateErrors)
 {
-	FName ProxyPrespawnFunctionName = *FK2Node_LatentAbilityCallHelper::BeginSpawnFuncName;
+	FName ProxyPrespawnFunctionName = FK2Node_LatentAbilityCallHelper::BeginSpawnFuncName;
 	UFunction* PreSpawnFunction = ProxyFactoryClass ? ProxyFactoryClass->FindFunctionByName(ProxyPrespawnFunctionName) : nullptr;
 
-	FName ProxyPostpawnFunctionName = *FK2Node_LatentAbilityCallHelper::FinishSpawnFuncName;
+	FName ProxyPostpawnFunctionName = FK2Node_LatentAbilityCallHelper::FinishSpawnFuncName;
 	UFunction* PostSpawnFunction = ProxyFactoryClass ? ProxyFactoryClass->FindFunctionByName(ProxyPostpawnFunctionName) : nullptr;
 
-	FName ProxyPrespawnArrayFunctionName = *FK2Node_LatentAbilityCallHelper::BeginSpawnArrayFuncName;
+	FName ProxyPrespawnArrayFunctionName = FK2Node_LatentAbilityCallHelper::BeginSpawnArrayFuncName;
 	UFunction* PreSpawnArrayFunction = ProxyFactoryClass ? ProxyFactoryClass->FindFunctionByName(ProxyPrespawnArrayFunctionName) : nullptr;
 
-	FName ProxyPostpawnArrayFunctionName = *FK2Node_LatentAbilityCallHelper::FinishSpawnArrayFuncName;
+	FName ProxyPostpawnArrayFunctionName = FK2Node_LatentAbilityCallHelper::FinishSpawnArrayFuncName;
 	UFunction* PostSpawnArrayFunction = ProxyFactoryClass ? ProxyFactoryClass->FindFunctionByName(ProxyPostpawnArrayFunctionName) : nullptr;
 
 	bool HasClassParameter = GetClassToSpawn() != nullptr;
@@ -412,7 +407,7 @@ bool UK2Node_LatentGameplayTaskCall::ValidateActorArraySpawning(class FKismetCom
 bool UK2Node_LatentGameplayTaskCall::ConnectSpawnProperties(UClass* ClassToSpawn, const UEdGraphSchema_K2* Schema, class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph, UEdGraphPin*& LastThenPin, UEdGraphPin* SpawnedActorReturnPin)
 {
 	bool bIsErrorFree = true;
-	for (const FString& OldPinReference : SpawnParamPins)
+	for (const FName& OldPinReference : SpawnParamPins)
 	{
 		UEdGraphPin* SpawnVarPin = FindPin(OldPinReference);
 		if (!SpawnVarPin)
@@ -425,7 +420,7 @@ bool UK2Node_LatentGameplayTaskCall::ConnectSpawnProperties(UClass* ClassToSpawn
 		{
 			if (SpawnVarPin->LinkedTo.Num() == 0)
 			{
-				UProperty* Property = FindField<UProperty>(ClassToSpawn, *SpawnVarPin->PinName);
+				UProperty* Property = FindField<UProperty>(ClassToSpawn, SpawnVarPin->PinName);
 				// NULL property indicates that this pin was part of the original node, not the 
 				// class we're assigning to:
 				if (!Property)
@@ -467,9 +462,9 @@ bool UK2Node_LatentGameplayTaskCall::ConnectSpawnProperties(UClass* ClassToSpawn
 				bIsErrorFree &= Schema->TryCreateConnection(LastThenPin, SetVarNode->GetExecPin());
 				LastThenPin = SetVarNode->GetThenPin();
 
-				static FString ObjectParamName = FString(TEXT("Object"));
-				static FString ValueParamName = FString(TEXT("Value"));
-				static FString PropertyNameParamName = FString(TEXT("PropertyName"));
+				static const FName ObjectParamName(TEXT("Object"));
+				static const FName ValueParamName(TEXT("Value"));
+				static const FName PropertyNameParamName(TEXT("PropertyName"));
 
 				// Connect the new actor to the 'object' pin
 				UEdGraphPin* ObjectPin = SetVarNode->FindPinChecked(ObjectParamName);
@@ -477,12 +472,12 @@ bool UK2Node_LatentGameplayTaskCall::ConnectSpawnProperties(UClass* ClassToSpawn
 
 				// Fill in literal for 'property name' pin - name of pin is property name
 				UEdGraphPin* PropertyNamePin = SetVarNode->FindPinChecked(PropertyNameParamName);
-				PropertyNamePin->DefaultValue = SpawnVarPin->PinName;
+				PropertyNamePin->DefaultValue = SpawnVarPin->PinName.ToString();
 
 				UEdGraphPin* ValuePin = SetVarNode->FindPinChecked(ValueParamName);
 				if (SpawnVarPin->LinkedTo.Num() == 0 &&
 					SpawnVarPin->DefaultValue != FString() &&
-					SpawnVarPin->PinType.PinCategory == Schema->PC_Byte &&
+					SpawnVarPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Byte &&
 					SpawnVarPin->PinType.PinSubCategoryObject.IsValid() &&
 					SpawnVarPin->PinType.PinSubCategoryObject->IsA<UEnum>())
 				{
@@ -490,7 +485,7 @@ bool UK2Node_LatentGameplayTaskCall::ConnectSpawnProperties(UClass* ClassToSpawn
 					UK2Node_EnumLiteral* EnumLiteralNode = CompilerContext.SpawnIntermediateNode<UK2Node_EnumLiteral>(this, SourceGraph);
 					EnumLiteralNode->Enum = CastChecked<UEnum>(SpawnVarPin->PinType.PinSubCategoryObject.Get());
 					EnumLiteralNode->AllocateDefaultPins();
-					EnumLiteralNode->FindPinChecked(Schema->PN_ReturnValue)->MakeLinkTo(ValuePin);
+					EnumLiteralNode->FindPinChecked(UEdGraphSchema_K2::PN_ReturnValue)->MakeLinkTo(ValuePin);
 
 					UEdGraphPin* InPin = EnumLiteralNode->FindPinChecked(UK2Node_EnumLiteral::GetEnumInputPinName());
 					InPin->DefaultValue = SpawnVarPin->DefaultValue;
@@ -498,7 +493,7 @@ bool UK2Node_LatentGameplayTaskCall::ConnectSpawnProperties(UClass* ClassToSpawn
 				else
 				{
 					// For non-array struct pins that are not linked, transfer the pin type so that the node will expand an auto-ref that will assign the value by-ref.
-					if (SpawnVarPin->PinType.IsArray() == false && SpawnVarPin->PinType.PinCategory == Schema->PC_Struct && SpawnVarPin->LinkedTo.Num() == 0)
+					if (SpawnVarPin->PinType.IsArray() == false && SpawnVarPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Struct && SpawnVarPin->LinkedTo.Num() == 0)
 					{
 						ValuePin->PinType.PinCategory = SpawnVarPin->PinType.PinCategory;
 						ValuePin->PinType.PinSubCategory = SpawnVarPin->PinType.PinSubCategory;
@@ -568,10 +563,10 @@ void UK2Node_LatentGameplayTaskCall::ExpandNode(class FKismetCompilerContext& Co
 	UK2Node_CallFunction* const CallCreateProxyObjectNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
 	CallCreateProxyObjectNode->FunctionReference.SetExternalMember(ProxyFactoryFunctionName, ProxyFactoryClass);
 	CallCreateProxyObjectNode->AllocateDefaultPins();
-	bIsErrorFree &= CompilerContext.MovePinLinksToIntermediate(*FindPinChecked(Schema->PN_Execute), *CallCreateProxyObjectNode->FindPinChecked(Schema->PN_Execute)).CanSafeConnect();
-	for (auto CurrentPin : Pins)
+	bIsErrorFree &= CompilerContext.MovePinLinksToIntermediate(*FindPinChecked(UEdGraphSchema_K2::PN_Execute), *CallCreateProxyObjectNode->FindPinChecked(UEdGraphSchema_K2::PN_Execute)).CanSafeConnect();
+	for (UEdGraphPin* CurrentPin : Pins)
 	{
-		if (FBaseAsyncTaskHelper::ValidDataPin(CurrentPin, EGPD_Input, Schema))
+		if (FBaseAsyncTaskHelper::ValidDataPin(CurrentPin, EGPD_Input))
 		{
 			UEdGraphPin* DestPin = CallCreateProxyObjectNode->FindPin(CurrentPin->PinName); // match function inputs, to pass data to function from CallFunction node
 
@@ -586,16 +581,16 @@ void UK2Node_LatentGameplayTaskCall::ExpandNode(class FKismetCompilerContext& Co
 	// Expose Async Task Proxy object
 	UEdGraphPin* const ProxyObjectPin = CallCreateProxyObjectNode->GetReturnValuePin();
 	check(ProxyObjectPin);
-	auto OutputAsyncTaskProxy = FindPinChecked(FBaseAsyncTaskHelper::GetAsyncTaskProxyName());
+	UEdGraphPin* OutputAsyncTaskProxy = FindPinChecked(FBaseAsyncTaskHelper::GetAsyncTaskProxyName());
 	bIsErrorFree &= CompilerContext.MovePinLinksToIntermediate(*OutputAsyncTaskProxy, *ProxyObjectPin).CanSafeConnect();
 
 	// ------------------------------------------------------------------------------------------
 	// GATHER OUTPUT PARAMETERS AND PAIR THEM WITH LOCAL VARIABLES
 	// ------------------------------------------------------------------------------------------
 	TArray<FBaseAsyncTaskHelper::FOutputPinAndLocalVariable> VariableOutputs;
-	for (auto CurrentPin : Pins)
+	for (UEdGraphPin* CurrentPin : Pins)
 	{
-		if ((OutputAsyncTaskProxy != CurrentPin) && FBaseAsyncTaskHelper::ValidDataPin(CurrentPin, EGPD_Output, Schema))
+		if ((OutputAsyncTaskProxy != CurrentPin) && FBaseAsyncTaskHelper::ValidDataPin(CurrentPin, EGPD_Output))
 		{
 			const FEdGraphPinType& PinType = CurrentPin->PinType;
 			UK2Node_TemporaryVariable* TempVarOutput = CompilerContext.SpawnInternalVariable(
@@ -608,7 +603,7 @@ void UK2Node_LatentGameplayTaskCall::ExpandNode(class FKismetCompilerContext& Co
 	// ------------------------------------------------------------------------------------------
 	// FOR EACH DELEGATE DEFINE EVENT, CONNECT IT TO DELEGATE AND IMPLEMENT A CHAIN OF ASSIGMENTS
 	// ------------------------------------------------------------------------------------------
-	UEdGraphPin* LastThenPin = CallCreateProxyObjectNode->FindPinChecked(Schema->PN_Then);
+	UEdGraphPin* LastThenPin = CallCreateProxyObjectNode->FindPinChecked(UEdGraphSchema_K2::PN_Then);
 
 	UK2Node_CallFunction* IsValidFuncNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
 	const FName IsValidFuncName = GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, IsValid);
@@ -630,7 +625,7 @@ void UK2Node_LatentGameplayTaskCall::ExpandNode(class FKismetCompilerContext& Co
 		bIsErrorFree &= FBaseAsyncTaskHelper::HandleDelegateImplementation(*PropertyIt, VariableOutputs, ProxyObjectPin, LastThenPin, this, SourceGraph, CompilerContext);
 	}
 
-	if (CallCreateProxyObjectNode->FindPinChecked(Schema->PN_Then) == LastThenPin)
+	if (CallCreateProxyObjectNode->FindPinChecked(UEdGraphSchema_K2::PN_Then) == LastThenPin)
 	{
 		CompilerContext.MessageLog.Error(*LOCTEXT("MissingDelegateProperties", "BaseAsyncTask: Proxy has no delegates defined. @@").ToString(), this);
 		return;
@@ -641,10 +636,10 @@ void UK2Node_LatentGameplayTaskCall::ExpandNode(class FKismetCompilerContext& Co
 	// NEW: CREATE A CALL TO THE PRESPAWN FUNCTION, IF IT RETURNS TRUE, THEN WE WILL SPAWN THE NEW ACTOR
 	// ------------------------------------------------------------------------------------------
 
-	FName ProxyPrespawnFunctionName = bValidatedActorArraySpawn ? *FK2Node_LatentAbilityCallHelper::BeginSpawnArrayFuncName : *FK2Node_LatentAbilityCallHelper::BeginSpawnFuncName;
+	FName ProxyPrespawnFunctionName = bValidatedActorArraySpawn ? FK2Node_LatentAbilityCallHelper::BeginSpawnArrayFuncName : FK2Node_LatentAbilityCallHelper::BeginSpawnFuncName;
 	UFunction* PreSpawnFunction = ProxyFactoryClass ? ProxyFactoryClass->FindFunctionByName(ProxyPrespawnFunctionName) : nullptr;
 
-	FName ProxyPostpawnFunctionName = bValidatedActorArraySpawn ? *FK2Node_LatentAbilityCallHelper::FinishSpawnArrayFuncName : *FK2Node_LatentAbilityCallHelper::FinishSpawnFuncName;
+	FName ProxyPostpawnFunctionName = bValidatedActorArraySpawn ? FK2Node_LatentAbilityCallHelper::FinishSpawnArrayFuncName : FK2Node_LatentAbilityCallHelper::FinishSpawnFuncName;
 	UFunction* PostSpawnFunction = ProxyFactoryClass ? ProxyFactoryClass->FindFunctionByName(ProxyPostpawnFunctionName) : nullptr;
 
 	if (PreSpawnFunction == nullptr)
@@ -685,9 +680,9 @@ void UK2Node_LatentGameplayTaskCall::ExpandNode(class FKismetCompilerContext& Co
 	bIsErrorFree &= Schema->TryCreateConnection(ProxyObjectPin, PrespawnCallSelfPin);
 
 	// Hook up input parameters to PreSpawn
-	for (auto CurrentPin : Pins)
+	for (UEdGraphPin* CurrentPin : Pins)
 	{
-		if (FBaseAsyncTaskHelper::ValidDataPin(CurrentPin, EGPD_Input, Schema))
+		if (FBaseAsyncTaskHelper::ValidDataPin(CurrentPin, EGPD_Input))
 		{
 			UEdGraphPin* DestPin = CallPrespawnProxyObjectNode->FindPin(CurrentPin->PinName);
 			if (DestPin)
@@ -698,9 +693,9 @@ void UK2Node_LatentGameplayTaskCall::ExpandNode(class FKismetCompilerContext& Co
 	}		
 
 	// Hook the activate node up in the exec chain
-	UEdGraphPin* PrespawnExecPin = CallPrespawnProxyObjectNode->FindPinChecked(Schema->PN_Execute);
-	UEdGraphPin* PrespawnThenPin = CallPrespawnProxyObjectNode->FindPinChecked(Schema->PN_Then);
-	UEdGraphPin* PrespawnReturnPin = CallPrespawnProxyObjectNode->FindPinChecked(Schema->PN_ReturnValue);
+	UEdGraphPin* PrespawnExecPin = CallPrespawnProxyObjectNode->FindPinChecked(UEdGraphSchema_K2::PN_Execute);
+	UEdGraphPin* PrespawnThenPin = CallPrespawnProxyObjectNode->FindPinChecked(UEdGraphSchema_K2::PN_Then);
+	UEdGraphPin* PrespawnReturnPin = CallPrespawnProxyObjectNode->FindPinChecked(UEdGraphSchema_K2::PN_ReturnValue);
 	UEdGraphPin* SpawnedActorReturnPin = CallPrespawnProxyObjectNode->FindPinChecked(FK2Node_LatentAbilityCallHelper::SpawnedActorPinName);
 
 	bIsErrorFree &= Schema->TryCreateConnection(LastThenPin, PrespawnExecPin);
@@ -734,7 +729,7 @@ void UK2Node_LatentGameplayTaskCall::ExpandNode(class FKismetCompilerContext& Co
 
 		//Create int Iterator
 		UK2Node_TemporaryVariable* IteratorVar = CompilerContext.SpawnIntermediateNode<UK2Node_TemporaryVariable>(this, SourceGraph);
-		IteratorVar->VariableType.PinCategory = Schema->PC_Int;
+		IteratorVar->VariableType.PinCategory = UEdGraphSchema_K2::PC_Int;
 		IteratorVar->AllocateDefaultPins();
 
 		//Iterator assignment (initialization to zero)
@@ -774,7 +769,7 @@ void UK2Node_LatentGameplayTaskCall::ExpandNode(class FKismetCompilerContext& Co
 		bIsErrorFree &= Schema->TryCreateConnection(SpawnedActorReturnPin, ArrayLength->GetTargetArrayPin());
 		bIsErrorFree &= Schema->TryCreateConnection(Condition->GetReturnValuePin(), Branch->GetConditionPin());
 		bIsErrorFree &= Schema->TryCreateConnection(IteratorVar->GetVariablePin(), Condition->FindPinChecked(TEXT("A")));
-		bIsErrorFree &= Schema->TryCreateConnection(ArrayLength->FindPin(Schema->PN_ReturnValue), Condition->FindPinChecked(TEXT("B")));
+		bIsErrorFree &= Schema->TryCreateConnection(ArrayLength->FindPin(UEdGraphSchema_K2::PN_ReturnValue), Condition->FindPinChecked(TEXT("B")));
 
 		//Connections to establish loop iteration
 		bIsErrorFree &= Schema->TryCreateConnection(IteratorVar->GetVariablePin(), Increment->FindPinChecked(TEXT("A")));
@@ -785,8 +780,8 @@ void UK2Node_LatentGameplayTaskCall::ExpandNode(class FKismetCompilerContext& Co
 		//This is the inner loop
 		LastThenPin = Branch->GetThenPin();		//Connect the loop branch to the spawn-assignment code block
 		bIsErrorFree &= Schema->TryCreateConnection(SpawnedActorReturnPin, GetElement->GetTargetArrayPin());
-		bIsErrorFree &= Schema->TryCreateConnection(IteratorVar->GetVariablePin(), GetElement->FindPinChecked(Schema->PN_Index));
-		bIsErrorFree &= ConnectSpawnProperties(ClassToSpawn, Schema, CompilerContext, SourceGraph, LastThenPin, GetElement->FindPinChecked(Schema->PN_Item));		//Last argument is the array element
+		bIsErrorFree &= Schema->TryCreateConnection(IteratorVar->GetVariablePin(), GetElement->FindPinChecked(UEdGraphSchema_K2::PN_Index));
+		bIsErrorFree &= ConnectSpawnProperties(ClassToSpawn, Schema, CompilerContext, SourceGraph, LastThenPin, GetElement->FindPinChecked(UEdGraphSchema_K2::PN_Item));		//Last argument is the array element
 		bIsErrorFree &= Schema->TryCreateConnection(LastThenPin, IteratorAssign->GetExecPin());		//Connect the spawn-assignment code block to the iterator increment
 		
 		//Finish by providing the proper path out
@@ -818,12 +813,12 @@ void UK2Node_LatentGameplayTaskCall::ExpandNode(class FKismetCompilerContext& Co
 	bIsErrorFree &= Schema->TryCreateConnection(ProxyObjectPin, PostspawnCallSelfPin);
 
 	// Link our Postspawn call in
-	bIsErrorFree &= Schema->TryCreateConnection(LastThenPin, CallPostSpawnnProxyObjectNode->FindPinChecked(Schema->PN_Execute));
+	bIsErrorFree &= Schema->TryCreateConnection(LastThenPin, CallPostSpawnnProxyObjectNode->FindPinChecked(UEdGraphSchema_K2::PN_Execute));
 
 	// Hook up any other input parameters to PostSpawn
-	for (auto CurrentPin : Pins)
+	for (UEdGraphPin* CurrentPin : Pins)
 	{
-		if (FBaseAsyncTaskHelper::ValidDataPin(CurrentPin, EGPD_Input, Schema))
+		if (FBaseAsyncTaskHelper::ValidDataPin(CurrentPin, EGPD_Input))
 		{
 			UEdGraphPin* DestPin = CallPostSpawnnProxyObjectNode->FindPin(CurrentPin->PinName);
 			if (DestPin)
@@ -843,11 +838,11 @@ void UK2Node_LatentGameplayTaskCall::ExpandNode(class FKismetCompilerContext& Co
 
 	bIsErrorFree &= Schema->TryCreateConnection(SpawnedActorReturnPin, InSpawnedActorPin);
 
-	LastThenPin = CallPostSpawnnProxyObjectNode->FindPinChecked(Schema->PN_Then);
+	LastThenPin = CallPostSpawnnProxyObjectNode->FindPinChecked(UEdGraphSchema_K2::PN_Then);
 
 
 	// Move the connections from the original node then pin to the last internal then pin
-	bIsErrorFree &= CompilerContext.MovePinLinksToIntermediate(*FindPinChecked(Schema->PN_Then), *LastThenPin).CanSafeConnect();
+	bIsErrorFree &= CompilerContext.MovePinLinksToIntermediate(*FindPinChecked(UEdGraphSchema_K2::PN_Then), *LastThenPin).CanSafeConnect();
 	bIsErrorFree &= CompilerContext.CopyPinLinksToIntermediate(*LastThenPin, *BranchElsePin).CanSafeConnect();
 	bIsErrorFree &= CompilerContext.CopyPinLinksToIntermediate(*LastThenPin, *ValidateProxyNode->GetElsePin()).CanSafeConnect();
 	

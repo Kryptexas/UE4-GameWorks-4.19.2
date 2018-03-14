@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 ShaderComplexityRendering.h: Declarations used for the shader complexity viewmode.
@@ -22,9 +22,9 @@ class TComplexityAccumulatePS : public FGlobalShader, public IDebugViewModePSInt
 	DECLARE_SHADER_TYPE(TComplexityAccumulatePS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return AllowDebugViewPS(bQuadComplexity ? DVSM_QuadComplexity : DVSM_ShaderComplexity, Platform);
+		return AllowDebugViewPS(bQuadComplexity ? DVSM_QuadComplexity : DVSM_ShaderComplexity, Parameters.Platform);
 	}
 
 	TComplexityAccumulatePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
@@ -46,9 +46,9 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		OutEnvironment.SetDefine(TEXT("OUTPUT_QUAD_OVERDRAW"), AllowDebugViewPS(DVSM_QuadComplexity, Platform));
+		OutEnvironment.SetDefine(TEXT("OUTPUT_QUAD_OVERDRAW"), AllowDebugViewPS(DVSM_QuadComplexity, Parameters.Platform));
 	}
 
 	virtual void SetParameters(

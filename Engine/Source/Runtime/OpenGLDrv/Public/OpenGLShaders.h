@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLShaders.h: OpenGL shader RHI declaration.
@@ -41,6 +41,7 @@ struct FOpenGLShaderDeviceCapabilities
 	bool bRequiresGLFragCoordVaryingLimitHack;
 	GLint MaxVaryingVectors;
 	bool bRequiresTexture2DPrecisionHack;
+	bool bRequiresRoundFunctionHack;
 };
 
 /**

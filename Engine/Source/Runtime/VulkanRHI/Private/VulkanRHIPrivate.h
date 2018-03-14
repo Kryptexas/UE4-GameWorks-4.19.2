@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved..
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved..
 
 /*=============================================================================
 	VulkanRHIPrivate.h: Private Vulkan RHI definitions.
@@ -11,48 +11,13 @@
 #include "Misc/ScopeLock.h"
 #include "RHI.h"
 #include "RenderUtils.h"
+
+// let the platform set up the headers and some defines
+#include "VulkanPlatform.h"
+
+// the configuration will set up anyhting not set up by the platform
 #include "VulkanConfiguration.h"
 
-#if PLATFORM_WINDOWS
-#include "WindowsHWrapper.h"
-#endif
-
-#ifndef VK_PROTOTYPES
-#define VK_PROTOTYPES	1
-#endif
-
-#if PLATFORM_WINDOWS
-	#define VK_USE_PLATFORM_WIN32_KHR 1
-	#define VK_USE_PLATFORM_WIN32_KHX 1
-#endif
-#if PLATFORM_ANDROID
-	#define VK_USE_PLATFORM_ANDROID_KHR 1
-#endif
-
-#if PLATFORM_ANDROID
-	#define VULKAN_COMMANDWRAPPERS_ENABLE VULKAN_ENABLE_DUMP_LAYER
-	#define VULKAN_DYNAMICALLYLOADED 1
-#elif PLATFORM_LINUX
-	#define VULKAN_COMMANDWRAPPERS_ENABLE 1
-	#define VULKAN_DYNAMICALLYLOADED 1
-#else
-	#define VULKAN_COMMANDWRAPPERS_ENABLE 1
-	#define VULKAN_DYNAMICALLYLOADED 0
-#endif
-
-#if PLATFORM_WINDOWS
-#include "AllowWindowsPlatformTypes.h"
-#endif
-
-#if VULKAN_DYNAMICALLYLOADED
-	#include "VulkanLoader.h"
-#else
-	#include <vulkan.h>
-#endif
-
-#if PLATFORM_WINDOWS
-#include "HideWindowsPlatformTypes.h"
-#endif
 
 #if VULKAN_COMMANDWRAPPERS_ENABLE
 	#if VULKAN_DYNAMICALLYLOADED
@@ -213,7 +178,7 @@ struct FVulkanSemaphore
 		check(SemaphoreHandle != VK_NULL_HANDLE);
 		return SemaphoreHandle;
 	}
-	
+
 private:
 	FVulkanDevice& Device;
 	VkSemaphore SemaphoreHandle;
@@ -303,6 +268,10 @@ private:
 	// it's up to VulkanRHI to handle this correctly.
 	const FRHISetRenderTargetsInfo RTInfo;
 	uint32 NumColorAttachments;
+
+	// Save image off for comparison, in case it gets aliased.
+	VkImage ColorRenderTargetImages[MaxSimultaneousRenderTargets];
+	VkImage DepthStencilRenderTargetImage;
 
 	// Predefined set of barriers, when executes ensuring all writes are finished
 	TArray<VkImageMemoryBarrier> WriteBarriers;
@@ -400,21 +369,12 @@ void VulkanResolveImage(VkCommandBuffer Cmd, FTextureRHIParamRef SourceTextureRH
 // Stats
 DECLARE_STATS_GROUP(TEXT("Vulkan RHI"), STATGROUP_VulkanRHI, STATCAT_Advanced);
 //DECLARE_STATS_GROUP(TEXT("Vulkan RHI Verbose"), STATGROUP_VulkanRHIVERBOSE, STATCAT_Advanced);
-//DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("DrawPrimitive calls"), STAT_VulkanDrawPrimitiveCalls, STATGROUP_VulkanRHI, );
-//DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Triangles drawn"), STAT_VulkanTriangles, STATGROUP_VulkanRHI, );
-//DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Lines drawn"), STAT_VulkanLines, STATGROUP_VulkanRHI, );
-//DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Textures Allocated"), STAT_VulkanTexturesAllocated, STATGROUP_VulkanRHI, );
-//DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Textures Released"), STAT_VulkanTexturesReleased, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Draw call time"), STAT_VulkanDrawCallTime, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Dispatch call time"), STAT_VulkanDispatchCallTime, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Draw call prep time"), STAT_VulkanDrawCallPrepareTime, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Dispatch call prep time"), STAT_VulkanDispatchCallPrepareTime, STATGROUP_VulkanRHI, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Create uniform buffer time"), STAT_VulkanCreateUniformBufferTime, STATGROUP_VulkanRHI, );
-//DECLARE_CYCLE_STAT_EXTERN(TEXT("Update uniform buffer"), STAT_VulkanUpdateUniformBufferTime, STATGROUP_VulkanRHI, );
-//DECLARE_CYCLE_STAT_EXTERN(TEXT("GPU Flip Wait Time"), STAT_VulkanGPUFlipWaitTime, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Get Or Create Pipeline"), STAT_VulkanGetOrCreatePipeline, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Get DescriptorSet"), STAT_VulkanGetDescriptorSet, STATGROUP_VulkanRHI, );
-//DECLARE_CYCLE_STAT_EXTERN(TEXT("Create Pipeline"), STAT_VulkanCreatePipeline, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Pipeline Bind"), STAT_VulkanPipelineBind, STATGROUP_VulkanRHI, );
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Num Bound Shader States"), STAT_VulkanNumBoundShaderState, STATGROUP_VulkanRHI, );
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Num Render Passes"), STAT_VulkanNumRenderPasses, STATGROUP_VulkanRHI, );
@@ -434,22 +394,25 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("UAV Update Time"), STAT_VulkanUAVUpdateTime, STA
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Deletion Queue"), STAT_VulkanDeletionQueue, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Queue Submit"), STAT_VulkanQueueSubmit, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Queue Present"), STAT_VulkanQueuePresent, STATGROUP_VulkanRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("DS Allocator"), STAT_VulkanDescriptorSetAllocator, STATGROUP_VulkanRHI, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Num Queries"), STAT_VulkanNumQueries, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Wait For Query"), STAT_VulkanWaitQuery, STATGROUP_VulkanRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Wait For Fence"), STAT_VulkanWaitFence, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Reset Queries"), STAT_VulkanResetQuery, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Wait For Swapchain"), STAT_VulkanWaitSwapchain, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Acquire Backbuffer"), STAT_VulkanAcquireBackBuffer, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Staging Buffer Mgmt"), STAT_VulkanStagingBuffer, STATGROUP_VulkanRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("VkCreateDescriptorPool"), STAT_VulkanVkCreateDescriptorPool, STATGROUP_VulkanRHI, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Num DescSet Pools"), STAT_VulkanNumDescPools, STATGROUP_VulkanRHI, );
 #if VULKAN_ENABLE_AGGRESSIVE_STATS
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Apply DS Shader Resources"), STAT_VulkanApplyDSResources, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Update DescriptorSets"), STAT_VulkanUpdateDescriptorSets, STATGROUP_VulkanRHI, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Desc Sets Updated"), STAT_VulkanNumDescSets, STATGROUP_VulkanRHI, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num WriteDescriptors Cmd"), STAT_VulkanNumUpdateDescriptors, STATGROUP_VulkanRHI, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Set Shader Param"), STAT_VulkanSetShaderParamTime, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Set unif Buffer"), STAT_VulkanSetUniformBufferTime, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("VkUpdate DS"), STAT_VulkanVkUpdateDS, STATGROUP_VulkanRHI, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Clear Dirty DS State"), STAT_VulkanClearDirtyDSState, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Bind Vertex Streams"), STAT_VulkanBindVertexStreamsTime, STATGROUP_VulkanRHI, );
 #endif
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Num Desc Sets"), STAT_VulkanNumDescSetsTotal, STATGROUP_VulkanRHI, );
 
 namespace VulkanRHI
 {
@@ -460,6 +423,73 @@ namespace VulkanRHI
 		uint32 Size;
 		EResourceLockMode LockMode;
 	};
+
+	static uint32 GetNumBitsPerPixel(VkFormat Format)
+	{
+		switch (Format)
+		{
+		case VK_FORMAT_B8G8R8A8_UNORM:
+		case VK_FORMAT_B10G11R11_UFLOAT_PACK32:
+		case VK_FORMAT_X8_D24_UNORM_PACK32:
+		case VK_FORMAT_A2B10G10R10_UNORM_PACK32:
+		case VK_FORMAT_D32_SFLOAT:
+		case VK_FORMAT_R16G16_UNORM:
+		case VK_FORMAT_R16G16_SFLOAT:
+		case VK_FORMAT_R32_UINT:
+		case VK_FORMAT_R32_SINT:
+		case VK_FORMAT_R8G8B8A8_UNORM:
+		case VK_FORMAT_R8G8B8A8_UINT:
+		case VK_FORMAT_R8G8B8A8_SNORM:
+		case VK_FORMAT_R16G16_UINT:
+		case VK_FORMAT_R32_SFLOAT:
+			return 32;
+		case VK_FORMAT_R8_UNORM:
+		case VK_FORMAT_R8_UINT:
+			return 8;
+		case VK_FORMAT_R16_UNORM:
+		case VK_FORMAT_D16_UNORM:
+		case VK_FORMAT_R16_UINT:
+		case VK_FORMAT_R16_SINT:
+		case VK_FORMAT_R16_SFLOAT:
+		case VK_FORMAT_R5G6B5_UNORM_PACK16:
+		case VK_FORMAT_R8G8_UNORM:
+			return 16;
+		case VK_FORMAT_R16G16B16A16_SFLOAT:
+		case VK_FORMAT_R32G32_SFLOAT:
+		case VK_FORMAT_R16G16B16A16_UNORM:
+		case VK_FORMAT_R16G16B16A16_UINT:
+		case VK_FORMAT_R16G16B16A16_SINT:
+			return 64;
+		case VK_FORMAT_R32G32B32A32_SFLOAT:
+		case VK_FORMAT_R32G32B32A32_UINT:
+			return 128;
+
+			// No pixel, only blocks!
+#if PLATFORM_DESKTOP
+			//MapFormatSupport(PF_DXT1, VK_FORMAT_BC1_RGB_UNORM_BLOCK);	// Also what OpenGL expects (RGBA instead RGB, but not SRGB)
+			//MapFormatSupport(PF_DXT3, VK_FORMAT_BC2_UNORM_BLOCK);
+			//MapFormatSupport(PF_DXT5, VK_FORMAT_BC3_UNORM_BLOCK);
+			//MapFormatSupport(PF_BC4, VK_FORMAT_BC4_UNORM_BLOCK);
+			//MapFormatSupport(PF_BC5, VK_FORMAT_BC5_UNORM_BLOCK);
+			//MapFormatSupport(PF_BC6H, VK_FORMAT_BC6H_UFLOAT_BLOCK);
+			//MapFormatSupport(PF_BC7, VK_FORMAT_BC7_UNORM_BLOCK);
+#elif PLATFORM_ANDROID
+			//MapFormatSupport(PF_ASTC_4x4, VK_FORMAT_ASTC_4x4_UNORM_BLOCK);
+			//MapFormatSupport(PF_ASTC_6x6, VK_FORMAT_ASTC_6x6_UNORM_BLOCK);
+			//MapFormatSupport(PF_ASTC_8x8, VK_FORMAT_ASTC_8x8_UNORM_BLOCK);
+			//MapFormatSupport(PF_ASTC_10x10, VK_FORMAT_ASTC_10x10_UNORM_BLOCK);
+			//MapFormatSupport(PF_ASTC_12x12, VK_FORMAT_ASTC_12x12_UNORM_BLOCK);
+			//MapFormatSupport(PF_ETC1, VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK);
+			//MapFormatSupport(PF_ETC2_RGB, VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK);
+			//MapFormatSupport(PF_ETC2_RGBA, VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK);
+#endif
+		default:
+			break;
+		}
+
+		checkf(0, TEXT("Unhandled bits per pixel for VkFormat %d"), (uint32)Format);
+		return 8;
+	}
 
 	static VkImageAspectFlags GetAspectMaskFromUEFormat(EPixelFormat Format, bool bIncludeStencil, bool bIncludeDepth = true)
 	{
@@ -666,7 +696,7 @@ static inline VkFormat UEToVkFormat(EVertexElementType Type)
 		return VK_FORMAT_R16G16_SFLOAT;
 	case VET_Half4:
 		return VK_FORMAT_R16G16B16A16_SFLOAT;
-	case VET_Short4N:		// 4 X 16 bit word: normalized 
+	case VET_Short4N:		// 4 X 16 bit word: normalized
 		return VK_FORMAT_R16G16B16A16_SNORM;
 	case VET_UShort2:
 		return VK_FORMAT_R16G16_UINT;
@@ -674,7 +704,7 @@ static inline VkFormat UEToVkFormat(EVertexElementType Type)
 		return VK_FORMAT_R16G16B16A16_UINT;
 	case VET_UShort2N:		// 16 bit word normalized to (value/65535.0:value/65535.0:0:0:1)
 		return VK_FORMAT_R16G16_UNORM;
-	case VET_UShort4N:		// 4 X 16 bit word unsigned: normalized 
+	case VET_UShort4N:		// 4 X 16 bit word unsigned: normalized
 		return VK_FORMAT_R16G16B16A16_UNORM;
 	case VET_Float4:
 		return VK_FORMAT_R32G32B32A32_SFLOAT;
@@ -726,3 +756,4 @@ namespace FRCLog
 
 #define SUPPORTS_MAINTENANCE_LAYER							VK_KHR_maintenance1
 
+//extern uint32 GVulkanRHIFrameNumber;

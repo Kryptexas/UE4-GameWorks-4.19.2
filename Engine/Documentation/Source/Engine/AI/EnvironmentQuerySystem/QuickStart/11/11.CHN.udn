@@ -20,7 +20,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 这是两个 **场景查询** 的简化版，其唯一的功能便是返回 AI 1500 个单位中所有 TopDownCharacters 的列表，并测试 AI 是否能看到 TopDownCharacters。如 AI 能看到，则为行为树设置 ActorToFleeFrom 节点。
 
@@ -81,4 +81,4 @@ version:4.9
 大功告成！
 
 
-%Steps%
+

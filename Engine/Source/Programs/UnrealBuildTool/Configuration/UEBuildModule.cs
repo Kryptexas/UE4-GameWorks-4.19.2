@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -182,7 +182,7 @@ namespace UnrealBuildTool
 			NormalizedModuleIncludePath = Utils.CleanDirectorySeparators(ModuleDirectory.MakeRelativeTo(UnrealBuildTool.EngineSourceDirectory), '/');
 			ModuleApiDefine = Name.ToUpperInvariant() + "_API";
 
-			PublicDefinitions = HashSetFromOptionalEnumerableStringParameter(InRules.Definitions);
+			PublicDefinitions = HashSetFromOptionalEnumerableStringParameter(InRules.PublicDefinitions);
 			PublicIncludePaths = HashSetFromOptionalEnumerableStringParameter(InRules.PublicIncludePaths);
 			PublicSystemIncludePaths = HashSetFromOptionalEnumerableStringParameter(InRules.PublicSystemIncludePaths);
 			PublicLibraryPaths = HashSetFromOptionalEnumerableStringParameter(InRules.PublicLibraryPaths);
@@ -220,7 +220,16 @@ namespace UnrealBuildTool
 				Modules.UnionWith(PlatformSpecificDynamicallyLoadedModules);
 			}
 			return Modules;
-		}
+        }
+
+  		/// <summary>
+		/// Returns a list of this module's frameworks.
+		/// </summary>
+		/// <returns>A List containing the frameworks this module requires.</returns>
+        public List<string> GetPublicFrameworks()
+        {
+            return new List<string>(PublicFrameworks);
+        }
 
 		/// <summary>
 		/// Returns a list of this module's immediate dependencies.
@@ -802,6 +811,16 @@ namespace UnrealBuildTool
 			ExportJsonModuleArray(Writer, "PrivateIncludePathModules", PrivateIncludePathModules);
 			ExportJsonModuleArray(Writer, "DynamicallyLoadedModules", DynamicallyLoadedModules);
 
+			ExportJsonStringArray(Writer, "PublicSystemIncludePaths", PublicSystemIncludePaths);
+			ExportJsonStringArray(Writer, "PublicIncludePaths", PublicIncludePaths);
+			ExportJsonStringArray(Writer, "PrivateIncludePaths", PrivateIncludePaths);
+			ExportJsonStringArray(Writer, "PublicLibraryPaths", PublicLibraryPaths);
+			ExportJsonStringArray(Writer, "PublicAdditionalLibraries", PublicAdditionalLibraries);
+			ExportJsonStringArray(Writer, "PublicFrameworks", PublicFrameworks);
+			ExportJsonStringArray(Writer, "PublicWeakFrameworks", PublicWeakFrameworks);
+			ExportJsonStringArray(Writer, "PublicDelayLoadDLLs", PublicDelayLoadDLLs);
+			ExportJsonStringArray(Writer, "PublicDefinitions", PublicDefinitions);
+
 			Writer.WriteArrayStart("CircularlyReferencedModules");
 			foreach(string ModuleName in Rules.CircularlyReferencedDependentModules)
 			{
@@ -834,6 +853,25 @@ namespace UnrealBuildTool
 				foreach (UEBuildModule Module in Modules)
 				{
 					Writer.WriteValue(Module.Name);
+				}
+			}
+			Writer.WriteArrayEnd();
+		}
+		
+		/// <summary>
+		/// Write an array of strings to a JSON writer
+		/// </summary>
+		/// <param name="Writer">Writer for the array data</param>
+		/// <param name="ArrayName">Name of the array property</param>
+		/// <param name="Strings">Sequence of strings to write. May be null.</param>
+		void ExportJsonStringArray(JsonWriter Writer, string ArrayName, IEnumerable<string> Strings)
+		{
+			Writer.WriteArrayStart(ArrayName);
+			if (Strings != null)
+			{
+				foreach(string String in Strings)
+				{
+					Writer.WriteValue(String);
 				}
 			}
 			Writer.WriteArrayEnd();

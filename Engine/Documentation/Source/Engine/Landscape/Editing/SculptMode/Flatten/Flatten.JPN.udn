@@ -75,7 +75,8 @@ Flatten ツールを使う場合、ブラシの強度で平坦化する面積が
 |[REGION:tablesection]高度なプロパティ[/REGION]||
 | **Show Preview Grid** | Flatten Target が有効の場合、平坦化ターゲットの高さに対してプレビュー グリッドを表示するオプションです。|
 
-<!--- Excerpts
+[COMMENT:none]
+- Excerpts
 
 [EXCERPT:flattenmode]
 | 選択 | 説明 |
@@ -85,6 +86,7 @@ Flatten ツールを使う場合、ブラシの強度で平坦化する面積が
 | **Lower** | マウスをクリックした時に選択されている高さより高い値のみを下げます。このクリック ポイントよりも低い値はそのまま変更されません。 |
 [/EXCERPT:flattenmode]
 
---->
+-
+[/COMMENT]
 
 

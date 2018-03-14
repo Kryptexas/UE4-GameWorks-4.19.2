@@ -27,7 +27,8 @@ Topic-image:Vignette_topic.png
 | -------- | ---- |
 | **Vignette Intensity** | 비녜트 강도. 블룸에는 영향을 끼치지 않습니다 (퍼포먼스 때문이지만 바뀔 수 있습니다). 카메라 결함(imperfection) 효과 시뮬레이션에 사용할 수 있습니다. [INCLUDE:#Intensity] |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Intensity]
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -38,4 +39,5 @@ Topic-image:Vignette_topic.png
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:Intensity]
--->
+
+[/COMMENT]

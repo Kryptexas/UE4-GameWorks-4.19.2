@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Crumbs: %ROOT%
 Title:Skeletal Controls
 Description:Animation nodes that enable direct manipulation and applying solvers to the bones of the target Skelet
@@ -54,33 +54,11 @@ See [](Engine/Animation/NodeReference/SpaceConversion) for more information on t
 
 Below are links to additional pages with information about each of the Skeletal Control Nodes within the AnimGraph. 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	Skeletal Controls
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine\Animation\NodeReference\SkeletalControls\AnimDynamics "%Engine\Animation\NodeReference\SkeletalControls\AnimDynamics:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\ApplyPercentRotation "%Engine\Animation\NodeReference\SkeletalControls\ApplyPercentRotation:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController "%Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController:description%")		
-		* [](Engine\Animation\NodeReference\SkeletalControls\CopyBone "%Engine\Animation\NodeReference\SkeletalControls\CopyBone:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting "%Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\LookAt "%Engine\Animation\NodeReference\SkeletalControls\LookAt:description%")		
-		* [](Engine\Animation\NodeReference\SkeletalControls\SplineIK "%Engine\Animation\NodeReference\SkeletalControls\SplineIK:description%")	
-		* [](Engine\Animation\NodeReference\SkeletalControls\SpringController "%Engine\Animation\NodeReference\SkeletalControls\SpringController:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\ModifyCurve "%Engine\Animation\NodeReference\SkeletalControls\ModifyCurve:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\TransformBone "%Engine\Animation\NodeReference\SkeletalControls\TransformBone:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\TrailController "%Engine\Animation\NodeReference\SkeletalControls\TrailController:description%")		
-		* [](Engine\Animation\NodeReference\SkeletalControls\TwistCorrective "%Engine\Animation\NodeReference\SkeletalControls\TwistCorrective:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK "%Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\ObserveBone "%Engine\Animation\NodeReference\SkeletalControls\ObserveBone:description%")	
-		* [](Engine\Animation\NodeReference\SkeletalControls\RigidBody "%Engine\Animation\NodeReference\SkeletalControls\RigidBody:description%")			
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"topiccompact" parent:"Engine/Animation/NodeReference/SkeletalControls" org:"hierarchy" end:"1")]
 
-<!--
+
+[COMMENT:none]
+
 [REGION:topics third]
 %Engine\Animation\NodeReference\SkeletalControls\AnimDynamics:TopicCompact%
 %Engine\Animation\NodeReference\SkeletalControls\ApplyPercentRotation:TopicCompact%
@@ -95,4 +73,5 @@ Below are links to additional pages with information about each of the Skeletal 
 %Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK:TopicCompact%
 %Engine\Animation\NodeReference\SkeletalControls\ObserveBone:TopicCompact%
 [/REGION]
--->
+
+[/COMMENT]

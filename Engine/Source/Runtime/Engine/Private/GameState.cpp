@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GameState.cpp: GameState C++ code.
@@ -9,6 +9,7 @@
 #include "GameFramework/GameMode.h"
 #include "GameFramework/WorldSettings.h"
 #include "Net/UnrealNetwork.h"
+#include "CoreDelegates.h"
 
 AGameState::AGameState(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -61,6 +62,8 @@ void AGameState::HandleMatchIsWaitingToStart()
 		// Server handles this in AGameMode::HandleMatchIsWaitingToStart
 		GetWorldSettings()->NotifyBeginPlay();
 	}
+
+	FCoreDelegates::GameStateClassChanged.Broadcast(GetClass()->GetName());
 }
 
 void AGameState::HandleMatchHasStarted()

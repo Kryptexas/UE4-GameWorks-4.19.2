@@ -1,13 +1,15 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-#include "pipeline.hpp"
 #include <Metal/MTLPipeline.h>
+#include "pipeline.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
 	PipelineBufferDescriptor::PipelineBufferDescriptor()
 #if MTLPP_IS_AVAILABLE(10_13, 11_0)
-	: ns::Object(ns::Handle{ [MTLPipelineBufferDescriptor new] })
+	: ns::Object<MTLPipelineBufferDescriptor*>([MTLPipelineBufferDescriptor new])
 #endif
 	{
 	}
@@ -31,3 +33,5 @@ namespace mtlpp
 	}
 	
 }
+
+MTLPP_END

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -69,6 +69,7 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "Classes/Editor/UnrealEdTypes.h"
 #include "Classes/MaterialEditor/DEditorParameterValue.h"
 #include "Classes/MaterialEditor/DEditorFontParameterValue.h"
+#include "Classes/MaterialEditor/DEditorMaterialLayersParameterValue.h"
 #include "Classes/MaterialEditor/DEditorScalarParameterValue.h"
 #include "Classes/MaterialEditor/DEditorStaticComponentMaskParameterValue.h"
 #include "Classes/MaterialEditor/DEditorStaticSwitchParameterValue.h"

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PerfCounters.h"
 #include "GenericPlatform/GenericPlatformTime.h"
@@ -489,13 +489,19 @@ void FPerfCounters::SetJson(const FString& Name, const FProduceJsonCounterValue&
 
 bool FPerfCounters::StartMachineLoadTracking()
 {
+	return StartMachineLoadTracking(30.0, TArray<double>());
+}
+
+bool FPerfCounters::StartMachineLoadTracking(double TickRate, const TArray<double>& FrameTimeHistogramBucketsMs)
+{
 	if (UNLIKELY(ZeroLoadRunnable != nullptr || ZeroLoadThread != nullptr))
 	{
 		UE_LOG(LogPerfCounters, Warning, TEXT("Machine load tracking has already been started."));
 		return false;
 	}
 
-	ZeroLoadThread = new FZeroLoad(30.0);
+	// support the legacy pathway
+	ZeroLoadThread = FrameTimeHistogramBucketsMs.Num() == 0 ? new FZeroLoad(TickRate) : new FZeroLoad(TickRate, FrameTimeHistogramBucketsMs);
 	ZeroLoadRunnable = FRunnableThread::Create(ZeroLoadThread, TEXT("ZeroLoadThread"), 0, TPri_Normal);
 
 	if (UNLIKELY(ZeroLoadRunnable == nullptr))

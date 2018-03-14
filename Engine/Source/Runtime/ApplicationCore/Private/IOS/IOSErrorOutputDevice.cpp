@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IOSPlatformOutputDevices.mm: iOS implementations of OutputDevices functions
@@ -21,7 +21,7 @@ void FIOSErrorOutputDevice::Serialize( const TCHAR* Msg, ELogVerbosity::Type Ver
 	if( GIsGuarded )
 	{
 //		FOutputDevice::Serialize(Msg, Verbosity, Category);
-		FPlatformMisc::DebugBreak();
+		UE_DEBUG_BREAK();
 	}
 	else
 	{
@@ -47,5 +47,5 @@ void FIOSErrorOutputDevice::HandleError()
 	GIsCriticalError = 1;
 	GLogConsole = NULL;
 
-	GLog->Flush();
+	GLog->PanicFlushThreadedLogs();
 }

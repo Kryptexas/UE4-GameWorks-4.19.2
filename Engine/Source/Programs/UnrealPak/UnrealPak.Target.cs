@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
@@ -10,18 +10,7 @@ public class UnrealPakTarget : TargetRules
 		Type = TargetType.Program;
 		LinkType = TargetLinkType.Monolithic;
 		LaunchModuleName = "UnrealPak";
-	}
 
-	//
-	// TargetRules interface.
-	//
-
-	public override void SetupGlobalEnvironment(
-		TargetInfo Target,
-		ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
-		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
-		)
-	{
 		bCompileLeanAndMeanUE = true;
 		bUseMallocProfiler = false;
 
@@ -38,6 +27,6 @@ public class UnrealPakTarget : TargetRules
 		bCompileICU = false;
 
 		// UnrealHeaderTool is a console application, not a Windows app (sets entry point to main(), instead of WinMain())
-		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;
+		bIsBuildingConsoleApplication = true;
 	}
 }

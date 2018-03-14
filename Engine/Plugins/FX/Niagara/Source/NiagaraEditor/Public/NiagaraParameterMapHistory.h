@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,6 +9,7 @@
 class UNiagaraNodeOutput;
 class UEdGraphPin;
 class UEdGraphNode;
+class UNiagaraParameterCollection;
 
 /** Traverses a Niagara node graph to identify the variables that have been written and read from a parameter map. 
 * 	This class is meant to aid in UI and compilation of the graph. There are several main script types and each one interacts
@@ -22,6 +23,16 @@ public:
 	/** The variables that have been identified during the traversal. */
 	TArray<FNiagaraVariable> Variables;
 
+	TArray<FNiagaraVariable> VariablesWithOriginalAliasesIntact;
+
+
+	/** Used parameter collections identified during the traversal. TODO: Need to ensure these cannot be GCd if the asset is deleted while it's being used in an in flight compilation. */
+	TArray<UNiagaraParameterCollection*> ParameterCollections;
+	/** Cached off contents of used parameter collections, in case they change during threaded compilation. */
+	TArray<TArray<FNiagaraVariable>> ParameterCollectionVariables;
+	/** Cached off contents of used parameter collections, in case they change during threaded compilation. */
+	TArray<FString> ParameterCollectionNamespaces;
+	
 	/** Are there any warnings that were encountered during the traversal of the graph for a given variable? */
 	TArray<FString> PerVariableWarnings;
 
@@ -36,7 +47,7 @@ public:
 
 	/** List of emitter namespaces encountered as this parameter map was built.*/
 	TArray<FString> EmitterNamespacesEncountered;
-
+	
 	/**
 	* Called in a depth-first traversal to identify a given Niagara Parameter Map pin that was touched during traversal.
 	*/
@@ -46,7 +57,7 @@ public:
 	* Find a variable by name with no concern for type.
 	*/
 	int32 FindVariableByName(const FName& VariableName);
-
+	
 	/**
 	* Find a variable by both name and type. 
 	*/
@@ -105,6 +116,8 @@ public:
 	/** Is this parameter in the special "Engine" namespace?*/
 	static bool IsEngineParameter(const FNiagaraVariable& InVar);
 	static bool IsUserParameter(const FNiagaraVariable& InVar);
+	static bool IsRapidIterationParameter(const FNiagaraVariable& InVar);
+	static bool TryGetEmitterAndFunctionCallNamesFromRapidIterationParameter(const FNiagaraVariable& InVar, FString& EmitterName, FString& FunctionCallName);
 	
 	/** Take an input string and make it hlsl safe.*/
 	static FString MakeSafeNamespaceString(const FString& InStr);
@@ -148,11 +161,22 @@ public:
 	/**
 	* Helper to add a variable to the known list for a parameter map.
 	*/
-	int32 AddVariable(const FNiagaraVariable& InVar, const UEdGraphPin* InPin);
+	int32 AddVariable(const FNiagaraVariable& InVar, const FNiagaraVariable& InAliasedVar, const UEdGraphPin* InPin);
 
 	/** Get the default value for this variable.*/
 	const UEdGraphPin* GetDefaultValuePin(int32 VarIdx) const;
 
+	const FNiagaraVariableMetaData* GetMetaData(int32 VarIdx) const;
+	FNiagaraVariableMetaData* GetMetaData(int32 VarIdx);
+
+	static FNiagaraVariable ConvertVariableToRapidIterationConstantName(FNiagaraVariable InVar, const TCHAR* InEmitterName);
+
+	/**
+	If this is variable is a parameter in one of our tracked collections, return it.
+	@param InVar	Variable to test.
+	@param bMissingParameter	bool set to mark if this parameter was a collection parameter but is now missing from it's collection.
+	*/
+	UNiagaraParameterCollection* IsParameterCollectionParameter(FNiagaraVariable& InVar, bool& bMissingParameter);
 
 };
 
@@ -255,6 +279,9 @@ public:
 	/** Get the node calling this sub-graph.*/
 	UNiagaraNode* GetCallingContext() const;
 
+	/** Are we currently in a top-level function call context (ie a node in the main graph or an argument into a function for the main graph.)*/
+	bool InTopLevelFunctionCall(ENiagaraScriptUsage InFilterScriptType) const;
+
 	/** Helper method to identify any matching input nodes from the calling context node to the input variable.*/
 	int32 FindMatchingParameterMapFromContextInputs(const FNiagaraVariable& InVar) const;
 
@@ -265,6 +292,12 @@ public:
 	void EnableScriptWhitelist(bool bInEnable, ENiagaraScriptUsage InScriptType);
 
 	ENiagaraScriptUsage GetCurrentUsageContext()const;
+
+	bool GetIgnoreDisabled() const { return bIgnoreDisabled; }
+	void SetIgnoreDisabled(bool bInIgnore) { bIgnoreDisabled = bInIgnore; }
+
+	bool IsInEncounteredFunctionNamespace(FNiagaraVariable& InVar) const;
+	bool IsInEncounteredEmitterNamespace(FNiagaraVariable& InVar) const;
 
 protected:
 	/**
@@ -292,9 +325,15 @@ protected:
 	TArray<ENiagaraScriptUsage> RelevantScriptUsageContext;
 	/** Resolved alias map for the current context level. Rebuilt by BuildCurrentAliases.*/
 	TMap<FString, FString> AliasMap;
+
+	TArray<TArray<FString> > EncounteredFunctionNames;
+	TArray<FString> EncounteredEmitterNames;
 	
 	/** Whether or not the script whitelist is active.*/
 	bool bFilterByScriptWhitelist;
 	/** What the script type is that we should be filtering to if the whitelist is enabled.*/
 	ENiagaraScriptUsage FilterScriptType;
+
+	/** Whether or not to ignore disabled nodes.*/
+	bool bIgnoreDisabled;
 };

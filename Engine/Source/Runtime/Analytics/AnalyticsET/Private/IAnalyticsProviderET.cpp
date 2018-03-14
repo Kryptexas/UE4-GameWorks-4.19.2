@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "IAnalyticsProviderET.h"
 #include "Misc/CommandLine.h"
@@ -34,7 +34,7 @@ struct FAnalyticsPerfTracker : FTickerObjectBase
 		if (bEnabled)
 		{
 			LogFile.SetSuppressEventTag(true);
-			LogFile.Serialize(TEXT("Date,CL,RunID,Time,WindowSeconds,ProfiledSeconds,Frames,Flushes,Events,Bytes"), ELogVerbosity::Log, FName());
+			LogFile.Serialize(TEXT("Date,CL,RunID,Time,WindowSeconds,ProfiledSeconds,Frames,Flushes,Events,Bytes,FrameCounter"), ELogVerbosity::Log, FName());
 			LastSubmitTime = StartTime;
 			StartDate = FDateTime::UtcNow().ToIso8601();
 			CL = Lex::ToString(FEngineVersion::Current().GetChangelist());
@@ -80,7 +80,7 @@ private:
 			double Now = FPlatformTime::Seconds();
 			if (WindowExpired(Now))
 			{
-				LogFile.Serialize(*FString::Printf(TEXT("%s,%s,%s,%f,%f,%f,%d,%d,%d,%d"),
+				LogFile.Serialize(*FString::Printf(TEXT("%s,%s,%s,%f,%f,%f,%d,%d,%d,%d,%d"),
 					*StartDate,
 					*CL,
 					*RunID,
@@ -90,7 +90,8 @@ private:
 					FramesThisWindow,
 					FlushesThisWindow,
 					NumEventsThisWindow,
-					BytesThisWindow),
+					BytesThisWindow,
+					(uint64)GFrameCounter),
 					ELogVerbosity::Log, FName(), Now);
 				ResetWindow(Now);
 			}
@@ -290,43 +291,6 @@ private:
 	void EventRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, TSharedPtr< TArray<FAnalyticsEventEntry> > FlushedEvents);
 };
 
-class FAnalyticsProviderETNULL :
-	public IAnalyticsProviderET,
-	public TSharedFromThis<FAnalyticsProviderETNULL>
-{
-public:
-	FAnalyticsProviderETNULL(const FAnalyticsET::Config& ConfigValues) {};
-
-	// IAnalyticsProvider
-
-	virtual bool StartSession(const TArray<FAnalyticsEventAttribute>& Attributes) override { return true; }
-	virtual bool StartSession(TArray<FAnalyticsEventAttribute>&& Attributes) override { return true; }
-	virtual void EndSession() override { }
-	virtual void FlushEvents() override { }
-
-	virtual void SetAppID(FString&& AppID) override { APIKey = MoveTemp(AppID); }
-	virtual const FString& GetAppID() const override { return APIKey; }
-	virtual void SetUserID(const FString& InUserID) override { UserID = InUserID; }
-	virtual FString GetUserID() const override { return UserID; }
-
-	virtual FString GetSessionID() const override { return SessionID; }
-	virtual bool SetSessionID(const FString& InSessionID) override { SessionID = InSessionID; return true; }
-
-	virtual void RecordEvent(const FString& EventName, const TArray<FAnalyticsEventAttribute>& Attributes) override {}
-	virtual void RecordEvent(FString EventName, TArray<FAnalyticsEventAttribute>&& Attributes) override {}
-	virtual void RecordEventJson(FString EventName, TArray<FAnalyticsEventAttribute>&& AttributesJson) override {}
-	virtual void SetDefaultEventAttributes(TArray<FAnalyticsEventAttribute>&& Attributes) override {}
-	virtual void SetEventCallback(const OnEventRecorded& Callback) override {}
-
-	virtual ~FAnalyticsProviderETNULL() {};
-
-	FString GetAPIKey() const { return APIKey; }
-
-	FString APIKey;
-	FString UserID;
-	FString SessionID;
-};
-
 TSharedPtr<IAnalyticsProviderET> FAnalyticsET::CreateAnalyticsProvider(const Config& ConfigValues) const
 {
 	// If we didn't have a proper APIKey, return NULL
@@ -335,12 +299,7 @@ TSharedPtr<IAnalyticsProviderET> FAnalyticsET::CreateAnalyticsProvider(const Con
 		UE_LOG(LogAnalytics, Warning, TEXT("CreateAnalyticsProvider config not contain required parameter %s"), *Config::GetKeyNameForAPIKey());
 		return NULL;
 	}
-	//@todo sz
-#if 0
-	return TSharedPtr<IAnalyticsProviderET>(new FAnalyticsProviderETNULL(ConfigValues));
-#else
 	return TSharedPtr<IAnalyticsProviderET>(new FAnalyticsProviderET(ConfigValues));
-#endif
 }
 
 /**
@@ -427,11 +386,24 @@ bool FAnalyticsProviderET::Tick(float DeltaSeconds)
 		if (FlushEventsCountdown <= 0 ||
 			CachedEvents.Num() >= MaxCachedNumEvents)
 		{
-			FTimespan TimeSinceLastFailure = FDateTime::UtcNow() - LastFailedFlush;
-			if (TimeSinceLastFailure.GetTotalSeconds() >= RetryDelaySecs)
+			// Never tick-flush more than one provider in a single frame. There's non-trivial overhead to flushing events.
+			// On servers where there may be dozens of provider instances, this will spread out the cost a bit.
+			// If caching is disabled, we still want events to be flushed immediately, so we are only guarding the flush calls from tick,
+			// any other calls to flush are allowed to happen in the same frame.
+			static uint32 LastFrameCounterFlushed = 0;
+			if (GFrameCounter == LastFrameCounterFlushed)
 			{
-				FlushEvents();
+				UE_LOG(LogAnalytics, Verbose, TEXT("Tried to flush more than one analytics provider in a single frame. Deferring until next frame."));
 			}
+			else
+			{
+				LastFrameCounterFlushed = GFrameCounter;
+				FTimespan TimeSinceLastFailure = FDateTime::UtcNow() - LastFailedFlush;	
+				if (TimeSinceLastFailure.GetTotalSeconds() >= RetryDelaySecs)
+				{
+			FlushEvents();
+		}
+	}
 		}
 	}
 	return true;
@@ -568,10 +540,10 @@ void FAnalyticsProviderET::FlushEvents()
 							JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValueString);
 							break;
 						case FAnalyticsEventAttribute::AttrTypeEnum::Number:
-							JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValueNumber);
+							JsonWriter->WriteValue(Attr.AttrName, Attr.ToString());
 							break;
 						case FAnalyticsEventAttribute::AttrTypeEnum::Boolean:
-							JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValueBool);
+							JsonWriter->WriteValue(Attr.AttrName, Attr.ToString());
 							break;
 						case FAnalyticsEventAttribute::AttrTypeEnum::JsonFragment:
 							JsonWriter->WriteRawJSONValue(Attr.AttrName, Attr.AttrValueString);
@@ -589,16 +561,16 @@ void FAnalyticsProviderET::FlushEvents()
 								JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValueString);
 								break;
 							case FAnalyticsEventAttribute::AttrTypeEnum::Number:
-								JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValueNumber);
+								JsonWriter->WriteValue(Attr.AttrName, Attr.ToString());
 								break;
 							case FAnalyticsEventAttribute::AttrTypeEnum::Boolean:
-								JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValueBool);
+								JsonWriter->WriteValue(Attr.AttrName, Attr.ToString());
 								break;
 							case FAnalyticsEventAttribute::AttrTypeEnum::JsonFragment:
 								JsonWriter->WriteRawJSONValue(Attr.AttrName, Attr.AttrValueString);
 								break;
-							}
 						}
+					}
 					}
 					else
 					{
@@ -890,29 +862,29 @@ void FAnalyticsProviderET::EventRequestComplete(FHttpRequestPtr HttpRequest, FHt
 
 		// if FlushedEvents is passed, re-queue the events for next time
 		if (FlushedEvents.IsValid())
+	{
+		// add a dropped submission event so we can see how often this is happening
+		if (bShouldCacheEvents && CachedEvents.Num() < 1024)
 		{
-			// add a dropped submission event so we can see how often this is happening
-			if (bShouldCacheEvents && CachedEvents.Num() < 1024)
-			{
-				TArray<FAnalyticsEventAttribute> Attributes;
-				Attributes.Emplace(FAnalyticsEventAttribute(FString(TEXT("HTTP_STATUS")), FString::Printf(TEXT("%d"), HttpResponse.IsValid() ? HttpResponse->GetResponseCode() : 0)));
-				Attributes.Emplace(FAnalyticsEventAttribute(FString(TEXT("EVENTS_IN_BATCH")), FString::Printf(TEXT("%d"), FlushedEvents->Num())));
-				Attributes.Emplace(FAnalyticsEventAttribute(FString(TEXT("EVENTS_QUEUED")), FString::Printf(TEXT("%d"), CachedEvents.Num())));
-				CachedEvents.Emplace(FAnalyticsEventEntry(FString(TEXT("ET.DroppedSubmission")), MoveTemp(Attributes), false, false));
-			}
+			TArray<FAnalyticsEventAttribute> Attributes;
+			Attributes.Emplace(FAnalyticsEventAttribute(FString(TEXT("HTTP_STATUS")), FString::Printf(TEXT("%d"), HttpResponse.IsValid() ? HttpResponse->GetResponseCode() : 0)));
+			Attributes.Emplace(FAnalyticsEventAttribute(FString(TEXT("EVENTS_IN_BATCH")), FString::Printf(TEXT("%d"), FlushedEvents->Num())));
+			Attributes.Emplace(FAnalyticsEventAttribute(FString(TEXT("EVENTS_QUEUED")), FString::Printf(TEXT("%d"), CachedEvents.Num())));
+			CachedEvents.Emplace(FAnalyticsEventEntry(FString(TEXT("ET.DroppedSubmission")), MoveTemp(Attributes), false, false));
+		}
 
-			// if we're being super spammy or have been offline forever, just leave it at the ET.DroppedSubmission event
-			if (bShouldCacheEvents && CachedEvents.Num() < 256)
-			{
-				UE_LOG(LogAnalytics, Log, TEXT("[%s] ET Requeuing %d analytics events due to failure to send"), *APIKey, FlushedEvents->Num());
+		// if we're being super spammy or have been offline forever, just leave it at the ET.DroppedSubmission event
+		if (bShouldCacheEvents && CachedEvents.Num() < 256)
+		{
+			UE_LOG(LogAnalytics, Log, TEXT("[%s] ET Requeuing %d analytics events due to failure to send"), *APIKey, FlushedEvents->Num());
 
-				// put them at the beginning since it should include a default attributes entry and we don't want to change the current default attributes
-				CachedEvents.Insert(*FlushedEvents, 0);
-			}
-			else
-			{
-				UE_LOG(LogAnalytics, Error, TEXT("[%s] ET dropping %d analytics events due to too many in queue (%d)"), *APIKey, FlushedEvents->Num(), CachedEvents.Num());
-			}
+			// put them at the beginning since it should include a default attributes entry and we don't want to change the current default attributes
+			CachedEvents.Insert(*FlushedEvents, 0);
+		}
+		else
+		{
+			UE_LOG(LogAnalytics, Error, TEXT("[%s] ET dropping %d analytics events due to too many in queue (%d)"), *APIKey, FlushedEvents->Num(), CachedEvents.Num());
 		}
 	}
+}
 }

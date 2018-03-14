@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -174,11 +174,17 @@ private:
 	// returns whether we are importing or not
 	bool IsImportEnabled() const;
 
+	// returns whether we are importing or not
+	bool IsAutomaticSigningEnabled() const;
+
 	// updates the bundle identifier if it is valid and checks for a matching provision/certificate
 	void OnBundleIdentifierChanged(const FText& NewText, ETextCommit::Type, TSharedRef<IPropertyHandle> InPropertyHandle);
 
 	// posts an error if the bundle identifier has become invalid
 	void OnBundleIdentifierTextChanged(const FText& NewText, ETextCommit::Type, TSharedRef<IPropertyHandle> InPropertyHandle);
+
+	// posts an error if the bundle identifier has become invalid
+	void OnIOSTeamIDTextChanged(const FText& NewText, ETextCommit::Type, TSharedRef<IPropertyHandle> InPropertyHandle);
 
 	// returns true if the given string is a valid bundle identifier
 	bool IsBundleIdentifierValid(const FString& inIdentifier);
@@ -219,7 +225,12 @@ private:
 	// 
 	FText GetBundleText(TSharedRef<IPropertyHandle> InPropertyHandle) const;
 
+	//
+	FText GetIOSTeamIDText(TSharedRef<IPropertyHandle> InPropertyHandle) const;
+
 	TSharedPtr< SEditableTextBox > BundleIdTextBox;
+
+	TSharedPtr< SEditableTextBox > IOSTeamIDTextBox;
 	
 	/** Reference to the shader version property warning text box. */
 	TSharedPtr< SErrorText > ShaderVersionWarningTextBox;

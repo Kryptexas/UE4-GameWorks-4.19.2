@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved
 
 #include "IOSTargetPlatform.h"
 #include "HAL/PlatformProcess.h"
@@ -352,10 +352,10 @@ bool FIOSDeviceHelper::MessageTickDelegate(float DeltaTime)
 void FIOSDeviceHelper::Initialize(bool bIsTVOS)
 {
 	// Create a dummy device to hand over
-	const FString DummyDeviceName(FString::Printf(bIsTVOS ? TEXT("All_tvOS_On_%s") : TEXT("All_iOS_On_%s"), FPlatformProcess::ComputerName()));
+	const FString DummyDeviceName = FString::Printf(TEXT("All_%s_On_%s"), bIsTVOS ? TEXT("tvOS") : TEXT("iOS"), FPlatformProcess::ComputerName());
 	
 	FIOSLaunchDaemonPong Event;
-	Event.DeviceID = FString::Printf(bIsTVOS ? TEXT("TVOS@%s") : TEXT("IOS@%s"), *DummyDeviceName);
+	Event.DeviceID = FString::Printf(TEXT("%s@%s"), bIsTVOS ? TEXT("TVOS") : TEXT("IOS"), *DummyDeviceName);
 	Event.bCanReboot = false;
 	Event.bCanPowerOn = false;
 	Event.bCanPowerOff = false;

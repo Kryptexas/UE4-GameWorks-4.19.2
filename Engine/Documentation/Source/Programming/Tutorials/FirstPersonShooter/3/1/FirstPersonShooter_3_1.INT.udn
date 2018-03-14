@@ -20,7 +20,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 Now that we've set-up our character, it's time to implement a projectile weapon so that when we fire, a simple grenade-like projectile will shoot from the center of the screen and fly until it collides with the world. During this step, we're going to add input and create a new code class for our projectile.
 
@@ -662,4 +662,3 @@ It's now time to compile and check your newly implemented projectile code.
 	The purpose of this step is to catch any build errors before moving onto the next step.
 	[/REGION]
 
-%Steps%

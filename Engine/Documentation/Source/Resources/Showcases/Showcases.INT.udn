@@ -3,40 +3,8 @@ Title:Engine Feature Examples
 Crumbs:%ROOT%, Resources
 Description:Full scenes demonstrating particular features or approaches to specific challenges.
 Version: 4.9
+topic-image:Resources/Showcases/Reflections/Reflections_Topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/Showcases:title%](Resources/Showcases/Reflections/Reflections_Topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/Showcases:title%](Resources/Showcases/Reflections/Reflections_Topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/Showcases:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/Showcases:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources/Showcases]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [EXCERPT:Showcases]
 [REGION:fullwidth]
@@ -49,23 +17,11 @@ The corresponding documentation is designed to provide some insight into how eac
 
 [/EXCERPT:Showcases]
 
-[REGION:topics third]
 %Resources/Showcases/PhotorealisticCharacter:topiccompact%
 %Resources/Showcases/SequencerSubway:topiccompact%
 %Resources/Showcases/Infiltrator:topiccompact%
 %Resources/ContentExamples:TopicCompact%
 %Engine/OpenWorldTools:TopicCompact%
-%watertopic%
-%featurestopic%
-%Resources/Showcases/MatineeFightScene:topiccompact%
-%Resources/Showcases/Reflections:TopicCompact%
-%Resources/Showcases/RealisticRendering:TopicCompact%
-%Resources/Showcases/Effects:TopicCompact%
-%Resources/Showcases/BlueprintExamples:TopicCompact%
-%Resources/Showcases/Stylized:TopicCompact%
-[/REGION]
-
-[VAR:watertopic]
 [OBJECT:TopicCompactVideo]
 	[PARAMLITERAL:title]
 	Water Planes
@@ -80,9 +36,6 @@ The corresponding documentation is designed to provide some insight into how eac
 	![](WaterPlanes_Featured.png)
 	[/PARAM]
 [/OBJECT]
-[/VAR]
-
-[VAR:featurestopic]
 [OBJECT:TopicCompactVideo]
 	[PARAMLITERAL:title]
 	Features Tour 2014
@@ -97,5 +50,10 @@ The corresponding documentation is designed to provide some insight into how eac
 	![](store_GDC2014_screenshot_2.png)
 	[/PARAM]
 [/OBJECT]
-[/VAR]
+%Resources/Showcases/MatineeFightScene:topiccompact%
+%Resources/Showcases/Reflections:TopicCompact%
+%Resources/Showcases/RealisticRendering:TopicCompact%
+%Resources/Showcases/Effects:TopicCompact%
+%Resources/Showcases/BlueprintExamples:TopicCompact%
+%Resources/Showcases/Stylized:TopicCompact%
 

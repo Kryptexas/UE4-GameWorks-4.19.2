@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3612551
+﻿INTSourceChangelist:3782314
 Availability:Public
 Crumbs: %ROOT%
 Title: UMG UI 디자이너 사용 안내서
@@ -19,12 +19,5 @@ Tags:UMG UI Designer
 [/EXCERPT:umgheader]
 
 
-## 시작하기
-
-[DIR(output:"topiccompact" parent:"Engine/UMG/UserGuide" org:"hierarchy" tags:"Getting Started" end:"1")]
-
-
-## 추가 자료
-
-[DIR(output:"topiccompact" parent:"Engine/UMG/UserGuide" org:"hierarchy" tags:"!Getting Started" end:"1")]
+[DIR(output:"topiccompact" parent:"Engine/UMG/UserGuide" org:"hierarchy" end:"1")]
 

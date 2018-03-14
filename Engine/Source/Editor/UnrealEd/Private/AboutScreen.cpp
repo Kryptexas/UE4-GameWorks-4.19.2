@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AboutScreen.h"
 #include "Fonts/SlateFontInfo.h"
@@ -16,6 +16,7 @@
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 #include "Widgets/Views/SListView.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "UnrealEdMisc.h"
 #include "IDocumentation.h"
@@ -28,7 +29,7 @@ void SAboutScreen::Construct(const FArguments& InArgs)
 #pragma warning(push)
 #pragma warning(disable : 4428)	// universal-character-name encountered in source
 #endif
-	AboutLines.Add(MakeShareable(new FLineDefinition(LOCTEXT("Copyright1", "Copyright 1998-2017 Epic Games, Inc. All rights reserved"), 11, FLinearColor(1.f, 1.f, 1.f), FMargin(0.f) )));
+	AboutLines.Add(MakeShareable(new FLineDefinition(LOCTEXT("Copyright1", "Copyright 1998-2018 Epic Games, Inc. All rights reserved"), 11, FLinearColor(1.f, 1.f, 1.f), FMargin(0.f) )));
 	AboutLines.Add(MakeShareable(new FLineDefinition(LOCTEXT("Copyright2", "Epic, Epic Games, Unreal, and their respective logos are trademarks or registered trademarks of Epic Games, Inc.\nin the United States of America and elsewhere."), 8, FLinearColor(1.f, 1.f, 1.f), FMargin(0.0f,2.0f) )));
 
 #ifdef _MSC_VER
@@ -149,7 +150,7 @@ TSharedRef<ITableRow> SAboutScreen::MakeAboutTextItemWidget(TSharedRef<FLineDefi
 			[
 				SNew(STextBlock)
 				.ColorAndOpacity( Item->TextColor )
-				.Font(FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), Item->FontSize ))
+				.Font( FCoreStyle::GetDefaultFontStyle("Regular", Item->FontSize) )
 				.Text( Item->Text )
 			];
 	}

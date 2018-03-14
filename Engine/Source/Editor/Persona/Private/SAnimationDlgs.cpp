@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SAnimationDlgs.h"
@@ -8,6 +8,7 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Editor.h"
 #include "EditorStyleSet.h"
+#include "Styling/CoreStyle.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
 #include "Widgets/Input/SButton.h"
 #include "IContentBrowserSingleton.h"
@@ -63,7 +64,7 @@ void SImportPathDialog::Construct(const FArguments& InArgs)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("SelectPath", "Select Path to create animation"))
-						.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 14))
+						.Font(FCoreStyle::GetDefaultFontStyle("Regular", 14))
 					]
 
 					+SVerticalBox::Slot()

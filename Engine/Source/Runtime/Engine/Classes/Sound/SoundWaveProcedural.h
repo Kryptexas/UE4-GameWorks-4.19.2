@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 /** 
@@ -15,12 +15,14 @@
 #include "Sound/SoundWave.h"
 #include "SoundWaveProcedural.generated.h"
 
+#define DEFAULT_PROCEDURAL_SOUNDWAVE_BUFFER_SIZE 1024
+
 DECLARE_DELEGATE_TwoParams( FOnSoundWaveProceduralUnderflow, class USoundWaveProcedural*, int32 );
 
 UCLASS()
 class ENGINE_API USoundWaveProcedural : public USoundWave
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 private:
 	// A thread safe queue for queuing audio to be consumed on audio thread
@@ -47,6 +49,8 @@ protected:
 	int32 NumSamplesToGeneratePerCallback;
 
 public:
+	USoundWaveProcedural(const FObjectInitializer& ObjectInitializer);
+	USoundWaveProcedural(FVTableHelper& Helper);
 
 	//~ Begin UObject Interface. 
 	virtual void Serialize( FArchive& Ar ) override;
@@ -65,6 +69,12 @@ public:
 
 	// Virtual function to generate PCM audio from the audio render thread. 
 	virtual bool OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples) { return false; }
+
+	// Called  when the procedural sound wave begins on the render thread. Only used in the audio mixer.
+	virtual void OnBeginGenerate() {}
+
+	// Called when the procedural sound wave is done generating on the render thread. Only used in the audio mixer.
+	virtual void OnEndGenerate() {};
 
 	/** Add data to the FIFO that feeds the audio device. */
 	void QueueAudio(const uint8* AudioData, const int32 BufferSize);

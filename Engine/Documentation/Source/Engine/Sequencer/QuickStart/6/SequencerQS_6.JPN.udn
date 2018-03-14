@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3244012
+﻿INTSourceChangelist:3730788
 Availability:Public
 Title:6 応用編
 Crumbs:%ROOT%
 Description:サンプル シーンを使っていくつかの作業を試してみましょう。追加情報へのリンクも示します。 
 SkillLevel:Beginner
-Version:4.12
+Version:4.18
 Related:Engine\Sequencer
 Related:Engine\Sequencer\Overview
 checkpoint: sequencerqs
@@ -19,24 +19,30 @@ tags:Sequencer
 
 以下の操作を行ってみましょう。 
 
-* [**Fade トラック**](Engine/Sequencer/HowTo/TracksFade) を使ってシーンをフェードイン、フェードアウトさせてみましょう。 
+* [Fade トラック](Engine/Sequencer/HowTo/TracksFade) を使ってシーンをフェードイン、フェードアウトさせてみましょう。 
 * [**キャラクターのアニメーション**](Engine/Sequencer/HowTo/CharacterAnimation) を使ってレベル内のキャラクターを歩かせてみましょう。
-* [**Audio トラック**](Engine\Sequencer\HowTo\TracksAudio) で、 **Content/StarterContent/Audio** フォルダから音楽を追加してみましょう。 
-* [**Crane**](Engine\Sequencer\HowTo\CameraRigCrane) または [**Rail**](Engine\Sequencer\HowTo\CameraRigRail) のショットをシーンに追加してみましょう。 
-* [**Play Rate**](Engine\Sequencer\HowTo\TracksPlayRate) トラックでシーンをスローモーションにしてみましょう。 
+* [Audio トラック](Engine\Sequencer\HowTo\TracksAudio) で、 **Content/StarterContent/Audio** フォルダから音楽を追加してみましょう。 
+* [Crane](Engine\Sequencer\HowTo\CameraRigCrane) または [Rail](Engine\Sequencer\HowTo\CameraRigRail) のショットをシーンに追加してみましょう。 
+* [Play Rate](Engine\Sequencer\HowTo\TracksPlayRate) トラックでシーンをスローモーションにしてみましょう。 
 
 同様のシーンを再現してみましょう。 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-88egahbLEWo
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	88egahbLEWo
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
 オプションでシネマティックスを映像ファイルとして **ムービー出力** することができます。 
@@ -45,9 +51,11 @@ tags:Sequencer
 
 	![](ExportMovie.png)
 
-1. **[General]** で **[Output Directory]** を定義し、**[Capture Movie]** をクリックしてレンダリングを開始します。レンダリング中にプレビュー ウィンドウが表示され、終了すると閉じます。
+1. **[General]** で **[Output Directory]** を定義し、**[Capture Movie]** をクリックしてレンダリングを開始します。 
 
 	![](ExportMovieB.png) 
+
+	レンダリング中にプレビュー ウィンドウが表示され、終了すると閉じます。
 
 
 [NAV]

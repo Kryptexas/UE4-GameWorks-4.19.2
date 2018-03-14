@@ -1,48 +1,329 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
-Title:스카이 라이트
-Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
-Description:스카이 라이트 기본입니다.
-Version: 4.9
+Crumbs: %ROOT%
+Title: 스카이 라이트
+Description: 언리얼 엔진 4 의 스카이 라이트에 대한 개요입니다.
+Type: Overview
+SkillLevel:Beginner
+Version:4.18
+Parent:Engine/Rendering/LightingAndShadows
+Related:Engine/Rendering/LightingAndShadows/Lightmass
+Related:Engine/Rendering/LightingAndShadows/LightTypes
+Related:Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion
+Order:
+Tags:lighting
+Topic-Image:SkyLight_Topic.png
+Social-Image:SkyLight_1.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightTypes/SkyLight:title%](SkyLight_Topic.png)
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+
+
+
+[REGION:fullwidth raw]
+![](Skylight_Header.png)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+
+
+Sky Light (스카이 라이트)는 레벨의 먼 부분을 캡처하여 그 부분을 씬에 라이트로 적용하는 것입니다. 즉 하늘이 대기로부터 오는 것이라도, 
+심지어 스카이박스 위에 구름이 겹겹히 쌓여 있거나, 산악에 가려져 있더라도, 모양과 그 라이팅/리플렉션이 일치한다는 뜻입니다. 사용할 큐브맵을 수동 지정할 수도 있습니다.
+
+## 씬 캡처
+
+스카이 라이트가 씬을 캡처하는 상황은 다음과 같습니다:
+
+* **스태틱 스카이 라이트** 의 경우, 라이트를 빌드할 때 업데이트가 자동으로 일어납니다.
+* **스테이셔너리** 또는 **무버블 스카이 라이트** 의 경우, 로드할 때 한 번만 업데이트하거나, **Recapture Sky** 호출 시 멀리 있는 부분만 업데이트합니다. 이 작업은 **디테일** 패널을 통해 또는 게임 내 블루프린트 호출을 통해 할 수 있습니다.
+
+[REGION:note]
+스카이박스가 사용하는 텍스처를 변경하면, 업데이트 여부를 자동으로 알지 못합니다. 위 방법 중 하나를 사용해서 업데이트해 줘야 합니다.
+[/REGION]
+
+스카이 라이트는 앰비언트 큐브맵 대신 사용하여 스카이 라이트를 표현해야 하는데, 왜냐하면 스카이 라이트는 로컬 섀도잉을 지원하며, 이는 실내 영역이 스카이 라이트를 받지 못하게 만들기 때문입니다.
+
+
+## 모빌리티
+
+다른 [라이트 유형](Engine/Rendering/LightingAndShadows/LightTypes) 과 비슷하게, 스카이 라이트는 다음 **모빌리티** 중 하나로 설정 가능합니다:
+
+[REGION:raw]
+![](skylightIcon.png)
+[/REGION]
+
+[REGION:simpletable]
+| 모빌리티 | 설명 |
+| --- | --- |
+| **Static** | 스태틱 - 라이팅을 게임 내에서 변경할 수 없습니다. 렌더링에 가장 빠른 방식으로, 라이팅 굽기가 허용됩니다. |
+| **Stationary**  | 스테이셔너리 - 라이팅을 빌드할 때, 스태틱 지오메트리의 섀도잉과 빛 반사만 캡처합니다. 다른 모든 라이팅은 다이내믹이 됩니다. 이 세팅은 빛의 색, 세기, 게임내 큐브맵 변경이 가능하나, 이동이 불가능하고, 라이팅 굽기는 부분적으로 허용됩니다. |
+| **Movable**  | 무버블 - 라이팅 이동과 변경에 필요에 따라 가능합니다. |
+[/REGION]
+
+
+### 스태틱 스카이 라이트
+
+**스태틱** 설정된 스카이 라이트는 레벨의 스태틱 오브젝트에 대한 라이팅을 완전히 라이트맵에 구워 넣으므로 별도의 비용이 발생하지 않습니다. 라이트 프로퍼티에 수정을 가해도, 레벨의 라이팅을 다시 빌드할 때까지 
+변경사항을 확인할 수 없습니다.
+
+**모바일 개발의 경우, 현재 지원되는 유일한 스카이 라이트입니다. **
+
+[REGION:note]
+스태틱 스카이 라이트를 사용할 때, 레벨에서 모빌리티가 **스태틱** 또는 **스테이셔너리** 로 설정된 액터와 라이트만 캡처하여 라이팅에 사용됩니다. 추가로 머티리얼의 이미시브 
+기여 부분만 스태틱 스카이 라이트와 함께 캡처하여 순환 고리 현상을 피하고 있습니다. 이러한 이유로, 스카이 박스의 머티리얼은 **Unlit** 설정되어 있는지 확인해 주시기 바랍니다.
+[/REGION]
+
+### 스테이셔너리 스카이 라이트
+
+**스테이셔너리** 설정된 스카이 라이트는 스태틱 설정된 것과 마찬가지로 [라이트매스](Engine/Rendering/LightingAndShadows/Lightmass) 에서 구운 그림자를 얻습니다. 레벨에 스테이셔너리 스카이 라이트를 배치한 이후, 
+라이팅을 최소 한 번은 리빌드해 줘야 구운 그림자가 생성 및 표시됩니다.
+
+다른 [스테이셔너리 라이트](Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights) 와 마찬가지로, **블루프린트** 또는 **시퀀서** 를 통해 실행시간에 일부 프로퍼티를 변경할 수 있습니다. 즉 
+전체 레벨 라이팅 리빌드를 하지 않고도 스카이 라이트의 **Intensity** (세기) 또는 **Color** (색)을 바꿀 수 있다는 뜻입니다. 하지만 간접광은 라이트맵에 구워지고 실행시간에 변경할 수 없습니다. 간접광 양은 
+**Indirect Lighting Intensity** (간접광 세기) 옵션으로 조절할 수 있습니다.
+
+[REGION:note]
+스테이셔너리 스카이 라이트를 사용하면, 레벨에 있는 액터와 라이트 중 모빌리티가 **스태틱** 또는 **스테이셔너리** 설정된 것만 캡처하여 라이팅에 사용합니다. 추가로, 머티리얼의 이미시브 기여분만 
+스테이셔너리 스카이 라이트와 함께 캡처하여 순환 고리 현상을 피하고 있습니다. 이러한 이유로, 스카이 박스의 머티리얼은 **Unlit** 설정되어 있는지 확인해 주시기 바랍니다.
+[/REGION]
+
+
+### 무버블 스카이 라이트
+
+**무버블** 설정된 스카이 라이트는 어떠한 형태의 미리계산도 하지 않습니다. 씬 캡처를 위한 구성을 할 때 모든 모빌리티의 라이트와 컴포넌트를 캡처합니다.
+
+
+#### 디스턴스 필드 앰비언트 오클루전
+
+[REGION:warning]
+이 기능은 기본으로 켜져있지 않으며, [디스턴스 필드](Engine/Rendering/LightingAndShadows/MeshDistanceFields) 기능으로 켤 수 있습니다.
+[/REGION]
+
+무버블 스카이 라이트의 섀도잉은 스태틱 오브젝트 주변에 생성되는 Signed Distance Field Volume (부호화 디스턴스 필드 볼륨)으로부터 오는 [디스턴스 필드 앰비언트 오클루전](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) 을 통해 제공됩니다.
+디스턴스 필드 앰비언트 오클루전은 동적인 씬 변화를 지원하며, 스태틱 메시를 숨기거나 이동했을 때 오클루전에 영향을 줍니다.
+
+[REGION:lightbox]
+[![](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion/DFAOView.png)(w:550 h:250)](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion/DFAOView.png)
+[/REGION]
+[REGION:caption] 이미지를 클릭하면 원본을 확인합니다. [/REGION]
+
+
+[REGION:note]
+자세한 정보와 예제는 [](Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo/DFHT_2) 문서를 참고하세요.
+[/REGION]
+
+
+
+## 미리계산 스카이 라이트
+
+구운 라이팅과 스태틱 또는 스테이셔너리 스카이 라이트를 함께 사용할 때, 라이팅과 섀도잉 데이터는 라이트맵에 저장됩니다. 여기서는 [라이트매스](Engine/Rendering/LightingAndShadows/Lightmass) 에 지원되는 이와 같은 기능 
+몇 가지에 대해 다뤄봅니다.
+
+
+### 개선된 스태틱 스카이 라이트 방향성
+
+언리얼 엔진 4.18 이전, 스태틱 스카이 라이트는 라이트매스에 3차 구면 조화 함수로 표현되었는데, 이는 일출이나 일몰의 디테일을 제대로 잡아내지 못했습니다.
+이제 기본 해상도가 훨씬 높은 필터링 적용 큐브맵을 사용합니다. 라이트매스는 계단현상 제거를 위해 최종 수집(Final Gather) 광선 크기에 따라 [큐브맵 텍스처의 밉](Engine/Content/Types/Textures/Properties) 
+을 적절히 선택합니다. 
+
+[REGION:tip]
+이러한 유형의 작용 예제는 **엔진 콘텐츠** > **MapTemplates** > **Sky** 에서 **SunsetAmbientCubemap** 을 선택해 보면 됩니다.
+[/REGION]
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![3차 구면 조화 함수 | (이전) ](SkyLight_2.png)(w:1000)
 	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightTypes/SkyLight:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightTypes/SkyLight:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight]
+	[PARAM:after]
+	![필터 적용 큐브맵 | (이후)](SkyLight_1.png)(w:1000)
 	[/PARAM]
 [/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightTypes/SkyLight:title%](SkyLight_Topic.png)
+[REGION:caption]  [/REGION]
+[REGION:caption]
+에픽의 [로보 리콜](Modding/RoboRecall) 의 첫 시작 사무실에서 이 개선사항 예제를 확인할 수 있습니다.
+[/REGION]
+
+밝기나 색 다변화가 큰 스카이라이트 큐브맵이 있는 차폐가 심한 씬에서 큰 차이를 확인할 수 있습니다.
+
+#### 카메라 옵스큐라
+
+스태틱 스카이 라이트의 방향성이 개선되어, 이제 충분히 작은 구멍에서 핀홀 카메라 효과를 재현해 낼 수 있게 되었습니다 ([Camera Obscura](https://en.wikipedia.org/wiki/Camera_obscura)).
+구멍이 작을 수록, 스카이 라이트의 방향성이 명확해집니다.
+
+[REGION:imagetable]
+| [REGION:lightbox] [![](CO_Cubemap.png)(h:265)](CO_Cubemap.png) [/REGION] | [REGION:lightbox] [![](CO_Result.png)(h:265)](CO_Result.png) [/REGION]  |
+| ---- | ---- |
+| 스카이 라이트 소스 큐브맵 | 결과 라이트 빌드 |
+| _이미지를 클릭하면 원본을 확인합니다._ | _이미지를 클릭하면 원본을 확인합니다._ |
+[/REGION]
+
+### 스테이셔너리 스카이 라이트용 벤트 노멀
+
+스테이셔너리 스카이 라이트는 라이팅이 별도로 구워지므로, 라이트매스가 굽는 섀도잉은 방향성 오클루전 정보를 **Bent Normal** (벤트 노멀)이라는 것에 저장합니다. 
+이는 텍셀에서 차폐가 가장 덜 일어난 쪽으로의 방향입니다. 차폐가 가장 많이 일어난 영역은 스카이 라이팅에 표면 노멀 대신 이 방향을 사용하여 균열의 라이팅 퀄리티를 향상시킵니다. 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![스태틱 스카이 라이트 앰비언트 오클루전만](1SkyLightAOOnly.png)(w:700)
 	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/LightingAndShadows/LightTypes/SkyLight:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/LightingAndShadows/LightTypes/SkyLight:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight]
+	[PARAM:after]
+	![벤트 노멀을 사용한 스테이셔너리 스카이 라이트](1SkyLightBentNormal.png)(w:700)
 	[/PARAM]
 [/OBJECT]
-[/VAR]
+
+[REGION:note]
+자세한 정보는 [](Engine/Rendering/LightingAndShadows/BentNormalMaps) 문서를 참고하세요.
+[/REGION]
+
+
+
+
+
+
+### 다중 반사
+
+스카이 라이트에서 온 간접광의 다중 반사(multiple bounce)는 **월드 세팅** > **Lightmass** (라이트매스) 아래 **Num Sky Lighting Bounces** (스카이 라이팅 반사 횟수) 옵션으로 지원됩니다. 
+
+![](LightmassSettings.png)
+[REGION:caption] 스카이 라이트 반사 횟수에 사용되는 세팅입니다. [/REGION]
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![반사 횟수: 1](SkyLight_4.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![반사 횟수: 10](SkyLight_3.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+
+
+스카이라이트 다중 반사를 확인하기 위해서는 머티리얼에 디퓨즈 값이 높아야 합니다. 예를 들어, 디퓨즈 값 .18 (18% 회색)인 경우, 스카이라이트 반사 두 번째는 라이트가 방출하는 에너지의 .18^3 = .006 밖에 기여하지 못해 매우 미묘합니다. 
+디퓨즈 값이 .5 정도는 되어야, 스카이라이트 반사 두 번째 기여도가 라이트 방출 에너지의 .125 는 되어 눈에 보입니다.
+
+[REGION:warning]
+반사 한 번마다 분산이 가능하지 않은 빌드 시간이 늘어나므로, 조심해서 사용하시기 바랍니다.
+[/REGION]
+
+[COMMENT:none]
+-
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![반사 횟수: 1](SkyLight_6.png)(w:1000)
+	[/PARAM]
+	[PARAM:after]
+	![반사 횟수: 10](SkyLight_5.png)(w:1000)
+	[/PARAM]
+[/OBJECT]
+-
+[/COMMENT]
+
+## 프로퍼티
+
+Sky Light 컴포넌트의 프로퍼티는 Light 와 Sky Light 두 가지 카테고리로 나뉘어 있습니다. 액터 **디테일** 패널에서 접근할 수 있습니다.
+
+![](SkyLightSettings.png)
+
+### Light
+
+모든 [라이트 유형](Engine/Rendering/LightingAndShadows/LightTypes) 에 공통인 세팅입니다.
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| --- | --- | --- |
+| **Intensity** || 세기 - 라이트가 내뿜는 에너지 총량입니다. |
+| **Light Color** || 빛 색 - 라이트가 내뿜는 빛의 색을 지정합니다. |
+| **Affects World** || 월드에 영향 - 라이트가 월드에 영향을 줄지 비활성화시킬지 여부입니다. |
+| **Cast Shadows** || 그림자 드리우기 - 라이트가 그림자를 드리울지 여부입니다. |
+| **Casts Static Shadows** || 스태틱 섀도우 드리우기 - 라이트가 스태틱 오브젝트에서 그림자를 드리울지 여부입니다. Cast Shadows 옵션도 True 설정되어 있어야 합니다. |
+| **Casts Dynamic Shadows** || 다이내믹 섀도우 드리우기 - 라이트가 다이내믹 오브젝트에서 그림자를 드리울지 여부입니다. Cast Shadows 옵션도 True 설정되어 있어야 합니다. |
+| **Indirect Lighting Intensity** || 간접광 세기 - 이 라이트가 갖는 간접광 기여도 스케일입니다. 값이 0 이면 이 라이트에서의 글로벌 일루미네이션(GI)을 끕니다. |
+| **Volumetric Scattering Intensity** || 볼류매트릭 스캐터 세기 - 이 라이트에서의 볼류메트릭 스캐터 세기입니다. Intensity 와 Light Color 의 스케일을 조절합니다. |
+| **Cast Volumetric Shadow** || 볼류메트릭 섀도우 드리우기 - 라이트가 볼류메트릭 포그에 그림자를 드리울지 여부입니다. |
+[/REGION]
+
+### Sky Light
+
+스카이 라이트 전용 세팅입니다.
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| --- | --- | --- |
+| **Source Type** || 소스 유형 - 원거리 씬을 캡처하여 광원으로 사용할 것인지 아니면 지정한 큐브맵을 사용할 것인지 여부입니다. 씬을 캡처할 때, 스카이 라이트 위치에서 SkyDistanceThreshold 거리보다 먼 것이 포함됩니다. [INCLUDE:#sourcetype] |
+| **Cubemap** || 큐브맵 - Source Type 가 SLS_SpecifiedCubemap 으로 설정된 경우 스카이 라이팅에 사용할 큐브맵을 지정합니다. |
+| **Source Cubemap Angle** || 소스 큐브맵 각도 - Source Type 이 SLS Specified Cubemap 으로 설정되었을 때 소스 큐브맵을 회전시킬 각도입니다. |
+| **Cubemap Resolution** || 큐브맵 해상도 - 최상단 처리 큐브맵 MIP 의 최대 해상도입니다. 2 제곱수 텍스처여야 합니다. |
+| **Sky Distance Threshold** || 스카이 거리 한계치 - 스카이 라이트에서 이 거리 안에 있는 지오메트리는 스카이 라이트의 일부분으로 취급합니다 (리플렉션 캡처에도 사용됩니다). |
+| **Capture Emissive Only** || 이미시브만 캡처 - 이미시브 머티리얼만 캡처합니다. 모든 라이팅을 생략하고 캡처 비용을 절약합니다. Capture Every Frame (매 프레임 캡처)를 사용할 때 추천합니다. |
+| **Lower Hemisphere is Solid Color** || 하반구는 단색 - 하반구에서의 모든 라이팅을 0 으로 설정할지 여부입니다. 하반구의 빛샘 현상 방지에 좋습니다. |
+| **Recapture Scene** || 씬 리캡처 - 스카이 라이트 액터가 SLS_CapturedScene 로 설정되면, 씬 라이팅에 스카이 라이트가 사용하는 이미지를 다시 캡처합니다. |
+[/REGION]
+
+
+[COMMENT:none]
+-
+
+[EXCERPT:sourcetype]
+| --- | --- |
+| **SLS Captured Scene** | SLS 캡처 씬 - 캡처한 씬에서 스카이 라이트를 구성합니다. 스카이 라이트 위치에서 Sky Distance Threshold 보다 멀리 있는 것을 포함시킵니다. |
+| **SLS Specified Cubemap** | SLS 지정 큐브맵 - 지정된 큐브맵으로부터 스카이 라이트를 구성합니다. |
+[/EXCERPT:sourcetype]
+-
+[/COMMENT]
+
+
+## 무버블 오브젝트에서의 섀도잉
+
+배경에 무버블 오브젝트의 소프트 섀도우를 드리우는 것은 스켈레탈 메시에 [캡슐 섀도우](Engine/Rendering/LightingAndShadows/CapsuleShadows) 또는 스태틱 메시에 
+[디스턴스 필드 간접 섀도잉](Engine/Rendering/LightingAndShadows/MeshDistanceFields/HowTo/DFHT_4) 을 사용하면 됩니다. 정상 작동을 위해서는 별도 구성이 필요합니다.
+
+## 한계
+
+이 기능은 스카이 라이트에 좋지만 아직 구현되지 않은 것이 있습니다:
+
+* 스테이셔너리 및 무버블 버전에 대한 씬 다이내믹 리캡처 기능이 지원되지 않습니다. Sky Light 컴포넌트에 RecaptureSky() 라는 블루프린트 함수를 사용하면 되지만, 버벅임이 발생합니다.
+	
+	![](RecaptureSkyLightBP.png)(w:700)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[COMMENT:none]
+-
+
 
 [REGION:fullwidth raw]
 ![](Skylight_Header.png)
@@ -61,20 +342,8 @@ Version: 4.9
 
 **스카이 라이트** 는 **모빌리티** 를 **스태틱** 또는 **스테이셔너리** 설정이 가능합니다:
 
-[OBJECT:topiclistnotitle]
-	[PARAM:icon]
-		![](skylight_icon.png)(convert:false) 
-	[/PARAM]
-	[PARAM:description]
-	**스태틱** - (왼쪽 그림) 게임에서 라이트 변경이 불가능하다는 뜻입니다. 렌더링에 가장 빠른 방법이나, 라이팅을 굽는 것이 가능합니다.
-	
-	**스테이셔너리** - (역시 왼쪽 그림) 스태틱 지오메트리에서의 그림자와 반사광만 **라이트매스** 로 굽고, 다른 모든 라이팅은 다이내믹이 되는 라이트입니다. 이 세팅은 라이트의 색과 세기를 게임에서 변경할 수 있지만 이동은 불가능하며, 라이팅을 부분적으로 굽는 것이 가능합니다.
-	[/PARAM]
-[/OBJECT]
-
-[REGION:raw]
-![](spacer.png)
-[/REGION]
+* **스태틱** - (왼쪽 그림) 게임에서 라이트 변경이 불가능하다는 뜻입니다. 렌더링에 가장 빠른 방법이나, 라이팅을 굽는 것이 가능합니다.
+* 	**스테이셔너리** - (역시 왼쪽 그림) 스태틱 지오메트리에서의 그림자와 반사광만 **라이트매스** 로 굽고, 다른 모든 라이팅은 다이내믹이 되는 라이트입니다. 이 세팅은 라이트의 색과 세기를 게임에서 변경할 수 있지만 이동은 불가능하며, 라이팅을 부분적으로 굽는 것이 가능합니다.
 
 아래 그림은 **스카이 라이트** 를 활용하는 씬에서의 이미지 예제입니다.
 
@@ -95,7 +364,8 @@ Version: 4.9
 [/REGION]
 
 _스테이셔너리 스카이 라이트로만 라이팅된 씬으로, 각기 다른 HDR 스카이박스 큐브맵을 지정한 것입니다._
--->
+
+[/COMMENT]
 
 ## 스태틱 스카이 라이트
 
@@ -118,13 +388,15 @@ _스테이셔너리 스카이 라이트로만 라이팅된 씬으로, 각기 다
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [REGION:lightbox]
 
 [![](skyLightEx_03.png)(w:462)](skyLightEx_03.png) [![](skyLightEx_04.png)(w:462)](skyLightEx_04.png)
 
 [/REGION]
--->
+
+[/COMMENT]
 _첫 그림은 AO 만 있는 스카이 라이트입니다. 둘째 그림은 굽은 노멀 차폐로 된 스카이 라이트입니다. 빛이 들어오는 부분에 있는 균열 표면이 절충된 것을 볼 수 있습니다.
 
 주: **모빌리티** 가 **스태틱** 또는 **스테이셔너리** 인 컴포넌트와 라이트만 **스테이셔너리 스카이 라이트** 에 캡처되어 사용됩니다.
@@ -140,7 +412,8 @@ _첫 그림은 AO 만 있는 스카이 라이트입니다. 둘째 그림은 굽�
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [REGION:lightbox]
 
 [![](0Original.jpg)(w:884)](0Original.jpg) [![](0SkyLightGI.jpg)(w:884)](0SkyLightGI.jpg)
@@ -148,7 +421,8 @@ _첫 그림은 AO 만 있는 스카이 라이트입니다. 둘째 그림은 굽�
 [/REGION]
 
 _위: 직사광만, 아래: 스테이셔너리 스카이라이트에 대해 라이트매스로 계산된 디퓨즈 GI 와 직사광_
--->
+
+[/COMMENT]
 
 ## 무버블 스카이라이트
 
@@ -185,3 +459,4 @@ _위: 직사광만, 아래: 스테이셔너리 스카이라이트에 대해 라�
 | **Lower Hemisphere is Black** | 하반구는 검정 - 하반구의 모든 라이팅을 0 으로 설정할지 입니다. 하반구에서의 빛샘 현상을 방지하는 데 좋습니다. |
 | **Recapture Scene** | 씬 리캡처 - **스카이 라이트 액터** 가 `SLS_CapturedScene` 로 설정된 경우, 스카이 라이트가 씬을 라이팅하는 데 사용하고 있는 이미지를 다시 캡처합니다. |
 
+---->

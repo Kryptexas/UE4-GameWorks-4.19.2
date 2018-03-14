@@ -41,8 +41,11 @@ The ParticleSystem class contains the following public variable(s):
 | **Custom Occlusion Bounds** | The bounds to use for calculating occlusion when using the _EPSOBM_CustomBounds_ _Occlusion Bounds Method_. |
 
 
-<!-- Begin ParticleSystem Table Includes -->
-<!--
+[COMMENT:none]
+ Begin ParticleSystem Table Includes 
+[/COMMENT]
+[COMMENT:none]
+
 [EXCERPT:LODDistance]
 [REGION:simpletable]
 | LODDistanceIndex | Value | Range | LOD level selected |
@@ -79,6 +82,9 @@ The ParticleSystem class contains the following public variable(s):
 [/REGION]
 `EPSUM_FixedTime` will step the system a given amount regardless of the current frame-rate. This mode should only be used when the effect timing is not key to another system - such as tying the emitter to an animation.
 [/EXCERPT:SystemUpdate]
--->
-<!-- End ParticleSystem Includes -->
+
+[/COMMENT]
+[COMMENT:none]
+ End ParticleSystem Includes 
+[/COMMENT]
 

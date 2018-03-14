@@ -4,31 +4,11 @@ Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
 Description:A breakdown of the UI elements of the Blueprint Editor when working on Blueprint Macro Libraries.
 version: 4.9
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/Editor/UIBreakdowns/MacroLibraryUI:title%](Engine/Blueprints\UserGuide\Types\macro_blueprint.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/Editor/UIBreakdowns/MacroLibraryUI:title%
-	[/PARAM]
-	[PARAM:description]
-		%description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/Editor/UIBreakdowns/MacroLibraryUI]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:Engine/Blueprints/UserGuide/Types/macro_blueprint.png
 
 [INCLUDE:Engine/Blueprints/UserGuide/Types/MacroLibrary#intro]
 
-For more information on Macro Libraries and how to use them, please see the [](Engine/Blueprints/UserGuide\Types\MacroLibrary) documentation.
+For more information on Macro Libraries and how to use them, please see the [](Engine/Blueprints/UserGuide/Types/MacroLibrary) documentation.
 
 ## Interface
 
@@ -45,18 +25,20 @@ Much like with Blueprint Interfaces, when you first open the Blueprint Editor fo
 
 
 
-<!----------
+[COMMENT:none]
+--------
 [EXCERPT:Visible]
-1. [Menu](Engine/Blueprints/Editor\UIComponents\Menu)
-1. [Toolbar](Engine/Blueprints/Editor\UIComponents\Toolbar)
-1. [My Blueprint](Engine/Blueprints/Editor\UIComponents\MyBlueprint)
-1. [Details](Engine/Blueprints/Editor\UIComponents\Details)
-1. [Graph Editor](Engine/Blueprints/Editor\UIComponents\GraphEditor)
+1. [Menu](Engine/Blueprints/Editor/UIComponents/Menu)
+1. [Toolbar](Engine/Blueprints/Editor/UIComponents/Toolbar)
+1. [My Blueprint](Engine/Blueprints/Editor/UIComponents/MyBlueprint)
+1. [Details](Engine/Blueprints/Editor/UIComponents/Details)
+1. [Graph Editor](Engine/Blueprints/Editor/UIComponents/GraphEditor)
 [/EXCERPT:Visible]
 
 [EXCERPT:Invisible]
-* [Debug](Engine/Blueprints/Editor\UIComponents\Debug)
-* [Find Results](Engine/Blueprints/Editor\UIComponents\FindResults)
-* [Palette](Engine/Blueprints/Editor\UIComponents\Palette)
+* [Debug](Engine/Blueprints/Editor/UIComponents/Debug)
+* [Find Results](Engine/Blueprints/Editor/UIComponents/FindResults)
+* [Palette](Engine/Blueprints/Editor/UIComponents/Palette)
 [/EXCERPT:Invisible]
-------------->
+-----------
+[/COMMENT]

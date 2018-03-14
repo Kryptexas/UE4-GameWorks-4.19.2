@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "FunctionalTestingModule.h"
 #include "FunctionalTestingManager.h"
 #include "Misc/CoreMisc.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 #include "EngineUtils.h"
@@ -36,6 +37,10 @@ private:
 	UWorld* GetTestWorld();
 	void OnGetAssetTagsForWorld(const UWorld* World, TArray<UObject::FAssetRegistryTag>& OutTags);
 
+	void BuildTestBlacklistFromConfig();
+	bool IsBlacklisted(const FString& MapName, const FString& TestName) const;
+
+	TArray<FString> TestBlacklist;
 	TWeakObjectPtr<class UFunctionalTestingManager> TestManager;
 	bool bPendingActivation;
 };
@@ -46,6 +51,7 @@ void FFunctionalTestingModule::StartupModule()
 #if WITH_EDITOR
 	FWorldDelegates::GetAssetTags.AddRaw(this, &FFunctionalTestingModule::OnGetAssetTagsForWorld);
 #endif
+	BuildTestBlacklistFromConfig();
 }
 
 void FFunctionalTestingModule::ShutdownModule() 
@@ -138,12 +144,16 @@ void FFunctionalTestingModule::GetMapTests(bool bEditorOnlyTests, TArray<FString
 						{
 							FString BeautifulTestName;
 							FString RealTestName;
+							FString MapPackageName = MapAsset.PackageName.ToString();
 
 							if (MapTest.Split(TEXT("|"), &BeautifulTestName, &RealTestName))
 							{
-								OutBeautifiedNames.Add(MapAsset.PackageName.ToString() + TEXT(".") + *BeautifulTestName);
-								OutTestCommands.Add(MapAssetPath + TEXT(";") + MapAsset.PackageName.ToString() + TEXT(";") + *RealTestName);
-								OutTestMapAssets.AddUnique(MapAssetPath);
+								if (!IsBlacklisted(MapPackageName, RealTestName))
+								{
+									OutBeautifiedNames.Add(MapPackageName + TEXT(".") + *BeautifulTestName);
+									OutTestCommands.Add(MapAssetPath + TEXT(";") + MapAsset.PackageName.ToString() + TEXT(";") + *RealTestName);
+									OutTestMapAssets.AddUnique(MapAssetPath);
+								}
 							}
 						}
 					}
@@ -240,11 +250,70 @@ void FFunctionalTestingModule::RunTestOnMap(const FString& TestName, bool bClear
 	if (UWorld* TestWorld = GetTestWorld())
 	{
 		bPendingActivation = false;
-		if (UFunctionalTestingManager::RunAllFunctionalTests(TestWorld, bClearLog, bRunLooped, true, TestName) == false)
+		if (UFunctionalTestingManager::RunAllFunctionalTests(TestWorld, bClearLog, bRunLooped, TestName) == false)
 		{
 			UE_LOG(LogFunctionalTest, Error, TEXT("No functional testing script on map."));
 		}
 	}
+}
+
+void FFunctionalTestingModule::BuildTestBlacklistFromConfig() 
+{
+	TestBlacklist.Empty();
+	if (GConfig)
+	{
+		for (const TPair<FString,FConfigFile>& Config : *GConfig)
+		{
+			FConfigSection* BlacklistSection = GConfig->GetSectionPrivate(TEXT("AutomationTestBlacklist"), false, true, Config.Key);
+			if (BlacklistSection)
+			{
+				// Parse all blacklist definitions of the format "BlacklistTest=(Map=/Game/Tests/MapName, Test=TestName)"
+				for (FConfigSection::TIterator Section(*BlacklistSection); Section; ++Section)
+				{
+					if (Section.Key() == TEXT("BlacklistTest"))
+					{
+						FString BlacklistValue = Section.Value().GetValue();
+						FString Map, Test;
+						bool bSuccess = false;
+						
+						if (FParse::Value(*BlacklistValue, TEXT("Map="), Map, true) && FParse::Value(*BlacklistValue, TEXT("Test="), Test, true))
+						{
+							// These are used as folders so ensure they match the expected layout
+							if (Map.StartsWith(TEXT("/")))
+							{
+								FString ListName = Map + TEXT("/") + Test;
+								ListName.RemoveSpacesInline();
+
+								TestBlacklist.AddUnique(ListName);
+								bSuccess = true;
+							}
+						}
+						
+						if (!bSuccess)
+						{
+							UE_LOG(LogFunctionalTest, Error, TEXT("Invalid blacklisted test definition: '%s'"), *BlacklistValue);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if (TestBlacklist.Num() > 0)
+	{
+		UE_LOG(LogFunctionalTest, Log, TEXT("Automated Test Blacklist:"));
+		for (FString& Test : TestBlacklist)
+		{
+			UE_LOG(LogFunctionalTest, Log, TEXT("\tTest: %s"), *Test);
+		}
+	}
+}
+
+bool FFunctionalTestingModule::IsBlacklisted(const FString& MapName, const FString& TestName) const
+{
+	FString ListName = MapName + TEXT("/") + TestName;
+	ListName.RemoveSpacesInline();
+	return TestBlacklist.Contains(ListName);
 }
 
 //////////////////////////////////////////////////////////////////////////

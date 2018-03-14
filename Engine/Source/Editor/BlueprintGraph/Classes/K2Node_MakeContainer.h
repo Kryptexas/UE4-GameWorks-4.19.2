@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -45,8 +45,8 @@ public:
 	BLUEPRINTGRAPH_API UEdGraphPin* GetOutputPin() const;
 
 	/** returns a reference to the output array pin of this node, which is responsible for defining the type */
-	virtual FString GetOutputPinName() const PURE_VIRTUAL(UK2Node_MakeContainer::GetOutputPinName, return FString(););
-	virtual FString GetPinName(int32 PinIndex) const;
+	virtual FName GetOutputPinName() const PURE_VIRTUAL(UK2Node_MakeContainer::GetOutputPinName, return NAME_None;);
+	virtual FName GetPinName(int32 PinIndex) const;
 	virtual void GetKeyAndValuePins(TArray<UEdGraphPin*>& KeyPins, TArray<UEdGraphPin*>& ValuePins) const;
 
 public:

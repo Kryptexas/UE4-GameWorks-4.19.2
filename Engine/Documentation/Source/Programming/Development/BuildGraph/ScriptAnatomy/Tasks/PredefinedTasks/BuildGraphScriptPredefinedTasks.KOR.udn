@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3606403
+﻿INTSourceChangelist:3735956
 Availability: NoPublish
 Title: BuildGraph 미리정의된 태스크
 Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/BuildGraphScriptTasks
 Description: 절차적 생성되는 마크다운 페이지입니다.
-version: 4.18
+version: 4.19
 parent:Programming/Development/BuildGraph/BuildGraphScriptTasks
 
 ### AgeStore

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LUTBlender.usf: Filter pixel shader source.
@@ -155,6 +155,7 @@ float3 ColorCorrect( float3 WorkingColor,
 	return WorkingColor;
 }
 
+// Nuke-style Color Correct
 float3 ColorCorrectAll( float3 WorkingColor )
 {
 	float Luma = dot( WorkingColor, AP1_RGB2Y );
@@ -192,31 +193,6 @@ float3 ColorCorrectAll( float3 WorkingColor )
 	return WorkingColorSMH;
 }
 
-float3 ColorGrade( float3 LinearColor )
-{
-	// ACEScg working space
-	const float3x3 sRGB_2_AP1 = mul( XYZ_2_AP1_MAT, mul( D65_2_D60_CAT, sRGB_2_XYZ_MAT ) );
-	const float3x3 AP1_2_sRGB = mul( XYZ_2_sRGB_MAT, mul( D60_2_D65_CAT, AP1_2_XYZ_MAT ) );
-
-	float3 WorkingColor = mul( sRGB_2_AP1, LinearColor );
-
-	// Nuke-style Color Correct
-	WorkingColor = ColorCorrectAll(WorkingColor);
-
-#if 0
-	{
-		// Split tone
-		float ShadowWeight = 1 - smoothstep( 0, 0.18, Luma );
-		float HighlightWeight = smoothstep( 0.5, 1, Luma );
-		float MidtoneWeight = 1 - ShadowWeight - HighlightWeight;
-
-		WorkingColor = ShadowWeight * ShadowColor + MidtoneWeight * GradedColor + HighlightWeight * HighlightColor;
-	}
-#endif
-
-	return mul( AP1_2_sRGB, WorkingColor );
-}
-
 uint OutputDevice;
 uint OutputGamut;
 
@@ -229,6 +205,9 @@ uint GetOutputDevice()
 	return 0;
 #endif 
 }
+
+float BlueCorrection;
+float ExpandGamut;
 
 float4 CombineLUTsCommon(float2 InUV, uint InLayerIndex)
 {
@@ -264,8 +243,12 @@ float4 CombineLUTsCommon(float2 InUV, uint InLayerIndex)
 	float4 OutColor = 0;
 	
 	// AP1 to Working space matrices
-	const float3x3 sRGB_2_AP1    = mul( XYZ_2_AP1_MAT, mul( D65_2_D60_CAT, sRGB_2_XYZ_MAT ) );
-	const float3x3 AP1_2_sRGB    = mul( XYZ_2_sRGB_MAT, mul( D60_2_D65_CAT, AP1_2_XYZ_MAT ) );
+	const float3x3 sRGB_2_AP1 = mul( XYZ_2_AP1_MAT, mul( D65_2_D60_CAT, sRGB_2_XYZ_MAT ) );
+	const float3x3 AP1_2_sRGB = mul( XYZ_2_sRGB_MAT, mul( D60_2_D65_CAT, AP1_2_XYZ_MAT ) );
+
+	const float3x3 AP0_2_AP1 = mul( XYZ_2_AP1_MAT, AP0_2_XYZ_MAT );
+	const float3x3 AP1_2_AP0 = mul( XYZ_2_AP0_MAT, AP1_2_XYZ_MAT );
+
 	const float3x3 AP1_2_Output  = OuputGamutMappingMatrix( OutputGamut );
 
 	float3 LUTEncodedColor = Neutral.rgb;
@@ -278,13 +261,68 @@ float4 CombineLUTsCommon(float2 InUV, uint InLayerIndex)
 		LinearColor = LogToLin( LUTEncodedColor ) - LogToLin( 0 );
 
 	float3 BalancedColor = WhiteBalance( LinearColor );
-	float3 GradedColor = ColorGrade( BalancedColor );
+	float3 ColorAP1 = mul( sRGB_2_AP1, BalancedColor );
+
+	// Expand bright saturated colors outside the sRGB gamut to fake wide gamut rendering.
+	if( ColorShadow_Tint2.a != 0 )
+	{
+		float  LumaAP1 = dot( ColorAP1, AP1_RGB2Y );
+		float3 ChromaAP1 = ColorAP1 / LumaAP1;
+
+		float ChromaDistSqr = dot( ChromaAP1 - 1, ChromaAP1 - 1 );
+		float ExpandAmount = ( 1 - exp2( -4 * ChromaDistSqr ) ) * ( 1 - exp2( -4 * ExpandGamut * LumaAP1*LumaAP1 ) );
+
+		// Bizarre matrix but this expands sRGB to between P3 and AP1
+		// CIE 1931 chromaticities:	x		y
+		//				Red:		0.6965	0.3065
+		//				Green:		0.245	0.718
+		//				Blue:		0.1302	0.0456
+		//				White:		0.3127	0.329
+		const float3x3 Wide_2_XYZ_MAT = 
+		{
+			0.5441691,  0.2395926,  0.1666943,
+			0.2394656,  0.7021530,  0.0583814,
+			-0.0023439,  0.0361834,  1.0552183,
+		};
+
+		const float3x3 Wide_2_AP1 = mul( XYZ_2_AP1_MAT, Wide_2_XYZ_MAT );
+		const float3x3 ExpandMat = mul( Wide_2_AP1, AP1_2_sRGB );
+
+		float3 ColorExpand = mul( ExpandMat, ColorAP1 );
+		ColorAP1 = lerp( ColorAP1, ColorExpand, ExpandAmount );
+	}
+
+	ColorAP1 = ColorCorrectAll( ColorAP1 );
+
+	// Store for Legacy tonemap later
+	float3 GradedColor = mul( AP1_2_sRGB, ColorAP1 );
+
+	const float3x3 BlueCorrect =
+	{
+		0.9404372683, -0.0183068787, 0.0778696104,
+		0.0083786969,  0.8286599939, 0.1629613092,
+		0.0005471261, -0.0008833746, 1.0003362486
+	};
+	const float3x3 BlueCorrectInv =
+	{
+		1.06318,     0.0233956, -0.0865726,
+		-0.0106337,   1.20632,   -0.19569,
+		-0.000590887, 0.00105248, 0.999538
+	};
+	const float3x3 BlueCorrectAP1    = mul( AP0_2_AP1, mul( BlueCorrect,    AP1_2_AP0 ) );
+	const float3x3 BlueCorrectInvAP1 = mul( AP0_2_AP1, mul( BlueCorrectInv, AP1_2_AP0 ) );
+
+	// Blue correction
+	ColorAP1 = lerp( ColorAP1, mul( BlueCorrectAP1, ColorAP1 ), BlueCorrection );
 
 	// Tonemapped color in the AP1 gamut
-	float3 FilmColorAP1 = FilmToneMap( GradedColor );
+	ColorAP1 = FilmToneMap( ColorAP1 );
+
+	// Uncorrect blue to maintain white point
+	ColorAP1 = lerp( ColorAP1, mul( BlueCorrectInvAP1, ColorAP1 ), BlueCorrection );
 
 	// Convert from AP1 to sRGB and clip out-of-gamut values
-	float3 FilmColor = max(0, mul( AP1_2_sRGB, FilmColorAP1 ));
+	float3 FilmColor = max(0, mul( AP1_2_sRGB, ColorAP1 ));
 
 #if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1 // Mobile path uses separate shader for legacy tone mapper
 	BRANCH
@@ -390,6 +428,12 @@ float4 CombineLUTsCommon(float2 InUV, uint InLayerIndex)
 
 		// Apply conversion to ST-2084 (Dolby PQ)
 		OutDeviceColor = LinearToST2084( ODTColor );
+	}	
+	
+	else if( GetOutputDevice() == 7 )
+	{
+			float3 OutputGamutColor = mul( AP1_2_Output, mul( sRGB_2_AP1, GradedColor ) );
+			OutDeviceColor = LinearToST2084( OutputGamutColor );
 	}
 
 	// OutputDevice == 2

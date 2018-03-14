@@ -1,8 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShadingModelsMaterial.usf: Pixel shader function for computing a GBuffer from shading model.
 =============================================================================*/
+
+// Optimization: if opacity is 0 then revert to default shading model 
+#define SUBSURFACE_PROFILE_OPACITY_THRESHOLD 1
 
 void SetGBufferForShadingModel(
 	in out FGBufferData GBuffer, 

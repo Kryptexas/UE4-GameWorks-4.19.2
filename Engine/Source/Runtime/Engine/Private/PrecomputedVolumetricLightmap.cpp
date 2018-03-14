@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrecomputedVolumetricLightmap.cpp
@@ -12,6 +12,9 @@
 #include "UnrealEngine.h"
 #include "Engine/MapBuildDataRegistry.h"
 #include "Interfaces/ITargetPlatform.h"
+#include "MobileObjectVersion.h"
+
+DECLARE_MEMORY_STAT(TEXT("Volumetric Lightmap"),STAT_VolumetricLightmapBuildData,STATGROUP_MapBuildData);
 
 void FVolumetricLightmapDataLayer::CreateTexture(FIntVector Dimensions)
 {
@@ -24,7 +27,7 @@ void FVolumetricLightmapDataLayer::CreateTexture(FIntVector Dimensions)
 		Dimensions.Z, 
 		Format,
 		1,
-		TexCreate_ShaderResource,
+		TexCreate_ShaderResource | TexCreate_DisableAutoDefrag,
 		CreateInfo);
 }
 
@@ -56,6 +59,8 @@ FArchive& operator<<(FArchive& Ar,FVolumetricLightmapDataLayer& Layer)
 
 FArchive& operator<<(FArchive& Ar,FPrecomputedVolumetricLightmapData& Volume)
 {
+	Ar.UsingCustomVersion(FMobileObjectVersion::GUID);
+
 	Ar << Volume.Bounds;
 	Ar << Volume.IndirectionTextureDimensions;
 	Ar << Volume.IndirectionTexture;
@@ -72,11 +77,33 @@ FArchive& operator<<(FArchive& Ar,FPrecomputedVolumetricLightmapData& Volume)
 
 	Ar << Volume.BrickData.SkyBentNormal;
 	Ar << Volume.BrickData.DirectionalLightShadowing;
+	
+	if (Ar.CustomVer(FMobileObjectVersion::GUID) >= FMobileObjectVersion::LQVolumetricLightmapLayers)
+	{
+		if (Ar.IsCooking() && !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::LowQualityLightmaps))
+		{
+			// Don't serialize cooked LQ data if the cook target does not want it.
+			FVolumetricLightmapDataLayer Dummy;
+			Ar << Dummy;
+			Ar << Dummy;
+		}
+		else
+		{
+			Ar << Volume.BrickData.LQLightColor;
+			Ar << Volume.BrickData.LQLightDirection;
+		}
+	}
 
 	if (Ar.IsLoading())
 	{
+		if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+		{
+			// drop LQ data for SM4+
+			Volume.BrickData.DiscardLowQualityLayers();
+		}
+
 		const SIZE_T VolumeBytes = Volume.GetAllocatedBytes();
-		INC_DWORD_STAT_BY(STAT_PrecomputedVolumetricLightmapMemory, VolumeBytes);
+		INC_DWORD_STAT_BY(STAT_VolumetricLightmapBuildData, VolumeBytes);
 	}
 
 	return Ar;
@@ -124,7 +151,7 @@ FPrecomputedVolumetricLightmapData::FPrecomputedVolumetricLightmapData()
 FPrecomputedVolumetricLightmapData::~FPrecomputedVolumetricLightmapData()
 {
 	const SIZE_T VolumeBytes = GetAllocatedBytes();
-	DEC_DWORD_STAT_BY(STAT_PrecomputedVolumetricLightmapMemory, VolumeBytes);
+	DEC_DWORD_STAT_BY(STAT_VolumetricLightmapBuildData, VolumeBytes);
 }
 
 /** */
@@ -137,7 +164,7 @@ void FPrecomputedVolumetricLightmapData::InitializeOnImport(const FBox& NewBound
 void FPrecomputedVolumetricLightmapData::FinalizeImport()
 {
 	const SIZE_T VolumeBytes = GetAllocatedBytes();
-	INC_DWORD_STAT_BY(STAT_PrecomputedVolumetricLightmapMemory, VolumeBytes);
+	INC_DWORD_STAT_BY(STAT_VolumetricLightmapBuildData, VolumeBytes);
 }
 
 ENGINE_API void FPrecomputedVolumetricLightmapData::InitRHI()
@@ -174,7 +201,7 @@ ENGINE_API void FPrecomputedVolumetricLightmapData::ReleaseRHI()
 
 SIZE_T FPrecomputedVolumetricLightmapData::GetAllocatedBytes() const
 {
-	return IndirectionTexture.Data.Num() + BrickData.GetAllocatedBytes();
+	return IndirectionTexture.DataSize + BrickData.GetAllocatedBytes();
 }
 
 
@@ -242,6 +269,20 @@ void FPrecomputedVolumetricLightmap::SetData(FPrecomputedVolumetricLightmapData*
 void FPrecomputedVolumetricLightmap::ApplyWorldOffset(const FVector& InOffset)
 {
 	WorldOriginOffset += InOffset;
+}
+
+FVector ComputeIndirectionCoordinate(FVector LookupPosition, const FBox& VolumeBounds, FIntVector IndirectionTextureDimensions)
+{
+	const FVector InvVolumeSize = FVector(1.0f) / VolumeBounds.GetSize();
+	const FVector VolumeWorldToUVScale = InvVolumeSize;
+	const FVector VolumeWorldToUVAdd = -VolumeBounds.Min * InvVolumeSize;
+
+	FVector IndirectionDataSourceCoordinate = (LookupPosition * VolumeWorldToUVScale + VolumeWorldToUVAdd) * FVector(IndirectionTextureDimensions);
+	IndirectionDataSourceCoordinate.X = FMath::Clamp<float>(IndirectionDataSourceCoordinate.X, 0.0f, IndirectionTextureDimensions.X - .01f);
+	IndirectionDataSourceCoordinate.Y = FMath::Clamp<float>(IndirectionDataSourceCoordinate.Y, 0.0f, IndirectionTextureDimensions.Y - .01f);
+	IndirectionDataSourceCoordinate.Z = FMath::Clamp<float>(IndirectionDataSourceCoordinate.Z, 0.0f, IndirectionTextureDimensions.Z - .01f);
+
+	return IndirectionDataSourceCoordinate;
 }
 
 void SampleIndirectionTexture(

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -24,7 +24,8 @@ namespace FLandscapeCustomVersion
 		GrassMaterialInstanceFix,
 		// Fix for spline Foreign data that used TMap<TLazyObjectPtr, ...> to now use TArray<...> to prevent key creation every time we do a search thus putting the package dirty
 		SplineForeignDataLazyObjectPtrFix,
-
+		// Migration of deprecated property from old landscape rendering to new landscape Rendering 
+		MigrateOldPropertiesToNewRenderingProperties,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

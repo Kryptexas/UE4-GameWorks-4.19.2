@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimNotifyDetails.h"
 #include "Widgets/Text/STextBlock.h"
@@ -131,6 +131,7 @@ void FAnimNotifyDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 
 	FPropVisPair TriggerSettingNames[] = { { TEXT("Event.NotifyTriggerChance"), TAttribute<EVisibility>(EVisibility::Visible) }
 										 , { TEXT("Event.bTriggerOnDedicatedServer"), TAttribute<EVisibility>(EVisibility::Visible) }
+										 , { TEXT("Event.bTriggerOnFollower"), TAttribute<EVisibility>(EVisibility::Visible) }
 										 , { TEXT("Event.NotifyFilterType"), TAttribute<EVisibility>(EVisibility::Visible) }
 										 , { TEXT("Event.NotifyFilterLOD"), TAttribute<EVisibility>(this, &FAnimNotifyDetails::VisibilityForLODFilterMode) } };
 

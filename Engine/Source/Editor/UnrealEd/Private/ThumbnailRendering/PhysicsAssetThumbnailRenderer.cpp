@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ThumbnailRendering/PhysicsAssetThumbnailRenderer.h"
 #include "Misc/App.h"
@@ -6,10 +6,6 @@
 #include "SceneView.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "ThumbnailHelpers.h"
-
-// FPreviewScene derived helpers for rendering
-#include "RendererInterface.h"
-#include "EngineModule.h"
 
 UPhysicsAssetThumbnailRenderer::UPhysicsAssetThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -34,10 +30,9 @@ void UPhysicsAssetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uin
 		ViewFamily.EngineShowFlags.DisableAdvancedFeatures();
 		ViewFamily.EngineShowFlags.MotionBlur = 0;
 		ViewFamily.EngineShowFlags.LOD = 0;
-		ViewFamily.EngineShowFlags.Collision = 1;
 
 		ThumbnailScene->GetView(&ViewFamily, X, Y, Width, Height);
-		GetRendererModule().BeginRenderingViewFamily(Canvas,&ViewFamily);
+		RenderViewFamily(Canvas,&ViewFamily);
 		ThumbnailScene->SetPhysicsAsset(nullptr);
 	}
 }

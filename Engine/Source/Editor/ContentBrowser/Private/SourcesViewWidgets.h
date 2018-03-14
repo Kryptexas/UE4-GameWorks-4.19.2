@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -52,6 +52,8 @@ public:
 
 		/** The string in the title to highlight (used when searching folders) */
 		SLATE_ATTRIBUTE( FText, HighlightText)
+
+		SLATE_ATTRIBUTE( FSlateFontInfo, FontOverride)
 
 		/** Callback to check if the widget is selected, should only be hooked up if parent widget is handling selection or focus. */
 		SLATE_EVENT( FIsSelected, IsSelected )

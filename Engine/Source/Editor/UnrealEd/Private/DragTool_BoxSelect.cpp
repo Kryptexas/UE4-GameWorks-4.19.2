@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "DragTool_BoxSelect.h"
@@ -227,7 +227,7 @@ void FDragTool_ActorBoxSelect::EndDrag()
 
 void FDragTool_ActorBoxSelect::Render(const FSceneView* View, FCanvas* Canvas)
 {
-	FCanvasBoxItem BoxItem(FVector2D(Start.X, Start.Y), FVector2D(End.X - Start.X, End.Y - Start.Y));
+	FCanvasBoxItem BoxItem(FVector2D(Start.X, Start.Y) / Canvas->GetDPIScale(), FVector2D(End.X - Start.X, End.Y - Start.Y) / Canvas->GetDPIScale());
 	BoxItem.SetColor(FLinearColor::White);
 	Canvas->DrawItem(BoxItem);
 }

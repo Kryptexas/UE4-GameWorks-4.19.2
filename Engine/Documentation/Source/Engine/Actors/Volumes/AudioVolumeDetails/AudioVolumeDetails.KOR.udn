@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3379420
+﻿INTSourceChangelist:3782314
 Availability: Docs
 Title:볼륨 개요
 Crumbs:%ROOT%, Engine, Engine/Actors, Engine/Actors/Volumes
@@ -35,4 +35,6 @@ type:reference
 | **Interior LPF** | 내부 LPF - 밖에 있을 때 내부 사운드에 적용되는 로우패스 필더 배수입니다 (1.0 이면 최대 LPF 를 적용합니다). |
 | **Interior LPFTime** | 내부 LPF 시간 - 새로운 로우패스 필터 레벨로 페이드하는 데 걸리는 초 단위 시간입니다. |
 
-<!--For more information on Ambient Zones, please refer to the following documentation: [Ambient Zones Documentation](Engine/Audio/AmbientZones).-->
+[COMMENT:none]
+For more information on Ambient Zones, please refer to the following documentation: [Ambient Zones Documentation](Engine/Audio/AmbientZones).
+[/COMMENT]

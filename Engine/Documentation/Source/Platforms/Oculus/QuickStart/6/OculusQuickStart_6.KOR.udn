@@ -1,68 +1,38 @@
-﻿INTSourceChangelist:3108692
-Title:6. 부가 자료
-Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
-Description:언리얼 엔진으로 오큘러스 개발을 하는 데 관련된 부가 자료입니다.
-Availability:Public
-Version: 4.9
-SkillLevel: Intermediate
+﻿INTSourceChangelist:3782314
+Availability: Public
+Crumbs: %ROOT%
+Title: 6. 부가 자료
+Description: 언리얼 엔진으로 오큘러스 개발을 하는 데 관련된 부가 자료입니다.
+Type: quick start
+SkillLevel: Beginner
+Version: 4.17
+Parent:Platforms/Oculus/QuickStart
+Order: 6
+Checkpoint: RIFTQS
 
-Here are some additional resources that provide useful information for developing VR projects inside of Unreal Engine 4.
+[NAV]
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Platforms/Oculus/QuickStart/5 "%Platforms/Oculus/QuickStart/5:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[퀵스타트 홈](Platforms/Oculus/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+언리얼 엔진 4 에서 VR 프로젝트를 개발할 때 도움이 되는 유용한 부가 자료 정보입니다.
 
-%Steps%
+## 문서
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/docs_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		문서
-	[/PARAM]
-	[PARAM:links]
-	* [](Platforms\VR)
-		* [](Platforms\VR\CheatSheet)
-		* [](Platforms\Oculus\BestPractices)
-	* [오큘러스 문서](https://developer.oculus.com/documents/)
-		* [사용 안내서](http://static.oculus.com/sdk-downloads/documents/Oculus_User_Guide_0.4.4.pdf)
-		* [개발 안내서](http://static.oculus.com/sdk-downloads/documents/Oculus_Developer_Guide_0.4.4.pdf)
-	[/PARAM]
-[/OBJECT]
 [REGION:buttonlist]
+* [](Platforms\VR)
+	* [](Platforms\VR\CheatSheet)
+	* [](Platforms\Oculus\BestPractices)
+* [Oculus Documentation](https://developer.oculus.com/documentation/)
+	* [User Guide](http://static.oculus.com/sdk-downloads/documents/Oculus_User_Guide_0.4.4.pdf)
+	* [Developer Guide](http://static.oculus.com/sdk-downloads/documents/Oculus_Developer_Guide_0.4.4.pdf)
 [/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/levels_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		시도해 볼 콘텐츠
-	[/PARAM]
-	[PARAM:links]
-		[REGION:imagetable]
-		| ![](store_CouchKnights_screenshot_3.png)(w:420) | ![](VehicleTemplate.png)(w:420) |
-		| ------------ | ---------------- |
-		| CouchKnights | Vehicle Template[REGION:caption]**Tab** 키를 치면 차 내부로 전환됩니다.[/REGION] |
-		| ![](store_RealisticRendering_screenshot_3.png)(w:420) | ![](store_MobileTemple_screenshot_4.png)(w:420) |
-		| Architecture[REGION:caption]마티네 비행 모드를 끈 다음, 아파트 레벨을 돌아다녀 봅니다.[/REGION] | Simple Temple Environment |
-		[/REGION]
-	[/PARAM]
-[/OBJECT]
+## 시도해 볼 콘텐츠
 
+[REGION:imagetable]
+| ![](store_CouchKnights_screenshot_3.png)(w:420) | [![](store_Showdown_screenshot_5.png)(w:420)](https://www.unrealengine.com/marketplace/showdown-demo) |
+| ------------ | ---------------- |
+| CouchKnights | Showdown |
+| [![](store_VREditor_screenshot_5.png)(w:420)](Engine/Editor/VR) | [![](store_RoboRecall_screenshot_5.png)(w:420)](Modding/RoboRecall) |
+| VR Mode |Robo Recall |
+[/REGION]
 
-
-
-%Steps%
+[NAV]

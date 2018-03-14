@@ -5,29 +5,7 @@ Description:How to setup the art assets for a vehicle in Unreal Engine 4.
 Navigation:topic
 SkillLevel: Advanced
 Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Programming/Gameplay/Framework/Vehicle/Vehicle_Content:title%](vehicleArt_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Programming/Gameplay/Framework/Vehicle/Vehicle_Content:title%
-	[/PARAM]
-	[PARAM:description]
-		%Programming/Gameplay/Framework/Vehicle/Vehicle_Content:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/Gameplay/Framework/Vehicle/Vehicle_Content]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-
+topic-image:vehicleArt_topic.png
 
 The basic, bare minimum, art setup for a vehicle is just a **Skeletal Mesh**. The type of vehicle will decide how complicated an art setup you will need, and special consideration 
 may need to be given to the suspension. A tank does not need to have a crazy suspension setup, because it will almost always go unseen, but a dune buggy, such as the one in 

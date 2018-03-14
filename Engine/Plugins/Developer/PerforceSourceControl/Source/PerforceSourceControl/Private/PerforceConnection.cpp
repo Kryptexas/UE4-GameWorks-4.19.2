@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PerforceConnection.h"
 #include "HAL/PlatformProcess.h"
@@ -326,11 +326,6 @@ bool FPerforceConnection::EnsureValidConnection(FString& InOutServerName, FStrin
 		//attempt connection with given settings
 		TestP4.SetPort(TCHAR_TO_ANSI(*NewServerName));
 
-		if(InConnectionInfo.Password.Len() > 0)
-		{
-			TestP4.SetPassword(TCHAR_TO_ANSI(*InConnectionInfo.Password));
-		}
-
 		if(InConnectionInfo.HostOverride.Len() > 0)
 		{
 			TestP4.SetHost(TCHAR_TO_ANSI(*InConnectionInfo.HostOverride));
@@ -386,10 +381,6 @@ bool FPerforceConnection::EnsureValidConnection(FString& InOutServerName, FStrin
 			TestP4.SetUser(FROM_TCHAR(*NewUserName, bIsUnicodeServer));
 			TestP4.SetClient(FROM_TCHAR(*NewClientSpecName, bIsUnicodeServer));
 
-			if(InConnectionInfo.Ticket.Len())
-			{
-				TestP4.SetPassword(FROM_TCHAR(*InConnectionInfo.Ticket, bIsUnicodeServer));
-			}
 		}
 	}
 
@@ -702,19 +693,6 @@ void FPerforceConnection::EstablishConnection(const FPerforceConnectionInfo& InC
 	P4Client.SetPort(TCHAR_TO_ANSI(*InConnectionInfo.Port));
 
 	Error P4Error;
-	if(InConnectionInfo.Password.Len() > 0)
-	{
-		UE_LOG(LogSourceControl, Verbose, TEXT(" ... applying password" ));
-		P4Client.DefinePassword(TCHAR_TO_ANSI(*InConnectionInfo.Password), &P4Error);
-		if(P4Error.Test())
-		{
-			StrBuf ErrorMessage;
-			P4Error.Fmt(&ErrorMessage);
-			UE_LOG(LogSourceControl, Error, TEXT("P4ERROR: Could not set password."));
-			UE_LOG(LogSourceControl, Error, TEXT("%s"), ANSI_TO_TCHAR(ErrorMessage.Text()));
-		}
-	}
-
 	if(InConnectionInfo.HostOverride.Len() > 0)
 	{
 		UE_LOG(LogSourceControl, Verbose, TEXT(" ... overriding host" ));
@@ -766,10 +744,7 @@ void FPerforceConnection::EstablishConnection(const FPerforceConnectionInfo& InC
 				Login(InConnectionInfo);
 			}
 
-			if (InConnectionInfo.Ticket.Len())
-			{
-				P4Client.SetPassword(FROM_TCHAR(*InConnectionInfo.Ticket, bIsUnicode));
-			}
+
 			if (InConnectionInfo.Workspace.Len())
 			{
 				P4Client.SetClient(FROM_TCHAR(*InConnectionInfo.Workspace, bIsUnicode));

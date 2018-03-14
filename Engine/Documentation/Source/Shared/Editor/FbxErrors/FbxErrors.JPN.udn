@@ -88,7 +88,9 @@ FBX シーンのロードに失敗しました。ファイルが破損してい�
 
 ---
 
-<!-- ベースレイヤーが含まれていません。  -->
+[COMMENT:none]
+ ベースレイヤーが含まれていません。  
+[/COMMENT]
 
 (#Generic_Mesh_TriangulationFailed)
 [EXCERPT:Generic_Mesh_TriangulationFailed]

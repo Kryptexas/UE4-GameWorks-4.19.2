@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SDebugConsole.h"
 #include "SlateOptMacros.h"
@@ -32,24 +32,24 @@ void SDebugConsole::Construct( const FArguments& InArgs, const EDebugConsoleStyl
 		.AutoHeight()
 		[
 			SNew( SVerticalBox )
-				.Visibility( this, &SDebugConsole::MakeVisibleIfLogIsShown )
+			.Visibility( this, &SDebugConsole::MakeVisibleIfLogIsShown )
 					
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding( 10.0f )
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding( 10.0f )
+			[
+				SNew(SBox)
+				.HeightOverride( 200.0f )
 				[
-					SNew(SBox)
-					.HeightOverride( 200.0f )
+					SNew( SBorder )
+					.BorderImage( FEditorStyle::GetBrush( "ToolPanel.GroupBorder" ) )
+					.ColorAndOpacity( this, &SDebugConsole::GetAnimatedColorAndOpacity )
+					.BorderBackgroundColor( this, &SDebugConsole::GetAnimatedSlateColor )
 					[
-						SNew( SBorder )
-							.BorderImage( FEditorStyle::GetBrush( "ToolPanel.GroupBorder" ) )
-							.ColorAndOpacity( this, &SDebugConsole::GetAnimatedColorAndOpacity )
-							.BorderBackgroundColor( this, &SDebugConsole::GetAnimatedSlateColor )
-							[
-								SNew( SSpacer )
-							]
+						SNew( SSpacer )
 					]
 				]
+			]
 		]
 
 		+SVerticalBox::Slot()
@@ -57,33 +57,19 @@ void SDebugConsole::Construct( const FArguments& InArgs, const EDebugConsoleStyl
 		.Padding( 10.0f )
 		[
 			SNew(SBox)
-			.HeightOverride( 26.0f )
-			.HAlign( HAlign_Left )
+			.WidthOverride( 400.0f )
+			.MaxDesiredHeight( 100.0f )
 			[
 				SNew( SBorder )
-				.Padding( FMargin(2) )
+				.VAlign( VAlign_Center )
+				.Padding( FMargin(5.0f, 2.0f) )
 				.BorderImage( FEditorStyle::GetBrush( "DebugConsole.Background" ) )
 				.ColorAndOpacity( this, &SDebugConsole::GetAnimatedColorAndOpacity )
 				.BorderBackgroundColor( this, &SDebugConsole::GetAnimatedSlateColor )
 				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding(3.0f)
-					.VAlign(VAlign_Center)
-					[
-						SNew(STextBlock)
-						.Text(NSLOCTEXT("Console", "ConsoleLabel", "Console"))
-
-					]
-					+ SHorizontalBox::Slot()
-					.Padding(5.0f, 2.0f)
-					.VAlign(VAlign_Center)
-					.MaxWidth(400.0f)
-					[
-						SAssignNew(ConsoleInputBox, SConsoleInputBox)
-						.OnConsoleCommandExecuted(DebugConsoleDelegates->OnConsoleCommandExecuted)
-					]
+					SAssignNew(ConsoleInputBox, SConsoleInputBox)
+					.OnConsoleCommandExecuted(DebugConsoleDelegates->OnConsoleCommandExecuted)
+					.OnCloseConsole(DebugConsoleDelegates->OnCloseConsole)
 				]
 			]
 		]

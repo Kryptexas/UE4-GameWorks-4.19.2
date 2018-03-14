@@ -21,11 +21,11 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
 
-During this step, we're going to implement the `OnFire` function so that our character can start firing projectiles.
 
-## Implementing the OnFire Function
+During this step, we're going to implement the `Fire` function so that our character can start firing projectiles.
+
+## Implementing the Fire Function
 
 1.	Locate the `FPSCharacter` class CPP file in the **Solution Explorer** and open `FPSCharacter.cpp`.
 
@@ -311,4 +311,3 @@ Before continuing, download and extract our sample mesh from the following link:
 
 1.	Press the Escape key or click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
-%Steps%

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Curves/RichCurve.h"
 
@@ -847,57 +847,61 @@ void FRichCurve::BakeCurve(float SampleRate, float FirstKeyTime, float LastKeyTi
 		return;
 	}
 
-	for (float Time = FirstKeyTime + SampleRate; Time < LastKeyTime;  )
+	// we need to generate new keys first rather than modifying the
+	// curve directly since that would affect the results of Eval calls
+	TArray<TPair<float, float> > BakedKeys;
+	BakedKeys.Reserve(((LastKeyTime - FirstKeyTime) / SampleRate) - 1);
+
+	// the skip the first and last key unchanged
+	for (float Time = FirstKeyTime + SampleRate; Time < LastKeyTime; )
 	{
-		float Value = Eval(Time);
-		UpdateOrAddKey(Time, Value);
+		const float Value = Eval(Time);
+		BakedKeys.Add(TPair<float, float>(Time, Value));
 		Time += SampleRate;
+	}
+
+	for (auto NewKey : BakedKeys)
+	{
+		UpdateOrAddKey(NewKey.Key, NewKey.Value);
 	}
 }
 
 void FRichCurve::RemoveRedundantKeys(float Tolerance)
 {
-	if (Keys.Num() == 0)
+	if (Keys.Num() < 3)
 	{
 		return;
 	}
 
-	float FirstKeyTime = Keys[0].Time;
-	float LastKeyTime = Keys[Keys.Num()-1].Time;
-
-	RemoveRedundantKeys(Tolerance, FirstKeyTime, LastKeyTime);
+	RemoveRedundantKeysInternal(Tolerance, 0, Keys.Num() - 1);
 }
 
 void FRichCurve::RemoveRedundantKeys(float Tolerance, float FirstKeyTime, float LastKeyTime)
 {
-	for(int32 KeyIndex = 0; KeyIndex < Keys.Num(); ++KeyIndex)
+	if (FirstKeyTime >= LastKeyTime)
 	{
-		// copy the key
-		FRichCurveKey OriginalKey = Keys[KeyIndex];
-		if (OriginalKey.Time < FirstKeyTime || OriginalKey.Time > LastKeyTime)
-		{
-			continue;
-		}
+		return;
+	}
+	int32 StartKey = -1;
+	int32 EndKey = -1;
+	for (int32 KeyIndex = 0; KeyIndex < Keys.Num(); ++KeyIndex)
+	{
+		const float CurrentKeyTime = Keys[KeyIndex].Time;
 
-		FKeyHandle KeyHandle = GetKeyHandle(KeyIndex);
-
-		// remove it
-		DeleteKey(KeyHandle);
-
-		// eval to check validity
-		float NewValue = Eval(OriginalKey.Time, DefaultValue);
-			
-		// outside tolerance? re-add the key.
-		if(FMath::Abs(NewValue - OriginalKey.Value) > Tolerance)
+		if (CurrentKeyTime < FirstKeyTime)
 		{
-			FKeyHandle NewKeyHandle = AddKey(OriginalKey.Time, OriginalKey.Value, false, KeyHandle);
-			FRichCurveKey& NewKey = GetKey(NewKeyHandle);
-			NewKey = OriginalKey;
+			StartKey = KeyIndex;
 		}
-		else
+		if (CurrentKeyTime > LastKeyTime)
 		{
-			KeyIndex--;
+			EndKey = KeyIndex;
+			break;
 		}
+	}
+
+	if ((StartKey != INDEX_NONE) && (EndKey != INDEX_NONE))
+	{
+		RemoveRedundantKeysInternal(Tolerance, StartKey, EndKey);
 	}
 }
 
@@ -928,6 +932,116 @@ static float BezierInterp2(float P0, float Y1, float Y2, float P3, float mu)
 	return Result;
 }
 
+float EvalForTwoKeys(const FRichCurveKey& Key1, const FRichCurveKey& Key2, const float InTime)
+{
+	const float Diff = Key2.Time - Key1.Time;
+
+	if (Diff > 0.f && Key1.InterpMode != RCIM_Constant)
+	{
+		const float Alpha = (InTime - Key1.Time) / Diff;
+		const float P0 = Key1.Value;
+		const float P3 = Key2.Value;
+
+		if (Key1.InterpMode == RCIM_Linear)
+		{
+			return FMath::Lerp(P0, P3, Alpha);
+		}
+		else
+		{
+			const float OneThird = 1.0f / 3.0f;
+			const float P1 = P0 + (Key1.LeaveTangent * Diff*OneThird);
+			const float P2 = P3 - (Key2.ArriveTangent * Diff*OneThird);
+
+			return BezierInterp(P0, P1, P2, P3, Alpha);
+		}
+	}
+	else
+	{
+		return Key1.Value;
+	}
+}
+
+void FRichCurve::RemoveRedundantKeysInternal(float Tolerance, int32 InStartKeepKey, int32 InEndKeepKey)
+{
+	if (Keys.Num() < 3) // Will always keep first and last key
+	{
+		return;
+	}
+
+	const int32 ActualStartKeepKey = FMath::Max(InStartKeepKey, 0); // Will always keep first and last key
+	const int32 ActualEndKeepKey = FMath::Min(InEndKeepKey, Keys.Num()-1);
+
+	check(ActualStartKeepKey < ActualEndKeepKey); // Make sure we are doing something sane
+	if ((ActualEndKeepKey - ActualStartKeepKey) < 2)
+	{
+		//Not going to do anything useful
+		return;
+	}
+
+	//Build some helper data for managing the HandleTokey map
+	TArray<FKeyHandle> AllHandlesByIndex;
+	TArray<FKeyHandle> KeepHandles;
+
+	if (KeyHandlesToIndices.Num() != 0)
+	{
+		check(KeyHandlesToIndices.Num() == Keys.Num());
+		AllHandlesByIndex.AddZeroed(Keys.Num());
+		KeepHandles.Reserve(Keys.Num());
+
+		for (TPair<FKeyHandle, int32> HandleIndexPair : KeyHandlesToIndices.GetMap())
+		{
+			AllHandlesByIndex[HandleIndexPair.Value] = HandleIndexPair.Key;
+		}
+	}
+	else
+	{
+		AllHandlesByIndex.AddDefaulted(Keys.Num());
+	}
+	
+
+	{
+		TArray<FRichCurveKey> NewKeys;
+		NewKeys.Reserve(Keys.Num());
+
+		//Add all the keys we are keeping from the start
+		for(int32 StartKeepIndex = 0; StartKeepIndex <= ActualStartKeepKey; ++StartKeepIndex)
+		{
+			NewKeys.Add(Keys[StartKeepIndex]);
+			KeepHandles.Add(AllHandlesByIndex[StartKeepIndex]);
+		}
+
+		//Add keys up to the first end keep key if they are not redundant
+		int32 MostRecentKeepKeyIndex = 0;
+		for (int32 TestIndex = ActualStartKeepKey+1; TestIndex < ActualEndKeepKey; ++TestIndex) //Loop within the bounds of the first and last key
+		{
+			const float KeyValue = Keys[TestIndex].Value;
+			const float ValueWithoutKey = EvalForTwoKeys(Keys[MostRecentKeepKeyIndex], Keys[TestIndex + 1], Keys[TestIndex].Time);
+			if (FMath::Abs(ValueWithoutKey - KeyValue) > Tolerance) // Is this key needed
+			{
+				MostRecentKeepKeyIndex = TestIndex;
+				NewKeys.Add(Keys[TestIndex]);
+				KeepHandles.Add(AllHandlesByIndex[TestIndex]);
+			}
+		}
+
+		//Add end keys that we are keeping
+		for (int32 EndKeepIndex = ActualEndKeepKey; EndKeepIndex < Keys.Num(); ++EndKeepIndex)
+		{
+			NewKeys.Add(Keys[EndKeepIndex]);
+			KeepHandles.Add(AllHandlesByIndex[EndKeepIndex]);
+		}
+		Keys = MoveTemp(NewKeys); //Do this at the end of scope, guaranteed that NewKeys is going away
+	}
+
+	AutoSetTangents();
+
+	// Rebuild KeyHandlesToIndices
+	KeyHandlesToIndices.Empty();
+	for (int32 KeyIndex = 0; KeyIndex < Keys.Num(); ++KeyIndex)
+	{
+		KeyHandlesToIndices.Add(KeepHandles[KeyIndex], KeyIndex);
+	}
+}
 
 static void CycleTime(float MinTime, float MaxTime, float& InTime, int& CycleCount)
 {
@@ -1018,7 +1132,6 @@ void FRichCurve::RemapTimeValue(float& InTime, float& CycleValueOffset) const
 	}
 }
 
-
 float FRichCurve::Eval(float InTime, float InDefaultValue) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_RichCurve_Eval);
@@ -1083,32 +1196,7 @@ float FRichCurve::Eval(float InTime, float InDefaultValue) const
 			}
 		}
 
-		int32 InterpNode = first;
-		const float Diff = Keys[InterpNode].Time - Keys[InterpNode - 1].Time;
-
-		if (Diff > 0.f && Keys[InterpNode - 1].InterpMode != RCIM_Constant)
-		{
-			const float Alpha = (InTime - Keys[InterpNode - 1].Time) / Diff;
-			const float P0 = Keys[InterpNode - 1].Value;
-			const float P3 = Keys[InterpNode].Value;
-
-			if (Keys[InterpNode - 1].InterpMode == RCIM_Linear)
-			{
-				InterpVal = FMath::Lerp(P0, P3, Alpha);
-			}
-			else
-			{
-				const float OneThird = 1.0f / 3.0f;
-				const float P1 = P0 + (Keys[InterpNode - 1].LeaveTangent * Diff*OneThird);
-				const float P2 = P3 - (Keys[InterpNode].ArriveTangent * Diff*OneThird);
-
-				InterpVal = BezierInterp(P0, P1, P2, P3, Alpha);
-			}
-		}
-		else
-		{
-			InterpVal = Keys[InterpNode - 1].Value;
-		}
+		InterpVal = EvalForTwoKeys(Keys[first - 1], Keys[first], InTime);
 	}
 	else
 	{

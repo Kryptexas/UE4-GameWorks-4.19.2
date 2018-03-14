@@ -1,4 +1,4 @@
-//// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+//// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GpuSkinCacheCommon.usf: Common properties and defines for GPU Skinning Cache
@@ -26,29 +26,17 @@
 
 #define	GPUSKIN_VB_OFFSET_TANGENT_X			0
 #define	GPUSKIN_VB_OFFSET_TANGENT_Z			1
-#define	GPUSKIN_VB_OFFSET_POSITION			2
-#define	GPUSKIN_VB_OFFSET_UVS				5
 
 #define	GPUSKIN_VB_OFFSET_INFLUENCEBONES	0
 #define	GPUSKIN_VB_OFFSET_INFLUENCEWEIGHTS	(1 + GPUSKIN_USE_EXTRA_INFLUENCES)
 
 
-// Should be set from FGPUSkinCacheCS!
-#ifndef GPUSKIN_RWBUFFER_OFFSET_POSITION
-#define GPUSKIN_RWBUFFER_OFFSET_POSITION	0
-#endif
-
 #ifndef GPUSKIN_RWBUFFER_OFFSET_TANGENT_X
-#define GPUSKIN_RWBUFFER_OFFSET_TANGENT_X	3
+#define GPUSKIN_RWBUFFER_OFFSET_TANGENT_X	0
 #endif
 
 #ifndef GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z
-#define GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z	4
-#endif
-
-// Must match RWStrideInFloats
-#ifndef GPUSKIN_RWBUFFER_NUM_FLOATS
-#define GPUSKIN_RWBUFFER_NUM_FLOATS			5
+#define GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z	1
 #endif
 
 // @return 0..255

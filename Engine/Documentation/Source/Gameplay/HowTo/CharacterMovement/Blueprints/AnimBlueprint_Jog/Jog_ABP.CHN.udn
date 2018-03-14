@@ -22,7 +22,7 @@ SkillLevel:Advanced
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 继续**Animation Blueprint**和**State Machine**，本节我们设置**Jog**状态以及到/从它的过渡。 
 
@@ -99,4 +99,4 @@ SkillLevel:Advanced
 1.	**Compile**并**Save**动画蓝图。 
 
 
-%Steps%
+

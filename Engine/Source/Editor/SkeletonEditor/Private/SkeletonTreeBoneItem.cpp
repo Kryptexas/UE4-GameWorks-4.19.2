@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SkeletonTreeBoneItem.h"
 #include "SSkeletonTreeRow.h"
@@ -17,7 +17,7 @@
 #include "Textures/SlateIcon.h"
 #include "Framework/Commands/UIAction.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
-#include "SkeletalMeshTypes.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 #include "UObject/Package.h"
 
 #define LOCTEXT_NAMESPACE "FSkeletonTreeBoneItem"
@@ -40,14 +40,14 @@ FSkeletonTreeBoneItem::FSkeletonTreeBoneItem(const FName& InBoneName, const TSha
 	}
 }
 
-EVisibility FSkeletonTreeBoneItem::GetLODIconVisibility() const
+const FSlateBrush* FSkeletonTreeBoneItem::GetLODIcon() const
 {
 	if (bRequiredBone)
 	{
-		return EVisibility::Visible;
+		return FEditorStyle::GetBrush("SkeletonTree.LODBone");
 	}
 
-	return EVisibility::Hidden;
+	return FEditorStyle::GetBrush("SkeletonTree.NonRequiredBone");
 }
 
 void FSkeletonTreeBoneItem::GenerateWidgetForNameColumn( TSharedPtr< SHorizontalBox > Box, const TAttribute<FText>& FilterText, FIsSelected InIsSelected )
@@ -62,8 +62,7 @@ void FSkeletonTreeBoneItem::GenerateWidgetForNameColumn( TSharedPtr< SHorizontal
 		[
 			SNew(SImage)
 			.ColorAndOpacity(FSlateColor::UseForeground())
-			.Image(LODIcon)
-			.Visibility(this, &FSkeletonTreeBoneItem::GetLODIconVisibility)
+			.Image(this, &FSkeletonTreeBoneItem::GetLODIcon)
 		];
 
 	if (GetSkeletonTree()->GetPreviewScene().IsValid())
@@ -411,18 +410,18 @@ bool FSkeletonTreeBoneItem::IsBoneWeighted(int32 MeshBoneIndex, UDebugSkelMeshCo
 {
 	// MeshBoneIndex must be an index into the mesh's skeleton, *not* the source skeleton!!!
 
-	if (!PreviewComponent || !PreviewComponent->SkeletalMesh || !PreviewComponent->SkeletalMesh->GetImportedResource()->LODModels.Num())
+	if (!PreviewComponent || !PreviewComponent->SkeletalMesh || !PreviewComponent->SkeletalMesh->GetResourceForRendering()->LODRenderData.Num())
 	{
 		// If there's no mesh, then this bone can't possibly be weighted!
 		return false;
 	}
 
 	//Get current LOD
-	const int32 LODIndex = FMath::Clamp(PreviewComponent->PredictedLODLevel, 0, PreviewComponent->SkeletalMesh->GetImportedResource()->LODModels.Num() - 1);
-	FStaticLODModel& LODModel = PreviewComponent->SkeletalMesh->GetImportedResource()->LODModels[LODIndex];
+	const int32 LODIndex = FMath::Clamp(PreviewComponent->PredictedLODLevel, 0, PreviewComponent->SkeletalMesh->GetResourceForRendering()->LODRenderData.Num() - 1);
+	FSkeletalMeshLODRenderData& LODData = PreviewComponent->SkeletalMesh->GetResourceForRendering()->LODRenderData[LODIndex];
 
 	//Check whether the bone is vertex weighted
-	int32 Index = LODModel.ActiveBoneIndices.Find(MeshBoneIndex);
+	int32 Index = LODData.ActiveBoneIndices.Find(MeshBoneIndex);
 
 	return Index != INDEX_NONE;
 }
@@ -431,18 +430,18 @@ bool FSkeletonTreeBoneItem::IsBoneRequired(int32 MeshBoneIndex, UDebugSkelMeshCo
 {
 	// MeshBoneIndex must be an index into the mesh's skeleton, *not* the source skeleton!!!
 
-	if (!PreviewComponent || !PreviewComponent->SkeletalMesh || !PreviewComponent->SkeletalMesh->GetImportedResource()->LODModels.Num())
+	if (!PreviewComponent || !PreviewComponent->SkeletalMesh || !PreviewComponent->SkeletalMesh->GetResourceForRendering()->LODRenderData.Num())
 	{
 		// If there's no mesh, then this bone can't possibly be weighted!
 		return false;
 	}
 
 	//Get current LOD
-	const int32 LODIndex = FMath::Clamp(PreviewComponent->PredictedLODLevel, 0, PreviewComponent->SkeletalMesh->GetImportedResource()->LODModels.Num() - 1);
-	FStaticLODModel& LODModel = PreviewComponent->SkeletalMesh->GetImportedResource()->LODModels[LODIndex];
+	const int32 LODIndex = FMath::Clamp(PreviewComponent->PredictedLODLevel, 0, PreviewComponent->SkeletalMesh->GetResourceForRendering()->LODRenderData.Num() - 1);
+	FSkeletalMeshLODRenderData& LODData = PreviewComponent->SkeletalMesh->GetResourceForRendering()->LODRenderData[LODIndex];
 
 	//Check whether the bone is vertex weighted
-	int32 Index = LODModel.RequiredBones.Find(MeshBoneIndex);
+	int32 Index = LODData.RequiredBones.Find(MeshBoneIndex);
 
 	return Index != INDEX_NONE;
 }

@@ -169,7 +169,7 @@ public:
 	//==============================================================================================================================================
 
 	// Output of indirect propagation is stored in ambisonics of this order.
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = IndirectSound, meta = (ClampMin = "0", ClampMax = "4", UIMin = "0", UIMax = "4",
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = IndirectSound, meta = (ClampMin = "0", ClampMax = "3", UIMin = "0", UIMax = "3",
 		DisplayName = "Ambisonics Order"))
 	int32 IndirectImpulseResponseOrder;
 

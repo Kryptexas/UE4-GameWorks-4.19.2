@@ -1,28 +1,16 @@
-﻿INTSourceChangelist:3376720
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:2 - AnimDynamics を適用する
-Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\AnimDynamics
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimHowTo, Engine/Animation/AnimHowTo/AnimDynamics
 Description:このステップでは、動きに反応できるようにキャラクターが運んでいるものに AnimDynamics を適用します。
 version:4.12
 skilllevel:Advanced
+parent:Engine/Animation/AnimHowTo/AnimDynamics
+type:how-to
+type:multi-step
 Order:2
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Engine\Animation\AnimHowTo\AnimDynamics\Setup "%Engine\Animation\AnimHowTo\AnimDynamics\Setup:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[AnimDynamics の操作ガイド](Engine\Animation\AnimHowTo\AnimDynamics)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 キャラクターを **Animation ブループリント** でセットアップし、動的にアニメートするボーンが用意できました。これを行うには、 **Animation ブループリント** の **AnimGraph** で **AnimDynamics** ノードを使用します。 
 
@@ -68,7 +56,7 @@ Order:2
 	**Setup** セクションと **Constraint** セクションでは、AnimDynamics で操作される動きとその範囲を定義します。**Box Extent** では慣性を設定し、**Local Joint Offset** はピボット ポイントを定義し、**Angular Limits** は動きの回転範囲を設定します (有効な場合にプレビュー視覚化オプションによって表示されます)。 
 
 	[REGION:note]
-	セットアップとコンストレイントの設定については、スケルタル制御の [**AnimDynamics**](Engine\Animation\NodeReference\SkeletalControls) セクションをご覧ください。 
+	セットアップとコンストレイントの設定については、スケルタル制御の [AnimDynamics](Engine/Animation/NodeReference/SkeletalControls) セクションをご覧ください。 
 	[/REGION]
 
 1.	**[Compile]** をクリックして、ハーネス (harness) オブジェクトが横に傾いている様子をご覧ください。 
@@ -103,22 +91,17 @@ Order:2
 この例のキャラクターが動くとコンストレイントの設定に応じてファーネス (furnace ) がバウンスするのがわかります。 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-w7c3i2vpcUc
-[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	w7c3i2vpcUc
+	[/PARAMLITERAL]
 [/OBJECT]
 
 **[Setup]** セクションで **Box Extent** 値と **Local Joint Offset** 値、および **[Constraints]** セクションの **Linear** と **Angular Limits** を調整して、AnimDynamics によってボーンの動きがどのように変化するかをご自由に試してみてください。
 
-
-%Steps%
-
-
-
-
+[NAV]

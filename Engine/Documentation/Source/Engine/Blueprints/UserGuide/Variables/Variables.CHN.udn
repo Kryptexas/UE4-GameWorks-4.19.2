@@ -110,11 +110,13 @@ skilllevel:Intermediate
 [/EXCERPT:PromoteVariable]
 [/EXCERPT:CreatingVariables]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:AddVariables]
 [INCLUDE:#creatingvariables]
 [/EXCERPT:AddVariables]
--->
+
+[/COMMENT]
 
 ## 编辑变量
 

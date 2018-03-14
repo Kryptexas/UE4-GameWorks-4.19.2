@@ -1,7 +1,8 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "ADPCMAudioInfo.h"
+#include "CoreMinimal.h"
 #include "Interfaces/IAudioFormat.h"
 #include "Sound/SoundWave.h"
 #include "Audio.h"
@@ -49,13 +50,17 @@ void FADPCMAudioInfo::SeekToTime(const float SeekTime)
 		if (Format == WAVE_FORMAT_LPCM)
 		{
 			// There are no "blocks" on LPCM, so only update the total samples streamed (which is based off sample rate).
-			// Note that TotalSamplesStreamed is per-channel in the ReadCompressedInfo. Channels are takin into account there.
-			TotalSamplesStreamed = (uint32)(SeekTime * (float)(*WaveInfo.pSamplesPerSec));
+			// Note that TotalSamplesStreamed is per-channel in the ReadCompressedInfo. Channels are taken into account there.
+			uint32 SeekedSamples = (uint32)(SeekTime * (float)(*WaveInfo.pSamplesPerSec));
+			TotalSamplesStreamed = FMath::Clamp<uint32>(SeekedSamples, 0, TotalSamplesPerChannel - 1);
 		}
 		else
 		{
 			// Figure out the block index that the seek takes us to
 			uint32 SeekedSamples = (uint32)(SeekTime * (float)(*WaveInfo.pSamplesPerSec));
+
+			// Clamp to the end of memory in case we have an invalid seek time.
+			SeekedSamples = FMath::Clamp<uint32>(SeekedSamples, 0, TotalSamplesPerChannel - 1);
 
 			// Compute the block index that we're seeked to
 			CurrentCompressedBlockIndex = SeekedSamples / SamplesPerBlock;
@@ -280,7 +285,7 @@ bool FADPCMAudioInfo::StreamCompressedInfo(USoundWave* Wave, struct FSoundQualit
 	
 	void*	FormatHeader;
 	
-	if (!WaveInfo.ReadWaveInfo((uint8*)firstChunk, Wave->RunningPlatformData->Chunks[0].DataSize, NULL, true, &FormatHeader))
+	if (!WaveInfo.ReadWaveInfo((uint8*)firstChunk, Wave->RunningPlatformData->Chunks[0].AudioDataSize, NULL, true, &FormatHeader))
 	{
 		UE_LOG(LogAudio, Warning, TEXT("WaveInfo.ReadWaveInfo Failed"));
 		return false;
@@ -348,7 +353,7 @@ bool FADPCMAudioInfo::StreamCompressedData(uint8* Destination, bool bLooping, ui
 	// Destination samples are interlaced by channel, BufferSize is in bytes
 	
 	// Ensure that BuffserSize is a multiple of the sample size times the number of channels
-	check((BufferSize % (sizeof(uint16) * NumChannels)) == 0);
+	checkf((BufferSize % (sizeof(uint16) * NumChannels)) == 0, TEXT("Invalid buffer size %d requested for %d channels"), BufferSize, NumChannels);
 	
 	int16*	OutData = (int16*)Destination;
 	

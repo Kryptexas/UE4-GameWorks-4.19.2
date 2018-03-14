@@ -1,394 +1,359 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Crumbs:
-Title: Cloth Properties Reference
-Description: A reference page for the available properties used with Cloth asset configuration.
+﻿INTSourceChangelist:3590438
+Availability:Public
+Crumbs:%ROOT%
+Title:布料工具属性参考
+Description:布料工具可用属性的参考页面。
 Type:reference
-Version:4.16
-Parent:Engine/Physics
+Version:4.17
+Parent:Engine/Physics/Cloth
 Related:Engine/Physics/Cloth/Overview
 Order:2
 Tags:Physics
 Tags:Cloth
 
 
+[VAR:spacer]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+[VAR:spacer3]![](%ROOT%/spacer.png)(w:100 convert:false)[/VAR]
+[VAR:spacer4]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
 
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		Cloth2
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Section Selection
-	[/PARAM]
-	[PARAM:content]
-		%C2%
-	[/PARAM]
-[/OBJECT]
+[TOC(start:2 end:2)]
 
-[VAR:C2]
+**布料绘制工具** 拥有诸多选项和属性，可用于制作十分特别的布料模拟。下文详述了创建布料资源时可以使用的菜单选项，以及选择不同绘制工具绘制渲染模型的布料值时所使用的 Cloth Paint 面板。
+
+
+## 布料资源创建菜单
+
+此部分详细讲述创建布料资源和将其应用到渲染模型时可使用的属性和设置。
+
+### 分段选择
+
+利用 **Section Selection（分段选择）** 可选择渲染模型的不同材质元素进行创建，并应用布料资源。在此菜单中，用户可以识别所选模型的 LOD 和材质分段、为渲染模型及其 LOD 创建布料资源、将布料资源应用到选择的分段，并根据需求在之后进行移除。 
+
+![](SectionSelection.png)
 
 [REGION:raw]
-![](SectionSelectionMenu.png)
+| 属性 | %spacer% | 描述 |
+| --- | --- | --- |
+| **LOD Section Selection** || 所使用的 LOD 关卡名以及创建布料资源的分段。|
+| **Apply Clothing Asset** || 选择一个布料资源，以应用到所选分段。|
+| **Remove Clothing Asset** || 移除当前指定的布料资源。|
+| [REGION:tablesection] Create Clothing Asset from Section [/REGION] || 使用选中的分段作为模拟模型来新建布料资源。[INCLUDE:#createclothsection] |
+| [REGION:tablesection] Create Clothing Asset from LOD Section [/REGION] || 从选择的分段创建一个布料模拟模型并将其 LOD 添加到一个现有的布料资源。[INCLUDE:#createclothsectionlod] |
 [/REGION]
 
-The **Section Selection** enables you to select specific Material Elements of your mesh in the Skeletal Mesh Editor's viewport. In this mode, you are able to create, assign, and remove any 
-cloth assets for this mesh. 
 
-[REGION:simpletable]
-| Property | Description |
-| --- | --- |
-| Apply Clothing Asset | Select an available clothing asset to apply to the selected section. |
-| Remove Clothing Asset | Remove the currently assigned clothing asset. |
-| Create Clothing Asset from Section | Create a clothing asset from the selected section. [INCLUDE:#createclothsection] |
-[/REGION]
 
-[/VAR]
-
-<!--- Section Selection excerpts --- 
+[COMMENT:none]
+-
 
 [EXCERPT:createclothsection]
-| Property | Description |
-| --- | --- |
-| [REGION:tablesection] Basic [/REGION] ||
-| Asset Name | Set the name for the cloth asset that will be created. |
-| Remove From Mesh | Whether or not to leave this section behind (if driving a mesh with itself). Enable this if driving a high-poly mesh with a low poly.|
-| [REGION:tablesection] Collision [/REGION] ||
-| Physics Asset | The Physics Asset to extract collisions from. This will only extract spheres and sphyls, since this is what the simulation currently supports. |
-| [REGION:tablesection] Auto Fix[/REGION] ||
-| Try Auto Fix |  |
-| Auto Fix Threshold |  |
-| Simulated Particle Max Distance | The max distance to simulate the particles for the cloth solver. |
+![](CreateClothSection.png)(w:350)
+| --- | --- | --- |
+| [REGION:tablesection] 基础 [/REGION] |||
+| **Asset Name** || 为布料分段资源输入的命名。|
+| **Remove from Mesh** || 是否留下此分段（如以自身驱动模型）。启用此项将用一个低多边形模型驱动一个高多边形模型。|
+| [REGION:tablesection] 碰撞 [/REGION] |||
+| **Physics Asset** || 提取碰撞的物理资源。注意：这将导出球体和长菱形，但能支持最大 32 个凸面（或 5 个方块）。|
+|| %spacer4% |||
+<!---| [REGION:tablesection] Auto Fix [/REGION] |||-
+[/COMMENT]
+[COMMENT:none]
+-| **Try Auto Fix** ||  |-
+[/COMMENT]
+[COMMENT:none]
+-| **Auto Fix Threshold** ||  |-
+[/COMMENT]
+[COMMENT:none]
+-| **Simulated Particle Max Distance** ||  |-
+[/COMMENT]
 [/EXCERPT:createclothsection]
 
---- End Section Selection Excerpts --->
+[EXCERPT:createclothsectionLOD]
+![](CreateClothLODSection.png)(w:350)
+| --- | --- | --- |
+| [REGION:tablesection] 目标 [/REGION] |||
+| **Target Asset** || 这是导入 LOD 时的目标资源。|
+| **LOD Index** || [INCLUDE:#lodindex] |
+| **Remap Parameters** || 如重新导入，这将把旧 LOD 参数映射到新 LOD 模型上。如添加一个新的 LOD，则将映射先前 LOD 的参数。|
+| [REGION:tablesection] 基础 [/REGION] |||
+| **Remove from Mesh** || 是否留下此分段（如以自身驱动模型）。如用一个低多边形模型驱动一个高多边形模型，则启用此项。|
+|| %spacer4% |||
+[/EXCERPT:createclothsectionLOD]
+
+[EXCERPT:lodindex]
+| --- | --- |
+| **Replace LOD** | 用此分段替代所选布料资源 LOD0 中的模拟模型。|
+| **Add LOD** | 将选择的分段作为一个新的 LOD 添加。|
+[/EXCERPT:lodindex]
 
 
+--->
 
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		Cloth1
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Cloth Paint
-	[/PARAM]
-	[PARAM:content]
-		%C1%
-	[/PARAM]
-[/OBJECT]
 
-[VAR:C1]
+## Cloth Paint 面板
+
+**Cloth Paint** 保存所有布料资源、遮罩、布料响应的配置参数，以及绘制布料值时使用的工具。 
 
 ![](ClothPaintPanel.png)
 
-The **Cloth Paint** properties enable you to define how you paint weights on the cloth asset you've selected. These weights determine how the **Cloth Configuration Properties** use 
-these values to applie cloth simulations to your mesh.
+(#Assets)
+### 资源（Assets）
 
+**Assets** 窗口显示当前创建、被指定到渲染模型的的布料资源，使用户可以导入 APEX（.apx 或 .apb）文件，并使用户能够从为模型所创建的可用 LOD 中进行选择，以便将参数值复制到其上。
 
-[REGION:simpletable]
-| Property | Description  |
-| --- | --- |
-| Enable Paint Tools  | This enables the tools needed to paint your cloth values. |
-| [REGION:tablesection] Assets [/REGION] ||
-| Asset LOD | Selection box for the available levels of detail (LOD) where you can paint or create a mask. |
-| New Mask | Enables you to create a mask for the selected asset and available level of detail. |
-| [REGION:tablesection] Mask [/REGION] ||
-| Mask Context Menu | Available options for the asset mask. |
-| Set Target | Selects the available targets that you can apply the mask to. [INCLUDE:#settarget] |
-| Move Up | Moves the mask selection up in the Mask list. |
-| Move Down | Moves the mask selection down in the Mask list. |
-| Delete | Removes the selected mask from the list. |
-| Apply | Applies the mask to the physical mesh. |
-| [REGION:tablesection] Brush [/REGION] ||
-| Radius | Sets the radius that will be used for the painting brush. |
-| Strength | Sets the strength of the rush when painting between 0 - 1, with 0 being off and 1 being fully on. |
-| Falloff | Sets the amount of falloff around the edge of the brush to apply between 0 - 1, with 0 being no falloff and 1 being a lot of falloff. |
-| Enable Brush Flow | Enables the continuous 'flow' where paint is applied from the brush every tick. |
-| Ignore Back-Facing | Whether the back-facing triangles should be ignored. |
-| [REGION:tablesection] View [/REGION] ||
-| Color View Mode | Selection used to display the Vertex Colors view modes. [INCLUDE:#colorview] |
-| [REGION:tablesection] Cloth Painting [/REGION] ||
-| Painting Property | Sets the current clothing property which should be visualized and painted. [INCLUDE:#paintingproperty]|
-| Paint Tool | Select which type of paint tool to use. [INCLUDE:#brush] [INCLUDE:#gradient]|
-[/REGION]
+![](Assets.png)
 
-[/VAR]
-
-
-
-<!--- Cloth Paint panel excerpts --- 
-
-[EXCERPT:settarget]
-| Property | Description |
-| --- | --- |
-| None | No assigned mask target will be used. |
-| Max Distance | A mask used to store the Max Distance for your cloth asset. |
-| Backstop Distance | A mask used to store the Backstop Distance for your cloth asset.  |
-| Backstop Radius | A mask used to store the Backstop Radius for your cloth asset. |
-[/EXCERPT:settarget]
-
-[EXCERPT:colorview]
-| Property | Description |
-| --- | --- |
-| Off  | Normal view mode (Vertex Color visualization is off). | 
-| RGB Channels | Visualize the RGB color channels. | 
-| Alpha Channel | Visualize the Alpha channel. | 
-| Red Channel | Visualize the Red color channel.  | 
-| Green Channel | Visualize the Red color channel. |
-| Blue Channel | Visualize the Red color channel. | 
-[/EXCERPT:colorview]
-
-[EXCERPT:paintingproperty]
-| Property | Description |
-| --- | --- |
-| Max Distances | Selects the Max Distances property to be visualized and painted. | 
-| Backstop Distances  | Selects the Backstop Distances property to be visualized and painted. | 
-| Backstop Radius | Selects the Backstop Radius property to be visualized and painted. | 
-[/EXCERPT:paintingproperty]
-
-[EXCERPT:paintingproperty]
-| Property | Description |
-| --- | --- |
-| Max Distances | Selects the Max Distances property to be visualized and painted. | 
-| Backstop Distances  | Selects the Backstop Distances property to be visualized and painted. | 
-| Backstop Radius | Selects the Backstop Radius property to be visualized and painted. | 
-[/EXCERPT:paintingproperty]
-
-[EXCERPT:brush]
-| Property | Description |
-| --- | --- |
-| Brush | Enables you to directly paint the meshes vertices. | 
-| Paint Value | The value to paint for the currently selected Painting Property. |
-[/EXCERPT:brush]
-
-[EXCERPT:gradient]
-| Property | Description |
-| --- | --- |
-| Gradient | Enables you to create a gradient between two sets of vertices. | 
-| Gradient Start Value | Sets the value of (green) points defined at the start of the gradient. |
-| Gradient End Value | Sets the value of (red) point defined at the end of the gradient. |
-| Use Regular Brush for Gradient | Toggle for using the regular brush size for painting the Start and End points of the gradient. |
-[/EXCERPT:gradient]
-
-End Cloth Paint panel excerpts --->
-
-
-
-
-
-
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		Cloth3
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Cloth Configuration Properties
-	[/PARAM]
-	[PARAM:content]
-		%C3%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:C3]
-
-
-![](ClothingProperties.png)
-
-In the **Asset Details** panel under the **Clothing** section, you can define the various properties of your clothing that is assigned to the mesh's Material Elements. These properties
-define how your cloth will react so that you can have different types of cloth that act like silk, burlap, rubber, etc.
-
-[REGION:simpletable]
-| Property  | Description |
-| --- | --- |
-| [REGION:tablesection] Mesh Clothing Assets [/REGION] ||
-| Name | The name given to the the created or imported Cloth asset. |
-| Details | Specific details about the cloth asset, such as the number of vertices simulating, fixed vertices, bones, etc. |
-| [REGION:tablesection] Cloth Config [/REGION] ||
-| Wind Method | A selection for how wind should be processed. [INLCUDE:#windmethod] |
-| Vertical Constraint Config | Constraint data used for vertical constraints. [INCLUDE:#constrconfig] |
-| Horizontal Constraint Config | Constraint data used for horizontal constraints. [INCLUDE:#constrconfig] |
-| Bend Constraint Config | Constraint data used for bend constraints. [INCLUDE:#constrconfig] |
-| Shear Constraint Config | Constraint data used for shear constraints. [INCLUDE:#constrconfig] |
-| Self Collision Radius | Size of the self collision spheres centered on each vertice.  |
-| Self Collision Stiffness | The stiffness of the spring force that will resolve self collisions. |
-| Damping | The damping of particle motions per-axis (XYZ).  |
-| Friction | The friction of the surface when colliding. |
-| Wind Drag Coefficient | Drag coefficient for wind calculations. Higher values mean that wind has more lateral effect on the cloth. |
-| Wind Lift Coefficient | Lift coefficient for wind calculations. Higher values make cloth rise easier in the wind. |
-| Linear Drag | Drag that is applied to linear particle movement per-axis (XYZ). |
-| Angular Drag | Drag that is applied to angular particle movement. Higher values should limit material bending (per-axis XYZ). |
-| Linear Inertia Scale | Scale for linear particle inertia. This controls how much movement should translate to linear motion per-axis (XYZ). |
-| Angular Inertia Scale | Scale for angular particle inertia. This controls how much movement should translate to angular motion per-axis (XYZ). |
-| Centrifugal Inertia Scale | Scale for centrifugal inertia. This controls how much movement should translate to angular motion per-axis (XYZ). |
-| Solver Frequency | The frequency of the position solver. Lower values will lead to stretchier, bouncier cloth. |
-| Stiffness Frequency | The frequency stiffness calculation. Lower values will degrade stiffness of constraints. |
-| Gravity Scale | The scale of gravity's effect on particles. |
-| Tether Stiffness | The scale for stiffness of particle tethers between each other. |
-| Tether Limit | The scale for the limit of particle tethers. This controls how far they can separate. |
-| Collision Thickness | This adjusts the thickness of the cloth, used to adjust collisions.  |
-| [REGION:tablesection] Import [/REGION] ||
-| Imported File Path | If using APEX Cloth (.apx/apb) assets from an imported file, this will be the original file location path.  |
+[REGION:raw]
+| 属性 | %spacer% | 描述 |
+| --- | --- | --- |
+| **Name** || 为物理模型 LOD 分段所创建的布料资源的命名。|
+| **Import Apex File** || 使用户能够导入 APEX（.apx 或 .apb）文件，此文件将被转换格式，以使用布料工具。|
+| **Level of Detail (LOD) Selection** || 使用户能够选择一个细节级别（LOD）模型进行参数和绘制值设置，或复制数值到其上。|
 [/REGION]
 
 
-[/VAR]
+### 遮罩（Masks）
 
-<!--- Asset Details: Cloth excerpts --- 
+**Masks** 窗口显示针对绘制布料值所创建的参数集。可对其指定一个目标值，以便结合布料资源使用。 
+
+![](Masks.png)
+
+[REGION:raw]
+| 属性 | %spacer% | 描述 |
+| --- | --- | --- |
+| **Name** || 为遮罩所赋予的命名，带有针对此参数集的目标设置。[INCLUDE:#masksettings]  |
+| **Add Mask** || 将一个新遮罩添加到遮罩参数的可用列表。|
+[/REGION]
+
+
+
+[COMMENT:none]
+-
+[INCLUDE:#masksettings]
+
+[EXCERPT:masksettings]
+| --- | --- | --- |
+| [REGION:tablesection] 右键菜单设置 [/REGION] |||
+| [REGION:tablesection] 设置目标 [/REGION] |||
+| **None** || 未针对此参数集对目标进行设置。|
+| **Max Distance** || 布料模拟粒子从其动画位置进行移动的最远距离。|
+| **Backstop Distance** || 这是到 Max Distance 的距离偏差，用于限制布料模拟粒子的运动。|
+| **Backstop Radius** || 这是与 Max Distance 相交时防止布料模拟粒子进入该区域的半径。|
+| [REGION:tablesection] 操作 [/REGION] |||
+| **Move Up** || 在列表中将遮罩上移一个槽位。|
+| **Move Down** || 在列表中将遮罩下移一个槽位。|
+| **Delete** || 从列表中删除遮罩。|
+| **Apply** || 将遮罩应用到物理模型。|
+[/EXCERPT:masksettings]
+
+-
+[/COMMENT]
+
+
+### 配置（Config）
+
+用户可利用 **Config** 属性调整布料的响应，使其模拟不同类型的材质，如粗麻布、橡胶、皮革等。
+
+![](Config.png)
+
+[REGION:raw]
+| 属性 | %spacer3% | 描述 |
+| --- | --- | --- |
+| **Physics Asset** || 构建模拟时提取碰撞的物理资源。|
+| **Wind Method** || 风的产生方式；选择 Accurate 将利用阻力和升力使布料产生不同效果；选择 Legacy 则会把相似的力量（不带阻力和升力）应用到全部布料（与 APEX 相似）。[INCLUDE:#windmethod] |
+| **Vertical Constraint Config** || 垂直约束的约束数据。[INCLUDE:#constraintgconfig] |
+| **Horizontal Constraint Config** || 水平约束的约束数据。[INCLUDE:#constraintgconfig] |
+| **Bend Constraint Config** || 弯曲约束的约束数据。[INCLUDE:#constraintgconfig] |
+| **Shear Constraint Config** || 修剪约束的约束数据。[INCLUDE:#constraintgconfig] |
+| **Self Collision Radius** || 每个顶点居中的自碰撞球体的大小。|
+| **Self Collision Stiffness** || 抵消自碰撞的弹力所拥有的刚性。|
+| **Self Collision Cull State** || 自碰撞剔除检查半径的大小。位于此检查半径中的任意其他自碰撞形体将被剔除。这可减少布料中的碰撞形体数量，有助于提升处理高分辨率模型的性能。降低此项数值将对性能产生负面影响。|
+| **Damping** || 每轴粒子运动的阻尼。|
+| **Friction** || 碰撞时的表面摩擦力。|
+| **Wind Drag Coefficient** || 风吹计算的阻力系数。数值越大，风对布料的横向效果越强。|
+| **Wind Lift Coefficient** || 风吹计算的升力系数。数值越大，布料越容易在风中飘扬。|
+| **Linear Drag** || 应用到每轴线性粒子运动的阻力。|
+| **Angular Drag** || 角粒子运动的阻力。数值越大，越能限制材质的弯曲（每轴）。|
+| **Linear Inertia Scale** || 线性粒子惯性的大小。或称之为转化为线性运动的运动量（每轴）。|
+| **Angular Inertia Scale** || 角粒子惯性的大小。或称之为转为角运动的运动量（每轴）。|
+| **Centrifugal Inertia Scale** || 离心粒子惯性的大小。或称之为转为角运动的运动量（每轴）。|
+| **Solver Frequency** || 位置解算器的频率。数值越低，布料越有弹性、越容易拉伸。|
+| **Stiffness Frequency** || 刚性计算的频率。数值越低，约束的刚性越差。|
+| **Gravity Scale** || 布料粒子模拟上的重力大小。|
+| **Tether Stiffness** || 粒子活动范围之间的刚性大小。|
+| **Tether Limit** || 粒子活动范围的限度大小（可分离多远）。|
+| **Collision Thickness** || 用于调整碰撞的模拟布料“厚度”。|
+[/REGION]
+
+
+
+
+
+[COMMENT:none]
+-
+[INCLUDE:#constraintgconfig]
+
+[EXCERPT:constraintgconfig]
+| --- | --- | --- |
+| **Stiffness** || 该约束在节点之间的刚性。此项会影响其跟随所需位置的紧密度。|
+| **Stiffness Multiplier** || 这是影响使用的 **刚性** 值的乘数。|
+| **Stretch Limit** || 此约束可延展距离的硬性限制。|
+| **Compression Limit** || 此约束可压缩距离的硬性限制。|
+[/EXCERPT:constraintgconfig]
 
 [EXCERPT:windmethod]
-| Property | Description |
-| --- | --- |
-| Legacy | This mode uses accelerations modified directly by the simulation with no regard for drag or lift. |
-| Accurate| Use the updated wind calculation for NvCloth based solver, taking into account drag and lift. This will require those properties to be correctly set in the clothing configuration. |
+| --- | --- | --- |
+| **Legacy** || 使用 Legacy 风吹模式，加速度直接由模拟进行修改，不考虑阻力和升力。|
+<!--- | **Accurate** ||  | -
+[/COMMENT]
 [/EXCERPT:windmethod]
 
-[EXCERPT:constrconfig]
-| Property | Description |
-| --- | --- |
-| Stiffness | How stiff this constraint is. This affects how closely it will follow the desired position. |
-| Stiffness Multiplier | A multiplier that affects the value set for **Stiffness**. |
-| Stretch Limit | The hard limit on how far this constraint can stretch. |
-| Compression Limit | The hard limit on how far this constraint can compress. |
-[/EXCERPT:constrconfig]
-
---- End Asset Details Cloth Excerpts --->
+--->
 
 
 
+### 导入（Import）
 
+**Import** 选项显示 [已导入 APEX 文件](#assets) 的文件路径。
 
+![](Import.png)
 
-
-
-
-
-Availability: Public
-Title:Physics Simulation
-Crumbs: %ROOT%, Engine
-Description:Subsystem used to calculate collision and simulate physical actors.
-Version: 4.16
-parent:Engine
-order:8
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Physics:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-[REGION:banner]
-![Physics](physics_landing_banner.png)
+[REGION:raw]
+| 属性 | %spacer2% | 描述 |
+| --- | --- | --- |
+| **Imported File Path** || 如此资源从一个文件导入，这将是其原始路径。|
 [/REGION]
 
-[EXCERPT:Intro]
-Unreal Engine 4 uses the PhysX 3.3 physics engine to drive its physical simulation calculations and perform all collision calculations. PhysX provides the ability to perform accurate collision detection as well as simulate physical interactions between objects within the world. Having physics in your game will help improve the immersion value of every scene, as it helps players believe that they are interacting with the scene and that the scene is responding back in some way or another.
-[/EXCERPT:Intro]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Essentials
-	[/PARAM]
-	[PARAM:links]
-		* [Collision Responses](Engine/Physics/Collision "%Engine/Physics/Collision:description%")
-		* [Collision Reference](Engine/Physics/Collision/Reference "%Engine/Physics/Collision/Reference:description%")
-		* [Physics Constraints User Guide](Engine/Physics/Constraints/ConstraintsUserGuide "%Engine/Physics/Constraints/ConstraintsUserGuide:description%")
-		* [](Engine/Physics/Constraints/ConstraintsBlueprints "%Engine/Physics/Constraints/ConstraintsBlueprints:description%")
-		* [](Engine/Physics/Constraints/ConstraintsReference "%Engine/Physics/Constraints/ConstraintsReference:description%")
-		* [](Engine/Physics/Tracing "%Engine/Physics/Tracing:description%")
-		* [Damping and Friction](Engine/Physics/Constraints/DampingAndFriction "%Engine/Physics/Constraints/DampingAndFriction:description%")
-	[/PARAM]
-[/OBJECT]
+### 布料绘制（Cloth Painting）
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/vehicle_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Clothing Tools
-	[/PARAM]
-	[PARAM:links]
-		* [Clothing Tool Overview](Engine/Physics/Cloth/Overview "%Engine/Physics/Cloth/Overview:description%")
-	[/PARAM]
-[/OBJECT]
+用户可以在 **Cloth Painting** 部分选择各种工具，如笔刷、梯度、平滑度，以及填充。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/vehicle_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Vehicles
-	[/PARAM]
-	[PARAM:links]
-		* [Vehicle User Guide](Engine/Physics/Vehicles/VehicleUserGuide "%Engine/Physics/Vehicles/VehicleUserGuide:description%")
-		* [Vehicle Content Creation Guide](Engine/Physics/Vehicles/VehcileContentCreation "%Engine/Physics/Vehicles/VehcileContentCreation:description%")
-		* [Advanced Vehicle Template](Engine/Physics/Vehicles/DoubleWishboneVehicle "%Engine/Physics/Vehicles/DoubleWishboneVehicle:description%")
-		* [Vehicle API Reference](API:AWheeledVehicle)
-	[/PARAM]
-[/OBJECT]
+在选填这些属性之前，必须首先从 [Assets](#assets) 窗口中选择一个布料资源，然后点击 **Enable Paint Tools** 按钮。
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Content Creation
-	[/PARAM]
-	[PARAM:links]
-		* [Physics Bodies](Engine/Physics/PhysicsBodies "%Engine/Physics/PhysicsBodies:description%")
-		* [Complex Vs. Simple Collision](Engine/Physics/SimpleVsComplex "%Engine/Physics/SimpleVsComplex:description%")
-		* [Physical Materials](Engine/Physics/PhysicalMaterials "%Engine/Physics/PhysicalMaterials:description%")
-		* [PhAT User Guide and Reference](Engine/Physics/PhAT "%Engine/Physics/PhAT:description%")
-	[/PARAM]
-[/OBJECT]
+![](Enable.png)
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/related_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Related Links
-	[/PARAM]
-	[PARAM:links]
-		* [Static Mesh Editor](Engine/Content/Types/StaticMeshes/Editor "%Engine/Physics/PhAT:description%")
-		* [FBX Pipeline: Static Meshes](Engine/Content/FBX/StaticMeshes "%Engine/Physics/PhAT:description%")
-	[/PARAM]
-[/OBJECT]
+绘制布料值时使用的工具类型。
+
+* [笔刷](#brush)
+* [梯度](#gradient)
+* [平滑](#smooth)
+* [填充](#fill)
+
+(#Brush)
+#### 笔刷 
+
+用户使用 **笔刷** 工具在布料资源上进行拖动即可绘制出半径和强度值。
+
+![](Brush.png)
+
+
+[REGION:raw]
+| 属性 | %spacer% | 描述 |
+| --- | --- | --- |
+| [REGION:tablesection] 查看 [/REGION] |||
+| **View Min** || 绘制浮点/1D 值时，这将被视为绘制值的零点或黑点。|
+| **View Max** || 绘制浮点/1D 值时，这将被视为绘制值的一点或白点。|
+| [REGION:tablesection] 高级卷栏 [/REGION] | | |
+| **Flip Normal** || 是否在模型预览上翻转法线。|
+| **Cull Backface** || 渲染模型预览时是否剔除朝向背面的三角形。|
+| **Opacity** || 模型预览的不透明度值。|
+| [REGION:tablesection] 工具设置 [/REGION] |||
+ **Paint Value** || 此参数在模型上进行绘制的值。|
+| [REGION:tablesection] 笔刷 [/REGION] |||
+| **Radius** || 用于绘制的笔刷半径。|
+| **Strength** || 笔刷的强度（0.0 - 1.0）。|
+| **Falloff** || 应用的衰减量（0.0 - 1.0）。|
+| **Enable Brush Flow** || 启用“流动”绘制，每次 tick 笔刷都会连续应用绘制。|
+| **Ignore back-facing** || 绘制时是否无视朝向背面的三角形。|
+[/REGION]
+
+(#Gradient)
+#### 梯度 
+
+用户可使用 **梯度（Gradient）** 工具在选择的一组布料值之间绘制出渐变混合。 
+
+![](Gradient.png)
+
+[REGION:raw]
+| 属性 | %spacer% | 描述 |
+| --- | --- | --- |
+| [REGION:tablesection] 查看 [/REGION] |||
+| **View Min** || 绘制浮点/1D 值时，这将被视为绘制值的零点或黑点。|
+| **View Max** || 绘制浮点/1D 值时，这将被视为绘制值的一点或白点。|
+| [REGION:tablesection] 高级卷栏 [/REGION] | | |
+| **Flip Normal** || 是否在模型预览上翻转法线。|
+| **Cull Backface** || 渲染模型预览时是否剔除朝向背面的三角形。|
+| **Opacity** || 模型预览的不透明度值。|
+| [REGION:tablesection] 工具设置 [/REGION] |||
+| **Gradient Start Value** || 起点的梯度值。|
+| **Gradient End Value** || 终点的梯度值。|
+| **Use Regular Brush** || 使用笔刷代替点来进行所选点的绘制。|
+| [REGION:tablesection] 笔刷 [/REGION] |||
+| **Radius** || 用于绘制的笔刷半径。|
+| **Strength** || 笔刷的强度（0.0 - 1.0）。|
+| **Falloff** || 应用的衰减量（0.0 - 1.0）。|
+| **Enable Brush Flow** || 启用“流动”绘制，每次 tick 笔刷都会连续应用绘制。|
+| **Ignore back-facing** || 绘制时是否无视朝向背面的三角形。|
+[/REGION]
+
+(#Smooth)
+#### 平滑 
+
+用户可以使用 **平滑** 工具来模糊或柔化绘制布料值之间的对比度。 
+
+![](Smooth.png)
+
+[REGION:raw]
+| 属性 | %spacer% | 描述 |
+| --- | --- | --- |
+| [REGION:tablesection] 查看 [/REGION] |||
+| **View Min** || 绘制浮点/1D 值时，这将被视为绘制值的零点或黑点。|
+| **View Max** || 绘制浮点/1D 值时，这将被视为绘制值的一点或白点。|
+| [REGION:tablesection] 高级卷栏 [/REGION] | | |
+| **Flip Normal** || 是否在模型预览上翻转法线。|
+| **Cull Backface** || 渲染模型预览时是否剔除朝向背面的三角形。|
+| **Opacity** || 模型预览的不透明度值。|
+| [REGION:tablesection] 工具设置 [/REGION] |||
+| **Strength** || 进行绘制时平滑（模糊）效果的强度。|
+| [REGION:tablesection] 笔刷 [/REGION] |||
+| **Radius** || 用于绘制的笔刷半径。|
+| **Strength** || 笔刷的强度（0.0 - 1.0）。|
+| **Falloff** || 应用的衰减量（0.0 - 1.0）。|
+| **Enable Brush Flow** || 启用“流动”绘制，每次 tick 笔刷都会连续应用绘制。|
+| **Ignore back-facing** || 绘制时是否无视朝向背面的三角形。|
+[/REGION]
+
+(#Fill)
+#### 填充 
+
+用户可借助 **填充** 工具用其他的数值替代数值相似的区域。 
+
+![](Fill.png)
+
+[REGION:raw]
+| 属性 | %spacer% | 描述 |
+| --- | --- | --- |
+| [REGION:tablesection] 查看 [/REGION] |||
+| **View Min** || 绘制浮点/1D 值时，这将被视为绘制值的零点或黑点。|
+| **View Max** || 绘制浮点/1D 值时，这将被视为绘制值的一点或白点。|
+| [REGION:tablesection] 高级卷栏 [/REGION] | | |
+| **Flip Normal** || 是否在模型预览上翻转法线。|
+| **Cull Backface** || 渲染模型预览时是否剔除朝向背面的三角形。|
+| **Opacity** || 模型预览的不透明度值。|
+| [REGION:tablesection] 工具设置 [/REGION] |||
+| **Threshold** || 填充操作的阈值。填充将持续进行，直到采样顶点不处于原始顶点的的此范围中。|
+| **Fill Value** || 填充所有选中顶点的值。|
+| [REGION:tablesection] 笔刷 [/REGION] |||
+| **Radius** || 用于绘制的笔刷半径。|
+| **Strength** || 笔刷的强度（0.0 - 1.0）。|
+| **Falloff** || 应用的衰减量（0.0 - 1.0）。|
+| **Enable Brush Flow** || 启用“流动”绘制，每次 tick 笔刷都会连续应用绘制。|
+| **Ignore back-facing** || 绘制时是否无视朝向背面的三角形。|
+[/REGION]
+
+
 
 
 

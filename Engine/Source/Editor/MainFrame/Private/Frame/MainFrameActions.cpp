@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "Frame/MainFrameActions.h"
@@ -429,11 +429,6 @@ void FMainFrameActionCallbacks::PackageBuildConfiguration( EProjectPackagingBuil
 
 bool FMainFrameActionCallbacks::CanPackageBuildConfiguration( EProjectPackagingBuildConfigurations BuildConfiguration )
 {
-	UProjectPackagingSettings* PackagingSettings = Cast<UProjectPackagingSettings>(UProjectPackagingSettings::StaticClass()->GetDefaultObject());
-	if (PackagingSettings->ForDistribution && BuildConfiguration != PPBC_Shipping && BuildConfiguration != PPBC_ShippingClient)
-	{
-		return false;
-	}
 	return true;
 }
 
@@ -548,7 +543,9 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 				UnrecoverableError = true;
 			}
 
-			if ((Result & ETargetPlatformReadyStatus::RemoveServerNameEmpty) != 0 && (bProjectHasCode || (!FApp::GetEngineIsPromotedBuild() && !FApp::IsEngineInstalled())))
+			if ((Result & ETargetPlatformReadyStatus::RemoveServerNameEmpty) != 0
+					&& (bProjectHasCode || (Result & ETargetPlatformReadyStatus::CodeBuildRequired)
+						|| (!FApp::GetEngineIsPromotedBuild() && !FApp::IsEngineInstalled())))
 			{
 				AddMessageLog(
 					LOCTEXT("RemoveServerNameNotFound", "Remote compiling requires a server name. "),
@@ -1157,9 +1154,14 @@ void FMainFrameActionCallbacks::AddMessageLog( const FText& Text, const FText& D
 	TSharedRef<FTokenizedMessage> Message = FTokenizedMessage::Create(EMessageSeverity::Error);
 	Message->AddToken(FTextToken::Create(Text));
 	Message->AddToken(FTextToken::Create(Detail));
-	Message->AddToken(FTutorialToken::Create(TutorialLink));
-	Message->AddToken(FDocumentationToken::Create(DocumentationLink));
-
+	if (!TutorialLink.IsEmpty())
+	{
+		Message->AddToken(FTutorialToken::Create(TutorialLink));
+	}
+	if (!DocumentationLink.IsEmpty())
+	{
+		Message->AddToken(FDocumentationToken::Create(DocumentationLink));
+	}
 	FMessageLog MessageLog("PackagingResults");
 	MessageLog.AddMessage(Message);
 	MessageLog.Open();

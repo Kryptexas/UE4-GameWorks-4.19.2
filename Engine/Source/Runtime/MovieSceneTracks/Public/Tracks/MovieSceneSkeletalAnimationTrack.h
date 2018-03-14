@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -37,7 +37,7 @@ public:
 	virtual TRange<float> GetSectionBoundaries() const override;
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
 	virtual UMovieSceneSection* CreateNewSection() override;
-	virtual TInlineValue<FMovieSceneSegmentCompilerRules> GetRowCompilerRules() const override;
+	virtual FMovieSceneTrackRowSegmentBlenderPtr GetRowSegmentBlender() const override;
 	virtual bool SupportsMultipleRows() const override;
 
 #if WITH_EDITORONLY_DATA

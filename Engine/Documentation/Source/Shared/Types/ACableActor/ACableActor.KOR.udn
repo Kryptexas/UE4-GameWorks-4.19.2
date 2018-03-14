@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:NoPublish
 Title:ACableActor
 Crumbs:
@@ -13,4 +13,6 @@ Description:CableActor 클래스 개요입니다.
 [/VAR]
 [/EXCERPT:ACableActor]
 
-<!-- ToDo : Cable Actor definition and link --->
+[COMMENT:none]
+ ToDo : Cable Actor definition and link -
+[/COMMENT]

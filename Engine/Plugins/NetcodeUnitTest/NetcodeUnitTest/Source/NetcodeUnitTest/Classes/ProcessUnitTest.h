@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -142,13 +142,23 @@ struct FUnitTestProcess
  */
 DECLARE_DELEGATE_OneParam(FOnSuspendStateChange, ESuspendState /*NewSuspendState*/);
 
+/**
+ * Delegate for implementing process log watches
+ *
+ * @param InProcess		The process the log originates from
+ * @param InLogLines	The list of log lines to be processed
+ * @return				Whether or not the log watch is finished - removes the watch delegate
+ */
+DECLARE_DELEGATE_RetVal_TwoParams(bool, FProcessLogWatch, TWeakPtr<FUnitTestProcess> /*InProcess*/,
+									const TArray<FString>& /*InLogLines*/);
+
 
 /**
  * Base class for all unit tests which launch child processes, whether they be UE4 child processes, or other arbitrary programs.
  *
  * Handles management of child processes, memory usage tracking, log/stdout output gathering/printing, and crash detection.
  */
-UCLASS()
+UCLASS(Abstract)
 class NETCODEUNITTEST_API UProcessUnitTest : public UUnitTest
 {
 	GENERATED_UCLASS_BODY()
@@ -165,6 +175,9 @@ public:
 	/** Delegate for notifying the UI, of a change in the unit test suspend state */
 	FOnSuspendStateChange OnSuspendStateChange;
 
+	/** Delegates for implementing process log watches */
+	TArray<FProcessLogWatch> ProcessLogWatches;
+
 
 	/**
 	 * Interface for process unit tests
@@ -178,9 +191,7 @@ public:
 	 * @param InProcess		The process the log lines are from
 	 * @param InLogLines	The current log lines being received
 	 */
-	virtual void NotifyProcessLog(TWeakPtr<FUnitTestProcess> InProcess, const TArray<FString>& InLogLines)
-	{
-	}
+	virtual void NotifyProcessLog(TWeakPtr<FUnitTestProcess> InProcess, const TArray<FString>& InLogLines);
 
 	/**
 	 * Notifies that there was a request to suspend/resume the unit test

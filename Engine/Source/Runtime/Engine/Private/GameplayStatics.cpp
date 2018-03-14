@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Kismet/GameplayStatics.h"
 #include "Serialization/MemoryWriter.h"
@@ -39,7 +39,8 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PhysicsEngine/BodySetup.h"
-#include "EngineStats.h"
+#include "Misc/EngineVersion.h"
+#include "ContentStreaming.h"
 
 #define LOCTEXT_NAMESPACE "GameplayStatics"
 
@@ -61,6 +62,7 @@ struct FSaveGameFileVersion
 
 DECLARE_CYCLE_STAT(TEXT("BreakHitResult"), STAT_BreakHitResult, STATGROUP_Game);
 DECLARE_CYCLE_STAT(TEXT("MakeHitResult"), STAT_MakeHitResult, STATGROUP_Game);
+DECLARE_CYCLE_STAT(TEXT("SpawnTime"), STAT_SpawnTime, STATGROUP_Game);
 
 //////////////////////////////////////////////////////////////////////////
 // UGameplayStatics
@@ -282,7 +284,7 @@ bool UGameplayStatics::ApplyRadialDamageWithFalloff(const UObject* WorldContextO
 	TArray<FOverlapResult> Overlaps;
 	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 	{
-		World->OverlapMultiByObjectType(Overlaps, Origin, FQuat::Identity, FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllDynamicObjects), FCollisionShape::MakeSphere(DamageOuterRadius), SphereParams);
+	World->OverlapMultiByObjectType(Overlaps, Origin, FQuat::Identity, FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllDynamicObjects), FCollisionShape::MakeSphere(DamageOuterRadius), SphereParams);
 	}
 
 	// collate into per-actor list of hit components
@@ -310,25 +312,25 @@ bool UGameplayStatics::ApplyRadialDamageWithFalloff(const UObject* WorldContextO
 
 	if (OverlapComponentMap.Num() > 0)
 	{
-		// make sure we have a good damage type
-		TSubclassOf<UDamageType> const ValidDamageTypeClass = DamageTypeClass ? DamageTypeClass : TSubclassOf<UDamageType>(UDamageType::StaticClass());
+	// make sure we have a good damage type
+	TSubclassOf<UDamageType> const ValidDamageTypeClass = DamageTypeClass ? DamageTypeClass : TSubclassOf<UDamageType>(UDamageType::StaticClass());
 
 		FRadialDamageEvent DmgEvent;
 		DmgEvent.DamageTypeClass = ValidDamageTypeClass;
 		DmgEvent.Origin = Origin;
 		DmgEvent.Params = FRadialDamageParams(BaseDamage, MinimumDamage, DamageInnerRadius, DamageOuterRadius, DamageFalloff);
 
-		// call damage function on each affected actors
-		for (TMap<AActor*, TArray<FHitResult> >::TIterator It(OverlapComponentMap); It; ++It)
-		{
-			AActor* const Victim = It.Key();
-			TArray<FHitResult> const& ComponentHits = It.Value();
-			DmgEvent.ComponentHits = ComponentHits;
+	// call damage function on each affected actors
+	for (TMap<AActor*, TArray<FHitResult> >::TIterator It(OverlapComponentMap); It; ++It)
+	{
+		AActor* const Victim = It.Key();
+		TArray<FHitResult> const& ComponentHits = It.Value();
+		DmgEvent.ComponentHits = ComponentHits;
 
-			Victim->TakeDamage(BaseDamage, DmgEvent, InstigatedByController, DamageCauser);
+		Victim->TakeDamage(BaseDamage, DmgEvent, InstigatedByController, DamageCauser);
 
-			bAppliedDamage = true;
-		}
+		bAppliedDamage = true;
+	}
 	}
 
 	return bAppliedDamage;
@@ -411,6 +413,7 @@ class AActor* UGameplayStatics::BeginSpawningActorFromClass(const UObject* World
 
 class AActor* UGameplayStatics::BeginDeferredActorSpawnFromClass(const UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride /*= ESpawnActorCollisionHandlingMethod::Undefined*/, AActor* Owner /*= nullptr*/)
 {
+	SCOPE_CYCLE_COUNTER(STAT_SpawnTime);
 	if (UClass* Class = *ActorClass)
 	{
 		// If the WorldContextObject is a Pawn we will use that as the instigator.
@@ -445,6 +448,7 @@ class AActor* UGameplayStatics::BeginDeferredActorSpawnFromClass(const UObject* 
 
 AActor* UGameplayStatics::FinishSpawningActor(AActor* Actor, const FTransform& SpawnTransform)
 {
+	SCOPE_CYCLE_COUNTER(STAT_SpawnTime);
 	if (Actor)
 	{
 		Actor->FinishSpawning(SpawnTransform);
@@ -713,15 +717,17 @@ UParticleSystemComponent* UGameplayStatics::InternalSpawnEmitterAtLocation(UWorl
 	PSC->RelativeScale3D = SpawnScale;
 
 	PSC->RegisterComponentWithWorld(World);
-
 	PSC->ActivateSystem(true);
+
+	// Notify the texture streamer so that PSC gets managed as a dynamic component.
+	IStreamingManager::Get().NotifyPrimitiveAttached(PSC, DPT_Spawned);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (PSC->Template && PSC->Template->IsImmortal())
 	{
 		UE_LOG(LogParticles, Warning, TEXT("GameplayStatics::SpawnEmitterAtLocation spawned potentially immortal particle system! %s (%s) may stay in world despite never spawning particles after burst spawning is over."),
 			*(PSC->GetPathName()), *(PSC->Template->GetPathName())
-		);
+			);
 	}
 #endif
 
@@ -803,6 +809,9 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem
 
 				PSC->RegisterComponentWithWorld(World);
 				PSC->ActivateSystem(true);
+				
+				// Notify the texture streamer so that PSC gets managed as a dynamic component.
+				IStreamingManager::Get().NotifyPrimitiveAttached(PSC, DPT_Spawned);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 				if (PSC->Template && PSC->Template->IsImmortal())
@@ -1409,7 +1418,7 @@ UDecalComponent* CreateDecalComponent(class UMaterialInterface* DecalMaterial, F
 {
 	UDecalComponent* DecalComp = NewObject<UDecalComponent>((Actor ? Actor : (UObject*)World));
 	DecalComp->bAllowAnyoneToDestroyMe = true;
-	DecalComp->DecalMaterial = DecalMaterial;
+	DecalComp->SetDecalMaterial(DecalMaterial);
 	DecalComp->DecalSize = DecalSize;
 	DecalComp->bAbsoluteScale = true;
 	DecalComp->RegisterComponentWithWorld(World);
@@ -1772,7 +1781,7 @@ float UGameplayStatics::GetAudioTimeSeconds(const UObject* WorldContextObject)
 
 void UGameplayStatics::GetAccurateRealTime(const UObject* WorldContextObject, int32& Seconds, float& PartialSeconds)
 {
-	double TimeSeconds = FPlatformTime::Seconds();
+	double TimeSeconds = FPlatformTime::Seconds() - GStartTime;
 	Seconds = floor(TimeSeconds);
 	PartialSeconds = TimeSeconds - double(Seconds);
 }
@@ -2345,13 +2354,14 @@ bool UGameplayStatics::ProjectWorldToScreen(APlayerController const* Player, con
 		if (LP->GetProjectionData(LP->ViewportClient->Viewport, eSSP_FULL, /*out*/ ProjectionData))
 		{
 			FMatrix const ViewProjectionMatrix = ProjectionData.ComputeViewProjectionMatrix();
-			const bool bResult = FSceneView::ProjectWorldToScreen(WorldPosition, ProjectionData.GetConstrainedViewRect(), ViewProjectionMatrix, ScreenPosition);
+			bool bResult = FSceneView::ProjectWorldToScreen(WorldPosition, ProjectionData.GetConstrainedViewRect(), ViewProjectionMatrix, ScreenPosition);
 
 			if (bPlayerViewportRelative)
 			{
 				ScreenPosition -= FVector2D(ProjectionData.GetConstrainedViewRect().Min);
 			}
 
+			bResult = Player->PostProcessWorldToScreen(WorldPosition, ScreenPosition, bPlayerViewportRelative);
 			return bResult;
 		}
 	}

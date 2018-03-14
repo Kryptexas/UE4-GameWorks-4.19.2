@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 LandscapeLight.cpp: Static lighting for LandscapeComponents
@@ -684,6 +684,11 @@ void ULandscapeComponent::GetStaticLightingInfo(FStaticLightingPrimitiveInfo& Ou
 				this,StaticLightingMesh,SizeX,SizeY,true));
 		}
 	}
+}
+
+void ULandscapeComponent::AddMapBuildDataGUIDs(TSet<FGuid>& InGUIDs) const
+{
+	InGUIDs.Add(MapBuildDataId);
 }
 
 bool ULandscapeComponent::GetLightMapResolution( int32& Width, int32& Height ) const

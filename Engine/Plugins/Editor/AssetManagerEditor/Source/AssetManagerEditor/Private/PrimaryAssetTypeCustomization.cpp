@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PrimaryAssetTypeCustomization.h"
 #include "AssetManagerEditorModule.h"
@@ -43,7 +43,7 @@ void FPrimaryAssetTypeCustomization::CustomizeHeader(TSharedRef<class IPropertyH
 	.MinDesiredWidth(250.0f)
 	.MaxDesiredWidth(0.0f)
 	[
-		PropertyCustomizationHelpers::MakePropertyComboBox(InStructPropertyHandle, FOnGetPropertyComboBoxStrings::CreateStatic(&IAssetManagerEditorModule::GeneratePrimaryAssetTypeComboBoxStrings, bAllowClear))
+		PropertyCustomizationHelpers::MakePropertyComboBox(InStructPropertyHandle, FOnGetPropertyComboBoxStrings::CreateStatic(&IAssetManagerEditorModule::GeneratePrimaryAssetTypeComboBoxStrings, bAllowClear, false))
 	];
 }
 

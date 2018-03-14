@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -102,6 +102,12 @@ public:
 	virtual float MaxAudibleDistance( float CurrentMaxDistance ) 
 	{ 
 		return( CurrentMaxDistance ); 
+	}
+
+	/** Returns if this node has been set to be allowed virtual. Only the sound node wave player implements this. */
+	virtual bool IsAllowedVirtual() const
+	{
+		return false;
 	}
 
 	/** 

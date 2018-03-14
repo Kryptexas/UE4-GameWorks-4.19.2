@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_Composite.h"
 #include "EdGraph/EdGraph.h"
@@ -48,6 +48,8 @@ void UK2Node_Composite::AllocateDefaultPins()
 			}
 		}
 	}
+
+	CacheWildcardPins();
 }
 
 void UK2Node_Composite::DestroyNode()

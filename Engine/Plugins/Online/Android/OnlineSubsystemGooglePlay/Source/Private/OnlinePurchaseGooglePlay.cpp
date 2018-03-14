@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlinePurchaseGooglePlay.h"
 #include "OnlineSubsystemGooglePlay.h"
@@ -256,7 +256,7 @@ void FOnlinePurchaseGooglePlay::OnTransactionCompleteResponse(EGooglePlayBilling
 				UserPendingTransaction->PendingPurchaseInfo.TransactionState = EPurchaseTransactionState::Invalid;
 				break;
 			default:
-				UE_LOG(LogOnline, Warning, TEXT("Unexpected state after purchase %d"), Result);
+				UE_LOG(LogOnline, Warning, TEXT("Unexpected state after purchase %d"), (int)Result);
 				FinalResult.SetFromErrorCode(TEXT("com.epicgames.purchase.unexpected_state"));
 				FinalResult.ErrorMessage = !ErrorStr.IsEmpty() ? FText::FromString(ErrorStr) : LOCTEXT("GooglePlayUnexpectedState", "Unexpected purchase result");
 				UserPendingTransaction->PendingPurchaseInfo.TransactionState = EPurchaseTransactionState::Failed;

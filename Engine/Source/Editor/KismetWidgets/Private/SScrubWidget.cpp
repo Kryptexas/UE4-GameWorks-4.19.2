@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SScrubWidget.h"
 #include "Fonts/SlateFontInfo.h"
@@ -11,6 +11,7 @@
 #include "Textures/SlateIcon.h"
 #include "Framework/Commands/UIAction.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "Animation/AnimTypes.h"
 #include "Widgets/Input/STextEntryPopup.h"
@@ -81,7 +82,7 @@ int32 SScrubWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 
 	const int32 BackgroundLayer = LayerId;
 
-	const FSlateFontInfo SmallLayoutFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 );
+	const FSlateFontInfo SmallLayoutFont = FCoreStyle::GetDefaultFontStyle("Regular", 10);
 
 	const bool bEnabled = ShouldBeEnabled( bParentEnabled );
 	const ESlateDrawEffect DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;

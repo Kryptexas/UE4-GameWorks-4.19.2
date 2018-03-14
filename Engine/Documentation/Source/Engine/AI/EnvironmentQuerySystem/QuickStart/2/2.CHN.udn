@@ -21,7 +21,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 **场景查询系统** 仍处于 **实验阶段**，随时均会进行较大调整，您必须提前有所准备。
 
@@ -33,7 +33,7 @@ version:4.9
 
 步骤将随版本更新而简化，如您未看到此复选框，则无需执行该步骤。
 
-%Steps%
+
 
 
 [VAR:arrow]![](Engine\AI\EnvironmentQuerySystem\QuickStart\arrow_button.png)[/VAR]

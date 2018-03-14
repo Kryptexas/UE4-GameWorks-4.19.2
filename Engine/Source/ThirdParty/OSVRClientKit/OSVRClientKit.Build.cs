@@ -49,7 +49,7 @@ public class OSVRClientKit : ModuleRules
             foreach (var dll in osvrDlls)
             {
                 var src = String.Format(DllFormat, baseBinaryDirectory, PlatformAbbrev, dll);
-                RuntimeDependencies.Add(new RuntimeDependency(src));
+                RuntimeDependencies.Add(src);
             }
         }
         else if(Target.Platform == UnrealTargetPlatform.Android)
@@ -61,7 +61,7 @@ public class OSVRClientKit : ModuleRules
 
             var xmlPath = Path.Combine(ModuleDirectory, "OSVR_APL.xml");
             //System.Console.WriteLine("xmlPath: {0}", xmlPath);
-            AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", xmlPath));
+            AdditionalPropertiesForReceipt.Add("AndroidPlugin", xmlPath);
         }
     }
 }

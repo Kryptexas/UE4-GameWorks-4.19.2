@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388666
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 3.2 - 발사 구현
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
@@ -22,11 +22,11 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
 
-이번 단계에서는 캐릭터가 발사체 발사를 시작할 수 있도록 `OnFire` 함수를 구현해 보겠습니다.
 
-## OnFire 함수 구현
+이번 단계에서는 캐릭터가 발사체 발사를 시작할 수 있도록 `Fire` 함수를 구현해 보겠습니다.
+
+## Fire 함수 구현
 
 1.	**Solution Explorer** 에서 `FPSCharacter` 클래스 CPP 파일을 찾고 `FPSCharacter.cpp` 를 엽니다.
 
@@ -34,9 +34,9 @@ Version: 4.15
 
 		#include "FPSProjectile.h"
 
-1.	`FPSCharacter.cpp` 에 다음 `OnFire` 함수 정의를 추가합니다:
+1.	`FPSCharacter.cpp` 에 다음 `Fire` 함수 정의를 추가합니다:
 
-		void AFPSCharacter::OnFire()
+		void AFPSCharacter::Fire()
 		{
 			// 프로젝타일 발사를 시도합니다.
 			if (ProjectileClass)
@@ -312,4 +312,3 @@ Version: 4.15
 
 1.	Esc 키를 누르거나 레벨 에디터의 **중지** 버튼을 클릭하여 에디터에서 플레이 (PIE) 모드를 빠져나갑니다.
 
-%Steps%

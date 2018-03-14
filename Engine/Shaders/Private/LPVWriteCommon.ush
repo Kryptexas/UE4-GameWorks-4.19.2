@@ -17,11 +17,12 @@
 #include "LPVCommon.ush"
 
 //------------------------------------------------------------------------------
-
 #define PROPOGATE_26TAP				1
 #define PROPOGATE_USE_LDS			0
 #define COMPRESSED_LDS_PROPOGATE	0
 
+#define	LPV_STORE_INDEX_IN_HEAD_BUFFER		1
+#define	LPV_HEAD_BUFFER_START_OFFSET		64
 //------------------------------------------------------------------------------
 
 #define PACKED_VPL 1

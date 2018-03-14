@@ -6,7 +6,7 @@ Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/MaterialProperties/LightingModels
 Related: Engine/Rendering/PostProcessEffects/Bloom
 Related: Resources/ContentExamples/MaterialNodes/1_5
-Version: 4.9
+Version: 4.18
 SkillLevel: Intermediate
 tags:Materials
 
@@ -19,9 +19,9 @@ During the course of project development, the need might arise for a Self-Illumi
 Inside of Unreal Engine 4(UE4), Self-Illuminated Materials are known as Emissive Materials. 
 In the following How-to guide, we will be covering how you setup your Materials to use the Emissive input as well as how you can use the Emissive input to actually light the world that you are creating. 
 
-## Emissive Glow
+## Emissive Lighting
 
-Emissive Glow or in UE4, Emissive Materials, give artists a very cheap and effective way to give the illusion that a Material is casting light when it really is not. 
+Emissive Lighting or in UE4, Emissive Materials, give artists a very cheap and effective way to give the illusion that a Material is casting light when it really is not. 
 Emissive Materials do this by allowing artist to push the values of the Emissive input higher than 1.0 which will push the Material into the HDR range, 
 giving off a Bloom effect that you might see when looking at a very bright light source.
 
@@ -218,11 +218,37 @@ This will still allow the Emissive to cast lots of static light into the world a
 
 ![](EM_Tweak_PP.png)
 
+## Multiple Bounces of Indirect Lighting
+
+Multiple bounces of indirect light from meshes that have **Emissive for Static Lighting** enabled is supported by adjusting the **Num Sky Lighting Bounces** setting in **World Settings** > **Lightmass**. 
+
+![](Engine/Rendering/LightingAndShadows/LightTypes/SkyLight/LightmassSettings.png)
+
+![](EmissiveMultiBounce.png)(w:900)
+[REGION:caption]
+Example scene with emissive static lighting providing multiple bounces of indirect lighting. 
+[/REGION]
+
+[COMMENT:none]
+-
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Number of Bounces: 1](DetailLighting1.png)(w:1200)
+	[/PARAM]
+	[PARAM:after]
+	![Number of Bounces: 10](DetailLighting2.png)(w:1200)
+	[/PARAM]
+[/OBJECT]
+
+In this example, a single bounce (default) of indirect lighting is compared to ten bounces of indirect lighting. 
+
+-
+[/COMMENT]
 
 ## Conclusion 
 
-Adding Emissive Glow to any Material is very cheap and effective way to simulate a light source without adding any new lights. 
-However keep in mind that when using Emissive Glow the Emissive Glow will not illuminate dynamic objects, like characters, the same way that lights will. 
+Adding Emissive Lighting to any Material is very cheap and effective way to simulate a light source without adding any new lights. 
+However keep in mind that when using Emissive Lighting the Emissive Lighting will not illuminate dynamic objects, like characters, the same way that lights will. 
 Also remember to tweak the Bloom setting on the Post Process volume if your glow is too intense. 
 
 

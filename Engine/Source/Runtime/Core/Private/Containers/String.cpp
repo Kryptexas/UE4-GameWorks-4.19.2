@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreTypes.h"
 #include "Misc/AssertionMacros.h"
@@ -11,7 +11,6 @@
 #include "Logging/LogMacros.h"
 #include "CoreGlobals.h"
 #include "Misc/ByteSwap.h"
-
 
 /* FString implementation
  *****************************************************************************/
@@ -232,6 +231,32 @@ void FString::ToLowerInline()
 	for (int32 i = 0; i < StringLength; ++i)
 	{
 		RawData[i] = FChar::ToLower(RawData[i]);
+	}
+}
+
+void FString::RemoveSpacesInline()
+{
+	const int32 StringLength = Len();
+	if (StringLength == 0)
+	{
+		return;
+	}
+
+	TCHAR* RawData = Data.GetData();
+	int32 CopyToIndex = 0;
+	for (int32 CopyFromIndex = 0; CopyFromIndex < StringLength; ++CopyFromIndex)
+	{
+		if (RawData[CopyFromIndex] != ' ')
+		{	// Copy any character OTHER than space.
+			RawData[CopyToIndex] = RawData[CopyFromIndex];
+			++CopyToIndex;
+		}
+	}
+
+	// Copy null-terminating character.
+	if (CopyToIndex <= StringLength)
+	{
+		RawData[CopyToIndex] = '\0';
 	}
 }
 
@@ -693,7 +718,7 @@ bool FString::ToHexBlob( const FString& Source, uint8* DestBuffer, const uint32 
 	return false;
 }
 
-FString FString::SanitizeFloat( double InFloat )
+FString FString::SanitizeFloat( double InFloat, const int32 InMinFractionalDigits )
 {
 	// Avoids negative zero
 	if( InFloat == 0 )
@@ -701,29 +726,55 @@ FString FString::SanitizeFloat( double InFloat )
 		InFloat = 0;
 	}
 
-	FString TempString;
 	// First create the string
-	TempString = FString::Printf(TEXT("%f"), InFloat );
-	const TArray< TCHAR >& Chars = TempString.GetCharArray();	
-	const TCHAR Zero = '0';
-	const TCHAR Period = '.';
-	int32 TrimIndex = 0;
-	// Find the first non-zero char in the array
-	for (int32 Index = Chars.Num()-2; Index >= 2; --Index )
+	FString TempString = FString::Printf(TEXT("%f"), InFloat);
+	if (!TempString.IsNumeric())
 	{
-		const TCHAR EachChar = Chars[Index];
-		const TCHAR NextChar = Chars[Index-1];
-		if( ( EachChar != Zero ) || (NextChar == Period ) )
-		{			
-			TrimIndex = Index;
+		// String did not format as a valid decimal number so avoid messing with it
+		return TempString;
+	}
+
+	// Trim all trailing zeros (up-to and including the decimal separator) from the fractional part of the number
+	int32 TrimIndex = INDEX_NONE;
+	int32 DecimalSeparatorIndex = INDEX_NONE;
+	for (int32 CharIndex = TempString.Len() - 1; CharIndex >= 0; --CharIndex)
+	{
+		const TCHAR Char = TempString[CharIndex];
+		if (Char == TEXT('.'))
+		{
+			DecimalSeparatorIndex = CharIndex;
+			TrimIndex = FMath::Max(TrimIndex, DecimalSeparatorIndex);
 			break;
 		}
-	}	
-	// If we changed something trim the string
-	if( TrimIndex != 0 )
-	{
-		TempString = TempString.Left( TrimIndex + 1 );
+		if (TrimIndex == INDEX_NONE && Char != TEXT('0'))
+		{
+			TrimIndex = CharIndex + 1;
+		}
 	}
+	check(TrimIndex != INDEX_NONE && DecimalSeparatorIndex != INDEX_NONE);
+	TempString.RemoveAt(TrimIndex, TempString.Len() - TrimIndex, /*bAllowShrinking*/false);
+
+	// Pad the number back to the minimum number of fractional digits
+	if (InMinFractionalDigits > 0)
+	{
+		if (TrimIndex == DecimalSeparatorIndex)
+		{
+			// Re-add the decimal separator
+			TempString.AppendChar(TEXT('.'));
+		}
+
+		const int32 NumFractionalDigits = (TempString.Len() - DecimalSeparatorIndex) - 1;
+		const int32 FractionalDigitsToPad = InMinFractionalDigits - NumFractionalDigits;
+		if (FractionalDigitsToPad > 0)
+		{
+			TempString.Reserve(TempString.Len() + FractionalDigitsToPad);
+			for (int32 Cx = 0; Cx < FractionalDigitsToPad; ++Cx)
+			{
+				TempString.AppendChar(TEXT('0'));
+			}
+		}
+	}
+
 	return TempString;
 }
 
@@ -902,7 +953,7 @@ int32 FString::ParseIntoArrayWS( TArray<FString>& OutArray, const TCHAR* pchExtr
 {
 	// default array of White Spaces, the last entry can be replaced with the optional pchExtraDelim string
 	// (if you want to split on white space and another character)
-	static const TCHAR* WhiteSpace[] = 
+	const TCHAR* WhiteSpace[] = 
 	{
 		TEXT(" "),
 		TEXT("\t"),
@@ -941,7 +992,7 @@ int32 FString::ParseIntoArray(TArray<FString>& OutArray, const TCHAR** DelimArra
 {
 	// Make sure the delimit string is not null or empty
 	check(DelimArray);
-	OutArray.Empty();
+	OutArray.Reset();
 	const TCHAR *Start = Data.GetData();
 	const int32 Length = Len();
 	if (Start)
@@ -1250,7 +1301,7 @@ FString FString::ConvertTabsToSpaces (const int32 InSpacesPerTab)
 // This starting size catches 99.97% of printf calls - there are about 700k printf calls per level
 #define STARTING_BUFFER_SIZE		512
 
-VARARG_BODY( FString, FString::Printf, const TCHAR*, VARARG_NONE )
+FString FString::PrintfImpl(const TCHAR* Fmt, ...)
 {
 	int32		BufferSize	= STARTING_BUFFER_SIZE;
 	TCHAR	StartingBuffer[STARTING_BUFFER_SIZE];

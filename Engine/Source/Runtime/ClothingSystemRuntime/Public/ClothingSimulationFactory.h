@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,4 +16,7 @@ public:
 	virtual IClothingSimulation* CreateSimulation() override;
 	virtual void DestroySimulation(IClothingSimulation* InSimulation) override;
 	virtual bool SupportsAsset(UClothingAssetBase* InAsset) override;
+
+	virtual bool SupportsRuntimeInteraction() override;
+	virtual UClothingSimulationInteractor* CreateInteractor() override;
 };

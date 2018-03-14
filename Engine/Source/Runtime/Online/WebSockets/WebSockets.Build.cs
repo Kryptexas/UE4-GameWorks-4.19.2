@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 		
@@ -6,7 +6,7 @@ public class WebSockets : ModuleRules
 {
   public WebSockets(ReadOnlyTargetRules Target) : base(Target)
 	{
-			Definitions.Add("WEBSOCKETS_PACKAGE=1");
+			PublicDefinitions.Add("WEBSOCKETS_PACKAGE=1");
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
@@ -29,7 +29,7 @@ public class WebSockets : ModuleRules
 
 		if (bShouldUseModule)
 		{
-			Definitions.Add("WITH_WEBSOCKETS=1");
+			PublicDefinitions.Add("WITH_WEBSOCKETS=1");
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
@@ -39,14 +39,14 @@ public class WebSockets : ModuleRules
 
 			if (bPlatformSupportsLibWebsockets)
 			{
-				Definitions.Add("WITH_LIBWEBSOCKETS=1");
+				PublicDefinitions.Add("WITH_LIBWEBSOCKETS=1");
  				AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL", "libWebSockets", "zlib");
 				PrivateDependencyModuleNames.Add("SSL");
 			}
 		}
 		else
 		{
-			Definitions.Add("WITH_WEBSOCKETS=0");
+			PublicDefinitions.Add("WITH_WEBSOCKETS=0");
 		}
 	}
 }

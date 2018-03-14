@@ -55,7 +55,8 @@ Topic-image:Retopo_topic.png
 
 在范例对比中，您可在光照展示中法线尖锐坡度的纹理拉伸已减弱；在线框展示中则能看到顶点已重新分布，更均匀地分布在这些陡峭的坡度上。  
 
-<!----
+[COMMENT:none]
+--
 
 [EXCERPT:lit]
 [OBJECT:ComparisonSlider]
@@ -79,7 +80,8 @@ Topic-image:Retopo_topic.png
 [/OBJECT]
 [/EXCERPT:wireframe]
 
---->
+-
+[/COMMENT]
 
 ### 工具设置
 

@@ -31,7 +31,7 @@ Version: 4.11
 
 에픽이 배포용으로 제공한 (`.h`, `.cpp`, `.xaml`, 등의) 소스 파일은 반드시 파일의 첫 줄에 저작권 공지를 포함시켜야 합니다. 공지의 포맷은 반드시 다음과 같아야 합니다:
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 이 줄이 없거나 포맷이 다르게 되어 있다면, CIS 가 오류를 내고 중단시킬 것입니다.
 

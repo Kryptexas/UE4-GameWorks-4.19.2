@@ -48,7 +48,7 @@ To build a UE4 project that has support for the Vulkan API you will need to do t
 1. Then go to [https://vulkan.lunarg.com/signin](https://vulkan.lunarg.com/signin) and in the download section, click on the **Windows** option.
 
 	[REGION:lightbox]
-	[![](VMP_LunarG_00.png)(w:469 h:577)](VMP_LunarG_00.png)
+	[![](VMP_LunarG_00.png)(w:469)](VMP_LunarG_00.png)
 	[/REGION]
 
 	[REGION:caption]
@@ -62,7 +62,7 @@ To build a UE4 project that has support for the Vulkan API you will need to do t
 1. From the LunarG Vulkan SDK License Agreement page, change the version from **Latest** and then press the **I Accept** button to begin the download.
 
 	[REGION:lightbox]
-	[![](VMP_LunarG_01.png)(w:463 h:224)](VMP_LunarG_01.png)
+	[![](VMP_LunarG_01.png)(w:463)](VMP_LunarG_01.png)
 	[/REGION]
 
 	[REGION:caption]
@@ -84,7 +84,7 @@ To build a UE4 project that has support for the Vulkan API you will need to do t
 	* No Starter Content
 
 	[REGION:lightbox]
-	[![](VMP_New_Project_Settings.png)(w:555 h:387)](VMP_New_Project_Settings.png)
+	[![](VMP_New_Project_Settings.png)(w:555)](VMP_New_Project_Settings.png)
 	[/REGION]
 
 	[REGION:caption]
@@ -95,7 +95,7 @@ To build a UE4 project that has support for the Vulkan API you will need to do t
 1. Once the project has loaded go to **Edit** > **Project Settings** then under **Engine** go to the **Rendering** section and make sure that **Mobile HDR** has been enabled.
 
 	[REGION:lightbox]
-	[![](VMP_Android_Settings_04.png)(w:639 h:385)](VMP_Android_Settings_04.png)
+	[![](VMP_Android_Settings_04.png)(w:639)](VMP_Android_Settings_04.png)
 	[/REGION]
 
 	[REGION:caption]
@@ -105,7 +105,7 @@ To build a UE4 project that has support for the Vulkan API you will need to do t
 1. Next, locate the **Android** section which is under **Platforms**.
 	
 	[REGION:lightbox]
-	[![](VMP_Android_Settings_00.png)(w:639 h:385)](VMP_Android_Settings_00.png)
+	[![](VMP_Android_Settings_00.png)(w:639)](VMP_Android_Settings_00.png)
 	[/REGION]
 
 	[REGION:caption]
@@ -115,7 +115,7 @@ To build a UE4 project that has support for the Vulkan API you will need to do t
 1. In the Android section under **APKPackaging** set the **Minimum SDK Version** to **19** and set the **Target SDK Version** to **19**. 
 
 	[REGION:lightbox]
-	[![](VMP_Android_Settings_01.png)(w:639 h:385)](VMP_Android_Settings_01.png)
+	[![](VMP_Android_Settings_01.png)(w:639)](VMP_Android_Settings_01.png)
 	[/REGION]
 
 	[REGION:caption]
@@ -129,7 +129,7 @@ To build a UE4 project that has support for the Vulkan API you will need to do t
 	* **Support Vulkan[Experimental]**
 
 	[REGION:lightbox]
-	[![](VMP_Android_Settings_02.png)(w:639 h:385)](VMP_Android_Settings_02.png)
+	[![](VMP_Android_Settings_02.png)(w:639)](VMP_Android_Settings_02.png)
 	[/REGION]
 
 	[REGION:caption]
@@ -139,7 +139,7 @@ To build a UE4 project that has support for the Vulkan API you will need to do t
 1. In the **Android SDK** section make sure that **SDKConfig** paths are pointed to the correct SDK on your development PC.
 
 	[REGION:lightbox]
-	[![](VMP_Android_Settings_03.png)(w:639 h:385)](VMP_Android_Settings_03.png)
+	[![](VMP_Android_Settings_03.png)(w:639)](VMP_Android_Settings_03.png)
 	[/REGION]
 
 	[REGION:caption]
@@ -149,7 +149,7 @@ To build a UE4 project that has support for the Vulkan API you will need to do t
 1. From the menu bar go to **File** > **Package Project** > **Android** and select the **Android(ASTC)** option. 
 	
 	[REGION:lightbox]
-	[![](VMP_Package_Game.png)(w:329 h:266)](VMP_Package_Game.png)
+	[![](VMP_Package_Game.png)(w:329)](VMP_Package_Game.png)
 	[/REGION]
 
 	[REGION:caption]
@@ -159,7 +159,7 @@ To build a UE4 project that has support for the Vulkan API you will need to do t
 1. Select a location for UE4 to save the Android build and then press the **OK** button to start the packaging process.
 
 	[REGION:lightbox]
-	[![](VMP_Save_Build_Location.png)(w:245 h:267)](VMP_Save_Build_Location.png)
+	[![](VMP_Save_Build_Location.png)(w:245)](VMP_Save_Build_Location.png)
 	[/REGION]
 
 	[REGION:caption]
@@ -169,7 +169,7 @@ To build a UE4 project that has support for the Vulkan API you will need to do t
 1. When the packaging process has been completed, open up the folder that the packaged build was placed in. Inside this folder, you should see two .BAT files, locate the .BAT file that has the word **Install** in the name and double - click on it to install it to your device.
 	
 	[REGION:lightbox]
-	[![](VMP_Build_Files.png)(w:439 h:198)](VMP_Build_Files.png)
+	[![](VMP_Build_Files.png)(w:439)](VMP_Build_Files.png)
 	[/REGION]
 
 	[REGION:caption]
@@ -179,7 +179,7 @@ To build a UE4 project that has support for the Vulkan API you will need to do t
 1. Once installed on your device, press on the UE4 icon that has your project name under it to launch the project on the device. 
 
 	[REGION:lightbox]
-	[![](VMP_On_Device.png)(w:818 h:320)](VMP_On_Device.png)
+	[![](VMP_On_Device.png)(w:818)](VMP_On_Device.png)
 	[/REGION]
 
 	[REGION:caption]
@@ -196,7 +196,7 @@ You can enable the ability to use the Vulkan render while inside of the UE4 Edit
 1. In the **General** section under the **Experimental** category, expand the **Rendering** section and click on the checkmark box next to the **Enable Metal/Vulkan/High-end mobile Preview Rendering Level in editor**.
 
 	[REGION:lightbox]
-	[![](VMP_03.png)(w:447 h:308)](VMP_03.png)
+	[![](VMP_03.png)(w:447)](VMP_03.png)
 	[/REGION]
 	
 	[REGION:caption]
@@ -210,13 +210,13 @@ You can enable the ability to use the Vulkan render while inside of the UE4 Edit
 1. On the **Main Toolbar**, click on the **Settings** button and go to the **Preview Rendering Level** option and select the **High-End Mobile / Metal** option to enable OpenGL ES 3.1 previewing in the UE4 viewport.
 
 	[REGION:lightbox]
-	[![](VMP_Android_Settings_05.png)(w:447 h:308)](VMP_Android_Settings_05.png)
+	[![](VMP_Android_Settings_05.png)(w:447)](VMP_Android_Settings_05.png)
 	[/REGION]
 
 1. In the lower right-hand conner of the UE4 Editor viewport you should see the text, **Feature Level: ES3_1**. If you see this text then everything is setup correctly and you are now seeing what your project will look like when viewed on a device that supports the Vulkan API.
 
 	[REGION:lightbox]
-	[![](VMP_04.png)(w:447 h:308)](VMP_04.png)
+	[![](VMP_04.png)(w:447)](VMP_04.png)
 	[/REGION]
 
 	[REGION:caption]
@@ -233,7 +233,7 @@ To enable the ability to use the Vulkan render with the mobile preview render, y
 1. In the **General** section under the **Experimental** category, expand the **PIE** section then click on the checkmark box next to the **Allow Vulkan Mobile Preview** option.
 
 	[REGION:lightbox]
-	[![](VMP_01.png)(w:447 h:308)](VMP_01.png)
+	[![](VMP_01.png)(w:447)](VMP_01.png)
 	[/REGION]
 
 	[REGION:caption]
@@ -247,7 +247,7 @@ To enable the ability to use the Vulkan render with the mobile preview render, y
 1. Click on the **Play** button that is on the Main Toolbar to launch your UE4 project in a new preview window with the Vulkan render enabled. If everything has been setup successfully, you should see something similar to the image below.
 
 	[REGION:lightbox]
-	[![](VMP_05.png)(w:447 h:308)](VMP_05.png)
+	[![](VMP_05.png)(w:447)](VMP_05.png)
 	[/REGION]
 
 	[REGION:caption]

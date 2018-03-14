@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3482294
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 블루프린트 소개
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -7,46 +7,7 @@ version: 4.9
 parent:Engine/Blueprints
 order:1
 tags:Blueprints
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/GettingStarted:title%](Engine/Blueprints/intro_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/GettingStarted:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/GettingStarted:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/GettingStarted]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/GettingStarted:title%](Engine/Blueprints/intro_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/GettingStarted:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/GettingStarted:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/GettingStarted]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Blueprints/intro_topic.png
 
 
 [TOC (start:2)]
@@ -75,77 +36,55 @@ _블루프린트_ 는 오브젝트 생성, 개별 함수, 일반적인 게임플
 
 이 둘 외에 다른 [블루프린트 유형](Engine/Blueprints/UserGuide/Types) 에는 [블루프린트 매크로](Engine/Blueprints/UserGuide/Types/MacroLibrary), [블루프린트 인터페이스](Engine/Blueprints/UserGuide/Types/Interface) 가 있습니다.
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		[레벨 블루프린트](Engine/Blueprints/UserGuide/Types/LevelBlueprint)
-	[/PARAM]
-	[PARAM:description]
-		[REGION:lightbox]
-		[![](Engine/Blueprints/GettingStarted/Level_Blueprint_Main.png)(w:640)](Engine/Blueprints/UserGuide/Types/LevelBlueprint) 
-		[/REGION]
-		_레벨 블루프린트_ 는 언리얼 엔진에서 키즈멧의 역할을 대체하는 것으로, 기능 역시 똑같습니다. 각 레벨마다 별도의 _레벨 블루프린트_ 가 있으며, 여기서 레벨에 있는 액터를 가리키고 조작하며, 마티네 액터를 사용해서 시네마틱을 제어하고, 레벨 스트리밍, 체크포인트, 기타 레벨 관련 시스템같은 것들을 관리합니다. _레벨 블루프린트_ 는 레벨에 배치된 _블루프린트 클래스_ 와의 상호작용을 통해 들어있는 커스텀 이벤트를 발동시키거나 변수를 읽고 설정하는 등의 작업도 가능합니다 (예제는 다음 섹션을 참고해 주세요).
-	[/PARAM]
-[/OBJECT]
+## [레벨 블루프린트](Engine/Blueprints/UserGuide/Types/LevelBlueprint)
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		[블루프린트 클래스](Engine/Blueprints/UserGuide/Types/ClassBlueprint)
-	[/PARAM]
-	[PARAM:description]
-		[REGION:lightbox]
-		[![](Engine/Blueprints/GettingStarted/Blueprint_Main.png)(w:640)](Engine/Blueprints/UserGuide/Types/ClassBlueprint)
-		[/REGION]
-		_블루프린트 클래스_ 는 문, 스위치, 수집가능 아이템, 파괴가능 배경과 같은 상호작용형 애셋을 만드는 데 좋습니다. 위 그림에서 버튼과 문짝은 각각 별도의 _블루프린트_ 로, 거기에는 플레이어 오버랩 이벤트에 반응, 애니메이션, 사운드 이펙트 재생, 머티리얼 변경 (즉 버튼을 누르면 불이 켜지는) 등에 필요한 스크립트가 들어있습니다.
+[REGION:lightbox]
+[![](Engine/Blueprints/GettingStarted/Level_Blueprint_Main.png)(w:640)](Engine/Blueprints/UserGuide/Types/LevelBlueprint) 
+[/REGION]
+
+레벨 블루프린트는 언리얼 엔진에서 키즈멧의 역할을 대체하는 것으로, 기능 역시 똑같습니다. 각 레벨마다 별도의 _레벨 블루프린트_ 가 있으며, 여기서 레벨에 있는 액터를 가리키고 조작하며, 마티네 액터를 사용해서 시네마틱을 제어하고, 레벨 스트리밍, 체크포인트, 기타 레벨 관련 시스템같은 것들을 관리합니다. 레벨 블루프린트는 레벨에 배치된 블루프린트 클래스와의 상호작용을 통해 들어있는 커스텀 이벤트를 발동시키거나 변수를 읽고 설정하는 등의 작업도 가능합니다 (예제는 다음 섹션을 참고해 주세요).
+
+## [Blueprint Class](Engine/Blueprints/UserGuide/Types/ClassBlueprint)
+
+[REGION:lightbox]
+[![](Engine/Blueprints/GettingStarted/Blueprint_Main.png)(w:640)](Engine/Blueprints/UserGuide/Types/ClassBlueprint)
+[/REGION]
+
+블루프린트 클래스는 문, 스위치, 수집가능 아이템, 파괴가능 배경과 같은 상호작용형 애셋을 만드는 데 좋습니다. 위 그림에서 버튼과 문짝은 각각 별도의 _블루프린트_ 로, 거기에는 플레이어 오버랩 이벤트에 반응, 애니메이션, 사운드 이펙트 재생, 머티리얼 변경 (즉 버튼을 누르면 불이 켜지는) 등에 필요한 스크립트가 들어있습니다.
 		
-		이 경우 버튼을 누르면 문 _블루프린트_ 안에서 이벤트를 활성화시켜 열리게 만들지만, 문 자체는 다른 _블루프린트_ 유형이나 _레벨 블루프린트_ 시퀀스로도 쉽게 활성화시킬 수 있습니다. _블루프린트_ 의 자립적인 특징때문에 별다른 설정 없이 레벨에 그냥 끌어 놓기만 해도 작동되도록 만들 수 있습니다. 즉 프로젝트에 사용중인 _블루프린트_ 를 편집하면 그 인스턴스 전부가 업데이트된다는 뜻이기도 합니다.
-	[/PARAM]
-[/OBJECT]
+이 경우 버튼을 누르면 문 _블루프린트_ 안에서 이벤트를 활성화시켜 열리게 만들지만, 문 자체는 다른 _블루프린트_ 유형이나 _레벨 블루프린트_ 시퀀스로도 쉽게 활성화시킬 수 있습니다. _블루프린트_ 의 자립적인 특징때문에 별다른 설정 없이 레벨에 그냥 끌어 놓기만 해도 작동되도록 만들 수 있습니다. 즉 프로젝트에 사용중인 _블루프린트_ 를 편집하면 그 인스턴스 전부가 업데이트된다는 뜻이기도 합니다.
 
 ## 블루프린트로 또 어떠한 작업이 가능한가요?
+
 _레벨 블루프린트_ 와 _블루프린트 클래스_ 에 대한 설명 다음에는 _블루프린트_ 시스템으로 가능한 작업에 대한 예제를 알아보겠습니다.
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		컨스트럭션 스크립트로 커스터마이징 가능한 프리팹 생성
-	[/PARAM]
-	[PARAM:description]
-		![](Construction_Script.png)
+## 컨스트럭션 스크립트로 커스터마이징 가능한 프리팹 생성
 
-		_Construction Script_ (컨스트럭션 스크립트)는 _블루프린트 클래스_ 내 그래프 유형 중 한 가지로, 게임에서는 실행되지 않지만 에디터에서 액터가 배치 또는 업데이트될 때 실행되는 것입니다. 배경 아티스트의 작업 속도를 높일 수 있도록 쉽게 커스터마이징 가능한 소품을 만들기에 좋은데, 이를테면 포인트 라이트 컴포넌트의 색과 밝기에 일치되도록 머티리얼이 자동 업데이트되는 조명기구라든가, 일정 영역에 폴리지 메시를 임의로 흩뿌리는 _블루프린트_ 정도입니다.
+![](Construction_Script.png)
 
-		콘텐츠 예제 맵에 (위 그림처럼) 각각의 예제가 들어있는 긴 방은 사실 다수의 컴포넌트로 구성된 하나의 _블루프린트_ 입니다. _블루프린트_ 의 _컨스트럭션 스크립트_ 는 _블루프린트_ 의 **디테일** 패널에 노출된 파라미터에 맞도록 다양한 스태틱 메시와 라이트를 생성 및 배치합니다. 저희가 각 콘텐츠 예제 맵을 제작할 때마다 데모 룸 _블루프린트_ 를 끌어 놓은 다음 생성하려는 방의 길이, 높이, 방 갯수(와 몇 가지 추가 옵션) 값을 입력하면 바로 완성된 방 세트를 얻을 수 있었습니다.
+_Construction Script_ (컨스트럭션 스크립트)는 _블루프린트 클래스_ 내 그래프 유형 중 한 가지로, 게임에서는 실행되지 않지만 에디터에서 액터가 배치 또는 업데이트될 때 실행되는 것입니다. 배경 아티스트의 작업 속도를 높일 수 있도록 쉽게 커스터마이징 가능한 소품을 만들기에 좋은데, 이를테면 포인트 라이트 컴포넌트의 색과 밝기에 일치되도록 머티리얼이 자동 업데이트되는 조명기구라든가, 일정 영역에 폴리지 메시를 임의로 흩뿌리는 _블루프린트_ 정도입니다.
 
-		이러한 _블루프린트_ 제작은 초기에 시간이 조금 걸릴 수 있지만, 자주 사용할 것이 확실하다면 레벨 제작시 단축되는 시간과 사용 편의성 증대를 고려해 볼때 매우 가치가 높은 일이 될 수 있습니다.
-	[/PARAM]
-[/OBJECT]
+콘텐츠 예제 맵에 (위 그림처럼) 각각의 예제가 들어있는 긴 방은 사실 다수의 컴포넌트로 구성된 하나의 _블루프린트_ 입니다. _블루프린트_ 의 _컨스트럭션 스크립트_ 는 _블루프린트_ 의 **디테일** 패널에 노출된 파라미터에 맞도록 다양한 스태틱 메시와 라이트를 생성 및 배치합니다. 저희가 각 콘텐츠 예제 맵을 제작할 때마다 데모 룸 _블루프린트_ 를 끌어 놓은 다음 생성하려는 방의 길이, 높이, 방 갯수(와 몇 가지 추가 옵션) 값을 입력하면 바로 완성된 방 세트를 얻을 수 있었습니다.
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		플레이가능 게임 캐릭터 생성
-	[/PARAM]
-	[PARAM:description]
-		![](Game_Characters.png)
+이러한 _블루프린트_ 제작은 초기에 시간이 조금 걸릴 수 있지만, 자주 사용할 것이 확실하다면 레벨 제작시 단축되는 시간과 사용 편의성 증대를 고려해 볼때 매우 가치가 높은 일이 될 수 있습니다.
 
-		_Pawns_ (폰) 역시도 _블루프린트 클래스_ 의 유형 중 하나로, _블루프린트_ 그래프에서 플레이가능한 캐릭터를 만드는 데 필요한 모든 요소를 한 데 모을 수 있습니다. 카메라 작동방식 조작, 마우스, 콘트롤러, 터치 스크린에 대한 입력 이벤트 셋업, 스켈레탈 메시 애니메이션 처리를 위한 _애니메이션 블루프린트_ 애셋 생성이 가능합니다.
+## 플레이가능 게임 캐릭터 생성
 
-		_캐릭터 블루프린트_ 를 새로 만들 때 이동, 점프, 수영, 낙하 등에 필요한 동작 대부분이 내장되어 있는 캐릭터 컴포넌트가 딸려오므로, 캐릭터 제어를 어떻게 했으면 좋겠는지 입력 이벤트만 조금 추가해 주면 됩니다.
-	[/PARAM]
-[/OBJECT]
+![](Game_Characters.png)
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		HUD 생성
-	[/PARAM]
-	[PARAM:description]
-		![](Create_HUDs.png)
+_Pawns_ (폰) 역시도 _블루프린트 클래스_ 의 유형 중 하나로, _블루프린트_ 그래프에서 플레이가능한 캐릭터를 만드는 데 필요한 모든 요소를 한 데 모을 수 있습니다. 카메라 작동방식 조작, 마우스, 콘트롤러, 터치 스크린에 대한 입력 이벤트 셋업, 스켈레탈 메시 애니메이션 처리를 위한 _애니메이션 블루프린트_ 애셋 생성이 가능합니다.
+
+_캐릭터 블루프린트_ 를 새로 만들 때 이동, 점프, 수영, 낙하 등에 필요한 동작 대부분이 내장되어 있는 캐릭터 컴포넌트가 딸려오므로, 캐릭터 제어를 어떻게 했으면 좋겠는지 입력 이벤트만 조금 추가해 주면 됩니다.
+
+## HUD 생성
+
+![](Create_HUDs.png)
 
 		_블루프린트_ 스크립트는 게임의 HUD 를 만드는 데도 사용되는데, 이벤트 시퀀스와 변수가 포함된다는 점에서는 _블루프린트 클래스_ 와 비슷하지만, 레벨에 바로 추가되기 보다는 프로젝트의 _GameMode_ 애셋에 할당된다는 차이가 있습니다.
 
 		다른 _블루프린트_ 에서 변수를 읽어 체력 표시 막대에 사용한다든가, 점수를 업데이트한다든가, 오브젝트 마커를 표시한다든가 하는 식으로 HUD 구성이 가능합니다. 클릭 또는 모바일 게임의 경우 터치 가능한 버튼같은 요소에 들어가는 히트박스를 추가하기 위한 용도로 HUD 를 사용하는 것도 가능합니다.
 
 		앞서 말한 예제 전부 UE4 에 포함된 샘플 콘텐츠에 들어 있으므로, 자세히 살펴보고자 하는 경우 **Content Examples**, **First Person Shooter**, **Swing Ninja** 프로젝트에서 찾을 수 있습니다.
-	[/PARAM]
-[/OBJECT]
 
 ## 블루프린트 에디터와 그래프
 

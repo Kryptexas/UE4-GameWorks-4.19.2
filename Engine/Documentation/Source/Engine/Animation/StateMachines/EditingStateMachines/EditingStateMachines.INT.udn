@@ -6,6 +6,7 @@ version: 4.14
 related:Engine\Animation\StateMachines\CreatingStateMachines
 related:Engine\Animation\StateMachines\TransitionRules
 related:Engine\Animation\AnimBlueprints
+type:how-to
 
 Although a [State Machine](Engine\Animation\StateMachines\Overview) serves as a convenient way to break down the flow of animation transitions in a Skeletal Mesh, the most important aspect of them is what actually happens within each node of a State Machine. With this in mind, it is important to remember the primary purposes of each of a State Machine's node types:
 

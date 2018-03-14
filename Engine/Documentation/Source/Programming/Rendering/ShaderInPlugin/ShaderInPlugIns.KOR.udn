@@ -1,23 +1,15 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3717114
+Availability:Public
 Crumbs: %ROOT%
-Title: Shaders In Plugins
-Description: Information on creating and useing shaders in plugins in UE4.
+Title: Shaders In 플러그인
+Description: UE4 의 Shaders In 플러그인 생성 및 사용법 관련 정보입니다.
 Type: Landing
 Version: 4.17
 Parent: Programming\Rendering\
 Order: 1
 Tags: Rendering
 
-Add Banner Image
-[REGION:note]
-The Banner Image should show the user what the system, feature, or concept looks like when it's in use.
-[/REGION]
-
-
-The following documents will go over all of the various items that you need to be aware of when trying to create and use global shaders via a Plugin. 
-
-## Topic List
+## 토픽 리스트
 
 [DIR(end:"1" output:"topic" parent:"Programming\Rendering\ShaderInPlugin" org:"Hierarchy" end:"1")]
 

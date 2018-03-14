@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once 
@@ -182,20 +182,8 @@ public:
 
 	/** Toggle automatic exposure */
 	TSharedPtr< FUICommandInfo > ToggleAutoExposure;
-
-	/** Magic ID to differentiate the auto expose setting from the fixed exposure settings */
-	static const int32 AutoExposureRadioID = 999;
-
-	/** Exposure Commands */
-	TSharedPtr< FUICommandInfo > FixedExposure4m;
-	TSharedPtr< FUICommandInfo > FixedExposure3m;
-	TSharedPtr< FUICommandInfo > FixedExposure2m;
-	TSharedPtr< FUICommandInfo > FixedExposure1m;
-	TSharedPtr< FUICommandInfo > FixedExposure0;
-	TSharedPtr< FUICommandInfo > FixedExposure1p;
-	TSharedPtr< FUICommandInfo > FixedExposure2p;
-	TSharedPtr< FUICommandInfo > FixedExposure3p;
-	TSharedPtr< FUICommandInfo > FixedExposure4p;
+	/** Toggle game settings exposure */
+	TSharedPtr< FUICommandInfo > ToggleInGameExposure;
 
 	/**
 	 * Grid commands

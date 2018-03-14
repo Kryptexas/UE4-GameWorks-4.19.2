@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,6 +15,7 @@ class NIAGARAEDITOR_API UNiagaraStackEntry : public UObject
 public:
 	DECLARE_MULTICAST_DELEGATE(FOnStructureChanged);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnDataObjectModified, UObject*);
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnFilterChild, const UNiagaraStackEntry&);
 
 public:
 	UNiagaraStackEntry();
@@ -47,7 +48,9 @@ public:
 
 	virtual bool GetShouldShowInStack() const;
 
-	void GetChildren(TArray<UNiagaraStackEntry*>& OutChildren);
+	void GetFilteredChildren(TArray<UNiagaraStackEntry*>& OutFilteredChildren);
+
+	void GetUnfilteredChildren(TArray<UNiagaraStackEntry*>& OutUnfilteredChildren);
 
 	FOnStructureChanged& OnStructureChanged();
 
@@ -55,6 +58,9 @@ public:
 
 	void RefreshChildren();
 	void RefreshErrors();
+
+	FDelegateHandle AddChildFilter(FOnFilterChild ChildFilter);
+	void RemoveChildFilter(FDelegateHandle FilterHandle);
 
 	virtual int32 GetErrorCount() const { return 0; }
 	virtual bool GetErrorFixable(int32 ErrorIdx) const { return false; }
@@ -64,9 +70,6 @@ public:
 
 	TSharedRef<FNiagaraSystemViewModel> GetSystemViewModel() const;
 	TSharedRef<FNiagaraEmitterViewModel> GetEmitterViewModel() const;
-
-protected:
-	virtual void RefreshChildrenInternal(const TArray<UNiagaraStackEntry*>& CurrentChildren, TArray<UNiagaraStackEntry*>& NewChildren);
 
 	template<typename ChildType, typename PredicateType>
 	static ChildType* FindCurrentChildOfTypeByPredicate(const TArray<UNiagaraStackEntry*>& CurrentChildren, PredicateType Predicate)
@@ -82,6 +85,17 @@ protected:
 		return nullptr;
 	}
 
+	template<typename ChildType, typename PredicateType>
+	ChildType* FindChildOfTypeByPredicate(PredicateType Predicate)
+	{
+		TArray<UNiagaraStackEntry*> CurrentChildren;
+		GetUnfilteredChildren(CurrentChildren);
+		return FindCurrentChildOfTypeByPredicate<ChildType>(CurrentChildren, Predicate);
+	}
+
+protected:
+	virtual void RefreshChildrenInternal(const TArray<UNiagaraStackEntry*>& CurrentChildren, TArray<UNiagaraStackEntry*>& NewChildren);
+
 private:
 	void ChildStructureChanged();
 	
@@ -94,6 +108,8 @@ private:
 	FOnStructureChanged StructureChangedDelegate;
 
 	FOnDataObjectModified DataObjectModifiedDelegate;
+
+	TArray<FOnFilterChild> ChildFilters;
 
 	UPROPERTY()
 	TArray<UNiagaraStackEntry*> Children;

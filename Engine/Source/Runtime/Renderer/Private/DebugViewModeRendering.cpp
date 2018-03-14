@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 DebugViewModeRendering.cpp: Contains definitions for rendering debug viewmodes.
@@ -25,14 +25,14 @@ class FMissingShaderPS : public FGlobalShader, public IDebugViewModePSInterface
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return AllowDebugViewVSDSHS(Platform); }
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters) { return AllowDebugViewVSDSHS(Parameters.Platform); }
 
 	FMissingShaderPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):	FGlobalShader(Initializer) {}
 	FMissingShaderPS() {}
 
 	virtual bool Serialize(FArchive& Ar) override { return FGlobalShader::Serialize(Ar); }
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("UNDEFINED_VALUE"), UndefinedStreamingAccuracyIntensity);
 	}
@@ -163,7 +163,7 @@ void FDebugViewMode::SetParametersVSHSDS(
 	bool bHasHullAndDomainShader
 	)
 {
-	VertexFactory->Set(RHICmdList);
+	VertexFactory->Set(View.GetShaderPlatform(), RHICmdList);
 
 	GetMaterialForVSHSDS(&MaterialRenderProxy, &Material, View.GetFeatureLevel());
 
@@ -201,3 +201,18 @@ void FDebugViewMode::SetMeshVSHSDS(
 		Material->GetShader<FDebugViewModeDS>(VertexFactoryType)->SetMesh(RHICmdList, VertexFactory, View, Proxy, BatchElement, DrawRenderState);
 	}
 }
+
+void FDebugViewMode::SetInstanceParameters(
+	FRHICommandList& RHICmdList,
+	const FVertexFactory* VertexFactory,
+	const FSceneView& View,
+	const FMaterial* Material, 
+	uint32 InVertexOffset, 
+	uint32 InInstanceOffset, 
+	uint32 InInstanceCount)
+{
+	GetMaterialForVSHSDS(nullptr, &Material, View.GetFeatureLevel());
+	FVertexFactoryType* VertexFactoryType = VertexFactory->GetType();
+	Material->GetShader<FDebugViewModeVS>(VertexFactoryType)->SetInstanceParameters(RHICmdList, InVertexOffset, InInstanceOffset, InInstanceCount);
+}
+

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphNode_BlendListByEnum.h"
 #include "Textures/SlateIcon.h"
@@ -70,7 +70,7 @@ void UAnimGraphNode_BlendListByEnum::GetMenuActions(FBlueprintActionDatabaseRegi
 	{
 		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(NodeClass);
 		check(NodeSpawner != nullptr);
-		TWeakObjectPtr<UEnum> NonConstEnumPtr = Enum;
+		TWeakObjectPtr<UEnum> NonConstEnumPtr = MakeWeakObjectPtr(const_cast<UEnum*>(Enum));
 		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(GetMenuActions_Utils::SetNodeEnum, NonConstEnumPtr);
 
 		return NodeSpawner;
@@ -79,14 +79,14 @@ void UAnimGraphNode_BlendListByEnum::GetMenuActions(FBlueprintActionDatabaseRegi
 
 void UAnimGraphNode_BlendListByEnum::GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const
 {
-	if (!Context.bIsDebugging && (BoundEnum != NULL))
+	if (!Context.bIsDebugging && BoundEnum)
 	{
-		if ((Context.Pin != NULL) && (Context.Pin->Direction == EGPD_Input))
+		if (Context.Pin && (Context.Pin->Direction == EGPD_Input))
 		{
 			int32 RawArrayIndex = 0;
 			bool bIsPosePin = false;
 			bool bIsTimePin = false;
-			GetPinInformation(Context.Pin->PinName, /*out*/ RawArrayIndex, /*out*/ bIsPosePin, /*out*/ bIsTimePin);
+			GetPinInformation(Context.Pin->PinName.ToString(), /*out*/ RawArrayIndex, /*out*/ bIsPosePin, /*out*/ bIsTimePin);
 
 			if (bIsPosePin || bIsTimePin)
 			{
@@ -154,7 +154,7 @@ void UAnimGraphNode_BlendListByEnum::RemovePinFromBlendList(UEdGraphPin* Pin)
 	int32 RawArrayIndex = 0;
 	bool bIsPosePin = false;
 	bool bIsTimePin = false;
-	GetPinInformation(Pin->PinName, /*out*/ RawArrayIndex, /*out*/ bIsPosePin, /*out*/ bIsTimePin);
+	GetPinInformation(Pin->PinName.ToString(), /*out*/ RawArrayIndex, /*out*/ bIsPosePin, /*out*/ bIsTimePin);
 
 	const int32 ExposedEnumIndex = (bIsPosePin || bIsTimePin) ? (RawArrayIndex - 1) : INDEX_NONE;
 
@@ -185,14 +185,14 @@ void UAnimGraphNode_BlendListByEnum::RemovePinFromBlendList(UEdGraphPin* Pin)
 
 void UAnimGraphNode_BlendListByEnum::GetPinInformation(const FString& InPinName, int32& Out_PinIndex, bool& Out_bIsPosePin, bool& Out_bIsTimePin)
 {
-	const int32 UnderscoreIndex = InPinName.Find(TEXT("_"));
+	const int32 UnderscoreIndex = InPinName.Find(TEXT("_"), ESearchCase::CaseSensitive);
 	if (UnderscoreIndex != INDEX_NONE)
 	{
 		const FString ArrayName = InPinName.Left(UnderscoreIndex);
 		Out_PinIndex = FCString::Atoi(*(InPinName.Mid(UnderscoreIndex + 1)));
 
-		Out_bIsPosePin = ArrayName == TEXT("BlendPose");
-		Out_bIsTimePin = ArrayName == TEXT("BlendTime");
+		Out_bIsPosePin = (ArrayName == TEXT("BlendPose"));
+		Out_bIsTimePin = (ArrayName == TEXT("BlendTime"));
 	}
 	else
 	{
@@ -208,7 +208,7 @@ void UAnimGraphNode_BlendListByEnum::CustomizePinData(UEdGraphPin* Pin, FName So
 	bool bIsPosePin;
 	bool bIsTimePin;
 	int32 RawArrayIndex;
-	GetPinInformation(Pin->PinName, /*out*/ RawArrayIndex, /*out*/ bIsPosePin, /*out*/ bIsTimePin);
+	GetPinInformation(Pin->PinName.ToString(), /*out*/ RawArrayIndex, /*out*/ bIsPosePin, /*out*/ bIsTimePin);
 	checkSlow(RawArrayIndex == ArrayIndex);
 
 	if (bIsPosePin || bIsTimePin)

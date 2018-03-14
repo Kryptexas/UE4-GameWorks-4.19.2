@@ -1,0 +1,55 @@
+﻿INTSourceChangelist:3782314
+Availability:Public
+Title: 미디어 프레임워크 퀵스타트
+Crumbs: %ROOT%, Engine
+Description: 미디어 프레임워크로 게임 레벨 안에 비디오를 빠르게 추가하고 재생하는 방법에 대한 안내입니다.
+Navigation:topic
+parent:Engine/MediaFramework
+order:1
+Version: 4.18
+type:quick start
+checkpoint:mediaframeworkqs
+tags:Media Framework
+topic-image:MediaFrameworkTopic.png
+
+![](MediaFrameworkHero.png)
+
+_이 가이드를 마칠 즈음이면 레벨에 각기 다른 콘텐츠가 재생되며 그 옆에 서서 끄고 켤 수 있는 TV 가 다수 있을 것입니다._
+
+## 목적
+
+이 안내서의 목적은 레벨 안에서 비디오를 재생할 수 있는 TV 구성 방법을 안내해 드리는 것입니다.
+또한 TV 를 블루프린트로 구성하여 TV 에서 재생되는 콘텐츠를 변경하고 레벨에 다수의 TV 를 배치하여 필요한 경우 각기 다른 콘텐츠를 재생할 수도 있도록 하겠습니다.
+미디어 프레임워크 툴이 처음이거나 레벨의 스태틱 메시에서 비디오를 재생하는 방법이 궁금하신 분들을 위한 안내서입니다.
+
+[REGION:note]
+이 안내서에는 [](Engine/Rendering/Materials) 및 [블루프린트](Engine/Blueprints) 를 사용하여 TV 에서 비디오가 재생되는 효과를 내는 구성 방법이 몇 가지 포함되어 있습니다.
+이와 관련해서 있으면 좋은 사전 지식이 있기는 하지만 필수는 아닙니다.
+[/REGION]
+
+## 목표
+
+이 안내서에서 얻을 수 있는 지식은 다음과 같습니다:
+
+*	미디어를 임포트하고 다양한 미디어 소스를 사용하는 방법.
+*	미디어 파일 재생에 사용되는 미디어 텍스처 사용 머티리얼을 만드는 방법.
+*	블루프린트로 미디어 재생을 시작, 중지, 일시정지하는 방법.
+*	TV 블루프린트를 만들어 사용할 미디어 소스를 지정하는 방법.
+
+## 단계
+
+[DIR(output:"checkpoint" parent:"Engine\MediaFramework\QuickStart" org:"hierarchy")]
+
+[REGION:call_to_action]
+	[클릭하면 시작합니다.](Engine\MediaFramework\QuickStart/1 "%Engine\MediaFramework\QuickStart/1:title%")
+[/REGION]
+
+
+
+
+
+
+
+
+
+

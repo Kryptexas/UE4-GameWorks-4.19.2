@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "VoiceInterfaceImpl.h"
 #include "Misc/ConfigCacheIni.h"
@@ -12,9 +12,6 @@
 #include "VoiceEngineImpl.h"
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "Interfaces/OnlineSessionInterface.h"
-
-/** Largest size to attempt to transmit */
-#define MAX_VOICE_PACKET_SIZE_IMPL 1 * 1024
 
 FOnlineVoiceImpl::FOnlineVoiceImpl(IOnlineSubsystem* InOnlineSubsystem) :
 	OnlineSubsystem(InOnlineSubsystem),
@@ -725,7 +722,7 @@ void FOnlineVoiceImpl::ProcessLocalVoicePackets()
 				// Talkers needing processing will always be in lsb due to shifts
 				if (DataReadyFlags & 1)
 				{
-					uint32 SpaceAvail = MAX_VOICE_DATA_SIZE - VoiceData.LocalPackets[Index].Length;
+					uint32 SpaceAvail = UVOIPStatics::GetMaxVoiceDataSize() - VoiceData.LocalPackets[Index].Length;
 					// Figure out if there is space for this packet
 					if (SpaceAvail > 0)
 					{
@@ -734,11 +731,14 @@ void FOnlineVoiceImpl::ProcessLocalVoicePackets()
 						BufferStart += VoiceData.LocalPackets[Index].Length;
 						// Copy the sender info
 						VoiceData.LocalPackets[Index].Sender = IdentityInt->GetUniquePlayerId(Index);
+
+						uint64 SampleCount = VoiceData.LocalPackets[Index].SampleCount;
+
 						// Process this user
-						uint32 Result = VoiceEngine->ReadLocalVoiceData(Index, BufferStart, &SpaceAvail);
+						uint32 Result = VoiceEngine->ReadLocalVoiceData(Index, BufferStart, &SpaceAvail, &SampleCount);
 						if (Result == S_OK)
 						{
-							if (LocalTalkers[Index].bHasNetworkedVoice && SpaceAvail <= MAX_VOICE_PACKET_SIZE_IMPL)
+							if (LocalTalkers[Index].bHasNetworkedVoice)
 							{
 								// Mark the person as talking
 								LocalTalkers[Index].bIsTalking = true;
@@ -746,6 +746,8 @@ void FOnlineVoiceImpl::ProcessLocalVoicePackets()
 
 								// Update the length based on what it copied
 								VoiceData.LocalPackets[Index].Length += SpaceAvail;
+
+								VoiceData.LocalPackets[Index].SampleCount = SampleCount;
 
 #if VOICE_LOOPBACK
 								if (OSSConsoleVariables::CVarVoiceLoopback.GetValueOnGameThread() && SpaceAvail > 0)
@@ -796,8 +798,9 @@ void FOnlineVoiceImpl::ProcessRemoteVoicePackets()
 			{
 				// Get the size since it is an in/out param
 				uint32 VoiceBufferSize = VoicePacket->GetBufferSize();
+				uint64 VoiceSampleCounter = VoicePacket->GetSampleCounter();
 				// Submit this packet to the voice engine
-				uint32 Result = VoiceEngine->SubmitRemoteVoiceData(*VoicePacket->Sender, VoicePacket->Buffer.GetData(), &VoiceBufferSize);
+				uint32 Result = VoiceEngine->SubmitRemoteVoiceData(VoicePacket->Sender, VoicePacket->Buffer.GetData(), &VoiceBufferSize, VoiceSampleCounter);
 				if (Result != S_OK)
 				{
 					UE_LOG(LogVoiceEngine, Warning,

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -51,6 +51,9 @@ namespace Audio
 
 		// Process audio input and output buffer
 		virtual void ProcessAudio(const float* InAudio, float* OutAudio);
+
+		// Process audio in the delay line, return the delayed value
+		float ProcessAudio(const float InAudio);
 
 	protected:
 

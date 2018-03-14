@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleEmitterInstances.cpp: Particle emitter instance implementations.
@@ -13,6 +13,8 @@
 #include "Engine/StaticMesh.h"
 #include "StaticMeshResources.h"
 #include "FXSystem.h"
+
+#include "HAL/PlatformStackWalk.h"
 
 #include "Particles/SubUV/ParticleModuleSubUV.h"
 #include "Particles/Collision/ParticleModuleCollisionGPU.h"
@@ -85,6 +87,8 @@ DEFINE_STAT(STAT_GPUSpriteSpawnTime);
 DEFINE_STAT(STAT_GPUSpriteTickTime);
 DEFINE_STAT(STAT_GPUSingleIterationEmitters);
 DEFINE_STAT(STAT_GPUMultiIterationsEmitters);
+DEFINE_STAT(STAT_GPUParticlesInjectionTime);
+DEFINE_STAT(STAT_GPUParticlesSimulationCommands);
 
 /** Particle memory stats */
 
@@ -135,15 +139,152 @@ DEFINE_STAT(STAT_DynamicAnimTrailCount_MAX);
 DEFINE_STAT(STAT_DynamicAnimTrailGTMem_MAX);
 DEFINE_STAT(STAT_DynamicUntrackedGTMem_MAX);
 
-DECLARE_CYCLE_STAT(TEXT("EmitterInstance Init"), STAT_ParticleEmitterInstance_Init, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("MeshEmitterInstance Init"), STAT_MeshEmitterInstance_Init, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("EmitterInstance InitParams"), STAT_ParticleEmitterInstance_InitParameters, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("MeshEmitterInstance InitParams"), STAT_MeshEmitterInstance_InitParameters, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("EmitterInstance Init Sizes"), STAT_ParticleEmitterInstance_InitSize, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("EmitterInstance PrepPerInstanceBlock"), STAT_PrepPerInstanceBlock, STATGROUP_Particles);
-DECLARE_CYCLE_STAT(TEXT("EmitterInstance Resize"), STAT_ParticleEmitterInstance_Resize, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("EmitterInstance Init GT"), STAT_ParticleEmitterInstance_Init, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("MeshEmitterInstance Init GT"), STAT_MeshEmitterInstance_Init, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("EmitterInstance InitParams GT"), STAT_ParticleEmitterInstance_InitParameters, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("MeshEmitterInstance InitParams GT"), STAT_MeshEmitterInstance_InitParameters, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("EmitterInstance Init Sizes GT"), STAT_ParticleEmitterInstance_InitSize, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("EmitterInstance PrepPerInstanceBlock GT"), STAT_PrepPerInstanceBlock, STATGROUP_Particles);
+DECLARE_CYCLE_STAT(TEXT("EmitterInstance Resize GT"), STAT_ParticleEmitterInstance_Resize, STATGROUP_Particles);
 
 
+#define USE_FAST_PARTICLE_POOL 1
+#if USE_FAST_PARTICLE_POOL
+
+static int32 GEnableFastPools = 0;
+static FAutoConsoleVariableRef CVarEnableFastPools(
+	TEXT("r.Emitter.FastPoolEnable"),
+	GEnableFastPools,
+	TEXT("Should we use fast pools for emitters.\n")
+	TEXT(" 0: Don't pool anything\n")
+	TEXT(" 1: Pool the emitters bro (default)\n"),
+	ECVF_Default
+);
+
+static int32 GMaxFreePoolSizeBytes = 2 * 1024 * 1024;
+static FAutoConsoleVariableRef CVarFastPoolMaxFreeSize(
+	TEXT("r.Emitter.FastPoolMaxFreeSize"),
+	GMaxFreePoolSizeBytes,
+	TEXT("Max free pool size to keep around without cleaning up."),
+	ECVF_Default
+);
+
+FCriticalSection GFastPoolsCriticalSection;
+
+struct FFastPoolFreePool
+{
+	FFastPoolFreePool() : LastUsedTime(0.0) { }
+
+	TArray<void*> FreeAllocations;
+	double LastUsedTime;
+};
+
+TMap<int32, FFastPoolFreePool> GFastPoolFreedAllocations;
+int32 GFreePoolSizeBytes = 0;
+
+#define FASTPARTICLEALLOC_CHECKSIZE 0
+#if FASTPARTICLEALLOC_CHECKSIZE 
+FCriticalSection GFastPoolSizeMapCriticalSection;
+TMap<void*, int32> GFastPoolSizeMap;
+#endif
+
+FORCEINLINE static void* FastParticleSmallBlockAlloc(size_t AllocSize)
+{
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_PARTALLOC);
+
+	if (GEnableFastPools)
+	{
+		FScopeLock S(&GFastPoolsCriticalSection);
+
+		FFastPoolFreePool* Allocations = GFastPoolFreedAllocations.Find(AllocSize);
+		if ( Allocations  && Allocations->FreeAllocations.Num() )
+		{
+			void* Result = Allocations->FreeAllocations[0];
+			Allocations->FreeAllocations.RemoveAtSwap(0,1, false);
+			Allocations->LastUsedTime = FPlatformTime::Seconds();
+			GFreePoolSizeBytes -= AllocSize;
+#if FASTPARTICLEALLOC_CHECKSIZE
+			FScopeLock Q(&GFastPoolSizeMapCriticalSection);
+			GFastPoolSizeMap.Add(Result, AllocSize);
+#endif
+			return Result;
+		}
+
+	}
+
+#if FASTPARTICLEALLOC_CHECKSIZE
+	FScopeLock S(&GFastPoolSizeMapCriticalSection);
+	void *Result = FMemory::Malloc(AllocSize);
+	GFastPoolSizeMap.Add(Result, AllocSize);
+	return Result;
+#else
+	return FMemory::Malloc(AllocSize);
+#endif
+}
+
+FORCEINLINE static void FastParticleSmallBlockFree(void *RawMemory, size_t AllocSize)
+{
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_PARTALLOC);
+
+
+#if FASTPARTICLEALLOC_CHECKSIZE
+	{
+		FScopeLock S(&GFastPoolSizeMapCriticalSection);
+		int32* AllocatedSize = GFastPoolSizeMap.Find(RawMemory);
+		GFastPoolSizeMap.Remove(RawMemory);
+		check(AllocatedSize);
+		if (AllocatedSize)
+		{
+			check(*AllocatedSize == AllocSize);
+		}
+	}
+#endif
+	if (GEnableFastPools)
+	{
+		FScopeLock S(&GFastPoolsCriticalSection);
+		FFastPoolFreePool& Allocations = GFastPoolFreedAllocations.FindOrAdd(AllocSize);
+		Allocations.FreeAllocations.Add(RawMemory);
+		GFreePoolSizeBytes += AllocSize;
+
+		if ( GFreePoolSizeBytes > GMaxFreePoolSizeBytes )
+		{
+			// free the oldest allocation
+			FFastPoolFreePool* OldestPool = nullptr;
+			int32 OldestPoolAllocSize  = 0;
+			for ( auto& PoolItr : GFastPoolFreedAllocations )
+			{
+				FFastPoolFreePool& Pool = PoolItr.Value;
+				if ( Pool.FreeAllocations.Num() )
+				{
+					if ( OldestPool == nullptr )
+					{
+						OldestPoolAllocSize = PoolItr.Key;
+						OldestPool = &Pool;
+					}
+					else
+					{
+						if (OldestPool->LastUsedTime > Pool.LastUsedTime)
+						{
+							OldestPoolAllocSize = PoolItr.Key;
+							OldestPool = &Pool;
+						}
+					}
+				}
+			}
+			check( OldestPool );
+			check( OldestPoolAllocSize  != 0 );
+			void* OldAllocation = OldestPool->FreeAllocations[0];
+			OldestPool->FreeAllocations.RemoveAtSwap(0, 1, false);
+			GFreePoolSizeBytes -= OldestPoolAllocSize;
+			FMemory::Free(OldAllocation);
+		}
+		return;
+	}
+	FMemory::Free(RawMemory);
+}
+
+
+#else
 FORCEINLINE static void* FastParticleSmallBlockAlloc(size_t AllocSize)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_PARTALLOC);
@@ -155,6 +296,9 @@ FORCEINLINE static void FastParticleSmallBlockFree(void *RawMemory, size_t Alloc
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_PARTALLOC);
 	FMemory::Free(RawMemory);
 }
+
+#endif
+
 
 
 void FParticleDataContainer::Alloc(int32 InParticleDataNumBytes, int32 InParticleIndicesNumShorts)
@@ -2658,7 +2802,7 @@ void FParticleEmitterInstance::ApplyWorldOffset(FVector InOffset, bool bWorldShi
 	}
 }
 
-bool FParticleEmitterInstance::Tick_MaterialOverrides()
+void FParticleEmitterInstance::Tick_MaterialOverrides(int32 EmitterIndex)
 {
 	UParticleLODLevel* LODLevel = SpriteTemplate->GetCurrentLODLevel(this);
 	bool bOverridden = false;
@@ -2689,7 +2833,17 @@ bool FParticleEmitterInstance::Tick_MaterialOverrides()
 		        }
 	        }
 	}
-	return bOverridden;
+
+	if (bOverridden == false && Component)
+	{
+		if (Component->EmitterMaterials.IsValidIndex(EmitterIndex))
+		{
+			if (Component->EmitterMaterials[EmitterIndex])
+			{
+				CurrentMaterial = Component->EmitterMaterials[EmitterIndex];
+			}
+		}
+	}
 }
 
 bool FParticleEmitterInstance::UseLocalSpace()
@@ -2821,7 +2975,7 @@ void FParticleSpriteEmitterInstance::GetAllocatedSize(int32& OutNum, int32& OutM
  */
 void FParticleSpriteEmitterInstance::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive || (Component && Component->SceneProxy))
+	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::EstimatedTotal || (Component && Component->SceneProxy))
 	{
 		int32 MaxActiveParticleDataSize = (ParticleData != NULL) ? (MaxActiveParticles * ParticleStride) : 0;
 		int32 MaxActiveParticleIndexSize = (ParticleIndices != NULL) ? (MaxActiveParticles * sizeof(uint16)) : 0;
@@ -3032,13 +3186,13 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 							const FOrbitChainModuleInstancePayload &OrbitPayload = *(FOrbitChainModuleInstancePayload*)((uint8*)&Particle + SpriteOrbitModuleOffset);
 
 							//this should be our current position
-							const FVector NewPos =  Particle.Location + OrbitPayload.Offset;	
+							const FVector NewPos = Particle.Location + OrbitPayload.Offset;
 							//this should be our previous position
 							const FVector OldPos = Particle.OldLocation + OrbitPayload.PreviousOffset;
 
 							NewDirection = NewPos - OldPos;
-						}	
-					}			              
+						}
+					}
 				}
 				else if (LODLevel->RequiredModule->ScreenAlignment == PSA_AwayFromCenter)
 				{
@@ -3048,8 +3202,8 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 				NewDirection.Normalize();
 				FVector	OldDirection(1.0f, 0.0f, 0.0f);
 
-				FQuat Rotation	= FQuat::FindBetweenNormals(OldDirection, NewDirection);
-				FVector Euler	= Rotation.Euler();
+				FQuat Rotation = FQuat::FindBetweenNormals(OldDirection, NewDirection);
+				FVector Euler = Rotation.Euler();
 				PayloadData->Rotation = PayloadData->InitRotation + Euler;
 				PayloadData->Rotation += PayloadData->CurContinuousRotation;
 			}
@@ -3066,7 +3220,7 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 
 	// Call the standard tick
 	FParticleEmitterInstance::Tick(DeltaTime, bSuppressSpawning);
-	
+
 	if (MeshRotationActive && bEnabled)
 	{
 		//Must do this (at least) after module update other wise the reset value of RotationRate is used.
@@ -3085,41 +3239,56 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 	INC_DWORD_STAT_BY(STAT_MeshParticles, ActiveParticles);
 }
 
-bool FParticleMeshEmitterInstance::Tick_MaterialOverrides()
+void FParticleMeshEmitterInstance::Tick_MaterialOverrides(int32 EmitterIndex)
 {
+	// we need to do this here, since CurrentMaterials is unique to mesh emitters, so this can't be done from the component. CurrentMaterials 
+	// may end up in MeshMaterials, so if this doesn't get updated, rendering may access a garbage collected material
+
+	// make sure currentmaterials are all set to the emitter material, so we don't end up with GC'd material pointers
+	// in MeshMaterials when GetMeshMaterials pushes CurrentMaterials to MeshMaterials
+	if (Component && Component->EmitterMaterials.IsValidIndex(EmitterIndex))
+	{
+		if (Component->EmitterMaterials[EmitterIndex])
+		{
+			for (UMaterialInterface *& CurMat : CurrentMaterials)
+			{
+				CurMat = Component->EmitterMaterials[EmitterIndex];
+			}
+		}
+	}	
+
 	UParticleLODLevel* LODLevel = SpriteTemplate->GetCurrentLODLevel(this);
 	bool bOverridden = false;
-	if( LODLevel && LODLevel->RequiredModule && Component && Component->Template )
+	if (LODLevel && LODLevel->RequiredModule && Component && Component->Template)
 	{
-	        TArray<FName>& NamedOverrides = LODLevel->RequiredModule->NamedMaterialOverrides;
-	        TArray<FNamedEmitterMaterial>& Slots = Component->Template->NamedMaterialSlots;
-	        TArray<UMaterialInterface*>& EmitterMaterials = Component->EmitterMaterials;
-	        if (NamedOverrides.Num() > 0)
-	        {
-		        CurrentMaterials.SetNumZeroed(NamedOverrides.Num());
-		        for (int32 MaterialIdx = 0; MaterialIdx < NamedOverrides.Num(); ++MaterialIdx)
-		        {		
-			        //If we have named material overrides then get it's index into the emitter materials array.	
-			        for (int32 CheckIdx = 0; CheckIdx < Slots.Num(); ++CheckIdx)
-			        {
-				        if (NamedOverrides[MaterialIdx] == Slots[CheckIdx].Name)
-				        {
-					        //Default to the default material for that slot.
-					        CurrentMaterials[MaterialIdx] = Slots[CheckIdx].Material;
-					        if (EmitterMaterials.IsValidIndex(CheckIdx) && nullptr != EmitterMaterials[CheckIdx] )
-					        {
-						        //This material has been overridden externally, e.g. from a BP so use that one.
-						        CurrentMaterials[MaterialIdx] = EmitterMaterials[CheckIdx];
-					        }
-        
-					        bOverridden = true;
-					        break;
-				        }
-			        }
-		        }
-	        }
-        }
-	return bOverridden;
+		TArray<FName>& NamedOverrides = LODLevel->RequiredModule->NamedMaterialOverrides;
+		TArray<FNamedEmitterMaterial>& Slots = Component->Template->NamedMaterialSlots;
+		TArray<UMaterialInterface*>& EmitterMaterials = Component->EmitterMaterials;
+		if (NamedOverrides.Num() > 0)
+		{
+			CurrentMaterials.SetNumZeroed(NamedOverrides.Num());
+			for (int32 MaterialIdx = 0; MaterialIdx < NamedOverrides.Num(); ++MaterialIdx)
+			{
+				//If we have named material overrides then get it's index into the emitter materials array.	
+				for (int32 CheckIdx = 0; CheckIdx < Slots.Num(); ++CheckIdx)
+				{
+					if (NamedOverrides[MaterialIdx] == Slots[CheckIdx].Name)
+					{
+						//Default to the default material for that slot.
+						CurrentMaterials[MaterialIdx] = Slots[CheckIdx].Material;
+						if (EmitterMaterials.IsValidIndex(CheckIdx) && nullptr != EmitterMaterials[CheckIdx])
+						{
+							//This material has been overridden externally, e.g. from a BP so use that one.
+							CurrentMaterials[MaterialIdx] = EmitterMaterials[CheckIdx];
+						}
+
+						bOverridden = true;
+						break;
+					}
+				}
+			}
+		}
+	}
 }
 
 /**
@@ -3450,7 +3619,7 @@ void FParticleMeshEmitterInstance::GetAllocatedSize(int32& OutNum, int32& OutMax
  */
 void FParticleMeshEmitterInstance::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive || (Component && Component->SceneProxy))
+	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::EstimatedTotal || (Component && Component->SceneProxy))
 	{
 		int32 MaxActiveParticleDataSize = (ParticleData != NULL) ? (MaxActiveParticles * ParticleStride) : 0;
 		int32 MaxActiveParticleIndexSize = (ParticleIndices != NULL) ? (MaxActiveParticles * sizeof(uint16)) : 0;
@@ -3537,7 +3706,8 @@ void FParticleMeshEmitterInstance::GetMeshMaterials(
 			}
 
 			// Check that adjacency data is not required since the implementation does not support it.
-			if (RequiresAdjacencyInformation(Material, LODModel.VertexFactory.GetType(), InFeatureLevel))
+			// we know that we will use FLocalVertexFactory Type therefore passing nullptr is valid
+			if (RequiresAdjacencyInformation(Material, nullptr, InFeatureLevel))
 			{
 				if (bLogWarnings)
 				{
@@ -3719,6 +3889,7 @@ FDynamicSpriteEmitterReplayDataBase::FDynamicSpriteEmitterReplayDataBase()
 	, MaxFacingCameraBlendDistance(0.f)
 {
 }
+
 
 FDynamicSpriteEmitterReplayDataBase::~FDynamicSpriteEmitterReplayDataBase()
 {

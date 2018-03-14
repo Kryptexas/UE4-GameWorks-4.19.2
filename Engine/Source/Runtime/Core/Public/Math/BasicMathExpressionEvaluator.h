@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,6 +6,7 @@
 #include "Misc/Optional.h"
 #include "Templates/ValueOrError.h"
 #include "Misc/ExpressionParserTypes.h"
+#include "Internationalization/FastDecimalFormat.h"
 
 #define DEFINE_EXPRESSION_OPERATOR_NODE(TYPE, ...) \
 namespace ExpressionParser {\
@@ -33,8 +34,32 @@ DEFINE_EXPRESSION_OPERATOR_NODE(FPower, 0x93388F8D, 0x1D9B4DFE, 0xBD4D6CC4, 0x12
 	
 namespace ExpressionParser
 {
+	/** Get the default set number formatting rules based on the current locale and user settings */
+	CORE_API const FDecimalNumberFormattingRules& GetLocalizedNumberFormattingRules();
+
+	/** Parse a number formatted using the given rules from the given stream, optionally from a specific read position */
+	CORE_API TOptional<FStringToken> ParseNumberWithFallback(const FTokenStream& InStream, const FDecimalNumberFormattingRules& InPrimaryFormattingRules, const FDecimalNumberFormattingRules& InFallbackFormattingRules, FStringToken* Accumulate = nullptr, double* OutValue = nullptr);
+
+	/** Parse a number formatted using the given rules from the given stream, optionally from a specific read position */
+	CORE_API TOptional<FStringToken> ParseNumberWithRules(const FTokenStream& InStream, const FDecimalNumberFormattingRules& InFormattingRules, FStringToken* Accumulate = nullptr, double* OutValue = nullptr);
+
+	/** Parse a localized number from the given stream, optionally from a specific read position */
+	CORE_API TOptional<FStringToken> ParseLocalizedNumberWithAgnosticFallback(const FTokenStream& InStream, FStringToken* Accumulate = nullptr, double* OutValue = nullptr);
+
+	/** Parse a localized number from the given stream, optionally from a specific read position */
+	CORE_API TOptional<FStringToken> ParseLocalizedNumber(const FTokenStream& InStream, FStringToken* Accumulate = nullptr, double* OutValue = nullptr);
+
 	/** Parse a number from the given stream, optionally from a specific read position */
-	CORE_API TOptional<FStringToken> ParseNumber(const FTokenStream& InStream, FStringToken* Accumulate = nullptr);
+	CORE_API TOptional<FStringToken> ParseNumber(const FTokenStream& InStream, FStringToken* Accumulate = nullptr, double* OutValue = nullptr);
+
+	/** Consume a number formatted using the given rules from the specified consumer's stream, if one exists at the current read position */
+	CORE_API TOptional<FExpressionError> ConsumeNumberWithRules(FExpressionTokenConsumer& Consumer, const FDecimalNumberFormattingRules& InFormattingRules);
+
+	/** Consume a localized number from the specified consumer's stream, if one exists at the current read position */
+	CORE_API TOptional<FExpressionError> ConsumeLocalizedNumberWithAgnosticFallback(FExpressionTokenConsumer& Consumer);
+
+	/** Consume a localized number from the specified consumer's stream, if one exists at the current read position */
+	CORE_API TOptional<FExpressionError> ConsumeLocalizedNumber(FExpressionTokenConsumer& Consumer);
 
 	/** Consume a number from the specified consumer's stream, if one exists at the current read position */
 	CORE_API TOptional<FExpressionError> ConsumeNumber(FExpressionTokenConsumer& Consumer);

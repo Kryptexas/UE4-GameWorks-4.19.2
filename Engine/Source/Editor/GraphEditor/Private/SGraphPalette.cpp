@@ -1,10 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SGraphPalette.h"
 #include "Modules/ModuleManager.h"
 #include "Widgets/SOverlay.h"
 #include "Widgets/Images/SImage.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "GraphEditorDragDropAction.h"
 
@@ -19,7 +20,7 @@
 
 void SGraphPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetForActionData* const InCreateData)
 {
-	FSlateFontInfo NameFont = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10);
+	FSlateFontInfo NameFont = FCoreStyle::GetDefaultFontStyle("Regular", 10);
 
 	check(InCreateData->Action.IsValid());
 

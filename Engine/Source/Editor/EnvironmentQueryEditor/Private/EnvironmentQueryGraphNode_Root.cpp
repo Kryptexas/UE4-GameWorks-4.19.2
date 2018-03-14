@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "EnvironmentQueryGraphNode_Root.h"
 
@@ -9,7 +9,7 @@ UEnvironmentQueryGraphNode_Root::UEnvironmentQueryGraphNode_Root(const FObjectIn
 
 void UEnvironmentQueryGraphNode_Root::AllocateDefaultPins()
 {
-	UEdGraphPin* Outputs = CreatePin(EGPD_Output, TEXT("Transition"), FString(), nullptr, TEXT("In"));
+	UEdGraphPin* Outputs = CreatePin(EGPD_Output, TEXT("Transition"), TEXT("In"));
 }
 
 FText UEnvironmentQueryGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) const

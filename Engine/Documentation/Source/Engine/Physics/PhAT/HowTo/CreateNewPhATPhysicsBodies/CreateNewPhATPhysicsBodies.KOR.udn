@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3211040
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:PhAT 에서 새 피직스 바디 생성
 Crumbs: %ROOT%, Engine
@@ -11,7 +11,9 @@ related:Engine/Physics/PhAT/HowTo/EditPhATPhysicsConstraints
 skilllevel:Beginner
 topic-image:Engine/Physics/physics_topic.png
 
-<!-- Overview Text -->
+[COMMENT:none]
+ Overview Text 
+[/COMMENT]
 
 ## 단계
 
@@ -26,4 +28,6 @@ topic-image:Engine/Physics/physics_topic.png
 
 ## 결과
 
-<!-- Result Text -->
+[COMMENT:none]
+ Result Text 
+[/COMMENT]

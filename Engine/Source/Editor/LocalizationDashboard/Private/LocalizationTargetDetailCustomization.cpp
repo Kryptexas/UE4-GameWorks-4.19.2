@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LocalizationTargetDetailCustomization.h"
 #include "LocalizationTargetTypes.h"
@@ -372,10 +372,10 @@ void FLocalizationTargetDetailCustomization::CustomizeDetails(IDetailLayoutBuild
 		const TSharedPtr<IPropertyHandle> MemberPropertyHandle = TargetSettingsPropertyHandle->GetChildHandle(PropertyName);
 		if (MemberPropertyHandle.IsValid() && MemberPropertyHandle->IsValidHandle())
 		{
+			static const FName ShowOnlyInners("ShowOnlyInnerProperties");
+
 			const FName CategoryName = FObjectEditorUtils::GetCategoryFName(MemberProperty);
 			IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory(CategoryName);
-
-			static FName ShowOnlyInners("ShowOnlyInnerProperties");
 
 			const auto* const Function = PropertyCustomizationMap.Find(PropertyName);
 			if (Function)
@@ -1242,9 +1242,9 @@ void FLocalizationTargetDetailCustomization::OnNewSupportedCultureSelected(FCult
 		SupportedCulturesStatisticsPropertyHandle->AsArray()->GetNumElements(NewElementIndex);
 
 		// Add element, set info for later initialization.
-		SupportedCulturesStatisticsPropertyHandle->AsArray()->AddItem();
 		SelectedNewCulture = SelectedCulture;
 		NewEntryIndexToBeInitialized = NewElementIndex;
+		SupportedCulturesStatisticsPropertyHandle->AsArray()->AddItem();
 
 		if (NativeCultureIndexPropertyHandle.IsValid() && NativeCultureIndexPropertyHandle->IsValidHandle())
 		{

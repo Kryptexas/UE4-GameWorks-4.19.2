@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreTypes.h"
@@ -51,6 +51,12 @@ struct CORE_API FEditorObjectVersion
 		MovieSceneMetaDataSerialization,
 		// Text gathered from properties now adds two variants: a version without the package localization ID (for use at runtime), and a version with it (which is editor-only)
 		GatheredTextEditorOnlyPackageLocId,
+		// Added AlwaysSign to FNumberFormattingOptions
+		AddedAlwaysSignNumberFormattingOption,
+		// Added additional objects that must be serialized as part of this new material feature
+		AddedMaterialSharedInputs,
+		// Added morph target section indices
+		AddedMorphTargetSectionIndices,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

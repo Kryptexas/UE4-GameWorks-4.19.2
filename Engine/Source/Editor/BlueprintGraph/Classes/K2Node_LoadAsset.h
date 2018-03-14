@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -36,11 +36,11 @@ public:
 protected:
 	virtual FName NativeFunctionName() const;
 
-	virtual const FString& GetInputCategory() const;
-	virtual const FString& GetOutputCategory() const;
+	virtual const FName& GetInputCategory() const;
+	virtual const FName& GetOutputCategory() const;
 
-	virtual const FString& GetInputPinName() const;
-	virtual const FString& GetOutputPinName() const;
+	virtual const FName& GetInputPinName() const;
+	virtual const FName& GetOutputPinName() const;
 };
 
 UCLASS(MinimalAPI)
@@ -56,9 +56,9 @@ public:
 protected:
 	virtual FName NativeFunctionName() const override;
 
-	virtual const FString& GetInputCategory() const override;
-	virtual const FString& GetOutputCategory() const override;
+	virtual const FName& GetInputCategory() const override;
+	virtual const FName& GetOutputCategory() const override;
 
-	virtual const FString& GetInputPinName() const override;
-	virtual const FString& GetOutputPinName() const override;
+	virtual const FName& GetInputPinName() const override;
+	virtual const FName& GetOutputPinName() const override;
 };

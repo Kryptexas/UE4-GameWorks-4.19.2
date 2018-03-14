@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,6 +18,10 @@ public:
 	*/
 	virtual void ResizeBuffer(uint32 NumVertices) = 0;
 
+	virtual void Empty(uint32 NumVertices) = 0;
+
+	virtual bool IsValidIndex(uint32 Index) = 0;
+
 	/** @return The stride of the vertex data in the buffer. */
 	virtual uint32 GetStride() const = 0;
 
@@ -29,4 +33,8 @@ public:
 
 	/** Serializer. */
 	virtual void Serialize(FArchive& Ar) = 0;
+
+	virtual SIZE_T GetResourceSize() const = 0;
+
+	virtual bool GetAllowCPUAccess() const = 0;
 };

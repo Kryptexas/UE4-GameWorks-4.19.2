@@ -1,10 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 //
 #include "CoreMinimal.h"
 #include "SteamVRPrivate.h"
 #include "StereoLayerManager.h"
 #include "SteamVRHMD.h"
 #include "Misc/ScopeLock.h"
+#include "DefaultXRCamera.h"
 
 #if STEAMVR_SUPPORTED_PLATFORMS
 
@@ -232,7 +233,20 @@ void FSteamVRHMD::UpdateStereoLayers_RenderThread()
 	const float WorldToMeterScale = GetWorldToMetersScale();
 	check(WorldToMeterScale > 0.f);
 	FQuat AdjustedPlayerOrientation = BaseOrientation.Inverse() * PlayerOrientation;
-	FTransform InvWorldTransform = FTransform(AdjustedPlayerOrientation, PlayerLocation).Inverse();
+	AdjustedPlayerOrientation.Normalize();
+
+	check(XRCamera.IsValid());
+	FVector AdjustedPlayerLocation = PlayerLocation;
+	if (XRCamera->GetUseImplicitHMDPosition())
+	{
+		FQuat DeviceOrientation; // Unused
+		FVector DevicePosition;
+		GetCurrentPose(IXRTrackingSystem::HMDDeviceId, DeviceOrientation, DevicePosition);
+		AdjustedPlayerLocation -= BaseOrientation.Inverse().RotateVector(DevicePosition);
+	}
+
+	FTransform InvWorldTransform = FTransform(AdjustedPlayerOrientation, AdjustedPlayerLocation).Inverse();
+
 
 	// We have loop through all layers every frame, in case we have world locked layers or continuously updated textures.
 	ForEachLayer([&](uint32 /* unused */, FSteamVRLayer& Layer)

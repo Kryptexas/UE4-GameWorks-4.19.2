@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ShaderCompilerCommon.h"
 #include "hlslcc.h"
@@ -177,16 +177,87 @@ bool FHlslCrossCompilerContext::Init(
 	return true;
 }
 
+
+static bool TrySimplePreprocessor(_mesa_glsl_parse_state* ParseState, const char** InOutShaderSource)
+{
+	const char* Source = *InOutShaderSource;
+	char* Dest = ralloc_strdup(ParseState, Source);
+	char* Ptr = Dest;
+	while (*Ptr)
+	{
+		if (*Ptr == '#')
+		{
+			if (Ptr[1] == 'l' && Ptr[2] == 'i' && Ptr[3] == 'n' && Ptr[4] == 'e')
+			{
+				// Skip to EOL
+				while (Ptr && *Ptr != '\n')
+				{
+					++Ptr;
+				}
+			}
+			else
+			{
+				// Directive not supported
+				return false;
+			}
+		}
+		else if (*Ptr == '/')
+		{
+			if (Ptr[1] == '*')
+			{
+				while (*Ptr)
+				{
+					if (*Ptr == '\n')
+					{
+						++Ptr;
+					}
+					else if (Ptr[0] == '*' && Ptr[1] == '/')
+					{
+						Ptr[0] = ' ';
+						Ptr[1] = ' ';
+						break;
+					}
+					else
+					{
+						*Ptr = ' ';
+						++Ptr;
+					}
+				}
+			}
+			else if (Ptr[1] == '/')
+			{
+				Ptr[0] = ' ';
+				Ptr[1] = ' ';
+				Ptr += 2;
+				// Skip to EOL
+				while (Ptr && *Ptr != '\n')
+				{
+					*Ptr = ' ';
+					++Ptr;
+				}
+			}
+		}
+
+		++Ptr;
+	}
+
+	*InOutShaderSource = Dest;
+	return true;
+}
+
 bool FHlslCrossCompilerContext::RunFrontend(const char** InOutShaderSource)
 {
-	const bool bPreprocess = (Flags & HLSLCC_NoPreprocess) == 0;
-	if (bPreprocess)
+	if (!TrySimplePreprocessor(ParseState, InOutShaderSource))
 	{
-		ParseState->error = preprocess(ParseState, InOutShaderSource, &ParseState->info_log);
-		//TIMER(preprocess);
-		if (ParseState->error != 0)
+		const bool bPreprocess = (Flags & HLSLCC_NoPreprocess) == 0;
+		if (bPreprocess)
 		{
-			return false;
+			ParseState->error = preprocess(ParseState, InOutShaderSource, &ParseState->info_log);
+			//TIMER(preprocess);
+			if (ParseState->error != 0)
+			{
+				return false;
+			}
 		}
 	}
 

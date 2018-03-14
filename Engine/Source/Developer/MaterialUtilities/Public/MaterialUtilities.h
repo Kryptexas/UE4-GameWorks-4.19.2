@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,7 +16,6 @@
 
 class ALandscapeProxy;
 class Error;
-class FStaticLODModel;
 class ULandscapeComponent;
 class UMaterial;
 class UMaterialInstanceConstant;
@@ -26,6 +25,7 @@ class UTextureRenderTarget2D;
 class UMaterialOptions;
 struct FMaterialProxySettings;
 struct FRawMesh;
+class FSkeletalMeshLODRenderData;
 struct FBakeOutput;
 struct FMeshData;
 struct FMaterialData;
@@ -37,7 +37,7 @@ enum class EFlattenMaterialProperties : uint8
 	Diffuse,
 	Metallic,
 	Specular,
-	Roughness,	
+	Roughness,
 	Normal,
 	Opacity,
 	Emissive,
@@ -142,7 +142,7 @@ struct FMaterialMergeData
 	/** Raw mesh data used to bake out the material with, optional */
 	const struct FRawMesh* Mesh;
 	/** LODModel data used to bake out the material with, optional */
-	const class FStaticLODModel* LODModel;
+	const FSkeletalMeshLODRenderData* LODData;
 	/** Material index to use when the material is baked out using mesh data (face material indices) */
 	int32 MaterialIndex;
 	/** Optional tex coordinate bounds of original texture coordinates set */
@@ -161,14 +161,14 @@ struct FMaterialMergeData
 	FMaterialMergeData(
 		UMaterialInterface* InMaterial,
 		const FRawMesh* InMesh,
-		const FStaticLODModel* InLODModel,
+		const FSkeletalMeshLODRenderData* InLODData,
 		int32 InMaterialIndex,
 		FBox2D InTexcoordBounds,
 		const TArray<FVector2D>& InTexCoords)
 		: ProxyCache(nullptr)
 		, Material(InMaterial)
 		, Mesh(InMesh)
-		, LODModel(InLODModel)
+		, LODData(InLODData)
 		, MaterialIndex(InMaterialIndex)
 		, TexcoordBounds(InTexcoordBounds)
 		, TexCoords(InTexCoords)
@@ -236,6 +236,7 @@ public:
 	* @param OutSize			Output size of the rendered samples
 	* @return					Whether operation was successful
 	*/
+	DEPRECATED(4.19, "Please use new functionality in MaterialBaking module")
 	static bool ExportMaterialProperty(UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, TArray<FColor>& OutBMP, FIntPoint& OutSize );
 
 	/**
@@ -247,6 +248,7 @@ public:
 	* @param OutBMP				Output array of rendered samples	
 	* @return					Whether operation was successful
 	*/
+	DEPRECATED(4.19, "Please use new functionality in MaterialBaking module")
 	static bool ExportMaterialProperty(UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, FIntPoint InSize, TArray<FColor>& OutBMP );
 
 	/**
@@ -279,6 +281,7 @@ public:
 	* @param OutFlattenMaterial		Output flattened material
 	* @return						Whether operation was successful
 	*/
+	DEPRECATED(4.19, "Please use new functionality in MaterialBaking module")
 	static bool ExportMaterial(UMaterialInterface* InMaterial, FFlattenMaterial& OutFlattenMaterial, struct FExportMaterialProxyCache* ProxyCache = nullptr);
 
 	DEPRECATED(4.17, "Please use new functionality in MaterialBaking module")
@@ -295,8 +298,10 @@ public:
 	* @param OutFlattenMaterial Output flattened material
 	* @return					Whether operation was successful
 	*/
+	DEPRECATED(4.19, "Please use new functionality in MaterialBaking module")
 	static bool ExportMaterial(UMaterialInterface* InMaterial, const FRawMesh* InMesh, int32 InMaterialIndex, const FBox2D& InTexcoordBounds, const TArray<FVector2D>& InTexCoords, FFlattenMaterial& OutFlattenMaterial, struct FExportMaterialProxyCache* ProxyCache = nullptr);
 
+	DEPRECATED(4.19, "Please use new functionality in MaterialBaking module")
 	static bool ExportMaterial(UMaterialInterface* InMaterial, const FRawMesh* InMesh, int32 InMaterialIndex, const FBox2D& InTexcoordBounds, const TArray<FVector2D>& InTexCoords, const int32 LightMapIndex, FLightMapRef LightMap, FShadowMapRef ShadowMap, FUniformBufferRHIRef Buffer, FFlattenMaterial& OutFlattenMaterial, struct FExportMaterialProxyCache* ProxyCache = nullptr);
 
 	/**
@@ -490,6 +495,7 @@ private:
 	* @param OutFlattenMaterial		Output flattened material
 	* @return						Whether operation was successful
 	*/
+	DEPRECATED(4.19, "Please use new functionality in MaterialBaking module")
 	static bool ExportMaterial(struct FMaterialMergeData& InMaterialData, FFlattenMaterial& OutFlattenMaterial, struct FExportMaterialProxyCache* ProxyCache = nullptr);
 
 	/**
@@ -504,6 +510,7 @@ private:
 	* @param OutSamples				Array of FColor samples containing the rendered out texture pixel data
 	* @return						Whether operation was successful
 	*/
+	DEPRECATED(4.19, "Please use new functionality in MaterialBaking module")
 	static bool RenderMaterialPropertyToTexture(struct FMaterialMergeData& InMaterialData, EMaterialProperty InMaterialProperty, bool bInForceLinearGamma, EPixelFormat InPixelFormat, const FIntPoint InTargetSize, FIntPoint& OutSampleSize, TArray<FColor>& OutSamples);
 
 	/**

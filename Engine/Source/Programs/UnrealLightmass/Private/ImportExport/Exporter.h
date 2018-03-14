@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -65,9 +65,6 @@ namespace Lightmass
 		/** Exports the volume distance field. */
 		void ExportVolumeDistanceField(int32 VolumeSizeX, int32 VolumeSizeY, int32 VolumeSizeZ, float VolumeMaxDistance, const FBox& DistanceFieldVolumeBounds, const TArray<FColor>& VolumeDistanceField) const;
 
-		/** Creates a new channel and exports everything in DebugOutput. */
-		void ExportDebugInfo(const struct FDebugLightingOutput& DebugOutput) const;
-
 	private:
 		class FLightmassSwarm*	Swarm;
 		const class FScene& Scene;
@@ -78,6 +75,8 @@ namespace Lightmass
 		/** Writes a TArray to the channel on the top of the Swarm stack. */
 		template<class T>
 		void WriteArray(const TArray<T>& Array) const;
+
+		void WriteDebugLightingOutput(const struct FDebugLightingOutput& DebugOutput) const;
 	};
 
 }	//Lightmass

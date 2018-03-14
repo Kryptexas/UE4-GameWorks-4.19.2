@@ -1,27 +1,16 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3728517
 Availability: Public
 Title:5 - 직접 해보기!
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:추가로 해 볼 아이디어입니다!
 SkillLevel: Beginner
 Version: 4.9
+parent:Programming/QuickStart
+order:5
+type:quick start
+type:multi-step
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Programming\QuickStart\4 "%Programming\QuickStart\4:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[프로그래밍 퀵스타트 홈](Programming\QuickStart)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 지금까지 배운 것을 토대로, 다음 작업을 해 보세요:
 
@@ -34,4 +23,4 @@ Version: 4.9
 * **액터** 관련 상세 정보: [Actor](API:AActor)
 * 추가적인 튜토리얼: [](Programming/Tutorials)
 
-%Steps%
+[NAV]

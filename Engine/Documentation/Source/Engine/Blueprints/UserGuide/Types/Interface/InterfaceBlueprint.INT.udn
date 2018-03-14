@@ -2,50 +2,13 @@ Availability:Public
 Title:Blueprint Interface
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
 Description:Blueprints that declare functions to define an interface between Blueprints.
-related: Engine\Blueprints\UserGuide\BlueprintCommsUsage
-related: Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo
-related: Engine\Blueprints\UserGuide\EventDispatcher
-related: Engine\Blueprints\UserGuide\BlueprintComms
+related: Engine/Blueprints/UserGuide/BlueprintCommsUsage
+related: Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo
+related: Engine/Blueprints/UserGuide/EventDispatcher
+related: Engine/Blueprints/UserGuide/BlueprintComms
 version: 4.9
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints\UserGuide\Types\Interface:title%](Engine/Blueprints/UserGuide/Types/blueprint_interface.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints\UserGuide\Types\Interface:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints\UserGuide\Types\Interface:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints\UserGuide\Types\Interface]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints\UserGuide\Types\Interface:title%](Engine/Blueprints/UserGuide/Types/blueprint_interface.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints\UserGuide\Types\Interface:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints\UserGuide\Types\Interface:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints\UserGuide\Types\Interface]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Blueprints/UserGuide/Types/blueprint_interface.png
 
 [TOC (start:2)]
 
@@ -71,7 +34,7 @@ some specific functionality. This means you can have completely different types 
 share one specific thing like they can both be shot by weapon fire and take damage. By creating a Blueprint Interface that 
 contains an `OnTakeWeaponFire` function, and having both the car and the tree implement that Blueprint Interface, you can treat the 
 car and the tree as the same type and simply call the `OnTakeWeaponFire` function when either of them is shot. Read about how to implement
-Blueprint Interfaces on the [](Engine/Blueprints\UserGuide\Types\Interface\UsingInterfaces) page.
+Blueprint Interfaces on the [](Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces) page.
 
 ## Creating Blueprint Interfaces
 
@@ -99,7 +62,7 @@ Functions are the primary component of an Interface. Interface functions have no
 
 To add a new function:
 
-1. In the **My Blueprint** tab create a new function, by clicking on the **Add Button** ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\plus_Button.png) on the functions list header ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\myblueprint_function.png).
+1. In the **My Blueprint** tab create a new function, by clicking on the **Add Button** ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/plus_Button.png) on the functions list header ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/myblueprint_function.png).
 
 1. In the **My Blueprint** pane, enter a name for the new function.
 

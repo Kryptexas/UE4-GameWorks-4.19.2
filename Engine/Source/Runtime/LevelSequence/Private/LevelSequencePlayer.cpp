@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelSequencePlayer.h"
 #include "GameFramework/Actor.h"
@@ -280,7 +280,7 @@ void ULevelSequencePlayer::TakeFrameSnapshot(FLevelSequencePlayerSnapshot& OutSn
 	OutSnapshot.Settings = SnapshotSettings;
 
 	OutSnapshot.MasterTime = CurrentTime;
-	OutSnapshot.MasterName = FText::FromString(Sequence->GetName());
+	OutSnapshot.MasterName = Sequence->GetName();
 
 	OutSnapshot.CurrentShotName = OutSnapshot.MasterName;
 	OutSnapshot.CurrentShotLocalTime = CurrentTime;

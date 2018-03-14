@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -24,13 +24,6 @@ namespace Audio
 
 		// The number of channels of the procedural buffer
 		int32 NumChannels;
-
-		FProceduralAudioTaskData()
-			: ProceduralSoundWave(nullptr)
-			, AudioData(nullptr)
-			, NumSamples(0)
-			, NumChannels(0)
-		{}
 	};
 
 	// Data needed for a decode audio task
@@ -50,14 +43,6 @@ namespace Audio
 
 		// Whether or not to skip the first buffer
 		bool bSkipFirstBuffer;
-
-		FDecodeAudioTaskData()
-			: MixerBuffer(nullptr)
-			, AudioData(nullptr)
-			, NumFramesToDecode(0)
-			, bLoopingMode(false)
-			, bSkipFirstBuffer(false)
-		{}
 	};
 
 	// Data needed for a header parse audio task
@@ -68,11 +53,6 @@ namespace Audio
 
 		// The sound wave object which contains the encoded file
 		USoundWave* SoundWave;
-
-		FHeaderParseAudioTaskData()
-			: MixerBuffer(nullptr)
-			, SoundWave(nullptr)
-		{}
 	};
 
 	// Results from procedural audio task

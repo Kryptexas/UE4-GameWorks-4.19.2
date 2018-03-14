@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #include "Generation/ManifestBuilder.h"
 
 
@@ -61,7 +61,7 @@ namespace BuildPatchServices
 		Manifest->PrereqArgs = InDetails.PrereqArgs;
 		for (const auto& CustomField : InDetails.CustomFields)
 		{
-			int32 VarType = CustomField.Value.GetType();
+			EVariantTypes VarType = CustomField.Value.GetType();
 			if (VarType == EVariantTypes::Float || VarType == EVariantTypes::Double)
 			{
 				Manifest->SetCustomField(CustomField.Key, (double)CustomField.Value);

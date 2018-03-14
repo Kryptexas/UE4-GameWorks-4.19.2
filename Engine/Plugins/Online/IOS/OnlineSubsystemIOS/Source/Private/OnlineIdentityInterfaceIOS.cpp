@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemIOSPrivatePCH.h"
 #include "OnlineError.h"
@@ -39,13 +39,13 @@ TArray<TSharedPtr<FUserOnlineAccount> > FOnlineIdentityIOS::GetAllUserAccounts()
 	return Result;
 }
 
+// Make sure IOnlineIdentity::Login is not called directly on iOS. Please use IOnlineExternalUI::ShowLoginUI instead.
 bool FOnlineIdentityIOS::Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials)
 {
 	bool bStartedLogin = false;
 
 	// Since the iOS login code may show a UI, ShowLoginUI is a better fit here. Also, note that the ConnectToService blueprint
 	// node that calls Login is deprecated (there's a new ShowExternalLoginUI node meant to replace it).
-	UE_LOG(LogOnline, Warning, TEXT("Using the IOnlineIdentity::Login function on iOS is not recommended. Please use IOnlineExternalUI::ShowLoginUI instead."));
 
 	// Was the login handled by Game Center
 	if( GetLocalGameCenterUser() && 

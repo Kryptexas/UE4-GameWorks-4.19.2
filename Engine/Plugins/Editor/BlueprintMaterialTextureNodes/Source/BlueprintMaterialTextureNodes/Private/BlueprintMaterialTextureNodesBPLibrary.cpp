@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintMaterialTextureNodesBPLibrary.h"
 #include "BlueprintMaterialTextureNodes.h"
@@ -33,13 +33,13 @@ UBlueprintMaterialTextureNodesBPLibrary::UBlueprintMaterialTextureNodesBPLibrary
 
 }
 
-FLinearColor UBlueprintMaterialTextureNodesBPLibrary::Texture2D_SampleUV_EditorOnly(UTexture2D* Texture, FVector2D UV, int Mip)
+FLinearColor UBlueprintMaterialTextureNodesBPLibrary::Texture2D_SampleUV_EditorOnly(UTexture2D* Texture, FVector2D UV)
 {
 #if WITH_EDITOR
 	if (Texture != nullptr)
 	{
 		int NumMips = Texture->GetNumMips();
-		Mip = FMath::Min(NumMips, Mip);
+		int Mip = 0;
 		FTexture2DMipMap* CurMip = &Texture->PlatformData->Mips[Mip];
 		FByteBulkData* ImageData = &CurMip->BulkData;
 
@@ -48,7 +48,8 @@ FLinearColor UBlueprintMaterialTextureNodesBPLibrary::Texture2D_SampleUV_EditorO
 		int32 X = FMath::Clamp(int(UV.X * MipWidth), 0, MipWidth - 1);
 		int32 Y = FMath::Clamp(int(UV.Y * MipHeight), 0, MipWidth - 1);
 
-		if (ImageData->IsBulkDataLoaded() && ImageData->GetBulkDataSize() > 0)
+		//Retrieve from BulkData if available and if uncompressed format
+		if ( (ImageData->IsBulkDataLoaded() && ImageData->GetBulkDataSize() > 0) && (Texture->GetPixelFormat() == PF_B8G8R8A8 || Texture->GetPixelFormat() == PF_FloatRGBA) )
 		{
 			int32 texelindex = FMath::Min(MipWidth * MipHeight, Y * MipWidth + X);
 
@@ -163,7 +164,7 @@ TArray<FLinearColor> UBlueprintMaterialTextureNodesBPLibrary::RenderTarget_Sampl
 			InRect.A = FMath::Clamp(int(InRect.A), int(InRect.G + 1), InRenderTarget->SizeY);
 			FIntRect Rect = FIntRect(InRect.R, InRect.G, InRect.B, InRect.A);
 
-			FReadSurfaceDataFlags ReadPixelFlags;
+			FReadSurfaceDataFlags ReadPixelFlags(RCM_MinMax);
 
 			TArray<FColor> OutLDR;
 			TArray<FLinearColor> OutHDR;
@@ -224,7 +225,7 @@ FLinearColor UBlueprintMaterialTextureNodesBPLibrary::RenderTarget_SampleUV_Edit
 			UV.Y = FMath::Clamp(UV.Y, 0.0f, float(InRenderTarget->SizeY) - 1);
 
 			FIntRect Rect = FIntRect(UV.X, UV.Y, UV.X + 1, UV.Y + 1);
-			FReadSurfaceDataFlags ReadPixelFlags;
+			FReadSurfaceDataFlags ReadPixelFlags(RCM_MinMax);
 
 			TArray<FColor> OutLDR;
 			TArray<FLinearColor> OutHDR;

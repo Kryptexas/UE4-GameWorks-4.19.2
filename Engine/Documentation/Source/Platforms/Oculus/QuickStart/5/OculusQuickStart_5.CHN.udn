@@ -24,7 +24,7 @@ SkillLevel:Intermediate
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. 安装 Oculus 驱动并完成 Oculus Rift 的设置后，打开虚幻项目浏览器，使用以下设置在 **New Project** 标签中创建一个新项目。
 
@@ -41,4 +41,4 @@ SkillLevel:Intermediate
 	使用 VR preview 选项和 Rift 时，VR 预览窗口显示为黑色，表明 Rift 不会在启动和重启 VR 预览窗口时进行更新。这是因为 Rift 未放置在用户头上时将禁用输出，以延长显示器的寿命。Rift 放置在头上后，将启用向 VR 预览窗口的输出，使 Rift 中看到的内容显示在 VR 预览窗口中。
 	[/region]
 
-%Steps%
+

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraScriptDetails.h"
 #include "DetailLayoutBuilder.h"
@@ -20,141 +20,15 @@
 #include "ModuleManager.h"
 #include "INiagaraEditorTypeUtilities.h"
 #include "SBox.h"
+#include "NiagaraScript.h"
+#include "NiagaraParameterCollectionCustomNodeBuilder.h"
+#include "NiagaraMetaDataCustomNodeBuilder.h"
+#include "NiagaraMetaDataCollectionViewModel.h"
 
 
 #define LOCTEXT_NAMESPACE "NiagaraScriptDetails"
 
-class FNiagaraCustomNodeBuilder : public IDetailCustomNodeBuilder
-{
-public:
-	FNiagaraCustomNodeBuilder(TSharedRef<INiagaraParameterCollectionViewModel> InViewModel)
-		: ViewModel(InViewModel)
-	{
-		ViewModel->OnCollectionChanged().AddRaw(this, &FNiagaraCustomNodeBuilder::OnCollectionViewModelChanged);
-	}
 
-	~FNiagaraCustomNodeBuilder()
-	{
-		ViewModel->OnCollectionChanged().RemoveAll(this);
-	}
-
-	virtual void SetOnRebuildChildren(FSimpleDelegate InOnRegenerateChildren) override
-	{
-		OnRebuildChildren = InOnRegenerateChildren;
-	}
-
-	virtual void GenerateHeaderRowContent(FDetailWidgetRow& NodeRow){}
-	virtual void Tick(float DeltaTime) override {}
-	virtual bool RequiresTick() const override { return false; }
-	virtual bool InitiallyCollapsed() const { return false; }
-	virtual FName GetName() const  override
-	{ 
-		static const FName NiagaraCustomNodeBuilder("NiagaraCustomNodeBuilder");
-		return NiagaraCustomNodeBuilder;
-	}
-
-	virtual void GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder) override
-	{
-		const TArray<TSharedRef<INiagaraParameterViewModel>>& Parameters = ViewModel->GetParameters();
-
-		FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::GetModuleChecked<FNiagaraEditorModule>("NiagaraEditor");
-
-		for (const TSharedRef<INiagaraParameterViewModel>& Parameter : Parameters)
-		{
-			TSharedPtr<SWidget> NameWidget;
-
-			if (Parameter->CanRenameParameter())
-			{
-				NameWidget =
-					SNew(SInlineEditableTextBlock)
-					.Style(FNiagaraEditorStyle::Get(), "NiagaraEditor.ParameterInlineEditableText")
-					.Text(Parameter, &INiagaraParameterViewModel::GetNameText)
-					.OnVerifyTextChanged(Parameter, &INiagaraParameterViewModel::VerifyNodeNameTextChanged)
-					.OnTextCommitted(Parameter, &INiagaraParameterViewModel::NameTextComitted);
-			}
-			else
-			{
-				NameWidget =
-					SNew(STextBlock)
-					.TextStyle(FNiagaraEditorStyle::Get(), "NiagaraEditor.ParameterText")
-					.Text(Parameter, &INiagaraParameterViewModel::GetNameText);
-			}
-
-			
-
-			IDetailPropertyRow* Row = nullptr;
-
-			TSharedPtr<SWidget> CustomValueWidget;
-
-			if (Parameter->GetDefaultValueType() == INiagaraParameterViewModel::EDefaultValueType::Struct)
-			{
-				Row = ChildrenBuilder.AddExternalStructureProperty(Parameter->GetDefaultValueStruct(), NAME_None, Parameter->GetName());
-				
-			}
-			else if (Parameter->GetDefaultValueType() == INiagaraParameterViewModel::EDefaultValueType::Object)
-			{
-				UObject* DefaultValueObject = Parameter->GetDefaultValueObject();
-
-				TArray<UObject*> Objects;
-				Objects.Add(DefaultValueObject);
-				Row = ChildrenBuilder.AddExternalObjects(Objects, Parameter->GetName());
-
-				CustomValueWidget =
-					SNew(STextBlock)
-					.TextStyle(FNiagaraEditorStyle::Get(), "NiagaraEditor.ParameterText")
-					.Text(FText::FromString(FName::NameToDisplayString(DefaultValueObject->GetClass()->GetName(), false)));
-			}
-
-			if(Row)
-			{
-				TSharedPtr<SWidget> DefaultNameWidget;
-				TSharedPtr<SWidget> DefaultValueWidget;
-
-				TSharedPtr<IPropertyHandle> PropertyHandle = Row->GetPropertyHandle();
-
-				FDetailWidgetRow& CustomWidget = Row->CustomWidget(true);
-
-				Row->GetDefaultWidgets(DefaultNameWidget, DefaultValueWidget, CustomWidget);
-
-				PropertyHandle->SetOnPropertyValueChanged(
-					FSimpleDelegate::CreateSP(Parameter, &INiagaraParameterViewModel::NotifyDefaultValueChanged));
-				PropertyHandle->SetOnChildPropertyValueChanged(
-					FSimpleDelegate::CreateSP(Parameter, &INiagaraParameterViewModel::NotifyDefaultValueChanged));
-
-				CustomWidget
-					.NameContent()
-					[
-						SNew(SBox)
-						.Padding(FMargin(0.0f, 2.0f))
-						[
-							NameWidget.ToSharedRef()
-						]
-					];
-
-				if (CustomValueWidget.IsValid())
-				{
-					CustomWidget.ValueContent()
-					[
-						CustomValueWidget.ToSharedRef()
-					];
-				}
-			}
-
-		}
-
-
-	}
-
-private:
-	void OnCollectionViewModelChanged()
-	{
-		OnRebuildChildren.ExecuteIfBound();
-	}
-
-private:
-	TSharedRef<INiagaraParameterCollectionViewModel> ViewModel;
-	FSimpleDelegate OnRebuildChildren;
-};
 
 class SAddParameterButton : public SCompoundWidget
 {	
@@ -245,21 +119,49 @@ void FNiagaraScriptDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder
 	static const FName InputParamCategoryName = TEXT("NiagaraScript_InputParams");
 	static const FName OutputParamCategoryName = TEXT("NiagaraScript_OutputParams");
 	static const FName ScriptCategoryName = TEXT("Script");
+	static const FName MetadataCategoryName = TEXT("Metadata");
 
 	DetailBuilder.EditCategory(ScriptCategoryName);
 
-	TSharedRef<INiagaraParameterCollectionViewModel> InputCollectionViewModel = ScriptViewModel->GetInputCollectionViewModel();
-	TSharedRef<INiagaraParameterCollectionViewModel> OutputCollectionViewModel = ScriptViewModel->GetOutputCollectionViewModel();
+	UNiagaraScript* StandaloneScript = ScriptViewModel->GetStandaloneScript();
+	bool bAddParameters = false;
+	TSharedPtr<INiagaraParameterCollectionViewModel> InputCollectionViewModel;
+	TSharedPtr<INiagaraParameterCollectionViewModel> OutputCollectionViewModel;
+	TSharedPtr<FNiagaraMetaDataCollectionViewModel> MetadataCollectionViewModel;
 
-	IDetailCategoryBuilder& InputParamCategory = DetailBuilder.EditCategory(InputParamCategoryName, LOCTEXT("InputParamCategoryName", "Input Parameters"));
-	InputParamCategory.HeaderContent(SNew(SAddParameterButton, InputCollectionViewModel));
-	InputParamCategory.AddCustomBuilder(MakeShared<FNiagaraCustomNodeBuilder>(InputCollectionViewModel));
+	if (StandaloneScript)
+	{
+		InputCollectionViewModel = ScriptViewModel->GetInputCollectionViewModel();
+		OutputCollectionViewModel = ScriptViewModel->GetOutputCollectionViewModel();
+		MetadataCollectionViewModel = ScriptViewModel->GetMetadataCollectionViewModel();
+		bAddParameters = true;
+	}
 
+	if (InputCollectionViewModel.IsValid())
+	{
+		IDetailCategoryBuilder& InputParamCategory = DetailBuilder.EditCategory(InputParamCategoryName, LOCTEXT("InputParamCategoryName", "Input Parameters"));
+		if (bAddParameters)
+		{
+			InputParamCategory.HeaderContent(SNew(SAddParameterButton, InputCollectionViewModel.ToSharedRef()));
+		}
+		InputParamCategory.AddCustomBuilder(MakeShared<FNiagaraParameterCollectionCustomNodeBuilder>(InputCollectionViewModel.ToSharedRef()));
+	}
 
-	IDetailCategoryBuilder& OutputParamCategory = DetailBuilder.EditCategory(OutputParamCategoryName, LOCTEXT("OutputParamCategoryName", "Output Parameters"));
-	OutputParamCategory.HeaderContent(SNew(SAddParameterButton, OutputCollectionViewModel));
-	OutputParamCategory.AddCustomBuilder(MakeShared<FNiagaraCustomNodeBuilder>(OutputCollectionViewModel));
+	if (OutputCollectionViewModel.IsValid())
+	{
+		IDetailCategoryBuilder& OutputParamCategory = DetailBuilder.EditCategory(OutputParamCategoryName, LOCTEXT("OutputParamCategoryName", "Output Parameters"));
+		if (bAddParameters)
+		{
+			OutputParamCategory.HeaderContent(SNew(SAddParameterButton, OutputCollectionViewModel.ToSharedRef()));
+		}
+		OutputParamCategory.AddCustomBuilder(MakeShared<FNiagaraParameterCollectionCustomNodeBuilder>(OutputCollectionViewModel.ToSharedRef()));
+	}
 	
+	if (MetadataCollectionViewModel.IsValid())
+	{
+		IDetailCategoryBuilder& MetadataDetailCategory = DetailBuilder.EditCategory(MetadataCategoryName, LOCTEXT("MetadataParamCategoryName", "Variable Metadata"));
+		MetadataDetailCategory.AddCustomBuilder(MakeShared<FNiagaraMetaDataCustomNodeBuilder>(MetadataCollectionViewModel.ToSharedRef()));
+	}	
 }
 
 

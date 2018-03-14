@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388666
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title: 2.3 - 캐릭터 동작 함수 구현
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -22,7 +22,7 @@ Version: 4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 이번 단계에서는 Player Input Component 를 구성하고, `FPSCharacter` 클래스에 다음 함수를 구현합니다:
 
@@ -198,4 +198,3 @@ Version: 4.15
 
 1.	Esc 키를 누르거나 레벨 에디터의 **중지** 버튼을 클릭하여 에디터에서 플레이 (PIE) 모드를 빠져나옵니다.
 
-%Steps%

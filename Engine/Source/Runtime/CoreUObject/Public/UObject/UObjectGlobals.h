@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnObjGlobals.h: Unreal object system globals.
@@ -11,6 +11,8 @@
 #include "UObject/ObjectMacros.h"
 #include "Misc/OutputDeviceRedirector.h"
 #include "PrimaryAssetId.h"
+#include "Templates/IsArrayOrRefOfType.h"
+#include "Serialization/ArchiveUObject.h"
 
 struct FCustomPropertyListNode;
 struct FObjectInstancingGraph;
@@ -1492,6 +1494,95 @@ private:
 	bool					bExactClass;
 };
 
+/** Base class for reference serialization archives */
+class COREUOBJECT_API FReferenceCollectorArchive : public FArchiveUObject
+{
+	/** Object which is performing the serialization. */
+	const UObject* SerializingObject;
+	/** Object that owns the serialized data. */
+	const UObject* SerializedDataContainer;
+	/** Pointer to serialized data (read-only). */
+	const void* SerializedDataPtr;
+	/** Stored pointer to reference collector. */
+	class FReferenceCollector& Collector;
+
+protected:
+
+	class FReferenceCollector& GetCollector()
+	{
+		return Collector;
+	}
+
+public:
+
+	FReferenceCollectorArchive(const UObject* InSerializingObject, FReferenceCollector& InCollector)
+		: SerializingObject(InSerializingObject)
+		, SerializedDataContainer(nullptr)
+		, SerializedDataPtr(nullptr)
+		, Collector(InCollector)
+	{
+	}
+	void SetSerializingObject(const UObject* InSerializingObject)
+	{
+		SerializingObject = InSerializingObject;
+	}
+	const UObject* GetSerializingObject() const
+	{
+		return SerializingObject;
+	}
+	void SetSerializedDataContainer(const UObject* InDataContainer)
+	{
+		SerializedDataContainer = InDataContainer;
+	}
+	const UObject* GetSerializedDataContainer() const
+	{
+		return SerializedDataContainer;
+	}
+	void SetSerializedDataPtr(const void* InSerializedDataPtr)
+	{
+		SerializedDataPtr = InSerializedDataPtr;
+	}
+	const void* GetSerializedDataPtr() const
+	{
+		return SerializedDataPtr;
+	}
+};
+
+/** Helper class for setting and resetting attributes on the FReferenceCollectorArchive */
+class COREUOBJECT_API FVerySlowReferenceCollectorArchiveScope
+{	
+	FReferenceCollectorArchive& Archive;
+	const UObject* OldSerializingObject;
+	UProperty* OldSerializedProperty;
+	const UObject* OldSerializedDataContainer;
+	const void* OldSerializedDataPtr;
+
+public:
+	FVerySlowReferenceCollectorArchiveScope(FReferenceCollectorArchive& InArchive, const UObject* InSerializingObject, UProperty* InSerializedProperty = nullptr, const UObject* InSerializedDataContainer = nullptr, const void* InSerializedDataPtr = nullptr)
+		: Archive(InArchive)
+		, OldSerializingObject(InArchive.GetSerializingObject())
+		, OldSerializedProperty(InArchive.GetSerializedProperty())
+		, OldSerializedDataContainer(InArchive.GetSerializedDataContainer())
+		, OldSerializedDataPtr(InArchive.GetSerializedDataPtr())
+	{
+		Archive.SetSerializingObject(InSerializingObject);
+		Archive.SetSerializedProperty(InSerializedProperty);
+		Archive.SetSerializedDataContainer(InSerializedDataContainer);
+		Archive.SetSerializedDataPtr(InSerializedDataPtr);
+	}
+	~FVerySlowReferenceCollectorArchiveScope()
+	{
+		Archive.SetSerializingObject(OldSerializingObject);
+		Archive.SetSerializedProperty(OldSerializedProperty);
+		Archive.SetSerializedDataContainer(OldSerializedDataContainer);
+		Archive.SetSerializedDataPtr(OldSerializedDataPtr);
+	}
+	FReferenceCollectorArchive& GetArchive()
+	{
+		return Archive;
+	}
+};
+
 /**
  * FReferenceCollector.
  * Helper class used by the garbage collector to collect object references.
@@ -1526,7 +1617,8 @@ public:
 	template<class UObjectType>
 	void AddReferencedObjects(TArray<UObjectType*>& ObjectArray, const UObject* ReferencingObject = nullptr, const UProperty* ReferencingProperty = nullptr)
 	{
-		static_assert(TPointerIsConvertibleFromTo<UObjectType, const UObject>::Value, "'UObjectType' template parameter to AddReferencedObjects must be derived from UObject");
+		static_assert(sizeof(UObjectType) > 0, "AddReferencedObjects: Elements must be pointers to a fully-defined type");
+		static_assert(TPointerIsConvertibleFromTo<UObjectType, const UObjectBase>::Value, "AddReferencedObjects: Elements must be pointers to a type derived from UObject");
 		HandleObjectReferences(reinterpret_cast<UObject**>(ObjectArray.GetData()), ObjectArray.Num(), ReferencingObject, ReferencingProperty);
 	}
 
@@ -1538,68 +1630,57 @@ public:
 	* @param ReferencingProperty Referencing property (if available).
 	*/
 	template<class UObjectType>
-	void AddReferencedObjects(TSet<UObjectType>& ObjectSet, const UObject* ReferencingObject = nullptr, const UProperty* ReferencingProperty = nullptr)
+	void AddReferencedObjects(TSet<UObjectType*>& ObjectSet, const UObject* ReferencingObject = nullptr, const UProperty* ReferencingProperty = nullptr)
 	{
+		static_assert(sizeof(UObjectType) > 0, "AddReferencedObjects: Elements must be pointers to a fully-defined type");
+		static_assert(TPointerIsConvertibleFromTo<UObjectType, const UObjectBase>::Value, "AddReferencedObjects: Elements must be pointers to a type derived from UObject");
 		for (auto& Object : ObjectSet)
 		{
 			HandleObjectReference(*(UObject**)&Object, ReferencingObject, ReferencingProperty);
 		}
 	}
 
-private:
-
-	/** Compile time check if a type can be automatically converted to another one */
-	template<class From, class To>
-	class CanConverFromTo
-	{
-		static uint8 Test(...);
-		static uint16 Test(To);
-	public:
-		enum Type
-		{
-			Result = sizeof(Test(From())) - 1
-		};
-	};
-
 	/**
-	* Functions used by AddReferencedObject (TMap version). Adds references to UObjects, ignores value types
-	*/
-	template<class UObjectType>
-	void AddReferencedObjectOrIgnoreValue(UObjectType& Object, const UObject* ReferencingObject, const UProperty* ReferencingProperty)
+	 * Adds references to a map of objects.
+	 *
+	 * @param ObjectArray Referenced objects map.
+	 * @param ReferencingObject Referencing object (if available).
+	 * @param ReferencingProperty Referencing property (if available).
+	 */
+	template <typename KeyType, typename ValueType, typename Allocator, typename KeyFuncs>
+	void AddReferencedObjects(TMapBase<KeyType*, ValueType, Allocator, KeyFuncs>& Map, const UObject* ReferencingObject = nullptr, const UProperty* ReferencingProperty = nullptr)
 	{
-	}
-	template<class UObjectType>
-	void AddReferencedObjectOrIgnoreValue(UObjectType*& Object, const UObject* ReferencingObject, const UProperty* ReferencingProperty)
-	{
-		HandleObjectReference(*(UObject**)&Object, ReferencingObject, ReferencingProperty);
-	}
-
-public:
-
-	/**
-	* Adds references to a map of objects.
-	*
-	* @param ObjectArray Referenced objects map.
-	* @param ReferencingObject Referencing object (if available).
-	* @param ReferencingProperty Referencing property (if available).
-	*/
-	template <typename TKeyType, typename TValueType, typename TAllocator, typename TKeyFuncs >
-	void AddReferencedObjects(TMapBase<TKeyType, TValueType, TAllocator, TKeyFuncs>& Map, const UObject* ReferencingObject = NULL, const UProperty* ReferencingProperty = NULL)
-	{
-		static_assert(CanConverFromTo<TKeyType, UObjectBase*>::Result || CanConverFromTo<TValueType, UObjectBase*>::Result, "At least one of TMap template types must be derived from UObject");
+		static_assert(sizeof(KeyType) > 0, "AddReferencedObjects: Keys must be pointers to a fully-defined type");
+		static_assert(TPointerIsConvertibleFromTo<KeyType, const UObjectBase>::Value, "AddReferencedObjects: Keys must be pointers to a type derived from UObject");
 		for (auto& It : Map)
 		{
-			if (CanConverFromTo<TKeyType, UObjectBase*>::Result)
-			{
-				AddReferencedObjectOrIgnoreValue(It.Key, ReferencingObject, ReferencingProperty);
-			}
-			if (CanConverFromTo<TValueType, UObjectBase*>::Result)
-			{
-				AddReferencedObjectOrIgnoreValue(It.Value, ReferencingObject, ReferencingProperty);
-			}
+			HandleObjectReference(*(UObject**)&It.Key, ReferencingObject, ReferencingProperty);
 		}
 	}
-	
+	template <typename KeyType, typename ValueType, typename Allocator, typename KeyFuncs>
+	void AddReferencedObjects(TMapBase<KeyType, ValueType*, Allocator, KeyFuncs>& Map, const UObject* ReferencingObject = nullptr, const UProperty* ReferencingProperty = nullptr)
+	{
+		static_assert(sizeof(ValueType) > 0, "AddReferencedObjects: Values must be pointers to a fully-defined type");
+		static_assert(TPointerIsConvertibleFromTo<ValueType, const UObjectBase>::Value, "AddReferencedObjects: Values must be pointers to a type derived from UObject");
+		for (auto& It : Map)
+		{
+			HandleObjectReference(*(UObject**)&It.Value, ReferencingObject, ReferencingProperty);
+		}
+	}
+	template <typename KeyType, typename ValueType, typename Allocator, typename KeyFuncs>
+	void AddReferencedObjects(TMapBase<KeyType*, ValueType*, Allocator, KeyFuncs>& Map, const UObject* ReferencingObject = nullptr, const UProperty* ReferencingProperty = nullptr)
+	{
+		static_assert(sizeof(KeyType) > 0, "AddReferencedObjects: Keys must be pointers to a fully-defined type");
+		static_assert(sizeof(ValueType) > 0, "AddReferencedObjects: Values must be pointers to a fully-defined type");
+		static_assert(TPointerIsConvertibleFromTo<KeyType, const UObjectBase>::Value, "AddReferencedObjects: Keys must be pointers to a type derived from UObject");
+		static_assert(TPointerIsConvertibleFromTo<ValueType, const UObjectBase>::Value, "AddReferencedObjects: Values must be pointers to a type derived from UObject");
+		for (auto& It : Map)
+		{
+			HandleObjectReference(*(UObject**)&It.Key, ReferencingObject, ReferencingProperty);
+			HandleObjectReference(*(UObject**)&It.Value, ReferencingObject, ReferencingProperty);
+		}
+	}
+
 	/**
 	 * If true archetype references should not be added to this collector.
 	 */
@@ -1630,7 +1711,7 @@ public:
 	* Returns the collector archive associated with this collector.
 	* NOTE THAT COLLECTING REFERENCES THROUGH SERIALIZATION IS VERY SLOW.
 	*/
-	FArchive& GetVerySlowReferenceCollectorArchive()
+	FReferenceCollectorArchive& GetVerySlowReferenceCollectorArchive()
 	{
 		if (!DefaultReferenceCollectorArchive)
 		{
@@ -1643,7 +1724,7 @@ public:
 	* INTERNAL USE ONLY: returns the persistent frame collector archive associated with this collector.
 	* NOTE THAT COLLECTING REFERENCES THROUGH SERIALIZATION IS VERY SLOW.
 	*/
-	FArchive& GetInternalPersisnentFrameReferenceCollectorArchive()
+	FReferenceCollectorArchive& GetInternalPersistentFrameReferenceCollectorArchive()
 	{
 		if (!PersistentFrameReferenceCollectorArchive)
 		{
@@ -1651,6 +1732,8 @@ public:
 		}
 		return *PersistentFrameReferenceCollectorArchive;
 	}
+
+	virtual void SetShouldHandleAsWeakRef(bool bWeakRef) {}
 
 protected:
 	/**
@@ -1687,9 +1770,9 @@ private:
 	void CreatePersistentFrameReferenceCollectorArchive();
 
 	/** Default proxy archive that uses serialization to add objects to this collector */
-	FArchive* DefaultReferenceCollectorArchive;
+	FReferenceCollectorArchive* DefaultReferenceCollectorArchive;
 	/** Persistent frame proxy archive that uses serialization to add objects to this collector */
-	FArchive* PersistentFrameReferenceCollectorArchive;
+	FReferenceCollectorArchive* PersistentFrameReferenceCollectorArchive;
 };
 
 /**
@@ -1755,11 +1838,6 @@ protected:
 	bool			bShouldIgnoreTransient;
 };
 
-
-/** Delegate types for source control package saving checks and adding package to default changelist */
-DECLARE_DELEGATE_RetVal_TwoParams( bool, FCheckForAutoAddDelegate, UPackage*, const FString& );
-DECLARE_DELEGATE_OneParam( FAddPackageToDefaultChangelistDelegate, const TCHAR* );
-
 /** Defined in PackageReload.h */
 enum class EPackageReloadPhase : uint8;
 class FPackageReloadedEvent;
@@ -1771,40 +1849,23 @@ class FGarbageCollectionTracer;
  */
 struct COREUOBJECT_API FCoreUObjectDelegates
 {
-	// Callback for object property modifications
+#if WITH_EDITOR
+	/** Callback for object property modifications, called by UObject::PostEditChangeProperty with a single property event */
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnObjectPropertyChanged, UObject*, struct FPropertyChangedEvent&);
-
-	// Called when a property is changed
 	static FOnObjectPropertyChanged OnObjectPropertyChanged;
 
-	// Callback for PreEditChange
+	/** Callback for object property modifications, called by UObject::PreEditChange with a full property chain */
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPreObjectPropertyChanged, UObject*, const class FEditPropertyChain&);
-
-	// Called before a property is changed
 	static FOnPreObjectPropertyChanged OnPreObjectPropertyChanged;
 
-	/** Delegate type for making auto backup of package */
-	DECLARE_DELEGATE_RetVal_OneParam(bool, FAutoPackageBackupDelegate, const UPackage&);
-
-	/** Called by ReloadPackage during package reloading. It will be called several times for different phases of fix-up to allow custom code to handle updating objects as needed */
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPackageReloaded, EPackageReloadPhase, FPackageReloadedEvent*);
-	static FOnPackageReloaded OnPackageReloaded;
-
-	/** Called when a package reload request is received from a network file server */
-	DECLARE_DELEGATE_OneParam(FNetworkFileRequestPackageReload, const TArray<FString>& /*PackageNames*/);
-	static FNetworkFileRequestPackageReload NetworkFileRequestPackageReload;
-
-#if WITH_EDITOR
-	// Callback for all object modifications
+	/** Called when an object is registered for change with UObject::Modify. This gets called in both the editor and standalone game editor builds, for every object modified */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnObjectModified, UObject*);
-
-	// Called when any object is modified at all 
 	static FOnObjectModified OnObjectModified;
 
-	// Set of objects modified this frame, to prevent multiple triggerings of the OnObjectModified delegate.
+	/** Set of objects modified this frame, to prevent multiple triggerings of the OnObjectModified delegate */
 	static TSet<UObject*> ObjectsModifiedThisFrame;
 
-	// Broadcast OnObjectModified if the broadcast hasn't ocurred for this object in this frame
+	/** Broadcast OnObjectModified if the broadcast hasn't occurred for this object in this frame */
 	static void BroadcastOnObjectModified(UObject* Object)
 	{
 		if (OnObjectModified.IsBound() && !ObjectsModifiedThisFrame.Contains(Object))
@@ -1814,29 +1875,29 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 		}
 	}
 
-	// Callback for when an asset is loaded (Editor)
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAssetLoaded, UObject*);
-
-	// Called when an asset is loaded
-	static FOnAssetLoaded OnAssetLoaded;
-
-	// Callback for when an asset is saved (Editor)
+	/** Callback for when an asset is saved. This is called from UObject::PreSave before it is actually written to disk, for every object saved */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnObjectSaved, UObject*);
-
-	// Called when an asset is saved
 	static FOnObjectSaved OnObjectSaved;
 
-#endif	//WITH_EDITOR
-
-
+	/** Callback for when an asset is loaded. This gets called in both the editor and standalone game editor builds, but only for objects that return true for IsAsset() */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAssetLoaded, UObject*);
+	static FOnAssetLoaded OnAssetLoaded;
 
 	/** Delegate used by SavePackage() to create the package backup */
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FAutoPackageBackupDelegate, const UPackage&);
 	static FAutoPackageBackupDelegate AutoPackageBackupDelegate;
+#endif // WITH_EDITOR
 
-	/** Delegate type for saving check */
-	DECLARE_DELEGATE_RetVal_ThreeParams(bool, FIsPackageOKToSaveDelegate, UPackage*, const FString&, FOutputDevice*);
+	/** Called by ReloadPackage during package reloading. It will be called several times for different phases of fix-up to allow custom code to handle updating objects as needed */
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPackageReloaded, EPackageReloadPhase, FPackageReloadedEvent*);
+	static FOnPackageReloaded OnPackageReloaded;
+
+	/** Called when a package reload request is received from a network file server */
+	DECLARE_DELEGATE_OneParam(FNetworkFileRequestPackageReload, const TArray<FString>& /*PackageNames*/);
+	static FNetworkFileRequestPackageReload NetworkFileRequestPackageReload;
 
 	/** Delegate used by SavePackage() to check whether a package should be saved */
+	DECLARE_DELEGATE_RetVal_ThreeParams(bool, FIsPackageOKToSaveDelegate, UPackage*, const FString&, FOutputDevice*);
 	static FIsPackageOKToSaveDelegate IsPackageOKToSaveDelegate;
 
 	/** Delegate for registering hot-reloaded classes that have been added  */
@@ -1851,52 +1912,47 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	DECLARE_MULTICAST_DELEGATE(FReinstanceHotReloadedClassesDelegate);
 	static FReinstanceHotReloadedClassesDelegate ReinstanceHotReloadedClassesDelegate;
 
-	// Sent at the very beginning of LoadMap
+	/** Sent at the very beginning of LoadMap */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FPreLoadMapDelegate, const FString& /* MapName */);
 	static FPreLoadMapDelegate PreLoadMap;
 
-	// Sent at the _successful_ end of LoadMap
+	/** Sent at the _successful_ end of LoadMap */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FPostLoadMapDelegate, UWorld* /* LoadedWorld */);
 	static FPostLoadMapDelegate PostLoadMapWithWorld;
 
-	DEPRECATED(4.16, "Use PostLoadMapWithWorld instead.")
-	static FSimpleMulticastDelegate PostLoadMap;
-
-	// Sent at the _successful_ end of LoadMap
+	/** Sent when a network replay has started */
 	static FSimpleMulticastDelegate PostDemoPlay;
 
-	// Called before garbage collection
+	/** Called before garbage collection */
 	static FSimpleMulticastDelegate& GetPreGarbageCollectDelegate();
 
-	// Delegate type for reachability analysis external roots callback. First parameter is FGarbageCollectionTracer to use for tracing, second is flags with which objects should be kept alive regardless, third is whether to force single threading
+	/** Delegate type for reachability analysis external roots callback. First parameter is FGarbageCollectionTracer to use for tracing, second is flags with which objects should be kept alive regardless, third is whether to force single threading */
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FTraceExternalRootsForReachabilityAnalysisDelegate, FGarbageCollectionTracer&, EObjectFlags, bool);
 
-	// Called as last phase of reachability analysis. Allow external systems to add UObject roots *after* first reachability pass has been done
+	/** Called as last phase of reachability analysis. Allow external systems to add UObject roots *after* first reachability pass has been done */
 	static FTraceExternalRootsForReachabilityAnalysisDelegate TraceExternalRootsForReachabilityAnalysis;
 
-	// Called after reachability analysis, before any purging
+	/** Called after reachability analysis, before any purging */
 	static FSimpleMulticastDelegate PostReachabilityAnalysis;
 
-	// Called after garbage collection
+	/** Called after garbage collection */
 	static FSimpleMulticastDelegate& GetPostGarbageCollect();
 
-	// Called before ConditionalBeginDestroy phase of garbage collection
+	/** Called before ConditionalBeginDestroy phase of garbage collection */
 	static FSimpleMulticastDelegate PreGarbageCollectConditionalBeginDestroy;
 
-	// Called after ConditionalBeginDestroy phase of garbage collection
+	/** Called after ConditionalBeginDestroy phase of garbage collection */
 	static FSimpleMulticastDelegate PostGarbageCollectConditionalBeginDestroy;
 
-	/** delegate type for querying whether a loaded object should replace an already existing one */
-	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnLoadObjectsOnTop, const FString&);
-
 	/** Queries whether an object should be loaded on top ( replace ) an already existing one */
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnLoadObjectsOnTop, const FString&);
 	static FOnLoadObjectsOnTop ShouldLoadOnTop;
 
-	/** called when path to world root is changed */
+	/** Called when path to world root is changed */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FPackageCreatedForLoad, class UPackage*);
 	static FPackageCreatedForLoad PackageCreatedForLoad;
 
-	/** Called when trying to figure out if a UObject is a primary asset, if it doesn't know */
+	/** Called when trying to figure out if a UObject is a primary asset, if it doesn't implement GetPrimaryAssetId itself */
 	DECLARE_DELEGATE_RetVal_OneParam(FPrimaryAssetId, FGetPrimaryAssetIdForObject, const UObject*);
 	static FGetPrimaryAssetIdForObject GetPrimaryAssetIdForObject;
 
@@ -1948,9 +2004,9 @@ struct COREUOBJECT_API FDynamicClassStaticData
 COREUOBJECT_API TMap<FName, FDynamicClassStaticData>& GetDynamicClassMap();
 
 /**
-* FAssetMsg
-* This struct contains functions for asset-related messaging
-**/
+ * FAssetMsg
+ * This struct contains functions for asset-related messaging
+ */
 struct FAssetMsg
 {
 	/** Formats a path for the UE_ASSET_LOG macro */
@@ -1964,15 +2020,15 @@ struct FAssetMsg
 	#define UE_ASSET_LOG(...)
 #else
 	/**
-	* A  macro that outputs a formatted message to log with a canonical reference to an asset if a given logging category is active at a given verbosity level
-	* @param CategoryName name of the logging category
-	* @param Verbosity, verbosity level to test against
-	* @param Asset, Object or asset path to format
-	* @param Format, format text
-	***/
+	 * A macro that outputs a formatted message to log with a canonical reference to an asset if a given logging category is active at a given verbosity level
+	 * @param CategoryName name of the logging category
+	 * @param Verbosity, verbosity level to test against
+	 * @param Asset, Object or asset path to format
+	 * @param Format, format text
+	 */
 	#define UE_ASSET_LOG(CategoryName, Verbosity, Asset, Format, ...) \
 	{ \
-		static_assert(IS_TCHAR_ARRAY(Format), "Formatting string must be a TCHAR array."); \
+		static_assert(TIsArrayOrRefOfType<decltype(Format), TCHAR>::Value, "Formatting string must be a TCHAR array."); \
 		static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
 		CA_CONSTANT_IF((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) <= ELogVerbosity::COMPILED_IN_MINIMUM_VERBOSITY && (ELogVerbosity::Warning & ELogVerbosity::VerbosityMask) <= FLogCategory##CategoryName::CompileTimeVerbosity) \
 		{ \
@@ -1999,10 +2055,12 @@ struct FAssetMsg
  * - it's a package marked as PKG_EditorOnly or inside one
  * or
  * - IsEditorOnly returns true
+ * or
+ * - if bCheckMarks is true, if it has the EditorOnly object mark
  * or 
  * - if bCheckRecursive is true, if it's class, outer, or archetypes are editor only
  */
-COREUOBJECT_API bool IsEditorOnlyObject(const UObject* InObject, bool bCheckRecursive = true);
+COREUOBJECT_API bool IsEditorOnlyObject(const UObject* InObject, bool bCheckRecursive = true, bool bCheckMarks = true);
 #endif //WITH_EDITOR
 
 struct FClassFunctionLinkInfo;
@@ -2441,3 +2499,11 @@ namespace UE4CodeGen_Private
 #else
 	#define IF_WITH_EDITORONLY_DATA(x, y) y
 #endif
+
+enum class EDataValidationResult : uint8
+{
+	Invalid,
+	Valid,
+
+	NotValidated
+};

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 using System;
@@ -165,8 +165,6 @@ namespace UnrealBuildTool
 				// When generating project files we need intellisense generator to include info from all modules, including editor-only third party libs
 				Target.bCompileLeanAndMeanUE = false;
 			}
-
-			Target.bCompileNvCloth = true;
 
 			Target.bUsePDBFiles = !Target.bDisableDebugInfo && Target.Configuration != UnrealTargetConfiguration.Debug && Platform == UnrealTargetPlatform.Mac && Target.MacPlatform.bGenerateDsymFile;
 

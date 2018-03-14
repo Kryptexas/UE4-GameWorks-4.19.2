@@ -22,7 +22,7 @@ Version: 4.8
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 Adding another species of tree to our virtual forest will greatly help to increase the realism and overall look and feel. 
 Luckily for us the **Procedural Foliage Spawner** allows for you to spawn multiple **Foliage Types** resulting in one single **Procedural Foliage Spawner** being able to spawn an entire forest with a multitude of different trees. 
 In the following section we will take a look at how you can set up a Procedural Foliage Spawner to work with multiple Foliage Types.
@@ -69,4 +69,4 @@ We will be continuing to work with the **PFT_00** level that was used in the las
 
 	![](T_FT01_Adjust_Settings.png)
 
-%Steps%
+

@@ -16,7 +16,9 @@ displayed in the **Viewport**.
 
 ![](map_viewport.png)(w:500)
 
-<!-- **Actors** are the most important concept in Unreal Engine 4. Your game will be filled with them, as every interactive entity in your game is an Actor. They usually contain one or more components, can be placed in a **Level** or **Spawned** in during gameplay, and support network replication for multiplayer games. -->
+[COMMENT:none]
+ **Actors** are the most important concept in Unreal Engine 4. Your game will be filled with them, as every interactive entity in your game is an Actor. They usually contain one or more components, can be placed in a **Level** or **Spawned** in during gameplay, and support network replication for multiplayer games. 
+[/COMMENT]
 
 At the most fundamental level, an **Actor** is a gameplay entity that (usually) contains one or more components, can be placed in a **Level** or **Spawned** in during gameplay, and support network replication for multiplayer games. In the above level, the ground platform, the blocks in the center of the level, and the PlayerStart visible at the bottom of the image are all Actors. All Actors extend from the AActor class, which is the base class of spawnable gameplay Objects.
 

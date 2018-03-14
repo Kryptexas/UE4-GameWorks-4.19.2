@@ -13,7 +13,7 @@ namespace UnrealBuildTool
 	[Serializable]
 	class UBTMakefile : ISerializable
 	{
-		public const int CurrentVersion = 5;
+		public const int CurrentVersion = 7;
 
 		public int Version;
 

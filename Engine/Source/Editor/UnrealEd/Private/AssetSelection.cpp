@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetSelection.h"
 #include "Engine/Level.h"
@@ -121,7 +121,8 @@ namespace AssetSelectionUtils
 
 					if( ActorInfo.bAllSelectedActorsBelongToCurrentLevel )
 					{
-						if( !CurrentActor->GetOuter()->IsA(ULevel::StaticClass()) || !CurrentActor->GetLevel()->IsCurrentLevel() )
+						const ULevel* ActorLevel = CurrentActor->GetLevel();
+						if( !ActorLevel || !ActorLevel->IsCurrentLevel() )
 						{
 							ActorInfo.bAllSelectedActorsBelongToCurrentLevel = false;
 						}
@@ -159,7 +160,7 @@ namespace AssetSelectionUtils
 
 					if ( ActorInfo.bSelectedActorsBelongToSameLevel )
 					{
-						ULevel* ActorLevel = CurrentActor->GetOuter()->IsA(ULevel::StaticClass()) ? CurrentActor->GetLevel() : NULL;
+						ULevel* ActorLevel = CurrentActor->GetLevel();
 						if ( !ActorInfo.SharedLevel )
 						{
 							// This is the first selected actor we've encountered.

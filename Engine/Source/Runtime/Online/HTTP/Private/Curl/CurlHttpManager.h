@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -35,6 +35,7 @@ public:
 			,	bUseHttpProxy(false)
 			,	bDontReuseConnections(false)
 			,	CertBundlePath(nullptr)
+			,	MaxHostConnections(0)
 		{}
 
 		/** Prints out the options to the log */
@@ -54,6 +55,12 @@ public:
 
 		/** A path to certificate bundle */
 		const char * CertBundlePath;
+
+		/** The maximum number of connections to a particular host */
+		int32 MaxHostConnections;
+
+		/** Local address to use when making request, respects MULTIHOME command line option */
+		FString LocalHostAddr;
 	}
 	CurlRequestOptions;
 

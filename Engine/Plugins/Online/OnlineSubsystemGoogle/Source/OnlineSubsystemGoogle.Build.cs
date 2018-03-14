@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System.IO;
 using UnrealBuildTool;
@@ -7,7 +7,7 @@ public class OnlineSubsystemGoogle : ModuleRules
 {
 	public OnlineSubsystemGoogle(ReadOnlyTargetRules Target) : base(Target)
 	{
-		Definitions.Add("ONLINESUBSYSTEMGOOGLE_PACKAGE=1");
+		PublicDefinitions.Add("ONLINESUBSYSTEMGOOGLE_PACKAGE=1");
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PrivateIncludePaths.Add("Private");
@@ -27,8 +27,8 @@ public class OnlineSubsystemGoogle : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
-			Definitions.Add("WITH_GOOGLE=1");
-			Definitions.Add("UE4_GOOGLE_VER=4.0.1");
+			PublicDefinitions.Add("WITH_GOOGLE=1");
+			PublicDefinitions.Add("UE4_GOOGLE_VER=4.0.1");
 		   	PrivateIncludePaths.Add("Private/IOS");
 
 			// These are iOS system libraries that Google depends on
@@ -77,7 +77,7 @@ public class OnlineSubsystemGoogle : ModuleRules
 			);
 
 			string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
-			AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "OnlineSubsystemGoogle_UPL.xml")));
+			AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(PluginPath, "OnlineSubsystemGoogle_UPL.xml"));
 
 			PrivateIncludePaths.Add("Private/Android");
 			

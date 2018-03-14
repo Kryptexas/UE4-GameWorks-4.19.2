@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RendererSupport.cpp: Central place for various rendering functionality that exists in Engine
@@ -136,7 +136,7 @@ void RecompileRendererModule()
 		} 
 		while (!bCompiledSuccessfully);
 
-		verify(FModuleManager::Get().LoadModule(RendererModuleName, true) != nullptr);
+		verify(FModuleManager::Get().LoadModule(RendererModuleName) != nullptr);
 	}
 }
 

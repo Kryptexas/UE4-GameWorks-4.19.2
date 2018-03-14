@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -64,6 +64,7 @@ enum class ECookByTheBookOptions
 	NoSlatePackages =					0x00000400, // don't include slate content (this cook will probably be missing content unless you know what you are doing)
 	NoInputPackages =					0x00000800, // don't include slate content (this cook will probably be missing content unless you know what you are doing)
 	DisableUnsolicitedPackages =		0x00001000, // don't cook any packages which aren't in the files to cook list (this is really dangerious as if you request a file it will not cook all it's dependencies automatically)
+	FullLoadAndSave =					0x00002000, // Load all packages into memory and save them all at once in one tick for speed reasons. This requires a lot of RAM for large games.
 };
 ENUM_CLASS_FLAGS(ECookByTheBookOptions);
 
@@ -809,6 +810,7 @@ private:
 			bErrorOnEngineContentUse(false),
 			bIsChildCooker(false),
 			bDisableUnsolicitedPackages(false),
+			bFullLoadAndSave(false),
 			ChildCookIdentifier(-1)
 		{ }
 
@@ -841,6 +843,7 @@ private:
 		bool bErrorOnEngineContentUse;
 		bool bIsChildCooker;
 		bool bDisableUnsolicitedPackages;
+		bool bFullLoadAndSave;
 		int32 ChildCookIdentifier;
 		FString ChildCookFilename;
 		TSet<FName> ChildUnsolicitedPackages;
@@ -1729,6 +1732,8 @@ private:
 
 
 	void GetDependencies( UPackage* Package, TArray<UPackage*> Dependencies );
+
+	uint32 FullLoadAndSave(uint32& CookedPackageCount);
 
 };
 

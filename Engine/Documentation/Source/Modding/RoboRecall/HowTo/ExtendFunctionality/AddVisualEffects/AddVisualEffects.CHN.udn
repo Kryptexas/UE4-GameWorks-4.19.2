@@ -12,11 +12,15 @@ topic-image:Modding/RoboRecall/RoboRecall_Topic.png
 social-image:Modding/RoboRecall/RoboRecall_Social.png
 checkpoint:mod_extend
 
-<!-- Location: Modding/RoboRecall/Quickstarts/WeaponMod/6 -->
+[COMMENT:none]
+ Location: Modding/RoboRecall/Quickstarts/WeaponMod/6 
+[/COMMENT]
 
 [NAV]
 
-<!-- Title Image if Needed Here -->
+[COMMENT:none]
+ Title Image if Needed Here 
+[/COMMENT]
 
 在这步中需要添加一个粒子系统、声效、辐射力，并在手枪爆炸后进行清理。
 
@@ -103,7 +107,8 @@ GrenadeGunPistol 现已完成。下一步中我们将了解如何对枪进行测
 
 [NAV]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:snippet]
 	Begin Object Class=K2Node_Self Name="K2Node_Self_16"
 
@@ -349,7 +354,8 @@ GrenadeGunPistol 现已完成。下一步中我们将了解如何对枪进行测
 
 	End Object
 [/EXCERPT:snippet]
--->
+
+[/COMMENT]
 
 
 

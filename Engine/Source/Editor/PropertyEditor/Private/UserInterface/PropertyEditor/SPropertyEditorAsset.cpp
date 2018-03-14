@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "UserInterface/PropertyEditor/SPropertyEditorAsset.h"
 #include "Engine/Texture.h"
@@ -819,10 +819,21 @@ FPropertyAccess::Result SPropertyEditorAsset::GetValue( FObjectOrAssetData& OutV
 	}
 	else
 	{
+		FSoftObjectPath SoftObjectPath;
 		UObject* Object = nullptr;
 		if (PropertyHandle.IsValid())
 		{
 			Result = PropertyHandle->GetValue(Object);
+		}
+		else
+		{
+			SoftObjectPath = FSoftObjectPath(ObjectPath.Get());
+			Object = SoftObjectPath.ResolveObject();
+
+			if (Object != nullptr)
+			{
+				Result = FPropertyAccess::Success;
+			}
 		}
 
 		if (Object != nullptr)
@@ -839,13 +850,14 @@ FPropertyAccess::Result SPropertyEditorAsset::GetValue( FObjectOrAssetData& OutV
 		}
 		else
 		{
-			const FString CurrentObjectPath = ObjectPath.Get();
-			Result = FPropertyAccess::Success;
-
-			FSoftObjectPath SoftObjectPath = FSoftObjectPath(CurrentObjectPath);
+			if (SoftObjectPath.IsNull())
+			{
+				SoftObjectPath = FSoftObjectPath(ObjectPath.Get());
+			}
 
 			if (SoftObjectPath.IsAsset())
 			{
+				const FString CurrentObjectPath = SoftObjectPath.ToString();
 				if (CurrentObjectPath != TEXT("None") && (!CachedAssetData.IsValid() || CachedAssetData.ObjectPath.ToString() != CurrentObjectPath))
 				{
 					static FName AssetRegistryName("AssetRegistry");
@@ -855,6 +867,7 @@ FPropertyAccess::Result SPropertyEditorAsset::GetValue( FObjectOrAssetData& OutV
 				}
 
 				OutValue = FObjectOrAssetData(CachedAssetData);
+				Result = FPropertyAccess::Success;
 			}
 			else
 			{

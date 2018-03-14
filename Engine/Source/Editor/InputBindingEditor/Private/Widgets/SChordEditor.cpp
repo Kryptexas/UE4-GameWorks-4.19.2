@@ -1,6 +1,7 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/SChordEditor.h"
+#include "Styling/CoreStyle.h"
 #include "Framework/Commands/InputBindingManager.h"
 #include "Widgets/Text/SlateEditableTextLayout.h"
 
@@ -21,13 +22,11 @@ void SChordEditor::Construct( const FArguments& InArgs, TSharedPtr<FUICommandInf
 	OnEditingStopped = InArgs._OnEditingStopped;
 	OnEditingStarted = InArgs._OnEditingStarted;
 
-	static const FSlateFontInfo RobotoFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 9 );
-
 	SEditableText::Construct( 
 		SEditableText::FArguments() 
 		.Text( this, &SChordEditor::OnGetChordInputText )
-		.HintText(  this, &SChordEditor::OnGetChordInputHintText )
-		.Font( RobotoFont )
+		.HintText( this, &SChordEditor::OnGetChordInputHintText )
+		.Font( FCoreStyle::GetDefaultFontStyle("Regular", 9) )
 	);
 
 	EditableTextLayout->LoadText();

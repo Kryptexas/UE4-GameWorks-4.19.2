@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCategoryBuilderImpl.h"
 #include "ObjectPropertyNode.h"
@@ -86,8 +86,12 @@ FDetailCategoryImpl::FDetailCategoryImpl(FName InCategoryName, TSharedRef<FDetai
 	, bHasVisibleDetails(true)
 	, bIsCategoryVisible(true)
 	, bFavoriteCategory(false)
+	, bShowOnlyChildren(false)
 {
 	const UStruct* BaseStruct = InDetailLayout->GetRootNode()->GetBaseStructure();
+
+	bShowOnlyChildren = InDetailLayout->IsLayoutForExternalRoot() && !InDetailLayout->GetRootNode()->HasNodeFlags(EPropertyNodeFlags::ShowCategories);
+
 	// Use the base class name if there is one otherwise this is a generic category not specific to a class
 	FName BaseStructName = BaseStruct ? BaseStruct->GetFName() : FName("Generic");
 
@@ -428,6 +432,11 @@ void FDetailCategoryImpl::OnAdvancedDropdownClicked()
 bool FDetailCategoryImpl::ShouldShowAdvanced() const
 {
 	return bUserShowAdvanced || bForceAdvanced;
+}
+
+void FDetailCategoryImpl::SetShowAdvanced(bool bShowAdvanced)
+{
+	bUserShowAdvanced = bShowAdvanced;
 }
 
 bool FDetailCategoryImpl::IsAdvancedDropdownEnabled() const

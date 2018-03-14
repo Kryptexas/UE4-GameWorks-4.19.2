@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "AnimPreviewInstance.h"
@@ -42,6 +42,21 @@ FAnimNode_ModifyBone* FAnimPreviewInstanceProxy::FindModifiedBone(const FName& I
 		return InController.BoneToModify.BoneName == InBoneName;
 	}
 	);
+}
+
+void FAnimPreviewInstanceProxy::SetAnimationAsset(UAnimationAsset* NewAsset, USkeletalMeshComponent* MeshComponent, bool bIsLooping, float InPlayRate)
+{
+	// reinitialize pose blend node for pose assets
+	// this is necessary because sometimes in the editor, we add pose then list of pose changes, but 
+	// this node continue use previous information
+	// @todo: should we initialize all nodes?
+	if (NewAsset && NewAsset->IsA(UPoseAsset::StaticClass()))
+	{
+		FAnimationInitializeContext Context(this);
+		PoseBlendNode.Initialize_AnyThread(Context);
+	}
+
+	FAnimSingleNodeInstanceProxy::SetAnimationAsset(NewAsset, MeshComponent, bIsLooping, InPlayRate);
 }
 
 FAnimNode_ModifyBone& FAnimPreviewInstanceProxy::ModifyBone(const FName& InBoneName, bool bCurveController)

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IpNetDriver.cpp: Unreal IP network driver.
@@ -18,6 +18,7 @@ Notes:
 #include "Engine/ChildConnection.h"
 #include "SocketSubsystem.h"
 #include "IpConnection.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #include "PacketAudit.h"
 
@@ -34,6 +35,8 @@ Notes:
 -----------------------------------------------------------------------------*/
 
 DECLARE_CYCLE_STAT(TEXT("IpNetDriver Add new connection"), Stat_IpNetDriverAddNewConnection, STATGROUP_Net);
+DECLARE_CYCLE_STAT(TEXT("IpNetDriver ProcessRemoteFunction"), STAT_NetProcessRemoteFunc, STATGROUP_Net);
+DECLARE_CYCLE_STAT(TEXT("IpNetDriver Socket RecvFrom"), STAT_IpNetDriver_RecvFromSocket, STATGROUP_Net);
 
 UIpNetDriver::FOnNetworkProcessingCausingSlowFrame UIpNetDriver::OnNetworkProcessingCausingSlowFrame;
 
@@ -209,6 +212,8 @@ bool UIpNetDriver::InitListen( FNetworkNotify* InNotify, FURL& LocalURL, bool bR
 
 void UIpNetDriver::TickDispatch( float DeltaTime )
 {
+	LLM_SCOPE(ELLMTag::Networking);
+
 	Super::TickDispatch( DeltaTime );
 
 	// Set the context on the world for this driver's level collection.
@@ -244,9 +249,11 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 		int32 BytesRead = 0;
 
 		// Get data, if any.
-		CLOCK_CYCLES(RecvCycles);
-		bool bOk = Socket->RecvFrom(Data, sizeof(Data), BytesRead, *FromAddr);
-		UNCLOCK_CYCLES(RecvCycles);
+		bool bOk = false;
+		{
+			SCOPE_CYCLE_COUNTER(STAT_IpNetDriver_RecvFromSocket);
+			bOk = Socket->RecvFrom(Data, sizeof(Data), BytesRead, *FromAddr);
+		}
 
 		if (bOk)
 		{
@@ -505,7 +512,6 @@ void UIpNetDriver::LowLevelSend(FString Address, void* Data, int32 CountBits)
 
 
 		int32 BytesSent = 0;
-		uint32 CountBytes = FMath::DivideAndRoundUp(CountBits, 8);
 
 		if (CountBits > 0)
 		{
@@ -529,6 +535,9 @@ void UIpNetDriver::LowLevelSend(FString Address, void* Data, int32 CountBits)
 void UIpNetDriver::ProcessRemoteFunction(class AActor* Actor, UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack, class UObject* SubObject )
 {
 #if !UE_BUILD_SHIPPING
+	SCOPE_CYCLE_COUNTER(STAT_NetProcessRemoteFunc);
+	SCOPE_CYCLE_UOBJECT(Function, Function);
+
 	bool bBlockSendRPC = false;
 
 	SendRPCDel.ExecuteIfBound(Actor, Function, Parameters, OutParms, Stack, SubObject, bBlockSendRPC);

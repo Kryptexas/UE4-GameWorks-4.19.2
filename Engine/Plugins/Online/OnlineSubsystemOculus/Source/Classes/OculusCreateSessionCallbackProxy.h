@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -23,7 +23,7 @@ class UOculusCreateSessionCallbackProxy : public UOnlineBlueprintCallProxyBase
 	UPROPERTY(BlueprintAssignable)
 	FEmptyOnlineDelegate OnFailure;
 
-	// Kick off CreateSession check. Asynchronous-- see OnUserPrivilegeCompleteDelegate for results.
+	// Kick off CreateSession check. Asynchronous-- see OnCreateSessionCompleteDelegate for results.
 	UFUNCTION(BlueprintCallable, Category = "Oculus|Session", meta = (BlueprintInternalUseOnly = "true"))
 	static UOculusCreateSessionCallbackProxy* CreateSession(int32 PublicConnections, FString OculusMatchmakingPool);
 

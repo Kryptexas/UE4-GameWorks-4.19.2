@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Blend Space 1D. Contains 1 axis blend 'space'
@@ -25,7 +25,7 @@ public:
 #endif
 
 	/** Drive animation speed by blend input position **/
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = InputInterpolation)
 	bool bScaleAnimation;
 
 	virtual bool IsValidAdditive() const override;

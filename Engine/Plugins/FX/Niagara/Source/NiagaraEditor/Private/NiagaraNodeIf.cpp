@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraNodeIf.h"
 #include "NiagaraEditorUtilities.h"
@@ -59,19 +59,22 @@ void UNiagaraNodeIf::AllocateDefaultPins()
 	//Create the inputs for each path.
 	for (FNiagaraVariable& Var : OutputVars)
 	{
-		FString PathSuffix = TEXT(" A");
-		CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(Var.GetType()), Var.GetName().ToString() + PathSuffix);		
+		const TCHAR* PathSuffix = TEXT(" A");
+		CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(Var.GetType()), *(Var.GetName().ToString() + PathSuffix));	
 	}
 
 	for (FNiagaraVariable& Var : OutputVars)
 	{
-		FString PathSuffix = TEXT(" B");
-		CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(Var.GetType()), Var.GetName().ToString() + PathSuffix);
+		const TCHAR* PathSuffix = TEXT(" B");
+		CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(Var.GetType()), *(Var.GetName().ToString() + PathSuffix));
 	}
 
-	for (FNiagaraVariable& Var : OutputVars)
+	for (int32 Index = 0; Index < OutputVars.Num(); Index++)
 	{
-		UEdGraphPin* NewPin = CreatePin(EGPD_Output, Schema->TypeDefinitionToPinType(Var.GetType()), Var.GetName().ToString());
+		const FNiagaraVariable& Var = OutputVars[Index];
+		const FGuid& Guid = OutputVarGuids[Index];
+		UEdGraphPin* NewPin = CreatePin(EGPD_Output, Schema->TypeDefinitionToPinType(Var.GetType()), Var.GetName());
+		NewPin->PersistentGuid = Guid;
 	}
 
 	CreateAddPin(EGPD_Output);
@@ -115,6 +118,15 @@ bool UNiagaraNodeIf::RefreshFromExternalChanges()
 	return true;
 }
 
+FGuid UNiagaraNodeIf::AddOutput(FNiagaraTypeDefinition Type, const FName& Name)
+{
+	FNiagaraVariable NewOutput(Type, Name);
+	FGuid Guid = FGuid::NewGuid();
+	OutputVars.Add(NewOutput);
+	OutputVarGuids.Add(Guid);
+	return Guid;
+}
+
 void UNiagaraNodeIf::OnPinRemoved(UEdGraphPin* PinToRemove)
 {
 	auto FindPredicate = [=](const FGuid& Guid) { return Guid == PinToRemove->PersistentGuid; };
@@ -139,12 +151,9 @@ void UNiagaraNodeIf::OnNewTypedPinAdded(UEdGraphPin* NewPin)
 	{
 		OutputNames.Add(Output.GetName());
 	}
-	FName OutputName = FNiagaraEditorUtilities::GetUniqueName(*OutputType.GetNameText().ToString(), OutputNames);
+	FName OutputName = FNiagaraUtilities::GetUniqueName(*OutputType.GetNameText().ToString(), OutputNames);
 
-	FNiagaraVariable NewOutput(OutputType, OutputName);
-	FGuid Guid = FGuid::NewGuid();
-	OutputVars.Add(NewOutput);
-	OutputVarGuids.Add(Guid);
+	FGuid Guid = AddOutput(OutputType, OutputName);
 
 	// Update the pin's data too so that it's connection is maintained after reallocating.
 	NewPin->PersistentGuid = Guid;
@@ -152,7 +161,7 @@ void UNiagaraNodeIf::OnNewTypedPinAdded(UEdGraphPin* NewPin)
 	ReallocatePins();
 }
 
-void UNiagaraNodeIf::OnPinRenamed(UEdGraphPin* RenamedPin)
+void UNiagaraNodeIf::OnPinRenamed(UEdGraphPin* RenamedPin, const FString& OldName)
 {
 	auto FindPredicate = [=](const FGuid& Guid) { return Guid == RenamedPin->PersistentGuid; };
 	int32 FoundIndex = OutputVarGuids.IndexOfByPredicate(FindPredicate);
@@ -166,7 +175,7 @@ void UNiagaraNodeIf::OnPinRenamed(UEdGraphPin* RenamedPin)
 				OutputNames.Add(OutputVars[Index].GetName());
 			}
 		}
-		FName OutputName = FNiagaraEditorUtilities::GetUniqueName(*RenamedPin->PinName, OutputNames);
+		const FName OutputName = FNiagaraUtilities::GetUniqueName(RenamedPin->PinName, OutputNames);
 		OutputVars[FoundIndex].SetName(OutputName);
 	}
 	ReallocatePins();
@@ -186,6 +195,11 @@ bool UNiagaraNodeIf::CanRemovePin(const UEdGraphPin* Pin) const
 FText UNiagaraNodeIf::GetTooltipText() const
 {
 	return LOCTEXT("IfDesc", "If Condition is true, the output value is A, otherwise output B.");
+}
+
+FText UNiagaraNodeIf::GetNodeTitle(ENodeTitleType::Type TitleType) const
+{
+	return LOCTEXT("IfTitle", "If");
 }
 
 #undef LOCTEXT_NAMESPACE

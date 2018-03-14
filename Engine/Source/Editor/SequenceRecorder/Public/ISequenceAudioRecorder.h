@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,19 +7,28 @@
 
 class USoundWave;
 
-struct FAudioRecorderSettings
+/** Sequencer version of the audio recording settings. */
+struct FSequenceAudioRecorderSettings
 {
 	/** Directory to create the asset within (empty for transient package) */
 	FDirectoryPath Directory;
-	FString AssetName;
-	float RecordingDurationSec;
-	float GainDB;
-	int32 InputBufferSize;
 
-	FAudioRecorderSettings()
-		: RecordingDurationSec(-1.0f)
-		, GainDB(0.0f)
-		, InputBufferSize(256)
+	/** Name of the asset. */
+	FString AssetName;
+
+	/** Optional audio recording duration in seconds. */
+	float RecordingDuration;
+
+	/** Gain in decibels of the output asset. */
+	float GainDb;
+
+	/** Whether or not to split input channels into separate assets. */
+	bool bSplitChannels;
+
+	FSequenceAudioRecorderSettings()
+		: RecordingDuration(-1.0f)
+		, GainDb(0.0f)
+		, bSplitChannels(false)
 	{}
 };
 
@@ -31,8 +40,8 @@ public:
 	virtual ~ISequenceAudioRecorder() {}
 	
 	/** Start recording audio data */
-	virtual void Start(const FAudioRecorderSettings& Settings) = 0;
+	virtual void Start(const FSequenceAudioRecorderSettings& Settings) = 0;
 
 	/** Stop recording audio data */
-	virtual USoundWave* Stop() = 0;
+	virtual void Stop(TArray<USoundWave*>& OutSoundWaves) = 0;
 };

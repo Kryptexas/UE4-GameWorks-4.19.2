@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CurveEditorViewportClient.h"
 #include "Engine/InterpCurveEdSetup.h"
@@ -17,6 +17,7 @@
 #include "CurveEditorHitProxies.h"
 #include "Slate/SceneViewport.h"
 #include "CanvasTypes.h"
+#include "SlateApplication.h"
 
 FCurveEditorViewportClient::FCurveEditorViewportClient(TWeakPtr<SDistributionCurveEditor> InCurveEditor, TWeakPtr<SCurveEditorViewport> InCurveEditorViewport)
 	: CurveEditorPtr(InCurveEditor)
@@ -75,10 +76,16 @@ FCurveEditorViewportClient::FCurveEditorViewportClient(TWeakPtr<SDistributionCur
 	
 	bSnapEnabled = false;
 	InSnapAmount = 1.f;
+
+	FSlateApplication::Get().OnWindowDPIScaleChanged().AddRaw(this, &FCurveEditorViewportClient::HandleWindowDPIScaleChanged);
 }
 
 FCurveEditorViewportClient::~FCurveEditorViewportClient()
 {
+	if (FSlateApplication::IsInitialized())
+	{
+		FSlateApplication::Get().OnWindowDPIScaleChanged().RemoveAll(this);
+	}
 }
 
 void FCurveEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
@@ -1692,6 +1699,21 @@ void FCurveEditorViewportClient::SetInSnap(bool bEnabled, float SnapAmount, bool
 	bSnapToFrames = bInSnapToFrames;
 }
 
+float FCurveEditorViewportClient::UpdateViewportClientWindowDPIScale() const
+{
+	float DPIScale = 1.f;
+	if (CurveEditorViewportPtr.IsValid())
+	{
+		TSharedPtr<SWindow> WidgetWindow = FSlateApplication::Get().FindWidgetWindow(CurveEditorViewportPtr.Pin().ToSharedRef());
+		if (WidgetWindow.IsValid())
+		{
+			DPIScale = WidgetWindow->GetNativeWindow()->GetDPIScaleFactor();
+		}
+	}
+
+	return DPIScale;
+}
+
 float FCurveEditorViewportClient::SnapIn(float InValue)
 {
 	if(bSnapEnabled)
@@ -1765,4 +1787,13 @@ void FCurveEditorViewportClient::ToggleSubCurveHidden(int32 InCurveIndex, int32 
 	FCurveEdEntry& Entry = SharedData->EdSetup->Tabs[SharedData->EdSetup->ActiveTab].Curves[InCurveIndex];
 	check(InSubCurveIndex < 6);
 	CURVEEDENTRY_TOGGLE_HIDESUBCURVE(Entry.bHideCurve, InSubCurveIndex);
+}
+
+void FCurveEditorViewportClient::HandleWindowDPIScaleChanged(TSharedRef<SWindow> InWindow)
+{
+	RequestUpdateDPIScale();
+	if (CurveEditorViewportPtr.IsValid())
+	{
+		CurveEditorViewportPtr.Pin()->RefreshViewport();
+	}
 }

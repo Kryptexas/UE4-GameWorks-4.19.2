@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GraphEditorDragDropAction.h"
 #include "Widgets/SNullWidget.h"
@@ -14,6 +14,11 @@
 #include "SGraphPanel.h"
 #include "Widgets/Layout/SScaleBox.h"
 #include "SPinTypeSelector.h"
+
+FGraphEditorDragDropAction::FGraphEditorDragDropAction()
+	: bDropTargetValid(true)
+{
+}
 
 UEdGraphPin* FGraphEditorDragDropAction::GetHoveredPin() const
 {

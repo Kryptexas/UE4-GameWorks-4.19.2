@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -43,6 +43,8 @@ public:
 	virtual FText GetDisplayName() const override;
 	virtual FPerVertexPaintAction GetPaintAction(const FMeshPaintParameters& InPaintParams, UClothPainterSettings* InPainterSettings) override;
 	virtual UObject* GetSettingsObject() override;
+	virtual bool HasValueRange() override;
+	virtual void GetValueRange(float& OutRangeMin, float& OutRangeMax) override;
 	/** End FClothPaintToolBase interface */
 
 protected:
@@ -114,6 +116,9 @@ public:
 	virtual UObject* GetSettingsObject() override;
 	virtual void Activate(TWeakPtr<FUICommandList> InCommands) override;
 	virtual void Deactivate(TWeakPtr<FUICommandList> InCommands) override;
+	virtual void OnMeshChanged() override;
+	virtual bool HasValueRange() override;
+	virtual void GetValueRange(float& OutRangeMin, float& OutRangeMax) override;
 	/* End FClothPaintToolBase interface */
 	
 protected:
@@ -198,15 +203,18 @@ UCLASS()
 class UClothPaintTool_FillSettings : public UObject
 {
 	GENERATED_BODY()
-
 public:
 
+	UClothPaintTool_FillSettings()
+		: Threshold(0.0f), FillValue(100.0f)
+	{}
+
 	/** Threshold for fill operation, will keep filling until sampled verts aren't within this range of the original vertex */
-	UPROPERTY(EditAnywhere, Category = ToolSettings)
+	UPROPERTY(EditAnywhere, Category = ToolSettings, meta = (UIMin = 0, UIMax = 100, ClampMin = 0, ClampMax = 100000))
 	float Threshold;
 
 	/** The value to fill all selected verts to */
-	UPROPERTY(EditAnywhere, Category = ToolSettings)
+	UPROPERTY(EditAnywhere, Category = ToolSettings, meta = (UIMin = 0, UIMax = 100, ClampMin = 0, ClampMax = 100000))
 	float FillValue;
 };
 
@@ -234,6 +242,8 @@ public:
 	virtual bool IsPerVertex() const override;
 	virtual bool ShouldRenderInteractors() const override;
 	virtual void Render(USkeletalMeshComponent* InComponent, IMeshPaintGeometryAdapter* InAdapter, const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) override;
+	virtual bool HasValueRange() override;
+	virtual void GetValueRange(float& OutRangeMin, float& OutRangeMax) override;
 	/* End FClothPaintToolBase interface */
 
 protected:

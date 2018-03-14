@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OculusHMD_Splash.h"
 
@@ -295,7 +295,11 @@ void FSplash::OnLoadingBegins()
 		UE_LOG(LogLoadingSplash, Log, TEXT("Loading begins"));
 		bLoadingStarted = true;
 		bLoadingCompleted = false;
-		Show(ShowAutomatically);
+
+		if (OculusHMD->IsStereoEnabledOnNextFrame())
+		{
+			Show(ShowAutomatically);
+		}
 	}
 }
 
@@ -384,7 +388,7 @@ void FSplash::OnShow()
 	// Create new textures
 	{
 		FScopeLock ScopeLock(&RenderThreadLock);
-			
+
 		UnloadTextures();
 
 		// Make sure all UTextures are loaded and contain Resource->TextureRHI

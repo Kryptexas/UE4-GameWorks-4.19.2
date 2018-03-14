@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "UObject/Package.h"
 #include "HAL/FileManager.h"
@@ -37,7 +37,9 @@ void UPackage::PostInitProperties()
 		bDirty = false;
 	}
 
-	MetaData = NULL;
+#if WITH_EDITORONLY_DATA
+	MetaData = nullptr;
+#endif
 	LinkerPackageVersion = GPackageFileUE4Version;
 	LinkerLicenseeVersion = GPackageFileLicenseeUE4Version;
 	PIEInstanceID = INDEX_NONE;
@@ -92,7 +94,9 @@ void UPackage::Serialize( FArchive& Ar )
 
 	if ( Ar.IsTransacting() )
 	{
-		Ar << bDirty;
+		bool bTempDirty = bDirty;
+		Ar << bTempDirty;
+		bDirty = bTempDirty;
 	}
 	if (Ar.IsCountingMemory())
 	{		
@@ -126,6 +130,7 @@ UMetaData* UPackage::GetMetaData()
 {
 	checkf(!FPlatformProperties::RequiresCookedData(), TEXT("MetaData is only allowed in the Editor."));
 
+#if WITH_EDITORONLY_DATA
 	// If there is no MetaData, try to find it.
 	if (MetaData == NULL)
 	{
@@ -146,6 +151,9 @@ UMetaData* UPackage::GetMetaData()
 	}
 
 	return MetaData;
+#else
+	return nullptr;
+#endif
 }
 
 /**
@@ -169,10 +177,12 @@ void UPackage::TagSubobjects(EObjectFlags NewFlags)
 {
 	Super::TagSubobjects(NewFlags);
 
+#if WITH_EDITORONLY_DATA
 	if (MetaData)
 	{
 		MetaData->SetFlags(NewFlags);
 	}
+#endif
 }
 
 /**
@@ -242,10 +252,17 @@ void UPackage::SetLoadedByEditorPropertiesOnly(bool bIsEditorOnly, bool bRecursi
 }
 #endif
 
-
+#if WITH_EDITORONLY_DATA
 IMPLEMENT_CORE_INTRINSIC_CLASS(UPackage, UObject,
 	{
 		Class->ClassAddReferencedObjects = &UPackage::AddReferencedObjects;
 		Class->EmitObjectReference(STRUCT_OFFSET(UPackage, MetaData), TEXT("MetaData"));
 	}
 );
+#else
+IMPLEMENT_CORE_INTRINSIC_CLASS(UPackage, UObject,
+	{
+		Class->ClassAddReferencedObjects = &UPackage::AddReferencedObjects;
+	}
+);
+#endif

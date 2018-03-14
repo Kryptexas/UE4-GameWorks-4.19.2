@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapeEdMode.h"
 #include "SceneView.h"
@@ -3428,8 +3428,14 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 			Landscape->Import(FGuid::NewGuid(), NewMinX, NewMinY, NewMaxX, NewMaxY, NumSubsections, SubsectionSizeQuads, HeightData.GetData(), *OldLandscapeProxy->ReimportHeightmapFilePath, ImportLayerInfos, ELandscapeImportAlphamapType::Additive);
 
 			Landscape->MaxLODLevel = OldLandscapeProxy->MaxLODLevel;
-			Landscape->LODDistanceFactor = OldLandscapeProxy->LODDistanceFactor;
-			Landscape->LODFalloff = OldLandscapeProxy->LODFalloff;
+			Landscape->LODDistanceFactor_DEPRECATED = OldLandscapeProxy->LODDistanceFactor_DEPRECATED;
+			Landscape->LODFalloff_DEPRECATED = OldLandscapeProxy->LODFalloff_DEPRECATED;
+			Landscape->TessellationComponentScreenSize = OldLandscapeProxy->TessellationComponentScreenSize;
+			Landscape->ComponentScreenSizeToUseSubSections = OldLandscapeProxy->ComponentScreenSizeToUseSubSections;
+			Landscape->UseTessellationComponentScreenSizeFalloff = OldLandscapeProxy->UseTessellationComponentScreenSizeFalloff;
+			Landscape->TessellationComponentScreenSizeFalloff = OldLandscapeProxy->TessellationComponentScreenSizeFalloff;
+			Landscape->LODDistributionSetting = OldLandscapeProxy->LODDistributionSetting;
+			Landscape->LOD0DistributionSetting = OldLandscapeProxy->LOD0DistributionSetting;
 			Landscape->ExportLOD = OldLandscapeProxy->ExportLOD;
 			Landscape->StaticLightingLOD = OldLandscapeProxy->StaticLightingLOD;
 			Landscape->NegativeZBoundsExtension = OldLandscapeProxy->NegativeZBoundsExtension;

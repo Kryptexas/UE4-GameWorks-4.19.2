@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,6 +7,7 @@
 #include "XmppConnection.h"
 #include "Containers/Queue.h"
 #include "Containers/Ticker.h"
+#include "HAL/ThreadSafeBool.h"
 
 class FXmppConnectionStrophe;
 class FStropheStanza;
@@ -38,7 +39,7 @@ public:
 	// FXmppPingStrophe
 	FXmppPingStrophe(FXmppConnectionStrophe& InConnectionManager);
 	virtual ~FXmppPingStrophe() = default;
-	
+
 	// FTickerObjectBase
 	virtual bool Tick(float DeltaTime) override;
 
@@ -47,13 +48,25 @@ public:
 
 	/** Determine if an incoming stanza is a ping stanza */
 	bool ReceiveStanza(const FStropheStanza& IncomingStanza);
-	
+
+	/** Reset the ping timer (usually due to incoming/outgoing traffic) */
+	void ResetPingTimer();
+
+	/** Reset the pong timer (usually due to incoming traffic) */
+	void ResetPongTimer();
+
 protected:
 	/** Process parsing a ping we have received and queue it to be replied to */
 	bool HandlePingStanza(const FStropheStanza& PingStanza);
-	
+
 	/** Queue a reply to a specific ping we received */
 	void ReplyToPing(FXmppPingReceivedInfo&& ReceivedPing);
+
+	/** Send a ping from the client to the server */
+	void SendClientPing();
+
+	/** Check the current status of our Xmpp ping responses; may lead to disconnection requests */
+	void CheckXmppPongTimeout(float DeltaTime);
 
 private:
 	/** Connection manager controls sending data to XMPP thread */
@@ -61,6 +74,21 @@ private:
 
 	/** Queued pings we have received but haven't processed */
 	TQueue<FXmppPingReceivedInfo> IncomingPings;
+
+	/** The time since we last sent the server a ping */
+	float TimeSinceLastClientPing;
+
+	/** Are we waiting for a pong? */
+	bool bWaitingForPong;
+
+	/** The amount of seconds since the server last responded to our ping request */
+	float SecondsSinceLastServerPong;
+
+	/** Have we received a pong since the last tick? */
+	FThreadSafeBool bHasReceievedServerPong;
+
+	/** Number of missed pongs */
+	int32 MissedPongs;
 };
 
 #endif

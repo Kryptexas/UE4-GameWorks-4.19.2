@@ -37,19 +37,9 @@ After working through this tutorial, you'll know the following:
 * How to query and display items being contained in a Blueprint Set. 
 * How to perform some basic operations on Blueprint Sets, including Intersections and Unions.
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	[DIR(output:"checkpoint" parent:"Engine/Blueprints/BP_HowTo/WorkingWithSets" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+## Steps
+
+[DIR(output:"checkpoint" parent:"Engine/Blueprints/BP_HowTo/WorkingWithSets" org:"hierarchy")]
 
 [REGION:call_to_action]
 	[Click to Start](Engine/Blueprints/BP_HowTo/WorkingWithSets/1 "%Engine/Blueprints/BP_HowTo/WorkingWithSets/1:title%")

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DependsNode.h"
 #include "AssetRegistryPrivate.h"
@@ -52,13 +52,31 @@ void FDependsNode::GetReferencers(TArray<FDependsNode*>& OutReferencers, EAssetR
 		// If type specified, filter
 		if (InDependencyType != EAssetRegistryDependencyType::All)
 		{
-			IterateOverDependencies([&bShouldAdd,this](const FDependsNode* InDependency, EAssetRegistryDependencyType::Type /*InDependencyType*/)
+			// If type is specified, filter. We don't use the iterate wrapper for performance
+			if (InDependencyType & EAssetRegistryDependencyType::Hard)
 			{
-				if (InDependency == this)
-				{
-					bShouldAdd = true;
-				}
-			}, InDependencyType);
+				bShouldAdd = Referencer->HardDependencies.Contains(this);
+			}
+
+			if (InDependencyType & EAssetRegistryDependencyType::Soft && !bShouldAdd)
+			{
+				bShouldAdd = Referencer->SoftDependencies.Contains(this);
+			}
+
+			if (InDependencyType & EAssetRegistryDependencyType::HardManage && !bShouldAdd)
+			{
+				bShouldAdd = Referencer->HardManageDependencies.Contains(this);
+			}
+
+			if (InDependencyType & EAssetRegistryDependencyType::SoftManage && !bShouldAdd)
+			{
+				bShouldAdd = Referencer->SoftManageDependencies.Contains(this);
+			}
+
+			if (InDependencyType & EAssetRegistryDependencyType::SearchableName && !bShouldAdd)
+			{
+				bShouldAdd = Referencer->NameDependencies.Contains(this);
+			}
 		}
 		else
 		{
@@ -183,5 +201,5 @@ void FDependsNode::PrintReferencersRecursive(const FString& Indent, TSet<const F
 
 int32 FDependsNode::GetConnectionCount() const
 {
-	return HardDependencies.Num() + SoftDependencies.Num() + NameDependencies.Num() + ManageDependencies.Num() + Referencers.Num();
+	return HardDependencies.Num() + SoftDependencies.Num() + NameDependencies.Num() + SoftManageDependencies.Num() + HardManageDependencies.Num() + Referencers.Num();
 }

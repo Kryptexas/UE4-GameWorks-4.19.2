@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Linux/DirectoryWatchRequestLinux.h"
 #include "HAL/FileManager.h"
@@ -126,9 +126,9 @@ void FDirectoryWatchRequestLinux::WatchDirectoryTree(const FString & RootAbsolut
 		if (WatchDescriptor == -1)
 		{
 			int ErrNo = errno;
-			UE_LOG(LogDirectoryWatcher, Error, TEXT("inotify_add_watch cannot watch folder %s (errno = %d, %s)"), *FolderName,
+			UE_LOG(LogDirectoryWatcher, Warning, TEXT("inotify_add_watch cannot watch folder %s (errno = %d, %s)"), *FolderName,
 				ErrNo,
-				ANSI_TO_TCHAR(strerror(ErrNo))
+				(ErrNo == ENOSPC) ? TEXT("Out of inotify watches, increase user.max_inotify_watches") : UTF8_TO_TCHAR(strerror(ErrNo))
 				);
 			// proceed further
 		}

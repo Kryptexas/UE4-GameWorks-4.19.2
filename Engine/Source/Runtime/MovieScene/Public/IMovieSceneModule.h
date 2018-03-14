@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -44,6 +44,11 @@ public:
 		return FModuleManager::LoadModuleChecked< IMovieSceneModule >( "MovieScene" );
 	}
 
+	static inline IMovieSceneModule& Get_Concurrent()
+	{
+		return FModuleManager::GetModuleChecked< IMovieSceneModule >("MovieScene");
+	}
+
 	/**
 	 * Checks to see if this module is loaded and ready.  It is only valid to call Get() if IsAvailable() returns true.
 	 *
@@ -63,4 +68,10 @@ public:
 	 * Find group parameters for a specific evaluation group
 	 */
 	virtual FMovieSceneEvaluationGroupParameters GetEvaluationGroupParameters(FName GroupName) const = 0;
+
+	/**
+	 * Get this module ptr as a weak ptr.
+	 * @note: resulting weak ptr should not be used to hold persistent strong references
+	 */
+	virtual TWeakPtr<IMovieSceneModule> GetWeakPtr() = 0;
 };

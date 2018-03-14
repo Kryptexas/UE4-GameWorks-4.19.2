@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -193,13 +193,20 @@ public:
 class FSlateResourceHandle
 {
 	friend class FSlateShaderResourceManager;
+	friend class FSlateNullShaderResourceManager;
 	friend class FSlateDrawElement;
 public:
+	FSlateResourceHandle() {}
+
 	/**
 	 * @return true if the handle still points to a valid rendering resource
 	 */
 	bool IsValid() const { return Data.IsValid() && Data->Proxy; }
 private:
+	FSlateResourceHandle(const TSharedPtr<FSlateSharedHandleData>& InData)
+		: Data(InData)
+	{}
+
 	/** Internal data to pair the handle to the resource */
 	TSharedPtr<FSlateSharedHandleData> Data;
 };

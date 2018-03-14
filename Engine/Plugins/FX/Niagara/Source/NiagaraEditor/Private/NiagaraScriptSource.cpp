@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraScriptSource.h"
 #include "Modules/ModuleManager.h"
@@ -25,6 +25,14 @@
 #include "EdGraphSchema_Niagara.h"
 #include "TokenizedMessage.h"
 #include "NiagaraEditorUtilities.h"
+#include "NiagaraCustomVersion.h"
+#include "NiagaraStackGraphUtilities.h"
+#include "NiagaraNodeFunctionCall.h"
+#include "NiagaraNodeParameterMapSet.h"
+#include "INiagaraEditorTypeUtilities.h"
+
+DECLARE_CYCLE_STAT(TEXT("Niagara - ScriptSource - Compile"), STAT_NiagaraEditor_ScriptSource_Compile, STATGROUP_NiagaraEditor);
+DECLARE_CYCLE_STAT(TEXT("Niagara - ScriptSource - PreCompile"), STAT_NiagaraEditor_ScriptSource_PreCompile, STATGROUP_NiagaraEditor);
 
 UNiagaraScriptSource::UNiagaraScriptSource(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer), bIsPrecompiled(false)
@@ -34,10 +42,215 @@ UNiagaraScriptSource::UNiagaraScriptSource(const FObjectInitializer& ObjectIniti
 void UNiagaraScriptSource::PostLoad()
 {
 	Super::PostLoad();
-	// We need to make sure that the node-graph is already resolved b/c we may be asked IsSyncrhonized later...
+
 	if (NodeGraph)
 	{
+		// We need to make sure that the node-graph is already resolved b/c we may be asked IsSyncrhonized later...
 		NodeGraph->ConditionalPostLoad();
+
+		// Hook up event handlers so the on changed handler can be called correctly.
+		NodeGraph->AddOnGraphChangedHandler(FOnGraphChanged::FDelegate::CreateUObject(this, &UNiagaraScriptSource::OnGraphChanged));
+		NodeGraph->OnDataInterfaceChanged().AddUObject(this, &UNiagaraScriptSource::OnGraphDataInterfaceChanged);
+	}
+
+	const int32 NiagaraVer = GetLinkerCustomVersion(FNiagaraCustomVersion::GUID);
+	if (NiagaraVer < FNiagaraCustomVersion::AddedScriptRapidIterationVariables)
+	{
+		UpgradeForScriptRapidIterationVariables();
+	}
+}
+
+void UNiagaraScriptSource::UpgradeForScriptRapidIterationVariables()
+{
+	// In this version we added the ability to rapidly iterate on top-level module parameters. This means that there are 
+	// loose set nodes that were just setting constants that need to be removed from the graph as well as needing to build the script
+	// rapid iteration parameters list.
+	TArray<UNiagaraNodeOutput*> OutputNodes;
+	NodeGraph->GetNodesOfClass(OutputNodes);
+	UNiagaraEmitter* ParentEmitter = Cast<UNiagaraEmitter>(GetOuter());
+	UNiagaraSystem* ParentSystem = Cast<UNiagaraSystem>(GetOuter());
+	FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::GetModuleChecked<FNiagaraEditorModule>("NiagaraEditor");
+
+	if (ParentEmitter != nullptr || ParentSystem != nullptr)
+	{
+		TArray<UNiagaraScript*> Scripts;
+		if (ParentEmitter != nullptr)
+		{
+			ParentEmitter->ConditionalPostLoad();
+			ParentEmitter->GetScripts(Scripts, false);
+		}
+		else if (ParentSystem != nullptr)
+		{
+			ParentSystem->ConditionalPostLoad();
+			Scripts.Add(ParentSystem->GetSystemSpawnScript(true));
+			Scripts.Add(ParentSystem->GetSystemUpdateScript(true));
+			Scripts.Add(ParentSystem->GetSystemSpawnScript(false));
+			Scripts.Add(ParentSystem->GetSystemUpdateScript(false));
+		}
+
+		for (UNiagaraScript* Script : Scripts)
+		{
+			ensure(Script->RapidIterationParameters.GetParameterDataArray().Num() == 0);
+		}
+
+		bool bNeedsRecompile = false;
+
+		TArray<UEdGraphPin*> PinsToRemove;
+
+		for (UNiagaraNodeOutput* Output : OutputNodes)
+		{
+			FNiagaraParameterMapHistoryBuilder Builder;
+			Builder.BuildParameterMaps(Output);
+				
+			TArray<UNiagaraNodeFunctionCall*> FunctionCallNodes;
+			TArray<UNiagaraNode*> Nodes;
+			NodeGraph->BuildTraversal(Nodes, Output);
+			for (UNiagaraNode* Node : Nodes)
+			{
+				UNiagaraNodeFunctionCall* FuncCallNode = Cast<UNiagaraNodeFunctionCall>(Node);
+				if (FuncCallNode != nullptr)
+				{
+					FunctionCallNodes.Add(FuncCallNode);
+				}
+			}
+
+			TArray<const UEdGraphPin*> CandidateInputPins;
+			TArray<FNiagaraVariable> CandidateVariables;
+			for (UNiagaraNodeFunctionCall* FunctionCallNode : FunctionCallNodes)
+			{
+				TArray<const UEdGraphPin*> InputPins;
+				FNiagaraStackGraphUtilities::GetStackFunctionInputPins(*FunctionCallNode, InputPins, FNiagaraStackGraphUtilities::ENiagaraGetStackFunctionInputPinsOptions::ModuleInputsOnly);
+
+				for (const UEdGraphPin* InputPin : InputPins)
+				{
+					CandidateInputPins.Add(InputPin);
+					const UEdGraphSchema_Niagara* NiagaraSchema = CastChecked<UEdGraphSchema_Niagara>(InputPin->GetSchema());
+					FNiagaraVariable FunctionVar = NiagaraSchema->PinToNiagaraVariable(InputPin);
+					TMap<FString, FString> AliasMap = TMap<FString, FString>();
+					AliasMap.Add(TEXT("Module"), FunctionCallNode->GetFunctionName());
+					if (ParentEmitter)
+					{
+						AliasMap.Add(TEXT("Emitter"), ParentEmitter->GetUniqueEmitterName());
+					}
+					FunctionVar = FNiagaraParameterMapHistory::ResolveAliases(FunctionVar, AliasMap, TEXT("."));
+					CandidateVariables.Add(FunctionVar);
+				}
+			}
+
+			UE_LOG(LogNiagaraEditor, Log, TEXT("Converting OutputNode: %s"), *Output->GetNodeTitle(ENodeTitleType::FullTitle).ToString());
+
+			// As of this version there aren't multiple instances of Event graphs, so we ignore the occurrence parameter.
+			// We do however have the solo and multi versions of the system scripts, so we need to be able to set multiple scripts.
+			TArray<UNiagaraScript*> ActiveScripts;
+			for (UNiagaraScript* Script : Scripts)
+			{
+				if (Script->ContainsUsage(Output->GetUsage()))
+				{
+					ActiveScripts.Add(Script);
+				}
+			}
+
+			if (ActiveScripts.Num() == 0)
+			{
+				continue;
+			}
+
+			for (int32 i = 0; i < CandidateInputPins.Num(); i++)
+			{
+				const UEdGraphPin* Pin = CandidateInputPins[i];
+				FNiagaraVariable CandidateVar = CandidateVariables[i];
+
+				check(Builder.Histories.Num() == 1);
+				const UEdGraphSchema_Niagara* NiagaraSchema = CastChecked<UEdGraphSchema_Niagara>(Pin->GetSchema());
+				FNiagaraVariable FunctionVar = NiagaraSchema->PinToNiagaraVariable(Pin);
+				FNiagaraTypeDefinition PinDefinition = FunctionVar.GetType();
+
+				// Now check to see if this is one of the appropriate types:
+				if (PinDefinition == FNiagaraTypeDefinition::GetBoolDef() || PinDefinition.IsEnum() || PinDefinition == FNiagaraTypeDefinition::GetParameterMapDef())
+				{
+					continue;
+				}
+				
+				// Is this pin even in the subgraph we care about right now?
+				int32 ParamIdx = Builder.Histories[0].FindVariable(CandidateVar.GetName(), CandidateVar.GetType());
+				if (ParamIdx == INDEX_NONE)
+				{
+					continue;
+				}
+
+				FString DefaultValue;
+				// Now check to see if anyone writes to this variable before reading in the graph.
+				if (Builder.Histories[0].PerVariableReadHistory[ParamIdx].Num() != 0)
+				{
+					const UEdGraphPin* FirstReadPin = Builder.Histories[0].PerVariableReadHistory[ParamIdx][0].Key;
+					const UEdGraphPin* FirstWritePin = Builder.Histories[0].PerVariableReadHistory[ParamIdx][0].Value;
+					const UEdGraphPin* DefaultValuePin = Builder.Histories[0].GetDefaultValuePin(ParamIdx);
+
+					UNiagaraNodeParameterMapSet* MapSetNode = nullptr;
+					if (FirstWritePin != nullptr)
+					{
+						MapSetNode = Cast<UNiagaraNodeParameterMapSet>(FirstWritePin->GetOwningNode());
+					}
+
+					if (FirstWritePin != nullptr && FirstWritePin->LinkedTo.Num() == 0 && nullptr != MapSetNode) // Set by a ParameterMapSet pin linked to a constant...
+					{
+						DefaultValue = FirstWritePin->DefaultValue;
+						PinsToRemove.Add((UEdGraphPin*)FirstWritePin);
+						UE_LOG(LogNiagaraEditor, Log, TEXT("Removing Set pin: %s"), *Builder.Histories[0].Variables[ParamIdx].GetName().ToString());
+					}
+					else if (FirstWritePin != nullptr && FirstWritePin->LinkedTo.Num() > 0) // The Set node is set by something other than a constant, so skip it.
+					{
+						continue;
+					}
+					else if (FirstWritePin == nullptr && DefaultValuePin != nullptr) // Get the default value of a pin...
+					{
+						DefaultValue = DefaultValuePin->DefaultValue;
+					}
+
+					FNiagaraVariable FinalVar = Builder.Histories[0].Variables[ParamIdx];
+					FinalVar = FNiagaraParameterMapHistory::ConvertVariableToRapidIterationConstantName(FinalVar, ParentEmitter ? *ParentEmitter->GetUniqueEmitterName() : nullptr);
+
+					TSharedPtr<INiagaraEditorTypeUtilities> TypeEditorUtilities = NiagaraEditorModule.GetTypeUtilities(FinalVar.GetType());
+					if (TypeEditorUtilities.IsValid() && TypeEditorUtilities->CanHandlePinDefaults())
+					{
+						bool bValueSet = TypeEditorUtilities->SetValueFromPinDefaultString(DefaultValue, FinalVar);
+						if (bValueSet)
+						{
+							UE_LOG(LogNiagaraEditor, Log, TEXT("Adding Rapid Iteration Variable: %s  Default Value: %s"), *FinalVar.GetName().ToString(), *DefaultValue);
+						}
+						else
+						{
+							UE_LOG(LogNiagaraEditor, Warning, TEXT("Adding Rapid Iteration Variable: %s  Default Value '%s' could not be set for type %s"),
+								*FinalVar.GetName().ToString(), *DefaultValue, *FinalVar.GetType().GetName());
+						}
+					}
+
+					for (UNiagaraScript* ActiveScript : ActiveScripts)
+					{
+						ActiveScript->RapidIterationParameters.AddParameter(FinalVar);
+					}
+				}					
+			}
+		}
+
+		for (UEdGraphPin* PinToRemove : PinsToRemove)
+		{
+			if (PinToRemove->IsPendingKill())
+			{
+				continue;
+			}
+			UNiagaraNodeParameterMapSet* SetNode = Cast<UNiagaraNodeParameterMapSet>(PinToRemove->GetOwningNode());
+			if (SetNode)
+			{
+				SetNode->RemovePin(PinToRemove);
+				bNeedsRecompile = true;
+			}
+		}
+
+		if (bNeedsRecompile)
+		{
+			NodeGraph->NotifyGraphNeedsRecompile();
+		}
 	}
 }
 
@@ -95,6 +308,7 @@ bool UNiagaraScriptSource::IsPreCompiled() const
 
 void UNiagaraScriptSource::PreCompile(UNiagaraEmitter* InEmitter, bool bClearErrors)
 {
+	SCOPE_CYCLE_COUNTER(STAT_NiagaraEditor_ScriptSource_PreCompile);
 	if (!bIsPrecompiled)
 	{
 		bIsPrecompiled = true;
@@ -177,9 +391,62 @@ void UNiagaraScriptSource::PostCompile()
 	NodeGraphDeepCopy = nullptr;
 }
 
+bool UNiagaraScriptSource::PostLoadFromEmitter(UNiagaraEmitter& OwningEmitter)
+{
+	bool bNeedsCompile = false;
+	const int32 NiagaraCustomVersion = GetLinkerCustomVersion(FNiagaraCustomVersion::GUID);
+	if (NiagaraCustomVersion < FNiagaraCustomVersion::ScriptsNowUseAGuidForIdentificationInsteadOfAnIndex)
+	{
+		TArray<UNiagaraNodeOutput*> OutputNodes;
+		NodeGraph->GetNodesOfClass<UNiagaraNodeOutput>(OutputNodes);
+		for (int32 i = 0; i < OwningEmitter.GetEventHandlers().Num(); i++)
+		{
+			const FNiagaraEventScriptProperties& EventScriptProperties = OwningEmitter.GetEventHandlers()[i];
+			EventScriptProperties.Script->SetUsageId(FGuid::NewGuid());
+
+			auto FindOutputNodeByUsageIndex = [=](UNiagaraNodeOutput* OutputNode) 
+			{ 
+				return OutputNode->GetUsage() == ENiagaraScriptUsage::ParticleEventScript && OutputNode->ScriptTypeIndex_DEPRECATED == EventScriptProperties.Script->UsageIndex_DEPRECATED; 
+			};
+			UNiagaraNodeOutput** MatchingOutputNodePtr = OutputNodes.FindByPredicate(FindOutputNodeByUsageIndex);
+			if (MatchingOutputNodePtr != nullptr)
+			{
+				UNiagaraNodeOutput* MatchingOutputNode = *MatchingOutputNodePtr;
+				MatchingOutputNode->SetUsageId(EventScriptProperties.Script->GetUsageId());
+			}
+		}
+		bNeedsCompile = true;
+	}
+	return bNeedsCompile;
+}
+
+bool UNiagaraScriptSource::AddModuleIfMissing(FString ModulePath, ENiagaraScriptUsage Usage, bool& bOutFoundModule)
+{
+	FStringAssetReference SystemUpdateScriptRef(ModulePath);
+	FAssetData ModuleScriptAsset;
+	ModuleScriptAsset.ObjectPath = SystemUpdateScriptRef.GetAssetPathName();
+	bOutFoundModule = false;
+
+	if (ModuleScriptAsset.IsValid())
+	{
+		bOutFoundModule = true;
+		if (UNiagaraNodeOutput* OutputNode = NodeGraph->FindOutputNode(Usage))
+		{
+			TArray<UNiagaraNodeFunctionCall*> FoundCalls;
+			if (!FNiagaraStackGraphUtilities::FindScriptModulesInStack(ModuleScriptAsset, *OutputNode, FoundCalls))
+			{
+				FNiagaraStackGraphUtilities::AddScriptModuleToStack(ModuleScriptAsset, *OutputNode);
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
 
 ENiagaraScriptCompileStatus UNiagaraScriptSource::Compile(UNiagaraScript* ScriptOwner, FString& OutGraphLevelErrorMessages)
 {
+	SCOPE_CYCLE_COUNTER(STAT_NiagaraEditor_ScriptSource_Compile);
 	bool bDoPostCompile = false;
 	if (!bIsPrecompiled)
 	{
@@ -219,6 +486,16 @@ ENiagaraScriptCompileStatus UNiagaraScriptSource::Compile(UNiagaraScript* Script
 // 		ExposedVectorConstants.Add(MakeShareable(Const));
 // 	}
 
+}
+
+void UNiagaraScriptSource::OnGraphChanged(const FEdGraphEditAction &Action)
+{
+	OnChangedDelegate.Broadcast();
+}
+
+void UNiagaraScriptSource::OnGraphDataInterfaceChanged()
+{
+	OnChangedDelegate.Broadcast();
 }
 
 FGuid UNiagaraScriptSource::GetChangeID() 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388665
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:1.1 - プロジェクトの設定
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
@@ -21,7 +21,7 @@ Version:4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 このステップでは、アンリアル エンジン 4 の [プロジェクト ブラウザ] を使用して、FPS ゲームの開始点を作成します。
 
@@ -75,4 +75,3 @@ Version:4.15
 
 1.	最後に **[Project Settings]** メニューを閉じて、プロジェクトを保存してから次のステップに進みます。
 
-%Steps%

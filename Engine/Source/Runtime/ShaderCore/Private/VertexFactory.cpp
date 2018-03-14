@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VertexFactory.cpp: Vertex factory implementation
@@ -173,13 +173,14 @@ FVertexFactoryType* FindVertexFactoryType(FName TypeName)
 	return NULL;
 }
 
-void FVertexFactory::Set(FRHICommandList& RHICmdList) const
+void FVertexFactory::Set(EShaderPlatform InShaderPlatform, FRHICommandList& RHICmdList) const
 {
+	bool bSupportsVertexFetch = SupportsManualVertexFetch(InShaderPlatform);
 	check(IsInitialized());
 	for(int32 StreamIndex = 0;StreamIndex < Streams.Num();StreamIndex++)
 	{
 		const FVertexStream& Stream = Streams[StreamIndex];
-		if (!Stream.bSetByVertexFactoryInSetMesh)
+		if (!(EnumHasAnyFlags(EVertexStreamUsage::ManualFetch, Stream.VertexStreamUsage) && bSupportsVertexFetch))
 		{
 			if (!Stream.VertexBuffer)
 			{
@@ -187,8 +188,15 @@ void FVertexFactory::Set(FRHICommandList& RHICmdList) const
 			}
 			else
 			{
-				checkf(Stream.VertexBuffer->IsInitialized(), TEXT("Vertex buffer was not initialized! Stream %u, Stride %u, Name %s"), StreamIndex, Stream.Stride, *Stream.VertexBuffer->GetFriendlyName());
-				RHICmdList.SetStreamSource(StreamIndex, Stream.VertexBuffer->VertexBufferRHI, Stream.Offset);
+				if (EnumHasAnyFlags(EVertexStreamUsage::Overridden, Stream.VertexStreamUsage) && !Stream.VertexBuffer->IsInitialized())
+				{
+					RHICmdList.SetStreamSource(StreamIndex, nullptr, 0);
+				}
+				else
+				{
+					checkf(Stream.VertexBuffer->IsInitialized(), TEXT("Vertex buffer was not initialized! Stream %u, Stride %u, Name %s"), StreamIndex, Stream.Stride, *Stream.VertexBuffer->GetFriendlyName());
+					RHICmdList.SetStreamSource(StreamIndex, Stream.VertexBuffer->VertexBufferRHI, Stream.Offset);
+				}
 			}
 		}
 	}
@@ -199,7 +207,7 @@ void FVertexFactory::OffsetInstanceStreams(FRHICommandList& RHICmdList, uint32 F
 	for(int32 StreamIndex = 0;StreamIndex < Streams.Num();StreamIndex++)
 	{
 		const FVertexStream& Stream = Streams[StreamIndex];
-		if (Stream.bUseInstanceIndex)
+		if (EnumHasAnyFlags(EVertexStreamUsage::Instancing, Stream.VertexStreamUsage))
 		{
 			RHICmdList.SetStreamSource( StreamIndex, Stream.VertexBuffer->VertexBufferRHI, Stream.Offset + Stream.Stride * FirstVertex);
 		}
@@ -223,7 +231,7 @@ void FVertexFactory::OffsetPositionInstanceStreams(FRHICommandList& RHICmdList, 
 	for(int32 StreamIndex = 0;StreamIndex < PositionStream.Num();StreamIndex++)
 	{
 		const FVertexStream& Stream = PositionStream[StreamIndex];
-		if (Stream.bUseInstanceIndex)
+		if (EnumHasAnyFlags(EVertexStreamUsage::Instancing, Stream.VertexStreamUsage))
 		{
 			RHICmdList.SetStreamSource( StreamIndex, Stream.VertexBuffer->VertexBufferRHI, Stream.Offset + Stream.Stride * FirstVertex);
 		}
@@ -283,11 +291,10 @@ FVertexElement FVertexFactory::AccessStreamComponent(const FVertexStreamComponen
 	FVertexStream VertexStream;
 	VertexStream.VertexBuffer = Component.VertexBuffer;
 	VertexStream.Stride = Component.Stride;
-	VertexStream.Offset = 0;
-	VertexStream.bUseInstanceIndex = Component.bUseInstanceIndex;
-	VertexStream.bSetByVertexFactoryInSetMesh = Component.bSetByVertexFactoryInSetMesh;
+	VertexStream.Offset = Component.StreamOffset;
+	VertexStream.VertexStreamUsage = Component.VertexStreamUsage;
 
-	return FVertexElement(Streams.AddUnique(VertexStream),Component.Offset,Component.Type,AttributeIndex,VertexStream.Stride,Component.bUseInstanceIndex);
+	return FVertexElement(Streams.AddUnique(VertexStream),Component.Offset,Component.Type,AttributeIndex,VertexStream.Stride, EnumHasAnyFlags(EVertexStreamUsage::Instancing, VertexStream.VertexStreamUsage));
 }
 
 FVertexElement FVertexFactory::AccessPositionStreamComponent(const FVertexStreamComponent& Component,uint8 AttributeIndex)
@@ -295,11 +302,10 @@ FVertexElement FVertexFactory::AccessPositionStreamComponent(const FVertexStream
 	FVertexStream VertexStream;
 	VertexStream.VertexBuffer = Component.VertexBuffer;
 	VertexStream.Stride = Component.Stride;
-	VertexStream.Offset = 0;
-	VertexStream.bUseInstanceIndex = Component.bUseInstanceIndex;
-	VertexStream.bSetByVertexFactoryInSetMesh = Component.bSetByVertexFactoryInSetMesh;
+	VertexStream.Offset = Component.StreamOffset;
+	VertexStream.VertexStreamUsage = Component.VertexStreamUsage;
 
-	return FVertexElement(PositionStream.AddUnique(VertexStream),Component.Offset,Component.Type,AttributeIndex,VertexStream.Stride,Component.bUseInstanceIndex);
+	return FVertexElement(PositionStream.AddUnique(VertexStream),Component.Offset,Component.Type,AttributeIndex,VertexStream.Stride, EnumHasAnyFlags(EVertexStreamUsage::Instancing, VertexStream.VertexStreamUsage));
 }
 
 void FVertexFactory::InitDeclaration(FVertexDeclarationElementList& Elements)

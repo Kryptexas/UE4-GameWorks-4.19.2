@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,6 +8,7 @@
 #include "IMessageTracer.h"
 #include "Bus/MessageTracer.h"
 #include "HAL/Runnable.h"
+#include "Templates/Atomic.h"
 
 class IMessageInterceptor;
 class IMessageReceiver;
@@ -257,7 +258,7 @@ private:
 	int64 DelayedMessagesSequence;
 
 	/** Holds a flag indicating that the thread is stopping. */
-	bool Stopping;
+	TAtomic<bool> Stopping;
 
 	/** Holds the message tracer. */
 	TSharedRef<FMessageTracer, ESPMode::ThreadSafe> Tracer;

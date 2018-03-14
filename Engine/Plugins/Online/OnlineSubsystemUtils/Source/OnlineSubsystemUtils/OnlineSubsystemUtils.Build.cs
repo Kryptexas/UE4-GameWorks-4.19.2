@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -6,7 +6,7 @@ public class OnlineSubsystemUtils : ModuleRules
 {
 	public OnlineSubsystemUtils(ReadOnlyTargetRules Target) : base(Target)
     {
-		Definitions.Add("ONLINESUBSYSTEMUTILS_PACKAGE=1");
+		PublicDefinitions.Add("ONLINESUBSYSTEMUTILS_PACKAGE=1");
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
         PrivateIncludePaths.Add("OnlineSubsystemUtils/Private");
@@ -21,7 +21,8 @@ public class OnlineSubsystemUtils : ModuleRules
 				"Sockets",
 				"Voice",
                 "PacketHandler",
-				"Json"
+				"Json",
+                "AudioMixer"
 			}
 		);
 

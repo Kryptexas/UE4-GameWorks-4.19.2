@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -82,11 +84,6 @@ namespace UnrealBuildTool
 		/// Path to the generated build receipt.
 		/// </summary>
 		public readonly FileReference BuildReceiptFileName;
-		
-		/// <summary>
-		/// Whether to output build products to the Engine/Binaries folder.
-		/// </summary>
-		public readonly bool bOutputToEngineBinaries;
 
 		/// <summary>
 		/// If true, then a stub IPA will be generated when compiling is done (minimal files needed for a valid IPA)
@@ -120,7 +117,6 @@ namespace UnrealBuildTool
 			this.EngineIntermediateDirectory = Target.EngineIntermediateDirectory;
 			this.ProjectDirectory = Target.ProjectDirectory;
 			this.BuildReceiptFileName = Target.ReceiptFileName;
-			this.bOutputToEngineBinaries = Target.Rules.bOutputToEngineBinaries;
 			this.bCreateStubIPA = Target.Rules.bCreateStubIPA;
 			this.AndroidArchitectures = Target.Rules.AndroidPlatform.Architectures.ToArray();
 			this.AndroidGPUArchitectures = Target.Rules.AndroidPlatform.GPUArchitectures.ToArray();
@@ -145,7 +141,6 @@ namespace UnrealBuildTool
 				EngineIntermediateDirectory = Reader.ReadDirectoryReference();
 				ProjectDirectory = Reader.ReadDirectoryReference();
 				BuildReceiptFileName = Reader.ReadFileReference();
-				bOutputToEngineBinaries = Reader.ReadBoolean();
 				bCreateStubIPA = Reader.ReadBoolean();
 				AndroidArchitectures = Reader.ReadArray(x => x.ReadString());
 				AndroidGPUArchitectures = Reader.ReadArray(x => x.ReadString());
@@ -172,7 +167,6 @@ namespace UnrealBuildTool
 				Writer.Write(EngineIntermediateDirectory);
 				Writer.Write(ProjectDirectory);
 				Writer.Write(BuildReceiptFileName);
-				Writer.Write(bOutputToEngineBinaries);
 				Writer.Write(bCreateStubIPA);
 				Writer.Write(AndroidArchitectures, (w, e) => w.Write(e));
 				Writer.Write(AndroidGPUArchitectures, (w, e) => w.Write(e));

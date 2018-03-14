@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RecomputeTangentsPerVertexPass.usf: Recompute Skin Tangents
@@ -43,20 +43,10 @@ void MainCS(
 			}
 		}
 
-		uint FloatsPerVertex = InputStreamStride / 4;
-		uint BaseVertexIndex = InputStreamStart / FloatsPerVertex;
-
 		uint VertexIndex = DispatchThreadId;
+		uint Offset = VertexIndex + SkinCacheStart;
 
-		uint TangentXCompressed = PackS8x3N(TangentX);
-		uint TangentZCompressed = PackS8x3N(TangentZ);
-		uint HandynessValue = (Orientation < 0) ? 0xff000000 : 0;
-
-		// debug (darken all affected vertices)
-//		TangentXCompressed = PackS8x3N(float3(0,0,0)); TangentZCompressed = PackS8x3N(float3(0,0,0)); HandynessValue = 0;		// do not checkin !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-		uint Offset = VertexIndex * GPUSKIN_RWBUFFER_NUM_FLOATS + SkinCacheStart;
-		SkinCacheBufferUAV[Offset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_X] = asfloat(TangentXCompressed);
-		SkinCacheBufferUAV[Offset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z] = asfloat(TangentZCompressed | HandynessValue);
+		TangentBufferUAV[2 * Offset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_X] = float4((TangentX * 0.5) + 0.5, 0.0f);
+		TangentBufferUAV[2 * Offset + GPUSKIN_RWBUFFER_OFFSET_TANGENT_Z] = float4((TangentZ * 0.5) + 0.5, Orientation);
 	}
 }

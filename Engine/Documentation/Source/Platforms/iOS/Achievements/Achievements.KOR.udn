@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3782314
 Title: iOS 게임 센터 업적 사용법
 Description:iOS 게임 센터 업적을 사용하여 플레이어 참여도를 높이는 방법입니다.
 Crumbs:
@@ -6,42 +6,9 @@ Availability:Public
 Parent:Platforms/iOS
 order:2
 type:how-to
+topic-image:topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Platforms/iOS/Achievements:title%](Platforms/Mobile/Achievements/topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/iOS/Achievements:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/iOS/Achievements:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/iOS/Achievements]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Platforms/iOS/Achievements:title%](Platforms/Mobile/Achievements/topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Platforms/iOS/Achievements:title%
-	[/PARAM]
-	[PARAM:description]
-		%Platforms/iOS/Achievements:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Platforms/iOS/Achievements]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-![](Platforms\Mobile\Achievements\iOSachievements.png)(w:320 convert:false)
+![](Platforms/Mobile/Achievements/iOSachievements.png)(w:320 convert:false)
 
 ## 환경설정
 

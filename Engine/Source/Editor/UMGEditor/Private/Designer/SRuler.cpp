@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Designer/SRuler.h"
 #include "Fonts/SlateFontInfo.h"
@@ -20,7 +20,7 @@ namespace ScrubConstants
 }
 
 /** Utility struct for converting between scrub range space and local/absolute screen space */
-struct FScrubRangeToScreen
+struct SRuler::FScrubRangeToScreen
 {
 	float RulerLengthSlateUnits;
 
@@ -55,7 +55,7 @@ struct FScrubRangeToScreen
 	}
 };
 
-struct FDrawTickArgs
+struct SRuler::FDrawTickArgs
 {
 	/** Geometry of the area */
 	FGeometry AllottedGeometry;
@@ -150,7 +150,7 @@ int32 SRuler::DrawTicks( FSlateWindowElementList& OutDrawElements, const struct 
 	// Find out where to start from
 	int32 OffsetNum = FMath::FloorToInt(RangeToScreen.ViewInput.GetLowerBoundValue() / Spacing);
 	
-	FSlateFontInfo SmallLayoutFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 7 );
+	FSlateFontInfo SmallLayoutFont = FCoreStyle::GetDefaultFontStyle("Regular", 7);
 
 	TArray<FVector2D> LinePoints;
 	LinePoints.AddUninitialized(2);

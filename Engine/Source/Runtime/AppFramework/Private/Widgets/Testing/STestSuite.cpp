@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/Testing/STestSuite.h"
 #include "HAL/PlatformProcess.h"
@@ -614,9 +614,8 @@ private:
 	int32 TestTextElement( const FOnPaintHandlerParams& InParams )
 	{
 		const FText Text = LOCTEXT("TestText", "The quick brown fox jumps over the lazy dog 0123456789");
-		const FString FontName( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf" ) );
 		uint32 FontSize = 14;
-		FSlateFontInfo FontInfo(FontName, FontSize);
+		FSlateFontInfo FontInfo = FCoreStyle::GetDefaultFontStyle("Regular", FontSize);
 		FontInfo.OutlineSettings.OutlineColor = FLinearColor::Blue;
 		FontInfo.OutlineSettings.OutlineSize = 2;
 
@@ -1253,7 +1252,7 @@ class SMultiLineEditingTest : public SCompoundWidget
 					[
 						SNew( SMultiLineEditableTextBox )
 						.Text( this, &SMultiLineEditingTest::GetMultilineEditableText )
-						.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 12 ) )
+						.Font( FCoreStyle::GetDefaultFontStyle("Regular", 12) )
 						.Justification( ETextJustify::Center )
 						.LineHeightPercentage( 2.0f )
 						.OnTextCommitted( this, &SMultiLineEditingTest::HandleMultilineEditableTextCommitted )
@@ -1296,7 +1295,7 @@ class SMultiLineEditingTest : public SCompoundWidget
 						.Text( MultilineEditableText )
 						.IsReadOnly( this, &SMultiLineEditingTest::IsReadOnly )
 						//.Justification(ETextJustify::Right)
-						.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 12 ) )
+						.Font( FCoreStyle::GetDefaultFontStyle("Regular", 12) )
 						.AutoWrapText( true )
 						.HintText( LOCTEXT( "TypehereTextHint", "Type Here" ) )
 					]
@@ -1324,7 +1323,7 @@ class SMultiLineEditingTest : public SCompoundWidget
 						+ SHorizontalBox::Slot()
 						[
 							SNew( SMultiLineEditableTextBox )
-							.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 12 ) )
+							.Font( FCoreStyle::GetDefaultFontStyle("Regular", 12) )
 							.HintText( LOCTEXT("MultiLineHintText", "This is hint line 1\nThis is hint line 2") )
 							//.WrapTextAt(300.0f)
 							//.Justification( ETextJustify::Right )
@@ -2138,14 +2137,14 @@ public:
 				[
 					SAssignNew( EditableText, SEditableText )
 					.Text( LOCTEXT( "TestingTextControl", "Testing editable text control (no box)" ) )
-					.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf" ), 12 ) )
+					.Font( FCoreStyle::GetDefaultFontStyle("Regular", 12) )
 					.HintText(LOCTEXT("TestingTextControlHint", "Hint Text"))
 				]
 				+ SVerticalBox::Slot().AutoHeight() .HAlign(HAlign_Center) .Padding(5)
 				[
 					SNew( SEditableTextBox )
 					.Text( LOCTEXT( "TestingReadOnlyTextBox", "Read only editable text box (with tool tip!)" ) )
-					.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf" ), 20 ) )
+					.Font( FCoreStyle::GetDefaultFontStyle("Regular", 20) )
 					.IsReadOnly( true )
 					.ToolTipText( LOCTEXT("TestingReadOnlyTextBox_Tooltip", "Testing tool tip for editable text!") )
 					.HintText(LOCTEXT("TestingReadOnlyTextBoxHint", "Hint Text") )
@@ -2154,14 +2153,14 @@ public:
 				[
 					SNew( SEditableTextBox )
 					.Text( LOCTEXT( "TestingLongText", "Here is an editable text box with a very long initial string.  Useful to test scrolling.  Remember, this editable text box has many features, such as cursor navigation, text selection with either the mouse or keyboard, and cut, copy and paste.  You can even undo and redo just how you'd expect to." ) )
-					.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf" ), 13 ) )
+					.Font( FCoreStyle::GetDefaultFontStyle("Bold", 13) )
 					.HintText(LOCTEXT("TestingLongTextHint", "Hint Text"))
 				]
 				+ SVerticalBox::Slot().AutoHeight() .HAlign(HAlign_Center) .Padding(5)
 				[
 					SNew( SEditableTextBox )
 					.Text( LOCTEXT( "TestingBigTextBigMargin", "Big text, big margin!" ) )
-					.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf" ), 40 ) )
+					.Font( FCoreStyle::GetDefaultFontStyle("Bold", 40) )
 					.RevertTextOnEscape( true )
 					.BackgroundColor( this, &STextEditTest::GetLoopingColor )
 					.HintText(LOCTEXT("TestingBigTextMarginHint", "Hint Text"))
@@ -2169,7 +2168,7 @@ public:
 				+ SVerticalBox::Slot().AutoHeight() .HAlign(HAlign_Center) .Padding(5)			
 				[
 					SAssignNew(InlineEditableTextBlock, SInlineEditableTextBlock)
-					.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf" ), 12 ) )
+					.Font( FCoreStyle::GetDefaultFontStyle("Regular", 12) )
 					.Text( InlineEditableText )
 					.OnTextCommitted( this, &STextEditTest::InlineEditableTextCommited )
 					.ToolTipText( LOCTEXT("TestingInlineEditableTextBlock_Tooltip", "Testing tool tip for inline editable text block!") )
@@ -2178,7 +2177,7 @@ public:
 				[
 					SAssignNew( SearchBox, SSearchBox )
 					//.Text( LOCTEXT("TestingSearchBox", "Testing search boxes tool tip") )
-					//.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf" ), 12 ) )
+					//.Font( FCoreStyle::GetDefaultFontStyle("Bold", 12) )
 					.ToolTipText( LOCTEXT("TestingSearchBox_Tooltip", "Testing search boxes") )
 				]
 				+ SVerticalBox::Slot().AutoHeight() .HAlign(HAlign_Center) .VAlign(VAlign_Center) .Padding( 5 )
@@ -2627,8 +2626,8 @@ public:
 			TEXT("Roboto"), 
 			FName(*(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"))),
 			FName(*(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"))),
-			FName(*(FPaths::EngineContentDir() / TEXT("Slate/Testing/Fonts/Roboto-Italic.ttf"))),
-			FName(*(FPaths::EngineContentDir() / TEXT("Slate/Testing/Fonts/Roboto-BoldItalic.ttf")))
+			FName(*(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Italic.ttf"))),
+			FName(*(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-BoldItalic.ttf")))
 			)));
 
 		// Set some sensible defaults (these also match the default text style of "RichText.Editor.Text"
@@ -4301,7 +4300,7 @@ public:
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("TestingBigNotificationText", "Big notififcation text!"))
-						.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 30))
+						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 30))
 					]
 					+ SHorizontalBox::Slot()
 					.Padding(FMargin(15.0f, 0.0f, 0.0f, 0.0f))

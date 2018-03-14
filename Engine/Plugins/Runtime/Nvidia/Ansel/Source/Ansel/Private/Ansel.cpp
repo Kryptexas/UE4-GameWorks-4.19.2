@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "IAnselPlugin.h"
@@ -14,6 +14,7 @@
 #include "GameFramework/WorldSettings.h"
 #include "Kismet/GameplayStatics.h"
 #include "Widgets/SWindow.h"
+#include "SlateApplicationBase.h"
 #include <AnselSDK.h>
 
 DEFINE_LOG_CATEGORY_STATIC(LogAnsel, Log, All);
@@ -99,24 +100,19 @@ FNVAnselCameraPhotographyPrivate::FNVAnselCameraPhotographyPrivate()
 		CVarDelegate = FConsoleCommandDelegate::CreateLambda([this] {
 			static float LastTranslationSpeed = -1.0f;
 			static int32 LastSettleFrames = -1;
-			static int32 LastPersistEffects = -1;
 			
 			static IConsoleVariable* CVarTranslationSpeed = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Photography.TranslationSpeed"));
 			static IConsoleVariable* CVarSettleFrames = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Photography.SettleFrames"));
-			static IConsoleVariable* CVarPersistEffects = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Photography.PersistEffects"));
 			
 			float ThisTranslationSpeed = CVarTranslationSpeed->GetFloat();
 			int32 ThisSettleFrames = CVarSettleFrames->GetInt();
-			int32 ThisPersistEffects = CVarPersistEffects->GetInt();
 
 			if (ThisTranslationSpeed != LastTranslationSpeed ||
-				ThisSettleFrames != LastSettleFrames ||
-				ThisPersistEffects != LastPersistEffects)
+				ThisSettleFrames != LastSettleFrames)
 			{
 				ReconfigureAnsel();
 				LastTranslationSpeed = ThisTranslationSpeed;
 				LastSettleFrames = ThisSettleFrames;
-				LastPersistEffects = ThisPersistEffects;
 			}
 		});
 
@@ -275,6 +271,15 @@ bool FNVAnselCameraPhotographyPrivate::UpdateCamera(FMinimalViewInfo& InOutPOV, 
 			}
 
 			PCMgr->GetWorld()->bIsCameraMoveableWhenPaused = bWasMovableCameraBeforeSession;
+
+			// Re-activate Windows Cursor as Ansel will automatically hide the Windows mouse cursor when Ansel UI is enabled.
+			//	See https://nvidiagameworks.github.io/Ansel/md/Ansel_integration_guide.html
+			// !Needs to be done after AnselStopSessionCallback
+			TSharedPtr<GenericApplication> PlatformApplication = FSlateApplicationBase::Get().GetPlatformApplication();
+			if (PlatformApplication.IsValid() && PlatformApplication->Cursor.IsValid())
+			{
+				PlatformApplication->Cursor->Show(PCOwner->ShouldShowMouseCursor());
+			}
 
 			PCMgr->OnPhotographySessionEnd(); // after unpausing
 
@@ -485,6 +490,7 @@ void FNVAnselCameraPhotographyPrivate::ReconfigureAnsel()
 	AnselConfig->stopCaptureCallback = AnselStopCaptureCallback;
 
 	AnselConfig->gameWindowHandle = GEngine->GameViewport->GetWindow()->GetNativeWindow()->GetOSWindowHandle();
+	UE_LOG(LogAnsel, Log, TEXT("gameWindowHandle= %p"), AnselConfig->gameWindowHandle);
 
 	static IConsoleVariable* CVarTranslationSpeed = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Photography.TranslationSpeed"));
 	AnselConfig->translationalSpeedInWorldUnitsPerSecond = CVarTranslationSpeed->GetFloat();
@@ -503,27 +509,33 @@ void FNVAnselCameraPhotographyPrivate::ReconfigureAnsel()
 
 	AnselConfig->isCameraOffcenteredProjectionSupported = true;
 
-	static IConsoleVariable* CVarPersistEffects = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Photography.PersistEffects"));
-	AnselConfig->isFilterOutsideSessionAllowed = !!CVarPersistEffects->GetInt();
-
 	AnselConfig->captureLatency = 0; // important
 
 	static IConsoleVariable* CVarSettleFrames = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Photography.SettleFrames"));
 	AnselConfig->captureSettleLatency = CVarSettleFrames->GetInt();
 
-	ansel::setConfiguration(*AnselConfig);
+	ansel::SetConfigurationStatus status = ansel::setConfiguration(*AnselConfig);
+	if (status != ansel::kSetConfigurationSuccess)
+	{
+		UE_LOG(LogAnsel, Log, TEXT("ReconfigureAnsel setConfiguration returned %ld"), long int(status));
+	}
 }
 
 void FNVAnselCameraPhotographyPrivate::DeconfigureAnsel()
 {
 	check(AnselConfig != nullptr);
+
 	AnselConfig->userPointer = nullptr;
 	AnselConfig->startSessionCallback = nullptr;
 	AnselConfig->stopSessionCallback = nullptr;
 	AnselConfig->startCaptureCallback = nullptr;
 	AnselConfig->stopCaptureCallback = nullptr;
 	AnselConfig->gameWindowHandle = nullptr;
-	ansel::setConfiguration(*AnselConfig);
+	ansel::SetConfigurationStatus status = ansel::setConfiguration(*AnselConfig);
+	if (status != ansel::kSetConfigurationSuccess)
+	{
+		UE_LOG(LogAnsel, Log, TEXT("DeconfigureAnsel setConfiguration returned %ld"), long int(status));
+	}
 }
 
 class FAnselModule : public IAnselModule
@@ -544,7 +556,6 @@ public:
 			AnselSDKDLLHandle = FPlatformProcess::GetDllHandle(*(AnselDLLName));
 
 		bAnselDLLLoaded = AnselSDKDLLHandle != 0;
-		
 		UE_LOG(LogAnsel, Log, TEXT("Tried to load %s : success=%d"), *AnselDLLName, int(bAnselDLLLoaded));
 	}
 

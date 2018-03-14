@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:5. 랜드스케이프 머티리얼 칠하기
 Crumbs:%ROOT%, GettingStarted, Engine/Landscape/QuickStart
@@ -21,7 +21,7 @@ version: 4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 
 이제 랜드스케이프 머티리얼이 생성되었으니, 그 머티리얼을 랜드스케이프에 적용하여 랜드스케이프 페인트 툴을 사용하여 랜드스케이프 칠하기 시작할 차례입니다.
@@ -121,4 +121,4 @@ version: 4.9
 [/REGION]
 
 
-%Steps%
+

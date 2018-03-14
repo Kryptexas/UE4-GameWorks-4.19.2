@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SSequencerDebugVisualizer.h"
 #include "CommonMovieSceneTools.h"
@@ -14,9 +14,6 @@ void SSequencerDebugVisualizer::Construct(const FArguments& InArgs, TSharedRef<F
 {
 	WeakSequencer = InSequencer;
 
-	InSequencer->GetSequenceInstance().OnUpdated().AddSP(this, &SSequencerDebugVisualizer::Refresh);
-	InSequencer->OnActivateSequence().AddSP(this, &SSequencerDebugVisualizer::OnSequenceActivated);
-
 	SetClipping(EWidgetClipping::ClipToBounds);
 
 	ViewRange = InArgs._ViewRange;
@@ -24,15 +21,10 @@ void SSequencerDebugVisualizer::Construct(const FArguments& InArgs, TSharedRef<F
 	Refresh();
 }
 
-void SSequencerDebugVisualizer::OnSequenceActivated(FMovieSceneSequenceIDRef)
-{
-	Refresh();
-}
-
-const FMovieSceneEvaluationTemplateInstance* SSequencerDebugVisualizer::GetTemplate() const
+const FMovieSceneEvaluationTemplate* SSequencerDebugVisualizer::GetTemplate() const
 {
 	TSharedPtr<FSequencer> Sequencer = WeakSequencer.Pin();
-	return Sequencer.IsValid() ? Sequencer->GetSequenceInstance().GetInstance(FocusedSequenceID) : nullptr;
+	return Sequencer.IsValid() ? Sequencer->GetEvaluationTemplate().FindTemplate(Sequencer->GetFocusedTemplateID()) : nullptr;
 }
 
 void SSequencerDebugVisualizer::Refresh()
@@ -45,25 +37,27 @@ void SSequencerDebugVisualizer::Refresh()
 		return;
 	}
 
-	FocusedSequenceID = Sequencer->GetFocusedTemplateID();
-
-	const FMovieSceneEvaluationTemplateInstance* ActiveInstance = GetTemplate();
-	if (!ActiveInstance)
+	const FMovieSceneEvaluationTemplate* ActiveTemplate = GetTemplate();
+	if (!ActiveTemplate)
 	{
 		return;
 	}
 
-	const FMovieSceneEvaluationField& EvaluationField = ActiveInstance->Template->EvaluationField;
+	const FMovieSceneEvaluationField& EvaluationField = ActiveTemplate->EvaluationField;
+
+	CachedSignature = EvaluationField.GetSignature();
 
 	TArray<int32> SegmentComplexity;
-	SegmentComplexity.Reserve(EvaluationField.Groups.Num());
+	SegmentComplexity.Reserve(EvaluationField.Size());
 
 	// Heatmap complexity
 	float AverageComplexity = 0;
 	int32 MaxComplexity = 0;
 
-	for (const FMovieSceneEvaluationGroup& Group : EvaluationField.Groups)
+	for (int32 Index = 0; Index < EvaluationField.Size(); ++Index)
 	{
+		const FMovieSceneEvaluationGroup& Group = EvaluationField.GetGroup(Index);
+
 		int32 Complexity = 0;
 		for (const FMovieSceneEvaluationGroupLUTIndex& LUTIndex : Group.LUTIndices)
 		{
@@ -83,9 +77,9 @@ void SSequencerDebugVisualizer::Refresh()
 	static const FSlateBrush* SectionBackgroundBrush = FEditorStyle::GetBrush("Sequencer.Section.Background");
 	static const FSlateBrush* SectionBackgroundTintBrush = FEditorStyle::GetBrush("Sequencer.Section.BackgroundTint");
 
-	for (int32 Index = 0; Index < EvaluationField.Ranges.Num(); ++Index)
+	for (int32 Index = 0; Index < EvaluationField.Size(); ++Index)
 	{
-		TRange<float> Range = EvaluationField.Ranges[Index];
+		TRange<float> Range = EvaluationField.GetRange(Index);
 
 		const float Complexity = SegmentComplexity[Index];
 		
@@ -126,36 +120,28 @@ void SSequencerDebugVisualizer::Refresh()
 FVector2D SSequencerDebugVisualizer::ComputeDesiredSize(float) const
 {
 	// Note: X Size is not used
-	FVector2D Size(100, 0.f);
-	if (Children.Num())
-	{
-		for (int32 Index = 0; Index < Children.Num(); ++Index)
-		{
-			Size.Y = FMath::Max(Size.Y, Children[Index]->GetDesiredSize().Y);
-		}
-	}
-	return Size;
+	return FVector2D(100, 20.f);
 }
 
 FGeometry SSequencerDebugVisualizer::GetSegmentGeometry(const FGeometry& AllottedGeometry, const SSequencerDebugSlot& Slot, const FTimeToPixel& TimeToPixelConverter) const
 {
-	const FMovieSceneEvaluationTemplateInstance* ActiveInstance = GetTemplate();
-	if (!ActiveInstance)
+	const FMovieSceneEvaluationTemplate* ActiveTemplate = GetTemplate();
+	if (!ActiveTemplate || ActiveTemplate->EvaluationField.GetSignature() != CachedSignature)
 	{
 		return AllottedGeometry.MakeChild(FVector2D(0,0), FVector2D(0,0));
 	}
 
-	TRange<float> SegmentRange = ActiveInstance->Template->EvaluationField.Ranges[Slot.GetSegmentIndex()];
+	TRange<float> SegmentRange = ActiveTemplate->EvaluationField.GetRange(Slot.GetSegmentIndex());
 
 	float PixelStartX = SegmentRange.GetLowerBound().IsOpen() ? 0.f : TimeToPixelConverter.TimeToPixel(SegmentRange.GetLowerBoundValue());
 	float PixelEndX = SegmentRange.GetUpperBound().IsOpen() ? AllottedGeometry.GetDrawSize().X : TimeToPixelConverter.TimeToPixel(SegmentRange.GetUpperBoundValue());
 
-	const float MinSectionWidth = 1.f;
+	const float MinSectionWidth = 0.f;
 	float SectionLength = FMath::Max(MinSectionWidth, PixelEndX - PixelStartX);
 
 	return AllottedGeometry.MakeChild(
 		FVector2D(PixelStartX, 0),
-		FVector2D(SectionLength, Slot.GetDesiredSize().Y)
+		FVector2D(SectionLength, FMath::Max(Slot.GetDesiredSize().Y, 20.f))
 		);
 }
 
@@ -166,13 +152,13 @@ EVisibility SSequencerDebugVisualizer::GetSegmentVisibility(TRange<float> Range)
 
 TSharedRef<SWidget> SSequencerDebugVisualizer::GetTooltipForSegment(int32 SegmentIndex) const
 {
-	const FMovieSceneEvaluationTemplateInstance* ActiveInstance = GetTemplate();
-	if (!ActiveInstance)
+	const FMovieSceneEvaluationTemplate* ActiveTemplate = GetTemplate();
+	if (!ActiveTemplate)
 	{
 		return SNullWidget::NullWidget;
 	}
 
-	const FMovieSceneEvaluationGroup& Group = ActiveInstance->Template->EvaluationField.Groups[SegmentIndex];
+	const FMovieSceneEvaluationGroup& Group = ActiveTemplate->EvaluationField.GetGroup(SegmentIndex);
 
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 
@@ -206,6 +192,21 @@ TSharedRef<SWidget> SSequencerDebugVisualizer::GetTooltipForSegment(int32 Segmen
 	return VerticalBox;
 }
 
+void SSequencerDebugVisualizer::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	SPanel::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	const FMovieSceneEvaluationTemplate* Template = GetTemplate();
+	if (!Template)
+	{
+		Children.Empty();
+	}
+	else if (Template->EvaluationField.GetSignature() != CachedSignature)
+	{
+		Refresh();
+	}
+}
+
 void SSequencerDebugVisualizer::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	FTimeToPixel TimeToPixelConverter = FTimeToPixel(AllottedGeometry, ViewRange.Get());
@@ -218,11 +219,13 @@ void SSequencerDebugVisualizer::OnArrangeChildren( const FGeometry& AllottedGeom
 		if( ArrangedChildren.Accepts( WidgetVisibility ) )
 		{
 			FGeometry SegmentGeometry = GetSegmentGeometry(AllottedGeometry, *Child, TimeToPixelConverter);
-			
-			ArrangedChildren.AddWidget( 
-				WidgetVisibility, 
-				AllottedGeometry.MakeChild(Child, SegmentGeometry.Position, SegmentGeometry.GetDrawSize())
-				);
+			if (SegmentGeometry.GetLocalSize().X >= 1)
+			{
+				ArrangedChildren.AddWidget( 
+					WidgetVisibility, 
+					AllottedGeometry.MakeChild(Child, SegmentGeometry.Position, SegmentGeometry.GetDrawSize())
+					);
+			}
 		}
 	}
 }

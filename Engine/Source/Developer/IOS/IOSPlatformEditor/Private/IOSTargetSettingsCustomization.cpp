@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "IOSTargetSettingsCustomization.h"
 #include "Containers/Ticker.h"
@@ -63,10 +63,15 @@ FIOSTargetSettingsCustomization::FIOSTargetSettingsCustomization()
 	, EngineGraphicsPath(FString::Printf(TEXT("%sBuild/IOS/Resources/Graphics"), *FPaths::EngineDir()))
 	, GameGraphicsPath(FString::Printf(TEXT("%sBuild/IOS/Resources/Graphics"), *FPaths::ProjectDir()))
 {
+	new (IconNames) FPlatformIconInfo(TEXT("Icon20.png"), LOCTEXT("NotificationIcon_iPhone", "iPhone Notification Icon"), FText::GetEmpty(), 20, 20, FPlatformIconInfo::Optional);
+	new (IconNames) FPlatformIconInfo(TEXT("Icon20@2x.png"), LOCTEXT("NotificationIcon_iPhoneRetina", "iPhone Retina Notification Icon"), FText::GetEmpty(), 40, 40, FPlatformIconInfo::Optional);
+	new (IconNames) FPlatformIconInfo(TEXT("Icon20@3x.png"), LOCTEXT("NotificationIcon_iPhoneRetina_HD", "iPhone Retina HD Notification Icon"), FText::GetEmpty(), 60, 60, FPlatformIconInfo::Optional);
 	new (IconNames) FPlatformIconInfo(TEXT("Icon29.png"), LOCTEXT("SettingsIcon_iPhone", "iPhone Settings Icon"), FText::GetEmpty(), 29, 29, FPlatformIconInfo::Optional);// also iOS6 spotlight search
 	new (IconNames) FPlatformIconInfo(TEXT("Icon29@2x.png"), LOCTEXT("SettingsIcon_iPhoneRetina", "iPhone Retina Settings Icon"), FText::GetEmpty(), 58, 58, FPlatformIconInfo::Optional); // also iOS6 spotlight search
+	new (IconNames) FPlatformIconInfo(TEXT("Icon29@3x.png"), LOCTEXT("SettingsIcon_iPhoneRetina_HD", "iPhone Retina HD Settings Icon"), FText::GetEmpty(), 87, 87, FPlatformIconInfo::Optional); // also iOS6 spotlight search
 	new (IconNames) FPlatformIconInfo(TEXT("Icon40.png"), LOCTEXT("SpotlightIcon_iOS7", "iOS7 Spotlight Icon"), FText::GetEmpty(), 40, 40, FPlatformIconInfo::Optional);
 	new (IconNames) FPlatformIconInfo(TEXT("Icon40@2x.png"), LOCTEXT("SpotlightIcon_Retina_iOS7", "Retina iOS7 Spotlight Icon"), FText::GetEmpty(), 80, 80, FPlatformIconInfo::Optional);
+	new (IconNames) FPlatformIconInfo(TEXT("Icon40@3x.png"), LOCTEXT("SpotlightIcon_Retina_HD_iOS7", "Retina HD iOS7 Spotlight Icon"), FText::GetEmpty(), 120, 120, FPlatformIconInfo::Optional);
 	new (IconNames) FPlatformIconInfo(TEXT("Icon50.png"), LOCTEXT("SpotlightIcon_iPad_iOS6", "iPad iOS6 Spotlight Icon"), FText::GetEmpty(), 50, 50, FPlatformIconInfo::Optional);
 	new (IconNames) FPlatformIconInfo(TEXT("Icon50@2x.png"), LOCTEXT("SpotlightIcon_iPadRetina_iOS6", "iPad Retina iOS6 Spotlight Icon"), FText::GetEmpty(), 100, 100, FPlatformIconInfo::Optional);
 	new (IconNames) FPlatformIconInfo(TEXT("Icon57.png"), LOCTEXT("AppIcon_iPhone_iOS6", "iPhone iOS6 App Icon"), FText::GetEmpty(), 57, 57, FPlatformIconInfo::Required);
@@ -293,9 +298,52 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 	BuildCategory.AddProperty(SignCertificateProperty)
 		.Visibility(EVisibility::Hidden);
 	AutomaticSigningProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bAutomaticSigning));
+
 	BuildCategory.AddProperty(AutomaticSigningProperty)
+#if PLATFORM_MAC
+		.Visibility(EVisibility::Visible);
+#else
 		.Visibility(EVisibility::Hidden);
-//	ProvisionCategory.AddProperty(AutomaticSigningProperty);
+#endif // PLATFORM_MAC
+	// Remote Server Name Property
+	TSharedRef<IPropertyHandle> IOSTeamIDHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, IOSTeamID));
+	BuildCategory.AddProperty(IOSTeamIDHandle)
+		.Visibility(EVisibility::Hidden);
+		BuildCategory.AddCustomRow(LOCTEXT("IOSTeamID", "IOSTeamID"), false)
+#if !PLATFORM_MAC
+			.Visibility(EVisibility::Hidden)
+#endif // PLATFORM_MAC
+			.NameContent()
+			[
+				SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.Padding(FMargin(0, 1, 0, 1))
+					.FillWidth(1.0f)
+					[
+						SNew(STextBlock)
+							.Text(LOCTEXT("IOSTeamIDLabel", "IOS Team ID"))
+							.Font(DetailLayout.GetDetailFont())
+					]
+			]
+			.ValueContent()
+			.MinDesiredWidth(150.0f)
+			[
+				SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					.HAlign(HAlign_Fill)
+					[
+						SAssignNew(IOSTeamIDTextBox, SEditableTextBox)
+						.IsEnabled(this, &FIOSTargetSettingsCustomization::IsAutomaticSigningEnabled)
+						.Text(this, &FIOSTargetSettingsCustomization::GetIOSTeamIDText, IOSTeamIDHandle)
+						.Font(DetailLayout.GetDetailFont())
+						.SelectAllTextOnCommit(true)
+						.SelectAllTextWhenFocused(true)
+						.ClearKeyboardFocusOnCommit(false)
+						.ToolTipText(IOSTeamIDHandle->GetToolTipText())
+						.OnTextCommitted(this, &FIOSTargetSettingsCustomization::OnIOSTeamIDTextChanged, IOSTeamIDHandle)
+					]
+			];
 
 /*	ProvisionCategory.AddCustomRow(TEXT("Certificate Request"), false)
 		.NameContent()
@@ -1014,7 +1062,9 @@ void FIOSTargetSettingsCustomization::BuildIconSection(IDetailLayoutBuilder& Det
 	// Add the icons
 	for (const FPlatformIconInfo& Info : IconNames)
 	{
-		const FVector2D IconImageMaxSize(Info.IconRequiredSize);
+		FVector2D IconImageMaxSize(Info.IconRequiredSize);
+		IconImageMaxSize.X = FMath::Min(IconImageMaxSize.X, 150.0f);
+		IconImageMaxSize.Y = FMath::Min(IconImageMaxSize.Y, 150.0f);
 		IDetailCategoryBuilder& IconCategory = (Info.RequiredState == FPlatformIconInfo::Required) ? RequiredIconCategory : OptionalIconCategory;
 		BuildImageRow(DetailLayout, IconCategory, Info, IconImageMaxSize);
 	}
@@ -1101,6 +1151,7 @@ void FIOSTargetSettingsCustomization::BuildImageRow(IDetailLayoutBuilder& Detail
 				.FileDescription(Info.IconDescription)
 				.RequiredSize(Info.IconRequiredSize)
 				.MaxDisplaySize(MaxDisplaySize)
+				.DeleteTargetWhenDefaultChosen(true)
 			]
 		];
 }
@@ -1332,7 +1383,7 @@ FReply FIOSTargetSettingsCustomization::OnGenerateSSHKey()
 
 	FString CygwinPath = TEXT("/cygdrive/") + FString(Path).Replace(TEXT(":"), TEXT("")).Replace(TEXT("\\"), TEXT("/"));
 	FString EnginePath = FPaths::EngineDir();
-	FString CommandLine = FString::Printf(TEXT("\"%s/ssh.exe\" %s \"%s\\rsync.exe\" %s %s \"%s\" \"%s\" \"%s\""),
+	FString CommandLine = FString::Printf(TEXT("\"%s/ssh.exe\" %s \"%s\\rsync.exe\" \"%s\" %s \"%s\" \"%s\" \"%s\""),
 		*DeltaCopyPath,
 		*RemoteServerPort,
 		*DeltaCopyPath,
@@ -1547,6 +1598,13 @@ bool FIOSTargetSettingsCustomization::IsImportEnabled() const
 	return !RunningIPPProcess.Get();
 }
 
+bool FIOSTargetSettingsCustomization::IsAutomaticSigningEnabled() const
+{
+	bool bAutomaticSigning = false;
+	AutomaticSigningProperty->GetValue(bAutomaticSigning);
+	return bAutomaticSigning;
+}
+
 void FIOSTargetSettingsCustomization::OnBundleIdentifierChanged(const FText& NewText, ETextCommit::Type CommitType, TSharedRef<IPropertyHandle> InPropertyHandle)
 {
 	if(!IsBundleIdentifierValid(NewText.ToString()))
@@ -1564,6 +1622,19 @@ void FIOSTargetSettingsCustomization::OnBundleIdentifierChanged(const FText& New
 			InPropertyHandle->SetValueFromFormattedString( NewText.ToString() );
 			FindRequiredFiles();
 		}
+	}
+}
+
+void FIOSTargetSettingsCustomization::OnIOSTeamIDTextChanged(const FText& NewText, ETextCommit::Type CommitType, TSharedRef<IPropertyHandle> InPropertyHandle)
+{
+	BundleIdTextBox->SetError(FText::GetEmpty());
+
+	FText OutText;
+	InPropertyHandle->GetValueAsFormattedText(OutText);
+	if (OutText.ToString() != NewText.ToString())
+	{
+		InPropertyHandle->SetValueFromFormattedString(NewText.ToString());
+		FindRequiredFiles();
 	}
 }
 
@@ -1615,6 +1686,13 @@ void FIOSTargetSettingsCustomization::OnRemoteServerChanged(const FText& NewText
 }
 
 FText FIOSTargetSettingsCustomization::GetBundleText(TSharedRef<IPropertyHandle> InPropertyHandle) const
+{
+	FText OutText;
+	InPropertyHandle->GetValueAsFormattedText(OutText);
+	return OutText;
+}
+
+FText FIOSTargetSettingsCustomization::GetIOSTeamIDText(TSharedRef<IPropertyHandle> InPropertyHandle) const
 {
 	FText OutText;
 	InPropertyHandle->GetValueAsFormattedText(OutText);

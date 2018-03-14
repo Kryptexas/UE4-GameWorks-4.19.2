@@ -1,27 +1,15 @@
-﻿INTSourceChangelist:3331286
+﻿INTSourceChangelist:3717042
 Availability:Public
 Title: 7. AI 콘트롤러 구성
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description: EQS 퀵스타트에 대한 AI 콘트롤러를 구성합니다.
 version: 4.9
+parent:Engine/AI/EnvironmentQuerySystem/QuickStart
+type:quick start
+type:multi-step
+order:7
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Engine/AI/EnvironmentQuerySystem/QuickStart/6 "%Engine/AI/EnvironmentQuerySystem/QuickStart/6:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[퀵스타트 홈](Engine/AI/EnvironmentQuerySystem/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Engine/AI/EnvironmentQuerySystem/QuickStart/8 "%Engine/AI/EnvironmentQuerySystem/QuickStart/8:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 이 AI Controller 의 구성은 **Event BeginPlay** 실행시마다 `RunnerBT` **비헤이비어 트리** 를 실행하는 **Run Behavior Tree** 노드 하나입니다. 
 
@@ -33,4 +21,4 @@ version: 4.9
 
 	![](setup.png)
 
-%Steps%
+[NAV]

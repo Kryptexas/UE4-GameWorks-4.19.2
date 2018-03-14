@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -44,6 +44,10 @@ class UPrimitiveStats : public UObject
 	/** Section count of mesh */
 	UPROPERTY()
 	int32 Sections;
+
+	/** Hardware instances */
+	UPROPERTY(VisibleAnywhere, AssetRegistrySearchable, Category = "Stats", meta = (ColumnWidth = "102", ShowTotal = "true"))
+	int32 HWInstances;
 
 	/** Instanced section count of mesh */
 	UPROPERTY(VisibleAnywhere, AssetRegistrySearchable, Category="Stats", meta=( ColumnWidth = "102", ShowTotal = "true" ) )

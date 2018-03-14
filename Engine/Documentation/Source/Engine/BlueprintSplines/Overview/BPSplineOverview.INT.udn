@@ -14,45 +14,7 @@ related:Engine/BlueprintSplines/Reference/SplineEditorTool
 version:4.13
 type:overview
 tags:Splines
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/BlueprintSplines/Overview:title%](Engine/BlueprintSplines/Splines_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/BlueprintSplines/Overview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/BlueprintSplines/Overview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/BlueprintSplines/Overview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/BlueprintSplines/Overview:title%](Engine/BlueprintSplines/Splines_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/BlueprintSplines/Overview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/BlueprintSplines/Overview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/BlueprintSplines/Overview]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/BlueprintSplines/Splines_topic.png
 
 
 At their core, a **Blueprint Spline Component** is just a path for you to define and use positional data. You can use it to move **Actors** (or other **Components**) around the world, or place a series of **Actors** (or other **Components**) along the spline. They are fully editable in the Blueprint Viewport and in the Level Editor, with the ability to add/remove/duplicate Spline Points, change their tangent types, and even animate them on tick. Further, they are also editable using the **Blueprint Construction Script**, taking in edits made in the Blueprint Viewport or Level Editor, and mofifying them further.

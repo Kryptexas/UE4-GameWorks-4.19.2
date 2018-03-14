@@ -19,7 +19,7 @@ Description:绑定输入到C++代码
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 1. 在 **Visual Studio** 中，打开`MyPawn.h`并添加如下代码到MyPawn的类定义的底部位置： 
 
@@ -116,7 +116,7 @@ Description:绑定输入到C++代码
     [/PARAM]
     [PARAM:content]
 		**MyPawn.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -156,7 +156,7 @@ Description:绑定输入到C++代码
 			};
 
 		**MyPawn.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_PlayerInput.h"
 			#include "MyPawn.h"
@@ -262,4 +262,4 @@ Description:绑定输入到C++代码
 	[/PARAM]
 [/OBJECT]
 
-%Steps%
+

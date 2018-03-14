@@ -148,7 +148,6 @@
     <Compile Include="ProjectFiles\VisualStudio\VCSolutionOptions.cs" />
     <Compile Include="ProjectFiles\Xcode\XcodeProject.cs" />
     <Compile Include="ProjectFiles\Xcode\XcodeProjectFileGenerator.cs" />
-    <Compile Include="Linux\LinuxCommon.cs" />
     <Compile Include="System\BuildVersion.cs" />
     <Compile Include="System\CppCompileEnvironment.cs" />
     <Compile Include="System\ExceptionUtils.cs" />
@@ -220,7 +219,7 @@
   <ItemGroup>
     <Compile Include="ToolChain\RemoteExports.cs" />
     <Compile Include="UnrealBuildTool.cs" />
-    <Compile Include="Utilities\EncryptionAndSigning.cs" />
+    <Compile Include="Utilities\Crypto.cs" />
     <Compile Include="Utilities\HashSetExtensions.cs" />
     <Compile Include="Platform\Windows\PVSToolChain.cs" />
     <Compile Include="Platform\Windows\WindowsDeploy.cs" />
@@ -250,6 +249,7 @@
   <Choose>
     <When Condition="Exists('Platform\Linux\UEBuildLinux.cs')">
       <ItemGroup>
+        <Compile Include="Platform\Linux\LinuxCommon.cs" />
         <Compile Include="Platform\Linux\LinuxExports.cs" />
         <Compile Include="Platform\Linux\LinuxProjectGenerator.cs" />
         <Compile Include="Platform\Linux\LinuxToolChain.cs" />

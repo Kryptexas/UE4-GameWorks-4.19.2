@@ -1,10 +1,14 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	WideCustomResolveShaders.usf: Custom wider filter resolve shaders
   =============================================================================*/
 
 #include "Common.ush"
+
+#if PS4_PROFILE
+# include "PS4/WideCustomResolveShaders.ush"
+#else
 
 float2 ResolveOrigin;
 
@@ -29,6 +33,10 @@ float CalcSampleWeight(float w, float3 Sample)
 	return rcp(1.0/w + lum);
 }
 
+#if USE_FMASK
+//FMASK not implemented for this platform.
+#endif
+
 #if defined(MSAA_SAMPLE_COUNT)
 # if MSAA_SAMPLE_COUNT == 0
 
@@ -42,13 +50,21 @@ float4 WideCustomResolvePS(float4 Pos : SV_POSITION) : SV_Target0
 
 # else
 
+void LoadTexSampleAndWeight(Texture2DMS<float4, MSAA_SAMPLE_COUNT> TargetTex, uint2 position, int sampleIndex, float weight, inout float3 sampleSum, inout float weightSum)
+{
+	float3 texSample = TargetTex.Load((int2)position, sampleIndex).xyz;
+	float sampleW = CalcSampleWeight(weight, texSample);
+	sampleSum += texSample*sampleW;
+	weightSum += sampleW;
+}
+
 Texture2DMS<float4,MSAA_SAMPLE_COUNT> Tex; // Input MSAA color
 
 # if WIDE_RESOLVE_WIDTH == 0
 // Box filter
 float3 resolve_bspline(uint2 pos)
 {
-    return (Tex.Load(pos, 0) + Tex.Load(pos, 1) + Tex.Load(pos, 2) + Tex.Load(pos, 3)) * .25;
+	return (Tex.Load(pos, 0) + Tex.Load(pos, 1) + Tex.Load(pos, 2) + Tex.Load(pos, 3)) * .25;
 }
 # elif WIDE_RESOLVE_WIDTH == 1
 #  include "WideCustomResolve_Wide.ush"
@@ -67,4 +83,5 @@ float4 WideCustomResolvePS(float4 Pos : SV_POSITION) : SV_Target0
 }
 
 # endif
+#endif
 #endif

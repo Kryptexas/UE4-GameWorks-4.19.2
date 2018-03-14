@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,7 +13,7 @@
 	EnumMacro(PFN_vkEnumerateInstanceExtensionProperties, vkEnumerateInstanceExtensionProperties) \
 	EnumMacro(PFN_vkEnumerateInstanceLayerProperties, vkEnumerateInstanceLayerProperties)
 
-#if PLATFORM_ANDROID
+#if defined(PLATFORM_ANDROID) && PLATFORM_ANDROID
 
 // List all instance Vulkan entry points used by Unreal that need to be loaded manually
 #define ENUM_VK_ENTRYPOINTS_INSTANCE(EnumMacro) \
@@ -161,7 +161,7 @@
 	EnumMacro(PFN_vkQueuePresentKHR, vkQueuePresentKHR) \
 	EnumMacro(PFN_vkCreateAndroidSurfaceKHR, vkCreateAndroidSurfaceKHR)
 
-#elif PLATFORM_LINUX
+#elif defined(PLATFORM_LINUX) && PLATFORM_LINUX
 
 // List all instance Vulkan entry points used by Unreal that need to be loaded manually
 #define ENUM_VK_ENTRYPOINTS_INSTANCE(EnumMacro) \

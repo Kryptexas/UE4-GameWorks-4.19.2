@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -209,50 +209,14 @@ public:
 	FSearchParams SearchParams;
 
 public:
-	FOnlineSearchSettings()
-	{
-	}
+	FOnlineSearchSettings() = default;
 
-	virtual ~FOnlineSearchSettings()
-	{
-	}
+	FOnlineSearchSettings(FOnlineSearchSettings&&) = default;
+	FOnlineSearchSettings(const FOnlineSearchSettings&) = default;
+	FOnlineSearchSettings& operator=(FOnlineSearchSettings&&) = default;
+	FOnlineSearchSettings& operator=(const FOnlineSearchSettings&) = default;
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-	FOnlineSearchSettings(const FOnlineSearchSettings& Other) = default;
-	FOnlineSearchSettings(FOnlineSearchSettings&& Other) = default;
-	FOnlineSearchSettings& operator=(const FOnlineSearchSettings& Other) = default;
-	FOnlineSearchSettings& operator=(FOnlineSearchSettings&& Other) = default;
-#else
-	FOnlineSearchSettings(const FOnlineSearchSettings& Other)
-		: SearchParams(Other.SearchParams)
-	{
-	}
-
-	FOnlineSearchSettings(FOnlineSearchSettings&& Other)
-		: SearchParams(MoveTemp(Other.SearchParams))
-	{
-	}
-
-	FOnlineSearchSettings& operator=(const FOnlineSearchSettings& Other)
-	{
-		if (this != &Other)
-		{
-			SearchParams = Other.SearchParams;
-		}
-
-		return *this;
-	}
-
-	FOnlineSearchSettings& operator=(FOnlineSearchSettings&& Other)
-	{
-		if (this != &Other)
-		{
-			SearchParams = MoveTemp(Other.SearchParams);
-		}
-
-		return *this;
-	}
-#endif
+	virtual ~FOnlineSearchSettings() = default;
 
 	/**
 	 *	Sets a key value pair combination that defines a search parameter
@@ -358,98 +322,10 @@ public:
 	{
 	}
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	FOnlineSessionSettings(const FOnlineSessionSettings& Other) = default;
 	FOnlineSessionSettings(FOnlineSessionSettings&& Other) = default;
 	FOnlineSessionSettings& operator=(const FOnlineSessionSettings& Other) = default;
 	FOnlineSessionSettings& operator=(FOnlineSessionSettings&& Other) = default;
-#else
-	/** Copy Constructor */
-	FOnlineSessionSettings(const FOnlineSessionSettings& Other)
-		: NumPublicConnections(Other.NumPublicConnections)
-		, NumPrivateConnections(Other.NumPrivateConnections)
-		, bShouldAdvertise(Other.bShouldAdvertise)
-		, bAllowJoinInProgress(Other.bAllowJoinInProgress)
-		, bIsLANMatch(Other.bIsLANMatch)
-		, bIsDedicated(Other.bIsDedicated)
-		, bUsesStats(Other.bUsesStats)
-		, bAllowInvites(Other.bAllowInvites)
-		, bUsesPresence(Other.bUsesPresence)
-		, bAllowJoinViaPresence(Other.bAllowJoinViaPresence)
-		, bAllowJoinViaPresenceFriendsOnly(Other.bAllowJoinViaPresenceFriendsOnly)
-		, bAntiCheatProtected(Other.bAntiCheatProtected)
-		, BuildUniqueId(Other.BuildUniqueId)
-		, Settings(Other.Settings)
-	{
-	}
-
-	/** Move Constructor */
-	FOnlineSessionSettings(FOnlineSessionSettings&& Other)
-		: NumPublicConnections(Other.NumPublicConnections)
-		, NumPrivateConnections(Other.NumPrivateConnections)
-		, bShouldAdvertise(Other.bShouldAdvertise)
-		, bAllowJoinInProgress(Other.bAllowJoinInProgress)
-		, bIsLANMatch(Other.bIsLANMatch)
-		, bIsDedicated(Other.bIsDedicated)
-		, bUsesStats(Other.bUsesStats)
-		, bAllowInvites(Other.bAllowInvites)
-		, bUsesPresence(Other.bUsesPresence)
-		, bAllowJoinViaPresence(Other.bAllowJoinViaPresence)
-		, bAllowJoinViaPresenceFriendsOnly(Other.bAllowJoinViaPresenceFriendsOnly)
-		, bAntiCheatProtected(Other.bAntiCheatProtected)
-		, BuildUniqueId(Other.BuildUniqueId)
-		, Settings(MoveTemp(Other.Settings))
-	{
-	}
-
-	/** Copy Assignment Operator */
-	FOnlineSessionSettings& operator=(const FOnlineSessionSettings& Other)
-	{
-		if (this != &Other)
-		{
-			NumPublicConnections = Other.NumPublicConnections,
-			NumPrivateConnections = Other.NumPrivateConnections,
-			bShouldAdvertise = Other.bShouldAdvertise,
-			bAllowJoinInProgress = Other.bAllowJoinInProgress,
-			bIsLANMatch = Other.bIsLANMatch,
-			bIsDedicated = Other.bIsDedicated,
-			bUsesStats = Other.bUsesStats,
-			bAllowInvites = Other.bAllowInvites,
-			bUsesPresence = Other.bUsesPresence,
-			bAllowJoinViaPresence = Other.bAllowJoinViaPresence,
-			bAllowJoinViaPresenceFriendsOnly = Other.bAllowJoinViaPresenceFriendsOnly,
-			bAntiCheatProtected = Other.bAntiCheatProtected,
-			BuildUniqueId = Other.BuildUniqueId;
-			Settings = Other.Settings;
-		}
-
-		return *this;
-	}
-
-	/** Move Assignment Operator */
-	FOnlineSessionSettings& operator=(FOnlineSessionSettings&& Other)
-	{
-		if (this != &Other)
-		{
-			NumPublicConnections = Other.NumPublicConnections,
-			NumPrivateConnections = Other.NumPrivateConnections,
-			bShouldAdvertise = Other.bShouldAdvertise,
-			bAllowJoinInProgress = Other.bAllowJoinInProgress,
-			bIsLANMatch = Other.bIsLANMatch,
-			bIsDedicated = Other.bIsDedicated,
-			bUsesStats = Other.bUsesStats,
-			bAllowInvites = Other.bAllowInvites,
-			bUsesPresence = Other.bUsesPresence,
-			bAllowJoinViaPresence = Other.bAllowJoinViaPresence,
-			bAllowJoinViaPresenceFriendsOnly = Other.bAllowJoinViaPresenceFriendsOnly,
-			bAntiCheatProtected = Other.bAntiCheatProtected,
-			BuildUniqueId = Other.BuildUniqueId;
-			Settings = MoveTemp(Other.Settings);
-		}
-
-		return *this;
-	}
-#endif
 
 	/**
 	 *	Sets a key value pair combination that defines a session setting with an ID
@@ -562,66 +438,10 @@ public:
 	{
 	}
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	FOnlineSession(const FOnlineSession& Other) = default;
 	FOnlineSession(FOnlineSession&& Other) = default;
 	FOnlineSession& operator=(const FOnlineSession& Other) = default;
 	FOnlineSession& operator=(FOnlineSession&& Other) = default;
-#else
-	/** Copy Constructor */
-	FOnlineSession(const FOnlineSession& Other)
-		: OwningUserId(Other.OwningUserId)
-		, OwningUserName(Other.OwningUserName)
-		, SessionSettings(Other.SessionSettings)
-		, SessionInfo(Other.SessionInfo)
-		, NumOpenPrivateConnections(Other.NumOpenPrivateConnections)
-		, NumOpenPublicConnections(Other.NumOpenPublicConnections)
-	{
-	}
-
-	/** Move Constructor */
-	FOnlineSession(FOnlineSession&& Other)
-		: OwningUserId(MoveTemp(Other.OwningUserId))
-		, OwningUserName(MoveTemp(Other.OwningUserName))
-		, SessionSettings(MoveTemp(Other.SessionSettings))
-		, SessionInfo(MoveTemp(Other.SessionInfo))
-		, NumOpenPrivateConnections(Other.NumOpenPrivateConnections)
-		, NumOpenPublicConnections(Other.NumOpenPublicConnections)
-	{
-	}
-
-	/** Copy Assignment Operator */
-	FOnlineSession& operator=(const FOnlineSession& Other)
-	{
-		if (this != &Other)
-		{
-			OwningUserId = Other.OwningUserId;
-			OwningUserName = Other.OwningUserName;
-			SessionSettings = Other.SessionSettings;
-			SessionInfo = Other.SessionInfo;
-			NumOpenPrivateConnections = Other.NumOpenPrivateConnections;
-			NumOpenPublicConnections = Other.NumOpenPublicConnections;
-		}
-
-		return *this;
-	}
-
-	/** Move Assignment Operator */
-	FOnlineSession& operator=(FOnlineSession&& Other)
-	{
-		if (this != &Other)
-		{
-			OwningUserId = MoveTemp(Other.OwningUserId);
-			OwningUserName = MoveTemp(Other.OwningUserName);
-			SessionSettings = MoveTemp(Other.SessionSettings);
-			SessionInfo = MoveTemp(Other.SessionInfo);
-			NumOpenPrivateConnections = Other.NumOpenPrivateConnections;
-			NumOpenPublicConnections = Other.NumOpenPublicConnections;
-		}
-
-		return *this;
-	}
-#endif
 
 	/** @return the session id for a given session */
 	FString GetSessionIdStr() const
@@ -686,32 +506,8 @@ public:
 	{
 	}
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	FNamedOnlineSession(const FNamedOnlineSession& Other) = default;
 	FNamedOnlineSession(FNamedOnlineSession&& Other) = default;
-#else
-	FNamedOnlineSession(const FNamedOnlineSession& Other)
-		: FOnlineSession(Other)
-		, SessionName(Other.SessionName)
-		, HostingPlayerNum(Other.HostingPlayerNum)
-		, bHosting(Other.bHosting)
-		, LocalOwnerId(Other.LocalOwnerId)
-		, RegisteredPlayers(Other.RegisteredPlayers)
-		, SessionState(Other.SessionState)
-	{
-	}
-
-	FNamedOnlineSession(FNamedOnlineSession&& Other)
-		: FOnlineSession(MoveTemp(Other))
-		, SessionName(Other.SessionName)
-		, HostingPlayerNum(Other.HostingPlayerNum)
-		, bHosting(Other.bHosting)
-		, LocalOwnerId(MoveTemp(Other.LocalOwnerId))
-		, RegisteredPlayers(MoveTemp(Other.RegisteredPlayers))
-		, SessionState(Other.SessionState)
-	{
-	}
-#endif
 
 	// We delete the equals operator as SessionName is immutable
 	FNamedOnlineSession& operator=(const FNamedOnlineSession& Other) = delete;
@@ -780,7 +576,16 @@ public:
 	 */
 	bool IsValid() const
 	{
-		return (Session.OwningUserId.IsValid() && Session.SessionInfo.IsValid() && Session.SessionInfo->IsValid());
+		return (Session.OwningUserId.IsValid() && IsSessionInfoValid());
+	}
+
+	/** 
+	 * Check if the session info is valid, for cases where we don't need the OwningUserId
+	 * @return true if the session info is valid, false otherwise
+	 */
+	bool IsSessionInfoValid() const
+	{
+		return (Session.SessionInfo.IsValid() && Session.SessionInfo->IsValid());
 	}
 
 	/** @return the session id for a given session search result */
@@ -864,74 +669,10 @@ public:
 	{
 	}
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	FOnlineSessionSearch(const FOnlineSessionSearch& Other) = default;
 	FOnlineSessionSearch(FOnlineSessionSearch&& Other) = default;
 	FOnlineSessionSearch& operator=(const FOnlineSessionSearch& Other) = default;
 	FOnlineSessionSearch& operator=(FOnlineSessionSearch&& Other) = default;
-#else
-	/** Copy Constructor */
-	FOnlineSessionSearch(const FOnlineSessionSearch& Other)
-		: SearchResults(Other.SearchResults)
-		, SearchState(Other.SearchState)
-		, MaxSearchResults(Other.MaxSearchResults)
-		, QuerySettings(Other.QuerySettings)
-		, bIsLanQuery(Other.bIsLanQuery)
-		, PingBucketSize(Other.PingBucketSize)
-		, PlatformHash(Other.PlatformHash)
-		, TimeoutInSeconds(Other.TimeoutInSeconds)
-	{
-	}
-
-	/** Move Constructor */
-	FOnlineSessionSearch(FOnlineSessionSearch&& Other)
-		: SearchResults(MoveTemp(Other.SearchResults))
-		, SearchState(Other.SearchState)
-		, MaxSearchResults(Other.MaxSearchResults)
-		, QuerySettings(MoveTemp(Other.QuerySettings))
-		, bIsLanQuery(Other.bIsLanQuery)
-		, PingBucketSize(Other.PingBucketSize)
-		, PlatformHash(Other.PlatformHash)
-		, TimeoutInSeconds(Other.TimeoutInSeconds)
-	{
-	}
-
-	/** Copy Assignment Operator */
-	FOnlineSessionSearch& operator=(const FOnlineSessionSearch& Other)
-	{
-		if (this != &Other)
-		{
-			SearchResults = Other.SearchResults;
-			SearchState = Other.SearchState;
-			MaxSearchResults = Other.MaxSearchResults;
-			QuerySettings = Other.QuerySettings;
-			bIsLanQuery = Other.bIsLanQuery;
-			PingBucketSize = Other.PingBucketSize;
-			PlatformHash = Other.PlatformHash;
-			TimeoutInSeconds = Other.TimeoutInSeconds;
-		}
-
-		return *this;
-	}
-
-	/** Move Assignment Operator */
-	FOnlineSessionSearch& operator=(FOnlineSessionSearch&& Other)
-	{
-		if (this != &Other)
-		{
-			SearchResults = MoveTemp(Other.SearchResults);
-			SearchState = Other.SearchState;
-			MaxSearchResults = Other.MaxSearchResults;
-			QuerySettings = MoveTemp(Other.QuerySettings);
-			bIsLanQuery = Other.bIsLanQuery;
-			PingBucketSize = Other.PingBucketSize;
-			PlatformHash = Other.PlatformHash;
-			TimeoutInSeconds = Other.TimeoutInSeconds;
-		}
-
-		return *this;
-	}
-#endif
 
 	/**
 	 *	Give the game a chance to sort the returned results

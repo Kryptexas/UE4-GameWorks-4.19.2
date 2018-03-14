@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 using System;
 using System.IO;
@@ -52,7 +52,7 @@ public class GoogleTest : ModuleRules
             //if (!Target.IsMonolithic)
             //{
             //    PublicAdditionalLibraries.Add("gmock_main.lib");
-            //    RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/GoogleTest/" + PartialLibraryPath + "gmock_main.dll"));
+            //    RuntimeDependencies.Add("$(EngineDir)/Binaries/ThirdParty/GoogleTest/" + PartialLibraryPath + "gmock_main.dll");
             //}
             //else
             //{
@@ -84,14 +84,14 @@ public class GoogleTest : ModuleRules
         PublicLibraryPaths.Add(LibraryPath);
 
         // The including module will also need these enabled
-        Definitions.Add("WITH_GOOGLE_MOCK=1");
-		Definitions.Add("WITH_GOOGLE_TEST=1");
+        PublicDefinitions.Add("WITH_GOOGLE_MOCK=1");
+		PublicDefinitions.Add("WITH_GOOGLE_TEST=1");
 
-        Definitions.Add("GTEST_HAS_POSIX_RE=0");
+        PublicDefinitions.Add("GTEST_HAS_POSIX_RE=0");
 
         if (Target.LinkType != TargetLinkType.Monolithic)
         {
-            //Definitions.Add("GTEST_LINKED_AS_SHARED_LIBRARY=1");
+            //PublicDefinitions.Add("GTEST_LINKED_AS_SHARED_LIBRARY=1");
         }
     }
 }

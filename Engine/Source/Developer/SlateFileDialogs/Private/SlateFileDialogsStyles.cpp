@@ -1,16 +1,16 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateFileDialogsStyles.h"
 #include "Styling/SlateStyleRegistry.h"
 #include "Styling/SlateTypes.h"
-
+#include "Styling/CoreStyle.h"
 
 TSharedPtr< FSlateStyleSet > FSlateFileDialogsStyle::StyleInstance = nullptr;
 
 #define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush(Style->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
 #define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush(Style->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
 #define BORDER_BRUSH( RelativePath, ... ) FSlateBorderBrush(Style->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
-#define TTF_FONT( RelativePath, ... ) FSlateFontInfo(Style->RootToContentDir(RelativePath, TEXT(".ttf")), __VA_ARGS__)
+#define DEFAULT_FONT(...) FCoreStyle::GetDefaultFontStyle(__VA_ARGS__)
 
 
 void FSlateFileDialogsStyle::Initialize()
@@ -74,10 +74,10 @@ TSharedPtr< FSlateStyleSet > FSlateFileDialogsStyle::Create()
 		Style->Set( "InvertedForeground", InvertedForeground );
 	}
 
-	Style->Set("SlateFileDialogs.Dialog", TTF_FONT("Slate/Fonts/Roboto-Regular", 10));
-	Style->Set("SlateFileDialogs.DialogBold", TTF_FONT("Slate/Fonts/Roboto-Bold", 10));
-	Style->Set("SlateFileDialogs.DialogLarge", TTF_FONT("Slate/Fonts/Roboto-Bold", 16));
-	Style->Set("SlateFileDialogs.DirectoryItem", TTF_FONT("Slate/Fonts/Roboto-Bold", 11));
+	Style->Set("SlateFileDialogs.Dialog", DEFAULT_FONT("Regular", 10));
+	Style->Set("SlateFileDialogs.DialogBold", DEFAULT_FONT("Bold", 10));
+	Style->Set("SlateFileDialogs.DialogLarge", DEFAULT_FONT("Bold", 16));
+	Style->Set("SlateFileDialogs.DirectoryItem", DEFAULT_FONT("Bold", 11));
 	Style->Set( "SlateFileDialogs.GroupBorder", new BOX_BRUSH( "Slate/Common/GroupBorder", FMargin(4.0f/16.0f) ) );
 
 	Style->Set("SlateFileDialogs.Folder16", new IMAGE_BRUSH("SlateFileDialogs/Icons/icon_file_folder_16x", Icon16x16));
@@ -100,7 +100,7 @@ TSharedPtr< FSlateStyleSet > FSlateFileDialogsStyle::Create()
 	Style->Set( "SlateFileDialogs.PathDelimiter", new IMAGE_BRUSH( "SlateFileDialogs/Common/SmallArrowRight", Icon10x10 ) );
 
 	Style->Set( "SlateFileDialogs.PathText", FTextBlockStyle()
-		.SetFont( TTF_FONT( "Slate/Fonts/Roboto-Bold", 11 ) )
+		.SetFont( DEFAULT_FONT( "Bold", 11 ) )
 		.SetColorAndOpacity( FLinearColor( 1.0f, 1.0f, 1.0f ) )
 		.SetHighlightColor( FLinearColor( 1.0f, 1.0f, 1.0f ) )
 		.SetHighlightShape(BOX_BRUSH("Slate/Common/TextBlockHighlightShape", FMargin(3.f /8.f)))
@@ -120,4 +120,4 @@ TSharedPtr< FSlateStyleSet > FSlateFileDialogsStyle::Create()
 #undef IMAGE_BRUSH
 #undef BOX_BRUSH
 #undef BORDER_BRUSH
-#undef TTF_FONT
+#undef DEFAULT_FONT

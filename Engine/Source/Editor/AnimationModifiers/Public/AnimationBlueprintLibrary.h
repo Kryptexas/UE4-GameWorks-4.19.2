@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,7 +20,7 @@ enum class ESmartNameContainerType : uint8
 };
 
 /** Blueprint library for altering and analyzing animation / skeletal data */
-UCLASS()
+UCLASS(meta=(ScriptName="AnimationLibrary"))
 class ANIMATIONMODIFIERS_API UAnimationBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
@@ -275,6 +275,26 @@ public:
 	template <typename DataType, typename CurveClass>
 	static void GetCurveKeysInternal(UAnimSequence* AnimationSequence, FName CurveName, TArray<float>& Times, TArray<DataType>& KeyData, ERawCurveTrackTypes CurveType);
 	
+	// Bone Tracks
+
+	/** Removes an Animation Curve by Name from the given Animation Sequence (Raw Animation Curves [Names] may not be removed from the Skeleton) 
+	 * 
+	 *	@param AnimationSequence : AnimSequence
+	 *	@param BoneName : Name of bone track user wants to remove
+	 *	@param bIncludeChildren : true if user wants to include all children of BoneName
+	 *  @param bFinalize : If you set this to true, it will trigger compression. If you set bFinalize to be false, you'll have to manually trigger Finalize. 
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AnimationBlueprintLibrary|Bones")
+	static void RemoveBoneAnimation(UAnimSequence* AnimationSequence, FName BoneName, bool bIncludeChildren = true, bool bFinalize = true);
+
+	/** Removes all Animation Bone Track Data from the given Animation Sequence */
+	UFUNCTION(BlueprintCallable, Category = "AnimationBlueprintLibrary|Curves")
+	static void RemoveAllBoneAnimation(UAnimSequence* AnimationSequence);
+
+	/** Apply all the changes made to Bone Tracks to Finalize. This triggers recompression. Note that this is expensive, but will require to get correct compressed data */
+	UFUNCTION(BlueprintCallable, Category = "AnimationBlueprintLibrary|Curves")
+	static void FinalizeBoneAnimation(UAnimSequence* AnimationSequence);
+
 	// Smart name helper functions
 
 	/** Checks whether or not the given Curve Name exist on the Skeleton referenced by the given Animation Sequence */

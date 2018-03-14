@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "BoneControllers/AnimNode_AnimDynamics.h"
 #include "GameFramework/WorldSettings.h"
@@ -759,8 +759,9 @@ FTransform FAnimNode_AnimDynamics::GetComponentSpaceTransformFromSimSpace(AnimPh
 
 	case AnimPhysSimSpaceType::Actor:
 	{
-		const FTransform ComponentTransform(Output.AnimInstanceProxy->GetComponentRelativeTransform());
-		OutTransform = OutTransform * ComponentTransform.Inverse();
+		FTransform WorldTransform(OutTransform * Output.AnimInstanceProxy->GetActorTransform());
+		WorldTransform.SetToRelativeTransform(Output.AnimInstanceProxy->GetComponentTransform());
+		OutTransform = WorldTransform;
 
 		break;
 	}
@@ -874,7 +875,7 @@ FVector FAnimNode_AnimDynamics::TransformWorldVectorToSimSpace(FComponentSpacePo
 
 	case AnimPhysSimSpaceType::Actor:
 	{
-		OutVec = Output.AnimInstanceProxy->GetActorTransform().TransformVectorNoScale(OutVec);
+		OutVec = Output.AnimInstanceProxy->GetActorTransform().InverseTransformVectorNoScale(OutVec);
 
 		break;
 	}

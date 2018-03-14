@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "K2Node_DynamicCast.h"
@@ -19,7 +19,7 @@
 
 namespace UK2Node_DynamicCastImpl
 {
-	static const FString CastSuccessPinName("bSuccess");
+	static const FName CastSuccessPinName("bSuccess");
 }
 
 UK2Node_DynamicCast::UK2Node_DynamicCast(const FObjectInitializer& ObjectInitializer)
@@ -47,31 +47,31 @@ void UK2Node_DynamicCast::AllocateDefaultPins()
 	if (!bIsPureCast)
 	{
 		// Input - Execution Pin
-		CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
+		CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Execute);
 
 		// Output - Execution Pins
-		CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_CastSucceeded);
-		CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_CastFailed);
+		CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_CastSucceeded);
+		CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_CastFailed);
 	}
 
 	// Input - Source type Pin
-	CreatePin(EGPD_Input, K2Schema->PC_Wildcard, FString(), UObject::StaticClass(), K2Schema->PN_ObjectToCast);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Wildcard, UObject::StaticClass(), UEdGraphSchema_K2::PN_ObjectToCast);
 
 	// Output - Data Pin
-	if (TargetType != NULL)
+	if (TargetType)
 	{
-		FString CastResultPinName = K2Schema->PN_CastedValuePrefix + TargetType->GetDisplayNameText().ToString();
+		const FString CastResultPinName = UEdGraphSchema_K2::PN_CastedValuePrefix + TargetType->GetDisplayNameText().ToString();
 		if (TargetType->IsChildOf(UInterface::StaticClass()))
 		{
-			CreatePin(EGPD_Output, K2Schema->PC_Interface, FString(), *TargetType, CastResultPinName);
+			CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Interface, *TargetType, *CastResultPinName);
 		}
 		else 
 		{
-			CreatePin(EGPD_Output, K2Schema->PC_Object, FString(), *TargetType, CastResultPinName);
+			CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Object, *TargetType, *CastResultPinName);
 		}
 	}
 
-	UEdGraphPin* BoolSuccessPin = CreatePin(EGPD_Output, K2Schema->PC_Boolean, FString(), nullptr, UK2Node_DynamicCastImpl::CastSuccessPinName);
+	UEdGraphPin* BoolSuccessPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Boolean, UK2Node_DynamicCastImpl::CastSuccessPinName);
 	BoolSuccessPin->bHidden = !bIsPureCast;
 
 	Super::AllocateDefaultPins();
@@ -181,9 +181,7 @@ void UK2Node_DynamicCast::PostPlacedNewNode()
 
 UEdGraphPin* UK2Node_DynamicCast::GetValidCastPin() const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	UEdGraphPin* Pin = FindPin(K2Schema->PN_CastSucceeded);
+	UEdGraphPin* Pin = FindPin(UEdGraphSchema_K2::PN_CastSucceeded);
 	check((Pin != nullptr) || bIsPureCast);
 	check((Pin == nullptr) || (Pin->Direction == EGPD_Output));
 	return Pin;
@@ -191,9 +189,7 @@ UEdGraphPin* UK2Node_DynamicCast::GetValidCastPin() const
 
 UEdGraphPin* UK2Node_DynamicCast::GetInvalidCastPin() const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	UEdGraphPin* Pin = FindPin(K2Schema->PN_CastFailed);
+	UEdGraphPin* Pin = FindPin(UEdGraphSchema_K2::PN_CastFailed);
 	check((Pin != nullptr) || bIsPureCast);
 	check((Pin == nullptr) || (Pin->Direction == EGPD_Output));
 	return Pin;
@@ -203,13 +199,11 @@ UEdGraphPin* UK2Node_DynamicCast::GetCastResultPin() const
 {
 	if(TargetType != nullptr)
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 		for (int32 PinIdx = 0; PinIdx < Pins.Num(); PinIdx++)
 		{
 			if (Pins[PinIdx]->PinType.PinSubCategoryObject == *TargetType
 				&& Pins[PinIdx]->Direction == EGPD_Output
-				&& Pins[PinIdx]->PinName.StartsWith(K2Schema->PN_CastedValuePrefix))
+				&& Pins[PinIdx]->PinName.ToString().StartsWith(UEdGraphSchema_K2::PN_CastedValuePrefix))
 			{
 				return Pins[PinIdx];
 			}
@@ -221,10 +215,8 @@ UEdGraphPin* UK2Node_DynamicCast::GetCastResultPin() const
 
 UEdGraphPin* UK2Node_DynamicCast::GetCastSourcePin() const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	UEdGraphPin* Pin = FindPin(K2Schema->PN_ObjectToCast);
-	check(Pin != NULL);
+	UEdGraphPin* Pin = FindPin(UEdGraphSchema_K2::PN_ObjectToCast);
+	check(Pin);
 	check(Pin->Direction == EGPD_Input);
 	return Pin;
 }
@@ -264,11 +256,9 @@ UK2Node::ERedirectType UK2Node_DynamicCast::DoPinsMatchForReconstruction(const U
 	ERedirectType RedirectType = Super::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
 	if((ERedirectType_None == RedirectType) && (NULL != NewPin) && (NULL != OldPin))
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 		const bool bProperPrefix = 
-			NewPin->PinName.StartsWith(K2Schema->PN_CastedValuePrefix, ESearchCase::CaseSensitive) && 
-			OldPin->PinName.StartsWith(K2Schema->PN_CastedValuePrefix, ESearchCase::CaseSensitive);
+			NewPin->PinName.ToString().StartsWith(UEdGraphSchema_K2::PN_CastedValuePrefix, ESearchCase::CaseSensitive) && 
+			OldPin->PinName.ToString().StartsWith(UEdGraphSchema_K2::PN_CastedValuePrefix, ESearchCase::CaseSensitive);
 
 		const bool bClassMatch = NewPin->PinType.PinSubCategoryObject.IsValid() &&
 			(NewPin->PinType.PinSubCategoryObject == OldPin->PinType.PinSubCategoryObject);
@@ -325,7 +315,7 @@ bool UK2Node_DynamicCast::IsConnectionDisallowed(const UEdGraphPin* MyPin, const
 	if (MyPin == GetCastSourcePin())
 	{
 		const FEdGraphPinType& OtherPinType = OtherPin->PinType;
-		const FText OtherPinName = OtherPin->PinFriendlyName.IsEmpty() ? FText::FromString(OtherPin->PinName) : OtherPin->PinFriendlyName;
+		const FText OtherPinName = OtherPin->PinFriendlyName.IsEmpty() ? FText::FromName(OtherPin->PinName) : OtherPin->PinFriendlyName;
 
 		if (OtherPinType.IsContainer())
 		{
@@ -366,7 +356,7 @@ void UK2Node_DynamicCast::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 		if (Pin->LinkedTo.Num() == 0)
 		{
 			InputPinType.PinCategory = UEdGraphSchema_K2::PC_Wildcard;
-			InputPinType.PinSubCategory.Empty();
+			InputPinType.PinSubCategory = NAME_None;
 			InputPinType.PinSubCategoryObject = nullptr;
 		}
 		else
@@ -429,10 +419,10 @@ void UK2Node_DynamicCast::ValidateNodeDuringCompilation(FCompilerResultsLog& Mes
 
 			if (SourceClass == nullptr)
 			{
-				const FString SourcePinName = CastInput->PinFriendlyName.IsEmpty() ? CastInput->PinName : CastInput->PinFriendlyName.ToString();
+				const FString SourcePinName = CastInput->PinFriendlyName.IsEmpty() ? CastInput->PinName.ToString() : CastInput->PinFriendlyName.ToString();
 
-				FText const ErrorFormat = LOCTEXT("BadCastInput", "'%s' does not have a clear object type (invalid input into @@).");
-				MessageLog.Error( *FString::Printf(*ErrorFormat.ToString(), *SourcePinName), this );
+				FText const ErrorFormat = LOCTEXT("BadCastInputFmt", "'{0}' does not have a clear object type (invalid input into @@).");
+				MessageLog.Error( *FText::Format(ErrorFormat, FText::FromString(SourcePinName)).ToString(), this );
 
 				continue;
 			}
@@ -440,22 +430,22 @@ void UK2Node_DynamicCast::ValidateNodeDuringCompilation(FCompilerResultsLog& Mes
 
 			if (SourceClass == SourceType)
 			{
-				const FString SourcePinName = CastInput->PinFriendlyName.IsEmpty() ? CastInput->PinName : CastInput->PinFriendlyName.ToString();
+				const FString SourcePinName = CastInput->PinFriendlyName.IsEmpty() ? CastInput->PinName.ToString() : CastInput->PinFriendlyName.ToString();
 
-				FText const WarningFormat = LOCTEXT("EqualObjectCast", "'%s' is already a '%s', you don't need @@.");
-				MessageLog.Note( *FString::Printf(*WarningFormat.ToString(), *SourcePinName, *TargetType->GetDisplayNameText().ToString()), this );
+				FText const WarningFormat = LOCTEXT("EqualObjectCastFmt", "'{0}' is already a '{1}', you don't need @@.");
+				MessageLog.Note( *FText::Format(WarningFormat, FText::FromString(SourcePinName), TargetType->GetDisplayNameText()).ToString(), this );
 			}
 			else if (SourceClass->IsChildOf(SourceType))
 			{
-				const FString SourcePinName = CastInput->PinFriendlyName.IsEmpty() ? CastInput->PinName : CastInput->PinFriendlyName.ToString();
+				const FString SourcePinName = CastInput->PinFriendlyName.IsEmpty() ? CastInput->PinName.ToString() : CastInput->PinFriendlyName.ToString();
 
-				FText const WarningFormat = LOCTEXT("UnneededObjectCast", "'%s' is already a '%s' (which inherits from '%s'), so you don't need @@.");
-				MessageLog.Note( *FString::Printf(*WarningFormat.ToString(), *SourcePinName, *SourceClass->GetDisplayNameText().ToString(), *TargetType->GetDisplayNameText().ToString()), this );
+				FText const WarningFormat = LOCTEXT("UnneededObjectCastFmt", "'{0}' is already a '{1}' (which inherits from '{2}'), so you don't need @@.");
+				MessageLog.Note( *FText::Format(WarningFormat, FText::FromString(SourcePinName), SourceClass->GetDisplayNameText(), TargetType->GetDisplayNameText()).ToString(), this );
 			}
 			else if (!SourceType->IsChildOf(SourceClass) && !FKismetEditorUtilities::IsClassABlueprintInterface(SourceType))
 			{
-				FText const WarningFormat = LOCTEXT("DisallowedObjectCast", "'%s' does not inherit from '%s' (@@ would always fail).");
-				MessageLog.Warning( *FString::Printf(*WarningFormat.ToString(), *TargetType->GetDisplayNameText().ToString(), *SourceClass->GetDisplayNameText().ToString()), this );
+				FText const WarningFormat = LOCTEXT("DisallowedObjectCast", "'{0}' does not inherit from '{1}' (@@ would always fail).");
+				MessageLog.Warning( *FText::Format(WarningFormat, TargetType->GetDisplayNameText(), SourceClass->GetDisplayNameText()).ToString(), this );
 			}
 		}
 	}
@@ -467,11 +457,10 @@ bool UK2Node_DynamicCast::ReconnectPureExecPins(TArray<UEdGraphPin*>& OldPins)
 	if (bIsPureCast)
 	{
 		// look for an old exec pin
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		UEdGraphPin* PinExec = nullptr;
 		for (UEdGraphPin* Pin : OldPins)
 		{
-			if (Pin->PinName == K2Schema->PN_Execute)
+			if (Pin->PinName == UEdGraphSchema_K2::PN_Execute)
 			{
 				PinExec = Pin;
 				break;
@@ -483,7 +472,7 @@ bool UK2Node_DynamicCast::ReconnectPureExecPins(TArray<UEdGraphPin*>& OldPins)
 			UEdGraphPin* PinThen = nullptr;
 			for (UEdGraphPin* Pin : OldPins)
 			{
-				if (Pin->PinName == K2Schema->PN_Then)
+				if (Pin->PinName == UEdGraphSchema_K2::PN_Then)
 				{
 					PinThen = Pin;
 					break;

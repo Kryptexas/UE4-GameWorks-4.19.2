@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Factories/FbxFactory.h"
 #include "Misc/Paths.h"
@@ -467,7 +467,6 @@ UObject* UFbxFactory::FactoryCreateBinary
 								}
 							}
 						}
-						MaxLODLevel = FMath::Min(MAX_SKELETAL_MESH_LODS, MaxLODLevel);
 					
 						int32 LODIndex;
 						int32 SuccessfulLodIndex = 0;
@@ -570,7 +569,6 @@ UObject* UFbxFactory::FactoryCreateBinary
 
 								if (bImportSucceeded)
 								{
-									BaseSkeletalMesh->LODInfo[SuccessfulLodIndex].ScreenSize = 1.0f / (MaxLODLevel * SuccessfulLodIndex);
 									ImportedSuccessfulLodIndex = SuccessfulLodIndex;
 									SuccessfulLodIndex++;
 								}
@@ -606,9 +604,9 @@ UObject* UFbxFactory::FactoryCreateBinary
 							
 							USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(NewObject);
 							UnFbx::FFbxImporter::UpdateSkeletalMeshImportData(SkeletalMesh, ImportUI->SkeletalMeshImportData, INDEX_NONE, nullptr, nullptr);
-
+							
 							//If we have import some morph target we have to rebuild the render resources since morph target are now using GPU
-							if (SkeletalMesh->MorphTargets.Num() > 0)
+							if (SkeletalMesh && SkeletalMesh->MorphTargets.Num() > 0)
 							{
 								SkeletalMesh->ReleaseResources();
 								//Rebuild the resources with a post edit change since we have added some morph targets

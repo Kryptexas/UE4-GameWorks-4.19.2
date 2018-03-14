@@ -18,7 +18,7 @@ Description:创建一系列组件并将它们附加于自定义pawn上。
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:tip]如果您刚使用 **虚幻引擎4** ，建议您先读一下[%Programming\QuickStart:title% tutorial](Programming\QuickStart) 。 对这篇教程来说，我们假设您已经了解了如何创建项目，如何添加C++代码到项目中，以及在 **虚幻编辑器** 中如何配置输入 。 如果您对于创建 **Pawn** 类或配置输入不太熟悉，您可以先阅读一下[%Programming\Tutorials\PlayerInput:title% tutorial](Programming\Tutorials\PlayerInput)。[/REGION]
 
@@ -100,7 +100,7 @@ Description:创建一系列组件并将它们附加于自定义pawn上。
     [/PARAM]
     [PARAM:content]
 		**CollidingPawn.h**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -129,7 +129,7 @@ Description:创建一系列组件并将它们附加于自定义pawn上。
 			};
 
 		**CollidingPawn.cpp**
-			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawn.h"
@@ -209,4 +209,4 @@ Description:创建一系列组件并将它们附加于自定义pawn上。
     [/PARAM]
 [/OBJECT]
 
-%Steps%
+

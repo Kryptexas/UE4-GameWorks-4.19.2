@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3339965
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:2. 새 머티리얼 인스턴스 생성
 Crumbs:%ROOT%
@@ -12,15 +12,21 @@ topic-image:Modding/RoboRecall/RoboRecall_Topic.png
 social-image:Modding/RoboRecall/RoboRecall_Social.png
 checkpoint:mod_extend
 
-<!-- Location: Modding/RoboRecall/Quickstarts/WeaponMod/2 -->
+[COMMENT:none]
+ Location: Modding/RoboRecall/Quickstarts/WeaponMod/2 
+[/COMMENT]
 
 [NAV]
 
-<!-- Title Image if Needed Here -->
+[COMMENT:none]
+ Title Image if Needed Here 
+[/COMMENT]
 
 커스텀 피스톨이 생겼지만 아직 동작은 기본 피스톨과 같습니다. 던지면 "dissolve", 녹아버리는 파랑 이펙트입니다. 피스톨이 폭발해야 하니, 빨강 이펙트가 들어맞을 것입니다. 그 셋업을 위해서는, **Pistol** 에 사용되는 "dissolving** 머티리얼의 새로운 [머티리얼 인스턴스](Engine/Rendering/Materials/MaterialInstances) 가 필요합니다.
 
-<!-- probably should explain what a material instance is for newcomers -->
+[COMMENT:none]
+ probably should explain what a material instance is for newcomers 
+[/COMMENT]
 
 ## 단계
 

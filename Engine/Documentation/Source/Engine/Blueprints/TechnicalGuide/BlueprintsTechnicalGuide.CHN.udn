@@ -12,17 +12,7 @@ Description:关于程序员应用蓝图的技术指南。
 每个蓝图都具有一个"构建脚本"，和C++中的构造函数类似，当创建对象时会运行它。该脚本可以动态地基于多个因素构建Actor实例，比如，一个可以自动调整大小来填充建筑物间空隙的篱笆。从这个角度来说，蓝图也可以看成是一个非常强大的预制系统。
 
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/prog_icon.png)
-	[/PARAM]
-	[PARAM:title]
-		蓝图架构
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/Blueprints/TechnicalGuide/Compiler) - %Engine/Blueprints/TechnicalGuide/Compiler:description%
-		* [](Engine/Blueprints/TechnicalGuide/ExtendingBlueprints) - %Engine/Blueprints/TechnicalGuide/ExtendingBlueprints:description%
-	[/PARAM]
-[/OBJECT]
+## 蓝图架构
+
+* [](Engine/Blueprints/TechnicalGuide/Compiler) - %Engine/Blueprints/TechnicalGuide/Compiler:description%
+* [](Engine/Blueprints/TechnicalGuide/ExtendingBlueprints) - %Engine/Blueprints/TechnicalGuide/ExtendingBlueprints:description%

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_MacroInstance.h"
 #include "Engine/Blueprint.h"
@@ -123,6 +123,8 @@ void UK2Node_MacroInstance::AllocateDefaultPins()
 			}
 		}
 	}
+
+	CacheWildcardPins();
 }
 
 void UK2Node_MacroInstance::PreloadRequiredAssets()
@@ -201,7 +203,7 @@ void UK2Node_MacroInstance::GetContextMenuActions(const FGraphNodeContextMenuBui
 				NSLOCTEXT("K2Node", "MacroInstanceFindInContentBrowser", "Find in Content Browser"),
 				NSLOCTEXT("K2Node", "MacroInstanceFindInContentBrowserTooltip", "Finds the Blueprint Macro Library that contains this Macro in the Content Browser"),
 				FSlateIcon(FEditorStyle::GetStyleSetName(), "PropertyWindow.Button_Browse"),
-				FUIAction( FExecuteAction::CreateStatic( &UK2Node_MacroInstance::FindInContentBrowser, TWeakObjectPtr<UK2Node_MacroInstance>(this) ) )
+				FUIAction( FExecuteAction::CreateStatic( &UK2Node_MacroInstance::FindInContentBrowser, MakeWeakObjectPtr(const_cast<UK2Node_MacroInstance*>(this)) ) )
 				);
 		}
 		Context.MenuBuilder->EndSection();
@@ -257,13 +259,11 @@ void UK2Node_MacroInstance::NotifyPinConnectionListChanged(UEdGraphPin* ChangedP
 {
 	Super::NotifyPinConnectionListChanged(ChangedPin);
 
-	const UEdGraphSchema_K2* const Schema = GetDefault<UEdGraphSchema_K2>();
-
 	// added a link?
 	if (ChangedPin->LinkedTo.Num() > 0)
 	{
 		// ... to a wildcard pin?
-		bool const bIsWildcardPin = ChangedPin->PinType.PinCategory == Schema->PC_Wildcard;
+		bool const bIsWildcardPin = ChangedPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard;
 		if (bIsWildcardPin)
 		{
 			// get type of pin we just got linked to
@@ -277,7 +277,7 @@ void UK2Node_MacroInstance::NotifyPinConnectionListChanged(UEdGraphPin* ChangedP
 				UEdGraphPin* const TmpPin = Pins[PinIdx];
 				if (TmpPin)
 				{
-					if (TmpPin->PinType.PinCategory == Schema->PC_Wildcard)
+					if (TmpPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard)
 					{
 						// only copy the category stuff to preserve array and ref status
 						TmpPin->PinType.PinCategory = LinkedPinType.PinCategory;
@@ -444,12 +444,16 @@ void UK2Node_MacroInstance::PostFixupAllWildcardPins(bool bInAllWildcardPinsUnli
 	{
 		// Reset the type to a wildcard because there are no longer any wildcard pins linked to determine a type with
 		ResolvedWildcardType.ResetToDefaults();
-	}
-}
 
-FText UK2Node_MacroInstance::GetActiveBreakpointToolTipText() const
-{
-	return LOCTEXT("ActiveBreakpointToolTip", "Execution will break inside the macro.");
+		// Collapse any wildcard pins that are split and set their type back to wildcard
+		for (UEdGraphPin* Pin : WildcardPins)
+		{
+			GetSchema()->RecombinePin(Pin);
+			Pin->PinType.PinCategory = UEdGraphSchema_K2::PC_Wildcard;
+			Pin->PinType.PinSubCategory = NAME_None;
+			Pin->PinType.PinSubCategoryObject = nullptr;
+		}
+	}
 }
 
 bool UK2Node_MacroInstance::HasExternalDependencies(TArray<class UStruct*>* OptionalOutput) const

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Animation/AnimInstanceProxy.h"
 #include "Animation/AnimNodeBase.h"
@@ -40,6 +40,18 @@ void FAnimInstanceProxy::UpdateAnimationNode(float DeltaSeconds)
 		for(FAnimNode_SaveCachedPose* PoseNode : SavedPoseQueue)
 		{
 			PoseNode->PostGraphUpdate();
+		}
+	}
+}
+
+void FAnimInstanceProxy::AddReferencedObjects(UAnimInstance* InAnimInstance, FReferenceCollector& Collector)
+{
+	for (int32 Index = 0; Index < ARRAY_COUNT(UngroupedActivePlayerArrays); ++Index)
+	{
+		TArray<FAnimTickRecord>& UngroupedPlayers = UngroupedActivePlayerArrays[Index];
+		for (FAnimTickRecord& TickRecord : UngroupedPlayers)
+		{
+			Collector.AddReferencedObject(TickRecord.SourceAsset, InAnimInstance);
 		}
 	}
 }
@@ -124,9 +136,7 @@ void FAnimInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 	ActorName = GetNameSafe(InAnimInstance->GetOwningActor());
 #endif
 
-#if DO_CHECK
 	AnimInstanceName = *InAnimInstance->GetFullName();
-#endif
 
 	UpdateCounter.Reset();
 	ReinitializeSlotNodes();
@@ -223,6 +233,35 @@ void FAnimInstanceProxy::InitializeRootNode()
 	}
 }
 
+FGuid MakeGuidForMessage(const FText& Message)
+{
+	FString MessageString = Message.ToString();
+	const TArray<TCHAR> CharArray = MessageString.GetCharArray();
+
+	FSHA1 Sha;
+
+	Sha.Update((uint8*)CharArray.GetData(), CharArray.Num() * CharArray.GetTypeSize());
+
+	Sha.Final();
+
+	uint32 Hash[5];
+	Sha.GetHash((uint8*)Hash);
+	return FGuid(Hash[0] ^ Hash[4], Hash[1], Hash[2], Hash[3]);
+}
+
+void FAnimInstanceProxy::LogMessage(FName InLogType, EMessageSeverity::Type InSeverity, const FText& InMessage)
+{
+	FGuid CurrentMessageGuid = MakeGuidForMessage(InMessage);
+	if(!PreviouslyLoggedMessages.Contains(CurrentMessageGuid))
+	{
+		PreviouslyLoggedMessages.Add(CurrentMessageGuid);
+		if (TArray<FLogMessageEntry>* LoggedMessages = LoggedMessagesMap.Find(InLogType))
+		{
+			LoggedMessages->Emplace(InSeverity, InMessage);
+		}
+	}
+}
+
 void FAnimInstanceProxy::Uninitialize(UAnimInstance* InAnimInstance)
 {
 	MontageEvaluationData.Reset();
@@ -255,6 +294,9 @@ void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSec
 #if ENABLE_ANIM_DRAW_DEBUG
 	QueuedDrawDebugItems.Reset();
 #endif
+
+	//Reset logged update messages
+	LoggedMessagesMap.FindOrAdd("Update").Reset();
 
 	ClearSlotNodeWeights();
 
@@ -340,6 +382,30 @@ void FAnimInstanceProxy::PostUpdate(UAnimInstance* InAnimInstance) const
 		}
 	}
 #endif
+
+	FMessageLog MessageLog("AnimBlueprintLog");
+	const TArray<FLogMessageEntry>* Messages = LoggedMessagesMap.Find("Update");
+	if (ensureMsgf(Messages, TEXT("PreUpdate isn't called. This could potentially cause other issues.")))
+	{
+		for (const FLogMessageEntry& Message : *Messages)
+		{
+			MessageLog.Message(Message.Key, Message.Value);
+		}
+	}
+}
+
+void FAnimInstanceProxy::PostEvaluate(UAnimInstance* InAnimInstance)
+{
+	ClearObjects();
+
+	FMessageLog MessageLog("AnimBlueprintLog");
+	if(const TArray<FLogMessageEntry>* Messages = LoggedMessagesMap.Find("Evaluate"))
+	{
+		for (const FLogMessageEntry& Message : *Messages)
+		{
+			MessageLog.Message(Message.Key, Message.Value);
+		}
+	}
 }
 
 void FAnimInstanceProxy::InitializeObjects(UAnimInstance* InAnimInstance)
@@ -453,6 +519,21 @@ void FAnimInstanceProxy::TickAssetPlayerInstances(float DeltaSeconds)
 
 			// Tick the group leader
 			FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode, bOnlyOneAnimationInGroup, SyncGroup.ValidMarkers);
+			if (PreviousGroup)
+			{
+				const FMarkerSyncAnimPosition& EndPosition = PreviousGroup->MarkerTickContext.GetMarkerSyncEndPosition();
+				if ( EndPosition.IsValid() &&
+				     (EndPosition.PreviousMarkerName == NAME_None || SyncGroup.ValidMarkers.Contains(EndPosition.PreviousMarkerName)) &&
+					 (EndPosition.NextMarkerName == NAME_None || SyncGroup.ValidMarkers.Contains(EndPosition.NextMarkerName)))
+				{
+					TickContext.MarkerTickContext.SetMarkerSyncStartPosition(EndPosition);
+				}
+			}
+
+			//For debugging UE-54705
+			FName InitialMarkerPrevious = TickContext.MarkerTickContext.GetMarkerSyncStartPosition().PreviousMarkerName;
+			FName InitialMarkerEnd = TickContext.MarkerTickContext.GetMarkerSyncStartPosition().NextMarkerName;
+
 			// initialize to invalidate first
 			ensureMsgf(SyncGroup.GroupLeaderIndex == INDEX_NONE, TEXT("SyncGroup with GroupIndex=%d had a non -1 group leader index of %d in asset %s"), GroupIndex, SyncGroup.GroupLeaderIndex, *GetNameSafe(SkeletalMeshComponent));
 			int32 GroupLeaderIndex = 0;
@@ -503,8 +584,36 @@ void FAnimInstanceProxy::TickAssetPlayerInstances(float DeltaSeconds)
 				FAnimTickRecord& GroupLeader = SyncGroup.ActivePlayers[SyncGroup.GroupLeaderIndex];
 				FString LeaderAnimName = GroupLeader.SourceAsset->GetName();
 
-				checkf(MarkerStart.PreviousMarkerName == NAME_None || SyncGroup.ValidMarkers.Contains(MarkerStart.PreviousMarkerName), TEXT("Prev Marker name not valid for sync group. Marker %s : SyncGroupName %s : Leader %s (Added to help debug Jira OR-9675)"), *MarkerStart.PreviousMarkerName.ToString(), *SyncGroupName.ToString(), *LeaderAnimName);
-				checkf(MarkerStart.NextMarkerName == NAME_None || SyncGroup.ValidMarkers.Contains(MarkerStart.NextMarkerName), TEXT("Next Marker name not valid for sync group. Marker %s : SyncGroupName %s : Leader %s (Added to help debug Jira OR-9675)"), *MarkerStart.PreviousMarkerName.ToString(), *SyncGroupName.ToString(), *LeaderAnimName);
+				//  Updated logic in search for cause of UE-54705
+				const bool bStartMarkerValid = (MarkerStart.PreviousMarkerName == NAME_None) || SyncGroup.ValidMarkers.Contains(MarkerStart.PreviousMarkerName);
+				const bool bEndMarkerValid = (MarkerStart.NextMarkerName == NAME_None) || SyncGroup.ValidMarkers.Contains(MarkerStart.NextMarkerName);
+
+				if (!bStartMarkerValid)
+				{
+					FString ErrorMsg = FString(TEXT("Prev Marker name not valid for sync group.\n"));
+					ErrorMsg += FString::Format(TEXT("\tMarker {0} : SyncGroupName {1} : Leader {2}\n"), { MarkerStart.PreviousMarkerName.ToString(), SyncGroupName.ToString(), LeaderAnimName });
+					ErrorMsg += FString::Format(TEXT("\tInitalPrev {0} : InitialNext {1} : GroupLeaderIndex {2}\n"), { InitialMarkerPrevious.ToString(), InitialMarkerEnd.ToString(), GroupLeaderIndex });
+					ErrorMsg += FString::Format(TEXT("\t Valid Markers : {0}\n"), { SyncGroup.ValidMarkers.Num() });
+					for (int32 MarkerIndex = 0; MarkerIndex < SyncGroup.ValidMarkers.Num(); ++MarkerIndex)
+					{
+						ErrorMsg += FString::Format(TEXT("\t\t{0}) '{1}'\n"), {MarkerIndex, SyncGroup.ValidMarkers[MarkerIndex].ToString()});
+					}
+					ensureMsgf(false, *ErrorMsg);
+					TickContext.InvalidateMarkerSync();
+				}
+				else if (!bEndMarkerValid)
+				{
+					FString ErrorMsg = FString(TEXT("Next Marker name not valid for sync group.\n"));
+					ErrorMsg += FString::Format(TEXT("\tMarker {0} : SyncGroupName {1} : Leader {2}\n"), { MarkerStart.NextMarkerName.ToString(), SyncGroupName.ToString(), LeaderAnimName });
+					ErrorMsg += FString::Format(TEXT("\tInitalPrev {0} : InitialNext {1} : GroupLeaderIndex {2}\n"), { InitialMarkerPrevious.ToString(), InitialMarkerEnd.ToString(), GroupLeaderIndex });
+					ErrorMsg += FString::Format(TEXT("\t Valid Markers : {0}\n"), { SyncGroup.ValidMarkers.Num() });
+					for (int32 MarkerIndex = 0; MarkerIndex < SyncGroup.ValidMarkers.Num(); ++MarkerIndex)
+					{
+						ErrorMsg += FString::Format(TEXT("\t\t{0}) '{1}'\n"), { MarkerIndex, SyncGroup.ValidMarkers[MarkerIndex].ToString() });
+					}
+					ensureMsgf(false, *ErrorMsg);
+					TickContext.InvalidateMarkerSync();
+				}
 			}
 
 			// Update everything else to follow the leader, if there is more followers
@@ -554,9 +663,9 @@ void FAnimInstanceProxy::TickAssetPlayerInstances(float DeltaSeconds)
 	}
 }
 
-void FAnimInstanceProxy::AddAnimNotifies(const TArray<const FAnimNotifyEvent*>& NewNotifies, const float InstanceWeight)
+void FAnimInstanceProxy::AddAnimNotifies(const TArray<FAnimNotifyEventReference>& NewNotifies, const float InstanceWeight)
 {
-	NotifyQueue.AddAnimNotifies(NewNotifies, InstanceWeight);
+	NotifyQueue.AddAnimNotifies(true, NewNotifies, InstanceWeight);
 }
 
 int32 FAnimInstanceProxy::GetSyncGroupIndexFromName(FName SyncGroupName) const
@@ -606,7 +715,7 @@ void FAnimInstanceProxy::AddAnimNotifyFromGeneratedClass(int32 NotifyIndex)
 	{
 		check(AnimClassInterface->GetAnimNotifies().IsValidIndex(NotifyIndex));
 		const FAnimNotifyEvent* Notify = &AnimClassInterface->GetAnimNotifies()[NotifyIndex];
-		NotifyQueue.AnimNotifies.Add(Notify);
+		NotifyQueue.AddAnimNotify(Notify, IAnimClassInterface::GetActualAnimClass(AnimClassInterface));
 	}
 }
 
@@ -683,7 +792,7 @@ void FAnimInstanceProxy::RegisterSlotNodeWithAnimInstance(const FName& SlotNodeN
 		if (IsInGameThread())
 		{
 			// message log access means we need to run this in the game thread
-		FMessageLog("AnimBlueprint").Warning(FText::Format(LOCTEXT("AnimInstance_SlotNode", "SLOTNODE: '{0}' in animation instance class {1} already exists. Remove duplicates from the animation graph for this class."), FText::FromString(SlotNodeName.ToString()), FText::FromString(ClassNameString)));
+		FMessageLog("AnimBlueprintLog").Warning(FText::Format(LOCTEXT("AnimInstance_SlotNode", "SLOTNODE: '{0}' in animation instance class {1} already exists. Remove duplicates from the animation graph for this class."), FText::FromString(SlotNodeName.ToString()), FText::FromString(ClassNameString)));
 		}
 		else
 		{
@@ -907,6 +1016,7 @@ void FAnimInstanceProxy::UpdateAnimation()
 void FAnimInstanceProxy::PreEvaluateAnimation(UAnimInstance* InAnimInstance)
 {
 	InitializeObjects(InAnimInstance);
+	LoggedMessagesMap.FindOrAdd("Evaluate").Reset();
 }
 
 void FAnimInstanceProxy::EvaluateAnimation(FPoseContext& Output)

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -14,7 +14,7 @@ class ACameraActor;
 /**
  * 
  */
-UCLASS()
+UCLASS(meta=(ScriptName="AutomationLibrary"))
 class FUNCTIONALTESTING_API UAutomationBlueprintFunctionLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
@@ -126,6 +126,8 @@ private:
 	FConsoleVariableSwapperTempl<int32> ScreenSpaceReflectionQuality;
 	FConsoleVariableSwapperTempl<int32> EyeAdaptationQuality;
 	FConsoleVariableSwapperTempl<int32> ContactShadows;
+	FConsoleVariableSwapperTempl<float> TonemapperGamma;
+	FConsoleVariableSwapperTempl<float> SecondaryScreenPercentage;
 };
 
 #endif

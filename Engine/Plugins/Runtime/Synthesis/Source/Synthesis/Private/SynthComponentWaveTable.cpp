@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SynthComponents/SynthComponentWaveTable.h"
 #include "AudioDecompress.h"
@@ -19,12 +19,13 @@ USynthSamplePlayer::~USynthSamplePlayer()
 {
 }
 
-void USynthSamplePlayer::Init(const int32 SampleRate)
+bool USynthSamplePlayer::Init(int32& SampleRate)
 {
 	NumChannels = 2;
 
 	SampleBufferReader.Init(SampleRate);
 	SoundWaveLoader.Init(GetAudioDevice());
+	return true;
 }
 
 void USynthSamplePlayer::SetPitch(float InPitch, float InTimeSec)
@@ -153,7 +154,7 @@ void USynthSamplePlayer::OnGenerateAudio(float* OutAudio, int32 NumSamples)
 		const int32 BufferNumChannels = SampleBuffer.GetNumChannels();
 		const int32 BufferSampleRate = SampleBuffer.GetSampleRate();
 		SampleBufferReader.SetBuffer(&BufferData, BufferNumSamples, BufferNumChannels, BufferSampleRate);
-		SampleDurationSec = BufferNumSamples / BufferSampleRate;
+		SampleDurationSec = BufferNumSamples / (BufferSampleRate * BufferNumChannels);
 	}
 
 	if (SampleBufferReader.HasBuffer())

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SoundBaseDetails.h"
 #include "Sound/SoundBase.h"
@@ -25,6 +25,9 @@ void FSoundBaseDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		Property->MarkHiddenByCustomization();
 
 		Property = DetailBuilder.GetProperty("BusSends", USoundBase::StaticClass());
+		Property->MarkHiddenByCustomization();
+
+		Property = DetailBuilder.GetProperty("PreEffectBusSends", USoundBase::StaticClass());
 		Property->MarkHiddenByCustomization();
 	}
 }

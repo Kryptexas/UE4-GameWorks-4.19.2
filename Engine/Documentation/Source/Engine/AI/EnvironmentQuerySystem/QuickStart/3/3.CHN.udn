@@ -21,9 +21,9 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [INCLUDE:Engine/AI/BehaviorTrees/QuickStart/2#aicreatenav]
 
-%Steps%
+
 

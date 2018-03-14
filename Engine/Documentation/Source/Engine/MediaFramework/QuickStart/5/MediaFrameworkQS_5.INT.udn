@@ -1,0 +1,175 @@
+Availability:Public
+Crumbs: %ROOT%
+Title:5 - TV Blueprint Functionality & Testing
+Description:In this step, we finish off the functionality for our TV Blueprint and test everything out in the level. 
+SkillLevel:Beginner
+Version:4.18
+checkpoint: mediaframeworkqs
+parent:Engine/MediaFramework/QuickStart
+type:quick start
+type:multi-step
+order:5
+tags:Media Framework
+tags:Blueprints
+ 
+[NAV]
+
+In this step, we continue in the TV Blueprint and provide the functionality for the player to approach the TV, turn it on or off as well as pause and start playback. 
+By the end of this step, the goal is to have multiple TVs (with each TV showing unique content) in our Level. 
+To accomplish our goal for this step, we'll place multiple TVs in our Level and use the **Details** panel to change what content we want to appear on each TV. 
+
+## Steps
+
+1. Inside the **TV_Blueprint**, click on the **Event Graph** tab below the Main Toolbar. 
+
+	![](Event_01.png)
+
+1. In the **Components** window, select the **Box**. In the **Details** panel, add both the **On Component Begin Overlap** and **On Component End Overlap** Events.
+
+	![](Event_02.png)
+
+	This will generate [events](Engine/Blueprints/UserGuide/Events/) which we can use to enable the player to press a button and affect the TV Blueprint. 
+
+1. In the graph, right-click and add **Get Player Controller**, **Enable Input**, and **Disable Input** nodes, connecting them as shown.
+
+	![](Event_03.png)
+
+	When the player enters the box's collision volume, they will be able to affect this Blueprint with keyboard input. After leaving the volume, they will not. 
+
+1.	In the graph, right-click and add an **O** and **P** keyboard event and two **Flip Flop** nodes. Connect as shown. 
+
+	![](Event_04.png)
+
+	We are going to set it up so that when the player presses the **O** key, we will turn on or off the TV, and the **P** key will pause or resume playback.
+
+1.	In the **My Blueprint** panel, create a variable called **MediaPlayerForVideo**. 
+
+1.	In the **Details** panel for the new variable, set the **Variable Type** to **Media Player Object Reference**, **Instance Editable** and set the **Default Value** to **MediaPlayer_01**. 
+
+	![](Event_05.png)
+
+	In order to play our video content at runtime, we need to tell our Media Player Asset to open a Media Source. Before we can do that we need a reference to the Media Player we want to talk to and by making this **Instance Editable**, we can define which Media Player we are going to talk to (allowing us to have multiple players and content in our level).
+
+1.	Hold **Ctrl** and drag the **MediaPlayerForVideo** variable into the graph, then drag off it and use the **Open Source** function call. 
+
+	![](Event_06.png)
+
+1.	On the **Open Source** node, set the **Media Source** to **Video_01**, then right-click on it and select **Promote to Variable**. Call this variable **SourceToOpen**. 
+
+	![](Event_07.png)
+
+	[REGION:caption]Here, we are creating a variable for the Media Source so that we may choose a different Media Source to play.[/REGION]
+
+	[REGION:tip]
+	Setting the value of a property, then choosing **Promote to Variable** will automatically create a variable and assign your value as the Default Value.
+	[/REGION]
+
+1.	On the **SourceToOpen** variable, enable the **Instance Editable** option. 
+
+	![](Event_08.png)
+
+	This will enable us to set which source to open for each instance of the TV we have placed in the Level. 
+
+1.	In the graph, off the **Media Player For Video** node, use the **Close** function call and connect each to the **FlipFlop** node. 
+
+	![](Event_09.png)
+
+	[REGION:caption]When the player presses the **O** key, they will open the specified Media Source (turning on the TV). Pressing **O** again will close the Media Player (turning the TV off).[/REGION]
+
+	[REGION:note]
+	Our Media Player is set to **Play on Open**. Therefore, when we open a source, the player will start playing the source content automatically.
+	[/REGION]
+
+1.	For the **P** keyboard event, add the **MediaPlayerForVideo** variable then drag off it and call both **Pause** and **Play** functions, connecting them as shown. 
+
+	![](Event_10.png)
+
+	Similar to how we open a Media Source, when the player presses the **P** key, they will pause the Media Player, and pressing **P** again will resume play.
+
+1.	Close the **TV_Blueprint**, then in the **Content Browser**, drag the **TV_Blueprint** into the Level and resize using the transform tools as desired. 
+
+	![](Event_11.png)
+
+	In the **Details** panel, you will see all of the exposed properties that we can change for our TV. 
+
+	![](Event_12.png)
+
+	These properties will enable us to change the video/audio associated with the TV, but first, we need another Media Source. 
+
+1.	Right-click inside the **Content Browser** in the **Content/Movies** folder, then, under **Media**, select **Stream Media Source** and call it **Video_2**. 
+
+	![](Event_13.png)
+
+	In addition to local media files, Media Framework also supports streaming video (in a [supported](Engine\MediaFramework\TechReference\) format) from the Internet with the **Stream Media Source** Asset type.
+
+1.	Open the **Video_2** Asset, then right-click this [Sample Video Stream](https://docs.unrealengine.com/latest/attachments/Engine/MediaFramework/HowTo/StreamMediaSource/Infiltrator%20Demo.mp4) and **Copy link address** then paste the link in the **Stream URL** field.
+
+	![](Event_14.png)
+
+	[REGION:warning]
+	As of version 4.18, YouTube links are not yet supported. Please see the [](Engine\MediaFramework\TechReference\) page for supported formats. 
+	[/REGION]
+
+1.	Inside the **Content Browser** in the **Content/Movies** folder right-click and create another **Media Player** Asset. 
+
+	![](Event_15.png)
+
+	We can use this Media Player to play content on an additional TV inside the Level. 
+
+1.	In the **Create Media Player** window, make sure to enable **Video Output Media Texture Asset**, then call the Media Player **MediaPlayer_02**.  
+
+	![](Event_16.png)
+
+	This will automatically create and name our Media Texture and Media Player Assets. 
+	
+1.	In the Level, create a copy of the **TV_Blueprint**. In the **Details** panel, change the properties below. 
+
+	![](Event_17.png)
+
+	Set the following: 
+
+	* **Texture for TV** - _MediaPlayer_02_Video_
+	* **Media Player for Sound** - _MediaPlayer_02_
+	* **Media Player for Video** - _MediaPlayer_02_
+	* **Source to Open** - _Video_2_
+
+	Here we are changing which Media Player, Media Texture, Media Sound and Media Source to open to our newly created Media Framework content and streaming video. 
+
+1.	Click the **Play** button from the Main Toolbar to play in the Level. 
+
+## End Result
+
+When you approach one of the TVs, pressing the **O** key will open the specified Media Source (turning it on). Pressing **O** again will close the Media Source (turning it off).
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	LEX8rd9e_ik
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+[REGION:caption]
+You can also press the **P** key to pause or resume playback of a video on each TV. 
+[/REGION]
+
+Our setup is complete and we have a TV Blueprint where we can change the content and associated Media Framework Assets for each instance in our Level. This is useful if you have multiple TVs in a Level that need to have different content on them and can be interacted with independently of one another. We also learned how to generate a Material that incorporates a Media Texture Asset, and used some Blueprint Function calls to control the playback and opening of our Media Player and Media Source Assets.
+
+In the next step, you will find some additional resources for Media Framework and other elements that you can try on your own. 
+
+[NAV]
+
+
+
+
+

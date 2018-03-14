@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,8 +6,9 @@
 #include "Misc/IQueuedWork.h"
 
 class FImgMediaLoader;
-class IImgMediaLoader;
 class IImgMediaReader;
+
+struct FImgMediaFrame;
 
 
 /**
@@ -24,20 +25,9 @@ public:
 	 * @param InOwner The loader that created this work item.
 	 * @param InReader The image reader to use.
 	 */
-	FImgMediaLoaderWork(IImgMediaLoader& InOwner, const TSharedRef<IImgMediaReader, ESPMode::ThreadSafe>& InReader);
+	FImgMediaLoaderWork(const TSharedRef<FImgMediaLoader, ESPMode::ThreadSafe>& InOwner, const TSharedRef<IImgMediaReader, ESPMode::ThreadSafe>& InReader);
 
 public:
-
-	/**
-	 * Delete this work item when it is done.
-	 *
-	 * This method will mark the work item for shutdown. When the work is
-	 * completed, the work item will automatically delete itself. No other
-	 * methods may be called on this object after calling this one.
-	 *
-	 * @see Initialize
-	 */
-	void DeleteWhenDone();
 
 	/**
 	 * Initialize this work item.
@@ -55,16 +45,16 @@ public:
 	virtual void Abandon() override;
 	virtual void DoThreadedWork() override;
 
+protected:
+
+	/**
+	 * Notify the owner of this work item, or self destruct.
+	 *
+	 * @param Frame The frame that was loaded by this work item.
+	 */
+	void Finalize(FImgMediaFrame* Frame);
+
 private:
-
-	/** Whether the work item should delete itself after it is complete. */
-	bool AutoDelete;
-
-	/** Whether the work was done. */
-	bool Done;
-
-	/** Critical section for synchronizing access to Owner. */
-	FCriticalSection CriticalSection;
 
 	/** The number of the image frame. */
 	int32 FrameNumber;
@@ -73,7 +63,7 @@ private:
 	FString ImagePath;
 
 	/** The loader that created this reader task. */
-	IImgMediaLoader& Owner;
+	TWeakPtr<FImgMediaLoader, ESPMode::ThreadSafe> OwnerPtr;
 
 	/** The image sequence reader to use. */
 	TSharedPtr<IImgMediaReader, ESPMode::ThreadSafe> Reader;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SGitSourceControlSettings.h"
 #include "Fonts/SlateFontInfo.h"
@@ -254,8 +254,8 @@ void SGitSourceControlSettings::Construct(const FArguments& InArgs)
 			]
 			// Button to initialize the project with Git, create .gitignore/.gitattributes files, and make the first commit)
 			+SVerticalBox::Slot()
-			.FillHeight(2.0f)
-			.Padding(2.5f)
+			.FillHeight(2.5f)
+			.Padding(4.0f)
 			.VAlign(VAlign_Center)
 			[
 				SNew(SHorizontalBox)

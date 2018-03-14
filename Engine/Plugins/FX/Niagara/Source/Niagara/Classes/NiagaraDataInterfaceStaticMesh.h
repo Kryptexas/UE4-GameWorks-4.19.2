@@ -1,26 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "NiagaraDataInterface.h"
-#include "NiagaraCommon.h"
-#include "VectorVM.h"
+#include "NiagaraDataInterfaceMeshCommon.h"
 #include "StaticMeshResources.h"
 #include "Engine/StaticMesh.h"
 #include "NiagaraDataInterfaceStaticMesh.generated.h"
-
-//A coordinate on a mesh usable in Niagara.
-//Do not alter this struct without updating the data interfaces that use it!
-USTRUCT()
-struct FMeshTriCoordinate
-{
-	GENERATED_USTRUCT_BODY();
-	
-	UPROPERTY(EditAnywhere, Category="Coordinate")
-	int32 Tri;
-
-	UPROPERTY(EditAnywhere, Category="Coordinate")
-	FVector BaryCoord;
-};
 
 struct FNDIStaticMesh_InstanceData;
 struct FNDIStaticMeshSectionFilter;
@@ -91,9 +75,9 @@ struct FNDIStaticMesh_InstanceData
 
 	FORCEINLINE UStaticMesh* GetActualMesh()const { return Mesh; }
 	FORCEINLINE bool UsesAreaWeighting()const { return bIsAreaWeightedSampling; }
-	FORCEINLINE bool MeshHasPositions()const { return Mesh && Mesh->RenderData->LODResources[0].PositionVertexBuffer.GetNumVertices() > 0; }
-	FORCEINLINE bool MeshHasVerts()const { return Mesh && Mesh->RenderData->LODResources[0].VertexBuffer.GetNumVertices() > 0; }
-	FORCEINLINE bool MeshHasColors()const { return Mesh && Mesh->RenderData->LODResources[0].ColorVertexBuffer.GetNumVertices() > 0; }
+	FORCEINLINE bool MeshHasPositions()const { return Mesh && Mesh->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer.GetNumVertices() > 0; }
+	FORCEINLINE bool MeshHasVerts()const { return Mesh && Mesh->RenderData->LODResources[0].VertexBuffers.StaticMeshVertexBuffer.GetNumVertices() > 0; }
+	FORCEINLINE bool MeshHasColors()const { return Mesh && Mesh->RenderData->LODResources[0].VertexBuffers.ColorVertexBuffer.GetNumVertices() > 0; }
 
 	FORCEINLINE_DEBUGGABLE bool ResetRequired()const;
 
@@ -145,7 +129,6 @@ public:
 
 	virtual void GetFunctions(TArray<FNiagaraFunctionSignature>& OutFunctions)override;
 	virtual FVMExternalFunction GetVMExternalFunction(const FVMExternalFunctionBindingInfo& BindingInfo, void* InstanceData)override;
-	virtual bool CopyTo(UNiagaraDataInterface* Destination) const override;
 	virtual bool Equals(const UNiagaraDataInterface* Other) const override;
 	virtual bool CanExecuteOnTarget(ENiagaraSimTarget Target)const override { return Target == ENiagaraSimTarget::CPUSim; }
 public:
@@ -188,6 +171,10 @@ public:
 
 	//TODO: Vertex color filtering requires a bit more work.
 	//FORCEINLINE bool UsesVertexColorFiltering()const { return bSupportingVertexColorSampling && bEnableVertexColorRangeSorting; }
+
+protected:
+	virtual bool CopyToInternal(UNiagaraDataInterface* Destination) const override;
+
 private:
 	
 	template<typename TAreaWeighted, bool bFiltered>

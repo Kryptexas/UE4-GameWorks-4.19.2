@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3590438
+﻿INTSourceChangelist:3782314
 Availability:Public
 Crumbs:
 Title:클로딩 툴
@@ -176,10 +176,10 @@ NVIDIA 의 PhysX DCC 플러그인을 사용해서 3DS Max 또는 Maya 용 클로
 
 **Tool* (툴) 선택에서 페인트 클로스에 사용할 수 있는 브러시를 선택할 수 있습니다.
 
-* [Brush](#brush)
-* [Gradient](#gradient)
-* [Smooth](#smooth)
-* [Fill](#fill)
+* [브러시](#브러시)
+* [그레디언트](#그레디언트)
+* [스무드](#스무드)
+* [채우기](#채우기)
 
 
 ### 브러시
@@ -289,7 +289,9 @@ NVIDIA 의 PhysX DCC 플러그인을 사용해서 3DS Max 또는 Maya 용 클로
 * **Max Distance** (최대 거리)는 클로스 상의 한 점이 그 애니메이션 위치에서 이동할 수 있는 최대 거리입니다.
 * **Backstop Distance** (백스탑 거리)는 클로스 상의 한 점에서 Max Distance 거리 내 이동을 제한시키는 데 사용되는 오프셋입니다.
 * **Backstop Radius** (백스탑 반경)은 Max Distance 와 교차시킨 구체 반경을 사용하여 클로스 상에 칠한 점이 그 구역 안으로 들어가지 못하도록 막습니다.
-<!--- http://wiki.fitnect.hu/index.php/PhysX_setup --->
+[COMMENT:none]
+- http://wiki.fitnect.hu/index.php/PhysX_setup -
+[/COMMENT]
 
 이 **타겟** 각각은 여러 개 있을 수 있지만, 한 번에 오직 하나만 할당할 수 있습니다. 덕분에 여러가지 다양한 환경설정을 파괴적이지 않은 방식으로 매우 빠르게 테스트할 수 있습니다.
 
@@ -312,7 +314,8 @@ NVIDIA 의 PhysX DCC 플러그인을 사용해서 3DS Max 또는 Maya 용 클로
 [/REGION]
 
 
-<!--- SAVE FOR 4.18 Release Update ------- 
+[COMMENT:none]
+- SAVE FOR 4.18 Release Update ------- 
 
 ### 레벨 오브 디테일 (LOD)
 
@@ -372,7 +375,8 @@ LOD0 메시를 다시 칠하지만 모든 LOD 메시까지 다시 칠하고 싶�
 [/OBJECT]
 [/EXCERPT:lod0]
 
-----  SAVE FOR 4.18 Release Update --->
+----  SAVE FOR 4.18 Release Update -
+[/COMMENT]
 
 
 [EXCERPT:lod1]
@@ -406,7 +410,8 @@ LOD0 메시를 다시 칠하지만 모든 LOD 메시까지 다시 칠하고 싶�
 같이 생성됩니다.
 
 
-<!---
+[COMMENT:none]
+-
 
 [EXCERPT:oldworkflow]
 [REGION:lightbox]
@@ -428,7 +433,8 @@ _이미지를 클릭하면 원본을 확인합니다._
 [/REGION]
 [/EXCERPT:clickimage]
 
---->
+-
+[/COMMENT]
 
 
 

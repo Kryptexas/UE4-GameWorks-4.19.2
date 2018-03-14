@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SourcesViewWidgets.h"
 #include "Widgets/Images/SImage.h"
@@ -74,7 +74,7 @@ void SAssetTreeItem::Construct( const FArguments& InArgs )
 				SAssignNew(InlineRenameWidget, SInlineEditableTextBlock)
 					.Text(this, &SAssetTreeItem::GetNameText)
 					.ToolTipText(this, &SAssetTreeItem::GetToolTipText)
-					.Font( FEditorStyle::GetFontStyle(bIsRoot ? "ContentBrowser.SourceTreeRootItemFont" : "ContentBrowser.SourceTreeItemFont") )
+					.Font( InArgs._FontOverride.IsSet() ? InArgs._FontOverride : FEditorStyle::GetFontStyle(bIsRoot ? "ContentBrowser.SourceTreeRootItemFont" : "ContentBrowser.SourceTreeItemFont") )
 					.HighlightText( InArgs._HighlightText )
 					.OnTextCommitted(this, &SAssetTreeItem::HandleNameCommitted)
 					.OnVerifyTextChanged(this, &SAssetTreeItem::VerifyNameChanged)

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -306,10 +306,10 @@ public:
 	void OnParamsChanged(UK2Node_EditablePinBase* TargetNode, bool bForceRefresh = false);
 
 	/** Checks if the pin rename can occur */
-	bool OnVerifyPinRename(UK2Node_EditablePinBase* InTargetNode, const FString& InOldName, const FString& InNewName, FText& OutErrorMessage);
+	bool OnVerifyPinRename(UK2Node_EditablePinBase* InTargetNode, const FName InOldName, const FString& InNewName, FText& OutErrorMessage);
 
 	/** Refreshes the graph and ensures the target node is up to date */
-	bool OnPinRenamed(UK2Node_EditablePinBase* TargetNode, const FString& OldName, const FString& NewName);
+	bool OnPinRenamed(UK2Node_EditablePinBase* TargetNode, const FName OldName, const FString& NewName);
 	
 	/** Gets the blueprint we're editing */
 	TWeakPtr<SMyBlueprint> GetMyBlueprint() const {return MyBlueprint.Pin();}

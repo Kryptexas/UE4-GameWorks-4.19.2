@@ -76,7 +76,9 @@ public:
 	virtual FVector GetDirection() const override;
 	virtual void GetRadius(float& OutEnterRadius, float& OutExitRadius) const override;
 	virtual float GetMaxPointerDistance() const override;
+	virtual float GetDefaultReticleDistance() const override;
 	virtual bool IsPointerActive() const override;
+	virtual EGoogleVRPointerInputMode GetPointerInputMode() const override;
 
 	/** ActorComponent Overrides */
 	virtual void OnRegister() override;

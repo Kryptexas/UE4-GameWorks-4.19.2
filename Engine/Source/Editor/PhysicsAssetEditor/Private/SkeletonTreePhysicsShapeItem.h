@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,8 +22,11 @@ public:
 	/** ISkeletonTreeItem interface */
 	virtual void GenerateWidgetForNameColumn(TSharedPtr< SHorizontalBox > Box, const TAttribute<FText>& FilterText, FIsSelected InIsSelected) override;
 	virtual TSharedRef< SWidget > GenerateWidgetForDataColumn(const FName& DataColumnName) override;	
-	virtual FName GetRowItemName() const override { return RowItemName; }
+	virtual FName GetRowItemName() const override { FString NameAsString = GetNameAsString(); return *NameAsString; }
 	virtual UObject* GetObject() const override { return BodySetup; }
+	virtual bool CanRenameItem() const override { return true; }
+	virtual void RequestRename() override;
+	virtual void OnItemDoubleClicked() override;
 
 	/** Get the index of the body setup in the physics asset */
 	int32 GetBodySetupIndex() const { return BodySetupIndex; }
@@ -35,14 +38,25 @@ public:
 	int32 GetShapeIndex() const { return ShapeIndex; }
 
 private:
+	/** Get the text to display for this item */
+	FText GetNameAsText() const;
+
+	/** Get the text to display for this item */
+	FString GetNameAsString() const;
+
+	/** Handle the shape being renamed */
+	void HandleTextCommitted(const FText& InText, ETextCommit::Type InCommitType);
+
+private:
+	/** Delegate for when the context menu requests a rename */
+	DECLARE_DELEGATE(FOnRenameRequested);
+	FOnRenameRequested OnRenameRequested;
+
 	/** The body setup we are representing part of */
 	USkeletalBodySetup* BodySetup;
 
 	/** The label we display in the tree */
-	FName Label;
-
-	/** The name of the bone that this body is bound to, as well as the primitive type, for searching */
-	FName RowItemName;
+	FName DefaultLabel;
 
 	/** The index of the body setup in the physics asset */
 	int32 BodySetupIndex;

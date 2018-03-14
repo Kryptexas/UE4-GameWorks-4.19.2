@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemImpl.h"
 #include "Containers/Ticker.h"
@@ -253,6 +253,11 @@ bool FOnlineSubsystemImpl::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice
 	}
 	
 	return bWasHandled;
+}
+
+bool FOnlineSubsystemImpl::IsEnabled() const
+{
+	return IOnlineSubsystem::IsEnabled(SubsystemName);
 }
 
 void FOnlineSubsystemImpl::DumpReceipts(const FUniqueNetId& UserId)

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3481084
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:유니티 개발자를 위한 언리얼 엔진 4
 Crumbs: %ROOT%, GettingStarted
@@ -262,12 +262,12 @@ UE4 의 멋진 기능이라면, 새로운 액터 블루프린트 클래스는 �
 블루프린트 클래스가 비주얼 스크립트를 지원하는 것에 추가로, UE4 는 코드로 구현되는 C++ 클래스도 지원합니다. 양쪽에 놓고 보면 이렇습니다.
 
 
-| 유니티 C# | UE4 C++ |
-| --- | --- | 
-|[INCLUDE:GettingStarted/FromUnity#csharp_unity]| [INCLUDE:GettingStarted/FromUnity#cpp_ue4] | 
+| 유니티 C# | UE4 C++ | UE4 블루프린트 |
+| --- | --- | --- |
+|[INCLUDE:GettingStarted/FromUnity#csharp_unity]| [INCLUDE:GettingStarted/FromUnity#cpp_ue4] |[REGION:lightbox][![](image_28.png)(w:220)](image_28.png)[/REGION]|
+																							   
+[COMMENT:none]
 
-
-<!--
 [EXCERPT:csharp_Unity]
 	using UnityEngine;
 	using System.Collections;
@@ -326,12 +326,8 @@ UE4 의 멋진 기능이라면, 새로운 액터 블루프린트 클래스는 �
 		}
 	};
 [/EXCERPT:cpp_UE4]
--->
 
-
-| UE4 블루프린트| 
-| --- |
-|![](image_28.png)| 
+[/COMMENT] 
 
 ### UE4 블루프린트 클래스는 확장 가능
 
@@ -622,7 +618,8 @@ UE4 C++:
 |[INCLUDE:GettingStarted/FromUnity#gameobject_unity]| [INCLUDE:GettingStarted/FromUnity#gameobject_cpp] | [INCLUDE:GettingStarted/FromUnity#gameobject_bp] |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:gameObject_Unity]
 	Destroy(MyGameObject);
 [/EXCERPT:gameObject_Unity]
@@ -634,7 +631,8 @@ UE4 C++:
 [EXCERPT:gameObject_bp]
 ![](image_23.png)
 [/EXCERPT:gameObject_bp]
--->
+
+[/COMMENT]
 
 
 
@@ -648,7 +646,8 @@ UE4 C++:
 |[INCLUDE:GettingStarted/FromUnity#destroy_unity]| [INCLUDE:GettingStarted/FromUnity#destroy_cpp] | [INCLUDE:GettingStarted/FromUnity#destroy_bp] |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:destroy_Unity]
 	Destroy(MyGameObject, 1);
 [/EXCERPT:destroy_Unity]
@@ -664,7 +663,8 @@ UE4 C++:
 
 _클릭하면 원래 크기로 봅니다._
 [/EXCERPT:destroy_bp]
--->
+
+[/COMMENT]
 
 
 #### 게임오브젝트 / 액터 비활성화
@@ -676,7 +676,8 @@ _클릭하면 원래 크기로 봅니다._
 |[INCLUDE:GettingStarted/FromUnity#disable_unity]| [INCLUDE:GettingStarted/FromUnity#disable_cpp] | [INCLUDE:GettingStarted/FromUnity#disable_bp] |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:disable_Unity]
 	MyGameObject.SetActive(false);
 [/EXCERPT:disable_Unity]
@@ -699,7 +700,8 @@ _클릭하면 원래 크기로 봅니다._
 
 _클릭하면 원래 크기로 봅니다._
 [/EXCERPT:disable_bp]
--->
+
+[/COMMENT]
 
 #### 컴포넌트에서 게임오브젝트 / 액터 접근
 
@@ -710,7 +712,8 @@ _클릭하면 원래 크기로 봅니다._
 | [INCLUDE:GettingStarted/FromUnity#go1_unity] | [INCLUDE:GettingStarted/FromUnity#go1_cpp] | [INCLUDE:GettingStarted/FromUnity#go1_bp] |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:go1_Unity]
 	GameObject ParentGO = 
 	MyComponent.gameObject; 
@@ -727,18 +730,21 @@ _클릭하면 원래 크기로 봅니다._
 [/REGION]
 _클릭하면 원래 크기로 봅니다._
 [/EXCERPT:go1_bp]
--->
+
+[/COMMENT]
 
 
 #### 게임오브젝트 / 액터에서 컴포넌트 접근
 
-<!--
+[COMMENT:none]
+
 | 메소드 | 샘플 |
 | --- | --- |
 | 유니티 | [INCLUDE:GettingStarted/FromUnity#go2_unity]| 
 | C++ | [INCLUDE:GettingStarted/FromUnity#go2_cpp] | 
 | 블루프린트 | [INCLUDE:GettingStarted/FromUnity#go2_bp] | 
--->
+
+[/COMMENT]
 
 **유니티** 
 	MyComponent MyComp = gameObject.GetComponent<MyComponent>();
@@ -755,7 +761,8 @@ _클릭하면 원래 크기로 봅니다._
 
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:go2_Unity]
 	MyComponent MyComp = gameObject.GetComponent<MyComponent>();
 [/EXCERPT:go2_Unity]
@@ -770,7 +777,8 @@ _클릭하면 원래 크기로 봅니다._
 [/REGION]
 _클릭하면 원래 크기로 봅니다._
 [/EXCERPT:go2_bp]
--->
+
+[/COMMENT]
 
 
 #### 게임오브젝트 / 액터 찾기
@@ -1142,9 +1150,7 @@ UE4 의 로그는 입맛대로 바꿀 수 있는 부분이 많습니다. 메시�
 
     * 시작하기 - [](GettingStarted)
 
-* 튜토리얼 비디오 - [비디오](https://wiki.unrealengine.com/Videos)
-
-* 네이버 카페 - [http://cafe.naver.com/unrealenginekr](http://cafe.naver.com/unrealenginekr)
+* 튜토리얼 비디오 - [비디오](https://wiki.unrealengine.com/Videos) & [네이버 카페 ](http://cafe.naver.com/unrealenginekr)
 
 * API - [API](https://docs.unrealengine.com/latest/INT/API/index.html)
 

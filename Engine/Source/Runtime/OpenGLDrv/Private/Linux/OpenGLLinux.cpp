@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLLinux.cpp: OpenGL context management on Linux
@@ -20,6 +20,7 @@ namespace GLFuncPointers	// see explanation in OpenGLLinux.h why we need the nam
 {
 	ENUM_GL_ENTRYPOINTS_ALL(DEFINE_GL_ENTRYPOINTS);
 };
+#undef DEFINE_GL_ENTRYPOINTS
 
 typedef SDL_Window*		SDL_HWindow;
 typedef SDL_GLContext	SDL_HGLContext;
@@ -120,8 +121,15 @@ void Linux_PlatformCreateDummyGLWindow( FPlatformOpenGLContext *OutContext )
 											SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS | SDL_WINDOW_HIDDEN | SDL_WINDOW_SKIP_TASKBAR );
 	if (DummyWindow == nullptr)
 	{
-		UE_LOG(LogLinux, Fatal, TEXT("Cannot create dummy GL window for shared context."));
+		FString SdlError(UTF8_TO_TCHAR(SDL_GetError()));
+
+		FText ErrorMessage = FText::Format(NSLOCTEXT("Renderer", "LinuxCannotCreatePlatformWindow", "Cannot create OpenGL-enabled SDL window. SDL error: '{0}'."), FText::FromString(SdlError));
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok,
+			*ErrorMessage.ToString(),
+			*(NSLOCTEXT("Renderer", "LinuxCannotCreatePlatformWindowTitle", "Cannot create SDL window.").ToString()));
+		FPlatformMisc::RequestExit(true);
 		// unreachable
+		return;
 	}
 	else
 	{
@@ -204,7 +212,7 @@ void Linux_PlatformCreateOpenGLContextCore(FPlatformOpenGLContext* OutContext)
 	OutContext->hGLContext = SDL_GL_CreateContext( OutContext->hWnd );
 	if (OutContext->hGLContext == nullptr)
 	{
-		FString SdlError(ANSI_TO_TCHAR(SDL_GetError()));
+		FString SdlError(UTF8_TO_TCHAR(SDL_GetError()));
 		
 		// ignore errors getting version, it will be clear from the logs
 		int OpenGLMajorVersion = -1;
@@ -859,11 +867,13 @@ bool PlatformInitOpenGL()
 			#define GET_GL_ENTRYPOINTS(Type,Func) GLFuncPointers::Func = reinterpret_cast<Type>(SDL_GL_GetProcAddress(#Func));
 			ENUM_GL_ENTRYPOINTS(GET_GL_ENTRYPOINTS);
 			ENUM_GL_ENTRYPOINTS_OPTIONAL(GET_GL_ENTRYPOINTS);
-		
+			#undef GET_GL_ENTRYPOINTS
+
 			// Check that all of the entry points have been initialized.
 			bool bFoundAllEntryPoints = true;
 			#define CHECK_GL_ENTRYPOINTS(Type,Func) if (Func == NULL) { bFoundAllEntryPoints = false; UE_LOG(LogRHI, Fatal, TEXT("Failed to find entry point for %s"), TEXT(#Func)); }
 			ENUM_GL_ENTRYPOINTS(CHECK_GL_ENTRYPOINTS);
+			#undef CHECK_GL_ENTRYPOINTS
 			checkf(bFoundAllEntryPoints, TEXT("Failed to find all OpenGL entry points."));
 		}
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // Module includes
 #include "OnlineSharingFacebook.h"
@@ -206,7 +206,7 @@ JNI_METHOD void Java_com_epicgames_ue4_FacebookLogin_nativeRequestReadPermission
 	FString AccessToken = FString(UTF8_TO_TCHAR(charsAccessToken));
 	jenv->ReleaseStringUTFChars(accessToken, charsAccessToken);
 
-	UE_LOG_ONLINE(VeryVerbose, TEXT("nativeRequestReadPermissionsComplete Response: %d Token: %s"), LoginResponse, *AccessToken);
+	UE_LOG_ONLINE(VeryVerbose, TEXT("nativeRequestReadPermissionsComplete Response: %d Token: %s"), (int)LoginResponse, *AccessToken);
 
 	DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.ProcessFacebookReadPermissions"), STAT_FSimpleDelegateGraphTask_ProcessFacebookReadPermissions, STATGROUP_TaskGraphTasks);
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
@@ -265,7 +265,7 @@ JNI_METHOD void Java_com_epicgames_ue4_FacebookLogin_nativeRequestPublishPermiss
 	FString AccessToken = FString(UTF8_TO_TCHAR(charsAccessToken));
 	jenv->ReleaseStringUTFChars(accessToken, charsAccessToken);
 
-	UE_LOG_ONLINE(VeryVerbose, TEXT("nativeRequestPublishPermissionsComplete Response: %d Token: %s"), LoginResponse, *AccessToken);
+	UE_LOG_ONLINE(VeryVerbose, TEXT("nativeRequestPublishPermissionsComplete Response: %d Token: %s"), (int)LoginResponse, *AccessToken);
 
 	DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.ProcessFacebookPublishPermissions"), STAT_FSimpleDelegateGraphTask_ProcessFacebookPublishPermissions, STATGROUP_TaskGraphTasks);
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(

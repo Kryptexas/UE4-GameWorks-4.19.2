@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3339965
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:5.Base Damage ブループリントを作成する
 Crumbs:%ROOT%
@@ -12,7 +12,9 @@ topic-image:Modding/RoboRecall/RoboRecall_Topic.png
 social-image:Modding/RoboRecall/RoboRecall_Social.png
 checkpoint:mod_extend
 
-<!-- Location:---->
+[COMMENT:none]
+ Location:Modding/RoboRecall/Quickstarts/WeaponMod/5 
+[/COMMENT]
 
 [NAV]
 
@@ -51,8 +53,8 @@ checkpoint:mod_extend
 	**Ammo Remaining** は、ピストルの基本クラスの一部である変数です。 **Get Ammo Remaining** を検索すると見つかります。**Multiply** ノードは実際には **Int * Float** ノードであり、**Int * Float** を検索して見つけることができます。最後に **Addition** ノードは **Float + Float** を検索すると見つかります。
 
 1. ガンを一度だけ爆発させます。そのためには、**Do Once** ノードを **Branch** ノードの **True** ピンに接続します。
-	![image alt text](image_5.png)(w:934 h:236 convert:false)
 
+	![image alt text](image_5.png)(w:934 h:236 convert:false)
 
 1. **Self** ノードと **Get Player Controller** ノードが必要です。
 
@@ -97,7 +99,8 @@ checkpoint:mod_extend
 
 [NAV]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:snippet]
 	Begin Object Class=K2Node_Event Name="K2Node_Event_3"
 
@@ -391,5 +394,6 @@ checkpoint:mod_extend
 
 	End Object
 [/EXCERPT:snippet]
--->
+
+[/COMMENT]
 

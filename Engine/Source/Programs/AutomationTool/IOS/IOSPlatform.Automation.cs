@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -153,6 +153,7 @@ public class IOSPlatform : Platform
 
 	private string PlatformName = null;
 	private string SDKName = null;
+	private UnrealTargetPlatform Platform;
 
 	public IOSPlatform()
 		:this(UnrealTargetPlatform.IOS)
@@ -163,6 +164,7 @@ public class IOSPlatform : Platform
 		:base(TargetPlatform)
 	{
 		PlatformName = TargetPlatform.ToString();
+		Platform = TargetPlatform;
 		SDKName = (TargetPlatform == UnrealTargetPlatform.TVOS) ? "appletvos" : "iphoneos";
 	}
 
@@ -297,12 +299,15 @@ public class IOSPlatform : Platform
 		Log("Package {0}", Params.RawProjectPath);
 
 		// ensure the ue4game binary exists, if applicable
-		string FullExePath = CombinePaths(Path.GetDirectoryName(Params.ProjectGameExeFilename), SC.StageExecutables[0] + (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac ? ".stub" : ""));
+#if !PLATFORM_MAC
+		string ProjectGameExeFilename = Params.GetProjectExeForPlatform(Platform).ToString();
+		string FullExePath = CombinePaths(Path.GetDirectoryName(ProjectGameExeFilename), SC.StageExecutables[0] + (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac ? ".stub" : ""));
 		if (!SC.IsCodeBasedProject && !FileExists_NoExceptions(FullExePath))
 		{
 			LogError("Failed to find game binary " + FullExePath);
 			throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. Could not find binary {0}. You may need to build the UE4 project with your target configuration and platform.", FullExePath);
 		}
+#endif // PLATFORM_MAC
 
         if (SC.StageTargetConfigurations.Count != 1)
         {
@@ -329,7 +334,7 @@ public class IOSPlatform : Platform
             PrepForUATPackageOrDeploy(TargetConfiguration, Params.RawProjectPath,
 				Params.ShortProjectName,
 				Params.RawProjectPath.Directory,
-				CombinePaths(Path.GetDirectoryName(Params.ProjectGameExeFilename), SC.StageExecutables[0]),
+				CombinePaths(Path.GetDirectoryName(ProjectGameExeFilename), SC.StageExecutables[0]),
 				DirectoryReference.Combine(SC.LocalRoot, "Engine"),
 				Params.Distribution, 
 				"",
@@ -338,8 +343,8 @@ public class IOSPlatform : Platform
 
 			// figure out where to pop in the staged files
 			string AppDirectory = string.Format("{0}/Payload/{1}.app",
-				Path.GetDirectoryName(Params.ProjectGameExeFilename),
-				Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename));
+				Path.GetDirectoryName(ProjectGameExeFilename),
+				Path.GetFileNameWithoutExtension(ProjectGameExeFilename));
 
 			// delete the old cookeddata
 			InternalUtils.SafeDeleteDirectory(AppDirectory + "/cookeddata", true);
@@ -368,6 +373,8 @@ public class IOSPlatform : Platform
 				}
 			}
 		}
+
+		IOSExports.GenerateAssetCatalog(Params.RawProjectPath, FullExePath, CombinePaths(Params.BaseStageDirectory, (Platform == UnrealTargetPlatform.IOS ? "IOS" : "TVOS")), Platform);
 
         bCreatedIPA = false;
 		bool bNeedsIPA = false;
@@ -414,7 +421,7 @@ public class IOSPlatform : Platform
 		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 		{
 			var ProjectIPA = MakeIPAFileName(TargetConfiguration, Params);
-			var ProjectStub = Path.GetFullPath(Params.ProjectGameExeFilename);
+			var ProjectStub = Path.GetFullPath(ProjectGameExeFilename);
 
 			// package a .ipa from the now staged directory
 			var IPPExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/IOS/IPhonePackager.exe");
@@ -579,10 +586,10 @@ public class IOSPlatform : Platform
 				bCreatedIPA = true;
 
 				// code sign the app
-				CodeSign(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.RawProjectPath, SC.StageTargetConfigurations[0], SC.LocalRoot.FullName, Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath.FullName), SC.IsCodeBasedProject, Params.Distribution, Params.Provision, Params.Certificate, Params.Team, Params.AutomaticSigning, SchemeName, SchemeConfiguration);
+				CodeSign(Path.GetDirectoryName(ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(ProjectGameExeFilename), Params.RawProjectPath, SC.StageTargetConfigurations[0], SC.LocalRoot.FullName, Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath.FullName), SC.IsCodeBasedProject, Params.Distribution, Params.Provision, Params.Certificate, Params.Team, Params.AutomaticSigning, SchemeName, SchemeConfiguration);
 
 				// now generate the ipa
-				PackageIPA(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath.FullName), SC.StageTargetConfigurations[0], Params.Distribution);
+				PackageIPA(Path.GetDirectoryName(ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(ProjectGameExeFilename), Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath.FullName), SC.StageTargetConfigurations[0], Params.Distribution);
 			}
 		}
 
@@ -651,8 +658,9 @@ public class IOSPlatform : Platform
 
 		if (bAutomaticSigning)
 		{
+			Arguments += " CODE_SIGN_IDENTITY=" + (Distribution ? "\"iPhone Distribution\"" : "\"iPhone Developer\"");
+            Arguments += " CODE_SIGN_STYLE=\"Automatic\" -allowProvisioningUpdates";
 			Arguments += " DEVELOPMENT_TEAM=\"" + Team + "\"";
-			Arguments += " CODE_SIGN_IDENTITY=\"iPhone Developer\"";
 		}
 		else
 		{
@@ -907,7 +915,7 @@ public class IOSPlatform : Platform
 			}
 		}
         {
-			StageMovieFiles(DirectoryReference.Combine(SC.EngineRoot, "Content", "Movies"), SC);
+            StageMovieFiles(DirectoryReference.Combine(SC.EngineRoot, "Content", "Movies"), SC);
 			StageMovieFiles(DirectoryReference.Combine(SC.ProjectRoot, "Content", "Movies"), SC);
         }
 		{
@@ -926,13 +934,10 @@ public class IOSPlatform : Platform
 			{
 				CookOutputDir = DirectoryReference.Combine(SC.ProjectRoot, "Saved", "Cooked", SC.CookPlatform);
 			}
-			if (DirectoryReference.Exists(CookOutputDir))
+			List<FileReference> CookedFiles = DirectoryReference.EnumerateFiles(CookOutputDir, "*.metallib", SearchOption.AllDirectories).ToList();
+			foreach(FileReference CookedFile in CookedFiles)
 			{
-				List<FileReference> CookedFiles = DirectoryReference.EnumerateFiles(CookOutputDir, "*.metallib", SearchOption.AllDirectories).ToList();
-				foreach (FileReference CookedFile in CookedFiles)
-				{
-					SC.StageFile(StagedFileType.NonUFS, CookedFile, new StagedFileReference(CookedFile.MakeRelativeTo(CookOutputDir)));
-				}
+				SC.StageFile(StagedFileType.NonUFS, CookedFile, new StagedFileReference(CookedFile.MakeRelativeTo(CookOutputDir)));
 			}
 		}
     }
@@ -977,7 +982,7 @@ public class IOSPlatform : Platform
 		}
 	}
 
-	private void StageMovieFiles(DirectoryReference InputDir, DeploymentContext SC)
+	protected void StageMovieFiles(DirectoryReference InputDir, DeploymentContext SC)
 	{
 		if(DirectoryReference.Exists(InputDir))
 		{
@@ -1041,12 +1046,24 @@ public class IOSPlatform : Platform
 
 			// copy in the application
 			string AppName = Path.GetFileNameWithoutExtension(ProjectIPA) + ".app";
+			if (!File.Exists(ProjectIPA))
+			{
+				Console.WriteLine("Couldn't find IPA: " + ProjectIPA);
+			}
 			using (ZipFile Zip = new ZipFile(ProjectIPA))
 			{
 				Zip.ExtractAll(ArchivePath, ExtractExistingFileAction.OverwriteSilently);
 
 				List<string> Dirs = new List<string>(Directory.EnumerateDirectories(Path.Combine(ArchivePath, "Payload"), "*.app"));
 				AppName = Dirs[0].Substring(Dirs[0].LastIndexOf(UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac ? "\\" : "/") + 1);
+				foreach (string Dir in Dirs)
+				{
+					if (Dir.Contains(Params.ShortProjectName + ".app"))
+					{
+						Console.WriteLine("Using Directory: " + Dir);
+						AppName = Dir.Substring(Dir.LastIndexOf(UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac ? "\\" : "/") + 1);
+					}
+				}
 				CopyDirectory_NoExceptions(Path.Combine(ArchivePath, "Payload", AppName), Path.Combine(ArchiveName, "Products", "Applications", AppName));
 			}
 
@@ -1099,23 +1116,33 @@ public class IOSPlatform : Platform
 			string AppPlist = Path.Combine(ArchiveName, "Products", "Applications", AppName, "Info.plist");
 			string OldPListData = File.Exists(AppPlist) ? File.ReadAllText(AppPlist) : "";
 
-			// bundle identifier
-			int index = OldPListData.IndexOf("CFBundleIdentifier");
-			index = OldPListData.IndexOf("<string>", index) + 8;
-			int length = OldPListData.IndexOf("</string>", index) - index;
-			string BundleIdentifier = OldPListData.Substring(index, length);
+			string BundleIdentifier = "";
+			string BundleShortVersion = "";
+			string BundleVersion = "";
+			if (!string.IsNullOrEmpty(OldPListData))
+			{
+				// bundle identifier
+				int index = OldPListData.IndexOf("CFBundleIdentifier");
+				index = OldPListData.IndexOf("<string>", index) + 8;
+				int length = OldPListData.IndexOf("</string>", index) - index;
+				BundleIdentifier = OldPListData.Substring(index, length);
 
-			// short version
-			index = OldPListData.IndexOf("CFBundleShortVersionString");
-			index = OldPListData.IndexOf("<string>", index) + 8;
-			length = OldPListData.IndexOf("</string>", index) - index;
-			string BundleShortVersion = OldPListData.Substring(index, length);
+				// short version
+				index = OldPListData.IndexOf("CFBundleShortVersionString");
+				index = OldPListData.IndexOf("<string>", index) + 8;
+				length = OldPListData.IndexOf("</string>", index) - index;
+				BundleShortVersion = OldPListData.Substring(index, length);
 
-			// bundle version
-			index = OldPListData.IndexOf("CFBundleVersion");
-			index = OldPListData.IndexOf("<string>", index) + 8;
-			length = OldPListData.IndexOf("</string>", index) - index;
-			string BundleVersion = OldPListData.Substring(index, length);
+				// bundle version
+				index = OldPListData.IndexOf("CFBundleVersion");
+				index = OldPListData.IndexOf("<string>", index) + 8;
+				length = OldPListData.IndexOf("</string>", index) - index;
+				BundleVersion = OldPListData.Substring(index, length);
+			}
+			else
+			{
+				Console.WriteLine("Could not load Info.plist");
+			}
 
 			// date we made this
 			const string Iso8601DateTimeFormat = "yyyy-MM-ddTHH:mm:ssZ";
@@ -1318,8 +1345,7 @@ public class IOSPlatform : Platform
 	{
 		return new StagedFileReference("cookeddata/" + Dest.Name);
 	}
-	
-    public override List<string> GetDebugFileExtentions()
+    public override List<string> GetDebugFileExtensions()
     {
         return new List<string> { ".dsym", ".udebugsymbols" };
     }

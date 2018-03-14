@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -50,7 +50,7 @@ public:
 	/** Returns amount of memory used by the arrays */
 	uint32 GetAllocatedSize(void) const
 	{
-		return HardDependencies.GetAllocatedSize() + SoftDependencies.GetAllocatedSize() + NameDependencies.GetAllocatedSize() + ManageDependencies.GetAllocatedSize() + Referencers.GetAllocatedSize();
+		return HardDependencies.GetAllocatedSize() + SoftDependencies.GetAllocatedSize() + NameDependencies.GetAllocatedSize() + SoftManageDependencies.GetAllocatedSize() + HardManageDependencies.GetAllocatedSize() + Referencers.GetAllocatedSize();
 	}
 
 	/** Iterate over all the dependencies of this node, filtered by the supplied type parameter, and call the supplied lambda parameter on the record */
@@ -76,12 +76,13 @@ public:
 		}
 	}
 
-	void Reserve(int32 InNumHardDependencies, int32 InNumSoftDependencies, int32 InNumNameDependencies, int32 InNumManageDependencies, int32 InNumReferencers)
+	void Reserve(int32 InNumHardDependencies, int32 InNumSoftDependencies, int32 InNumNameDependencies, int32 InNumSoftManageDependencies, int32 InNumHardManageDependencies, int32 InNumReferencers)
 	{
 		HardDependencies.Reserve(InNumHardDependencies);
 		SoftDependencies.Reserve(InNumSoftDependencies);
 		NameDependencies.Reserve(InNumNameDependencies);
-		ManageDependencies.Reserve(InNumManageDependencies);
+		SoftManageDependencies.Reserve(InNumSoftManageDependencies);
+		HardManageDependencies.Reserve(InNumHardManageDependencies);
 		Referencers.Reserve(InNumReferencers);
 	}
 
@@ -91,6 +92,7 @@ private:
 	template <class T>
 	FORCEINLINE void IterateOverDependencyArrays(T InCallback, EAssetRegistryDependencyType::Type InDependencyType = EAssetRegistryDependencyType::All) const
 	{
+		// This iteration is specific so it gets the "most important" references first in the array
 		if (InDependencyType & EAssetRegistryDependencyType::Hard)
 		{
 			InCallback(const_cast<TArray<FDependsNode*>&>(HardDependencies), EAssetRegistryDependencyType::Hard);
@@ -101,14 +103,19 @@ private:
 			InCallback(const_cast<TArray<FDependsNode*>&>(SoftDependencies), EAssetRegistryDependencyType::Soft);
 		}
 
+		if (InDependencyType & EAssetRegistryDependencyType::HardManage)
+		{
+			InCallback(const_cast<TArray<FDependsNode*>&>(HardManageDependencies), EAssetRegistryDependencyType::HardManage);
+		}
+
+		if (InDependencyType & EAssetRegistryDependencyType::SoftManage)
+		{
+			InCallback(const_cast<TArray<FDependsNode*>&>(SoftManageDependencies), EAssetRegistryDependencyType::SoftManage);
+		}
+
 		if (InDependencyType & EAssetRegistryDependencyType::SearchableName)
 		{
 			InCallback(const_cast<TArray<FDependsNode*>&>(NameDependencies), EAssetRegistryDependencyType::SearchableName);
-		}
-
-		if (InDependencyType & EAssetRegistryDependencyType::Manage)
-		{
-			InCallback(const_cast<TArray<FDependsNode*>&>(ManageDependencies), EAssetRegistryDependencyType::Manage);
 		}
 	}
 
@@ -125,8 +132,10 @@ private:
 	TArray<FDependsNode*> SoftDependencies;
 	/** The list of searchable name dependencies for this node */
 	TArray<FDependsNode*> NameDependencies;
-	/** The list of manage dependencies for this node */
-	TArray<FDependsNode*> ManageDependencies;
+	/** The list of hard manage dependencies for this node */
+	TArray<FDependsNode*> SoftManageDependencies;
+	/** The list of soft manage dependencies for this node */
+	TArray<FDependsNode*> HardManageDependencies;
 	/** The list of referencers to this node */
 	TArray<FDependsNode*> Referencers;
 };

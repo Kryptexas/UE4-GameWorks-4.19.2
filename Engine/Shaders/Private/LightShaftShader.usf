@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightShaftShader.usf: Shaders for rendering light shafts
@@ -221,7 +221,7 @@ void ApplyLightShaftsPixelMain(
 	out float4 OutColor : SV_Target0
 	)
 {
-	float4 LightShaftColorAndMask = Texture2DSample(SourceTexture, SourceTextureSampler, InSourceUV);
+	float4 LightShaftColorAndMask = Texture2DSample(SourceTexture, SourceTextureSampler, clamp(InSourceUV, UVMinMax.xy, UVMinMax.zw));
 
 	OutColor = RETURN_COLOR(float4(LightShaftColorAndMask.rgb, 1));
 }

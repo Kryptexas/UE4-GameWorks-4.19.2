@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ThumbnailRendering/WorldThumbnailRenderer.h"
 #include "EngineDefines.h"
@@ -8,8 +8,6 @@
 #include "SceneView.h"
 #include "ThumbnailRendering/WorldThumbnailInfo.h"
 #include "Engine/LevelBounds.h"
-#include "RendererInterface.h"
-#include "EngineModule.h"
 #include "ContentStreaming.h"
 
 UWorldThumbnailRenderer::UWorldThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
@@ -77,7 +75,7 @@ void UWorldThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 Wid
 
 		if (ViewFamily.Views.Num() > 0)
 		{
-			GetRendererModule().BeginRenderingViewFamily(Canvas, &ViewFamily);
+			RenderViewFamily(Canvas, &ViewFamily);
 		}
 	}
 }

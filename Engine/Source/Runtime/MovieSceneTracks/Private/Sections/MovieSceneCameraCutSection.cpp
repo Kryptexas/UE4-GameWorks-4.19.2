@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Sections/MovieSceneCameraCutSection.h"
 
@@ -22,7 +22,7 @@ FMovieSceneEvalTemplatePtr UMovieSceneCameraCutSection::GenerateTemplate() const
 
 	for (const FMovieSceneBinding& Binding : MovieScene->GetBindings())
 	{
-		if (Binding.GetObjectGuid() == CameraGuid)
+		if (Binding.GetObjectGuid() == CameraBindingID.GetGuid())
 		{
 			for (UMovieSceneTrack* Track : Binding.GetTracks())
 			{
@@ -51,8 +51,22 @@ FMovieSceneEvalTemplatePtr UMovieSceneCameraCutSection::GenerateTemplate() const
 
 void UMovieSceneCameraCutSection::OnBindingsUpdated(const TMap<FGuid, FGuid>& OldGuidToNewGuidMap)
 {
-	if (OldGuidToNewGuidMap.Contains(CameraGuid))
+	if (OldGuidToNewGuidMap.Contains(CameraBindingID.GetGuid()))
 	{
-		CameraGuid = OldGuidToNewGuidMap[CameraGuid];
+		CameraBindingID.SetGuid(OldGuidToNewGuidMap[CameraBindingID.GetGuid()]);
+	}
+}
+
+void UMovieSceneCameraCutSection::PostLoad()
+{
+	Super::PostLoad();
+
+	if (CameraGuid_DEPRECATED.IsValid())
+	{
+		if (!CameraBindingID.IsValid())
+		{
+			CameraBindingID = FMovieSceneObjectBindingID(CameraGuid_DEPRECATED, MovieSceneSequenceID::Root, EMovieSceneObjectBindingSpace::Local);
+		}
+		CameraGuid_DEPRECATED.Invalidate();
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LevelTextureManager.cpp: Implementation of content streaming classes.
@@ -13,7 +13,7 @@ void FLevelTextureManager::Remove(FRemovedTextureArray* RemovedTextures)
 { 
 	TArray<const UPrimitiveComponent*> ReferencedComponents;
 	StaticInstances.GetReferencedComponents(ReferencedComponents);
-	ReferencedComponents.Append(UnprocessedStaticComponents);
+	ReferencedComponents.Append(UnprocessedComponents);
 	ReferencedComponents.Append(PendingInsertionStaticPrimitives);
 	for (const UPrimitiveComponent* Component : ReferencedComponents)
 	{
@@ -37,9 +37,8 @@ void FLevelTextureManager::Remove(FRemovedTextureArray* RemovedTextures)
 	}
 
 	BuildStep = EStaticBuildStep::BuildTextureLookUpMap;
-	StaticActorsWithNonStaticPrimitives.Empty();
 	UnprocessedStaticActors.Empty();
-	UnprocessedStaticComponents.Empty();
+	UnprocessedComponents.Empty();
 	PendingInsertionStaticPrimitives.Empty();
 	TextureGuidToLevelIndex.Empty();
 	bIsInitialized = false;
@@ -60,9 +59,53 @@ float FLevelTextureManager::GetWorldTime() const
 	return 0;
 }
 
-void FLevelTextureManager::IncrementalBuild(FStreamingTextureLevelContext& LevelContext, bool bForceCompletion, int64& NumStepsLeft)
+bool FLevelTextureManager::AddPrimitive(FDynamicTextureInstanceManager& DynamicComponentManager, FStreamingTextureLevelContext& LevelContext, const UPrimitiveComponent* Primitive, bool bLevelIsVisible, float MaxTextureUVDensity)
+{
+	check(!Primitive->bAttachedToStreamingManagerAsStatic);
+
+	if (Primitive->Mobility == EComponentMobility::Static)
+	{
+		// Once the level becomes visible, static component not registered are considered invalid.
+		if (bLevelIsVisible && !Primitive->IsRegistered())
+		{
+			return false;
+		}
+
+		switch (StaticInstances.Add(Primitive, LevelContext, MaxTextureUVDensity))
+		{
+		case EAddComponentResult::Success:
+			Primitive->bAttachedToStreamingManagerAsStatic = true;
+			// Remove it from the dynamic list, if it was there.
+			DynamicComponentManager.Remove(Primitive, nullptr);
+			Primitive->bHandledByStreamingManagerAsDynamic = false;
+			return true;
+		case EAddComponentResult::Fail_UIDensityConstraint:
+			if (!Primitive->bHandledByStreamingManagerAsDynamic)
+			{
+				// Static components with big UIDensites are handled as dynamic, otherwise they break the r.Streaming.MinLevelTextureScreenSize optimization.
+				DynamicComponentManager.Add(Primitive, LevelContext);
+			}
+			return true;
+		default:
+			// Don't know what to do, as there could be several case for this.
+			return false;
+		}
+	}
+	else // Not a static primitive
+	{
+		if (!Primitive->bHandledByStreamingManagerAsDynamic)
+		{
+			DynamicComponentManager.Add(Primitive, LevelContext);
+		}
+		return true;
+	}
+}
+
+void FLevelTextureManager::IncrementalBuild(FDynamicTextureInstanceManager& DynamicComponentManager, FStreamingTextureLevelContext& LevelContext, bool bForceCompletion, int64& NumStepsLeft)
 {
 	check(Level);
+
+	const float MaxTextureUVDensity = CVarStreamingMaxTextureUVDensity.GetValueOnAnyThread();
 
 	switch (BuildStep)
 	{
@@ -84,9 +127,11 @@ void FLevelTextureManager::IncrementalBuild(FStreamingTextureLevelContext& Level
 	case EStaticBuildStep::GetActors:
 	{
 		// Those must be cleared at this point.
-		check(UnprocessedStaticActors.Num() == 0 && UnprocessedStaticComponents.Num() == 0 && PendingInsertionStaticPrimitives.Num() == 0);
+		check(UnprocessedStaticActors.Num() == 0 && UnprocessedComponents.Num() == 0 && PendingInsertionStaticPrimitives.Num() == 0);
 
-		// Find all static actors
+		// Find all static actors, all actors created after this point, static or dynamic, must go through the spawn actor logic, which will make then dynamic.
+		// If the mobility goes from static to dynamic after this, components will be removed from the static instances in the last stage.
+		// If the mobility changes from dynamic to static, then this is not handled. @todo
 		UnprocessedStaticActors.Empty(Level->Actors.Num());
 		for (const AActor* Actor : Level->Actors)
 		{
@@ -108,35 +153,17 @@ void FLevelTextureManager::IncrementalBuild(FStreamingTextureLevelContext& Level
 			check(StaticActor);
 
 			// Check if the actor is still static, as the mobility could change.
-			// @todo : need a better framework to handle mobility switch (maybe prevent streamer from processing the level while updating)
 			if (StaticActor->IsRootComponentStatic())
 			{
 				TInlineComponentArray<UPrimitiveComponent*> Primitives;
 				StaticActor->GetComponents<UPrimitiveComponent>(Primitives);
 
-				bool bHasNonStaticPrimitives = false;
-				for (UPrimitiveComponent* Primitive : Primitives)
+				// Append all primitives, static and dynamic will be sorted out in the next stage.
+				UnprocessedComponents.Append(Primitives);
+				for (const UPrimitiveComponent* Primitive : Primitives)
 				{
 					check(Primitive);
-					if (Primitive->Mobility == EComponentMobility::Static)
-					{
-						// If the level is visible, then the component must be fully valid at this point.
-						if (!Level->bIsVisible || (Primitive->IsRegistered() && Primitive->SceneProxy))
-						{
-							UnprocessedStaticComponents.Push(Primitive);
-							Primitive->bAttachedToStreamingManagerAsStatic = true;
-						}
-					}
-					else
-					{
-						bHasNonStaticPrimitives = true;
-					}
-				}
-
-				// Mark this actor so that its non static components are processed in the final stage.
-				if (bHasNonStaticPrimitives)
-				{	
-					StaticActorsWithNonStaticPrimitives.Push(StaticActor);
+					Primitive->bAttachedToStreamingManagerAsStatic = true;
 				}
 
 				NumStepsLeft -= (int64)FMath::Max<int32>(Primitives.Num() / 16, 1); // div 16 because this is light weight.
@@ -152,44 +179,27 @@ void FLevelTextureManager::IncrementalBuild(FStreamingTextureLevelContext& Level
 	}
 	case EStaticBuildStep::ProcessComponents:
 	{
-		while ((bForceCompletion || NumStepsLeft > 0) && UnprocessedStaticComponents.Num())
+		while ((bForceCompletion || NumStepsLeft > 0) && UnprocessedComponents.Num())
 		{
-			const UPrimitiveComponent* Primitive = UnprocessedStaticComponents.Pop(false);
-			check(Primitive && Primitive->bAttachedToStreamingManagerAsStatic);
+			const UPrimitiveComponent* Primitive = UnprocessedComponents.Pop(false);
+			check(Primitive);
+			Primitive->bAttachedToStreamingManagerAsStatic = false;
 
-			if (Primitive->Mobility == EComponentMobility::Static)
+			if (!AddPrimitive(DynamicComponentManager, LevelContext, Primitive, Level->bIsVisible, MaxTextureUVDensity))
 			{
-				// Try to insert the component, this will fail if some texture entry has not PackedRelativeBounds
-				// or if there are no references to streaming textures.
-				if (!StaticInstances.Add(Primitive, LevelContext))
+				// If it failed, reprocess it later if it was not in a fully valid state.
+				if (!Primitive->IsRegistered() || !Primitive->IsRenderStateCreated())
 				{
-					if (Level->bIsVisible)
-					{
-						Primitive->bAttachedToStreamingManagerAsStatic = false;
-					}
-					else // If the level is not yet visible, retry later (fix for PackedRelativeBounds or partially initialized components)
-					{
-						PendingInsertionStaticPrimitives.Add(Primitive);
-					}
+					PendingInsertionStaticPrimitives.Add(Primitive);
+					Primitive->bAttachedToStreamingManagerAsStatic = true;
 				}
-			}
-			else // Otherwise, check if the root component is still static, to ensure the component gets processed.
-			{
-				Primitive->bAttachedToStreamingManagerAsStatic = false;
-
-				const AActor* Owner = Primitive->GetOwner();
-				if (Owner && Owner->IsRootComponentStatic())
-				{
-					StaticActorsWithNonStaticPrimitives.AddUnique(Owner);
-				}
-				// Otherwise, if the root is not static anymore, the actor will get processed when the level becomes visible
 			}
 			--NumStepsLeft;
 		}
 
-		if (!UnprocessedStaticComponents.Num())
+		if (!UnprocessedComponents.Num())
 		{
-			UnprocessedStaticComponents.Empty(); // Free the memory.
+			UnprocessedComponents.Empty(); // Free the memory.
 			BuildStep = EStaticBuildStep::NormalizeLightmapTexelFactors;
 		}
 		break;
@@ -214,28 +224,23 @@ void FLevelTextureManager::IncrementalBuild(FStreamingTextureLevelContext& Level
 			NumStepsLeft -= (int64)StaticInstances.CheckRegistrationAndUnpackBounds(RemovedComponents);
 
 			for (const UPrimitiveComponent* Component : RemovedComponents)
-			{	// Those component are released, not referenced anymore.
+			{	// Those components were released, not referenced anymore.
 				check(Component);				
 				Component->bAttachedToStreamingManagerAsStatic = false;
 			}
 
 			NumStepsLeft -= (int64)PendingInsertionStaticPrimitives.Num();
 
-			// Insert the component we could not preprocess.
+			// Reprocess the components that didn't have valid data.
 			while (PendingInsertionStaticPrimitives.Num())
 			{
 				const UPrimitiveComponent* Primitive = PendingInsertionStaticPrimitives.Pop(false);
-				Primitive->bAttachedToStreamingManagerAsStatic = false;
-
-				// Since the level is visible, all static primitive should be registered with scene proxies (otherwise nothing rendered)
-				if (Primitive->IsRegistered() && Primitive->SceneProxy)
-				{
-					if (StaticInstances.Add(Primitive, LevelContext))
-					{
-						Primitive->bAttachedToStreamingManagerAsStatic = true;
-					}
-				}
+				check(Primitive);
+				Primitive->bAttachedToStreamingManagerAsStatic = false; // Clear now since not referenced anymore.
+				
+				AddPrimitive(DynamicComponentManager, LevelContext, Primitive, true, MaxTextureUVDensity);
 			}
+
 			PendingInsertionStaticPrimitives.Empty(); // Free the memory.
 			TextureGuidToLevelIndex.Empty();
 			BuildStep = EStaticBuildStep::Done;
@@ -280,7 +285,7 @@ void FLevelTextureManager::IncrementalUpdate(
 		FStreamingTextureLevelContext LevelContext(EMaterialQualityLevel::Num, Level, &TextureGuidToLevelIndex);
 		do
 		{
-			IncrementalBuild(LevelContext, Level->bIsVisible, NumStepsLeftForIncrementalBuild);
+			IncrementalBuild(DynamicComponentManager, LevelContext, Level->bIsVisible, NumStepsLeftForIncrementalBuild);
 		}
 		while (NeedsIncrementalBuild(NumStepsLeftForIncrementalBuild));
 	}
@@ -290,42 +295,29 @@ void FLevelTextureManager::IncrementalUpdate(
 		if (Level->bIsVisible && !bIsInitialized)
 		{
 			FStreamingTextureLevelContext LevelContext(EMaterialQualityLevel::Num, Level);
-			if (bUseDynamicStreaming)
+			// Flag all dynamic components so that they get processed.
+			for (const AActor* Actor : Level->Actors)
 			{
-				// Handle dynamic component for static actors
-				for (const AActor* Actor : StaticActorsWithNonStaticPrimitives)
+				// In the preprocessing step, we only handle static actors, to allow dynamic actors to update before insertion.
+				if (Actor && !Actor->IsRootComponentStatic())
 				{
-					if (Actor && Actor->IsRootComponentStatic()) // If static, it gets processed in the next loop
+					TInlineComponentArray<UPrimitiveComponent*> Primitives;
+					Actor->GetComponents<UPrimitiveComponent>(Primitives);
+					for (UPrimitiveComponent* Primitive : Primitives)
 					{
-						TInlineComponentArray<UPrimitiveComponent*> Primitives;
-						Actor->GetComponents<UPrimitiveComponent>(Primitives);
-						for (const UPrimitiveComponent* Primitive : Primitives)
-						{
-							check(Primitive);
-							if (!Primitive->bHandledByStreamingManagerAsDynamic && Primitive->Mobility != EComponentMobility::Static)
-							{
-								DynamicComponentManager.Add(Primitive, LevelContext);
-							}
-						}
-					}
-				}
+						check(Primitive);
 
-				// Flag all dynamic components so that they get processed.
-				for (const AActor* Actor : Level->Actors)
-				{
-					// In the preprocessing step, we only handle static actors, to allow dynamic actors to update before insertion.
-					if (Actor && !Actor->IsRootComponentStatic())
-					{
-						TInlineComponentArray<UPrimitiveComponent*> Primitives;
-						Actor->GetComponents<UPrimitiveComponent>(Primitives);
-						for (UPrimitiveComponent* Primitive : Primitives)
+						// Because the root component mobility could have changed, it is possible for a components to be attached as static here.
+						if (Primitive->bAttachedToStreamingManagerAsStatic)
 						{
-							check(Primitive);
-							// If the flag is already set, then this primitive is already handled when it's proxy get created.
-							if (!Primitive->bHandledByStreamingManagerAsDynamic)
-							{
-								DynamicComponentManager.Add(Primitive, LevelContext);
-							}
+							StaticInstances.Remove(Primitive, nullptr); 
+							Primitive->bAttachedToStreamingManagerAsStatic = false;
+						}
+
+						// If the flag is already set, then this primitive is already handled when it's proxy get created.
+						if (!Primitive->bHandledByStreamingManagerAsDynamic)
+						{
+							DynamicComponentManager.Add(Primitive, LevelContext);
 						}
 					}
 				}
@@ -363,8 +355,7 @@ void FLevelTextureManager::NotifyLevelOffset(const FVector& Offset)
 uint32 FLevelTextureManager::GetAllocatedSize() const
 {
 	return StaticInstances.GetAllocatedSize() + 
-		StaticActorsWithNonStaticPrimitives.GetAllocatedSize() + 
 		UnprocessedStaticActors.GetAllocatedSize() + 
-		UnprocessedStaticComponents.GetAllocatedSize() + 
+		UnprocessedComponents.GetAllocatedSize() + 
 		PendingInsertionStaticPrimitives.GetAllocatedSize();
 }

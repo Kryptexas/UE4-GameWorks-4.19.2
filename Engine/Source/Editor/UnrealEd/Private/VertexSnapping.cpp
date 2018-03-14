@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "VertexSnapping.h"
 #include "GameFramework/Actor.h"
@@ -6,7 +6,6 @@
 #include "SceneView.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "SkeletalMeshTypes.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "Editor/GroupActor.h"
 #include "Components/BrushComponent.h"
@@ -17,7 +16,7 @@
 #include "EditorModeManager.h"
 #include "StaticMeshResources.h"
 #include "Engine/Polys.h"
-#include "SkeletalMeshTypes.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 
 namespace VertexSnappingConstants
 {
@@ -78,8 +77,8 @@ public:
 	FStaticMeshVertexIterator( UStaticMeshComponent* SMC )
 		: ComponentToWorldIT( SMC->GetComponentTransform().ToInverseMatrixWithScale().GetTransposed() )
 		, StaticMeshComponent( SMC )
-		, PositionBuffer( SMC->GetStaticMesh()->RenderData->LODResources[0].PositionVertexBuffer )
-		, VertexBuffer( SMC->GetStaticMesh()->RenderData->LODResources[0].VertexBuffer )
+		, PositionBuffer( SMC->GetStaticMesh()->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer )
+		, VertexBuffer( SMC->GetStaticMesh()->RenderData->LODResources[0].VertexBuffers.StaticMeshVertexBuffer )
 		, CurrentVertexIndex( 0 )
 	{
 
@@ -183,54 +182,35 @@ public:
 	FSkeletalMeshVertexIterator( USkinnedMeshComponent* InSkinnedMeshComp )
 		: ComponentToWorldIT( InSkinnedMeshComp->GetComponentTransform().ToInverseMatrixWithScale().GetTransposed() )
 		, SkinnedMeshComponent( InSkinnedMeshComp )
-		, LODModel( InSkinnedMeshComp->GetSkeletalMeshResource()->LODModels[0] )
-		, CurrentSectionIndex( 0 )
-		, SoftVertexIndex( 0 )
+		, LODData( InSkinnedMeshComp->GetSkeletalMeshRenderData()->LODRenderData[0] )
+		, VertexIndex( 0 )
 	{
-		
 	}
 	
 	/** FVertexIterator interface */
 	virtual FVector Position() override
 	{
-		const FSkelMeshSection& Section = LODModel.Sections[CurrentSectionIndex];
-		return SkinnedMeshComponent->GetComponentTransform().TransformPosition(Section.SoftVertices[SoftVertexIndex].Position );
+		const FVector VertPos = LODData.StaticVertexBuffers.PositionVertexBuffer.VertexPosition(VertexIndex);
+		return SkinnedMeshComponent->GetComponentTransform().TransformPosition(VertPos);
 	}
 
 	virtual FVector Normal() override
 	{
-		const FSkelMeshSection& Section = LODModel.Sections[CurrentSectionIndex];
-		return ComponentToWorldIT.TransformVector(Section.SoftVertices[SoftVertexIndex].TangentZ );
+		FPackedNormal TangentX = LODData.StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentX(VertexIndex);
+		FPackedNormal TangentZ = LODData.StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(VertexIndex);
+		FVector VertNormal = TangentZ;
+		return ComponentToWorldIT.TransformVector(VertNormal);
 	}
 
 protected:
 	virtual void Advance() override
 	{
-		// First advance the rigid vertex in the current chunk
-		const FSkelMeshSection& Section = LODModel.Sections[CurrentSectionIndex];
-
-		if(Section.SoftVertices.IsValidIndex( SoftVertexIndex + 1 ) )
-		{
-			++SoftVertexIndex;
-		}
-		else
-		{
-			// out of soft verts in this section.  Advance sections
-			++CurrentSectionIndex;
-			SoftVertexIndex = 0;
-		}
+		VertexIndex++;
 	}
 
 	virtual bool HasMoreVertices() override
 	{
-		bool bHasMoreVerts = false;
-		if (LODModel.Sections.IsValidIndex(CurrentSectionIndex))
-		{
-			const FSkelMeshSection& Section = LODModel.Sections[CurrentSectionIndex];
-			bHasMoreVerts = Section.SoftVertices.IsValidIndex( SoftVertexIndex );
-		}
-	
-		return bHasMoreVerts;
+		return VertexIndex < LODData.StaticVertexBuffers.PositionVertexBuffer.GetNumVertices();
 	}
 
 private:
@@ -239,11 +219,9 @@ private:
 	/** The component getting vertices from */
 	USkinnedMeshComponent* SkinnedMeshComponent;
 	/** Skeletal mesh render data */
-	FStaticLODModel& LODModel;
-	/** Current section the iterator is on */
-	uint32 CurrentSectionIndex;
+	FSkeletalMeshLODRenderData& LODData;
 	/** Current Soft vertex index the iterator is on */
-	uint32 SoftVertexIndex; 
+	uint32 VertexIndex; 
 };
 
 
@@ -437,7 +415,7 @@ bool FVertexSnappingImpl::GetClosestVertexOnComponent( const FSnapActor& SnapAct
 					View->WorldToPixel( Position, PixelPos );
 
 					// Ensure the vertex is inside the view
-					bOutside = PixelPos.X < 0.0f || PixelPos.X > View->ViewRect.Width() || PixelPos.Y < 0.0f || PixelPos.Y > View->ViewRect.Height();
+					bOutside = PixelPos.X < 0.0f || PixelPos.X > View->UnscaledViewRect.Width() || PixelPos.Y < 0.0f || PixelPos.Y > View->UnscaledViewRect.Height();
 
 					if( !bOutside )
 					{

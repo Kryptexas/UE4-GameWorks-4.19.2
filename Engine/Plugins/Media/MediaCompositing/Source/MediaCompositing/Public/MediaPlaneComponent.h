@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,7 +27,7 @@ struct MEDIACOMPOSITING_API FMediaPlaneParameters
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category="Media Plane")
 	FName TextureParameterName;
 
-	/** Automaticaly size the plane based on the active camera's lens and filmback settings. Target Camera is found by looking for an active camera component from this component's actor, through its attached parents. */
+	/** Automatically size the plane based on the active camera's lens and filmback settings. Target Camera is found by looking for an active camera component from this component's actor, through its attached parents. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Media Plane")
 	bool bFillScreen;
 
@@ -46,6 +46,10 @@ struct MEDIACOMPOSITING_API FMediaPlaneParameters
 	/** Transient MID to hold the material with the render texture patched in */
 	UPROPERTY(transient)
 	UMaterialInstanceDynamic* DynamicMaterial;
+
+	/** Transient media texture applied to the component */
+	UPROPERTY(transient)
+	UTexture* MediaTexture;
 };
 
 /** 
@@ -84,7 +88,7 @@ public:
 
 	/** Called by sequencer if a texture is changed */
 	UFUNCTION()
-	void OnRenderTextureChanged();
+	void OnMediaTextureChanged();
 
 	/** Access this component's cached view projection matrix. Only valid when the plane is set to fill screen */
 	const FMatrix& GetCachedViewProjectionMatrix() const
@@ -126,6 +130,11 @@ public:
 	 * Calculate projection matrices from a specified view target
 	 */
 	static void GetProjectionMatricesFromViewTarget(AActor* InViewTarget, FMatrix& OutViewProjectionMatrix, FMatrix& OutInvViewProjectionMatrix);
+
+	/**
+	 * Set the external media texture
+	 */
+	void SetMediaTexture(UTexture* Texture);
 
 protected:
 

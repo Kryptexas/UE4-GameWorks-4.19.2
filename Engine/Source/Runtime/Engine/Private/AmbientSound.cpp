@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Audio.cpp: Unreal base audio.
@@ -11,7 +11,7 @@
 #include "Misc/UObjectToken.h"
 #include "Misc/MapErrors.h"
 #include "Sound/SoundBase.h"
-
+#include "Misc/CommandLine.h"
 #define LOCTEXT_NAMESPACE "AmbientSound"
 
 /*-----------------------------------------------------------------------------
@@ -123,7 +123,11 @@ void AAmbientSound::Play(float StartTime)
 {
 	if (AudioComponent)
 	{
-		AudioComponent->Play(StartTime);
+		static bool bMuteAmbientActors = FParse::Param(FCommandLine::Get(), TEXT("NoAmbientActors"));
+		if (!bMuteAmbientActors)
+		{
+			AudioComponent->Play(StartTime);
+		}
 	}
 }
 

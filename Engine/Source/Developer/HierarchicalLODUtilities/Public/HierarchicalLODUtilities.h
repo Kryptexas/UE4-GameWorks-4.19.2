@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,7 +26,7 @@ public:
 	virtual void ExtractSubActorsFromLODActor(AActor* Actor, TArray<AActor*>& InOutActors) override;
 	virtual float CalculateScreenSizeFromDrawDistance(const float SphereRadius, const FMatrix& ProjectionMatrix, const float Distance) override;
 	virtual float CalculateDrawDistanceFromScreenSize(const float SphereRadius, const float ScreenSize, const FMatrix& ProjectionMatrix) override;
-	virtual UPackage* CreateOrRetrieveLevelHLODPackage(ULevel* InLevel) override;
+	virtual UPackage* CreateOrRetrieveLevelHLODPackage(const ULevel* InLevel) override;
 	virtual bool BuildStaticMeshForLODActor(ALODActor* LODActor, UPackage* AssetsOuter, const FHierarchicalSimplification& LODSetup) override;
 	virtual EClusterGenerationError ShouldGenerateCluster(AActor* Actor) override;
 	virtual ALODActor* GetParentLODActor(const AActor* InActor) override;

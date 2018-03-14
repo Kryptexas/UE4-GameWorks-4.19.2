@@ -1,0 +1,57 @@
+Availability: Public
+Title:3. Using Cinematic Exposed Variables
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:In this step we add our cinematic exposed variable to our Sequence and set up a method for triggering the Sequence playback. 
+Version: 4.17
+SkillLevel: Advanced
+parent:Engine/Sequencer/HowTo/GameplayAnimBlending
+order:3
+checkpoint: editorqs
+tags:Sequencer
+tags:Animation
+type:how-to
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous](Engine\Sequencer\HowTo\GameplayAnimBlending\02_AnimCharacterBPs)
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Gameplay Animation Blending - Home ](Engine\Sequencer\HowTo\GameplayAnimBlending)
+	[/PARAM]
+	[PARAM:next]
+		[Next](Engine\Sequencer\HowTo\GameplayAnimBlending\04_LevelBlueprintSetup)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[COMMENT:none]
+
+
+
+[/COMMENT]
+
+[nav]
+
+Here we add the float variable **Default Slot Interp** which is feeding the interp in our Animation Blueprint, determining when we blend from a gameplay pose to our Slot animation. 
+We also add a Trigger Box to the level that we will use in the next step to allow the player to trigger the playback of our Level Sequence when they enter its volume. 
+
+1.	Inside your Level Sequence for the **Ue4ASP_Character**, click the **Track** button and assign the new **Default Slot Interp** property. 
+
+	![](GameBlend_13.png)
+
+1.	Scub the timeline ahead to frame **25** (or whichever frame you prefer) and add a key for **Default Slot Interp** with a value of **1.0**. 
+
+	![](GameBlend_14.png)
+
+1.	From the **Modes** panel in the main level editor, drag a **Triggerbox** into the level and resize and place where desired. 
+
+	![](GameBlend_15.png)
+
+	You can optionally set **Actor Hidden In Game** to false if you want to be able to see the trigger volume during playback. 
+
+In the next and final step of this guide, we set up the Level Blueprint to playback our Level Sequence when we enter the Trigger Box's volume. 
+
+[nav]

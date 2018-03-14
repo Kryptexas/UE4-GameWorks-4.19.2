@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,6 +8,7 @@
 #include "Styling/SlateTypes.h"
 #include "Widgets/SWidget.h"
 #include "Components/TextWidgetTypes.h"
+#include "Widgets/Text/ISlateEditableTextWidget.h"
 #include "MultiLineEditableText.generated.h"
 
 class SMultiLineEditableText;
@@ -51,9 +52,29 @@ public:
 	UPROPERTY()
 	FSlateFontInfo Font_DEPRECATED;
 
+	/** Whether to select all text when the user clicks to give focus on the widget */
+	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
+	bool SelectAllTextWhenFocused;
+
+	/** Whether to clear text selection when focus is lost */
+	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
+	bool ClearTextSelectionOnFocusLoss;
+
+	/** Whether to allow the user to back out of changes when they press the escape key */
+	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
+	bool RevertTextOnEscape;
+
+	/** Whether to clear keyboard focus when pressing enter to commit changes */
+	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
+	bool ClearKeyboardFocusOnCommit;
+
 	/** Whether the context menu can be opened */
-	UPROPERTY(EditAnywhere, Category = Behavior, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
 	bool AllowContextMenu;
+	
+	/** What action should be taken when the virtual keyboard is dismissed? */
+	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
+	EVirtualKeyboardDismissAction VirtualKeyboardDismissAction;
 
 	/** Called whenever the text is changed interactively by the user */
 	UPROPERTY(BlueprintAssignable, Category="Widget Event", meta=(DisplayName="OnTextChanged (Multi-Line Editable Text)"))

@@ -123,7 +123,8 @@ Open World ツールの作業中に目にするリファレンス プロパテ�
 |**Foliage Type Object** | プロシージャルなフォリッジのシミュレーションによりスポーンされるフォリッジ タイプです。|
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:NavMesh]
 | 値 | 説明 |
 | --- | --- |
@@ -132,6 +133,7 @@ Open World ツールの作業中に目にするリファレンス プロパテ�
 | **Even if not Collidable** |メッシュが衝突できなくて、通常は navmesh に影響を与えなくても、DoCustomNavigableGeometryExport() が呼ばれます。|
 | **Dont Export**|プリミティブが操作に関連していても、操作可能なジオメトリはエクスポートしないでください (修飾子の追加は可能です)。|
 [/EXCERPT:NavMesh]
--->
+
+[/COMMENT]
 
 

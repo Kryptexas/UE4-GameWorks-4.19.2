@@ -1,15 +1,17 @@
-﻿INTSourceChangelist:3351642
+﻿INTSourceChangelist:3782314
 Availability:Licensee
 Title:Perforce でアンリアル エンジンをダウンロードする
 Crumbs:
 Description:Perforce でアンリアル エンジンのソース コードをダウンロードするための手順を説明します。
 Parent:GettingStarted/DownloadingUnrealEngine/Perforce
 
-<!--
+[COMMENT:none]
+
 ## Epic の VPN に接続する
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine/VPNSetup#Browser]
--->
+
+[/COMMENT]
 
 [EXCERPT:main]
 Epic の Perforce に接続するには、SSL 機能を利用する必要があります。Perforce クライアント (P4V、 p4、 または API) の 2012.1 以上のバージョンを実行しなければなりません。グローバル DNS 名を使用し、レイテンシー ベースのルーティングを利用して、最も近い Perforce の地域のプロキシに自動的に接続することができます。または、地域のプロキシに直接接続して、確実に常に最も近いプロキシに接続することができます。 
@@ -75,8 +77,7 @@ P4V はその新しいエンドポイントを信用するように促します�
 
 [REGION:tip]
 	上記のアドレスは地理的位置に応じて最適なレイテンシーで地域のブローカーに自動的に接続します。何らかの理由で、特定の地域のブローカーに接続する必要があれば、以下のアドレスを使用して接続することができます。
-
-	* **米国東部 (バージニア)**: _ssl:p4-licensee-east.us.epicgames.com:1666_
+			* **米国東部 (バージニア)**: _ssl:p4-licensee-east.us.epicgames.com:1666_
 
 	* **アジア太平洋北東地域 (東京)**: _ssl:p4-licensee-northeast.ap.epicgames.com:1666_
 	* **欧州中央部 (フランクフルト)**: _ssl:p4-licensee-central.eu.epicgames.com:1666_

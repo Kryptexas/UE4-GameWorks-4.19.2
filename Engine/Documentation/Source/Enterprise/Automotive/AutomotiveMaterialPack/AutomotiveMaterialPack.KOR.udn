@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3112291
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 차량 머티리얼 팩
 Description:Automotive Material 팩에 들어있는 애셋에 대한 분석 및 사용법입니다.
@@ -340,7 +340,8 @@ UE4 에서 큐브맵을 캡처하고 사용하는 방법에 익숙치 않은 경
 
 ![](AP_08_Reflector_01.png)
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:RM]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -364,9 +365,11 @@ UE4 에서 큐브맵을 캡처하고 사용하는 방법에 익숙치 않은 경
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:RM]
--->
 
-<!-----
+[/COMMENT]
+
+[COMMENT:none]
+---
 [EXCERPT:CP]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -399,9 +402,11 @@ UE4 에서 큐브맵을 캡처하고 사용하는 방법에 익숙치 않은 경
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:CP]
--->
 
-<!-----
+[/COMMENT]
+
+[COMMENT:none]
+---
 [EXCERPT:RF]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -423,9 +428,11 @@ UE4 에서 큐브맵을 캡처하고 사용하는 방법에 익숙치 않은 경
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:RF]
--->
 
-<!-----
+[/COMMENT]
+
+[COMMENT:none]
+---
 [EXCERPT:OP]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -449,4 +456,5 @@ UE4 에서 큐브맵을 캡처하고 사용하는 방법에 익숙치 않은 경
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:OP]
--->
+
+[/COMMENT]

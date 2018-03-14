@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessSubsurface.usf: Screenspace subsurface scattering shaders.
@@ -105,6 +105,14 @@ float3 GetProfileSubsurfaceColor(FGBufferData GBufferData)
 	uint SubsurfaceProfileInt = ExtractSubsurfaceProfileInt(GBufferData);
 
 	return GetKernel(SSSS_N_KERNELSUBSURFACECOLOROFFSET, SubsurfaceProfileInt).rgb;
+}
+
+float4 SampleSetup(float2 BufferUV)
+{
+	#if MANUALLY_CLAMP_UV
+		BufferUV = clamp(BufferUV, View.BufferBilinearUVMinMax.xy, View.BufferBilinearUVMinMax.zw);
+	#endif
+	return Texture2DSampleLevel(PostprocessInput0, PostprocessInput0Sampler, BufferUV, 0);
 }
 
 // from https://github.com/iryoku/separable-sss/tree/master/Demo
@@ -350,15 +358,16 @@ float4 SetupSubsurfaceForOnePixel(float2 UVSceneColor)
 
 void SetupPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
-	float2 UV = UVAndScreenPos.xy;
+	float2 BufferUV = UVAndScreenPos.xy;
 
 #if HALF_RES
 	// order aligned with Gather() hardware implementation
 	// RGB: color*A, A:weight 0 if no subsurface scattering
-	float4 A = SetupSubsurfaceForOnePixel(UV + float2(-0.5,  0.5f) * PostprocessInput0Size.zw);
-	float4 B = SetupSubsurfaceForOnePixel(UV + float2( 0.5,  0.5f) * PostprocessInput0Size.zw);
-	float4 C = SetupSubsurfaceForOnePixel(UV + float2( 0.5, -0.5f) * PostprocessInput0Size.zw);
-	float4 D = SetupSubsurfaceForOnePixel(UV + float2(-0.5, -0.5f) * PostprocessInput0Size.zw);
+
+	float4 A = SetupSubsurfaceForOnePixel(min(BufferUV + float2(-0.5,  0.5f) * PostprocessInput0Size.zw, View.BufferBilinearUVMinMax.zw));
+	float4 B = SetupSubsurfaceForOnePixel(min(BufferUV + float2( 0.5,  0.5f) * PostprocessInput0Size.zw, View.BufferBilinearUVMinMax.zw));
+	float4 C = SetupSubsurfaceForOnePixel(min(BufferUV + float2( 0.5, -0.5f) * PostprocessInput0Size.zw, View.BufferBilinearUVMinMax.zw));
+	float4 D = SetupSubsurfaceForOnePixel(min(BufferUV + float2(-0.5, -0.5f) * PostprocessInput0Size.zw, View.BufferBilinearUVMinMax.zw));
 
 	float4 Sum = (A + B) + (C + D);
 
@@ -366,15 +375,15 @@ void SetupPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutC
 
 	OutColor.rgb = Sum.rgb * Div;
 	
-	float4 FourDepth = GatherSceneDepth(UV, PostprocessInput0Size.zw);
+	float4 FourDepth = GatherSceneDepth(BufferUV, PostprocessInput0Size.zw);
 
 	// average all valid depth values to a single one
 	float SingleDepth = dot(FourDepth, float4(A.a, B.a, C.a, D.a)) * Div;
 
 	OutColor.a = SingleDepth;
 #else // HALF_RES
-	OutColor.rgb = SetupSubsurfaceForOnePixel(UV).rgb;
-	OutColor.a = CalcSceneDepth(UV);
+	OutColor.rgb = SetupSubsurfaceForOnePixel(BufferUV).rgb;
+	OutColor.a = CalcSceneDepth(BufferUV);
 #endif // HALF_RES
 
 #if 0
@@ -388,7 +397,7 @@ void SetupPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutC
 	// Calculate the final step to fetch the surrounding pixels:
 	float finalStep = scale * HorizontalScaler;
 	
-	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
+	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(BufferUV);
 
 	finalStep *= GetProfileRadiusScale(ScreenSpaceData.GBuffer);
 
@@ -407,12 +416,8 @@ void SetupPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutC
 // input0 is created by the SetupPS shader
 void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
-	float2 ViewportUV = UVAndScreenPos.xy;
-
-	// call into "SeparableSSS.ush"
-
-	// the viewport is only a fraction of the buffersize, here we compensate for that
-
+	float2 BufferUV = UVAndScreenPos.xy;
+	
 #if SSS_DIRECTION == 0
 	// horizontal
 	float2 ViewportDirectionUV = float2(1, 0) * SUBSURFACE_RADIUS_SCALE;
@@ -421,10 +426,11 @@ void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor
 	float2 ViewportDirectionUV = float2(0, 1) * SUBSURFACE_RADIUS_SCALE * (View.ViewSizeAndInvSize.x * View.ViewSizeAndInvSize.w);
 #endif
 
-	// can be optimized
-	float2 GBufferUV = (ViewportUV * View.ViewSizeAndInvSize.xy + View.ViewRectMin.xy) * View.BufferSizeAndInvSize.zw;
+	#if MANUALLY_CLAMP_UV
+		ViewportDirectionUV *= (View.ViewSizeAndInvSize.x * View.BufferSizeAndInvSize.z);
+	#endif
 
-	OutColor = SSSSBlurPS(GBufferUV, ViewportUV, ViewportDirectionUV, false);
+	OutColor = SSSSBlurPS(BufferUV, ViewportDirectionUV, false);
 
 #if SSS_DIRECTION == 1
 	// second pass prepares the setup from the recombine pass which doesn't need depth but wants to reconstruct the color
@@ -438,25 +444,20 @@ void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor
 // with the SceneColor.
 void SubsurfaceRecombinePS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition : SV_POSITION, out float4 OutColor : SV_Target0)
 {
-	float2 ViewportUV = UVAndScreenPos.xy;
+	float2 BufferUV = UVAndScreenPos.xy;
 
-	// recombine with the scene color
-
-	// can be optimized
-	float2 UVSceneColor = SvPosition.xy * View.BufferSizeAndInvSize.zw;
-
-	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UVSceneColor);
+	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(BufferUV);
 	
 	if (ScreenSpaceData.GBuffer.ShadingModelID != SHADINGMODELID_SUBSURFACE_PROFILE)
 	{
-		OutColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor);
+		OutColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, BufferUV);
 		return;
 	}
 
 	// bilinear filtering
 	float3 SSSColor;
 	{
-		float4 SSSColorWithAlpha = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, ViewportUV);
+		float4 SSSColorWithAlpha = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, BufferUV);
 
 		// renormalize to dilate RGB to fix half res upsampling artifacts
 		SSSColor = SSSColorWithAlpha.rgb / max(SSSColorWithAlpha.a, 0.00001f);
@@ -468,7 +469,7 @@ void SubsurfaceRecombinePS(noperspective float4 UVAndScreenPos : TEXCOORD0, floa
 #if 1
 	// fade out subsurface scattering if radius is too small to be more crips (not blend with half resolution)
 	// minor quality improvement (faces are more detailed in distance)
-	LerpFactor = ComputeFullResLerp(ScreenSpaceData, UVSceneColor, PostprocessInput1Size);
+	LerpFactor = ComputeFullResLerp(ScreenSpaceData, BufferUV, PostprocessInput1Size);
 
 	// hack to debug if the fade is happening at the same time the VisualizeSSS shows it
 //	SSSColor = 0;
@@ -486,7 +487,7 @@ void SubsurfaceRecombinePS(noperspective float4 UVAndScreenPos : TEXCOORD0, floa
 
 	uint ReconstructMethod = RECOMBINE_QUALITY ? 3 : 1;
 
-	SDiffuseAndSpecular DiffuseAndSpecular = ReconstructLighting(UVSceneColor, ReconstructMethod);
+	SDiffuseAndSpecular DiffuseAndSpecular = ReconstructLighting(BufferUV, ReconstructMethod);
 	
 	float3 ExtractedNonSubsurface = DiffuseAndSpecular.Specular;
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "EdMode.h"
 #include "EditorModeTools.h"
@@ -740,7 +740,7 @@ void FEdMode::DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,
 			{
 				FTransform ActorToWorld = Actor->ActorToWorld();
 				Vertices.Empty();
-				const FPositionVertexBuffer& VertexBuffer = Actor->GetStaticMeshComponent()->GetStaticMesh()->RenderData->LODResources[0].PositionVertexBuffer;
+				const FPositionVertexBuffer& VertexBuffer = Actor->GetStaticMeshComponent()->GetStaticMesh()->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer;
 				for( uint32 i = 0 ; i < VertexBuffer.GetNumVertices() ; i++ )
 				{
 					Vertices.AddUnique( ActorToWorld.TransformPosition( VertexBuffer.VertexPosition(i) ) );
@@ -755,8 +755,8 @@ void FEdMode::DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,
 					if(View->ScreenToPixel(View->WorldToScreen(Vertex),PixelLocation))
 					{
 						const bool bOutside =
-							PixelLocation.X < 0.0f || PixelLocation.X > View->ViewRect.Width() ||
-							PixelLocation.Y < 0.0f || PixelLocation.Y > View->ViewRect.Height();
+							PixelLocation.X < 0.0f || PixelLocation.X > View->UnscaledViewRect.Width() ||
+							PixelLocation.Y < 0.0f || PixelLocation.Y > View->UnscaledViewRect.Height();
 						if( !bOutside )
 						{
 							const float X = PixelLocation.X - (TextureSizeX/2);

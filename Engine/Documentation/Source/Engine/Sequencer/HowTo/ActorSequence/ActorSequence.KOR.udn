@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3533392
+﻿INTSourceChangelist:3683933
 Availability: Public
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Title:블루프린트에서 삽입된 시퀀서 애니메이션 사용
@@ -13,6 +13,7 @@ topic-image:ActorSequenceTopicCompact.png
 Related: Engine/Sequencer/Overview
 Related: Engine/Sequencer/ReferenceEditor
 Related: Engine/Blueprints
+type:how-to
 
 
 [REGION:warning]

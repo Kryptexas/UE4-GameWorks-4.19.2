@@ -1,14 +1,15 @@
-﻿INTSourceChangelist:2690125
+﻿INTSourceChangelist:3626162
 Availability:Public
 Title:Custom 表現式
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:カスタム仕様の、プレーンなシェーダー コードの使用を可能にする表現式
-Skilllevel: Advanced
+Skilllevel:Advanced
 Version:4.9
+tags:Materials
 
 ## Custom
 
-Custom は、任意量の入力を実行するカスタム HLSL シェーダーコードを書いて、実行結果を出力します。
+**Custom** は、任意量の入力を実行するカスタム HLSL シェーダーコードを書いて、実行結果を出力します。
 
 | アイテム | 説明 |
 | -------- | ----------- |
@@ -19,7 +20,8 @@ Custom は、任意量の入力を実行するカスタム HLSL シェーダー�
 | **Inputs** | 表現式が使用する入力配列です。 |
 |[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Custom#CustomInputItem] | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Custom#CustomInputDesc]|
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:CustomInputItem]
 [REGION:prop_sublist]
 **入力名**
@@ -31,11 +33,18 @@ Custom は、任意量の入力を実行するカスタム HLSL シェーダー�
 入力名を指定します。マテリアル エディタの表現式上に表示される名前となる他に、入力値を参照する HLSL コード内でも使用されます。
 [/REGION]
 [/EXCERPT:CustomInputDesc]
--->
+
+[/COMMENT]
 
 入力配列には好きなだけ入力を追加し、名前を付けてください。その後、 Code プロパティにコードを書きます。例のように return 文で関数全体を入力しても良いですし、**Input.bgr** などの簡単な表現式を使っても良いです。OutputType で出力データ タイプも指定しなければなりません。
 
-![](T_Custom_Node.png)
+[REGION:lightbox]
+	[![](T_Custom_Node.png)(w:720)](T_Custom_Node.png)
+[/REGION]
+
+[REGION:caption]
+	クリックしてフルサイズで表示
+[/REGION]
 
 上図で使った以下のコードを使って、自分でカスタム ノードを作成できます。
 
@@ -62,16 +71,13 @@ Custom は、任意量の入力を実行するカスタム HLSL シェーダー�
 
 (#警告)
 [REGION:warning]
-**カスタム ノードは定数畳み込みを防止します。また、ノードでビルドされた同等バージョンと比べて、かなり多くのインストラクションを使用する場合があります。** 定数畳み込みは UE4 内部で使用する最適化で、必要に応じてシェーダー インストラクション数を畳み込み処理します。例えば、[Time->Sin->Mul by parameter->Add to something] といった一連の表現式は、UE4 では一つのインストラクションに折り畳まれます。表現式 (Time、パラメータ) の全ての入力値が全体のドローコールに対して定数であり、ピクセルによって変更しないためこれが可能となります。UE4 はカスタムノードにあるものは全て折りたたむことが出来ないため、既存ノードで作成した同等レベルのシェーダーよりも効率が悪くなります。結果として、カスタムのノードの使用は、既存ノードでは不可能な機能性へアクセスがある場合のみが最適です。
+* **カスタム ノードは定数畳み込みを防止します。また、ノードでビルドされた同等バージョンと比べて、かなり多くのインストラクションを使用する場合があります。 **  定数畳み込みは UE4 内部で使用する最適化で、必要に応じてシェーダー インストラクション数を畳み込み処理します。例えば、`Time >Sin >Mul by parameter > Add to something` といった一連の表現式は、UE4 では一つのインストラクションに折り畳まれます。表現式 (Time、パラメータ) の全ての入力値が全体のドローコールに対して定数であり、ピクセルによって変更しないためこれが可能となります。UE4 はカスタムノードにあるものは全て折りたたむことが出来ないため、既存ノードで作成した同等レベルのシェーダーよりも効率が悪くなります。結果として、カスタムのノードの使用は、既存ノードでは不可能な機能性へアクセスがある場合のみが最適です。  
+* **カスタムノードで書かれているシェーダーコードは、有効な HLSL でなければなりません。**
 [/REGION]
 
 
-[REGION:warning]
-**カスタムノードで書かれているシェーダーコードは、「そのままの状態」でターゲットプラットフォームに対してコンパイルされます。** つまり、シェーダーが PC でコンパイルされている場合、有効な HLSL コードとみなされます。PS3 でコンパイルされている場合、有効な Cg とみなされます。
-[/REGION]
+[COMMENT:none]
 
-
-<!--
 ## CustomTexture
 
 CustomTexture は、[Custom](#Custom) 表現式内の HLSL コードにあるテクスチャを参照します。通常は tex2D や類似関数を使用して、テクスチャを HLSL コード内でサンプリングします。
@@ -80,4 +86,5 @@ CustomTexture は、[Custom](#Custom) 表現式内の HLSL コードにあるテ
 
 ![customtex.jpg](customtex.jpg)
 
--->
+
+[/COMMENT]

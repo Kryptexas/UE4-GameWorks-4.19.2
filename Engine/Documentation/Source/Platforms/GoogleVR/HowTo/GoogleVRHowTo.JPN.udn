@@ -1,0 +1,35 @@
+﻿INTSourceChangelist:3802241
+Availability:Docs
+Crumbs:%ROOT%
+Title:Google VR の操作ガイド
+Description:Google VR およびアンリアル エンジン 4 の段階的な操作ガイド
+Type:how-to
+Version:4.17
+Parent:Parent:Platforms/GoogleVR
+Order:2
+Tags:GoogleVR
+Tags:VR
+Tags:Mobile
+
+Google VR の操作ガイドでは、アンリアル エンジン 4 を連携させて使用する方法を段階的に説明します。
+
+## 初心者向け
+
+カメラのセットアップ方法を説明します。
+
+[DIR(end:"1" output:"topic" type:"how-to" tags:"Basics" parent:"Platforms/GoogleVR")]
+
+## 中級者向け
+
+Google Daydream VR コントローラーなどのセットアップ方法を説明します。
+
+[DIR(end:"1" output:"topic" type:"how-to" tags:"GoogleVR" parent:"Platforms/GoogleVR")]
+
+## 上級者向け
+
+Google VR プロジェクトのデバッグ方法を説明します。 
+
+[DIR(end:"1" output:"topic" type:"how-to" tags:"GoogleVR" parent:"Platforms/GoogleVR")]
+
+
+

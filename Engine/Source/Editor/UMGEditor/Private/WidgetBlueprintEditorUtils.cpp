@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "WidgetBlueprintEditorUtils.h"
 #include "Components/PanelSlot.h"
@@ -276,6 +276,7 @@ void FWidgetBlueprintEditorUtils::CreateWidgetContextMenu(FMenuBuilder& MenuBuil
 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Cut);
 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Copy);
 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Paste);
+		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Rename);
 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Delete);
 	}
 	MenuBuilder.EndSection();
@@ -449,7 +450,7 @@ void FWidgetBlueprintEditorUtils::FindAllAncestorNamedSlotHostWidgetsForContent(
 	if (Preview != nullptr && WidgetTree != nullptr)
 	{
 		// Find the first widget up the chain with a null parent, they're the only candidates for this approach.
-		while (WidgetTemplate->GetParent())
+		while (WidgetTemplate && WidgetTemplate->GetParent())
 		{
 			WidgetTemplate = WidgetTemplate->GetParent();
 		}
@@ -701,7 +702,7 @@ void FWidgetBlueprintEditorUtils::ReplaceWidgetWithSelectedTemplate(TSharedRef<F
 		return;
 	}
 
-	if (UPanelWidget* ExisitingPanel = Cast<UPanelWidget>(ThisWidget))
+	if (UPanelWidget* ExistingPanel = Cast<UPanelWidget>(ThisWidget))
 	{
 		// if they are both panel widgets then call the existing replace function
 		UPanelWidget* ReplacementPanelWidget = Cast<UPanelWidget>(NewReplacementWidget);
@@ -745,7 +746,6 @@ bool FWidgetBlueprintEditorUtils::CanBeReplacedWithTemplate(TSharedRef<FWidgetBl
 	FAssetData SelectedUserWidget = BlueprintEditor->GetSelectedUserWidget();
 	UWidget* ThisWidget = Widget.GetTemplate();
 	UPanelWidget* ExistingPanel = Cast<UPanelWidget>(ThisWidget);
-	
 	// If selecting another widget blueprint
 	if (SelectedUserWidget.ObjectPath != NAME_None)
 	{
@@ -761,18 +761,16 @@ bool FWidgetBlueprintEditorUtils::CanBeReplacedWithTemplate(TSharedRef<FWidgetBl
 	}
 
 	UClass* WidgetClass = BlueprintEditor->GetSelectedTemplate().Get();
-	TSharedPtr<FWidgetTemplateClass> Template = MakeShareable(new FWidgetTemplateClass(WidgetClass));
-	UPanelWidget* NewReplacementPanel = Cast<UPanelWidget>(Template->Create(BP->WidgetTree));
-
-	if (!ExistingPanel && !NewReplacementPanel)
+	const bool bCanReplace = WidgetClass->IsChildOf(UPanelWidget::StaticClass());
+	if (!ExistingPanel && !bCanReplace)
 	{
 		return true;
 	}
-	else if (!ExistingPanel && NewReplacementPanel)
+	else if (!ExistingPanel && bCanReplace)
 	{
 		return true;
 	}
-	else if (ExistingPanel && !NewReplacementPanel)
+	else if (ExistingPanel && !bCanReplace)
 	{
 		if (ExistingPanel->GetChildrenCount() == 0)
 		{
@@ -785,9 +783,10 @@ bool FWidgetBlueprintEditorUtils::CanBeReplacedWithTemplate(TSharedRef<FWidgetBl
 	}
 	else 
 	{
-		if (ExistingPanel->GetClass()->GetDefaultObject<UPanelWidget>()->CanHaveMultipleChildren())
+		if (ExistingPanel->GetClass()->GetDefaultObject<UPanelWidget>()->CanHaveMultipleChildren() && bCanReplace)
 		{
-			return NewReplacementPanel->GetClass()->GetDefaultObject<UPanelWidget>()->CanHaveMultipleChildren() || ExistingPanel->GetChildrenCount() == 0;
+			const bool bChildAllowed = WidgetClass->GetDefaultObject<UPanelWidget>()->CanHaveMultipleChildren() || ExistingPanel->GetChildrenCount() == 0;
+			return bChildAllowed;
 		}
 		else
 		{

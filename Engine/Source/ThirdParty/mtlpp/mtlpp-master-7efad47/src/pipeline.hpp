@@ -1,9 +1,12 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
 #include "device.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -15,11 +18,11 @@ namespace mtlpp
 	}
 	MTLPP_AVAILABLE(10_13, 11_0);
 	
-	class PipelineBufferDescriptor : public ns::Object
+	class PipelineBufferDescriptor : public ns::Object<MTLPipelineBufferDescriptor*>
 	{
 	public:
 		PipelineBufferDescriptor();
-		PipelineBufferDescriptor(ns::Handle const& h) : ns::Object(h) {}
+		PipelineBufferDescriptor(MTLPipelineBufferDescriptor* h) : ns::Object<MTLPipelineBufferDescriptor*>(h) {}
 		
 		void SetMutability(Mutability m);
 		Mutability GetMutability() const;
@@ -27,3 +30,4 @@ namespace mtlpp
 	MTLPP_AVAILABLE(10_13, 11_0);
 }
 
+MTLPP_END

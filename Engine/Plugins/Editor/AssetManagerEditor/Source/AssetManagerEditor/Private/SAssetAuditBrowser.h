@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -35,28 +35,37 @@ public:
 	void AddAssetsToList(const TArray<FSoftObjectPath>& AssetsToView, bool bReplaceExisting);
 	void AddAssetsToList(const TArray<FName>& PackageNamesToView, bool bReplaceExisting);
 
+	/** Called when the current registry source changes */
+	void SetCurrentRegistrySource(const FAssetManagerEditorRegistrySource* RegistrySource);
+
 protected:
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
 
 	/** Delegate that handles creation of context menu */
 	TSharedPtr<SWidget> OnGetAssetContextMenu(const TArray<FAssetData>& SelectedAssets);
 
-	/** Delegate to handle "Find in Content Browser" context menu option */
+	/** Delegates for context menu */
 	void FindInContentBrowser() const;
 	bool IsAnythingSelected() const;
+	bool IsAnythingSelectedAndLoaded() const;
 	void OnRequestOpenAsset(const FAssetData& AssetData) const;
 
-	void EditSelectedAssets(TArray<FAssetData> Assets) const;
-	void SaveSelectedAssets(TArray<FAssetData> Assets) const;
-	bool CanSaveSelectedAssets(TArray<FAssetData> Assets) const;
-	void FindReferencesForSelectedAssets(TArray<FAssetData> Assets) const;
-	void LoadSelectedAssets(TArray<FAssetData> Assets) const;
+	void EditSelectedAssets() const;
+	void SaveSelectedAssets() const;
+	void FindReferencesForSelectedAssets() const;
+	void ShowSizeMapForSelectedAssets() const;
+	void LoadSelectedAssets() const;
 
 	bool CanShowColumnForAssetRegistryTag(FName AssetType, FName TagName) const;
-	FString GetValueForCustomColumn(FAssetData& AssetData, FName ColumnName) const;
-	
+	FString GetStringValueForCustomColumn(FAssetData& AssetData, FName ColumnName) const;
+	FText GetDisplayTextForCustomColumn(FAssetData& AssetData, FName ColumnName) const;
+	void OnGetCustomSourceAssets(const FARFilter& Filter, TArray<FAssetData>& OutAssets) const;
+
 	/** Populate supplied OutPackages with the packages for the supplied Assets array */
 	void GetSelectedPackages(const TArray<FAssetData>& Assets, TArray<UPackage*>& OutPackages) const;
+	void GetSelectedAssetIdentifiers(const TArray<FAssetData>& Assets, TArray<FAssetIdentifier>& OutAssetIdentifiers) const;
 
 	/** Single step forward in history */
 	FReply OnGoForwardInHistory();
@@ -97,6 +106,7 @@ protected:
 
 	/** Button callbacks */
 	FReply ClearAssets();
+	FReply AddChunks();
 	FReply RefreshAssets();
 
 	/** Adds all assets of type */
@@ -112,9 +122,9 @@ protected:
 	TSharedRef<SWidget> CreateClassPicker();
 
 	/** Platform combo box */
-	TSharedRef<SWidget> GeneratePlatformComboItem(TSharedPtr<FString> InItem);
-	void HandlePlatformComboChanged(TSharedPtr<FString> Item, ESelectInfo::Type SelectInfo);
-	FText GetPlatformComboText() const;
+	TSharedRef<SWidget> GenerateSourceComboItem(TSharedPtr<FString> InItem);
+	void HandleSourceComboChanged(TSharedPtr<FString> Item, ESelectInfo::Type SelectInfo);
+	FText GetSourceComboText() const;
 
 	/** Refresh the asset view with a new filter */
 	void RefreshAssetView();
@@ -131,16 +141,11 @@ protected:
 	/** Current position in the asset history */
 	int32 CurrentAssetHistoryIndex;
 
-	/** List of valid platforms */
-	TArray<TSharedPtr<FString>> PlatformComboList;
-	TArray<ITargetPlatform*> PlatformList;
-
-	/** Current platform string */
-	FString CurrentPlatformString;
+	/** List of valid registry sources */
+	TArray<TSharedPtr<FString>> SourceComboList;
 
 	/** Current TargetPlatform and registry state, may be null! */
-	ITargetPlatform* CurrentTargetPlatform;
-	FAssetRegistryState* CurrentPlatformState;
+	const FAssetManagerEditorRegistrySource* CurrentRegistrySource;
 
 	/** Delegates to interact with asset view */
 	FSyncToAssetsDelegate SyncToAssetsDelegate;

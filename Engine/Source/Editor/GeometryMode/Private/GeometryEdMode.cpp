@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GeometryEdMode.h"
 #include "EditorViewportClient.h"
@@ -513,7 +513,7 @@ void FEdModeGeometry::RenderPoly( const FSceneView* View, FViewport* Viewport, F
 			const FGeomPoly* GeomPoly = &GeomObject->PolyPool[PolyIdx];
 			PDI->SetHitProxy( new HGeomPolyProxy(GeomPoly->GetParentObject(),PolyIdx) );
 			{
-				FDynamicMeshBuilder MeshBuilder;
+				FDynamicMeshBuilder MeshBuilder(View->GetFeatureLevel());
 
 				TArray<FVector> Verts;
 
@@ -624,7 +624,7 @@ void FEdModeGeometry::RenderVertex( const FSceneView* View, FPrimitiveDrawInterf
 			check(GeomObject->GetActualBrush());
 
 			Location = GeomObject->GetActualBrush()->ActorToWorld().TransformPosition( *GeomVertex );
-			Scale = View->WorldToScreen( Location ).W * ( 4.0f / View->ViewRect.Width() / View->ViewMatrices.GetProjectionMatrix().M[0][0] );
+			Scale = View->WorldToScreen( Location ).W * ( 4.0f / View->UnscaledViewRect.Width() / View->ViewMatrices.GetProjectionMatrix().M[0][0] );
 			Color = GeomVertex->IsSelected() ? FColor(255,128,64) : GeomObject->GetActualBrush()->GetWireColor();
 
 			PDI->SetHitProxy( new HGeomVertexProxy( GeomObject, VertIdx) );

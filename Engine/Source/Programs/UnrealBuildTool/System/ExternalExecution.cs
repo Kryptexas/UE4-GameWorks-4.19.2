@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -531,7 +531,7 @@ namespace UnrealBuildTool
 				else
 				{
 					// Remove any stale generated code directory
-					if(Module.GeneratedCodeDirectory != null && (!UnrealBuildTool.IsEngineInstalled() || !Module.GeneratedCodeDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory)))
+					if(Module.GeneratedCodeDirectory != null && (!UnrealBuildTool.IsUnderAnInstalledDirectory(Module.GeneratedCodeDirectory)))
 					{
 						if (DirectoryReference.Exists(Module.GeneratedCodeDirectory))
 						{
@@ -745,8 +745,14 @@ namespace UnrealBuildTool
 
 			foreach (UHTModuleInfo Module in UObjectModules)
 			{
-				// If we're using a precompiled engine, skip skip checking timestamps for modules that are under the engine directory
-				if (bUsePrecompiled && UnrealBuildTool.IsUnderAnEngineDirectory(Module.ModuleDirectory))
+				// If we're using a precompiled engine, skip checking timestamps for modules that are under the engine directory
+				if (bUsePrecompiled && Module.ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+				{
+					continue;
+				}
+
+				// Skip checking timestamps for modules that are under an installed directory
+				if (UnrealBuildTool.IsUnderAnInstalledDirectory(Module.ModuleDirectory))
 				{
 					continue;
 				}
@@ -833,7 +839,7 @@ namespace UnrealBuildTool
 					// @todo ubtmake: Possibly, we should never be doing this check these days.
 					//
 					// We don't need to do this check if using hot reload makefiles, since makefile out-of-date checks already handle it.
-					if ((HotReload == EHotReload.Disabled || !BuildConfiguration.bUseUBTMakefiles) && (UnrealBuildTool.IsGatheringBuild || !UnrealBuildTool.IsAssemblingBuild))
+					if (!BuildConfiguration.bUseUBTMakefiles && (UnrealBuildTool.IsGatheringBuild || !UnrealBuildTool.IsAssemblingBuild))
 					{
 						// Also check the timestamp on the directory the source file is in.  If the directory timestamp has
 						// changed, new source files may have been added or deleted.  We don't know whether the new/deleted
@@ -897,8 +903,14 @@ namespace UnrealBuildTool
 				{
 					if (GeneratedCodeDirectoryInfo.Exists)
 					{
-						// Don't write anything to the engine directory if we're running an installed build
-						if (bUsePrecompiled && UnrealBuildTool.IsUnderAnEngineDirectory(Module.ModuleDirectory))
+						// Don't write anything to the engine directory if we're using precompiled
+						if (bUsePrecompiled && Module.ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+						{
+							continue;
+						}
+
+						// Don't write anything to installed directories if we're running an installed build
+						if (UnrealBuildTool.IsUnderAnInstalledDirectory(Module.ModuleDirectory))
 						{
 							continue;
 						}
@@ -1088,7 +1100,7 @@ namespace UnrealBuildTool
 						{
 							if (EnabledPlugin.Descriptor.bCanBeUsedWithUnrealHeaderTool)
 							{
-								UBTArguments.Append(" -PLUGIN \"" + EnabledPlugin.Info.File + "\"");
+								UBTArguments.Append(" -PLUGIN=\"" + EnabledPlugin.Info.File + "\"");
 							}
 						}						
 

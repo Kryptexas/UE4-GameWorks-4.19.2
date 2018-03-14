@@ -1,0 +1,59 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Crumbs: %ROOT%
+Title: Parallel Rendering Overview
+Description: Taking a high level look at Parallel Rendering Overview in UE4
+Type: Overview
+SkillLevel: advanced
+Version: 4.18
+Parent:Programming\Rendering\
+Order: 5
+Tags: rendering
+
+[TOC(start:1 end:2)]
+
+
+
+In the old days before Parallel rendering was an option there was just the GameThread and the RenderThread.  The GameThread would enqueue RenderThread commands to execute later.  These commands would directly make calls into the `RHI` layer that serves as our cross-platform interface into the different graphics API's.  This means that the RenderThread would directly call items such as  `Lock`, `DrawPrimitive`, etc on D3D11. Unfortunately this didn't let us parallelize very well so then the new Parallel renderer came online in the following stages.
+
+## Stage 1
+
+The purpose of Stage 1 was to separate the renderer into a front-end and a back-end. This way the RenderThread no longer makes direct calls through the RHI. Instead the RenderThread generates a cross-platform command list derived from `FRHICommandList`.  There are multiple types of command list for different purposes. E.g. `FRHICommandListImmediate` and `FRHIAsyncComputeCommandList`. So when RenderThread wants to perform `DrawPrimitive`, it takes an RHICommandList object and enqueues a `DrawPrimitive` command.  These commands are small classes with an overridden `execute` function that store the data they need to execute when created.  So for `DrawPrim` it stores off `NumPrims`, `NumInstances`,etc, puts it on the end of the commandlist and then the RenderThread goes on its way.
+ 
+These RHI Commandlists are then 'Translated' (i.e. executed) on a separate thread that is called the `RHI Thread`.  This is now where we make calls into the actual platform level API's. There are still some non-commandlist operations like `Lock/Unlock` that may need to be executed immediately by the RenderThread.  In these cases we either flush the RHI Thread and wait, or copy data and queue.  This is platform implementation dependent per-operation. Submission of commands to the GPU can be platform controlled by heuristic data (submit multiple times per frame, queue all commands till end of frame, etc).  Finally, we added a new `RHISubmitCommandsHint` command to indicate to the RHI that it should submit now if possible.
+
+
+## Stage 2 
+
+Now that command generation is separated from command execution we can parallelize either one independently.  This means that even on DX11 where parallelization doesn't work very well on the backend, we can generate commandlists in parallel easily now.  When we parallelize data it is done as data-parallel rather than task-parallel. In other words, we will break each individual pass up into chunks rather than run the different passes as long tasks concurrently.  We do this in all the major passes such as BasePass, DepthPass, VelocityPass, etc.
+ 
+The mechanism for this is the pure virtual `FParallelCommandListSet` class.  You can find a derivation of this class for every pass which is parallelized.  E.g. `FbasePassParallelCommandListSet`. These classes are responsible for creating an RHICommandList for each thread, submitting the results in the proper order, setting any necessary state at the start of the partial commandlist, etc.  Load balancing is important here to avoid some worker threads having too little or too much work to do compared to the others.  UE4 will automatically do its best to load balance properly.  Special submission commands are inserted into the RHICommandList to ensure that GPU submission happens in the correct order, and that translation is finished before submitting.
+ 
+Once all the worker threads for generating a given pass are kicked off, the rendering thread continues on.  It does **not** wait for the tasks to finish.  Thus the renderer is generally no longer allowed to modify state shared with these workers such as the View and Projection Matrices.
+
+## Stage 3
+
+Stage three brings support for backend parallelization on platforms that support it like consoles, DX12 and Vulkan.  In this case we actually do the Translation in parallel where we can.  Basically, anything generated in parallel on the frontend is translated in parallel on the backend.   The main interface used in translation is the `IRHICommandContext`. There is a derived `RHICommandContext` for each platform and API.  During translation the RHICommandList is given an `RHICommandContext` to operate on.  Each command�s execute function calls into the `RHICommandContext` API.  The CommandContext is responsible for state shadowing, validation, and any API specific details necessary to perform the given operation.
+
+
+## Synchronization 
+
+Synchronization of the renderer between the GameThread, RenderThread, RHI Thread, and the GPU is a complex topic.   At the highest level UE4 is normally configured as a single frame-behind renderer.  Meaning specifically that the GameThread may be processing Frame N+1 while the RenderThread is allowed to be processing Frame N or Frame N+1 (as commands come in) if the RenderThread is processing faster than the GameThread.  The addition of the RHIThread complicates this slightly in that we allow the RenderingThread to move ahead of the RHIThread by about half a frame.  Specifically, the RenderThread is allowed to complete the visibility calculations for Frame N+1 before waiting for the RHI Thread to complete Frame N.  Thus for a GameThread on Frame N+1, the RenderThread may be processing commands for Frame N or Frame N+1, and the RHI Thread may also be translating commands from Frame N or Frame N+1 depending on execution times.  These guarantees are arbitrated by `FframeEndSync` and `FRHICommandListImmediate::RHIThreadFence`.
+ 
+Another useful guarantee is that no matter how the parallelization is configured, the order of Submission of commands to the GPU is unchanged from the order the commands would have been submitted in a single-threaded renderer.  This is required for correctness and must be maintained during any code refactoring. 
+
+
+## Debugging
+
+There are various CVARs to control this behavior.  Because many of these stages are orthogonal they can be independently disabled for testing, and new platforms can be brought up in stages as time allows.  e.g.
+ 
+
+|Command|Description|
+|--------------|--------------|
+|**r.rhicmdusedeferredcontexts**|Will control parallelization of the backend.|
+|**r.rhicmduseparallelalgorithms**|Will control parallelization of the frontend.|
+|**r.rhithread.enable**|Will disable the RHIThread completely. Commandlists will still be generated, they will just be translated directly on the RenderThread at certain points.|
+|**r.rhicmdbypass**|Can completely disable commandlist generation and make the renderer behave like it originally did, bypassing the commandlist and directly calling the RHI commands on the rendering thread  This only takes effect after you have also disabled the RHI thread.|
+
+
+![](Parallel_Rendering_00.png)

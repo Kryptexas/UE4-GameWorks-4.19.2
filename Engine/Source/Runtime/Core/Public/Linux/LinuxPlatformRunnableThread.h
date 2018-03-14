@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	LinuxPlatformThreading.h: Linux platform threading functions
@@ -14,6 +14,7 @@
 #include "Containers/StringConv.h"
 #include "Logging/LogMacros.h"
 #include "Runtime/Core/Private/HAL/PThreadRunnableThread.h"
+#include <sys/resource.h>
 
 class Error;
 
@@ -37,6 +38,12 @@ class FRunnableThreadLinux : public FRunnableThreadPThread
 	/** Address of stack guard page - if nullptr, the page wasn't set */
 	void* StackGuardPageAddress;
 
+	/** Baseline priority (nice value). See explanation in SetPriority(). */
+	int BaselineNiceValue;
+
+	/** Whether the value of BaselineNiceValue has been obtained through getpriority(). See explanation in SetPriority(). */
+	bool bGotBaselineNiceValue;
+
 public:
 
 	/** Separate stack for the signal handler (so possible stack overflows don't go unnoticed), for the main thread specifically. */
@@ -45,6 +52,8 @@ public:
 	FRunnableThreadLinux()
 		:	FRunnableThreadPThread()
 		,	StackGuardPageAddress(nullptr)
+		,	BaselineNiceValue(0)
+		,	bGotBaselineNiceValue(false)
 	{
 	}
 
@@ -112,6 +121,92 @@ public:
 		}
 
 		return bSuccess;
+	}
+
+protected:
+
+	/** on Linux, this translates to ranges of setpriority(). Note that not all range may be available*/
+	virtual int32 TranslateThreadPriority(EThreadPriority Priority)
+	{
+		// In general, the range is -20 to 19 (negative is highest, positive is lowest)
+		int32 NiceLevel = 0;
+		switch (Priority)
+		{
+			case TPri_TimeCritical:
+				NiceLevel = -20;
+				break;
+
+			case TPri_Highest:
+				NiceLevel = -15;
+				break;
+
+			case TPri_AboveNormal:
+				NiceLevel = -10;
+				break;
+
+			case TPri_Normal:
+				NiceLevel = 0;
+				break;
+
+			case TPri_SlightlyBelowNormal:
+				NiceLevel = 3;
+				break;
+
+			case TPri_BelowNormal:
+				NiceLevel = 5;
+				break;
+
+			case TPri_Lowest:
+				NiceLevel = 10;		// 19 is a total starvation
+				break;
+
+			default:
+				UE_LOG(LogHAL, Fatal, TEXT("Unknown Priority passed to FRunnableThreadPThread::TranslateThreadPriority()"));
+				return 0;
+		}
+
+		// note: a non-privileged process can only go as low as RLIMIT_NICE
+		return NiceLevel;
+	}
+
+	virtual void SetThreadPriority(EThreadPriority NewPriority) override
+	{
+		// always set priority to avoid second guessing
+		ThreadPriority = NewPriority;
+		SetThreadPriority(Thread, NewPriority);
+	}
+
+	virtual void SetThreadPriority(pthread_t InThread, EThreadPriority NewPriority)
+	{
+		// NOTE: InThread is ignored, but we can use ThreadID that maps to SYS_ttid
+		int32 Prio = TranslateThreadPriority(NewPriority);
+
+		// Linux implements thread priorities the same way as process priorities, while on Windows they are relative to process priority.
+		// We want Windows behavior, since sometimes we set the whole process to a lower priority and would like its threads to avoid raising it
+		// (even if RTLIMIT_NICE allows it) - example is ShaderCompileWorker that need to run in the background.
+		//
+		// Thusly we remember the baseline value that the process has at the moment of first priority change and set thread priority relative to it.
+		// This is of course subject to race conditions and other problems (e.g. in case main thread changes its priority after the fact), but it's the best we have.
+
+		if (!bGotBaselineNiceValue)
+		{
+			// checking errno is necessary since -1 is a valid priority to return from getpriority()
+			errno = 0;
+			int CurrentPriority = getpriority(PRIO_PROCESS, getpid());
+			// if getting priority wasn't successful, don't change the baseline value (will be 0 - i.e. normal - by default)
+			if (CurrentPriority != -1 || errno == 0)
+			{
+				BaselineNiceValue = CurrentPriority;
+				bGotBaselineNiceValue = true;
+			}
+		}
+
+		int ModifiedPriority = FMath::Clamp(BaselineNiceValue + Prio, -20, 19);
+		if (setpriority(PRIO_PROCESS, ThreadID, ModifiedPriority) != 0)
+		{
+			// Unfortunately this is going to be a frequent occurence given that by default Linux doesn't allow raising priorities.
+			// Don't issue a warning here
+		}
 	}
 
 private:

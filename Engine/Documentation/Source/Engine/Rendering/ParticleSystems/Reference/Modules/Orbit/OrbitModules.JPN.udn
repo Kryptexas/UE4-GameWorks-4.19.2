@@ -44,7 +44,8 @@ Orbit モジュールのみが実装されています。実際のパーティ�
 
 
 
-<!-------------Orbit Includes----------------
+[COMMENT:none]
+-----------Orbit Includes----------------
 #### Includes
 
 
@@ -68,4 +69,5 @@ Orbit モジュールのみが実装されています。実際のパーティ�
 [/REGION]
 [/EXCERPT:OffsetOptions]
 
--------------End Orbit Includes--------------->
+-------------End Orbit Includes-------------
+[/COMMENT]

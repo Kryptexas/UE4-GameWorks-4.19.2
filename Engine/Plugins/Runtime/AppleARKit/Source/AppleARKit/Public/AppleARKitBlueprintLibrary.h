@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,7 +10,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "AppleARKitBlueprintLibrary.generated.h"
 
-UCLASS()
+UCLASS(meta=(ScriptName="AppleARKitLibrary"))
 class APPLEARKIT_API UAppleARKitBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()

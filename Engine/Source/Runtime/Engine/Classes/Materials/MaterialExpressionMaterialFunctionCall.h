@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /**
  * MaterialExpressionMaterialFunctionCall - an expression which allows a material to use a material function
@@ -81,7 +81,7 @@ class UMaterialExpressionMaterialFunctionCall : public UMaterialExpression
 
 	/** The function to call. */
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionMaterialFunctionCall)
-	class UMaterialFunction* MaterialFunction;
+	class UMaterialFunctionInterface* MaterialFunction;
 
 	/** Array of all the function inputs that this function exposes. */
 	UPROPERTY()
@@ -91,6 +91,9 @@ class UMaterialExpressionMaterialFunctionCall : public UMaterialExpression
 	UPROPERTY()
 	TArray<struct FFunctionExpressionOutput> FunctionOutputs;
 
+	/** Used by material parameters to split references to separate instances. */
+	UPROPERTY(Transient)
+	struct FMaterialParameterInfo FunctionParameterInfo;
 
 	//~ Begin UObject Interface.
 #if WITH_EDITOR
@@ -101,6 +104,13 @@ class UMaterialExpressionMaterialFunctionCall : public UMaterialExpression
 	virtual bool NeedsLoadForClient() const override;
 	//~ End UObject Interface.
 
+	ENGINE_API void GetDependentFunctions(TArray<UMaterialFunctionInterface*>& DependentFunctions) const;
+
+#if WITH_EDITOR
+	void UnlinkFunctionFromCaller(FMaterialCompiler* Compiler);
+	void LinkFunctionIntoCaller(FMaterialCompiler* Compiler);
+#endif
+
 	//~ Begin UMaterialExpression Interface
 #if WITH_EDITOR
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex) override;
@@ -108,7 +118,7 @@ class UMaterialExpressionMaterialFunctionCall : public UMaterialExpression
 #endif
 	virtual const TArray<FExpressionInput*> GetInputs() override;
 	virtual FExpressionInput* GetInput(int32 InputIndex) override;
-	virtual FString GetInputName(int32 InputIndex) const override;
+	virtual FName GetInputName(int32 InputIndex) const override;
 	virtual bool IsInputConnectionRequired(int32 InputIndex) const override;
 #if WITH_EDITOR
 	virtual FString GetDescription() const override;
@@ -123,7 +133,7 @@ class UMaterialExpressionMaterialFunctionCall : public UMaterialExpression
 	//~ End UMaterialExpression Interface
 
 	/** Util to get name of a particular type, optionally with type appended in parenthesis */
-	ENGINE_API FString GetInputNameWithType(int32 InputIndex, bool bWithType) const;
+	ENGINE_API FName GetInputNameWithType(int32 InputIndex, bool bWithType) const;
 
 #if WITH_EDITOR
 	/** 
@@ -134,11 +144,11 @@ class UMaterialExpressionMaterialFunctionCall : public UMaterialExpression
 	 *
 	 *	@return									true if setting the function was a success, false if it failed.
 	 */
-	ENGINE_API bool SetMaterialFunctionEx(UMaterialFunction* OldFunctionResource, UMaterialFunction* NewResource);
+	ENGINE_API bool SetMaterialFunctionEx(UMaterialFunctionInterface* OldFunctionResource, UMaterialFunctionInterface* NewResource);
 
 	/** */
 	UFUNCTION(BlueprintCallable, Category = "MaterialEditing")
-	ENGINE_API bool SetMaterialFunction(UMaterialFunction* NewMaterialFunction);
+	ENGINE_API bool SetMaterialFunction(UMaterialFunctionInterface* NewMaterialFunction);
 #endif // WITH_EDITOR
 
 	/** 

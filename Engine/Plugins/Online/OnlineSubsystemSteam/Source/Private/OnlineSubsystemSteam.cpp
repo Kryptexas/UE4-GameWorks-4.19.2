@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemSteam.h"
 #include "GenericPlatform/GenericPlatformFile.h"
@@ -20,6 +20,7 @@
 #include "OnlineAsyncTaskManagerSteam.h"
 #include "OnlineSessionInterfaceSteam.h"
 #include "OnlineIdentityInterfaceSteam.h"
+#include "OnlinePresenceInterfaceSteam.h"
 #include "OnlineFriendsInterfaceSteam.h"
 #include "OnlineUserCloudInterfaceSteam.h"
 #include "OnlineSharedCloudInterfaceSteam.h"
@@ -27,6 +28,27 @@
 #include "VoiceInterfaceSteam.h"
 #include "OnlineExternalUIInterfaceSteam.h"
 #include "OnlineAchievementsInterfaceSteam.h"
+
+
+#if !UE_BUILD_SHIPPING
+namespace OSSConsoleVariables
+{
+	/** This CVar is for use by NetcodeUnitTest, and is completely unsupported for use outside of this */
+	TAutoConsoleVariable<int32> CVarSteamInitServerOnClient(
+			TEXT("OSS.SteamInitServerOnClient"),
+			1,
+			TEXT("Whether or not to initialize the Steam server interface on clients (default true)"),
+			ECVF_Default);
+
+	/** CVar used by NetcodeUnitTest, to force-enable Steam within the unit test commandlet */
+	TAutoConsoleVariable<int32> CVarSteamUnitTest(
+			TEXT("OSS.SteamUnitTest"),
+			0,
+			TEXT("Whether or not Steam is being force-enabled by NetcodeUnitTest"),
+			ECVF_Default);
+}
+#endif
+
 
 extern "C" 
 { 
@@ -266,7 +288,7 @@ IOnlineMessagePtr FOnlineSubsystemSteam::GetMessageInterface() const
 
 IOnlinePresencePtr FOnlineSubsystemSteam::GetPresenceInterface() const
 {
-	return nullptr;
+	return PresenceInterface;
 }
 
 IOnlineChatPtr FOnlineSubsystemSteam::GetChatInterface() const
@@ -322,13 +344,20 @@ bool FOnlineSubsystemSteam::Init()
 	ConfigureSteamInitDevOptions(bRelaunchInSteam, RelaunchAppId);
 
 	const bool bIsServer = IsRunningDedicatedServer();
+	bool bAttemptServerInit = true;
+
+#if !UE_BUILD_SHIPPING
+	// Add a bypass for NetcodeUnitTest, to allow running a Steam server + client from same machine, by disabling server init on client.
+	// This is an unapproved/unsupported method for using OnlineSubsystemSteam.
+	bAttemptServerInit = bIsServer || !!OSSConsoleVariables::CVarSteamInitServerOnClient.GetValueOnGameThread();
+#endif
 	
 	// Don't initialize the Steam Client API if we are launching as a server
 	bool bClientInitSuccess = !bIsServer ? InitSteamworksClient(bRelaunchInSteam, RelaunchAppId) : true;
 
 	// Initialize the Steam Server API if this is a dedicated server or
 	//  the Client API was successfully initialized
-	bool bServerInitSuccess = bClientInitSuccess ? InitSteamworksServer() : false;
+	bool bServerInitSuccess = bClientInitSuccess ? (!bAttemptServerInit || InitSteamworksServer()) : false;
 
 	if (bClientInitSuccess && bServerInitSuccess)
 	{
@@ -345,6 +374,8 @@ bool FOnlineSubsystemSteam::Init()
 		SessionInterface->CheckPendingSessionInvite();
 
 		IdentityInterface = MakeShareable(new FOnlineIdentitySteam(this));
+
+		PresenceInterface = MakeShareable(new FOnlinePresenceSteam(this));
 
 		if (!bIsServer)
 		{
@@ -418,6 +449,7 @@ bool FOnlineSubsystemSteam::Shutdown()
 	DESTRUCT_INTERFACE(FriendInterface);
 	DESTRUCT_INTERFACE(IdentityInterface);
 	DESTRUCT_INTERFACE(SessionInterface);
+	DESTRUCT_INTERFACE(PresenceInterface);
 
 #undef DESTRUCT_INTERFACE
 
@@ -434,7 +466,7 @@ bool FOnlineSubsystemSteam::Shutdown()
 	return true;
 }
 
-bool FOnlineSubsystemSteam::IsEnabled()
+bool FOnlineSubsystemSteam::IsEnabled() const
 {
 	if (bSteamworksClientInitialized || bSteamworksGameServerInitialized)
 	{
@@ -442,8 +474,7 @@ bool FOnlineSubsystemSteam::IsEnabled()
 	}
 
 	// Check the ini for disabling Steam
-	bool bEnableSteam = true;
-	GConfig->GetBool(TEXT("OnlineSubsystemSteam"), TEXT("bEnabled"), bEnableSteam, GEngineIni);
+	bool bEnableSteam = FOnlineSubsystemImpl::IsEnabled();
 	if (bEnableSteam)
 	{
 		// Steam doesn't support running both the server and client on the same machine
@@ -452,6 +483,14 @@ bool FOnlineSubsystemSteam::IsEnabled()
 		if (bEnableSteam)
 		{
 			bEnableSteam = IsRunningDedicatedServer() || IsRunningGame();
+		}
+#endif
+
+#if !UE_BUILD_SHIPPING
+		// Force-enable Steam for NetcodeUnitTest
+		if (!!OSSConsoleVariables::CVarSteamUnitTest.GetValueOnGameThread())
+		{
+			bEnableSteam = true;
 		}
 #endif
 	}

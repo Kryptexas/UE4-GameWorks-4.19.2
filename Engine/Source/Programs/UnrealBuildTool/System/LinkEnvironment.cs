@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -216,15 +216,35 @@ namespace UnrealBuildTool
 		/// </summary>
 		public bool bAllowLTCG;
 
-		/// <summary>
-		/// Whether to request the linker create a map file as part of the build
-		/// </summary>
-		public bool bCreateMapFile;
+        /// <summary>
+        /// Whether to enable Profile Guided Optimization (PGO) instrumentation in this build.
+        /// </summary>
+        public bool bPGOProfile;
+
+        /// <summary>
+        /// Whether to optimize this build with Profile Guided Optimization (PGO).
+        /// </summary>
+        public bool bPGOOptimize;
+
+        /// <summary>
+        /// Platform specific directory where PGO profiling data is stored.
+        /// </summary>
+        public string PGODirectory;
+
+        /// <summary>
+        /// Platform specific filename where PGO profiling data is saved.
+        /// </summary>
+        public string PGOFilenamePrefix;
+
+        /// <summary>
+        /// Whether to request the linker create a map file as part of the build
+        /// </summary>
+        public bool bCreateMapFile;
 
 		/// <summary>
 		/// Whether to allow the use of ASLR (address space layout randomization) if supported.
 		/// </summary>
-		public bool bAllowALSR;
+		public bool bAllowASLR;
 
 		/// <summary>
 		/// Whether PDB files should be used for Visual C++ builds.
@@ -327,8 +347,12 @@ namespace UnrealBuildTool
 			bSupportEditAndContinue = Other.bSupportEditAndContinue;
 			bUseIncrementalLinking = Other.bUseIncrementalLinking;
 			bAllowLTCG = Other.bAllowLTCG;
-			bCreateMapFile = Other.bCreateMapFile;
-			bAllowALSR = Other.bAllowALSR;
+            bPGOOptimize = Other.bPGOOptimize;
+            bPGOProfile = Other.bPGOProfile;
+            PGODirectory = Other.PGODirectory;
+            PGOFilenamePrefix = Other.PGOFilenamePrefix;
+            bCreateMapFile = Other.bCreateMapFile;
+            bAllowASLR = Other.bAllowASLR;
 			bUsePDBFiles = Other.bUsePDBFiles;
 			bUseFastPDBLinking = Other.bUseFastPDBLinking;
 			bPrintTimingInfo = Other.bPrintTimingInfo;

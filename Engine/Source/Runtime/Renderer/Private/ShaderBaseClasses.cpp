@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShaderBaseClasses.cpp: Shader base classes
@@ -74,6 +74,9 @@ FMaterialShader::FMaterialShader(const FMaterialShaderType::CompiledShaderInitia
 	SceneColorCopyTextureSampler.Bind(Initializer.ParameterMap, TEXT("SceneColorCopyTextureSampler"));
 	EyeAdaptation.Bind(Initializer.ParameterMap, TEXT("EyeAdaptation"));
 
+	InstanceCount.Bind(Initializer.ParameterMap, TEXT("InstanceCount"));
+	InstanceOffset.Bind(Initializer.ParameterMap, TEXT("InstanceOffset"));
+	VertexOffset.Bind(Initializer.ParameterMap, TEXT("VertexOffset"));
 }
 
 FUniformBufferRHIParamRef FMaterialShader::GetParameterCollectionBuffer(const FGuid& Id, const FSceneInterface* SceneInterface) const
@@ -83,7 +86,11 @@ FUniformBufferRHIParamRef FMaterialShader::GetParameterCollectionBuffer(const FG
 
 	if (!UniformBuffer)
 	{
-		UniformBuffer = GDefaultMaterialParameterCollectionInstances.FindChecked(Id)->GetUniformBuffer();
+		FMaterialParameterCollectionInstanceResource** CollectionResource = GDefaultMaterialParameterCollectionInstances.Find(Id);
+		if (CollectionResource && *CollectionResource)
+		{
+			UniformBuffer = (*CollectionResource)->GetUniformBuffer();
+		}
 	}
 
 	return UniformBuffer;
@@ -271,6 +278,28 @@ void FMaterialShader::SetParameters(
 		for (int32 CollectionIndex = 0; CollectionIndex < NumToSet; CollectionIndex++)
 		{			
 			FUniformBufferRHIParamRef UniformBuffer = GetParameterCollectionBuffer(ParameterCollections[CollectionIndex], View.Family->Scene);
+
+			if (!UniformBuffer)
+			{
+				// Dump the currently registered parameter collections and the ID we failed to find.
+				// In a cooked project these numbers are persistent so we can track back to the original
+				// parameter collection that was being referenced and no longer exists
+				FString InstancesString;
+				TMap<FGuid, FMaterialParameterCollectionInstanceResource*>::TIterator Iter = GDefaultMaterialParameterCollectionInstances.CreateIterator();
+				while (Iter)
+				{
+					FMaterialParameterCollectionInstanceResource* Instance = Iter.Value();
+					InstancesString += FString::Printf(TEXT("\n0x%p: %s: %s"),
+						Instance, Instance ? *Instance->GetOwnerName().ToString() : TEXT("None"), *Iter.Key().ToString());
+					++Iter;
+				}
+
+				UE_LOG(LogRenderer, Fatal, TEXT("Failed to find parameter collection buffer with GUID '%s'.\n")
+					TEXT("Currently %i listed default instances: %s"),
+					*ParameterCollections[CollectionIndex].ToString(),
+					GDefaultMaterialParameterCollectionInstances.Num(), *InstancesString);
+			}
+
 			SetUniformBufferParameter(RHICmdList, ShaderRHI, ParameterCollectionUniformBuffers[CollectionIndex], UniformBuffer);			
 		}
 	}
@@ -342,7 +371,8 @@ void FMaterialShader::SetParameters(
 		}
 	}
 
-	DeferredParameters.Set(RHICmdList, ShaderRHI, View, Material.GetMaterialDomain(), TextureMode);
+	// If there is no scene, then FSceneRenderTargets::CurrentShadingPath won't be set (see FSceneRenderTargets::Allocate()) and binding the scene textures will crash.
+	DeferredParameters.Set(RHICmdList, ShaderRHI, View, Material.GetMaterialDomain(), View.Family->Scene ? TextureMode : ESceneRenderTargetsMode::InvalidScene);
 
 	if (FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
@@ -396,6 +426,24 @@ IMPLEMENT_MATERIAL_SHADER_SetParameters( FComputeShaderRHIParamRef );
 
 #endif
 
+FTextureRHIRef& GetEyeAdaptation(FRHICommandList& RHICmdList, const FSceneView& View)
+{
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+	if (View.bIsViewInfo)
+	{
+		const FViewInfo& ViewInfo = static_cast<const FViewInfo&>(View);
+		if (ViewInfo.HasValidEyeAdaptation())
+		{
+			IPooledRenderTarget* EyeAdaptationRT = ViewInfo.GetEyeAdaptation(RHICmdList);
+			if (EyeAdaptationRT)
+			{
+				return EyeAdaptationRT->GetRenderTargetItem().TargetableTexture;
+			}
+		}
+	}
+	return GWhiteTexture->TextureRHI;
+}
+
 bool FMaterialShader::Serialize(FArchive& Ar)
 {
 	const bool bShaderHasOutdatedParameters = FShader::Serialize(Ar);
@@ -431,26 +479,11 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 	Ar << PerFramePrevScalarExpressions;
 	Ar << PerFramePrevVectorExpressions;
 
+	Ar << InstanceCount;
+	Ar << InstanceOffset;
+	Ar << VertexOffset;
+
 	return bShaderHasOutdatedParameters;
-}
-
-FTextureRHIRef& FMaterialShader::GetEyeAdaptation(FRHICommandList& RHICmdList, const FSceneView& View)
-{
-	IPooledRenderTarget* EyeAdaptationRT = NULL;
-	if (View.bIsViewInfo)
-	{
-		const FViewInfo& ViewInfo = static_cast<const FViewInfo&>(View);
-		if (ViewInfo.HasValidEyeAdaptation()) {
-			EyeAdaptationRT = ViewInfo.GetEyeAdaptation(RHICmdList);
-		}
-	}
-
-	if( EyeAdaptationRT )
-	{
-		return EyeAdaptationRT->GetRenderTargetItem().TargetableTexture;
-	}
-	
-	return GWhiteTexture->TextureRHI;
 }
 
 uint32 FMaterialShader::GetAllocatedSize() const

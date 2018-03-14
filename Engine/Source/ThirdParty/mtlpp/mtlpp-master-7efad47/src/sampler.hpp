@@ -2,14 +2,18 @@
  * Copyright 2016-2017 Nikolay Aleksiev. All rights reserved.
  * License: https://github.com/naleksiev/mtlpp/blob/master/LICENSE
  */
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
 
 #pragma once
 
-#include "defines.hpp"
+
+#include "declare.hpp"
+#include "imp_Sampler.hpp"
 #include "depth_stencil.hpp"
 #include "device.hpp"
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
@@ -46,16 +50,16 @@ namespace mtlpp
         OpaqueWhite = 2,       // {1,1,1,1}
     };
 
-    class SamplerDescriptor : public ns::Object
+    class SamplerDescriptor : public ns::Object<MTLSamplerDescriptor*>
     {
     public:
         SamplerDescriptor();
-        SamplerDescriptor(const ns::Handle& handle) : ns::Object(handle) { }
+        SamplerDescriptor(MTLSamplerDescriptor* handle) : ns::Object<MTLSamplerDescriptor*>(handle) { }
 
         SamplerMinMagFilter GetMinFilter() const;
         SamplerMinMagFilter GetMagFilter() const;
         SamplerMipFilter    GetMipFilter() const;
-        uint32_t            GetMaxAnisotropy() const;
+        NSUInteger            GetMaxAnisotropy() const;
         SamplerAddressMode  GetSAddressMode() const;
         SamplerAddressMode  GetTAddressMode() const;
         SamplerAddressMode  GetRAddressMode() const;
@@ -71,7 +75,7 @@ namespace mtlpp
         void SetMinFilter(SamplerMinMagFilter minFilter);
         void SetMagFilter(SamplerMinMagFilter magFilter);
         void SetMipFilter(SamplerMipFilter mipFilter);
-        void SetMaxAnisotropy(uint32_t maxAnisotropy);
+        void SetMaxAnisotropy(NSUInteger maxAnisotropy);
         void SetSAddressMode(SamplerAddressMode sAddressMode);
         void SetTAddressMode(SamplerAddressMode tAddressMode);
         void SetRAddressMode(SamplerAddressMode rAddressMode);
@@ -84,11 +88,11 @@ namespace mtlpp
     }
     MTLPP_AVAILABLE(10_11, 8_0);
 
-    class SamplerState : public ns::Object
+    class SamplerState : public ns::Object<ns::Protocol<id<MTLSamplerState>>::type>
     {
     public:
         SamplerState() { }
-        SamplerState(const ns::Handle& handle) : ns::Object(handle) { }
+        SamplerState(ns::Protocol<id<MTLSamplerState>>::type handle) : ns::Object<ns::Protocol<id<MTLSamplerState>>::type>(handle) { }
 
         ns::String GetLabel() const;
         Device     GetDevice() const;
@@ -96,3 +100,4 @@ namespace mtlpp
     MTLPP_AVAILABLE(10_11, 8_0);
 }
 
+MTLPP_END

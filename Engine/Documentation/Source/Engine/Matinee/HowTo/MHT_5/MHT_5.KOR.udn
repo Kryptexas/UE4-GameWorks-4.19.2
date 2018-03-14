@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:라이트 조정
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
@@ -6,20 +6,13 @@ Description:이 씬에서 라이트 컬러, 밝기, 기타 라이트 세팅을 �
 Version: 4.9
 SkillLevel: Intermediate
 
-
----
 여기서는 **마티네** 를 사용하여 이동, 색과 밝기가 변경되는 라이트를 만들어 보겠습니다.
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		마티네 액터, 통로와 라이트 추가
-	[/PARAM]
-	[PARAM:description]
-	이번 단계에서는 **마티네 액터** 를 추가하고, 작은 통로와 라이트를 추가하겠습니다.
-	[/PARAM]
-[/OBJECT]
+## 마티네 액터, 통로와 라이트 추가
+
+이번 단계에서는 **마티네 액터** 를 추가하고, 작은 통로와 라이트를 추가하겠습니다.
 
 1. **툴바** 메뉴에서 **마티네** - **마티네 추가** 버튼을 클릭합니다.
 
@@ -69,14 +62,9 @@ SkillLevel: Intermediate
 
 	![](MHT5_AddPointLight.png)
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		마티네에 라이트 추가 및 트랙 셋업
-	[/PARAM]
-	[PARAM:description]
-	여기서는 **마티네** 에 라이트를 추가하고 트랙에 키프레임 셋업 작업을 하겠습니다.
-	[/PARAM]
-[/OBJECT]
+## 마티네에 라이트 추가 및 트랙 셋업
+
+여기서는 **마티네** 에 라이트를 추가하고 트랙에 키프레임 셋업 작업을 하겠습니다.
 
 1. **월드 아웃라이너** 에서 **마티네 액터** 를 클릭하고 **디테일** 패널에서 **마티네 열기** 를 선택하여 **마티네** 를 엽니다.
 
@@ -112,15 +100,9 @@ SkillLevel: Intermediate
 
 	![](MHT5_AllKeysAdded.png)(w:720)
 
+## 이동 및 강도 조절
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		이동 및 강도 조절
-	[/PARAM]
-	[PARAM:description]
-	여기서는 라이트의 이동 셋업 및 그 강도 조절 작업을 하겠습니다.
-	[/PARAM]
-[/OBJECT]
+여기서는 라이트의 이동 셋업 및 그 강도 조절 작업을 하겠습니다.
 
 1. **마티네** 의 **Movement** 트랙에서, (**2.00** 위치의) 두 번째 키프레임을 선택한 다음 **마티네** 를 최소화시키고 라이트를 통로 중앙으로 옮깁니다.
 
@@ -144,15 +126,9 @@ SkillLevel: Intermediate
 
 	_그러면 라이트가 통로 중앙으로 이동하면서 강도가 올라가 더욱 밝아지도록 만듭니다._
 
+## 라이트 색과 감쇠 반경 조절
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		라이트 색과 감쇠 반경 조절
-	[/PARAM]
-	[PARAM:description]
-	이번 단계에서는 라이트가 통로 중앙으로 이동하면서 그 색은 물론 크기( 또는 **감쇠 반경**) 을 변경하도록 하겠습니다. 
-	[/PARAM]
-[/OBJECT]
+이번 단계에서는 라이트가 통로 중앙으로 이동하면서 그 색은 물론 크기( 또는 **감쇠 반경**) 을 변경하도록 하겠습니다. 
 
 1. **마티네** 의 **Light Color** 트랙에서 (**0.00** 위치의) 첫 번째 키프레임을 클릭한 다음 **컬러 설정** 을 하고, **색 선택기** 창에서 아무 색이나 선택합니다.
 
@@ -166,17 +142,9 @@ SkillLevel: Intermediate
 
 	![](MHT5_AttenuationKey4.png)(w:720)
 
+## 마무리 - 빌드 및 플레이
 
-
-
-[OBJECT:TopicList]
-	[PARAM:title]
-		마무리 - 빌드 및 플레이
-	[/PARAM]
-	[PARAM:description]
-	이번 단계에서는 **마티네** 를 마무리하고, 지오메트리와 라이팅을 **빌드** 한 다음 에디터에서 **플레이** 하여 최종 결과를 확인합니다. 
-	[/PARAM]
-[/OBJECT]
+이번 단계에서는 **마티네** 를 마무리하고, 지오메트리와 라이팅을 **빌드** 한 다음 에디터에서 **플레이** 하여 최종 결과를 확인합니다. 
 
 1. **월드 아웃라이너** 에서 **마티네 액터** 를 선택하고 **Play** 섹션 아래 **Play on Level Load** 와 **Looping** 옵션을 켭니다.
 

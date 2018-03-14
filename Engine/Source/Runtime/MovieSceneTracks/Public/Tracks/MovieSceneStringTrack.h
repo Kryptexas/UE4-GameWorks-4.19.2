@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -38,17 +38,6 @@ public:
 	 * @param KeyParams The keying parameters
 	 */
 	bool AddKeyToSection(float Time, const FString& String);
-
-	/**
-	 * Evaluates the track at the playback position
-	 *
-	 * @param Position The position at which to evaluate this track.
-	 * @param LastPositionThe last playback position.
-	 * @param InOutString The string at the evaluation time.
-	 * @return true if anything was evaluated. Note: if false is returned InOutString remains unchanged
-	 */
-	DEPRECATED(4.15, "Direct evaluation of string tracks is no longer supported. Please create an evaluation template (see FMovieSceneStringPropertySectionTemplate).")
-	virtual bool Eval(float Position, float LastPostion, FString& InOutString) const;
 
 public:
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessPassThrough.cpp: Post processing pass through implementation.
@@ -69,24 +69,21 @@ void FRCPassPostProcessPassThrough::Process(FRenderingCompositePassContext& Cont
 	// May need to wait on the inputs to complete
 	WaitForInputPassComputeFences(Context.RHICmdList);
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 
 	FIntPoint TexSize = InputDesc->Extent;
 
 	// we assume the input and output is full resolution
 
+	const FSceneRenderTargetItem& DestRenderTarget = Dest ? Dest->GetRenderTargetItem() : PassOutputs[0].RequestSurface(Context);
+
 	FIntPoint SrcSize = InputDesc->Extent;
 	FIntPoint DestSize = Dest ? Dest->GetDesc().Extent : PassOutputs[0].RenderTargetDesc.Extent;
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 
-	// e.g. 4 means the input texture is 4x smaller than the buffer size
-	uint32 InputScaleFactor = SceneContext.GetBufferSizeXY().X / SrcSize.X;
-	uint32 OutputScaleFactor = SceneContext.GetBufferSizeXY().X / DestSize.X;
-
-	FIntRect SrcRect = View.ViewRect / InputScaleFactor;
-	FIntRect DestRect = View.ViewRect / OutputScaleFactor;
-
-	const FSceneRenderTargetItem& DestRenderTarget = Dest ? Dest->GetRenderTargetItem() : PassOutputs[0].RequestSurface(Context);
+	FIntRect SrcRect = Context.SceneColorViewRect;
+	FIntRect DestRect = Context.GetSceneColorDestRect(DestRenderTarget);
+	checkf(DestRect.Size() == SrcRect.Size(), TEXT("Pass through should not be used as upscaling pass."));
 
 	// Set the view family's render target/viewport.
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
@@ -163,7 +160,7 @@ FPooledRenderTargetDesc FRCPassPostProcessPassThrough::ComputeOutputDesc(EPassOu
 
 void CopyOverOtherViewportsIfNeeded(FRenderingCompositePassContext& Context, const FSceneView& ExcludeView)
 {
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily* ViewFamily = View.Family;
 
 	FGraphicsPipelineStateInitializer GraphicsPSOInit;
@@ -196,11 +193,11 @@ void CopyOverOtherViewportsIfNeeded(FRenderingCompositePassContext& Context, con
 	
 		for(uint32 ViewId = 0, ViewCount = ViewFamily->Views.Num(); ViewId < ViewCount; ++ViewId)
 		{
-			const FSceneView& LocalView = *ViewFamily->Views[ViewId];
+			const FViewInfo* LocalView = static_cast<const FViewInfo*>(ViewFamily->Views[ViewId]);
 			
-			if(&LocalView != &ExcludeView)
+			if(LocalView != &ExcludeView)
 			{
-				FIntRect Rect = LocalView.ViewRect;
+				FIntRect Rect = LocalView->ViewRect;
 
 				DrawPostProcessPass(Context.RHICmdList,
 					Rect.Min.X, Rect.Min.Y,
@@ -210,7 +207,7 @@ void CopyOverOtherViewportsIfNeeded(FRenderingCompositePassContext& Context, con
 					Size,
 					Size,
 					*VertexShader,
-					LocalView.StereoPass, 
+					LocalView->StereoPass, 
 					Context.HasHmdMesh(),
 					EDRF_UseTriangleOptimization);
 			}

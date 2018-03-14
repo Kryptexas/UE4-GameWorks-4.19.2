@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "IOSView.h"
 #include "IOSAppDelegate.h"
@@ -347,7 +347,7 @@ id<MTLDevice> GMetalDevice = nil;
 #if HAS_METAL
 - (id<CAMetalDrawable>)MakeDrawable
 {
-    return ![IOSAppDelegate GetDelegate].bIsSuspended ? [(CAMetalLayer*)self.layer nextDrawable] : nil;
+	return[(CAMetalLayer*)self.layer nextDrawable];
 }
 #endif
 

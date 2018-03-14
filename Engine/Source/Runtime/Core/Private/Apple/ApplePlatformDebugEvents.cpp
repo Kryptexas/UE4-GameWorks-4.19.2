@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ApplePlatformDebugEvents.cpp: Apple platform implementations of File functions
@@ -203,7 +203,7 @@ uint16 FApplePlatformDebugEvents::GetEventCode(FString String)
 		
 		if(!CodePtr)
 		{
-			Lock.RaiseLockToWrite();
+			Lock.ReleaseReadOnlyLockAndAcquireWriteLock_USE_WITH_CAUTION();
 			CodePtr = Names.Find(Hash);
 			if(CodePtr)
 			{

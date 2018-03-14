@@ -91,7 +91,7 @@ The **NormalFromHeightMapChaos** function takes a heightmap and pans it in 4 dir
 	At the time of this writing, there is currently no input for a heightmap. Such an input can be added using the steps below. However, if you see a heightmap input, then this has been corrected and the steps below are not needed.
 [/REGION]
 
-![Input correction](NormalFromHeightMapChaos_Correction.png)(w:900 h:600)
+![Input correction](NormalFromHeightMapChaos_Correction.png)(w:900)
 
 1. **Double-click** on the NormalFromHeightmapChaos function node to open it in a new Material Editor.
 

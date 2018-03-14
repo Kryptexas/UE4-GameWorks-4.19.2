@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:수학 표현식 노드
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -7,44 +7,8 @@ version: 4.9
 Parent:Engine/Blueprints
 type:overview
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\MathNode:title%](Engine\Blueprints\UserGuide\math_topic.jpg)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\MathNode:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\MathNode:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\MathNode]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\MathNode:title%](Engine\Blueprints\UserGuide\math_topic.jpg)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\MathNode:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\MathNode:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\MathNode]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+tags:Special Nodes
+topic-image:math_topic.jpg
 
 
 [TOC (start:2 end:2)]

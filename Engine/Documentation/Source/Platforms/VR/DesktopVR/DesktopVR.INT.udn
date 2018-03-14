@@ -1,11 +1,13 @@
-Availability: Public
+Availability: NoPublish
 Crumbs: %ROOT%
 Title: Desktop Virtual Reality Development
 Description: Information over developing for desktop based virtual reality platforms.
 Type: Landing
 Version: 4.16
-Parent: Platforms
+Parent: Platforms/VR
 Order: 1
+tags:Platform
+tags:VR
 topic-icon:%ROOT%/platform_icon.png
 
 ![](Header_00.png)

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShadowDepthCommon.usf: Shared functionality for shadow depth rendering.
@@ -25,15 +25,11 @@ struct FShadowDepthVSToPS
 	FVertexFactoryInterpolantsVSToPS FactoryInterpolants;
 #endif
 
-#if ONEPASS_POINTLIGHT_SHADOW
-	float4 GSPosition : TEXCOORD6;
-
-#elif PERSPECTIVE_CORRECT_DEPTH
+#if PERSPECTIVE_CORRECT_DEPTH
 	float ShadowDepth : TEXCOORD6;
 
-#elif !COMPILER_SUPPORTS_EMPTY_STRUCTS
+#elif !COMPILER_SUPPORTS_EMPTY_STRUCTS && !ONEPASS_POINTLIGHT_SHADOW
 	float Dummy : TEXCOORD6;
-
 #endif
 
 #if INTERPOLATE_POSITION
@@ -41,3 +37,12 @@ struct FShadowDepthVSToPS
 	float3 PixelPosition	: TEXCOORD7;
 #endif
 };
+
+#if ONEPASS_POINTLIGHT_SHADOW
+//only for one pass pointlights
+struct FShadowDepthVSToGS : FShadowDepthVSToPS
+{
+	float4 GSPosition : TEXCOORD6;
+};
+#endif
+

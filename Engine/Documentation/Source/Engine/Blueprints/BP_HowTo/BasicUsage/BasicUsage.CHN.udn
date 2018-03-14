@@ -30,7 +30,8 @@ Tags:Class Blueprints
 
 ![](Basic4.png)
 
-<!--
+[COMMENT:none]
+
 1.	输入名称后，蓝图创建完毕。 
 
 	![](Basic5.png)
@@ -44,7 +45,8 @@ Tags:Class Blueprints
 1.	**Save Content** 窗口出现时，蓝图将在窗口中显示。点击 **Save Selected** 键保存。 
 
 	![](Basic7.png)
--->
+
+[/COMMENT]
 
 ### 创建蓝图使用资源
 
@@ -58,7 +60,8 @@ Tags:Class Blueprints
 
 选择 **Create Blueprint Using This...** 选项后，将弹出提示让您选择蓝图的保存位置。确认保存位置后，蓝图将在蓝图编辑器中自动打开。
 
-<!--
+[COMMENT:none]
+
 ### 用合成蓝图替代资源
 
 和使用资源创建蓝图的方法相同，合成蓝图代替资源选项将基于放置在关卡中的资源自动添加组件并创建蓝图。 
@@ -76,7 +79,8 @@ Tags:Class Blueprints
 [REGION:tip]
 在使用来自 **Content Browser** 的资源创建蓝图，或用合成蓝图替代关卡中的资源时，无需为图表提供任何逻辑即可使蓝图在关卡中正常工作。如上例所述，可选取数个组件并在蓝图中组合，在关卡中创建一个新的单一资源。 
 [/REGION]
--->
+
+[/COMMENT]
 
 ## 在关卡中放置蓝图
 
@@ -90,7 +94,8 @@ Tags:Class Blueprints
 
 ![](RightClickMethod.png)
 
-<!--
+[COMMENT:none]
+
 ## 编辑蓝图
 
 根据使用蓝图类型的不同，可用的 **蓝图模式** 也不同。其决定着蓝图的功能和工作方式。本章节着重讲述用以上方法创建的蓝图。如需了解其他类型蓝图的更多内容，请查阅以下链接。 
@@ -125,7 +130,8 @@ Tags:Class Blueprints
 **默认模式** 是蓝图包含的所有默认设置和属性（以及所有变量）的“一站式服务点”。在此模式中可直接对所有选项进行修改，使用 **Search** 选项搜索需要进行修改的设置。 
 
 * 在 [](Engine/Blueprints/Editor/Modes/Defaults/DefaultsTab) 中查阅关于 **默认模式** 的详细内容。 
--->
+
+[/COMMENT]
 
 ## 放置蓝图节点
 

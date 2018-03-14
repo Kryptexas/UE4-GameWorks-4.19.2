@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -73,7 +73,9 @@ enum EPixelFormat
 	PF_XGXR8				=59,
 	PF_R8G8B8A8_UINT		=60,
 	PF_R8G8B8A8_SNORM		=61,
-	PF_MAX                  =62,
+	PF_R16G16B16A16_UNORM	=62,
+	PF_R16G16B16A16_SNORM	=63,
+	PF_MAX                  =64,
 };
 #define FOREACH_ENUM_EPIXELFORMAT(op) \
 	op(PF_Unknown) \
@@ -134,5 +136,7 @@ enum EPixelFormat
 	op(PF_BC6H) \
 	op(PF_BC7) \
 	op(PF_R8_UINT) \
+	op(PF_R16G16B16A16_UNORM) \
+	op(PF_R16G16B16A16_SNORM) \
 	op(PF_L8)
 

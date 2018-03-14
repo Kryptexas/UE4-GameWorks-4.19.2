@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DataTableEditorUtils.h"
 #include "UObject/UObjectHash.h"
@@ -12,6 +12,8 @@
 #include "K2Node_GetDataTableRow.h"
 
 #define LOCTEXT_NAMESPACE "DataTableEditorUtils"
+
+const FString FDataTableEditorUtils::VariableTypesTooltipDocLink = TEXT("Shared/Editor/Blueprint/VariableTypes");
 
 FDataTableEditorUtils::FDataTableEditorManager& FDataTableEditorUtils::FDataTableEditorManager::Get()
 {
@@ -59,11 +61,6 @@ uint8* FDataTableEditorUtils::AddRow(UDataTable* DataTable, FName RowName)
 	uint8* RowData = (uint8*)FMemory::Malloc(DataTable->RowStruct->GetStructureSize());
 	DataTable->RowStruct->InitializeStruct(RowData);
 	// And be sure to call DestroyScriptStruct later
-
-	if (auto UDStruct = Cast<const UUserDefinedStruct>(DataTable->RowStruct))
-	{
-		UDStruct->InitializeDefaultValue(RowData);
-	}
 
 	// Add to row map
 	DataTable->RowMap.Add(RowName, RowData);
@@ -189,7 +186,7 @@ bool FDataTableEditorUtils::DiffersFromDefault(UDataTable* DataTable, FName RowN
 
 		if (const UUserDefinedStruct* UDStruct = Cast<const UUserDefinedStruct>(DataTable->RowStruct))
 		{
-			bDiffers = UDStruct->DiffersFromDefaultValue(RowData);
+			return !UDStruct->CompareScriptStruct(RowData, UDStruct->GetDefaultInstance(), PPF_None);
 		}
 	}
 
@@ -281,10 +278,14 @@ void FDataTableEditorUtils::CacheDataTableForEditing(const UDataTable* DataTable
 			CachedColumnData = MakeShareable(new FDataTableEditorColumnHeaderData());
 			CachedColumnData->ColumnId = Prop->GetFName();
 			CachedColumnData->DisplayName = PropertyDisplayName;
+			CachedColumnData->Property = Prop;
 		}
 		else
 		{
 			CachedColumnData = OldColumns[Index];
+
+			// Need to update property hard pointer in case it got reconstructed
+			CachedColumnData->Property = Prop;
 		}
 
 		CachedColumnData->DesiredColumnWidth = FontMeasure->Measure(CachedColumnData->DisplayName, CellTextStyle.Font).X + CellPadding;
@@ -369,6 +370,85 @@ bool FDataTableEditorUtils::IsValidTableStruct(UScriptStruct* Struct)
 	const bool bValidStruct = (Struct->GetOutermost() != GetTransientPackage());
 
 	return (bBasedOnTableRowBase || bUDStruct) && bValidStruct;
+}
+
+FText FDataTableEditorUtils::GetRowTypeInfoTooltipText(FDataTableEditorColumnHeaderDataPtr ColumnHeaderDataPtr)
+{
+	if (ColumnHeaderDataPtr.IsValid())
+	{
+		const UProperty* Property = ColumnHeaderDataPtr->Property;
+		if (Property)
+		{
+			const UClass* PropertyClass = Property->GetClass();
+			const UStructProperty* StructProp = Cast<const UStructProperty>(Property);
+			if (StructProp)
+			{
+				FString TypeName = FName::NameToDisplayString(Property->GetCPPType(), Property->IsA<UBoolProperty>());
+				if (TypeName.Len())
+				{
+					// If type name starts with F and another capital letter, assume standard naming and remove F in the string shown to the user
+					if (TypeName.StartsWith("F", ESearchCase::CaseSensitive) && TypeName.Len() > 1 && FChar::IsUpper(TypeName.GetCharArray()[1]))
+					{
+						TypeName.RemoveFromStart("F");
+					}
+					return FText::FromString(TypeName);
+				}
+			}
+			if (PropertyClass)
+			{
+				return FText::FromString(PropertyClass->GetDescription());
+			}
+			
+		}
+	}
+
+	return FText::GetEmpty();
+}
+
+FString FDataTableEditorUtils::GetRowTypeTooltipDocExcerptName(FDataTableEditorColumnHeaderDataPtr ColumnHeaderDataPtr)
+{
+	if (ColumnHeaderDataPtr.IsValid())
+	{
+		const UProperty* Property = ColumnHeaderDataPtr->Property;
+		if (Property)
+		{
+			const UStructProperty* StructProp = Cast<const UStructProperty>(Property);
+			if (StructProp)
+			{
+				if (StructProp->Struct == TBaseStructure<FSoftObjectPath>::Get())
+				{
+					return "SoftObject";
+				}
+				if (StructProp->Struct == TBaseStructure<FSoftClassPath>::Get())
+				{
+					return "SoftClass";
+				}
+				FString TypeName = FName::NameToDisplayString(Property->GetCPPType(), Property->IsA<UBoolProperty>());
+				if (TypeName.Len())
+				{
+					// If type name starts with F and another capital letter, assume standard naming and remove F to match the doc excerpt name
+					if (TypeName.StartsWith("F", ESearchCase::CaseSensitive) && TypeName.Len() > 1 && FChar::IsUpper(TypeName.GetCharArray()[1]))
+					{
+						TypeName.RemoveFromStart("F");
+					}
+					return TypeName;
+				}
+			}
+			const UClass* PropertyClass = Property->GetClass();
+			if (PropertyClass)
+			{
+				if (PropertyClass == UStrProperty::StaticClass())
+				{
+					return "String";
+				}
+				FString PropertyClassName = PropertyClass->GetName();
+				PropertyClassName.RemoveFromEnd("Property");
+				return PropertyClassName;
+			}
+		}
+	}
+
+	return "";
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3487496
+﻿INTSourceChangelist:3606403
 Availability:NoPublish
 Title:ビルド コンフィギュレーション プロパティのページ
 Crumbs:
-Description:プロシージャルに生成されるマークダウンの説明です。
-Version:4.17
+Description:これはプロシージャルに生成されるマークダウン ページです。
+Version:4.18
 
 ### 読み取り / 書き込み用プロパティ
 $ Type (ModuleType):モジュール タイプです。
@@ -27,6 +27,8 @@ $ bUseAVX (Boolean):AVX 命令を使います。
 $ bEnableBufferSecurityChecks (Boolean):バッファ セキュリティ チェックを有効にします。深刻なセキュリティ リスクを防ぐので、常に有効にします。
 
 $ bEnableExceptions (Boolean):例外処理を有効にします。
+
+$ bEnableExceptions (Boolean):objective C 例外処理を有効にします。
 
 $ bEnableShadowVariableWarnings (Boolean):シャドウ変数への警告を有効にします。
 

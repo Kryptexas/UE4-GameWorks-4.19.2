@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -47,11 +47,9 @@ public class UnrealEd : ModuleRules
 				"AudioEditor",
 				"ViewportSnapping",
 				"SourceCodeAccess",
-				"ReferenceViewer",
 				"IntroTutorials",
 				"OutputLog",
 				"Landscape",
-				"SizeMap",
 				"LocalizationService",
 				"HierarchicalLODUtilities",
 				"MessagingRpc",
@@ -140,7 +138,6 @@ public class UnrealEd : ModuleRules
 				"MeshPaintMode",
 				"Foliage",
 				"VectorVM",
-				"TreeMap",
 				"MaterialUtilities",
 				"Localization",
 				"LocalizationService",
@@ -212,10 +209,8 @@ public class UnrealEd : ModuleRules
 				"GameplayTasksEditor",
 				"UndoHistory",
 				"SourceCodeAccess",
-				"ReferenceViewer",
 				"HotReload",
 				"HTML5PlatformEditor",
-				"SizeMap",
 				"PortalProxies",
 				"PortalServices",
 				"GeometryCacheEd",
@@ -293,11 +288,11 @@ public class UnrealEd : ModuleRules
 		if (Target.bCompileRecast)
 		{
 			PrivateDependencyModuleNames.Add("Navmesh");
-			Definitions.Add( "WITH_RECAST=1" );
+			PublicDefinitions.Add( "WITH_RECAST=1" );
 		}
 		else
 		{
-			Definitions.Add( "WITH_RECAST=0" );
+			PublicDefinitions.Add( "WITH_RECAST=0" );
 		}
 	}
 }

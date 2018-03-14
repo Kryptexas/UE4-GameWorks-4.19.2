@@ -1,38 +1,27 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "UObject/ObjectKey.h"
+#include "UniquePtr.h"
+#include "Evaluation/MovieSceneEvaluationTemplate.h"
 
 class UMovieSceneSequence;
-struct FMovieSceneEvaluationTemplate;
 
-struct FMovieSceneSequenceTemplateStore
+struct IMovieSceneSequenceTemplateStore
 {
-	FMovieSceneSequenceTemplateStore()
-#if WITH_EDITORONLY_DATA
-		: bTemplatesAreVolatile(true)
-#else
-		// In cooked builds we assume the evaluation template can never change, and is thus always up-to-date
-		: bTemplatesAreVolatile(false)
-#endif
-	{
-	}
+	virtual ~IMovieSceneSequenceTemplateStore() {}
 
-	virtual ~FMovieSceneSequenceTemplateStore() {}
-	
-	bool AreTemplatesVolatile() const
-	{
-		return bTemplatesAreVolatile;
-	}
+	MOVIESCENE_API virtual FMovieSceneEvaluationTemplate& AccessTemplate(UMovieSceneSequence& Sequence) = 0;
+};
 
-	MOVIESCENE_API virtual FMovieSceneEvaluationTemplate& GetCompiledTemplate(UMovieSceneSequence& Sequence);
+struct FMovieSceneSequencePrecompiledTemplateStore : IMovieSceneSequenceTemplateStore
+{
+	MOVIESCENE_API virtual FMovieSceneEvaluationTemplate& AccessTemplate(UMovieSceneSequence& Sequence);
+};
 
-	MOVIESCENE_API virtual FMovieSceneEvaluationTemplate& GetCompiledTemplate(UMovieSceneSequence& Sequence, FObjectKey InSequenceKey);
-
-protected:
-
-	/** True where templates are liable to change, and we should listen for changes */
-	bool bTemplatesAreVolatile;
+struct FMovieSceneSequenceTemporaryTemplateStore : IMovieSceneSequenceTemplateStore
+{
+	MOVIESCENE_API virtual FMovieSceneEvaluationTemplate& AccessTemplate(UMovieSceneSequence& Sequence);
+private:
+	TMap<FObjectKey, FMovieSceneEvaluationTemplate> Templates;
 };

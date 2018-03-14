@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DefaultXRCamera.h"
 #include "GameFramework/PlayerController.h"
@@ -24,18 +24,19 @@ void FDefaultXRCamera::ApplyHMDRotation(APlayerController* PC, FRotator& ViewRot
 	ViewRotation.Normalize();
 	FQuat DeviceOrientation;
 	FVector DevicePosition;
-	TrackingSystem->GetCurrentPose(DeviceId, DeviceOrientation, DevicePosition);
+	if ( TrackingSystem->GetCurrentPose(DeviceId, DeviceOrientation, DevicePosition) )
+	{
+		const FRotator DeltaRot = ViewRotation - PC->GetControlRotation();
+		DeltaControlRotation = (DeltaControlRotation + DeltaRot).GetNormalized();
 
-	const FRotator DeltaRot = ViewRotation - PC->GetControlRotation();
-	DeltaControlRotation = (DeltaControlRotation + DeltaRot).GetNormalized();
+		// Pitch from other sources is never good, because there is an absolute up and down that must be respected to avoid motion sickness.
+		// Same with roll.
+		DeltaControlRotation.Pitch = 0;
+		DeltaControlRotation.Roll = 0;
+		DeltaControlOrientation = DeltaControlRotation.Quaternion();
 
-	// Pitch from other sources is never good, because there is an absolute up and down that must be respected to avoid motion sickness.
-	// Same with roll.
-	DeltaControlRotation.Pitch = 0;
-	DeltaControlRotation.Roll = 0;
-	DeltaControlOrientation = DeltaControlRotation.Quaternion();
-
-	ViewRotation = FRotator(DeltaControlOrientation * DeviceOrientation);
+		ViewRotation = FRotator(DeltaControlOrientation * DeviceOrientation);
+	}
 }
 
 bool FDefaultXRCamera::UpdatePlayerCamera(FQuat& CurrentOrientation, FVector& CurrentPosition)
@@ -100,63 +101,99 @@ void FDefaultXRCamera::PreRenderView_RenderThread(FRHICommandListImmediate& RHIC
 
 	// Disable late update for day dream, their compositor doesn't support it.
 	const bool bDoLateUpdate = (TrackingSystem->GetSystemName() != DayDreamHMD);
-
 	if (bDoLateUpdate)
 	{
 		FQuat DeviceOrientation;
 		FVector DevicePosition;
-		TrackingSystem->GetCurrentPose(DeviceId, DeviceOrientation, DevicePosition);
-		const FQuat DeltaOrient = View.BaseHmdOrientation.Inverse() * DeviceOrientation;
-		View.ViewRotation = FRotator(View.ViewRotation.Quaternion() * DeltaOrient);
 
-		if (bUseImplicitHMDPosition)
+		if (TrackingSystem->GetCurrentPose(DeviceId, DeviceOrientation, DevicePosition))
 		{
-			const FQuat LocalDeltaControlOrientation = View.ViewRotation.Quaternion() * DeviceOrientation.Inverse();
-			const FVector DeltaPosition = DevicePosition - View.BaseHmdLocation;
-			View.ViewLocation += LocalDeltaControlOrientation.RotateVector(DeltaPosition);
-		}
+			const FQuat DeltaOrient = View.BaseHmdOrientation.Inverse() * DeviceOrientation;
+			View.ViewRotation = FRotator(View.ViewRotation.Quaternion() * DeltaOrient);
 
-		View.UpdateViewMatrix();
+			if (bUseImplicitHMDPosition)
+			{
+				const FQuat LocalDeltaControlOrientation = View.ViewRotation.Quaternion() * DeviceOrientation.Inverse();
+				const FVector DeltaPosition = DevicePosition - View.BaseHmdLocation;
+				View.ViewLocation += LocalDeltaControlOrientation.RotateVector(DeltaPosition);
+			}
+		
+			View.UpdateViewMatrix();
+		}
 	}
 }
 
 void FDefaultXRCamera::BeginRenderViewFamily(FSceneViewFamily& InViewFamily)
 {
-	auto HMD = TrackingSystem->GetHMDDevice();
-	if (HMD)
+	check(IsInGameThread());
 	{
-		HMD->BeginRendering_GameThread();
+		// Backwards compatibility during deprecation phase. Remove once IHeadMountedDisplay::BeginRendering_GameThread has been removed.
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		auto HMD = TrackingSystem->GetHMDDevice();
+		if (HMD)
+		{
+			HMD->BeginRendering_GameThread();
+		}
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
+	TrackingSystem->OnBeginRendering_GameThread();
 }
 
 void FDefaultXRCamera::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily)
 {
 	check(IsInRenderingThread());
-	const FSceneView* MainView = ViewFamily.Views[0];
 
-	FQuat NewOrientation;
-	FVector NewPosition;
-	TrackingSystem->RefreshPoses();
-	TrackingSystem->GetCurrentPose(DeviceId, NewOrientation, NewPosition);
-
-	const FTransform OldRelativeTransform(MainView->BaseHmdOrientation, MainView->BaseHmdLocation);
-	const FTransform NewRelativeTransform(NewOrientation, NewPosition);
-
-	LateUpdate.Apply_RenderThread(ViewFamily.Scene, OldRelativeTransform, NewRelativeTransform);
-	auto HMD = TrackingSystem->GetHMDDevice();
-	if (HMD)
 	{
-		HMD->BeginRendering_RenderThread(NewRelativeTransform, RHICmdList, ViewFamily);
+		// Backwards compatibility during deprecation phase. Remove once IXRTrackingSystem::RefreshPoses has been removed.
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		TrackingSystem->RefreshPoses();
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
+	TrackingSystem->OnBeginRendering_RenderThread(RHICmdList, ViewFamily);
+
+	{
+		FQuat CurrentOrientation;
+		FVector CurrentPosition;
+		if (TrackingSystem->DoesSupportLateUpdate() && TrackingSystem->GetCurrentPose(DeviceId, CurrentOrientation, CurrentPosition))
+		{
+			const FSceneView* MainView = ViewFamily.Views[0];
+			check(MainView);
+
+			// TODO: Should we (and do we have enough information to) double-check that the plugin actually has updated the pose here?
+			// ensure((CurrentPosition != MainView->BaseHmdLocation && CurrentOrientation != MainView->BaseHmdOrientation) || CurrentPosition.IsZero() || CurrentOrientation.IsIdentity() );
+
+			const FTransform OldRelativeTransform(MainView->BaseHmdOrientation, MainView->BaseHmdLocation);
+			const FTransform CurrentRelativeTransform(CurrentOrientation, CurrentPosition);
+
+			LateUpdate.Apply_RenderThread(ViewFamily.Scene, OldRelativeTransform, CurrentRelativeTransform);
+			TrackingSystem->OnLateUpdateApplied_RenderThread(CurrentRelativeTransform);
+
+			{
+				// Backwards compatibility during deprecation phase. Remove once IHeadMountedDisplay::BeginRendering_RenderThread has been removed.
+				PRAGMA_DISABLE_DEPRECATION_WARNINGS
+					auto HMD = TrackingSystem->GetHMDDevice();
+				if (HMD)
+				{
+					HMD->BeginRendering_RenderThread(CurrentRelativeTransform, RHICmdList, ViewFamily);
+				}
+				PRAGMA_ENABLE_DEPRECATION_WARNINGS
+			}
+		}
+	}
+}
+
+void FDefaultXRCamera::PostRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily)
+{
+	LateUpdate.PostRender_RenderThread();
 }
 
 void FDefaultXRCamera::SetupViewFamily(FSceneViewFamily& InViewFamily)
 {
 	static const auto CVarAllowMotionBlurInVR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.AllowMotionBlurInVR"));
 	const bool allowMotionBlur = (CVarAllowMotionBlurInVR && CVarAllowMotionBlurInVR->GetValueOnAnyThread() != 0);
-	auto HMD = TrackingSystem->GetHMDDevice();
+	const IHeadMountedDisplay* HMD = TrackingSystem->GetHMDDevice();
 	InViewFamily.EngineShowFlags.MotionBlur = allowMotionBlur;
-	InViewFamily.EngineShowFlags.HMDDistortion = HMD?HMD->GetHMDDistortionEnabled():false;
+	InViewFamily.EngineShowFlags.HMDDistortion = HMD?HMD->GetHMDDistortionEnabled(InViewFamily.Scene->GetShadingPath()):false;
 	InViewFamily.EngineShowFlags.StereoRendering = bCurrentFrameIsStereoRendering;
 }
 
@@ -164,17 +201,16 @@ void FDefaultXRCamera::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InV
 {
 	FQuat DeviceOrientation;
 	FVector DevicePosition;
-	TrackingSystem->GetCurrentPose(DeviceId, DeviceOrientation, DevicePosition);
 
-	InView.BaseHmdOrientation = DeviceOrientation;
-	InView.BaseHmdLocation = DevicePosition;
-	auto StereoRendering = TrackingSystem->GetStereoRenderingDevice();
-	auto RenderTargetManager = StereoRendering.IsValid() ? StereoRendering->GetRenderTargetManager() : nullptr;
-	InViewFamily.bUseSeparateRenderTarget = RenderTargetManager ? RenderTargetManager->ShouldUseSeparateRenderTarget() : false;
+	if ( TrackingSystem->GetCurrentPose(DeviceId, DeviceOrientation, DevicePosition) )
+	{
+		InView.BaseHmdOrientation = DeviceOrientation;
+		InView.BaseHmdLocation = DevicePosition;
+	}
 }
 
 bool FDefaultXRCamera::IsActiveThisFrame(class FViewport* InViewport) const
 {
 	bCurrentFrameIsStereoRendering = GEngine && GEngine->IsStereoscopic3D(InViewport); // The current viewport might disallow stereo rendering. Save it so we'll use the correct value in SetupViewFamily.
-	return TrackingSystem->IsHeadTrackingAllowed();
+	return bCurrentFrameIsStereoRendering && TrackingSystem->IsHeadTrackingAllowed();
 }

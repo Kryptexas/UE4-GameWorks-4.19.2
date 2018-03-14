@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreTypes.h"
 #include "Containers/UnrealString.h"
@@ -15,7 +15,7 @@ PRAGMA_DISABLE_OPTIMIZATION
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FNumberFormattingRulesTest, "System.Core.Misc.Number Formatting Rules", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::EngineFilter)
 
-	namespace
+namespace
 {
 	void Test(FNumberFormattingRulesTest* const ExplicitThis, const TCHAR* const Desc, const FText& A, const FText& B)
 	{
@@ -84,18 +84,18 @@ bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
 	if (I18N.SetCurrentCulture("en-US"))
 	{
 		Test(this, TEXT("Convert a Double to a number formatted correct for en-US"),			FText::AsNumber(DoubleValue),			FText::FromString(TEXT("12,345,678.901")));
-		Test(this, TEXT("Convert a Float to a number formatted correct for en-US"),			FText::AsNumber(FloatValue),			FText::FromString(TEXT("1,234.567")));
-		Test(this, TEXT("Convert a Negative Double to a number formatted correct for en-US"), FText::AsNumber(DoubleNegativeValue),	FText::FromString(TEXT("-12,345,678.901")));
+		Test(this, TEXT("Convert a Float to a number formatted correct for en-US"),				FText::AsNumber(FloatValue),			FText::FromString(TEXT("1,234.567")));
+		Test(this, TEXT("Convert a Negative Double to a number formatted correct for en-US"),	FText::AsNumber(DoubleNegativeValue),	FText::FromString(TEXT("-12,345,678.901")));
 		Test(this, TEXT("Convert a Negative Float to a number formatted correct for en-US"),	FText::AsNumber(FloatNegativeValue),	FText::FromString(TEXT("-1,234.567")));
-		Test(this, TEXT("Convert a uint8 to a number formatted correct for en-US"),			FText::AsNumber(Uint8Value),			FText::FromString(TEXT("255")));
+		Test(this, TEXT("Convert a uint8 to a number formatted correct for en-US"),				FText::AsNumber(Uint8Value),			FText::FromString(TEXT("255")));
 		Test(this, TEXT("Convert a uint16 to a number formatted correct for en-US"),			FText::AsNumber(Uint16Value),			FText::FromString(TEXT("65,535")));
 		Test(this, TEXT("Convert a uint32 to a number formatted correct for en-US"),			FText::AsNumber(Uint32Value),			FText::FromString(TEXT("4,294,967,295")));
 		Test(this, TEXT("Convert a uint64 to a number formatted correct for en-US"),			FText::AsNumber(Uint64Value),			FText::FromString(TEXT("1,844,674,407,370,955,161")));
-		Test(this, TEXT("Convert a int8 to a number formatted correct for en-US"),			FText::AsNumber(Int8Value),				FText::FromString(TEXT("123")));
-		Test(this, TEXT("Convert a int16 to a number formatted correct for en-US"),			FText::AsNumber(Int16Value),			FText::FromString(TEXT("12,345")));
-		Test(this, TEXT("Convert a int32 to a number formatted correct for en-US"),			FText::AsNumber(Int32Value),			FText::FromString(TEXT("12,345")));
-		Test(this, TEXT("Convert a int64 to a number formatted correct for en-US"),			FText::AsNumber(Int64Value),			FText::FromString(TEXT("12,345")));
-		Test(this, TEXT("Convert a Negative int8 to a number formatted correct for en-US"),	FText::AsNumber(Int8NegativeValue),		FText::FromString(TEXT("-123")));
+		Test(this, TEXT("Convert a int8 to a number formatted correct for en-US"),				FText::AsNumber(Int8Value),				FText::FromString(TEXT("123")));
+		Test(this, TEXT("Convert a int16 to a number formatted correct for en-US"),				FText::AsNumber(Int16Value),			FText::FromString(TEXT("12,345")));
+		Test(this, TEXT("Convert a int32 to a number formatted correct for en-US"),				FText::AsNumber(Int32Value),			FText::FromString(TEXT("12,345")));
+		Test(this, TEXT("Convert a int64 to a number formatted correct for en-US"),				FText::AsNumber(Int64Value),			FText::FromString(TEXT("12,345")));
+		Test(this, TEXT("Convert a Negative int8 to a number formatted correct for en-US"),		FText::AsNumber(Int8NegativeValue),		FText::FromString(TEXT("-123")));
 		Test(this, TEXT("Convert a Negative int16 to a number formatted correct for en-US"),	FText::AsNumber(Int16NegativeValue),	FText::FromString(TEXT("-12,345")));
 		Test(this, TEXT("Convert a Negative int32 to a number formatted correct for en-US"),	FText::AsNumber(Int32NegativeValue),	FText::FromString(TEXT("-12,345")));
 		Test(this, TEXT("Convert a Negative int64 to a number formatted correct for en-US"),	FText::AsNumber(Int64NegativeValue),	FText::FromString(TEXT("-12,345")));
@@ -110,18 +110,18 @@ bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
 			NumberFormattingOptions.UseGrouping = false;
 
 			Test(this, TEXT("Convert a Double to a number formatted correct for en-US"),			FText::AsNumber(DoubleValue, &(NumberFormattingOptions)),			FText::FromString(TEXT( "00000000000012345678.901")));
-			Test(this, TEXT("Convert a Float to a number formatted correct for en-US"),			FText::AsNumber(FloatValue, &(NumberFormattingOptions)),			FText::FromString(TEXT( "00000000000000001234.567")));
+			Test(this, TEXT("Convert a Float to a number formatted correct for en-US"),				FText::AsNumber(FloatValue, &(NumberFormattingOptions)),			FText::FromString(TEXT( "00000000000000001234.567")));
 			Test(this, TEXT("Convert a Negative Double to a number formatted correct for en-US"),	FText::AsNumber(DoubleNegativeValue, &(NumberFormattingOptions)),	FText::FromString(TEXT("-00000000000012345678.901")));
 			Test(this, TEXT("Convert a Negative Float to a number formatted correct for en-US"),	FText::AsNumber(FloatNegativeValue, &(NumberFormattingOptions)),	FText::FromString(TEXT("-00000000000000001234.567")));
-			Test(this, TEXT("Convert a uint8 to a number formatted correct for en-US"),			FText::AsNumber(Uint8Value, &(NumberFormattingOptions)),			FText::FromString(TEXT( "00000000000000000255.000")));
+			Test(this, TEXT("Convert a uint8 to a number formatted correct for en-US"),				FText::AsNumber(Uint8Value, &(NumberFormattingOptions)),			FText::FromString(TEXT( "00000000000000000255.000")));
 			Test(this, TEXT("Convert a uint16 to a number formatted correct for en-US"),			FText::AsNumber(Uint16Value, &(NumberFormattingOptions)),			FText::FromString(TEXT( "00000000000000065535.000")));
 			Test(this, TEXT("Convert a uint32 to a number formatted correct for en-US"),			FText::AsNumber(Uint32Value, &(NumberFormattingOptions)),			FText::FromString(TEXT( "00000000004294967295.000")));
 			Test(this, TEXT("Convert a uint64 to a number formatted correct for en-US"),			FText::AsNumber(Uint64Value, &(NumberFormattingOptions)),			FText::FromString(TEXT( "01844674407370955161.000")));
-			Test(this, TEXT("Convert a int8 to a number formatted correct for en-US"),			FText::AsNumber(Int8Value, &(NumberFormattingOptions)),				FText::FromString(TEXT( "00000000000000000123.000")));
-			Test(this, TEXT("Convert a int16 to a number formatted correct for en-US"),			FText::AsNumber(Int16Value, &(NumberFormattingOptions)),			FText::FromString(TEXT( "00000000000000012345.000")));
-			Test(this, TEXT("Convert a int32 to a number formatted correct for en-US"),			FText::AsNumber(Int32Value, &(NumberFormattingOptions)),			FText::FromString(TEXT( "00000000000000012345.000")));
-			Test(this, TEXT("Convert a int64 to a number formatted correct for en-US"),			FText::AsNumber(Int64Value, &(NumberFormattingOptions)),			FText::FromString(TEXT( "00000000000000012345.000")));
-			Test(this, TEXT("Convert a Negative int8 to a number formatted correct for en-US"),	FText::AsNumber(Int8NegativeValue, &(NumberFormattingOptions)),		FText::FromString(TEXT("-00000000000000000123.000")));
+			Test(this, TEXT("Convert a int8 to a number formatted correct for en-US"),				FText::AsNumber(Int8Value, &(NumberFormattingOptions)),				FText::FromString(TEXT( "00000000000000000123.000")));
+			Test(this, TEXT("Convert a int16 to a number formatted correct for en-US"),				FText::AsNumber(Int16Value, &(NumberFormattingOptions)),			FText::FromString(TEXT( "00000000000000012345.000")));
+			Test(this, TEXT("Convert a int32 to a number formatted correct for en-US"),				FText::AsNumber(Int32Value, &(NumberFormattingOptions)),			FText::FromString(TEXT( "00000000000000012345.000")));
+			Test(this, TEXT("Convert a int64 to a number formatted correct for en-US"),				FText::AsNumber(Int64Value, &(NumberFormattingOptions)),			FText::FromString(TEXT( "00000000000000012345.000")));
+			Test(this, TEXT("Convert a Negative int8 to a number formatted correct for en-US"),		FText::AsNumber(Int8NegativeValue, &(NumberFormattingOptions)),		FText::FromString(TEXT("-00000000000000000123.000")));
 			Test(this, TEXT("Convert a Negative int16 to a number formatted correct for en-US"),	FText::AsNumber(Int16NegativeValue, &(NumberFormattingOptions)),	FText::FromString(TEXT("-00000000000000012345.000")));
 			Test(this, TEXT("Convert a Negative int32 to a number formatted correct for en-US"),	FText::AsNumber(Int32NegativeValue, &(NumberFormattingOptions)),	FText::FromString(TEXT("-00000000000000012345.000")));
 			Test(this, TEXT("Convert a Negative int64 to a number formatted correct for en-US"),	FText::AsNumber(Int64NegativeValue, &(NumberFormattingOptions)),	FText::FromString(TEXT("-00000000000000012345.000")));

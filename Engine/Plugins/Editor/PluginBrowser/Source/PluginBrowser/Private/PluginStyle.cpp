@@ -1,18 +1,16 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PluginStyle.h"
 #include "Styling/SlateStyleRegistry.h"
 #include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "Interfaces/IPluginManager.h"
 
 #define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush( FPluginStyle::InContent( RelativePath, ".png" ), __VA_ARGS__ )
 #define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush( FPluginStyle::InContent( RelativePath, ".png" ), __VA_ARGS__ )
 #define BORDER_BRUSH( RelativePath, ... ) FSlateBorderBrush( FPluginStyle::InContent( RelativePath, ".png" ), __VA_ARGS__ )
-#define TTF_FONT( RelativePath, ... ) FSlateFontInfo( FPluginStyle::InContent( RelativePath, ".ttf" ), __VA_ARGS__ )
-#define TTF_CORE_FONT(RelativePath, ...) FSlateFontInfo( StyleSet->RootToCoreContentDir( RelativePath, TEXT(".ttf") ), __VA_ARGS__ )
-#define OTF_FONT( RelativePath, ... ) FSlateFontInfo( FPluginStyle::InContent( RelativePath, ".otf" ), __VA_ARGS__ )
-#define OTF_CORE_FONT(RelativePath, ...) FSlateFontInfo( StyleSet->RootToCoreContentDir( RelativePath, TEXT(".otf") ), __VA_ARGS__ )
+#define DEFAULT_FONT(...) FCoreStyle::GetDefaultFontStyle(__VA_ARGS__)
 
 FString FPluginStyle::InContent( const FString& RelativePath, const ANSICHAR* Extension )
 {
@@ -172,7 +170,7 @@ void FPluginStyle::Initialize()
 				NewLabelText.Font.Size = 8;
 				StyleSet->Set( "PluginTile.NewLabelText", NewLabelText );
 			}
-			StyleSet->Set( "PluginTile.NewLabelFont", TTF_CORE_FONT("Fonts/Roboto-Bold", 10) );
+			StyleSet->Set( "PluginTile.NewLabelFont", DEFAULT_FONT("Bold", 10) );
 			StyleSet->Set( "PluginTile.NewLabelBackground", new FSlateColorBrush(FLinearColor(0.90f, 0.65f, 0.05f)));//::Yellow) );
 
 			FTextBlockStyle CreatedByText = FTextBlockStyle( NormalText )
@@ -187,7 +185,7 @@ void FPluginStyle::Initialize()
 
 		// Metadata editor
 		{
-			StyleSet->Set("PluginMetadataNameFont", TTF_CORE_FONT("Fonts/Roboto-Bold", 18));
+			StyleSet->Set("PluginMetadataNameFont", DEFAULT_FONT("Bold", 18));
 		}
 	}
 
@@ -205,10 +203,7 @@ void FPluginStyle::Initialize()
 #undef IMAGE_BRUSH
 #undef BOX_BRUSH
 #undef BORDER_BRUSH
-#undef TTF_FONT
-#undef TTF_CORE_FONT
-#undef OTF_FONT
-#undef OTF_CORE_FONT
+#undef DEFAULT_FONT
 
 void FPluginStyle::Shutdown()
 {

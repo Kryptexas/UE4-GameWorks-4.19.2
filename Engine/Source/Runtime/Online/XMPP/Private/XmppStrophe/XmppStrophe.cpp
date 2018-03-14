@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "XmppStrophe/XmppStrophe.h"
 #include "XmppStrophe/XmppConnectionStrophe.h"
@@ -49,10 +49,10 @@ FXmppUserJid FXmppStrophe::JidFromString(const FString& JidString)
 	}
 	else
 	{
-		if (!JidString.Split(TEXT("/"), &User, &Resource), ESearchCase::CaseSensitive, ESearchDir::FromEnd)
+		if (!JidString.Split(TEXT("/"), &Domain, &Resource), ESearchCase::CaseSensitive, ESearchDir::FromEnd)
 		{
-			// If we don't have a resource, we only have the user in the JidString
-			User = JidString;
+			// If we don't have a resource, we only have the Domain in the JidString
+			Domain = JidString;
 		}
 	}
 

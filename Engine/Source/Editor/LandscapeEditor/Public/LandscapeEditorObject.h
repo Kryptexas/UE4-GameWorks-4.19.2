@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,7 +16,7 @@ class UTexture2D;
 UENUM()
 enum class ELandscapeToolFlattenMode : int8
 {
-	Invalid = -1,
+	Invalid = -1 UMETA(Hidden),
 
 	/** Flatten may both raise and lower values */
 	Both = 0,
@@ -31,7 +31,7 @@ enum class ELandscapeToolFlattenMode : int8
 UENUM()
 enum class ELandscapeToolErosionMode : int8
 {
-	Invalid = -1,
+	Invalid = -1 UMETA(Hidden),
 
 	/** Apply all erosion effects, both raising and lowering the heightmap */
 	Both = 0,
@@ -46,7 +46,7 @@ enum class ELandscapeToolErosionMode : int8
 UENUM()
 enum class ELandscapeToolHydroErosionMode : int8
 {
-	Invalid = -1,
+	Invalid = -1 UMETA(Hidden),
 
 	/** Rains in some places and not others, randomly */
 	Both = 0,
@@ -58,7 +58,7 @@ enum class ELandscapeToolHydroErosionMode : int8
 UENUM()
 enum class ELandscapeToolNoiseMode : int8
 {
-	Invalid = -1,
+	Invalid = -1 UMETA(Hidden),
 
 	/** Noise will both raise and lower the heightmap */
 	Both = 0,
@@ -91,7 +91,7 @@ inline float NoiseModeConversion(ELandscapeToolNoiseMode Mode, float NoiseAmount
 UENUM()
 enum class ELandscapeToolPasteMode : int8
 {
-	Invalid = -1,
+	Invalid = -1 UMETA(Hidden),
 
 	/** Paste may both raise and lower values */
 	Both = 0,
@@ -106,7 +106,7 @@ enum class ELandscapeToolPasteMode : int8
 UENUM()
 enum class ELandscapeConvertMode : int8
 {
-	Invalid = -1,
+	Invalid = -1 UMETA(Hidden),
 
 	/** Given the new component size, the edges of the landscape will be expanded as necessary until its overall size is a whole number of landscape components. */
 	Expand = 0,

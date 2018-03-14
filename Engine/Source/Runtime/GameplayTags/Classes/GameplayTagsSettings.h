@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -24,6 +24,12 @@ struct GAMEPLAYTAGS_API FGameplayTagRedirect
 	friend inline bool operator==(const FGameplayTagRedirect& A, const FGameplayTagRedirect& B)
 	{
 		return A.OldTagName == B.OldTagName && A.NewTagName == B.NewTagName;
+	}
+
+	// This enables lookups by old tag name via FindByKey
+	bool operator==(FName OtherOldTagName) const
+	{
+		return OldTagName == OtherOldTagName;
 	}
 };
 

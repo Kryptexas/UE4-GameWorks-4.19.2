@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -204,5 +204,81 @@ void rcFilterWalkableLowHeightSpans(rcContext* ctx, int walkableHeight, rcHeight
 		}
 	}
 	
+	ctx->stopTimer(RC_TIMER_FILTER_WALKABLE);
+}
+
+void rcFilterWalkableLowHeightSpansSequences(rcContext* ctx, int walkableHeight, rcHeightfield& solid)
+{
+	rcAssert(ctx);
+
+	ctx->startTimer(RC_TIMER_FILTER_WALKABLE);
+
+	const int w = solid.width;
+	const int h = solid.height;
+	const int MAX_HEIGHT = 0xffff;
+
+	const int32 MaxSpans = 64;
+	rcCompactSpan SpanList[MaxSpans];
+	int32 NumSpans;
+	memset(SpanList, 0, sizeof(SpanList));
+
+	// UE4: leave only single low span below valid one (null area doesn't count) or after leaving walkableHeight space between them
+
+	// Remove walkable flag from spans which do not have enough
+	// space above them for the agent to stand there.
+	for (int y = 0; y < h; ++y)
+	{
+		for (int x = 0; x < w; ++x)
+		{
+			// build compact span list, we need to iterate from top to bottom
+			NumSpans = 0;
+			for (rcSpan* s = solid.spans[x + y*w]; s; s = s->next)
+			{
+				const int bot = (int)s->data.smax;
+				const int top = s->next ? (int)s->next->data.smin : MAX_HEIGHT;
+				SpanList[NumSpans].y = (unsigned short)rcClamp(bot, 0, 0xffff);
+				SpanList[NumSpans].h = (unsigned char)rcClamp(top - bot, 0, 0xff);
+				SpanList[NumSpans].reg = s->data.area;
+				
+				NumSpans++;
+				if (NumSpans >= MaxSpans)
+				{
+					break;
+				}
+			}
+
+			int32 NextAllowedBase = 0xffff;
+			for (int32 Idx = NumSpans - 1; Idx >= 0; Idx--)
+			{
+				if (SpanList[Idx].h < walkableHeight)
+				{
+					if (SpanList[Idx].y < NextAllowedBase)
+					{
+						NextAllowedBase = rcMax(0, SpanList[Idx].y - walkableHeight);
+					}
+					else
+					{
+						SpanList[Idx].reg = RC_NULL_AREA;
+					}
+				}
+				else if (SpanList[Idx].reg != RC_NULL_AREA)
+				{
+					NextAllowedBase = SpanList[Idx].y;
+				}
+			}
+
+			int32 SpanIdx = 0;
+			for (rcSpan* s = solid.spans[x + y*w]; s; s = s->next)
+			{
+				if (SpanIdx < MaxSpans)
+				{
+					s->data.area = SpanList[SpanIdx].reg;
+				}
+
+				SpanIdx++;
+			}
+		}
+	}
+
 	ctx->stopTimer(RC_TIMER_FILTER_WALKABLE);
 }

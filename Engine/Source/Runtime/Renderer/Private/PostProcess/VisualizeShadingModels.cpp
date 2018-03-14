@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessVisualizeShadingModels.cpp: Post processing VisualizeShadingModels implementation.
@@ -21,14 +21,9 @@ class FPostProcessVisualizeShadingModelsPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessVisualizeShadingModelsPS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/** Default constructor. */
@@ -99,7 +94,7 @@ void FRCPassPostProcessVisualizeShadingModels::Process(FRenderingCompositePassCo
 	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessVisualizeShadingModels);
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FViewInfo& ViewInfo = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	

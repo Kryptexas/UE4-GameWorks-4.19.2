@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Docs
 Keywords: 메타데이터는 문서 상단에 세미콜론으로 추가합니다.
 Title: 에픽의 마크다운과 확장기능 문법 설명서
@@ -124,7 +124,9 @@ Description:에픽의 커스텀 마크다운 확장기능을 사용하여 새로
     [refepiclogo]: Logo_Epic-New.jpg "여기에 제목"(w:50 h:50 a:left convert:true quality:75 fill:#000000)
 	이미지 옆 같은 절에 들어가는 문구입니다. 어울림 끝부분 뒤에는 특수 div 요소가 잇따릅니다.
 	[REGION:clear]
-		<!-- clear float -->
+		[COMMENT]
+ clear float 
+[/COMMENT]
 	[/REGION]    
 	
 #### HTML 출력
@@ -132,7 +134,9 @@ Description:에픽의 커스텀 마크다운 확장기능을 사용하여 새로
 	<p>폭, 높이, 왼쪽 어울림이 적용된 <img width="50" height="50" style="float: left;" title="여기에 제목" alt="에픽 로고" src="./../../../images\EpicMarkdownDocGuides\EpicMarkdownExtension\Logo_Epic-New.jpg"/> 참조 이미지 입니다.</p>
 	<p>이미지 옆 같은 절에 들어가는 문구입니다. 어울림 끝부분 뒤에는 특수 div 요소가 잇따릅니다.</p>
 	[REGION:clear]
-		<!-- clear float -->
+		[COMMENT]
+ clear float 
+[/COMMENT]
 	[/REGION]
     
 #### 결과
@@ -145,7 +149,9 @@ Description:에픽의 커스텀 마크다운 확장기능을 사용하여 새로
 이미지 옆 같은 절에 들어가는 문구입니다. 어울림 끝부분 뒤에는 특수 div 요소가 잇따릅니다.
 
 [REGION:clear]
-	<!-- clear float -->
+	[COMMENT]
+ clear float 
+[/COMMENT]
 [/REGION]
 
 ### 표

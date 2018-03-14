@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3457813
+﻿INTSourceChangelist:3736300
 Availability:Public
 Title:4 - レベルをデプロイする
 Crumbs:%ROOT%
 Description:UE4 から Android デバイスにレベルをデプロイする方法
-Version:4.14
+Version:4.17
 type:quick start
 parent:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux
 order:4
@@ -25,7 +25,7 @@ Contributor:yaakuro
 
 * 当たり前ですが、Android デバイスがコンピューターに正しく接続されているか確認してください。
 * そうでない場合、Android Debug Bridge (adb) に接続するデバイスが入っているか確認してください。Adb の詳細は、ターミナルに `adb --help` と入力すると表示されます。[Android Debug Bridge ユーザー ガイド](https://developer.android.com/studio/command-line/adb.html) でも adb およびコンピューターでのプログラム設定方法について説明しています。 
-* ゲームを Android に正しくビルド、クック、パッケージ化、デプロイするためには、`JAVA_HOME` 環境変数を JDK の正しいバージョンに設定して、JDK 8 をインストールする必要があります。`JAVA_HOME` の設定が正しいか確認するには、ターミナルに `echo $JAVA_HOME` と入力します。正しい JDK のバージョンが表示されない場合は、[download JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/index.html) から Linux コンピューターにインストールし、`JAVA_HOME` 環境変数を新しくインストールした JDK に設定します。[Android SDK プロジェクト設定](https://developer.android.com/studio/command-line/variables.html) で `JAVA_HOME` 環境変数を設定することができます。
+* ゲームを Android に正しくビルド、クック、パッケージ化、デプロイするためには、`JAVA_HOME` 環境変数を JDK の正しいバージョンに設定して、JDK 8 をインストールする必要があります。`JAVA_HOME` の設定が正しいか確認するには、ターミナルに `echo $JAVA_HOME` と入力します。正しい JDK のバージョンが表示されない場合は、`JAVA_HOME` 環境変数を新しくインストールした JDK に設定されていることを確認しながら [download JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/index.html) から Linux コンピューターにインストールします。[Android SDK プロジェクト設定](https://developer.android.com/studio/command-line/variables.html) で `JAVA_HOME` 環境変数を設定することができます。
 * 適切な ARM アーキテクチャにビルドしていることを確認してください。そうでないとプロジェクトが正しくデプロイできません。デバイスで使用できるインストラクション セットを確認したら、**[Edit] > [Project Settings...] > [Android] > [Build]** から **[Support arm7]** または **[Support arm64]** を選択すれば、適切な ARM アーキテクチャ サポートをエディタ内から選択することができます。 
 * 現時点では、UE4 は Linux 上での **Vulkan** レンダリングはサポートしていません。 
 * それぞれの Android デバイスが、多様なテクスチャ形式をユニークにサポートしています。Android デバイスでサポートされているテクスチャ形式が分からない場合は、Ericsson Texture Compression 1 (ETC 1) 圧縮スキームにターゲット テクスチャを設定してください。ほとんどの Android デバイスでサポートされているテクスチャです。複数のテクスチャに対するサポートについては、[Creating Multiple APKs for Different GL Textures](https://developer.android.com/training/multiple-apks/texture.html) の Android に関する文書を参照してください。 
@@ -104,7 +104,7 @@ Android デバイスにゲームをデプロイするための最重要事項を
 		Android デバイスでサポートされているテクスチャ形式がダイアログで表示されます。
 	[/REGION]
 
-## 結果
+## 最終結果
 
 これで終わりです！Android デバイスでサードパーソン サンプルマップを実行することができるようになりました。
 

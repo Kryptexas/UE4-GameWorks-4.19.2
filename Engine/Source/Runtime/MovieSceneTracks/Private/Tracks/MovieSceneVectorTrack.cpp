@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Tracks/MovieSceneVectorTrack.h"
 #include "Sections/MovieSceneVectorSection.h"
@@ -9,6 +9,7 @@ UMovieSceneVectorTrack::UMovieSceneVectorTrack( const FObjectInitializer& Object
 	: Super( ObjectInitializer )
 {
 	NumChannelsUsed = 0;
+	SupportedBlendTypes = FMovieSceneBlendTypeField::All();
 }
 
 

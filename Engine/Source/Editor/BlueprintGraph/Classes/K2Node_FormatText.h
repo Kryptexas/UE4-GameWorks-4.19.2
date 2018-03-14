@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -66,7 +66,7 @@ public:
 	 * @param InIndex		The argument's index to find the name for
 	 * @param InName		Name to set the argument to
 	 */
-	BLUEPRINTGRAPH_API void SetArgumentName(int32 InIndex, FString InName);
+	BLUEPRINTGRAPH_API void SetArgumentName(int32 InIndex, FName InName);
 
 	/** Swaps two arguments by index */
 	BLUEPRINTGRAPH_API void SwapArguments(int32 InIndexA, int32 InIndexB);
@@ -83,19 +83,19 @@ public:
 	 * @param InPinName		The pin name to check for
 	 * @return				NULL if the pin was not found, otherwise the found pin.
 	 */
-	BLUEPRINTGRAPH_API UEdGraphPin* FindArgumentPin(const FString& InPinName) const;
+	BLUEPRINTGRAPH_API UEdGraphPin* FindArgumentPin(const FName InPinName) const;
 
 private:
 	/** Synchronize the type of the given argument pin with the type its connected to, or reset it to a wildcard pin if there's no connection */
 	void SynchronizeArgumentPinType(UEdGraphPin* Pin);
 
 	/** Returns a unique pin name to use for a pin */
-	FString GetUniquePinName();
+	FName GetUniquePinName();
 
 private:
 	/** When adding arguments to the node, their names are placed here and are generated as pins during construction */
 	UPROPERTY()
-	TArray<FString> PinNames;
+	TArray<FName> PinNames;
 
 	/** The "Format" input pin, always available on the node */
 	UEdGraphPin* CachedFormatPin;

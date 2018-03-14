@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -25,11 +25,8 @@ class TREEMAP_API STreeMap : public SLeafWidget
 
 public:
 
-	/** Optional delegate that fires when the node is double-clicked in the tree.  If you don't override this, the tree will use its
-	    default handling of double-click, which will re-root the tree on the node under the cursor */
-	DECLARE_DELEGATE_OneParam( FOnTreeMapNodeDoubleClicked, FTreeMapNodeData& );
-
-
+	/** Delegate used when clicking or interacting with a specific node */
+	DECLARE_DELEGATE_TwoParams( FOnTreeMapNodeInteracted, FTreeMapNodeData&, const FPointerEvent& );
 
 	SLATE_BEGIN_ARGS( STreeMap )
 		: _AllowEditing( false )
@@ -40,7 +37,8 @@ public:
 		, _Name2Font()
 		, _CenterTextFont()
 		, _BorderPadding( FTreeMapStyle::Get().GetVector( "TreeMap.BorderPadding" ) )
-		, _MinimumVisualTreeNodeSize( 64 * 64 )
+		, _MinimumInteractiveTreeNodeSize( 64 * 64 )
+		, _MinimumVisibleTreeNodeSize( 6 * 6 )
 		, _NavigationTransitionTime( 0.25f )
 		, _TopLevelContainerOuterPadding( 4.0f )
 		, _NestedContainerOuterPadding( 0.0f )
@@ -74,8 +72,11 @@ public:
 		/** Border Padding around fill bar */
 		SLATE_ATTRIBUTE( FVector2D, BorderPadding )
 
+		/** Minimum size of node that can be interacted with, if small you need to drill down into parent first */
+		SLATE_ARGUMENT( int32, MinimumInteractiveTreeNodeSize );
+
 		/** Minimum size in pixels of a tree node that we should bother including in the UI.  Below this size, you'll need to drill down to see the node. */
-		SLATE_ARGUMENT( int32, MinimumVisualTreeNodeSize );
+		SLATE_ARGUMENT( int32, MinimumVisibleTreeNodeSize );
 
 		/** How many seconds to animate the visual transition when the user navigates to a new tree node, or after a modification of the tree takes place */
 		SLATE_ARGUMENT( float, NavigationTransitionTime );
@@ -94,7 +95,10 @@ public:
 
 		/** Optional delegate that fires when the node is double-clicked in the tree.  If you don't override this, the tree will use its
 			default handling of double-click, which will re-root the tree on the node under the cursor */
-		SLATE_EVENT( FOnTreeMapNodeDoubleClicked, OnTreeMapNodeDoubleClicked )
+		SLATE_EVENT( FOnTreeMapNodeInteracted, OnTreeMapNodeDoubleClicked )
+
+		/** Optional delegate that fires when the node is right-clicked in the tree.  If you don't override this nothing will happen unless a customization is specified */
+		SLATE_EVENT( FOnTreeMapNodeInteracted, OnTreeMapNodeRightClicked )
 
 	SLATE_END_ARGS()
 
@@ -128,6 +132,15 @@ public:
 	 * @param	bShouldPlayTransition		If enabled, an animation will play
 	 */
 	void SetTreeRoot( const FTreeMapNodeDataRef& NewRoot, const bool bShouldPlayTransition );
+
+	/** Returns true if it is possible to zoom out */
+	bool CanZoomOut() const;
+
+	/** Zooms out, setting root to it's parent if possible, returns false if not */
+	bool ZoomOut();
+
+	/** Returns the current tree root, which is the largest node visible */
+	FTreeMapNodeDataPtr GetTreeRoot() const;
 
 	/**
 	 * Refreshes the tree map from its source data.  The current active root will remain as the base of the tree.  Call this
@@ -254,15 +267,20 @@ private:
 
 	/** Optional delegate that fires when the node is double-clicked in the tree.  If you don't override this, the tree will use its
 		default handling of double-click, which will re-root the tree on the node under the cursor */
-	FOnTreeMapNodeDoubleClicked OnTreeMapNodeDoubleClicked;
+	FOnTreeMapNodeInteracted OnTreeMapNodeDoubleClicked;
 
+	/** Right click event */
+	FOnTreeMapNodeInteracted OnTreeMapNodeRightClicked;
 
 	/**
 	 * TreeMap visuals
 	 */
 
+	/** Minimum size of node that can be interacted with, if small you need to drill down into parent first */
+	int32 MinimumInteractiveTreeNodeSize;
+
 	/** Minimum size in pixels of a tree node that we should bother including in the UI.  Below this size, you'll need to drill down to see the node. */
-	int32 MinimumVisualTreeNodeSize;
+	int32 MinimumVisibleTreeNodeSize;
 
 	/** Size of our geometry the last time we rebuilt the tree map */
 	FVector2D TreeMapSize;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -84,6 +84,10 @@ private:
 public:
 	UPROPERTY(EditAnywhere, Category = "Actor Recording")
 	FActorRecordingSettings ActorSettings;
+
+	/** Whether this recording is active and to be recorded when the 'Record' button is pressed. */
+	UPROPERTY(EditAnywhere, Category = "Actor Recording")
+	bool bActive;
 
 	/** Whether we should specify the target animation or auto-create it */
 	UPROPERTY(EditAnywhere, Category = "Animation Recording")

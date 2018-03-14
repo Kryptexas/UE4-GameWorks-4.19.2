@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DirectionalLightComponent.cpp: DirectionalLightComponent implementation.
@@ -359,7 +359,6 @@ private:
 	uint32 GetNumShadowMappedCascades(uint32 MaxShadowCascades, bool bPrecomputedLightingIsValid) const
 	{
 		int32 EffectiveNumDynamicShadowCascades = DynamicShadowCascades;
-		
 		if (!bPrecomputedLightingIsValid)
 		{
 			EffectiveNumDynamicShadowCascades = FMath::Max(0, CVarUnbuiltNumWholeSceneDynamicShadowCascades.GetValueOnAnyThread());

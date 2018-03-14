@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3260663
+﻿INTSourceChangelist:3710404
 Availability:Public
 Title:피지컬 애니메이션 프로파일 생성 방법
 Crumbs: %ROOT%, Engine
@@ -7,7 +7,6 @@ parent:Engine/Physics/PhAT/HowTo
 order:1
 Version: 4.13
 skilllevel:Intermediate
-related:Videos/PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f/N1tDjbFXeOo
 related:Engine/Physics/PhAT/HowTo/ApplyPhysicalAnimationProfile
 topic-image:Engine/Physics/physics_topic.png
 
@@ -70,4 +69,22 @@ topic-image:Engine/Physics/physics_topic.png
 **피직스 애셋** 에 프로파일이 생겨있을 것입니다. 이것을 블루프린트나 C++ 에서 호출하여 그 **피직스 바디** 의 **피지컬 애니메이션** 프로퍼티를 변경할 수 있습니다.
 
 
+## 부가 자료
 
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	N1tDjbFXeOo
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]

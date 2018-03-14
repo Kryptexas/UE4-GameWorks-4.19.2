@@ -97,7 +97,8 @@ checkpoint: animpropertyblend
 [NAV]
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Function]	
 [OBJECT:Snippet]
 	[PARAMLITERAL:id]
@@ -846,4 +847,5 @@ checkpoint: animpropertyblend
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:EG]
--->
+
+[/COMMENT]

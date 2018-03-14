@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -16,10 +16,13 @@ public class LibOVRAudio : ModuleRules
 			PublicIncludePaths.Add(OculusThirdPartyDirectory + "/include");
 
 			string LibraryPath = OculusThirdPartyDirectory + "/lib/win64";
-			string LibraryName = "ovraudio.link64";
+			string LibraryName = "ovraudio64";
 
 			PublicLibraryPaths.Add(LibraryPath);
 			PublicAdditionalLibraries.Add(LibraryName + ".lib");
-		}
+
+            PublicDelayLoadDLLs.Add("ovraudio64.dll");
+            RuntimeDependencies.Add("$(EngineDir)/Binaries/ThirdParty/Oculus/Audio/Win64/ovraudio64.dll");
+        }
 	}
 }

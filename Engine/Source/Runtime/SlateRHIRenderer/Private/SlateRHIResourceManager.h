@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -30,22 +30,24 @@ class FSceneInterface;
  */
 struct FMaterialKey
 {
-	TWeakObjectPtr<UMaterialInterface>	Material;
+	TWeakObjectPtr<const UMaterialInterface> Material;
+	const FVector2D ImageSize;
 	int32 MaskKey;
 
-	FMaterialKey(const UMaterialInterface* InMaterial, int32 InMaskKey)
+	FMaterialKey(const UMaterialInterface* InMaterial, const FVector2D& InImageSize, int32 InMaskKey)
 		: Material(InMaterial)
+		, ImageSize(InImageSize)
 		, MaskKey(InMaskKey)
 	{}
 
-	bool operator==(const FMaterialKey& Other) const
+	friend bool operator==(const FMaterialKey& Lhs, const FMaterialKey& Rhs)
 	{
-		return Material == Other.Material && MaskKey == Other.MaskKey;
+		return Lhs.Material == Rhs.Material && Lhs.ImageSize == Rhs.ImageSize && Lhs.MaskKey == Rhs.MaskKey;
 	}
 
 	friend uint32 GetTypeHash(const FMaterialKey& Key)
 	{
-		return HashCombine(GetTypeHash(Key.Material), Key.MaskKey);
+		return HashCombine(GetTypeHash(Key.Material), HashCombine(GetTypeHash(Key.ImageSize), Key.MaskKey));
 	}
 };
 
@@ -139,7 +141,7 @@ public:
 	virtual void BeginReleasingRenderData(const FSlateRenderDataHandle* RenderHandle) override;
 
 	/** FTickableGameObject interface */
-	virtual bool IsTickable() const override { return true; }
+	virtual ETickableTickType GetTickableTickType() const override { return ETickableTickType::Always; }
 	virtual bool IsTickableWhenPaused() const override { return true; }
 	virtual bool IsTickableInEditor() const override { return true; }
 	virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(FSlateRHIResourceManager, STATGROUP_Tickables); }
@@ -297,7 +299,7 @@ private:
 	 *
 	 * @param InMaterial	The material object
 	 */
-	FSlateMaterialResource* GetMaterialResource( const UObject* InMaterial, FVector2D ImageSize, FSlateShaderResource* TextureMask, int32 InMaskKey );
+	FSlateMaterialResource* GetMaterialResource( const UObject* InMaterial, const FSlateBrush* InBrush, FSlateShaderResource* TextureMask, int32 InMaskKey );
 
 	/**
 	 * Called when the application exists before the UObject system shuts down so we can free object resources

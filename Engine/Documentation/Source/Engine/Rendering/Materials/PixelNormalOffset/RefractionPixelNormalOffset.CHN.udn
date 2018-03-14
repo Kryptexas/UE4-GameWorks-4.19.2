@@ -65,7 +65,8 @@ topic-image:PNO_Topic.png
 
 
 
-<!---
+[COMMENT:none]
+-
 
 [EXCERPT:IORWithoutNormals]
 [REGION:lightbox]
@@ -91,4 +92,5 @@ topic-image:PNO_Topic.png
 [/REGION]
 [/EXCERPT:PNOWithNormals]
 
---->
+-
+[/COMMENT]

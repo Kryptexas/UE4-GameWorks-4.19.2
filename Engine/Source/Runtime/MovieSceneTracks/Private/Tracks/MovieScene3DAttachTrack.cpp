@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Tracks/MovieScene3DAttachTrack.h"
 #include "Sections/MovieScene3DAttachSection.h"
@@ -19,12 +19,12 @@ FMovieSceneEvalTemplatePtr UMovieScene3DAttachTrack::CreateTemplateForSection(co
 	return FMovieScene3DAttachSectionTemplate(*CastChecked<UMovieScene3DAttachSection>(&InSection));
 }
 
-void UMovieScene3DAttachTrack::AddConstraint(float KeyTime, float ConstraintEndTime, const FName SocketName, const FName ComponentName, const FGuid& ConstraintId)
+void UMovieScene3DAttachTrack::AddConstraint(float KeyTime, float ConstraintEndTime, const FName SocketName, const FName ComponentName, const FMovieSceneObjectBindingID& ConstraintBindingID)
 {
 	// add the section
 	UMovieScene3DAttachSection* NewSection = NewObject<UMovieScene3DAttachSection>(this);
 	NewSection->SetFlags(RF_Transactional);
-	NewSection->AddAttach(KeyTime, ConstraintEndTime, ConstraintId);
+	NewSection->AddAttach(KeyTime, ConstraintEndTime, ConstraintBindingID);
 	NewSection->InitialPlacement( ConstraintSections, KeyTime, ConstraintEndTime, SupportsMultipleRows() );
 	NewSection->AttachSocketName = SocketName;
 	NewSection->AttachComponentName = ComponentName;

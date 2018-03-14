@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
   Implementation of animation export related functionality from FbxExporter
@@ -41,7 +41,7 @@ void FFbxExporter::ExportAnimSequenceToFbx(const UAnimSequence* AnimSeq,
 		return;	
 	}
 
-	const float FrameRate			=  AnimSeq->NumFrames / AnimSeq->SequenceLength;
+	const float FrameRate = FMath::TruncToFloat(((AnimSeq->NumFrames - 1) / AnimSeq->SequenceLength) + 0.5f);
 
 	// set time correctly
 	FbxTime ExportedStartTime, ExportedStopTime;
@@ -90,6 +90,7 @@ void FFbxExporter::ExportAnimSequenceToFbx(const UAnimSequence* AnimSeq,
 		// Subtracts 1 because NumFrames includes an initial pose for 0.0 second
 		double TimePerKey				= (AnimSeq->SequenceLength / (AnimSeq->NumFrames-1));
 		const float AnimTimeIncrement	= TimePerKey * AnimPlayRate;
+		uint32 AnimFrameIndex = 0;
 
 		FbxTime ExportTime;
 		ExportTime.SetSecondDouble(StartTime);
@@ -123,8 +124,7 @@ void FFbxExporter::ExportAnimSequenceToFbx(const UAnimSequence* AnimSeq,
 			FbxVector4 Vectors[3] = { Translation, Rotation, Scale };
 		
 			int32 lKeyIndex;
-
-			bLastKey = AnimTime >= AnimEndTime;
+			bLastKey = (AnimTime + KINDA_SMALL_NUMBER) > AnimEndTime;
 			
 			// Loop over each curve and channel to set correct values
 			for (uint32 CurveIndex = 0; CurveIndex < 3; ++CurveIndex)
@@ -145,7 +145,8 @@ void FFbxExporter::ExportAnimSequenceToFbx(const UAnimSequence* AnimSeq,
 			}
 
 			ExportTime += ExportTimeIncrement;
-			AnimTime += AnimTimeIncrement;
+			AnimFrameIndex++;
+			AnimTime = AnimStartOffset + ((float)AnimFrameIndex * AnimTimeIncrement);
 		}
 
 		for (FbxAnimCurve* Curve : Curves)

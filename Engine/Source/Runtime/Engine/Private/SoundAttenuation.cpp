@@ -1,9 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "Sound/SoundAttenuation.h"
 #include "EngineDefines.h"
 #include "AudioDevice.h"
+#include "UObject/AnimPhysObjectVersion.h"
 
 /*-----------------------------------------------------------------------------
 	USoundAttenuation implementation.
@@ -36,6 +37,24 @@ void FSoundAttenuationSettings::PostSerialize(const FArchive& Ar)
 			AttenuationShape = EAttenuationShape::Box;
 			AttenuationShapeExtents = FVector(RadiusMin_DEPRECATED, WORLD_MAX, WORLD_MAX);
 			break;
+		}
+	}
+
+	if (Ar.IsLoading() && Ar.CustomVer(FAnimPhysObjectVersion::GUID) < FAnimPhysObjectVersion::AllowMultipleAudioPluginSettings)
+	{
+		if (SpatializationPluginSettings_DEPRECATED)
+		{
+			PluginSettings.SpatializationPluginSettingsArray.Add(SpatializationPluginSettings_DEPRECATED);
+		}
+
+		if (OcclusionPluginSettings_DEPRECATED)
+		{
+			PluginSettings.OcclusionPluginSettingsArray.Add(OcclusionPluginSettings_DEPRECATED);
+		}
+
+		if (ReverbPluginSettings_DEPRECATED)
+		{
+			PluginSettings.ReverbPluginSettingsArray.Add(ReverbPluginSettings_DEPRECATED);
 		}
 	}
 }
@@ -79,7 +98,7 @@ bool FSoundAttenuationSettings::operator==(const FSoundAttenuationSettings& Othe
 			&& FalloffDistance		    == Other.FalloffDistance
 			&& AttenuationShapeExtents	== Other.AttenuationShapeExtents
 			&& SpatializationAlgorithm == Other.SpatializationAlgorithm
-			&& SpatializationPluginSettings == Other.SpatializationPluginSettings
+			&& PluginSettings.SpatializationPluginSettingsArray == Other.PluginSettings.SpatializationPluginSettingsArray
 			&& LPFFrequencyAtMax		== Other.LPFFrequencyAtMax
 			&& LPFFrequencyAtMin		== Other.LPFFrequencyAtMin
 			&& HPFFrequencyAtMax		== Other.HPFFrequencyAtMax
@@ -97,9 +116,9 @@ bool FSoundAttenuationSettings::operator==(const FSoundAttenuationSettings& Othe
 			&& OcclusionLowPassFilterFrequency == Other.OcclusionLowPassFilterFrequency
 			&& OcclusionVolumeAttenuation == Other.OcclusionVolumeAttenuation
 			&& OcclusionInterpolationTime == Other.OcclusionInterpolationTime
-			&& OcclusionPluginSettings	== Other.OcclusionPluginSettings
+			&& PluginSettings.OcclusionPluginSettingsArray	== Other.PluginSettings.OcclusionPluginSettingsArray
 			&& bEnableReverbSend		== Other.bEnableReverbSend
-			&& ReverbPluginSettings		== Other.ReverbPluginSettings
+			&& PluginSettings.ReverbPluginSettingsArray		== Other.PluginSettings.ReverbPluginSettingsArray
 			&& ReverbWetLevelMin		== Other.ReverbWetLevelMin
 			&& ReverbWetLevelMax		== Other.ReverbWetLevelMax
 			&& ReverbDistanceMin		== Other.ReverbDistanceMin

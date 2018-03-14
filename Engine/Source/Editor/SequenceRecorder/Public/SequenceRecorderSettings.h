@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -106,9 +106,9 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording", meta = (ClampMin="0.0", UIMin = "0.0"))
 	float AudioGain;
 
-	/** The buffer size to use on mic input callbacks. Larger sizes increase latency but reduce chances of buffer overruns (pops and discontinuities). */
-	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording", meta = (ClampMin="0", UIMin = "0"))
-	int32 AudioInputBufferSize;
+	/** Whether or not to split mic channels into separate audio tracks. If not true, a max of 2 input channels is supported. */
+	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
+	bool bSplitAudioChannelsIntoSeparateTracks;
 
 	/** Whether to record nearby spawned actors. */
 	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CapsuleShadowRendering.cpp: Functionality for rendering shadows from capsules
@@ -27,13 +27,29 @@
 #include "PipelineStateCache.h"
 #include "ClearQuad.h"
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Capsule Shadows"), Stat_GPU_CapsuleShadows, STATGROUP_GPU);
+DECLARE_GPU_STAT_NAMED(CapsuleShadows, TEXT("Capsule Shadows"));
 
 int32 GCapsuleShadows = 1;
 FAutoConsoleVariableRef CVarCapsuleShadows(
 	TEXT("r.CapsuleShadows"),
 	GCapsuleShadows,
 	TEXT("Whether to allow capsule shadowing on skinned components with bCastCapsuleDirectShadow or bCastCapsuleIndirectShadow enabled."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
+
+int32 GCapsuleDirectShadows = 1;
+FAutoConsoleVariableRef CVarCapsuleDirectShadows(
+	TEXT("r.CapsuleDirectShadows"),
+	GCapsuleDirectShadows,
+	TEXT("Whether to allow capsule direct shadowing on skinned components with bCastCapsuleDirectShadow enabled."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
+
+int32 GCapsuleIndirectShadows = 1;
+FAutoConsoleVariableRef CVarCapsuleIndirectShadows(
+	TEXT("r.CapsuleIndirectShadows"),
+	GCapsuleIndirectShadows,
+	TEXT("Whether to allow capsule indirect shadowing on skinned components with bCastCapsuleIndirectShadow enabled."),
 	ECVF_Scalability | ECVF_RenderThreadSafe
 	);
 
@@ -100,12 +116,12 @@ class FComputeLightDirectionFromVolumetricLightmapCS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FComputeLightDirectionFromVolumetricLightmapCS, Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportCapsuleShadows(Platform);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportCapsuleShadows(Parameters.Platform);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), GComputeLightDirectionFromVolumetricLightmapGroupSize);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), 1);
@@ -227,12 +243,12 @@ class TCapsuleShadowingBaseCS : public FGlobalShader
 	DECLARE_SHADER_TYPE(TCapsuleShadowingBaseCS, Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportCapsuleShadows(Platform);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportCapsuleShadows(Parameters.Platform);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), GShadowShapeTileSize);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), GShadowShapeTileSize);
@@ -504,9 +520,9 @@ class TCapsuleShadowingCS : public TCapsuleShadowingBaseCS<ShadowingType>
 		: TCapsuleShadowingBaseCS<ShadowingType>(Initializer)
 	{}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		TCapsuleShadowingBaseCS<ShadowingType>::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		TCapsuleShadowingBaseCS<ShadowingType>::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 
 		if (PrimitiveTypes & IPT_CapsuleShapes)
 		{
@@ -551,12 +567,12 @@ class FCapsuleShadowingUpsampleVS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FCapsuleShadowingUpsampleVS, Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportCapsuleShadows(Platform);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportCapsuleShadows(Parameters.Platform);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("TILES_PER_INSTANCE"), NumTileQuadsInBuffer);
 	}
@@ -615,12 +631,12 @@ class TCapsuleShadowingUpsamplePS : public FGlobalShader
 	DECLARE_SHADER_TYPE(TCapsuleShadowingUpsamplePS, Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportCapsuleShadows(Platform);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportCapsuleShadows(Parameters.Platform);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("DOWNSAMPLE_FACTOR"), 2);
 		OutEnvironment.SetDefine(TEXT("UPSAMPLE_REQUIRED"), bUpsampleRequired);
@@ -789,8 +805,9 @@ bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 		}
 	}
 
-	if (SupportsCapsuleShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel])
+	if (SupportsCapsuleDirectShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel])
 		&& CapsuleShadows.Num() > 0
+		&& ViewFamily.EngineShowFlags.CapsuleShadows
 		&& bAllViewsHaveViewState)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderCapsuleShadows);
@@ -807,7 +824,7 @@ bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 		{
 			const FViewInfo& View = Views[ViewIndex];
 			SCOPED_DRAW_EVENT(RHICmdList, CapsuleShadows);
-			SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CapsuleShadows);
+			SCOPED_GPU_STAT(RHICmdList, CapsuleShadows);
 
 			static TArray<FCapsuleShape> CapsuleShapeData;
 			CapsuleShapeData.Reset();
@@ -862,7 +879,7 @@ bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 				const bool bDirectionalLight = LightSceneInfo.Proxy->GetLightType() == LightType_Directional;
 				FIntRect ScissorRect;
 
-				if (!LightSceneInfo.Proxy->GetScissorRect(ScissorRect, View))
+				if (!LightSceneInfo.Proxy->GetScissorRect(ScissorRect, View, View.ViewRect))
 				{
 					ScissorRect = View.ViewRect;
 				}
@@ -1269,8 +1286,9 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(
 	FTextureRHIParamRef IndirectLightingTexture, 
 	FTextureRHIParamRef ExistingIndirectOcclusionTexture) const
 {
-	if (SupportsCapsuleShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel])
+	if (SupportsCapsuleIndirectShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel])
 		&& ViewFamily.EngineShowFlags.DynamicShadows
+		&& ViewFamily.EngineShowFlags.CapsuleShadows
 		&& FSceneRenderTargets::Get(RHICmdList).IsStaticLightingAllowed())
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderIndirectCapsuleShadows);
@@ -1335,7 +1353,7 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(
 
 				if (View.IndirectShadowPrimitives.Num() > 0 && View.ViewState)
 				{
-					SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CapsuleShadows);
+					SCOPED_GPU_STAT(RHICmdList, CapsuleShadows);
 		
 					int32 NumCapsuleShapes = 0;
 					int32 NumMeshesWithCapsules = 0;
@@ -1514,12 +1532,13 @@ bool FDeferredShadingSceneRenderer::ShouldPrepareForDFInsetIndirectShadow() cons
 		}
 	}
 
-	return bSceneHasInsetDFPrimitives && SupportsCapsuleShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel]);
+	return bSceneHasInsetDFPrimitives && SupportsCapsuleIndirectShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel]) && ViewFamily.EngineShowFlags.CapsuleShadows;
 }
 
 void FDeferredShadingSceneRenderer::RenderCapsuleShadowsForMovableSkylight(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& BentNormalOutput) const
 {
-	if (SupportsCapsuleShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel]))
+	if (SupportsCapsuleIndirectShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel])
+		&& ViewFamily.EngineShowFlags.CapsuleShadows)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderCapsuleShadowsSkylight);
 
@@ -1547,7 +1566,7 @@ void FDeferredShadingSceneRenderer::RenderCapsuleShadowsForMovableSkylight(FRHIC
 				if (View.IndirectShadowPrimitives.Num() > 0 && View.ViewState)
 				{
 					SCOPED_DRAW_EVENT(RHICmdList, IndirectCapsuleShadows);
-					SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CapsuleShadows);
+					SCOPED_GPU_STAT(RHICmdList, CapsuleShadows);
 		
 					int32 NumCapsuleShapes = 0;
 					int32 NumMeshesWithCapsules = 0;

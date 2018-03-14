@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2654747
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:9.ビヘイビア ツリーの設定
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description:EQS クイックスタートのビヘイビア ツリーの設定
-バージョン：4.9
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -21,22 +21,22 @@ Description:EQS クイックスタートのビヘイビア ツリーの設定
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 ツリーに入れる必要があるすべてのアセットの用意ができたので、ビヘイビアツリーを構築します。
 
 ![](finalBT_Setup.png)
 
-この [ビヘイビアツリー](Engine/AI/BehaviorTrees/UserGuide) を作成する手順に進む前に、ビヘイビアツリーが何を行うかについて説明します (厳密にいうと必要な EQS の部分を作成するとビヘイビアツリーが何を行うかについて説明します)。 
+この [ビヘイビアツリー](Engine/AI/BehaviorTrees/UserGuide) を作成する手順に進む前に、ビヘイビアツリーが何を行うかについて説明します (必要な EQS の要素を作成後、ビヘイビアツリーが何を行うかについて説明します)。 
 
-* 上部の Sequence ノードでグラフを入力し、その子を左から右に実行します。子の実行が成功している限り、実行は続きます。
+* 上部の Sequence ノードでグラフに入り、左から右へとその子の実行を開始します。子の実行が成功している限り、実行は続きます。
 * ひとつめは、FindPlayer テンプレートを実行する EQS Query ノードです。このノードは 0.5 秒毎に 1 回だけ実行させることができます。実行が失敗すると、Cooldown ノードが failed を戻し、その結果、親のシーケンス ノードを失敗にすることで、ツリーは他のノードの実行をしないようにロックされます。
-* しかし、EQS Query が成功すると (プレイヤーを見つける)、第 2 の EQS Query の実行が認められ、AI が隠れる場所を見つけます。
+* しかし、EQS Query が成功すると (プレイヤーが見つかる)、第 2 の EQS Query の実行が認められ、AI が隠れる場所を見つけます。
 * 最後に第 2 の EQS Query が見つかった場所に移動します。
 
 ## ステップ
 
-1. コンテンツ ブラウザで RunnerBT ブループリントをダブルクリッ して、編集用に開きます。
+1. コンテンツ ブラウザで RunnerBT ブループリントをダブルクリックして、編集用に開きます。
 
 1. [REGION:raw] **Sequence Node** を追加します(グラフ エリアで右クリック %arrow% **Composites** %arrow% **Sequence**)。[/REGION]
 
@@ -59,7 +59,7 @@ Description:EQS クイックスタートのビヘイビア ツリーの設定
 
 	![](setEqs1props.png)
 
-1. [REGION:raw] **Cooldown Decorator** を **Run EQS Query Node** に追加します (**Run EQS Query Node** を右クリック %arrow% **Decorators  Cooldown)** %arrow% **Cooldown**)[/REGION]
+1. [REGION:raw] **Cooldown Decorator** を **Run EQS Query Node** に追加します (**Run EQS Query Node** を右クリック %arrow% **Add Decorator...** %arrow% **Cooldown**)[/REGION]
 
 	![](addCooldown.png)
 
@@ -71,7 +71,7 @@ Description:EQS クイックスタートのビヘイビア ツリーの設定
 
 	![](addEqs2.png)
 
-1. この 2 つめの **Run EQS Query Node** を選択し、その **[Details]** パネルで **Query Template** を FindHidingSpot に設定します。
+1. この 2 つめの **Run EQS Query Node** を選択し、**[Details]** パネルで **Query Template** を FindHidingSpot に設定します。
 
 1. [Details] パネルで、**Blackboard Key** を **FleeToLocation** に設定します。
 
@@ -97,6 +97,6 @@ Description:EQS クイックスタートのビヘイビア ツリーの設定
 
 すべてが接続されたので、ビヘイビア ツリーの準備が整いました。これ以上の編集は不要です。
 
-%Steps%
+
 
 [VAR:arrow]![](Engine\AI\EnvironmentQuerySystem\QuickStart\arrow_button.png)[/VAR]

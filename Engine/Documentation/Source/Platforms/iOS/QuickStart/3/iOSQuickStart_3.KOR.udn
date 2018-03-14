@@ -1,143 +1,160 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Title:3. iOS Provisioning - Signing Certifcate 생성
 Crumbs:%ROOT%, Platforms, Platforms/iOS, Platforms/iOS/QuickStart
 Description:iOS 개발 Signing Certificate 준비 작업입니다.
 Availability:Public
-Version: 4.9
+Version: 4.18
 SkillLevel: Intermediate
+Checkpoint:iOSQS
+order:3
 
+[nav]
 [VAR:Steps]
 [OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Platforms/iOS/QuickStart/2 "%Platforms/iOS/QuickStart/2:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[퀵스타트 홈](Platforms/iOS/QuickStart)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Platforms/iOS/QuickStart/4 "%Platforms/iOS/QuickStart/4:title%")
-	[/PARAM]
+    [PARAM:previous]
+        [예전 단계](Platforms/iOS/QuickStart/2 "%Platforms/iOS/QuickStart/2:title%")
+    [/PARAM]
+    [PARAM:current]
+    [/PARAM]
+    [PARAM:home]
+        [퀵 스타트 홈](Platforms/iOS/QuickStart)
+    [/PARAM]
+    [PARAM:next]
+        [다음 단계](Platforms/iOS/QuickStart/4 "%Platforms/iOS/QuickStart/4:title%")
+    [/PARAM]
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 [REGION:note]
-이미 Provision 과 Certificate 가 있으신가요? [이 섹션은 건너뛰셔도 됩니다.](Platforms/iOS/QuickStart/4)
+기존에 맥에서 iOS 어플리케이션을 개발했었으나 윈도우 PC 에서 언리얼 엔진을 사용하여 iOS 게임을 개발하려는 경우,
+[이 단계를 건너뛰고](Platforms/iOS/QuickStart/4) **Keychain** 에서 Certificate 를 `.p12` 파일로 익스포트하여 언리얼 iOS 환경설정 마법사에서 사용하면 됩니다.
 [/REGION]
+
 
 %Globals:OSSelect%
 
 [OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	windows
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	active_button_content
-	[/PARAMLITERAL]
-	[PARAM:content]
-	[INCLUDE:#windows]
-	[/PARAM]
+    [PARAMLITERAL:category]
+    OS
+    [/PARAMLITERAL]
+    [PARAMLITERAL:id]
+    windows
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
+    active_button_content
+    [/PARAMLITERAL]
+    [PARAM:content]
+    [INCLUDE:#windows]
+    [/PARAM]
 [/OBJECT]
 [OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	mac
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	[/PARAMLITERAL]
-	[PARAM:content]
-	[INCLUDE:#macos]
-	[/PARAM]
+    [PARAMLITERAL:category]
+    OS
+    [/PARAMLITERAL]
+    [PARAMLITERAL:id]
+    mac
+    [/PARAMLITERAL]
+    [PARAMLITERAL:active]
+    [/PARAMLITERAL]
+    [PARAM:content]
+    [INCLUDE:#macos]
+    [/PARAM]
 [/OBJECT]
 
-<!--
+[nav]
+
+
+[COMMENT:none]
+
 [EXCERPT:windows]
-윈도우에서 iOS 개발용 Signing Certificate 를 생성하려면, 애플의 개발자 사이트와 언리얼 엔진과 함께 제공된 
-언리얼 iOS 환경설정 마법사 (iPhonePackager) 어플리케이션 (`Engine\Binaries\DotNET\IOS\IPhonePackager.exe`) 을 
-조합해서 사용해야 합니다.
 
-[REGION:note]
-기존에 Mac 에서 iOS 어플리케이션을 개발한 적이 있으나 윈도우 PC 로 언리얼 엔진을 사용하여 iOS 게임을 개발하고자 한다면, 
-이 단계는 건너뛰고, Certificate 를 **Keychain** 에서 언리얼 iOS 환경설정 마법사에서 사용할 `.p12` 파일로 익스포트하면 됩니다.
-[/REGION]
+## 단계
+iOS 디바이스에 UE4 프로젝트를 디플로이하고 사용하려면 Apple 에서 특수한 Certificate 가 필요합니다. 윈도우에서 iOS 개발용 Signing Certificate 생성 작업은 애플 개발자 사이트와 언리얼 엔진과 같이 제공되는 언리얼 iOS 환경설정 마법사(iPhonePackager) 조합으로 이루어지는데, 그 방법을 알아보겠습니다.
 
-**Certificate 요청을 생성하려면:**
+1. 먼저, `Engine\Binaries\DotNET\IOS\` 디렉토리로 이동하여 `iPhonePackager.exe` 를 실행합니다.
 
-1. `Engine\Binaries\DotNET\IOS\` 디렉토리로 이동한 다음 `iPhonePackager.exe` 를 실행합니다.
+1. Provisioning 은 프로젝트 전용이므로 iPhonePackager.exe 를 열면, 먼저 프로젝트의 .uproject 파일 위치를 묻습니다. 프로젝트 .uproject 파일 위치를 지정했으면, **열기** 버튼을 눌러 엽니다.
 
-1. Provisioning 는 프로젝트 별 입니다. 확인창이 뜨면, 그 프로젝트에 대한 .uproject 파일을 선택하여 iPhonePackager 어플리케이션과 연동시켜 준 다음 **Open** 을 클릭합니다.
+    ![](select_uproject.png)
 
-	![](select_uproject.png)
+    [REGION:note]
+    iPhonePackager 어플리케이션을 실행할 때마다 해줘야 하는 작업입니다. 하지만 선택했던 마지막 프로젝트 위치를 기억하기는 합니다.
+    [/REGION]
 
-	[REGION:note]
-	이 작업은 iPhonePackager 어플리케이션을 실행할 때마다 해 줘야 합니다. 하지만 지난 번 선택한 프로젝트 
-	위치는 기억할 것입니다.
-	[/REGION]
+1. **New User** (신규 사용자) 탭을 선택하고 **Create certificate request and a key pair** (Cretificate 요청 및 키 짝 생성) 버튼을 클릭합니다.
 
-1. **New User** 탭을 선택한 다음 **Create certificate request and a key pair** 를 선택합니다.
+    ![](create_certificate.png)
 
-	![](create_certificate.png)
+1. 눌렀으면, **Generate Certificate Request** (Certificate 요청 생성) 대화창이 열립니다. 이 창 안에서 필수 정보를 입력합니다. Apple ID, 이메일 주소, 이름( 또는 회사 이름) 등입니다.
 
-	**Generate Certificate Request** 대화창이 뜹니다.
+    ![](developer_info.png)
 
-1. 필수 정보를 입력합니다. Apple ID 이메일 주소와 이름 (또는 회사 이름) 포함입니다.
+1. **Generate a key pair** (키 짝 생성)을 클릭하고 .key 파일을 저장할 위치를 선택합니다.
 
-	![](developer_info.png)
+    ![](generate_key.png)
 
-1. **Generate a key pair** 를 클릭한 다음 .key 파일을 저장할 위치를 선택합니다.
+1. **Generate Certificate Request** (Certificate 요청 생성)을 클릭하고 .csr 파일을 저장할 위치를 선택합니다. 그 작업이 완료되면, **Generate Certificate Request** (Certificate 요청 생성) 대화창이 닫히면서 메인 iPhonePackager 창으로 돌아갑니다).
 
-	![](generate_key.png)
+    ![](Generate_Cert_Request.png)
 
-1. **Generate Certificate Request** 를 클릭한 다음 .csr 파일을 저장할 위치를 선택합니다.
-
-	**Generate Certificate Request** 대화창이 닫히고, iPhonePackager 주화면으로 돌아옵니다.
-
-
-**Certificate 를 생성하려면:**
-
-1. 애플 iOS 개발자 사이트의 [iOS Certificates](https://developer.apple.com/account/ios/certificate/certificateList.action) 페이지로 이동합니다.
+1. 애플 iOS 개발자 사이트의 [iOS Certificates](https://developer.apple.com/account/ios/certificate/certificateList.action) 페이지로 이동하여 로그인합니다.
 
 1. 추가 (더하기 부호) 버튼을 클릭하여 Certificate 를 새로 생성합니다.
 
 1. **iOS App Development** 를 선택하고 **Continue** 를 클릭합니다.
 
-	![](cert_development.png)
+    ![](cert_development.png)
 
 1. **Continue** 를 클릭합니다.
 
 1. **Choose File** 을 선택한 다음 기존에 생성한 Certificate Signing Request (`.csr`) 파일을 선택하고 **Generate** 를 클릭합니다.
 
-	![](cert_csr.png)
+    ![](cert_csr.png)
 
 1. 로컬 컴퓨터에 (`.cer`) 파일을 다운로드합니다.
 
-	![](cert_download.png)
+    ![](cert_download.png)
+## 최종 결과
+
+완료되면 UE4 프로젝트를 iOS 디바이스에 디플로이하여 사용하는 데 필요한 Certificate 가 생겼을 것입니다.
 
 [/EXCERPT:windows]
 [EXCERPT:macos]
-**Certificate 를 생성하려면:**
+## 단계
+iOS 디바이스에 UE4 프로젝트를 디플로이하여 사용하기 위해서는, Apple 의 특수 Certificate 가 필요한데, 여기서 구하는 방법을 알아보겠습니다.
 
-1. Xcode 드롭다운 메뉴에서 **Preferences** 를 선택합니다.
+1. Xcode 드롭다운 메뉴에서 **Preferences** (개인설정)을 선택합니다.
+
+	![](MAC_Xcode_Preferences.png)
 
 1. **Accounts** 탭을 선택합니다.
 
-1. 좌하단 구석의 더하기 부호를 클릭한 다음 **Add Apple ID** 를 선택합니다.
+	![](Accounts_Tab.png)
 
-1. Apple ID 정보를 입력한 다음 **Add** 를 클릭합니다.
+1. 좌하단 구석의 더하기 부호를 클릭하고, **Add Apple ID** 를 선택한 뒤 **Continue** 를 누릅니다.
 
-1. 왼쪽 패널에서 Apple ID 를 선택한 다음 **View Details** 를 클릭합니다.
+	![](Account_Sign_In.png)
+
+1. Apple ID 정보를 입력하고 **Sign In** (로그인)을 클릭합니다.
+
+	![](Account_Sign_In_EP.png)
+
+1. 왼쪽 패널에서 Apple ID 를 선택한 뒤 **Manage Certificates** (인증서 관리)를 선택합니다.
+
+	![](Manage_Certs.png)
 
 1. 더하기 부호를 클릭한 다음 **iOS Development** 를 선택하여 Certificate 생성 절차를 완료합니다.
 
-[/EXCERPT:macos]
--->
+	![](iOS_Development.png)
 
-%Steps%
+## 최종 결과
+
+완료되면 UE4 프로젝트를 iOS 디바이스에 디플로이하고 사용할 수 있도록 해주는 필수 Certificate 가 생겼을 것입니다.
+
+[/EXCERPT:macos]
+
+[/COMMENT]
+
+

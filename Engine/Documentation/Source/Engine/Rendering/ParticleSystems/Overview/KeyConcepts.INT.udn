@@ -29,22 +29,13 @@ Best of all, modules can be easily added, removed, copied, and even instanced fr
 
 ### Default Modules
 
-[OBJECT:topiclistnotitlealt]
-	[PARAM:icon]
-		![DefaultEmitter.png](DefaultEmitter.png)(convert:false)
-	[/PARAM]
-	[PARAM:description]
-	[INCLUDE:#Modules]
-	[/PARAM]
-[/OBJECT]
+![DefaultEmitter.png](DefaultEmitter.png)(convert:false)
+
+[INCLUDE:#Modules]
 
 
-[REGION:raw]
-![](Engine\Rendering\LightingAndShadows\LightTypes\Point\spacer.png)
-[/REGION]
+[COMMENT:none]
 
-
-<!--
 [EXCERPT:Modules]
 Some modules exist on a particle emitter by default. Whenever a new Sprite Emitter - the key component of any particle system - is added to a particle system, it is always created with the following **default** modules:
 
@@ -55,7 +46,8 @@ Some modules exist on a particle emitter by default. Whenever a new Sprite Emitt
 * **Initial Velocity** - This controls the movement of a particle at the moment of its birth.
 * **Color Over Life** - This module controls how the color of each particle will shift throughout its lifespan.
 [/EXCERPT:Modules]
--->
+
+[/COMMENT]
 
 [REGION:note]
 	The *Required* and *Spawn* modules are permanent, and cannot be removed from the emitter. However, all other modules can be removed at will.

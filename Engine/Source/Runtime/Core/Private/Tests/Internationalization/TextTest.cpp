@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreTypes.h"
 #include "Templates/UnrealTemplate.h"
@@ -8,6 +8,7 @@
 #include "CoreGlobals.h"
 #include "Internationalization/Text.h"
 #include "Internationalization/Culture.h"
+#include "Internationalization/FastDecimalFormat.h"
 #include "Internationalization/Internationalization.h"
 #include "Serialization/MemoryWriter.h"
 #include "Serialization/MemoryReader.h"
@@ -844,6 +845,100 @@ bool FTextPaddingTest::RunTest (const FString& Parameters)
 
 	// Restore original culture
 	I18N.SetCurrentCulture(OriginalCulture);
+
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTextParsingTest, "System.Core.Misc.TextParsing", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::EngineFilter)
+
+struct FTextParsingTestUtil
+{
+	template <typename T>
+	static void DoSingleTest(FTextParsingTest* InTest, const TCHAR* InStr, const int32 InStrLen, const FDecimalNumberFormattingRules& InFormattingRules, const T InExpectedValue, const bool bExpectedToParse, const TCHAR* InDescription)
+	{
+		T Value;
+		const bool bDidParse = FastDecimalFormat::StringToNumber(InStr, InStrLen, InFormattingRules, FNumberParsingOptions::DefaultWithGrouping(), Value);
+
+		if (bDidParse != bExpectedToParse)
+		{
+			InTest->AddError(FString::Printf(TEXT("Text parsing failure: source '%s' - expected to parse '%s' - result '%s'. %s."), InStr, bExpectedToParse ? TEXT("true") : TEXT("false"), bDidParse ? TEXT("true") : TEXT("false"), InDescription));
+			return;
+		}
+
+		if (bDidParse && Value != InExpectedValue)
+		{
+			InTest->AddError(FString::Printf(TEXT("Text parsing failure: source '%s' - expected value '%f' - result '%f'. %s."), InStr, (double)InExpectedValue, (double)Value, InDescription));
+			return;
+		}
+	}
+
+	template <typename T>
+	static void DoSingleTest(FTextParsingTest* InTest, const TCHAR* InStr, const FDecimalNumberFormattingRules& InFormattingRules, const T InExpectedValue, const bool bExpectedToParse, const TCHAR* InDescription)
+	{
+		DoSingleTest(InTest, InStr, FCString::Strlen(InStr), InFormattingRules, InExpectedValue, bExpectedToParse, InDescription);
+	}
+};
+
+bool FTextParsingTest::RunTest(const FString& Parameters)
+{
+	FInternationalization& I18N = FInternationalization::Get();
+
+	auto DoTests = [this](const FString& InCulture)
+	{
+		FCulturePtr Culture = FInternationalization::Get().GetCulture(InCulture);
+		if (Culture.IsValid())
+		{
+			const FDecimalNumberFormattingRules& FormattingRules = Culture->GetDecimalNumberFormattingRules();
+
+			auto BuildDescription = [&InCulture](const TCHAR* InTestStr, const TCHAR* InTypeStr) -> FString
+			{
+				return FString::Printf(TEXT("[%s] Parsing '%s' as '%s'"), *InCulture, InTestStr, InTypeStr);
+			};
+
+			const FString UnsignedString = FString::Printf(TEXT("123%c456"), FormattingRules.DecimalSeparatorCharacter);
+			const FString PositiveString = FString::Printf(TEXT("%s123%c456"), *FormattingRules.PlusString, FormattingRules.DecimalSeparatorCharacter);
+			const FString NegativeString = FString::Printf(TEXT("%s123%c456"), *FormattingRules.MinusString, FormattingRules.DecimalSeparatorCharacter);
+			const FString PositiveASCIIString = FString::Printf(TEXT("+123%c456"), FormattingRules.DecimalSeparatorCharacter);
+			const FString NegativeASCIIString = FString::Printf(TEXT("-123%c456"), FormattingRules.DecimalSeparatorCharacter);
+			const FString GroupSeparatedString = FString::Printf(TEXT("1%c234"), FormattingRules.GroupingSeparatorCharacter);
+
+			FTextParsingTestUtil::DoSingleTest<int32>(this, *UnsignedString, FormattingRules, 123, true, *BuildDescription(*UnsignedString, TEXT("int32")));
+			FTextParsingTestUtil::DoSingleTest<uint32>(this, *UnsignedString, FormattingRules, 123, true, *BuildDescription(*UnsignedString, TEXT("uint32")));
+			FTextParsingTestUtil::DoSingleTest<float>(this, *UnsignedString, FormattingRules, 123.456f, true, *BuildDescription(*UnsignedString, TEXT("float")));
+			FTextParsingTestUtil::DoSingleTest<double>(this, *UnsignedString, FormattingRules, 123.456, true, *BuildDescription(*UnsignedString, TEXT("double")));
+
+			FTextParsingTestUtil::DoSingleTest<int32>(this, *PositiveString, FormattingRules, 123, true, *BuildDescription(*PositiveString, TEXT("int32")));
+			FTextParsingTestUtil::DoSingleTest<uint32>(this, *PositiveString, FormattingRules, 123, true, *BuildDescription(*PositiveString, TEXT("uint32")));
+			FTextParsingTestUtil::DoSingleTest<float>(this, *PositiveString, FormattingRules, 123.456f, true, *BuildDescription(*PositiveString, TEXT("float")));
+			FTextParsingTestUtil::DoSingleTest<double>(this, *PositiveString, FormattingRules, 123.456, true, *BuildDescription(*PositiveString, TEXT("double")));
+
+			FTextParsingTestUtil::DoSingleTest<int32>(this, *NegativeString, FormattingRules, -123, true, *BuildDescription(*NegativeString, TEXT("int32")));
+			FTextParsingTestUtil::DoSingleTest<uint32>(this, *NegativeString, FormattingRules, -123, true, *BuildDescription(*NegativeString, TEXT("uint32")));
+			FTextParsingTestUtil::DoSingleTest<float>(this, *NegativeString, FormattingRules, -123.456f, true, *BuildDescription(*NegativeString, TEXT("float")));
+			FTextParsingTestUtil::DoSingleTest<double>(this, *NegativeString, FormattingRules, -123.456, true, *BuildDescription(*NegativeString, TEXT("double")));
+
+			FTextParsingTestUtil::DoSingleTest<int32>(this, *PositiveASCIIString, FormattingRules, 123, true, *BuildDescription(*PositiveASCIIString, TEXT("int32")));
+			FTextParsingTestUtil::DoSingleTest<int32>(this, *NegativeASCIIString, FormattingRules, -123, true, *BuildDescription(*NegativeASCIIString, TEXT("int32")));
+
+			FTextParsingTestUtil::DoSingleTest<int32>(this, *GroupSeparatedString, FormattingRules, 1234, true, *BuildDescription(*GroupSeparatedString, TEXT("int32")));
+			FTextParsingTestUtil::DoSingleTest<uint32>(this, *GroupSeparatedString, FormattingRules, 1234, true, *BuildDescription(*GroupSeparatedString, TEXT("uint32")));
+		}
+	};
+	
+	DoTests(TEXT("en"));
+	DoTests(TEXT("fr"));
+	DoTests(TEXT("ar"));
+
+	{
+		const FDecimalNumberFormattingRules& AgnosticFormattingRules = FastDecimalFormat::GetCultureAgnosticFormattingRules();
+
+		FTextParsingTestUtil::DoSingleTest<int32>(this, TEXT("10a"), AgnosticFormattingRules, 0, false, TEXT("Parsing '10a' as 'int32'"));
+		FTextParsingTestUtil::DoSingleTest<uint32>(this, TEXT("10a"), AgnosticFormattingRules, 0, false, TEXT("Parsing '10a' as 'uint32'"));
+
+		FTextParsingTestUtil::DoSingleTest<int32>(this, TEXT("10a"), 2, AgnosticFormattingRules, 10, true, TEXT("Parsing '10a' (len 2) as 'int32'"));
+		FTextParsingTestUtil::DoSingleTest<uint32>(this, TEXT("10a"), 2, AgnosticFormattingRules, 10, true, TEXT("Parsing '10a' (len 2) as 'uint32'"));
+	}
 
 	return true;
 }

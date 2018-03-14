@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraSystemScriptViewModel.h"
 #include "NiagaraSystem.h"
@@ -18,11 +18,17 @@
 #include "GraphEditAction.h"
 #include "Stack/NiagaraStackEntry.h"
 #include "NiagaraStackGraphUtilities.h"
+#include "NiagaraSystemViewModel.h"
+#include "NiagaraEmitterHandleViewModel.h"
+#include "NiagaraEmitterViewModel.h"
 
-FNiagaraSystemScriptViewModel::FNiagaraSystemScriptViewModel(UNiagaraSystem& InSystem)
+FNiagaraSystemScriptViewModel::FNiagaraSystemScriptViewModel(UNiagaraSystem& InSystem, FNiagaraSystemViewModel* InParent)
 	: FNiagaraScriptViewModel(InSystem.GetSystemSpawnScript(), NSLOCTEXT("SystemScriptViewModel", "GraphName", "System"), ENiagaraParameterEditMode::EditAll)
+	, Parent(InParent)
 	, System(InSystem)
 {
+	Scripts.Add(InSystem.GetSystemUpdateScript());
+
 	if (GetGraphViewModel()->GetGraph())
 	{
 		OnGraphChangedHandle = GetGraphViewModel()->GetGraph()->AddOnGraphChangedHandler(
@@ -193,27 +199,59 @@ FNiagaraSystemScriptViewModel::FOnSystemCompiled& FNiagaraSystemScriptViewModel:
 	return OnSystemCompiledDelegate;
 }
 
-void FNiagaraSystemScriptViewModel::CompileSystem()
+void FNiagaraSystemScriptViewModel::CompileSystem(bool bForce)
 {
 
 	TArray<ENiagaraScriptCompileStatus> CompileSystemStatuses;
 	TArray<FString> CompileSystemErrors;
 	TArray<FString> CompileSystemPaths;
 	TArray<UNiagaraScript*> CompileSystemScripts;
-	System.CompileScripts(CompileSystemStatuses, CompileSystemErrors, CompileSystemPaths, CompileSystemScripts);
+	System.CompileScripts(CompileSystemStatuses, CompileSystemErrors, CompileSystemPaths, CompileSystemScripts, bForce);
 
-	ENiagaraScriptCompileStatus AggregateStatus = ENiagaraScriptCompileStatus::NCS_UpToDate;
-	FString AggregateErrors;
-
-	for (int32 i = 0; i < CompileSystemStatuses.Num(); i++)
+	// First we need to find all the possibly affected view models..
+	TArray<FNiagaraScriptViewModel*> ScriptViewModels;
+	ScriptViewModels.Add(this);
+	if (Parent)
 	{
-		AggregateStatus = FNiagaraEditorUtilities::UnionCompileStatus(AggregateStatus, CompileSystemStatuses[i]);
-		AggregateErrors += CompileSystemPaths[i] + TEXT(" ") + FNiagaraEditorUtilities::StatusToText(CompileSystemStatuses[i]).ToString() + TEXT("\n");
-		AggregateErrors += CompileSystemErrors[i] + TEXT("\n");
+		for (const TSharedRef<FNiagaraEmitterHandleViewModel>& EmitterHandleVM : Parent->GetEmitterHandleViewModels())
+		{
+			TSharedRef<FNiagaraEmitterViewModel> EmitterVM = EmitterHandleVM->GetEmitterViewModel();
+			ScriptViewModels.Add(&EmitterVM->GetSharedScriptViewModel().Get());
+		}
 	}
 
-	UpdateCompileStatus(AggregateStatus, AggregateErrors, CompileSystemStatuses, CompileSystemErrors, CompileSystemPaths, CompileSystemScripts);
+	// Now we need to match up the results with the view models that need to know about them..
+	for (FNiagaraScriptViewModel* ScriptVM : ScriptViewModels)
+	{
+		TArray<ENiagaraScriptCompileStatus> CompileChildStatuses;
+		TArray<FString> CompileChildErrors;
+		TArray<FString> CompileChildPaths;
+		TArray<UNiagaraScript*> CompileChildScripts;
 
+		for (int32 i = 0; i < CompileSystemScripts.Num(); i++)
+		{
+			UNiagaraScript* Script = CompileSystemScripts[i];
+			if (ScriptVM->GetScript(Script->GetUsage(), Script->GetUsageId()) == Script) // Check to see if it contains this script
+			{
+				CompileChildScripts.Add(Script);
+				CompileChildStatuses.Add(CompileSystemStatuses[i]);
+				CompileChildErrors.Add(CompileSystemErrors[i]);
+				CompileChildPaths.Add(CompileSystemPaths[i]);
+			}
+		}
+		ENiagaraScriptCompileStatus AggregateStatus = ENiagaraScriptCompileStatus::NCS_UpToDate;
+		FString AggregateErrors;
+
+		for (int32 i = 0; i < CompileChildStatuses.Num(); i++)
+		{
+			AggregateStatus = FNiagaraEditorUtilities::UnionCompileStatus(AggregateStatus, CompileChildStatuses[i]);
+			AggregateErrors += CompileChildPaths[i] + TEXT(" ") + FNiagaraEditorUtilities::StatusToText(CompileChildStatuses[i]).ToString() + TEXT("\n");
+			AggregateErrors += CompileChildErrors[i] + TEXT("\n");
+		}
+		
+		ScriptVM->UpdateCompileStatus(AggregateStatus, AggregateErrors, CompileChildStatuses, CompileChildErrors, CompileChildPaths, CompileChildScripts);
+	}
+	
 	if (OnSystemCompiledDelegate.IsBound())
 	{
 		OnSystemCompiledDelegate.Broadcast();

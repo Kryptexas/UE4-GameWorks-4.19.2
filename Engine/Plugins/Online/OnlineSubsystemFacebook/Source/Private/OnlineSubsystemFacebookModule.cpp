@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemFacebookModule.h"
 #include "OnlineSubsystemFacebookPrivate.h"
@@ -24,14 +24,14 @@ public:
 			{
 				UE_LOG(LogOnline, Warning, TEXT("Facebook API failed to initialize!"));
 				OnlineSub->Shutdown();
-				OnlineSub = NULL;
+				OnlineSub.Reset();
 			}
 		}
 		else
 		{
 			UE_LOG(LogOnline, Warning, TEXT("Facebook API disabled!"));
 			OnlineSub->Shutdown();
-			OnlineSub = NULL;
+			OnlineSub.Reset();
 		}
 
 		return OnlineSub;

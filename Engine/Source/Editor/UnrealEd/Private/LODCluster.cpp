@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LODCluster.h"
 #include "Modules/ModuleManager.h"
@@ -266,10 +266,10 @@ ALODActor* FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bo
 	if (InLevel && InLevel->GetWorld())
 	{
 		// create asset using Actors
-		const FHierarchicalSimplification& LODSetup = InLevel->GetWorld()->GetWorldSettings()->HierarchicalLODSetup[LODIdx];
+		const FHierarchicalSimplification& LODSetup = InLevel->GetWorld()->GetWorldSettings()->GetHierarchicalLODSetup()[LODIdx];
 
 		// Retrieve draw distance for current and next LOD level
-		const int32 LODCount = InLevel->GetWorld()->GetWorldSettings()->HierarchicalLODSetup.Num();
+		const int32 LODCount = InLevel->GetWorld()->GetWorldSettings()->GetNumHierarchicalLODLevels();
 
 		// Where generated assets will be stored
 		FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");

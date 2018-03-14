@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,6 +18,7 @@ class FNiagaraEmitterHandleViewModel : public TSharedFromThis<FNiagaraEmitterHan
 {
 public:
 	DECLARE_MULTICAST_DELEGATE(FOnPropertyChanged);
+	DECLARE_MULTICAST_DELEGATE(FOnNameChanged);
 public:
 	/** Creates a new emitter editor view model with the supplied emitter handle and simulation. */
 	FNiagaraEmitterHandleViewModel(FNiagaraEmitterHandle* InEmitterHandle, TWeakPtr<FNiagaraEmitterInstance> InSimulation, UNiagaraSystem& InOwningSystem);
@@ -58,9 +59,6 @@ public:
 	FSlateColor GetErrorTextColor() const;
 
 	/** Called to get the synch state of the emitter handle to its source.*/
-	FText GetSourceSynchronizationText() const;
-	EVisibility GetSourceSynchronizationTextVisibility() const;
-	FSlateColor GetSourceSynchronizationTextColor() const;
 	bool IsSynchronized() const;
 
 	/** Gets whether or not this emitter handle is enabled. */
@@ -82,21 +80,16 @@ public:
 	TSharedRef<FNiagaraEmitterViewModel> GetEmitterViewModel();
 
 	/** Compiles the spawn and update scripts. */
-	void CompileScripts();
-
-	/** Refreshes the copied emitter's graph and inputs from the source asset.  Input values
-		will be preserved. */
-	void RefreshFromSource();
-
-	/** Replaces the coped emitter instance with a fresh copy of the source emitter asset.  Any changes
-		to input parameters will be lost. */
-	void ResetToSource();
+	void CompileScripts(bool bForce);
 
 	/** Opens the source emitter in a stand alone asset editor. */
 	void OpenSourceEmitter();
 
 	/** Gets a multicast delegate which is called any time a property on the handle changes. */
 	FOnPropertyChanged& OnPropertyChanged();
+
+	/** Gets a multicast delegate which is called any time this handle is renamed. */
+	FOnNameChanged& OnNameChanged();
 
 private:
 	/** The emitter handle being displayed and edited by this view model. */
@@ -110,4 +103,7 @@ private:
 
 	/** A multicast delegate which is called any time a property on the handle changes. */
 	FOnPropertyChanged OnPropertyChangedDelegate;
+
+	/** A multicast delegate which is called any time this emitter handle is renamed. */
+	FOnNameChanged OnNameChangedDelegate;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -30,10 +30,6 @@ private:
 public:	
 
 	virtual bool IsLevelBoundsRelevant() const override { return false; }
-
-#if WITH_EDITOR
-	virtual void PostEditMove(bool bFinished) override;
-#endif // WITH_EDITOR
 
 	/** Returns CaptureComponent subobject **/
 	ENGINE_API class UReflectionCaptureComponent* GetCaptureComponent() const { return CaptureComponent; }

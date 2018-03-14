@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PaperTileMap.h"
 #include "UObject/ConstructorHelpers.h"
@@ -10,6 +10,13 @@
 #include "PaperTileSet.h"
 #include "PaperTileLayer.h"
 #include "Paper2DPrivate.h"
+
+#if WITH_EDITOR
+#include "PaperTileMapComponent.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "ComponentReregisterContext.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 
@@ -112,11 +119,6 @@ void UPaperTileMap::PostLoad()
 }
 
 #if WITH_EDITOR
-
-#include "PaperTileMapComponent.h"
-#include "UObject/UObjectHash.h"
-#include "UObject/UObjectIterator.h"
-#include "ComponentReregisterContext.h"
 
 /** Removes all components that use the specified sprite asset from their scenes for the lifetime of the class. */
 class FTileMapReregisterContext

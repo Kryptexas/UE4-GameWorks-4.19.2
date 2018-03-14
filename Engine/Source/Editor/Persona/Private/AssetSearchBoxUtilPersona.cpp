@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetSearchBoxUtilPersona.h"
 #include "ReferenceSkeleton.h"
@@ -11,14 +11,10 @@ void SAssetSearchBoxForBones::Construct( const FArguments& InArgs, const class U
 {
 	check(Outer);
 
-	// get the currently chosen bone/socket, if any
-	const FText PropertyName = BoneNameProperty->GetPropertyDisplayName();
-	FString CurValue;
-	BoneNameProperty->GetValue(CurValue);
-	if( CurValue == FString("None") )
-	{
-		CurValue.Empty();
-	}
+	BonePropertyHandle = BoneNameProperty;
+	// set delegate on property change
+	// this doesn't work for undo still
+	BonePropertyHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &SAssetSearchBoxForBones::RefreshName));
 
 	const USkeleton* Skeleton = NULL;
 
@@ -56,14 +52,32 @@ void SAssetSearchBoxForBones::Construct( const FArguments& InArgs, const class U
 	// create the asset search box
 	ChildSlot
 	[
-		SNew(SAssetSearchBox)
-		.InitialText(FText::FromString(CurValue))
+		SAssignNew(SearchBox, SAssetSearchBox)
+		.InitialText(GetBoneName())
 		.HintText(InArgs._HintText)
 		.OnTextCommitted(InArgs._OnTextCommitted)
 		.PossibleSuggestions(PossibleSuggestions)
 		.DelayChangeNotificationsWhileTyping( true )
 		.MustMatchPossibleSuggestions(InArgs._MustMatchPossibleSuggestions)
 	];
+}
+
+void SAssetSearchBoxForBones::RefreshName()
+{
+	if (SearchBox.IsValid())
+	{
+		SearchBox->SetText(GetBoneName());
+	}
+}
+
+FText SAssetSearchBoxForBones::GetBoneName() const
+{
+	FName CurValue;
+	if (BonePropertyHandle.IsValid())
+	{
+		BonePropertyHandle->GetValue(CurValue);
+	}
+	return CurValue.IsNone() ? FText::GetEmpty() : FText::FromName(CurValue);
 }
 
 void SAssetSearchBoxForCurves::Construct(const FArguments& InArgs, const class USkeleton* InSkeleton, TSharedPtr<class IPropertyHandle> CurveNameProperty)
@@ -79,7 +93,7 @@ void SAssetSearchBoxForCurves::Construct(const FArguments& InArgs, const class U
 		CurValue.Empty();
 	}
 
-	Skeleton = InSkeleton;
+	Skeleton = MakeWeakObjectPtr(const_cast<USkeleton*>(InSkeleton));
 	
 	// create the asset search box
 	ChildSlot

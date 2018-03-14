@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:애니메이션 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -10,42 +10,11 @@ Related: Engine/Animation/StateMachines
 Related: Gameplay/AI
 Related: Engine/Content/Tools/MayaRiggingTool
 Version: 4.9
-
+topic-image:animation_compact.png
 
 [REGION:banner]
 ![](Animation_Header.png)(convert:false)
 [/REGION]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources/ContentExamples/Animation:title%](animation_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Animation:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources/ContentExamples/Animation:description%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Animation]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources/ContentExamples/Animation:title%](animation_compact.png)
-	[/PARAM]
-	[PARAM:title]
-		%Resources/ContentExamples/Animation:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Resources/ContentExamples/Animation]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 

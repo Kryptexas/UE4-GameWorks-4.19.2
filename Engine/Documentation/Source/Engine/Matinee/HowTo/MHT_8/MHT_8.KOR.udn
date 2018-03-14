@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:트리거 이벤트 및 표시여부 토글
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
@@ -6,19 +6,13 @@ Description:이벤트와 표시여부를 사용하여 카운트다운 이후 폭
 Version: 4.9
 SkillLevel: Intermediate
 
----
 여기서는 타이머 카운트 이후 폭발한 뒤 **마티네 이벤트** 와 **Visibility** 트랙을 사용하여 이펙트를 스폰하는 돌을 만들겠습니다.
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		마티네 액터와 소품 추가
-	[/PARAM]
-	[PARAM:description]
-	여기서는 **마티네 액터** 와 씬에서 사용할 애셋을 추가하겠습니다.
-	[/PARAM]
-[/OBJECT]
+## 마티네 액터와 소품 추가
+
+여기서는 **마티네 액터** 와 씬에서 사용할 애셋을 추가하겠습니다.
 
 1. **툴바** 메뉴에서 **마티네** - **마티네 추가** 버튼을 클릭합니다.
 
@@ -96,14 +90,9 @@ SkillLevel: Intermediate
 
 	_액터의 표시여부는 마티네에서 제어할 것이라서 기본으로 숨겼습니다._
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		마티네에 애셋 추가 및 트랙 설정
-	[/PARAM]
-	[PARAM:description]
-	여기서는 **마티네** 애 애셋을 전부 추가한 다음 시퀀스를 돌리는 데 사용할 트랙을 정의하겠습니다.
-	[/PARAM]
-[/OBJECT]
+## 마티네에 애셋 추가 및 트랙 설정
+
+여기서는 **마티네** 애 애셋을 전부 추가한 다음 시퀀스를 돌리는 데 사용할 트랙을 정의하겠습니다.
 
 1.  **월드 아웃라이너** 또는 뷰포트에서 **마티네** 를 선택한 다음, **디테일** 패널에서 **마티네 열기** 를 클릭하고 열리면 최소화시킵니다.
 
@@ -153,15 +142,9 @@ SkillLevel: Intermediate
 
 	![](MHT8_MatineeFinished.png)
 
+## 블루프린트에서 마티네 액터 사용
 
-[OBJECT:TopicList]
-	[PARAM:title]
-		블루프린트에서 마티네 액터 사용
-	[/PARAM]
-	[PARAM:description]
-	여기서는 **마티네** 시퀀스에서 **Explode** 이벤트가 호출되면 이벤트를 발동시키고 **마티네** 가 종료되면 파티클 이펙트를 활성화시킵니다.
-	[/PARAM]
-[/OBJECT]
+여기서는 **마티네** 시퀀스에서 **Explode** 이벤트가 호출되면 이벤트를 발동시키고 **마티네** 가 종료되면 파티클 이펙트를 활성화시킵니다.
 
 1.	레벨 뷰포트나 **월드 아웃라이너** 에서 **MatineeActor** 를 선택한 다음 메인 툴바의 **블루프린트** - **레벨 블루프린트 열기** 를 클릭합니다.
 
@@ -226,41 +209,4 @@ SkillLevel: Intermediate
 	[/OBJECT]
 
 	_텍스트 카운트다운이 보이다가 파티클 및 사운드 이펙트와 함께 바위가 폭발하고, 그 바위가 있던 위치에 불이 나는 것을 볼 수 있습니다._
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

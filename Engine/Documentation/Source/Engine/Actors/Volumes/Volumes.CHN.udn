@@ -204,7 +204,9 @@ h:301
 | Interior LPF（内部LPF） | 当玩家在 **环境区域** 外部时，应用到外部声效的低通滤波器乘数（使用1.0来应用最大的 LPF） 。 |
 | Interior LPFTime（内部 LPFTime） | 淡入淡出到新的低通滤波器级别所需的时间，以秒为单位 。 |
 
-<!--关于环境区域的更多信息，请参照以下文档: [环境区域文档](Engine/Audio/AmbientZones).-->
+[COMMENT:none]
+关于环境区域的更多信息，请参照以下文档: [环境区域文档](Engine/Audio/AmbientZones).
+[/COMMENT]
 
 ### 后期处理体积
 

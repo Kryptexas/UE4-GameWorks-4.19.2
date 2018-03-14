@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -74,6 +74,7 @@ public:
 		, _SelectionMode(ESelectionMode::Multi)
 		, _ClearSelectionOnClick(true)
 		, _ExternalScrollbar()
+		, _ScrollbarDragFocusCause(EFocusCause::Mouse)
 		, _AllowOverscroll(EAllowOverscroll::Yes)
 		, _ConsumeMouseWheel(EConsumeMouseWheel::WhenScrollingPossible)
 		, _WheelScrollMultiplier(GetGlobalScrollAmount())
@@ -114,6 +115,8 @@ public:
 
 		SLATE_ATTRIBUTE( EVisibility, ScrollbarVisibility)
 		
+		SLATE_ARGUMENT( EFocusCause, ScrollbarDragFocusCause )
+
 		SLATE_ARGUMENT( EAllowOverscroll, AllowOverscroll );
 
 		SLATE_ARGUMENT( EConsumeMouseWheel, ConsumeMouseWheel );
@@ -195,6 +198,7 @@ public:
 			ConstructChildren( 0, InArgs._ItemHeight, EListItemAlignment::LeftAligned, InArgs._HeaderRow, InArgs._ExternalScrollbar, InArgs._OnListViewScrolled );
 			if(ScrollBar.IsValid())
 			{
+				ScrollBar->SetDragFocusCause(InArgs._ScrollbarDragFocusCause);
 				ScrollBar->SetUserVisibility(InArgs._ScrollbarVisibility);
 			}
 
@@ -1199,6 +1203,15 @@ public:
 	}
 
 	/**
+	 * Cancels a previous request to scroll and item into view.
+	 */
+	void CancelScrollIntoView()
+	{
+		UserRequestingScrollIntoView = 0;
+		TListTypeTraits<ItemType>::ResetPtr(ItemToScrollIntoView);
+	}
+
+	/**
 	 * Set the currently selected Item.
 	 *
 	 * @param SoleSelectedItem   Sole item that should be selected.
@@ -1303,6 +1316,8 @@ protected:
 						return EScrollIntoViewResult::Deferred;
 					}
 				}
+
+				EndInertialScrolling();
 				
 				// Only scroll the item into view if it's not already in the visible range
 				const double IndexPlusOne = IndexOfItem+1;

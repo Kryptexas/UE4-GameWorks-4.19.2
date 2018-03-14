@@ -3,6 +3,8 @@ Title:Getting Started with the Unreal Developer Network
 Crumbs:%ROOT%, GettingStarted
 Description:Documentation covering the basics of using the UDN.
 Version: 4.9
+parent:%ROOT%
+order:101
 
 
 
@@ -14,21 +16,12 @@ The following sections detail important information for those just getting start
 	Should you discover any issues while using the UDN, please post it as a question. Use the **Support Questions** section below if you need help.
 [/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Starting Out
-	[/PARAM]
-	[PARAM:description]
-		The following sections cover important information regarding common UDN tasks:
-	[/PARAM]
-	[PARAM:links]
-		* [Content Searches](Support\UDNGettingStarted\ContentSearches)
-		* [Support Questions](Support\UDNGettingStarted\SupportQuestions)
-	[/PARAM]
-[/OBJECT]
+## Starting Out
+
+[REGION:buttonlist]
+* [Content Searches](Support\UDNGettingStarted\ContentSearches)
+* [Support Questions](Support\UDNGettingStarted\SupportQuestions)
+[/REGION]
 
 
 ## Videos

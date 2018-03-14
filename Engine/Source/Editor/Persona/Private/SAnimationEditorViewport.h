@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -21,15 +21,18 @@
 #include "PersonaModule.h"
 
 class SAnimationEditorViewportTabBody;
+class FUICommandList_Pinnable;
+class SAnimViewportToolBar;
 
 struct FAnimationEditorViewportRequiredArgs
 {
-	FAnimationEditorViewportRequiredArgs(const TSharedRef<class ISkeletonTree>& InSkeletonTree, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, TSharedRef<class SAnimationEditorViewportTabBody> InTabBody, TSharedRef<class FAssetEditorToolkit> InAssetEditorToolkit, FSimpleMulticastDelegate& InOnPostUndo)
+	FAnimationEditorViewportRequiredArgs(const TSharedRef<class ISkeletonTree>& InSkeletonTree, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, TSharedRef<class SAnimationEditorViewportTabBody> InTabBody, TSharedRef<class FAssetEditorToolkit> InAssetEditorToolkit, FSimpleMulticastDelegate& InOnPostUndo, int32 InViewportIndex)
 		: SkeletonTree(InSkeletonTree)
 		, PreviewScene(InPreviewScene)
 		, TabBody(InTabBody)
 		, AssetEditorToolkit(InAssetEditorToolkit)
 		, OnPostUndo(InOnPostUndo)
+		, ViewportIndex(InViewportIndex)
 	{}
 
 	TSharedRef<class ISkeletonTree> SkeletonTree;
@@ -41,16 +44,28 @@ struct FAnimationEditorViewportRequiredArgs
 	TSharedRef<class FAssetEditorToolkit> AssetEditorToolkit;
 
 	FSimpleMulticastDelegate& OnPostUndo;
+
+	int32 ViewportIndex;
 };
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimationEditorViewport
 
+enum class ESectionDisplayMode
+{
+	None = -1,
+	ShowAll,
+	ShowOnlyClothSections,
+	HideOnlyClothSections,
+	NumSectionDisplayMode
+};
+
 class SAnimationEditorViewport : public SEditorViewport
 {
 public:
 	SLATE_BEGIN_ARGS(SAnimationEditorViewport) 
-		: _ShowShowMenu(true)
+		: _ContextName(NAME_None)
+		, _ShowShowMenu(true)
 		, _ShowLODMenu(true)
 		, _ShowPlaySpeedMenu(true)
 		, _ShowStats(true)
@@ -60,6 +75,8 @@ public:
 	{}
 
 	SLATE_ARGUMENT(TArray<TSharedPtr<FExtender>>, Extenders)
+
+	SLATE_ARGUMENT(FName, ContextName)
 
 	SLATE_ARGUMENT(bool, ShowShowMenu)
 
@@ -79,6 +96,9 @@ public:
 
 	void Construct(const FArguments& InArgs, const FAnimationEditorViewportRequiredArgs& InRequiredArgs);
 
+	/** Get the viewport toolbar widget */
+	TSharedPtr<SAnimViewportToolBar> GetViewportToolbar() const { return ViewportToolbar; }
+
 protected:
 	// SEditorViewport interface
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
@@ -88,6 +108,8 @@ protected:
 
 	/**  Handle undo/redo by refreshing the viewport */
 	void OnUndoRedo();
+
+	virtual void BindCommands() override;
 
 protected:
 	// Viewport client
@@ -105,8 +127,17 @@ protected:
 	// The asset editor we are embedded in
 	TWeakPtr<class FAssetEditorToolkit> AssetEditorToolkitPtr;
 
+	/** The viewport toolbar */
+	TSharedPtr<SAnimViewportToolBar> ViewportToolbar;
+
 	/** Menu extenders */
 	TArray<TSharedPtr<FExtender>> Extenders;
+
+	/** Context used for persisting settings */
+	FName ContextName;
+
+	/** Viewport index (0-3) */
+	int32 ViewportIndex;
 
 	/** Whether to show the 'Show' menu */
 	bool bShowShowMenu;
@@ -138,6 +169,7 @@ class SAnimationEditorViewportTabBody : public IPersonaViewport
 public:
 	SLATE_BEGIN_ARGS( SAnimationEditorViewportTabBody )
 		: _BlueprintEditor()
+		, _ContextName(NAME_None)
 		, _ShowShowMenu(true)
 		, _ShowLODMenu(true)
 		, _ShowPlaySpeedMenu(true)
@@ -154,6 +186,10 @@ public:
 		SLATE_ARGUMENT(FOnInvokeTab, OnInvokeTab)
 
 		SLATE_ARGUMENT(TArray<TSharedPtr<FExtender>>, Extenders)
+
+		SLATE_ARGUMENT(FOnGetViewportText, OnGetViewportText)
+
+		SLATE_ARGUMENT(FName, ContextName)
 
 		SLATE_ARGUMENT(bool, ShowShowMenu)
 
@@ -175,7 +211,7 @@ public:
 	SLATE_END_ARGS()
 public:
 
-	void Construct(const FArguments& InArgs, const TSharedRef<class ISkeletonTree>& InSkeletonTree, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, const TSharedRef<class FAssetEditorToolkit>& InAssetEditorToolkit, FSimpleMulticastDelegate& InOnUndoRedo);
+	void Construct(const FArguments& InArgs, const TSharedRef<class ISkeletonTree>& InSkeletonTree, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, const TSharedRef<class FAssetEditorToolkit>& InAssetEditorToolkit, FSimpleMulticastDelegate& InOnUndoRedo, int32 InViewportIndex);
 	SAnimationEditorViewportTabBody();
 	virtual ~SAnimationEditorViewportTabBody();
 
@@ -183,6 +219,7 @@ public:
 	virtual TSharedRef<IPersonaViewportState> SaveState() const override;
 	virtual void RestoreState(TSharedRef<IPersonaViewportState> InState) override;
 	virtual FEditorViewportClient& GetViewportClient() const override;
+	virtual TSharedRef<IPinnedCommandList> GetPinnedCommandList() const override;
 	
 	/** SWidget interface */
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
@@ -192,7 +229,7 @@ public:
 	/**
 	 * @return The list of commands on the viewport that are bound to delegates                    
 	 */
-	const TSharedPtr<FUICommandList>& GetCommandList() const { return UICommandList; }
+	const TSharedPtr<FUICommandList_Pinnable>& GetCommandList() const { return UICommandList; }
 
 	/** Handle the skeletal mesh changing */
 	void HandlePreviewMeshChanged(class USkeletalMesh* OldSkeletalMesh, class USkeletalMesh* NewSkeletalMesh);
@@ -212,9 +249,6 @@ public:
 
 	/** Function to get anim viewport widget */
 	TSharedPtr<class SEditorViewport> GetViewportWidget() const { return ViewportWidget; }
-
-	/** Function to check whether grid is displayed or not */
-	bool IsShowingGrid() const;
 
 	/** Gets the editor client for this viewport */
 	FEditorViewportClient& GetLevelViewportClient()
@@ -237,7 +271,7 @@ public:
 	void SetWindStrength( float SliderPos );
 
 	/** Function to get slider value which represents wind strength (0 - 1)*/
-	float GetWindStrengthSliderValue() const;
+	TOptional<float> GetWindStrengthSliderValue() const;
 
 	/** Function to get slider value which returns a string*/
 	FText GetWindStrengthLabel() const;
@@ -247,7 +281,6 @@ public:
 	/** Show gravity scale */
 	void SetGravityScale( float SliderPos );
 	float GetGravityScaleSliderValue() const;
-	FText GetGravityScaleLabel() const;
 
 	/** Function to set LOD model selection*/
 	void OnSetLODModel(int32 LODSelectionType);
@@ -282,6 +315,11 @@ private:
 	void OnShowRawAnimation();
 
 	bool IsShowingRawAnimation() const;
+
+	/** Handlers for the disable post process flag */
+	void OnToggleDisablePostProcess();
+	bool CanDisablePostProcess();
+	bool IsDisablePostProcessChecked();
 
 	/** Show non retargeted animation. */
 	void OnShowNonRetargetedAnimation();
@@ -354,9 +392,6 @@ private:
 	/** Function to check whether mesh info is displayed or not */
 	bool IsShowingMeshInfo(int32 DisplayInfoMode) const;
 
-	/** Function to show/hide grid in the viewport */
-	void OnShowGrid();	
-
 	/** Toggles floor alignment in the preview scene */
 	void OnToggleAutoAlignFloor();
 
@@ -394,14 +429,11 @@ private:
 	/** Open the preview scene settings */
 	void OpenPreviewSceneSettings();
 
-	/** Called to toggle camera lock for naviagating **/
-	void ToggleCameraFollow();
-	bool IsCameraFollowEnabled() const;
-
 	void SaveCameraAsDefault();
 	void ClearDefaultCamera();
 	void JumpToDefaultCamera();
 	bool HasDefaultCameraSet() const;
+	bool CanSaveCameraAsDefault() const;
 
 	/** Focus the viewport on the preview mesh */
 	void HandleFocusCamera();
@@ -447,6 +479,11 @@ private:
 	bool IsTurnTableModeSelected(int32 ModeIndex) const;
 
 public:
+	/** Setup the camera follow mode */
+	void SetCameraFollowMode(EAnimationViewportCameraFollowMode InCameraFollowMode, FName InBoneName);
+	bool IsCameraFollowEnabled(EAnimationViewportCameraFollowMode InCameraFollowMode) const;
+	FName GetCameraFollowBoneName() const;
+
 	bool IsTurnTableSpeedSelected(int32 SpeedIndex) const;
 
 #if WITH_APEX_CLOTHING
@@ -454,11 +491,12 @@ public:
 	 * clothing show options 
 	*/
 private:
-	/** disable cloth simulation */
-	void OnDisableClothSimulation();
-	bool IsDisablingClothSimulation() const;
+	/** Enable cloth simulation */
+	void OnEnableClothSimulation();
+	bool IsClothSimulationEnabled() const;
 
-	void OnApplyClothWind();
+	/** Reset clothing simulation */
+	void OnResetClothSimulation();
 
 	void OnPauseClothingSimWithAnim();
 	bool IsPausingClothingSimWithAnim();
@@ -468,8 +506,8 @@ private:
 	bool IsEnablingCollisionWithAttachedClothChildren() const;
 
 	/** Show all sections which means the original state */
-	void OnSetSectionsDisplayMode(int32 DisplayMode);
-	bool IsSectionsDisplayMode(int32 DisplayMode) const;
+	void OnSetSectionsDisplayMode(ESectionDisplayMode DisplayMode);
+	bool IsSectionsDisplayMode(ESectionDisplayMode DisplayMode) const;
 
 #endif // #if WITH_APEX_CLOTHING
 
@@ -502,7 +540,7 @@ private:
 	TSharedPtr<SHorizontalBox> ToolbarBox;
 
 	/** Commands that are bound to delegates*/
-	TSharedPtr<FUICommandList> UICommandList;
+	TSharedPtr<FUICommandList_Pinnable> UICommandList;
 
 	/** Delegate used to invoke tabs in the containing asset editor */
 	FOnInvokeTab OnInvokeTab;
@@ -523,6 +561,12 @@ private:
 
 	/** Current LOD selection*/
 	int32 LODSelection;
+
+	/** Draw All/ Draw only clothing sections/ Hide only clothing sections */
+	ESectionDisplayMode SectionsDisplayMode;
+
+	/** Delegate used to get custom viewport text */
+	FOnGetViewportText OnGetViewportText;
 
 	/** Get Min/Max Input of value **/
 	float GetViewMinInput() const;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalMeshImport.cpp: Skeletal mesh import code.
@@ -14,11 +14,9 @@
 #include "Materials/MaterialInterface.h"
 #include "GPUSkinPublicDefs.h"
 #include "ReferenceSkeleton.h"
-#include "SkeletalMeshTypes.h"
 #include "Engine/SkeletalMesh.h"
 #include "EditorFramework/ThumbnailInfo.h"
 #include "SkelImport.h"
-#include "SkeletalMeshSorting.h"
 #include "RawIndexBuffer.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "Logging/TokenizedMessage.h"
@@ -31,6 +29,7 @@
 #include "ClothingAssetInterface.h"
 #include "Factories/FbxSkeletalMeshImportData.h"
 #include "IMeshReductionManagerModule.h"
+#include "Rendering/SkeletalMeshModel.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSkeletalMeshImport, Log, All);
 
@@ -444,330 +443,6 @@ void ProcessImportMeshInfluences(FSkeletalMeshImportData& ImportData)
 	}
 }
 
-//
-// FSavedCustomSortSectionInfo - saves and restores custom triangle order for a single section of the skeletal mesh.
-//
-FSavedCustomSortSectionInfo::FSavedCustomSortSectionInfo(USkeletalMesh* ExistingSkelMesh, int32 LODModelIndex, int32 InSectionIdx)
-:	SavedSectionIdx(InSectionIdx)
-{
-	FStaticLODModel& LODModel = ExistingSkelMesh->GetImportedResource()->LODModels[LODModelIndex];
-	FSkelMeshSection& Section = LODModel.Sections[SavedSectionIdx];
-
-	// Save the sort mode and number of triangles
-	SavedSortOption = Section.TriangleSorting;
-	SavedNumTriangles = Section.NumTriangles;
-
-	// Save CustomLeftRightAxis and CustomLeftRightBoneName
-	FTriangleSortSettings& TriangleSortSettings = ExistingSkelMesh->LODInfo[LODModelIndex].TriangleSortSettings[SavedSectionIdx];
-	SavedCustomLeftRightAxis  = TriangleSortSettings.CustomLeftRightAxis;
-	SavedCustomLeftRightBoneName = TriangleSortSettings.CustomLeftRightBoneName;
-
-	if( SavedSortOption == TRISORT_Custom || SavedSortOption == TRISORT_CustomLeftRight )
-	{
-		// Save the vertices
-		TArray<FSoftSkinVertex> Vertices;
-		LODModel.GetVertices(Vertices);
-		SavedVertices.AddUninitialized(Vertices.Num());
-		for( int32 i=0;i<Vertices.Num();i++ )
-		{
-			SavedVertices[i] = Vertices[i].Position;
-		}
-
-		// Save the indices
-		int32 NumIndices = SavedSortOption == TRISORT_CustomLeftRight ?  Section.NumTriangles * 6 :  Section.NumTriangles * 3;
-		SavedIndices.AddUninitialized(NumIndices);
-
-		if( LODModel.MultiSizeIndexContainer.GetDataTypeSize() == sizeof(uint16) )
-		{
-			// We cant copy indices directly if the source data is 16 bit.
-			for( int32 Index = 0; Index < NumIndices; ++Index )
-			{
-				SavedIndices[Index] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get( Section.BaseIndex + Index );
-			}
-		}
-		else
-		{
-			FMemory::Memcpy(SavedIndices.GetData(), LODModel.MultiSizeIndexContainer.GetIndexBuffer()->GetPointerTo(Section.BaseIndex), NumIndices*LODModel.MultiSizeIndexContainer.GetDataTypeSize());
-		}
-	}
-}
-
-void FSavedCustomSortSectionInfo::Restore(USkeletalMesh* NewSkelMesh, int32 LODModelIndex, TArray<int32>& UnmatchedSections)
-{
-	FStaticLODModel& LODModel = NewSkelMesh->GetImportedResource()->LODModels[LODModelIndex];
-	FSkeletalMeshLODInfo& LODInfo = NewSkelMesh->LODInfo[LODModelIndex];
-
-	// Re-order the UnmatchedSections so the old section index from the previous model is tried first
-	int32 PrevSectionIndex = UnmatchedSections.Find(SavedSectionIdx);
-	if( PrevSectionIndex != 0 && PrevSectionIndex != INDEX_NONE )
-	{
-		Exchange( UnmatchedSections[0], UnmatchedSections[PrevSectionIndex] );
-	}
-
-	// Find the strips in the old triangle data.
-	TArray< TArray<uint32> > OldStrips[2];
-	for( int32 IndexCopy=0; IndexCopy < (SavedSortOption==TRISORT_CustomLeftRight ? 2 : 1); IndexCopy++ )
-	{
-		const uint32* OldIndices = &SavedIndices[(SavedIndices.Num()>>1)*IndexCopy];
-		TArray<uint32> OldTriSet;
-		GetConnectedTriangleSets( SavedNumTriangles, OldIndices, OldTriSet );
-
-		// Convert to strips
-		int32 PrevTriSet = MAX_int32;
-		for( int32 TriIndex=0;TriIndex<SavedNumTriangles; TriIndex++ )
-		{
-			if( OldTriSet[TriIndex] != PrevTriSet )
-			{
-				OldStrips[IndexCopy].AddZeroed();
-				PrevTriSet = OldTriSet[TriIndex];
-			}
-			OldStrips[IndexCopy][OldStrips[IndexCopy].Num()-1].Add(OldIndices[TriIndex*3+0]);
-			OldStrips[IndexCopy][OldStrips[IndexCopy].Num()-1].Add(OldIndices[TriIndex*3+1]);
-			OldStrips[IndexCopy][OldStrips[IndexCopy].Num()-1].Add(OldIndices[TriIndex*3+2]);
-		}
-	}
-
-
-	bool bFoundMatchingSection = false; 
-
-	// Try all remaining sections to find a match
-	for( int32 UnmatchedSectionsIdx=0; !bFoundMatchingSection && UnmatchedSectionsIdx<UnmatchedSections.Num(); UnmatchedSectionsIdx++ )
-	{
-		// Section of the new mesh to try
-		int32 SectionIndex = UnmatchedSections[UnmatchedSectionsIdx];
-		FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
-
-		TArray<uint32> Indices;
-		LODModel.MultiSizeIndexContainer.GetIndexBuffer( Indices );
-		const uint32* NewSectionIndices = Indices.GetData() + Section.BaseIndex;
-
-		// Build the list of triangle sets in the new mesh's section
-		TArray<uint32> TriSet;
-		GetConnectedTriangleSets( Section.NumTriangles, NewSectionIndices, TriSet );
-
-		// Mapping from triangle set number to the array of indices that make up the contiguous strip.
-		TMap<uint32, TArray<uint32> > NewStripsMap;
-		// Go through each triangle and assign it to the appropriate contiguous strip.
-		// This is necessary if the strips in the index buffer are not contiguous.
-		int32 Index=0;
-		for( int32 s=0;s<TriSet.Num();s++ )
-		{
-			// Store the indices for this triangle in the appropriate contiguous set.
-			TArray<uint32>* ThisStrip = NewStripsMap.Find(TriSet[s]);
-			if( !ThisStrip )
-			{
-				ThisStrip = &NewStripsMap.Add(TriSet[s],TArray<uint32>());
-			}
-
-			// Add the three indices for this triangle.
-			ThisStrip->Add(NewSectionIndices[Index++]);
-			ThisStrip->Add(NewSectionIndices[Index++]);
-			ThisStrip->Add(NewSectionIndices[Index++]);
-		}
-
-		// Get the new vertices
-		TArray<FSoftSkinVertex> NewVertices;
-		LODModel.GetVertices(NewVertices);
-
-		// Do the processing once for each copy if the index data
-		for( int32 IndexCopy=0; IndexCopy < (SavedSortOption==TRISORT_CustomLeftRight ? 2 : 1); IndexCopy++ )
-		{
-			// Copy strips in the new mesh's section into an array. We'll remove items from
-			// here as we match to the old strips, so we need to keep a new copy of it each time.
-			TArray<TArray<uint32> > NewStrips;
-			for( TMap<uint32, TArray<uint32> >::TIterator It(NewStripsMap); It; ++It )
-			{
-				NewStrips.Add(It.Value());
-			}
-
-			// Match up old strips to new
-			int32 NumMismatchedStrips = 0;
-			TArray<TArray<uint32> > NewSortedStrips; // output
-			for( int32 OsIdx=0;OsIdx<OldStrips[IndexCopy].Num();OsIdx++ )
-			{
-				TArray<uint32>& OldStripIndices = OldStrips[IndexCopy][OsIdx];
-
-				int32 MatchingNewStrip = INDEX_NONE;
-
-				for( int32 NsIdx=0;NsIdx<NewStrips.Num() && MatchingNewStrip==INDEX_NONE;NsIdx++ )
-				{
-					// Check if we have the same number of triangles in the old and new strips.
-					if( NewStrips[NsIdx].Num() != OldStripIndices.Num() )
-					{
-						continue;
-					}
-
-					// Make a copy of the indices, as we'll remove them as we try to match triangles.
-					TArray<uint32> NewStripIndices = NewStrips[NsIdx];
-
-					// Check if all the triangles in the new strip closely match those in the old.
-					for( int32 OldTriIdx=0;OldTriIdx<OldStripIndices.Num();OldTriIdx+=3 )
-					{
-						// Try to find a match for this triangle in the new strip.
-						bool FoundMatch = false;
-						for( int32 NewTriIdx=0;NewTriIdx<NewStripIndices.Num();NewTriIdx+=3 )
-						{
-							if( (SavedVertices[OldStripIndices[OldTriIdx+0]] - NewVertices[NewStripIndices[NewTriIdx+0]].Position).SizeSquared() < KINDA_SMALL_NUMBER &&
-								(SavedVertices[OldStripIndices[OldTriIdx+1]] - NewVertices[NewStripIndices[NewTriIdx+1]].Position).SizeSquared() < KINDA_SMALL_NUMBER &&
-								(SavedVertices[OldStripIndices[OldTriIdx+2]] - NewVertices[NewStripIndices[NewTriIdx+2]].Position).SizeSquared() < KINDA_SMALL_NUMBER )
-							{
-								// Found a triangle match. Remove the triangle from the new list and try to match the next old triangle.
-								NewStripIndices.RemoveAt(NewTriIdx,3);
-								FoundMatch = true;
-								break;
-							}
-						}
-
-						// If we didn't find a match for this old triangle, the whole strip doesn't match.
-						if( !FoundMatch )
-						{
-							break;
-						}
-					}
-
-					if( NewStripIndices.Num() == 0 )
-					{
-						// strip completely matched
-						MatchingNewStrip = NsIdx;
-					}
-				}
-
-				if( MatchingNewStrip != INDEX_NONE )
-				{
-					NewSortedStrips.Add( NewStrips[MatchingNewStrip] );
-					NewStrips.RemoveAt(MatchingNewStrip);
-				}
-				else
-				{
-					NumMismatchedStrips++;
-				}
-			}
-
-			if( IndexCopy == 0 )
-			{
-				if( 100 * NumMismatchedStrips / OldStrips[0].Num() > 50 )
-				{
-					// If less than 50% of this section's strips match, we assume this is not the correct section.
-					break;
-				}
-
-				// This section matches!
-				bFoundMatchingSection = true;
-
-				// Warn the user if we couldn't match things up.
-				if( NumMismatchedStrips )
-				{
-					UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
-					FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("RestoreSortingMismatchedStripsForSection", "While restoring \"{0}\" sort order for section {1}, {2} of {3} strips could not be matched to the new data."),
-						FText::FromString(TriangleSortOptionToString((ETriangleSortOption)SavedSortOption)),
-						FText::AsNumber(SavedSectionIdx),
-						FText::AsNumber(NumMismatchedStrips),
-						FText::AsNumber(OldStrips[0].Num()))), 
-						FFbxErrors::SkeletalMesh_RestoreSortingMismatchedStrips);
-				}
-
-				// Restore the settings saved in the LODInfo (used for the UI)
-				FTriangleSortSettings& TriangleSortSettings = LODInfo.TriangleSortSettings[SectionIndex];
-				TriangleSortSettings.TriangleSorting = SavedSortOption;
-				TriangleSortSettings.CustomLeftRightAxis = SavedCustomLeftRightAxis;
-				TriangleSortSettings.CustomLeftRightBoneName = SavedCustomLeftRightBoneName;
-
-				// Restore the sorting mode. For TRISORT_CustomLeftRight, this will also make the second copy of the index data.
-				FVector SortCenter;
-				bool bHaveSortCenter = NewSkelMesh->GetSortCenterPoint(SortCenter);
-				LODModel.SortTriangles(SortCenter, bHaveSortCenter, SectionIndex, (ETriangleSortOption)SavedSortOption);
-			}
-
-			// Append any strips we couldn't match to the end
-			NewSortedStrips += NewStrips;
-
-			// Export the strips out to the index buffer in order
-			TArray<uint32> Indexes;
-			LODModel.MultiSizeIndexContainer.GetIndexBuffer( Indexes );
-			uint32* NewIndices = Indexes.GetData() + (Section.BaseIndex + Section.NumTriangles*3*IndexCopy);
-			for( int32 StripIdx=0;StripIdx<NewSortedStrips.Num();StripIdx++ )
-			{
-				FMemory::Memcpy( NewIndices, &NewSortedStrips[StripIdx][0], NewSortedStrips[StripIdx].Num() * sizeof(uint32) );
-
-				// Cache-optimize the triangle order inside the final strip
-				CacheOptimizeSortStrip( NewIndices, NewSortedStrips[StripIdx].Num() );
-
-				NewIndices += NewSortedStrips[StripIdx].Num();
-			}
-			LODModel.MultiSizeIndexContainer.CopyIndexBuffer( Indexes );
-		}
-	}
-
-	if( !bFoundMatchingSection )
-	{
-		UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
-		FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FailedRestoreSortingNoSectionMatch", "Unable to restore triangle sort setting \"{0}\" for section number {1} in the old mesh, as a matching section could not be found in the new mesh. The custom sorting information has been lost."),
-			FText::FromString(TriangleSortOptionToString((ETriangleSortOption)SavedSortOption)), FText::AsNumber(SavedSectionIdx))), FFbxErrors::SkeletalMesh_RestoreSortingNoSectionMatch);
-	}
-}
-
-void FSavedCustomSortInfo::Save(USkeletalMesh* ExistingSkelMesh, int32 LODModelIndex)
-{
-	FStaticLODModel& LODModel = ExistingSkelMesh->GetImportedResource()->LODModels[LODModelIndex];
-
-	for( int32 SectionIdx=0;SectionIdx < LODModel.Sections.Num(); SectionIdx++ )
-	{
-		FSkelMeshSection& Section = LODModel.Sections[SectionIdx];
-		if( Section.TriangleSorting != TRISORT_None && Section.NumTriangles > 0 )
-		{
-			new(SortSectionInfos) FSavedCustomSortSectionInfo(ExistingSkelMesh, LODModelIndex, SectionIdx);
-		}
-	}
-}
-
-void FSavedCustomSortInfo::Restore(USkeletalMesh* NewSkeletalMesh, int32 LODModelIndex)
-{
-	FStaticLODModel& LODModel = NewSkeletalMesh->GetImportedResource()->LODModels[LODModelIndex];
-	FSkeletalMeshLODInfo& LODInfo = NewSkeletalMesh->LODInfo[LODModelIndex];
-
-	// List of sections in the new model yet to be matched to the sorted sections
-	TArray<int32> UnmatchedSections;
-	for( int32 SectionIdx=0;SectionIdx<LODModel.Sections.Num();SectionIdx++ )
-	{
-		UnmatchedSections.Add(SectionIdx);
-	}
-
-	for( int32 Idx=0;Idx<SortSectionInfos.Num();Idx++ )
-	{
-		FSavedCustomSortSectionInfo& SortSectionInfo = SortSectionInfos[Idx];
-
-		if( SortSectionInfo.SavedSortOption == TRISORT_Custom || SortSectionInfo.SavedSortOption == TRISORT_CustomLeftRight )
-		{
-			// Restore saved custom sort order
-			SortSectionInfo.Restore(NewSkeletalMesh, LODModelIndex, UnmatchedSections);
-		}
-		else
-		{
-			if( !LODModel.Sections.IsValidIndex(SortSectionInfo.SavedSectionIdx) ||
-				!LODInfo.TriangleSortSettings.IsValidIndex(SortSectionInfo.SavedSectionIdx) )
-			{
-				UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
-				FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("FailedRestoreSortingForSectionNumber", "Unable to restore triangle sort setting \"{0}\" for section {1} as the new mesh does not contain that many sections. Please find the matching section and apply manually."),
-					FText::FromString(TriangleSortOptionToString((ETriangleSortOption)SortSectionInfo.SavedSortOption)),
-					FText::AsNumber(SortSectionInfo.SavedSectionIdx))), 
-					FFbxErrors::SkeletalMesh_RestoreSortingForSectionNumber);
-				continue;
-			}
-
-			// Update the UI version of the data.
-			FTriangleSortSettings& TriangleSortSettings = LODInfo.TriangleSortSettings[SortSectionInfo.SavedSectionIdx];
-			TriangleSortSettings.TriangleSorting = SortSectionInfo.SavedSortOption;
-			TriangleSortSettings.CustomLeftRightAxis = SortSectionInfo.SavedCustomLeftRightAxis;
-			TriangleSortSettings.CustomLeftRightBoneName = SortSectionInfo.SavedCustomLeftRightBoneName;
-
-			// Just reapply the same sorting method to the section again.
-			FVector SortCenter;
-			bool bHaveSortCenter = NewSkeletalMesh->GetSortCenterPoint(SortCenter);
-			LODModel.SortTriangles(SortCenter, bHaveSortCenter, SortSectionInfo.SavedSectionIdx, (ETriangleSortOption)SortSectionInfo.SavedSortOption);
-		}
-	}		
-}
-
 bool SkeletalMeshIsUsingMaterialSlotNameWorkflow(UAssetImportData* AssetImportData)
 {
 	UFbxSkeletalMeshImportData* ImportData = Cast<UFbxSkeletalMeshImportData>(AssetImportData);
@@ -798,7 +473,7 @@ ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh, 
 		
 		ExistingMeshDataPtr->UseMaterialNameSlotWorkflow = SkeletalMeshIsUsingMaterialSlotNameWorkflow(ExistingSkelMesh->AssetImportData);
 
-		FSkeletalMeshResource* ImportedResource = ExistingSkelMesh->GetImportedResource();
+		FSkeletalMeshModel* ImportedResource = ExistingSkelMesh->GetImportedModel();
 
 		//Add the existing Material slot name data
 		for (int32 MaterialIndex = 0; MaterialIndex < ExistingSkelMesh->Materials.Num(); ++MaterialIndex)
@@ -819,11 +494,6 @@ ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh, 
 					ExistingMeshDataPtr->ExistingImportMeshLodSectionMaterialData[LodIndex].Add(ExistingMeshLodSectionData(ExistingMeshDataPtr->ExistingImportMaterialOriginalNameData[SectionMaterialIndex], SectionCastShadow, SectionRecomputeTangents));
 				}
 			}
-		}
-
-		if (ImportedResource->LODModels.Num() > 0)
-		{
-			ExistingMeshDataPtr->ExistingSortInfo.Save(ExistingSkelMesh, 0);
 		}
 
 		ExistingMeshDataPtr->ExistingSockets = ExistingSkelMesh->GetMeshOnlySocketList();
@@ -847,7 +517,7 @@ ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh, 
 			// Copy off the remaining LODs.
 			for ( int32 LODModelIndex = 0 ; LODModelIndex < ImportedResource->LODModels.Num() ; ++LODModelIndex )
 			{
-				FStaticLODModel& LODModel = ImportedResource->LODModels[LODModelIndex];
+				FSkeletalMeshLODModel& LODModel = ImportedResource->LODModels[LODModelIndex];
 				LODModel.RawPointIndices.Lock( LOCK_READ_ONLY );
 				LODModel.LegacyRawPointIndices.Lock( LOCK_READ_ONLY );
 			}
@@ -856,15 +526,6 @@ ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh, 
 			{
 				LODModel.RawPointIndices.Unlock();
 				LODModel.LegacyRawPointIndices.Unlock();
-
-				FMultiSizeIndexContainerData ExistingData;
-				LODModel.MultiSizeIndexContainer.GetIndexBufferData( ExistingData );
-				ExistingMeshDataPtr->ExistingIndexBufferData.Add( ExistingData );
-
-				FMultiSizeIndexContainerData ExistingAdjacencyData;
-				LODModel.AdjacencyMultiSizeIndexContainer.GetIndexBufferData(ExistingAdjacencyData);
-				ExistingMeshDataPtr->ExistingAdjacencyIndexBufferData.Add(ExistingAdjacencyData);
-
 			}
 
 			ExistingMeshDataPtr->ExistingLODInfo = ExistingSkelMesh->LODInfo;
@@ -899,6 +560,8 @@ ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh, 
 		ExistingMeshDataPtr->ExistingThumbnailInfo = ExistingSkelMesh->ThumbnailInfo;
 
 		ExistingMeshDataPtr->ExistingClothingAssets = ExistingSkelMesh->MeshClothingAssets;
+
+		ExistingMeshDataPtr->ExistingSamplingInfo = ExistingSkelMesh->GetSamplingInfo();
 
 		//Add the last fbx import data
 		UFbxSkeletalMeshImportData* ImportData = Cast<UFbxSkeletalMeshImportData>(ExistingSkelMesh->AssetImportData);
@@ -1014,7 +677,7 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 		{
 			for (int32 i = 0; i < MeshData->ExistingLODModels.Num(); i++)
 			{
-				FStaticLODModel& LODModel = MeshData->ExistingLODModels[i];
+				FSkeletalMeshLODModel& LODModel = MeshData->ExistingLODModels[i];
 				FSkeletalMeshLODInfo& LODInfo = MeshData->ExistingLODInfo[i];
 				for (int32 OldMaterialIndex : LODInfo.LODMaterialMap)
 				{
@@ -1114,7 +777,7 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 
 				for (int32 i = 0; i < MeshData->ExistingLODModels.Num(); i++)
 				{
-					FStaticLODModel& LODModel = MeshData->ExistingLODModels[i];
+					FSkeletalMeshLODModel& LODModel = MeshData->ExistingLODModels[i];
 					FSkeletalMeshLODInfo& LODInfo = MeshData->ExistingLODInfo[i];
 
 
@@ -1163,7 +826,7 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 					}
 
 					// Sort ascending for parent child relationship
-					LODModel.RequiredBones.Sort();					
+					LODModel.RequiredBones.Sort();
 					SkeletalMesh->RefSkeleton.EnsureParentsExistAndSort(LODModel.ActiveBoneIndices);
 
 					// Fix the sections' BoneMaps.
@@ -1199,9 +862,7 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 					}
 					else
 					{
-						FStaticLODModel* NewLODModel = new(SkeletalMesh->GetImportedResource()->LODModels) FStaticLODModel(LODModel);
-
-						NewLODModel->RebuildIndexBuffer(&MeshData->ExistingIndexBufferData[i], &MeshData->ExistingAdjacencyIndexBufferData[i]);
+						FSkeletalMeshLODModel* NewLODModel = new(SkeletalMesh->GetImportedModel()->LODModels) FSkeletalMeshLODModel(LODModel);
 
 						SkeletalMesh->LODInfo.Add(LODInfo);
 					}
@@ -1242,8 +903,6 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 
 		SkeletalMesh->bUseFullPrecisionUVs = MeshData->bExistingUseFullPrecisionUVs;
 
-		MeshData->ExistingSortInfo.Restore(SkeletalMesh, 0);
-
 		SkeletalMesh->AssetImportData = MeshData->ExistingAssetImportData.Get();
 		SkeletalMesh->ThumbnailInfo = MeshData->ExistingThumbnailInfo.Get();
 
@@ -1254,10 +913,12 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 			ClothingAsset->RefreshBoneMapping(SkeletalMesh);
 		}
 
+		SkeletalMesh->SetSamplingInfo(MeshData->ExistingSamplingInfo);
+
 		//Restore the section change only for the base LOD, other LOD will be restore when setting the LOD.
 		if (MeshData->UseMaterialNameSlotWorkflow)
 		{
-			FStaticLODModel &NewSkelMeshLodModel = SkeletalMesh->GetImportedResource()->LODModels[0];
+			FSkeletalMeshLODModel &NewSkelMeshLodModel = SkeletalMesh->GetImportedModel()->LODModels[0];
 			//Restore the section changes from the old import data
 			for (int32 SectionIndex = 0; SectionIndex < NewSkelMeshLodModel.Sections.Num(); SectionIndex++)
 			{

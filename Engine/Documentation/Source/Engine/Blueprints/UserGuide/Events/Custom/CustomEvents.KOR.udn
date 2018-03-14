@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:커스텀 이벤트
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
@@ -7,46 +7,7 @@ version: 4.9
 Parent:Engine/Blueprints/Scripting
 tags:Execution Flow
 tags:Blueprints
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Events\Custom:title%](Engine\Blueprints\UserGuide\CustomEvents.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Events\Custom:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Events\Custom:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Events\Custom]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Blueprints\UserGuide\Events\Custom:title%](Engine\Blueprints\UserGuide\CustomEvents.png)
-	[/PARAM]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Blueprints\UserGuide\Events\Custom:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Blueprints\UserGuide\Events\Custom:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Blueprints\UserGuide\Events\Custom]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
+topic-image:Engine/Blueprints/UserGuide/CustomEvents.png
 
 
 [TOC(start:2 end:3)]

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SAssetAuditBrowser.h"
@@ -18,7 +18,6 @@
 #include "ARFilter.h"
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
-
 #include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
 #include "AssetRegistryModule.h"
@@ -27,9 +26,11 @@
 #include "Slate/SceneViewport.h"
 #include "ObjectEditorUtils.h"
 #include "Engine/AssetManager.h"
+#include "AssetManagerEditorCommands.h"
+#include "Engine/BlueprintCore.h"
 #include "Widgets/Input/SComboBox.h"
-#include "ReferenceViewer.h"
 #include "SlateApplication.h"
+#include "DragAndDrop/AssetDragDropOp.h"
 
 #define LOCTEXT_NAMESPACE "AssetManagementBrowser"
 
@@ -44,26 +45,17 @@ TSharedPtr<SWidget> SAssetAuditBrowser::OnGetAssetContextMenu(const TArray<FAsse
 {
 	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/ true, Commands);
 
-	MenuBuilder.BeginSection("AssetOptions", LOCTEXT("OptionsHeading", "Options") );
+	MenuBuilder.BeginSection(TEXT("Asset"), NSLOCTEXT("ReferenceViewerSchema", "AssetSectionLabel", "Asset"));
 	{
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("EditAsset", "Edit..."),
-			LOCTEXT("EditAssetTooltip", "Opens the selected asset(s) for edit."),
-			FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Edit"),
-			FUIAction(
-				FExecuteAction::CreateSP(this, &SAssetAuditBrowser::EditSelectedAssets, SelectedAssets),
-				FCanExecuteAction::CreateSP(this, &SAssetAuditBrowser::IsAnythingSelected)
-			)
-		);
-
 		MenuBuilder.AddMenuEntry(FGlobalEditorCommonCommands::Get().FindInContentBrowser);
+		MenuBuilder.AddMenuEntry(FAssetManagerEditorCommands::Get().OpenSelectedInAssetEditor);
 
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("Load", "Load..."),
 			LOCTEXT("LoadTooltip", "Loads selected assets into memory."),
 			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.OpenLevel"),
 			FUIAction(
-				FExecuteAction::CreateSP(this, &SAssetAuditBrowser::LoadSelectedAssets, SelectedAssets),
+				FExecuteAction::CreateSP(this, &SAssetAuditBrowser::LoadSelectedAssets),
 				FCanExecuteAction::CreateSP(this, &SAssetAuditBrowser::IsAnythingSelected)
 			)
 		);
@@ -73,20 +65,17 @@ TSharedPtr<SWidget> SAssetAuditBrowser::OnGetAssetContextMenu(const TArray<FAsse
 			LOCTEXT("SaveSelectedAssets_ToolTip", "Save the selected assets."),
 			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Save"),
 			FUIAction(
-				FExecuteAction::CreateSP(this, &SAssetAuditBrowser::SaveSelectedAssets, SelectedAssets),
-				FCanExecuteAction::CreateSP(this, &SAssetAuditBrowser::CanSaveSelectedAssets, SelectedAssets)
+				FExecuteAction::CreateSP(this, &SAssetAuditBrowser::SaveSelectedAssets),
+				FCanExecuteAction::CreateSP(this, &SAssetAuditBrowser::IsAnythingSelectedAndLoaded)
 			)
 		);
+	}
+	MenuBuilder.EndSection();
 
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("ReferenceViewer", "Find References..."),
-			LOCTEXT("ReferenceViewerTooltip", "Shows a graph of references for this asset."),
-			FSlateIcon(),
-			FUIAction(
-				FExecuteAction::CreateSP(this, &SAssetAuditBrowser::FindReferencesForSelectedAssets, SelectedAssets),
-				FCanExecuteAction::CreateSP(this, &SAssetAuditBrowser::IsAnythingSelected)
-			)
-		);
+	MenuBuilder.BeginSection(TEXT("References"), NSLOCTEXT("ReferenceViewerSchema", "ReferencesSectionLabel", "References"));
+	{
+		MenuBuilder.AddMenuEntry(FAssetManagerEditorCommands::Get().ViewReferences);
+		MenuBuilder.AddMenuEntry(FAssetManagerEditorCommands::Get().ViewSizeMap);
 	}
 	MenuBuilder.EndSection();
 
@@ -109,11 +98,21 @@ bool SAssetAuditBrowser::IsAnythingSelected() const
 	return CurrentSelection.Num() > 0;
 }
 
+bool SAssetAuditBrowser::IsAnythingSelectedAndLoaded() const
+{
+	TArray<FAssetData> Assets = GetCurrentSelectionDelegate.Execute();
+	TArray<UPackage*> Packages;
+	GetSelectedPackages(Assets, Packages);
+
+	// Don't offer option if none of the packages are loaded
+	return Packages.Num() > 0;
+}
+
 void SAssetAuditBrowser::GetSelectedPackages(const TArray<FAssetData>& Assets, TArray<UPackage*>& OutPackages) const
 {
-	for (int32 AssetIdx = 0; AssetIdx < Assets.Num(); ++AssetIdx)
+	for (const FAssetData& AssetData : Assets)
 	{
-		UPackage* Package = FindPackage(NULL, *Assets[AssetIdx].PackageName.ToString());
+		UPackage* Package = FindPackage(nullptr, *AssetData.PackageName.ToString());
 
 		if ( Package )
 		{
@@ -122,8 +121,9 @@ void SAssetAuditBrowser::GetSelectedPackages(const TArray<FAssetData>& Assets, T
 	}
 }
 
-void SAssetAuditBrowser::EditSelectedAssets(TArray<FAssetData> Assets) const
+void SAssetAuditBrowser::EditSelectedAssets() const
 {
+	TArray<FAssetData> Assets = GetCurrentSelectionDelegate.Execute();
 	TArray<FName> AssetNames;
 
 	for (FAssetData& AssetData : Assets)
@@ -136,11 +136,15 @@ void SAssetAuditBrowser::EditSelectedAssets(TArray<FAssetData> Assets) const
 
 void SAssetAuditBrowser::OnRequestOpenAsset(const FAssetData& AssetData) const
 {
-	EditSelectedAssets(TArray<FAssetData>{AssetData});
+	TArray<FName> AssetNames;
+	AssetNames.Add(AssetData.ObjectPath);
+
+	FAssetEditorManager::Get().OpenEditorsForAssets(AssetNames);
 }
 
-void SAssetAuditBrowser::SaveSelectedAssets(TArray<FAssetData> Assets) const
+void SAssetAuditBrowser::SaveSelectedAssets() const
 {
+	TArray<FAssetData> Assets = GetCurrentSelectionDelegate.Execute();
 	TArray<UPackage*> PackagesToSave;
 	GetSelectedPackages(Assets, PackagesToSave);
 
@@ -149,30 +153,33 @@ void SAssetAuditBrowser::SaveSelectedAssets(TArray<FAssetData> Assets) const
 	const FEditorFileUtils::EPromptReturnCode Return = FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirty, bPromptToSave);
 }
 
-bool SAssetAuditBrowser::CanSaveSelectedAssets(TArray<FAssetData> Assets) const
+void SAssetAuditBrowser::FindReferencesForSelectedAssets() const
 {
-	TArray<UPackage*> Packages;
-	GetSelectedPackages(Assets, Packages);
-	// Don't offer save option if none of the packages are loaded
-	return Packages.Num() > 0;
-}
+	TArray<FAssetData> Assets = GetCurrentSelectionDelegate.Execute();
+	TArray<FAssetIdentifier> AssetIdentifiers;
+	IAssetManagerEditorModule::ExtractAssetIdentifiersFromAssetDataList(Assets, AssetIdentifiers);
 
-void SAssetAuditBrowser::FindReferencesForSelectedAssets(TArray<FAssetData> Assets) const
+	if (AssetIdentifiers.Num() > 0)
 {
-	TArray<FName> PackageNames;
-	for (FAssetData& AssetData : Assets)
-	{
-		PackageNames.Add(AssetData.PackageName);
-	}
-
-	if (PackageNames.Num() > 0)
-	{
-		IReferenceViewerModule::Get().InvokeReferenceViewerTab(PackageNames);
+		IAssetManagerEditorModule::Get().OpenReferenceViewerUI(AssetIdentifiers);
 	}
 }
 
-void SAssetAuditBrowser::LoadSelectedAssets(TArray<FAssetData> Assets) const
+void SAssetAuditBrowser::ShowSizeMapForSelectedAssets() const
+	{
+	TArray<FAssetData> Assets = GetCurrentSelectionDelegate.Execute();
+	TArray<FAssetIdentifier> AssetIdentifiers;
+	IAssetManagerEditorModule::ExtractAssetIdentifiersFromAssetDataList(Assets, AssetIdentifiers);
+
+	if (AssetIdentifiers.Num() > 0)
+	{
+		IAssetManagerEditorModule::Get().OpenSizeMapUI(AssetIdentifiers);
+	}
+}
+
+void SAssetAuditBrowser::LoadSelectedAssets() const
 {
+	TArray<FAssetData> Assets = GetCurrentSelectionDelegate.Execute();
 	for (FAssetData& AssetData : Assets)
 	{
 		AssetData.GetAsset();
@@ -184,9 +191,31 @@ bool SAssetAuditBrowser::CanShowColumnForAssetRegistryTag(FName AssetType, FName
 	return !AssetRegistryTagsToIgnore.Contains(TagName);
 }
 
-FString SAssetAuditBrowser::GetValueForCustomColumn(FAssetData& AssetData, FName ColumnName) const
+FString SAssetAuditBrowser::GetStringValueForCustomColumn(FAssetData& AssetData, FName ColumnName) const
 {
-	return EditorModule->GetValueForCustomColumn(AssetData, ColumnName, CurrentTargetPlatform, CurrentPlatformState);
+	FString OutValue;
+	EditorModule->GetStringValueForCustomColumn(AssetData, ColumnName, OutValue);
+	return OutValue;
+}
+
+FText SAssetAuditBrowser::GetDisplayTextForCustomColumn(FAssetData& AssetData, FName ColumnName) const
+{
+	FText OutValue;
+	EditorModule->GetDisplayTextForCustomColumn(AssetData, ColumnName, OutValue);
+	return OutValue;
+}
+
+void SAssetAuditBrowser::OnGetCustomSourceAssets(const FARFilter& Filter, TArray<FAssetData>& OutAssets) const
+{
+	if (Filter.PackageNames.Contains(IAssetManagerEditorModule::ChunkFakeAssetDataPackageName) && CurrentRegistrySource)
+	{
+		IAssetManagerEditorModule::Get().GetCurrentRegistrySource(true);
+
+		for (const TPair<int32, FAssetManagerChunkInfo>& Pair : CurrentRegistrySource->ChunkAssignments)
+{
+			OutAssets.Add(IAssetManagerEditorModule::CreateFakeAssetDataFromChunkId(Pair.Key));
+		}
+	}
 }
 
 void SAssetAuditBrowser::Construct(const FArguments& InArgs)
@@ -204,27 +233,36 @@ void SAssetAuditBrowser::Construct(const FArguments& InArgs)
 
 	AssetManager->UpdateManagementDatabase();
 
-	PlatformComboList.Add(MakeShared<FString>(TEXT("Editor")));
-	PlatformList.Add(nullptr);
+	TArray<const FAssetManagerEditorRegistrySource*> AvailableSources;
+	ManagerEditorModule.GetAvailableRegistrySources(AvailableSources);
 
-	TArray<ITargetPlatform*> ValidPlatforms;
-	ManagerEditorModule.GetAvailableTargetPlatforms(ValidPlatforms);
-
-	for (ITargetPlatform* ValidPlatform : ValidPlatforms)
+	for (const FAssetManagerEditorRegistrySource* ValidSource : AvailableSources)
 	{
-		PlatformList.Add(ValidPlatform);
-		PlatformComboList.Add(MakeShared<FString>(ValidPlatform->PlatformName()));
+		SourceComboList.Add(MakeShared<FString>(ValidSource->SourceName));
 	}
 
-	CurrentPlatformString = TEXT("Editor");
-	CurrentTargetPlatform = nullptr;
-	CurrentPlatformState = nullptr;
+	CurrentRegistrySource = ManagerEditorModule.GetCurrentRegistrySource(false);
 
 	Commands = MakeShareable(new FUICommandList());
 	Commands->MapAction(FGlobalEditorCommonCommands::Get().FindInContentBrowser, FUIAction(
 		FExecuteAction::CreateSP(this, &SAssetAuditBrowser::FindInContentBrowser),
 		FCanExecuteAction::CreateSP(this, &SAssetAuditBrowser::IsAnythingSelected)
 		));
+
+	Commands->MapAction(FAssetManagerEditorCommands::Get().OpenSelectedInAssetEditor, FUIAction(
+		FExecuteAction::CreateSP(this, &SAssetAuditBrowser::EditSelectedAssets),
+		FCanExecuteAction::CreateSP(this, &SAssetAuditBrowser::IsAnythingSelected)
+	));
+	
+	Commands->MapAction(FAssetManagerEditorCommands::Get().ViewReferences, FUIAction(
+		FExecuteAction::CreateSP(this, &SAssetAuditBrowser::FindReferencesForSelectedAssets),
+		FCanExecuteAction::CreateSP(this, &SAssetAuditBrowser::IsAnythingSelected)
+	));
+
+	Commands->MapAction(FAssetManagerEditorCommands::Get().ViewSizeMap, FUIAction(
+		FExecuteAction::CreateSP(this, &SAssetAuditBrowser::ShowSizeMapForSelectedAssets),
+		FCanExecuteAction::CreateSP(this, &SAssetAuditBrowser::IsAnythingSelected)
+	));
 
 	CurrentAssetHistoryIndex = 0;
 	AssetHistory.Add(TSet<FName>());
@@ -242,6 +280,7 @@ void SAssetAuditBrowser::Construct(const FArguments& InArgs)
 	Config.OnAssetDoubleClicked = FOnAssetDoubleClicked::CreateSP(this, &SAssetAuditBrowser::OnRequestOpenAsset);
 	Config.OnGetAssetContextMenu = FOnGetAssetContextMenu::CreateSP(this, &SAssetAuditBrowser::OnGetAssetContextMenu);
 	Config.OnAssetTagWantsToBeDisplayed = FOnShouldDisplayAssetTag::CreateSP(this, &SAssetAuditBrowser::CanShowColumnForAssetRegistryTag);
+	Config.OnGetCustomSourceAssets = FOnGetCustomSourceAssets::CreateSP(this, &SAssetAuditBrowser::OnGetCustomSourceAssets);
 	Config.SyncToAssetsDelegates.Add(&SyncToAssetsDelegate);
 	Config.OnShouldFilterAsset = FOnShouldFilterAsset::CreateSP(this, &SAssetAuditBrowser::HandleFilterAsset);
 	Config.GetCurrentSelectionDelegates.Add(&GetCurrentSelectionDelegate);
@@ -256,15 +295,13 @@ void SAssetAuditBrowser::Construct(const FArguments& InArgs)
 	Config.HiddenColumnNames.Add(TEXT("Path"));
 
 	// Add custom columns
-	Config.CustomColumns.Emplace(FPrimaryAssetId::PrimaryAssetTypeTag, LOCTEXT("AssetType", "Primary Type"), LOCTEXT("AssetTypeTooltip", "Primary Asset Type of this asset, if set"), UObject::FAssetRegistryTag::TT_Alphabetical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetValueForCustomColumn));
-	Config.CustomColumns.Emplace(FPrimaryAssetId::PrimaryAssetNameTag, LOCTEXT("AssetName", "Primary Name"), LOCTEXT("AssetNameTooltip", "Primary Asset Name of this asset, if set"), UObject::FAssetRegistryTag::TT_Alphabetical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetValueForCustomColumn));
-	Config.CustomColumns.Emplace(IAssetManagerEditorModule::ManagedResourceSizeName, LOCTEXT("ManagedResourceSize", "Memory Kb"), LOCTEXT("ManagedResourceSizeTooltip", "Memory used by both this asset and any other assets it manages, in kilobytes"), UObject::FAssetRegistryTag::TT_Numerical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetValueForCustomColumn));
-	Config.CustomColumns.Emplace(IAssetManagerEditorModule::ResourceSizeName, LOCTEXT("ResourceSize", "Exclusive Memory Kb"), LOCTEXT("ResourceSizeTooltip", "Memory used exclusively by this asset, in kilobytes"), UObject::FAssetRegistryTag::TT_Numerical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetValueForCustomColumn));
-	Config.CustomColumns.Emplace(IAssetManagerEditorModule::ManagedDiskSizeName, LOCTEXT("ManagedDiskSize", "Disk Kb"), LOCTEXT("ManagedDiskSizeTooltip", "Total disk space used by both this and all managed assets, in kilobytes"), UObject::FAssetRegistryTag::TT_Numerical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetValueForCustomColumn));
-	Config.CustomColumns.Emplace(IAssetManagerEditorModule::DiskSizeName, LOCTEXT("DiskSize", "Exclusive Disk Kb"), LOCTEXT("DiskSizeTooltip", "Size of saved file on disk for only this asset, in kilobytes"), UObject::FAssetRegistryTag::TT_Numerical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetValueForCustomColumn));
-	Config.CustomColumns.Emplace(IAssetManagerEditorModule::TotalUsageName, LOCTEXT("TotalUsage", "Total Usage"), LOCTEXT("TotalUsageTooltip", "Weighted count of Primary Assets that use this, higher usage means it's more likely to be in memory at runtime"), UObject::FAssetRegistryTag::TT_Numerical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetValueForCustomColumn));
-	Config.CustomColumns.Emplace(IAssetManagerEditorModule::CookRuleName, LOCTEXT("CookRule", "Cook Rule"), LOCTEXT("CookRuleTooltip", "Rather this asset will be cooked or not"), UObject::FAssetRegistryTag::TT_Alphabetical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetValueForCustomColumn));
-	Config.CustomColumns.Emplace(IAssetManagerEditorModule::ChunksName, LOCTEXT("Chunks", "Chunks"), LOCTEXT("ChunksTooltip", "List of chunks this will be added to when cooked"), UObject::FAssetRegistryTag::TT_Alphabetical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetValueForCustomColumn));
+	Config.CustomColumns.Emplace(FPrimaryAssetId::PrimaryAssetTypeTag, LOCTEXT("AssetType", "Primary Type"), LOCTEXT("AssetTypeTooltip", "Primary Asset Type of this asset, if set"), UObject::FAssetRegistryTag::TT_Alphabetical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetStringValueForCustomColumn), FOnGetCustomAssetColumnDisplayText::CreateSP(this, &SAssetAuditBrowser::GetDisplayTextForCustomColumn));
+	Config.CustomColumns.Emplace(FPrimaryAssetId::PrimaryAssetNameTag, LOCTEXT("AssetName", "Primary Name"), LOCTEXT("AssetNameTooltip", "Primary Asset Name of this asset, if set"), UObject::FAssetRegistryTag::TT_Alphabetical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetStringValueForCustomColumn), FOnGetCustomAssetColumnDisplayText::CreateSP(this, &SAssetAuditBrowser::GetDisplayTextForCustomColumn));
+	Config.CustomColumns.Emplace(IAssetManagerEditorModule::ManagedDiskSizeName, LOCTEXT("ManagedDiskSize", "Disk Size"), LOCTEXT("ManagedDiskSizeTooltip", "Total disk space used by both this and all managed assets"), UObject::FAssetRegistryTag::TT_Numerical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetStringValueForCustomColumn), FOnGetCustomAssetColumnDisplayText::CreateSP(this, &SAssetAuditBrowser::GetDisplayTextForCustomColumn));
+	Config.CustomColumns.Emplace(IAssetManagerEditorModule::DiskSizeName, LOCTEXT("DiskSize", "Exclusive Disk Size"), LOCTEXT("DiskSizeTooltip", "Size of saved file on disk for only this asset"), UObject::FAssetRegistryTag::TT_Numerical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetStringValueForCustomColumn), FOnGetCustomAssetColumnDisplayText::CreateSP(this, &SAssetAuditBrowser::GetDisplayTextForCustomColumn));
+	Config.CustomColumns.Emplace(IAssetManagerEditorModule::TotalUsageName, LOCTEXT("TotalUsage", "Total Usage"), LOCTEXT("TotalUsageTooltip", "Weighted count of Primary Assets that use this, higher usage means it's more likely to be in memory at runtime"), UObject::FAssetRegistryTag::TT_Numerical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetStringValueForCustomColumn), FOnGetCustomAssetColumnDisplayText::CreateSP(this, &SAssetAuditBrowser::GetDisplayTextForCustomColumn));
+	Config.CustomColumns.Emplace(IAssetManagerEditorModule::CookRuleName, LOCTEXT("CookRule", "Cook Rule"), LOCTEXT("CookRuleTooltip", "Rather this asset will be cooked or not"), UObject::FAssetRegistryTag::TT_Alphabetical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetStringValueForCustomColumn), FOnGetCustomAssetColumnDisplayText::CreateSP(this, &SAssetAuditBrowser::GetDisplayTextForCustomColumn));
+	Config.CustomColumns.Emplace(IAssetManagerEditorModule::ChunksName, LOCTEXT("Chunks", "Chunks"), LOCTEXT("ChunksTooltip", "List of chunks this will be added to when cooked"), UObject::FAssetRegistryTag::TT_Alphabetical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetStringValueForCustomColumn), FOnGetCustomAssetColumnDisplayText::CreateSP(this, &SAssetAuditBrowser::GetDisplayTextForCustomColumn));
 	
 	// Ignore these tags as we added them as custom columns
 	AssetRegistryTagsToIgnore.Add(FPrimaryAssetId::PrimaryAssetTypeTag);
@@ -371,7 +408,7 @@ void SAssetAuditBrowser::Construct(const FArguments& InArgs)
 						IAssetManagerEditorModule::MakePrimaryAssetTypeSelector(
 							FOnGetPrimaryAssetDisplayText::CreateLambda([] { return LOCTEXT("AddAssetsOfType", "Add Primary Asset Type"); }),
 							FOnSetPrimaryAssetType::CreateSP(this, &SAssetAuditBrowser::AddAssetsOfType),
-							false)
+							false, true)
 					]
 					+SHorizontalBox::Slot()
 					.AutoWidth()
@@ -394,6 +431,15 @@ void SAssetAuditBrowser::Construct(const FArguments& InArgs)
 							FOnGetPrimaryAssetDisplayText::CreateLambda([] { return LOCTEXT("AddManagedAssets", "Add Managed Assets"); }),
 							FOnSetPrimaryAssetId::CreateSP(this, &SAssetAuditBrowser::AddManagedAssets),
 							false)
+					]
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						.Text(LOCTEXT("AddChunks", "Add Chunks"))
+						.OnClicked(this, &SAssetAuditBrowser::AddChunks)
 					]
 					+SHorizontalBox::Slot()
 					.AutoWidth()
@@ -424,12 +470,12 @@ void SAssetAuditBrowser::Construct(const FArguments& InArgs)
 						.HAlign(HAlign_Right)
 						[
 							SNew(SComboBox<TSharedPtr<FString>>)							
-							.OptionsSource(&PlatformComboList)
-							.OnGenerateWidget(this, &SAssetAuditBrowser::GeneratePlatformComboItem)
-							.OnSelectionChanged(this, &SAssetAuditBrowser::HandlePlatformComboChanged)
+							.OptionsSource(&SourceComboList)
+							.OnGenerateWidget(this, &SAssetAuditBrowser::GenerateSourceComboItem)
+							.OnSelectionChanged(this, &SAssetAuditBrowser::HandleSourceComboChanged)
 							[
 								SNew(STextBlock)
-								.Text(this, &SAssetAuditBrowser::GetPlatformComboText)
+								.Text(this, &SAssetAuditBrowser::GetSourceComboText)
 							]
 						]
 					]
@@ -459,6 +505,38 @@ FReply SAssetAuditBrowser::OnKeyDown(const FGeometry& MyGeometry, const FKeyEven
 	}
 
 	return FReply::Unhandled();
+}
+
+FReply SAssetAuditBrowser::OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+{
+	bool bIsDragSupported = false;
+
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (Operation.IsValid() && Operation->IsOfType<FAssetDragDropOp>())
+	{
+		bIsDragSupported = true;
+	}
+
+	return bIsDragSupported ? FReply::Handled() : FReply::Unhandled();
+}
+
+FReply SAssetAuditBrowser::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+{
+	bool bWasDropHandled = false;
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+
+	if (Operation.IsValid())
+	{
+		if (Operation->IsOfType<FAssetDragDropOp>())
+		{
+			const FAssetDragDropOp& DragDropOp = *StaticCastSharedPtr<FAssetDragDropOp>(Operation);
+
+			AddAssetsToList(DragDropOp.GetAssets(), false);
+			bWasDropHandled = true;
+		}
+	}
+
+	return bWasDropHandled ? FReply::Handled() : FReply::Unhandled();
 }
 
 void SAssetAuditBrowser::AddAssetsToList(const TArray<FSoftObjectPath>& AssetsToView, bool bReplaceExisting)
@@ -617,10 +695,20 @@ FReply SAssetAuditBrowser::ClearAssets()
 	return FReply::Handled();
 }
 
+FReply SAssetAuditBrowser::AddChunks()
+{
+	TArray<FName> PackageNames;
+	PackageNames.Add(IAssetManagerEditorModule::ChunkFakeAssetDataPackageName);
+
+	AddAssetsToList(PackageNames, false);
+
+	return FReply::Handled();
+}
+
 FReply SAssetAuditBrowser::RefreshAssets()
 {
-	AssetManager->UpdateManagementDatabase(true);
-	RefreshAssetView();
+	// This will end up refreshing the UI indirectly
+	IAssetManagerEditorModule::Get().RefreshRegistryData();
 
 	return FReply::Handled();
 }
@@ -631,7 +719,20 @@ void SAssetAuditBrowser::AddAssetsOfType(FPrimaryAssetType AssetType)
 	{
 		TArray<FSoftObjectPath> AssetArray;
 		
+		if (AssetType == IAssetManagerEditorModule::AllPrimaryAssetTypes)
+		{
+			TArray<FPrimaryAssetTypeInfo> TypeList;
+			AssetManager->GetPrimaryAssetTypeInfoList(TypeList);
+
+			for (const FPrimaryAssetTypeInfo& TypeInfo : TypeList)
+			{
+				AssetManager->GetPrimaryAssetPathList(TypeInfo.PrimaryAssetType, AssetArray);
+			}
+		}
+		else
+		{
 		AssetManager->GetPrimaryAssetPathList(AssetType, AssetArray);
+		}
 
 		AddAssetsToList(AssetArray, false);
 	}
@@ -657,15 +758,34 @@ void SAssetAuditBrowser::AddAssetsOfClass(UClass* AssetClass)
 	{
 		TArray<FAssetData> FoundData;
 		FARFilter AssetFilter;
+		TSet<FName> DerivedClassNames;
+		bool bAssetClassIsBlueprint = AssetClass->IsChildOf(UBlueprintCore::StaticClass());
+
 		AssetFilter.ClassNames.Add(AssetClass->GetFName());
 		AssetFilter.bRecursiveClasses = true;
 
+		if (!bAssetClassIsBlueprint)
+		{
+			// If we didn't search specifically for a Blueprint class, find the derived class and look for all blueprints of those derived classes
+			AssetRegistry->GetDerivedClassNames(AssetFilter.ClassNames, TSet<FName>(), DerivedClassNames);
+			AssetFilter.ClassNames.Add(UBlueprintCore::StaticClass()->GetFName());
+		}
+		
 		if (AssetRegistry->GetAssets(AssetFilter, FoundData) && FoundData.Num() > 0)
 		{
 			TArray<FName> AssetPackageArray;
 
 			for (FAssetData& AssetData : FoundData)
 			{
+				if (!bAssetClassIsBlueprint && AssetData.AssetClass.ToString().EndsWith(TEXT("Blueprint")))
+				{
+					// This is a blueprint but the filter type wasn't, check the derived class list
+					if (!AssetManager->IsAssetDataBlueprintOfClassSet(AssetData, DerivedClassNames))
+					{
+						continue;
+					}
+				}
+
 				AssetPackageArray.Add(AssetData.PackageName);
 			}
 
@@ -695,47 +815,53 @@ EVisibility SAssetAuditBrowser::GetHistoryVisibility() const
 
 bool SAssetAuditBrowser::HandleFilterAsset(const FAssetData& InAssetData) const
 {
-	if (CurrentPlatformState)
+	if (InAssetData.PackagePath == IAssetManagerEditorModule::PrimaryAssetFakeAssetDataPackagePath)
 	{
-		const FAssetPackageData* FoundPackageData = CurrentPlatformState->GetAssetPackageData(InAssetData.PackageName);
-
-		// Check if it was actually cooked for this platform, negative size means it was not cooked
-		if (!FoundPackageData || FoundPackageData->DiskSize < 0)
-		{
-			return true;
-		}
+		return false;
 	}
 
-	return false;
+	return !EditorModule->IsPackageInCurrentRegistrySource(InAssetData.PackageName);
+	}
+
+TSharedRef<SWidget> SAssetAuditBrowser::GenerateSourceComboItem(TSharedPtr<FString> InItem)
+{
+	return SNew(STextBlock).Text(FText::FromString(*InItem));
 }
 
-TSharedRef<SWidget> SAssetAuditBrowser::GeneratePlatformComboItem(TSharedPtr<FString> InItem)
+void SAssetAuditBrowser::HandleSourceComboChanged(TSharedPtr<FString> Item, ESelectInfo::Type SelectInfo)
 {
-	return SNew(STextBlock)
-		.Text(FText::FromString(*InItem));
-}
-
-void SAssetAuditBrowser::HandlePlatformComboChanged(TSharedPtr<FString> Item, ESelectInfo::Type SelectInfo)
-{
-	for (int32 i = 0; i < PlatformComboList.Num(); i++)
+	if (Item.IsValid())
 	{
-		if (Item == PlatformComboList[i])
-		{
-			CurrentPlatformString = *Item.Get();
-			CurrentTargetPlatform = PlatformList[i];
-
-			// Cache registry, may be null
-			CurrentPlatformState = EditorModule->GetAssetRegistryStateForTargetPlatform(CurrentTargetPlatform);
-
-			// Refresh
-			RefreshAssetView();
-		}
+		// This will call back into this widget to refresh it
+		EditorModule->SetCurrentRegistrySource(*Item);
 	}
 }
 
-FText SAssetAuditBrowser::GetPlatformComboText() const
+FText SAssetAuditBrowser::GetSourceComboText() const
 {
-	return FText::FromString(CurrentPlatformString);
+	if (CurrentRegistrySource)
+	{
+		return FText::FromString(CurrentRegistrySource->SourceName);
+	}
+
+	return FText::GetEmpty();
+}
+
+void SAssetAuditBrowser::SetCurrentRegistrySource(const FAssetManagerEditorRegistrySource* RegistrySource)
+{
+	CurrentRegistrySource = RegistrySource;
+
+	// Refresh dropdown
+	TArray<const FAssetManagerEditorRegistrySource*> AvailableSources;
+	IAssetManagerEditorModule::Get().GetAvailableRegistrySources(AvailableSources);
+	SourceComboList.Reset();
+
+	for (const FAssetManagerEditorRegistrySource* ValidSource : AvailableSources)
+	{
+		SourceComboList.Add(MakeShared<FString>(ValidSource->SourceName));
+	}
+
+	RefreshAssetView();
 }
 
 #undef LOCTEXT_NAMESPACE

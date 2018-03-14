@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphNode_ObserveBone.h"
 #include "Kismet2/CompilerResultsLog.h"
@@ -73,7 +73,7 @@ void SGraphNodeObserveBone::GetNodeInfoPopups(FNodeInfoContext* Context, TArray<
 			}
  			else
  			{
-				const FString ErrorText = FString::Printf(*LOCTEXT("StaleDebugData", "Stale debug data\nProperty is on %s\nDebugging a %s").ToString(), *ContainingClass->GetName(), *ActiveObject->GetClass()->GetName());
+				const FString ErrorText = FText::Format(LOCTEXT("StaleDebugDataFmt", "Stale debug data\nProperty is on {0}\nDebugging a {1}"), FText::FromString(ContainingClass->GetName()), FText::FromString(ActiveObject->GetClass()->GetName())).ToString();
 				new (Popups) FGraphInformationPopupInfo(NULL, TimelineBubbleColor, ErrorText);
  			}
  		}

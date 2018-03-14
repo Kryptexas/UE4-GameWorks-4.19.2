@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -346,7 +346,7 @@ public:
 	* @param Warn				Feedback context to use for progress updates
 	* @return true if project files were generated successfully.
 	*/
-	virtual bool GenerateProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) = 0;
+	virtual bool GenerateProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn, FString LogFilePath = FString()) = 0;
 
 	/**
 	* Invalidate makefiles for project (to UBT regenerate them at startup).

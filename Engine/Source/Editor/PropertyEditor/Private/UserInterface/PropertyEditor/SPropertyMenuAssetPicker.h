@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -64,6 +64,12 @@ private:
 	 * @param	AssetData	The chosen asset data
 	 */
 	void OnAssetSelected( const FAssetData& AssetData );
+
+	/** 
+	 * Delegate for handling keyboard selection in the asset browser.
+	 * @param	AssetData	The chosen asset data
+	 */
+	void OnAssetEnterPressed( const TArray<FAssetData>& AssetData );
 
 	/**
 	 * Delegate for handling creating new assets from the menu.

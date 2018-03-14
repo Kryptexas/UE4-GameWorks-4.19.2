@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -40,7 +40,7 @@ private:
 	UPROPERTY()
 	TMap<FName, UShaderPlatformQualitySettings*> ForwardSettingMap;
 
-#if WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 	UShaderPlatformQualitySettings* PreviewPlatformSettings;
 	FName PreviewPlatformName;
 #endif

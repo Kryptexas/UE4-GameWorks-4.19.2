@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessBusyWait.cpp: Post processing busy wait implementation. For Debugging GPU timing.
@@ -27,9 +27,9 @@ class FPostProcessBusyWaitPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessBusyWaitPS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
 	/** Default constructor. */
@@ -88,7 +88,7 @@ void FRCPassPostProcessBusyWait::Process(FRenderingCompositePassContext& Context
 	SCOPED_DRAW_EVENT(Context.RHICmdList, BusyWait);
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	
 	FIntRect SrcRect = View.ViewRect;
 	FIntRect DestRect = View.UnscaledViewRect;

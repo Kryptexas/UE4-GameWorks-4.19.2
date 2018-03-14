@@ -1,9 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Misc/AES.h"
 #include "Misc/AssertionMacros.h"
 #include "Misc/CString.h"
 #include "HAL/UnrealMemory.h"
+#include "Misc/CoreDelegates.h"
 
 // This is using the reference implementation of rijndael encryption algorithm
 // http://www.efgh.com/software/rijndael.htm
@@ -1131,7 +1132,13 @@ static void rijndaelDecrypt( const uint32 *rk, int32 nrounds, const uint8 cipher
 	PUTU32( plaintext + 12, s3 );
 }
 
-void FAES::EncryptData(uint8 *Contents, uint32 NumBytes, ANSICHAR* Key)
+void FAES::EncryptData(uint8 *Contents, uint32 NumBytes, const FAESKey& Key)
+{
+	checkf(Key.IsValid(), TEXT("No valid encryption key specified"));
+	EncryptData(Contents, NumBytes, (const uint8*)Key.Key, sizeof(Key.Key));
+}
+
+void FAES::EncryptData(uint8 *Contents, uint32 NumBytes, const ANSICHAR* Key)
 {
 	checkf(Key, TEXT("No encryption key specified"));
 	EncryptData(Contents, NumBytes, (const uint8*)Key, TCString<ANSICHAR>::Strlen(Key));
@@ -1170,9 +1177,15 @@ void FAES::EncryptData(uint8* Contents, uint32 NumBytes, const uint8* KeyBytes, 
 #endif
 }
 
+void FAES::DecryptData(uint8* Contents, uint32 NumBytes, const FAESKey& Key)
+{
+	checkf(Key.IsValid(), TEXT("No valid decryption key specified"));
+	DecryptData(Contents, NumBytes, Key.Key, sizeof(Key.Key));
+}
+
 void FAES::DecryptData(uint8 *Contents, uint32 NumBytes, const ANSICHAR* Key)
 {
-	check(Key != nullptr);
+	checkf(Key, TEXT("No valid decryption key specified"));
 	DecryptData(Contents, NumBytes, (const uint8*)Key, TCString<ANSICHAR>::Strlen(Key));
 }
 

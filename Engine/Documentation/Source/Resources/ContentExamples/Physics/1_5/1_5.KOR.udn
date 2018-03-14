@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:1.5 - 피직스 컨스트레인트
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
@@ -10,64 +10,7 @@ Related: Engine/Physics/Constraints/ConstraintsUserGuide
 Related: Engine/Physics/Collision
 Related: Engine/Physics/PhysicalMaterials/Reference
 Version: 4.9
-
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 예제](Resources/ContentExamples/Physics/1_4 "%Resources/ContentExamples/Physics/1_4:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[피직스 홈](Resources/ContentExamples/Physics)
-	[/PARAM]
-	[PARAM:next]
-		[다음 예제](Resources/ContentExamples/Physics/1_6 "%Resources/ContentExamples/Physics/1_6:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Resources\ContentExamples\Physics\1_5:title%](physics_1_5_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources\ContentExamples\Physics\1_5:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources\ContentExamples\Physics\1_5:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources\ContentExamples\Physics\1_5]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Resources\ContentExamples\Physics\1_5:title%](physics_1_5_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Resources\ContentExamples\Physics\1_5:title%
-	[/PARAM]
-	[PARAM:description]
-		%Resources\ContentExamples\Physics\1_5:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Resources\ContentExamples\Physics\1_5]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:physics_1_5_topic.png
 
 
 [REGION:fullwidth]

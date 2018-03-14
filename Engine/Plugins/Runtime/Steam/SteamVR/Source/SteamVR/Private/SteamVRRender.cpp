@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 //
 #include "CoreMinimal.h"
 #include "SteamVRPrivate.h"
@@ -87,29 +87,6 @@ bool FSteamVRHMD::BridgeBaseImpl::NeedsNativePresent()
     return true;
 }
 
-void FSteamVRHMD::BridgeBaseImpl::UpdateFrameSettings(FSteamVRHMD::FFrameSettings& NewSettings)
-{
-	FrameSettingsStack.Add(NewSettings);
-	if (FrameSettingsStack.Num() > 3)
-	{
-		FrameSettingsStack.RemoveAt(0);
-	}
-}
-
-FSteamVRHMD::FFrameSettings FSteamVRHMD::BridgeBaseImpl::GetFrameSettings(int32 NumBufferedFrames/*=0*/)
-{
-	check(FrameSettingsStack.Num() > 0);
-	if (NumBufferedFrames < FrameSettingsStack.Num())
-	{
-		return FrameSettingsStack[NumBufferedFrames];
-	}
-	else
-	{
-		// Until we build a buffer of adequate size, stick with the last submitted
-		return FrameSettingsStack[0];
-	}
-}
-
 #if PLATFORM_WINDOWS
 
 FSteamVRHMD::D3D11Bridge::D3D11Bridge(FSteamVRHMD* plugin):
@@ -149,8 +126,7 @@ void FSteamVRHMD::D3D11Bridge::FinishRendering()
     RightBounds.uMax = 1.0f;
     RightBounds.vMin = 0.0f;
     RightBounds.vMax = 1.0f;
-	
-    
+	   
 	Texture.handle = RenderTargetTexture;
 	Error = Plugin->VRCompositor->Submit(vr::Eye_Right, &Texture, &RightBounds);
     if (Error != vr::VRCompositorError_None)
@@ -415,13 +391,6 @@ void FSteamVRHMD::MetalBridge::BeginRendering()
 
 void FSteamVRHMD::MetalBridge::FinishRendering()
 {
-	if(IsOnLastPresentedFrame())
-	{
-		return;
-	}
-	
-	LastPresentedFrameNumber = GetFrameNumber();
-	
 	check(TextureSet.IsValid());
 
 	vr::VRTextureBounds_t LeftBounds;

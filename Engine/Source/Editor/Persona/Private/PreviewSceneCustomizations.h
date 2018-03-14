@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,6 +18,21 @@ class IDetailLayoutBuilder;
 class IPropertyUtilities;
 class UPreviewMeshCollectionFactory;
 
+// An entry in the preview mode choice box
+struct FPersonaModeComboEntry
+{
+	// The preview controller class for this entry
+	UClass* Class;
+
+	//The localized label for this entry to show in the combo box
+	FText Text;
+
+	FPersonaModeComboEntry(UClass* InClass)
+		: Class(InClass)
+		, Text(InClass->GetDisplayNameText())
+	{}
+};
+
 class FPreviewSceneDescriptionCustomization : public IDetailCustomization
 {
 public:
@@ -36,9 +51,17 @@ private:
 
 	bool HandleShouldFilterAdditionalMesh(const FAssetData& InAssetData, bool bCanUseDifferentSkeleton);
 
-	void HandleAnimationModeChanged();
+	// Helper function for making the widgets of each item in the preview controller combo box
+	TSharedRef<SWidget> MakeControllerComboEntryWidget(TSharedPtr<FPersonaModeComboEntry> InItem) const;
 
-	void HandleAnimationChanged();
+	// Delegate for getting the current preview controller text
+	FText GetCurrentPreviewControllerText() const;
+
+	// Called when the combo box selection changes, when a new parameter type is selected
+	void OnComboSelectionChanged(TSharedPtr<FPersonaModeComboEntry> InSelectedItem, ESelectInfo::Type SelectInfo);
+
+	// Called when user changes the preview controller type
+	void HandlePreviewControllerPropertyChanged();
 
 	void HandleMeshChanged(const FAssetData& InAssetData);
 
@@ -64,8 +87,14 @@ private:
 	/** Factory to use when creating mesh collections */
 	UPreviewMeshCollectionFactory* FactoryToUse;
 
+	// Names of all preview controllers for choice UI
+	TArray<TSharedPtr<FPersonaModeComboEntry>> ControllerItems;
+
 	/** This is list of class available to filter asset by. This list doesn't change once loaded, so only collect once */
 	static TArray<FName> AvailableClassNameList;
+
+	// Our layout builder (cached so we can refresh)
+	IDetailLayoutBuilder* MyDetailLayout;
 };
 
 class FPreviewMeshCollectionEntryCustomization : public IPropertyTypeCustomization

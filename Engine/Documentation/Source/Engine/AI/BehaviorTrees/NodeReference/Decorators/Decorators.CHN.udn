@@ -24,7 +24,8 @@ Blackboard 节点将检查，确定特定 Blackboard Key 上是否已设置数�
 | **Blackboard Key**| 用于检查的键。对可返回 `None` 的数据类型（如物体）作用最佳，因为其他类型的数据可能返回其初始化值（0、false、{0,0,0} 等...）。|
 | **Node Name** | 行为树图表中显示的节点名称。|
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:subprop2]
 | --- | --- |
 | **On Result Change** | 条件发生变化时进行再次评估。|
@@ -44,7 +45,8 @@ Blackboard 节点将检查，确定特定 Blackboard Key 上是否已设置数�
 | **Is Set** | 数值是否已设定?|
 | **Is Not Set** | 数值是否尚未设定？|
 [/EXCERPT:subprop4]
--->
+
+[/COMMENT]
 
 ## Compare Blackboard Entries
 
@@ -60,13 +62,15 @@ Compare Blackboard Entries 节点将对比两个黑板键的数值，基于对�
 | **Observer Aborts** | [INCLUDE:#subprop3] |
 | **Node Name** | 行为树图表中显示的节点名称。|
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:subprop5]
 | --- | --- |
 | **Is Equal To** | 两个键是否相等？|
 | **Is Not Equal To** | 两个键是否不同？|
 [/EXCERPT:subprop5]
--->
+
+[/COMMENT]
 
 ## Composite
 
@@ -138,14 +142,16 @@ Compare Blackboard Entries 节点将对比两个黑板键的数值，基于对�
 | **Filter Class** | 确定使用的导航数据。如设为 None，则将使用默认的导航数据。|
 | **Node Name** | 行为树图表中显示的节点名称。|
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:subprop6]
 | --- | --- |
 | **NavMesh Raycast 2D** | 非常快。|
 | **Hierarchical Query** | 快。|
 | **Regular Path Finding** | 慢。|
 [/EXCERPT:subprop6]
--->
+
+[/COMMENT]
 
 ## Force Success
 

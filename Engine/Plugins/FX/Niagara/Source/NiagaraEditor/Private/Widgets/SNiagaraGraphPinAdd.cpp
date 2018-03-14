@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SNiagaraGraphPinAdd.h"
 #include "NiagaraNodeWithDynamicPins.h"
@@ -97,7 +97,7 @@ void SNiagaraGraphPinAdd::OnAddType(FNiagaraVariable InAdd)
 	if (OwningNode != nullptr)
 	{
 		FScopedTransaction AddNewPinTransaction(LOCTEXT("AddNewPinTransaction", "Add pin to node"));
-		OwningNode->RequestNewTypedPin(GetPinObj()->Direction, InAdd.GetType(), InAdd.GetName().ToString());
+		OwningNode->RequestNewTypedPin(GetPinObj()->Direction, InAdd.GetType(), InAdd.GetName());
 	}
 }
 #undef LOCTEXT_NAMESPACE

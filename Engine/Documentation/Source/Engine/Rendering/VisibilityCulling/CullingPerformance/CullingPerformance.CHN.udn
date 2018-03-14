@@ -106,7 +106,8 @@ add up the primitives that are processed.
 | **Counters** | [INCLUDE:#counters] |
 
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:CycleCounter]
 | Stat | Description|
 | --- | --- |
@@ -126,7 +127,8 @@ add up the primitives that are processed.
 | **Visible Dynamic Primitives** | This is the number of dynamic primitives in the scene that have their mobility set to Movable, like Particle Systems and Foliage instances. |
 | **Visible Static Mesh Elements** | This is the number of visible meshes that have their mobility set to Static within the scene. |
 [/EXCERPT:Counters]
--->
+
+[/COMMENT]
 
 ## Useful Console Commands
 

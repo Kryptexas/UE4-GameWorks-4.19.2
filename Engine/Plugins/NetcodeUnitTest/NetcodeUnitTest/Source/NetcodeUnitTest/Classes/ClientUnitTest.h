@@ -1,9 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "Templates/SubclassOf.h"
 #include "UObject/ObjectMacros.h"
 #include "Engine/EngineBaseTypes.h"
+
 #include "NetcodeUnitTest.h"
 #include "ProcessUnitTest.h"
 #include "NUTEnum.h"
@@ -38,7 +40,7 @@ enum class ENUTControlCommand : uint8;
  * 
  * In subclasses, implement the unit test within the ExecuteClientUnitTest function (remembering to call parent)
  */
-UCLASS()
+UCLASS(Abstract)
 class NETCODEUNITTEST_API UClientUnitTest : public UProcessUnitTest
 {
 	GENERATED_UCLASS_BODY()
@@ -58,6 +60,9 @@ protected:
 
 	/** Flags for configuring the minimal client - lots of interdependencies between these and UnitTestFlags */
 	EMinClientFlags MinClientFlags;
+
+	/** The class to use for the MinimalClient */
+	TSubclassOf<UMinimalClient> MinClientClass;
 
 
 	/** The base URL the server should start with */
@@ -82,7 +87,6 @@ protected:
 	/** Clientside RPC's that should be allowed to execute (requires minimal client NotifyProcessNetEvent flag) */
 	TArray<FString> AllowedClientRPCs;
 
-
 	/** Runtime variables */
 protected:
 	/** Reference to the created server process handling struct */
@@ -103,19 +107,19 @@ protected:
 	/** Whether or not there is a blocking event/process preventing setup of a client */
 	bool bBlockingClientDelay;
 
-	/** Whether or not there is a blocking event/process preventing the fake client from connecting */
-	bool bBlockingFakeClientDelay;
+	/** Whether or not there is a blocking event/process preventing the minimal client from connecting */
+	bool bBlockingMinClientDelay;
 
 	/** When a server is launched after a blocking event/process, this delays the launch of any clients, in case of more blockages */
 	double NextBlockingTimeout;
 
 
-	/** The object which handles implementation of the fake client */
+	/** The object which handles implementation of the minimal client */
 	UPROPERTY()
 	UMinimalClient* MinClient;
 
 
-	/** Whether or not the initial connect of the fake client was triggered */
+	/** Whether or not the initial connect of the minimal client was triggered */
 	bool bTriggerredInitialConnect;
 
 	/** Stores a reference to the replicated PlayerController (if set to wait for this), after NotifyHandleClientPlayer */
@@ -142,13 +146,6 @@ protected:
 	/** An expected network failure occurred, which will be handled during the next tick instead of immediately */
 	bool bPendingNetworkFailure;
 
-	/** Whether or not the MCP online subsystem was detected as being online */
-	bool bDetectedMCPOnline;
-
-
-	/** Whether or not a bunch was successfully sent */
-	bool bSentBunch;
-
 private:
 	/** Static reference to the OnlineBeaconClient static class */
 	static UClass* OnlineBeaconClass;
@@ -165,6 +162,13 @@ public:
 	 */
 	virtual void ExecuteClientUnitTest() PURE_VIRTUAL(UClientUnitTest::ExecuteClientUnitTest,);
 
+
+	/**
+	 * Gives subclass UnitTest's an opportunity to alter the MinimalClient setup parameters
+	 *
+	 * @param Parms		Reference to the MinimalClient parameters prior to setup/connection
+	 */
+	virtual void NotifyAlterMinClient(FMinClientParms& Parms);
 
 	/**
 	 * Notification from the minimal client, that it has fully connected
@@ -244,7 +248,9 @@ public:
 	 * @param Count			The amount of data being sent
 	 * @param bBlockSend	Whether or not to block the send (defaults to false)
 	 */
-	virtual void NotifySocketSendRawPacket(void* Data, int32 Count, bool& bBlockSend);
+	virtual void NotifySocketSendRawPacket(void* Data, int32 Count, bool& bBlockSend)
+	{
+	}
 
 	/**
 	 * Bunches received on the control channel. These need to be parsed manually,
@@ -321,25 +327,13 @@ public:
 	 */
 	bool SendNUTControl(ENUTControlCommand CommandType, FString Command);
 
-
 	/**
-	 * Sends the specified RPC for the specified actor, and verifies that the RPC was sent (triggering a unit test failure if not)
-	 *
-	 * @param Target				The Actor or ActorComponent which will send the RPC
-	 * @param FunctionName			The name of the RPC
-	 * @param Parms					The RPC parameters (same as would be specified to ProcessEvent)
-	 * @param ParmsSize				The size of the RPC parameters, for verifying binary compatibility
-	 * @param ParmsSizeCorrection	Some parameters are compressed to a different size. Verify Parms matches, and use this to correct.
-	 * @return						Whether or not the RPC was sent successfully
+	 * See UMinimalClient
 	 */
 	bool SendRPCChecked(UObject* Target, const TCHAR* FunctionName, void* Parms, int16 ParmsSize, int16 ParmsSizeCorrection=0);
 
 	/**
-	 * As above, except optimized for use with reflection
-	 *
-	 * @param Target	The Actor or ActorComponent which will send the RPC
-	 * @param FuncRefl	The function reflection instance, containing the function to be called and its assigned parameters.
-	 * @return						Whether or not the RPC was sent successfully
+	 * See UMinimalClient
 	 */
 	bool SendRPCChecked(UObject* Target, FFuncReflection& FuncRefl);
 
@@ -382,18 +376,9 @@ private:
 
 public:
 	/**
-	 * Internal function, for preparing for a checked RPC call
+	 * Callback for when an RPC send fails on the minimal client
 	 */
-	void PreSendRPC();
-
-	/**
-	 * Internal function, for handling the aftermath of a checked RPC call
-	 *
-	 * @param RPCName	The name of the RPC, for logging purposes
-	 * @param Target	The Actor or ActorComponent the RPC is being called on (optional - for internal logging/debugging)
-	 * @return			Whether or not the RPC was sent successfully
-	 */
-	bool PostSendRPC(FString RPCName, UObject* Target=nullptr);
+	void OnRPCFailure();
 
 
 	/**
@@ -431,7 +416,7 @@ protected:
 		// Validate EMinClientFlags
 		ValidateMinFlags<CompileTimeMinFlags>(RuntimeMinFlags);
 
-		PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS 
+		PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 
 		// Implements the '*Flags' variables within 'Condition', for both static/compile-time checks, and runtime checks
 		#define FLAG_ASSERT(Condition, Message) \
@@ -552,13 +537,6 @@ protected:
 
 	virtual void ResetTimeout(FString ResetReason, bool bResetConnTimeout=false, uint32 MinDuration=0) override;
 
-	/**
-	 * Resets the net connection timeout
-	 *
-	 * @param Duration	The duration which the timeout reset should last
-	 */
-	void ResetConnTimeout(float Duration);
-
 
 	/**
 	 * Returns the requirements flags, that this unit test currently meets
@@ -615,7 +593,7 @@ protected:
 	virtual void CleanupMinimalClient();
 
 	/**
-	 * Triggers an auto-reconnect (disconnect/reconnect) of the fake client
+	 * Triggers an auto-reconnect (disconnect/reconnect) of the minimal client
 	 */
 	void TriggerAutoReconnect();
 
@@ -632,6 +610,17 @@ protected:
 	 */
 	virtual FString ConstructServerParameters();
 
+public:
+	/**
+	 * Determine the next unique server ports to use - incremented to a new unique number, internally
+	 *
+	 * @param OutServerPort		Outputs the next server port
+	 * @param OutBeaconPort		Outputs the next beacon port
+	 * @param bAdvance			Whether to advance the internal unique counter, for ports (to e.g. get ports for unlaunched unit tests)
+	 */
+	static void GetNextServerPorts(int32& OutServerPort, int32& OutBeaconPort, bool bAdvance=true);
+
+protected:
 	/**
 	 * Starts a client process tied to the unit test, and connects to the specified server address
 	 *
@@ -659,6 +648,10 @@ protected:
 
 	virtual void LogComplete() override;
 
+	virtual void UnblockEvents(EUnitTaskFlags ReadyEvents) override;
+
+	virtual bool IsConnectionLogSource(UNetConnection* InConnection) override;
+
 
 public:
 	/**
@@ -669,5 +662,23 @@ public:
 	FORCEINLINE EUnitTestFlags GetUnitTestFlags()
 	{
 		return UnitTestFlags;
+	}
+
+	/**
+	 * Accessor for ServerHandle
+	 *
+	 * @return	Returns the value of ServerHandle
+	 */
+	FORCEINLINE TWeakPtr<FUnitTestProcess> GetServerHandle()
+	{
+		return ServerHandle;
+	}
+
+	/**
+	 * Accessor for BeaconAddress
+	 */
+	FORCEINLINE FString GetBeaconAddress() const
+	{
+		return BeaconAddress;
 	}
 };

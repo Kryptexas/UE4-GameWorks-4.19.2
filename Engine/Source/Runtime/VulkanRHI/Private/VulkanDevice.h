@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved..
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved..
 
 /*=============================================================================
 	VulkanDevice.h: Private Vulkan RHI definitions.
@@ -8,8 +8,13 @@
 
 #include "VulkanMemory.h"
 
-class FVulkanDescriptorPool;
+class FOLDVulkanDescriptorPool;
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+class FVulkanDescriptorPoolsManager;
+#endif
 class FVulkanCommandListContext;
+class FVulkanOcclusionQueryPool;
+class FOLDVulkanQueryPool;
 
 class FVulkanDevice
 {
@@ -133,6 +138,13 @@ public:
 		return FenceManager;
 	}
 
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	inline FVulkanDescriptorPoolsManager& GetDescriptorPoolsManager()
+	{
+		return *DescriptorPoolsManager;
+	}
+#endif
+
 	inline FVulkanCommandListContext& GetImmediateContext()
 	{
 		return *ImmediateContext;
@@ -167,12 +179,12 @@ public:
 
 	void SubmitCommandsAndFlushGPU();
 
-	inline FVulkanBufferedQueryPool& FindAvailableQueryPool(TArray<FVulkanBufferedQueryPool*>& Pools, VkQueryType QueryType)
+	inline FOLDVulkanBufferedQueryPool& FindAvailableQueryPool(TArray<FOLDVulkanBufferedQueryPool*>& Pools, VkQueryType QueryType)
 	{
 		// First try to find An available one
 		for (int32 Index = 0; Index < Pools.Num(); ++Index)
 		{
-			FVulkanBufferedQueryPool* Pool = Pools[Index];
+			FOLDVulkanBufferedQueryPool* Pool = Pools[Index];
 			if (Pool->HasRoom())
 			{
 				return *Pool;
@@ -180,16 +192,16 @@ public:
 		}
 
 		// None found, so allocate new Pool
-		FVulkanBufferedQueryPool* Pool = new FVulkanBufferedQueryPool(this, QueryType == VK_QUERY_TYPE_OCCLUSION ? NUM_OCCLUSION_QUERIES_PER_POOL : NUM_TIMESTAMP_QUERIES_PER_POOL, QueryType);
+		FOLDVulkanBufferedQueryPool* Pool = new FOLDVulkanBufferedQueryPool(this, QueryType == VK_QUERY_TYPE_OCCLUSION ? NUM_OCCLUSION_QUERIES_PER_POOL : NUM_TIMESTAMP_QUERIES_PER_POOL, QueryType);
 		Pools.Add(Pool);
 		return *Pool;
 	}
-	inline FVulkanBufferedQueryPool& FindAvailableOcclusionQueryPool()
+	inline FOLDVulkanBufferedQueryPool& FindAvailableOcclusionQueryPool()
 	{
 		return FindAvailableQueryPool(OcclusionQueryPools, VK_QUERY_TYPE_OCCLUSION);
 	}
 
-	inline FVulkanBufferedQueryPool& FindAvailableTimestampQueryPool()
+	inline FOLDVulkanBufferedQueryPool& FindAvailableTimestampQueryPool()
 	{
 		return FindAvailableQueryPool(TimestampQueryPools, VK_QUERY_TYPE_TIMESTAMP);
 	}
@@ -242,6 +254,10 @@ private:
 
 	VulkanRHI::FFenceManager FenceManager;
 
+#if VULKAN_USE_DESCRIPTOR_POOL_MANAGER
+	FVulkanDescriptorPoolsManager* DescriptorPoolsManager = nullptr;
+#endif
+
 	FVulkanSamplerState* DefaultSampler;
 	FVulkanSurface* DefaultImage;
 	VkImageView DefaultImageView;
@@ -251,8 +267,8 @@ private:
 	// Info for formats that are not in the core Vulkan spec (i.e. extensions)
 	mutable TMap<VkFormat, VkFormatProperties> ExtensionFormatProperties;
 
-	TArray<FVulkanBufferedQueryPool*> OcclusionQueryPools;
-	TArray<FVulkanBufferedQueryPool*> TimestampQueryPools;
+	TArray<FOLDVulkanBufferedQueryPool*> OcclusionQueryPools;
+	TArray<FOLDVulkanBufferedQueryPool*> TimestampQueryPools;
 
 	FVulkanQueue* GfxQueue;
 	FVulkanQueue* ComputeQueue;

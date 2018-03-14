@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CanvasItem.h: Unreal canvas item definitions
@@ -406,7 +406,7 @@ protected:
 	/**
 	 * Get the measured size of the text to draw
 	 */
-	virtual FVector2D GetTextSize() const = 0;
+	virtual FVector2D GetTextSize(float DPIScale) const = 0;
 
 	/** 
 	 * Internal string draw
@@ -474,7 +474,7 @@ protected:
 	//~ FCanvasTextItemBase overrides
 	virtual bool HasValidText() const override;
 	virtual ESimpleElementBlendMode GetTextBlendMode( const bool bHasShadow ) const override;
-	virtual FVector2D GetTextSize() const override;
+	virtual FVector2D GetTextSize(float DPIScale) const override;
 	virtual void DrawStringInternal( FCanvas* InCanvas, const FVector2D& DrawPos, const FLinearColor& DrawColor ) override;
 
 	/** 
@@ -511,7 +511,7 @@ protected:
 	//~ FCanvasTextItemBase overrides
 	virtual bool HasValidText() const override;
 	virtual ESimpleElementBlendMode GetTextBlendMode( const bool bHasShadow ) const override;
-	virtual FVector2D GetTextSize() const override;
+	virtual FVector2D GetTextSize(float DPIScale) const override;
 	virtual void DrawStringInternal( FCanvas* InCanvas, const FVector2D& DrawPos, const FLinearColor& DrawColor ) override;
 };
 

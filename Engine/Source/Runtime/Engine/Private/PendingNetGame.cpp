@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
   PendingNetGame.cpp: Unreal pending net game class.
@@ -45,6 +45,8 @@ void UPendingNetGame::InitNetDriver()
 		if( NetDriver->InitConnect( this, URL, ConnectionError ) )
 		{
 			UNetConnection* ServerConn = NetDriver->ServerConnection;
+
+			FNetDelegates::OnPendingNetGameConnectionCreated.Broadcast(this);
 
 			// Kick off the connection handshake
 			if (ServerConn->Handler.IsValid())
@@ -164,7 +166,7 @@ bool UPendingNetGame::NotifyAcceptingChannel( class UChannel* Channel )
 
 void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, class FInBunch& Bunch)
 {
-	check(Connection==NetDriver->ServerConnection);
+	check(Connection == NetDriver->ServerConnection);
 
 #if !UE_BUILD_SHIPPING
 	UE_LOG(LogNet, Verbose, TEXT("PendingLevel received: %s"), FNetControlMessageInfo::GetName(MessageType));
@@ -176,10 +178,14 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 		case NMT_Upgrade:
 			// Report mismatch.
 			uint32 RemoteNetworkVersion;
-			FNetControlMessage<NMT_Upgrade>::Receive(Bunch, RemoteNetworkVersion);
-			// Upgrade
-			ConnectionError = NSLOCTEXT("Engine", "ClientOutdated", "The match you are trying to join is running an incompatible version of the game.  Please try upgrading your game version.").ToString();
-			GEngine->BroadcastNetworkFailure(NULL, NetDriver, ENetworkFailure::OutdatedClient, ConnectionError);
+
+			if (FNetControlMessage<NMT_Upgrade>::Receive(Bunch, RemoteNetworkVersion))
+			{
+				// Upgrade
+				ConnectionError = NSLOCTEXT("Engine", "ClientOutdated", "The match you are trying to join is running an incompatible version of the game.  Please try upgrading your game version.").ToString();
+				GEngine->BroadcastNetworkFailure(NULL, NetDriver, ENetworkFailure::OutdatedClient, ConnectionError);
+			}
+
 			break;
 
 		case NMT_Failure:
@@ -188,86 +194,88 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 			// here we can further parse the string to determine the reason that the server closed our connection and present it to the user
 
 			FString ErrorMsg;
-			FNetControlMessage<NMT_Failure>::Receive(Bunch, ErrorMsg);
-			if (ErrorMsg.IsEmpty())
+
+			if (FNetControlMessage<NMT_Failure>::Receive(Bunch, ErrorMsg))
 			{
-				ErrorMsg = NSLOCTEXT("NetworkErrors", "GenericPendingConnectionFailed", "Pending Connection Failed.").ToString();
+				if (ErrorMsg.IsEmpty())
+				{
+					ErrorMsg = NSLOCTEXT("NetworkErrors", "GenericPendingConnectionFailed", "Pending Connection Failed.").ToString();
+				}
+
+				// This error will be resolved in TickWorldTravel()
+				ConnectionError = ErrorMsg;
+
+				// Force close the session
+				UE_LOG(LogNet, Log, TEXT("NetConnection::Close() [%s] [%s] [%s] from NMT_Failure %s"),
+					Connection->Driver ? *Connection->Driver->NetDriverName.ToString() : TEXT("NULL"),
+					Connection->PlayerController ? *Connection->PlayerController->GetName() : TEXT("NoPC"),
+					Connection->OwningActor ? *Connection->OwningActor->GetName() : TEXT("No Owner"),
+					*ConnectionError);
+
+				Connection->Close();
 			}
-			
-			// This error will be resolved in TickWorldTravel()
-			ConnectionError = ErrorMsg;
 
-			// Force close the session
-			UE_LOG(LogNet, Log, TEXT("NetConnection::Close() [%s] [%s] [%s] from NMT_Failure %s"), 
-				Connection->Driver ? *Connection->Driver->NetDriverName.ToString() : TEXT("NULL"),
-				Connection->PlayerController ? *Connection->PlayerController->GetName() : TEXT("NoPC"),
-				Connection->OwningActor ? *Connection->OwningActor->GetName() : TEXT("No Owner"),
-				*ConnectionError);
-
-			Connection->Close();
 			break;
 		}
 		case NMT_Challenge:
 		{
 			// Challenged by server.
-			FNetControlMessage<NMT_Challenge>::Receive(Bunch, Connection->Challenge);
-
-			FURL PartialURL(URL);
-			PartialURL.Host = TEXT("");
-			PartialURL.Port = PartialURL.UrlConfig.DefaultPort; // HACK: Need to fix URL parsing 
-			for (int32 i = URL.Op.Num() - 1; i >= 0; i--)
+			if (FNetControlMessage<NMT_Challenge>::Receive(Bunch, Connection->Challenge))
 			{
-				if (URL.Op[i].Left(5) == TEXT("game="))
+				FURL PartialURL(URL);
+				PartialURL.Host = TEXT("");
+				PartialURL.Port = PartialURL.UrlConfig.DefaultPort; // HACK: Need to fix URL parsing 
+				for (int32 i = URL.Op.Num() - 1; i >= 0; i--)
 				{
-					URL.Op.RemoveAt(i);
+					if (URL.Op[i].Left(5) == TEXT("game="))
+					{
+						URL.Op.RemoveAt(i);
+					}
 				}
+
+				ULocalPlayer* LocalPlayer = GEngine->GetFirstGamePlayer(this);
+				if (LocalPlayer)
+				{
+					// Send the player nickname if available
+					FString OverrideName = LocalPlayer->GetNickname();
+					if (OverrideName.Len() > 0)
+					{
+						PartialURL.AddOption(*FString::Printf(TEXT("Name=%s"), *OverrideName));
+					}
+
+					// Send any game-specific url options for this player
+					FString GameUrlOptions = LocalPlayer->GetGameLoginOptions();
+					if (GameUrlOptions.Len() > 0)
+					{
+						PartialURL.AddOption(*FString::Printf(TEXT("%s"), *GameUrlOptions));
+					}
+
+					// Send the player unique Id at login
+					Connection->PlayerId = LocalPlayer->GetPreferredUniqueNetId();
+				}
+
+				// Send the player's online platform name
+				FName OnlinePlatformName = NAME_None;
+				if (const FWorldContext* const WorldContext = GEngine->GetWorldContextFromPendingNetGame(this))
+				{
+					if (WorldContext->OwningGameInstance)
+					{
+						OnlinePlatformName = WorldContext->OwningGameInstance->GetOnlinePlatformName();
+					}
+				}
+
+				Connection->ClientResponse = TEXT("0");
+				FString URLString(PartialURL.ToString());
+				FString OnlinePlatformNameString = OnlinePlatformName.ToString();
+
+				FNetControlMessage<NMT_Login>::Send(Connection, Connection->ClientResponse, URLString, Connection->PlayerId, OnlinePlatformNameString);
+				NetDriver->ServerConnection->FlushNet();
+			}
+			else
+			{
+				Connection->Challenge.Empty();
 			}
 
-			FUniqueNetIdRepl UniqueIdRepl;
-
-			ULocalPlayer* LocalPlayer = GEngine->GetFirstGamePlayer(this);
-			if (LocalPlayer)
-			{
-				// Send the player nickname if available
-				FString OverrideName = LocalPlayer->GetNickname();
-				if (OverrideName.Len() > 0)
-				{
-					PartialURL.AddOption(*FString::Printf(TEXT("Name=%s"), *OverrideName));
-				}
-
-				// Send any game-specific url options for this player
-				FString GameUrlOptions = LocalPlayer->GetGameLoginOptions();
-				if (GameUrlOptions.Len() > 0)
-				{
-					PartialURL.AddOption(*FString::Printf(TEXT("%s"), *GameUrlOptions));
-				}
-
-				// Send the player unique Id at login
-				UniqueIdRepl = LocalPlayer->GetPreferredUniqueNetId();
-			}
-
-			// Send the player's online platform name
-			FName OnlinePlatformName = NAME_None;
-			if (const FWorldContext* const WorldContext = GEngine->GetWorldContextFromPendingNetGame(this))
-			{
-				if (WorldContext->OwningGameInstance)
-				{
-					OnlinePlatformName = WorldContext->OwningGameInstance->GetOnlinePlatformName();
-				}
-			}
-
-			Connection->ClientResponse = TEXT("0");
-			FString URLString(PartialURL.ToString());
-			FString OnlinePlatformNameString = OnlinePlatformName.ToString();
-			
-			// url stored as array to avoid FString serialization size limit
-			FTCHARToUTF8 UTF8String(*URLString);
-			TArray<uint8> RequestUrlBytes;
-			RequestUrlBytes.AddZeroed(UTF8String.Length() + 1);
-			FMemory::Memcpy(RequestUrlBytes.GetData(), UTF8String.Get(), UTF8String.Length());
-
-			FNetControlMessage<NMT_Login>::Send(Connection, Connection->ClientResponse, RequestUrlBytes, UniqueIdRepl, OnlinePlatformNameString);
-			NetDriver->ServerConnection->FlushNet();
 			break;
 		}
 		case NMT_Welcome:
@@ -276,39 +284,50 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 			FString GameName;
 			FString RedirectURL;
 
-			FNetControlMessage<NMT_Welcome>::Receive(Bunch, URL.Map, GameName, RedirectURL);
-
-			//GEngine->NetworkRemapPath(this, URL.Map);
-
-			UE_LOG(LogNet, Log, TEXT("Welcomed by server (Level: %s, Game: %s)"), *URL.Map, *GameName);
-
-			// extract map name and options
+			if (FNetControlMessage<NMT_Welcome>::Receive(Bunch, URL.Map, GameName, RedirectURL))
 			{
-				FURL DefaultURL;
-				FURL TempURL( &DefaultURL, *URL.Map, TRAVEL_Partial );
-				URL.Map = TempURL.Map;
-				URL.RedirectURL = RedirectURL;
-				URL.Op.Append(TempURL.Op);
+				//GEngine->NetworkRemapPath(this, URL.Map);
+
+				UE_LOG(LogNet, Log, TEXT("Welcomed by server (Level: %s, Game: %s)"), *URL.Map, *GameName);
+
+				// extract map name and options
+				{
+					FURL DefaultURL;
+					FURL TempURL(&DefaultURL, *URL.Map, TRAVEL_Partial);
+					URL.Map = TempURL.Map;
+					URL.RedirectURL = RedirectURL;
+					URL.Op.Append(TempURL.Op);
+				}
+
+				if (GameName.Len() > 0)
+				{
+					URL.AddOption(*FString::Printf(TEXT("game=%s"), *GameName));
+				}
+
+				// Send out netspeed now that we're connected
+				FNetControlMessage<NMT_Netspeed>::Send(Connection, Connection->CurrentNetSpeed);
+
+				// We have successfully connected
+				// TickWorldTravel will load the map and call LoadMapCompleted which eventually calls SendJoin
+				bSuccessfullyConnected = true;
+			}
+			else
+			{
+				URL.Map.Empty();
 			}
 
-			if (GameName.Len() > 0)
-			{
-				URL.AddOption(*FString::Printf(TEXT("game=%s"), *GameName));
-			}
-
-			// Send out netspeed now that we're connected
-			FNetControlMessage<NMT_Netspeed>::Send(Connection, Connection->CurrentNetSpeed);
-
-			// We have successfully connected.
-			bSuccessfullyConnected = true;
 			break;
 		}
 		case NMT_NetGUIDAssign:
 		{
 			FNetworkGUID NetGUID;
 			FString Path;
-			FNetControlMessage<NMT_NetGUIDAssign>::Receive(Bunch, NetGUID, Path);
-			NetDriver->ServerConnection->PackageMap->ResolvePathAndAssignNetGUID(NetGUID, Path);
+
+			if (FNetControlMessage<NMT_NetGUIDAssign>::Receive(Bunch, NetGUID, Path))
+			{
+				NetDriver->ServerConnection->PackageMap->ResolvePathAndAssignNetGUID(NetGUID, Path);
+			}
+
 			break;
 		}
 		case NMT_EncryptionAck:
@@ -368,6 +387,57 @@ void UPendingNetGame::FinalizeEncryptedConnection(const FEncryptionKeyResponse& 
 		// This error will be resolved in TickWorldTravel()
 		UE_LOG(LogNet, Warning, TEXT("UPendingNetGame::FinalizeEncryptedConnection: Connection is null."));
 		ConnectionError = TEXT("Connection missing during encryption ack");
+	}
+}
+
+void UPendingNetGame::SetEncryptionKey(const FEncryptionKeyResponse& Response)
+{
+	if (CVarNetAllowEncryption.GetValueOnGameThread() == 0)
+	{
+		UE_LOG(LogNet, Log, TEXT("UPendingNetGame::SetEncryptionKey: net.AllowEncryption is false."));
+		return;
+	}
+
+	if (NetDriver)
+	{
+		UNetConnection* const Connection = NetDriver->ServerConnection;
+		if (Connection)
+		{
+			if (Connection->State != USOCK_Invalid && Connection->State != USOCK_Closed && Connection->Driver)
+			{
+				if (Response.Response == EEncryptionResponse::Success)
+				{
+					Connection->SetEncryptionKey(Response.EncryptionKey);
+				}
+				else
+				{
+					// This error will be resolved in TickWorldTravel()
+					FString ResponseStr(Lex::ToString(Response.Response));
+					UE_LOG(LogNet, Warning, TEXT("UPendingNetGame::SetEncryptionKey: encryption failure [%s] %s"), *ResponseStr, *Response.ErrorMsg);
+					ConnectionError = TEXT("Encryption failure");
+					Connection->Close();
+				}
+			}
+			else
+			{
+				// This error will be resolved in TickWorldTravel()
+				UE_LOG(LogNet, Warning, TEXT("UPendingNetGame::SetEncryptionKey: connection in invalid state. %s"), *Connection->Describe());
+				ConnectionError = TEXT("Connection encryption state failure");
+				Connection->Close();
+			}
+		}
+		else
+		{
+			// This error will be resolved in TickWorldTravel()
+			UE_LOG(LogNet, Warning, TEXT("UPendingNetGame::SetEncryptionKey: Connection is null."));
+			ConnectionError = TEXT("Connection missing during encryption ack");
+		}
+	}
+	else
+	{
+		// This error will be resolved in TickWorldTravel()
+		UE_LOG(LogNet, Warning, TEXT("UPendingNetGame::SetEncryptionKey: NetDriver is null."));
+		ConnectionError = TEXT("NetDriver missing during encryption ack");
 	}
 }
 

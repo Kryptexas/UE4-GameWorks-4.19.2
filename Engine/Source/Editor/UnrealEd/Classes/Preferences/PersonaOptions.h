@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 //=============================================================================
 // PersonaOptions
@@ -15,38 +15,25 @@
 #include "Engine/EngineBaseTypes.h"
 #include "PersonaOptions.generated.h"
 
-UCLASS(hidecategories=Object, config=EditorPerProjectUserSettings)
-class UNREALED_API UPersonaOptions : public UObject
+/** Persisted camera follow mode */
+UENUM()
+enum class EAnimationViewportCameraFollowMode : uint8
 {
-	GENERATED_UCLASS_BODY()
+	/** Standard camera controls */
+	None,
 
-	UPROPERTY(EditAnywhere, config, Category = "Preview Scene")
-	uint32 bShowFloor:1;
+	/** Follow the bounds of the mesh */
+	Bounds,
 
-	UPROPERTY(EditAnywhere, config, Category = "Preview Scene")
-	uint32 bShowSky:1;
+	/** Follow a bone or socket */
+	Bone,
+};
 
-	UPROPERTY(EditAnywhere, config, Category = "Preview Scene")
-	uint32 bAutoAlignFloorToMesh : 1;
-
-	UPROPERTY(EditAnywhere, config, Category = "Viewport")
-	uint32 bShowGrid:1;
-
-	UPROPERTY(EditAnywhere, config, Category = "Viewport")
-	uint32 bHighlightOrigin:1;
-
-	UPROPERTY(EditAnywhere, config, Category = "Audio")
-	uint32 bMuteAudio:1;
-
-	UPROPERTY(EditAnywhere, config, Category = "Audio")
-	uint32 bUseAudioAttenuation:1;
-
-	// currently Stats can have None, Basic and Detailed. Please refer to EDisplayInfoMode.
-	UPROPERTY(EditAnywhere, config, Category = "Viewport", meta=(ClampMin ="0", ClampMax = "3", UIMin = "0", UIMax = "3"))
-	int32 ShowMeshStats;
-
-	UPROPERTY(EditAnywhere, config, Category = "Viewport")
-	int32 GridSize;
+/** Persistent per-viewport options */
+USTRUCT()
+struct FViewportConfigOptions
+{
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, config, Category = "Viewport")
 	TEnumAsByte<EViewModeIndex> ViewModeIndex;
@@ -54,9 +41,75 @@ class UNREALED_API UPersonaOptions : public UObject
 	UPROPERTY(EditAnywhere, config, Category = "Viewport")
 	float ViewFOV;
 
+	/** Persisted camera follow mode for a viewport */
+	UPROPERTY(config)
+	EAnimationViewportCameraFollowMode CameraFollowMode;
+
+	UPROPERTY(config)
+	FName CameraFollowBoneName;
+};
+
+/** Options that should be unique per asset editor (like skeletal mesh or anim sequence editors) */
+USTRUCT()
+struct FAssetEditorOptions
+{
+	GENERATED_BODY()
+
+	FAssetEditorOptions()
+	{}
+
+	FAssetEditorOptions(const FName& InContext)
+		: Context(InContext)
+	{
+	}
+
+	/** the name of the asset editor properties apply to */
+	UPROPERTY(config)
+	FName Context;
+
+	/** Per-viewport configuration */
+	UPROPERTY(EditAnywhere, config, Category = "Viewport")
+	FViewportConfigOptions ViewportConfigs[4];
+
+	bool operator==(const FAssetEditorOptions& InOptions) const
+	{
+		return InOptions.Context == Context;
+	}
+};
+
+UCLASS(hidecategories=Object, config=EditorPerProjectUserSettings)
+class UNREALED_API UPersonaOptions : public UObject
+{
+	GENERATED_UCLASS_BODY()
+		
+	/** Whether or not the floor should be aligned to the Skeletal Mesh's bounds by default for the Animation Editor(s)*/
+	UPROPERTY(EditAnywhere, config, Category = "Preview Scene")
+	uint32 bAutoAlignFloorToMesh : 1;
+
+	/** Whether or not the grid should be visible by default for the Animation Editor(s)*/
+	UPROPERTY(EditAnywhere, config, Category = "Viewport")
+	uint32 bShowGrid:1;
+
+	/** Whether or not the XYZ axis at the origin should be highlighted on the grid by default */
+	UPROPERTY(EditAnywhere, config, Category = "Viewport")
+	uint32 bHighlightOrigin:1;
+
+	/** Whether or not audio should be muted by default for the Animation Editor(s)*/
+	UPROPERTY(EditAnywhere, config, Category = "Audio")
+	uint32 bMuteAudio:1;
+
+	UPROPERTY(EditAnywhere, config, Category = "Audio")
+	uint32 bUseAudioAttenuation:1;
+
+	/** Currently Stats can have None, Basic and Detailed. Please refer to EDisplayInfoMode. */
+	UPROPERTY(EditAnywhere, config, Category = "Viewport", meta=(ClampMin ="0", ClampMax = "3", UIMin = "0", UIMax = "3"))
+	int32 ShowMeshStats;
+	
+	/** Index used to determine which ViewMode should be used by default for the Animation Editor(s)*/
 	UPROPERTY(EditAnywhere, config, Category = "Viewport")
 	uint32 DefaultLocalAxesSelection;
 
+	/** Index used to determine which Bone Draw Mode should be used by default for the Animation Editor(s)*/
 	UPROPERTY(EditAnywhere, config, Category = "Viewport")
 	uint32 DefaultBoneDrawSelection;
 
@@ -69,7 +122,7 @@ class UNREALED_API UPersonaOptions : public UObject
 	UPROPERTY(EditAnywhere, config, Category = "Composites and Montages")
 	FLinearColor BranchingPointTimingNodeColor;
 
-	/** Whether to use a socket editor that is created in-line inside the skeleton tree, or wither to use the separate details panel */
+	/** Whether to use a socket editor that is created in-line inside the skeleton tree, or whether to use the separate details panel */
 	UPROPERTY(EditAnywhere, config, Category = "Skeleton Tree")
 	bool bUseInlineSocketEditor;
 
@@ -84,6 +137,7 @@ class UNREALED_API UPersonaOptions : public UObject
 	UPROPERTY(EditAnywhere, config, Category = "Preview Scene")
 	bool bAllowPreviewMeshCollectionsToSelectFromDifferentSkeletons;
 
+	/** Whether or not Skeletal Mesh Section selection should be enabled by default for the Animation Editor(s)*/
 	UPROPERTY(EditAnywhere, config, Category = "Mesh")
 	bool bAllowMeshSectionSelection;
 
@@ -91,21 +145,24 @@ class UNREALED_API UPersonaOptions : public UObject
 	UPROPERTY(EditAnywhere, config, Category = "Asset Browser", meta=(ClampMin ="1", ClampMax = "10", UIMin = "1", UIMax = "10"))
 	uint32 NumFolderFiltersInAssetBrowser;
 
+	/** Options that should be unique per asset editor (like skeletal mesh or anim sequence editors) */
+	UPROPERTY(config)
+	TArray<FAssetEditorOptions> AssetEditorOptions;
+
 public:
 	void SetShowGrid( bool bInShowGrid );
 	void SetHighlightOrigin( bool bInHighlightOrigin );
-	void SetShowFloor( bool bInShowFloor );
 	void SetAutoAlignFloorToMesh(bool bInAutoAlignFloorToMesh);
-	void SetShowSky( bool bInShowSky );
 	void SetMuteAudio( bool bInMuteAudio );
 	void SetUseAudioAttenuation( bool bInUseAudioAttenuation );
-	void SetGridSize( int32 InGridSize );
-	void SetViewModeIndex( EViewModeIndex InViewModeIndex );
-	void SetViewFOV( float InViewFOV );
+	void SetViewModeIndex( FName InContext, EViewModeIndex InViewModeIndex, int32 InViewportIndex );
+	void SetViewFOV( FName InContext, float InViewFOV, int32 InViewportIndex );
+	void SetViewCameraFollow( FName InContext, EAnimationViewportCameraFollowMode InCameraFollowMode, FName InCameraFollowBoneName, int32 InViewportIndex );
 	void SetDefaultLocalAxesSelection( uint32 InDefaultLocalAxesSelection );
 	void SetDefaultBoneDrawSelection(uint32 InDefaultBoneAxesSelection);
 	void SetShowMeshStats( int32 InShowMeshStats );
 	void SetSectionTimingNodeColor(const FLinearColor& InColor);
 	void SetNotifyTimingNodeColor(const FLinearColor& InColor);
 	void SetBranchingPointTimingNodeColor(const FLinearColor& InColor);
+	FAssetEditorOptions& GetAssetEditorOptions(const FName& InContext);
 };

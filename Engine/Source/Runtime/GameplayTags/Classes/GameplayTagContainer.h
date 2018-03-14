@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,7 +13,7 @@ class UEditableGameplayTagQuery;
 struct FGameplayTagContainer;
 struct FPropertyTag;
 
-DECLARE_LOG_CATEGORY_EXTERN(LogGameplayTags, Log, All);
+GAMEPLAYTAGS_API DECLARE_LOG_CATEGORY_EXTERN(LogGameplayTags, Log, All);
 
 DECLARE_STATS_GROUP(TEXT("Gameplay Tags"), STATGROUP_GameplayTags, STATCAT_Advanced);
 
@@ -557,6 +557,9 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	/** Handles fixup after importing from text */
 	bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);
 
+	/** Fill in the ParentTags array and any other transient parameters */
+	void PostScriptConstruct();
+
 	/** Returns string version of container in ImportText format */
 	FString ToString() const;
 
@@ -859,7 +862,8 @@ struct TStructOpsTypeTraits<FGameplayTagContainer> : public TStructOpsTypeTraits
 		WithIdenticalViaEquality = true,
 		WithNetSerializer = true,
 		WithImportTextItem = true,
-		WithCopy = true
+		WithCopy = true,
+		WithPostScriptConstruct = true,
 	};
 };
 

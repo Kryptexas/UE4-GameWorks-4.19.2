@@ -63,11 +63,13 @@ Description:点光源的基本知识。
 ![](spacer.png)
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Intro]
 **点光源** 和现实世界中灯泡的工作原理类似，灯泡从灯泡的钨丝向各个方向发光。然而，为了获得更好的性能，点光源简化为仅从空间中的一个点向各个方向均匀地发光。
 [/EXCERPT:Intro]
--->
+
+[/COMMENT]
 
 ![](pointLight_004.png)(w:450) ![](pointLight_005.png)(w:450 convert:false)
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "HAL/FileManager.h"
@@ -21,9 +21,11 @@
 #include "Interfaces/ITextureFormatModule.h"
 #include "PlatformInfo.h"
 #include "DesktopPlatformModule.h"
+
+#if WITH_PHYSX
 #include "IPhysXCooking.h"
 #include "IPhysXCookingModule.h"
-
+#endif // WITH_PHYSX
 
 DEFINE_LOG_CATEGORY_STATIC(LogTargetPlatformManager, Log, All);
 
@@ -504,6 +506,7 @@ public:
 		static bool bInitialized = false;
 		static TArray<const IPhysXCooking*> Results;
 
+#if WITH_PHYSX
 		if (!bInitialized || bForceCacheUpdate)
 		{
 			bInitialized = true;
@@ -530,12 +533,14 @@ public:
 				}
 			}
 		}
+#endif // WITH_PHYSX
 
 		return Results;
 	}
 
 	virtual const IPhysXCooking* FindPhysXCooking(FName Name) override
 	{
+#if WITH_PHYSX
 		const TArray<const IPhysXCooking*>& PhysXCooking = GetPhysXCooking();
 
 		for (int32 Index = 0; Index < PhysXCooking.Num(); Index++)
@@ -552,6 +557,7 @@ public:
 				}
 			}
 		}
+#endif // WITH_PHYSX
 
 		return nullptr;
 	}
@@ -559,7 +565,7 @@ public:
 protected:
 
 	/**
-	 * Checks whether the AutoDesk software development kit (SDK) is enabled.
+	 * Checks whether AutoSDK is enabled.
 	 *
 	 * @return true if the SDK is enabled, false otherwise.
 	 */

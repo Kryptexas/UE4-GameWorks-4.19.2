@@ -1,52 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: Scalability, 엔진 퀄리티 참고서
 Crumbs: %ROOT%, Engine, Engine/Performance, Engine/Performance/Scalability
 Description:Scalability, 엔진 퀄리티 옵션, 프로퍼티, 콘솔 변수입니다.
 version: 4.9
+topic-image:Engine/Performance/Scalability/scalability_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Performance/Scalability/ScalabilityReference:title%](Engine/Performance/Scalability/scalability_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Performance/Scalability/ScalabilityReference:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Performance/Scalability/ScalabilityReference:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Performance/Scalability/ScalabilityReference]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Performance/Scalability/ScalabilityReference:title%](Engine/Performance/Scalability/scalability_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Performance/Scalability/ScalabilityReference:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Performance/Scalability/ScalabilityReference:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Performance/Scalability/ScalabilityReference]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[REGION:banner]
-
-[/REGION]
 
 [TOC(start:2)]
 
@@ -123,9 +82,12 @@ sg.PostProcessQuality 0 은 왼쪽, 3 은 오른쪽.
 |[INCLUDE:#post3]|[INCLUDE:#post4]|
 [/REGION]
 
-<!-- Each of these settings is covered in the CVAR section below. -->
+[COMMENT:none]
+ Each of these settings is covered in the CVAR section below. 
+[/COMMENT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:post1]
 	r.MotionBlurQuality=0
 	r.BlurGBuffer=0
@@ -190,7 +152,8 @@ sg.PostProcessQuality 0 은 왼쪽, 3 은 오른쪽.
 	r.Tonemapper.GrainQuantization=1
 [/EXCERPT:post4]
 
--->
+
+[/COMMENT]
 
 
 ## 섀도 - sg.ShadowQuality
@@ -214,9 +177,12 @@ sg.ShadowQuality 0 은 왼쪽, 3 은 오른쪽.
 |[INCLUDE:#shadow3]|[INCLUDE:#shadow4]|
 [/REGION]
 
-<!-- Each of these settings is covered in the CVAR section below. -->
+[COMMENT:none]
+ Each of these settings is covered in the CVAR section below. 
+[/COMMENT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:shadow1]
 	r.LightFunctionQuality=0
 	r.ShadowQuality=0
@@ -256,7 +222,8 @@ sg.ShadowQuality 0 은 왼쪽, 3 은 오른쪽.
 	r.Shadow.DistanceScale=1.0
 	r.Shadow.CSM.TransitionScale=1.0
 [/EXCERPT:shadow4]
--->
+
+[/COMMENT]
 
 
 ## 텍스처 - sg.TextureQuality
@@ -275,9 +242,12 @@ sg.ShadowQuality 0 은 왼쪽, 3 은 오른쪽.
 |[INCLUDE:#texture3]|[INCLUDE:#texture4]|
 [/REGION]
 
-<!-- Each of these settings is covered in the CVAR section below. -->
+[COMMENT:none]
+ Each of these settings is covered in the CVAR section below. 
+[/COMMENT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:texture1]
 	r.Streaming.MipBias=2.5
 	r.MaxAnisotropy=0
@@ -302,7 +272,8 @@ sg.ShadowQuality 0 은 왼쪽, 3 은 오른쪽.
 	r.Streaming.PoolSize=1000
 [/EXCERPT:texture4]
 
--->
+
+[/COMMENT]
 
 [REGION:note]
 이 기능의 효과는 게임과 하드웨어에 따라 크게 달라집니다. 텍스처가 많지 않은 경우, 최대 해상도 밉맵을 로드하고 사용하는 시점까지는 언리얼 엔진 4 가 텍스처에 예약한 메모리 풀 전부를 사용하지 않아, 사실상 (Anisotropy 세팅 변화 말고는) 세팅 차이에 따른 효과를 확인할 수 없을 것입니다.
@@ -323,9 +294,12 @@ sg.ShadowQuality 0 은 왼쪽, 3 은 오른쪽.
 |[INCLUDE:#effects3]|[INCLUDE:#effects4]|
 [/REGION]
 
-<!-- Each of these settings is covered in the CVAR section below. -->
+[COMMENT:none]
+ Each of these settings is covered in the CVAR section below. 
+[/COMMENT]
 
-<!--
+[COMMENT:none]
+
 
 [EXCERPT:effects1]
 	r.TranslucencyLightingVolumeDim=24
@@ -367,7 +341,8 @@ sg.ShadowQuality 0 은 왼쪽, 3 은 오른쪽.
 	r.MaterialQualityLevel=1
 [/EXCERPT:effects4]
 
--->
+
+[/COMMENT]
 
 ## 디테일 모드
 
@@ -496,7 +471,8 @@ UE4 프로젝트에 사용되는 엔진 퀄리티(Scalability) 세팅은 어떤 
 	
 
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:FGS]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -519,9 +495,11 @@ UE4 프로젝트에 사용되는 엔진 퀄리티(Scalability) 세팅은 어떤 
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:FGS]
--->
 
-<!--
+[/COMMENT]
+
+[COMMENT:none]
+
 
 	[REGION:simpletable]
 	|FoliageQuality 0|FoliageQuality 1|
@@ -557,10 +535,12 @@ UE4 프로젝트에 사용되는 엔진 퀄리티(Scalability) 세팅은 어떤 
 	grass.DensityScale=1.0
 [/EXCERPT:FoliageQuality@3]
 
--->
+
+[/COMMENT]
 
 
-<!--
+[COMMENT:none]
+
 그래스도 폴리지도 **엔진 퀄리티(scalability) 시스템** 을 사용하여 퍼포먼스에 끼치는 영향을 줄일 수 있습니다. 프로젝트에서 이 기능을 사용하는 방법은 다음과 같습니다:
 
 1. 프로젝트의 COnfig 폴더로 이동하여 **DefaultScalability.ini** 라는 파일을 새로 만듭니다.
@@ -594,5 +574,6 @@ UE4 프로젝트에 사용되는 엔진 퀄리티(Scalability) 세팅은 어떤 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Performance\Scalability\ScalabilityReference\#FGS]
 	[/REGION]
--->
+
+[/COMMENT]
 

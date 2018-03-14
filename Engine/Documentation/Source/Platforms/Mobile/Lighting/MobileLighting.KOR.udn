@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3184883
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:모바일 플랫폼용 라이팅
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
@@ -181,7 +181,8 @@ UE4 의 모바일 플랫폼에서 라이트 사용시, UE4 프로젝트를 여�
 
 
 
-<!-----
+[COMMENT:none]
+---
 [EXCERPT:SQ]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -206,9 +207,11 @@ UE4 의 모바일 플랫폼에서 라이트 사용시, UE4 프로젝트를 여�
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:SQ]
--->
 
-<!-----
+[/COMMENT]
+
+[COMMENT:none]
+---
 [EXCERPT:SD]
 [OBJECT:SliderSequence]
 	[PARAMLITERAL:max]
@@ -233,7 +236,8 @@ UE4 의 모바일 플랫폼에서 라이트 사용시, UE4 프로젝트를 여�
 	[/PARAM]
 [/OBJECT]
 [/EXCERPT:SD]
--->
+
+[/COMMENT]
 
 
 

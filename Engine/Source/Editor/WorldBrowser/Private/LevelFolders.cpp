@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelFolders.h"
 #include "Misc/Crc.h"
@@ -23,7 +23,7 @@ FString GetLevelModelFilename(TSharedPtr<FLevelModel> LevelModel)
 	return FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("Config"), TEXT("LevelState"), *FString::Printf(TEXT("%u.json"), PackageNameCrc));
 }
 
-FName OldPathToNewPath(const FString& InOldBranch, const FString& InNewBranch, const FString& PathToMove)
+static FName OldPathToNewPath(const FString& InOldBranch, const FString& InNewBranch, const FString& PathToMove)
 {
 	return FName(*(InNewBranch + PathToMove.RightChop(InOldBranch.Len())));
 }

@@ -1,11 +1,14 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Misc/MemStack.h"
-#include "GameFramework/WorldSettings.h"
 #include "LODCluster.h"
+#include "Engine/EngineTypes.h"
+
+#include "Engine/DeveloperSettings.h"
+#include "HierarchicalLOD.generated.h"
 
 class AHierarchicalLODVolume;
 class ALODActor;
@@ -14,11 +17,33 @@ class ALODActor;
 	HierarchicalLOD.h: Hierarchical LOD definition.
 =============================================================================*/
 
-class ULevel;
 class AActor;
 class AHierarchicalLODVolume;
-class UWorld;
 class ALODActor;
+class UHierarchicalLODSetup;
+class ULevel;
+class UWorld;
+
+UCLASS(config = Engine, meta = (DisplayName = "Hierarchical LOD"), defaultconfig)
+class UNREALED_API UHierarchicalLODSettings : public UDeveloperSettings
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+	/** If enabled will force the project set HLOD level settings to be used across all levels in the project when Building Clusters */
+	UPROPERTY(EditAnywhere, config, Category = HLODSystem)
+	bool bForceSettingsInAllMaps;
+
+	/** When set in combination with */
+	UPROPERTY(EditAnywhere, config, Category = HLODSystem, meta=(editcondition="bForceSettingsInAllMaps"))
+	TSoftClassPtr<UHierarchicalLODSetup> DefaultSetup;
+	
+	UPROPERTY(config, EditAnywhere, Category = HLODSystem, AdvancedDisplay, meta = (DisplayName = "Directories containing maps used for building HLOD data through the commandlet", RelativeToGameContentDir))
+	TArray<FDirectoryPath> DirectoriesForHLODCommandlet;
+
+	UPROPERTY(config, EditAnywhere, Category = HLODSystem, AdvancedDisplay, meta = (DisplayName = "Map UAssets used for building HLOD data through the ", RelativeToGameContentDir, LongPackageName))
+	TArray<FFilePath> MapsToBuild;
+};
 
 /**
  *
@@ -54,7 +79,7 @@ struct UNREALED_API FHierarchicalLODBuilder
 	void ClearPreviewBuild();
 
 	/** Builds the LOD meshes for all LODActors inside of the World's Levels */
-	void BuildMeshesForLODActors();
+	void BuildMeshesForLODActors(bool bForceAll);
 
 	/**
 	* Build a single LOD Actor's mesh
@@ -80,7 +105,7 @@ private:
 	* @param LODIdx - LOD index we are building
 	* @param CullCost - Test variable for tweaking HighestCost
 	*/
-	void InitializeClusters(ULevel* InLevel, const int32 LODIdx, float CullCost, bool const bPreviewBuild);
+	void InitializeClusters(ULevel* InLevel, const int32 LODIdx, float CullCost, bool const bPreviewBuild, bool const bVolumesOnly);
 
 	/**
 	* Merges clusters and builds actors for resulting (valid) clusters
@@ -130,8 +155,7 @@ private:
 	/** Array of LOD clusters created for the HierachicalLODVolumes found within the level */
 	TMap<AHierarchicalLODVolume*, FLODCluster> HLODVolumeClusters;	
 
-	/** Cached array of LODLevel settings */
-	TArray<FHierarchicalSimplification> BuildLODLevelSettings;
+	const UHierarchicalLODSettings* HLODSettings;
 
 	/** LOD Actors per HLOD level */
 	TArray<TArray<ALODActor*>> LODLevelLODActors;

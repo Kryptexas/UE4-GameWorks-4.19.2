@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 //
 // A network connection.
@@ -20,6 +20,8 @@
 #include "ArrayView.h"
 
 #include "NetConnection.generated.h"
+
+#define NETCONNECTION_HAS_SETENCRYPTIONKEY 1
 
 class FObjectReplicator;
 class StatelessConnectHandlerComponent;
@@ -95,7 +97,9 @@ namespace EClientLoginState
 	{
 		Invalid		= 0,		// This must be a client (which doesn't use this state) or uninitialized.
 		LoggingIn	= 1,		// The client is currently logging in.
-		Welcomed	= 2,		// Fully logged in.
+		Welcomed	= 2,		// Told client to load map and will respond with SendJoin
+		ReceivedJoin = 3,		// NMT_Join received and a player controller has been created
+		CleanedUp	= 4			// Cleanup has been called at least once, the connection is considered abandoned/terminated/gone
 	};
 
 	/** @return the stringified version of the enum passed in */
@@ -114,6 +118,14 @@ namespace EClientLoginState
 			case Welcomed:
 			{
 				return TEXT("Welcomed");
+			}
+			case ReceivedJoin:
+			{
+				return TEXT("ReceivedJoin");
+			}
+			case CleanedUp:
+			{
+				return TEXT("CleanedUp");
 			}
 		}
 		return TEXT("");
@@ -304,6 +316,8 @@ public:
 	bool			TimeSensitive;			// Whether contents are time-sensitive.
 	FOutBunch*		LastOutBunch;			// Most recent outgoing bunch.
 	FOutBunch		LastOut;
+	/** The singleton buffer for sending bunch header information */
+	FBitWriter		SendBunchHeader;
 
 	// Stat display.
 	/** Time of last stat update */
@@ -378,18 +392,19 @@ public:
 	 */
 	TSet<FNetworkGUID>	DestroyedStartupOrDormantActors;
 
-	/**
-	 * on the server, the world the client has told us it has loaded
-	 * used to make sure the client has traveled correctly, prevent replicating actors before level transitions are done, etc
-	 */
-	FName ClientWorldPackageName;
+	ENGINE_API FName GetClientWorldPackageName() const { return ClientWorldPackageName; }
+
+	ENGINE_API void SetClientWorldPackageName(FName NewClientWorldPackageName);
 
 	/** 
 	 * on the server, the package names of streaming levels that the client has told us it has made visible
 	 * the server will only replicate references to Actors in visible levels so that it's impossible to send references to
 	 * Actors the client has not initialized
 	 */
-	TArray<FName> ClientVisibleLevelNames;
+	TSet<FName> ClientVisibleLevelNames;
+
+	/** Called by PlayerController to tell connection about client level visiblity change */
+	void UpdateLevelVisibility(const FName& PackageName, bool bIsVisible);
 
 #if DO_ENABLE_NET_TEST
 	// For development.
@@ -471,7 +486,7 @@ public:
 	/** 
 	 * get the representation of a secondary splitscreen connection that reroutes calls to the parent connection
 	 * @return NULL for this connection.
-     */
+	 */
 	virtual UChildConnection* GetUChildConnection()
 	{
 		return NULL;
@@ -522,11 +537,11 @@ public:
 	ENGINE_API virtual int32 IsNetReady( bool Saturate );
 
 	/** 
-     * Handle the player controller client
-     *
-     * @param PC player controller for this player
-     * @param NetConnection the connection the player is communicating on
-     */
+	 * Handle the player controller client
+	 *
+	 * @param PC player controller for this player
+	 * @param NetConnection the connection the player is communicating on
+	 */
 	ENGINE_API virtual void HandleClientPlayer( class APlayerController* PC, class UNetConnection* NetConnection );
 
 	/** @return the address of the connection as an integer */
@@ -598,8 +613,10 @@ public:
 
 	/**
 	 * Initializes the PacketHandler
+	 *
+	 * @param InProvider Analytics provider that's passed in to the packet handler
 	 */
-	ENGINE_API virtual void InitHandler();
+	ENGINE_API virtual void InitHandler(TSharedPtr<IAnalyticsProvider> InProvider = nullptr);
 
 	/**
 	 * Initializes the sequence numbers for the connection, usually from shared randomized data
@@ -618,6 +635,21 @@ public:
 	 * Sets the encryption key, enables encryption, and sends the encryption ack to the client.
 	 */
 	ENGINE_API void EnableEncryptionWithKeyServer(TArrayView<const uint8> Key);
+
+	/**
+	 * Sets the key for the underlying encryption packet handler component, but doesn't modify encryption enabled state.
+	 */
+	ENGINE_API void SetEncryptionKey(TArrayView<const uint8> Key);
+
+	/**
+	 * Sends an NMT_EncryptionAck message
+	 */
+	ENGINE_API void SendClientEncryptionAck();
+
+	/**
+	 * Enables encryption for the underlying encryption packet handler component.
+	 */
+	ENGINE_API void EnableEncryption();
 
 	/** 
 	* Gets a unique ID for the connection, this ID depends on the underlying connection
@@ -662,7 +694,7 @@ public:
 	 * returns whether the client has initialized the level required for the given object
 	 * @return true if the client has initialized the level the object is in or the object is not in a level, false otherwise
 	 */
-	ENGINE_API virtual bool ClientHasInitializedLevelFor(const UObject* TestObject) const;
+	ENGINE_API virtual bool ClientHasInitializedLevelFor(const AActor* TestActor) const;
 
 	/**
 	 * Allows the connection to process the raw data that was received
@@ -720,13 +752,22 @@ public:
 	/** Wrapper for validating an objects dormancy state, and to prepare the object for replication again */
 	void FlushDormancyForObject( UObject* Object );
 
-	/** Wrapper for setting the current client login state, so we can trap for debugging, and verbosity purposes. */
+	/** 
+	 * Wrapper for setting the current client login state, so we can trap for debugging, and verbosity purposes. 
+	 * Only valid on the server
+	 */
 	ENGINE_API void SetClientLoginState( const EClientLoginState::Type NewState );
 
-	/** Wrapper for setting the current expected client login msg type. */
+	/** 
+	 * Wrapper for setting the current expected client login msg type. 
+	 * Only valid on the server
+	 */
 	ENGINE_API void SetExpectedClientLoginMsgType( const uint8 NewType );
 
-	/** This function validates that ClientMsgType is the next expected msg type. */
+	/**
+	 * This function validates that ClientMsgType is the next expected msg type. 
+	 * Only valid on the server
+	 */
 	ENGINE_API bool IsClientMsgTypeValid( const uint8 ClientMsgType );
 
 	/**
@@ -751,6 +792,8 @@ public:
 	/** Whether or not a client packet has been received - used serverside, to delay any packet sends */
 	FORCEINLINE bool HasReceivedClientPacket()
 	{
+		// The InternalAck and ServerConnection conditions, are only there to exclude demo's and clients from this check,
+		// so that the check is only performed on servers.
 		return !!InternalAck || Driver->ServerConnection != nullptr || InReliable[0] != InitInReliable;
 	}
 
@@ -782,6 +825,21 @@ private:
 
 	/** Online platform ID of remote player on this connection. Only valid on client connections (server side).*/
 	FName PlayerOnlinePlatformName;
+
+	/** This is an acceleration set that is derived from ClientWorldPackageName and ClientVisibleLevelNames. We use this to quickly test an AActor*'s visibility while replicating. */
+	mutable TMap<UObject*, bool> ClientVisibileActorOuters;
+
+	/** Called internally to update cached acceleration map */
+	bool UpdateCachedLevelVisibility(ULevel* Level) const;
+
+	/** Updates entire cached LevelVisibility map */
+	void UpdateAllCachedLevelVisibility() const;
+
+	/**
+	 * on the server, the world the client has told us it has loaded
+	 * used to make sure the client has traveled correctly, prevent replicating actors before level transitions are done, etc
+	 */
+	FName ClientWorldPackageName;
 };
 
 

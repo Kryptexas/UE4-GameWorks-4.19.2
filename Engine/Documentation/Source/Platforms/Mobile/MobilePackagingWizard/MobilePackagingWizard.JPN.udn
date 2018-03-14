@@ -111,7 +111,8 @@ Related:Engine/Deployment/UnrealFrontend
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:android]
 ## モバイル パッケージング ウィザード プロファイルの設定
 
@@ -343,7 +344,8 @@ Related:Engine/Deployment/UnrealFrontend
 	[/OBJECT]
 
 	[region:warning]
-	DLC をビルドする前にプロジェクトのファイルをパッケージしなければなりません。 <!--先に DLC をビルドしてもプロジェクトはパックされません。-->
+	DLC をビルドする前にプロジェクトのファイルをパッケージしなければなりません。 <!--先に DLC をビルドしてもプロジェクトはパックされません。
+[/COMMENT]
 	[/region]
 
 1. **[Launch this Profile (このプロファイルを起動)]** ボタンを押すと、プロジェクト ランチャーがパッケージングを開始します。[Project Launcher] ウィンドウでパッケージ処理の進捗を確認できます。
@@ -739,7 +741,9 @@ mac
 	[/OBJECT]
 
 	[region:warning]
-	DLC をビルドする前にプロジェクトのファイルをパッケージしなければなりません。 <!--先に DLC をビルドしてもプロジェクトはパックされません。-->
+	DLC をビルドする前にプロジェクトのファイルをパッケージしなければなりません。 [COMMENT:none]
+先に DLC をビルドしてもプロジェクトはパックされません。
+[/COMMENT]
 	[/region]
 
 1. **[Launch this Profile (このプロファイルを起動)]** ボタンを押すと、プロジェクト ランチャーがパッケージングを開始します。[Project Launcher] ウィンドウでパッケージ処理の進捗を確認できます。

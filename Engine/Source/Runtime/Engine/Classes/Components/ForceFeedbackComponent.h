@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -145,7 +145,7 @@ public:
 	/** Returns a pointer to the attenuation settings to be used (if any) for this audio component dependent on the ForceFeedbackEffectAttenuation asset or overrides set. */
 	const FForceFeedbackAttenuationSettings* GetAttenuationSettingsToApply() const;
 
-	UFUNCTION(BlueprintCallable, Category = "ForceFeedback", meta = (DisplayName = "Get Attenuation Settings To Apply"))
+	UFUNCTION(BlueprintCallable, Category = "ForceFeedback", meta = (DisplayName = "Get Attenuation Settings To Apply", ScriptName="GetAttenuationSettingsToApply"))
 	bool BP_GetAttenuationSettingsToApply(FForceFeedbackAttenuationSettings& OutAttenuationSettings) const;
 
 	/** Collects the various attenuation shapes that may be applied to the effect played by the component for visualization in the editor. */

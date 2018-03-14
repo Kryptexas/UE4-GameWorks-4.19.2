@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/SWindow.h"
 #include "Application/SlateWindowHelper.h"
@@ -7,14 +7,6 @@
 #include "Input/HittestGrid.h"
 #include "HAL/PlatformApplicationMisc.h"
 
-namespace SWindowDefs
-{
-	/** Height of a Slate window title bar, in pixels */
-	static const float DefaultTitleBarSize = 24.0f;
-
-	/** Size of the corner rounding radius.  Used for regular, non-maximized windows only (not tool-tips or decorators.) */
-	static const int32 CornerRadius = 6;
-}
 
 FOverlayPopupLayer::FOverlayPopupLayer(const TSharedRef<SWindow>& InitHostWindow, const TSharedRef<SWidget>& InitPopupContent, TSharedPtr<SOverlay> InitOverlay)
 	: FPopupLayer(InitHostWindow, InitPopupContent)
@@ -274,7 +266,7 @@ void SWindow::Construct(const FArguments& InArgs)
 
 	if (PrimaryDisplayRect == FPlatformRect(0, 0, 0, 0))
 	{
-		// If the primary display rect is empty we couldnt enumerate physical monitors (possibly remote desktop).  so assume virtual display rect is primary rect
+		// If the primary display rect is empty we couldnt enumerate physical monitors (possibly remote desktop).  So assume virtual display rect is primary rect
 		PrimaryDisplayRect = VirtualDisplayRect;
 	}
 
@@ -470,6 +462,34 @@ FVector2D SWindow::ComputeWindowSizeForContent( FVector2D ContentSize )
 	return ContentSize + FVector2D(0, SWindowDefs::DefaultTitleBarSize);
 }
 
+TSharedRef<SWidget> SWindow::MakeWindowTitleBar(const TSharedRef<SWindow>& Window, const TSharedPtr<SWidget>& CenterContent, EHorizontalAlignment TitleContentAlignment)
+{
+	return FSlateApplicationBase::Get().MakeWindowTitleBar(Window, nullptr, TitleContentAlignment, TitleBar);
+}
+
+
+EHorizontalAlignment SWindow::GetTitleAlignment()
+{
+	EWindowTitleAlignment::Type TitleAlignment = FSlateApplicationBase::Get().GetPlatformApplication()->GetWindowTitleAlignment();
+	EHorizontalAlignment TitleContentAlignment;
+
+	if (TitleAlignment == EWindowTitleAlignment::Left)
+	{
+		TitleContentAlignment = HAlign_Left;
+	}
+	else if (TitleAlignment == EWindowTitleAlignment::Center)
+	{
+		TitleContentAlignment = HAlign_Center;
+	}
+	else
+	{
+		TitleContentAlignment = HAlign_Right;
+	}
+	return TitleContentAlignment;
+}
+
+
+
 void SWindow::ConstructWindowInternals()
 {
 	ForegroundColor = FCoreStyle::Get().GetSlateColor("DefaultForeground");
@@ -484,26 +504,10 @@ void SWindow::ConstructWindowInternals()
 		// @todo mainframe: Should be measured from actual title bar content widgets.  Don't use a hard-coded size!
 		TitleBarSize = SWindowDefs::DefaultTitleBarSize;
 
-		EWindowTitleAlignment::Type TitleAlignment = FSlateApplicationBase::Get().GetPlatformApplication()->GetWindowTitleAlignment();
-		EHorizontalAlignment TitleContentAlignment;
-
-		if (TitleAlignment == EWindowTitleAlignment::Left)
-		{
-			TitleContentAlignment = HAlign_Left;
-		}
-		else if (TitleAlignment == EWindowTitleAlignment::Center)
-		{
-			TitleContentAlignment = HAlign_Center;
-		}
-		else
-		{
-			TitleContentAlignment = HAlign_Right;
-		}
-
 		MainWindowArea->AddSlot()
 		.AutoHeight()
 		[
-			FSlateApplicationBase::Get().MakeWindowTitleBar(SharedThis(this), nullptr, TitleContentAlignment, TitleBar)
+			MakeWindowTitleBar(SharedThis(this), nullptr, GetTitleAlignment())
 		];
 	}
 	else
@@ -1250,10 +1254,11 @@ void SWindow::NotifyWindowBeingDestroyed()
     }
 #endif
     
-	// Logging to track down window shutdown issues with movie loading threads. Too spammy in editor builds with all the windows
-#if !WITH_EDITOR && !IS_PROGRAM
-	UE_LOG(LogSlate, Log, TEXT("Window '%s' being destroyed"), *GetTitle().ToString() );
-#endif
+	// Logging to track down window shutdown issues
+	if (IsRegularWindow())
+	{
+		UE_LOG(LogSlate, Log, TEXT("Window '%s' being destroyed"), *GetTitle().ToString());
+	}
 }
 
 /** Make the window visible */

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DiffUtils.h"
 #include "UObject/PropertyPortFlags.h"
@@ -12,27 +12,30 @@
 #include "IAssetTypeActions.h"
 #include "ObjectEditorUtils.h"
 
-static const UProperty* Resolve( const UStruct* Class, FName PropertyName )
+namespace UE4DiffUtils_Private
 {
-	if(Class == nullptr )
+	UProperty* Resolve( const UStruct* Class, FName PropertyName )
 	{
+		if(Class == nullptr )
+		{
+			return nullptr;
+		}
+
+		for (UProperty* Prop : TFieldRange<UProperty>(Class))
+		{
+			if( Prop->GetFName() == PropertyName )
+			{
+				return Prop;
+			}
+		}
+
 		return nullptr;
 	}
 
-	for (TFieldIterator<UProperty> PropertyIt(Class); PropertyIt; ++PropertyIt)
+	FPropertySoftPathSet GetPropertyNameSet(const UObject* ForObj)
 	{
-		if( PropertyIt->GetFName() == PropertyName )
-		{
-			return *PropertyIt;
-		}
+		return FPropertySoftPathSet(DiffUtils::GetVisiblePropertiesInOrderDeclared(ForObj));
 	}
-
-	return nullptr;
-}
-
-static FPropertySoftPathSet GetPropertyNameSet(const UObject* ForObj)
-{
-	return FPropertySoftPathSet(DiffUtils::GetVisiblePropertiesInOrderDeclared(ForObj));
 }
 
 FResolvedProperty FPropertySoftPath::Resolve(const UObject* Object) const
@@ -46,7 +49,7 @@ FResolvedProperty FPropertySoftPath::Resolve(const UObject* Object) const
 	for( int32 i = 0; i < PropertyChain.Num(); ++i )
 	{
 		CurrentBlock = NextBlock;
-		const UProperty* NextProperty = ::Resolve(NextClass, PropertyChain[i]);
+		const UProperty* NextProperty = UE4DiffUtils_Private::Resolve(NextClass, PropertyChain[i]);
 		if( NextProperty )
 		{
 			Property = NextProperty;
@@ -119,8 +122,8 @@ FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
 	for( int32 I = 0; I < PropertyChain.Num(); ++I )
 	{
 		FName PropertyIdentifier = PropertyChain[I];
-		const UProperty * ResolvedProperty = ::Resolve(ContainerStruct, PropertyIdentifier);
-			
+		UProperty* ResolvedProperty = UE4DiffUtils_Private::Resolve(ContainerStruct, PropertyIdentifier);
+
 		FPropertyInfo Info(ResolvedProperty, INDEX_NONE);
 		Ret.AddProperty(Info);
 
@@ -277,8 +280,8 @@ const UObject* DiffUtils::GetCDO(const UBlueprint* ForBlueprint)
 
 void DiffUtils::CompareUnrelatedObjects(const UObject* A, const UObject* B, TArray<FSingleObjectDiffEntry>& OutDifferingProperties)
 {
-	FPropertySoftPathSet PropertiesInA = GetPropertyNameSet(A);
-	FPropertySoftPathSet PropertiesInB = GetPropertyNameSet(B);
+	FPropertySoftPathSet PropertiesInA = UE4DiffUtils_Private::GetPropertyNameSet(A);
+	FPropertySoftPathSet PropertiesInB = UE4DiffUtils_Private::GetPropertyNameSet(B);
 
 	// any properties in A that aren't in B are differing:
 	auto AddedToA = PropertiesInA.Difference(PropertiesInB).Array();

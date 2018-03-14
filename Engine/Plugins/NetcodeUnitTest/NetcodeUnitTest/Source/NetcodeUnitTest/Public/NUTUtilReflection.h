@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -132,12 +132,12 @@ class FFuncReflection;
  *	readwriteupcast		- UIntProperty									arraycheck	assign
  *	readwriteupcast		- UInt64Property								arraycheck	assign
  *					- ObjectPropertyBase
- *						- SoftObjectProperty
- *							- SoftClassProperty
+ *	readwrite			- SoftObjectProperty										assign
+ *	inherited				- SoftClassProperty									inherited
  *						- LazyObjectProperty
- *	readwrite			- ObjectProperty								arraycheck
- *	inherited				- ClassProperty								inherited
- *						- WeakObjectProperty
+ *	readwrite			- ObjectProperty								arraycheck	assign
+ *	inherited				- ClassProperty								inherited	inherited
+ *	readwrite			- WeakObjectProperty
  *	readwrite		- StrProperty										arraycheck	assign
  *	readwrite		- StructProperty									arraycheck
  *	readwrite		- TextProperty										arraycheck	assign
@@ -189,6 +189,20 @@ class FFuncReflection;
 //				that'd make for a nice feature.
 //				If you (eventually) add autocomplete to the unit test tool log window, this would be the next logical feature.
 
+
+// @todo #JohnB: Perhaps move up to Core, and add a UCLASS version checking StaticClass (tested before, and it works)
+/**
+ * Determines at compile-time, whether or not a type is defined as a USTRUCT, through TIsUStruct<Type>::Value
+ */
+template<typename T>
+class TIsUStruct
+{
+	template<typename A> static uint8	Check(decltype(&A::StaticStruct));
+	template<typename B> static uint16	Check(...);
+
+public:
+	enum { Value = sizeof(Check<T>(0)) == sizeof(uint8) };
+};
 
 
 /**
@@ -435,6 +449,12 @@ public:
 	 */
 	explicit operator UObject*();
 
+	/**
+	 * Cast to writable FSoftObjectPtr* (where write actions should be performed through FSoftObjectPrr methods, not by pointer assignment).
+	 * For USoftObjectProperty
+	 */
+	explicit operator FSoftObjectPtr*();
+
 
 	/**
 	 * Cast to FScriptArray* pointer (only valid for dynamic arrays), then cast to TArray<Type*>
@@ -457,6 +477,18 @@ public:
 	 * Cast operator for structs in general - cast to void*, then cast to StructType*
 	 */
 	explicit operator void*();
+
+	/**
+	 * Gets a reference to the struct being pointed to, with compile-time and runtime checks on the validity of the struct type
+	 * NOTE: This alters the state of the reflection object.
+	 */
+	template<typename T>
+	FORCEINLINE T* GetStructRef()
+	{
+		static_assert(TIsUStruct<T>::Value, "Only USTRUCT types can be passed to GetStructRef");
+
+		return (T*)(void*)(FVMReflection(*this)[TCHAR_TO_ANSI(*FString::Printf(TEXT("F%s"), *T::StaticStruct()->GetName()))]);
+	}
 
 
 	/**
@@ -586,9 +618,9 @@ private:
 	 */
 	FORCEINLINE bool IsPropertyArray() const
 	{
-		UProperty* CurProp = Cast<UProperty>(FieldInstance);
+		const UProperty* CurProp = Cast<UProperty>(FieldInstance);
 
-		return CurProp != NULL && (CurProp->ArrayDim > 1 || Cast<UArrayProperty>(CurProp) != NULL);
+		return CurProp != nullptr && (CurProp->ArrayDim > 1 || Cast<UArrayProperty>(CurProp) != nullptr);
 	}
 
 	/**
@@ -599,7 +631,7 @@ private:
 	FORCEINLINE bool IsPropertyObject() const
 	{
 		return FieldInstance != nullptr && (FieldInstance->IsA(UObjectProperty::StaticClass()) ||
-				FieldInstance->IsA(UWeakObjectProperty::StaticClass()));
+				FieldInstance->IsA(UWeakObjectProperty::StaticClass()) || FieldInstance->IsA(USoftObjectProperty::StaticClass()));
 	}
 
 	/**
@@ -609,27 +641,32 @@ private:
 	 */
 	FORCEINLINE bool CanCastProperty() const
 	{
-		return !bIsError && BaseAddress != NULL && FieldInstance != NULL && FieldAddress != NULL &&
+		return !bIsError && BaseAddress != nullptr && FieldInstance != nullptr && FieldAddress != nullptr &&
 				FieldInstance->IsA(UProperty::StaticClass()) && (!IsPropertyArray() || (bVerifiedFieldType && bSetArrayElement));
 	}
 
 	/**
 	 * Whether or not the VM reflector points to an object that is ready for casting
 	 *
-	 * @return	Whether or not the VM reflector is ready for casting
+	 * @param PropertyClass		The UObject property to check for
+	 * @return					Whether or not the VM reflector is ready for casting
 	 */
+	template<typename PropertyClass>
 	FORCEINLINE bool CanCastObject() const
 	{
+		static_assert(TPointerIsConvertibleFromTo<PropertyClass, UObjectPropertyBase>::Value,
+						"PropertyClass must derive from UObjectPropertyBase");
+
 		bool bReturnVal = false;
 
-		if (!bIsError && FieldInstance != NULL && (!IsPropertyArray() || (bVerifiedFieldType && bSetArrayElement)))
+		if (!bIsError && FieldInstance != nullptr && (!IsPropertyArray() || (bVerifiedFieldType && bSetArrayElement)))
 		{
-			bool bBaseAddressIsObject = BaseAddress != NULL && FieldInstance->IsA(UClass::StaticClass());
+			bool bBaseAddressIsObject = BaseAddress != nullptr && FieldInstance->IsA(UClass::StaticClass());
 			
 			// This can only happen when the attempt to step-in to an object property (i.e. to assign it to BaseAddress) failed,
-			// due to the object property being NULL. However, NULL is still a valid cast return
-			bool bFieldAddressIsObject = !bBaseAddressIsObject && bNextActionMustBeCast && FieldAddress != NULL &&
-											FieldInstance->IsA(UObjectProperty::StaticClass());
+			// due to the object property being nullptr. However, nullptr is still a valid cast return
+			bool bFieldAddressIsObject = !bBaseAddressIsObject && bNextActionMustBeCast && FieldAddress != nullptr &&
+											FieldInstance->IsA(PropertyClass::StaticClass());
 
 			bReturnVal = bBaseAddressIsObject || bFieldAddressIsObject;
 		}
@@ -759,7 +796,7 @@ private:
 
 
 	/** The current field instance (e.g. a UPROPERTY within AActor or such) */
-	UField* FieldInstance;
+	const UField* FieldInstance;
 
 	/** The address of the current field - OR, if bSetArrayElement - the address of the current array element */
 	void* FieldAddress;
@@ -797,6 +834,9 @@ private:
 };
 
 
+// @todo #JohnB: Why do you use InFuncName below, in cases where you already know the UFunction? Examine/refactor this.
+//					(though sometimes, a nullptr UFunction seems to be possible - perhaps it's for better tracking during errors)
+
 /**
  * FFuncReflection - helper for quickly/concisely setting function parameters through reflection
  */
@@ -811,14 +851,45 @@ private:
 	{
 	}
 
+	FFuncReflection(UFunction* InFunction, const TCHAR* InFuncName, void* InParmsMemory)
+		: FunctionName(InFuncName)
+		, Function(InFunction)
+		, ParmsMemory(Function, (uint8*)InParmsMemory)
+		, ParmsRefl(ParmsMemory)
+	{
+	}
+
 public:
+	/**
+	 * Constructor for creating a function instance and (optionally) filling in its parameters
+	 *
+	 * @param InClassName	The name of the class the function is in
+	 * @param InFuncName	The name of the function
+	 */
 	FFuncReflection(const TCHAR* InClassName, const TCHAR* InFuncName)
 		: FFuncReflection(FindField<UFunction>(FindObject<UClass>(ANY_PACKAGE, InClassName), InFuncName), InFuncName)
 	{
 	}
 
+	/**
+	 * Constructor for creating a function instance and (optionally) filling in its parameters
+	 *
+	 * @param TargetObj		The object the function is in
+	 * @param InFuncName	The name of the function
+	 */
 	FFuncReflection(UObject* TargetObj, const TCHAR* InFuncName)
 		: FFuncReflection((TargetObj != nullptr ? TargetObj->FindFunction(InFuncName) : nullptr), InFuncName)
+	{
+	}
+
+	/**
+	 * Constructor for reading (and optionally modifying) an existing functions parameters (e.g. from received RPC's)
+	 *
+	 * @param InFunction	The function whose parameters we want to read/modify
+	 * @param InParms		The function parameters memory pointer
+	 */
+	FFuncReflection(UFunction* InFunction, void* InParms)
+		: FFuncReflection(InFunction, *InFunction->GetName(), InParms)
 	{
 	}
 

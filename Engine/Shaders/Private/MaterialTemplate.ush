@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /**
  * MaterialTemplate.usf: Filled in by FHLSLMaterialTranslator::GetMaterialShaderCode for each material being compiled.
@@ -31,6 +31,11 @@
 #endif
 
 #include "/Engine/Private/PaniniProjection.ush"
+
+#if POST_PROCESS_MATERIAL
+	// only Postprocess material bind PostprocessInput0, PostprocessInput0Size, PostprocessInput0MinMax ...
+	#include "/Engine/Private/PostProcessCommon.ush"			// PostprocessInput0
+#endif
 
 #ifndef USE_DITHERED_LOD_TRANSITION
     #if USE_INSTANCING
@@ -100,7 +105,7 @@ struct FMaterialParticleParameters
 
 float4 GetDynamicParameter(FMaterialParticleParameters Parameters, float4 Default)
 {
-	#if PARTICLE_FACTORY
+	#if (PARTICLE_FACTORY || NIAGARA_PARTICLE_FACTORY)
 	return Parameters.DynamicParameter;
 	#else
 	return Default;
@@ -367,11 +372,154 @@ float2 GetViewportUV(FMaterialVertexParameters Parameters)
 	return BufferUVToViewportUV(GetSceneTextureUV(Parameters));
 }
 
+float2 GetPixelPosition(FMaterialVertexParameters Parameters)
+{
+	return GetViewportUV(Parameters) * View.ViewSizeAndInvSize.xy;
+}
+
+
+#if defined(POST_PROCESS_MATERIAL) && POST_PROCESS_MATERIAL && POST_PROCESS_MATERIAL_AFTER_TAA_UPSAMPLE
+
+float2 GetPixelPosition(FMaterialPixelParameters Parameters)
+{
+	return Parameters.SvPosition.xy - float2(ViewportRect.xy);
+}
+
+float2 GetViewportUV(FMaterialPixelParameters Parameters)
+{
+	return GetPixelPosition(Parameters) * ViewportSize.zw;
+}
+
+#else
+
+float2 GetPixelPosition(FMaterialPixelParameters Parameters)
+{
+	return Parameters.SvPosition.xy - float2(View.ViewRectMin.xy);
+}
+
 float2 GetViewportUV(FMaterialPixelParameters Parameters)
 {
 	return SvPositionToViewportUV(Parameters.SvPosition);
 }
 
+#endif
+
+
+// Returns whether a scene texture id is a for a post process input or not.
+bool IsPostProcessInputSceneTexture(const uint SceneTextureId)
+{
+	return (SceneTextureId >= 14 && SceneTextureId <= 20);
+}
+
+
+// Returns the view size and texel size in a given scene texture.
+float4 GetSceneTextureViewSize(const uint SceneTextureId)
+{
+	#if POST_PROCESS_MATERIAL && POST_PROCESS_MATERIAL_AFTER_TAA_UPSAMPLE
+	if (IsPostProcessInputSceneTexture(SceneTextureId))
+	{
+		return ViewportSize;
+	}
+	#endif
+	return View.ViewSizeAndInvSize;
+}
+
+
+// Return the buffer UV min and max for a given scene texture id.
+float4 GetSceneTextureUVMinMax(const uint SceneTextureId)
+{
+	#if POST_PROCESS_MATERIAL
+	{
+		const uint PostProcessInputIndex = SceneTextureId - 14;
+
+			 if (PostProcessInputIndex == 0)	return PostprocessInput0MinMax;
+		else if (PostProcessInputIndex == 1)	return PostprocessInput1MinMax;
+		else if (PostProcessInputIndex == 2)	return PostprocessInput2MinMax;
+		else if (PostProcessInputIndex == 3)	return PostprocessInput3MinMax;
+		else if (PostProcessInputIndex == 4)	return PostprocessInput4MinMax;
+		else if (PostProcessInputIndex == 5)	return PostprocessInput5MinMax;
+		else if (PostProcessInputIndex == 6)	return PostprocessInput6MinMax;
+	}
+	#endif
+
+	return View.BufferBilinearUVMinMax;
+}
+
+
+// Transforms viewport UV to scene texture's UV.
+MaterialFloat2 ViewportUVToSceneTextureUV(MaterialFloat2 ViewportUV, const uint SceneTextureId)
+{
+	#if POST_PROCESS_MATERIAL
+	{
+		// If compiling for material permutation that assume BufferSize == ViewSize.
+		#if POST_PROCESS_MATERIAL_UV_POLICY == 0
+		{
+			return ViewportUV;
+		}
+		#endif
+
+		#if POST_PROCESS_MATERIAL_AFTER_TAA_UPSAMPLE
+		if (IsPostProcessInputSceneTexture(SceneTextureId))
+		{
+			return ViewportUVToPostProcessingSceneColorBufferUV(ViewportUV);
+		}
+		#endif
+	}
+	#endif
+
+	return ViewportUVToBufferUV(ViewportUV);
+}
+
+
+// Manually clamp scene texture UV as if using a clamp sampler.
+MaterialFloat2 ClampSceneTextureUV(MaterialFloat2 BufferUV, const uint SceneTextureId)
+{
+	#if POST_PROCESS_MATERIAL
+	{
+		// If compiling for material permutation that assume BufferSize == ViewSize, then there is no need to clamp.
+		#if POST_PROCESS_MATERIAL_UV_POLICY == 0
+		{
+			return BufferUV;
+		}
+		#endif
+	}
+	#endif
+
+	float4 MinMax = GetSceneTextureUVMinMax(SceneTextureId);
+
+	return clamp(BufferUV, MinMax.xy, MinMax.zw);
+}
+
+
+// Get default scene texture's UV.
+MaterialFloat2 GetDefaultSceneTextureUV(FMaterialVertexParameters Parameters, const uint SceneTextureId)
+{
+	return GetSceneTextureUV(Parameters);
+}
+
+
+// Get default scene texture's UV.
+MaterialFloat2 GetDefaultSceneTextureUV(FMaterialPixelParameters Parameters, const uint SceneTextureId)
+{
+	#if POST_PROCESS_MATERIAL
+	{
+		// If compiling for material permutation that assume BufferSize == ViewSize, then return scene texture UV.
+		#if POST_PROCESS_MATERIAL_UV_POLICY == 0
+		{
+			return GetSceneTextureUV(Parameters);
+		}
+		#endif
+
+		#if POST_PROCESS_MATERIAL_AFTER_TAA_UPSAMPLE
+		{
+			return ViewportUVToSceneTextureUV(GetViewportUV(Parameters), SceneTextureId);
+		}
+		#endif
+	}
+	#endif
+
+	return GetSceneTextureUV(Parameters);
+}
 
 
 #if DECAL_PRIMITIVE && NUM_MATERIAL_TEXCOORDS
@@ -904,7 +1052,7 @@ float2 RotateScaleOffsetTexCoords(float2 InTexCoords, float4 InRotationScale, fl
 #if USES_SPEEDTREE
 
 /** Vertex offset for SpeedTree wind and LOD */
-float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int GeometryType, int WindType, int LODType, float BillboardThreshold, FSpeedTreeData STData) 
+float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int GeometryType, int WindType, int LODType, float BillboardThreshold, bool bExtraBend, float3 ExtraBend, FSpeedTreeData STData) 
 {
 	#if (NUM_MATERIAL_TEXCOORDS_VERTEX < 6) || IS_MESHPARTICLE_FACTORY
 		return float4(0,0,0);
@@ -931,12 +1079,10 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 #if !USE_INSTANCING || !USE_DITHERED_LOD_TRANSITION
 	if (LODType == SPEEDTREE_LOD_TYPE_SMOOTH) 
 	{
-		const float ScreenMultiple = 0.5 * max(View.ViewSizeAndInvSize.x * ResolvedView.ViewToClip[0][0],
-												View.ViewSizeAndInvSize.y * ResolvedView.ViewToClip[1][1]);
-		const float ScreenRadius = ScreenMultiple * Primitive.ObjectWorldPositionAndRadius.w / 
-									max(1.0, dot(TreePos - ResolvedView.WorldCameraOrigin, ResolvedView.ViewForward.xyz));
-		const float ScreenArea = PI * ScreenRadius * ScreenRadius * View.ViewSizeAndInvSize.z * View.ViewSizeAndInvSize.w;
-		LodInterp = saturate((ScreenArea - SpeedTreeLODInfo.x) / SpeedTreeLODInfo.z);
+		const float Dist = length(TreePos - ResolvedView.WorldCameraOrigin);
+        const float ScreenMultiple = 0.5 * max(ResolvedView.ViewToClip[0][0], ResolvedView.ViewToClip[1][1]);
+        const float ScreenRadius = 2.0 * ScreenMultiple * Primitive.ObjectWorldPositionAndRadius.w / max(1.0, Dist);
+        LodInterp = saturate((ScreenRadius - SpeedTreeLODInfo.x) / SpeedTreeLODInfo.z);
 	}
 #endif
 	TreePos *= 0.001; // The only other use of the tree position is as an offset into trig functions, but big numbers don't play nice there
@@ -1002,8 +1148,23 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 		{
 			// remove anchor pos from vertex position
 			float3 Anchor = float3(Parameters.TexCoords[4].y, Parameters.TexCoords[5].x, Parameters.TexCoords[5].y);
+
+			// face camera-facing leaves to the camera, if needed
+			if (GeometryType == SPEEDTREE_GEOMETRY_TYPE_FACINGLEAF) 
+			{
+				// have to rotate the view into local space
+				FinalPosition = LocalPosition - Anchor;
+				FinalPosition = FinalPosition.x * ResolvedView.ViewRight + 
+								FinalPosition.y * ResolvedView.ViewUp + 
+								FinalPosition.z * ResolvedView.ViewForward;
+			}
+			
 			Anchor = (mul(Anchor, LocalToWorld)) / TreeScale;
-			FinalPosition -= Anchor;
+			
+			if (GeometryType == SPEEDTREE_GEOMETRY_TYPE_LEAF)
+			{
+				FinalPosition -= Anchor;
+			}
 
 			// smooth LOD
 			#if !USE_INSTANCING
@@ -1022,15 +1183,6 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 					}
 				}
 			#endif
-
-			// face camera-facing leaves to the camera, if needed
-			if (GeometryType == SPEEDTREE_GEOMETRY_TYPE_FACINGLEAF) 
-			{
-				// have to rotate the view into local space
-				FinalPosition = FinalPosition.x * ResolvedView.ViewRight + 
-								FinalPosition.y * ResolvedView.ViewUp + 
-								FinalPosition.z * ResolvedView.ViewForward;
-			}
 
 			// leaf wind
 			if (WindType > SPEEDTREE_WIND_TYPE_FASTEST && WindType != SPEEDTREE_WIND_TYPE_PALM) 
@@ -1053,9 +1205,10 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 	}
 
 	// global wind can apply to the whole tree, even billboards
-	if (WindType != SPEEDTREE_WIND_TYPE_NONE)
+	bool bHasGlobal = (WindType != SPEEDTREE_WIND_TYPE_NONE);
+	if (bExtraBend || bHasGlobal)
 	{
-		FinalPosition = GlobalWind(STData, FinalPosition, TreePos, true);
+		FinalPosition = GlobalWind(STData, FinalPosition, TreePos, true, bHasGlobal, bExtraBend, ExtraBend);
 	}
 
 	// convert into a world space offset
@@ -1063,14 +1216,14 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 }
 
 /** Vertex offset for SpeedTree wind and LOD */
-float3 GetSpeedTreeVertexOffset(FMaterialVertexParameters Parameters, int GeometryType, int WindType, int LODType, float BillboardThreshold, bool bUsePreviousFrame) 
+float3 GetSpeedTreeVertexOffset(FMaterialVertexParameters Parameters, int GeometryType, int WindType, int LODType, float BillboardThreshold, bool bUsePreviousFrame, bool bExtraBend, float3 ExtraBend) 
 {
 #if VF_SUPPORTS_SPEEDTREE_WIND
 	if (bUsePreviousFrame)
 	{
-		return GetSpeedTreeVertexOffsetInner(Parameters, GeometryType, WindType, LODType, BillboardThreshold, GetPreviousSpeedTreeData());
+		return GetSpeedTreeVertexOffsetInner(Parameters, GeometryType, WindType, LODType, BillboardThreshold, bExtraBend, ExtraBend, GetPreviousSpeedTreeData());
 	}
-	return GetSpeedTreeVertexOffsetInner(Parameters, GeometryType, WindType, LODType, BillboardThreshold, GetCurrentSpeedTreeData());
+	return GetSpeedTreeVertexOffsetInner(Parameters, GeometryType, WindType, LODType, BillboardThreshold, bExtraBend, ExtraBend, GetCurrentSpeedTreeData());
 #else
 	return 0;
 #endif
@@ -1091,27 +1244,8 @@ MaterialFloat2 GetLightmapUVs(FMaterialPixelParameters Parameters)
 #include "/Engine/Private/EyeAdaptationCommon.ush"
 #endif
 
-#if POST_PROCESS_MATERIAL
-// only Postprocess material bind PostprocessInput0, PostprocessInput0Size, PostprocessInput0MinMax ...
-#include "/Engine/Private/PostProcessCommon.ush"			// PostprocessInput0
-#endif
-
 #if NEEDS_SCENE_TEXTURES
 #include "/Engine/Private/DeferredShadingCommon.ush"		// GetGBufferData()
-
-float4 GetPostProcessInputSize(uint Index)
-{
-#if POST_PROCESS_MATERIAL
-		 if (Index == 0)	return PostprocessInput0Size;
-	else if (Index == 1)	return PostprocessInput1Size;
-	else if (Index == 2)	return PostprocessInput2Size;
-	else if (Index == 3)	return PostprocessInput3Size;
-	else if (Index == 4)	return PostprocessInput4Size;
-	else if (Index == 5)	return PostprocessInput5Size;
-	else if (Index == 6)	return PostprocessInput6Size;
-#endif
-	return 1.0f;
-}
 
 float4 GetPostProcessInputMinMax(uint Index)
 {

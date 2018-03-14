@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3473462
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:エディタとツール
 Crumbs: %ROOT%, Gameplay, GettingStarted
@@ -29,7 +29,8 @@ topic-image:editortypes_topic.png
 |[INCLUDE:GettingStarted\SubEditors#mediaeditorimage]|[INCLUDE:GettingStarted\SubEditors#mediaeditor]| 
 
 
-<!---
+[COMMENT:none]
+-
 [EXCERPT:leveleditorimage]
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -629,4 +630,5 @@ Paper2D フリップブック エディタを使って、フリップブック �
 詳細は、以下をご覧ください。[](Engine/MediaFramework)
 [/EXCERPT:mediaeditor]
 
---->	
+-
+[/COMMENT]	

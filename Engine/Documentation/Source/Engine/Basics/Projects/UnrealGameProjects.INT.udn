@@ -5,45 +5,10 @@ Description:Overview of game projects and instructions for working with them.
 version: 4.9
 parent:Engine/Editor
 order:8
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Basics/Projects:title%](Engine/Basics/Projects/project_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Basics/Projects:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Basics/Projects:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Basics/Projects]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Basics/Projects:title%](Engine/Basics/Projects/project_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Basics/Projects:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Basics/Projects:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Basics/Projects]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:project_topic.png
+related:Engine/Basics/Projects/CreatingTemplates
+related:Programming/Development/CompilingProjects
+related:Programming/Development/ManagingGameCode
 
 [EXCERPT:Main]
 [EXCERPT:Intro]
@@ -52,8 +17,6 @@ order:8
 
 [/EXCERPT:Intro]
 
-
-[REGION:topics half]
 %Engine/Basics/Projects/Browser:topic%
 [OBJECT:Topic]
 	[PARAM:image]
@@ -69,25 +32,10 @@ order:8
 		[RELATIVE:Engine/Basics/Projects/Packaging]
 	[/PARAM]
 [/OBJECT]
-[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/related_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Related Topics
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/Basics/Projects/CreatingTemplates "%Engine/Basics/Projects/CreatingTemplates:description%")
-	* [](Programming/Development/CompilingProjects "%Programming/Development/CompilingProjects:description%")
-	* [](Programming/Development/ManagingGameCode "%Programming/Development/ManagingGameCode:description%")
-	[/PARAM]
-[/OBJECT]
 
-<!--
+[COMMENT:none]
+
 Projects can be one of two types:
 
 * **Content-Only** - These are projects where all development is done through the editor using content assets such as maps, art assets, _Blueprints_, etc.
@@ -98,6 +46,7 @@ Content projects can be converted to code projects using the [](Programming/Deve
 [/REGION]
 
 
--->
+
+[/COMMENT]
 
 [/EXCERPT:Main]

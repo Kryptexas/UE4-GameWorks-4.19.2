@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VelocityRendering.h: Velocity rendering definitions.
@@ -34,10 +34,10 @@ public:
 		);
 
 	// FMeshDrawingPolicy interface.
-	FDrawingPolicyMatchResult Matches(const FVelocityDrawingPolicy& Other) const
+	FDrawingPolicyMatchResult Matches(const FVelocityDrawingPolicy& Other, bool bForReals = false) const
 	{
 		DRAWING_POLICY_MATCH_BEGIN
-			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
+			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other, bForReals)) &&
 			DRAWING_POLICY_MATCH(HullShader == Other.HullShader) &&
 			DRAWING_POLICY_MATCH(DomainShader == Other.DomainShader) &&
 			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&

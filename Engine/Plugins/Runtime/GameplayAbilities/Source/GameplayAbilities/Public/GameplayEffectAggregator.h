@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,7 +7,9 @@
 #include "GameplayEffectTypes.h"
 
 struct FGameplayEffectSpec;
+struct FAggregator;
 
+/** Data that is used in aggregator evaluation that is passed from the caller/game code */
 struct GAMEPLAYABILITIES_API FAggregatorEvaluateParameters
 {
 	FAggregatorEvaluateParameters()
@@ -31,6 +33,21 @@ struct GAMEPLAYABILITIES_API FAggregatorEvaluateParameters
 	bool IncludePredictiveMods;
 };
 
+/** Data that is used in aggregator evaluation that is intrinsic to the aggregator itself. Not passed in from the game code (though maybe originally setup once by the game code)   */
+struct GAMEPLAYABILITIES_API FAggregatorEvaluateMetaData
+{
+	typedef TFunction< void(const FAggregatorEvaluateParameters&, const FAggregator*) > FCustomQualifiesFunc;
+
+	FAggregatorEvaluateMetaData(FCustomQualifiesFunc InQualifierFunc) 
+		: CustomQualifiesFunc(InQualifierFunc)
+	{
+
+	}
+
+
+	FCustomQualifiesFunc CustomQualifiesFunc;
+};
+
 struct GAMEPLAYABILITIES_API FAggregatorMod
 {
 	const FGameplayTagRequirements*	SourceTagReqs;
@@ -41,8 +58,26 @@ struct GAMEPLAYABILITIES_API FAggregatorMod
 
 	FActiveGameplayEffectHandle ActiveHandle;	// Handle of the active GameplayEffect we are tied to (if any)
 	bool IsPredicted;
+	
+	bool Qualifies() const { return IsQualified; }
 
-	bool Qualifies(const FAggregatorEvaluateParameters& Parameters) const;
+	/** Called to update the Qualifies bool */
+	void UpdateQualifies(const FAggregatorEvaluateParameters& Parameters) const;
+
+	/** Intended to be used by FAggregatorEvaluateMetaData::CustomQualifiesFunc to toggle qualifications of mods */
+	void SetExplicitQualifies(bool NewQualifies) const { IsQualified = NewQualifies; }
+
+private:
+
+	/** This bool is updated by UpdateQualifiees. Think of it as a transient bool, we make a full pass on all qualifiers first (::UpdateQualifies) then while evaluating we check what the bool was set to (::Qualifies) */
+	mutable bool IsQualified;
+};
+
+struct GAMEPLAYABILITIES_API FAggregatorModInfo
+{
+	EGameplayModEvaluationChannel Channel;
+	EGameplayModOp::Type Op;
+	const FAggregatorMod* Mod;
 };
 
 /** Struct representing an individual aggregation channel/depth. Contains mods of all mod op types. */
@@ -98,6 +133,12 @@ struct GAMEPLAYABILITIES_API FAggregatorModChannel
 	 * @param Other	Other channel to add mods from
 	 */
 	void AddModsFrom(const FAggregatorModChannel& Other);
+
+	/** runs UpdateQualifies on all mods */
+	void UpdateQualifiesOnAllMods(const FAggregatorEvaluateParameters& Parameters) const;
+
+	/** Helper function for iterating through all mods within a channel */
+	void ForEachMod(FAggregatorModInfo& Info, TFunction<void (const FAggregatorModInfo&) > Func) const;
 
 	/**
 	 * Populate a mapping of channel to corresponding mods
@@ -192,6 +233,9 @@ struct GAMEPLAYABILITIES_API FAggregatorModChannelContainer
 	 */
 	float ReverseEvaluate(float FinalValue, const FAggregatorEvaluateParameters& Parameters) const;
 
+	/** Calls ::UpdateQualifies on each mod */
+	void EvaluateQualificationForAllMods(const FAggregatorEvaluateParameters& Parameters) const;
+
 	/**
 	 * Removes any mods from every channel matching the specified handle
 	 * 
@@ -205,6 +249,9 @@ struct GAMEPLAYABILITIES_API FAggregatorModChannelContainer
 	 * @param Other	Container to add mods from
 	 */
 	void AddModsFrom(const FAggregatorModChannelContainer& Other);
+
+	/** Helper function for iterating through all mods within the channel container */
+	void ForEachMod( TFunction<void (const FAggregatorModInfo&) > ) const;
 
 	/**
 	 * Populate a mapping of channel to corresponding mods for debugging purposes
@@ -235,7 +282,8 @@ struct GAMEPLAYABILITIES_API FAggregator : public TSharedFromThis<FAggregator>
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAggregatorDirty, FAggregator*);
 
 	FAggregator(float InBaseValue=0.f) 
-		: NetUpdateID(0)
+		: EvaluationMetaData(nullptr)
+		, NetUpdateID(0)
 		, BaseValue(InBaseValue)
 		, BroadcastingDirtyCount(0)
 	{}
@@ -275,6 +323,9 @@ struct GAMEPLAYABILITIES_API FAggregator : public TSharedFromThis<FAggregator>
 	/** Evaluates the contribution from the GE associated with ActiveHandle */
 	float EvaluateContribution(const FAggregatorEvaluateParameters& Parameters, FActiveGameplayEffectHandle ActiveHandle) const;
 
+	/** Calls ::UpdateQualifies on each mod. Useful for when you need to manually inspect aggregators */
+	void EvaluateQualificationForAllMods(const FAggregatorEvaluateParameters& Parameters) const;
+
 	void TakeSnapshotOf(const FAggregator& AggToSnapshot);
 
 	FOnAggregatorDirty OnDirty;
@@ -302,6 +353,12 @@ struct GAMEPLAYABILITIES_API FAggregator : public TSharedFromThis<FAggregator>
 	 * @param SwappedDependencies	Mapping of old gameplay effect handles to new replacements
 	 */
 	void OnActiveEffectDependenciesSwapped(const TMap<FActiveGameplayEffectHandle, FActiveGameplayEffectHandle>& SwappedDependencies);
+
+	/** Helper function for iterating through all mods within the aggregator */
+	void ForEachMod( TFunction<void (const FAggregatorModInfo&) > ) const;
+
+	/** Custom meta data for the aggregator */
+	FAggregatorEvaluateMetaData* EvaluationMetaData;
 
 	/** NetworkID that we had our last update from. Will only be set on clients and is only used to ensure we don't recompute server base value twice. */
 	int32 NetUpdateID;

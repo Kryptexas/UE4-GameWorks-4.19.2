@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Abstract base class of animation assets that can be played back and evaluated to produce a pose.
@@ -662,7 +662,7 @@ public:
 	float GetPreviousAnimationPositionRatio() const
 	{
 		checkSlow(!bIsLeader);
-		return AnimLengthRatio;
+		return PreviousAnimLengthRatio;
 	}
 
 	// Returns the synchronization point (normalized time; only legal to call if ticking a follower)
@@ -670,6 +670,11 @@ public:
 	{
 		checkSlow(!bIsLeader);
 		return AnimLengthRatio;
+	}
+
+	void InvalidateMarkerSync()
+	{
+		bIsMarkerPositionValid = false;
 	}
 
 	bool CanUseMarkerPosition() const

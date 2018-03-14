@@ -59,8 +59,10 @@ Select all of the new Sprite assets, **Right-click** on them, and choose **Creat
 ![](sprite_create_flipbook.gif)(convert:false)
 [/REGION]
 
-<!-- 
+[COMMENT:none]
+ 
 ## Series of Sprites from JSON Sprite Sheet
 
 By importing a JSON formatted sprite sheet description, which will import associated textures and create sprites and a flipbook for the described frames.
--->
+
+[/COMMENT]

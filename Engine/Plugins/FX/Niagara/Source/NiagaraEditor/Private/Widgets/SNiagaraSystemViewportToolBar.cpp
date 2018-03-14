@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SNiagaraSystemViewportToolBar.h"
 #include "Widgets/Layout/SBorder.h"
 #include "EditorStyleSet.h"
 #include "NiagaraEditorCommands.h"
+#include "EditorViewportCommands.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraSystemViewportToolBar"
 
@@ -51,6 +52,13 @@ bool SNiagaraSystemViewportToolBar::IsViewModeSupported(EViewModeIndex ViewModeI
 		return true;
 	}
 	return true; 
+}
+
+void SNiagaraSystemViewportToolBar::ExtendOptionsMenu(FMenuBuilder& OptionsMenuBuilder) const
+{
+	OptionsMenuBuilder.BeginSection("LevelViewportNavigationOptions", LOCTEXT("NavOptionsMenuHeader", "Navigation Options"));
+	OptionsMenuBuilder.AddMenuEntry(FNiagaraEditorCommands::Get().ToggleOrbit);
+	OptionsMenuBuilder.EndSection();
 }
 
 #undef LOCTEXT_NAMESPACE

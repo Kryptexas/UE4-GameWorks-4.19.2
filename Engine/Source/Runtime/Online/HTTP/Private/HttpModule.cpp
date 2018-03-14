@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "HttpModule.h"
 #include "Misc/ConfigCacheIni.h"
@@ -20,8 +20,6 @@ void FHttpModule::StartupModule()
 {	
 	Singleton = this;
 	MaxReadBufferSize = 256 * 1024;
-
-	FPlatformHttp::Init();
 
 	HttpTimeout = 300.0f;
 	GConfig->GetFloat(TEXT("HTTP"), TEXT("HttpTimeout"), HttpTimeout, GEngineIni);
@@ -58,6 +56,8 @@ void FHttpModule::StartupModule()
 
 	HttpThreadIdleMinimumSleepTimeInSeconds = 0.0f;
 	GConfig->GetFloat(TEXT("HTTP"), TEXT("HttpThreadIdleMinimumSleepTimeInSeconds"), HttpThreadIdleMinimumSleepTimeInSeconds, GEngineIni);
+
+	FPlatformHttp::Init();
 
 	HttpManager = FPlatformHttp::CreatePlatformHttpManager();
 	if (NULL == HttpManager)

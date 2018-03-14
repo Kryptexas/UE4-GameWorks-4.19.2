@@ -73,9 +73,11 @@ resources
 	* 程序化内容
 	* 覆盖系统
 
-<!--
+[COMMENT:none]
+
 
 * 使用 [级联粒子编辑器](Engine/Rendering/ParticleSystems/Cascade) 创建表现枪口火舌的 [粒子效果](Engine/Rendering/ParticleSystems)！然后使用 [粒子系统组件](Engine/Components/Rendering#particlesystemcomponent)，将其添加到 **ThirdPersonCharacter** 蓝图，并在 **InputAction Fire** 事件中启用组件。
 	* 奖励提示：为 **FirstPersonProjectile** 添加一个粒子系统组件，使其获得烟雾拖尾的效果。在 [此处](Engine/Rendering/ParticleSystems/Reference/Modules/Required) 查找 **Use Local Space** 属性。
 
--->
+
+[/COMMENT]

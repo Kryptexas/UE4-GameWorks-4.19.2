@@ -5,13 +5,15 @@ Description:State Machines allow Skeletal Animations to be broken up into variou
 version: 4.12
 tags:Assets
 topic-image:Engine/Animation/Overview/StateMachineTopic.png
-
+related:Gameplay/HowTo/CharacterMovement/Blueprints
+related:Gameplay/HowTo/CharacterMovement/Blueprints
 
 [REGION:banner]
 ![](StateMachineImage.png)
 [/REGION]
 
-<!--
+[COMMENT]
+
 [EXCERPT:Intro]
 **State Machines** provide a graphical way to break the animation of a Skeletal Mesh into a series of States. These states are then governed by Transition Rules that control how to blend from one state to another. As a tool, they greatly simplify the design process for Skeletal Mesh animation, in that you can create a graph that easily controls how your characters can flow between types of animation without having to create a complex Blueprint network.
 
@@ -20,7 +22,8 @@ They also simplify conceptualization of your animation graph. You can start the 
 For example, a character may have a state of "Idle" when not moving. Once the character's speed exceeds a certain value, the character may blend into another state of "Movement." There may be any number of other states, such as Falling, Jumping, Crouching, Sprinting, and so forth. By using State Machines, animators and artists can quickly visualize how data is flowing through their animation network.
 [/EXCERPT:Intro]
 
--->
+
+[/COMMENT]
 
 [EXCERPT:Overview]
 **State Machines** provide a graphical way to break the animation of a Skeletal Mesh into a series of States. These states are then governed by **Transition Rules** that control how to blend from one state to another. As a tool, they greatly simplify the design process for Skeletal Mesh animation, in that you can create a graph that easily controls how your characters can flow between types of animation without having to create a complex Blueprint network.
@@ -28,32 +31,10 @@ For example, a character may have a state of "Idle" when not moving. Once the ch
 
 Below you will find the information and tutorials for working with State Machines in Unreal Engine 4. 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Essentials
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine\Animation\StateMachines\Overview "%Engine\Animation\StateMachines\Overview:description%")
-		* [](Engine\Animation\StateMachines\CreatingStateMachines\ "%Engine\Animation\StateMachines\CreatingStateMachines:description%")
-		* [](Engine\Animation\StateMachines\EditingStateMachines\ "%Engine\Animation\StateMachines\EditingStateMachines:description%")		
-	[/PARAM]
-[/OBJECT]
+## Starting Out
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/related_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Related
-	[/PARAM]
-	[PARAM:links]
-		* [](Gameplay/HowTo/CharacterMovement/Blueprints "%Gameplay/HowTo/CharacterMovement/Blueprints:description%")
-		* [Setting Up Paper 2D State Machines](Engine/Paper2D/HowTo/Animation/ "%Engine/Paper2D/HowTo/Animation/:description%")		
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"topic" parent:"Engine/Animation/StateMachines" type:"overview")]
 
+## Guides
 
-
+[DIR(output:"fancy" parent:"Engine/Animation/StateMachines" type:"how-to")]

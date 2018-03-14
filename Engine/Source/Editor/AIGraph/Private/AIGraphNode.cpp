@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AIGraphNode.h"
 #include "UObject/Class.h"
@@ -104,11 +104,7 @@ void UAIGraphNode::ResetNodeOwner()
 
 		for (auto& SubNode : SubNodes)
 		{
-			if (SubNode->NodeInstance != nullptr)
-			{
-				SubNode->NodeInstance->Rename(NULL, GraphOwner, REN_DontCreateRedirectors | REN_DoNotDirty);
-				SubNode->NodeInstance->ClearFlags(RF_Transient);
-			}
+			SubNode->ResetNodeOwner();
 		}
 	}
 }

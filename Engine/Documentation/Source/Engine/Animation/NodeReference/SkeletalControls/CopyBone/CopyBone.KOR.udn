@@ -1,44 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:본 복사
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
 Description:한 본의 트랜스폼 데이터 또는 그 컴포넌트를 다른 본으로 복사하는 Copy Bone 노드에 대한 설명입니다.
 version: 4.12
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\CopyBone:title%](Engine\Animation\NodeReference\SkeletalControls\CopyBone\node_copybone.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\CopyBone:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\CopyBone]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\CopyBone:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Animation\NodeReference\SkeletalControls\CopyBone:title%](Engine\Animation\NodeReference\SkeletalControls\CopyBone\node_copybone.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\NodeReference\SkeletalControls\CopyBone:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\NodeReference\SkeletalControls\CopyBone]
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\NodeReference\SkeletalControls\CopyBone:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+topic-image:node_copybone.png
+s
 
 
 **Copy Bone** 은 한 본의 트랜스폼 데이터 또는 그 (이동, 회전, 스케일 등의) 컴포넌트를 다른 본으로 

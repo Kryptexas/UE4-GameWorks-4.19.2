@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -78,6 +78,10 @@ class ENGINE_API UMaterialExpressionTextureSample : public UMaterialExpressionTe
 	UPROPERTY(EditAnywhere, Category = MaterialExpressionTextureSample)
 	int32 ConstMipValue;
 
+	/** Whether the texture should be sampled with per view mip biasing for sharper output with Temporal AA. */
+	UPROPERTY(EditAnywhere, Category = MaterialExpressionTextureSample)
+	uint32 AutomaticViewMipBias : 1;
+
 	//~ Begin UObject Interface
 #if WITH_EDITOR
 	virtual bool CanEditChange(const UProperty* InProperty) const override;
@@ -89,7 +93,7 @@ class ENGINE_API UMaterialExpressionTextureSample : public UMaterialExpressionTe
 	//~ Begin UMaterialExpression Interface
 	virtual const TArray<FExpressionInput*> GetInputs() override;
 	virtual FExpressionInput* GetInput(int32 InputIndex) override;
-	virtual FString GetInputName(int32 InputIndex) const override;
+	virtual FName GetInputName(int32 InputIndex) const override;
 	virtual int32 GetWidth() const override;
 	virtual int32 GetLabelPadding() override { return 8; }
 #if WITH_EDITOR

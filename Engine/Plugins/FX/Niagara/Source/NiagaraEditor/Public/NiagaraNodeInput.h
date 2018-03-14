@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -49,10 +49,6 @@ class UNiagaraNodeInput : public UNiagaraNode
 	GENERATED_UCLASS_BODY()
 
 public:
-
-	UPROPERTY(EditAnywhere, Instanced, Category = Input)
-	class UNiagaraDataInterface* DataInterface;
-
 	UPROPERTY(EditAnywhere, Category = Input)
 	FNiagaraVariable Input;
 
@@ -69,6 +65,7 @@ public:
 
 	//~ Begin UObject Interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostLoad() override;
 	//~ End UObject Interface
 
 	//~ Begin EdGraphNode Interface
@@ -113,5 +110,16 @@ public:
 
 	/** Given an array of nodes, sort them in place by their sort order, then lexicographically if the same.*/
 	static void SortNodes(TArray<UNiagaraNodeInput*>& InOutNodes);
+
+	UNiagaraDataInterface* GetDataInterface() const;
+
+	void SetDataInterface(UNiagaraDataInterface* InDataInterface);
+
+private:
+	void DataInterfaceChanged();
+
+private:
+	UPROPERTY()
+	class UNiagaraDataInterface* DataInterface;
 };
 

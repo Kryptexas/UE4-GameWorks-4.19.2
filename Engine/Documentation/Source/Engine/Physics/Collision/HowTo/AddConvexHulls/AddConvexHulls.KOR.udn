@@ -1,30 +1,8 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:자동 컨벡스 콜리전 툴을 사용하여 스태틱 메시에 콜리전 헐 추가
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
 Description:
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/Collision/Reference:title%](Engine/Physics/Collision/Reference/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/Collision:/Reference:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/Collision/Reference:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Collision/Reference]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
 
 
 ## 단계

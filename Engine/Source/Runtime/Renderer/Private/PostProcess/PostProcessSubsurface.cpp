@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessSubsurface.cpp: Screenspace subsurface scattering implementation.
@@ -167,14 +167,14 @@ class FPostProcessSubsurfaceVisualizePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessSubsurfaceVisualizePS , Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("SUBSURFACE_RADIUS_SCALE"), SUBSURFACE_RADIUS_SCALE);
 		OutEnvironment.SetDefine(TEXT("SUBSURFACE_KERNEL_SIZE"), SUBSURFACE_KERNEL_SIZE);
 	}
@@ -272,7 +272,7 @@ void FRCPassPostProcessSubsurfaceVisualize::Process(FRenderingCompositePassConte
 		return;
 	}
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
 	FIntPoint SrcSize = InputDesc->Extent;
@@ -364,14 +364,14 @@ class FPostProcessSubsurfaceSetupPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessSubsurfaceSetupPS , Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("HALF_RES"), HalfRes);
 		OutEnvironment.SetDefine(TEXT("SUBSURFACE_RADIUS_SCALE"), SUBSURFACE_RADIUS_SCALE);
 		OutEnvironment.SetDefine(TEXT("SUBSURFACE_KERNEL_SIZE"), SUBSURFACE_KERNEL_SIZE);
@@ -480,27 +480,30 @@ void FRCPassPostProcessSubsurfaceSetup::Process(FRenderingCompositePassContext& 
 
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 	const bool bCheckerboard = FRCPassPostProcessSubsurface::RequiresCheckerboardSubsurfaceRendering( SceneContext.GetSceneColorFormat() );
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
 	FIntPoint SrcSize = InputDesc->Extent;
 	FIntPoint DestSize = PassOutputs[0].RenderTargetDesc.Extent;
 
-	FIntRect DestRect = FIntRect(0, 0, DestSize.X, DestSize.Y);
+	int32 ScaleFactor = bHalfRes ? 2 : 1;
+
 	FIntRect SrcRect = View.ViewRect;
-	
-	if(bHalfRes)
-	{
-		// upscale rectangle to not slightly scale (might miss a pixel)
-		SrcRect = DestRect * 2 + View.ViewRect.Min;
-	}
+
+	FIntRect DestRect;
+	DestRect.Min = View.ViewRect.Min / ScaleFactor;
+	ensure(DestRect.Min * ScaleFactor == View.ViewRect.Min);
+	DestRect.Max.X = FMath::DivideAndRoundUp(View.ViewRect.Max.X, ScaleFactor);
+	DestRect.Max.Y = FMath::DivideAndRoundUp(View.ViewRect.Max.Y, ScaleFactor);
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
-	// Set the view family's render target/viewport.
-	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
+	ERenderTargetLoadAction LoadAction = Context.GetLoadActionForRenderTarget(DestRenderTarget);
 
-	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
+	FRHIRenderTargetView RtView = FRHIRenderTargetView(DestRenderTarget.TargetableTexture, LoadAction);
+	FRHISetRenderTargetsInfo Info(1, &RtView, FRHIDepthRenderTargetView());
+	Context.RHICmdList.SetRenderTargetsAndClear(Info);
+	Context.SetViewportAndCallRHI(DestRect);
 
 	if(bHalfRes)
 	{
@@ -530,11 +533,11 @@ void FRCPassPostProcessSubsurfaceSetup::Process(FRenderingCompositePassContext& 
 
 	DrawPostProcessPass(
 		Context.RHICmdList,
-		DestRect.Min.X, DestRect.Min.Y,
-		DestRect.Width(), DestRect.Height(),
+		0, 0,
+		SrcRect.Width(), SrcRect.Height(),
 		SrcRect.Min.X, SrcRect.Min.Y,
 		SrcRect.Width(), SrcRect.Height(),
-		DestSize,
+		SrcRect.Size(),
 		SrcSize,
 		*VertexShader,
 		View.StereoPass,
@@ -553,8 +556,6 @@ FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceSetup::ComputeOutputDesc(EPa
 	// alpha is used to store depth and renormalize (alpha==0 means there is no subsurface scattering)
 	Ret.Format = PF_FloatRGBA;
 
-	Ret.Extent = ViewRect.Size();
-
 	if(bHalfRes)
 	{
 		Ret.Extent = FIntPoint::DivideAndRoundUp(Ret.Extent, 2);
@@ -569,23 +570,24 @@ FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceSetup::ComputeOutputDesc(EPa
 /** Encapsulates the post processing subsurface pixel shader. */
 // @param Direction 0: horizontal, 1:vertical
 // @param SampleSet 0:low, 1:med, 2:high
-template <uint32 Direction, uint32 SampleSet>
+template <uint32 Direction, uint32 SampleSet, uint32 ManuallyClampUV>
 class TPostProcessSubsurfacePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(TPostProcessSubsurfacePS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("SSS_DIRECTION"), Direction);
 		OutEnvironment.SetDefine(TEXT("SSS_SAMPLESET"), SampleSet);
 		OutEnvironment.SetDefine(TEXT("SUBSURFACE_RADIUS_SCALE"), SUBSURFACE_RADIUS_SCALE);
 		OutEnvironment.SetDefine(TEXT("SUBSURFACE_KERNEL_SIZE"), SUBSURFACE_KERNEL_SIZE);
+		OutEnvironment.SetDefine(TEXT("MANUALLY_CLAMP_UV"), ManuallyClampUV);
 	}
 
 	/** Default constructor. */
@@ -644,11 +646,13 @@ public:
 
 // #define avoids a lot of code duplication
 #define VARIATION1(A)		VARIATION2(A,0)			VARIATION2(A,1)			VARIATION2(A,2)
-#define VARIATION2(A, B) typedef TPostProcessSubsurfacePS<A, B> TPostProcessSubsurfacePS##A##B; \
-	IMPLEMENT_SHADER_TYPE2(TPostProcessSubsurfacePS##A##B, SF_Pixel);
+#define VARIATION2(A, B)	VARIATION3(A,B,0)		VARIATION3(A,B,1)
+#define VARIATION3(A, B, C) typedef TPostProcessSubsurfacePS<A, B, C> TPostProcessSubsurfacePS##A##B##C; \
+	IMPLEMENT_SHADER_TYPE2(TPostProcessSubsurfacePS##A##B##C, SF_Pixel);
 	VARIATION1(0) VARIATION1(1) VARIATION1(2)
 #undef VARIATION1
 #undef VARIATION2
+#undef VARIATION3
 
 
 FRCPassPostProcessSubsurface::FRCPassPostProcessSubsurface(uint32 InDirection, bool bInHalfRes)
@@ -658,7 +662,7 @@ FRCPassPostProcessSubsurface::FRCPassPostProcessSubsurface(uint32 InDirection, b
 	check(InDirection < 2);
 }
 
-template <uint32 Direction, uint32 SampleSet>
+template <uint32 Direction, uint32 SampleSet, uint32 ManuallyClampUV>
 void SetSubsurfaceShader(const FRenderingCompositePassContext& Context, TShaderMapRef<FPostProcessVS> &VertexShader)
 {
 	FGraphicsPipelineStateInitializer GraphicsPSOInit;
@@ -667,7 +671,7 @@ void SetSubsurfaceShader(const FRenderingCompositePassContext& Context, TShaderM
 	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
 	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 
-	TShaderMapRef<TPostProcessSubsurfacePS<Direction, SampleSet> > PixelShader(Context.GetShaderMap());
+	TShaderMapRef<TPostProcessSubsurfacePS<Direction, SampleSet, ManuallyClampUV> > PixelShader(Context.GetShaderMap());
 
 	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
 	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
@@ -684,14 +688,28 @@ void SetSubsurfaceShader(const FRenderingCompositePassContext& Context, TShaderM
 template <uint32 Direction>
 void SetSubsurfaceShaderSampleSet(const FRenderingCompositePassContext& Context, TShaderMapRef<FPostProcessVS> &VertexShader, uint32 SampleSet)
 {
-	switch(SampleSet)
-	{
-		case 0: SetSubsurfaceShader<Direction, 0>(Context, VertexShader); break;
-		case 1: SetSubsurfaceShader<Direction, 1>(Context, VertexShader); break;
-		case 2: SetSubsurfaceShader<Direction, 2>(Context, VertexShader); break;
+	FIntRect SrcRect = Context.View.ViewRect;
+	FIntPoint SrcSize = FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY();
 
-	default:
-		check(0);
+	if (SrcRect.Min == FIntPoint::ZeroValue && SrcRect.Max == SrcSize)
+	{
+		switch (SampleSet)
+		{
+		case 0: SetSubsurfaceShader<Direction, 0, 0>(Context, VertexShader); break;
+		case 1: SetSubsurfaceShader<Direction, 1, 0>(Context, VertexShader); break;
+		case 2: SetSubsurfaceShader<Direction, 2, 0>(Context, VertexShader); break;
+		default: check(0);
+		}
+	}
+	else
+	{
+		switch (SampleSet)
+		{
+		case 0: SetSubsurfaceShader<Direction, 0, 1>(Context, VertexShader); break;
+		case 1: SetSubsurfaceShader<Direction, 1, 1>(Context, VertexShader); break;
+		case 2: SetSubsurfaceShader<Direction, 2, 1>(Context, VertexShader); break;
+		default: check(0);
+		}
 	}
 }
 
@@ -710,7 +728,7 @@ void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Conte
 		GRenderTargetPool.VisualizeTexture.SetCheckPoint(Context.RHICmdList, PooledRT);
 	}
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
 	FIntPoint SrcSize = InputDesc->Extent;
@@ -721,22 +739,25 @@ void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Conte
 	check(SrcSize.X);
 	check(SrcSize.Y);
 
-	FIntRect SrcRect = FIntRect(0, 0, DestSize.X, DestSize.Y);
+	int32 ScaleFactor = bHalfRes ? 2 : 1;
+
+	FIntRect SrcRect;
+	SrcRect.Min = View.ViewRect.Min / ScaleFactor;
+	ensure(SrcRect.Min * ScaleFactor == View.ViewRect.Min);
+	SrcRect.Max.X = FMath::DivideAndRoundUp(View.ViewRect.Max.X, ScaleFactor);
+	SrcRect.Max.Y = FMath::DivideAndRoundUp(View.ViewRect.Max.Y, ScaleFactor);
 	FIntRect DestRect = SrcRect;
 
 	TRefCountPtr<IPooledRenderTarget> NewSceneColor;
 
-	const FSceneRenderTargetItem* DestRenderTarget;
-	{
-		DestRenderTarget = &PassOutputs[0].RequestSurface(Context);
+	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
-		check(DestRenderTarget);
-	}
+	ERenderTargetLoadAction LoadAction = Context.GetLoadActionForRenderTarget(DestRenderTarget);
 
-	// Set the view family's render target/viewport.
-	SetRenderTarget(Context.RHICmdList, DestRenderTarget->TargetableTexture, FTextureRHIRef());
-
-	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
+	FRHIRenderTargetView RtView = FRHIRenderTargetView(DestRenderTarget.TargetableTexture, LoadAction);
+	FRHISetRenderTargetsInfo Info(1, &RtView, FRHIDepthRenderTargetView());
+	Context.RHICmdList.SetRenderTargetsAndClear(Info);
+	Context.SetViewportAndCallRHI(DestRect);
 
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
@@ -755,18 +776,18 @@ void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Conte
 
 	DrawPostProcessPass(
 		Context.RHICmdList,
-		DestRect.Min.X, DestRect.Min.Y,
+		0, 0,
 		DestRect.Width(), DestRect.Height(),
 		SrcRect.Min.X, SrcRect.Min.Y,
 		SrcRect.Width(), SrcRect.Height(),
-		DestSize,
+		DestRect.Size(),
 		SrcSize,
 		*VertexShader,
 		View.StereoPass,
 		Context.HasHmdMesh(),
 		EDRF_UseTriangleOptimization);
 
-	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget->TargetableTexture, DestRenderTarget->ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
 
 
@@ -793,14 +814,14 @@ class TPostProcessSubsurfaceRecombinePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(TPostProcessSubsurfaceRecombinePS, Global);
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM4);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Parameters,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("RECOMBINE_QUALITY"), RecombineQuality);
 		OutEnvironment.SetDefine(TEXT("HALF_RES"), (uint32)(RecombineMode == 1));
 		OutEnvironment.SetDefine(TEXT("RECOMBINE_SUBSURFACESCATTER"), (uint32)(RecombineMode != 2));
@@ -902,7 +923,7 @@ void FRCPassPostProcessSubsurfaceRecombine::Process(FRenderingCompositePassConte
 
 	check(InputDesc);
 
-	const FSceneView& View = Context.View;
+	const FViewInfo& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
 	FIntPoint SrcSize = InputDesc->Extent;
@@ -913,19 +934,22 @@ void FRCPassPostProcessSubsurfaceRecombine::Process(FRenderingCompositePassConte
 	check(SrcSize.X);
 	check(SrcSize.Y);
 
-	FIntRect SrcRect = FIntRect(0, 0, InputDesc->Extent.X, InputDesc->Extent.Y);
-	FIntRect DestRect = View.ViewRect;
+	FIntRect SrcRect = View.ViewRect;
+	FIntRect DestRect = SrcRect;
 
 	TRefCountPtr<IPooledRenderTarget>& SceneColor = SceneContext.GetSceneColor();
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
-	// Set the view family's render target/viewport.
-	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
+	ERenderTargetLoadAction LoadAction = Context.GetLoadActionForRenderTarget(DestRenderTarget);
+
+	FRHIRenderTargetView RtView = FRHIRenderTargetView(DestRenderTarget.TargetableTexture, LoadAction);
+	FRHISetRenderTargetsInfo Info(1, &RtView, FRHIDepthRenderTargetView());
+	Context.RHICmdList.SetRenderTargetsAndClear(Info);
 
 	CopyOverOtherViewportsIfNeeded(Context, View);
 
-	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
+	Context.SetViewportAndCallRHI(DestRect);
 
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
@@ -1007,11 +1031,11 @@ void FRCPassPostProcessSubsurfaceRecombine::Process(FRenderingCompositePassConte
 
 	DrawPostProcessPass(
 		Context.RHICmdList,
-		DestRect.Min.X, DestRect.Min.Y,
+		0, 0,
 		DestRect.Width(), DestRect.Height(),
 		SrcRect.Min.X, SrcRect.Min.Y,
 		SrcRect.Width(), SrcRect.Height(),
-		DestSize,
+		DestRect.Size(),
 		SrcSize,
 		*VertexShader,
 		View.StereoPass,

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GlobalShader.cpp: Global shader implementation.
@@ -32,7 +32,22 @@ FGlobalShaderMapId::FGlobalShaderMapId(EShaderPlatform Platform)
 	for (TLinkedList<FShaderType*>::TIterator ShaderTypeIt(FShaderType::GetTypeList()); ShaderTypeIt; ShaderTypeIt.Next())
 	{
 		FGlobalShaderType* GlobalShaderType = ShaderTypeIt->GetGlobalShaderType();
-		if (GlobalShaderType && GlobalShaderType->ShouldCache(Platform))
+		if (!GlobalShaderType)
+		{
+			continue;
+		}
+
+		bool bList = false;
+		for (int32 PermutationId = 0; PermutationId < GlobalShaderType->GetPermutationCount(); PermutationId++)
+		{
+			if (GlobalShaderType->ShouldCompilePermutation(Platform, PermutationId))
+			{
+				bList = true;
+				break;
+			}
+		}
+
+		if (bList)
 		{
 			ShaderTypes.Add(GlobalShaderType);
 		}
@@ -48,7 +63,7 @@ FGlobalShaderMapId::FGlobalShaderMapId(EShaderPlatform Platform)
 			for (const FShaderType* Shader : StageTypes)
 			{
 				const FGlobalShaderType* GlobalShaderType = Shader->GetGlobalShaderType();
-				if (GlobalShaderType->ShouldCache(Platform))
+				if (GlobalShaderType->ShouldCompilePermutation(Platform, /* PermutationId = */ 0))
 				{
 					++NumStagesNeeded;
 				}
@@ -97,6 +112,7 @@ void FGlobalShaderMapId::AppendKeyString(FString& KeyString) const
 
 		KeyString += TEXT("_");
 		KeyString += ShaderTypeDependency.ShaderType->GetName();
+		KeyString += FString::Printf(TEXT("%i"), ShaderTypeDependency.PermutationId);
 
 		// Add the type's source hash so that we can invalidate cached shaders when .usf changes are made
 		KeyString += ShaderTypeDependency.SourceHash.ToString();

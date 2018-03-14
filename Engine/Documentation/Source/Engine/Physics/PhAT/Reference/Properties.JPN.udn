@@ -90,7 +90,8 @@ SkillLevel:Beginner
 | **Constraint Draw Size** | Controls how large constraints are drawn in the **物理アセットツール** 内で描画するコンストレイントの大きさを調節します。 |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:UpdateJointsfromAnimationEnum]
 
 ルート ボディのシミュレーションでコンポーネント トランスフォームを反映するかどうか判断します。
@@ -100,7 +101,8 @@ SkillLevel:Beginner
 | **Simulation Updates Component Transfrom** | シミュレーションでコンポーネントのトランスフォームを反映します。 |
 | **Component Trasform is Kinematic** | シミュレーションでコンポーネントのトランスフォームを反映しません。その代わり、アニメーションやブループリントなどから操作を行います。 |
 [/EXCERPT]
--->
+
+[/COMMENT]
 
 ## Body Mode のプロパティ
 

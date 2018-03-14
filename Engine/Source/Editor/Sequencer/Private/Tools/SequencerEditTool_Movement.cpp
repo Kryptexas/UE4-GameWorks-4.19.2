@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Tools/SequencerEditTool_Movement.h"
 #include "Editor.h"
 #include "Fonts/FontMeasure.h"
+#include "Styling/CoreStyle.h"
 #include "EditorStyleSet.h"
 #include "SequencerCommonHelpers.h"
 #include "SSequencer.h"
@@ -70,6 +71,10 @@ FReply FSequencerEditTool_Movement::OnMouseMove(SWidget& OwnerWidget, const FGeo
 			if (DragOperation.IsValid())
 			{
 				DragPosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+				
+				float CurrentTime = VirtualTrackArea.PixelToTime(DragPosition.X);
+				Sequencer.UpdateAutoScroll(CurrentTime);
+				
 				DragOperation->OnDrag(MouseEvent, DragPosition, VirtualTrackArea);
 			}
 		}
@@ -304,7 +309,7 @@ int32 FSequencerEditTool_Movement::OnPaint(const FGeometry& AllottedGeometry, co
 			{
 				TSharedRef<SSequencer> SequencerWidget = StaticCastSharedRef<SSequencer>(Sequencer.GetSequencerWidget());
 
-				const FSlateFontInfo SmallLayoutFont(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 10);			
+				const FSlateFontInfo SmallLayoutFont = FCoreStyle::GetDefaultFontStyle("Bold", 10);
 				const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 				const FLinearColor DrawColor = FEditorStyle::GetSlateColor("SelectionColor").GetColor(FWidgetStyle());
 				const FVector2D BoxPadding = FVector2D(4.0f, 2.0f);
@@ -445,11 +450,11 @@ FString FSequencerEditTool_Movement::TimeToString(float Time, bool IsDelta) cons
 			const float FrameRate = 1.0f / Sequencer.GetFixedFrameInterval();
 			const int32 Frame = SequencerHelpers::TimeToFrame(Time, FrameRate);
 
-			return FString::Printf(IsDelta ? TEXT("[%+d]") : TEXT("%d"), Frame);
+			return IsDelta ? FString::Printf(TEXT("[%+d]"), Frame) : FString::Printf(TEXT("%d"), Frame);
 		}
 	}
 
-	return FString::Printf(IsDelta ? TEXT("[%+.3f]") : TEXT("%.3f"), Time);
+	return IsDelta ? FString::Printf(TEXT("[%+.3f]"), Time) : FString::Printf(TEXT("%.3f"), Time);
 }
 
 const ISequencerHotspot* FSequencerEditTool_Movement::GetDragHotspot() const

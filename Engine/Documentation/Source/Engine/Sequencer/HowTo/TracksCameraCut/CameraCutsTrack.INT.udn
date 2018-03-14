@@ -10,6 +10,7 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 Once you have content in your cinematic, you may want to shoot that content from different camera perspectives. 
 In Sequencer, you can do this with the **Camera Cuts Track** and selecting which cameras to use at a given time in your scene. 

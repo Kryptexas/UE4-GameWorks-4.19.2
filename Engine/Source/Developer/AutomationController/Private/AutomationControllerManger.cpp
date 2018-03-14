@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "HAL/FileManager.h"
@@ -327,35 +327,65 @@ void FAutomationControllerManager::CollectTestResults(TSharedPtr<IAutomationRepo
 
 bool FAutomationControllerManager::GenerateJsonTestPassSummary(const FAutomatedTestPassResults& SerializedPassResults, FDateTime Timestamp)
 {
+	UE_LOG(AutomationControllerLog, Display, TEXT("Converting results to json object..."));
+
 	FString Json;
-	if ( FJsonObjectConverter::UStructToJsonObjectString(SerializedPassResults, Json) )
+	if (FJsonObjectConverter::UStructToJsonObjectString(SerializedPassResults, Json))
 	{
 		FString ReportFileName = FString::Printf(TEXT("%s/index.json"), *ReportOutputPath);
-		if ( FFileHelper::SaveStringToFile(Json, *ReportFileName, FFileHelper::EEncodingOptions::ForceUTF8) )
+		const int32 WriteAttempts = 3;
+		const float SleepBetweenAttempts = 0.05f;
+
+		for (int32 Attempt = 1; Attempt <= WriteAttempts; ++Attempt)
 		{
-			return true;
+			if (FFileHelper::SaveStringToFile(Json, *ReportFileName, FFileHelper::EEncodingOptions::ForceUTF8))
+			{
+				UE_LOG(AutomationControllerLog, Display, TEXT("Successfully wrote json results file!"));
+				return true;
+			}
+
+			FPlatformProcess::Sleep(SleepBetweenAttempts);
 		}
+
+		UE_LOG(AutomationControllerLog, Warning, TEXT("Failed to write test report json to '%s' after 3 attempts - No report will be generated."), *ReportFileName);
 	}
-	
-	UE_LOG(AutomationControllerLog, Warning, TEXT("Test Report Json is invalid - report not generated."));
+	else
+	{
+		UE_LOG(AutomationControllerLog, Error, TEXT("Failed to convert test results to json object - No report will be generated."));
+	}
+		
 	return false;
 }
 
 bool FAutomationControllerManager::GenerateHtmlTestPassSummary(const FAutomatedTestPassResults& SerializedPassResults, FDateTime Timestamp)
 {
-	FString ReportTemplate;
-	const bool bLoadedResult = FFileHelper::LoadFileToString(ReportTemplate, *( FPaths::EngineContentDir() / TEXT("Automation/Report-Template.html") ));
+	UE_LOG(AutomationControllerLog, Display, TEXT("Loading results html template..."));
 
-	if ( bLoadedResult )
-	{
+	FString ReportTemplate;
+	if (FFileHelper::LoadFileToString(ReportTemplate, *(FPaths::EngineContentDir() / TEXT("Automation/Report-Template.html"))))
+	{		
 		FString ReportFileName = FString::Printf(TEXT("%s/index.html"), *ReportOutputPath);
-		if ( FFileHelper::SaveStringToFile(ReportTemplate, *ReportFileName, FFileHelper::EEncodingOptions::ForceUTF8) )
+		const int32 WriteAttempts = 3;
+		const float SleepBetweenAttempts = 0.05f;
+
+		for (int32 Attempt = 1; Attempt <= WriteAttempts; ++Attempt)
 		{
-			return true;
+			if (FFileHelper::SaveStringToFile(ReportTemplate, *ReportFileName, FFileHelper::EEncodingOptions::ForceUTF8))
+			{
+				UE_LOG(AutomationControllerLog, Display, TEXT("Successfully wrote html results file!"));
+				return true;
+			}
+
+			FPlatformProcess::Sleep(SleepBetweenAttempts);
 		}
+
+		UE_LOG(AutomationControllerLog, Warning, TEXT("Failed to write test report html to '%s' after 3 attempts - No report will be generated."), *ReportFileName);
+	}
+	else
+	{
+		UE_LOG(AutomationControllerLog, Error, TEXT("Failed to load test report html template - No report will be generated."));
 	}
 	
-	UE_LOG(AutomationControllerLog, Warning, TEXT("Test Report Html is invalid - report not generated."));
 	return false;
 }
 
@@ -757,7 +787,7 @@ void FAutomationControllerManager::AddPingResult(const FMessageAddress& Responde
 void FAutomationControllerManager::UpdateTests()
 {
 	static const float CheckTestInterval = 1.0f;
-	static const float GameInstanceLostTimer = 200.0f;
+	static const float GameInstanceLostTimer = 300.0f;
 
 	CheckTestTimer += FPlatformTime::Seconds() - LastTimeUpdateTicked;
 	LastTimeUpdateTicked = FPlatformTime::Seconds();
@@ -903,7 +933,7 @@ void FAutomationControllerManager::HandleReceivedScreenShot(const FAutomationWor
 	TSharedRef<FComparisonEntry> Comparison = MakeShareable(new FComparisonEntry());
 	Comparison->Sender = Context->GetSender();
 	Comparison->Name = Message.Metadata.Name;
-	Comparison->PendingComparison = ScreenshotManager->CompareScreensotAsync(Message.ScreenShotName);
+	Comparison->PendingComparison = ScreenshotManager->CompareScreenshotAsync(Message.ScreenShotName);
 
 	ComparisonQueue.Enqueue(Comparison);
 }

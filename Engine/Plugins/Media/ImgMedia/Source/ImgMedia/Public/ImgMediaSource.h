@@ -1,9 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreTypes.h"
-#include "Classes/Engine/EngineTypes.h"
+#include "Engine/EngineTypes.h"
 #include "Containers/UnrealString.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/ScriptMacros.h"

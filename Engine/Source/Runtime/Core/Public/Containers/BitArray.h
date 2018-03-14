@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -234,6 +234,58 @@ public:
 			FMemory::Memcpy(GetData(),Copy.GetData(),NumDWORDs * sizeof(uint32));
 		}
 		return *this;
+	}
+
+	FORCEINLINE bool operator==(const TBitArray<Allocator>& Other) const
+	{
+		if (Num() != Other.Num())
+		{
+			return false;
+		}
+
+		int NumBytes = FMath::DivideAndRoundUp(NumBits, NumBitsPerDWORD) * sizeof(uint32);
+		return FMemory::Memcmp(GetData(), Other.GetData(), NumBytes) == 0;
+	}
+
+	FORCEINLINE bool operator<(const TBitArray<Allocator>& Other) const
+	{
+		//sort by length
+		if (Num() != Other.Num())
+		{
+			return Num() < Other.Num();
+		}
+
+		uint32 NumWords = FMath::DivideAndRoundUp(Num(), NumBitsPerDWORD);
+		const uint32* Data0 = GetData();
+		const uint32* Data1 = Other.GetData();
+
+		//sort by num bits active
+		int32 Count0 = 0, Count1 = 0;
+		for (uint32 i = 0; i < NumWords; i++)
+		{
+			Count0 += FPlatformMath::CountBits(Data0[i]);
+			Count1 += FPlatformMath::CountBits(Data1[i]);
+		}
+
+		if (Count0 != Count1)
+		{
+			return Count0 < Count1;
+		}
+
+		//sort by big-num value
+		for (uint32 i = NumWords; i != ~0u; i--)
+		{
+			if (Data0[i] != Data1[i])
+			{
+				return Data0[i] < Data1[i];
+			}
+		}
+		return false;
+	}
+
+	FORCEINLINE bool operator!=(const TBitArray<Allocator>& Other)
+	{
+		return !(*this == Other);
 	}
 
 private:
@@ -528,6 +580,59 @@ public:
 		return INDEX_NONE;
 	}
 
+	/**
+	* Finds the last true/false bit in the array, and returns the bit index.
+	* If there is none, INDEX_NONE is returned.
+	*/
+	int32 FindLast(bool bValue) const 
+	{
+		// Iterate over the array until we see a word with a matching bit
+		const uint32 Test = bValue ? 0u : (uint32)-1;
+
+		const uint32* RESTRICT DwordArray = GetData();
+		const int32 LocalNumBits = NumBits;
+		const int32 DwordCount = FMath::DivideAndRoundUp(LocalNumBits, NumBitsPerDWORD);
+		int32 DwordIndex = DwordCount-1;
+		int32 SlackCount = (LocalNumBits % NumBitsPerDWORD);
+
+		if(SlackCount != 0)
+		{
+			uint32 Mask = (~0u) << SlackCount;
+			uint32 TailTest = bValue ? DwordArray[DwordCount - 1] & ~Mask : DwordArray[DwordCount - 1] | Mask;
+
+			// If we're looking for a false, then we flip the bits - then we only need to find the first one bit
+			const uint32 Bits = bValue ? TailTest : ~TailTest;
+			const int32 LocalBitIndex = (NumBitsPerDWORD - FMath::CountLeadingZeros(Bits) - 1);
+			if (LocalBitIndex >= 0)
+			{
+				const int32 LowestBitIndex = LocalBitIndex + (DwordIndex << NumBitsPerDWORDLogTwo);
+				checkSlow(LowestBitIndex < LocalNumBits);
+				return LowestBitIndex;
+			}
+			DwordIndex--;
+		}
+
+		while (DwordIndex >= 0 && DwordArray[DwordIndex] == Test)
+		{
+			--DwordIndex;
+		}
+
+		if (DwordIndex >= 0 && DwordIndex < DwordCount)
+		{
+			// If we're looking for a false, then we flip the bits - then we only need to find the first one bit
+			const uint32 Bits = bValue ? (DwordArray[DwordIndex]) : ~(DwordArray[DwordIndex]);
+			ASSUME(Bits != 0);
+			const int32 LocalBitIndex = (NumBitsPerDWORD - FMath::CountLeadingZeros(Bits) - 1);
+			const int32 LowestBitIndex = LocalBitIndex + (DwordIndex << NumBitsPerDWORDLogTwo);
+			if (LowestBitIndex < LocalNumBits)
+			{
+				return LowestBitIndex;
+			}
+		}
+
+		return INDEX_NONE;
+	}
+
 	FORCEINLINE bool Contains(bool bValue) const
 	{
 		return Find(bValue) != INDEX_NONE;
@@ -563,6 +668,49 @@ public:
 			}
 		}
 
+		return INDEX_NONE;
+	}
+
+	/**
+	* Finds the last zero bit in the array, sets it to true, and returns the bit index.
+	* If there is none, INDEX_NONE is returned.
+	*/
+	int32 FindAndSetLastZeroBit()
+	{
+		// Iterate over the array until we see a word with a zero bit.
+		uint32* RESTRICT DwordArray = GetData();
+		const int32 LocalNumBits = NumBits;
+		const int32 DwordCount = FMath::DivideAndRoundUp(LocalNumBits, NumBitsPerDWORD);
+		int32 DwordIndex = DwordCount - 1;
+
+		int32 SlackIndex = (LocalNumBits % NumBitsPerDWORD);
+		uint32 Mask = (~0u) << SlackIndex;
+		uint32 Slack = DwordArray[DwordCount - 1] & Mask;
+		DwordArray[DwordCount - 1] = DwordArray[DwordCount - 1] | Mask;
+
+		while (DwordIndex >= 0 && DwordArray[DwordIndex] == (uint32)-1)
+		{
+			--DwordIndex;
+		}
+
+		if (DwordIndex >= 0 && DwordIndex < DwordCount)
+		{
+			// Flip the bits, then we only need to find the first one bit -- easy.
+			const uint32 Bits = ~(DwordArray[DwordIndex]);
+			ASSUME(Bits != 0);
+			const int32 HighestLocalBitIndex = FMath::CountLeadingZeros(Bits);
+			const int32 BitIndex = (NumBitsPerDWORD - HighestLocalBitIndex - 1);
+			const uint32 HighestBit = 1u << BitIndex;
+			const int32 HighestBitIndex = BitIndex + (DwordIndex << NumBitsPerDWORDLogTwo);
+			if (HighestBitIndex < LocalNumBits)
+			{
+				DwordArray[DwordIndex] |= HighestBit;
+				DwordArray[DwordCount - 1] = (DwordArray[DwordCount - 1] & ~Mask) | Slack;
+				return HighestBitIndex;
+			}
+		}
+
+		DwordArray[DwordCount - 1] = (DwordArray[DwordCount - 1] & ~Mask) | Slack;
 		return INDEX_NONE;
 	}
 
@@ -764,10 +912,23 @@ private:
 	}
 };
 
+template<typename Allocator>
+FORCEINLINE uint32 GetTypeHash(const TBitArray<Allocator>& BitArray)
+{
+	uint32 NumWords = FMath::DivideAndRoundUp(BitArray.Num(), NumBitsPerDWORD);
+	uint32 Hash = NumWords;
+	const uint32* Data = BitArray.GetData();
+	for (uint32 i = 0; i < NumWords; i++)
+	{
+		Hash ^= Data[i];
+	}
+	return Hash;
+}
 
 template<typename Allocator>
 struct TContainerTraits<TBitArray<Allocator> > : public TContainerTraitsBase<TBitArray<Allocator> >
 {
+	static_assert(TAllocatorTraits<Allocator>::SupportsMove, "TBitArray no longer supports move-unaware allocators");
 	enum { MoveWillEmptyContainer = TAllocatorTraits<Allocator>::SupportsMove };
 };
 

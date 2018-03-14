@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MacWindow.h"
 #include "MacApplication.h"
@@ -46,7 +46,7 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 	PositionX = Definition->XDesiredPositionOnScreen;
 	PositionY = Definition->YDesiredPositionOnScreen >= TargetScreen->VisibleFramePixels.origin.y ? Definition->YDesiredPositionOnScreen : TargetScreen->VisibleFramePixels.origin.y;
 
-	const float ScreenDPIScaleFactor = MacApplication->IsHighDPIModeEnabled() ? TargetScreen->Screen.backingScaleFactor : 1.0f;
+	const float ScreenDPIScaleFactor = FPlatformApplicationMisc::IsHighDPIModeEnabled() ? TargetScreen->Screen.backingScaleFactor : 1.0f;
 	const FVector2D CocoaPosition = FMacApplication::ConvertSlatePositionToCocoa(PositionX, PositionY);
 	const NSRect ViewRect = NSMakeRect(CocoaPosition.X, CocoaPosition.Y - (SizeY / ScreenDPIScaleFactor) + 1, SizeX / ScreenDPIScaleFactor, SizeY / ScreenDPIScaleFactor);
 
@@ -159,6 +159,12 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 				if( Definition->HasOSWindowBorder )
 				{
 					[WindowHandle setCollectionBehavior: NSWindowCollectionBehaviorFullScreenPrimary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
+
+					// By default NSResizableWindowMask enables zoom button as well, so we need to disable it if that's what the project requests
+					if (Definition->HasSizingFrame && !Definition->SupportsMaximize)
+					{
+						[[WindowHandle standardWindowButton:NSWindowZoomButton] setEnabled:NO];
+					}
 				}
 				else
 				{
@@ -230,7 +236,7 @@ bool FMacWindow::GetFullScreenInfo( int32& X, int32& Y, int32& Width, int32& Hei
 	const FVector2D SlatePosition = FMacApplication::ConvertCocoaPositionToSlate(Frame.origin.x, Frame.origin.y - Frame.size.height + 1.0f);
 	X = SlatePosition.X;
 	Y = SlatePosition.Y;
-	const float DPIScaleFactor = MacApplication->IsHighDPIModeEnabled() ? WindowHandle.screen.backingScaleFactor : 1.0f;
+	const float DPIScaleFactor = FPlatformApplicationMisc::IsHighDPIModeEnabled() ? WindowHandle.screen.backingScaleFactor : 1.0f;
 	Width = Frame.size.width * DPIScaleFactor;
 	Height = Frame.size.height * DPIScaleFactor;
 	return true;
@@ -395,7 +401,7 @@ bool FMacWindow::GetRestoredDimensions(int32& X, int32& Y, int32& Width, int32& 
 
 		const FVector2D SlatePosition = FMacApplication::ConvertCocoaPositionToSlate(Frame.origin.x, Frame.origin.y);
 
-		const float DPIScaleFactor = MacApplication->IsHighDPIModeEnabled() ? WindowHandle.backingScaleFactor : 1.0f;
+		const float DPIScaleFactor = FPlatformApplicationMisc::IsHighDPIModeEnabled() ? WindowHandle.backingScaleFactor : 1.0f;
 		Width = Frame.size.width * DPIScaleFactor;
 		Height = Frame.size.height * DPIScaleFactor;
 
@@ -507,7 +513,7 @@ bool FMacWindow::IsRegularWindow() const
 
 float FMacWindow::GetDPIScaleFactor() const
 {
-	return MacApplication->IsHighDPIModeEnabled() ? WindowHandle.backingScaleFactor : 1.0f;
+	return FPlatformApplicationMisc::IsHighDPIModeEnabled() ? WindowHandle.backingScaleFactor : 1.0f;
 }
 
 void FMacWindow::OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayChangeSummaryFlags Flags)

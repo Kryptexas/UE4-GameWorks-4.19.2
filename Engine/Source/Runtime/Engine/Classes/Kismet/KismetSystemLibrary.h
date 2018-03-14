@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -71,7 +71,7 @@ struct FGenericStruct
 	int32 Data;
 };
 
-UCLASS()
+UCLASS(meta=(ScriptName="SystemLibrary"))
 class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
@@ -120,6 +120,18 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	/** Get the name of the current game  */
 	UFUNCTION(BlueprintPure, Category="Game", meta=(BlueprintThreadSafe))
 	static FString GetGameName();
+
+	/** Get the directory of the current project */
+	UFUNCTION(BlueprintPure, Category="Utilities|Paths", meta=(BlueprintThreadSafe))
+	static FString GetProjectDirectory();
+
+	/** Get the content directory of the current project */
+	UFUNCTION(BlueprintPure, Category="Utilities|Paths", meta=(BlueprintThreadSafe))
+	static FString GetProjectContentDirectory();
+
+	/** Get the saved directory of the current project */
+	UFUNCTION(BlueprintPure, Category="Utilities|Paths", meta=(BlueprintThreadSafe))
+	static FString GetProjectSavedDirectory();
 
 	/**
 	 * Retrieves the game's platform-specific bundle identifier or package name of the game
@@ -281,7 +293,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @return	The literal string
 	 */
 	UFUNCTION(BlueprintPure, Category="Utilities|String", meta=(BlueprintThreadSafe))
-	static FString MakeLiteralString(const FString& Value);
+	static FString MakeLiteralString(FString Value);
 
 	/**
 	 * Creates a literal FText
@@ -342,6 +354,24 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="Development",meta=(WorldContext="WorldContextObject"))
 	static void ExecuteConsoleCommand(UObject* WorldContextObject, const FString& Command, class APlayerController* SpecificPlayer = NULL );
 
+	/**
+	 * Attempts to retrieve the value of the specified float console variable, if it exists.
+	 * 
+	 * @param	VariableName	Name of the console variable to find.
+	 * @return	The value if found, 0 otherwise.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Development",meta=(WorldContext="WorldContextObject"))
+	static float GetConsoleVariableFloatValue(UObject* WorldContextObject, const FString& VariableName);
+
+	/**
+	 * Attempts to retrieve the value of the specified integer console variable, if it exists.
+	 * 
+	 * @param	VariableName	Name of the console variable to find.
+	 * @return	The value if found, 0 otherwise.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Development",meta=(WorldContext="WorldContextObject"))
+	static int32 GetConsoleVariableIntValue(UObject* WorldContextObject, const FString& VariableName);
+
 	/** 
 	 *	Exit the current game 
 	 * @param	SpecificPlayer	The specific player to quit the game. If not specified, player 0 will quit.
@@ -396,28 +426,28 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param bLooping		True to keep executing the delegate every Time seconds, false to execute delegate only once.
 	 * @return				The timer handle to pass to other timer functions to manipulate this timer.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Set Timer by Event"), Category="Utilities|Time")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Set Timer by Event", ScriptName = "SetTimerDelegate"), Category="Utilities|Time")
 	static FTimerHandle K2_SetTimerDelegate(UPARAM(DisplayName="Event") FTimerDynamicDelegate Delegate, float Time, bool bLooping);
 
 	/**
 	 * Clears a set timer.
 	 * @param Event  Can be a K2 function or a Custom Event.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage = "Use Clear Timer by Handle", DisplayName = "Clear Timer by Event"), Category="Utilities|Time")
+	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage = "Use Clear Timer by Handle", DisplayName = "Clear Timer by Event", ScriptName = "ClearTimerDelegate"), Category="Utilities|Time")
 	static void K2_ClearTimerDelegate(UPARAM(DisplayName="Event") FTimerDynamicDelegate Delegate);
 
 	/**
 	 * Pauses a set timer at its current elapsed time.
 	 * @param Event  Can be a K2 function or a Custom Event.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage = "Use Pause Timer by Handle", DisplayName = "Pause Timer by Event"), Category="Utilities|Time")
+	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage = "Use Pause Timer by Handle", DisplayName = "Pause Timer by Event", ScriptName = "PauseTimerDelegate"), Category="Utilities|Time")
 	static void K2_PauseTimerDelegate(UPARAM(DisplayName="Event") FTimerDynamicDelegate Delegate);
 
 	/**
 	 * Resumes a paused timer from its current elapsed time.
 	 * @param Event  Can be a K2 function or a Custom Event.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage = "Use Unpause Timer by Handle", DisplayName = "Unpause Timer by Event"), Category="Utilities|Time")
+	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage = "Use Unpause Timer by Handle", DisplayName = "Unpause Timer by Event", ScriptName = "UnPauseTimerDelegate"), Category="Utilities|Time")
 	static void K2_UnPauseTimerDelegate(UPARAM(DisplayName="Event") FTimerDynamicDelegate Delegate);
 
 	/**
@@ -425,7 +455,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param Event  Can be a K2 function or a Custom Event.
 	 * @return				True if the timer exists and is active.
 	 */
-	UFUNCTION(BlueprintPure, meta=(DeprecatedFunction, DeprecationMessage = "Use Is Timer Active by Handle", DisplayName = "Is Timer Active by Event"), Category="Utilities|Time")
+	UFUNCTION(BlueprintPure, meta=(DeprecatedFunction, DeprecationMessage = "Use Is Timer Active by Handle", DisplayName = "Is Timer Active by Event", ScriptName = "IsTimerActiveDelegate"), Category="Utilities|Time")
 	static bool K2_IsTimerActiveDelegate(UPARAM(DisplayName="Event") FTimerDynamicDelegate Delegate);
 
 	/**
@@ -433,7 +463,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param Event  Can be a K2 function or a Custom Event.
 	 * @return				True if the timer exists and is paused.
 	 */
-	UFUNCTION(BlueprintPure, meta=(DeprecatedFunction, DeprecationMessage = "Use Is Timer Paused by Handle", DisplayName = "Is Timer Paused by Event"), Category = "Utilities|Time")
+	UFUNCTION(BlueprintPure, meta=(DeprecatedFunction, DeprecationMessage = "Use Is Timer Paused by Handle", DisplayName = "Is Timer Paused by Event", ScriptName = "IsTimerPausedDelegate"), Category = "Utilities|Time")
 	static bool K2_IsTimerPausedDelegate(UPARAM(DisplayName="Event") FTimerDynamicDelegate Delegate);
 
 	/**
@@ -441,7 +471,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param Event  Can be a K2 function or a Custom Event.
 	 * @return				True if the timer exists.
 	 */
-	UFUNCTION(BlueprintPure, meta=(DeprecatedFunction, DeprecationMessage = "Use Does Timer Exist by Handle", DisplayName = "Does Timer Exist by Event"), Category = "Utilities|Time")
+	UFUNCTION(BlueprintPure, meta=(DeprecatedFunction, DeprecationMessage = "Use Does Timer Exist by Handle", DisplayName = "Does Timer Exist by Event", ScriptName = "TimerExistsDelegate"), Category = "Utilities|Time")
 	static bool K2_TimerExistsDelegate(UPARAM(DisplayName="Event") FTimerDynamicDelegate Delegate);
 	
 	/**
@@ -449,7 +479,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param Event  Can be a K2 function or a Custom Event.
 	 * @return				How long has elapsed since the current iteration of the timer began.
 	 */
-	UFUNCTION(BlueprintPure, meta=(DeprecatedFunction, DeprecationMessage = "Use Get Timer Elapsed Time by Handle", DisplayName = "Get Timer Elapsed Time by Event"), Category="Utilities|Time")
+	UFUNCTION(BlueprintPure, meta=(DeprecatedFunction, DeprecationMessage = "Use Get Timer Elapsed Time by Handle", DisplayName = "Get Timer Elapsed Time by Event", ScriptName = "GetTimerElapsedTimeDelegate"), Category="Utilities|Time")
 	static float K2_GetTimerElapsedTimeDelegate(UPARAM(DisplayName="Event") FTimerDynamicDelegate Delegate);
 
 	/**
@@ -457,7 +487,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param Event  Can be a K2 function or a Custom Event.
 	 * @return				How long is remaining in the current iteration of the timer.
 	 */
-	UFUNCTION(BlueprintPure, meta=(DeprecatedFunction, DeprecationMessage = "Use Get Timer Remaining Time by Handle", DisplayName = "Get Timer Remaining Time by Event"), Category="Utilities|Time")
+	UFUNCTION(BlueprintPure, meta=(DeprecatedFunction, DeprecationMessage = "Use Get Timer Remaining Time by Handle", DisplayName = "Get Timer Remaining Time by Event", ScriptName = "GetTimerRemainingTimeDelegate"), Category="Utilities|Time")
 	static float K2_GetTimerRemainingTimeDelegate(UPARAM(DisplayName="Event") FTimerDynamicDelegate Delegate);
 
 	// --- Timer functions with handle input ----------
@@ -467,43 +497,43 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param Handle		The handle of the timer to check validity of.
 	 * @return				Whether the timer handle is valid.
 	 */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "Is Valid"), Category="Utilities|Time")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "Is Valid", ScriptName = "IsValidTimerHandle"), Category="Utilities|Time")
 	static bool K2_IsValidTimerHandle(FTimerHandle Handle);
 
 	/**
-	 * Returns whether the timer handle is valid. This does not indicate that there is an active timer that this handle references, but rather that it once referenced a valid timer.
-	 * @param Handle		The handle of the timer to check validity of.
+	 * Invalidate the supplied TimerHandle and return it.
+	 * @param Handle		The handle of the timer to invalidate.
 	 * @return				Return the invalidated timer handle for convenience.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Invalidate"), Category="Utilities|Time")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Invalidate", ScriptName = "InvalidateTimerHandle"), Category="Utilities|Time")
 	static FTimerHandle K2_InvalidateTimerHandle(UPARAM(ref) FTimerHandle& Handle);
 
 	/**
 	 * Clears a set timer.
 	 * @param Handle		The handle of the timer to clear.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Clear Timer by Handle", WorldContext="WorldContextObject", DeprecatedFunction, DeprecationMessage = "Use Clear and Invalidate Timer by Handle. Note: you no longer need to reset your handle yourself after switching to the new function."), Category="Utilities|Time")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Clear Timer by Handle", ScriptName = "ClearTimerHandle", WorldContext="WorldContextObject", DeprecatedFunction, DeprecationMessage = "Use Clear and Invalidate Timer by Handle. Note: you no longer need to reset your handle yourself after switching to the new function."), Category="Utilities|Time")
 	static void K2_ClearTimerHandle(UObject* WorldContextObject, FTimerHandle Handle);
 
 	/**
 	 * Clears a set timer.
 	 * @param Handle		The handle of the timer to clear.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Clear and Invalidate Timer by Handle", WorldContext="WorldContextObject"), Category="Utilities|Time")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Clear and Invalidate Timer by Handle", ScriptName = "ClearAndInvalidateTimerHandle", WorldContext="WorldContextObject"), Category="Utilities|Time")
 	static void K2_ClearAndInvalidateTimerHandle(UObject* WorldContextObject, UPARAM(ref) FTimerHandle& Handle);
 
 	/**
 	 * Pauses a set timer at its current elapsed time.
 	 * @param Handle		The handle of the timer to pause.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Pause Timer by Handle", WorldContext="WorldContextObject"), Category="Utilities|Time")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Pause Timer by Handle", ScriptName = "PauseTimerHandle", WorldContext="WorldContextObject"), Category="Utilities|Time")
 	static void K2_PauseTimerHandle(UObject* WorldContextObject, FTimerHandle Handle);
 
 	/**
 	 * Resumes a paused timer from its current elapsed time.
 	 * @param Handle		The handle of the timer to unpause.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Unpause Timer by Handle", WorldContext="WorldContextObject"), Category="Utilities|Time")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Unpause Timer by Handle", ScriptName = "UnPauseTimerHandle", WorldContext="WorldContextObject"), Category="Utilities|Time")
 	static void K2_UnPauseTimerHandle(UObject* WorldContextObject, FTimerHandle Handle);
 
 	/**
@@ -511,7 +541,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param Handle		The handle of the timer to check whether it is active.
 	 * @return				True if the timer exists and is active.
 	 */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "Is Timer Active by Handle", WorldContext="WorldContextObject"), Category="Utilities|Time")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "Is Timer Active by Handle", ScriptName = "IsTimerActiveHandle", WorldContext="WorldContextObject"), Category="Utilities|Time")
 	static bool K2_IsTimerActiveHandle(UObject* WorldContextObject, FTimerHandle Handle);
 
 	/**
@@ -519,7 +549,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param Handle		The handle of the timer to check whether it is paused.
 	 * @return				True if the timer exists and is paused.
 	 */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "Is Timer Paused by Handle", WorldContext="WorldContextObject"), Category = "Utilities|Time")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "Is Timer Paused by Handle", ScriptName = "IsTimerPausedHandle", WorldContext="WorldContextObject"), Category = "Utilities|Time")
 	static bool K2_IsTimerPausedHandle(UObject* WorldContextObject, FTimerHandle Handle);
 
 	/**
@@ -527,7 +557,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param Handle		The handle to check whether it exists.
  	 * @return				True if the timer exists.
 	 */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "Does Timer Exist by Handle", WorldContext="WorldContextObject"), Category = "Utilities|Time")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "Does Timer Exist by Handle", ScriptName = "TimerExistsHandle", WorldContext="WorldContextObject"), Category = "Utilities|Time")
 	static bool K2_TimerExistsHandle(UObject* WorldContextObject, FTimerHandle Handle);
 	
 	/**
@@ -535,7 +565,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param Handle		The handle of the timer to get the elapsed time of.
 	 * @return				How long has elapsed since the current iteration of the timer began.
 	 */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "Get Timer Elapsed Time by Handle", WorldContext="WorldContextObject"), Category="Utilities|Time")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "Get Timer Elapsed Time by Handle", ScriptName = "GetTimerElapsedTimeHandle", WorldContext="WorldContextObject"), Category="Utilities|Time")
 	static float K2_GetTimerElapsedTimeHandle(UObject* WorldContextObject, FTimerHandle Handle);
 
 	/**
@@ -543,7 +573,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param Handle		The handle of the timer to time remaining of.
 	 * @return				How long is remaining in the current iteration of the timer.
 	 */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "Get Timer Remaining Time by Handle", WorldContext="WorldContextObject"), Category="Utilities|Time")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "Get Timer Remaining Time by Handle", ScriptName = "GetTimerRemainingTimeHandle", WorldContext="WorldContextObject"), Category="Utilities|Time")
 	static float K2_GetTimerRemainingTimeHandle(UObject* WorldContextObject, FTimerHandle Handle);
 
 	// --- Timer functions ------------------------------
@@ -556,7 +586,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param bLooping		true to keep executing the delegate every Time seconds, false to execute delegate only once.
 	 * @return				The timer handle to pass to other timer functions to manipulate this timer.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Set Timer by Function Name", DefaultToSelf = "Object"), Category="Utilities|Time")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Set Timer by Function Name", ScriptName = "SetTimer", DefaultToSelf = "Object"), Category="Utilities|Time")
 	static FTimerHandle K2_SetTimer(UObject* Object, FString FunctionName, float Time, bool bLooping);
 
 	/**
@@ -564,7 +594,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param Object		Object that implements the delegate function. Defaults to self (this blueprint)
 	 * @param FunctionName	Delegate function name. Can be a K2 function or a Custom Event.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Clear Timer by Function Name", DefaultToSelf = "Object"), Category="Utilities|Time")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Clear Timer by Function Name", ScriptName = "ClearTimer", DefaultToSelf = "Object"), Category="Utilities|Time")
 	static void K2_ClearTimer(UObject* Object, FString FunctionName);
 
 	/**
@@ -572,7 +602,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param Object		Object that implements the delegate function. Defaults to self (this blueprint)
 	 * @param FunctionName	Delegate function name. Can be a K2 function or a Custom Event.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Pause Timer by Function Name", DefaultToSelf = "Object"), Category="Utilities|Time")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Pause Timer by Function Name", ScriptName = "PauseTimer", DefaultToSelf = "Object"), Category="Utilities|Time")
 	static void K2_PauseTimer(UObject* Object, FString FunctionName);
 
 	/**
@@ -580,7 +610,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param Object		Object that implements the delegate function. Defaults to self (this blueprint)
 	 * @param FunctionName	Delegate function name. Can be a K2 function or a Custom Event.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Unpause Timer by Function Name", DefaultToSelf = "Object"), Category="Utilities|Time")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Unpause Timer by Function Name", ScriptName = "UnPauseTimer", DefaultToSelf = "Object"), Category="Utilities|Time")
 	static void K2_UnPauseTimer(UObject* Object, FString FunctionName);
 
 	/**
@@ -589,7 +619,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param FunctionName	Delegate function name. Can be a K2 function or a Custom Event.
 	 * @return				True if the timer exists and is active.
 	 */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "Is Timer Active by Function Name", DefaultToSelf = "Object"), Category="Utilities|Time")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "Is Timer Active by Function Name", ScriptName = "IsTimerActive", DefaultToSelf = "Object"), Category="Utilities|Time")
 	static bool K2_IsTimerActive(UObject* Object, FString FunctionName);
 
 	/**
@@ -598,7 +628,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	* @param FunctionName	Delegate function name. Can be a K2 function or a Custom Event.
 	* @return				True if the timer exists and is paused.
 	*/
-	UFUNCTION(BlueprintPure, meta = (DisplayName = "Is Timer Paused by Function Name", DefaultToSelf = "Object"), Category = "Utilities|Time")
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Is Timer Paused by Function Name", ScriptName = "IsTimerPaused", DefaultToSelf = "Object"), Category = "Utilities|Time")
 	static bool K2_IsTimerPaused(UObject* Object, FString FunctionName);
 
 	/**
@@ -607,7 +637,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	* @param FunctionName	Delegate function name. Can be a K2 function or a Custom Event.
 	* @return				True if the timer exists.
 	*/
-	UFUNCTION(BlueprintPure, meta = (DisplayName = "Does Timer Exist by Function Name", DefaultToSelf = "Object"), Category = "Utilities|Time")
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Does Timer Exist by Function Name", ScriptName = "TimerExists", DefaultToSelf = "Object"), Category = "Utilities|Time")
 	static bool K2_TimerExists(UObject* Object, FString FunctionName);
 	
 	/**
@@ -616,7 +646,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param FunctionName	Delegate function name. Can be a K2 function or a Custom Event.
 	 * @return				How long has elapsed since the current iteration of the timer began.
 	 */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "Get Timer Elapsed Time by Function Name", DefaultToSelf = "Object"), Category="Utilities|Time")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "Get Timer Elapsed Time by Function Name", ScriptName = "GetTimerElapsedTime", DefaultToSelf = "Object"), Category="Utilities|Time")
 	static float K2_GetTimerElapsedTime(UObject* Object, FString FunctionName);
 
 	/**
@@ -625,7 +655,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param FunctionName	Delegate function name. Can be a K2 function or a Custom Event.
 	 * @return				How long is remaining in the current iteration of the timer.
 	 */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "Get Timer Remaining Time by Function Name", DefaultToSelf = "Object"), Category="Utilities|Time")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "Get Timer Remaining Time by Function Name", ScriptName = "GetTimerRemainingTime", DefaultToSelf = "Object"), Category="Utilities|Time")
 	static float K2_GetTimerRemainingTime(UObject* Object, FString FunctionName);
 
 
@@ -1746,7 +1776,7 @@ FORCEINLINE uint8 UKismetSystemLibrary::MakeLiteralByte(uint8 Value)
 	return Value;
 }
 
-FORCEINLINE FString UKismetSystemLibrary::MakeLiteralString(const FString& Value)
+FORCEINLINE FString UKismetSystemLibrary::MakeLiteralString(FString Value)
 {
 	return Value;
 }

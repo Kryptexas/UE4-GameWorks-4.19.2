@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3155346
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:블루프린트 - 비법
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -11,45 +11,8 @@ parent:Engine/Blueprints
 order:2
 type:landing
 tags:Blueprints
+topic-image:BP_HowTo_Topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Blueprints/BP_HowTo:title%](Engine/Blueprints/BP_HowTo_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/BP_HowTo:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/BP_HowTo:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/BP_HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Blueprints/BP_HowTo:title%](Engine/Blueprints/BP_HowTo_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Blueprints/BP_HowTo:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Blueprints/BP_HowTo:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/BP_HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 언리얼 엔진 4 의 [](Engine/Blueprints) 가 처음이시라면, 이 **블루프린트 - 비법** 시리즈에서 블루프린트 생성, 노드 추가 및 연결, 변수 생성과 아울러 아래 표에서 볼 수 있는 여러가지 핵심적인 부분에 대한 정보를 얻으실 수 있습니다.
 
@@ -77,11 +40,13 @@ tags:Blueprints
 [](FANCY:Engine/Blueprints/BP_HowTo/MacroLibraries "%Engine/Blueprints/BP_HowTo/MacroLibraries:description%")
 [/REGION]
 
-<!-- To remove since information is redundant. 
+[COMMENT:none]
+ To remove since information is redundant. 
 
 | **[](Engine/Blueprints/BP_HowTo/BasicUsage)** | %Engine/Blueprints/BP_HowTo/BasicUsage:description% |
 
--->
+
+[/COMMENT]
 
 
 

@@ -159,7 +159,9 @@ bool FOnlineUserCloudOculus::WriteUserFile(const FUniqueNetId& UserId, const FSt
 	{
 		if (bIsError)
 		{
-			UE_LOG_ONLINE(Warning, TEXT("Failed to Save: %s%s%s"), *BucketName, *SEPARATOR, *Key);
+			auto Error = ovr_Message_GetError(Message);
+			auto ErrorMessage = ovr_Error_GetMessage(Error);
+			UE_LOG_ONLINE(Warning, TEXT("Failed to Save: %s%s%s Error: %s"), *BucketName, *SEPARATOR, *Key, *FString(ErrorMessage));
 		}
 		else
 		{

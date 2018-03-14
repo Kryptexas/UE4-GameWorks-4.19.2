@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DisplayNodes/SequencerDisplayNode.h"
 #include "Curves/KeyHandle.h"
@@ -632,17 +632,19 @@ void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 		
 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Paste);
 		
+		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Duplicate);
+		
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("DeleteNode", "Delete"),
 			LOCTEXT("DeleteNodeTooltip", "Delete this or selected tracks"),
-			FSlateIcon(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Delete"),
 			FUIAction(FExecuteAction::CreateSP(&GetSequencer(), &FSequencer::DeleteNode, ThisNode), CanExecute)
 		);
 
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("RenameNode", "Rename"),
 			LOCTEXT("RenameNodeTooltip", "Rename this track"),
-			FSlateIcon(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Rename"),
 			FUIAction(
 				FExecuteAction::CreateSP(this, &FSequencerDisplayNode::HandleContextMenuRenameNodeExecute),
 				FCanExecuteAction::CreateSP(this, &FSequencerDisplayNode::HandleContextMenuRenameNodeCanExecute)

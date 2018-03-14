@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Misc/MessageDialog.h"
@@ -52,12 +52,14 @@
 #include "EnumProperty.h"
 #include "BlueprintSupport.h"
 #include "IConsoleManager.h"
+#include "Serialization/ArchiveStackTrace.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSavePackage, Log, All);
 
 static const int32 MAX_MERGED_COMPRESSION_CHUNKSIZE = 1024 * 1024;
 static const FName WorldClassName = FName("World");
 static const FName PrestreamPackageClassName = FName("PrestreamPackage");
+static FCriticalSection InitializeCoreClassesCritSec;
 
 #define VALIDATE_INITIALIZECORECLASSES 0
 #define EXPORT_SORTING_DETAILED_LOGGING 0
@@ -87,6 +89,10 @@ namespace SavePackageStats
 	static double SerializeBulkDataTimeSec = 0.0;
 	static double AsyncWriteTimeSec = 0.0;
 	static double MBWritten = 0.0;
+	static int32 NumberOfDifferentPackages = 0;
+	static double DifferentPackagesSizeMB = 0.0;
+	static int32 NumberOfDifferencesInPackages = 0;
+	static double PackageDifferencesSizeMB = 0.0;
 	static TMap<FName, FCookStatsManager::TKeyValuePair<double, uint32>> PackageClassSerializeTimes;
 	static TMap<FName, FCookStatsManager::TKeyValuePair<double, uint32>> TagExportSerializeTimes;
 	static TMap<FName, FCookStatsManager::TKeyValuePair<double, uint32>> ClassPreSaveTimes;
@@ -109,9 +115,18 @@ namespace SavePackageStats
 		ADD_COOK_STAT(SerializeBulkDataTimeSec);
 		ADD_COOK_STAT(AsyncWriteTimeSec);
 		ADD_COOK_STAT(MBWritten);
-		#undef ADD_COOK_STAT
 
 		AddStat(TEXT("Package.Save"), StatsList);
+
+		StatsList.Empty(15);
+		ADD_COOK_STAT(NumberOfDifferentPackages);
+		ADD_COOK_STAT(DifferentPackagesSizeMB);
+		ADD_COOK_STAT(NumberOfDifferencesInPackages);
+		ADD_COOK_STAT(PackageDifferencesSizeMB);
+
+		AddStat(TEXT("Package.Diff"), StatsList);
+
+		#undef ADD_COOK_STAT		
 		
 		const FString TotalString = TEXT("Total");
 
@@ -660,36 +675,7 @@ private:
 	TSet<FName, FLinkerNamePairKeyFuncs> ReferencedNames;
 };
 
-static FSavePackageState* SavePackageState = nullptr;
-
-/** 
- * Helper object to scope the package state in SavePackage()
- */
-class FScopeSavePackageState
-{
-public:
-	FScopeSavePackageState()
-	{
-		check(!SavePackageState);
-		SavePackageState = new FSavePackageState;
-	}
-	~FScopeSavePackageState()
-	{
-		check(SavePackageState);
-		delete SavePackageState;
-		SavePackageState = nullptr;
-	}
-};
-
-/** 
- * Returns if true if the object is editor-only:
- * - it's a package marked as PKG_EditorOnly
- * or
- * - it's inside a package marked as editor only
- * or 
- * - It's an editor only object
-*/
-bool IsEditorOnlyObject(const UObject* InObject, bool bCheckRecursive)
+bool IsEditorOnlyObject(const UObject* InObject, bool bCheckRecursive, bool bCheckMarks)
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("IsEditorOnlyObject"), STAT_IsEditorOnlyObject, STATGROUP_LoadTime);
 
@@ -710,7 +696,7 @@ bool IsEditorOnlyObject(const UObject* InObject, bool bCheckRecursive)
 	}
 	check(InObject);
 
-	if (InObject->HasAnyMarks(OBJECTMARK_EditorOnly) || InObject->IsEditorOnly())
+	if ((bCheckMarks && InObject->HasAnyMarks(OBJECTMARK_EditorOnly)) || InObject->IsEditorOnly())
 	{
 		return true;
 	}
@@ -729,7 +715,7 @@ bool IsEditorOnlyObject(const UObject* InObject, bool bCheckRecursive)
 		UObject* Outer = InObject->GetOuter();
 		if (Outer && Outer != Package)
 		{
-			if (IsEditorOnlyObject(Outer, true))
+			if (IsEditorOnlyObject(Outer, true, bCheckMarks))
 			{
 				return true;
 			}
@@ -738,20 +724,20 @@ bool IsEditorOnlyObject(const UObject* InObject, bool bCheckRecursive)
 		if (InStruct)
 		{
 			const UStruct* SuperStruct = InStruct->GetSuperStruct();
-			if (SuperStruct && IsEditorOnlyObject(SuperStruct, true))
+			if (SuperStruct && IsEditorOnlyObject(SuperStruct, true, bCheckMarks))
 			{
 				return true;
 			}
 		}
 		else
 		{
-			if (IsEditorOnlyObject(InObject->GetClass(), true))
+			if (IsEditorOnlyObject(InObject->GetClass(), true, bCheckMarks))
 			{
 				return true;
 			}
 
 			UObject* Archetype = InObject->GetArchetype();
-			if (Archetype && IsEditorOnlyObject(Archetype, true))
+			if (Archetype && IsEditorOnlyObject(Archetype, true, bCheckMarks))
 			{
 				return true;
 			}
@@ -766,15 +752,25 @@ bool IsEditorOnlyObject(const UObject* InObject, bool bCheckRecursive)
 static void ConditionallyExcludeObjectForTarget(UObject* Obj, EObjectMark ExcludedObjectMarks, const ITargetPlatform* TargetPlatform, const bool bIsCooking)
 {
 #if WITH_EDITOR
-	if (!Obj || (ExcludedObjectMarks != OBJECTMARK_NOMARKS && Obj->HasAnyMarks(ExcludedObjectMarks)))
+	if (!Obj || Obj->GetOutermost()->GetFName() == GLongCoreUObjectPackageName)
 	{
-		// No object or already marked
+		// No object or in CoreUObject, don't exclude
 		return;
 	}
 
-	if (Obj->GetOutermost()->GetFName() == GLongCoreUObjectPackageName)
+	auto InheritMarks = [](EObjectMark& MarksToModify, UObject* ObjToCheck, uint32 MarkMask)
 	{
-		// Nothing in CoreUObject can be excluded
+		EObjectMark ObjToCheckMarks = ObjToCheck->GetAllMarks();
+
+		MarksToModify = (EObjectMark)(MarksToModify | (ObjToCheckMarks & MarkMask));
+	};
+
+	EObjectMark CurrentMarks = OBJECTMARK_NOMARKS;
+	InheritMarks(CurrentMarks, Obj, OBJECTMARK_EditorOnly | OBJECTMARK_NotForClient | OBJECTMARK_NotForServer);
+
+	if ((CurrentMarks & ExcludedObjectMarks) != 0)
+	{
+		// Already marked
 		return;
 	}
 
@@ -799,29 +795,16 @@ static void ConditionallyExcludeObjectForTarget(UObject* Obj, EObjectMark Exclud
 		}
 	}
 
-	EObjectMark InheritedMarks = OBJECTMARK_NOMARKS;
-
-	auto InheritMark = [&InheritedMarks](UObject* ObjToCheck, EObjectMark MarkToCheck)
-	{
-		if (ObjToCheck->HasAnyMarks(MarkToCheck))
-		{
-			InheritedMarks = (EObjectMark)(InheritedMarks | MarkToCheck);
-		}
-	};
+	EObjectMark NewMarks = CurrentMarks;
 
 	// Recurse into parents, then compute inherited marks
-	
 	ConditionallyExcludeObjectForTarget(ObjClass, ExcludedObjectMarks, TargetPlatform, bIsCooking);
-	InheritMark(ObjClass, OBJECTMARK_EditorOnly);
-	InheritMark(ObjClass, OBJECTMARK_NotForClient);
-	InheritMark(ObjClass, OBJECTMARK_NotForServer);
+	InheritMarks(NewMarks, ObjClass, OBJECTMARK_EditorOnly | OBJECTMARK_NotForClient | OBJECTMARK_NotForServer);
 
 	if (ObjOuter)
 	{
 		ConditionallyExcludeObjectForTarget(ObjOuter, ExcludedObjectMarks, TargetPlatform, bIsCooking);
-		InheritMark(ObjOuter, OBJECTMARK_EditorOnly);
-		InheritMark(ObjOuter, OBJECTMARK_NotForClient);
-		InheritMark(ObjOuter, OBJECTMARK_NotForServer);
+		InheritMarks(NewMarks, ObjOuter, OBJECTMARK_EditorOnly | OBJECTMARK_NotForClient | OBJECTMARK_NotForServer);
 	}
 
 	// Check parent struct if we have one
@@ -830,62 +813,46 @@ static void ConditionallyExcludeObjectForTarget(UObject* Obj, EObjectMark Exclud
 	{
 		UObject* SuperStruct = ThisStruct->GetSuperStruct();
 		ConditionallyExcludeObjectForTarget(SuperStruct, ExcludedObjectMarks, TargetPlatform, bIsCooking);
-		InheritMark(SuperStruct, OBJECTMARK_EditorOnly);
-		InheritMark(SuperStruct, OBJECTMARK_NotForClient);
-		InheritMark(SuperStruct, OBJECTMARK_NotForServer);
+		InheritMarks(NewMarks, SuperStruct, OBJECTMARK_EditorOnly | OBJECTMARK_NotForClient | OBJECTMARK_NotForServer);
 	}
 
 	// Check archetype, this may not have been covered in the case of components
 	UObject* Archetype = Obj->GetArchetype();
-
 	if (Archetype)
 	{
 		ConditionallyExcludeObjectForTarget(Archetype, ExcludedObjectMarks, TargetPlatform, bIsCooking);
-		InheritMark(Archetype, OBJECTMARK_EditorOnly);
-		InheritMark(Archetype, OBJECTMARK_NotForClient);
-		InheritMark(Archetype, OBJECTMARK_NotForServer);
+		InheritMarks(NewMarks, Archetype, OBJECTMARK_EditorOnly | OBJECTMARK_NotForClient | OBJECTMARK_NotForServer);
 	}
 
-	if (Obj->HasAnyFlags(RF_ClassDefaultObject))
+	if (!Obj->HasAnyFlags(RF_ClassDefaultObject))
 	{
-		// If class is included, CDO must be included so only check inherited marks
-		if (!Obj->HasAnyMarks(OBJECTMARK_EditorOnly) && (InheritedMarks & OBJECTMARK_EditorOnly))
+		// CDOs must be included if their class is so only inherit marks, for everything else we check the native overrides as well
+		if (!(NewMarks & OBJECTMARK_EditorOnly) && IsEditorOnlyObject(Obj, false, false))
 		{
-			Obj->Mark(OBJECTMARK_EditorOnly);
+			NewMarks = (EObjectMark)(NewMarks | OBJECTMARK_EditorOnly);
 		}
 
-		if (!Obj->HasAnyMarks(OBJECTMARK_NotForClient) && (InheritedMarks & OBJECTMARK_NotForClient))
+		if (!(NewMarks & OBJECTMARK_NotForClient) && !Obj->NeedsLoadForClient())
 		{
-			Obj->Mark(OBJECTMARK_NotForClient);
+			NewMarks = (EObjectMark)(NewMarks | OBJECTMARK_NotForClient);
 		}
 
-		if (!Obj->HasAnyMarks(OBJECTMARK_NotForServer) && (InheritedMarks & OBJECTMARK_NotForServer))
+		if (!(NewMarks & OBJECTMARK_NotForServer) && !Obj->NeedsLoadForServer())
 		{
-			Obj->Mark(OBJECTMARK_NotForServer);
-		}
-	}
-	else
-	{
-		if (!Obj->HasAnyMarks(OBJECTMARK_EditorOnly) && ((InheritedMarks & OBJECTMARK_EditorOnly) || IsEditorOnlyObject(Obj, false)))
-		{
-			Obj->Mark(OBJECTMARK_EditorOnly);
-		}
-
-		if (!Obj->HasAnyMarks(OBJECTMARK_NotForClient) && ((InheritedMarks & OBJECTMARK_NotForClient) || !Obj->NeedsLoadForClient()))
-		{
-			Obj->Mark(OBJECTMARK_NotForClient);
-		}
-
-		if (!Obj->HasAnyMarks(OBJECTMARK_NotForServer) && ((InheritedMarks & OBJECTMARK_NotForServer) || !Obj->NeedsLoadForServer()))
-		{
-			Obj->Mark(OBJECTMARK_NotForServer);
+			NewMarks = (EObjectMark)(NewMarks | OBJECTMARK_NotForServer);
 		}
 	}
 
 	// If NotForClient and NotForServer, it is implicitly editor only
-	if (!Obj->HasAnyMarks(OBJECTMARK_EditorOnly) && Obj->HasAllMarks((EObjectMark)(OBJECTMARK_NotForClient|OBJECTMARK_NotForServer)))
+	if ((NewMarks & OBJECTMARK_NotForClient) && (NewMarks & OBJECTMARK_NotForServer))
 	{
-		Obj->Mark(OBJECTMARK_EditorOnly);
+		NewMarks = (EObjectMark)(NewMarks | OBJECTMARK_EditorOnly);
+	}
+
+	// If our marks are different than original, set them on the object
+	if (CurrentMarks != NewMarks)
+	{
+		Obj->Mark(NewMarks);
 	}
 #endif
 }
@@ -980,16 +947,27 @@ FArchive& FArchiveSaveTagExports::operator<<(FWeakObjectPtr& Value)
 
 FArchive& FArchiveSaveTagExports::operator<<(UObject*& Obj)
 {
+	if (!Obj || Obj->HasAnyMarks(OBJECTMARK_TagExp) || Obj->HasAnyFlags(RF_Transient) || !Obj->IsIn(Outer))
+	{
+		return *this;
+	}
+
 	check(Outer);
 
 	// Check transient and pending kill flags for outers
 	CheckObjectPriorToSave(*this, Obj, Outer);
 
+	// The object may have become transient in CheckObjectPriorToSave
+	if (Obj->HasAnyFlags(RF_Transient))
+	{
+		return *this;
+	}
+
 	// Check outer chain for any exlcuded object marks
 	const EObjectMark ExcludedObjectMarks = UPackage::GetExcludedObjectMarksForTargetPlatform(CookingTarget(), IsCooking());
 	ConditionallyExcludeObjectForTarget(Obj, ExcludedObjectMarks, CookingTarget(), IsCooking());
 
-	if (Obj && Obj->IsIn(Outer) && !Obj->HasAnyFlags(RF_Transient) && !Obj->HasAnyMarks((EObjectMark)(OBJECTMARK_TagExp | ExcludedObjectMarks)))
+	if (!Obj->HasAnyMarks((EObjectMark)(ExcludedObjectMarks)))
 	{
 		// It passed filtering so mark as export
 		Obj->Mark(OBJECTMARK_TagExp);
@@ -1105,6 +1083,7 @@ class FArchiveSaveTagImports : public FArchiveUObject
 {
 public:
 	FLinkerSave* Linker;
+	FSavePackageState& SavePackageState;
 	TArray<UObject*> Dependencies;
 	TArray<UObject*> NativeDependencies;
 	TArray<UObject*> OtherImports;
@@ -1129,8 +1108,9 @@ public:
 		}
 	};
 
-	FArchiveSaveTagImports(FLinkerSave* InLinker)
+	FArchiveSaveTagImports(FLinkerSave* InLinker, FSavePackageState& InSavePackageState)
 		: Linker(InLinker)
+		, SavePackageState(InSavePackageState)
 		, bIgnoreDependencies(false)
 	{
 		check(Linker);
@@ -1256,7 +1236,7 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 						}
 					}
 #if WITH_EDITOR
-					SavePackageState->AddReplacementsNames(Obj, CookingTarget(), IsCooking());
+					SavePackageState.AddReplacementsNames(Obj, CookingTarget(), IsCooking());
 #endif //WITH_EDITOR
 				}
 
@@ -1299,7 +1279,7 @@ FArchive& FArchiveSaveTagImports::operator<<(FSoftObjectPath& Value)
 		FString Path = Value.ToString();
 		FName PackageName = FName(*FPackageName::ObjectPathToPackageName(Path));
 
-		SavePackageState->MarkNameAsReferenced(PackageName);
+		SavePackageState.MarkNameAsReferenced(PackageName);
 		Linker->SoftPackageReferenceList.AddUnique(PackageName);	
 	}
 	return *this;
@@ -1307,7 +1287,7 @@ FArchive& FArchiveSaveTagImports::operator<<(FSoftObjectPath& Value)
 
 FArchive& FArchiveSaveTagImports::operator<<(FName& Name)
 {
-	SavePackageState->MarkNameAsReferenced(Name);
+	SavePackageState.MarkNameAsReferenced(Name);
 	return *this;
 }
 
@@ -1328,7 +1308,7 @@ void FArchiveSaveTagImports::MarkSearchableName(const UObject* TypeObject, const
 	}
 
 	// Manually mark the name as referenced, in case it got skipped due to delta serialization
-	SavePackageState->MarkNameAsReferenced(ValueName);
+	SavePackageState.MarkNameAsReferenced(ValueName);
 
 	Linker->SearchableNamesObjectMap.FindOrAdd(TypeObject).AddUnique(ValueName);
 }
@@ -1405,7 +1385,7 @@ public:
 	 * @param	Linker				linker containing the names that need to be sorted
 	 * @param	LinkerToConformTo	optional linker to conform against.
 	 */
-	void SortNames( FLinkerSave* Linker, FLinkerLoad* LinkerToConformTo=nullptr )
+	void SortNames( FLinkerSave* Linker, FLinkerLoad* LinkerToConformTo, FSavePackageState& SavePackageState)
 	{
 		int32 SortStartPosition = 0;
 
@@ -1426,7 +1406,7 @@ public:
 			for ( int32 NameIndex = 0; NameIndex < Linker->NameMap.Num(); NameIndex++ )
 			{
 				FName& CurrentName = Linker->NameMap[NameIndex];
-				SavePackageState->MarkNameAsReferenced(CurrentName);
+				SavePackageState.MarkNameAsReferenced(CurrentName);
 			}
 		}
 
@@ -1890,6 +1870,7 @@ class FExportReferenceSorter : public FArchiveUObject
 	void InitializeCoreClasses()
 	{
 #if 1
+		FScopeLock ScopeLock(&InitializeCoreClassesCritSec);
 		check(CoreClasses.Num() == 0);
 		check(ReferencedObjects.Num() == 0);
 		check(ForceLoadObjects.Num() == 0);
@@ -2802,6 +2783,8 @@ struct FPackageExportTagger
 
 			ExportTagger.ProcessBaseObject(Base);
 		}
+		if (TopLevelFlags != RF_NoFlags)
+		{
 		TArray<UObject *> ObjectsInOuter;
 		{
 			COOK_STAT(FScopedDurationTimer SerializeTimer(SavePackageStats::TagPackageExportsGetObjectsWithOuter));
@@ -2811,10 +2794,11 @@ struct FPackageExportTagger
 		for( int32 Index = 0; Index < ObjectsInOuter.Num(); Index++ )
 		{
 			UObject* Obj = ObjectsInOuter[Index];
-			if( Obj->HasAnyFlags(TopLevelFlags) && Obj->IsIn(Outer) )
+				if( Obj->HasAnyFlags(TopLevelFlags) )
 			{
 				ExportTagger.ProcessBaseObject(Obj);
 			}
+		}
 		}
 		if ( bRoutePresave )
 		{
@@ -3103,7 +3087,7 @@ private:
 public:
 
 
-	FDiffSerializeArchive(const FName& InFilename, FArchive *InTestArchive) : FLargeMemoryWriter(0, true, InFilename), TestArchive(InTestArchive)
+	FDiffSerializeArchive(const TCHAR* InFilename, FArchive *InTestArchive) : FLargeMemoryWriter(0, true, InFilename), TestArchive(InTestArchive)
 	{ 
 		ArDebugSerializationFlags = DSF_IgnoreDiff;
 		bDisable = false;
@@ -3161,20 +3145,83 @@ public:
 #endif
 
 
-struct FEDLCookChecker
+struct FEDLCookChecker : public TThreadSingleton<FEDLCookChecker>
 {
+	friend TThreadSingleton<FEDLCookChecker>;
+
+	struct FEDLNodeID
+	{
+		TArray<FName> ObjectPath;
+		bool bDepIsSerialize;
+
+		FEDLNodeID() : bDepIsSerialize(false) {}
+		FEDLNodeID(UObject* DepObject, bool bInDepIsSerialize)
+			: bDepIsSerialize(bInDepIsSerialize)
+		{
+			while (DepObject)
+			{
+				ObjectPath.Add(DepObject->GetFName());
+				DepObject = DepObject->GetOuter();
+			}
+		}
+
+		bool operator==(const FEDLNodeID& Other) const
+		{
+			return bDepIsSerialize == Other.bDepIsSerialize && ObjectPath == Other.ObjectPath;
+		}
+
+		FString ToString() const
+		{
+			FString RetString = bDepIsSerialize ? TEXT("Serialize:") : TEXT("Create:");
+			for (int32 NameIdx = ObjectPath.Num() - 1; NameIdx >= 0; --NameIdx)
+			{
+				RetString += ObjectPath[NameIdx].ToString();
+				if (NameIdx > 0)
+				{
+					if (NameIdx == ObjectPath.Num() - 1)
+					{
+						RetString += TEXT(".");
+					}
+					else
+					{
+						RetString += TEXT(":");
+					}
+				}
+			}
+			return RetString;
+		}
+
+		friend FORCEINLINE uint32 GetTypeHash(const FEDLNodeID& A)
+		{
+			uint32 Hash = 0;
+			for (const FName& Name : A.ObjectPath)
+			{
+				Hash = HashCombine(Hash, GetTypeHash(Name));
+			}
+			return (Hash << 1) | (uint32)A.bDepIsSerialize;
+		}
+	};
+
+	static FCriticalSection CookCheckerInstanceCritical;
+	static TArray<FEDLCookChecker*> CookCheckerInstances;
+
 	bool bIsActive;
-	TMultiMap<FString, FString> ImportToImportingPackage;
-	TSet<FString> Exports;
-	TMultiMap<FString, FString> NodePrereqs;
+	TMultiMap<FEDLNodeID, FName> ImportToImportingPackage;
+	TSet<FEDLNodeID> Exports;
+	TMultiMap<FEDLNodeID, FEDLNodeID> NodePrereqs;
 
 	FEDLCookChecker()
-		: bIsActive(false)
 	{
+		bIsActive = IsEventDrivenLoaderEnabledInCookedBuilds();
+
+		FScopeLock CookCheckerInstanceLock(&CookCheckerInstanceCritical);
+		CookCheckerInstances.Add(this);
 	}
 
 	void Reset()
 	{
+		check(!GIsSavingPackage);
+
 		ImportToImportingPackage.Empty();
 		Exports.Empty();
 		NodePrereqs.Empty();
@@ -3187,7 +3234,10 @@ struct FEDLCookChecker
 		{
 			if (!Import->GetOutermost()->HasAnyPackageFlags(PKG_CompiledIn))
 			{
-				ImportToImportingPackage.Add(Import->GetFullName(), ImportingPackage->GetPathName());
+				FEDLNodeID ImportID(Import, true);
+				FName ImportingPackageName = ImportingPackage->GetFName();
+
+				ImportToImportingPackage.Add(MoveTemp(ImportID), MoveTemp(ImportingPackageName));
 			}
 		}
 	}
@@ -3195,7 +3245,8 @@ struct FEDLCookChecker
 	{
 		if (bIsActive)
 		{
-			Exports.Add(Export->GetFullName());
+			FEDLNodeID ExportID(Export, true);
+			Exports.Add(MoveTemp(ExportID));
 			AddArc(Export, false, Export, true); // every export must be created before it can be serialize...these arcs are implicit and not listed in any table.
 		}
 	}
@@ -3204,11 +3255,24 @@ struct FEDLCookChecker
 	{
 		if (bIsActive)
 		{
-			NodePrereqs.Add(NodeName(Export, bExportIsSerialize), NodeName(DepObject, bDepIsSerialize));
+			FEDLNodeID ExportID(Export, bExportIsSerialize);
+			FEDLNodeID DepID(DepObject, bDepIsSerialize);
+
+			NodePrereqs.Add(MoveTemp(ExportID), MoveTemp(DepID));
 		}
 	}
 
-	bool CheckForCyclesInner(TSet<FString>& Visited, TSet<FString>& Stack, const FString& Visit, FString& FailNode)
+	static void StartSavingEDLCookInfoForVerification()
+	{
+		FScopeLock CookCheckerInstanceLock(&CookCheckerInstanceCritical);
+		for (FEDLCookChecker* Checker : CookCheckerInstances)
+		{
+			Checker->Reset();
+			Checker->bIsActive = IsEventDrivenLoaderEnabledInCookedBuilds();
+		}
+	}
+
+	static bool CheckForCyclesInner(TMultiMap<FEDLNodeID, FEDLNodeID>& NodePrereqs, TSet<FEDLNodeID>& Visited, TSet<FEDLNodeID>& Stack, const FEDLNodeID& Visit, FEDLNodeID& FailNode)
 	{
 		bool bResult = false;
 		if (Stack.Contains(Visit))
@@ -3225,39 +3289,61 @@ struct FEDLCookChecker
 				Stack.Add(Visit);
 				for (auto It = NodePrereqs.CreateConstKeyIterator(Visit); !bResult && It; ++It)
 				{
-					bResult = CheckForCyclesInner(Visited, Stack, It.Value(), FailNode);
+					bResult = CheckForCyclesInner(NodePrereqs, Visited, Stack, It.Value(), FailNode);
 				}
 				Stack.Remove(Visit);
 			}
 		}
-		UE_CLOG(bResult && Stack.Contains(FailNode), LogSavePackage, Error, TEXT("Cycle Node %s"), *Visit);
+		UE_CLOG(bResult && Stack.Contains(FailNode), LogSavePackage, Error, TEXT("Cycle Node %s"), *Visit.ToString());
 		return bResult;
 	}
 
-	void Verify()
+	static void Verify()
 	{
+		check(!GIsSavingPackage);
+
+		bool bIsActive = false;
+		TMultiMap<FEDLNodeID, FName> ImportToImportingPackage;
+		TSet<FEDLNodeID> Exports;
+		TMultiMap<FEDLNodeID, FEDLNodeID> NodePrereqs;
+
+		{
+			FScopeLock CookCheckerInstanceLock(&CookCheckerInstanceCritical);
+			for (FEDLCookChecker* Checker : CookCheckerInstances)
+			{
+				if (Checker->bIsActive)
+				{
+					bIsActive = true;
+					Exports.Append(MoveTemp(Checker->Exports));
+					ImportToImportingPackage.Append(MoveTemp(Checker->ImportToImportingPackage));
+					NodePrereqs.Append(MoveTemp(Checker->NodePrereqs));
+				}
+				Checker->Reset();
+			}			
+		}
+
 		if (bIsActive && Exports.Num())
 		{
 			double StartTime = FPlatformTime::Seconds();
 			
  			// imports to things that are not exports...
- 			for (auto& Pair : ImportToImportingPackage)
+ 			for (const auto& Pair : ImportToImportingPackage)
  			{
  				if (!Exports.Contains(Pair.Key))
  				{
- 					UE_LOG(LogSavePackage, Warning, TEXT("%s imported %s, but it was never saved as an export."), *Pair.Value, *Pair.Key);
+ 					UE_LOG(LogSavePackage, Warning, TEXT("%s imported %s, but it was never saved as an export."), *Pair.Value.ToString(), *Pair.Key.ToString());
  				}
  			}
 			// cycles in the dep graph
-			TSet<FString> Visited;
-			TSet<FString> Stack;
+			TSet<FEDLNodeID> Visited;
+			TSet<FEDLNodeID> Stack;
 			bool bHadCycle = false;
-			for (FString& Export : Exports)
+			for (const FEDLNodeID& Export : Exports)
 			{
-				FString FailNode;
-				if (CheckForCyclesInner(Visited, Stack, Prefix(true) + Export, FailNode))
+				FEDLNodeID FailNode;
+				if (CheckForCyclesInner(NodePrereqs, Visited, Stack, Export, FailNode))
 				{
-					UE_LOG(LogSavePackage, Error, TEXT("----- %s contained a cycle (listed above)."), *FailNode);
+					UE_LOG(LogSavePackage, Error, TEXT("----- %s contained a cycle (listed above)."), *FailNode.ToString());
 					bHadCycle = true;
 				}
 			}
@@ -3267,31 +3353,20 @@ struct FEDLCookChecker
 			}
 			UE_LOG(LogSavePackage, Display, TEXT("Took %fs to verify the EDL loading graph."), float(FPlatformTime::Seconds() - StartTime));
 		}
-		Reset();
-	}
-
-	static FString Prefix(bool bDepIsSerialize)
-	{
-		return FString(bDepIsSerialize ? TEXT("Serialize:") : TEXT("Create:"));
-	}
-
-	static FString NodeName(UObject* DepObject, bool bDepIsSerialize)
-	{
-		return Prefix(bDepIsSerialize) + DepObject->GetFullName();
 	}
 };
 
-static FEDLCookChecker GEDLCookChecker;
+FCriticalSection FEDLCookChecker::CookCheckerInstanceCritical;
+TArray<FEDLCookChecker*> FEDLCookChecker::CookCheckerInstances;
 
 void StartSavingEDLCookInfoForVerification()
 {
-	GEDLCookChecker.Reset();
-	GEDLCookChecker.bIsActive = IsEventDrivenLoaderEnabledInCookedBuilds();
+	FEDLCookChecker::StartSavingEDLCookInfoForVerification();
 }
 
 void VerifyEDLCookInfo()
 {
-	GEDLCookChecker.Verify();
+	FEDLCookChecker::Verify();
 }
 
 
@@ -3299,7 +3374,7 @@ extern FGCCSyncObject GGarbageCollectionGuardCritical;
 
 FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename,
 	FOutputDevice* Error, FLinkerLoad* Conform, bool bForceByteSwapping, bool bWarnOfLongFilename, uint32 SaveFlags, 
-	const class ITargetPlatform* TargetPlatform, const FDateTime&  FinalTimeStamp, bool bSlowTask)
+	const class ITargetPlatform* TargetPlatform, const FDateTime&  FinalTimeStamp, bool bSlowTask, FArchiveDiffMap* InOutDiffMap)
 {
 	COOK_STAT(FScopedDurationTimer FuncSaveTimer(SavePackageStats::SavePackageTimeSec));
 	COOK_STAT(SavePackageStats::NumPackagesSaved++);
@@ -3308,9 +3383,29 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 	TMap<UObject*, UObject*> ReplacedImportOuters;
 #endif //WITH_EDITOR
 
+	const bool bSavingConcurrent = !!(SaveFlags & ESaveFlags::SAVE_Concurrent);
+
 	if (FPlatformProperties::HasEditorOnlyData())
 	{
-		if (GIsSavingPackage)
+#if WITH_EDITOR
+		struct FDiffSettings
+		{
+			int32 MaxDiffsToLog;
+			bool bIgnoreHeaderDiffs;
+			FDiffSettings(bool bDiffing)
+				: MaxDiffsToLog(5)
+				, bIgnoreHeaderDiffs(false)
+			{
+				if (bDiffing)
+				{
+					GConfig->GetInt(TEXT("CookSettings"), TEXT("MaxDiffsToLog"), MaxDiffsToLog, GEditorIni);
+					GConfig->GetBool(TEXT("CookSettings"), TEXT("IgnoreHeaderDiffs"), bIgnoreHeaderDiffs, GEditorIni);
+				}
+			}
+		} DiffSettings((SaveFlags & (SAVE_DiffCallstack | SAVE_DiffOnly)) != 0);
+#endif
+
+		if (GIsSavingPackage && !bSavingConcurrent)
 		{
 			ensureMsgf(false, TEXT("Recursive SavePackage() is not supported"));
 			return ESavePackageResult::Error;
@@ -3321,6 +3416,10 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 		check(Filename);
 
 		const bool bIsCooking = TargetPlatform != nullptr;
+		bool bDiffOnlyIdentical = true;
+		FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
+		FEDLCookChecker& EDLCookChecker = FEDLCookChecker::Get();
+
 #if WITH_EDITORONLY_DATA
 		if (bIsCooking && (!(SaveFlags & ESaveFlags::SAVE_KeepEditorOnlyCookedPackages)))
 		{
@@ -3457,8 +3556,9 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 		const bool FilterEditorOnly = InOuter->HasAnyPackageFlags(PKG_FilterEditorOnly);
 
 		// Route PreSaveRoot to allow e.g. the world to attach components for the persistent level.
+		// If we are saving concurrently, this should have been called before UPackage::Save was called.
 		bool bCleanupIsRequired = false;
-		if (Base)
+		if (Base && !bSavingConcurrent)
 		{
 			bCleanupIsRequired = Base->PreSaveRoot(Filename);
 		}
@@ -3503,7 +3603,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 		// Size of serialized out package in bytes. This is before compression.
 		int32 PackageSize = INDEX_NONE;
 		{
-			FScopeSavePackageState ScopeSavePackageState; // allocates the save package state and deletes it when this goes out of scope
+			FSavePackageState SavePackageState;
 
 			uint32 ComparisonFlags = PPF_DeepCompareInstances;
 
@@ -3519,7 +3619,10 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 			FPackageExportTagger PackageExportTagger(Base, TopLevelFlags, InOuter, TargetPlatform);
 			{
 				COOK_STAT(FScopedDurationTimer SaveTimer(SavePackageStats::TagPackageExportsPresaveTimeSec));
-				PackageExportTagger.TagPackageExports(ExportTaggerArchive, true);
+				// Do not route presave if saving concurrently. This should have been done before the concurrent save started.
+				// Also if we're trying to diff the package and gathering callstacks, Presave has already been done
+				const bool bRoutePresave = !bSavingConcurrent && !(SaveFlags & SAVE_DiffCallstack);
+				PackageExportTagger.TagPackageExports(ExportTaggerArchive, bRoutePresave);
 				ExportTaggerArchive.SetFilterEditorOnly(FilterEditorOnly);
 			}
 		
@@ -3537,18 +3640,29 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				// set GIsSavingPackage here as it is now illegal to create any new object references; they potentially wouldn't be saved correctly								
 				struct FScopedSavingFlag
 				{
-					FScopedSavingFlag() 
-					{ 
+					FScopedSavingFlag(bool InSavingConcurrent)
+						: bSavingConcurrent(InSavingConcurrent)
+					{
 						// We need the same lock as GC so that no StaticFindObject can happen in parallel to saveing a package
 						GGarbageCollectionGuardCritical.GCLock();
-						GIsSavingPackage = true; 
+
+						// Do not change GIsSavingPackage while saving concurrently. It should have been set before and after all packages are saved
+						if (!bSavingConcurrent)
+						{
+							GIsSavingPackage = true;
+						}
 					}
 					~FScopedSavingFlag() 
 					{ 
-						GIsSavingPackage = false; 
+						if (!bSavingConcurrent)
+						{
+							GIsSavingPackage = false;
+						}
 						GGarbageCollectionGuardCritical.GCUnlock();
 					}
-				} IsSavingFlag;
+
+					bool bSavingConcurrent;
+				} IsSavingFlag(bSavingConcurrent);
 
 			
 				{
@@ -3565,7 +3679,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				// TODO: if save package is canceled then call ClearCache on each object
 
 #if WITH_EDITOR
-				if ( bIsCooking )
+				if ( bIsCooking && !bSavingConcurrent )
 				{
 					TArray<UObject*> TagExpObjects;
 					GetObjectsWithAnyMarks(TagExpObjects, OBJECTMARK_TagExp);
@@ -3600,7 +3714,20 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				FString DiffCookedPackagesPath;
 				// if we are cooking and we have diff cooked packages on the commandline then do some special stuff
 
-				if ((!!TargetPlatform) && FParse::Value(FCommandLine::Get(), TEXT("DiffCookedPackages="), DiffCookedPackagesPath))
+				if (TargetPlatform != nullptr && (SaveFlags & SAVE_DiffCallstack))
+				{
+					// The entire package will be serialized to memory and then compared against package on disk.
+					// Each difference will be log with its Serialize call stack trace
+					FArchive* Saver = new FArchiveStackTrace(*InOuter->FileName.ToString(), true, InOutDiffMap);
+					Linker = new FLinkerSave(InOuter, Saver, bForceByteSwapping, bSaveUnversioned);
+				}
+				else if (TargetPlatform != nullptr && (SaveFlags & SAVE_DiffOnly))
+				{
+					// The entire package will be serialized to memory and then compared against package on disk
+					FArchive* Saver = new FArchiveStackTrace(*InOuter->FileName.ToString(), false);
+					Linker = new FLinkerSave(InOuter, Saver, bForceByteSwapping, bSaveUnversioned);
+				}
+				else if ((!!TargetPlatform) && FParse::Value(FCommandLine::Get(), TEXT("DiffCookedPackages="), DiffCookedPackagesPath))
 				{
 					FString TestArchiveFilename = Filename;
 					// TestArchiveFilename.ReplaceInline(TEXT("Cooked"), TEXT("CookedDiff"));
@@ -3610,7 +3737,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 					TestArchiveFilename.ReplaceInline(*CookedPath, *DiffCookedPackagesPath);
 					
 					FArchive* TestArchive = IFileManager::Get().CreateFileReader(*TestArchiveFilename); 
-					FArchive* Saver = new FDiffSerializeArchive(InOuter->FileName, TestArchive);
+					FArchive* Saver = new FDiffSerializeArchive(*InOuter->FileName.ToString(), TestArchive);
 					Linker = new FLinkerSave(InOuter, Saver, bForceByteSwapping);
 				}
 				else 
@@ -3695,16 +3822,16 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 								if (IsEventDrivenLoaderEnabledInCookedBuilds() && TargetPlatform)
 								{
 									// the package isn't actually in the export map, but that is ok, we add it as export anyway for error checking
-									GEDLCookChecker.AddExport(InOuter);
+									EDLCookChecker.AddExport(InOuter);
 
 									for (UObject* ObjExport : TagExpObjects)
 									{
 										// Register exports, these will exist at runtime because they are compiled in
-										GEDLCookChecker.AddExport(ObjExport);
+										EDLCookChecker.AddExport(ObjExport);
 									}
 								}
 
-								UE_LOG(LogSavePackage, Display, TEXT("Package %s contains assets, that were converted into native code. Package will not be saved."), *InOuter->GetName());
+								UE_LOG(LogSavePackage, Verbose, TEXT("Package %s contains assets that are being converted to native code."), *InOuter->GetName());
 								return ESavePackageResult::ReplaceCompletely;
 							}
 							else if (ReplacmentResult == EReplacementResult::GenerateStub)
@@ -3727,7 +3854,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 						check(Obj->HasAnyMarks(OBJECTMARK_TagExp));
 
 						// Build list.
-						FArchiveSaveTagImports ImportTagger(Linker);
+						FArchiveSaveTagImports ImportTagger(Linker, SavePackageState);
 						ImportTagger.SetPortFlags(ComparisonFlags);
 						ImportTagger.SetFilterEditorOnly(FilterEditorOnly);
 
@@ -3864,20 +3991,20 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 						UObject* Obj = TagExpImpObjects[Index];
 						check(Obj->HasAnyMarks(EObjectMark(OBJECTMARK_TagExp|OBJECTMARK_TagImp)));
 
-						SavePackageState->MarkNameAsReferenced(Obj->GetFName());
+						SavePackageState.MarkNameAsReferenced(Obj->GetFName());
 #if WITH_EDITOR
-						SavePackageState->AddReplacementsNames(Obj, TargetPlatform, bIsCooking);
+						SavePackageState.AddReplacementsNames(Obj, TargetPlatform, bIsCooking);
 #endif //WITH_EDITOR
 						if( Obj->GetOuter() )
 						{
-							SavePackageState->MarkNameAsReferenced(Obj->GetOuter()->GetFName());
+							SavePackageState.MarkNameAsReferenced(Obj->GetOuter()->GetFName());
 						}
 
 						if( Obj->HasAnyMarks(OBJECTMARK_TagImp) )
 						{
-							SavePackageState->MarkNameAsReferenced(Obj->GetClass()->GetFName());
+							SavePackageState.MarkNameAsReferenced(Obj->GetClass()->GetFName());
 							check(Obj->GetClass()->GetOuter());
-							SavePackageState->MarkNameAsReferenced(Obj->GetClass()->GetOuter()->GetFName());
+							SavePackageState.MarkNameAsReferenced(Obj->GetClass()->GetOuter()->GetFName());
 						
 							// if a private object was marked by the cooker, it will be in memory on load, and will be found. helps with some objects
 							// from a package in a package being moved into Startup_int.xxx, but not all
@@ -3896,7 +4023,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 							UPackage* ObjPackage = Obj->GetOutermost();
 							if (PrestreamPackages.Contains(ObjPackage))
 							{
-								SavePackageState->MarkNameAsReferenced(PrestreamPackageClassName);
+								SavePackageState.MarkNameAsReferenced(PrestreamPackageClassName);
 								// These are not errors
 								UE_LOG(LogSavePackage, Display, TEXT("Prestreaming package %s "), *ObjPackage->GetPathName()); //-V595
 								continue;
@@ -4094,7 +4221,12 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				}
 				new(Linker->Summary.Generations)FGenerationInfo(0, 0);
 
-				*Linker << Linker->Summary;
+				{
+#if WITH_EDITOR
+					FArchiveStackTraceIgnoreScope IgnoreSummaryDiffsScope(DiffSettings.bIgnoreHeaderDiffs);
+#endif // WITH_EDITOR
+					*Linker << Linker->Summary;
+				}
 				int32 OffsetAfterPackageFileSummary = Linker->Tell();
 		
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) 
@@ -4106,7 +4238,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 
 				// Build NameMap.
 				Linker->Summary.NameOffset = Linker->Tell();
-				SavePackageState->UpdateLinkerWithMarkedNames(Linker);
+				SavePackageState.UpdateLinkerWithMarkedNames(Linker);
 
 #if WITH_EDITOR
 				if ( GOutputCookingWarnings )
@@ -4136,7 +4268,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 
 				// Sort names.
 				FObjectNameSortHelper NameSortHelper;
-				NameSortHelper.SortNames( Linker, Conform );
+				NameSortHelper.SortNames( Linker, Conform, SavePackageState );
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) 
 				{ 
@@ -4148,11 +4280,12 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				{
 #if WITH_EDITOR
 					FArchive::FScopeSetDebugSerializationFlags S(*Linker, DSF_IgnoreDiff, true);
+					FArchiveStackTraceIgnoreScope IgnoreSummaryDiffsScope(DiffSettings.bIgnoreHeaderDiffs);
 #endif
 					Linker->Summary.NameCount = Linker->NameMap.Num();
 					for (int32 i = 0; i < Linker->NameMap.Num(); i++)
 					{
-						*Linker << *const_cast<FNameEntry*>(Linker->NameMap[i].GetDisplayNameEntry());
+						Linker->NameMap[i].GetDisplayNameEntry()->Write(*Linker);
 						Linker->NameIndices.Add(Linker->NameMap[i], i);
 					}
 				}
@@ -4227,6 +4360,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 								}
 							}
 						}
+					
 #endif //WITH_EDITOR
 						FObjectImport* LocObjectImport = new(Linker->ImportMap)FObjectImport(Obj, ObjClass);
 
@@ -4483,13 +4617,13 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				}
 				if (IsEventDrivenLoaderEnabledInCookedBuilds() && TargetPlatform)
 				{
-					GEDLCookChecker.AddExport(InOuter); // the package isn't actually in the export map, but that is ok, we add it as export anyway for error checking
+					EDLCookChecker.AddExport(InOuter); // the package isn't actually in the export map, but that is ok, we add it as export anyway for error checking
 					for (int32 i = 0; i < Linker->ImportMap.Num(); i++)
 					{
 						UObject* Object = Linker->ImportMap[i].XObject;
 						if (Object != nullptr)
 						{
-							GEDLCookChecker.AddImport(Object, InOuter);
+							EDLCookChecker.AddImport(Object, InOuter);
 						}
 					}
 				}
@@ -4519,11 +4653,16 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				SlowTask.EnterProgressFrame();
 
 				// Save dummy import map, overwritten later.
-				Linker->Summary.ImportOffset = Linker->Tell();
-				for( int32 i=0; i<Linker->ImportMap.Num(); i++ )
 				{
-					FObjectImport& Import = Linker->ImportMap[ i ];
-					*Linker << Import;
+#if WITH_EDITOR
+					FArchiveStackTraceIgnoreScope IgnoreSummaryDiffsScope(DiffSettings.bIgnoreHeaderDiffs);
+#endif // WITH_EDITOR
+					Linker->Summary.ImportOffset = Linker->Tell();
+					for (int32 i = 0; i < Linker->ImportMap.Num(); i++)
+					{
+						FObjectImport& Import = Linker->ImportMap[i];
+						*Linker << Import;
+					}
 				}
 				int32 OffsetAfterImportMap = Linker->Tell();
 
@@ -4535,11 +4674,16 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				SlowTask.EnterProgressFrame();
 
 				// Save dummy export map, overwritten later.
-				Linker->Summary.ExportOffset = Linker->Tell();
-				for( int32 i=0; i<Linker->ExportMap.Num(); i++ )
 				{
-					FObjectExport& Export = Linker->ExportMap[ i ];
-					*Linker << Export;
+#if WITH_EDITOR
+					FArchiveStackTraceIgnoreScope IgnoreSummaryDiffsScope(DiffSettings.bIgnoreHeaderDiffs);
+#endif // WITH_EDITOR
+					Linker->Summary.ExportOffset = Linker->Tell();
+					for (int32 i = 0; i < Linker->ExportMap.Num(); i++)
+					{
+						FObjectExport& Export = Linker->ExportMap[i];
+						*Linker << Export;
+					}
 				}
 				int32 OffsetAfterExportMap = Linker->Tell();
 
@@ -4552,6 +4696,9 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 
 				if (Linker->IsCooking())
 				{
+#if WITH_EDITOR
+					FArchiveStackTraceIgnoreScope IgnoreSummaryDiffsScope(DiffSettings.bIgnoreHeaderDiffs);
+#endif // WITH_EDITOR
 					//@todo optimization, this should just be stripped entirely from cooked packages
 					TArray<FPackageIndex> Depends; // empty array
 					Linker->Summary.DependsOffset = Linker->Tell();
@@ -4606,14 +4753,20 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 					Linker->Summary.SearchableNamesOffset = 0;
 				}
 
-				// Save thumbnails
-				UPackage::SaveThumbnails( InOuter, Linker );
+				{
+#if WITH_EDITOR
+					FArchiveStackTraceIgnoreScope IgnoreSummaryDiffsScope(DiffSettings.bIgnoreHeaderDiffs);
+#endif // WITH_EDITOR
 
-				// Save asset registry data so the editor can search for information about assets in this package
-				UPackage::SaveAssetRegistryData( InOuter, Linker );
+					// Save thumbnails
+					UPackage::SaveThumbnails(InOuter, Linker);
 
-				// Save level information used by World browser
-				UPackage::SaveWorldLevelInfo( InOuter, Linker );
+					// Save asset registry data so the editor can search for information about assets in this package
+					UPackage::SaveAssetRegistryData(InOuter, Linker);
+
+					// Save level information used by World browser
+					UPackage::SaveWorldLevelInfo(InOuter, Linker);
+				}
 
 
 				for (int32 i = 0; i < Linker->ExportMap.Num(); i++)
@@ -4702,6 +4855,10 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 
 				if (Linker->IsCooking() && IsEventDrivenLoaderEnabledInCookedBuilds())
 				{
+#if WITH_EDITOR
+					FArchiveStackTraceIgnoreScope IgnoreSummaryDiffsScope(DiffSettings.bIgnoreHeaderDiffs);
+#endif // WITH_EDITOR
+
 					const EObjectMark ExcludedObjectMarks = UPackage::GetExcludedObjectMarksForTargetPlatform(Linker->CookingTarget(), Linker->IsCooking());
 					Linker->Summary.PreloadDependencyCount = 0;
 
@@ -4729,7 +4886,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 							{
 								UE_LOG(LogSavePackage, Warning, TEXT("A dependency '%s' of '%s' is in the linker table, but is pending kill. We will keep the dependency anyway (%d)."), *ToTest->GetFullName(), *ForObj->GetFullName(), CallSite);
 							}
-							bool bNotFiltered = (ExcludedObjectMarks == OBJECTMARK_NOMARKS || !ToTest->HasAnyMarks(ExcludedObjectMarks)) && (!(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) || !IsEditorOnlyObject(ToTest, false));
+							bool bNotFiltered = (ExcludedObjectMarks == OBJECTMARK_NOMARKS || !ToTest->HasAnyMarks(ExcludedObjectMarks)) && (!(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) || !IsEditorOnlyObject(ToTest, false, true));
 							if (bMandatory && !bNotFiltered)
 							{
 								UE_LOG(LogSavePackage, Warning, TEXT("A dependency '%s' of '%s' was filtered, but is mandatory. This indicates a problem with editor only stripping. We will keep the dependency anyway (%d)."), *ToTest->GetFullName(), *ForObj->GetFullName(), CallSite);
@@ -4776,7 +4933,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 						FObjectExport& Export = Linker->ExportMap[i];
 						if (Export.Object)
 						{
-							GEDLCookChecker.AddExport(Export.Object);
+							EDLCookChecker.AddExport(Export.Object);
 							TSet<FPackageIndex> SerializationBeforeCreateDependencies;
 							{
 								IncludeIndexAsDependency(SerializationBeforeCreateDependencies, Export.ClassIndex);
@@ -4884,7 +5041,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 								IncludeIndexAsDependency(CreateBeforeCreateDependencies, Export.SuperIndex);
 							}
 
-							auto AddArcForDepChecking = [Linker, &Export](bool bExportIsSerialize, FPackageIndex Dep, bool bDepIsSerialize)
+							auto AddArcForDepChecking = [Linker, &Export, &EDLCookChecker](bool bExportIsSerialize, FPackageIndex Dep, bool bDepIsSerialize)
 							{
 								check(Export.Object);
 								check(!Dep.IsNull());
@@ -4893,7 +5050,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 
 								Linker->DepListForErrorChecking.Add(Dep);
 
-								GEDLCookChecker.AddArc(DepObject, bDepIsSerialize, Export.Object, bExportIsSerialize);
+								EDLCookChecker.AddArc(DepObject, bDepIsSerialize, Export.Object, bExportIsSerialize);
 							};
 
 							for (FPackageIndex Index : SerializationBeforeSerializationDependencies)
@@ -5018,6 +5175,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 								TimingInfo.Value++;
 								FScopedDurationTimer SerializeTimer(TimingInfo.Key);
 #endif
+								TGuardValue<UObject*> GuardSerializedObject(ThreadContext.SerializedObject, Export.Object);
 								Export.Object->Serialize( *Linker );
 
 #if WITH_EDITOR
@@ -5178,60 +5336,65 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				PackageSize = Linker->Tell();
 
 				// Save the import map.
-				Linker->Seek( Linker->Summary.ImportOffset );
-				for( int32 i=0; i<Linker->ImportMap.Num(); i++ )
 				{
-					FObjectImport& Import = Linker->ImportMap[ i ];
-					if ( Import.XObject )
+#if WITH_EDITOR
+					FArchiveStackTraceIgnoreScope IgnoreSummaryDiffsScope(DiffSettings.bIgnoreHeaderDiffs);
+#endif // WITH_EDITOR
+
+					Linker->Seek(Linker->Summary.ImportOffset);
+					for (int32 i = 0; i < Linker->ImportMap.Num(); i++)
 					{
-					// Set the package index.
-						if( Import.XObject->GetOuter() )
+						FObjectImport& Import = Linker->ImportMap[i];
+						if (Import.XObject)
 						{
-							if ( Import.XObject->GetOuter()->IsIn(InOuter) )
+							// Set the package index.
+							if (Import.XObject->GetOuter())
 							{
-								if (!Import.XObject->HasAllFlags(RF_Transient) || !Import.XObject->IsNative())
+								if (Import.XObject->GetOuter()->IsIn(InOuter))
 								{
-									UE_LOG(LogSavePackage, Warning, TEXT("Bad Object=%s"),*Import.XObject->GetFullName());
+									if (!Import.XObject->HasAllFlags(RF_Transient) || !Import.XObject->IsNative())
+									{
+										UE_LOG(LogSavePackage, Warning, TEXT("Bad Object=%s"), *Import.XObject->GetFullName());
+									}
+									else
+									{
+										// if an object is marked RF_Transient and native, it is either an intrinsic class or
+										// a property of an intrinsic class.  Only properties of intrinsic classes will have
+										// an Outer that passes the check for "GetOuter()->IsIn(InOuter)" (thus ending up in this
+										// block of code).  Just verify that the Outer for this property is also marked RF_Transient and Native
+										check(Import.XObject->GetOuter()->HasAllFlags(RF_Transient) && Import.XObject->GetOuter()->IsNative());
+									}
+								}
+								check(!Import.XObject->GetOuter()->IsIn(InOuter) || Import.XObject->HasAllFlags(RF_Transient) || Import.XObject->IsNative());
+#if WITH_EDITOR
+								UObject** ReplacedOuter = ReplacedImportOuters.Find(Import.XObject);
+								if (ReplacedOuter && *ReplacedOuter)
+								{
+									Import.OuterIndex = Linker->MapObject(*ReplacedOuter);
+									ensure(Import.OuterIndex != FPackageIndex());
 								}
 								else
+#endif
 								{
-									// if an object is marked RF_Transient and native, it is either an intrinsic class or
-									// a property of an intrinsic class.  Only properties of intrinsic classes will have
-									// an Outer that passes the check for "GetOuter()->IsIn(InOuter)" (thus ending up in this
-									// block of code).  Just verify that the Outer for this property is also marked RF_Transient and Native
-									check(Import.XObject->GetOuter()->HasAllFlags(RF_Transient) && Import.XObject->GetOuter()->IsNative());
+									Import.OuterIndex = Linker->MapObject(Import.XObject->GetOuter());
+								}
+
+								if (Linker->IsCooking() && IsEventDrivenLoaderEnabledInCookedBuilds())
+								{
+									// Only package imports are allowed to have no outer
+									ensureMsgf(Import.OuterIndex != FPackageIndex() || Import.ClassName == NAME_Package, TEXT("Import %s has no valid outer when cooking!"), *Import.XObject->GetPathName());
 								}
 							}
-							check(!Import.XObject->GetOuter()->IsIn(InOuter) || Import.XObject->HasAllFlags(RF_Transient) || Import.XObject->IsNative());
-#if WITH_EDITOR
-							UObject** ReplacedOuter = ReplacedImportOuters.Find(Import.XObject);
-							if (ReplacedOuter && *ReplacedOuter)
-							{
-								Import.OuterIndex = Linker->MapObject(*ReplacedOuter);
-								ensure(Import.OuterIndex != FPackageIndex());
-							}
-							else
-#endif
-							{
-								Import.OuterIndex = Linker->MapObject(Import.XObject->GetOuter());
-							}
-
-							if (Linker->IsCooking() && IsEventDrivenLoaderEnabledInCookedBuilds())
-							{
-								// Only package imports are allowed to have no outer
-								ensureMsgf(Import.OuterIndex != FPackageIndex() || Import.ClassName == NAME_Package, TEXT("Import %s has no valid outer when cooking!"), *Import.XObject->GetPathName());
-							}
 						}
-					}
-					else
-					{
-						checkf(Conform != nullptr, TEXT("NULL XObject for import %i - Object: %s Class: %s"), i, *Import.ObjectName.ToString(), *Import.ClassName.ToString());
-					}
+						else
+						{
+							checkf(Conform != nullptr, TEXT("NULL XObject for import %i - Object: %s Class: %s"), i, *Import.ObjectName.ToString(), *Import.ClassName.ToString());
+						}
 
-					// Save it.
-					*Linker << Import;
+						// Save it.
+						*Linker << Import;
+					}
 				}
-				
 
 				check( Linker->Tell() == OffsetAfterImportMap );
 
@@ -5240,6 +5403,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				{
 #if WITH_EDITOR
 					FArchive::FScopeSetDebugSerializationFlags S(*Linker, DSF_IgnoreDiff, true);
+					FArchiveStackTraceIgnoreScope IgnoreSummaryDiffsScope(DiffSettings.bIgnoreHeaderDiffs);
 #endif
 					for (int32 i = 0; i < Linker->ExportMap.Num(); i++)
 					{
@@ -5276,7 +5440,12 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				Linker->Summary.PackageFlags = Linker->LinkerRoot->GetPackageFlags() & ~PKG_NewlyCreated;
 
 				Linker->Seek(0);
-				*Linker << Linker->Summary;
+				{
+#if WITH_EDITOR
+					FArchiveStackTraceIgnoreScope IgnoreSummaryDiffsScope(DiffSettings.bIgnoreHeaderDiffs);
+#endif // WITH_EDITOR
+					*Linker << Linker->Summary;
+				}
 				check( Linker->Tell() == OffsetAfterPackageFileSummary );
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) 
@@ -5291,7 +5460,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 					Linker->Detach();
 				}
 				UNCLOCK_CYCLES(Time);
-				UE_LOG(LogSavePackage, Log,  TEXT("Save=%.2fms"), FPlatformTime::ToMilliseconds(Time) );
+				UE_CLOG(!(SaveFlags & (SAVE_DiffCallstack | SAVE_DiffOnly)), LogSavePackage, Log,  TEXT("Save=%.2fms"), FPlatformTime::ToMilliseconds(Time) );
 		
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) 
 				{ 
@@ -5304,26 +5473,53 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 					// Compress the temporarily file to destination.
 					if (bSaveAsync)
 					{
-						UE_LOG(LogSavePackage, Log, TEXT("Async saving from memory to '%s'"), *NewPath);
+						UE_CLOG(!(SaveFlags & (SAVE_DiffCallstack | SAVE_DiffOnly)), LogSavePackage, Log, TEXT("Async saving from memory to '%s'"), *NewPath);
 
-						// Detach archive used for memory saving.
-						FLargeMemoryWriter* Writer = (FLargeMemoryWriter*)(Linker->Saver);
-						int64 DataSize = Writer->TotalSize();
-
-						COOK_STAT(FScopedDurationTimer SaveTimer(SavePackageStats::AsyncWriteTimeSec));
-						TotalPackageSizeUncompressed += DataSize;
-
-						FLargeMemoryPtr DataPtr(Writer->GetData());
-						Writer->ReleaseOwnership();
-						if (IsEventDrivenLoaderEnabledInCookedBuilds() && Linker->IsCooking())
+#if WITH_EDITOR
+						if (SaveFlags & SAVE_DiffCallstack)
 						{
-							AsyncWriteFileWithSplitExports(MoveTemp(DataPtr), DataSize, Linker->Summary.TotalHeaderSize, *NewPath, FinalTimeStamp);
+							const TCHAR* CutoffString = TEXT("UEditorEngine::Save()");
+							FArchiveStackTrace* Writer = (FArchiveStackTrace*)(Linker->Saver);
+							FArchiveDiffStats PackageDiffStats;
+							Writer->CompareWith(*NewPath, IsEventDrivenLoaderEnabledInCookedBuilds() ? Linker->Summary.TotalHeaderSize : 0, CutoffString, DiffSettings.MaxDiffsToLog, PackageDiffStats);
+							TotalPackageSizeUncompressed = Writer->TotalSize();
+							COOK_STAT(SavePackageStats::NumberOfDifferentPackages++);
+							COOK_STAT(SavePackageStats::DifferentPackagesSizeMB += ((double)(PackageDiffStats.NewFileTotalSize) / 1024.0 / 1024.0));
+							COOK_STAT(SavePackageStats::NumberOfDifferencesInPackages += PackageDiffStats.NumDiffs);
+							COOK_STAT(SavePackageStats::PackageDifferencesSizeMB += ((double)(PackageDiffStats.DiffSize) / 1024.0 / 1024.0));
+						}
+						else if (SaveFlags & SAVE_DiffOnly)
+						{
+							FArchiveStackTrace* Writer = (FArchiveStackTrace*)(Linker->Saver);
+							FArchiveDiffMap OutDiffMap;
+							bDiffOnlyIdentical = Writer->GenerateDiffMap(*NewPath, IsEventDrivenLoaderEnabledInCookedBuilds() ? Linker->Summary.TotalHeaderSize : 0, DiffSettings.MaxDiffsToLog, OutDiffMap);
+							TotalPackageSizeUncompressed = Writer->TotalSize();
+							if (InOutDiffMap)
+							{
+								*InOutDiffMap = MoveTemp(OutDiffMap);
+							}
 						}
 						else
+#endif // WITH_EDITOR
 						{
-							AsyncWriteFile(MoveTemp(DataPtr), DataSize, *NewPath, FinalTimeStamp);
-						}
+							// Detach archive used for memory saving.
+							FLargeMemoryWriter* Writer = (FLargeMemoryWriter*)(Linker->Saver);
+							int64 DataSize = Writer->TotalSize();
 
+							COOK_STAT(FScopedDurationTimer SaveTimer(SavePackageStats::AsyncWriteTimeSec));
+							TotalPackageSizeUncompressed += DataSize;
+
+							FLargeMemoryPtr DataPtr(Writer->GetData());
+							Writer->ReleaseOwnership();
+							if (IsEventDrivenLoaderEnabledInCookedBuilds() && Linker->IsCooking())
+							{
+								AsyncWriteFileWithSplitExports(MoveTemp(DataPtr), DataSize, Linker->Summary.TotalHeaderSize, *NewPath, FinalTimeStamp);
+							}
+							else
+							{
+								AsyncWriteFile(MoveTemp(DataPtr), DataSize, *NewPath, FinalTimeStamp);
+							}
+						}
 						Linker->Detach();
 					}
 					// Move the temporary file.
@@ -5416,7 +5612,9 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 
 			// Route PostSaveRoot to allow e.g. the world to detach components for the persistent level that were
 			// attached in PreSaveRoot.
-			if( Base )
+			// If we are saving concurrently, this should be called after UPackage::Save.
+			// Also if we're trying to diff the package and gathering callstacks, Presave has already been done
+			if( Base && !bSavingConcurrent && !(SaveFlags & SAVE_DiffCallstack) )
 			{
 				Base->PostSaveRoot( bCleanupIsRequired );
 			}
@@ -5424,9 +5622,12 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 			SlowTask.EnterProgressFrame();
 			
 #if WITH_EDITOR
-			for ( int CachedObjectIndex = 0; CachedObjectIndex < CachedObjects.Num(); ++CachedObjectIndex )
+			if ( !bSavingConcurrent )
 			{
-				CachedObjects[CachedObjectIndex]->ClearCachedCookedPlatformData(TargetPlatform);
+				for ( int CachedObjectIndex = 0; CachedObjectIndex < CachedObjects.Num(); ++CachedObjectIndex )
+				{
+					CachedObjects[CachedObjectIndex]->ClearCachedCookedPlatformData(TargetPlatform);
+				}
 			}
 #endif
 
@@ -5443,7 +5644,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 		// We're done!
 		SlowTask.EnterProgressFrame();
 
-		UE_LOG(LogSavePackage, Display, TEXT("Finished SavePackage %s"), Filename);
+		UE_CLOG(!(SaveFlags & (SAVE_DiffCallstack | SAVE_DiffOnly)), LogSavePackage, Display, TEXT("Finished SavePackage %s"), Filename);
 
 		if (Success)
 		{
@@ -5453,7 +5654,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 			}
 			else
 			{
-				return FSavePackageResultStruct(ESavePackageResult::Success, TotalPackageSizeUncompressed);
+				return FSavePackageResultStruct(bDiffOnlyIdentical ? ESavePackageResult::Success : ESavePackageResult::DifferentContent, TotalPackageSizeUncompressed);
 			}
 		}
 		else
@@ -5490,6 +5691,7 @@ void UPackage::SaveThumbnails( UPackage* InOuter, FLinkerSave* Linker )
 {
 	Linker->Summary.ThumbnailTableOffset = 0;
 
+#if WITH_EDITORONLY_DATA
 	// Do we have any thumbnails to save?
 	if( !(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) && InOuter->HasThumbnailMap() )
 	{
@@ -5593,6 +5795,7 @@ void UPackage::SaveThumbnails( UPackage* InOuter, FLinkerSave* Linker )
 	{
 		InOuter->ThumbnailMap.Reset();
 	}
+#endif
 }
 
 void UPackage::SaveAssetRegistryData( UPackage* InOuter, FLinkerSave* Linker )

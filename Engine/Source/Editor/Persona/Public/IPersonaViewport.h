@@ -1,9 +1,12 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
+
+class FEditorViewportClient;
+class IPinnedCommandList;
 
 /** Opaque state interface for saving and restoring viewport state */
 struct IPersonaViewportState
@@ -21,5 +24,8 @@ public:
 	virtual void RestoreState(TSharedRef<IPersonaViewportState> InState) = 0;
 
 	/** Get the viewport client contained within this viewport */
-	virtual class FEditorViewportClient& GetViewportClient() const = 0;
+	virtual FEditorViewportClient& GetViewportClient() const = 0;
+
+	/** Get the pinned commands list for this viewport */
+	virtual TSharedRef<IPinnedCommandList> GetPinnedCommandList() const = 0;
 };

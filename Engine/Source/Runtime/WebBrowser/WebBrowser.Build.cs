@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -9,8 +9,7 @@ public class WebBrowser : ModuleRules
 	{
 		PublicIncludePaths.Add("Runtime/WebBrowser/Public");
 		PrivateIncludePaths.Add("Runtime/WebBrowser/Private");
-
-		PrivateDependencyModuleNames.AddRange(
+        PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"Core",
@@ -21,11 +20,20 @@ public class WebBrowser : ModuleRules
 				"Slate",
 				"SlateCore",
 				"Serialization",
-			}
-		);
+            }
+        );
 
-		if (Target.Platform == UnrealTargetPlatform.Android)
+        if (Target.Platform == UnrealTargetPlatform.Android)
 		{
+			// We need these on Android for external texture support
+			PrivateDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"WebBrowserTexture",
+					"Engine",
+				}
+			);
+
 			// We need this one on Android for URL decoding
 			PrivateDependencyModuleNames.Add("HTTP");
 		}
@@ -47,16 +55,16 @@ public class WebBrowser : ModuleRules
 					// Add contents of UnrealCefSubProcess.app directory as runtime dependencies
 					foreach (string FilePath in Directory.EnumerateFiles(Target.RelativeEnginePath + "/Binaries/Mac/UnrealCEFSubProcess.app", "*", SearchOption.AllDirectories))
 					{
-						RuntimeDependencies.Add(new RuntimeDependency(FilePath));
+						RuntimeDependencies.Add(FilePath);
 					}
 				}
 				else if (Target.Platform == UnrealTargetPlatform.Linux)
 				{
-					RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/" + Target.Platform.ToString() + "/UnrealCEFSubProcess"));
+					RuntimeDependencies.Add("$(EngineDir)/Binaries/" + Target.Platform.ToString() + "/UnrealCEFSubProcess");
 				}
 				else
 				{
-					RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/" + Target.Platform.ToString() + "/UnrealCEFSubProcess.exe"));
+					RuntimeDependencies.Add("$(EngineDir)/Binaries/" + Target.Platform.ToString() + "/UnrealCEFSubProcess.exe");
 				}
 			}
 		}

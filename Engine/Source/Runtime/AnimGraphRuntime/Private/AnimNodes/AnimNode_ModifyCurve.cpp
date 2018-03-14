@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimNodes/AnimNode_ModifyCurve.h"
 #include "AnimationRuntime.h"
@@ -14,6 +14,12 @@ void FAnimNode_ModifyCurve::Initialize_AnyThread(const FAnimationInitializeConte
 {
 	Super::Initialize_AnyThread(Context);
 	SourcePose.Initialize(Context);
+}
+
+void FAnimNode_ModifyCurve::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context)
+{
+	Super::CacheBones_AnyThread(Context);
+	SourcePose.CacheBones(Context);
 }
 
 void FAnimNode_ModifyCurve::Evaluate_AnyThread(FPoseContext& Output)

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Abilities/GameplayAbility.h"
 #include "TimerManager.h"
@@ -563,7 +563,7 @@ void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 		}
 
 		// Give blueprint a chance to react
-		K2_OnEndAbility();
+		K2_OnEndAbility(bWasCancelled);
 
 		// Protect against blueprint causing us to EndAbility already
 		if (bIsActive == false && GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced)
@@ -945,6 +945,10 @@ FGameplayEffectSpecHandle UGameplayAbility::MakeOutgoingGameplayEffectSpec(const
 	{
 		FGameplayAbilitySpec* AbilitySpec =  ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle);
 		ApplyAbilityTagsToGameplayEffectSpec(*NewHandle.Data.Get(), AbilitySpec);
+
+		// Copy over set by caller magnitudes
+		NewHandle.Data->SetByCallerTagMagnitudes = AbilitySpec->SetByCallerTagMagnitudes;
+
 	}
 	return NewHandle;
 }
@@ -964,6 +968,9 @@ void UGameplayAbility::ApplyAbilityTagsToGameplayEffectSpec(FGameplayEffectSpec&
 
 			Spec.CapturedSourceTags.GetSpecTags().AppendTags(SourceObjTags);
 		}
+
+		// Copy SetByCallerMagnitudes 
+		Spec.MergeSetByCallerMagnitudes(AbilitySpec->SetByCallerTagMagnitudes);
 	}
 }
 
@@ -1287,6 +1294,19 @@ void UGameplayAbility::K2_AddGameplayCue(FGameplayTag GameplayCueTag, FGameplayE
 	}
 }
 
+void UGameplayAbility::K2_AddGameplayCueWithParams(FGameplayTag GameplayCueTag, const FGameplayCueParameters& GameplayCueParameter, bool bRemoveOnAbilityEnd)
+{
+	check(CurrentActorInfo);
+
+	CurrentActorInfo->AbilitySystemComponent->AddGameplayCue(GameplayCueTag, GameplayCueParameter);
+
+	if (bRemoveOnAbilityEnd)
+	{
+		TrackedGameplayCues.Add(GameplayCueTag);
+	}
+}
+
+
 void UGameplayAbility::K2_RemoveGameplayCue(FGameplayTag GameplayCueTag)
 {
 	check(CurrentActorInfo);
@@ -1325,9 +1345,12 @@ int32 UGameplayAbility::GetAbilityLevel() const
 int32 UGameplayAbility::GetAbilityLevel(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const
 {
 	FGameplayAbilitySpec* Spec = ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle);
-	check(Spec);
+	if (ensure(Spec))
+	{
+		return Spec->Level;
+	}
 
-	return Spec->Level;
+	return 1;
 }
 
 FGameplayAbilitySpec* UGameplayAbility::GetCurrentAbilitySpec() const
@@ -1403,6 +1426,12 @@ FGameplayEffectContextHandle UGameplayAbility::MakeEffectContext(const FGameplay
 
 	// add in the ability tracking here.
 	Context.SetAbility(this);
+
+	// Pass along the source object to the effect
+	if (FGameplayAbilitySpec* AbilitySpec = ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle))
+	{
+		Context.AddSourceObject(AbilitySpec->SourceObject);
+	}
 
 	return Context;
 }
@@ -1544,6 +1573,8 @@ TArray<FActiveGameplayEffectHandle> UGameplayAbility::BP_ApplyGameplayEffectToTa
 TArray<FActiveGameplayEffectHandle> UGameplayAbility::ApplyGameplayEffectToTarget(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayAbilityTargetDataHandle& Target, TSubclassOf<UGameplayEffect> GameplayEffectClass, float GameplayEffectLevel, int32 Stacks) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_ApplyGameplayEffectToTarget);
+	SCOPE_CYCLE_UOBJECT(This, this);
+	SCOPE_CYCLE_UOBJECT(Effect, GameplayEffectClass);
 
 	TArray<FActiveGameplayEffectHandle> EffectHandles;
 
@@ -1564,6 +1595,8 @@ TArray<FActiveGameplayEffectHandle> UGameplayAbility::ApplyGameplayEffectToTarge
 	{
 		FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(Handle, ActorInfo, ActivationInfo, GameplayEffectClass, GameplayEffectLevel);
 		SpecHandle.Data->StackCount = Stacks;
+
+		SCOPE_CYCLE_UOBJECT(Source, SpecHandle.Data->GetContext().GetSourceObject());
 		EffectHandles.Append(ApplyGameplayEffectSpecToTarget(Handle, ActorInfo, ActivationInfo, SpecHandle, Target));
 	}
 
@@ -1629,6 +1662,16 @@ void UGameplayAbility::BP_RemoveGameplayEffectFromOwnerWithGrantedTags(FGameplay
 
 	FGameplayEffectQuery const Query = FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(WithGrantedTags);
 	CurrentActorInfo->AbilitySystemComponent->RemoveActiveEffects(Query, StacksToRemove);
+}
+
+void UGameplayAbility::BP_RemoveGameplayEffectFromOwnerWithHandle(FActiveGameplayEffectHandle Handle, int32 StacksToRemove)
+{
+	if (HasAuthority(&CurrentActivationInfo) == false)
+	{
+		return;
+	}
+
+	CurrentActorInfo->AbilitySystemComponent->RemoveActiveGameplayEffect(Handle, StacksToRemove);
 }
 
 float UGameplayAbility::GetCooldownTimeRemaining() const

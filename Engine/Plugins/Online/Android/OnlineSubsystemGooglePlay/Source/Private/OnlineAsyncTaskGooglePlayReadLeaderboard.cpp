@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineAsyncTaskGooglePlayReadLeaderboard.h"
 #include "OnlineSubsystemGooglePlay.h"
@@ -84,7 +84,7 @@ void FOnlineAsyncTaskGooglePlayReadLeaderboard::Tick()
 
 			default:
 			{
-				UE_LOG_ONLINE(Warning, TEXT("Unsupported key value pair during retrieval from Google Play %s"), ColumnMeta.ColumnName);
+				UE_LOG_ONLINE(Warning, TEXT("Unsupported key value pair during retrieval from Google Play %s"), *ColumnMeta.ColumnName.ToString());
 				break;
 			}
 		}

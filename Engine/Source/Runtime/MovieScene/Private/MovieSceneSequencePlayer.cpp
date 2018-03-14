@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneSequencePlayer.h"
 #include "MovieScene.h"
@@ -27,6 +27,7 @@ UMovieSceneSequencePlayer::UMovieSceneSequencePlayer(const FObjectInitializer& I
 	, StartTime(0.f)
 	, EndTime(0.f)
 	, CurrentNumLoops(0)
+	, LatentPlaybackPosition(0.f)
 {
 }
 
@@ -166,20 +167,17 @@ void UMovieSceneSequencePlayer::Pause()
 
 		Status = EMovieScenePlayerStatus::Paused;
 
-		// Evaluate the sequence at its current time, with a status of 'stopped' to ensure that animated state pauses correctly
+		// Evaluate the sequence at its current time, with a status of 'stopped' to ensure that animated state pauses correctly. (ie. audio sounds should stop/pause)
 		{
 			bIsEvaluating = true;
 
 			UMovieSceneSequence* MovieSceneSequence = RootTemplateInstance.GetSequence(MovieSceneSequenceID::Root);
 			TOptional<float> FixedFrameInterval = MovieSceneSequence->GetMovieScene() ? MovieSceneSequence->GetMovieScene()->GetOptionalFixedFrameInterval() : TOptional<float>();
 
-			if (!PlayPosition.GetPreviousPosition().IsSet() || PlayPosition.GetPreviousPosition().GetValue() != GetSequencePosition())
-			{
-				FMovieSceneEvaluationRange Range = PlayPosition.JumpTo(GetSequencePosition(), FixedFrameInterval);
+			FMovieSceneEvaluationRange Range = PlayPosition.JumpTo(GetSequencePosition(), FixedFrameInterval);
 
-				const FMovieSceneContext Context(Range, EMovieScenePlayerStatus::Stopped);
-				RootTemplateInstance.Evaluate(Context, *this);
-			}
+			const FMovieSceneContext Context(Range, EMovieScenePlayerStatus::Stopped);
+			RootTemplateInstance.Evaluate(Context, *this);
 
 			bIsEvaluating = false;
 		}
@@ -258,6 +256,13 @@ float UMovieSceneSequencePlayer::GetPlaybackPosition() const
 
 void UMovieSceneSequencePlayer::SetPlaybackPosition(float NewPlaybackPosition)
 {
+	if (bIsEvaluating)
+	{
+		LatentActions.Add(ELatentAction::SetPlaybackPosition);
+		LatentPlaybackPosition = NewPlaybackPosition;
+		return;
+	}
+
 	UpdateTimeCursorPosition(NewPlaybackPosition);
 }
 
@@ -441,6 +446,7 @@ void UMovieSceneSequencePlayer::ApplyLatentActions()
 		{
 		case ELatentAction::Stop:	Stop(); break;
 		case ELatentAction::Pause:	Pause(); break;
+		case ELatentAction::SetPlaybackPosition: SetPlaybackPosition(LatentPlaybackPosition); break;
 		}
 	}
 }

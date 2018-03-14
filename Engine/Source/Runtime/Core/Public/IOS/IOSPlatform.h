@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	IOSPlatform.h: Setup for the iOS platform
@@ -46,6 +46,9 @@ typedef FIOSPlatformTypes FPlatformTypes;
 #define PLATFORM_ALLOW_NULL_RHI							1
 #define PLATFORM_ENABLE_VECTORINTRINSICS_NEON			PLATFORM_64BITS // disable vector intrinsics to make it compatible with 32-bit in Xcode 8.3
 #define PLATFORM_SUPPORTS_STACK_SYMBOLS					1
+
+// on iOS we now perform offline symbolication as it's significantly faster. Requires bGenerateCrashReportSymbols=true in the ini file.
+#define	PLATFORM_RUNTIME_MALLOCPROFILER_SYMBOLICATION	0	
 #define PLATFORM_NUM_AUDIODECOMPRESSION_PRECACHE_BUFFERS		0
 #if PLATFORM_TVOS
 #define PLATFORM_USES_ES2								0

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EditorExporters.cpp: Editor exporters.
@@ -69,6 +69,17 @@
 #include "UnrealExporter.h"
 #include "InstancedFoliage.h"
 #include "Engine/Selection.h"
+
+#include "Components/SkeletalMeshComponent.h"
+#include "Camera/CameraComponent.h"
+#include "Components/LightComponent.h"
+#include "Particles/Emitter.h"
+#include "Engine/Brush.h"
+#include "Components/BrushComponent.h"
+
+#include "Misc/App.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Framework/Notifications/NotificationManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorExporters, Log, All);
 
@@ -676,7 +687,7 @@ bool ULevelExporterSTL::ExportText( const FExportObjectInnerContext* Context, UO
 					for( int32 v = 2 ; v > -1 ; v-- )
 					{
 						int32 i = Indices[BaseIndex + v];
-						FVector vtx = Actor->ActorToWorld().TransformPosition(LODModel.PositionVertexBuffer.VertexPosition(i));
+						FVector vtx = Actor->ActorToWorld().TransformPosition(LODModel.VertexBuffers.PositionVertexBuffer.VertexPosition(i));
 						Triangles.Add(vtx);
 					}
 				}
@@ -928,21 +939,21 @@ static void AddActorToOBJs(AActor* Actor, TArray<FOBJGeom*>& Objects, TSet<UMate
 				uint32 TriangleCount = NumIndices / 3;
 				OBJGeom->Faces.AddUninitialized(TriangleCount);
 
-				uint32 VertexCount = RenderData->PositionVertexBuffer.GetNumVertices();
+				uint32 VertexCount = RenderData->VertexBuffers.PositionVertexBuffer.GetNumVertices();
 				OBJGeom->VertexData.AddUninitialized(VertexCount);
 				FOBJVertex* VerticesOut = OBJGeom->VertexData.GetData();
 
-				check(VertexCount == RenderData->VertexBuffer.GetNumVertices());
+				check(VertexCount == RenderData->VertexBuffers.StaticMeshVertexBuffer.GetNumVertices());
 
 				FMatrix LocalToWorldInverseTranspose = LocalToWorld.InverseFast().GetTransposed();
 				for (uint32 i = 0; i < VertexCount; i++)
 				{
 					// Vertices
-					VerticesOut[i].Vert = LocalToWorld.TransformPosition(RenderData->PositionVertexBuffer.VertexPosition(i));
+					VerticesOut[i].Vert = LocalToWorld.TransformPosition(RenderData->VertexBuffers.PositionVertexBuffer.VertexPosition(i));
 					// UVs from channel 0
-					VerticesOut[i].UV = RenderData->VertexBuffer.GetVertexUV(i, 0);
+					VerticesOut[i].UV = RenderData->VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(i, 0);
 					// Normal
-					VerticesOut[i].Normal = LocalToWorldInverseTranspose.TransformVector(RenderData->VertexBuffer.VertexTangentZ(i));
+					VerticesOut[i].Normal = LocalToWorldInverseTranspose.TransformVector(RenderData->VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(i));
 				}
 
 				bool bFlipCullMode = LocalToWorld.RotDeterminant() < 0.0f;
@@ -1005,11 +1016,13 @@ static void ExportMaterialPropertyTexture(const FString &BMPFilename, UMaterialI
 
 	if (bIsValidMaterial)
 	{
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		// render the material to a texture to export as a bmp
 		if (!FMaterialUtilities::ExportMaterialProperty(Material, MatProp, OutputBMP, OutSize ))
 		{
 			bIsValidMaterial = false;
-		}
+		}		
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
 
 	// make invalid textures a solid red
@@ -1465,9 +1478,117 @@ ULevelExporterFBX::ULevelExporterFBX(const FObjectInitializer& ObjectInitializer
 	FormatDescription.Add(TEXT("FBX File"));
 }
 
+bool IsSomethingToExport(AActor* Actor)
+{
+	check(Actor);
+	TInlineComponentArray<USceneComponent*> SceneComponents;
+	Actor->GetComponents(SceneComponents);
+
+	TInlineComponentArray<USceneComponent*> ComponentsToExport;
+	for (int32 ComponentIndex = 0; ComponentIndex < SceneComponents.Num(); ++ComponentIndex)
+	{
+		USceneComponent* Component = SceneComponents[ComponentIndex];
+
+		if (Component == nullptr || (Component && Component->bHiddenInGame))
+		{
+			//Skip hidden component like camera mesh or other editor helper
+			continue;
+		}
+
+		UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(Component);
+		USkeletalMeshComponent* SkelMeshComp = Cast<USkeletalMeshComponent>(Component);
+		UChildActorComponent* ChildActorComp = Cast<UChildActorComponent>(Component);
+
+		if ((StaticMeshComp && StaticMeshComp->GetStaticMesh()) ||
+			(SkelMeshComp && SkelMeshComp->SkeletalMesh) ||
+			Component->IsA(UCameraComponent::StaticClass()) ||
+			Component->IsA(ULightComponent::StaticClass()) ||
+			(ChildActorComp && ChildActorComp->GetChildActor() && IsSomethingToExport(ChildActorComp->GetChildActor()))
+			)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool IsSomethingToExport(ULevel* InLevel, bool bSelectedOnly)
+{
+	TArray<AActor*> ActorToExport;
+	int32 ActorCount = InLevel->Actors.Num();
+	for (int32 ActorIndex = 0; ActorIndex < ActorCount; ++ActorIndex)
+	{
+		AActor* Actor = InLevel->Actors[ActorIndex];
+		if (Actor != nullptr && (!bSelectedOnly || (bSelectedOnly && Actor->IsSelected())))
+		{
+			if (IsSomethingToExport(Actor))
+			{
+				return true;
+			}
+			else if(Actor->IsA(ALandscapeProxy::StaticClass()) || Actor->IsA(AEmitter::StaticClass()))
+			{
+				return true;
+			}
+			else if (Actor->IsA(ABrush::StaticClass()))
+			{
+				ABrush* BrushActor = Cast<ABrush>(Actor);
+				UModel* Model = BrushActor->GetBrushComponent()->Brush;
+				if (Model != NULL && Model->VertexBuffer.Vertices.Num() >= 3 && Model->MaterialIndexBuffers.Num() != 0)
+				{
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+bool IsSomethingToExport(UWorld* World, bool bSelectedOnly)
+{
+	if (bSelectedOnly && World->GetModel()->Nodes.Num())
+	{
+		return true;
+	}
+	ULevel* Level = World->PersistentLevel;
+	if (IsSomethingToExport(Level, bSelectedOnly))
+	{
+		return true;
+	}
+	// Export streaming levels and actors
+	for (int32 CurLevelIndex = 0; CurLevelIndex < World->GetNumLevels(); ++CurLevelIndex)
+	{
+		ULevel* CurLevel = World->GetLevel(CurLevelIndex);
+		if (CurLevel != NULL && CurLevel != Level)
+		{
+			if (IsSomethingToExport(CurLevel, bSelectedOnly))
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 bool ULevelExporterFBX::ExportBinary( UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex, uint32 PortFlags )
 {
-	GWarn->BeginSlowTask( NSLOCTEXT("UnrealEd", "ExportingLevelToFBX", "Exporting Level To FBX"), true );
+	UWorld* World = CastChecked<UWorld>(Object);
+	//Check if there is something to export
+	if (!IsSomethingToExport(World, bSelectedOnly))
+	{
+		UE_LOG(LogEditorExporters, Warning, TEXT("There is nothing to export to a fbx file."));
+		if (!GIsAutomationTesting && !FApp::IsUnattended())
+		{
+			FNotificationInfo NotificationInfo(FText::GetEmpty());
+			NotificationInfo.Text = bSelectedOnly
+				? FText(NSLOCTEXT("UnrealEd", "ExportingLevelToFBX_Selection", "The selection has nothing that can be export to fbx!"))
+				: FText(NSLOCTEXT("UnrealEd", "ExportingLevelToFBX", "The world has nothing that can be export to fbx!"));
+			NotificationInfo.ExpireDuration = 5.0f;
+			FSlateNotificationManager::Get().AddNotification(NotificationInfo);
+		}
+		return false;
+	}
+
+	GWarn->BeginSlowTask(NSLOCTEXT("UnrealEd", "ExportingLevelToFBX", "Exporting Level To FBX"), true);
 
 	UnFbx::FFbxExporter* Exporter = UnFbx::FFbxExporter::GetInstance();
 	
@@ -1480,9 +1601,7 @@ bool ULevelExporterFBX::ExportBinary( UObject* Object, const TCHAR* Type, FArchi
 		Exporter->CreateDocument();
 
 		GWarn->StatusUpdate(0, 1, NSLOCTEXT("UnrealEd", "ExportingLevelToFBX", "Exporting Level To FBX"));
-
 		{
-			UWorld* World = CastChecked<UWorld>(Object);
 			ULevel* Level = World->PersistentLevel;
 
 			if (bSelectedOnly)
@@ -1628,9 +1747,9 @@ bool UStaticMeshExporterOBJ::ExportText(const FExportObjectInnerContext* Context
 			uint32 Index2 = Indices[(tri * 3) + 1];
 			uint32 Index3 = Indices[(tri * 3) + 2];
 
-			FVector Vertex1 = RenderData.PositionVertexBuffer.VertexPosition(Index1);		//(FStaticMeshFullVertex*)(RawVertexData + Index1 * VertexStride);
-			FVector Vertex2 = RenderData.PositionVertexBuffer.VertexPosition(Index2);
-			FVector Vertex3 = RenderData.PositionVertexBuffer.VertexPosition(Index3);
+			FVector Vertex1 = RenderData.VertexBuffers.PositionVertexBuffer.VertexPosition(Index1);		//(FStaticMeshFullVertex*)(RawVertexData + Index1 * VertexStride);
+			FVector Vertex2 = RenderData.VertexBuffers.PositionVertexBuffer.VertexPosition(Index2);
+			FVector Vertex3 = RenderData.VertexBuffers.PositionVertexBuffer.VertexPosition(Index3);
 			
 			// Vertices
 			Verts.Add( Vertex1 );
@@ -1638,19 +1757,19 @@ bool UStaticMeshExporterOBJ::ExportText(const FExportObjectInnerContext* Context
 			Verts.Add( Vertex3 );
 
 			// UVs from channel 0
-			UVs.Add( RenderData.VertexBuffer.GetVertexUV(Index1, 0) );
-			UVs.Add( RenderData.VertexBuffer.GetVertexUV(Index2, 0) );
-			UVs.Add( RenderData.VertexBuffer.GetVertexUV(Index3, 0) );
+			UVs.Add( RenderData.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(Index1, 0) );
+			UVs.Add( RenderData.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(Index2, 0) );
+			UVs.Add( RenderData.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(Index3, 0) );
 
 			// UVs from channel 1 (lightmap coords)
-			UVLMs.Add( RenderData.VertexBuffer.GetVertexUV(Index1, 1) );
-			UVLMs.Add( RenderData.VertexBuffer.GetVertexUV(Index2, 1) );
-			UVLMs.Add( RenderData.VertexBuffer.GetVertexUV(Index3, 1) );
+			UVLMs.Add( RenderData.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(Index1, 1) );
+			UVLMs.Add( RenderData.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(Index2, 1) );
+			UVLMs.Add( RenderData.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(Index3, 1) );
 
 			// Normals
-			Normals.Add( RenderData.VertexBuffer.VertexTangentZ(Index1) );
-			Normals.Add( RenderData.VertexBuffer.VertexTangentZ(Index2) );
-			Normals.Add( RenderData.VertexBuffer.VertexTangentZ(Index3) );
+			Normals.Add( RenderData.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(Index1) );
+			Normals.Add( RenderData.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(Index2) );
+			Normals.Add( RenderData.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(Index3) );
 
 			// Smoothing groups
 			SmoothingMasks.Add( RawMesh.FaceSmoothingMasks[tri] );
@@ -1739,12 +1858,12 @@ bool UStaticMeshExporterOBJ::ExportText(const FExportObjectInnerContext* Context
 		const FStaticMeshLODResources& RenderData = StaticMesh->GetLODForExport(0);
 		uint32 VertexCount = RenderData.GetNumVertices();
 
-		check(VertexCount == RenderData.VertexBuffer.GetNumVertices());
+		check(VertexCount == RenderData.VertexBuffers.StaticMeshVertexBuffer.GetNumVertices());
 
 		File->Logf( TEXT("\r\n") );
 		for(uint32 i = 0; i < VertexCount; i++)
 		{
-			const FVector& OSPos = RenderData.PositionVertexBuffer.VertexPosition( i );
+			const FVector& OSPos = RenderData.VertexBuffers.PositionVertexBuffer.VertexPosition( i );
 //			const FVector WSPos = StaticMeshComponent->LocalToWorld.TransformPosition( OSPos );
 			const FVector WSPos = OSPos;
 
@@ -1756,7 +1875,7 @@ bool UStaticMeshExporterOBJ::ExportText(const FExportObjectInnerContext* Context
 		for(uint32 i = 0 ; i < VertexCount; ++i)
 		{
 			// takes the first UV
-			const FVector2D UV = RenderData.VertexBuffer.GetVertexUV(i, 0);
+			const FVector2D UV = RenderData.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(i, 0);
 
 			// Invert the y-coordinate (Lightwave has their bitmaps upside-down from us).
 			File->Logf( TEXT("vt %f %f\r\n"), UV.X, 1.0f - UV.Y );
@@ -1766,7 +1885,7 @@ bool UStaticMeshExporterOBJ::ExportText(const FExportObjectInnerContext* Context
 
 		for(uint32 i = 0 ; i < VertexCount; ++i)
 		{
-			const FVector& OSNormal = RenderData.VertexBuffer.VertexTangentZ( i ); 
+			const FVector& OSNormal = RenderData.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ( i ); 
 			const FVector WSNormal = OSNormal; 
 
 			// Transform to Lightwave's coordinate system

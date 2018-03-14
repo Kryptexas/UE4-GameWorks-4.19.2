@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "DataTableJSON.h"
 #include "UObject/UnrealType.h"
@@ -9,7 +9,6 @@
 #include "Serialization/JsonSerializer.h"
 #include "Engine/UserDefinedStruct.h"
 
-#if WITH_EDITOR
 
 namespace
 {
@@ -35,6 +34,7 @@ namespace
 			return TEXT("Unknown");
 		}
 	}
+#if WITH_EDITOR
 
 	void WriteJSONObjectStartWithOptionalIdentifier(FDataTableExporterJSON::FDataTableJsonWriter& InJsonWriter, const FString* InIdentifier)
 	{
@@ -60,7 +60,13 @@ namespace
 			InJsonWriter.WriteValue(InValue);
 		}
 	}
+
+#endif
+
 }
+
+
+#if WITH_EDITOR
 
 FDataTableExporterJSON::FDataTableExporterJSON(const EDataTableExportFlags InDTExportFlags, FString& OutExportText)
 	: DTExportFlags(InDTExportFlags)
@@ -110,6 +116,33 @@ bool FDataTableExporterJSON::WriteTable(const UDataTable& InDataTable)
 	}
 
 	JsonWriter->WriteArrayEnd();
+
+	return true;
+}
+
+bool FDataTableExporterJSON::WriteTableAsObject(const UDataTable& InDataTable)
+{
+	if (!InDataTable.RowStruct)
+	{
+		return false;
+	}
+
+	JsonWriter->WriteObjectStart(InDataTable.GetName());
+
+	// Iterate over rows
+	for (auto RowIt = InDataTable.RowMap.CreateConstIterator(); RowIt; ++RowIt)
+	{
+		// RowName
+		const FName RowName = RowIt.Key();
+		JsonWriter->WriteObjectStart(RowName.ToString());
+		{
+			// Now the values
+			uint8* RowData = RowIt.Value();
+			WriteRow(InDataTable.RowStruct, RowData);
+		}
+		JsonWriter->WriteObjectEnd();
+	}
+	JsonWriter->WriteObjectEnd();
 
 	return true;
 }
@@ -327,6 +360,8 @@ bool FDataTableExporterJSON::WriteContainerEntry(const UProperty* InProperty, co
 	return true;
 }
 
+#endif // WITH_EDITOR
+
 
 FDataTableImporterJSON::FDataTableImporterJSON(UDataTable& InDataTable, const FString& InJSONData, TArray<FString>& OutProblems)
 	: DataTable(&InDataTable)
@@ -409,11 +444,6 @@ bool FDataTableImporterJSON::ReadRow(const TSharedRef<FJsonObject>& InParsedTabl
 	uint8* RowData = (uint8*)FMemory::Malloc(DataTable->RowStruct->GetStructureSize());
 	DataTable->RowStruct->InitializeStruct(RowData);
 	// And be sure to call DestroyScriptStruct later
-
-	if (auto UDStruct = Cast<const UUserDefinedStruct>(DataTable->RowStruct))
-	{
-		UDStruct->InitializeDefaultValue(RowData);
-	}
 
 	// Add to row map
 	DataTable->RowMap.Add(RowName, RowData);
@@ -811,4 +841,4 @@ bool FDataTableImporterJSON::ReadContainerEntry(const TSharedRef<FJsonValue>& In
 	return true;
 }
 
-#endif // WITH_EDITOR
+

@@ -1,0 +1,136 @@
+﻿INTSourceChangelist:3782314
+Availability: Public
+Title:4. 시퀀스 재생 발동 및 블렌드
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:이번 단계에서는 시퀀스 재생을 발동시키고 블루프린트에게 슬롯 애니메이션 블렌딩을 시작하라고 합니다.
+Version: 4.17
+SkillLevel: Advanced
+parent:Engine/Sequencer/HowTo/GameplayAnimBlending
+order:1
+checkpoint: editorqs
+Related: Engine/Sequencer/Overview
+Related: Engine\Sequencer\ReferenceEditor
+Related: Engine\Blueprints
+Related: Engine\Animation\AnimBlueprints
+tags:Sequencer
+tags:Animation
+type:how-to
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전](Engine\Sequencer\HowTo\GameplayAnimBlending\03_LevelSetup)
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[게임플레이 애니메이션 블렌딩 - 홈](Engine\Sequencer\HowTo\GameplayAnimBlending)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[COMMENT:none]
+
+
+
+[/COMMENT]
+
+[nav]
+
+최종 단계에서는 구성을 테스트하기 전, 레벨 블루프린트를 사용하여 플레이어가 트리거 박으세 들어서면 레벨 시퀀스를 가동하도록 합니다.
+시퀀스가 시작되면, 시네마틱에 노출된 **DefaultSlotInterp** 가 변경되어 보간 값 업데이트 프로세스가 시작됩니다.
+여기서 애니메이션 블루프린트에게 게임플레이 애니메이션에서 슬롯 애니메이션으로 블렌딩을 시작하라고 합니다.
+
+1.	**Triggerbox** 를 선택한 채 메인 툴바에서 **블루프린트** - **레벨 블루프린트 열기** 를 클릭합니다.
+
+	![](GameBlend_16.png)
+
+1.	그래프에 우클릭한 뒤 트리거 박스에 대한 **Collision** (콜리전) 아래 **Add On Actor Begin Overlap** (액터 겹침 시작 시)를 선택합니다.
+
+	![](GameBlend_17.png)
+
+1.	레벨 뷰포트로 돌아와 레벨 시퀀스를 선택한 뒤, **레벨 블루프린트** 에서 우클릭하고 레벨 시퀀스로의 레퍼런스를 추가합니다.
+
+	![](GameBlend_18.png)
+
+1.	레벨 시퀀스에서 **Get Sequence Player** 를 사용하여 끌어 놓고 **Play** 노드를 사용하여 아래와 같이 연결합니다.
+
+	![](GameBlend_19.png)
+
+1.	**컴파일**, **저장** 후 **플레이** 를 클릭하여 에디터에서 플레이합니다.
+
+
+## 최종 결과
+
+캐릭터가 트리거 볼륨에 들어서면, 현재 애니메이션 상태와 관계 없이 게임플레이 포즈에서 시퀀서에 정의된 사망 포즈로 블렌딩을 시작합니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	KxmKS4hnSHk
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+여기서 한 단계 더 나아가 시퀀스에 카메라를 추가하고 시퀀스의 사망 애니메이션 시작 지점을 전환하여 블렌딩을 개선시킬 수 있습니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	ZQX4CB0s9b0
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+위 예제에서, 플레이어가 걷기, 달리기, 웅크려 걷기, 점프를 통해 트리거에 들어서면 각각의 경우 사망 애니메이션으로 블렌딩이 이루어집니다.
+
+[nav]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

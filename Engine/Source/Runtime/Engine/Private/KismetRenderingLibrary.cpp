@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Kismet/KismetRenderingLibrary.h"
 #include "HAL/FileManager.h"
@@ -267,7 +267,7 @@ UTexture2D* UKismetRenderingLibrary::RenderTargetCreateStaticTexture2DEditorOnly
 		UObject* NewObj = nullptr;
 
 		// create a static 2d texture
-		NewObj = RenderTarget->ConstructTexture2D(CreatePackage(NULL, *PackageName), Name, RenderTarget->GetMaskedFlags(), CTF_Default | CTF_AllowMips, NULL);
+		NewObj = RenderTarget->ConstructTexture2D(CreatePackage(NULL, *PackageName), Name, RenderTarget->GetMaskedFlags() | RF_Public | RF_Standalone, CTF_Default | CTF_AllowMips, NULL);
 		UTexture2D* NewTex = Cast<UTexture2D>(NewObj);
 
 		if (NewTex != nullptr)
@@ -311,7 +311,7 @@ void UKismetRenderingLibrary::ConvertRenderTargetToTexture2DEditorOnly( UObject*
 	}
 	else
 	{
-		UTexture2D* NewTexture = RenderTarget->ConstructTexture2D(Texture->GetOuter(), Texture->GetName(), RenderTarget->GetMaskedFlags(), CTF_Default, NULL);
+		UTexture2D* NewTexture = RenderTarget->ConstructTexture2D(Texture->GetOuter(), Texture->GetName(), RenderTarget->GetMaskedFlags() | RF_Public | RF_Standalone, CTF_Default, NULL);
 
 		check(NewTexture == Texture);
 

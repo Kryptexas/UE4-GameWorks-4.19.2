@@ -1,17 +1,29 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialShared.cpp: Shared material implementation.
 =============================================================================*/
 
 #include "Materials/MaterialUniformExpressions.h"
+#include "CoreGlobals.h"
 #include "SceneManagement.h"
 #include "Materials/MaterialInstance.h"
 #include "Materials/MaterialInstanceSupport.h"
 #include "Materials/MaterialParameterCollection.h"
 #include "ExternalTexture.h"
-#include "MessageLog.h"
 #include "UObjectToken.h"
+
+static TAutoConsoleVariable<int32> CVarSupportMaterialLayers(
+	TEXT("r.SupportMaterialLayers"),
+	0,
+	TEXT("Support new material layering in 4.19. Disabling it reduces some overhead in place to support the experimental feature."),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
+// Temporary flag for toggling experimental material layers functionality
+bool AreExperimentalMaterialLayersEnabled()
+{
+	return CVarSupportMaterialLayers.GetValueOnAnyThread() == 1;
+}
 
 TLinkedList<FMaterialUniformExpressionType*>*& FMaterialUniformExpressionType::GetTypeList()
 {
@@ -409,9 +421,7 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 						ExpressionIndex,
 						FText::FromString(*MaterialRenderContext.Material.GetFriendlyName()));
 
-					FMessageLog("PIE").Warning()
-						->AddToken(FUObjectToken::Create(Value))
-						->AddToken(FTextToken::Create(MessageText));
+					GLog->Logf(ELogVerbosity::Warning, *MessageText.ToString());
 				}
 			}
 
@@ -700,7 +710,7 @@ void FMaterialUniformExpressionVectorParameter::GetGameThreadNumberValue(const U
 
 		if (MatInst)
 		{
-			const FVectorParameterValue* ParameterValue = GameThread_FindParameterByName(MatInst->VectorParameterValues, ParameterName);
+			const FVectorParameterValue* ParameterValue = GameThread_FindParameterByName(MatInst->VectorParameterValues, ParameterInfo);
 			if(ParameterValue)
 			{
 				OutValue = ParameterValue->ParameterValue;
@@ -733,7 +743,7 @@ void FMaterialUniformExpressionScalarParameter::GetGameThreadNumberValue(const U
 
 		if (MatInst)
 		{
-			const FScalarParameterValue* ParameterValue = GameThread_FindParameterByName(MatInst->ScalarParameterValues, ParameterName);
+			const FScalarParameterValue* ParameterValue = GameThread_FindParameterByName(MatInst->ScalarParameterValues, ParameterInfo);
 			if(ParameterValue)
 			{
 				OutValue = ParameterValue->ParameterValue;

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -110,6 +110,7 @@ public:
 	GENERATED_UCLASS_BODY()
 
 	DECLARE_MULTICAST_DELEGATE( FOnEvaluateSubSequencesInIsolationChanged );
+	DECLARE_MULTICAST_DELEGATE( FOnShowSelectedNodesOnlyChanged );
 	DECLARE_MULTICAST_DELEGATE_OneParam( FOnAllowEditsModeChanged, EAllowEditsMode );
 	DECLARE_MULTICAST_DELEGATE_OneParam( FOnLockPlaybackToAudioClockChanged, bool );
 
@@ -229,6 +230,12 @@ public:
 	bool GetLabelBrowserVisible() const;
 	/** Sets whether or not the label browser is visible. */
 	void SetLabelBrowserVisible(bool Visible);
+
+	/** Gets whether or not to show selected nodes only. */
+	bool GetShowSelectedNodesOnly() const;
+	/** Sets whether or not to show selected nodes only. */
+	void SetShowSelectedNodesOnly(bool Visible);
+	FOnShowSelectedNodesOnlyChanged& GetOnShowSelectedNodesOnlyChanged() { return OnShowSelectedNodesOnlyChangedEvent; }
 
 	/** Gets whether to jump to the start of the sequence when we start a recording or not. */
 	bool ShouldRewindOnRecord() const;
@@ -447,6 +454,10 @@ protected:
 	UPROPERTY( config, EditAnywhere, Category=General )
 	bool bLabelBrowserVisible;
 
+	/** Only show selected nodes in the tree view. */
+	UPROPERTY( config, EditAnywhere, Category=General )
+	bool bShowSelectedNodesOnly;
+
 	/** Defines whether to jump back to the start of the sequence when a recording is started */
 	UPROPERTY(config, EditAnywhere, Category=General)
 	bool bRewindOnRecord;
@@ -537,5 +548,6 @@ protected:
 
 	FOnLockPlaybackToAudioClockChanged OnLockPlaybackToAudioClockChanged;
 	FOnEvaluateSubSequencesInIsolationChanged OnEvaluateSubSequencesInIsolationChangedEvent;
+	FOnShowSelectedNodesOnlyChanged OnShowSelectedNodesOnlyChangedEvent;
 	FOnAllowEditsModeChanged OnAllowEditsModeChangedEvent;
 };

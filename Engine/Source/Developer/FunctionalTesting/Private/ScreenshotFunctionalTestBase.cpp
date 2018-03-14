@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ScreenshotFunctionalTestBase.h"
 
@@ -8,23 +8,32 @@
 #include "Camera/PlayerCameraManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/Engine.h"
+#if WITH_EDITOR
+#include "Editor/EditorEngine.h"
+#endif
 #include "EngineGlobals.h"
 #include "Misc/AutomationTest.h"
 #include "Slate/SceneViewport.h"
 #include "RenderingThread.h"
 #include "Tests/AutomationCommon.h"
 #include "Logging/LogMacros.h"
+#include "UObject/AutomationObjectVersion.h"
+
+#define	WITH_AUTOMATION_TESTS			(WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
+#define	WITH_EDITOR_AUTOMATION_TESTS	(WITH_EDITOR && WITH_AUTOMATION_TESTS)
 
 DEFINE_LOG_CATEGORY_STATIC(LogScreenshotFunctionalTest, Log, Log)
 
 AScreenshotFunctionalTestBase::AScreenshotFunctionalTestBase(const FObjectInitializer& ObjectInitializer)
 	: AFunctionalTest(ObjectInitializer)
 	, ScreenshotOptions(EComparisonTolerance::Low)
+	, bNeedsViewSettingsRestore(false)
+	, bNeedsViewportRestore(false)
 {
 	ScreenshotCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	ScreenshotCamera->SetupAttachment(RootComponent);
 
-#if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
+#if WITH_AUTOMATION_TESTS
 	ScreenshotEnvSetup = MakeShareable(new FAutomationTestScreenshotEnvSetup());
 #endif
 }
@@ -63,7 +72,7 @@ void AScreenshotFunctionalTestBase::StartTest()
 
 void AScreenshotFunctionalTestBase::OnScreenshotTakenAndCompared()
 {
-	RestoreGameViewport();
+	RestoreViewSettings();
 
 	FAutomationTestFramework::Get().OnScreenshotTakenAndCompared.RemoveAll(this);
 
@@ -74,21 +83,39 @@ void AScreenshotFunctionalTestBase::PrepareForScreenshot()
 {
 	check(GEngine->GameViewport && GEngine->GameViewport->GetGameViewport());
 	check(IsInGameThread());
+	check(!bNeedsViewSettingsRestore && !bNeedsViewportRestore);
 
-	FlushRenderingCommands();
+#if WITH_AUTOMATION_TESTS
+	bool bApplyScreenshotSettings = true;
+	FSceneViewport* GameViewport = GEngine->GameViewport->GetGameViewport();
 
-	// PS4 requires fixed with/height for video output back buffers so
-	// we cannot adjust the size of viewports
-	if (!FPlatformProperties::HasFixedResolution())
+#if WITH_EDITOR_AUTOMATION_TESTS
+	// In the editor we can only attempt to resize a standalone viewport
+	UWorld* World = GetWorld();
+	UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine);	
+
+	const bool bIsPIEViewport = GameViewport->IsPlayInEditorViewport();
+	const bool bIsNewViewport = World && EditorEngine && EditorEngine->WorldIsPIEInNewViewport(World);
+
+	bApplyScreenshotSettings = !bIsPIEViewport || bIsNewViewport;
+#endif	
+
+	if (bApplyScreenshotSettings)
 	{
-		FSceneViewport* GameViewport = GEngine->GameViewport->GetGameViewport();
-		ViewportRestoreSize = GameViewport->GetSize();
-		FIntPoint ScreenshotViewportSize = UAutomationBlueprintFunctionLibrary::GetAutomationScreenshotSize(ScreenshotOptions);
-		GameViewport->SetViewportSize(ScreenshotViewportSize.X, ScreenshotViewportSize.Y);
-	}
+		ScreenshotEnvSetup->Setup(ScreenshotOptions);
+		FlushRenderingCommands();
+		bNeedsViewSettingsRestore = true;
 
-#if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
-	ScreenshotEnvSetup->Setup(ScreenshotOptions);
+		// Some platforms (such as consoles) require fixed width/height 
+		// back-buffers so we cannot adjust the viewport size
+		if (!FPlatformProperties::HasFixedResolution())
+		{
+			ViewportRestoreSize = GameViewport->GetSize();
+			FIntPoint ScreenshotViewportSize = UAutomationBlueprintFunctionLibrary::GetAutomationScreenshotSize(ScreenshotOptions);
+			GameViewport->SetViewportSize(ScreenshotViewportSize.X, ScreenshotViewportSize.Y);
+			bNeedsViewportRestore = true;
+		}
+	}
 #endif
 }
 
@@ -97,7 +124,7 @@ void AScreenshotFunctionalTestBase::OnScreenShotCaptured(int32 InSizeX, int32 In
 	check(GEngine->GameViewport);
 
 	GEngine->GameViewport->OnScreenshotCaptured().RemoveAll(this);
-
+#if WITH_AUTOMATION_TESTS
 	FAutomationScreenshotData Data = AutomationCommon::BuildScreenshotData(GetWorld()->GetName(), GetName(), InSizeX, InSizeY);
 
 	// Copy the relevant data into the metadata for the screenshot.
@@ -121,6 +148,7 @@ void AScreenshotFunctionalTestBase::OnScreenShotCaptured(int32 InSizeX, int32 In
 	FAutomationTestFramework::Get().OnScreenshotCaptured().ExecuteIfBound(InImageData, Data);
 
 	UE_LOG(LogScreenshotFunctionalTest, Log, TEXT("Screenshot captured as %s"), *Data.Path);
+#endif
 }
 
 void AScreenshotFunctionalTestBase::RequestScreenshot()
@@ -165,20 +193,26 @@ void AScreenshotFunctionalTestBase::OnComparisonComplete(bool bWasNew, bool bWas
 	FAutomationTestFramework::Get().NotifyScreenshotTakenAndCompared();
 }
 
-void AScreenshotFunctionalTestBase::RestoreGameViewport()
+void AScreenshotFunctionalTestBase::RestoreViewSettings()
 {
 	check(GEngine->GameViewport && GEngine->GameViewport->GetGameViewport());
 	check(IsInGameThread());
-
-	if (!FPlatformProperties::HasFixedResolution())
+	
+#if WITH_AUTOMATION_TESTS
+	if (bNeedsViewSettingsRestore)
 	{
+		ScreenshotEnvSetup->Restore();
+	}
+
+	if (!FPlatformProperties::HasFixedResolution() && bNeedsViewportRestore)
+	{	
 		FSceneViewport* GameViewport = GEngine->GameViewport->GetGameViewport();
 		GameViewport->SetViewportSize(ViewportRestoreSize.X, ViewportRestoreSize.Y);
 	}
-
-#if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
-	ScreenshotEnvSetup->Restore();
 #endif
+
+	bNeedsViewSettingsRestore = false;
+	bNeedsViewportRestore = false;
 }
 
 #if WITH_EDITOR
@@ -220,3 +254,16 @@ void AScreenshotFunctionalTestBase::PostEditChangeProperty(FPropertyChangedEvent
 }
 
 #endif
+
+void AScreenshotFunctionalTestBase::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FAutomationObjectVersion::GUID);
+
+	if (Ar.CustomVer(FAutomationObjectVersion::GUID) < FAutomationObjectVersion::DefaultToScreenshotCameraCutAndFixedTonemapping)
+	{
+		ScreenshotOptions.bDisableTonemapping = true;
+	}
+}
+

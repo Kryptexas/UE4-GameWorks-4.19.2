@@ -1,49 +1,9 @@
-﻿INTSourceChangelist:3599948
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 온라인 서브시스템 개요
 Crumbs:%ROOT%, Programming
 Description:온라인 플랫폼에 관련된 여러가지 시스템에 대한 개요입니다.
 Version: 4.9
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Programming/Online:title%](%ROOT%/placeholder_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/ue4_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Programming/Online:title%
-	[/PARAM]
-	[PARAM:description]
-		%Programming/Online:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/Online]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Programming/Online:title%](%ROOT%/placeholder_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/ue4_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Programming/Online:title%
-	[/PARAM]
-	[PARAM:description]
-		%Programming/Online:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/Online]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 
 [TOC(start:2)]
@@ -86,13 +46,11 @@ OnlineSubsystem 베이스 모듈은 플랫폼 전용 모듈을 엔진에 정의�
 
 온라인 서비스의 프로파일 서비스에 대한 인터페이스 정의입니다. 프로파일 서비스란 주어진 사용자 프로파일과 그에 관련된 (온라인 접속 여부, 접근 권한 등의) 메타데이터 관련 모든 것을 말합니다.
 
-<!--Details can be found on the [](Programming/Online/Interfaces/Profile) page.-->
 
 #### 친구
 
 온라인 서비스 친구 서비스에 대한 인터페이스 정의입니다. 친구 서비스란 친구나 친구 목록 유지에 관련된 모든 것을 말합니다.
 
-<!--Details can be found on the [](Programming/Online/Interfaces/Friends) page.-->
 
 #### 세션
 
@@ -104,62 +62,37 @@ OnlineSubsystem 베이스 모듈은 플랫폼 전용 모듈을 엔진에 정의�
 
 다른 사용자와 이미 클라우드에 있는 파일 ( [유저 클라우드](#유저클라우드) 참고 ) 공유를 위한 인터페이스를 제공합니다.
 
-<!--Details can be found on the [](Programming/Online/Interfaces/SharedCloud) page.-->
 
 #### 유저 클라우드
 
 각 유저 클라우드 파일 스토리지에 대한 인터페이스를 제공합니다.
 
-<!--Details can be found on the [](Programming/Online/Interfaces/UserCloud) page.-->
 
 #### 순위표
 
 온라인 순위표(leaderboard) 접근을 위한 인터페이스를 제공합니다.
 
-<!--Details can be found on the [](Programming/Online/Interfaces/Leaderboards) page.-->
 
 #### 음성
 
 게임상에서 네트워크를 통한 음성 채팅 인터페이스를 제공합니다.
 
-<!--Details can be found on the [](Programming/Online/Interfaces/Voice) page.-->
 
 #### 업적
 
 업적(acheivement) 읽기/쓰기/풀기 (read/write/unlock) 인터페이스를 제공합니다.
 
-<!--Details can be found on the [](Programming/Online/Interfaces/Achievements) page.-->
-
-#### 외부 UI
+#### External UI
 
 주어진 플랫폼에서 사용할 수 있는 외부 인터페이스 접근을 위한 인터페이스를 제공합니다.
 
-<!--Details can be found on the [](Programming/Online/Interfaces/ExternalUI) page.-->
 
+## 참고
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		참고
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		<!--* [](Programming/Online/Interfaces/Profile "%Programming/Online/Interfaces/Profile:Description%")-->
-		<!--* [](Programming/Online/Interfaces/Friends "%Programming/Online/Interfaces/Friends:Description%")-->
-		* [](Programming/Online/Interfaces/Session "%Programming/Online/Interfaces/Session:Description%")
-		<!--* [](Programming/Online/Interfaces/SharedCloud "%Programming/Online/Interfaces/SharedCloud:Description%")-->
-		<!--* [](Programming/Online/Interfaces/UserCloud "%Programming/Online/Interfaces/UserCloud:Description%")-->
-		<!--* [](Programming/Online/Interfaces/Leaderboards "%Programming/Online/Interfaces/Leaderboards:Description%")-->
-		<!--* [](Programming/Online/Interfaces/Voice "%Programming/Online/Interfaces/Voice:Description%")-->
-		<!--* [](Programming/Online/Interfaces/Achievements "%Programming/Online/Interfaces/Achievements:Description%")-->
-		<!--* [](Programming/Online/Interfaces/ExternalUI "%Programming/Online/Interfaces/ExternalUI:Description%")-->
-		* [](Programming/Online/Types/ "%Programming/Online/Types:Description%")
-		<!--* [](Programming/Online/AsyncManager/ "%Programming/Online/AsyncManager:Description%")-->
-	[/PARAM]
-[/OBJECT]
+[REGION:buttonlist]
+* [](Programming/Online/Interfaces/Session "%Programming/Online/Interfaces/Session:Description%")
+* [](Programming/Online/Types/ "%Programming/Online/Types:Description%")	
+[/REGION]
 
 
    

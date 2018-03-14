@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3457813
+﻿INTSourceChangelist:3736300
 Availability:Public
 Title:5 - ゲームをパッケージ化する
 Crumbs:%ROOT%
 Description:モバイル ゲームを配布 (リリース) 用にパッケージ化する方法を説明します。
-Version:4.14
+Version:4.17
 type:quick start
 parent:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux
 order:5

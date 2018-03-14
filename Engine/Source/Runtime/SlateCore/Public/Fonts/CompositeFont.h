@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -332,14 +332,13 @@ struct SLATECORE_API FTypeface
 };
 
 USTRUCT()
-struct SLATECORE_API FCompositeSubFont
+struct SLATECORE_API FCompositeFallbackFont
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** Default constructor */
-	FCompositeSubFont()
+	FCompositeFallbackFont()
 		: Typeface()
-		, CharacterRanges()
 		, ScalingFactor(1.0f)
 	{
 	}
@@ -348,13 +347,28 @@ struct SLATECORE_API FCompositeSubFont
 	UPROPERTY()
 	FTypeface Typeface;
 
+	/** Amount to scale this sub-font so that it better matches the size of the default font */
+	UPROPERTY()
+	float ScalingFactor;
+};
+
+USTRUCT()
+struct SLATECORE_API FCompositeSubFont : public FCompositeFallbackFont
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Default constructor */
+	FCompositeSubFont()
+	{
+	}
+
 	/** Array of character ranges for which this sub-font should be used */
 	UPROPERTY()
 	TArray<FInt32Range> CharacterRanges;
 
-	/** Amount to scale this sub-font so that it better matches the size of the default font */
+	/** Optional semi-colon separated list of cultures that this sub-font should be used with (if specified, this sub-font will be favored by those cultures and ignored by others) */
 	UPROPERTY()
-	float ScalingFactor;
+	FString Cultures;
 
 #if WITH_EDITORONLY_DATA
 	/** Name of this sub-font. Only used by the editor UI as a convenience to let you state the purpose of the font family. */
@@ -399,6 +413,10 @@ struct SLATECORE_API FCompositeFont
 	/** The default typeface that will be used when not overridden by a sub-typeface */
 	UPROPERTY()
 	FTypeface DefaultTypeface;
+
+	/** The fallback typeface that will be used as a last resort when no other typeface provides a match */
+	UPROPERTY()
+	FCompositeFallbackFont FallbackTypeface;
 
 	/** Sub-typefaces to use for a specific set of characters */
 	UPROPERTY()

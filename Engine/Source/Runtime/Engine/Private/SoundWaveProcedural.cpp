@@ -1,6 +1,10 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Sound/SoundWaveProcedural.h"
+
+#include "AudioDevice.h"
+#include "Engine/Engine.h"
+
 
 USoundWaveProcedural::USoundWaveProcedural(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -8,19 +12,40 @@ USoundWaveProcedural::USoundWaveProcedural(const FObjectInitializer& ObjectIniti
 	bProcedural = true;
 	bReset = false;
 	NumBufferUnderrunSamples = 512;
-	NumSamplesToGeneratePerCallback = 1024;
+	NumSamplesToGeneratePerCallback = DEFAULT_PROCEDURAL_SOUNDWAVE_BUFFER_SIZE;
+
+	// If the main audio device has been set up, we can use this to define our callback size.
+	// We need to do this for procedural sound waves that we do not process asynchronously,
+	// to ensure that we do not underrun.
+	
+	if (GEngine)
+	{
+		FAudioDevice* MainAudioDevice = GEngine->GetMainAudioDevice();
+		if (MainAudioDevice && !MainAudioDevice->IsAudioMixerEnabled())
+		{
+#if PLATFORM_MAC
+			// We special case the mac callback on the old audio engine, Since Buffer Length is smaller than the device callback size.
+			NumSamplesToGeneratePerCallback = 2048;
+#else
+			NumSamplesToGeneratePerCallback = MainAudioDevice->GetBufferLength();
+#endif
+			NumBufferUnderrunSamples = NumSamplesToGeneratePerCallback / 2;
+		}
+	}
 
 	SampleByteSize = 2;
 
 	// This is set to true to default to old behavior in old audio engine
 	// Audio mixer uses sound wave procedural in async tasks and sets this to false when using it.
-	
-	// This is actually a 'bIsNotReadyForDestroy', but we can't change headers for a hotfix release.
-	// This should be renamed as soon as possible, or a USoundWaveProcedural(FVTableHelper& Helper) constructor
-	// should be added which sets this to true.
-	bIsReadyForDestroy = false;
+	bIsReadyForDestroy = true;
 
 	checkf(NumSamplesToGeneratePerCallback >= NumBufferUnderrunSamples, TEXT("Should generate more samples than this per callback."));
+}
+
+USoundWaveProcedural::USoundWaveProcedural(FVTableHelper& Helper)
+	: Super(Helper)
+{
+	bIsReadyForDestroy = true;
 }
 
 void USoundWaveProcedural::QueueAudio(const uint8* AudioData, const int32 BufferSize)
@@ -141,7 +166,7 @@ void USoundWaveProcedural::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTa
 
 bool USoundWaveProcedural::IsReadyForFinishDestroy()
 {
-	return !bIsReadyForDestroy;
+	return bIsReadyForDestroy;
 }
 
 bool USoundWaveProcedural::HasCompressedData(FName Format) const

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,7 +13,7 @@
 class UEdGraphNode_Comment;
 class SCommentBubble;
 
-class SGraphNodeComment : public SGraphNodeResizable
+class GRAPHEDITOR_API SGraphNodeComment : public SGraphNodeResizable
 {
 public:
 	SLATE_BEGIN_ARGS(SGraphNodeComment){}

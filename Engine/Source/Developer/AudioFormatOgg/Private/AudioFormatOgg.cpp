@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AudioFormatOgg.h"
 #include "Serialization/MemoryWriter.h"
@@ -435,7 +435,7 @@ public:
 		return CompressedDataStore.Num();
 	}
 
-	virtual bool SplitDataForStreaming(const TArray<uint8>& SrcBuffer, TArray<TArray<uint8>>& OutBuffers) const override
+	virtual bool SplitDataForStreaming(const TArray<uint8>& SrcBuffer, TArray<TArray<uint8>>& OutBuffers, const int32 MaxChunkSize) const override
 	{
 		// Just chunk purely on MONO_PCM_BUFFER_SIZE
 		uint8 const*	SrcData = SrcBuffer.GetData();

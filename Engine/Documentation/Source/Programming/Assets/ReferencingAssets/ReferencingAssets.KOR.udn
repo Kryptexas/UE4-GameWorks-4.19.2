@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3606403
+﻿INTSourceChangelist:3740825
 Title: 애셋 레퍼런싱
 Crumbs:
 Description:
@@ -82,7 +82,7 @@ UClass 로드시 사용할 수 있는 전문 LoadObject 가 있습니다. 클래
 
 	DefaultPreviewPawnClass = LoadObject<UClass>(NULL, *PreviewPawnName, NULL, LOAD_None, NULL);
 
-	if (!DefaultPreviewPawnClass->IsA(APawn::StaticClass()))
+	if (!DefaultPreviewPawnClass->IsChildOf(APawn::StaticClass()))
 	{
 		DefaultPreviewPawnClass = nullptr;
 	}

@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:3537135
+﻿INTSourceChangelist:3769005
 Availability:Public
 Title:2. 기어 VR 프로젝트 구성
 Crumbs:%ROOT%, Platforms, Platforms/GearVR
-Description:기어 VR 헤드셋과 사용할 C++ 기반 UE4 프로젝트 구성 방법입니다.
-Version: 4.16
+Description:기어 VR 헤드셋에 사용할 프로젝트 구성 방법입니다.
+Version: 4.17
 Skilllevel: Intermediate
 tags:VR
-tags:GearVR
+tags:Gear VR
 type:multi-step
 parent:Platforms/GearVR/QuickStart
 order:2
@@ -14,107 +14,90 @@ Checkpoint:GearVRQS
 
 [nav]
 
+기어 VR 퀵 스타트 이번에는 기어 VR HMD 에 사용할 수 있도록 언리얼 엔진 4 프로젝트를 구성하는 법을 알아보겠습니다.
+
 ## 단계
 
-1. 프로젝트 생성 및 컴파일이 완료되면, Visual Studio 가 (설치된 경우) 에디터와 함께 자동으로 열립니다.
+1. 에디터가 로드되면, **메인 툴바** 에서 **편집** > **Plugins** (플러그인)을 통해 플러그인 메뉴를 엽니다. 플러그인 메뉴에서, **Virtuality Reality** (가상 현실) 섹션의 **OculusVR Plugin** 이 켜졌는지 확인합니다.
 
-	![](GVR_Editor_Opened.png)
+    [REGION:lightbox]
+    [![](GVR_Plugin_Options_Toggle.png)(w:703)](GVR_Plugin_Options_Toggle.png)
+    [/REGION]
 
-	[region:note]
-	언리얼 엔진 4.8 이상 버전에 블루프린트 기반 프로젝트를 사용하시는 경우, Visual Studio 는 필요치 않아 열리지 않을 것입니다.
-	[/region]
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
-1. UE4 에디터가 로드되면, **메인 툴바** 에서 **편집** 탭을 열고 **플러그인** 메뉴를 선택합니다.
-	
-	[OBJECT:EmbeddedVideo]
-		[PARAMLITERAL:videoid]
-		eo79kj2i2bc
-		[/PARAMLITERAL]
-		[PARAMLITERAL:width]
-		100
-		[/PARAMLITERAL]
-		[PARAMLITERAL:height]
-		56.25
-		[/PARAMLITERAL]
-		[PARAMLITERAL:units]
-		%
-		[/PARAMLITERAL]
-		[PARAMLITERAL:type]
-		simple
-		[/PARAMLITERAL]
-	[/OBJECT]
+    [region:note]
+    엔진 예전 버전에서는, 기어 VR 전용 플러그인을 켜줘야 했습니다. 현재 사용중인 언리얼 엔진 4 버전에서 기어 VR 을 사용할 수 없는 경우, VR Plugins 섹션에서 Gear VR 플러그인이 보이고 켜졌는지 확인하시기 바랍니다.
+    [/REGION]
 
-1. **Plugins** 메뉴에서 **Virtual Reality** 섹션으로 가서 **Oculus** 옵션을 **disable**, **Gear VR** 옵션을 **enable** 합니다. 그런 다음 **지금 재시작** 버튼을 눌러 에디터를 재시작, 변경내용이 적용되도록 합니다.
+1. 언리얼 엔진 프로젝트를 디바이스에 디플로이했을 때 실행되도록 하기 위해서는, 레벨을 최소 하나 저장해야 합니다. 현재 레벨을 유지하려면, **툴바** 에서 **저장** 아이콘을 눌러 저장하고, 이름을 **GearVRQSMap** 이라 합니다.
 
-	![](GVR_Plugin_Options_Toggle.png)
+    [REGION:lightbox]
+    [![](GVR_QS_Saved_Map.png)(w:299)](GVR_QS_Saved_Map.png)
+    [/REGION]
 
-1. 에디터가 재시작되면 **메인 툴바** 에서 **편집** - **프로젝트 세팅** 을 선택한 다음, **APKPacking** 섹션의 안드로이드 지원에 대한 **Configure Now** (지금 환경설정) 버튼을 클릭합니다.
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
-	[OBJECT:EmbeddedVideo]
-		[PARAMLITERAL:videoid]
-		If_vSzD5h3w
-		[/PARAMLITERAL]
-		[PARAMLITERAL:width]
-		100
-		[/PARAMLITERAL]
-		[PARAMLITERAL:height]
-		56.25
-		[/PARAMLITERAL]
-		[PARAMLITERAL:units]
-		%
-		[/PARAMLITERAL]
-		[PARAMLITERAL:type]
-		simple
-		[/PARAMLITERAL]
-	[/OBJECT]
+1. 다음, 메인 메뉴에서 **편집** > **프로젝트 세팅** 으로 갑니다. **프로젝트** 아래 **맵 & 모드** 섹션에서, **Default Maps** (기본 맵)을 찾아 방금 **Editor Start Up** 과 **Game Default Map** 에 저장한 레벨로 설정합니다.
 
-1. 다음 **Minimum SDK Version** 및 **Target SDK Version** 을 **9** 에서 **19** 로 변경합니다.
+    [REGION:lightbox]
+    [![](GVR_QS_Default_Maps.png)(w:546)](GVR_QS_Default_Maps.png)
+    [/REGION]
 
-	![](GVR_Android_SDK_Version.png)
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
-1. 다음 **Configure the Android Manifest for deployment to Gear VR** 체크박스를 클릭하여 활성화시킵니다.
+1. **Engine** (엔진) > **Input** (입력)으로 갑니다. **Mobile** 섹션에서 **Default Touch Interface** (기본 터치 인터페이스)를 클릭하고 드롭다운에서 **None** (없음)을 선택합니다.
 
-	[Region:note]
-	이렇게 해 주지 않으면 프로젝트가 기어 VR 헤드셋에서 실행되지 않으므로 매우 중요합니다.
-	[/region]
+    [REGION:lightbox]
+    [![](GVR_QS_Remove_Touch.png)(w:546)](GVR_QS_Remove_Touch.png)
+    [/REGION]
 
-	![](GVR_Deployment_Checkbox.png)
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
-1. 다음 **Android SDK** 섹션 아래 개발 PC 의 안드로이드 SDK 파일 위치를 채웁니다.
-	Tegra 파일을 설치한 위치에 필요한 폴더를 찾을 수 있습니다.
-	
-	[Region:note]
-	이미 CodeWorks for Android 1R6 를 설치했다면 이 정보가 채워져 있을 것입니다. 여기서 뭔가 바꿔야 하는 이유는, 정보가 없거나 잘못된 위치로 되어있을 경우입니다.
-	[/region]
+1. **Platforms** (플랫폼)에서 **Android** (안드로이드) 아래 **ApkPackaging** 섹션에서 **Configure Now** (지금 환경설정) 버튼을 누른 뒤 다음과 같이 설정합니다:
 
-	![](GVR_Android_SDK_Setup.png)
+    [REGION:lightbox]
+    [![](GVR_Android_SDK_Version.png)(w:546)](GVR_Android_SDK_Version.png)
+    [/REGION]
 
-1. 마지막으로 **파일** > **패키지 프로젝트** > **패킹 세팅** 에서 **Full Rebuild** (전체 리빌드) 체크를 해제하여 반복처리 속도를 높입니다.
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
-	[Region:note]
-	기억할 것은 프로젝트의 최종 퍼블리싱 단계에서는 이 옵션을 다시 켜 줘야 기어 VR 헤드셋에서 의도한 대로 작동할 것입니다.
-	[/region]
+    * **Minimum SDK Version:** 19
+    * **Target SDK Version:** 19
+    * **Enable FullScreen Immersive on KitKat and above devices:** True 
 
-	[OBJECT:EmbeddedVideo]
-		[PARAMLITERAL:videoid]
-		29oB5aowElQ
-		[/PARAMLITERAL]
-		[PARAMLITERAL:width]
-		100
-		[/PARAMLITERAL]
-		[PARAMLITERAL:height]
-		56.25
-		[/PARAMLITERAL]
-		[PARAMLITERAL:units]
-		%
-		[/PARAMLITERAL]
-		[PARAMLITERAL:type]
-		simple
-		[/PARAMLITERAL]
-	[/OBJECT]
+1. **Advanced APKPackaging** 섹션에서 **Configure the AndroidManifest for deployment to Gear VR** 박스를 체크합니다.
 
+    [REGION:lightbox]
+    [![](GVR_Deployment_Checkbox.png)(w:546)](GVR_Deployment_Checkbox.png)
+    [/REGION]
 
-[nav]
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
+
+1. **Android SDK** 섹션을 클릭하고 프로젝트를 빌드하는 데 필요한 Android SDK 툴이 PC 의 올바른 폴더를 가리키는지와 다음 API 레벨로 설정되었는지 확인합니다:
+    
+    [REGION:lightbox]
+    [![](GVR_Android_SDK_Setup.png)(w:546)](GVR_Android_SDK_Setup.png)
+    [/REGION]
+
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
 ## 최종 결과
-완료되면 빌드하여 삼성 갤럭시 스마트폰에 설치하고 볼 수 있는 UE4 프로젝트가 생겨 있을 것입니다.
+
+완료되면, 기어 VR HMD 에 디플로이하여 볼 수 있는 언리얼 엔진 4 프로젝트가 생겼을 것입니다.
+
+[nav]

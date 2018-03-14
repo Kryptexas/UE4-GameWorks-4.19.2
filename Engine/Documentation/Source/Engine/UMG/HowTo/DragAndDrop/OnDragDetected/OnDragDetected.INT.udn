@@ -30,7 +30,7 @@ type:how-to
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 In this step, we determine what happens when the player is, in fact, dragging the HealthBar around on the screen. 
 
@@ -76,7 +76,7 @@ In this step, we determine what happens when the player is, in fact, dragging th
 The last few things we need to do is to determine what happens when the player releases the Left Mouse Button and performs the OnDrop function. 
 We also need to add the HealthBar Widget to our Main HUD Widget Blueprint and tell that to be displayed before testing everything out.  
 
-%Steps%
+
 
 
 

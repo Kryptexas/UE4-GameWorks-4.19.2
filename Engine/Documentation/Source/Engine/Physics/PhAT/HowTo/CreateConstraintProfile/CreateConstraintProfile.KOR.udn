@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3260663
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:피직스 컨스트레인트 프로파일 생성 방법
 Crumbs: %ROOT%, Engine
@@ -7,8 +7,7 @@ parent:Engine/Physics/PhAT/HowTo
 order:1
 Version: 4.13
 skilllevel:Intermediate
-related:Videos/PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f/N1tDjbFXeOo
-topic-image::Engine/Physics/physics_topic.png
+topic-image:Engine/Physics/physics_topic.png
 
 여기서는 **Constraint Profile** (컨스트레인트 프로파일) 생성에 대한 기초 및 거기에 **Physics Constraints** (피직스 컨스트레인트)를 추가하는 법을 다룹니다.
 
@@ -62,5 +61,23 @@ topic-image::Engine/Physics/physics_topic.png
 
 **피직스 애셋** 에 블루프린트나 C++ 에서 호출하여 **피지컬 컨스트레인트** 프로퍼티를 변경할 수 있는 프로파일이 있을 것입니다.
 
+## 부가 자료
 
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	N1tDjbFXeOo
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
 

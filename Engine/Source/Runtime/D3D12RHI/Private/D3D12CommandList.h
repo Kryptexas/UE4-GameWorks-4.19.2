@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 D3D12CommandList.h: Implementation of D3D12 Command List functions
@@ -566,6 +566,11 @@ public:
 	bool operator!() const
 	{
 		return CommandList == 0;
+	}
+
+	bool IsValid() const
+	{
+		return CommandList != nullptr;
 	}
 
 	bool IsOpen() const

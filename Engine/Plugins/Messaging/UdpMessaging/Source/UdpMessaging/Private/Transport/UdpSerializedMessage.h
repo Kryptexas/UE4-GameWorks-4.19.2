@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -71,7 +71,7 @@ public:
 	 * Gets the state of the message data.
 	 *
 	 * @return Message data state.
-	 * @see GetData, OnStateChanged, UpdateState
+	 * @see GetData, UpdateState
 	 */
 	EUdpSerializedMessageState GetState() const
 	{
@@ -79,26 +79,14 @@ public:
 	}
 
 	/**
-	 * Returns a delegate that is executed when the message data's state changed.
-	 *
-	 * @return The delegate.
-	 * @see GetState, UpdateState
-	 */
-	FSimpleDelegate& OnStateChanged()
-	{
-		return StateChangedDelegate;
-	}
-
-	/**
 	 * Updates the state of this message data.
 	 *
 	 * @param InState The state to set.
-	 * @see GetState, OnStateChanged
+	 * @see GetState
 	 */
 	void UpdateState(EUdpSerializedMessageState InState)
 	{
 		State = InState;
-		StateChangedDelegate.ExecuteIfBound();
 	}
 
 private:
@@ -108,9 +96,4 @@ private:
 
 	/** Holds the message data state. */
 	EUdpSerializedMessageState State;
-
-private:
-
-	/** Holds a delegate that is invoked when the data's state changed. */
-	FSimpleDelegate StateChangedDelegate;
 };

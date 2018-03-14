@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -12,13 +12,19 @@ public class NiagaraVertexFactories : ModuleRules
 				"Engine",		
 				"RenderCore",
 				"ShaderCore",
-                "Niagara",
                 "RHI",
 			}
         );
 
+		PublicIncludePathModuleNames.AddRange(
+			new string[] {
+				"Niagara",
+			}
+		);
+
         PublicDependencyModuleNames.AddRange(
             new string[] {
+				"VectorVM",
             }
         );
 

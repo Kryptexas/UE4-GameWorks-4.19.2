@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OculusHMDModule.h"
 #include "OculusHMD.h"
@@ -63,13 +63,13 @@ bool FOculusHMDModule::PreInit()
 #if PLATFORM_ANDROID
 		if (!AndroidThunkCpp_IsGearVRApplication())
 		{
-			UE_LOG(LogHMD, Log, TEXT("App is not packaged for GearVR"));
+			UE_LOG(LogHMD, Log, TEXT("App is not packaged for Gear VR"));
 			return false;
 		}
 #endif
 
-		// Only init module when running Game or Editor, and Oculus service is running
-		if (!IsRunningDedicatedServer() && OculusHMD::IsOculusServiceRunning())
+		// Init module if app can render and Oculus service is running
+		if (FApp::CanEverRender() && OculusHMD::IsOculusServiceRunning())
 		{
 #if PLATFORM_WINDOWS
 			// Load OVRPlugin
@@ -122,7 +122,7 @@ bool FOculusHMDModule::PreInit()
 bool FOculusHMDModule::IsHMDConnected()
 {
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
-	if (!IsRunningDedicatedServer() && OculusHMD::IsOculusHMDConnected())
+	if (FApp::CanEverRender() && OculusHMD::IsOculusHMDConnected())
 	{
 		return true;
 	}

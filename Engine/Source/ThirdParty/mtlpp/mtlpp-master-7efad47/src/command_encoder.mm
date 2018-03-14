@@ -2,54 +2,66 @@
  * Copyright 2016-2017 Nikolay Aleksiev. All rights reserved.
  * License: https://github.com/naleksiev/mtlpp/blob/master/LICENSE
  */
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 // Modifications for Unreal Engine
+
+#pragma once
 
 #include "command_encoder.hpp"
 #include "device.hpp"
-#include <Metal/MTLCommandEncoder.h>
+
+MTLPP_BEGIN
 
 namespace mtlpp
 {
-    Device CommandEncoder::GetDevice() const
+	template<typename T>
+    Device CommandEncoder<T>::GetDevice() const
     {
-        Validate();
-        return ns::Handle { (__bridge void*)[(__bridge id<MTLCommandEncoder>)m_ptr device] };
+        this->Validate();
+		return this->m_table->Device((id<MTLCommandEncoder>)this->m_ptr);
     }
 
-    ns::String CommandEncoder::GetLabel() const
+	template<typename T>
+    ns::String CommandEncoder<T>::GetLabel() const
     {
-        Validate();
-        return ns::Handle{ (__bridge void*)[(__bridge id<MTLCommandEncoder>)m_ptr label] };
+        this->Validate();
+		return this->m_table->Label((id<MTLCommandEncoder>)this->m_ptr);
     }
 
-    void CommandEncoder::SetLabel(const ns::String& label)
+	template<typename T>
+    void CommandEncoder<T>::SetLabel(const ns::String& label)
     {
-        Validate();
-        [(__bridge id<MTLCommandEncoder>)m_ptr setLabel:(__bridge NSString*)label.GetPtr()];
+        this->Validate();
+		this->m_table->SetLabel((id<MTLCommandEncoder>)this->m_ptr, label.GetPtr());
     }
 
-    void CommandEncoder::EndEncoding()
+	template<typename T>
+    void CommandEncoder<T>::EndEncoding()
     {
-        Validate();
-        [(__bridge id<MTLCommandEncoder>)m_ptr endEncoding];
+        this->Validate();
+		this->m_table->EndEncoding((id<MTLCommandEncoder>)this->m_ptr);
     }
 
-    void CommandEncoder::InsertDebugSignpost(const ns::String& string)
+	template<typename T>
+    void CommandEncoder<T>::InsertDebugSignpost(const ns::String& string)
     {
-        Validate();
-        [(__bridge id<MTLCommandEncoder>)m_ptr insertDebugSignpost:(__bridge NSString*)string.GetPtr()];
+    	this->Validate();
+		this->m_table->InsertDebugSignpost((id<MTLCommandEncoder>)this->m_ptr, string.GetPtr());
     }
 
-    void CommandEncoder::PushDebugGroup(const ns::String& string)
+	template<typename T>
+    void CommandEncoder<T>::PushDebugGroup(const ns::String& string)
     {
-        Validate();
-        [(__bridge id<MTLCommandEncoder>)m_ptr pushDebugGroup:(__bridge NSString*)string.GetPtr()];
+        this->Validate();
+		this->m_table->PushDebugGroup((id<MTLCommandEncoder>)this->m_ptr, string.GetPtr());
     }
 
-    void CommandEncoder::PopDebugGroup()
+	template<typename T>
+    void CommandEncoder<T>::PopDebugGroup()
     {
-        Validate();
-        [(__bridge id<MTLCommandEncoder>)m_ptr popDebugGroup];
+        this->Validate();
+		this->m_table->PopDebugGroup((id<MTLCommandEncoder>)this->m_ptr);
     }
 }
+
+MTLPP_END

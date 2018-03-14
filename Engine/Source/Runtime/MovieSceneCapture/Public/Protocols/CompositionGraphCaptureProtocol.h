@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,6 +22,7 @@ enum EHDRCaptureGamut
 	HCGM_Rec2020 UMETA(DisplayName = "Rec.2020"),
 	HCGM_ACES UMETA(DisplayName = "ACES"),
 	HCGM_ACEScg UMETA(DisplayName = "ACEScg"),
+	HCGM_Linear UMETA(DisplayName = "Linear"),
 	HCGM_MAX,
 };
 

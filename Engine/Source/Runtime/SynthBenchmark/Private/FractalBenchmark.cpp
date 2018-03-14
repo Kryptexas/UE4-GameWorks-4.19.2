@@ -1,6 +1,7 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreTypes.h"
+#include "Math/UnrealMathUtility.h"
 
 // simple float ALU heavy benchmark
 // no dependency on any math library
@@ -49,6 +50,7 @@ float FractalBenchmark()
 		}
 	}
 	
-	// to avoid getting optimized out
-	return Sum / (float)(Extent * Extent);
+	// Aggressive math optimizations and inline expansion can optimize this benchmark's return value into a constant
+	// Introduce some randomness to avoid this, noting the return value of this function is not used, rather the time it takes to complete
+	return Sum / (float)(Extent * Extent) + FMath::FRand();
 }

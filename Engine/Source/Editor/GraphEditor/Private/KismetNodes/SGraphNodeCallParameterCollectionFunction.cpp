@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "KismetNodes/SGraphNodeCallParameterCollectionFunction.h"
 #include "Materials/MaterialParameterCollection.h"
@@ -17,7 +17,7 @@ TSharedPtr<SGraphPin> SGraphNodeCallParameterCollectionFunction::CreatePinWidget
 	// Create a special pin class for the ParameterName pin
 	if (CallFunctionNode
 		&& Pin->PinName == TEXT("ParameterName") 
-		&& Pin->PinType.PinCategory == GetDefault<UEdGraphSchema_K2>()->PC_Name)
+		&& Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Name)
 	{
 		TArray<FName> NameList;
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3388666
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:1.5 -  デフォルトのゲームモードを設定する
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
@@ -22,7 +22,7 @@ Version:4.15
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 新たに修正したゲームモードをブループリントに拡張したので、このステップでは、プロジェクトでデフォルトの **Game Mode** として `BP_FPSProjectGameMode` を使用するように設定する必要があります。
 
@@ -42,53 +42,46 @@ Version:4.15
 
 1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで Escape キーを押すか、**[Stop]** ボタンをクリックします。
 
-[OBJECT:Section]
-    [PARAMLITERAL:id]
-    code
-    [/PARAMLITERAL]
-    [PARAM:heading]
-    完成セクション コード
-    [/PARAM]
-    [PARAM:content]
-		**FPSProjectGameMode.h**
-			// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
+## 完成セクション コード
+
+**FPSProjectGameMode.h**
+
+	// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
 			#pragma once
 
 			#include "GameFramework/GameModeBase.h"
 
-			#include "FPSProjectGameMode.generated.h"
+	#include "FPSProjectGameMode.generated.h"
 			/**
 
-			 * 
-			 */
-			UCLASS()
-			class FPSPROJECT_API AFPSProjectGameMode : public AGameModeBase
-			{
-				GENERATED_BODY()
+		* 
+		*/
+	UCLASS()
+	class FPSPROJECT_API AFPSProjectGameMode : public AGameModeBase
+	{
+		GENERATED_BODY()
 
-				virtual void StartPlay() override;
-			};
+		virtual void StartPlay() override;
+	};
 
-		**FPSProjectGameMode.cpp**
-			// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
+**FPSProjectGameMode.cpp**
+
+	// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
 			#include "FPSProject.h"
 
-			#include "FPSProjectGameMode.h"
+	#include "FPSProjectGameMode.h"
 			void AFPSProjectGameMode::StartPlay()
 
-			{
-				Super::StartPlay();
+	{
+		Super::StartPlay();
 			if (GEngine)
 
-				{
-					// Display a debug message for five seconds. (デバッグ メッセージを 5 秒間表示)  
-					// The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message. ( -1 のキー値 (最初の引数) は、このメッセージを更新、リフレッシュする必要がないことを示しています) 
-					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Hello World, this is FPSGameMode!"));
-				}
-			}
-
-    [/PARAM]
-[/OBJECT]
+		{
+			// Display a debug message for five seconds. (デバッグ メッセージを 5 秒間表示)  
+			// The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message. ( -1 のキー値 (最初の引数) は、このメッセージを更新、リフレッシュする必要がないことを示しています) 
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Hello World, this is FPSGameMode!"));
+		}
+	}
 
 これで終わりです！ 以下について学習しました。
 
@@ -100,4 +93,3 @@ Version:4.15
 
 これで次のセクションでキャラクターを実装する方法について学ぶ準備が整いました。
 
-%Steps%

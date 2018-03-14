@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3477690
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:2. 안드로이드 디바이스 셋업
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:안드로이드 디바이스 개발용으로 셋업하기 입니다.
-Version:4.16
+Version:4.17
 Skilllevel:Intermediate
 tags:Android
 tags:Mobile
@@ -63,7 +63,8 @@ Android Works 가 설치되었으니 안드로이드 디바이스를 개발에 �
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:WindowsSetup]
 
 1.	USB 를 통해 개발 PC 에 안드로이드 디바이스를 연결합니다.
@@ -210,7 +211,8 @@ Android Works 가 설치되었으니 안드로이드 디바이스를 개발에 �
 [EXCERPT:LinuxSetup]
 [INCLUDE:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux/2#AndroidLinux_2]
 [/EXCERPT:LinuxSetup]
--->
+
+[/COMMENT]
 
 ## 최종 결과
 완료되면 이제 UE4 프로젝트를 설치하여 실행시킬 수 있는 안드로이드 기반 스마트폰이 보일 것입니다.

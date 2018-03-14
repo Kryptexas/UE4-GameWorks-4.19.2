@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessTonemap.usf: PostProcessing tone mapping
@@ -30,6 +30,11 @@ float2 TonemapperParams;
 // Fine film grain
 float3 GrainRandomFull;
 float3 GrainScaleBiasJitter;
+
+float4 SceneUVMinMax;
+float4 SceneBloomUVMinMax;
+
+float4 ScreenPosToScenePixel;
 
 #if EYEADAPTATION_EXPOSURE_FIX != 1
 // Default value used when eye adaptation is disabled (e.g fixed exposure) or not available.
@@ -101,7 +106,7 @@ float SwitchVerticalAxis;
 // can be optimized
 float2 ScreenPosToUV(float2 ScreenPos)
 {
-	float2 UV = (ScreenPos * ScreenPosToPixel.xy + ScreenPosToPixel.zw) * PostprocessInput0Size.zw;
+	float2 UV = (ScreenPos * ScreenPosToScenePixel.xy + ScreenPosToScenePixel.zw) * PostprocessInput0Size.zw;
 
 #if NEEDTOSWITCHVERTICLEAXIS
 	UV.y = 1.0 - UV.y;
@@ -116,17 +121,17 @@ float2 UVToScreenPos(float2 UV)
 	UV.y = 1.0 - UV.y;
 #endif
 
-	return (UV * PostprocessInput0Size.xy - ScreenPosToPixel.zw) / ScreenPosToPixel.xy;
+	return (UV * PostprocessInput0Size.xy - ScreenPosToScenePixel.zw) / ScreenPosToScenePixel.xy;
 }
 
-float4 FringeUVParams;
+float4 ChromaticAberrationParams;
 
 void TonemapCommonVS(
 	in	float4 Position,
 	in	float2 TexCoord,
 	out	float3 OutExposureScaleVignette,
 	out	float4 OutGrainUV,
-	out	float4 OutFringe,
+	out	float2 OutScreenPos,
 	out	float2 OutFullViewUV
 	)
 {
@@ -140,7 +145,7 @@ void TonemapCommonVS(
 
 #if EYEADAPTATION_EXPOSURE_FIX == 1
 	// texture can be GWhiteTexture which is 1x1. It's important we don't read outside bounds.
-	OutExposureScaleVignette.x = EyeAdaptation.Load(int3(0, 0, 0)).r;//EyeAdaptationLookup();
+	OutExposureScaleVignette.x = EyeAdaptation.Load(int3(0, 0, 0)).x;
 #else
 	// If eye adaptation is disabled (e.g. fixed exposure level ) or  not available.  
 	OutExposureScaleVignette.x = DefaultEyeExposure;
@@ -154,9 +159,7 @@ void TonemapCommonVS(
 	OutGrainUV.zw = TexCoord + GrainRandomFull.xy;
 
 	// Fringe
-	float2 ScreenPos = UVToScreenPos(TexCoord);
-	OutFringe.xy = ScreenPosToUV(ScreenPos * FringeUVParams.r);
-	OutFringe.zw = ScreenPosToUV(ScreenPos * FringeUVParams.g);
+	OutScreenPos = UVToScreenPos(TexCoord);
 }
 
 // vertex shader entry point
@@ -166,7 +169,7 @@ void MainVS(
 	out noperspective 	float2 OutTexCoord 				: TEXCOORD0,
 	out noperspective 	float3 OutExposureScaleVignette : TEXCOORD1,
 	out noperspective 	float4 OutGrainUV 				: TEXCOORD2,
-	out noperspective 	float4 OutFringe 				: TEXCOORD3,
+	out noperspective 	float2 OutScreenPos 			: TEXCOORD3,
 	out noperspective 	float2 OutFullViewUV 			: TEXCOORD4,
 	out 				float4 OutPosition 				: SV_POSITION
 	)
@@ -177,7 +180,7 @@ void MainVS(
 #endif
 
 	DrawRectangle(InPosition, InTexCoord, OutPosition, OutTexCoord);
-	TonemapCommonVS(OutPosition, OutTexCoord, OutExposureScaleVignette, OutGrainUV, OutFringe, OutFullViewUV);
+    TonemapCommonVS(OutPosition, OutTexCoord, OutExposureScaleVignette, OutGrainUV, OutScreenPos, OutFullViewUV);
 }
 
 // Function graphing
@@ -286,16 +289,31 @@ half3 LookupSceneColor(float2 SceneUV, int2 PixelOffset)
 #endif
 }
 
+float3 SampleSceneColor(float2 SceneUV)
+{
+	#if USE_GRAIN_JITTER
+		SceneUV = clamp(SceneUV, SceneUVMinMax.xy, SceneUVMinMax.zw);
+	#endif
+
+	return Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, SceneUV).rgb;
+}
+
 float4 TonemapCommonPS(
 	float2 UV,
-	float3 InExposureScaleVignette,
+	float3 ExposureScaleVignette,
 	float4 GrainUV,
-	float4 FringeUV,
+	float2 ScreenPos, // [-1, 1]x[-1, 1]
 	float2 FullViewUV,
 	float4 SvPosition
 	)
 {
 	float4 OutColor = 0;
+
+#if USE_PREEXPOSURE
+	const float OneOverPreExposure = View.OneOverPreExposure;
+#else
+	const float OneOverPreExposure = 1.f;
+#endif
 
 #if DEBUG_TONEMAPPER
 	// @param DebugTile 0,0 is center, -1,0 is left, 1,0 is right, ...
@@ -311,7 +329,7 @@ float4 TonemapCommonPS(
 
 		OffsetInterpolator(CounterStep, UV);
 		OffsetInterpolator(CounterStep, GrainUV);
-		OffsetInterpolator(CounterStep, FringeUV);
+		OffsetInterpolator(CounterStep, ScreenPos);
 		OffsetInterpolator(CounterStep, FullViewUV);
 	}
 	if (all(DebugTile == int2(0, 0)))
@@ -334,16 +352,27 @@ float4 TonemapCommonPS(
 		#if USE_GRAIN_JITTER
 			SceneUVJitter = SceneUV.xy - UV.xy;
 		#endif
-		half3 SceneColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, FringeUV.zw + SceneUVJitter.xy).rgb;
-		half SceneColorG = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, FringeUV.xy + SceneUVJitter.xy).g;
-		half SceneColorB = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, SceneUV).b;
+		
+	        float2 CAScale = ChromaticAberrationParams.rg;
+	        float StartOffset = ChromaticAberrationParams.z;
+
+	        float4 CAUV;
+	        CAUV = ScreenPos.xyxy - sign(ScreenPos).xyxy * saturate(abs(ScreenPos) - StartOffset).xyxy * CAScale.rrgg;
+	        CAUV.xy = ScreenPosToUV(CAUV.xy);
+	        CAUV.zw = ScreenPosToUV(CAUV.zw);
+
+		half3 SceneColor = SampleSceneColor(CAUV.xy + SceneUVJitter.xy).rgb;
+		half SceneColorG = SampleSceneColor(CAUV.zw + SceneUVJitter.xy).g;
+		half SceneColorB = SampleSceneColor(SceneUV).b;
 		SceneColor.g = SceneColorG;
 		SceneColor.b = SceneColorB;
 	#else
-		half3 SceneColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, SceneUV).rgb;
+		half3 SceneColor = SampleSceneColor(SceneUV).rgb;
 	#endif
 
-	float ExposureScale = InExposureScaleVignette.x;
+	SceneColor *= OneOverPreExposure;
+
+	float ExposureScale = ExposureScaleVignette.x;
 
 #if DEBUG_TONEMAPPER
 	if (all(DebugTile == int2(-1, 1)))
@@ -369,10 +398,10 @@ float4 TonemapCommonPS(
 
 #if USE_SHARPEN
 	{
-		half3 C1 = LookupSceneColor(SceneUV, int2(-1,  0));
-		half3 C2 = LookupSceneColor(SceneUV, int2( 1,  0));
-		half3 C3 = LookupSceneColor(SceneUV, int2(-1, -1));
-		half3 C4 = LookupSceneColor(SceneUV, int2(-1,  1));
+		half3 C1 = LookupSceneColor(SceneUV, int2(-1,  0)) * OneOverPreExposure;
+		half3 C2 = LookupSceneColor(SceneUV, int2( 1,  0)) * OneOverPreExposure;
+		half3 C3 = LookupSceneColor(SceneUV, int2(-1, -1)) * OneOverPreExposure;
+		half3 C4 = LookupSceneColor(SceneUV, int2(-1,  1)) * OneOverPreExposure;
 
 		// reference solution
 //		half A0 = max3(SceneColor);
@@ -417,6 +446,9 @@ float4 TonemapCommonPS(
 
 	#if USE_GAMMA_ONLY
 
+		#if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1 // On mobile ExposureScale applied in base pass PS
+			SceneColor.rgb *= ExposureScale;
+		#endif
 		OutColor.rgb = pow(SceneColor, InverseGamma.x);
 
 	#else 
@@ -424,12 +456,13 @@ float4 TonemapCommonPS(
 		half3 LinearColor = SceneColor * ColorScale0.rgb;
 
 		#if USE_BLOOM
-			float2 BloomUV = UV;
+			float2 BloomUV = clamp(UV, SceneBloomUVMinMax.xy, SceneBloomUVMinMax.zw);
 			#if ES2_PROFILE || ES3_1_PROFILE
 				BloomUV = FullViewUV.xy;
 			#endif
 			float4 CombinedBloom = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, BloomUV);
-			float3 BloomDirtMaskColor = Texture2DSample(BloomDirtMask.Mask, BloomDirtMask.MaskSampler, SvPositionToViewportUV(SvPosition)).rgb * BloomDirtMask.Tint.rgb;
+			float2 DirtViewportUV = (SvPosition.xy - float2(ViewportRect.xy)) * ViewportSize.zw;
+			float3 BloomDirtMaskColor = Texture2DSample(BloomDirtMask.Mask, BloomDirtMask.MaskSampler, DirtViewportUV).rgb * BloomDirtMask.Tint.rgb;
 
 #if DEBUG_TONEMAPPER
 			if (all(DebugTile == int2(-1, -1)))
@@ -456,7 +489,7 @@ float4 TonemapCommonPS(
 		LinearColor *= ExposureScale;
 
 		#if USE_VIGNETTE
-			LinearColor.rgb *= ComputeVignetteMask( InExposureScaleVignette.yz, TonemapperParams.x );
+			LinearColor.rgb *= ComputeVignetteMask( ExposureScaleVignette.yz, TonemapperParams.x );
 		#endif
 
 		#if USE_GRAIN_INTENSITY
@@ -495,7 +528,14 @@ float4 TonemapCommonPS(
 		if (GetOutputDevice() == 5 || GetOutputDevice() == 6)
 		{
 			OutColor.xyz = ST2084ToScRGB(OutColor.xyz, GetOutputDevice());
+		}		
+		else if (GetOutputDevice() == 7)
+		{
+			OutColor.xyz = ST2084ToLinear(OutColor.xyz);
 		}
+		
+
+
 	#endif
 
 #if DEBUG_TONEMAPPER
@@ -525,13 +565,13 @@ void MainPS(
 	in noperspective float2 UV : TEXCOORD0,
 	in noperspective float3 InExposureScaleVignette : TEXCOORD1,
 	in noperspective float4 GrainUV : TEXCOORD2,
-	in noperspective float4 FringeUV : TEXCOORD3,
+	in noperspective float2 ScreenPos : TEXCOORD3,
 	in noperspective float2 FullViewUV : TEXCOORD4,
 	float4 SvPosition : SV_POSITION,		// after all interpolators
 	out float4 OutColor : SV_Target0
 	)
 {
-	OutColor = TonemapCommonPS(UV, InExposureScaleVignette, GrainUV, FringeUV, FullViewUV, SvPosition);
+    OutColor = TonemapCommonPS(UV, InExposureScaleVignette, GrainUV, ScreenPos, FullViewUV, SvPosition);
 }
 
 #if COMPUTESHADER
@@ -551,11 +591,11 @@ void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
 	}
 
 	float3 ExposureScaleVignette;
-	float4 GrainUV, FringeUV;
-	float2 FullViewUV;	
-	TonemapCommonVS(SvPosition, UV, ExposureScaleVignette, GrainUV, FringeUV, FullViewUV);
+	float4 GrainUV;
+	float2 FullViewUV, ScreenPos;	
+	TonemapCommonVS(SvPosition, UV, ExposureScaleVignette, GrainUV, ScreenPos, FullViewUV);
 
-	float4 OutColor = TonemapCommonPS(UV, ExposureScaleVignette, GrainUV, FringeUV, FullViewUV, SvPosition);
+	float4 OutColor = TonemapCommonPS(UV, ExposureScaleVignette, GrainUV, ScreenPos, FullViewUV, SvPosition);
 
 	uint2 PixelPos = DispatchThreadId + (uint2)View.ViewRectMin.xy;
 #if NEEDTOSWITCHVERTICLEAXIS

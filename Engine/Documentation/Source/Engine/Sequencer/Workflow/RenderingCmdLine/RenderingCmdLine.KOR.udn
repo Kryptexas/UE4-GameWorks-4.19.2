@@ -1,0 +1,180 @@
+﻿INTSourceChangelist:3782314
+Availability:Public
+Title: 무비 렌더링 명령줄 인수
+Crumbs: %ROOT%, Engine
+Description:무비 렌더링에 사용할 수 있는 시퀀서 명령줄 인수 개요입니다.
+Navigation:topic
+parent:Engine\Sequencer\Workflow
+order:1
+Version: 4.18
+Type: Reference
+Related: Engine\Sequencer\Overview
+Related: Engine\Sequencer\HowTo\RenderMovies
+Related: Programming/Basics/CommandLineArguments
+Related: GettingStarted/RunningUnrealEngine
+tags:Sequencer
+
+[TOC(start:2 end:2)]
+
+시퀀스를 렌더링 출력할 때 사용할 세팅을 결정하는 여러가지 [명령줄 인수](Programming/Basics/CommandLineArguments) 및 [콘솔 변수](Programming/Development/Tools/ConsoleManager) 개요입니다.
+
+
+[REGION:note]
+명령줄에서 언리얼 엔진 4 (UE4) 에디터를 실행하지 않았다면, [](GettingStarted/RunningUnrealEngine) 문서에서 자세한 정보를 확인하세요.
+[/REGION]
+
+[REGION:tip]
+언리얼 엔진 4 (UE4) 에서의 무비 렌더링 출력 관련해서는 [](Engine\Sequencer\HowTo\RenderMovies) 문서를 참고하세요.
+[/REGION]
+
+## 필수 명령
+
+이미지 시퀀스를 제대로 렌더링 출력하는데 필요한 명령은 다음과 같습니다. 명령줄에서 렌더링할 때 언제든 포함시켜주면 됩니다:
+
+| 인수 | 설명 |
+| ---- | ----------- |
+| -MovieSceneCaptureType="/Script/MovieSceneCapture.AutomatedLevelSequenceCapture" | 이 글에 나열된 명령줄 인수 다수를 정의하는 데 사용됩니다. |
+| -LevelSequence="/Game/PathToSequence/SequenceName" | 에디터에 재생할 시퀀스를 알려줍니다. |
+| -NoLoadingScreen | 이 옵션이 없으면 에디터의 게임 인스턴스가 정상 렌더링에 실패합니다. |
+
+## 제어 명령
+
+이미지 퀄리티, 렌더링 파라미터, 파일 이름/유형 관련 모든 것을 제어할 수 있는 추천 명령줄 인수 몇 가지입니다.
+
+**용도** 열은 해당 명령줄 인수를 사용하기 좋은 시기 관련 정보가 포함됩니다:
+
+| 인수 | 설명 | 주 | 용도 |
+| ---- | ----------- |----------- |----------- |
+| -ResX=#### | 게임 창 가로 해상도를 설정합니다. | 예: -ResX=1920 | 프리뷰용은 저해상도, 최종은 고해상도로 합니다. |
+| -ResY=#### | 게임 창 세로 해상도를 설정합니다. | 예: -ResY=1080 | 프리뷰용은 저해상도, 최종은 고해상도로 합니다. |
+| -ForceRes | 창이 화면 해상도보다 커져도 지정된 해상도로 강제 설정합니다. | | |
+| -VSync | 명령줄을 통해 VSYNC 를 켭니다. | 퍼포먼스 비용이 높지만, 실시간 렌더링은 아니니 해가 되지는 않습니다. | 최종 렌더링 용입니다. |
+| -NoVSync | 명령줄을 통해 VSYNC 를 해제합니다. | 위 "주" 부분을 참고하세요. | 프리뷰 렌더링 용입니다. |
+| -MovieFrameRate=30 | 출력의 프레임 레이트를 설정합니다. | 기본 30fps 를 덮어씁니다. | 시네마틱 용도에 따라 다릅니다 (예: 리드미컬한 움직임은 낮은 FPS 에서 좋지 않습니다. 프리뷰에서도 바람직하지 않을 수 있습니다). |
+| -NoTextureStreaming | 텍스처 스트리밍을 끕니다. | 렌더링 시간이 더욱 오래 걸리지만, 최종 렌더링에는 가치가 있습니다. | 최종 렌더링 용입니다. |
+| -MovieFolder="PATH" | 렌더링 이미지 대상 폴더입니다. | 기본은 Project/Saved/Screenshots 입니다. | 일괄 렌더링에 추천합니다. 지정하지 않으면 모든 이미지 파일은 같은 폴더에 덤프됩니다. |
+| -MovieFormat=ASD | 미디어 포맷입니다. JPG, BMP, PNG, 또는 Video 입니다. | 기본은 PNG 입니다. | |
+| -MovieQuality=## | 압축 퀄리티를 설정합니다. | 백분율로 나타내며, 기본값은 75 입니다. | |
+| -MovieName="Example.{frame}" | 출력 파일 작명 규칙을 설정합니다. | [INCLUDE:Engine\Sequencer\Workflow\RenderingCmdLine#wildcard] | 일괄 렌더링에 강력 추천합니다. 파일에 맵 이름, 렌더 패스 등에 따라 적합한 고유 이름을 지어줍니다. |
+| -MovieCinematicMode=Yes/No | 시네마틱 모드를 켭니다. | 플레이어 캐릭터를 숨기고 플레이어 캐릭터 무브먼트를 끕니다. HUD 도 끕니다. | 보통 이 옵션은 항상 켜는 것이 좋습니다. |
+| -MovieWarmUpFrames=## | 시퀀스 재생 전 씬을 돌릴 프레임 수입니다. 실시간 재생은 아닙니다. | 기본은 0 프레임입니다. 시퀀스의 재생 범위 시작 전 프레임을 돌리기도 합니다. | 녹화 시작 전 시뮬레이션이 필요한 파티클 시스템 또는 피직스가 있을 때 좋습니다. |
+| -MovieDelayBeforeWarmUp=#  | 워밍업 시작 전까지 대기할 기간(초)입니다. 실시간입니다. |  | 시퀀스 시작 전 폰으로 어떤 작업을 해야 할 때 사용합니다. |
+| -MovieStartFrame=###  | 시퀀스 시작 프레임을 덮어씁니다. | 기본은 시퀀서의 인 / 아웃 마커입니다. | |
+| -MovieEndFrame=###  | 시퀀스 끝 프레임을 덮어씁니다. | 기본은 시퀀서의 인 / 아웃 마커입니다. | |
+| -NoScreenMessages  | "Rebuild Lighting" 또는 "Print String" 출력같은 화면상 메시지를 숨깁니다. | | |
+
+[COMMENT:none]
+
+[EXCERPT:Wildcard]
+[REGION:simpletable]
+| 와일드카드 | 설명 |
+| ----- | ------ |
+| {fps} | 캡처한 프레임 레이트입니다. |
+| {frame}| 현재 프레임 번호입니다 (이미지 시퀀스에만 관련이 있습니다). |
+| {width}| 캡처한 프레임 폭입니다. |
+| {height}| 캡처한 프레임 높이입니다. |
+| {world}| 현재 월드 이름입니다. |
+| {quality}| 이미지 압축 퀄리티 세팅입니다. |
+| {material}| 머티리얼/렌더 패스입니다. |
+[/REGION] 
+[/EXCERPT:Wildcard]
+
+[/COMMENT]
+
+
+## 커스텀 렌더 패스
+
+이 명령을 사용하려면 `-MovieFormat=CustomRenderPasses` 및 `-MovieName` 에 `{material}` 이 필요합니다.
+
+| 인수 | 설명 | 주 |
+| ---- | ----------- |----------- |
+| -CustomRenderPasses="RenderPassName" | 커스텀 렌더 패스를 설정합니다. | 옵션 (괄호 제외): <br> AmbientOcclusion, BaseColor, CustomDepth, CustomDepthWorldUnits, CustomStencil, FinalImage, MaterialAO (앰비언트 오클루전), Metallic, Opacity, PostTonemapHDRColor, Roughness, SceneColor, SceneDepth, SceneDepthWorldUnits, SeparateTranslucencyA (알파), SeparateTranslucencyRGB, ShadingModel, Specular, SubsurfaceColor, WorldNormal. |
+| -CaptureFramesInHDR | HDR 을 .exr 포맷으로 렌더링합니다. | |
+| -HDRCompressionQuality=## | HDR 프레임에 대한 압축 퀄리티입니다 (0 은 압축 없음, 1 은 기본 압축으로 느릴 수 있습니다). -CaptureFramesInHDR 에 따라 달라집니다. | |
+| -CaptureGamut="HCGM_Name" | HDR 캡처 데이터를 저장할 때 사용할 색 공간입니다. -CaptureFramesInHDR 에 따라 달라집니다. | (아래 색 공간 설명 참고) HCGM_Rec709, HCGM_P3DCI, HCGM_Rec2020, HCGM_ACES, HCGM_ACEScg, HCGM_MAX. |
+| -PostProcessingMaterial="MaterialPath" | 렌더링에 사용할 커스텀 포스트 프로세싱 머티리얼입니다. | 포맷은 다음과 같습니다: "Material'/Engine/BufferVisualization/SceneDepth.SceneDepth'" <br> 그 경로를 쉽게 구하는 방법은 콘텐츠 브라우저에서 머티리얼에 우클릭한 다음 Copy Reference (레퍼런스 복사)하면 됩니다. |
+
+* 색 공간 설명
+	* HCGM_Rec709 - Rec. 709 / sRGB
+	* HCGM_P3DCI - P3 D65
+	* HCGM_Rec2020 - Rec. 2020
+	* HCGM_ACES - ACES
+	* HCGM_ACEScg - ACEScg
+
+
+## 콘솔 변수
+
+렌더링 퀄리티를 결정하는데 좋은 콘솔 명령은 다음과 같으며, 프로젝트의 **Game/Config** 폴더 내 `DefaultEngine.ini` 에 추가하면 됩니다.
+
+[REGION:note]
+최고 퀄리티를 위해 추천하는 값을 표시했습니다.
+[/REGION]
+
+| 변수 | 설명 |
+| ---- | ----------- |
+| r.ForceLOD=0 | 모든 LOD 를 0 으로 강제 설정하고, -1 은 끕니다. |
+| r.MotionBlurQuality=4 | 모션 블러 메소드를 정의합니다 (퀄리티 또는 퍼포먼스를 조율합니다): 0 은 끔, 1 은 낮음, 2 는 중간, 3 은 높음(기본), 4 는 매우 높음 입니다.|
+| r.MotionBlurSeparable=1 | 보다 높은 퀄리티의 블러를 위해 노이즈에 스무딩을 적용하는 이차 모션 블러 패스를 추가합니다. 0 은 꺼짐, 1 은 켜짐 입니다. |
+| r.DepthOfFieldQuality=4 | 뎁스 오브 필드 퀄리티를 조절할 수 있습니다. 현재 보케 DOF 에만 완전히 영향을 줍니다. 가우시안 DOF 는 0 이 꺼짐, 그 외에는 켜짐 입니다. <br> [INCLUDE:Engine\Sequencer\Workflow\RenderingCmdLine#dofquality] |
+| r.HLOD=0 | 단일 인수: 0 또는 1 로 HLOD 시스템 끄기/켜기 입니다. <br> 다중 인수: X 를 강제 적용하는데, X 는 뷰에 강제로 적용시킬 HLOD 레벨입니다. |
+| r.SSR.Quality=4| 스크린 스페이스 리플렉션 사용 여부와 어떤 퀄리티 세팅을 사용할지 입니다. 포스트 프로세스 세팅에서 스케일이 다른 세팅을 제한합니다. 퍼포먼스 비용이 들고, 시각적인 사실감이 더해지지만, 기술적 한계가 있습니다. <br> [INCLUDE:Engine\Sequencer\Workflow\RenderingCmdLine#ssrquality]  |
+| r.ViewDistanceScale=30 | 뷰 디스턴스 스케일을 조절합니다. 프리미티브의 MaxDrawDistance (최대 그리기 거리)에 이 값을 곱합니다. 값이 클 수록 가시 거리가 늘어나지만 퍼포먼스 비용도 증가합니다. |
+| r.MipMapLODBias=-1 | 모든 2D 텍스처에 부가 밉 맵 바이어스를 적용하며, 범위는 -15.0 에서 15.0 입니다. |
+| r.Shadow.MaxResolution=4096 | 섀도우 뎁스 렌더링에 허용된 (텍셀 단위) 최대 정사각 치수입니다. 범위는 4 에서 하드웨어 한계치까지입니다. 높을 수록 섀도우 퀄리티가 좋아지지만 퍼포먼스 비용도 늘어납니다. |
+
+[COMMENT:none]
+
+[EXCERPT:DofQuality]
+[REGION:simpletable]
+| 값 | 설명 |
+| ----- | ------ |
+| 0 | 꺼짐 |
+| 1 | 낮음 |
+| 2 | 높은 퀄리티 (기본, 적응형, 1/4 로 느려질 수 있음) |
+| 3 | 매우 높은 퀄리티, 실시간이 아닌 컷씬용, CircleDOF 전용 (느림) |
+| 4 | 극도로 높은 퀄리티, 실시간이 아닌 컷씬용, CircleDOF 전용 (매우 느림) |
+[/REGION] 
+[/EXCERPT:DofQuality]
+
+[/COMMENT]
+
+[COMMENT:none]
+
+[EXCERPT:ssrquality]
+[REGION:simpletable]
+| 값 | 설명 |
+| ----- | ------ |
+| 0 | 꺼짐 (기본) |
+| 1 | 낮음 (광택 없음) |
+| 2 | 중간 (광택 없음) |
+| 3 | 높음 (광택/러프니스 사용, 소수 샘플) |
+| 4 | 매우 높음 (실시간에는 너무 느릴 수 있음) |
+[/REGION] 
+[/EXCERPT:ssrquality]
+
+[/COMMENT]
+
+## 예제
+
+여기서는 여러가지 상황에 대한 샘플 명령줄 인수 몇 가지를 제공해 드립니다.
+제공된 예제에서는, 프로젝트에 관련해서 다음과 같은 상황이라 간주합니다.
+
+* 빌드 위치 = C:\Program Files (x86)\Epic Games\4.##\Engine\Binaries\Win64\UE4Editor.exe
+* 프로젝트 위치 = D:\Unreal Projects\SequencerTestBed\SequencerTestBed.uproject
+* 맵 이름 = TestRender_Map.umap
+* 시퀀스 이름 = Test_Render_SQ
+
+### 프리뷰 렌더
+.jpg 파일 포맷 1280x620 해상도 30fps 로 16:9 프리뷰 렌더렝을 한 예제입니다.
+
+	"C:\Program Files (x86)\Epic Games\4.##\Engine\Binaries\Win64\UE4Editor.exe" "D:\Unreal Projects\SequencerTestBed\SequencerTestBed.uproject" /Game/TestRender/TestRender_Map -game -MovieSceneCaptureType="/Script/MovieSceneCapture.AutomatedLevelSequenceCapture" -LevelSequence="/Game/Test_Render/Test_Render_SQ" -MovieFrameRate=30 -noloadingscreen -resx=1280 -resy=720 -MovieFormat=JPG -MovieQuality=75
+
+
+### 최종 렌더
+이 예제는 .bmp 파일 포맷 3840x2160 해상도 16:9 로 최대 퀄리티 렌더링을 목표로 최종 렌더합니다.
+	
+	"C:\Program Files (x86)\Epic Games\4.##\Engine\Binaries\Win64\UE4Editor.exe" "D:\Unreal Projects\SequencerTestBed\SequencerTestBed.uproject" /Game/TestRender/TestRender_Map -game -MovieSceneCaptureType="/Script/MovieSceneCapture.AutomatedLevelSequenceCapture" -LevelSequence="/Game/Test_Render/Test_Render_SQ" -MovieFrameRate=30 -noloadingscreen -resx=3840 -resy=2160 -forceres -MovieFormat=BMP -MovieQuality=100 -notexturestreaming -MovieCinematicMode=yes -MovieWarmUpFrames=60
+
+
+
+

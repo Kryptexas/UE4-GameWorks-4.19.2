@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -92,7 +92,7 @@ struct FProcMeshSection
 
 	/** Index buffer for this section */
 	UPROPERTY()
-	TArray<int32> ProcIndexBuffer;
+	TArray<uint32> ProcIndexBuffer;
 	/** Local bounding box of section */
 	UPROPERTY()
 	FBox SectionLocalBox;

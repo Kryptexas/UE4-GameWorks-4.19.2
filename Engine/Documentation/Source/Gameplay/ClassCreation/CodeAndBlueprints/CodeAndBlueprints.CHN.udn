@@ -36,7 +36,7 @@ LightSwitchBoth类中的大部分代码设置都和 [仅使用C++的LightSwitch�
 LightSwitchBoth.h
 [/REGION:codetitlebar]
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#pragma once
 
@@ -76,7 +76,7 @@ C++实现。要想使这个设置正常工作，该C++函数需要重命名为 `
 LightSwitchBoth.cpp
 [/REGION:codetitlebar]
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 	#include "BasicClasses.h"
 	#include "LightSwitchBoth.h"

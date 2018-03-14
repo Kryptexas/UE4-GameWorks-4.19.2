@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,6 +12,7 @@ class UMovieScene;
 class IMovieSceneObjectSpawner;
 class ISequencer;
 class USequencerSettings;
+class UActorFactory;
 struct FTransformData;
 
 /** A delegate which will create an object spawner */
@@ -72,9 +73,10 @@ public:
 	 *
 	 * @param SourceObject		The source object to create the spawnable from
 	 * @param OwnerMovieScene	The owner movie scene that this spawnable type should reside in
+	 * @param ActorFactory      Optional actor factory to use to create spawnable type
 	 * @return the new spawnable type, or error
 	 */
-	virtual TValueOrError<FNewSpawnable, FText> CreateNewSpawnableType(UObject& SourceObject, UMovieScene& OwnerMovieScene) { return MakeError(NSLOCTEXT("IMovieSceneObjectSpawner", "NotSupported", "Not supported")); }
+	virtual TValueOrError<FNewSpawnable, FText> CreateNewSpawnableType(UObject& SourceObject, UMovieScene& OwnerMovieScene, UActorFactory* ActorFactory = nullptr) { return MakeError(NSLOCTEXT("IMovieSceneObjectSpawner", "NotSupported", "Not supported")); }
 
 	/**
 	 * Setup a new spawnable object with some default tracks and keys

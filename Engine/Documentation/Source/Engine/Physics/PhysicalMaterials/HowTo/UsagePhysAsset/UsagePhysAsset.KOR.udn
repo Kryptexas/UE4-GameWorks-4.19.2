@@ -1,49 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability: Public
 Title:피직스 애셋에 피지컬 머티리얼 할당
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
 Description:피직스 애셋 툴을 사용해서 피직스 애셋 전체에 피지컬 머티리얼을 할당하는 방법입니다.
 Version: 4.9
 SkillLevel: Intermediate
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/PhysicalMaterials/HowTo/UsagePhysAsset:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhysicalMaterials/HowTo/UsagePhysAsset:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhysicalMaterials/HowTo/UsagePhysAsset:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/PhysicalMaterials/HowTo/UsagePhysAsset]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Physics/PhysicalMaterials/HowTo/UsagePhysAsset:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhysicalMaterials/HowTo/UsagePhysAsset:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhysicalMaterials/HowTo/UsagePhysAsset:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/PhysicalMaterials/HowTo/UsagePhysAsset]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 
 여기서는 피직스 애셋의 모든 피직스 바디의 피지컬 머티리얼을 한꺼번에 설정하는 법을 자세히 알아보겠습니다.

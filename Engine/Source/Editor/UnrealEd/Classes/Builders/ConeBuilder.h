@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // ConeBuilder: Builds a 3D cone brush, compatible with cylinder of same size.

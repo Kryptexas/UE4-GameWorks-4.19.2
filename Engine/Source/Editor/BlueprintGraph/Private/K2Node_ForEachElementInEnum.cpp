@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "K2Node_ForEachElementInEnum.h"
@@ -48,7 +48,7 @@ struct FForExpandNodeHelper
 
 		// Create int Loop Counter
 		UK2Node_TemporaryVariable* LoopCounterNode = CompilerContext.SpawnIntermediateNode<UK2Node_TemporaryVariable>(Node, SourceGraph);
-		LoopCounterNode->VariableType.PinCategory = Schema->PC_Int;
+		LoopCounterNode->VariableType.PinCategory = UEdGraphSchema_K2::PC_Int;
 		LoopCounterNode->AllocateDefaultPins();
 		LoopCounterOutPin = LoopCounterNode->GetVariablePin();
 		check(LoopCounterOutPin);
@@ -63,7 +63,7 @@ struct FForExpandNodeHelper
 
 		// Create int Array Index
 		UK2Node_TemporaryVariable* ArrayIndexNode = CompilerContext.SpawnIntermediateNode<UK2Node_TemporaryVariable>(Node, SourceGraph);
-		ArrayIndexNode->VariableType.PinCategory = Schema->PC_Int;
+		ArrayIndexNode->VariableType.PinCategory = UEdGraphSchema_K2::PC_Int;
 		ArrayIndexNode->AllocateDefaultPins();
 		ArrayIndexOutPin = ArrayIndexNode->GetVariablePin();
 		check(ArrayIndexOutPin);
@@ -136,23 +136,20 @@ UK2Node_ForEachElementInEnum::UK2Node_ForEachElementInEnum(const FObjectInitiali
 {
 }
 
-const FString UK2Node_ForEachElementInEnum::InsideLoopPinName(TEXT("LoopBody"));
-const FString UK2Node_ForEachElementInEnum::EnumOuputPinName(TEXT("EnumValue"));
+const FName UK2Node_ForEachElementInEnum::InsideLoopPinName(TEXT("LoopBody"));
+const FName UK2Node_ForEachElementInEnum::EnumOuputPinName(TEXT("EnumValue"));
 
 void UK2Node_ForEachElementInEnum::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	check(K2Schema);
-
-	CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Execute);
 
 	if (Enum)
 	{
-		CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, InsideLoopPinName);
-		CreatePin(EGPD_Output, K2Schema->PC_Byte, FString(), Enum, EnumOuputPinName);
+		CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, InsideLoopPinName);
+		CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Byte, Enum, EnumOuputPinName);
 	}
 
-	if (UEdGraphPin* CompletedPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Then))
+	if (UEdGraphPin* CompletedPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Then))
 	{
 		CompletedPin->PinFriendlyName = LOCTEXT("Completed", "Completed");
 	}
@@ -214,13 +211,13 @@ void UK2Node_ForEachElementInEnum::ExpandNode(class FKismetCompilerContext& Comp
 	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
 
 	CompilerContext.MovePinLinksToIntermediate(*GetExecPin(), *ForLoop.StartLoopExecInPin);
-	CompilerContext.MovePinLinksToIntermediate(*FindPinChecked(Schema->PN_Then), *ForLoop.LoopCompleteOutExecPin);
+	CompilerContext.MovePinLinksToIntermediate(*FindPinChecked(UEdGraphSchema_K2::PN_Then), *ForLoop.LoopCompleteOutExecPin);
 	CompilerContext.MovePinLinksToIntermediate(*FindPinChecked(InsideLoopPinName), *ForLoop.InsideLoopExecOutPin);
 
 	UK2Node_GetNumEnumEntries* GetNumEnumEntries = CompilerContext.SpawnIntermediateNode<UK2Node_GetNumEnumEntries>(this, SourceGraph);
 	GetNumEnumEntries->Enum = Enum;
 	GetNumEnumEntries->AllocateDefaultPins();
-	bool bResult = Schema->TryCreateConnection(GetNumEnumEntries->FindPinChecked(Schema->PN_ReturnValue), ForLoop.LoopCounterLimitInPin);
+	bool bResult = Schema->TryCreateConnection(GetNumEnumEntries->FindPinChecked(UEdGraphSchema_K2::PN_ReturnValue), ForLoop.LoopCounterLimitInPin);
 
 	UK2Node_CallFunction* Conv_Func = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
 	FName Conv_Func_Name = GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, Conv_IntToByte);
@@ -232,8 +229,8 @@ void UK2Node_ForEachElementInEnum::ExpandNode(class FKismetCompilerContext& Comp
 	CastByteToEnum->Enum = Enum;
 	CastByteToEnum->bSafe = true;
 	CastByteToEnum->AllocateDefaultPins();
-	bResult &= Schema->TryCreateConnection(Conv_Func->FindPinChecked(Schema->PN_ReturnValue), CastByteToEnum->FindPinChecked(UK2Node_CastByteToEnum::ByteInputPinName));
-	CompilerContext.MovePinLinksToIntermediate(*FindPinChecked(EnumOuputPinName), *CastByteToEnum->FindPinChecked(Schema->PN_ReturnValue));
+	bResult &= Schema->TryCreateConnection(Conv_Func->FindPinChecked(UEdGraphSchema_K2::PN_ReturnValue), CastByteToEnum->FindPinChecked(UK2Node_CastByteToEnum::ByteInputPinName));
+	CompilerContext.MovePinLinksToIntermediate(*FindPinChecked(EnumOuputPinName), *CastByteToEnum->FindPinChecked(UEdGraphSchema_K2::PN_ReturnValue));
 
 	if (!bResult)
 	{
@@ -259,7 +256,7 @@ void UK2Node_ForEachElementInEnum::GetMenuActions(FBlueprintActionDatabaseRegist
 	{
 		UBlueprintFieldNodeSpawner* NodeSpawner = UBlueprintFieldNodeSpawner::Create(NodeClass, InEnum);
 		check(NodeSpawner != nullptr);
-		TWeakObjectPtr<UEnum> NonConstEnumPtr = InEnum;
+		TWeakObjectPtr<UEnum> NonConstEnumPtr = MakeWeakObjectPtr(const_cast<UEnum*>(InEnum));
 		NodeSpawner->SetNodeFieldDelegate = UBlueprintFieldNodeSpawner::FSetNodeFieldDelegate::CreateStatic(GetMenuActions_Utils::SetNodeEnum, NonConstEnumPtr);
 
 		return NodeSpawner;

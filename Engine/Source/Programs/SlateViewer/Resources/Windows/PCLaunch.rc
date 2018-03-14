@@ -1,7 +1,8 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include <windows.h>
-#include "../../../Runtime/Launch/Resources/Version.h"
+#include "Runtime/Launch/Resources/Version.h"
+#include "Runtime/Launch/Resources/Windows/resource.h"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -67,5 +68,13 @@ END
 
 #endif
 
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDICON_UE4Game          ICON                    "SlateViewer.ico"
 
 

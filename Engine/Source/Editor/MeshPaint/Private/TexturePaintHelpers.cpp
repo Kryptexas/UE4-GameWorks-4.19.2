@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "TexturePaintHelpers.h"
 
@@ -7,6 +7,7 @@
 #include "StaticMeshResources.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Classes/Engine/SkeletalMesh.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 
 #include "IMeshPaintGeometryAdapter.h"
 
@@ -118,7 +119,7 @@ bool TexturePaintHelpers::GenerateSeamMask(UMeshComponent* MeshComponent, int32 
 	check(StaticMeshComponent != nullptr);
 	check(StaticMeshComponent->GetStaticMesh() != nullptr);
 	check(SeamRenderTexture != nullptr);
-	check(StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[PaintingMeshLODIndex].VertexBuffer.GetNumTexCoords() > (uint32)UVSet);
+	check(StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[PaintingMeshLODIndex].VertexBuffers.StaticMeshVertexBuffer.GetNumTexCoords() > (uint32)UVSet);
 
 	bool RetVal = false;
 
@@ -225,7 +226,7 @@ bool TexturePaintHelpers::GenerateSeamMask(UMeshComponent* MeshComponent, int32 
 			for (int32 TriVertexNum = 0; TriVertexNum < 3; ++TriVertexNum)
 			{
 				const int32 VertexIndex = Indices[TriIndex * 3 + TriVertexNum];
-				TriUVs[TriVertexNum] = LODModel.VertexBuffer.GetVertexUV(VertexIndex, UVSet);
+				TriUVs[TriVertexNum] = LODModel.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(VertexIndex, UVSet);
 
 				// Update bounds
 				float U = TriUVs[TriVertexNum].X;
@@ -459,11 +460,11 @@ void TexturePaintHelpers::RetrieveMeshSectionsForMaterialIndices(const UMeshComp
 		const USkeletalMesh* SkeletalMesh = SkeletalMeshComponent->SkeletalMesh;
 		if (SkeletalMesh)
 		{
-			const FSkeletalMeshResource* Resource = SkeletalMesh->GetImportedResource();
-			checkf(Resource->LODModels.IsValidIndex(LODIndex), TEXT("Invalid index %i for LOD models in Skeletal Mesh"), LODIndex);
-			const FStaticLODModel& LODModel = Resource->LODModels[LODIndex];
+			const FSkeletalMeshRenderData* Resource = SkeletalMesh->GetResourceForRendering();
+			checkf(Resource->LODRenderData.IsValidIndex(LODIndex), TEXT("Invalid index %i for LOD models in Skeletal Mesh"), LODIndex);
+			const FSkeletalMeshLODRenderData& LODData = Resource->LODRenderData[LODIndex];
 			FTexturePaintMeshSectionInfo Info;
-			for (const FSkelMeshSection& Section : LODModel.Sections)
+			for (const FSkelMeshRenderSection& Section : LODData.RenderSections)
 			{
 				Info.FirstIndex = Section.BaseIndex;
 				Info.LastIndex = (Section.BaseIndex / 3) + Section.NumTriangles;

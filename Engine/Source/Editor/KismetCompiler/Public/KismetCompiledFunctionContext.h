@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -105,7 +105,7 @@ public:
 	bool bUseFlowStack;
 public:
 	FKismetFunctionContext(FCompilerResultsLog& InMessageLog, const UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint, bool bInGeneratingCpp);
-	
+
 	~FKismetFunctionContext();
 
 	void SetExternalNetNameMap(FNetNameMapping* NewMap);
@@ -210,12 +210,12 @@ public:
 	/** Returns a UStruct scope corresponding to the pin type passed in, if one exists */
 	UStruct* GetScopeFromPinType(FEdGraphPinType& Type, UClass* SelfClass)
 	{
-		if ((Type.PinCategory == Schema->PC_Object) || (Type.PinCategory == Schema->PC_Class) || (Type.PinCategory == Schema->PC_Interface))
+		if ((Type.PinCategory == UEdGraphSchema_K2::PC_Object) || (Type.PinCategory == UEdGraphSchema_K2::PC_Class) || (Type.PinCategory == UEdGraphSchema_K2::PC_Interface))
 		{
-			UClass* SubType = (Type.PinSubCategory == Schema->PSC_Self) ? SelfClass : Cast<UClass>(Type.PinSubCategoryObject.Get());
+			UClass* SubType = (Type.PinSubCategory == UEdGraphSchema_K2::PSC_Self) ? SelfClass : Cast<UClass>(Type.PinSubCategoryObject.Get());
 			return SubType;
 		}
-		else if (Type.PinCategory == Schema->PC_Struct)
+		else if (Type.PinCategory == UEdGraphSchema_K2::PC_Struct)
 		{
 			UScriptStruct* SubType = Cast<UScriptStruct>(Type.PinSubCategoryObject.Get());
 			return SubType;
@@ -327,10 +327,10 @@ public:
 	void ResolveStatements();
 
 	/**
-	 * Makes sure an KCST_WireTraceSite is inserted before the specified 
-	 * statement, and associates the specified pin with the inserted wire-trace 
+	 * Makes sure an KCST_WireTraceSite is inserted before the specified
+	 * statement, and associates the specified pin with the inserted wire-trace
 	 * (so we can backwards engineer which pin triggered the goto).
-	 * 
+	 *
 	 * @param  GotoStatement		The statement to insert a goto before.
 	 * @param  AssociatedExecPin	The pin responsible for executing the goto.
 	 */
@@ -362,8 +362,8 @@ public:
 					else if (PrevStatement != NULL)
 					{
 						FBlueprintCompiledStatement* TraceStatement = new FBlueprintCompiledStatement();
-						TraceStatement->Type        = GetWireTraceType();
-						TraceStatement->Comment     = PreJumpNode->NodeComment.IsEmpty() ? PreJumpNode->GetName() : PreJumpNode->NodeComment;
+						TraceStatement->Type = GetWireTraceType();
+						TraceStatement->Comment = PreJumpNode->NodeComment.IsEmpty() ? PreJumpNode->GetName() : PreJumpNode->NodeComment;
 						TraceStatement->ExecContext = AssociatedExecPin;
 
 						NodeStatementList->Insert(TraceStatement, GotoIndex);
@@ -376,12 +376,10 @@ public:
 	}
 
 	/** Looks for a pin of the given name, erroring if the pin is not found or if the direction doesn't match (doesn't verify the pin type) */
-	UEdGraphPin* FindRequiredPinByName(const UEdGraphNode* Node, const FString& PinName, EEdGraphPinDirection RequiredDirection = EGPD_MAX)
+	UEdGraphPin* FindRequiredPinByName(const UEdGraphNode* Node, const FName PinName, EEdGraphPinDirection RequiredDirection = EGPD_MAX)
 	{
-		for (int32 PinIndex = 0; PinIndex < Node->Pins.Num(); ++PinIndex)
+		for (UEdGraphPin* Pin : Node->Pins)
 		{
-			UEdGraphPin* Pin = Node->Pins[PinIndex];
-
 			if (Pin->PinName == PinName)
 			{
 				if ((Pin->Direction == RequiredDirection) || (RequiredDirection == EGPD_MAX))
@@ -391,13 +389,13 @@ public:
 				else
 				{
 					MessageLog.Error(*FString::Printf(TEXT("Expected @@ to be an %s"), (RequiredDirection == EGPD_Output) ? TEXT("output") : TEXT("input")), Pin);
-					return NULL;
+					return nullptr;
 				}
 			}
 		}
 
-		MessageLog.Error(*FString::Printf(TEXT("Expected to find a pin named %s on @@"), *PinName), Node);
-		return NULL;
+		MessageLog.Error(*FString::Printf(TEXT("Expected to find a pin named %s on @@"), *PinName.ToString()), Node);
+		return nullptr;
 	}
 
 	/** Checks to see if a pin is of the requested type */
@@ -422,7 +420,7 @@ public:
 		}
 	}
 
-	KISMETCOMPILER_API FBPTerminal* CreateLocalTerminalFromPinAutoChooseScope(UEdGraphPin* Net, const FString& NewName);
+	KISMETCOMPILER_API FBPTerminal* CreateLocalTerminalFromPinAutoChooseScope(UEdGraphPin* Net, FString NewName);
 	KISMETCOMPILER_API FBPTerminal* CreateLocalTerminal(ETerminalSpecification Spec = ETerminalSpecification::TS_Unspecified);
 };
 

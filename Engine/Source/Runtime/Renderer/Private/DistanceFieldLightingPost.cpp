@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistanceFieldLightingPost.cpp
@@ -75,12 +75,12 @@ class TUpdateHistoryDepthRejectionPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(TUpdateHistoryDepthRejectionPS, Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Platform);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Parameters.Platform);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("DOWNSAMPLE_FACTOR"), GAODownsampleFactor);
 		OutEnvironment.SetDefine(TEXT("SUPPORT_IRRADIANCE"), bSupportIrradiance);
@@ -114,11 +114,14 @@ public:
 		VelocityTextureSampler.Bind(Initializer.ParameterMap, TEXT("VelocityTextureSampler"));
 		DistanceFieldNormalTexture.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalTexture"));
 		DistanceFieldNormalSampler.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalSampler"));
+		HistoryScreenPositionScaleBias.Bind(Initializer.ParameterMap, TEXT("HistoryScreenPositionScaleBias"));
+		HistoryUVMinMax.Bind(Initializer.ParameterMap, TEXT("HistoryUVMinMax"));
 	}
 
 	void SetParameters(
 		FRHICommandList& RHICmdList, 
 		const FSceneView& View, 
+		const FIntRect& HistoryViewRect,
 		FSceneRenderTargetItem& DistanceFieldNormal, 
 		FSceneRenderTargetItem& BentNormalHistoryTextureValue, 
 		FSceneRenderTargetItem& ConfidenceHistoryTextureValue,
@@ -202,8 +205,6 @@ public:
 				);
 		}
 
-		SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FCameraMotionParameters>(), CreateCameraMotionParametersUniformBuffer(View));
-
 		SetShaderValue(RHICmdList, ShaderRHI, HistoryWeight, GAOHistoryWeight);
 		SetShaderValue(RHICmdList, ShaderRHI, AOHistoryMinConfidenceScale, GAOHistoryMinConfidenceScale);
 		SetShaderValue(RHICmdList, ShaderRHI, HistoryDistanceThreshold, GAOHistoryDistanceThreshold);
@@ -217,6 +218,31 @@ public:
 			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
 			VelocityTextureValue ? VelocityTextureValue->GetRenderTargetItem().ShaderResourceTexture : GBlackTexture->TextureRHI
 			);
+
+
+		{
+			FIntPoint HistoryBufferSize = FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY() / FIntPoint(GAODownsampleFactor, GAODownsampleFactor);
+
+			const float InvBufferSizeX = 1.0f / HistoryBufferSize.X;
+			const float InvBufferSizeY = 1.0f / HistoryBufferSize.Y;
+
+			const FVector4 HistoryScreenPositionScaleBiasValue(
+				HistoryViewRect.Width() * InvBufferSizeX / +2.0f,
+				HistoryViewRect.Height() * InvBufferSizeY / (-2.0f * GProjectionSignY),
+				(HistoryViewRect.Height() / 2.0f + HistoryViewRect.Min.Y) * InvBufferSizeY,
+				(HistoryViewRect.Width() / 2.0f + HistoryViewRect.Min.X) * InvBufferSizeX);
+
+			// Pull in the max UV to exclude the region which will read outside the viewport due to bilinear filtering
+			const FVector4 HistoryUVMinMaxValue(
+				(HistoryViewRect.Min.X + 0.5f) * InvBufferSizeX,
+				(HistoryViewRect.Min.Y + 0.5f) * InvBufferSizeY,
+				(HistoryViewRect.Max.X - 0.5f - GAODownsampleFactor) * InvBufferSizeX,
+				(HistoryViewRect.Max.Y - 0.5f - GAODownsampleFactor) * InvBufferSizeY);
+
+			SetShaderValue(RHICmdList, ShaderRHI, HistoryScreenPositionScaleBias, HistoryScreenPositionScaleBiasValue);
+			SetShaderValue(RHICmdList, ShaderRHI, HistoryUVMinMax, HistoryUVMinMaxValue);
+		}
+
 	}
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar)
@@ -243,6 +269,8 @@ public:
 		Ar << VelocityTextureSampler;
 		Ar << DistanceFieldNormalTexture;
 		Ar << DistanceFieldNormalSampler;
+		Ar << HistoryScreenPositionScaleBias;
+		Ar << HistoryUVMinMax;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -269,27 +297,30 @@ private:
 	FShaderResourceParameter VelocityTextureSampler;
 	FShaderResourceParameter DistanceFieldNormalTexture;
 	FShaderResourceParameter DistanceFieldNormalSampler;
+	FShaderParameter HistoryScreenPositionScaleBias;
+	FShaderParameter HistoryUVMinMax;
 };
 
 IMPLEMENT_SHADER_TYPE(template<>,TUpdateHistoryDepthRejectionPS<true>,TEXT("/Engine/Private/DistanceFieldLightingPost.usf"),TEXT("UpdateHistoryDepthRejectionPS"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,TUpdateHistoryDepthRejectionPS<false>,TEXT("/Engine/Private/DistanceFieldLightingPost.usf"),TEXT("UpdateHistoryDepthRejectionPS"),SF_Pixel);
 
 
-template<bool bSupportIrradiance>
+template<bool bSupportIrradiance, bool bManuallyClampUV>
 class TFilterHistoryPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(TFilterHistoryPS, Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Platform);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Parameters.Platform);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("DOWNSAMPLE_FACTOR"), GAODownsampleFactor);
 		OutEnvironment.SetDefine(TEXT("SUPPORT_IRRADIANCE"), bSupportIrradiance);
+		OutEnvironment.SetDefine(TEXT("MANUALLY_CLAMP_UV"), bManuallyClampUV);
 	}
 
 	/** Default constructor. */
@@ -307,13 +338,14 @@ public:
 		IrradianceSampler.Bind(Initializer.ParameterMap, TEXT("IrradianceSampler"));
 		HistoryWeight.Bind(Initializer.ParameterMap, TEXT("HistoryWeight"));
 		BentNormalAOTexelSize.Bind(Initializer.ParameterMap, TEXT("BentNormalAOTexelSize"));
+		MaxSampleBufferUV.Bind(Initializer.ParameterMap, TEXT("MaxSampleBufferUV"));
 		DistanceFieldNormalTexture.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalTexture"));
 		DistanceFieldNormalSampler.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalSampler"));
 	}
 
 	void SetParameters(
 		FRHICommandList& RHICmdList, 
-		const FSceneView& View, 
+		const FViewInfo& View, 
 		FSceneRenderTargetItem& DistanceFieldNormal, 
 		FSceneRenderTargetItem& BentNormalHistoryTextureValue, 
 		FSceneRenderTargetItem& ConfidenceHistoryTextureValue, 
@@ -368,6 +400,14 @@ public:
 		const FIntPoint DownsampledBufferSize(SceneContext.GetBufferSizeXY() / FIntPoint(GAODownsampleFactor, GAODownsampleFactor));
 		const FVector2D BaseLevelTexelSizeValue(1.0f / DownsampledBufferSize.X, 1.0f / DownsampledBufferSize.Y);
 		SetShaderValue(RHICmdList, ShaderRHI, BentNormalAOTexelSize, BaseLevelTexelSizeValue);
+
+		if (bManuallyClampUV)
+		{
+			FVector2D MaxSampleBufferUVValue(
+				(View.ViewRect.Width() / GAODownsampleFactor - 0.5f - GAODownsampleFactor) / DownsampledBufferSize.X,
+				(View.ViewRect.Height() / GAODownsampleFactor - 0.5f - GAODownsampleFactor) / DownsampledBufferSize.Y);
+			SetShaderValue(RHICmdList, ShaderRHI, MaxSampleBufferUV, MaxSampleBufferUVValue);
+		}
 	}
 
 	// FShader interface.
@@ -382,6 +422,7 @@ public:
 		Ar << IrradianceSampler;
 		Ar << HistoryWeight;
 		Ar << BentNormalAOTexelSize;
+		Ar << MaxSampleBufferUV;
 		Ar << DistanceFieldNormalTexture;
 		Ar << DistanceFieldNormalSampler;
 		return bShaderHasOutdatedParameters;
@@ -397,12 +438,22 @@ private:
 	FShaderResourceParameter IrradianceSampler;
 	FShaderParameter HistoryWeight;
 	FShaderParameter BentNormalAOTexelSize;
+	FShaderParameter MaxSampleBufferUV;
 	FShaderResourceParameter DistanceFieldNormalTexture;
 	FShaderResourceParameter DistanceFieldNormalSampler;
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,TFilterHistoryPS<true>,TEXT("/Engine/Private/DistanceFieldLightingPost.usf"),TEXT("FilterHistoryPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,TFilterHistoryPS<false>,TEXT("/Engine/Private/DistanceFieldLightingPost.usf"),TEXT("FilterHistoryPS"),SF_Pixel);
+
+#define VARIATION1(A,B) \
+	typedef TFilterHistoryPS<A,B> TFilterHistoryPS##A##B; \
+	IMPLEMENT_SHADER_TYPE(template<>,TFilterHistoryPS##A##B,TEXT("/Engine/Private/DistanceFieldLightingPost.usf"),TEXT("FilterHistoryPS"),SF_Pixel);
+
+VARIATION1(false, false)
+VARIATION1(false, true)
+VARIATION1(true, false)
+VARIATION1(true, true)
+
+#undef VARIATION1
 
 
 void AllocateOrReuseAORenderTarget(FRHICommandList& RHICmdList, TRefCountPtr<IPooledRenderTarget>& Target, const TCHAR* Name, EPixelFormat Format, uint32 Flags) 
@@ -426,6 +477,7 @@ void UpdateHistory(
 	IPooledRenderTarget* VelocityTexture,
 	FSceneRenderTargetItem& DistanceFieldNormal,
 	/** Contains last frame's history, if non-NULL.  This will be updated with the new frame's history. */
+	FIntRect* DistanceFieldAOHistoryViewRect,
 	TRefCountPtr<IPooledRenderTarget>* BentNormalHistoryState,
 	TRefCountPtr<IPooledRenderTarget>* ConfidenceHistoryState,
 	TRefCountPtr<IPooledRenderTarget>* IrradianceHistoryState,
@@ -498,7 +550,7 @@ void UpdateHistory(
 
 					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
 					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-					PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, (*BentNormalHistoryState)->GetRenderTargetItem(), (*ConfidenceHistoryState)->GetRenderTargetItem(), IrradianceHistoryState, BentNormalSource->GetRenderTargetItem(), ConfidenceSource->GetRenderTargetItem(), IrradianceSource, VelocityTexture);
+					PixelShader->SetParameters(RHICmdList, View, *DistanceFieldAOHistoryViewRect, DistanceFieldNormal, (*BentNormalHistoryState)->GetRenderTargetItem(), (*ConfidenceHistoryState)->GetRenderTargetItem(), IrradianceHistoryState, BentNormalSource->GetRenderTargetItem(), ConfidenceSource->GetRenderTargetItem(), IrradianceSource, VelocityTexture);
 				}
 				else
 				{
@@ -506,7 +558,7 @@ void UpdateHistory(
 
 					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
 					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-					PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, (*BentNormalHistoryState)->GetRenderTargetItem(), (*ConfidenceHistoryState)->GetRenderTargetItem(), IrradianceHistoryState, BentNormalSource->GetRenderTargetItem(), ConfidenceSource->GetRenderTargetItem(), IrradianceSource, VelocityTexture);
+					PixelShader->SetParameters(RHICmdList, View, *DistanceFieldAOHistoryViewRect, DistanceFieldNormal, (*BentNormalHistoryState)->GetRenderTargetItem(), (*ConfidenceHistoryState)->GetRenderTargetItem(), IrradianceHistoryState, BentNormalSource->GetRenderTargetItem(), ConfidenceSource->GetRenderTargetItem(), IrradianceSource, VelocityTexture);
 				}
 
 				VertexShader->SetParameters(RHICmdList, View.ViewUniformBuffer);
@@ -575,21 +627,43 @@ void UpdateHistory(
 					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
 					GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
-					if (bUseDistanceFieldGI)
+					if (View.ViewRect.Min == FIntPoint::ZeroValue && View.ViewRect.Max == SceneContext.GetBufferSizeXY())
 					{
-						TShaderMapRef<TFilterHistoryPS<true> > PixelShader(View.ShaderMap);
+						if (bUseDistanceFieldGI)
+						{
+							TShaderMapRef<TFilterHistoryPS<true, false> > PixelShader(View.ShaderMap);
 
-						GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-						SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-						PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, NewBentNormalHistory->GetRenderTargetItem(), NewConfidenceHistory->GetRenderTargetItem(), NewIrradianceHistory);
+							GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+							SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+							PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, NewBentNormalHistory->GetRenderTargetItem(), NewConfidenceHistory->GetRenderTargetItem(), NewIrradianceHistory);
+						}
+						else
+						{
+							TShaderMapRef<TFilterHistoryPS<false, false> > PixelShader(View.ShaderMap);
+
+							GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+							SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+							PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, NewBentNormalHistory->GetRenderTargetItem(), NewConfidenceHistory->GetRenderTargetItem(), NewIrradianceHistory);
+						}
 					}
 					else
 					{
-						TShaderMapRef<TFilterHistoryPS<false> > PixelShader(View.ShaderMap);
+						if (bUseDistanceFieldGI)
+						{
+							TShaderMapRef<TFilterHistoryPS<true, true> > PixelShader(View.ShaderMap);
 
-						GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-						SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-						PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, NewBentNormalHistory->GetRenderTargetItem(), NewConfidenceHistory->GetRenderTargetItem(), NewIrradianceHistory);
+							GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+							SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+							PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, NewBentNormalHistory->GetRenderTargetItem(), NewConfidenceHistory->GetRenderTargetItem(), NewIrradianceHistory);
+						}
+						else
+						{
+							TShaderMapRef<TFilterHistoryPS<false, true> > PixelShader(View.ShaderMap);
+
+							GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+							SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+							PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, NewBentNormalHistory->GetRenderTargetItem(), NewConfidenceHistory->GetRenderTargetItem(), NewIrradianceHistory);
+						}
 					}
 
 					VertexShader->SetParameters(RHICmdList, View.ViewUniformBuffer);
@@ -642,6 +716,10 @@ void UpdateHistory(
 			IrradianceHistoryOutput = IrradianceSource;
 			IrradianceSource = NULL;
 		}
+
+		DistanceFieldAOHistoryViewRect->Min = FIntPoint::ZeroValue;
+		DistanceFieldAOHistoryViewRect->Max.X = View.ViewRect.Size().X / GAODownsampleFactor;
+		DistanceFieldAOHistoryViewRect->Max.Y = View.ViewRect.Size().Y / GAODownsampleFactor;
 	}
 	else
 	{
@@ -665,12 +743,12 @@ class TDistanceFieldAOUpsamplePS : public FGlobalShader
 	DECLARE_SHADER_TYPE(TDistanceFieldAOUpsamplePS, Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform)
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Platform);
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Parameters.Platform);
 	}
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("DOWNSAMPLE_FACTOR"), GAODownsampleFactor);
 		OutEnvironment.SetDefine(TEXT("MODULATE_SCENE_COLOR"), bModulateToSceneColor);

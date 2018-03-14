@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3151855
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 렌더링 & 그래픽
 Crumbs: %ROOT%, Engine
@@ -14,7 +14,8 @@ topic-image:rendering_topic.png
 
 [INCLUDE:Engine/Rendering/Overview#Intro]
 
-<!--
+[COMMENT:none]
+
 [REGION:features third]
 [OBJECT:Role]
 	[PARAM:icon]
@@ -45,7 +46,8 @@ topic-image:rendering_topic.png
 	[/PARAM]
 [/OBJECT]
 [/REGION]
--->
+
+[/COMMENT]
 
 [DIR(output:"topic" parent:"Engine/Rendering" type:"landing" end:"1")]
 

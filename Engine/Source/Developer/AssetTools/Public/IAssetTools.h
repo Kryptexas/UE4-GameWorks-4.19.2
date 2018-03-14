@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -112,6 +112,9 @@ public:
 	/** Gets the appropriate AssetTypeActions for the supplied class */
 	virtual TWeakPtr<IAssetTypeActions> GetAssetTypeActionsForClass(UClass* Class) const = 0;
 
+	/** Gets the list of appropriate AssetTypeActions for the supplied class */
+	virtual TArray<TWeakPtr<IAssetTypeActions>> GetAssetTypeActionsListForClass(UClass* Class) const = 0;
+
 	/**
 	* Allocates a Category bit for a user-defined Category, or EAssetTypeCategories::Misc if all available bits are allocated.
 	* Ignores duplicate calls with the same CategoryKey (returns the existing bit but does not change the display name).
@@ -180,7 +183,11 @@ public:
 
 	/** Renames assets using the specified names. */
 	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Asset Tools")
-	virtual void RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const = 0;
+	virtual bool RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const = 0;
+
+	/** Renames assets using the specified names. */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Asset Tools")
+	virtual void RenameAssetsWithDialog(const TArray<FAssetRenameData>& AssetsAndNames, bool bAutoCheckout = false) const = 0;
 
 	/** Returns list of objects that soft reference the given soft object path. This will load assets into memory to verify */
 	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Asset Tools")

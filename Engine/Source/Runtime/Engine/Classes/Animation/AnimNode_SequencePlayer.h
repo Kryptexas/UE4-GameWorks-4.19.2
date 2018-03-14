@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,15 +27,22 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings, meta=(PinHiddenByDefault))
 	mutable float PlayRate;
 
+	// The Basis in which the PlayRate is expressed in. This is used to rescale PlayRate inputs.
+	// For example a Basis of 100 means that the PlayRate input will be divided by 100.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Settings, meta = (PinHiddenByDefault))
+	mutable float PlayRateBasis;
+
 	// The start up position, it only applies when reinitialized
 	// if you loop, it will still start from 0.f after finishing the round
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings, meta=(PinHiddenByDefault))
 	mutable float StartPosition;
+
 public:	
 	FAnimNode_SequencePlayer()
 		: Sequence(NULL)
 		, bLoopAnimation(true)
 		, PlayRate(1.0f)
+		, PlayRateBasis(1.0f)
 		, StartPosition(0.f)
 	{
 	}
@@ -51,7 +58,6 @@ public:
 	virtual void CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) override;
 	virtual void UpdateAssetPlayer(const FAnimationUpdateContext& Context) override;
 	virtual void Evaluate_AnyThread(FPoseContext& Output) override;
-	virtual void Evaluate_AnyThread(FPoseContext& Output, bool bExpectsAdditivePose) override;
 	virtual void OverrideAsset(UAnimationAsset* NewAsset) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PlanarReflectionSceneProxy.h: 
@@ -114,6 +114,14 @@ public:
 		InverseTransposeMirrorMatrix4x4.GetScaledAxes((FVector&)InverseTransposeMirrorMatrix[0], (FVector&)InverseTransposeMirrorMatrix[1], (FVector&)InverseTransposeMirrorMatrix[2]);
 	}
 
+	void ApplyWorldOffset(const FVector& InOffset)
+	{
+		WorldBounds = WorldBounds.ShiftBy(InOffset);
+		PlanarReflectionOrigin+= InOffset;
+		ReflectionPlane = FPlane(PlanarReflectionOrigin, ReflectionPlane /*Normal*/);
+	}
+	
+
 	FBox WorldBounds;
 	FPlane ReflectionPlane;
 	FVector PlanarReflectionOrigin;
@@ -123,7 +131,7 @@ public:
 	FVector PlanarReflectionParameters;
 	FVector2D PlanarReflectionParameters2;
 	FMatrix ProjectionWithExtraFOV[GMaxPlanarReflectionViews];
-	FVector4 ScreenScaleBias[GMaxPlanarReflectionViews];
+	FIntRect ViewRect[GMaxPlanarReflectionViews];
 	FVector4 InverseTransposeMirrorMatrix[3];
 	FName OwnerName;
 	int32 PlanarReflectionId;

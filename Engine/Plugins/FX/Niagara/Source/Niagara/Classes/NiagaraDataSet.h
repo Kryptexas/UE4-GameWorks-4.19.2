@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -37,15 +37,12 @@ public:
 	void Init(FNiagaraDataSet* InOwner);
 	void Allocate(uint32 NumInstances, ENiagaraSimTarget Target = ENiagaraSimTarget::CPUSim, bool bMaintainExisting=false);
 	void AllocateGPU(uint32 InNumInstances, FRHICommandList &RHICmdList);
-	void InitGPUFromCPU();
 	void SwapInstances(uint32 OldIndex, uint32 NewIndex);
 	void KillInstance(uint32 InstanceIdx);
 	void CopyTo(FNiagaraDataBuffer& DestBuffer);
 
-	/** Returns a ptr to the start of the buffer for the passed component idx and base type. */
-	//template<typename T>
-	//FORCEINLINE uint8* GetComponentPtr(uint32 ComponentIdx);
-	/** Returns a ptr to specific instance data in the buffer for the passed component idx and base type. */
+	const TArray<uint8>& GetFloatBuffer()const { return FloatData; }
+	const TArray<uint8>& GetInt32Buffer()const { return Int32Data; }
 
 	FORCEINLINE uint8* GetComponentPtrFloat(uint32 ComponentIdx)
 	{
@@ -109,6 +106,7 @@ public:
 	uint32 GetFloatStride() const { return FloatStride; }
 	uint32 GetInt32Stride() const { return Int32Stride; }
 
+	FORCEINLINE const FNiagaraDataSet* GetOwner()const { return Owner; }
 private:
 
 	FORCEINLINE int32 GetSafeComponentBufferSize(int32 RequiredSize) const
@@ -122,9 +120,9 @@ private:
 	FNiagaraDataSet* Owner;
 
 	/** Float components of simulation data. */
-	TResourceArray<uint8> FloatData;
+	TArray<uint8> FloatData;
 	/** Int32 components of simulation data. */
-	TResourceArray<uint8> Int32Data;
+	TArray<uint8> Int32Data;
 
 	/** Stride between components in the float buffer. */
 	uint32 FloatStride;
@@ -157,16 +155,16 @@ public:
 		Reset();
 	}
 	
-	FNiagaraDataSet(FNiagaraDataSetID InID)
-		: ID(InID)
+	void Init(FNiagaraDataSetID InID)
 	{
 		Reset();
+		ID = InID;
 	}
 
 	void Reset()
 	{
 		Variables.Empty();
-		VariableLayoutMap.Empty();
+		VariableLayouts.Empty();
 		Data[0].Reset();
 		Data[1].Reset();
 		CurrBuffer = 0;
@@ -213,34 +211,41 @@ public:
 		PrevData().SwapInstances(OldIndex, NewIndex);
 	}
 
-	/** Appends the passed variable to the set of input and output registers ready for consumption by the VectorVM. */
-	bool AppendToRegisterTable(const FNiagaraVariable& VarInfo, uint8** InputRegisters, int32& NumInputRegisters, uint8** OutputRegisters, int32& NumOutputRegisters, int32 StartInstance, bool bNoOutputRegisters = false)
+	/** Appends all variables in this dataset to a register table ready for execution by the VectorVM. */
+	bool AppendToRegisterTable(uint8** InputRegisters, int32& NumInputRegisters, uint8** OutputRegisters, int32& NumOutputRegisters, int32 StartInstance)
 	{
 		check(bFinalized);
-		if (const FNiagaraVariableLayoutInfo* VariableLayout = VariableLayoutMap.Find(VarInfo))
+		int32 TotalComponents = GetNumFloatComponents() + GetNumInt32Components();
+		if (NumInputRegisters + TotalComponents > VectorVM::MaxInputRegisters || NumOutputRegisters + TotalComponents > VectorVM::MaxOutputRegisters)
 		{
-			uint32 NumComponents = VariableLayout->LayoutInfo.GetNumComponents();
-
-			for (uint32 CompIdx = 0; CompIdx < VariableLayout->GetNumFloatComponents(); ++CompIdx)
+			UE_LOG(LogNiagara, Error, TEXT("Niagara Script is using too many IO registers!"));
+			return false;
+		}
+		else
+		{
+			for (FNiagaraVariableLayoutInfo& VarLayout : VariableLayouts)
 			{
-				uint32 CompBufferOffset = VariableLayout->FloatComponentStart + CompIdx;
-				uint32 CompRegisterOffset = VariableLayout->LayoutInfo.FloatComponentRegisterOffsets[CompIdx];
-				InputRegisters[NumInputRegisters + CompRegisterOffset] = (uint8*)PrevData().GetInstancePtrFloat(CompBufferOffset, StartInstance);
-				OutputRegisters[NumOutputRegisters + CompRegisterOffset] = bNoOutputRegisters ? nullptr : (uint8*)CurrData().GetInstancePtrFloat(CompBufferOffset, StartInstance);
+				int32 NumFloats = VarLayout.GetNumFloatComponents();
+				int32 NumInts = VarLayout.GetNumInt32Components();
+				for (int32 CompIdx = 0; CompIdx < NumFloats; ++CompIdx)
+				{
+					uint32 CompBufferOffset = VarLayout.FloatComponentStart + CompIdx;
+					uint32 CompRegisterOffset = VarLayout.LayoutInfo.FloatComponentRegisterOffsets[CompIdx];
+					InputRegisters[NumInputRegisters + CompRegisterOffset] = (uint8*)PrevData().GetInstancePtrFloat(CompBufferOffset, StartInstance);
+					OutputRegisters[NumOutputRegisters + CompRegisterOffset] = (uint8*)CurrData().GetInstancePtrFloat(CompBufferOffset, StartInstance);
+				}
+				for (int32 CompIdx = 0; CompIdx < NumInts; ++CompIdx)
+				{
+					uint32 CompBufferOffset = VarLayout.Int32ComponentStart + CompIdx;
+					uint32 CompRegisterOffset = VarLayout.LayoutInfo.Int32ComponentRegisterOffsets[CompIdx];
+					InputRegisters[NumInputRegisters + CompRegisterOffset] = (uint8*)PrevData().GetInstancePtrInt32(CompBufferOffset, StartInstance);
+					OutputRegisters[NumOutputRegisters + CompRegisterOffset] = (uint8*)CurrData().GetInstancePtrInt32(CompBufferOffset, StartInstance);
+				}
+				NumInputRegisters += NumFloats + NumInts;
+				NumOutputRegisters += NumFloats + NumInts;
 			}
-			for (uint32 CompIdx = 0; CompIdx < VariableLayout->GetNumInt32Components(); ++CompIdx)
-			{
-				uint32 CompBufferOffset = VariableLayout->Int32ComponentStart + CompIdx;
-				uint32 CompRegisterOffset = VariableLayout->LayoutInfo.Int32ComponentRegisterOffsets[CompIdx];
-				InputRegisters[NumInputRegisters + CompRegisterOffset] = (uint8*)PrevData().GetInstancePtrInt32(CompBufferOffset, StartInstance);
-				OutputRegisters[NumOutputRegisters + CompRegisterOffset] = bNoOutputRegisters ? nullptr : (uint8*)CurrData().GetInstancePtrInt32(CompBufferOffset, StartInstance);
-			}
-			NumInputRegisters += NumComponents;
-			NumOutputRegisters += NumComponents;
-
 			return true;
 		}
-		return false;
 	}
 
 	void SetShaderParams(class FNiagaraShader *Shader, FRHICommandList &CommandList);
@@ -250,12 +255,29 @@ public:
 		check(bFinalized);
 		CurrData().Allocate(NumInstances, Target, bMaintainExisting);
 	}
+	
+	void InitGPUFromCPU_RenderThread();
 
 	void InitGPUFromCPU()
 	{
-		ensure(IsInGameThread());
-		PrevData().InitGPUFromCPU();
+		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(InitGPUFromCPUCommand,
+			FNiagaraDataSet*, DataSet, this,
+			{
+				DataSet->InitGPUFromCPU_RenderThread();
+			});
 	}
+
+	void InitGPUSimSRVs()
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(InitGPUFromCPUCommand,
+			FNiagaraDataSet*, DataSet, this,
+			{
+				DataSet->InitGPUSimSRVs_RenderThread();
+			});
+	}
+
+	void InitGPUSimSRVs_RenderThread();
+
 
 	FORCEINLINE void Tick(ENiagaraSimTarget SimTarget = ENiagaraSimTarget::CPUSim)
 	{
@@ -328,16 +350,28 @@ public:
 	FORCEINLINE uint32 GetNumInstancesAllocated()const { return CurrData().GetNumInstancesAllocated(); }
 	FORCEINLINE void SetNumInstances(uint32 InNumInstances) { CurrData().SetNumInstances(InNumInstances); }
 
-	FORCEINLINE void ResetNumInstances()
+
+	FORCEINLINE void ResetBuffersInternal()
 	{
-		CurrData().SetNumInstances(0);
-		PrevData().SetNumInstances(0);
+		Data[0].Reset();
+		Data[1].Reset();
+		Data[2].Reset();
 	}
 
-	FORCEINLINE void ResetBuffers()
+	FORCEINLINE void ResetBuffers(bool bOnRT)
 	{
-		CurrData().Reset();
-		PrevData().Reset();
+		if (bOnRT)
+		{
+			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(InitGPUFromCPUCommand,
+				FNiagaraDataSet*, DataSet, this,
+				{
+					DataSet->ResetBuffersInternal();
+				});
+		}
+		else
+		{
+			ResetBuffersInternal();
+		}
 	}
 
 	FORCEINLINE uint32 GetPrevNumInstances()const { return PrevData().GetNumInstances(); }
@@ -356,7 +390,8 @@ public:
 
 	FORCEINLINE const FNiagaraVariableLayoutInfo* GetVariableLayout(const FNiagaraVariable& Var)const
 	{
-		return VariableLayoutMap.Find(Var);
+		int32 VarLayoutIndex = Variables.IndexOfByKey(Var);
+		return VarLayoutIndex != INDEX_NONE ? &VariableLayouts[VarLayoutIndex] : nullptr;
 	}
 
 	// get the float and int component offsets of a variable; if the variable doesn't exist, returns -1
@@ -384,18 +419,37 @@ public:
 	FRWBuffer &SetupDataSetIndices() 
 	{ 
 		check(IsInRenderingThread());
-		if (DataSetIndices.Buffer)
+		if (DataSetIndices[CurrRenderBuffer].Buffer)
 		{
-			DataSetIndices.Release();
+			DataSetIndices[CurrRenderBuffer].Release();
 		}
-		DataSetIndices.Initialize(sizeof(int32), 64 /*Context->NumDataSets*/, EPixelFormat::PF_R32_SINT);	// always allocate for up to 64 data sets
-		return DataSetIndices; 
+		DataSetIndices[CurrRenderBuffer].Initialize(sizeof(int32), 64 /*Context->NumDataSets*/, EPixelFormat::PF_R32_UINT, BUF_Transient | BUF_DrawIndirect | BUF_Static);	// always allocate for up to 64 data sets
+		return DataSetIndices[CurrRenderBuffer];
 	}
 
 	FRWBuffer &GetDataSetIndices()
 	{
-		return DataSetIndices;
+		if (DataSetIndices[CurrRenderBuffer].Buffer == nullptr)
+		{
+			DataSetIndices[CurrRenderBuffer].Initialize(sizeof(int32), 64 /*Context->NumDataSets*/, EPixelFormat::PF_R32_UINT, BUF_Transient | BUF_DrawIndirect | BUF_Static);	// always allocate for up to 64 data sets
+		}
+		return DataSetIndices[CurrRenderBuffer];
 	}
+
+	const FRWBuffer &GetDataSetIndices() const
+	{
+		//ensure(DataSetIndices[CurrRenderBuffer].Buffer != nullptr);
+		return DataSetIndices[CurrRenderBuffer];
+	}
+
+	FORCEINLINE uint32 GetNumFloatComponents()const { return TotalFloatComponents; }
+	FORCEINLINE uint32 GetNumInt32Components()const { return TotalInt32Components; }
+
+	FORCEINLINE const FDynamicReadBuffer& GetRenderDataFloat()const { return RenderDataFloat; }
+	FORCEINLINE const FDynamicReadBuffer& GetRenderDataInt32()const { return RenderDataInt; }
+
+	FORCEINLINE const FShaderResourceViewRHIRef& GetRenderDataFloatSRV()const { return CurrentFloatDataSRV; }
+	FORCEINLINE const FShaderResourceViewRHIRef& GetRenderDataInt32SRV()const { return CurrentIntDataSRV; }
 
 private:
 
@@ -440,36 +494,40 @@ private:
 
 	void BuildLayout()
 	{
-		VariableLayoutMap.Empty();
+		VariableLayouts.Empty();
 		TotalFloatComponents = 0;
 		TotalInt32Components = 0;
 
+		VariableLayouts.Reserve(Variables.Num());
 		for (FNiagaraVariable& Var : Variables)
 		{
-			FNiagaraVariableLayoutInfo& VarInfo = VariableLayoutMap.Add(Var);
+			FNiagaraVariableLayoutInfo& VarInfo = VariableLayouts[VariableLayouts.AddDefaulted()];
 			FNiagaraTypeLayoutInfo::GenerateLayoutInfo(VarInfo.LayoutInfo, Var.GetType().GetScriptStruct());
 			VarInfo.FloatComponentStart = TotalFloatComponents;
 			VarInfo.Int32ComponentStart = TotalInt32Components;
 			TotalFloatComponents += VarInfo.GetNumFloatComponents();
 			TotalInt32Components += VarInfo.GetNumInt32Components();
 		}
+
 		Data[0].Init(this);
 		Data[1].Init(this);
 		Data[2].Init(this);
 	}
-
-	FORCEINLINE uint32 GetNumFloatComponents() { return TotalFloatComponents; }
-	FORCEINLINE uint32 GetNumInt32Components() { return TotalInt32Components; }
 		
 	/** Unique ID for this data set. Used to allow referencing from other emitters and Systems. */
 	FNiagaraDataSetID ID;
+	
+	//////////////////////////////////////////////////////////////////////////
+	//TODO: All this layout is known per emitter / system so doesn't need to be generated and stored for every dataset!
 	/** Variables in the data set. */
 	TArray<FNiagaraVariable> Variables;
-	/** Map from the variable to some extra data describing it's layout in the data set. */
-	TMap<FNiagaraVariable, FNiagaraVariableLayoutInfo> VariableLayoutMap;
+	/** Data describing the layout of variable data. */
+	TArray<FNiagaraVariableLayoutInfo> VariableLayouts;
 	/** Total number of components of each type in the data set. */
 	uint32 TotalFloatComponents;
 	uint32 TotalInt32Components;
+	//////////////////////////////////////////////////////////////////////////
+	
 	/** Index of current state data. */
 	uint32 CurrBuffer;
 	uint32 CurrRenderBuffer;
@@ -479,7 +537,13 @@ private:
 	bool bFinalized;
 
 	FNiagaraDataBuffer Data[3];
-	FRWBuffer DataSetIndices; 
+	FRWBuffer DataSetIndices[3]; 
+
+	/** GPU side copies of the most recent cpu sim data for use in rendering. */
+	FDynamicReadBuffer RenderDataFloat;
+	FDynamicReadBuffer RenderDataInt;
+	FShaderResourceViewRHIRef CurrentFloatDataSRV;
+	FShaderResourceViewRHIRef CurrentIntDataSRV;
 };
 
 /**
@@ -511,7 +575,7 @@ struct FNiagaraDataSetAccessorBase
 		DataBuffer = bCurrBuffer ? &DataSet->CurrData() : &DataSet->PrevData();
 	}
 
-	FORCEINLINE bool IsValid()const { return VarLayout != nullptr && DataBuffer; }
+	FORCEINLINE bool IsValid()const { return VarLayout != nullptr && DataBuffer && DataBuffer->GetNumInstances() > 0; }
 protected:
 
 	FNiagaraDataSet* DataSet;
@@ -643,13 +707,15 @@ struct FNiagaraDataSetAccessor<FNiagaraBool> : public FNiagaraDataSetAccessorBas
 
 	FORCEINLINE void Get(int32 Index, FNiagaraBool& OutValue)const
 	{
-		OutValue.Value = Base[Index];
+		OutValue.SetRawValue(Base[Index]);
 	}
 
 	FORCEINLINE void Set(int32 Index, const FNiagaraBool& InValue)
 	{
-		Base[Index] = InValue.Value;
+		Base[Index] = InValue.GetRawValue();
 	}
+
+	FORCEINLINE bool BaseIsValid() const { return Base != nullptr; }
 
 private:
 
@@ -718,6 +784,8 @@ struct FNiagaraDataSetAccessor<int32> : public FNiagaraDataSetAccessorBase
 		Base[Index] = InValue;
 	}
 
+	FORCEINLINE bool BaseIsValid() const { return Base != nullptr; }
+
 private:
 
 	int32* Base;
@@ -778,6 +846,7 @@ struct FNiagaraDataSetAccessor<float> : public FNiagaraDataSetAccessorBase
 	{
 		Base[Index] = InValue;
 	}
+	FORCEINLINE bool BaseIsValid() const { return Base != nullptr; }
 
 private:
 	float* Base;
@@ -841,7 +910,9 @@ struct FNiagaraDataSetAccessor<FVector2D> : public FNiagaraDataSetAccessorBase
 	{
 		XBase[Index] = InValue.X;
 		YBase[Index] = InValue.Y;
-	}
+	}	
+	
+	FORCEINLINE bool BaseIsValid() const { return XBase != nullptr && YBase != nullptr; }
 
 private:
 
@@ -913,6 +984,7 @@ struct FNiagaraDataSetAccessor<FVector> : public FNiagaraDataSetAccessorBase
 		ZBase[Index] = InValue.Z;
 	}
 
+	FORCEINLINE bool BaseIsValid() const { return XBase != nullptr && YBase != nullptr && ZBase != nullptr; }
 private:
 
 	float* XBase;
@@ -988,6 +1060,7 @@ struct FNiagaraDataSetAccessor<FVector4> : public FNiagaraDataSetAccessorBase
 		WBase[Index] = InValue.W;
 	}
 
+	FORCEINLINE bool BaseIsValid() const { return XBase != nullptr && YBase != nullptr && ZBase != nullptr && WBase != nullptr; }
 private:
 
 	float* XBase;
@@ -1063,6 +1136,7 @@ struct FNiagaraDataSetAccessor<FLinearColor> : public FNiagaraDataSetAccessorBas
 		BBase[Index] = InValue.B;
 		ABase[Index] = InValue.A;
 	}
+	FORCEINLINE bool BaseIsValid() const { return RBase != nullptr && GBase != nullptr && BBase != nullptr && ABase != nullptr; }
 
 private:
 
@@ -1136,6 +1210,9 @@ struct FNiagaraDataSetAccessor<FNiagaraSpawnInfo> : public FNiagaraDataSetAccess
 		IntervalDtBase[Index] = InValue.IntervalDt;
 	}
 
+
+	FORCEINLINE bool BaseIsValid() const { return CountBase != nullptr && InterpStartDtBase != nullptr && IntervalDtBase != nullptr; }
+
 private:
 
 	int32* CountBase;
@@ -1160,6 +1237,22 @@ struct FNiagaraDataSetIterator : public FNiagaraDataSetAccessor<T>
 		Get(Ret);
 		return Ret;
 	}
+
+	FORCEINLINE T GetAdvance()
+	{
+		T Ret;
+		Get(Ret);
+		Advance();
+		return Ret;
+	}
+
+	FORCEINLINE T GetAdvanceWithDefault(const T& Default)
+	{
+		T Ret = IsValid() ? Get() : Default;
+		Advance();
+		return Ret;
+	}
+
 	FORCEINLINE void Get(T& OutValue)const { FNiagaraDataSetAccessor<T>::Get(CurrIdx, OutValue); }
 
 	FORCEINLINE void Set(const T& InValue)

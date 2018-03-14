@@ -80,7 +80,8 @@ Topic-image:CopyPaste_Topic.png
 
 
 
-<!---
+[COMMENT:none]
+-
 [INCLUDE:#importexport]
 [EXCERPT:pastemode]
 | 选项 | 描述 |
@@ -100,4 +101,5 @@ Topic-image:CopyPaste_Topic.png
 | **Layer Name** | 设置导入高度图层的命名。|
 [/EXCERPT:importexport]
 
---->
+-
+[/COMMENT]

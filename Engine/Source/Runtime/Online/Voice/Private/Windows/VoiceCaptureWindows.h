@@ -1,10 +1,12 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "VoiceCapture.h"
 #include "VoicePackage.h"
+#include "VoiceDelayBuffer.h"
+#include "DSP/EnvelopeFollower.h"
 #include "Containers/Ticker.h"
 #include "WindowsHWrapper.h"
 
@@ -114,7 +116,7 @@ public:
 	virtual bool ChangeDevice(const FString& DeviceName, int32 SampleRate, int32 NumChannels) override;
 	virtual bool IsCapturing() override;
 	virtual EVoiceCaptureState::Type GetCaptureState(uint32& OutAvailableVoiceData) const override;
-	virtual EVoiceCaptureState::Type GetVoiceData(uint8* OutVoiceBuffer, uint32 InVoiceBufferSize, uint32& OutAvailableVoiceData) override;
+	virtual EVoiceCaptureState::Type GetVoiceData(uint8* OutVoiceBuffer, uint32 InVoiceBufferSize, uint32& OutAvailableVoiceData, uint64& OutSampleCounter) override;
 	virtual int32 GetBufferSize() const override;
 	virtual void DumpState() const override;
 
@@ -131,6 +133,39 @@ private:
 	EVoiceCaptureState::Type VoiceCaptureState;
 	/** Uncompressed audio buffer */
 	TArray<uint8> UncompressedAudioBuffer;
+	/** Number of samples of audio we've returned from the beginning of the capture */
+	uint64 SampleCounter; 
+	/** This value is used when we've detected a vocal onset in the middle of a buffer we are not sending audio for. */
+	uint64 CachedSampleStart;
+	/** This value is used to denote the index of the first sample of the current packet of audio data we are sending. */
+	uint64 CurrentSampleStart;
+
+	/** Boolean flag that is used to denote whether the starting index of a packet has been cached mid-buffer do to a vocal onset. */
+	bool bSampleStartCached;
+
+	/** Number of channels. */
+	int32 NumInputChannels;
+
+	/**
+	* This buffer is used so that we can detect when the player is speaking
+	* without cutting off what they are saying.
+	*/	
+	FVoiceDelayBuffer<int16> LookaheadBuffer;
+	/*
+	* This buffer is used in case someone starts speaking again in the middle of a buffer
+	* they were otherwise silent in.
+	*/
+	FVoiceDelayBuffer<int16> ReleaseBuffer;
+
+	/*
+	* Envelope following DSP object.
+	* Configured using the MicSilenceDetectionConfig namespace in VoiceConfig.h.
+	*/
+	Audio::FEnvelopeFollower MicLevelDetector;
+	/*
+	* Whether the microphone level is above the threshold set 
+	*/
+	bool bIsMicActive;
 
 	/**
 	 * Create the D3D8 capture device

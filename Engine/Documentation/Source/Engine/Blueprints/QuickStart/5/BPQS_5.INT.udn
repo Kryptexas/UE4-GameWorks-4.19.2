@@ -24,7 +24,7 @@ tags:Blueprints
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 ---
 
@@ -76,4 +76,4 @@ to launch our Character if the result of the **Equals** comparison is **True**.
 
 ---
 
-%Steps%
+

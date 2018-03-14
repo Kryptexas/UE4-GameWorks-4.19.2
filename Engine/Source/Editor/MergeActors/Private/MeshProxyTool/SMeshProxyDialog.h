@@ -1,17 +1,23 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
+#include "Widgets/Views/STableViewBase.h"
+
+#include "MergeProxyUtils/Utils.h"
 
 class FMeshProxyTool;
-enum class ECheckBoxState : uint8;
+class IDetailsView;
+class UMeshProxySettingsObject;
+class UObject;
 
 /*-----------------------------------------------------------------------------
-	SMeshProxyDialog
+SMeshProxyDialog  
 -----------------------------------------------------------------------------*/
+
 class SMeshProxyDialog : public SCompoundWidget
 {
 public:
@@ -21,8 +27,77 @@ public:
 	SLATE_END_ARGS()
 
 public:
+	/** **/
+	SMeshProxyDialog();
+	~SMeshProxyDialog();
+
 	/** SWidget functions */
 	void Construct(const FArguments& InArgs, FMeshProxyTool* InTool);
+
+	/** Resets the state of the UI and flags it for refreshing */
+	void Reset();
+
+	/** Getter functionality */
+	const TArray<TSharedPtr<FMergeComponentData>>& GetSelectedComponents() const { return ComponentSelectionControl.SelectedComponents; }
+	/** Get number of selected meshes */
+	const int32 GetNumSelectedMeshComponents() const { return ComponentSelectionControl.NumSelectedMeshComponents; }
+
+	/** Begin override SCompoundWidget */
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	/** End override SCompoundWidget */
+
+	/** Creates and sets up the settings view element*/
+	void CreateSettingsView();
+
+	/** Delegate for the creation of the list view item's widget */
+	TSharedRef<ITableRow> MakeComponentListItemWidget(TSharedPtr<FMergeComponentData> ComponentData, const TSharedRef<STableViewBase>& OwnerTable);
+
+	/** Delegate to determine whether or not the UI elements should be enabled (determined by number of selected actors / mesh components) */
+	bool GetContentEnabledState() const;
+
+
+	/** Editor delgates for map and selection changes */
+	void OnLevelSelectionChanged(UObject* Obj);
+	void OnMapChange(uint32 MapFlags);
+	void OnNewCurrentLevel();
+
+	/** Updates SelectedMeshComponent array according to retrieved mesh components from editor selection*/
+	void UpdateSelectedStaticMeshComponents();
+	/** Stores the individual check box states for the currently selected mesh components */
+	void StoreCheckBoxState();
+private:
+	/** Owning mesh merging tool */
+	FMeshProxyTool* Tool;
+
+	FComponentSelectionControl ComponentSelectionControl;
+
+	/** Settings view ui element ptr */
+	TSharedPtr<IDetailsView> SettingsView;
+
+	/** Cached pointer to mesh merging setting singleton object */
+	UMeshProxySettingsObject* ProxySettings;
+
+	/** List view state tracking data */
+	bool bRefreshListView;
+};
+
+
+
+class FThirdPartyMeshProxyTool;
+/*-----------------------------------------------------------------------------
+	SThirdPartyMeshProxyDialog  -- Used for Simplygon (third party tool) integration.
+-----------------------------------------------------------------------------*/
+class SThirdPartyMeshProxyDialog : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SThirdPartyMeshProxyDialog)
+	{
+	}
+	SLATE_END_ARGS()
+
+public:
+	/** SWidget functions */
+	void Construct(const FArguments& InArgs, FThirdPartyMeshProxyTool* InTool);
 
 protected:
 	/** ScreenSize accessors */
@@ -64,7 +139,7 @@ private:
 	FText GetPropertyToolTipText(const FName& PropertyName) const;
 
 private:
-	FMeshProxyTool* Tool;
+	FThirdPartyMeshProxyTool* Tool;
 
 	TArray< TSharedPtr<FString> >	CuttingPlaneOptions;
 	TArray< TSharedPtr<FString> >	TextureResolutionOptions;

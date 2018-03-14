@@ -30,7 +30,7 @@ Classes should be organized with the reader in mind rather than the writer.  Sin
 
 Any source file (.h, .cpp, .xaml, etc.) provided by Epic for distribution must contain a copyright notice as the first line in the file. The format of the notice must exactly match that shown below:
 
-	// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 If this line is missing or not formatted properly, CIS will generate an error and fail.
 

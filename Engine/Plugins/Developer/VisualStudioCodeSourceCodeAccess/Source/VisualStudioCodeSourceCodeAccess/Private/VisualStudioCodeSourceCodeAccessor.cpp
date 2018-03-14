@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "VisualStudioCodeSourceCodeAccessor.h"
 #include "VisualStudioCodeSourceCodeAccessModule.h"
@@ -8,6 +8,7 @@
 #include "Misc/Paths.h"
 #include "Misc/ScopeLock.h"
 #include "Misc/UProjectInfo.h"
+#include "Misc/App.h"
 
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
@@ -17,6 +18,11 @@
 DEFINE_LOG_CATEGORY_STATIC(LogVSCodeAccessor, Log, All);
 
 #define LOCTEXT_NAMESPACE "VisualStudioCodeSourceCodeAccessor"
+
+namespace
+{
+	static const TCHAR* GVSCodeWorkspaceExtension = TEXT(".code-workspace");
+}
 
 static FString MakePath(const FString& InPath)
 {
@@ -33,7 +39,12 @@ FString FVisualStudioCodeSourceCodeAccessor::GetSolutionPath() const
 
 		if (!FUProjectDictionary(FPaths::RootDir()).IsForeignProject(CachedSolutionPath))
 		{
-			CachedSolutionPath = FPaths::RootDir();
+			CachedSolutionPath = FPaths::Combine(FPaths::RootDir(), FString("UE4") + GVSCodeWorkspaceExtension);
+		}
+		else
+		{
+			FString BaseName = FApp::HasProjectName() ? FApp::GetProjectName() : FPaths::GetBaseFilename(CachedSolutionPath);
+			CachedSolutionPath = FPaths::Combine(CachedSolutionPath, BaseName + GVSCodeWorkspaceExtension);
 		}
 	}
 
@@ -41,7 +52,7 @@ FString FVisualStudioCodeSourceCodeAccessor::GetSolutionPath() const
 }
 
 /** save all open documents in visual studio, when recompiling */
-void OnModuleCompileStarted(bool bIsAsyncCompile)
+static void OnModuleCompileStarted(bool bIsAsyncCompile)
 {
 	FVisualStudioCodeSourceCodeAccessModule& VisualStudioCodeSourceCodeAccessModule = FModuleManager::LoadModuleChecked<FVisualStudioCodeSourceCodeAccessModule>(TEXT("VisualStudioCodeSourceCodeAccess"));
 	VisualStudioCodeSourceCodeAccessModule.GetAccessor().SaveAllOpenDocuments();
@@ -126,7 +137,8 @@ bool FVisualStudioCodeSourceCodeAccessor::OpenSourceFiles(const TArray<FString>&
 
 bool FVisualStudioCodeSourceCodeAccessor::AddSourceFiles(const TArray<FString>& AbsoluteSourcePaths, const TArray<FString>& AvailableModules)
 {
-	return false;
+	// VSCode doesn't need to do anything when new files are added
+	return true;
 }
 
 bool FVisualStudioCodeSourceCodeAccessor::OpenFileAtLine(const FString& FullPath, int32 LineNumber, int32 ColumnNumber)
@@ -176,8 +188,7 @@ bool FVisualStudioCodeSourceCodeAccessor::OpenSolution()
 {
 	if (Location.IsValid())
 	{
-		FString SolutionDir = FPaths::Combine(GetSolutionPath(), TEXT("UE4"));
-		return OpenSolutionAtPath(SolutionDir);
+		return OpenSolutionAtPath(GetSolutionPath());
 	}
 
 	return false;
@@ -187,9 +198,13 @@ bool FVisualStudioCodeSourceCodeAccessor::OpenSolutionAtPath(const FString& InSo
 {
 	if (Location.IsValid())
 	{
-		// Strip top element from the path. When creating new projects, this will be the base name of the solution which we don't need,
-		// or if being called from OpenSolution() it will be a dummy "UE4" element that we added just so it can be stripped here
-		FString SolutionPath = FPaths::GetPath(InSolutionPath);
+		FString SolutionPath = InSolutionPath;
+
+		if (!SolutionPath.EndsWith(GVSCodeWorkspaceExtension))
+		{
+			SolutionPath = SolutionPath + GVSCodeWorkspaceExtension;
+		}
+
 		TArray<FString> Args;
 		Args.Add(MakePath(SolutionPath));
 		return Launch(Args);
@@ -200,14 +215,13 @@ bool FVisualStudioCodeSourceCodeAccessor::OpenSolutionAtPath(const FString& InSo
 
 bool FVisualStudioCodeSourceCodeAccessor::DoesSolutionExist() const
 {
-	FString VSCodeDir = FPaths::Combine(GetSolutionPath(), TEXT(".vscode"));
-	return FPaths::DirectoryExists(VSCodeDir);
+	return FPaths::FileExists(GetSolutionPath());
 }
 
 
 bool FVisualStudioCodeSourceCodeAccessor::SaveAllOpenDocuments() const
 {
-	return false;
+	return true;
 }
 
 bool FVisualStudioCodeSourceCodeAccessor::Launch(const TArray<FString>& InArgs)

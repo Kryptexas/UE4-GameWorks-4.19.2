@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 InstancedFoliage.h: Instanced foliage type definitions.
@@ -236,14 +236,9 @@ struct FFoliageMeshInfo
 
 	friend FArchive& operator<<(FArchive& Ar, FFoliageMeshInfo& MeshInfo);
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-	FFoliageMeshInfo(const FFoliageMeshInfo& Other) = delete;
-	const FFoliageMeshInfo& operator=(const FFoliageMeshInfo& Other) = delete;
-#else
-private:
-	FFoliageMeshInfo(const FFoliageMeshInfo& Other);
-	const FFoliageMeshInfo& operator=(const FFoliageMeshInfo& Other);
-#endif
+	// Non-copyable
+	FFoliageMeshInfo(const FFoliageMeshInfo&) = delete;
+	FFoliageMeshInfo& operator=(const FFoliageMeshInfo&) = delete;
 };
 
 #if WITH_EDITORONLY_DATA

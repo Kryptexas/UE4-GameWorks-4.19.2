@@ -16,17 +16,32 @@
 	"CanContainContent": true,
 	"IsBetaVersion": true,
 
-	"Modules": [
+  "Modules": [
+    {
+      "Name": "MixedRealityFramework",
+      "Type": "Runtime",
+      "LoadingPhase": "PostEngineInit",
+      "WhitelistPlatforms": [
+        "Win64",
+        "Win32",
+        "Linux"
+      ]
+    },
+    {
+      "Name": "MixedRealityCalibration",
+      "Type": "Runtime",
+      "LoadingPhase": "PostEngineInit",
+      "WhitelistPlatforms": [
+        "Win64",
+        "Win32",
+        "Linux"
+      ]
+    }
+  ],
+  "Plugins": [
 		{
-			"Name": "MixedRealityFramework",
-			"Type": "Runtime",
-			"LoadingPhase": "Default",
-			"WhitelistPlatforms" :
-			[
-				"Win64",
-				"Win32",
-				"Linux"
-			]
+			"Name": "LensDistortion",
+			"Enabled": true
 		}
 	]
 }

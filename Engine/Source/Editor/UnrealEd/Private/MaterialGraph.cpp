@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /////////////////////////////////////////////////////
 // UMaterialGraph
@@ -70,7 +70,7 @@ void UMaterialGraph::RebuildGraph()
 
 	for (int32 Index = 0; Index < Material->Expressions.Num(); Index++)
 	{
-		AddExpression(Material->Expressions[Index]);
+		AddExpression(Material->Expressions[Index], false);
 	}
 
 	for (int32 Index = 0; Index < Material->EditorComments.Num(); Index++)
@@ -81,7 +81,7 @@ void UMaterialGraph::RebuildGraph()
 	LinkGraphNodesFromMaterial();
 }
 
-UMaterialGraphNode* UMaterialGraph::AddExpression(UMaterialExpression* Expression)
+UMaterialGraphNode* UMaterialGraph::AddExpression(UMaterialExpression* Expression, bool bUserInvoked)
 {
 	UMaterialGraphNode* NewNode = NULL;
 	if (Expression && Expression->IsA(UMaterialExpressionReroute::StaticClass()))
@@ -99,7 +99,14 @@ UMaterialGraphNode* UMaterialGraph::AddExpression(UMaterialExpression* Expressio
 	{
 		Modify();
 		FGraphNodeCreator<UMaterialGraphNode> NodeCreator(*this);
-		NewNode = NodeCreator.CreateNode(false);
+		if(bUserInvoked)
+		{
+			NewNode = NodeCreator.CreateUserInvokedNode();
+		}
+		else
+		{
+			NewNode = NodeCreator.CreateNode(false);
+		}
 		NewNode->MaterialExpression = Expression;
 		NewNode->RealtimeDelegate = RealtimeDelegate;
 		NewNode->MaterialDirtyDelegate = MaterialDirtyDelegate;

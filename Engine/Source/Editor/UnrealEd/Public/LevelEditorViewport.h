@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -97,10 +97,14 @@ struct UNREALED_API FTrackingTransaction
 	bool IsActive() const { return TrackingTransactionState == ETransactionState::Active; }
 
 	bool IsPending() const { return TrackingTransactionState == ETransactionState::Pending; }
-
+	
 	int32 TransCount;
 
 private:
+
+	/** Editor selection changed delegate handler */	
+	void OnEditorSelectionChanged(UObject* NewSelection);
+
 	/** The current transaction. */
 	class FScopedTransaction*	ScopedTransaction;
 
@@ -109,6 +113,10 @@ private:
 
 	/** The description to use if a pending transaction turns into a real transaction */
 	FText PendingDescription;
+
+	/** Initial package dirty states for the Actors within the transaction */
+	TMap<UPackage*, bool> InitialPackageDirtyStates;
+	
 };
 
 
@@ -163,6 +171,8 @@ public:
 	virtual FLinearColor GetBackgroundColor() const override;
 	virtual int32 GetCameraSpeedSetting() const override;
 	virtual void SetCameraSpeedSetting(int32 SpeedSetting) override;
+	virtual float GetCameraSpeedScalar() const override;
+	virtual void SetCameraSpeedScalar(float SpeedScalar) override;
 	virtual void ReceivedFocus(FViewport* Viewport) override;
 	virtual void ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY) override;
 	virtual UWorld* GetWorld() const override;
@@ -245,7 +255,7 @@ public:
 	/**
 	 * Check to see if this actor is locked by the viewport
 	 */
-	bool IsActorLocked(const TWeakObjectPtr<AActor> InActor) const;
+	bool IsActorLocked(const TWeakObjectPtr<const AActor> InActor) const;
 
 	/**
 	 * Check to see if any actor is locked by the viewport

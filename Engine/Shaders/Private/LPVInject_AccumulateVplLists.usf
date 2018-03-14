@@ -34,7 +34,8 @@ ByteAddressBuffer						gVplListHeadBuffer;
 void CSAccumulateVplLists(uint3 DTid : SV_DispatchThreadID) 
 {
 	int index = GetGridAddress( DTid );
-	uint listIndex = gVplListHeadBuffer.Load( index * 4 ) - 1;
+	const uint StoreIndexOffset = LPV_STORE_INDEX_IN_HEAD_BUFFER ? LPV_HEAD_BUFFER_START_OFFSET : 0;
+	int listIndex = int(gVplListHeadBuffer.Load( (StoreIndexOffset+index)*4 ))-1;
 
 #if !LIGHT_INJECTION_ENABLED
 	return;

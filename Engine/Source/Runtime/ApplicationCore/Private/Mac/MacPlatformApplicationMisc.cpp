@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MacPlatformApplicationMisc.h"
 #include "MacPlatformMisc.h"
@@ -36,9 +36,34 @@ extern FMacMallocCrashHandler* GCrashMalloc;
 UpdateCachedMacMenuStateProc FPlatformApplicationMisc::UpdateCachedMacMenuState = nullptr;
 bool FPlatformApplicationMisc::bChachedMacMenuStateNeedsUpdate = true;
 bool FPlatformApplicationMisc::bMacApplicationModalMode = false;
+bool FPlatformApplicationMisc::bIsHighResolutionCapable = true;
 id<NSObject> FPlatformApplicationMisc::CommandletActivity = nil;
 
 extern CORE_API TFunction<EAppReturnType::Type(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)> MessageBoxExtCallback;
+
+static bool InitIsAppHighResolutionCapable()
+{
+	SCOPED_AUTORELEASE_POOL;
+
+	static bool bInitialized = false;
+
+	if (!bInitialized)
+	{
+		NSDictionary<NSString *,id>* BundleInfo = [[NSBundle mainBundle] infoDictionary];
+		if (BundleInfo)
+		{
+			NSNumber* Value = (NSNumber*)[BundleInfo objectForKey:@"NSHighResolutionCapable"];
+			if (Value)
+			{
+				FPlatformApplicationMisc::bIsHighResolutionCapable = [Value boolValue];
+			}
+		}
+		
+		bInitialized = true;
+	}
+
+	return FPlatformApplicationMisc::bIsHighResolutionCapable && GIsEditor;
+}
 
 EAppReturnType::Type MessageBoxExtImpl(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)
 {
@@ -246,6 +271,8 @@ void FMacPlatformApplicationMisc::PreInit()
 void FMacPlatformApplicationMisc::PostInit()
 {
 	FMacPlatformMisc::PostInitMacAppInfoUpdate();
+
+	InitIsAppHighResolutionCapable();
 
 	if (MacApplication)
 	{
@@ -462,7 +489,7 @@ FLinearColor FMacPlatformApplicationMisc::GetScreenPixelColor(const FVector2D& I
 
 float FMacPlatformApplicationMisc::GetDPIScaleFactorAtPoint(float X, float Y)
 {
-	if (MacApplication && MacApplication->IsHighDPIModeEnabled())
+	if (MacApplication && FPlatformApplicationMisc::IsHighDPIModeEnabled())
 	{
 		TSharedRef<FMacScreen> Screen = FMacApplication::FindScreenBySlatePosition(X, Y);
 		return Screen->Screen.backingScaleFactor;

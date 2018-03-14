@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,6 +14,8 @@ protected:
 	TWeakObjectPtr<const UStruct> ScriptStruct;
 	uint8* SampleStructMemory;
 	TWeakObjectPtr<UPackage> Package;
+	/** Whether the struct memory is owned by this instance. */
+	bool OwnsMemory;
 
 	FStructOnScope()
 		: SampleStructMemory(nullptr)
@@ -21,7 +23,7 @@ protected:
 	{
 	}
 
-	void Initialize()
+	virtual void Initialize()
 	{
 		if (ScriptStruct.IsValid())
 		{
@@ -114,9 +116,4 @@ private:
 
 	FStructOnScope(const FStructOnScope&);
 	FStructOnScope& operator=(const FStructOnScope&);
-
-private:
-
-	/** Whether the struct memory is owned by this instance. */
-	bool OwnsMemory;
 };

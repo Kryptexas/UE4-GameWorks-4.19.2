@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -180,8 +180,10 @@ struct ENGINE_API FAngularDriveConstraint
 		
 	}
 
+#if WITH_PHYSX
 	/** Updates physx drive with properties from unreal */
 	void UpdatePhysXAngularDrive_AssumesLocked(physx::PxD6Joint* Joint) const;
+#endif	// WITH_PHYSX
 
 private:
 	friend struct FConstraintInstance;

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "IPlatformFilePak.h"
 #include "HAL/FileManager.h"
@@ -53,25 +53,29 @@ FFilenameSecurityDelegate& FPakPlatformFile::GetFilenameSecurityDelegate()
 * Precaching
 */
 
-const ANSICHAR* FPakPlatformFile::GetPakEncryptionKey()
+void FPakPlatformFile::GetPakEncryptionKey(FAES::FAESKey& OutKey)
 {
 	FCoreDelegates::FPakEncryptionKeyDelegate& Delegate = FCoreDelegates::GetPakEncryptionKeyDelegate();
 	if (Delegate.IsBound())
 	{
-		return Delegate.Execute();
+		Delegate.Execute(OutKey.Key);
 	}
 	else
 	{
-		return nullptr;
+		FMemory::Memset(OutKey.Key, 0, sizeof(OutKey.Key));
 	}
 }
 
-void FPakPlatformFile::GetPakSigningKeys(FString& OutExponent, FString& OutModulus)
+void FPakPlatformFile::GetPakSigningKeys(FEncryptionKey& OutKey)
 {
 	FCoreDelegates::FPakSigningKeysDelegate& Delegate = FCoreDelegates::GetPakSigningKeysDelegate();
 	if (Delegate.IsBound())
 	{
-		return Delegate.Execute(OutExponent, OutModulus);
+		uint8 Exponent[sizeof(TEncryptionInt)];
+		uint8 Modulus[sizeof(TEncryptionInt)];
+		Delegate.Execute(Exponent, Modulus);
+		OutKey.Exponent = TEncryptionInt((uint32*)Exponent);
+		OutKey.Modulus = TEncryptionInt((uint32*)Modulus);
 	}
 }
 
@@ -80,11 +84,11 @@ DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("PakCache Decrypt Time"), STAT_PakCache_Decr
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("PakCache Async Decrypts (Compressed Path)"), STAT_PakCache_CompressedDecrypts, STATGROUP_PakFile);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("PakCache Async Decrypts (Uncompressed Path)"), STAT_PakCache_UncompressedDecrypts, STATGROUP_PakFile);
 
-inline void DecryptData(uint8* InData, uint32 InDataSize)
+void DecryptData(uint8* InData, uint32 InDataSize)
 {
 	SCOPE_SECONDS_ACCUMULATOR(STAT_PakCache_DecryptTime);
-	const ANSICHAR* Key = FPakPlatformFile::GetPakEncryptionKey();
-	checkf(Key, TEXT("AES decryption has been requested, but no valid encryption key was available"));
+	FAES::FAESKey Key; 
+	FPakPlatformFile::GetPakEncryptionKey(Key);
 	FAES::DecryptData(InData, InDataSize, Key);
 }
 
@@ -2320,6 +2324,7 @@ public:
 			if (NumToTrim)
 			{
 				CachedPakData.RemoveAt(CachedPakData.Num() - NumToTrim, NumToTrim);
+				LastReadRequest = 0;
 			}
 		}
 		else
@@ -2648,7 +2653,7 @@ public:
 
 				if (OversizedBuffer)
 				{
-					check(IsAligned((void*)BytesToRead, FAES::AESBlockSize));
+					check(IsAligned(BytesToRead, FAES::AESBlockSize));
 					DecryptData(OversizedBuffer, BytesToRead);
 					FMemory::Memcpy(Memory, OversizedBuffer + (OriginalOffset - Offset), OriginalSize);
 					FMemory::Free(OversizedBuffer);
@@ -3215,9 +3220,17 @@ public:
 			if (Block.RefCount > 0)
 			{
 				check(&Block == Blocks[Block.BlockIndex] && !Block.bCancelledBlock);
+				TArray<FPakProcessedReadRequest*, TInlineAllocator<4> > CompletedRequests;
 				for (FPakProcessedReadRequest* Req : LiveRequests)
 				{
 					if (Req->CheckCompletion(*FileEntry, Block.BlockIndex, Blocks))
+					{
+						CompletedRequests.Add(Req);
+					}
+				}
+				for (FPakProcessedReadRequest* Req : CompletedRequests)
+				{
+					if (LiveRequests.Contains(Req))
 					{
 						Req->RequestIsComplete();
 					}
@@ -3439,6 +3452,20 @@ void FAsyncIOCPUWorkTask::DoTask(ENamedThreads::Type CurrentThread, const FGraph
 #endif  
 
 
+#if PAK_TRACKER
+TMap<FString, int32> FPakPlatformFile::GPakSizeMap;
+
+void FPakPlatformFile::TrackPak(const TCHAR* Filename, const FPakEntry* PakEntry)
+{
+	FString Key(Filename);
+
+	if(!GPakSizeMap.Find(Key))
+	{
+		GPakSizeMap.Add(Key, PakEntry->Size);
+	}
+}
+#endif
+
 IAsyncReadFileHandle* FPakPlatformFile::OpenAsyncRead(const TCHAR* Filename)
 {
 	check(GConfig);
@@ -3449,14 +3476,11 @@ IAsyncReadFileHandle* FPakPlatformFile::OpenAsyncRead(const TCHAR* Filename)
 		const FPakEntry* FileEntry = FindFileInPakFiles(Filename, &PakFile);
 		if (FileEntry && PakFile && PakFile->GetFilenameName() != NAME_None)
 		{
+#if PAK_TRACKER
+			TrackPak(Filename, FileEntry);
+#endif
+			
 			return new FPakAsyncReadFileHandle(FileEntry, PakFile, Filename);
-		}
-		if (FString(Filename).Contains(TEXT("/Saved/PakFileTest/")))
-		{
-			UE_LOG(LogPakFile, Error, TEXT("FIle %s has /Saved/PakFileTest/, but was not found."), Filename);
-			const FPakEntry* FileEntry2 = FindFileInPakFiles(Filename, &PakFile);
-
-
 		}
 	}
 #endif
@@ -3796,7 +3820,7 @@ void FPakFile::Initialize(FArchive* Reader)
 		Info.Serialize(*Reader);
 		UE_CLOG(Info.Magic != FPakInfo::PakFile_Magic, LogPakFile, Fatal, TEXT("Trailing magic number (%ud) in '%s' is different than the expected one. Verify your installation."), Info.Magic, *PakFilename);
 		UE_CLOG(!(Info.Version >= FPakInfo::PakFile_Version_Initial && Info.Version <= FPakInfo::PakFile_Version_Latest), LogPakFile, Fatal, TEXT("Invalid pak file version (%d) in '%s'. Verify your installation."), Info.Version, *PakFilename);
-		UE_CLOG((Info.bEncryptedIndex == 1) && (FPakPlatformFile::GetPakEncryptionKey() == nullptr), LogPakFile, Fatal, TEXT("Index of pak file '%s' is encrypted, but this executable doesn't have any valid decryption keys"), *PakFilename);
+		UE_CLOG((Info.bEncryptedIndex == 1) && (!FCoreDelegates::GetPakEncryptionKeyDelegate().IsBound()), LogPakFile, Fatal, TEXT("Index of pak file '%s' is encrypted, but this executable doesn't have any valid decryption keys"), *PakFilename);
 
 		LoadIndex(Reader);
 		// LoadIndex should crash in case of an error, so just assume everything is ok if we got here.
@@ -4245,12 +4269,10 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 #endif
 
 	FEncryptionKey DecryptionKey;
-	FString PakSigningKeyExponent, PakSigningKeyModulus;
-	GetPakSigningKeys(PakSigningKeyExponent, PakSigningKeyModulus);
-	DecryptionKey.Exponent.Parse(PakSigningKeyExponent);
-	DecryptionKey.Modulus.Parse(PakSigningKeyModulus);
+	GetPakSigningKeys(DecryptionKey);
 
-	bSigned = !DecryptionKey.Exponent.IsZero() && !DecryptionKey.Modulus.IsZero();
+	// signed if we have keys, and are not running with fileopenlog (currently results in a deadlock).
+	bSigned = !DecryptionKey.Exponent.IsZero() && !DecryptionKey.Modulus.IsZero() && !FParse::Param(FCommandLine::Get(), TEXT("fileopenlog"));;
 	
 	bool bMountPaks = true;
 	TArray<FString> PaksToLoad;
@@ -4336,10 +4358,7 @@ void FPakPlatformFile::InitializeNewAsyncIO()
 	if (!WITH_EDITOR && FPlatformProcess::SupportsMultithreading() &&  !FParse::Param(FCommandLine::Get(), TEXT("FileOpenLog")))
 	{
 		FEncryptionKey DecryptionKey;
-		FString PakSigningKeyExponent, PakSigningKeyModulus;
-		GetPakSigningKeys(PakSigningKeyExponent, PakSigningKeyModulus);
-		DecryptionKey.Exponent.Parse(PakSigningKeyExponent);
-		DecryptionKey.Modulus.Parse(PakSigningKeyModulus);
+		GetPakSigningKeys(DecryptionKey);
 
 		FPakPrecacher::Init(LowerLevel, DecryptionKey);
 	}
@@ -4500,6 +4519,10 @@ IFileHandle* FPakPlatformFile::OpenRead(const TCHAR* Filename, bool bAllowWrite)
 	const FPakEntry* FileEntry = FindFileInPakFiles(Filename, &PakFile);	
 	if (FileEntry != NULL)
 	{
+#if PAK_TRACKER
+		TrackPak(Filename, FileEntry);
+#endif
+		
 		Result = CreatePakFileHandle(Filename, PakFile, FileEntry);
 	}
 	else

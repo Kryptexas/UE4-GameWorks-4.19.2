@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_Copy.h"
 #include "Engine/Blueprint.h"
@@ -66,8 +66,8 @@ void UK2Node_Copy::AllocateDefaultPins()
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
-	CreatePin(EGPD_Input, Schema->PC_Wildcard, FString(), nullptr, Schema->PN_Item);
-	CreatePin(EGPD_Output, Schema->PC_Wildcard, FString(), nullptr, Schema->PN_ReturnValue);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Wildcard, UEdGraphSchema_K2::PN_Item);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Wildcard, UEdGraphSchema_K2::PN_ReturnValue);
 
 	Super::AllocateDefaultPins();
 }
@@ -127,19 +127,15 @@ void UK2Node_Copy::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 
 UEdGraphPin* UK2Node_Copy::GetInputReferencePin() const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	UEdGraphPin* Pin = FindPin(K2Schema->PN_Item);
-	check(Pin != NULL);
+	UEdGraphPin* Pin = FindPin(UEdGraphSchema_K2::PN_Item);
+	check(Pin);
 	return Pin;
 }
 
 UEdGraphPin* UK2Node_Copy::GetCopyResultPin() const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	UEdGraphPin* Pin = FindPin(K2Schema->PN_ReturnValue);
-	check(Pin != NULL);
+	UEdGraphPin* Pin = FindPin(UEdGraphSchema_K2::PN_ReturnValue);
+	check(Pin);
 	return Pin;
 }
 
@@ -175,19 +171,18 @@ void UK2Node_Copy::PinTypeChanged(UEdGraphPin* Pin)
 
 bool UK2Node_Copy::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	if (OtherPin)
 	{
-		if (OtherPin->PinType.PinCategory == K2Schema->PC_Exec)
+		if (OtherPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
 		{
 			OutReason = LOCTEXT("ExecConnectionDisallowed", "Cannot connect with Exec pin.").ToString();
 			return true;
 		}
-		else if (OtherPin->PinType.PinCategory == K2Schema->PC_Object || OtherPin->PinType.PinCategory == K2Schema->PC_Class
-			|| OtherPin->PinType.PinCategory == K2Schema->PC_SoftObject || OtherPin->PinType.PinCategory == K2Schema->PC_SoftClass
-			|| OtherPin->PinType.PinCategory == K2Schema->PC_Interface)
+		else if (OtherPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object || OtherPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class
+			|| OtherPin->PinType.PinCategory == UEdGraphSchema_K2::PC_SoftObject || OtherPin->PinType.PinCategory == UEdGraphSchema_K2::PC_SoftClass
+			|| OtherPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Interface)
 		{
-			OutReason = FText::Format(LOCTEXT("ObjectConnectionDisallowed", "Cannot connect with {0} pin."), FText::FromString(OtherPin->PinType.PinCategory)).ToString();
+			OutReason = FText::Format(LOCTEXT("ObjectConnectionDisallowed", "Cannot connect with {0} pin."), FText::FromName(OtherPin->PinType.PinCategory)).ToString();
 			return true;
 		}
 		else if (OtherPin->PinType.IsContainer())

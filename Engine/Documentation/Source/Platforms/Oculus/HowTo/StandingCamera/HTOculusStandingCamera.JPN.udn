@@ -1,0 +1,110 @@
+﻿Availability:Public
+Crumbs: %ROOT%, Platforms
+Title:Oculus Rift 用スタンディング式カメラの設定方法
+Description:スタンディング式 Oculus Rift 体験用に UE4 カメラを設定する方法
+Type: how-to
+Skilllevel:Beginner
+Version:4.17
+Parent:Platforms/Oculus
+Order:2
+tags:Basics
+topic-image:HT_Rift_Camera_Setup_Topic_Image.png
+
+![](Platforms\VR\ContentSetup\VR_Standing_Experiance.png)
+
+Oculus Rift 向けにアンリアル エンジン 4 (UE4) で VR 体験の開発を始める時にまず考えなければならないことの 1 つは、体験をスタンディング式にするか、座式にするかを決める事です。この操作ガイドでは、スタンディング式 Oculus Rift VR 体験用に UE4 プロジェクト VR カメラを設定する方法を説明します。
+
+## ステップ
+
+スタンディング式 Oculus Rift 体験で使用するポーンの設定は以下の手順で行います。
+
+1. まず最初に、Pawn ブループリントを開く、または新規作成して、**[Viewport]** タブの **[Component]** セクションを開きます。そこで以下の 2 つのコンポーネントを次の名前で追加して、VRCamera が必ず VRCameraRoot の子になるようにします。
+    
+    [REGION:simpletable]
+	|コンポーネント名| 値 |
+    |--------|------------|
+    |** Scene**|VRCameraRoot|
+    |**Camera**|VRCamera|
+	[/region]
+
+    [REGION:lightbox]
+    [![](HT_Rift_Camera_Setup_03.png)(w:224)](HT_Rift_Camera_Setup_03.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+    注釈 
+
+    [region:note]
+    この VR カメラ設定方法は実際のカメラを動かさずにカメラ位置のオフセットが可能です。エピックは VR HMD の種類に関係なく、この方法を推奨します。
+    [/region]
+
+1. 次に、Pawn ブループリントをまだ開いていない場合は開いて、**イベントグラフ** で **Event Begin Play** ノードを引き出して Executable Actions リストを表示します。リストで **Set Tracking Origin** ノードを検索し、クリックしてイベントグラフへ追加します。
+
+    [REGION:lightbox]
+    [![](HT_Rift_Camera_Setup_09.png)(w:555)](HT_Rift_Camera_Setup_09.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. Set Tracking Origin ノードには **Floor Level** と **Eye Level** という 2 つのオプションがあります。スタンディング式体験の場合、Set Tracking Origin ノードの **[Origin]** をデフォルトの **Floor Level** にしておく必要があります。
+    
+    [REGION:lightbox]
+    [![](HT_Rift_Camera_Setup_10.png)(w:555)](HT_Rift_Camera_Setup_10.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. コンテンツ ブラウザからPawn ブループリントをドラッグし、それをレベルの「0,0,0」にくるように配置します。
+    [REGION:lightbox]
+    [![](HT_Rift_Camera_Setup_06.png)(w:555)](HT_Rift_Camera_Setup_06.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+1. レベル内に配置した Pawn ブループリントを選択し、**[Details]** パネルの **[Pawn]** 設定で **[Auto Possess Player]** を **[Disabled]** から **[Player 0]** にします。
+
+    [REGION:lightbox]
+    [![](HT_Rift_Standing_Camera_04.png)(w:353)](HT_Rift_Standing_Camera_04.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+## 最終結果
+
+最後に、**メイン ツールバー** で **[Play Mode]** を **[VR Preview]** に変更して **[Play]** ボタンを押します。Oculus Rift HMD を装着し、立ってレベルを表示すると、以下のような動画が見えます。 
+
+[OBJECT:EmbeddedVideo]
+    [PARAMLITERAL:videoid]
+    stJAjmg6b4g
+    [/PARAMLITERAL]
+    [PARAMLITERAL:width]
+    100
+    [/PARAMLITERAL]
+    [PARAMLITERAL:height]
+    56.25
+    [/PARAMLITERAL]
+    [PARAMLITERAL:units]
+    %
+    [/PARAMLITERAL]
+    [PARAMLITERAL:type]
+    simple
+    [/PARAMLITERAL]
+[/OBJECT]
+
+## UE4 プロジェクトのダウンロード
+以下のリンクから、このサンプルの作成に使われた UE4 プロジェクトをダウンロードすることができます。 
+
+* [**Oculus Rift Standing VR Camera Example Project**](https://epicgames.box.com/s/qgoh6uk0f8ra4rtvp0jdrxygfb2n9ykv)
+
+

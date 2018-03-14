@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -79,36 +79,58 @@ public:
 	typedef TFunction<float(UObject*, const FTransform&)> FSignificanceFunction;
 	typedef TFunction<void(UObject*, float, float, bool)> FPostSignificanceFunction;
 
+	enum class EPostSignificanceType : uint8
+	{
+		// The object has no post work to be done
+		None,
+		// The object's post work can be done safely in parallel
+		Concurrent,
+		// The object's post work must be done sequentially
+		Sequential
+	};
+
 	struct FManagedObjectInfo
 	{
 		FManagedObjectInfo()
 			: Object(nullptr)
 			, Significance(-1.0f)
+			, PostSignificanceType(EPostSignificanceType::None)
 		{
 		}
 
-		FManagedObjectInfo(UObject* InObject, FName InTag, FSignificanceFunction InSignificanceFunction, FPostSignificanceFunction InPostSignificanceFunction)
+		FManagedObjectInfo(UObject* InObject, FName InTag, FSignificanceFunction InSignificanceFunction, EPostSignificanceType InPostSignificanceType = EPostSignificanceType::None, FPostSignificanceFunction InPostSignificanceFunction = nullptr)
 			: Object(InObject)
 			, Tag(InTag)
 			, Significance(1.0f)
+			, PostSignificanceType(InPostSignificanceType)
 			, SignificanceFunction(InSignificanceFunction)
 			, PostSignificanceFunction(InPostSignificanceFunction)
 		{
+			if (PostSignificanceFunction)
+			{
+				ensure(PostSignificanceType != EPostSignificanceType::None);
+			}
+			else
+			{
+				ensure(PostSignificanceType == EPostSignificanceType::None);
+				PostSignificanceType = EPostSignificanceType::None;
+			}
 		}
 
 		UObject* GetObject() const { return Object; }
 		FName GetTag() const { return Tag; }
 		float GetSignificance() const { return Significance; }
 		FSignificanceFunction GetSignificanceFunction() const { return SignificanceFunction; }
+		EPostSignificanceType GetPostSignificanceType() const { return PostSignificanceType; }
 		FPostSignificanceFunction GetPostSignificanceNotifyDelegate() const { return PostSignificanceFunction; }
 
 	private:
 		UObject* Object;
 		FName Tag;
 		float Significance;
+		EPostSignificanceType PostSignificanceType;
 
 		FSignificanceFunction SignificanceFunction;
-
 		FPostSignificanceFunction PostSignificanceFunction;
 
 		void UpdateSignificance(const TArray<FTransform>& ViewPoints, const bool bSortSignificanceAscending);
@@ -125,11 +147,11 @@ public:
 	// End UObject overrides
 
 	// Overridable function to update the managed objects' significance
-	virtual void Update(const TArray<FTransform>& Viewpoints);
+	virtual void Update(TArrayView<const FTransform> Viewpoints);
 
 	// Overridable function used to register an object as managed by the significance manager
-	virtual void RegisterObject(UObject* Object, FName Tag, FSignificanceFunction SignificanceFunction, FPostSignificanceFunction InPostSignificanceFunction);
-	
+	virtual void RegisterObject(UObject* Object, FName Tag, FSignificanceFunction SignificanceFunction, EPostSignificanceType InPostSignificanceType = EPostSignificanceType::None, FPostSignificanceFunction InPostSignificanceFunction = nullptr);
+
 	// Overridable function used to unregister an object as managed by the significance manager
 	virtual void UnregisterObject(UObject* Object);
 
@@ -179,6 +201,8 @@ protected:
 	uint32 bSortSignificanceAscending:1;
 
 private:
+
+	uint32 ManagedObjectsWithSequentialPostWork;
 
 	// The cached viewpoints for significance for calculating when a new object is registered
 	TArray<FTransform> Viewpoints;

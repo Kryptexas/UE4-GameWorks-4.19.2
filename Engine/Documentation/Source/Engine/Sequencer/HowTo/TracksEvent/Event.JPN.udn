@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3439709
+﻿INTSourceChangelist:3774504
 Availability:Public
 Title:カスタム イベントとカスタム構造体を使用する
 Crumbs:%ROOT%
 Description:イベント トラックを使ってブループリントで使用するためにカスタム構造体を持ったカスタム イベントを呼び出す方法を説明します。 
-Version:4.15
+Version:4.18
 SkillLevel:Intermediate
 parent:Engine/Sequencer/HowTo
 order:1
@@ -13,16 +13,14 @@ Related:Engine/Sequencer/ReferenceEditor
 tags:Sequencer
 type:how-to
 
-**イベント トラック** を使って [カスタム イベント](Engine/Blueprints/UserGuide/Events/Custom) を呼び出すことができます。カスタム イベントは [Level ブループリント](Engine/Blueprints/UserGuide/Types/LevelBlueprint) 内の [ブループリント スクリプト](Engine/Blueprints) を実行します。 
+**イベント トラック** を使って [カスタム イベント](Engine/Blueprints/UserGuide/Events/Custom) を呼び出すことができます。カスタム イベントは複数のブループリント内で [ブループリント スクリプト](Engine/Blueprints) を実行することができます。 
 カスタム イベントが呼び出されると、それにアタッチされたスクリプトも実行され、ニーズに応じて任意の数のシナリオで使用することができます。 
-イベント トラックを使用してカスタム イベントを呼び出す場合、その中の変数を更新するために使うカスタム [構造体](Engine/Blueprints/UserGuide/Variables/Structs) も渡すことができます。 
+イベント トラックを使用してカスタム イベントを呼び出す場合、その中の変数を更新するために使うカスタム [構造体](Engine/Blueprints/UserGuide/Variables/Structs) もパススルーすることができます。 
 これはレベル シーケンスの再生中に他の変数を更新するような場合に便利です。 
 
-この例では、イベント トラックを使ってカスタム構造体を持つカスタム イベントを呼び出します。これは、シーケンス再生時にレベル内でオブジェクトを動かすために使用します。 
+この例では、イベント トラックを使ってカスタム構造体を持つイベントを呼び出して、**Level ブループリント** でオブジェクトを動かすために使用し、別のブループリントでポイント ライトのオン、オフを切り替えます。 
 
  ![](EndResultImage.png)
-
-上の操作ガイドでは、キーを押すと、レベル シーケンスが再生し、キューブを上方向に動かすイベントが毎回実行されます。 
 
 ## ステップ
 
@@ -30,7 +28,7 @@ type:how-to
 ここでは **Starter Content** を有効にした状態で **Blueprint Third Person Template** を使います。 
 [/REGION]
 
-1.	**コンテンツ ブラウザ** の、**Content/StarterContent/Shapes** フォルダで、任意のメッシュをレベルにドラッグします。 
+1.	**コンテンツ ブラウザ** の、**Content/StarterContent/Shapes** フォルダで、**Shape_Cube** メッシュをレベルにドラッグします。 
 
 	![](EventTrack1.png)
 
@@ -42,7 +40,7 @@ type:how-to
 
 	これで、ゲームプレイ中にメッシュをお好きな位置に動かすことができます。
 
-1.	 **[Add New]** ボタンをクリックします。**[Blueprints]** で **[Structure]** オプションを選択します。 
+1.	**コンテンツ ブラウザ** で **[Add New (新規追加)]** ボタンをクリックしたら **[Blueprints]** で **[Structure]** オプションを選択します。 
 
 	![](EventTrack2.png)
 
@@ -54,7 +52,7 @@ type:how-to
 	変数の命名は重要です。後で参照する場合、こうした名前を使うことになるからです。 
 	[/REGION]
 
-1.	**[Cinematics]** ボタンから **Master** という新規 **レベル シーケンス** をレベルに追加します。**シーケンサー** 内で、**イベント トラック** を追加します。 
+1.	**Master** という新規 **レベル シーケンス** をレベルに追加します。次に **シーケンサー** 内で、**イベント トラック** を追加します。 
 
 	![](EventTrack4.png)
 
@@ -68,7 +66,7 @@ type:how-to
 
 	![](EventTrack6.png)
 
-1.	追加したメッシュを (レベルのレベル シーケンスと共に) 選択し、ツールバーから **[Blueprints]** ボタンをクリックして、**[Open Level Blueprint]** をクリックします。 
+1.	レベルに追加したメッシュを (レベル シーケンスと共に) 選択し、ツールバーから **[Blueprints]** ボタンをクリックして、**[Open Level Blueprint]** をクリックします。 
 
 	![](EventTrack7.png)
 
@@ -101,10 +99,9 @@ type:how-to
 	![](EventTrack12.png)
 
 	[REGION:warning]
-	以下の条件を満たさなければイベントは呼び出されません。
+	下の条件を満たさなければイベントは呼び出されません。
 	*	入力名は Struct (構造体) で使ったものと同じ名前でなければなりません。 
 	*	入力数はカスタム構造体で定義した変数の数と一致しなければなりません。  
-
 	例えば、構造体が 2 つの変数を持つ場合、カスタム イベントは正しい変数名と型を持つ 2 つの入力を持たなければなりません。 
 	[/REGION]
 
@@ -116,17 +113,60 @@ type:how-to
 
 	![](EventTrack14.png)
 
-1.	メイン ツールバーで **Play** ボタンをクリックして Play in Editor (PIE) モードにします。 
+	エディタで再生する場合、**1** キーを押すたびに、キューブが Z 軸に沿って上方向に移動します。
+
+	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:videoid]
+		wlLcUr8BXvY
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		100
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
+	[/OBJECT]
+
+	**Level ブループリント** を使って **Custom Event** を実行しますが、別のブループリントや複数のブループリントを使用して影響を与えたい場合があるかもしれません。 
+
+1.	**コンテンツ ブラウザ** の、**Content/StarterContent/Blueprints** で、**Bluperint_CeilingLight** をレベルにドラッグします。 
+
+	![](EventTrack5.png)
+
+1.	**Master** レベル シーケンスの **[Details (詳細)]** パネルで、**General** の追加オプションを展開して、**Additional Event Reciever** として **Blueprint_CeilingLight** を追加します。 
+
+	![](EventTrack16.png)
+
+1.	**Blueprint_CeilingLight** ブループリントを開いて、以下のスクリプトを追加します。 
+
+	![](EventTrack17.png)
+
+	* **LiftCube** という名前のカスタム イベントを作成します。これは、**シーケンサー** の **イベント** に対応します。 
+	* **Flip Flop** ノードを使って **Point Light** の **Set Intesnity** を **0** (off) または **5000** (on) にします。 
+
+	これでマスター レベル シーケンスが再生される度にライトがオン、オフの間で切り替わります。
+
+	[REGION:warning]
+	このブループリントでは、Custom Struct の **MoveCube** を使用していませんが、このイベントが呼び出されるようにするためにはそれを追加する必要があります。 
+	[/REGION] 
+
+1.	エディタで再生します。 
 
 
 ## 最終結果
 
-エディタで再生する場合、**1** キーを押すたびに、キューブが **Z** 軸に沿って上方向に移動します。 
+エディタで再生する場合、**1** キーを押すたびに、ライトがオンとオフとの間で切り替わりながら、キューブが Z 軸に沿って上方向に移動します。 
 
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
-	wlLcUr8BXvY
+	Ftm9I_TEXYE
 	[/PARAMLITERAL]
 	[PARAMLITERAL:width]
 	100
@@ -142,9 +182,11 @@ type:how-to
 	[/PARAMLITERAL]
 [/OBJECT]
 
-この例では、シネマティックスを見るためにカメラを割り当てていませんが、代わりにシーケンサーとブループリントを使ってスクリプティングしたシーケンスを実行しています。 
-プロジェクトでは、カスタム イベントとカスタム構造体を持つイベント トラックを使ってカットシーン中にプレイヤー情報を更新することができます 
- (プレイヤーが、ヘルスの増加、新しい武器、選択したその他のゲームプレイ関連のエフェクトを受け取るなど)。 
+この例では、**Level ブループリント** でイベントを呼び出すとともに **シーケンサー** から [](Engine/Blueprints/UserGuide/Types/ClassBlueprint) 内でも呼び出します。 
+シネマティックスを見るためにカメラを割り当てていませんが、代わりにシーケンサーとブループリントを使ってスクリプティングしたシーケンスを実行しています。 
+プロジェクトでは、カスタム イベントとカスタム構造体を持つイベント トラックを使ってカットシーン中 (プレイヤーが、ヘルスの増加、新しい武器、選択したその他のゲームプレイ関連のエフェクトを受け取るなど) や、 
+シネマティック シーケンス内の決まったポイントでプレイヤー情報を更新することができます。 
+
 
 
 

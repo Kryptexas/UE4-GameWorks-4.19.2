@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -35,7 +35,7 @@ public:
 	void SetupComponent( AActor* OwningActor );
 
 	/** Sets the EControllerHand for this motioncontroller */
-	void SetControllerHandSide( const EControllerHand InControllerHandSide );
+	void SetControllerHandSide( const FName InControllerHandSide );
 
 	// IViewportInteractorInterface overrides
 	virtual void Shutdown() override;
@@ -43,7 +43,7 @@ public:
 	virtual void CalculateDragRay( float& InOutDragRayLength, float& InOutDragRayVelocity ) override;
 
 	/** @return Returns the type of HMD we're dealing with */
-	EHMDDeviceType::Type GetHMDDeviceType() const;
+	FName GetHMDDeviceType() const;
 
 	// UViewportInteractor
 	virtual void PreviewInputKey( class FEditorViewportClient& ViewportClient, FViewportActionKeyInput& Action, const FKey Key, const EInputEvent Event, bool& bOutWasHandled ) override;
@@ -199,7 +199,7 @@ protected:
 	class UMaterialInstanceDynamic* HandMeshMID;
 
 	/** Right or left hand */
-	EControllerHand ControllerHandSide;
+	FName ControllerMotionSource;
 
 	/** True if this hand has a motion controller (or both!) */
 	bool bHaveMotionController;

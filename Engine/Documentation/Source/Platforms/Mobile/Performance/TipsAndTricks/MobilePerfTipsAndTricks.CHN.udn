@@ -135,13 +135,15 @@ Unreal Match 3 未使用静态网格体 LOD，但使用了粒子特效 LOD，降
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [REGION:imagetable]
 | ![](PLOD_Base_00.png) | ![](PLOD_LOD_00.png) |
 | --- | --- |
 | 基础 | LOD 1 |
 [/REGION]
--->
+
+[/COMMENT]
 
 上图中，显示当前所选宝石的 **P_Selected_Title** 粒子特效已针对低端设备进行优化。左图为 **P_Selected_Title** 粒子特效的基础效果，针对高端设备使用。仔细查看图片会发现粒子特效中存在一些白色小方块。右图中也为相同的 **P_Selected_Title** 特效，但不存在白色小方块。它们已从特效 LOD 中完全移除，以提升 Unreal Match 3 在低端移动设备上的运行性能。然而，现在操作只完成了一半。下一步需要定义哪些移动设备使用主粒子特效，哪些移动设备使用基于主粒子特效的 LOD。首先在文本编辑器中打开 DefaultDeviceProfiles.ini，找到 **Android_Low DeviceProfile** 输入，如下图所示。
 
@@ -182,10 +184,12 @@ Unreal Match 3 的角色材质使用默认照亮光照模型，而非开销更�
 	[/PARAM]
 [/OBJECT]
 
-<!--
+[COMMENT:none]
+
 [REGION:imagetable]
 | ![](Lighting_Default_Theme.png)(w:320) | ![](Lighting_Night_Theme.png)(w:320) |
 | --- | --- |
 | 默认主题 | 夜晚主题 |
 [/REGION]
--->
+
+[/COMMENT]

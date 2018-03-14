@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -15,6 +15,9 @@ struct FDataTableEditorColumnHeaderData
 
 	/** The calculated width of this column taking into account the cell data for each row */
 	float DesiredColumnWidth;
+
+	/** The UProperty for the variable in this column */
+	const UProperty* Property;
 };
 
 struct FDataTableEditorRowListViewData
@@ -82,4 +85,13 @@ struct UNREALED_API FDataTableEditorUtils
 	static TArray<UScriptStruct*> GetPossibleStructs();
 	/** Utility function which verifies that the specified struct type is viable for data tables */
 	static bool IsValidTableStruct(UScriptStruct* Struct);
+
+	/** Tooltip text for the data table row type */
+	static FText GetRowTypeInfoTooltipText(FDataTableEditorColumnHeaderDataPtr ColumnHeaderDataPtr);
+
+	/** Doc excerpt name for the data table row type */
+	static FString GetRowTypeTooltipDocExcerptName(FDataTableEditorColumnHeaderDataPtr ColumnHeaderDataPtr);
+
+	/** Link to variable type doc  */
+	static const FString VariableTypesTooltipDocLink;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "LightingSystem.h"
@@ -124,13 +124,15 @@ bool FStaticLightingSystem::DoesVoxelIntersectSceneGeometry(const FBox& CellBoun
 	const float Child2dTriangleArea = .5f * CellBounds.GetSize().X * CellBounds.GetSize().Y / (VolumetricLightmapSettings.BrickSize * VolumetricLightmapSettings.BrickSize);
 	const float SurfaceLightmapDensityThreshold = .5f * VolumetricLightmapSettings.SurfaceLightmapMinTexelsPerVoxelAxis * VolumetricLightmapSettings.SurfaceLightmapMinTexelsPerVoxelAxis / Child2dTriangleArea;
 
-	const FBox ExpandedCellBounds = CellBounds.ExpandBy(CellBounds.GetExtent() * VolumetricLightmapSettings.VoxelizationCellExpansionForGeometry);
+	const FBox ExpandedCellBoundsSurfaceGeometry = CellBounds.ExpandBy(CellBounds.GetSize() * VolumetricLightmapSettings.VoxelizationCellExpansionForSurfaceGeometry);
+	const FBox ExpandedCellBoundsVolumeGeometry = CellBounds.ExpandBy(CellBounds.GetSize() * VolumetricLightmapSettings.VoxelizationCellExpansionForVolumeGeometry);
 
 	for (int32 MappingIndex = 0; MappingIndex < AllMappings.Num(); MappingIndex++)
 	{
 		const FStaticLightingMapping* CurrentMapping = AllMappings[MappingIndex];
 		const FStaticLightingTextureMapping* TextureMapping = CurrentMapping->GetTextureMapping();
 		const FStaticLightingMesh* CurrentMesh = CurrentMapping->Mesh;
+		const FBox& ExpandedCellBounds = CurrentMapping->GetVolumeMapping() ? ExpandedCellBoundsVolumeGeometry : ExpandedCellBoundsSurfaceGeometry;
 
 		const bool bMeshBelongsToLOD0 = CurrentMesh->DoesMeshBelongToLOD0();
 
@@ -144,7 +146,9 @@ bool FStaticLightingSystem::DoesVoxelIntersectSceneGeometry(const FBox& CellBoun
 				int32 ElementIndex;
 				CurrentMesh->GetTriangle(TriangleIndex, Vertices[0], Vertices[1], Vertices[2], ElementIndex);
 
-				if (CurrentMesh->IsElementCastingShadow(ElementIndex))
+				if (CurrentMesh->IsElementCastingShadow(ElementIndex) 
+					// Lightmass doesn't handle bounced light from translucency
+					&& !CurrentMesh->IsTranslucent(ElementIndex))
 				{
 					FTriangle Triangle;
 					Triangle.Vertices[0] = Vertices[0].WorldPosition;
@@ -196,7 +200,7 @@ bool FStaticLightingSystem::DoesVoxelIntersectSceneGeometry(const FBox& CellBoun
 	return false;
 }
 
-bool FStaticLightingSystem::ShouldRefineVoxel(const FBox& CellBounds, const TArray<FVector>& VoxelTestPositions, bool bDebugThisVoxel) const
+bool FStaticLightingSystem::ShouldRefineVoxel(int32 TreeDepth, const FBox& CellBounds, const TArray<FVector>& VoxelTestPositions, bool bDebugThisVoxel) const
 {
 	if (bDebugThisVoxel)
 	{
@@ -209,6 +213,48 @@ bool FStaticLightingSystem::ShouldRefineVoxel(const FBox& CellBounds, const TArr
 	if (!bCellInsideImportanceVolume)
 	{
 		return false;
+	}
+
+	FIntPoint VolumeRange(INT_MAX, INT_MAX);
+	bool bAnyDensityVolumeFound = false;
+
+	for (int32 SampleIndex = 0; SampleIndex < VoxelTestPositions.Num(); SampleIndex++)
+	{
+		FVector SamplePosition = CellBounds.Min + VoxelTestPositions[SampleIndex] * CellBounds.GetSize();
+		FIntPoint SampleAllowedMipRange;
+		bool bSampleInDensityVolume = Scene.GetVolumetricLightmapAllowedMipRange(SamplePosition, SampleAllowedMipRange);
+		
+		if (bSampleInDensityVolume)
+		{
+			bAnyDensityVolumeFound = true;
+			VolumeRange.X = FMath::Min(VolumeRange.X, SampleAllowedMipRange.X);
+			VolumeRange.Y = FMath::Min(VolumeRange.Y, SampleAllowedMipRange.Y);
+		}
+	}
+
+	if (bDebugThisVoxel)
+	{
+		int32 asdf = 0;
+	}
+
+	// Default unrestricted
+	FIntPoint AllowedMipRange(0, INT_MAX);
+
+	if (bAnyDensityVolumeFound)
+	{
+		AllowedMipRange = VolumeRange;
+	}
+
+	const int32 CandidateMipLevel = VolumetricLightmapSettings.MaxRefinementLevels - TreeDepth - 1;
+
+	if (CandidateMipLevel < AllowedMipRange.X)
+	{
+		return false;
+	}
+
+	if (CandidateMipLevel >= AllowedMipRange.Y)
+	{
+		return true;
 	}
 
 	bool bVoxelIntersectsScene = DoesVoxelIntersectSceneGeometry(CellBounds);
@@ -277,7 +323,6 @@ bool FStaticLightingSystem::ShouldRefineVoxel(const FBox& CellBounds, const TArr
 		for (int32 MappingIndex = 0; MappingIndex < LandscapeMappings.Num(); MappingIndex++)
 		{
 			const FStaticLightingMapping* CurrentMapping = LandscapeMappings[MappingIndex];
-			const FStaticLightingTextureMapping* TextureMapping = CurrentMapping->GetTextureMapping();
 			const FStaticLightingMesh* CurrentMesh = CurrentMapping->Mesh;
 
 			if ((CurrentMesh->LightingFlags & GI_INSTANCE_CASTSHADOW)
@@ -340,9 +385,8 @@ struct FIrradianceBrickBuildData
 };
 
 // Requires texel selecting something to get into debug mode.  
-// Warning: the debug lines this creates are not reliably sent back to the editor, it requires the texture mapping selected to be processed after the volumetric lightmap task
 bool bDebugVolumetricLightmapCell = false;
-FVector DebugWorldPosition(-417.670410,3174.800049,6734.795410);
+FVector DebugWorldPosition(548.092041f, 36.330334f, 832.141907f);
 
 void FStaticLightingSystem::RecursivelyBuildBrickTree(
 	int32 StartCellIndex,
@@ -401,7 +445,7 @@ void FStaticLightingSystem::RecursivelyBuildBrickTree(
 							int32 asdf = 0;
 						}
 
-						const bool bSubdivideCell = ShouldRefineVoxel(CellBounds, VoxelTestPositions, bChildCoveringDebugPosition);
+						const bool bSubdivideCell = ShouldRefineVoxel(TreeDepth + 1, CellBounds, VoxelTestPositions, bChildCoveringDebugPosition);
 
 						if (bSubdivideCell)
 						{
@@ -447,11 +491,12 @@ public:
 		bool bInDebugThisMapping,
 		volatile int32* InNumOutstandingBrickTasks,
 		FIrradianceBrickData& InBrickData, 
+		FDebugLightingOutput& InDebugOutput,
 		class FStaticLightingSystem& InSystem) :
 		TaskIndexVector(InTaskIndexVector),
 		BuildData(InBuildData),
 		bDebugThisMapping(bInDebugThisMapping),
-		MappingContext(nullptr, InSystem),
+		MappingContext(nullptr, InSystem, &InDebugOutput),
 		bDiscardBrick(false),
 		bProcessedOnMainThread(false),
 		NumOutstandingBrickTasks(InNumOutstandingBrickTasks),
@@ -484,6 +529,12 @@ void FStaticLightingSystem::ProcessVolumetricLightmapBrickTask(FVolumetricLightm
 	BrickData.TreeDepth = BuildData.TreeDepth;
 	BrickData.AmbientVector.Empty(TotalBrickSize);
 	BrickData.AmbientVector.AddDefaulted(TotalBrickSize);
+
+	BrickData.LQLightColor.Empty(TotalBrickSize);
+	BrickData.LQLightColor.AddDefaulted(TotalBrickSize);
+	BrickData.LQLightDirection.Empty(TotalBrickSize);
+	BrickData.LQLightDirection.AddDefaulted(TotalBrickSize);
+
 	BrickData.VoxelImportProcessingData.Empty(TotalBrickSize);
 	BrickData.VoxelImportProcessingData.AddDefaulted(TotalBrickSize);
 
@@ -515,7 +566,6 @@ void FStaticLightingSystem::ProcessVolumetricLightmapBrickTask(FVolumetricLightm
 	FLMRandomStream RandomStream(0);
 	float AverageClosestGeometryDistance = 0;
 	bool bAllCellsInsideGeometry = true;
-	FVector AverageAmbientVector(0, 0, 0);
 
 	for (int32 Z = 0; Z < BrickSize; Z++)
 	{
@@ -544,11 +594,13 @@ void FStaticLightingSystem::ProcessVolumetricLightmapBrickTask(FVolumetricLightm
 
 				const bool bDebugSamples = bDebugVolumetricLightmapCell 
 					&& BuildData.bDebugBrick
+					&& BuildData.TreeDepth == VolumetricLightmapSettings.MaxRefinementLevels - 1
 					&& DebugWorldPosition.X >= VoxelPosition.X && DebugWorldPosition.Y >= VoxelPosition.Y && DebugWorldPosition.Z >= VoxelPosition.Z
 					&& DebugWorldPosition.X < VoxelPosition.X + WorldChildCellSize.X && DebugWorldPosition.Y < VoxelPosition.Y + WorldChildCellSize.Y && DebugWorldPosition.Z < VoxelPosition.Z + WorldChildCellSize.Z;
 
 				if (bDebugSamples)
 				{
+					Task->MappingContext.DebugOutput->bValid = true;
 					int32 asdf = 0;
 				}
 
@@ -567,7 +619,22 @@ void FStaticLightingSystem::ProcessVolumetricLightmapBrickTask(FVolumetricLightm
 					Task->MappingContext, 
 					bDebugSamples);
 
-				AverageAmbientVector += FVector(CurrentSample.HighQualityCoefficients[0][0], CurrentSample.HighQualityCoefficients[0][1], CurrentSample.HighQualityCoefficients[0][2]);
+				// Windowing
+				if (VolumetricLightmapSettings.WindowingTargetLaplacian > 0.0f)
+				{
+					FSHVectorRGB3 SHSample;
+					CurrentSample.ToSHVector(SHSample);
+
+					FSHVector3 Luminance = SHSample.GetLuminance();
+					float WindowingLambda = FSHVector3::FindWindowingLambda(Luminance, VolumetricLightmapSettings.WindowingTargetLaplacian);
+
+					if (WindowingLambda != 0.0f)
+					{
+						SHSample.ApplyWindowing(WindowingLambda);
+					}
+
+					CurrentSample.SetFromSHVector(SHSample);
+				}
 
 				const bool bInsideGeometry = BackfacingHitsFraction > .3f;
 				bool bDebugInteriorVoxels = false;
@@ -588,18 +655,8 @@ void FStaticLightingSystem::ProcessVolumetricLightmapBrickTask(FVolumetricLightm
 	}
 
 	BrickData.AverageClosestGeometryDistance = AverageClosestGeometryDistance / TotalBrickSize;
-	AverageAmbientVector /= (float)TotalBrickSize;
-
-	FVector ErrorSquared(0, 0, 0);
-
-	for (int32 VoxelIndex = 0; VoxelIndex < TotalBrickSize; VoxelIndex++)
-	{
-		FVector AmbientVector = FVector(BrickData.AmbientVector[VoxelIndex].ToLinearColor());
-		ErrorSquared += (AmbientVector - AverageAmbientVector) * (AmbientVector - AverageAmbientVector);
-	}
-
-	const float RMSE = FMath::Sqrt((ErrorSquared / (float)TotalBrickSize).GetMax());
-	const bool bCullBrick = bAllCellsInsideGeometry || RMSE < VolumetricLightmapSettings.MinBrickError;
+	
+	const bool bCullBrick = bAllCellsInsideGeometry;
 	
 	if (BuildData.bDebugBrick)
 	{
@@ -655,11 +712,13 @@ void FStaticLightingSystem::GenerateVoxelTestPositions(TArray<FVector>& VoxelTes
 
 void FStaticLightingSystem::CalculateAdaptiveVolumetricLightmap(int32 TaskIndex)
 {
+#if !ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
+	checkf(!bDebugVolumetricLightmapCell, TEXT("enable ALLOW_LIGHTMAP_SAMPLE_DEBUGGING for voxel debugging"));
+#endif
+
 	const double StartTime = FPlatformTime::Seconds();
 
 	FPlatformAtomics::InterlockedIncrement(&TasksInProgressThatWillNeedHelp);
-
-	FStaticLightingMappingContext MappingContext(nullptr, *this);
 
 	check(TaskIndex >= 0 && TaskIndex < Scene.VolumetricLightmapTaskGuids.Num());
 	const int32 NumTopLevelBricks = VolumetricLightmapSettings.TopLevelGridSize.X * VolumetricLightmapSettings.TopLevelGridSize.Y * VolumetricLightmapSettings.TopLevelGridSize.Z;
@@ -672,6 +731,8 @@ void FStaticLightingSystem::CalculateAdaptiveVolumetricLightmap(int32 TaskIndex)
 	// Create a new link for the output of this task
 	TList<FVolumetricLightmapTaskData>* DataLink = new TList<FVolumetricLightmapTaskData>(FVolumetricLightmapTaskData(), NULL);
 	DataLink->Element.Guid = Scene.VolumetricLightmapTaskGuids[TaskIndex];
+
+	FStaticLightingMappingContext MappingContext(nullptr, *this);
 
 	const FIntVector TaskIndexVector(
 		TopLevelBrickIndex % VolumetricLightmapSettings.TopLevelGridSize.X,
@@ -731,6 +792,7 @@ void FStaticLightingSystem::CalculateAdaptiveVolumetricLightmap(int32 TaskIndex)
 				bCoveringDebugPosition, 
 				&NumOutstandingBrickTasks, 
 				DataLink->Element.BrickData[BrickIndex], 
+				DataLink->Element.DebugOutput,
 				*this);
 			
 			BrickTasks.Add(NewTask);
@@ -837,6 +899,36 @@ void FIrradianceBrickData::SetFromVolumeLightingSample(int32 Index, const FVolum
 	}
 
 	DirectionalLightShadowing[Index] = (uint8)FMath::Clamp<int32>(FMath::RoundToInt(Sample.DirectionalLightShadowing * MAX_uint8), 0, MAX_uint8);
+
+	{
+		FSHVectorRGB3 HQ;
+		FSHVectorRGB3 LQ;
+		for (int32 CoefficientIndex = 0; CoefficientIndex < LM_NUM_SH_COEFFICIENTS; CoefficientIndex++)
+		{
+			HQ.R.V[CoefficientIndex] = Sample.HighQualityCoefficients[CoefficientIndex][0];
+			HQ.G.V[CoefficientIndex] = Sample.HighQualityCoefficients[CoefficientIndex][1];
+			HQ.B.V[CoefficientIndex] = Sample.HighQualityCoefficients[CoefficientIndex][2];
+
+			LQ.R.V[CoefficientIndex] = Sample.LowQualityCoefficients[CoefficientIndex][0];
+			LQ.G.V[CoefficientIndex] = Sample.LowQualityCoefficients[CoefficientIndex][1];
+			LQ.B.V[CoefficientIndex] = Sample.LowQualityCoefficients[CoefficientIndex][2];
+		}
+		FSHVectorRGB3 DirectLight = LQ - HQ;
+		FVector MaxLightDir( DirectLight.GetLuminance().GetMaximumDirection() );
+
+		// Set the max direction
+		FLinearColor MaxLightDirAsColor(MaxLightDir);
+		LQLightDirection[Index] = (MaxLightDirAsColor * FLinearColor(.5f, .5f, .5f, .5f) + FLinearColor(.5f, .5f, .5f, .5f)).QuantizeRound();
+		
+		// Set color along the max direction
+		FSHVector3 BrigthestDiffuseTransferSH = FSHVector3::CalcDiffuseTransfer(MaxLightDir);
+		FLinearColor BrightestLighting = Dot(DirectLight, BrigthestDiffuseTransferSH);
+		BrightestLighting.R = FMath::Max(BrightestLighting.R, 0.0f);
+		BrightestLighting.G = FMath::Max(BrightestLighting.G, 0.0f);
+		BrightestLighting.B = FMath::Max(BrightestLighting.B, 0.0f);
+
+		LQLightColor[Index] = FFloat3Packed(BrightestLighting);
+	}
 
 	FIrradianceVoxelImportProcessingData NewImportData;
 	NewImportData.bInsideGeometry = bInsideGeometry;

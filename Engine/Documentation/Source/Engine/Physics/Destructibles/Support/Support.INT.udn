@@ -3,26 +3,6 @@ Title:Support
 Crumbs: %ROOT%, Engine
 Description:World Support, Support Layer, and Forming Extended Structures
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/Destructibles/Support:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/Destructibles/Support:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/Destructibles/Support:description%
-	[/PARAM]
-	[PARAMLITERAL:path]
-		Engine/Physics/Destructibles/Support
-	[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
-
 [REGION:banner]
 ![Physics](Engine/Physics/physics_landing_banner.png)
 [/REGION]
@@ -51,11 +31,13 @@ But with a support layer set to a layer other than 0, this happens:
 
 For APEX PhysX Lab imported objects, it is possible to have more than 2 depth layers, making it so you can set a mid layer as support making everything "above" it stick together, but everything "below" it just fall apart.
 
-<!--
+[COMMENT:none]
+
 ## Support Chunks
 
 This will basically work like the **Support Layer** feature, but instead of making an entire level support, you can make individual chunks on a layer support. There doesn't _need_ to be any rhyme or reason to what bits you define as support, but it could create some rather interesting results. Another way to look at them is that support chunks are sticky, and more damage is needed for them to give up what they are attached to.
--->
+
+[/COMMENT]
 
 ## World Support
 
@@ -67,7 +49,8 @@ This will basically work like the **Support Layer** feature, but instead of maki
 
 
 
-<!--
+[COMMENT:none]
+
 As for objects imported from APEX PhysX Lab, these objects allow for an extreme amount of chaining, but are still bound by the order in which they are placed.
 
 In this image, the radial force (the little icon in the middle) ticks every 2 seconds, applying damage and force to all the panels.
@@ -96,7 +79,8 @@ Mind you, this is just for **World Supported** APEX objects. If they had been "f
 
 The 2nd and 4th panels "shatter" while the center one is just "broken."
 
--->
+
+[/COMMENT]
 
 
 

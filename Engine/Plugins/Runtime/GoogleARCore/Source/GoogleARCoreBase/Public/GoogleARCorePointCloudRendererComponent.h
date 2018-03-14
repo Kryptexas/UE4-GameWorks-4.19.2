@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "GoogleARCorePrimitives.h"
 #include "CoreMinimal.h"
 #include "Components/SceneComponent.h"
+
 #include "GoogleARCorePointCloudRendererComponent.generated.h"
 
 /** A helper component that renders the latest point cloud from the ARCore tracking session. */
@@ -14,11 +14,11 @@ class GOOGLEARCOREBASE_API UGoogleARCorePointCloudRendererComponent : public USc
 	GENERATED_BODY()
 public:
 	/** The color of the point. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCorePointCloudRenderer")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCore|PointCloudRenderer")
 	FColor PointColor = FColor::Red;
 
 	/** The size of the point. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCorePointCloudRenderer")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoogleARCore|PointCloudRenderer")
 	float PointSize = 1.f;
 
 	UGoogleARCorePointCloudRendererComponent();

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:언리얼 프로젝트와 게임플레이
 Crumbs: %ROOT%, Gameplay
@@ -17,7 +17,9 @@ version: 4.9
 
 ![](map_viewport.png)(w:500)
 
-<!-- **Actors** are the most important concept in Unreal Engine 4. Your game will be filled with them, as every interactive entity in your game is an Actor. They usually contain one or more components, can be placed in a **Level** or **Spawned** in during gameplay, and support network replication for multiplayer games. -->
+[COMMENT:none]
+ **Actors** are the most important concept in Unreal Engine 4. Your game will be filled with them, as every interactive entity in your game is an Actor. They usually contain one or more components, can be placed in a **Level** or **Spawned** in during gameplay, and support network replication for multiplayer games. 
+[/COMMENT]
 
 가장 본질적인 수준에서, **Actor**, 액터란 (보통) 하나 이상의 컴포넌트로 구성되는 게임플레이 개체로, **레벨** 에 배치하거나 게임플레이 도중 **스폰** 시킬 수 있으며, 멀티플레이 게임에서는 네트워크 리플리케이션을 지원합니다. 위 레벨에서 레벨 가운데 블록인 땅 플랫폼과, 이미지 하단에 보이는 PlayerStart 모두 액터입니다. 모든 액터는 AActor 클래스에서 확장되는데, 이는 _스폰 가능한_ 게임플레이 오브젝트의 베이스 클래스입니다.
 

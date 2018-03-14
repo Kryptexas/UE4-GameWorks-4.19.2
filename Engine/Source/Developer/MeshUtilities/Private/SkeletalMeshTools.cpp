@@ -1,49 +1,40 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SkeletalMeshTools.h"
 #include "Engine/SkeletalMesh.h"
 #include "MeshBuild.h"
+#include "MeshUtilities.h"
 #include "RawIndexBuffer.h"
+#include "Rendering/SkeletalMeshModel.h"
 
 namespace SkeletalMeshTools
 {
-	bool AreSkelMeshVerticesEqual( const FSoftSkinBuildVertex& V1, const FSoftSkinBuildVertex& V2 )
+	bool AreSkelMeshVerticesEqual( const FSoftSkinBuildVertex& V1, const FSoftSkinBuildVertex& V2, const FOverlappingThresholds& OverlappingThresholds)
 	{
-		if(!PointsEqual(V1.Position, V2.Position))
+		if(!PointsEqual(V1.Position, V2.Position, OverlappingThresholds))
 		{
 			return false;
 		}
 
-		bool bUVsEqual = true;
 		for(int32 UVIdx = 0; UVIdx < MAX_TEXCOORDS; ++UVIdx)
 		{
-			if(FMath::Abs(V1.UVs[UVIdx].X - V2.UVs[UVIdx].X) >(1.0f / 1024.0f))
+			if (!UVsEqual(V1.UVs[UVIdx], V2.UVs[UVIdx], OverlappingThresholds))
 			{
-				bUVsEqual = false;
-			};
-
-			if(FMath::Abs(V1.UVs[UVIdx].Y - V2.UVs[UVIdx].Y) > (1.0f / 1024.0f))
-			{
-				bUVsEqual = false;
+				return false;
 			}
 		}
 
-		if(!bUVsEqual)
+		if(!NormalsEqual(V1.TangentX, V2.TangentX, OverlappingThresholds))
 		{
 			return false;
 		}
 
-		if(!NormalsEqual(V1.TangentX, V2.TangentX))
+		if(!NormalsEqual(V1.TangentY, V2.TangentY, OverlappingThresholds))
 		{
 			return false;
 		}
 
-		if(!NormalsEqual(V1.TangentY, V2.TangentY))
-		{
-			return false;
-		}
-
-		if(!NormalsEqual(V1.TangentZ, V2.TangentZ))
+		if(!NormalsEqual(V1.TangentZ, V2.TangentZ, OverlappingThresholds))
 		{
 			return false;
 		}
@@ -59,6 +50,11 @@ namespace SkeletalMeshTools
 			}
 		}
 
+		if (V1.Color != V2.Color)
+		{
+			return false;
+		}
+
 		if(!InfluencesMatch)
 		{
 			return false;
@@ -67,7 +63,7 @@ namespace SkeletalMeshTools
 		return true;
 	}
 
-	void BuildSkeletalMeshChunks( const TArray<FMeshFace>& Faces, const TArray<FSoftSkinBuildVertex>& RawVertices, TArray<FSkeletalMeshVertIndexAndZ>& RawVertIndexAndZ, bool bKeepOverlappingVertices, TArray<FSkinnedMeshChunk*>& OutChunks, bool& bOutTooManyVerts )
+	void BuildSkeletalMeshChunks( const TArray<FMeshFace>& Faces, const TArray<FSoftSkinBuildVertex>& RawVertices, TArray<FSkeletalMeshVertIndexAndZ>& RawVertIndexAndZ, const FOverlappingThresholds &OverlappingThresholds, TArray<FSkinnedMeshChunk*>& OutChunks, bool& bOutTooManyVerts )
 	{
 		TArray<int32> DupVerts;
 
@@ -92,7 +88,7 @@ namespace SkeletalMeshTools
 				// only need to search forward, since we add pairs both ways
 				for(int32 j = i + 1; j < RawVertIndexAndZ.Num(); j++)
 				{
-					if(FMath::Abs(RawVertIndexAndZ[j].Z - RawVertIndexAndZ[i].Z) > THRESH_POINTS_ARE_SAME)
+					if(FMath::Abs(RawVertIndexAndZ[j].Z - RawVertIndexAndZ[i].Z) > OverlappingThresholds.ThresholdPosition)
 					{
 						// our list is sorted, so there can't be any more dupes
 						break;
@@ -101,7 +97,7 @@ namespace SkeletalMeshTools
 					// check to see if the points are really overlapping
 					if(PointsEqual(
 						RawVertices[RawVertIndexAndZ[i].Index].Position,
-						RawVertices[RawVertIndexAndZ[j].Index].Position))
+						RawVertices[RawVertIndexAndZ[j].Index].Position, OverlappingThresholds))
 					{
 						RawVerts2Dupes.Add(RawVertIndexAndZ[i].Index, RawVertIndexAndZ[j].Index);
 						RawVerts2Dupes.Add(RawVertIndexAndZ[j].Index, RawVertIndexAndZ[i].Index);
@@ -144,54 +140,38 @@ namespace SkeletalMeshTools
 				const FSoftSkinBuildVertex& Vertex = RawVertices[WedgeIndex];
 
 				int32 FinalVertIndex = INDEX_NONE;
-				if(bKeepOverlappingVertices)
-				{
-					FinalVertIndex = Chunk->Vertices.Add(RawVertices[WedgeIndex]);
-				}
-				else
-				{
-					DupVerts.Reset();
-					RawVerts2Dupes.MultiFind(WedgeIndex, DupVerts);
-					DupVerts.Sort();
+				DupVerts.Reset();
+				RawVerts2Dupes.MultiFind(WedgeIndex, DupVerts);
+				DupVerts.Sort();
 
 
-					for(int32 k = 0; k < DupVerts.Num(); k++)
+				for(int32 k = 0; k < DupVerts.Num(); k++)
+				{
+					if(DupVerts[k] >= WedgeIndex)
 					{
-						if(DupVerts[k] >= WedgeIndex)
+						// the verts beyond me haven't been placed yet, so these duplicates are not relevant
+						break;
+					}
+
+					int32 *Location = FinalVerts.Find(DupVerts[k]);
+					if(Location != NULL)
+					{
+						if(SkeletalMeshTools::AreSkelMeshVerticesEqual(Vertex, Chunk->Vertices[*Location], OverlappingThresholds))
 						{
-							// the verts beyond me haven't been placed yet, so these duplicates are not relevant
+							FinalVertIndex = *Location;
 							break;
 						}
-
-						int32 *Location = FinalVerts.Find(DupVerts[k]);
-						if(Location != NULL)
-						{
-							if(SkeletalMeshTools::AreSkelMeshVerticesEqual(Vertex, Chunk->Vertices[*Location]))
-							{
-								FinalVertIndex = *Location;
-								break;
-							}
-						}
 					}
-					if(FinalVertIndex == INDEX_NONE)
-					{
-						FinalVertIndex = Chunk->Vertices.Add(Vertex);
-						FinalVerts.Add(WedgeIndex, FinalVertIndex);
-					}
-
+				}
+				if(FinalVertIndex == INDEX_NONE)
+				{
+					FinalVertIndex = Chunk->Vertices.Add(Vertex);
+					FinalVerts.Add(WedgeIndex, FinalVertIndex);
 				}
 
 				// set the index entry for the newly added vertex
-#if DISALLOW_32BIT_INDICES
-				if(FinalVertIndex > MAX_uint16)
-				{
-					bOutTooManyVerts = true;
-				}
-				TriangleIndices[VertexIndex] = (uint16)FinalVertIndex;
-#else
 				// TArray internally has int32 for capacity, so no need to test for uint32 as it's larger than int32
 				TriangleIndices[VertexIndex] = (uint32)FinalVertIndex;
-#endif
 			}
 
 			if(TriangleIndices[0] != TriangleIndices[1] && TriangleIndices[0] != TriangleIndices[2] && TriangleIndices[1] != TriangleIndices[2])
@@ -202,24 +182,6 @@ namespace SkeletalMeshTools
 				}
 			}
 		}
-	}
-
-	int32 AddSkinVertex(TArray<FSoftSkinBuildVertex>& Vertices,FSoftSkinBuildVertex& Vertex, bool bKeepOverlappingVertices )
-	{
-		if (!bKeepOverlappingVertices)
-		{
-			for(uint32 VertexIndex = 0;VertexIndex < (uint32)Vertices.Num();VertexIndex++)
-			{
-				FSoftSkinBuildVertex&	OtherVertex = Vertices[VertexIndex];
-
-				if( AreSkelMeshVerticesEqual( Vertex, OtherVertex ) )
-				{
-					return VertexIndex; 
-				}
-			}
-		}
-
-		return Vertices.Add(Vertex);
 	}
 
 	void ChunkSkinnedVertices(TArray<FSkinnedMeshChunk*>& Chunks,int32 MaxBonesPerChunk)
@@ -335,11 +297,11 @@ namespace SkeletalMeshTools
 	/**
 	 * Copies data out of Model so that the data can be processed in the background.
 	 */
-	void CopySkinnedModelData(FSkinnedModelData& OutData, FStaticLODModel& Model)
+	void CopySkinnedModelData(FSkinnedModelData& OutData, FSkeletalMeshLODModel& Model)
 	{
 	#if WITH_EDITORONLY_DATA
 		Model.GetVertices(OutData.Vertices);
-		Model.MultiSizeIndexContainer.GetIndexBuffer(OutData.Indices);
+		OutData.Indices = Model.IndexBuffer;
 		if (Model.RawPointIndices.GetElementCount() == OutData.Vertices.Num())
 		{
 			OutData.RawPointIndices.Empty(Model.RawPointIndices.GetElementCount());
@@ -358,74 +320,6 @@ namespace SkeletalMeshTools
 		OutData.NumTexCoords = Model.NumTexCoords;
 	#endif // #if WITH_EDITORONLY_DATA
 	};
-
-	void UnchunkSkeletalModel(TArray<FSkinnedMeshChunk*>& Chunks, TArray<int32>& PointToOriginalMap, const FSkinnedModelData& SrcModel)
-	{
-	#if WITH_EDITORONLY_DATA
-		const TArray<FSoftSkinVertex>& SrcVertices = SrcModel.Vertices;
-		const TArray<uint32>& SrcIndices = SrcModel.Indices;
-		TArray<uint32> IndexMap;
-
-		check(Chunks.Num() == 0);
-		check(PointToOriginalMap.Num() == 0);
-
-		IndexMap.Empty(SrcVertices.Num());
-		IndexMap.AddUninitialized(SrcVertices.Num());
-		for (int32 SectionIndex = 0; SectionIndex < SrcModel.Sections.Num(); ++SectionIndex)
-		{
-			const FSkelMeshSection& Section = SrcModel.Sections[SectionIndex];
-			const TArray<FBoneIndexType>& BoneMap = SrcModel.BoneMaps[SectionIndex];
-			FSkinnedMeshChunk* DestChunk = Chunks.Num() ? Chunks.Last() : NULL;
-
-			if (DestChunk == NULL || DestChunk->MaterialIndex != Section.MaterialIndex)
-			{
-				DestChunk = new FSkinnedMeshChunk();
-				Chunks.Add(DestChunk);
-				DestChunk->MaterialIndex = Section.MaterialIndex;
-				DestChunk->OriginalSectionIndex = SectionIndex;
-
-				// When starting a new chunk reset the index map.
-				FMemory::Memset(IndexMap.GetData(),0xff,IndexMap.Num()*IndexMap.GetTypeSize());
-			}
-
-			int32 NumIndicesThisSection = Section.NumTriangles * 3;
-			for (uint32 SrcIndex = Section.BaseIndex; SrcIndex < Section.BaseIndex + NumIndicesThisSection; ++SrcIndex)
-			{
-				uint32 VertexIndex = SrcIndices[SrcIndex];
-				uint32 DestVertexIndex = IndexMap[VertexIndex];
-				if (DestVertexIndex == INDEX_NONE)
-				{
-					FSoftSkinBuildVertex NewVertex;
-					const FSoftSkinVertex& SrcVertex = SrcVertices[VertexIndex];
-					NewVertex.Position = SrcVertex.Position;
-					NewVertex.TangentX = SrcVertex.TangentX;
-					NewVertex.TangentY = SrcVertex.TangentY;
-					NewVertex.TangentZ = SrcVertex.TangentZ;
-					FMemory::Memcpy(NewVertex.UVs, SrcVertex.UVs, sizeof(FVector2D)*MAX_TEXCOORDS);
-					NewVertex.Color = SrcVertex.Color;
-					for (int32 i = 0; i < MAX_TOTAL_INFLUENCES; ++i)
-					{
-						uint8 BoneIndex = SrcVertex.InfluenceBones[i];
-						check(BoneMap.IsValidIndex(BoneIndex));
-						NewVertex.InfluenceBones[i] = BoneMap[BoneIndex];
-						NewVertex.InfluenceWeights[i] = SrcVertex.InfluenceWeights[i];
-					}
-					NewVertex.PointWedgeIdx = SrcModel.RawPointIndices.Num() ? SrcModel.RawPointIndices[VertexIndex] : 0;
-					int32 RawVertIndex = SrcModel.MeshToImportVertexMap.Num() ? SrcModel.MeshToImportVertexMap[VertexIndex] : INDEX_NONE;
-					if ((int32)NewVertex.PointWedgeIdx >= PointToOriginalMap.Num())
-					{
-						PointToOriginalMap.AddZeroed(NewVertex.PointWedgeIdx + 1 - PointToOriginalMap.Num());
-					}
-					PointToOriginalMap[NewVertex.PointWedgeIdx] = RawVertIndex;				
-					DestVertexIndex = AddSkinVertex(DestChunk->Vertices,NewVertex,/*bKeepOverlappingVertices=*/ false);
-					IndexMap[VertexIndex] = DestVertexIndex;
-				}
-				DestChunk->Indices.Add(DestVertexIndex);
-			}
-		}
-	#endif // #if WITH_EDITORONLY_DATA
-	}
-
 	
 	// Find the most dominant bone for each vertex
 	int32 GetDominantBoneIndex(FSoftSkinVertex* SoftVert)
@@ -448,7 +342,7 @@ namespace SkeletalMeshTools
 	
 	void CalcBoneVertInfos(USkeletalMesh* SkeletalMesh, TArray<FBoneVertInfo>& Infos, bool bOnlyDominant)
 	{
-		FSkeletalMeshResource* ImportedResource = SkeletalMesh->GetImportedResource();
+		FSkeletalMeshModel* ImportedResource = SkeletalMesh->GetImportedModel();
 		if (ImportedResource->LODModels.Num() == 0)
 			return;
 
@@ -458,7 +352,7 @@ namespace SkeletalMeshTools
 		Infos.Empty();
 		Infos.AddZeroed( SkeletalMesh->RefSkeleton.GetRawBoneNum() );
 
-		FStaticLODModel* LODModel = &ImportedResource->LODModels[0];
+		FSkeletalMeshLODModel* LODModel = &ImportedResource->LODModels[0];
 		for(int32 SectionIndex = 0; SectionIndex < LODModel->Sections.Num(); SectionIndex++)
 		{
 			FSkelMeshSection& Section = LODModel->Sections[SectionIndex];

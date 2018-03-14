@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreTypes.h"
+#include "Templates/Atomic.h"
 
 /**
  * Flags controlling [de]compression
@@ -47,12 +48,12 @@ enum ECompressionFlags
 
 struct FCompression
 {
-	/** Time spent compressing data in seconds. */
-	CORE_API static double CompressorTime;
+	/** Time spent compressing data in cycles. */
+	CORE_API static TAtomic<uint64> CompressorTimeCycles;
 	/** Number of bytes before compression.		*/
-	CORE_API static uint64 CompressorSrcBytes;
+	CORE_API static TAtomic<uint64> CompressorSrcBytes;
 	/** Number of bytes after compression.		*/
-	CORE_API static uint64 CompressorDstBytes;
+	CORE_API static TAtomic<uint64> CompressorDstBytes;
 
 	/**
 	 * Thread-safe abstract compression routine to query memory requirements for a compression operation.

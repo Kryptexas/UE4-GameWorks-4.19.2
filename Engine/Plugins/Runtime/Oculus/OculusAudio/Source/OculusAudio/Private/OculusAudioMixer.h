@@ -1,14 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "OVR_Audio.h"
-#include "XAudio2Device.h"
-#include "AudioEffect.h"
-#include "XAudio2Effects.h"
-#include "OculusAudioEffect.h"
-#include "Runtime/Windows/XAudio2/Private/XAudio2Support.h"
 #include "Misc/Paths.h"
 #include "OculusAudioDllManager.h"
+#include "OculusAudioSettings.h"
+#include "Containers/Ticker.h"
 
 /************************************************************************/
 /* OculusAudioSpatializationAudioMixer                                  */
@@ -21,26 +18,32 @@ public:
 	OculusAudioSpatializationAudioMixer();
 	~OculusAudioSpatializationAudioMixer();
 
+    void SetContext(ovrAudioContext* SharedContext);
+
 	//~ Begin IAudioSpatialization 
 	virtual void Initialize(const FAudioPluginInitializationParams InitializationParams) override;
 	virtual void Shutdown() override;
 	virtual bool IsSpatializationEffectInitialized() const override;
-	virtual void SetSpatializationParameters(uint32 VoiceId, const FSpatializationParams& InParams) override;
+    virtual void OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, USpatializationPluginSourceSettingsBase* InSettings) override;
+    virtual void SetSpatializationParameters(uint32 VoiceId, const FSpatializationParams& InParams) override;
 	virtual void ProcessAudio(const FAudioPluginSourceInputData& InputData, FAudioPluginSourceOutputData& OutputData) override;
-	//~ End IAudioSpatialization 
+	//~ End IAudioSpatialization
+
+	// Helper function to convert from UE coords to OVR coords.
+	static FVector ToOVRVector(const FVector& InVec)
+	{
+		return FVector(InVec.Y, InVec.Z, -InVec.X);
+	}
 
 private:
-	// Helper function to convert from UE coords to OVR coords.
-	FORCEINLINE FVector ToOVRVector(const FVector& InVec) const
-	{
-		return FVector(InVec.Y, -InVec.Z, -InVec.X);
-	}
+
+    void ApplyOculusAudioSettings(const UOculusAudioSettings* Settings);
 
 	// Whether or not the OVR audio context is initialized. We defer initialization until the first audio callback.
 	bool bOvrContextInitialized;
 
 	TArray<FSpatializationParams> Params;
 
-	// The OVR Audio context initialized to "Fast" algorithm.
-	ovrAudioContext OvrAudioContext;
+	ovrAudioContext* Context;
+    FAudioPluginInitializationParams InitParams;
 };

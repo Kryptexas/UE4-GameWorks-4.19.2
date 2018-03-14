@@ -1,0 +1,108 @@
+﻿INTSourceChangelist:3735117
+Availability:Public
+Crumbs: %ROOT%
+Title:物理アセット・エディタ - コンストレイント グラフ
+Description:物理アセット・エディタでコンストレイント グラフを使用する方法 
+Type:Reference
+Version:4.18
+Parent:Engine/Physics/PhAT/PhysicsAssetEditor
+Related:Engine/Physics/Constraints/ConstraintsReference
+Related:Engine/Physics/PhAT/PhysicsAssetEditor
+Related:Engine/Physics/PhAT/ToolsAndProfiles
+Order:
+Tags:Physics
+Tags:Animation
+
+
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+
+
+[TOC(start:2 end:3)]
+
+
+![](Graph.png)
+
+**コンストレイント グラフ** は、物理アセットで選択したボディ間のコンストレイントのリンケージを表します。以下の操作を行うことができます。
+
+* スケルタル階層でボディとコンストレイントを選択し表示する。
+* [右クリックで表示されるコンテキスト メニュー](Engine/Physics/PhAT/SkeletonTree#selectioncontextmenus) を使ってボディとコンストレイントを作成および編集する。
+* 引き出したピンをドラッグして、コンストレイントとつなぐ。
+* Physical Animation と Constraints にプロファイルを割り当てをする / 解除する。
+
+
+## スケルタル階層で選択したグラフの表示
+
+[Skeleton Tree](Engine/Physics/PhAT/SkeletonTree) でボディまたはコンストレイントが選択されると、選択中のボティまたはコンストレイントと関連性がグラフに表示されます。 
+
+![](GraphWithSkelSelection.png)
+[REGION:caption]
+Skeleton Tree でボディ [spine_03] が選択されると、グラフにはコンストレイントおよびそれらが接続しているボディが表示されます。
+[/REGION]
+
+### ボディ
+
+[ボディ](Engine/Physics/PhysicsBodies) が選択されると、グラフに以下の情報が表示されます。 
+
+* ボーン名
+* 使用しているプリミティブ形状数 
+
+![](BodyInfo.png)
+
+この例のボーン名は **「hand_l」**、プリミティブ形状は 1 つです。
+
+[REGION:note]
+右端の Body ノードをダブルクリックすると、階層の中を通ってそのボディとコンストレイントへ移動することができます。
+[/REGION]
+
+#### グラフでピンを引き出す接続方法
+
+ノードベースのグラフ表示では、メインとなる Body (一番左の **hand_l**) の出力ピンからドラッグし、選択メニューを使ってコンストレイントを作成するボディを選択することができるようになります。[Skeleton Tree](Engine/Physics/PhAT/SkeletonTree#selectioncontextmenus) を右クリックして表示されるコンテキスト メニューを使っても
+同じ結果が得られます。
+
+[REGION:imagetable]
+| ![](PinDragging01.png)(h:500) | ![](PinDragging02.png)(h:500) |
+| --- | --- |
+| Body 出力ピンを引き出して、リストから Body を選択する。 | 結果を反映したコンストレイント。 |
+[/REGION]
+
+[REGION:note]
+コンストレイントを作成または削除した後にグラフの更新が行われない場合は、クリックすれば反映されます。
+[/REGION]
+
+### コンストレイント
+
+[コンストレイント](Engine/Physics/Constraints/ConstraintsReference) が選択されると、グラフに以下の情報が表示されます。
+
+* 接続しているボーン名
+
+![](ConstraintInfo.png)
+
+この例のボーン名は **「lowerarm_l」** で **hand_l** に使用されるコンストレイントです。
+
+## プロファイルの割り当て
+
+グラフの中には、選択されたボディとコンストレイントが割り当てられる [プロファイル](Engine/Physics/PhAT/ToolsAndProfiles#currentprofileassignment) が表示されます。 
+
+作成および割り当てが可能なプロファイルは 2 タイプあります。ボディの割り当てる **Physical Animation** とコンストレイントを割り当てる Physical Animation です。プロファイルには、ボディとコンストレイントのプロパティのデフォルト値が含まれます。**[Profiles]** タブで **[Current Profile]** を 設定すると、グラフのノードはそこに表示されたボディとコンストレイントの割り当て状況を示します。
+
+ノードは色によって 2 つのステートで表示することができます。 
+
+* プロファイルに **割り当てられている**
+* プロファイルに **割り当てられていない** もしくは何も選択されていない
+
+
+**[Current Profile]** が選択されたボディあるいはコンストレイントに割り当てられたり、何も選択されていないと、ノードは塗りつぶされます (ボディは緑、コンストレイントはベージュ)。選択されたボディあるいはコンストレイントが [Current Profile] に割り当てられていないと、ノードは網掛けになります。 
+
+![](ProfileAssignment.png)
+
+今、**lowerarm_l** と **middle_01_l** はプロファイル **MyPhysicalAnimation_Profile** に割り当てられ、残りのボディ ノードはこの特定のプロファイルには割り当てられていません。
+従って色が網掛けになっています。 
+
+![](ProfileAssignmentNone.png)
+
+コンストレイントは [Current Profile] が **[None]** に設定されているので、コンストレイントと割り当てるプロファイルが選択されるまで、塗りつぶしは網掛けのままになります。
+
+[REGION:note]
+プロファイルの使用方法、およびボティとコンストレイントへの割り当て方法の詳細については、[ツールとプロファイル](Engine/Physics/PhAT/ToolsAndProfiles#currentprofileassignment) をご覧ください。
+[/REGION]

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AudioVolume.cpp: Used to affect audio settings in the game and editor.
@@ -49,6 +49,7 @@ bool FReverbSettings::operator==(const FReverbSettings& Other) const
 {
 	return (bApplyReverb == Other.bApplyReverb
 			&& ReverbEffect == Other.ReverbEffect
+			&& ReverbPluginEffect == Other.ReverbPluginEffect
 			&& Volume == Other.Volume
 			&& FadeTime == Other.FadeTime);
 }

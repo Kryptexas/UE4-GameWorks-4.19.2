@@ -3,7 +3,8 @@ Title:用户界面 & HUD
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description:为美术师和程序员提供的创建用户界面(比如菜单和HUD)相关的指南和信息。
 
-<!--
+[COMMENT:none]
+
 [REGION:header_img]
 ![hud.jpg](hud.jpg)
 [/REGION]
@@ -21,7 +22,8 @@ Description:为美术师和程序员提供的创建用户界面(比如菜单和H
 		* [](Programming/Slate) - %Programming/Slate:Description%
 	[/PARAM]
 [/OBJECT]
--->
+
+[/COMMENT]
 
 游戏和玩家通信及交互的方式是非常重要的。用户界面(UIs)和平视显示器(HUDs)是游戏给玩家提供游戏相关信息的方法，并且在某些情况下允许玩家和游戏交互。
 

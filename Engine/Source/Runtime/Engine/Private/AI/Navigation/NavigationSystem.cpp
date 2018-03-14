@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AI/Navigation/NavigationSystem.h"
 #include "Misc/ScopeLock.h"
@@ -1473,7 +1473,7 @@ void UNavigationSystem::GetNavAgentPropertiesArray(TArray<FNavAgentProperties>& 
 
 ANavigationData* UNavigationSystem::GetNavDataForProps(const FNavAgentProperties& AgentProperties)
 {
-	const UNavigationSystem* ConstThis = const_cast<const UNavigationSystem*>(this);
+	const UNavigationSystem* ConstThis = AsConst(this);
 	return const_cast<ANavigationData*>(ConstThis->GetNavDataForProps(AgentProperties));
 }
 

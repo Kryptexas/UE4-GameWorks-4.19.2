@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -258,6 +258,13 @@ struct FFoliagePaintingGeometryFilter
 // Number of buckets for layer weight histogram distribution.
 #define NUM_INSTANCE_BUCKETS 10
 
+enum class EFoliageEditingState : uint8
+{
+	Unknown,
+	Enabled,
+	PIEWorld,
+	SIEWorld,
+};
 /**
 * Foliage editor mode
 */
@@ -463,6 +470,18 @@ public:
 
 	/** Called on VR hovering */
 	void OnVRHoverUpdate(UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled);
+
+	/** Called as PIE ends */
+	void OnEndPIE(const bool bIsSimulating);
+
+	/** Return the current foliage editing state */
+	EFoliageEditingState GetEditingState() const;
+
+	/** Simgple wrapper to know if we can edit foliage based on edit state */
+	bool IsEditingEnabled() const
+	{
+		return GetEditingState() == EFoliageEditingState::Enabled;
+	}
 
 	typedef TMap<FName, TMap<ULandscapeComponent*, TArray<uint8> > > LandscapeLayerCacheData;
 

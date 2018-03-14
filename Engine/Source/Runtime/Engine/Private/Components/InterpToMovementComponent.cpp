@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/InterpToMovementComponent.h"
 #include "EngineDefines.h"
@@ -439,6 +439,8 @@ float UInterpToMovementComponent::GetSimulationTimeStep(float RemainingTime, int
 
 void UInterpToMovementComponent::BeginPlay()
 {
+	Super::BeginPlay();
+
 	FinaliseControlPoints();
 }
 

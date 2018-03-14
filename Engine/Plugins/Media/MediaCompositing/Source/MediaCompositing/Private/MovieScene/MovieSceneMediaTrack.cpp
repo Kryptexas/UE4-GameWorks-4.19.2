@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneMediaTrack.h"
 
+#include "MediaPlayer.h"
+#include "MediaSource.h"
 #include "MovieSceneMediaSection.h"
 #include "MovieSceneMediaTemplate.h"
+#include "UObject/Package.h"
+#include "UObject/UObjectGlobals.h"
 
 
 #define LOCTEXT_NAMESPACE "MovieSceneMediaTrack"
@@ -26,12 +30,28 @@ UMovieSceneMediaTrack::UMovieSceneMediaTrack(const FObjectInitializer& ObjectIni
 }
 
 
+/* UMovieSceneMediaTrack interface
+ *****************************************************************************/
+
+void UMovieSceneMediaTrack::AddNewMediaSource(UMediaSource& MediaSource, float Time)
+{
+	const float DefaultMediaSectionDuration = 1.0f;
+
+	UMovieSceneMediaSection* NewSection = NewObject<UMovieSceneMediaSection>(this);
+
+	NewSection->InitialPlacement(MediaSections, Time, Time + DefaultMediaSectionDuration, SupportsMultipleRows());
+	NewSection->SetMediaSource(&MediaSource);
+
+	MediaSections.Add(NewSection);
+}
+
+
 /* UMovieScenePropertyTrack interface
  *****************************************************************************/
 
 void UMovieSceneMediaTrack::AddSection(UMovieSceneSection& Section)
 {
-	Sections.AddUnique(&Section);
+	MediaSections.Add(&Section);
 }
 
 
@@ -43,13 +63,38 @@ UMovieSceneSection* UMovieSceneMediaTrack::CreateNewSection()
 
 const TArray<UMovieSceneSection*>& UMovieSceneMediaTrack::GetAllSections() const
 {
-	return Sections;
+	return MediaSections;
+}
+
+
+TRange<float> UMovieSceneMediaTrack::GetSectionBoundaries() const
+{
+	TArray<TRange<float>> Bounds;
+
+	for (int32 i = 0; i < MediaSections.Num(); ++i)
+	{
+		Bounds.Add(MediaSections[i]->GetRange());
+	}
+
+	return TRange<float>::Hull(Bounds);
+}
+
+
+bool UMovieSceneMediaTrack::HasSection(const UMovieSceneSection& Section) const
+{
+	return MediaSections.Contains(&Section);
+}
+
+
+bool UMovieSceneMediaTrack::IsEmpty() const
+{
+	return MediaSections.Num() == 0;
 }
 
 
 void UMovieSceneMediaTrack::RemoveSection(UMovieSceneSection& Section)
 {
-	Sections.Remove(&Section);
+	MediaSections.Remove(&Section);
 }
 
 
@@ -57,22 +102,6 @@ FMovieSceneEvalTemplatePtr UMovieSceneMediaTrack::CreateTemplateForSection(const
 {
 	return FMovieSceneMediaSectionTemplate(*CastChecked<const UMovieSceneMediaSection>(&InSection), *this);
 }
-
-
-#if WITH_EDITORONLY_DATA
-
-FText UMovieSceneMediaTrack::GetDefaultDisplayName() const
-{
-	return LOCTEXT("DefaultDisplayName", "Media Track");
-}
-
-
-FName UMovieSceneMediaTrack::GetTrackName() const
-{
-	return UniqueTrackName;
-}
-
-#endif
 
 
 #undef LOCTEXT_NAMESPACE

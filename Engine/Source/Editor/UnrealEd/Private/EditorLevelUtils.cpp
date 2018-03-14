@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 EditorLevelUtils.cpp: Editor-specific level management routines
@@ -209,7 +209,7 @@ int32 UEditorLevelUtils::MoveActorsToLevel(const TArray<AActor*>& ActorsToMove, 
 					
 				if (RenameData.Num() > 0)
 				{
-					AssetToolsModule.Get().RenameAssets(RenameData);
+					AssetToolsModule.Get().RenameAssetsWithDialog(RenameData);
 				}
 
 				// Restore new level visibility to previous state
@@ -618,6 +618,7 @@ bool UEditorLevelUtils::RemoveLevelFromWorld(ULevel* InLevel)
 			MakeLevelCurrent(OwningWorld->PersistentLevel);
 		}
 
+		FEditorSupportDelegates::PrepareToCleanseEditorObject.Broadcast(InLevel);
 
 		EditorDestroyLevel(InLevel);
 
@@ -776,7 +777,57 @@ void UEditorLevelUtils::DeselectAllSurfacesInLevel(ULevel* InLevel)
 	}
 }
 
-void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible, bool bForceLayersVisible)
+void UEditorLevelUtils::SetLevelVisibilityTemporarily(ULevel* Level, bool bShouldBeVisible)
+{
+	// Nothing to do
+	if (Level == NULL)
+	{
+		return;
+	}
+
+	// Set the visibility of each actor in the p-level
+	for (TArray<AActor*>::TIterator ActorIter(Level->Actors); ActorIter; ++ActorIter)
+	{
+		AActor* CurActor = *ActorIter;
+		if (CurActor && !FActorEditorUtils::IsABuilderBrush(CurActor) && CurActor->bHiddenEdLevel == bShouldBeVisible)
+		{
+			CurActor->bHiddenEdLevel = !bShouldBeVisible;
+			CurActor->MarkComponentsRenderStateDirty();
+		}
+	}
+
+	// Set the visibility of each BSP surface in the p-level
+	UModel* CurLevelModel = Level->Model;
+	if (CurLevelModel)
+	{
+		for (TArray<FBspSurf>::TIterator SurfaceIterator(CurLevelModel->Surfs); SurfaceIterator; ++SurfaceIterator)
+		{
+			FBspSurf& CurSurf = *SurfaceIterator;
+			CurSurf.bHiddenEdLevel = !bShouldBeVisible;
+		}
+	}
+
+	// Add/remove model components from the scene
+	for (int32 ComponentIndex = 0; ComponentIndex < Level->ModelComponents.Num(); ComponentIndex++)
+	{
+		UModelComponent* CurLevelModelCmp = Level->ModelComponents[ComponentIndex];
+		if (CurLevelModelCmp)
+		{
+			CurLevelModelCmp->MarkRenderStateDirty();
+		}
+	}
+
+	Level->GetWorld()->SendAllEndOfFrameUpdates();
+
+	Level->bIsVisible = bShouldBeVisible;
+
+	if (Level->bIsLightingScenario)
+	{
+		Level->OwningWorld->PropagateLightingScenarioChange();
+	}
+}
+
+void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible, bool bForceLayersVisible, ELevelVisibilityDirtyMode ModifyMode)
 {
 	// Nothing to do
 	if (Level == NULL)
@@ -791,7 +842,7 @@ void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible,
 	{
 		//create a transaction so we can undo the visibilty toggle
 		const FScopedTransaction Transaction(LOCTEXT("ToggleLevelVisibility", "Toggle Level Visibility"));
-		if (Level->bIsVisible != bShouldBeVisible)
+		if (Level->bIsVisible != bShouldBeVisible && ModifyMode == ELevelVisibilityDirtyMode::ModifyOnChange)
 		{
 			Level->Modify();
 		}
@@ -801,7 +852,11 @@ void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible,
 			AActor* CurActor = *PLevelActorIter;
 			if (CurActor && !FActorEditorUtils::IsABuilderBrush(CurActor) && CurActor->bHiddenEdLevel == bShouldBeVisible)
 			{
-				CurActor->Modify();
+				if (ModifyMode == ELevelVisibilityDirtyMode::ModifyOnChange)
+				{
+					CurActor->Modify();
+				}
+				
 				CurActor->bHiddenEdLevel = !bShouldBeVisible;
 				CurActor->RegisterAllComponents();
 				CurActor->MarkComponentsRenderStateDirty();
@@ -812,7 +867,11 @@ void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible,
 		UModel* CurLevelModel = Level->Model;
 		if (CurLevelModel)
 		{
-			CurLevelModel->Modify();
+			if (ModifyMode == ELevelVisibilityDirtyMode::ModifyOnChange)
+			{
+				CurLevelModel->Modify();
+			}
+
 			for (TArray<FBspSurf>::TIterator SurfaceIterator(CurLevelModel->Surfs); SurfaceIterator; ++SurfaceIterator)
 			{
 				FBspSurf& CurSurf = *SurfaceIterator;
@@ -854,11 +913,14 @@ void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible,
 		// Handle the case of a streaming level
 		if (StreamingLevel)
 		{
-			// We need to set the RF_Transactional to make a streaming level serialize itself. so store the original ones, set the flag, and put the original flags back when done
-			EObjectFlags cachedFlags = StreamingLevel->GetFlags();
-			StreamingLevel->SetFlags(RF_Transactional);
-			StreamingLevel->Modify();
-			StreamingLevel->SetFlags(cachedFlags);
+			if (ModifyMode == ELevelVisibilityDirtyMode::ModifyOnChange)
+			{
+				// We need to set the RF_Transactional to make a streaming level serialize itself. so store the original ones, set the flag, and put the original flags back when done
+				EObjectFlags cachedFlags = StreamingLevel->GetFlags();
+				StreamingLevel->SetFlags(RF_Transactional);
+				StreamingLevel->Modify();
+				StreamingLevel->SetFlags(cachedFlags);
+			}
 
 			// Set the visibility state for this streaming level.  
 			StreamingLevel->bShouldBeVisibleInEditor = bShouldBeVisible;
@@ -870,7 +932,7 @@ void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible,
 		}
 
 		// UpdateLevelStreaming sets Level->bIsVisible directly, so we need to make sure it gets saved to the transaction buffer.
-		if (Level->bIsVisible != bShouldBeVisible)
+		if (Level->bIsVisible != bShouldBeVisible && ModifyMode == ELevelVisibilityDirtyMode::ModifyOnChange)
 		{
 			Level->Modify();
 		}
@@ -924,7 +986,11 @@ void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible,
 					// Make the actor layer visible, if it's not already.
 					if (Actor->bHiddenEdLayer)
 					{
-						bModified = Actor->Modify();
+						if (ModifyMode == ELevelVisibilityDirtyMode::ModifyOnChange)
+						{
+							bModified = Actor->Modify();
+						}
+						
 						Actor->bHiddenEdLayer = false;
 					}
 
@@ -935,7 +1001,7 @@ void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible,
 				// Set the visibility of each actor in the streaming level
 				if (!FActorEditorUtils::IsABuilderBrush(Actor) && Actor->bHiddenEdLevel == bShouldBeVisible)
 				{
-					if (!bModified)
+					if (!bModified && ModifyMode == ELevelVisibilityDirtyMode::ModifyOnChange)
 					{
 						bModified = Actor->Modify();
 					}
@@ -960,7 +1026,7 @@ void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible,
 	GEngine->BroadcastLevelActorListChanged();
 
 	// If the level is being hidden, deselect actors and surfaces that belong to this level.
-	if (!bShouldBeVisible)
+	if (!bShouldBeVisible && ModifyMode == ELevelVisibilityDirtyMode::ModifyOnChange)
 	{
 		USelection* SelectedActors = GEditor->GetSelectedActors();
 		SelectedActors->Modify();
@@ -984,7 +1050,7 @@ void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible,
 
 	if (Level->bIsLightingScenario)
 	{
-		Level->OwningWorld->PropagateLightingScenarioChange(bShouldBeVisible);
+		Level->OwningWorld->PropagateLightingScenarioChange();
 	}
 }
 

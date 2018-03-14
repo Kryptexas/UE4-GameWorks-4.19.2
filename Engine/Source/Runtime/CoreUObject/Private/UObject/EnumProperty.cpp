@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "UObject/EnumProperty.h"
 #include "UObject/PropertyPortFlags.h"
@@ -6,6 +6,7 @@
 #include "PropertyTag.h"
 #include "Templates/ChooseClass.h"
 #include "Templates/IsSigned.h"
+#include "Algo/Find.h"
 
 namespace UE4EnumProperty_Private
 {
@@ -260,7 +261,7 @@ const TCHAR* UEnumProperty::ImportText_Internal(const TCHAR* InBuffer, void* Dat
 		if (const TCHAR* Buffer = UPropertyHelpers::ReadToken(InBuffer, Temp, true))
 		{
 			int32 EnumIndex = Enum->GetIndexByName(*Temp);
-			if (EnumIndex == INDEX_NONE && Temp.IsNumeric())
+			if (EnumIndex == INDEX_NONE && (Temp.IsNumeric() && !Algo::Find(Temp, TEXT('.'))))
 			{
 				int64 EnumValue = INDEX_NONE;
 				Lex::FromString(EnumValue, *Temp);

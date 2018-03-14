@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -64,6 +64,11 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("VoiceInt"), STAT_Voice_Interface, STATGROUP_Onli
 #define UE_LOG_ONLINE(Verbosity, Format, ...) \
 { \
 	UE_LOG(LogOnline, Verbosity, TEXT("%s%s"), ONLINE_LOG_PREFIX, *FString::Printf(Format, ##__VA_ARGS__)); \
+}
+
+#define UE_CLOG_ONLINE(Conditional, Verbosity, Format, ...) \
+{ \
+	UE_CLOG(Conditional, LogOnline, Verbosity, TEXT("%s%s"), ONLINE_LOG_PREFIX, *FString::Printf(Format, ##__VA_ARGS__)); \
 }
 
 /** Forward declarations of all interface classes */
@@ -146,8 +151,8 @@ public:
 	static IOnlineSubsystem* Get(const FName& SubsystemName = NAME_None)
 	{
 		static const FName OnlineSubsystemModuleName = TEXT("OnlineSubsystem");
-		FOnlineSubsystemModule& OSSModule = FModuleManager::GetModuleChecked<FOnlineSubsystemModule>(OnlineSubsystemModuleName); 
-		return OSSModule.GetOnlineSubsystem(SubsystemName); 
+		FOnlineSubsystemModule& OSSModule = FModuleManager::GetModuleChecked<FOnlineSubsystemModule>(OnlineSubsystemModuleName);
+		return OSSModule.GetOnlineSubsystem(SubsystemName);
 	}
 
 	/** 
@@ -245,6 +250,13 @@ public:
 		return false;
 	}
 
+	/** 
+	 * Determine if the subsystem for a given interface is enabled by config and command line
+	 * @param SubsystemName - Name of the requested online service
+	 * @return true if the subsystem is enabled by config
+	 */
+	static bool IsEnabled(const FName& SubsystemName);
+
 	/**
 	 * Return the name of the subsystem @see OnlineSubsystemNames.h
 	 *
@@ -260,6 +272,9 @@ public:
 	 * @return the instance name of this subsystem
 	 */
 	virtual FName GetInstanceName() const = 0;
+
+	/** @return true if the subsystem is enabled, false otherwise */
+	virtual bool IsEnabled() const = 0;
 
 	/** 
 	 * Get the interface for accessing the session management services

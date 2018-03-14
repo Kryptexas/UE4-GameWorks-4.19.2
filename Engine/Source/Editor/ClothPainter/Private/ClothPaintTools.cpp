@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ClothPaintTools.h"
 #include "ClothPaintSettings.h"
@@ -48,6 +48,17 @@ UObject* FClothPaintTool_Brush::GetSettingsObject()
 	}
 
 	return Settings;
+}
+
+bool FClothPaintTool_Brush::HasValueRange()
+{
+	return true;
+}
+
+void FClothPaintTool_Brush::GetValueRange(float& OutRangeMin, float& OutRangeMax)
+{
+	OutRangeMin = Settings->PaintValue;
+	OutRangeMax = OutRangeMin;
 }
 
 void FClothPaintTool_Brush::PaintAction(FPerVertexPaintActionArgs& InArgs, int32 VertexIndex, FMatrix InverseBrushMatrix)
@@ -126,7 +137,7 @@ void FClothPaintTool_Gradient::Render(USkeletalMeshComponent* InComponent, IMesh
 		return;
 	}
 
-	const float VertexPointSize = 3.0f;
+	const float VertexPointSize = GetDefault<UMeshPaintSettings>()->VertexPreviewSize;
 	const UClothPainterSettings* PaintSettings = CastChecked<UClothPainterSettings>(SharedPainter->GetPainterSettings());
 	const UPaintBrushSettings* BrushSettings = SharedPainter->GetBrushSettings();
 
@@ -141,7 +152,7 @@ void FClothPaintTool_Gradient::Render(USkeletalMeshComponent* InComponent, IMesh
 		InAdapter->GetVertexPosition(Index, Vertex);
 
 		const FVector WorldPositionVertex = ComponentToWorldMatrix.TransformPosition(Vertex);
-		PDI->DrawPoint(WorldPositionVertex, FLinearColor::Green, VertexPointSize * 2.0f, SDPG_World);
+		PDI->DrawPoint(WorldPositionVertex, FLinearColor::Green, VertexPointSize, SDPG_World);
 	}
 	
 	for (const int32& Index : GradientEndIndices)
@@ -150,7 +161,7 @@ void FClothPaintTool_Gradient::Render(USkeletalMeshComponent* InComponent, IMesh
 		InAdapter->GetVertexPosition(Index, Vertex);
 
 		const FVector WorldPositionVertex = ComponentToWorldMatrix.TransformPosition(Vertex);
-		PDI->DrawPoint(WorldPositionVertex, FLinearColor::Red, VertexPointSize * 2.0f, SDPG_World);
+		PDI->DrawPoint(WorldPositionVertex, FLinearColor::Red, VertexPointSize, SDPG_World);
 	}
 	
 	
@@ -182,7 +193,7 @@ void FClothPaintTool_Gradient::Render(USkeletalMeshComponent* InComponent, IMesh
 				for (const FVector& Vertex : InRangeVertices)
 				{
 					const FVector WorldPositionVertex = ComponentToWorldMatrix.TransformPosition(Vertex);
-					PDI->DrawPoint(WorldPositionVertex, bSelectingBeginPoints ? FLinearColor::Green : FLinearColor::Red, VertexPointSize * 2.0f, SDPG_Foreground);
+					PDI->DrawPoint(WorldPositionVertex, bSelectingBeginPoints ? FLinearColor::Green : FLinearColor::Red, VertexPointSize, SDPG_Foreground);
 				}
 			}
 		}
@@ -207,6 +218,9 @@ UObject* FClothPaintTool_Gradient::GetSettingsObject()
 
 void FClothPaintTool_Gradient::Activate(TWeakPtr<FUICommandList> InCommands)
 {
+	GradientStartIndices.Empty();
+	GradientEndIndices.Empty();
+
 	TSharedPtr<FUICommandList> SharedCommands = InCommands.Pin();
 	if(SharedCommands.IsValid())
 	{
@@ -228,6 +242,23 @@ void FClothPaintTool_Gradient::Deactivate(TWeakPtr<FUICommandList> InCommands)
 
 		SharedCommands->UnmapAction(Commands.ApplyGradient);
 	}
+}
+
+void FClothPaintTool_Gradient::OnMeshChanged()
+{
+	GradientStartIndices.Empty();
+	GradientEndIndices.Empty();
+}
+
+bool FClothPaintTool_Gradient::HasValueRange()
+{
+	return true;
+}
+
+void FClothPaintTool_Gradient::GetValueRange(float& OutRangeMin, float& OutRangeMax)
+{
+	OutRangeMin = FMath::Min(Settings->GradientStartValue, Settings->GradientEndValue);
+	OutRangeMax = FMath::Max(Settings->GradientStartValue, Settings->GradientEndValue);
 }
 
 void FClothPaintTool_Gradient::PaintAction(FPerVertexPaintActionArgs& InArgs, int32 VertexIndex, FMatrix InverseBrushMatrix)
@@ -605,7 +636,7 @@ void FClothPaintTool_Fill::Render(USkeletalMeshComponent* InComponent, IMeshPain
 		return;
 	}
 
-	const float VertexPointSize = 3.0f;
+	const float VertexPointSize = GetDefault<UMeshPaintSettings>()->VertexPreviewSize;
 	const UClothPainterSettings* PaintSettings = CastChecked<UClothPainterSettings>(SharedPainter->GetPainterSettings());
 	const UPaintBrushSettings* BrushSettings = SharedPainter->GetBrushSettings();
 
@@ -639,11 +670,22 @@ void FClothPaintTool_Fill::Render(USkeletalMeshComponent* InComponent, IMeshPain
 				for(const FVector& Vertex : InRangeVertices)
 				{
 					const FVector WorldPositionVertex = ComponentToWorldMatrix.TransformPosition(Vertex);
-					PDI->DrawPoint(WorldPositionVertex, FLinearColor::Green, VertexPointSize * 2.0f, SDPG_Foreground);
+					PDI->DrawPoint(WorldPositionVertex, FLinearColor::Green, VertexPointSize, SDPG_Foreground);
 				}
 			}
 		}
 	}
+}
+
+bool FClothPaintTool_Fill::HasValueRange()
+{
+	return true;
+}
+
+void FClothPaintTool_Fill::GetValueRange(float& OutRangeMin, float& OutRangeMax)
+{
+	OutRangeMin = Settings->FillValue;
+	OutRangeMax = OutRangeMin;
 }
 
 void FClothPaintTool_Fill::PaintAction(FPerVertexPaintActionArgs& InArgs, int32 VertexIndex, FMatrix InverseBrushMatrix)

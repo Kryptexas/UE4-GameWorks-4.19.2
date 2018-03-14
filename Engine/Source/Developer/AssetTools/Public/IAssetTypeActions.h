@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -104,4 +104,7 @@ public:
 
 	/** Collects the resolved source paths for the imported assets */
 	virtual void GetResolvedSourceFilePaths(const TArray<UObject*>& TypeAssets, TArray<FString>& OutSourceFilePaths) const = 0;
+
+	/** Builds the filter for this class*/
+	virtual void BuildBackendFilter(struct FARFilter& InFilter) = 0;
 };

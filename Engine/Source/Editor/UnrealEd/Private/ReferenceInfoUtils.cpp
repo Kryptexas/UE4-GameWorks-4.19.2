@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ReferenceInfoUtils.h"
 #include "HAL/FileManager.h"
@@ -476,7 +476,7 @@ namespace ReferenceInfoUtils
 		}
 
 		// Create a string for the resource size.
-		const SIZE_T ReferencedObjectResourceSize = ReferencedObject->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
+		const SIZE_T ReferencedObjectResourceSize = ReferencedObject->GetResourceSizeBytes(EResourceSizeMode::EstimatedTotal);
 		FString ResourceSizeString;
 		if ( ReferencedObjectResourceSize > 0 )
 		{

@@ -1,15 +1,28 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "GameFramework/SaveGame.h"
 #include "Math/Color.h" // for FLinearColor
 #include "MixedRealityCaptureComponent.h" // for FChromaKeyParams
+#include "MixedRealityCaptureDevice.h" // for FMRCaptureDeviceIndex
+#include "LensDistortionAPI.h" // for FLensDistortionCameraModel
 #include "MixedRealityConfigurationSaveGame.generated.h"
 
+USTRUCT(BlueprintType)
+struct FMRLensCalibrationData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadWrite, Category = Data)
+	float FOV = 90.f;
+
+	UPROPERTY(BlueprintReadWrite, Category = Data)
+	FLensDistortionCameraModel DistortionParameters;
+};
 
 USTRUCT(BlueprintType)
-struct FAlignmentSaveData
+struct FMRAlignmentSaveData
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -17,10 +30,10 @@ struct FAlignmentSaveData
 	FVector CameraOrigin = FVector::ZeroVector;
 
 	UPROPERTY(BlueprintReadWrite, Category = Data)
-	FVector LookAtDir = FVector::ForwardVector;
+	FVector LookAtDir = FVector::ForwardVector;	
 
 	UPROPERTY(BlueprintReadWrite, Category = Data)
-	float FOV = 90.f;
+	FName TrackingAttachmentId;
 };
 
 USTRUCT(BlueprintType)
@@ -33,7 +46,7 @@ struct FGarbageMatteSaveData
 };
 
 USTRUCT(BlueprintType)
-struct FCompositingSaveData
+struct FMRCompositingSaveData
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -41,17 +54,36 @@ struct FCompositingSaveData
 	FChromaKeyParams ChromaKeySettings;
 
 	UPROPERTY(BlueprintReadWrite, Category = Data)
-	FString CaptureDeviceURL;
+	FMRCaptureDeviceIndex CaptureDeviceURL;
 
 	UPROPERTY(BlueprintReadWrite, Category = Data)
 	float DepthOffset = 0.0f;
+};
+
+UCLASS(BlueprintType, Blueprintable, config = Engine)
+class MIXEDREALITYFRAMEWORK_API UMixedRealityCalibrationData : public USaveGame
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+	UPROPERTY(BlueprintReadWrite, Category = SaveData)
+	FMRLensCalibrationData LensData;
+
+	UPROPERTY(BlueprintReadWrite, Category = SaveData)
+	FMRAlignmentSaveData AlignmentData;
+
+	UPROPERTY(BlueprintReadWrite, Category = SaveData)
+	TArray<FGarbageMatteSaveData> GarbageMatteSaveDatas;
+
+	UPROPERTY(BlueprintReadWrite, Category = SaveData)
+	FMRCompositingSaveData CompositingData;
 };
 
 /**
  * 
  */
 UCLASS(BlueprintType, config = Engine)
-class MIXEDREALITYFRAMEWORK_API UMixedRealityConfigurationSaveGame : public USaveGame
+class MIXEDREALITYFRAMEWORK_API UMixedRealityConfigurationSaveGame : public UMixedRealityCalibrationData
 {
 	GENERATED_UCLASS_BODY()
 
@@ -66,16 +98,4 @@ public:
 	
 	UPROPERTY(BlueprintReadOnly, Category = SaveMetadata)
 	int32 ConfigurationSaveVersion;
-
-
-	// Configuration data that is saved
-
-	UPROPERTY(BlueprintReadWrite, Category = SaveData)
-	FAlignmentSaveData AlignmentData;
-
-	UPROPERTY(BlueprintReadWrite, Category = SaveData)
-	TArray<FGarbageMatteSaveData> GarbageMatteSaveDatas;
-
-	UPROPERTY(BlueprintReadWrite, Category = SaveData)
-	FCompositingSaveData CompositingData;
 };

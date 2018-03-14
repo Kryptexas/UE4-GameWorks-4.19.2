@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
@@ -11,18 +11,7 @@ public class UE4EditorServicesTarget : TargetRules
 		Type = TargetType.Program;
 		LinkType = TargetLinkType.Monolithic;
 		LaunchModuleName = "UE4EditorServices";
-	}
 
-	//
-	// TargetRules interface.
-	//
-
-	public override void SetupGlobalEnvironment(
-		TargetInfo Target,
-		ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
-		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
-		)
-	{
 		bCompileLeanAndMeanUE = true;
 		bUseMallocProfiler = false;
 
@@ -37,6 +26,6 @@ public class UE4EditorServicesTarget : TargetRules
 		bCompileAgainstCoreUObject = false;
 
 		// We still need to support old versions of the engine that are compatible with OS X 10.9
-		OutCPPEnvironmentConfiguration.bEnableOSX109Support = true;
+		bEnableOSX109Support = true;
 	}
 }

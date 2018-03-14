@@ -1,8 +1,9 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "SProjectLauncherSettings.h"
 
 #include "EditorStyleSet.h"
+#include "Styling/CoreStyle.h"
 #include "Framework/Commands/UICommandList.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Framework/MultiBox/MultiBoxDefs.h"
@@ -108,7 +109,7 @@ void SProjectLauncherSettings::Construct(const FArguments& InArgs, const TShared
 				.VAlign(VAlign_Top)
 				[
 					SNew(STextBlock)
-					.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
+					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 13))
 					.Text(LOCTEXT("ProjectSectionHeader", "Project"))
 				]
 
@@ -133,7 +134,7 @@ void SProjectLauncherSettings::Construct(const FArguments& InArgs, const TShared
 				.VAlign(VAlign_Top)
 				[
 					SNew(STextBlock)
-					.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
+					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 13))
 					.Text(LOCTEXT("BuildSectionHeader", "Build"))
 				]
 
@@ -157,7 +158,7 @@ void SProjectLauncherSettings::Construct(const FArguments& InArgs, const TShared
 				.VAlign(VAlign_Top)
 				[
 					SNew(STextBlock)
-					.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
+					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 13))
 					.Text(LOCTEXT("CookSectionHeader", "Cook"))
 				]
 
@@ -181,7 +182,7 @@ void SProjectLauncherSettings::Construct(const FArguments& InArgs, const TShared
 				.VAlign(VAlign_Top)
 				[
 					SNew(STextBlock)
-					.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
+					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 13))
 					.Text(LOCTEXT("PackageSectionHeader", "Package"))
 				]
 
@@ -205,7 +206,7 @@ void SProjectLauncherSettings::Construct(const FArguments& InArgs, const TShared
 				.VAlign(VAlign_Top)
 				[
 					SNew(STextBlock)
-					.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
+					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 13))
 					.Text(LOCTEXT("ArchiveSectionHeader", "Archive"))
 				]
 
@@ -229,7 +230,7 @@ void SProjectLauncherSettings::Construct(const FArguments& InArgs, const TShared
 				.VAlign(VAlign_Top)
 				[
 					SNew(STextBlock)
-					.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
+					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 13))
 					.Text(LOCTEXT("DeploySectionHeader", "Deploy"))
 				]
 
@@ -253,7 +254,7 @@ void SProjectLauncherSettings::Construct(const FArguments& InArgs, const TShared
 				.VAlign(VAlign_Top)
 				[
 					SNew(STextBlock)
-					.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
+					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 13))
 					.Text(LOCTEXT("LaunchSectionHeader", "Launch"))
 				]
 

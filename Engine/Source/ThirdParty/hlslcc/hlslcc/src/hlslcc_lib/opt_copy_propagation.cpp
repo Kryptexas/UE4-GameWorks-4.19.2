@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 // This code is modified from that in the Mesa3D Graphics library available at
 // http://mesa3d.org/
@@ -45,10 +45,53 @@
 #include "ir_optimization.h"
 #include "ir_rvalue_visitor.h"
 #include "glsl_types.h"
+#include "hash_table.h"
 
 static bool Debug = false;
 
-class acp_entry : public exec_node
+template<typename Class, size_t num>
+struct Pool
+{
+	void* mem_ctx;
+	exec_list FreeList;
+	
+	struct Type : public exec_node
+	{
+		Pool* PoolPtr;
+		
+		/* Callers of this ralloc-based new need not call delete. It's
+		 * easier to just ralloc_free 'ctx' (or any of its ancestors). */
+		static void* operator new(size_t size, void *ctx)
+		{
+			Pool* p = (Pool*)ctx;
+			void* v = p->FreeList.pop_head();
+			if (!v)
+			{
+				char* mem = (char*)ralloc_size(p->mem_ctx, size*num);
+				v = mem;
+				for (unsigned i = 1; i < num; i++)
+				{
+					Class* t = (Class*)(mem + (size * i));
+					p->FreeList.push_tail(t);
+				}
+			}
+			
+			Class* t = (Class*)v;
+			t->PoolPtr = p;
+			return v;
+		}
+		
+		/* If the user *does* call delete, that's OK, we will just
+		 * ralloc_free in that case. */
+		static void operator delete(void *node)
+		{
+			Class* t = (Class*)node;
+			t->PoolPtr->FreeList.push_tail(t);
+		}
+	};
+};
+
+class acp_entry : public Pool<acp_entry, 50>::Type
 {
 public:
 	acp_entry(ir_variable *lhs, ir_variable *rhs_var, ir_dereference_array *array_deref)
@@ -57,6 +100,7 @@ public:
 		this->lhs = lhs;
 		this->rhs_var = rhs_var;
 		this->array_deref = array_deref;
+		copy_entry = nullptr;
 	}
 
 	ir_variable* GetVariableReferenced()
@@ -67,10 +111,200 @@ public:
 	ir_variable *lhs;
 	ir_variable *rhs_var;
 	ir_dereference_array *array_deref;
+	acp_entry* copy_entry = nullptr;
+};
+
+struct acp_hash_entry : public Pool<acp_hash_entry, 50>::Type
+{
+	acp_entry* acp_entry;
+};
+
+unsigned acp_hash_table_pointer_hash(const void *key)
+{
+    return (unsigned)((uintptr_t)key >> 4);
+}
+
+struct acp_list : public Pool<acp_list, 50>::Type
+{
+	exec_list list;
+};
+
+class acp_hash_table
+{
+public:
+	acp_hash_table(void *imem_ctx)
+	: acp(nullptr)
+	, acp_ht(nullptr)
+	, mem_ctx(imem_ctx)
+	{
+		acp_pool.mem_ctx = imem_ctx;
+		acp_hash_pool.mem_ctx = imem_ctx;
+		acp_list_pool.mem_ctx = imem_ctx;
+		
+		this->acp = new(mem_ctx)exec_list;
+		this->acp_ht = hash_table_ctor(1543, acp_hash_table_pointer_hash, hash_table_pointer_compare);
+	}
+	
+	~acp_hash_table()
+	{
+		hash_table_dtor(acp_ht);
+	}
+	
+	static void copy_function(const void *key, void *data, void *closure)
+	{
+		acp_hash_table* ht = (acp_hash_table*)closure;
+		acp_list* list = new(&ht->acp_list_pool)acp_list;
+		hash_table_insert(ht->acp_ht, list, key);
+		acp_list* src_list = (acp_list*)data;
+		foreach_iter(exec_list_iterator, iter, src_list->list)
+		{
+			acp_hash_entry *entry = (acp_hash_entry *)iter.get();
+			acp_entry* a = entry->acp_entry;
+			if (a->get_next() && a->get_prev())
+			{
+				if(!a->copy_entry)
+				{
+					a->copy_entry = new(&ht->acp_pool) acp_entry(a->lhs, a->rhs_var, a->array_deref);
+					ht->acp->push_tail(a->copy_entry);
+				}
+				acp_hash_entry *b = new(&ht->acp_hash_pool) acp_hash_entry;
+				b->acp_entry = a->copy_entry;
+				list->list.push_tail(b);
+				if (Debug)
+				{
+					printf("ACP_Entry %d IF Block: LHS %d RHS_Var %d DeRef %d\n", ((ir_variable*)key)->id, a->lhs->id, a->rhs_var ? a->rhs_var->id : -1, a->array_deref ? a->array_deref->id : -1);
+				}
+			}
+		}
+	}
+	
+	static acp_hash_table* copy_for_if(acp_hash_table const& other)
+	{
+		acp_hash_table* ht = new acp_hash_table(other.mem_ctx);
+		
+		/* Populate the initial acp with a copy of the original */
+		hash_table_call_foreach(other.acp_ht, &copy_function, ht);
+		
+		foreach_iter(exec_list_iterator, iter, *other.acp)
+		{
+			acp_entry *a = (acp_entry *)iter.get();
+			a->copy_entry = nullptr;
+		}
+		return ht;
+	}
+	
+	static acp_hash_table* copy_for_loop_start(acp_hash_table const& other)
+	{
+		acp_hash_table* ht = new acp_hash_table(other.mem_ctx);
+		
+		/* Populate the initial acp with samplers & samplerstates so they propagate */
+		foreach_iter(exec_list_iterator, iter, *other.acp)
+		{
+			acp_entry *a = (acp_entry *)iter.get();
+			if (a->get_next() && a->get_prev())
+			{
+				auto* Var = a->GetVariableReferenced();
+				if (Var && Var->type && (Var->type->is_sampler() || Var->type->IsSamplerState()))
+				{
+					if (Debug)
+					{
+						printf("ACP_Entry LOOP Block: LHS %d RHS_Var %d DeRef %d\n", a->lhs->id, a->rhs_var ? a->rhs_var->id : -1, a->array_deref ? a->array_deref->id : -1);
+					}
+					ht->add_acp(new(&ht->acp_pool) acp_entry(a->lhs, a->rhs_var, a->array_deref));
+				}
+			}
+		}
+		return ht;
+	}
+	
+	static acp_hash_table* copy_for_loop_end(acp_hash_table const& other)
+	{
+		acp_hash_table* ht = new acp_hash_table(other.mem_ctx);
+		
+		/* Populate the initial acp with a copy of the original */
+		foreach_iter(exec_list_iterator, iter, *other.acp)
+		{
+			acp_entry *a = (acp_entry *)iter.get();
+			if (a->get_next() && a->get_prev())
+			{
+				if (Debug)
+				{
+					printf("ACP_Second Pass Loop Block: LHS %d RHS_Var %d DeRef %d\n", a->lhs->id, a->rhs_var ? a->rhs_var->id : -1, a->array_deref ? a->array_deref->id : -1);
+				}
+				ht->add_acp(new(&ht->acp_pool) acp_entry(a->lhs, a->rhs_var, a->array_deref));
+			}
+		}
+		return ht;
+	}
+	
+	void add_acp(acp_entry* entry)
+	{
+		acp->push_tail(entry);
+		if (entry->lhs)
+		{
+			add_acp_hash(entry->lhs, entry);
+		}
+		if (entry->rhs_var)
+		{
+			add_acp_hash(entry->rhs_var, entry);
+		}
+		if (entry->array_deref && entry->array_deref->variable_referenced())
+		{
+			add_acp_hash(entry->array_deref->variable_referenced(), entry);
+		}
+	}
+	
+	void add_acp_hash(ir_variable* var, acp_entry* entry)
+	{
+		acp_hash_entry* he = new (&acp_hash_pool)acp_hash_entry;
+		he->acp_entry = entry;
+		acp_list* entries = (acp_list*)hash_table_find(acp_ht, var);
+		if (!entries)
+		{
+			entries = new (&acp_list_pool)acp_list;
+			hash_table_insert(acp_ht, entries, var);
+		}
+		bool bFound = false;
+		foreach_iter(exec_list_iterator, iter, entries->list)
+		{
+			acp_hash_entry *old_entry = (acp_hash_entry *)iter.get();
+			acp_entry* a = old_entry->acp_entry;
+			if (entry == a || (entry->lhs == a->lhs && entry->rhs_var == a->rhs_var && entry->array_deref == a->array_deref))
+			{
+				bFound = true;
+				break;
+			}
+		}
+		if (!bFound)
+		{
+			entries->list.push_tail(he);
+		}
+	}
+	
+	acp_list* find_acp_hash_entry_list(ir_variable* var)
+	{
+		return (acp_list*)hash_table_find(acp_ht, var);
+	}
+	
+	void make_empty()
+	{
+		acp->make_empty();
+		hash_table_clear(acp_ht);
+	}
+	
+	Pool<acp_entry, 50> acp_pool;
+	Pool<acp_hash_entry, 50> acp_hash_pool;
+	Pool<acp_list, 50> acp_list_pool;
+	
+private:
+	/** List of acp_entry: The available copies to propagate */
+	exec_list *acp;
+	hash_table* acp_ht;
+	void *mem_ctx;
 };
 
 
-class kill_entry : public exec_node
+class kill_entry : public Pool<kill_entry, 50>::Type
 {
 public:
 	kill_entry(ir_variable *var)
@@ -84,17 +318,21 @@ public:
 
 class ir_copy_propagation_visitor : public ir_rvalue_visitor
 {
+	Pool<kill_entry, 50> KillPool;
+	
 public:
 	ir_copy_propagation_visitor()
 	{
 		progress = false;
 		mem_ctx = ralloc_context(0);
-		this->acp = new(mem_ctx)exec_list;
+		KillPool.mem_ctx = mem_ctx;
+		this->acp = new acp_hash_table(mem_ctx);
 		this->kills = new(mem_ctx)exec_list;
 		this->killed_all = false;
 	}
 	~ir_copy_propagation_visitor()
 	{
+		delete acp;
 		ralloc_free(mem_ctx);
 	}
 
@@ -111,7 +349,7 @@ public:
 	void handle_if_block(exec_list *instructions);
 
 	/** List of acp_entry: The available copies to propagate */
-	exec_list *acp;
+	acp_hash_table *acp;
 	/**
 	* List of kill_entry: The variables whose values were killed in this
 	* block.
@@ -131,16 +369,18 @@ ir_visitor_status ir_copy_propagation_visitor::visit_enter(ir_function_signature
 	* block.  Any instructions at global scope will be shuffled into
 	* main() at link time, so they're irrelevant to us.
 	*/
-	exec_list *orig_acp = this->acp;
+	acp_hash_table *orig_acp = this->acp;
 	exec_list *orig_kills = this->kills;
 	bool orig_killed_all = this->killed_all;
 
-	this->acp = new(mem_ctx)exec_list;
+	this->acp = new acp_hash_table(mem_ctx);
 	this->kills = new(mem_ctx)exec_list;
 	this->killed_all = false;
 
 	visit_list_elements(this, &ir->body);
 
+	delete acp;
+	
 	this->kills = orig_kills;
 	this->acp = orig_acp;
 	this->killed_all = orig_killed_all;
@@ -184,35 +424,40 @@ void ir_copy_propagation_visitor::handle_rvalue(ir_rvalue **rvalue)
 		ir_dereference_variable *deref_var = (ir_dereference_variable*)(*rvalue);
 		ir_variable *var = deref_var->var;
 
-		foreach_iter(exec_list_iterator, iter, *this->acp)
+		acp_list* var_list = acp->find_acp_hash_entry_list(var);
+		if (var_list)
 		{
-			acp_entry *entry = (acp_entry *)iter.get();
-			if (var == entry->lhs)
+			foreach_iter(exec_list_iterator, iter, var_list->list)
 			{
-				if (entry->rhs_var)
+				acp_hash_entry* he = (acp_hash_entry*)iter.get();
+				acp_entry *entry = he->acp_entry;
+				if (var == entry->lhs && entry->get_next() && entry->get_prev())
 				{
-					if (Debug)
+					if (entry->rhs_var)
 					{
-						printf("Change DeRef %d to %d\n", deref_var->id, entry->rhs_var->id);
-					}
+						if (Debug)
+						{
+							printf("Change DeRef %d to %d\n", deref_var->id, entry->rhs_var->id);
+						}
 
-					// This is a full variable copy, so just change the dereference's variable.
-					deref_var->var = entry->rhs_var;
-					this->progress = true;
-					break;
-				}
-				else if (entry->array_deref)
-				{
-					if (Debug)
+						// This is a full variable copy, so just change the dereference's variable.
+						deref_var->var = entry->rhs_var;
+						this->progress = true;
+						break;
+					}
+					else if (entry->array_deref)
 					{
-						printf("Replace ArrayDeRef %d to %d\n", deref_var->id, entry->array_deref->id);
-					}
+						if (Debug)
+						{
+							printf("Replace ArrayDeRef %d to %d\n", deref_var->id, entry->array_deref->id);
+						}
 
-					// Propagate the array deref by replacing this variable deref with a clone of the array deref.
-					void *ctx = ralloc_parent(*rvalue);
-					*rvalue = entry->array_deref->clone(ctx, 0);
-					this->progress = true;
-					break;
+						// Propagate the array deref by replacing this variable deref with a clone of the array deref.
+						void *ctx = ralloc_parent(*rvalue);
+						*rvalue = entry->array_deref->clone(ctx, 0);
+						this->progress = true;
+						break;
+					}
 				}
 			}
 		}
@@ -224,35 +469,40 @@ void ir_copy_propagation_visitor::handle_rvalue(ir_rvalue **rvalue)
 		if (DeRefVar)
 		{
 			ir_variable *var = DeRefVar->var;
-			foreach_iter(exec_list_iterator, iter, *this->acp)
+			acp_list* var_list = acp->find_acp_hash_entry_list(var);
+			if (var_list)
 			{
-				acp_entry *entry = (acp_entry *)iter.get();
-				if (var == entry->lhs)
+				foreach_iter(exec_list_iterator, iter, var_list->list)
 				{
-					if (entry->rhs_var)
+					acp_hash_entry* he = (acp_hash_entry*)iter.get();
+					acp_entry *entry = he->acp_entry;
+					if (var == entry->lhs && entry->get_next() && entry->get_prev())
 					{
-						if (Debug)
+						if (entry->rhs_var)
 						{
-							printf("Change Texture DeRef %d to %d\n", DeRefVar->id, entry->rhs_var->id);
-						}
+							if (Debug)
+							{
+								printf("Change Texture DeRef %d to %d\n", DeRefVar->id, entry->rhs_var->id);
+							}
 
-						// This is a full variable copy, so just change the dereference's variable.
-						DeRefVar->var = entry->rhs_var;
-						this->progress = true;
-						break;
-					}
-					else if (entry->array_deref)
-					{
-						if (Debug)
+							// This is a full variable copy, so just change the dereference's variable.
+							DeRefVar->var = entry->rhs_var;
+							this->progress = true;
+							break;
+						}
+						else if (entry->array_deref)
 						{
-							printf("Replace ArrayDeRef %d to %d\n", DeRefVar->id, entry->array_deref->id);
-						}
+							if (Debug)
+							{
+								printf("Replace ArrayDeRef %d to %d\n", DeRefVar->id, entry->array_deref->id);
+							}
 
-						// Propagate the array deref by replacing this variable deref with a clone of the array deref.
-						void *ctx = ralloc_parent(*rvalue);
-						*rvalue = entry->array_deref->clone(ctx, 0);
-						this->progress = true;
-						break;
+							// Propagate the array deref by replacing this variable deref with a clone of the array deref.
+							void *ctx = ralloc_parent(*rvalue);
+							*rvalue = entry->array_deref->clone(ctx, 0);
+							this->progress = true;
+							break;
+						}
 					}
 				}
 			}
@@ -294,24 +544,14 @@ ir_visitor_status ir_copy_propagation_visitor::visit_enter(ir_call *ir)
 
 void ir_copy_propagation_visitor::handle_if_block(exec_list *instructions)
 {
-	exec_list *orig_acp = this->acp;
+	acp_hash_table *orig_acp = this->acp;
 	exec_list *orig_kills = this->kills;
 	bool orig_killed_all = this->killed_all;
 
-	this->acp = new(mem_ctx)exec_list;
+	/* Populate the initial acp with a copy of the original */
+	this->acp = acp_hash_table::copy_for_if(*acp);
 	this->kills = new(mem_ctx)exec_list;
 	this->killed_all = false;
-
-	/* Populate the initial acp with a copy of the original */
-	foreach_iter(exec_list_iterator, iter, *orig_acp)
-	{
-		acp_entry *a = (acp_entry *)iter.get();
-		if (Debug)
-		{
-			printf("ACP_Entry IF Block: LHS %d RHS_Var %d DeRef %d\n", a->lhs->id, a->rhs_var ? a->rhs_var->id : -1, a->array_deref ? a->array_deref->id : -1);
-		}
-		this->acp->push_tail(new(this->mem_ctx) acp_entry(a->lhs, a->rhs_var, a->array_deref));
-	}
 
 	visit_list_elements(this, instructions);
 
@@ -320,6 +560,8 @@ void ir_copy_propagation_visitor::handle_if_block(exec_list *instructions)
 		orig_acp->make_empty();
 	}
 
+	delete acp;
+	
 	exec_list *new_kills = this->kills;
 	this->kills = orig_kills;
 	this->acp = orig_acp;
@@ -345,7 +587,7 @@ ir_visitor_status ir_copy_propagation_visitor::visit_enter(ir_if *ir)
 
 ir_visitor_status ir_copy_propagation_visitor::visit_enter(ir_loop *ir)
 {
-	exec_list *orig_acp = this->acp;
+	acp_hash_table *orig_acp = this->acp;
 	exec_list *orig_kills = this->kills;
 	bool orig_killed_all = this->killed_all;
 
@@ -353,24 +595,10 @@ ir_visitor_status ir_copy_propagation_visitor::visit_enter(ir_loop *ir)
 	* We could go through once, then go through again with the acp
 	* cloned minus the killed entries after the first run through.
 	*/
-	this->acp = new(mem_ctx)exec_list;
+	/* Populate the initial acp with samplers & samplerstates so they propagate */
+	this->acp = acp_hash_table::copy_for_loop_start(*acp);
 	this->kills = new(mem_ctx)exec_list;
 	this->killed_all = false;
-
-	/* Populate the initial acp with samplers & samplerstates so they propagate */
-	foreach_iter(exec_list_iterator, iter, *orig_acp)
-	{
-		acp_entry *a = (acp_entry *)iter.get();
-		auto* Var = a->GetVariableReferenced();
-		if (Var && Var->type && (Var->type->is_sampler() || Var->type->IsSamplerState()))
-		{
-			if (Debug)
-			{
-				printf("ACP_Entry LOOP Block: LHS %d RHS_Var %d DeRef %d\n", a->lhs->id, a->rhs_var ? a->rhs_var->id : -1, a->array_deref ? a->array_deref->id : -1);
-			}
-			this->acp->push_tail(new(this->mem_ctx) acp_entry(a->lhs, a->rhs_var, a->array_deref));
-		}
-	}
 
 	visit_list_elements(this, &ir->body_instructions);
 
@@ -379,6 +607,7 @@ ir_visitor_status ir_copy_propagation_visitor::visit_enter(ir_loop *ir)
 		orig_acp->make_empty();
 	}
 
+	delete acp;
 
 	exec_list *new_kills = this->kills;
 	this->kills = orig_kills;
@@ -394,21 +623,13 @@ ir_visitor_status ir_copy_propagation_visitor::visit_enter(ir_loop *ir)
 	/* Now retraverse with a safe acp list*/
 	if (!this->killed_all)
 	{
-		this->acp = new(mem_ctx)exec_list;
+		this->acp = acp_hash_table::copy_for_loop_end(*acp);
 		this->kills = new(mem_ctx)exec_list;
-
-		foreach_iter(exec_list_iterator, iter, *orig_acp)
-		{
-			acp_entry *a = (acp_entry *)iter.get();
-			if (Debug)
-			{
-				printf("ACP_Second Pass Loop Block: LHS %d RHS_Var %d DeRef %d\n", a->lhs->id, a->rhs_var ? a->rhs_var->id : -1, a->array_deref ? a->array_deref->id : -1);
-			}
-			this->acp->push_tail(new(this->mem_ctx) acp_entry(a->lhs, a->rhs_var, a->array_deref));
-		}
 
 		visit_list_elements(this, &ir->body_instructions);
 
+		delete acp;
+		
 		this->kills = orig_kills;
 		this->acp = orig_acp;
 	}
@@ -422,15 +643,29 @@ void ir_copy_propagation_visitor::kill(ir_variable *var)
 	check(var != NULL);
 
 	/* Remove any entries currently in the ACP for this kill. */
-	foreach_iter(exec_list_iterator, iter, *acp)
+	acp_list* list = acp->find_acp_hash_entry_list(var);
+	if (list)
 	{
-		acp_entry *entry = (acp_entry *)iter.get();
-
-		if (entry->lhs == var || (entry->rhs_var && entry->rhs_var == var) || (entry->array_deref && entry->array_deref->variable_referenced() == var))
+		foreach_iter(exec_list_iterator, iter, list->list)
 		{
-			entry->remove();
+			acp_hash_entry *he = (acp_hash_entry *)iter.get();
+			acp_entry* entry = he->acp_entry;
+			if (entry->lhs == var || (entry->rhs_var && entry->rhs_var == var) || (entry->array_deref && entry->array_deref->variable_referenced() == var))
+			{
+                if (entry->get_next() && entry->get_prev())
+                {
+                    if (Debug)
+                    {
+                        printf("Remove_Entry: Var %d LHS %d RHS %d ArrayDeref %d\n", var->id, entry->lhs->id, entry->rhs_var ? entry->rhs_var->id : -1, entry->array_deref ? entry->array_deref->id : -1);
+                    }
+                    entry->remove();
+                }
+                he->remove();
+			}
 		}
 	}
+	
+	
 
 	/* Add the LHS variable to the list of killed variables in this block.
 	*/
@@ -439,7 +674,7 @@ void ir_copy_propagation_visitor::kill(ir_variable *var)
 		printf("Kill_Entry: Var %d\n", var->id);
 	}
 
-	this->kills->push_tail(new(this->mem_ctx) kill_entry(var));
+	this->kills->push_tail(new(&this->KillPool) kill_entry(var));
 }
 
 /**
@@ -477,8 +712,8 @@ void ir_copy_propagation_visitor::add_copy(ir_assignment *ir)
 			{
 				printf("ACP_Entry Assign %d Block: LHS %d RHS_Var %d\n", ir->id, lhs_var->id, rhs_var->id);
 			}
-			entry = new(this->mem_ctx) acp_entry(lhs_var, rhs_var, 0);
-			this->acp->push_tail(entry);
+			entry = new(&acp->acp_pool) acp_entry(lhs_var, rhs_var, 0);
+			acp->add_acp(entry);
 		}
 	}
 	else if (lhs_var && array_deref)
@@ -507,8 +742,8 @@ void ir_copy_propagation_visitor::add_copy(ir_assignment *ir)
 				{
 					printf("ACP_Entry Assign Block: LHS %d ArrayDeref %d [%d] \n", lhs_var->id, array_var_deref->id, const_array_index->id);
 				}
-				entry = new(this->mem_ctx) acp_entry(lhs_var, 0, new_array_deref);
-				this->acp->push_tail(entry);
+				entry = new(&acp->acp_pool) acp_entry(lhs_var, 0, new_array_deref);
+				acp->add_acp(entry);
 			}
 		}
 	}

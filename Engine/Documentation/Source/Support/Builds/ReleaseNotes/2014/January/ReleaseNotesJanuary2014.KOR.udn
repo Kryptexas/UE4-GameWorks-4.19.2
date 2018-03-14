@@ -1,4 +1,4 @@
-INTSourceChangelist:3367470
+INTSourceChangelist:3782314
 Title: January 2014 Release Notes
 Crumbs:%ROOT%, Support/Builds
 Description:
@@ -21,13 +21,15 @@ Order:-2
 | **DirectX** | June 2010 |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:Labels]
 QA_APPROVED_UE4_BUILD_2014_01  
 QA_APPROVED_UE4_BUILD_CURRENT  
 QA_APPROVED_UE4_BUILD_MINIMUM
 [/EXCERPT:Labels]
--->
+
+[/COMMENT]
 
 ## Important information
 

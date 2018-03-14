@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EditorBuildUtils.cpp: Utilities for building in the editor
@@ -361,6 +361,8 @@ bool FEditorBuildUtils::EditorBuild( UWorld* InWorld, FName Id, const bool bAllo
 			GUnrealEd->BuildLighting( LightingBuildOptions );
 			bShouldMapCheck = false;
 		}
+
+		bDirtyPersistentLevel = false;
 	}
 	else if (Id == FBuildOptions::BuildAIPaths)
 	{
@@ -1059,7 +1061,7 @@ void FBuildAllHandler::BuildFinished()
 void FEditorBuildUtils::TriggerHierarchicalLODBuilder(UWorld* InWorld, FName Id)
 {
 	// Invoke HLOD generator, with either preview or full build
-	InWorld->HierarchicalLODBuilder->BuildMeshesForLODActors();
+	InWorld->HierarchicalLODBuilder->BuildMeshesForLODActors(false);
 }
 
 bool FEditorBuildUtils::EditorBuildTextureStreaming(UWorld* InWorld, EViewModeIndex SelectedViewMode)

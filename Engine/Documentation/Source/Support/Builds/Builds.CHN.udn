@@ -79,33 +79,23 @@ engine
 [/PUBLISH:Rocket]
 
 [PUBLISH:Licensee]
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-	2015
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 2015
+
+[REGION:buttonlist]
+
 	* [](Support/Builds/ReleaseNotes/2016/4_12)
 	* [](Support/Builds/ReleaseNotes/2016/4_11)
 	* [](Support/Builds/ReleaseNotes/2015/4_10)
 	* [](Support/Builds/ReleaseNotes/2015/4_9)
 	* [](Support/Builds/ReleaseNotes/2015/4_8)
 	* [](Support/Builds/ReleaseNotes/2015/4_7)
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-	2014
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 2014
+
+[REGION:buttonlist]
+
 	* [](Support/Builds/ReleaseNotes/2014/4_6)
 	* [](Support/Builds/ReleaseNotes/2014/4_5)
 	* [](Support/Builds/ReleaseNotes/2014/4_4)
@@ -114,18 +104,13 @@ engine
 	* [](Support/Builds/ReleaseNotes/2014/4_1)
 	* [](Support/Builds/ReleaseNotes/2014/March)
 	* [](Support/Builds/ReleaseNotes/2014/January)
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-	[/PARAM]
-	[PARAM:title]
-	2013
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
+## 2013
+
+[REGION:buttonlist]
+
 	* [](Support/Builds/ReleaseNotes/2013/Dec)
 	* [](Support/Builds/ReleaseNotes/2013/Oct)
 	* [](Support/Builds/ReleaseNotes/2013/Sept)
@@ -133,6 +118,6 @@ engine
 	* [](Support/Builds/ReleaseNotes/2013/July)
 	* [](Support/Builds/ReleaseNotes/2013/June)
 	* [](Support/Builds/ReleaseNotes/2013/May)
-	[/PARAM]
-[/OBJECT]
+	
+[/REGION]
 [/PUBLISH:Licensee]

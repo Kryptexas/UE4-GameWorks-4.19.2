@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 TextureInstanceManager.h: Definitions of classes used for texture streaming.
@@ -26,10 +26,11 @@ public:
 	virtual void Refresh(float Percentage) = 0;
 
 	/** Add a component streaming data, the LevelContext gives support for precompiled data. */
-	virtual bool Add(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext) = 0;
+
+	virtual EAddComponentResult Add(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext, float MaxAllowedUIDensity) = 0;
 
 	/** Remove a component, the RemoveTextures is the list of textures not referred anymore. */
-	virtual void Remove(const UPrimitiveComponent* Component, FRemovedTextureArray& RemovedTextures) = 0;
+	virtual void Remove(const UPrimitiveComponent* Component, FRemovedTextureArray* RemovedTextures) = 0;
 
 	/** Notify the manager that an async view will be requested on the next frame. */
 	virtual void PrepareAsyncView() = 0;

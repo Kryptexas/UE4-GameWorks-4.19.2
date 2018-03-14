@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
@@ -21,19 +21,7 @@ public class CrashReportClientTarget : TargetRules
 		}
 
         bOutputPubliclyDistributable = true;
-    }
 
-	//
-	// TargetRules interface.
-	//
-
-
-    public override void SetupGlobalEnvironment(
-		TargetInfo Target,
-		ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
-		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
-		)
-	{
 		bCompileLeanAndMeanUE = true;
 
 		// Don't need editor
@@ -54,13 +42,13 @@ public class CrashReportClientTarget : TargetRules
 
 		// CrashReportClient.exe has no exports, so no need to verify that a .lib and .exp file was emitted by
 		// the linker.
-		OutLinkEnvironmentConfiguration.bHasExports = false;
+		bHasExports = false;
 
 		bUseChecksInShipping = true;
 
 		// Epic Games Launcher needs to run on OS X 10.9, so CrashReportClient needs this as well
-		OutCPPEnvironmentConfiguration.bEnableOSX109Support = true;
+		bEnableOSX109Support = true;
 
-		OutCPPEnvironmentConfiguration.Definitions.Add("NOINITCRASHREPORTER=1");
+		GlobalDefinitions.Add("NOINITCRASHREPORTER=1");
 	}
 }

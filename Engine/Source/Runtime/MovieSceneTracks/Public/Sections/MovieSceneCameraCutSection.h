@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,6 +7,8 @@
 #include "Misc/Guid.h"
 #include "Curves/KeyHandle.h"
 #include "MovieSceneSection.h"
+#include "SequencerObjectVersion.h"
+#include "MovieSceneObjectBindingID.h"
 #include "MovieSceneCameraCutSection.generated.h"
 
 
@@ -23,19 +25,34 @@ public:
 	UMovieSceneCameraCutSection(const FObjectInitializer& Init)
 		: Super(Init)
 	{
-		EvalOptions.EnableAndSetCompletionMode(EMovieSceneCompletionMode::RestoreState);
+		EvalOptions.EnableAndSetCompletionMode
+			(GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToProjectDefault ? 
+				EMovieSceneCompletionMode::RestoreState : 
+				EMovieSceneCompletionMode::ProjectDefault);
 	}
 
-	/** Gets the camera guid for this CameraCut section */
+	DEPRECATED(4.18, "Camera guid no longer supported, Use GetCameraBindingID.")
 	FGuid GetCameraGuid() const
 	{
-		return CameraGuid;
+		return FGuid();
 	}
 
-	/** Sets the camera guid for this CameraCut section */
+	/** Sets the camera binding for this CameraCut section. Evaluates from the sequence binding ID */
 	void SetCameraGuid(const FGuid& InGuid)
 	{
-		CameraGuid = InGuid;
+		SetCameraBindingID(FMovieSceneObjectBindingID(InGuid, MovieSceneSequenceID::Root, EMovieSceneObjectBindingSpace::Local));
+	}
+
+	/** Gets the camera binding for this CameraCut section */
+	const FMovieSceneObjectBindingID& GetCameraBindingID() const
+	{
+		return CameraBindingID;
+	}
+
+	/** Sets the camera binding for this CameraCut section */
+	void SetCameraBindingID(const FMovieSceneObjectBindingID& InCameraBindingID)
+	{
+		CameraBindingID = InCameraBindingID;
 	}
 
 	virtual FMovieSceneEvalTemplatePtr GenerateTemplate() const override;
@@ -45,11 +62,18 @@ public:
 	virtual void SetKeyTime(FKeyHandle KeyHandle, float Time) override { }
 	virtual void OnBindingsUpdated(const TMap<FGuid, FGuid>& OldGuidToNewGuidMap) override;
 
+	/** ~UObject interface */
+	virtual void PostLoad() override;
+
 private:
 
 	/** The camera possessable or spawnable that this movie CameraCut uses */
 	UPROPERTY()
-	FGuid CameraGuid;
+	FGuid CameraGuid_DEPRECATED;
+
+	/** The camera binding that this movie CameraCut uses */
+	UPROPERTY(EditAnywhere, Category="Section")
+	FMovieSceneObjectBindingID CameraBindingID;
 
 #if WITH_EDITORONLY_DATA
 public:

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_GetInputAxisValue.h"
 #include "GameFramework/Actor.h"
@@ -82,7 +82,7 @@ void UK2Node_GetInputAxisValue::ValidateNodeDuringCompilation(class FCompilerRes
 	GetDefault<UInputSettings>()->GetAxisNames(AxisNames);
 	if (!AxisNames.Contains(InputAxisName))
 	{
-		MessageLog.Warning(*FString::Printf(*NSLOCTEXT("KismetCompiler", "MissingInputAxis_Warning", "Get Input Axis references unknown Axis '%s' for @@").ToString(), *InputAxisName.ToString()), this);
+		MessageLog.Warning(*FText::Format(NSLOCTEXT("KismetCompiler", "MissingInputAxis_WarningFmt", "Get Input Axis references unknown Axis '{0}' for @@"), FText::FromString(InputAxisName.ToString())).ToString(), this);
 	}
 }
 

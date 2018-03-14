@@ -12,15 +12,21 @@ topic-image:Modding/RoboRecall/RoboRecall_Topic.png
 social-image:Modding/RoboRecall/RoboRecall_Social.png
 checkpoint:mod_extend
 
-<!-- Location: Modding/RoboRecall/Quickstarts/WeaponMod/2 -->
+[COMMENT:none]
+ Location: Modding/RoboRecall/Quickstarts/WeaponMod/2 
+[/COMMENT]
 
 [NAV]
 
-<!-- Title Image if Needed Here -->
+[COMMENT:none]
+ Title Image if Needed Here 
+[/COMMENT]
 
 您已设好自定义手枪，但其功能仍然和默认手枪一样。被投出后，它拥有一个蓝色的“溶解”效果。因为手枪会爆炸，红色的效果更加合乎逻辑。进行此设置需要为 **手枪** 使用的“溶解”材质新建 [材质实例](Engine/Rendering/Materials/MaterialInstances)。
 
-<!-- probably should explain what a material instance is for newcomers -->
+[COMMENT:none]
+ probably should explain what a material instance is for newcomers 
+[/COMMENT]
 
 ## 步骤
 

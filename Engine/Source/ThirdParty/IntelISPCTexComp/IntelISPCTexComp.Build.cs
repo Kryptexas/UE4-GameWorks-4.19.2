@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -26,7 +26,7 @@ public class IntelISPCTexComp : ModuleRules
             PublicLibraryPaths.Add(DLLFolder);
             PublicAdditionalLibraries.Add("ispc_texcomp.lib");
 			PublicDelayLoadDLLs.Add("ispc_texcomp.dll");
-            RuntimeDependencies.Add(new RuntimeDependency(DLLFilePath));
+            RuntimeDependencies.Add(DLLFilePath);
 		}
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
@@ -35,7 +35,7 @@ public class IntelISPCTexComp : ModuleRules
             PublicAdditionalLibraries.Add(LibraryFilePath);
             PublicDelayLoadDLLs.Add(LibraryFilePath);
             PublicAdditionalShadowFiles.Add(LibraryFilePath);
-            RuntimeDependencies.Add(new RuntimeDependency(LibraryFilePath));
+            RuntimeDependencies.Add(LibraryFilePath);
         }
         else if (Target.Platform == UnrealTargetPlatform.Linux && Target.Architecture.StartsWith("x86_64"))
         {
@@ -43,7 +43,7 @@ public class IntelISPCTexComp : ModuleRules
             string LibraryFilePath = BinaryLibraryFolder + "/libispc_texcomp.so";
             PublicAdditionalLibraries.Add(LibraryFilePath);
             PublicDelayLoadDLLs.Add("libispc_texcomp.so");
-            RuntimeDependencies.Add(new RuntimeDependency(LibraryFilePath));
+            RuntimeDependencies.Add(LibraryFilePath);
         }
     }
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -32,6 +32,18 @@ public:
 	FWidgetStyle& BlendColorAndOpacityTint( const FLinearColor& InTint )
 	{
 		ColorAndOpacityTint *= InTint;
+		return *this;
+	}
+
+	/**
+	 * Blends the current tint color with the specified alpha.
+	 *
+	 * @param InTint The color to blend with.
+	 * @return This instance (for method chaining).
+	 */
+	FWidgetStyle& BlendOpacity( float InOpacity )
+	{
+		ColorAndOpacityTint.A *= InOpacity;
 		return *this;
 	}
 

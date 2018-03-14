@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Misc/MessageDialog.h"
 #include "Misc/CString.h"
@@ -63,32 +63,63 @@ void FMessageDialog::ShowLastError()
 
 EAppReturnType::Type FMessageDialog::Open( EAppMsgType::Type MessageType, const FText& Message, const FText* OptTitle )
 {
-	if( FApp::IsUnattended() == true )
+	EAppReturnType::Type DefaultValue = EAppReturnType::Yes;
+	switch(MessageType)
+	{
+	case EAppMsgType::Ok:
+		DefaultValue = EAppReturnType::Ok;
+		break;
+	case EAppMsgType::YesNo:
+		DefaultValue = EAppReturnType::No;
+		break;
+	case EAppMsgType::OkCancel:
+		DefaultValue = EAppReturnType::Cancel;
+		break;
+	case EAppMsgType::YesNoCancel:
+		DefaultValue = EAppReturnType::Cancel;
+		break;
+	case EAppMsgType::CancelRetryContinue:
+		DefaultValue = EAppReturnType::Cancel;
+		break;
+	case EAppMsgType::YesNoYesAllNoAll:
+		DefaultValue = EAppReturnType::No;
+		break;
+	case EAppMsgType::YesNoYesAllNoAllCancel:
+	default:
+		DefaultValue = EAppReturnType::Yes;
+		break;
+	}
+
+	if (GIsRunningUnattendedScript && MessageType != EAppMsgType::Ok)
+	{
+		if (GWarn)
+		{
+			GWarn->Logf(TEXT("Message Dialog was triggered in unattended script mode without a default value. %d will be used."), (int32)DefaultValue);
+		}
+
+		if (FPlatformMisc::IsDebuggerPresent())
+		{
+			UE_DEBUG_BREAK();
+		}
+		else
+		{
+			FDebug::DumpStackTraceToLog();
+		}
+	}
+
+	return Open(MessageType, DefaultValue, Message, OptTitle);
+}
+
+EAppReturnType::Type FMessageDialog::Open(EAppMsgType::Type MessageType, EAppReturnType::Type DefaultValue, const FText& Message, const FText* OptTitle)
+{
+	if ( FApp::IsUnattended() == true || GIsRunningUnattendedScript )
 	{
 		if (GWarn)
 		{
 			GWarn->Logf( TEXT("%s"), *Message.ToString() );
 		}
 
-		switch(MessageType)
-		{
-		case EAppMsgType::Ok:
-			return EAppReturnType::Ok;
-		case EAppMsgType::YesNo:
-			return EAppReturnType::No;
-		case EAppMsgType::OkCancel:
-			return EAppReturnType::Cancel;
-		case EAppMsgType::YesNoCancel:
-			return EAppReturnType::Cancel;
-		case EAppMsgType::CancelRetryContinue:
-			return EAppReturnType::Cancel;
-		case EAppMsgType::YesNoYesAllNoAll:
-			return EAppReturnType::No;
-		case EAppMsgType::YesNoYesAllNoAllCancel:
-		default:
-			return EAppReturnType::Yes;
-			break;
-		}
+		return DefaultValue;
 	}
 	else
 	{

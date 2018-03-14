@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title:Behavior Tree ノードのリファレンス：Decorators
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
@@ -24,7 +24,8 @@ Blackboard ノードは、任意の Blackboard Key に値が設定されてい�
 | **Blackboard Key**| 確認するためのキーです。他のタイプが初期化された値 (0, false, {0,0,0}, etc...) を返すので、 Object などの`None` を返すことができるデータ タイプの場合に非常に便利です。 |
 | **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:subprop2]
 | --- | --- |
 | **On Result Change** | 条件が変更された時のみ再評価されます。 |
@@ -44,7 +45,8 @@ Blackboard ノードは、任意の Blackboard Key に値が設定されてい�
 | **Is Set** | 値は設定されているかどうか。 |
 | **Is Not Set** | 値が設定されていないかどうか。 |
 [/EXCERPT:subprop4]
--->
+
+[/COMMENT]
 
 ## Compare Blackboard Entries
 
@@ -60,13 +62,15 @@ Compare Blackboard Entries ノードは 2 つのブラックボード キーの�
 | **Observer Aborts** | [INCLUDE:#subprop3] |
 | **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:subprop5]
 | --- | --- |
 | **Is Equal To** | 2 つのキーが等しいかどうか。 |
 | **Is Not Equal To** | 2 つのキーが異なるかどうか。 |
 [/EXCERPT:subprop5]
--->
+
+[/COMMENT]
 
 ## Composite
 
@@ -138,14 +142,16 @@ Compare Blackboard Entries ノードは 2 つのブラックボード キーの�
 | **Filter Class** | 使用するナビゲーション データを設定します。None に設定されていると、デフォルトのナビゲーション データが使用されます。 |
 | **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:subprop6]
 | --- | --- |
 | **NavMesh Raycast 2D** | 非常に速い。 |
 | **Hierarchical Query** | 速い。 |
 | **Regular Path Finding** | 遅い。 |
 [/EXCERPT:subprop6]
--->
+
+[/COMMENT]
 
 ## Force Success
 

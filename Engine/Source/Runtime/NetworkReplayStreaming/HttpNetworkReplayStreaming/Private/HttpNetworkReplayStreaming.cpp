@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "HttpNetworkReplayStreaming.h"
 #include "HAL/IConsoleManager.h"
@@ -211,6 +211,12 @@ void FHttpNetworkReplayStreamer::StartStreaming( const FString& CustomName, cons
 	if ( IsStreaming() )
 	{
 		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::StartStreaming. IsStreaming == true." ) );
+		return;
+	}
+
+	if ( ServerURL.IsEmpty() )
+	{
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::StartStreaming. ServerURL is empty, aborting." ) );
 		return;
 	}
 
@@ -721,6 +727,13 @@ void FHttpNetworkReplayStreamer::GotoCheckpointIndex( const int32 CheckpointInde
 		return;
 	}
 
+	if ( ServerURL.IsEmpty() )
+	{
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::GotoCheckpointIndex. ServerURL is empty, aborting." ) );
+		Delegate.ExecuteIfBound( false, -1 );
+		return;
+	}
+
 	check( DownloadCheckpointIndex == -1 );
 
 	if ( CheckpointIndex == -1 )
@@ -755,6 +768,12 @@ void FHttpNetworkReplayStreamer::GotoCheckpointIndex( const int32 CheckpointInde
 
 void FHttpNetworkReplayStreamer::SearchEvents(const FString& EventGroup, const FOnEnumerateStreamsComplete& Delegate)
 {
+	if ( ServerURL.IsEmpty() )
+	{
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::SearchEvents. ServerURL is empty, aborting." ) );
+		return;
+	}
+
 	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	HttpRequest->SetURL(FString::Printf(TEXT("%sevent?group=%s"), *ServerURL, *EventGroup));
@@ -767,6 +786,12 @@ void FHttpNetworkReplayStreamer::SearchEvents(const FString& EventGroup, const F
 
 void FHttpNetworkReplayStreamer::RequestEventData(const FString& EventID, const FOnRequestEventDataComplete& Delegate)
 {
+	if ( ServerURL.IsEmpty() )
+	{
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::RequestEventData. ServerURL is empty, aborting." ) );
+		return;
+	}
+
 	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	// Download the next stream chunk
@@ -1117,6 +1142,12 @@ void FHttpNetworkReplayStreamer::ConditionallyDownloadNextChunk()
 
 void FHttpNetworkReplayStreamer::KeepReplay( const FString& ReplayName, const bool bKeep )
 {
+	if ( ServerURL.IsEmpty() )
+	{
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::KeepReplay. ServerURL is empty, aborting." ) );
+		return;
+	}
+
 	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	// Download the next stream chunk
@@ -1149,6 +1180,12 @@ void FHttpNetworkReplayStreamer::KeepReplayFinished( FHttpRequestPtr HttpRequest
 
 void FHttpNetworkReplayStreamer::RefreshViewer( const bool bFinal )
 {
+	if ( ServerURL.IsEmpty() )
+	{
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::RefreshViewer. ServerURL is empty, aborting." ) );
+		return;
+	}
+
 	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	// Download the next stream chunk
@@ -1316,6 +1353,13 @@ void FHttpNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& 
 
 void FHttpNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& InReplayVersion, const FString& UserString, const FString& MetaString, const TArray< FString >& ExtraParms, const FOnEnumerateStreamsComplete& Delegate )
 {
+	if ( ServerURL.IsEmpty() )
+	{
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::EnumerateStreams. ServerURL is empty, aborting." ) );
+		Delegate.ExecuteIfBound( TArray<FNetworkReplayStreamInfo>() );
+		return;
+	}
+
 	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	// Build base URL
@@ -1363,6 +1407,13 @@ void FHttpNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& 
 
 void FHttpNetworkReplayStreamer::EnumerateRecentStreams( const FNetworkReplayVersion& InReplayVersion, const FString& InRecentViewer, const FOnEnumerateStreamsComplete& Delegate )
 {
+	if ( ServerURL.IsEmpty() )
+	{
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::EnumerateRecentStreams. ServerURL is empty, aborting." ) );
+		Delegate.ExecuteIfBound( TArray<FNetworkReplayStreamInfo>() );
+		return;
+	}
+
 	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	// Enumerate all of the sessions
@@ -1469,6 +1520,13 @@ void FHttpNetworkReplayStreamer::EnumerateEvents(const FString& Group, const FEn
 
 void FHttpNetworkReplayStreamer::EnumerateEvents( const FString& ReplayName, const FString& Group, const FEnumerateEventsCompleteDelegate& EnumerationCompleteDelegate )
 {
+	if ( ServerURL.IsEmpty() )
+	{
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::EnumerateRecentStreams. ServerURL is empty, aborting." ) );
+		EnumerationCompleteDelegate.ExecuteIfBound(FReplayEventList(), false);
+		return;
+	}
+
 	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	// Enumerate all of the events
@@ -2342,16 +2400,6 @@ void FHttpNetworkReplayStreamingFactory::Tick( float DeltaTime )
 			HttpStreamers.RemoveAt( i );
 		}
 	}
-}
-
-bool FHttpNetworkReplayStreamingFactory::IsTickable() const
-{
-	return true;
-}
-
-bool FHttpNetworkReplayStreamingFactory::IsTickableWhenPaused() const
-{
-	return true;
 }
 
 TStatId FHttpNetworkReplayStreamingFactory::GetStatId() const

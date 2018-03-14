@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -32,7 +32,7 @@ class ENGINE_API UMaterialInstanceDynamic : public UMaterialInstance
 	bool SetVectorParameterByIndex(int32 ParameterIndex, const FLinearColor& Value);
 
 	/** Get the current scalar (float) parameter value from an MID */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetScalarParameterValue", Keywords = "GetFloatParameterValue"), Category="Rendering|Material")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetScalarParameterValue", ScriptName = "GetScalarParameterValue", Keywords = "GetFloatParameterValue"), Category="Rendering|Material")
 	float K2_GetScalarParameterValue(FName ParameterName);
 
 	/** Set an MID texture parameter value */
@@ -40,7 +40,7 @@ class ENGINE_API UMaterialInstanceDynamic : public UMaterialInstance
 	void SetTextureParameterValue(FName ParameterName, class UTexture* Value);
 
 	/** Get the current MID texture parameter value */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetTextureParameterValue"), Category="Rendering|Material")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetTextureParameterValue", ScriptName = "GetTextureParameterValue"), Category="Rendering|Material")
 	class UTexture* K2_GetTextureParameterValue(FName ParameterName);
 
 	/** Set an MID vector parameter value */
@@ -48,7 +48,7 @@ class ENGINE_API UMaterialInstanceDynamic : public UMaterialInstance
 	void SetVectorParameterValue(FName ParameterName, FLinearColor Value);
 
 	/** Get the current MID vector parameter value */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetVectorParameterValue", Keywords = "GetColorParameterValue"), Category="Rendering|Material")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetVectorParameterValue", ScriptName = "GetVectorParameterValue", Keywords = "GetColorParameterValue"), Category="Rendering|Material")
 	FLinearColor K2_GetVectorParameterValue(FName ParameterName);
 	
 	/**
@@ -60,7 +60,7 @@ class ENGINE_API UMaterialInstanceDynamic : public UMaterialInstance
 	 * @param SourceB value that is used for Alpha=1, silently ignores the case if 0
 	 * @param Alpha usually in the range 0..1, values outside the range extrapolate
 	 */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName = "InterpolateMaterialInstanceParameters"), Category="Rendering|Material")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "InterpolateMaterialInstanceParameters", ScriptName = "InterpolateMaterialInstanceParameters"), Category="Rendering|Material")
 	void K2_InterpolateMaterialInstanceParams(UMaterialInstance* SourceA, UMaterialInstance* SourceB, float Alpha);
 
 	/**
@@ -68,7 +68,7 @@ class ENGINE_API UMaterialInstanceDynamic : public UMaterialInstance
 	 * Very slow implementation, avoid using at runtime. Hopefully we can replace ity later with something like CopyInterpParameters()
 	 * The output is the object itself (this).
 	 */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName = "CopyMaterialInstanceParameters"), Category="Rendering|Material")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "CopyMaterialInstanceParameters", ScriptName = "CopyMaterialInstanceParameters"), Category="Rendering|Material")
 	void K2_CopyMaterialInstanceParameters(UMaterialInterface* Source);
 
 	/**
@@ -96,7 +96,7 @@ class ENGINE_API UMaterialInstanceDynamic : public UMaterialInstance
 	 * @param OutFontValue - New font value to set for this MIC
 	 * @param OutFontPage - New font page value to set for this MIC
 	 */
-	void SetFontParameterValue(FName ParameterName, class UFont* FontValue, int32 FontPage);
+	void SetFontParameterValue(const FMaterialParameterInfo& ParameterInfo, class UFont* FontValue, int32 FontPage);
 
 	/** Remove all parameter values */
 	void ClearParameterValues();

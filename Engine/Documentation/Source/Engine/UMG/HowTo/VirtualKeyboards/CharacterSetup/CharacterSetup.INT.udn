@@ -21,7 +21,7 @@ Order: 1
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 In this step we prep our project and add the **Widget Interaction** component to our player character so we can interact with 3D widgets. 
 
@@ -59,6 +59,6 @@ For this how-to, we are using the **Blueprint First Person Template** with **Sta
 
 Our project is ready to go and our character can interact with Widgets in the world, next we'll set up our interactive Widgets. 
 
-%Steps%
+
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagsK2Node_LiteralGameplayTag.h"
 #include "EdGraphSchema_K2.h"
@@ -21,10 +21,8 @@ UGameplayTagsK2Node_LiteralGameplayTag::UGameplayTagsK2Node_LiteralGameplayTag(c
 
 void UGameplayTagsK2Node_LiteralGameplayTag::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	CreatePin(EGPD_Input, K2Schema->PC_String, TEXT("LiteralGameplayTagContainer"), nullptr, TEXT("TagIn"));
-	CreatePin(EGPD_Output, K2Schema->PC_Struct, FString(), FGameplayTagContainer::StaticStruct(), K2Schema->PN_ReturnValue);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_String, TEXT("LiteralGameplayTagContainer"), TEXT("TagIn"));
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Struct, FGameplayTagContainer::StaticStruct(), UEdGraphSchema_K2::PN_ReturnValue);
 }
 
 FLinearColor UGameplayTagsK2Node_LiteralGameplayTag::GetNodeTitleColor() const
@@ -68,7 +66,7 @@ void UGameplayTagsK2Node_LiteralGameplayTag::ConvertDeprecatedNode(UEdGraph* Gra
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
-	TMap<FString, FString> OldPinToNewPinMap;
+	TMap<FName, FName> OldPinToNewPinMap;
 
 	UFunction* MakeFunction = UBlueprintGameplayTagLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UBlueprintGameplayTagLibrary, MakeLiteralGameplayTagContainer));
 	OldPinToNewPinMap.Add(TEXT("TagIn"), TEXT("Value"));

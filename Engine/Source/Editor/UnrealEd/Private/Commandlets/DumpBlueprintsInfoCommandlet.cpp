@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Commandlets/DumpBlueprintsInfoCommandlet.h"
 #include "HAL/PlatformProcess.h"
@@ -201,7 +201,7 @@ DumpBlueprintsInfo commandlet params: \n\
 		uint32     DumpFlags;
 		UClass*    PaletteFilter;
 		EGraphType GraphFilter;
-		FString    PinType;
+		FName      PinType;
 		UClass*    SelectedObjectType;
 		FString    DiffPath;
 		FString    DiffCommand;
@@ -517,7 +517,9 @@ DumpBlueprintInfoUtils::CommandletOptions::CommandletOptions(TArray<FString> con
 			NewDumpFlags &= ~BPDUMP_PinTypeIsClass;
 
 			FString PinSwitch;
-			Switch.Split(TEXT("="), &PinSwitch, &PinType);
+			FString PinTypeStr;
+			Switch.Split(TEXT("="), &PinSwitch, &PinTypeStr);
+			PinType = *PinTypeStr;
 
 			NewDumpFlags |= DumpBlueprintInfoUtils::BPDUMP_PinContextActions;
 			// implies that we want contextual actions
@@ -528,7 +530,9 @@ DumpBlueprintInfoUtils::CommandletOptions::CommandletOptions(TArray<FString> con
 			NewDumpFlags |= BPDUMP_PinTypeIsClass;
 
 			FString PinSwitch;
-			Switch.Split(TEXT("="), &PinSwitch, &PinType);
+			FString PinTypeStr;
+			Switch.Split(TEXT("="), &PinSwitch, &PinTypeStr);
+			PinType = *PinTypeStr;
 			
 			NewDumpFlags |= BPDUMP_PinContextActions;
 			// implies that we want contextual actions
@@ -1879,16 +1883,15 @@ static bool DumpBlueprintInfoUtils::DumpPinContextActions(uint32 Indent, UEdGrap
 	FGraphContextMenuBuilder ContextMenuBuilder(Graph);
 
 	bool bWroteToFile = false;
-	if (!CommandOptions.PinType.IsEmpty())
+	if (!CommandOptions.PinType.IsNone())
 	{
 		FEdGraphPinType PinType;
 		PinType.PinCategory = CommandOptions.PinType;
 
-		UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		bool const bUsePinTypeClass = (CommandOptions.DumpFlags & BPDUMP_PinTypeIsClass) != 0;
 
 		bool bIsValidPinType = true;	
-		if (UClass* TypeClass = FindObject<UClass>(ANY_PACKAGE, *CommandOptions.PinType))
+		if (UClass* TypeClass = FindObject<UClass>(ANY_PACKAGE, *CommandOptions.PinType.ToString()))
 		{
 			bIsValidPinType = UEdGraphSchema_K2::IsAllowableBlueprintVariableType(TypeClass);
 			if (bIsValidPinType)
@@ -1896,23 +1899,23 @@ static bool DumpBlueprintInfoUtils::DumpPinContextActions(uint32 Indent, UEdGrap
 				PinType.PinSubCategoryObject = TypeClass;
 				if (TypeClass->IsChildOf(UInterface::StaticClass()))
 				{
-					PinType.PinCategory = K2Schema->PC_Interface;
+					PinType.PinCategory = UEdGraphSchema_K2::PC_Interface;
 				}
 				else
 				{
-					PinType.PinCategory = K2Schema->PC_Object;
+					PinType.PinCategory = UEdGraphSchema_K2::PC_Object;
 				}
 
 				if (bUsePinTypeClass)
 				{
-					PinType.PinCategory = K2Schema->PC_Class;
+					PinType.PinCategory = UEdGraphSchema_K2::PC_Class;
 				}
 			}
 			
 		}
-		else if (UScriptStruct* StructType = FindObject<UScriptStruct>(ANY_PACKAGE, *CommandOptions.PinType))
+		else if (UScriptStruct* StructType = FindObject<UScriptStruct>(ANY_PACKAGE, *CommandOptions.PinType.ToString()))
 		{
-			PinType.PinCategory = K2Schema->PC_Struct;
+			PinType.PinCategory = UEdGraphSchema_K2::PC_Struct;
 			PinType.PinSubCategoryObject = StructType;
 			bIsValidPinType = UEdGraphSchema_K2::IsAllowableBlueprintVariableType(StructType);
 
@@ -1922,18 +1925,18 @@ static bool DumpBlueprintInfoUtils::DumpPinContextActions(uint32 Indent, UEdGrap
 				bIsValidPinType |= AnimSchema->IsPosePin(PinType);
 			}
 		}
-		else if (!CommandOptions.PinType.Compare("self", ESearchCase::IgnoreCase))
+		else if (CommandOptions.PinType == TEXT("self"))
 		{
-			PinType.PinCategory = K2Schema->PC_Object;
+			PinType.PinCategory = UEdGraphSchema_K2::PC_Object;
 			if (bUsePinTypeClass)
 			{
-				PinType.PinCategory = K2Schema->PC_Class;
+				PinType.PinCategory = UEdGraphSchema_K2::PC_Class;
 			}
-			PinType.PinSubCategory = K2Schema->PSC_Self;
+			PinType.PinSubCategory = UEdGraphSchema_K2::PSC_Self;
 			bIsValidPinType = true;
 		}
-		else if (!CommandOptions.PinType.Compare(K2Schema->PC_Delegate, ESearchCase::IgnoreCase) ||
-		         !CommandOptions.PinType.Compare(K2Schema->PC_MCDelegate, ESearchCase::IgnoreCase))
+		else if ((CommandOptions.PinType != UEdGraphSchema_K2::PC_Delegate) ||
+		         (CommandOptions.PinType != UEdGraphSchema_K2::PC_MCDelegate))
 		{
 			// @TODO: PC_Delegate, PC_MCDelegate
 			bIsValidPinType = false;
@@ -2043,7 +2046,7 @@ static void DumpBlueprintInfoUtils::DumpContextualPinTypeActions(uint32 Indent, 
 	FGraphContextMenuBuilder ContextMenuBuilder(Graph);
 
 	UK2Node_Composite* DummyNode = NewObject<UK2Node_Composite>(Graph);
-	UEdGraphPin* DummyPin = DummyNode->CreatePin(EGPD_Input, PinType, DummyNode->GetName());
+	UEdGraphPin* DummyPin = DummyNode->CreatePin(EGPD_Input, PinType, DummyNode->GetFName());
 	ContextMenuBuilder.FromPin = DummyPin;
 
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph);

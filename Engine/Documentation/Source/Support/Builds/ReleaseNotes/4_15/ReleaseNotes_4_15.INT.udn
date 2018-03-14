@@ -5,7 +5,7 @@ Crumbs:%ROOT%, Engine
 Parent:Support/Builds
 Order:15
 
-![image alt text](image_0.png)(w:769 h:249 convert:false)
+![image alt text](image_0.png)(w:769 convert:false)
 
 ## What's New
 
@@ -29,7 +29,7 @@ This release includes **79 improvements** submitted by the incredible community 
 
 We have partnered with Nintendo to help Unreal Engine 4 developers bring their games to Nintendo Switch!
 
-![image alt text](image_1.png)(w:1000 h:385 convert:false)
+![image alt text](image_1.png)(w:1000 convert:false)
 
 We have added early support for developing games for the Nintendo Switch console. It is still considered experimental in this release. We plan for it to be in a shippable state in the next release.
 
@@ -37,7 +37,7 @@ We have added early support for developing games for the Nintendo Switch console
 
 The default tonemapper now provides a more film-like color and tone response!
 
-![image alt text](image_2.jpg)(w:929 h:522 convert:false)
+![image alt text](image_2.jpg)(w:929 convert:false)
 
 The filmic tonemapper matching the Academy Color Encoding System (ACES) is now on by default. This tonemapper also enables the engine to target multiple display types including HDR displays. Bloom settings have been updated to provide a more physically correct result by default.
 
@@ -47,7 +47,7 @@ The filmic tonemapper will look different than the tonemapper in previous versio
 
 The Texture Streaming system has been optimized to reduce CPU usage, memory usage, and load times while eliminating low resolution artifacts and automatically handling limitations of varying memory budgets of different platforms.
 
-![image alt text](image_3.jpg)(w:929 h:522 convert:false)
+![image alt text](image_3.jpg)(w:929 convert:false)
 
 * **Texture Memory Usage Improvements** - The texture streaming system now handles per component visibility and computes (smaller) per material bounds for static geometry resulting in as much as a **40% reduction in texture memory usage**.
 
@@ -67,7 +67,7 @@ The Texture Streaming system has been optimized to reduce CPU usage, memory usag
 
 Packaging Blueprints into native source code to reduce the overhead that goes into executing Blueprints is now production ready! 
 
-![image alt text](image_4.png)(w:929 h:457 convert:false)
+![image alt text](image_4.png)(w:929 convert:false)
 
 This feature has been available as experimental, but we've been successfully using it for some of our own projects, like [Robo Recall](https://www.epicgames.com/roborecall/en-US/home) and are removing that label.
 
@@ -77,7 +77,7 @@ You can either exclusively nativize individual Blueprints or inclusively nativiz
 
 The Unreal Engine 4 codebase now **compiles up to 50% faster**! Header files only include other headers they need, rather than every source file including large monolithic headers like Engine.h and UnrealEd.h - we call this _Include What You Use (IWYU)_.
 
-![image alt text](image_5.jpg)(w:929 h:557 convert:false)
+![image alt text](image_5.jpg)(w:929 convert:false)
 
 The conventions for the new model are as follows:
 
@@ -97,12 +97,12 @@ You can set 'bEnforceIWYU = false' from a *.build.cs file (or through the global
 
 You can now blur other UI and the 3D scene in UMG using the new Background Blur widget! Background Blur widgets also have a content slot which can be used to add widgets that will not be blurred.
 
- ![image alt text](image_6.png)(w:857 h:478 convert:false)
+ ![image alt text](image_6.png)(w:857 convert:false)
 
 There is a single strength value that defines how blurry the background content is, which goes from 0 (off) to 100 (full strength) and can be animated to modify the amount of blurring over time.
 
 [REGION:imagetable]
-| ![image alt text](image_7.jpg)(w:293 h:293 convert:false) | ![image alt text](image_8.jpg)(w:292 h:292 convert:false) | ![image alt text](image_9.jpg)(w:294 h:293 convert:false) |
+| ![image alt text](image_7.jpg)(w:293 convert:false) | ![image alt text](image_8.jpg)(w:292 convert:false) | ![image alt text](image_9.jpg)(w:294 convert:false) |
 | --- | --- | --- |
 | Strength = 2 | Strength = 10 | Strength = 50 |
 [/REGION]
@@ -111,7 +111,7 @@ There is a single strength value that defines how blurry the background content 
 
 Reroute nodes are now available in the Material Editor to enable better organization of your Material graphs! They function identically between Blueprints and the Material Editor and are purely visual so they should have no impact on the final instruction count of your Materials.
 
-![image alt text](image_10.jpg)(w:929 h:308 convert:false)
+![image alt text](image_10.jpg)(w:929 convert:false)
 
 To add Reroute nodes in the Material Editor:
 
@@ -192,7 +192,7 @@ Currently, you have to use the in-editor source control to take advantage of hot
 
 Unreal Engine 4 can now output to High Dynamic Range (HDR) displays taking advantage of features such as higher contrast and wider color gamut!
 
-![image alt text](image_11.jpg)(w:929 h:376 convert:false)
+![image alt text](image_11.jpg)(w:929 convert:false)
 
 [REGION:caption]These are simulated images and are for demonstration purposes only[/REGION]
 
@@ -206,7 +206,7 @@ HDR output support is currently detected at launch and flagged only if a support
 
 You can now **preview high-end mobile features in the editor's viewport** using the improved Mobile Preview feature. This mode will emulate the feature set available to iOS Metal, Android OpenGL ES 3.1 and Android Vulkan devices.
 
-![image alt text](image_12.jpg)(w:840 h:505 convert:false)
+![image alt text](image_12.jpg)(w:840 convert:false)
 
 [REGION:note]
 Only devices enabled via project settings will be shown in the preview platform menu.
@@ -216,11 +216,11 @@ Only devices enabled via project settings will be shown in the preview platform 
 
 Collections of items can now be stored in Blueprints using Map and Set variable types in addition to the previously available Array variable type. Maps and Sets guarantee that they contain only unique items, with no repeating entries; no repeating 'keys', where maps are concerned. In particular, they are useful when doing frequent lookups on large datasets. 
 
-![image alt text](image_13.jpg)(w:761 h:356 convert:false)
+![image alt text](image_13.jpg)(w:761 convert:false)
 
 The Variable Type control is now a drop down, enabling you to select 'Single Variable', 'Array', 'Set', or 'Map'. When 'Map' is selected a second drop down for the 'value' type appears.
 
-![image alt text](image_14.jpg)(w:333 h:205 convert:false)
+![image alt text](image_14.jpg)(w:333 convert:false)
 
 Set and map variables declared in C++ can now be exposed to Blueprints, though replication of map and set properties is not yet supported in C++ or Blueprints.
 
@@ -232,7 +232,7 @@ A Gameplay Tag is a name of the form "Family.Genus.Species" or just “Individua
 
 Tags are useful to define a list of names for developers to use instead of typing text in by hand. To use gameplay tags they must be registered in the central tag dictionary, which can be accessed from the new GameplayTags project settings view:
 
-![image alt text](image_15.jpg)(w:580 h:728 convert:false)
+![image alt text](image_15.jpg)(w:580 convert:false)
 
 If you enable the "Import Tags from Config" option, tags can be added from the editor through the Gameplay Tag List on this page, or from the UI used to select tags. Once you have added Tag properties to your data, you can query them from either Blueprint or C++ and use them to change functionality. The BlueprintGameplayTagLibrary has several useful functions. 
 
@@ -240,7 +240,7 @@ If you enable the "Import Tags from Config" option, tags can be added from the e
 
 We added all new controls for the Color Grading properties in Post Process settings that provide a more intuitive experience and more precise control.
 
-![image alt text](image_16.jpg)(w:533 h:218 convert:false)
+![image alt text](image_16.jpg)(w:533 convert:false)
 
 Highlights of the new controls include:
 
@@ -313,7 +313,7 @@ You can use the trigger button to select numbers, the grip button to press enter
 
 Three new viewmodes are available that make it much easier to ensure the texture streaming system is working optimally for your game!
 
-![image alt text](image_17.png)(w:262 h:200 convert:false) ![image alt text](image_18.png)(w:308 h:198 convert:false) ![image alt text](image_19.png)(w:310 h:198 convert:false)
+![image alt text](image_17.png)(w:262 convert:false) ![image alt text](image_18.png)(w:308 convert:false) ![image alt text](image_19.png)(w:310 convert:false)
 
 * **Primitive Distance Accuracy** - This shows the accuracy of the distance computed by the streamer as compared to the distance computed by the GPU. The streamer computes the distance from the viewpoint to the texture instance axis-aligned bounding boxes (AABB). This bounding box is computed in the build process by summing up the component lod-section AABBs that are using the texture.
 
@@ -354,7 +354,7 @@ The new Force Feedback Component can be added to Actors in the world to create l
 
 Unreal Engine 4 games on PlayStationⓇVR are even more immersive with support for the PlayStationⓇVR Aim Controller!
 
-![image alt text](image_20.png)(w:429 h:285 convert:false)
+![image alt text](image_20.png)(w:429 convert:false)
 
 To activate, simply change the "Hand" value to “Gun” on your Motion Controller Component. The PlayStationⓇVR Aim Controller's buttons map to the same buttons on the Dual Shock gamepad.
 
@@ -362,7 +362,7 @@ To activate, simply change the "Hand" value to “Gun” on your Motion Controll
 
 We've added some commonly requested mathematics material nodes that should help avoid the need for material functions or custom nodes for common operations.
 
-![image alt text](image_21.png)(w:546 h:308 convert:false)
+![image alt text](image_21.png)(w:546 convert:false)
 
 The nodes marked with the "Fast" tag will execute approximations instead of the real instructions. These can give a worthwhile performance improvement to more complex materials but have input restrictions and precision tradeoffs.
 
@@ -441,7 +441,7 @@ Metal support now also includes an internal validation layer that is enabled by 
 
 Events in Sequencer can now contain payloads of data so that you can trigger events with more contextually-rich information about how to react to the playing sequence. To trigger an event with a payload, create a struct that defines the parameters for your event, and apply that to the event's parameter struct property:
 
-![image alt text](image_22.jpg)(w:557 h:218 convert:false)
+![image alt text](image_22.jpg)(w:557 convert:false)
 
 Events can call functions and trigger custom events in event contexts, provided the specified parameter struct is bitwise compatible with the destination function's prototype.
 
@@ -487,12 +487,13 @@ You can now control the volume and pitch of Audio sections directly in Sequencer
 The Blendspace Editor has a new look and improved workflows!
 
 [REGION:imagetable]
-| ![image alt text](image_23.jpg)(w:462 h:422 convert:false) | [INCLUDE:#BlendspacePreview] |
+| ![image alt text](image_23.jpg)(w:462 convert:false) | [INCLUDE:#BlendspacePreview] |
 | --- | --- |
 | | |
 [/REGION]
 
-<!--
+[COMMENT:none]
+
 [EXCERPT:BlendspacePreview]
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:videoid]
@@ -509,7 +510,8 @@ The Blendspace Editor has a new look and improved workflows!
 	[/PARAMLITERAL]
 [/OBJECT]
 [/EXCERPT:BlendspacePreview]
--->
+
+[/COMMENT]
 
 * **Multiple ways of changing sample properties** - In addition to dragging and dropping samples, a context menu and spin-boxes have been added to change either the sample value or animation sequence.
 
@@ -525,7 +527,7 @@ The Blendspace Editor has a new look and improved workflows!
 
 We've added the ability to capture a runtime Skeletal Mesh pose in Blueprints for use in the Anim Blueprint!
 
-![image alt text](image_24.jpg)(w:929 h:524 convert:false)
+![image alt text](image_24.jpg)(w:929 convert:false)
 
 This can be useful for blending from a death pose (after simulating ragdoll) into a 'get up' animation. You can also save a pose snapshot to a variable for later use with any Skeletal Mesh Component.
 
@@ -533,7 +535,7 @@ This can be useful for blending from a death pose (after simulating ragdoll) int
 
 We've added the ability to visualize the center of mass and inertia tensor associated with physics objects. 
 
-![image alt text](image_25.jpg)(w:868 h:338 convert:false)
+![image alt text](image_25.jpg)(w:868 convert:false)
 
 To visualize the mass properties, enable the new showflag (**Show > Advanced > Mass Properties**). The thickness of each axis indicates the moment of inertia magnitude along that axis.
 
@@ -545,7 +547,7 @@ Animation curves can now be linked to a specific bone in the Skeleton so they ca
 
 Animation curves can now be modified using arbitrary logic in the Animation Graph to enable more dynamically-driven animations.
 
-![image alt text](image_26.png)(w:929 h:196 convert:false)
+![image alt text](image_26.png)(w:929 convert:false)
 
 After adding the new Modify Curve node, you can right click on it and choose which curves you want to modify. Each curve will then appear as an input float pin that logic can be connected to.
 
@@ -553,7 +555,7 @@ After adding the new Modify Curve node, you can right click on it and choose whi
 
 Font data can now be shared between Font assets using the new Font Face asset, reducing memory consumption and improving stability!
 
-![image alt text](image_27.png)(w:648 h:173 convert:false)
+![image alt text](image_27.png)(w:648 convert:false)
 
 Font Face is now the asset that stores the font data, and these assets are simply referenced by the Font assets. This means that the same font data can be reused for multiple font assets, or even multiple typefaces within a Font asset. Existing Font assets will automatically upgrade their internal font data into embedded Font Face assets during load. You can use the Font Editor to split these embedded assets out into real Font Face assets that may be edited and shared.
 
@@ -563,7 +565,7 @@ We have added support for ARM64 (AArch64) devices running Linux! Note that any s
 
 ### New: Alternate Frame Rendering Support for NVIDIA SLI
 
-![image alt text](image_28.png)(w:553 h:356 convert:false)
+![image alt text](image_28.png)(w:553 convert:false)
 
 The engine now supports AFR rendering for Nvidia SLI configurations to provide superior performance when multiple graphics cards are detected. The largest improvement comes from the renderer copying inter-frame dependencies between GPUs as early as possible. Developers will need to work with NVIDIA to test their game and to have it automatically switched over to AFR where appropriate.
 
@@ -594,7 +596,7 @@ Monoscopic far field rendering is only supported on mobile platforms for now. To
 
 Mobile devices can now use 'Custom Stencil' in post-processing materials allowing for object outlines, visualizing occluded objects, or other such effects.
 
-![image alt text](image_29.jpg)(w:929 h:524 convert:false)
+![image alt text](image_29.jpg)(w:929 convert:false)
 
 This feature requires MobileHDR to be enabled. To enable this feature in your project go to Project Settings -> Rendering -> Postprocessing  and set 'Custom Depth-Stencil Pass' to 'Enabled with Stencil'.
 

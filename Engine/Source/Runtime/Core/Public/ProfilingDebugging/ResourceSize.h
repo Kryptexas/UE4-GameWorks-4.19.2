@@ -1,19 +1,19 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreTypes.h"
 #include "Misc/AssertionMacros.h"
 
-/** Indicates which resource size should be returned. */
+/** Indicate what types of resources should be included for calculating used memory */
 namespace EResourceSizeMode
 {
 	enum Type
 	{
-		/** Only exclusive resource size */
+		/** Only include memory used by non-UObject resources that are directly owned by this UObject. This is used to show memory actually used at runtime */
 		Exclusive,
-		/** Resource size of the object and all of its references */
-		Inclusive,
+		/** Include exclusive resources and UObject serialized memory for this and all child UObjects, but not memory for external referenced assets or editor only members. This is used in the editor to estimate maximum required memory */
+		EstimatedTotal,
 	};
 };
 

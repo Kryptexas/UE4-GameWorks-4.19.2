@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SKeySelector.h"
@@ -9,6 +9,7 @@
 #include "Widgets/SToolTip.h"
 #include "IDocumentation.h"
 #include "Widgets/Input/SSearchBox.h"
+#include "Styling/CoreStyle.h"
 #include "SListViewSelectorDropdownMenu.h"
 
 #define LOCTEXT_NAMESPACE "KeySelector"
@@ -114,8 +115,8 @@ void SKeySelector::Construct(const FArguments& InArgs)
 
 	TreeViewWidth = InArgs._TreeViewWidth;
 	TreeViewHeight = InArgs._TreeViewHeight;
-	CategoryFont = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9 );
-	KeyFont = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10);
+	CategoryFont = FCoreStyle::GetDefaultFontStyle("Bold", 9);
+	KeyFont = FCoreStyle::GetDefaultFontStyle("Regular", 10);
 
 	FilteredKeyTreeRoot = KeyTreeRoot;
 

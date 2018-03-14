@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieScene.h"
 #include "MovieSceneTrack.h"
@@ -102,6 +102,21 @@ FGuid UMovieScene::AddSpawnable( const FString& Name, UObject& ObjectTemplate )
 	return NewSpawnable.GetGuid();
 }
 
+void UMovieScene::AddSpawnable(const FMovieSceneSpawnable& InNewSpawnable, const FMovieSceneBinding& InNewBinding)
+{
+	Modify();
+
+	FMovieSceneSpawnable NewSpawnable;
+	NewSpawnable = InNewSpawnable;
+	Spawnables.Add(NewSpawnable);
+
+	FMovieSceneBinding NewBinding = InNewBinding;
+	for (auto Track : NewBinding.GetTracks())
+	{
+		Track->Rename(nullptr, this);
+	}
+	ObjectBindings.Add(NewBinding);
+}
 
 bool UMovieScene::RemoveSpawnable( const FGuid& Guid )
 {
@@ -164,6 +179,23 @@ FGuid UMovieScene::AddPossessable( const FString& Name, UClass* Class )
 	new (ObjectBindings) FMovieSceneBinding( NewPossessable.GetGuid(), NewPossessable.GetName() );
 
 	return NewPossessable.GetGuid();
+}
+
+
+void UMovieScene::AddPossessable(const FMovieScenePossessable& InNewPossessable, const FMovieSceneBinding& InNewBinding)
+{
+	Modify();
+
+	FMovieScenePossessable NewPossessable;
+	NewPossessable = InNewPossessable;
+	Possessables.Add(NewPossessable);
+
+	FMovieSceneBinding NewBinding = InNewBinding;
+	for (auto Track : NewBinding.GetTracks())
+	{
+		Track->Rename(nullptr, this);
+	}
+	ObjectBindings.Add(NewBinding);
 }
 
 
@@ -720,6 +752,21 @@ void UMovieScene::PostLoad()
 		else
 		{
 			++TrackIndex;
+		}
+	}
+
+	for ( int32 ObjectBindingIndex = 0; ObjectBindingIndex < ObjectBindings.Num(); ++ObjectBindingIndex)
+	{
+		for( int32 TrackIndex = 0; TrackIndex < ObjectBindings[ObjectBindingIndex].GetTracks().Num(); )
+		{
+			if (ObjectBindings[ObjectBindingIndex].GetTracks()[TrackIndex] == nullptr)
+			{
+				ObjectBindings[ObjectBindingIndex].RemoveTrack(*ObjectBindings[ObjectBindingIndex].GetTracks()[TrackIndex]);
+			}
+			else
+			{
+				++TrackIndex;
+			}
 		}
 	}
 

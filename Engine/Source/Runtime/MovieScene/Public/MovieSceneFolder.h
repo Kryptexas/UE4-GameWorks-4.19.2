@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,8 +11,8 @@
 
 class UMovieSceneTrack;
 
-/** Reprents a folder used for organizing objects in tracks in a movie scene. */
-UCLASS()
+/** Represents a folder used for organizing objects in tracks in a movie scene. */
+UCLASS(DefaultToInstanced)
 class MOVIESCENE_API UMovieSceneFolder : public UObject
 {
 	GENERATED_UCLASS_BODY()

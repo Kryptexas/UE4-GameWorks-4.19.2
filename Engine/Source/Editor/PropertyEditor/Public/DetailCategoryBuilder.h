@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -163,6 +163,12 @@ public:
 	virtual class IDetailLayoutBuilder& GetParentLayout() const = 0;
 
 	/**
+	 * @return true if the parent layout is valid or has been destroyed by a refresh.
+	 */
+	virtual bool IsParentLayoutValid() const = 0;
+
+
+	/**
 	 * @return The localized display name of the category
 	 */
 	virtual const FText& GetDisplayName() const = 0;
@@ -172,6 +178,12 @@ public:
 	 * This is designed to be used for dynamic category visibility after construction of the category
 	 */
 	virtual void SetCategoryVisibility(bool bVisible) = 0;
+
+	/**
+	* Sets whether or not this category should show its advanced properties.
+	* This is designed to be used for dynamic display of advanced properties.
+	*/
+	virtual void SetShowAdvanced(bool bShowAdvanced) = 0;
 
 	DEPRECATED(4.17, "AddExternalProperty is deprecated.  Use AddExternalObjectProperty instead")
 	IDetailPropertyRow* AddExternalProperty(const TArray<UObject*>& Objects, FName PropertyName, EPropertyLocation::Type Location = EPropertyLocation::Default)

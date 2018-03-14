@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -782,6 +782,12 @@ KISMET_MATH_FORCEINLINE
 float UKismetMathLibrary::VSize(FVector A)
 {
 	return A.Size();
+}
+
+KISMET_MATH_FORCEINLINE
+float UKismetMathLibrary::VSizeXY(FVector A)
+{
+	return A.Size2D();
 }	
 
 KISMET_MATH_FORCEINLINE

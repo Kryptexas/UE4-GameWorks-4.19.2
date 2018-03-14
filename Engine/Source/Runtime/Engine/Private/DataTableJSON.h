@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -33,6 +33,9 @@ public:
 
 	bool WriteTable(const UDataTable& InDataTable);
 
+	/** Writes the data table out as a named object with each row being a sub value on that object */
+	bool WriteTableAsObject(const UDataTable& InDataTable);
+
 	bool WriteRow(const UScriptStruct* InRowStruct, const void* InRowData);
 
 	bool WriteStruct(const UScriptStruct* InStruct, const void* InStructData);
@@ -46,6 +49,8 @@ private:
 	TSharedRef<FDataTableJsonWriter> JsonWriter;
 	bool bJsonWriterNeedsClose;
 };
+
+#endif // WITH_EDITOR
 
 class FDataTableImporterJSON
 {
@@ -70,4 +75,3 @@ private:
 	TArray<FString>& ImportProblems;
 };
 
-#endif // WITH_EDITOR

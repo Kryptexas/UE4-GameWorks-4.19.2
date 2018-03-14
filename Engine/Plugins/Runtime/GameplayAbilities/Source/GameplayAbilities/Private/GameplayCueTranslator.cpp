@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayCueTranslator.h"
 #include "HAL/IConsoleManager.h"
@@ -631,5 +631,55 @@ bool FGameplayCueTranslationManager::GetTranslatedTags(const FName& ParentTag, T
 		}
 	}
 	return Children.Num() > 0;
+}
+
+
+FGameplayTag FGameplayCueTranslationManager::SearchSlowForTranslationParent(FGameplayTag Tag)
+{
+	TFunction<FGameplayTag(int32)> FindParent_r = [&](int32 FindIndex) -> FGameplayTag
+	{
+		for (int32 idx=0; idx < TranslationLUT.Num(); ++idx)
+		{
+			for (FGameplayCueTranslationLink& Link : TranslationLUT[idx].Links)
+			{
+				for (FGameplayCueTranslatorNodeIndex& LinkIdx : Link.NodeLookup)
+				{
+					if (LinkIdx.Index == FindIndex)
+					{
+						FGameplayCueTranslatorNode& Node = TranslationLUT[idx];
+						//UE_LOG(LogGameplayCueTranslator, Display, TEXT("%s links to %s"), *Node.CachedGameplayTag.ToString(), *TranslationLUT[FindIndex].CachedGameplayTag.ToString());
+
+						FGameplayTag ParentTag = FindParent_r(idx);
+						if (ParentTag.IsValid())
+						{
+							// Found a higher level parent
+							return ParentTag;
+						}
+						else
+						{
+							// Topmost tag
+							return Node.CachedGameplayTag;
+						}
+					}
+				}
+			}
+		}
+
+		// Found nothing
+		return FGameplayTag();
+
+	};
+
+	for (int32 RootIdx=0; RootIdx < TranslationLUT.Num(); ++RootIdx)
+	{
+		FGameplayCueTranslatorNode& Node = TranslationLUT[RootIdx];
+		if (Node.CachedGameplayTag == Tag)
+		{
+			return FindParent_r(RootIdx);
+		}
+	}
+
+	// No match, return invalid tag
+	return FGameplayTag();
 }
 #endif

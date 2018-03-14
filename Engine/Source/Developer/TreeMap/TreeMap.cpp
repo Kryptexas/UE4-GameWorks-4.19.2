@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Misc/Paths.h"
@@ -70,6 +70,8 @@ public:
 	/** True if the node is 'interactive'.  That is, we have enough room for a title area and padding for the node to be clicked on */
 	bool bIsInteractive;
 
+	/** True if the node is visible at all, if false drawing will skip this entirely */
+	bool bIsVisible;
 
 public:
 
@@ -492,8 +494,10 @@ void FTreeMap::PadNodesRecursively( const FTreeMapOptions& Options, const FTreeM
 		auto ChildAreaRect = Node->PaddedRect;
 
 		// Unless this is a top level node, make sure the node is big enough to bother reporting to our caller.  They may not want to visualize tiny nodes!
+		Node->bIsVisible = ( ChildAreaRect.Size.X * ChildAreaRect.Size.Y >= Options.MinimumVisibleNodeSize );
 		Node->bIsInteractive = ( TreeDepth <= 1 || ChildAreaRect.Size.X * ChildAreaRect.Size.Y >= Options.MinimumInteractiveNodeSize );
-		if( Node->bIsInteractive )
+
+		if( Node->bIsInteractive && Node->bIsVisible )
 		{
 			// Figure out how much space we need for the title text
 			const TSharedRef< FSlateFontMeasure >& FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
@@ -679,6 +683,11 @@ TArray<FTreeMapNodeVisualInfo> FTreeMap::GetVisuals()
 	{
 		static void RecursivelyGatherVisuals( TArray<FTreeMapNodeVisualInfo>& VisualsList, const FTreeMapNodeRef& Node )
 		{
+			if (!Node->bIsVisible)
+			{
+				return;
+			}
+
 			// Add a visual for the node that was passed in.  We'll recurse down into children afterwards.
 			FTreeMapNodeVisualInfo Visual;
 			Visual.NodeData = Node->Data.Get();

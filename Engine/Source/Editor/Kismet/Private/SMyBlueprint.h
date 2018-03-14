@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -52,7 +52,7 @@ class FMyBlueprintCommands : public TCommands<FMyBlueprintCommands>
 public:
 	/** Constructor */
 	FMyBlueprintCommands() 
-		: TCommands<FMyBlueprintCommands>("MyBlueprint", NSLOCTEXT("Contexts", "My Blueprint", "My Blueprint"), NAME_None, FEditorStyle::GetStyleSetName())
+		: TCommands<FMyBlueprintCommands>(TEXT("MyBlueprint"), NSLOCTEXT("Contexts", "My Blueprint", "My Blueprint"), NAME_None, FEditorStyle::GetStyleSetName())
 	{
 	}
 

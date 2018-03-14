@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "CoreMinimal.h"
@@ -401,9 +401,7 @@ TMultiMap<void*, FKismetEditorUtilities::FOnBlueprintCreatedData> FKismetEditorU
 /** Create the correct event graphs for this blueprint */
 void FKismetEditorUtilities::CreateDefaultEventGraphs(UBlueprint* Blueprint)
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	UEdGraph* Ubergraph = FBlueprintEditorUtils::CreateNewGraph(Blueprint, K2Schema->GN_EventGraph, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+	UEdGraph* Ubergraph = FBlueprintEditorUtils::CreateNewGraph(Blueprint, UEdGraphSchema_K2::GN_EventGraph, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
 	Ubergraph->bAllowDeletion = false; //@TODO: Really, just want to make sure we never drop below 1, not that you cannot delete any particular one!
 	FBlueprintEditorUtils::AddUbergraphPage(Blueprint, Ubergraph);
 
@@ -434,8 +432,6 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 	NewBP->bLegacyNeedToPurgeSkelRefs = false;
 	NewBP->GenerateNewGuid();
 
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 	// Create SimpleConstructionScript and UserConstructionScript
 	if (FBlueprintEditorUtils::SupportsConstructionScript(NewBP))
 	{ 
@@ -453,7 +449,7 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 		NewBP->SimpleConstructionScript->SetFlags(RF_Transactional);
 		NewBP->LastEditedDocuments.Add(NewBP->SimpleConstructionScript);
 
-		UEdGraph* UCSGraph = FBlueprintEditorUtils::CreateNewGraph(NewBP, K2Schema->FN_UserConstructionScript, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+		UEdGraph* UCSGraph = FBlueprintEditorUtils::CreateNewGraph(NewBP, UEdGraphSchema_K2::FN_UserConstructionScript, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
 		FBlueprintEditorUtils::AddFunctionGraph(NewBP, UCSGraph, /*bIsUserCreated=*/ false, AActor::StaticClass());
 
 		// If the blueprint is derived from another blueprint, add in a super-call automatically
@@ -463,15 +459,15 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 			UK2Node_FunctionEntry* UCSEntry = CastChecked<UK2Node_FunctionEntry>(UCSGraph->Nodes[0]);
 			FGraphNodeCreator<UK2Node_CallParentFunction> FunctionNodeCreator(*UCSGraph);
 			UK2Node_CallParentFunction* ParentFunctionNode = FunctionNodeCreator.CreateNode();
-			ParentFunctionNode->FunctionReference.SetExternalMember(K2Schema->FN_UserConstructionScript, NewBP->ParentClass);
+			ParentFunctionNode->FunctionReference.SetExternalMember(UEdGraphSchema_K2::FN_UserConstructionScript, NewBP->ParentClass);
 			ParentFunctionNode->NodePosX = 200;
 			ParentFunctionNode->NodePosY = 0;
 			ParentFunctionNode->AllocateDefaultPins();
 			FunctionNodeCreator.Finalize();
 
 			// Wire up the new node
-			UEdGraphPin* ExecPin = UCSEntry->FindPin(K2Schema->PN_Then);
-			UEdGraphPin* SuperPin = ParentFunctionNode->FindPin(K2Schema->PN_Execute);
+			UEdGraphPin* ExecPin = UCSEntry->FindPin(UEdGraphSchema_K2::PN_Then);
+			UEdGraphPin* SuperPin = ParentFunctionNode->FindPin(UEdGraphSchema_K2::PN_Execute);
 			ExecPin->MakeLinkTo(SuperPin);
 		}
 
@@ -493,7 +489,7 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 		if (RootAnimBP == NULL)
 		{
 			// Only allow an anim graph if there isn't one in a parent blueprint
-			UEdGraph* NewGraph = FBlueprintEditorUtils::CreateNewGraph(AnimBP, K2Schema->GN_AnimGraph, UAnimationGraph::StaticClass(), UAnimationGraphSchema::StaticClass());
+			UEdGraph* NewGraph = FBlueprintEditorUtils::CreateNewGraph(AnimBP, UEdGraphSchema_K2::GN_AnimGraph, UAnimationGraph::StaticClass(), UAnimationGraphSchema::StaticClass());
 			FBlueprintEditorUtils::AddDomainSpecificGraph(NewBP, NewGraph);
 			NewBP->LastEditedDocuments.Add(NewGraph);
 			NewGraph->bAllowDeletion = false;
@@ -667,7 +663,7 @@ UK2Node_Event* FKismetEditorUtilities::AddDefaultEventNode(UBlueprint* InBluepri
 					ParentPin->MakeLinkTo(EventPin);
 				}
 			}
-			ParentFunctionNode->GetExecPin()->MakeLinkTo(NewEventNode->FindPin(Schema->PN_Then));
+			ParentFunctionNode->GetExecPin()->MakeLinkTo(NewEventNode->FindPin(UEdGraphSchema_K2::PN_Then));
 
 			ParentFunctionNode->NodePosX = FunctionFromNode.Node->NodePosX + FunctionFromNode.Node->NodeWidth + 200;
 			ParentFunctionNode->NodePosY = FunctionFromNode.Node->NodePosY;
@@ -1988,15 +1984,13 @@ void FKismetEditorUtilities::UpgradeCosmeticallyStaleBlueprint(UBlueprint* Bluep
 	// Rename the ubergraph page 'StateGraph' to be named 'EventGraph' if possible
 	if (FBlueprintEditorUtils::DoesSupportEventGraphs(Blueprint))
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
 		UEdGraph* OldStateGraph = FindObject<UEdGraph>(Blueprint, TEXT("StateGraph"));
-		UObject* CollidingObject = FindObject<UObject>(Blueprint, *(K2Schema->GN_EventGraph.ToString()));
+		UObject* CollidingObject = FindObject<UObject>(Blueprint, *(UEdGraphSchema_K2::GN_EventGraph.ToString()));
 
 		if ((OldStateGraph != NULL) && (CollidingObject == NULL))
 		{
 			check(!OldStateGraph->HasAnyFlags(RF_Public));
-			OldStateGraph->Rename(*(K2Schema->GN_EventGraph.ToString()), OldStateGraph->GetOuter(), REN_DoNotDirty | REN_ForceNoResetLoaders);
+			OldStateGraph->Rename(*(UEdGraphSchema_K2::GN_EventGraph.ToString()), OldStateGraph->GetOuter(), REN_DoNotDirty | REN_ForceNoResetLoaders);
 			Blueprint->Status = BS_Dirty;
 		}
 	}

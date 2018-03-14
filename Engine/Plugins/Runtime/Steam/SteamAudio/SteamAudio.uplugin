@@ -1,7 +1,7 @@
 {
 	"FileVersion" : 3,
 	"Version" : 1,
-	"VersionName" : "2.0-beta.6",
+	"VersionName" : "2.0-beta.10",
 	"FriendlyName" : "Steam Audio",
 	"Description" : "Physically-based sound rendering.",
 	"Category" : "Audio",
@@ -22,7 +22,7 @@
 			"LoadingPhase" : "PreDefault",
 			"WhitelistPlatforms" :
 			[
-				"Win32", "Win64"
+				"Win32", "Win64", "Android"
 			]
 		},
 		{

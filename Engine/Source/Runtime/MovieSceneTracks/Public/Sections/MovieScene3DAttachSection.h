@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,9 +27,9 @@ public:
 	 *
 	 * @param Time	The location in time where the attach should be added
 	 * @param SequenceEndTime   The time at the end of the sequence, by default the attach is set to end at this time
-	 * @param InAttachId The id to the path
+	 * @param InAttachBindingId The object binding id to the path
 	 */
-	void AddAttach(float Time, float SequenceEndTime, const FGuid& InAttachId);
+	void AddAttach(float Time, float SequenceEndTime, const FMovieSceneObjectBindingID& InAttachBindingID);
 	
 public:
 

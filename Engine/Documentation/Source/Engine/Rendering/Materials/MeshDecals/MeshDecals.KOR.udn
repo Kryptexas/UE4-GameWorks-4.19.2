@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3455346
+﻿INTSourceChangelist:3782314
 Availability:Public
 Title: 메시 데칼 개요
 Description: 메시 데칼에 대한 개요입니다.
@@ -20,11 +20,13 @@ tags: Decals
 에지를 감싸는 지오메트리나 스플라인 메시와 함께 사용할 수 있으며, 
 캐릭터의 외형을 강화시켜 줍니다.
 
-<!---
+[COMMENT:none]
+-
 <div align= "center">
 ![](MeshDecalVsMasked.png)(w:700)
 </div>
---->
+-
+[/COMMENT]
 
 ## 메시 데칼 VS 마스크드 머티리얼
 

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -41,10 +41,10 @@ namespace AutomationTool
 			public List<string> LogLines = new List<string>();
 			public int ExitCode = -1;
 
-			private ManualResetEvent CompletedEvent;
+			private AutoResetEvent CompletedEvent;
 			private List<BuildActionExecutor> CompletedActions;
 
-			public BuildActionExecutor(BuildAction InAction, ManualResetEvent InCompletedEvent, List<BuildActionExecutor> InCompletedActions)
+			public BuildActionExecutor(BuildAction InAction, AutoResetEvent InCompletedEvent, List<BuildActionExecutor> InCompletedActions)
 			{
 				Action = InAction;
 				CompletedEvent = InCompletedEvent;
@@ -102,7 +102,7 @@ namespace AutomationTool
 				Dictionary<BuildActionExecutor, Thread> ExecutingActions = new Dictionary<BuildActionExecutor,Thread>();
 				List<BuildActionExecutor> CompletedActions = new List<BuildActionExecutor>();
 
-				using(ManualResetEvent CompletedEvent = new ManualResetEvent(false))
+				using(AutoResetEvent CompletedEvent = new AutoResetEvent(false))
 				{
 					while(QueuedActions.Count > 0 || ExecutingActions.Count > 0)
 					{
@@ -282,7 +282,7 @@ namespace AutomationTool
 								TryGetAttribute(ToolNode, "GroupPrefix", out Action.GroupPrefix);
 								TryGetAttribute(ToolNode, "OutputPrefix", out Action.OutputPrefix);
 								TryGetAttribute(ToolNode, "Path", out Action.ToolPath);
-								TryGetAttribute(ToolNode, "WorkingDir", out Action.WorkingDirectory);
+								TryGetAttribute(TaskNode, "WorkingDir", out Action.WorkingDirectory);
 
 								string EnvironmentName;
 								if(!TryGetAttribute(ProjectNode, "Env", out EnvironmentName))

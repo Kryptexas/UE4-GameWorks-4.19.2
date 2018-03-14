@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ClothingSimulationFactory.h"
 #include "Assets/ClothingAsset.h"
@@ -6,6 +6,9 @@
 #if WITH_NVCLOTH
 #include "ClothingSimulationNv.h"
 #endif
+
+#include "ClothingSimulationInteractorNv.h"
+#include "Package.h"
 
 IClothingSimulation* UClothingSimulationFactoryNv::CreateSimulation()
 {
@@ -29,4 +32,14 @@ bool UClothingSimulationFactoryNv::SupportsAsset(UClothingAssetBase* InAsset)
 	return true;
 #endif
 	return false;
+}
+
+bool UClothingSimulationFactoryNv::SupportsRuntimeInteraction()
+{
+	return true;
+}
+
+UClothingSimulationInteractor* UClothingSimulationFactoryNv::CreateInteractor()
+{
+	return CastChecked<UClothingSimulationInteractor>(NewObject<UClothingSimulationInteractorNv>(GetTransientPackage()));
 }

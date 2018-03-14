@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ProcessUnitTest.h"
 #include "Containers/ArrayBuilder.h"
@@ -22,7 +22,20 @@ UProcessUnitTest::UProcessUnitTest(const FObjectInitializer& ObjectInitializer)
 	, ActiveProcesses()
 	, LastBlockingProcessCheck(0)
 	, OnSuspendStateChange()
+	, ProcessLogWatches()
 {
+}
+
+void UProcessUnitTest::NotifyProcessLog(TWeakPtr<FUnitTestProcess> InProcess, const TArray<FString>& InLogLines)
+{
+	for (int32 i=0; i<ProcessLogWatches.Num(); i++)
+	{
+		if (ProcessLogWatches[i].Execute(InProcess, InLogLines))
+		{
+			ProcessLogWatches.RemoveAt(i);
+			i--;
+		}
+	}
 }
 
 void UProcessUnitTest::NotifyProcessSuspendState(TWeakPtr<FUnitTestProcess> InProcess, ESuspendState InSuspendState)

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "MathExpressionHandler.h"
 #include "UObject/UnrealType.h"
@@ -17,14 +17,14 @@ struct KCHandler_MathExpressionHelper
 	static bool CreateMap(UEdGraphNode& KeyNode, UEdGraphNode& ValueNode, EEdGraphPinDirection KeyPinDirection, const UEdGraphSchema_K2* Schema, TMap<UEdGraphPin*, UEdGraphPin*>& OutMap)
 	{
 		check(Schema);
-		for (auto InnerInputPin : KeyNode.Pins)
+		for (UEdGraphPin* InnerInputPin : KeyNode.Pins)
 		{
 			if (!InnerInputPin || InnerInputPin->Direction != KeyPinDirection)
 			{
 				return false;
 			}
 
-			auto OuterInputPin = ValueNode.FindPin(InnerInputPin->PinName);
+			UEdGraphPin* OuterInputPin = ValueNode.FindPin(InnerInputPin->PinName);
 			if (!OuterInputPin
 				|| !Schema->ArePinsCompatible(InnerInputPin, OuterInputPin, nullptr, false))
 			{
@@ -65,7 +65,7 @@ FBlueprintCompiledStatement* FKCHandler_MathExpression::GenerateFunctionRPN(UEdG
 	UFunction* Function = CallFunctionNode ? CallFunctionNode->GetTargetFunction() : nullptr;
 	if (!CanBeCalledByMathExpression(Function))
 	{
-		CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("WrongFunction_Error", "Function '%s' cannot be called inside Math Expression @@ - @@").ToString(), *GetNameSafe(Function)), CallFunctionNode, &MENode);
+		CompilerContext.MessageLog.Error(*FText::Format(LOCTEXT("WrongFunction_ErrorFmt", "Function '{0}' cannot be called inside Math Expression @@ - @@"), FText::FromString(GetNameSafe(Function))).ToString(), CallFunctionNode, &MENode);
 		return nullptr;
 	}
 
@@ -85,7 +85,7 @@ FBlueprintCompiledStatement* FKCHandler_MathExpression::GenerateFunctionRPN(UEdG
 		{
 			UEdGraphPin* PinToTry = nullptr;
 			{
-				UEdGraphPin* PinMatch = CallFunctionNode->FindPin(Property->GetName());
+				UEdGraphPin* PinMatch = CallFunctionNode->FindPin(Property->GetFName());
 				const bool bGoodPin = PinMatch && FKismetCompilerUtilities::IsTypeCompatibleWithProperty(PinMatch, Property, CompilerContext.MessageLog, CompilerContext.GetSchema(), Context.NewClass);
 				PinToTry = bGoodPin ? FEdGraphUtilities::GetNetFromPin(PinMatch) : nullptr;
 			}
@@ -133,7 +133,7 @@ FBlueprintCompiledStatement* FKCHandler_MathExpression::GenerateFunctionRPN(UEdG
 			}
 			else
 			{
-				CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("FindPinParameter_Error", "Could not find a pin for the parameter %s of %s on @@").ToString(), *GetNameSafe(Property), *GetNameSafe(Function)), CallFunctionNode);
+				CompilerContext.MessageLog.Error(*FText::Format(LOCTEXT("FindPinParameter_ErrorFmt", "Could not find a pin for the parameter {0} of {1} on @@"), FText::FromString(GetNameSafe(Property)), FText::FromString(GetNameSafe(Function))).ToString(), CallFunctionNode);
 			}
 		}
 	}
@@ -145,21 +145,21 @@ void FKCHandler_MathExpression::RegisterNets(FKismetFunctionContext& Context, UE
 {
 	FNodeHandlingFunctor::RegisterNets(Context, InNode);
 
-	auto Node_MathExpression = CastChecked<UK2Node_MathExpression>(InNode);
-	auto InnerEntryNode = Node_MathExpression->GetEntryNode();
-	auto InnerExitNode = Node_MathExpression->GetExitNode();
+	UK2Node_MathExpression* Node_MathExpression = CastChecked<UK2Node_MathExpression>(InNode);
+	UK2Node_Tunnel* InnerEntryNode = Node_MathExpression->GetEntryNode();
+	UK2Node_Tunnel* InnerExitNode = Node_MathExpression->GetExitNode();
 	check(Node_MathExpression->BoundGraph && InnerEntryNode && InnerExitNode);
 
-	for (auto InnerGraphNode : Node_MathExpression->BoundGraph->Nodes)
+	for (UEdGraphNode* InnerGraphNode : Node_MathExpression->BoundGraph->Nodes)
 	{
 		if (!InnerGraphNode || (InnerGraphNode == InnerEntryNode) || (InnerGraphNode == InnerExitNode))
 		{
 			continue;
 		}
 
-		if (auto GetVarNode = Cast<UK2Node_VariableGet>(InnerGraphNode))
+		if (UK2Node_VariableGet* GetVarNode = Cast<UK2Node_VariableGet>(InnerGraphNode))
 		{
-			auto VarHandler = GetVarNode->CreateNodeHandler(CompilerContext);
+			FNodeHandlingFunctor* VarHandler = GetVarNode->CreateNodeHandler(CompilerContext);
 			if (ensure(VarHandler))
 			{
 				VarHandler->RegisterNets(Context, GetVarNode);
@@ -167,13 +167,13 @@ void FKCHandler_MathExpression::RegisterNets(FKismetFunctionContext& Context, UE
 			continue;
 		}
 
-		for (auto Pin : InnerGraphNode->Pins)
+		for (UEdGraphPin* Pin : InnerGraphNode->Pins)
 		{
 			// Register fake terms for InlineGeneratedValues
 			if (Pin && (Pin->Direction == EEdGraphPinDirection::EGPD_Output) && Pin->LinkedTo.Num())
 			{
-				auto Linked = Pin->LinkedTo[0];
-				auto LinkedOwnerNode = Linked ? Linked->GetOwningNodeUnchecked() : nullptr;
+				UEdGraphPin* Linked = Pin->LinkedTo[0];
+				UEdGraphNode* LinkedOwnerNode = Linked ? Linked->GetOwningNodeUnchecked() : nullptr;
 				if (LinkedOwnerNode && (InnerExitNode != LinkedOwnerNode))
 				{
 					FBPTerminal* Term = new (Context.InlineGeneratedValues) FBPTerminal();
@@ -193,7 +193,7 @@ void FKCHandler_MathExpression::RegisterNets(FKismetFunctionContext& Context, UE
 
 void FKCHandler_MathExpression::RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net) 
 {
-	FBPTerminal* Term = Context.CreateLocalTerminalFromPinAutoChooseScope(Net, Context.NetNameMap->MakeValidName(Net));
+	FBPTerminal* Term = Context.CreateLocalTerminalFromPinAutoChooseScope(Net, *Context.NetNameMap->MakeValidName(Net));
 	Context.NetMap.Add(Net, Term);
 }
 
@@ -202,8 +202,8 @@ void FKCHandler_MathExpression::Compile(FKismetFunctionContext& Context, UEdGrap
 	UK2Node_MathExpression* Node_MathExpression = CastChecked<UK2Node_MathExpression>(Node);
 	check(Context.Schema);
 
-	auto InnerExitNode = Node_MathExpression->GetExitNode();
-	auto InnerEntryNode = Node_MathExpression->GetEntryNode();
+	UK2Node_Tunnel* InnerExitNode = Node_MathExpression->GetExitNode();
+	UK2Node_Tunnel* InnerEntryNode = Node_MathExpression->GetEntryNode();
 
 	if (!InnerExitNode || !InnerEntryNode || (InnerExitNode->Pins.Num() != 1) || ((InnerExitNode->Pins.Num() + InnerEntryNode->Pins.Num()) != Node->Pins.Num()))
 	{
@@ -223,8 +223,8 @@ void FKCHandler_MathExpression::Compile(FKismetFunctionContext& Context, UEdGrap
 		return;
 	}
 
-	auto InnerOutputPin = InnerExitNode->Pins[0];
-	auto OuterOutputPinPtr = InnerToOuterOutput.Find(InnerOutputPin);
+	UEdGraphPin* InnerOutputPin = InnerExitNode->Pins[0];
+	UEdGraphPin** OuterOutputPinPtr = InnerToOuterOutput.Find(InnerOutputPin);
 	if (!InnerOutputPin || (InnerOutputPin->LinkedTo.Num() != 1) || !InnerOutputPin->LinkedTo[0] || !OuterOutputPinPtr || !*OuterOutputPinPtr)
 	{
 		Context.MessageLog.Error(*LOCTEXT("Compile_WrongOutputLink", "ICE - wrong output link - @@").ToString(), Node);
@@ -233,7 +233,7 @@ void FKCHandler_MathExpression::Compile(FKismetFunctionContext& Context, UEdGrap
 
 	FBPTerminal** OutputTermPtr = Context.NetMap.Find(FEdGraphUtilities::GetNetFromPin(*OuterOutputPinPtr));
 	FBPTerminal* OutputTerm = OutputTermPtr ? *OutputTermPtr : nullptr;
-	auto LastInnerNode = InnerOutputPin->LinkedTo[0]->GetOwningNodeUnchecked();
+	UEdGraphNode* LastInnerNode = InnerOutputPin->LinkedTo[0]->GetOwningNodeUnchecked();
 
 	FBlueprintCompiledStatement* DetachedStatement = GenerateFunctionRPN(LastInnerNode, Context, *Node_MathExpression, OutputTerm, InnerToOuterInput);
 	if (DetachedStatement)

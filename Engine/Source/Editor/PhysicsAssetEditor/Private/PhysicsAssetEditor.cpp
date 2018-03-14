@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "PhysicsAssetEditor.h"
 #include "Framework/MultiBox/MultiBox.h"
@@ -72,6 +72,11 @@
 #include "SkeletonTreePhysicsConstraintItem.h"
 #include "ScopedSlowTask.h"
 #include "PhysicsAssetGenerationSettings.h"
+#include "Framework/Commands/GenericCommands.h"
+#include "UICommandList_Pinnable.h"
+#include "IPinnedCommandList.h"
+#include "SSpinBox.h"
+#include "SNumericEntryBox.h"
 
 const FName PhysicsAssetEditorModes::PhysicsAssetEditorMode("PhysicsAssetEditorMode");
 
@@ -138,6 +143,7 @@ void FPhysicsAssetEditor::InitPhysicsAssetEditor(const EToolkitMode::Type Mode, 
 	SkeletonTreeArgs.Extenders->AddMenuExtension("FilterOptions", EExtensionHook::After, GetToolkitCommands(), FMenuExtensionDelegate::CreateSP(this, &FPhysicsAssetEditor::HandleExtendFilterMenu));
 	SkeletonTreeArgs.Extenders->AddMenuExtension("SkeletonTreeContextMenu", EExtensionHook::After, GetToolkitCommands(), FMenuExtensionDelegate::CreateSP(this, &FPhysicsAssetEditor::HandleExtendContextMenu));
 	SkeletonTreeArgs.Builder = SkeletonTreeBuilder = MakeShared<FPhysicsAssetEditorSkeletonTreeBuilder>(ObjectToEdit);
+	SkeletonTreeArgs.ContextName = GetToolkitFName();
 
 	ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::GetModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
 	SkeletonTree = SkeletonEditorModule.CreateSkeletonTree(PersonaToolkit->GetSkeleton(), SkeletonTreeArgs);
@@ -320,11 +326,6 @@ FLinearColor FPhysicsAssetEditor::GetWorldCentricTabColorScale() const
 	return FLinearColor(0.3f, 0.2f, 0.5f, 0.5f);
 }
 
-void PopulateLayoutMenu(FMenuBuilder& MenuBuilder, const TSharedRef<SDockTabStack>& DockTabStack)
-{
-
-}
-
 void FPhysicsAssetEditor::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	SharedData->AddReferencedObjects(Collector);
@@ -459,7 +460,9 @@ void FPhysicsAssetEditor::ExtendToolbar()
 			TSharedRef<FUICommandList> InCommandList = PhysicsAssetEditor->GetToolkitCommands();
 
 			FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
-			PersonaModule.AddCommonToolbarExtensions(ToolbarBuilder, PhysicsAssetEditor->PersonaToolkit.ToSharedRef());
+			FPersonaModule::FCommonToolbarExtensionArgs Args;
+			Args.bReferencePose = true;
+			PersonaModule.AddCommonToolbarExtensions(ToolbarBuilder, PhysicsAssetEditor->PersonaToolkit.ToSharedRef(), Args);
 
 			ToolbarBuilder.BeginSection("PhysicsAssetEditorBodyTools");
 			{
@@ -561,6 +564,7 @@ void FPhysicsAssetEditor::ExtendMenu()
 			MenuBarBuilder.BeginSection("Selection", LOCTEXT("PhatEditSelection", "Selection"));
 			MenuBarBuilder.AddMenuEntry(Commands.SelectAllBodies);
 			MenuBarBuilder.AddMenuEntry(Commands.SelectAllConstraints);
+			MenuBarBuilder.AddMenuEntry(Commands.ToggleSelectionType);
 			MenuBarBuilder.AddMenuEntry(Commands.DeselectAll);
 			MenuBarBuilder.EndSection();
 		}
@@ -626,132 +630,6 @@ void FPhysicsAssetEditor::BindCommands()
 		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnToggleSimulation, false),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsFullSimulation));
-
-	ToolkitCommands->MapAction(
-		Commands.MeshRenderingMode_Solid,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnMeshRenderingMode, EPhysicsAssetEditorRenderMode::Solid, false),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsMeshRenderingMode, EPhysicsAssetEditorRenderMode::Solid, false));
-
-	ToolkitCommands->MapAction(
-		Commands.MeshRenderingMode_Wireframe,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnMeshRenderingMode, EPhysicsAssetEditorRenderMode::Wireframe, false),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsMeshRenderingMode, EPhysicsAssetEditorRenderMode::Wireframe, false));
-
-	ToolkitCommands->MapAction(
-		Commands.MeshRenderingMode_None,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnMeshRenderingMode, EPhysicsAssetEditorRenderMode::None, false),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsMeshRenderingMode, EPhysicsAssetEditorRenderMode::None, false));
-
-	ToolkitCommands->MapAction(
-		Commands.CollisionRenderingMode_Solid,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnCollisionRenderingMode, EPhysicsAssetEditorRenderMode::Solid, false),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsCollisionRenderingMode, EPhysicsAssetEditorRenderMode::Solid, false));
-
-	ToolkitCommands->MapAction(
-		Commands.CollisionRenderingMode_Wireframe,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnCollisionRenderingMode, EPhysicsAssetEditorRenderMode::Wireframe, false),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsCollisionRenderingMode, EPhysicsAssetEditorRenderMode::Wireframe, false));
-
-	ToolkitCommands->MapAction(
-		Commands.CollisionRenderingMode_None,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnCollisionRenderingMode, EPhysicsAssetEditorRenderMode::None, false),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsCollisionRenderingMode, EPhysicsAssetEditorRenderMode::None, false));
-
-	ToolkitCommands->MapAction(
-		Commands.ConstraintRenderingMode_None,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::None, false),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::None, false));
-
-	ToolkitCommands->MapAction(
-		Commands.ConstraintRenderingMode_AllPositions,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::AllPositions, false),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::AllPositions, false));
-
-	ToolkitCommands->MapAction(
-		Commands.ConstraintRenderingMode_AllLimits,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::AllLimits, false),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::AllLimits, false));
-
-	ToolkitCommands->MapAction(
-		Commands.MeshRenderingMode_Simulation_Solid,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnMeshRenderingMode, EPhysicsAssetEditorRenderMode::Solid, true),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsMeshRenderingMode, EPhysicsAssetEditorRenderMode::Solid, true));
-
-	ToolkitCommands->MapAction(
-		Commands.MeshRenderingMode_Simulation_Wireframe,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnMeshRenderingMode, EPhysicsAssetEditorRenderMode::Wireframe, true),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsMeshRenderingMode, EPhysicsAssetEditorRenderMode::Wireframe, true));
-
-	ToolkitCommands->MapAction(
-		Commands.MeshRenderingMode_Simulation_None,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnMeshRenderingMode, EPhysicsAssetEditorRenderMode::None, true),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsMeshRenderingMode, EPhysicsAssetEditorRenderMode::None, true));
-
-	ToolkitCommands->MapAction(
-		Commands.CollisionRenderingMode_Simulation_Solid,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnCollisionRenderingMode, EPhysicsAssetEditorRenderMode::Solid, true),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsCollisionRenderingMode, EPhysicsAssetEditorRenderMode::Solid, true));
-
-	ToolkitCommands->MapAction(
-		Commands.CollisionRenderingMode_Simulation_Wireframe,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnCollisionRenderingMode, EPhysicsAssetEditorRenderMode::Wireframe, true),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsCollisionRenderingMode, EPhysicsAssetEditorRenderMode::Wireframe, true));
-
-	ToolkitCommands->MapAction(
-		Commands.CollisionRenderingMode_Simulation_None,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnCollisionRenderingMode, EPhysicsAssetEditorRenderMode::None, true),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsCollisionRenderingMode, EPhysicsAssetEditorRenderMode::None, true));
-
-	ToolkitCommands->MapAction(
-		Commands.ConstraintRenderingMode_Simulation_None,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::None, true),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::None, true));
-
-	ToolkitCommands->MapAction(
-		Commands.ConstraintRenderingMode_Simulation_AllPositions,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::AllPositions, true),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::AllPositions, true));
-
-	ToolkitCommands->MapAction(
-		Commands.ConstraintRenderingMode_Simulation_AllLimits,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::AllLimits, true),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::AllLimits, true));
-
-	ToolkitCommands->MapAction(
-		Commands.RenderOnlySelectedSolid,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::ToggleRenderOnlySelectedSolid),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsRenderingOnlySelectedSolid));
-
-	ToolkitCommands->MapAction(
-		Commands.DrawConstraintsAsPoints,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::ToggleDrawConstraintsAsPoints),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsDrawingConstraintsAsPoints));
-
-	ToolkitCommands->MapAction(
-		Commands.ToggleMassProperties,
-		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnToggleMassProperties),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsToggleMassProperties));
 
 	ToolkitCommands->MapAction(
 		Commands.DisableCollision,
@@ -925,6 +803,11 @@ void FPhysicsAssetEditor::BindCommands()
 		FCanExecuteAction::CreateSP(this, &FPhysicsAssetEditor::IsNotSimulation));
 
 	ToolkitCommands->MapAction(
+		Commands.ToggleSelectionType,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnToggleSelectionType),
+		FCanExecuteAction::CreateSP(this, &FPhysicsAssetEditor::IsNotSimulation));
+
+	ToolkitCommands->MapAction(
 		Commands.DeselectAll,
 		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnDeselectAll),
 		FCanExecuteAction::CreateSP(this, &FPhysicsAssetEditor::IsNotSimulation));
@@ -935,26 +818,188 @@ void FPhysicsAssetEditor::BindCommands()
 		FCanExecuteAction::CreateSP(this, &FPhysicsAssetEditor::IsNotSimulation)
 		);
 
-	ToolkitCommands->MapAction(
+	ViewportCommandList = MakeShared<FUICommandList_Pinnable>();
+
+	ViewportCommandList->BeginGroup(TEXT("MeshRenderingMode"));
+
+	ViewportCommandList->MapAction(
+		Commands.MeshRenderingMode_Solid,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnMeshRenderingMode, EPhysicsAssetEditorRenderMode::Solid, false),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsMeshRenderingMode, EPhysicsAssetEditorRenderMode::Solid, false));
+
+	ViewportCommandList->MapAction(
+		Commands.MeshRenderingMode_Wireframe,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnMeshRenderingMode, EPhysicsAssetEditorRenderMode::Wireframe, false),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsMeshRenderingMode, EPhysicsAssetEditorRenderMode::Wireframe, false));
+
+	ViewportCommandList->MapAction(
+		Commands.MeshRenderingMode_None,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnMeshRenderingMode, EPhysicsAssetEditorRenderMode::None, false),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsMeshRenderingMode, EPhysicsAssetEditorRenderMode::None, false));
+
+	ViewportCommandList->EndGroup();
+
+	ViewportCommandList->BeginGroup(TEXT("CollisionRenderingMode"));
+
+	ViewportCommandList->MapAction(
+		Commands.CollisionRenderingMode_Solid,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnCollisionRenderingMode, EPhysicsAssetEditorRenderMode::Solid, false),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsCollisionRenderingMode, EPhysicsAssetEditorRenderMode::Solid, false));
+
+	ViewportCommandList->MapAction(
+		Commands.CollisionRenderingMode_Wireframe,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnCollisionRenderingMode, EPhysicsAssetEditorRenderMode::Wireframe, false),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsCollisionRenderingMode, EPhysicsAssetEditorRenderMode::Wireframe, false));
+
+	ViewportCommandList->MapAction(
+		Commands.CollisionRenderingMode_None,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnCollisionRenderingMode, EPhysicsAssetEditorRenderMode::None, false),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsCollisionRenderingMode, EPhysicsAssetEditorRenderMode::None, false));
+
+	ViewportCommandList->EndGroup();
+
+	ViewportCommandList->BeginGroup(TEXT("ConstraintRenderingMode"));
+
+	ViewportCommandList->MapAction(
+		Commands.ConstraintRenderingMode_None,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::None, false),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::None, false));
+
+	ViewportCommandList->MapAction(
+		Commands.ConstraintRenderingMode_AllPositions,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::AllPositions, false),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::AllPositions, false));
+
+	ViewportCommandList->MapAction(
+		Commands.ConstraintRenderingMode_AllLimits,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::AllLimits, false),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::AllLimits, false));
+
+	ViewportCommandList->EndGroup();
+
+	ViewportCommandList->BeginGroup(TEXT("MeshRenderingMode_Simulation"));
+
+	ViewportCommandList->MapAction(
+		Commands.MeshRenderingMode_Simulation_Solid,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnMeshRenderingMode, EPhysicsAssetEditorRenderMode::Solid, true),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsMeshRenderingMode, EPhysicsAssetEditorRenderMode::Solid, true));
+
+	ViewportCommandList->MapAction(
+		Commands.MeshRenderingMode_Simulation_Wireframe,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnMeshRenderingMode, EPhysicsAssetEditorRenderMode::Wireframe, true),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsMeshRenderingMode, EPhysicsAssetEditorRenderMode::Wireframe, true));
+
+	ViewportCommandList->MapAction(
+		Commands.MeshRenderingMode_Simulation_None,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnMeshRenderingMode, EPhysicsAssetEditorRenderMode::None, true),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsMeshRenderingMode, EPhysicsAssetEditorRenderMode::None, true));
+
+	ViewportCommandList->EndGroup();
+
+	ViewportCommandList->BeginGroup(TEXT("CollisionRenderingMode_Simulation"));
+
+	ViewportCommandList->MapAction(
+		Commands.CollisionRenderingMode_Simulation_Solid,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnCollisionRenderingMode, EPhysicsAssetEditorRenderMode::Solid, true),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsCollisionRenderingMode, EPhysicsAssetEditorRenderMode::Solid, true));
+
+	ViewportCommandList->MapAction(
+		Commands.CollisionRenderingMode_Simulation_Wireframe,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnCollisionRenderingMode, EPhysicsAssetEditorRenderMode::Wireframe, true),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsCollisionRenderingMode, EPhysicsAssetEditorRenderMode::Wireframe, true));
+
+	ViewportCommandList->MapAction(
+		Commands.CollisionRenderingMode_Simulation_None,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnCollisionRenderingMode, EPhysicsAssetEditorRenderMode::None, true),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsCollisionRenderingMode, EPhysicsAssetEditorRenderMode::None, true));
+
+	ViewportCommandList->EndGroup();
+
+	ViewportCommandList->BeginGroup(TEXT("ConstraintRenderingMode_Simulation"));
+
+	ViewportCommandList->MapAction(
+		Commands.ConstraintRenderingMode_Simulation_None,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::None, true),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::None, true));
+
+	ViewportCommandList->MapAction(
+		Commands.ConstraintRenderingMode_Simulation_AllPositions,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::AllPositions, true),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::AllPositions, true));
+
+	ViewportCommandList->MapAction(
+		Commands.ConstraintRenderingMode_Simulation_AllLimits,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::AllLimits, true),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsConstraintRenderingMode, EPhysicsAssetEditorConstraintViewMode::AllLimits, true));
+
+	ViewportCommandList->EndGroup();
+
+	ViewportCommandList->MapAction(
+		Commands.RenderOnlySelectedSolid,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::ToggleRenderOnlySelectedSolid),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsRenderingOnlySelectedSolid));
+
+	ViewportCommandList->MapAction(
+		Commands.DrawConstraintsAsPoints,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::ToggleDrawConstraintsAsPoints),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsDrawingConstraintsAsPoints));
+
+	ViewportCommandList->MapAction(
+		Commands.RenderOnlySelectedConstraints,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::ToggleRenderOnlySelectedConstraints),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsRenderingOnlySelectedConstraints));
+
+	ViewportCommandList->MapAction(
+		Commands.ToggleMassProperties,
+		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::OnToggleMassProperties),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FPhysicsAssetEditor::IsToggleMassProperties));
+
+	SkeletonTreeCommandList = MakeShared<FUICommandList_Pinnable>();
+
+	SkeletonTreeCommandList->MapAction(
 		Commands.ShowBodies,
 		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::HandleToggleShowBodies),
 		FCanExecuteAction(),
 		FGetActionCheckState::CreateSP(this, &FPhysicsAssetEditor::GetShowBodiesChecked)
 	);
 
-	ToolkitCommands->MapAction(
+	SkeletonTreeCommandList->MapAction(
 		Commands.ShowConstraints,
 		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::HandleToggleShowConstraints),
 		FCanExecuteAction(),
 		FGetActionCheckState::CreateSP(this, &FPhysicsAssetEditor::GetShowConstraintsChecked)
 	);
 
-	ToolkitCommands->MapAction(
+	SkeletonTreeCommandList->MapAction(
 		Commands.ShowPrimitives,
 		FExecuteAction::CreateSP(this, &FPhysicsAssetEditor::HandleToggleShowPrimitives),
 		FCanExecuteAction(),
 		FGetActionCheckState::CreateSP(this, &FPhysicsAssetEditor::GetShowPrimitivesChecked)
 	);
+
+	SkeletonTree->GetPinnedCommandList()->BindCommandList(SkeletonTreeCommandList.ToSharedRef());
 }
 
 void FPhysicsAssetEditor::Mirror()
@@ -1075,6 +1120,7 @@ void FPhysicsAssetEditor::BuildMenuWidgetPrimitives(FMenuBuilder& InMenuBuilder)
 		const FPhysicsAssetEditorCommands& Commands = FPhysicsAssetEditorCommands::Get();
 
 		InMenuBuilder.BeginSection("PrimitiveActions", LOCTEXT("PrimitivesHeader", "Primitives"));
+		InMenuBuilder.AddMenuEntry(FGenericCommands::Get().Rename);
 		InMenuBuilder.AddMenuEntry(Commands.DuplicatePrimitive);
 		InMenuBuilder.AddMenuEntry(Commands.DeletePrimitive);
 		InMenuBuilder.EndSection();
@@ -1147,6 +1193,7 @@ void FPhysicsAssetEditor::BuildMenuWidgetSelection(FMenuBuilder& InMenuBuilder)
 		InMenuBuilder.BeginSection( "Selection", LOCTEXT("Selection", "Selection" ) );
 		InMenuBuilder.AddMenuEntry( Commands.SelectAllBodies );
 		InMenuBuilder.AddMenuEntry( Commands.SelectAllConstraints );
+		InMenuBuilder.AddMenuEntry( Commands.ToggleSelectionType );
 		InMenuBuilder.EndSection();
 	}
 	InMenuBuilder.PopCommandList();
@@ -1157,7 +1204,7 @@ void FPhysicsAssetEditor::BuildMenuWidgetNewConstraint(FMenuBuilder& InMenuBuild
 	BuildMenuWidgetNewConstraintForBody(InMenuBuilder, INDEX_NONE);
 }
 
-void FPhysicsAssetEditor::BuildMenuWidgetNewConstraintForBody(FMenuBuilder& InMenuBuilder, int32 InSourceBodyIndex)
+TSharedRef<ISkeletonTree> FPhysicsAssetEditor::BuildMenuWidgetNewConstraintForBody(FMenuBuilder& InMenuBuilder, int32 InSourceBodyIndex, SGraphEditor::FActionMenuClosed InOnActionMenuClosed)
 {
 	FSkeletonTreeBuilderArgs SkeletonTreeBuilderArgs(false, false, false, false);
 
@@ -1174,7 +1221,7 @@ void FPhysicsAssetEditor::BuildMenuWidgetNewConstraintForBody(FMenuBuilder& InMe
 	SkeletonTreeArgs.bShowFilterMenu = false;
 	SkeletonTreeArgs.Builder = Builder;
 	SkeletonTreeArgs.PreviewScene = GetPersonaToolkit()->GetPreviewScene();
-	SkeletonTreeArgs.OnSelectionChanged = FOnSkeletonTreeSelectionChanged::CreateLambda([this, InSourceBodyIndex](const TArrayView<TSharedPtr<ISkeletonTreeItem>>& InSelectedItems, ESelectInfo::Type SelectInfo)
+	SkeletonTreeArgs.OnSelectionChanged = FOnSkeletonTreeSelectionChanged::CreateLambda([this, InSourceBodyIndex, InOnActionMenuClosed](const TArrayView<TSharedPtr<ISkeletonTreeItem>>& InSelectedItems, ESelectInfo::Type SelectInfo)
 	{
 		if(InSelectedItems.Num() > 0)
 		{
@@ -1196,23 +1243,28 @@ void FPhysicsAssetEditor::BuildMenuWidgetNewConstraintForBody(FMenuBuilder& InMe
 		}
 
 		FSlateApplication::Get().DismissAllMenus();
+
+		InOnActionMenuClosed.ExecuteIfBound();
 	});
+
+	ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::GetModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
+	TSharedRef<ISkeletonTree> SkeletonPicker = SkeletonEditorModule.CreateSkeletonTree(SkeletonTree->GetEditableSkeleton(), SkeletonTreeArgs);
 
 	InMenuBuilder.BeginSection(TEXT("CreateNewConstraint"), LOCTEXT("CreateNewConstraint", "Create New Constraint With..."));
 	{
-		ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::GetModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
-
 		InMenuBuilder.AddWidget(
 			SNew(SBox)
 			.IsEnabled(this, &FPhysicsAssetEditor::IsNotSimulation)
 			.WidthOverride(300.0f)
 			.HeightOverride(400.0f)
 			[
-				SkeletonEditorModule.CreateSkeletonTree(SkeletonTree->GetEditableSkeleton(), SkeletonTreeArgs)
+				SkeletonPicker
 			], 
 			FText(), true, false);
 	}
 	InMenuBuilder.EndSection();
+
+	return SkeletonPicker;
 }
 
 void FPhysicsAssetEditor::BuildMenuWidgetBone(FMenuBuilder& InMenuBuilder)
@@ -1655,16 +1707,19 @@ void FPhysicsAssetEditor::OnCopyProperties()
 
 void FPhysicsAssetEditor::OnPasteProperties()
 {
-	if(SharedData->SelectedBodies.Num() == 1)
+	if(SharedData->SelectedBodies.Num() > 0)
 	{
 		SharedData->PasteBodyProperties();
 	}
-	else if (SharedData->SelectedConstraints.Num() == 1)
+	else if (SharedData->SelectedConstraints.Num() > 0)
 	{
 		SharedData->PasteConstraintProperties();
 	}
 	
+	RecreatePhysicsState();
+	SharedData->RefreshPhysicsAssetChange(SharedData->PhysicsAsset);
 	RefreshPreviewViewport();
+	RefreshHierachyTree();
 }
 
 bool FPhysicsAssetEditor::CanCopyProperties() const
@@ -1686,7 +1741,7 @@ bool FPhysicsAssetEditor::CanCopyProperties() const
 
 bool FPhysicsAssetEditor::CanPasteProperties() const
 {
-	return IsSelectedEditMode() && IsCopyProperties();
+	return IsSelectedEditMode() && IsCopyProperties() && (SharedData->SelectedBodies.Num() > 0 || SharedData->SelectedConstraints.Num() > 0);
 }
 
 bool FPhysicsAssetEditor::IsCopyProperties() const
@@ -1890,6 +1945,17 @@ bool FPhysicsAssetEditor::IsDrawingConstraintsAsPoints() const
 	return SharedData->EditorOptions->bShowConstraintsAsPoints;
 }
 
+void FPhysicsAssetEditor::ToggleRenderOnlySelectedConstraints()
+{
+	SharedData->EditorOptions->bRenderOnlySelectedConstraints = !SharedData->EditorOptions->bRenderOnlySelectedConstraints;
+	SharedData->EditorOptions->SaveConfig();
+}
+
+bool FPhysicsAssetEditor::IsRenderingOnlySelectedConstraints() const
+{
+	return SharedData->EditorOptions->bRenderOnlySelectedConstraints;
+}
+
 void FPhysicsAssetEditor::ToggleRenderOnlySelectedSolid()
 {
 	SharedData->EditorOptions->bSolidRenderingForSelectedOnly = !SharedData->EditorOptions->bSolidRenderingForSelectedOnly;
@@ -1920,6 +1986,8 @@ bool FPhysicsAssetEditor::IsToggleMassProperties() const
 
 void FPhysicsAssetEditor::OnSetCollision(bool bEnable)
 {
+	FScopedTransaction Transaction(LOCTEXT("SetCollision", "Set Collision"));
+
 	SharedData->SetCollisionBetweenSelected(bEnable);
 }
 
@@ -1930,6 +1998,8 @@ bool FPhysicsAssetEditor::CanSetCollision(bool bEnable) const
 
 void FPhysicsAssetEditor::OnSetCollisionAll(bool bEnable)
 {
+	FScopedTransaction Transaction(LOCTEXT("SetCollision", "Set Collision"));
+
 	SharedData->SetCollisionBetweenSelectedAndAll(bEnable);
 }
 
@@ -2347,8 +2417,7 @@ void FPhysicsAssetEditor::OnSelectAllBodies()
 	UPhysicsAsset * const PhysicsAsset = SharedData->EditorSkelComp->GetPhysicsAsset();
 
 	// Block selection broadcast until we have selected all, as this can be an expensive operation
-	FPhysicsAssetEditorSharedData::FSelectionChanged SelectionChangedEvent = SharedData->SelectionChangedEvent;
-	SharedData->SelectionChangedEvent = FPhysicsAssetEditorSharedData::FSelectionChanged();
+	FScopedBulkSelection BulkSelection(SharedData);
 	
 	//Bodies
 	//first deselect everything
@@ -2389,9 +2458,6 @@ void FPhysicsAssetEditor::OnSelectAllBodies()
 			}
 		}
 	}
-	
-	SharedData->SelectionChangedEvent = SelectionChangedEvent;
-	SharedData->SelectionChangedEvent.Broadcast(SharedData->SelectedBodies, SharedData->SelectedConstraints);
 }
 
 void FPhysicsAssetEditor::OnSelectAllConstraints()
@@ -2399,8 +2465,7 @@ void FPhysicsAssetEditor::OnSelectAllConstraints()
 	UPhysicsAsset * const PhysicsAsset = SharedData->EditorSkelComp->GetPhysicsAsset();
 
 	// Block selection broadcast until we have selected all, as this can be an expensive operation
-	FPhysicsAssetEditorSharedData::FSelectionChanged SelectionChangedEvent = SharedData->SelectionChangedEvent;
-	SharedData->SelectionChangedEvent = FPhysicsAssetEditorSharedData::FSelectionChanged();
+	FScopedBulkSelection BulkSelection(SharedData);
 
 	//Constraints
 	//Deselect everything first
@@ -2417,9 +2482,11 @@ void FPhysicsAssetEditor::OnSelectAllConstraints()
 			SharedData->SetSelectedConstraint(i, true);
 		}
 	}
+}
 
-	SharedData->SelectionChangedEvent = SelectionChangedEvent;
-	SharedData->SelectionChangedEvent.Broadcast(SharedData->SelectedBodies, SharedData->SelectedConstraints);
+void FPhysicsAssetEditor::OnToggleSelectionType()
+{
+	SharedData->ToggleSelectionType();
 }
 
 void FPhysicsAssetEditor::OnDeselectAll()
@@ -2491,8 +2558,7 @@ void FPhysicsAssetEditor::HandleGraphObjectsSelected(const TArrayView<UObject*>&
 		}
 
 		// Block selection broadcast until we have selected all, as this can be an expensive operation
-		FPhysicsAssetEditorSharedData::FSelectionChanged SelectionChangedEvent = SharedData->SelectionChangedEvent;
-		SharedData->SelectionChangedEvent = FPhysicsAssetEditorSharedData::FSelectionChanged();
+		FScopedBulkSelection BulkSelection(SharedData);
 
 		// clear selection
 		SharedData->SelectedBodies.Empty();
@@ -2525,9 +2591,6 @@ void FPhysicsAssetEditor::HandleGraphObjectsSelected(const TArrayView<UObject*>&
 				}
 			}
 		}
-
-		SharedData->SelectionChangedEvent = SelectionChangedEvent;
-		SharedData->SelectionChangedEvent.Broadcast(SharedData->SelectedBodies, SharedData->SelectedConstraints);
 
 		SkeletonTree->SelectItemsBy([&SelectedBodies, &SelectedConstraints](const TSharedRef<ISkeletonTreeItem>& InItem, bool& bInOutExpand)
 		{
@@ -2580,8 +2643,7 @@ void FPhysicsAssetEditor::HandleSelectionChanged(const TArrayView<TSharedPtr<ISk
 		if (InSelectInfo != ESelectInfo::Direct)
 		{
 			// Block selection broadcast until we have selected all, as this can be an expensive operation
-			FPhysicsAssetEditorSharedData::FSelectionChanged SelectionChangedEvent = SharedData->SelectionChangedEvent;
-			SharedData->SelectionChangedEvent = FPhysicsAssetEditorSharedData::FSelectionChanged();
+			FScopedBulkSelection BulkSelection(SharedData);
 
 			// clear selection
 			SharedData->ClearSelectedBody();
@@ -2611,9 +2673,6 @@ void FPhysicsAssetEditor::HandleSelectionChanged(const TArrayView<TSharedPtr<ISk
 					bBoneSelected = true;
 				}
 			}
-
-			SharedData->SelectionChangedEvent = SelectionChangedEvent;
-			SharedData->SelectionChangedEvent.Broadcast(SharedData->SelectedBodies, SharedData->SelectedConstraints);
 
 			if(!bBoneSelected)
 			{
@@ -2711,6 +2770,7 @@ void FPhysicsAssetEditor::HandleExtendFilterMenu(FMenuBuilder& InMenuBuilder)
 {
 	const FPhysicsAssetEditorCommands& Commands = FPhysicsAssetEditorCommands::Get();
 
+	InMenuBuilder.PushCommandList(SkeletonTreeCommandList.ToSharedRef());
 	InMenuBuilder.BeginSection(TEXT("PhysicsAssetFilters"), LOCTEXT("PhysicsAssetFiltersHeader", "Physics Asset Filters"));
 	{
 		InMenuBuilder.AddMenuEntry(Commands.ShowBodies);
@@ -2718,6 +2778,7 @@ void FPhysicsAssetEditor::HandleExtendFilterMenu(FMenuBuilder& InMenuBuilder)
 		InMenuBuilder.AddMenuEntry(Commands.ShowPrimitives);
 	}
 	InMenuBuilder.EndSection();
+	InMenuBuilder.PopCommandList();
 }
 
 void FPhysicsAssetEditor::HandleToggleShowBodies()
@@ -2784,9 +2845,66 @@ void FPhysicsAssetEditor::RecreatePhysicsState()
 	// Flush geometry cache inside the asset (don't want to use cached version of old geometry!)
 	SharedData->PhysicsAsset->InvalidateAllPhysicsMeshes();
 	SharedData->EditorSkelComp->RecreatePhysicsState();
+	SharedData->EditorSkelComp->RecreateClothingActors();
 
 	// Reset simulation state of body instances so we dont actually simulate outside of 'simulation mode'
 	SharedData->ForceDisableSimulation();
+}
+
+TSharedRef<SWidget> FPhysicsAssetEditor::MakeConstraintScaleWidget()
+{
+	return 
+		SNew(SBox)
+		.HAlign(HAlign_Right)
+		[
+			SNew(SBox)
+			.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+			.WidthOverride(100.0f)
+			[
+				SNew(SNumericEntryBox<float>)
+				.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+				.AllowSpin(true)
+				.MinSliderValue(0.0f)
+				.MaxSliderValue(4.0f)
+				.Value_Lambda([this]() { return SharedData->EditorOptions->ConstraintDrawSize; })
+				.OnValueChanged_Lambda([this](float InValue) { SharedData->EditorOptions->ConstraintDrawSize = InValue; })
+				.OnValueCommitted_Lambda([this](float InValue, ETextCommit::Type InCommitType) 
+				{
+					SharedData->EditorOptions->ConstraintDrawSize = InValue; 
+					SharedData->EditorOptions->SaveConfig(); 
+					ViewportCommandList->WidgetInteraction(TEXT("ConstraintScaleWidget"));
+				})
+			]
+		];
+}
+
+TSharedRef<SWidget> FPhysicsAssetEditor::MakeCollisionOpacityWidget()
+{
+	return 
+		SNew(SBox)
+		.HAlign(HAlign_Right)
+		[
+			SNew(SBox)
+			.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+			.WidthOverride(100.0f)
+			[
+				SNew(SNumericEntryBox<float>)
+				.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+				.AllowSpin(true)
+				.MinValue(0.0f)
+				.MaxValue(1.0f)
+				.MinSliderValue(0.0f)
+				.MaxSliderValue(1.0f)
+				.Value_Lambda([this]() { return SharedData->EditorOptions->CollisionOpacity; })
+				.OnValueChanged_Lambda([this](float InValue) { SharedData->EditorOptions->CollisionOpacity = InValue; })
+				.OnValueCommitted_Lambda([this](float InValue, ETextCommit::Type InCommitType) 
+				{ 
+					SharedData->EditorOptions->CollisionOpacity = InValue; 
+					SharedData->EditorOptions->SaveConfig();
+					ViewportCommandList->WidgetInteraction(TEXT("CollisionOpacityWidget"));
+				})
+			]
+		];
 }
 
 #undef LOCTEXT_NAMESPACE

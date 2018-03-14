@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -18,11 +18,11 @@ public class SourceControl : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Linux && Target.Type == TargetType.Program)
 		{
-			Definitions.Add("SOURCE_CONTROL_WITH_SLATE=0");
+			PublicDefinitions.Add("SOURCE_CONTROL_WITH_SLATE=0");
 		}
 		else
 		{
-			Definitions.Add("SOURCE_CONTROL_WITH_SLATE=1");
+			PublicDefinitions.Add("SOURCE_CONTROL_WITH_SLATE=1");
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {

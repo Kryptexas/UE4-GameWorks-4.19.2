@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -33,6 +33,10 @@ public:
 	/** Delegate for when the context menu has successfully deleted a folder */
 	DECLARE_DELEGATE(FOnFolderDeleted)
 	void SetOnFolderDeleted(const FOnFolderDeleted& InOnFolderDeleted);
+
+	/** Delegate for when the context menu has successfully toggled the favorite status of a folder */
+	DECLARE_DELEGATE_OneParam(FOnFolderFavoriteToggled, const TArray<FString>& /*FoldersToToggle*/)
+	void SetOnFolderFavoriteToggled(const FOnFolderFavoriteToggled& InOnFolderFavoriteToggled);
 
 	/** Sets the currently selected paths */
 	void SetSelectedPaths(const TArray<FString>& InSelectedPaths);
@@ -82,17 +86,14 @@ public:
 	/** Handler for when new or set color is selected */
 	void ExecutePickColor();
 
+	/** Handler for favoriting */
+	void ExecuteFavorite();
+
 	/** Handler for when "Save" is selected */
 	void ExecuteSaveFolder();
 
 	/** Handler for when "Resave" is selected */
 	void ExecuteResaveFolder();
-
-	/** Handler for when "ReferenceViewer" is selected */
-	void ExecuteReferenceViewer();
-
-	/** Handler for when "SizeMap" is selected */
-	void ExecuteSizeMap();
 
 	/** Handler for when "Fix up Redirectors in Folder" is selected */
 	void ExecuteFixUpRedirectorsInFolder();
@@ -160,6 +161,7 @@ private:
 	FNewAssetOrClassContextMenu::FOnImportAssetRequested OnImportAssetRequested;
 	FOnRenameFolderRequested OnRenameFolderRequested;
 	FOnFolderDeleted OnFolderDeleted;
+	FOnFolderFavoriteToggled OnFolderFavoriteToggled;
 
 	/** Cached SCC CanExecute vars */
 	bool bCanExecuteSCCCheckOut;

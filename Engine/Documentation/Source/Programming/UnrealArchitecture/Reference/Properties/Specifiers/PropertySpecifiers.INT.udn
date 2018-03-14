@@ -1,47 +1,71 @@
-Title: Property Specifiers
-Crumbs:%ROOT%, Programming/UnrealArchitecture/Reference,  Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties
-Description: Keywords used when declaring gameplay properties to specify how the property behaves with various aspects of the engine and editor.
 Availability:Public
-Version: 4.9
+Title: Property Specifiers
+Crumbs:%ROOT%
+Description: Keywords used when declaring UProperties to specify how the property behaves with various aspects of the Engine and Editor.
+Type:Reference
+Version: 4.18
+Parent:Programming/UnrealArchitecture/Reference/Properties
+Order:0
+tags:UPROPERTY
+tags:Specifiers
+topic-image:components_topic.png
+
 
 [EXCERPT:main]
-When declaring properties, specifiers can be added to the declaration to control how the property behaves with various 
-aspects of the engine and editor.
+When declaring properties, **Property Specifiers** can be added to the declaration to control how the property behaves with various aspects of the Engine and Editor.
 
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/AdvancedDisplay)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/AssetRegistrySearchable)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/BlueprintAssignable)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/BlueprintCallable)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/BlueprintReadOnly)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/BlueprintReadWrite)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Category)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Config)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Const)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/DuplicateTransient)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/EditAnywhere) 
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/EditDefaultsOnly)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/EditFixedSize)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/EditInline)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/EditInstanceOnly)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Export)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/GlobalConfig)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Instanced)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Interp)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Localized)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Native)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/NoClear)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/NoExport)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/NonTransactional)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Ref)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Replicated)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/ReplicatedUsing)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/RepRetry)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/SaveGame)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/SerializeText)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/SimpleDisplay)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Transient)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/VisibleAnywhere)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/VisibleDefaultsOnly)
-* [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/VisibleInstanceOnly)
+| Property Tag | Effect |
+| --- | --- |
+| `AdvancedDisplay` | The property will be placed in the advanced (dropdown) section of any panel where it appears. |
+| `AssetRegistrySearchable` | The `AssetRegistrySearchable` Specifier indicates that this property and its value will be automatically added to the Asset Registry for any Asset class instances containing this as a member variable.  It is not legal to use on struct properties or parameters. |
+| `BlueprintAssignable` | Usable with Multicast Delegates only. Exposes the property for assigning in Blueprints. |
+| `BlueprintAuthorityOnly` | This property must be a Multicast Delegate. In Blueprints, it will only accept events tagged with `BlueprintAuthorityOnly`. |
+| `BlueprintCallable` | Multicast Delegates only. Property should be exposed for calling in Blueprint code. |
+| `BlueprintGetter=GetterFunctionName` | This property specifies a custom accessor function. If this property isn't also tagged with `BlueprintSetter` or `BlueprintReadWrite`, then it is implicitly `BlueprintReadOnly`. |
+| `BlueprintReadOnly` | This property can be read by Blueprints, but not modified. This Specifier is incompatible with the `BlueprintReadWrite` Specifier. |
+| `BlueprintReadWrite` | This property can be read or written from a Blueprint. This Specifier is incompatible with the `BlueprintReadOnly` Specifier. |
+| `BlueprintSetter=SetterFunctionName` | This property has a custom mutator function, and is implicitly tagged with `BlueprintReadWrite`. Note that the mutator function must be named and part of the same class. |
+| `Category="TopCategory|SubCategory|..."` | Specifies the category of the property when displayed in Blueprint editing tools. Define nested categories using the `|` operator. |
+| `Config` | This property will be made configurable. The current value can be saved to the `.ini` file associated with the class and will be loaded when created. Cannot be given a value in default properties. Implies `BlueprintReadOnly`. |
+| `DuplicateTransient` | Indicates that the property's value should be reset to the class default value during any type of duplication (copy/paste, binary duplication, etc.). |
+| `EditAnywhere` | Indicates that this property can be edited by property windows, on archetypes and instances. This Specifier is incompatible with any of the the "Visible" Specifiers. |
+| `EditDefaultsOnly` | Indicates that this property can be edited by property windows, but only on archetypes. This Specifier is incompatible with any of the "Visible" Specifiers. |
+| `EditFixedSize` | Only useful for dynamic arrays. This will prevent the user from changing the length of an array via the Unreal Editor property window. |
+| `EditInline` | Allows the user to edit the properties of the Object referenced by this property within Unreal Editor's property inspector (only useful for Object references, including arrays of Object reference). |
+| `EditInstanceOnly` | Indicates that this property can be edited by property windows, but only on instances, not on archetypes. This Specifier is incompatible with any of the "Visible" Specifiers. |
+| `Export` | Only useful for Object properties (or arrays of Objects). Indicates that the Object assigned to this property should be exported in its entirety as a subobject block when the Object is copied (such as for copy/paste operations), as opposed to just outputting the Object reference itself. |
+| `GlobalConfig` | Works just like `Config` except that you cannot override it in a subclass. Cannot be given a value in default properties. Implies `BlueprintReadOnly`. |
+| `Instanced` | Object (`UCLASS`) properties only. When an instance of this class is created, it will be given a unique copy of the Object assigned to this property in defaults. Used for instancing subobjects defined in class default properties. Implies `EditInline` and `Export`. |
+| `Interp` | Indicates that the value can be driven over time by a Track in Matinee. |
+| `Localized` | The value of this property will have a localized value defined. Mostly used for strings. Implies `ReadOnly`. |
+| `Native` | Property is native: C++ code is responsible for serializing it and exposing to [Garbage Collection](Programming/UnrealArchitecture/Objects/Optimizations/#garbagecollection). |
+| `NoClear` | Prevents this Object reference from being set to none from the editor. Hides clear (and browse) button in the editor. |
+| `NoExport` | Only useful for native classes. This property should not be included in the auto-generated class declaration. |
+| `NonPIEDuplicateTransient` | The property will be reset to the default value during duplication, except if it's being duplicated for a Play In Editor (PIE) session. |
+| `NonTransactional` | Indicates that changes to this property's value will not be included in the editor's undo/redo history. |
+| `NotReplicated` | Skip replication. This only applies to struct members and parameters in service request functions. |
+| `Replicated` | The property should be replicated over the network. |
+| `ReplicatedUsing=FunctionName` | The `ReplicatedUsing` Specifier specifies a callback function which is executed when the property is updated over the network. |
+| `RepRetry` | Only useful for struct properties. Retry replication of this property if it fails to be fully sent (for example, Object references not yet available to serialize over the network). For simple references, this is the default, but for structs, this is often undesirable due to the bandwidth cost, so it is disabled unless this flag is specified. |
+| `SaveGame` | This Specifier is a simple way to include fields explicitly for a checkpoint/save system at the property level. The flag should be set on all fields that are intended to be part of a saved game, and then a proxy archiver can be used to read/write it. |
+| `SerializeText` | Native property should be serialized as text (`ImportText`, `ExportText`). |
+| `SkipSerialization` | This property will not be serialized, but can still be exported to a text format (such as for copy/paste operations). |
+| `SimpleDisplay` | Visible or editable properties appear in the **Details** panel and are visible without opening the "Advanced" section. |
+| `TextExportTransient` | This property will not be exported to a text format (so it cannot, for example, be used in copy/paste operations). |
+| `Transient` | Property is transient, meaning it will not be saved or loaded. Properties tagged this way will be zero-filled at load time. |
+| `VisibleAnywhere` | Indicates that this property is visible in all property windows, but cannot be edited. This Specifier is incompatible with the "Edit" Specifiers. |
+| `VisibleDefaultsOnly` | Indicates that this property is only visible in property windows for archetypes, and cannot be edited. This Specifier is incompatible with any of the "Edit" Specifiers. |
+| `VisibleInstanceOnly` | Indicates that this property is only visible in property windows for instances, not for archetypes, and cannot be edited. This Specifier is incompatible with any of the "Edit" Specifiers. |
+
+[COMMENT:none]
+- NonPIETransient - Unlisted due to deprecation. -
+[/COMMENT]
+[COMMENT:none]
+- Const - Removed because it causes compile failures! Row copied below for reference (unlikely this will ever be fixed or meaningful). -
+[/COMMENT]
+[COMMENT:none]
+- | `Const` | This variable is `const` and should be exported as `const`. `Const` properties will not be modifiable in the Editor. | 
+[/COMMENT]
+
 
 [/EXCERPT:main]

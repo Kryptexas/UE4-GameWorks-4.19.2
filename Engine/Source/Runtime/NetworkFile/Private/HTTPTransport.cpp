@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "HTTPTransport.h"
 
@@ -37,7 +37,7 @@ bool FHTTPTransport::Initialize(const TCHAR* InHostIp)
 	// make sure that our string is again correctly formated
 	HostIp = FString::Printf(TEXT("http://%s"),*HostIp);
 
-	FCString::Sprintf(Url, *HostIp);
+	FCString::Strncpy(Url, *HostIp, ARRAY_COUNT(Url));
 
 #if !PLATFORM_HTML5
 	HttpRequest = FHttpModule::Get().CreateRequest();
@@ -53,7 +53,7 @@ bool FHTTPTransport::Initialize(const TCHAR* InHostIp)
 
 bool FHTTPTransport::SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uint8>& Out)
 {
-	RecieveBuffer.Empty();
+	ReceiveBuffer.Empty();
 	ReadPtr = 0;
 
 #if !PLATFORM_HTML5
@@ -77,7 +77,7 @@ bool FHTTPTransport::SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uin
 		TArray<uint8>& Out;
 	};
 
-	HTTPRequestHandler Handler(RecieveBuffer);
+	HTTPRequestHandler Handler(ReceiveBuffer);
 
 	HttpRequest->OnProcessRequestComplete().BindRaw(&Handler,&HTTPRequestHandler::HttpRequestComplete );
 	if ( In.Num() )
@@ -132,13 +132,13 @@ bool FHTTPTransport::SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uin
 	{
 		uint32 Size = OutSize;
 		uint32 Marker = 0xDeadBeef;
-		RecieveBuffer.Append((uint8*)&Marker,sizeof(uint32));
-		RecieveBuffer.Append((uint8*)&Size,sizeof(uint32));
+		ReceiveBuffer.Append((uint8*)&Marker,sizeof(uint32));
+		ReceiveBuffer.Append((uint8*)&Size,sizeof(uint32));
 	}
 
 	if (OutSize)
 	{
-		RecieveBuffer.Append(OutData,OutSize);
+		ReceiveBuffer.Append(OutData,OutSize);
 
 		// don't go through the Unreal Memory system.
 		::free(OutData);
@@ -153,13 +153,13 @@ bool FHTTPTransport::ReceiveResponse(TArray<uint8> &Out)
 	// Read one Packet from Receive Buffer.
 	// read the size.
 
-	uint32 Marker = *(uint32*)(RecieveBuffer.GetData() + ReadPtr);
-	uint32 Size = *(uint32*)(RecieveBuffer.GetData() + ReadPtr + sizeof(uint32));
+	uint32 Marker = *(uint32*)(ReceiveBuffer.GetData() + ReadPtr);
+	uint32 Size = *(uint32*)(ReceiveBuffer.GetData() + ReadPtr + sizeof(uint32));
 
 	// make sure we have the right amount of data available in the buffer.
-	check( (ReadPtr + Size + 2*sizeof(uint32)) <= RecieveBuffer.Num());
+	check( (ReadPtr + Size + 2*sizeof(uint32)) <= ReceiveBuffer.Num());
 
-	Out.Append(RecieveBuffer.GetData() + ReadPtr + 2*sizeof(uint32),Size);
+	Out.Append(ReceiveBuffer.GetData() + ReadPtr + 2*sizeof(uint32),Size);
 
 	ReadPtr += 2*sizeof(uint32) + Size;
 

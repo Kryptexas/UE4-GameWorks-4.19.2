@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Serialization/PropertyLocalizationDataGathering.h"
 #include "UObject/Script.h"
@@ -166,8 +166,6 @@ void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromObjectFields(c
 
 void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromStructFields(const FString& PathToParent, const UStruct* Struct, const void* StructData, const void* DefaultStructData, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
 {
-	const UStruct* ArchetypeStruct = Cast<UStruct>(Struct->GetArchetype());
-
 	for (TFieldIterator<const UField> FieldIt(Struct, EFieldIteratorFlags::IncludeSuper, EFieldIteratorFlags::ExcludeDeprecated, EFieldIteratorFlags::IncludeInterfaces); FieldIt; ++FieldIt)
 	{
 		// Gather text from the property data
@@ -176,17 +174,7 @@ void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromStructFields(c
 			if (PropertyField)
 			{
 				const void* ValueAddress = PropertyField->ContainerPtrToValuePtr<void>(StructData);
-				const void* DefaultValueAddress = nullptr;
-
-				if (ArchetypeStruct && DefaultStructData)
-				{
-					const UProperty* ArchetypePropertyField = FindField<UProperty>(ArchetypeStruct, *PropertyField->GetName());
-					if (ArchetypePropertyField && ArchetypePropertyField->IsA(PropertyField->GetClass()))
-					{
-						DefaultValueAddress = ArchetypePropertyField->ContainerPtrToValuePtr<void>(DefaultStructData);
-					}
-				}
-
+				const void* DefaultValueAddress = DefaultStructData ? PropertyField->ContainerPtrToValuePtr<void>(DefaultStructData) : nullptr;
 				GatherLocalizationDataFromChildTextProperties(PathToParent, PropertyField, ValueAddress, DefaultValueAddress, GatherTextFlags | (PropertyField->HasAnyPropertyFlags(CPF_EditorOnly) ? EPropertyLocalizationGathererTextFlags::ForceEditorOnly : EPropertyLocalizationGathererTextFlags::None));
 			}
 		}
@@ -371,18 +359,6 @@ void FPropertyLocalizationDataGatherer::GatherTextInstance(const FText& Text, co
 		const FString* SourceString = FTextInspector::GetSourceString(Text);
 		SourceData.SourceString = SourceString ? *SourceString : FString();
 	}
-
-#if USE_STABLE_LOCALIZATION_KEYS
-	// Make sure the namespace is what we expect for this package
-	// This would usually be done when the text is loaded, but we also gather text when saving packages so we need to make sure things are consistent
-	{
-		const FString PackageNamespace = TextNamespaceUtil::GetPackageNamespace(Package);
-		if (!PackageNamespace.IsEmpty())
-		{
-			Namespace = TextNamespaceUtil::BuildFullNamespace(Namespace, PackageNamespace);
-		}
-	}
-#endif // USE_STABLE_LOCALIZATION_KEYS
 
 	// Always include the text without its package localization ID
 	const FString CleanNamespace = TextNamespaceUtil::StripPackageNamespace(Namespace);

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGL3.cpp: OpenGL 3.2 implementation.
@@ -13,6 +13,7 @@
 
 bool FOpenGL3::bSupportsTessellation = false;
 bool FOpenGL3::bSupportsSeparateShaderObjects = false;
+bool FOpenGL3::bAndroidGLESCompatibilityMode = false;
 
 GLsizei FOpenGL3::NextTextureName = OPENGL_NAME_CACHE_SIZE;
 GLuint FOpenGL3::TextureNamesCache[OPENGL_NAME_CACHE_SIZE];
@@ -31,11 +32,21 @@ void FOpenGL3::ProcessQueryGLInt()
 	GET_GL_INT(GL_MAX_GEOMETRY_UNIFORM_COMPONENTS, 0, MaxGeometryUniformComponents);
 
 	GET_GL_INT(GL_MAX_GEOMETRY_TEXTURE_IMAGE_UNITS, 0, MaxGeometryTextureImageUnits);
+	GET_GL_INT(GL_MAX_VARYING_VECTORS, 0, MaxVaryingVectors);
 
 	if (bSupportsTessellation)
 	{
 		GET_GL_INT(GL_MAX_TESS_CONTROL_UNIFORM_COMPONENTS, 0, MaxHullUniformComponents);
 		GET_GL_INT(GL_MAX_TESS_EVALUATION_UNIFORM_COMPONENTS, 0, MaxDomainUniformComponents);
+		GET_GL_INT(GL_MAX_TESS_CONTROL_TEXTURE_IMAGE_UNITS, 0, MaxHullTextureImageUnits);
+		GET_GL_INT(GL_MAX_TESS_EVALUATION_TEXTURE_IMAGE_UNITS, 0, MaxDomainTextureImageUnits);
+	}
+	else
+	{
+		MaxHullUniformComponents = 0;
+		MaxDomainUniformComponents = 0;
+		MaxHullTextureImageUnits = 0;
+		MaxDomainTextureImageUnits = 0;
 	}
 
 #if !defined(__GNUC__) && !defined(__clang__)
@@ -46,8 +57,6 @@ void FOpenGL3::ProcessQueryGLInt()
 	LOG_AND_GET_GL_QUERY_INT(GL_TIMESTAMP, 0, TimestampQueryBits);
 	
 #undef LOG_AND_GET_GL_QUERY_INT
-
-    MaxHullTextureImageUnits = 0;
 }
 
 void FOpenGL3::ProcessExtensions( const FString& ExtensionsString )
@@ -93,6 +102,8 @@ void FOpenGL3::ProcessExtensions( const FString& ExtensionsString )
 	bool const bUseSeparateShaderObjects = (CVar ? (CVar->GetValueOnRenderThread() == 1) : false) && OpenGLShaderPlatformSeparable(GetShaderPlatform());
 	
 	bSupportsSeparateShaderObjects = bUseSeparateShaderObjects && (ExtensionsString.Contains(TEXT("GL_ARB_separate_shader_objects")) || (MajorVersion == 4 && MinorVersion >= 4));
+
+	bAndroidGLESCompatibilityMode = GetFeatureLevel() == ERHIFeatureLevel::ES3_1 && ExtensionsString.Contains(TEXT("GL_ARB_ES3_1_compatibility")) && FParse::Param(FCommandLine::Get(), TEXT("GLESCompat"));
 }
 
 #endif

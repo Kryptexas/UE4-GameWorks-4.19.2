@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 
 #include "LevelUtils.h"
@@ -152,8 +152,8 @@ bool FLevelUtils::IsLevelLocked(ULevel* Level)
 	}
 #endif //#if WITH_EDITOR
 
-	// PIE levels, the persistent level, and transient move levels are usually never locked.
-	if ( Level->RootPackageHasAnyFlags(PKG_PlayInEditor) || Level->IsPersistentLevel() || Level->GetName() == TEXT("TransLevelMoveBuffer") )
+	// PIE levels and transient move levels are usually never locked.
+	if ( Level->RootPackageHasAnyFlags(PKG_PlayInEditor) || Level->GetName() == TEXT("TransLevelMoveBuffer") )
 	{
 		return false;
 	}
@@ -180,7 +180,7 @@ bool FLevelUtils::IsLevelLocked( AActor* Actor )
  */
 void FLevelUtils::ToggleLevelLock(ULevel* Level)
 {
-	if ( !Level || Level->IsPersistentLevel() )
+	if ( !Level )
 	{
 		return;
 	}

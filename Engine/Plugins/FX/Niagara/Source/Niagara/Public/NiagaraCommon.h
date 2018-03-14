@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,8 +14,8 @@ class UNiagaraEmitter;
 class FNiagaraSystemInstance;
 class UNiagaraParameterCollection;
 
-const uint32 NIAGARA_COMPUTE_THREADGROUP_SIZE = 16;
-const uint32 NIAGARA_MAX_COMPUTE_THREADGROUPS = 2048;
+const uint32 NIAGARA_COMPUTE_THREADGROUP_SIZE = 64;
+const uint32 NIAGARA_MAX_COMPUTE_THREADGROUPS = 16384;
 
 enum ENiagaraBaseTypes
 {
@@ -214,7 +214,13 @@ struct NIAGARA_API FNiagaraFunctionSignature
 
 	bool operator==(const FNiagaraFunctionSignature& Other) const
 	{
-		return Name.ToString().Equals(Other.Name.ToString()) && Inputs == Other.Inputs && Outputs == Other.Outputs && bRequiresContext == Other.bRequiresContext && bMemberFunction == Other.bMemberFunction && OwnerName == Other.OwnerName;
+		bool bNamesEqual = Name.ToString().Equals(Other.Name.ToString());
+		bool bInputsEqual = Inputs == Other.Inputs;
+		bool bOutputsEqual = Outputs == Other.Outputs;
+		bool bContextsEqual = bRequiresContext == Other.bRequiresContext;
+		bool bMemberFunctionsEqual = bMemberFunction == Other.bMemberFunction;
+		bool bOwnerNamesEqual = OwnerName == Other.OwnerName;
+		return bNamesEqual && bInputsEqual && bOutputsEqual && bContextsEqual && bMemberFunctionsEqual && bOwnerNamesEqual;
 	}
 
 	FString GetName()const { return Name.ToString(); }
@@ -261,6 +267,9 @@ public:
 	UPROPERTY()
 	int32 UserPtrIdx;
 
+	UPROPERTY()
+	FNiagaraTypeDefinition Type;
+
 	TArray<FNiagaraFunctionSignature> RegisteredFunctions;
 
 	//TODO: Allow data interfaces to own datasets
@@ -273,13 +282,13 @@ struct FNiagaraStatScope
 	GENERATED_USTRUCT_BODY();
 
 	FNiagaraStatScope() {}
-	FNiagaraStatScope(FName InFullName, FText InFriendlyName):FullName(InFullName), FriendlyName(InFriendlyName){}
+	FNiagaraStatScope(FName InFullName, FName InFriendlyName):FullName(InFullName), FriendlyName(InFriendlyName){}
 
 	UPROPERTY()
 	FName FullName;
 
 	UPROPERTY()
-	FText FriendlyName;
+	FName FriendlyName;
 
 	bool operator==(const FNiagaraStatScope& Other) const { return FullName == Other.FullName; }
 };
@@ -312,6 +321,7 @@ struct NIAGARA_API FNiagaraSystemUpdateContext
 	FNiagaraSystemUpdateContext(const UNiagaraScript* Script, bool bReInit) { Add(Script, bReInit); }
 	//FNiagaraSystemUpdateContext(UNiagaraDataInterface* Interface, bool bReinit) : Add(Interface, bReinit) {}
 	FNiagaraSystemUpdateContext(const UNiagaraParameterCollection* Collection, bool bReInit) { Add(Collection, bReInit); }
+	FNiagaraSystemUpdateContext() { }
 
 	~FNiagaraSystemUpdateContext();
 
@@ -321,14 +331,17 @@ struct NIAGARA_API FNiagaraSystemUpdateContext
 	//void Add(UNiagaraDataInterface* Interface, bool bReinit);
 	void Add(const UNiagaraParameterCollection* Collection, bool bReInit);
 
+	/** Adds all currently active systems.*/
+	void AddAll(bool bReInit);
 private:
 	void AddInternal(class UNiagaraComponent* Comp, bool bReInit);
 
-	FNiagaraSystemUpdateContext() { }
 	FNiagaraSystemUpdateContext(FNiagaraSystemUpdateContext& Other) { }
 
 	TArray<UNiagaraComponent*> ComponentsToReset;
 	TArray<UNiagaraComponent*> ComponentsToReInit;
+
+	TArray<UNiagaraSystem*> SystemSimsToDestroy;
 
 	//TODO: When we allow component less systems we'll also want to find and reset those.
 };
@@ -380,4 +393,11 @@ struct FNiagaraVariableInfo
 
 	UPROPERTY()
 	UNiagaraDataInterface* DataInterface;
+};
+
+namespace FNiagaraUtilities
+{
+	/** Builds a unique name from a candidate name and a set of existing names.  The candidate name will be made unique
+	if necessary by adding a 3 digit index to the end. */
+	FName NIAGARA_API GetUniqueName(FName CandidateName, const TSet<FName>& ExistingNames);
 };

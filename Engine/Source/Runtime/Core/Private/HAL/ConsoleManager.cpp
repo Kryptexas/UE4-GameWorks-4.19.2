@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 ConsoleManager.cpp: console command handling
@@ -994,33 +994,44 @@ void FConsoleManager::UnregisterConsoleObject(const TCHAR* Name, bool bKeepState
 
 void FConsoleManager::LoadHistoryIfNeeded()
 {
-	if(bHistoryWasLoaded)
+	if (bHistoryWasLoaded)
 	{
 		return;
 	}
 
 	bHistoryWasLoaded = true;
-
-	HistoryEntries.Empty();
+	HistoryEntriesMap.Reset();
 
 	FConfigFile Ini;
 
-	FString ConfigPath = FPaths::GeneratedConfigDir() + TEXT("ConsoleHistory.ini");
+	const FString ConfigPath = FPaths::GeneratedConfigDir() + TEXT("ConsoleHistory.ini");
 	ProcessIniContents(*ConfigPath, *ConfigPath, &Ini, false, false);
 
-	const FString History = TEXT("History");
+	const FString SectionName = TEXT("ConsoleHistory");
+	const FName KeyName = TEXT("History");
 
-	FConfigSection* Section = Ini.Find(TEXT("ConsoleHistory"));
-
-	if(Section)
+	for (const auto& ConfigPair : Ini)
 	{
-		for (auto It : *Section)
+		FString HistoryKey;
+		if (ConfigPair.Key == SectionName)
 		{
-			const FString& Key = It.Key.ToString();
+			// uses empty HistoryKey
+		}
+		else if (ConfigPair.Key.StartsWith(SectionName))
+		{
+			HistoryKey = ConfigPair.Key.Mid(SectionName.Len());
+		}
+		else
+		{
+			continue;
+		}
 
-			if(Key == History)
+		TArray<FString>& HistoryEntries = HistoryEntriesMap.FindOrAdd(HistoryKey);
+		for (const auto& ConfigSectionPair : ConfigPair.Value)
+		{
+			if (ConfigSectionPair.Key == KeyName)
 			{
-				HistoryEntries.Add(It.Value.GetValue());
+				HistoryEntries.Add(ConfigSectionPair.Value.GetValue());
 			}
 		}
 	}
@@ -1028,23 +1039,25 @@ void FConsoleManager::LoadHistoryIfNeeded()
 
 void FConsoleManager::SaveHistory()
 {
-	const FName History = TEXT("History");
-
 	FConfigFile Ini;
+	
+	const FString SectionName = TEXT("ConsoleHistory");
+	const FName KeyName = TEXT("History");
 
-	FString ConfigPath = FPaths::GeneratedConfigDir() + TEXT("ConsoleHistory.ini");
-
-	FConfigSection& Section = Ini.Add(TEXT("ConsoleHistory"));
-
-	for(auto It : HistoryEntries)
+	for (const auto& HistoryPair : HistoryEntriesMap)
 	{
-		Section.Add(History, It);
+		FConfigSection& Section = Ini.Add(FString::Printf(TEXT("%s%s"), *SectionName, *HistoryPair.Key));
+		for (const auto& HistoryEntry : HistoryPair.Value)
+		{
+			Section.Add(KeyName, HistoryEntry);
+		}
 	}
+
+	const FString ConfigPath = FPaths::GeneratedConfigDir() + TEXT("ConsoleHistory.ini");
 
 	Ini.Dirty = true;
 	Ini.Write(ConfigPath);
 }
-
 
 void FConsoleManager::ForEachConsoleObjectThatStartsWith(const FConsoleObjectVisitor& Visitor, const TCHAR* ThatStartsWith) const
 {
@@ -1133,12 +1146,12 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 		return false;
 	}
 
-#if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if DISABLE_CHEAT_CVARS
 	if(CObj->TestFlags(ECVF_Cheat))
 	{
 		return false;
 	}
-#endif // (UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif // DISABLE_CHEAT_CVARS
 
 	if(CObj->TestFlags(ECVF_Unregistered))
 	{
@@ -1454,9 +1467,11 @@ void IConsoleManager::SetupSingleton()
 	check(Singleton);
 }
 
-void FConsoleManager::AddConsoleHistoryEntry(const TCHAR* Input)
+void FConsoleManager::AddConsoleHistoryEntry(const TCHAR* Key, const TCHAR* Input)
 {
 	LoadHistoryIfNeeded();
+
+	TArray<FString>& HistoryEntries = HistoryEntriesMap.FindOrAdd(Key);
 
 	// limit size to avoid a ever growing file
 	while(HistoryEntries.Num() > 64)
@@ -1471,11 +1486,11 @@ void FConsoleManager::AddConsoleHistoryEntry(const TCHAR* Input)
 	SaveHistory();
 }
 
-void FConsoleManager::GetConsoleHistory(TArray<FString>& Out)
+void FConsoleManager::GetConsoleHistory(const TCHAR* Key, TArray<FString>& Out)
 {
 	LoadHistoryIfNeeded();
 
-	Out = HistoryEntries;
+	Out = HistoryEntriesMap.FindOrAdd(Key);
 }
 
 bool FConsoleManager::IsNameRegistered(const TCHAR* Name) const
@@ -1729,6 +1744,7 @@ void CreateConsoleVariables()
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("VisRT"),	TEXT("GUI for visualizetexture"), ECVF_Cheat);
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("HighResShot"),	TEXT("High resolution screenshots ResolutionX(int32)xResolutionY(int32) Or Magnification(float) [CaptureRegionX(int32) CaptureRegionY(int32) CaptureRegionWidth(int32) CaptureRegionHeight(int32) MaskEnabled(int32) DumpBufferVisualizationTargets(int32) CaptureHDR(int32)]\nExample: HighResShot 500x500 50 50 120 500 1 1 1"), ECVF_Cheat);
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("DumpUnbuiltLightInteractions"),	TEXT("Logs all lights and primitives that have an unbuilt interaction."), ECVF_Cheat);
+	IConsoleManager::Get().RegisterConsoleCommand(TEXT("Stat MapBuildData"),	TEXT(""), ECVF_Cheat);
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("r.ResetViewState"), TEXT("Reset some state (e.g. TemporalAA index) to make rendering more deterministic (for automated screenshot verification)"), ECVF_Cheat);
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
@@ -1842,10 +1858,12 @@ static TAutoConsoleVariable<int32> CVarMobileEnableStaticAndCSMShadowReceivers(
 	TEXT("1: Primitives can receive both CSM and static shadowing from stationary lights. (default)"),
 	ECVF_RenderThreadSafe | ECVF_ReadOnly);
 
-static TAutoConsoleVariable<int32> CVarAllReceiveDynamicCSM(
-	TEXT("r.AllReceiveDynamicCSM"),
+static TAutoConsoleVariable<int32> CVarMobileEnableMovableLightCSMShaderCulling(
+	TEXT("r.Mobile.EnableMovableLightCSMShaderCulling"),
 	1,
-	TEXT("Which primitives should receive dynamic-only CSM shadows. 0: Only primitives marked bReceiveCSMFromDynamicObjects. 1: All primitives (default)"));
+	TEXT("0: All primitives lit by movable directional light render with CSM.\n")
+	TEXT("1: Primitives lit by movable directional light render with the CSM shader when determined to be within CSM range. (default)"),
+	ECVF_RenderThreadSafe | ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarMobileAllowDistanceFieldShadows(
 	TEXT("r.Mobile.AllowDistanceFieldShadows"),
@@ -2261,6 +2279,14 @@ static TAutoConsoleVariable<float> CVarViewDistanceScale(
 	TEXT("Default = 1. Value should be in the range [0.0f, 1.0f]."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<float> CVarViewDistanceScale_NoScalability(
+	TEXT("r.ViewDistanceScaleNoScalability"),
+	1.0f,
+	TEXT("An additional multiplier to r.ViewDistanceScale, but not affected by scalability settings.\n")
+	TEXT("Higher values will increase view distance but at a performance cost.\n")
+	TEXT("Default = 1. Value should be in the range [0.0f, 1.0f]."),
+	ECVF_RenderThreadSafe);
+
 static TAutoConsoleVariable<int32> CVarLightFunctionQuality(
 	TEXT("r.LightFunctionQuality"),
 	2,
@@ -2357,7 +2383,7 @@ static TAutoConsoleVariable<int32> CVarFeatureLevelPreview(
 static TAutoConsoleVariable<int32> CVarVerifyPeer(
 	TEXT("n.VerifyPeer"),
 	1,
-	TEXT("Sets libcurl's CURL_OPT_SSL_VERIFYPEER option to verify authenticity of the peer's certificate.\n")
+	TEXT("Sets libcurl's CURLOPT_SSL_VERIFYPEER option to verify authenticity of the peer's certificate.\n")
 	TEXT("  0 = disable (allows self-signed certificates)\n")
 	TEXT("  1 = enable [default]"),
 	ECVF_ReadOnly);

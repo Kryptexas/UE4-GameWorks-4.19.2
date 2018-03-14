@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "Framework/Text/SlateTextRun.h"
 #include "Rendering/DrawElements.h"
@@ -136,7 +136,7 @@ int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineVi
 			ShadowShapedText,
 			DrawEffects,
 			InWidgetStyle.GetColorAndOpacityTint() * Style.ShadowColorAndOpacity,
-			InWidgetStyle.GetColorAndOpacityTint() * Style.ShadowColorAndOpacity
+			InWidgetStyle.GetColorAndOpacityTint() * Style.Font.OutlineSettings.OutlineColor
 			);
 	}
 

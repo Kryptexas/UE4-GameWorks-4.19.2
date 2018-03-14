@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemModule.h"
 #include "Misc/CommandLine.h"
@@ -35,16 +35,12 @@ static inline FName GetOnlineModuleName(const FString& SubsystemName)
  */
 static IModuleInterface* LoadSubsystemModule(const FString& SubsystemName)
 {
-#if !UE_BUILD_SHIPPING && !UE_BUILD_SHIPPING_WITH_EDITOR
-	// Early out if we are overriding the module load
-	bool bAttemptLoadModule = !FParse::Param(FCommandLine::Get(), *FString::Printf(TEXT("no%s"), *SubsystemName));
+	const bool bAttemptLoadModule = IOnlineSubsystem::IsEnabled(FName(*SubsystemName));
 	if (bAttemptLoadModule)
-#endif
 	{
-		FName ModuleName;
+		const FName ModuleName = GetOnlineModuleName(SubsystemName);
 		FModuleManager& ModuleManager = FModuleManager::Get();
 
-		ModuleName = GetOnlineModuleName(SubsystemName);
 		if (!ModuleManager.IsModuleLoaded(ModuleName))
 		{
 			// Attempt to load the module
@@ -61,7 +57,7 @@ void FOnlineSubsystemModule::StartupModule()
 {
 	// These should not be LoadModuleChecked because these modules might not exist
 	// Load dependent modules to ensure they will still exist during ShutdownModule.
-	// We will alwawys load these modules at the cost of extra modules loaded for the few OSS (like Null) that don't use it.
+	// We will always load these modules at the cost of extra modules loaded for the few OSS (like Null) that don't use it.
 	if (FModuleManager::Get().ModuleExists(TEXT("HTTP")))
 	{
 		FModuleManager::Get().LoadModule(TEXT("HTTP"));
@@ -229,34 +225,36 @@ IOnlineSubsystem* FOnlineSubsystemModule::GetOnlineSubsystem(const FName InSubsy
 	FName SubsystemName, InstanceName;
 	FName KeyName = ParseOnlineSubsystemName(InSubsystemName, SubsystemName, InstanceName);
 
-	IOnlineSubsystemPtr* OnlineSubsystem = NULL;
+	IOnlineSubsystemPtr* OnlineSubsystem = nullptr;
 	if (SubsystemName != NAME_None)
 	{
 		OnlineSubsystem = OnlineSubsystems.Find(KeyName);
-		if (OnlineSubsystem == NULL)
+		if (OnlineSubsystem == nullptr)
 		{
-			IOnlineFactory** OSSFactory = OnlineFactories.Find(SubsystemName);
-			if (OSSFactory == NULL)
+			if (IOnlineSubsystem::IsEnabled(SubsystemName))
 			{
-				// Attempt to load the requested factory
-				IModuleInterface* NewModule = LoadSubsystemModule(SubsystemName.ToString());
-				if (NewModule)
+				IOnlineFactory** OSSFactory = OnlineFactories.Find(SubsystemName);
+				if (OSSFactory == nullptr)
 				{
-					// If the module loaded successfully this should be non-NULL
-					OSSFactory = OnlineFactories.Find(SubsystemName);
+					// Attempt to load the requested factory
+					IModuleInterface* NewModule = LoadSubsystemModule(SubsystemName.ToString());
+					if (NewModule)
+					{
+						// If the module loaded successfully this should be non-NULL
+						OSSFactory = OnlineFactories.Find(SubsystemName);
+					}
 				}
-			}
 
-			if (OSSFactory != NULL)
-			{
-				IOnlineSubsystemPtr NewSubsystemInstance = (*OSSFactory)->CreateSubsystem(InstanceName);
-				if (NewSubsystemInstance.IsValid())
+				if (OSSFactory != nullptr)
 				{
-					OnlineSubsystems.Add(KeyName, NewSubsystemInstance);
-					OnlineSubsystem = OnlineSubsystems.Find(KeyName);
-				}
-				else
-				{
+					IOnlineSubsystemPtr NewSubsystemInstance = (*OSSFactory)->CreateSubsystem(InstanceName);
+					if (NewSubsystemInstance.IsValid())
+					{
+						OnlineSubsystems.Add(KeyName, NewSubsystemInstance);
+						OnlineSubsystem = OnlineSubsystems.Find(KeyName);
+					}
+					else
+					{
 						bool* bNotedPreviously = OnlineSubsystemFailureNotes.Find(KeyName);
 						if (!bNotedPreviously || !(*bNotedPreviously))
 						{
@@ -266,9 +264,10 @@ IOnlineSubsystem* FOnlineSubsystemModule::GetOnlineSubsystem(const FName InSubsy
 					}
 				}
 			}
+		}
 	}
 
-	return (OnlineSubsystem == NULL) ? NULL : (*OnlineSubsystem).Get();
+	return (OnlineSubsystem == nullptr) ? nullptr : (*OnlineSubsystem).Get();
 }
 
 void FOnlineSubsystemModule::DestroyOnlineSubsystem(const FName InSubsystemName)

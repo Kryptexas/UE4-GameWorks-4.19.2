@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimationEditorViewportClient.h"
 #include "Modules/ModuleManager.h"
@@ -15,6 +15,7 @@
 #include "Animation/AnimBlueprintGeneratedClass.h"
 #include "GameFramework/WorldSettings.h"
 #include "PersonaModule.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 
 #include "SEditorViewport.h"
 #include "CanvasTypes.h"
@@ -26,12 +27,15 @@
 #include "SAnimationEditorViewport.h"
 #include "AssetViewerSettings.h"
 #include "IPersonaEditorModeManager.h"
-#include "SkeletalMeshTypes.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "SkeletalDebugRendering.h"
 #include "SkeletalRenderPublic.h"
 #include "AudioDevice.h"
+#include "RawIndexBuffer.h"
+#include "CameraController.h"
+#include "Animation/MorphTarget.h"
+#include "Rendering/SkeletalMeshModel.h"
 
 namespace {
 	// Value from UE3
@@ -61,7 +65,7 @@ IMPLEMENT_HIT_PROXY( HPersonaBoneProxy, HHitProxy );
 /////////////////////////////////////////////////////////////////////////
 // FAnimationViewportClient
 
-FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTree>& InSkeletonTree, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, const TSharedRef<SAnimationEditorViewport>& InAnimationEditorViewport, const TSharedRef<FAssetEditorToolkit>& InAssetEditorToolkit, bool bInShowStats)
+FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTree>& InSkeletonTree, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, const TSharedRef<SAnimationEditorViewport>& InAnimationEditorViewport, const TSharedRef<FAssetEditorToolkit>& InAssetEditorToolkit, int32 InViewportIndex, bool bInShowStats)
 	: FEditorViewportClient(FModuleManager::LoadModuleChecked<FPersonaModule>("Persona").CreatePersonaEditorModeManager(), &InPreviewScene.Get(), StaticCastSharedRef<SEditorViewport>(InAnimationEditorViewport))
 	, SkeletonTreePtr(InSkeletonTree)
 	, PreviewScenePtr(InPreviewScene)
@@ -69,11 +73,20 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 	, AnimationPlaybackSpeedMode(EAnimationPlaybackSpeeds::Normal)
 	, bFocusOnDraw(false)
 	, bFocusUsingCustomCamera(false)
+	, CachedScreenSize(0.0f)
 	, bShowMeshStats(bInShowStats)
 	, bInitiallyFocused(false)
+	, OrbitRotation(FQuat::Identity)
+	, ViewportIndex(InViewportIndex)
 {
 	// we actually own the mode tools here, we just override its type in the FEditorViewportClient constructor above
 	bOwnsModeTools = true;
+
+	CachedDefaultCameraController = CameraController;
+
+	OnCameraControllerChanged();
+
+	InPreviewScene->RegisterOnCameraOverrideChanged(FSimpleDelegate::CreateRaw(this, &FAnimationViewportClient::OnCameraControllerChanged));
 
 	// Let the asset editor toolkit know about the mode manager so it can be used outside of thew viewport
 	InAssetEditorToolkit->SetAssetEditorModeManager((FAssetEditorModeManager*)ModeTools);
@@ -89,7 +102,7 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 	// DrawHelper set up
 	DrawHelper.PerspectiveGridSize = HALF_WORLD_MAX1;
 	DrawHelper.AxesLineThickness = ConfigOption->bHighlightOrigin ? 1.0f : 0.0f;
-	DrawHelper.bDrawGrid = ConfigOption->bShowGrid;
+	DrawHelper.bDrawGrid = true;	// Toggling grid now relies on the show flag
 
 	WidgetMode = FWidget::WM_Rotate;
 	ModeTools->SetWidgetMode(WidgetMode);
@@ -98,6 +111,7 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 	EngineShowFlags.ScreenSpaceReflections = 1;
 	EngineShowFlags.AmbientOcclusion = 1;
 	EngineShowFlags.SetSnap(0);
+	EngineShowFlags.Grid = ConfigOption->bShowGrid;
 
 	SetRealtime(true);
 	if(GEditor->PlayWorld)
@@ -105,15 +119,12 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 		SetRealtime(false,true); // We are PIE, don't start in realtime mode
 	}
 
-	ViewFOV = FMath::Clamp<float>(ConfigOption->ViewFOV, FOVMin, FOVMax);
+	ViewFOV = FMath::Clamp<float>(ConfigOption->GetAssetEditorOptions(InAssetEditorToolkit->GetEditorName()).ViewportConfigs[ViewportIndex].ViewFOV, FOVMin, FOVMax);
 
 	EngineShowFlags.SetSeparateTranslucency(true);
 	EngineShowFlags.SetCompositeEditorPrimitives(true);
 
 	EngineShowFlags.SetSelectionOutline(true);
-
-	// set camera mode
-	bCameraFollow = false;
 
 	bDrawUVs = false;
 	UVChannelToDraw = 0;
@@ -136,6 +147,8 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 	HandleSkeletalMeshChanged(nullptr, InPreviewScene->GetPreviewMeshComponent()->SkeletalMesh);
 	InPreviewScene->RegisterOnInvalidateViews(FSimpleDelegate::CreateRaw(this, &FAnimationViewportClient::HandleInvalidateViews));
 	InPreviewScene->RegisterOnFocusViews(FSimpleDelegate::CreateRaw(this, &FAnimationViewportClient::HandleFocusViews));
+	InPreviewScene->RegisterOnPreTick(FSimpleDelegate::CreateRaw(this, &FAnimationViewportClient::HandlePreviewScenePreTick));
+	InPreviewScene->RegisterOnPostTick(FSimpleDelegate::CreateRaw(this, &FAnimationViewportClient::HandlePreviewScenePostTick));
 
 	UDebugSkelMeshComponent* MeshComponent = InPreviewScene->GetPreviewMeshComponent();
 	MeshComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateRaw(this, &FAnimationViewportClient::PreviewComponentSelectionOverride);
@@ -149,6 +162,8 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 
 FAnimationViewportClient::~FAnimationViewportClient()
 {
+	CameraController = CachedDefaultCameraController;
+
 	if (PreviewScenePtr.IsValid())
 	{
 		TSharedPtr<IPersonaPreviewScene> ScenePtr = PreviewScenePtr.Pin();
@@ -161,6 +176,9 @@ FAnimationViewportClient::~FAnimationViewportClient()
 
 		ScenePtr->UnregisterOnPreviewMeshChanged(this);
 		ScenePtr->UnregisterOnInvalidateViews(this);
+		ScenePtr->UnregisterOnCameraOverrideChanged(this);
+		ScenePtr->UnregisterOnPreTick(this);
+		ScenePtr->UnregisterOnPostTick(this);
 	}
 
 	if (AssetEditorToolkitPtr.IsValid())
@@ -171,18 +189,6 @@ FAnimationViewportClient::~FAnimationViewportClient()
 	((FAssetEditorModeManager*)ModeTools)->SetPreviewScene(nullptr);
 
 	UAssetViewerSettings::Get()->OnAssetViewerSettingsChanged().RemoveAll(this);
-}
-
-void FAnimationViewportClient::OnToggleShowGrid()
-{
-	FEditorViewportClient::SetShowGrid();
-
-	ConfigOption->SetShowGrid(DrawHelper.bDrawGrid);
-}
-
-bool FAnimationViewportClient::IsShowingGrid() const
-{
-	return FEditorViewportClient::IsSetShowGridChecked();
 }
 
 void FAnimationViewportClient::OnToggleAutoAlignFloor()
@@ -237,32 +243,70 @@ bool FAnimationViewportClient::IsUsingAudioAttenuation() const
 	return ConfigOption->bUseAudioAttenuation;
 }
 
-void FAnimationViewportClient::SetCameraFollow()
+void FAnimationViewportClient::SetCameraFollowMode(EAnimationViewportCameraFollowMode InCameraFollowMode, FName InBoneName)
 {
-	bCameraFollow = !bCameraFollow;
-	
-	if( bCameraFollow )
+	bool bCanFollow = true;
+	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene()->GetPreviewMeshComponent();
+	if(InCameraFollowMode == EAnimationViewportCameraFollowMode::Bone && PreviewMeshComponent)
 	{
+		bCanFollow = PreviewMeshComponent->GetBoneIndex(InBoneName) != INDEX_NONE;
+	}
 
-		EnableCameraLock(false);
+	if(bCanFollow && InCameraFollowMode != EAnimationViewportCameraFollowMode::None)
+	{
+		ConfigOption->SetViewCameraFollow(AssetEditorToolkitPtr.Pin()->GetEditorName(), InCameraFollowMode, InBoneName, ViewportIndex);
 
-		UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene()->GetPreviewMeshComponent();
+		CameraFollowMode = InCameraFollowMode;
+		CameraFollowBoneName = InBoneName;
+
+		bCameraLock = true;
+		bUsingOrbitCamera = true;
+
 		if (PreviewMeshComponent != nullptr)
 		{
-			FBoxSphereBounds Bound = PreviewMeshComponent->CalcBounds(FTransform::Identity);
-			SetViewLocationForOrbiting(Bound.Origin);
+			switch(CameraFollowMode)
+			{
+			case EAnimationViewportCameraFollowMode::Bounds:
+				{
+					FBoxSphereBounds Bound = PreviewMeshComponent->CalcBounds(PreviewMeshComponent->GetComponentTransform());
+					SetLookAtLocation(Bound.Origin, true);
+					OrbitRotation = FQuat::Identity;
+				}
+				break;
+			case EAnimationViewportCameraFollowMode::Bone:
+				{
+					FVector BoneLocation = PreviewMeshComponent->GetBoneLocation(InBoneName);
+					SetLookAtLocation(BoneLocation, true);
+					OrbitRotation = PreviewMeshComponent->GetBoneQuaternion(InBoneName) * FQuat(FVector(0.0f, 1.0f, 0.0f), PI * 0.5f);
+				}
+				break;
+			}
 		}
+
+		SetViewLocation(GetViewTransform().ComputeOrbitMatrix().Inverse().GetOrigin());
 	}
 	else
 	{
+		ConfigOption->SetViewCameraFollow(AssetEditorToolkitPtr.Pin()->GetEditorName(), EAnimationViewportCameraFollowMode::None, NAME_None, ViewportIndex);
+
+		CameraFollowMode = EAnimationViewportCameraFollowMode::None;
+		CameraFollowBoneName = NAME_None;
+
+		OrbitRotation = FQuat::Identity;
+		EnableCameraLock(false);
 		FocusViewportOnPreviewMesh(false);
 		Invalidate();
 	}
 }
 
-bool FAnimationViewportClient::IsSetCameraFollowChecked() const
+EAnimationViewportCameraFollowMode FAnimationViewportClient::GetCameraFollowMode() const
 {
-	return bCameraFollow;
+	return CameraFollowMode;
+}
+
+FName FAnimationViewportClient::GetCameraFollowBoneName() const
+{
+	return CameraFollowBoneName;
 }
 
 void FAnimationViewportClient::JumpToDefaultCamera()
@@ -292,6 +336,11 @@ void FAnimationViewportClient::SaveCameraAsDefault()
 		Info.ExpireDuration = 2.0f;
 		FSlateNotificationManager::Get().AddNotification(Info);
 	}
+}
+
+bool FAnimationViewportClient::CanSaveCameraAsDefault() const
+{
+	return CameraFollowMode == EAnimationViewportCameraFollowMode::None;
 }
 
 void FAnimationViewportClient::ClearDefaultCamera()
@@ -416,6 +465,13 @@ void FAnimationViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 		bFocusOnDraw = false;
 		FocusViewportOnPreviewMesh(bFocusUsingCustomCamera);
 	}
+
+	// set camera mode if need be (we need to do this here as focus on draw can take us out of orbit mode)
+	FAssetEditorOptions& Options = ConfigOption->GetAssetEditorOptions(AssetEditorToolkitPtr.Pin()->GetEditorName());
+	if(Options.ViewportConfigs[ViewportIndex].CameraFollowMode != CameraFollowMode)
+	{
+		SetCameraFollowMode(Options.ViewportConfigs[ViewportIndex].CameraFollowMode, Options.ViewportConfigs[ViewportIndex].CameraFollowBoneName);
+	}
 }
 
 void FAnimationViewportClient::DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas )
@@ -429,24 +485,6 @@ void FAnimationViewportClient::DrawCanvas( FViewport& InViewport, FSceneView& Vi
 		if (PreviewMeshComponent->bShowBoneNames)
 		{
 			ShowBoneNames(&Canvas, &View);
-		}
-
-		// Display info
-		if (IsShowingMeshStats())
-		{
-			DisplayInfo(&Canvas, &View, IsDetailedMeshStats());
-		}
-		else if(IsShowingSelectedNodeStats())
-		{
-			// Allow edit modes (inc. skeletal control modes) to draw with the canvas, and collect on screen strings to draw later
-			TArray<FText> EditModeDebugText;
-			if (GetPersonaModeManager())
-			{
-				GetPersonaModeManager()->GetOnScreenDebugInfo(EditModeDebugText);
-			}
-
-			// Draw Node info instead of mesh info if we have entries
-			DrawNodeDebugLines(EditModeDebugText, &Canvas, &View);
 		}
 
 		if (bDrawUVs)
@@ -465,35 +503,79 @@ void FAnimationViewportClient::DrawUVsForMesh(FViewport* InViewport, FCanvas* In
 
 	TArray<FVector2D> SelectedEdgeTexCoords; //No functionality in Persona for this (yet?)
 
-	DrawUVs(InViewport, InCanvas, InTextYPos, LODLevel, UVChannelToDraw, SelectedEdgeTexCoords, NULL, &PreviewMeshComponent->GetSkeletalMeshResource()->LODModels[LODLevel] );
+	DrawUVs(InViewport, InCanvas, InTextYPos, LODLevel, UVChannelToDraw, SelectedEdgeTexCoords, NULL, &PreviewMeshComponent->GetSkeletalMeshRenderData()->LODRenderData[LODLevel] );
 }
 
 void FAnimationViewportClient::Tick(float DeltaSeconds) 
 {
 	FEditorViewportClient::Tick(DeltaSeconds);
 
-	// @todo fixme
+	GetAnimPreviewScene()->FlagTickable();
+}
+
+void FAnimationViewportClient::HandlePreviewScenePreTick()
+{
+	RelativeViewLocation = FVector::ZeroVector;
+
 	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene()->GetPreviewMeshComponent();
-	if (bCameraFollow && PreviewMeshComponent != nullptr)
+	if (CameraFollowMode != EAnimationViewportCameraFollowMode::None && PreviewMeshComponent != nullptr)
 	{
-		// if camera isn't lock, make the mesh bounds to be center
-		FSphere BoundSphere = GetCameraTarget();
-
-		// need to interpolate from ViewLocation to Origin
-		SetCameraTargetLocation(BoundSphere, DeltaSeconds);
+		switch(CameraFollowMode)
+		{
+		case EAnimationViewportCameraFollowMode::Bounds:
+			{
+				FBoxSphereBounds Bound = PreviewMeshComponent->CalcBounds(PreviewMeshComponent->GetComponentTransform());
+				RelativeViewLocation = Bound.Origin - GetViewLocation();
+			}
+			break;
+		case EAnimationViewportCameraFollowMode::Bone:
+			{
+				int32 BoneIndex = PreviewMeshComponent->GetBoneIndex(CameraFollowBoneName);
+				if(BoneIndex != INDEX_NONE)
+				{
+					FTransform BoneTransform = PreviewMeshComponent->GetBoneTransform(BoneIndex);
+					RelativeViewLocation = BoneTransform.InverseTransformVector(BoneTransform.GetLocation() - GetViewLocation());
+				}
+			}
+			break;
+		}
 	}
+}
 
-	if (!GIntraFrameDebuggingGameThread)
+void FAnimationViewportClient::HandlePreviewScenePostTick()
+{
+	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene()->GetPreviewMeshComponent();
+	if (CameraFollowMode != EAnimationViewportCameraFollowMode::None && PreviewMeshComponent != nullptr)
 	{
-		PreviewScene->GetWorld()->Tick(LEVELTICK_All, DeltaSeconds);
-	}
-
-	UDebugSkelMeshComponent* PreviewComp = PreviewMeshComponent;
-	if (PreviewComp)
-	{
-		// Handle updating the preview component to represent the effects of root motion	
-		const FBoxSphereBounds& Bounds = GetAnimPreviewScene()->GetFloorBounds();
-		PreviewComp->ConsumeRootMotion(Bounds.GetBox().Min, Bounds.GetBox().Max);
+		switch(CameraFollowMode)
+		{
+		case EAnimationViewportCameraFollowMode::Bounds:
+			{
+				FBoxSphereBounds Bound = PreviewMeshComponent->CalcBounds(PreviewMeshComponent->GetComponentTransform());
+				SetViewLocation(Bound.Origin + RelativeViewLocation);
+				SetLookAtLocation(Bound.Origin);
+			}
+			break;
+		case EAnimationViewportCameraFollowMode::Bone:
+			{
+				int32 BoneIndex = PreviewMeshComponent->GetBoneIndex(CameraFollowBoneName);
+				if(BoneIndex != INDEX_NONE)
+				{
+					FTransform BoneTransform = PreviewMeshComponent->GetBoneTransform(BoneIndex);
+					if(IsPerspective())
+					{
+						SetViewLocation(BoneTransform.GetLocation() - BoneTransform.TransformVector(RelativeViewLocation));
+					}
+					else
+					{
+						SetViewLocation(BoneTransform.GetLocation());
+					}
+					SetLookAtLocation(BoneTransform.GetLocation());
+					OrbitRotation = BoneTransform.GetRotation() * FQuat(FVector(0.0f, 1.0f, 0.0f), PI * 0.5f);
+				}
+			}
+			break;
+		}
 	}
 }
 
@@ -522,29 +604,29 @@ void FAnimationViewportClient::ShowBoneNames( FCanvas* Canvas, FSceneView* View 
 	}
 
 	//Most of the code taken from FASVViewportClient::Draw() in AnimSetViewerMain.cpp
-	FSkeletalMeshResource* SkelMeshResource = PreviewMeshComponent->GetSkeletalMeshResource();
-	check(SkelMeshResource);
-	const int32 LODIndex = FMath::Clamp(PreviewMeshComponent->PredictedLODLevel, 0, SkelMeshResource->LODModels.Num()-1);
-	FStaticLODModel& LODModel = SkelMeshResource->LODModels[ LODIndex ];
+	FSkeletalMeshRenderData* SkelMeshRenderData = PreviewMeshComponent->GetSkeletalMeshRenderData();
+	check(SkelMeshRenderData);
+	const int32 LODIndex = FMath::Clamp(PreviewMeshComponent->PredictedLODLevel, 0, SkelMeshRenderData->LODRenderData.Num()-1);
+	FSkeletalMeshLODRenderData& LODData = SkelMeshRenderData->LODRenderData[ LODIndex ];
 
 	const int32 HalfX = Viewport->GetSizeXY().X/2;
 	const int32 HalfY = Viewport->GetSizeXY().Y/2;
 
-	for (int32 i=0; i< LODModel.RequiredBones.Num(); i++)
+	for (int32 i=0; i< LODData.RequiredBones.Num(); i++)
 	{
-		const int32 BoneIndex = LODModel.RequiredBones[i];
+		const int32 BoneIndex = LODData.RequiredBones[i];
 
 		// If previewing a specific section, only show the bone names that belong to it
-		if ((PreviewMeshComponent->SectionIndexPreview >= 0) && !LODModel.Sections[PreviewMeshComponent->SectionIndexPreview].BoneMap.Contains(BoneIndex))
+		if ((PreviewMeshComponent->GetSectionPreview() >= 0) && !LODData.RenderSections[PreviewMeshComponent->GetSectionPreview()].BoneMap.Contains(BoneIndex))
 		{
 			continue;
 		}
-		if ((PreviewMeshComponent->MaterialIndexPreview >= 0))
+		if ((PreviewMeshComponent->GetMaterialPreview() >= 0))
 		{
 			TArray<int32> FoundSectionIndex;
-			for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); ++SectionIndex)
+			for (int32 SectionIndex = 0; SectionIndex < LODData.RenderSections.Num(); ++SectionIndex)
 			{
-				if (LODModel.Sections[SectionIndex].MaterialIndex == PreviewMeshComponent->MaterialIndexPreview)
+				if (LODData.RenderSections[SectionIndex].MaterialIndex == PreviewMeshComponent->GetMaterialPreview())
 				{
 					FoundSectionIndex.Add(SectionIndex);
 					break;
@@ -555,7 +637,7 @@ void FAnimationViewportClient::ShowBoneNames( FCanvas* Canvas, FSceneView* View 
 				bool PreviewSectionContainBoneIndex = false;
 				for (int32 SectionIndex : FoundSectionIndex)
 				{
-					if (LODModel.Sections[SectionIndex].BoneMap.Contains(BoneIndex))
+					if (LODData.RenderSections[SectionIndex].BoneMap.Contains(BoneIndex))
 					{
 						PreviewSectionContainBoneIndex = true;
 						break;
@@ -589,7 +671,7 @@ void FAnimationViewportClient::ShowBoneNames( FCanvas* Canvas, FSceneView* View 
 	}
 }
 
-bool FAnimationViewportClient::ShouldDisplayAdditiveScaleErrorMessage()
+bool FAnimationViewportClient::ShouldDisplayAdditiveScaleErrorMessage() const
 {
 	UAnimSequence* AnimSequence = Cast<UAnimSequence>(GetAnimPreviewScene()->GetPreviewAnimationAsset());
 	if (AnimSequence)
@@ -610,45 +692,66 @@ bool FAnimationViewportClient::ShouldDisplayAdditiveScaleErrorMessage()
 	return false;
 }
 
-void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bool bDisplayAllInfo)
+static FText ConcatenateLine(const FText& InText, const FText& InNewLine)
 {
-	int32 CurXOffset = 5;
-	int32 CurYOffset = 60;
+	if(InText.IsEmpty())
+	{
+		return InNewLine;
+	}
 
-	int32 XL, YL;
-	StringSize( GEngine->GetSmallFont(),  XL, YL, TEXT("L") );
-	FString InfoString;
+	return FText::Format(LOCTEXT("ViewportTextNewlineFormatter", "{0}\n{1}"), InText, InNewLine);
+}
+
+FText FAnimationViewportClient::GetDisplayInfo(bool bDisplayAllInfo) const
+{
+	FText TextValue;
 
 	const UAssetViewerSettings* Settings = UAssetViewerSettings::Get();	
 	const UEditorPerProjectUserSettings* PerProjectUserSettings = GetDefault<UEditorPerProjectUserSettings>();
 	const int32 ProfileIndex = Settings->Profiles.IsValidIndex(PerProjectUserSettings->AssetViewerProfileIndex) ? PerProjectUserSettings->AssetViewerProfileIndex : 0;
 
-	// it is weird, but unless it's completely black, it's too bright, so just making it white if only black
-	const FLinearColor TextColor = ((SelectedHSVColor.B < 0.3f) || (Settings->Profiles[ProfileIndex].bShowEnvironment)) ? FLinearColor::White : FLinearColor::Black;
-	const FColor HeadlineColour(255, 83, 0);
-	const FColor SubHeadlineColour(202, 66, 0);
-
 	// if not valid skeletalmesh
-	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene()->GetPreviewMeshComponent();
+	UDebugSkelMeshComponent* PreviewMeshComponent = GetPreviewScene()->GetPreviewMeshComponent();
 	if (PreviewMeshComponent == nullptr || PreviewMeshComponent->SkeletalMesh == nullptr)
 	{
-		return;
+		return FText();
 	}
 
 	if (ShouldDisplayAdditiveScaleErrorMessage())
 	{
-		InfoString = TEXT("Additve ref pose contains scales of 0.0, this can cause additive animations to not give the desired results");
-		Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour);
-		CurYOffset += YL + 2;
+		TextValue = ConcatenateLine(TextValue, LOCTEXT("AdditiveRefPoseWarning", "<AnimViewport.WarningText>Additive ref pose contains scales of 0.0, this can cause additive animations to not give the desired results</>"));
 	}
 
 	if (PreviewMeshComponent->SkeletalMesh->MorphTargets.Num() > 0)
 	{
-		int32 SubHeadingIndent = CurXOffset + 10;
-
 		TArray<UMaterial*> ProcessedMaterials;
 		TArray<UMaterial*> MaterialsThatNeedMorphFlagOn;
 		TArray<UMaterial*> MaterialsThatNeedSaving;
+
+		const TIndirectArray<FSkeletalMeshLODModel>& LODModels = PreviewMeshComponent->SkeletalMesh->GetImportedModel()->LODModels;
+		int32 LodNumber = LODModels.Num();
+		TArray<UMaterialInterface*> MaterialUsingMorphTarget;
+		for (UMorphTarget *MorphTarget : PreviewMeshComponent->SkeletalMesh->MorphTargets)
+		{
+			if (MorphTarget == nullptr)
+			{
+				continue;
+			}
+			for (const FMorphTargetLODModel& MorphTargetLODModel : MorphTarget->MorphLODModels)
+			{
+				for (int32 SectionIndex : MorphTargetLODModel.SectionIndices)
+				{
+					for (int32 LodIdx = 0; LodIdx < LodNumber; LodIdx++)
+					{
+						const FSkeletalMeshLODModel& LODModel = LODModels[LodIdx];
+						if (LODModel.Sections.IsValidIndex(SectionIndex))
+						{
+							MaterialUsingMorphTarget.AddUnique(PreviewMeshComponent->SkeletalMesh->Materials[LODModel.Sections[SectionIndex].MaterialIndex].MaterialInterface);
+						}
+					}
+				}
+			}
+		}
 
 		for (int i = 0; i < PreviewMeshComponent->GetNumMaterials(); ++i)
 		{
@@ -658,7 +761,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 				if ((Material != nullptr) && !ProcessedMaterials.Contains(Material))
 				{
 					ProcessedMaterials.Add(Material);
-					if (!Material->GetUsageByFlag(MATUSAGE_MorphTargets))
+					if (MaterialUsingMorphTarget.Contains(MaterialInterface) && !Material->GetUsageByFlag(MATUSAGE_MorphTargets))
 					{
 						MaterialsThatNeedMorphFlagOn.Add(Material);
 					}
@@ -672,36 +775,22 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 		if (MaterialsThatNeedMorphFlagOn.Num() > 0)
 		{
-			InfoString = LOCTEXT("MorphSupportNeeded", "The following materials need morph support ('Used with Morph Targets' in material editor):").ToString();
-			Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), HeadlineColour );
-
-			CurYOffset += YL + 2;
+			TextValue = ConcatenateLine(TextValue, LOCTEXT("MorphSupportNeeded", "<AnimViewport.WarningText>The following materials need morph support ('Used with Morph Targets' in material editor):</>"));
 
 			for(auto Iter = MaterialsThatNeedMorphFlagOn.CreateIterator(); Iter; ++Iter)
 			{
-				UMaterial* Material = (*Iter);
-				InfoString = FString::Printf(TEXT("%s"), *Material->GetPathName());
-				Canvas->DrawShadowedString( SubHeadingIndent, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour );
-				CurYOffset += YL + 2;
+				TextValue = ConcatenateLine(TextValue,FText::FromString((*Iter)->GetPathName()));
 			}
-			CurYOffset += 2;
 		}
 
 		if (MaterialsThatNeedSaving.Num() > 0)
 		{
-			InfoString = LOCTEXT("MaterialsNeedSaving", "The following materials need saving to fully support morph targets:").ToString();
-			Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), HeadlineColour );
-
-			CurYOffset += YL + 2;
+			TextValue = ConcatenateLine(TextValue, LOCTEXT("MaterialsNeedSaving", "<AnimViewport.WarningText>The following materials need saving to fully support morph targets:</>"));
 
 			for(auto Iter = MaterialsThatNeedSaving.CreateIterator(); Iter; ++Iter)
 			{
-				UMaterial* Material = (*Iter);
-				InfoString = FString::Printf(TEXT("%s"), *Material->GetPathName());
-				Canvas->DrawShadowedString( SubHeadingIndent, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour );
-				CurYOffset += YL + 2;
+				TextValue = ConcatenateLine(TextValue, FText::FromString((*Iter)->GetPathName()));
 			}
-			CurYOffset += 2;
 		}
 	}
 
@@ -714,16 +803,12 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 		{
 			if (Sequence->DoesNeedRebake())
 			{
-				InfoString = TEXT("Animation is being edited. To apply to raw animation data, click \"Apply\"");
-				Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour);
-				CurYOffset += YL + 2;
+				TextValue = ConcatenateLine(TextValue, LOCTEXT("ApplyRawAnimationDataWarning", "<AnimViewport.WarningText>Animation is being edited. To apply to raw animation data, click \"Apply\"</>"));
 			}
 
 			if (Sequence->DoesNeedRecompress())
 			{
-				InfoString = TEXT("Animation is being edited. To apply to compressed data (and recalculate baked additives), click \"Apply\"");
-				Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour);
-				CurYOffset += YL + 2;
+				TextValue = ConcatenateLine(TextValue, LOCTEXT("ApplyToCompressedDataWarning", "<AnimViewport.WarningText>Animation is being edited. To apply to compressed data (and recalculate baked additives), click \"Apply\"</>"));
 			}
 		}
 	}
@@ -734,14 +819,12 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 		{
 			if( PreviewMeshComponent->GetPhysicsAsset() == NULL )
 			{
-				InfoString = FString::Printf( *LOCTEXT("NeedToSetupPhysicsAssetForAccurateBounds", "You may need to setup Physics Asset to use more accurate bounds").ToString() );
+				TextValue = ConcatenateLine(TextValue, LOCTEXT("NeedToSetupPhysicsAssetForAccurateBounds", "<AnimViewport.WarningText>You may need to setup Physics Asset to use more accurate bounds</>"));
 			}
 			else
 			{
-				InfoString = FString::Printf( *LOCTEXT("NeedToSetupBoundsInPhysicsAsset", "You need to setup bounds in Physics Asset to include whole mesh").ToString() );
+				TextValue = ConcatenateLine(TextValue, LOCTEXT("NeedToSetupBoundsInPhysicsAsset", "<AnimViewport.WarningText>You need to setup bounds in Physics Asset to include whole mesh</>"));
 			}
-			Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor );
-			CurYOffset += YL + 2;
 		}
 	}
 
@@ -749,79 +832,54 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 	{
 		if (bDisplayAllInfo)
 		{
-			FSkeletalMeshResource* SkelMeshResource = PreviewMeshComponent->GetSkeletalMeshResource();
+			FSkeletalMeshRenderData* SkelMeshResource = PreviewMeshComponent->GetSkeletalMeshRenderData();
 			check(SkelMeshResource);
 
 			// Draw stats about the mesh
-			const FBoxSphereBounds& SkelBounds = PreviewMeshComponent->Bounds;
-			const float ScreenSize = ComputeBoundsScreenSize(SkelBounds.Origin, SkelBounds.SphereRadius, *View);
-
 			int32 NumBonesInUse;
 			int32 NumBonesMappedToVerts;
 			int32 NumSectionsInUse;
-			FString WeightUsage;
 
-			const int32 LODIndex = FMath::Clamp(PreviewMeshComponent->PredictedLODLevel, 0, SkelMeshResource->LODModels.Num() - 1);
-			FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
+			const int32 LODIndex = FMath::Clamp(PreviewMeshComponent->PredictedLODLevel, 0, SkelMeshResource->LODRenderData.Num() - 1);
+			FSkeletalMeshLODRenderData& LODData = SkelMeshResource->LODRenderData[LODIndex];
 
-			NumBonesInUse = LODModel.RequiredBones.Num();
-			NumBonesMappedToVerts = LODModel.ActiveBoneIndices.Num();
-			NumSectionsInUse = LODModel.Sections.Num();
+			NumBonesInUse = LODData.RequiredBones.Num();
+			NumBonesMappedToVerts = LODData.ActiveBoneIndices.Num();
+			NumSectionsInUse = LODData.RenderSections.Num();
 
 			// Calculate polys based on non clothing sections so we don't duplicate the counts.
 			uint32 NumTotalTriangles = 0;
-			int32 NumSections = LODModel.NumNonClothingSections();
+			int32 NumSections = LODData.NumNonClothingSections();
 			for(int32 SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
 			{
-				NumTotalTriangles += LODModel.Sections[SectionIndex].NumTriangles;
+				NumTotalTriangles += LODData.RenderSections[SectionIndex].NumTriangles;
 			}
 
-			InfoString = FString::Printf(TEXT("LOD: %d, Bones: %d (Mapped to Vertices: %d), Polys: %d"),
-				LODIndex,
-				NumBonesInUse,
-				NumBonesMappedToVerts,
-				NumTotalTriangles);
+			TextValue = ConcatenateLine(TextValue, FText::Format(LOCTEXT("MeshInfoFormat", "LOD: {0}, Bones: {1} (Mapped to Vertices: {2}), Polys: {3}"),
+				FText::AsNumber(LODIndex),
+				FText::AsNumber(NumBonesInUse),
+				FText::AsNumber(NumBonesMappedToVerts),
+				FText::AsNumber(NumTotalTriangles)));
 
-			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+			TextValue = ConcatenateLine(TextValue, FText::Format(LOCTEXT("ScreenSizeFOVFormat", "Current Screen Size: {0}, FOV: {1}"), FText::AsNumber(CachedScreenSize), FText::AsNumber(ViewFOV)));
 
-			InfoString = FString::Printf(TEXT("Current Screen Size: %3.2f, FOV:%3.0f"), ScreenSize, ViewFOV);
-			CurYOffset += YL + 2;
-			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
-
-			CurYOffset += 1; // --
-
-			for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
+			for (int32 SectionIndex = 0; SectionIndex < LODData.RenderSections.Num(); SectionIndex++)
 			{
-				int32 SectionVerts = LODModel.Sections[SectionIndex].GetNumVertices();
+				int32 SectionVerts = LODData.RenderSections[SectionIndex].GetNumVertices();
 
-				InfoString = FString::Printf(TEXT(" [Section %d] Verts:%d, Bones:%d"),
-					SectionIndex,
-					SectionVerts,
-					LODModel.Sections[SectionIndex].BoneMap.Num()
-					);
-
-				CurYOffset += YL + 2;
-				Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor*0.8f);
+				TextValue = ConcatenateLine(TextValue, FText::Format(LOCTEXT("SectionFormat", " [Section {0}] Verts: {1}, Bones: {2}"),
+					FText::AsNumber(SectionIndex),
+					FText::AsNumber(SectionVerts),
+					FText::AsNumber(LODData.RenderSections[SectionIndex].BoneMap.Num())
+					));
 			}
 
-			InfoString = FString::Printf(TEXT("TOTAL Verts:%d"),
-				LODModel.NumVertices);
+			TextValue = ConcatenateLine(TextValue, FText::Format(LOCTEXT("TotalVerts", "TOTAL Verts: {0}"),
+				FText::AsNumber(LODData.GetNumVertices())));
 
-			CurYOffset += 1; // --
-
-
-			CurYOffset += YL + 2;
-			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
-
-			InfoString = FString::Printf(TEXT("Sections:%d %s"),
-				NumSectionsInUse,
-				*WeightUsage
-				);
-
-			CurYOffset += YL + 2;
-			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
-
-			int32 Multiplier = 1.f;
+			TextValue = ConcatenateLine(TextValue, FText::Format(LOCTEXT("Sections", "Sections: {0}"),
+				NumSectionsInUse
+				));
 
 			if (PreviewMeshComponent->BonesOfInterest.Num() > 0)
 			{
@@ -830,26 +888,17 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 				FTransform LocalTransform = PreviewMeshComponent->BoneSpaceTransforms[BoneIndex];
 				FTransform ComponentTransform = PreviewMeshComponent->GetComponentSpaceTransforms()[BoneIndex];
 
-				CurYOffset += YL + 2;
-				InfoString = FString::Printf(TEXT("Local :%s"), *LocalTransform.ToHumanReadableString());
-				Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+				TextValue = ConcatenateLine(TextValue, FText::Format(LOCTEXT("LocalTransform", "Local: {0}"), FText::FromString(LocalTransform.ToHumanReadableString())));
 
-				CurYOffset += YL*3 + 2;
-				InfoString = FString::Printf(TEXT("Component :%s"), *ComponentTransform.ToHumanReadableString());
-				Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+				TextValue = ConcatenateLine(TextValue, FText::Format(LOCTEXT("ComponentTransform", "Component: {0}"), FText::FromString(ComponentTransform.ToHumanReadableString())));
 
-				CurYOffset += YL*3 + 2;
-				InfoString = FString::Printf(TEXT("Reference :%s"), *ReferenceTransform.ToHumanReadableString());
-				Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
-				Multiplier = 3;
+				TextValue = ConcatenateLine(TextValue, FText::Format(LOCTEXT("ReferenceTransform", "Reference: {0}"), FText::FromString(ReferenceTransform.ToHumanReadableString())));
 			}
 
-			CurYOffset += YL*Multiplier + 2;
-			InfoString = FString::Printf(TEXT("Approximate Size: %ix%ix%i"),
-				FMath::RoundToInt(PreviewMeshComponent->Bounds.BoxExtent.X * 2.0f),
-				FMath::RoundToInt(PreviewMeshComponent->Bounds.BoxExtent.Y * 2.0f),
-				FMath::RoundToInt(PreviewMeshComponent->Bounds.BoxExtent.Z * 2.0f));
-			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+			TextValue = ConcatenateLine(TextValue, FText::Format(LOCTEXT("ApproximateSize", "Approximate Size: {0}x{1}x{2}"),
+				FText::AsNumber(FMath::RoundToInt(PreviewMeshComponent->Bounds.BoxExtent.X * 2.0f)),
+				FText::AsNumber(FMath::RoundToInt(PreviewMeshComponent->Bounds.BoxExtent.Y * 2.0f)),
+				FText::AsNumber(FMath::RoundToInt(PreviewMeshComponent->Bounds.BoxExtent.Z * 2.0f))));
 
 			uint32 NumNotiesWithErrors = PreviewMeshComponent->AnimNotifyErrors.Num();
 			for (uint32 i = 0; i < NumNotiesWithErrors; ++i)
@@ -857,80 +906,60 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 				uint32 NumErrors = PreviewMeshComponent->AnimNotifyErrors[i].Errors.Num();
 				for (uint32 ErrorIdx = 0; ErrorIdx < NumErrors; ++ErrorIdx)
 				{
-					CurYOffset += YL + 2;
-					Canvas->DrawShadowedString(CurXOffset, CurYOffset, *PreviewMeshComponent->AnimNotifyErrors[i].Errors[ErrorIdx], GEngine->GetSmallFont(), FLinearColor(1.0f, 0.0f, 0.0f, 1.0f));
+					TextValue = ConcatenateLine(TextValue, FText::FromString(PreviewMeshComponent->AnimNotifyErrors[i].Errors[ErrorIdx]));
 				}
 			}
 		}
 		else // simplified default display info to be same as static mesh editor
 		{
-			FSkeletalMeshResource* SkelMeshResource = PreviewMeshComponent->GetSkeletalMeshResource();
+			FSkeletalMeshRenderData* SkelMeshResource = PreviewMeshComponent->GetSkeletalMeshRenderData();
 			check(SkelMeshResource);
 
-			const int32 LODIndex = FMath::Clamp(PreviewMeshComponent->PredictedLODLevel, 0, SkelMeshResource->LODModels.Num() - 1);
-			FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
+			const int32 LODIndex = FMath::Clamp(PreviewMeshComponent->PredictedLODLevel, 0, SkelMeshResource->LODRenderData.Num() - 1);
+			FSkeletalMeshLODRenderData& LODData = SkelMeshResource->LODRenderData[LODIndex];
 
 			// Current LOD 
-			InfoString = FString::Printf(TEXT("LOD: %d"), LODIndex);
-			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+			TextValue = ConcatenateLine(TextValue, FText::Format(LOCTEXT("LODFormat", "LOD: {0}"), FText::AsNumber(LODIndex)));
 
 			// current screen size
-			const FBoxSphereBounds& SkelBounds = PreviewMeshComponent->Bounds;
-			const float ScreenSize = ComputeBoundsScreenSize(SkelBounds.Origin, SkelBounds.SphereRadius, *View);
-
-			InfoString = FString::Printf(TEXT("Current Screen Size: %3.2f"), ScreenSize);
-			CurYOffset += YL + 2;
-			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+			TextValue = ConcatenateLine(TextValue, FText::Format(LOCTEXT("ScreenSizeFormat", "Current Screen Size: {0}"), FText::AsNumber(CachedScreenSize)));
 
 			// Triangles
 			uint32 NumTotalTriangles = 0;
-			int32 NumSections = LODModel.NumNonClothingSections();
+			int32 NumSections = LODData.NumNonClothingSections();
 			for (int32 SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
 			{
-				NumTotalTriangles += LODModel.Sections[SectionIndex].NumTriangles;
+				NumTotalTriangles += LODData.RenderSections[SectionIndex].NumTriangles;
 			}
-			InfoString = FString::Printf(TEXT("Triangles: %d"), NumTotalTriangles);
-			CurYOffset += YL + 2;
-			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+			TextValue = ConcatenateLine(TextValue, FText::Format(LOCTEXT("TrianglesFormat", "Triangles: {0}"), FText::AsNumber(NumTotalTriangles)));
 
 			// Vertices
-			InfoString = FString::Printf(TEXT("Vertices: %d"), LODModel.NumVertices);
-			CurYOffset += YL + 2;
-			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+			TextValue = ConcatenateLine(TextValue, FText::Format(LOCTEXT("VerticesFormat", "Vertices: {0}"), FText::AsNumber(LODData.GetNumVertices())));
 
 			// UV Channels
-			InfoString = FString::Printf(TEXT("UV Channels: %d"), LODModel.NumTexCoords);
-			CurYOffset += YL + 2;
-			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+			TextValue = ConcatenateLine(TextValue, FText::Format(LOCTEXT("UVChannelsFormat", "UV Channels: {0}"), FText::AsNumber(LODData.GetNumTexCoords())));
 			
 			// Approx Size 
-			CurYOffset += YL + 2;
-			InfoString = FString::Printf(TEXT("Approx Size: %ix%ix%i"),
-				FMath::RoundToInt(PreviewMeshComponent->Bounds.BoxExtent.X * 2.0f),
-				FMath::RoundToInt(PreviewMeshComponent->Bounds.BoxExtent.Y * 2.0f),
-				FMath::RoundToInt(PreviewMeshComponent->Bounds.BoxExtent.Z * 2.0f));
-			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+			TextValue = ConcatenateLine(TextValue, FText::Format(LOCTEXT("ApproxSize", "Approx Size: {0}x{1}x{2}"),
+				FText::AsNumber(FMath::RoundToInt(PreviewMeshComponent->Bounds.BoxExtent.X * 2.0f)),
+				FText::AsNumber(FMath::RoundToInt(PreviewMeshComponent->Bounds.BoxExtent.Y * 2.0f)),
+				FText::AsNumber(FMath::RoundToInt(PreviewMeshComponent->Bounds.BoxExtent.Z * 2.0f))));
 		}
 	}
 
-	if (PreviewMeshComponent->SectionIndexPreview != INDEX_NONE)
+	if (PreviewMeshComponent->GetSectionPreview() != INDEX_NONE)
 	{
 		// Notify the user if they are isolating a mesh section.
-		CurYOffset += YL + 2;
-		InfoString = LOCTEXT("MeshSectionsHiddenWarning", "Mesh Sections Hidden").ToString();
-		Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour);
-		
+		TextValue = ConcatenateLine(TextValue, LOCTEXT("MeshSectionsHiddenWarning", "Mesh Sections Hidden"));
 	}
-	if (PreviewMeshComponent->MaterialIndexPreview != INDEX_NONE)
+	if (PreviewMeshComponent->GetMaterialPreview() != INDEX_NONE)
 	{
 		// Notify the user if they are isolating a mesh section.
-		CurYOffset += YL + 2;
-		InfoString = FString::Printf(*LOCTEXT("MeshMaterialHiddenWarning", "Mesh Materials Hidden").ToString());
-		Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour);
+		TextValue = ConcatenateLine(TextValue, LOCTEXT("MeshMaterialHiddenWarning", "Mesh Materials Hidden"));
+	}
 
-	}
+	return TextValue;
 }
-
 void FAnimationViewportClient::DrawNodeDebugLines(TArray<FText>& Lines, FCanvas* Canvas, FSceneView* View)
 {
 	if(Lines.Num() > 0)
@@ -1000,19 +1029,29 @@ void FAnimationViewportClient::SetViewMode(EViewModeIndex InViewModeIndex)
 {
 	FEditorViewportClient::SetViewMode(InViewModeIndex);
 
-	ConfigOption->SetViewModeIndex(InViewModeIndex);
+	ConfigOption->SetViewModeIndex(AssetEditorToolkitPtr.Pin()->GetEditorName(), InViewModeIndex, ViewportIndex);
 }
 
 void FAnimationViewportClient::SetViewportType(ELevelViewportType InViewportType)
 {
 	FEditorViewportClient::SetViewportType(InViewportType);
 	FocusViewportOnPreviewMesh(true);
+
+	if(CameraFollowMode != EAnimationViewportCameraFollowMode::None)
+	{
+		bUsingOrbitCamera = true;
+	}
 }
 
 void FAnimationViewportClient::RotateViewportType()
 {
 	FEditorViewportClient::RotateViewportType();
 	FocusViewportOnPreviewMesh(true);
+
+	if(CameraFollowMode != EAnimationViewportCameraFollowMode::None)
+	{
+		bUsingOrbitCamera = true;
+	}
 }
 
 bool FAnimationViewportClient::InputKey( FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad )
@@ -1505,7 +1544,7 @@ void FAnimationViewportClient::TransformVertexPositionsToWorld(TArray<FFinalSkin
 }
 
 void FAnimationViewportClient::GetAllVertexIndicesUsedInSection(const FRawStaticIndexBuffer16or32Interface& IndexBuffer,
-																const FSkelMeshSection& SkelMeshSection,
+																const FSkelMeshRenderSection& SkelMeshSection,
 																TArray<int32>& OutIndices) const
 {
 
@@ -1524,11 +1563,7 @@ bool FAnimationViewportClient::PreviewComponentSelectionOverride(const UPrimitiv
 	if (InComponent == GetPreviewScene()->GetPreviewMeshComponent())
 	{
 		const USkeletalMeshComponent* Component = CastChecked<USkeletalMeshComponent>(InComponent);
-		USkeletalMesh* Mesh = Component->SkeletalMesh;
-		if (Mesh)
-		{
-			return (Mesh->SelectedEditorSection != INDEX_NONE || Mesh->SelectedEditorMaterial != INDEX_NONE);
-		}
+		return (Component->GetSelectedEditorSection() != INDEX_NONE || Component->GetSelectedEditorMaterial() != INDEX_NONE);
 	}
 
 	return false;
@@ -1550,11 +1585,11 @@ FBox FAnimationViewportClient::ComputeBoundingBoxForSelectedEditorSection() cons
 	}
 
 	const int32 LODLevel = PreviewMeshComponent->PredictedLODLevel;
-	const int32 SelectedEditorSection = SkeletalMesh->SelectedEditorSection;
-	const FSkeletalMeshResource& SkeletalMeshResource = MeshObject->GetSkeletalMeshResource();
+	const int32 SelectedEditorSection = PreviewMeshComponent->GetSelectedEditorSection();
+	const FSkeletalMeshRenderData& SkelMeshRenderData = MeshObject->GetSkeletalMeshRenderData();
 
-	const FStaticLODModel& StaticLODModel = SkeletalMeshResource.LODModels[LODLevel];
-	const FSkelMeshSection& SelectedSectionSkelMesh = StaticLODModel.Sections[SelectedEditorSection];
+	const FSkeletalMeshLODRenderData& LODData = SkelMeshRenderData.LODRenderData[LODLevel];
+	const FSkelMeshRenderSection& SelectedSectionSkelMesh = LODData.RenderSections[SelectedEditorSection];
 
 	// Get us vertices from the entire LOD model.
 	TArray<FFinalSkinVertex> SkinnedVertices;
@@ -1563,7 +1598,7 @@ FBox FAnimationViewportClient::ComputeBoundingBoxForSelectedEditorSection() cons
 
 	// Find out which of these the selected section actually uses.
 	TArray<int32> VertexIndices;
-	GetAllVertexIndicesUsedInSection(*StaticLODModel.MultiSizeIndexContainer.GetIndexBuffer(), SelectedSectionSkelMesh, VertexIndices);
+	GetAllVertexIndicesUsedInSection(*LODData.MultiSizeIndexContainer.GetIndexBuffer(), SelectedSectionSkelMesh, VertexIndices);
 
 	// Get their bounds.
 	FBox BoundingBox(ForceInitToZero);
@@ -1618,7 +1653,7 @@ void FAnimationViewportClient::FocusViewportOnPreviewMesh(bool bUseCustomCamera)
 		return;
 	}
 
-	if ( SkelMesh->SelectedEditorSection != INDEX_NONE )
+	if (PreviewMeshComponent->GetSelectedEditorSection() != INDEX_NONE )
 	{
 		const FBox SelectedSectionBounds = ComputeBoundingBoxForSelectedEditorSection();
 		
@@ -1745,9 +1780,9 @@ bool FAnimationViewportClient::IsSetShowBinormalsChecked() const
 	return false;
 }
 
-void FAnimationViewportClient::ToggleDrawUVOverlay()
+void FAnimationViewportClient::SetDrawUVOverlay(bool bInDrawUVs)
 {
-	bDrawUVs = !bDrawUVs;
+	bDrawUVs = bInDrawUVs;
 	Invalidate();
 }
 
@@ -1840,6 +1875,7 @@ void FAnimationViewportClient::HandleInvalidateViews()
 
 void FAnimationViewportClient::HandleFocusViews()
 {
+	SetCameraFollowMode(EAnimationViewportCameraFollowMode::None);
 	FocusViewportOnPreviewMesh(false);
 }
 
@@ -1874,6 +1910,55 @@ void FAnimationViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFami
 	if(bHasAudioFocus)
 	{
 		UpdateAudioListener(View);
+	}
+
+	// Cache screen size
+	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene()->GetPreviewMeshComponent();
+	if (PreviewMeshComponent != NULL && PreviewMeshComponent->MeshObject != NULL)
+	{
+		const FBoxSphereBounds& SkelBounds = PreviewMeshComponent->Bounds;
+		CachedScreenSize = ComputeBoundsScreenSize(SkelBounds.Origin, SkelBounds.SphereRadius, View);
+	}
+}
+
+void FAnimationViewportClient::HandleToggleShowFlag(FEngineShowFlags::EShowFlag EngineShowFlagIndex)
+{
+	FEditorViewportClient::HandleToggleShowFlag(EngineShowFlagIndex);
+
+	ConfigOption->SetShowGrid(EngineShowFlags.Grid);
+}
+
+void FAnimationViewportClient::OnCameraControllerChanged()
+{
+	TSharedPtr<FEditorCameraController> Override = GetAnimPreviewScene()->GetCurrentCameraOverride();
+	CameraController = Override.IsValid() ? Override.Get() : CachedDefaultCameraController;
+}
+
+FMatrix FAnimationViewportClient::CalcViewRotationMatrix(const FRotator& InViewRotation) const
+{
+	auto ComputeOrbitMatrix = [this](const FViewportCameraTransform& InViewTransform)
+	{
+		FTransform Transform =
+		FTransform( -InViewTransform.GetLookAt() ) * 
+		FTransform( OrbitRotation.Inverse() ) *
+		FTransform( FRotator(0, InViewTransform.GetRotation().Yaw,0) ) * 
+		FTransform( FRotator(0, 0, InViewTransform.GetRotation().Pitch) ) *
+		FTransform( FVector(0, (InViewTransform.GetLocation() - InViewTransform.GetLookAt()).Size(), 0) );
+
+		return Transform.ToMatrixNoScale() * FInverseRotationMatrix( FRotator(0,90.f,0) );
+	};
+
+	const FViewportCameraTransform& ViewTransform = GetViewTransform();
+
+	if (bUsingOrbitCamera)
+	{
+		// @todo vreditor: Not stereo friendly yet
+		return FTranslationMatrix(ViewTransform.GetLocation()) * ComputeOrbitMatrix(ViewTransform);
+	}
+	else
+	{
+		// Create the view matrix
+		return FInverseRotationMatrix(InViewRotation);
 	}
 }
 

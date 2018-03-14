@@ -24,7 +24,7 @@ checkpoint: editorqs
 [/OBJECT]
 [/VAR]
 
-%Steps%
+
 
 处理 Actor 的一个重要部分是了解 [转换 Actor](GettingStarted/HowTo/ManipulatingActors) 的过程，这包括移动和旋转 Actor 以及调整其比例，并包括定义其 [可移动性](Engine/Actors/Mobility)（是否允许 Actor 在游戏期间以某种方式移动或变化）。在此步骤中，我们将侧重于使用 **细节（Details）**面板来调整所选 Actor 的转换，以设置其在关卡中的位置、比例和可移动性。 
 
@@ -72,4 +72,4 @@ checkpoint: editorqs
 接下来，我们将通过“细节”（Details）面板更新应用于 Actor 的 **材质**。 
 
 
-%Steps%
+

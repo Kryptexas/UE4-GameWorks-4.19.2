@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Viewport.h: D3D viewport RHI definitions.
@@ -200,7 +200,7 @@ private:
 	ID3D12CommandQueue* pCommandQueue;
 
 	// Determine how deep the swapchain should be (based on AFR or not)
-	void CalculateSwapChainDepth();
+	void CalculateSwapChainDepth(int32 DefaultSwapChainDepth);
 
 	FCustomPresentRHIRef CustomPresent;
 

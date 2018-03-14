@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -143,35 +143,10 @@ public:
 	{
 	}
 
-	FAuthTokenGoogle(const FAuthTokenGoogle& Src) = default;
-	FAuthTokenGoogle& operator=(const FAuthTokenGoogle& Src) = default;
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-	FAuthTokenGoogle(FAuthTokenGoogle&& Src) = default;
-	FAuthTokenGoogle& operator=(FAuthTokenGoogle&& Src) = default;
-#else
-	FAuthTokenGoogle(FAuthTokenGoogle&& Src) 
-		: AuthType(Src.AuthType)
-		, AccessToken(MoveTemp(Src.AccessToken))
-		, TokenType(MoveTemp(Src.TokenType))
-		, ExpiresIn(Src.ExpiresIn)
-		, RefreshToken(MoveTemp(Src.RefreshToken))
-		, IdToken(MoveTemp(Src.IdToken))
-		, IdTokenJWT(MoveTemp(Src.IdTokenJWT))
-		, ExpiresInUTC(MoveTemp(Src.ExpiresInUTC))
-	{ }
-
-	FAuthTokenGoogle& operator=(FAuthTokenGoogle&& Src)
-	{ 
-		AuthType = Src.AuthType;
-		AccessToken = MoveTemp(Src.AccessToken);
-		TokenType = MoveTemp(Src.TokenType);
-		ExpiresIn = Src.ExpiresIn;
-		RefreshToken = MoveTemp(Src.RefreshToken);
-		IdToken = MoveTemp(Src.IdToken);
-		IdTokenJWT = MoveTemp(Src.IdTokenJWT);
-		ExpiresInUTC = MoveTemp(Src.ExpiresInUTC);
-	}
-#endif
+	FAuthTokenGoogle(FAuthTokenGoogle&&) = default;
+	FAuthTokenGoogle(const FAuthTokenGoogle&) = default;
+	FAuthTokenGoogle& operator=(FAuthTokenGoogle&&) = default;
+	FAuthTokenGoogle& operator=(const FAuthTokenGoogle&) = default;
 
 	/**
 	 * Parse a Google json auth response into an access/refresh token
